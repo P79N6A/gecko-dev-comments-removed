@@ -478,7 +478,7 @@ public:
 
 protected: 
 
-  void ParseLoop(morkEnv* ev); 
+  void ParseChunk(morkEnv* ev); 
 
   void StartParse(morkEnv* ev); 
   void StopParse(morkEnv* ev); 

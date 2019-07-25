@@ -1297,6 +1297,7 @@ mork_bool morkParser::ReadEndGroupId(morkEnv* ev)
             {
               
               outSawGroupId = morkBool_kTrue;
+              mParser_InGroup = false;
             }
             else
               ev->NewError("expected '@' after @$$}id}");
@@ -1419,20 +1420,24 @@ mork_bool
 morkParser::ReadContent(morkEnv* ev, mork_bool inInsideGroup)
 {
   int c;
-  while ( (c = this->NextChar(ev)) != EOF && ev->Good() )
+  mork_bool keep_going = true;
+  while ( keep_going && (c = this->NextChar(ev)) != EOF && ev->Good())
   {
     switch ( c )
     {
       case '[': 
         this->ReadRow(ev, '[');
+        keep_going = false;
         break;
         
       case '{': 
         this->ReadTable(ev);
+        keep_going = false;
         break;
         
       case '<': 
         this->ReadDict(ev);
+        keep_going = false;
         break;
         
       case '@': 
@@ -1467,14 +1472,18 @@ morkParser::ReadContent(morkEnv* ev, mork_bool inInsideGroup)
 void
 morkParser::OnPortState(morkEnv* ev)
 {
+  mork_bool firstTime = !mParser_InPort;
   mParser_InPort = morkBool_kTrue;
-  this->OnNewPort(ev, *mParser_PortSpan.AsPlace());
+  if (firstTime)
+    this->OnNewPort(ev, *mParser_PortSpan.AsPlace());
 
-  while ( this->ReadContent(ev,  morkBool_kFalse) )
-    ;
-  
-  mParser_InPort = morkBool_kFalse;
-  this->OnPortEnd(ev, mParser_PortSpan);
+  mork_bool done = !this->ReadContent(ev, mParser_InGroup);
+
+  if (done)
+  {
+    mParser_InPort = morkBool_kFalse;
+    this->OnPortEnd(ev, mParser_PortSpan);
+  }
   
   if ( ev->Bad() )
     mParser_State = morkParser_kBrokenState;
@@ -1503,51 +1512,48 @@ morkParser::OnStartState(morkEnv* mev)
 }
 
  void
-morkParser::ParseLoop(morkEnv* ev)
+morkParser::ParseChunk(morkEnv* ev)
 {
   mParser_Change = morkChange_kNil;
   mParser_DoMore = morkBool_kTrue;
             
-  while ( mParser_DoMore )
+  switch ( mParser_State )
   {
-    switch ( mParser_State )
-    {
-      case morkParser_kCellState: 
-        this->OnCellState(ev); break;
-        
-      case morkParser_kMetaState: 
-        this->OnMetaState(ev); break;
-        
-      case morkParser_kRowState: 
-        this->OnRowState(ev); break;
-        
-      case morkParser_kTableState: 
-        this->OnTableState(ev); break;
-        
-      case morkParser_kDictState: 
-        this->OnDictState(ev); break;
-        
-      case morkParser_kPortState: 
-        this->OnPortState(ev); break;
-        
-      case morkParser_kStartState: 
-        this->OnStartState(ev); break;
-       
-      case morkParser_kDoneState: 
-        mParser_DoMore = morkBool_kFalse;
-        mParser_IsDone = morkBool_kTrue;
-        this->StopParse(ev);
-        break;
-      case morkParser_kBrokenState: 
-        mParser_DoMore = morkBool_kFalse;
-        mParser_IsBroken = morkBool_kTrue;
-        this->StopParse(ev);
-        break;
-      default: 
-        MORK_ASSERT(morkBool_kFalse);
-        mParser_State = morkParser_kBrokenState;
-        break;
-    }
+    case morkParser_kCellState: 
+      this->OnCellState(ev); break;
+      
+    case morkParser_kMetaState: 
+      this->OnMetaState(ev); break;
+      
+    case morkParser_kRowState: 
+      this->OnRowState(ev); break;
+      
+    case morkParser_kTableState: 
+      this->OnTableState(ev); break;
+      
+    case morkParser_kDictState: 
+      this->OnDictState(ev); break;
+      
+    case morkParser_kPortState: 
+      this->OnPortState(ev); break;
+      
+    case morkParser_kStartState: 
+      this->OnStartState(ev); break;
+     
+    case morkParser_kDoneState: 
+      mParser_DoMore = morkBool_kFalse;
+      mParser_IsDone = morkBool_kTrue;
+      this->StopParse(ev);
+      break;
+    case morkParser_kBrokenState: 
+      mParser_DoMore = morkBool_kFalse;
+      mParser_IsBroken = morkBool_kTrue;
+      this->StopParse(ev);
+      break;
+    default: 
+      MORK_ASSERT(morkBool_kFalse);
+      mParser_State = morkParser_kBrokenState;
+      break;
   }
 }
     
@@ -1565,18 +1571,22 @@ morkParser::ParseMore(
     mork_pos startPos = this->HerePos();
 
     if ( !mParser_IsDone && !mParser_IsBroken )
-      this->ParseLoop(ev);
+      this->ParseChunk(ev);
   
-    mork_pos endPos = this->HerePos();
+    
+
+    mork_pos here;
+    nsresult rv = mParser_Stream->Tell(ev, &here);
+
     if ( outDone )
       *outDone = mParser_IsDone;
     if ( outBroken )
       *outBroken = mParser_IsBroken;
     if ( outPos )
-      *outPos = endPos;
+      *outPos = here;
       
-    if ( endPos > startPos )
-      outCount = (mdb_count) (endPos - startPos);
+    if ( here > startPos )
+      outCount = (mdb_count) (here - startPos);
   }
   else
   {
