@@ -108,6 +108,7 @@ public:
 protected:
   
   virtual void BindToParent(nsAccessible* aParent, PRUint32 aIndexInParent);
+  virtual void UnbindFromParent();
 
   
 
