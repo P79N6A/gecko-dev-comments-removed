@@ -179,7 +179,7 @@ nsLocaleService::nsLocaleService(void)
         }
 
         
-        char* lang = getenv("LANG");
+        const char* lang = getenv("LANG");
 #if (MOZ_PLATFORM_MAEMO >= 6)
         nsCAutoString gconfLocaleString;
         nsresult rv;
@@ -189,7 +189,7 @@ nsLocaleService::nsLocaleService(void)
             rv = gconf->GetString(NS_LITERAL_CSTRING("/meegotouch/i18n/language"),
                                   gconfLocaleString);
             if (NS_SUCCEEDED(rv) && !gconfLocaleString.IsEmpty()) {
-                lang = static_cast<const char*>(gconfLocaleString.get());
+                lang = gconfLocaleString.get();
                 
                 
                 setenv("LANG", lang, 1);
