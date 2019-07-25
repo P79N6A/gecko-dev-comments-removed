@@ -3119,7 +3119,17 @@ nsresult nsPluginHost::NewPluginURLStream(const nsString& aURL,
       
       
       
-      rv = httpChannel->SetReferrer(doc->GetDocumentURI());  
+      nsCOMPtr<nsIURI> referer;
+
+      nsCOMPtr<nsIObjectLoadingContent> olc = do_QueryInterface(element);
+      if (olc)
+        olc->GetSrcURI(getter_AddRefs(referer));
+
+
+      if (!referer)
+        referer = doc->GetDocumentURI();
+
+      rv = httpChannel->SetReferrer(referer);
       NS_ENSURE_SUCCESS(rv,rv);
     }
       
