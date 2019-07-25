@@ -54,8 +54,6 @@
 # include <string>
 #endif  
 
-#include "jsstdint.h"
-
 #include "jstypes.h"
 #include "jsutil.h"
 #include "jsclist.h"
