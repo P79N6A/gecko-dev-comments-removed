@@ -1132,8 +1132,11 @@ LeaveFunction(ParseNode *fn, Parser *parser, PropertyName *funName = NULL,
 
 
 
-            if (funtc->sc->funHasExtensibleScope() || tc->innermostWith)
+            if (funtc->sc->funHasExtensibleScope() ||
+                (outer_dn && tc->innermostWith &&
+                 outer_dn->pn_pos < tc->innermostWith->pn_pos)) {
                 DeoptimizeUsesWithin(dn, fn->pn_pos);
+            }
 
             if (!outer_dn) {
                 AtomDefnAddPtr p = tc->lexdeps->lookupForAdd(atom);
