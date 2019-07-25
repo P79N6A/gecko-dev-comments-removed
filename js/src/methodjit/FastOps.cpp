@@ -1254,7 +1254,7 @@ mjit::Compiler::convertForTypedArray(int atype, ValueRemat *vr, bool *allocated)
 
 
 
-            MaybeRegisterID reg;
+            MaybeRegisterID reg, dataReg;
             bool needsByteReg = (atype == TypedArray::TYPE_INT8 ||
                                  atype == TypedArray::TYPE_UINT8 ||
                                  atype == TypedArray::TYPE_UINT8_CLAMPED);
@@ -1262,10 +1262,12 @@ mjit::Compiler::convertForTypedArray(int atype, ValueRemat *vr, bool *allocated)
             if (!value->isType(JSVAL_TYPE_INT32) || atype == TypedArray::TYPE_UINT8_CLAMPED ||
                 (needsByteReg && frame.haveSameBacking(id, value))) {
                 
-                MaybeRegisterID dataReg;
-                if (value->mightBeType(JSVAL_TYPE_INT32) && !frame.haveSameBacking(id, value)) {
+                if (value->mightBeType(JSVAL_TYPE_INT32)) {
                     dataReg = frame.tempRegForData(value);
-                    frame.pinReg(dataReg.reg());
+
+                    
+                    if (!frame.haveSameBacking(id, value))
+                        frame.pinReg(dataReg.reg());
                 }
 
                 
@@ -1276,13 +1278,20 @@ mjit::Compiler::convertForTypedArray(int atype, ValueRemat *vr, bool *allocated)
                 else
                     reg = frame.allocReg();
                 *allocated = true;
-                if (dataReg.isSet())
-                    frame.unpinReg(dataReg.reg());
             } else {
                 if (needsByteReg)
                     reg = frame.tempRegInMaskForData(value, Registers::SingleByteRegs).reg();
                 else
                     reg = frame.tempRegForData(value);
+            }
+
+            
+            MaybeRegisterID typeReg;
+            if (!value->isTypeKnown()) {
+                
+                
+                JS_ASSERT(*allocated);
+                typeReg = frame.tempRegForType(value);
             }
 
             MaybeJump intDone;
@@ -1291,11 +1300,14 @@ mjit::Compiler::convertForTypedArray(int atype, ValueRemat *vr, bool *allocated)
                 MaybeJump notInt;
                 if (!value->isTypeKnown()) {
                     JS_ASSERT(*allocated);
-                    notInt = frame.testInt32(Assembler::NotEqual, value);
+                    notInt = masm.testInt32(Assembler::NotEqual, typeReg.reg());
                 }
 
-                if (*allocated)
-                    masm.move(frame.tempRegForData(value), reg.reg());
+                if (*allocated) {
+                    masm.move(dataReg.reg(), reg.reg());
+                    if (!frame.haveSameBacking(id, value))
+                        frame.unpinReg(dataReg.reg());
+                }
 
                 if (atype == TypedArray::TYPE_UINT8_CLAMPED)
                     masm.clampInt32ToUint8(reg.reg());
@@ -1308,7 +1320,7 @@ mjit::Compiler::convertForTypedArray(int atype, ValueRemat *vr, bool *allocated)
             if (value->mightBeType(JSVAL_TYPE_DOUBLE)) {
                 
                 if (!value->isTypeKnown()) {
-                    Jump notNumber = frame.testDouble(Assembler::NotEqual, value);
+                    Jump notNumber = masm.testDouble(Assembler::NotEqual, typeReg.reg());
                     stubcc.linkExit(notNumber, Uses(3));
                 }
 
