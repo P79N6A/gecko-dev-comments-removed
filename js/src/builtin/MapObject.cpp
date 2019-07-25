@@ -90,14 +90,10 @@ HashableValue::setValue(JSContext *cx, const Value &v)
         if (JSDOUBLE_IS_INT32(d, &i)) {
             
             value = Int32Value(i);
-        } else {
-#ifdef DEBUG
+        } else if (JSDOUBLE_IS_NaN(d)) {
             
-            jsval_layout a, b;
-            a.asDouble = d;
-            b.asDouble = JS_CANONICALIZE_NAN(d);
-            JS_ASSERT(a.asBits == b.asBits);
-#endif
+            value = DoubleValue(js_NaN);
+        } else {
             value = v;
         }
     } else {
