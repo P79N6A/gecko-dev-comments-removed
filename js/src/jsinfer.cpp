@@ -3985,7 +3985,7 @@ public:
 
 
 
-        if (type == TYPE_UNKNOWN)
+        if (!object->newScriptCleared && type == TYPE_UNKNOWN)
             object->clearNewScript(cx);
     }
 
