@@ -116,13 +116,15 @@ static PRLogModuleInfo* gJSDiagnostics;
 #define NS_CC_SKIPPABLE_DELAY       400 // ms
 
 
+
 #define NS_CC_FORCED                (2 * 60 * PR_USEC_PER_SEC) // 2 min
+#define NS_CC_FORCED_PURPLE_LIMIT   10
 
 
 #define NS_MAX_CC_LOCKEDOUT_TIME    (5 * PR_USEC_PER_SEC) // 5 seconds
 
 
-#define NS_CC_PURPLE_LIMIT          250
+#define NS_CC_PURPLE_LIMIT          200
 
 #define JAVASCRIPT nsIProgrammingLanguage::JAVASCRIPT
 
@@ -3005,6 +3007,25 @@ DoMergingCC(bool aForced)
 
 }
 
+static void
+FireForgetSkippable(PRUint32 aSuspected, bool aRemoveChildless)
+{
+  PRTime startTime = PR_Now();
+  nsCycleCollector_forgetSkippable(aRemoveChildless);
+  sPreviousSuspectedCount = nsCycleCollector_suspectedCount();
+  ++sCleanupsSinceLastGC;
+  PRTime delta = PR_Now() - startTime;
+  if (sMinForgetSkippableTime > delta) {
+    sMinForgetSkippableTime = delta;
+  }
+  if (sMaxForgetSkippableTime < delta) {
+    sMaxForgetSkippableTime = delta;
+  }
+  sTotalForgetSkippableTime += delta;
+  sRemovedPurples += (aSuspected - sPreviousSuspectedCount);
+  ++sForgetSkippableBeforeCC;
+}
+
 
 void
 nsJSContext::CycleCollectNow(nsICycleCollectorListener *aListener,
@@ -3031,14 +3052,13 @@ nsJSContext::CycleCollectNow(nsICycleCollectorListener *aListener,
 
   
   if (sCleanupsSinceLastGC < 2 && aExtraForgetSkippableCalls >= 0) {
-    for (;sCleanupsSinceLastGC < 2; ++sCleanupsSinceLastGC) {
-      nsCycleCollector_forgetSkippable();
+    while (sCleanupsSinceLastGC < 2) {
+      FireForgetSkippable(nsCycleCollector_suspectedCount(), false);
     }
   }
 
   for (PRInt32 i = 0; i < aExtraForgetSkippableCalls; ++i) {
-    nsCycleCollector_forgetSkippable();
-    ++sCleanupsSinceLastGC;
+    FireForgetSkippable(nsCycleCollector_suspectedCount(), false);
   }
 
   bool mergingCC = DoMergingCC(aForced);
@@ -3183,26 +3203,8 @@ ShouldTriggerCC(PRUint32 aSuspected)
 {
   return sNeedsFullCC ||
          aSuspected > NS_CC_PURPLE_LIMIT ||
-         sLastCCEndTime + NS_CC_FORCED < PR_Now();
-}
-
-static void
-TimerFireForgetSkippable(PRUint32 aSuspected, bool aRemoveChildless)
-{
-  PRTime startTime = PR_Now();
-  nsCycleCollector_forgetSkippable(aRemoveChildless);
-  sPreviousSuspectedCount = nsCycleCollector_suspectedCount();
-  ++sCleanupsSinceLastGC;
-  PRTime delta = PR_Now() - startTime;
-  if (sMinForgetSkippableTime > delta) {
-    sMinForgetSkippableTime = delta;
-  }
-  if (sMaxForgetSkippableTime < delta) {
-    sMaxForgetSkippableTime = delta;
-  }
-  sTotalForgetSkippableTime += delta;
-  sRemovedPurples += (aSuspected - sPreviousSuspectedCount);
-  ++sForgetSkippableBeforeCC;
+         (aSuspected > NS_CC_FORCED_PURPLE_LIMIT &&
+          sLastCCEndTime + NS_CC_FORCED < PR_Now());
 }
 
 static void
@@ -3236,7 +3238,7 @@ CCTimerFired(nsITimer *aTimer, void *aClosure)
   PRUint32 suspected = nsCycleCollector_suspectedCount();
   if (isLateTimerFire && ShouldTriggerCC(suspected)) {
     if (sCCTimerFireCount == numEarlyTimerFires + 1) {
-      TimerFireForgetSkippable(suspected, true);
+      FireForgetSkippable(suspected, true);
       if (ShouldTriggerCC(nsCycleCollector_suspectedCount())) {
         
         
@@ -3249,7 +3251,7 @@ CCTimerFired(nsITimer *aTimer, void *aClosure)
     }
   } else if ((sPreviousSuspectedCount + 100) <= suspected) {
     
-    TimerFireForgetSkippable(suspected, false);
+    FireForgetSkippable(suspected, false);
   }
 
   if (isLateTimerFire) {
@@ -3351,9 +3353,7 @@ nsJSContext::MaybePokeCC()
     return;
   }
 
-  if (sNeedsFullCC ||
-      nsCycleCollector_suspectedCount() > 100 ||
-      sLastCCEndTime + NS_CC_FORCED < PR_Now()) {
+  if (ShouldTriggerCC(nsCycleCollector_suspectedCount())) {
     sCCTimerFireCount = 0;
     CallCreateInstance("@mozilla.org/timer;1", &sCCTimer);
     if (!sCCTimer) {
