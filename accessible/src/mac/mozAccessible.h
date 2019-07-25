@@ -44,6 +44,18 @@
 
 @class mozRootAccessible;
 
+
+
+
+
+
+
+inline id <mozAccessible>
+GetObjectOrRepresentedView(id <mozAccessible> aObject)
+{
+  return [aObject hasRepresentedView] ? [aObject representedView] : aObject;
+}
+
 @interface mozAccessible : NSObject <mozAccessible>
 {
   
