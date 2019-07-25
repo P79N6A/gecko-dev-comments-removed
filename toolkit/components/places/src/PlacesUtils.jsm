@@ -2049,14 +2049,6 @@ var PlacesUtils = {
     }
 
   },
-
-  
-
-
-
-  startPlacesDBUtils: function PU_startPlacesDBUtils() {
-    Cu.import("resource://gre/modules/PlacesDBUtils.jsm");
-  }
 };
 
 XPCOMUtils.defineLazyServiceGetter(PlacesUtils, "history",
