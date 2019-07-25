@@ -46,18 +46,17 @@
 G_BEGIN_DECLS
 
 
-void componentInterfaceInitCB(AtkComponentIface *aIface);
-AtkObject *refAccessibleAtPointCB(AtkComponent *aComponent,
-                                  gint aAccX, gint aAccY,
+void componentInterfaceInitCB(AtkComponentIface* aIface);
+AtkObject* refAccessibleAtPointCB(AtkComponent* aComponent,
+                                  gint aX, gint aY,
                                   AtkCoordType aCoordType);
-void getExtentsCB(AtkComponent *aComponent,
-                  gint *aAccX, gint *aAccY,
-                  gint *aAccWidth, gint *aAccHeight,
+void getExtentsCB(AtkComponent* aComponent,
+                  gint* aX, gint* aY, gint* aWidth, gint* aHeight,
                   AtkCoordType aCoordType);
 
 
 
-gboolean grabFocusCB(AtkComponent *aComponent);
+gboolean grabFocusCB(AtkComponent* aComponent);
 
 
 
@@ -70,6 +69,11 @@ gboolean grabFocusCB(AtkComponent *aComponent);
 
 
 
+AtkObject* refAccessibleAtPointHelper(nsAccessibleWrap* aAccWrap,
+                                      gint aX, gint aY, AtkCoordType aCoordType);
+void getExtentsHelper(nsAccessibleWrap* aAccWrap,
+                      gint* aX, gint* aY, gint* aWidth, gint* aHeight,
+                      AtkCoordType aCoordType);
 
 G_END_DECLS
 
