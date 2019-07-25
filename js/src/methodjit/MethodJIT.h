@@ -167,7 +167,6 @@ typedef JSString * (JS_FASTCALL *JSStrStub)(VMFrame &);
 typedef JSString * (JS_FASTCALL *JSStrStubUInt32)(VMFrame &, uint32);
 typedef void (JS_FASTCALL *VoidStubJSObj)(VMFrame &, JSObject *);
 typedef void (JS_FASTCALL *VoidStubPC)(VMFrame &, jsbytecode *);
-typedef JSBool (JS_FASTCALL *BoolStubUInt32)(VMFrame &f, uint32);
 
 #define JS_UNJITTABLE_METHOD (reinterpret_cast<void*>(1))
 
@@ -181,13 +180,11 @@ struct JITScript {
     uint32          nCallSites;
 #ifdef JS_MONOIC
     uint32          nMICs;           
-    uint32          nCallICs;        
 #endif
 #ifdef JS_POLYIC
     uint32          nPICs;           
 #endif
     void            *invoke;         
-    void            *arityCheck;     
     uint32          *escaping;       
     uint32          nescaping;       
 };
@@ -210,9 +207,6 @@ ProfileStubCall(VMFrame &f);
 
 CompileStatus
 TryCompile(JSContext *cx, JSScript *script, JSFunction *fun, JSObject *scopeChain);
-
-void
-TraceScriptCache(JSTracer *trc, JSScript *script);
 
 void
 ReleaseScriptCode(JSContext *cx, JSScript *script);
