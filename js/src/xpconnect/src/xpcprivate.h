@@ -59,6 +59,7 @@
 #include "jsdbgapi.h"
 #include "jsgc.h"
 #include "jscompartment.h"
+#include "xpcpublic.h"
 #include "nscore.h"
 #include "nsXPCOM.h"
 #include "nsAutoPtr.h"
@@ -3927,11 +3928,6 @@ xpc_DumpJSObject(JSObject* obj);
 extern JSBool
 xpc_InstallJSDebuggerKeywordHandler(JSRuntime* rt);
 
-nsresult
-xpc_CreateGlobalObject(JSContext *cx, JSClass *clasp,
-                       const nsACString &origin, nsIPrincipal *principal,
-                       JSObject **global, JSCompartment **compartment);
-
 
 
 
@@ -4383,7 +4379,8 @@ xpc_GetGlobalForObject(JSObject *obj)
 
 
 nsresult
-xpc_CreateSandboxObject(JSContext * cx, jsval * vp, nsISupports *prinOrSop);
+xpc_CreateSandboxObject(JSContext * cx, jsval * vp, nsISupports *prinOrSop,
+                        JSObject *proto, bool preferXray);
 
 
 
@@ -4426,6 +4423,21 @@ xpc_SameScope(XPCWrappedNativeScope *objectscope,
 
 nsISupports *
 XPC_GetIdentityObject(JSContext *cx, JSObject *obj);
+
+namespace xpc {
+
+struct CompartmentPrivate
+{
+  CompartmentPrivate(char *origin, bool preferXrays)
+    : origin(origin),
+      preferXrays(preferXrays)
+  {
+  }
+  char *origin;
+  bool preferXrays;
+};
+
+}
 
 #ifdef XPC_IDISPATCH_SUPPORT
 

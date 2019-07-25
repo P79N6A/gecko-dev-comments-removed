@@ -146,7 +146,18 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *obj, JSObject *wrappedProto, JSO
     JSWrapper *wrapper;
     if (AccessCheck::isChrome(target)) {
         if (AccessCheck::isChrome(origin)) {
-            wrapper = &JSCrossCompartmentWrapper::singleton;
+            
+            
+            if (static_cast<xpc::CompartmentPrivate*>(target->data)->preferXrays &&
+                IS_WN_WRAPPER(obj)) {
+                typedef XrayWrapper<JSCrossCompartmentWrapper, CrossCompartmentXray> Xray;
+                wrapper = &Xray::singleton;
+                xrayHolder = Xray::createHolder(cx, obj, parent);
+                if (!xrayHolder)
+                    return nsnull;
+            } else {
+                wrapper = &JSCrossCompartmentWrapper::singleton;
+            }
         } else if (flags & WAIVE_XRAY_WRAPPER_FLAG) {
             
             
@@ -178,7 +189,17 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *obj, JSObject *wrappedProto, JSO
         }
     } else if (AccessCheck::isSameOrigin(origin, target)) {
         
-        wrapper = &JSCrossCompartmentWrapper::singleton;
+        
+        if (static_cast<xpc::CompartmentPrivate*>(target->data)->preferXrays &&
+            IS_WN_WRAPPER(obj)) {
+            typedef XrayWrapper<JSCrossCompartmentWrapper, CrossCompartmentXray> Xray;
+            wrapper = &Xray::singleton;
+            xrayHolder = Xray::createHolder(cx, obj, parent);
+            if (!xrayHolder)
+                return nsnull;
+        } else {
+            wrapper = &JSCrossCompartmentWrapper::singleton;
+        }
     } else {
         
         
