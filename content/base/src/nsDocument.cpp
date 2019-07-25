@@ -2222,23 +2222,29 @@ nsDocument::InitCSP()
     PR_LOG(gCspPRLog, PR_LOG_DEBUG, ("CSP Loaded"));
 #endif
 
-    if (!cspHeaderValue.IsEmpty()) {
-      mCSP->RefineEnforcedPolicy(cspHeaderValue, chanURI);
+    
+    
+    
+    
+    if (cspHeaderValue.IsEmpty()) {
+      mCSP->SetReportOnlyMode(true);
+      mCSP->RefinePolicy(cspROHeaderValue, chanURI);
 #ifdef PR_LOGGING 
       {
         PR_LOG(gCspPRLog, PR_LOG_DEBUG, 
-                ("CSP refined with policy: \"%s\"",
-                  NS_ConvertUTF16toUTF8(cspHeaderValue).get()));
+                ("CSP (report only) refined, policy: \"%s\"", 
+                  NS_ConvertUTF16toUTF8(cspROHeaderValue).get()));
       }
 #endif
-    }
-    if (!cspROHeaderValue.IsEmpty()) {
-      mCSP->RefineReportOnlyPolicy(cspROHeaderValue, chanURI);
+    } else {
+      
+      
+      mCSP->RefinePolicy(cspHeaderValue, chanURI);
 #ifdef PR_LOGGING 
       {
         PR_LOG(gCspPRLog, PR_LOG_DEBUG, 
-               ("CSP (report-only) refined with policy: \"%s\"",
-                NS_ConvertUTF16toUTF8(cspROHeaderValue).get()));
+               ("CSP refined, policy: \"%s\"",
+                NS_ConvertUTF16toUTF8(cspHeaderValue).get()));
       }
 #endif
     }
