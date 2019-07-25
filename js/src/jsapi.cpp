@@ -3007,51 +3007,38 @@ JS_NewObjectForConstructor(JSContext *cx, const jsval *vp)
 }
 
 JS_PUBLIC_API(JSBool)
-JS_SealObject(JSContext *cx, JSObject *obj, JSBool deep)
+JS_FreezeObject(JSContext *cx, JSObject *obj)
+{
+    CHECK_REQUEST(cx);
+    assertSameCompartment(cx, obj);
+
+    return obj->freeze(cx);
+}
+
+JS_PUBLIC_API(JSBool)
+JS_DeepFreezeObject(JSContext *cx, JSObject *obj)
 {
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj);
 
     
-    if (obj->sealed())
+    if (obj->isExtensible())
         return true;
 
-    if (obj->isDenseArray() && !obj->makeDenseArraySlow(cx))
+    if (!obj->freeze(cx))
         return false;
 
-    if (!obj->isNative()) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                             JSMSG_CANT_SEAL_OBJECT,
-                             obj->getClass()->name);
-        return false;
-    }
-
-#ifdef JS_THREADSAFE
     
-    JS_ASSERT(obj->title.ownercx == cx);
-#endif
-
-    
-    JSIdArray *ida = JS_Enumerate(cx, obj);
-    if (!ida)
-        return false;
-    JS_DestroyIdArray(cx, ida);
-
-    
-    obj->seal(cx);
-    if (!deep)
-        return true;
-
-    
-    for (uint32 i = 0, n = obj->slotSpan(); i != n; ++i) {
+    for (uint32 i = 0, n = obj->slotSpan(); i < n; ++i) {
         const Value &v = obj->getSlot(i);
         if (i == JSSLOT_PRIVATE && (obj->getClass()->flags & JSCLASS_HAS_PRIVATE))
             continue;
         if (v.isPrimitive())
             continue;
-        if (!JS_SealObject(cx, &v.toObject(), deep))
+        if (!JS_DeepFreezeObject(cx, &v.toObject()))
             return false;
     }
+
     return true;
 }
 

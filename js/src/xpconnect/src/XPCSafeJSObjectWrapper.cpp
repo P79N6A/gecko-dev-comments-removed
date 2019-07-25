@@ -370,7 +370,7 @@ AttachNewConstructorObject(XPCCallContext &ccx, JSObject *aGlobalObject)
   
   
   ::JS_SetPrototype(ccx, class_obj, nsnull);
-  if (!::JS_SealObject(ccx, class_obj, JS_FALSE)) {
+  if (!::JS_FreezeObject(ccx, class_obj)) {
     NS_WARNING("Failed to seal XPCSafeJSObjectWrapper.prototype");
     return PR_FALSE;
   }

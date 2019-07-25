@@ -373,7 +373,7 @@ Library::Declare(JSContext* cx, uintN argc, jsval* vp)
   
   
   
-  if (isFunction && !JS_SealObject(cx, result, JS_FALSE))
+  if (isFunction && !JS_FreezeObject(cx, result))
     return JS_FALSE;
 
   return JS_TRUE;

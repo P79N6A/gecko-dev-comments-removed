@@ -682,7 +682,7 @@ js_GetSlotThreadSafe(JSContext *cx, JSObject *obj, uint32 slot)
 
 
     if (CX_THREAD_IS_RUNNING_GC(cx) ||
-        obj->sealed() ||
+        !obj->isExtensible() ||
         (obj->title.ownercx && ClaimTitle(&obj->title, cx))) {
         return Jsvalify(obj->getSlot(slot));
     }
@@ -760,7 +760,7 @@ js_SetSlotThreadSafe(JSContext *cx, JSObject *obj, uint32 slot, jsval v)
 
 
     if (CX_THREAD_IS_RUNNING_GC(cx) ||
-        obj->sealed() ||
+        !obj->isExtensible() ||
         (obj->title.ownercx && ClaimTitle(&obj->title, cx))) {
         obj->lockedSetSlot(slot, Valueify(v));
         return;
@@ -1245,7 +1245,7 @@ js_LockObj(JSContext *cx, JSObject *obj)
     if (CX_THREAD_IS_RUNNING_GC(cx))
         return;
 
-    if (obj->sealed() && !cx->thread->lockedSealedTitle) {
+    if (!obj->isExtensible() && !cx->thread->lockedSealedTitle) {
         cx->thread->lockedSealedTitle = &obj->title;
         return;
     }

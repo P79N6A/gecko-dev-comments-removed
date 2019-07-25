@@ -1928,8 +1928,19 @@ extern JS_PUBLIC_API(JSObject *)
 JS_NewObjectWithGivenProto(JSContext *cx, JSClass *clasp, JSObject *proto,
                            JSObject *parent);
 
+
+
+
+
+
 extern JS_PUBLIC_API(JSBool)
-JS_SealObject(JSContext *cx, JSObject *obj, JSBool deep);
+JS_DeepFreezeObject(JSContext *cx, JSObject *obj);
+
+
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_FreezeObject(JSContext *cx, JSObject *obj);
 
 extern JS_PUBLIC_API(JSObject *)
 JS_ConstructObject(JSContext *cx, JSClass *clasp, JSObject *proto,

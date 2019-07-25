@@ -882,6 +882,18 @@ typedef JSBool
 typedef JSBool
 (* CallOp)(JSContext *cx, uintN argc, Value *vp);
 
+class AutoIdVector;
+
+
+
+
+
+
+
+
+typedef JSBool
+(* FixOp)(JSContext *cx, JSObject *obj, bool *fixed, AutoIdVector *props);
+
 static inline Native            Valueify(JSNative f)          { return (Native)f; }
 static inline JSNative          Jsvalify(Native f)            { return (JSNative)f; }
 static inline PropertyOp        Valueify(JSPropertyOp f)      { return (PropertyOp)f; }
@@ -957,6 +969,7 @@ struct ObjectOps {
     js::NewEnumerateOp      enumerate;
     JSTypeOfOp              typeOf;
     JSTraceOp               trace;
+    js::FixOp               fix;
     JSObjectOp              thisObject;
     JSFinalizeOp            clear;
 };
