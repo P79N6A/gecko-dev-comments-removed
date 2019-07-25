@@ -610,7 +610,7 @@ public class PanZoomController
             boolean flingingX = mX.advanceFling();
             boolean flingingY = mY.advanceFling();
 
-            boolean overscrolled = ((mX.overscrolled() || mY.overscrolled()) && !mSubscroller.scrolling());
+            boolean overscrolled = (mX.overscrolled() || mY.overscrolled());
 
             
             if (flingingX || flingingY) {
@@ -622,7 +622,7 @@ public class PanZoomController
 
 
 
-                float threshold = (overscrolled ? STOPPED_THRESHOLD : FLING_STOPPED_THRESHOLD);
+                float threshold = (overscrolled && !mSubscroller.scrolling() ? STOPPED_THRESHOLD : FLING_STOPPED_THRESHOLD);
                 if (getVelocity() >= threshold) {
                     
                     return;
@@ -633,9 +633,6 @@ public class PanZoomController
             }
 
             
-
-
-
             if (overscrolled) {
                 bounce();
             } else {
