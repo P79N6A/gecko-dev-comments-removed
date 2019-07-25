@@ -460,12 +460,6 @@ protected:
   void                    StopFlashing();
   static PRBool           IsTopLevelMouseExit(HWND aWnd);
   static void             SetupKeyModifiersSequence(nsTArray<KeyPair>* aArray, PRUint32 aModifiers);
-  
-
-
-
-
-
   nsresult                SetWindowClipRegion(const nsTArray<nsIntRect>& aRects,
                                               PRBool aIntersectWithExisting);
   nsIntRegion             GetRegionToPaint(PRBool aForceFullRepaint, 
