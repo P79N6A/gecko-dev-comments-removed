@@ -405,38 +405,25 @@ TokenStream::getChar()
 
             if (nl < userbuf.limit) {
                 if (*nl == '\r') {
-                    if (linebuf.base[len-1] == '\r') {
-                        
-
-
-
-
-
-                        if (nl + 1 == userbuf.limit && file) {
-                            len--;
-                            flags |= TSF_CRFLAG; 
-                            if (len == 0) {
-                                
-
-
-
-
-
-                                return getChar();
-                            }
-                        } else {
-                            linebuf.base[len-1] = '\n';
-                        }
-                    }
+                    
+                    
+                    
+                    JS_ASSERT(linebuf.base[len-1] == '\r');
+                    linebuf.base[len-1] = '\n';
                 } else if (*nl == '\n') {
-                    if (nl > userbuf.base &&
-                        nl[-1] == '\r' &&
-                        linebuf.base[len-2] == '\r') {
+                    if (nl > userbuf.base && nl[-1] == '\r') {
+                        
+                        
+                        
+                        
+                        JS_ASSERT(linebuf.base[len-2] == '\r' &&
+                                  linebuf.base[len-1] == '\n');
+                        linebuf.base[len-2] = '\n';
                         len--;
-                        JS_ASSERT(linebuf.base[len] == '\n');
-                        linebuf.base[len-1] = '\n';
                     }
                 } else if (*nl == LINE_SEPARATOR || *nl == PARA_SEPARATOR) {
+                    JS_ASSERT(linebuf.base[len-1] == LINE_SEPARATOR ||
+                              linebuf.base[len-1] == PARA_SEPARATOR);
                     linebuf.base[len-1] = '\n';
                 }
             }
