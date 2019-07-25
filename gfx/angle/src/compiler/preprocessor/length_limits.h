@@ -15,9 +15,7 @@
 
 
 
-
-
-#define MAX_SYMBOL_NAME_LEN 250
+#define MAX_SYMBOL_NAME_LEN 256
 #define MAX_STRING_LEN 511
 
 #endif 
