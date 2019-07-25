@@ -13588,7 +13588,7 @@ TraceRecorder::record_JSOP_MOREITER()
     LIns* cond_ins;
 
     
-    if (clasp == &js_IteratorClass.base) {
+    if (guardClass(iterobj, iterobj_ins, &js_IteratorClass.base, snapshot(BRANCH_EXIT), ACC_OTHER)) {
         NativeIterator *ni = (NativeIterator *) iterobj->getPrivate();
         jsval *cursor = ni->props_cursor;
         jsval *end = ni->props_end;
