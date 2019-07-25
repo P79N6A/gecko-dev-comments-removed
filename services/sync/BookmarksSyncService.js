@@ -384,18 +384,6 @@ BookmarksSyncService.prototype = {
     return cmds;
   },
 
-  _conflicts: function BSS__conflicts(a, b) {
-    
-
-
-
-
-
-    if ((a.GUID == b.GUID) && !this._deepEquals(a, b))
-      return true;
-    return false;
-  },
-
   
   
   
@@ -484,20 +472,11 @@ BookmarksSyncService.prototype = {
     }
   },
 
-  
-  
-  
-  
-
-  
-  
-
-  
-  
-  
-
-  
-  
+  _conflicts: function BSS__conflicts(a, b) {
+    if ((a.GUID == b.GUID) && !this._deepEquals(a, b))
+      return true;
+    return false;
+  },
 
   _reconcile: function BSS__reconcile(onComplete, listA, listB) {
     let cont = yield;
@@ -508,7 +487,6 @@ BookmarksSyncService.prototype = {
     let conflicts = [[], []];
 
     for (let i = 0; i < listA.length; i++) {
-
       this._timer.initWithCallback(listener, 0, this._timer.TYPE_ONE_SHOT);
       yield; 
 
@@ -533,7 +511,6 @@ BookmarksSyncService.prototype = {
     listB = listB.filter(function(elt) { return elt });
 
     for (let i = 0; i < listA.length; i++) {
-
       this._timer.initWithCallback(listener, 0, this._timer.TYPE_ONE_SHOT);
       yield; 
 
@@ -551,7 +528,6 @@ BookmarksSyncService.prototype = {
     }
 
     for (let i = 0; i < listA.length; i++) {
-
       this._timer.initWithCallback(listener, 0, this._timer.TYPE_ONE_SHOT);
       yield; 
 
@@ -568,7 +544,6 @@ BookmarksSyncService.prototype = {
         propagations[1].push(listA[i]);
     }
     for (let j = 0; j < listB.length; j++) {
-
       this._timer.initWithCallback(listener, 0, this._timer.TYPE_ONE_SHOT);
       yield; 
 
