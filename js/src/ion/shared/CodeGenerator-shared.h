@@ -201,6 +201,13 @@ class CodeGeneratorShared : public LInstructionVisitor
     }
 
   public:
+    
+    
+    
+    
+    inline void saveLive(LInstruction *ins);
+    inline void restoreLive(LInstruction *ins);
+
     template <typename T>
     void pushArg(const T &t) {
         masm.Push(t);

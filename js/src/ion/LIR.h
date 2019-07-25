@@ -683,9 +683,6 @@ class LInstruction
     void assignPostSnapshot(LSnapshot *snapshot);
     void initSafepoint();
 
-    
-    RegisterSet liveRegisters();
-
     virtual void print(FILE *fp);
     virtual void printName(FILE *fp);
     virtual void printOperands(FILE *fp);
@@ -964,6 +961,21 @@ class LSafepoint : public TempObject
     }
     SlotList &gcSlots() {
         return gcSlots_;
+    }
+    
+    
+    
+    
+    RegisterSet restRegs() const {
+        RegisterSet gc = RegisterSet(gcRegs(), FloatRegisterSet());
+        RegisterSet wrapper =
+            RegisterSet(GeneralRegisterSet(Registers::WrapperMask),
+                        FloatRegisterSet(FloatRegisters::WrapperMask));
+        RegisterSet rest =
+            RegisterSet::Intersect(RegisterSet::Intersect(wrapper, liveRegs()),
+                                   RegisterSet::Not(gc));
+
+        return rest;
     }
 #ifdef JS_NUNBOX32
     bool addValueSlot(uint32 slot) {
