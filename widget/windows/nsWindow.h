@@ -482,9 +482,6 @@ protected:
   nsIntRegion             GetRegionToPaint(bool aForceFullRepaint, 
                                            PAINTSTRUCT ps, HDC aDC);
   static void             ActivateOtherWindowHelper(HWND aWnd);
-#ifdef ACCESSIBILITY
-  static STDMETHODIMP_(LRESULT) LresultFromObject(REFIID riid, WPARAM wParam, LPUNKNOWN pAcc);
-#endif 
   void                    ClearCachedResources();
 
   nsPopupType PopupType() { return mPopupType; }
@@ -616,12 +613,6 @@ protected:
   
   
   TimeStamp mLastPaintEndTime;
-
-#ifdef ACCESSIBILITY
-  static BOOL           sIsAccessibilityOn;
-  static HINSTANCE      sAccLib;
-  static LPFNLRESULTFROMOBJECT sLresultFromObject;
-#endif 
 
   
   

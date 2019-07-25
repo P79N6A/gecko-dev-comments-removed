@@ -308,7 +308,10 @@ nsMIMEHeaderParamImpl::DoParameterInternal(const char *aHeaderValue,
         else if (*valueEnd == '"')
           break;
       }
-      str = valueEnd + 1;
+      str = valueEnd;
+      
+      if (*valueEnd)
+        str++;
     }
 
     

@@ -6947,7 +6947,7 @@ mjit::Compiler::jsop_regexp()
 
 
 
-    if (!reobj->makePrivateNow(cx))
+    if (!reobj->getShared(cx))
         return false;
 
     RegisterID result = frame.allocReg();

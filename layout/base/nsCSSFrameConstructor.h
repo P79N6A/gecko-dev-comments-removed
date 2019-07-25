@@ -56,6 +56,7 @@
 #include "nsCSSPseudoElements.h"
 #include "RestyleTracker.h"
 #include "nsIAnonymousContentCreator.h"
+#include "nsFrameManager.h"
 
 class nsIDocument;
 struct nsFrameItems;
@@ -64,7 +65,6 @@ class nsStyleContext;
 struct nsStyleContent;
 struct nsStyleDisplay;
 class nsIPresShell;
-class nsFrameManager;
 class nsIDOMHTMLSelectElement;
 class nsPresContext;
 class nsStyleChangeList;
@@ -79,7 +79,7 @@ class nsRefreshDriver;
 class nsFrameConstructorState;
 class nsFrameConstructorSaveState;
 
-class nsCSSFrameConstructor
+class nsCSSFrameConstructor : public nsFrameManager
 {
   friend class nsRefreshDriver;
 
@@ -531,11 +531,11 @@ private:
   
   
   
-  nsresult AppendFrames(nsFrameConstructorState&       aState,
-                        nsIFrame*                      aParentFrame,
-                        nsFrameItems&                  aFrameList,
-                        nsIFrame*                      aPrevSibling,
-                        bool                           aIsRecursiveCall = false);
+  nsresult AppendFramesToParent(nsFrameConstructorState&       aState,
+                                nsIFrame*                      aParentFrame,
+                                nsFrameItems&                  aFrameList,
+                                nsIFrame*                      aPrevSibling,
+                                bool                           aIsRecursiveCall = false);
 
   
   
@@ -1661,13 +1661,11 @@ private:
   
   nsresult RemoveLetterFrames(nsPresContext*  aPresContext,
                               nsIPresShell*    aPresShell,
-                              nsFrameManager*  aFrameManager,
                               nsIFrame*        aBlockFrame);
 
   
   nsresult RemoveFirstLetterFrames(nsPresContext*  aPresContext,
                                    nsIPresShell*    aPresShell,
-                                   nsFrameManager*  aFrameManager,
                                    nsIFrame*        aFrame,
                                    nsIFrame*        aBlockFrame,
                                    bool*          aStopLooking);
@@ -1675,7 +1673,6 @@ private:
   
   nsresult RemoveFloatingFirstLetterFrames(nsPresContext*  aPresContext,
                                            nsIPresShell*    aPresShell,
-                                           nsFrameManager*  aFrameManager,
                                            nsIFrame*        aBlockFrame,
                                            bool*          aStopLooking);
 
@@ -1793,7 +1790,6 @@ public:
 private:
 
   nsIDocument*        mDocument;  
-  nsIPresShell*       mPresShell; 
 
   
   

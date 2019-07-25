@@ -1964,7 +1964,11 @@ nsCSSKeyframeRule::GetStyle(nsIDOMCSSStyleDeclaration** aStyle)
 void
 nsCSSKeyframeRule::ChangeDeclaration(css::Declaration* aDeclaration)
 {
-  mDeclaration = aDeclaration;
+  
+  
+  if (aDeclaration != mDeclaration) {
+    mDeclaration = aDeclaration;
+  }
 
   if (mSheet) {
     mSheet->SetModifiedByChildRule();

@@ -93,7 +93,7 @@ IsSecurityWrapper(JSObject *wrapper)
 
 
 JSObject *
-Unwrap(JSContext *cx, JSObject *wrapper);
+Unwrap(JSContext *cx, JSObject *wrapper, bool stopAtOuter = true);
 
 JSObject *
 UnsafeUnwrapSecurityWrapper(JSObject *obj);

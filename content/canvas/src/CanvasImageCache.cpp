@@ -109,7 +109,7 @@ public:
   nsAutoPtr<ImageCacheEntryData> mData;
 };
 
-class ImageCache : public nsExpirationTracker<ImageCacheEntryData,4> {
+class ImageCache MOZ_FINAL : public nsExpirationTracker<ImageCacheEntryData,4> {
 public:
   
   enum { GENERATION_MS = 1000 };
@@ -134,7 +134,7 @@ public:
 
 static ImageCache* gImageCache = nsnull;
 
-class CanvasImageCacheShutdownObserver : public nsIObserver
+class CanvasImageCacheShutdownObserver MOZ_FINAL : public nsIObserver
 {
 public:
   NS_DECL_ISUPPORTS

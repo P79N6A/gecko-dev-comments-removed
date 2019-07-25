@@ -271,9 +271,7 @@ struct JSCodeSpec {
     uint8_t             prec;           
     uint32_t            format;         
 
-#ifdef __cplusplus
     uint32_t type() const { return JOF_TYPE(format); }
-#endif
 };
 
 extern const JSCodeSpec js_CodeSpec[];
@@ -359,7 +357,6 @@ js_GetIndexFromBytecode(JSScript *script, jsbytecode *pc, ptrdiff_t pcoff);
         (dbl) = (script)->getConst(index_).toDouble();                        \
     JS_END_MACRO
 
-#ifdef __cplusplus
 namespace js {
 
 extern uintN
@@ -369,7 +366,6 @@ extern uintN
 StackDefs(JSScript *script, jsbytecode *pc);
 
 }  
-#endif  
 
 
 
@@ -429,7 +425,6 @@ JS_END_EXTERN_C
 #define JSDVG_IGNORE_STACK      0
 #define JSDVG_SEARCH_STACK      1
 
-#ifdef __cplusplus
 
 
 
@@ -701,9 +696,8 @@ class OpcodeCounts
 };
 
 } 
-#endif 
 
-#if defined(DEBUG) && defined(__cplusplus)
+#if defined(DEBUG)
 
 
 

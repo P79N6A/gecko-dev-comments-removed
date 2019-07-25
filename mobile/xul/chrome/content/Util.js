@@ -191,7 +191,7 @@ let Util = {
         return this._isTablet = true;
     }
     
-    return this._isTablet = sysInfo.get("isTablet");
+    return this._isTablet = sysInfo.get("tablet");
 #endif
 
     let dpi = this.displayDPI;

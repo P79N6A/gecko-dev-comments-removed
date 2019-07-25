@@ -2458,25 +2458,41 @@ nsDocument::InitCSP()
     
     if (cspHeaderValue.IsEmpty()) {
       mCSP->SetReportOnlyMode(true);
-      mCSP->RefinePolicy(cspROHeaderValue, chanURI);
-#ifdef PR_LOGGING 
-      {
-        PR_LOG(gCspPRLog, PR_LOG_DEBUG, 
-                ("CSP (report only) refined, policy: \"%s\"", 
-                  NS_ConvertUTF16toUTF8(cspROHeaderValue).get()));
-      }
+
+      
+      
+      
+      nsCharSeparatedTokenizer tokenizer(cspROHeaderValue, ',');
+      while (tokenizer.hasMoreTokens()) {
+        const nsSubstring& policy = tokenizer.nextToken();
+        mCSP->RefinePolicy(policy, chanURI);
+#ifdef PR_LOGGING
+        {
+          PR_LOG(gCspPRLog, PR_LOG_DEBUG,
+                  ("CSP (report only) refined with policy: \"%s\"",
+                    NS_ConvertUTF16toUTF8(policy).get()));
+        }
 #endif
+      }
     } else {
       
       
-      mCSP->RefinePolicy(cspHeaderValue, chanURI);
-#ifdef PR_LOGGING 
-      {
-        PR_LOG(gCspPRLog, PR_LOG_DEBUG, 
-               ("CSP refined, policy: \"%s\"",
-                NS_ConvertUTF16toUTF8(cspHeaderValue).get()));
-      }
+
+      
+      
+      
+      nsCharSeparatedTokenizer tokenizer(cspHeaderValue, ',');
+      while (tokenizer.hasMoreTokens()) {
+        const nsSubstring& policy = tokenizer.nextToken();
+        mCSP->RefinePolicy(policy, chanURI);
+#ifdef PR_LOGGING
+        {
+          PR_LOG(gCspPRLog, PR_LOG_DEBUG,
+                ("CSP refined with policy: \"%s\"",
+                  NS_ConvertUTF16toUTF8(policy).get()));
+        }
 #endif
+      }
     }
 
     
