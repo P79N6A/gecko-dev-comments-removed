@@ -82,11 +82,15 @@ let WeaveGlue = {
   },
 
   open: function open() {
+    let container = document.getElementById("syncsetup-container");
+    if (!container.hidden)
+      return;
+
     
     this.abortEasySetup();
 
     
-    document.getElementById("syncsetup-container").hidden = false;
+    container.hidden = false;
     document.getElementById("syncsetup-jpake").hidden = false;
     document.getElementById("syncsetup-manual").hidden = true;
 
@@ -173,7 +177,7 @@ let WeaveGlue = {
     this._elements.password.value = "";
     this._elements.synckey.value = "";
     this._elements.usecustomserver.checked = false;
-    this._elements.customserver.disable = true;
+    this._elements.customserver.disabled = true;
     this._elements.customserver.value = "";
 
     
