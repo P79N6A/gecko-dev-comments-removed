@@ -45,6 +45,7 @@ do_check_eq(typeof PlacesUtils, "object");
 
 function run_test() {
   do_test_pending();
+
   
 
 
@@ -61,8 +62,7 @@ function run_test() {
   Cu.import("resource://gre/modules/BookmarkHTMLUtils.jsm");
 
   
-  Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch).
-  setIntPref("browser.places.smartBookmarksVersion", -1);
+  Services.prefs.setIntPref("browser.places.smartBookmarksVersion", -1);
 
   
   
@@ -81,40 +81,42 @@ function run_test() {
   
   
   
-  
   try {
     BookmarkHTMLUtils.importFromFile(bookmarksFileOld, true, after_import);
   } catch(ex) { do_throw("couldn't import legacy bookmarks file: " + ex); }
-}
 
-function after_import(success) {
-  if (!success) {
-    do_throw("Couldn't import legacy bookmarks file.");
-  }
-  populate();
-  validate();
+  function after_import(success) {
+    if (!success) {
+      do_throw("Couldn't import legacy bookmarks file.");
+    }
 
-  waitForAsyncUpdates(function () {
+    populate();
+
     
-    
-    
-    
-    
-    try {
-      var jsonFile = Services.dirsvc.get("ProfD", Ci.nsILocalFile);
-      jsonFile.append("bookmarks.exported.json");
-      PlacesUtils.backups.saveBookmarksToJSONFile(jsonFile);
-    } catch(ex) { do_throw("couldn't export to file: " + ex); }
-    LOG("exported json");
-    try {
-      PlacesUtils.restoreBookmarksFromJSONFile(jsonFile);
-    } catch(ex) { do_throw("couldn't import the exported file: " + ex); }
-    LOG("imported json");
     validate();
-    LOG("validated import");
+  
+    waitForAsyncUpdates(function testJsonExport() {
+      
+      
+      try {
+        PlacesUtils.backups.saveBookmarksToJSONFile(jsonFile);
+      } catch(ex) { do_throw("couldn't export to file: " + ex); }
+      LOG("exported json");
 
-    waitForAsyncUpdates(do_test_finished);
-  });
+      
+      
+      try {
+        PlacesUtils.restoreBookmarksFromJSONFile(jsonFile);
+      } catch(ex) { do_throw("couldn't import the exported file: " + ex); }
+      LOG("imported json");
+
+      
+      validate();
+      LOG("validated import");
+  
+      waitForAsyncUpdates(do_test_finished);
+    });
+  }
 }
 
 var tagData = [
