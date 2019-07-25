@@ -110,8 +110,11 @@ class IonBailoutIterator
             
             
             
-            if (type == JSVAL_TYPE_OBJECT && bailoutKind() == Bailout_ArgumentCheck && reg == 0)
+            if (type == JSVAL_TYPE_OBJECT && bailoutKind() == Bailout_ArgumentCheck &&
+                (reg == 0 || reg >> 47))
+            {
                 reg = 1;
+            }
 #endif
             return FromTypedPayload(type, reg);
           }
