@@ -1183,12 +1183,10 @@ nsDownloadManager::GetDefaultDownloadsDirectory(nsILocalFile **aResult)
 #elif defined(ANDROID)
     
     
-    char* sdcard = getenv("EXTERNAL_STORAGE");
-    if (sdcard) {
-      rv = NS_NewNativeLocalFile(nsDependentCString(sdcard),
+    char* downloadDirPath = getenv("DOWNLOADS_DIRECTORY");
+    if (downloadDirPath) {
+      rv = NS_NewNativeLocalFile(nsDependentCString(downloadDirPath),
                                  PR_TRUE, getter_AddRefs(downloadDir));
-      NS_ENSURE_SUCCESS(rv, rv);
-      rv = downloadDir->Append(NS_LITERAL_STRING("downloads"));
       NS_ENSURE_SUCCESS(rv, rv);
     }
     else {
