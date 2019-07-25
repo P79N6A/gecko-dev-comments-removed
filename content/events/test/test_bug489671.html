@@ -1,8 +1,8 @@
 <!DOCTYPE HTML>
 <html>
-<!--
-https://bugzilla.mozilla.org/show_bug.cgi?id=489671
--->
+
+
+
 <head>
   <title>Test for Bug 489671</title>
   <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
@@ -30,7 +30,7 @@ var listener = {
 
     is(message.QueryInterface(Ci.nsIScriptError).errorMessage,
        "uncaught exception: Got click");
-    nextTest();
+    SimpleTest.executeSoon(nextTest);
   },
 
   QueryInterface: function(iid) {
