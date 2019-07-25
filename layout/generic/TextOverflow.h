@@ -209,6 +209,8 @@ class TextOverflow {
     bool                           mHasOverflow;
     
     bool                           mInitialized;
+    
+    bool                           mActive;
   };
 
   Marker mLeft;  
