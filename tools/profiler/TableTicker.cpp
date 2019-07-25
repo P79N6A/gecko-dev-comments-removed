@@ -874,10 +874,13 @@ void mozilla_sampler_init()
 #if defined(USE_LIBUNWIND) && defined(ANDROID)
   
   putenv("UNW_ARM_UNWIND_METHOD=5");
+#endif
 
   
-  OS::RegisterStartStopHandlers();
+  OS::RegisterStartHandler();
 
+#if defined(USE_LIBUNWIND) && defined(__arm__) && defined(MOZ_CRASHREPORTER)
+  
   
   
   return;

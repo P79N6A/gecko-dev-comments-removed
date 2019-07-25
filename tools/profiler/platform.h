@@ -99,7 +99,11 @@ class OS {
 
   
   
-  static void RegisterStartStopHandlers();
+#if defined(ANDROID)
+  static void RegisterStartHandler();
+#else
+  static void RegisterStartHandler() {}
+#endif
 
  private:
   static const int msPerSecond = 1000;
