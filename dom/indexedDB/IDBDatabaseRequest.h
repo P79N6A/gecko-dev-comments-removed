@@ -53,12 +53,14 @@ BEGIN_INDEXEDDB_NAMESPACE
 
 class AsyncConnectionHelper;
 class DatabaseInfo;
+class IDBTransactionRequest;
 
 class IDBDatabaseRequest : public IDBRequest::Generator,
                            public nsIIDBDatabaseRequest,
                            public nsIObserver
 {
   friend class AsyncConnectionHelper;
+  friend class IDBTransactionRequest;
 
 public:
   NS_DECL_ISUPPORTS
@@ -71,59 +73,11 @@ public:
          LazyIdleThread* aThread,
          nsCOMPtr<mozIStorageConnection>& aConnection);
 
-  
-
-
-
-
-
-
-
-
-
-
-
-  already_AddRefed<mozIStorageStatement> AddStatement(bool aCreate,
-                                                      bool aOverwrite,
-                                                      bool aAutoIncrement);
-
-  
-
-
-
-
-
-
-
-
-
-  already_AddRefed<mozIStorageStatement> RemoveStatement(bool aAutoIncrement);
-
-  
-
-
-
-
-
-
-
-
-
-  already_AddRefed<mozIStorageStatement> GetStatement(bool aAutoIncrement);
-
   nsIThread* ConnectionThread() {
     return mConnectionThread;
   }
 
-  void FireCloseConnectionRunnable();
-
-  void DisableConnectionThreadTimeout() {
-    mConnectionThread->DisableIdleTimeout();
-  }
-
-  void EnableConnectionThreadTimeout() {
-    mConnectionThread->EnableIdleTimeout();
-  }
+  void CloseConnection();
 
   PRUint32 Id() {
     return mDatabaseId;
@@ -133,11 +87,20 @@ protected:
   IDBDatabaseRequest();
   ~IDBDatabaseRequest();
 
-  
-  nsCOMPtr<mozIStorageConnection>& Connection();
+  void DisableConnectionThreadTimeout() {
+    mConnectionThread->DisableIdleTimeout();
+  }
+
+  void EnableConnectionThreadTimeout() {
+    mConnectionThread->EnableIdleTimeout();
+  }
+
+  const nsString& FilePath() {
+    return mFilePath;
+  }
 
   
-  nsresult EnsureConnection();
+  nsresult GetOrCreateConnection(mozIStorageConnection** aConnection);
 
 private:
   PRUint32 mDatabaseId;
@@ -147,19 +110,11 @@ private:
 
   nsRefPtr<LazyIdleThread> mConnectionThread;
 
+  nsTArray<IDBTransactionRequest*> mTransactions;
+
   
   
   nsCOMPtr<mozIStorageConnection> mConnection;
-  nsCOMPtr<mozIStorageStatement> mAddStmt;
-  nsCOMPtr<mozIStorageStatement> mAddAutoIncrementStmt;
-  nsCOMPtr<mozIStorageStatement> mModifyStmt;
-  nsCOMPtr<mozIStorageStatement> mModifyAutoIncrementStmt;
-  nsCOMPtr<mozIStorageStatement> mAddOrModifyStmt;
-  nsCOMPtr<mozIStorageStatement> mAddOrModifyAutoIncrementStmt;
-  nsCOMPtr<mozIStorageStatement> mRemoveStmt;
-  nsCOMPtr<mozIStorageStatement> mRemoveAutoIncrementStmt;
-  nsCOMPtr<mozIStorageStatement> mGetStmt;
-  nsCOMPtr<mozIStorageStatement> mGetAutoIncrementStmt;
 };
 
 END_INDEXEDDB_NAMESPACE
