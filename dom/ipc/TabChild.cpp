@@ -460,11 +460,13 @@ TabChild::DestroyWindow()
 void
 TabChild::ActorDestroy(ActorDestroyReason why)
 {
-  
-  
-  static_cast<nsFrameMessageManager*>
-    (mTabChildGlobal->mMessageManager.get())->Disconnect();
-  mTabChildGlobal->mMessageManager = nsnull;
+  if (mTabChildGlobal) {
+    
+    
+    static_cast<nsFrameMessageManager*>
+      (mTabChildGlobal->mMessageManager.get())->Disconnect();
+    mTabChildGlobal->mMessageManager = nsnull;
+  }
 }
 
 TabChild::~TabChild()
@@ -477,11 +479,13 @@ TabChild::~TabChild()
       DestroyCx();
     }
     
-    nsEventListenerManager* elm = mTabChildGlobal->GetListenerManager(PR_FALSE);
-    if (elm) {
-      elm->Disconnect();
+    if (mTabChildGlobal) {
+      nsEventListenerManager* elm = mTabChildGlobal->GetListenerManager(PR_FALSE);
+      if (elm) {
+        elm->Disconnect();
+      }
+      mTabChildGlobal->mTabChild = nsnull;
     }
-    mTabChildGlobal->mTabChild = nsnull;
 }
 
 bool
@@ -496,7 +500,7 @@ TabChild::RecvLoadURL(const nsCString& uri)
         NS_WARNING("mWebNav->LoadURI failed. Eating exception, what else can I do?");
     }
 
-    return NS_SUCCEEDED(rv);
+    return true;
 }
 
 bool
@@ -511,7 +515,11 @@ TabChild::RecvShow(const nsIntSize& size)
     }
 
     if (!InitWidget(size)) {
-        return false;
+        
+        
+        
+        
+        return true;
     }
 
     baseWindow->InitWindow(0, mWidget,
@@ -537,6 +545,9 @@ bool
 TabChild::RecvMove(const nsIntSize& size)
 {
     printf("[TabChild] RESIZE to (w,h)= (%ud, %ud)\n", size.width, size.height);
+    if (!mRemoteFrame) {
+        return true;
+    }
 
     mWidget->Resize(0, 0, size.width, size.height,
                     PR_TRUE);
@@ -775,7 +786,9 @@ bool
 TabChild::RecvLoadRemoteScript(const nsString& aURL)
 {
   if (!mCx && !InitTabChildGlobal())
-    return false;
+    
+    
+    return true;
 
   LoadFrameScriptInternal(aURL);
   return true;
@@ -825,10 +838,12 @@ public:
 bool
 TabChild::RecvDestroy()
 {
-  
-  nsContentUtils::AddScriptRunner(
-    new UnloadScriptEvent(this, mTabChildGlobal)
-  );
+  if (mTabChildGlobal) {
+    
+    nsContentUtils::AddScriptRunner(
+      new UnloadScriptEvent(this, mTabChildGlobal)
+    );
+  }
 
   
   DestroyWindow();
@@ -946,7 +961,8 @@ TabChild::InitWidget(const nsIntSize& size)
 
     NS_ABORT_IF_FALSE(0 == remoteFrame->ManagedPLayersChild().Length(),
                       "shouldn't have a shadow manager yet");
-    PLayersChild* shadowManager = remoteFrame->SendPLayersConstructor();
+    LayerManager::LayersBackend be;
+    PLayersChild* shadowManager = remoteFrame->SendPLayersConstructor(&be);
     if (!shadowManager) {
       NS_WARNING("failed to construct LayersChild");
       
@@ -954,14 +970,11 @@ TabChild::InitWidget(const nsIntSize& size)
       return false;
     }
 
-    LayerManager* lm = mWidget->GetLayerManager();
-    NS_ABORT_IF_FALSE(LayerManager::LAYERS_BASIC == lm->GetBackendType(),
-                      "content processes should only be using BasicLayers");
-
-    BasicShadowLayerManager* bslm = static_cast<BasicShadowLayerManager*>(lm);
-    NS_ABORT_IF_FALSE(!bslm->HasShadowManager(),
-                      "PuppetWidget shouldn't have shadow manager yet");
-    bslm->SetShadowManager(shadowManager);
+    ShadowLayerForwarder* lf =
+        mWidget->GetLayerManager(shadowManager, be)->AsShadowForwarder();
+    NS_ABORT_IF_FALSE(lf && lf->HasShadowManager(),
+                      "PuppetWidget should have shadow manager");
+    lf->SetParentBackendType(be);
 
     mRemoteFrame = remoteFrame;
     return true;
