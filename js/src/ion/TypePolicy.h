@@ -188,6 +188,25 @@ class DoublePolicy : public BoxInputsPolicy
 };
 
 
+class SimplePolicy : public BoxInputsPolicy
+{
+    bool specialized_;
+
+  public:
+    SimplePolicy()
+      : specialized_(true)
+    { }
+
+    bool adjustInputs(MInstruction *def);
+    bool specialized() const {
+        return specialized_;
+    }
+    void unspecialize() {
+        specialized_ = false;
+    }
+};
+
+
 template <class Lhs, class Rhs>
 class MixPolicy
   : public BoxInputsPolicy
