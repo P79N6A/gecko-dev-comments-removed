@@ -135,6 +135,36 @@ function sendHeapMinNotifications()
   sendHeapMinNotificationsInner();
 }
 
+function Reporter(aPath, aKind, aUnits, aAmount, aDescription)
+{
+  this._path        = aPath;
+  this._kind        = aKind;
+  this._units       = aUnits;
+  this._amount      = aAmount;
+  this._description = aDescription;
+  
+  
+}
+
+Reporter.prototype = {
+  
+  
+  
+  
+  merge: function(r) {
+    if (this._amount !== kUnknown && r._amount !== kUnknown) {
+      this._amount += r._amount;
+    } else if (this._amount === kUnknown && r._amount !== kUnknown) {
+      this._amount = r._amount;
+    }
+    this._nMerged = this._nMerged ? this._nMerged + 1 : 2;
+  },
+
+  treeNameMatches: function(aTreeName) {
+    return this._path.slice(0, aTreeName.length) === aTreeName;
+  }
+};
+
 function getReportersByProcess()
 {
   var mgr = Cc["@mozilla.org/memory-reporter-manager;1"].
@@ -150,28 +180,12 @@ function getReportersByProcess()
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   var reportersByProcess = {};
 
   function addReporter(aProcess, aPath, aKind, aUnits, aAmount, aDescription)
   {
     var process = aProcess === "" ? "Main" : aProcess;
-    var r = {
-      _path:        aPath,
-      _kind:        aKind,
-      _units:       aUnits,
-      _amount:      aAmount,
-      _description: aDescription
-    };
+    var r = new Reporter(aPath, aKind, aUnits, aAmount, aDescription);
     if (!reportersByProcess[process]) {
       reportersByProcess[process] = {};
     }
@@ -180,15 +194,7 @@ function getReportersByProcess()
     if (reporter) {
       
       
-      
-      
-      
-      if (reporter._amount !== kUnknown && r._amount !== kUnknown) {
-        reporter._amount += r._amount;
-      } else if (reporter._amount === kUnknown && r._amount !== kUnknown) {
-        reporter._amount = r._amount;
-      }
-      reporter._nMerged = reporter._nMerged ? reporter._nMerged + 1 : 2;
+      reporter.merge(r);
     } else {
       reporters[r._path] = r;
     }
@@ -203,8 +209,8 @@ function getReportersByProcess()
   }
   var e = mgr.enumerateMultiReporters();
   while (e.hasMoreElements()) {
-    var r = e.getNext().QueryInterface(Ci.nsIMemoryMultiReporter);
-    r.collectReports(addReporter, null);
+    var mrOrig = e.getNext().QueryInterface(Ci.nsIMemoryMultiReporter);
+    mrOrig.collectReports(addReporter, null);
   }
 
   return reportersByProcess;
@@ -267,42 +273,41 @@ function update()
 }
 
 
-function cmpExplicitReporters(a, b)
-{
-  assert(a._units === undefined && b._units === undefined,
-         "'explicit' tree nodes must not have _units defined");
-  return b._amount - a._amount;
-};
 
 
-function cmpOtherReporters(a, b)
+function TreeNode(aName)
 {
-  return a._path < b._path ? -1 :
-         a._path > b._path ?  1 :
-         0;
-};
-
-function findKid(aName, aKids)
-{
-  for (var i = 0; i < aKids.length; i++) {
-    if (aKids[i]._name === aName) {
-      return aKids[i];
-    }
-  }
-  return undefined;
+  
+  this._name = aName;
+  this._kids = [];
+  
+  
+  
+  
+  
+  
+  
+  
 }
 
+TreeNode.prototype = {
+  findKid: function(aName) {
+    for (var i = 0; i < this._kids.length; i++) {
+      if (this._kids[i]._name === aName) {
+        return this._kids[i];
+      }
+    }
+    return undefined;
+  },
 
+  toString: function() {
+    return formatBytes(this._amount);
+  }
+};
 
-
-
-
-
-
-
-
-
-
+TreeNode.compare = function(a, b) {
+  return b._amount - a._amount;
+};
 
 
 
@@ -319,15 +324,11 @@ function buildTree(aReporters)
   
   
   
-  
-  var t = {
-    _name: "falseRoot",
-    _kind: KIND_OTHER,
-    _kids: []
-  };
+  var t = new TreeNode("falseRoot");
   for (var path in aReporters) {
+    
     var r = aReporters[path];
-    if (r._path.slice(0, treeName.length) === treeName) {
+    if (r.treeNameMatches(treeName)) {
       assert(r._kind === KIND_HEAP || r._kind === KIND_NONHEAP,
              "reporters in the tree must have KIND_HEAP or KIND_NONHEAP");
       assert(r._units === UNITS_BYTES);
@@ -335,21 +336,17 @@ function buildTree(aReporters)
       var u = t;
       for (var i = 0; i < names.length; i++) {
         var name = names[i];
-        var uMatch = findKid(name, u._kids);
+        var uMatch = u.findKid(name);
         if (uMatch) {
           u = uMatch;
         } else {
-          var v = {
-            _name: name,
-            _kind: KIND_OTHER,
-            _kids: []
-          };
+          var v = new TreeNode(name);
           u._kids.push(v);
           u = v;
         }
       }
+      
       u._kind = r._kind;
-      u._hasReporter = true;
       if (r._nMerged) {
         u._nMerged = r._nMerged;
       }
@@ -361,12 +358,12 @@ function buildTree(aReporters)
 
   
   
-  
   function fillInTree(aT, aPrepath)
   {
     var path = aPrepath ? aPrepath + '/' + aT._name : aT._name;
     if (aT._kids.length === 0) {
       
+      assert(aT._kind !== undefined);
       aT._description = getDescription(aReporters, path);
       var amount = getBytes(aReporters, path);
       if (amount !== kUnknown) {
@@ -380,23 +377,18 @@ function buildTree(aReporters)
       var childrenBytes = 0;
       for (var i = 0; i < aT._kids.length; i++) {
         
-        var b = fillInTree(aT._kids[i], path);
-        childrenBytes += (b === kUnknown ? 0 : b);
+        childrenBytes += fillInTree(aT._kids[i], path);
       }
-      if (aT._hasReporter === true) {
+      if (aT._kind !== undefined) {
         aT._description = getDescription(aReporters, path);
         var amount = getBytes(aReporters, path);
         if (amount !== kUnknown) {
           
           
           aT._amount = amount;
-          var other = {
-            _name: "other",
-            _kind: KIND_OTHER,
-            _description: "All unclassified " + aT._name + " memory.",
-            _amount: aT._amount - childrenBytes,
-            _kids: []
-          };
+          var other = new TreeNode("other");
+          other._description = "All unclassified " + aT._name + " memory.",
+          other._amount = aT._amount - childrenBytes,
           aT._kids.push(other);
         } else {
           
@@ -411,6 +403,7 @@ function buildTree(aReporters)
         aT._description = "The sum of all entries below '" + aT._name + "'.";
       }
     }
+    assert(aT._amount !== kUnknown);
     return aT._amount;
   }
   fillInTree(t, "");
@@ -442,17 +435,20 @@ function buildTree(aReporters)
     unknownHeapUsedBytes = heapUsedBytes - getKnownHeapUsedBytes(t);
     hasProblem = false;
   }
-  var heapUnclassified = {
-    _name: "heap-unclassified",
-    _kind: KIND_HEAP,
-    _description:
+  var heapUnclassified = new TreeNode("heap-unclassified");
+  
+  
+  
+  heapUnclassified._description =
+      kindToString(KIND_HEAP) +
       "Memory not classified by a more specific reporter. This includes " +
       "waste due to internal fragmentation in the heap allocator (caused " +
-      "when the allocator rounds up request sizes).",
-    _amount: unknownHeapUsedBytes,
-    _hasProblem: hasProblem,
-    _kids: []
+      "when the allocator rounds up request sizes).";
+  heapUnclassified._amount = unknownHeapUsedBytes;
+  if (hasProblem) {
+    heapUnclassified._hasProblem = true;
   }
+
   t._kids.push(heapUnclassified);
   t._amount += unknownHeapUsedBytes;
 
@@ -479,7 +475,7 @@ function filterTree(aTotalBytes, aT)
            (100 * aBytes / aTotalBytes) < omitThresholdPerc;
   }
 
-  aT._kids.sort(cmpExplicitReporters);
+  aT._kids.sort(TreeNode.compare);
 
   for (var i = 0; i < aT._kids.length; i++) {
     if (shouldOmit(aT._kids[i]._amount)) {
@@ -493,21 +489,18 @@ function filterTree(aTotalBytes, aT)
       }
       aT._kids.splice(i0);
       var n = i - i0;
-      var rSub = {
-        _name: "(" + n + " omitted)",
-        _kind: KIND_OTHER,
-        _amount: aggBytes,
-        _description: n + " sub-trees that were below the " + 
-                      omitThresholdPerc + "% significance threshold.  " +
-                      "Click 'More verbose' at the bottom of this page " +
-                      "to see them.",
-        _kids: []
-      };
+      var rSub = new TreeNode("(" + n + " omitted)");
+      rSub._amount = aggBytes;
+      rSub._description =
+        n + " sub-trees that were below the " + omitThresholdPerc +
+        "% significance threshold.  Click 'More verbose' at the bottom of " +
+        "this page to see them.";
+
       
       
       
       aT._kids[i0] = rSub;
-      aT._kids.sort(cmpExplicitReporters);
+      aT._kids.sort(TreeNode.compare);
       break;
     }
     filterTree(aTotalBytes, aT._kids[i]);
@@ -535,28 +528,6 @@ function genProcessText(aProcess, aReporters)
   text += genOtherText(aReporters);
   text += "<hr></hr>";
   return text;
-}
-
-
-
-
-
-
-
-
-
-function formatReporterAmount(aReporter)
-{
-  switch(aReporter._units) {
-    case UNITS_BYTES:
-      return formatBytes(aReporter._amount);
-    case UNITS_COUNT:
-    case UNITS_COUNT_CUMULATIVE:
-      return formatInt(aReporter._amount);
-    case UNITS_PERCENTAGE:
-      return formatPercentage(aReporter._amount);
-    default: return "(???)"
-  }
 }
 
 
@@ -663,17 +634,11 @@ function pad(aS, aN, aC)
 function getBytes(aReporters, aPath, aDoNotMark)
 {
   var r = aReporters[aPath];
-  if (r) {
-    var bytes = r._amount;
-    if (!aDoNotMark) {
-      r._done = true;
-    }
-    return bytes;
+  assert(r, "getBytes: no such Reporter: " + aPath);
+  if (!aDoNotMark) {
+    r._done = true;
   }
-  
-  
-  
-  return -2 * 1024 * 1024;
+  return r._amount;
 }
 
 
@@ -688,7 +653,8 @@ function getBytes(aReporters, aPath, aDoNotMark)
 function getDescription(aReporters, aPath)
 {
   var r = aReporters[aPath];
-  return r ? r._description : "???";
+  assert(r, "getDescription: no such Reporter: " + aPath);
+  return r._description;
 }
 
 function genMrValueText(aValue)
@@ -701,8 +667,9 @@ function kindToString(aKind)
   switch (aKind) {
    case KIND_NONHEAP: return "(Non-heap) ";
    case KIND_HEAP:    return "(Heap) ";
-   case KIND_OTHER:   return "";
-   default:           return "(???) ";
+   case KIND_OTHER:
+   case undefined:    return "";
+   default:           assert(false, "bad kind in kindToString");
   }
 }
 
@@ -776,7 +743,7 @@ function genMrNameText(aKind, aDesc, aName, aHasProblem, aNMerged)
 function genTreeText(aT)
 {
   var treeBytes = aT._amount;
-  var treeBytesLength = formatBytes(treeBytes).length;
+  var rootStringLength = aT.toString().length;
 
   
 
@@ -792,7 +759,7 @@ function genTreeText(aT)
 
 
 
-  function genTreeText2(aT, aIndentGuide, aParentBytesLength)
+  function genTreeText2(aT, aIndentGuide, aParentStringLength)
   {
     function repeatStr(aC, aN)
     {
@@ -824,9 +791,8 @@ function genTreeText(aT)
 
     
     
-    var tMemoryUsedStr = formatBytes(aT._amount);
-    var tBytesLength = tMemoryUsedStr.length;
-    var extraIndentLength = Math.max(aParentBytesLength - tBytesLength, 0);
+    var tString = aT.toString();
+    var extraIndentLength = Math.max(aParentStringLength - tString.length, 0);
     if (extraIndentLength > 0) {
       for (var i = 0; i < extraIndentLength; i++) {
         indent += kHorizontal;
@@ -845,20 +811,20 @@ function genTreeText(aT)
     }
     perc = "<span class='mrPerc'>(" + perc + "%)</span> ";
 
-    var text = indent + genMrValueText(tMemoryUsedStr) + " " + perc +
+    var text = indent + genMrValueText(tString) + " " + perc +
                genMrNameText(aT._kind, aT._description, aT._name,
                              aT._hasProblem, aT._nMerged);
 
     for (var i = 0; i < aT._kids.length; i++) {
       
       aIndentGuide.push({ _isLastKid: (i === aT._kids.length - 1), _depth: 3 });
-      text += genTreeText2(aT._kids[i], aIndentGuide, tBytesLength);
+      text += genTreeText2(aT._kids[i], aIndentGuide, tString.length);
       aIndentGuide.pop();
     }
     return text;
   }
 
-  var text = genTreeText2(aT, [], treeBytesLength);
+  var text = genTreeText2(aT, [], rootStringLength);
   
   const desc =
     "This tree covers explicit memory allocations by the application, " +
@@ -877,6 +843,40 @@ function genTreeText(aT)
          "'>Explicit Allocations</h2>\n" + "<pre>" + text + "</pre>\n";
 }
 
+function OtherReporter(aPath, aUnits, aAmount, aDescription, 
+                       aNMerged)
+{
+  
+  this._path        = aPath;
+  this._units       = aUnits;
+  if (aAmount === kUnknown) {
+    this._amount     = 0;
+    this._hasProblem = true;
+  } else {
+    this._amount = aAmount;
+  }
+  this._description = aDescription;
+  this.asString = this.toString();
+}
+
+OtherReporter.prototype = {
+  toString: function() {
+    switch(this._units) {
+      case UNITS_BYTES:            return formatBytes(this._amount);
+      case UNITS_COUNT:
+      case UNITS_COUNT_CUMULATIVE: return formatInt(this._amount);
+      case UNITS_PERCENTAGE:       return formatPercentage(this._amount);
+      default:
+        assert(false, "bad units in OtherReporter.toString");
+    }
+  }
+};
+
+OtherReporter.compare = function(a, b) {
+  return a._path < b._path ? -1 :
+         a._path > b._path ?  1 :
+         0;
+};
 
 
 
@@ -884,48 +884,38 @@ function genTreeText(aT)
 
 
 
-function genOtherText(aReporters)
+
+function genOtherText(aReportersByProcess)
 {
   
   
   
-  var maxAmountLength = 0;
-  var rArray = [];
-  for (var path in aReporters) {
-    var r = aReporters[path];
+  var maxStringLength = 0;
+  var otherReporters = [];
+  for (var path in aReportersByProcess) {
+    var r = aReportersByProcess[path];
     if (!r._done) {
+      assert(r._kind === KIND_OTHER, "_kind !== KIND_OTHER for " + r._path);
+      assert(r.nMerged === undefined);  
       var hasProblem = false;
       if (r._amount === kUnknown) {
         hasProblem = true;
       }
-      var elem = {
-        _path:        r._path,
-        _kind:        r._kind,
-        _units:       r._units,
-        _amount:      hasProblem ? 0 : r._amount,
-        _description: r._description,
-        _hasProblem:  hasProblem,
-        _nMerged:     r._nMerged
-      };
-      rArray.push(elem);
-      var thisAmountLength = formatReporterAmount(elem).length;
-      if (thisAmountLength > maxAmountLength) {
-        maxAmountLength = thisAmountLength;
+      var o = new OtherReporter(r._path, r._units, r._amount, r._description);
+      otherReporters.push(o);
+      if (o.asString.length > maxStringLength) {
+        maxStringLength = o.asString.length;
       }
     }
   }
-  rArray.sort(cmpOtherReporters);
+  otherReporters.sort(OtherReporter.compare);
 
   
   var text = "";
-  for (var i = 0; i < rArray.length; i++) {
-    var elem = rArray[i];
-    assert(elem._kind === KIND_OTHER,
-           "elem._kind is not KIND_OTHER for " + elem._path);
-    text += genMrValueText(
-              pad(formatReporterAmount(elem), maxAmountLength, ' ')) + " ";
-    text += genMrNameText(elem._kind, elem._description, elem._path,
-                          elem._hasProblem, elem._nMerged);
+  for (var i = 0; i < otherReporters.length; i++) {
+    var o = otherReporters[i];
+    text += genMrValueText(pad(o.asString, maxStringLength, ' ')) + " ";
+    text += genMrNameText(KIND_OTHER, o._description, o._path, o._hasProblem);
   }
 
   
