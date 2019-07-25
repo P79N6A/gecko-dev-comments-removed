@@ -531,7 +531,9 @@ iQClass.prototype = {
       options = {};
 
     let easings = {
-      tabviewBounce: "cubic-bezier(0.0, 0.63, .6, 1.29)", 
+      tabviewBounce: "cubic-bezier(0.0, 0.63, .6, 1.0)", 
+      
+      
       easeInQuad: 'ease-in', 
       fast: 'cubic-bezier(0.7,0,1,1)'
     };

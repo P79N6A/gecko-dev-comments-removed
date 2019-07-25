@@ -107,12 +107,7 @@ var UIManager = {
       this._currentTab = gBrowser.selectedTab;
 
       
-      
-      
-      
-      
-      if (false)
-        this._addDevMenu();
+      this._addDevMenu();
 
       
       
@@ -158,10 +153,6 @@ var UIManager = {
       GroupItems.reconstitute(groupItemsData, groupItemData);
       GroupItems.killNewTabGroup(); 
 
-      
-      TabItems.init();
-      TabItems.pausePainting();
-
       if (firstTime) {
         var padding = 10;
         var infoWidth = 350;
@@ -185,18 +176,15 @@ var UIManager = {
           if (item.parent)
             item.parent.remove(item);
 
-          groupItem.add(item, null, {animate: false});
+          groupItem.add(item);
         });
 
         
-        let welcome = "How to organize your tabs";
-        let more = "";
-        let video = "http://videos-cdn.mozilla.net/firefox4beta/tabcandy_howto.webm";
         var html =
           "<div class='intro'>"
-            + "<h1>" + welcome + "</h1>"
-            + ( more && more.length ? "<div>" + more + "</div><br>" : "")
-            + "<video src='" + video + "' "
+            + "<h1>Welcome to Firefox Tab Sets</h1>" 
+            + "<div>(more goes here)</div><br>"
+            + "<video src='http://people.mozilla.org/~araskin/movies/tabcandy_howto.webm' "
             + "width='100%' preload controls>"
           + "</div>";
 
@@ -206,6 +194,10 @@ var UIManager = {
         var infoItem = new InfoItem(box);
         infoItem.html(html);
       }
+
+      
+      TabItems.init();
+      TabItems.pausePainting();
 
       
       if (this._pageBounds)
@@ -312,7 +304,7 @@ var UIManager = {
 
 #ifdef XP_WIN
     
-    gTabViewFrame.style.marginTop = "22px";
+    gTabViewFrame.style.marginTop = 0;
 #endif
     gTabViewDeck.selectedIndex = 1;
     gTabViewFrame.contentWindow.focus();
@@ -644,7 +636,7 @@ var UIManager = {
             !event.ctrlKey) {
 #else
         if (event.ctrlKey && !event.metaKey && !event.shiftKey &&
-            !event.altKey) {
+            event.altKey) {
 #endif
           var activeTab = self.getActiveTab();
           if (activeTab)

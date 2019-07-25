@@ -126,13 +126,15 @@ let GroupItem = function GroupItem(listOfEls, options) {
 
   
   this.$ntb = iQ("<div>")
+    .appendTo($container);
+
+  this.$ntb
     .addClass('newTabButton')
     .click(function() {
       self.newTab();
-    })
-    .attr('title',
-          "New tab")
-    .appendTo($container);
+    });
+
+  (this.$ntb)[0].title = 'New tab';
 
   
   this.$resizer = iQ("<div>")
@@ -167,7 +169,7 @@ let GroupItem = function GroupItem(listOfEls, options) {
   this.$titleContainer = iQ('.title-container', this.$titlebar);
   this.$title = iQ('.name', this.$titlebar);
   this.$titleShield = iQ('.title-shield', this.$titlebar);
-  this.setTitle(options.title || this.defaultName);
+  this.setTitle(options.title || "");
 
   var titleUnfocus = function() {
     self.$titleShield.show();
@@ -296,7 +298,7 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  defaultName: "Name this tab groupâ€¦",
+  defaultName: "name this groupItem...",
 
   
   
@@ -372,7 +374,7 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   adjustTitleSize: function() {
     Utils.assert(this.bounds, 'bounds needs to have been set');
     let closeButton = iQ('.close', this.container);
-    var w = Math.min(this.bounds.width - parseInt(closeButton.width()) - parseInt(closeButton.css('right')),
+    var w = Math.min(this.bounds.width - closeButton.width() - closeButton.css('right'),
                      Math.max(150, this.getTitle().length * 6));
     
     
@@ -653,10 +655,7 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       }
 
       if (!options.dontArrange) {
-        
-        let animate = typeof options.animate == "undefined" ? true :
-                      options.animate;
-        this.arrange({ animate: animate });
+        this.arrange();
       }
       UI.setReorderTabsOnHide(this);
 
@@ -1798,9 +1797,8 @@ window.GroupItems = {
   
   
   killNewTabGroup: function() {
-    let newTabGroupTitle = "New Tabs";
     this.groupItems.forEach(function(groupItem) {
-      if (groupItem.getTitle() == newTabGroupTitle && groupItem.locked.title) {
+      if (groupItem.getTitle() == 'New Tabs' && groupItem.locked.title) {
         groupItem.removeAll();
         groupItem.close();
       }

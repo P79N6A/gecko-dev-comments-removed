@@ -46,7 +46,7 @@ let TabView = {
     delete this.windowTitle;
     let brandBundle = document.getElementById("bundle_brand");
     let brandShortName = brandBundle.getString("brandShortName");
-    let title = gNavigatorBundle.getFormattedString("tabView2.title", [brandShortName]);
+    let title = gNavigatorBundle.getFormattedString("tabView.title", [brandShortName]);
     return this.windowTitle = title;
   },
 
@@ -197,34 +197,8 @@ let TabView = {
           charCode == 160) { 
 #else
       if (event.ctrlKey && !event.metaKey && !event.shiftKey &&
-          !event.altKey && charCode == 32) { 
+          event.altKey && charCode == 32) { 
 #endif
-
-        
-        
-        let node = event.target;
-        switch (node.namespaceURI) {
-          case "http://www.w3.org/1999/xhtml":
-            
-            if (node.localName == "select" && node.hasAttribute("multiple"))
-              return;
-            break;
-
-          case "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul":
-            switch (node.localName) {
-              case "listbox":
-                
-                if (node.getAttribute("seltype") == "multiple")
-                  return;
-                break;
-              case "tree":
-                
-                if (node.getAttribute("seltype") != "single")
-                  return;
-                break;
-            }
-        }
-
         event.stopPropagation();
         event.preventDefault();
         self.show();
