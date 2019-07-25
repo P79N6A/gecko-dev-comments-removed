@@ -41,21 +41,12 @@
 #define dom_plugins_PluginIdentifierChild_h
 
 #include "mozilla/plugins/PPluginIdentifierChild.h"
-#include "npapi.h"
-#include "npruntime.h"
+#include "mozilla/plugins/PluginModuleChild.h"
 
 #include "nsStringGlue.h"
 
 namespace mozilla {
 namespace plugins {
-
-class PluginModuleChild;
-
-
-
-
-
-
 
 class PluginIdentifierChild : public PPluginIdentifierChild
 {
@@ -63,50 +54,23 @@ class PluginIdentifierChild : public PPluginIdentifierChild
 public:
   bool IsString()
   {
-    return mIsString;
+    return reinterpret_cast<intptr_t>(mCanonicalIdentifier) & 1;
   }
 
   NPIdentifier ToNPIdentifier()
   {
-    if (mCanonicalIdentifier) {
-      return mCanonicalIdentifier;
-    }
-
-    NS_ASSERTION(mHashed, "Handing out an unhashed identifier?");
-    return this;
+    return reinterpret_cast<PluginIdentifierChild*>(
+      reinterpret_cast<intptr_t>(mCanonicalIdentifier) & ~1);
   }
-
-  void MakePermanent();
-
-  class NS_STACK_CLASS StackIdentifier
-  {
-  public:
-    StackIdentifier(PPluginIdentifierChild* actor)
-      : mIdentifier(static_cast<PluginIdentifierChild*>(actor))
-    {
-      if (mIdentifier)
-        mIdentifier->StartTemporary();
-    }
-
-    ~StackIdentifier() {
-      if (mIdentifier)
-        mIdentifier->FinishTemporary();
-    }
-
-    PluginIdentifierChild* operator->() { return mIdentifier; }
-
-  private:
-    PluginIdentifierChild* mIdentifier;
-  };
 
 protected:
   PluginIdentifierChild(bool aIsString)
-    : mCanonicalIdentifier(NULL)
-    , mHashed(false)
-    , mTemporaryRefs(0)
-    , mIsString(aIsString)
+    : ALLOW_THIS_IN_INITIALIZER_LIST(mCanonicalIdentifier(this))
   {
     MOZ_COUNT_CTOR(PluginIdentifierChild);
+    if (aIsString) {
+      SetIsString();
+    }
   }
 
   virtual ~PluginIdentifierChild()
@@ -114,37 +78,24 @@ protected:
     MOZ_COUNT_DTOR(PluginIdentifierChild);
   }
 
-  
-  
-  virtual PluginIdentifierChild* GetCanonical() = 0;
-  virtual void Hash() = 0;
-  virtual void Unhash() = 0;
+  void SetCanonicalIdentifier(PluginIdentifierChild* aIdentifier)
+  {
+    NS_ASSERTION(ToNPIdentifier() == this, "Already got one!");
+    bool isString = IsString();
+    mCanonicalIdentifier = aIdentifier;
+    if (isString) {
+      SetIsString();
+    }
+  }
 
 private:
-  void StartTemporary();
-  void FinishTemporary();
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  void SetIsString()
+  {
+    mCanonicalIdentifier = reinterpret_cast<PluginIdentifierChild*>(
+      reinterpret_cast<intptr_t>(mCanonicalIdentifier) | 1);
+  }
 
   PluginIdentifierChild* mCanonicalIdentifier;
-  bool mHashed;
-  unsigned int mTemporaryRefs;
-  bool mIsString;
 };
 
 class PluginIdentifierChildString : public PluginIdentifierChild
@@ -161,10 +112,6 @@ protected:
     : PluginIdentifierChild(true),
       mString(aString)
   { }
-
-  virtual PluginIdentifierChild* GetCanonical();
-  virtual void Hash();
-  virtual void Unhash();
 
   nsCString mString;
 };
@@ -183,10 +130,6 @@ protected:
     : PluginIdentifierChild(false),
       mInt(aInt)
   { }
-
-  virtual PluginIdentifierChild* GetCanonical();
-  virtual void Hash();
-  virtual void Unhash();
 
   int32_t mInt;
 };
