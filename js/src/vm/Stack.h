@@ -727,12 +727,18 @@ class StackFrame
     template <class Op> inline bool forEachFormalArg(Op op);
 
     bool hasArgsObj() const {
+        
+
+
+
+
+
+
         return !!(flags_ & HAS_ARGS_OBJ);
     }
 
     ArgumentsObject &argsObj() const {
         JS_ASSERT(hasArgsObj());
-        JS_ASSERT(!isEvalFrame());
         return *argsObj_;
     }
 
@@ -740,7 +746,12 @@ class StackFrame
         return hasArgsObj() ? &argsObj() : NULL;
     }
 
-    inline void setArgsObj(ArgumentsObject &obj);
+    void initArgsObj(ArgumentsObject &argsObj) {
+        JS_ASSERT(script()->needsArgsObj());
+        JS_ASSERT(!hasArgsObj());
+        argsObj_ = &argsObj;
+        flags_ |= HAS_ARGS_OBJ;
+    }
 
     
 

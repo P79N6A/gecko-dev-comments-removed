@@ -315,25 +315,22 @@ enum {
     OBJECT_FLAG_NON_TYPED_ARRAY       = 0x00040000,
 
     
-    OBJECT_FLAG_CREATED_ARGUMENTS     = 0x00080000,
+    OBJECT_FLAG_UNINLINEABLE          = 0x00080000,
 
     
-    OBJECT_FLAG_UNINLINEABLE          = 0x00100000,
+    OBJECT_FLAG_SPECIAL_EQUALITY      = 0x00100000,
 
     
-    OBJECT_FLAG_SPECIAL_EQUALITY      = 0x00200000,
+    OBJECT_FLAG_ITERATED              = 0x00200000,
 
     
-    OBJECT_FLAG_ITERATED              = 0x00400000,
+    OBJECT_FLAG_REENTRANT_FUNCTION    = 0x00400000,
 
     
-    OBJECT_FLAG_REENTRANT_FUNCTION    = 0x00800000,
+    OBJECT_FLAG_REGEXP_FLAGS_SET      = 0x00800000,
 
     
-    OBJECT_FLAG_REGEXP_FLAGS_SET      = 0x01000000,
-
-    
-    OBJECT_FLAG_DYNAMIC_MASK          = 0x01ff0000,
+    OBJECT_FLAG_DYNAMIC_MASK          = 0x00ff0000,
 
     
 
@@ -450,7 +447,6 @@ class TypeSet
                           Type type, TypeSet *types = NULL);
     void addFilterPrimitives(JSContext *cx, TypeSet *target, FilterKind filter);
     void addSubsetBarrier(JSContext *cx, JSScript *script, jsbytecode *pc, TypeSet *target);
-    void addLazyArguments(JSContext *cx, TypeSet *target);
 
     
 
@@ -907,13 +903,6 @@ struct TypeObjectEntry
     static inline bool match(TypeObject *key, JSObject *lookup);
 };
 typedef HashSet<ReadBarriered<TypeObject>, TypeObjectEntry, SystemAllocPolicy> TypeObjectSet;
-
-
-
-
-
-extern void
-MarkArgumentsCreated(JSContext *cx, JSScript *script);
 
 
 bool

@@ -401,7 +401,8 @@ XDRScript(JSXDRState *xdr, JSScript **scriptp)
         SavedCallerFun,
         StrictModeCode,
         UsesEval,
-        UsesArguments,
+        MayNeedArgsObj,
+        NeedsArgsObj,
         OwnFilename,
         SharedFilename
     };
@@ -557,8 +558,16 @@ XDRScript(JSXDRState *xdr, JSScript **scriptp)
             scriptBits |= (1 << StrictModeCode);
         if (script->usesEval)
             scriptBits |= (1 << UsesEval);
-        if (script->usesArguments)
-            scriptBits |= (1 << UsesArguments);
+        if (script->mayNeedArgsObj()) {
+            scriptBits |= (1 << MayNeedArgsObj);
+            
+
+
+
+
+            if (script->analyzedArgsUsage() && script->needsArgsObj())
+                scriptBits |= (1 << NeedsArgsObj);
+        }
         if (script->filename) {
             scriptBits |= (script->filename != xdr->sharedFilename)
                           ? (1 << OwnFilename)
@@ -627,8 +636,13 @@ XDRScript(JSXDRState *xdr, JSScript **scriptp)
             script->strictModeCode = true;
         if (scriptBits & (1 << UsesEval))
             script->usesEval = true;
-        if (scriptBits & (1 << UsesArguments))
-            script->usesArguments = true;
+        if (scriptBits & (1 << MayNeedArgsObj)) {
+            script->mayNeedArgsObj_ = true;
+            if (scriptBits & (1 << NeedsArgsObj))
+                script->setNeedsArgsObj(true);
+        } else {
+            JS_ASSERT(!(scriptBits & (1 << NeedsArgsObj)));
+        }
     }
 
     if (!JS_XDRBytes(xdr, (char *)script->code, length * sizeof(jsbytecode)))
@@ -1227,10 +1241,22 @@ JSScript::NewScriptFromEmitter(JSContext *cx, BytecodeEmitter *bce)
     }
     if (bce->callsEval())
         script->usesEval = true;
-    if (bce->flags & TCF_FUN_USES_ARGUMENTS)
-        script->usesArguments = true;
     if (bce->flags & TCF_HAS_SINGLETONS)
         script->hasSingletons = true;
+
+    
+
+
+
+
+    if (bce->inFunction()) {
+        bool needsArgsObj = bce->mayOverwriteArguments() || bce->needsEagerArguments();
+        if (needsArgsObj || bce->usesArguments()) {
+            script->mayNeedArgsObj_ = true;
+            if (needsArgsObj)
+                script->setNeedsArgsObj(true);
+        }
+    }
 
     if (bce->globalUses.length()) {
         PodCopy<GlobalSlotArray::Entry>(script->globals()->vector, &bce->globalUses[0],
@@ -1915,4 +1941,12 @@ JSScript::markChildren(JSTracer *trc)
                 MarkValue(trc, &site->trapClosure, "trap closure");
         }
     }
+}
+
+void
+JSScript::setNeedsArgsObj(bool needsArgsObj)
+{
+    JS_ASSERT(!analyzedArgsUsage_);
+    analyzedArgsUsage_ = true;
+    needsArgsObj_ = needsArgsObj;
 }

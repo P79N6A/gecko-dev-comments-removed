@@ -1081,6 +1081,10 @@ ic::SplatApplyArgs(VMFrame &f)
 
         StackFrame *fp = f.regs.fp();
         unsigned n;
+
+        
+        JS_ASSERT(fp->hasArgsObj());
+
         if (!fp->hasArgsObj()) {
             
             n = fp->numActualArgs();

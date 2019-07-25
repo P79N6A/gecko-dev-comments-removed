@@ -323,11 +323,20 @@ class DebugScript
     BreakpointSite  *breakpoints[1];
 };
 
+
+
+
+
+
+extern JSBool
+XDRScript(JSXDRState *xdr, JSScript **scriptp);
+
 } 
 
 static const uint32_t JS_SCRIPT_COOKIE = 0xc00cee;
 
-struct JSScript : public js::gc::Cell {
+struct JSScript : public js::gc::Cell
+{
     
 
 
@@ -346,6 +355,8 @@ struct JSScript : public js::gc::Cell {
                                JSVersion version);
 
     static JSScript *NewScriptFromEmitter(JSContext *cx, js::BytecodeEmitter *bce);
+
+    friend JSBool js::XDRScript(JSXDRState *, JSScript **);
 
 #ifdef JS_CRASH_DIAGNOSTICS
     
@@ -390,7 +401,6 @@ struct JSScript : public js::gc::Cell {
     bool            strictModeCode:1; 
     bool            compileAndGo:1;   
     bool            usesEval:1;       
-    bool            usesArguments:1;  
     bool            warnedAboutTwoArgumentEval:1; 
 
 
@@ -403,8 +413,6 @@ struct JSScript : public js::gc::Cell {
 
     bool            isActiveEval:1;   
     bool            isCachedEval:1;   
-    bool            usedLazyArgs:1;   
-    bool            createdArgs:1;    
     bool            uninlineable:1;   
     bool            reentrantOuterFunction:1; 
     bool            typesPurged:1;    
@@ -413,6 +421,28 @@ struct JSScript : public js::gc::Cell {
     bool            failedBoundsCheck:1; 
 #endif
     bool            callDestroyHook:1;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+  private:
+    bool            mayNeedArgsObj_:1;
+    bool            analyzedArgsUsage_:1;
+    bool            needsArgsObj_:1;
+  public:
+    bool mayNeedArgsObj() const { return mayNeedArgsObj_; }
+    bool analyzedArgsUsage() const { return analyzedArgsUsage_; }
+    bool needsArgsObj() const { JS_ASSERT(analyzedArgsUsage()); return needsArgsObj_; }
+    void setNeedsArgsObj(bool needsArgsObj);
 
     uint32_t        natoms;     
     uint16_t        nslots;     
@@ -865,14 +895,6 @@ CurrentScriptFileLineOrigin(JSContext *cx, unsigned *linenop, LineOption = NOT_C
 
 extern JSScript *
 CloneScript(JSContext *cx, JSScript *script);
-
-
-
-
-
-
-extern JSBool
-XDRScript(JSXDRState *xdr, JSScript **scriptp);
 
 }
 
