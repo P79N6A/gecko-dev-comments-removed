@@ -40,7 +40,6 @@
 package org.mozilla.gecko;
 
 import android.app.Activity;
-import android.app.ActionBar;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -51,7 +50,6 @@ import android.content.res.Configuration;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.Spanned;
@@ -73,7 +71,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ExpandableListView;
 import android.widget.ImageButton;
-import android.widget.RelativeLayout;
 import android.widget.ListView;
 import android.widget.TabWidget;
 import android.widget.Toast;
@@ -398,15 +395,21 @@ public class AwesomeBar extends GeckoActivity implements GeckoEventListener {
                 selEnd = mText.getSelectionEnd();
             }
 
-            
-            mText.requestFocusFromTouch();
-
             if (selStart >= 0) {
                 
                 mText.setSelection(selStart, selEnd);
             }
 
+            
+            
             mText.dispatchKeyEvent(event);
+            int newCursorPos = mText.getSelectionEnd();
+
+            
+            
+            mText.requestFocusFromTouch();
+            mText.setSelection(newCursorPos);
+
             return true;
         }
     }
