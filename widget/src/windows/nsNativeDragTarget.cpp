@@ -61,7 +61,8 @@ static POINTL gDragLastPoint;
 
 
 nsNativeDragTarget::nsNativeDragTarget(nsIWidget * aWnd)
-  : m_cRef(0), mEffect(DROPEFFECT_MOVE | DROPEFFECT_COPY | DROPEFFECT_LINK), 
+  : m_cRef(0), 
+    mEffectsAllowed(DROPEFFECT_MOVE | DROPEFFECT_COPY | DROPEFFECT_LINK), 
     mTookOwnRef(PR_FALSE), mWindow(aWnd), mDropTargetHelper(nsnull)
 {
   mHWnd = (HWND)mWindow->GetNativeData(NS_NATIVE_WINDOW);
@@ -125,37 +126,37 @@ STDMETHODIMP_(ULONG) nsNativeDragTarget::Release(void)
 void
 nsNativeDragTarget::GetGeckoDragAction(DWORD grfKeyState, LPDWORD pdwEffect,
                                        PRUint32 * aGeckoAction)
-{  
+{
   
   
-  
-  
-  if ((mEffect & DROPEFFECT_MOVE) && 
-      (mMovePreferred || (grfKeyState & MK_SHIFT))) {
-    *aGeckoAction = nsIDragService::DRAGDROP_ACTION_MOVE;
-    *pdwEffect    = DROPEFFECT_MOVE;
-  } 
-  else if (!(mEffect & DROPEFFECT_MOVE) && 
-           !(mEffect & DROPEFFECT_COPY) && 
-           (mEffect & DROPEFFECT_LINK)) {
+  if (!mMovePreferred && (grfKeyState & MK_CONTROL) && 
+      (grfKeyState & MK_SHIFT) && (mEffectsAllowed & DROPEFFECT_LINK)) {
+    *pdwEffect = DROPEFFECT_LINK;
     *aGeckoAction = nsIDragService::DRAGDROP_ACTION_LINK;
-    *pdwEffect    = DROPEFFECT_LINK;
   }
-  else {
+  
+  else if ((mEffectsAllowed & DROPEFFECT_MOVE) && 
+           (mMovePreferred || (grfKeyState & MK_SHIFT))) {
+    *pdwEffect = DROPEFFECT_MOVE;
+    *aGeckoAction = nsIDragService::DRAGDROP_ACTION_MOVE;
+  }
+  
+  else if ((mEffectsAllowed & DROPEFFECT_COPY) && (grfKeyState & MK_CONTROL)) {
+    *pdwEffect = DROPEFFECT_COPY;
     *aGeckoAction = nsIDragService::DRAGDROP_ACTION_COPY;
-    *pdwEffect    = DROPEFFECT_COPY;
   }
-
   
-  
-  if (grfKeyState & MK_CONTROL) {
-    if ((mEffect & DROPEFFECT_LINK) && (grfKeyState & MK_SHIFT)) {
-      *aGeckoAction = nsIDragService::DRAGDROP_ACTION_LINK;
-      *pdwEffect    = DROPEFFECT_LINK;
-    } else {
-      *aGeckoAction = nsIDragService::DRAGDROP_ACTION_COPY;
-      *pdwEffect    = DROPEFFECT_COPY;
-    }
+  else if (mEffectsAllowed & DROPEFFECT_MOVE) {
+    *pdwEffect = DROPEFFECT_MOVE;
+    *aGeckoAction = nsIDragService::DRAGDROP_ACTION_MOVE;
+  }
+  else if (mEffectsAllowed & DROPEFFECT_COPY) {
+    *pdwEffect = DROPEFFECT_COPY;
+    *aGeckoAction = nsIDragService::DRAGDROP_ACTION_COPY;
+  }
+  else if (mEffectsAllowed & DROPEFFECT_LINK) {
+    *pdwEffect = DROPEFFECT_LINK;
+    *aGeckoAction = nsIDragService::DRAGDROP_ACTION_LINK;
   }
 }
 
@@ -219,13 +220,15 @@ nsNativeDragTarget::ProcessDrag(PRUint32     aEventType,
   
   DispatchDragDropEvent(aEventType, ptl);
 
-  
-  
-  
-  PRBool canDrop;
-  currSession->GetCanDrop(&canDrop);
-  if (!canDrop)
-    *pdwEffect = DROPEFFECT_NONE;
+  if (aEventType != NS_DRAGDROP_DROP) {
+    
+    
+    PRBool canDrop;
+    currSession->GetCanDrop(&canDrop);
+    if (!canDrop) {
+      *pdwEffect = DROPEFFECT_NONE;
+    }
+  }
 
   
   currSession->SetCanDrop(PR_FALSE);
@@ -242,6 +245,9 @@ nsNativeDragTarget::DragEnter(LPDATAOBJECT pIDataSource,
     return E_FAIL;
   }
 
+  mEffectsAllowed = *pdwEffect;
+  AddLinkSupportIfCanBeGenerated(pIDataSource);
+
   
   if (mDropTargetHelper) {
     POINT pt = { ptl.x, ptl.y };
@@ -257,15 +263,6 @@ nsNativeDragTarget::DragEnter(LPDATAOBJECT pIDataSource,
   
   mDragService->StartDragSession();
 
-  mEffect = *pdwEffect;
-  
-  
-  if (!(mEffect & DROPEFFECT_LINK) && pIDataSource) {
-    if (S_OK == ::OleQueryLinkFromData(pIDataSource)) {
-      mEffect |= DROPEFFECT_LINK;
-    }
-  }
-
   void* tempOutData = nsnull;
   PRUint32 tempDataLen = 0;
   nsresult loadResult = nsClipboard::GetNativeDataOffClipboard(
@@ -276,9 +273,9 @@ nsNativeDragTarget::DragEnter(LPDATAOBJECT pIDataSource,
 
     
     mMovePreferred = (preferredEffect & DROPEFFECT_MOVE) != 0;
+  } else {
+    mMovePreferred = PR_FALSE;
   }
-  else
-    mMovePreferred = (mEffect & DROPEFFECT_MOVE) != 0;
 
   
   
@@ -295,6 +292,18 @@ nsNativeDragTarget::DragEnter(LPDATAOBJECT pIDataSource,
   return S_OK;
 }
 
+void 
+nsNativeDragTarget::AddLinkSupportIfCanBeGenerated(LPDATAOBJECT aIDataSource) 
+{
+  
+  
+  if (!(mEffectsAllowed & DROPEFFECT_LINK) && aIDataSource) {
+    if (S_OK == ::OleQueryLinkFromData(aIDataSource)) {
+      mEffectsAllowed |= DROPEFFECT_LINK;
+    }
+  }
+}
+
 STDMETHODIMP
 nsNativeDragTarget::DragOver(DWORD   grfKeyState,
                              POINTL  ptl,
@@ -303,6 +312,10 @@ nsNativeDragTarget::DragOver(DWORD   grfKeyState,
   if (!mDragService) {
     return E_FAIL;
   }
+
+  
+  
+  mEffectsAllowed = (*pdwEffect) | (mEffectsAllowed & DROPEFFECT_LINK);
 
   nsCOMPtr<nsIDragSession> currentDragSession;
   mDragService->GetCurrentSession(getter_AddRefs(currentDragSession));
@@ -394,6 +407,9 @@ nsNativeDragTarget::Drop(LPDATAOBJECT pData,
   if (!mDragService) {
     return E_FAIL;
   }
+
+  mEffectsAllowed = *pdwEffect;
+  AddLinkSupportIfCanBeGenerated(pData);
 
   
   if (mDropTargetHelper) {
