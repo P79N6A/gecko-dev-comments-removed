@@ -122,14 +122,14 @@ extern "C" void JaegerTrampolineReturn();
 extern "C" void JS_FASTCALL
 PushActiveVMFrame(VMFrame &f)
 {
-    f.cx->jaegerCompartment()->pushActiveFrame(&f);
+    f.entryfp->script()->compartment->jaegerCompartment->pushActiveFrame(&f);
     f.regs.fp->setNativeReturnAddress(JS_FUNC_TO_DATA_PTR(void*, JaegerTrampolineReturn));
 }
 
 extern "C" void JS_FASTCALL
 PopActiveVMFrame(VMFrame &f)
 {
-    f.cx->jaegerCompartment()->popActiveFrame();
+    f.entryfp->script()->compartment->jaegerCompartment->popActiveFrame();
 }
 
 extern "C" void JS_FASTCALL
@@ -402,7 +402,7 @@ SYMBOL_STRING(InjectJaegerReturn) ":"         "\n"
 
 JS_STATIC_ASSERT(sizeof(VMFrame) == 80);
 JS_STATIC_ASSERT(offsetof(VMFrame, savedLR) ==          (4*19));
-JS_STATIC_ASSERT(offsetof(VMFrame, entryFp) ==          (4*10));
+JS_STATIC_ASSERT(offsetof(VMFrame, entryfp) ==          (4*10));
 JS_STATIC_ASSERT(offsetof(VMFrame, stackLimit) ==       (4*9));
 JS_STATIC_ASSERT(offsetof(VMFrame, cx) ==               (4*8));
 JS_STATIC_ASSERT(offsetof(VMFrame, regs.fp) ==          (4*7));

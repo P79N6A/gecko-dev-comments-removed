@@ -181,7 +181,7 @@ InlineReturn(VMFrame &f)
     JSContext *cx = f.cx;
     JSStackFrame *fp = f.regs.fp;
 
-    JS_ASSERT(f.fp() != f.entryFp);
+    JS_ASSERT(f.fp() != f.entryfp);
 
     JS_ASSERT(!js_IsActiveWithOrBlock(cx, &fp->scopeChain(), 0));
 
@@ -231,7 +231,7 @@ stubs::HitStackQuota(VMFrame &f)
     
     uintN nvals = f.fp()->script()->nslots + VALUES_PER_STACK_FRAME;
     JS_ASSERT(f.regs.sp == f.fp()->base());
-    if (f.cx->stack().bumpCommitAndLimit(f.entryFp, f.regs.sp, nvals, &f.stackLimit))
+    if (f.cx->stack().bumpCommitAndLimit(f.entryfp, f.regs.sp, nvals, &f.stackLimit))
         return;
 
     
@@ -269,7 +269,7 @@ stubs::FixupArity(VMFrame &f, uint32 nactual)
     
     JSStackFrame *newfp = cx->stack().getInlineFrameWithinLimit(cx, (Value*) oldfp, nactual,
                                                                 fun, fun->script(), &flags,
-                                                                f.entryFp, &f.stackLimit);
+                                                                f.entryfp, &f.stackLimit);
     if (!newfp)
         THROWV(NULL);
 
@@ -364,7 +364,7 @@ UncachedInlineCall(VMFrame &f, uint32 flags, void **pret, uint32 argc)
     StackSpace &stack = cx->stack();
     JSStackFrame *newfp = stack.getInlineFrameWithinLimit(cx, f.regs.sp, argc,
                                                           newfun, newscript, &flags,
-                                                          f.entryFp, &f.stackLimit);
+                                                          f.entryfp, &f.stackLimit);
     if (JS_UNLIKELY(!newfp))
         return false;
     JS_ASSERT_IF(!vp[1].isPrimitive() && !(flags & JSFRAME_CONSTRUCTING),
@@ -557,7 +557,7 @@ js_InternalThrow(VMFrame &f)
         
         
         
-        bool lastFrame = (f.entryFp == f.fp());
+        bool lastFrame = (f.entryfp == f.fp());
         js_UnwindScope(cx, 0, cx->throwing);
 
         
