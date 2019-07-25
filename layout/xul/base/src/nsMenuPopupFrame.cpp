@@ -1163,10 +1163,8 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, PRBool aIsMove)
 
   nsDeviceContext* devContext = presContext->DeviceContext();
   nscoord offsetForContextMenu = 0;
-  
-  
-  
-  if (mScreenXPos == -1 && mScreenYPos == -1) {
+
+  if (IsAnchored()) {
     
     
     

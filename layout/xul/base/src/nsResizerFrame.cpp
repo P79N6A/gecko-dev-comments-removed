@@ -283,10 +283,9 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
           }
 
           if (weakFrame.IsAlive() &&
-              (oldRect.x != rect.x || oldRect.y != rect.y)) {
-            
-            
-            
+              (oldRect.x != rect.x || oldRect.y != rect.y) &&
+              (!menuPopupFrame->IsAnchored() ||
+               menuPopupFrame->PopupLevel() != ePopupLevelParent)) {
             menuPopupFrame->MoveTo(rect.x, rect.y, PR_TRUE);
           }
         }
