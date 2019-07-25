@@ -1821,4 +1821,32 @@ inline bool NS_IsEventTargetedAtFocusedContent(nsEvent* aEvent)
          NS_IS_RETARGETED_PLUGIN_EVENT(aEvent);
 }
 
+
+
+
+inline bool NS_IsAllowedToDispatchDOMEvent(nsEvent* aEvent)
+{
+  switch (aEvent->eventStructType) {
+    case NS_MOUSE_EVENT:
+      
+      
+      
+      
+      
+      return static_cast<nsMouseEvent*>(aEvent)->reason == nsMouseEvent::eReal;
+
+    case NS_WHEEL_EVENT: {
+      
+      
+      mozilla::widget::WheelEvent* wheelEvent =
+        static_cast<mozilla::widget::WheelEvent*>(aEvent);
+      return wheelEvent->deltaX != 0.0 || wheelEvent->deltaY != 0.0 ||
+             wheelEvent->deltaZ != 0.0;
+    }
+
+    default:
+      return true;
+  }
+}
+
 #endif 
