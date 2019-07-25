@@ -701,15 +701,6 @@ xpc_qsValueToInt64(JSContext *cx,
 
 
 
-inline PRUint64
-xpc_qsDoubleToUint64(jsdouble doubleval)
-{
-    return static_cast<PRUint64>(doubleval);
-}
-
-
-
-
 inline JSBool
 xpc_qsValueToUint64(JSContext *cx,
                     jsval v,
@@ -724,7 +715,7 @@ xpc_qsValueToUint64(JSContext *cx,
         jsdouble doubleval;
         if (!JS_ValueToNumber(cx, v, &doubleval))
             return false;
-        *result = xpc_qsDoubleToUint64(doubleval);
+        *result = static_cast<PRUint64>(doubleval);
     }
     return true;
 }
