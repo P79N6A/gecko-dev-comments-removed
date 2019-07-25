@@ -184,7 +184,7 @@ DeriveConstructing(StackFrame *fp, StackFrame *entryFp, IonJSFrameLayout *js)
 
     if (fiter.type() == IonFrame_JS) {
         
-        InlineFrameIterator ifi(&fiter, MachineState());
+        InlineFrameIterator ifi(&fiter);
         JS_ASSERT(js_CodeSpec[*ifi.pc()].format & JOF_INVOKE);
 
         if ((JSOp)*ifi.pc() == JSOP_NEW)

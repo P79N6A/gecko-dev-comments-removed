@@ -51,6 +51,10 @@ class FixedArityList
     T list_[Arity];
 
   public:
+    FixedArityList()
+      : list_()
+    { }
+
     T &operator [](size_t index) {
         JS_ASSERT(index < Arity);
         return list_[index];
@@ -75,46 +79,6 @@ class FixedArityList<T, 0>
         static T *operand = NULL;
         return *operand;
     }
-};
-
-
-template <typename T>
-class FixedList
-{
-    size_t length_;
-    T *list_;
-
-  private:
-    FixedList(const FixedList&); 
-    void operator= (const FixedList*); 
-
-  public:
-    FixedList()
-      : length_(0)
-    { }
-
-    
-    bool init(size_t length) {
-        length_ = length;
-        if (length == 0)
-            return true;
-
-        list_ = (T *)GetIonContext()->temp->allocate(length * sizeof(T));
-        return list_ != NULL;
-    }
-
-    size_t length() const {
-        return length_;
-    }
-
-    T &operator[](size_t index) {
-        JS_ASSERT(index < length_);
-        return list_[index];
-    }
-    const T &operator [](size_t index) const {
-        JS_ASSERT(index < length_);
-        return list_[index];
-    };
 };
 
 } 
