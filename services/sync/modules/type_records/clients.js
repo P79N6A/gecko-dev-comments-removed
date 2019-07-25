@@ -56,6 +56,29 @@ ClientRecord.prototype = {
     this._WBORec_init(uri);
   },
 
+  _escape: function ClientRecord__escape(toAscii) {
+    
+    if (this.payload != null)
+      for (let [key, val] in Iterator(this.payload))
+        this.payload[key] = (toAscii ? escape : unescape)(val);
+  },
+
+  serialize: function ClientRecord_serialize() {
+    
+    this._escape(true);
+    let ret = WBORecord.prototype.serialize.apply(this, arguments);
+
+    
+    this._escape(false);
+    return ret;
+  },
+
+  deserialize: function ClientRecord_deserialize(json) {
+    
+    WBORecord.prototype.deserialize.apply(this, arguments);
+    this._escape(false);
+  },
+
   
   
   get cleartext() this.serialize(),
