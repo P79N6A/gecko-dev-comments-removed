@@ -145,16 +145,23 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
         
         if (!obj->getClass()->ext.innerObject) {
             obj = vp->toObject().unwrap(&flags);
-            OBJ_TO_OUTER_OBJECT(cx, obj);
-            if (!obj)
-                return false;
 
+            vp->setObject(*obj);
+
+            
+            if (obj->getCompartment() == this)
+                return true;
+        } else {
+            JS_ASSERT(!obj->isWrapper() || obj->getClass()->ext.innerObject);
             vp->setObject(*obj);
         }
 
-        
-        if (obj->compartment() == this)
-            return true;
+        OBJ_TO_OUTER_OBJECT(cx, obj);
+        if (!obj)
+            return false;
+
+        JS_ASSERT(obj->getCompartment() == vp->toObject().getCompartment());
+        vp->setObject(*obj);
     }
 
     
@@ -216,14 +223,6 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
         return false;
 
     vp->setObject(*wrapper);
-
-    
-
-
-
-
-    if (!wrapper->isProxy())
-        return true;
 
     wrapper->setProto(proto);
     if (!crossCompartmentWrappers.put(wrapper->getProxyPrivate(), *vp))
