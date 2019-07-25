@@ -3705,6 +3705,8 @@ js_InflateUTF8StringToBuffer(JSContext *cx, const char *src, size_t srclen,
                     }
                     return JS_FALSE;
                 }
+                if (dstlen < 2)
+                    goto bufferTooSmall;
                 if (dst) {
                     *dst++ = (jschar)((v >> 10) + 0xD800);
                     v = (jschar)((v & 0x3FF) + 0xDC00);
@@ -5529,7 +5531,7 @@ Utf8ToOneUcs4Char(const uint8 *utf8Buffer, int utf8Length)
     return ucs4Char;
 }
 
-#ifdef DEBUG
+#if defined DEBUG || defined JS_DUMP_CONSERVATIVE_GC_ROOTS
 
 JS_FRIEND_API(size_t)
 js_PutEscapedStringImpl(char *buffer, size_t bufferSize, FILE *fp,

@@ -45,13 +45,6 @@
 
 #include <string.h>
 
-
-#ifdef mozilla_mozalloc_macro_wrappers_h
-#  define JS_UNDEFD_MOZALLOC_WRAPPERS
-
-#  include "mozilla/mozalloc_undef_macro_wrappers.h"
-#endif
-
 #include "jsarena.h" 
 #include "jsclist.h"
 #include "jslong.h"
@@ -1038,6 +1031,8 @@ struct JSThreadData {
 
     
     jsuword             *nativeStackBase;
+
+    js::ConservativeGCThreadData conservativeGC;
 
     bool init();
     void finish();
@@ -3069,10 +3064,6 @@ NewIdArray(JSContext *cx, jsint length);
 #ifdef _MSC_VER
 #pragma warning(pop)
 #pragma warning(pop)
-#endif
-
-#ifdef JS_UNDEFD_MOZALLOC_WRAPPERS
-#  include "mozilla/mozalloc_macro_wrappers.h"
 #endif
 
 #endif
