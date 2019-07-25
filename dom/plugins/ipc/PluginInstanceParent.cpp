@@ -464,12 +464,7 @@ PluginInstanceParent::AnswerPStreamNotifyConstructor(PStreamNotifyParent* actor,
                                            file, actor);
     }
 
-    if (streamDestroyed) {
-        
-        
-        *result = NPERR_GENERIC_ERROR;
-    }
-    else {
+    if (!streamDestroyed) {
         static_cast<StreamNotifyParent*>(actor)->ClearDestructionFlag();
         if (*result != NPERR_NO_ERROR)
             return PStreamNotifyParent::Send__delete__(actor,
@@ -631,7 +626,7 @@ PluginInstanceParent::HandleGUIEvent(const nsGUIEvent& anEvent, bool* handled)
 #endif
 
 nsresult
-PluginInstanceParent::GetImage(ImageContainer* aContainer, Image** aImage)
+PluginInstanceParent::GetImageContainer(ImageContainer** aContainer)
 {
 #ifdef XP_MACOSX
     nsIOSurface* ioSurface = NULL;
@@ -655,8 +650,14 @@ PluginInstanceParent::GetImage(ImageContainer* aContainer, Image** aImage)
     }
 #endif
 
+    ImageContainer *container = GetImageContainer();
+
+    if (!container) {
+        return NS_ERROR_FAILURE;
+    }
+
     nsRefPtr<Image> image;
-    image = aContainer->CreateImage(&format, 1);
+    image = container->CreateImage(&format, 1);
     if (!image) {
         return NS_ERROR_FAILURE;
     }
@@ -668,7 +669,10 @@ PluginInstanceParent::GetImage(ImageContainer* aContainer, Image** aImage)
         MacIOSurfaceImage::Data ioData;
         ioData.mIOSurface = ioSurface;
         ioImage->SetData(ioData);
-        *aImage = image.forget().get();
+        container->SetCurrentImage(ioImage);
+
+        NS_IF_ADDREF(container);
+        *aContainer = container;
         return NS_OK;
     }
 #endif
@@ -680,7 +684,10 @@ PluginInstanceParent::GetImage(ImageContainer* aContainer, Image** aImage)
     cairoData.mSize = mFrontSurface->GetSize();
     pluginImage->SetData(cairoData);
 
-    *aImage = image.forget().get();
+    container->SetCurrentImage(pluginImage);
+
+    NS_IF_ADDREF(container);
+    *aContainer = container;
     return NS_OK;
 }
 
@@ -856,6 +863,17 @@ PluginInstanceParent::BackgroundDescriptor()
     
     
     return SurfaceDescriptor();
+}
+
+ImageContainer*
+PluginInstanceParent::GetImageContainer()
+{
+  if (mImageContainer) {
+    return mImageContainer;
+  }
+
+  mImageContainer = LayerManager::CreateImageContainer();
+  return mImageContainer;
 }
 
 PPluginBackgroundDestroyerParent*

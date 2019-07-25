@@ -1498,7 +1498,7 @@ nsObjectFrame::GetPaintedRect(nsDisplayPlugin* aItem)
 }
 
 void
-nsObjectFrame::UpdateImageLayer(ImageContainer* aContainer, const gfxRect& aRect)
+nsObjectFrame::UpdateImageLayer(const gfxRect& aRect)
 {
   if (!mInstanceOwner) {
     return;
@@ -1507,10 +1507,13 @@ nsObjectFrame::UpdateImageLayer(ImageContainer* aContainer, const gfxRect& aRect
 #ifdef XP_MACOSX
   if (!mInstanceOwner->UseAsyncRendering()) {
     mInstanceOwner->DoCocoaEventDrawRect(aRect, nsnull);
+    
+    
+    
+    
+    mInstanceOwner->GetImageContainer();
   }
 #endif
-
-  mInstanceOwner->SetCurrentImage(aContainer);
 }
 
 LayerState
@@ -1552,16 +1555,11 @@ nsObjectFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
     return nsnull;
 
   
-  nsRefPtr<ImageContainer> container = GetImageContainer();
+  nsRefPtr<ImageContainer> container = mInstanceOwner->GetImageContainer();
 
-  {
-    nsRefPtr<Image> current = container->GetCurrentImage();
-    if (!current) {
-      
-      
-      if (!mInstanceOwner->SetCurrentImage(container))
-        return nsnull;
-    }
+  if (!container) {
+    
+    return nsnull;
   }
 
   gfxIntSize size = container->GetCurrentSize();
@@ -1585,7 +1583,7 @@ nsObjectFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
     NS_ASSERTION(layer->GetType() == Layer::TYPE_IMAGE, "Bad layer type");
 
     ImageLayer* imglayer = static_cast<ImageLayer*>(layer.get());
-    UpdateImageLayer(container, r);
+    UpdateImageLayer(r);
 
     imglayer->SetContainer(container);
     gfxPattern::GraphicsFilter filter =
