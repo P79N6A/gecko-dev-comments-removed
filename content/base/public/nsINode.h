@@ -146,7 +146,15 @@ enum {
   NODE_HAS_RELEVANT_HOVER_RULES = 0x00080000U,
 
   
-  NODE_TYPE_SPECIFIC_BITS_OFFSET =        20
+  NODE_HAS_DIRECTION_RTL        = 0x00100000U,
+
+  
+  NODE_HAS_DIRECTION_LTR        = 0x00200000U,
+
+  NODE_ALL_DIRECTION_FLAGS      = NODE_HAS_DIRECTION_LTR | NODE_HAS_DIRECTION_RTL,
+
+  
+  NODE_TYPE_SPECIFIC_BITS_OFFSET =        22
 };
 
 
@@ -1280,6 +1288,8 @@ private:
     
     ElementHasAnimations,
     
+    NodeHasValidDirAttribute,
+    
     BooleanFlagCount
   };
 
@@ -1346,6 +1356,9 @@ public:
   void ClearPointerLock() { ClearBoolFlag(ElementHasPointerLock); }
   bool MayHaveAnimations() { return GetBoolFlag(ElementHasAnimations); }
   void SetMayHaveAnimations() { SetBoolFlag(ElementHasAnimations); }
+  void SetHasValidDir() { SetBoolFlag(NodeHasValidDirAttribute); }
+  void ClearHasValidDir() { ClearBoolFlag(NodeHasValidDirAttribute); }
+  bool HasValidDir() const { return GetBoolFlag(NodeHasValidDirAttribute); }
 protected:
   void SetParentIsContent(bool aValue) { SetBoolFlag(ParentIsContent, aValue); }
   void SetInDocument() { SetBoolFlag(IsInDocument); }

@@ -1048,6 +1048,12 @@ protected:
   nsIContent* GetFirstBaseNodeWithHref();
   nsresult SetFirstBaseNodeWithHref(nsIContent *node);
 
+  inline void
+  SetDocumentDirectionality(mozilla::directionality::Directionality aDir)
+  {
+    mDirectionality = aDir;
+  }
+
   
   
   nsIContent* GetTitleContent(PRUint32 aNodeType);
