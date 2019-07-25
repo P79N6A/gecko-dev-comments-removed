@@ -1833,6 +1833,79 @@ nsXPCComponents_Exception::Construct(nsIXPConnectWrappedNative *wrapper, JSConte
     return CallOrConstruct(wrapper, cx, obj, argc, argv, vp, _retval);
 }
 
+struct NS_STACK_CLASS ExceptionArgParser
+{
+    ExceptionArgParser(JSContext *context,
+                       nsXPConnect *xpconnect)
+        : eMsg("exception")
+        , eResult(NS_ERROR_FAILURE)
+        , cx(context)
+        , xpc(xpconnect)
+    {}
+
+    
+    
+    const char*             eMsg;
+    nsresult                eResult;
+    nsCOMPtr<nsIStackFrame> eStack;
+    nsCOMPtr<nsISupports>   eData;
+
+    
+    bool parse(uint32_t argc, JS::Value *argv) {
+        
+        switch (argc) {
+            default:    
+                
+            case 4:     
+                if (JSVAL_IS_NULL(argv[3])) {
+                    
+                } else {
+                    if (JSVAL_IS_PRIMITIVE(argv[3]) ||
+                        NS_FAILED(xpc->WrapJS(cx, JSVAL_TO_OBJECT(argv[3]),
+                                              NS_GET_IID(nsISupports),
+                                              (void**)getter_AddRefs(eData))))
+                        return false;
+                }
+                
+            case 3:     
+                if (JSVAL_IS_NULL(argv[2])) {
+                    
+                } else {
+                    if (JSVAL_IS_PRIMITIVE(argv[2]) ||
+                        NS_FAILED(xpc->WrapJS(cx, JSVAL_TO_OBJECT(argv[2]),
+                                              NS_GET_IID(nsIStackFrame),
+                                              (void**)getter_AddRefs(eStack))))
+                        return false;
+                }
+                
+            case 2:     
+                if (!JS_ValueToECMAInt32(cx, argv[1], (int32_t*) &eResult))
+                    return false;
+                
+            case 1:     
+                {
+                    JSString* str = JS_ValueToString(cx, argv[0]);
+                    if (!str || !(eMsg = messageBytes.encode(cx, str)))
+                        return false;
+                }
+                
+            case 0: 
+                ;   
+        }
+
+        return true;
+    }
+
+  protected:
+
+    
+    JSAutoByteString messageBytes;
+
+    
+    JSContext *cx;
+    nsXPConnect *xpc;
+};
+
 
 nsresult
 nsXPCComponents_Exception::CallOrConstruct(nsIXPConnectWrappedNative *wrapper,
@@ -1858,55 +1931,13 @@ nsXPCComponents_Exception::CallOrConstruct(nsIXPConnectWrappedNative *wrapper,
     }
 
     
-    const char*             eMsg = "exception";
-    JSAutoByteString        eMsgBytes;
-    nsresult                eResult = NS_ERROR_FAILURE;
-    nsCOMPtr<nsIStackFrame> eStack;
-    nsCOMPtr<nsISupports>   eData;
-
-    
-    switch (argc) {
-        default:    
-            
-        case 4:     
-            if (JSVAL_IS_NULL(argv[3])) {
-                
-            } else {
-                if (JSVAL_IS_PRIMITIVE(argv[3]) ||
-                    NS_FAILED(xpc->WrapJS(cx, JSVAL_TO_OBJECT(argv[3]),
-                                          NS_GET_IID(nsISupports),
-                                          (void**)getter_AddRefs(eData))))
-                    return ThrowAndFail(NS_ERROR_XPC_BAD_CONVERT_JS, cx, _retval);
-            }
-            
-        case 3:     
-            if (JSVAL_IS_NULL(argv[2])) {
-                
-            } else {
-                if (JSVAL_IS_PRIMITIVE(argv[2]) ||
-                    NS_FAILED(xpc->WrapJS(cx, JSVAL_TO_OBJECT(argv[2]),
-                                          NS_GET_IID(nsIStackFrame),
-                                          (void**)getter_AddRefs(eStack))))
-                    return ThrowAndFail(NS_ERROR_XPC_BAD_CONVERT_JS, cx, _retval);
-            }
-            
-        case 2:     
-            if (!JS_ValueToECMAInt32(cx, argv[1], (int32_t*) &eResult))
-                return ThrowAndFail(NS_ERROR_XPC_BAD_CONVERT_JS, cx, _retval);
-            
-        case 1:     
-            {
-                JSString* str = JS_ValueToString(cx, argv[0]);
-                if (!str || !(eMsg = eMsgBytes.encode(cx, str)))
-                    return ThrowAndFail(NS_ERROR_XPC_BAD_CONVERT_JS, cx, _retval);
-            }
-            
-        case 0: 
-            ;   
-    }
+    ExceptionArgParser args(cx, xpc);
+    if (!args.parse(argc, argv))
+        return ThrowAndFail(NS_ERROR_XPC_BAD_CONVERT_JS, cx, _retval);
 
     nsCOMPtr<nsIException> e;
-    nsXPCException::NewException(eMsg, eResult, eStack, eData, getter_AddRefs(e));
+    nsXPCException::NewException(args.eMsg, args.eResult, args.eStack,
+                                 args.eData, getter_AddRefs(e));
     if (!e)
         return ThrowAndFail(NS_ERROR_XPC_UNEXPECTED, cx, _retval);
 
