@@ -16,11 +16,6 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
   "resource://gre/modules/PlacesUtils.jsm");
 
-XPCOMUtils.defineLazyServiceGetter(this, "gPrivateBrowsing",
-  "@mozilla.org/privatebrowsing;1", "nsIPrivateBrowsingService");
-
-XPCOMUtils.defineLazyModuleGetter(this, "Dict", "resource://gre/modules/Dict.jsm");
-
 
 const PREF_NEWTAB_ENABLED = "browser.newtabpage.enabled";
 
@@ -56,34 +51,12 @@ let Storage = {
 
 
 
-  get currentStorage() {
-    let storage = this.domStorage;
-
-    
-    if (gPrivateBrowsing.privateBrowsingEnabled)
-      storage = new PrivateBrowsingStorage(storage);
-
-    
-    Services.obs.addObserver(this, "private-browsing", true);
-
-    
-    let descriptor = {value: storage, enumerable: true, writable: true};
-    Object.defineProperty(this, "currentStorage", descriptor);
-
-    return storage;
-  },
-
-  
-
-
-
-
 
   get: function Storage_get(aKey, aDefault) {
     let value;
 
     try {
-      value = JSON.parse(this.currentStorage.getItem(aKey));
+      value = JSON.parse(this.domStorage.getItem(aKey));
     } catch (e) {}
 
     return value || aDefault;
@@ -95,89 +68,20 @@ let Storage = {
 
 
   set: function Storage_set(aKey, aValue) {
-    this.currentStorage.setItem(aKey, JSON.stringify(aValue));
+    this.domStorage.setItem(aKey, JSON.stringify(aValue));
   },
 
   
 
 
   clear: function Storage_clear() {
-    this.currentStorage.clear();
-  },
-
-  
-
-
-
-  observe: function Storage_observe(aSubject, aTopic, aData) {
-    if (aData == "enter") {
-      
-      
-      
-      this.currentStorage = new PrivateBrowsingStorage(this.domStorage);
-    } else {
-      
-      this.currentStorage = this.domStorage;
-
-      
-      
-      
-      PinnedLinks.resetCache();
-      BlockedLinks.resetCache();
-    }
+    this.domStorage.clear();
   },
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
                                          Ci.nsISupportsWeakReference])
 };
 
-
-
-
-
-function PrivateBrowsingStorage(aStorage) {
-  this._data = new Dict();
-
-  for (let i = 0; i < aStorage.length; i++) {
-    let key = aStorage.key(i);
-    this._data.set(key, aStorage.getItem(key));
-  }
-}
-
-PrivateBrowsingStorage.prototype = {
-  
-
-
-  _data: null,
-
-  
-
-
-
-
-
-  getItem: function PrivateBrowsingStorage_getItem(aKey) {
-    return this._data.get(aKey);
-  },
-
-  
-
-
-
-
-  setItem: function PrivateBrowsingStorage_setItem(aKey, aValue) {
-    this._data.set(aKey, aValue);
-  },
-
-  
-
-
-  clear: function PrivateBrowsingStorage_clear() {
-    this._data.listkeys().forEach(function (aKey) {
-      this._data.del(aKey);
-    }, this);
-  }
-};
 
 
 
