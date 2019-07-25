@@ -126,6 +126,73 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #if !defined(nsBuiltinDecoder_h_)
 #define nsBuiltinDecoder_h_
 
@@ -159,8 +226,22 @@ class nsDecoderStateMachine : public nsRunnable
 {
 public:
   
+  enum State {
+    DECODER_STATE_DECODING_METADATA,
+    DECODER_STATE_DECODING,
+    DECODER_STATE_SEEKING,
+    DECODER_STATE_BUFFERING,
+    DECODER_STATE_COMPLETED,
+    DECODER_STATE_SHUTDOWN
+  };
+
+  
   
   virtual nsresult Init() = 0;
+
+  
+  
+  virtual State GetState() = 0;
 
   
   
@@ -204,6 +285,13 @@ public:
   
   
   virtual void SetSeekable(PRBool aSeekable) = 0;
+
+  
+  
+  
+  
+  
+  virtual void UpdatePlaybackPosition(PRInt64 aTime) = 0;
 };
 
 class nsBuiltinDecoder : public nsMediaDecoder
@@ -215,6 +303,8 @@ class nsBuiltinDecoder : public nsMediaDecoder
   NS_DECL_NSIOBSERVER
 
  public:
+  typedef mozilla::Monitor Monitor;
+
   
   enum PlayState {
     PLAY_STATE_START,
@@ -325,7 +415,7 @@ class nsBuiltinDecoder : public nsMediaDecoder
 
   
   
-  mozilla::Monitor& GetMonitor() { 
+  Monitor& GetMonitor() { 
     return mMonitor; 
   }
 
@@ -351,6 +441,15 @@ class nsBuiltinDecoder : public nsMediaDecoder
 
   
   double ComputePlaybackRate(PRPackedBool* aReliable);
+
+  
+  
+  
+  
+  void UpdatePlaybackPosition(PRInt64 aTime)
+  {
+    mDecoderStateMachine->UpdatePlaybackPosition(aTime);
+  }
 
   
 
@@ -408,7 +507,14 @@ class nsBuiltinDecoder : public nsMediaDecoder
   
   
   void UpdatePlaybackOffset(PRInt64 aOffset);
+
   
+  nsDecoderStateMachine* GetStateMachine() { return mDecoderStateMachine; }
+
+  
+  
+  nsDecoderStateMachine::State GetDecodeState() { return mDecoderStateMachine->GetState(); }
+
 public:
   
   void DecodeError();
@@ -478,7 +584,7 @@ public:
   
   
   
-  mozilla::Monitor mMonitor;
+  Monitor mMonitor;
 
   
   

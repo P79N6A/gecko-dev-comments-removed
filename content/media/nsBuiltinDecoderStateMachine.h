@@ -109,85 +109,16 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#if !defined(nsOggPlayStateMachine_h__)
-#define nsOggPlayStateMachine_h__
+#if !defined(nsBuiltinDecoderStateMachine_h__)
+#define nsBuiltinDecoderStateMachine_h__
 
 #include "prmem.h"
 #include "nsThreadUtils.h"
-#include "nsOggReader.h"
 #include "nsBuiltinDecoder.h"
+#include "nsBuiltinDecoderReader.h"
 #include "nsHTMLMediaElement.h"
 #include "mozilla/Monitor.h"
 
-using mozilla::TimeDuration;
-using mozilla::TimeStamp;
 
 
 
@@ -205,25 +136,23 @@ using mozilla::TimeStamp;
 
 
 
-
-class nsOggPlayStateMachine : public nsDecoderStateMachine
+class nsBuiltinDecoderStateMachine : public nsDecoderStateMachine
 {
 public:
-  
-  enum State {
-    DECODER_STATE_DECODING_METADATA,
-    DECODER_STATE_DECODING,
-    DECODER_STATE_SEEKING,
-    DECODER_STATE_BUFFERING,
-    DECODER_STATE_COMPLETED,
-    DECODER_STATE_SHUTDOWN
-  };
+  typedef mozilla::Monitor Monitor;
+  typedef mozilla::TimeStamp TimeStamp;
+  typedef mozilla::TimeDuration TimeDuration;
 
-  nsOggPlayStateMachine(nsBuiltinDecoder* aDecoder);
-  ~nsOggPlayStateMachine();
+  nsBuiltinDecoderStateMachine(nsBuiltinDecoder* aDecoder, nsBuiltinDecoderReader* aReader);
+  ~nsBuiltinDecoderStateMachine();
 
   
   virtual nsresult Init();
+  State GetState()
+  { 
+    mDecoder->GetMonitor().AssertCurrentThreadIn();
+    return mState; 
+  }
   virtual void SetVolume(float aVolume);
   virtual void Shutdown();
   virtual PRInt64 GetDuration();
@@ -238,6 +167,12 @@ public:
   virtual float GetCurrentTime();
   virtual void ClearPositionChangeFlag();
   virtual void SetSeekable(PRBool aSeekable);
+  virtual void UpdatePlaybackPosition(PRInt64 aTime);
+
+
+  
+  
+  virtual void LoadMetadata();
 
   
   
@@ -269,14 +204,14 @@ public:
   PRBool IsBuffering() const {
     mDecoder->GetMonitor().AssertCurrentThreadIn();
 
-    return mState == nsOggPlayStateMachine::DECODER_STATE_BUFFERING;
+    return mState == nsBuiltinDecoderStateMachine::DECODER_STATE_BUFFERING;
   }
 
   
   PRBool IsSeeking() const {
     mDecoder->GetMonitor().AssertCurrentThreadIn();
 
-    return mState == nsOggPlayStateMachine::DECODER_STATE_SEEKING;
+    return mState == nsBuiltinDecoderStateMachine::DECODER_STATE_SEEKING;
   }
 
   
@@ -301,16 +236,9 @@ public:
   
   
   
-  
-  void UpdatePlaybackPosition(PRInt64 aTime);
-
-  
-  
-  
-  
   State mState;
 
-private:
+protected:
 
   
   
@@ -364,11 +292,6 @@ private:
   
   
   
-  void LoadOggHeaders();
-
-  
-  
-  
   void AudioLoop();
 
   
@@ -395,18 +318,10 @@ private:
   PRBool IsPlaying();
 
   
-  nsOggInfo mInfo;
-
-  
   
   
   
   Monitor mAudioMonitor;
-
-  
-  
-  
-  nsAutoPtr<nsOggReader> mReader;
 
   
   
@@ -460,6 +375,14 @@ private:
   
   
   nsAutoPtr<nsAudioStream> mAudioStream;
+
+  
+  nsVideoInfo mInfo;
+
+  
+  
+  
+  nsAutoPtr<nsBuiltinDecoderReader> mReader;
 
   
   

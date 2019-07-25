@@ -36,14 +36,10 @@
 
 
 
-#if !defined(nsOggReader_h_)
-#define nsOggReader_h_
+#if !defined(nsBuiltinDecoderReader_h_)
+#define nsBuiltinDecoderReader_h_
 
 #include <nsDeque.h>
-#include "nsOggCodecState.h"
-#include <ogg/ogg.h>
-#include <theora/theoradec.h>
-#include <vorbis/codec.h>
 #include "nsAutoLock.h"
 #include "nsClassHashtable.h"
 #include "mozilla/TimeStamp.h"
@@ -51,12 +47,7 @@
 #include "nsRect.h"
 #include "mozilla/Monitor.h"
 
-class nsOggPlayStateMachine;
-
-using mozilla::Monitor;
-using mozilla::MonitorAutoEnter;
-using mozilla::TimeDuration;
-using mozilla::TimeStamp;
+class nsBuiltinDecoderStateMachine;
 
 
 class SoundData {
@@ -115,31 +106,46 @@ public:
 
 class VideoData {
 public:
+  
+  
+  
+  
+  struct YCbCrBuffer {
+    struct Plane {
+      PRUint8* mData;
+      PRUint32 mWidth;
+      PRUint32 mHeight;
+      PRUint32 mStride;
+    };
 
+    Plane mPlanes[3];
+  };
+
+  
   
   
   
   static VideoData* Create(PRInt64 aOffset,
                            PRInt64 aTime,
-                           th_ycbcr_buffer aBuffer,
+                           const YCbCrBuffer &aBuffer,
                            PRBool aKeyframe,
-                           PRInt64 aGranulepos);
+                           PRInt64 aTimecode);
 
   
   
   
   static VideoData* CreateDuplicate(PRInt64 aOffset,
                                     PRInt64 aTime,
-                                    PRInt64 aGranulepos)
+                                    PRInt64 aTimecode)
   {
-    return new VideoData(aOffset, aTime, aGranulepos);
+    return new VideoData(aOffset, aTime, aTimecode);
   }
 
   ~VideoData()
   {
     MOZ_COUNT_DTOR(VideoData);
     for (PRUint32 i = 0; i < 3; ++i) {
-      delete mBuffer[i].data;
+      moz_free(mBuffer.mPlanes[i].mData);
     }
   }
 
@@ -148,34 +154,37 @@ public:
 
   
   PRInt64 mTime;
-  PRInt64 mGranulepos;
 
-  th_ycbcr_buffer mBuffer;
+  
+  
+  PRInt64 mTimecode;
+
+  YCbCrBuffer mBuffer;
 
   
   
   PRPackedBool mDuplicate;
   PRPackedBool mKeyframe;
 
-private:
-  VideoData(PRInt64 aOffset, PRInt64 aTime, PRInt64 aGranulepos)
+public:
+  VideoData(PRInt64 aOffset, PRInt64 aTime, PRInt64 aTimecode)
     : mOffset(aOffset),
       mTime(aTime),
-      mGranulepos(aGranulepos),
+      mTimecode(aTimecode),
       mDuplicate(PR_TRUE),
       mKeyframe(PR_FALSE)
   {
     MOZ_COUNT_CTOR(VideoData);
-    memset(&mBuffer, 0, sizeof(th_ycbcr_buffer));
+    memset(&mBuffer, 0, sizeof(YCbCrBuffer));
   }
 
   VideoData(PRInt64 aOffset,
             PRInt64 aTime,
             PRBool aKeyframe,
-            PRInt64 aGranulepos)
+            PRInt64 aTimecode)
     : mOffset(aOffset),
       mTime(aTime),
-      mGranulepos(aGranulepos),
+      mTimecode(aTimecode),
       mDuplicate(PR_FALSE),
       mKeyframe(aKeyframe)
   {
@@ -195,7 +204,9 @@ class MediaQueueDeallocator : public nsDequeFunctor {
 
 template <class T> class MediaQueue : private nsDeque {
  public:
-  
+   typedef mozilla::MonitorAutoEnter MonitorAutoEnter;
+   typedef mozilla::Monitor Monitor;
+
    MediaQueue()
      : nsDeque(new MediaQueueDeallocator<T>()),
        mMonitor("mediaqueue"),
@@ -323,9 +334,9 @@ public:
 };
 
 
-class nsOggInfo {
+class nsVideoInfo {
 public:
-  nsOggInfo()
+  nsVideoInfo()
     : mFramerate(0.0),
       mAspectRatio(1.0),
       mCallbackPeriod(1),
@@ -375,27 +386,40 @@ public:
 
 
 
-class nsOggReader : public nsRunnable {
+class nsBuiltinDecoderReader : public nsRunnable {
 public:
-  nsOggReader(nsOggPlayStateMachine* aStateMachine);
-  ~nsOggReader();
+  typedef mozilla::Monitor Monitor;
 
-  PRBool HasAudio()
-  {
-    MonitorAutoEnter mon(mMonitor);
-    return mVorbisState != 0 && mVorbisState->mActive;
-  }
+  nsBuiltinDecoderReader(nsBuiltinDecoder* aDecoder);
+  ~nsBuiltinDecoderReader();
 
-  PRBool HasVideo()
-  {
-    MonitorAutoEnter mon(mMonitor);
-    return mTheoraState != 0 && mTheoraState->mActive;
-  }
+  
+  
+  virtual nsresult Init() = 0;
+
+  
+  virtual nsresult ResetDecode();
 
   
   
   
-  nsresult ReadOggHeaders(nsOggInfo& aInfo);
+  
+  virtual PRBool DecodeAudioData() = 0;
+
+  
+  
+  
+  virtual PRBool DecodeVideoFrame(PRBool &aKeyframeSkip,
+                                  PRInt64 aTimeThreshold) = 0;
+
+  virtual PRBool HasAudio() = 0;
+  virtual PRBool HasVideo() = 0;
+
+  
+  
+  
+  virtual nsresult ReadMetadata(nsVideoInfo& aInfo) = 0;
+
 
   
   
@@ -404,26 +428,11 @@ public:
 
   
   
-  PRInt64 FindEndTime(PRInt64 aEndOffset);
+  virtual PRInt64 FindEndTime(PRInt64 aEndOffset) = 0;
 
   
   
-  
-  
-  PRBool DecodeAudioPage();
-  
-  
-  
-  
-  
-  
-  
-  PRBool DecodeVideoPage(PRBool &aKeyframeSkip,
-                         PRInt64 aTimeThreshold);
-
-  
-  
-  nsresult Seek(PRInt64 aTime, PRInt64 aStartTime, PRInt64 aEndTime);
+  virtual nsresult Seek(PRInt64 aTime, PRInt64 aStartTime, PRInt64 aEndTime) = 0;
 
   
   MediaQueue<SoundData> mAudioQueue;
@@ -431,15 +440,11 @@ public:
   
   MediaQueue<VideoData> mVideoQueue;
 
-  
-  
-  nsresult Init();
-
-private:
+protected:
 
   
   
-  typedef PRBool (nsOggReader::*DecodeFn)();
+  typedef PRBool (nsBuiltinDecoderReader::*DecodeFn)();
 
   
   
@@ -449,40 +454,10 @@ private:
 
   
   
-  PRBool DecodeVideoPage() {
+  PRBool DecodeVideoFrame() {
     PRBool f = PR_FALSE;
-    return DecodeVideoPage(f, 0);
+    return DecodeVideoFrame(f, 0);
   }
-
-  
-  
-  nsresult DecodeVorbis(nsTArray<SoundData*>& aChunks,
-                        ogg_packet* aPacket);
-
-  
-  nsresult DecodeTheora(nsTArray<VideoData*>& aFrames,
-                        ogg_packet* aPacket);
-
-  
-  nsresult ResetDecode();
-
-  
-  
-  PRInt64 ReadOggPage(ogg_page* aPage);
-
-  
-  
-  PRBool ReadOggPacket(nsOggCodecState* aCodecState, ogg_packet* aPacket);
-
-  
-  
-  
-  
-  
-  
-  nsresult SeekBisection(PRInt64 aTarget,
-                         const ByteRange& aRange,
-                         PRUint32 aFuzz);
 
   
   
@@ -510,37 +485,11 @@ private:
 
   
   
-  nsOggPlayStateMachine* mPlayer;
-
-  
-  nsClassHashtable<nsUint32HashKey, nsOggCodecState> mCodecStates;
-
-  
-  nsTheoraState* mTheoraState;
-
-  
-  nsVorbisState* mVorbisState;
-
-  
-  ogg_sync_state mOggState;
-
-  
-  
-  PRInt64 mPageOffset;
+  nsBuiltinDecoder* mDecoder;
 
   
   
   PRInt64 mDataOffset;
-
-  
-  PRInt64 mTheoraGranulepos;
-
-  
-  PRInt64 mVorbisGranulepos;
-
-  
-  PRUint32 mCallbackPeriod;
-
 };
 
 #endif
