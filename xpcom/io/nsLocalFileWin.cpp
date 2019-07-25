@@ -3105,12 +3105,14 @@ nsLocalFile::EnsureShortPath()
     if (!mShortWorkingPath.IsEmpty())
         return;
 
-    WCHAR thisshort[MAX_PATH];
-    DWORD thisr = ::GetShortPathNameW(mWorkingPath.get(), thisshort,
-                                      sizeof(thisshort));
+    WCHAR shortPath[MAX_PATH + 1];
+    DWORD lengthNeeded = ::GetShortPathNameW(mWorkingPath.get(), shortPath,
+                                             NS_ARRAY_LENGTH(shortPath));
     
-    if (thisr != 0 && thisr < sizeof(thisshort))
-        mShortWorkingPath.Assign(thisshort);
+    
+    
+    if (lengthNeeded != 0 && lengthNeeded < NS_ARRAY_LENGTH(shortPath))
+        mShortWorkingPath.Assign(shortPath);
     else
         mShortWorkingPath.Assign(mWorkingPath);
 }
