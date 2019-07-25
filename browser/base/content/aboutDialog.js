@@ -194,7 +194,7 @@ appUpdater.prototype =
   
   get backgroundUpdateEnabled() {
     return this.updateEnabled &&
-           Services.prefs.getBoolPref("app.update.stage.enabled");
+           gAppUpdater.aus.canStageUpdates;
   },
 
   

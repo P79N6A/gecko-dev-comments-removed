@@ -2049,6 +2049,13 @@ UpdateService.prototype = {
   
 
 
+  get canStageUpdates() {
+    return gCanStageUpdates;
+  },
+
+  
+
+
   addDownloadListener: function AUS_addDownloadListener(listener) {
     if (!this._downloader) {
       LOG("UpdateService:addDownloadListener - no downloader!");
