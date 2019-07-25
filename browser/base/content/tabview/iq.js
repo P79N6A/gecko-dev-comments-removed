@@ -166,7 +166,7 @@ function iQClass(selector, context) {
     return null;
   }
 
-  if (typeof selector.selector !== "undefined") {
+  if ("selector" in selector) {
     this.selector = selector.selector;
     this.context = selector.context;
   }
@@ -360,7 +360,7 @@ iQClass.prototype = {
   
   data: function iQClass_data(key, value) {
     let data = null;
-    if (typeof value === "undefined") {
+    if (value === undefined) {
       Utils.assert(this.length == 1, 'does not yet support multi-objects (or null objects)');
       data = this[0].iQData;
       if (data)
@@ -388,7 +388,7 @@ iQClass.prototype = {
   
   html: function iQClass_html(value) {
     Utils.assert(this.length == 1, 'does not yet support multi-objects (or null objects)');
-    if (typeof value === "undefined")
+    if (value === undefined)
       return this[0].innerHTML;
 
     this[0].innerHTML = value;
@@ -401,7 +401,7 @@ iQClass.prototype = {
   
   text: function iQClass_text(value) {
     Utils.assert(this.length == 1, 'does not yet support multi-objects (or null objects)');
-    if (typeof value === "undefined") {
+    if (value === undefined) {
       return this[0].textContent;
     }
 
@@ -413,7 +413,7 @@ iQClass.prototype = {
   
   val: function iQClass_val(value) {
     Utils.assert(this.length == 1, 'does not yet support multi-objects (or null objects)');
-    if (typeof value === "undefined") {
+    if (value === undefined) {
       return this[0].value;
     }
 
@@ -446,7 +446,7 @@ iQClass.prototype = {
   
   attr: function iQClass_attr(key, value) {
     Utils.assert(typeof key === 'string', 'string key');
-    if (typeof value === "undefined") {
+    if (value === undefined) {
       Utils.assert(this.length == 1, 'retrieval does not support multi-objects (or null objects)');
       return this[0].getAttribute(key);
     }
@@ -471,7 +471,7 @@ iQClass.prototype = {
 
     if (typeof a === 'string') {
       let key = a;
-      if (typeof b === "undefined") {
+      if (b === undefined) {
         Utils.assert(this.length == 1, 'retrieval does not support multi-objects (or null objects)');
 
         return window.getComputedStyle(this[0], null).getPropertyValue(key);
@@ -596,7 +596,7 @@ iQClass.prototype = {
   
   
   fadeOut: function iQClass_fadeOut(callback) {
-    Utils.assert(typeof callback == "function" || typeof callback === "undefined", 
+    Utils.assert(typeof callback == "function" || callback === undefined, 
         'does not yet support duration');
 
     this.animate({
