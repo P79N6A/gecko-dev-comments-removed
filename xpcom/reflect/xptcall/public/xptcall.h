@@ -52,6 +52,7 @@
 #include "nsISupports.h"
 #include "xpt_struct.h"
 #include "xptinfo.h"
+#include "jsapi.h"
 
 struct nsXPTCMiniVariant
 {
@@ -73,6 +74,11 @@ struct nsXPTCMiniVariant
         char      c;
         PRUnichar wc;
         void*     p;
+
+        
+        
+        
+        jsval j;
     } val;
 };
 
