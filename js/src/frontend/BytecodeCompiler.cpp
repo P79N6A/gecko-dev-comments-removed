@@ -104,6 +104,10 @@ frontend::CompileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
     TreeContext tc(&parser, &sc, staticLevel);
     if (!tc.init())
         return NULL;
+    
+    
+    if (!GenerateBlockId(&tc, tc.bodyid))
+        return NULL;
 
     bool savedCallerFun = compileAndGo && callerFrame && callerFrame->isFunctionFrame();
     GlobalObject *globalObject = needScriptGlobal ? GetCurrentGlobal(cx) : NULL;
@@ -153,13 +157,6 @@ frontend::CompileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
             bce.objectList.length++;
         }
     }
-
-    
-
-
-
-    if (!GenerateBlockId(&sc, sc.bodyid))
-        return NULL;
 
     ParseNode *pn;
 #if JS_HAS_XML_SUPPORT
@@ -261,10 +258,14 @@ frontend::CompileFunctionBody(JSContext *cx, JSFunction *fun,
 
     JS_ASSERT(fun);
     SharedContext funsc(cx,  NULL, fun,  NULL);
+    funsc.bindings.transfer(bindings);
+    fun->setArgCount(funsc.bindings.numArgs());
 
     unsigned staticLevel = 0;
     TreeContext funtc(&parser, &funsc, staticLevel);
     if (!funtc.init())
+        return false;
+    if (!GenerateBlockId(&funtc, funtc.bodyid))
         return false;
 
     GlobalObject *globalObject = fun->getParent() ? &fun->getParent()->global() : NULL;
@@ -279,11 +280,6 @@ frontend::CompileFunctionBody(JSContext *cx, JSFunction *fun,
     BytecodeEmitter funbce( NULL, &parser, &funsc, script, nullCallerFrame,
                             false, lineno);
     if (!funbce.init())
-        return false;
-
-    funsc.bindings.transfer(bindings);
-    fun->setArgCount(funsc.bindings.numArgs());
-    if (!GenerateBlockId(&funsc, funsc.bodyid))
         return false;
 
     

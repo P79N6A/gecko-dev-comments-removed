@@ -65,6 +65,8 @@ class GCConstList {
 
 struct BytecodeEmitter
 {
+    typedef StmtInfoBCE StmtInfo;
+
     SharedContext   *const sc;      
 
     BytecodeEmitter *const parent;  
@@ -85,6 +87,11 @@ struct BytecodeEmitter
     Parser          *const parser;  
 
     StackFrame      *const callerFrame; 
+
+    StmtInfoBCE     *topStmt;       
+    StmtInfoBCE     *topScopeStmt;  
+    Rooted<StaticBlockObject *> blockChain;
+                                    
 
     OwnedAtomIndexMapPtr atomIndices; 
     unsigned        firstLine;      
@@ -159,7 +166,7 @@ struct BytecodeEmitter
     bool checkSingletonContext() {
         if (!script->compileAndGo || sc->inFunction())
             return false;
-        for (StmtInfo *stmt = sc->topStmt; stmt; stmt = stmt->down) {
+        for (StmtInfoBCE *stmt = topStmt; stmt; stmt = stmt->down) {
             if (STMT_IS_LOOP(stmt))
                 return false;
         }

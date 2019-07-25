@@ -23,8 +23,6 @@ typedef struct BindData BindData;
 
 namespace js {
 
-struct StmtInfo;
-
 class ContextFlags {
 
     
@@ -130,14 +128,6 @@ class ContextFlags {
 struct SharedContext {
     JSContext       *context;
 
-    uint32_t        bodyid;         
-    uint32_t        blockidGen;     
-
-    StmtInfo        *topStmt;       
-    StmtInfo        *topScopeStmt;  
-    Rooted<StaticBlockObject *> blockChain;
-                                    
-
   private:
     const RootedFunction fun_;      
 
@@ -193,17 +183,6 @@ struct SharedContext {
     FunctionBox *funbox()  const { JS_ASSERT(inFunction());  return funbox_; }
     JSObject *scopeChain() const { JS_ASSERT(!inFunction()); return scopeChain_; }
 
-    unsigned blockid();
-
-    
-    
-    
-    
-    
-    
-    
-    bool atBodyLevel();
-
     
     
     inline bool needStrictChecks();
@@ -211,9 +190,21 @@ struct SharedContext {
 
 typedef HashSet<JSAtom *> FuncStmtSet;
 struct Parser;
+struct StmtInfoTC;
 
 struct TreeContext {                
+
+    typedef StmtInfoTC StmtInfo;
+
     SharedContext   *sc;            
+
+    uint32_t        bodyid;         
+    uint32_t        blockidGen;     
+
+    StmtInfoTC      *topStmt;       
+    StmtInfoTC      *topScopeStmt;  
+    Rooted<StaticBlockObject *> blockChain;
+                                    
 
     const unsigned  staticLevel;    
 
@@ -271,6 +262,17 @@ struct TreeContext {
     inline ~TreeContext();
 
     inline bool init();
+
+    unsigned blockid();
+
+    
+    
+    
+    
+    
+    
+    
+    bool atBodyLevel();
 };
 
 
@@ -344,53 +346,64 @@ STMT_TYPE_IN_RANGE(uint16_t type, StmtType begin, StmtType end)
 #define STMT_IS_TRYING(stmt)    STMT_TYPE_IS_TRYING((stmt)->type)
 #define STMT_IS_LOOP(stmt)      STMT_TYPE_IS_LOOP((stmt)->type)
 
-struct StmtInfo {
+
+
+
+
+
+struct StmtInfoBase {
     uint16_t        type;           
     uint16_t        flags;          
+    RootedAtom      label;          
+    Rooted<StaticBlockObject *> blockObj; 
+
+    StmtInfoBase(JSContext *cx) : label(cx), blockObj(cx) {}
+};
+
+struct StmtInfoTC : public StmtInfoBase {
+    StmtInfoTC      *down;          
+    StmtInfoTC      *downScope;     
+
     uint32_t        blockid;        
+
+    StmtInfoTC(JSContext *cx) : StmtInfoBase(cx) {}
+};
+
+struct StmtInfoBCE : public StmtInfoBase {
+    StmtInfoBCE     *down;          
+    StmtInfoBCE     *downScope;     
+
     ptrdiff_t       update;         
     ptrdiff_t       breaks;         
     ptrdiff_t       continues;      
-    RootedAtom      label;          
-    Rooted<StaticBlockObject *> blockObj; 
-    StmtInfo        *down;          
-    StmtInfo        *downScope;     
 
-    StmtInfo(JSContext *cx) : label(cx), blockObj(cx) {}
+    StmtInfoBCE(JSContext *cx) : StmtInfoBase(cx) {}
 };
 
 #define SIF_SCOPE        0x0001     /* statement has its own lexical scope */
 #define SIF_BODY_BLOCK   0x0002     /* STMT_BLOCK type is a function body */
 #define SIF_FOR_BLOCK    0x0004     /* for (let ...) induced block scope */
 
-#define SET_STATEMENT_TOP(stmt, top)                                          \
-    ((stmt)->update = (top), (stmt)->breaks = (stmt)->continues = (-1))
-
 namespace frontend {
 
 bool
-GenerateBlockId(SharedContext *sc, uint32_t &blockid);
+GenerateBlockId(TreeContext *tc, uint32_t &blockid);
 
 
-
-
+template <class ContextT>
 void
-PushStatement(SharedContext *sc, StmtInfo *stmt, StmtType type, ptrdiff_t top);
+PushStatement(ContextT *ct, typename ContextT::StmtInfo *stmt, StmtType type);
 
-
-
-
-
-
+template <class ContextT>
 void
-PushBlockScope(SharedContext *sc, StmtInfo *stmt, StaticBlockObject &blockObj, ptrdiff_t top);
+FinishPushBlockScope(ContextT *ct, typename ContextT::StmtInfo *stmt, StaticBlockObject &blockObj);
 
 
 
 
-
+template <class ContextT>
 void
-PopStatementSC(SharedContext *sc);
+FinishPopStatement(ContextT *ct);
 
 
 
@@ -406,8 +419,9 @@ PopStatementSC(SharedContext *sc);
 
 
 
-StmtInfo *
-LexicalLookup(SharedContext *sc, JSAtom *atom, int *slotp, StmtInfo *stmt = NULL);
+template <class ContextT>
+typename ContextT::StmtInfo *
+LexicalLookup(ContextT *ct, JSAtom *atom, int *slotp, typename ContextT::StmtInfo *stmt);
 
 } 
 
