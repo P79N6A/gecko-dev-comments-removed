@@ -2,18 +2,21 @@
 
 
 const trimPref = "browser.urlbar.trimURLs";
+const phishyUserPassPref = "network.http.phishy-userpass-length";
 
 function test() {
 
-  gBrowser.selectedTab = gBrowser.addTab();
+  let tab = gBrowser.selectedTab = gBrowser.addTab();
 
   registerCleanupFunction(function () {
-    gBrowser.removeCurrentTab();
+    gBrowser.removeTab(tab);
     Services.prefs.clearUserPref(trimPref);
+    Services.prefs.clearUserPref(phishyUserPassPref);
     URLBarSetURI();
   });
 
   Services.prefs.setBoolPref(trimPref, true);
+  Services.prefs.setIntPref(phishyUserPassPref, 32); 
 
   waitForExplicitFinish();
 
@@ -32,7 +35,6 @@ var tests = [
     copyExpected: "e"
   },
 
-
   
   {
     loadURL: "http://example.com/",
@@ -50,6 +52,13 @@ var tests = [
   {
     copyVal: "<e>xample.com",
     copyExpected: "http://e"
+  },
+
+  
+  {
+    loadURL: "http://user:pass@mochi.test:8888/browser/browser/base/content/test/authenticate.sjs?user=user&pass=pass",
+    expectedURL: "mochi.test:8888/browser/browser/base/content/test/authenticate.sjs?user=user&pass=pass",
+    copyExpected: "http://mochi.test:8888/browser/browser/base/content/test/authenticate.sjs?user=user&pass=pass"
   },
 
   
