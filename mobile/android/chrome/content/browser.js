@@ -1871,11 +1871,15 @@ Tab.prototype = {
       height: gScreenHeight,
       cssWidth: gScreenWidth / this._zoom,
       cssHeight: gScreenHeight / this._zoom,
-      pageWidth: gScreenWidth,
-      pageHeight: gScreenHeight,
+      pageLeft: 0,
+      pageTop: 0,
+      pageRight: gScreenWidth,
+      pageBottom: gScreenHeight,
       
-      cssPageWidth: gScreenWidth / this._zoom,
-      cssPageHeight: gScreenHeight / this._zoom,
+      cssPageLeft: 0,
+      cssPageTop: 0,
+      cssPageRight: gScreenWidth / this._zoom,
+      cssPageBottom: gScreenHeight / this._zoom,
       zoom: this._zoom,
     };
 
@@ -1889,14 +1893,8 @@ Tab.prototype = {
 
     let doc = this.browser.contentDocument;
     if (doc != null) {
-      let [pageWidth, pageHeight] = this.getPageSize(doc, viewport.cssWidth, viewport.cssHeight);
-
-      let cssPageWidth = pageWidth;
-      let cssPageHeight = pageHeight;
-
-      
-      pageWidth *= viewport.zoom;
-      pageHeight *= viewport.zoom;
+      let cwu = this.browser.contentWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
+      let cssPageRect = cwu.getRootBounds();
 
       
 
@@ -1906,13 +1904,20 @@ Tab.prototype = {
 
 
 
-      let pageLargerThanScreen = (cssPageWidth >= Math.floor(viewport.cssWidth))
-                              && (cssPageHeight >= Math.floor(viewport.cssHeight));
+
+
+      let pageLargerThanScreen = (cssPageRect.width >= Math.floor(viewport.cssWidth))
+                              && (cssPageRect.height >= Math.floor(viewport.cssHeight));
       if (doc.readyState === 'complete' || pageLargerThanScreen) {
-        viewport.cssPageWidth = cssPageWidth;
-        viewport.cssPageHeight = cssPageHeight;
-        viewport.pageWidth = pageWidth;
-        viewport.pageHeight = pageHeight;
+        viewport.cssPageLeft = cssPageRect.left;
+        viewport.cssPageTop = cssPageRect.top;
+        viewport.cssPageRight = cssPageRect.right;
+        viewport.cssPageBottom = cssPageRect.bottom;
+        
+        viewport.pageLeft = (viewport.cssPageLeft * viewport.zoom);
+        viewport.pageTop = (viewport.cssPageTop * viewport.zoom);
+        viewport.pageRight = (viewport.cssPageRight * viewport.zoom);
+        viewport.pageBottom = (viewport.cssPageBottom * viewport.zoom);
       }
     }
 
@@ -2695,13 +2700,13 @@ var BrowserEventHandler = {
 
       let viewport = BrowserApp.selectedTab.getViewport();
       let vRect = new Rect(viewport.cssX, viewport.cssY, viewport.cssWidth, viewport.cssHeight);
-      let bRect = new Rect(Math.max(0,rect.x - margin),
+      let bRect = new Rect(Math.max(viewport.cssPageLeft, rect.x - margin),
                            rect.y,
                            rect.w + 2*margin,
                            rect.h);
 
       
-      bRect.width = Math.min(bRect.width, viewport.cssPageWidth - bRect.x);
+      bRect.width = Math.min(bRect.width, viewport.cssPageRight - bRect.x);
 
       let overlap = vRect.intersect(bRect);
       let overlapArea = overlap.width*overlap.height;
