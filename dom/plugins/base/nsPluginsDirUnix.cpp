@@ -247,6 +247,16 @@ PRBool nsPluginsDir::IsPluginFile(nsIFile* file)
     if (NS_FAILED(file->GetNativeLeafName(filename)))
         return PR_FALSE;
 
+#ifdef ANDROID
+    
+    
+    
+    
+    const char *cFile = filename.get();
+    if (strstr(cFile, "libstagefright") != NULL)
+        return PR_FALSE;
+#endif
+
     NS_NAMED_LITERAL_CSTRING(dllSuffix, LOCAL_PLUGIN_DLL_SUFFIX);
     if (filename.Length() > dllSuffix.Length() &&
         StringEndsWith(filename, dllSuffix))
