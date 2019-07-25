@@ -255,7 +255,7 @@ IDService.prototype = {
 
     
     let req = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
-                .getService(Ci.nsIXMLHttpRequest);
+                .createInstance(Ci.nsIXMLHttpRequest);
 
     
     
