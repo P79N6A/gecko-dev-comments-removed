@@ -51,6 +51,13 @@
 #include "jspubtd.h"
 #include "nsDOMMemoryReporter.h"
 
+
+#ifdef XP_WIN
+#ifdef GetClassInfo
+#undef GetClassInfo
+#endif
+#endif
+
 class nsIContent;
 class nsIDocument;
 class nsIDOMEvent;
