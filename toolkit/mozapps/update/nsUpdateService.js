@@ -2618,6 +2618,14 @@ Downloader.prototype = {
         if (this.background)
           shouldShowPrompt = true;
 
+#ifdef ANDROID
+        
+        
+        let patchFile = getUpdatesDir().QueryInterface(Ci.nsILocalFile);
+        patchFile.append(FILE_UPDATE_ARCHIVE);
+        patchFile.permissions = FileUtils.PERMS_FILE;
+#endif
+
         
         writeStatusFile(getUpdatesDir(), state);
         writeVersionFile(getUpdatesDir(), this._update.appVersion);
