@@ -308,7 +308,7 @@ nsSVGOuterSVGFrame::ComputeSize(nsIRenderingContext *aRenderingContext,
                                 PRBool aShrinkWrap)
 {
   if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::viewBox) &&
-      EmbeddedByReference()) {
+      (EmbeddedByReference() || IsRootOfImage())) {
     
     
     return aCBSize;
@@ -808,7 +808,7 @@ nsSVGOuterSVGFrame::UnregisterForeignObject(nsSVGForeignObjectFrame* aFrame)
 PRBool
 nsSVGOuterSVGFrame::EmbeddedByReference(nsIFrame **aEmbeddingFrame)
 {
-  if (mContent->GetParent() == nsnull) {
+  if (!mContent->GetParent()) {
     
     nsCOMPtr<nsISupports> container = PresContext()->GetContainer();
     nsCOMPtr<nsIDOMWindowInternal> window = do_GetInterface(container);
@@ -831,5 +831,20 @@ nsSVGOuterSVGFrame::EmbeddedByReference(nsIFrame **aEmbeddingFrame)
   if (aEmbeddingFrame) {
     *aEmbeddingFrame = nsnull;
   }
+  return PR_FALSE;
+}
+
+PRBool
+nsSVGOuterSVGFrame::IsRootOfImage()
+{
+  if (!mContent->GetParent()) {
+    
+    nsIDocument* doc = mContent->GetCurrentDoc();
+    if (doc && doc->IsBeingUsedAsImage()) {
+      
+      return PR_TRUE;
+    }
+  }
+
   return PR_FALSE;
 }

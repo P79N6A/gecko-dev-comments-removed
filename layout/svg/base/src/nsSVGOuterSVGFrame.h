@@ -161,6 +161,11 @@ protected:
   PRBool EmbeddedByReference(nsIFrame **aEmbeddingFrame = nsnull);
 
   
+
+
+  PRBool IsRootOfImage();
+
+  
   
   
   nsTHashtable<nsVoidPtrHashKey> mForeignObjectHash;
