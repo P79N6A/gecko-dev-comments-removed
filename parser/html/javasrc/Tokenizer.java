@@ -1601,8 +1601,8 @@ public class Tokenizer implements Locator {
 
 
                                 cstart = pos;
-                                state = transition(state, Tokenizer.DATA, reconsume, pos);
                                 reconsume = true;
+                                state = transition(state, Tokenizer.DATA, reconsume, pos);
                                 continue stateloop;
                         }
                     }
@@ -1927,9 +1927,9 @@ public class Tokenizer implements Locator {
 
 
                                 clearLongStrBuf();
+                                reconsume = true;
                                 state = transition(state, Tokenizer.ATTRIBUTE_VALUE_UNQUOTED, reconsume, pos);
                                 noteUnquotedAttributeValue();
-                                reconsume = true;
                                 continue stateloop;
                             case '\'':
                                 
@@ -2107,8 +2107,8 @@ public class Tokenizer implements Locator {
 
 
 
-                                state = transition(state, Tokenizer.BEFORE_ATTRIBUTE_NAME, reconsume, pos);
                                 reconsume = true;
+                                state = transition(state, Tokenizer.BEFORE_ATTRIBUTE_NAME, reconsume, pos);
                                 continue stateloop;
                         }
                     }
@@ -2146,8 +2146,8 @@ public class Tokenizer implements Locator {
 
 
 
-                            state = transition(state, Tokenizer.BEFORE_ATTRIBUTE_NAME, reconsume, pos);
                             reconsume = true;
+                            state = transition(state, Tokenizer.BEFORE_ATTRIBUTE_NAME, reconsume, pos);
                             continue stateloop;
                     }
                     
@@ -2397,8 +2397,8 @@ public class Tokenizer implements Locator {
                             default:
                                 errBogusComment();
                                 clearLongStrBuf();
-                                state = transition(state, Tokenizer.BOGUS_COMMENT, reconsume, pos);
                                 reconsume = true;
+                                state = transition(state, Tokenizer.BOGUS_COMMENT, reconsume, pos);
                                 continue stateloop;
                         }
                     }
@@ -2419,8 +2419,8 @@ public class Tokenizer implements Locator {
                             
                             default:
                                 errBogusComment();
-                                state = transition(state, Tokenizer.BOGUS_COMMENT, reconsume, pos);
                                 reconsume = true;
+                                state = transition(state, Tokenizer.BOGUS_COMMENT, reconsume, pos);
                                 continue stateloop;
                         }
                     }
@@ -2760,16 +2760,16 @@ public class Tokenizer implements Locator {
                                 appendLongStrBuf(c);
                             } else {
                                 errBogusComment();
-                                state = transition(state, Tokenizer.BOGUS_COMMENT, reconsume, pos);
                                 reconsume = true;
+                                state = transition(state, Tokenizer.BOGUS_COMMENT, reconsume, pos);
                                 continue stateloop;
                             }
                             index++;
                             continue;
                         } else {
                             cstart = pos; 
-                            state = transition(state, Tokenizer.CDATA_SECTION, reconsume, pos);
                             reconsume = true;
+                            state = transition(state, Tokenizer.CDATA_SECTION, reconsume, pos);
                             break; 
                         }
                     }
@@ -2817,8 +2817,8 @@ public class Tokenizer implements Locator {
                                 tokenHandler.characters(Tokenizer.RSQB_RSQB, 0,
                                         1);
                                 cstart = pos;
-                                state = transition(state, Tokenizer.CDATA_SECTION, reconsume, pos);
                                 reconsume = true;
+                                state = transition(state, Tokenizer.CDATA_SECTION, reconsume, pos);
                                 continue stateloop;
                         }
                     }
@@ -2836,8 +2836,8 @@ public class Tokenizer implements Locator {
                         default:
                             tokenHandler.characters(Tokenizer.RSQB_RSQB, 0, 2);
                             cstart = pos;
-                            state = transition(state, Tokenizer.CDATA_SECTION, reconsume, pos);
                             reconsume = true;
+                            state = transition(state, Tokenizer.CDATA_SECTION, reconsume, pos);
                             continue stateloop;
 
                     }
@@ -2938,8 +2938,8 @@ public class Tokenizer implements Locator {
                             if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
                                 cstart = pos;
                             }
-                            state = transition(state, returnState, reconsume, pos);
                             reconsume = true;
+                            state = transition(state, returnState, reconsume, pos);
                             continue stateloop;
                         case '#':
                             
@@ -2952,8 +2952,8 @@ public class Tokenizer implements Locator {
                         default:
                             if (c == additional) {
                                 emitOrAppendStrBuf(returnState);
-                                state = transition(state, returnState, reconsume, pos);
                                 reconsume = true;
+                                state = transition(state, returnState, reconsume, pos);
                                 continue stateloop;
                             }
                             if (c >= 'a' && c <= 'z') {
@@ -2971,8 +2971,8 @@ public class Tokenizer implements Locator {
                                 if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
                                     cstart = pos;
                                 }
-                                state = transition(state, returnState, reconsume, pos);
                                 reconsume = true;
+                                state = transition(state, returnState, reconsume, pos);
                                 continue stateloop;
                             }
                             
@@ -3045,8 +3045,8 @@ public class Tokenizer implements Locator {
                             if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
                                 cstart = pos;
                             }
-                            state = transition(state, returnState, reconsume, pos);
                             reconsume = true;
+                            state = transition(state, returnState, reconsume, pos);
                             continue stateloop;
                         }
                         
@@ -3109,6 +3109,19 @@ public class Tokenizer implements Locator {
                             }
                         }
 
+                        if (c == ';') {
+                            
+                            
+                            
+                            
+                            
+                            if (entCol + 1 == NamedCharacters.NAMES[lo].length()) {
+                                candidate = lo;
+                                strBufMark = strBufLen;
+                            }                            
+                            break outer;
+                        }
+                        
                         if (hi < lo) {
                             break outer;
                         }
@@ -3126,8 +3139,8 @@ public class Tokenizer implements Locator {
                         if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
                             cstart = pos;
                         }
-                        state = transition(state, returnState, reconsume, pos);
                         reconsume = true;
+                        state = transition(state, returnState, reconsume, pos);
                         continue stateloop;
                     } else {
                         
@@ -3171,8 +3184,8 @@ public class Tokenizer implements Locator {
 
                                     errNoNamedCharacterMatch();
                                     appendStrBufToLongStrBuf();
-                                    state = transition(state, returnState, reconsume, pos);
                                     reconsume = true;
+                                    state = transition(state, returnState, reconsume, pos);
                                     continue stateloop;
                                 }
                             }
@@ -3203,17 +3216,6 @@ public class Tokenizer implements Locator {
                         }
                         
                         if (strBufMark < strBufLen) {
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
                             if ((returnState & DATA_AND_RCDATA_MASK) != 0) {
                                 for (int i = strBufMark; i < strBufLen; i++) {
                                     appendLongStrBuf(strBuf[i]);
@@ -3222,13 +3224,19 @@ public class Tokenizer implements Locator {
                                 tokenHandler.characters(strBuf, strBufMark,
                                         strBufLen - strBufMark);
                             }
-                            
                         }
+                        
+                        
+                        
+                        
+                        
+                        
+                        boolean earlyBreak = (c == ';' && strBufMark == strBufLen);
                         if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
-                            cstart = pos;
+                            cstart = earlyBreak ? pos + 1 : pos;
                         }
+                        reconsume = !earlyBreak;
                         state = transition(state, returnState, reconsume, pos);
-                        reconsume = true;
                         continue stateloop;
                         
 
@@ -3281,8 +3289,8 @@ public class Tokenizer implements Locator {
 
 
 
-                            state = transition(state, Tokenizer.DECIMAL_NRC_LOOP, reconsume, pos);
                             reconsume = true;
+                            state = transition(state, Tokenizer.DECIMAL_NRC_LOOP, reconsume, pos);
                             
                     }
                     
@@ -3348,16 +3356,16 @@ public class Tokenizer implements Locator {
                                 if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
                                     cstart = pos;
                                 }
-                                state = transition(state, returnState, reconsume, pos);
                                 reconsume = true;
+                                state = transition(state, returnState, reconsume, pos);
                                 continue stateloop;
                             } else {
                                 errCharRefLacksSemicolon();
                                 if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
                                     cstart = pos;
                                 }
-                                state = transition(state, Tokenizer.HANDLE_NCR_VALUE, reconsume, pos);
                                 reconsume = true;
+                                state = transition(state, Tokenizer.HANDLE_NCR_VALUE, reconsume, pos);
                                 
                                 break decimalloop;
                             }
@@ -3438,16 +3446,16 @@ public class Tokenizer implements Locator {
                                 if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
                                     cstart = pos;
                                 }
-                                state = transition(state, returnState, reconsume, pos);
                                 reconsume = true;
+                                state = transition(state, returnState, reconsume, pos);
                                 continue stateloop;
                             } else {
                                 errCharRefLacksSemicolon();
                                 if ((returnState & DATA_AND_RCDATA_MASK) == 0) {
                                     cstart = pos;
                                 }
-                                state = transition(state, Tokenizer.HANDLE_NCR_VALUE, reconsume, pos);
                                 reconsume = true;
+                                state = transition(state, Tokenizer.HANDLE_NCR_VALUE, reconsume, pos);
                                 continue stateloop;
                             }
                         }
@@ -3676,8 +3684,8 @@ public class Tokenizer implements Locator {
 
 
                                 cstart = pos;
-                                state = transition(state, returnState, reconsume, pos);
                                 reconsume = true;
+                                state = transition(state, returnState, reconsume, pos);
                                 continue stateloop;
                         }
                     }
@@ -3708,8 +3716,8 @@ public class Tokenizer implements Locator {
                                         0, 2);
                                 emitStrBuf();
                                 cstart = pos;
-                                state = transition(state, returnState, reconsume, pos);
                                 reconsume = true;
+                                state = transition(state, returnState, reconsume, pos);
                                 continue stateloop;
                             }
                             appendStrBuf(c);
@@ -3951,8 +3959,8 @@ public class Tokenizer implements Locator {
 
 
                                 cstart = pos;
-                                state = transition(state, Tokenizer.SCRIPT_DATA, reconsume, pos);
                                 reconsume = true;
+                                state = transition(state, Tokenizer.SCRIPT_DATA, reconsume, pos);
                                 continue stateloop;
                         }
                     }
@@ -3982,8 +3990,8 @@ public class Tokenizer implements Locator {
 
 
 
-                                state = transition(state, Tokenizer.SCRIPT_DATA, reconsume, pos);
                                 reconsume = true;
+                                state = transition(state, Tokenizer.SCRIPT_DATA, reconsume, pos);
                                 continue stateloop;
                         }
                     }
@@ -4012,8 +4020,8 @@ public class Tokenizer implements Locator {
 
 
 
-                                state = transition(state, Tokenizer.SCRIPT_DATA, reconsume, pos);
                                 reconsume = true;
+                                state = transition(state, Tokenizer.SCRIPT_DATA, reconsume, pos);
                                 continue stateloop;
                         }
                     }
@@ -4539,15 +4547,15 @@ public class Tokenizer implements Locator {
                                 appendLongStrBuf(c);
                             } else {
                                 errBogusComment();
-                                state = transition(state, Tokenizer.BOGUS_COMMENT, reconsume, pos);
                                 reconsume = true;
+                                state = transition(state, Tokenizer.BOGUS_COMMENT, reconsume, pos);
                                 continue stateloop;
                             }
                             index++;
                             continue;
                         } else {
-                            state = transition(state, Tokenizer.DOCTYPE, reconsume, pos);
                             reconsume = true;
+                            state = transition(state, Tokenizer.DOCTYPE, reconsume, pos);
                             break markupdeclarationdoctypeloop;
                             
                         }
@@ -4595,8 +4603,8 @@ public class Tokenizer implements Locator {
 
 
 
-                                state = transition(state, Tokenizer.BEFORE_DOCTYPE_NAME, reconsume, pos);
                                 reconsume = true;
+                                state = transition(state, Tokenizer.BEFORE_DOCTYPE_NAME, reconsume, pos);
                                 break doctypeloop;
                             
                         }
@@ -4835,15 +4843,15 @@ public class Tokenizer implements Locator {
                             if (folded != Tokenizer.UBLIC[index]) {
                                 bogusDoctype();
                                 
-                                state = transition(state, Tokenizer.BOGUS_DOCTYPE, reconsume, pos);
                                 reconsume = true;
+                                state = transition(state, Tokenizer.BOGUS_DOCTYPE, reconsume, pos);
                                 continue stateloop;
                             }
                             index++;
                             continue;
                         } else {
-                            state = transition(state, Tokenizer.AFTER_DOCTYPE_PUBLIC_KEYWORD, reconsume, pos);
                             reconsume = true;
+                            state = transition(state, Tokenizer.AFTER_DOCTYPE_PUBLIC_KEYWORD, reconsume, pos);
                             break doctypeublicloop;
                             
                         }
@@ -5431,15 +5439,15 @@ public class Tokenizer implements Locator {
                             }
                             if (folded != Tokenizer.YSTEM[index]) {
                                 bogusDoctype();
-                                state = transition(state, Tokenizer.BOGUS_DOCTYPE, reconsume, pos);
                                 reconsume = true;
+                                state = transition(state, Tokenizer.BOGUS_DOCTYPE, reconsume, pos);
                                 continue stateloop;
                             }
                             index++;
                             continue stateloop;
                         } else {
-                            state = transition(state, Tokenizer.AFTER_DOCTYPE_SYSTEM_KEYWORD, reconsume, pos);
                             reconsume = true;
+                            state = transition(state, Tokenizer.AFTER_DOCTYPE_SYSTEM_KEYWORD, reconsume, pos);
                             break doctypeystemloop;
                             
                         }
