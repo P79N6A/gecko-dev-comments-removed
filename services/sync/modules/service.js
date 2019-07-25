@@ -91,6 +91,7 @@ function WeaveSvc() {
   Engines.register(new HistoryEngine());
   Engines.register(new CookieEngine());
   Engines.register(new PasswordEngine());
+  Engines.register(new FormEngine());
 
   
   Utils.prefs.addObserver("", this, false);
