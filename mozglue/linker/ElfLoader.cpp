@@ -13,6 +13,19 @@
 #include "Mappable.h"
 #include "Logging.h"
 
+#if defined(ANDROID) && ANDROID_VERSION < 8
+
+#include <sys/syscall.h>
+
+extern "C" {
+
+inline int sigaltstack(const stack_t *ss, stack_t *oss) {
+  return syscall(__NR_sigaltstack, ss, oss);
+}
+
+} 
+#endif
+
 using namespace mozilla;
 
 #ifndef PAGE_SIZE
@@ -564,4 +577,116 @@ ElfLoader::r_debug::Remove(ElfLoader::link_map *map)
   map->l_next->l_prev = map->l_prev;
   r_state = RT_CONSISTENT;
   r_brk();
+}
+
+SEGVHandler::SEGVHandler()
+{
+  
+
+  if (sigaltstack(NULL, &oldStack) == -1 || !oldStack.ss_sp ||
+      oldStack.ss_size < stackSize) {
+    stackPtr.Assign(mmap(NULL, stackSize, PROT_READ | PROT_WRITE,
+                         MAP_PRIVATE | MAP_ANONYMOUS, -1, 0), stackSize);
+    stack_t stack;
+    stack.ss_sp = stackPtr;
+    stack.ss_size = stackSize;
+    stack.ss_flags = 0;
+    sigaltstack(&stack, NULL);
+  }
+  
+
+  struct sigaction action;
+  action.sa_sigaction = &SEGVHandler::handler;
+  sigemptyset(&action.sa_mask);
+  action.sa_flags = SA_SIGINFO | SA_NODEFER | SA_ONSTACK;
+  action.sa_restorer = NULL;
+  sigaction(SIGSEGV, &action, &this->action);
+}
+
+SEGVHandler::~SEGVHandler()
+{
+  
+  sigaltstack(&oldStack, NULL);
+  
+  sigaction(SIGSEGV, &this->action, NULL);
+}
+
+
+void SEGVHandler::handler(int signum, siginfo_t *info, void *context)
+{
+  
+  debug("Caught segmentation fault @%p", info->si_addr);
+
+  
+
+  if (info->si_code == SEGV_ACCERR) {
+    
+
+    LibHandle *handle = ElfLoader::Singleton.GetHandleByPtr(info->si_addr).drop();
+    if (handle && !handle->IsSystemElf()) {
+      debug("Within the address space of a CustomElf");
+      CustomElf *elf = static_cast<CustomElf *>(static_cast<LibHandle *>(handle));
+      if (elf->mappable->ensure(info->si_addr))
+        return;
+    }
+  }
+
+  
+  SEGVHandler &that = ElfLoader::Singleton;
+  if (that.action.sa_flags & SA_SIGINFO) {
+    debug("Redispatching to registered handler @%p", that.action.sa_sigaction);
+    that.action.sa_sigaction(signum, info, context);
+  } else if (that.action.sa_handler == SIG_DFL) {
+    debug("Redispatching to default handler");
+    
+    sigaction(signum, &that.action, NULL);
+    raise(signum);
+  } else if (that.action.sa_handler != SIG_IGN) {
+    debug("Redispatching to registered handler @%p", that.action.sa_handler);
+    that.action.sa_handler(signum);
+  } else {
+    debug("Ignoring");
+  }
+}
+  
+sighandler_t
+__wrap_signal(int signum, sighandler_t handler)
+{
+  
+  if (signum != SIGSEGV)
+    return signal(signum, handler);
+
+  SEGVHandler &that = ElfLoader::Singleton;
+  union {
+    sighandler_t signal;
+    void (*sigaction)(int, siginfo_t *, void *);
+  } oldHandler;
+
+  
+  if (that.action.sa_flags & SA_SIGINFO) {
+    oldHandler.sigaction = that.action.sa_sigaction;
+  } else {
+    oldHandler.signal = that.action.sa_handler;
+  }
+  
+  that.action.sa_handler = handler;
+  that.action.sa_flags = 0;
+
+  return oldHandler.signal;
+}
+
+int
+__wrap_sigaction(int signum, const struct sigaction *act,
+                 struct sigaction *oldact)
+{
+  
+  if (signum != SIGSEGV)
+    return sigaction(signum, act, oldact);
+
+  SEGVHandler &that = ElfLoader::Singleton;
+  if (oldact)
+    *oldact = that.action;
+  if (act)
+    that.action = *act;
+  return 0;
 }

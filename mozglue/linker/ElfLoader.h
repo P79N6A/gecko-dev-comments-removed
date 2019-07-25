@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <dlfcn.h>
+#include <signal.h>
 #include "mozilla/RefPtr.h"
 #include "Zip.h"
 
@@ -28,6 +29,10 @@ extern "C" {
   } Dl_info;
 #endif
   int __wrap_dladdr(void *addr, Dl_info *info);
+
+  sighandler_t __wrap_signal(int signum, sighandler_t handler);
+  int __wrap_sigaction(int signum, const struct sigaction *act,
+                       struct sigaction *oldact);
 }
 
 
@@ -119,6 +124,7 @@ protected:
 
   friend class ElfLoader;
   friend class CustomElf;
+  friend class SEGVHandler;
   virtual bool IsSystemElf() const { return false; }
 
 private:
@@ -176,7 +182,54 @@ private:
 
 
 
-class ElfLoader
+
+
+
+
+
+class SEGVHandler
+{
+protected:
+  SEGVHandler();
+  ~SEGVHandler();
+
+private:
+  friend sighandler_t __wrap_signal(int signum, sighandler_t handler);
+  friend int __wrap_sigaction(int signum, const struct sigaction *act,
+                              struct sigaction *oldact);
+
+  
+
+
+  struct sigaction action;
+  
+  
+
+
+  static void handler(int signum, siginfo_t *info, void *context);
+
+  
+
+
+
+  static const size_t stackSize = 12 * 1024;
+
+  
+
+
+  stack_t oldStack;
+
+  
+
+
+
+  MappedPtr stackPtr;
+};
+
+
+
+
+class ElfLoader: public SEGVHandler
 {
 public:
   

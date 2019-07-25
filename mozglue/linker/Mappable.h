@@ -39,6 +39,13 @@ public:
   
 
 
+
+
+  virtual bool ensure(const void *addr) { return true; }
+
+  
+
+
   virtual void finalize() = 0;
 };
 
