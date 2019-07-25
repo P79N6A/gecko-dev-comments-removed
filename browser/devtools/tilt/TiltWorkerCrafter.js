@@ -49,27 +49,44 @@
 self.onmessage = function TWC_onMessage(event)
 {
   let data = event.data;
+  let maxGroupNodes = parseInt(data.maxGroupNodes);
   let thickness = data.thickness;
   let style = data.style;
   let texWidth = data.texWidth;
   let texHeight = data.texHeight;
   let nodesInfo = data.nodesInfo;
 
-  
-  let vertices = [];
-  let texCoord = [];
-  let color = [];
-  let stacksIndices = [];
-  let wireframeIndices = [];
-  let meshWidth = 0;
-  let meshHeight = 0;
+  let mesh = {
+    allVertices: [],
+    groups: [],
+    width: 0,
+    height: 0
+  };
+
+  let vertices;
+  let texCoord;
+  let color;
+  let stacksIndices;
+  let wireframeIndices;
+  let index;
 
   
   
   self.random.seed(0);
 
   
-  for (let n = 0, i = 0, len = nodesInfo.length; n < len; n++) {
+  for (let n = 0, len = nodesInfo.length; n < len; n++) {
+
+    
+    if (n % maxGroupNodes === 0) {
+      vertices = []; 
+      texCoord = [];
+      color = [];
+      stacksIndices = [];
+      wireframeIndices = [];
+      index = 0;
+    }
+
     let info = nodesInfo[n];
     let depth = info.depth;
     let coord = info.coord;
@@ -152,6 +169,7 @@ self.onmessage = function TWC_onMessage(event)
                g20, g21, g22,
                g20, g21, g22);
 
+    let i = index; 
     let ip1 = i + 1;
     let ip2 = ip1 + 1;
     let ip3 = ip2 + 1;
@@ -180,22 +198,27 @@ self.onmessage = function TWC_onMessage(event)
     }
 
     
-    i += 12; 
+    index += 12;
 
     
-    meshWidth = Math.max(w, meshWidth);
-    meshHeight = Math.max(h, meshHeight);
+    mesh.width = Math.max(w, mesh.width);
+    mesh.height = Math.max(h, mesh.height);
+
+    
+    
+    if (((n + 1) % maxGroupNodes === 0) || (n === len - 1)) {
+      mesh.groups.push({
+        vertices: vertices,
+        texCoord: texCoord,
+        color: color,
+        stacksIndices: stacksIndices,
+        wireframeIndices: wireframeIndices
+      });
+      mesh.allVertices = mesh.allVertices.concat(vertices);
+    }
   }
 
-  self.postMessage({
-    vertices: vertices,
-    texCoord: texCoord,
-    color: color,
-    stacksIndices: stacksIndices,
-    wireframeIndices: wireframeIndices,
-    meshWidth: meshWidth,
-    meshHeight: meshHeight
-  });
+  self.postMessage(mesh);
   close();
 };
 
