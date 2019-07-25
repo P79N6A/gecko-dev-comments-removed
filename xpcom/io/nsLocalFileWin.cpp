@@ -104,6 +104,11 @@ unsigned char *_mbsstr( const unsigned char *str,
 #define FILE_ATTRIBUTE_NOT_CONTENT_INDEXED  0x00002000
 #endif
 
+ILCreateFromPathWPtr nsLocalFile::sILCreateFromPathW = NULL;
+ILFreePtr nsLocalFile::sILFree = NULL;
+SHOpenFolderAndSelectItemsPtr nsLocalFile::sSHOpenFolderAndSelectItems = NULL;
+PRLibrary *nsLocalFile::sLibShell = NULL;
+
 class nsDriveEnumerator : public nsISimpleEnumerator
 {
 public:
@@ -2688,32 +2693,114 @@ nsLocalFile::Reveal()
     nsresult rv = ResolveAndStat();
     if (NS_FAILED(rv) && rv != NS_ERROR_FILE_NOT_FOUND)
         return rv;
+
     
     
-    nsCOMPtr<nsILocalFile> winDir;
-    rv = GetSpecialSystemDirectory(Win_WindowsDirectory, getter_AddRefs(winDir));
+    rv = RevealUsingShell();
+    if (NS_FAILED(rv)) {
+      rv = RevealClassic();
+    }
+
+    return rv;
+}
+
+nsresult
+nsLocalFile::RevealClassic()
+{
+  
+  nsCOMPtr<nsILocalFile> winDir;
+  nsresult rv = GetSpecialSystemDirectory(Win_WindowsDirectory, getter_AddRefs(winDir));
+  NS_ENSURE_SUCCESS(rv, rv);
+  nsAutoString explorerPath;
+  rv = winDir->GetPath(explorerPath);  
+  NS_ENSURE_SUCCESS(rv, rv);
+  explorerPath.AppendLiteral("\\explorer.exe");
+
+  
+  
+  
+  
+  nsAutoString explorerParams;
+  if (mFileInfo64.type != PR_FILE_DIRECTORY) 
+    explorerParams.AppendLiteral("/n,/select,");
+  explorerParams.Append(L'\"');
+  explorerParams.Append(mResolvedPath);
+  explorerParams.Append(L'\"');
+
+  if (::ShellExecuteW(NULL, L"open", explorerPath.get(), explorerParams.get(),
+    NULL, SW_SHOWNORMAL) <= (HINSTANCE) 32)
+    return NS_ERROR_FAILURE;
+
+  return NS_OK;
+}
+
+nsresult 
+nsLocalFile::RevealUsingShell()
+{
+  
+  
+  if (!sLibShell || !sILCreateFromPathW || 
+      !sILFree || !sSHOpenFolderAndSelectItems) {
+    return NS_ERROR_FAILURE;
+  }
+
+  PRBool isDirectory;
+  nsresult rv = IsDirectory(&isDirectory);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  HRESULT hr;
+  if (isDirectory) {
+    
+    ITEMIDLIST *dir = sILCreateFromPathW(mResolvedPath.get());
+    if (!dir) {
+      return NS_ERROR_FAILURE;
+    }
+
+    const ITEMIDLIST* selection[] = { dir };
+    UINT count = sizeof(selection) / sizeof(ITEMIDLIST);
+
+    
+    hr = sSHOpenFolderAndSelectItems(dir, count, selection, 0);
+    sILFree(dir);
+  }
+  else {
+    
+    nsCOMPtr<nsIFile> parentDirectory;
+    rv = GetParent(getter_AddRefs(parentDirectory));
     NS_ENSURE_SUCCESS(rv, rv);
-    nsAutoString explorerPath;
-    rv = winDir->GetPath(explorerPath);  
+    nsAutoString parentDirectoryPath;
+    rv = parentDirectory->GetPath(parentDirectoryPath);
     NS_ENSURE_SUCCESS(rv, rv);
-    explorerPath.Append(L"\\explorer.exe");
 
     
-    
-    
-    
-    nsAutoString explorerParams;
-    if (mFileInfo64.type != PR_FILE_DIRECTORY) 
-        explorerParams.Append(L"/n,/select,");
-    explorerParams.Append(L'\"');
-    explorerParams.Append(mResolvedPath);
-    explorerParams.Append(L'\"');
+    ITEMIDLIST *dir = sILCreateFromPathW(parentDirectoryPath.get());
+    if (!dir) {
+      return NS_ERROR_FAILURE;
+    }
 
-    if (::ShellExecuteW(NULL, L"open", explorerPath.get(), explorerParams.get(),
-                        NULL, SW_SHOWNORMAL) <= (HINSTANCE) 32)
-        return NS_ERROR_FAILURE;
+    
+    ITEMIDLIST *item = sILCreateFromPathW(mResolvedPath.get());
+    if (!item) {
+      sILFree(dir);
+      return NS_ERROR_FAILURE;
+    }
+    
+    const ITEMIDLIST* selection[] = { item };
+    UINT count = sizeof(selection) / sizeof(ITEMIDLIST);
 
+    
+    hr = sSHOpenFolderAndSelectItems(dir, count, selection, 0);
+
+    sILFree(dir);
+    sILFree(item);
+  }
+  
+  if (SUCCEEDED(hr)) {
     return NS_OK;
+  }
+  else {
+    return NS_ERROR_FAILURE;
+  }
 }
 
 NS_IMETHODIMP
@@ -3009,11 +3096,32 @@ nsLocalFile::GlobalInit()
 {
     nsresult rv = NS_CreateShortcutResolver();
     NS_ASSERTION(NS_SUCCEEDED(rv), "Shortcut resolver could not be created");
+
+    
+    
+    sLibShell = PR_LoadLibrary("shell32.dll");
+    if (sLibShell) {
+      
+      sILCreateFromPathW = (ILCreateFromPathWPtr) 
+                           PR_FindFunctionSymbol(sLibShell, 
+                                                 "ILCreateFromPathW");
+
+      
+      sILFree = (ILFreePtr) PR_FindFunctionSymbol(sLibShell, "ILFree");
+
+      
+      sSHOpenFolderAndSelectItems = (SHOpenFolderAndSelectItemsPtr) 
+                                     PR_FindFunctionSymbol(sLibShell, 
+                                                           "SHOpenFolderAndSelectItems");
+    }
 }
 
 void
 nsLocalFile::GlobalShutdown()
 {
+    if (sLibShell) {
+      PR_UnloadLibrary(sLibShell);
+    }
     NS_DestroyShortcutResolver();
 }
 
