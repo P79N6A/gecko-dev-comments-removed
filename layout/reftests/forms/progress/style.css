@@ -23,6 +23,8 @@ div.progress-bar {
 
 
 
+  -moz-box-sizing: border-box;
+
   
   background-color: ThreeDShadow;
 }

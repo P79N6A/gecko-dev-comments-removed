@@ -350,14 +350,6 @@ static CaptionButtonPadding buttonData[3] = {
 
 
 
-
-static const PRInt32 kProgressDeterminedXPOverflow = 11;
-
-static const PRInt32 kProgressDeterminedVistaOverflow = 4;
-
-
-static const PRInt32 kProgressIndeterminateOverflow = 2;
-
 static const PRInt32 kProgressVistaOverlayWidth = 120;
 
 static const PRInt32 kProgressXPOverlayWidth = 55;
@@ -1326,14 +1318,6 @@ RENDER_AGAIN:
   }
   else if (aWidgetType == NS_THEME_WINDOW_BUTTON_CLOSE) {
     OffsetBackgroundRect(widgetRect, CAPTIONBUTTON_CLOSE);
-  } else if (aWidgetType == NS_THEME_PROGRESSBAR_CHUNK) {
-    nsIFrame* stateFrame = aFrame->GetParent();
-    nsEventStates eventStates = GetContentState(stateFrame, aWidgetType);
-    widgetRect.bottom -= IsIndeterminateProgress(stateFrame, eventStates)
-                           ? kProgressIndeterminateOverflow
-                           : nsUXThemeData::sIsVistaOrLater
-                             ? kProgressDeterminedVistaOverflow
-                             : kProgressDeterminedXPOverflow;
   }
 
   
