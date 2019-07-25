@@ -150,6 +150,12 @@ public:
   }
 #endif
 
+  
+
+
+
+  bool VerticalScrollbarNotNeeded() const;
+
 protected:
 
   
