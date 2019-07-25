@@ -226,7 +226,6 @@ typedef struct JSStructuredCloneCallbacks   JSStructuredCloneCallbacks;
 typedef struct JSStructuredCloneReader      JSStructuredCloneReader;
 typedef struct JSStructuredCloneWriter      JSStructuredCloneWriter;
 typedef struct JSTracer                     JSTracer;
-typedef struct JSXDRState                   JSXDRState;
 
 #ifdef __cplusplus
 class                                       JSFlatString;
@@ -234,7 +233,7 @@ class                                       JSString;
 #else
 typedef struct JSFlatString                 JSFlatString;
 typedef struct JSString                     JSString;
-#endif
+#endif 
 
 #ifdef JS_THREADSAFE
 typedef struct PRCallOnceType    JSCallOnceType;

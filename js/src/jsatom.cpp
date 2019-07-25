@@ -68,6 +68,7 @@
 #include "jsobjinlines.h"
 
 #include "vm/String-inl.h"
+#include "vm/Xdr.h"
 
 using namespace mozilla;
 using namespace js;
@@ -657,3 +658,65 @@ js_InternNonIntElementIdSlow(JSContext *cx, JSObject *obj, const Value &idval,
     return false;
 }
 #endif
+
+template<XDRMode mode>
+bool
+js::XDRAtom(XDRState<mode> *xdr, JSAtom **atomp)
+{
+    if (mode == XDR_ENCODE) {
+        JSString *str = *atomp;
+        return xdr->codeString(&str);
+    }
+
+    
+
+
+
+    uint32_t nchars;
+    if (!xdr->codeUint32(&nchars))
+        return false;
+
+    JSContext *cx = xdr->cx();
+    JSAtom *atom;
+#if IS_LITTLE_ENDIAN
+    
+    const jschar *chars = reinterpret_cast<const jschar *>(xdr->buf.read(nchars * sizeof(jschar)));
+    atom = js_AtomizeChars(cx, chars, nchars);
+#else
+    
+
+
+ 
+    jschar *chars;
+    jschar stackChars[256];
+    if (nchars <= ArrayLength(stackChars)) {
+        chars = stackChars;
+    } else {
+        
+
+
+
+
+        chars = static_cast<jschar *>(cx->runtime->malloc_(nchars * sizeof(jschar)));
+        if (!chars)
+            return false;
+    }
+
+    JS_ALWAYS_TRUE(xdr->codeChars(chars, nchars));
+    atom = js_AtomizeChars(cx, chars, nchars);
+    if (chars != stackChars)
+        Foreground::free_(chars);
+#endif 
+
+    if (!atom)
+        return false;
+    *atomp = atom;
+    return true;
+}
+
+template bool
+js::XDRAtom(XDRState<XDR_ENCODE> *xdr, JSAtom **atomp);
+
+template bool
+js::XDRAtom(XDRState<XDR_DECODE> *xdr, JSAtom **atomp);
+
