@@ -360,7 +360,7 @@ xpcarraytest::GetStrings(PRUint32 *count, char ***str)
 
 
 
-NS_IMETHODIMP
+nsresult
 xpctest::ConstructArrayTest(nsISupports *aOuter, REFNSIID aIID, void **aResult)
 {
     nsresult rv;
