@@ -175,8 +175,6 @@ public:
 
 
   nsresult Resolve(nsBlockFrame* aBlockFrame);
-  void ResolveParagraph(nsBlockFrame* aBlockFrame);
-  void ResolveParagraphWithinBlock(nsBlockFrame* aBlockFrame);
 
   
 
@@ -368,10 +366,14 @@ private:
 
 
 
+  void CreateBlockBuffer();
+
+  
 
 
 
-  void TraverseFrames(nsBlockFrame* aBlockFrame, nsIFrame* aCurrentFrame);
+
+  void InitLogicalArray(nsIFrame* aCurrentFrame);
 
   
 
@@ -511,8 +513,7 @@ private:
                           PRUint32 aSrcLength,
                           PRUnichar* aDest);
 
-  nsString        mBuffer;
-  nsTArray<PRUnichar> mEmbeddingStack;
+  nsAutoString    mBuffer;
   nsTArray<nsIFrame*> mLogicalFrames;
   nsTArray<nsIFrame*> mVisualFrames;
   nsDataHashtable<nsISupportsHashKey, PRInt32> mContentToFrameIndex;
@@ -520,12 +521,7 @@ private:
   PRInt32*        mIndexMap;
   PRUint8*        mLevels;
   nsresult        mSuccess;
-  PRPackedBool    mIsVisual;
-  nsBidiLevel     mParaLevel;
-  nsIFrame*       mPrevFrame;
-  nsIContent*     mPrevContent;
 
-  nsAutoPtr<nsBlockInFlowLineIterator> mLineIter;
   nsBidi*         mBidiEngine;
 };
 
