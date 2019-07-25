@@ -118,6 +118,26 @@ nsNodeInfo::nsNodeInfo(nsIAtom *aName, nsIAtom *aPrefix, PRInt32 aNamespaceID,
 
   mOwnerManager = aOwnerManager;
   NS_ADDREF(mOwnerManager);
+
+  
+
+  
+  
+  if (aPrefix) {
+    aPrefix->ToString(mQualifiedName);
+    mQualifiedName.Append(PRUnichar(':'));
+    mQualifiedName.Append(nsDependentAtomString(mInner.mName));
+  } else {
+    mInner.mName->ToString(mQualifiedName);
+  }
+
+  
+  if (aNamespaceID == kNameSpaceID_XHTML && GetDocument() &&
+      GetDocument()->IsHTML()) {
+    nsContentUtils::ASCIIToUpper(mQualifiedName, mQualifiedNameCorrectedCase);
+  } else {
+    mQualifiedNameCorrectedCase = mQualifiedName;
+  }
 }
 
 
@@ -170,24 +190,6 @@ NS_INTERFACE_TABLE_HEAD(nsNodeInfo)
   NS_INTERFACE_TABLE_TO_MAP_SEGUE_CYCLE_COLLECTION(nsNodeInfo)
 NS_INTERFACE_MAP_END
 
-
-
-void
-nsNodeInfo::GetQualifiedName(nsAString& aQualifiedName) const
-{
-  if (mInner.mPrefix) {
-    mInner.mPrefix->ToString(aQualifiedName);
-
-    aQualifiedName.Append(PRUnichar(':'));
-  } else {
-    aQualifiedName.Truncate();
-  }
-
-  nsAutoString name;
-  mInner.mName->ToString(name);
-
-  aQualifiedName.Append(name);
-}
 
 
 void
@@ -271,44 +273,6 @@ nsNodeInfo::NamespaceEquals(const nsAString& aNamespaceURI) const
     nsContentUtils::NameSpaceManager()->GetNameSpaceID(aNamespaceURI);
 
   return nsINodeInfo::NamespaceEquals(nsid);
-}
-
-PRBool
-nsNodeInfo::QualifiedNameEqualsInternal(const nsAString& aQualifiedName) const
-{
-  NS_PRECONDITION(mInner.mPrefix, "Must have prefix");
-  
-  nsAString::const_iterator start;
-  aQualifiedName.BeginReading(start);
-
-  nsAString::const_iterator colon(start);
-
-  nsDependentAtomString prefix(mInner.mPrefix);
-
-  if (prefix.Length() >= aQualifiedName.Length()) {
-    return PR_FALSE;
-  }
-
-  colon.advance(prefix.Length());
-
-  
-  
-  if (*colon != ':') {
-    return PR_FALSE;
-  }
-
-  
-  if (!prefix.Equals(Substring(start, colon)))
-    return PR_FALSE;
-
-  ++colon; 
-
-  nsAString::const_iterator end;
-  aQualifiedName.EndReading(end);
-
-  
-  
-  return mInner.mName->Equals(Substring(colon, end));
 }
 
 

@@ -103,12 +103,8 @@ public:
   nsresult CopyInnerTo(nsGenericElement* aDest) const;
 
   
-  NS_METHOD GetNodeName(nsAString& aNodeName);
-
-  
   NS_METHOD SetAttribute(const nsAString& aName,
                          const nsAString& aValue);
-  NS_METHOD GetTagName(nsAString& aTagName);
 
   
   

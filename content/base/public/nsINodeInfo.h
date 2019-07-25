@@ -73,8 +73,8 @@ class nsIPrincipal;
 
 
 #define NS_INODEINFO_IID      \
-{ 0x35e53115, 0xb884, 0x4cfc, \
- { 0xaa, 0x95, 0xbd, 0xf0, 0xaa, 0x51, 0x52, 0xcf } }
+{ 0x4aa7526e, 0x37d3, 0x49e3, \
+ { 0xa5, 0x66, 0xf2, 0x51, 0xb2, 0xef, 0x2a, 0x21 } }
 
 class nsINodeInfo : public nsISupports
 {
@@ -117,7 +117,18 @@ public:
 
 
 
-  virtual void GetQualifiedName(nsAString& aQualifiedName) const = 0;
+  void GetQualifiedName(nsAString& aQualifiedName) const {
+    aQualifiedName = mQualifiedName;
+  }
+
+  
+
+
+
+
+  void GetQualifiedNameCorrectedCase(nsAString& aQualifiedName) const {
+    aQualifiedName = mQualifiedNameCorrectedCase;
+  }
 
   
 
@@ -270,15 +281,12 @@ public:
     if (!GetPrefixAtom())
       return Equals(aNameAtom);
 
-    return QualifiedNameEqualsInternal(nsDependentAtomString(aNameAtom));
+    return aNameAtom->Equals(mQualifiedName);
   }
 
   PRBool QualifiedNameEquals(const nsAString& aQualifiedName) const
   {
-    if (!GetPrefixAtom())
-      return mInner.mName->Equals(aQualifiedName);
-
-    return QualifiedNameEqualsInternal(aQualifiedName);    
+    return mQualifiedName == aQualifiedName;
   }
 
   
@@ -290,9 +298,6 @@ public:
   }
 
 protected:
-  virtual PRBool
-    QualifiedNameEqualsInternal(const nsAString& aQualifiedName) const = 0;
-
   
 
 
@@ -339,6 +344,18 @@ protected:
 
   nsCOMPtr<nsIAtom> mIDAttributeAtom;
   nsNodeInfoManager* mOwnerManager; 
+
+  
+
+
+
+
+  
+  nsString mQualifiedName;
+
+  
+  
+  nsString mQualifiedNameCorrectedCase;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsINodeInfo, NS_INODEINFO_IID)
