@@ -84,16 +84,18 @@ function test() {
 
     let curState = JSON.parse(ss.getBrowserState());
     for (let i = 0; i < curState.windows[0].tabs.length; i++) {
-      if (state.windows[0].tabs[i].extData) {
-        is(curState.windows[0].tabs[i].extData["uniq"],
-           state.windows[0].tabs[i].extData["uniq"],
+      let tabState = state.windows[0].tabs[i];
+      let tabCurState = curState.windows[0].tabs[i];
+      if (tabState.extData) {
+        is(tabCurState.extData["uniq"], tabState.extData["uniq"],
            "sanity check that tab has correct extData");
       }
       else {
-        ok(!("extData" in curState.windows[0].tabs[i]),
-           "sanity check that tab doesn't have extData");
         
-        info("tabState: " + JSON.stringify(curState.windows[0].tabs[i]));
+        
+        
+        ok(!("extData" in tabCurState) || !("uniq" in tabCurState.extData),
+           "sanity check that tab doesn't have extData or extData doesn't have 'uniq'");
       }
     }
 
