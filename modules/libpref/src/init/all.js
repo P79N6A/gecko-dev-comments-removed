@@ -67,7 +67,7 @@ pref("browser.cache.disk.capacity",         20000);
 pref("browser.cache.memory.enable",         true);
 
 
-pref("browser.cache.disk_cache_ssl",        false);
+pref("browser.cache.disk_cache_ssl",        true);
 
 pref("browser.cache.check_doc_frequency",   3);
 
@@ -116,6 +116,9 @@ pref("browser.underline_anchors",           true);
 pref("browser.blink_allowed",               true);
 pref("browser.enable_automatic_image_resizing", false);
 pref("browser.enable_click_image_resizing", true);
+
+
+pref("browser.autofocus", true);
 
 
 pref("browser.send_pings", false);
@@ -170,6 +173,12 @@ pref("gfx.color_management.rendering_intent", 0);
 
 pref("gfx.downloadable_fonts.enabled", true);
 
+#ifdef XP_WIN
+#ifndef WINCE
+pref("gfx.font_rendering.directwrite.enabled", false);
+#endif
+#endif
+
 pref("accessibility.browsewithcaret", false);
 pref("accessibility.warn_on_browsewithcaret", true);
 
@@ -183,6 +192,10 @@ pref("accessibility.browsewithcaret_shortcut.enabled", true);
 
 pref("accessibility.tabfocus", 7);
 pref("accessibility.tabfocus_applies_to_xul", false);
+
+
+
+pref("accessibility.win32.force_disabled", false);
 
 
 
@@ -218,9 +231,6 @@ pref("gfx.use_text_smoothing_setting", false);
 
 
 pref("browser.frames.enabled", true);
-
-
-pref("browser.forms.submit.backwards_compatible", true);
 
 
 pref("toolkit.autocomplete.richBoundaryCutoff", 200);
@@ -322,8 +332,7 @@ pref("extensions.spellcheck.inline.max-misspellings", 500);
 
 
 pref("editor.use_custom_colors", false);
-pref("editor.htmlWrapColumn", 72);
-pref("editor.singleLine.pasteNewlines",     1);
+pref("editor.singleLine.pasteNewlines",      2);
 pref("editor.quotesPreformatted",            false);
 pref("editor.use_css",                       true);
 pref("editor.css.default_length_unit",       "px");
@@ -514,7 +523,6 @@ pref("dom.disable_window_open_feature.titlebar",    false);
 pref("dom.disable_window_open_feature.close",       false);
 pref("dom.disable_window_open_feature.toolbar",     false);
 pref("dom.disable_window_open_feature.location",    false);
-pref("dom.disable_window_open_feature.directories", false);
 pref("dom.disable_window_open_feature.personalbar", false);
 pref("dom.disable_window_open_feature.menubar",     false);
 pref("dom.disable_window_open_feature.scrollbars",  false);
@@ -732,7 +740,10 @@ pref("network.IDN.whitelist.jp", true);
 pref("network.IDN.whitelist.kr", true);
 pref("network.IDN.whitelist.li", true);
 pref("network.IDN.whitelist.lt", true);
+pref("network.IDN.whitelist.lu", true);
 pref("network.IDN.whitelist.no", true);
+pref("network.IDN.whitelist.nu", true);
+pref("network.IDN.whitelist.nz", true);
 pref("network.IDN.whitelist.pl", true);
 pref("network.IDN.whitelist.pr", true);
 pref("network.IDN.whitelist.se", true);
@@ -743,11 +754,20 @@ pref("network.IDN.whitelist.tw", true);
 pref("network.IDN.whitelist.vn", true);
 
 
+
+pref("network.IDN.whitelist.xn--mgberp4a5d4ar", true); 
+
+pref("network.IDN.whitelist.xn--p1ai", true);
+
+pref("network.IDN.whitelist.xn--mgbayh7gpa", true);
+
+
 pref("network.IDN.whitelist.biz", true);
 pref("network.IDN.whitelist.cat", true);
 pref("network.IDN.whitelist.info", true);
 pref("network.IDN.whitelist.museum", true);
 pref("network.IDN.whitelist.org", true);
+pref("network.IDN.whitelist.tel", true);
 
 
 
@@ -877,6 +897,7 @@ pref("network.proxy.no_proxies_on",         "localhost, 127.0.0.1");
 pref("network.proxy.failover_timeout",      1800); 
 pref("network.online",                      true); 
 pref("network.cookie.cookieBehavior",       0); 
+pref("network.cookie.thirdparty.sessionOnly", true);
 pref("network.cookie.lifetimePolicy",       0); 
 pref("network.cookie.alwaysAcceptSessionCookies", false);
 pref("network.cookie.prefsMigrated",        false);
@@ -1075,13 +1096,6 @@ pref("bidi.texttype", 1);
 
 
 
-pref("bidi.controlstextmode", 1);
-
-
-
-
-
-
 
 
 
@@ -1179,12 +1193,6 @@ pref("browser.popups.showPopupBlocker", true);
 pref("viewmanager.do_doublebuffering", true);
 
 
-
-pref("roaming.default.files", "bookmarks.html,abook.mab,cookies.txt");
-
-pref("roaming.showInitialWarning", true);
-
-
 pref("config.use_system_prefs", false);
 
 
@@ -1226,6 +1234,14 @@ pref("dom.ipc.plugins.timeoutSecs", 10);
 pref("dom.ipc.plugins.timeoutSecs", 0);
 #endif
 
+#ifndef XP_MACOSX
+#ifdef XP_UNIX
+
+pref("dom.ipc.plugins.enabled.libvlcplugin.so", false);
+pref("dom.ipc.plugins.enabled.nppdf.so", false);
+#endif
+#endif
+
 pref("svg.enabled", true);
 pref("svg.smil.enabled", true);
 
@@ -1254,6 +1270,7 @@ pref("font.minimum-size.x-orya", 0);
 pref("font.minimum-size.x-sinh", 0);
 pref("font.minimum-size.x-tamil", 0);
 pref("font.minimum-size.x-telu", 0);
+pref("font.minimum-size.x-tibt", 0);
 pref("font.minimum-size.th", 0);
 pref("font.minimum-size.tr", 0);
 pref("font.minimum-size.x-cans", 0);
@@ -1457,6 +1474,13 @@ pref("font.name-list.serif.x-sinh", "Iskoola Pota, AksharUnicode");
 pref("font.name-list.sans-serif.x-sinh", "Iskoola Pota, AksharUnicode");
 pref("font.name-list.monospace.x-sinh", "Iskoola Pota, AksharUnicode");
 
+pref("font.name.serif.x-tibt", "Tibetan Machine Uni");
+pref("font.name.sans-serif.x-tibt", "Tibetan Machine Uni");
+pref("font.name.monospace.x-tibt", "Tibetan Machine Uni");
+pref("font.name-list.serif.x-tibt", "Tibetan Machine Uni, Jomolhari, Microsoft Himalaya");
+pref("font.name-list.sans-serif.x-tibt", "Tibetan Machine Uni, Jomolhari, Microsoft Himalaya");
+pref("font.name-list.monospace.x-tibt", "Tibetan Machine Uni, Jomolhari, Microsoft Himalaya");
+
 pref("font.default.ar", "sans-serif");
 pref("font.size.variable.ar", 16);
 pref("font.size.fixed.ar", 13);
@@ -1558,6 +1582,10 @@ pref("font.default.x-sinh", "serif");
 pref("font.size.variable.x-sinh", 16);
 pref("font.size.fixed.x-sinh", 13);
 
+pref("font.default.x-tibt", "serif");
+pref("font.size.variable.x-tibt", 16);
+pref("font.size.fixed.x-tibt", 13);
+
 pref("font.default.x-unicode", "serif");
 pref("font.size.variable.x-unicode", 16);
 pref("font.size.fixed.x-unicode", 13);
@@ -1657,6 +1685,10 @@ pref("mousewheel.system_scroll_override_on_root_content.enabled", true);
 
 
 
+pref("mousewheel.emulate_at_wm_scroll", false);
+
+
+
 
 pref("ui.trackpoint_hack.enabled", -1);
 # WINNT
@@ -1667,11 +1699,6 @@ pref("ui.trackpoint_hack.enabled", -1);
 pref("browser.drag_out_of_frame_style", 1);
 pref("ui.key.saveLink.shift", false); 
 pref("ui.click_hold_context_menus", false);
-
-#ifndef __LP64__
-
-pref("gfx.force_atsui_text", false);
-#endif
 
 
 
@@ -1881,6 +1908,14 @@ pref("font.name-list.serif.x-tamil", "InaiMathi");
 pref("font.name-list.sans-serif.x-tamil", "InaiMathi");
 pref("font.name-list.monospace.x-tamil", "InaiMathi");
 
+
+pref("font.name.serif.x-tibt", "Kailasa");
+pref("font.name.sans-serif.x-tibt", "Kailasa");
+pref("font.name.monospace.x-tibt", "Kailasa");
+pref("font.name-list.serif.x-tibt", "Kailasa");
+pref("font.name-list.sans-serif.x-tibt", "Kailasa");
+pref("font.name-list.monospace.x-tibt", "Kailasa");
+
 pref("font.name.serif.x-unicode", "Times");
 pref("font.name.sans-serif.x-unicode", "Helvetica");
 pref("font.name.monospace.x-unicode", "Courier");
@@ -2025,6 +2060,10 @@ pref("font.default.x-sinh", "serif");
 pref("font.size.variable.x-sinh", 16);
 pref("font.size.fixed.x-sinh", 13);
 
+pref("font.default.x-tibt", "serif");
+pref("font.size.variable.x-tibt", 16);
+pref("font.size.fixed.x-tibt", 13);
+
 pref("font.default.x-unicode", "serif");
 pref("font.size.variable.x-unicode", 16);
 pref("font.size.fixed.x-unicode", 13);
@@ -2055,8 +2094,6 @@ pref("font.single-face-list", "Osaka-Mono");
 
 
 pref("font.preload-names-list", "Hiragino Kaku Gothic Pro,Hiragino Mincho Pro,STSong");
-
-pref("browser.urlbar.clickAtEndSelects", false);
 
 
 
@@ -2392,7 +2429,6 @@ pref("network.hosts.smtp_server", "localhost");
 pref("network.hosts.pop_server", "pop");
 pref("network.protocol-handler.warn-external.file", false);
 pref("browser.drag_out_of_frame_style", 1);
-pref("editor.singleLine.pasteNewlines", 0);
 
 
 pref("middlemouse.paste", true);
@@ -2637,6 +2673,10 @@ pref("font.default.x-sinh", "serif");
 pref("font.size.variable.x-sinh", 16);
 pref("font.size.fixed.x-sinh", 13);
 
+pref("font.default.x-tibt", "serif");
+pref("font.size.variable.x-tibt", 16);
+pref("font.size.fixed.x-tibt", 13);
+
 
 
 pref("print.postscript.paper_size",    "letter");
@@ -2658,74 +2698,6 @@ pref("mousewheel.system_scroll_override_on_root_content.enabled", false);
 
 # XP_UNIX
 #endif
-#endif
-
-#if MOZ_WIDGET_TOOLKIT==photon
-
-
-pref("font.name.serif.x-western", "serif");
-pref("font.name.sans-serif.x-western", "sans-serif");
-pref("font.name.monospace.x-western", "monospace");
-pref("font.name.cursive.x-western", "cursive");
-pref("font.name.fantasy.x-western", "fantasy");
-
-pref("font.name.serif.el", "serif");
-pref("font.name.sans-serif.el", "sans-serif");
-pref("font.name.monospace.el", "monospace");
-
-pref("font.name.serif.he", "serif");
-pref("font.name.sans-serif.he", "sans-serif");
-pref("font.name.monospace.he", "monospace");
-
-pref("font.name.serif.ja", "serif");
-pref("font.name.sans-serif.ja", "sans-serif");
-pref("font.name.monospace.ja", "monospace");
-
-pref("font.name.serif.ko", "serif");
-pref("font.name.sans-serif.ko", "sans-serif");
-pref("font.name.monospace.ko", "monospace");
-
-pref("font.name.serif.tr", "serif");
-pref("font.name.sans-serif.tr", "sans-serif");
-pref("font.name.monospace.tr", "monospace");
-
-pref("font.name.serif.x-baltic", "serif");
-pref("font.name.sans-serif.x-baltic", "sans-serif");
-pref("font.name.monospace.x-baltic", "monospace");
-
-pref("font.name.serif.x-central-euro", "serif");
-pref("font.name.sans-serif.x-central-euro", "sans-serif");
-pref("font.name.monospace.x-central-euro", "monospace");
-
-pref("font.name.serif.x-cyrillic", "serif");
-pref("font.name.sans-serif.x-cyrillic", "sans-serif");
-pref("font.name.monospace.x-cyrillic", "monospace");
-
-pref("font.name.serif.x-unicode", "serif");
-pref("font.name.sans-serif.x-unicode", "sans-serif");
-pref("font.name.monospace.x-unicode", "monospace");
-
-pref("font.name.serif.x-user-def", "serif");
-pref("font.name.sans-serif.x-user-def", "sans-serif");
-pref("font.name.monospace.x-user-def", "monospace");
-
-pref("font.name.serif.zh-CN", "serif");
-pref("font.name.sans-serif.zh-CN", "sans-serif");
-pref("font.name.monospace.zh-CN", "monospace");
-
-pref("font.size.variable.x-western", 14);
-pref("font.size.fixed.x-western", 12);
-
-pref("applications.telnet", "pterm telnet %h %p");
-pref("applications.tn3270", "pterm tn3270 %h");
-pref("applications.rlogin", "pterm rlogin %h");
-pref("applications.rlogin_with_user", "pterm rlogin %h -l %u");
-
-
-
-pref("print.print_extra_margin", 90); 
-
-# photon
 #endif
 
 #if OS_ARCH==OpenVMS
@@ -2787,12 +2759,15 @@ pref("signon.rememberSignons",              true);
 pref("signon.SignonFileName",               "signons.txt"); 
 pref("signon.SignonFileName2",              "signons2.txt"); 
 pref("signon.SignonFileName3",              "signons3.txt"); 
-pref("signon.autofillForms",                true); 
-pref("signon.debug",                        false); 
+pref("signon.autofillForms",                true);
+pref("signon.autologin.proxy",              false);
+pref("signon.debug",                        false);
 
 
 pref("browser.formfill.debug",            false);
 pref("browser.formfill.enable",           true);
+pref("browser.formfill.expire_days",      180);
+pref("browser.formfill.saveHttpsForms",   true);
 pref("browser.formfill.agedWeight",       2);
 pref("browser.formfill.bucketSize",       1);
 pref("browser.formfill.maxTimeGroupings", 25);
@@ -2834,21 +2809,34 @@ pref("gfx.color_management.mode", 0);
 #endif
 
 
+pref("mozilla.widget.render-mode", -1);
+
+
+pref("mozilla.widget.accelerated-layers", true);
+
+#ifdef XP_WIN
+#ifndef WINCE
+pref("mozilla.layers.prefer-opengl", false);
+#endif
+#endif
+
+
 pref("geo.enabled", true);
 
 
-pref("html5.enable", false);
+pref("accelerometer.enabled", true);
+
+
+pref("html5.enable", true);
 
 pref("html5.offmainthread", true);
 
 
-pref("html5.flushtimer.startdelay", 200);
+
+pref("html5.flushtimer.initialdelay", 120);
 
 
-pref("html5.flushtimer.continuedelay", 150);
-
-
-pref("html5.flushtimer.interval", 100);
+pref("html5.flushtimer.subsequentdelay", 120);
 
 
 pref("browser.history.allowPushState", true);
@@ -2856,10 +2844,8 @@ pref("browser.history.allowReplaceState", true);
 pref("browser.history.allowPopState", true);
 pref("browser.history.maxStateObjectSize", 655360);
 
-pref("html5.opqueue.initiallengthlimit", 200);
 
-pref("html5.opqueue.maxtime", 100);
+pref("xpinstall.whitelist.required", true);
 
-pref("html5.opqueue.minlength", 100);
-
-pref("html5.opqueue.maxlength", 4500); 
+pref("network.buffer.cache.count", 24);
+pref("network.buffer.cache.size",  32768);

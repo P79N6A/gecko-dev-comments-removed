@@ -148,6 +148,19 @@ struct DBState
 };
 
 
+enum CookieStatus
+{
+  STATUS_ACCEPTED,
+  STATUS_ACCEPT_SESSION,
+  STATUS_REJECTED,
+  
+  
+  
+  
+  STATUS_REJECTED_WITH_ERROR
+};
+
+
 
 
 
@@ -182,7 +195,7 @@ class nsCookieService : public nsICookieService
     nsresult                      GetBaseDomainFromHost(const nsACString &aHost, nsCString &aBaseDomain);
     void                          GetCookieInternal(nsIURI *aHostURI, nsIURI *aOriginatingURI, PRBool aHttpBound, nsCString &aCookie);
     void                          SetCookieStringInternal(nsIURI *aHostURI, nsIURI *aOriginatingURI, const nsCString &aCookieHeader, const nsCString &aServerTime, PRBool aFromHttp);
-    PRBool                        SetCookieInternal(nsIURI *aHostURI, const nsCString& aBaseDomain, PRBool aRequireHostMatch, nsDependentCString &aCookieHeader, PRInt64 aServerTime, PRBool aFromHttp);
+    PRBool                        SetCookieInternal(nsIURI *aHostURI, const nsCString& aBaseDomain, PRBool aRequireHostMatch, CookieStatus aStatus, nsDependentCString &aCookieHeader, PRInt64 aServerTime, PRBool aFromHttp);
     void                          AddInternal(const nsCString& aBaseDomain, nsCookie *aCookie, PRInt64 aCurrentTimeInUsec, nsIURI *aHostURI, const char *aCookieHeader, PRBool aFromHttp);
     void                          RemoveCookieFromList(const nsListIter &aIter, mozIStorageBindingParamsArray *aParamsArray = NULL);
     PRBool                        AddCookieToList(const nsCString& aBaseDomain, nsCookie *aCookie, mozIStorageBindingParamsArray *aParamsArray, PRBool aWriteToDB = PR_TRUE);
@@ -191,7 +204,7 @@ class nsCookieService : public nsICookieService
     static PRBool                 ParseAttributes(nsDependentCString &aCookieHeader, nsCookieAttributes &aCookie);
     PRBool                        IsForeign(const nsCString &aBaseDomain, PRBool aRequireHostMatch, nsIURI *aFirstURI);
     void                          GetOriginatingURI(nsIChannel *aChannel, nsIURI **aURI);
-    PRUint32                      CheckPrefs(nsIURI *aHostURI, nsIURI *aOriginatingURI, const nsCString &aBaseDomain, PRBool aRequireHostMatch, const char *aCookieHeader);
+    CookieStatus                  CheckPrefs(nsIURI *aHostURI, nsIURI *aOriginatingURI, const nsCString &aBaseDomain, PRBool aRequireHostMatch, const char *aCookieHeader);
     PRBool                        CheckDomain(nsCookieAttributes &aCookie, nsIURI *aHostURI, const nsCString &aBaseDomain, PRBool aRequireHostMatch);
     static PRBool                 CheckPath(nsCookieAttributes &aCookie, nsIURI *aHostURI);
     static PRBool                 GetExpiry(nsCookieAttributes &aCookie, PRInt64 aServerTime, PRInt64 aCurrentTime);
@@ -219,7 +232,8 @@ class nsCookieService : public nsICookieService
     DBState                       mPrivateDBState;
 
     
-    PRUint8                       mCookiesPermissions;   
+    PRUint8                       mCookieBehavior; 
+    PRBool                        mThirdPartySession;
     PRUint16                      mMaxNumberOfCookies;
     PRUint16                      mMaxCookiesPerHost;
     PRInt64                       mCookiePurgeAge;
