@@ -211,35 +211,14 @@ ImageLayerD3D10::RenderLayer()
       return;
     }
     
-    if (LoadMaskTexture()) {
-      if (hasAlpha) {
-        if (mFilter == gfxPattern::FILTER_NEAREST) {
-          technique = effect()->GetTechniqueByName("RenderRGBALayerPremulPointMask");
-        } else {
-          technique = effect()->GetTechniqueByName("RenderRGBALayerPremulMask");
-        }
-       } else {
-        if (mFilter == gfxPattern::FILTER_NEAREST) {
-          technique = effect()->GetTechniqueByName("RenderRGBLayerPremulPointMask");
-        } else {
-          technique = effect()->GetTechniqueByName("RenderRGBLayerPremulMask");
-        }
-       }
-     } else {
-      if (hasAlpha) {
-        if (mFilter == gfxPattern::FILTER_NEAREST) {
-          technique = effect()->GetTechniqueByName("RenderRGBALayerPremulPoint");
-        } else {
-          technique = effect()->GetTechniqueByName("RenderRGBALayerPremul");
-        }
-       } else {
-        if (mFilter == gfxPattern::FILTER_NEAREST) {
-          technique = effect()->GetTechniqueByName("RenderRGBLayerPremulPoint");
-        } else {
-          technique = effect()->GetTechniqueByName("RenderRGBLayerPremul");
-        }
-      }
-    }
+    PRUint8 shaderFlags = SHADER_PREMUL;
+    shaderFlags |= LoadMaskTexture();
+    shaderFlags |= hasAlpha
+                  ? SHADER_RGBA : SHADER_RGB;
+    shaderFlags |= mFilter == gfxPattern::FILTER_NEAREST
+                  ? SHADER_POINT : SHADER_LINEAR;
+    technique = SelectShader(shaderFlags);
+
 
     effect()->GetVariableByName("tRGB")->AsShaderResource()->SetResource(srView);
 
@@ -275,18 +254,12 @@ ImageLayerD3D10::RenderLayer()
       return;
     }
 
-    bool useMask = LoadMaskTexture();
-
     
     
     
     
 
-    if (useMask) {
-      technique = effect()->GetTechniqueByName("RenderYCbCrLayerMask");
-    } else {
-      technique = effect()->GetTechniqueByName("RenderYCbCrLayer");
-    }
+    technique = SelectShader(SHADER_YCBCR | LoadMaskTexture());
 
     effect()->GetVariableByName("tY")->AsShaderResource()->SetResource(data->mYView);
     effect()->GetVariableByName("tCb")->AsShaderResource()->SetResource(data->mCbView);

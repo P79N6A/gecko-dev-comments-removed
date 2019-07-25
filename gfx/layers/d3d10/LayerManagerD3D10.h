@@ -322,7 +322,30 @@ protected:
 
 
 
-  bool LoadMaskTexture();
+  PRUint8 LoadMaskTexture();
+
+  
+
+
+
+
+
+
+  ID3D10EffectTechnique* SelectShader(PRUint8 aFlags);
+  const static PRUint8 SHADER_NO_MASK = 0;
+  const static PRUint8 SHADER_MASK = 0x1;
+  const static PRUint8 SHADER_MASK_3D = 0x2;
+  
+  const static PRUint8 SHADER_RGB = 0;
+  const static PRUint8 SHADER_RGBA = 0x4;
+  const static PRUint8 SHADER_NON_PREMUL = 0;
+  const static PRUint8 SHADER_PREMUL = 0x8;
+  const static PRUint8 SHADER_LINEAR = 0;
+  const static PRUint8 SHADER_POINT = 0x10;
+  
+  const static PRUint8 SHADER_YCBCR = 0x20;
+  const static PRUint8 SHADER_COMPONENT_ALPHA = 0x24;
+  const static PRUint8 SHADER_SOLID = 0x28;
 
   LayerManagerD3D10 *mD3DManager;
 };
