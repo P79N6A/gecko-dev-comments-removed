@@ -16,7 +16,8 @@ function run_test() {
   }
 
   let file = do_get_file("default.sqlite");
-  file.copyTo(gProfD, "places.sqlite");
+  file.copyToFollowingLinks(gProfD, "places.sqlite");
+  file = gProfD.clone().append("places.sqlite");
 
   
   let db = Services.storage.openUnsharedDatabase(file);
