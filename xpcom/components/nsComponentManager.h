@@ -225,17 +225,21 @@ public:
                           KnownModule* aModule);
     void RegisterContractID(const mozilla::Module::ContractIDEntry* aEntry);
 
-    void RegisterLocation(NSLocationType aType, nsILocalFile* aLocation);
+    void RegisterLocation(NSLocationType aType, nsILocalFile* aLocation,
+                          bool aChromeOnly);
 
     
     
     
     void RegisterDirectory(NSLocationType aType, nsILocalFile* aDirectory,
-                           nsCOMArray<nsILocalFile>& aManifests);
+                           nsCOMArray<nsILocalFile>& aManifests,
+                           bool aChromeOnly);
     void RegisterFile(NSLocationType aType, nsILocalFile* aFile,
-                      nsCOMArray<nsILocalFile>& aManifests);
+                      nsCOMArray<nsILocalFile>& aManifests,
+                      bool aChromeOnly);
 
-    void RegisterManifestFile(NSLocationType aType, nsILocalFile* aFile);
+    void RegisterManifestFile(NSLocationType aType, nsILocalFile* aFile,
+                              bool aChromeOnly);
 
     struct ManifestProcessingContext
     {
