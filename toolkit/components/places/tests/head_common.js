@@ -508,3 +508,21 @@ let (randomFailingSyncTests = [
     sync.observe(null, "places-debug-stop-sync", null);
   }
 }
+
+
+
+let (randomFailingIdleTests = [
+  "test_redirectsMode.js",
+  "test_tags.js",
+  "test_history_sidebar.js",
+  "test_removeVisitsByTimeframe.js",
+  "test_history_removeAllPages.js", 
+  "test_database_sync_after_shutdown_with_removeAllPages.js", 
+]) {
+  let currentTestFilename = do_get_file(_TEST_FILE[0], true).leafName;
+  if (randomFailingIdleTests.indexOf(currentTestFilename) != -1) {
+    print("Test " + currentTestFilename +
+          " is known random due to idle-daily, remove observer.");
+    Services.obs.removeObserver(PlacesUtils.history, "idle-daily");
+  }
+}

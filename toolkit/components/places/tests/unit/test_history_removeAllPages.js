@@ -238,10 +238,6 @@ os.addObserver(syncObserver, kSyncFinished, false);
 
 function run_test() {
   
-  
-  Services.obs.removeObserver(PlacesUtils.history, "idle-daily");
-
-  
   add_fake_livemark();
 
   
