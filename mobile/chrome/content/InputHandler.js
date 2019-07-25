@@ -43,7 +43,6 @@
 
 
 
-
 const kDoubleClickInterval = 400;
 
 
@@ -57,9 +56,6 @@ const kAxisLockRevertThreshold = 200;
 
 
 const kStateActive = 0x00000001;
-
-
-const kKineticBrakesDelay = 50;
 
 
 
@@ -433,13 +429,10 @@ MouseModule.prototype = {
     let [targetScrollbox, targetScrollInterface]
       = this.getScrollboxFromElement(aEvent.target);
 
-    if (this._kinetic.isActive()) {
-      let oldInterface = this._targetScrollInterface;
-      if (targetScrollInterface != oldInterface)
-        this._kinetic.end(); 
-      else
-        this._kinetic.brakesApplied(); 
-    }
+    
+    let oldInterface = this._targetScrollInterface;
+    if (this._kinetic.isActive() && targetScrollInterface != oldInterface)
+      this._kinetic.end();
 
     let targetClicker = this.getClickerFromElement(aEvent.target);
 
@@ -962,6 +955,7 @@ DragData.prototype = {
 
 function KineticController(aPanBy, aEndCallback) {
   this._panBy = aPanBy;
+  this._timer = null;
   this._beforeEnd = aEndCallback;
 
   
@@ -987,14 +981,9 @@ function KineticController(aPanBy, aEndCallback) {
 
 KineticController.prototype = {
   _reset: function _reset() {
-    if (this._callback) {
-      removeEventListener("MozBeforePaint", this._callback, false);
-      this._callback = null;
-    }
-
-    if (this._brakesTimeout) {
-      clearTimeout(this._brakesTimeout);
-      delete this._brakesTimeout;
+    if (this._timer != null) {
+      this._timer.cancel();
+      this._timer = null;
     }
 
     this.momentumBuffer = [];
@@ -1002,7 +991,7 @@ KineticController.prototype = {
   },
 
   isActive: function isActive() {
-    return !!this._callback;
+    return (this._timer != null);
   },
 
   _startTimer: function _startTimer() {
@@ -1034,10 +1023,11 @@ KineticController.prototype = {
     
     let aBin = new Point(0, 0);
     let v0Bin = new Point(0, 0);
-    let self = this;
 
     let callback = {
-      handleEvent: function kineticHandleEvent(event) {
+      _self: this,
+      notify: function kineticTimerCallback(timer) {
+        let self = this._self;
 
         if (!self.isActive())  
           return;
@@ -1045,7 +1035,7 @@ KineticController.prototype = {
         
         
         
-        let realt = event.timeStamp - self._initialTime;
+        let realt = Date.now() - self._initialTime;
         self._time += self._updateInterval;
         let t = (self._time + realt) / 2;
 
@@ -1077,14 +1067,14 @@ KineticController.prototype = {
         try { panned = self._panBy(Math.round(-dx), Math.round(-dy)); } catch (e) {}
         if (!panned)
           self.end();
-        else
-          mozRequestAnimationFrame();
       }
     };
 
-    this._callback = callback;
-    addEventListener("MozBeforePaint", callback, false);
-    mozRequestAnimationFrame();
+    this._timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+    
+    this._timer.initWithCallback(callback,
+                                 this._updateInterval,
+                                 this._timer.TYPE_REPEATING_SLACK);
   },
 
   start: function start() {
@@ -1118,7 +1108,7 @@ KineticController.prototype = {
     this._acceleration.set(this._velocity.clone().map(sign).scale(-this._decelerationRate));
 
     this._position.set(0, 0);
-    this._initialTime = mozAnimationStartTime;
+    this._initialTime = Date.now();
     this._time = 0;
     this.momentumBuffer = [];
 
@@ -1145,20 +1135,6 @@ KineticController.prototype = {
     }
 
     this.momentumBuffer.push({'t': now, 'dx' : dx, 'dy' : dy});
-
-    if (dx > 0 && dy > 0 && this._brakesTimeout) {
-      clearTimeout(this._brakesTimeout);
-      delete this._brakesTimeout;
-    }
-  },
-
-  
-  brakesApplied: function brakesApplied() {
-    let self = this;
-    this._brakesTimeout = setTimeout(function() {
-      self.end();
-      delete self._brakesTimeout;
-    }, kKineticBrakesDelay);
   }
 };
 
