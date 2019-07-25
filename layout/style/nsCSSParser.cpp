@@ -1259,7 +1259,15 @@ CSSParserImpl::ParseSelectorString(const nsSubstring& aSelectorString,
   PRBool success = ParseSelectorList(*aSelectorList, PRUnichar(0));
   PRBool prefixErr = mFoundUnresolvablePrefix;
 
-  OUTPUT_ERROR();
+  
+  
+  
+  
+  
+  
+  
+  
+  CLEAR_ERROR();
   ReleaseScanner();
 
   if (success) {
