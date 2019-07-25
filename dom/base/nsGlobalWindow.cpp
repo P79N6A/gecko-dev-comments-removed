@@ -816,14 +816,7 @@ nsGlobalWindow::Init()
 #endif
 
   sWindowsById = new WindowByIdTable();
-  
-  
-  
-#ifdef DEBUG
-  NS_ASSERTION(sWindowsById->Init(), "Init() should not fail!");
-#else
   sWindowsById->Init();
-#endif
 }
 
 static PLDHashOperator
@@ -6745,10 +6738,8 @@ void
 nsGlobalWindow::CacheXBLPrototypeHandler(nsXBLPrototypeHandler* aKey,
                                          nsScriptObjectHolder<JSObject>& aHandler)
 {
-  if (!mCachedXBLPrototypeHandlers.IsInitialized() &&
-      !mCachedXBLPrototypeHandlers.Init()) {
-    NS_ERROR("Failed to initiailize hashtable!");
-    return;
+  if (!mCachedXBLPrototypeHandlers.IsInitialized()) {
+    mCachedXBLPrototypeHandlers.Init();
   }
 
   if (!mCachedXBLPrototypeHandlers.Count()) {

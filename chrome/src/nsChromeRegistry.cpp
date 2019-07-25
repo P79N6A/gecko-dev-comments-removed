@@ -175,8 +175,7 @@ nsChromeRegistry::GetService()
 nsresult
 nsChromeRegistry::Init()
 {
-  if (!mOverrideTable.Init())
-    return NS_ERROR_FAILURE;
+  mOverrideTable.Init();
 
   
   

@@ -112,9 +112,8 @@ class nsHtml5AtomTable
     
 
 
-
-    inline bool Init() {
-      return mTable.Init();
+    inline void Init() {
+      mTable.Init();
     }
     
     

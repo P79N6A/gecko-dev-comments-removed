@@ -89,7 +89,8 @@ nsDOMDataContainerEvent::SetData(const nsAString& aKey, nsIVariant *aData)
   
   NS_ENSURE_STATE(!(NS_IS_EVENT_IN_DISPATCH(mEvent)));
   NS_ENSURE_STATE(mData.IsInitialized());
-  return mData.Put(aKey, aData) ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
+  mData.Put(aKey, aData);
+  return NS_OK;
 }
 
 nsresult
