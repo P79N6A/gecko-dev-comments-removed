@@ -44,6 +44,10 @@
 
 
 
+#ifdef MOZ_IPC
+#include "base/basictypes.h"
+#endif 
+
 #include "nsHttpChannel.h"
 #include "nsHttpHandler.h"
 #include "nsIHttpAuthenticator.h"
@@ -66,6 +70,8 @@
 #include "nsAuthInformationHolder.h"
 #include "nsICacheService.h"
 #include "nsDNSPrefetch.h"
+
+#include "nsIOService.h"
 
 
 #define BYPASS_LOCAL_CACHE(loadFlags) \
