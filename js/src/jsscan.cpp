@@ -227,6 +227,18 @@ TokenStream::init(const jschar *base, size_t length, const char *fn, uintN ln, J
     maybeStrSpecial[unsigned(LINE_SEPARATOR & 0xff)] = true;
     maybeStrSpecial[unsigned(PARA_SEPARATOR & 0xff)] = true;
     maybeStrSpecial[unsigned(EOF & 0xff)] = true;
+
+    
+
+
+
+
+
+
+
+
+
+    tokens[0].pos.begin.lineno = ln;
     return true;
 }
 
