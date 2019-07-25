@@ -51,6 +51,7 @@ function test_initial_state()
   stmt.finalize();
 
   do_check_false(db.indexExists("moz_bookmarks_guid_uniqueindex"));
+  do_check_false(db.indexExists("moz_places_guid_uniqueindex"));
 
   
   stmt = db.createStatement(
@@ -167,6 +168,40 @@ function test_bookmark_guid_annotation_removed()
   run_next_test();
 }
 
+function test_moz_places_guid_exists()
+{
+  
+  let stmt = DBConn().createStatement(
+    "SELECT guid "
+  + "FROM moz_places "
+  );
+  stmt.finalize();
+
+  run_next_test();
+}
+
+function test_place_guids_non_null()
+{
+  
+  let stmt = DBConn().createStatement(
+    "SELECT COUNT(1) "
+  + "FROM moz_places "
+  );
+  do_check_true(stmt.executeStep());
+  do_check_neq(stmt.getInt32(0), 0);
+  stmt.finalize();
+
+  
+  stmt = DBConn().createStatement(
+    "SELECT guid "
+  + "FROM moz_places "
+  + "WHERE guid IS NULL "
+  );
+  do_check_false(stmt.executeStep());
+  stmt.finalize();
+  run_next_test();
+}
+
 function test_final_state()
 {
   
@@ -183,6 +218,7 @@ function test_final_state()
   }
 
   do_check_true(db.indexExists("moz_bookmarks_guid_uniqueindex"));
+  do_check_true(db.indexExists("moz_places_guid_uniqueindex"));
 
   do_check_eq(db.schemaVersion, 11);
 
@@ -199,6 +235,8 @@ let tests = [
   test_bookmark_guids_non_null,
   test_bookmark_guid_annotation_imported,
   test_bookmark_guid_annotation_removed,
+  test_moz_places_guid_exists,
+  test_place_guids_non_null,
   test_final_state,
 ];
 let index = 0;
