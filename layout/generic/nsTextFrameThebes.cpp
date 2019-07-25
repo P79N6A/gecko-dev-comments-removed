@@ -326,7 +326,7 @@ public:
                                       float* aRelativeSize,
                                       PRUint8* aStyle);
 
-  nsPresContext* PresContext() { return mPresContext; }
+  nsPresContext* PresContext() const { return mPresContext; }
 
   enum {
     eIndexRawInput = 0,
@@ -4472,81 +4472,6 @@ nsTextFrame::UnionAdditionalOverflow(nsPresContext* aPresContext,
   AddStateBits(TEXT_SELECTION_UNDERLINE_OVERFLOWED);
 }
 
-void 
-nsTextFrame::PaintTextDecorations(
-               gfxContext* aCtx, const gfxRect& aDirtyRect,
-               const gfxPoint& aFramePt,
-               const gfxPoint& aTextBaselinePt,
-               nsTextPaintStyle& aTextPaintStyle,
-               PropertyProvider& aProvider,
-               const nsCharClipDisplayItem::ClipEdges& aClipEdges,
-               const nscolor* aOverrideColor)
-{
-  TextDecorations decorations;
-  GetTextDecorations(aTextPaintStyle.PresContext(), decorations);
-
-  if (!decorations.HasDecorationLines())
-    return;
-
-  
-  if (aProvider.GetFontGroup()->ShouldSkipDrawing())
-    return;
-
-  const gfxFloat app = aTextPaintStyle.PresContext()->AppUnitsPerDevPixel();
-
-  
-  nscoord x = NSToCoordRound(aFramePt.x);
-  nscoord width = GetRect().width;
-  aClipEdges.Intersect(&x, &width);
-
-  gfxPoint pt(x / app, 0);
-  gfxSize size(width / app, 0);
-  const gfxFloat ascent = gfxFloat(mAscent) / app;
-  const gfxFloat frameTop = aFramePt.y;
-
-  nscolor lineColor;
-  for (PRUint32 i = decorations.mUnderlines.Length(); i-- > 0; ) {
-    const LineDecoration& dec = decorations.mUnderlines[i];
-    gfxFontGroup* fontGroup = GetFontGroupForFrame(dec.mFrame);
-    const gfxFont::Metrics metrics = GetFirstFontMetrics(fontGroup);
-
-    size.height = metrics.underlineSize;
-    pt.y = (frameTop - dec.mBaselineOffset) / app;
-
-    lineColor = aOverrideColor ? *aOverrideColor : dec.mColor;
-    nsCSSRendering::PaintDecorationLine(aCtx, lineColor, pt, size, ascent,
-      fontGroup->GetUnderlineOffset(), NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE,
-      dec.mStyle);
-  }
-  for (PRUint32 i = decorations.mOverlines.Length(); i-- > 0; ) {
-    const LineDecoration& dec = decorations.mOverlines[i];
-
-    const gfxFont::Metrics metrics =
-      GetFirstFontMetrics(GetFontGroupForFrame(dec.mFrame));
-
-    size.height = metrics.underlineSize;
-    pt.y = (frameTop - dec.mBaselineOffset) / app;
-
-    lineColor = aOverrideColor ? *aOverrideColor : dec.mColor;
-    nsCSSRendering::PaintDecorationLine(aCtx, lineColor, pt, size, ascent,
-      metrics.maxAscent, NS_STYLE_TEXT_DECORATION_LINE_OVERLINE, dec.mStyle);
-  }
-  for (PRUint32 i = decorations.mStrikes.Length(); i-- > 0; ) {
-    const LineDecoration& dec = decorations.mStrikes[i];
-
-    const gfxFont::Metrics metrics =
-      GetFirstFontMetrics(GetFontGroupForFrame(dec.mFrame));
-
-    size.height = metrics.strikeoutSize;
-    pt.y = (frameTop - dec.mBaselineOffset) / app;
-
-    lineColor = aOverrideColor ? *aOverrideColor : dec.mColor;
-    nsCSSRendering::PaintDecorationLine(aCtx, lineColor, pt, size, ascent,
-      metrics.strikeoutOffset, NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH,
-      dec.mStyle);
-  }
-}
-
 static gfxFloat
 ComputeDescentLimitForSelectionUnderline(nsPresContext* aPresContext,
                                          nsTextFrame* aFrame,
@@ -4919,20 +4844,11 @@ nsTextFrame::PaintOneShadow(PRUint32 aOffset, PRUint32 aLength,
   
   
   
-  gfxRect dirtyGfxRect(aDirtyRect.x, aDirtyRect.y, aDirtyRect.width, aDirtyRect.height);
   gfxFloat advanceWidth;
-  DrawText(shadowContext,
-           aTextBaselinePt + shadowOffset,
-           aOffset, aLength, &dirtyGfxRect, aProvider, advanceWidth,
-           (GetStateBits() & TEXT_HYPHEN_BREAK) != 0);
-
-  
-  
-  
-  nsTextPaintStyle textPaintStyle(this);
-  PaintTextDecorations(shadowContext, dirtyGfxRect, aFramePt + shadowOffset,
-                       aTextBaselinePt + shadowOffset,
-                       textPaintStyle, *aProvider, aClipEdges, &shadowColor);
+  DrawText(shadowContext, aFramePt + shadowOffset,
+           aTextBaselinePt + shadowOffset, aOffset, aLength, *aProvider,
+           nsTextPaintStyle(this), aClipEdges, advanceWidth,
+           (GetStateBits() & TEXT_HYPHEN_BREAK) != 0, &shadowColor);
 
   contextBoxBlur.DoPaint();
   aCtx->Restore();
@@ -4942,12 +4858,13 @@ nsTextFrame::PaintOneShadow(PRUint32 aOffset, PRUint32 aLength,
 
 bool
 nsTextFrame::PaintTextWithSelectionColors(gfxContext* aCtx,
-    const gfxPoint& aFramePt,
-    const gfxPoint& aTextBaselinePt, const gfxRect& aDirtyRect,
+    const gfxPoint& aFramePt, const gfxPoint& aTextBaselinePt,
+    const gfxRect& aDirtyRect,
     PropertyProvider& aProvider,
     PRUint32 aContentOffset, PRUint32 aContentLength,
     nsTextPaintStyle& aTextPaintStyle, SelectionDetails* aDetails,
-    SelectionType* aAllTypes)
+    SelectionType* aAllTypes,
+    const nsCharClipDisplayItem::ClipEdges& aClipEdges)
 {
   
   nsAutoTArray<SelectionDetails*,BIG_TEXT_NODE_SIZE> prevailingSelectionsBuffer;
@@ -5039,9 +4956,9 @@ nsTextFrame::PaintTextWithSelectionColors(gfxContext* aCtx,
     aCtx->SetColor(gfxRGBA(foreground));
     gfxFloat advance;
 
-    DrawText(aCtx, gfxPoint(aFramePt.x + xOffset, aTextBaselinePt.y),
-             offset, length, &aDirtyRect, &aProvider,
-             advance, hyphenWidth > 0);
+    DrawText(aCtx, aFramePt, gfxPoint(aFramePt.x + xOffset, aTextBaselinePt.y),
+             offset, length, aProvider, aTextPaintStyle, aClipEdges, advance,
+             hyphenWidth > 0);
     if (hyphenWidth) {
       advance += hyphenWidth;
     }
@@ -5122,7 +5039,8 @@ bool
 nsTextFrame::PaintTextWithSelection(gfxContext* aCtx,
     const gfxPoint& aFramePt,
     const gfxPoint& aTextBaselinePt, const gfxRect& aDirtyRect,
-    PropertyProvider& aProvider, PRUint32 aContentOffset, PRUint32 aContentLength,
+    PropertyProvider& aProvider,
+    PRUint32 aContentOffset, PRUint32 aContentLength,
     nsTextPaintStyle& aTextPaintStyle,
     const nsCharClipDisplayItem::ClipEdges& aClipEdges)
 {
@@ -5140,12 +5058,12 @@ nsTextFrame::PaintTextWithSelection(gfxContext* aCtx,
   SelectionType allTypes;
   if (!PaintTextWithSelectionColors(aCtx, aFramePt, aTextBaselinePt, aDirtyRect,
                                     aProvider, aContentOffset, aContentLength,
-                                    aTextPaintStyle, details, &allTypes)) {
+                                    aTextPaintStyle, details, &allTypes,
+                                    aClipEdges))
+  {
     DestroySelectionDetails(details);
     return false;
   }
-  PaintTextDecorations(aCtx, aDirtyRect, aFramePt, aTextBaselinePt,
-                       aTextPaintStyle, aProvider, aClipEdges);
   PRInt32 i;
   
   
@@ -5389,21 +5307,21 @@ nsTextFrame::PaintText(nsRenderingContext* aRenderingContext, nsPoint aPt,
   ctx->SetColor(gfxRGBA(foregroundColor));
 
   gfxFloat advanceWidth;
-  DrawText(ctx, textBaselinePt, startOffset, maxLength, &dirtyRect, &provider,
-           advanceWidth, (GetStateBits() & TEXT_HYPHEN_BREAK) != 0);
-  PaintTextDecorations(ctx, dirtyRect, framePt, textBaselinePt,
-                       textPaintStyle, provider, clipEdges);
+  DrawText(ctx, framePt, textBaselinePt, startOffset, maxLength, provider,
+           textPaintStyle, clipEdges, advanceWidth,
+           (GetStateBits() & TEXT_HYPHEN_BREAK) != 0);
 }
 
 void
-nsTextFrame::DrawText(gfxContext* aCtx, const gfxPoint& aTextBaselinePt,
-                      PRUint32 aOffset, PRUint32 aLength,
-                      const gfxRect* aDirtyRect, PropertyProvider* aProvider,
-                      gfxFloat& aAdvanceWidth, PRBool aDrawSoftHyphen)
+nsTextFrame::DrawTextRun(gfxContext* const aCtx,
+                         const gfxPoint& aTextBaselinePt,
+                         PRUint32 aOffset, PRUint32 aLength,
+                         PropertyProvider& aProvider,
+                         gfxFloat& aAdvanceWidth,
+                         PRBool aDrawSoftHyphen)
 {
-  
   mTextRun->Draw(aCtx, aTextBaselinePt, aOffset, aLength,
-                 aProvider, &aAdvanceWidth);
+                 &aProvider, &aAdvanceWidth);
 
   if (aDrawSoftHyphen) {
     
@@ -5417,6 +5335,112 @@ nsTextFrame::DrawText(gfxContext* aCtx, const gfxPoint& aTextBaselinePt,
       hyphenTextRun->Draw(aCtx, gfxPoint(hyphenBaselineX, aTextBaselinePt.y),
                           0, hyphenTextRun->GetLength(), nsnull, nsnull);
     }
+  }
+}
+
+void
+nsTextFrame::DrawTextRunAndDecorations(
+    gfxContext* const aCtx,
+    const gfxPoint& aFramePt, const gfxPoint& aTextBaselinePt,
+    PRUint32 aOffset, PRUint32 aLength,
+    PropertyProvider& aProvider,
+    const nsTextPaintStyle& aTextStyle,
+    const nsCharClipDisplayItem::ClipEdges& aClipEdges,
+    gfxFloat& aAdvanceWidth,
+    PRBool aDrawSoftHyphen,
+    const TextDecorations& aDecorations,
+    const nscolor* const aDecorationOverrideColor)
+{
+    const gfxFloat app = aTextStyle.PresContext()->AppUnitsPerDevPixel();
+
+    
+    nscoord x = NSToCoordRound(aFramePt.x);
+    nscoord width = GetRect().width;
+    aClipEdges.Intersect(&x, &width);
+
+    gfxPoint decPt(x / app, 0);
+    gfxSize decSize(width / app, 0);
+    const gfxFloat ascent = gfxFloat(mAscent) / app;
+    const gfxFloat frameTop = aFramePt.y;
+
+    
+    for (PRUint32 i = aDecorations.mUnderlines.Length(); i-- > 0; ) {
+      const LineDecoration& dec = aDecorations.mUnderlines[i];
+
+      const gfxFont::Metrics metrics =
+        GetFirstFontMetrics(GetFontGroupForFrame(dec.mFrame));
+
+      decSize.height = metrics.underlineSize;
+      decPt.y = (frameTop - dec.mBaselineOffset) / app;
+
+      const nscolor lineColor = aDecorationOverrideColor ? *aDecorationOverrideColor : dec.mColor;
+      nsCSSRendering::PaintDecorationLine(aCtx, lineColor, decPt, decSize, ascent,
+        metrics.underlineOffset, NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE,
+        dec.mStyle);
+    }
+    
+    for (PRUint32 i = aDecorations.mOverlines.Length(); i-- > 0; ) {
+      const LineDecoration& dec = aDecorations.mOverlines[i];
+
+      const gfxFont::Metrics metrics =
+        GetFirstFontMetrics(GetFontGroupForFrame(dec.mFrame));
+
+      decSize.height = metrics.underlineSize;
+      decPt.y = (frameTop - dec.mBaselineOffset) / app;
+
+      const nscolor lineColor = aDecorationOverrideColor ? *aDecorationOverrideColor : dec.mColor;
+      nsCSSRendering::PaintDecorationLine(aCtx, lineColor, decPt, decSize, ascent,
+        metrics.maxAscent, NS_STYLE_TEXT_DECORATION_LINE_OVERLINE, dec.mStyle);
+    }
+
+    
+    
+    DrawTextRun(aCtx, aTextBaselinePt, aOffset, aLength, aProvider, aAdvanceWidth,
+                aDrawSoftHyphen);
+
+    
+    for (PRUint32 i = aDecorations.mStrikes.Length(); i-- > 0; ) {
+      const LineDecoration& dec = aDecorations.mStrikes[i];
+
+      const gfxFont::Metrics metrics =
+        GetFirstFontMetrics(GetFontGroupForFrame(dec.mFrame));
+
+      decSize.height = metrics.strikeoutSize;
+      decPt.y = (frameTop - dec.mBaselineOffset) / app;
+
+      const nscolor lineColor = aDecorationOverrideColor ? *aDecorationOverrideColor : dec.mColor;
+      nsCSSRendering::PaintDecorationLine(aCtx, lineColor, decPt, decSize, ascent,
+        metrics.strikeoutOffset, NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH,
+        dec.mStyle);
+    }
+}
+
+void
+nsTextFrame::DrawText(
+    gfxContext* const aCtx,
+    const gfxPoint& aFramePt, const gfxPoint& aTextBaselinePt,
+    PRUint32 aOffset, PRUint32 aLength,
+    PropertyProvider& aProvider,
+    const nsTextPaintStyle& aTextStyle,
+    const nsCharClipDisplayItem::ClipEdges& aClipEdges,
+    gfxFloat& aAdvanceWidth,
+    PRBool aDrawSoftHyphen,
+    const nscolor* const aDecorationOverrideColor)
+{
+  TextDecorations decorations;
+  GetTextDecorations(aTextStyle.PresContext(), decorations);
+
+  
+  const bool drawDecorations = !aProvider.GetFontGroup()->ShouldSkipDrawing() &&
+                               decorations.HasDecorationLines();
+  if (drawDecorations) {
+    DrawTextRunAndDecorations(aCtx, aFramePt, aTextBaselinePt, aOffset, aLength,
+                              aProvider, aTextStyle, aClipEdges, aAdvanceWidth,
+                              aDrawSoftHyphen, decorations,
+                              aDecorationOverrideColor);
+  } else {
+    DrawTextRun(aCtx, aTextBaselinePt, aOffset, aLength, aProvider,
+                aAdvanceWidth, aDrawSoftHyphen);
   }
 }
 
