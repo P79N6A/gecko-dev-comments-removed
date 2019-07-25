@@ -1354,7 +1354,16 @@ nsHTMLDocument::Open(const nsAString& aContentTypeOrUrl,
   }
 
   
-  if (mParser) {
+  if (mParser || mParserAborted) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
     return NS_OK;
   }
 
