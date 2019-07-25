@@ -46,23 +46,15 @@ var DownloadsView = {
   _dlmgr: null,
   _progress: null,
 
-  _initStatement: function dv__initStatement(aMode) {
-    aMode = aMode || "date";
-
+  _initStatement: function dv__initStatement() {
     if (this._stmt)
       this._stmt.finalize();
-
-    let order = "endTime DESC, startTime DESC";
-    if (aMode == "name")
-      order = "name ASC";
-    else if (aMode == "site")
-      order = "REPLACE(REPLACE(REPLACE(source, \"http://\", \"\"), \"https://\", \"\"), \"ftp://\", \"\") ASC";
 
     this._stmt = this._dlmgr.DBConnection.createStatement(
       "SELECT id, target, name, source, state, startTime, endTime, referrer, " +
              "currBytes, maxBytes, state IN (?1, ?2, ?3, ?4, ?5) isActive " +
       "FROM moz_downloads " +
-      "ORDER BY isActive DESC, " + order);
+      "ORDER BY isActive DESC, endTime DESC, startTime DESC");
   },
 
   _getLocalFile: function dv__getLocalFile(aFileURI) {
@@ -172,10 +164,6 @@ var DownloadsView = {
     this._stmt.reset();
 
     
-    let search = document.getElementById("downloads-search-text");
-    this._searchTerms = search.value.trim().toLowerCase().split(/\s+/);
-
-    
     this._clearList();
 
     this._stmt.bindInt32Parameter(0, Ci.nsIDownloadManager.DOWNLOAD_NOTSTARTED);
@@ -230,15 +218,7 @@ var DownloadsView = {
 
       
       let item = this._createItem(attrs);
-      if (item && (isActive || this._matchesSearch(item))) {
-        
-        this._list.appendChild(item);
-      }
-      else {
-        
-        
-        aNumItems += .9;
-      }
+      this._list.appendChild(item);
     }
     catch (e) {
       
@@ -259,27 +239,6 @@ var DownloadsView = {
     }
   },
 
-  _matchesSearch: function dv__matchesSearch(aItem) {
-    const searchAttributes = ["target", "status", "datetime"];
-
-    
-    if (this._searchTerms.length == 0)
-      return true;
-
-    
-    
-    let combinedSearch = "";
-    for each (let attr in searchAttributes)
-      combinedSearch += aItem.getAttribute(attr).toLowerCase() + " ";
-
-    
-    for each (let term in this._searchTerms)
-      if (combinedSearch.search(term) == -1)
-        return false;
-
-    return true;
-  },
-
   downloadStarted: function dv_downloadStarted(aDownload) {
     let attrs = {
       id: aDownload.id,
@@ -296,28 +255,20 @@ var DownloadsView = {
 
     
     let item = this._createItem(attrs);
-    if (item) {
-      
-      this._list.insertBefore(item, this._list.firstChild);
-    }
+    this._list.insertBefore(item, this._list.firstChild);
   },
 
   downloadCompleted: function dv_downloadCompleted(aDownload) {
+    
     let element = this.getElementForDownload(aDownload.id);
 
     
-    if (this._matchesSearch(element)) {
-      
-      let next = element.nextSibling;
-      while (next && next.inProgress)
-        next = next.nextSibling;
+    let next = element.nextSibling;
+    while (next && next.inProgress)
+      next = next.nextSibling;
 
-      
-      this._list.insertBefore(element, next);
-    }
-    else {
-      this._removeItem(element);
-    }
+    
+    this._list.insertBefore(element, next);
   },
 
   _updateStatus: function dv__updateStatus(aItem) {
@@ -388,19 +339,6 @@ var DownloadsView = {
 
   _replaceInsert: function dv__replaceInsert(aText, aIndex, aValue) {
     return aText.replace("#" + aIndex, aValue);
-  },
-
-  toggleMode: function dv_toggleMode() {
-    let mode = document.getElementById("downloads-sort-mode");
-    if (mode.value == "search") {
-      document.getElementById("downloads-search-box").collapsed = false;
-      document.getElementById("downloads-search-text").value = "";
-    }
-    else {
-      document.getElementById("downloads-search-box").collapsed = true;
-      this._initStatement(mode.value);
-      this.getDownloads();
-    }
   },
 
   getElementForDownload: function dv_getElementFromDownload(aID) {

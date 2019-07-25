@@ -166,21 +166,6 @@ toolbarbutton.page-button {
 
 
 @media (orientation: landscape) {
-  #downloads-subheader {
-    -moz-box-orient: horizontal;
-    -moz-box-align: center;
-  }
-}
-
-@media (orientation: portrait) {
-  #downloads-subheader {
-    -moz-box-orient: vertical;
-    -moz-box-pack: center;
-  }
-}
-
-
-@media (orientation: landscape) {
   #addons-repo {
     -moz-box-orient: horizontal;
     -moz-box-align: center;
