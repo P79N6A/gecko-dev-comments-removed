@@ -44,7 +44,15 @@
 #ifndef jsexn_h___
 #define jsexn_h___
 
+#include "jsobj.h"
+
 extern js::Class js_ErrorClass;
+
+inline bool
+JSObject::isError() const
+{
+    return clasp == &js_ErrorClass;
+}
 
 
 
@@ -89,5 +97,14 @@ js_ErrorFromException(JSContext *cx, jsval exn);
 extern const JSErrorFormatString *
 js_GetLocalizedErrorMessage(JSContext* cx, void *userRef, const char *locale,
                             const uintN errorNumber);
+
+
+
+
+
+
+
+extern JSObject *
+js_CopyErrorObject(JSContext *cx, JSObject *errobj, JSObject *scope);
 
 #endif 
