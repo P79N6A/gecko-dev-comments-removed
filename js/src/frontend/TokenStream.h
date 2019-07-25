@@ -179,29 +179,29 @@ struct TokenPtr {
     uint32              index;          
     uint32              lineno;         
 
-    bool operator==(const TokenPtr& bptr) {
+    bool operator==(const TokenPtr& bptr) const {
         return index == bptr.index && lineno == bptr.lineno;
     }
 
-    bool operator!=(const TokenPtr& bptr) {
+    bool operator!=(const TokenPtr& bptr) const {
         return index != bptr.index || lineno != bptr.lineno;
     }
 
-    bool operator <(const TokenPtr& bptr) {
+    bool operator <(const TokenPtr& bptr) const {
         return lineno < bptr.lineno ||
                (lineno == bptr.lineno && index < bptr.index);
     }
 
-    bool operator <=(const TokenPtr& bptr) {
+    bool operator <=(const TokenPtr& bptr) const {
         return lineno < bptr.lineno ||
                (lineno == bptr.lineno && index <= bptr.index);
     }
 
-    bool operator >(const TokenPtr& bptr) {
+    bool operator >(const TokenPtr& bptr) const {
         return !(*this <= bptr);
     }
 
-    bool operator >=(const TokenPtr& bptr) {
+    bool operator >=(const TokenPtr& bptr) const {
         return !(*this < bptr);
     }
 };
@@ -210,27 +210,41 @@ struct TokenPos {
     TokenPtr          begin;          
     TokenPtr          end;            
 
-    bool operator==(const TokenPos& bpos) {
+    TokenPos() {}
+
+    TokenPos(const TokenPtr &begin, const TokenPtr &end) : begin(begin), end(end) {
+        JS_ASSERT(begin <= end);
+    }
+
+    
+    static TokenPos box(const TokenPos &left, const TokenPos &right) {
+        JS_ASSERT(left.begin <= left.end);
+        JS_ASSERT(left.end <= right.begin);
+        JS_ASSERT(right.begin <= right.end);
+        return TokenPos(left.begin, right.end);
+    }
+
+    bool operator==(const TokenPos& bpos) const {
         return begin == bpos.begin && end == bpos.end;
     }
 
-    bool operator!=(const TokenPos& bpos) {
+    bool operator!=(const TokenPos& bpos) const {
         return begin != bpos.begin || end != bpos.end;
     }
 
-    bool operator <(const TokenPos& bpos) {
+    bool operator <(const TokenPos& bpos) const {
         return begin < bpos.begin;
     }
 
-    bool operator <=(const TokenPos& bpos) {
+    bool operator <=(const TokenPos& bpos) const {
         return begin <= bpos.begin;
     }
 
-    bool operator >(const TokenPos& bpos) {
+    bool operator >(const TokenPos& bpos) const {
         return !(*this <= bpos);
     }
 
-    bool operator >=(const TokenPos& bpos) {
+    bool operator >=(const TokenPos& bpos) const {
         return !(*this < bpos);
     }
 };
