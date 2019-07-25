@@ -101,10 +101,9 @@ let Wrap = {
 
       } catch (e) {
         this._log.debug("Event: " + this._osPrefix + savedName + ":error");
-	this._log.debug("Caught exception: " + Utils.exceptionStr(e));
         this._os.notifyObservers(null, this._osPrefix + savedName + ":error", savedPayload);
         this._os.notifyObservers(null, this._osPrefix + "global:error", savedPayload);
-	ret = undefined;
+	throw e;
       }
 
       self.done(ret);
@@ -165,9 +164,7 @@ let Wrap = {
         ret = yield Async.run.apply(Async, args);
 
       } catch (e) {
-        ret = FaultTolerance.Service.onException(e);
-        if (!ret)
-          throw e;
+	this._log.debug("Caught exception: " + Utils.exceptionStr(e));
       }
       self.done(ret);
     };
