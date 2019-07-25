@@ -1,42 +1,44 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is mozilla.org code.
- *
- * The Initial Developer of the Original Code is
- *   Vladimir Vukicevic <vladimir@pobox.com>
- * Portions created by the Initial Developer are Copyright (C) 2005
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsIDOMHTMLCanvasElement.h"
 #include "nsGenericHTMLElement.h"
+#include "nsPresContext.h"
+#include "nsIPresShell.h"
 #include "nsGkAtoms.h"
 #include "nsSize.h"
 #include "nsIFrame.h"
@@ -70,22 +72,22 @@ public:
   nsHTMLCanvasElement(nsINodeInfo *aNodeInfo);
   virtual ~nsHTMLCanvasElement();
 
-  // nsISupports
+  
   NS_DECL_ISUPPORTS_INHERITED
 
-  // nsIDOMNode
+  
   NS_FORWARD_NSIDOMNODE(nsGenericHTMLElement::)
 
-  // nsIDOMElement
+  
   NS_FORWARD_NSIDOMELEMENT(nsGenericHTMLElement::)
 
-  // nsIDOMHTMLElement
+  
   NS_FORWARD_NSIDOMHTMLELEMENT(nsGenericHTMLElement::)
 
-  // nsIDOMHTMLCanvasElement
+  
   NS_DECL_NSIDOMHTMLCANVASELEMENT
 
-  // nsICanvasElement
+  
   NS_IMETHOD GetPrimaryCanvasFrame(nsIFrame **aFrame);
   NS_IMETHOD GetSize(PRUint32 *width, PRUint32 *height);
   NS_IMETHOD RenderContexts(gfxContext *ctx, gfxPattern::GraphicsFilter aFilter);
@@ -105,8 +107,8 @@ public:
                                 nsAttrValue& aResult);
   nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute, PRInt32 aModType) const;
 
-  // SetAttr override.  C++ is stupid, so have to override both
-  // overloaded methods.
+  
+  
   nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                    const nsAString& aValue, PRBool aNotify)
   {
@@ -124,17 +126,17 @@ protected:
   nsresult ToDataURLImpl(const nsAString& aMimeType,
                          const nsAString& aEncoderOptions,
                          nsAString& aDataURL);
-  nsresult GetContextHelper(const nsAString& aContextId,
+  nsresult GetContextHelper(const nsAString &aContextId,
                             nsICanvasRenderingContextInternal **aContext);
 
   nsString mCurrentContextId;
   nsCOMPtr<nsICanvasRenderingContextInternal> mCurrentContext;
   
 public:
-  // Record whether this canvas should be write-only or not.
-  // We set this when script paints an image from a different origin.
-  // We also transitively set it when script paints a canvas which
-  // is itself write-only.
+  
+  
+  
+  
   PRPackedBool             mWriteOnly;
 };
 
@@ -160,8 +162,6 @@ nsHTMLCanvasElement::~nsHTMLCanvasElement()
 
 NS_IMPL_ADDREF_INHERITED(nsHTMLCanvasElement, nsGenericElement)
 NS_IMPL_RELEASE_INHERITED(nsHTMLCanvasElement, nsGenericElement)
-
-DOMCI_DATA(HTMLCanvasElement, nsHTMLCanvasElement)
 
 NS_INTERFACE_TABLE_HEAD(nsHTMLCanvasElement)
   NS_HTML_CONTENT_INTERFACE_TABLE2(nsHTMLCanvasElement,
@@ -312,14 +312,14 @@ nsHTMLCanvasElement::ParseAttribute(PRInt32 aNamespaceID,
 }
 
 
-// nsHTMLCanvasElement::toDataURL
+
 
 NS_IMETHODIMP
 nsHTMLCanvasElement::ToDataURL(const nsAString& aType, const nsAString& aParams,
                                PRUint8 optional_argc, nsAString& aDataURL)
 {
-  // do a trust check if this is a write-only canvas
-  // or if we're trying to use the 2-arg form
+  
+  
   if ((mWriteOnly || optional_argc >= 2) &&
       !nsContentUtils::IsCallerTrustedForRead()) {
     return NS_ERROR_DOM_SECURITY_ERR;
@@ -335,9 +335,9 @@ nsHTMLCanvasElement::ToDataURL(const nsAString& aType, const nsAString& aParams,
 }
 
 
-// nsHTMLCanvasElement::toDataURLAs
-//
-// Native-callers only
+
+
+
 
 NS_IMETHODIMP
 nsHTMLCanvasElement::ToDataURLAs(const nsAString& aMimeType,
@@ -354,30 +354,30 @@ nsHTMLCanvasElement::ToDataURLImpl(const nsAString& aMimeType,
 {
   nsresult rv;
   
-  // We get an input stream from the context. If more than one context type
-  // is supported in the future, this will have to be changed to do the right
-  // thing. For now, just assume that the 2D context has all the goods.
+  
+  
+  
   nsCOMPtr<nsICanvasRenderingContextInternal> context;
   rv = GetContext(NS_LITERAL_STRING("2d"), getter_AddRefs(context));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // get image bytes
+  
   nsCOMPtr<nsIInputStream> imgStream;
   NS_ConvertUTF16toUTF8 aMimeType8(aMimeType);
   rv = context->GetInputStream(nsPromiseFlatCString(aMimeType8).get(),
                                nsPromiseFlatString(aEncoderOptions).get(),
                                getter_AddRefs(imgStream));
-  // XXX ERRMSG we need to report an error to developers here! (bug 329026)
+  
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // Generally, there will be only one chunk of data, and it will be available
-  // for us to read right away, so optimize this case.
+  
+  
   PRUint32 bufSize;
   rv = imgStream->Available(&bufSize);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // ...leave a little extra room so we can call read again and make sure we
-  // got everything. 16 bytes for better padding (maybe)
+  
+  
   bufSize += 16;
   PRUint32 imgSize = 0;
   char* imgData = (char*)PR_Malloc(bufSize);
@@ -388,7 +388,7 @@ nsHTMLCanvasElement::ToDataURLImpl(const nsAString& aMimeType,
                          &numReadThisTime)) == NS_OK && numReadThisTime > 0) {
     imgSize += numReadThisTime;
     if (imgSize == bufSize) {
-      // need a bigger buffer, just double
+      
       bufSize *= 2;
       char* newImgData = (char*)PR_Realloc(imgData, bufSize);
       if (! newImgData) {
@@ -399,13 +399,13 @@ nsHTMLCanvasElement::ToDataURLImpl(const nsAString& aMimeType,
     }
   }
 
-  // base 64, result will be NULL terminated
+  
   char* encodedImg = PL_Base64Encode(imgData, imgSize, nsnull);
   PR_Free(imgData);
-  if (!encodedImg) // not sure why this would fail
+  if (!encodedImg) 
     return NS_ERROR_OUT_OF_MEMORY;
 
-  // build data URL string
+  
   aDataURL = NS_LITERAL_STRING("data:") + aMimeType +
     NS_LITERAL_STRING(";base64,") + NS_ConvertUTF8toUTF16(encodedImg);
 
@@ -415,7 +415,7 @@ nsHTMLCanvasElement::ToDataURLImpl(const nsAString& aMimeType,
 }
 
 nsresult
-nsHTMLCanvasElement::GetContextHelper(const nsAString& aContextId,
+nsHTMLCanvasElement::GetContextHelper(const nsAString &aContextId,
                                       nsICanvasRenderingContextInternal **aContext)
 {
   NS_ENSURE_ARG(aContext);
@@ -423,7 +423,7 @@ nsHTMLCanvasElement::GetContextHelper(const nsAString& aContextId,
   nsCString ctxId;
   ctxId.Assign(NS_LossyConvertUTF16toASCII(aContextId));
 
-  // check that ctxId is clamped to A-Za-z0-9_-
+  
   for (PRUint32 i = 0; i < ctxId.Length(); i++) {
     if ((ctxId[i] < 'A' || ctxId[i] > 'Z') &&
         (ctxId[i] < 'a' || ctxId[i] > 'z') &&
@@ -431,7 +431,7 @@ nsHTMLCanvasElement::GetContextHelper(const nsAString& aContextId,
         (ctxId[i] != '-') &&
         (ctxId[i] != '_'))
     {
-      // XXX ERRMSG we need to report an error to developers here! (bug 329026)
+      
       return NS_ERROR_INVALID_ARG;
     }
   }
@@ -448,7 +448,7 @@ nsHTMLCanvasElement::GetContextHelper(const nsAString& aContextId,
   }
   if (NS_FAILED(rv)) {
     *aContext = nsnull;
-    // XXX ERRMSG we need to report an error to developers here! (bug 329026)
+    
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -482,7 +482,7 @@ nsHTMLCanvasElement::GetContext(const nsAString& aContextId,
 
     mCurrentContextId.Assign(aContextId);
   } else if (!mCurrentContextId.Equals(aContextId)) {
-    //XXX eventually allow for more than one active context on a given canvas
+    
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -494,13 +494,12 @@ NS_IMETHODIMP
 nsHTMLCanvasElement::MozGetShmemContext(const nsAString& aContextId,
                                         nsISupports **aContext)
 {
-#ifdef MOZ_IPC
   if(!nsContentUtils::IsCallerTrustedForRead()) {
-    // XXX ERRMSG we need to report an error to developers here! (bug 329026)
+    
     return NS_ERROR_DOM_SECURITY_ERR;
   }
 
-  // We only support 2d shmem contexts for now.
+  
   if (!aContextId.Equals(NS_LITERAL_STRING("2d")))
     return NS_ERROR_INVALID_ARG;
 
@@ -521,15 +520,12 @@ nsHTMLCanvasElement::MozGetShmemContext(const nsAString& aContextId,
 
     mCurrentContextId.Assign(aContextId);
   } else if (!mCurrentContextId.Equals(aContextId)) {
-    //XXX eventually allow for more than one active context on a given canvas
+    
     return NS_ERROR_INVALID_ARG;
   }
 
   NS_ADDREF (*aContext = mCurrentContext);
   return NS_OK;
-#else
-  return NS_ERROR_NOT_IMPLEMENTED;
-#endif
 }
 
 nsresult
@@ -586,8 +582,8 @@ nsHTMLCanvasElement::SetWriteOnly()
 NS_IMETHODIMP
 nsHTMLCanvasElement::InvalidateFrame()
 {
-  // We don't need to flush anything here; if there's no frame or if
-  // we plan to reframe we don't need to invalidate it anyway.
+  
+  
   nsIFrame *frame = GetPrimaryFrame();
   if (frame) {
     nsRect r = frame->GetRect();
@@ -601,26 +597,26 @@ nsHTMLCanvasElement::InvalidateFrame()
 NS_IMETHODIMP
 nsHTMLCanvasElement::InvalidateFrameSubrect(const gfxRect& damageRect)
 {
-  // We don't need to flush anything here; if there's no frame or if
-  // we plan to reframe we don't need to invalidate it anyway.
+  
+  
   nsIFrame *frame = GetPrimaryFrame();
   if (frame) {
     nsRect contentArea(frame->GetContentRect());
     nsIntSize size = GetWidthHeight();
 
-    // damageRect and size are in CSS pixels; contentArea is in appunits
-    // We want a rect in appunits; so avoid doing pixels-to-appunits and
-    // vice versa conversion here.
+    
+    
+    
     gfxRect realRect(damageRect);
     realRect.Scale(contentArea.width / gfxFloat(size.width),
                    contentArea.height / gfxFloat(size.height));
     realRect.RoundOut();
 
-    // then make it a nsRect
+    
     nsRect invalRect(realRect.X(), realRect.Y(),
                      realRect.Width(), realRect.Height());
 
-    // account for border/padding
+    
     invalRect.MoveBy(contentArea.TopLeft() - frame->GetPosition());
 
     frame->Invalidate(invalRect);

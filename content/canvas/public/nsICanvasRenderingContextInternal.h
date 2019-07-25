@@ -105,7 +105,7 @@ public:
 
   
   
-  NS_IMETHOD Swap(mozilla::ipc::Shmem& back,
+  NS_IMETHOD Swap(mozilla::ipc::Shmem &back,
                   PRInt32 x, PRInt32 y, PRInt32 w, PRInt32 h) = 0;
 };
 

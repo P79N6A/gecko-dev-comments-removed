@@ -40,8 +40,6 @@
 
 #include "mozilla/ipc/DocumentRendererParent.h"
 #include "mozilla/ipc/DocumentRendererShmemParent.h"
-#include "mozilla/dom/ContentProcessParent.h"
-#include "mozilla/jsipc/ContextWrapperParent.h"
 
 #include "nsIURI.h"
 #include "nsFocusManager.h"
@@ -52,26 +50,13 @@
 #include "nsIDOMEventTarget.h"
 #include "nsIDOMEvent.h"
 #include "nsIPrivateDOMEvent.h"
-#include "nsIWebProgressListener2.h"
 #include "nsFrameLoader.h"
-#include "nsNetUtil.h"
-#include "jsarray.h"
-#include "nsContentUtils.h"
 
 using mozilla::ipc::DocumentRendererParent;
 using mozilla::ipc::DocumentRendererShmemParent;
-using mozilla::dom::ContentProcessParent;
-using mozilla::jsipc::PContextWrapperParent;
-using mozilla::jsipc::ContextWrapperParent;
-
-
-
-#define NOTIFY_FLAG_SHIFT 16
 
 namespace mozilla {
 namespace dom {
-
-NS_IMPL_ISUPPORTS1(TabParent, nsIWebProgress)
 
 TabParent::TabParent()
 {
@@ -79,18 +64,6 @@ TabParent::TabParent()
 
 TabParent::~TabParent()
 {
-}
-
-void
-TabParent::ActorDestroy(ActorDestroyReason why)
-{
-  nsCOMPtr<nsIFrameLoaderOwner> frameLoaderOwner = do_QueryInterface(mFrameElement);
-  if (frameLoaderOwner) {
-    nsRefPtr<nsFrameLoader> frameLoader = frameLoaderOwner->GetFrameLoader();
-    if (frameLoader) {
-      frameLoader->DestroyChild();
-    }
-  }
 }
 
 bool
@@ -118,240 +91,6 @@ TabParent::RecvsendEvent(const RemoteDOMEvent& aEvent)
 
   PRBool dummy;
   target->DispatchEvent(event, &dummy);
-  return true;
-}
-
-bool
-TabParent::RecvnotifyProgressChange(const PRInt64& aProgress,
-                                    const PRInt64& aProgressMax,
-                                    const PRInt64& aTotalProgress,
-                                    const PRInt64& aMaxTotalProgress)
-{
-  
-
-
-
-
-
-  nsCOMPtr<nsIWebProgressListener> listener;
-  PRUint32 count = mListenerInfoList.Length();
-
-  while (count-- > 0) {
-    TabParentListenerInfo *info = &mListenerInfoList[count];
-    if (!(info->mNotifyMask & nsIWebProgress::NOTIFY_PROGRESS)) {
-      continue;
-    }
-
-    listener = do_QueryReferent(info->mWeakListener);
-    if (!listener) {
-      
-      mListenerInfoList.RemoveElementAt(count);
-      continue;
-    }
-
-    nsCOMPtr<nsIWebProgressListener2> listener2 =
-      do_QueryReferent(info->mWeakListener);
-    if (listener2) {
-      listener2->OnProgressChange64(this, nsnull, aProgress, aProgressMax,
-                                    aTotalProgress, aMaxTotalProgress);
-    } else {
-      listener->OnProgressChange(this, nsnull, PRInt32(aProgress),
-                                 PRInt32(aProgressMax),
-                                 PRInt32(aTotalProgress), 
-                                 PRInt32(aMaxTotalProgress));
-    }
-  }
-
-  return true;
-}
-
-bool
-TabParent::RecvnotifyStateChange(const PRUint32& aStateFlags,
-                                 const nsresult& aStatus)
-{
-  
-
-
-
-
-
-  nsCOMPtr<nsIWebProgressListener> listener;
-  PRUint32 count = mListenerInfoList.Length();
-  
-  while (count-- > 0) {
-    TabParentListenerInfo *info = &mListenerInfoList[count];
-
-    
-    
-    
-    
-    
-    
-    
-    if (!(info->mNotifyMask & (aStateFlags >> NOTIFY_FLAG_SHIFT))) {
-        continue;
-    }
-    
-    listener = do_QueryReferent(info->mWeakListener);
-    if (!listener) {
-      
-      mListenerInfoList.RemoveElementAt(count);
-      continue;
-    }
-    
-    listener->OnStateChange(this, nsnull, aStateFlags, aStatus); 
-  }   
-
-  return true;
- }
-
-bool
-TabParent::RecvnotifyLocationChange(const nsCString& aUri)
-{
-  nsCOMPtr<nsIURI> uri;
-  nsresult rv = NS_NewURI(getter_AddRefs(uri), aUri);
-  if (NS_FAILED(rv)) {
-    return false;
-  }
-
-  
-
-
-
-
-
-  nsCOMPtr<nsIWebProgressListener> listener;
-  PRUint32 count = mListenerInfoList.Length();
-
-  while (count-- > 0) {
-    TabParentListenerInfo *info = &mListenerInfoList[count];
-    if (!(info->mNotifyMask & nsIWebProgress::NOTIFY_LOCATION)) {
-      continue;
-    }
-    
-    listener = do_QueryReferent(info->mWeakListener);
-    if (!listener) {
-      
-      mListenerInfoList.RemoveElementAt(count);
-      continue;
-    }
-    
-    listener->OnLocationChange(this, nsnull, uri);
-  }
-
-  return true;
-}
-
-bool
-TabParent::RecvnotifyStatusChange(const nsresult& status,
-                                  const nsString& message)
-{
-  
-
-
-
-
-
-  nsCOMPtr<nsIWebProgressListener> listener;
-  PRUint32 count = mListenerInfoList.Length();
-
-  while (count-- > 0) {
-    TabParentListenerInfo *info = &mListenerInfoList[count];
-    if (!(info->mNotifyMask & nsIWebProgress::NOTIFY_STATUS)) {
-      continue;
-    }
-
-    listener = do_QueryReferent(info->mWeakListener);
-    if (!listener) {
-      
-      mListenerInfoList.RemoveElementAt(count);
-      continue;
-    }
-
-    listener->OnStatusChange(this, nsnull, status, message.BeginReading());
-  }
-
-  return true;
-}
-
-bool
-TabParent::RecvnotifySecurityChange(const PRUint32& aState)
-{
-  
-
-
-
-
-
-
-  nsCOMPtr<nsIWebProgressListener> listener;
-  PRUint32 count = mListenerInfoList.Length();
-
-  while (count-- > 0) {
-    TabParentListenerInfo *info = &mListenerInfoList[count];
-    if (!(info->mNotifyMask & nsIWebProgress::NOTIFY_SECURITY)) {
-      continue;
-    }
-
-    listener = do_QueryReferent(info->mWeakListener);
-    if (!listener) {
-      
-      mListenerInfoList.RemoveElementAt(count);
-      continue;
-    }
-
-    listener->OnSecurityChange(this, nsnull, aState);
-  }
-
-  return true;
-}
-
-bool
-TabParent::RecvrefreshAttempted(const nsCString& aURI, const PRInt32& aMillis, 
-                                const bool& aSameURI, bool* refreshAllowed)
-{
-  nsCOMPtr<nsIURI> uri;
-  nsresult rv = NS_NewURI(getter_AddRefs(uri), aURI);
-  if (NS_FAILED(rv)) {
-    return false;
-  }
-  
-
-
-
-
-
-
-  nsCOMPtr<nsIWebProgressListener> listener;
-  PRUint32 count = mListenerInfoList.Length();
-
-  *refreshAllowed = true;
-  while (count-- > 0) {
-    TabParentListenerInfo *info = &mListenerInfoList[count];
-    if (!(info->mNotifyMask & nsIWebProgress::NOTIFY_REFRESH)) {
-      continue;
-    }
-
-    listener = do_QueryReferent(info->mWeakListener);
-    if (!listener) {
-      
-      mListenerInfoList.RemoveElementAt(count);
-      continue;
-    }
-
-    nsCOMPtr<nsIWebProgressListener2> listener2 =
-      do_QueryReferent(info->mWeakListener);
-    if (!listener2) {
-      continue;
-    }
-
-    
-    PRBool allowed = true;
-    listener2->OnRefreshAttempted(this, uri, 
-                                  aMillis, aSameURI, &allowed);
-    *refreshAllowed = allowed && *refreshAllowed;
-  }
-
   return true;
 }
 
@@ -434,34 +173,6 @@ TabParent::DeallocPDocumentRendererShmem(PDocumentRendererShmemParent* actor)
     return true;
 }
 
-PContextWrapperParent*
-TabParent::AllocPContextWrapper()
-{
-    ContentProcessParent* cpp =
-        static_cast<ContentProcessParent*>(Manager());
-    return new ContextWrapperParent(cpp);
-}
-
-bool
-TabParent::DeallocPContextWrapper(PContextWrapperParent* actor)
-{
-    delete actor;
-    return true;
-}
-
-JSBool
-TabParent::GetGlobalJSObject(JSContext* cx, JSObject** globalp)
-{
-    
-    nsTArray<PContextWrapperParent*> cwps(1);
-    ManagedPContextWrapperParent(cwps);
-    if (cwps.Length() < 1)
-        return JS_FALSE;
-    NS_ASSERTION(cwps.Length() == 1, "More than one PContextWrapper?");
-    ContextWrapperParent* cwp = static_cast<ContextWrapperParent*>(cwps[0]);
-    return cwp->GetGlobalJSObject(cx, globalp);
-}
-
 void
 TabParent::SendMouseEvent(const nsAString& aType, float aX, float aY,
                           PRInt32 aButton, PRInt32 aClickCount,
@@ -483,137 +194,43 @@ TabParent::SendKeyEvent(const nsAString& aType,
 }
 
 bool
-TabParent::AnswersendSyncMessageToParent(const nsString& aMessage,
-                                         const nsString& aJSON,
-                                         const nsTArray<PObjectWrapperParent*>& aObjects,
-                                         nsTArray<nsString>* aJSONRetVal)
-{
-  static_cast<ContentProcessParent*>(Manager())->ReportChildAlreadyBlocked();
-  return ReceiveMessage(aMessage, PR_TRUE, aJSON, &aObjects, aJSONRetVal);
-}
-
-bool
-TabParent::RecvsendAsyncMessageToParent(const nsString& aMessage,
-                                        const nsString& aJSON)
-{
-  return ReceiveMessage(aMessage, PR_FALSE, aJSON, nsnull);
-}
-
-bool
-TabParent::ReceiveMessage(const nsString& aMessage,
-                          PRBool aSync,
-                          const nsString& aJSON,
-                          const nsTArray<PObjectWrapperParent*>* aObjects,
-                          nsTArray<nsString>* aJSONRetVal)
+TabParent::RecvsendSyncMessageToParent(const nsString& aMessage,
+                                       const nsString& aJSON,
+                                       nsTArray<nsString>* aJSONRetVal)
 {
   nsCOMPtr<nsIFrameLoaderOwner> frameLoaderOwner =
     do_QueryInterface(mFrameElement);
   if (frameLoaderOwner) {
     nsRefPtr<nsFrameLoader> frameLoader = frameLoaderOwner->GetFrameLoader();
     if (frameLoader && frameLoader->GetFrameMessageManager()) {
-      nsFrameMessageManager* manager = frameLoader->GetFrameMessageManager();
-      JSContext* ctx = manager->GetJSContext();
-      JSAutoRequest ar(ctx);
-      jsval* dest;
-      PRUint32 len = aObjects ? aObjects->Length() : 0;
-      
-      
-      JSObject* objectsArray =
-        js_NewArrayObjectWithCapacity(ctx, len, &dest);
-      if (!objectsArray) {
-        return false;
-      }
-
-      nsresult rv = NS_OK;
-      nsAutoGCRoot arrayGCRoot(&objectsArray, &rv);
-      NS_ENSURE_SUCCESS(rv, false);
-      for (PRUint32 i = 0; i < len; ++i) {
-        mozilla::jsipc::ObjectWrapperParent* wrapper =
-          static_cast<mozilla::jsipc::ObjectWrapperParent*>(aObjects->ElementAt(i));
-        dest[i] = OBJECT_TO_JSVAL(wrapper ? wrapper->GetJSObject(ctx) : nsnull);
-      }
-      
-      manager->ReceiveMessage(mFrameElement,
-                              aMessage,
-                              aSync,
-                              aJSON,
-                              objectsArray,
-                              aJSONRetVal);
+      frameLoader->GetFrameMessageManager()->ReceiveMessage(mFrameElement,
+                                                            aMessage,
+                                                            PR_TRUE,
+                                                            aJSON,
+                                                            aJSONRetVal);
     }
   }
   return true;
 }
 
-
-nsresult
-TabParent::AddProgressListener(nsIWebProgressListener* aListener,
-                               PRUint32 aNotifyMask)
+bool
+TabParent::RecvsendAsyncMessageToParent(const nsString& aMessage,
+                                        const nsString& aJSON)
 {
-  nsresult rv;
-
-  TabParentListenerInfo* info = GetListenerInfo(aListener);
-  if (info) {
-    
-    return NS_ERROR_FAILURE;
-  }
-
-  nsWeakPtr listener = do_GetWeakReference(aListener);
-  if (!listener) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  info = new TabParentListenerInfo(listener, aNotifyMask);
-  if (!info) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  rv = mListenerInfoList.AppendElement(*info) ? NS_OK : NS_ERROR_FAILURE;
-  if (NS_FAILED(rv)) {
-    delete info;
-  }
-  return rv;
-}
-
-NS_IMETHODIMP
-TabParent::RemoveProgressListener(nsIWebProgressListener *aListener)
-{
-  nsAutoPtr<TabParentListenerInfo> info(GetListenerInfo(aListener));
-  
-  return info && mListenerInfoList.RemoveElement(*info) ?
-    NS_OK : NS_ERROR_FAILURE;
-}
-
-TabParentListenerInfo * 
-TabParent::GetListenerInfo(nsIWebProgressListener *aListener)
-{
-  PRUint32 i, count;
-  TabParentListenerInfo *info;
-
-  nsCOMPtr<nsISupports> listener1 = do_QueryInterface(aListener);
-  count = mListenerInfoList.Length();
-  for (i = 0; i < count; ++i) {
-    info = &mListenerInfoList[i];
-
-    if (info) {
-      nsCOMPtr<nsISupports> listener2 = do_QueryReferent(info->mWeakListener);
-      if (listener1 == listener2) {
-        return info;
-      }
+  nsCOMPtr<nsIFrameLoaderOwner> frameLoaderOwner =
+    do_QueryInterface(mFrameElement);
+  if (frameLoaderOwner) {
+    nsRefPtr<nsFrameLoader> frameLoader = frameLoaderOwner->GetFrameLoader();
+    if (frameLoader && frameLoader->GetFrameMessageManager()) {
+      nsTArray<nsString> dummy;
+      frameLoader->GetFrameMessageManager()->ReceiveMessage(mFrameElement,
+                                                            aMessage,
+                                                            PR_FALSE,
+                                                            aJSON,
+                                                            nsnull);
     }
   }
-  return nsnull;
-}
-
-NS_IMETHODIMP
-TabParent::GetDOMWindow(nsIDOMWindow **aResult)
-{
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-TabParent::GetIsLoadingDocument(PRBool *aIsLoadingDocument)
-{
-  return NS_ERROR_NOT_IMPLEMENTED;
+  return true;
 }
 
 } 

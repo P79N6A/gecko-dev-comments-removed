@@ -72,6 +72,8 @@ public:
     virtual PNeckoChild* AllocPNecko();
     virtual bool DeallocPNecko(PNeckoChild*);
 
+    virtual bool RecvDummy(Shmem& foo) { return true; }
+
     virtual bool RecvregisterChrome(const nsTArray<ChromePackage>& packages,
                                     const nsTArray<ChromeResource>& resources);
 
