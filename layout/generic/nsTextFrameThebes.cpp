@@ -6696,12 +6696,6 @@ nsTextFrame::AddInlineMinWidth(nsRenderingContext *aRenderingContext,
   float inflation = nsLayoutUtils::FontSizeInflationFor(this);
   TextRunType trtype = (inflation == 1.0f) ? eNotInflated : eInflated;
 
-  if (trtype == eInflated && inflation != GetFontSizeInflation()) {
-    
-    
-    ClearTextRun(nsnull, nsTextFrame::eInflated);
-  }
-
   nsTextFrame* f;
   gfxTextRun* lastTextRun = nsnull;
   
@@ -6831,12 +6825,6 @@ nsTextFrame::AddInlinePrefWidth(nsRenderingContext *aRenderingContext,
 {
   float inflation = nsLayoutUtils::FontSizeInflationFor(this);
   TextRunType trtype = (inflation == 1.0f) ? eNotInflated : eInflated;
-
-  if (trtype == eInflated && inflation != GetFontSizeInflation()) {
-    
-    
-    ClearTextRun(nsnull, nsTextFrame::eInflated);
-  }
 
   nsTextFrame* f;
   gfxTextRun* lastTextRun = nsnull;
