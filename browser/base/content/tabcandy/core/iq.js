@@ -45,11 +45,6 @@
 
 
 
-
-
-
-
-
 (function( window, undefined ) {
 
 var iQ = function(selector, context) {
