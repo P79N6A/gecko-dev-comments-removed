@@ -205,6 +205,14 @@ class Bindings {
     
     inline const js::Shape *lastShape() const;
 
+    enum {
+       
+
+
+
+       BINDING_COUNT_LIMIT = 0xFFFF
+    };
+
     
 
 
