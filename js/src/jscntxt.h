@@ -1069,9 +1069,9 @@ struct JSRuntime {
     JSObject           *gcWeakMapList;
 
     
-    void                *gcMarkStackObjs[js::OBJECT_MARK_STACK_SIZE];
-    void                *gcMarkStackXMLs[js::XML_MARK_STACK_SIZE];
-    void                *gcMarkStackLarges[js::LARGE_MARK_STACK_SIZE];
+    void                *gcMarkStackObjs[js::OBJECT_MARK_STACK_SIZE / sizeof(void *)];
+    void                *gcMarkStackXMLs[js::XML_MARK_STACK_SIZE / sizeof(void *)];
+    void                *gcMarkStackLarges[js::LARGE_MARK_STACK_SIZE / sizeof(void *)];
 
     
 
