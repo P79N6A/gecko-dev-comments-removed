@@ -13,6 +13,8 @@
 # include <sys/resource.h>
 #endif
 
+#include "chrome/common/process_watcher.h"
+
 #include "CrashReporterParent.h"
 #include "History.h"
 #include "IDBFactory.h"
@@ -330,6 +332,26 @@ ContentParent::OnChannelConnected(int32 pid)
         }
 #endif
     }
+}
+
+void
+ContentParent::ProcessingError(Result what)
+{
+    if (MsgDropped == what) {
+        
+        return;
+    }
+    
+    
+    
+    
+    if (!KillProcess(OtherProcess(), 1, false)) {
+        NS_WARNING("failed to kill subprocess!");
+    }
+    XRE_GetIOMessageLoop()->PostTask(
+        FROM_HERE,
+        NewRunnableFunction(&ProcessWatcher::EnsureProcessTerminated,
+                            OtherProcess(), true));
 }
 
 namespace {
