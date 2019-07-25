@@ -41,6 +41,7 @@
 
 
 #include "nsSJISProber.h"
+#include "nsDebug.h"
 
 void  nsSJISProber::Reset(void)
 {
@@ -52,6 +53,7 @@ void  nsSJISProber::Reset(void)
 
 nsProbingState nsSJISProber::HandleData(const char* aBuf, PRUint32 aLen)
 {
+  NS_ASSERTION(aLen, "HandleData called with empty buffer");
   nsSMState codingState;
 
   for (PRUint32 i = 0; i < aLen; i++)
