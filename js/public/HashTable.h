@@ -985,12 +985,14 @@ class HashMap
     Impl impl;
 
   public:
+    const static unsigned sDefaultInitSize = Impl::sDefaultInitSize;
+
     
 
 
 
-    HashMap(AllocPolicy a = AllocPolicy()) : impl(a) {}
-    bool init(uint32_t len = Impl::sDefaultInitSize)  { return impl.init(len); }
+    HashMap(AllocPolicy a = AllocPolicy()) : impl(a)  {}
+    bool init(uint32_t len = sDefaultInitSize)        { return impl.init(len); }
     bool initialized() const                          { return impl.initialized(); }
 
     
@@ -1153,13 +1155,13 @@ class HashMap
 
     
     template<typename KeyInput, typename ValueInput>
-    Entry *put(const KeyInput &k, const ValueInput &v) {
+    bool put(const KeyInput &k, const ValueInput &v) {
         AddPtr p = lookupForAdd(k);
         if (p) {
             p->value = v;
-            return &*p;
+            return true;
         }
-        return add(p, k, v) ? &*p : NULL;
+        return add(p, k, v);
     }
 
     
@@ -1223,12 +1225,14 @@ class HashSet
     Impl impl;
 
   public:
+    const static unsigned sDefaultInitSize = Impl::sDefaultInitSize;
+
     
 
 
 
-    HashSet(AllocPolicy a = AllocPolicy()) : impl(a) {}
-    bool init(uint32_t len = Impl::sDefaultInitSize)  { return impl.init(len); }
+    HashSet(AllocPolicy a = AllocPolicy()) : impl(a)  {}
+    bool init(uint32_t len = sDefaultInitSize)        { return impl.init(len); }
     bool initialized() const                          { return impl.initialized(); }
 
     
@@ -1363,9 +1367,9 @@ class HashSet
     }
 
     
-    const T *put(const T &t) {
+    bool put(const T &t) {
         AddPtr p = lookupForAdd(t);
-        return p ? &*p : (add(p, t) ? &*p : NULL);
+        return p ? true : add(p, t);
     }
 
     
