@@ -8064,6 +8064,17 @@ nsIDocument::ScheduleFrameRequestCallback(nsIFrameRequestCallback* aCallback,
   return NS_OK;
 }
 
+void
+nsIDocument::CancelFrameRequestCallback(PRInt32 aHandle)
+{
+  
+  mFrameRequestCallbacks.RemoveElementSorted(aHandle);
+
+  
+  
+  
+}
+
 nsresult
 nsDocument::GetStateObject(nsIVariant** aState)
 {
