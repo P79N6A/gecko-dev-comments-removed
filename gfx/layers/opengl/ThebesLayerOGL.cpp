@@ -42,7 +42,73 @@
 namespace mozilla {
 namespace layers {
 
+using gl::GLContext;
 using gl::TextureImage;
+
+
+
+
+
+
+
+static void
+BindAndDrawQuadWithTextureRect(LayerProgram *aProg,
+                               const nsIntRect& aTexCoordRect,
+                               GLContext* aGl)
+{
+  GLuint vertAttribIndex =
+    aProg->AttribLocation(LayerProgram::VertexAttrib);
+  GLuint texCoordAttribIndex =
+    aProg->AttribLocation(LayerProgram::TexCoordAttrib);
+  NS_ASSERTION(texCoordAttribIndex != GLuint(-1), "no texture coords?");
+
+  
+  
+  aGl->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, 0);
+
+  
+  GLfloat quadVertices[] = {
+    0.0f, 0.0f,                 
+    1.0f, 0.0f,                 
+    0.0f, 1.0f,                 
+    1.0f, 1.0f                  
+  };
+  aGl->fVertexAttribPointer(vertAttribIndex, 2,
+                                   LOCAL_GL_FLOAT, LOCAL_GL_FALSE, 0,
+                                   quadVertices);
+  DEBUG_GL_ERROR_CHECK(aGl);
+
+  GLfloat w(aTexCoordRect.width), h(aTexCoordRect.height);
+  GLfloat xleft = GLfloat(aTexCoordRect.x) / w;
+  GLfloat ytop = GLfloat(aTexCoordRect.y) / h;
+  GLfloat texCoords[] = {
+    xleft,         ytop,
+    1.0f + xleft,  ytop,
+    xleft,         1.0f + ytop,
+    1.0f + xleft,  1.0f + ytop,
+  };
+
+  aGl->fVertexAttribPointer(texCoordAttribIndex, 2,
+                            LOCAL_GL_FLOAT, LOCAL_GL_FALSE, 0,
+                            texCoords);
+  DEBUG_GL_ERROR_CHECK(aGl);
+
+  {
+    aGl->fEnableVertexAttribArray(texCoordAttribIndex);
+    {
+      aGl->fEnableVertexAttribArray(vertAttribIndex);
+
+      aGl->fDrawArrays(LOCAL_GL_TRIANGLE_STRIP, 0, 4);
+      DEBUG_GL_ERROR_CHECK(aGl);
+
+      aGl->fDisableVertexAttribArray(vertAttribIndex);
+    }
+    aGl->fDisableVertexAttribArray(texCoordAttribIndex);
+  }
+
+  DEBUG_GL_ERROR_CHECK(aGl);
+}
+
 
 class ThebesLayerBufferOGL
 {
@@ -62,7 +128,9 @@ public:
   void RenderTo(const nsIntPoint& aOffset, LayerManagerOGL* aManager);
 
 protected:
-  mozilla::gl::GLContext* gl() const { return mLayer->gl(); }
+  virtual nsIntRect GetTexCoordRectForRepeat() = 0;
+
+  GLContext* gl() const { return mLayer->gl(); }
 
   ThebesLayerOGL* mLayer;
   nsRefPtr<TextureImage> mTexImage;
@@ -92,8 +160,8 @@ ThebesLayerBufferOGL::RenderTo(const nsIntPoint& aOffset,
   program->SetTextureUnit(0);
   DEBUG_GL_ERROR_CHECK(gl());
 
-  
-  aManager->BindAndDrawQuad(program);
+  nsIntRect texCoordRect = GetTexCoordRectForRepeat();
+  BindAndDrawQuadWithTextureRect(program, texCoordRect, gl());
   DEBUG_GL_ERROR_CHECK(gl());
 }
 
@@ -142,9 +210,17 @@ public:
       return mTmpSurface.forget();
     }
 
-    mTexImage = gl()->CreateTextureImage(aSize, aType,
-                                         LOCAL_GL_CLAMP_TO_EDGE);
+    mTexImage = gl()->CreateTextureImage(aSize, aType, LOCAL_GL_REPEAT);
     return mTexImage ? mTexImage->GetBackingSurface() : nsnull;
+  }
+
+protected:
+  virtual nsIntRect
+  GetTexCoordRectForRepeat()
+  {
+    
+    
+    return nsIntRect(BufferRotation(), BufferRect().Size());
   }
 
 private:
@@ -166,6 +242,14 @@ public:
 
   virtual PaintState BeginPaint(ContentType aContentType);
 
+protected:
+  virtual nsIntRect
+  GetTexCoordRectForRepeat()
+  {
+    
+    return nsIntRect(nsIntPoint(0, 0), mBufferRect.Size());
+  }
+
 private:
   nsIntRect mBufferRect;
 };
@@ -181,7 +265,7 @@ BasicBufferOGL::BeginPaint(ContentType aContentType)
   {
     mBufferRect = nsIntRect();
     mTexImage = gl()->CreateTextureImage(visibleRect.Size(), aContentType,
-                                         LOCAL_GL_CLAMP_TO_EDGE);
+                                         LOCAL_GL_REPEAT);
     DEBUG_GL_ERROR_CHECK(gl());
     if (!mTexImage) {
       return state;
