@@ -7,13 +7,9 @@
 let testURL_01 = chromeRoot + "browser_blank_01.html";
 let testURL_02 = chromeRoot + "browser_blank_02.html";
 
-
-let gTests = [];
-let gCurrentTest = null;
-
-
-
 function test() {
+  BookmarkHelper.logging = true;
+
   
   
   waitForExplicitFinish();
@@ -22,26 +18,10 @@ function test() {
   runNextTest();
 }
 
-
-
-function runNextTest() {
-  
-  if (gTests.length > 0) {
-    gCurrentTest = gTests.shift();
-    info(gCurrentTest.desc);
-    gCurrentTest.run();
-  }
-  else {
-    
-    try {
-      PlacesUtils.bookmarks.removeFolderChildren(BookmarkList.panel.mobileRoot);
-    }
-    finally {
-      
-      finish();
-    }
-  }
-}
+registerCleanupFunction(function() {
+  BookmarkHelper.logging = false;
+  PlacesUtils.bookmarks.removeFolderChildren(BookmarkList.panel.mobileRoot);
+});
 
 
 
