@@ -961,9 +961,6 @@ struct JSThreadData {
 
 #ifdef JS_TRACER
     
-    unsigned            iterationCounter;
-
-    
     uint32              maxCodeCacheBytes;
 #endif
 

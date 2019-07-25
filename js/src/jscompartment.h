@@ -93,6 +93,9 @@ struct TraceMonitor {
     JSContext               *tracecx;
 
     
+    unsigned                iterationCounter;
+
+    
 
 
 
