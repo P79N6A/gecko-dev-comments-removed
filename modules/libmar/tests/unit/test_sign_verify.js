@@ -57,8 +57,7 @@ function run_test() {
 
     
     
-    var isWindows = ("@mozilla.org/windows-registry-key;1" 
-                     in Cc);
+    var isWindows = ("@mozilla.org/windows-registry-key;1" in Cc);
 
     
     
