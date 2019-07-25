@@ -5732,6 +5732,13 @@ JS_ObjectIsDate(JSContext *cx, JSObject *obj);
 
 
 
+extern JS_PUBLIC_API(void)
+JS_ClearDateCaches(JSContext *cx);
+
+
+
+
+
 
 #define JSREG_FOLD      0x01    /* fold uppercase to lowercase */
 #define JSREG_GLOB      0x02    /* global exec, creates array of matches */
