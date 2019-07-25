@@ -377,8 +377,8 @@ window.TabMirror = {
   
   customize: function(func) {
     
-    iQ('div.tab').each(function() {
-      var tab = Tabs.tab(this);
+    iQ('div.tab').each(function(elem) {
+      var tab = Tabs.tab(elem);
       func(tab.mirror);
     });
     
