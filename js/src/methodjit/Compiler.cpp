@@ -4886,8 +4886,12 @@ mjit::Compiler::enterBlock(JSObject *obj)
     
     
     
-    if (analysis->getCode(PC).exceptionEntry)
+    
+    
+    if (analysis->getCode(PC).exceptionEntry) {
         restoreFrameRegs(masm);
+        interruptCheckHelper();
+    }
 
     uint32 oldFrameDepth = frame.localSlots();
 
