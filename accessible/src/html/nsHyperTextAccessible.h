@@ -88,9 +88,9 @@ public:
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
   virtual PRUint32 NativeRole();
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
+  virtual PRBool RemoveChild(nsAccessible *aAccessible);
 
   virtual void InvalidateChildren();
-  virtual PRBool RemoveChild(nsAccessible* aAccessible);
 
   
 
@@ -218,20 +218,6 @@ public:
 
 
 
-
-
-
-  bool GetCharAt(PRInt32 aOffset, EGetTextType aShift, nsAString& aChar,
-                 PRInt32* aStartOffset = nsnull, PRInt32* aEndOffset = nsnull);
-
-  
-
-
-
-
-
-
-
   PRInt32 GetChildOffset(nsAccessible* aChild,
                          PRBool aInvalidateAfter = PR_FALSE)
   {
@@ -264,23 +250,6 @@ public:
 
 protected:
   
-
-  
-
-
-  inline PRInt32 ConvertMagicOffset(PRInt32 aOffset)
-  {
-    if (aOffset == nsIAccessibleText::TEXT_OFFSET_END_OF_TEXT)
-      return CharacterCount();
-
-    if (aOffset == nsIAccessibleText::TEXT_OFFSET_CARET) {
-      PRInt32 caretOffset = -1;
-      GetCaretOffset(&caretOffset);
-      return caretOffset;
-    }
-
-    return aOffset;
-  }
 
   
 
