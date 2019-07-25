@@ -39,7 +39,6 @@
 
 #include "nsEditorEventListener.h"
 #include "nsEditor.h"
-#include "nsIPlaintextEditor.h"
 
 #include "nsIDOMDOMStringList.h"
 #include "nsIDOMEvent.h"
@@ -318,142 +317,28 @@ nsEditorEventListener::KeyPress(nsIDOMEvent* aKeyEvent)
 {
   NS_ENSURE_TRUE(mEditor, NS_ERROR_NOT_AVAILABLE);
 
-  nsCOMPtr<nsIDOMKeyEvent>keyEvent = do_QueryInterface(aKeyEvent);
-  if (!keyEvent)
-  {
-    
-    return NS_OK;
-  }
-
-  
-  
-  nsCOMPtr<nsIDOMEventTarget> target;
-  nsresult rv = keyEvent->GetTarget(getter_AddRefs(target));
-  NS_ENSURE_SUCCESS(rv, rv);
-  nsCOMPtr<nsIDOMNode> targetNode = do_QueryInterface(target);
-  if (!mEditor->IsModifiableNode(targetNode))
-  {
-    return NS_OK;
-  }
-
   
   
   
   
   
 
-  nsCOMPtr<nsIDOMNSUIEvent> nsUIEvent = do_QueryInterface(aKeyEvent);
-  if(nsUIEvent) 
-  {
+  nsCOMPtr<nsIDOMNSUIEvent> UIEvent = do_QueryInterface(aKeyEvent);
+  if(UIEvent) {
     PRBool defaultPrevented;
-    nsUIEvent->GetPreventDefault(&defaultPrevented);
-    if(defaultPrevented)
+    UIEvent->GetPreventDefault(&defaultPrevented);
+    if(defaultPrevented) {
       return NS_OK;
+    }
   }
 
-  PRUint32 keyCode;
-  keyEvent->GetKeyCode(&keyCode);
-
-  
-  if (mEditor->IsReadonly() || mEditor->IsDisabled())
-  {
+  nsCOMPtr<nsIDOMKeyEvent>keyEvent = do_QueryInterface(aKeyEvent);
+  if (!keyEvent) {
     
-    
-    if (keyCode == nsIDOMKeyEvent::DOM_VK_BACK_SPACE)
-      aKeyEvent->PreventDefault();
-
     return NS_OK;
   }
 
-  nsCOMPtr<nsIPlaintextEditor> textEditor =
-    do_QueryInterface(static_cast<nsIEditor*>(mEditor));
-  NS_ASSERTION(textEditor, "nsEditor must have nsIPlaintextEditor");
-
-  
-  
-  if (0 != keyCode)
-  {
-    PRBool isAnyModifierKeyButShift;
-    nsresult rv;
-    rv = keyEvent->GetAltKey(&isAnyModifierKeyButShift);
-    if (NS_FAILED(rv)) return rv;
-    
-    if (!isAnyModifierKeyButShift)
-    {
-      rv = keyEvent->GetMetaKey(&isAnyModifierKeyButShift);
-      if (NS_FAILED(rv)) return rv;
-      
-      if (!isAnyModifierKeyButShift)
-      {
-        rv = keyEvent->GetCtrlKey(&isAnyModifierKeyButShift);
-        if (NS_FAILED(rv)) return rv;
-      }
-    }
-
-    switch (keyCode)
-    {
-      case nsIDOMKeyEvent::DOM_VK_META:
-      case nsIDOMKeyEvent::DOM_VK_SHIFT:
-      case nsIDOMKeyEvent::DOM_VK_CONTROL:
-      case nsIDOMKeyEvent::DOM_VK_ALT:
-        aKeyEvent->PreventDefault(); 
-        return NS_OK;
-        break;
-
-      case nsIDOMKeyEvent::DOM_VK_BACK_SPACE: 
-        if (isAnyModifierKeyButShift)
-          return NS_OK;
-
-        mEditor->DeleteSelection(nsIEditor::ePrevious);
-        aKeyEvent->PreventDefault(); 
-        return NS_OK;
-        break;
- 
-      case nsIDOMKeyEvent::DOM_VK_DELETE:
-        
-
-
-        PRBool isShiftModifierKey;
-        rv = keyEvent->GetShiftKey(&isShiftModifierKey);
-        if (NS_FAILED(rv)) return rv;
-
-        if (isAnyModifierKeyButShift || isShiftModifierKey)
-           return NS_OK;
-        mEditor->DeleteSelection(nsIEditor::eNext);
-        aKeyEvent->PreventDefault(); 
-        return NS_OK; 
-        break;
- 
-      case nsIDOMKeyEvent::DOM_VK_TAB:
-        if (mEditor->IsSingleLineEditor() || mEditor->IsPasswordEditor() ||
-            mEditor->IsFormWidget() || mEditor->IsInteractionAllowed()) {
-          return NS_OK; 
-        }
-
-        if (isAnyModifierKeyButShift)
-          return NS_OK;
-
-        
-        textEditor->HandleKeyPress(keyEvent);
-        
-        return NS_OK; 
-
-      case nsIDOMKeyEvent::DOM_VK_RETURN:
-      case nsIDOMKeyEvent::DOM_VK_ENTER:
-        if (isAnyModifierKeyButShift)
-          return NS_OK;
-
-        if (!mEditor->IsSingleLineEditor())
-        {
-          textEditor->HandleKeyPress(keyEvent);
-          aKeyEvent->PreventDefault(); 
-        }
-        return NS_OK;
-    }
-  }
-
-  textEditor->HandleKeyPress(keyEvent);
-  return NS_OK; 
+  return mEditor->HandleKeyPressEvent(keyEvent);
 }
 
 
