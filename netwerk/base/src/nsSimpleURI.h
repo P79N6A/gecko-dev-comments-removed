@@ -45,6 +45,7 @@
 #include "nsString.h"
 #include "nsIClassInfo.h"
 #include "nsIMutable.h"
+#include "nsISizeOf.h"
 
 #define NS_THIS_SIMPLEURI_IMPLEMENTATION_CID         \
 { /* 0b9bb0c2-fee6-470b-b9b9-9fd9462b5e19 */         \
@@ -58,7 +59,8 @@ class nsSimpleURI : public nsIURI,
                     public nsISerializable,
                     public nsIIPCSerializable,
                     public nsIClassInfo,
-                    public nsIMutable
+                    public nsIMutable,
+                    public nsISizeOf
 {
 public:
     NS_DECL_ISUPPORTS
@@ -72,6 +74,16 @@ public:
 
     nsSimpleURI();
     virtual ~nsSimpleURI();
+
+    
+    
+    
+    
+    
+    
+    
+    virtual size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+    virtual size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
 
 protected:
     

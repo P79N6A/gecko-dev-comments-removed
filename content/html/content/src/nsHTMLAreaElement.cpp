@@ -62,7 +62,7 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  
+  NS_DECL_SIZEOF_EXCLUDING_THIS
 
   
   NS_FORWARD_NSIDOMNODE(nsGenericHTMLElement::)
@@ -335,3 +335,11 @@ nsHTMLAreaElement::IntrinsicState() const
 {
   return Link::LinkState() | nsGenericHTMLElement::IntrinsicState();
 }
+
+size_t
+nsHTMLAreaElement::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+{
+  return nsGenericHTMLElement::SizeOfExcludingThis(aMallocSizeOf) +
+         Link::SizeOfExcludingThis(aMallocSizeOf);
+}
+

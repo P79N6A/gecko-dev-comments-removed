@@ -74,6 +74,11 @@ public:
     mDeathGrip = 0;
   }
 
+  virtual size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+  {
+    return 0;   
+  }
+
   ~mock_Link() {
     
     if (mRunNextTest) {
@@ -133,6 +138,13 @@ Link::GetURI() const
 {
   NS_NOTREACHED("Unexpected call to Link::GetURI");
   return nsnull; 
+}
+
+size_t
+Link::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+{
+  NS_NOTREACHED("Unexpected call to Link::SizeOfExcludingThis");
+  return 0;
 }
 
 } 
