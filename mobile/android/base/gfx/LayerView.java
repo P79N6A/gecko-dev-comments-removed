@@ -84,8 +84,7 @@ public class LayerView extends SurfaceView implements SurfaceHolder.Callback {
             requestFocus();
 
         
-        if (GeckoApp.mFormAssistPopup != null)
-            GeckoApp.mFormAssistPopup.hide();
+        GeckoApp.mAppContext.hideFormAssistPopup();
 
         return mTouchEventHandler.handleEvent(event);
     }
