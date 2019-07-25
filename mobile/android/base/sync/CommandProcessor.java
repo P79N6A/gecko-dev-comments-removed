@@ -24,12 +24,31 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 public class CommandProcessor {
   private static final String LOG_TAG = "Command";
   private static AtomicInteger currentId = new AtomicInteger();
   protected ConcurrentHashMap<String, CommandRunner> commands = new ConcurrentHashMap<String, CommandRunner>();
 
   private final static CommandProcessor processor = new CommandProcessor();
+
+  
+
+
+
 
   public static CommandProcessor getProcessor() {
     return processor;
@@ -66,11 +85,30 @@ public class CommandProcessor {
     }
   }
 
+  
+
+
+
+
+
+
+
+
+
+
   public void registerCommand(String commandType, CommandRunner command) {
     commands.put(commandType, command);
   }
 
-  public void processCommand(ExtendedJSONObject unparsedCommand) {
+  
+
+
+
+
+
+
+
+  public void processCommand(final GlobalSession session, ExtendedJSONObject unparsedCommand) {
     Command command = parseCommand(unparsedCommand);
     if (command == null) {
       Logger.debug(LOG_TAG, "Invalid command: " + unparsedCommand + " will not be processed.");
@@ -83,7 +121,7 @@ public class CommandProcessor {
       return;
     }
 
-    executableCommand.executeCommand(command.getArgsList());
+    executableCommand.executeCommand(session, command.getArgsList());
   }
 
   
