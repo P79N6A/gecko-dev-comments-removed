@@ -436,6 +436,7 @@ public class HistoryTab extends AwesomeBarTab {
         
         menu.findItem(R.id.remove_bookmark).setVisible(false);
         menu.findItem(R.id.edit_bookmark).setVisible(false);
+        menu.findItem(R.id.open_in_reader).setVisible(false);
 
         
         if (subject.id < 0)
