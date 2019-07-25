@@ -2466,6 +2466,14 @@ RasterImage::Draw(gfxContext *aContext,
 
 
 
+nsIFrame*
+RasterImage::GetRootLayoutFrame()
+{
+  return nsnull;
+}
+
+
+
 NS_IMETHODIMP
 RasterImage::LockImage()
 {
