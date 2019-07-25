@@ -1210,6 +1210,9 @@ SessionStoreService.prototype = {
       tabData.userTypedClear = browser.userTypedClear;
     }
 
+    if (aTab.pinned)
+      tabData.pinned = true;
+
     var disallow = [];
     for (var i = 0; i < CAPABILITIES.length; i++)
       if (!browser.docShell["allow" + CAPABILITIES[i]])
@@ -1939,6 +1942,11 @@ SessionStoreService.prototype = {
       if (!aOverwriteTabs && root._firstTabs) {
         tabbrowser.moveTabTo(tabs[t], t);
       }
+
+      if (winData.tabs[t].pinned)
+        tabbrowser.pinTab(tabs[t]);
+      else
+        tabbrowser.unpinTab(tabs[t]);
     }
 
     
@@ -2015,11 +2023,17 @@ SessionStoreService.prototype = {
     
     
     for (t = 0; t < aTabs.length; t++) {
-      var tab = aTabs[t];
-      var browser = tabbrowser.getBrowserForTab(tab);
-      
-      aTabData[t]._tabStillLoading = true;
-      if (!aTabData[t].entries || aTabData[t].entries.length == 0) {
+      let tab = aTabs[t];
+      let browser = tabbrowser.getBrowserForTab(tab);
+      let tabData = aTabData[t];
+
+      if (tabData.pinned)
+        tabbrowser.pinTab(tab);
+      else
+        tabbrowser.unpinTab(tab);
+
+      tabData._tabStillLoading = true;
+      if (!tabData.entries || tabData.entries.length == 0) {
         
         
         browser.contentDocument.location = "about:blank";
@@ -2034,19 +2048,19 @@ SessionStoreService.prototype = {
       
       
       
-      let activeIndex = (aTabData[t].index || aTabData[t].entries.length) - 1;
-      let activePageData = aTabData[t].entries[activeIndex] || null;
+      let activeIndex = (tabData.index || tabData.entries.length) - 1;
+      let activePageData = tabData.entries[activeIndex] || null;
       browser.userTypedValue = activePageData ? activePageData.url || null : null;
       
       
       
-      browser.__SS_data = aTabData[t];
+      browser.__SS_data = tabData;
     }
     
     if (aTabs.length > 0) {
       
       let maxVisibleTabs = Math.ceil(tabbrowser.tabContainer.mTabstrip.scrollClientSize /
-                                     aTabs[0].clientWidth);
+                                     aTabs[aTabs.length - 1].clientWidth);
 
       
       if (maxVisibleTabs < aTabs.length && aSelectTab > 1) {
