@@ -81,6 +81,7 @@ class nsSVGDisplayContainerFrame;
 
 namespace mozilla {
 class SVGAnimatedPreserveAspectRatio;
+class SVGPreserveAspectRatio;
 namespace dom {
 class Element;
 } 
@@ -220,6 +221,7 @@ class nsSVGUtils
 {
 public:
   typedef mozilla::SVGAnimatedPreserveAspectRatio SVGAnimatedPreserveAspectRatio;
+  typedef mozilla::SVGPreserveAspectRatio SVGPreserveAspectRatio;
 
   
 
@@ -379,13 +381,20 @@ public:
   GetOuterSVGFrameAndCoveredRegion(nsIFrame* aFrame, nsRect* aRect);
 
   
-  
+
   static gfxMatrix
   GetViewBoxTransform(nsSVGElement* aElement,
                       float aViewportWidth, float aViewportHeight,
                       float aViewboxX, float aViewboxY,
                       float aViewboxWidth, float aViewboxHeight,
                       const SVGAnimatedPreserveAspectRatio &aPreserveAspectRatio);
+
+  static gfxMatrix
+  GetViewBoxTransform(nsSVGElement* aElement,
+                      float aViewportWidth, float aViewportHeight,
+                      float aViewboxX, float aViewboxY,
+                      float aViewboxWidth, float aViewboxHeight,
+                      const SVGPreserveAspectRatio &aPreserveAspectRatio);
 
   
 
