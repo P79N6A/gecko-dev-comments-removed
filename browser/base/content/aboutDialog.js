@@ -525,25 +525,24 @@ appUpdater.prototype =
         this.selectPanel("applying");
         let update = this.um.activeUpdate;
         let self = this;
-        let timer = Components.classes["@mozilla.org/timer;1"]
-                              .createInstance(Components.interfaces.nsITimer);
-        timer.initWithCallback(function () {
+        Services.obs.addObserver(function (aSubject, aTopic, aData) {
           
           let status = update.state;
-          if (status == "applied" || status == "applied-service") {
+          if (status == "applied" || status == "applied-service" ||
+              status == "pending" || status == "pending-service") {
+            
+            
+            
             self.selectPanel("updateButtonBox");
             self.setupUpdateButton("update.restart." +
                                    (self.isMajor ? "upgradeButton" : "updateButton"));
-            timer.cancel();
-            timer = null;
           } else if (status == "failed") {
             
             
             self.selectPanel("downloadFailed");
-            timer.cancel();
-            timer = null;
           }
-        }, 500, timer.TYPE_REPEATING_SLACK);
+          Services.obs.removeObserver(arguments.callee, "update-staged");
+        }, "update-staged", false);
       } else {
         this.selectPanel("updateButtonBox");
         this.setupUpdateButton("update.restart." +

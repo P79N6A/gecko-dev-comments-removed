@@ -2340,8 +2340,12 @@ UpdateManager.prototype = {
              getService(Ci.nsIUpdateManager);
     um.saveUpdates();
 
-    
-    cleanUpUpdatesDir(updateSucceeded);
+    if (update.state != STATE_PENDING && update.state != STATE_PENDING_SVC) {
+      
+      
+      
+      cleanUpUpdatesDir(updateSucceeded);
+    }
 
     
     
