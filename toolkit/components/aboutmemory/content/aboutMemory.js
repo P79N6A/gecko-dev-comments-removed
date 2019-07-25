@@ -47,7 +47,10 @@ String.prototype.startsWith =
 
 function flipBackslashes(aUnsafeStr)
 {
-  return aUnsafeStr.replace(/\\/g, '/');
+  
+  return (aUnsafeStr.indexOf('\\') === -1)
+         ? aUnsafeStr
+         : aUnsafeStr.replace(/\\/g, '/');
 }
 
 const gAssertionFailureMsgPrefix = "aboutMemory.js assertion failed: ";
