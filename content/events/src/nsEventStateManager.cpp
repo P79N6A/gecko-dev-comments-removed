@@ -519,8 +519,18 @@ nsMouseWheelTransaction::OnEvent(nsEvent* aEvent)
     return;
   }
 
-  switch (aEvent->message) {
+  PRInt32 message = aEvent->message;
+  
+  
+  
+  if (message == NS_QUERY_SCROLL_TARGET_INFO) {
+    nsQueryContentEvent* queryEvent = static_cast<nsQueryContentEvent*>(aEvent);
+    message = queryEvent->mInput.mMouseScrollEvent->message;
+  }
+
+  switch (message) {
     case NS_MOUSE_SCROLL:
+    case NS_MOUSE_PIXEL_SCROLL:
       if (sMouseMoved != 0 &&
           OutOfTime(sMouseMoved, GetIgnoreMoveDelayTime())) {
         
