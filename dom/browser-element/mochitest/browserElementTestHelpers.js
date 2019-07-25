@@ -108,6 +108,9 @@ const browserElementTestHelpers = {
   'emptyPage2': 'http://example.org' +
                 window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/')) +
                 '/file_empty.html',
+  'emptyPage3': 'http://test1.example.org' +
+                window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/')) +
+                '/file_empty.html',
   'focusPage': 'http://example.org' +
                 window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/')) +
                 '/file_focus.html',
