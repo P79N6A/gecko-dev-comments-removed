@@ -5398,7 +5398,7 @@ BEGIN_CASE(JSOP_DEFFUN)
 
         obj2 = &regs.fp->scopeChain();
     } else {
-        JS_ASSERT(!FUN_FLAT_CLOSURE(fun));
+        JS_ASSERT(!fun->isFlatClosure());
 
         obj2 = GetScopeChainFast(cx, regs.fp, JSOP_DEFFUN, JSOP_DEFFUN_LENGTH);
         if (!obj2)
@@ -5437,61 +5437,53 @@ BEGIN_CASE(JSOP_DEFFUN)
     JSObject *parent = &regs.fp->varobj(cx);
 
     
-
-
-
-
     jsid id = ATOM_TO_JSID(fun->atom);
     JSProperty *prop = NULL;
     JSObject *pobj;
-    JSBool ok = CheckRedeclaration(cx, parent, id, attrs, &pobj, &prop);
-    if (!ok)
+    if (!parent->lookupProperty(cx, id, &pobj, &prop))
         goto error;
-
-    
-
-
-
-
-
-
-
-
-
-
-    bool doSet = false;
-    if (prop) {
-        JS_ASSERT(!(attrs & ~(JSPROP_ENUMERATE | JSPROP_PERMANENT)));
-        JS_ASSERT((attrs == JSPROP_ENUMERATE) == regs.fp->isEvalFrame());
-
-        if (attrs == JSPROP_ENUMERATE) {
-            
-            doSet = true;
-        } else if (parent->isCall()) {
-            JS_ASSERT(parent == pobj);
-
-            uintN oldAttrs = ((Shape *) prop)->attributes();
-            JS_ASSERT(!(oldAttrs & (JSPROP_READONLY | JSPROP_GETTER | JSPROP_SETTER)));
-
-            
-
-
-
-
-
-
-            JS_ASSERT(oldAttrs & attrs & JSPROP_ENUMERATE);
-            if (oldAttrs & JSPROP_PERMANENT)
-                doSet = true;
-        }
-    }
 
     Value rval = ObjectValue(*obj);
-    ok = doSet
-         ? parent->setProperty(cx, id, &rval, script->strictModeCode)
-         : parent->defineProperty(cx, id, rval, PropertyStub, PropertyStub, attrs);
-    if (!ok)
-        goto error;
+
+    do {
+        
+        if (!prop || pobj != parent) {
+            if (!parent->defineProperty(cx, id, rval, PropertyStub, PropertyStub, attrs))
+                goto error;
+            break;
+        }
+
+        
+        JS_ASSERT(parent->isNative());
+        Shape *shape = reinterpret_cast<Shape *>(prop);
+        if (parent->isGlobal()) {
+            if (shape->configurable()) {
+                if (!parent->defineProperty(cx, id, rval, PropertyStub, PropertyStub, attrs))
+                    goto error;
+                break;
+            }
+
+            if (shape->isAccessorDescriptor() || !shape->writable() || !shape->enumerable()) {
+                JSAutoByteString bytes;
+                if (const char *name = js_ValueToPrintable(cx, IdToValue(id), &bytes)) {
+                    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+                                         JSMSG_CANT_REDEFINE_PROP, name);
+                }
+                goto error;
+            }
+        }
+
+        
+
+
+
+
+
+
+        
+        if (!parent->setProperty(cx, id, &rval, script->strictModeCode))
+            goto error;
+    } while (false);
 }
 END_CASE(JSOP_DEFFUN)
 
