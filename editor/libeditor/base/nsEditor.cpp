@@ -3636,12 +3636,14 @@ nsEditor::IsEditable(nsIContent *aNode)
     
     return false;
   }
-  if (aNode->NodeType() == nsIDOMNode::COMMENT_NODE)
-    return false;
-  if (aNode->NodeType() != nsIDOMNode::TEXT_NODE)
-    return true;  
-
-  return IsTextInDirtyFrameVisible(aNode);
+  switch (aNode->NodeType()) {
+    case nsIDOMNode::ELEMENT_NODE:
+      return true; 
+    case nsIDOMNode::TEXT_NODE:
+      return IsTextInDirtyFrameVisible(aNode);
+    default:
+      return false;
+  }
 }
 
 bool
