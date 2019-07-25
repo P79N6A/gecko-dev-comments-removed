@@ -67,6 +67,13 @@ public:
 
   NS_DECL_NSICSSDECLARATION
 
+  NS_IMETHOD GetMozPerspective(nsAString_internal&);
+  NS_IMETHOD SetMozPerspective(const nsAString_internal&);
+  NS_IMETHOD GetMozPerspectiveOrigin(nsAString_internal&);
+  NS_IMETHOD SetMozPerspectiveOrigin(const nsAString_internal&);
+  NS_IMETHOD GetMozBackfaceVisibility(nsAString_internal&);
+  NS_IMETHOD SetMozBackfaceVisibility(const nsAString_internal&);
+
   
   
   NS_IMETHOD GetCssText(nsAString & aCssText);
