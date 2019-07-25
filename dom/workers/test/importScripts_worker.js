@@ -20,9 +20,9 @@ function tryBadScripts() {
     
     "importScripts_worker_imported4.js",
     
-    "http://flippety.com/floppety/foo.js",
+    "http://example.com/non-existing/importScripts_worker_foo.js",
     
-    "http://flippety::foo_js ftw"
+    "http://notadomain::notafile aword"
   ];
 
   for (var i = 0; i < badScripts.length; i++) {
