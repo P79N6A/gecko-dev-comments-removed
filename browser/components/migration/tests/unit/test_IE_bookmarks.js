@@ -3,26 +3,55 @@
 
 
 function run_test() {
-  let migrator = newMigratorFor("ie");
+  do_test_pending();
+
+  let migrator = MigrationUtils.getMigrator("ie");
 
   
   do_check_true(migrator.sourceExists);
 
   
   let availableSources = migrator.getMigrateData("FieldOfFlowers", false);
-  do_check_true((availableSources & IMIGRATOR.BOOKMARKS) > 0);
-
-  
-  let startup = {
-    doStartup: function () {},
-    get directory() do_get_profile()
-  }
-  migrator.migrate(IMIGRATOR.BOOKMARKS, startup, "FieldOfFlowers");
+  do_check_true((availableSources & MigrationUtils.resourceTypes.BOOKMARKS) > 0);
 
   
   
-  do_check_true(PlacesUtils.bookmarks
-                           .getIdForItemAt(PlacesUtils.bookmarksMenuFolderId, 1) > 0);
-  do_check_true(PlacesUtils.bookmarks
-                           .getIdForItemAt(PlacesUtils.toolbarFolderId, 1) > 0);
+  let source = MigrationUtils.getLocalizedString("sourceNameIE");
+  let label = MigrationUtils.getLocalizedString("importedBookmarksFolder", [source]);
+
+  let expectedParents = [ PlacesUtils.bookmarksMenuFolderId,
+                          PlacesUtils.toolbarFolderId ];
+
+  PlacesUtils.bookmarks.addObserver({
+    onItemAdded: function onItemAdded(aItemId, aParentId, aIndex, aItemType,
+                                      aURI, aTitle) {
+      if (aTitle == label) {
+        let index = expectedParents.indexOf(aParentId);
+        do_check_neq(index, -1);
+        expectedParents.splice(index, 1);
+        if (expectedParents.length == 0)
+          PlacesUtils.bookmarks.removeObserver(this);
+      }
+    },
+    onBeginUpdateBatch: function () {},
+    onEndUpdateBatch: function () {},
+    onBeforeItemRemoved: function () {},
+    onItemRemoved: function () {},
+    onItemChanged: function () {},
+    onItemVisited: function () {},
+    onItemMoved: function () {},
+  }, false);
+
+  
+  Services.obs.addObserver(function onMigrationEnded() {
+    Services.obs.removeObserver(onMigrationEnded, "Migration:Ended");
+
+    
+    do_check_eq(expectedParents.length, 0);
+
+    do_test_finished();
+  }, "Migration:Ended", false);
+
+  migrator.migrate(MigrationUtils.resourceTypes.BOOKMARKS, null,
+                   "FieldOfFlowers");
 }
