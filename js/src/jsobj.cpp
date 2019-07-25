@@ -3669,6 +3669,15 @@ js_InitClass(JSContext *cx, JSObject *obj, JSObject *parent_proto,
 
 
 
+    if (fs && !proto->brand(cx))
+        goto bad;
+    if (ctor != proto && static_fs && !ctor->brand(cx))
+        goto bad;
+
+    
+
+
+
 
 
 
