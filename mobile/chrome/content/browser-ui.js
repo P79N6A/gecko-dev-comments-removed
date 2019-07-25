@@ -400,6 +400,10 @@ var BrowserUI = {
       ConsoleView.init();
 
       
+      Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime)
+          .ensureContentProcess();
+
+      
       WeaveGlue.init();
     });
 
