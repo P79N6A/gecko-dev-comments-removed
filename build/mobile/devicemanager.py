@@ -574,9 +574,13 @@ class DeviceManager:
 
     
     parts = filter(lambda x: x != '', appname.split(' '))
+    appname = ' '.join(parts)
 
-    if len(parts[0].strip('"').split('=')) > 1:
-      appname = ' '.join(parts[1:])
+    
+    
+    parts = appname.split('"')
+    if (len(parts) > 2):
+      appname = ' '.join(parts[2:]).strip()
   
     pieces = appname.split(' ')
     parts = pieces[0].split('/')
@@ -996,31 +1000,35 @@ class DeviceManager:
   
   
   
-  def reboot(self, wait = False):
-    cmd = 'rebt'
-    if (self.debug >= 3): print "INFO: sending rebt command"
+  def reboot(self, ipAddr=None, port=30000):
+    cmd = 'rebt'   
+
+    if (self.debug > 3): print "INFO: sending rebt command"
+    callbacksvrstatus = None    
+
+    if (ipAddr is not None):
     
-    try:
-      status = self.sendCMD([cmd])
-    except DMError:
-      return None
-
-    if (wait == True):
-      
-      count = 0
-      while (count < 10):
-        if (self.debug >= 4): print "DEBUG: sleeping 30 seconds while waiting for reboot"
-        time.sleep(30)
-        waitstatus = self.getDeviceRoot()
-        if (waitstatus is not None):
-          break
-        self.retries = 0
-        count += 1
-
-      if (count >= 10):
+      try:
+        destname = '/data/data/com.mozilla.SUTAgentAndroid/files/update.info'
+        data = "%s,%s\rrebooting\r" % (ipAddr, port)
+        self.verifySendCMD(['push ' + destname + ' ' + str(len(data)) + '\r\n', data], newline = False)
+      except(DMError):
         return None
 
-    if (self.debug >= 3): print "INFO: rebt- got status back: " + str(status)
+      ip, port = self.getCallbackIpAndPort(ipAddr, port)
+      cmd += " %s %s" % (ip, port)
+      
+      callbacksvr = callbackServer(ip, port, self.debug)
+
+    try:
+      status = self.verifySendCMD([cmd])
+    except(DMError):
+      return None
+
+    if (ipAddr is not None):
+      status = callbacksvr.disconnect()
+
+    if (self.debug > 3): print "INFO: rebt- got status back: " + str(status)
     return status
 
   
@@ -1277,9 +1285,6 @@ class DeviceManager:
     except(DMError):
       return False
 
-    if (self.reboot(True) == None):
-      return False
-
     return True
 
 gCallbackData = ''
@@ -1289,11 +1294,14 @@ class myServer(SocketServer.TCPServer):
 
 class callbackServer():
   def __init__(self, ip, port, debuglevel):
+    global gCallbackData
+    if (debuglevel >= 1): print "DEBUG: gCallbackData is: %s on port: %s" % (gCallbackData, port)
+    gCallbackData = ''
     self.ip = ip
     self.port = port
     self.connected = False
     self.debug = debuglevel
-    if (self.debug >= 3) : print "Creating server with " + str(ip) + ":" + str(port)
+    if (self.debug >= 3): print "Creating server with " + str(ip) + ":" + str(port)
     self.server = myServer((ip, port), self.myhandler)
     self.server_thread = Thread(target=self.server.serve_forever) 
     self.server_thread.setDaemon(True)
@@ -1307,6 +1315,8 @@ class callbackServer():
         
         if (self.debug >= 3): print "Got data back from agent: " + str(gCallbackData)
         break
+      else:
+        if (self.debug >= 0): print '.',
       time.sleep(step)
       t += step
 
@@ -1314,7 +1324,10 @@ class callbackServer():
       if (self.debug >= 3): print "Shutting down server now"
       self.server.shutdown()
     except:
-      print "Unable to shutdown callback server - check for a connection on port: " + str(self.port)
+      if (self.debug >= 1): print "Unable to shutdown callback server - check for a connection on port: " + str(self.port)
+
+    
+    time.sleep(step)
     return gCallbackData
 
   class myhandler(SocketServer.BaseRequestHandler):
