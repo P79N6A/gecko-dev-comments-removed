@@ -163,10 +163,13 @@ enum {
   NODE_HAS_ACCESSKEY           = 0x00020000U,
 
   
+  NODE_HANDLING_CLICK          = 0x00040000U,
+
   
   
   
-  NODE_SCRIPT_TYPE_OFFSET =               18,
+  
+  NODE_SCRIPT_TYPE_OFFSET =               19,
 
   NODE_SCRIPT_TYPE_SIZE =                  2,
 
