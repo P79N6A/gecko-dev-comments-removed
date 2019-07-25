@@ -64,6 +64,10 @@ textbox {
   background-color: white;
 }
 
+#default-tooltip {
+  visibility: hidden; 
+}
+
 
 textbox:not([type="number"]) {
   min-height: 48px;
