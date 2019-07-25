@@ -165,24 +165,25 @@ var StarUI = {
       return;
     }
 
-    var loadObserver = {
-      _self: this,
-      _itemId: aItemId,
-      _anchorElement: aAnchorElement,
-      _position: aPosition,
-      observe: function (aSubject, aTopic, aData) {
+    this._overlayLoading = true;
+    document.loadOverlay(
+      "chrome://browser/content/places/editBookmarkOverlay.xul",
+      (function (aSubject, aTopic, aData) {
         
         retrieveToolbarIconsizesFromTheme();
 
-        this._self._overlayLoading = false;
-        this._self._overlayLoaded = true;
-        this._self._doShowEditBookmarkPanel(this._itemId, this._anchorElement,
-                                            this._position);
-      }
-    };
-    this._overlayLoading = true;
-    document.loadOverlay("chrome://browser/content/places/editBookmarkOverlay.xul",
-                         loadObserver);
+        
+        
+        let header = this._element("editBookmarkPanelHeader");
+        let rows = this._element("editBookmarkPanelGrid").lastChild;
+        rows.insertBefore(header, rows.firstChild);
+        header.hidden = false;
+
+        this._overlayLoading = false;
+        this._overlayLoaded = true;
+        this._doShowEditBookmarkPanel(aItemId, aAnchorElement, aPosition);
+      }).bind(this)
+    );
   },
 
   _doShowEditBookmarkPanel:
@@ -191,13 +192,6 @@ var StarUI = {
       return;
 
     this._blockCommands(); 
-
-    
-    
-    var rows = this._element("editBookmarkPanelGrid").lastChild;
-    var header = this._element("editBookmarkPanelHeader");
-    rows.insertBefore(header, rows.firstChild);
-    header.hidden = false;
 
     
     
