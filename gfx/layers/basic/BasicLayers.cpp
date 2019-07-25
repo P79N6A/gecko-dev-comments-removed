@@ -1532,6 +1532,8 @@ public:
   }
   virtual ~BasicShadowableThebesLayer()
   {
+    NS_ABORT_IF_FALSE(!HasShadow() || !BasicManager()->InTransaction(),
+                      "Shadow layers can't be destroyed during txns!");
     if (IsSurfaceDescriptorValid(mBackBuffer))
       BasicManager()->ShadowLayerForwarder::DestroySharedSurface(&mBackBuffer);
     MOZ_COUNT_DTOR(BasicShadowableThebesLayer);
@@ -2497,6 +2499,13 @@ BasicShadowLayerManager::SetRoot(Layer* aLayer)
 {
   if (mRoot != aLayer) {
     if (HasShadowManager()) {
+      
+      
+      
+      
+      if (mRoot) {
+        Hold(mRoot);
+      }
       ShadowLayerForwarder::SetRoot(Hold(aLayer));
     }
     BasicLayerManager::SetRoot(aLayer);
@@ -2576,13 +2585,13 @@ BasicShadowLayerManager::EndTransaction(DrawThebesLayerCallback aCallback,
     NS_WARNING("failed to forward Layers transaction");
   }
 
-  
-  
-  mKeepAlive.Clear();
-
 #ifdef DEBUG
   mPhase = PHASE_NONE;
 #endif
+
+  
+  
+  mKeepAlive.Clear();
 }
 
 ShadowableLayer*
