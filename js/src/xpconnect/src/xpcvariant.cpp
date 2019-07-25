@@ -425,6 +425,8 @@ XPCVariant::VariantDataToJS(XPCLazyCallContext& lccx,
     {
         
         
+        if (!JS_WrapValue(lccx.GetJSContext(), &realVal))
+            return JS_FALSE;
         *pJSVal = realVal;
         return JS_TRUE;
     }
@@ -436,9 +438,10 @@ XPCVariant::VariantDataToJS(XPCLazyCallContext& lccx,
                      type == nsIDataType::VTYPE_INTERFACE_IS,
                      "Weird variant");
 
-        return XPCWrapper::RewrapObject(lccx.GetJSContext(), scope,
-                                        JSVAL_TO_OBJECT(realVal),
-                                        XPCWrapper::UNKNOWN, pJSVal);
+        if (!JS_WrapValue(lccx.GetJSContext(), &realVal))
+            return JS_FALSE;
+        *pJSVal = realVal;
+        return JS_TRUE;
     }
 
     
