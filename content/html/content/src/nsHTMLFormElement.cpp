@@ -1053,7 +1053,12 @@ CompareFormControlPosition(nsGenericHTMLFormElement *aControl1,
 {
   NS_ASSERTION(aControl1 != aControl2, "Comparing a form control to itself");
 
-  NS_ASSERTION(aControl1->GetParent() && aControl2->GetParent(),
+  
+  
+  NS_ASSERTION((aControl1->HasAttr(kNameSpaceID_None, nsGkAtoms::form) ||
+                aControl1->GetParent()) &&
+               (aControl2->HasAttr(kNameSpaceID_None, nsGkAtoms::form) ||
+                aControl2->GetParent()),
                "Form controls should always have parents");
 
   
