@@ -43,7 +43,7 @@ class nsHTMLElement : public nsGenericHTMLElement,
                       public nsIDOMHTMLElement
 {
 public:
-  nsHTMLElement(nsINodeInfo *aNodeInfo);
+  nsHTMLElement(already_AddRefed<nsINodeInfo> aNodeInfo);
   virtual ~nsHTMLElement();
 
   
@@ -61,17 +61,20 @@ public:
   virtual nsresult GetInnerHTML(nsAString& aInnerHTML);
 
   nsresult Clone(nsINodeInfo* aNodeInfo, nsINode** aResult) const;
+
+  virtual nsXPCClassInfo* GetClassInfo();
 };
 
 
 
 nsGenericHTMLElement*
-NS_NewHTMLElement(nsINodeInfo *aNodeInfo, PRUint32 aFromParser)
+NS_NewHTMLElement(already_AddRefed<nsINodeInfo> aNodeInfo,
+                  PRUint32 aFromParser)
 {
   return new nsHTMLElement(aNodeInfo);
 }
 
-nsHTMLElement::nsHTMLElement(nsINodeInfo* aNodeInfo)
+nsHTMLElement::nsHTMLElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo)
 {
 }
@@ -83,7 +86,7 @@ nsHTMLElement::~nsHTMLElement()
 NS_IMPL_ADDREF_INHERITED(nsHTMLElement, nsGenericElement)
 NS_IMPL_RELEASE_INHERITED(nsHTMLElement, nsGenericElement)
 
-DOMCI_DATA(HTMLElement, nsHTMLElement)
+DOMCI_NODE_DATA(HTMLElement, nsHTMLElement)
 
 NS_INTERFACE_TABLE_HEAD(nsHTMLElement)
   NS_HTML_CONTENT_INTERFACE_TABLE0(nsHTMLElement)

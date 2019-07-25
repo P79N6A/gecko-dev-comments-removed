@@ -1083,9 +1083,10 @@ xpc_qsStringToJsval(JSContext *cx, nsString &str, jsval *rval)
 }
 
 JSBool
-xpc_qsXPCOMObjectToJsval(XPCLazyCallContext &lccx, nsISupports *p,
-                         nsWrapperCache *cache, const nsIID *iid,
-                         XPCNativeInterface **iface, jsval *rval)
+xpc_qsXPCOMObjectToJsval(XPCLazyCallContext &lccx, qsObjectHelper* aHelper,
+                         nsWrapperCache *cache,
+                         const nsIID *iid, XPCNativeInterface **iface,
+                         jsval *rval)
 {
     
     
@@ -1101,10 +1102,13 @@ xpc_qsXPCOMObjectToJsval(XPCLazyCallContext &lccx, nsISupports *p,
     
 
     nsresult rv;
-    if(!XPCConvert::NativeInterface2JSObject(lccx, rval, nsnull, p,
-                                             iid, iface, cache,
+    if(!XPCConvert::NativeInterface2JSObject(lccx, rval, nsnull,
+                                             aHelper->Object(),
+                                             iid, iface,
+                                             cache,
                                              lccx.GetCurrentJSObject(), PR_TRUE,
-                                             OBJ_IS_NOT_GLOBAL, &rv))
+                                             OBJ_IS_NOT_GLOBAL, &rv,
+                                             aHelper))
     {
         
         

@@ -51,7 +51,7 @@ class nsSVGGraphicElement : public nsSVGGraphicElementBase,
                             public nsIDOMSVGTransformable 
 {
 protected:
-  nsSVGGraphicElement(nsINodeInfo *aNodeInfo);
+  nsSVGGraphicElement(already_AddRefed<nsINodeInfo> aNodeInfo);
   
 public:
   

@@ -483,6 +483,8 @@ protected:
     static nsIXBLService*       gXBLService;
 
 public:
+    nsXULElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+
     static nsresult
     Create(nsXULPrototypeElement* aPrototype, nsIDocument* aDocument,
            PRBool aIsScriptable, mozilla::dom::Element** aResult);
@@ -587,6 +589,7 @@ public:
 
     virtual nsAttrInfo GetAttrInfo(PRInt32 aNamespaceID, nsIAtom* aName) const;
 
+    virtual nsXPCClassInfo* GetClassInfo();
 protected:
     
     
@@ -594,8 +597,6 @@ protected:
 
     
     friend class nsNSElementTearoff;
-
-    nsXULElement(nsINodeInfo* aNodeInfo);
 
     
     nsresult EnsureContentsGenerated(void) const;

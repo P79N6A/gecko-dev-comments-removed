@@ -52,7 +52,7 @@ class nsHTMLOptionElement : public nsGenericHTMLElement,
                             public nsIJSNativeInitializer
 {
 public:
-  nsHTMLOptionElement(nsINodeInfo *aNodeInfo);
+  nsHTMLOptionElement(already_AddRefed<nsINodeInfo> aNodeInfo);
   virtual ~nsHTMLOptionElement();
 
   
@@ -100,6 +100,7 @@ public:
 
   nsresult CopyInnerTo(nsGenericElement* aDest) const;
 
+  virtual nsXPCClassInfo* GetClassInfo();
 protected:
   
 

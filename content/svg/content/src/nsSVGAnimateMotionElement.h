@@ -50,8 +50,8 @@ class nsSVGAnimateMotionElement : public nsSVGAnimateMotionElementBase,
 {
 protected:
   friend nsresult NS_NewSVGAnimateMotionElement(nsIContent **aResult,
-                                                   nsINodeInfo *aNodeInfo);
-  nsSVGAnimateMotionElement(nsINodeInfo* aNodeInfo);
+                                                already_AddRefed<nsINodeInfo> aNodeInfo);
+  nsSVGAnimateMotionElement(already_AddRefed<nsINodeInfo> aNodeInfo);
 
   mozilla::SVGMotionSMILAnimationFunction mAnimationFunction;
 
@@ -76,6 +76,8 @@ public:
   
   
   void MpathChanged() { mAnimationFunction.MpathChanged(); }
+
+  virtual nsXPCClassInfo* GetClassInfo();
 };
 
 #endif 

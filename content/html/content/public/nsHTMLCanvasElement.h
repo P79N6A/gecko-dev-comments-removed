@@ -65,7 +65,7 @@ class nsHTMLCanvasElement : public nsGenericHTMLElement,
   typedef mozilla::layers::LayerManager LayerManager;
 
 public:
-  nsHTMLCanvasElement(nsINodeInfo *aNodeInfo);
+  nsHTMLCanvasElement(already_AddRefed<nsINodeInfo> aNodeInfo);
   virtual ~nsHTMLCanvasElement();
 
   
@@ -163,6 +163,7 @@ public:
   
   void MarkContextClean();
 
+  virtual nsXPCClassInfo* GetClassInfo();
 protected:
   nsIntSize GetWidthHeight();
 
