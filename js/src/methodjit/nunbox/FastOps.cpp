@@ -419,9 +419,11 @@ mjit::Compiler::jsop_relational(JSOp op, BoolStub stub, jsbytecode *target, JSOp
               case Assembler::GreaterThanOrEqual:
                 cond = Assembler::LessThan;
                 break;
-              case Assembler::Equal: 
+              case Assembler::Equal:
+                cond = Assembler::NotEqual;
+                break;
               case Assembler::NotEqual:
-                
+                cond = Assembler::Equal;
                 break;
               default:
                 JS_NOT_REACHED("hello");
