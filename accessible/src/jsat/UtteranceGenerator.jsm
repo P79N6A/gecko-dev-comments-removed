@@ -65,10 +65,7 @@ var UtteranceGenerator = {
 
 
 
-
-
-
-  genForObject: function genForObject(aAccessible, aForceName) {
+  genForObject: function genForObject(aAccessible) {
     let roleString = gAccRetrieval.getStringRole(aAccessible.role);
 
     let func = this.objectUtteranceFunctions[roleString] ||
@@ -76,7 +73,7 @@ var UtteranceGenerator = {
 
     let flags = this.verbosityRoleMap[roleString] || 0;
 
-    if (aForceName)
+    if (aAccessible.childCount == 0)
       flags |= INCLUDE_NAME;
 
     let state = {};
@@ -130,25 +127,25 @@ var UtteranceGenerator = {
     'menubar': INCLUDE_DESC,
     'scrollbar': INCLUDE_DESC,
     'grip': INCLUDE_DESC,
-    'alert': INCLUDE_DESC,
+    'alert': INCLUDE_DESC | INCLUDE_NAME,
     'menupopup': INCLUDE_DESC,
     'menuitem': INCLUDE_DESC,
     'tooltip': INCLUDE_DESC,
     'application': INCLUDE_NAME,
     'document': INCLUDE_NAME,
+    'grouping': INCLUDE_DESC | INCLUDE_NAME,
     'toolbar': INCLUDE_DESC,
+    'table': INCLUDE_DESC | INCLUDE_NAME,
     'link': INCLUDE_DESC,
     'list': INCLUDE_DESC,
     'listitem': INCLUDE_DESC,
     'outline': INCLUDE_DESC,
     'outlineitem': INCLUDE_DESC,
     'pagetab': INCLUDE_DESC,
-    'graphic': INCLUDE_DESC | INCLUDE_NAME,
-    'statictext': INCLUDE_NAME,
-    'text leaf': INCLUDE_NAME,
+    'graphic': INCLUDE_DESC,
     'pushbutton': INCLUDE_DESC,
-    'checkbutton': INCLUDE_DESC | INCLUDE_NAME,
-    'radiobutton': INCLUDE_DESC | INCLUDE_NAME,
+    'checkbutton': INCLUDE_DESC,
+    'radiobutton': INCLUDE_DESC,
     'combobox': INCLUDE_DESC,
     'droplist': INCLUDE_DESC,
     'progressbar': INCLUDE_DESC,
@@ -168,11 +165,11 @@ var UtteranceGenerator = {
     'toggle button': INCLUDE_DESC,
     'header': INCLUDE_DESC,
     'footer': INCLUDE_DESC,
-    'entry': INCLUDE_DESC,
+    'entry': INCLUDE_DESC | INCLUDE_NAME,
     'caption': INCLUDE_DESC,
     'document frame': INCLUDE_DESC,
     'heading': INCLUDE_DESC,
-    'calendar': INCLUDE_DESC,
+    'calendar': INCLUDE_DESC | INCLUDE_NAME,
     'combobox list': INCLUDE_DESC,
     'combobox option': INCLUDE_DESC,
     'image map': INCLUDE_DESC,
