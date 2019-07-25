@@ -2114,6 +2114,11 @@ static bool SelectorMatches(Element* aElement,
         
         return false;
       } else {
+        if (aTreeMatchContext.mForStyling &&
+            statesToCheck.HasAtLeastOneOfStates(NS_EVENT_STATE_HOVER)) {
+          
+          aElement->SetFlags(NODE_HAS_RELEVANT_HOVER_RULES);
+        }
         if (aNodeMatchContext.mStateMask.HasAtLeastOneOfStates(statesToCheck)) {
           if (aDependence)
             *aDependence = true;

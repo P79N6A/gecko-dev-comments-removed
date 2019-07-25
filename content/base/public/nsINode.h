@@ -176,10 +176,13 @@ enum {
   NODE_HANDLING_CLICK          = 0x00040000U,
 
   
+  NODE_HAS_RELEVANT_HOVER_RULES = 0x00080000U,
+
   
   
   
-  NODE_SCRIPT_TYPE_OFFSET =               19,
+  
+  NODE_SCRIPT_TYPE_OFFSET =               20,
 
   NODE_SCRIPT_TYPE_SIZE =                  2,
 
