@@ -2574,9 +2574,7 @@ namespace nanojit
             ins = out->ins2(op, a, b);
             addNL(LIns2, ins, k);
         } else if (ins->isCmp()) {
-            
-            
-            if (0 && knownCmpValues.containsKey(ins)) {
+            if (knownCmpValues.containsKey(ins)) {
                 
                 
                 
