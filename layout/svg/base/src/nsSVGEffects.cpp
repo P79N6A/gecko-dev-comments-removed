@@ -49,22 +49,50 @@ using namespace mozilla;
 using namespace mozilla::dom;
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 NS_IMPL_ISUPPORTS1(nsSVGRenderingObserver, nsIMutationObserver)
+
+void
+nsSVGRenderingObserver::StartListening()
+{
+  Element* target = GetTarget();
+  if (target) {
+    target->AddMutationObserver(this);
+  }
+}
+
+void
+nsSVGRenderingObserver::StopListening()
+{
+  Element* target = GetTarget();
+
+  if (target) {
+    target->RemoveMutationObserver(this);
+    if (mInObserverList) {
+      nsSVGEffects::RemoveRenderingObserver(target, this);
+      mInObserverList = PR_FALSE;
+    }
+  }
+  NS_ASSERTION(!mInObserverList, "still in an observer list?");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifdef _MSC_VER
 
@@ -73,12 +101,11 @@ NS_IMPL_ISUPPORTS1(nsSVGRenderingObserver, nsIMutationObserver)
 #pragma warning(push)
 #pragma warning(disable:4355)
 #endif
-nsSVGRenderingObserver::nsSVGRenderingObserver(nsIURI *aURI,
-                                               nsIFrame *aFrame,
-                                               PRBool aReferenceImage)
+nsSVGIDRenderingObserver::nsSVGIDRenderingObserver(nsIURI *aURI,
+                                                   nsIFrame *aFrame,
+                                                   PRBool aReferenceImage)
   : mElement(this), mFrame(aFrame),
-    mFramePresShell(aFrame->PresContext()->PresShell()),
-    mInObserverList(PR_FALSE)
+    mFramePresShell(aFrame->PresContext()->PresShell())
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
@@ -88,30 +115,9 @@ nsSVGRenderingObserver::nsSVGRenderingObserver(nsIURI *aURI,
   StartListening();
 }
 
-nsSVGRenderingObserver::~nsSVGRenderingObserver()
+nsSVGIDRenderingObserver::~nsSVGIDRenderingObserver()
 {
   StopListening();
-}
-
-void
-nsSVGRenderingObserver::StartListening()
-{
-  if (mElement.get()) {
-    mElement.get()->AddMutationObserver(this);
-  }
-}
-
-void
-nsSVGRenderingObserver::StopListening()
-{
-  if (mElement.get()) {
-    mElement.get()->RemoveMutationObserver(this);
-    if (mInObserverList) {
-      nsSVGEffects::RemoveRenderingObserver(mElement.get(), this);
-      mInObserverList = PR_FALSE;
-    }
-  }
-  NS_ASSERTION(!mInObserverList, "still in an observer list?");
 }
 
 static nsSVGRenderingObserverList *
@@ -124,20 +130,21 @@ GetObserverList(Element *aElement)
 Element*
 nsSVGRenderingObserver::GetReferencedElement()
 {
+  Element* target = GetTarget();
 #ifdef DEBUG
-  if (mElement.get()) {
-    nsSVGRenderingObserverList *observerList = GetObserverList(mElement.get());
+  if (target) {
+    nsSVGRenderingObserverList *observerList = GetObserverList(target);
     PRBool inObserverList = observerList && observerList->Contains(this);
     NS_ASSERTION(inObserverList == mInObserverList, "failed to track whether we're in our referenced element's observer list!");
   } else {
     NS_ASSERTION(!mInObserverList, "In whose observer list are we, then?");
   }
 #endif
-  if (mElement.get() && !mInObserverList) {
-    nsSVGEffects::AddRenderingObserver(mElement.get(), this);
+  if (target && !mInObserverList) {
+    nsSVGEffects::AddRenderingObserver(target, this);
     mInObserverList = PR_TRUE;
   }
-  return mElement.get();
+  return target;
 }
 
 nsIFrame*
@@ -160,7 +167,7 @@ nsSVGRenderingObserver::GetReferencedFrame(nsIAtom* aFrameType, PRBool* aOK)
 }
 
 void
-nsSVGRenderingObserver::DoUpdate()
+nsSVGIDRenderingObserver::DoUpdate()
 {
   if (mFramePresShell->IsDestroying()) {
     
@@ -237,7 +244,7 @@ nsSVGRenderingObserver::ContentRemoved(nsIDocument *aDocument,
 }
 
 NS_IMPL_ISUPPORTS_INHERITED1(nsSVGFilterProperty,
-                             nsSVGRenderingObserver,
+                             nsSVGIDRenderingObserver,
                              nsISVGFilterProperty)
 
 nsSVGFilterFrame *
@@ -258,7 +265,7 @@ InvalidateAllContinuations(nsIFrame* aFrame)
 void
 nsSVGFilterProperty::DoUpdate()
 {
-  nsSVGRenderingObserver::DoUpdate();
+  nsSVGIDRenderingObserver::DoUpdate();
   if (!mFrame)
     return;
 
@@ -276,7 +283,7 @@ nsSVGFilterProperty::DoUpdate()
 void
 nsSVGMarkerProperty::DoUpdate()
 {
-  nsSVGRenderingObserver::DoUpdate();
+  nsSVGIDRenderingObserver::DoUpdate();
   if (!mFrame)
     return;
 
@@ -293,7 +300,7 @@ nsSVGMarkerProperty::DoUpdate()
 void
 nsSVGTextPathProperty::DoUpdate()
 {
-  nsSVGRenderingObserver::DoUpdate();
+  nsSVGIDRenderingObserver::DoUpdate();
   if (!mFrame)
     return;
 
@@ -308,7 +315,7 @@ nsSVGTextPathProperty::DoUpdate()
 void
 nsSVGPaintingProperty::DoUpdate()
 {
-  nsSVGRenderingObserver::DoUpdate();
+  nsSVGIDRenderingObserver::DoUpdate();
   if (!mFrame)
     return;
 

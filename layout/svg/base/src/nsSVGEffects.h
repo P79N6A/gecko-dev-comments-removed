@@ -60,12 +60,15 @@ class nsSVGMaskFrame;
 
 
 
+
 class nsSVGRenderingObserver : public nsStubMutationObserver {
 public:
   typedef mozilla::dom::Element Element;
-  nsSVGRenderingObserver(nsIURI* aURI, nsIFrame *aFrame,
-                         PRBool aReferenceImage);
-  virtual ~nsSVGRenderingObserver();
+  nsSVGRenderingObserver()
+    : mInObserverList(PR_FALSE)
+    {}
+  virtual ~nsSVGRenderingObserver()
+    {}
 
   
   NS_DECL_ISUPPORTS
@@ -77,24 +80,59 @@ public:
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
 
   void InvalidateViaReferencedElement();
-
-  Element* GetReferencedElement();
   nsIFrame* GetReferencedFrame();
+
   
 
 
 
   nsIFrame* GetReferencedFrame(nsIAtom* aFrameType, PRBool* aOK);
 
+  Element* GetReferencedElement();
+
 protected:
   
-  virtual void DoUpdate();
   void StartListening();
   void StopListening();
 
+  
+  virtual void DoUpdate() = 0; 
+
+  
+  
+  virtual Element* GetTarget() = 0;
+
+  
+  PRPackedBool mInObserverList;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+class nsSVGIDRenderingObserver : public nsSVGRenderingObserver {
+public:
+  typedef mozilla::dom::Element Element;
+  nsSVGIDRenderingObserver(nsIURI* aURI, nsIFrame *aFrame,
+                         PRBool aReferenceImage);
+  virtual ~nsSVGIDRenderingObserver();
+
+protected:
+  Element* GetTarget() { return mElement.get(); }
+
+  
+  virtual void DoUpdate();
+
   class SourceReference : public nsReferencedElement {
   public:
-    SourceReference(nsSVGRenderingObserver* aContainer) : mContainer(aContainer) {}
+    SourceReference(nsSVGIDRenderingObserver* aContainer) : mContainer(aContainer) {}
   protected:
     virtual void ElementChanged(Element* aFrom, Element* aTo) {
       mContainer->StopListening();
@@ -108,7 +146,7 @@ protected:
 
     virtual PRBool IsPersistent() { return PR_TRUE; }
   private:
-    nsSVGRenderingObserver* mContainer;
+    nsSVGIDRenderingObserver* mContainer;
   };
   
   SourceReference mElement;
@@ -120,16 +158,14 @@ protected:
   
   
   nsIPresShell *mFramePresShell;
-  
-  PRPackedBool mInObserverList;
 };
 
 class nsSVGFilterProperty :
-  public nsSVGRenderingObserver, public nsISVGFilterProperty {
+  public nsSVGIDRenderingObserver, public nsISVGFilterProperty {
 public:
   nsSVGFilterProperty(nsIURI *aURI, nsIFrame *aFilteredFrame,
                       PRBool aReferenceImage)
-    : nsSVGRenderingObserver(aURI, aFilteredFrame, aReferenceImage) {}
+    : nsSVGIDRenderingObserver(aURI, aFilteredFrame, aReferenceImage) {}
 
   
 
@@ -147,28 +183,28 @@ private:
   virtual void DoUpdate();
 };
 
-class nsSVGMarkerProperty : public nsSVGRenderingObserver {
+class nsSVGMarkerProperty : public nsSVGIDRenderingObserver {
 public:
   nsSVGMarkerProperty(nsIURI *aURI, nsIFrame *aFrame, PRBool aReferenceImage)
-    : nsSVGRenderingObserver(aURI, aFrame, aReferenceImage) {}
+    : nsSVGIDRenderingObserver(aURI, aFrame, aReferenceImage) {}
 
 protected:
   virtual void DoUpdate();
 };
 
-class nsSVGTextPathProperty : public nsSVGRenderingObserver {
+class nsSVGTextPathProperty : public nsSVGIDRenderingObserver {
 public:
   nsSVGTextPathProperty(nsIURI *aURI, nsIFrame *aFrame, PRBool aReferenceImage)
-    : nsSVGRenderingObserver(aURI, aFrame, aReferenceImage) {}
+    : nsSVGIDRenderingObserver(aURI, aFrame, aReferenceImage) {}
 
 protected:
   virtual void DoUpdate();
 };
  
-class nsSVGPaintingProperty : public nsSVGRenderingObserver {
+class nsSVGPaintingProperty : public nsSVGIDRenderingObserver {
 public:
   nsSVGPaintingProperty(nsIURI *aURI, nsIFrame *aFrame, PRBool aReferenceImage)
-    : nsSVGRenderingObserver(aURI, aFrame, aReferenceImage) {}
+    : nsSVGIDRenderingObserver(aURI, aFrame, aReferenceImage) {}
 
 protected:
   virtual void DoUpdate();
