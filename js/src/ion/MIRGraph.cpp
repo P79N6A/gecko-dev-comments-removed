@@ -720,8 +720,7 @@ MBasicBlock::setBackedge(MBasicBlock *pred)
     
     JS_ASSERT(lastIns_);
     JS_ASSERT(pred->lastIns_);
-    JS_ASSERT(pred->stackPosition_ == stackPosition_);
-    JS_ASSERT(entryResumePoint()->stackDepth() == stackPosition_);
+    JS_ASSERT(pred->stackDepth() == entryResumePoint()->stackDepth());
 
     
     JS_ASSERT(kind_ == PENDING_LOOP_HEADER);
@@ -733,7 +732,7 @@ MBasicBlock::setBackedge(MBasicBlock *pred)
     
     
     
-    for (uint32 i = 0; i < stackPosition_; i++) {
+    for (uint32 i = 0; i < pred->stackDepth(); i++) {
         MDefinition *entryDef = entryResumePoint()->getOperand(i);
         MDefinition *exitDef = pred->slots_[i].def;
 
@@ -815,7 +814,7 @@ MBasicBlock::setBackedge(MBasicBlock *pred)
         
         
         
-        for (uint32 j = i + 1; j < stackPosition_; j++)
+        for (uint32 j = i + 1; j < pred->stackDepth(); j++)
             JS_ASSERT(slots_[j].def != entryDef);
 #endif
 
