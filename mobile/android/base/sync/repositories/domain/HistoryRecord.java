@@ -100,6 +100,7 @@ public class HistoryRecord extends Record {
 
 
 
+
   @Override
   public boolean congruentWith(Object o) {
     if (o == null || !(o instanceof HistoryRecord)) {
@@ -109,8 +110,7 @@ public class HistoryRecord extends Record {
     if (!super.congruentWith(other)) {
       return false;
     }
-    return RepoUtils.stringsEqual(this.title, other.title) &&
-           RepoUtils.stringsEqual(this.histURI, other.histURI);
+    return RepoUtils.stringsEqual(this.histURI, other.histURI);
   }
 
   @Override
