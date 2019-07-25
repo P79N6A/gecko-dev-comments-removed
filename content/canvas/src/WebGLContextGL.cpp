@@ -2228,7 +2228,7 @@ WebGLContext::GetError(WebGLenum *_retval)
 
     
     
-    WebGLenum err = gl->fGetError();
+    WebGLenum err = gl->GetAndClearError();
 
     
     
