@@ -267,6 +267,13 @@ public:
   JSObject* ReceiveObject(JSContext*, ErrorResult&);
   JSObject* ReceiveNullableObject(JSContext*, ErrorResult&);
 
+  
+  void MethodRenamedTo(ErrorResult&);
+  void MethodRenamedTo(int8_t, ErrorResult&);
+  int8_t GetAttributeGetterRenamedTo(ErrorResult&);
+  int8_t GetAttributeRenamedTo(ErrorResult&);
+  void SetAttributeRenamedTo(int8_t, ErrorResult&);
+
 private:
   
   
