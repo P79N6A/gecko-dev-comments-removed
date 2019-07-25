@@ -440,6 +440,25 @@ BrowserGlue.prototype = {
     if ((aCancelQuit instanceof Ci.nsISupportsPRBool) && aCancelQuit.data)
       return;
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
     var windowcount = 0;
     var pagecount = 0;
     var browserEnum = Services.wm.getEnumerator("navigator:browser");
@@ -456,30 +475,48 @@ BrowserGlue.prototype = {
     if (pagecount < 2)
       return;
 
-    if (aQuitType != "restart")
+    if (!aQuitType)
       aQuitType = "quit";
-
-    var showPrompt = true;
-    try {
-      
-      
-      
-
-      var sessionWillBeSaved = Services.prefs.getIntPref("browser.startup.page") == 3 ||
-                               Services.prefs.getBoolPref("browser.sessionstore.resume_session_once");
-      if (sessionWillBeSaved || !Services.prefs.getBoolPref("browser.warnOnQuit"))
-        showPrompt = false;
-      else if (aQuitType == "restart")
-        showPrompt = Services.prefs.getBoolPref("browser.warnOnRestart");
-      else
-        showPrompt = Services.prefs.getBoolPref("browser.tabs.warnOnClose");
-    } catch (ex) {}
 
     
     var inPrivateBrowsing = Cc["@mozilla.org/privatebrowsing;1"].
                             getService(Ci.nsIPrivateBrowsingService).
                             privateBrowsingEnabled;
-    if (!showPrompt || inPrivateBrowsing)
+    if (inPrivateBrowsing)
+      return;
+
+    var showPrompt = false;
+    var mostRecentBrowserWindow;
+
+    
+    
+    
+    
+
+    var sessionWillBeRestored = Services.prefs.getIntPref("browser.startup.page") == 3 ||
+                                Services.prefs.getBoolPref("browser.sessionstore.resume_session_once");
+    if (sessionWillBeRestored || !Services.prefs.getBoolPref("browser.warnOnQuit"))
+      return;
+
+    
+    
+    if (aQuitType != "restart" && Services.prefs.getBoolPref("browser.showQuitWarning")) {
+      showPrompt = true;
+    }
+    else if (aQuitType == "restart" && Services.prefs.getBoolPref("browser.warnOnRestart")) {
+      showPrompt = true;
+    }
+    else if (aQuitType == "lastwindow") {
+      
+      
+      
+      
+      mostRecentBrowserWindow = Services.wm.getMostRecentWindow("navigator:browser");
+      aCancelQuit.data = !mostRecentBrowserWindow.gBrowser.warnAboutClosingTabs(true);
+      return;
+    }
+
+    if (!showPrompt)
       return;
 
     var quitBundle = Services.strings.createBundle("chrome://browser/locale/quitDialog.properties");
@@ -519,7 +556,10 @@ BrowserGlue.prototype = {
       button2Title = quitBundle.GetStringFromName("quitTitle");
     }
 
-    var mostRecentBrowserWindow = Services.wm.getMostRecentWindow("navigator:browser");
+    
+    
+    mostRecentBrowserWindow = Services.wm.getMostRecentWindow("navigator:browser");
+
     var buttonChoice =
       promptService.confirmEx(mostRecentBrowserWindow, quitDialogTitle, message,
                               flags, button0Title, button1Title, button2Title,
@@ -528,7 +568,7 @@ BrowserGlue.prototype = {
     switch (buttonChoice) {
     case 2: 
       if (neverAsk.value)
-        Services.prefs.setBoolPref("browser.tabs.warnOnClose", false);
+        Services.prefs.setBoolPref("browser.showQuitWarning", false);
       break;
     case 1: 
       aCancelQuit.QueryInterface(Ci.nsISupportsPRBool);

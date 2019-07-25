@@ -247,8 +247,12 @@ pref("browser.aboutHomeSnippets.updateUrl", "https://snippets.mozilla.com/%START
 pref("browser.enable_automatic_image_resizing", true);
 pref("browser.chrome.site_icons", true);
 pref("browser.chrome.favicons", true);
-pref("browser.warnOnQuit", false);
+
+pref("browser.warnOnQuit", true);
 pref("browser.warnOnRestart", false);
+
+
+pref("browser.showQuitWarning", false);
 pref("browser.fullscreen.autohide", true);
 pref("browser.fullscreen.animateUp", 1);
 
