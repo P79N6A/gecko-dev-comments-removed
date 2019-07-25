@@ -103,6 +103,8 @@ function onTabViewHidden() {
       
       ok(!TabView.isVisible(), "we finish with Tab View not visible");
       registerCleanupFunction(verifyCleanState); 
+
+      gBrowser.selectedTab = gBrowser.tabs[0];
       finish();
     });
   });

@@ -503,41 +503,43 @@ PrivateBrowsingService.prototype = {
     if (this._currentStatus != STATE_IDLE)
       throw Cr.NS_ERROR_FAILURE;
 
+    if (val == this._inPrivateBrowsing)
+      return;
+
     try {
+      if (val) {
+        if (!this._canEnterPrivateBrowsingMode())
+          return;
+      }
+      else {
+        if (!this._canLeavePrivateBrowsingMode())
+          return;
+      }
+
+      this._ensureCanCloseWindows();
+
+      
       this._currentStatus = STATE_TRANSITION_STARTED;
 
-      if (val != this._inPrivateBrowsing) {
-        if (val) {
-          if (!this._canEnterPrivateBrowsingMode())
-            return;
-        }
-        else {
-          if (!this._canLeavePrivateBrowsingMode())
-            return;
-        }
+      this._autoStarted = this._prefs.getBoolPref("browser.privatebrowsing.autostart");
+      this._inPrivateBrowsing = val != false;
 
-        this._ensureCanCloseWindows();
+      let data = val ? "enter" : "exit";
 
-        this._autoStarted = this._prefs.getBoolPref("browser.privatebrowsing.autostart");
-        this._inPrivateBrowsing = val != false;
+      let quitting = Cc["@mozilla.org/supports-PRBool;1"].
+                     createInstance(Ci.nsISupportsPRBool);
+      quitting.data = this._quitting;
 
-        let data = val ? "enter" : "exit";
+      
+      this._obs.notifyObservers(quitting, "private-browsing-change-granted", data);
 
-        let quitting = Cc["@mozilla.org/supports-PRBool;1"].
-                       createInstance(Ci.nsISupportsPRBool);
-        quitting.data = this._quitting;
+      
+      this._onBeforePrivateBrowsingModeChange();
 
-        
-        this._obs.notifyObservers(quitting, "private-browsing-change-granted", data);
+      this._obs.notifyObservers(quitting, "private-browsing", data);
 
-        
-        this._onBeforePrivateBrowsingModeChange();
-
-        this._obs.notifyObservers(quitting, "private-browsing", data);
-
-        
-        this._onAfterPrivateBrowsingModeChange();
-      }
+      
+      this._onAfterPrivateBrowsingModeChange();
     } catch (ex) {
       
       
