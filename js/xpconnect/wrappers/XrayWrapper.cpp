@@ -42,6 +42,169 @@ JSClass HolderClass = {
     JS_EnumerateStub,       JS_ResolveStub,  JS_ConvertStub
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+enum ExpandoSlots {
+    JSSLOT_EXPANDO_NEXT = 0,
+    JSSLOT_EXPANDO_ORIGIN,
+    JSSLOT_EXPANDO_EXCLUSIVE_GLOBAL,
+    JSSLOT_EXPANDO_COUNT
+};
+
+static nsIPrincipal*
+ObjectPrincipal(JSObject *obj)
+{
+    return GetCompartmentPrincipal(js::GetObjectCompartment(obj));
+}
+
+static nsIPrincipal*
+GetExpandoObjectPrincipal(JSObject *expandoObject)
+{
+    JS::Value v = JS_GetReservedSlot(expandoObject, JSSLOT_EXPANDO_ORIGIN);
+    return static_cast<nsIPrincipal*>(v.toPrivate());
+}
+
+static void
+ExpandoObjectFinalize(JSFreeOp *fop, JSObject *obj)
+{
+    
+    nsIPrincipal *principal = GetExpandoObjectPrincipal(obj);
+    NS_RELEASE(principal);
+}
+
+JSClass ExpandoObjectClass = {
+    "XrayExpandoObject",
+    JSCLASS_HAS_RESERVED_SLOTS(JSSLOT_EXPANDO_COUNT),
+    JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_StrictPropertyStub,
+    JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, ExpandoObjectFinalize
+};
+
+bool
+ExpandoObjectMatchesConsumer(JSObject *expandoObject,
+                             nsIPrincipal *consumerOrigin,
+                             JSObject *exclusiveGlobal)
+{
+    
+    nsIPrincipal *o = GetExpandoObjectPrincipal(expandoObject);
+    bool equal;
+    
+    
+    
+    
+    
+    
+    
+    nsresult rv = consumerOrigin->EqualsIgnoringDomain(o, &equal);
+    if (NS_FAILED(rv) || !equal)
+        return false;
+
+    
+    JSObject *owner = JS_GetReservedSlot(expandoObject,
+                                         JSSLOT_EXPANDO_EXCLUSIVE_GLOBAL)
+                                        .toObjectOrNull();
+    if (!owner && !exclusiveGlobal)
+        return true;
+    return owner == exclusiveGlobal;
+}
+
+JSObject *
+LookupExpandoObject(JSObject *target, nsIPrincipal *origin,
+                    JSObject *exclusiveGlobal)
+{
+    
+    JSObject *head = GetExpandoChain(target);
+    while (head) {
+        if (ExpandoObjectMatchesConsumer(head, origin, exclusiveGlobal))
+            return head;
+        head = JS_GetReservedSlot(head, JSSLOT_EXPANDO_NEXT).toObjectOrNull();
+    }
+
+    
+    return nsnull;
+}
+
+
+JSObject *
+LookupExpandoObject(JSObject *target, JSObject *consumer)
+{
+    JSObject *consumerGlobal = js::GetGlobalForObjectCrossCompartment(consumer);
+    bool isSandbox = !strcmp(js::GetObjectJSClass(consumerGlobal)->name, "Sandbox");
+    return LookupExpandoObject(target, ObjectPrincipal(consumer),
+                               isSandbox ? consumerGlobal : nsnull);
+}
+
+JSObject *
+AttachExpandoObject(JSContext *cx, JSObject *target, nsIPrincipal *origin,
+                    JSObject *exclusiveGlobal)
+{
+    
+    MOZ_ASSERT(IS_WN_WRAPPER(target));
+
+    
+    MOZ_ASSERT(!LookupExpandoObject(target, origin, exclusiveGlobal));
+
+    
+    JSObject *expandoObject = JS_NewObjectWithGivenProto(cx, &ExpandoObjectClass,
+                                                         nsnull, target);
+    if (!expandoObject)
+        return nsnull;
+
+    
+    NS_ADDREF(origin);
+    JS_SetReservedSlot(expandoObject, JSSLOT_EXPANDO_ORIGIN, PRIVATE_TO_JSVAL(origin));
+
+    
+    JS_SetReservedSlot(expandoObject, JSSLOT_EXPANDO_EXCLUSIVE_GLOBAL,
+                       OBJECT_TO_JSVAL(exclusiveGlobal));
+
+    
+    
+    
+    JSObject *chain = GetExpandoChain(target);
+    if (!chain) {
+        XPCWrappedNative *wn =
+          static_cast<XPCWrappedNative *>(xpc_GetJSPrivate(target));
+        nsRefPtr<nsXPCClassInfo> ci;
+        CallQueryInterface(wn->Native(), getter_AddRefs(ci));
+        if (ci)
+            ci->PreserveWrapper(wn->Native());
+    }
+
+    
+    JS_SetReservedSlot(expandoObject, JSSLOT_EXPANDO_NEXT, OBJECT_TO_JSVAL(chain));
+    SetExpandoChain(target, expandoObject);
+
+    return expandoObject;
+}
+
+JSObject *
+EnsureExpandoObject(JSContext *cx, JSObject *wrapper, JSObject *target)
+{
+    JSObject *expandoObject = LookupExpandoObject(target, wrapper);
+    if (!expandoObject) {
+        
+        
+        JSObject *consumerGlobal = js::GetGlobalForObjectCrossCompartment(wrapper);
+        bool isSandbox = !strcmp(js::GetObjectJSClass(consumerGlobal)->name, "Sandbox");
+        expandoObject = AttachExpandoObject(cx, target, ObjectPrincipal(wrapper),
+                                            isSandbox ? consumerGlobal : nsnull);
+    }
+    return expandoObject;
+}
+
 JSObject *
 createHolder(JSContext *cx, JSObject *wrappedNative, JSObject *parent)
 {
