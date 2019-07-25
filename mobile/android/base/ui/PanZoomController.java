@@ -133,7 +133,8 @@ public class PanZoomController
 
         PANNING_HOLD_LOCKED, 
         PINCHING,       
-        ANIMATED_ZOOM   
+        ANIMATED_ZOOM,  
+        BOUNCING,       
     }
 
     private PanZoomState mState;
@@ -142,10 +143,19 @@ public class PanZoomController
     private boolean mOverrideScrollAck;
     private boolean mOverrideScrollPending;
 
+    
+    private int mBounceFrame;
+    
+
+
+
+    private ViewportMetrics mBounceStartMetrics, mBounceEndMetrics;
+
     public PanZoomController(LayerController controller) {
         mController = controller;
         mX = new AxisX(); mY = new AxisY();
         mState = PanZoomState.NOTHING;
+        mBounceFrame = -1;
 
         GeckoAppShell.registerGeckoEventListener("Browser:ZoomToRect", this);
         GeckoAppShell.registerGeckoEventListener("Browser:ZoomToPageWidth", this);
@@ -239,7 +249,7 @@ public class PanZoomController
                 mState = PanZoomState.NOTHING;
                 
             case NOTHING:
-                fling();
+                bounce();
                 break;
             }
         }
@@ -325,7 +335,7 @@ public class PanZoomController
             
             
             
-            fling();
+            bounce();
             return false;
         case PANNING:
         case PANNING_LOCKED:
@@ -359,7 +369,7 @@ public class PanZoomController
     private boolean onTouchCancel(MotionEvent event) {
         mState = PanZoomState.NOTHING;
         
-        fling();
+        bounce();
         return false;
     }
 
@@ -484,6 +494,24 @@ public class PanZoomController
     }
 
     
+    private void bounce(ViewportMetrics metrics) {
+        stopAnimationTimer();
+
+        mBounceFrame = 0;
+        mState = PanZoomState.FLING;
+        mX.setFlingState(Axis.FlingStates.SNAPPING); mY.setFlingState(Axis.FlingStates.SNAPPING);
+        mBounceStartMetrics = mController.getViewportMetrics();
+        mBounceEndMetrics = metrics;
+
+        startAnimationTimer(new BounceRunnable());
+    }
+
+    
+    private void bounce() {
+        bounce(getValidViewportMetrics());
+    }
+
+    
     private void startAnimationTimer(final Runnable runnable) {
         if (mAnimationTimer != null) {
             Log.e(LOGTAG, "Attempted to start a new fling without canceling the old one!");
@@ -539,46 +567,94 @@ public class PanZoomController
     }
 
     
-    private class FlingRunnable implements Runnable {
+    private class BounceRunnable implements Runnable {
         public void run() {
-            mX.advanceFling(); mY.advanceFling();
+            
 
-            if (!mOverridePanning) {
-                
-                
-                boolean waitingToSnapX = mX.getFlingState() == Axis.FlingStates.WAITING_TO_SNAP;
-                boolean waitingToSnapY = mY.getFlingState() == Axis.FlingStates.WAITING_TO_SNAP;
-                if ((mX.getOverscroll() == Axis.Overscroll.PLUS || mX.getOverscroll() == Axis.Overscroll.MINUS) &&
-                    (mY.getOverscroll() == Axis.Overscroll.PLUS || mY.getOverscroll() == Axis.Overscroll.MINUS))
-                {
-                    if (waitingToSnapX && waitingToSnapY) {
-                        mX.startSnap(); mY.startSnap();
-                    }
-                } else {
-                    if (waitingToSnapX)
-                        mX.startSnap();
-                    if (waitingToSnapY)
-                        mY.startSnap();
-                }
+
+
+
+            if (mState != PanZoomState.FLING) {
+                finishAnimation();
+                return;
             }
-
-            mX.displace(); mY.displace();
-            updatePosition();
-
-            if (mX.getFlingState() == Axis.FlingStates.STOPPED &&
-                    mY.getFlingState() == Axis.FlingStates.STOPPED) {
-                stop();
-            }
-        }
-
-        private void stop() {
-            mState = PanZoomState.NOTHING;
-            stopAnimationTimer();
 
             
-            mController.setForceRedraw();
-            mController.notifyLayerClientOfGeometryChange();
+            if (mBounceFrame < EASE_OUT_ANIMATION_FRAMES.length) {
+                advanceBounce();
+                return;
+            }
+
+            
+            finishBounce();
+            finishAnimation();
         }
+
+        
+        private void advanceBounce() {
+            float t = EASE_OUT_ANIMATION_FRAMES[mBounceFrame];
+            ViewportMetrics newMetrics = mBounceStartMetrics.interpolate(mBounceEndMetrics, t);
+            mController.setViewportMetrics(newMetrics);
+            mController.notifyLayerClientOfGeometryChange();
+            mBounceFrame++;
+        }
+
+        
+        private void finishBounce() {
+            mController.setViewportMetrics(mBounceEndMetrics);
+            mController.notifyLayerClientOfGeometryChange();
+            mBounceFrame = -1;
+        }
+    }
+
+    
+    private class FlingRunnable implements Runnable {
+        public void run() {
+            
+
+
+
+
+            if (mState != PanZoomState.FLING) {
+                finishAnimation();
+                return;
+            }
+
+            
+            boolean flingingX = mX.getFlingState() == Axis.FlingStates.FLINGING;
+            boolean flingingY = mY.getFlingState() == Axis.FlingStates.FLINGING;
+            if (flingingX)
+                mX.advanceFling();
+            if (flingingY)
+                mY.advanceFling();
+
+            
+            if (flingingX || flingingY) {
+                mX.displace(); mY.displace();
+                updatePosition();
+                return;
+            }
+
+            
+
+
+
+            boolean overscrolledX = mX.getOverscroll() != Axis.Overscroll.NONE;
+            boolean overscrolledY = mY.getOverscroll() != Axis.Overscroll.NONE;
+            if (!mOverridePanning && (overscrolledX || overscrolledY))
+                bounce();
+            else
+                finishAnimation();
+        }
+    }
+
+    private void finishAnimation() {
+        mState = PanZoomState.NOTHING;
+        stopAnimationTimer();
+
+        
+        mController.setForceRedraw();
+        mController.notifyLayerClientOfGeometryChange();
     }
 
     private float computeElasticity(float excess, float viewportLength) {
