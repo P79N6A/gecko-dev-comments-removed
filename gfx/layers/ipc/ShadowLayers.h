@@ -232,7 +232,7 @@ public:
 
 
 
-  PRBool EndTransaction(nsTArray<EditReply>* aReplies);
+  PRBool EndTransaction(InfallibleTArray<EditReply>* aReplies);
 
   
 

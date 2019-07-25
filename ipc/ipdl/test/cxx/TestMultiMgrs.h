@@ -36,11 +36,7 @@ public:
 
     bool HasChild(TestMultiMgrsBottomParent* c)
     {
-        
-        
-        nsTArray<PTestMultiMgrsBottomParent*> a;
-        ManagedPTestMultiMgrsBottomParent(a);
-        return a.Contains(c);
+        return ManagedPTestMultiMgrsBottomParent().Contains(c);
     }
 
 protected:
@@ -67,9 +63,7 @@ public:
 
     bool HasChild(TestMultiMgrsBottomParent* c)
     {
-        nsTArray<PTestMultiMgrsBottomParent*> a;
-        ManagedPTestMultiMgrsBottomParent(a);
-        return a.Contains(c);
+        return ManagedPTestMultiMgrsBottomParent().Contains(c);
     }
 
 protected:
@@ -157,9 +151,7 @@ public:
 
     bool HasChild(PTestMultiMgrsBottomChild* c)
     {
-        nsTArray<PTestMultiMgrsBottomChild*> a;
-        ManagedPTestMultiMgrsBottomChild(a);
-        return a.Contains(c);
+        return ManagedPTestMultiMgrsBottomChild().Contains(c);
     }
 
 protected:
@@ -189,9 +181,7 @@ public:
 
     bool HasChild(PTestMultiMgrsBottomChild* c)
     {
-        nsTArray<PTestMultiMgrsBottomChild*> a;
-        ManagedPTestMultiMgrsBottomChild(a);
-        return a.Contains(c);
+        return ManagedPTestMultiMgrsBottomChild().Contains(c);
     }
 
 protected:

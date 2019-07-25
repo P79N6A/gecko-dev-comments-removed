@@ -228,7 +228,7 @@ nsPermissionManager::Init()
 #ifdef MOZ_IPC
   if (IsChildProcess()) {
     
-    nsTArray<IPC::Permission> perms;
+    InfallibleTArray<IPC::Permission> perms;
     ChildProcess()->SendReadPermissions(&perms);
 
     for (int i = 0; i < perms.Length(); i++) {

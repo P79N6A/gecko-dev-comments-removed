@@ -456,12 +456,12 @@ ObjectWrapperChild::AnswerNewEnumerateInit(
                                   NULL, NULL, JSPROP_ENUMERATE | JSPROP_SHARED);
     }
 
-    nsTArray<nsString>* strIds;
+    InfallibleTArray<nsString>* strIds;
     {
         AutoIdArray ids(cx, JS_Enumerate(cx, state));
         if (!ids)
             return false;
-        strIds = new nsTArray<nsString>(ids.length());
+        strIds = new InfallibleTArray<nsString>(ids.length());
         for (uint i = 0; i < ids.length(); ++i)
             if (!jsid_to_nsString(cx, ids[i], strIds->AppendElement())) {
                 delete strIds;
@@ -495,17 +495,17 @@ ObjectWrapperChild::AnswerNewEnumerateNext(const JSVariant& in_state,
     if (!JSObject_from_JSVariant(cx, in_state, &state))
         return false;
 
-    nsTArray<nsString>* strIds =
-        static_cast<nsTArray<nsString>*>(JS_GetPrivate(cx, state));
+    InfallibleTArray<nsString>* strIds =
+        static_cast<InfallibleTArray<nsString>*>(JS_GetPrivate(cx, state));
 
     if (!strIds || !JS_GetReservedSlot(cx, state, sNextIdIndexSlot, &v))
         return false;
 
-    jsint i = JSVAL_TO_INT(v);
+    jsuint i = JSVAL_TO_INT(v);
     NS_ASSERTION(i >= 0, "Index of next jsid negative?");
     NS_ASSERTION(i <= strIds->Length(), "Index of next jsid too large?");
 
-    if (i == strIds->Length()) {
+    if (jsuint(i) == strIds->Length()) {
         *status = JS_TRUE;
         return JSObject_to_JSVariant(cx, NULL, statep);
     }
@@ -580,7 +580,7 @@ namespace {
 }
 
 bool
-ObjectWrapperChild::AnswerCall(PObjectWrapperChild* receiver, const nsTArray<JSVariant>& argv,
+ObjectWrapperChild::AnswerCall(PObjectWrapperChild* receiver, const InfallibleTArray<JSVariant>& argv,
                                OperationStatus* status, JSVariant* rval)
 {
     JSContext* cx = Manager()->GetContext();
@@ -610,7 +610,7 @@ ObjectWrapperChild::AnswerCall(PObjectWrapperChild* receiver, const nsTArray<JSV
 }
 
 bool
-ObjectWrapperChild::AnswerConstruct(const nsTArray<JSVariant>& argv,
+ObjectWrapperChild::AnswerConstruct(const InfallibleTArray<JSVariant>& argv,
                                     OperationStatus* status, PObjectWrapperChild** rval)
 {
     JSContext* cx = Manager()->GetContext();

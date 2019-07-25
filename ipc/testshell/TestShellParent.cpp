@@ -89,7 +89,7 @@ JSBool
 TestShellParent::GetGlobalJSObject(JSContext* cx, JSObject** globalp)
 {
     
-    nsTArray<PContextWrapperParent*> cwps(1);
+    InfallibleTArray<PContextWrapperParent*> cwps(1);
     ManagedPContextWrapperParent(cwps);
     if (cwps.Length() < 1)
         return JS_FALSE;

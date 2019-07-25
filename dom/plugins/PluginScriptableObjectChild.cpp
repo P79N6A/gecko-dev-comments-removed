@@ -38,9 +38,9 @@
 
 #include "PluginScriptableObjectChild.h"
 #include "PluginScriptableObjectUtils.h"
+#include "PluginIdentifierChild.h"
 
 using namespace mozilla::plugins;
-using mozilla::ipc::NPRemoteIdentifier;
 
 
 NPObject*
@@ -86,11 +86,6 @@ PluginScriptableObjectChild::ScriptableDeallocate(NPObject* aObject)
   }
 
   ChildNPObject* object = reinterpret_cast<ChildNPObject*>(aObject);
-  if (!object->invalidated) {
-    ScriptableInvalidate(aObject);
-  }
-  NS_ASSERTION(object->invalidated, "Should have invalidated already!");
-
   PluginScriptableObjectChild* actor = object->parent;
   if (actor) {
     NS_ASSERTION(actor->Type() == Proxy, "Bad type!");
@@ -122,7 +117,7 @@ PluginScriptableObjectChild::ScriptableHasMethod(NPObject* aObject,
   NS_ASSERTION(actor->Type() == Proxy, "Bad type!");
 
   bool result;
-  actor->CallHasMethod((NPRemoteIdentifier)aName, &result);
+  actor->CallHasMethod(static_cast<PPluginIdentifierChild*>(aName), &result);
 
   return result;
 }
@@ -159,7 +154,8 @@ PluginScriptableObjectChild::ScriptableInvoke(NPObject* aObject,
 
   Variant remoteResult;
   bool success;
-  actor->CallInvoke((NPRemoteIdentifier)aName, args, &remoteResult, &success);
+  actor->CallInvoke(static_cast<PPluginIdentifierChild*>(aName), args,
+                    &remoteResult, &success);
 
   if (!success) {
     return false;
@@ -232,7 +228,7 @@ PluginScriptableObjectChild::ScriptableHasProperty(NPObject* aObject,
   NS_ASSERTION(actor->Type() == Proxy, "Bad type!");
 
   bool result;
-  actor->CallHasProperty((NPRemoteIdentifier)aName, &result);
+  actor->CallHasProperty(static_cast<PPluginIdentifierChild*>(aName), &result);
 
   return result;
 }
@@ -261,7 +257,8 @@ PluginScriptableObjectChild::ScriptableGetProperty(NPObject* aObject,
 
   Variant result;
   bool success;
-  actor->CallGetProperty((NPRemoteIdentifier)aName, &result, &success);
+  actor->CallGetParentProperty(static_cast<PPluginIdentifierChild*>(aName),
+                               &result, &success);
 
   if (!success) {
     return false;
@@ -300,7 +297,8 @@ PluginScriptableObjectChild::ScriptableSetProperty(NPObject* aObject,
   }
 
   bool success;
-  actor->CallSetProperty((NPRemoteIdentifier)aName, value, &success);
+  actor->CallSetProperty(static_cast<PPluginIdentifierChild*>(aName), value,
+                         &success);
 
   return success;
 }
@@ -327,7 +325,8 @@ PluginScriptableObjectChild::ScriptableRemoveProperty(NPObject* aObject,
   NS_ASSERTION(actor->Type() == Proxy, "Bad type!");
 
   bool success;
-  actor->CallRemoveProperty((NPRemoteIdentifier)aName, &success);
+  actor->CallRemoveProperty(static_cast<PPluginIdentifierChild*>(aName),
+                            &success);
 
   return success;
 }
@@ -354,7 +353,7 @@ PluginScriptableObjectChild::ScriptableEnumerate(NPObject* aObject,
   NS_ASSERTION(actor, "This shouldn't ever be null!");
   NS_ASSERTION(actor->Type() == Proxy, "Bad type!");
 
-  nsAutoTArray<NPRemoteIdentifier, 10> identifiers;
+  AutoInfallibleTArray<PPluginIdentifierChild*, 10> identifiers;
   bool success;
   actor->CallEnumerate(&identifiers, &success);
 
@@ -376,7 +375,8 @@ PluginScriptableObjectChild::ScriptableEnumerate(NPObject* aObject,
   }
 
   for (PRUint32 index = 0; index < *aCount; index++) {
-    (*aIdentifiers)[index] = (NPIdentifier)identifiers[index];
+    (*aIdentifiers)[index] =
+      static_cast<PPluginIdentifierChild*>(identifiers[index]);
   }
   return true;
 }
@@ -555,7 +555,7 @@ PluginScriptableObjectChild::ResurrectProxyObject()
   InitializeProxy();
   NS_ASSERTION(mObject, "Initialize failed!");
 
-  CallProtect();
+  SendProtect();
   return true;
 }
 
@@ -588,7 +588,7 @@ PluginScriptableObjectChild::Unprotect()
 
   if (mType == LocalObject) {
     if (--mProtectCount == 0) {
-      PluginScriptableObjectChild::Call__delete__(this);
+      PluginScriptableObjectChild::Send__delete__(this);
     }
   }
 }
@@ -605,7 +605,7 @@ PluginScriptableObjectChild::DropNPObject()
   PluginModuleChild::current()->UnregisterActorForNPObject(mObject);
   mObject = nsnull;
 
-  CallUnprotect();
+  SendUnprotect();
 }
 
 void
@@ -641,7 +641,7 @@ PluginScriptableObjectChild::AnswerInvalidate()
 }
 
 bool
-PluginScriptableObjectChild::AnswerHasMethod(const NPRemoteIdentifier& aId,
+PluginScriptableObjectChild::AnswerHasMethod(PPluginIdentifierChild* aId,
                                              bool* aHasMethod)
 {
   AssertPluginThread();
@@ -660,13 +660,14 @@ PluginScriptableObjectChild::AnswerHasMethod(const NPRemoteIdentifier& aId,
     return true;
   }
 
-  *aHasMethod = mObject->_class->hasMethod(mObject, (NPIdentifier)aId);
+  PluginIdentifierChild* id = static_cast<PluginIdentifierChild*>(aId);
+  *aHasMethod = mObject->_class->hasMethod(mObject, id->ToNPIdentifier());
   return true;
 }
 
 bool
-PluginScriptableObjectChild::AnswerInvoke(const NPRemoteIdentifier& aId,
-                                          const nsTArray<Variant>& aArgs,
+PluginScriptableObjectChild::AnswerInvoke(PPluginIdentifierChild* aId,
+                                          const InfallibleTArray<Variant>& aArgs,
                                           Variant* aResult,
                                           bool* aSuccess)
 {
@@ -703,7 +704,8 @@ PluginScriptableObjectChild::AnswerInvoke(const NPRemoteIdentifier& aId,
 
   NPVariant result;
   VOID_TO_NPVARIANT(result);
-  bool success = mObject->_class->invoke(mObject, (NPIdentifier)aId,
+  PluginIdentifierChild* id = static_cast<PluginIdentifierChild*>(aId);
+  bool success = mObject->_class->invoke(mObject, id->ToNPIdentifier(),
                                          convertedArgs.Elements(), argCount,
                                          &result);
 
@@ -735,7 +737,7 @@ PluginScriptableObjectChild::AnswerInvoke(const NPRemoteIdentifier& aId,
 }
 
 bool
-PluginScriptableObjectChild::AnswerInvokeDefault(const nsTArray<Variant>& aArgs,
+PluginScriptableObjectChild::AnswerInvokeDefault(const InfallibleTArray<Variant>& aArgs,
                                                  Variant* aResult,
                                                  bool* aSuccess)
 {
@@ -804,7 +806,7 @@ PluginScriptableObjectChild::AnswerInvokeDefault(const nsTArray<Variant>& aArgs,
 }
 
 bool
-PluginScriptableObjectChild::AnswerHasProperty(const NPRemoteIdentifier& aId,
+PluginScriptableObjectChild::AnswerHasProperty(PPluginIdentifierChild* aId,
                                                bool* aHasProperty)
 {
   AssertPluginThread();
@@ -823,56 +825,62 @@ PluginScriptableObjectChild::AnswerHasProperty(const NPRemoteIdentifier& aId,
     return true;
   }
 
-  *aHasProperty = mObject->_class->hasProperty(mObject, (NPIdentifier)aId);
+  PluginIdentifierChild* id = static_cast<PluginIdentifierChild*>(aId);
+  *aHasProperty = mObject->_class->hasProperty(mObject, id->ToNPIdentifier());
   return true;
 }
 
 bool
-PluginScriptableObjectChild::AnswerGetProperty(const NPRemoteIdentifier& aId,
-                                               Variant* aResult,
-                                               bool* aSuccess)
+PluginScriptableObjectChild::AnswerGetChildProperty(PPluginIdentifierChild* aId,
+                                                    bool* aHasProperty,
+                                                    bool* aHasMethod,
+                                                    Variant* aResult,
+                                                    bool* aSuccess)
 {
   AssertPluginThread();
 
+  *aHasProperty = *aHasMethod = *aSuccess = false;
+  *aResult = void_t();
+
   if (mInvalidated) {
     NS_WARNING("Calling AnswerGetProperty with an invalidated object!");
-    *aResult = void_t();
-    *aSuccess = false;
     return true;
   }
 
   NS_ASSERTION(mObject->_class != GetClass(), "Bad object type!");
   NS_ASSERTION(mType == LocalObject, "Bad type!");
 
-  if (!(mObject->_class && mObject->_class->getProperty)) {
-    *aResult = void_t();
-    *aSuccess = false;
+  if (!(mObject->_class && mObject->_class->hasProperty &&
+        mObject->_class->hasMethod && mObject->_class->getProperty)) {
     return true;
   }
 
-  NPVariant result;
-  VOID_TO_NPVARIANT(result);
-  if (!mObject->_class->getProperty(mObject, (NPIdentifier)aId, &result)) {
-    *aResult = void_t();
-    *aSuccess = false;
-    return true;
-  }
+  NPIdentifier id = static_cast<PluginIdentifierChild*>(aId)->ToNPIdentifier();
 
-  Variant converted;
-  if ((*aSuccess = ConvertToRemoteVariant(result, converted, GetInstance(),
-                                          false))) {
-    DeferNPVariantLastRelease(&PluginModuleChild::sBrowserFuncs, &result);
-    *aResult = converted;
-  }
-  else {
-    *aResult = void_t();
+  *aHasProperty = mObject->_class->hasProperty(mObject, id);
+  *aHasMethod = mObject->_class->hasMethod(mObject, id);
+
+  if (*aHasProperty) {
+    NPVariant result;
+    VOID_TO_NPVARIANT(result);
+
+    if (!mObject->_class->getProperty(mObject, id, &result)) {
+      return true;
+    }
+
+    Variant converted;
+    if ((*aSuccess = ConvertToRemoteVariant(result, converted, GetInstance(),
+                                            false))) {
+      DeferNPVariantLastRelease(&PluginModuleChild::sBrowserFuncs, &result);
+      *aResult = converted;
+    }
   }
 
   return true;
 }
 
 bool
-PluginScriptableObjectChild::AnswerSetProperty(const NPRemoteIdentifier& aId,
+PluginScriptableObjectChild::AnswerSetProperty(PPluginIdentifierChild* aId,
                                                const Variant& aValue,
                                                bool* aSuccess)
 {
@@ -887,7 +895,15 @@ PluginScriptableObjectChild::AnswerSetProperty(const NPRemoteIdentifier& aId,
   NS_ASSERTION(mObject->_class != GetClass(), "Bad object type!");
   NS_ASSERTION(mType == LocalObject, "Bad type!");
 
-  if (!(mObject->_class && mObject->_class->setProperty)) {
+  if (!(mObject->_class && mObject->_class->hasProperty &&
+        mObject->_class->setProperty)) {
+    *aSuccess = false;
+    return true;
+  }
+
+  NPIdentifier id = static_cast<PluginIdentifierChild*>(aId)->ToNPIdentifier();
+
+  if (!mObject->_class->hasProperty(mObject, id)) {
     *aSuccess = false;
     return true;
   }
@@ -895,15 +911,14 @@ PluginScriptableObjectChild::AnswerSetProperty(const NPRemoteIdentifier& aId,
   NPVariant converted;
   ConvertToVariant(aValue, converted);
 
-  if ((*aSuccess = mObject->_class->setProperty(mObject, (NPIdentifier)aId,
-                                                &converted))) {
+  if ((*aSuccess = mObject->_class->setProperty(mObject, id, &converted))) {
     PluginModuleChild::sBrowserFuncs.releasevariantvalue(&converted);
   }
   return true;
 }
 
 bool
-PluginScriptableObjectChild::AnswerRemoveProperty(const NPRemoteIdentifier& aId,
+PluginScriptableObjectChild::AnswerRemoveProperty(PPluginIdentifierChild* aId,
                                                   bool* aSuccess)
 {
   AssertPluginThread();
@@ -917,17 +932,22 @@ PluginScriptableObjectChild::AnswerRemoveProperty(const NPRemoteIdentifier& aId,
   NS_ASSERTION(mObject->_class != GetClass(), "Bad object type!");
   NS_ASSERTION(mType == LocalObject, "Bad type!");
 
-  if (!(mObject->_class && mObject->_class->removeProperty)) {
+  if (!(mObject->_class && mObject->_class->hasProperty &&
+        mObject->_class->removeProperty)) {
     *aSuccess = false;
     return true;
   }
 
-  *aSuccess = mObject->_class->removeProperty(mObject, (NPIdentifier)aId);
+  NPIdentifier id = static_cast<PluginIdentifierChild*>(aId)->ToNPIdentifier();
+  *aSuccess = mObject->_class->hasProperty(mObject, id) ?
+              mObject->_class->removeProperty(mObject, id) :
+              true;
+
   return true;
 }
 
 bool
-PluginScriptableObjectChild::AnswerEnumerate(nsTArray<NPRemoteIdentifier>* aProperties,
+PluginScriptableObjectChild::AnswerEnumerate(InfallibleTArray<PPluginIdentifierChild*>* aProperties,
                                              bool* aSuccess)
 {
   AssertPluginThread();
@@ -960,11 +980,8 @@ PluginScriptableObjectChild::AnswerEnumerate(nsTArray<NPRemoteIdentifier>* aProp
   }
 
   for (uint32_t index = 0; index < idCount; index++) {
-#ifdef DEBUG
-    NPRemoteIdentifier* remoteId =
-#endif
-    aProperties->AppendElement((NPRemoteIdentifier)ids[index]);
-    NS_ASSERTION(remoteId, "Shouldn't fail if SetCapacity above succeeded!");
+    PluginIdentifierChild* id = static_cast<PluginIdentifierChild*>(ids[index]);
+    aProperties->AppendElement(id);
   }
 
   PluginModuleChild::sBrowserFuncs.memfree(ids);
@@ -973,7 +990,7 @@ PluginScriptableObjectChild::AnswerEnumerate(nsTArray<NPRemoteIdentifier>* aProp
 }
 
 bool
-PluginScriptableObjectChild::AnswerConstruct(const nsTArray<Variant>& aArgs,
+PluginScriptableObjectChild::AnswerConstruct(const InfallibleTArray<Variant>& aArgs,
                                              Variant* aResult,
                                              bool* aSuccess)
 {
@@ -1041,7 +1058,7 @@ PluginScriptableObjectChild::AnswerConstruct(const nsTArray<Variant>& aArgs,
 }
 
 bool
-PluginScriptableObjectChild::AnswerProtect()
+PluginScriptableObjectChild::RecvProtect()
 {
   NS_ASSERTION(mObject->_class != GetClass(), "Bad object type!");
   NS_ASSERTION(mType == LocalObject, "Bad type!");
@@ -1051,7 +1068,7 @@ PluginScriptableObjectChild::AnswerProtect()
 }
 
 bool
-PluginScriptableObjectChild::AnswerUnprotect()
+PluginScriptableObjectChild::RecvUnprotect()
 {
   NS_ASSERTION(mObject->_class != GetClass(), "Bad object type!");
   NS_ASSERTION(mType == LocalObject, "Bad type!");
