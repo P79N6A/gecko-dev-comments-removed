@@ -4005,57 +4005,6 @@ nsILanguageAtomService* gfxFontGroup::gLangService = nsnull;
 
 #define DEFAULT_PIXEL_FONT_SIZE 16.0f
 
- void
-gfxFontStyle::ParseFontFeatureSettings(const nsString& aFeatureString,
-                                       nsTArray<gfxFontFeature>& aFeatures)
-{
-  aFeatures.Clear();
-  PRUint32 offset = 0;
-  while (offset < aFeatureString.Length()) {
-    
-    while (offset < aFeatureString.Length() &&
-           nsCRT::IsAsciiSpace(aFeatureString[offset])) {
-      ++offset;
-    }
-    PRInt32 limit = aFeatureString.FindChar(',', offset);
-    if (limit < 0) {
-      limit = aFeatureString.Length();
-    }
-    
-    
-    if (offset + 6 <= PRUint32(limit) &&
-      aFeatureString[offset+4] == '=') {
-      gfxFontFeature setting;
-      setting.mTag =
-        ((aFeatureString[offset] & 0xff) << 24) +
-        ((aFeatureString[offset+1] & 0xff) << 16) +
-        ((aFeatureString[offset+2] & 0xff) << 8) +
-         (aFeatureString[offset+3] & 0xff);
-      nsString valString;
-      aFeatureString.Mid(valString, offset+5, limit-offset-5);
-      PRInt32 rv;
-      setting.mValue = valString.ToInteger(&rv);
-      if (rv == NS_OK) {
-        PRUint32 i;
-        
-        
-        for (i = 0; i < aFeatures.Length(); i++) {
-          if (aFeatures[i].mTag == setting.mTag) {
-            aFeatures[i].mValue = setting.mValue;
-            break;
-          }
-        }
-        if (i == aFeatures.Length()) {
-          
-          
-          aFeatures.InsertElementSorted(setting);
-        }
-      }
-    }
-    offset = limit + 1;
-  }
-}
-
  PRUint32
 gfxFontStyle::ParseFontLanguageOverride(const nsString& aLangTag)
 {
@@ -4090,7 +4039,6 @@ gfxFontStyle::gfxFontStyle(PRUint8 aStyle, PRUint16 aWeight, PRInt16 aStretch,
                            gfxFloat aSize, nsIAtom *aLanguage,
                            float aSizeAdjust, bool aSystemFont,
                            bool aPrinterFont,
-                           const nsString& aFeatureSettings,
                            const nsString& aLanguageOverride):
     language(aLanguage),
     size(aSize), sizeAdjust(aSizeAdjust),
@@ -4099,8 +4047,6 @@ gfxFontStyle::gfxFontStyle(PRUint8 aStyle, PRUint16 aWeight, PRInt16 aStretch,
     systemFont(aSystemFont), printerFont(aPrinterFont),
     style(aStyle)
 {
-    ParseFontFeatureSettings(aFeatureSettings, featureSettings);
-
     if (weight > 900)
         weight = 900;
     if (weight < 100)
