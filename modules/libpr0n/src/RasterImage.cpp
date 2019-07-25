@@ -85,7 +85,6 @@ static PRLogModuleInfo *gCompressedImageAccountingLog = PR_NewLogModule ("Compre
 
 static PRUint32 gDecodeBytesAtATime = 200000;
 static PRUint32 gMaxMSBeforeYield = 400;
-static PRUint32 gMaxBytesForSyncDecode = 150000;
 
 void
 RasterImage::SetDecodeBytesAtATime(PRUint32 aBytesAtATime)
@@ -96,11 +95,6 @@ void
 RasterImage::SetMaxMSBeforeYield(PRUint32 aMaxMS)
 {
   gMaxMSBeforeYield = aMaxMS;
-}
-void
-RasterImage::SetMaxBytesForSyncDecode(PRUint32 aMaxBytes)
-{
-  gMaxBytesForSyncDecode = aMaxBytes;
 }
 
 
@@ -2387,12 +2381,11 @@ RasterImage::RequestDecode()
     return NS_OK;
 
   
-  if (!mDecoded && !mInDecoder && mHasSourceData && (mSourceData.Length() < gMaxBytesForSyncDecode))
-    return SyncDecode();
+  
+  
+  if (!mDecoded && !mInDecoder && mHasSourceData)
+    return mWorker->Run();
 
-  
-  
-  
   return mWorker->Dispatch();
 }
 
