@@ -11329,6 +11329,7 @@ nsDocShell::GetCanExecuteScripts(PRBool *aResult)
               
               
               
+              *aResult = PR_FALSE;
               return NS_OK;
           }
           firstPass = PR_FALSE;
