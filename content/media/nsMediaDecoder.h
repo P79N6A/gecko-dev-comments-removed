@@ -341,7 +341,7 @@ public:
 
   
   
-  PRUint32 GetFrameBufferLength() { return mFrameBufferLength; };
+  PRUint32 GetFrameBufferLength() { return mFrameBufferLength; }
 
   
   
