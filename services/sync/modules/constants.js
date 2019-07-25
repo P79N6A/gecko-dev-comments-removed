@@ -78,6 +78,11 @@ PARTIAL_DATA_SYNC:                     60 * 1000,
 
 
 
+
+HMAC_EVENT_INTERVAL:                   600000,
+
+
+
 MOBILE_BATCH_SIZE:                     50,
 
 

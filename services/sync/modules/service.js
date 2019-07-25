@@ -250,6 +250,117 @@ WeaveSvc.prototype = {
 
     return ok;
   },
+  
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  lastHMACEvent: 0,
+  
+  
+
+
+  handleHMACEvent: function handleHMACEvent() {
+    let now = Date.now();
+    
+    
+    
+    if ((now - this.lastHMACEvent) < HMAC_EVENT_INTERVAL)
+      return false;
+    
+    this._log.info("Bad HMAC event detected. Attempting recovery " +
+                   "or signaling to other clients.");
+    
+    
+    this.lastHMACEvent = now;
+    
+    
+    let cryptoKeys = new CryptoWrapper("crypto", "keys");
+    try {
+      let cryptoResp = cryptoKeys.fetch(this.cryptoKeysURL).response;
+      
+      
+      
+      let cipherText = cryptoKeys.ciphertext;
+      
+      if (!cryptoResp.success) {
+        this._log.warn("Failed to download keys.");
+        return false;
+      }
+      
+      let keysChanged = this.handleFetchedKeys(this.syncKeyBundle,
+                                               cryptoKeys, true);
+      if (keysChanged) {
+        
+        this._log.info("Suggesting retry.");
+        return true;              
+      }
+      
+      
+      cryptoKeys.ciphertext = cipherText;
+      cryptoKeys.cleartext  = null;
+      
+      let uploadResp = cryptoKeys.upload(this.cryptoKeysURL);
+      if (uploadResp.success)
+        this._log.info("Successfully re-uploaded keys. Continuing sync.");
+      else
+        this._log.warn("Got error response re-uploading keys. " +
+                       "Continuing sync; let's try again later.");
+      
+      return false;            
+      
+    } catch (ex) {
+      this._log.warn("Got exception \"" + ex + "\" fetching and handling " +
+                     "crypto keys. Will try again later.");
+      return false;
+    }
+  },
+  
+  handleFetchedKeys: function handleFetchedKeys(syncKey, cryptoKeys, skipReset) {
+    
+    
+    
+    let wasBlank = CollectionKeys.isClear;
+    let keysChanged = CollectionKeys.updateContents(syncKey, cryptoKeys);
+    
+    if (keysChanged && !wasBlank) {
+      this._log.debug("Keys changed: " + JSON.stringify(keysChanged));
+      
+      if (!skipReset) {
+        this._log.info("Resetting client to reflect key change.");
+
+        if (keysChanged.length) {
+          
+          this.resetClient(keysChanged);
+        }
+        else {
+          
+          this.resetClient();
+        }
+
+        this._log.info("Downloaded new keys, client reset. Proceeding.");
+      }
+      return true;
+    }
+    return false;
+  },                
 
   
 
@@ -628,27 +739,7 @@ WeaveSvc.prototype = {
             let cryptoResp = cryptoKeys.fetch(this.cryptoKeysURL).response;
             
             if (cryptoResp.success) {
-              
-              
-              
-              let wasBlank = CollectionKeys.isClear;
-              let keysChanged = CollectionKeys.updateContents(syncKey, cryptoKeys);
-              
-              if (keysChanged && !wasBlank) {
-                this._log.debug("Keys changed: " + JSON.stringify(keysChanged));
-                this._log.info("Resetting client to reflect key change.");
-                
-                if (keysChanged.length) {
-                  
-                  this.resetClient(keysChanged);
-                }
-                else {
-                  
-                  this.resetClient();
-                }
-                
-                this._log.info("Downloaded new keys, client reset. Proceeding.");
-              }
+              let keysChanged = this.handleFetchedKeys(syncKey, cryptoKeys);
               return true;
             }
             else if (cryptoResp.status == 404) {
