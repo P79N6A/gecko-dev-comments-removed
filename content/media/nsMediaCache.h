@@ -229,7 +229,7 @@ public:
     : mClient(aClient), mResourceID(0), mInitialized(false),
       mHasHadUpdate(false),
       mIsSeekable(false), mCacheSuspended(false),
-      mDidNotifyDataEnded(false),
+      mChannelEnded(false), mDidNotifyDataEnded(false),
       mUsingNullPrincipal(false),
       mChannelOffset(0), mStreamLength(-1),  
       mStreamOffset(0), mPlaybackBytesPerSecond(10000),
@@ -353,6 +353,7 @@ public:
   bool IsSeekable();
 
   
+  
   bool AreAllStreamsForResourceSuspended();
 
   
@@ -469,6 +470,8 @@ private:
   
   
   bool mCacheSuspended;
+  
+  bool mChannelEnded;
   
   bool mDidNotifyDataEnded;
   
