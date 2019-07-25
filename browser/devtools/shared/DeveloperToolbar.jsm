@@ -560,11 +560,13 @@ function OutputPanel(aChromeDoc, aInput, aLoadCallback)
 
 
 
-  this._panel = aChromeDoc.createElement("panel");
+
+  
+  
+  this._panel = aChromeDoc.createElement("tooltip");
+
   this._panel.id = "gcli-output";
   this._panel.classList.add("gcli-panel");
-  this._panel.setAttribute("noautofocus", "true");
-  this._panel.setAttribute("noautohide", "true");
   this._toolbar.parentElement.insertBefore(this._panel, this._toolbar);
 
   this._frame = aChromeDoc.createElementNS(NS_XHTML, "iframe");
@@ -579,6 +581,10 @@ function OutputPanel(aChromeDoc, aInput, aLoadCallback)
   this._frame.addEventListener("load", this._onload, true);
 
   this.loaded = false;
+  this.canHide = false;
+
+  this._onpopuphiding = this._onpopuphiding.bind(this);
+  this._panel.addEventListener("popuphiding", this._onpopuphiding, true);
 }
 
 
@@ -609,6 +615,18 @@ OutputPanel.prototype._onload = function OP_onload()
 
 
 
+OutputPanel.prototype._onpopuphiding = function OP_onpopuphiding(aEvent)
+{
+  
+  
+  if (!this.canHide) {
+    aEvent.preventDefault();
+  }
+};
+
+
+
+
 OutputPanel.prototype.show = function OP_show()
 {
   
@@ -617,6 +635,8 @@ OutputPanel.prototype.show = function OP_show()
   this._panel.ownerDocument.defaultView.setTimeout(function() {
     this._resize();
   }.bind(this), 0);
+
+  this.canHide = false;
 
   this._panel.openPopup(this._input, "before_start", 0, 0, false, false, null);
   this._resize();
@@ -677,6 +697,7 @@ OutputPanel.prototype.update = function OP_update()
 
 OutputPanel.prototype.remove = function OP_remove()
 {
+  this.canHide = true;
   this._panel.hidePopup();
 
   if (this.displayedOutput) {
@@ -693,11 +714,15 @@ OutputPanel.prototype.destroy = function OP_destroy()
 {
   this.remove();
 
+  this._panel.removeEventListener("popuphiding", this._onpopuphiding, true);
+
   this._panel.removeChild(this._frame);
   this._toolbar.parentElement.removeChild(this._panel);
 
   delete this._input;
   delete this._toolbar;
+  delete this._onload;
+  delete this._onpopuphiding;
   delete this._panel;
   delete this._frame;
   delete this._content;
@@ -714,6 +739,7 @@ OutputPanel.prototype._visibilityChanged = function OP_visibilityChanged(aEvent)
   if (aEvent.outputVisible === true) {
     
   } else {
+    this.canHide = true;
     this._panel.hidePopup();
   }
 };
@@ -745,11 +771,13 @@ function TooltipPanel(aChromeDoc, aInput, aLoadCallback)
 
 
 
-  this._panel = aChromeDoc.createElement("panel");
+
+  
+  
+  this._panel = aChromeDoc.createElement("tooltip");
+
   this._panel.id = "gcli-tooltip";
   this._panel.classList.add("gcli-panel");
-  this._panel.setAttribute("noautofocus", "true");
-  this._panel.setAttribute("noautohide", "true");
   this._toolbar.parentElement.insertBefore(this._panel, this._toolbar);
 
   this._frame = aChromeDoc.createElementNS(NS_XHTML, "iframe");
@@ -759,7 +787,12 @@ function TooltipPanel(aChromeDoc, aInput, aLoadCallback)
   this._panel.appendChild(this._frame);
 
   this._frame.addEventListener("load", this._onload, true);
+
   this.loaded = false;
+  this.canHide = false;
+
+  this._onpopuphiding = this._onpopuphiding.bind(this);
+  this._panel.addEventListener("popuphiding", this._onpopuphiding, true);
 }
 
 
@@ -788,6 +821,18 @@ TooltipPanel.prototype._onload = function TP_onload()
 
 
 
+TooltipPanel.prototype._onpopuphiding = function TP_onpopuphiding(aEvent)
+{
+  
+  
+  if (!this.canHide) {
+    aEvent.preventDefault();
+  }
+};
+
+
+
+
 TooltipPanel.prototype.show = function TP_show(aDimensions)
 {
   if (!aDimensions) {
@@ -801,6 +846,8 @@ TooltipPanel.prototype.show = function TP_show(aDimensions)
   this._panel.ownerDocument.defaultView.setTimeout(function() {
     this._resize();
   }.bind(this), 0);
+
+  this.canHide = false;
 
   this._resize();
   this._panel.openPopup(this._input, "before_start", aDimensions.start * 10, 0, false, false, null);
@@ -845,6 +892,7 @@ TooltipPanel.prototype._resize = function TP_resize()
 
 TooltipPanel.prototype.remove = function TP_remove()
 {
+  this.canHide = true;
   this._panel.hidePopup();
 };
 
@@ -855,6 +903,8 @@ TooltipPanel.prototype.destroy = function TP_destroy()
 {
   this.remove();
 
+  this._panel.removeEventListener("popuphiding", this._onpopuphiding, true);
+
   this._panel.removeChild(this._frame);
   this._toolbar.parentElement.removeChild(this._panel);
 
@@ -862,6 +912,7 @@ TooltipPanel.prototype.destroy = function TP_destroy()
   delete this._dimensions;
   delete this._input;
   delete this._onload;
+  delete this._onpopuphiding;
   delete this._panel;
   delete this._frame;
   delete this._toolbar;
@@ -879,6 +930,7 @@ TooltipPanel.prototype._visibilityChanged = function TP_visibilityChanged(aEvent
   if (aEvent.tooltipVisible === true) {
     this.show(aEvent.dimensions);
   } else {
+    this.canHide = true;
     this._panel.hidePopup();
   }
 };
