@@ -151,6 +151,11 @@ void MozQWidget::mouseReleaseEvent(QGraphicsSceneMouseEvent* aEvent)
 
 bool MozQWidget::event ( QEvent * event )
 {
+    
+    
+    if (!mReceiver)
+        return QGraphicsWidget::event(event);
+
 #if (QT_VERSION >= QT_VERSION_CHECK(4, 6, 0))
     switch (event->type())
     {
