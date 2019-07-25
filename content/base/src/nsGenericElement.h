@@ -106,7 +106,7 @@ public:
   NS_DECL_ISUPPORTS
 
   
-  virtual JSObject* WrapObject(JSContext *cx);
+  virtual JSObject* WrapObject(JSContext *cx, XPCWrappedNativeScope *scope);
 
   
   NS_DECL_NSIDOMNODELIST

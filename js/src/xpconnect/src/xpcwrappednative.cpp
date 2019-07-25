@@ -1146,7 +1146,7 @@ XPCWrappedNative::Init(XPCCallContext& ccx,
         
         
         if(!(jsclazz->flags & JSCLASS_IS_GLOBAL))
-            jsclazz->flags |= JSCLASS_GLOBAL_FLAGS;
+            jsclazz->flags |= XPCONNECT_GLOBAL_FLAGS;
     }
     else
         NS_ASSERTION(!(jsclazz->flags & JSCLASS_IS_GLOBAL),

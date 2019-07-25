@@ -277,7 +277,7 @@ public:
   virtual ~nsContentList();
 
   
-  virtual JSObject* WrapObject(JSContext *cx);
+  virtual JSObject* WrapObject(JSContext *cx, XPCWrappedNativeScope *scope);
 
   
   NS_DECL_NSIDOMHTMLCOLLECTION

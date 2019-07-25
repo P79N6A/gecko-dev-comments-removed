@@ -44,6 +44,7 @@
 struct JSObject;
 struct JSContext;
 class nsContentUtils;
+class XPCWrappedNativeScope;
 
 typedef PRUptrdiff PtrBits;
 
@@ -129,8 +130,7 @@ public:
 
 
 
-
-  virtual JSObject* WrapObject(JSContext *cx) {
+  virtual JSObject* WrapObject(JSContext *cx, XPCWrappedNativeScope *scope) {
     return nsnull;
   }
 
