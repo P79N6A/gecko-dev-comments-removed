@@ -176,6 +176,21 @@ mjit::Compiler::maybeJumpIfNotDouble(Assembler &masm, MaybeJump &mj, FrameEntry 
 }
 
 bool
+mjit::Compiler::jsop_binary_slow(JSOp op, VoidStub stub, JSValueType type,
+                                 FrameEntry *lhs, FrameEntry *rhs)
+{
+    bool isStringResult = (op == JSOP_ADD) &&
+                          (lhs->isType(JSVAL_TYPE_STRING) || rhs->isType(JSVAL_TYPE_STRING));
+    JS_ASSERT_IF(isStringResult && type != JSVAL_TYPE_UNKNOWN, type == JSVAL_TYPE_STRING);
+
+    prepareStubCall(Uses(2));
+    INLINE_STUBCALL(stub, REJOIN_BINARY);
+    frame.popn(2);
+    frame.pushSynced(isStringResult ? JSVAL_TYPE_STRING : type);
+    return true;
+}
+
+bool
 mjit::Compiler::jsop_binary(JSOp op, VoidStub stub, JSValueType type, types::TypeSet *typeSet)
 {
     FrameEntry *rhs = frame.peek(-1);
@@ -205,16 +220,7 @@ mjit::Compiler::jsop_binary(JSOp op, VoidStub stub, JSValueType type, types::Typ
         (lhs->isTypeKnown() && (lhs->getKnownType() > JSVAL_UPPER_INCL_TYPE_OF_NUMBER_SET)) ||
         (rhs->isTypeKnown() && (rhs->getKnownType() > JSVAL_UPPER_INCL_TYPE_OF_NUMBER_SET)))
     {
-        bool isStringResult = (op == JSOP_ADD) &&
-                              (lhs->isType(JSVAL_TYPE_STRING) ||
-                               rhs->isType(JSVAL_TYPE_STRING));
-        JS_ASSERT_IF(isStringResult && type != JSVAL_TYPE_UNKNOWN, type == JSVAL_TYPE_STRING);
-
-        prepareStubCall(Uses(2));
-        INLINE_STUBCALL(stub, REJOIN_BINARY);
-        frame.popn(2);
-        frame.pushSynced(isStringResult ? JSVAL_TYPE_STRING : type);
-        return true;
+        return jsop_binary_slow(op, stub, type, lhs, rhs);
     }
 
     
@@ -237,6 +243,9 @@ mjit::Compiler::jsop_binary(JSOp op, VoidStub stub, JSValueType type, types::Typ
     
     bool canDoIntMath = op != JSOP_DIV && type != JSVAL_TYPE_DOUBLE &&
                         !(rhs->isType(JSVAL_TYPE_DOUBLE) || lhs->isType(JSVAL_TYPE_DOUBLE));
+
+    if (!masm.supportsFloatingPoint() && (!canDoIntMath || frame.haveSameBacking(lhs, rhs)))
+        return jsop_binary_slow(op, stub, type, lhs, rhs);
 
     if (canDoIntMath)
         jsop_binary_full(lhs, rhs, op, stub, type, cannotOverflow, ignoreOverflow);
@@ -572,7 +581,7 @@ mjit::Compiler::jsop_binary_full(FrameEntry *lhs, FrameEntry *rhs, JSOp op,
 
     
     MaybeJump doublePathDone;
-    if (!rhs->isTypeKnown() || lhsUnknownDone.isSet()) {
+    if (masm.supportsFloatingPoint() && (!rhs->isTypeKnown() || !lhs->isTypeKnown())) {
         
         if (lhsUnknownDone.isSet())
             lhsUnknownDone.get().linkTo(stubcc.masm.label(), &stubcc.masm);
@@ -790,7 +799,9 @@ mjit::Compiler::jsop_neg()
     FrameEntry *fe = frame.peek(-1);
     JSValueType type = knownPushedType(0);
 
-    if (fe->isTypeKnown() && fe->getKnownType() > JSVAL_UPPER_INCL_TYPE_OF_NUMBER_SET) {
+    if ((fe->isTypeKnown() && fe->getKnownType() > JSVAL_UPPER_INCL_TYPE_OF_NUMBER_SET) ||
+        !masm.supportsFloatingPoint())
+    {
         prepareStubCall(Uses(1));
         INLINE_STUBCALL(stubs::Neg, REJOIN_FALLTHROUGH);
         frame.pop();
@@ -802,7 +813,8 @@ mjit::Compiler::jsop_neg()
 
     
     if (fe->isType(JSVAL_TYPE_DOUBLE) ||
-        (fe->isType(JSVAL_TYPE_INT32) && type == JSVAL_TYPE_DOUBLE)) {
+        (fe->isType(JSVAL_TYPE_INT32) && type == JSVAL_TYPE_DOUBLE))
+    {
         FPRegisterID fpreg;
         if (fe->isType(JSVAL_TYPE_DOUBLE)) {
             fpreg = frame.tempFPRegForData(fe);
@@ -1309,6 +1321,11 @@ mjit::Compiler::emitLeftDoublePath(FrameEntry *lhs, FrameEntry *rhs, FrameState:
     Jump lhsNotInt32 = masm.testInt32(Assembler::NotEqual, regs.lhsType.reg());
     stubcc.linkExitDirect(lhsNotInt32, stubcc.masm.label());
 
+    if (!masm.supportsFloatingPoint()) {
+        lhsNotDouble = stubcc.masm.jump();
+        return;
+    }
+
     
     lhsNotDouble = stubcc.masm.testDouble(Assembler::NotEqual, regs.lhsType.reg());
 
@@ -1353,6 +1370,11 @@ mjit::Compiler::emitRightDoublePath(FrameEntry *lhs, FrameEntry *rhs, FrameState
     
     Jump notInt32 = masm.testInt32(Assembler::NotEqual, regs.rhsType.reg());
     stubcc.linkExitDirect(notInt32, stubcc.masm.label());
+
+    if (!masm.supportsFloatingPoint()) {
+        rhsNotNumber2 = stubcc.masm.jump();
+        return;
+    }
 
     
     rhsNotNumber2 = stubcc.masm.testDouble(Assembler::NotEqual, regs.rhsType.reg());
@@ -1571,7 +1593,7 @@ mjit::Compiler::jsop_relational_full(JSOp op, BoolStub stub, jsbytecode *target,
 
     
     bool hasDoublePath = false;
-    if (!rhs->isTypeKnown() || lhsUnknownDone.isSet())
+    if (masm.supportsFloatingPoint() && (!rhs->isTypeKnown() || !lhs->isTypeKnown()))
         hasDoublePath = true;
 
     
@@ -1612,25 +1634,25 @@ mjit::Compiler::jsop_relational_full(JSOp op, BoolStub stub, jsbytecode *target,
             frame.sync(stubcc.masm, Uses(frame.frameSlots()));
             doubleTest = stubcc.masm.branchDouble(dblCond, regs.lhsFP, regs.rhsFP);
             doubleFall = stubcc.masm.jump();
-
-            
-            if (lhsNotDouble.isSet()) {
-                lhsNotDouble.get().linkTo(stubcc.masm.label(), &stubcc.masm);
-                if (rhsNotNumber.isSet())
-                    rhsNotNumber.get().linkTo(stubcc.masm.label(), &stubcc.masm);
-            }
-            if (rhsNotNumber2.isSet())
-                rhsNotNumber2.get().linkTo(stubcc.masm.label(), &stubcc.masm);
-
-            
-
-
-
-
-            frame.sync(stubcc.masm, Uses(frame.frameSlots()));
-            stubcc.leave();
-            OOL_STUBCALL(stub, REJOIN_BRANCH);
         }
+
+        
+        if (lhsNotDouble.isSet()) {
+            lhsNotDouble.get().linkTo(stubcc.masm.label(), &stubcc.masm);
+            if (rhsNotNumber.isSet())
+                rhsNotNumber.get().linkTo(stubcc.masm.label(), &stubcc.masm);
+        }
+        if (rhsNotNumber2.isSet())
+            rhsNotNumber2.get().linkTo(stubcc.masm.label(), &stubcc.masm);
+
+        
+
+
+
+
+        frame.sync(stubcc.masm, Uses(frame.frameSlots()));
+        stubcc.leave();
+        OOL_STUBCALL(stub, REJOIN_BRANCH);
 
         
         frame.pinReg(cmpReg);
@@ -1701,21 +1723,21 @@ mjit::Compiler::jsop_relational_full(JSOp op, BoolStub stub, jsbytecode *target,
             stubcc.masm.move(Imm32(1), regs.result);
             skip.linkTo(stubcc.masm.label(), &stubcc.masm);
             doubleDone = stubcc.masm.jump();
-
-            
-            if (lhsNotDouble.isSet()) {
-                lhsNotDouble.get().linkTo(stubcc.masm.label(), &stubcc.masm);
-                if (rhsNotNumber.isSet())
-                    rhsNotNumber.get().linkTo(stubcc.masm.label(), &stubcc.masm);
-            }
-            if (rhsNotNumber2.isSet())
-                rhsNotNumber2.get().linkTo(stubcc.masm.label(), &stubcc.masm);
-
-            
-            frame.sync(stubcc.masm, Uses(2));
-            stubcc.leave();
-            OOL_STUBCALL(stub, REJOIN_FALLTHROUGH);
         }
+
+        
+        if (lhsNotDouble.isSet()) {
+            lhsNotDouble.get().linkTo(stubcc.masm.label(), &stubcc.masm);
+            if (rhsNotNumber.isSet())
+                rhsNotNumber.get().linkTo(stubcc.masm.label(), &stubcc.masm);
+        }
+        if (rhsNotNumber2.isSet())
+            rhsNotNumber2.get().linkTo(stubcc.masm.label(), &stubcc.masm);
+
+        
+        frame.sync(stubcc.masm, Uses(2));
+        stubcc.leave();
+        OOL_STUBCALL(stub, REJOIN_FALLTHROUGH);
 
         
         Assembler::Condition i32Cond = GetCompareCondition(cmpOp, fused);

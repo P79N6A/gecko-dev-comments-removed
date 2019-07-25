@@ -1530,10 +1530,12 @@ FrameState::merge(Assembler &masm, Changes changes) const
 
 
 
-    for (unsigned i = 0; i < changes.nchanges; i++) {
-        FrameEntry *fe = a->sp - 1 - i;
-        if (fe->isTracked() && fe->isType(JSVAL_TYPE_DOUBLE))
-            masm.ensureInMemoryDouble(addressOf(fe));
+    if (cx->typeInferenceEnabled()) {
+        for (unsigned i = 0; i < changes.nchanges; i++) {
+            FrameEntry *fe = a->sp - 1 - i;
+            if (fe->isTracked() && fe->isType(JSVAL_TYPE_DOUBLE))
+                masm.ensureInMemoryDouble(addressOf(fe));
+        }
     }
 
     uint32_t mask = Registers::AvailAnyRegs & ~freeRegs.freeMask;
