@@ -2029,30 +2029,30 @@ nsTableFrame::GetCollapsedWidth(nsMargin aBorderPadding)
  void
 nsTableFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 {
-   if (!aOldStyleContext) 
-     return;
+  if (!aOldStyleContext) 
+    return;
 
-   if (IsBorderCollapse() &&
-       BCRecalcNeeded(aOldStyleContext, GetStyleContext())) {
-     SetFullBCDamageArea();
-   }
+  if (IsBorderCollapse() &&
+      BCRecalcNeeded(aOldStyleContext, GetStyleContext())) {
+    SetFullBCDamageArea();
+  }
 
-   
-   if (!mTableLayoutStrategy || GetPrevInFlow())
-     return;
+  
+  if (!mTableLayoutStrategy || GetPrevInFlow())
+    return;
 
-   bool isAuto = IsAutoLayout();
-   if (isAuto != (LayoutStrategy()->GetType() == nsITableLayoutStrategy::Auto)) {
-     nsITableLayoutStrategy* temp;
-     if (isAuto)
-       temp = new BasicTableLayoutStrategy(this);
-     else
-       temp = new FixedTableLayoutStrategy(this);
+  bool isAuto = IsAutoLayout();
+  if (isAuto != (LayoutStrategy()->GetType() == nsITableLayoutStrategy::Auto)) {
+    nsITableLayoutStrategy* temp;
+    if (isAuto)
+      temp = new BasicTableLayoutStrategy(this);
+    else
+      temp = new FixedTableLayoutStrategy(this);
 
-     if (temp) {
-       delete mTableLayoutStrategy;
-       mTableLayoutStrategy = temp;
-     }
+    if (temp) {
+      delete mTableLayoutStrategy;
+      mTableLayoutStrategy = temp;
+    }
   }
 }
 
