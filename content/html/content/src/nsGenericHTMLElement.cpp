@@ -3385,6 +3385,21 @@ nsresult nsGenericHTMLElement::MozRequestFullScreen()
     return NS_OK;
   }
 
+  
+  
+  nsINode* node = static_cast<nsINode*>(this);
+  do {
+    nsIContent* content = static_cast<nsIContent*>(node);
+    if (content->IsHTML(nsGkAtoms::iframe) &&
+        !content->HasAttr(kNameSpaceID_None, nsGkAtoms::mozallowfullscreen)) {
+      
+      
+      
+      return NS_OK;
+    }
+    node = nsContentUtils::GetCrossDocParentNode(node);
+  } while (node);
+
   nsIDocument* doc = GetOwnerDoc();
   NS_ENSURE_STATE(doc);
   doc->RequestFullScreen(this);
