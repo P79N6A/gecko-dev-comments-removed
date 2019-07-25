@@ -48,6 +48,7 @@ let DebuggerController = {
     this._isInitialized = true;
     window.removeEventListener("DOMContentLoaded", this._startupDebugger, true);
 
+    DebuggerView.initializePanes();
     DebuggerView.initializeEditor();
     DebuggerView.StackFrames.initialize();
     DebuggerView.Properties.initialize();
@@ -69,6 +70,7 @@ let DebuggerController = {
     this._isDestroyed = true;
     window.removeEventListener("unload", this._shutdownDebugger, true);
 
+    DebuggerView.destroyPanes();
     DebuggerView.destroyEditor();
     DebuggerView.Scripts.destroy();
     DebuggerView.StackFrames.destroy();
@@ -1418,6 +1420,46 @@ XPCOMUtils.defineLazyGetter(L10N, "stringBundle", function() {
 
 
 let Prefs = {
+
+  
+
+
+
+  get stackframesWidth() {
+    if (this._sfrmWidth === undefined) {
+      this._sfrmWidth = Services.prefs.getIntPref("devtools.debugger.ui.stackframes-width");
+    }
+    return this._sfrmWidth;
+  },
+
+  
+
+
+
+  set stackframesWidth(value) {
+    Services.prefs.setIntPref("devtools.debugger.ui.stackframes-width", value);
+    this._sfrmWidth = value;
+  },
+
+  
+
+
+
+  get variablesWidth() {
+    if (this._varsWidth === undefined) {
+      this._varsWidth = Services.prefs.getIntPref("devtools.debugger.ui.variables-width");
+    }
+    return this._varsWidth;
+  },
+
+  
+
+
+
+  set variablesWidth(value) {
+    Services.prefs.setIntPref("devtools.debugger.ui.variables-width", value);
+    this._varsWidth = value;
+  },
 
   
 

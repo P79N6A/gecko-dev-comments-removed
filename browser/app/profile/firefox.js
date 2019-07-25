@@ -1052,6 +1052,8 @@ pref("devtools.debugger.remote-timeout", 3000);
 pref("devtools.debugger.ui.height", 250);
 pref("devtools.debugger.ui.remote-win.width", 900);
 pref("devtools.debugger.ui.remote-win.height", 400);
+pref("devtools.debugger.ui.stackframes-width", 200);
+pref("devtools.debugger.ui.variables-width", 300);
 
 
 pref("devtools.styleinspector.enabled", true);
