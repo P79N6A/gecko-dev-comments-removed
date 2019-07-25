@@ -194,6 +194,11 @@
 }
 
 
+#menulist-commands {
+  display: -moz-box;
+}
+
+
 .options-title {
   padding: @padding_xxnormal@ @padding_small@ @padding_small@ @padding_small@;
   font-size: @font_small@;
