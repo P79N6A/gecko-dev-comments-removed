@@ -1836,6 +1836,18 @@ public:
 
   static bool IsAutocompleteEnabled(nsIDOMHTMLInputElement* aInput);
 
+  
+
+
+
+
+
+
+
+
+
+  static bool URIIsChromeOrInPref(nsIURI *aURI, const char *aPref);
+
 private:
   static bool InitializeEventTable();
 
