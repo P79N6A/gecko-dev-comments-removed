@@ -3548,9 +3548,15 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
         seen->addSubset(cx, &pushed[0]);
 
         
+
+
+
+
+
+
         jsid id = GetAtomId(cx, script, pc, 0);
         NameAccess access = resolveNameAccess(cx, id);
-        if (access.script) {
+        if (access.script && !access.script->typesPurged) {
             TypeSet *types = TypeScript::SlotTypes(access.script, access.slot);
             types->addSubsetBarrier(cx, script, pc, seen);
         } else {

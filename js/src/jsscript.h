@@ -525,6 +525,7 @@ struct JSScript {
     bool            createdArgs:1;    
     bool            uninlineable:1;   
     bool            reentrantOuterFunction:1; 
+    bool            typesPurged:1;    
 #ifdef JS_METHODJIT
     bool            debugMode:1;      
     bool            failedBoundsCheck:1; 
