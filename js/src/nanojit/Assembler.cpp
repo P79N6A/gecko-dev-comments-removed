@@ -807,7 +807,7 @@ namespace nanojit
         _inExit = false;
 
         
-        verbose_only( verbose_outputf("%p:", jmpTarget);)
+        verbose_only( verbose_outputf("%010lx:", (unsigned long)jmpTarget);)
         verbose_only( verbose_outputf("----------------------------------- ## BEGIN exit block (LIR_xt|LIR_xf)") );
 
 #ifdef NANOJIT_IA32
@@ -1216,6 +1216,8 @@ namespace nanojit
             return;
         }
 
+        
+
         countlir_jcc();
         LInsp to = ins->getTarget();
         LabelState *label = _labels.get(to);
@@ -1237,6 +1239,37 @@ namespace nanojit
                 intersectRegisterState(label->regs);
             }
             NIns *branch = asm_branch(branchOnFalse, cond, 0);
+            _patches.put(branch,to);
+        }
+    }
+
+    void Assembler::asm_jov(LInsp ins, InsList& pending_lives)
+    {
+        
+        
+        
+        
+        LOpcode op = ins->opcode();
+        LInsp to = ins->getTarget();
+        LabelState *label = _labels.get(to);
+        if (label && label->addr) {
+            
+            unionRegisterState(label->regs);
+            asm_branch_ov(op, label->addr);
+        }
+        else {
+            
+            handleLoopCarriedExprs(pending_lives);
+            if (!label) {
+                
+                evictAllActiveRegs();
+                _labels.add(to, 0, _allocator);
+            }
+            else {
+                
+                intersectRegisterState(label->regs);
+            }
+            NIns *branch = asm_branch_ov(op, 0);
             _patches.put(branch,to);
         }
     }
@@ -1507,6 +1540,7 @@ namespace nanojit
 
 #if defined NANOJIT_64BIT
                 case LIR_addq:
+                case LIR_subq:
                 case LIR_andq:
                 case LIR_lshq:
                 case LIR_rshuq:
@@ -1767,7 +1801,7 @@ namespace nanojit
 
                 case LIR_addxovi:
                 case LIR_subxovi:
-                case LIR_mulxovi: {
+                case LIR_mulxovi:
                     verbose_only( _thisfrag->nStaticExits++; )
                     countlir_xcc();
                     countlir_alu();
@@ -1775,11 +1809,37 @@ namespace nanojit
                     ins->oprnd2()->setResultLive();
                     if (ins->isExtant()) {
                         NIns* exit = asm_exit(ins); 
-                        asm_branch_xov(op, exit);
+                        asm_branch_ov(op, exit);
                         asm_arith(ins);
                     }
                     break;
-                }
+
+                case LIR_addjovi:
+                case LIR_subjovi:
+                case LIR_muljovi:
+                    countlir_jcc();
+                    countlir_alu();
+                    ins->oprnd1()->setResultLive();
+                    ins->oprnd2()->setResultLive();
+                    if (ins->isExtant()) {
+                        asm_jov(ins, pending_lives);
+                        asm_arith(ins);
+                    }
+                    break;
+
+#ifdef NANOJIT_64BIT
+                case LIR_addjovq:
+                case LIR_subjovq:
+                    countlir_jcc();
+                    countlir_alu();
+                    ins->oprnd1()->setResultLive();
+                    ins->oprnd2()->setResultLive();
+                    if (ins->isExtant()) {
+                        asm_jov(ins, pending_lives);
+                        asm_qbinop(ins);
+                    }
+                    break;
+#endif
 
                 case LIR_eqd:
                 case LIR_led:
