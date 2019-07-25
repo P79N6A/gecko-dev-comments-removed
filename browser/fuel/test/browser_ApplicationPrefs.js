@@ -149,9 +149,6 @@ function test() {
   ok(!pref.locked, "A single preference is unlocked.");
 
   
-  return;
-
-  
   waitForExplicitFinish();
   Application.prefs.events.addListener("change", onPrefChange);
   Application.prefs.setValue("fuel.fuel-test", "change event");
@@ -177,4 +174,6 @@ function onPrefChange2(evt) {
   finish();
 }
 
-function onPrefChangeDummy(evt) { }
+function onPrefChangeDummy(evt) {
+  ok(false, "onPrefChangeDummy shouldn't be invoked!");
+}
