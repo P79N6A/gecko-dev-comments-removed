@@ -961,6 +961,7 @@ backtrace(tm_thread *t, int skip, int *immediate_abort)
 
 
 
+        *immediate_abort = 0;
         if (info->size < 1) {
             PR_ASSERT(!info->buffer); 
             info->buffer = __libc_malloc(1 * sizeof(void*));
