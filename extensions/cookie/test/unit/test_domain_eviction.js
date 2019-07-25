@@ -4,6 +4,9 @@
 
 function run_test()
 {
+  
+  Services.prefs.setIntPref("network.cookie.maxPerHost", 50);
+
   var cm = Cc["@mozilla.org/cookiemanager;1"].getService(Ci.nsICookieManager2);
 
   cm.removeAll();
