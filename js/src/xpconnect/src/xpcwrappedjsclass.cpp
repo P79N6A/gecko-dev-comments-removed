@@ -258,7 +258,7 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(XPCCallContext& ccx,
     
     
     if(XPCPerThreadData::IsMainThread(ccx) &&
-       !xpc::AccessCheck::isChrome(jsobj->getCompartment(ccx)))
+       !xpc::AccessCheck::isChrome(jsobj->getCompartment()))
     {
         return nsnull;
     }
@@ -1328,7 +1328,7 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
         if(ssm)
         {
             nsIPrincipal *objPrincipal =
-                xpc::AccessCheck::getPrincipal(obj->getCompartment(ccx));
+                xpc::AccessCheck::getPrincipal(obj->getCompartment());
             if(objPrincipal)
             {
                 JSStackFrame* fp = nsnull;

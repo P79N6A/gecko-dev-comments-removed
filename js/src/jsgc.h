@@ -1037,4 +1037,10 @@ NewCompartment(JSContext *cx, JSPrincipals *principals);
 } 
 } 
 
+inline JSCompartment *
+JSObject::getCompartment() const
+{
+    return ((Cell *)this)->compartment();
+}
+
 #endif 
