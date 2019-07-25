@@ -141,6 +141,12 @@ struct ThreadData {
     StackSpace          stackSpace;
 
     
+
+
+
+    bool                waiveGCQuota;
+
+    
     static const size_t TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE = 1 << 12;
     LifoAlloc           tempLifoAlloc;
 

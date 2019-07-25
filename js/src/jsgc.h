@@ -809,9 +809,6 @@ class ChunkPool {
     Chunk *expire(JSRuntime *rt, bool releaseAll);
 
     
-    void expireAndFree(JSRuntime *rt, bool releaseAll);
-
-    
     JS_FRIEND_API(int64_t) countCleanDecommittedArenas(JSRuntime *rt);
 };
 
@@ -1362,9 +1359,6 @@ js_GCThingIsMarked(void *thing, uintN color);
 
 extern void
 js_TraceStackFrame(JSTracer *trc, js::StackFrame *fp);
-
-extern bool
-js_IsAddressableGCThing(JSRuntime *rt, jsuword w, js::gc::AllocKind *thingKind, void **thing);
 
 namespace js {
 
