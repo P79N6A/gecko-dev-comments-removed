@@ -274,7 +274,7 @@ protected:
   
   
   void IncrementLength(PRUint32 n) {
-    NS_ASSERTION(mHdr != EmptyHdr() || n == 0, "bad data pointer");
+    MOZ_ASSERT(mHdr != EmptyHdr() || n == 0, "bad data pointer");
     mHdr->mLength += n;
   }
 
@@ -316,11 +316,11 @@ protected:
 
   
   Header* GetAutoArrayBuffer(size_t elemAlign) {
-    NS_ASSERTION(IsAutoArray(), "Should be an auto array to call this");
+    MOZ_ASSERT(IsAutoArray(), "Should be an auto array to call this");
     return GetAutoArrayBufferUnsafe(elemAlign);
   }
   const Header* GetAutoArrayBuffer(size_t elemAlign) const {
-    NS_ASSERTION(IsAutoArray(), "Should be an auto array to call this");
+    MOZ_ASSERT(IsAutoArray(), "Should be an auto array to call this");
     return GetAutoArrayBufferUnsafe(elemAlign);
   }
 
@@ -573,7 +573,7 @@ public:
   
   
   elem_type& ElementAt(index_type i) {
-    NS_ASSERTION(i < Length(), "invalid array index");
+    MOZ_ASSERT(i < Length(), "invalid array index");
     return Elements()[i];
   }
 
@@ -582,7 +582,7 @@ public:
   
   
   const elem_type& ElementAt(index_type i) const {
-    NS_ASSERTION(i < Length(), "invalid array index");
+    MOZ_ASSERT(i < Length(), "invalid array index");
     return Elements()[i];
   }
 
@@ -941,7 +941,7 @@ public:
   
   template<class Item, class Allocator>
   elem_type *MoveElementsFrom(nsTArray<Item, Allocator>& array) {
-    NS_PRECONDITION(&array != this, "argument must be different array");
+    MOZ_ASSERT(&array != this, "argument must be different array");
     index_type len = Length();
     index_type otherLen = array.Length();
     if (!this->EnsureCapacity(len + otherLen, sizeof(elem_type)))
@@ -956,8 +956,8 @@ public:
   
   
   void RemoveElementsAt(index_type start, size_type count) {
-    NS_ASSERTION(count == 0 || start < Length(), "Invalid start index");
-    NS_ASSERTION(start + count <= Length(), "Invalid length");
+    MOZ_ASSERT(count == 0 || start < Length(), "Invalid start index");
+    MOZ_ASSERT(start + count <= Length(), "Invalid length");
     DestructRange(start, count);
     this->ShiftData(start, count, 0, sizeof(elem_type), MOZ_ALIGNOF(elem_type));
   }
@@ -1343,9 +1343,9 @@ private:
     base_type::Hdr()->mCapacity = N;
     base_type::Hdr()->mIsAutoArray = 1;
 
-    NS_ASSERTION(base_type::GetAutoArrayBuffer(MOZ_ALIGNOF(elem_type)) ==
-                 reinterpret_cast<Header*>(&mAutoBuf),
-                 "GetAutoArrayBuffer needs to be fixed");
+    MOZ_ASSERT(base_type::GetAutoArrayBuffer(MOZ_ALIGNOF(elem_type)) ==
+               reinterpret_cast<Header*>(&mAutoBuf),
+               "GetAutoArrayBuffer needs to be fixed");
   }
 
   

@@ -112,6 +112,21 @@ ScriptEpilogueOrGeneratorYield(JSContext *cx, StackFrame *fp, bool ok);
 extern JSTrapStatus
 ScriptDebugPrologue(JSContext *cx, StackFrame *fp);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 extern bool
 ScriptDebugEpilogue(JSContext *cx, StackFrame *fp, bool ok);
 

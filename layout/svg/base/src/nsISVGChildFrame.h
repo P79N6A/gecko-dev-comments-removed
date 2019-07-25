@@ -47,7 +47,7 @@
 #include "gfxMatrix.h"
 
 class gfxContext;
-class nsSVGRenderState;
+class nsRenderingContext;
 
 namespace mozilla {
 class SVGAnimatedNumberList;
@@ -70,7 +70,7 @@ public:
 
   
   
-  NS_IMETHOD PaintSVG(nsSVGRenderState* aContext,
+  NS_IMETHOD PaintSVG(nsRenderingContext* aContext,
                       const nsIntRect *aDirtyRect)=0;
 
   

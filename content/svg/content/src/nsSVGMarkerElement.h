@@ -134,6 +134,9 @@ public:
                              bool aNotify);
 
   
+  virtual bool HasValidDimensions() const;
+
+  
   gfxMatrix GetMarkerTransform(float aStrokeWidth,
                                float aX, float aY, float aAutoAngle);
   nsSVGViewBoxRect GetViewBoxRect();

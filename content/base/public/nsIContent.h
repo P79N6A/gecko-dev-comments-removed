@@ -43,7 +43,6 @@
 #include "nsChangeHint.h"
 #include "nsINode.h"
 #include "nsIDocument.h" 
-#include "nsDOMMemoryReporter.h"
 
 
 class nsIAtom;

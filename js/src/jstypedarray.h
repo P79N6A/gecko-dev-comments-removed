@@ -307,7 +307,7 @@ js_CreateArrayBuffer(JSContext *cx, uint32_t nbytes);
 
 
 JS_FRIEND_API(JSObject *)
-js_CreateTypedArray(JSContext *cx, jsint atype, uint32_t nelements);
+js_CreateTypedArray(JSContext *cx, int atype, uint32_t nelements);
 
 
 
@@ -315,7 +315,7 @@ js_CreateTypedArray(JSContext *cx, jsint atype, uint32_t nelements);
 
 
 JS_FRIEND_API(JSObject *)
-js_CreateTypedArrayWithArray(JSContext *cx, jsint atype, JSObject *arrayArg);
+js_CreateTypedArrayWithArray(JSContext *cx, int atype, JSObject *arrayArg);
 
 
 
@@ -325,8 +325,8 @@ js_CreateTypedArrayWithArray(JSContext *cx, jsint atype, JSObject *arrayArg);
 
 
 JS_FRIEND_API(JSObject *)
-js_CreateTypedArrayWithBuffer(JSContext *cx, jsint atype, JSObject *bufArg,
-                              jsint byteoffset, jsint length);
+js_CreateTypedArrayWithBuffer(JSContext *cx, int atype, JSObject *bufArg,
+                              int byteoffset, int length);
 
 extern int32_t JS_FASTCALL
 js_TypedArray_uint8_clamp_double(const double x);

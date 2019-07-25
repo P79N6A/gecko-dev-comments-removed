@@ -2543,7 +2543,12 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::EmbeddingLevelProperty()))
 
 
 
-  bool GetAbsPosClipRect(const nsStyleDisplay* aDisp, nsRect* aRect,
+
+
+
+
+
+  bool GetClipPropClipRect(const nsStyleDisplay* aDisp, nsRect* aRect,
                            const nsSize& aSize) const;
 
   

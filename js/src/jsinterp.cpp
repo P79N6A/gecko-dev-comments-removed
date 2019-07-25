@@ -911,7 +911,7 @@ js::ValueToId(JSContext *cx, const Value &v, jsid *idp)
 
 
 static bool
-EnterWith(JSContext *cx, jsint stackIndex)
+EnterWith(JSContext *cx, int stackIndex)
 {
     StackFrame *fp = cx->fp();
     Value *sp = cx->regs().sp;
@@ -1527,7 +1527,7 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
 #endif
 
     
-    JSBool interpReturnOK;
+    bool interpReturnOK;
 
     
     if (interpMode == JSINTERP_NORMAL) {
@@ -1541,7 +1541,7 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
               case JSTRAP_CONTINUE:
                 break;
               case JSTRAP_RETURN:
-                interpReturnOK = JS_TRUE;
+                interpReturnOK = true;
                 goto forced_return;
               case JSTRAP_THROW:
               case JSTRAP_ERROR:
@@ -1567,7 +1567,7 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
 
 
     JSOp op;
-    jsint len;
+    int32_t len;
     len = 0;
 
     
@@ -1638,7 +1638,7 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
                 break;
               case JSTRAP_RETURN:
                 regs.fp()->setReturnValue(rval);
-                interpReturnOK = JS_TRUE;
+                interpReturnOK = true;
                 goto forced_return;
               case JSTRAP_THROW:
                 cx->setPendingException(rval);
@@ -1659,7 +1659,7 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
                 goto error;
               case JSTRAP_RETURN:
                 regs.fp()->setReturnValue(rval);
-                interpReturnOK = JS_TRUE;
+                interpReturnOK = true;
                 goto forced_return;
               case JSTRAP_THROW:
                 cx->setPendingException(rval);
@@ -2825,7 +2825,7 @@ BEGIN_CASE(JSOP_FUNAPPLY)
           case JSTRAP_CONTINUE:
             break;
           case JSTRAP_RETURN:
-            interpReturnOK = JS_TRUE;
+            interpReturnOK = true;
             goto forced_return;
           case JSTRAP_THROW:
           case JSTRAP_ERROR:
@@ -2978,14 +2978,14 @@ BEGIN_CASE(JSOP_TABLESWITCH)
     }
 
     pc2 += JUMP_OFFSET_LEN;
-    jsint low = GET_JUMP_OFFSET(pc2);
+    int32_t low = GET_JUMP_OFFSET(pc2);
     pc2 += JUMP_OFFSET_LEN;
-    jsint high = GET_JUMP_OFFSET(pc2);
+    int32_t high = GET_JUMP_OFFSET(pc2);
 
     i -= low;
     if ((jsuint)i < (jsuint)(high - low + 1)) {
         pc2 += JUMP_OFFSET_LEN + JUMP_OFFSET_LEN * i;
-        jsint off = (jsint) GET_JUMP_OFFSET(pc2);
+        int32_t off = (int32_t) GET_JUMP_OFFSET(pc2);
         if (off)
             len = off;
     }
@@ -2996,7 +2996,7 @@ END_VARLEN_CASE
 {
 BEGIN_CASE(JSOP_LOOKUPSWITCH)
 {
-    jsint off;
+    int32_t off;
     off = JUMP_OFFSET_LEN;
 
     
@@ -3009,12 +3009,12 @@ BEGIN_CASE(JSOP_LOOKUPSWITCH)
     Value lval = regs.sp[-1];
     regs.sp--;
 
+    int npairs;
     if (!lval.isPrimitive())
         goto end_lookup_switch;
 
     pc2 += off;
-    jsint npairs;
-    npairs = (jsint) GET_UINT16(pc2);
+    npairs = GET_UINT16(pc2);
     pc2 += UINT16_LEN;
     JS_ASSERT(npairs);  
 
@@ -3409,7 +3409,7 @@ BEGIN_CASE(JSOP_SETTER)
     JSOp op2 = JSOp(*++regs.pc);
     jsid id;
     Value rval;
-    jsint i;
+    int i;
     JSObject *obj;
     switch (op2) {
       case JSOP_SETNAME:
@@ -3638,7 +3638,7 @@ END_CASE(JSOP_INITELEM)
 {
 BEGIN_CASE(JSOP_GOSUB)
     PUSH_BOOLEAN(false);
-    jsint i = (regs.pc - script->code) + JSOP_GOSUB_LENGTH;
+    int32_t i = (regs.pc - script->code) + JSOP_GOSUB_LENGTH;
     len = GET_JUMP_OFFSET(regs.pc);
     PUSH_INT32(i);
 END_VARLEN_CASE
@@ -3736,7 +3736,7 @@ BEGIN_CASE(JSOP_DEBUGGER)
         break;
       case JSTRAP_RETURN:
         regs.fp()->setReturnValue(rval);
-        interpReturnOK = JS_TRUE;
+        interpReturnOK = true;
         goto forced_return;
       case JSTRAP_THROW:
         cx->setPendingException(rval);
@@ -4192,7 +4192,7 @@ BEGIN_CASE(JSOP_YIELD)
     regs.fp()->setReturnValue(regs.sp[-1]);
     regs.fp()->setYielding();
     regs.pc += JSOP_YIELD_LENGTH;
-    interpReturnOK = JS_TRUE;
+    interpReturnOK = true;
     goto exit;
 
 BEGIN_CASE(JSOP_ARRAYPUSH)
@@ -4275,7 +4275,7 @@ END_CASE(JSOP_ARRAYPUSH)
 
     if (!cx->isExceptionPending()) {
         
-        interpReturnOK = JS_FALSE;
+        interpReturnOK = false;
     } else {
         JSThrowHook handler;
         JSTryNote *tn, *tnlimit;
@@ -4301,7 +4301,7 @@ END_CASE(JSOP_ARRAYPUSH)
               case JSTRAP_RETURN:
                 cx->clearPendingException();
                 regs.fp()->setReturnValue(rval);
-                interpReturnOK = JS_TRUE;
+                interpReturnOK = true;
                 goto forced_return;
               case JSTRAP_THROW:
                 cx->setPendingException(rval);
@@ -4401,12 +4401,12 @@ END_CASE(JSOP_ARRAYPUSH)
 
 
 
-        interpReturnOK = JS_FALSE;
+        interpReturnOK = false;
 #if JS_HAS_GENERATORS
         if (JS_UNLIKELY(cx->isExceptionPending() &&
                         cx->getPendingException().isMagic(JS_GENERATOR_CLOSING))) {
             cx->clearPendingException();
-            interpReturnOK = JS_TRUE;
+            interpReturnOK = true;
             regs.fp()->clearReturnValue();
         }
 #endif

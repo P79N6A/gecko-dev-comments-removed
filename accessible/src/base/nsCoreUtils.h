@@ -244,14 +244,6 @@ public:
   
 
 
-
-
-
-  static bool IsCorrectFrameType(nsIFrame* aFrame, nsIAtom* aAtom);
-
-  
-
-
   static nsIPresShell *GetPresShellFor(nsINode *aNode)
   {
     return aNode->OwnerDoc()->GetShell();

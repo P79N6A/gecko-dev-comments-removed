@@ -2019,6 +2019,13 @@ void nsBuiltinDecoderStateMachine::AdvanceFrame()
       
       RenderVideoFrame(currentFrame, presTime);
     }
+    
+    
+    
+    if (!IsPlaying()) {
+      ScheduleStateMachine();
+      return;
+    }
     mDecoder->GetFrameStatistics().NotifyPresentedFrame();
     PRInt64 now = DurationToUsecs(TimeStamp::Now() - mPlayStartTime) + mPlayDuration;
     remainingTime = currentFrame->mEndTime - mStartTime - now;

@@ -160,7 +160,7 @@ class JSString;
 class JSFixedString;
 
 extern JSString *
-js_IntToString(JSContext *cx, jsint i);
+js_IntToString(JSContext *cx, int i);
 
 
 
@@ -213,7 +213,7 @@ struct ToCStringBuf
 
 
 extern char *
-NumberToCString(JSContext *cx, ToCStringBuf *cbuf, double d, jsint base = 10);
+NumberToCString(JSContext *cx, ToCStringBuf *cbuf, double d, int base = 10);
 
 
 

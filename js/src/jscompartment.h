@@ -129,17 +129,17 @@ class MathCache;
 
 class DtoaCache {
     double        d;
-    jsint         base;
+    int         base;
     JSFixedString *s;      
   public:
     DtoaCache() : s(NULL) {}
     void purge() { s = NULL; }
 
-    JSFixedString *lookup(jsint base, double d) {
+    JSFixedString *lookup(int base, double d) {
         return this->s && base == this->base && d == this->d ? this->s : NULL;
     }
 
-    void cache(jsint base, double d, JSFixedString *s) {
+    void cache(int base, double d, JSFixedString *s) {
         this->base = base;
         this->d = d;
         this->s = s;
@@ -234,7 +234,6 @@ struct JSCompartment
 
     void                         *data;
     bool                         active;  
-    bool                         hasDebugModeCodeToDrop;
     js::WrapperMap               crossCompartmentWrappers;
 
 #ifdef JS_METHODJIT

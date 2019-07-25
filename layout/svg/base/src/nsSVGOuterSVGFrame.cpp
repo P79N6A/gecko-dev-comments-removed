@@ -505,10 +505,70 @@ nsDisplaySVG::HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
 
 void
 nsDisplaySVG::Paint(nsDisplayListBuilder* aBuilder,
-                    nsRenderingContext* aCtx)
+                    nsRenderingContext* aContext)
 {
-  static_cast<nsSVGOuterSVGFrame*>(mFrame)->
-    Paint(aBuilder, *aCtx, mVisibleRect, ToReferenceFrame());
+  nsSVGOuterSVGFrame *frame = static_cast<nsSVGOuterSVGFrame*>(mFrame);
+
+  if (frame->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)
+    return;
+
+#if defined(DEBUG) && defined(SVG_DEBUG_PAINT_TIMING)
+  PRTime start = PR_Now();
+#endif
+
+  aContext->PushState();
+
+#ifdef XP_MACOSX
+  if (frame->BitmapFallbackEnabled()) {
+    
+    
+    aContext->ThebesContext()->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
+  }
+#endif
+
+  frame->Paint(aBuilder, aContext, mVisibleRect, ToReferenceFrame());
+
+#ifdef XP_MACOSX
+  if (frame->BitmapFallbackEnabled()) {
+    
+    aContext->ThebesContext()->PopGroupToSource();
+    aContext->ThebesContext()->Paint();
+  }
+
+  if (aContext->ThebesContext()->HasError() && !frame->BitmapFallbackEnabled()) {
+    frame->SetBitmapFallbackEnabled(true);
+    
+    
+    
+    
+    
+    
+    
+    nsIFrame* ancestor = frame;
+    PRUint32 flags = 0;
+    while (true) {
+      nsIFrame* next = nsLayoutUtils::GetCrossDocParentFrame(ancestor);
+      if (!next)
+        break;
+      if (ancestor->GetParent() != next) {
+        
+        
+        
+        
+        flags |= nsIFrame::INVALIDATE_CROSS_DOC;
+      }
+      ancestor = next;
+    }
+    ancestor->InvalidateWithFlags(nsRect(nsPoint(0, 0), ancestor->GetSize()), flags);
+  }
+#endif
+
+  aContext->PopState();
+
+#if defined(DEBUG) && defined(SVG_DEBUG_PAINT_TIMING)
+  PRTime end = PR_Now();
+  printf("SVG Paint Timing: %f ms\n", (end-start)/1000.0);
+#endif
 }
 
 
@@ -585,88 +645,30 @@ nsSVGOuterSVGFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
 void
 nsSVGOuterSVGFrame::Paint(const nsDisplayListBuilder* aBuilder,
-                          nsRenderingContext& aRenderingContext,
+                          nsRenderingContext* aContext,
                           const nsRect& aDirtyRect, nsPoint aPt)
 {
-  if (GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)
-    return;
-
-  
-  aRenderingContext.PushState();
-
   nsRect viewportRect = GetContentRect();
   nsPoint viewportOffset = aPt + viewportRect.TopLeft() - GetPosition();
   viewportRect.MoveTo(viewportOffset);
 
   nsRect clipRect;
   clipRect.IntersectRect(aDirtyRect, viewportRect);
-  aRenderingContext.IntersectClip(clipRect);
-  aRenderingContext.Translate(viewportRect.TopLeft());
+  aContext->IntersectClip(clipRect);
+  aContext->Translate(viewportRect.TopLeft());
   nsRect dirtyRect = clipRect - viewportOffset;
-
-#if defined(DEBUG) && defined(SVG_DEBUG_PAINT_TIMING)
-  PRTime start = PR_Now();
-#endif
 
   nsIntRect dirtyPxRect = dirtyRect.ToOutsidePixels(PresContext()->AppUnitsPerDevPixel());
 
-  nsSVGRenderState ctx(&aRenderingContext);
+  
+  
+  SVGAutoRenderState state(aContext, SVGAutoRenderState::GetRenderMode(aContext));
 
   if (aBuilder->IsPaintingToWindow()) {
-    ctx.SetPaintingToWindow(true);
+    state.SetPaintingToWindow(true);
   }
 
-#ifdef XP_MACOSX
-  if (mEnableBitmapFallback) {
-    
-    
-    ctx.GetGfxContext()->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
-  }
-#endif
-
-  nsSVGUtils::PaintFrameWithEffects(&ctx, &dirtyPxRect, this);
-
-#ifdef XP_MACOSX
-  if (mEnableBitmapFallback) {
-    
-    ctx.GetGfxContext()->PopGroupToSource();
-    ctx.GetGfxContext()->Paint();
-  }
-  
-  if (ctx.GetGfxContext()->HasError() && !mEnableBitmapFallback) {
-    mEnableBitmapFallback = true;
-    
-    
-    
-    
-    
-    
-    
-    nsIFrame* frame = this;
-    PRUint32 flags = 0;
-    while (true) {
-      nsIFrame* next = nsLayoutUtils::GetCrossDocParentFrame(frame);
-      if (!next)
-        break;
-      if (frame->GetParent() != next) {
-        
-        
-        
-        
-        flags |= INVALIDATE_CROSS_DOC;
-      }
-      frame = next;
-    }
-    frame->InvalidateWithFlags(nsRect(nsPoint(0, 0), frame->GetSize()), flags);
-  }
-#endif
-
-#if defined(DEBUG) && defined(SVG_DEBUG_PAINT_TIMING)
-  PRTime end = PR_Now();
-  printf("SVG Paint Timing: %f ms\n", (end-start)/1000.0);
-#endif
-  
-  aRenderingContext.PopState();
+  nsSVGUtils::PaintFrameWithEffects(aContext, &dirtyPxRect, this);
 }
 
 nsSplittableType

@@ -575,8 +575,14 @@ js_InternalThrow(VMFrame &f)
         UnwindScope(cx, 0);
         f.regs.sp = f.fp()->base();
 
-        if (cx->compartment->debugMode())
-            js::ScriptDebugEpilogue(cx, f.fp(), false);
+        if (cx->compartment->debugMode()) {
+            
+            
+            
+            if (js::ScriptDebugEpilogue(cx, f.fp(), false))
+                return cx->jaegerCompartment()->forceReturnFromExternC();
+        }
+                
 
         ScriptEpilogue(f.cx, f.fp(), false);
 

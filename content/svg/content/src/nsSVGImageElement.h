@@ -90,6 +90,9 @@ public:
   
   virtual void ConstructPath(gfxContext *aCtx);
 
+  
+  virtual bool HasValidDimensions() const;
+
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   nsresult CopyInnerTo(nsGenericElement* aDest) const;

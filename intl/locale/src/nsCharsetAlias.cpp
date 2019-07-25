@@ -3,14 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "mozilla/Util.h"
 
 #include "nsCharsetAlias.h"
 #include "pratom.h"
-
-
-#include "nsEncoderDecoderUtils.h"
-#include "nsCharsetConverterManager.h"
 
 
 #include "nsIPlatformCharset.h"
@@ -29,32 +57,16 @@ static const char* kAliases[][3] = {
 
 
 nsresult
-nsCharsetAlias::GetPreferredInternal(const nsACString& aAlias,
-                                     nsACString& oResult)
-{
-   nsAutoCString key(aAlias);
-   ToLowerCase(key);
-
-   return nsUConvPropertySearch::SearchPropertyValue(kAliases,
-      ArrayLength(kAliases), key, oResult);
-}
-
-
-
-nsresult
 nsCharsetAlias::GetPreferred(const nsACString& aAlias,
                              nsACString& oResult)
 {
    if (aAlias.IsEmpty()) return NS_ERROR_NULL_POINTER;
 
-   nsresult res = GetPreferredInternal(aAlias, oResult);
-   if (NS_FAILED(res))
-      return res;
+   nsCAutoString key(aAlias);
+   ToLowerCase(key);
 
-   if (nsCharsetConverterManager::IsInternal(oResult))
-      return NS_ERROR_UCONV_NOCONV;
-
-   return res;
+   return nsUConvPropertySearch::SearchPropertyValue(kAliases,
+      ArrayLength(kAliases), key, oResult);
 }
 
 
@@ -76,13 +88,13 @@ nsCharsetAlias::Equals(const nsACString& aCharset1,
    }
 
    *oResult = false;
-   nsAutoCString name1;
-   res = GetPreferredInternal(aCharset1, name1);
+   nsCAutoString name1;
+   res = GetPreferred(aCharset1, name1);
    if (NS_FAILED(res))
      return res;
 
-   nsAutoCString name2;
-   res = GetPreferredInternal(aCharset2, name2);
+   nsCAutoString name2;
+   res = GetPreferred(aCharset2, name2);
    if (NS_FAILED(res))
      return res;
 

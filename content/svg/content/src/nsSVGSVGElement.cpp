@@ -1189,6 +1189,16 @@ nsSVGSVGElement::GetLength(PRUint8 aCtxType)
   return 0;
 }
 
+void
+nsSVGSVGElement::SyncWidthOrHeight(nsIAtom* aName, nsSVGElement *aTarget) const
+{
+  NS_ASSERTION(aName == nsGkAtoms::width || aName == nsGkAtoms::height,
+               "The clue is in the function name");
+
+  PRUint32 index = *sLengthInfo[WIDTH].mName == aName ? WIDTH : HEIGHT;
+  aTarget->SetLength(aName, mLengthAttributes[index]);
+}
+
 
 
 
@@ -1227,6 +1237,16 @@ nsSVGSVGElement::PrependLocalTransformsTo(const gfxMatrix &aMatrix,
 
   
   return GetViewBoxTransform() * aMatrix;
+}
+
+ bool
+nsSVGSVGElement::HasValidDimensions() const
+{
+  return !IsInner() ||
+    ((!mLengthAttributes[WIDTH].IsExplicitlySet() ||
+       mLengthAttributes[WIDTH].GetAnimValInSpecifiedUnits() > 0) &&
+     (!mLengthAttributes[HEIGHT].IsExplicitlySet() || 
+       mLengthAttributes[HEIGHT].GetAnimValInSpecifiedUnits() > 0));
 }
 
 nsSVGElement::LengthAttributesInfo

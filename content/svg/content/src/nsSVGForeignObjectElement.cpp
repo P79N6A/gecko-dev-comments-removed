@@ -136,6 +136,15 @@ nsSVGForeignObjectElement::PrependLocalTransformsTo(const gfxMatrix &aMatrix,
   return toUserSpace * fromUserSpace;
 }
 
+ bool
+nsSVGForeignObjectElement::HasValidDimensions() const
+{
+  return mLengthAttributes[WIDTH].IsExplicitlySet() &&
+         mLengthAttributes[WIDTH].GetAnimValInSpecifiedUnits() > 0 &&
+         mLengthAttributes[HEIGHT].IsExplicitlySet() &&
+         mLengthAttributes[HEIGHT].GetAnimValInSpecifiedUnits() > 0;
+}
+
 
 
 

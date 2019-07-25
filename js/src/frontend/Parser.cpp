@@ -6081,6 +6081,9 @@ Parser::qualifiedSuffix(ParseNode *pn)
         return NULL;
 
     
+    tc->flags |= (TCF_FUN_HEAVYWEIGHT | TCF_FUN_LOCAL_ARGUMENTS);
+
+    
     if (pn->isOp(JSOP_QNAMEPART))
         pn->setOp(JSOP_NAME);
 
@@ -6124,7 +6127,7 @@ Parser::qualifiedIdentifier()
         return NULL;
     if (tokenStream.matchToken(TOK_DBLCOLON)) {
         
-        tc->flags |= TCF_FUN_HEAVYWEIGHT;
+        tc->flags |= (TCF_FUN_HEAVYWEIGHT | TCF_FUN_LOCAL_ARGUMENTS);
         pn = qualifiedSuffix(pn);
     }
     return pn;
@@ -6639,7 +6642,7 @@ Parser::propertyQualifiedIdentifier()
     JS_ASSERT(tokenStream.peekToken() == TOK_DBLCOLON);
 
     
-    tc->flags |= TCF_FUN_HEAVYWEIGHT;
+    tc->flags |= (TCF_FUN_HEAVYWEIGHT | TCF_FUN_LOCAL_ARGUMENTS);
 
     PropertyName *name = tokenStream.currentToken().name();
     ParseNode *node = NameNode::create(PNK_NAME, name, tc);

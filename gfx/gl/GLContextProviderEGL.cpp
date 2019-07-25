@@ -39,6 +39,7 @@
 
 
 
+#include "mozilla/Preferences.h"
 #include "mozilla/Util.h"
 
 #if defined(XP_UNIX)
@@ -69,6 +70,12 @@
 #include "AndroidBridge.h"
 #endif
 #include <android/log.h>
+
+
+
+
+
+#define APITRACE_LIB "/data/local/egltrace.so"
 #endif
 
 #define EGL_LIB "libEGL.so"
@@ -226,6 +233,38 @@ static EGLint gContextAttribsRobustness[] = {
     LOCAL_EGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_EXT, LOCAL_EGL_LOSE_CONTEXT_ON_RESET_EXT,
     LOCAL_EGL_NONE
 };
+
+static PRLibrary* LoadApitraceLibrary()
+{
+    static PRLibrary* sApitraceLibrary = NULL;
+
+    if (sApitraceLibrary)
+        return sApitraceLibrary;
+
+#if defined(ANDROID)
+    nsCString logFile = Preferences::GetCString("gfx.apitrace.logfile");
+
+    if (logFile.IsEmpty()) {
+        logFile = "firefox.trace";
+    }
+
+    
+    
+    nsCAutoString logPath;
+    logPath.AppendPrintf("%s/%s", getenv("GRE_HOME"), logFile.get());
+
+    
+    
+    printf_stderr("Logging GL tracing output to %s", logPath.get());
+    setenv("TRACE_FILE", logPath.get(), false);
+
+    printf_stderr("Attempting load of %s\n", APITRACE_LIB);
+
+    sApitraceLibrary = PR_LoadLibrary(APITRACE_LIB);
+#endif
+
+    return sApitraceLibrary;
+}
 
 static int
 next_power_of_two(int v)
@@ -650,12 +689,17 @@ public:
 #endif
 
         if (!mEGLLibrary) {
-            mEGLLibrary = PR_LoadLibrary(EGL_LIB);
-#if defined(XP_UNIX)
+            mEGLLibrary = LoadApitraceLibrary();
+
             if (!mEGLLibrary) {
-                mEGLLibrary = PR_LoadLibrary(EGL_LIB1);
-            }
+                printf_stderr("Attempting load of %s\n", EGL_LIB);
+                mEGLLibrary = PR_LoadLibrary(EGL_LIB);
+#if defined(XP_UNIX)
+                if (!mEGLLibrary) {
+                    mEGLLibrary = PR_LoadLibrary(EGL_LIB1);
+                }
 #endif
+            }
         }
 
         if (!mEGLLibrary) {
@@ -1019,14 +1063,19 @@ public:
 
     bool Init()
     {
-        if (!OpenLibrary(GLES2_LIB)) {
-#if defined(XP_UNIX)
-            if (!OpenLibrary(GLES2_LIB2)) {
-                NS_WARNING("Couldn't load EGL LIB.");
-            }
+#if defined(ANDROID)
+        
+        
+        if (!OpenLibrary(APITRACE_LIB))
 #endif
-            return false;
-        }
+            if (!OpenLibrary(GLES2_LIB)) {
+#if defined(XP_UNIX)
+                if (!OpenLibrary(GLES2_LIB2)) {
+                    NS_WARNING("Couldn't load GLES2 LIB.");
+                    return false;
+                }
+#endif
+            }
 
         bool current = MakeCurrent();
         if (!current) {
@@ -2630,11 +2679,7 @@ GLContextProviderEGL::CreateOffscreen(const gfxIntSize& aSize,
     if (!glContext) {
         return nsnull;
     }
-    if (!glContext->GetSharedContext()) {
-        
-        
-        return nsnull;
-    }
+
     if (!gUseBackingSurface && !glContext->ResizeOffscreenFBO(glContext->OffscreenActualSize(), true)) {
         
         

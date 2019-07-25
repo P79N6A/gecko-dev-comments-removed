@@ -150,58 +150,29 @@ IsSVGWhitespace(PRUnichar aChar)
 bool NS_SMILEnabled();
 
 
+
 #undef CLIP_MASK
 
-class nsSVGRenderState
+class NS_STACK_CLASS SVGAutoRenderState
 {
 public:
   enum RenderMode { NORMAL, CLIP, CLIP_MASK };
 
-  
+  SVGAutoRenderState(nsRenderingContext *aContext, RenderMode aMode);
+  ~SVGAutoRenderState();
 
+  void SetPaintingToWindow(bool aPaintingToWindow);
 
-  nsSVGRenderState(nsRenderingContext *aContext);
-  
-
-
-  nsSVGRenderState(gfxContext *aContext);
-  
-
-
-  nsSVGRenderState(gfxASurface *aSurface);
-
-  nsRenderingContext *GetRenderingContext(nsIFrame *aFrame);
-  gfxContext *GetGfxContext() { return mGfxContext; }
-
-  void SetRenderMode(RenderMode aMode) { mRenderMode = aMode; }
-  RenderMode GetRenderMode() { return mRenderMode; }
-
-  void SetPaintingToWindow(bool aPaintingToWindow) {
-    mPaintingToWindow = aPaintingToWindow;
-  }
-  bool IsPaintingToWindow() { return mPaintingToWindow; }
+  static RenderMode GetRenderMode(nsRenderingContext *aContext);
+  static bool IsPaintingToWindow(nsRenderingContext *aContext);
 
 private:
-  RenderMode                    mRenderMode;
-  nsRefPtr<nsRenderingContext> mRenderingContext;
-  nsRefPtr<gfxContext>          mGfxContext;
-  bool                          mPaintingToWindow;
+  nsRenderingContext *mContext;
+  void *mOriginalRenderState;
+  RenderMode mMode;
+  bool mPaintingToWindow;
 };
 
-class nsAutoSVGRenderMode
-{
-public:
-  nsAutoSVGRenderMode(nsSVGRenderState *aState,
-                      nsSVGRenderState::RenderMode aMode) : mState(aState) {
-    mOriginalMode = aState->GetRenderMode();
-    aState->SetRenderMode(aMode);
-  }
-  ~nsAutoSVGRenderMode() { mState->SetRenderMode(mOriginalMode); }
-
-private:
-  nsSVGRenderState            *mState;
-  nsSVGRenderState::RenderMode mOriginalMode;
-};
 
 #define NS_ISVGFILTERPROPERTY_IID \
 { 0x9744ee20, 0x1bcf, 0x4c62, \
@@ -401,7 +372,7 @@ public:
   
 
   static void
-  PaintFrameWithEffects(nsSVGRenderState *aContext,
+  PaintFrameWithEffects(nsRenderingContext *aContext,
                         const nsIntRect *aDirtyRect,
                         nsIFrame *aFrame);
 

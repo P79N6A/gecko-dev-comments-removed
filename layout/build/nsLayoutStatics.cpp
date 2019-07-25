@@ -123,7 +123,7 @@
 
 #include "nsHyphenationManager.h"
 #include "nsEditorSpellCheck.h"
-#include "nsDOMMemoryReporter.h"
+#include "nsWindowMemoryReporter.h"
 
 extern void NS_ShutdownChainItemPool();
 
@@ -268,7 +268,7 @@ nsLayoutStatics::Initialize()
 
   NS_SealStaticAtomTable();
 
-  nsDOMMemoryMultiReporter::Init();
+  nsWindowMemoryReporter::Init();
 
   return NS_OK;
 }
