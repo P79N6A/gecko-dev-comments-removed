@@ -60,6 +60,11 @@ pref("general.warnOnAboutConfig", true);
 pref("browser.bookmarks.max_backups",       5);
 
 pref("browser.cache.disk.enable",           true);
+
+pref("browser.cache.disk.smart_size.first_run", true);
+
+pref("browser.cache.disk.smart_size.enabled", true);
+
 #ifndef WINCE
 pref("browser.cache.disk.capacity",         256000);
 #else
