@@ -23,6 +23,10 @@ CommandLineHandler.prototype = {
                            "_blank",
                            "chrome,dialog=no,resizable,scrollbars",
                            []);
+
+    
+    Cu.import("resource://webapprt/modules/WebappsHandler.jsm");
+    WebappsHandler.init();
   },
 
   helpInfo : "",
