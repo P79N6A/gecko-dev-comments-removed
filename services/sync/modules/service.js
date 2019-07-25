@@ -255,6 +255,10 @@ WeaveSvc.prototype = {
   get enabled() { return Svc.Prefs.get("enabled"); },
   set enabled(value) { Svc.Prefs.set("enabled", value); },
 
+  
+  get nextSync() Svc.Prefs.get("nextSync", 0) * 1000,
+  set nextSync(value) Svc.Prefs.set("nextSync", Math.floor(value / 1000)),
+
   get status() { return this._status; },
 
   get locked() { return this._locked; },
@@ -668,30 +672,18 @@ WeaveSvc.prototype = {
     return false;
   },
 
-  _autoConnectAttempts: 0,
-  _autoConnect: function WeaveSvc__attemptAutoConnect() {
-    try {
-      if (!this.username || !this.password || !this.passphrase)
-        return;
+  _autoConnect: let (attempts = 0) function _autoConnect() {
+    
+    if (!this.username || !this.password || !this.passphrase)
+      return;
 
-      let failureReason;
-      if (Svc.IO.offline)
-        failureReason = "Application is offline";
-      else if (this.login()) {
-        this.syncOnIdle();
-        return;
-      }
+    
+    if (this.login())
+      return;
 
-      failureReason = this.status.sync;
-    }
-    catch (ex) {
-      failureReason = ex;
-    }
-
-    this._autoConnectAttempts++;
-    let interval = this._calculateBackoff(this._autoConnectAttempts,
-                                          SCHEDULED_SYNC_INTERVAL);
-    this._log.debug("Autoconnect failed: " + failureReason + "; retrying in " +
+    
+    let interval = this._calculateBackoff(++attempts, 60 * 1000);
+    this._log.debug("Autoconnect failed: " + this.status.login + "; retry in " +
       Math.ceil(interval / 1000) + " sec.");
     Utils.delay(function() this._autoConnect(), interval, this, "_autoTimer");
   },
@@ -1040,11 +1032,30 @@ WeaveSvc.prototype = {
 
 
   _scheduleNextSync: function WeaveSvc__scheduleNextSync(interval) {
-    if (!interval)
-      interval = this.status.backoffInterval || SCHEDULED_SYNC_INTERVAL;
+    
+    if (interval == null) {
+      
+      if (this.status.backoffInterval != 0)
+        interval = this.status.backoffInterval;
+      
+      else if (this.nextSync != 0)
+        interval = this.nextSync - Date.now();
+      
+      else 
+        interval = SCHEDULED_SYNC_INTERVAL;
+    }
+
+    
+    if (interval <= 0) {
+      this.syncOnIdle();
+      return;
+    }
 
     this._log.debug("Next sync in " + Math.ceil(interval / 1000) + " sec.");
     Utils.delay(function() this.syncOnIdle(), interval, this, "_syncTimer");
+
+    
+    this.nextSync = Date.now() + interval;
   },
 
   _syncErrors: 0,
@@ -1099,6 +1110,7 @@ WeaveSvc.prototype = {
 
     
     this._clearSyncTriggers();
+    this.nextSync = 0;
 
     if (!(this._remoteSetup()))
       throw "aborting sync, remote setup failed";
