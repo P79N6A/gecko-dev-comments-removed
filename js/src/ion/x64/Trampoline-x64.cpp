@@ -185,6 +185,9 @@ IonCompartment::generateReturnError(JSContext *cx)
     masm.pop(r14);
     masm.addq(r14, rsp);
 
+    
+    masm.pop(r11);
+
     GenerateReturn(masm, JS_FALSE);
     
     Linker linker(masm);
