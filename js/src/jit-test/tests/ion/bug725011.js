@@ -1,3 +1,4 @@
+
 DoWhile( new DoWhileObject( (/[\u0076\u0095]/gm ), 1, 0 ));
 function DoWhileObject( value, iterations, endvalue ) {}
 function DoWhile( object ) {
