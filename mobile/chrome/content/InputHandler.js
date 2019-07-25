@@ -114,7 +114,7 @@ function InputHandler(browserViewContainer) {
   this._ignoreEvents = false;
 
   
-  this._suppressNextClick = true;
+  this._suppressNextClick = false;
 
   
   this.listenFor(window, "URLChanged");
@@ -132,7 +132,7 @@ function InputHandler(browserViewContainer) {
   this.listenFor(browserViewContainer, "DOMMouseScroll");
   this.listenFor(browserViewContainer, "MozMousePixelScroll");
 
-  this.addModule(new MouseModule(this));
+  this.addModule(new MouseModule(this, browserViewContainer));
   this.addModule(new ScrollwheelModule(this, browserViewContainer));
 }
 
@@ -396,11 +396,9 @@ InputHandler.EventInfo.prototype = {
 
 
 
-
-
-
-function MouseModule(owner) {
+function MouseModule(owner, browserViewContainer) {
   this._owner = owner;
+  this._browserViewContainer = browserViewContainer;
   this._dragData = new DragData(this, 15, 200);
 
   this._dragger = null;
@@ -481,11 +479,6 @@ MouseModule.prototype = {
                                             : null;
     this._clicker = (targetClicker) ? targetClicker.customClicker : null;
 
-    if (this._dragger && !this._dragger.allowRealtimeDownUp) {
-      evInfo.event.stopPropagation();
-      evInfo.event.preventDefault();
-    }
-
     this._owner.grab(this);
 
     if (this._clicker)
@@ -510,15 +503,6 @@ MouseModule.prototype = {
   _onMouseUp: function _onMouseUp(evInfo) {
     let dragData = this._dragData;
 
-    if (this._dragger && !this._dragger.allowRealtimeDownUp) {
-      evInfo.event.stopPropagation();
-      evInfo.event.preventDefault();
-
-      
-      
-      this._owner.suppressNextClick();
-    }
-
     let [sX, sY] = dragData.lockAxis(evInfo.event.screenX, evInfo.event.screenY);
 
     this._movedOutOfRadius = this._movedOutOfRadius || dragData.isPointOutsideRadius(sX, sY);
@@ -531,7 +515,11 @@ MouseModule.prototype = {
     if (this._clicker)
       this._clicker.mouseUp(evInfo.event.clientX, evInfo.event.clientY);
 
-    this._doClick(this._movedOutOfRadius);
+    let targetIsContent = this._targetIsContent(evInfo.event);
+    if (targetIsContent)
+      this._doClick(this._movedOutOfRadius);
+    else if (this._dragger && this._movedOutOfRadius && evInfo.event.detail)
+      this._owner.suppressNextClick();
 
     this._owner.ungrab(this);
   },
@@ -551,6 +539,22 @@ MouseModule.prototype = {
 
     this._movedOutOfRadius = this._movedOutOfRadius || 
       dragData.isPointOutsideRadius(evInfo.event.screenX, evInfo.event.screenY);
+  },
+
+  
+
+
+  _targetIsContent: function _targetIsContent(aEvent) {
+    let target = aEvent.target;
+    while (target) {
+      if (target === window)
+        return false;
+      if (target === this._browserViewContainer)
+        return true;
+
+      target = target.parentNode;
+    }
+    return false;
   },
 
   
@@ -687,7 +691,7 @@ MouseModule.prototype = {
 
   _doClick: function _doClick(movedOutOfRadius) {
     let commitToClicker = this._clicker && !movedOutOfRadius;
-    let needToRedispatch = this._dragger && !this._dragger.allowRealtimeDownUp && !movedOutOfRadius;
+    let needToRedispatch = this._dragger && !movedOutOfRadius;
 
     if (commitToClicker) {
       this._commitAnotherClick();  
