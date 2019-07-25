@@ -1039,14 +1039,8 @@ void
 JSObject::generateOwnShape(JSContext *cx)
 {
 #ifdef JS_TRACER
+    JS_ASSERT_IF(!parent && JS_ON_TRACE(cx), cx->bailExit);
      LeaveTraceIfGlobalObject(cx, this);
-
-    
-
-
-
-
-    JS_ASSERT_IF(JS_ON_TRACE(cx), cx->bailExit);
 
     
 

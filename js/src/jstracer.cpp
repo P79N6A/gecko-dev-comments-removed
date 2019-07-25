@@ -6779,7 +6779,7 @@ LeaveTree(TraceMonitor *tm, TracerState& state, VMSideExit* lr)
         }
         JS_ASSERT(cx->fp()->hasScript());
 
-        if (!(bs & BUILTIN_ERROR)) {
+        if (!(bs & (BUILTIN_ERROR | BUILTIN_NO_FIXUP_NEEDED))) {
             
 
 
@@ -11800,11 +11800,11 @@ TraceRecorder::nativeSet(JSObject* obj, LIns* obj_ins, const Shape* shape,
 static JSBool FASTCALL
 MethodWriteBarrier(JSContext* cx, JSObject* obj, Shape* shape, JSObject* funobj)
 {
-    AutoObjectRooter tvr(cx, funobj);
-
-    return obj->methodWriteBarrier(cx, *shape, ObjectValue(*tvr.object()));
+    bool ok = obj->methodWriteBarrier(cx, *shape, ObjectValue(*funobj));
+    JS_ASSERT(cx->tracerState->builtinStatus == 0);
+    return ok;
 }
-JS_DEFINE_CALLINFO_4(static, BOOL_FAIL, MethodWriteBarrier, CONTEXT, OBJECT, SHAPE, OBJECT,
+JS_DEFINE_CALLINFO_4(static, BOOL_RETRY, MethodWriteBarrier, CONTEXT, OBJECT, SHAPE, OBJECT,
                      0, ACCSET_STORE_ANY)
 
 JS_REQUIRES_STACK RecordingStatus
@@ -11860,14 +11860,21 @@ TraceRecorder::setProp(Value &l, PropertyCacheEntry* entry, const Shape* shape,
 
 
     if (obj2->brandedOrHasMethodBarrier() && IsFunctionObject(v) && entry->directHit()) {
+        
+
+
+
         if (obj == globalObj)
             RETURN_STOP("can't trace function-valued property set in branded global scope");
 
-        enterDeepBailCall();
+        
+
+
+
+        guardedShapeTable.remove(obj_ins);
         LIns* args[] = { v_ins, INS_CONSTSHAPE(shape), obj_ins, cx_ins };
         LIns* ok_ins = lir->insCall(&MethodWriteBarrier_ci, args);
         guard(false, lir->insEqI_0(ok_ins), OOM_EXIT);
-        leaveDeepBailCall();
     }
 
     
@@ -14216,13 +14223,14 @@ TraceRecorder::record_JSOP_ITER()
 static JSBool FASTCALL
 IteratorMore(JSContext *cx, JSObject *iterobj, Value *vp)
 {
-    AutoValueRooter tvr(cx);
-    if (!js_IteratorMore(cx, iterobj, tvr.addr())) {
-        SetBuiltinError(cx);
+    if (!js_IteratorMore(cx, iterobj, vp)) {
+        SetBuiltinError(cx, BUILTIN_ERROR_NO_FIXUP_NEEDED);
+        return false;
+    } else if (cx->tracerState->builtinStatus) {
+        SetBuiltinError(cx, BUILTIN_NO_FIXUP_NEEDED);
         return false;
     }
-    *vp = tvr.value();
-    return cx->tracerState->builtinStatus == 0;
+    return true;
 }
 JS_DEFINE_CALLINFO_3(extern, BOOL_FAIL, IteratorMore, CONTEXT, OBJECT, VALUEPTR,
                      0, ACCSET_STORE_ANY)
@@ -14273,7 +14281,9 @@ TraceRecorder::record_JSOP_MOREITER()
 
 
 
-        guard(true, ok_ins, OOM_EXIT);
+
+
+        guard(false, lir->insEqI_0(ok_ins), STATUS_EXIT);
 
         leaveDeepBailCall();
 
