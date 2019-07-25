@@ -35,8 +35,6 @@
 
 
 
-"use strict";
-
 var EXPORTED_SYMBOLS = ["LightweightThemeManager"];
 
 const Cc = Components.classes;
