@@ -94,10 +94,7 @@ mjit::Compiler::compileMathAbsDouble(FrameEntry *arg)
     MaybeJump notNumber = loadDouble(arg, &fpReg, &allocate);
     JS_ASSERT(!notNumber.isSet());
 
-    
-    masm.zeroDouble(fpResultReg);
-    masm.subDouble(fpReg, fpResultReg);
-    masm.andDouble(fpReg, fpResultReg);
+    masm.absDouble(fpReg, fpResultReg);
 
     if (allocate)
         frame.freeReg(fpReg);
