@@ -247,6 +247,13 @@ nsMIMEInfoWin::GetProperty(const nsAString& aName, nsIVariant* *_retval)
   return NS_OK;
 }
 
+typedef HRESULT (STDMETHODCALLTYPE *MySHParseDisplayName)
+                 (PCWSTR pszName,
+                  IBindCtx *pbc,
+                  LPITEMIDLIST *ppidl,
+                  SFGAOF sfgaoIn,
+                  SFGAOF *psfgaoOut);
+
 
 
 nsresult
@@ -267,6 +274,15 @@ nsMIMEInfoWin::LoadUriInternal(nsIURI * aURL)
     nsCAutoString urlSpec;
     aURL->GetAsciiSpec(urlSpec);
 
+    
+    
+    
+    const PRUint32 maxSafeURL(2048);
+    if (urlSpec.Length() > maxSafeURL)
+      return NS_ERROR_FAILURE;
+
+    HMODULE hDll = NULL;
+    
     static const PRUnichar cmdVerb[] = L"open";
     SHELLEXECUTEINFOW sinfo;
     memset(&sinfo, 0, sizeof(sinfo));
@@ -281,14 +297,22 @@ nsMIMEInfoWin::LoadUriInternal(nsIURI * aURL)
     SFGAOF sfgao;
     
     
-    if (SUCCEEDED(SHParseDisplayName(NS_ConvertUTF8toUTF16(urlSpec).get(),
-                                     NULL, &pidl, 0, &sfgao))) {
-      sinfo.lpIDList = pidl;
-      sinfo.fMask |= SEE_MASK_INVOKEIDLIST;
+    hDll = ::LoadLibraryW(L"shell32.dll");
+    MySHParseDisplayName pMySHParseDisplayName = NULL;
+    
+    if (pMySHParseDisplayName = 
+        (MySHParseDisplayName)::GetProcAddress(hDll, "SHParseDisplayName")) {
+      if (SUCCEEDED(pMySHParseDisplayName(NS_ConvertUTF8toUTF16(urlSpec).get(),
+                                          NULL, &pidl, 0, &sfgao))) {
+        sinfo.lpIDList = pidl;
+        sinfo.fMask |= SEE_MASK_INVOKEIDLIST;
+      } else {
+        
+        
+        rv = NS_ERROR_FAILURE;
+      }
     } else {
-      
-      
-      rv = NS_ERROR_FAILURE;
+      sinfo.lpFile =  NS_ConvertUTF8toUTF16(urlSpec).get();
     }
     if (NS_SUCCEEDED(rv)) {
       BOOL result = ShellExecuteExW(&sinfo);
@@ -297,6 +321,8 @@ nsMIMEInfoWin::LoadUriInternal(nsIURI * aURL)
     }
     if (pidl)
       CoTaskMemFree(pidl);
+    if (hDll) 
+      ::FreeLibrary(hDll);
   }
   
   return rv;

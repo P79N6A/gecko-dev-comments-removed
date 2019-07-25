@@ -70,6 +70,22 @@ static void SanitizeEnvironmentVariables()
   }
 }
 
+
+
+
+
+static inline void NS_SetDllDirectory(const WCHAR *aDllDirectory)
+{
+  typedef BOOL
+  (WINAPI *pfnSetDllDirectory) (LPCWSTR);
+  pfnSetDllDirectory setDllDirectory = nsnull;
+  setDllDirectory = reinterpret_cast<pfnSetDllDirectory>
+      (GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "SetDllDirectoryW"));
+  if (setDllDirectory) {
+    setDllDirectory(aDllDirectory);
+  }
+}
+
 }
 
 #endif

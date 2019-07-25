@@ -500,7 +500,13 @@ nsProcess::RunProcess(bool blocking, char **my_argv, nsIObserver* observer,
     if (cmdLine)
         PR_Free(cmdLine);
 
-    mPid = GetProcessId(mProcess);
+    HMODULE kernelDLL = ::LoadLibraryW(L"kernel32.dll");
+    if (kernelDLL) {
+        GetProcessIdPtr getProcessId = (GetProcessIdPtr)GetProcAddress(kernelDLL, "GetProcessId");
+        if (getProcessId)
+            mPid = getProcessId(mProcess);
+        FreeLibrary(kernelDLL);
+    }
 #elif defined(XP_MACOSX)
     
     posix_spawnattr_t spawnattr;

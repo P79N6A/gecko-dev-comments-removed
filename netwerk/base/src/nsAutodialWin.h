@@ -126,6 +126,9 @@ private:
     
     static PRIntervalTime mDontRetryUntil;
 
+    
+    OSVERSIONINFO mOSVerInfo;
+
 public:
   
     

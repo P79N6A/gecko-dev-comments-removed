@@ -185,6 +185,14 @@
 #define MSM_DISABLED 2
 
 
+
+#define TS_MIN 0
+
+#define TS_TRUE 1
+
+#define TS_DRAW 2
+
+
 #define TMT_TEXTCOLOR 3803
 #define TMT_SIZINGMARGINS 3601
 #define TMT_CONTENTMARGINS 3602

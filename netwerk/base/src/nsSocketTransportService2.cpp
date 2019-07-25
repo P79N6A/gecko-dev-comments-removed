@@ -961,7 +961,17 @@ nsSocketTransportService::DiscoverMaxCount()
 
 #elif defined(XP_WIN) && !defined(WIN_CE)
     
-    gMaxCount = SOCKET_LIMIT_TARGET;
+    
+    
+
+    OSVERSIONINFO osInfo = { sizeof(OSVERSIONINFO) };
+    if (GetVersionEx(&osInfo)) {
+        PRInt32 version = 
+            (osInfo.dwMajorVersion & 0xff) << 8 | 
+            (osInfo.dwMinorVersion & 0xff);
+        if (version >= 0x501)                    
+            gMaxCount = SOCKET_LIMIT_TARGET;
+    }
 #else
     
 #endif
