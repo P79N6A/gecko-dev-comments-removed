@@ -839,17 +839,9 @@ nsHttpHandler::PrefsChanged(nsIPrefBranch *prefs, const char *pref)
         if (NS_SUCCEEDED(rv)) {
             PR_CallOnce(&nsSocketTransportService::gMaxCountInitOnce,
                         nsSocketTransportService::DiscoverMaxCount);
-            
-            
-            
-
-            PRUint32 maxCount = nsSocketTransportService::gMaxCount;
-            if (maxCount <= 8)
-                maxCount = 1;
-            else
-                maxCount -= 8;
-            mMaxConnections = (PRUint16) NS_CLAMP((PRUint32)val, 1, maxCount);
-
+            mMaxConnections =
+                (PRUint16) NS_CLAMP((PRUint32)val, 1,
+                                    nsSocketTransportService::gMaxCount);
             if (mConnMgr)
                 mConnMgr->UpdateParam(nsHttpConnectionMgr::MAX_CONNECTIONS,
                                       mMaxConnections);
