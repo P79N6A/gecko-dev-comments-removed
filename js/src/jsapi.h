@@ -327,11 +327,6 @@ class Value
     }
 
     JS_ALWAYS_INLINE
-    void setObject(const JS::Anchor<JSObject *> &obj) {
-        setObject(*obj.get());
-    }
-
-    JS_ALWAYS_INLINE
     void setBoolean(bool b) {
         data = BOOLEAN_TO_JSVAL_IMPL(b);
     }
@@ -482,13 +477,6 @@ class Value
         return isMagic() && data.s.payload.why == why;
     }
 
-#if JS_BITS_PER_WORD == 64
-    JS_ALWAYS_INLINE
-    bool hasPtrPayload() const {
-        return data.asBits >= JSVAL_LOWER_INCL_SHIFTED_TAG_OF_PTR_PAYLOAD_SET;
-    }
-#endif
-
     JS_ALWAYS_INLINE
     bool isMarkable() const {
         return JSVAL_IS_TRACEABLE_IMPL(data);
@@ -577,56 +565,8 @@ class Value
     }
 
     JS_ALWAYS_INLINE
-    uint64_t asRawBits() const {
-        return data.asBits;
-    }
-
-    JS_ALWAYS_INLINE
-    void setRawBits(uint64_t bits) {
-        data.asBits = bits;
-    }
-
-    
-
-
-
-
-
-    JS_ALWAYS_INLINE
     JSValueType extractNonDoubleType() const {
         return JSVAL_EXTRACT_NON_DOUBLE_TYPE_IMPL(data);
-    }
-
-    JS_ALWAYS_INLINE
-    JSValueTag extractNonDoubleTag() const {
-        return JSVAL_EXTRACT_NON_DOUBLE_TAG_IMPL(data);
-    }
-
-    JS_ALWAYS_INLINE
-    void unboxNonDoubleTo(uint64_t *out) const {
-        UNBOX_NON_DOUBLE_JSVAL(data, out);
-    }
-
-    JS_ALWAYS_INLINE
-    void boxNonDoubleFrom(JSValueType type, uint64_t *out) {
-        data = BOX_NON_DOUBLE_JSVAL(type, out);
-    }
-
-    
-
-
-
-
-    JS_ALWAYS_INLINE
-    JSValueType extractNonDoubleObjectTraceType() const {
-        JS_ASSERT(!isObject());
-        return JSVAL_EXTRACT_NON_DOUBLE_TYPE_IMPL(data);
-    }
-
-    JS_ALWAYS_INLINE
-    JSValueTag extractNonDoubleObjectTraceTag() const {
-        JS_ASSERT(!isObject());
-        return JSVAL_EXTRACT_NON_DOUBLE_TAG_IMPL(data);
     }
 
     
@@ -846,7 +786,7 @@ template<>
 inline Anchor<Value>::~Anchor()
 {
     volatile uint64_t bits;
-    bits = hold.asRawBits();
+    bits = JSVAL_TO_IMPL(hold).asBits;
 }
 
 #endif
