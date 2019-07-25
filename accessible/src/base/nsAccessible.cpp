@@ -601,11 +601,9 @@ nsAccessible::VisibilityState()
   do {
     
     
-	  PRUint32 role = accessible->Role();
-    if (role == nsIAccessibleRole::ROLE_PROPERTYPAGE ||
-        role == nsIAccessibleRole::ROLE_PANE) {
+    roles::Role role = accessible->Role();
+    if (role == roles::PROPERTYPAGE || role == roles::PANE)
       break;
-    }
 
     nsIFrame* frame = accessible->GetFrame();
     if (!frame)

@@ -72,7 +72,7 @@
   
 
 
-  PRUint32        mRole;
+  mozilla::a11y::role        mRole;
 }
 
 
