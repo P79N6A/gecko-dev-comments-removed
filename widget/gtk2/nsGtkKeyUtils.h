@@ -281,6 +281,19 @@ protected:
 
 
 
+    static guint GetGDKKeyvalWithoutModifier(const GdkEventKey *aGdkKeyEvent);
+
+    
+
+
+
+    static PRUint32 GetDOMKeyCodeFromKeyPairs(guint aGdkKeyval);
+
+    
+
+
+
+
 
 
 
