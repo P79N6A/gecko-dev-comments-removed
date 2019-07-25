@@ -136,6 +136,8 @@ public class GeckoAppShell
     public static native void notifyBatteryChange(double aLevel, boolean aCharging, double aRemainingTime);
 
     public static native void notifySmsReceived(String aSender, String aBody, long aTimestamp);
+    public static native ByteBuffer allocateDirectBuffer(long size);
+    public static native void freeDirectBuffer(ByteBuffer buf);
 
     
     private static class LooperThread extends Thread {
@@ -292,7 +294,6 @@ public class GeckoAppShell
         
         
         
-        System.loadLibrary("mozutils");
         GeckoApp geckoApp = GeckoApp.mAppContext;
         String homeDir;
         if (Build.VERSION.SDK_INT < 8 ||
