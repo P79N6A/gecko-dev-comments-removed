@@ -1487,7 +1487,6 @@ function Tab(aURL, aParams) {
   this.contentDocumentIsDisplayed = true;
   this.clickToPlayPluginDoorhangerShown = false;
   this.clickToPlayPluginsActivated = false;
-  this.loadEventProcessed = false;
 }
 
 Tab.prototype = {
@@ -1540,7 +1539,6 @@ Tab.prototype = {
     this.browser.sessionHistory.addSHistoryListener(this);
 
     this.browser.addEventListener("DOMContentLoaded", this, true);
-    this.browser.addEventListener("load", this, true);
     this.browser.addEventListener("DOMLinkAdded", this, true);
     this.browser.addEventListener("DOMTitleChanged", this, true);
     this.browser.addEventListener("DOMWindowClose", this, true);
@@ -1585,7 +1583,6 @@ Tab.prototype = {
 
     this.browser.removeProgressListener(this);
     this.browser.removeEventListener("DOMContentLoaded", this, true);
-    this.browser.removeEventListener("load", this, true);
     this.browser.removeEventListener("DOMLinkAdded", this, true);
     this.browser.removeEventListener("DOMTitleChanged", this, true);
     this.browser.removeEventListener("DOMWindowClose", this, true);
@@ -1820,25 +1817,6 @@ Tab.prototype = {
         break;
       }
 
-      case "load": {
-        this.loadEventProcessed = true;
-        
-        let contentWindow = this.browser.contentWindow;
-        let cwu = contentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                               .getInterface(Ci.nsIDOMWindowUtils);
-        
-        let plugins = cwu.plugins;
-        let isAnyPluginVisible = false;
-        for (let plugin of plugins) {
-          let overlay = plugin.ownerDocument.getAnonymousElementByAttribute(plugin, "class", "mainBox");
-          if (overlay && !PluginHelper.isTooSmall(plugin, overlay))
-            isAnyPluginVisible = true;
-        }
-        if (plugins && plugins.length && !isAnyPluginVisible)
-          PluginHelper.showDoorHanger(this);
-        break;
-      }
-
       case "DOMLinkAdded": {
         let target = aEvent.originalTarget;
         if (!target.href || target.disabled)
@@ -1954,10 +1932,9 @@ Tab.prototype = {
         }
 
         
-        
         let overlay = plugin.ownerDocument.getAnonymousElementByAttribute(plugin, "class", "mainBox");
         if (!overlay || PluginHelper.isTooSmall(plugin, overlay)) {
-          if (this.loadEventProcessed && !this.clickToPlayPluginDoorhangerShown)
+          if (!this.clickToPlayPluginDoorhangerShown)
             PluginHelper.showDoorHanger(this);
 
           if (!overlay)
@@ -2047,7 +2024,6 @@ Tab.prototype = {
     
     this.clickToPlayPluginDoorhangerShown = false;
     this.clickToPlayPluginsActivated = false;
-    this.loadEventProcessed = false;
 
     let message = {
       gecko: {
