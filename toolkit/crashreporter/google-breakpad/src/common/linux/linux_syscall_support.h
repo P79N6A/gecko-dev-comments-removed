@@ -2183,8 +2183,24 @@ struct kernel_statfs {
                              
 
                              "ldr   r0,[sp, #4]\n"
+
+                             
+
+
+
+
+
+
+
+
+
+                           #ifdef __thumb2__
+                             "ldr   r7,[sp]\n"
+                             "blx   r7\n"
+                           #else
                              "mov   lr,pc\n"
                              "ldr   pc,[sp]\n"
+                           #endif
 
                              
 
