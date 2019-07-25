@@ -906,9 +906,6 @@ nsXBLContentSink::CreateElement(const PRUnichar** aAtts, PRUint32 aAttsCount,
     return NS_ERROR_OUT_OF_MEMORY;
 
   prototype->mNodeInfo = aNodeInfo;
-  
-  
-  prototype->mScriptTypeID = nsIProgrammingLanguage::JAVASCRIPT;
 
   AddAttributesToXULPrototype(aAtts, aAttsCount, prototype);
 

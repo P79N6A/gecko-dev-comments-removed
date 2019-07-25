@@ -414,8 +414,6 @@ nsXULElement::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
     nsRefPtr<nsXULElement> element;
     if (mPrototype) {
         element = nsXULElement::Create(mPrototype, aNodeInfo, true);
-        NS_ASSERTION(nsIProgrammingLanguage::JAVASCRIPT == mPrototype->mScriptTypeID,
-                     "Didn't get the default language from proto?");
     }
     else {
         nsCOMPtr<nsINodeInfo> ni = aNodeInfo;
@@ -1093,19 +1091,12 @@ nsXULElement::AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
         
         MaybeAddPopupListener(aName);
         if (nsContentUtils::IsEventAttributeName(aName, EventNameType_XUL) && aValue) {
-            
-            
-            
-            
-            
-            bool defer = mPrototype == nsnull ||
-                           mPrototype->mScriptTypeID == nsIProgrammingLanguage::JAVASCRIPT;
             if (aValue->Type() == nsAttrValue::eString) {
-                AddScriptEventListener(aName, aValue->GetStringValue(), defer);
+                AddScriptEventListener(aName, aValue->GetStringValue(), true);
             } else {
                 nsAutoString body;
                 aValue->ToString(body);
-                AddScriptEventListener(aName, body, defer);
+                AddScriptEventListener(aName, body, true);
             }
         }
 
@@ -2506,11 +2497,6 @@ nsXULElement::RecompileScriptEventListeners()
     }
 
     if (mPrototype) {
-        
-        
-        
-        NS_ASSERTION(mPrototype->mScriptTypeID == nsIProgrammingLanguage::JAVASCRIPT,
-                     "Prototype and node confused about default language?");
 
         count = mPrototype->mNumAttributes;
         for (i = 0; i < count; ++i) {
@@ -2579,7 +2565,7 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_NATIVE_BEGIN(nsXULPrototypeNode)
             PRUint32 i;
             for (i = 0; i < elem->mNumAttributes; ++i) {
                 JSObject* handler = elem->mAttributes[i].mEventHandler;
-                NS_IMPL_CYCLE_COLLECTION_TRACE_CALLBACK(elem->mScriptTypeID,
+                NS_IMPL_CYCLE_COLLECTION_TRACE_CALLBACK(nsIProgrammingLanguage::JAVASCRIPT,
                                                         handler,
                                                         "mAttributes[i].mEventHandler")
             }
@@ -2621,9 +2607,6 @@ nsXULPrototypeElement::Serialize(nsIObjectOutputStream* aStream,
 
     
     rv = aStream->Write32(mType);
-
-    
-    rv |= aStream->Write32(mScriptTypeID);
 
     
     PRInt32 index = aNodeInfos->IndexOf(mNodeInfo);
@@ -2704,11 +2687,6 @@ nsXULPrototypeElement::Deserialize(nsIObjectInputStream* aStream,
 {
     NS_PRECONDITION(aNodeInfos, "missing nodeinfo array");
     nsresult rv;
-
-    
-    PRUint32 scriptId = 0;
-    rv = aStream->Read32(&scriptId);
-    mScriptTypeID = scriptId;
 
     
     PRUint32 number;

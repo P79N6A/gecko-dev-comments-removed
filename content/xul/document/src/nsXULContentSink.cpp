@@ -181,7 +181,7 @@ XULContentSinkImpl::ContextStack::GetTopNodeScriptType(PRUint32 *aScriptType)
         case nsXULPrototypeNode::eType_Element: {
             nsXULPrototypeElement *parent =
                 reinterpret_cast<nsXULPrototypeElement*>(node.get());
-            *aScriptType = parent->mScriptTypeID;
+            *aScriptType = nsIProgrammingLanguage::JAVASCRIPT;
             break;
         }
         case nsXULPrototypeNode::eType_Script: {
@@ -787,55 +787,6 @@ XULContentSinkImpl::ReportError(const PRUnichar* aErrorText,
 }
 
 nsresult
-XULContentSinkImpl::SetElementScriptType(nsXULPrototypeElement* element,
-                                         const PRUnichar** aAttributes, 
-                                         const PRUint32 aAttrLen)
-{
-    
-    nsresult rv = NS_OK;
-    PRUint32 i;
-    bool found = false;
-    for (i=0;i<aAttrLen;i++) {
-        const nsDependentString key(aAttributes[i*2]);
-        if (key.EqualsLiteral("script-type")) {
-            const nsDependentString value(aAttributes[i*2+1]);
-            if (!value.IsEmpty()) {
-                nsCOMPtr<nsIScriptRuntime> runtime;
-                rv = NS_GetScriptRuntime(value, getter_AddRefs(runtime));
-                if (NS_SUCCEEDED(rv))
-                    element->mScriptTypeID = nsIProgrammingLanguage::JAVASCRIPT;
-                else {
-                    
-                    NS_WARNING("Failed to load the node's script language!");
-                    
-                    
-                    NS_ASSERTION(element->mScriptTypeID == nsIProgrammingLanguage::UNKNOWN,
-                                 "Default script type should be unknown");
-                }
-                found = true;
-                break;
-            }
-        }
-    }
-    
-    
-    if (!found) {
-        if (mContextStack.Depth() == 0) {
-            
-            element->mScriptTypeID = nsIProgrammingLanguage::JAVASCRIPT;
-        } else {
-            
-            
-            
-            PRUint32 scriptId = 0;
-            rv = mContextStack.GetTopNodeScriptType(&scriptId);
-            element->mScriptTypeID = scriptId;
-        }
-    }
-    return rv;
-}
-
-nsresult
 XULContentSinkImpl::OpenRoot(const PRUnichar** aAttributes, 
                              const PRUint32 aAttrLen, 
                              nsINodeInfo *aNodeInfo)
@@ -872,10 +823,6 @@ XULContentSinkImpl::OpenRoot(const PRUnichar** aAttributes,
 
         return rv;
     }
-
-    
-    rv = SetElementScriptType(element, aAttributes, aAttrLen);
-    if (NS_FAILED(rv)) return rv;
 
     
     
@@ -937,9 +884,6 @@ XULContentSinkImpl::OpenTag(const PRUnichar** aAttributes,
     if (aNodeInfo->Equals(nsGkAtoms::script, kNameSpaceID_XHTML) || 
         aNodeInfo->Equals(nsGkAtoms::script, kNameSpaceID_XUL)) {
         
-        
-        
-        element->mScriptTypeID = nsIProgrammingLanguage::JAVASCRIPT;
         rv = OpenScript(aAttributes, aLineNumber);
         NS_ENSURE_SUCCESS(rv, rv);
 
@@ -951,10 +895,6 @@ XULContentSinkImpl::OpenTag(const PRUnichar** aAttributes,
             return NS_OK;
         }
     }
-
-    
-    rv = SetElementScriptType(element, aAttributes, aAttrLen);
-    if (NS_FAILED(rv)) return rv;
 
     
     
