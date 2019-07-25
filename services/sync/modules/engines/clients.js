@@ -73,6 +73,12 @@ ClientEngine.prototype = {
   },
 
   
+  
+  _recordLike: function SyncEngine__recordLike(a, b) {
+    return false;
+  },
+
+  
 
   
   
