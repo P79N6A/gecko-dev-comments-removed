@@ -71,7 +71,7 @@ var ExtensionsView = {
       return "needs-disable";
     return "";
   },
-  
+
   _createItem: function ev__createItem(aAddon, aTypeName) {
     let item = document.createElement("richlistitem");
     item.setAttribute("id", PREFIX_ITEM_URI + aAddon.id);
@@ -386,6 +386,12 @@ var ExtensionsView = {
 
       if (opType == "needs-uninstall")
         this.showRestart();
+
+      
+      
+      if (!aItem.addon.isActive && opType == "")
+        opType = "needs-uninstall";
+
       aItem.setAttribute("opType", opType);
     }
   },
