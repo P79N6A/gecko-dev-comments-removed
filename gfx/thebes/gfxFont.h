@@ -3181,12 +3181,6 @@ protected:
                                FontCreationCallback fc,
                                void *closure);
 
-    
-    
-    
-    already_AddRefed<gfxFont> TryOtherFamilyMembers(gfxFont* aFont,
-                                                    PRUint32 aCh);
-
     static bool FontResolverProc(const nsAString& aName, void *aClosure);
 
     static bool FindPlatformFont(const nsAString& aName,
