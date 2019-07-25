@@ -244,6 +244,11 @@ protected:
 
   PRBool IsExpandable();
 
+  
+
+
+  void GetCellName(nsITreeColumn* aColumn, nsAString& aName);
+
   nsCOMPtr<nsITreeBoxObject> mTree;
   nsCOMPtr<nsITreeView> mTreeView;
   PRInt32 mRow;

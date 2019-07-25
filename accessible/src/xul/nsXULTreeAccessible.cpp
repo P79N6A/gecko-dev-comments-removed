@@ -1043,6 +1043,22 @@ nsXULTreeItemAccessibleBase::IsExpandable()
   return PR_FALSE;
 }
 
+void
+nsXULTreeItemAccessibleBase::GetCellName(nsITreeColumn* aColumn,
+                                         nsAString& aName)
+{
+  mTreeView->GetCellText(mRow, aColumn, aName);
+
+  
+  
+  
+  
+  
+  
+  if (aName.IsEmpty())
+    mTreeView->GetCellValue(mRow, aColumn, aName);
+}
+
 
 
 
@@ -1068,16 +1084,7 @@ nsXULTreeItemAccessible::GetName(nsAString& aName)
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
-  mTreeView->GetCellText(mRow, mColumn, aName);
-
-  
-  
-  
-  
-  
-  if (aName.IsEmpty())
-    mTreeView->GetCellValue(mRow, mColumn, aName);
-
+  GetCellName(mColumn, aName);
   return NS_OK;
 }
 
