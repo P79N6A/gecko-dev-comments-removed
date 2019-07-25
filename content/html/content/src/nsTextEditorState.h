@@ -140,6 +140,8 @@ struct SelectionState;
 
 
 
+class RestoreSelectionState;
+
 class nsTextEditorState {
 public:
   explicit nsTextEditorState(nsITextControlElement* aOwningElement);
@@ -213,6 +215,8 @@ public:
   void HideSelectionIfBlurred();
 
 private:
+  friend class RestoreSelectionState;
+
   
   nsTextEditorState(const nsTextEditorState&);
   
@@ -224,6 +228,8 @@ private:
 
   void DestroyEditor();
   void Clear();
+
+  void FinishedRestoringSelection() { mRestoringSelection = nsnull; }
 
   class InitializationGuard {
   public:
@@ -253,6 +259,7 @@ private:
   nsITextControlElement* const mTextCtrlElement;
   nsRefPtr<nsTextInputSelectionImpl> mSelCon;
   nsAutoPtr<SelectionState> mSelState;
+  RestoreSelectionState* mRestoringSelection;
   nsCOMPtr<nsIEditor> mEditor;
   nsCOMPtr<nsIContent> mRootNode;
   nsCOMPtr<nsIContent> mPlaceholderDiv;

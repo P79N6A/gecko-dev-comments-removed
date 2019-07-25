@@ -180,6 +180,11 @@ public:
 
   NS_DECL_QUERYFRAME
 
+  
+  
+  NS_DECLARE_FRAME_PROPERTY(TextControlInitializer, nsnull)
+
+
 public: 
   void FireOnInput(PRBool aTrusted);
   void SetValueChanged(PRBool aValueChanged);
@@ -286,23 +291,27 @@ protected:
   class EditorInitializer : public nsRunnable {
   public:
     EditorInitializer(nsTextControlFrame* aFrame) :
-      mWeakFrame(aFrame),
       mFrame(aFrame) {}
 
     NS_IMETHOD Run() {
-      if (mWeakFrame) {
+      if (mFrame) {
         nsCOMPtr<nsIPresShell> shell =
-          mWeakFrame.GetFrame()->PresContext()->GetPresShell();
+          mFrame->PresContext()->GetPresShell();
         PRBool observes = shell->ObservesNativeAnonMutationsForPrint();
         shell->ObserveNativeAnonMutationsForPrint(PR_TRUE);
         mFrame->EnsureEditorInitialized();
         shell->ObserveNativeAnonMutationsForPrint(observes);
+        mFrame->FinishedInitializer();
       }
       return NS_OK;
     }
 
+    
+    void Revoke() {
+      mFrame = nsnull;
+    }
+
   private:
-    nsWeakFrame mWeakFrame;
     nsTextControlFrame* mFrame;
   };
 
@@ -387,6 +396,10 @@ private:
 
 
   nsresult GetRootNodeAndInitializeEditor(nsIDOMElement **aRootElement);
+
+  void FinishedInitializer() {
+    Properties().Delete(TextControlInitializer());
+  }
 
 private:
   
