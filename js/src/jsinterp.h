@@ -283,6 +283,54 @@ struct JSStackFrame
 
     
 
+    bool hasAnnotation() const {
+        return annotation != NULL;
+    }
+
+    void* getAnnotation() const {
+        JS_ASSERT(hasAnnotation());
+        return annotation;
+    }
+
+    void* maybeAnnotation() const {
+        return annotation;
+    }
+
+    void setAnnotation(void *annot) {
+        annotation = annot;
+    }
+
+    
+
+    bool hasHookData() const {
+        return hookData != NULL;
+    }
+
+    void* getHookData() const {
+        JS_ASSERT(hasHookData());
+        return hookData;
+    }
+
+    void* maybeHookData() const {
+        return hookData;
+    }
+
+    void setHookData(void *data) {
+        hookData = data;
+    }
+
+    
+
+    JSVersion getCallerVersion() const {
+        return callerVersion;
+    }
+
+    void setCallerVersion(JSVersion version) {
+        callerVersion = version;
+    }
+
+    
+
     void putActivationObjects(JSContext *cx) {
         
 

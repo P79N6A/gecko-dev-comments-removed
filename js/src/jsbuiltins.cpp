@@ -343,9 +343,9 @@ js_PopInterpFrame(JSContext* cx, TracerState* state)
 
 
 
-    if (fp->hookData)
+    if (fp->hasHookData())
         return JS_FALSE;
-    if (cx->version != fp->callerVersion)
+    if (cx->version != fp->getCallerVersion())
         return JS_FALSE;
     if (fp->flags & JSFRAME_CONSTRUCTING)
         return JS_FALSE;
