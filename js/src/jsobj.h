@@ -228,9 +228,7 @@ js_TypeOf(JSContext *cx, JSObject *obj);
 
 struct NativeIterator;
 
-const uint32 JS_INITIAL_NSLOTS = 4;
-
-const uint32 JSSLOT_PARENT  = 0;
+const uint32 JS_INITIAL_NSLOTS = 3;
 
 
 
@@ -239,7 +237,7 @@ const uint32 JSSLOT_PARENT  = 0;
 
 
 
-const uint32 JSSLOT_PRIVATE = 1;
+const uint32 JSSLOT_PRIVATE = 0;
 
 struct JSFunction;
 
@@ -281,14 +279,8 @@ struct JSObject {
     js::Class   *clasp;                     
     jsuword     flags;                      
     JSObject    *proto;                     
+    JSObject    *parent;                    
     js::Value   *dslots;                    
-#if JS_BITS_PER_WORD == 32
-    
-    
-    
-    
-    uint32      padding;
-#endif
     js::Value   fslots[JS_INITIAL_NSLOTS];  
 
     bool isNative() const {
@@ -410,11 +402,11 @@ struct JSObject {
     }
 
     JSObject *getParent() const {
-        return fslots[JSSLOT_PARENT].toObjectOrNull();
+        return parent;
     }
 
     void clearParent() {
-        fslots[JSSLOT_PARENT].setNull();
+        parent = NULL;
     }
 
     void setParent(JSObject *newParent) {
@@ -423,14 +415,7 @@ struct JSObject {
             JS_ASSERT(obj != this);
 #endif
         setDelegateNullSafe(newParent);
-        fslots[JSSLOT_PARENT].setObjectOrNull(newParent);
-    }
-
-    void traceProtoAndParent(JSTracer *trc) const {
-        if (JSObject *proto = getProto())
-            JS_CALL_OBJECT_TRACER(trc, proto, "__proto__");
-        if (JSObject *parent = getParent())
-            JS_CALL_OBJECT_TRACER(trc, parent, "parent");
+        parent = newParent;
     }
 
     JSObject *getGlobal();
