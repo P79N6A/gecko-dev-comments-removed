@@ -1030,6 +1030,14 @@ mozJSComponentLoader::GlobalForLocation(nsILocalFile *aComponentFile,
     NS_ENSURE_SUCCESS(rv, rv);
 #endif
 
+    
+    
+    JSString *exposedUri = JS_NewStringCopyN(cx, nativePath.get(), nativePath.Length());
+    if (!JS_DefineProperty(cx, global, "__URI__",
+                           STRING_TO_JSVAL(exposedUri), nsnull, nsnull, 0))
+        return NS_ERROR_FAILURE;
+
+
     JSObject *scriptObj = nsnull;
 
 #ifdef MOZ_ENABLE_LIBXUL  

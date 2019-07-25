@@ -258,7 +258,20 @@ var XPCOMUtils = {
       }
     }
     return factory;
-  }
+  },
+
+  
+
+
+
+  importRelative: function XPCOMUtils__importRelative(that, path) {
+    if (!("__URI__" in that))
+      throw Error("importRelative may only be used from a JSM, and its first argument "+
+                  "must be that JSM's global object (hint: use this)");
+    let uri = that.__URI__;
+    let i = uri.lastIndexOf("/");
+    Components.utils.import(uri.substring(0, i+1) + path, that);
+  },
 };
 
 
