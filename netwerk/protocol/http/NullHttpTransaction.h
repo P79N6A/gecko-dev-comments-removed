@@ -36,6 +36,9 @@ public:
 
   nsHttpConnectionInfo *ConnectionInfo() { return mConnectionInfo; }
 
+  
+  bool IsNullTransaction() { return true; }
+
 private:
 
   nsresult mStatus;
