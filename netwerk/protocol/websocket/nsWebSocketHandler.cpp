@@ -117,18 +117,6 @@ static PRLogModuleInfo *webSocketLog = nsnull;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 class CallOnMessageAvailable : public nsIRunnable
 {
 public:
@@ -1162,7 +1150,18 @@ nsWebSocketHandler::PrimeNewOutgoingMessage()
     
     
     PRUint32 mask;
-    while (!(mask = (PRUint32) rand()));
+    do {
+        PRUint8 *buffer;
+        nsresult rv = mRandomGenerator->GenerateRandomBytes(4, &buffer);
+        if (NS_FAILED(rv)) {
+            LOG(("WebSocketHandler:: PrimeNewOutgoingMessage() "
+                 "GenerateRandomBytes failure %x\n", rv));
+            StopSession(rv);
+            return;
+        }
+        mask = * reinterpret_cast<PRUint32 *>(buffer);
+        NS_Free(buffer);
+    } while (!mask);
     *(((PRUint32 *)payload) - 1) = PR_htonl(mask);
 
     LOG(("WebSocketHandler:: PrimeNewOutgoingMessage() "
@@ -1475,13 +1474,13 @@ nsWebSocketHandler::SetupRequest()
             NS_LITERAL_CSTRING("Sec-WebSocket-Extensions"),
             NS_LITERAL_CSTRING("deflate-stream"), PR_FALSE);
 
-    PRUint32      secKey[4];
+    PRUint8      *secKey;
     nsCAutoString secKeyString;
-    secKey[0] = (PRUint32) rand();
-    secKey[1] = (PRUint32) rand();
-    secKey[2] = (PRUint32) rand();
-    secKey[3] = (PRUint32) rand();
+    
+    rv = mRandomGenerator->GenerateRandomBytes(16, &secKey);
+    NS_ENSURE_SUCCESS(rv, rv);
     char* b64 = PL_Base64Encode((const char *)secKey, 16, nsnull);
+    NS_Free(secKey);
     if (!b64) return NS_ERROR_OUT_OF_MEMORY;
     secKeyString.Assign(b64);
     PR_Free(b64);
@@ -1848,6 +1847,13 @@ nsWebSocketHandler::AsyncOpen(nsIURI *aURI,
     mSocketThread = do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &rv);
     if (NS_FAILED(rv)) {
         NS_WARNING("unable to continue without socket transport service");
+        return rv;
+    }
+
+    mRandomGenerator = do_GetService("@mozilla.org/security/random-generator;1",
+                                     &rv);
+    if (NS_FAILED(rv)) {
+        NS_WARNING("unable to continue without random number generator");
         return rv;
     }
 
