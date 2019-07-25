@@ -340,18 +340,14 @@ public class Favicons {
             String storedFaviconUrl = mDbHelper.getFaviconUrlForPageUrl(mPageUrl);
             if (storedFaviconUrl != null && storedFaviconUrl.equals(mFaviconUrl)) {
                 image = loadFaviconFromDb();
-
-                if (isCancelled())
-                    return null;
-
-                
-                
-                if (image == null) {
-                    image = downloadFavicon(faviconUrl);
-                }
-            } else {
-                image = downloadFavicon(faviconUrl);
+                if (image != null)
+                    return image;
             }
+
+            if (isCancelled())
+                return null;
+
+            image = downloadFavicon(faviconUrl);
 
             if (image != null) {
                 Log.d(LOGTAG, "Downloaded favicon successfully for URL = " + mPageUrl);
