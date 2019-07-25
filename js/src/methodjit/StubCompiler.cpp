@@ -222,3 +222,30 @@ StubCompiler::jumpInScript(Jump j, jsbytecode *target)
     }
 }
 
+
+
+JSC::MacroAssembler::Jump
+StubCompiler::emitCallTail(const FrameSize &frameSize, JSC::MacroAssembler::Address rval)
+{
+    RegisterID r0 = Registers::ReturnReg;
+
+    
+    
+    
+    
+    Jump noJIT = masm.branchTestPtr(Assembler::Zero, r0, r0);
+    if (frameSize.isStatic())
+        masm.move(Imm32(frameSize.staticArgc()), JSParamReg_Argc);
+    else
+        masm.load32(FrameAddress(offsetof(VMFrame, u.call.dynamicArgc)), JSParamReg_Argc);
+    masm.loadPtr(FrameAddress(offsetof(VMFrame, regs.fp)), JSFrameReg);
+    masm.jump(r0);
+
+    
+    
+    
+    noJIT.linkTo(masm.label(), &masm);
+    masm.loadValueAsComponents(rval, JSReturnReg_Type, JSReturnReg_Data);
+    return masm.jump();
+}
+
