@@ -175,7 +175,7 @@ private:
   
   void SetInt(PRInt32 aInt)
   {
-    mValOrHash = (void*)((aInt << 1) | 0x1);
+    mValOrHash = (void*)(intptr_t)((aInt << 1) | 0x1);
   }
   
   nsresult InitHash(nsInt32HashSet** aSet);
