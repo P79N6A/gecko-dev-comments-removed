@@ -196,7 +196,8 @@ MAKEFILES_xpconnect="
   js/src/xpconnect/src/Makefile
   js/src/xpconnect/loader/Makefile
   js/src/xpconnect/tests/Makefile
-  js/src/xpconnect/tests/components/Makefile
+  js/src/xpconnect/tests/components/js/Makefile
+  js/src/xpconnect/tests/components/native/Makefile
   js/src/xpconnect/tests/idl/Makefile
 "
 
@@ -292,12 +293,6 @@ MAKEFILES_layout="
 MAKEFILES_libjar="
   modules/libjar/Makefile
   modules/libjar/test/Makefile
-"
-
-MAKEFILES_libreg="
-  modules/libreg/Makefile
-  modules/libreg/include/Makefile
-  modules/libreg/src/Makefile
 "
 
 MAKEFILES_libpref="
@@ -750,7 +745,6 @@ add_makefiles "
   $MAKEFILES_content
   $MAKEFILES_layout
   $MAKEFILES_libjar
-  $MAKEFILES_libreg
   $MAKEFILES_libpref
   $MAKEFILES_mathml
   $MAKEFILES_plugin
