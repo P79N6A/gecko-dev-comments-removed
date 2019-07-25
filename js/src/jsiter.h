@@ -83,32 +83,66 @@ class PropertyIteratorObject : public JSObject
     static void finalize(FreeOp *fop, JSObject *obj);
 };
 
-
-
-
-
-
-
-
-
-
-
-
 class ElementIteratorObject : public JSObject
 {
   public:
-    static JSObject *create(JSContext *cx, Handle<Value> target);
-    static Class class_;
-    static JSFunctionSpec methods[];
-
-  private:
     enum {
         TargetSlot,
         IndexSlot,
         NumSlots
     };
 
-    static JSBool next(JSContext *cx, unsigned argc, Value *vp);
+    static JSObject *create(JSContext *cx, HandleObject target);
+
+    inline uint32_t getIndex() const;
+    inline void setIndex(uint32_t index);
+    inline JSObject *getTargetObject() const;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+    bool iteratorNext(JSContext *cx, Value *vp);
 };
 
 bool
