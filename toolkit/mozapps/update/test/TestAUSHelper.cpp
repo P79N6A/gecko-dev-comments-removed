@@ -151,6 +151,62 @@ VerifyCertificateTrustForFile(LPCWSTR filePath)
   
   return WinVerifyTrust(NULL, &policyGUID, &trustData);
 }
+
+
+
+
+
+
+
+
+
+
+
+bool WaitForServiceStop(LPCWSTR serviceName, DWORD maxWaitSeconds) 
+{
+  
+  SC_HANDLE serviceManager = OpenSCManager(NULL, NULL, 
+                                           SC_MANAGER_CONNECT | 
+                                           SC_MANAGER_ENUMERATE_SERVICE);
+  if (!serviceManager)  {
+    return false;
+  }
+
+  
+  SC_HANDLE service = OpenServiceW(serviceManager, 
+                                   serviceName, 
+                                   SERVICE_QUERY_STATUS);
+  if (!service) {
+    CloseServiceHandle(serviceManager);
+    return false;
+  }
+
+  bool gotStop = false;
+  DWORD currentWaitMS = 0;
+  while (currentWaitMS < maxWaitSeconds * 1000) {
+    
+    SERVICE_STATUS_PROCESS ssp;
+    DWORD bytesNeeded;
+    if (!QueryServiceStatusEx(service, SC_STATUS_PROCESS_INFO, (LPBYTE)&ssp,
+                              sizeof(SERVICE_STATUS_PROCESS), &bytesNeeded)) {
+      break;
+    }
+
+    
+    if (ssp.dwCurrentState == SERVICE_STOPPED) {
+      gotStop = true;
+      break;
+    }
+    currentWaitMS += 50;
+    Sleep(50);
+  }
+
+  CloseServiceHandle(service);
+  CloseServiceHandle(serviceManager);
+  return gotStop;
+}
+
+
 #endif
 
 int NS_main(int argc, NS_tchar **argv)
@@ -188,6 +244,21 @@ int NS_main(int argc, NS_tchar **argv)
   if (!NS_tstrcmp(argv[1], NS_T("check-signature"))) {
 #ifdef XP_WIN
     if (ERROR_SUCCESS == VerifyCertificateTrustForFile(argv[2])) {
+      return 0;
+    } else {
+      return 1;
+    }
+#else 
+    
+    return 1;
+#endif
+  }
+
+  if (!NS_tstrcmp(argv[1], NS_T("wait-for-service-stop"))) {
+#ifdef XP_WIN
+    const int maxWaitSeconds = NS_ttoi(argv[3]);
+    LPCWSTR serviceName = argv[2];
+    if (WaitForServiceStop(serviceName, maxWaitSeconds)) {
       return 0;
     } else {
       return 1;

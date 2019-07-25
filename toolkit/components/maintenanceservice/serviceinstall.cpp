@@ -268,6 +268,9 @@ StopService()
     return FALSE;
   } 
 
+  
+  LogFinish();
+
   SERVICE_STATUS status;
   return ControlService(schService, SERVICE_CONTROL_STOP, &status);
 }
