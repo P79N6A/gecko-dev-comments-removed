@@ -196,7 +196,6 @@ class JSString : public js::gc::Cell
 
 
 
-
     static const size_t LENGTH_SHIFT          = 4;
     static const size_t FLAGS_MASK            = JS_BITMASK(LENGTH_SHIFT);
 
@@ -208,7 +207,7 @@ class JSString : public js::gc::Cell
     static const size_t UNDEPENDED_FLAGS      = JS_BIT(1) | JS_BIT(3);
 
     static const size_t ATOM_MASK             = JS_BITMASK(3);
-    static const size_t NON_STATIC_ATOM_FLAGS = JS_BIT(3);
+    static const size_t ATOM_FLAGS            = JS_BIT(3);
 
     static const size_t MAX_LENGTH            = JS_BIT(32 - LENGTH_SHIFT) - 1;
 
