@@ -392,19 +392,3 @@ let _ = function(some, debug, text, to) print(Array.slice(arguments).join(" "));
 _("Setting the identity for passphrase");
 Cu.import("resource://services-sync/identity.js");
 
-
-
-
-
-
-
-function encryptPayload(cleartext) {
-  if (typeof cleartext == "object") {
-    cleartext = JSON.stringify(cleartext);
-  }
-
-  return {ciphertext: cleartext, 
-          IV: "irrelevant",
-          hmac: Utils.sha256HMAC(cleartext, Utils.makeHMACKey(""))};
-}
-

@@ -1062,27 +1062,6 @@ WeaveSvc.prototype = {
 
     this._log.debug("Fetching global metadata record");
     let meta = Records.get(this.metaURL);
-    
-    
-    if (infoResponse &&
-        (infoResponse.obj.meta != this.metaModified) &&
-        !meta.isNew) {
-      
-      
-      this._log.debug("Clearing cached meta record. metaModified is " +
-          JSON.stringify(this.metaModified) + ", setting to " +
-          JSON.stringify(infoResponse.obj.meta));
-      Records.del(this.metaURL);
-      
-      
-      let newMeta       = Records.get(this.metaURL);
-      newMeta.isNew     = meta.isNew;
-      newMeta.changed   = meta.changed;
-      
-      
-      meta              = newMeta;
-      this.metaModified = infoResponse.obj.meta;
-    }
 
     let remoteVersion = (meta && meta.payload.storageVersion)?
       meta.payload.storageVersion : "";
@@ -1094,8 +1073,6 @@ WeaveSvc.prototype = {
     
     if (!meta || !meta.payload.storageVersion || !meta.payload.syncID ||
         STORAGE_VERSION > parseFloat(remoteVersion)) {
-      
-      this._log.info("One of: no meta, no meta storageVersion, or no meta syncID. Fresh start needed.");
 
       
       let status = Records.response.status;
@@ -1131,8 +1108,6 @@ WeaveSvc.prototype = {
       return false;
     }
     else if (meta.payload.syncID != this.syncID) {
-      
-      this._log.info("Sync IDs differ. Local is " + this.syncID + ", remote is " + meta.payload.syncID);
       this.resetClient();
       this.syncID = meta.payload.syncID;
       this._log.debug("Clear cached values and take syncId: " + this.syncID);
@@ -1154,7 +1129,7 @@ WeaveSvc.prototype = {
         return false;
       }
 
-      return true;
+        return true;
     }
     else {
       if (!this.upgradeSyncKey(meta.payload.syncID)) {
@@ -1167,7 +1142,7 @@ WeaveSvc.prototype = {
         return false;
       }
 
-      return true;
+          return true;
     }
   },
 
@@ -1433,6 +1408,16 @@ WeaveSvc.prototype = {
     for each (let engine in [Clients].concat(Engines.getAll()))
       engine.lastModified = info.obj[engine.name] || 0;
 
+    
+    
+    if ((info.obj.meta != this.metaModified) && !Records.get(this.metaURL).isNew) {
+      this._log.debug("Clearing cached meta record. metaModified is " +
+          JSON.stringify(this.metaModified) + ", setting to " +
+          JSON.stringify(info.obj.meta));
+      Records.del(this.metaURL);
+      this.metaModified = info.obj.meta;
+    }
+
     if (!(this._remoteSetup(info)))
       throw "aborting sync, remote setup failed";
 
@@ -1532,15 +1517,6 @@ WeaveSvc.prototype = {
     let meta = Records.get(this.metaURL);
     if (meta.isNew || !meta.payload.engines)
       return;
-    
-    
-    
-    
-    if ((this.numClients <= 1) &&
-        ([e for (e in meta.payload.engines) if (e != "clients")].length == 0)) {
-      this._log.info("One client and no enabled engines: not touching local engine status.");
-      return;
-    }
 
     this._ignorePrefObserver = true;
 

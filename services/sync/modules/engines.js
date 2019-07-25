@@ -139,7 +139,6 @@ EngineManagerSvc.prototype = {
 function Engine(name) {
   this.Name = name || "Unnamed";
   this.name = name.toLowerCase();
-  this.downloadLimit = null;
 
   this._notify = Utils.notify("weave:engine:");
   this._log = Log4Moz.repository.getLogger("Engine." + this.Name);
@@ -496,13 +495,7 @@ SyncEngine.prototype = {
     let toFetch = [];
     if (handled.length == newitems.limit) {
       let guidColl = new Collection(this.engineURL);
-      
-      
-      guidColl.limit = this.downloadLimit;
       guidColl.newer = this.lastSync;
-      
-      
-      guidColl.sort  = "index";
 
       let guids = guidColl.get();
       if (!guids.success)
