@@ -235,10 +235,9 @@ class MDefinition : public MNode
     uint32 flags_;          
 
   private:
-    static const uint32 IN_WORKLIST =  0x01;
-    static const uint32 REWRITES_DEF = 0x02;
-    static const uint32 EMIT_AT_USES = 0x04;
-    static const uint32 LOOP_INVARIANT = 0x08;
+    static const uint32 IN_WORKLIST    = 0x01;
+    static const uint32 EMIT_AT_USES   = 0x02;
+    static const uint32 LOOP_INVARIANT = 0x04;
 
     void setBlock(MBasicBlock *block) {
         block_ = block;
@@ -339,11 +338,6 @@ class MDefinition : public MNode
     size_t useCount() const;
 
     
-    virtual MIRType requiredInputType(size_t index) const {
-        return MIRType_None;
-    }
-
-    
     
     
     virtual bool adjustForInputs() {
@@ -354,27 +348,6 @@ class MDefinition : public MNode
         return false;
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    bool rewritesDef() const {
-        return hasFlags(REWRITES_DEF);
-    }
-    void setRewritesDef() {
-        setFlags(REWRITES_DEF);
-    }
-    virtual MDefinition *rewrittenDef() const {
-        JS_NOT_REACHED("Opcodes which can rewrite defs must implement this.");
-        return NULL;
-    }
     bool emitAtUses() const {
         return hasFlags(EMIT_AT_USES);
     }
@@ -645,10 +618,6 @@ class MTest : public MAryControlInstruction<1>
     static MTest *New(MDefinition *ins,
                       MBasicBlock *ifTrue, MBasicBlock *ifFalse);
 
-    MIRType requiredInputType(size_t index) const {
-        return MIRType_Any;
-    }
-
     MBasicBlock *ifTrue() const {
         return getSuccessor(0);
     }
@@ -668,10 +637,6 @@ class MReturn : public MAryControlInstruction<1>
   public:
     INSTRUCTION_HEADER(Return);
     static MReturn *New(MDefinition *ins);
-
-    MIRType requiredInputType(size_t index) const {
-        return MIRType_Value;
-    }
 };
 
 class MUnaryInstruction : public MAryInstruction<1>
@@ -721,10 +686,6 @@ class MCopy : public MUnaryInstruction
   public:
     INSTRUCTION_HEADER(Copy);
     static MCopy *New(MDefinition *ins);
-
-    MIRType requiredInputType(size_t index) const {
-        return MIRType_Any;
-    }
 };
 
 
@@ -744,10 +705,6 @@ class MBox : public MUnaryInstruction
         JS_ASSERT(ins->type() != MIRType_Value);
 
         return new MBox(ins);
-    }
-
-    MIRType requiredInputType(size_t index) const {
-        return MIRType_Any;
     }
 };
 
@@ -769,14 +726,6 @@ class MUnbox : public MUnaryInstruction
     {
         return new MUnbox(ins, type);
     }
-
-    MIRType requiredInputType(size_t index) const {
-        return MIRType_Value;
-    }
-
-    MDefinition *rewrittenDef() const {
-        return getOperand(0);
-    }
 };
 
 class MBitAnd : public MBinaryInstruction
@@ -791,9 +740,6 @@ class MBitAnd : public MBinaryInstruction
     INSTRUCTION_HEADER(BitAnd);
     static MBitAnd *New(MDefinition *left, MDefinition *right);
 
-    MIRType requiredInputType(size_t index) const {
-        return specialization();
-    }
     HoistWin estimateHoistWin() {
         return BIG_WIN;
     }
@@ -811,29 +757,23 @@ class MBitOr : public MBinaryInstruction
     INSTRUCTION_HEADER(BitOr);
     static MBitOr *New(MDefinition *left, MDefinition *right);
 
-    MIRType requiredInputType(size_t index) const {
-        return specialization();
-    }
     HoistWin estimateHoistWin() {
         return BIG_WIN;
     }
 };
 
-class MBitXOr : public MBinaryInstruction
+class MBitXor : public MBinaryInstruction
 {
-    MBitXOr(MDefinition *left, MDefinition *right)
+    MBitXor(MDefinition *left, MDefinition *right)
       : MBinaryInstruction(left, right)
     {
         setResultType(MIRType_Int32);
     }
 
   public:
-    INSTRUCTION_HEADER(BitXOr);
-    static MBitXOr *New(MDefinition *left, MDefinition *right);
+    INSTRUCTION_HEADER(BitXor);
+    static MBitXor *New(MDefinition *left, MDefinition *right);
 
-    MIRType requiredInputType(size_t index) const {
-        return specialization();
-    }
     HoistWin estimateHoistWin() {
         return BIG_WIN;
     }
@@ -851,9 +791,6 @@ class MAdd : public MBinaryInstruction
     INSTRUCTION_HEADER(Add);
     static MAdd *New(MDefinition *left, MDefinition *right) {
         return new MAdd(left, right);
-    }
-    MIRType requiredInputType(size_t index) const {
-        return specialization();
     }
     HoistWin estimateHoistWin() {
         return BIG_WIN;
@@ -890,9 +827,6 @@ class MPhi : public MDefinition
         return slot_;
     }
     bool addInput(MDefinition *ins);
-    MIRType requiredInputType(size_t index) const {
-        return MIRType_Value;
-    }
 };
 
 

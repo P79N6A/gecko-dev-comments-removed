@@ -146,11 +146,6 @@ class LIRGenerator : public MInstructionVisitor
     }
 
     
-    
-    
-    void rewriteDefsInSnapshots(MInstruction *ins, MDefinition *old);
-
-    
     bool assignSnapshot(LInstruction *ins);
     virtual void fillSnapshot(LSnapshot *snapshot) = 0;
 
