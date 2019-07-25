@@ -4319,38 +4319,8 @@ DeflatedStringCache::sweep(JSContext *cx)
     JS_RELEASE_LOCK(lock);
 }
 
-void
-DeflatedStringCache::remove(JSString *str)
-{
-    JS_ACQUIRE_LOCK(lock);
-
-    Map::Ptr p = map.lookup(str);
-    if (p) {
-        js_free(p->value);
-        map.remove(p);
-    }
-
-    JS_RELEASE_LOCK(lock);
-}
-
-bool
-DeflatedStringCache::setBytes(JSContext *cx, JSString *str, char *bytes)
-{
-    JS_ACQUIRE_LOCK(lock);
-
-    Map::AddPtr p = map.lookupForAdd(str);
-    JS_ASSERT(!p);
-    bool ok = map.add(p, str, bytes);
-
-    JS_RELEASE_LOCK(lock);
-
-    if (!ok)
-        js_ReportOutOfMemory(cx);
-    return ok;
-}
-
 char *
-DeflatedStringCache::getBytes(JSContext *cx, JSString *str)
+DeflatedStringCache::getBytes(JSString *str)
 {
     JS_ACQUIRE_LOCK(lock);
     Map::AddPtr p = map.lookupForAdd(str);
@@ -4360,7 +4330,7 @@ DeflatedStringCache::getBytes(JSContext *cx, JSString *str)
     if (bytes)
         return bytes;
 
-    bytes = js_DeflateString(cx, str->chars(), str->length());
+    bytes = js_DeflateString(NULL, str->chars(), str->length());
     if (!bytes)
         return NULL;
 
@@ -4388,28 +4358,21 @@ DeflatedStringCache::getBytes(JSContext *cx, JSString *str)
     if (!ok) {
         bytesToFree = bytes;
         bytes = NULL;
-        if (cx)
-            js_ReportOutOfMemory(cx);
     }
 
-    if (bytesToFree) {
-        if (cx)
-            cx->free(bytesToFree);
-        else
-            js_free(bytesToFree);
-    }
+    if (bytesToFree)
+        js_free(bytesToFree);
     return bytes;
 }
 
 } 
 
 const char *
-js_GetStringBytes(JSContext *cx, JSString *str)
+js_GetStringBytes(JSAtom *atom)
 {
-    JSRuntime *rt;
-    char *bytes;
-
+    JSString *str = ATOM_TO_STRING(atom);
     if (JSString::isUnitString(str)) {
+        char *bytes;
 #ifdef IS_LITTLE_ENDIAN
         
         bytes = (char *)str->chars();
@@ -4437,14 +4400,7 @@ js_GetStringBytes(JSContext *cx, JSString *str)
         return JSString::deflatedIntStringTable + ((str - JSString::hundredStringTable) * 4);
     }
 
-    if (cx) {
-        rt = cx->runtime;
-    } else {
-        
-        rt = GetGCThingRuntime(str);
-    }
-
-    return rt->deflatedStringCache->getBytes(cx, str);
+    return GetGCThingRuntime(str)->deflatedStringCache->getBytes(str);
 }
 
 

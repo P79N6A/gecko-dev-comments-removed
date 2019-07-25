@@ -1131,7 +1131,7 @@ js_DeflateStringToUTF8Buffer(JSContext *cx, const jschar *chars,
 
 
 extern const char *
-js_GetStringBytes(JSContext *cx, JSString *str);
+js_GetStringBytes(JSAtom *atom);
 
 
 extern JSBool
@@ -1212,8 +1212,6 @@ class DeflatedStringCache {
     ~DeflatedStringCache();
 
     void sweep(JSContext *cx);
-    void remove(JSString *str);
-    bool setBytes(JSContext *cx, JSString *str, char *bytes);
 
   private:
     struct StringPtrHasher
@@ -1242,11 +1240,10 @@ class DeflatedStringCache {
 
     typedef HashMap<JSString *, char *, StringPtrHasher, SystemAllocPolicy> Map;
 
-    
-    char *getBytes(JSContext *cx, JSString *str);
+    char *getBytes(JSString *str);
 
     friend const char *
-    ::js_GetStringBytes(JSContext *cx, JSString *str);
+    ::js_GetStringBytes(JSAtom *atom);
 
     Map                 map;
 #ifdef JS_THREADSAFE

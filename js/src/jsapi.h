@@ -2772,9 +2772,6 @@ JS_InternUCStringN(JSContext *cx, const jschar *s, size_t length);
 extern JS_PUBLIC_API(JSString *)
 JS_InternUCString(JSContext *cx, const jschar *s);
 
-extern JS_PUBLIC_API(char *)
-JS_GetStringBytes(JSString *str);
-
 
 
 
@@ -2783,9 +2780,6 @@ JS_GetStringChars(JSString *str);
 
 extern JS_PUBLIC_API(size_t)
 JS_GetStringLength(JSString *str);
-
-extern JS_PUBLIC_API(const char *)
-JS_GetStringBytesZ(JSContext *cx, JSString *str);
 
 
 
@@ -2917,6 +2911,30 @@ JS_DecodeBytes(JSContext *cx, const char *src, size_t srclen, jschar *dst,
 
 JS_PUBLIC_API(char *)
 JS_EncodeString(JSContext *cx, JSString *str);
+
+
+
+
+
+
+JS_PUBLIC_API(size_t)
+JS_GetStringEncodingLength(JSContext *cx, JSString *str);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+JS_PUBLIC_API(size_t)
+JS_EncodeStringToBuffer(JSString *str, char *buffer, size_t length);
 
 #ifdef __cplusplus
 
