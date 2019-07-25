@@ -89,7 +89,25 @@ struct nsXPTCVariant : public nsXPTCMiniVariant
     enum
     {
         
-        PTR_IS_DATA    = 0x1,  
+        
+        
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        PTR_IS_DATA    = 0x1,
+
         VAL_IS_ALLOCD  = 0x2,  
         VAL_IS_IFACE   = 0x4,  
         VAL_IS_ARRAY   = 0x8,  
@@ -100,7 +118,7 @@ struct nsXPTCVariant : public nsXPTCMiniVariant
     };
 
     void ClearFlags()         {flags = 0;}
-    void SetPtrIsData()       {flags |= PTR_IS_DATA;}
+    void SetIndirect()        {ptr = &val; flags |= PTR_IS_DATA;}
     void SetValIsAllocated()  {flags |= VAL_IS_ALLOCD;}
     void SetValIsInterface()  {flags |= VAL_IS_IFACE;}
     void SetValIsArray()      {flags |= VAL_IS_ARRAY;}
@@ -109,7 +127,7 @@ struct nsXPTCVariant : public nsXPTCMiniVariant
     void SetValIsCString()    {flags |= VAL_IS_CSTR;}
     void SetValIsJSRoot()     {flags |= VAL_IS_JSROOT;}
 
-    PRBool IsPtrData()       const  {return 0 != (flags & PTR_IS_DATA);}
+    PRBool IsIndirect()      const  {return 0 != (flags & PTR_IS_DATA);}
     PRBool IsValAllocated()  const  {return 0 != (flags & VAL_IS_ALLOCD);}
     PRBool IsValInterface()  const  {return 0 != (flags & VAL_IS_IFACE);}
     PRBool IsValArray()      const  {return 0 != (flags & VAL_IS_ARRAY);}
@@ -117,6 +135,9 @@ struct nsXPTCVariant : public nsXPTCMiniVariant
     PRBool IsValUTF8String() const  {return 0 != (flags & VAL_IS_UTF8STR);}
     PRBool IsValCString()    const  {return 0 != (flags & VAL_IS_CSTR);}    
     PRBool IsValJSRoot()     const  {return 0 != (flags & VAL_IS_JSROOT);}
+
+    
+    PRBool IsPtrData()       const  {return 0 != (flags & PTR_IS_DATA);}
 
     void Init(const nsXPTCMiniVariant& mv, const nsXPTType& t, PRUint8 f)
     {

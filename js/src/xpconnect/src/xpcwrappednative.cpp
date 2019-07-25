@@ -2845,8 +2845,7 @@ CallMethodHelper::ConvertIndependentParam(uint8 i)
     if(type_tag == nsXPTType::T_JSVAL)
     {
         
-        dp->SetPtrIsData();
-        dp->ptr = &dp->val;
+        dp->SetIndirect();
 
         
         JS_STATIC_ASSERT(sizeof(jsval) <= sizeof(dp->val));
@@ -2860,8 +2859,7 @@ CallMethodHelper::ConvertIndependentParam(uint8 i)
 
     if(paramInfo.IsOut())
     {
-        dp->SetPtrIsData();
-        dp->ptr = &dp->val;
+        dp->SetIndirect();
 
         if(type.IsPointer() &&
            type_tag != nsXPTType::T_INTERFACE &&
@@ -2994,8 +2992,7 @@ CallMethodHelper::ConvertDependentParams()
 
         if(paramInfo.IsOut())
         {
-            dp->SetPtrIsData();
-            dp->ptr = &dp->val;
+            dp->SetIndirect();
 
             if(datum_type.IsPointer() &&
                !datum_type.IsInterfacePointer() &&
