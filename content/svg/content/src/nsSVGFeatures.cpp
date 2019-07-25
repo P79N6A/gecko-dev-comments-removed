@@ -212,9 +212,6 @@ nsSVGFeatures::PassesConditionalProcessingTests(nsIContent *aContent,
     return PR_TRUE;
   }
 
-  const nsAutoString acceptLangs(aAcceptLangs ? *aAcceptLangs :
-    nsContentUtils::GetLocalizedStringPref("intl.accept_languages"));
-
   
   
   
@@ -224,6 +221,10 @@ nsSVGFeatures::PassesConditionalProcessingTests(nsIContent *aContent,
   
   if (aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::systemLanguage,
                         value)) {
+
+    const nsAutoString acceptLangs(aAcceptLangs ? *aAcceptLangs :
+      nsContentUtils::GetLocalizedStringPref("intl.accept_languages"));
+
     
     if (!acceptLangs.IsEmpty()) {
       return MatchesLanguagePreferences(value, acceptLangs);
