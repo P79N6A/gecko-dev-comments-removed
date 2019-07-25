@@ -24,7 +24,13 @@
       
       
       
-      ok(e.message.indexOf("file:") > -1, "exception " + e.message + " thrown");
+
+      
+      
+      
+      ok(e.message.indexOf("Permission denied") > -1 &&
+         e.message.indexOf("access property 'body'") > -1,
+         "Unexpected exception thrown: " + e.message);
     }
     is(embed.getError(), "pass", "plugin reported error");
     SimpleTest.finish();
