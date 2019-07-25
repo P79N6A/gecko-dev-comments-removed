@@ -465,7 +465,6 @@ CompositorParent::AllocPLayers(const LayersBackend &backendType)
     }
     return new ShadowLayersParent(slm, this);
   } else if (backendType == LayerManager::LAYERS_BASIC) {
-    
     nsRefPtr<LayerManager> layerManager = new BasicShadowLayerManager(mWidget);
     mWidget = NULL;
     mLayerManager = layerManager;

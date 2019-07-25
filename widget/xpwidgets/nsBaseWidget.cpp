@@ -900,8 +900,12 @@ void nsBaseWidget::CreateCompositor()
     AsyncChannel *parentChannel = mCompositorParent->GetIPCChannel();
     AsyncChannel::Side childSide = mozilla::ipc::AsyncChannel::Child;
     mCompositorChild->Open(parentChannel, childMessageLoop, childSide);
-    PLayersChild* shadowManager =
-      mCompositorChild->SendPLayersConstructor(LayerManager::LAYERS_OPENGL);
+    PLayersChild* shadowManager;
+    if (mUseAcceleratedRendering) {
+      shadowManager = mCompositorChild->SendPLayersConstructor(LayerManager::LAYERS_OPENGL);
+    } else {
+      shadowManager = mCompositorChild->SendPLayersConstructor(LayerManager::LAYERS_BASIC);
+    }
 
     if (shadowManager) {
       ShadowLayerForwarder* lf = lm->AsShadowForwarder();
@@ -911,7 +915,11 @@ void nsBaseWidget::CreateCompositor()
         return;
       }
       lf->SetShadowManager(shadowManager);
-      lf->SetParentBackendType(LayerManager::LAYERS_OPENGL);
+
+      if (mUseAcceleratedRendering)
+        lf->SetParentBackendType(LayerManager::LAYERS_OPENGL);
+      else
+        lf->SetParentBackendType(LayerManager::LAYERS_BASIC);
 
       mLayerManager = lm;
     } else {
@@ -931,17 +939,17 @@ LayerManager* nsBaseWidget::GetLayerManager(PLayersChild* aShadowManager,
 
     mUseAcceleratedRendering = GetShouldAccelerate();
 
-    if (mUseAcceleratedRendering) {
-
+    
+    bool useCompositor =
+      Preferences::GetBool("layers.offmainthreadcomposition.enabled", false);
+    if (useCompositor) {
       
-      bool useCompositor =
-        Preferences::GetBool("layers.offmainthreadcomposition.enabled", false);
-      if (useCompositor) {
-        
-        
-        NS_ASSERTION(aShadowManager == nsnull, "Async Compositor not supported with e10s");
-        CreateCompositor();
-      }
+      
+      NS_ASSERTION(aShadowManager == nsnull, "Async Compositor not supported with e10s");
+      CreateCompositor();
+    }
+
+    if (mUseAcceleratedRendering) {
 
       if (!mLayerManager) {
         nsRefPtr<LayerManagerOGL> layerManager = new LayerManagerOGL(this);

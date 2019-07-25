@@ -3241,8 +3241,20 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
     }
 
     
-    if (!mLayerManager)
-      mLayerManager = CreateBasicLayerManager();
+    if (!mLayerManager) {
+      
+      bool useCompositor =
+        Preferences::GetBool("layers.offmainthreadcomposition.enabled", false);
+      if (useCompositor) {
+        
+        
+        NS_ASSERTION(aShadowManager == nsnull, "Async Compositor not supported with e10s");
+        CreateCompositor();
+      }
+
+      if (!mLayerManager)
+        mLayerManager = CreateBasicLayerManager();
+    }
   }
 
   NS_ASSERTION(mLayerManager, "Couldn't provide a valid layer manager.");
