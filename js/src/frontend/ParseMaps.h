@@ -301,12 +301,14 @@ class AtomDecls
     bool addHoist(JSAtom *atom, JSDefinition *defn);
 
     
-    void update(JSAtom *atom, JSDefinition *defn) {
+    void updateFirst(JSAtom *atom, JSDefinition *defn) {
         JS_ASSERT(map);
         AtomDOHMap::Ptr p = map->lookup(atom);
         JS_ASSERT(p);
-        JS_ASSERT(!p.value().isHeader());
-        p.value() = DefnOrHeader(defn);
+        if (p.value().isHeader())
+            p.value().header()->defn = defn;
+        else
+            p.value() = DefnOrHeader(defn);
     }
 
     

@@ -3077,9 +3077,9 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, FunctionSyntaxKind kind)
             }
 
             if (bodyLevel) {
-                tc->decls.update(funAtom, (JSDefinition *) pn);
+                tc->decls.updateFirst(funAtom, (JSDefinition *) pn);
                 pn->pn_defn = true;
-                pn->dn_uses = dn;               
+                pn->dn_uses = dn; 
 
                 if (!MakeDefIntoUse(dn, pn, funAtom, tc))
                     return NULL;
