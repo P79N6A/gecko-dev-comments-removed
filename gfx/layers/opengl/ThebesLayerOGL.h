@@ -50,6 +50,8 @@ namespace layers {
 class ThebesLayerOGL : public ThebesLayer, 
                          public LayerOGL
 {
+  typedef gl::TextureImage TextureImage;
+
 public:
   typedef mozilla::gl::GLContext GLContext;
   ThebesLayerOGL(LayerManagerOGL *aManager);
@@ -68,25 +70,10 @@ public:
   virtual void RenderLayer(int aPreviousFrameBuffer,
                            const nsIntPoint& aOffset);
 
-  
-  nsIntRect GetVisibleRect() { return mVisibleRegion.GetBounds(); }
-  const nsIntRect &GetInvalidatedRect();
-
 private:
   PRBool EnsureSurface();
-  
 
-
-  nsIntRect mInvalidatedRect;
-
-  
-
-
-  GLuint mTexture;
-  nsRefPtr<GLContext> mOffscreenSurfaceAsGLContext;
-  nsRefPtr<gfxASurface> mOffScreenSurface;
-  gfxASurface::gfxImageFormat mOffscreenFormat;
-  gfxIntSize mOffscreenSize;
+  nsRefPtr<TextureImage> mTexImage;
 };
 
 } 
