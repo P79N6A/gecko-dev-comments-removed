@@ -66,6 +66,7 @@
 #include "nsIDOMNodeSelector.h"
 #include "nsIDOMXPathNSResolver.h"
 #include "nsPresContext.h"
+#include "nsIDOMDOMStringMap.h"
 
 #ifdef MOZ_SMIL
 #include "nsISMILAttr.h"
@@ -935,7 +936,14 @@ public:
 
 
 
+
     nsCOMPtr<nsICSSDeclaration> mStyle;
+
+    
+
+
+
+    nsIDOMDOMStringMap* mDataset; 
 
     
 

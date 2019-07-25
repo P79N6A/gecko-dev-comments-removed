@@ -103,6 +103,8 @@
 
 #include "nsIDOMText.h"
 
+#include "nsDOMStringMap.h"
+
 #include "nsIEditor.h"
 #include "nsIEditorIMESupport.h"
 #include "nsEventDispatcher.h"
@@ -302,7 +304,7 @@ nsGenericHTMLElement::DOMQueryInterface(nsIDOMHTMLElement *aElement,
   NS_INTERFACE_MAP_END
 
 
-    
+
 nsresult
 nsGenericHTMLElement::CopyInnerTo(nsGenericElement* aDst) const
 {
@@ -362,6 +364,33 @@ nsGenericHTMLElement::SetAttribute(const nsAString& aName,
 
   return SetAttr(name->NamespaceID(), name->LocalName(), name->GetPrefix(),
                  aValue, PR_TRUE);
+}
+
+nsresult
+nsGenericHTMLElement::GetDataset(nsIDOMDOMStringMap** aDataset)
+{
+  nsDOMSlots *slots = DOMSlots();
+
+  if (!slots->mDataset) {
+    
+    
+    slots->mDataset = new nsDOMStringMap(this);
+  }
+
+  NS_ADDREF(*aDataset = slots->mDataset);
+  return NS_OK;
+}
+
+nsresult
+nsGenericHTMLElement::ClearDataset()
+{
+  nsDOMSlots *slots = GetExistingDOMSlots();
+
+  NS_ASSERTION(slots && slots->mDataset,
+               "Slots should exist and dataset should not be null.");
+  slots->mDataset = nsnull;
+
+  return NS_OK;
 }
 
 
@@ -1230,6 +1259,12 @@ nsGenericHTMLElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
       if (manager) {
         manager->RemoveScriptEventListener(aAttribute);
       }
+    }
+
+    
+    nsDOMSlots *slots = GetExistingDOMSlots();
+    if (slots && slots->mDataset) {
+      slots->mDataset->RemoveProp(aAttribute);
     }
   }
 
