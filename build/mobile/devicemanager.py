@@ -166,6 +166,7 @@ class DeviceManager:
         
 
         while (found == False and (loopguard < recvGuard)):
+          temp = ''
           if (self.debug >= 4): print "recv'ing..."
 
           
@@ -193,8 +194,9 @@ class DeviceManager:
 
           
           
-          loopguard = loopguard + 1
-
+          if (temp == ''):
+            loopguard += 1
+            
     
     if (shouldCloseSocket == True):
       try:
