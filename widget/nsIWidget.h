@@ -1017,6 +1017,20 @@ class nsIWidget : public nsISupports {
 
     virtual void SetShowsToolbarButton(bool aShow) = 0;
 
+    enum WindowAnimationType {
+      eGenericWindowAnimation,
+      eDocumentWindowAnimation
+    };
+
+    
+
+
+
+
+
+
+    virtual void SetWindowAnimationType(WindowAnimationType aType) = 0;
+
     
 
 

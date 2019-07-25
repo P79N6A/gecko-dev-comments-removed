@@ -3810,7 +3810,7 @@ SessionStoreService.prototype = {
     argString.data = "";
 
     
-    let features = "chrome,dialog=no,all";
+    let features = "chrome,dialog=no,macsuppressanimation,all";
     let winState = aState.windows[0];
     WINDOW_ATTRIBUTES.forEach(function(aFeature) {
       
