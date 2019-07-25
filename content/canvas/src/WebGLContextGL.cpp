@@ -2434,7 +2434,7 @@ WebGLContext::ReadPixels_base(WebGLint x, WebGLint y, WebGLsizei width, WebGLsiz
         GLsizei subrect_height = subrect_end_y - subrect_y;
 
         if (subrect_width < 0 || subrect_height < 0 ||
-            subrect_width > width || subrect_height)
+            subrect_width > width || subrect_height > height)
             return ErrorInvalidOperation("ReadPixels: integer overflow computing clipped rect size");
 
         
