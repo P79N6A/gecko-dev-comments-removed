@@ -2964,10 +2964,6 @@ nsWindow::OnContainerFocusInEvent(GtkWidget *aWidget, GdkEventFocus *aEvent)
                  "Unexpected focus on a popup window");
 
     LOGFOCUS(("OnContainerFocusInEvent [%p]\n", (void *)this));
-    if (!mEnabled) {
-        LOGFOCUS(("Container focus is blocked [%p]\n", (void *)this));
-        return;
-    }
 
     
     GtkWidget* top_window = nsnull;
