@@ -1450,18 +1450,6 @@ nsresult nsRange::CutContents(nsIDOMDocumentFragment** aFragment)
     }
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
   rv = CollapseRangeAfterDelete(this);
   if (NS_SUCCEEDED(rv) && aFragment) {
     NS_ADDREF(*aFragment = retval);
