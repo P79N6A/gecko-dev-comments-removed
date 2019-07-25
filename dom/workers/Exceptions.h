@@ -72,6 +72,9 @@
 #define DATA_CLONE_ERR 25
 
 
+#define UNKNOWN_ERR 0
+
+
 #define FILE_NOT_FOUND_ERR 1
 #define FILE_SECURITY_ERR 2
 #define FILE_ABORT_ERR 3
