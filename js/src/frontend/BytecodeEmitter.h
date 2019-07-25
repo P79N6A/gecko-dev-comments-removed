@@ -154,7 +154,13 @@ struct BytecodeEmitter
 
     uint16_t        typesetCount;   
 
-    BytecodeEmitter(Parser *parser, SharedContext *sc, unsigned lineno);
+    
+    const bool      noScriptRval:1;     
+    const bool      needScriptGlobal:1; 
+
+
+    BytecodeEmitter(Parser *parser, SharedContext *sc, unsigned lineno,
+                    bool noScriptRval, bool needScriptGlobal);
     bool init();
 
     

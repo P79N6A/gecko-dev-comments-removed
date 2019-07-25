@@ -1329,8 +1329,6 @@ JSScript::NewScriptFromEmitter(JSContext *cx, BytecodeEmitter *bce)
         bce->regexpList.finish(script->regexps());
     if (bce->constList.length() != 0)
         bce->constList.finish(script->consts());
-    if (bce->sc->flags & TCF_NO_SCRIPT_RVAL)
-        script->noScriptRval = true;
     if (bce->sc->flags & TCF_STRICT_MODE_CODE)
         script->strictModeCode = true;
     if (bce->sc->flags & TCF_COMPILE_N_GO) {
@@ -1361,6 +1359,8 @@ JSScript::NewScriptFromEmitter(JSContext *cx, BytecodeEmitter *bce)
 
     fun = NULL;
     if (bce->sc->inFunction()) {
+        JS_ASSERT(!bce->noScriptRval);
+        JS_ASSERT(!bce->needScriptGlobal);
         
 
 
@@ -1389,8 +1389,10 @@ JSScript::NewScriptFromEmitter(JSContext *cx, BytecodeEmitter *bce)
 
 
 
-        if (bce->sc->flags & TCF_NEED_SCRIPT_GLOBAL)
+        if (bce->needScriptGlobal)
             script->globalObject = GetCurrentGlobal(cx);
+
+        script->noScriptRval = bce->noScriptRval;
     }
 
     
