@@ -60,7 +60,6 @@
 #include "nsGUIEvent.h"
 #include "nsSVGUtils.h"
 #include "nsSVGSVGElement.h"
-#include "nsSVGEffects.h" 
 #include "nsContentErrors.h" 
 
 #ifdef MOZ_SMIL
@@ -1288,15 +1287,6 @@ nsSVGSVGElement::GetPreserveAspectRatio()
 {
   return &mPreserveAspectRatio;
 }
-
-#ifndef MOZ_ENABLE_LIBXUL
-
-void
-nsSVGSVGElement::RemoveAllRenderingObservers()
-{
-  nsSVGEffects::RemoveAllRenderingObservers(this);
-}
-#endif 
 
 PRBool
 nsSVGSVGElement::ShouldSynthesizeViewBox()

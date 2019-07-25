@@ -86,10 +86,8 @@
 #include "xpcprivate.h"
 #include "nsIResProtocolHandler.h"
 
-#ifdef MOZ_ENABLE_LIBXUL
 #include "mozilla/scache/StartupCache.h"
 #include "mozilla/scache/StartupCacheUtils.h"
-#endif
 #include "mozilla/Omnijar.h"
 
 #include "jsdbgapi.h"
@@ -342,7 +340,6 @@ ReportOnCaller(JSCLContextHelper &helper,
     return OutputError(cx, format, ap);
 }
 
-#ifdef MOZ_ENABLE_LIBXUL
 static nsresult
 ReadScriptFromStream(JSContext *cx, nsIObjectInputStream *stream,
                      JSObject **scriptObj)
@@ -444,7 +441,6 @@ WriteScriptToStream(JSContext *cx, JSObject *scriptObj,
     JS_XDRDestroy(xdr);
     return rv;
 }
-#endif 
 
 mozJSComponentLoader::mozJSComponentLoader()
     : mRuntime(nsnull),
@@ -932,7 +928,6 @@ PathifyURI(nsIURI *in, nsACString &out)
 }
 
 
-#ifdef MOZ_ENABLE_LIBXUL
 nsresult
 mozJSComponentLoader::ReadScript(StartupCache* cache, nsIURI *uri,
                                  JSContext *cx, JSObject **scriptObj)
@@ -990,7 +985,6 @@ mozJSComponentLoader::WriteScript(StartupCache* cache, JSObject *scriptObj,
     rv = cache->PutBuffer(spec.get(), buf, len);
     return rv;
 }
-#endif 
 
 nsresult
 mozJSComponentLoader::GlobalForLocation(nsILocalFile *aComponentFile,
@@ -1091,7 +1085,6 @@ mozJSComponentLoader::GlobalForLocation(nsILocalFile *aComponentFile,
 
     JSObject *scriptObj = nsnull;
 
-#ifdef MOZ_ENABLE_LIBXUL  
     
     
     
@@ -1110,7 +1103,6 @@ mozJSComponentLoader::GlobalForLocation(nsILocalFile *aComponentFile,
             writeToCache = PR_TRUE;
         }
     }
-#endif
 
     if (!scriptObj) {
         
@@ -1253,7 +1245,6 @@ mozJSComponentLoader::GlobalForLocation(nsILocalFile *aComponentFile,
             nativePath.get());
 #endif
 
-#ifdef MOZ_ENABLE_LIBXUL
     if (writeToCache) {
         
         rv = WriteScript(cache, scriptObj, aComponentFile, aURI, cx);
@@ -1266,7 +1257,6 @@ mozJSComponentLoader::GlobalForLocation(nsILocalFile *aComponentFile,
             LOG(("Failed to write to cache\n"));
         }
     }
-#endif
 
     
     

@@ -106,14 +106,10 @@ NS_COM bool NS_IsMainThread();
 
 
 extern NS_TLS mozilla::threads::ID gTLSThreadID;
-#ifdef MOZ_ENABLE_LIBXUL
 inline bool NS_IsMainThread()
 {
   return gTLSThreadID == mozilla::threads::Main;
 }
-#else
-NS_COM bool NS_IsMainThread();
-#endif
 #else
 
 

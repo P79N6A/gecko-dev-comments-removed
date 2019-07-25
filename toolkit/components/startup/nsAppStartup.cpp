@@ -97,10 +97,8 @@
 #endif
 
 static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
-#ifdef MOZ_ENABLE_LIBXUL
 extern PRTime gXRE_mainTimestamp;
 extern PRTime gFirstPaintTimestamp;
-#endif
 
 static PRTime gRestoredTimestamp = 0;       
 static PRTime gProcessCreationTimestamp = 0;
@@ -724,10 +722,8 @@ nsAppStartup::GetStartupInfo()
   }
 
   MaybeDefineProperty(cx, obj, "process", gProcessCreationTimestamp);
-#ifdef MOZ_ENABLE_LIBXUL
   MaybeDefineProperty(cx, obj, "main", gXRE_mainTimestamp);
   MaybeDefineProperty(cx, obj, "firstPaint", gFirstPaintTimestamp);
-#endif
   MaybeDefineProperty(cx, obj, "sessionRestored", gRestoredTimestamp);
   return NS_OK;
 }

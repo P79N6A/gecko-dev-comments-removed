@@ -326,14 +326,7 @@ SVGDocumentWrapper::Observe(nsISupports* aSubject,
     
     nsSVGSVGElement* svgElem = GetRootSVGElem();
     if (svgElem) {
-#ifdef MOZ_ENABLE_LIBXUL
       nsSVGEffects::RemoveAllRenderingObservers(svgElem);
-#else
-      
-      
-      
-      svgElem->RemoveAllRenderingObservers();
-#endif 
     }
 
     
