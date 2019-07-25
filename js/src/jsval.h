@@ -831,8 +831,8 @@ extern "C++"
 #else 
 
 
-typedef JSVAL_ALIGNMENT uint64 jsval;
-typedef ptrdiff_t              jsid;
+typedef JSVAL_ALIGNMENT JSUint64 jsval;
+typedef ptrdiff_t                jsid;
 
 
 #define JSVAL_BITS(v)    (v)
