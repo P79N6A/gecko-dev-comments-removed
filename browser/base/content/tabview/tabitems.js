@@ -808,7 +808,7 @@ let TabItems = {
     
     
     this.tempCanvas.width = 150;
-    this.tempCanvas.height = 150;
+    this.tempCanvas.height = 112;
 
     this.tabsProgressListener = {
       onStateChange: function(browser, webProgress, request, stateFlags, status) {
@@ -1281,67 +1281,99 @@ TabCanvas.prototype = {
     if (!w || !h)
       return;
 
-    let fromWin = this.tab.linkedBrowser.contentWindow;
-    if (fromWin == null) {
-      Utils.log('null fromWin in paint');
+    if (!this.tab.linkedBrowser.contentWindow) {
+      Utils.log('no tab.linkedBrowser.contentWindow in TabCanvas.paint()');
       return;
     }
 
+    let ctx = this.canvas.getContext("2d");
     let tempCanvas = TabItems.tempCanvas;
+    let bgColor = '#fff';
+
     if (w < tempCanvas.width) {
       
       
       
+      let tempCtx = tempCanvas.getContext("2d");
+      this._drawWindow(tempCtx, tempCanvas.width, tempCanvas.height, bgColor);
+
       
-      var tempCtx = tempCanvas.getContext("2d");
-      
-      let canvW = tempCanvas.width;
-      let canvH = (h/w) * canvW;
-      
-      var scaler = canvW/fromWin.innerWidth;
-  
-      tempCtx.save();
-      tempCtx.clearRect(0,0,tempCanvas.width,tempCanvas.height);
-      tempCtx.scale(scaler, scaler);
-      try{
-        tempCtx.drawWindow(fromWin, fromWin.scrollX, fromWin.scrollY, 
-          canvW/scaler, canvH/scaler, "#fff");
-      } catch(e) {
+      try {
+        this._fillCanvasBackground(ctx, w, h, bgColor);
+        ctx.drawImage(tempCanvas, 0, 0, w, h);
+      } catch (e) {
         Utils.error('paint', e);
-      }  
-      tempCtx.restore();
-      
-      
-      var destCtx = this.canvas.getContext("2d");      
-      try{
-        
-        destCtx.drawImage(tempCanvas, 0, 0, w, w);
-      } catch(e) {
-        Utils.error('paint', e);
-      }  
-      
+      }
     } else {
       
       
-      
-      var ctx = this.canvas.getContext("2d");
-      
-      var scaler = w/fromWin.innerWidth;
-  
-      
-  
-      ctx.save();
-      ctx.scale(scaler, scaler);
-      try{
-        ctx.drawWindow(fromWin, fromWin.scrollX, fromWin.scrollY, 
-          w/scaler, h/scaler, "#fff",
-          Ci.nsIDOMCanvasRenderingContext2D.DRAWWINDOW_DO_NOT_FLUSH);
-      } catch(e) {
-        Utils.error('paint', e);
-      }
-  
-      ctx.restore();
+      this._drawWindow(ctx, w, h, bgColor);
     }
+  },
+
+  
+  
+  
+  
+  _fillCanvasBackground: function TabCanvas__fillCanvasBackground(ctx, width, height, bgColor) {
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, width, height);
+  },
+
+  
+  
+  
+  _drawWindow: function TabCanvas__drawWindow(ctx, width, height, bgColor) {
+    this._fillCanvasBackground(ctx, width, height, bgColor);
+
+    let rect = this._calculateClippingRect(width, height);
+    let scaler = width / rect.width;
+
+    ctx.save();
+    ctx.scale(scaler, scaler);
+
+    try {
+      let win = this.tab.linkedBrowser.contentWindow;
+      ctx.drawWindow(win, rect.left, rect.top, rect.width, rect.height,
+                     bgColor, ctx.DRAWWINDOW_DO_NOT_FLUSH);
+    } catch (e) {
+      Utils.error('paint', e);
+    }
+
+    ctx.restore();
+  },
+
+  
+  
+  
+  
+  _calculateClippingRect: function TabCanvas__calculateClippingRect(origWidth, origHeight) {
+    let win = this.tab.linkedBrowser.contentWindow;
+    let body = win.document.body;
+
+    let maxWidth = win.innerWidth - 25;
+    let maxHeight = win.innerHeight;
+
+    if (body) {
+      maxWidth = Math.max(maxWidth, body.scrollWidth - win.scrollX);
+      maxHeight = Math.max(maxHeight, body.scrollHeight - win.scrollY);
+    }
+
+    let height = Math.min(maxHeight, Math.floor(origHeight * maxWidth / origWidth));
+    let width = Math.floor(origWidth * height / origHeight);
+
+    
+    
+    let factor = 0.7;
+    if (width < maxWidth * factor) {
+      width = maxWidth * factor;
+      height = Math.floor(origHeight * width / origWidth);
+    }
+
+    let left = win.scrollX + Math.max(0, Math.round((maxWidth - width) / 2));
+    let top = win.scrollY;
+
+    return new Rect(left, top, width, height);
   },
 
   
