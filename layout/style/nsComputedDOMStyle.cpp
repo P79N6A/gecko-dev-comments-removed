@@ -949,6 +949,35 @@ nsComputedDOMStyle::DoGetMozTransformOrigin()
   return valueList;
 }
 
+
+
+
+nsIDOMCSSValue*
+nsComputedDOMStyle::DoGetMozPerspectiveOrigin()
+{
+  
+
+
+
+  
+  nsDOMCSSValueList* valueList = GetROCSSValueList(PR_FALSE);
+
+  
+  const nsStyleDisplay* display = GetStyleDisplay();
+
+  nsROCSSPrimitiveValue* width = GetROCSSPrimitiveValue();
+  SetValueToCoord(width, display->mPerspectiveOrigin[0], PR_FALSE,
+                  &nsComputedDOMStyle::GetFrameBoundsWidthForTransform);
+  valueList->AppendCSSValue(width);
+
+  nsROCSSPrimitiveValue* height = GetROCSSPrimitiveValue();
+  SetValueToCoord(height, display->mPerspectiveOrigin[1], PR_FALSE,
+                  &nsComputedDOMStyle::GetFrameBoundsHeightForTransform);
+  valueList->AppendCSSValue(height);
+
+  return valueList;
+}
+
 nsIDOMCSSValue*
 nsComputedDOMStyle::DoGetMozPerspective()
 {
