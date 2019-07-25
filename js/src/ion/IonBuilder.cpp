@@ -231,6 +231,11 @@ IonBuilder::build()
         current->initSlot(info().localSlot(i), undef);
     }
 
+    
+    MCheckOverRecursed *check = new MCheckOverRecursed;
+    current->add(check);
+    check->setResumePoint(current->entryResumePoint());
+
     current->makeStart(MStart::New(MStart::StartType_Default));
 
     

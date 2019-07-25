@@ -1629,6 +1629,13 @@ class MOsrValue : public MAryInstruction<1>
 };
 
 
+class MCheckOverRecursed : public MAryInstruction<0>
+{
+  public:
+    INSTRUCTION_HEADER(CheckOverRecursed);
+};
+
+
 class MImplicitThis
   : public MUnaryInstruction,
     public ObjectPolicy

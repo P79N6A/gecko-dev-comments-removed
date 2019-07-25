@@ -49,6 +49,9 @@
 using namespace js;
 using namespace js::ion;
 
+namespace js {
+namespace ion {
+
 CodeGenerator::CodeGenerator(MIRGenerator *gen, LIRGraph &graph)
   : CodeGeneratorSpecific(gen, graph)
 {
@@ -303,6 +306,9 @@ CodeGenerator::visitTypeBarrier(LTypeBarrier *lir)
     return true;
 }
 
+
+static const uint32 EntryTempMask = Registers::TempMask & ~(1 << OsrFrameReg.code());
+
 bool
 CodeGenerator::generateArgumentsChecks()
 {
@@ -315,7 +321,7 @@ CodeGenerator::generateArgumentsChecks()
     masm.reserveStack(frameSize());
 
     
-    Register temp = GeneralRegisterSet(Registers::TempMask).getAny();
+    Register temp = GeneralRegisterSet(EntryTempMask).getAny();
 
     Label mismatched;
     for (uint32 i = 0; i < CountArgSlots(gen->info().fun()); i++) {
@@ -336,6 +342,78 @@ CodeGenerator::generateArgumentsChecks()
 
     masm.freeStack(frameSize());
 
+    return true;
+}
+
+
+class CheckOverRecursedFailure : public OutOfLineCodeBase<CodeGenerator>
+{
+    LCheckOverRecursed *lir_;
+
+  public:
+    CheckOverRecursedFailure(LCheckOverRecursed *lir)
+      : lir_(lir)
+    { }
+
+    bool accept(CodeGenerator *codegen) {
+        return codegen->visitCheckOverRecursedFailure(this);
+    }
+
+    LCheckOverRecursed *lir() const {
+        return lir_;
+    }
+};
+
+bool
+CodeGenerator::visitCheckOverRecursed(LCheckOverRecursed *lir)
+{
+    
+    
+    
+    
+    
+    
+    
+    
+
+    ThreadData *threadData = gen->cx->threadData();
+
+    
+    const LAllocation *limit = lir->limitTemp();
+    Register limitReg = ToRegister(limit);
+
+    
+    
+    jsuword *limitAddr = &threadData->ionStackLimit;
+    masm.loadPtr(ImmWord(limitAddr), limitReg);
+
+    CheckOverRecursedFailure *ool = new CheckOverRecursedFailure(lir);
+    if (!addOutOfLineCode(ool))
+        return false;
+
+    
+    masm.branchPtr(Assembler::BelowOrEqual, StackPointer, limitReg, ool->entry());
+
+    return true;
+}
+
+bool
+CodeGenerator::visitCheckOverRecursedFailure(CheckOverRecursedFailure *ool)
+{
+    
+    
+
+    typedef bool (*pf)(JSContext *);
+    static const VMFunction ReportOverRecursedInfo =
+        FunctionInfo<pf>(ReportOverRecursed);
+
+    if (!callVM(ReportOverRecursedInfo, ool->lir()))
+        return false;
+
+#ifdef DEBUG
+    
+    masm.breakpoint();
+#endif
     return true;
 }
 
@@ -427,7 +505,7 @@ CodeGenerator::generate()
 }
 
 
-class ion::OutOfLineUnboxDouble : public OutOfLineCodeBase<CodeGenerator>
+class OutOfLineUnboxDouble : public OutOfLineCodeBase<CodeGenerator>
 {
     LUnboxDouble *unboxDouble_;
 
@@ -478,3 +556,6 @@ CodeGenerator::visitOutOfLineUnboxDouble(OutOfLineUnboxDouble *ool)
     masm.jump(ool->rejoin());
     return true;
 }
+
+} 
+} 

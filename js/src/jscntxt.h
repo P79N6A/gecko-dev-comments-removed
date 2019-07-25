@@ -214,6 +214,7 @@ struct ThreadData {
     
     uint8               *ionTop;
     JSContext           *ionJSContext;
+    jsuword             ionStackLimit;
 
     
     ion::IonActivation  *ionActivation;
