@@ -36,6 +36,8 @@
 #
 # ***** END LICENSE BLOCK *****
 
+Components.utils.import("resource://gre/modules/Services.jsm");
+
 
 const NS_ALERT_HORIZONTAL = 1;
 const NS_ALERT_LEFT = 2;
@@ -93,14 +95,11 @@ function prefillAlertInfo()
 
 function onAlertLoad()
 {
-  var prefService = Components.classes["@mozilla.org/preferences-service;1"].getService();
-  prefService = prefService.QueryInterface(Components.interfaces.nsIPrefService);
-  var prefBranch = prefService.getBranch(null);
-  gSlideIncrement = prefBranch.getIntPref("alerts.slideIncrement");
-  gSlideTime = prefBranch.getIntPref("alerts.slideIncrementTime");
-  gOpenTime = prefBranch.getIntPref("alerts.totalOpenTime");
-  gDisableSlideEffect = prefBranch.getBoolPref("alerts.disableSlidingEffect");
- 
+  gSlideIncrement     = Services.prefs.getIntPref("alerts.slideIncrement");
+  gSlideTime          = Services.prefs.getIntPref("alerts.slideIncrementTime");
+  gOpenTime           = Services.prefs.getIntPref("alerts.totalOpenTime");
+  gDisableSlideEffect = Services.prefs.getBoolPref("alerts.disableSlidingEffect");
+
   
   
   
