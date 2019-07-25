@@ -46,12 +46,6 @@ const Ci = Components.interfaces;
 const Cu = Components.utils;
 const Cr = Components.results;
 
-
-
-var homeWindow = Cc["@mozilla.org/embedcomp/window-watcher;1"]
-    .getService(Ci.nsIWindowWatcher)
-    .activeWindow;
-
 var consoleService = Cc["@mozilla.org/consoleservice;1"]
     .getService(Components.interfaces.nsIConsoleService);
 
@@ -523,46 +517,9 @@ var Utils = {
     
     return null;
   },
-
   
-  getInstallDirectory: function(id, callback) { 
-    if (Cc["@mozilla.org/extensions/manager;1"]) {
-      var extensionManager = Cc["@mozilla.org/extensions/manager;1"]  
-                             .getService(Ci.nsIExtensionManager);  
-      var file = extensionManager.getInstallLocation(id).getItemFile(id, "install.rdf"); 
-      callback(file.parent);  
-    }
-    else {
-      Components.utils.import("resource://gre/modules/AddonManager.jsm");
-      AddonManager.getAddonByID(id, function(addon) {
-        var fileStr = addon.getResourceURL("install.rdf");
-        var ios = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);  
-        var url = ios.newURI(fileStr, null, null);
-        callback(url.QueryInterface(Ci.nsIFileURL).file.parent);
-      });
-    }
-  }, 
   
-  getFiles: function(dir) {
-    var files = [];
-    if (dir.isReadable() && dir.isDirectory) {
-      var entries = dir.directoryEntries;
-      while (entries.hasMoreElements()) {
-        var entry = entries.getNext();
-        entry.QueryInterface(Ci.nsIFile);
-        files.push(entry);
-      }
-    }
     
-    return files;
-  },
-
-  
-  
-  ilog: function(){ 
-    Utils.log('!!ilog is no longer supported!!');
-  },
-  
   log: function() { 
     var text = this.expandArgumentsForLog(arguments);
     consoleService.logStringMessage(text);

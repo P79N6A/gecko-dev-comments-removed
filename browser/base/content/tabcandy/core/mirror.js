@@ -38,12 +38,8 @@
 
 
 
-(function(){
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
-const Cr = Components.results;
+(function(){
 
 function _isIframe(doc){
   var win = doc.defaultView;
@@ -125,13 +121,6 @@ TabCanvas.prototype = {
     }
     
     ctx.restore();
-  },
-  
-  
-  
-  
-  animate: function(options, duration){
-    Utils.assert('this routine no longer exists', false);
   }
 };
 
