@@ -54,12 +54,6 @@ struct Parser : private AutoGCRooter
     
     const bool          compileAndGo:1;
 
-    
-
-
-
-    const bool          allowIntrinsicsCalls:1;
-
   public:
     Parser(JSContext *cx, const CompileOptions &options,
            const jschar *chars, size_t length, bool foldConstants);
@@ -236,7 +230,6 @@ struct Parser : private AutoGCRooter
     bool checkForFunctionNode(PropertyName *name, ParseNode *node);
 
     ParseNode *identifierName(bool afterDoubleDot);
-    ParseNode *intrinsicName();
 
 #if JS_HAS_XML_SUPPORT
     
