@@ -2069,8 +2069,7 @@ let Phone = {
     
     
     
-    options.dcs = PDU_DCS_MSG_CODING_7BITS_ALPHABET;
-    options.bodyLengthInOctets = Math.ceil(options.body.length * 7 / 8);
+    GsmPDUHelper.calculateUserDataLength(options);
     RIL.sendSMS(options);
   },
 
@@ -2346,8 +2345,17 @@ let GsmPDUHelper = {
 
 
 
-  readUCS2String: function readUCS2String(length) {
-    
+  readUCS2String: function readUCS2String(numOctets) {
+    let str = "";
+    let length = numOctets / 2;
+    for (let i = 0; i < length; ++i) {
+      let code = (this.readHexOctet() << 8) | this.readHexOctet();
+      str += String.fromCharCode(code);
+    }
+
+    if (DEBUG) debug("Read UCS2 string: " + str);
+
+    return str;
   },
 
   
@@ -2357,12 +2365,48 @@ let GsmPDUHelper = {
 
 
   writeUCS2String: function writeUCS2String(message) {
-    
+    for (let i = 0; i < message.length; ++i) {
+      let code = message.charCodeAt(i);
+      this.writeHexOctet((code >> 8) & 0xFF);
+      this.writeHexOctet(code & 0xFF);
+    }
   },
 
   
 
 
+
+
+
+
+
+
+
+
+
+
+
+  calculateUserDataLength: function calculateUserDataLength(options) {
+    
+    
+    let needUCS2 = false;
+    for (let i = 0; i < options.body.length; ++i) {
+      if (options.body.charCodeAt(i) >= 128) {
+        needUCS2 = true;
+        break;
+      }
+    }
+
+    if (needUCS2) {
+      options.dcs = PDU_DCS_MSG_CODING_16BITS_ALPHABET;
+      options.bodyLengthInOctets = options.body.length * 2;
+    } else {
+      options.dcs = PDU_DCS_MSG_CODING_7BITS_ALPHABET;
+      options.bodyLengthInOctets = Math.ceil(options.body.length * 7 / 8);
+    }
+  },
+
+  
 
 
 
