@@ -43,6 +43,7 @@
 #include "nsXULAppAPI.h"
 #include "nsThreadUtils.h"
 #include "prenv.h"
+#include "shared-libraries.h"
 
 using std::string;
 
@@ -158,7 +159,7 @@ public:
     
     
 #ifdef ENABLE_SPS_LEAF_DATA
-    mMaps = getmaps(getpid());
+    mSharedLibraryInfo = SharedLibraryInfo::GetInfoForSelf();
 #endif
 
     *profile = "";
@@ -175,7 +176,7 @@ public:
     
     
 #ifdef ENABLE_SPS_LEAF_DATA
-    mMaps = getmaps(getpid());
+    mSharedLibraryInfo = SharedLibraryInfo::GetInfoForSelf();
 #endif
 
     int oldReadPos = mReadPos;
@@ -187,9 +188,9 @@ public:
   }
 
 #ifdef ENABLE_SPS_LEAF_DATA
-  MapInfo& getMap()
+  SharedLibraryInfo& getSharedLibraryInfo()
   {
-    return mMaps;
+    return mSharedLibraryInfo;
   }
 #endif
 private:
@@ -200,7 +201,7 @@ private:
   int mReadPos;  
   int mEntrySize;
 #ifdef ENABLE_SPS_LEAF_DATA
-  MapInfo mMaps;
+  SharedLibraryInfo mSharedLibraryInfo;
 #endif
 };
 
@@ -351,11 +352,11 @@ string ProfileEntry::TagToString(Profile *profile)
   if (mLeafAddress) {
     bool found = false;
     char tagBuff[1024];
-    MapInfo& maps = profile->getMap();
+    SharedLibraryInfo& shlibInfo = profile->getSharedLibraryInfo();
     unsigned long pc = (unsigned long)mLeafAddress;
     
-    for (size_t i = 0; i < maps.GetSize(); i++) {
-      MapEntry &e = maps.GetEntry(i);
+    for (size_t i = 0; i < shlibInfo.GetSize(); i++) {
+      SharedLibrary &e = shlibInfo.GetEntry(i);
       if (pc > e.GetStart() && pc < e.GetEnd()) {
         if (e.GetName()) {
           found = true;
@@ -381,11 +382,11 @@ void ProfileEntry::WriteTag(Profile *profile, FILE *stream)
 #ifdef ENABLE_SPS_LEAF_DATA
   if (mLeafAddress) {
     bool found = false;
-    MapInfo& maps = profile->getMap();
+    SharedLibraryInfo& shlibInfo = profile->getSharedLibraryInfo();
     unsigned long pc = (unsigned long)mLeafAddress;
     
-    for (size_t i = 0; i < maps.GetSize(); i++) {
-      MapEntry &e = maps.GetEntry(i);
+    for (size_t i = 0; i < shlibInfo.GetSize(); i++) {
+      SharedLibrary &e = shlibInfo.GetEntry(i);
       if (pc > e.GetStart() && pc < e.GetEnd()) {
         if (e.GetName()) {
           found = true;
