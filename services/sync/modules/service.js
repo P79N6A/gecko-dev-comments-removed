@@ -449,7 +449,8 @@ WeaveSvc.prototype = {
         ret = true;
 
       } else if (res.lastChannel.responseStatus == 200) {
-        this.clusterURL = 'https://' + res.data + '/';
+        
+        this.clusterURL = 'https://' + res.data.trim() + '/';
         ret = true;
       }
       self.done(ret);
