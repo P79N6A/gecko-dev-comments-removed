@@ -464,7 +464,7 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       });
     }
 
-    if (css.fontSize && !this.isStacked) {
+    if (css.fontSize && !(this.parent && this.parent.isStacked())) {
       if (css.fontSize < TabItems.fontSizeRange.min)
         immediately ? this.$tabTitle.hide() : this.$tabTitle.fadeOut();
       else
@@ -476,7 +476,7 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
       let widthRange, proportion;
 
-      if (this.isStacked) {
+      if (this.parent && this.parent.isStacked()) {
         if (UI.rtl) {
           this.$fav.css({top:0, right:0});
         } else {
@@ -780,7 +780,7 @@ let TabItems = {
   paintingPaused: 0,
   cachedDataCounter: 0,  
   tabsProgressListener: null,
-  _tabsWaitingForUpdate: [],
+  _tabsWaitingForUpdate: null,
   _heartbeat: null, 
   _heartbeatTiming: 100, 
   _lastUpdateTime: Date.now(),
@@ -798,6 +798,8 @@ let TabItems = {
     Utils.assert(window.AllTabs, "AllTabs must be initialized first");
     let self = this;
     
+    
+    this._tabsWaitingForUpdate = new TabPriorityQueue();
     this.minTabHeight = this.minTabWidth * this.tabHeight / this.tabWidth;
     this.tabAspect = this.tabHeight / this.tabWidth;
     this.invTabAspect = 1 / this.tabAspect;
@@ -879,7 +881,7 @@ let TabItems = {
     this.items = null;
     this._eventListeners = null;
     this._lastUpdateTime = null;
-    this._tabsWaitingForUpdate = null;
+    this._tabsWaitingForUpdate.clear();
   },
 
   
@@ -916,13 +918,12 @@ let TabItems = {
 
       let shouldDefer = (
         this.isPaintingPaused() ||
-        this._tabsWaitingForUpdate.length ||
+        this._tabsWaitingForUpdate.hasItems() ||
         Date.now() - this._lastUpdateTime < this._heartbeatTiming
       );
 
       if (shouldDefer) {
-        if (this._tabsWaitingForUpdate.indexOf(tab) == -1)
-          this._tabsWaitingForUpdate.push(tab);
+        this._tabsWaitingForUpdate.push(tab);
         this.startHeartbeat();
       } else
         this._update(tab);
@@ -942,9 +943,7 @@ let TabItems = {
       Utils.assertThrow(tab, "tab");
 
       
-      let index = this._tabsWaitingForUpdate.indexOf(tab);
-      if (index != -1)
-        this._tabsWaitingForUpdate.splice(index, 1);
+      this._tabsWaitingForUpdate.remove(tab);
 
       
       Utils.assertThrow(tab._tabViewTabItem, "must already be linked");
@@ -1001,6 +1000,9 @@ let TabItems = {
       
       if (tabItem.isShowingCachedData() && tabItem.shouldHideCachedData)
         tabItem.hideCachedData();
+
+      
+      tabItem._sendToSubscribers("updated");
     } catch(e) {
       Utils.log(e);
     }
@@ -1049,9 +1051,7 @@ let TabItems = {
       tab._tabViewTabItem = null;
       Storage.saveTab(tab, null);
 
-      let index = this._tabsWaitingForUpdate.indexOf(tab);
-      if (index != -1)
-        this._tabsWaitingForUpdate.splice(index, 1);
+      this._tabsWaitingForUpdate.remove(tab);
     } catch(e) {
       Utils.log(e);
     }
@@ -1097,14 +1097,11 @@ let TabItems = {
     if (this.isPaintingPaused())
       return;
 
-    if (this._tabsWaitingForUpdate.length && UI.isIdle()) {
-      this._update(this._tabsWaitingForUpdate[0]);
-      
-    }
+    if (UI.isIdle())
+      this._update(this._tabsWaitingForUpdate.peek());
 
-    if (this._tabsWaitingForUpdate.length) {
+    if (this._tabsWaitingForUpdate.hasItems())
       this.startHeartbeat();
-    }
   },
 
    
@@ -1274,6 +1271,105 @@ let TabItems = {
       }
     }
     return retSize;
+  }
+};
+
+
+
+
+
+
+
+
+function TabPriorityQueue() {
+};
+
+TabPriorityQueue.prototype = {
+  _popToggle: false,
+  _low: [], 
+  _high: [], 
+
+  
+  
+  
+  clear: function TabPriorityQueue_clear() {
+    this._low = [];
+    this._high = [];
+  },
+
+  
+  
+  
+  hasItems: function TabPriorityQueue_hasItems() {
+    return (this._low.length > 0) || (this._high.length > 0);
+  },
+
+  
+  
+  
+  push: function TabPriorityQueue_push(tab) {
+    
+    
+    
+    
+    
+    
+    let item = tab._tabViewTabItem;
+    if (item.parent && (item.parent.isStacked() &&
+      !item.parent.isTopOfStack(item) &&
+      !item.parent.expanded)) {
+      let idx = this._high.indexOf(tab);
+      if (idx != -1) {
+        this._high.splice(idx, 1);
+        this._low.unshift(tab);
+      } else if (this._low.indexOf(tab) == -1)
+        this._low.unshift(tab);
+    } else {
+      let idx = this._low.indexOf(tab);
+      if (idx != -1) {
+        this._low.splice(idx, 1);
+        this._high.unshift(tab);
+      } else if (this._high.indexOf(tab) == -1)
+        this._high.unshift(tab);
+    }
+  },
+
+  
+  
+  
+  pop: function TabPriorityQueue_pop() {
+    let ret = null;
+    if (this._high.length)
+      ret = this._high.pop();
+    else if (this._low.length)
+      ret = this._low.pop();
+    return ret;
+  },
+
+  
+  
+  
+  peek: function TabPriorityQueue_peek() {
+    let ret = null;
+    if (this._high.length)
+      ret = this._high[this._high.length-1];
+    else if (this._low.length)
+      ret = this._low[this._low.length-1];
+    return ret;
+  },
+
+  
+  
+  
+  remove: function TabPriorityQueue_remove(tab) {
+    let index = this._high.indexOf(tab);
+    if (index != -1)
+      this._high.splice(index, 1);
+    else {
+      index = this._low.indexOf(tab);
+      if (index != -1)
+        this._low.splice(index, 1);
+    }
   }
 };
 

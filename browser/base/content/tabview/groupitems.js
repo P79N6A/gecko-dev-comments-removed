@@ -330,6 +330,23 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
+  isStacked: function GroupItem_isStacked() {
+    return this._isStacked;
+  },
+
+  
+  
+  
+  
+  
+  isTopOfStack: function GroupItem_isTopOfStack(item) {
+    return this.isStacked() && ((this.topChild == item) ||
+      (!this.topChild && this.getChild(0) == item));
+  },
+
+  
+  
+  
   save: function GroupItem_save() {
     if (!this._inited || this._uninited) 
       return;
