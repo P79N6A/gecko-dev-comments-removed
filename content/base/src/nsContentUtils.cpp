@@ -1617,64 +1617,6 @@ nsContentUtils::GetContextFromDocument(nsIDocument *aDocument)
 }
 
 
-nsresult
-nsContentUtils::GetContextAndScope(nsIDocument *aOldDocument,
-                                   nsIDocument *aNewDocument, JSContext **aCx,
-                                   JSObject **aNewScope)
-{
-  *aCx = nsnull;
-  *aNewScope = nsnull;
-
-  JSObject *newScope = aNewDocument->GetWrapper();
-  JSObject *global;
-  if (!newScope) {
-    nsIScriptGlobalObject *newSGO = aNewDocument->GetScopeObject();
-    if (!newSGO || !(global = newSGO->GetGlobalJSObject())) {
-      return NS_OK;
-    }
-  }
-
-  NS_ENSURE_TRUE(sXPConnect, NS_ERROR_NOT_INITIALIZED);
-
-  JSContext *cx = aOldDocument ? GetContextFromDocument(aOldDocument) : nsnull;
-  if (!cx) {
-    cx = GetContextFromDocument(aNewDocument);
-
-    if (!cx) {
-      
-      
-      
-
-      sThreadJSContextStack->Peek(&cx);
-
-      if (!cx) {
-        sThreadJSContextStack->GetSafeJSContext(&cx);
-
-        if (!cx) {
-          
-          NS_WARNING("No context reachable in GetContextAndScopes()!");
-
-          return NS_ERROR_NOT_AVAILABLE;
-        }
-      }
-    }
-  }
-
-  if (!newScope && cx) {
-    jsval v;
-    nsresult rv = WrapNative(cx, global, aNewDocument, aNewDocument, &v);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    newScope = JSVAL_TO_OBJECT(v);
-  }
-
-  *aCx = cx;
-  *aNewScope = newScope;
-
-  return NS_OK;
-}
-
-
 void
 nsContentUtils::TraceSafeJSContext(JSTracer* aTrc)
 {

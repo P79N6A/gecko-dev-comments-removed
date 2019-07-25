@@ -254,20 +254,6 @@ public:
 
 
 
-
-
-
-
-
-
-  static nsresult GetContextAndScope(nsIDocument *aOldDocument,
-                                     nsIDocument *aNewDocument,
-                                     JSContext **aCx, JSObject **aNewScope);
-
-  
-
-
-
   static nsresult ReparentContentWrappersInScope(JSContext *cx,
                                                  nsIScriptGlobalObject *aOldScope,
                                                  nsIScriptGlobalObject *aNewScope);
