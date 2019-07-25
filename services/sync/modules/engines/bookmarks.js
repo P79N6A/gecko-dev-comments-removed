@@ -469,6 +469,9 @@ BookmarksSharingManager.prototype = {
     dump( "in _updateOutgoingShare.  serverPath is " + serverPath +"\n");
     let keyringFile = new Resource(serverPath + "/" + KEYRING_FILE_NAME);
     keyringFile.pushFilter(new JsonFilter());
+    
+    
+    
     keyringFile.get(self.cb);
     let keys = yield;
 
@@ -479,10 +482,7 @@ BookmarksSharingManager.prototype = {
     let bulkIV = keys.bulkIV;
 
     
-    
-    let json = this._engine._store._wrapMount( folderId, myUserName );
-    
-
+    let json = this._engine._store._wrapMountOutgoing(folderId);
 
     
     let bmkFile = new Resource(serverPath + "/" + SHARED_BOOKMARK_FILE_NAME);
@@ -598,8 +598,7 @@ BookmarksSharingManager.prototype = {
     let myUserName = ID.get('WeaveID').username;
     
     
-    let serverPath = this._annoSvc.getItemAnnotation(mountData.node,
-                                                     SERVER_PATH_ANNO);
+    let serverPath = mountData.serverPath;
     
     
     let keyringFile = new Resource(serverPath + "/" + KEYRING_FILE_NAME);
@@ -608,6 +607,7 @@ BookmarksSharingManager.prototype = {
 
     
     let bmkFile = new Resource(serverPath + "/" + SHARED_BOOKMARK_FILE_NAME);
+    bmkFile.pushFilter( new JsonFilter() );
     bmkFile.get(self.cb);
     let cyphertext = yield;
     let tmpIdentity = {
@@ -628,9 +628,14 @@ BookmarksSharingManager.prototype = {
     }
 
     
+    
+    
+    
+    
+    
 
     this._log.trace("Got bookmarks from " + user + ", comparing with local copy");
-    this._engine._core.detectUpdates(self.cb, mountData.snapshot, snap.data);
+    this._engine._core.detectUpdates(self.cb, json, {});
     let diff = yield;
 
     
@@ -1230,27 +1235,25 @@ BookmarksStore.prototype = {
     return this.__wrap(node, items, null, null, rootName);
   },
 
-  _wrapMount: function BStore__wrapMount(node, id) {
+  _wrapMountOutgoing: function BStore__wrapById( itemId ) {
     if (node.type != node.RESULT_TYPE_FOLDER)
       throw "Trying to wrap a non-folder mounted share";
-
-    let GUID = this._bms.getItemGUID(node.itemId);
-    let ret = {rootGUID: GUID, userid: id, snapshot: {}, folderNode: node};
-
+    let node = this._getNode(itemId);
+    let GUID = this._bms.getItemGUID(itemId);
+    let snapshot = {};
     node.QueryInterface(Ci.nsINavHistoryQueryResultNode);
     node.containerOpen = true;
     for (var i = 0; i < node.childCount; i++) {
-      this.__wrap(node.getChild(i), ret.snapshot, GUID, i);
+      this.__wrap(node.getChild(i), snapshot, GUID, i);
     }
 
     
-    for (let guid in ret.snapshot) {
+    for (let guid in snapshot) {
       
       if (ret.snapshot[guid].type == "incoming-share")
-        delete ret.snapshot[guid];
+        delete snapshot[guid];
     }
-
-    return ret;
+    return snapshot;
   },
 
   findIncomingShares: function BStore_findIncomingShares() {
@@ -1261,8 +1264,12 @@ BookmarksStore.prototype = {
     for (let i = 0; i < a.length; i++) {
       
 
-      let id = this._ans.getItemAnnotation(a[i], INCOMING_SHARED_ANNO);
-      ret.push(this._wrapMount(this._getNode(a[i]), id));
+      let userId = this._ans.getItemAnnotation(a[i], INCOMING_SHARED_ANNO);
+      let node = this._getNode(a[i]);
+      let GUID = this._bms.getItemGUID(a[i]);
+      let path = this._ans.getItemAnnotation(a[i], SERVER_PATH_ANNO);
+      let dat = {rootGUID: GUID, userid: userId, serverPath: path, node: node};
+      ret.push(dat);
     }
     return ret;
   },
