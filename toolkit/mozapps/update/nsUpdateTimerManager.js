@@ -36,7 +36,6 @@
 
 
 
-
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
@@ -44,7 +43,7 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 
 const PREF_APP_UPDATE_LASTUPDATETIME_FMT  = "app.update.lastUpdateTime.%ID%";
-const PREF_APP_UPDATE_TIMER               = "app.update.timer";
+const PREF_APP_UPDATE_TIMERMINIMUMDELAY   = "app.update.timerMinimumDelay";
 const PREF_APP_UPDATE_TIMERFIRSTINTERVAL  = "app.update.timerFirstInterval";
 const PREF_APP_UPDATE_LOG                 = "app.update.log";
 
@@ -105,24 +104,13 @@ TimerManager.prototype = {
 
 
 
-   _timerInterval: null,
+
+   _timerMinimumDelay: null,
 
   
 
 
   _timers: { },
-
-  
-
-
-
-
-
-
-
-  get _fudge() {
-    return Math.round(Math.random() * this._timerInterval / 1000);
-  },
 
   
 
@@ -142,26 +130,18 @@ TimerManager.prototype = {
     case "profile-after-change":
       
       
-      if (this._timer) {
-        this._timer.cancel();
-        this._timer = null;
-      }
-      this._timerInterval = Math.max(getPref("getIntPref", PREF_APP_UPDATE_TIMER, 600000),
-                                     minInterval);
+      this._timerMinimumDelay = Math.max(1000 * getPref("getIntPref", PREF_APP_UPDATE_TIMERMINIMUMDELAY, 120),
+                                         minInterval);
       let firstInterval = Math.max(getPref("getIntPref", PREF_APP_UPDATE_TIMERFIRSTINTERVAL,
-                                           this._timerInterval), minFirstInterval);
-      this._timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-      this._timer.initWithCallback(this, firstInterval,
-                                   Ci.nsITimer.TYPE_REPEATING_SLACK);
+                                           this._timerMinimumDelay), minFirstInterval);
+      this._canEnsureTimer = true;
+      this._ensureTimer(firstInterval);
       break;
     case "xpcom-shutdown":
       Services.obs.removeObserver(this, "xpcom-shutdown");
 
       
-      if (this._timer) {
-        this._timer.cancel();
-        this._timer = null;
-      }
+      this._cancelTimer();
       for (var timerID in this._timers)
         delete this._timers[timerID];
       this._timers = null;
@@ -174,13 +154,48 @@ TimerManager.prototype = {
 
 
 
-  notify: function TM_notify(timer) {
-    if (timer.delay != this._timerInterval)
-      timer.delay = this._timerInterval;
 
-    var prefLastUpdate;
-    var lastUpdateTime;
+
+
+
+
+  notify: function TM_notify(timer) {
+    var nextDelay = null;
+    function updateNextDelay(delay) {
+      if (nextDelay === null || delay < nextDelay)
+        nextDelay = delay;
+    }
+
+    
+    
+    
     var now = Math.round(Date.now() / 1000);
+
+    var callbackToFire = null;
+    var earliestIntendedTime = null;
+    var skippedFirings = false;
+    function tryFire(callback, intendedTime) {
+      var selected = false;
+      if (intendedTime <= now) {
+        if (intendedTime < earliestIntendedTime ||
+            earliestIntendedTime === null) {
+          callbackToFire = callback;
+          earliestIntendedTime = intendedTime;
+          selected = true;
+        }
+        else if (earliestIntendedTime !== null)
+          skippedFirings = true;
+      }
+      
+      
+      
+      
+      
+      
+      if (!selected)
+        updateNextDelay(intendedTime - now);
+    }
+
     var catMan = Cc["@mozilla.org/categorymanager;1"].
                  getService(Ci.nsICategoryManager);
     var entries = catMan.enumerateCategory(CATEGORY_UPDATE_TIMER);
@@ -188,6 +203,8 @@ TimerManager.prototype = {
       let entry = entries.getNext().QueryInterface(Ci.nsISupportsCString).data;
       let value = catMan.getCategoryEntry(CATEGORY_UPDATE_TIMER, entry);
       let [cid, method, timerID, prefInterval, defaultInterval] = value.split(",");
+      let lastUpdateTime;
+
       defaultInterval = parseInt(defaultInterval);
       
       if (!timerID || !defaultInterval || isNaN(defaultInterval)) {
@@ -198,18 +215,17 @@ TimerManager.prototype = {
       }
 
       let interval = getPref("getIntPref", prefInterval, defaultInterval);
-      prefLastUpdate = PREF_APP_UPDATE_LASTUPDATETIME_FMT.replace(/%ID%/,
+      let prefLastUpdate = PREF_APP_UPDATE_LASTUPDATETIME_FMT.replace(/%ID%/,
                                                                   timerID);
       if (Services.prefs.prefHasUserValue(prefLastUpdate)) {
         lastUpdateTime = Services.prefs.getIntPref(prefLastUpdate);
       }
       else {
-        lastUpdateTime = now + this._fudge;
+        lastUpdateTime = now;
         Services.prefs.setIntPref(prefLastUpdate, lastUpdateTime);
-        continue;
       }
 
-      if ((now - lastUpdateTime) > interval) {
+      tryFire(function() {
         try {
           Components.classes[cid][method](Ci.nsITimerCallback).notify(timer);
           LOG("TimerManager:notify - notified " + cid);
@@ -218,15 +234,16 @@ TimerManager.prototype = {
           LOG("TimerManager:notify - error notifying component id: " +
               cid + " ,error: " + e);
         }
-        lastUpdateTime = now + this._fudge;
+        lastUpdateTime = now;
         Services.prefs.setIntPref(prefLastUpdate, lastUpdateTime);
-      }
+        updateNextDelay(lastUpdateTime + interval - now);
+      }, lastUpdateTime + interval);
     }
 
-    for (var timerID in this._timers) {
-      var timerData = this._timers[timerID];
-
-      if ((now - timerData.lastUpdateTime) > timerData.interval) {
+    for (let _timerID in this._timers) {
+      let timerID = _timerID; 
+      let timerData = this._timers[timerID];
+      tryFire(function() {
         if (timerData.callback instanceof Ci.nsITimerCallback) {
           try {
             timerData.callback.notify(timer);
@@ -241,11 +258,53 @@ TimerManager.prototype = {
           LOG("TimerManager:notify - timerID: " + timerID + " doesn't " +
               "implement nsITimerCallback - skipping");
         }
-        lastUpdateTime = now + this._fudge;
+        lastUpdateTime = now;
         timerData.lastUpdateTime = lastUpdateTime;
-        prefLastUpdate = PREF_APP_UPDATE_LASTUPDATETIME_FMT.replace(/%ID%/, timerID);
+        var prefLastUpdate = PREF_APP_UPDATE_LASTUPDATETIME_FMT.replace(/%ID%/, timerID);
         Services.prefs.setIntPref(prefLastUpdate, lastUpdateTime);
-      }
+        updateNextDelay(timerData.lastUpdateTime + timerData.interval - now);
+      }, timerData.lastUpdateTime + timerData.interval);
+    }
+
+    if (callbackToFire)
+      callbackToFire();
+
+    if (nextDelay !== null) {
+      if (skippedFirings)
+        timer.delay = this._timerMinimumDelay;
+      else
+        timer.delay = Math.max(nextDelay * 1000, this._timerMinimumDelay);  
+      this.lastTimerReset = Date.now();
+    } else {
+      this._cancelTimer();
+    }
+  },
+
+  
+
+
+
+  _ensureTimer: function(interval) {
+    if (!this._canEnsureTimer)
+      return;
+    if (!this._timer) {
+      this._timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+      this._timer.initWithCallback(this, interval,
+                                   Ci.nsITimer.TYPE_REPEATING_SLACK);
+      this.lastTimerReset = Date.now();
+    } else {
+      if (Date.now() + interval < this.lastTimerReset + this._timer.delay) 
+        this._timer.delay = this.lastTimerReset + interval - Date.now();
+    }
+  },
+
+  
+
+
+  _cancelTimer: function() {
+    if (this._timer) {
+      this._timer.cancel();
+      this._timer = null;
     }
   },
 
@@ -259,12 +318,14 @@ TimerManager.prototype = {
     if (Services.prefs.prefHasUserValue(prefLastUpdate)) {
       lastUpdateTime = Services.prefs.getIntPref(prefLastUpdate);
     } else {
-      lastUpdateTime = Math.round(Date.now() / 1000) + this._fudge;
+      lastUpdateTime = Math.round(Date.now() / 1000);
       Services.prefs.setIntPref(prefLastUpdate, lastUpdateTime);
     }
     this._timers[id] = { callback       : callback,
                          interval       : interval,
                          lastUpdateTime : lastUpdateTime };
+
+    this._ensureTimer(interval * 1000);
   },
 
   classID: Components.ID("{B322A5C0-A419-484E-96BA-D7182163899F}"),
