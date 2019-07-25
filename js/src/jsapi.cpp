@@ -3714,7 +3714,6 @@ JS_NextProperty(JSContext *cx, JSObject *iterobj, jsid *idp)
 {
     jsint i;
     JSObject *obj;
-    JSScope *scope;
     JSScopeProperty *sprop;
     JSIdArray *ida;
 
@@ -3724,7 +3723,6 @@ JS_NextProperty(JSContext *cx, JSObject *iterobj, jsid *idp)
         
         obj = iterobj->getParent();
         JS_ASSERT(obj->isNative());
-        scope = obj->scope();
         sprop = (JSScopeProperty *) iterobj->getPrivate();
 
         
