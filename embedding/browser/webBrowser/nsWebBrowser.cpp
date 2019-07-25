@@ -888,7 +888,7 @@ NS_IMETHODIMP nsWebBrowser::GetCurrentState(PRUint32 *aCurrentState)
 }
 
 
-NS_IMETHODIMP nsWebBrowser::GetResult(PRUint32 *aResult)
+NS_IMETHODIMP nsWebBrowser::GetResult(nsresult *aResult)
 {
     NS_ENSURE_ARG_POINTER(aResult);
     if (mPersist)

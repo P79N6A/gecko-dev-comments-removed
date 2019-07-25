@@ -149,7 +149,7 @@ protected:
    
    nsCOMPtr<nsIWebBrowserPersist> mPersist;
    PRUint32                       mPersistCurrentState;
-   PRUint32                       mPersistResult;
+   nsresult                       mPersistResult;
    PRUint32                       mPersistFlags;
 
    
