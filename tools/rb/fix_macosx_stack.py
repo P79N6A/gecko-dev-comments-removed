@@ -146,16 +146,7 @@ def fixSymbols(line):
 
         if os.path.exists(file) and os.path.isfile(file):
             address += address_adjustment(file)
-            try:
-                info = addressToSymbol(file, address)
-                if info.startswith("atos cannot"):
-                    
-                    sys.stderr.write("fix_macosx_stack will not convert some stack-trace addresses because: " + info + "\n")
-                    return line
-            except IOError:
-                
-                
-                return line
+            info = addressToSymbol(file, address)
 
             
             
