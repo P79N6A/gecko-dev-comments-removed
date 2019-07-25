@@ -126,12 +126,14 @@ function test() {
   crD.append("Crash Reports");
   let crashes = add_fake_crashes(crD, 1);
   
-  crashes.push(addPendingCrashreport(crD, {'ServerURL': 'http://example.com/browser/toolkit/crashreporter/test/browser/crashreport.sjs',
-                                           'ProductName': 'Test App',
-                                           
-                                           
-                                           'Foo': 'ABC=XYZ'
-                                          }));
+  crashes.push(addPendingCrashreport(crD,
+                                     crashes[crashes.length - 1].date + 60000,
+                                     {'ServerURL': 'http://example.com/browser/toolkit/crashreporter/test/browser/crashreport.sjs',
+                                      'ProductName': 'Test App',
+                                      
+                                      
+                                      'Foo': 'ABC=XYZ'
+                                     }));
   crashes.sort(function(a,b) b.date - a.date);
 
   
