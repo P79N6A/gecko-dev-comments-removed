@@ -89,7 +89,6 @@ bool AppendExtraData(nsILocalFile* extraFile, const AnnotationTable& data);
 nsresult GetSubmitReports(PRBool* aSubmitReport);
 nsresult SetSubmitReports(PRBool aSubmitReport);
 
-#ifdef MOZ_IPC
 
 
 
@@ -156,7 +155,6 @@ bool SetRemoteExceptionHandler();
 #endif  
 
 bool UnsetRemoteExceptionHandler();
-#endif 
 
 #if defined(__ANDROID__)
 
@@ -170,7 +168,6 @@ void AddLibraryMapping(const char* library_name,
                        size_t      mapping_length,
                        size_t      file_offset);
 
-#if defined(MOZ_IPC)
 void AddLibraryMappingForChild(PRUint32    childPid,
                                const char* library_name,
                                const char* file_id,
@@ -178,7 +175,6 @@ void AddLibraryMappingForChild(PRUint32    childPid,
                                size_t      mapping_length,
                                size_t      file_offset);
 void RemoveLibraryMappingsForChild(PRUint32 childPid);
-#endif
 #endif
 }
 

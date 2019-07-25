@@ -38,10 +38,8 @@
 
 #include "nsX11ErrorHandler.h"
 
-#ifdef MOZ_IPC
 #include "mozilla/plugins/PluginProcessChild.h"
 using mozilla::plugins::PluginProcessChild;
-#endif
 
 #include "prenv.h"
 #include "nsXULAppAPI.h"
@@ -160,7 +158,6 @@ X11Error(Display *display, XErrorEvent *event) {
   case GeckoProcessType_Default:
     CrashReporter::AppendAppNotesToCrashReport(notes);
     break;
-#ifdef MOZ_IPC
   case GeckoProcessType_Plugin:
     if (CrashReporter::GetEnabled()) {
       
@@ -169,7 +166,6 @@ X11Error(Display *display, XErrorEvent *event) {
       PluginProcessChild::AppendNotesToCrashReport(notes);
     }
     break;
-#endif
   default: 
     ; 
   }

@@ -74,11 +74,9 @@ namespace mozilla {
 namespace layers {
 class LayerManager;
 }
-#ifdef MOZ_IPC
 namespace dom {
 class PBrowserChild;
 }
-#endif
 }
 
 
@@ -248,10 +246,8 @@ struct IMEContext {
 
 
 class nsIWidget : public nsISupports {
-#ifdef MOZ_IPC
   protected:
     typedef mozilla::dom::PBrowserChild PBrowserChild;
-#endif
 
   public:
     typedef mozilla::layers::LayerManager LayerManager;
@@ -1387,14 +1383,9 @@ class nsIWidget : public nsISupports {
     static bool
     UsePuppetWidgets()
     {
-#ifdef MOZ_IPC
       return XRE_GetProcessType() == GeckoProcessType_Content;
-#else
-      return PR_FALSE;
-#endif
     }
 
-#ifdef MOZ_IPC
     
 
 
@@ -1407,7 +1398,6 @@ class nsIWidget : public nsISupports {
 
     static already_AddRefed<nsIWidget>
     CreatePuppetWidget(PBrowserChild *aTabChild);
-#endif
 
     
 

@@ -46,9 +46,7 @@
 
 
 
-#ifdef MOZ_IPC
 #include "base/basictypes.h"
-#endif
 
 
 #include "nsGlobalWindow.h"

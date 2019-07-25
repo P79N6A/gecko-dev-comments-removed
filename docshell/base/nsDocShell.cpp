@@ -229,9 +229,7 @@ static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
 #include "nsIChannelPolicy.h"
 #include "nsIContentSecurityPolicy.h"
 
-#ifdef MOZ_IPC
 #include "nsXULAppAPI.h"
-#endif
 
 using namespace mozilla;
 
@@ -3935,6 +3933,31 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI *aURI,
         case NS_ERROR_REMOTE_XUL:
         {
             error.AssignLiteral("remoteXUL");
+
+            
+
+
+
+            nsCOMPtr<nsIStringBundleService> stringBundleService =
+                mozilla::services::GetStringBundleService();
+            if (!stringBundleService) {
+                return NS_ERROR_FAILURE;
+            }
+
+            nsCOMPtr<nsIStringBundle> brandBundle;
+            rv = stringBundleService->CreateBundle(kBrandBundleURL,
+                                                   getter_AddRefs(brandBundle));
+            NS_ENSURE_SUCCESS(rv, rv);
+
+            nsXPIDLString brandName;
+            rv = brandBundle->GetStringFromName(NS_LITERAL_STRING("brandShortName").get(),
+                                                getter_Copies(brandName));
+
+            
+            messageStr.AssignLiteral("This page uses an unsupported technology "
+                                     "that is no longer available by default in ");
+            messageStr.Append(brandName);
+            messageStr.AppendLiteral(".");
             break;
         }
         case NS_ERROR_UNSAFE_CONTENT_TYPE:
@@ -5991,12 +6014,10 @@ nsDocShell::OnRedirectStateChange(nsIChannel* aOldChannel,
     nsCOMPtr<nsIApplicationCacheChannel> appCacheChannel =
         do_QueryInterface(aNewChannel);
     if (appCacheChannel) {
-#ifdef MOZ_IPC
         
         if (GeckoProcessType_Default != XRE_GetProcessType())
             appCacheChannel->SetChooseApplicationCache(PR_TRUE);
         else
-#endif
             appCacheChannel->SetChooseApplicationCache(ShouldCheckAppCache(newURI));
     }
 
@@ -8711,12 +8732,10 @@ nsDocShell::DoURILoad(nsIURI * aURI,
 
         
         
-#ifdef MOZ_IPC
         
         if (GeckoProcessType_Default != XRE_GetProcessType())
             appCacheChannel->SetChooseApplicationCache(PR_TRUE);
         else
-#endif
             appCacheChannel->SetChooseApplicationCache(
                 ShouldCheckAppCache(aURI));
     }

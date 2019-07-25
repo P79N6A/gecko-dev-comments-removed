@@ -96,7 +96,6 @@ public:
   void SetPluginRefNum(short aRefNum);
 #endif
 
-#ifdef MOZ_IPC
   
   
   
@@ -105,7 +104,6 @@ public:
                      const nsAString& browserDumpID);
   
   static PRBool RunPluginOOP(const nsPluginTag *aPluginTag);
-#endif
 
 protected:
 

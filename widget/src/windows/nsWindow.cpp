@@ -104,9 +104,7 @@
 
 
 
-#ifdef MOZ_IPC
 #include "mozilla/ipc/RPCChannel.h"
-#endif
 
 #include "nsWindow.h"
 
@@ -312,12 +310,10 @@ LPFNLRESULTFROMOBJECT
                 nsWindow::sLresultFromObject      = 0;
 #endif 
 
-#ifdef MOZ_IPC
 
 const PRUnichar* kOOPPPluginFocusEventId   = L"OOPP Plugin Focus Widget Event";
 PRUint32        nsWindow::sOOPPPluginFocusEvent   =
                   RegisterWindowMessageW(kOOPPPluginFocusEventId);
-#endif
 
 MSG             nsWindow::sRedirectedKeyDown;
 
@@ -4403,8 +4399,6 @@ PRBool nsWindow::ConvertStatus(nsEventStatus aStatus)
 
 
 
-#ifdef MOZ_IPC
-
 
 bool
 nsWindow::IsAsyncResponseEvent(UINT aMsg, LRESULT& aResult)
@@ -4514,8 +4508,6 @@ nsWindow::IPCWindowProcHandler(UINT& msg, WPARAM& wParam, LPARAM& lParam)
   }
 }
 
-#endif 
-
 
 
 
@@ -4606,10 +4598,8 @@ LRESULT CALLBACK nsWindow::WindowProcInternal(HWND hWnd, UINT msg, WPARAM wParam
   
   nsWindow *someWindow = GetNSWindowPtr(hWnd);
 
-#ifdef MOZ_IPC
   if (someWindow)
     someWindow->IPCWindowProcHandler(msg, wParam, lParam);
-#endif
 
   
   
@@ -5794,7 +5784,6 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       if (msg == nsAppShell::GetTaskbarButtonCreatedMessage())
         SetHasTaskbarIconBeenCreated();
 #endif
-#ifdef MOZ_IPC
       if (msg == sOOPPPluginFocusEvent) {
         if (wParam == 1) {
           
@@ -5809,7 +5798,6 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
           }
         }
       }
-#endif
     }
     break;
   }
@@ -6775,11 +6763,9 @@ PRBool nsWindow::OnMouseWheel(UINT msg, WPARAM wParam, LPARAM lParam, PRBool& ge
     return PR_FALSE; 
   }
 
-#ifdef MOZ_IPC
   
   
   ::ReplyMessage(isVertical ? 0 : TRUE);
-#endif
 
   
   
@@ -7941,13 +7927,11 @@ PRBool nsWindow::HandleScrollingPlugins(UINT aMsg, WPARAM aWParam,
         
         
 
-#ifdef MOZ_IPC
         
         
         
         
         ::ReplyMessage(aMsg == WM_MOUSEHWHEEL ? TRUE : 0);
-#endif
 
         
         
@@ -8025,11 +8009,9 @@ PRBool nsWindow::OnScroll(UINT aMsg, WPARAM aWParam, LPARAM aLParam)
       default:
         return PR_FALSE;
     }
-#ifdef MOZ_IPC
     
     
     ::ReplyMessage(0);
-#endif
     scrollevent.isShift   = IS_VK_DOWN(NS_VK_SHIFT);
     scrollevent.isControl = IS_VK_DOWN(NS_VK_CONTROL);
     scrollevent.isMeta    = PR_FALSE;
