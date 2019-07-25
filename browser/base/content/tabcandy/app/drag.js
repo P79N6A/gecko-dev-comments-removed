@@ -53,29 +53,40 @@ var drag = {
 
 
 
-var Drag = function(element, event) {
-  this.el = element;
-  this.$el = iQ(this.el);
-  this.item = Items.item(this.el);
-  this.parent = this.item.parent;
-  this.startPosition = new Point(event.clientX, event.clientY);
-  this.startTime = Utils.getMilliseconds();
-  
-  this.item.isDragging = true;
-  this.item.setZ(999999);
-  
-  this.safeWindowBounds = Items.getSafeWindowBounds();
-  Trenches.activateOthersTrenches(this.el);
-  
-  
-  if(this.item.isAGroup) {
-    var tab = Page.getActiveTab();
-    if(!tab || tab.parent != this.item) {
-      if(this.item._children.length)
-        Page.setActiveTab(this.item._children[0]);
+
+
+
+
+
+var Drag = function(item, event) {
+  try {
+    Utils.assert('item', item && item.isAnItem);
+    
+    this.item = item;
+    this.el = item.container;
+    this.$el = iQ(this.el);
+    this.parent = this.item.parent;
+    this.startPosition = new Point(event.clientX, event.clientY);
+    this.startTime = Utils.getMilliseconds();
+    
+    this.item.isDragging = true;
+    this.item.setZ(999999);
+    
+    this.safeWindowBounds = Items.getSafeWindowBounds();
+    Trenches.activateOthersTrenches(this.el);
+    
+    
+    if(this.item.isAGroup) {
+      var tab = Page.getActiveTab();
+      if(!tab || tab.parent != this.item) {
+        if(this.item._children.length)
+          Page.setActiveTab(this.item._children[0]);
+      }
+    } else {
+      Page.setActiveTab(this.item);
     }
-  } else {
-    Page.setActiveTab(this.item);
+  } catch(e) {
+    Utils.log(e);
   }
 };
 
@@ -106,8 +117,6 @@ Drag.prototype = {
 
     if (update)
       this.item.setBounds(bounds,true);
-
-    return ui;
   },
   
   
@@ -174,14 +183,7 @@ Drag.prototype = {
   
   
   drag: function(event, ui) {
-
-      var bb = this.item.getBounds();
-      bb.left = ui.position.left;
-      bb.top = ui.position.top;
-      this.item.setBounds(bb, true);
-      ui = this.snap(event,ui,true);
-
-
+    this.snap(event,ui,true);
       
     if(this.parent && this.parent.expanded) {
       var now = Utils.getMilliseconds();
@@ -199,15 +201,6 @@ Drag.prototype = {
   stop: function() {
     this.item.isDragging = false;
 
-    
-    
-    
-    
-
-
-
-
-
     if(this.parent && !this.parent.locked.close && this.parent != this.item.parent 
         && this.parent._children.length == 0 && !this.parent.getTitle()) {
       this.parent.close();
@@ -220,11 +213,9 @@ Drag.prototype = {
       this.item.setZ(drag.zIndex);
       drag.zIndex++;
       
-      this.item.reloadBounds();
       this.item.pushAway();
     }
     
     Trenches.disactivate();
-    
   }
 };

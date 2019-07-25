@@ -99,11 +99,31 @@ window.Item = function() {
   
   
   
+  
+  
+  
+  
+  
+  
   this.dragOptions = null;
   
   
   
+  
+  
+  
+  
+  
+  
   this.dropOptions = null;
+  
+  
+  
+  
+  
+  
+  
+  
   
   
   
@@ -174,23 +194,16 @@ window.Item.prototype = {
   				group.remove(drag.info.$el, {dontClose: true});
   			}
   				
-  			iQ(this).removeClass("acceptsDrop");
+  			iQ(this.container).removeClass("acceptsDrop");
   		},
   		drop: function(event){
-  			iQ(this).removeClass("acceptsDrop");
+  			iQ(this.container).removeClass("acceptsDrop");
   		},
   		
   		
   		
-  		accept: function dropAcceptFunction(el) {
-  			var $el = iQ(el);
-  			if($el.hasClass('tab')) {
-  				var item = Items.item($el);
-  				if(item && (!item.parent || !item.parent.expanded)) {
-  					return true;
-  				}
-  			}
-  			return false;
+  		accept: function dropAcceptFunction(item) {
+				return (item && item.isATabItem && (!item.parent || !item.parent.expanded));
   		}
   	};
   	
@@ -205,11 +218,9 @@ window.Item.prototype = {
       	resizeInfo = new Drag(this, e);
       },
       resize: function(e,ui){
-        self.reloadBounds();
         resizeInfo.snap(e,ui, false, self.keepProportional);
       },
       stop: function(){
-        self.reloadBounds();
         self.setUserSize();
         self.pushAway();
         resizeInfo.stop();
@@ -528,6 +539,254 @@ window.Item.prototype = {
 			Trenches.unregister(this.guideTrenches[edge]); 
 		}
 		this.guideTrenches = null;
+  },
+  
+  
+  
+  
+  draggable: function() {
+    try {
+      Utils.assert('dragOptions', this.dragOptions);
+        
+      var cancelClasses = [];
+      if(typeof(this.dragOptions.cancelClass) == 'string')
+        cancelClasses = this.dragOptions.cancelClass.split(' ');
+        
+      var self = this;
+      var $container = iQ(this.container);
+      var startMouse;
+      var startPos;
+      var startSent;
+      var startEvent;
+      var droppables;
+      var dropTarget;
+      
+      
+      var handleMouseMove = function(e) {
+        
+        var mouse = new Point(e.pageX, e.pageY);
+        var box = self.getBounds();
+        box.left = startPos.x + (mouse.x - startMouse.x);
+        box.top = startPos.y + (mouse.y - startMouse.y);
+        
+        self.setBounds(box, true);
+
+        
+        if(!startSent) {
+          if(iQ.isFunction(self.dragOptions.start)) {
+            self.dragOptions.start.apply(self, 
+                [startEvent, {position: {left: startPos.x, top: startPos.y}}]);
+          }
+          
+          startSent = true;
+        }
+
+        if(iQ.isFunction(self.dragOptions.drag))
+          self.dragOptions.drag.apply(self, [e, {position: box.position()}]);
+          
+        
+        var newDropTarget = null;
+        iQ.each(droppables, function(index, droppable) {
+          if(box.intersects(droppable.bounds)) {
+            var possibleDropTarget = droppable.item;
+            var accept = true;
+            if(possibleDropTarget != dropTarget) {
+              var dropOptions = possibleDropTarget.dropOptions;
+              if(dropOptions && iQ.isFunction(dropOptions.accept))
+                accept = dropOptions.accept.apply(possibleDropTarget, [self]);
+            }
+            
+            if(accept) {
+              newDropTarget = possibleDropTarget;
+              return false;
+            }
+          }
+        });
+
+        if(newDropTarget != dropTarget) {
+          var dropOptions;
+          if(dropTarget) {
+            dropOptions = dropTarget.dropOptions;
+            if(dropOptions && iQ.isFunction(dropOptions.out))
+              dropOptions.out.apply(dropTarget, [e]);
+          }
+          
+          dropTarget = newDropTarget; 
+
+          if(dropTarget) {
+            dropOptions = dropTarget.dropOptions;
+            if(dropOptions && iQ.isFunction(dropOptions.over))
+              dropOptions.over.apply(dropTarget, [e]);
+          }
+        }
+          
+        e.preventDefault();
+      };
+        
+      
+      var handleMouseUp = function(e) {
+        iQ(window)
+          .unbind('mousemove', handleMouseMove)
+          .unbind('mouseup', handleMouseUp);
+          
+        if(dropTarget) {
+          var dropOptions = dropTarget.dropOptions;
+          if(dropOptions && iQ.isFunction(dropOptions.drop))
+            dropOptions.drop.apply(dropTarget, [e]);
+        }
+
+        if(startSent && iQ.isFunction(self.dragOptions.stop))
+          self.dragOptions.stop.apply(self, [e]);
+          
+        e.preventDefault();    
+      };
+      
+      
+      $container.mousedown(function(e) {
+        if(Utils.isRightClick(e))
+          return;
+        
+        var cancel = false;
+        var $target = iQ(e.target);
+        iQ.each(cancelClasses, function(index, class) {
+          if($target.hasClass(class)) {
+            cancel = true;
+            return false;
+          }
+        });
+        
+        if(cancel) {
+          e.preventDefault();
+          return;
+        }
+          
+        startMouse = new Point(e.pageX, e.pageY);
+        startPos = self.getBounds().position();
+        startEvent = e;
+        startSent = false;
+        dropTarget = null;
+        
+        droppables = [];
+        iQ('.iq-droppable').each(function() {
+          if(this != self.container) {
+            var item = Items.item(this);
+            droppables.push({
+              item: item, 
+              bounds: item.getBounds()
+            });
+          }
+        });
+
+        iQ(window)
+          .mousemove(handleMouseMove)
+          .mouseup(handleMouseUp);          
+                    
+        e.preventDefault();
+      });
+    } catch(e) {
+      Utils.log(e);
+    }  
+  },
+
+  
+  
+  
+  droppable: function(value) {
+    try {
+      var $container = iQ(this.container);
+      if(value)
+        $container.addClass('iq-droppable');
+      else {
+        Utils.assert('dropOptions', this.dropOptions);
+        
+        $container.removeClass('iq-droppable');
+      }
+    } catch(e) {
+      Utils.log(e);
+    }
+  },
+  
+  
+  
+  
+  resizable: function(value) {
+    try {
+      var $container = iQ(this.container);
+      iQ('.iq-resizable-handle', $container).remove();
+
+      if(!value) {
+        $container.removeClass('iq-resizable');
+      } else {
+        Utils.assert('resizeOptions', this.resizeOptions);
+        
+        $container.addClass('iq-resizable');
+
+        var self = this;
+        var startMouse;
+        var startSize;
+        
+        
+        var handleMouseMove = function(e) {
+          var mouse = new Point(e.pageX, e.pageY);
+          var box = self.getBounds();
+          box.width = Math.max(self.resizeOptions.minWidth || 0, startSize.x + (mouse.x - startMouse.x));
+          box.height = Math.max(self.resizeOptions.minHeight || 0, startSize.y + (mouse.y - startMouse.y));
+
+          if(self.resizeOptions.aspectRatio) {
+            if(startAspect < 1)
+              box.height = box.width * startAspect;
+            else
+              box.width = box.height / startAspect;
+          }
+                        
+          self.setBounds(box, true);
+  
+          if(iQ.isFunction(self.resizeOptions.resize))
+            self.resizeOptions.resize.apply(self, [e]);
+            
+          e.preventDefault();
+          e.stopPropagation();
+        };
+          
+        
+        var handleMouseUp = function(e) {
+          iQ(window)
+            .unbind('mousemove', handleMouseMove)
+            .unbind('mouseup', handleMouseUp);
+            
+          if(iQ.isFunction(self.resizeOptions.stop))
+            self.resizeOptions.stop.apply(self, [e]);
+            
+          e.preventDefault();    
+          e.stopPropagation();
+        };
+        
+        
+        iQ('<div>')
+          .addClass('iq-resizable-handle iq-resizable-se')
+          .appendTo($container)
+          .mousedown(function(e) {
+            if(Utils.isRightClick(e))
+              return;
+            
+            startMouse = new Point(e.pageX, e.pageY);
+            startSize = self.getBounds().size();
+            startAspect = startSize.y / startSize.x;
+            
+						if(iQ.isFunction(self.resizeOptions.start))
+							self.resizeOptions.start.apply(self, [e]);
+            
+            iQ(window)
+              .mousemove(handleMouseMove)
+              .mouseup(handleMouseUp);          
+                        
+            e.preventDefault();
+            e.stopPropagation();
+          });
+        }
+    } catch(e) {
+      Utils.log(e);
+    }
   }
 };  
 
