@@ -7611,13 +7611,14 @@ UpdateViewsForTree(nsIFrame* aFrame, nsIViewManager* aViewManager,
       if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW)
           || (child->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER)) {
         
-        if (nsGkAtoms::placeholderFrame == child->GetType()) { 
+        if (nsGkAtoms::placeholderFrame == child->GetType()) {
           
           nsIFrame* outOfFlowFrame =
             nsPlaceholderFrame::GetRealFrameForPlaceholder(child);
-
-          DoApplyRenderingChangeToTree(outOfFlowFrame, aViewManager,
-                                       aFrameManager, aChange);
+          do {
+            DoApplyRenderingChangeToTree(outOfFlowFrame, aViewManager,
+                                         aFrameManager, aChange);
+          } while (outOfFlowFrame = outOfFlowFrame->GetNextContinuation());
         } else if (childList == nsGkAtoms::popupList) {
           DoApplyRenderingChangeToTree(child, aViewManager,
                                        aFrameManager, aChange);

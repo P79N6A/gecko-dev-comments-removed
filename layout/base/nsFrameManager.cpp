@@ -47,6 +47,7 @@
 
 
 
+
 #include "nscore.h"
 #include "nsPresContext.h"
 #include "nsIPresShell.h"
@@ -775,8 +776,9 @@ nsFrameManager::ReparentStyleContext(nsIFrame* aFrame)
     nsIFrame* outOfFlow =
       nsPlaceholderFrame::GetRealFrameForPlaceholder(aFrame);
     NS_ASSERTION(outOfFlow, "no out-of-flow frame");
-
-    ReparentStyleContext(outOfFlow);
+    do {
+      ReparentStyleContext(outOfFlow);
+    } while (outOfFlow = outOfFlow->GetNextContinuation());
   }
 
   
@@ -1470,13 +1472,15 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
 
               
               
-              ReResolveStyleContext(aPresContext, outOfFlowFrame,
-                                    content, aChangeList,
-                                    NS_SubtractHint(aMinChange,
-                                                    nsChangeHint_ReflowFrame),
-                                    childRestyleHint,
-                                    fireAccessibilityEvents,
-                                    aRestyleTracker);
+              do {
+                ReResolveStyleContext(aPresContext, outOfFlowFrame,
+                                      content, aChangeList,
+                                      NS_SubtractHint(aMinChange,
+                                                      nsChangeHint_ReflowFrame),
+                                      childRestyleHint,
+                                      fireAccessibilityEvents,
+                                      aRestyleTracker);
+              } while (outOfFlowFrame = outOfFlowFrame->GetNextContinuation());
 
               
               
