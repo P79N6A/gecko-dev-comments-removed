@@ -28,7 +28,7 @@ class gfxImageSurface;
 
 
 class gfxReusableSurfaceWrapper {
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(gfxReusableSurfaceWrapper);
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(gfxReusableSurfaceWrapper)
 public:
   
 
