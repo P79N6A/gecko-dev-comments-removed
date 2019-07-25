@@ -79,10 +79,6 @@ struct NS_GFX nsFont {
   PRUint8 variant;
 
   
-  
-  PRUint8 familyNameQuirks;
-
-  
   PRUint16 weight;
 
   

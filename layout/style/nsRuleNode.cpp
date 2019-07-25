@@ -2175,7 +2175,8 @@ nsRuleNode::SetDefaultOnRoot(const nsStyleStructID aSID, nsStyleContext* aContex
     {
       nsStyleFont* fontData = new (mPresContext) nsStyleFont(mPresContext);
       if (NS_LIKELY(fontData != nsnull)) {
-        nscoord minimumFontSize = mPresContext->MinFontSize();
+        nscoord minimumFontSize =
+          mPresContext->GetCachedIntPref(kPresContext_MinimumFontSize);
 
         if (minimumFontSize > 0 && !mPresContext->IsChrome()) {
           fontData->mFont.size = NS_MAX(fontData->mSize, minimumFontSize);
@@ -2943,9 +2944,6 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
       
       aFont->mFont.name.Append(defaultVariableFont->name);
     }
-    aFont->mFont.familyNameQuirks =
-        (aPresContext->CompatibilityMode() == eCompatibility_NavQuirks &&
-         aFontData.mFamilyFromHTML);
     aFont->mFont.systemFont = PR_FALSE;
     
     
@@ -2954,20 +2952,17 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
   }
   else if (eCSSUnit_System_Font == aFontData.mFamily.GetUnit()) {
     aFont->mFont.name = systemFont.name;
-    aFont->mFont.familyNameQuirks = PR_FALSE;
     aFont->mFont.systemFont = PR_TRUE;
     aFont->mGenericID = kGenericFont_NONE;
   }
   else if (eCSSUnit_Inherit == aFontData.mFamily.GetUnit()) {
     aCanStoreInRuleTree = PR_FALSE;
     aFont->mFont.name = aParentFont->mFont.name;
-    aFont->mFont.familyNameQuirks = aParentFont->mFont.familyNameQuirks;
     aFont->mFont.systemFont = aParentFont->mFont.systemFont;
     aFont->mGenericID = aParentFont->mGenericID;
   }
   else if (eCSSUnit_Initial == aFontData.mFamily.GetUnit()) {
     aFont->mFont.name = defaultVariableFont->name;
-    aFont->mFont.familyNameQuirks = PR_FALSE;
     aFont->mFont.systemFont = defaultVariableFont->systemFont;
     aFont->mGenericID = kGenericFont_NONE;
   }
@@ -3274,7 +3269,8 @@ nsRuleNode::ComputeFontData(void* aStartStruct,
   
 
   
-  nscoord minimumFontSize = mPresContext->MinFontSize();
+  nscoord minimumFontSize =
+    mPresContext->GetCachedIntPref(kPresContext_MinimumFontSize);
 
   if (minimumFontSize < 0)
     minimumFontSize = 0;
@@ -3495,7 +3491,8 @@ nsRuleNode::ComputeTextData(void* aStartStruct,
         !textData.mLineHeight.IsRelativeLengthUnit()) {
       nscoord lh = nsStyleFont::ZoomText(mPresContext,
                                          text->mLineHeight.GetCoordValue());
-      nscoord minimumFontSize = mPresContext->MinFontSize();
+      nscoord minimumFontSize =
+        mPresContext->GetCachedIntPref(kPresContext_MinimumFontSize);
 
       if (minimumFontSize > 0 && !mPresContext->IsChrome()) {
         
