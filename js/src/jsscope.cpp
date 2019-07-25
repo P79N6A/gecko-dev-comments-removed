@@ -865,6 +865,30 @@ JSObject::addPropertyInternal(JSContext *cx, jsid id,
     return NULL;
 }
 
+
+
+
+
+
+inline bool
+CheckCanChangeAttrs(JSContext *cx, JSObject *obj, const Shape *shape, uintN *attrsp)
+{
+    if (shape->configurable())
+        return true;
+
+    
+    *attrsp |= JSPROP_PERMANENT;
+
+    
+    if (shape->isDataDescriptor() && shape->hasSlot() &&
+        (*attrsp & (JSPROP_GETTER | JSPROP_SETTER | JSPROP_SHARED))) {
+        obj->reportNotConfigurable(cx, shape->id);
+        return false;
+    }
+
+    return true;
+}
+
 const Shape *
 JSObject::putProperty(JSContext *cx, jsid id,
                       PropertyOp getter, PropertyOp setter,
@@ -910,6 +934,9 @@ JSObject::putProperty(JSContext *cx, jsid id,
     
     JS_ASSERT(!SHAPE_IS_REMOVED(*spp));
 
+    if (!CheckCanChangeAttrs(cx, this, shape, &attrs))
+        return NULL;
+    
     
 
 
@@ -1066,6 +1093,10 @@ JSObject::changeProperty(JSContext *cx, const Shape *shape, uintN attrs, uintN m
         getter = NULL;
     if (setter == PropertyStub)
         setter = NULL;
+
+    if (!CheckCanChangeAttrs(cx, this, shape, &attrs))
+        return NULL;
+    
     if (shape->attrs == attrs && shape->getter() == getter && shape->setter() == setter)
         return shape;
 
