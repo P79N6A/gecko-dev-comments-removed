@@ -229,11 +229,8 @@ public:
 
 
 
-
-
   nsresult FetchItemInfo(PRInt64 aItemId,
-                         BookmarkData& _bookmark,
-                         bool aInvalidateCache);
+                         BookmarkData& _bookmark);
 
   
 
@@ -521,7 +518,7 @@ private:
       nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
       NS_ENSURE_TRUE(bookmarks, NS_ERROR_OUT_OF_MEMORY);
       BookmarkData folder;
-      nsresult rv = bookmarks->FetchItemInfo(mID, folder, true);
+      nsresult rv = bookmarks->FetchItemInfo(mID, folder);
       
       mParent = folder.parentId;
       mIndex = folder.position;
