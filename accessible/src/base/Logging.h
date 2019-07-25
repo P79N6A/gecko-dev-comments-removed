@@ -19,6 +19,9 @@ class nsIWebProgress;
 
 namespace mozilla {
 namespace a11y {
+
+class OuterDocAccessible;
+
 namespace logging {
 
 enum EModules {
@@ -26,7 +29,8 @@ enum EModules {
   eDocCreate = 1 << 1,
   eDocDestroy = 1 << 2,
   eDocLifeCycle = eDocLoad | eDocCreate | eDocDestroy,
-  ePlatforms = 1 << 3
+  ePlatforms = 1 << 3,
+  eStack = 1 << 4
 };
 
 
@@ -66,7 +70,15 @@ void DocDestroy(const char* aMsg, nsIDocument* aDocumentNode,
 
 
 
-void Msg(const char* aMsg);
+void OuterDocDestroy(OuterDocAccessible* OuterDoc);
+
+
+
+
+
+
+void MsgBegin(const char* aTitle, const char* aMsgText, ...);
+void MsgEnd();
 
 
 
