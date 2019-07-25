@@ -509,7 +509,7 @@ nsXULElement::GetElementsByAttributeNS(const nsAString& aNamespaceURI,
 }
 
 nsEventListenerManager*
-nsXULElement::GetEventListenerManagerForAttr(PRBool* aDefer)
+nsXULElement::GetEventListenerManagerForAttr(nsIAtom* aAttrName, PRBool* aDefer)
 {
     
     
@@ -529,7 +529,7 @@ nsXULElement::GetEventListenerManagerForAttr(PRBool* aDefer)
         return piTarget->GetListenerManager(PR_TRUE);
     }
 
-    return nsStyledElement::GetEventListenerManagerForAttr(aDefer);
+    return nsStyledElement::GetEventListenerManagerForAttr(aAttrName, aDefer);
 }
 
 

@@ -780,7 +780,7 @@ protected:
 
 
   virtual nsEventListenerManager*
-    GetEventListenerManagerForAttr(PRBool* aDefer);
+    GetEventListenerManagerForAttr(nsIAtom* aAttrName, PRBool* aDefer);
 
   
 
