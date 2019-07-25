@@ -82,7 +82,8 @@ Readability.prototype = {
     killBreaks: /(<br\s*\/?>(\s|&nbsp;?)*){1,}/g,
     videos: /http:\/\/(www\.)?(youtube|vimeo)\.com/i,
     nextLink: /(next|weiter|continue|>([^\|]|$)|»([^\|]|$))/i,
-    prevLink: /(prev|earl|old|new|<|«)/i
+    prevLink: /(prev|earl|old|new|<|«)/i,
+    whitespace: /^\s*$/
   },
 
   
@@ -227,27 +228,24 @@ Readability.prototype = {
 
 
 
+  _nextElement: function (node) {
+    let next = node;
+    while (next
+        && (next.nodeType != Node.ELEMENT_NODE)
+        && this.REGEXPS.whitespace.test(next.textContent)) {
+      next = next.nextSibling;
+    }
+    return next;
+  },
+
+  
+
+
+
+
 
 
   _replaceBrs: function (elem) {
-    
-    let whitespace = /^\s*$/;
-
-    
-
-
-
-
-    function nextElement(node) {
-      let next = node;
-      while (next
-          && (next.nodeType != Node.ELEMENT_NODE)
-          && whitespace.test(next.textContent)) {
-        next = next.nextSibling;
-      }
-      return next;
-    }
-
     let brs = elem.getElementsByTagName("br");
     for (let i = 0; i < brs.length; i++) {
       let br = brs[i];
@@ -260,7 +258,7 @@ Readability.prototype = {
       
       
       
-      while ((next = nextElement(next)) && (next.tagName == "BR")) {
+      while ((next = this._nextElement(next)) && (next.tagName == "BR")) {
         replaced = true;
         let sibling = next.nextSibling;
         next.parentNode.removeChild(next);
@@ -278,7 +276,7 @@ Readability.prototype = {
         while (next) {
           
           if (next.tagName == "BR") {
-            let nextElem = nextElement(next);
+            let nextElem = this._nextElement(next);
             if (nextElem && nextElem.tagName == "BR") {
               break;
             }
@@ -343,7 +341,14 @@ Readability.prototype = {
       }
     }
 
-    articleContent.innerHTML = articleContent.innerHTML.replace(/<br[^>]*>\s*<p/gi, '<p');
+    let brs = articleContent.getElementsByTagName("BR");
+    for (let i = brs.length; --i >= 0;) {
+      let br = brs[i];
+      let next = this._nextElement(br.nextSibling);
+      if (next && next.tagName == "P") {
+        br.parentNode.removeChild(br);
+      }
+    }
   },
 
   
