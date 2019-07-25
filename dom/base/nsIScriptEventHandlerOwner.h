@@ -3,61 +3,14 @@
 
 
 
-#ifndef nsIScriptObjectOwner_h__
-#define nsIScriptObjectOwner_h__
+#ifndef nsIScriptEventHandlerOwner_h__
+#define nsIScriptEventHandlerOwner_h__
 
 #include "nsISupports.h"
 #include "nsIScriptContext.h"
 #include "nsAString.h"
 
 template<class> class nsScriptObjectHolder;
-
-#define NS_ISCRIPTOBJECTOWNER_IID \
-{ /* 8f6bca7e-ce42-11d1-b724-00600891d8c9 */ \
-0x8f6bca7e, 0xce42, 0x11d1, \
-  {0xb7, 0x24, 0x00, 0x60, 0x08, 0x91, 0xd8, 0xc9} } \
-
-
-
-
-
-
-
-
-
-
-
-class nsIScriptObjectOwner : public nsISupports {
-public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ISCRIPTOBJECTOWNER_IID)
-
-  
-
-
-
-
-
-
-
-
-
-  NS_IMETHOD GetScriptObject(nsIScriptContext *aContext, void** aScriptObject) = 0;
-
-  
-
-
-
-
-
-
-
-
-
-  NS_IMETHOD SetScriptObject(void* aScriptObject) = 0;
-};
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIScriptObjectOwner,
-                              NS_ISCRIPTOBJECTOWNER_IID)
 
 class nsIAtom;
 
