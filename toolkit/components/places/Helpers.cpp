@@ -355,10 +355,9 @@ IsValidGUID(const nsCString& aGUID)
 void
 ForceWALCheckpoint(mozIStorageConnection* aDBConn)
 {
-  
   nsCOMPtr<mozIStorageAsyncStatement> stmt;
   (void)aDBConn->CreateAsyncStatement(NS_LITERAL_CSTRING(
-    "pragma wal_checkpoint(FULL)"
+    "pragma wal_checkpoint "
   ), getter_AddRefs(stmt));
   nsCOMPtr<mozIStoragePendingStatement> handle;
   (void)stmt->ExecuteAsync(nsnull, getter_AddRefs(handle));
