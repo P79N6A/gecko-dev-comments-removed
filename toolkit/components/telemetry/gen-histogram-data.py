@@ -9,6 +9,7 @@ from __future__ import with_statement
 
 import sys
 import histogram_tools
+import itertools
 
 banner = """/* This file is auto-generated, see gen-histogram-data.py.  */
 """
@@ -49,7 +50,7 @@ def static_asserts_for_flag(histogram):
 def static_asserts_for_enumerated(histogram):
     n_values = histogram.high()
     static_assert("%s > 2" % n_values,
-                  "Not enough values for %s" % histogram.name)
+                  "Not enough values for %s" % histogram.name())
 
 def shared_static_asserts(histogram):
     name = histogram.name()
@@ -84,6 +85,50 @@ def write_histogram_static_asserts(histograms):
         histogram_tools.table_dispatch(histogram.kind(), table,
                                        lambda f: f(histogram))
 
+def write_debug_histogram_ranges(histograms):
+    ranges_lengths = []
+
+    
+    
+    print "#ifdef DEBUG"
+    print "const int gBucketLowerBounds[] = {"
+    for histogram in histograms:
+        ranges = []
+        try:
+            ranges = histogram.ranges()
+        except histogram_tools.DefinitionException:
+            pass
+        ranges_lengths.append(len(ranges))
+        
+        
+        
+        
+        
+        
+        
+        if len(ranges) > 0:
+            print ','.join(map(str, ranges)), ','
+        else:
+            print '/* Skipping %s */' % histogram.name()
+    print "};"
+
+    
+    print "struct bounds { int offset; int length; };"
+    print "const struct bounds gBucketLowerBoundIndex[] = {"
+    offset = 0
+    for (histogram, range_length) in itertools.izip(histograms, ranges_lengths):
+        cpp_guard = histogram.cpp_guard()
+        
+        
+        if cpp_guard:
+            print "#if defined(%s)" % cpp_guard
+        print "{ %d, %d }," % (offset, range_length)
+        if cpp_guard:
+            print "#endif"
+        offset += range_length
+    print "};"
+    print "#endif"
+
 def main(argv):
     filename = argv[0]
 
@@ -92,5 +137,6 @@ def main(argv):
     print banner
     write_histogram_table(histograms)
     write_histogram_static_asserts(histograms)
+    write_debug_histogram_ranges(histograms)
 
 main(sys.argv[1:])
