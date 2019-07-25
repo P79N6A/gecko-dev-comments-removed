@@ -49,6 +49,15 @@
 namespace js {
 namespace mjit {
 
+struct StateRemat {
+    typedef JSC::MacroAssembler::RegisterID RegisterID;
+    union {
+        RegisterID reg : 5;
+        uint32 offset : 31;
+    };
+    bool inReg : 1;
+};
+
 
 
 
@@ -429,6 +438,8 @@ class FrameState
 #endif
 
     Address addressOf(const FrameEntry *fe) const;
+
+    inline StateRemat dataRematInfo(const FrameEntry *fe) const;
 
     
 
