@@ -427,6 +427,23 @@ struct CompileError {
     void throwError();
 };
 
+namespace StrictMode {
+
+enum StrictModeState {
+    NOTSTRICT,
+    UNKNOWN,
+    STRICT
+};
+}
+
+inline StrictMode::StrictModeState
+StrictModeFromContext(JSContext *cx)
+{
+    return cx->hasRunOption(JSOPTION_STRICT_MODE) ? StrictMode::STRICT : StrictMode::UNKNOWN;
+}
+
+
+
 
 
 
@@ -440,7 +457,9 @@ class StrictModeGetter {
   public:
     StrictModeGetter(Parser *p) : parser(p) { }
 
-    bool get() const;
+    StrictMode::StrictModeState get() const;
+    CompileError *queuedStrictModeError() const;
+    void setQueuedStrictModeError(CompileError *e);
 };
 
 class TokenStream
@@ -481,7 +500,7 @@ class TokenStream
     
     JSVersion versionNumber() const { return VersionNumber(version); }
     JSVersion versionWithFlags() const { return version; }
-    bool allowsXML() const { return allowXML && !isStrictMode(); }
+    bool allowsXML() const { return allowXML && strictModeState() != StrictMode::STRICT; }
     bool hasMoarXML() const { return moarXML || VersionShouldParseXML(versionNumber()); }
     void setMoarXML(bool enabled) { moarXML = enabled; }
 
@@ -505,14 +524,15 @@ class TokenStream
     void setXMLTagMode(bool enabled = true) { setFlag(enabled, TSF_XMLTAGMODE); }
     void setXMLOnlyMode(bool enabled = true) { setFlag(enabled, TSF_XMLONLYMODE); }
     void setUnexpectedEOF(bool enabled = true) { setFlag(enabled, TSF_UNEXPECTED_EOF); }
-    void setOctalCharacterEscape(bool enabled = true) { setFlag(enabled, TSF_OCTAL_CHAR); }
 
-    bool isStrictMode() const { return strictModeGetter ? strictModeGetter->get() : false; }
+    StrictMode::StrictModeState strictModeState() const
+    {
+        return strictModeGetter ? strictModeGetter->get() : StrictMode::NOTSTRICT;
+    }
     bool isXMLTagMode() const { return !!(flags & TSF_XMLTAGMODE); }
     bool isXMLOnlyMode() const { return !!(flags & TSF_XMLONLYMODE); }
     bool isUnexpectedEOF() const { return !!(flags & TSF_UNEXPECTED_EOF); }
     bool isEOF() const { return !!(flags & TSF_EOF); }
-    bool hasOctalCharacterEscape() const { return flags & TSF_OCTAL_CHAR; }
 
     
     bool reportError(unsigned errorNumber, ...);

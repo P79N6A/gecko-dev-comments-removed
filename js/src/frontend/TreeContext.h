@@ -34,13 +34,6 @@ class ContextFlags {
     
     
     
-    bool            inStrictMode:1;
-
-    
-    
-    
-    
-    
     
     
     
@@ -114,8 +107,7 @@ class ContextFlags {
 
   public:
     ContextFlags(JSContext *cx)
-      : inStrictMode(cx->hasRunOption(JSOPTION_STRICT_MODE)),
-        bindingsAccessedDynamically(false),
+      : bindingsAccessedDynamically(false),
         funIsHeavyweight(false),
         funIsGenerator(false),
         funMightAliasLocals(false),
@@ -144,9 +136,31 @@ struct SharedContext {
 
     ContextFlags    cxFlags;
 
+
     
     
-    inline SharedContext(JSContext *cx, JSObject *scopeChain, JSFunction *fun, FunctionBox *funbox);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    StrictMode::StrictModeState strictModeState;
+
+    
+    
+    inline SharedContext(JSContext *cx, JSObject *scopeChain, JSFunction *fun, FunctionBox *funbox,
+                         StrictMode::StrictModeState sms);
 
     
     
@@ -154,7 +168,6 @@ struct SharedContext {
     
 #define INFUNC JS_ASSERT(inFunction())
 
-    bool inStrictMode()                const {         return cxFlags.inStrictMode; }
     bool bindingsAccessedDynamically() const {         return cxFlags.bindingsAccessedDynamically; }
     bool funIsHeavyweight()            const { INFUNC; return cxFlags.funIsHeavyweight; }
     bool funIsGenerator()              const { INFUNC; return cxFlags.funIsGenerator; }
@@ -163,7 +176,6 @@ struct SharedContext {
     bool funArgumentsHasLocalBinding() const { INFUNC; return cxFlags.funArgumentsHasLocalBinding; }
     bool funDefinitelyNeedsArgsObj()   const { INFUNC; return cxFlags.funDefinitelyNeedsArgsObj; }
 
-    void setInStrictMode()                  {         cxFlags.inStrictMode                = true; }
     void setBindingsAccessedDynamically()   {         cxFlags.bindingsAccessedDynamically = true; }
     void setFunIsHeavyweight()              {         cxFlags.funIsHeavyweight            = true; }
     void setFunIsGenerator()                { INFUNC; cxFlags.funIsGenerator              = true; }
@@ -182,8 +194,8 @@ struct SharedContext {
     JSObject *scopeChain() const { JS_ASSERT(!inFunction()); return scopeChain_; }
 
     
-    
     inline bool needStrictChecks();
+    inline bool inStrictMode();
 };
 
 typedef HashSet<JSAtom *> FuncStmtSet;
@@ -217,6 +229,11 @@ struct TreeContext {
 
 
     FunctionBox     *functionList;
+
+    
+    
+    
+    CompileError    *queuedStrictModeError;
 
   private:
     TreeContext     **parserTC;     
@@ -260,6 +277,8 @@ struct TreeContext {
     inline ~TreeContext();
 
     inline bool init();
+
+    inline void setQueuedStrictModeError(CompileError *e);
 
     unsigned blockid();
 
