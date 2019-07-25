@@ -27,18 +27,6 @@ bool gServiceControlStopping = false;
 
 BOOL GetLogDirectoryPath(WCHAR *path);
 
-
-
-
-
-void
-RunCommandsForEachUpgrade()
-{
-  LOG(("Running install/upgrade commands...\n"));
-  ClearKnownPrefetch();
-  LOG(("Finished install/upgrade commands\n"));
-}
-
 int 
 wmain(int argc, WCHAR **argv)
 {
@@ -84,9 +72,8 @@ wmain(int argc, WCHAR **argv)
     }
     LOG(("Upgrading service if installed...\n"));
 
-    bool ret = SvcInstall(UpgradeSvc);
-    RunCommandsForEachUpgrade();
-    if (!ret) {
+    
+    if (!SvcInstall(UpgradeSvc)) {
       LOG(("Could not upgrade service (%d)\n", GetLastError()));
       LogFinish();
       return 1;
