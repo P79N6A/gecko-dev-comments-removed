@@ -62,6 +62,11 @@ protected:
     
     GESTURE_NONE,
     
+    
+    
+    GESTURE_WAITING_PINCH,
+    
+    
     GESTURE_PINCH,
     
     
@@ -136,6 +141,14 @@ protected:
 
 
   GestureState mState;
+
+  
+
+
+
+
+
+  float mSpanChange;
 
   
 
