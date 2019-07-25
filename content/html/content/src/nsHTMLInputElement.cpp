@@ -115,7 +115,6 @@
 #include "nsIDOMWindowInternal.h"
 
 #include "mozAutoDocUpdate.h"
-#include "nsHTMLFormElement.h"
 #include "nsContentCreatorFunctions.h"
 #include "nsCharSeparatedTokenizer.h"
 #include "nsContentUtils.h"
@@ -626,6 +625,7 @@ nsHTMLInputElement::nsHTMLInputElement(already_AddRefed<nsINodeInfo> aNodeInfo,
   SET_BOOLBIT(mBitField, BF_PARSER_CREATING, aFromParser);
   SET_BOOLBIT(mBitField, BF_INHIBIT_RESTORATION,
       aFromParser & mozilla::dom::FROM_PARSER_FRAGMENT);
+  SET_BOOLBIT(mBitField, BF_CAN_SHOW_INVALID_UI, PR_TRUE);
   mInputData.mState = new nsTextEditorState(this);
   NS_ADDREF(mInputData.mState);
   
@@ -2113,16 +2113,33 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
     return NS_OK;
   }
 
-  if (PlaceholderApplies() &&
-      HasAttr(kNameSpaceID_None, nsGkAtoms::placeholder) &&
+  if (aVisitor.mEvent->message == NS_FOCUS_CONTENT ||
+      aVisitor.mEvent->message == NS_BLUR_CONTENT) {
+    nsEventStates states;
+
+    if (aVisitor.mEvent->message == NS_FOCUS_CONTENT) {
       
       
-      (aVisitor.mEvent->message == NS_FOCUS_CONTENT ||
-       aVisitor.mEvent->message == NS_BLUR_CONTENT)) {
+      SET_BOOLBIT(mBitField, BF_CAN_SHOW_INVALID_UI,
+                  !IsValid() && ShouldShowInvalidUI());
+      
+      
+    } else { 
+      SET_BOOLBIT(mBitField, BF_CAN_SHOW_INVALID_UI, PR_TRUE);
+      states |= NS_EVENT_STATE_MOZ_UI_INVALID;
+    }
+
+    if (PlaceholderApplies() &&
+        HasAttr(kNameSpaceID_None, nsGkAtoms::placeholder)) {
+        
+      
+      states |= NS_EVENT_STATE_MOZ_PLACEHOLDER;
+    }
+
     nsIDocument* doc = GetCurrentDoc();
     if (doc) {
       MOZ_AUTO_DOC_UPDATE(doc, UPDATE_CONTENT_STATE, PR_TRUE);
-      doc->ContentStatesChanged(this, nsnull, NS_EVENT_STATE_MOZ_PLACEHOLDER);
+      doc->ContentStatesChanged(this, nsnull, states);
     }
   }
 
@@ -3310,20 +3327,9 @@ nsHTMLInputElement::IntrinsicState() const
       state |= NS_EVENT_STATE_VALID;
     } else {
       state |= NS_EVENT_STATE_INVALID;
-      ValueModeType valueMode = GetValueMode();
-      
-      
-      
-      
-      
-      
-      
-      if ((mForm && mForm->HasEverTriedInvalidSubmit()) ||
-          (valueMode == VALUE_MODE_DEFAULT ||
-           GetValidityState(VALIDITY_STATE_CUSTOM_ERROR) ||
-           (valueMode == VALUE_MODE_DEFAULT_ON && GetCheckedChanged()) ||
-           ((valueMode == VALUE_MODE_FILENAME || valueMode == VALUE_MODE_VALUE) &&
-            GET_BOOLBIT(mBitField, BF_VALUE_CHANGED)))) {
+
+      if (GET_BOOLBIT(mBitField, BF_CAN_SHOW_INVALID_UI) &&
+          ShouldShowInvalidUI()) {
         state |= NS_EVENT_STATE_MOZ_UI_INVALID;
       }
     }

@@ -239,8 +239,11 @@ protected:
   
   PRPackedBool             mDisabledChanged;
   
-  nsRefPtr<nsTextEditorState> mState;
+  PRPackedBool             mCanShowInvalidUI;
+
   
+  nsRefPtr<nsTextEditorState> mState;
+
   NS_IMETHOD SelectAll(nsPresContext* aPresContext);
   
 
@@ -273,6 +276,29 @@ protected:
   
 
 
+
+
+
+
+  bool ShouldShowInvalidUI() const {
+    NS_ASSERTION(!IsValid(), "You should not call ShouldShowInvalidUI if the "
+                             "element is valid!");
+
+    
+
+
+
+
+
+
+
+    return (mForm && mForm->HasEverTriedInvalidSubmit()) ||
+           mValueChanged || GetValidityState(VALIDITY_STATE_CUSTOM_ERROR);
+  }
+
+  
+
+
   PRBool IsMutable() const;
 };
 
@@ -288,6 +314,7 @@ nsHTMLTextAreaElement::nsHTMLTextAreaElement(already_AddRefed<nsINodeInfo> aNode
     mDoneAddingChildren(!aFromParser),
     mInhibitStateRestoration(!!(aFromParser & FROM_PARSER_FRAGMENT)),
     mDisabledChanged(PR_FALSE),
+    mCanShowInvalidUI(PR_TRUE),
     mState(new nsTextEditorState(this))
 {
   AddMutationObserver(this);
@@ -730,15 +757,31 @@ nsHTMLTextAreaElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
     mHandlingSelect = PR_FALSE;
   }
 
-  if (HasAttr(kNameSpaceID_None, nsGkAtoms::placeholder) &&
+  if (aVisitor.mEvent->message == NS_FOCUS_CONTENT ||
+      aVisitor.mEvent->message == NS_BLUR_CONTENT) {
+    nsEventStates states;
+
+    if (aVisitor.mEvent->message == NS_FOCUS_CONTENT) {
       
       
-      (aVisitor.mEvent->message == NS_FOCUS_CONTENT ||
-       aVisitor.mEvent->message == NS_BLUR_CONTENT)) {
+      mCanShowInvalidUI = !IsValid() && ShouldShowInvalidUI();
+      
+      
+    } else { 
+      mCanShowInvalidUI = PR_TRUE;
+      states |= NS_EVENT_STATE_MOZ_UI_INVALID;
+    }
+
+    if (HasAttr(kNameSpaceID_None, nsGkAtoms::placeholder)) {
+      
+      
+      states |= NS_EVENT_STATE_MOZ_PLACEHOLDER;
+    }
+
     nsIDocument* doc = GetCurrentDoc();
     if (doc) {
       MOZ_AUTO_DOC_UPDATE(doc, UPDATE_CONTENT_STATE, PR_TRUE);
-      doc->ContentStatesChanged(this, nsnull, NS_EVENT_STATE_MOZ_PLACEHOLDER);
+      doc->ContentStatesChanged(this, nsnull, states);
     }
   }
 
@@ -1022,8 +1065,7 @@ nsHTMLTextAreaElement::IntrinsicState() const
       
       
       
-      if ((mForm && mForm->HasEverTriedInvalidSubmit()) ||
-          (mValueChanged || GetValidityState(VALIDITY_STATE_CUSTOM_ERROR))) {
+      if (mCanShowInvalidUI && ShouldShowInvalidUI()) {
         state |= NS_EVENT_STATE_MOZ_UI_INVALID;
       }
     }

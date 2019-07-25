@@ -45,11 +45,11 @@
 #include "nsITextControlElement.h"
 #include "nsIPhonetic.h"
 #include "nsIDOMNSEditableElement.h"
-
 #include "nsTextEditorState.h"
 #include "nsCOMPtr.h"
 #include "nsIConstraintValidation.h"
 #include "nsDOMFile.h"
+#include "nsHTMLFormElement.h" 
 
 
 
@@ -66,6 +66,7 @@
 #define BF_CHECKED_IS_TOGGLED 9
 #define BF_INDETERMINATE 10
 #define BF_INHIBIT_RESTORATION 11
+#define BF_CAN_SHOW_INVALID_UI 12
 
 #define GET_BOOLBIT(bitfield, field) (((bitfield) & (0x01 << (field))) \
                                         ? PR_TRUE : PR_FALSE)
@@ -532,6 +533,44 @@ protected:
 
 
   nsresult SetDefaultValueAsValue();
+
+  
+
+
+
+
+
+
+  bool ShouldShowInvalidUI() const {
+    NS_ASSERTION(!IsValid(), "You should not call ShouldShowInvalidUI if the "
+                             "element is valid!");
+
+    
+
+
+
+
+
+
+
+    if ((mForm && mForm->HasEverTriedInvalidSubmit()) ||
+        GetValidityState(VALIDITY_STATE_CUSTOM_ERROR)) {
+      return true;
+    }
+
+    switch (GetValueMode()) {
+      case VALUE_MODE_DEFAULT:
+        return true;
+      case VALUE_MODE_DEFAULT_ON:
+        return GetCheckedChanged();
+      case VALUE_MODE_VALUE:
+      case VALUE_MODE_FILENAME:
+        return GET_BOOLBIT(mBitField, BF_VALUE_CHANGED);
+      default:
+        NS_NOTREACHED("We should not be there: there are no other modes.");
+        return false;
+    }
+  }
 
   nsCOMPtr<nsIControllers> mControllers;
 
