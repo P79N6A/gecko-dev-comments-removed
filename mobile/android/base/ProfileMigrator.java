@@ -523,7 +523,9 @@ public class ProfileMigrator {
                 
                 
                 
-                Set<Long> processedBookmarks = new HashSet<Long>();
+                
+                Set<Long> processedBookmarks = new HashSet<Long>(mRerootMap.keySet());
+
                 int iterations = 0;
                 do {
                     
