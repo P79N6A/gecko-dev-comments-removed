@@ -87,9 +87,7 @@ XPCOMUtils.defineLazyGetter(this, "gTabViewFrame", function() {
 
 window.Point = function(a, y) {
   if (Utils.isPoint(a)) {
-    
     this.x = a.x;
-    
     this.y = a.y;
   } else {
     this.x = (Utils.isNumber(a) ? a : 0);
@@ -120,16 +118,9 @@ window.Point.prototype = {
 window.Rect = function(a, top, width, height) {
   
   if (Utils.isRect(a)) {
-    
     this.left = a.left;
-
-    
     this.top = a.top;
-
-    
     this.width = a.width;
-
-    
     this.height = a.height;
   } else {
     this.left = a;
@@ -140,24 +131,13 @@ window.Rect = function(a, top, width, height) {
 };
 
 window.Rect.prototype = {
-  
-  
-  get right() {
-    return this.left + this.width;
-  },
 
-  
+  get right() this.left + this.width,
   set right(value) {
     this.width = value - this.left;
   },
 
-  
-  
-  get bottom() {
-    return this.top + this.height;
-  },
-
-  
+  get bottom() this.top + this.height,
   set bottom(value) {
     this.height = value - this.top;
   },
@@ -165,16 +145,12 @@ window.Rect.prototype = {
   
   
   
-  get xRange() {
-    return new Range(this.left,this.right);
-  },
+  get xRange() new Range(this.left,this.right),
 
   
   
   
-  get yRange() {
-    return new Range(this.top,this.bottom);
-  },
+  get yRange() new Range(this.top,this.bottom),
 
   
   
@@ -310,6 +286,8 @@ window.Rect.prototype = {
     this.height = a.height;
   },
 
+  
+  
   
   
   
@@ -488,7 +466,7 @@ window.Subscribable.prototype = {
         return;
 
       var self = this;
-      var subsCopy = Utils.merge([], this.subscribers[eventName]);
+      var subsCopy = this.subscribers[eventName].concat();
       subsCopy.forEach(function(object) {
         object.callback(self, eventInfo);
       });
