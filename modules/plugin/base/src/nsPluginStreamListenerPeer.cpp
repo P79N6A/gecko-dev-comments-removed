@@ -1088,12 +1088,17 @@ nsresult nsPluginStreamListenerPeer::SetUpStreamListener(nsIRequest *request,
   
   
   
-  nsCOMPtr<nsIPluginStreamListener> streamListener;
-  if (!mPStreamListener && mPluginInstance) {
+  if (!mPStreamListener) {
+    if (!mPluginInstance) {
+      return NS_ERROR_FAILURE;
+    }
+
+    nsCOMPtr<nsIPluginStreamListener> streamListener;
     rv = mPluginInstance->NewStreamListener(nsnull, nsnull,
                                             getter_AddRefs(streamListener));
-    if (NS_FAILED(rv) || !streamListener)
+    if (NS_FAILED(rv) || !streamListener) {
       return NS_ERROR_FAILURE;
+    }
 
     mPStreamListener = static_cast<nsNPAPIPluginStreamListener*>(streamListener.get());
   }
@@ -1115,37 +1120,34 @@ nsresult nsPluginStreamListenerPeer::SetUpStreamListener(nsIRequest *request,
     
     
     
-    nsCOMPtr<nsIHTTPHeaderListener> listener = do_QueryInterface(streamListener);
-    if (listener) {
-      
-      PRUint32 statusNum;
-      if (NS_SUCCEEDED(httpChannel->GetResponseStatus(&statusNum)) &&
-          statusNum < 1000) {
-        
-        nsCString ver;
-        nsCOMPtr<nsIHttpChannelInternal> httpChannelInternal =
-        do_QueryInterface(channel);
-        if (httpChannelInternal) {
-          PRUint32 major, minor;
-          if (NS_SUCCEEDED(httpChannelInternal->GetResponseVersion(&major,
-                                                                   &minor))) {
-            ver = nsPrintfCString("/%lu.%lu", major, minor);
-          }
-        }
-        
-        
-        nsCString statusText;
-        if (NS_FAILED(httpChannel->GetResponseStatusText(statusText))) {
-          statusText = "OK";
-        }
-        
-        
-        nsPrintfCString status(100, "HTTP%s %lu %s", ver.get(), statusNum,
-                               statusText.get());
-        listener->StatusLine(status.get());
-      }
-    }
     
+    PRUint32 statusNum;
+    if (NS_SUCCEEDED(httpChannel->GetResponseStatus(&statusNum)) &&
+        statusNum < 1000) {
+      
+      nsCString ver;
+      nsCOMPtr<nsIHttpChannelInternal> httpChannelInternal =
+      do_QueryInterface(channel);
+      if (httpChannelInternal) {
+        PRUint32 major, minor;
+        if (NS_SUCCEEDED(httpChannelInternal->GetResponseVersion(&major,
+                                                                 &minor))) {
+          ver = nsPrintfCString("/%lu.%lu", major, minor);
+        }
+      }
+
+      
+      nsCString statusText;
+      if (NS_FAILED(httpChannel->GetResponseStatusText(statusText))) {
+        statusText = "OK";
+      }
+
+      
+      nsPrintfCString status(100, "HTTP%s %lu %s", ver.get(), statusNum,
+                             statusText.get());
+      static_cast<nsIHTTPHeaderListener*>(mPStreamListener)->StatusLine(status.get());
+    }
+
     
     httpChannel->VisitResponseHeaders(this);
     
