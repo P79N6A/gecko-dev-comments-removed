@@ -106,9 +106,16 @@ nsSVGInteger::GetBaseValueString(nsAString & aValueAsString)
 }
 
 void
-nsSVGInteger::SetBaseValue(int aValue,
-                           nsSVGElement *aSVGElement)
+nsSVGInteger::SetBaseValue(int aValue, nsSVGElement *aSVGElement)
 {
+  
+  
+  
+  
+  if (aValue == mBaseVal && mIsBaseSet) {
+    return;
+  }
+
   mBaseVal = aValue;
   mIsBaseSet = true;
   if (!mIsAnimated) {
@@ -117,7 +124,7 @@ nsSVGInteger::SetBaseValue(int aValue,
   else {
     aSVGElement->AnimationNeedsResample();
   }
-  aSVGElement->DidChangeInteger(mAttrEnum, true);
+  aSVGElement->DidChangeInteger(mAttrEnum);
 }
 
 void
