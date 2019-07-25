@@ -209,6 +209,9 @@ mjit::Compiler::jsop_binary_dblmath(JSOp op, FPRegisterID rfp, FPRegisterID lfp)
       case JSOP_MUL:
         stubcc.masm.mulDouble(rfp, lfp);
         break;
+      case JSOP_DIV:
+        stubcc.masm.divDouble(rfp, lfp);
+        break;
       default:
         JS_NOT_REACHED("unhandled double op.");
         break;
@@ -280,7 +283,7 @@ mjit::Compiler::jsop_binary(JSOp op, VoidStub stub)
 
 
 
-    if ((op == JSOP_DIV || op == JSOP_MOD) ||
+    if ((op == JSOP_MOD) ||
         (lhs->isTypeKnown() && (lhs->getTypeTag() > JSVAL_UPPER_INCL_TAG_OF_NUMBER_SET)) ||
         (rhs->isTypeKnown() && (rhs->getTypeTag() > JSVAL_UPPER_INCL_TAG_OF_NUMBER_SET)) 
 #if defined(JS_CPU_ARM)
@@ -302,7 +305,8 @@ mjit::Compiler::jsop_binary(JSOp op, VoidStub stub)
     }
 
     
-    bool canDoIntMath = !((rhs->isTypeKnown() && rhs->getTypeTag() < JSVAL_TAG_CLEAR) ||
+    bool canDoIntMath = op != JSOP_DIV &&
+                        !((rhs->isTypeKnown() && rhs->getTypeTag() < JSVAL_TAG_CLEAR) ||
                           (lhs->isTypeKnown() && lhs->getTypeTag() < JSVAL_TAG_CLEAR));
 
     frame.syncAllRegs(Registers::AvailRegs);
@@ -438,6 +442,7 @@ mjit::Compiler::jsop_binary(JSOp op, VoidStub stub)
     MaybeJump jmpRhsNotInt;
     MaybeJump jmpLhsNotInt;
     MaybeJump jmpOverflow;
+    MaybeJump jmpIntDiv;
     {
         
         if (rhsTypeRegNeedsLoad)
@@ -454,6 +459,9 @@ mjit::Compiler::jsop_binary(JSOp op, VoidStub stub)
 
         if (canDoIntMath)
             jsop_binary_intmath(op, &returnReg, jmpOverflow);
+
+        if (op == JSOP_DIV)
+           jmpIntDiv.setJump(masm.jump()); 
     }
     
 
@@ -481,7 +489,7 @@ mjit::Compiler::jsop_binary(JSOp op, VoidStub stub)
     MaybeJump jmpCvtPath1;
     Label lblCvtPath1 = stubcc.masm.label();
     {
-        if (canDoIntMath) {
+        if (canDoIntMath || op == JSOP_DIV) {
             
 
 
@@ -512,6 +520,8 @@ mjit::Compiler::jsop_binary(JSOp op, VoidStub stub)
         stubcc.linkExitDirect(jmpLhsNotInt.getJump(), lblCvtPath3);
     if (jmpOverflow.isSet())
         stubcc.linkExitDirect(jmpOverflow.getJump(), lblCvtPath1);
+    if (jmpIntDiv.isSet())
+        stubcc.linkExitDirect(jmpIntDiv.getJump(), lblCvtPath1);
 
     if (jmpRhsNotDbl.isSet())
         jmpRhsNotDbl.getJump().linkTo(rhsSyncTarget, &stubcc.masm);
