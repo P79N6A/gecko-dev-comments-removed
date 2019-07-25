@@ -211,7 +211,6 @@ private:
     PRPackedBool                    mHasRequestBody;
     PRPackedBool                    mSSLConnectFailed;
     PRPackedBool                    mHttpResponseMatched;
-    PRPackedBool                    mPreserveStream;
 
     
     

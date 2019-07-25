@@ -45,9 +45,6 @@ class nsHttpRequestHead;
 class nsHttpResponseHead;
 class nsHttpConnectionInfo;
 class nsHttpConnection;
-class nsISocketTransport;
-class nsIAsyncInputStream;
-class nsIAsyncOutputStream;
 
 
 
@@ -97,12 +94,6 @@ public:
     virtual void GetConnectionInfo(nsHttpConnectionInfo **) = 0;
 
     
-    
-    virtual nsresult TakeTransport(nsISocketTransport **,
-                                   nsIAsyncInputStream **,
-                                   nsIAsyncOutputStream **) = 0;
-
-    
     virtual void GetSecurityInfo(nsISupports **) = 0;
 
     
@@ -132,9 +123,6 @@ public:
     nsresult ResumeRecv(); \
     void CloseTransaction(nsAHttpTransaction *, nsresult); \
     void GetConnectionInfo(nsHttpConnectionInfo **); \
-    nsresult TakeTransport(nsISocketTransport **,    \
-                           nsIAsyncInputStream **,   \
-                           nsIAsyncOutputStream **); \
     void GetSecurityInfo(nsISupports **); \
     PRBool IsPersistent(); \
     PRBool IsReused(); \
