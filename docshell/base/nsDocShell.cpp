@@ -9642,13 +9642,33 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
 
     nsresult rv;
 
-    nsCOMPtr<nsIDocument> document = do_GetInterface(GetAsSupports(this));
-    NS_ENSURE_TRUE(document, NS_ERROR_FAILURE);
-
+    
+    
+    
+    
+    
     
     nsString dataStr;
-    rv = StringifyJSValVariant(aData, dataStr);
-    NS_ENSURE_SUCCESS(rv, rv);
+    {
+        nsCOMPtr<nsIDocument> origDocument =
+            do_GetInterface(GetAsSupports(this));
+        if (!origDocument)
+            return NS_ERROR_DOM_SECURITY_ERR;
+        nsCOMPtr<nsIPrincipal> origPrincipal = origDocument->NodePrincipal();
+
+        rv = StringifyJSValVariant(aData, dataStr);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        nsCOMPtr<nsIDocument> newDocument =
+            do_GetInterface(GetAsSupports(this));
+        if (!newDocument)
+            return NS_ERROR_DOM_SECURITY_ERR;
+        nsCOMPtr<nsIPrincipal> newPrincipal = newDocument->NodePrincipal();
+
+        PRBool principalsEqual = PR_FALSE;
+        origPrincipal->Equals(newPrincipal, &principalsEqual);
+        NS_ENSURE_TRUE(principalsEqual, NS_ERROR_DOM_SECURITY_ERR);
+    }
 
     
     
@@ -9662,6 +9682,9 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
     }
     NS_ENSURE_TRUE(dataStr.Length() <= (PRUint32)maxStateObjSize,
                    NS_ERROR_ILLEGAL_VALUE);
+
+    nsCOMPtr<nsIDocument> document = do_GetInterface(GetAsSupports(this));
+    NS_ENSURE_TRUE(document, NS_ERROR_FAILURE);
 
     
     PRBool equalURIs = PR_TRUE;
