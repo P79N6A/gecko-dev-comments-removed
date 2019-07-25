@@ -1653,7 +1653,7 @@ JS_SetNativeStackQuota(JSContext *cx, size_t stackSize);
 extern JS_PUBLIC_API(void)
 JS_SetScriptStackQuota(JSContext *cx, size_t quota);
 
-#define JS_DEFAULT_SCRIPT_STACK_QUOTA   ((size_t) 0x2000000)
+#define JS_DEFAULT_SCRIPT_STACK_QUOTA   ((size_t) 0x8000000)
 
 
 
@@ -2468,8 +2468,7 @@ JS_CompileFileHandleForPrincipals(JSContext *cx, JSObject *obj,
 extern JS_PUBLIC_API(JSScript *)
 JS_CompileFileHandleForPrincipalsVersion(JSContext *cx, JSObject *obj,
                                          const char *filename, FILE *fh,
-                                         JSPrincipals *principals,
-                                         JSVersion version);
+                                         JSPrincipals *principals);
 
 
 
