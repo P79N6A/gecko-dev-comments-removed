@@ -369,8 +369,12 @@ WifiGeoPositionProvider.prototype = {
                     
                     LOG("New Access Token: " + newAccessToken + "\n" + accessTokenPrefName);
                     
-                    prefService.setIntPref(accessTokenPrefName + ".time", nowInSeconds());
-                    prefService.setCharPref(accessTokenPrefName, newAccessToken);
+                    try {
+                        prefService.setIntPref(accessTokenPrefName + ".time", nowInSeconds());
+                        prefService.setCharPref(accessTokenPrefName, newAccessToken);
+                    } catch (x) {
+                        
+                    }
                 }
             }
 
