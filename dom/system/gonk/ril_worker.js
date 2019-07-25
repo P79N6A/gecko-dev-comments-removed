@@ -1537,6 +1537,23 @@ let RIL = {
 
 
 
+
+
+  _processSmsStatusReport: function _processSmsStatusReport(length) {
+    let message = this._processReceivedSms(length);
+    if (!message) {
+      return PDU_FCS_UNSPECIFIED;
+    }
+
+    return PDU_FCS_OK;
+  },
+
+  
+
+
+
+
+
   _processReceivedSmsSegment: function _processReceivedSmsSegment(original) {
     let hash = original.sender + ":" + original.header.segmentRef;
     let seq = original.header.segmentSeq;
@@ -2149,8 +2166,8 @@ RIL[UNSOLICITED_RESPONSE_NEW_SMS] = function UNSOLICITED_RESPONSE_NEW_SMS(length
   this.acknowledgeSMS(result == PDU_FCS_OK, result);
 };
 RIL[UNSOLICITED_RESPONSE_NEW_SMS_STATUS_REPORT] = function UNSOLICITED_RESPONSE_NEW_SMS_STATUS_REPORT(length) {
-  let info = Buf.readStringList();
-  
+  let result = this._processSmsStatusReport(length);
+  this.acknowledgeSMS(result == PDU_FCS_OK, result);
 };
 RIL[UNSOLICITED_RESPONSE_NEW_SMS_ON_SIM] = function UNSOLICITED_RESPONSE_NEW_SMS_ON_SIM(length) {
   let info = Buf.readUint32List();
@@ -2869,17 +2886,69 @@ let GsmPDUHelper = {
 
 
 
+  readExtraParams: function readExtraParams(msg) {
+    
+    
+    
+    if (Buf.readAvailable <= 4) {
+      return;
+    }
+
+    
+    let pi;
+    do {
+      
+      
+      
+      
+      pi = this.readHexOctet();
+    } while (pi & PDU_PI_EXTENSION);
+
+    
+    
+    
+    msg.dcs = 0;
+
+    
+    if (pi & PDU_PI_PROTOCOL_IDENTIFIER) {
+      msg.pid = this.readHexOctet();
+    }
+    
+    if (pi & PDU_PI_DATA_CODING_SCHEME) {
+      msg.dcs = this.readHexOctet();
+    }
+    
+    if (pi & PDU_PI_USER_DATA_LENGTH) {
+      let userDataLength = this.readHexOctet();
+      this.readUserData(msg, userDataLength);
+    }
+  },
+
+  
+
+
+
+
+
   readMessage: function readMessage() {
     
     let msg = {
-      SMSC:      null,
-      mti:       null,
-      udhi:      null,
-      sender:    null,
-      pid:       null,
-      dcs:       null,
-      body:      null,
-      timestamp: null
+      
+      
+      
+      
+      SMSC:      null, 
+      mti:       null, 
+      udhi:      null, 
+      sender:    null, 
+      recipient: null, 
+      pid:       null, 
+      dcs:       null, 
+      body:      null, 
+      timestamp: null, 
+      status:    null, 
+      scts:      null, 
+      dt:        null, 
     };
 
     
@@ -2907,6 +2976,8 @@ let GsmPDUHelper = {
         
       case PDU_MTI_SMS_DELIVER:
         return this.readDeliverMessage(msg);
+      case PDU_MTI_SMS_STATUS_REPORT:
+        return this.readStatusReportMessage(msg);
       default:
         return null;
     }
@@ -2935,6 +3006,30 @@ let GsmPDUHelper = {
     if (userDataLength > 0) {
       this.readUserData(msg, userDataLength);
     }
+
+    return msg;
+  },
+
+  
+
+
+
+
+
+  readStatusReportMessage: function readStatusReportMessage(msg) {
+    
+    msg.messageRef = this.readHexOctet();
+    
+    let recipientAddressLength = this.readHexOctet();
+    msg.recipient = this.readAddress(recipientAddressLength);
+    
+    msg.scts = this.readTimestamp();
+    
+    msg.dt = this.readTimestamp();
+    
+    msg.status = this.readHexOctet();
+
+    this.readExtraParams(msg);
 
     return msg;
   },
