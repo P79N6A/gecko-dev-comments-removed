@@ -236,7 +236,6 @@ public:
       mDidNotifyDataEnded(false),
       mIsSeekable(false), mCacheSuspended(false),
       mChannelEnded(false),
-      mUsingNullPrincipal(false),
       mChannelOffset(0), mStreamLength(-1),  
       mStreamOffset(0), mPlaybackBytesPerSecond(10000),
       mPinCount(0), mCurrentMode(MODE_PLAYBACK),
@@ -273,6 +272,7 @@ public:
     return !mClosed &&
       (!mDidNotifyDataEnded || NS_SUCCEEDED(mNotifyDataEndedStatus));
   }
+  
   
   nsIPrincipal* GetCurrentPrincipal() { return mPrincipal; }
   
@@ -490,9 +490,6 @@ private:
   bool mCacheSuspended;
   
   bool mChannelEnded;
-  
-  
-  bool mUsingNullPrincipal;
   
   PRInt64      mChannelOffset;
   

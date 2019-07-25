@@ -1386,6 +1386,23 @@ public:
 
 
 
+  static bool CombineResourcePrincipals(nsCOMPtr<nsIPrincipal>* aResourcePrincipal,
+                                        nsIPrincipal* aExtraPrincipal);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
