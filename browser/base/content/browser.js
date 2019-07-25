@@ -585,27 +585,9 @@ const gPopupBlockerObserver = {
 
   dontShowMessage: function ()
   {
-#if 0 
-    
     var showMessage = gPrefService.getBoolPref("privacy.popups.showBrowserMessage");
-    var firstTime = gPrefService.getBoolPref("privacy.popups.firstTime");
-
-    
-    
-    
-    if (showMessage && firstTime)
-      this._displayPageReportFirstTime();
-
     gPrefService.setBoolPref("privacy.popups.showBrowserMessage", !showMessage);
-#endif
-
     gBrowser.getNotificationBox().removeCurrentNotification();
-  },
-
-  _displayPageReportFirstTime: function ()
-  {
-    window.openDialog("chrome://browser/content/pageReportFirstTime.xul", "_blank",
-                      "dependent");
   }
 };
 
@@ -3993,18 +3975,29 @@ var XULBrowserWindow = {
     if (originalTarget != "" || !isAppTab)
       return originalTarget;
 
-    let docURI = linkNode.ownerDocument.documentURIObject;
+    
+    
+    let linkHost;
+    let docHost;
     try {
-      let docURIDomain = Services.eTLD.getBaseDomain(docURI, 0);
-      let linkURIDomain = Services.eTLD.getBaseDomain(linkURI, 0);
-      
-      
-      if (docURIDomain != linkURIDomain)
-        return "_blank";
+      linkHost = linkURI.host;
+      docHost = linkNode.ownerDocument.documentURIObject.host;
     } catch(e) {
       
+      
+      return originalTarget;
     }
-    return originalTarget;
+
+    if (docHost == linkHost)
+      return originalTarget;
+
+    
+    let [longHost, shortHost] =
+      linkHost.length > docHost.length ? [linkHost, docHost] : [docHost, linkHost];
+    if (longHost == "www." + shortHost)
+      return originalTarget;
+
+    return "_blank";
   },
 
   onLinkIconAvailable: function (aIconURL) {
