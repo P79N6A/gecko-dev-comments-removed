@@ -1261,6 +1261,9 @@ private:
 
 
 
+
+
+
   nsIContent* GetContentInThisDocument(nsIFrame* aFrame) const;
 
   
