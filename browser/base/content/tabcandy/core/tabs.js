@@ -171,22 +171,6 @@ window.TabsManager = iQ.extend(new Subscribable(), {
       },
 
       
-      open: function open(url, inBackground) {
-        if (typeof(inBackground) == 'undefined')
-          inBackground = false;
-
-        var browserWindow = windows.focused;
-        
-        
-
-        var tab = browserWindow.addTab(url);
-        if (!inBackground)
-          browserWindow.selectedTab = tab; 
-
-        return tab;
-      },
-
-      
       toString: function toString() {
         return "[Tabs]";
       }
@@ -275,13 +259,6 @@ window.TabsManager = iQ.extend(new Subscribable(), {
         function(eventType) {
           tabbrowser.tabContainer.addEventListener(eventType, onEvent, true);
         });
-
-      this.addTab = function addTab(url) {
-        var chromeTab = tabbrowser.addTab(url);
-        
-        
-        return chromeTab.tabcandyBrowserTab;
-      };
 
       this.getFocusedTab = function getFocusedTab() {
         return tabbrowser.selectedTab.tabcandyBrowserTab;
