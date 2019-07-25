@@ -371,6 +371,30 @@ class LBitOp : public LInstructionHelper<1, 2, 0>
 
 
 
+class LShiftOp : public LInstructionHelper<1, 2, 0>
+{
+    MInstruction *mir_;
+    JSOp op_;
+
+  public:
+    LIR_HEADER(ShiftOp);
+
+    LShiftOp(MInstruction *mir, JSOp op)
+      : mir_(mir),
+        op_(op)
+    { }
+
+    JSOp bitop() {
+        return op_;
+    }
+
+    MInstruction *mir() {
+        return mir_;
+    }
+};
+
+
+
 class LReturn : public LInstructionHelper<0, BOX_PIECES, 0>
 {
   public:
