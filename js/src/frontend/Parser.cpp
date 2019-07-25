@@ -123,7 +123,7 @@ Parser::Parser(JSContext *cx, JSPrincipals *prin, StackFrame *cfp, bool foldCons
     principals(NULL),
     callerFrame(cfp),
     callerVarObj(cfp ? &cfp->varObj() : NULL),
-    nodeList(NULL),
+    allocator(cx),
     functionCount(0),
     traceListHead(NULL),
     tc(NULL),
@@ -300,7 +300,7 @@ Parser::cleanFunctionList(FunctionBox **funboxHead)
 
 
             *link = box->siblings;
-            AddNodeToFreeList(box->node, this);
+            allocator.freeNode(box->node);
         } else {
             
 
@@ -835,7 +835,7 @@ MakeDefIntoUse(Definition *dn, ParseNode *pn, JSAtom *atom, TreeContext *tc)
         dn->setOp((js_CodeSpec[dn->getOp()].format & JOF_SET) ? JSOP_SETNAME : JSOP_NAME);
     } else if (dn->kind() == Definition::FUNCTION) {
         JS_ASSERT(dn->isOp(JSOP_NOP));
-        PrepareNodeForMutation(dn, tc);
+        tc->parser->prepareNodeForMutation(dn);
         dn->setKind(TOK_NAME);
         dn->setArity(PN_NAME);
         dn->pn_atom = atom;
@@ -2075,7 +2075,7 @@ Parser::functionDef(PropertyName *funName, FunctionType type, FunctionSyntaxKind
                 fn->pn_cookie.makeFree();
 
                 tc->lexdeps->remove(funName);
-                RecycleTree(pn, tc);
+                freeTree(pn);
                 pn = fn;
             }
 
@@ -6253,7 +6253,7 @@ Parser::memberExpr(JSBool allowCallSyntax)
                 pn2->setOp(JSOP_GETPROP);
                 pn2->pn_expr = pn;
                 pn2->pn_atom = pn3->pn_atom;
-                RecycleTree(pn3, tc);
+                freeTree(pn3);
             } else {
                 if (tt == TOK_LP) {
                     pn2->setKind(TOK_FILTER);
@@ -6879,7 +6879,7 @@ Parser::xmlElementOrList(JSBool allowList)
             
             if (pn2->isKind(TOK_XMLSTAGO)) {
                 pn->makeEmpty();
-                RecycleTree(pn, tc);
+                freeTree(pn);
                 pn = pn2;
             } else {
                 JS_ASSERT(pn2->isKind(TOK_XMLNAME) ||

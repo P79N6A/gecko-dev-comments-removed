@@ -40,9 +40,6 @@
 
 #include "frontend/ParseNode.h"
 
-#include "frontend/BytecodeGenerator.h"
-#include "frontend/Parser.h"
-
 #include "jsscriptinlines.h"
 
 #include "frontend/ParseMaps-inl.h"
@@ -154,10 +151,10 @@ FunctionBox::shouldUnbrand(uintN methods, uintN slowMethods) const
 
 
 void
-AddNodeToFreeList(ParseNode *pn, Parser *parser)
+ParseNodeAllocator::freeNode(ParseNode *pn)
 {
     
-    JS_ASSERT(pn != parser->nodeList);
+    JS_ASSERT(pn != freelist);
 
     
 
@@ -169,15 +166,15 @@ AddNodeToFreeList(ParseNode *pn, Parser *parser)
     JS_ASSERT(!pn->isDefn());
 
     if (pn->isArity(PN_NAMESET) && pn->pn_names.hasMap())
-        pn->pn_names.releaseMap(parser->context);
+        pn->pn_names.releaseMap(cx);
 
 #ifdef DEBUG
     
     memset(pn, 0xab, sizeof(*pn));
 #endif
 
-    pn->pn_next = parser->nodeList;
-    parser->nodeList = pn;
+    pn->pn_next = freelist;
+    freelist = pn;
 }
 
 
@@ -302,7 +299,7 @@ PushNodeChildren(ParseNode *pn, NodeStack *stack)
 
 
 void
-PrepareNodeForMutation(ParseNode *pn, TreeContext *tc)
+ParseNodeAllocator::prepareNodeForMutation(ParseNode *pn)
 {
     if (!pn->isArity(PN_NULLARY)) {
         if (pn->isArity(PN_FUNC)) {
@@ -333,7 +330,7 @@ PrepareNodeForMutation(ParseNode *pn, TreeContext *tc)
         while (!stack.empty()) {
             pn = stack.pop();
             if (PushNodeChildren(pn, &stack))
-                AddNodeToFreeList(pn, tc->parser);
+                freeNode(pn);
         }
     }
 }
@@ -349,7 +346,7 @@ PrepareNodeForMutation(ParseNode *pn, TreeContext *tc)
 
 
 ParseNode *
-RecycleTree(ParseNode *pn, TreeContext *tc)
+ParseNodeAllocator::freeTree(ParseNode *pn)
 {
     if (!pn)
         return NULL;
@@ -359,7 +356,7 @@ RecycleTree(ParseNode *pn, TreeContext *tc)
     NodeStack stack;
     for (;;) {
         if (PushNodeChildren(pn, &stack))
-            AddNodeToFreeList(pn, tc->parser);
+            freeNode(pn);
         if (stack.empty())
             break;
         pn = stack.pop();
@@ -373,14 +370,13 @@ RecycleTree(ParseNode *pn, TreeContext *tc)
 
 
 void *
-AllocNodeUninitialized(Parser *parser)
+ParseNodeAllocator::allocNode()
 {
-    if (ParseNode *pn = parser->nodeList) {
-        parser->nodeList = pn->pn_next;
+    if (ParseNode *pn = freelist) {
+        freelist = pn->pn_next;
         return pn;
     }
 
-    JSContext *cx = parser->context;
     void *p = cx->tempLifoAlloc().alloc(sizeof (ParseNode));
     if (!p)
         js_ReportOutOfMemory(cx);
@@ -392,18 +388,9 @@ AllocNodeUninitialized(Parser *parser)
 ParseNode *
 ParseNode::create(ParseNodeArity arity, TreeContext *tc)
 {
-    const Token &tok = tc->parser->tokenStream.currentToken();
-    return create(arity, tok.type, JSOP_NOP, tok.pos, tc);
-}
-
-ParseNode *
-ParseNode::create(ParseNodeArity arity, TokenKind type, JSOp op, const TokenPos &pos,
-                  TreeContext *tc)
-{
-    void *p = AllocNodeUninitialized(tc->parser);
-    if (!p)
-        return NULL;
-    return new(p) ParseNode(type, op, arity, pos);
+    Parser *parser = tc->parser;
+    const Token &tok = parser->tokenStream.currentToken();
+    return parser->new_<ParseNode>(tok.type, JSOP_NOP, arity, tok.pos);
 }
 
 ParseNode *
@@ -417,9 +404,7 @@ ParseNode::newBinaryOrAppend(TokenKind tt, JSOp op, ParseNode *left, ParseNode *
 
 
 
-    if (left->isKind(tt) &&
-        left->isOp(op) &&
-        (js_CodeSpec[op].format & JOF_LEFTASSOC)) {
+    if (left->isKind(tt) && left->isOp(op) && (js_CodeSpec[op].format & JOF_LEFTASSOC)) {
         if (left->pn_arity != PN_LIST) {
             ParseNode *pn1 = left->pn_left, *pn2 = left->pn_right;
             left->setArity(PN_LIST);
@@ -458,10 +443,11 @@ ParseNode::newBinaryOrAppend(TokenKind tt, JSOp op, ParseNode *left, ParseNode *
     if (tt == TOK_PLUS &&
         left->isKind(TOK_NUMBER) &&
         right->isKind(TOK_NUMBER) &&
-        tc->parser->foldConstants) {
+        tc->parser->foldConstants)
+    {
         left->pn_dval += right->pn_dval;
         left->pn_pos.end = right->pn_pos.end;
-        RecycleTree(right, tc);
+        tc->freeTree(right);
         return left;
     }
 

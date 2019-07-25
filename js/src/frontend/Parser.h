@@ -106,7 +106,7 @@ struct Parser : private AutoGCRooter
     JSPrincipals        *principals;    
     StackFrame          *const callerFrame;  
     JSObject            *const callerVarObj; 
-    ParseNode           *nodeList;      
+    ParseNodeAllocator  allocator;
     uint32              functionCount;  
     ObjectBox           *traceListHead; 
     TreeContext         *tc;            
@@ -183,10 +183,14 @@ struct Parser : private AutoGCRooter
   private:
     void *allocParseNode(size_t size) {
         JS_ASSERT(size == sizeof(ParseNode));
-        return AllocNodeUninitialized(this);
+        return allocator.allocNode();
     }
 
   public:
+    ParseNode *freeTree(ParseNode *pn) { return allocator.freeTree(pn); }
+    void prepareNodeForMutation(ParseNode *pn) { return allocator.prepareNodeForMutation(pn); }
+
+    
     JS_DECLARE_NEW_METHODS(allocParseNode,);
 
   private:
