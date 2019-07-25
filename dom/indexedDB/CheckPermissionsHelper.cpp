@@ -77,6 +77,11 @@ GetIndexedDBPermissions(const nsACString& aASCIIOrigin,
     return nsIPermissionManager::DENY_ACTION;
   }
 
+  
+  if (!aWindow) {
+    return nsIPermissionManager::ALLOW_ACTION;
+  }
+
   nsCOMPtr<nsIScriptObjectPrincipal> sop(do_QueryInterface(aWindow));
   NS_ENSURE_TRUE(sop, nsIPermissionManager::DENY_ACTION);
 
