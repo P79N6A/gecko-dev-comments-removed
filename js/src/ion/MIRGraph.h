@@ -344,6 +344,32 @@ class MBasicBlock : public TempObject
         return start_;
     }
 
+    MBasicBlock *immediateDominator() const {
+        return immediateDominator_;
+    }
+
+    void setImmediateDominator(MBasicBlock *dom) {
+        immediateDominator_ = dom;
+    }
+
+    size_t numImmediatelyDominatedBlocks() const {
+        return immediatelyDominated_.length();
+    }
+
+    MBasicBlock *getImmediatelyDominatedBlock(size_t i) const {
+        return immediatelyDominated_[i];
+    }
+
+    size_t numDominated() const {
+        return numDominated_;
+    }
+
+    void addNumDominated(size_t n) {
+        numDominated_ += n;
+    }
+
+    bool addImmediatelyDominatedBlock(MBasicBlock *child);
+
     
     
     
@@ -402,6 +428,10 @@ class MBasicBlock : public TempObject
 
     
     bool mark_;
+
+    Vector<MBasicBlock *, 1, IonAllocPolicy> immediatelyDominated_;
+    MBasicBlock *immediateDominator_;
+    size_t numDominated_;
 };
 
 class MDefinitionIterator

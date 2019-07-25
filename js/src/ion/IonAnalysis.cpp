@@ -449,6 +449,90 @@ ion::ReorderBlocks(MIRGraph &graph)
     return true;
 }
 
+
+static MBasicBlock *
+IntersectDominators(MBasicBlock *block1, MBasicBlock *block2)
+{
+    MBasicBlock *finger1 = block1;
+    MBasicBlock *finger2 = block2;
+
+    while (finger1->id() != finger2->id()) {
+        
+        
+        
+        while (finger1->id() > finger2->id())
+            finger1 = finger1->immediateDominator();
+
+        while (finger2->id() > finger1->id())
+            finger2 = finger2->immediateDominator();
+    }
+    return finger1;
+}
+
+static void
+ComputeImmediateDominators(MIRGraph &graph)
+{
+
+    if (graph.numBlocks() == 0)
+        return;
+
+    MBasicBlock *startBlock = graph.getBlock(0);
+    startBlock->setImmediateDominator(startBlock);
+
+    bool changed = true;
+
+    while (changed) {
+        changed = false;
+        
+        for (size_t i = 1; i < graph.numBlocks(); i++) {
+            MBasicBlock *block = graph.getBlock(i);
+
+            if (block->numPredecessors() == 0)
+                continue;
+
+            MBasicBlock *newIdom = block->getPredecessor(0);
+
+            for (size_t i = 1; i < block->numPredecessors(); i++) {
+                MBasicBlock *pred = graph.getBlock(i);
+                if (pred->immediateDominator() != NULL)
+                    newIdom = IntersectDominators(pred, newIdom);
+            }
+
+            if (block->immediateDominator() != newIdom) {
+                block->setImmediateDominator(newIdom);
+                changed = true;
+            }
+        }
+    }
+}
+
+bool
+ion::BuildDominatorTree(MIRGraph &graph)
+{
+    if (graph.numBlocks() == 0)
+        return true;
+
+    ComputeImmediateDominators(graph);
+
+    
+    
+    
+    
+    
+    for (size_t i = graph.numBlocks() - 1; i > 0; i--) { 
+        MBasicBlock *child = graph.getBlock(i);
+        MBasicBlock *parent = child->immediateDominator();
+
+        if (!parent->addImmediatelyDominatedBlock(child))
+            return false;
+
+        
+        parent->addNumDominated(child->numDominated() + 1);
+    }
+
+    return true;
+}
+
 bool
 ion::BuildPhiReverseMapping(MIRGraph &graph)
 {
