@@ -543,7 +543,17 @@ function myExecCommand(command, showUi, value, range) {
 
 		
 		
-		commands[command].action(value);
+		var ret = commands[command].action(value);
+
+		
+		if (ret !== true && ret !== false) {
+			throw "execCommand() didn't return true or false: " + ret;
+		}
+
+		
+		if (ret === false) {
+			return false;
+		}
 
 		
 		return true;
@@ -3081,11 +3091,14 @@ commands.backcolor = {
 		if (!/^(rgba?|hsla?)\(.*\)$/.test(value)
 		&& !parseSimpleColor(value)
 		&& value.toLowerCase() != "transparent") {
-			return;
+			return false;
 		}
 
 		
 		setSelectionValue("backcolor", value);
+
+		
+		return true;
 	}, standardInlineValueCommand: true, relevantCssProperty: "backgroundColor",
 	equivalentValues: function(val1, val2) {
 		
@@ -3102,11 +3115,13 @@ commands.bold = {
 	action: function() {
 		
 		
+		
 		if (myQueryCommandState("bold")) {
 			setSelectionValue("bold", "normal");
 		} else {
 			setSelectionValue("bold", "bold");
 		}
+		return true;
 	}, inlineCommandActivatedValues: ["bold", "600", "700", "800", "900"],
 	relevantCssProperty: "fontWeight",
 	equivalentValues: function(val1, val2) {
@@ -3127,7 +3142,7 @@ commands.createlink = {
 	action: function(value) {
 		
 		if (value === "") {
-			return;
+			return false;
 		}
 
 		
@@ -3148,6 +3163,9 @@ commands.createlink = {
 
 		
 		setSelectionValue("createlink", value);
+
+		
+		return true;
 	}
 };
 
@@ -3158,6 +3176,7 @@ commands.fontname = {
 	action: function(value) {
 		
 		setSelectionValue("fontname", value);
+		return true;
 	}, standardInlineValueCommand: true, relevantCssProperty: "fontFamily"
 };
 
@@ -3242,11 +3261,14 @@ commands.fontsize = {
 	action: function(value) {
 		value = normalizeFontSize(value);
 		if (value === null) {
-			return;
+			return false;
 		}
 
 		
 		setSelectionValue("fontsize", value);
+
+		
+		return true;
 	}, indeterm: function() {
 		
 		
@@ -3366,11 +3388,14 @@ commands.forecolor = {
 		if (!/^(rgba?|hsla?)\(.*\)$/.test(value)
 		&& !parseSimpleColor(value)
 		&& value.toLowerCase() != "transparent") {
-			return;
+			return false;
 		}
 
 		
 		setSelectionValue("forecolor", value);
+
+		
+		return true;
 	}, standardInlineValueCommand: true, relevantCssProperty: "color",
 	equivalentValues: function(val1, val2) {
 		
@@ -3400,11 +3425,14 @@ commands.hilitecolor = {
 		if (!/^(rgba?|hsla?)\(.*\)$/.test(value)
 		&& !parseSimpleColor(value)
 		&& value.toLowerCase() != "transparent") {
-			return;
+			return false;
 		}
 
 		
 		setSelectionValue("hilitecolor", value);
+
+		
+		return true;
 	}, indeterm: function() {
 		
 		
@@ -3432,11 +3460,13 @@ commands.italic = {
 	action: function() {
 		
 		
+		
 		if (myQueryCommandState("italic")) {
 			setSelectionValue("italic", "normal");
 		} else {
 			setSelectionValue("italic", "italic");
 		}
+		return true;
 	}, inlineCommandActivatedValues: ["italic", "oblique"],
 	relevantCssProperty: "fontStyle"
 };
@@ -3545,6 +3575,9 @@ commands.removeformat = {
 		].forEach(function(command) {
 			setSelectionValue(command, null);
 		});
+
+		
+		return true;
 	}
 };
 
@@ -3561,6 +3594,7 @@ commands.strikethrough = {
 		} else {
 			setSelectionValue("strikethrough", "line-through");
 		}
+		return true;
 	}, inlineCommandActivatedValues: ["line-through"]
 };
 
@@ -3579,6 +3613,9 @@ commands.subscript = {
 		if (!state) {
 			setSelectionValue("subscript", "subscript");
 		}
+
+		
+		return true;
 	}, indeterm: function() {
 		
 		
@@ -3609,6 +3646,9 @@ commands.superscript = {
 		if (!state) {
 			setSelectionValue("superscript", "superscript");
 		}
+
+		
+		return true;
 	}, indeterm: function() {
 		
 		
@@ -3630,11 +3670,13 @@ commands.underline = {
 	action: function() {
 		
 		
+		
 		if (myQueryCommandState("underline")) {
 			setSelectionValue("underline", null);
 		} else {
 			setSelectionValue("underline", "underline");
 		}
+		return true;
 	}, inlineCommandActivatedValues: ["underline"]
 };
 
@@ -3679,6 +3721,9 @@ commands.unlink = {
 		for (var i = 0; i < hyperlinks.length; i++) {
 			clearValue(hyperlinks[i], "unlink");
 		}
+
+		
+		return true;
 	}
 };
 
@@ -6147,7 +6192,7 @@ commands["delete"] = {
 		
 		if (!getActiveRange().collapsed) {
 			deleteSelection();
-			return;
+			return true;
 		}
 
 		
@@ -6193,7 +6238,7 @@ commands["delete"] = {
 			&& isEditable(node.childNodes[offset - 1])
 			&& isHtmlElement(node.childNodes[offset - 1], "a")) {
 				removePreservingDescendants(node.childNodes[offset - 1]);
-				return;
+				return true;
 
 			
 			
@@ -6233,12 +6278,12 @@ commands["delete"] = {
 			deleteSelection();
 
 			
-			return;
+			return true;
 		}
 
 		
 		if (isInlineNode(node)) {
-			return;
+			return true;
 		}
 
 		
@@ -6287,7 +6332,7 @@ commands["delete"] = {
 			fixDisallowedAncestors(node);
 
 			
-			return;
+			return true;
 		}
 
 		
@@ -6349,13 +6394,13 @@ commands["delete"] = {
 			}
 
 			
-			return;
+			return true;
 		}
 
 		
 		
 		if (isHtmlElement(startNode.childNodes[startOffset], "table")) {
-			return;
+			return true;
 		}
 
 		
@@ -6374,7 +6419,7 @@ commands["delete"] = {
 			getActiveRange().setEnd(startNode, startOffset);
 
 			
-			return;
+			return true;
 		}
 
 		
@@ -6409,7 +6454,7 @@ commands["delete"] = {
 			getActiveRange().collapse(true);
 
 			
-			return;
+			return true;
 		}
 
 		
@@ -6482,7 +6527,7 @@ commands["delete"] = {
 
 			
 			extraRanges.pop();
-			return;
+			return true;
 		}
 
 		
@@ -6515,6 +6560,9 @@ commands["delete"] = {
 
 		
 		deleteSelection({direction: "backward"});
+
+		
+		return true;
 	}
 };
 
@@ -6539,9 +6587,8 @@ commands.formatblock = {
 		value = value.toLowerCase();
 
 		
-		
 		if (formattableBlockNames.indexOf(value) == -1) {
-			return;
+			return false;
 		}
 
 		
@@ -6645,6 +6692,9 @@ commands.formatblock = {
 					: function() { return false },
 				function() { return document.createElement(value) }));
 		}
+
+		
+		return true;
 	}, indeterm: function() {
 		
 		if (!getActiveRange()) {
@@ -6764,7 +6814,7 @@ commands.forwarddelete = {
 		
 		if (!getActiveRange().collapsed) {
 			deleteSelection();
-			return;
+			return true;
 		}
 
 		
@@ -6848,12 +6898,12 @@ commands.forwarddelete = {
 			deleteSelection();
 
 			
-			return;
+			return true;
 		}
 
 		
 		if (isInlineNode(node)) {
-			return;
+			return true;
 		}
 
 		
@@ -6874,7 +6924,7 @@ commands.forwarddelete = {
 			deleteSelection();
 
 			
-			return;
+			return true;
 		}
 
 		
@@ -6912,7 +6962,7 @@ commands.forwarddelete = {
 		
 		
 		if (isHtmlElement(endNode.childNodes[endOffset - 1], "table")) {
-			return;
+			return true;
 		}
 
 		
@@ -6928,7 +6978,7 @@ commands.forwarddelete = {
 			getActiveRange().setEnd(endNode, endOffset + 1);
 
 			
-			return;
+			return true;
 		}
 
 		
@@ -6954,7 +7004,7 @@ commands.forwarddelete = {
 			getActiveRange().collapse(true);
 
 			
-			return;
+			return true;
 		}
 
 		
@@ -6984,6 +7034,9 @@ commands.forwarddelete = {
 
 		
 		deleteSelection();
+
+		
+		return true;
 	}
 };
 
@@ -7073,6 +7126,9 @@ commands.indent = {
 			
 			indentNodes(sublist);
 		}
+
+		
+		return true;
 	}
 };
 
@@ -7124,7 +7180,7 @@ commands.inserthorizontalrule = {
 		
 		if (!isEditable(getActiveRange().startContainer)
 		&& !isEditingHost(getActiveRange().startContainer)) {
-			return;
+			return true;
 		}
 
 		
@@ -7170,6 +7226,9 @@ commands.inserthorizontalrule = {
 		getSelection().collapse(hr.parentNode, 1 + getNodeIndex(hr));
 		getActiveRange().setStart(hr.parentNode, 1 + getNodeIndex(hr));
 		getActiveRange().collapse(true);
+
+		
+		return true;
 	}
 };
 
@@ -7186,7 +7245,7 @@ commands.inserthtml = {
 		
 		if (!isEditable(getActiveRange().startContainer)
 		&& !isEditingHost(getActiveRange().startContainer)) {
-			return;
+			return true;
 		}
 
 		
@@ -7198,7 +7257,7 @@ commands.inserthtml = {
 
 		
 		if (!lastChild) {
-			return;
+			return true;
 		}
 
 		
@@ -7242,6 +7301,9 @@ commands.inserthtml = {
 		for (var i = 0; i < descendants.length; i++) {
 			fixDisallowedAncestors(descendants[i]);
 		}
+
+		
+		return true;
 	}
 };
 
@@ -7253,7 +7315,7 @@ commands.insertimage = {
 	action: function(value) {
 		
 		if (value === "") {
-			return;
+			return false;
 		}
 
 		
@@ -7266,7 +7328,7 @@ commands.insertimage = {
 		
 		if (!isEditable(getActiveRange().startContainer)
 		&& !isEditingHost(getActiveRange().startContainer)) {
-			return;
+			return true;
 		}
 
 		
@@ -7304,6 +7366,9 @@ commands.insertimage = {
 		
 		img.removeAttribute("width");
 		img.removeAttribute("height");
+
+		
+		return true;
 	}
 };
 
@@ -7320,14 +7385,14 @@ commands.insertlinebreak = {
 		
 		if (!isEditable(getActiveRange().startContainer)
 		&& !isEditingHost(getActiveRange().startContainer)) {
-			return;
+			return true;
 		}
 
 		
 		
 		if (getActiveRange().startContainer.nodeType == Node.ELEMENT_NODE
 		&& !isAllowedChild("br", getActiveRange().startContainer)) {
-			return;
+			return true;
 		}
 
 		
@@ -7335,7 +7400,7 @@ commands.insertlinebreak = {
 		
 		if (getActiveRange().startContainer.nodeType != Node.ELEMENT_NODE
 		&& !isAllowedChild("br", getActiveRange().startContainer.parentNode)) {
-			return;
+			return true;
 		}
 
 		
@@ -7390,6 +7455,9 @@ commands.insertlinebreak = {
 			getActiveRange().setStart(br.parentNode, 1 + getNodeIndex(br));
 			getActiveRange().setEnd(br.parentNode, 1 + getNodeIndex(br));
 		}
+
+		
+		return true;
 	}
 };
 
@@ -7399,7 +7467,7 @@ commands.insertlinebreak = {
 commands.insertorderedlist = {
 	preservesOverrides: true,
 	
-	action: function() { toggleLists("ol") },
+	action: function() { toggleLists("ol"); return true },
 	
 	
 	indeterm: function() { return /^mixed( ol)?$/.test(getSelectionListState()) },
@@ -7420,7 +7488,7 @@ commands.insertparagraph = {
 		
 		if (!isEditable(getActiveRange().startContainer)
 		&& !isEditingHost(getActiveRange().startContainer)) {
-			return;
+			return true;
 		}
 
 		
@@ -7516,7 +7584,7 @@ commands.insertparagraph = {
 				
 				
 				if (!isAllowedChild(tag, getActiveRange().startContainer)) {
-					return;
+					return true;
 				}
 
 				
@@ -7537,7 +7605,7 @@ commands.insertparagraph = {
 				getActiveRange().setEnd(container, 0);
 
 				
-				return;
+				return true;
 			}
 
 			
@@ -7587,7 +7655,7 @@ commands.insertparagraph = {
 			}
 
 			
-			return;
+			return true;
 		}
 
 		
@@ -7622,7 +7690,7 @@ commands.insertparagraph = {
 			fixDisallowedAncestors(container);
 
 			
-			return;
+			return true;
 		}
 
 		
@@ -7746,6 +7814,9 @@ commands.insertparagraph = {
 		getSelection().collapse(newContainer, 0);
 		getActiveRange().setStart(newContainer, 0);
 		getActiveRange().setEnd(newContainer, 0);
+
+		
+		return true;
 	}
 };
 
@@ -7761,7 +7832,7 @@ commands.inserttext = {
 		
 		if (!isEditable(getActiveRange().startContainer)
 		&& !isEditingHost(getActiveRange().startContainer)) {
-			return;
+			return true;
 		}
 
 		
@@ -7773,19 +7844,19 @@ commands.inserttext = {
 			}
 
 			
-			return;
+			return true;
 		}
 
 		
 		if (value == "") {
-			return;
+			return true;
 		}
 
 		
 		
 		if (value == "\n") {
 			commands.insertparagraph.action();
-			return;
+			return true;
 		}
 
 		
@@ -7893,6 +7964,9 @@ commands.inserttext = {
 		
 		try { getSelection().collapseToEnd(); } catch(e) {}
 		getActiveRange().collapse(false);
+
+		
+		return true;
 	}
 };
 
@@ -7902,7 +7976,7 @@ commands.inserttext = {
 commands.insertunorderedlist = {
 	preservesOverrides: true,
 	
-	action: function() { toggleLists("ul") },
+	action: function() { toggleLists("ul"); return true },
 	
 	
 	indeterm: function() { return /^mixed( ul)?$/.test(getSelectionListState()) },
@@ -7916,7 +7990,7 @@ commands.insertunorderedlist = {
 commands.justifycenter = {
 	preservesOverrides: true,
 	
-	action: function() { justifySelection("center") },
+	action: function() { justifySelection("center"); return true },
 	indeterm: function() {
 		
 		
@@ -7970,7 +8044,7 @@ commands.justifycenter = {
 commands.justifyfull = {
 	preservesOverrides: true,
 	
-	action: function() { justifySelection("justify") },
+	action: function() { justifySelection("justify"); return true },
 	indeterm: function() {
 		
 		
@@ -8024,7 +8098,7 @@ commands.justifyfull = {
 commands.justifyleft = {
 	preservesOverrides: true,
 	
-	action: function() { justifySelection("left") },
+	action: function() { justifySelection("left"); return true },
 	indeterm: function() {
 		
 		
@@ -8078,7 +8152,7 @@ commands.justifyleft = {
 commands.justifyright = {
 	preservesOverrides: true,
 	
-	action: function() { justifySelection("right") },
+	action: function() { justifySelection("right"); return true },
 	indeterm: function() {
 		
 		
@@ -8223,6 +8297,9 @@ commands.outdent = {
 			
 			restoreValues(values);
 		}
+
+		
+		return true;
 	}
 };
 
@@ -8242,7 +8319,9 @@ commands.defaultparagraphseparator = {
 		value = value.toLowerCase();
 		if (value == "p" || value == "div") {
 			defaultSingleLineContainerName = value;
+			return true;
 		}
+		return false;
 	}, value: function() {
 		
 		return defaultSingleLineContainerName;
@@ -8275,6 +8354,9 @@ commands.selectall = {
 		} else {
 			getSelection().selectAllChildren(target);
 		}
+
+		
+		return true;
 	}
 };
 
@@ -8287,6 +8369,7 @@ commands.stylewithcss = {
 		
 		
 		cssStylingFlag = String(value).toLowerCase() != "false";
+		return true;
 	}, state: function() { return cssStylingFlag }
 };
 
@@ -8299,6 +8382,7 @@ commands.usecss = {
 		
 		
 		cssStylingFlag = String(value).toLowerCase() == "false";
+		return true;
 	}
 };
 
@@ -8423,10 +8507,11 @@ commandNames.forEach(function(command) {
 
 		commands[command].action = function(value) {
 			var overrides = recordCurrentOverrides();
-			oldAction(value);
+			var ret = oldAction(value);
 			if (getActiveRange().collapsed) {
 				restoreStatesAndValues(overrides);
 			}
+			return ret;
 		};
 	}
 });
