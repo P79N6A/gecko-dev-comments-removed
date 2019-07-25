@@ -69,8 +69,8 @@ class AsyncConnectionHelper;
 
 class CheckQuotaHelper;
 
-class IndexedDatabaseManager : public nsIIndexedDatabaseManager,
-                               public nsIObserver
+class IndexedDatabaseManager MOZ_FINAL : public nsIIndexedDatabaseManager,
+                                         public nsIObserver
 {
   friend class IDBDatabase;
 
@@ -243,7 +243,7 @@ private:
   
   
   
-  class OriginClearRunnable : public nsIRunnable
+  class OriginClearRunnable MOZ_FINAL : public nsIRunnable
   {
   public:
     NS_DECL_ISUPPORTS
@@ -272,7 +272,7 @@ private:
   
   
   
-  class AsyncUsageRunnable : public nsIRunnable
+  class AsyncUsageRunnable MOZ_FINAL : public nsIRunnable
   {
   public:
     NS_DECL_ISUPPORTS
@@ -326,7 +326,7 @@ private:
 
   
   
-  class WaitForTransactionsToFinishRunnable : public nsIRunnable
+  class WaitForTransactionsToFinishRunnable MOZ_FINAL : public nsIRunnable
   {
   public:
     WaitForTransactionsToFinishRunnable(SynchronizedOp* aOp)
@@ -345,7 +345,7 @@ private:
     SynchronizedOp* mOp;
   };
 
-  class AsyncDeleteFileRunnable : public nsIRunnable
+  class AsyncDeleteFileRunnable MOZ_FINAL : public nsIRunnable
   {
   public:
     NS_DECL_ISUPPORTS
