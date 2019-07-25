@@ -329,6 +329,8 @@ function Tabs() {
     }
   };
 
+  
+  
   var wm = Cc["@mozilla.org/appshell/window-mediator;1"]
            .getService(Ci.nsIWindowMediator);
   var chromeWindow = wm.getMostRecentWindow("navigator:browser");
