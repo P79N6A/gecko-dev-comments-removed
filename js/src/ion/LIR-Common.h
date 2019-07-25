@@ -302,10 +302,30 @@ class LMathD : public LInstructionHelper<1, 2, 0>
 };
 
 
+class LInt32ToDouble : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(Int32ToDouble);
+
+    LInt32ToDouble(const LAllocation &input) {
+        setOperand(0, input);
+    }
+
+    const LAllocation *input() {
+        return getOperand(0);
+    }
+    const LDefinition *output() {
+        return getDef(0);
+    }
+};
+
+
 class LValueToDouble : public LInstructionHelper<1, BOX_PIECES, 0>
 {
   public:
     LIR_HEADER(ValueToDouble);
+
+    static const size_t Input = 0;
 
     const LDefinition *output() {
         return getDef(0);
