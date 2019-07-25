@@ -146,8 +146,6 @@ nsMenuPopupFrame::Init(nsIContent*      aContent,
   nsresult rv = nsBoxFrame::Init(aContent, aParent, aPrevInFlow);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsPresContext* presContext = PresContext();
-
   
   
   mMenuCanOverlapOSBar =
