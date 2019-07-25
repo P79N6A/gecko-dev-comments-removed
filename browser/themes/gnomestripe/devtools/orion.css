@@ -11,11 +11,16 @@
 .view {
   color: black; 
   background: #f0f0ff; 
-  padding-left: 4px;
+  padding-left: 0;
 }
 
 .readonly > .view {
   background: #f0f0ff;
+}
+
+
+.viewContent > div {
+  padding-left: 4px; 
 }
 
 
