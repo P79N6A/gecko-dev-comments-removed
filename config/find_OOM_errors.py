@@ -70,7 +70,7 @@ def run(args, stdin=None):
 
 def get_js_files():
   (out, err, exit) = run('find ../jit-test/tests -name "*.js"')
-  if (err, exit) == ("", 0):
+  if (err, exit) != ("", 0):
     sys.exit("Wrong directory, run from an objdir")
   return out.split()
 
@@ -191,12 +191,12 @@ whitelist.add(r"('', 'out of memory\nout of memory\n', -11)")
 
 parser = OptionParser(usage=usage)
 parser.add_option("-r", "--regression", action="store", metavar="REGRESSION_COUNT", help=help,
-                  type="int", dest="regression", default=0) 
+                  type="int", dest="regression", default=None)
                   
 (OPTIONS, args) = parser.parse_args()
 
 
-if OPTIONS.regression:
+if OPTIONS.regression != None:
   
   
   
@@ -209,7 +209,7 @@ else:
     files = [f for f in files if f.find(args[0]) != -1]
 
 
-if OPTIONS.regression:
+if OPTIONS.regression == None:
   
   log = file("../OOM_log", "w")
 
@@ -242,7 +242,7 @@ for f in files:
     
     else:
 
-      if OPTIONS.regression:
+      if OPTIONS.regression != None:
         
         num_failures += 1
         continue
@@ -316,13 +316,13 @@ for f in files:
       log.write ("\n")
       log.flush()
 
-  if not OPTIONS.regression == None:
+  if OPTIONS.regression == None:
     count_lines()
 
 print '\n',
 
 
-if OPTIONS.regression:
+if OPTIONS.regression != None:
   expected_num_failures = OPTIONS.regression
 
   if num_failures != expected_num_failures:
