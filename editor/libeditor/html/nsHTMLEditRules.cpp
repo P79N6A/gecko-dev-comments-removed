@@ -8935,10 +8935,10 @@ nsHTMLEditRules::RelativeChangeIndentationOfElementNode(nsIDOMNode *aNode, PRInt
       
       
       
-      nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
-      if (nsHTMLEditUtils::IsDiv(aNode)
-          && (node != mHTMLEditor->GetActiveEditingHost())
-          && mHTMLEditor->IsNodeInActiveEditor(aNode)) {
+      nsCOMPtr<dom::Element> node = do_QueryInterface(aNode);
+      if (node && node->IsHTML(nsGkAtoms::div) &&
+          node != mHTMLEditor->GetActiveEditingHost() &&
+          mHTMLEditor->IsNodeInActiveEditor(node)) {
         
         
         nsCOMPtr<nsIDOMNamedNodeMap> attributeList;
