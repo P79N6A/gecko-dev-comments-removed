@@ -1312,6 +1312,12 @@ public:
   virtual void SysColorChanged() = 0;
   virtual void ThemeChanged() = 0;
 
+  nscoord MaxLineBoxWidth() {
+    return mMaxLineBoxWidth;
+  }
+
+  void SetMaxLineBoxWidth(nscoord aMaxLineBoxWidth);
+
 protected:
   friend class nsRefreshDriver;
 
@@ -1397,6 +1403,10 @@ protected:
   uint32_t mFontSizeInflationEmPerLine;
   uint32_t mFontSizeInflationMinTwips;
   uint32_t mFontSizeInflationLineThreshold;
+
+  
+  
+  nscoord mMaxLineBoxWidth;
 };
 
 
