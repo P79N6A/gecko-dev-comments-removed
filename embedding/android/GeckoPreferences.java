@@ -54,9 +54,10 @@ public class GeckoPreferences
     implements OnPreferenceChangeListener
 {
     private static final String LOG_FILE_NAME = "GeckoPreferences";
-    private ArrayList<String> mPreferencesList = new ArrayList<String>();
-    private static PreferenceScreen mPreferenceScreen;
     private static Context sContext;
+    private static JSONArray sJSONPrefs = null;
+    private ArrayList<String> mPreferencesList = new ArrayList<String>();
+    private PreferenceScreen mPreferenceScreen;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,7 +66,10 @@ public class GeckoPreferences
         addPreferencesFromResource(R.xml.preferences);
         mPreferenceScreen = getPreferenceScreen();
         initGroups(mPreferenceScreen);
-        initValues();
+
+        
+        if (sJSONPrefs != null)
+            refresh();
     }
 
     private void initGroups(PreferenceGroup preferences) {
@@ -82,12 +86,6 @@ public class GeckoPreferences
     }
 
     @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        mPreferenceScreen = null;
-    }
-
-    @Override
     public boolean onPreferenceChange(Preference preference, Object newValue) {
         String prefName = preference.getKey();
         setPreference(prefName, newValue);
@@ -96,20 +94,17 @@ public class GeckoPreferences
         return true;
     }
 
-    
-    private void initValues() {
-        JSONArray jsonPrefs = new JSONArray(mPreferencesList);
+    public static void setData(JSONArray jsonPrefs) {
+        sJSONPrefs = jsonPrefs;
+    }
 
-        GeckoEvent event = new GeckoEvent("Preferences:Get", jsonPrefs.toString());
-        GeckoAppShell.sendEventToGecko(event);
+    public static boolean isLoaded() {
+        return sJSONPrefs != null;
     }
 
     
-    public static void refresh(JSONArray jsonPrefs) {
+    private void refresh() {
         try {
-            if (mPreferenceScreen == null)
-                return;
-
             
             final String[] homepageValues = sContext.getResources().getStringArray(R.array.pref_homepage_values);
             final Preference homepagePref = mPreferenceScreen.findPreference("browser.startup.homepage");
@@ -121,9 +116,9 @@ public class GeckoPreferences
                 }
             });
 
-            final int length = jsonPrefs.length();
+            final int length = sJSONPrefs.length();
             for (int i = 0; i < length; i++) {
-                JSONObject jPref = jsonPrefs.getJSONObject(i);
+                JSONObject jPref = sJSONPrefs.getJSONObject(i);
                 final String prefName = jPref.getString("name");
                 final String prefType = jPref.getString("type");
                 final Preference pref = mPreferenceScreen.findPreference(prefName);
@@ -166,28 +161,34 @@ public class GeckoPreferences
         }
     }
 
-    
     public static void setPreference(String pref, Object value) {
+        
+        JSONObject jsonPref = null;
         try {
-            JSONObject jsonPref = new JSONObject();
-            jsonPref.put("name", pref);
-            if (value instanceof Boolean) {
-                jsonPref.put("type", "bool");
-                jsonPref.put("value", ((Boolean)value).booleanValue());
+            for (int i = 0; i < sJSONPrefs.length(); i++) {
+                if (sJSONPrefs.getJSONObject(i).getString("name").equals(pref)) {
+                    jsonPref = sJSONPrefs.getJSONObject(i);
+                    if (value instanceof Boolean)
+                        jsonPref.put("value", ((Boolean)value).booleanValue());
+                    else if (value instanceof Integer)
+                        jsonPref.put("value", ((Integer)value).intValue());
+                    else
+                        jsonPref.put("value", String.valueOf(value));
+                    break;
+                }
             }
-            else if (value instanceof Integer) {
-                jsonPref.put("type", "int");
-                jsonPref.put("value", ((Integer)value).intValue());
-            }
-            else {
-                jsonPref.put("type", "string");
-                jsonPref.put("value", String.valueOf(value));
-            }
-
-            GeckoEvent event = new GeckoEvent("Preferences:Set", jsonPref.toString());
-            GeckoAppShell.sendEventToGecko(event);
         } catch (JSONException e) {
             Log.e(LOG_FILE_NAME, "JSON exception: ", e);
+            return;
         }
+
+        if (jsonPref == null) {
+            Log.e(LOG_FILE_NAME, "invalid preference given to setPreference()");
+            return;
+        }
+
+        
+        GeckoEvent event = new GeckoEvent("Preferences:Set", jsonPref.toString());
+        GeckoAppShell.sendEventToGecko(event);
     }
 }
