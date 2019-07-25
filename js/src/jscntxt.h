@@ -658,12 +658,6 @@ struct JSRuntime {
 
 #ifdef DEBUG
     
-    jsrefcount          inlineCalls;
-    jsrefcount          nativeCalls;
-    jsrefcount          nonInlineCalls;
-    jsrefcount          constructs;
-
-    
 
 
 
