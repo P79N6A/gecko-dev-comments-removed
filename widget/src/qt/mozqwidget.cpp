@@ -63,7 +63,6 @@
 
 
 
-
 static bool gKeyboardOpen = false;
 
 
