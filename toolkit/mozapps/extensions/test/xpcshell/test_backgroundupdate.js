@@ -74,6 +74,20 @@ function run_test_2() {
     name: "Test Addon 2",
   }, profileDir);
 
+  writeInstallRDFForExtension({
+    id: "addon3@tests.mozilla.org",
+    version: "1.0",
+    targetApplications: [{
+      id: "xpcshell@tests.mozilla.org",
+      minVersion: "1",
+      maxVersion: "1"
+    }],
+    name: "Test Addon 3",
+  }, profileDir);
+
+  
+  Services.prefs.setCharPref("extensions.update.background.url",
+                             "http://localhost:4444/data/test_backgroundupdate.rdf");
   restartManager();
 
   
@@ -87,7 +101,7 @@ function run_test_2() {
   Services.obs.addObserver(function() {
     Services.obs.removeObserver(arguments.callee, "addons-background-update-complete");
 
-    do_check_eq(installCount, 2);
+    do_check_eq(installCount, 3);
     sawCompleteNotification = true;
   }, "addons-background-update-complete", false);
 
@@ -98,7 +112,7 @@ function run_test_2() {
 
     onDownloadFailed: function(aInstall) {
       completeCount++;
-      if (completeCount == 2) {
+      if (completeCount == 3) {
         do_check_true(sawCompleteNotification);
         end_test();
       }
