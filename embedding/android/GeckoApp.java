@@ -465,6 +465,16 @@ abstract public class GeckoApp
             unpackFile(zip, buf, entry, entry.getName());
           }
         }
+
+        
+        Enumeration<? extends ZipEntry> hyphenEntries = zip.entries();
+        while (hyphenEntries.hasMoreElements()) {
+          ZipEntry entry = hyphenEntries.nextElement();
+          if (entry.getName().startsWith("hyphenation/")) {
+            Log.i("GeckoAppJava", "installing hyphenation : " + entry.getName());
+            unpackFile(zip, buf, entry, entry.getName());
+          }
+        }
     }
 
     void removeFiles() throws IOException {
