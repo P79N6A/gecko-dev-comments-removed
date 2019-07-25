@@ -2656,7 +2656,8 @@ nsAccessible::AppendTextTo(nsAString& aText, PRUint32 aStartOffset,
 
   if (frame->GetType() == nsAccessibilityAtoms::brFrame) {
     aText += kForcedNewLineChar;
-  } else if (nsAccUtils::MustPrune(this)) {
+  } else if (nsAccUtils::MustPrune(GetParent())) {
+    
     
     
     aText += kImaginaryEmbeddedObjectChar;
