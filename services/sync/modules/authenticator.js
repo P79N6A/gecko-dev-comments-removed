@@ -111,9 +111,7 @@ let Authenticator = {
     },
 
     _prefBranch  : null, 
-    _nsLoginInfo : null, 
 
-    _remember : true,  
     _debug    : false, 
 
 
@@ -138,11 +136,6 @@ let Authenticator = {
 
         
         this._debug = this._prefBranch.getBoolPref("debug");
-        this._remember = this._prefBranch.getBoolPref("rememberSignons");
-
-        
-        this._nsLoginInfo = new Components.Constructor(
-            "@mozilla.org/login-manager/loginInfo;1", Ci.nsILoginInfo);
     },
 
     
@@ -183,9 +176,6 @@ let Authenticator = {
                 if (prefName == "debug") {
                     this._pwmgr._debug = 
                         this._pwmgr._prefBranch.getBoolPref("debug");
-                } else if (prefName == "rememberSignons") {
-                    this._pwmgr._remember =
-                        this._pwmgr._prefBranch.getBoolPref("rememberSignons");
                 } else {
                     this._pwmgr.log("Oops! Pref not handled, change ignored.");
                 }
@@ -594,6 +584,6 @@ let Authenticator = {
                  selectedLogin: selectedLogin };
     }
 
-}; 
+};
 
 Authenticator.init();
