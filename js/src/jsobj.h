@@ -412,10 +412,6 @@ struct JSObject : public js::ObjectImpl
     friend struct js::GCMarker;
     friend class  js::NewObjectCache;
 
-#ifdef DEBUG
-    void checkShapeConsistency();
-#endif
-
     
     void makeLazyType(JSContext *cx);
 
