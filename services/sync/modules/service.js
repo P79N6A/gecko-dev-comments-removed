@@ -47,15 +47,6 @@ const Cu = Components.utils;
 const IDLE_TIME = 5; 
 
 
-
-
-const INITIAL_THRESHOLD = 75;
-
-
-
-const THRESHOLD_DECREMENT_STEP = 25;
-
-
 const CLUSTER_BACKOFF = 5 * 60 * 1000; 
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -442,7 +433,6 @@ WeaveSvc.prototype = {
       case "nsPref:changed":
         switch (data) {
           case "enabled":
-          case "schedule":
             
             this._checkSyncStatus();
             break;
@@ -967,13 +957,6 @@ WeaveSvc.prototype = {
 
 
 
-  _syncThresh: {},
-
-  
-
-
-
-
   _checkSync: function WeaveSvc__checkSync() {
     let reason = "";
     if (!this.enabled)
@@ -985,8 +968,6 @@ WeaveSvc.prototype = {
     else if (Svc.Private && Svc.Private.privateBrowsingEnabled)
       
       reason = kSyncInPrivateBrowsing;
-    else if (Svc.Prefs.get("schedule", 0) != 1)
-      reason = kSyncNotScheduled;
     else if (this.status.minimumNextSync > Date.now())
       reason = kSyncBackoffNotMet;
 
@@ -1090,22 +1071,13 @@ WeaveSvc.prototype = {
   
 
 
-
-
-
-  sync: function WeaveSvc_sync(fullSync)
+  sync: function sync()
     this._catch(this._lock(this._notify("sync", "", function() {
     this.status.resetEngineStatus();
-    fullSync = true; 
 
-    
-    let useThresh = !fullSync;
-
-    
-    
     
     let reason = this._checkSync();
-    if (reason && (useThresh || reason != kSyncNotScheduled)) {
+    if (reason) {
       
       
       reason = "Can't sync: " + reason;
@@ -1161,41 +1133,10 @@ WeaveSvc.prototype = {
           continue;
 
         
-        let resetThresh = Utils.bind2(this, function WeaveSvc__resetThresh(cond)
-          cond ? this._syncThresh[name] = INITIAL_THRESHOLD : undefined);
-
-        
-        resetThresh(!(name in this._syncThresh));
-
-        
-        if (useThresh) {
-          let score = engine.score;
-          let thresh = this._syncThresh[name];
-          if (score >= thresh)
-            this._log.debug("Syncing " + name + "; " +
-                            "score " + score + " >= thresh " + thresh);
-          else {
-            this._log.debug("Not syncing " + name + "; " +
-                            "score " + score + " < thresh " + thresh);
-
-            
-            this._syncThresh[name] = Math.max(thresh - THRESHOLD_DECREMENT_STEP, 1);
-
-            
-            continue;
-          }
-        }
-
-        
         if (!(this._syncEngine(engine)) || this.status.enforceBackoff) {
           this._log.info("Aborting sync");
           break;
         }
-
-        
-        
-        
-        resetThresh(useThresh);
       }
 
       if (this._syncError)
