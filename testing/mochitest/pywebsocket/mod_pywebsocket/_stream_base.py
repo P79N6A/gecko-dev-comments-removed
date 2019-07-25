@@ -111,14 +111,9 @@ class StreamBase(object):
 
         bytes = self._request.connection.read(length)
         if not bytes:
-            
-            
-            
-            
-            
-            
-            
-            raise ConnectionTerminatedException('connection terminated: read failed')
+            raise ConnectionTerminatedException(
+                'Receiving %d byte failed. Peer (%r) closed connection' %
+                (length, (self._request.connection.remote_addr,)))
         return bytes
 
     def _write(self, bytes):

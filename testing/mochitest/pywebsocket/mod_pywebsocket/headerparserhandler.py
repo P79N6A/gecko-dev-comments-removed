@@ -39,6 +39,7 @@ import logging
 
 from mod_python import apache
 
+from mod_pywebsocket import common
 from mod_pywebsocket import dispatch
 from mod_pywebsocket import handshake
 from mod_pywebsocket import util
@@ -54,7 +55,19 @@ _PYOPT_HANDLER_SCAN = 'mod_pywebsocket.handler_scan'
 
 
 
+
+_PYOPT_ALLOW_HANDLERS_OUTSIDE_ROOT = (
+    'mod_pywebsocket.allow_handlers_outside_root_dir')
+
+
+_PYOPT_ALLOW_HANDLERS_OUTSIDE_ROOT_DEFINITION = {
+    'off': False, 'no': False, 'on': True, 'yes': True}
+
+
+
 _PYOPT_ALLOW_DRAFT75 = 'mod_pywebsocket.allow_draft75'
+
+_PYOPT_ALLOW_DRAFT75_DEFINITION = {'off': False, 'on': True}
 
 
 class ApacheLogHandler(logging.Handler):
@@ -70,15 +83,20 @@ class ApacheLogHandler(logging.Handler):
 
     def __init__(self, request=None):
         logging.Handler.__init__(self)
-        self.log_error = apache.log_error
+        self._log_error = apache.log_error
         if request is not None:
-            self.log_error = request.log_error
+            self._log_error = request.log_error
+
+        
+        self._formatter = logging.Formatter('%(name)s: %(message)s')
 
     def emit(self, record):
         apache_level = apache.APLOG_DEBUG
         if record.levelno in ApacheLogHandler._LEVELS:
             apache_level = ApacheLogHandler._LEVELS[record.levelno]
 
+        msg = self._formatter.format(record)
+
         
         
         
@@ -99,28 +117,57 @@ class ApacheLogHandler(logging.Handler):
         
         
         
-        self.log_error(record.getMessage(), apache_level, apache.main_server)
+        self._log_error(msg, apache_level, apache.main_server)
 
 
-_LOGGER = logging.getLogger('mod_pywebsocket')
+def _configure_logging():
+    logger = logging.getLogger()
+    
+    
+    
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(ApacheLogHandler())
 
 
+_configure_logging()
 
-_LOGGER.setLevel(logging.DEBUG)
-_LOGGER.addHandler(ApacheLogHandler())
+_LOGGER = logging.getLogger(__name__)
+
+
+def _parse_option(name, value, definition):
+    if value is None:
+        return False
+
+    meaning = definition.get(value.lower())
+    if meaning is None:
+        raise Exception('Invalid value for PythonOption %s: %r' %
+                        (name, value))
+    return meaning
 
 
 def _create_dispatcher():
-    _HANDLER_ROOT = apache.main_server.get_options().get(
-            _PYOPT_HANDLER_ROOT, None)
-    if not _HANDLER_ROOT:
+    _LOGGER.info('Initializing Dispatcher')
+
+    options = apache.main_server.get_options()
+
+    handler_root = options.get(_PYOPT_HANDLER_ROOT, None)
+    if not handler_root:
         raise Exception('PythonOption %s is not defined' % _PYOPT_HANDLER_ROOT,
                         apache.APLOG_ERR)
-    _HANDLER_SCAN = apache.main_server.get_options().get(
-            _PYOPT_HANDLER_SCAN, _HANDLER_ROOT)
-    dispatcher = dispatch.Dispatcher(_HANDLER_ROOT, _HANDLER_SCAN)
+
+    handler_scan = options.get(_PYOPT_HANDLER_SCAN, handler_root)
+
+    allow_handlers_outside_root = _parse_option(
+        _PYOPT_ALLOW_HANDLERS_OUTSIDE_ROOT,
+        options.get(_PYOPT_ALLOW_HANDLERS_OUTSIDE_ROOT),
+        _PYOPT_ALLOW_HANDLERS_OUTSIDE_ROOT_DEFINITION)
+
+    dispatcher = dispatch.Dispatcher(
+        handler_root, handler_scan, allow_handlers_outside_root)
+
     for warning in dispatcher.source_warnings():
         apache.log_error('mod_pywebsocket: %s' % warning, apache.APLOG_WARNING)
+
     return dispatcher
 
 
@@ -140,33 +187,54 @@ def headerparserhandler(request):
 
     handshake_is_done = False
     try:
-        allowDraft75 = apache.main_server.get_options().get(
-            _PYOPT_ALLOW_DRAFT75, None)
-        handshake.do_handshake(
-            request, _dispatcher, allowDraft75=allowDraft75)
-        handshake_is_done = True
-        request.log_error(
-            'mod_pywebsocket: resource: %r' % request.ws_resource,
-            apache.APLOG_DEBUG)
-        request._dispatcher = _dispatcher
-        _dispatcher.transfer_data(request)
+        
+        
+        if not _dispatcher.get_handler_suite(request.uri):
+            request.log_error('No handler for resource: %r' % request.uri,
+                              apache.APLOG_INFO)
+            request.log_error('Fallback to Apache', apache.APLOG_INFO)
+            return apache.DECLINED
     except dispatch.DispatchException, e:
-        request.log_error('mod_pywebsocket: %s' % e, apache.APLOG_WARNING)
+        request.log_error('mod_pywebsocket: %s' % e, apache.APLOG_INFO)
         if not handshake_is_done:
             return e.status
+
+    try:
+        allow_draft75 = _parse_option(
+            _PYOPT_ALLOW_DRAFT75,
+            apache.main_server.get_options().get(_PYOPT_ALLOW_DRAFT75),
+            _PYOPT_ALLOW_DRAFT75_DEFINITION)
+
+        try:
+            handshake.do_handshake(
+                request, _dispatcher, allowDraft75=allow_draft75)
+        except handshake.VersionException, e:
+            request.log_error('mod_pywebsocket: %s' % e, apache.APLOG_INFO)
+            request.err_headers_out.add(common.SEC_WEBSOCKET_VERSION_HEADER,
+                                        e.supported_versions)
+            return apache.HTTP_BAD_REQUEST
+        except handshake.HandshakeException, e:
+            
+            
+            request.log_error('mod_pywebsocket: %s' % e, apache.APLOG_INFO)
+            return e.status
+
+        handshake_is_done = True
+        request._dispatcher = _dispatcher
+        _dispatcher.transfer_data(request)
     except handshake.AbortedByUserException, e:
         request.log_error('mod_pywebsocket: %s' % e, apache.APLOG_INFO)
-    except handshake.HandshakeException, e:
-        
-        
-        request.log_error('mod_pywebsocket: %s' % e, apache.APLOG_INFO)
-        return e.status
     except Exception, e:
-        request.log_error('mod_pywebsocket: %s' % e, apache.APLOG_WARNING)
+        
+        
+
+        request.log_error('mod_pywebsocket: %s\n%s' %
+                          (e, util.get_stack_trace()),
+                          apache.APLOG_ERR)
         
         
         if not handshake_is_done:
-            return apache.DECLINE
+            return apache.DECLINED
     
     request.assbackwards = 1
     return apache.DONE  
