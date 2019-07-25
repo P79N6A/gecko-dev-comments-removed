@@ -214,10 +214,6 @@ protected:
   
   bool IsModifiable();
 
-  
-  bool     mIgnoreSpuriousDragEvent;
-  NS_IMETHOD IgnoreSpuriousDragEvent(bool aIgnoreSpuriousDragEvent) {mIgnoreSpuriousDragEvent = aIgnoreSpuriousDragEvent; return NS_OK;}
-
   bool CanCutOrCopy();
   bool FireClipboardEvent(PRInt32 aType);
 

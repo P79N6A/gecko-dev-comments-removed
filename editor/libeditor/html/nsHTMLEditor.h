@@ -722,9 +722,6 @@ protected:
   nsresult GetFirstEditableLeaf( nsIDOMNode *aNode, nsCOMPtr<nsIDOMNode> *aOutFirstLeaf);
   nsresult GetLastEditableLeaf( nsIDOMNode *aNode, nsCOMPtr<nsIDOMNode> *aOutLastLeaf);
 
-  
-  bool     mIgnoreSpuriousDragEvent;
-
   nsresult GetInlinePropertyBase(nsIAtom *aProperty, 
                              const nsAString *aAttribute,
                              const nsAString *aValue,
