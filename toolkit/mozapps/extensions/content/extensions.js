@@ -310,11 +310,12 @@ var gEventManager = {
   },
 
   delegateInstallEvent: function(aEvent, aParams) {
-    var existingAddon = aEvent == "onExternalInstall" ? aParams[1] : aParams[0].existingAddon;
-    
-    
-    if (existingAddon)
-      this.delegateAddonEvent(aEvent, [existingAddon].concat(aParams));
+    var install = aParams[0];
+    if (install.existingAddon) {
+      
+      let addon = install.existingAddon;
+      this.delegateAddonEvent(aEvent, [addon].concat(aParams));
+    }
 
     for (let i = 0; i < this._installListeners.length; i++) {
       let listener = this._installListeners[i];
@@ -1799,10 +1800,6 @@ var gListView = {
     if (this._types.indexOf(aAddon.type) == -1)
       return;
 
-    
-    if (aExistingAddon)
-      return;
-
     var item = createItem(aAddon, false);
     this._listBox.insertBefore(item, this._listBox.firstChild);
   },
@@ -1888,7 +1885,8 @@ var gDetailView = {
 
     this._addon = aAddon;
     gEventManager.registerAddonListener(this, aAddon.id);
-    gEventManager.registerInstallListener(this);
+    if (aAddon.install)
+      gEventManager.registerInstallListener(this);
 
     this.node.setAttribute("type", aAddon.type);
 
@@ -2187,17 +2185,6 @@ var gDetailView = {
       let hideFindUpdates = shouldAutoUpdate(this._addon);
       document.getElementById("detail-findUpdates").hidden = hideFindUpdates;
     }
-  },
-
-  onExternalInstall: function(aAddon, aExistingAddon, aNeedsRestart) {
-    
-    if (!aExistingAddon || aExistingAddon.id != this._addon.id)
-      return;
-
-    if (!aNeedsRestart)
-      this._updateView(aAddon, false);
-    else
-      this.updateState();
   },
 
   onInstallCancelled: function(aInstall) {
