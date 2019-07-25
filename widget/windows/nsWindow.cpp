@@ -6311,28 +6311,13 @@ nsWindow::OnMouseWheelInternal(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
                                LRESULT *aRetValue)
 {
   InitMouseWheelScrollData();
-  MouseScrollHandler::SystemSettings& systemSettings =
-    MouseScrollHandler::GetInstance()->GetSystemSettings();
-  systemSettings.Init();
 
-  bool isVertical = (aMessage == WM_MOUSEWHEEL);
-  if (systemSettings.GetScrollAmount(isVertical) == 0) {
-    
-    
-    
+  MouseScrollHandler::EventInfo eventInfo(aMessage, aWParam, aLParam);
+  if (!eventInfo.CanDispatchMouseScrollEvent()) {
     ResetRemainingWheelDelta();
-    *aRetValue = isVertical ? TRUE : FALSE; 
+    *aRetValue = eventInfo.ComputeMessageResult(false);
     return;
   }
-
-  PRInt32 nativeDelta = (short)HIWORD(aWParam);
-  if (!nativeDelta) {
-    *aRetValue = isVertical ? TRUE : FALSE; 
-    ResetRemainingWheelDelta();
-    return; 
-  }
-
-  bool isPageScroll = systemSettings.IsPageScroll(isVertical);
 
   
   
@@ -6340,25 +6325,27 @@ nsWindow::OnMouseWheelInternal(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
   PRUint32 now = PR_IntervalToMilliseconds(PR_IntervalNow());
   if (sLastMouseWheelWnd &&
       (sLastMouseWheelWnd != mWnd ||
-       sLastMouseWheelDeltaIsPositive != (nativeDelta > 0) ||
-       sLastMouseWheelOrientationIsVertical != isVertical ||
-       sLastMouseWheelUnitIsPage != isPageScroll ||
+       sLastMouseWheelDeltaIsPositive != eventInfo.IsPositive() ||
+       sLastMouseWheelOrientationIsVertical != eventInfo.IsVertical() ||
+       sLastMouseWheelUnitIsPage != eventInfo.IsPage() ||
        now - sLastMouseWheelTime > 1500)) {
     ResetRemainingWheelDelta();
   }
   sLastMouseWheelWnd = mWnd;
-  sLastMouseWheelDeltaIsPositive = (nativeDelta > 0);
-  sLastMouseWheelOrientationIsVertical = isVertical;
-  sLastMouseWheelUnitIsPage = isPageScroll;
+  sLastMouseWheelDeltaIsPositive = eventInfo.IsPositive();
+  sLastMouseWheelOrientationIsVertical = eventInfo.IsVertical();
+  sLastMouseWheelUnitIsPage = eventInfo.IsPage();
   sLastMouseWheelTime = now;
 
-  *aRetValue = isVertical ? FALSE : TRUE; 
+  
+  *aRetValue = eventInfo.ComputeMessageResult(true);
+
   nsModifierKeyState modKeyState;
 
   
   
   
-  PRInt32 orienter = isVertical ? -1 : 1;
+  PRInt32 orienter = eventInfo.IsVertical() ? -1 : 1;
 
   
   
@@ -6386,24 +6373,21 @@ nsWindow::OnMouseWheelInternal(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
   PRInt32 actualScrollAction = nsQueryContentEvent::SCROLL_ACTION_NONE;
   PRInt32 pixelsPerUnit = 0;
   
-  PRInt32 computedScrollAmount =
-    isPageScroll ? 1 : systemSettings.GetScrollAmount(isVertical);
+  PRInt32 computedScrollAmount = eventInfo.GetScrollAmount();
 
   if (MouseScrollHandler::GetInstance()->
         GetUserPrefs().IsPixelScrollingEnabled()) {
     nsMouseScrollEvent testEvent(true, NS_MOUSE_SCROLL, this);
     InitEvent(testEvent);
-    testEvent.scrollFlags = isPageScroll ? nsMouseScrollEvent::kIsFullPage : 0;
-    testEvent.scrollFlags |= isVertical ? nsMouseScrollEvent::kIsVertical :
-                                          nsMouseScrollEvent::kIsHorizontal;
+    testEvent.scrollFlags = eventInfo.GetScrollFlags();
     testEvent.isShift     = scrollEvent.isShift;
     testEvent.isControl   = scrollEvent.isControl;
     testEvent.isMeta      = scrollEvent.isMeta;
     testEvent.isAlt       = scrollEvent.isAlt;
 
     testEvent.delta       = computedScrollAmount;
-    if ((isVertical && sLastMouseWheelDeltaIsPositive) ||
-        (!isVertical && !sLastMouseWheelDeltaIsPositive)) {
+    if ((eventInfo.IsVertical() && sLastMouseWheelDeltaIsPositive) ||
+        (!eventInfo.IsVertical() && !sLastMouseWheelDeltaIsPositive)) {
       testEvent.delta *= -1;
     }
     nsQueryContentEvent queryEvent(true, NS_QUERY_SCROLL_TARGET_INFO, this);
@@ -6415,7 +6399,7 @@ nsWindow::OnMouseWheelInternal(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
     if (queryEvent.mSucceeded) {
       actualScrollAction = queryEvent.mReply.mComputedScrollAction;
       if (actualScrollAction == nsQueryContentEvent::SCROLL_ACTION_PAGE) {
-        if (isVertical) {
+        if (eventInfo.IsVertical()) {
           pixelsPerUnit = queryEvent.mReply.mPageHeight;
         } else {
           pixelsPerUnit = queryEvent.mReply.mPageWidth;
@@ -6442,30 +6426,21 @@ nsWindow::OnMouseWheelInternal(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
   
   scrollEvent.scrollFlags =
     dispatchPixelScrollEvent ? nsMouseScrollEvent::kHasPixels : 0;
+  scrollEvent.scrollFlags |= eventInfo.GetScrollFlags();
 
-  PRInt32 nativeDeltaForScroll = nativeDelta + sRemainingDeltaForScroll;
+  PRInt32 nativeDeltaForScroll =
+    eventInfo.GetNativeDelta() + sRemainingDeltaForScroll;
 
   
   
-  if (isPageScroll) {
-    scrollEvent.scrollFlags |= nsMouseScrollEvent::kIsFullPage;
-    if (isVertical) {
-      scrollEvent.scrollFlags |= nsMouseScrollEvent::kIsVertical;
-    } else {
-      scrollEvent.scrollFlags |= nsMouseScrollEvent::kIsHorizontal;
-    }
+  if (eventInfo.IsPage()) {
     scrollEvent.delta = nativeDeltaForScroll * orienter / WHEEL_DELTA;
     PRInt32 recomputedNativeDelta = scrollEvent.delta * orienter / WHEEL_DELTA;
     sRemainingDeltaForScroll = nativeDeltaForScroll - recomputedNativeDelta;
   } else {
     double deltaPerUnit;
-    if (isVertical) {
-      scrollEvent.scrollFlags |= nsMouseScrollEvent::kIsVertical;
-    } else {
-      scrollEvent.scrollFlags |= nsMouseScrollEvent::kIsHorizontal;
-    }
     deltaPerUnit =
-      (double)WHEEL_DELTA / systemSettings.GetScrollAmount(isVertical);
+      (double)WHEEL_DELTA / eventInfo.GetScrollAmount();
     scrollEvent.delta =
       RoundDelta((double)nativeDeltaForScroll * orienter / deltaPerUnit);
     PRInt32 recomputedNativeDelta =
@@ -6490,7 +6465,7 @@ nsWindow::OnMouseWheelInternal(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
   nsMouseScrollEvent pixelEvent(true, NS_MOUSE_PIXEL_SCROLL, this);
   InitEvent(pixelEvent);
   pixelEvent.scrollFlags = nsMouseScrollEvent::kAllowSmoothScroll;
-  pixelEvent.scrollFlags |= isVertical ?
+  pixelEvent.scrollFlags |= eventInfo.IsVertical() ?
     nsMouseScrollEvent::kIsVertical : nsMouseScrollEvent::kIsHorizontal;
   if (actualScrollAction == nsQueryContentEvent::SCROLL_ACTION_PAGE) {
     pixelEvent.scrollFlags |= nsMouseScrollEvent::kIsFullPage;
@@ -6501,7 +6476,8 @@ nsWindow::OnMouseWheelInternal(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
   pixelEvent.isMeta      = scrollEvent.isMeta;
   pixelEvent.isAlt       = scrollEvent.isAlt;
 
-  PRInt32 nativeDeltaForPixel = nativeDelta + sRemainingDeltaForPixel;
+  PRInt32 nativeDeltaForPixel =
+    eventInfo.GetNativeDelta() + sRemainingDeltaForPixel;
   
   
   PRInt32 orienterForPixel = reversePixelScrollDirection ? -orienter : orienter;

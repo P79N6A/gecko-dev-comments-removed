@@ -168,6 +168,58 @@ MouseScrollHandler::DispatchEvent(nsWindow* aWindow, nsGUIEvent& aEvent)
 
 
 
+MouseScrollHandler::EventInfo::EventInfo(UINT aMessage,
+                                         WPARAM aWParam, LPARAM aLParam)
+{
+  NS_ABORT_IF_FALSE(aMessage == WM_MOUSEWHEEL || aMessage == WM_MOUSEHWHEEL,
+    "EventInfo must be initialized with WM_MOUSEWHEEL or WM_MOUSEHWHEEL");
+
+  MouseScrollHandler::GetInstance()->mSystemSettings.Init();
+
+  mIsVertical = (aMessage == WM_MOUSEWHEEL);
+  mIsPage = MouseScrollHandler::sInstance->
+              mSystemSettings.IsPageScroll(mIsVertical);
+  mDelta = (short)HIWORD(aWParam);
+}
+
+bool
+MouseScrollHandler::EventInfo::CanDispatchMouseScrollEvent() const
+{
+  if (!GetScrollAmount()) {
+    
+    
+    
+    return false;
+  }
+
+  return (mDelta != 0);
+}
+
+PRInt32
+MouseScrollHandler::EventInfo::GetScrollAmount() const
+{
+  if (mIsPage) {
+    return 1;
+  }
+  return MouseScrollHandler::sInstance->
+           mSystemSettings.GetScrollAmount(mIsVertical);
+}
+
+PRInt32
+MouseScrollHandler::EventInfo::GetScrollFlags() const
+{
+  PRInt32 result = mIsPage ? nsMouseScrollEvent::kIsFullPage : 0;
+  result |= mIsVertical ? nsMouseScrollEvent::kIsVertical :
+                          nsMouseScrollEvent::kIsHorizontal;
+  return result;
+}
+
+
+
+
+
+
+
 void
 MouseScrollHandler::SystemSettings::Init()
 {

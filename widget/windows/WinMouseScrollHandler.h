@@ -44,6 +44,49 @@ private:
 
 
   static bool DispatchEvent(nsWindow* aWindow, nsGUIEvent& aEvent);
+
+public:
+  class EventInfo {
+  public:
+    
+
+
+    EventInfo(UINT aMessage, WPARAM aWParam, LPARAM aLParam);
+
+    bool CanDispatchMouseScrollEvent() const;
+
+    PRInt32 GetNativeDelta() const { return mDelta; }
+    bool IsVertical() const { return mIsVertical; }
+    bool IsPositive() const { return (mDelta > 0); }
+    bool IsPage() const { return mIsPage; }
+
+    LRESULT ComputeMessageResult(bool aWeProcessed) const
+    {
+      return IsVertical() ? !aWeProcessed : aWeProcessed;
+    }
+
+    
+
+
+    PRInt32 GetScrollAmount() const;
+
+    
+
+
+
+    PRInt32 GetScrollFlags() const;
+
+  private:
+    EventInfo() {}
+
+    
+    bool mIsVertical;
+    
+    bool mIsPage;
+    
+    PRInt32 mDelta;
+  };
+
 public:
   class SystemSettings {
   public:
