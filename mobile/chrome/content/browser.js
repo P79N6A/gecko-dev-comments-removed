@@ -386,12 +386,6 @@ var Browser = {
     }
 
     
-    if (Services.prefs.getBoolPref("browser.console.showInPanel")){
-      let button = document.getElementById("tool-console");
-      button.hidden = false;
-    }
-
-    
     if (Services.prefs.prefHasUserValue("extensions.disabledAddons")) {
       let addons = Services.prefs.getCharPref("extensions.disabledAddons").split(",");
       if (addons.length > 0) {
