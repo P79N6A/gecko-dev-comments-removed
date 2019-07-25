@@ -116,6 +116,7 @@
 #include "nsThreadUtils.h"
 #include "nsBuiltinDecoder.h"
 #include "nsBuiltinDecoderReader.h"
+#include "nsAudioAvailableEventManager.h"
 #include "nsHTMLMediaElement.h"
 #include "mozilla/Monitor.h"
 
@@ -293,11 +294,13 @@ protected:
   
   
   
-  PRUint32 PlaySilence(PRUint32 aSamples, PRUint32 aChannels);
+  PRUint32 PlaySilence(PRUint32 aSamples, PRUint32 aChannels,
+                       PRUint64 aSampleOffset);
 
   
   
-  PRUint32 PlayFromAudioQueue();
+  
+  PRUint32 PlayFromAudioQueue(PRUint64 aSampleOffset, PRUint32 aChannels);
 
   
   
@@ -454,7 +457,12 @@ protected:
   
   
   PRPackedBool mStopDecodeThreads;
-};
 
+private:
+  
+  
+  
+  nsAudioAvailableEventManager mEventManager;
+};
 
 #endif

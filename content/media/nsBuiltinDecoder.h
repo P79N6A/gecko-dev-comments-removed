@@ -410,6 +410,8 @@ class nsBuiltinDecoder : public nsMediaDecoder
   
   void Stop();
 
+  void AudioAvailable(float* aFrameBuffer, PRUint32 aFrameBufferLength, PRUint64 aTime);
+
   
   
   void DurationChanged();
@@ -478,7 +480,9 @@ class nsBuiltinDecoder : public nsMediaDecoder
 
   
   
-  void MetadataLoaded();
+  void MetadataLoaded(PRUint32 aChannels,
+                      PRUint32 aRate,
+                      PRUint32 aFrameBufferLength);
 
   
   
