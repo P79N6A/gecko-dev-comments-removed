@@ -19,6 +19,7 @@
 #include "nsCOMPtr.h"
 #include "nsTArray.h"
 #include "nsString.h"
+#include "mozilla/Attributes.h"
 
 #define IDLE_THREAD_TOPIC "thread-shutting-down"
 
@@ -31,10 +32,10 @@ namespace mozilla {
 
 
 
-class LazyIdleThread : public nsIThread,
-                       public nsITimerCallback,
-                       public nsIThreadObserver,
-                       public nsIObserver
+class LazyIdleThread MOZ_FINAL : public nsIThread,
+                                 public nsITimerCallback,
+                                 public nsIThreadObserver,
+                                 public nsIObserver
 {
 public:
   NS_DECL_ISUPPORTS
