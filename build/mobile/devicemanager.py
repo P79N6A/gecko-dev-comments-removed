@@ -601,14 +601,14 @@ def _pop_last_line(file):
   bytes_from_end = 1
   file.seek(0, 2)
   length = file.tell() + 1
-  while bytes_from_end <= length:
+  while bytes_from_end < length:
     file.seek((-1)*bytes_from_end, 2)
     data = file.read()
 
-    if bytes_from_end == length and len(data) == 0: 
+    if bytes_from_end == length-1 and len(data) == 0: 
       return None
 
-    if data[0] == '\n' or bytes_from_end == length:
+    if data[0] == '\n' or bytes_from_end == length-1:
       
       if data[0] == '\n':
         data = data[1:]

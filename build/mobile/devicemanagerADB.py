@@ -78,7 +78,7 @@ class DeviceManagerADB(DeviceManager):
     
     
     
-    cmdline = subprocess.list2cmdline(cmd) + "; echo $?"
+    cmdline = " ".join(cmd) + "; echo $?"
 
     
     if cwd:
