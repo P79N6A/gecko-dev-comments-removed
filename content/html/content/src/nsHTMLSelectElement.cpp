@@ -57,7 +57,6 @@
 #include "nsIPrivateDOMEvent.h"
 #include "nsIBoxObject.h"
 #include "nsIDOMNSDocument.h"
-#include "nsIDOMDocumentEvent.h"
 
 
 #include "nsIDocument.h"
