@@ -90,7 +90,6 @@ struct CharacterPosition {
 
 
 
-
 class CharacterIterator
 {
 public:
@@ -143,7 +142,14 @@ public:
 
 
 
-  PRInt32 NextChar();
+  PRInt32 NextCluster();
+
+  
+
+
+
+  PRInt32 ClusterLength();
+
   
 
 
@@ -570,9 +576,10 @@ nsSVGGlyphFrame::AddCharactersToPath(CharacterIterator *aIter,
   }
 
   PRInt32 i;
-  while ((i = aIter->NextChar()) >= 0) {
+  while ((i = aIter->NextCluster()) >= 0) {
     aIter->SetupForDrawing(aContext);
-    mTextRun->DrawToPath(aContext, gfxPoint(0, 0), i, 1, nsnull, nsnull);
+    mTextRun->DrawToPath(aContext, gfxPoint(0, 0), i, aIter->ClusterLength(),
+                         nsnull, nsnull);
   }
 }
 
@@ -589,10 +596,11 @@ nsSVGGlyphFrame::AddBoundingBoxesToPath(CharacterIterator *aIter,
   }
 
   PRInt32 i;
-  while ((i = aIter->NextChar()) >= 0) {
+  while ((i = aIter->NextCluster()) >= 0) {
     aIter->SetupForMetrics(aContext);
     gfxTextRun::Metrics metrics =
-      mTextRun->MeasureText(i, 1, gfxFont::LOOSE_INK_EXTENTS, nsnull, nsnull);
+      mTextRun->MeasureText(i, aIter->ClusterLength(),
+                            gfxFont::LOOSE_INK_EXTENTS, nsnull, nsnull);
     aContext->Rectangle(metrics.mBoundingBox);
   }
 }
@@ -608,9 +616,10 @@ nsSVGGlyphFrame::FillCharacters(CharacterIterator *aIter,
   }
 
   PRInt32 i;
-  while ((i = aIter->NextChar()) >= 0) {
+  while ((i = aIter->NextCluster()) >= 0) {
     aIter->SetupForDrawing(aContext);
-    mTextRun->Draw(aContext, gfxPoint(0, 0), i, 1, nsnull, nsnull);
+    mTextRun->Draw(aContext, gfxPoint(0, 0), i, aIter->ClusterLength(),
+                   nsnull, nsnull);
   }
 }
 
@@ -1364,14 +1373,8 @@ nsSVGGlyphFrame::GetCharNumAtPosition(nsIDOMSVGPoint *point)
   PRInt32 i;
   PRInt32 last = -1;
   gfxPoint pt(xPos, yPos);
-  while ((i = iter.NextChar()) >= 0) {
-    
-    
-    PRInt32 limit = i + 1;
-    while (limit < (PRInt32)mTextRun->GetLength() &&
-           !mTextRun->IsClusterStart(limit)) {
-      ++limit;
-    }
+  while ((i = iter.NextCluster()) >= 0) {
+    PRInt32 limit = i + iter.ClusterLength();
     gfxTextRun::Metrics metrics =
       mTextRun->MeasureText(i, limit - i, gfxFont::LOOSE_INK_EXTENTS,
                             nsnull, nsnull);
@@ -1405,11 +1408,6 @@ nsSVGGlyphFrame::GetCharNumAtPosition(nsIDOMSVGPoint *point)
       }
       current += step;
       leftEdge += width;
-    }
-
-    
-    while (++i < limit) {
-      iter.NextChar();
     }
   }
 
@@ -1483,9 +1481,10 @@ nsSVGGlyphFrame::ContainsPoint(const nsPoint &aPoint)
   iter.SetInitialMatrix(tmpCtx);
   
   PRInt32 i;
-  while ((i = iter.NextChar()) >= 0) {
+  while ((i = iter.NextCluster()) >= 0) {
     gfxTextRun::Metrics metrics =
-      mTextRun->MeasureText(i, 1, gfxFont::LOOSE_INK_EXTENTS, nsnull, nsnull);
+      mTextRun->MeasureText(i, iter.ClusterLength(),
+                            gfxFont::LOOSE_INK_EXTENTS, nsnull, nsnull);
     iter.SetupForMetrics(tmpCtx);
     tmpCtx->Rectangle(metrics.mBoundingBox);
   }
@@ -1702,7 +1701,7 @@ CharacterIterator::SetupForDirectTextRun(gfxContext *aContext, float aScale)
 }
 
 PRInt32
-CharacterIterator::NextChar()
+CharacterIterator::NextCluster()
 {
   if (mInError) {
 #ifdef DEBUG
@@ -1727,15 +1726,33 @@ CharacterIterator::NextChar()
       return -1;
     }
 
-    if (mPositions.IsEmpty() || mPositions[mCurrentChar].draw)
+    if (mSource->mTextRun->IsClusterStart(mCurrentChar) &&
+        (mPositions.IsEmpty() || mPositions[mCurrentChar].draw)) {
       return mCurrentChar;
+    }
   }
+}
+
+PRInt32
+CharacterIterator::ClusterLength()
+{
+  if (mInError) {
+    return 0;
+  }
+
+  PRInt32 i = mCurrentChar;
+  while (++i < mSource->mTextRun->GetLength()) {
+    if (mSource->mTextRun->IsClusterStart(i)) {
+      break;
+    }
+  }
+  return i - mCurrentChar;
 }
 
 PRBool
 CharacterIterator::AdvanceToCharacter(PRInt32 aIndex)
 {
-  while (NextChar() != -1) {
+  while (NextCluster() != -1) {
     if (mCurrentChar == aIndex)
       return PR_TRUE;
   }
