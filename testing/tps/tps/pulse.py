@@ -1,0 +1,102 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import json
+import logging
+import socket
+
+from pulsebuildmonitor import PulseBuildMonitor
+
+from tps.thread import TPSTestThread
+
+class TPSPulseMonitor(PulseBuildMonitor):
+  """Listens to pulse messages, and initiates a TPS test run when
+     a relevant 'build complete' message is received.
+  """
+
+  def __init__(self, extensionDir, platform='linux', config=None,
+               autolog=False, emailresults=False, testfile=None,
+               logfile=None, rlock=None, **kwargs):
+    self.buildtype = 'opt'
+    self.autolog = autolog
+    self.emailresults = emailresults
+    self.testfile = testfile
+    self.logfile = logfile
+    self.rlock = rlock
+    self.extensionDir = extensionDir
+    self.config = config
+    self.tree = self.config.get('tree', ['services-central', 'places'])
+    self.platform = self.config.get('platform', 'linux')
+    self.label=('crossweave@mozilla.com|tps_build_monitor_' +
+                socket.gethostname())
+
+    self.logger = logging.getLogger('tps_pulse')
+    self.logger.setLevel(logging.DEBUG)
+    handler = logging.FileHandler('tps_pulse.log')
+    self.logger.addHandler(handler)
+
+    PulseBuildMonitor.__init__(self,
+                               tree=self.tree,
+                               label=self.label,
+                               mobile=False,
+                               logger=self.logger,
+                               **kwargs)
+
+  def onPulseMessage(self, data):
+    key = data['_meta']['routing_key']
+    
+
+  def onBuildComplete(self, builddata):
+    print "================================================================="
+    print json.dumps(builddata)
+    print "================================================================="
+    try:
+      if not (builddata['platform'] == self.platform and
+              builddata['buildtype'] == self.buildtype):
+        return
+    except KeyError:
+      return
+    thread = TPSTestThread(self.extensionDir,
+                           builddata=builddata,
+                           emailresults=self.emailresults,
+                           autolog=self.autolog,
+                           testfile=self.testfile,
+                           logfile=self.logfile,
+                           rlock=self.rlock,
+                           config=self.config)
+    thread.daemon = True
+    thread.start()
