@@ -319,22 +319,20 @@ IonCompartment::generateInvalidator(JSContext *cx)
     masm.finishFloatTransfer();
 
     masm.ma_mov(sp, r0);
-    masm.reserveStack(sizeof(size_t)*2);
+    const int sizeOfRetval = sizeof(size_t)*2;
+    masm.reserveStack(sizeOfRetval);
     masm.mov(sp, r1);
     masm.setupAlignedABICall(2);
     masm.setABIArg(0, r0);
     masm.setABIArg(1, r1);
-    
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, InvalidationBailout));
-
-    const uint32 BailoutDataSize = sizeof(double) * FloatRegisters::Total +
-                                   sizeof(void *) * Registers::Total;
 
     masm.ma_ldr(Address(sp, 0), r1);
     
     
+    masm.ma_add(sp, Imm32(sizeof(InvalidationBailoutStack) + sizeOfRetval), sp);
     
-    masm.ma_add(sp, Imm32(BailoutDataSize + sizeof(size_t) * 2), sp);
+    
     masm.ma_add(sp, r1, sp);
     generateBailoutTail(masm);
     Linker linker(masm);
