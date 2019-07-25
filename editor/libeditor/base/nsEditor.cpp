@@ -113,7 +113,6 @@
 
 #include "nsITransferable.h"
 #include "nsComputedDOMStyle.h"
-#include "nsTextEditUtils.h"
 
 #include "mozilla/FunctionTimer.h"
 
@@ -904,27 +903,14 @@ nsEditor::EndPlaceHolderTransaction()
     if (selPrivate) {
       selPrivate->SetCanCacheFrameOffset(PR_TRUE);
     }
+    
+    
+    EndUpdateViewBatch();
+    
 
-    {
-      
-      
-      nsRefPtr<nsCaret> caret;
-      nsCOMPtr<nsIPresShell> presShell;
-      GetPresShell(getter_AddRefs(presShell));
-
-      if (presShell)
-        caret = presShell->GetCaret();
-
-      StCaretHider caretHider(caret);
-
-      
-      EndUpdateViewBatch();
-      
-
-      
-      
-      ScrollSelectionIntoView(PR_FALSE);
-    }
+    
+    
+    ScrollSelectionIntoView(PR_FALSE);
 
     
     if (selPrivate) {
@@ -2287,75 +2273,11 @@ NS_IMETHODIMP nsEditor::InsertTextImpl(const nsAString& aStringToInsert,
   
   
   
-  nsresult res;
   NS_ENSURE_TRUE(aInOutNode && *aInOutNode && aInOutOffset && aDoc, NS_ERROR_NULL_POINTER);
   if (!mInIMEMode && aStringToInsert.IsEmpty()) return NS_OK;
   nsCOMPtr<nsIDOMText> nodeAsText = do_QueryInterface(*aInOutNode);
-  if (!nodeAsText && IsPlaintextEditor()) {
-    
-    
-    
-    
-    if (*aInOutNode == GetRoot() && *aInOutOffset == 0) {
-      nsCOMPtr<nsIDOMNode> possibleTextNode;
-      res = (*aInOutNode)->GetFirstChild(getter_AddRefs(possibleTextNode));
-      if (NS_SUCCEEDED(res)) {
-        nodeAsText = do_QueryInterface(possibleTextNode);
-        if (nodeAsText) {
-          *aInOutNode = possibleTextNode;
-        }
-      }
-    }
-    
-    
-    
-    if (!nodeAsText && *aInOutNode == GetRoot() && *aInOutOffset > 0) {
-      nsCOMPtr<nsIDOMNodeList> children;
-      res = (*aInOutNode)->GetChildNodes(getter_AddRefs(children));
-      if (NS_SUCCEEDED(res)) {
-        nsCOMPtr<nsIDOMNode> possibleMozBRNode;
-        res = children->Item(*aInOutOffset, getter_AddRefs(possibleMozBRNode));
-        if (NS_SUCCEEDED(res) && nsTextEditUtils::IsMozBR(possibleMozBRNode)) {
-          nsCOMPtr<nsIDOMNode> possibleTextNode;
-          res = children->Item(*aInOutOffset - 1, getter_AddRefs(possibleTextNode));
-          if (NS_SUCCEEDED(res)) {
-            nodeAsText = do_QueryInterface(possibleTextNode);
-            if (nodeAsText) {
-              PRUint32 length;
-              res = nodeAsText->GetLength(&length);
-              if (NS_SUCCEEDED(res)) {
-                *aInOutOffset = PRInt32(length);
-                *aInOutNode = possibleTextNode;
-              }
-            }
-          }
-        }
-      }
-    }
-    
-    
-    
-    if (nsTextEditUtils::IsMozBR(*aInOutNode) && *aInOutOffset == 0) {
-      nsCOMPtr<nsIDOMNode> previous;
-      (*aInOutNode)->GetPreviousSibling(getter_AddRefs(previous));
-      nodeAsText = do_QueryInterface(previous);
-      if (nodeAsText) {
-        PRUint32 length;
-        res = nodeAsText->GetLength(&length);
-        if (NS_SUCCEEDED(res)) {
-          *aInOutOffset = PRInt32(length);
-          *aInOutNode = previous;
-        }
-      } else {
-        nsCOMPtr<nsIDOMNode> parent;
-        (*aInOutNode)->GetParentNode(getter_AddRefs(parent));
-        if (parent == GetRoot()) {
-          *aInOutNode = parent;
-        }
-      }
-    }
-  }
   PRInt32 offset = *aInOutOffset;
+  nsresult res;
   if (mInIMEMode)
   {
     if (!nodeAsText)
@@ -3624,9 +3546,8 @@ nsEditor::IsEditable(nsIDOMNode *aNode)
         
         return IsTextInDirtyFrameVisible(aNode);
       }
-      if (resultFrame->HasAnyNoncollapsedCharacters()) {
-        return PR_TRUE;
-      }
+      if (resultFrame->GetSize().width > 0) 
+        return PR_TRUE;  
       resultFrame = resultFrame->GetNextContinuation();
     }
   }

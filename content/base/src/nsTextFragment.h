@@ -209,7 +209,7 @@ public:
 
 
 
-  void UpdateBidiFlag(const PRUnichar* aBuffer, PRUint32 aLength);
+  void SetBidiFlag();
 
   struct FragmentBits {
     
