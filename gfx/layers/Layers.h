@@ -48,6 +48,7 @@
 #include "gfx3DMatrix.h"
 #include "gfxColor.h"
 #include "gfxPattern.h"
+#include "nsTArray.h"
 
 #include "mozilla/gfx/2D.h"
 
@@ -577,7 +578,13 @@ public:
 
 
 
-    CONTENT_COMPONENT_ALPHA = 0x02
+    CONTENT_COMPONENT_ALPHA = 0x02,
+
+    
+
+
+
+    CONTENT_PRESERVE_3D = 0x04
   };
   
 
@@ -1094,6 +1101,8 @@ public:
   }
 
   virtual void FillSpecificAttributes(SpecificLayerAttributes& aAttrs);
+
+  void SortChildrenBy3DZOrder(nsTArray<Layer*>& aArray);
 
   
 
