@@ -2160,8 +2160,8 @@ nsGenericElement::nsGenericElement(already_AddRefed<nsINodeInfo> aNodeInfo)
 {
   
   
-  SetFlags(NODE_IS_ELEMENT |
-           (nsIProgrammingLanguage::JAVASCRIPT << NODE_SCRIPT_TYPE_OFFSET));
+  SetFlags((nsIProgrammingLanguage::JAVASCRIPT << NODE_SCRIPT_TYPE_OFFSET));
+  SetIsElement();
 }
 
 nsGenericElement::~nsGenericElement()
