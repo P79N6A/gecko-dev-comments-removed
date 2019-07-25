@@ -34,6 +34,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -253,6 +254,17 @@ TelemetryPing.prototype = {
     return ret;
   },
 
+  getAddonHistograms: function getAddonHistograms() {
+    let ahs = Telemetry.addonHistogramSnapshots;
+    let ret = {};
+
+    for (let name in ahs) {
+      ret[name] = this.convertHistogram(ahs[name]);
+    }
+
+    return ret;
+  },
+
   addValue: function addValue(name, id, val) {
     let h = this._histograms[name];
     if (!h) {
@@ -425,7 +437,8 @@ TelemetryPing.prototype = {
       info: this.getMetadata(reason),
       simpleMeasurements: getSimpleMeasurements(),
       histograms: this.getHistograms(),
-      slowSQL: Telemetry.slowSQL
+      slowSQL: Telemetry.slowSQL,
+      addonHistograms: this.getAddonHistograms()
     };
     if (Object.keys(this._slowSQLStartup.mainThread).length
 	|| Object.keys(this._slowSQLStartup.otherThreads).length) {
