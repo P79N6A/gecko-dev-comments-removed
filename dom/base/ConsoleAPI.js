@@ -29,6 +29,7 @@ const MESSAGES_IN_INTERVAL = 1500;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/ConsoleAPIStorage.jsm");
+Cu.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
 
 let gTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
 
@@ -49,64 +50,45 @@ ConsoleAPI.prototype = {
     Services.obs.addObserver(this, "xpcom-shutdown", false);
     Services.obs.addObserver(this, "inner-window-destroyed", false);
 
-
-    let outerID;
-    let innerID;
-    try {
-      let windowUtils = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                          .getInterface(Ci.nsIDOMWindowUtils);
-
-      outerID = windowUtils.outerWindowID;
-      innerID = windowUtils.currentInnerWindowID;
-    }
-    catch (ex) {
-      Cu.reportError(ex);
-    }
-
-    let meta = {
-      outerID: outerID,
-      innerID: innerID,
-    };
-
     let self = this;
     let chromeObject = {
       
       log: function CA_log() {
-        self.queueCall("log", arguments, meta);
+        self.queueCall("log", arguments, aWindow);
       },
       info: function CA_info() {
-        self.queueCall("info", arguments, meta);
+        self.queueCall("info", arguments, aWindow);
       },
       warn: function CA_warn() {
-        self.queueCall("warn", arguments, meta);
+        self.queueCall("warn", arguments, aWindow);
       },
       error: function CA_error() {
-        self.queueCall("error", arguments, meta);
+        self.queueCall("error", arguments, aWindow);
       },
       debug: function CA_debug() {
-        self.queueCall("debug", arguments, meta);
+        self.queueCall("debug", arguments, aWindow);
       },
       trace: function CA_trace() {
-        self.queueCall("trace", arguments, meta);
+        self.queueCall("trace", arguments, aWindow);
       },
       
       dir: function CA_dir() {
-        self.queueCall("dir", arguments, meta);
+        self.queueCall("dir", arguments, aWindow);
       },
       group: function CA_group() {
-        self.queueCall("group", arguments, meta);
+        self.queueCall("group", arguments, aWindow);
       },
       groupCollapsed: function CA_groupCollapsed() {
-        self.queueCall("groupCollapsed", arguments, meta);
+        self.queueCall("groupCollapsed", arguments, aWindow);
       },
       groupEnd: function CA_groupEnd() {
-        self.queueCall("groupEnd", arguments, meta);
+        self.queueCall("groupEnd", arguments, aWindow);
       },
       time: function CA_time() {
-        self.queueCall("time", arguments, meta);
+        self.queueCall("time", arguments, aWindow);
       },
       timeEnd: function CA_timeEnd() {
-        self.queueCall("timeEnd", arguments, meta);
+        self.queueCall("timeEnd", arguments, aWindow);
       },
       __exposedProps__: {
         log: "r",
@@ -184,12 +166,26 @@ ConsoleAPI.prototype = {
 
 
 
-
-  queueCall: function CA_queueCall(aMethod, aArguments, aMeta)
+  queueCall: function CA_queueCall(aMethod, aArguments, aWindow)
   {
+    let outerID;
+    let innerID;
+    try {
+      let windowUtils = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                          .getInterface(Ci.nsIDOMWindowUtils);
+
+      outerID = windowUtils.outerWindowID;
+      innerID = windowUtils.currentInnerWindowID;
+    }
+    catch (ex) {
+      Cu.reportError(ex);
+      return;
+    }
+
     let metaForCall = {
-      outerID: aMeta.outerID,
-      innerID: aMeta.innerID,
+      outerID: outerID,
+      innerID: innerID,
+      isPrivate: PrivateBrowsingUtils.isWindowPrivate(aWindow),
       timeStamp: Date.now(),
       stack: this.getStackTrace(aMethod != "trace" ? 1 : null),
     };
@@ -233,6 +229,7 @@ ConsoleAPI.prototype = {
     let notifyMeta = {
       outerID: meta.outerID,
       innerID: meta.innerID,
+      isPrivate: meta.isPrivate,
       timeStamp: meta.timeStamp,
       frame: meta.stack[0],
     };
@@ -286,6 +283,7 @@ ConsoleAPI.prototype = {
 
 
 
+
   notifyObservers: function CA_notifyObservers(aLevel, aArguments, aMeta) {
     let consoleEvent = {
       ID: aMeta.outerID,
@@ -301,7 +299,7 @@ ConsoleAPI.prototype = {
     consoleEvent.wrappedJSObject = consoleEvent;
 
     
-    if (this._destroyedWindows.indexOf(aMeta.innerID) == -1) {
+    if (!aMeta.isPrivate && this._destroyedWindows.indexOf(aMeta.innerID) == -1) {
       ConsoleAPIStorage.recordEvent(aMeta.innerID, consoleEvent);
     }
 
