@@ -1124,12 +1124,9 @@ CSSParserImpl::ParseProperty(const nsCSSProperty aPropID,
     
     
     
-    nsCSSValue* valueSlot = aDeclaration->SlotForValue(aPropID, aIsImportant);
-    if (valueSlot) {
-      *aChanged = nsCSSCompressedDataBlock::
-        MoveValue(mTempData.PropertyAt(aPropID), valueSlot);
-      mTempData.ClearPropertyBit(aPropID);
-    } else {
+    if (!aDeclaration->TryReplaceValue(aPropID, aIsImportant, mTempData,
+                                       aChanged)) {
+      
       aDeclaration->ExpandTo(&mData);
       *aChanged = mData.TransferFromBlock(mTempData, aPropID, aIsImportant,
                                           PR_TRUE, PR_FALSE, aDeclaration);

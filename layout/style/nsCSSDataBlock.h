@@ -93,9 +93,14 @@ public:
     
 
 
-    nsCSSValue* SlotForValue(nsCSSProperty aProperty) {
-      return const_cast<nsCSSValue*>(ValueFor(aProperty));
-    }
+
+
+
+
+
+    PRBool TryReplaceValue(nsCSSProperty aProperty,
+                           nsCSSExpandedDataBlock& aFromBlock,
+                           PRBool* aChanged);
 
     
 
@@ -106,15 +111,6 @@ public:
 
 
     static nsCSSCompressedDataBlock* CreateEmptyBlock();
-
-    
-
-
-
-
-
-    static PRBool MoveValue(nsCSSValue* aSource, nsCSSValue* aDest);
-
 
 private:
     PRInt32 mStyleBits; 

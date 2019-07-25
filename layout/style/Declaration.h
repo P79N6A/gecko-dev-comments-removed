@@ -160,28 +160,35 @@ public:
 
 
 
-  nsCSSValue* SlotForValue(nsCSSProperty aProperty, PRBool aIsImportant) {
+
+
+  PRBool TryReplaceValue(nsCSSProperty aProperty, PRBool aIsImportant,
+                         nsCSSExpandedDataBlock& aFromBlock,
+                         PRBool* aChanged)
+  {
     AssertMutable();
     NS_ABORT_IF_FALSE(mData, "called while expanded");
 
     if (nsCSSProps::IsShorthand(aProperty)) {
-      return nsnull;
+      *aChanged = PR_FALSE;
+      return PR_FALSE;
     }
     nsCSSCompressedDataBlock *block = aIsImportant ? mImportantData : mData;
     
     if (!block) {
-      return nsnull;
+      *aChanged = PR_FALSE;
+      return PR_FALSE;
     }
 
-    nsCSSValue *slot = block->SlotForValue(aProperty);
 #ifdef DEBUG
     {
       nsCSSCompressedDataBlock *other = aIsImportant ? mData : mImportantData;
-      NS_ABORT_IF_FALSE(!slot || !other || !other->ValueFor(aProperty),
+      NS_ABORT_IF_FALSE(!other || !other->ValueFor(aProperty) ||
+                        !block->ValueFor(aProperty),
                         "Property both important and not?");
     }
 #endif
-    return slot;
+    return block->TryReplaceValue(aProperty, aFromBlock, aChanged);
   }
 
   PRBool HasNonImportantValueFor(nsCSSProperty aProperty) const {
