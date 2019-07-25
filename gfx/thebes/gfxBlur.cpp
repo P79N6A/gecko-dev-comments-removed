@@ -315,10 +315,17 @@ gfxAlphaBoxBlur::Paint(gfxContext* aDestinationCtx, const gfxPoint& offset)
     
     if (mBlurRadius.width != 0 || mBlurRadius.height != 0) {
         nsTArray<unsigned char> tempAlphaDataBuf;
-        if (!tempAlphaDataBuf.SetLength(mImageSurface->GetDataSize()))
-            return; 
+        PRSize szB = mImageSurface->GetDataSize();
+        if (!tempAlphaDataBuf.SetLength(szB))
+           return; 
 
         unsigned char* tmpData = tempAlphaDataBuf.Elements();
+        
+        
+        
+        
+        memset(tmpData, 0, szB);
+
         PRInt32 stride = mImageSurface->Stride();
         PRInt32 rows = mImageSurface->Height();
 
