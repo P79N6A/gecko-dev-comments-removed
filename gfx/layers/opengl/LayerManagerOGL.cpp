@@ -766,8 +766,6 @@ LayerManagerOGL::Render()
   if (width == 0 || height == 0)
     return;
 
-  printf_stderr("render %i, %i\n", width, height);
-
   
   
   if (mWidgetSize.width != width ||
