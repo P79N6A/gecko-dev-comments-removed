@@ -230,8 +230,7 @@ bool
 Wrapper::set(JSContext *cx, JSObject *wrapper, JSObject *receiver, jsid id, bool strict,
                Value *vp)
 {
-    
-    SET(wrappedObject(wrapper)->setGeneric(cx, id, vp, false));
+    SET(wrappedObject(wrapper)->setGeneric(cx, id, vp, strict));
 }
 
 bool

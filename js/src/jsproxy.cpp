@@ -182,8 +182,18 @@ ProxyHandler::set(JSContext *cx, JSObject *proxy, JSObject *receiver, jsid id, b
         return false;
     
     if (desc.obj) {
-        if (desc.attrs & JSPROP_READONLY)
+        
+        if (desc.attrs & JSPROP_READONLY) {
+            if (strict) {
+                JSAutoByteString bytes(cx, JSID_TO_STRING(id));
+                if (!bytes)
+                    return false;
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+                                     JSMSG_CANT_REDEFINE_PROP, bytes.ptr());
+                return false;
+            }
             return true;
+        }
         if (!desc.setter) {
             
             
@@ -208,8 +218,18 @@ ProxyHandler::set(JSContext *cx, JSObject *proxy, JSObject *receiver, jsid id, b
     if (!getPropertyDescriptor(cx, proxy, id, true, &desc))
         return false;
     if (desc.obj) {
-        if (desc.attrs & JSPROP_READONLY)
+        
+        if (desc.attrs & JSPROP_READONLY) {
+            if (strict) {
+                JSAutoByteString bytes(cx, JSID_TO_STRING(id));
+                if (!bytes)
+                    return false;
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+                                     JSMSG_CANT_REDEFINE_PROP, bytes.ptr());
+                return false;
+            }
             return true;
+        }
         if (!desc.setter) {
             
             
