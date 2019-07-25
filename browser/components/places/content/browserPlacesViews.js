@@ -1242,13 +1242,12 @@ PlacesToolbar.prototype = {
       this._rootElt.insertBefore(elt, this._rootElt.childNodes[aNewIndex]);
 
       
-      if (this._chevron.open) {
-        let chevronPopup = this._chevronPopup;
-        let menuitem = chevronPopup.childNodes[aOldIndex];
-        chevronPopup.removeChild(menuitem);
-        chevronPopup.insertBefore(menuitem,
-                                  chevronPopup.childNodes[aNewIndex]);
-      }
+      
+      
+      
+      
+      
+
       this.updateChevron();
       return;
     }
