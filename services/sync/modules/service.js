@@ -196,9 +196,6 @@ WeaveSvc.prototype = {
     let url = Svc.Prefs.get("clusterURL");
     if (!url)
       return null;
-    
-    if (url == "https://sm-weave-proxy01.services.mozilla.com/")
-      return "https://sm-weave-proxy01.services.mozilla.com/weave/0.3/";
     if (url[url.length-1] != '/')
       url += '/';
     url += "0.3/user/";
