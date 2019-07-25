@@ -149,8 +149,10 @@ public:
   void SendDiscard(imgRequestProxy* aProxy);
 
   
-  void RecordFrameChanged(imgIContainer* aContainer, nsIntRect* aDirtyRect);
-  void SendFrameChanged(imgRequestProxy* aProxy, imgIContainer* aContainer, nsIntRect* aDirtyRect);
+  void RecordFrameChanged(imgIContainer* aContainer,
+                          const nsIntRect* aDirtyRect);
+  void SendFrameChanged(imgRequestProxy* aProxy, imgIContainer* aContainer,
+                        const nsIntRect* aDirtyRect);
 
   
   void RecordStartRequest();
