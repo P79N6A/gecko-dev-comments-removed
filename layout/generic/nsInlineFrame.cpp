@@ -1272,7 +1272,7 @@ nsPositionedInlineFrame::Reflow(nsPresContext*          aPresContext,
     rv = mAbsoluteContainer.Reflow(this, aPresContext, aReflowState, aStatus,
                                    containingBlockWidth, containingBlockHeight,
                                    PR_TRUE, PR_TRUE, PR_TRUE, 
-                                   &aDesiredSize.mOverflowArea);
+                                   &aDesiredSize.mOverflowAreas);
   }
 
   return rv;

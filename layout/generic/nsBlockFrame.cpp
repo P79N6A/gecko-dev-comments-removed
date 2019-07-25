@@ -1140,7 +1140,6 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
         mAbsoluteContainer.MarkSizeDependentFramesDirty();
       }
     } else {
-      nsRect childBounds;
       nsSize containingBlockSize =
         CalculateContainingBlockSizeForAbsolutes(aReflowState,
                                                  nsSize(aMetrics.width,
@@ -1167,12 +1166,9 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
                                      containingBlockSize.width,
                                      containingBlockSize.height, PR_TRUE,
                                      cbWidthChanged, cbHeightChanged,
-                                     &childBounds);
+                                     &aMetrics.mOverflowAreas);
 
       
-
-      
-      aMetrics.mOverflowArea.UnionRect(aMetrics.mOverflowArea, childBounds);
     }
   }
 

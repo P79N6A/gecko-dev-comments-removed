@@ -120,7 +120,7 @@ public:
                   PRBool                   aConstrainHeight,
                   PRBool                   aCBWidthChanged,
                   PRBool                   aCBHeightChanged,
-                  nsRect*                  aChildBounds = nsnull);
+                  nsOverflowAreas*         aOverflowAreas);
 
 
   void DestroyFrames(nsIFrame* aDelegatingFrame,
@@ -150,7 +150,7 @@ protected:
                                PRBool                   aConstrainHeight,
                                nsIFrame*                aKidFrame,
                                nsReflowStatus&          aStatus,
-                               nsRect*                  aChildBounds);
+                               nsOverflowAreas*         aOverflowAreas);
 
   
   

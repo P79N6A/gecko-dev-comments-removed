@@ -140,7 +140,8 @@ nsPageContentFrame::Reflow(nsPresContext*           aPresContext,
   mFixedContainer.Reflow(this, aPresContext, aReflowState, fixedStatus,
                          aReflowState.availableWidth,
                          aReflowState.availableHeight,
-                         PR_FALSE, PR_TRUE, PR_TRUE); 
+                         PR_FALSE, PR_TRUE, PR_TRUE, 
+                         nsnull );
   NS_ASSERTION(NS_FRAME_IS_COMPLETE(fixedStatus), "fixed frames can be truncated, but not incomplete");
 
   
