@@ -151,23 +151,23 @@ namespace JSC {
             LDMIA = 0x08b00000,
             FDTR = 0x0d000b00,
             B = 0x0a000000,
-            BL = 0x0b000000,
-#if WTF_ARM_VERSION >= 5 || defined(__ARM_ARCH_4T__)
-            BX = 0x012fff10,
+            BL = 0x0b000000
+#if WTF_ARM_ARCH_VERSION >= 5 || defined(__ARM_ARCH_4T__)
+           ,BX = 0x012fff10
 #endif
-            FMSR = 0x0e000a10,
+           ,FMSR = 0x0e000a10,
             FMRS = 0x0e100a10,
             FSITOD = 0x0eb80bc0,
             FTOSID = 0x0ebd0b40,
-            FMSTAT = 0x0ef1fa10,
+            FMSTAT = 0x0ef1fa10
 #if WTF_ARM_ARCH_VERSION >= 5
-            CLZ = 0x016f0f10,
+           ,CLZ = 0x016f0f10,
             BKPT = 0xe120070,
-            BLX = 0x012fff30,
+            BLX = 0x012fff30
 #endif
 #if WTF_ARM_ARCH_VERSION >= 7
-            MOVW = 0x03000000,
-            MOVT = 0x03400000,
+           ,MOVW = 0x03000000,
+            MOVT = 0x03400000
 #endif
         };
 
@@ -183,7 +183,7 @@ namespace JSC {
             
             DT_PRE = (1 << 24),
             HDT_UH = (1 << 5),
-            DT_LOAD = (1 << 20),
+            DT_LOAD = (1 << 20)
         };
 
         
@@ -191,19 +191,19 @@ namespace JSC {
             BRANCH_MASK = 0x00ffffff,
             NONARM = 0xf0000000,
             SDT_MASK = 0x0c000000,
-            SDT_OFFSET_MASK = 0xfff,
+            SDT_OFFSET_MASK = 0xfff
         };
 
         enum {
             BOFFSET_MIN = -0x00800000,
             BOFFSET_MAX = 0x007fffff,
-            SDT = 0x04000000,
+            SDT = 0x04000000
         };
 
         enum {
             padForAlign8  = 0x00,
             padForAlign16 = 0x0000,
-            padForAlign32 = 0xee120070,
+            padForAlign32 = 0xee120070
         };
 
         typedef enum {
@@ -684,6 +684,9 @@ namespace JSC {
         void bx(int rm, Condition cc = AL)
         {
 #if WTF_ARM_ARCH_VERSION >= 5 || defined(__ARM_ARCH_4T__)
+            js::JaegerSpew(
+                    js::JSpew_Insns,
+                    IPFX    "bx%-13s %s\n", nameCC(cc), nameGpReg(rm));
             emitInst(static_cast<ARMWord>(cc) | BX, 0, 0, RM(rm));
 #else
             mov_r(ARMRegisters::pc, RM(rm), cc);
@@ -694,6 +697,9 @@ namespace JSC {
         {
 #if WTF_ARM_ARCH_AT_LEAST(5)
             int s = m_buffer.uncheckedSize();
+            js::JaegerSpew(
+                    js::JSpew_Insns,
+                    IPFX    "blx%-12s %s\n", nameCC(cc), nameGpReg(rm));
             emitInst(static_cast<ARMWord>(cc) | BLX, 0, 0, RM(rm));
 #else
             ASSERT(rm != 14);
@@ -703,45 +709,6 @@ namespace JSC {
             bx(rm, cc);
 #endif
             return JmpSrc(s);
-        }
-
-        
-        void bx_r(int rm, Condition cc = AL)
-        {
-#if (WTF_ARM_ARCH_VERSION >= 5) || defined(__ARM_ARCH_4T__)
-            
-            js::JaegerSpew(
-                    js::JSpew_Insns,
-                    IPFX    "bx%-13s %s\n", nameCC(cc), nameGpReg(rm));
-            m_buffer.putInt(static_cast<ARMWord>(cc) | BX | RM(rm));
-#else   
-            
-            
-            
-            mov_r(ARMRegisters::pc, rm, cc);
-#endif
-        }
-
-        
-        
-        void blx_r(int rm, Condition cc = AL)
-        {
-            ASSERT((rm >= 0) && (rm <= 14));
-#if WTF_ARM_ARCH_VERSION >= 5
-            
-            js::JaegerSpew(
-                    js::JSpew_Insns,
-                    IPFX    "blx%-12s %s\n", nameCC(cc), nameGpReg(rm));
-            m_buffer.putInt(static_cast<ARMWord>(cc) | BLX_R | RM(rm));
-#else   
-            
-            
-            
-            ASSERT(rm != 14);
-            ensureSpace(2 * sizeof(ARMWord), 0);
-            mov_r(ARMRegisters::lr, ARMRegisters::pc, cc);
-            bx_r(rm, cc);
-#endif
         }
 
         static ARMWord lsl(int reg, ARMWord value)
