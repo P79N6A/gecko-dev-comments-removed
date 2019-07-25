@@ -3401,10 +3401,7 @@ js_InitClass(JSContext *cx, JSObject *obj, JSObject *parent_proto,
 
 
 
-
-
-
-        FUN_CLASP(fun) = (clasp == &js_SlowArrayClass) ? &js_ArrayClass : clasp;
+        FUN_CLASP(fun) = clasp;
 
         
 
