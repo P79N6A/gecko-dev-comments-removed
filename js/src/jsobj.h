@@ -505,10 +505,18 @@ struct JSObject : js::gc::Cell
     inline void setLastPropertyInfallible(const js::Shape *shape);
 
     
-    inline void initialize(js::Shape *shape, js::types::TypeObject *type, js::HeapValue *slots);
+    static inline JSObject *create(JSContext *cx,
+                                   js::gc::AllocKind kind,
+                                   js::Shape *shape,
+                                   js::types::TypeObject *type,
+                                   js::HeapValue *slots);
 
     
-    inline void initializeDenseArray(js::Shape *shape, js::types::TypeObject *type, uint32 length);
+    static inline JSObject *createDenseArray(JSContext *cx,
+                                             js::gc::AllocKind kind,
+                                             js::Shape *shape,
+                                             js::types::TypeObject *type,
+                                             uint32 length);
 
     
 
