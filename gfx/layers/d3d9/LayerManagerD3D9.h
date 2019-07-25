@@ -102,7 +102,7 @@ public:
   const CallbackInfo &GetCallbackInfo() { return mCurrentCallbackInfo; }
 
   void SetRoot(Layer* aLayer);
-  
+
   virtual already_AddRefed<ThebesLayer> CreateThebesLayer();
 
   virtual already_AddRefed<ContainerLayer> CreateContainerLayer();
@@ -170,7 +170,7 @@ private:
 
   
   CallbackInfo mCurrentCallbackInfo;
-  
+
   
 
 
@@ -214,7 +214,7 @@ public:
 
   enum LayerType { TYPE_THEBES, TYPE_CONTAINER, TYPE_IMAGE, TYPE_COLOR,
                    TYPE_CANVAS };
-  
+
   virtual LayerType GetType() = 0;
 
   virtual LayerD3D9 *GetFirstChildD3D9() { return nsnull; }

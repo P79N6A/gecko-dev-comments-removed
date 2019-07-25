@@ -162,7 +162,7 @@ CanvasLayerD3D9::Updated(const nsIntRect& aRect)
              aRect.width * 4);
     }
 
-    mTexture->UnlockRect(0);    
+    mTexture->UnlockRect(0);
   }
 }
 

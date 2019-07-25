@@ -46,7 +46,7 @@
 namespace mozilla {
 namespace layers {
 
-class ThebesLayerD3D9 : public ThebesLayer, 
+class ThebesLayerD3D9 : public ThebesLayer,
                         public LayerD3D9
 {
 public:
