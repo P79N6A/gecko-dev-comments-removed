@@ -141,7 +141,7 @@ Loop::iterateLoopBlocks(MBasicBlock *current)
     for (MInstructionIterator i = current->begin(); i != current->end(); i++) {
         MInstruction *ins = *i;
 
-        if (ins->isIdempotent()) {
+        if (ins->isMovable() && !ins->isEffectful()) {
             if (!insertInWorklist(ins))
                 return LoopReturn_Error;
         }
@@ -204,6 +204,13 @@ Loop::hoistInstructions(InstructionQueue &toHoist)
     
     for (size_t i = 0; i < toHoist.length(); i++) {
         MInstruction *ins = toHoist[i];
+
+        
+        
+        JS_ASSERT(!ins->isControlInstruction());
+        JS_ASSERT(!ins->isEffectful());
+        JS_ASSERT(ins->isMovable());
+
         if (checkHotness(ins->block())) {
             ins->block()->remove(ins);
             preLoop_->insertBefore(preLoop_->lastIns(), ins);
@@ -222,6 +229,16 @@ Loop::isInLoop(MDefinition *ins)
 bool
 Loop::isLoopInvariant(MInstruction *ins)
 {
+    if (!isHoistable(ins))
+        return false;
+
+    
+    if (ins->dependency() && isInLoop(ins->dependency())) {
+        if (IonSpewEnabled(IonSpew_LICM))
+            fprintf(IonSpewFile, "depends on store inside loop.\n");
+        return false;
+    }
+
     
     
     for (size_t i = 0; i < ins->numOperands(); i ++) {

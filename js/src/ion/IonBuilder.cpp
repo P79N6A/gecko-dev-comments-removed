@@ -2432,7 +2432,7 @@ IonBuilder::resumeAfter(MInstruction *ins)
 bool
 IonBuilder::resumeAt(MInstruction *ins, jsbytecode *pc)
 {
-    JS_ASSERT(!ins->isIdempotent());
+    JS_ASSERT(ins->isEffectful());
 
     MResumePoint *resumePoint = MResumePoint::New(ins->block(), pc, callerResumePoint_);
     if (!resumePoint)
@@ -2567,7 +2567,7 @@ IonBuilder::pushTypeBarrier(MInstruction *ins, types::TypeSet *actual, types::Ty
             return pushConstant(NullValue());
         break;
       default:
-        MUnbox::Mode mode = ins->isIdempotent() ? MUnbox::Fallible : MUnbox::TypeBarrier;
+        MUnbox::Mode mode = ins->isEffectful() ? MUnbox::TypeBarrier : MUnbox::Fallible;
         barrier = MUnbox::New(ins, MIRTypeFromValueType(type), mode);
         current->add(barrier);
     }

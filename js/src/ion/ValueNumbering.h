@@ -61,6 +61,11 @@ class ValueNumberer
         }
 
         static bool match(const Key &k, const Lookup &l) {
+            
+            
+            
+            if (k->dependency() != l->dependency())
+                return false;
             return k->congruentTo(l);
         }
     };

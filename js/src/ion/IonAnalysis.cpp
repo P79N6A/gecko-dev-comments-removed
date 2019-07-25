@@ -84,10 +84,12 @@ ion::EliminateDeadCode(MIRGraph &graph)
     for (PostorderIterator block = graph.poBegin(); block != graph.poEnd(); block++) {
         
         for (MInstructionReverseIterator inst = block->rbegin(); inst != block->rend(); ) {
-            if (inst->isIdempotent() && !inst->hasUses() && !inst->isGuard())
+            if (!inst->isEffectful() && !inst->hasUses() && !inst->isGuard() &&
+                !inst->isControlInstruction()) {
                 inst = block->discardAt(inst);
-            else
+            } else {
                 inst++;
+            }
         }
     }
 
