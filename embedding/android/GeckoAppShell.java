@@ -97,16 +97,15 @@ class GeckoAppShell
     public static native void onLowMemory();
     public static native void callObserver(String observerKey, String topic, String data);
     public static native void removeObserver(String observerKey);
+    public static native void loadLibs(String apkName);
 
     
-    public static void loadGeckoLibs() {
+    public static void loadGeckoLibs(String apkName) {
         
         
         
-
-        
-        System.loadLibrary("mozalloc");
         System.loadLibrary("mozutils");
+
                 
         Intent i = GeckoApp.mAppContext.getIntent();
         String env = i.getStringExtra("env0");
@@ -121,35 +120,13 @@ class GeckoAppShell
                           GeckoApp.mAppContext.getAppName() +"/tmp");
         if (!f.exists())
             f.mkdirs();
+
         GeckoAppShell.putenv("TMPDIR=" + f.getPath());
 
         f = Environment.getDownloadCacheDirectory();
         GeckoAppShell.putenv("EXTERNAL_STORAGE" + f.getPath());
 
-        
-        System.loadLibrary("nspr4");
-        System.loadLibrary("plc4");
-        System.loadLibrary("plds4");
-
-        
-        System.loadLibrary("mozsqlite3");
-
-        
-        System.loadLibrary("nssutil3");
-        System.loadLibrary("nss3");
-        System.loadLibrary("ssl3");
-        System.loadLibrary("smime3");
-
-        
-        System.loadLibrary("xul");
-
-        
-        System.loadLibrary("xpcom");                                          
-
-        
-        System.loadLibrary("nssckbi");
-        System.loadLibrary("freebl3");
-        System.loadLibrary("softokn3");
+        loadLibs(apkName);
     }
 
     public static void runGecko(String apkPath, String args, String url) {

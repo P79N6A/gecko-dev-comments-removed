@@ -172,7 +172,7 @@ abstract public class GeckoApp
             
             
             
-            GeckoAppShell.loadGeckoLibs();
+            GeckoAppShell.loadGeckoLibs(getApplication().getPackageResourcePath());
 
             if (useLaunchButton) {
                 final Button b = new Button(this);
