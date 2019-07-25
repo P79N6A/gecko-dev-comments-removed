@@ -1657,7 +1657,7 @@ WeaveSvc.prototype = {
 
 
   wipeClient: function WeaveSvc_wipeClient(engines)
-    this._catch(this._notify("wipe-client", "", function() {
+    this._notify("wipe-client", "", function() {
       
       if (!engines) {
         
@@ -1676,7 +1676,7 @@ WeaveSvc.prototype = {
 
       
       this.persistLogin();
-    }))(),
+    })(),
 
   
 
@@ -1685,8 +1685,8 @@ WeaveSvc.prototype = {
 
 
 
-  wipeRemote: function WeaveSvc_wipeRemote(engines)
-    this._catch(this._notify("wipe-remote", "", function() {
+  wipeRemote: function wipeRemote(engines) {
+    try {
       
       this.resetClient(engines);
 
@@ -1704,7 +1704,11 @@ WeaveSvc.prototype = {
 
       
       Clients.sync();
-    }))(),
+    } catch (ex) {
+      ErrorHandler.checkServerError(ex);
+      throw ex;
+    }
+  },
 
   
 
