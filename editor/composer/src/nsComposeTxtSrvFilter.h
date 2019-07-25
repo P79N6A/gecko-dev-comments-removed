@@ -66,7 +66,6 @@ public:
 protected:
   bool              mIsForMail;
   nsCOMPtr<nsIAtom> mBlockQuoteAtom;
-  nsCOMPtr<nsIAtom> mPreAtom;          
   nsCOMPtr<nsIAtom> mSpanAtom;         
   nsCOMPtr<nsIAtom> mMozQuoteAtom;     
   nsCOMPtr<nsIAtom> mTableAtom;

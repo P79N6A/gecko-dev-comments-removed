@@ -1968,94 +1968,63 @@ nsHTMLEditor::InsertAsPlaintextQuotation(const nsAString & aQuotedText,
   if (mWrapToWindow)
     return nsPlaintextEditor::InsertAsQuotation(aQuotedText, aNodeInserted);
 
-  nsresult rv;
-
-  
-  
-  bool quotesInPre = false;
-  nsCOMPtr<nsIPrefBranch> prefBranch =
-    do_GetService(NS_PREFSERVICE_CONTRACTID, &rv);
-  if (NS_SUCCEEDED(rv) && prefBranch)
-    prefBranch->GetBoolPref("editor.quotesPreformatted", &quotesInPre);
-
   nsCOMPtr<nsIDOMNode> preNode;
   
   nsCOMPtr<nsISelection> selection;
-  rv = GetSelection(getter_AddRefs(selection));
+  nsresult rv = GetSelection(getter_AddRefs(selection));
   NS_ENSURE_SUCCESS(rv, rv);
-  if (!selection)
+  NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
+
+  nsAutoEditBatch beginBatching(this);
+  nsAutoRules beginRulesSniffing(this, kOpInsertQuotation, nsIEditor::eNext);
+
+  
+  nsTextRulesInfo ruleInfo(nsTextEditRules::kInsertElement);
+  bool cancel, handled;
+  rv = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (cancel) return NS_OK; 
+  if (!handled)
   {
-    NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
-  }
-  else
-  {
-    nsAutoEditBatch beginBatching(this);
-    nsAutoRules beginRulesSniffing(this, kOpInsertQuotation, nsIEditor::eNext);
+    
+    rv = DeleteSelectionAndCreateNode(NS_LITERAL_STRING("span"), getter_AddRefs(preNode));
 
     
-    nsTextRulesInfo ruleInfo(nsTextEditRules::kInsertElement);
-    bool cancel, handled;
-    rv = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
-    NS_ENSURE_SUCCESS(rv, rv);
-    if (cancel) return NS_OK; 
-    if (!handled)
+    
+    
+    
+    if (NS_SUCCEEDED(rv) && preNode)
     {
       
-      nsAutoString tag;
-      if (quotesInPre)
-        tag.AssignLiteral("pre");
-      else
-        tag.AssignLiteral("span");
-
-      rv = DeleteSelectionAndCreateNode(tag, getter_AddRefs(preNode));
       
-      
-      
-      
-      
-      if (NS_SUCCEEDED(rv) && preNode)
+      nsCOMPtr<nsIDOMElement> preElement(do_QueryInterface(preNode));
+      if (preElement)
       {
+        preElement->SetAttribute(NS_LITERAL_STRING("_moz_quote"),
+                                 NS_LITERAL_STRING("true"));
         
-        
-        nsCOMPtr<nsIDOMElement> preElement (do_QueryInterface(preNode));
-        if (preElement)
-        {
-          preElement->SetAttribute(NS_LITERAL_STRING("_moz_quote"),
-                                   NS_LITERAL_STRING("true"));
-          if (quotesInPre)
-          {
-            
-            preElement->SetAttribute(NS_LITERAL_STRING("style"),
-                                     NS_LITERAL_STRING("margin: 0 0 0 0px;"));
-          }
-          else
-          {
-            
-            preElement->SetAttribute(NS_LITERAL_STRING("style"),
-                                     NS_LITERAL_STRING("white-space: pre;"));
-          }
-        }
-
-        
-        selection->Collapse(preNode, 0);
+        preElement->SetAttribute(NS_LITERAL_STRING("style"),
+                                 NS_LITERAL_STRING("white-space: pre;"));
       }
+      
+      selection->Collapse(preNode, 0);
+    }
 
-      if (aAddCites)
-        rv = nsPlaintextEditor::InsertAsQuotation(aQuotedText, aNodeInserted);
-      else
-        rv = nsPlaintextEditor::InsertText(aQuotedText);
-      
-      
-      
+    if (aAddCites)
+      rv = nsPlaintextEditor::InsertAsQuotation(aQuotedText, aNodeInserted);
+    else
+      rv = nsPlaintextEditor::InsertText(aQuotedText);
+    
+    
+    
 
-      if (aNodeInserted && NS_SUCCEEDED(rv))
-      {
-        *aNodeInserted = preNode;
-        NS_IF_ADDREF(*aNodeInserted);
-      }
+    if (aNodeInserted && NS_SUCCEEDED(rv))
+    {
+      *aNodeInserted = preNode;
+      NS_IF_ADDREF(*aNodeInserted);
     }
   }
-    
+
   
   if (NS_SUCCEEDED(rv) && preNode)
   {

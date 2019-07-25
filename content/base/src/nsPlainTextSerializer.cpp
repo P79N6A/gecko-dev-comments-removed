@@ -108,7 +108,6 @@ nsPlainTextSerializer::nsPlainTextSerializer()
   mCiteQuoteLevel = 0;
   mStructs = true;       
   mHeaderStrategy = 1 ;   
-  mQuotesPreformatted = false;                
   mDontWrapAnyQuotes = false;                 
   mHasWrittenCiteBlockquote = false;
   mSpanLevel = 0;
@@ -209,10 +208,6 @@ nsPlainTextSerializer::Init(PRUint32 aFlags, PRUint32 aWrapColumn,
 
     mHeaderStrategy =
       Preferences::GetInt(PREF_HEADER_STRATEGY, mHeaderStrategy);
-
-    
-    mQuotesPreformatted =
-      Preferences::GetBool("editor.quotesPreformatted", mQuotesPreformatted);
 
     
     
@@ -1636,7 +1631,7 @@ nsPlainTextSerializer::Write(const nsAString& aStr)
   
   
   if ((mPreFormatted && !mWrapColumn) || IsInPre()
-      || ((((!mQuotesPreformatted && mSpanLevel > 0) || mDontWrapAnyQuotes))
+      || ((mSpanLevel > 0 || mDontWrapAnyQuotes)
           && mEmptyLines >= 0 && str.First() == PRUnichar('>'))) {
     
 

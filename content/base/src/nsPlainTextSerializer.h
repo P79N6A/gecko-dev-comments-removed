@@ -179,8 +179,6 @@ protected:
   
   
   
-  
-  bool             mQuotesPreformatted; 
   bool             mDontWrapAnyQuotes;  
 
   bool             mStructs;            
