@@ -1090,31 +1090,6 @@ public:
 
 
 
-class nsDOMTokenListSH : public nsStringArraySH
-{
-protected:
-  nsDOMTokenListSH(nsDOMClassInfoData* aData) : nsStringArraySH(aData)
-  {
-  }
-
-  virtual ~nsDOMTokenListSH()
-  {
-  }
-
-  virtual nsresult GetStringAt(nsISupports *aNative, PRInt32 aIndex,
-                               nsAString& aResult);
-
-public:
-
-  static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
-  {
-    return new nsDOMTokenListSH(aData);
-  }
-};
-
-
-
-
 class nsMediaListSH : public nsStringArraySH
 {
 protected:
@@ -1232,74 +1207,6 @@ public:
   static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
   {
     return new nsCSSRuleListSH(aData);
-  }
-};
-
-
-
-class nsClientRectListSH : public nsArraySH
-{
-protected:
-  nsClientRectListSH(nsDOMClassInfoData* aData) : nsArraySH(aData)
-  {
-  }
-
-  virtual ~nsClientRectListSH()
-  {
-  }
-
-  virtual nsISupports* GetItemAt(nsISupports *aNative, PRUint32 aIndex,
-                                 nsWrapperCache **aCache, nsresult *aResult);
-
-public:
-  static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
-  {
-    return new nsClientRectListSH(aData);
-  }
-};
-
-
-
-
-class nsPaintRequestListSH : public nsArraySH
-{
-protected:
-  nsPaintRequestListSH(nsDOMClassInfoData* aData) : nsArraySH(aData)
-  {
-  }
-
-  virtual ~nsPaintRequestListSH()
-  {
-  }
-
-  virtual nsISupports* GetItemAt(nsISupports *aNative, PRUint32 aIndex,
-                                 nsWrapperCache **aCache, nsresult *aResult);
-
-public:
-  static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
-  {
-    return new nsPaintRequestListSH(aData);
-  }
-};
-
-class nsDOMTouchListSH : public nsArraySH
-{
-protected:
-  nsDOMTouchListSH(nsDOMClassInfoData* aData) : nsArraySH(aData)
-  {
-  }
-
-  virtual ~nsDOMTouchListSH()
-  {
-  }
-
-  virtual nsISupports* GetItemAt(nsISupports *aNative, PRUint32 aIndex,
-                                 nsWrapperCache **aCache, nsresult *aResult);
-
-public:
-  static nsIClassInfo* doCreate(nsDOMClassInfoData* aData)
-  {
-    return new nsDOMTouchListSH(aData);
   }
 };
 
@@ -1506,53 +1413,6 @@ public:
     return new nsOfflineResourceListSH(aData);
   }
 };
-
-class nsFileListSH : public nsArraySH
-{
-protected:
-  nsFileListSH(nsDOMClassInfoData *aData) : nsArraySH(aData)
-  {
-  }
-
-  virtual ~nsFileListSH()
-  {
-  }
-
-  virtual nsISupports* GetItemAt(nsISupports *aNative, PRUint32 aIndex,
-                                 nsWrapperCache **aCache, nsresult *aResult);
-
-public:
-  static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
-  {
-    return new nsFileListSH(aData);
-  }
-};
-
-
- 
-template<class ListInterfaceType, class ListType>
-class nsSVGListSH : public nsArraySH
-{
-protected:
-  nsSVGListSH(nsDOMClassInfoData* aData) : nsArraySH(aData)
-  {
-  }
-
-public:
-  virtual nsISupports* GetItemAt(nsISupports *aNative, PRUint32 aIndex,
-                                 nsWrapperCache **aCache, nsresult *aResult);
- 
-  static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
-  {
-    return new nsSVGListSH(aData);
-  }
-};
-
-typedef nsSVGListSH<nsIDOMSVGLengthList, mozilla::DOMSVGLengthList> nsSVGLengthListSH;
-typedef nsSVGListSH<nsIDOMSVGNumberList, mozilla::DOMSVGNumberList> nsSVGNumberListSH;
-typedef nsSVGListSH<nsIDOMSVGPathSegList, mozilla::DOMSVGPathSegList> nsSVGPathSegListSH;
-typedef nsSVGListSH<nsIDOMSVGPointList, mozilla::DOMSVGPointList> nsSVGPointListSH;
-typedef nsSVGListSH<nsIDOMSVGTransformList, mozilla::DOMSVGTransformList> nsSVGTransformListSH;
 
 
 
