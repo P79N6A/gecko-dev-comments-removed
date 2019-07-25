@@ -331,17 +331,6 @@ public:
 
 
 
-  NS_HIDDEN_(already_AddRefed<nsFontMetrics>)
-  GetMetricsFor(const nsFont& aFont, PRBool aUseUserFontSet = PR_TRUE);
-
-  
-
-
-
-
-
-
-
 
 
 
