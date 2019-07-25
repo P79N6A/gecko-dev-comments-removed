@@ -351,14 +351,21 @@ namespace nanojit
     void Assembler::resourceConsistencyCheck()
     {
         NanoAssert(!error());
-
 #ifdef NANOJIT_IA32
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         NanoAssert((_allocator.active[FST0] && _fpuStkDepth == -1) ||
-            (!_allocator.active[FST0] && _fpuStkDepth == 0));
+                   (!_allocator.active[FST0] && _fpuStkDepth == 0));
 #endif
-
         _activation.checkForResourceConsistency(_allocator);
-
         registerConsistencyCheck();
     }
 
@@ -639,40 +646,46 @@ namespace nanojit
         
         
         
-        
 #ifdef NANOJIT_IA32
-        
-        
-        
-        const bool pop = (allow & rmask(FST0)) &&
-                         (!ins->isInReg() || ins->getReg() != FST0);
-#else
-        const bool pop = false;
-#endif
+        const bool notInFST0 = (!ins->isInReg() || ins->getReg() != FST0);
         Register r = findRegFor(ins, allow);
-        asm_maybe_spill(ins, pop);
-#ifdef NANOJIT_IA32
-        if (!ins->isInAr() && pop && r == FST0) {
+        
+        
+        
+        const bool needPop = notInFST0 && (r == FST0);
+        const bool didSpill = asm_maybe_spill(ins, needPop);
+        if (!didSpill && needPop) {
             
             
             
-            FSTP(FST0);     
+            
+            FSTP(FST0);
         }
+#else
+        Register r = findRegFor(ins, allow);
+        asm_maybe_spill(ins, false);
 #endif
         return r;
     }
 
-    void Assembler::asm_maybe_spill(LIns* ins, bool pop)
+    bool Assembler::asm_maybe_spill(LIns* ins, bool pop)
     {
-        int d = ins->isInAr() ? arDisp(ins) : 0;
-        Register r = ins->getReg();
         if (ins->isInAr()) {
+            int d = arDisp(ins);
+            Register r = ins->getReg();
             verbose_only( RefBuf b;
                           if (_logc->lcbits & LC_Native) {
                              setOutputForEOL("  <= spill %s",
                              _thisfrag->lirbuf->printer->formatRef(&b, ins)); } )
-            asm_spill(r, d, pop, ins->isQorD());
+#ifdef NANOJIT_IA32
+            asm_spill(r, d, pop);
+#else
+            (void)pop;
+            asm_spill(r, d, ins->isQorD());
+#endif
+            return true;
         }
+        return false;
     }
 
     
@@ -2358,9 +2371,9 @@ namespace nanojit
                 }
 
                 #ifdef NANOJIT_IA32
-                if (savedins && (rmask(r) & x87Regs)) {
+                if (savedins && r == FST0) {
                     verbose_only( shouldMention=true; )
-                    FSTP(r);
+                    FSTP(FST0);
                 }
                 #endif
             }
@@ -2414,9 +2427,10 @@ namespace nanojit
                 }
 
                 #ifdef NANOJIT_IA32
-                if (rmask(r) & x87Regs) {
+                if (r == FST0) {
                     if (savedins) {
-                        FSTP(r);
+                        
+                        FSTP(FST0);
                     }
                     else if (curins) {
                         
