@@ -899,7 +899,7 @@ var Browser = {
       }
     } 
     else if (/^about:neterror\?e=netOffline/.test(errorDoc.documentURI)) {
-      if (ot == errorDoc.getElementById("errorTryAgain") {
+      if (ot == errorDoc.getElementById("errorTryAgain")) {
         
         Util.forceOnline();
       }
