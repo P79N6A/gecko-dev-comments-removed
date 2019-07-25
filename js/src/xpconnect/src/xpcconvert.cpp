@@ -49,6 +49,7 @@
 #include "nsJSPrincipals.h"
 #include "nsWrapperCache.h"
 #include "WrapperFactory.h"
+#include "AccessCheck.h"
 
 
 #ifdef STRICT_CHECK_OF_UNICODE
@@ -1382,6 +1383,23 @@ XPCConvert::NativeInterface2JSObject(XPCLazyCallContext& lccx,
             }
 
             flat = locationWrapper;
+        }
+        else if(wrapper->NeedsSOW() &&
+                !xpc::AccessCheck::isChrome(cx->compartment))
+        {
+            JSObject *sowWrapper = wrapper->GetWrapper();
+            if(!sowWrapper)
+            {
+                sowWrapper = xpc::WrapperFactory::WrapSOWObject(cx, flat);
+                if(!sowWrapper)
+                    return JS_FALSE;
+
+                
+                
+                wrapper->SetWrapper(sowWrapper);
+            }
+
+            flat = sowWrapper;
         }
         else
         {

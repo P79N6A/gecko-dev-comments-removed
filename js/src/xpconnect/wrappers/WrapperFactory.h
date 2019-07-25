@@ -47,7 +47,8 @@ class WrapperFactory {
     enum { WAIVE_XRAY_WRAPPER_FLAG = (1<<0),
            IS_XRAY_WRAPPER_FLAG = (1<<1),
            SCRIPT_ACCESS_ONLY_FLAG = (1<<2),
-           PARTIALLY_TRANSPARENT = (1<<3) };
+           PARTIALLY_TRANSPARENT = (1<<3),
+           SOW_FLAG = (1<<4) };
 
     
     static bool HasWrapperFlag(JSObject *wrapper, uintN flag) {
@@ -89,6 +90,9 @@ class WrapperFactory {
 
     
     static bool WaiveXrayAndWrap(JSContext *cx, jsval *vp);
+
+    
+    static JSObject *WrapSOWObject(JSContext *cx, JSObject *obj);
 };
 
 extern JSWrapper WaiveXrayWrapperWrapper;
