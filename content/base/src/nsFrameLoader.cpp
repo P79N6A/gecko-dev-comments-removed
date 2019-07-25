@@ -13,6 +13,7 @@
 
 #include "prenv.h"
 
+#include "mozIApplication.h"
 #include "nsIDOMHTMLIFrameElement.h"
 #include "nsIDOMHTMLFrameElement.h"
 #include "nsIDOMMozBrowserFrame.h"
@@ -31,6 +32,7 @@
 #include "nsIDocShellTreeNode.h"
 #include "nsIDocShellTreeOwner.h"
 #include "nsIDocShellLoadInfo.h"
+#include "nsIDOMApplicationRegistry.h"
 #include "nsIBaseWindow.h"
 #include "nsContentUtils.h"
 #include "nsIXPConnect.h"
@@ -1973,9 +1975,8 @@ nsFrameLoader::TryRemoteBrowser()
     return false;
   }
 
-  PRUint32 appId = 0;
   bool isBrowserElement = false;
-
+  nsCOMPtr<mozIApplication> app;
   if (OwnerIsBrowserFrame()) {
     isBrowserElement = true;
 
@@ -1989,24 +1990,21 @@ nsFrameLoader::TryRemoteBrowser()
         return false;
       }
 
-      appsService->GetAppLocalIdByManifestURL(manifest, &appId);
-
+      nsCOMPtr<mozIDOMApplication> domApp;
+      appsService->GetAppByManifestURL(manifest, getter_AddRefs(domApp));
       
-      if (appId != nsIScriptSecurityManager::NO_APP_ID) {
+      
+      
+      
+      
+      app = do_QueryInterface(domApp);
+      if (app) {
         isBrowserElement = false;
       }
     }
   }
 
-  
-  
-  nsAutoString appManifest;
-  GetOwnerAppManifestURL(appManifest);
-  ContentParent* parent = ContentParent::GetForApp(appManifest);
-
-  NS_ASSERTION(parent->IsAlive(), "Process parent should be alive; something is very wrong!");
-  mRemoteBrowser = parent->CreateTab(chromeFlags, isBrowserElement, appId);
-  if (mRemoteBrowser) {
+  if ((mRemoteBrowser = ContentParent::CreateBrowser(app, isBrowserElement))) {
     nsCOMPtr<nsIDOMElement> element = do_QueryInterface(mOwnerContent);
     mRemoteBrowser->SetOwnerElement(element);
 
@@ -2019,8 +2017,8 @@ nsFrameLoader::TryRemoteBrowser()
     nsCOMPtr<nsIBrowserDOMWindow> browserDOMWin;
     rootChromeWin->GetBrowserDOMWindow(getter_AddRefs(browserDOMWin));
     mRemoteBrowser->SetBrowserDOMWindow(browserDOMWin);
-    
-    mChildHost = parent;
+
+    mChildHost = static_cast<ContentParent*>(mRemoteBrowser->Manager());
   }
   return true;
 }
