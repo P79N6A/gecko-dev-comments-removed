@@ -91,7 +91,6 @@ class nsStyleContext;
 class nsIAtom;
 class nsEventStateManager;
 class nsIURI;
-class nsILookAndFeel;
 class nsICSSPseudoComparator;
 class nsIAtom;
 struct nsStyleBackground;
@@ -297,12 +296,6 @@ public:
   void SetImageAnimationMode(PRUint16 aMode)
   { SetImageAnimationModeExternal(aMode); }
 #endif
-
-  
-
-
-
-  nsILookAndFeel* LookAndFeel() { return mLookAndFeel; }
 
   
 
@@ -1050,7 +1043,6 @@ protected:
                                         
                                         
   nsEventStateManager* mEventManager;   
-  nsILookAndFeel*       mLookAndFeel;   
   nsRefPtr<nsRefreshDriver> mRefreshDriver;
   nsRefPtr<nsTransitionManager> mTransitionManager;
   nsRefPtr<nsAnimationManager> mAnimationManager;
