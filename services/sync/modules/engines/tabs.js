@@ -34,7 +34,10 @@
 
 
 
+
 const EXPORTED_SYMBOLS = ['TabEngine'];
+
+const SESSION_STORE_KEY = "weave-tab-sync-id";
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -43,10 +46,10 @@ const Cu = Components.utils;
 Cu.import("resource://weave/util.js");
 Cu.import("resource://weave/async.js");
 Cu.import("resource://weave/engines.js");
-Cu.import("resource://weave/syncCores.js");
 Cu.import("resource://weave/stores.js");
 Cu.import("resource://weave/trackers.js");
 Cu.import("resource://weave/constants.js");
+Cu.import("resource://weave/type_records/tabs.js");
 
 Function.prototype.async = Async.sugar;
 
@@ -60,64 +63,95 @@ TabEngine.prototype = {
   logName: "Tabs",
   _storeObj: TabStore,
   _trackerObj: TabTracker,
-  _recordObj: ClientTabsRecord
+  _recordObj: TabSetRecord,
 
-  get virtualTabs() {
-    let virtualTabs = {};
-    let realTabs = this._store.wrap();
+  
+  getAllClients: function TabEngine_getAllClients() {
+    return this._store._remoteClients;
+  },
 
-    for (let profileId in this._file.data) {
-      let tabset = this._file.data[profileId];
-      for (let guid in tabset) {
-        if (!(guid in realTabs) && !(guid in virtualTabs)) {
-          virtualTabs[guid] = tabset[guid];
-          virtualTabs[guid].profileId = profileId;
-        }
-      }
-    }
-    return virtualTabs;
+  getClientById: function TabEngine_getClientById(id) {
+    return this._store._remoteClients[id];
   }
+
 };
+
 
 function TabStore() {
   this._TabStore_init();
 }
 TabStore.prototype = {
-  __proto__: new Store(),
+  __proto__: Store.prototype,
   _logName: "Tabs.Store",
+  _filePath: "weave/meta/tabSets.json",
+  _remoteClients: {},
+
+  _TabStore_init: function TabStore__init() {
+    this._init();
+    this._readFromFile();
+  },
+
+  get _localClientGUID() {
+    return Engines.get("clients").clientID;
+  },
+
+  get _localClientName() {
+    return Engines.get("clients").clientName;
+  },
+
+  _writeToFile: function TabStore_writeToFile() {
+    
+    let file = Utils.getProfileFile(
+      {path: this._filePath, autoCreate: true});
+    let jsonObj = {};
+    for (let id in this._remoteClients) {
+      jsonObj[id] = this._remoteClients[id].toJson();
+    }
+    let [fos] = Utils.open(file, ">");
+    fos.writeString(this._json.encode(jsonObj));
+    fos.close();
+  },
+
+  _readFromFile: function TabStore_readFromFile() {
+    
+    
+    
+    let file = Utils.getProfileFile(this._filePath);
+    if (!file.exists())
+      return;
+    try {
+      let [is] = Utils.open(file, "<");
+      let json = Utils.readStream(is);
+      is.close();
+      let jsonObj = this._json.decode(json);
+      for (let id in jsonObj) {
+	this._remoteClients[id] = new TabSetRecord();
+	this._remoteClients[id].fromJson(jsonObj[id]);
+	this._remoteClients[id].id = id;
+    }
+    } catch (e) {
+      this._log.warn("Failed to load saved tabs file" + e);
+    }
+  },
 
   get _sessionStore() {
     let sessionStore = Cc["@mozilla.org/browser/sessionstore;1"].
 		       getService(Ci.nsISessionStore);
-    this.__defineGetter__("_sessionStore", function() sessionStore);
+    this.__defineGetter__("_sessionStore", function() { return sessionStore;});
     return this._sessionStore;
   },
 
-  _createCommand: function TabStore__createCommand(command) {
-    this._log.debug("_createCommand: " + command.GUID);
-
-    if (command.GUID in this._virtualTabs || command.GUID in this._wrapRealTabs())
-      throw "trying to create a tab that already exists; id: " + command.GUID;
-
-    
-    
-    if (!this.validateVirtualTab(command.data)) {
-      this._log.warn("could not create command " + command.GUID + "; invalid");
-      return;
-    }
-
-    
-    this._virtualTabs[command.GUID] = command.data;
-    this._os.notifyObservers(null, "weave:store:tabs:virtual:created", null);
+  get _json() {
+    let json = Cc["@mozilla.org/dom/json;1"].createInstance(Ci.nsIJSON);
+    this.__defineGetter__("_json", function() {return json;});
+    return this._json;
   },
 
-  
-
-
-  wrap: function TabStore_wrap() {
-    let items = {};
-
+  _createLocalClientTabSetRecord: function TabStore__createLocalTabSet() {
     let session = this._json.decode(this._sessionStore.getBrowserState());
+
+    let record = new TabSetRecord();
+    record.setClientName( this._localClientName );
 
     for (let i = 0; i < session.windows.length; i++) {
       let window = session.windows[i];
@@ -128,144 +162,114 @@ TabStore.prototype = {
 
       for (let j = 0; j < window.tabs.length; j++) {
         let tab = window.tabs[j];
-
-	
-	
-	let currentEntry = tab.entries[tab.index - 1];
-	if (!currentEntry || !currentEntry.url) {
-	  this._log.warn("_wrapRealTabs: no current entry or no URL, can't " +
-                         "identify " + this._json.encode(tab));
-	  continue;
+	let title = tab.contentDocument.title.innerHtml; 
+	let urlHistory = [];
+	let entries = tab.entries.slice(tab.entries.length - 10);
+	for (let entry in entries) {
+	  urlHistory.push( entry.url );
 	}
-
-	let tabID = currentEntry.url;
-
-        
-        
-        tab.entries = tab.entries.slice(tab.entries.length - 10);
-
-        
-        
-        
-        
-        for (let k = 0; k < tab.entries.length; k++) {
-            delete tab.entries[k].ID;
-        }
-
-	items[tabID] = {
-          
-          
-	  type: "tab",
-
-          
-          
-          position: j + 1,
-
-	  windowID: windowID,
-
-	  state: tab
-	};
+	record.addTab(title, urlHistory);
       }
     }
+    return record;
+  },
 
+  itemExists: function TabStore_itemExists(id) {
+    if (id == this._localClientGUID) {
+      return true;
+    } else if (this._remoteClients[id]) {
+      return true;
+    } else {
+      return false;
+    }
+  },
+
+  createRecord: function TabStore_createRecord(id) {
+    let record;
+    if (id == this._localClientGUID) {
+      record = this._createLocalClientTabSetRecord();
+    } else {
+      record = this._remoteClients[id];
+    }
+    record.id = id;
+    return record;
+  },
+
+  changeItemId: function TabStore_changeItemId(oldId, newId) {
+    if (this._remoteClients[oldId]) {
+      let record = this._remoteClients[oldId];
+      record.id = newId;
+      delete this._remoteClients[oldId];
+      this._remoteClients[newId] = record;
+    }
+  },
+
+  getAllIds: function TabStore_getAllIds() {
+    let items = {};
+    items[ this._localClientGUID ] = true;
+    for (let id in this._remoteClients) {
+      items[id] = true;
+    }
     return items;
   },
 
   wipe: function TabStore_wipe() {
+    this._log.debug("Wipe called.  Clearing cache of remote client tabs.");
+    this._remoteClients = {};
+    this._writeToFile();
+  },
+
+  create: function TabStore_create(record) {
+    if (record.id == this._localClientGUID)
+      return; 
+    this._log.debug("Create called.  Adding remote client record for ");
+    this._log.debug(record.getClientName());
+    this._remoteClients[record.id] = record;
+    this._writeToFile();
     
     
+    
+  },
+
+  update: function TabStore_update(record) {
+    if (record.id == this._localClientGUID)
+      return; 
+    this._log.debug("Update called.  Updating remote client record for");
+    this._log.debug(record.getClientName());
+    this._remoteClients[record.id] = record;
+    this._writeToFile();
+  },
+
+  remove: function TabStore_remove(record) {
+    if (record.id == this._localClientGUID)
+      return; 
+    this._log.debug("Remove called.  Deleting record with id " + record.id);
+    delete this._remoteClients[record.id];
+    this._writeToFile();
   }
+
 };
 
-function TabTracker(engine) {
-  this._engine = engine;
+function TabTracker() {
   this._init();
 }
 TabTracker.prototype = {
-  __proto__: new Tracker(),
-
+  __proto__: Tracker.prototype,
   _logName: "TabTracker",
+  file: "tab_tracker",
 
-  _engine: null,
+  _init: function TabTracker__init() {
+    this.__proto__.__proto__.init.call(this);
 
-  get _json() {
-    let json = Cc["@mozilla.org/dom/json;1"].createInstance(Ci.nsIJSON);
-    this.__defineGetter__("_json", function() json);
-    return this._json;
+    
+    let container = gBrowser.tabContainer;
+    container.addEventListener("TabOpen", this.onTabChanged, false);
+    container.addEventListener("TabClose", this.onTabChanged, false);
+    
+    
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  get score() {
-    
-    
-    let snapshotData = this._engine.snapshot.data;
-    let a = {};
-
-    
-    let b = this._engine.store.wrap();
-
-    
-    
-    
-    let c = [];
-
-    
-    for (id in snapshotData) {
-      if (id in b) {
-        c.push(this._json.encode(snapshotData[id]) == this._json.encode(b[id]));
-        delete b[id];
-      }
-      else {
-        a[id] = snapshotData[id];
-      }
-    }
-
-    let numShared = c.length;
-    let numUnique = [true for (id in a)].length + [true for (id in b)].length;
-    let numTotal = numShared + numUnique;
-
-    
-    
-    
-    if (numTotal == 0)
-      return 0;
-
-    
-    let numChanged = c.filter(function(v) !v).length;
-
-    let fractionSimilar = (numShared - (numChanged / 2)) / numTotal;
-    let fractionDissimilar = 1 - fractionSimilar;
-    let percentDissimilar = Math.round(fractionDissimilar * 100);
-
-    return percentDissimilar;
-  },
-
-  resetScore: function FormsTracker_resetScore() {
-    
+  onTabChanged: function TabTracker_onTabChanged(event) {
+    this._score += 10; 
   }
 }
