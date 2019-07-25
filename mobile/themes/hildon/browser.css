@@ -478,8 +478,18 @@ richlistitem[isDisabled="true"] image {
 
 
 #tool-bookmarks-close {
-  min-width: 64px !important;
+  margin-top: -8px; 
+  margin-bottom: -8px; 
+  margin-right: -8px; 
+  padding-right: 8px !important; 
+  min-width: 72px !important; 
+  min-height: 72px !important; 
   list-style-image: url("chrome://browser/skin/images/task-back-40.png");
+}
+
+#tool-bookmarks-close:hover:active {
+  background-color: #8db8d8 !important;
+  -moz-border-radius-bottomleft: 6px;
 }
 
 #bookmarklist-container {
