@@ -65,7 +65,7 @@ class SafepointWriter
 
     
     uint32 startEntry();
-    void writeOsiReturnPointOffset(uint32 osiPointOffset);
+    void writeOsiCallPointOffset(uint32 osiPointOffset);
     void writeGcRegs(GeneralRegisterSet actual, GeneralRegisterSet spilled);
     void writeGcSlots(uint32 nslots, uint32 *slots);
     void writeValueSlots(uint32 nslots, uint32 *slots);
@@ -99,6 +99,7 @@ class SafepointReader
     static CodeLocationLabel InvalidationPatchPoint(IonScript *script, const SafepointIndex *si);
 
     uint32 getOsiReturnPointOffset();
+    uint32 getOsiCallPointOffset();
 
     
     void getGcRegs(GeneralRegisterSet *actual, GeneralRegisterSet *spilled);

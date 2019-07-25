@@ -944,7 +944,7 @@ class LSafepoint : public TempObject
     uint32 safepointOffset_;
 
     
-    uint32 osiReturnPointOffset_;
+    uint32 osiCallPointOffset_;
 
     
     SlotList gcSlots_;
@@ -957,7 +957,7 @@ class LSafepoint : public TempObject
   public:
     LSafepoint()
       : safepointOffset_(INVALID_SAFEPOINT_OFFSET),
-        osiReturnPointOffset_(0)
+        osiCallPointOffset_(0)
     { }
     void addLiveRegister(AnyRegister reg) {
         liveRegs_.add(reg);
@@ -1017,14 +1017,20 @@ class LSafepoint : public TempObject
         safepointOffset_ = offset;
     }
     uint32 osiReturnPointOffset() const {
-        return osiReturnPointOffset_;
+        
+        
+        
+        return osiCallPointOffset_ + Assembler::patchWrite_NearCallSize();
     }
-    void setOsiReturnPointOffset(uint32 osiReturnPointOffset) {
-        JS_ASSERT(!osiReturnPointOffset_);
-        osiReturnPointOffset_ = osiReturnPointOffset;
+    uint32 osiCallPointOffset() const {
+        return osiCallPointOffset_;
+    }
+    void setOsiCallPointOffset(uint32 osiCallPointOffset) {
+        JS_ASSERT(!osiCallPointOffset_);
+        osiCallPointOffset_ = osiCallPointOffset;
     }
     void fixupOffset(MacroAssembler *masm) {
-        osiReturnPointOffset_ = masm->actualOffset(osiReturnPointOffset_);
+        osiCallPointOffset_ = masm->actualOffset(osiCallPointOffset_);
         safepointOffset_ = masm->actualOffset(safepointOffset_);
     }
 };
