@@ -393,8 +393,9 @@ public class LayerController {
             });
         }
 
+        
         if (initialTouchLocation != null && (action & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_MOVE) {
-            if (PointUtils.subtract(point, initialTouchLocation).length() > PanZoomController.PAN_THRESHOLD * 240) {
+            if (PointUtils.subtract(point, initialTouchLocation).length() > PanZoomController.PAN_THRESHOLD) {
                 initialTouchLocation = null;
             } else {
                 return !allowDefaultActions;

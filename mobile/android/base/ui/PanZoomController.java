@@ -75,13 +75,17 @@ public class PanZoomController
 
     
     private static final float STOPPED_THRESHOLD = 4.0f;
+
     
     private static final float FLING_STOPPED_THRESHOLD = 0.1f;
+
     
     
-    public static final float PAN_THRESHOLD = 0.1f;
+    public static final float PAN_THRESHOLD = 1/16f * GeckoAppShell.getDpi();
+
     
     private static final double AXIS_LOCK_ANGLE = Math.PI / 6.0; 
+
     
     private static final float MAX_ZOOM = 4.0f;
 
@@ -288,7 +292,7 @@ public class PanZoomController
             Log.e(LOGTAG, "Received impossible touch move while in " + mState);
             return false;
         case TOUCHING:
-            if (panDistance(event) < PAN_THRESHOLD * GeckoAppShell.getDpi()) {
+            if (panDistance(event) < PAN_THRESHOLD) {
                 return false;
             }
             cancelTouch();
