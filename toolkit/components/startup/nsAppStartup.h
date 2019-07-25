@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef nsAppStartup_h__
 #define nsAppStartup_h__
 
@@ -47,6 +48,13 @@
 
 #include "nsINativeAppSupport.h"
 #include "nsIAppShell.h"
+
+#if defined(XP_WIN)
+
+#include "mozilla/perfprobe.h"
+#include "nsAutoPtr.h"
+#endif 
+
 
 struct PLEvent;
 
@@ -85,6 +93,15 @@ private:
   bool mAttemptingQuit; 
   bool mRestart;        
   bool mInterrupted;    
+
+#if defined(XP_WIN)
+  
+  typedef mozilla::probes::ProbeManager ProbeManager;
+  typedef mozilla::probes::Probe        Probe;
+  nsRefPtr<ProbeManager> mProbesManager;
+  nsRefPtr<Probe> mPlacesInitCompleteProbe;
+  nsRefPtr<Probe> mSessionWindowRestoredProbe;
+#endif
 };
 
 #endif 
