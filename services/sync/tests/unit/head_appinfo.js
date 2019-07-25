@@ -5,7 +5,7 @@ gProfD = do_get_profile();
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-// Make sure to provide the right OS so crypto loads the right binaries
+
 let OS = "XPCShell";
 if ("@mozilla.org/windows-registry-key;1" in Cc)
   OS = "WINNT";
@@ -43,7 +43,7 @@ registrar.registerFactory(Components.ID("{fbfae60b-64a4-44ef-a911-08ceb70b9f31}"
                           XULAppInfoFactory);
 
 
-// Register resource aliases. Normally done in SyncComponents.manifest.
+
 function addResourceAlias() {
   Cu.import("resource://gre/modules/Services.jsm");
   const resProt = Services.io.getProtocolHandler("resource")
@@ -55,26 +55,3 @@ function addResourceAlias() {
   resProt.setSubstitution("services-crypto", uri);
 }
 addResourceAlias();
-
-
-// Some tests hang on OSX debug builds. See bug 604565.
-let DISABLE_TESTS_BUG_604565 = false;
-#ifdef XP_MACOSX
-#ifdef DEBUG
-DISABLE_TESTS_BUG_604565 = true;
-#endif
-#endif
-
-// test_jpakeclient.js produces random failures on Windows 7
-let DISABLE_TESTS_BUG_618233 = false;
-#ifdef XP_WIN
-DISABLE_TESTS_BUG_618233 = true;
-#endif
-
-// test_service_login.js persistently fails on Windows opt builds
-let DISABLE_TESTS_BUG_664090 = false;
-#ifdef XP_WIN
-#ifndef DEBUG
-DISABLE_TESTS_BUG_664090 = true;
-#endif
-#endif
