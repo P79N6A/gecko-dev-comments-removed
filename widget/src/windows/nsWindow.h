@@ -336,6 +336,8 @@ protected:
     return mTransparencyMode == eTransparencyGlass ||
            mTransparencyMode == eTransparencyBorderlessGlass;
   }
+  PRBool                  IsOurProcessWindow(HWND aHWND);
+  HWND                    FindOurProcessWindow(HWND aHWND);
 
   
 
@@ -346,6 +348,7 @@ protected:
   PRBool                  DispatchStandardEvent(PRUint32 aMsg);
   PRBool                  DispatchCommandEvent(PRUint32 aEventCommand);
   void                    RelayMouseEvent(UINT aMsg, WPARAM wParam, LPARAM lParam);
+  static void             RemoveNextCharMessage(HWND aWnd);
   void                    RemoveMessageAndDispatchPluginEvent(UINT aFirstMsg, UINT aLastMsg);
   static MSG              InitMSG(UINT aMessage, WPARAM wParam, LPARAM lParam);
   virtual PRBool          ProcessMessage(UINT msg, WPARAM &wParam,
@@ -368,6 +371,19 @@ protected:
                                                  LRESULT* aRetValue,
                                                  PRBool& aQuitProcessing);
   PRInt32                 ClientMarginHitTestPoint(PRInt32 mx, PRInt32 my);
+  static WORD             GetScanCode(LPARAM aLParam)
+  {
+    return (aLParam >> 16) & 0xFF;
+  }
+  static PRBool           IsExtendedScanCode(LPARAM aLParam)
+  {
+    return (aLParam & 0x1000000) != 0;
+  }
+  static PRBool           IsRedirectedKeyDownMessage(const MSG &aMsg);
+  static void             ForgetRedirectedKeyDownMessage()
+  {
+    sRedirectedKeyDown.message = WM_NULL;
+  }
 
   
 
@@ -608,6 +624,45 @@ protected:
   static HINSTANCE      sAccLib;
   static LPFNLRESULTFROMOBJECT sLresultFromObject;
 #endif 
+
+  
+  
+  static MSG            sRedirectedKeyDown;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  struct AutoForgetRedirectedKeyDownMessage
+  {
+    AutoForgetRedirectedKeyDownMessage(nsWindow* aWindow, const MSG &aMsg) :
+      mCancel(!nsWindow::IsRedirectedKeyDownMessage(aMsg)),
+      mWindow(aWindow), mMsg(aMsg)
+    {
+    }
+
+    ~AutoForgetRedirectedKeyDownMessage()
+    {
+      if (mCancel) {
+        return;
+      }
+      
+      if (!mWindow->mOnDestroyCalled) {
+        nsWindow::RemoveNextCharMessage(mWindow->mWnd);
+      }
+      
+      nsWindow::ForgetRedirectedKeyDownMessage();
+    }
+
+    PRBool mCancel;
+    nsCOMPtr<nsWindow> mWindow;
+    const MSG &mMsg;
+  };
+
 };
 
 
@@ -622,4 +677,4 @@ protected:
   virtual DWORD WindowStyle();
 };
 
-#endif
+#endif 
