@@ -978,6 +978,9 @@ JSContext::JSContext(JSRuntime *rt)
     localeCallbacks(NULL),
     resolvingList(NULL),
     generatingError(false),
+#ifdef DEBUG
+    rootingUnnecessary(false),
+#endif
     compartment(NULL),
     stack(thisDuringConstruction()),  
     parseMapPool_(NULL),
@@ -1037,6 +1040,22 @@ JSContext::~JSContext()
 
     JS_ASSERT(!resolvingList);
 }
+
+#ifdef DEBUG
+namespace JS {
+JS_FRIEND_API(void)
+SetRootingUnnecessaryForContext(JSContext *cx, bool value)
+{
+    cx->rootingUnnecessary = value;
+}
+
+JS_FRIEND_API(bool)
+IsRootingUnnecessaryForContext(JSContext *cx)
+{
+    return cx->rootingUnnecessary;
+}
+} 
+#endif
 
 void
 JSContext::resetCompartment()

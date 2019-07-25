@@ -1072,6 +1072,10 @@ struct JSContext : js::ContextFriendFields
     
     bool                generatingError;
 
+#ifdef DEBUG
+    bool                rootingUnnecessary;
+#endif
+
     
     JSCompartment       *compartment;
 

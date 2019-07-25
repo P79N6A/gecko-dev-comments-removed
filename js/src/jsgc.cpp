@@ -4240,6 +4240,19 @@ JS::CheckStackRoots(JSContext *cx)
     if (rt->gcZeal_ == ZealStackRootingSafeValue && !rt->gcExactScanningEnabled)
         return;
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    JS_ASSERT(!cx->rootingUnnecessary);
+
+        return;
+
     AutoCopyFreeListToArenas copy(rt);
 
     JSTracer checker;
