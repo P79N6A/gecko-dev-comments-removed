@@ -1412,6 +1412,9 @@ nsIEProfileMigrator::CopyFavoritesBatched(bool aReplace)
 
     
     
+    
+    
+    
     nsCOMPtr<nsIWindowsRegKey> regKey =
       do_CreateInstance("@mozilla.org/windows-registry-key;1");
     if (regKey &&
@@ -1421,9 +1424,14 @@ nsIEProfileMigrator::CopyFavoritesBatched(bool aReplace)
       nsAutoString linksFolderName;
       if (NS_SUCCEEDED(regKey->ReadStringValue(
                          NS_LITERAL_STRING("LinksFolderName"),
-                         linksFolderName)))
+                         linksFolderName))) {
         personalToolbarFolderName = linksFolderName;
+      }
+      else {
+        personalToolbarFolderName.AssignLiteral("Links");
+      }
     }
+
     folder = bookmarksMenuFolderId;
   }
 
