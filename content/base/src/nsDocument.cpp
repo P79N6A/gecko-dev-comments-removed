@@ -6174,16 +6174,8 @@ nsDocument::AdoptNode(nsIDOMNode *aAdoptedNode, nsIDOMNode **aResult)
 }
 
 NS_IMETHODIMP
-nsDocument::GetDomConfig(nsIDOMDOMConfiguration **aConfig)
-{
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
 nsDocument::NormalizeDocument()
 {
-  
-  
   return Normalize();
 }
 
