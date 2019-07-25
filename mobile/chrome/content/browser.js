@@ -1416,6 +1416,12 @@ Browser.MainDragger.prototype = {
       this.draggedFrame = element.ownerDocument.defaultView;
 
     this.bv.pauseRendering();
+
+    
+    
+    
+    
+    this.bv._idleServiceObserver.pause();
   },
 
   dragStop: function dragStop(dx, dy, scroller) {
@@ -1425,6 +1431,9 @@ Browser.MainDragger.prototype = {
     Browser.tryUnfloatToolbar();
 
     this.bv.resumeRendering();
+
+    
+    this.bv._idleServiceObserver.resume();
   },
 
   dragMove: function dragMove(dx, dy, scroller) {
