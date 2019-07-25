@@ -217,6 +217,7 @@ nsINode::nsSlots::Unlink()
 nsINode::~nsINode()
 {
   NS_ASSERTION(!HasSlots(), "nsNodeUtils::LastRelease was not called?");
+  NS_ASSERTION(mSubtreeRoot == this, "Didn't restore state properly?");
 }
 
 void*
@@ -3163,6 +3164,10 @@ nsGenericElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
     
 
     
+    
+    ClearSubtreeRootPointer();
+
+    
     SetInDocument();
 
     
@@ -3171,6 +3176,9 @@ nsGenericElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                NODE_NEEDS_FRAME | NODE_DESCENDANTS_NEED_FRAMES |
                
                ELEMENT_ALL_RESTYLE_FLAGS);
+  } else {
+    
+    SetSubtreeRootPointer(aParent->SubtreeRoot());
   }
 
   
@@ -3261,6 +3269,9 @@ nsGenericElement::UnbindFromTree(bool aDeep, bool aNullParent)
     SetParentIsContent(false);
   }
   ClearInDocument();
+
+  
+  SetSubtreeRootPointer(aNullParent ? this : mParent->SubtreeRoot());
 
   if (document) {
     
