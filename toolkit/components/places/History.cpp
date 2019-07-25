@@ -464,7 +464,7 @@ public:
         mPlace.transitionType != nsINavHistoryService::TRANSITION_FRAMED_LINK) {
       navHistory->NotifyOnVisit(uri, mPlace.visitId, mPlace.visitTime,
                                 mPlace.sessionId, mReferrer.visitId,
-                                mPlace.transitionType);
+                                mPlace.transitionType, mPlace.guid);
     }
 
     nsCOMPtr<nsIObserverService> obsService =
@@ -802,7 +802,8 @@ private:
 
       
       
-      if (mCallback) {
+      
+      if (mCallback || aPlace.guid.IsEmpty()) {
         bool exists = mHistory->FetchPageInfo(aPlace);
         if (!exists) {
           NS_NOTREACHED("should have an entry in moz_places");
