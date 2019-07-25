@@ -811,7 +811,23 @@ template<class LC>
 bool
 ListBase<LC>::has(JSContext *cx, JSObject *proxy, jsid id, bool *bp)
 {
-    return ProxyHandler::has(cx, proxy, id, bp);
+    if (!hasOwn(cx, proxy, id, bp))
+        return false;
+    
+    
+    if (*bp)
+        return true;
+
+    
+    JSObject *proto = js::GetObjectProto(proxy);
+    if (!proto)
+        return true;
+
+    JSBool protoHasProp;
+    bool ok = JS_HasPropertyById(cx, proto, id, &protoHasProp);
+    if (ok)
+        *bp = protoHasProp;
+    return ok;
 }
 
 template<class LC>
