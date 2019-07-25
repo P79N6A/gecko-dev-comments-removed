@@ -2,14 +2,14 @@ setDebug(true);
 x = "notset";
 function child() {
   
-  untrap(parent, 11);
+  untrap(parent, 10);
   x = "success";
 }
 function parent() {
   x = "failure";
 }
 
-trap(parent, 11, "child()");
+trap(parent, 10, "child()");
 
 parent();
 assertEq(x, "success");

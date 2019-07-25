@@ -1013,14 +1013,8 @@ js_NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg)
 
 
 
-
         jsbytecode *pc = prologLength ? CG_PROLOG_BASE(cg) : CG_BASE(cg);
 
-        if (JSOp(*pc) == JSOP_TRACE) {
-            ++pc;
-            if (pc == CG_PROLOG_BASE(cg) + prologLength)
-                pc = CG_BASE(cg);
-        }
         if ((cg->flags & TCF_NO_SCRIPT_RVAL) && JSOp(*pc) == JSOP_FALSE)
             ++pc;
 
