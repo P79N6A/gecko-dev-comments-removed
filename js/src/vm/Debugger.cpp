@@ -1973,26 +1973,344 @@ Debugger::removeDebuggeeGlobal(FreeOp *fop, GlobalObject *global,
 }
 
 
-typedef HashSet<JSCompartment *, DefaultHasher<JSCompartment *>, RuntimeAllocPolicy> CompartmentSet;
+
+
+
+class Debugger::ScriptQuery {
+  public:
+    
+    ScriptQuery(JSContext *cx, Debugger *dbg):
+        cx(cx), debugger(dbg), compartments(cx), innermostForGlobal(cx) {}
+
+    
+
+
+
+    bool init() {
+        if (!globals.init() ||
+            !compartments.init() ||
+            !innermostForGlobal.init())
+        {
+            js_ReportOutOfMemory(cx);
+            return false;
+        }
+
+        return true;
+    }
+
+    
+
+
+
+    bool parseQuery(JSObject *query) {
+        
+
+
+
+        Value global;
+        if (!query->getProperty(cx, cx->runtime->atomState.globalAtom, &global))
+            return false;
+        if (global.isUndefined()) {
+            matchAllDebuggeeGlobals();
+        } else {
+            JSObject *referent = debugger->unwrapDebuggeeArgument(cx, global);
+            if (!referent)
+                return false;
+            GlobalObject *globalObject = &referent->global();
+
+            
+
+
+
+            if (debugger->debuggees.has(globalObject)) {
+                if (!matchSingleGlobal(globalObject))
+                    return false;
+            }
+        }
+
+        
+        if (!query->getProperty(cx, cx->runtime->atomState.urlAtom, &url))
+            return false;
+        if (!url.isUndefined() && !url.isString()) {
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_UNEXPECTED_TYPE,
+                                 "query object's 'url' property", "neither undefined nor a string");
+            return false;
+        }
+
+        
+        Value lineProperty;
+        if (!query->getProperty(cx, cx->runtime->atomState.lineAtom, &lineProperty))
+            return false;
+        if (lineProperty.isUndefined()) {
+            hasLine = false;
+        } else if (lineProperty.isNumber()) {
+            if (url.isUndefined()) {
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_QUERY_LINE_WITHOUT_URL);
+                return false;
+            }
+            double doubleLine = lineProperty.toNumber();
+            if (doubleLine <= 0 || (unsigned int) doubleLine != doubleLine) {
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEBUG_BAD_LINE);
+                return false;
+            }
+            hasLine = true;
+            line = doubleLine;
+        } else {
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_UNEXPECTED_TYPE,
+                                 "query object's 'line' property",
+                                 "neither undefined nor an integer");
+            return false;
+        }
+
+        
+        Value innermostProperty;
+        if (!query->getProperty(cx, cx->runtime->atomState.innermostAtom, &innermostProperty))
+            return false;
+        innermost = js_ValueToBoolean(innermostProperty);
+        if (innermost) {
+            
+            if (url.isUndefined() || !hasLine) {
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+                                     JSMSG_QUERY_INNERMOST_WITHOUT_LINE_URL);
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    
+    bool omittedQuery() {
+        url.setUndefined();
+        hasLine = false;
+        innermost = false;
+        return matchAllDebuggeeGlobals();
+    }
+
+    
+
+
+
+    bool findScripts(AutoScriptVector *vector) {
+        if (!prepareQuery())
+            return false;
+
+        
+        for (CompartmentSet::Range r = compartments.all(); !r.empty(); r.popFront()) {
+            for (gc::CellIter i(r.front(), gc::FINALIZE_SCRIPT); !i.done(); i.next()) {
+                JSScript *script = i.get<JSScript>();
+                GlobalObject *global = script->getGlobalObjectOrNull();
+                if (global && !consider(script, global, vector))
+                    return false;
+            }
+        }
+
+        
+
+
+
+        for (FrameRegsIter fri(cx); !fri.done(); ++fri) {
+            if (fri.fp()->isEvalFrame()) {
+                JSScript *script = fri.fp()->script();
+
+                
+
+
+
+
+                JS_ASSERT(!script->getGlobalObjectOrNull());
+
+                GlobalObject *global = &fri.fp()->scopeChain().global();
+                if (!consider(script, global, vector))
+                    return false;
+            }
+        }
+
+        
+
+
+
+
+
+        if (innermost) {
+            for (GlobalToScriptMap::Range r = innermostForGlobal.all(); !r.empty(); r.popFront()) {
+                if (!vector->append(r.front().value)) {
+                    js_ReportOutOfMemory(cx);
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+  private:
+    
+    JSContext *cx;
+
+    
+    Debugger *debugger;
+
+    
+    GlobalObjectSet globals;
+
+    typedef HashSet<JSCompartment *, DefaultHasher<JSCompartment *>, RuntimeAllocPolicy>
+        CompartmentSet;
+
+    
+    CompartmentSet compartments;
+
+    
+    Value url;
+
+    
+    JSAutoByteString urlCString;
+
+    
+    bool hasLine;
+
+    
+    unsigned int line;
+
+    
+    bool innermost;
+
+    typedef HashMap<GlobalObject *, JSScript *, DefaultHasher<GlobalObject *>, RuntimeAllocPolicy>
+        GlobalToScriptMap;
+
+    
+
+
+
+
+    GlobalToScriptMap innermostForGlobal;
+
+    
+    bool matchSingleGlobal(GlobalObject *global) {
+        JS_ASSERT(globals.count() == 0);
+        if (!globals.put(global)) {
+            js_ReportOutOfMemory(cx);
+            return false;
+        }
+        return true;
+    }
+
+    
+
+
+
+    bool matchAllDebuggeeGlobals() {
+        JS_ASSERT(globals.count() == 0);
+        
+        for (GlobalObjectSet::Range r = debugger->debuggees.all(); !r.empty(); r.popFront()) {
+            if (!globals.put(r.front())) {
+                js_ReportOutOfMemory(cx);
+                return false;
+            }
+        }            
+        return true;
+    }
+
+    
+
+
+
+    bool prepareQuery() {
+        
+
+
+
+        for (GlobalObjectSet::Range r = globals.all(); !r.empty(); r.popFront()) {
+            if (!compartments.put(r.front()->compartment())) {
+                js_ReportOutOfMemory(cx);
+                return false;
+            }
+        }
+
+        
+        if (url.isString()) {
+            if (!urlCString.encode(cx, url.toString()))
+                return false;
+        }
+ 
+        return true;        
+    }
+
+    
+
+
+
+
+    bool consider(JSScript *script, GlobalObject *global, AutoScriptVector *vector) {
+        if (!globals.has(global))
+            return true;
+        if (urlCString.ptr()) {
+            if (!script->filename || strcmp(script->filename, urlCString.ptr()) != 0)
+                return true;
+        }
+        if (hasLine) {
+            if (line < script->lineno || script->lineno + js_GetScriptLineExtent(script) < line)
+                return true;
+        }
+
+        if (innermost) {
+            
+
+
+
+
+
+
+
+
+
+
+
+            GlobalToScriptMap::AddPtr p = innermostForGlobal.lookupForAdd(global);
+            if (p) {
+                
+                JSScript *incumbent = p->value;
+                if (script->staticLevel > incumbent->staticLevel)
+                    p->value = script;
+            } else {
+                
+
+
+
+                if (!innermostForGlobal.add(p, global, script)) {
+                    js_ReportOutOfMemory(cx);
+                    return false;
+                }
+            }
+        } else {
+            
+            if (!vector->append(script)) {
+                js_ReportOutOfMemory(cx);
+                return false;
+            }
+        }
+        
+        return true;        
+    }
+};
 
 JSBool
 Debugger::findScripts(JSContext *cx, unsigned argc, Value *vp)
 {
     THIS_DEBUGGER(cx, argc, vp, "findScripts", args, dbg);
 
-    CompartmentSet compartments(cx);
-    if (!compartments.init()) {
-        js_ReportOutOfMemory(cx);
+    ScriptQuery query(cx, dbg);
+    if (!query.init())
         return false;
-    }
 
-    
-    for (GlobalObjectSet::Range r = dbg->debuggees.all(); !r.empty(); r.popFront()) {
-        if (!compartments.put(r.front()->compartment())) {
-            js_ReportOutOfMemory(cx);
+    if (argc >= 1) {
+        JSObject *queryObject = NonNullObject(cx, args[0]);
+        if (!queryObject || !query.parseQuery(queryObject))
             return false;
-        }
-    }            
+    } else {
+        if (!query.omittedQuery())
+            return false;
+    }
 
     
 
@@ -2001,40 +2319,8 @@ Debugger::findScripts(JSContext *cx, unsigned argc, Value *vp)
 
     AutoScriptVector scripts(cx);
 
-    
-    for (CompartmentSet::Range r = compartments.all(); !r.empty(); r.popFront()) {
-        for (gc::CellIter i(r.front(), gc::FINALIZE_SCRIPT); !i.done(); i.next()) {
-            JSScript *script = i.get<JSScript>();
-            GlobalObject *global = script->getGlobalObjectOrNull();
-            if (global && dbg->debuggees.has(global)) {
-                if (!scripts.append(script)) {
-                    js_ReportOutOfMemory(cx);
-                    return false;
-                }                    
-            }
-        }
-    }
-
-    
-
-
-
-    for (FrameRegsIter fri(cx); !fri.done(); ++fri) {
-        if (fri.fp()->isEvalFrame() && dbg->debuggees.has(&fri.fp()->scopeChain().global())) {
-            JSScript *script = fri.fp()->script();
-
-            
-
-
-
-
-            JS_ASSERT(!script->getGlobalObjectOrNull());
-            if (!scripts.append(script)) {
-                js_ReportOutOfMemory(cx);
-                return false;
-            }
-        }
-    }
+    if (!query.findScripts(&scripts))
+        return false;
 
     JSObject *result = NewDenseAllocatedArray(cx, scripts.length(), NULL);
     if (!result)
