@@ -75,6 +75,8 @@
 
 static float sProgress;  
 static BOOL  sQuit = FALSE;
+static BOOL sIndeterminate = FALSE;
+static StringTable sUIStrings;
 
 static BOOL
 GetStringsFile(WCHAR filename[MAX_PATH])
@@ -135,20 +137,12 @@ CenterDialog(HWND hDlg)
 static void
 InitDialog(HWND hDlg)
 {
-  WCHAR filename[MAX_PATH];
-  if (!GetStringsFile(filename))
-    return;
-
-  StringTable uiStrings;
-  if (ReadStrings(filename, &uiStrings) != OK)
-    return;
-
   WCHAR szwTitle[MAX_TEXT_LEN];
   WCHAR szwInfo[MAX_TEXT_LEN];
 
-  MultiByteToWideChar(CP_UTF8, 0, uiStrings.title, -1, szwTitle,
+  MultiByteToWideChar(CP_UTF8, 0, sUIStrings.title, -1, szwTitle,
                       sizeof(szwTitle)/sizeof(szwTitle[0]));
-  MultiByteToWideChar(CP_UTF8, 0, uiStrings.info, -1, szwInfo,
+  MultiByteToWideChar(CP_UTF8, 0, sUIStrings.info, -1, szwInfo,
                       sizeof(szwInfo)/sizeof(szwInfo[0]));
 
   SetWindowTextW(hDlg, szwTitle);
@@ -161,6 +155,11 @@ InitDialog(HWND hDlg)
 
   HWND hWndPro = GetDlgItem(hDlg, IDC_PROGRESS);
   SendMessage(hWndPro, PBM_SETRANGE, 0, MAKELPARAM(0, 100));
+  if (sIndeterminate) {
+    LONG_PTR val = GetWindowLongPtr(hWndPro, GWL_STYLE);
+    SetWindowLongPtr(hWndPro, GWL_STYLE, val|PBS_MARQUEE); 
+    SendMessage(hWndPro,(UINT) PBM_SETMARQUEE,(WPARAM) TRUE,(LPARAM)50 );
+  }
 
   
   RECT infoSize, textSize;
@@ -239,28 +238,49 @@ InitProgressUI(int *argc, NS_tchar ***argv)
   return 0;
 }
 
+
+
+
+
+
 int
-ShowProgressUI()
-{
-  
-  
-  
-  Sleep(500);
-
-  if (sQuit || sProgress > 70.0f)
-    return 0;
-
+InitProgressUIStrings() {
   
   WCHAR filename[MAX_PATH];
-  if (!GetStringsFile(filename))
+  if (!GetStringsFile(filename)) {
     return -1;
-  if (_waccess(filename, 04))
+  }
+
+  if (_waccess(filename, 04)) {
     return -1;
+  }
   
   
-  StringTable uiStrings;
-  if (ReadStrings(filename, &uiStrings) != OK)
+  
+  if (ReadStrings(filename, &sUIStrings) != OK) {
     return -1;
+  }
+
+  return 0;
+}
+
+int
+ShowProgressUI(bool indeterminate, bool initUIStrings)
+{
+  sIndeterminate = indeterminate;
+  if (!indeterminate) {
+    
+    
+    
+    Sleep(500);
+
+    if (sQuit || sProgress > 70.0f)
+      return 0;
+  }
+
+  if (initUIStrings && InitProgressUIStrings() == -1) {
+    return -1;
+  }
 
   INITCOMMONCONTROLSEX icc = {
     sizeof(INITCOMMONCONTROLSEX),

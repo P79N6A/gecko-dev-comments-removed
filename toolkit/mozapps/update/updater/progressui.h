@@ -52,9 +52,14 @@
 
 int InitProgressUI(int *argc, NS_tchar ***argv);
 
-
-int ShowProgressUI();
-
+#if defined(XP_WIN)
+  
+  int ShowProgressUI(bool indeterminate = false, bool initUIStrings = true);
+  int InitProgressUIStrings();
+#else
+  
+  int ShowProgressUI();
+#endif
 
 void QuitProgressUI();
 

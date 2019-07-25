@@ -1516,6 +1516,18 @@ IsUpdateStatusSucceeded(bool &isSucceeded)
   return true;
 }
 
+#ifdef XP_WIN
+static void 
+WaitForServiceFinishThread(void *param)
+{
+  
+  
+  WaitForServiceStop(SVC_NAME, 595);
+  LOG(("calling QuitProgressUI\n"));
+  QuitProgressUI();
+}
+#endif
+
 static void
 UpdateThreadFunc(void *param)
 {
@@ -1793,7 +1805,24 @@ int NS_main(int argc, NS_tchar **argv)
         useService = (ret == ERROR_SUCCESS);
         
         if (useService) {
-          DWORD lastState = WaitForServiceStop(SVC_NAME, 600);
+          
+          
+          
+          bool showProgressUI = !InitProgressUIStrings();
+
+          
+          
+          DWORD lastState = WaitForServiceStop(SVC_NAME, 5);
+          if (lastState != SERVICE_STOPPED) {
+            Thread t1;
+            if (t1.Run(WaitForServiceFinishThread, NULL) == 0 && 
+                showProgressUI) {
+              ShowProgressUI(true, false);
+            }
+            t1.Join();
+          }
+
+          lastState = WaitForServiceStop(SVC_NAME, 1);
           if (lastState != SERVICE_STOPPED) {
             
             
