@@ -298,7 +298,6 @@ var Browser = {
       },
 
       scrollTo: function(x, y) {
-        
         if (getBrowser().contentWindow) {
           getBrowser().contentWindow.scrollTo(x, y);
         }
@@ -309,7 +308,6 @@ var Browser = {
       },
 
       getPosition: function(scrollX, scrollY) {
-        
         if (getBrowser().contentWindow) {
           let cwu = Util.getWindowUtils(getBrowser().contentWindow);
           cwu.getScrollXY(false, scrollX, scrollY);
