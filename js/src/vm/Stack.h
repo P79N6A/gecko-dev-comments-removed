@@ -60,26 +60,13 @@ class ExecuteFrameGuard;
 class DummyFrameGuard;
 class GeneratorFrameGuard;
 
-namespace mjit {
-    struct JITScript;
-    struct CallSite;
-    jsbytecode *NativeToPC(JITScript *jit, void *ncode, CallSite **pinline);
-}
-namespace detail { struct OOMCheck; }
-
 class CallIter;
 class FrameRegsIter;
 class AllFramesIter;
 
 class ArgumentsObject;
 
-#ifdef JS_METHODJIT
-typedef js::mjit::CallSite JSInlinedSite;
-#else
-struct JSInlinedSite {};
-#endif
-
-typedef  size_t JSRejoinState;
+namespace mjit { struct JITScript; }
 
 
 
@@ -350,9 +337,7 @@ class StackFrame
         HAS_ANNOTATION     =    0x20000,  
         HAS_RVAL           =    0x40000,  
         HAS_SCOPECHAIN     =    0x80000,  
-        HAS_PREVPC         =   0x100000,  
-
-        DOWN_FRAMES_EXPANDED = 0x200000   
+        HAS_PREVPC         =   0x100000   
     };
 
   private:
@@ -373,12 +358,9 @@ class StackFrame
     
     Value               rval_;          
     jsbytecode          *prevpc_;       
-    JSInlinedSite       *prevInline_;   
     jsbytecode          *imacropc_;     
     void                *hookData_;     
     void                *annotation_;   
-    JSRejoinState       rejoin_;        
-
 
     static void staticAsserts() {
         JS_STATIC_ASSERT(offsetof(StackFrame, rval_) % sizeof(Value) == 0);
@@ -386,7 +368,7 @@ class StackFrame
     }
 
     inline void initPrev(JSContext *cx);
-    jsbytecode *prevpcSlow(JSInlinedSite **pinlined);
+    jsbytecode *prevpcSlow();
 
   public:
     
@@ -499,9 +481,6 @@ class StackFrame
     }
 
     inline void resetGeneratorPrev(JSContext *cx);
-    inline void resetInlinePrev(StackFrame *prevfp, jsbytecode *prevpc);
-
-    inline void initInlineFrame(JSFunction *fun, StackFrame *prevfp, jsbytecode *prevpc);
 
     
 
@@ -532,12 +511,6 @@ class StackFrame
 
 
 
-
-
-
-
-
-
     
 
 
@@ -553,26 +526,12 @@ class StackFrame
 
 
 
+    jsbytecode *pcQuadratic(JSContext *cx) const;
 
-
-
-
-
-    jsbytecode *pcQuadratic(const ContextStack &stack, StackFrame *next = NULL,
-                            JSInlinedSite **pinlined = NULL);
-
-    jsbytecode *prevpc(JSInlinedSite **pinlined) {
-        if (flags_ & HAS_PREVPC) {
-            if (pinlined)
-                *pinlined = prevInline_;
+    jsbytecode *prevpc() {
+        if (flags_ & HAS_PREVPC)
             return prevpc_;
-        }
-        return prevpcSlow(pinlined);
-    }
-
-    JSInlinedSite *prevInline() {
-        JS_ASSERT(flags_ & HAS_PREVPC);
-        return prevInline_;
+        return prevpcSlow();
     }
 
     JSScript *script() const {
@@ -677,7 +636,6 @@ class StackFrame
     inline uintN numActualArgs() const;
     inline Value *actualArgs() const;
     inline Value *actualArgsEnd() const;
-    inline void ensureCoherentArgCount();
 
     inline Value &canonicalActualArg(uintN i) const;
     template <class Op>
@@ -922,26 +880,6 @@ class StackFrame
 
     
 
-    JSRejoinState rejoin() const {
-        return rejoin_;
-    }
-
-    void setRejoin(JSRejoinState state) {
-        rejoin_ = state;
-    }
-
-    
-
-    void setDownFramesExpanded() {
-        flags_ |= DOWN_FRAMES_EXPANDED;
-    }
-
-    bool downFramesExpanded() {
-        return flags_ & DOWN_FRAMES_EXPANDED;
-    }
-
-    
-
     bool hasHookData() const {
         return !!(flags_ & HAS_HOOK_DATA);
     }
@@ -1103,10 +1041,6 @@ class StackFrame
         return &args;
     }
 
-    static size_t offsetOfArgs() {
-        return offsetof(StackFrame, args);
-    }
-
     static size_t offsetOfScopeChain() {
         return offsetof(StackFrame, scopeChain_);
     }
@@ -1190,33 +1124,27 @@ class FrameRegs
     Value *sp;
     jsbytecode *pc;
   private:
-    JSInlinedSite *inlined_;
     StackFrame *fp_;
   public:
     StackFrame *fp() const { return fp_; }
-    JSInlinedSite *inlined() const { return inlined_; }
 
     
-    static const size_t offsetOfFp = 3 * sizeof(void *);
-    static const size_t offsetOfInlined = 2 * sizeof(void *);
+    static const size_t offsetOfFp = 2 * sizeof(void *);
     static void staticAssert() {
         JS_STATIC_ASSERT(offsetOfFp == offsetof(FrameRegs, fp_));
-        JS_STATIC_ASSERT(offsetOfInlined == offsetof(FrameRegs, inlined_));
     }
-    void clearInlined() { inlined_ = NULL; }
 
     
     void rebaseFromTo(const FrameRegs &from, StackFrame &to) {
         fp_ = &to;
         sp = to.slots() + (from.sp - from.fp_->slots());
         pc = from.pc;
-        inlined_ = from.inlined_;
         JS_ASSERT(fp_);
     }
 
     
     void popFrame(Value *newsp) {
-        pc = fp_->prevpc(&inlined_);
+        pc = fp_->prevpc();
         sp = newsp;
         fp_ = fp_->prev();
         JS_ASSERT(fp_);
@@ -1230,16 +1158,11 @@ class FrameRegs
     }
 
     
-    void restorePartialFrame(Value *newfp) {
-        fp_ = (StackFrame *) newfp;
-    }
-
-    
     void prepareToRun(StackFrame &fp, JSScript *script) {
         pc = script->code;
         sp = fp.slots() + script->nfixed;
         fp_ = &fp;
-        inlined_ = NULL;
+        JS_ASSERT(fp_);
     }
 
     
@@ -1247,22 +1170,8 @@ class FrameRegs
         pc = NULL;
         sp = fp.slots();
         fp_ = &fp;
-        inlined_ = NULL;
+        JS_ASSERT(fp_);
     }
-
-    
-    void expandInline(StackFrame *innerfp, jsbytecode *innerpc) {
-        pc = innerpc;
-        fp_ = innerfp;
-        inlined_ = NULL;
-    }
-
-#ifdef JS_METHODJIT
-    
-    void updateForNcode(mjit::JITScript *jit, void *ncode) {
-        pc = mjit::NativeToPC(jit, ncode, &inlined_);
-    }
-#endif
 };
 
 
@@ -1400,6 +1309,7 @@ class StackSpace
     friend class StackFrame;
     friend class OOMCheck;
     inline bool ensureSpace(JSContext *maybecx, Value *from, ptrdiff_t nvals) const;
+    StackSegment &findContainingSegment(const StackFrame *target) const;
 
   public:
     StackSpace();
@@ -1410,8 +1320,6 @@ class StackSpace
     Value *firstUnused() const { return seg_ ? seg_->end() : base_; }
     Value *endOfSpace() const { return end_; }
 
-    StackSegment &containingSegment(const StackFrame *target) const;
-
 #ifdef JS_TRACER
     
 
@@ -1421,16 +1329,6 @@ class StackSpace
 
     inline bool ensureEnoughSpaceToEnterTrace();
 #endif
-
-    
-
-
-
-
-
-
-
-    static const size_t STACK_JIT_EXTRA = (VALUES_PER_STACK_FRAME + 18) * 10;
 
     
 
@@ -1481,9 +1379,8 @@ class OOMCheck
 class LimitCheck
 {
     Value **limit;
-    void *topncode;
   public:
-    LimitCheck(Value **limit, void *topncode) : limit(limit), topncode(topncode) {}
+    LimitCheck(Value **limit) : limit(limit) {}
     bool operator()(JSContext *cx, StackSpace &space, Value *from, uintN nvals);
 };
 
@@ -1615,12 +1512,6 @@ class ContextStack
     void popFrameAfterOverflow();
 
     
-    inline JSScript *currentScript(jsbytecode **pc = NULL) const;
-
-    
-    inline JSObject *currentScriptedScopeChain() const;
-
-    
 
 
 
@@ -1707,13 +1598,6 @@ class GeneratorFrameGuard : public FrameGuard
 };
 
 
-
-
-enum FrameExpandKind {
-    FRAME_EXPAND_NONE,
-    FRAME_EXPAND_TOP,
-    FRAME_EXPAND_ALL
-};
 
 
 

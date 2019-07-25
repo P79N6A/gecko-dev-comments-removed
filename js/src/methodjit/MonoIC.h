@@ -88,20 +88,6 @@ class FrameSize
     uint32 getArgc(VMFrame &f) const {
         return isStatic() ? staticArgc() : f.u.call.dynamicArgc;
     }
-
-    bool lowered(jsbytecode *pc) const {
-        return isDynamic() || staticArgc() != GET_ARGC(pc);
-    }
-
-    RejoinState rejoinState(jsbytecode *pc, bool native) {
-        if (isStatic()) {
-            if (staticArgc() == GET_ARGC(pc))
-                return native ? REJOIN_NATIVE : REJOIN_CALL_PROLOGUE;
-            JS_ASSERT(staticArgc() == GET_ARGC(pc) - 1);
-            return native ? REJOIN_NATIVE_LOWERED : REJOIN_CALL_PROLOGUE_LOWERED_CALL;
-        }
-        return native ? REJOIN_NATIVE_LOWERED : REJOIN_CALL_PROLOGUE_LOWERED_APPLY;
-    }
 };
 
 namespace ic {
@@ -160,8 +146,7 @@ struct TraceICInfo {
     TraceICInfo() {}
 
     JSC::CodeLocationLabel stubEntry;
-    JSC::CodeLocationLabel fastTarget;
-    JSC::CodeLocationLabel slowTarget;
+    JSC::CodeLocationLabel jumpTarget;
     JSC::CodeLocationJump traceHint;
     JSC::CodeLocationJump slowTraceHint;
 #ifdef DEBUG
@@ -206,9 +191,6 @@ JSBool JS_FASTCALL Equality(VMFrame &f, ic::EqualityICInfo *ic);
 struct CallICInfo {
     typedef JSC::MacroAssembler::RegisterID RegisterID;
 
-    
-    JSCList links;
-
     enum PoolIndex {
         Pool_ScriptStub,
         Pool_ClosureStub,
@@ -223,7 +205,7 @@ struct CallICInfo {
     JSObject *fastGuardedNative;
 
     
-    CallSite *call;
+    jsbytecode *pc;
 
     FrameSize frameSize;
 
@@ -235,17 +217,6 @@ struct CallICInfo {
 
     
     JSC::CodeLocationJump funJump;
-
-    
-
-
-
-
-#ifdef JS_CPU_X64
-    JSC::CodeLocationDataLabelPtr nativeJump;
-#else
-    JSC::CodeLocationJump nativeJump;
-#endif
 
     
     uint32 hotJumpOffset   : 16;
@@ -270,7 +241,6 @@ struct CallICInfo {
     RegisterID funPtrReg : 5;
     bool hit : 1;
     bool hasJsFunCheck : 1;
-    bool typeMonitored : 1;
 
     inline void reset() {
         fastGuardedObject = NULL;
@@ -292,23 +262,13 @@ struct CallICInfo {
             pools[index] = NULL;
         }
     }
-
-    inline void purgeGuardedObject() {
-        JS_ASSERT(fastGuardedObject);
-        releasePool(CallICInfo::Pool_ClosureStub);
-        hasJsFunCheck = false;
-        fastGuardedObject = NULL;
-        JS_REMOVE_LINK(&links);
-    }
 };
 
 void * JS_FASTCALL New(VMFrame &f, ic::CallICInfo *ic);
 void * JS_FASTCALL Call(VMFrame &f, ic::CallICInfo *ic);
-void * JS_FASTCALL NativeNew(VMFrame &f, ic::CallICInfo *ic);
-void * JS_FASTCALL NativeCall(VMFrame &f, ic::CallICInfo *ic);
+void JS_FASTCALL NativeNew(VMFrame &f, ic::CallICInfo *ic);
+void JS_FASTCALL NativeCall(VMFrame &f, ic::CallICInfo *ic);
 JSBool JS_FASTCALL SplatApplyArgs(VMFrame &f);
-
-void GenerateArgumentCheckStub(VMFrame &f);
 
 void PurgeMICs(JSContext *cx, JSScript *script);
 void SweepCallICs(JSContext *cx, JSScript *script, bool purgeAll);

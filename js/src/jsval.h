@@ -104,8 +104,6 @@ JS_ENUM_HEADER(JSValueType, uint8)
 
     
 
-    JSVAL_TYPE_UNKNOWN             = 0x20,
-
     JSVAL_TYPE_NONFUNOBJ           = 0x57,
     JSVAL_TYPE_FUNOBJ              = 0x67,
 
@@ -266,7 +264,6 @@ typedef enum JSWhyMagic
     JS_THIS_POISON,              
     JS_ARG_POISON,               
     JS_SERIALIZE_NO_NODE,        
-    JS_LAZY_ARGUMENTS,           
     JS_GENERIC_MAGIC             
 } JSWhyMagic;
 

@@ -54,7 +54,6 @@
 #include "jsgc.h"
 #include "jsgcchunk.h"
 #include "jshashtable.h"
-#include "jsinfer.h"
 #include "jsinterp.h"
 #include "jsobj.h"
 #include "jspropertycache.h"
@@ -506,9 +505,6 @@ struct JSRuntime {
 
     JSBool              debugMode;
 
-    
-    JSBool              hadOutOfMemory;
-
 #ifdef JS_TRACER
     
     bool debuggerInhibitsJIT() const {
@@ -936,8 +932,6 @@ struct JSContext
     
     JSCompartment       *compartment;
 
-    inline void setCompartment(JSCompartment *compartment);
-
     
     js::ContextStack    stack;
 
@@ -1160,10 +1154,6 @@ struct JSContext
 
     inline js::mjit::JaegerCompartment *jaegerCompartment();
 #endif
-
-    bool                 inferenceEnabled;
-
-    bool typeInferenceEnabled() { return inferenceEnabled; }
 
     
     void updateJITEnabled();
@@ -1438,9 +1428,7 @@ class AutoGCRooter {
         STRING =      -14, 
         IDVECTOR =    -15, 
         BINDINGS =    -16, 
-        SHAPEVECTOR = -17, 
-        TYPE =        -18, 
-        VALARRAY =    -19  
+        SHAPEVECTOR = -17  
     };
 
     private:
@@ -2277,11 +2265,6 @@ TriggerAllOperationCallbacks(JSRuntime *rt);
 
 } 
 
-
-
-
-
-
 extern js::StackFrame *
 js_GetScriptedCaller(JSContext *cx, js::StackFrame *fp);
 
@@ -2299,12 +2282,6 @@ LeaveTrace(JSContext *cx);
 extern bool
 CanLeaveTrace(JSContext *cx);
 
-#ifdef JS_METHODJIT
-namespace mjit {
-    void ExpandInlineFrames(JSContext *cx, bool all);
-}
-#endif
-
 } 
 
 
@@ -2313,19 +2290,10 @@ namespace mjit {
 
 
 
-
-
-
 static JS_FORCES_STACK JS_INLINE js::StackFrame *
-js_GetTopStackFrame(JSContext *cx, js::FrameExpandKind expand)
+js_GetTopStackFrame(JSContext *cx)
 {
     js::LeaveTrace(cx);
-
-#ifdef JS_METHODJIT
-    if (expand != js::FRAME_EXPAND_NONE)
-        js::mjit::ExpandInlineFrames(cx, expand == js::FRAME_EXPAND_ALL);
-#endif
-
     return cx->maybefp();
 }
 
@@ -2461,25 +2429,6 @@ class AutoShapeVector : public AutoVectorRooter<const Shape *>
     {
         JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
-
-    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
-
-class AutoValueArray : public AutoGCRooter
-{
-    js::Value *start_;
-    unsigned length_;
-
-  public:
-    AutoValueArray(JSContext *cx, js::Value *start, unsigned length
-                   JS_GUARD_OBJECT_NOTIFIER_PARAM)
-        : AutoGCRooter(cx, VALARRAY), start_(start), length_(length)
-    {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    Value *start() const { return start_; }
-    unsigned length() const { return length_; }
 
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };

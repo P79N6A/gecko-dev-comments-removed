@@ -5369,7 +5369,7 @@ nsWindowSH::InvalidateGlobalScopePolluter(JSContext *cx, JSObject *obj)
 
       
       
-      ::JS_SplicePrototype(cx, obj, ::JS_GetPrototype(cx, proto));
+      ::JS_SetPrototype(cx, obj, ::JS_GetPrototype(cx, proto));
 
       break;
     }
@@ -5391,7 +5391,7 @@ nsWindowSH::InstallGlobalScopePolluter(JSContext *cx, JSObject *obj,
 
   JSAutoRequest ar(cx);
 
-  JSObject *gsp = ::JS_NewObjectWithUniqueType(cx, &sGlobalScopePolluterClass, nsnull, obj);
+  JSObject *gsp = ::JS_NewObject(cx, &sGlobalScopePolluterClass, nsnull, obj);
   if (!gsp) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -5404,7 +5404,9 @@ nsWindowSH::InstallGlobalScopePolluter(JSContext *cx, JSObject *obj,
   while ((proto = ::JS_GetPrototype(cx, o))) {
     if (JS_GET_CLASS(cx, proto) == sObjectClass) {
       
-      ::JS_SplicePrototype(cx, gsp, proto);
+      if (!::JS_SetPrototype(cx, gsp, proto)) {
+        return NS_ERROR_UNEXPECTED;
+      }
 
       break;
     }
@@ -5414,7 +5416,9 @@ nsWindowSH::InstallGlobalScopePolluter(JSContext *cx, JSObject *obj,
 
   
   
-  ::JS_SplicePrototype(cx, o, gsp);
+  if (!::JS_SetPrototype(cx, o, gsp)) {
+    return NS_ERROR_UNEXPECTED;
+  }
 
   if (!::JS_SetPrivate(cx, gsp, doc)) {
     return NS_ERROR_UNEXPECTED;

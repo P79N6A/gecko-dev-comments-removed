@@ -51,12 +51,10 @@ enum CompileRequest
 };
 
 
+static const size_t CALLS_BEFORE_COMPILE = 16;
 
 
-
-
-static const size_t USES_BEFORE_COMPILE       = 16;
-static const size_t INFER_USES_BEFORE_COMPILE = 40;
+static const size_t BACKEDGES_BEFORE_COMPILE = 16;
 
 static inline CompileStatus
 CanMethodJIT(JSContext *cx, JSScript *script, StackFrame *fp, CompileRequest request)
@@ -69,37 +67,13 @@ CanMethodJIT(JSContext *cx, JSScript *script, StackFrame *fp, CompileRequest req
     if (request == CompileRequest_Interpreter &&
         status == JITScript_None &&
         !cx->hasRunOption(JSOPTION_METHODJIT_ALWAYS) &&
-        (cx->typeInferenceEnabled()
-         ? script->incUseCount() <= INFER_USES_BEFORE_COMPILE
-         : script->incUseCount() <= USES_BEFORE_COMPILE))
+        script->incCallCount() <= CALLS_BEFORE_COMPILE)
     {
         return Compile_Skipped;
     }
     if (status == JITScript_None)
         return TryCompile(cx, fp);
     return Compile_Okay;
-}
-
-static inline bool
-RecursiveMethodJIT(JSContext *cx, StackFrame *fp)
-{
-    if (!cx->compartment->hasJaegerCompartment())
-        return false;
-
-    
-
-
-
-
-
-    static const unsigned RECURSIVE_METHODJIT_LIMIT = 10;
-    VMFrame *f = cx->compartment->jaegerCompartment()->activeFrame();
-    for (unsigned i = 0; i < RECURSIVE_METHODJIT_LIMIT; i++) {
-        if (!f || f->entryfp != fp)
-            return false;
-        f = f->previous;
-    }
-    return true;
 }
 
 
@@ -109,27 +83,16 @@ RecursiveMethodJIT(JSContext *cx, StackFrame *fp)
 static inline CompileStatus
 CanMethodJITAtBranch(JSContext *cx, JSScript *script, StackFrame *fp, jsbytecode *pc)
 {
-    if (!cx->methodJitEnabled || RecursiveMethodJIT(cx, fp))
+    if (!cx->methodJitEnabled)
         return Compile_Abort;
     JITScriptStatus status = script->getJITStatus(fp->isConstructing());
     if (status == JITScript_Invalid)
         return Compile_Abort;
-    if (status == JITScript_None && !cx->hasRunOption(JSOPTION_METHODJIT_ALWAYS)) {
-        
-
-
-
-
-
-
-
-        if (cx->typeInferenceEnabled()) {
-            if (script->incUseCount() <= INFER_USES_BEFORE_COMPILE)
-                return Compile_Skipped;
-        } else {
-            if (cx->compartment->incBackEdgeCount(pc) <= USES_BEFORE_COMPILE)
-                return Compile_Skipped;
-        }
+    if (status == JITScript_None &&
+        !cx->hasRunOption(JSOPTION_METHODJIT_ALWAYS) &&
+        cx->compartment->incBackEdgeCount(pc) <= BACKEDGES_BEFORE_COMPILE)
+    {
+        return Compile_Skipped;
     }
     if (status == JITScript_None)
         return TryCompile(cx, fp);

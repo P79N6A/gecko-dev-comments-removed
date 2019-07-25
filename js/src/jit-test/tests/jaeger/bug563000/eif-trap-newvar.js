@@ -1,10 +1,11 @@
-// |jit-test| mjitalways;debug
+
 setDebug(true);
 
 function nop(){}
 function caller(code, obj) {
-  eval(code); // Make the compiler give up on binding analysis.
+  assertJit();
+  eval(code); 
   return x;
 }
-trap(caller, 16, "var x = 'success'; nop()");
+trap(caller, 7, "var x = 'success'; nop()");
 assertEq(caller("var y = 'ignominy'", this), "success");

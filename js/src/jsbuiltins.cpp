@@ -1,43 +1,43 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4; -*-
- * vim: set ts=4 sw=4 et tw=99:
- *
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla SpiderMonkey JavaScript 1.9 code, released
- * May 28, 2008.
- *
- * The Initial Developer of the Original Code is
- *   Andreas Gal <gal@mozilla.com>
- *
- * Contributor(s):
- *   Brendan Eich <brendan@mozilla.org>
- *   Mike Shaver <shaver@mozilla.org>
- *   David Anderson <danderson@mozilla.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include <math.h>
 
@@ -73,17 +73,17 @@ using namespace js;
 JS_FRIEND_API(void)
 js_SetTraceableNativeFailed(JSContext *cx)
 {
-    /*
-     * We might not be on trace (we might have deep bailed) so we hope
-     * cx->compartment is correct.
-     */
+    
+
+
+
     SetBuiltinError(JS_TRACE_MONITOR_FROM_CONTEXT(cx));
 }
 
-/*
- * NB: bool FASTCALL is not compatible with Nanojit's calling convention usage.
- * Do not use bool FASTCALL, use JSBool only!
- */
+
+
+
+
 
 jsdouble FASTCALL
 js_dmod(jsdouble a, jsdouble b)
@@ -176,16 +176,16 @@ js_DoubleToUint32(jsdouble d)
 }
 JS_DEFINE_CALLINFO_1(extern, UINT32, js_DoubleToUint32, DOUBLE, 1, ACCSET_NONE)
 
-/*
- * js_StringToNumber and js_StringToInt32 store into their second argument, so
- * they need to be annotated accordingly.  To be future-proof, we use
- * ACCSET_STORE_ANY so that new callers don't have to remember to update the
- * annotation.
- */
+
+
+
+
+
+
 jsdouble FASTCALL
 js_StringToNumber(JSContext* cx, JSString* str, JSBool *ok)
 {
-    double out = 0;  /* silence warnings. */
+    double out = 0;  
     *ok = StringToNumberType<jsdouble>(cx, str, &out);
     return out;
 }
@@ -195,14 +195,14 @@ JS_DEFINE_CALLINFO_3(extern, DOUBLE, js_StringToNumber, CONTEXT, STRING, BOOLPTR
 int32 FASTCALL
 js_StringToInt32(JSContext* cx, JSString* str, JSBool *ok)
 {
-    int32 out = 0;  /* silence warnings. */
+    int32 out = 0;  
     *ok = StringToNumberType<int32>(cx, str, &out);
     return out;
 }
 JS_DEFINE_CALLINFO_3(extern, INT32, js_StringToInt32, CONTEXT, STRING, BOOLPTR,
                      0, ACCSET_STORE_ANY)
 
-/* Nb: it's always safe to set isDefinitelyAtom to false if you're unsure or don't know. */
+
 static inline JSBool
 AddPropertyHelper(JSContext* cx, JSObject* obj, Shape* shape, bool isDefinitelyAtom)
 {
@@ -232,21 +232,21 @@ AddPropertyHelper(JSContext* cx, JSObject* obj, Shape* shape, bool isDefinitelyA
 JSBool FASTCALL
 js_AddProperty(JSContext* cx, JSObject* obj, Shape* shape)
 {
-    return AddPropertyHelper(cx, obj, shape, /* isDefinitelyAtom = */false);
+    return AddPropertyHelper(cx, obj, shape, false);
 }
 JS_DEFINE_CALLINFO_3(extern, BOOL, js_AddProperty, CONTEXT, OBJECT, SHAPE, 0, ACCSET_STORE_ANY)
 
 JSBool FASTCALL
 js_AddAtomProperty(JSContext* cx, JSObject* obj, Shape* shape)
 {
-    return AddPropertyHelper(cx, obj, shape, /* isDefinitelyAtom = */true);
+    return AddPropertyHelper(cx, obj, shape, true);
 }
 JS_DEFINE_CALLINFO_3(extern, BOOL, js_AddAtomProperty, CONTEXT, OBJECT, SHAPE, 0, ACCSET_STORE_ANY)
 
 static JSBool
 HasProperty(JSContext* cx, JSObject* obj, jsid id)
 {
-    // Check that we know how the lookup op will behave.
+    
     for (JSObject* pobj = obj; pobj; pobj = pobj->getProto()) {
         if (pobj->getOps()->lookupProperty)
             return JS_NEITHER;
@@ -312,15 +312,11 @@ js_NewNullClosure(JSContext* cx, JSObject* funobj, JSObject* proto, JSObject* pa
     JSFunction *fun = (JSFunction*) funobj;
     JS_ASSERT(GET_FUNCTION_PRIVATE(cx, funobj) == fun);
 
-    types::TypeObject *type = proto->getNewType(cx);
-    if (!type)
-        return NULL;
-
     JSObject* closure = js_NewGCObject(cx, gc::FINALIZE_OBJECT2);
     if (!closure)
         return NULL;
 
-    if (!closure->initSharingEmptyShape(cx, &js_FunctionClass, type, parent,
+    if (!closure->initSharingEmptyShape(cx, &js_FunctionClass, proto, parent,
                                         fun, gc::FINALIZE_OBJECT2)) {
         return NULL;
     }

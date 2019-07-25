@@ -940,10 +940,6 @@ JSObject::changeProperty(JSContext *cx, const Shape *shape, uintN attrs, uintN m
     
     JS_ASSERT_IF(getter != shape->rawGetter, !shape->isMethod());
 
-    types::MarkTypePropertyConfigured(cx, getType(), shape->propid);
-    if (attrs & (JSPROP_GETTER | JSPROP_SETTER))
-        types::AddTypePropertyId(cx, getType(), shape->propid, types::TYPE_UNKNOWN);
-
     if (getter == PropertyStub)
         getter = NULL;
     if (setter == StrictPropertyStub)
@@ -1132,6 +1128,18 @@ JSObject::removeProperty(JSContext *cx, jsid id)
 
         JS_ASSERT(shape == lastProp);
         removeLastProperty();
+
+        
+
+
+
+
+        size_t fixed = numFixedSlots();
+        if (shape->slot == fixed) {
+            JS_ASSERT_IF(!lastProp->isEmptyShape() && lastProp->hasSlot(),
+                         lastProp->slot == fixed - 1);
+            revertToFixedSlots(cx);
+        }
     }
     updateShape(cx);
 
@@ -1173,24 +1181,20 @@ JSObject::clear(JSContext *cx)
 
 
 
+
+    if (hasSlotsArray() && JSSLOT_FREE(getClass()) <= numFixedSlots())
+        revertToFixedSlots(cx);
+
+    
+
+
+
     clearOwnShape();
     setMap(shape);
 
     LeaveTraceIfGlobalObject(cx, this);
     JS_ATOMIC_INCREMENT(&cx->runtime->propertyRemovals);
     CHECK_SHAPE_CONSISTENCY(this);
-}
-
-void
-JSObject::rollbackProperties(JSContext *cx, uint32 slotSpan)
-{
-    
-    JS_ASSERT(!inDictionaryMode() && !hasSlotsArray() && slotSpan <= this->slotSpan());
-    while (this->slotSpan() != slotSpan) {
-        JS_ASSERT(lastProp->hasSlot() && getSlot(lastProp->slot).isUndefined());
-        removeLastProperty();
-    }
-    updateShape(cx);
 }
 
 void

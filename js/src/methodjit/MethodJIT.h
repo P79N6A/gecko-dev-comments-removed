@@ -40,10 +40,8 @@
 #define jsjaeger_h__
 
 #include "jscntxt.h"
-#include "jscompartment.h"
 
 #include "assembler/assembler/MacroAssemblerCodeRef.h"
-#include "assembler/assembler/CodeLocation.h"
 
 #if !defined JS_CPU_X64 && \
     !defined JS_CPU_X86 && \
@@ -99,6 +97,7 @@ struct VMFrame
         struct {
             void *ptr;
             void *ptr2;
+            void *ptr3;
         } x;
         struct {
             uint32 lazyArgsObj;
@@ -107,17 +106,11 @@ struct VMFrame
     } u;
 
     VMFrame      *previous;
-    void         *scratch;
+    void         *unused;
     FrameRegs    regs;
     JSContext    *cx;
     Value        *stackLimit;
     StackFrame   *entryfp;
-    void         *entryncode;
-    JSRejoinState stubRejoin;  
-
-#if defined(JS_CPU_X86)
-    void         *unused0, *unused1;  
-#endif
 
 #if defined(JS_CPU_X86)
     void *savedEBX;
@@ -135,10 +128,6 @@ struct VMFrame
         return reinterpret_cast<void**>(this) - 1;
     }
 # endif
-
-    
-    static const uint32 STACK_BASE_DIFFERENCE = 0x38;
-
 #elif defined(JS_CPU_X64)
     void *savedRBX;
 # ifdef _WIN64
@@ -189,30 +178,16 @@ struct VMFrame
 
     JSRuntime *runtime() { return cx->runtime; }
 
-    
-
-
-
-
-
     StackFrame *fp() { return regs.fp(); }
     mjit::JITScript *jit() { return fp()->jit(); }
 
-    
-    inline JSScript *script();
-    inline jsbytecode *pc();
-
 #if defined(JS_CPU_SPARC)
-    static const size_t offsetOfFp = 30 * sizeof(void *) + FrameRegs::offsetOfFp;
-    static const size_t offsetOfInlined = 30 * sizeof(void *) + FrameRegs::offsetOfInlined;
+    static const size_t offsetOfFp = 31 * sizeof(void *) + FrameRegs::offsetOfFp;
 #else
-    static const size_t offsetOfFp = 4 * sizeof(void *) + FrameRegs::offsetOfFp;
-    static const size_t offsetOfInlined = 4 * sizeof(void *) + FrameRegs::offsetOfInlined;
+    static const size_t offsetOfFp = 5 * sizeof(void *) + FrameRegs::offsetOfFp;
 #endif
-
     static void staticAssert() {
         JS_STATIC_ASSERT(offsetOfFp == offsetof(VMFrame, regs) + FrameRegs::offsetOfFp);
-        JS_STATIC_ASSERT(offsetOfInlined == offsetof(VMFrame, regs) + FrameRegs::offsetOfInlined);
     }
 };
 
@@ -222,121 +197,6 @@ extern "C" void JaegerStubVeneer(void);
 #endif
 
 namespace mjit {
-
-
-
-
-
-
-enum RejoinState {
-    
-
-
-
-
-
-
-
-
-    REJOIN_SCRIPTED = 1,
-
-    
-    REJOIN_NONE,
-
-    
-    REJOIN_RESUME,
-
-    
-
-
-
-    REJOIN_TRAP,
-
-    
-    REJOIN_FALLTHROUGH,
-
-    
-
-
-
-
-    REJOIN_NATIVE,
-    REJOIN_NATIVE_LOWERED,
-
-    
-
-
-
-
-    REJOIN_NATIVE_PATCHED,
-
-    
-    REJOIN_PUSH_BOOLEAN,
-    REJOIN_PUSH_OBJECT,
-
-    
-    REJOIN_DEFLOCALFUN,
-
-    
-
-
-
-    REJOIN_THIS_PROTOTYPE,
-
-    
-
-
-
-    REJOIN_CHECK_ARGUMENTS,
-
-    
-
-
-
-    REJOIN_CALL_PROLOGUE,
-    REJOIN_CALL_PROLOGUE_LOWERED_CALL,
-    REJOIN_CALL_PROLOGUE_LOWERED_APPLY,
-
-    
-    REJOIN_CALL_SPLAT,
-
-    
-    REJOIN_BINDNAME,
-    REJOIN_GETTER,
-    REJOIN_POS,
-    REJOIN_BINARY,
-
-    
-
-
-
-    REJOIN_BRANCH
-};
-
-
-struct RecompilationMonitor
-{
-    JSContext *cx;
-
-    
-
-
-
-
-    unsigned recompilations;
-    unsigned frameExpansions;
-
-    RecompilationMonitor(JSContext *cx)
-        : cx(cx),
-          recompilations(cx->compartment->types.recompilations),
-          frameExpansions(cx->compartment->types.frameExpansions)
-    {}
-
-    bool recompiled() {
-        return cx->compartment->types.recompilations != recompilations
-            || cx->compartment->types.frameExpansions != frameExpansions;
-    }
-};
 
 
 
@@ -370,7 +230,6 @@ class JaegerCompartment {
   public:
     bool Initialize();
 
-    JaegerCompartment();
     ~JaegerCompartment() { Finish(); }
 
     JSC::ExecutableAllocator *execAlloc() {
@@ -383,7 +242,6 @@ class JaegerCompartment {
 
     void pushActiveFrame(VMFrame *f) {
         f->previous = activeFrame_;
-        f->scratch = NULL;
         activeFrame_ = f;
     }
 
@@ -403,14 +261,6 @@ class JaegerCompartment {
         return JS_FUNC_TO_DATA_PTR(void *, trampolines.forceReturn);
 #endif
     }
-
-    
-
-
-
-
-    Vector<StackFrame *, 8, SystemAllocPolicy> orphanedNativeFrames;
-    Vector<JSC::ExecutablePool *, 8, SystemAllocPolicy> orphanedNativePools;
 };
 
 
@@ -492,7 +342,6 @@ typedef void (JS_FASTCALL *VoidStubSetElemIC)(VMFrame &f, js::mjit::ic::SetEleme
 
 namespace mjit {
 
-struct InlineFrame;
 struct CallSite;
 
 struct NativeMapEntry {
@@ -504,12 +353,10 @@ struct JITScript {
     typedef JSC::MacroAssemblerCodeRef CodeRef;
     CodeRef         code;       
 
-    JSScript        *script;
 
     void            *invokeEntry;       
     void            *fastEntry;         
     void            *arityCheckEntry;   
-    void            *argsCheckEntry;    
 
     
 
@@ -522,8 +369,6 @@ struct JITScript {
     uint32          nNmapPairs:31;      
 
     bool            singleStepMode:1;   
-    uint32          nInlineFrames;
-    uint32          nCallSites;
 #ifdef JS_MONOIC
     uint32          nGetGlobalNames;
     uint32          nSetGlobalNames;
@@ -536,18 +381,7 @@ struct JITScript {
     uint32          nSetElems;
     uint32          nPICs;
 #endif
-
-#ifdef JS_MONOIC
-    
-    JSC::CodeLocationLabel argsCheckStub;
-    JSC::CodeLocationLabel argsCheckFallthrough;
-    JSC::CodeLocationJump  argsCheckJump;
-    JSC::ExecutablePool *argsCheckPool;
-    void resetArgsCheck();
-#endif
-
-    
-    JSCList          callers;
+    uint32          nCallSites;
 
 #ifdef JS_MONOIC
     
@@ -556,8 +390,6 @@ struct JITScript {
 #endif
 
     NativeMapEntry *nmap() const;
-    js::mjit::InlineFrame *inlineFrames() const;
-    js::mjit::CallSite *callSites() const;
 #ifdef JS_MONOIC
     ic::GetGlobalNameIC *getGlobalNames() const;
     ic::SetGlobalNameIC *setGlobalNames() const;
@@ -570,6 +402,7 @@ struct JITScript {
     ic::SetElementIC *setElems() const;
     ic::PICInfo     *pics() const;
 #endif
+    js::mjit::CallSite *callSites() const;
 
     ~JITScript();
 
@@ -585,14 +418,11 @@ struct JITScript {
     void purgePICs();
 
     size_t scriptDataSize();
-
-    jsbytecode *nativeToPC(void *returnAddress, CallSite **pinline) const;
-
-    void trace(JSTracer *trc);
+    jsbytecode *nativeToPC(void *returnAddress) const;
 
   private:
     
-    char *commonSectionLimit() const;
+    char *nmapSectionLimit() const;
     char *monoICSectionsLimit() const;
     char *polyICSectionsLimit() const;
 };
@@ -612,10 +442,8 @@ JSBool JaegerShotAtSafePoint(JSContext *cx, void *safePoint);
 enum CompileStatus
 {
     Compile_Okay,
-    Compile_Abort,        
-    Compile_InlineAbort,  
-    Compile_Retry,        
-    Compile_Error,        
+    Compile_Abort,
+    Compile_Error,
     Compile_Skipped
 };
 
@@ -626,40 +454,28 @@ CompileStatus JS_NEVER_INLINE
 TryCompile(JSContext *cx, StackFrame *fp);
 
 void
-ReleaseScriptCode(JSContext *cx, JSScript *script, bool normal);
-
-
-void
-ExpandInlineFrames(JSContext *cx, bool all);
-
-
-struct InlineFrame
-{
-    InlineFrame *parent;
-    jsbytecode *parentpc;
-    JSFunction *fun;
-
-    
-    
-    uint32 depth;
-};
+ReleaseScriptCode(JSContext *cx, JSScript *script);
 
 struct CallSite
 {
     uint32 codeOffset;
-    uint32 inlineIndex;
     uint32 pcOffset;
-    RejoinState rejoin;
+    uint32 id;
 
-    void initialize(uint32 codeOffset, uint32 inlineIndex, uint32 pcOffset, RejoinState rejoin) {
+    
+    
+    
+    
+    static const uint32 MAGIC_TRAP_ID = 0xFEDCBABC;
+
+    void initialize(uint32 codeOffset, uint32 pcOffset, uint32 id) {
         this->codeOffset = codeOffset;
-        this->inlineIndex = inlineIndex;
         this->pcOffset = pcOffset;
-        this->rejoin = rejoin;
+        this->id = id;
     }
 
     bool isTrap() const {
-        return rejoin == REJOIN_TRAP;
+        return id == MAGIC_TRAP_ID;
     }
 };
 
@@ -699,22 +515,6 @@ inline void * bsearch_nmap(NativeMapEntry *nmap, size_t nPairs, size_t bcOff)
 
 } 
 
-inline JSScript *
-VMFrame::script()
-{
-    if (regs.inlined())
-        return jit()->inlineFrames()[regs.inlined()->inlineIndex].fun->script();
-    return fp()->script();
-}
-
-inline jsbytecode *
-VMFrame::pc()
-{
-    if (regs.inlined())
-        return script()->code + regs.inlined()->pcOffset;
-    return regs.pc;
-}
-
 } 
 
 inline void *
@@ -737,18 +537,10 @@ JSScript::nativeCodeForPC(bool constructing, jsbytecode *pc)
     return native;
 }
 
-extern "C" void JaegerTrampolineReturn();
-extern "C" void JaegerInterpoline();
-extern "C" void JaegerInterpolineScripted();
-
 #if defined(_MSC_VER) || defined(_WIN64)
 extern "C" void *JaegerThrowpoline(js::VMFrame *vmFrame);
 #else
 extern "C" void JaegerThrowpoline();
-#endif
-
-#if defined(_WIN64)
-extern "C" void JaegerInterpolinePatched();
 #endif
 
 #endif 

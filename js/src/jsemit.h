@@ -365,7 +365,7 @@ struct JSTreeContext {
         topStmt(NULL), topScopeStmt(NULL), blockChainBox(NULL), blockNode(NULL),
         decls(prs->context), parser(prs), yieldNode(NULL), argumentsNode(NULL), scopeChain_(NULL),
         lexdeps(prs->context), parent(prs->tc), staticLevel(0), funbox(NULL), functionList(NULL),
-        innermostWith(NULL), bindings(prs->context), sharpSlotBase(-1)
+        innermostWith(NULL), bindings(prs->context, prs->emptyCallShape), sharpSlotBase(-1)
     {
         prs->tc = this;
     }
@@ -644,8 +644,7 @@ struct JSCodeGenerator : public JSTreeContext
 
 
     js::OwnedAtomIndexMapPtr upvarIndices; 
-
-    js::UpvarCookies upvarMap;      
+    JSUpvarArray    upvarMap;       
 
     typedef js::Vector<js::GlobalSlotArray::Entry, 16> GlobalUseVector;
 
@@ -658,7 +657,6 @@ struct JSCodeGenerator : public JSTreeContext
     SlotVector      closedVars;
 
     uint16          traceIndex;     
-    uint16          typesetIndex;   
 
     
 

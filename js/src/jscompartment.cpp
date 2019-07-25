@@ -122,17 +122,11 @@ JSCompartment::~JSCompartment()
 }
 
 bool
-JSCompartment::init(JSContext *cx)
+JSCompartment::init()
 {
     chunk = NULL;
     for (unsigned i = 0; i < FINALIZE_LIMIT; i++)
         arenas[i].init();
-
-    activeAnalysis = activeInference = false;
-    types.init(cx);
-
-    JS_InitArenaPool(&pool, "analysis", 4096, 8);
-
     freeLists.init();
     if (!crossCompartmentWrappers.init())
         return false;
@@ -342,9 +336,7 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
 
     vp->setObject(*wrapper);
 
-    if (wrapper->getProto() != proto && !SetProto(cx, wrapper, proto, false))
-        return false;
-
+    wrapper->setProto(proto);
     if (!crossCompartmentWrappers.put(wrapper->getProxyPrivate(), *vp))
         return false;
 
@@ -451,16 +443,7 @@ ScriptPoolDestroyed(JSContext *cx, mjit::JITScript *jit,
     }
     return pool->m_destroy;
 }
-
-static inline void
-ScriptTryDestroyCode(JSContext *cx, JSScript *script, bool normal,
-                     uint32 releaseInterval, uint32 &counter)
-{
-    mjit::JITScript *jit = normal ? script->jitNormal : script->jitCtor;
-    if (jit && ScriptPoolDestroyed(cx, jit, releaseInterval, counter))
-        mjit::ReleaseScriptCode(cx, script, normal);
-}
-#endif 
+#endif
 
 
 
@@ -474,25 +457,6 @@ JSCompartment::markCrossCompartmentWrappers(JSTracer *trc)
 
     for (WrapperMap::Enum e(crossCompartmentWrappers); !e.empty(); e.popFront())
         MarkValue(trc, e.front().key, "cross-compartment wrapper");
-}
-
-void
-JSCompartment::markTypes(JSTracer *trc)
-{
-     
-    JS_ASSERT(activeAnalysis);
-
-    for (JSCList *cursor = scripts.next; cursor != &scripts; cursor = cursor->next) {
-        JSScript *script = reinterpret_cast<JSScript *>(cursor);
-        js_TraceScript(trc, script);
-    }
-
-    types::TypeObject *obj = types.objects;
-    while (obj) {
-        if (!obj->marked)
-            obj->trace(trc);
-        obj = obj->next;
-    }
 }
 
 void
@@ -535,18 +499,6 @@ JSCompartment::sweep(JSContext *cx, uint32 releaseInterval)
         traceMonitor()->sweep(cx);
 #endif
 
-# if defined JS_METHODJIT && defined JS_POLYIC
-    
-
-
-
-    for (JSCList *cursor = scripts.next; cursor != &scripts; cursor = cursor->next) {
-        JSScript *script = reinterpret_cast<JSScript *>(cursor);
-        if (script->hasJITCode())
-            mjit::ic::PurgePICs(cx, script);
-    }
-# endif
-
 #if defined JS_METHODJIT && defined JS_MONOIC
 
     
@@ -564,49 +516,20 @@ JSCompartment::sweep(JSContext *cx, uint32 releaseInterval)
         if (script->hasJITCode()) {
             mjit::ic::SweepCallICs(cx, script, discardScripts);
             if (discardScripts) {
-                ScriptTryDestroyCode(cx, script, true, releaseInterval, counter);
-                ScriptTryDestroyCode(cx, script, false, releaseInterval, counter);
+                if (script->jitNormal &&
+                    ScriptPoolDestroyed(cx, script->jitNormal, releaseInterval, counter)) {
+                    mjit::ReleaseScriptCode(cx, script);
+                    continue;
+                }
+                if (script->jitCtor &&
+                    ScriptPoolDestroyed(cx, script->jitCtor, releaseInterval, counter)) {
+                    mjit::ReleaseScriptCode(cx, script);
+                }
             }
         }
     }
 
-#endif
-
-    if (!activeAnalysis && types.inferenceEnabled) {
-        bool ok = true;
-
-        for (JSCList *cursor = scripts.next; ok && cursor != &scripts; cursor = cursor->next) {
-            JSScript *script = reinterpret_cast<JSScript *>(cursor);
-            ok = script->types.condenseTypes(cx);
-        }
-
-        if (ok)
-            ok = condenseTypes(cx);
-
-        
-
-
-
-        JS_ASSERT(ok == types.inferenceEnabled);
-    }
-
-    types.sweep(cx);
-
-    for (JSCList *cursor = scripts.next; cursor != &scripts; cursor = cursor->next) {
-        JSScript *script = reinterpret_cast<JSScript *>(cursor);
-        script->sweepAnalysis(cx);
-    }
-
-    if (!activeAnalysis) {
-        
-        JS_FinishArenaPool(&pool);
-
-        
-
-
-
-        js_DestroyScriptsToGC(cx, this);
-    }
+#endif 
 
     active = false;
 }
@@ -616,6 +539,9 @@ JSCompartment::purge(JSContext *cx)
 {
     freeLists.purge();
     dtoaCache.purge();
+
+    
+    js_DestroyScriptsToGC(cx, this);
 
     nativeIterCache.purge();
     toSourceCache.destroyIfConstructed();
@@ -635,6 +561,9 @@ JSCompartment::purge(JSContext *cx)
          &script->links != &scripts;
          script = (JSScript *)script->links.next) {
         if (script->hasJITCode()) {
+# if defined JS_POLYIC
+            mjit::ic::PurgePICs(cx, script);
+# endif
 # if defined JS_MONOIC
             
 
@@ -690,3 +619,4 @@ JSCompartment::incBackEdgeCount(jsbytecode *pc)
         return ++p->value;
     return 1;  
 }
+

@@ -7303,8 +7303,7 @@ var FeedHandler = {
 
 
   updateFeeds: function() {
-    if (this._updateFeedTimeout)
-      clearTimeout(this._updateFeedTimeout);
+    clearTimeout(this._updateFeedTimeout);
 
     var feeds = gBrowser.selectedBrowser.feeds;
     var haveFeeds = feeds && feeds.length > 0;

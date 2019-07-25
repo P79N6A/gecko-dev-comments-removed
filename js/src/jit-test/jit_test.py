@@ -1,6 +1,6 @@
-#!/usr/bin/env python
 
-# jit_test.py -- Python harness for JavaScript trace tests.
+
+
 
 import datetime, os, re, sys, tempfile, traceback, time, shlex
 import subprocess
@@ -19,7 +19,7 @@ DEBUGGER_INFO = {
   }
 }
 
-# Backported from Python 3.1 posixpath.py
+
 def _relpath(path, start=None):
     """Return a relative version of a path"""
 
@@ -32,7 +32,7 @@ def _relpath(path, start=None):
     start_list = os.path.abspath(start).split(os.sep)
     path_list = os.path.abspath(path).split(os.sep)
 
-    # Work out how much of the filepath is shared by start and path.
+    
     i = len(os.path.commonprefix([start_list, path_list]))
 
     rel_list = [os.pardir] * (len(start_list)-i) + path_list[i:]
@@ -44,14 +44,14 @@ os.path.relpath = _relpath
 
 class Test:
     def __init__(self, path):
-        self.path = path       # path to test file
+        self.path = path       
         
-        self.jitflags = []     # jit flags to enable
-        self.slow = False      # True means the test is slow-running
-        self.allow_oom = False # True means that OOM is not considered a failure
-        self.valgrind = False  # True means run under valgrind
-        self.tmflags = ''      # Value of TMFLAGS env var to pass
-        self.error = ''        # Errors to expect and consider passing
+        self.jitflags = []     
+        self.slow = False      
+        self.allow_oom = False 
+        self.valgrind = False  
+        self.tmflags = ''      
+        self.error = ''        
 
     def copy(self):
         t = Test(self.path)
@@ -130,13 +130,13 @@ def get_test_cmd(path, jitflags, lib_dir, shell_args):
     if not libdir_var.endswith('/'):
         libdir_var += '/'
     expr = "const platform=%r; const libdir=%r;"%(sys.platform, libdir_var)
-    # We may have specified '-a' or '-d' twice: once via --jitflags, once
-    # via the "|jit-test|" line.  Remove dups because they are toggles.
+    
+    
     return ([ JS ] + list(set(jitflags)) + shell_args +
             [ '-e', expr, '-f', os.path.join(lib_dir, 'prolog.js'), '-f', path ])
 
 def set_limits():
-    # resource module not supported on all platforms
+    
     try:
         import resource
         GB = 2**30
@@ -157,8 +157,8 @@ def read_and_unlink(path):
     return d
 
 def th_run_cmd(cmdline, options, l):
-    # close_fds and preexec_fn are not supported on Windows and will
-    # cause a ValueError.
+    
+    
     if sys.platform != 'win32':
         options["close_fds"] = True
         options["preexec_fn"] = set_limits
@@ -177,14 +177,14 @@ def run_timeout_cmd(cmdline, options, timeout=60.0):
     while th.isAlive():
         if l[0] is not None:
             try:
-                # In Python 3, we could just do l[0].kill().
+                
                 import signal
                 if sys.platform != 'win32':
                     os.kill(l[0].pid, signal.SIGKILL)
                 time.sleep(.1)
                 timed_out = True
             except OSError:
-                # Expecting a "No such process" error
+                
                 pass
     th.join()
     (out, err, code) = l[1]
@@ -249,8 +249,8 @@ def check_output(out, err, rc, allow_oom, expectedError):
             return False
 
     if rc != 0:
-        # Allow a non-zero exit code if we want to allow OOM, but only if we
-        # actually got OOM.
+        
+        
         return allow_oom and ': out of memory' in err
 
     return True
@@ -310,7 +310,7 @@ def run_tests(tests, test_dir, lib_dir, shell_args):
         if OPTIONS.write_failures:
             try:
                 out = open(OPTIONS.write_failures, 'w')
-                # Don't write duplicate entries when we are doing multiple failures per job.
+                
                 written = set()
                 for test, fout, ferr, fcode, _ in failures:
                     if test.path not in written:
@@ -353,17 +353,17 @@ def parse_jitflags():
                  for flags in OPTIONS.jitflags.split(',') ]
     for flags in jitflags:
         for flag in flags:
-            if flag not in ('-j', '-m', '-a', '-p', '-d', '-n'):
+            if flag not in ('-j', '-m', '-a', '-p', '-d'):
                 print('Invalid jit flag: "%s"'%flag)
                 sys.exit(1)
     return jitflags
 
 def platform_might_be_android():
     try:
-        # The python package for SL4A provides an |android| module.
-        # If that module is present, we're likely in SL4A-python on
-        # device.  False positives and negatives are possible,
-        # however.
+        
+        
+        
+        
         import android
         return True
     except ImportError:
@@ -382,8 +382,8 @@ def main(argv):
     test_dir = os.path.join(script_dir, 'tests')
     lib_dir = os.path.join(script_dir, 'lib')
 
-    # The [TESTS] optional arguments are paths of test files relative
-    # to the jit-test/tests directory.
+    
+    
 
     from optparse import OptionParser
     op = OptionParser(usage='%prog [options] JS_SHELL [TESTS]')
@@ -426,18 +426,18 @@ def main(argv):
     (OPTIONS, args) = op.parse_args(argv)
     if len(args) < 1:
         op.error('missing JS_SHELL argument')
-    # We need to make sure we are using backslashes on Windows.
+    
     JS, test_args = os.path.normpath(args[0]), args[1:]
-    JS = os.path.realpath(JS) # Burst through the symlinks!
+    JS = os.path.realpath(JS) 
 
     if stdio_might_be_broken():
-        # Prefer erring on the side of caution and not using stdio if
-        # it might be broken on this platform.  The file-redirect
-        # fallback should work on any platform, so at worst by
-        # guessing wrong we might have slowed down the tests a bit.
-        #
-        # XXX technically we could check for broken stdio, but it
-        # really seems like overkill.
+        
+        
+        
+        
+        
+        
+        
         OPTIONS.avoid_stdio = True
 
     if OPTIONS.retest:
@@ -486,7 +486,7 @@ def main(argv):
     if not OPTIONS.run_slow:
         test_list = [ _ for _ in test_list if not _.slow ]
 
-    # The full test list is ready. Now create copies for each JIT configuration.
+    
     job_list = []
     jitflags_list = parse_jitflags()
     for test in test_list:
