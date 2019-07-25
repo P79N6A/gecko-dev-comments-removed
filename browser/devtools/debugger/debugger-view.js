@@ -5,8 +5,16 @@
 
 "use strict";
 
+const BREAKPOINT_LINE_TOOLTIP_MAX_SIZE = 1000; 
 const PROPERTY_VIEW_FLASH_DURATION = 400; 
-const BREAKPOINT_LINE_TOOLTIP_MAX_SIZE = 1000;
+const GLOBAL_SEARCH_MATCH_FLASH_DURATION = 100; 
+const GLOBAL_SEARCH_URL_MAX_SIZE = 100; 
+const GLOBAL_SEARCH_LINE_MAX_SIZE = 300; 
+const GLOBAL_SEARCH_ACTION_DELAY = 150; 
+
+const SEARCH_GLOBAL_FLAG = "!";
+const SEARCH_LINE_FLAG = ":";
+const SEARCH_TOKEN_FLAG = "#";
 
 
 
@@ -71,6 +79,9 @@ let DebuggerView = {
 
     stackframes.parentNode.removeChild(stackframes);
     variables.parentNode.removeChild(variables);
+
+    let search = document.getElementById("globalsearch");
+    search.parentNode.removeChild(search);
   },
 
   
@@ -145,6 +156,584 @@ RemoteDebuggerPrompt.prototype = {
         }
       }
     }
+  }
+};
+
+
+
+
+function GlobalSearchView() {
+  this._onFetchScriptFinished = this._onFetchScriptFinished.bind(this);
+  this._onFetchScriptsFinished = this._onFetchScriptsFinished.bind(this);
+  this._onLineClick = this._onLineClick.bind(this);
+  this._onMatchClick = this._onMatchClick.bind(this);
+  this._onResultsScroll = this._onResultsScroll.bind(this);
+  this._startSearch = this._startSearch.bind(this);
+}
+
+GlobalSearchView.prototype = {
+
+  
+
+
+
+  set hidden(value) {
+    this._pane.hidden = value;
+    this._splitter.hidden = value;
+  },
+
+  
+
+
+  empty: function DVGS_empty() {
+    while (this._pane.firstChild) {
+      this._pane.removeChild(this._pane.firstChild);
+    }
+    this._pane.scrollTop = 0;
+    this._pane.scrollLeft = 0;
+    this._currentlyFocusedMatch = -1;
+  },
+
+  
+
+
+  hideAndEmpty: function DVGS_hideAndEmpty() {
+    this.hidden = true;
+    this.empty();
+    DebuggerController.dispatchEvent("Debugger:GlobalSearch:ViewCleared");
+  },
+
+  
+
+
+  clearCache: function DVGS_clearCache() {
+    this._scriptSources = new Map();
+    DebuggerController.dispatchEvent("Debugger:GlobalSearch:CacheCleared");
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  fetchScripts:
+  function DVGS_fetchScripts(aFetchCallback = null,
+                             aFetchedCallback = null,
+                             aUrls = DebuggerView.Scripts.scriptLocations) {
+
+    
+    if (this._scriptSources.size() === aUrls.length) {
+      aFetchedCallback && aFetchedCallback();
+      return;
+    }
+
+    
+    for (let url of aUrls) {
+      if (this._scriptSources.has(url)) {
+        continue;
+      }
+      DebuggerController.dispatchEvent("Debugger:LoadSource", {
+        url: url,
+        options: {
+          silent: true,
+          callback: aFetchCallback
+        }
+      });
+    }
+  },
+
+  
+
+
+  scheduleSearch: function DVGS_scheduleSearch() {
+    window.clearTimeout(this._searchTimeout);
+    this._searchTimeout = window.setTimeout(this._startSearch, GLOBAL_SEARCH_ACTION_DELAY);
+  },
+
+  
+
+
+  _startSearch: function DVGS__startSearch() {
+    let scriptLocations = DebuggerView.Scripts.scriptLocations;
+    this._scriptCount = scriptLocations.length;
+
+    this.fetchScripts(
+      this._onFetchScriptFinished, this._onFetchScriptsFinished, scriptLocations);
+  },
+
+  
+
+
+
+
+
+
+
+  _onFetchScriptFinished: function DVGS__onFetchScriptFinished(aScriptUrl, aSourceText) {
+    this._scriptSources.set(aScriptUrl, aSourceText);
+
+    if (this._scriptSources.size() === this._scriptCount) {
+      this._onFetchScriptsFinished();
+    }
+  },
+
+  
+
+
+  _onFetchScriptsFinished: function DVGS__onFetchScriptsFinished() {
+    this.empty();
+
+    let token = DebuggerView.Scripts.searchToken;
+    let lowerCaseToken = token.toLowerCase();
+
+    
+    if (!token) {
+      DebuggerController.dispatchEvent("Debugger:GlobalSearch:TokenEmpty");
+      this.hidden = true;
+      return;
+    }
+
+    
+    let globalResults = new Map();
+
+    for (let [url, text] of this._scriptSources) {
+      
+      if (text.toLowerCase().indexOf(lowerCaseToken) === -1) {
+        continue;
+      }
+      let lines = text.split("\n");
+      let scriptResults = {
+        lineResults: [],
+        matchCount: 0
+      };
+
+      for (let i = 0, len = lines.length; i < len; i++) {
+        let line = lines[i];
+        let lowerCaseLine = line.toLowerCase();
+
+        
+        if (lowerCaseLine.indexOf(lowerCaseToken) === -1) {
+          continue;
+        }
+
+        let lineNumber = i;
+        let lineContents = [];
+
+        lowerCaseLine.split(lowerCaseToken).reduce(function(prev, curr, index, {length}) {
+          let unmatched = line.substr(prev.length, curr.length);
+          lineContents.push({ string: unmatched });
+
+          if (index !== length - 1) {
+            let matched = line.substr(prev.length + curr.length, token.length);
+            let range = {
+              start: prev.length + curr.length,
+              length: matched.length
+            };
+            lineContents.push({
+              string: matched,
+              range: range,
+              match: true
+            });
+            scriptResults.matchCount++;
+          }
+          return prev + token + curr;
+        }, "");
+
+        scriptResults.lineResults.push({
+          lineNumber: lineNumber,
+          lineContents: lineContents
+        });
+      }
+      if (scriptResults.matchCount) {
+        globalResults.set(url, scriptResults);
+      }
+    }
+
+    if (globalResults.size()) {
+      this._createGlobalResultsUI(globalResults);
+      this.hidden = false;
+      DebuggerController.dispatchEvent("Debugger:GlobalSearch:MatchFound");
+    } else {
+      this.hidden = true;
+      DebuggerController.dispatchEvent("Debugger:GlobalSearch:MatchNotFound");
+    }
+  },
+
+  
+
+
+
+
+
+  _createGlobalResultsUI:
+  function DVGS__createGlobalResultsUI(aGlobalResults) {
+    let i = 0;
+
+    for (let [scriptUrl, scriptResults] of aGlobalResults) {
+      if (i++ === 0) {
+        this._createScriptResultsUI(scriptUrl, scriptResults, true);
+      } else {
+        
+        
+        
+        Services.tm.currentThread.dispatch({ run:
+          this._createScriptResultsUI.bind(this, scriptUrl, scriptResults) }, 0);
+      }
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _createScriptResultsUI:
+  function DVGS__createScriptResultsUI(aScriptUrl, aScriptResults, aExpandFlag) {
+    let { lineResults, matchCount } = aScriptResults;
+    let element;
+
+    for (let lineResult of lineResults) {
+      element = this._createLineSearchResultsUI({
+        scriptUrl: aScriptUrl,
+        matchCount: matchCount,
+        lineNumber: lineResult.lineNumber + 1,
+        lineContents: lineResult.lineContents
+      });
+    }
+    if (aExpandFlag) {
+      element.expand(true);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+  _createLineSearchResultsUI:
+  function DVGS__createLineSearchresultsUI(aLineResults) {
+    let scriptResultsId = "search-results-" + aLineResults.scriptUrl;
+    let scriptResults = document.getElementById(scriptResultsId);
+
+    
+    if (!scriptResults) {
+      let trimFunc = DebuggerController.SourceScripts.trimUrlLength;
+      let urlLabel = trimFunc(aLineResults.scriptUrl, GLOBAL_SEARCH_URL_MAX_SIZE);
+
+      let resultsUrl = document.createElement("label");
+      resultsUrl.className = "plain script-url";
+      resultsUrl.setAttribute("value", urlLabel);
+
+      let resultsCount = document.createElement("label");
+      resultsCount.className = "plain match-count";
+      resultsCount.setAttribute("value", "(" + aLineResults.matchCount + ")");
+
+      let arrow = document.createElement("box");
+      arrow.className = "arrow";
+
+      let resultsHeader = document.createElement("hbox");
+      resultsHeader.className = "dbg-results-header";
+      resultsHeader.setAttribute("align", "center")
+      resultsHeader.appendChild(arrow);
+      resultsHeader.appendChild(resultsUrl);
+      resultsHeader.appendChild(resultsCount);
+
+      let resultsContainer = document.createElement("vbox");
+      resultsContainer.className = "dbg-results-container";
+
+      scriptResults = document.createElement("vbox");
+      scriptResults.id = scriptResultsId;
+      scriptResults.className = "dbg-script-results";
+      scriptResults.header = resultsHeader;
+      scriptResults.container = resultsContainer;
+      scriptResults.appendChild(resultsHeader);
+      scriptResults.appendChild(resultsContainer);
+      this._pane.appendChild(scriptResults);
+
+      
+
+
+
+
+
+
+
+      scriptResults.expand = function DVGS_element_expand(aSkipAnimationFlag) {
+        resultsContainer.setAttribute("open", "");
+        arrow.setAttribute("open", "");
+
+        if (!aSkipAnimationFlag) {
+          resultsContainer.setAttribute("animated", "");
+        }
+        return scriptResults;
+      };
+
+      
+
+
+
+
+      scriptResults.collapse = function DVGS_element_collapse() {
+        resultsContainer.removeAttribute("animated");
+        resultsContainer.removeAttribute("open");
+        arrow.removeAttribute("open");
+        return scriptResults;
+      };
+
+      
+
+
+
+
+      scriptResults.toggle = function DVGS_element_toggle(e) {
+        if (e instanceof Event) {
+          scriptResults._userToggle = true;
+        }
+        scriptResults.expanded = !scriptResults.expanded;
+        return scriptResults;
+      };
+
+      
+
+
+
+
+      Object.defineProperty(scriptResults, "expanded", {
+        get: function DVP_element_getExpanded() {
+          return arrow.hasAttribute("open");
+        },
+        set: function DVP_element_setExpanded(value) {
+          if (value) {
+            scriptResults.expand();
+          } else {
+            scriptResults.collapse();
+          }
+        }
+      });
+
+      
+
+
+      resultsHeader.addEventListener("click", scriptResults.toggle, false);
+    }
+
+    let lineNumber = document.createElement("label");
+    lineNumber.className = "plain line-number";
+    lineNumber.setAttribute("value", aLineResults.lineNumber);
+
+    let lineContents = document.createElement("hbox");
+    lineContents.setAttribute("flex", "1");
+    lineContents.className = "line-contents";
+    lineContents.addEventListener("click", this._onLineClick, false);
+
+    let lineContent;
+    let totalLength = 0;
+    let ellipsis = Services.prefs.getComplexValue("intl.ellipsis", Ci.nsIPrefLocalizedString);
+
+    for (lineContent of aLineResults.lineContents) {
+      let string = lineContent.string;
+      let match = lineContent.match;
+
+      string = string.substr(0, GLOBAL_SEARCH_LINE_MAX_SIZE - totalLength);
+      totalLength += string.length;
+
+      let label = document.createElement("label");
+      label.className = "plain string";
+      label.setAttribute("value", string);
+      label.setAttribute("match", match || false);
+      lineContents.appendChild(label);
+
+      if (match) {
+        label.addEventListener("click", this._onMatchClick, false);
+        label.setUserData("lineResults", aLineResults, null);
+        label.setUserData("lineContentRange", lineContent.range, null);
+        label.container = scriptResults;
+      }
+      if (totalLength >= GLOBAL_SEARCH_LINE_MAX_SIZE) {
+        label = document.createElement("label");
+        label.className = "plain string";
+        label.setAttribute("value", ellipsis.data);
+        lineContents.appendChild(label);
+        break;
+      }
+    }
+
+    let searchResult = document.createElement("hbox");
+    searchResult.className = "dbg-search-result";
+    searchResult.appendChild(lineNumber);
+    searchResult.appendChild(lineContents);
+
+    let resultsContainer = scriptResults.container;
+    resultsContainer.appendChild(searchResult);
+
+    
+    return scriptResults;
+  },
+
+  
+
+
+  focusNextMatch: function DVGS_focusNextMatch() {
+    let matches = this._pane.querySelectorAll(".string[match=true]");
+    if (!matches.length) {
+      return;
+    }
+    if (++this._currentlyFocusedMatch >= matches.length) {
+      this._currentlyFocusedMatch = 0;
+    }
+    this._onMatchClick({ target: matches[this._currentlyFocusedMatch] });
+  },
+
+  
+
+
+  _onLineClick: function DVGS__onLineClick(e) {
+    let firstMatch = e.target.parentNode.querySelector(".string[match=true]");
+    this._onMatchClick({ target: firstMatch });
+  },
+
+  
+
+
+  _onMatchClick: function DVGLS__onMatchClick(e) {
+    if (e instanceof Event) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    let match = e.target;
+
+    match.container.expand(true);
+    this._scrollMatchIntoViewIfNeeded(match);
+    this._animateMatchBounce(match);
+
+    let results = match.getUserData("lineResults");
+    let range = match.getUserData("lineContentRange");
+
+    let stackframes = DebuggerController.StackFrames;
+    stackframes.updateEditorToLocation(results.scriptUrl, results.lineNumber, 0, 0, 1);
+
+    let editor = DebuggerView.editor;
+    let offset = editor.getCaretOffset();
+    editor.setSelection(offset + range.start, offset + range.start + range.length);
+  },
+
+  
+
+
+  _onResultsScroll: function DVGS__onResultsScroll(e) {
+    this._expandAllVisibleResults();
+  },
+
+  
+
+
+  _expandAllVisibleResults: function DVGS__expandAllVisibleResults() {
+    let collapsed = this._pane.querySelectorAll(".dbg-results-container:not([open])");
+
+    for (let i = 0, l = collapsed.length; i < l; i++) {
+      this._expandResultsIfNeeded(collapsed[i].parentNode);
+    }
+  },
+
+  
+
+
+
+  _expandResultsIfNeeded: function DVGS__expandResultsIfNeeded(aTarget) {
+    if (aTarget.expanded || aTarget._userToggle) {
+      return;
+    }
+    let { clientHeight } = this._pane;
+    let { top, height } = aTarget.getBoundingClientRect();
+
+    if (top - height <= clientHeight || this._forceExpandResults) {
+      aTarget.expand(true);
+    }
+  },
+
+  
+
+
+
+  _scrollMatchIntoViewIfNeeded: function DVGS__scrollMatchIntoViewIfNeeded(aTarget) {
+    let { clientHeight } = this._pane;
+    let { top, height } = aTarget.getBoundingClientRect();
+
+    let style = window.getComputedStyle(aTarget);
+    let topBorderSize = window.parseInt(style.getPropertyValue("border-top-width"));
+    let bottomBorderSize = window.parseInt(style.getPropertyValue("border-bottom-width"));
+
+    let marginY = top - (height + topBorderSize + bottomBorderSize) * 2;
+    if (marginY <= 0) {
+      this._pane.scrollTop += marginY;
+    }
+    if (marginY + height > clientHeight) {
+      this._pane.scrollTop += height - (clientHeight - marginY);
+    }
+  },
+
+  
+
+
+
+  _animateMatchBounce: function DVGS__animateMatchBounce(aTarget) {
+    aTarget.setAttribute("focused", "");
+
+    window.setTimeout(function() {
+     aTarget.removeAttribute("focused");
+    }, GLOBAL_SEARCH_MATCH_FLASH_DURATION);
+  },
+
+  
+
+
+  _scriptSources: new Map(),
+
+  
+
+
+  _currentlyFocusedMatch: -1,
+
+  
+
+
+  _pane: null,
+  _splitter: null,
+
+  
+
+
+  initialize: function DVS_initialize() {
+    this._pane = document.getElementById("globalsearch");
+    this._splitter = document.getElementById("globalsearch-splitter");
+
+    this._pane.addEventListener("scroll", this._onResultsScroll, false);
+  },
+
+  
+
+
+  destroy: function DVS_destroy() {
+    this._pane.removeEventListener("scroll", this._onResultsScroll, false);
+
+    this.hideAndEmpty();
+    this._pane = null;
+    this._splitter = null;
+    this._scriptSources = null;
   }
 };
 
@@ -304,12 +893,36 @@ ScriptsView.prototype = {
 
 
 
+
+
+
+
+  getScriptByLabel: function DVS_getScriptByLabel(aLabel) {
+    return this._scripts.getElementsByAttribute("label", aLabel)[0];
+  },
+
+  
+
+
+
   get scriptLabels() {
     let labels = [];
     for (let i = 0, l = this._scripts.itemCount; i < l; i++) {
       labels.push(this._scripts.getItemAtIndex(i).label);
     }
     return labels;
+  },
+
+  
+
+
+
+
+
+
+
+  getScriptByLocation: function DVS_getScriptByLocation(aUrl) {
+    return this._scripts.getElementsByAttribute("value", aUrl)[0];
   },
 
   
@@ -425,22 +1038,37 @@ ScriptsView.prototype = {
 
 
 
-  _getSearchboxInfo: function DVS__getSearchboxInfo() {
-    let rawValue = this._searchbox.value.toLowerCase();
+  get searchboxInfo() {
+    let file, line, token, isGlobal;
 
+    let rawValue = this._searchbox.value;
     let rawLength = rawValue.length;
-    let lastColon = rawValue.lastIndexOf(":");
-    let lastAt = rawValue.lastIndexOf("#");
+    let lineFlagIndex = rawValue.lastIndexOf(SEARCH_LINE_FLAG);
+    let tokenFlagIndex = rawValue.lastIndexOf(SEARCH_TOKEN_FLAG);
+    let globalFlagIndex = rawValue.lastIndexOf(SEARCH_GLOBAL_FLAG);
 
-    let fileEnd = lastColon != -1 ? lastColon : lastAt != -1 ? lastAt : rawLength;
-    let lineEnd = lastAt != -1 ? lastAt : rawLength;
+    if (globalFlagIndex !== 0) {
+      let fileEnd = lineFlagIndex !== -1 ? lineFlagIndex : tokenFlagIndex !== -1 ? tokenFlagIndex : rawLength;
+      let lineEnd = tokenFlagIndex !== -1 ? tokenFlagIndex : rawLength;
 
-    let file = rawValue.slice(0, fileEnd);
-    let line = window.parseInt(rawValue.slice(fileEnd + 1, lineEnd)) || -1;
-    let token = rawValue.slice(lineEnd + 1);
+      file = rawValue.slice(0, fileEnd);
+      line = window.parseInt(rawValue.slice(fileEnd + 1, lineEnd)) || -1;
+      token = rawValue.slice(lineEnd + 1);
+      isGlobal = false;
+    } else {
+      file = "";
+      line = -1;
+      token = rawValue.slice(1);
+      isGlobal = true;
+    }
 
-    return [file, line, token];
+    return [file, line, token, isGlobal];
   },
+
+  
+
+
+  get searchToken() this.searchboxInfo[2],
 
   
 
@@ -460,15 +1088,11 @@ ScriptsView.prototype = {
   
 
 
-  _onScriptsSearch: function DVS__onScriptsSearch(e) {
-    let editor = DebuggerView.editor;
-    let scripts = this._scripts;
-    let [file, line, token] = this._getSearchboxInfo();
 
-    
-    if (!scripts.itemCount) {
-      return;
-    }
+
+
+  _performFileSearch: function DVS__performFileSearch(aFile) {
+    let scripts = this._scripts;
 
     
     scripts.selectedItem = this._preferredScript;
@@ -476,19 +1100,22 @@ ScriptsView.prototype = {
     scripts.setAttribute("tooltiptext", this._preferredScript.value);
 
     
-    if (!file) {
+    if (!aFile && this._someScriptsHidden) {
+      this._someScriptsHidden = false;
+
       for (let i = 0, l = scripts.itemCount; i < l; i++) {
         scripts.getItemAtIndex(i).hidden = false;
       }
-    } else if (this._prevSearchedFile !== file) {
+    } else if (this._prevSearchedFile !== aFile) {
+      let lowerCaseFile = aFile.toLowerCase();
       let found = false;
 
       for (let i = 0, l = scripts.itemCount; i < l; i++) {
         let item = scripts.getItemAtIndex(i);
-        let target = item.label.toLowerCase();
+        let lowerCaseLabel = item.label.toLowerCase();
 
         
-        if (target.match(file)) {
+        if (lowerCaseLabel.match(aFile)) {
           item.hidden = false;
 
           if (!found) {
@@ -501,6 +1128,7 @@ ScriptsView.prototype = {
         
         else {
           item.hidden = true;
+          this._someScriptsHidden = true;
         }
       }
       if (!found) {
@@ -508,18 +1136,61 @@ ScriptsView.prototype = {
         scripts.removeAttribute("tooltiptext");
       }
     }
-    if (this._prevSearchedLine !== line && line > -1) {
-      editor.setCaretPosition(line - 1);
+    this._prevSearchedFile = aFile;
+  },
+
+  
+
+
+
+
+
+  _performLineSearch: function DVS__performLineSearch(aLine) {
+    
+    if (this._prevSearchedLine !== aLine && aLine > -1) {
+      DebuggerView.editor.setCaretPosition(aLine - 1);
     }
-    if (this._prevSearchedToken !== token && token.length > 0) {
-      let offset = editor.find(token, { ignoreCase: true });
+    this._prevSearchedLine = aLine;
+  },
+
+  
+
+
+
+
+
+  _performTokenSearch: function DVS__performTokenSearch(aToken) {
+    
+    if (this._prevSearchedToken !== aToken && aToken.length > 0) {
+      let editor = DebuggerView.editor;
+      let offset = editor.find(aToken, { ignoreCase: true });
       if (offset > -1) {
-        editor.setSelection(offset, offset + token.length)
+        editor.setSelection(offset, offset + aToken.length)
       }
     }
-    this._prevSearchedFile = file;
-    this._prevSearchedLine = line;
-    this._prevSearchedToken = token;
+    this._prevSearchedToken = aToken;
+  },
+
+  
+
+
+  _onScriptsSearch: function DVS__onScriptsSearch() {
+    
+    if (!this._scripts.itemCount) {
+      return;
+    }
+    let [file, line, token, isGlobal] = this.searchboxInfo;
+
+    
+    
+    if (isGlobal) {
+      DebuggerView.GlobalSearch.scheduleSearch();
+    } else {
+      DebuggerView.GlobalSearch.hideAndEmpty();
+      this._performFileSearch(file);
+      this._performLineSearch(line);
+      this._performTokenSearch(token);
+    }
   },
 
   
@@ -532,8 +1203,14 @@ ScriptsView.prototype = {
     }
 
     if (e.keyCode === e.DOM_VK_RETURN || e.keyCode === e.DOM_VK_ENTER) {
-      let token = this._getSearchboxInfo()[2];
+      let token = this.searchboxInfo[2];
+      let isGlobal = this.searchboxInfo[3];
+
       if (!token.length) {
+        return;
+      }
+      if (isGlobal) {
+        DebuggerView.GlobalSearch.focusNextMatch();
         return;
       }
 
@@ -548,17 +1225,31 @@ ScriptsView.prototype = {
   
 
 
-  _onSearch: function DVS__onSearch() {
+  _onSearch: function DVS__onSearch(aValue = "") {
     this._searchbox.focus();
-    this._searchbox.value = "";
+    this._searchbox.value = aValue;
+    DebuggerView.GlobalSearch.hideAndEmpty();
+  },
+
+  
+
+
+  _onLineSearch: function DVS__onLineSearch() {
+    this._onSearch(SEARCH_LINE_FLAG);
   },
 
   
 
 
   _onTokenSearch: function DVS__onTokenSearch() {
-    this._searchbox.focus();
-    this._searchbox.value = "#";
+    this._onSearch(SEARCH_TOKEN_FLAG);
+  },
+
+  
+
+
+  _onGlobalSearch: function DVS__onGlobalSearch() {
+    this._onSearch(SEARCH_GLOBAL_FLAG);
   },
 
   
@@ -2121,11 +2812,11 @@ PropertiesView.prototype = {
 
     
     if (aClass === "scope") {
-      title.addEventListener("click", function() { element.toggle(); }, false);
+      title.addEventListener("click", function() element.toggle(), false);
     } else {
-      arrow.addEventListener("click", function() { element.toggle(); }, false);
-      name.addEventListener("click", function() { element.toggle(); }, false);
-      name.addEventListener("mouseover", function() { element.updateTooltip(name); }, false);
+      arrow.addEventListener("click", function() element.toggle(), false);
+      name.addEventListener("click", function() element.toggle(), false);
+      name.addEventListener("mouseover", function() element.updateTooltip(name), false);
     }
 
     title.appendChild(arrow);
@@ -2561,6 +3252,7 @@ PropertiesView.prototype = {
 
 
 
+DebuggerView.GlobalSearch = new GlobalSearchView();
 DebuggerView.Scripts = new ScriptsView();
 DebuggerView.StackFrames = new StackFramesView();
 DebuggerView.Breakpoints = new BreakpointsView();

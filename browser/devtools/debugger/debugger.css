@@ -8,6 +8,23 @@
 
 
 
+#globalsearch {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.dbg-results-container {
+  display: none;
+}
+
+.dbg-results-container[open] {
+  display: -moz-box;
+}
+
+
+
+
+
 #stackframes {
   overflow: auto;
 }
