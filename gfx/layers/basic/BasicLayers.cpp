@@ -48,6 +48,7 @@
 #include "ipc/ShadowLayerChild.h"
 
 #include "BasicLayers.h"
+#include "BasicImplData.h"
 #include "ImageLayers.h"
 #include "RenderTrace.h"
 
@@ -77,110 +78,6 @@ namespace layers {
 
 class BasicContainerLayer;
 class ShadowableLayer;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class BasicImplData {
-public:
-  BasicImplData() : mHidden(false),
-    mClipToVisibleRegion(false),
-    mDrawAtomically(false),
-    mOperator(gfxContext::OPERATOR_OVER)
-  {
-    MOZ_COUNT_CTOR(BasicImplData);
-  }
-  virtual ~BasicImplData()
-  {
-    MOZ_COUNT_DTOR(BasicImplData);
-  }
-
-  
-
-
-
-
-
-  virtual void Paint(gfxContext* aContext) {}
-
-  
-
-
-
-
-
-  virtual void PaintThebes(gfxContext* aContext,
-                           LayerManager::DrawThebesLayerCallback aCallback,
-                           void* aCallbackData,
-                           ReadbackProcessor* aReadback) {}
-
-  virtual ShadowableLayer* AsShadowableLayer() { return nsnull; }
-
-  
-
-
-
-
-
-  virtual bool MustRetainContent() { return false; }
-
-  
-
-
-
-
-  virtual void ClearCachedResources() {}
-
-  
-
-
-
-  void SetHidden(bool aCovered) { mHidden = aCovered; }
-  bool IsHidden() const { return false; }
-  
-
-
-
-
-  void SetOperator(gfxContext::GraphicsOperator aOperator)
-  {
-    NS_ASSERTION(aOperator == gfxContext::OPERATOR_OVER ||
-                 aOperator == gfxContext::OPERATOR_SOURCE,
-                 "Bad composition operator");
-    mOperator = aOperator;
-  }
-  gfxContext::GraphicsOperator GetOperator() const { return mOperator; }
-
-  bool GetClipToVisibleRegion() { return mClipToVisibleRegion; }
-  void SetClipToVisibleRegion(bool aClip) { mClipToVisibleRegion = aClip; }
-
-  void SetDrawAtomically(bool aDrawAtomically) { mDrawAtomically = aDrawAtomically; }
-
-protected:
-  bool mHidden;
-  bool mClipToVisibleRegion;
-  bool mDrawAtomically;
-  gfxContext::GraphicsOperator mOperator;
-};
 
 class AutoSetOperator {
 public:
@@ -2117,53 +2014,13 @@ BasicLayerManager::CreateReadbackLayer()
   return layer.forget();
 }
 
-class BasicShadowableThebesLayer;
-class BasicShadowableLayer : public ShadowableLayer
+BasicShadowableLayer::~BasicShadowableLayer()
 {
-public:
-  BasicShadowableLayer()
-  {
-    MOZ_COUNT_CTOR(BasicShadowableLayer);
+  if (HasShadow()) {
+    PLayerChild::Send__delete__(GetShadow());
   }
-
-  ~BasicShadowableLayer()
-  {
-    if (HasShadow()) {
-      PLayerChild::Send__delete__(GetShadow());
-    }
-    MOZ_COUNT_DTOR(BasicShadowableLayer);
-  }
-
-  void SetShadow(PLayerChild* aShadow)
-  {
-    NS_ABORT_IF_FALSE(!mShadow, "can't have two shadows (yet)");
-    mShadow = aShadow;
-  }
-
-  virtual void SetBackBuffer(const SurfaceDescriptor& aBuffer)
-  {
-    NS_RUNTIMEABORT("if this default impl is called, |aBuffer| leaks");
-  }
-  
-  virtual void SetBackBufferYUVImage(gfxSharedImageSurface* aYBuffer,
-                                     gfxSharedImageSurface* aUBuffer,
-                                     gfxSharedImageSurface* aVBuffer)
-  {
-    NS_RUNTIMEABORT("if this default impl is called, |aBuffer| leaks");
-  }
-
-  virtual void Disconnect()
-  {
-    
-    
-    
-    
-    
-    mShadow = nsnull;
-  }
-
-  virtual BasicShadowableThebesLayer* AsThebes() { return nsnull; }
-};
+  MOZ_COUNT_DTOR(BasicShadowableLayer);
+}
 
 static ShadowableLayer*
 ToShadowable(Layer* aLayer)
