@@ -36,7 +36,7 @@
 
 
 
-#include "nsRootAccessibleWrap.h"
+#include "RootAccessibleWrap.h"
 
 #include "Compatibility.h"
 #include "nsWinUtils.h"
@@ -49,14 +49,14 @@ using namespace mozilla::a11y;
 
 
 
-nsRootAccessibleWrap::
-  nsRootAccessibleWrap(nsIDocument* aDocument, nsIContent* aRootContent,
-                       nsIPresShell* aPresShell) :
-  nsRootAccessible(aDocument, aRootContent, aPresShell)
+RootAccessibleWrap::
+  RootAccessibleWrap(nsIDocument* aDocument, nsIContent* aRootContent,
+                     nsIPresShell* aPresShell) :
+  RootAccessible(aDocument, aRootContent, aPresShell)
 {
 }
 
-nsRootAccessibleWrap::~nsRootAccessibleWrap()
+RootAccessibleWrap::~RootAccessibleWrap()
 {
 }
 
@@ -64,7 +64,7 @@ nsRootAccessibleWrap::~nsRootAccessibleWrap()
 
 
 void
-nsRootAccessibleWrap::DocumentActivated(nsDocAccessible* aDocument)
+RootAccessibleWrap::DocumentActivated(nsDocAccessible* aDocument)
 {
   if (Compatibility::IsDolphin() &&
       nsCoreUtils::IsTabDocument(aDocument->GetDocumentNode())) {

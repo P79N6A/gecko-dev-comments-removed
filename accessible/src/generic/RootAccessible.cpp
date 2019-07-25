@@ -35,6 +35,8 @@
 
 
 
+#include "RootAccessible.h"
+
 #include "mozilla/Util.h"
 
 #define CreateEvent CreateEventA
@@ -76,7 +78,6 @@
 #include "nsPIDOMWindow.h"
 #include "nsIWebBrowserChrome.h"
 #include "nsReadableUtils.h"
-#include "nsRootAccessible.h"
 #include "nsIPrivateDOMEvent.h"
 #include "nsFocusManager.h"
 
@@ -92,20 +93,20 @@ using namespace mozilla::a11y;
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED1(nsRootAccessible, nsDocAccessible, nsIAccessibleDocument)
+NS_IMPL_ISUPPORTS_INHERITED1(RootAccessible, nsDocAccessible, nsIAccessibleDocument)
 
 
 
 
-nsRootAccessible::
-  nsRootAccessible(nsIDocument* aDocument, nsIContent* aRootContent,
-                   nsIPresShell* aPresShell) :
+RootAccessible::
+  RootAccessible(nsIDocument* aDocument, nsIContent* aRootContent,
+                 nsIPresShell* aPresShell) :
   nsDocAccessibleWrap(aDocument, aRootContent, aPresShell)
 {
   mFlags |= eRootAccessible;
 }
 
-nsRootAccessible::~nsRootAccessible()
+RootAccessible::~RootAccessible()
 {
 }
 
@@ -113,7 +114,7 @@ nsRootAccessible::~nsRootAccessible()
 
 
 ENameValueFlag
-nsRootAccessible::Name(nsString& aName)
+RootAccessible::Name(nsString& aName)
 {
   aName.Truncate();
 
@@ -129,7 +130,7 @@ nsRootAccessible::Name(nsString& aName)
 }
 
 role
-nsRootAccessible::NativeRole()
+RootAccessible::NativeRole()
 {
   
   dom::Element *root = mDocument->GetRootElement();
@@ -149,7 +150,8 @@ nsRootAccessible::NativeRole()
 
 
 #ifdef MOZ_XUL
-PRUint32 nsRootAccessible::GetChromeFlags()
+PRUint32
+RootAccessible::GetChromeFlags()
 {
   
   
@@ -171,7 +173,7 @@ PRUint32 nsRootAccessible::GetChromeFlags()
 #endif
 
 PRUint64
-nsRootAccessible::NativeState()
+RootAccessible::NativeState()
 {
   PRUint64 states = nsDocAccessibleWrap::NativeState();
 
@@ -231,7 +233,8 @@ const char* const docEvents[] = {
   "DOMMenuBarInactive"
 };
 
-nsresult nsRootAccessible::AddEventListeners()
+nsresult
+RootAccessible::AddEventListeners()
 {
   
   
@@ -256,7 +259,8 @@ nsresult nsRootAccessible::AddEventListeners()
   return nsDocAccessible::AddEventListeners();
 }
 
-nsresult nsRootAccessible::RemoveEventListeners()
+nsresult
+RootAccessible::RemoveEventListeners()
 {
   nsCOMPtr<nsIDOMEventTarget> target(do_QueryInterface(mDocument));
   if (target) { 
@@ -284,13 +288,13 @@ nsresult nsRootAccessible::RemoveEventListeners()
 
 
 nsCaretAccessible*
-nsRootAccessible::GetCaretAccessible()
+RootAccessible::GetCaretAccessible()
 {
   return mCaretAccessible;
 }
 
 void
-nsRootAccessible::DocumentActivated(nsDocAccessible* aDocument)
+RootAccessible::DocumentActivated(nsDocAccessible* aDocument)
 {
 }
 
@@ -298,7 +302,7 @@ nsRootAccessible::DocumentActivated(nsDocAccessible* aDocument)
 
 
 NS_IMETHODIMP
-nsRootAccessible::HandleEvent(nsIDOMEvent* aDOMEvent)
+RootAccessible::HandleEvent(nsIDOMEvent* aDOMEvent)
 {
   nsCOMPtr<nsIDOMNSEvent> DOMNSEvent(do_QueryInterface(aDOMEvent));
   nsCOMPtr<nsIDOMEventTarget> DOMEventTarget;
@@ -335,8 +339,8 @@ nsRootAccessible::HandleEvent(nsIDOMEvent* aDOMEvent)
     
     
     
-    document->HandleNotification<nsRootAccessible, nsIDOMEvent>
-      (this, &nsRootAccessible::ProcessDOMEvent, aDOMEvent);
+    document->HandleNotification<RootAccessible, nsIDOMEvent>
+      (this, &RootAccessible::ProcessDOMEvent, aDOMEvent);
   }
 
   return NS_OK;
@@ -344,7 +348,7 @@ nsRootAccessible::HandleEvent(nsIDOMEvent* aDOMEvent)
 
 
 void
-nsRootAccessible::ProcessDOMEvent(nsIDOMEvent* aDOMEvent)
+RootAccessible::ProcessDOMEvent(nsIDOMEvent* aDOMEvent)
 {
   nsCOMPtr<nsIDOMNSEvent> DOMNSEvent(do_QueryInterface(aDOMEvent));
   nsCOMPtr<nsIDOMEventTarget> DOMEventTarget;
@@ -534,7 +538,7 @@ nsRootAccessible::ProcessDOMEvent(nsIDOMEvent* aDOMEvent)
 
 
 void
-nsRootAccessible::Shutdown()
+RootAccessible::Shutdown()
 {
   
   if (!PresShell())
@@ -545,7 +549,7 @@ nsRootAccessible::Shutdown()
 
 
 Relation
-nsRootAccessible::RelationByType(PRUint32 aType)
+RootAccessible::RelationByType(PRUint32 aType)
 {
   if (!mDocument || aType != nsIAccessibleRelation::RELATION_EMBEDS)
     return nsDocAccessibleWrap::RelationByType(aType);
@@ -575,7 +579,7 @@ nsRootAccessible::RelationByType(PRUint32 aType)
 
 
 void
-nsRootAccessible::HandlePopupShownEvent(nsAccessible* aAccessible)
+RootAccessible::HandlePopupShownEvent(nsAccessible* aAccessible)
 {
   roles::Role role = aAccessible->Role();
 
@@ -613,7 +617,7 @@ nsRootAccessible::HandlePopupShownEvent(nsAccessible* aAccessible)
 }
 
 void
-nsRootAccessible::HandlePopupHidingEvent(nsINode* aPopupNode)
+RootAccessible::HandlePopupHidingEvent(nsINode* aPopupNode)
 {
   
   
@@ -718,8 +722,8 @@ nsRootAccessible::HandlePopupHidingEvent(nsINode* aPopupNode)
 
 #ifdef MOZ_XUL
 void
-nsRootAccessible::HandleTreeRowCountChangedEvent(nsIDOMEvent* aEvent,
-                                                 nsXULTreeAccessible* aAccessible)
+RootAccessible::HandleTreeRowCountChangedEvent(nsIDOMEvent* aEvent,
+                                               nsXULTreeAccessible* aAccessible)
 {
   nsCOMPtr<nsIDOMDataContainerEvent> dataEvent(do_QueryInterface(aEvent));
   if (!dataEvent)
@@ -745,8 +749,8 @@ nsRootAccessible::HandleTreeRowCountChangedEvent(nsIDOMEvent* aEvent,
 }
 
 void
-nsRootAccessible::HandleTreeInvalidatedEvent(nsIDOMEvent* aEvent,
-                                             nsXULTreeAccessible* aAccessible)
+RootAccessible::HandleTreeInvalidatedEvent(nsIDOMEvent* aEvent,
+                                           nsXULTreeAccessible* aAccessible)
 {
   nsCOMPtr<nsIDOMDataContainerEvent> dataEvent(do_QueryInterface(aEvent));
   if (!dataEvent)

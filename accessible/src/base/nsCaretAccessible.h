@@ -43,8 +43,6 @@
 
 #include "nsISelectionListener.h"
 
-class nsRootAccessible;
-
 
 
 
@@ -72,7 +70,7 @@ class nsCaretAccessible : public nsISelectionListener
 public:
   NS_DECL_ISUPPORTS
 
-  nsCaretAccessible(nsRootAccessible *aRootAccessible);
+  nsCaretAccessible(mozilla::a11y::RootAccessible* aRootAccessible);
   virtual ~nsCaretAccessible();
   void Shutdown();
 
@@ -155,7 +153,7 @@ private:
   nsRefPtr<nsHyperTextAccessible> mLastTextAccessible;
   PRInt32 mLastCaretOffset;
 
-  nsRootAccessible *mRootAccessible;
+  mozilla::a11y::RootAccessible* mRootAccessible;
 };
 
 #endif
