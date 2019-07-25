@@ -13,6 +13,8 @@
 
 
 
+#include "mozilla/Assertions.h"
+
 #include "nsISupports.h"
 #include "jsapi.h"
 #include "nsString.h"
@@ -66,6 +68,15 @@ public:
   
 
 
+  explicit nsDependentJSString(JSFlatString* fstr)
+    : nsDependentString(JS_GetFlatStringChars(fstr),
+                        JS_GetStringLength(JS_FORGET_STRING_FLATNESS(fstr)))
+  {
+  }
+
+  
+
+
 
 
 
@@ -89,6 +100,12 @@ public:
   JSBool init(JSContext* aContext, const jsval &v)
   {
       return init(aContext, JSVAL_TO_STRING(v));
+  }
+
+  void init(JSFlatString* fstr)
+  {
+      MOZ_ASSERT(IsEmpty(), "init() on initialized string");
+      new(this) nsDependentJSString(fstr);
   }
 
   ~nsDependentJSString()
