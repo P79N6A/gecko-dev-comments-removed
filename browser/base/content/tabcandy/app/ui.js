@@ -114,15 +114,15 @@ window.Page = {
   
   
   isTabCandyVisible: function(){
-    return gTabDeck.selectedIndex == 1;
+    return gTabViewDeck.selectedIndex == 1;
   },
 
   
   
   
   hideChrome: function(){
-    gTabDeck.selectedIndex = 1;
-    gTabFrame.contentWindow.focus();
+    gTabViewDeck.selectedIndex = 1;
+    gTabViewFrame.contentWindow.focus();
 
     gBrowser.updateTitlebar();
 #ifdef XP_MACOSX
@@ -134,7 +134,7 @@ window.Page = {
   
   
   showChrome: function(){
-    gTabDeck.selectedIndex = 0;
+    gTabViewDeck.selectedIndex = 0;
     gBrowser.contentWindow.focus();
 
     
@@ -207,7 +207,7 @@ window.Page = {
 
     
     
-    iQ(gTabFrame.contentDocument).mousedown(function(e){
+    iQ(gTabViewFrame.contentDocument).mousedown(function(e){
       if ( e.originalTarget.id == "content" )
         self._createGroupOnDrag(e)
     });
