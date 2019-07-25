@@ -101,34 +101,43 @@ nsDataHandler::NewURI(const nsACString &aSpec,
                       nsIURI *aBaseURI,
                       nsIURI **result) {
     nsresult rv;
+    nsRefPtr<nsIURI> uri;
 
     nsCString spec(aSpec);
-    nsCAutoString contentType, contentCharset, dataBuffer;
-    PRBool base64;
-    rv = ParseURI(spec, contentType, contentCharset, base64, dataBuffer);
+
+    if (aBaseURI && !spec.IsEmpty() && spec[0] == '#') {
+        
+        
+        rv = aBaseURI->Clone(getter_AddRefs(uri));
+        if (NS_FAILED(rv))
+            return rv;
+        rv = uri->SetRef(spec);
+    } else {
+        
+        nsCAutoString contentType, contentCharset, dataBuffer;
+        PRBool base64;
+        rv = ParseURI(spec, contentType, contentCharset, base64, dataBuffer);
+        if (NS_FAILED(rv))
+            return rv;
+
+        
+        
+        if (base64 || (strncmp(contentType.get(),"text/",5) != 0 &&
+                       contentType.Find("xml") == kNotFound)) {
+            
+            spec.StripWhitespace();
+        }
+
+        uri = do_CreateInstance(kSimpleURICID, &rv);
+        if (NS_FAILED(rv))
+            return rv;
+        rv = uri->SetSpec(spec);
+    }
+
     if (NS_FAILED(rv))
         return rv;
 
-    
-    
-    if (base64 || (strncmp(contentType.get(),"text/",5) != 0 &&
-                   contentType.Find("xml") == kNotFound)) {
-        
-        spec.StripWhitespace();
-    }
- 
-
-    nsIURI* url;
-    rv = CallCreateInstance(kSimpleURICID, &url);
-    if (NS_FAILED(rv)) return rv;
-
-    rv = url->SetSpec(spec);
-    if (NS_FAILED(rv)) {
-        NS_RELEASE(url);
-        return rv;
-    }
-
-    *result = url;
+    uri.forget(result);
     return rv;
 }
 
