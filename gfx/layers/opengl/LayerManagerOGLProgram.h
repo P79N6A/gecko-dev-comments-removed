@@ -12,11 +12,12 @@
 
 #include "nsString.h"
 #include "GLContext.h"
-#include "Layers.h"
-
+#include "gfx3DMatrix.h"
 
 namespace mozilla {
 namespace layers {
+
+class Layer;
 
 
 

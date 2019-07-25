@@ -1339,7 +1339,7 @@ NS_METHOD nsWindow::Move(PRInt32 aX, PRInt32 aY)
     
     
     if (mWindowType == eWindowType_plugin &&
-        (!mLayerManager || mLayerManager->GetBackendType() == LayerManager::LAYERS_D3D9) &&
+        (!mLayerManager || mLayerManager->GetBackendType() == LAYERS_D3D9) &&
         mClipRects &&
         (mClipRectCount != 1 || !mClipRects[0].IsEqualInterior(nsIntRect(0, 0, mBounds.width, mBounds.height)))) {
       flags |= SWP_NOCOPYBITS;
@@ -3140,11 +3140,10 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
 
 #ifdef MOZ_ENABLE_D3D10_LAYER
   if (mLayerManager) {
-    if (mLayerManager->GetBackendType() ==
-        mozilla::layers::LayerManager::LAYERS_D3D10)
+    if (mLayerManager->GetBackendType() == LAYERS_D3D10)
     {
-      mozilla::layers::LayerManagerD3D10 *layerManagerD3D10 =
-        static_cast<mozilla::layers::LayerManagerD3D10*>(mLayerManager.get());
+      LayerManagerD3D10 *layerManagerD3D10 =
+        static_cast<LayerManagerD3D10*>(mLayerManager.get());
       if (layerManagerD3D10->device() !=
           gfxWindowsPlatform::GetPlatform()->GetD3D10Device())
       {
@@ -3160,8 +3159,7 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
 
   if (!mLayerManager ||
       (!sAllowD3D9 && aPersistence == LAYER_MANAGER_PERSISTENT &&
-        mLayerManager->GetBackendType() == 
-        mozilla::layers::LayerManager::LAYERS_BASIC)) {
+        mLayerManager->GetBackendType() == LAYERS_BASIC)) {
     
     
     LayerManagerPrefs prefs;
@@ -3187,8 +3185,8 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
 
 #ifdef MOZ_ENABLE_D3D10_LAYER
       if (!prefs.mPreferD3D9 && !prefs.mPreferOpenGL) {
-        nsRefPtr<mozilla::layers::LayerManagerD3D10> layerManager =
-          new mozilla::layers::LayerManagerD3D10(this);
+        nsRefPtr<LayerManagerD3D10> layerManager =
+          new LayerManagerD3D10(this);
         if (layerManager->Initialize(prefs.mForceAcceleration)) {
           mLayerManager = layerManager;
         }
@@ -3196,8 +3194,8 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
 #endif
 #ifdef MOZ_ENABLE_D3D9_LAYER
       if (!prefs.mPreferOpenGL && !mLayerManager && sAllowD3D9) {
-        nsRefPtr<mozilla::layers::LayerManagerD3D9> layerManager =
-          new mozilla::layers::LayerManagerD3D9(this);
+        nsRefPtr<LayerManagerD3D9> layerManager =
+          new LayerManagerD3D9(this);
         if (layerManager->Initialize(prefs.mForceAcceleration)) {
           mLayerManager = layerManager;
         }
@@ -3212,8 +3210,8 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
         }
 
         if (status == nsIGfxInfo::FEATURE_NO_INFO) {
-          nsRefPtr<mozilla::layers::LayerManagerOGL> layerManager =
-            new mozilla::layers::LayerManagerOGL(this);
+          nsRefPtr<LayerManagerOGL> layerManager =
+            new LayerManagerOGL(this);
           if (layerManager->Initialize()) {
             mLayerManager = layerManager;
           }
@@ -6778,7 +6776,7 @@ nsWindow::ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
 
       if (gfxWindowsPlatform::GetPlatform()->GetRenderMode() ==
           gfxWindowsPlatform::RENDER_DIRECT2D ||
-          GetLayerManager()->GetBackendType() != LayerManager::LAYERS_BASIC) {
+          GetLayerManager()->GetBackendType() != LAYERS_BASIC) {
         
         
         
@@ -7751,7 +7749,7 @@ nsWindow::ClearCachedResources()
     mD2DWindowSurface = nsnull;
 #endif
     if (mLayerManager &&
-        mLayerManager->GetBackendType() == LayerManager::LAYERS_BASIC) {
+        mLayerManager->GetBackendType() == LAYERS_BASIC) {
       static_cast<BasicLayerManager*>(mLayerManager.get())->
         ClearCachedResources();
     }
