@@ -4042,7 +4042,7 @@ struct JSClass {
 
 
 
-#define JSCLASS_GLOBAL_SLOT_COUNT      (JSProto_LIMIT * 3 + 19)
+#define JSCLASS_GLOBAL_SLOT_COUNT      (JSProto_LIMIT * 3 + 20)
 #define JSCLASS_GLOBAL_FLAGS_WITH_SLOTS(n)                                    \
     (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSCLASS_GLOBAL_SLOT_COUNT + (n)))
 #define JSCLASS_GLOBAL_FLAGS                                                  \
@@ -5650,12 +5650,6 @@ extern JS_PUBLIC_API(void)
 JS_ReportErrorNumber(JSContext *cx, JSErrorCallback errorCallback,
                      void *userRef, const unsigned errorNumber, ...);
 
-#ifdef va_start
-extern JS_PUBLIC_API(void)
-JS_ReportErrorNumberVA(JSContext *cx, JSErrorCallback errorCallback,
-                       void *userRef, const unsigned errorNumber, va_list ap);
-#endif
-
 
 
 
@@ -5706,7 +5700,6 @@ struct JSErrorReport {
     unsigned           errorNumber;    
     const jschar    *ucmessage;     
     const jschar    **messageArgs;  
-    int16_t         exnType;        
 };
 
 

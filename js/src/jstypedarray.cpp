@@ -550,49 +550,6 @@ ArrayBufferObject::obj_setGeneric(JSContext *cx, HandleObject obj, HandleId id, 
     if (!delegate)
         return false;
 
-    if (JSID_IS_ATOM(id, cx->runtime->atomState.protoAtom)) {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
-        RootedObject oldDelegateProto(cx, delegate->getProto());
-
-        if (!baseops::SetPropertyHelper(cx, delegate, delegate, id, 0, vp, strict))
-            return false;
-
-        if (delegate->getProto() != oldDelegateProto) {
-            
-            
-            if (!obj->isExtensible()) {
-                obj->reportNotExtensible(cx);
-                return false;
-            }
-            Rooted<JSObject*> newProto(cx, vp->toObjectOrNull());
-            if (!SetProto(cx, obj, newProto, true)) {
-                
-                
-                SetProto(cx, delegate, oldDelegateProto, true);
-                return false;
-            }
-        }
-        return true;
-    }
-
     return baseops::SetPropertyHelper(cx, delegate, obj, id, 0, vp, strict);
 }
 
