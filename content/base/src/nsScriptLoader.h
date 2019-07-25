@@ -299,6 +299,7 @@ private:
   nsCOMArray<nsIScriptLoaderObserver> mObservers;
   nsTArray<nsRefPtr<nsScriptLoadRequest> > mAsyncRequests;
   nsTArray<nsRefPtr<nsScriptLoadRequest> > mDeferRequests;
+  nsTArray<nsRefPtr<nsScriptLoadRequest> > mXSLTRequests;
   nsRefPtr<nsScriptLoadRequest> mParserBlockingRequest;
 
   
