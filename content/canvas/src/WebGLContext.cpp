@@ -407,15 +407,32 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
     }
 
     if (!mOptions.alpha) {
-        
-        
-        format.red = 5;
-        format.green = 6;
-        format.blue = 5;
-
         format.alpha = 0;
         format.minAlpha = 0;
     }
+
+    
+    
+#ifndef XP_WIN
+    if (gfxPlatform::GetPlatform()->GetScreenDepth() == 16) {
+        
+        
+        
+        
+        
+        if (mOptions.alpha) {
+            format.red = 4;
+            format.green = 4;
+            format.blue = 4;
+            format.alpha = 4;
+        } else {
+            format.red = 5;
+            format.green = 6;
+            format.blue = 5;
+            format.alpha = 0;
+        }
+    }
+#endif
 
     bool forceMSAA =
         Preferences::GetBool("webgl.msaa-force", false);
