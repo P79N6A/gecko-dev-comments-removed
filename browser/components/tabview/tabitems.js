@@ -96,7 +96,6 @@ function TabItem(tab, options) {
   this._reconnected = false;
   this.isDragging = false;
   this.isStacked = false;
-  this.url = "";
 
   
   
@@ -201,20 +200,13 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  
-  showCachedData: function TabItem_showCachedData(tabData, imageData) {
+  showCachedData: function TabItem_showCachedData(imageData) {
     this._cachedImageData = imageData;
     this.$cachedThumb.attr("src", this._cachedImageData).show();
     this.$canvas.css({opacity: 0});
-    let label = "";
-    let title;
-    if (tabData.title) {
-      label = tabData.title;
-      title = label + "\n" + tabData.url;
-    } else {
-      title = tabData.url;
-    }
-    this.$tabTitle.text(label).attr("title", title);
+
+    let {title, url} = this.getTabState();
+    this.$tabTitle.text(title).attr("title", title ? title + "\n" + url : url);
 
     this._sendToSubscribers("showingCachedData");
   },
@@ -234,9 +226,7 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   getStorageData: function TabItem_getStorageData() {
     let data = {
-      url: this.tab.linkedBrowser.currentURI.spec,
-      groupID: (this.parent ? this.parent.id : 0),
-      title: this.tab.label
+      groupID: (this.parent ? this.parent.id : 0)
     };
     if (this.parent && this.parent.getActiveTab() == this)
       data.active = true;
@@ -263,9 +253,43 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  loadThumbnail: function TabItem_loadThumbnail(tabData) {
-    Utils.assert(tabData, "invalid or missing argument <tabData>");
+  _getCurrentTabStateEntry: function TabItem__getCurrentTabStateEntry() {
+    let tabState = Storage.getTabState(this.tab);
 
+    if (tabState) {
+      let index = (tabState.index || tabState.entries.length) - 1;
+      if (index in tabState.entries)
+        return tabState.entries[index];
+    }
+
+    return null;
+  },
+
+  
+  
+  
+  
+  getTabState: function TabItem_getTabState() {
+    let entry = this._getCurrentTabStateEntry();
+    let title = "";
+    let url = "";
+
+    if (entry) {
+      if (entry.title)
+        title = entry.title;
+
+      url = entry.url;
+    } else {
+      url = this.tab.linkedBrowser.currentURI.spec;
+    }
+
+    return {title: title, url: url};
+  },
+
+  
+  
+  
+  loadThumbnail: function TabItem_loadThumbnail() {
     let self = this;
 
     function TabItem_loadThumbnail_callback(error, imageData) {
@@ -285,11 +309,11 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       
       
       let currentUrl = self.tab.linkedBrowser.currentURI.spec;
-      if (tabData.url == currentUrl || currentUrl == "about:blank")
-        self.showCachedData(tabData, imageData);
+      if (self.getTabState().url == currentUrl || currentUrl == "about:blank")
+        self.showCachedData(imageData);
     }
 
-    ThumbnailStorage.loadThumbnail(tabData.url, TabItem_loadThumbnail_callback);
+    ThumbnailStorage.loadThumbnail(this.getTabState().url, TabItem_loadThumbnail_callback);
   },
 
   
@@ -370,7 +394,7 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     let groupItem;
 
     if (tabData && TabItems.storageSanity(tabData)) {
-      this.loadThumbnail(tabData);
+      this.loadThumbnail();
 
       if (this.parent)
         this.parent.remove(this, {immediately: true});
@@ -934,7 +958,7 @@ let TabItems = {
     return (
       tab.linkedBrowser.contentDocument.readyState == 'complete' &&
       !(tab.linkedBrowser.contentDocument.URL == 'about:blank' &&
-        tab._tabViewTabItem.url != 'about:blank')
+        tab._tabViewTabItem.getTabState().url != 'about:blank')
     );
   },
 
@@ -1013,10 +1037,6 @@ let TabItems = {
 
       
       let tabUrl = tab.linkedBrowser.currentURI.spec;
-      if (tabUrl != tabItem.url) {
-        tabItem.url = tabUrl;
-        tabItem.save();
-      }
       tabItem.$container.attr("title", label + "\n" + tabUrl);
 
       
