@@ -1,46 +1,47 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sw=4 et tw=99:
- *
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Communicator client code, released
- * March 31, 1998.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
 
-/*
- * JS debugging API.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <string.h>
 #include "jsprvtd.h"
 #include "jstypes.h"
@@ -147,7 +148,7 @@ ScriptDebugEpilogue(JSContext *cx, StackFrame *fp, bool okArg)
     return ok;
 }
 
-} /* namespace js */
+} 
 
 #ifdef DEBUG
 static bool
@@ -157,8 +158,8 @@ CompartmentHasLiveScripts(JSCompartment *comp)
     jsword currentThreadId = reinterpret_cast<jsword>(js_CurrentThreadId());
 #endif
 
-    // Unsynchronized context iteration is technically a race; but this is only
-    // for debug asserts where such a race would be rare
+    
+    
     JSContext *iter = NULL;
     JSContext *icx;
     while ((icx = JS_ContextIterator(comp->rt, &iter))) {
@@ -183,16 +184,16 @@ JS_SetDebugModeForCompartment(JSContext *cx, JSCompartment *comp, JSBool debug)
     if (comp->debugMode == !!debug)
         return JS_TRUE;
 
-    // This should only be called when no scripts are live. It would even be
-    // incorrect to discard just the non-live scripts' JITScripts because they
-    // might share ICs with live scripts (bug 632343).
+    
+    
+    
     JS_ASSERT(!CompartmentHasLiveScripts(comp));
 
-    // All scripts compiled from this point on should be in the requested debugMode.
+    
     comp->debugMode = !!debug;
 
-    // Discard JIT code for any scripts that change debugMode. This function
-    // assumes that 'comp' is in the same thread as 'cx'.
+    
+    
 
 #ifdef JS_METHODJIT
     JS::AutoEnterScriptCompartment ac;
@@ -204,12 +205,12 @@ JS_SetDebugModeForCompartment(JSContext *cx, JSCompartment *comp, JSBool debug)
         if (!script->debugMode == !debug)
             continue;
 
-        /*
-         * If compartment entry fails, debug mode is left partially on, leading
-         * to a small performance overhead but no loss of correctness. We set
-         * the debug flags to false so that the caller will not later attempt
-         * to use debugging features.
-         */
+        
+
+
+
+
+
         if (!ac.entered() && !ac.enter(cx, script)) {
             comp->debugMode = JS_FALSE;
             return JS_FALSE;
@@ -236,7 +237,7 @@ js_SetSingleStepMode(JSContext *cx, JSScript *script, JSBool singleStep)
     JS_ASSERT_IF(singleStep, cx->compartment->debugMode);
 
 #ifdef JS_METHODJIT
-    /* request the next recompile to inject single step interrupts */
+    
     script->singleStepMode = !!singleStep;
 
     js::mjit::JITScript *jit = script->jitNormal ? script->jitNormal : script->jitCtor;
@@ -255,11 +256,11 @@ static JSBool
 CheckDebugMode(JSContext *cx)
 {
     JSBool debugMode = JS_GetDebugMode(cx);
-    /*
-     * :TODO:
-     * This probably should be an assertion, since it's indicative of a severe
-     * API misuse.
-     */
+    
+
+
+
+
     if (!debugMode) {
         JS_ReportErrorFlagsAndNumber(cx, JSREPORT_ERROR, js_GetErrorMessage,
                                      NULL, JSMSG_NEED_DEBUG_MODE);
@@ -277,9 +278,9 @@ JS_SetSingleStepMode(JSContext *cx, JSScript *script, JSBool singleStep)
     return js_SetSingleStepMode(cx, script, singleStep);
 }
 
-/*
- * NB: FindTrap must be called with rt->debuggerLock acquired.
- */
+
+
+
 static JSTrap *
 FindTrap(JSRuntime *rt, JSScript *script, jsbytecode *pc)
 {
@@ -422,7 +423,7 @@ JS_ClearTrap(JSContext *cx, JSScript *script, jsbytecode *pc,
              JSTrapHandler *handlerp, jsval *closurep)
 {
     JSTrap *trap;
-    
+
     DBG_LOCK(cx->runtime);
     trap = FindTrap(cx->runtime, script, pc);
     if (handlerp)
@@ -488,11 +489,11 @@ JS_ClearAllTraps(JSContext *cx)
     DBG_UNLOCK(rt);
 }
 
-/*
- * NB: js_MarkTraps does not acquire cx->runtime->debuggerLock, since the
- * debugger should never be racing with the GC (i.e., the debugger must
- * respect the request model).
- */
+
+
+
+
+
 void
 js_MarkTraps(JSTracer *trc)
 {
@@ -520,32 +521,32 @@ JS_HandleTrap(JSContext *cx, JSScript *script, jsbytecode *pc, jsval *rval)
         op = (JSOp) *pc;
         DBG_UNLOCK(cx->runtime);
 
-        /* Defend against "pc for wrong script" API usage error. */
+        
         JS_ASSERT(op != JSOP_TRAP);
 
 #ifdef JS_THREADSAFE
-        /* If the API was abused, we must fail for want of the real op. */
+        
         if (op == JSOP_TRAP)
             return JSTRAP_ERROR;
 
-        /* Assume a race with a debugger thread and try to carry on. */
+        
         *rval = INT_TO_JSVAL(op);
         return JSTRAP_CONTINUE;
 #else
-        /* Always fail if single-threaded (must be an API usage error). */
+        
         return JSTRAP_ERROR;
 #endif
     }
     DBG_UNLOCK(cx->runtime);
 
-    /*
-     * It's important that we not use 'trap->' after calling the callback --
-     * the callback might remove the trap!
-     */
+    
+
+
+
     op = (jsint)trap->op;
     status = trap->handler(cx, script, pc, rval, trap->closure);
     if (status == JSTRAP_CONTINUE) {
-        /* By convention, return the true op to the interpreter in rval. */
+        
         *rval = INT_TO_JSVAL(op);
     }
     return status;
@@ -603,7 +604,7 @@ JS_ClearInterrupt(JSRuntime *rt, JSInterruptHook *hoop, void **closurep)
     return JS_TRUE;
 }
 
-/************************************************************************/
+
 
 
 JS_PUBLIC_API(JSBool)
@@ -633,10 +634,10 @@ JS_SetWatchPoint(JSContext *cx, JSObject *obj, jsid id,
         idroot.set(IdToValue(propid));
     }
 
-    /*
-     * If, by unwrapping and innerizing, we changed the object, check
-     * again to make sure that we're allowed to set a watch point.
-     */
+    
+
+
+
     if (origobj != obj && !CheckAccess(cx, obj, propid, JSACC_WATCH, &v, &attrs))
         return false;
 
@@ -690,7 +691,7 @@ JS_ClearAllWatchPoints(JSContext *cx)
     return true;
 }
 
-/************************************************************************/
+
 
 JS_PUBLIC_API(uintN)
 JS_PCToLineNumber(JSContext *cx, JSScript *script, jsbytecode *pc)
@@ -782,7 +783,7 @@ JS_GetFunctionLocalNameArray(JSContext *cx, JSFunction *fun, void **markp)
     if (!fun->script()->bindings.getLocalNameArray(cx, &localNames))
         return NULL;
 
-    /* Munge data into the API this method implements.  Avert your eyes! */
+    
     *markp = JS_ARENA_MARK(&cx->tempPool);
 
     jsuword *names;
@@ -832,11 +833,11 @@ JS_GetScriptPrincipals(JSContext *cx, JSScript *script)
     return script->principals;
 }
 
-/************************************************************************/
 
-/*
- *  Stack Frame Iterator
- */
+
+
+
+
 JS_PUBLIC_API(JSStackFrame *)
 JS_FrameIterator(JSContext *cx, JSStackFrame **iteratorp)
 {
@@ -871,10 +872,10 @@ JS_GetFrameAnnotation(JSContext *cx, JSStackFrame *fpArg)
         JSPrincipals *principals = fp->scopeChain().principals(cx);
 
         if (principals && principals->globalPrivilegesEnabled(cx, principals)) {
-            /*
-             * Give out an annotation only if privileges have not been revoked
-             * or disabled globally.
-             */
+            
+
+
+
             return fp->annotation();
         }
     }
@@ -905,7 +906,7 @@ JS_IsScriptFrame(JSContext *cx, JSStackFrame *fp)
     return !Valueify(fp)->isDummyFrame();
 }
 
-/* this is deprecated, use JS_GetFrameScopeChain instead */
+
 JS_PUBLIC_API(JSObject *)
 JS_GetFrameObject(JSContext *cx, JSStackFrame *fp)
 {
@@ -922,7 +923,7 @@ JS_GetFrameScopeChain(JSContext *cx, JSStackFrame *fpArg)
     if (!ac.enter())
         return NULL;
 
-    /* Force creation of argument and call objects if not yet created */
+    
     (void) JS_GetFrameCallObject(cx, Jsvalify(fp));
     return GetScopeChain(cx, fp);
 }
@@ -940,10 +941,10 @@ JS_GetFrameCallObject(JSContext *cx, JSStackFrame *fpArg)
     if (!ac.enter())
         return NULL;
 
-    /*
-     * XXX ill-defined: null return here means error was reported, unlike a
-     *     null returned above or in the #else
-     */
+    
+
+
+
     if (!fp->hasCallObj() && fp->isNonEvalFunctionFrame())
         return CreateFunCallObject(cx, fp);
     return &fp->callObj();
@@ -1037,12 +1038,18 @@ JS_SetFrameReturnValue(JSContext *cx, JSStackFrame *fpArg, jsval rval)
     fp->setReturnValue(Valueify(rval));
 }
 
-/************************************************************************/
+
 
 JS_PUBLIC_API(const char *)
 JS_GetScriptFilename(JSContext *cx, JSScript *script)
 {
     return script->filename;
+}
+
+JS_PUBLIC_API(const jschar *)
+JS_GetScriptSourceMap(JSContext *cx, JSScript *script)
+{
+    return script->sourceMap;
 }
 
 JS_PUBLIC_API(uintN)
@@ -1063,7 +1070,7 @@ JS_GetScriptVersion(JSContext *cx, JSScript *script)
     return VersionNumber(script->getVersion());
 }
 
-/***************************************************************************/
+
 
 JS_PUBLIC_API(void)
 JS_SetNewScriptHook(JSRuntime *rt, JSNewScriptHook hook, void *callerdata)
@@ -1080,7 +1087,7 @@ JS_SetDestroyScriptHook(JSRuntime *rt, JSDestroyScriptHook hook,
     rt->globalDebugHooks.destroyScriptHookData = callerdata;
 }
 
-/***************************************************************************/
+
 
 JS_PUBLIC_API(JSBool)
 JS_EvaluateUCInStackFrame(JSContext *cx, JSStackFrame *fpArg,
@@ -1101,12 +1108,12 @@ JS_EvaluateUCInStackFrame(JSContext *cx, JSStackFrame *fpArg,
     if (!ac.enter())
         return false;
 
-    /*
-     * NB: This function breaks the assumption that the compiler can see all
-     * calls and properly compute a static level. In order to get around this,
-     * we use a static level that will cause us not to attempt to optimize
-     * variable references made by this frame.
-     */
+    
+
+
+
+
+
     StackFrame *fp = Valueify(fpArg);
     JSScript *script = Compiler::compileScript(cx, scobj, fp, fp->scopeChain().principals(cx),
                                                TCF_COMPILE_N_GO, chars, length,
@@ -1131,7 +1138,7 @@ JS_EvaluateInStackFrame(JSContext *cx, JSStackFrame *fp,
     jschar *chars;
     JSBool ok;
     size_t len = length;
-    
+
     if (!CheckDebugMode(cx))
         return JS_FALSE;
 
@@ -1146,16 +1153,16 @@ JS_EvaluateInStackFrame(JSContext *cx, JSStackFrame *fp,
     return ok;
 }
 
-/************************************************************************/
 
-/* This all should be reworked to avoid requiring JSScopeProperty types. */
+
+
 
 JS_PUBLIC_API(JSScopeProperty *)
 JS_PropertyIterator(JSObject *obj, JSScopeProperty **iteratorp)
 {
     const Shape *shape;
 
-    /* The caller passes null in *iteratorp to get things started. */
+    
     shape = (Shape *) *iteratorp;
     if (!shape) {
         shape = obj->lastProperty();
@@ -1239,7 +1246,7 @@ JS_GetPropertyDescArray(JSContext *cx, JSObject *obj, JSPropertyDescArray *pda)
     if (!clasp->enumerate(cx, obj))
         return JS_FALSE;
 
-    /* Return an empty pda early if obj has no own properties. */
+    
     if (obj->nativeEmpty()) {
         pda->length = 0;
         pda->array = NULL;
@@ -1291,7 +1298,7 @@ JS_PutPropertyDescArray(JSContext *cx, JSPropertyDescArray *pda)
     cx->free_(pd);
 }
 
-/************************************************************************/
+
 
 JS_PUBLIC_API(JSBool)
 JS_SetDebuggerHandler(JSRuntime *rt, JSDebuggerHandler handler, void *closure)
@@ -1350,7 +1357,7 @@ JS_SetDebugErrorHook(JSRuntime *rt, JSDebugErrorHook hook, void *closure)
     return JS_TRUE;
 }
 
-/************************************************************************/
+
 
 JS_PUBLIC_API(size_t)
 JS_GetObjectTotalSize(JSContext *cx, JSObject *obj)
@@ -1458,7 +1465,7 @@ JS_MakeSystemObject(JSContext *cx, JSObject *obj)
     return true;
 }
 
-/************************************************************************/
+
 
 JS_FRIEND_API(void)
 js_RevertVersion(JSContext *cx)
@@ -1542,7 +1549,7 @@ static JSFunctionSpec profiling_functions[] = {
     JS_FN("startProfiling",  StartProfiling,      0,0),
     JS_FN("stopProfiling",   StopProfiling,       0,0),
 #ifdef MOZ_SHARK
-    /* Keep users of the old shark API happy. */
+    
     JS_FN("connectShark",    IgnoreAndReturnTrue, 0,0),
     JS_FN("disconnectShark", IgnoreAndReturnTrue, 0,0),
     JS_FN("startShark",      StartProfiling,      0,0),
@@ -1605,7 +1612,7 @@ js_DumpCallgrind(JSContext *cx, uintN argc, jsval *vp)
     return JS_TRUE;
 }
 
-#endif /* MOZ_CALLGRIND */
+#endif 
 
 #ifdef MOZ_VTUNE
 #include <VTuneApi.h>
@@ -1653,12 +1660,12 @@ js_StartVtune(JSContext *cx, uintN argc, jsval *vp)
     VTUNE_SAMPLING_PARAMS params = {
         sizeof(VTUNE_SAMPLING_PARAMS),
         sizeof(VTUNE_EVENT),
-        0, 0, /* Reserved fields */
-        1,    /* Initialize in "paused" state */
-        0,    /* Max samples, or 0 for "continuous" */
-        4096, /* Samples per buffer */
-        0.1,  /* Sampling interval in ms */
-        1,    /* 1 for event-based sampling, 0 for time-based */
+        0, 0, 
+        1,    
+        0,    
+        4096, 
+        0.1,  
+        1,    
 
         n_events,
         events,
@@ -1724,18 +1731,18 @@ js_ResumeVtune(JSContext *cx, uintN argc, jsval *vp)
     return true;
 }
 
-#endif /* MOZ_VTUNE */
+#endif 
 
 #ifdef MOZ_TRACEVIS
-/*
- * Ethogram - Javascript wrapper for TraceVis state
- *
- * ethology: The scientific study of animal behavior,
- *           especially as it occurs in a natural environment.
- * ethogram: A pictorial catalog of the behavioral patterns of
- *           an organism or a species.
- *
- */
+
+
+
+
+
+
+
+
+
 #if defined(XP_WIN)
 #include "jswin.h"
 #else
@@ -1861,7 +1868,7 @@ public:
             JSHashEntry **hep = JS_HashTableRawLookup(traceVisScriptTable, hash, filename);
             JSHashEntry *he = *hep;
             if (he) {
-                /* we hardly knew he */
+                
                 JS_HashTableRawRemove(traceVisScriptTable, hep, he);
             }
 
@@ -1912,7 +1919,7 @@ jstv_Lineno(JSContext *cx, JSStackFrame *fp)
     return (fp && fp->pcQuadratic(cx)) ? js_FramePCToLineNumber(cx, fp) : 0;
 }
 
-/* Collect states here and distribute to a matching buffer, if any */
+
 JS_FRIEND_API(void)
 js::StoreTraceVisState(JSContext *cx, TraceVisState s, TraceVisExitReason r)
 {
@@ -1922,7 +1929,7 @@ js::StoreTraceVisState(JSContext *cx, TraceVisState s, TraceVisExitReason r)
     JSHashNumber hash = JS_HashString(script_file);
 
     JSHashEntry **hep = JS_HashTableRawLookup(traceVisScriptTable, hash, script_file);
-    /* update event buffer, flag if overflowed */
+    
     JSHashEntry *he = *hep;
     if (he) {
         EthogramEventBuffer *p;
@@ -2000,7 +2007,7 @@ ethogram_addScript(JSContext *cx, uintN argc, jsval *vp)
     if (!obj)
         return false;
     if (argc < 1) {
-        /* silently ignore no args */
+        
         JS_SET_RVAL(cx, vp, JSVAL_VOID);
         return true;
     }
@@ -2142,10 +2149,10 @@ static JSFunctionSpec ethogram_methods[] = {
     JS_FS_END
 };
 
-/*
- * An |Ethogram| organizes the output of a collection of files that should be
- * monitored together. A single object gets events for the group.
- */
+
+
+
+
 JS_FRIEND_API(JSBool)
 js_InitEthogram(JSContext *cx, uintN argc, jsval *vp)
 {
@@ -2172,7 +2179,7 @@ js_ShutdownEthogram(JSContext *cx, uintN argc, jsval *vp)
     return true;
 }
 
-#endif /* MOZ_TRACEVIS */
+#endif 
 
 #ifdef MOZ_TRACE_JSCALLS
 
@@ -2188,7 +2195,7 @@ JS_GetFunctionCallback(JSContext *cx)
     return cx->functionCallback;
 }
 
-#endif /* MOZ_TRACE_JSCALLS */
+#endif 
 
 JS_PUBLIC_API(void)
 JS_DumpProfile(JSContext *cx, JSScript *script)
@@ -2197,7 +2204,7 @@ JS_DumpProfile(JSContext *cx, JSScript *script)
 
 #if defined(DEBUG)
     if (script->pcCounters) {
-        // Display hit counts for every JS code line
+        
         AutoArenaAllocator mark(&cx->tempPool);
         Sprinter sprinter;
         INIT_SPRINTER(cx, &sprinter, &cx->tempPool, 0);

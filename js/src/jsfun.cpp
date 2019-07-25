@@ -1871,10 +1871,13 @@ js_fun_apply(JSContext *cx, uintN argc, Value *vp)
     LeaveTrace(cx);
 
     
-    uintN n = uintN(JS_MIN(length, StackSpace::ARGS_LENGTH_MAX));
+    if (length > StackSpace::ARGS_LENGTH_MAX) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_TOO_MANY_FUN_APPLY_ARGS);
+        return false;
+    }
 
     InvokeArgsGuard args;
-    if (!cx->stack.pushInvokeArgs(cx, n, &args))
+    if (!cx->stack.pushInvokeArgs(cx, length, &args))
         return false;
 
     
@@ -1882,7 +1885,7 @@ js_fun_apply(JSContext *cx, uintN argc, Value *vp)
     args.thisv() = vp[2];
 
     
-    if (!GetElements(cx, aobj, n, args.argv()))
+    if (!GetElements(cx, aobj, length, args.argv()))
         return false;
 
     

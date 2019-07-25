@@ -16,9 +16,7 @@ var body = localstr +
            "if (x == 0) return; " +
            "arr[3] = (new Function(arg, body));" +
            "for (var i = 0; i < 4; ++i) arr[i](x-1);";
-
-
-try { (new Function(arg, body))(1000); } catch (e) {}
+(new Function(arg, body))(1000);
 
 
 

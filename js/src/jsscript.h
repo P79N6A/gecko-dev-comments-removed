@@ -506,6 +506,7 @@ struct JSScript {
     js::Bindings    bindings;   
 
     JSPrincipals    *principals;
+    jschar          *sourceMap; 
 
     JSObject        *ownerObject;
 

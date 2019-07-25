@@ -355,6 +355,9 @@ const gSessionHistoryObserver = {
     var fwdCommand = document.getElementById("Browser:Forward");
     fwdCommand.setAttribute("disabled", "true");
 
+    
+    window.messageManager.sendAsyncMessage("Browser:HideSessionRestoreButton");
+
     if (gURLBar) {
       
       gURLBar.editor.transactionManager.clear()

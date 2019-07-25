@@ -3,9 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "CanvasLayerD3D10.h"
 
-#include "../d3d9/Nv3DVUtils.h"
 #include "gfxImageSurface.h"
 #include "gfxWindowsSurface.h"
 #include "gfxWindowsPlatform.h"
@@ -22,39 +54,41 @@ CanvasLayerD3D10::~CanvasLayerD3D10()
 void
 CanvasLayerD3D10::Initialize(const Data& aData)
 {
-  NS_ASSERTION(mSurface == nullptr, "BasicCanvasLayer::Initialize called twice!");
+  NS_ASSERTION(mSurface == nsnull, "BasicCanvasLayer::Initialize called twice!");
 
   if (aData.mSurface) {
     mSurface = aData.mSurface;
-    NS_ASSERTION(aData.mGLContext == nullptr && !aData.mDrawTarget,
+    NS_ASSERTION(aData.mGLContext == nsnull && !aData.mDrawTarget,
                  "CanvasLayer can't have both surface and GLContext/DrawTarget");
-    mNeedsYFlip = false;
-    mDataIsPremultiplied = true;
+    mNeedsYFlip = PR_FALSE;
+    mDataIsPremultiplied = PR_TRUE;
   } else if (aData.mGLContext) {
     NS_ASSERTION(aData.mGLContext->IsOffscreen(), "canvas gl context isn't offscreen");
     mGLContext = aData.mGLContext;
+    mCanvasFramebuffer = mGLContext->GetOffscreenFBO();
     mDataIsPremultiplied = aData.mGLBufferIsPremultiplied;
-    mNeedsYFlip = true;
+    mNeedsYFlip = PR_TRUE;
   } else if (aData.mDrawTarget) {
     mDrawTarget = aData.mDrawTarget;
-    mNeedsYFlip = false;
-    mDataIsPremultiplied = true;
     void *texture = mDrawTarget->GetNativeSurface(NATIVE_SURFACE_D3D10_TEXTURE);
 
-    if (texture) {
-      mTexture = static_cast<ID3D10Texture2D*>(texture);
-
-      NS_ASSERTION(aData.mGLContext == nullptr && aData.mSurface == nullptr,
-                   "CanvasLayer can't have both surface and GLContext/Surface");
-
-      mBounds.SetRect(0, 0, aData.mSize.width, aData.mSize.height);
-      device()->CreateShaderResourceView(mTexture, NULL, getter_AddRefs(mSRView));
+    if (!texture) {
+      
+      NS_WARNING("Failed to get D3D10 texture from DrawTarget.");
       return;
-    } 
-    
-    
-    
-    mSurface = gfxPlatform::GetPlatform()->GetThebesSurfaceForDrawTarget(mDrawTarget);
+    }
+
+    mTexture = static_cast<ID3D10Texture2D*>(texture);
+
+    NS_ASSERTION(aData.mGLContext == nsnull && aData.mSurface == nsnull,
+                 "CanvasLayer can't have both surface and GLContext/Surface");
+
+    mNeedsYFlip = PR_FALSE;
+    mDataIsPremultiplied = PR_TRUE;
+
+    mBounds.SetRect(0, 0, aData.mSize.width, aData.mSize.height);
+    device()->CreateShaderResourceView(mTexture, NULL, getter_AddRefs(mSRView));
+    return;
   } else {
     NS_ERROR("CanvasLayer created without mSurface, mDrawTarget or mGLContext?");
   }
@@ -65,7 +99,7 @@ CanvasLayerD3D10::Initialize(const Data& aData)
     void *data = mSurface->GetData(&gKeyD3D10Texture);
     if (data) {
       mTexture = static_cast<ID3D10Texture2D*>(data);
-      mIsD2DTexture = true;
+      mIsD2DTexture = PR_TRUE;
       device()->CreateShaderResourceView(mTexture, NULL, getter_AddRefs(mSRView));
       mHasAlpha =
         mSurface->GetContentType() == gfxASurface::CONTENT_COLOR_ALPHA;
@@ -73,18 +107,18 @@ CanvasLayerD3D10::Initialize(const Data& aData)
     }
   }
 
-  mIsD2DTexture = false;
-  mUsingSharedTexture = false;
+  mIsD2DTexture = PR_FALSE;
+  mUsingSharedTexture = PR_FALSE;
 
-  HANDLE shareHandle = mGLContext ? mGLContext->GetD3DShareHandle() : nullptr;
-  if (shareHandle && !mForceReadback) {
+  HANDLE shareHandle = mGLContext ? mGLContext->GetD3DShareHandle() : nsnull;
+  if (shareHandle) {
     HRESULT hr = device()->OpenSharedResource(shareHandle, __uuidof(ID3D10Texture2D), getter_AddRefs(mTexture));
     if (SUCCEEDED(hr))
-      mUsingSharedTexture = true;
+      mUsingSharedTexture = PR_TRUE;
   }
 
   if (mUsingSharedTexture) {
-    mNeedsYFlip = true;
+      mNeedsYFlip = PR_FALSE;
   } else {
     CD3D10_TEXTURE2D_DESC desc(DXGI_FORMAT_B8G8R8A8_UNORM, mBounds.width, mBounds.height, 1, 1);
     desc.Usage = D3D10_USAGE_DYNAMIC;
@@ -105,21 +139,27 @@ CanvasLayerD3D10::UpdateSurface()
 {
   if (!mDirty)
     return;
-  mDirty = false;
+  mDirty = PR_FALSE;
 
   if (mDrawTarget) {
     mDrawTarget->Flush();
-  } else if (mIsD2DTexture) {
+    return;
+  }
+
+  if (mIsD2DTexture) {
     mSurface->Flush();
     return;
-  } else if (mUsingSharedTexture) {
+  }
+
+  if (mUsingSharedTexture) {
     
     if (mGLContext) {
       mGLContext->MakeCurrent();
-      mGLContext->GuaranteeResolve();
+      mGLContext->fFinish();
     }
     return;
   }
+
   if (mGLContext) {
     
     D3D10_MAPPED_TEXTURE2D map;
@@ -131,32 +171,47 @@ CanvasLayerD3D10::UpdateSurface()
       return;
     }
 
-    const bool stridesMatch = map.RowPitch == mBounds.width * 4;
-
-    uint8_t *destination;
-    if (!stridesMatch) {
-      destination = GetTempBlob(mBounds.width * mBounds.height * 4);
+    PRUint8 *destination;
+    if (map.RowPitch != mBounds.width * 4) {
+      destination = new PRUint8[mBounds.width * mBounds.height * 4];
     } else {
-      DiscardTempBlob();
-      destination = (uint8_t*)map.pData;
+      destination = (PRUint8*)map.pData;
     }
 
-    mGLContext->MakeCurrent();
+    
+    
+    mGLContext->fFlush();
+
+    PRUint32 currentFramebuffer = 0;
+
+    mGLContext->fGetIntegerv(LOCAL_GL_FRAMEBUFFER_BINDING, (GLint*)&currentFramebuffer);
+
+    
+    
+    if (currentFramebuffer != mCanvasFramebuffer)
+      mGLContext->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, mCanvasFramebuffer);
 
     nsRefPtr<gfxImageSurface> tmpSurface =
       new gfxImageSurface(destination,
                           gfxIntSize(mBounds.width, mBounds.height),
                           mBounds.width * 4,
                           gfxASurface::ImageFormatARGB32);
-    mGLContext->ReadScreenIntoImageSurface(tmpSurface);
-    tmpSurface = nullptr;
+    mGLContext->ReadPixelsIntoImageSurface(0, 0,
+                                           mBounds.width, mBounds.height,
+                                           tmpSurface);
+    tmpSurface = nsnull;
 
-    if (!stridesMatch) {
+    
+    if (currentFramebuffer != mCanvasFramebuffer)
+      mGLContext->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, currentFramebuffer);
+
+    if (map.RowPitch != mBounds.width * 4) {
       for (int y = 0; y < mBounds.height; y++) {
-        memcpy((uint8_t*)map.pData + map.RowPitch * y,
+        memcpy((PRUint8*)map.pData + map.RowPitch * y,
                destination + mBounds.width * 4 * y,
                mBounds.width * 4);
       }
+      delete [] destination;
     }
     mTexture->Unmap(0);
   } else if (mSurface) {
@@ -208,14 +263,29 @@ CanvasLayerD3D10::RenderLayer()
 
   SetEffectTransformAndOpacity();
 
-  uint8_t shaderFlags = 0;
-  shaderFlags |= LoadMaskTexture();
-  shaderFlags |= mDataIsPremultiplied
-                ? SHADER_PREMUL : SHADER_NON_PREMUL | SHADER_RGBA;
-  shaderFlags |= mHasAlpha ? SHADER_RGBA : SHADER_RGB;
-  shaderFlags |= mFilter == gfxPattern::FILTER_NEAREST
-                ? SHADER_POINT : SHADER_LINEAR;
-  ID3D10EffectTechnique* technique = SelectShader(shaderFlags);
+  ID3D10EffectTechnique *technique;
+
+  if (mDataIsPremultiplied) {
+    if (!mHasAlpha) {
+      if (mFilter == gfxPattern::FILTER_NEAREST) {
+        technique = effect()->GetTechniqueByName("RenderRGBLayerPremulPoint");
+      } else {
+        technique = effect()->GetTechniqueByName("RenderRGBLayerPremul");
+      }
+    } else {
+      if (mFilter == gfxPattern::FILTER_NEAREST) {
+        technique = effect()->GetTechniqueByName("RenderRGBALayerPremulPoint");
+      } else {
+        technique = effect()->GetTechniqueByName("RenderRGBALayerPremul");
+      }
+    }
+  } else {
+    if (mFilter == gfxPattern::FILTER_NEAREST) {
+      technique = effect()->GetTechniqueByName("RenderRGBALayerNonPremulPoint");
+    } else {
+      technique = effect()->GetTechniqueByName("RenderRGBALayerNonPremul");
+    }
+  }
 
   if (mSRView) {
     effect()->GetVariableByName("tRGB")->AsShaderResource()->SetResource(mSRView);
