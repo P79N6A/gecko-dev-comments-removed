@@ -1863,7 +1863,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
     char **argv;
     JSAtom *atom;
     JSObject *obj;
-    JSFunction *fun;
+    JSFunction *fun = NULL; 
     JSString *str;
     JSBool ok;
 #if JS_HAS_XML_SUPPORT

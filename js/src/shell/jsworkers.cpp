@@ -1097,7 +1097,7 @@ Worker::create(JSContext *parentcx, WorkerParent *parent, JSString *scriptName, 
 void
 Worker::processOneEvent()
 {
-    Event *event;
+    Event *event = NULL;    
     {
         AutoLock hold1(lock);
         if (lockedCheckTermination() || events.empty())
