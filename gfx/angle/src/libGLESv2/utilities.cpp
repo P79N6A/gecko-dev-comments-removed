@@ -9,6 +9,8 @@
 #include "libGLESv2/utilities.h"
 
 #include <limits>
+#include <stdio.h>
+#include <windows.h>
 
 #include "common/debug.h"
 
@@ -189,18 +191,7 @@ GLsizei ComputePitch(GLsizei width, GLenum format, GLenum type, GLint alignment)
 
 GLsizei ComputeCompressedPitch(GLsizei width, GLenum format)
 {
-    switch (format)
-    {
-      case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
-      case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
-        break;
-      default:
-        return 0;
-    }
-
-    ASSERT(width % 4 == 0);
-
-    return 8 * width / 4;
+    return ComputeCompressedSize(width, 1, format);
 }
 
 GLsizei ComputeCompressedSize(GLsizei width, GLsizei height, GLenum format)
@@ -528,6 +519,39 @@ D3DCULL ConvertCullMode(GLenum cullFace, GLenum frontFace)
     return cull;
 }
 
+D3DCUBEMAP_FACES ConvertCubeFace(GLenum cubeFace)
+{
+    D3DCUBEMAP_FACES face = D3DCUBEMAP_FACE_POSITIVE_X;
+
+    
+    
+    
+    switch (cubeFace)
+    {
+      case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
+        face = D3DCUBEMAP_FACE_POSITIVE_X;
+        break;
+      case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+        face = D3DCUBEMAP_FACE_NEGATIVE_X;
+        break;
+      case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+        face = D3DCUBEMAP_FACE_NEGATIVE_Y;
+        break;
+      case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+        face = D3DCUBEMAP_FACE_POSITIVE_Y;
+        break;
+      case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+        face = D3DCUBEMAP_FACE_POSITIVE_Z;
+        break;
+      case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
+        face = D3DCUBEMAP_FACE_NEGATIVE_Z;
+        break;
+      default: UNREACHABLE();
+    }
+
+    return face;
+}
+
 DWORD ConvertColorMask(bool red, bool green, bool blue, bool alpha)
 {
     return (red   ? D3DCOLORWRITEENABLE_RED   : 0) |
@@ -707,46 +731,46 @@ unsigned int GetDepthSize(D3DFORMAT depthFormat)
       case D3DFMT_D16:           return 16;
       case D3DFMT_D32F_LOCKABLE: return 32;
       case D3DFMT_D24FS8:        return 24;
-
-
+    
+    
       default:
         UNREACHABLE();
     }
     return 0;
 }
 
-bool ConvertPrimitiveType(GLenum primitiveType, GLsizei primitiveCount,
+bool ConvertPrimitiveType(GLenum primitiveType, GLsizei elementCount,
                           D3DPRIMITIVETYPE *d3dPrimitiveType, int *d3dPrimitiveCount)
 {
     switch (primitiveType)
     {
       case GL_POINTS:
         *d3dPrimitiveType = D3DPT_POINTLIST;
-        *d3dPrimitiveCount = primitiveCount;
+        *d3dPrimitiveCount = elementCount;
         break;
       case GL_LINES:
         *d3dPrimitiveType = D3DPT_LINELIST;
-        *d3dPrimitiveCount = primitiveCount / 2;
+        *d3dPrimitiveCount = elementCount / 2;
         break;
       case GL_LINE_LOOP:
         *d3dPrimitiveType = D3DPT_LINESTRIP;
-        *d3dPrimitiveCount = primitiveCount;
+        *d3dPrimitiveCount = elementCount - 1;   
         break;
       case GL_LINE_STRIP:
         *d3dPrimitiveType = D3DPT_LINESTRIP;
-        *d3dPrimitiveCount = primitiveCount - 1;
+        *d3dPrimitiveCount = elementCount - 1;
         break;
       case GL_TRIANGLES:
         *d3dPrimitiveType = D3DPT_TRIANGLELIST;
-        *d3dPrimitiveCount = primitiveCount / 3;
+        *d3dPrimitiveCount = elementCount / 3;
         break;
       case GL_TRIANGLE_STRIP:
         *d3dPrimitiveType = D3DPT_TRIANGLESTRIP;
-        *d3dPrimitiveCount = primitiveCount - 2;
+        *d3dPrimitiveCount = elementCount - 2;
         break;
       case GL_TRIANGLE_FAN:
         *d3dPrimitiveType = D3DPT_TRIANGLEFAN;
-        *d3dPrimitiveCount = primitiveCount - 2;
+        *d3dPrimitiveCount = elementCount - 2;
         break;
       default:
         return false;
@@ -824,4 +848,37 @@ GLenum ConvertDepthStencilFormat(D3DFORMAT format)
     return GL_DEPTH24_STENCIL8_OES;
 }
 
+}
+
+std::string getTempPath()
+{
+    char path[MAX_PATH];
+    DWORD pathLen = GetTempPathA(sizeof(path) / sizeof(path[0]), path);
+    if (pathLen == 0)
+    {
+        UNREACHABLE();
+        return std::string();
+    }
+
+    UINT unique = GetTempFileNameA(path, "sh", 0, path);
+    if (unique == 0)
+    {
+        UNREACHABLE();
+        return std::string();
+    }
+    
+    return path;
+}
+
+void writeFile(const char* path, const void* content, size_t size)
+{
+    FILE* file = fopen(path, "w");
+    if (!file)
+    {
+        UNREACHABLE();
+        return;
+    }
+
+    fwrite(content, sizeof(char), size, file);
+    fclose(file);
 }

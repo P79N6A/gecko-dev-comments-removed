@@ -30,8 +30,8 @@ struct TPragma {
 
 
 struct TParseContext {
-    TParseContext(TSymbolTable& symt, const TExtensionBehavior& ext, TIntermediate& interm, ShShaderType type, ShShaderSpec spec, TInfoSink& is) :
-            intermediate(interm), symbolTable(symt), extensionBehavior(ext), infoSink(is), shaderType(type), shaderSpec(spec), treeRoot(0),
+    TParseContext(TSymbolTable& symt, const TExtensionBehavior& ext, TIntermediate& interm, ShShaderType type, ShShaderSpec spec, int options, const char* sourcePath, TInfoSink& is) :
+            intermediate(interm), symbolTable(symt), extensionBehavior(ext), infoSink(is), shaderType(type), shaderSpec(spec), compileOptions(options), sourcePath(sourcePath), treeRoot(0),
             recoveredFromError(false), numErrors(0), lexAfterType(false), loopNestingLevel(0),
             inTypeParen(false), scanner(NULL), contextPragma(true, false) {  }
     TIntermediate& intermediate; 
@@ -40,6 +40,8 @@ struct TParseContext {
     TInfoSink& infoSink;
     ShShaderType shaderType;              
     ShShaderSpec shaderSpec;              
+    int compileOptions;
+    const char* sourcePath;      
     TIntermNode* treeRoot;       
     bool recoveredFromError;     
     int numErrors;

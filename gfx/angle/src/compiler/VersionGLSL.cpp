@@ -26,6 +26,10 @@ static const int GLSL_VERSION_120 = 120;
 
 
 
+
+
+
+
 TVersionGLSL::TVersionGLSL(ShShaderType type)
     : mShaderType(type),
       mVersion(GLSL_VERSION_110)
@@ -34,40 +38,32 @@ TVersionGLSL::TVersionGLSL(ShShaderType type)
 
 void TVersionGLSL::visitSymbol(TIntermSymbol* node)
 {
-    ASSERT(mShaderType == SH_FRAGMENT_SHADER);
-
     if (node->getSymbol() == "gl_PointCoord")
         updateVersion(GLSL_VERSION_120);
 }
 
 void TVersionGLSL::visitConstantUnion(TIntermConstantUnion*)
 {
-    ASSERT(mShaderType == SH_FRAGMENT_SHADER);
 }
 
 bool TVersionGLSL::visitBinary(Visit, TIntermBinary*)
 {
-    ASSERT(mShaderType == SH_FRAGMENT_SHADER);
     return true;
 }
 
 bool TVersionGLSL::visitUnary(Visit, TIntermUnary*)
 {
-    ASSERT(mShaderType == SH_FRAGMENT_SHADER);
     return true;
 }
 
 bool TVersionGLSL::visitSelection(Visit, TIntermSelection*)
 {
-    ASSERT(mShaderType == SH_FRAGMENT_SHADER);
     return true;
 }
 
 bool TVersionGLSL::visitAggregate(Visit, TIntermAggregate* node)
 {
-    
-    
-    bool visitChildren = mShaderType == SH_FRAGMENT_SHADER ? true : false;
+    bool visitChildren = true;
 
     switch (node->getOp()) {
       case EOpSequence:
@@ -83,6 +79,19 @@ bool TVersionGLSL::visitAggregate(Visit, TIntermAggregate* node)
         }
         break;
       }
+      case EOpConstructMat2:
+      case EOpConstructMat3:
+      case EOpConstructMat4: {
+        const TIntermSequence& sequence = node->getSequence();
+        if (sequence.size() == 1) {
+          TIntermTyped* typed = sequence.front()->getAsTyped();
+          if (typed && typed->isMatrix()) {
+            updateVersion(GLSL_VERSION_120);
+          }
+        }
+        break;
+      }
+
       default: break;
     }
 
@@ -91,13 +100,11 @@ bool TVersionGLSL::visitAggregate(Visit, TIntermAggregate* node)
 
 bool TVersionGLSL::visitLoop(Visit, TIntermLoop*)
 {
-    ASSERT(mShaderType == SH_FRAGMENT_SHADER);
     return true;
 }
 
 bool TVersionGLSL::visitBranch(Visit, TIntermBranch*)
 {
-    ASSERT(mShaderType == SH_FRAGMENT_SHADER);
     return true;
 }
 

@@ -260,14 +260,17 @@ public:
     template<class Other>
     pool_allocator(const pool_allocator<Other>& p) : allocator(p.getAllocator()) { }
 
-#if defined(__SUNPRO_CC) && !defined( _RWSTD_ALLOCATOR)
+#if defined(__SUNPRO_CC) && !defined(_RWSTD_ALLOCATOR)
+    
+    
     
     void* allocate(size_type n) { 
         return getAllocator().allocate(n);
     }
-    void* allocate(size_type n, const void*) { 
+    void* allocate(size_type n, const void*) {
         return getAllocator().allocate(n);
     }
+    void deallocate(void*, size_type) {}
 #else
     pointer allocate(size_type n) { 
         return reinterpret_cast<pointer>(getAllocator().allocate(n * sizeof(T)));
@@ -275,14 +278,8 @@ public:
     pointer allocate(size_type n, const void*) { 
         return reinterpret_cast<pointer>(getAllocator().allocate(n * sizeof(T)));
     }
-#endif
-
-    void deallocate(void*, size_type) { }
-    void deallocate(pointer, size_type) { }
-
-    pointer _Charalloc(size_t n) {
-        return reinterpret_cast<pointer>(getAllocator().allocate(n));
-    }
+    void deallocate(pointer, size_type) {}
+#endif  
 
     void construct(pointer p, const T& val) { new ((void *)p) T(val); }
     void destroy(pointer p) { p->T::~T(); }

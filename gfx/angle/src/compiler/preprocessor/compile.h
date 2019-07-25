@@ -59,6 +59,7 @@ typedef struct Options_Rec{
     int DumpAtomTable;
 } Options;
 
+#define MAX_IF_NESTING  64
 struct CPPStruct_Rec {
     
     SourceLoc *pLastSourceLoc;  
@@ -80,7 +81,7 @@ struct CPPStruct_Rec {
     
     SourceLoc ltokenLoc;
 	int ifdepth;                
-    int elsedepth[64];          
+    int elsedepth[MAX_IF_NESTING];
     int elsetracker;            
     const char *ErrMsg;
     int CompileError;           
