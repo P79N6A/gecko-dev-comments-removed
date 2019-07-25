@@ -37,6 +37,8 @@ pref("browser.cache.disk.smart_size.first_run", true);
 
 pref("browser.cache.disk.smart_size.enabled", true);
 
+pref("browser.cache.disk.smart_size.use_old_max", true);
+
 pref("browser.cache.disk.capacity",         256000);
 
 
