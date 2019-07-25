@@ -199,6 +199,8 @@ GLXLibrary::EnsureInitialized()
         
         return PR_FALSE;
 
+    extensionsStr = xQueryExtensionsString(display, screen);
+
     LibrarySymbolLoader::SymLoadStruct *sym13;
     if (!GLXVersionCheck(1, 3)) {
         
