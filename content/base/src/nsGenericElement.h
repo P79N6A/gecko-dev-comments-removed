@@ -75,7 +75,7 @@ class nsIDOMAttr;
 class nsIDOMEventListener;
 class nsIFrame;
 class nsIDOMNamedNodeMap;
-class nsDOMCSSDeclaration;
+class nsICSSDeclaration;
 class nsIDOMCSSStyleDeclaration;
 class nsIURI;
 class nsINodeInfo;
@@ -925,13 +925,13 @@ public:
 
 
 
-    nsRefPtr<nsDOMCSSDeclaration> mStyle;
+    nsCOMPtr<nsICSSDeclaration> mStyle;
 
     
 
 
 
-    nsRefPtr<nsDOMCSSDeclaration> mSMILOverrideStyle;
+    nsCOMPtr<nsICSSDeclaration> mSMILOverrideStyle;
 
     
 
