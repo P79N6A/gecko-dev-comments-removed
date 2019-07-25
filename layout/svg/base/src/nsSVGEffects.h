@@ -62,6 +62,7 @@ class nsSVGMaskFrame;
 
 class nsSVGRenderingObserver : public nsStubMutationObserver {
 public:
+  typedef mozilla::dom::Element Element;
   nsSVGRenderingObserver(nsIURI* aURI, nsIFrame *aFrame);
   virtual ~nsSVGRenderingObserver();
 
@@ -74,8 +75,9 @@ public:
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
 
-  void InvalidateViaReferencedFrame();
+  void InvalidateViaReferencedElement();
 
+  Element* GetReferencedElement();
   nsIFrame* GetReferencedFrame();
   
 
@@ -86,19 +88,17 @@ public:
 protected:
   
   virtual void DoUpdate();
+  void StartListening();
+  void StopListening();
 
   class SourceReference : public nsReferencedElement {
   public:
     SourceReference(nsSVGRenderingObserver* aContainer) : mContainer(aContainer) {}
   protected:
     virtual void ElementChanged(Element* aFrom, Element* aTo) {
-      if (aFrom) {
-        aFrom->RemoveMutationObserver(mContainer);
-      }
+      mContainer->StopListening();
       nsReferencedElement::ElementChanged(aFrom, aTo);
-      if (aTo) {
-        aTo->AddMutationObserver(mContainer);
-      }
+      mContainer->StartListening();
       mContainer->DoUpdate();
     }
     
@@ -119,8 +119,8 @@ protected:
   
   
   nsIPresShell *mFramePresShell;
-  nsIFrame *mReferencedFrame;
-  nsIPresShell *mReferencedFramePresShell;
+  
+  PRPackedBool mInObserverList;
 };
 
 class nsSVGFilterProperty :
@@ -204,6 +204,12 @@ public:
   { mObservers.PutEntry(aObserver); }
   void Remove(nsSVGRenderingObserver* aObserver)
   { mObservers.RemoveEntry(aObserver); }
+#ifdef DEBUG
+  PRBool Contains(nsSVGRenderingObserver* aObserver)
+  { return (mObservers.GetEntry(aObserver) != nsnull); }
+#endif
+  PRBool IsEmpty()
+  { return mObservers.Count() == 0; }
 
   
 
@@ -217,6 +223,7 @@ private:
 
 class nsSVGEffects {
 public:
+  typedef mozilla::dom::Element Element;
   typedef mozilla::FramePropertyDescriptor FramePropertyDescriptor;
   typedef nsInterfaceHashtable<nsURIHashKey, nsIMutationObserver>
     URIObserverHashtable;
@@ -299,11 +306,11 @@ public:
   
 
 
-  static void AddRenderingObserver(nsIFrame *aFrame, nsSVGRenderingObserver *aObserver);
+  static void AddRenderingObserver(Element *aElement, nsSVGRenderingObserver *aObserver);
   
 
 
-  static void RemoveRenderingObserver(nsIFrame *aFrame, nsSVGRenderingObserver *aObserver);
+  static void RemoveRenderingObserver(Element *aElement, nsSVGRenderingObserver *aObserver);
   
 
 
@@ -324,6 +331,7 @@ public:
 
 
 
+  static void InvalidateDirectRenderingObservers(Element *aElement);
   static void InvalidateDirectRenderingObservers(nsIFrame *aFrame);
 
   

@@ -235,10 +235,7 @@ typedef PRUint64 nsFrameState;
 
 
 
-
-
-#define  NS_FRAME_MAY_BE_TRANSFORMED_OR_HAVE_RENDERING_OBSERVERS \
-                                                    NS_FRAME_STATE_BIT(16)
+#define  NS_FRAME_MAY_BE_TRANSFORMED                NS_FRAME_STATE_BIT(16)
 
 #ifdef IBMBIDI
 
