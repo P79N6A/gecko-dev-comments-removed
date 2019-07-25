@@ -599,23 +599,15 @@ nsXULTreeAccessible::TreeViewChanged()
   
   
   
-  nsRefPtr<AccEvent> eventDestroy =
-    new AccEvent(nsIAccessibleEvent::EVENT_HIDE, this);
-  if (!eventDestroy)
-    return;
+  nsRefPtr<AccEvent> reorderEvent =
+    new AccEvent(nsIAccessibleEvent::EVENT_REORDER, this, eAutoDetect,
+                 AccEvent::eCoalesceFromSameSubtree);
+  if (reorderEvent)
+    GetDocAccessible()->FireDelayedAccessibleEvent(reorderEvent);
 
-  FirePlatformEvent(eventDestroy);
-
+  
   ClearCache(mAccessibleCache);
-
   mTree->GetView(getter_AddRefs(mTreeView));
-
-  nsRefPtr<AccEvent> eventCreate =
-    new AccEvent(nsIAccessibleEvent::EVENT_SHOW, this);
-  if (!eventCreate)
-    return;
-
-  FirePlatformEvent(eventCreate);
 }
 
 
