@@ -1,10 +1,43 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <stddef.h>             
 #include <stdlib.h>             
 #include "mozalloc.h"
-#ifdef MOZ_MEMORY_ANDROID
-#include <android/log.h>
-#define LOG(args...) __android_log_print(ANDROID_LOG_INFO, "wrap", args)
-#endif
 #include <malloc.h>
      
 #ifdef __malloc_hook
@@ -99,4 +132,9 @@ inline void* __wrap_PR_Realloc(void* ptr, size_t size)
 inline void* __wrap_PR_Calloc(size_t num, size_t size)
 {
   return moz_calloc(num, size);
+}
+
+inline int __wrap_posix_memalign(void **memptr, size_t alignment, size_t size)
+{
+  return moz_posix_memalign(memptr, alignment, size);
 }
