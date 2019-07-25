@@ -43,7 +43,6 @@
 
 
 
-
 #include "imgILoader.h"
 #include "nsEventDispatcher.h"
 #include "nsIContent.h"
@@ -92,9 +91,6 @@
 
 #include "nsObjectLoadingContent.h"
 #include "mozAutoDocUpdate.h"
-#include "nsIContentSecurityPolicy.h"
-#include "nsIChannelPolicy.h"
-#include "nsChannelPolicy.h"
 
 #ifdef PR_LOGGING
 static PRLogModuleInfo* gObjectLog = PR_NewLogModule("objlc");
@@ -225,23 +221,17 @@ nsPluginErrorEvent::Run()
 class nsPluginCrashedEvent : public nsRunnable {
 public:
   nsCOMPtr<nsIContent> mContent;
-  nsString mPluginDumpID;
-  nsString mBrowserDumpID;
+  nsString mMinidumpID;
   nsString mPluginName;
-  nsString mPluginFilename;
   PRBool mSubmittedCrashReport;
 
   nsPluginCrashedEvent(nsIContent* aContent,
-                       const nsAString& aPluginDumpID,
-                       const nsAString& aBrowserDumpID,
+                       const nsAString& aMinidumpID,
                        const nsAString& aPluginName,
-                       const nsAString& aPluginFilename,
                        PRBool submittedCrashReport)
     : mContent(aContent),
-      mPluginDumpID(aPluginDumpID),
-      mBrowserDumpID(aBrowserDumpID),
+      mMinidumpID(aMinidumpID),
       mPluginName(aPluginName),
-      mPluginFilename(aPluginFilename),
       mSubmittedCrashReport(submittedCrashReport)
   {}
 
@@ -282,20 +272,11 @@ nsPluginCrashedEvent::Run()
   
   variant = do_CreateInstance("@mozilla.org/variant;1");
   if (!variant) {
-    NS_WARNING("Couldn't create pluginDumpID variant for PluginCrashed event!");
+    NS_WARNING("Couldn't create minidumpID variant for PluginCrashed event!");
     return NS_OK;
   }
-  variant->SetAsAString(mPluginDumpID);
-  containerEvent->SetData(NS_LITERAL_STRING("pluginDumpID"), variant);
-
-  
-  variant = do_CreateInstance("@mozilla.org/variant;1");
-  if (!variant) {
-    NS_WARNING("Couldn't create browserDumpID variant for PluginCrashed event!");
-    return NS_OK;
-  }
-  variant->SetAsAString(mBrowserDumpID);
-  containerEvent->SetData(NS_LITERAL_STRING("browserDumpID"), variant);
+  variant->SetAsAString(mMinidumpID);
+  containerEvent->SetData(NS_LITERAL_STRING("minidumpID"), variant);
 
   
   variant = do_CreateInstance("@mozilla.org/variant;1");
@@ -305,15 +286,6 @@ nsPluginCrashedEvent::Run()
   }
   variant->SetAsAString(mPluginName);
   containerEvent->SetData(NS_LITERAL_STRING("pluginName"), variant);
-
-  
-  variant = do_CreateInstance("@mozilla.org/variant;1");
-  if (!variant) {
-    NS_WARNING("Couldn't create pluginFilename variant for PluginCrashed event!");
-    return NS_OK;
-  }
-  variant->SetAsAString(mPluginFilename);
-  containerEvent->SetData(NS_LITERAL_STRING("pluginFilename"), variant);
 
   
   variant = do_CreateInstance("@mozilla.org/variant;1");
@@ -499,6 +471,9 @@ nsObjectLoadingContent::OnStartRequest(nsIRequest *aRequest,
     
     return NS_BINDING_ABORTED;
   }
+
+  
+  mClassifier = nsnull;
 
   AutoNotifier notifier(this, PR_TRUE);
 
@@ -820,6 +795,12 @@ nsObjectLoadingContent::SwapFrameLoaders(nsIFrameLoaderOwner* aOtherLoader)
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
+NS_IMETHODIMP
+nsObjectLoadingContent::GetCrossProcessObjectWrapper(nsIVariant**)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
 
 NS_IMETHODIMP
 nsObjectLoadingContent::GetActualType(nsACString& aType)
@@ -876,7 +857,7 @@ nsObjectLoadingContent::EnsureInstantiation(nsIPluginInstance** aInstance)
       return NS_OK;
     }
 
-    nsCOMPtr<nsIPresShell> shell = doc->GetShell();
+    nsCOMPtr<nsIPresShell> shell = doc->GetPrimaryShell();
     if (shell) {
       shell->RecreateFramesFor(thisContent);
     }
@@ -1028,6 +1009,10 @@ nsObjectLoadingContent::OnChannelRedirect(nsIChannel *aOldChannel,
   
   if (aOldChannel != mChannel) {
     return NS_BINDING_ABORTED;
+  }
+
+  if (mClassifier) {
+    mClassifier->OnRedirect(aOldChannel, aNewChannel);
   }
 
   mChannel = aNewChannel;
@@ -1196,6 +1181,11 @@ nsObjectLoadingContent::LoadObject(nsIURI* aURI,
   
   if (mChannel) {
     LOG(("OBJLC [%p]: Cancelling existing load\n", this));
+
+    if (mClassifier) {
+      mClassifier->Cancel();
+      mClassifier = nsnull;
+    }
 
     
     
@@ -1414,19 +1404,8 @@ nsObjectLoadingContent::LoadObject(nsIURI* aURI,
 
   nsCOMPtr<nsILoadGroup> group = doc->GetDocumentLoadGroup();
   nsCOMPtr<nsIChannel> chan;
-  nsCOMPtr<nsIChannelPolicy> channelPolicy;
-  nsCOMPtr<nsIContentSecurityPolicy> csp;
-  rv = doc->NodePrincipal()->GetCsp(getter_AddRefs(csp));
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (csp) {
-    channelPolicy = do_CreateInstance("@mozilla.org/nschannelpolicy;1");
-    channelPolicy->SetContentSecurityPolicy(csp);
-    channelPolicy->SetLoadType(nsIContentPolicy::TYPE_OBJECT);
-  }
   rv = NS_NewChannel(getter_AddRefs(chan), aURI, nsnull, group, this,
-                     nsIChannel::LOAD_CALL_CONTENT_SNIFFERS |
-                     nsIChannel::LOAD_CLASSIFY_URI,
-                     channelPolicy);
+                     nsIChannel::LOAD_CALL_CONTENT_SNIFFERS);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -1465,6 +1444,12 @@ nsObjectLoadingContent::LoadObject(nsIURI* aURI,
   rv = chan->AsyncOpen(this, nsnull);
   if (NS_SUCCEEDED(rv)) {
     LOG(("OBJLC [%p]: Channel opened.\n", this));
+
+    rv = CheckClassifier(chan);
+    if (NS_FAILED(rv)) {
+      chan->Cancel(rv);
+      return rv;
+    }
 
     mChannel = chan;
     mType = eType_Loading;
@@ -1656,7 +1641,7 @@ nsObjectLoadingContent::NotifyStateChanged(ObjectType aOldType,
   } else if (aOldType != mType) {
     
     
-    nsCOMPtr<nsIPresShell> shell = doc->GetShell();
+    nsCOMPtr<nsIPresShell> shell = doc->GetPrimaryShell();
     if (shell) {
       shell->RecreateFramesFor(thisContent);
     }
@@ -1698,6 +1683,14 @@ nsObjectLoadingContent::GetTypeOfContent(const nsCString& aMIMEType)
   }
 
   if ((caps & eSupportPlugins) && IsSupportedPlugin(aMIMEType)) {
+    return eType_Plugin;
+  }
+
+  nsCOMPtr<nsIContent> thisContent = 
+    do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
+  NS_ASSERTION(thisContent, "must be a content");
+
+  if (ShouldShowDefaultPlugin(thisContent, aMIMEType)) {
     return eType_Plugin;
   }
 
@@ -1907,6 +1900,33 @@ nsObjectLoadingContent::Instantiate(nsIObjectFrame* aFrame,
   return rv;
 }
 
+nsresult
+nsObjectLoadingContent::CheckClassifier(nsIChannel *aChannel)
+{
+  nsresult rv;
+  nsCOMPtr<nsIChannelClassifier> classifier =
+    do_CreateInstance(NS_CHANNELCLASSIFIER_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = classifier->Start(aChannel, PR_FALSE);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  mClassifier = classifier;
+
+  return NS_OK;
+}
+
+ PRBool
+nsObjectLoadingContent::ShouldShowDefaultPlugin(nsIContent* aContent,
+                                                const nsCString& aContentType)
+{
+  if (nsContentUtils::GetBoolPref("plugin.default_plugin_disabled", PR_FALSE)) {
+    return PR_FALSE;
+  }
+
+  return GetPluginSupportState(aContent, aContentType) == ePluginUnsupported;
+}
+
  PluginSupportState
 nsObjectLoadingContent::GetPluginSupportState(nsIContent* aContent,
                                               const nsCString& aContentType)
@@ -2007,8 +2027,7 @@ nsObjectLoadingContent::SetAbsoluteScreenPosition(nsIDOMElement* element,
 
 NS_IMETHODIMP
 nsObjectLoadingContent::PluginCrashed(nsIPluginTag* aPluginTag,
-                                      const nsAString& pluginDumpID,
-                                      const nsAString& browserDumpID,
+                                      const nsAString& minidumpID,
                                       PRBool submittedCrashReport)
 {
   AutoNotifier notifier(this, PR_TRUE);
@@ -2020,14 +2039,10 @@ nsObjectLoadingContent::PluginCrashed(nsIPluginTag* aPluginTag,
   
   nsCAutoString pluginName;
   aPluginTag->GetName(pluginName);
-  nsCAutoString pluginFilename;
-  aPluginTag->GetFilename(pluginFilename);
 
   nsCOMPtr<nsIRunnable> ev = new nsPluginCrashedEvent(thisContent,
-                                                      pluginDumpID,
-                                                      browserDumpID,
+                                                      minidumpID,
                                                       NS_ConvertUTF8toUTF16(pluginName),
-                                                      NS_ConvertUTF8toUTF16(pluginFilename),
                                                       submittedCrashReport);
   nsresult rv = NS_DispatchToCurrentThread(ev);
   if (NS_FAILED(rv)) {

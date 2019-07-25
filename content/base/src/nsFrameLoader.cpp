@@ -75,6 +75,8 @@
 #include "nsIDocShellLoadInfo.h"
 #include "nsIBaseWindow.h"
 #include "nsContentUtils.h"
+#include "nsIXPConnect.h"
+#include "nsIJSContextStack.h"
 #include "nsUnicharUtils.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIScriptSecurityManager.h"
@@ -119,11 +121,11 @@
 #include "ContentProcessParent.h"
 #include "TabParent.h"
 
-#include "nsXULAppAPI.h"
-
 using namespace mozilla;
 using namespace mozilla::dom;
 #endif
+
+#include "jsapi.h"
 
 class nsAsyncDocShellDestroyer : public nsRunnable
 {
@@ -1508,10 +1510,7 @@ nsFrameLoader::TryNewProcess()
     return false;
   }
 
-  ContentProcessParent* parent = ContentProcessParent::GetSingleton();
-  NS_ASSERTION(parent->IsAlive(), "Process parent should be alive; something is very wrong!");
-  mChildProcess = parent->CreateTab();
-
+  mChildProcess = ContentProcessParent::GetSingleton()->CreateTab();
   if (mChildProcess) {
     nsCOMPtr<nsIDOMElement> element = do_QueryInterface(mOwnerContent);
     mChildProcess->SetOwnerElement(element);
@@ -1525,10 +1524,6 @@ nsFrameLoader::TryNewProcess()
     nsCOMPtr<nsIBrowserDOMWindow> browserDOMWin;
     rootChromeWin->GetBrowserDOMWindow(getter_AddRefs(browserDOMWin));
     mChildProcess->SetBrowserDOMWindow(browserDOMWin);
-
-    mChildHost = parent;
-
-    XRE_SendParentChromeRegistry(mChildProcess);
   }
   return true;
 }
@@ -1601,6 +1596,24 @@ nsFrameLoader::SendCrossProcessKeyEvent(const nsAString& aType,
   }
 #endif
   return NS_ERROR_FAILURE;
+}
+
+NS_IMETHODIMP
+nsFrameLoader::GetCrossProcessObjectWrapper(nsIVariant** cpow)
+{
+   nsIXPConnect* xpc;
+   nsIThreadJSContextStack* stack;
+   JSContext* cx;
+   JSObject* global;
+ 
+   if ((xpc = nsContentUtils::XPConnect()) &&
+       (stack = nsContentUtils::ThreadJSContextStack()) &&
+       NS_SUCCEEDED(stack->Peek(&cx)) && cx &&
+       mChildProcess->GetGlobalJSObject(cx, &global)) {
+     return xpc->JSToVariant(cx, OBJECT_TO_JSVAL(global), cpow);
+   }
+  
+   return NS_ERROR_NOT_AVAILABLE;
 }
 
 nsresult

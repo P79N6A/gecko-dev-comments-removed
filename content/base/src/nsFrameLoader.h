@@ -140,6 +140,7 @@ public:
 
 #ifdef MOZ_IPC
   mozilla::dom::PIFrameEmbeddingParent* GetChildProcess();
+  NS_IMETHOD GetCrossProcessObjectWrapper(nsIVariant** cpow);
 #endif
 
   nsFrameMessageManager* GetFrameMessageManager() { return mMessageManager; }
@@ -189,7 +190,6 @@ private:
   PRPackedBool mRemoteWidgetCreated : 1;
   bool mRemoteFrame;
   
-  nsCOMPtr<nsIObserver> mChildHost;
   mozilla::dom::TabParent* mChildProcess;
 
 #ifdef MOZ_WIDGET_GTK2
