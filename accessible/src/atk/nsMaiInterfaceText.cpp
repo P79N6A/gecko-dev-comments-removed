@@ -38,7 +38,6 @@
 
 
 
-
 #include "nsMaiInterfaceText.h"
 
 #include "nsHyperTextAccessible.h"

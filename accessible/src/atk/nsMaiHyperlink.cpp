@@ -37,7 +37,6 @@
 
 
 
-
 #include "nsIURI.h"
 #include "nsMaiHyperlink.h"
 

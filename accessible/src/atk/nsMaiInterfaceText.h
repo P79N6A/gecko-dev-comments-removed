@@ -37,7 +37,6 @@
 
 
 
-
 #ifndef __MAI_INTERFACE_TEXT_H__
 #define __MAI_INTERFACE_TEXT_H__
 

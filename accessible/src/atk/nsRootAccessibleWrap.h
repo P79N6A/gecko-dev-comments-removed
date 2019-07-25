@@ -38,7 +38,6 @@
 
 
 
-
 #ifndef __NS_ROOT_ACCESSIBLE_WRAP_H__
 #define __NS_ROOT_ACCESSIBLE_WRAP_H__
 

@@ -37,7 +37,6 @@
 
 
 
-
 #include "nsMaiInterfaceHyperlinkImpl.h"
 #include "nsMaiHyperlink.h"
 

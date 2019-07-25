@@ -38,7 +38,6 @@
 
 
 
-
 #ifndef __NS_APP_ROOT_ACCESSIBLE_H__
 #define __NS_APP_ROOT_ACCESSIBLE_H__
 

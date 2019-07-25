@@ -37,7 +37,6 @@
 
 
 
-
 #include "nsString.h"
 #include "nsMaiInterfaceEditableText.h"
 

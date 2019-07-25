@@ -37,7 +37,6 @@
 
 
 
-
 #ifndef __MAI_INTERFACE_IMAGE_H__
 #define __MAI_INTERFACE_IMAGE_H__
 

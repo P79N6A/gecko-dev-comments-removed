@@ -37,7 +37,6 @@
 
 
 
-
 #include "nsAccessibleWrap.h"
 #include "nsMaiInterfaceDocument.h"
 #include "nsAccessibilityAtoms.h"
