@@ -441,11 +441,13 @@ nsPluginTag::RegisterWithCategoryManager(PRBool aOverrideInternalTypes,
   
   
   nsXPIDLCString overrideTypes;
-  psvc->GetCharPref("plugin.disable_full_page_plugin_for_types", getter_Copies(overrideTypes));
   nsCAutoString overrideTypesFormatted;
-  overrideTypesFormatted.Assign(',');
-  overrideTypesFormatted += overrideTypes;
-  overrideTypesFormatted.Append(',');
+  if (aType != ePluginUnregister) {
+    psvc->GetCharPref("plugin.disable_full_page_plugin_for_types", getter_Copies(overrideTypes));
+    overrideTypesFormatted.Assign(',');
+    overrideTypesFormatted += overrideTypes;
+    overrideTypesFormatted.Append(',');
+  }
   
   nsACString::const_iterator start, end;
   for (int i = 0; i < mVariants; i++) {
