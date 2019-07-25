@@ -167,6 +167,10 @@ pref("app.update.url", "https://aus3.mozilla.org/update/3/%PRODUCT%/%VERSION%/%B
 
 
 
+
+pref("app.update.nagTimer.restart", 86400);
+
+
 pref("app.update.promptWaitTime", 43200);
 
 pref("app.update.idletime", 60);
@@ -297,7 +301,6 @@ pref("browser.urlbar.match.url", "@");
 pref("browser.urlbar.default.behavior", 0);
 
 pref("browser.urlbar.formatting.enabled", true);
-pref("browser.urlbar.trimURLs", true);
 
 
 
@@ -862,6 +865,9 @@ pref("breakpad.reportURL", "http://crash-stats.mozilla.com/report/index/");
 pref("app.support.baseURL", "http://support.mozilla.com/1/firefox/%VERSION%/%OS%/%LOCALE%/");
 
 
+pref("app.support.updateGraphicsDriverURL", "http://support.mozilla.com/%LOCALE%/kb/how-do-i-upgrade-my-graphics-drivers");
+
+
 pref("security.alternate_certificate_error_page", "certerror");
 
 
@@ -1026,6 +1032,12 @@ pref("devtools.hud.loglimit.network", 200);
 pref("devtools.hud.loglimit.cssparser", 200);
 pref("devtools.hud.loglimit.exception", 200);
 pref("devtools.hud.loglimit.console", 200);
+
+
+
+
+pref("devtools.editor.tabsize", 4);
+pref("devtools.editor.expandtab", true);
 
 
 
