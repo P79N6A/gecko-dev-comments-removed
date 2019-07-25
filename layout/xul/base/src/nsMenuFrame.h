@@ -176,7 +176,7 @@ public:
   
   nsMenuFrame* Enter();
 
-  NS_IMETHOD SetParent(const nsIFrame* aParent);
+  virtual void SetParent(nsIFrame* aParent);
 
   virtual nsMenuParent *GetMenuParent() { return mMenuParent; }
   const nsAString& GetRadioGroupName() { return mGroupName; }

@@ -264,6 +264,10 @@ typedef PRUint64 nsFrameState;
 
 
 
+#define NS_FRAME_HAS_CONTAINER_LAYER_DESCENDANT     NS_FRAME_STATE_BIT(34)
+
+
+
 #define NS_FRAME_RESERVED                           ~NS_FRAME_IMPL_RESERVED
 
 
@@ -756,7 +760,7 @@ public:
 
 
   nsIFrame* GetParent() const { return mParent; }
-  NS_IMETHOD SetParent(const nsIFrame* aParent) { mParent = (nsIFrame*)aParent; return NS_OK; }
+  virtual void SetParent(nsIFrame* aParent) = 0;
 
   
 
@@ -1963,6 +1967,9 @@ public:
   void InvalidateRectDifference(const nsRect& aR1, const nsRect& aR2);
 
   
+
+
+
 
 
   void InvalidateOverflowRect();

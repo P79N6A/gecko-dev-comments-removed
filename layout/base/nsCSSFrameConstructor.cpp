@@ -428,15 +428,6 @@ ReparentFrame(nsFrameManager* aFrameManager,
 {
   aFrame->SetParent(aNewParentFrame);
   aFrameManager->ReparentStyleContext(aFrame);
-  if (aFrame->GetStateBits() &
-      (NS_FRAME_HAS_VIEW | NS_FRAME_HAS_CHILD_WITH_VIEW)) {
-    
-    
-    NS_ASSERTION(aNewParentFrame->GetParent()->GetStateBits() &
-                   NS_FRAME_HAS_CHILD_WITH_VIEW,
-                 "aNewParentFrame's parent should have this bit set!");
-    aNewParentFrame->AddStateBits(NS_FRAME_HAS_CHILD_WITH_VIEW);
-  }
 }
 
 static void
@@ -1330,6 +1321,7 @@ PRBool IsBorderCollapse(nsIFrame* aFrame)
 
 
 
+
 static void
 MoveChildrenTo(nsPresContext* aPresContext,
                nsIFrame* aOldParent,
@@ -1344,26 +1336,8 @@ MoveChildrenTo(nsPresContext* aPresContext,
                                                 aOldParent, aNewParent);
   }
 
-  PRBool setHasChildWithView = PR_FALSE;
-
   for (nsFrameList::Enumerator e(aFrameList); !e.AtEnd(); e.Next()) {
-    if (!setHasChildWithView
-        && (e.get()->GetStateBits() &
-            (NS_FRAME_HAS_VIEW | NS_FRAME_HAS_CHILD_WITH_VIEW))) {
-      setHasChildWithView = PR_TRUE;
-    }
-
     e.get()->SetParent(aNewParent);
-  }
-
-  if (setHasChildWithView) {
-    aNewParent->AddStateBits(NS_FRAME_HAS_CHILD_WITH_VIEW);
-    if (!sameGrandParent) {
-      for (nsIFrame* ancestor = aNewParent->GetParent();
-           ancestor; ancestor = ancestor->GetParent()) {
-        ancestor->AddStateBits(NS_FRAME_HAS_CHILD_WITH_VIEW);
-      }
-    }
   }
 
   if (aNewParent->GetChildList(nsnull).IsEmpty() &&

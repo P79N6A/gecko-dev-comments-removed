@@ -43,6 +43,7 @@
 #include "nsTArray.h"
 #include "nsRegion.h"
 #include "nsIFrame.h"
+#include "Layers.h"
 
 class nsDisplayListBuilder;
 class nsDisplayList;
@@ -50,12 +51,6 @@ class nsDisplayItem;
 class gfxContext;
 
 namespace mozilla {
-
-namespace layers {
-class Layer;
-class ThebesLayer;
-class LayerManager;
-}
 
 enum LayerState {
   LAYER_NONE,
@@ -171,6 +166,14 @@ public:
 
   static void InvalidateThebesLayerContents(nsIFrame* aFrame,
                                             const nsRect& aRect);
+
+  
+
+
+
+
+
+  static void InvalidateThebesLayersInSubtree(nsIFrame* aFrame);
 
   
 
