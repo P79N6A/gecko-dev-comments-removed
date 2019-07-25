@@ -2134,8 +2134,8 @@ nsCycleCollector::ScanWeakMaps()
             WeakMapping *wm = &mGraph.mWeakMaps[i];
 
             
-            uint32 mColor = wm->mMap ? wm->mMap->mColor : black;
-            uint32 kColor = wm->mKey ? wm->mKey->mColor : black;
+            uint32_t mColor = wm->mMap ? wm->mMap->mColor : black;
+            uint32_t kColor = wm->mKey ? wm->mKey->mColor : black;
             PtrInfo *v = wm->mVal;
 
             
