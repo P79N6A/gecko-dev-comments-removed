@@ -37,13 +37,24 @@ window.TabItem.prototype = $.extend(new Item(), {
   
   
   reloadBounds: function() {
-    this.bounds = Utils.getBounds(this.container);
-      
+    var newBounds = Utils.getBounds(this.container);
     var extra = this._getSizeExtra();
-    this.bounds.width += extra.x;
-    this.bounds.height += extra.y;
+    newBounds.width += extra.x;
+    newBounds.height += extra.y;
 
-    this._updateDebugBounds();
+
+
+
+
+
+
+
+
+
+      
+      this.bounds = newBounds;
+      this._updateDebugBounds();
+
   },
   
   
