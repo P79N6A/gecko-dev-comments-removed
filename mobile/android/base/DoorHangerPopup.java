@@ -112,7 +112,9 @@ public class DoorHangerPopup extends PopupWindow {
         tab.addDoorHanger(value, dh);
         mContent.addView(dh);
 
-        updatePopup();
+        
+        if (tab.equals(Tabs.getInstance().getSelectedTab()))
+            updatePopup();
     }
 
     
