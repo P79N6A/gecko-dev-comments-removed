@@ -42,7 +42,7 @@
 
 
 
-#define MOZ_RENDERTRACE
+
 #ifdef MOZ_RENDERTRACE
 
 #include "gfx3DMatrix.h"
