@@ -155,7 +155,7 @@ const TEST_ADDONS = [ "appdisabled_1", "appdisabled_2",
                       "updateversion_1", "updateversion_2",
                       "userdisabled_1", "userdisabled_2" ];
 
-const DEBUG_DUMP = false;
+const DEBUG = false;
 
 const TEST_TIMEOUT = 30000; 
 var gTimeoutTimer;
@@ -177,7 +177,7 @@ var gDisableNoUpdateAddon = false;
 #include ../shared.js
 
 function debugDump(msg) {
-  if (DEBUG_DUMP) {
+  if (DEBUG) {
     dump("*** " + msg + "\n");
   }
 }
@@ -710,8 +710,9 @@ function setupPrefs() {
   gAppUpdateChannel = gDefaultPrefBranch.getCharPref(PREF_APP_UPDATE_CHANNEL);
   setUpdateChannel();
 
-  
-
+  if (DEBUG) {
+    Services.prefs.setBoolPref(PREF_APP_UPDATE_LOG, true)
+  }
 
   if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_URL_OVERRIDE)) {
     gAppUpdateURL = Services.prefs.setIntPref(PREF_APP_UPDATE_URL_OVERRIDE);
@@ -731,6 +732,7 @@ function setupPrefs() {
   debugDump("extensions.update.url: " + extUpdateUrl);
 
   Services.prefs.setIntPref(PREF_APP_UPDATE_IDLETIME, 0);
+  Services.prefs.setIntPref(PREF_APP_UPDATE_PROMPTWAITTIME, 0);
 }
 
 
@@ -768,6 +770,10 @@ function resetPrefs() {
 
   if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_IDLETIME)) {
     Services.prefs.clearUserPref(PREF_APP_UPDATE_IDLETIME);
+  }
+
+  if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_PROMPTWAITTIME)) {
+    Services.prefs.clearUserPref(PREF_APP_UPDATE_PROMPTWAITTIME);
   }
 
   if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_URL_DETAILS)) {
@@ -1142,45 +1148,37 @@ var certErrorsPrefObserver = {
 
 
 var gWindowObserver = {
-  loaded: false,
-
   observe: function WO_observe(aSubject, aTopic, aData) {
     let win = aSubject.QueryInterface(AUS_Ci.nsIDOMEventTarget);
 
     if (aTopic == "domwindowclosed") {
-      if (win.location == URI_UPDATE_PROMPT_DIALOG) {
-        
-        
-        try {
-          finishTest();
-        }
-        catch (e) {
-          finishTestDefault();
-        }
+      if (win.location != URI_UPDATE_PROMPT_DIALOG) {
+        debugDump("gWindowObserver:observe - domwindowclosed event for " +
+                  "window not being tested - location: " + win.location +
+                  "... returning early");
+        return;
       }
-      return;
-    }
-
-    
-    if (this.loaded) {
       
       
-      ok(false, "Unexpected gWindowObserver:observe - called with aTopic = " +
-         aTopic + "... returning early");
+      try {
+        finishTest();
+      }
+      catch (e) {
+        finishTestDefault();
+      }
       return;
     }
 
     win.addEventListener("load", function onLoad() {
-      
+      win.removeEventListener("load", onLoad, false);
       
       if (win.location != URI_UPDATE_PROMPT_DIALOG) {
-        
-        ok(false, "Unexpected load event - win.location got: " + location +
-           ", expected: " + URI_UPDATE_PROMPT_DIALOG + "... returning early");
+        debugDump("gWindowObserver:observe:onLoad - load event for window " +
+                  "not being tested - location: " + win.location +
+                  "... returning early");
         return;
       }
 
-      
       
       let pageid = win.document.documentElement.currentPage.pageid;
       if (pageid != PAGEID_DUMMY) {
@@ -1191,7 +1189,6 @@ var gWindowObserver = {
         return;
       }
 
-      win.removeEventListener("load", onLoad, false);
       gTimeoutTimer = AUS_Cc["@mozilla.org/timer;1"].
                       createInstance(AUS_Ci.nsITimer);
       gTimeoutTimer.initWithCallback(finishTestTimeout, TEST_TIMEOUT,
@@ -1201,7 +1198,5 @@ var gWindowObserver = {
       gDocElem = gWin.document.documentElement;
       gDocElem.addEventListener("pageshow", onPageShowDefault, false);
     }, false);
-
-    this.loaded = true;
   }
 };
