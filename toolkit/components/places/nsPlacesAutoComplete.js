@@ -876,8 +876,7 @@ nsPlacesAutoComplete.prototype = {
     }
     
     if (aRegisterObserver) {
-      let pb = this._prefs.QueryInterface(Ci.nsIPrefBranch2);
-      pb.addObserver("", this, false);
+      this._prefs.addObserver("", this, false);
     }
   },
 
