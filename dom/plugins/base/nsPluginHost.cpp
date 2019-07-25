@@ -2338,7 +2338,7 @@ nsresult nsPluginHost::LoadPlugins()
 
 nsresult nsPluginHost::FindPlugins(PRBool aCreatePluginList, PRBool * aPluginsChanged)
 {
-  Telemetry::Timer<Telemetry::FIND_PLUGINS> telemetry;
+  Telemetry::AutoTimer<Telemetry::FIND_PLUGINS> telemetry;
   
   if (aCreatePluginList) {
     NS_TIMELINE_START_TIMER("LoadPlugins");
