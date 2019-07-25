@@ -53,7 +53,7 @@ function test1() {
       checkPopupHide();
 
       
-      gBrowser.removeTab(gBrowser.selectedTab, {animate: false});
+      gBrowser.removeTab(gBrowser.selectedTab);
 
       
       executeSoon(test2);
@@ -84,7 +84,7 @@ function test2()
     checkPopupMessage(doc);
 
     
-    gBrowser.removeTab(gBrowser.selectedTab, {animate: false});
+    gBrowser.removeTab(gBrowser.selectedTab);
     executeSoon(test3);
   }, false);
 
@@ -118,7 +118,7 @@ function test3()
     checkPopupMessage(doc);
 
     
-    gBrowser.removeTab(gBrowser.selectedTab, {animate: false});
+    gBrowser.removeTab(gBrowser.selectedTab);
     executeSoon(test4a);
   }, false);
 
@@ -157,7 +157,7 @@ function test4a()
       checkPopupHide();
 
       
-      gBrowser.removeTab(gBrowser.selectedTab, {animate: false});
+      gBrowser.removeTab(gBrowser.selectedTab);
       executeSoon(test4b);
     });
   }, false);
@@ -197,7 +197,7 @@ function test4b()
       checkPopupShow();
 
       
-      gBrowser.removeTab(gBrowser.selectedTab, {animate: false});
+      gBrowser.removeTab(gBrowser.selectedTab);
       executeSoon(test5);
     });
   }, false);
@@ -237,7 +237,7 @@ function test5()
       checkPopupHide();
 
       
-      gBrowser.removeTab(gBrowser.selectedTab, {animate: false});
+      gBrowser.removeTab(gBrowser.selectedTab);
       executeSoon(test6);
     });
   }, false);
@@ -276,7 +276,7 @@ function test6()
       checkPopupHide();
 
       
-      gBrowser.removeTab(gBrowser.selectedTab, {animate: false});
+      gBrowser.removeTab(gBrowser.selectedTab);
       executeSoon(test7);
     });
   }, false);
@@ -316,8 +316,8 @@ function test7()
       checkPopupHide();
 
       
-      gBrowser.removeTab(gBrowser.selectedTab, {animate: false});
-      gBrowser.removeTab(gBrowser.selectedTab, {animate: false});
+      gBrowser.removeTab(gBrowser.selectedTab);
+      gBrowser.removeTab(gBrowser.selectedTab);
       executeSoon(test8);
     });
   }, false);
@@ -353,7 +353,7 @@ function test8()
       
       Services.obs.removeObserver(gObserver, "invalidformsubmit");
       gObserver.notifyInvalidSubmit = function () {};
-      gBrowser.removeTab(tab, {animate: false});
+      gBrowser.removeTab(tab);
 
       
       executeSoon(test9);
@@ -395,7 +395,7 @@ function test9()
        "The panel should show the author defined error message");
 
     
-    gBrowser.removeTab(gBrowser.selectedTab, {animate: false});
+    gBrowser.removeTab(gBrowser.selectedTab);
     executeSoon(test10);
   }, false);
 
@@ -439,7 +439,7 @@ function test10()
            "The panel should show the current validation message");
 
         
-        gBrowser.removeTab(gBrowser.selectedTab, {animate: false});
+        gBrowser.removeTab(gBrowser.selectedTab);
         executeSoon(finish);
       });
     }, false);
