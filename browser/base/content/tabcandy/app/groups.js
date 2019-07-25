@@ -1006,14 +1006,60 @@ var DragInfo = function(element, event) {
 DragInfo.prototype = {
   
   snap: function(event, ui){
+    var me = this.item;
+    function closeTo(a,b){ return Math.abs(a-b) <= 12 }
+        
+    
+    var closestTop = null;
+    var minDist = Infinity;
+    for each(var group in Groups.groups){
+      
+      if( group == me ) continue;      
+      var dist = Math.abs(group.bounds.top - me.bounds.top);
+      if( dist < minDist ){
+        minDist = dist;
+        closestTop = group.bounds.top;
+      }
+    }
+    
+    if( closeTo(ui.position.top, closestTop) ){
+      ui.position.top = closestTop;
+    }
+      
+    
+    var topLeft = new Point( me.bounds.left, ui.position.top + 25 );
+    var other = Groups.findGroupClosestToPoint(topLeft, {exclude:me});     
+    var closestRight = other.bounds.right + 20;
+    if( closeTo(ui.position.left, closestRight) ){
+      ui.position.left = closestRight;
+    }
+
+    
+    var topLeft = new Point( me.bounds.left+25, ui.position.top);
+    var other = Groups.findGroupClosestToPoint(topLeft, {exclude:me});     
+    var closestBottom = other.bounds.bottom + 20;
+    if( closeTo(ui.position.top, closestBottom) ){
+      ui.position.top = closestBottom;
+    }
     
     
+    var topRight = new Point( me.bounds.right, ui.position.top);
+    var other = Groups.findGroupClosestToPoint(topRight, {exclude:me});     
+    var closestRight = other.bounds.right;
+    if( closeTo(ui.position.left + me.bounds.width, closestRight) ){
+      ui.position.left = closestRight - me.bounds.width;
+    }      
+        
+    
+    var topLeft = new Point( me.bounds.left, ui.position.top);
+    var other = Groups.findGroupClosestToPoint(topLeft, {exclude:me});     
+    var closestLeft = other.bounds.left;
+    if( closeTo(ui.position.left, closestLeft) ){
+      ui.position.left = closestLeft;
+    }  
     
     
-    
-    
-    
-    
+    return ui;
     
   },
   
@@ -1022,6 +1068,7 @@ DragInfo.prototype = {
   
   drag: function(event, ui) {
     if(this.item.isAGroup) {
+      ui = this.snap(event,ui);      
       var bb = this.item.getBounds();
       bb.left = ui.position.left;
       bb.top = ui.position.top;
@@ -1374,6 +1421,55 @@ window.Groups = {
       return tab.parent == null;
     })
     return tabs
+  },
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  findGroupClosestToPoint: function(point, options){
+    minDist = Infinity;
+    closestGroup = null;
+    var onSide = null;
+    for each(var group in this.groups){
+      
+      if( options && options.exclude && options.exclude == group ) continue; 
+      
+      
+      var sideDists = [];
+      sideDists.push( [Math.abs(group.bounds.top    - point.y), "top"] );
+      sideDists.push( [Math.abs(group.bounds.bottom - point.y), "bottom"] );      
+      sideDists.push( [Math.abs(group.bounds.left   - point.x), "left"] );
+      sideDists.push( [Math.abs(group.bounds.right  - point.x), "right"] );
+      sideDists.sort(function(a,b){return a[0]-b[0]});
+      var closestSide = sideDists[0][1];
+      
+      
+      if( closestSide == "top" || closestSide == "bottom" ){
+        var closestPoint = new Point(0, group.bounds[closestSide]);
+        closestPoint.x = Math.max(Math.min(point.x, group.bounds.right), group.bounds.left);
+      } else {
+        var closestPoint = new Point(group.bounds[closestSide], 0);
+        closestPoint.y = Math.max(Math.min(point.y, group.bounds.bottom), group.bounds.top);        
+      }
+      
+      
+      
+      var dist = closestPoint.distance(point);
+      if( dist < minDist ){
+        closestGroup = group;
+        onSide = closestSide;
+        minDist = dist;
+      }
+      
+    }
+    
+    return closestGroup;
   }
   
 };
