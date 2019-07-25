@@ -238,7 +238,7 @@ protected:
   void UpdateMenuSpecialState(nsPresContext* aPresContext);
 
   
-  void BuildAcceleratorText();
+  void BuildAcceleratorText(PRBool aNotify);
 
   
   void Execute(nsGUIEvent *aEvent);
@@ -265,6 +265,7 @@ protected:
 
   PRPackedBool mIsMenu; 
   PRPackedBool mChecked;              
+  PRPackedBool mIgnoreAccelTextChange; 
   nsMenuType mType;
 
   nsMenuParent* mMenuParent; 
