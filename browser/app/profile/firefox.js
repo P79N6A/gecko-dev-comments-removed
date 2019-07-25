@@ -1142,7 +1142,7 @@ pref("full-screen-api.approval-required", true);
 
 
 
-pref("toolkit.startup.max_resumed_crashes", 2);
+pref("toolkit.startup.max_resumed_crashes", 3);
 
 
 
