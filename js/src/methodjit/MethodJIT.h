@@ -300,47 +300,54 @@ struct JITScript {
     typedef JSC::MacroAssemblerCodeRef CodeRef;
     CodeRef         code;       
 
-    NativeMapEntry  *nmap;      
-
-    size_t          nNmapPairs; 
 
     void            *invokeEntry;       
     void            *fastEntry;         
     void            *arityCheckEntry;   
 
     
-    js::mjit::CallSite *callSites;
-#ifdef JS_MONOIC
-    ic::MICInfo     *mics;      
-    ic::CallICInfo  *callICs;   
-    ic::EqualityICInfo *equalityICs;
-    ic::TraceICInfo *traceICs;
-#endif
-#ifdef JS_POLYIC
-    ic::PICInfo     *pics;      
-    ic::GetElementIC *getElems;
-    ic::SetElementIC *setElems;
-#endif
 
-    uint32          nCallSites:31;
+
+
+
+
+
+
+    uint32          nNmapPairs:31;      
+
     bool            singleStepMode:1;   
 #ifdef JS_MONOIC
-    uint32          nMICs;      
-    uint32          nCallICs;   
+    uint32          nMICs;
+    uint32          nCallICs;
     uint32          nEqualityICs;
     uint32          nTraceICs;
 #endif
 #ifdef JS_POLYIC
-    uint32          nPICs;      
     uint32          nGetElems;
     uint32          nSetElems;
+    uint32          nPICs;
 #endif
+    uint32          nCallSites;
 
 #ifdef JS_MONOIC
     
     typedef Vector<JSC::ExecutablePool *, 0, SystemAllocPolicy> ExecPoolVector;
     ExecPoolVector execPools;
 #endif
+
+    NativeMapEntry *nmap() const;
+#ifdef JS_MONOIC
+    ic::MICInfo    *mics() const;
+    ic::CallICInfo *callICs() const;
+    ic::EqualityICInfo *equalityICs() const;
+    ic::TraceICInfo *traceICs() const;
+#endif
+#ifdef JS_POLYIC
+    ic::GetElementIC *getElems() const;
+    ic::SetElementIC *setElems() const;
+    ic::PICInfo     *pics() const;
+#endif
+    js::mjit::CallSite *callSites() const;
 
     ~JITScript();
 
@@ -360,6 +367,12 @@ struct JITScript {
     size_t mainCodeSize() { return code.m_size; } 
 
     jsbytecode *nativeToPC(void *returnAddress) const;
+
+  private:
+    
+    char *nmapSectionLimit() const;
+    char *monoICSectionsLimit() const;
+    char *polyICSectionsLimit() const;
 };
 
 
@@ -468,7 +481,7 @@ JSScript::maybeNativeCodeForPC(bool constructing, jsbytecode *pc)
     if (!jit)
         return NULL;
     JS_ASSERT(pc >= code && pc < code + length);
-    return bsearch_nmap(jit->nmap, jit->nNmapPairs, (size_t)(pc - code));
+    return bsearch_nmap(jit->nmap(), jit->nNmapPairs, (size_t)(pc - code));
 }
 
 inline void *
@@ -476,7 +489,7 @@ JSScript::nativeCodeForPC(bool constructing, jsbytecode *pc)
 {
     js::mjit::JITScript *jit = getJIT(constructing);
     JS_ASSERT(pc >= code && pc < code + length);
-    void* native = bsearch_nmap(jit->nmap, jit->nNmapPairs, (size_t)(pc - code));
+    void* native = bsearch_nmap(jit->nmap(), jit->nNmapPairs, (size_t)(pc - code));
     JS_ASSERT(native);
     return native;
 }
