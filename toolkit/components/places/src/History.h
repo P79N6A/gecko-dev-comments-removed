@@ -46,6 +46,7 @@
 #include "nsString.h"
 #include "nsURIHashKey.h"
 #include "nsTArray.h"
+#include "nsDeque.h"
 
 namespace mozilla {
 namespace places {
@@ -72,6 +73,26 @@ public:
   
 
 
+
+
+
+
+
+
+  void AppendTask(class Step* aTask);
+
+  
+
+
+
+
+
+
+  void CurrentTaskFinished();
+
+  
+
+
   static History *GetService();
 
   
@@ -82,6 +103,26 @@ public:
 
 private:
   ~History();
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  nsDeque mPendingVisits;
+
+  
+
+
+
+  void StartNextTask();
 
   static History *gService;
 
