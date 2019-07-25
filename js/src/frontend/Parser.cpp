@@ -57,6 +57,8 @@
 #include "frontend/ParseMaps-inl.h"
 #include "frontend/ParseNode-inl.h"
 #include "frontend/TreeContext-inl.h"
+
+#include "vm/NumericConversions.h"
 #include "vm/RegExpObject-inl.h"
 
 using namespace js;
@@ -5808,6 +5810,13 @@ Parser::memberExpr(bool allowCallSyntax)
 
 
 
+            if (foldConstants && !FoldConstants(context, propExpr, this))
+                return NULL;
+
+            
+
+
+
 
 
 
@@ -5823,11 +5832,13 @@ Parser::memberExpr(bool allowCallSyntax)
                     name = atom->asPropertyName();
                 }
             } else if (propExpr->isKind(PNK_NUMBER)) {
-                JSAtom *atom = ToAtom(context, NumberValue(propExpr->pn_dval));
-                if (!atom)
-                    return NULL;
-                if (!atom->isIndex(&index))
+                double number = propExpr->pn_dval;
+                if (number != ToUint32(number)) {
+                    JSAtom *atom = ToAtom(context, DoubleValue(number));
+                    if (!atom)
+                        return NULL;
                     name = atom->asPropertyName();
+                }
             }
 
             if (name)
