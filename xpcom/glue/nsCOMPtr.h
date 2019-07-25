@@ -192,6 +192,29 @@ struct already_AddRefed
 
     T* get() const { return mRawPtr; }
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    template<class U>
+    operator already_AddRefed<U>()
+    {
+      U* tmp = mRawPtr;
+      mRawPtr = NULL;
+      return tmp;
+    }
+
     T* mRawPtr;
   };
 
