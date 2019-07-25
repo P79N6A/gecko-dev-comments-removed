@@ -1510,44 +1510,10 @@ nsGlobalWindow::WouldReuseInnerWindow(nsIDocument *aNewDocument)
 }
 
 void
-nsGlobalWindow::SetOpenerScriptPrincipal(nsIPrincipal* aPrincipal)
-{
-  FORWARD_TO_OUTER_VOID(SetOpenerScriptPrincipal, (aPrincipal));
-
-  if (mDoc) {
-    if (!mDoc->IsInitialDocument()) {
-      
-      return;
-    }
-
-#ifdef DEBUG
-    
-    
-    nsCOMPtr<nsIURI> uri;
-    mDoc->NodePrincipal()->GetURI(getter_AddRefs(uri));
-    NS_ASSERTION(uri && NS_IsAboutBlank(uri) &&
-                 NS_IsAboutBlank(mDoc->GetDocumentURI()),
-                 "Unexpected original document");
-#endif
-
-    GetDocShell()->CreateAboutBlankContentViewer(aPrincipal);
-    mDoc->SetIsInitialDocument(true);
-
-    nsCOMPtr<nsIPresShell> shell;
-    GetDocShell()->GetPresShell(getter_AddRefs(shell));
-
-    if (shell && !shell->DidInitialReflow()) {
-      
-      
-      nsRect r = shell->GetPresContext()->GetVisibleArea();
-      shell->InitialReflow(r.width, r.height);
-    }
-  }
-}
-
-void
 nsGlobalWindow::SetInitialPrincipalToSubject()
 {
+  FORWARD_TO_OUTER_VOID(SetInitialPrincipalToSubject, ());
+
   
   nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
   nsCOMPtr<nsIPrincipal> newWindowPrincipal, systemPrincipal;
@@ -1569,7 +1535,37 @@ nsGlobalWindow::SetInitialPrincipalToSubject()
   }
 
   
-  SetOpenerScriptPrincipal(newWindowPrincipal);
+  if (mDoc) {
+    
+    if (!mDoc->IsInitialDocument())
+      return;
+    
+    if (mDoc->NodePrincipal() == newWindowPrincipal)
+      return;
+
+#ifdef DEBUG
+    
+    
+    nsCOMPtr<nsIURI> uri;
+    mDoc->NodePrincipal()->GetURI(getter_AddRefs(uri));
+    NS_ASSERTION(uri && NS_IsAboutBlank(uri) &&
+                 NS_IsAboutBlank(mDoc->GetDocumentURI()),
+                 "Unexpected original document");
+#endif
+  }
+
+  GetDocShell()->CreateAboutBlankContentViewer(newWindowPrincipal);
+  mDoc->SetIsInitialDocument(true);
+
+  nsCOMPtr<nsIPresShell> shell;
+  GetDocShell()->GetPresShell(getter_AddRefs(shell));
+
+  if (shell && !shell->DidInitialReflow()) {
+    
+    
+    nsRect r = shell->GetPresContext()->GetVisibleArea();
+    shell->InitialReflow(r.width, r.height);
+  }
 }
 
 PopupControlState
