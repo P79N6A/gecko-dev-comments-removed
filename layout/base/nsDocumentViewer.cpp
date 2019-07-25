@@ -440,6 +440,7 @@ protected:
   
 
   nsWeakPtr mContainer; 
+  nsWeakPtr mTopContainerWhilePrinting;
   nsCOMPtr<nsIDeviceContext> mDeviceContext;  
 
   
@@ -4085,27 +4086,33 @@ DocumentViewerImpl::SetIsPrintingInDocShellTree(nsIDocShellTreeNode* aParentNode
                                                 PRBool               aIsPrintingOrPP, 
                                                 PRBool               aStartAtTop)
 {
-  NS_ASSERTION(aParentNode, "Parent can't be NULL!");
-
   nsCOMPtr<nsIDocShellTreeItem> parentItem(do_QueryInterface(aParentNode));
 
   
   if (aStartAtTop) {
-    while (parentItem) {
-      nsCOMPtr<nsIDocShellTreeItem> parent;
-      parentItem->GetSameTypeParent(getter_AddRefs(parent));
-      if (!parent) {
-        break;
+    if (aIsPrintingOrPP) {
+      while (parentItem) {
+        nsCOMPtr<nsIDocShellTreeItem> parent;
+        parentItem->GetSameTypeParent(getter_AddRefs(parent));
+        if (!parent) {
+          break;
+        }
+        parentItem = do_QueryInterface(parent);
       }
-      parentItem = do_QueryInterface(parent);
+      mTopContainerWhilePrinting = do_GetWeakReference(parentItem);
+    } else {
+      parentItem = do_QueryReferent(mTopContainerWhilePrinting);
     }
   }
-  NS_ASSERTION(parentItem, "parentItem can't be null");
 
   
   nsCOMPtr<nsIContentViewerContainer> viewerContainer(do_QueryInterface(parentItem));
   if (viewerContainer) {
     viewerContainer->SetIsPrinting(aIsPrintingOrPP);
+  }
+
+  if (!aParentNode) {
+    return;
   }
 
   
@@ -4176,14 +4183,11 @@ DocumentViewerImpl::SetIsPrinting(PRBool aIsPrinting)
 #ifdef NS_PRINTING
   
   
-  if (mContainer) {
-    nsCOMPtr<nsIDocShellTreeNode> docShellTreeNode(do_QueryReferent(mContainer));
-    NS_ASSERTION(docShellTreeNode, "mContainer has to be a nsIDocShellTreeNode");
-    if (docShellTreeNode) {
-      SetIsPrintingInDocShellTree(docShellTreeNode, aIsPrinting, PR_TRUE);
-    } else {
-      NS_WARNING("Bug 549251 Did you close a window while printing?");
-    }
+  nsCOMPtr<nsIDocShellTreeNode> docShellTreeNode(do_QueryReferent(mContainer));
+  if (docShellTreeNode || !aIsPrinting) {
+    SetIsPrintingInDocShellTree(docShellTreeNode, aIsPrinting, PR_TRUE);
+  } else {
+    NS_WARNING("Did you close a window before printing?");
   }
 #endif
 }
@@ -4211,9 +4215,8 @@ DocumentViewerImpl::SetIsPrintPreview(PRBool aIsPrintPreview)
 #ifdef NS_PRINTING
   
   
-  if (mContainer) {
-    nsCOMPtr<nsIDocShellTreeNode> docShellTreeNode(do_QueryReferent(mContainer));
-    NS_ASSERTION(docShellTreeNode, "mContainer has to be a nsIDocShellTreeNode");
+  nsCOMPtr<nsIDocShellTreeNode> docShellTreeNode(do_QueryReferent(mContainer));
+  if (docShellTreeNode || !aIsPrintPreview) {
     SetIsPrintingInDocShellTree(docShellTreeNode, aIsPrintPreview, PR_TRUE);
   }
 #endif
