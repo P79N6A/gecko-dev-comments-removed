@@ -1347,10 +1347,6 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
 
   PlacesStarButton.init();
 
-  
-  
-  window.addEventListener("fullscreen", onFullScreen, true);
-
   if (isLoadingBlank && gURLBar && isElementVisible(gURLBar))
     gURLBar.focus();
   else
@@ -1513,6 +1509,12 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
 
   if (Win7Features)
     Win7Features.onOpenWindow();
+
+  
+  
+  window.addEventListener("fullscreen", onFullScreen, true);
+  if (window.fullScreen)
+    onFullScreen();
 
 #ifdef MOZ_SERVICES_SYNC
   
@@ -2635,9 +2637,8 @@ function BrowserFullScreen()
   window.fullScreen = !window.fullScreen;
 }
 
-function onFullScreen()
-{
-  FullScreen.toggle();
+function onFullScreen(event) {
+  FullScreen.toggle(event);
 }
 
 function getWebNavigation()
@@ -3620,17 +3621,21 @@ function updateEditUIVisibility()
 #endif
 }
 
-var FullScreen =
-{
+var FullScreen = {
   _XULNS: "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul",
-  toggle: function()
-  {
-    
-    this.showXULChrome("toolbar", window.fullScreen);
-    this.showXULChrome("statusbar", window.fullScreen);
-    document.getElementById("View:FullScreen").setAttribute("checked", !window.fullScreen);
+  toggle: function (event) {
+    var enterFS = window.fullScreen;
 
-    if (!window.fullScreen) {
+    
+    if (event && event.type == "fullscreen")
+      enterFS = !enterFS;
+
+    
+    this.showXULChrome("toolbar", !enterFS);
+    this.showXULChrome("statusbar", !enterFS);
+    document.getElementById("View:FullScreen").setAttribute("checked", enterFS);
+
+    if (enterFS) {
       
       
       
