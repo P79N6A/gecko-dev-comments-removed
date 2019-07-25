@@ -126,6 +126,12 @@ private:
 
 
   void RequestViewTransform();
+
+  
+
+
+
+  Layer* GetPrimaryScrollableLayer();
 #endif
 
   nsRefPtr<LayerManager> mLayerManager;
