@@ -210,14 +210,39 @@ class WebGLBuffer;
 
 struct WebGLVertexAttribData {
     WebGLVertexAttribData()
-        : buf(0), stride(0), size(0), offset(0), enabled(PR_FALSE)
+        : buf(0), stride(0), size(0), byteOffset(0), type(0), enabled(PR_FALSE)
     { }
 
     WebGLObjectRefPtr<WebGLBuffer> buf;
     WebGLuint stride;
     WebGLuint size;
-    WebGLuint offset;
+    GLuint byteOffset;
+    GLenum type;
     PRBool enabled;
+
+    GLuint actualStride() const {
+        if (stride) return stride;
+        GLuint componentSize = 0;
+        switch(type) {
+            case LOCAL_GL_BYTE:
+                componentSize = sizeof(GLbyte);
+                break;
+            case LOCAL_GL_UNSIGNED_BYTE:
+                componentSize = sizeof(GLubyte);
+                break;
+            case LOCAL_GL_SHORT:
+                componentSize = sizeof(GLshort);
+                break;
+            case LOCAL_GL_UNSIGNED_SHORT:
+                componentSize = sizeof(GLushort);
+                break;
+            
+            case LOCAL_GL_FLOAT:
+                componentSize = sizeof(GLfloat);
+                break;
+        }
+        return size * componentSize;
+    }
 };
 
 class WebGLContext :
@@ -400,24 +425,71 @@ public:
     NS_DECLARE_STATIC_IID_ACCESSOR(WEBGLBUFFER_PRIVATE_IID)
 
     WebGLBuffer(WebGLuint name)
-        : mName(name), mDeleted(PR_FALSE), mByteLength(0)
+        : mName(name), mDeleted(PR_FALSE), mByteLength(0), mTarget(LOCAL_GL_NONE), mData(nsnull)
     { }
+
+    ~WebGLBuffer() {
+        Delete();
+    }
 
     void Delete() {
         if (mDeleted)
             return;
         ZeroOwners();
 
+        free(mData);
+        mData = nsnull;
+
         mDeleted = PR_TRUE;
         mByteLength = 0;
     }
 
-    PRBool Deleted() { return mDeleted; }
-    WebGLuint GLName() { return mName; }
-    PRUint32 ByteLength() { return mByteLength; }
+    PRBool Deleted() const { return mDeleted; }
+    GLuint GLName() const { return mName; }
+    GLuint ByteLength() const { return mByteLength; }
+    GLenum Target() const { return mTarget; }
+    const void *Data() const { return mData; }
 
-    void SetByteLength(WebGLuint len) {
-        mByteLength = len;
+    void SetByteLength(GLuint byteLength) { mByteLength = byteLength; }
+    void SetTarget(GLenum target) { mTarget = target; }
+
+    
+    
+    void CopyDataIfElementArray(const void* data) {
+        if (mTarget == LOCAL_GL_ELEMENT_ARRAY_BUFFER) {
+            mData = realloc(mData, mByteLength);
+            memcpy(mData, data, mByteLength);
+        }
+    }
+
+    
+    void ZeroDataIfElementArray() {
+        if (mTarget == LOCAL_GL_ELEMENT_ARRAY_BUFFER) {
+            mData = realloc(mData, mByteLength);
+            memset(mData, 0, mByteLength);
+        }
+    }
+
+    
+    void CopySubDataIfElementArray(GLuint byteOffset, GLuint byteLength, const void* data) {
+        if (mTarget == LOCAL_GL_ELEMENT_ARRAY_BUFFER) {
+            memcpy((void*) (size_t(mData)+byteOffset), data, byteLength);
+        }
+    }
+
+    
+    
+    
+    template<typename T>
+    T FindMaximum(GLuint count, GLuint byteOffset)
+    {
+        const T* start = reinterpret_cast<T*>(reinterpret_cast<size_t>(mData) + byteOffset);
+        const T* stop = start + count;
+        T result = 0;
+        for(const T* ptr = start; ptr != stop; ++ptr) {
+            if (*ptr > result) result = *ptr;
+        }
+        return result;
     }
 
     NS_DECL_ISUPPORTS
@@ -425,7 +497,9 @@ public:
 protected:
     WebGLuint mName;
     PRBool mDeleted;
-    PRUint32 mByteLength;
+    GLuint mByteLength;
+    GLenum mTarget;
+    void* mData; 
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(WebGLBuffer, WEBGLBUFFER_PRIVATE_IID)
