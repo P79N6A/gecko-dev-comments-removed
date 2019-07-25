@@ -38,6 +38,9 @@
 
 
 
+#ifndef MOZ_THREAD_HELPER_H
+#define MOZ_THREAD_HELPER_H
+
 #if defined(XP_WIN)
   
   
@@ -114,3 +117,4 @@ inline bool create(key* mykey) {
 
 }
  
+#endif 
