@@ -92,6 +92,12 @@ let TabView = {
 
   
   init: function TabView_init() {
+    
+    if (!window.toolbar.visible) {
+      goSetCommandEnabled("Browser:ToggleTabView", false);
+      return;
+    }
+
     if (this._initialized)
       return;
 
@@ -168,6 +174,10 @@ let TabView = {
   
   _initFrame: function TabView__initFrame(callback) {
     let hasCallback = typeof callback == "function";
+
+    
+    if (!window.toolbar.visible)
+      return;
 
     if (this._window) {
       if (hasCallback)
