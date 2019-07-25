@@ -224,7 +224,7 @@ WebGLContext::LogMessage(const char *fmt, va_list ap)
 }
 
 nsresult
-WebGLContext::SynthesizeGLError(GLenum err)
+WebGLContext::SynthesizeGLError(WebGLenum err)
 {
     
     
@@ -244,7 +244,7 @@ WebGLContext::SynthesizeGLError(GLenum err)
 }
 
 nsresult
-WebGLContext::SynthesizeGLError(GLenum err, const char *fmt, ...)
+WebGLContext::SynthesizeGLError(WebGLenum err, const char *fmt, ...)
 {
     va_list va;
     va_start(va, fmt);
