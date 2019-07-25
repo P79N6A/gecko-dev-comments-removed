@@ -70,7 +70,8 @@ static char* FormatJSFrame(JSContext* cx, JSStackFrame* fp,
 {
     JSPropertyDescArray callProps = {0, nsnull};
     JSPropertyDescArray thisProps = {0, nsnull};
-    JSObject* thisObj = nsnull;
+    JSBool gotThisVal;
+    jsval thisVal;
     JSObject* callObj = nsnull;
     const char* funname = nsnull;
     const char* filename = nsnull;
@@ -108,12 +109,14 @@ static char* FormatJSFrame(JSContext* cx, JSStackFrame* fp,
                     callProps.array = nsnull;  
         }
 
-        thisObj = JS_GetFrameThis(cx, fp);
-        if(showThisProps)
+        gotThisVal = JS_GetFrameThis(cx, fp, &thisVal);
+        if (!gotThisVal ||
+            !showThisProps ||
+            JSVAL_IS_PRIMITIVE(thisVal) ||
+            !JS_GetPropertyDescArray(cx, JSVAL_TO_OBJECT(thisVal),
+                                     &thisProps))
         {
-            if(thisObj)
-                if(!JS_GetPropertyDescArray(cx, thisObj, &thisProps))
-                    thisProps.array = nsnull;  
+            thisProps.array = nsnull;  
         }
     }
 
@@ -219,18 +222,22 @@ static char* FormatJSFrame(JSContext* cx, JSStackFrame* fp,
 
     
 
-    if(showLocals && thisObj)
+    if(showLocals)
     {
-        jsval thisJSVal = OBJECT_TO_JSVAL(thisObj);
-        JSString* thisValStr;
-        char* thisVal;
-
-        if(nsnull != (thisValStr = JS_ValueToString(cx, thisJSVal)) &&
-           nsnull != (thisVal = JS_GetStringBytes(thisValStr)))
+        if(gotThisVal)
         {
-            buf = JS_sprintf_append(buf, TAB "this = %s\n", thisVal);
-            if(!buf) goto out;
+            JSString* thisValStr;
+            char* thisValChars;
+
+            if(nsnull != (thisValStr = JS_ValueToString(cx, thisVal)) &&
+               nsnull != (thisValChars = JS_GetStringBytes(thisValStr)))
+            {
+                buf = JS_sprintf_append(buf, TAB "this = %s\n", thisValChars);
+                if(!buf) goto out;
+            }
         }
+        else
+            buf = JS_sprintf_append(buf, TAB "<failed to get 'this' value>\n");
     }
 
     
