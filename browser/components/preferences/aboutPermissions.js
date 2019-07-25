@@ -92,9 +92,18 @@ Site.prototype = {
 
 
   getFavicon: function Site_getFavicon(aCallback) {
+    let callbackExecuted = false;
     function faviconDataCallback(aURI, aDataLen, aData, aMimeType) {
+      
+      
+      if (callbackExecuted) {
+        return;
+      }
       try {
-        aCallback(aURI.spec);
+        
+        
+        aCallback(gFaviconService.getFaviconLinkForIcon(aURI).spec);
+        callbackExecuted = true;
       } catch (e) {
         Cu.reportError("AboutPermissions: " + e);
       }
@@ -102,8 +111,9 @@ Site.prototype = {
 
     
     
-    gFaviconService.getFaviconURLForPage(this.httpURI, faviconDataCallback);
+    
     gFaviconService.getFaviconURLForPage(this.httpsURI, faviconDataCallback);
+    gFaviconService.getFaviconURLForPage(this.httpURI, faviconDataCallback);
   },
 
   
