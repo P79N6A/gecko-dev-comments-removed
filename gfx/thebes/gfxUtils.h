@@ -121,6 +121,7 @@ public:
     
 
 
+
     static gfxFloat ClampToScaleFactor(gfxFloat aVal);
 };
 

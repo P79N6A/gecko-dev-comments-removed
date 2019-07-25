@@ -94,6 +94,15 @@ enum LayerState {
 
 
 
+
+
+
+
+
+
+
+
+
 class FrameLayerBuilder {
 public:
   typedef layers::ContainerLayer ContainerLayer; 
@@ -134,7 +143,9 @@ public:
 
   struct ContainerParameters {
     ContainerParameters() : mXScale(1), mYScale(1) {}
-    double mXScale, mYScale;
+    ContainerParameters(float aXScale, float aYScale) :
+      mXScale(aXScale), mYScale(aYScale) {}
+    float mXScale, mYScale;
   };
   
 
