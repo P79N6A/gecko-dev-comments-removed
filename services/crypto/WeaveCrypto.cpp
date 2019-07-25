@@ -228,6 +228,7 @@ WeaveCrypto::CommonCrypt(const char *input, PRUint32 inputSize,
   PK11Context  *ctx     = nsnull;
   PK11SlotInfo *slot    = nsnull;
   SECItem      *ivParam = nsnull;
+  PRUint32 maxOutputSize;
 
   char keyData[aSymmetricKey.Length()];
   PRUint32 keyDataSize = sizeof(keyData);
@@ -281,7 +282,7 @@ WeaveCrypto::CommonCrypt(const char *input, PRUint32 inputSize,
   }
 
   int tmpOutSize; 
-  PRUint32  maxOutputSize = *outputSize;
+  maxOutputSize = *outputSize;
   rv = PK11_CipherOp(ctx,
                      (unsigned char *)output, &tmpOutSize, maxOutputSize,
                      (unsigned char *)input, inputSize);
@@ -611,6 +612,7 @@ WeaveCrypto::GenerateRandomKey(nsACString& aEncodedKey)
   nsresult rv = NS_OK;
   PRUint32 keySize;
   CK_MECHANISM_TYPE keygenMech;
+  SECItem *keydata = nsnull;
 
   
   switch (mAlgorithm) {
@@ -651,7 +653,7 @@ WeaveCrypto::GenerateRandomKey(nsACString& aEncodedKey)
     goto keygen_done;
   }
 
-  SECItem *keydata = PK11_GetKeyData(randKey);
+  keydata = PK11_GetKeyData(randKey);
   if (!keydata) {
     NS_WARNING("PK11_GetKeyData failed");
     rv = NS_ERROR_FAILURE;
@@ -685,6 +687,7 @@ WeaveCrypto::WrapSymmetricKey(const nsACString& aSymmetricKey,
   PK11SymKey *symKey = nsnull;
   SECKEYPublicKey *pubKey = nsnull;
   CERTSubjectPublicKeyInfo *pubKeyInfo = nsnull;
+  CK_MECHANISM_TYPE keyMech, wrapMech;
 
   
 
@@ -714,7 +717,7 @@ WeaveCrypto::WrapSymmetricKey(const nsACString& aSymmetricKey,
   }
 
   
-  CK_MECHANISM_TYPE keyMech = PK11_AlgtagToMechanism(mAlgorithm);
+  keyMech = PK11_AlgtagToMechanism(mAlgorithm);
   if (keyMech == CKM_INVALID_MECHANISM) {
     NS_WARNING("Unknown key mechanism");
     rv = NS_ERROR_FAILURE;
@@ -757,7 +760,7 @@ WeaveCrypto::WrapSymmetricKey(const nsACString& aSymmetricKey,
 
   
 
-  CK_MECHANISM_TYPE wrapMech = PK11_AlgtagToMechanism(SEC_OID_PKCS1_RSA_ENCRYPTION);
+  wrapMech = PK11_AlgtagToMechanism(SEC_OID_PKCS1_RSA_ENCRYPTION);
 
   s = PK11_PubWrapSymKey(wrapMech, pubKey, symKey, &wrappedKey);
   if (s != SECSuccess) {
@@ -802,6 +805,8 @@ WeaveCrypto::UnwrapSymmetricKey(const nsACString& aWrappedSymmetricKey,
   PK11SymKey *symKey = nsnull;
   SECKEYPrivateKey *privKey = nsnull;
   SECItem *ivParam = nsnull;
+  SECItem *symKeyData = nsnull;
+  SECItem *keyID = nsnull;
 
   CK_ATTRIBUTE_TYPE privKeyUsage[] = { CKA_UNWRAP };
   PRUint32 privKeyUsageLength = sizeof(privKeyUsage) / sizeof(CK_ATTRIBUTE_TYPE);
@@ -866,7 +871,7 @@ WeaveCrypto::UnwrapSymmetricKey(const nsACString& aWrappedSymmetricKey,
   
   
   
-  SECItem *keyID = &ivItem;
+  keyID = &ivItem;
 
   privKey = PK11_UnwrapPrivKey(slot,
                                pbeKey, wrapMech, ivParam, &wrappedPrivKey,
@@ -904,7 +909,7 @@ WeaveCrypto::UnwrapSymmetricKey(const nsACString& aWrappedSymmetricKey,
   }
 
   
-  SECItem *symKeyData = PK11_GetKeyData(symKey);
+  symKeyData = PK11_GetKeyData(symKey);
   if (!symKeyData) {
     NS_WARNING("PK11_GetKeyData failed");
     rv = NS_ERROR_FAILURE;
