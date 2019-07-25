@@ -226,7 +226,7 @@ public:
 
 
   void SetPaintingToWindow(PRBool aToWindow) { mIsPaintingToWindow = aToWindow; }
-  PRBool IsPaintingToWindow() { return mIsPaintingToWindow; }
+  PRBool IsPaintingToWindow() const { return mIsPaintingToWindow; }
   
 
 
