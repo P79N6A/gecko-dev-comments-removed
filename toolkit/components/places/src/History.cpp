@@ -352,23 +352,7 @@ public:
 
     bool known = mHistory->FetchPageInfo(mPlace);
 
-    
-    
-    if (!mReferrer.spec.IsEmpty()) {
-      bool recentVisit = FetchVisitInfo(mReferrer, mPlace.visitTime);
-      
-      
-      if (recentVisit) {
-        mPlace.sessionId = mReferrer.sessionId;
-      }
-      
-      
-      else {
-        
-        
-        mReferrer.visitId = 0;
-      }
-    }
+    FetchReferrerInfo(mReferrer, mPlace);
 
     mozStorageTransaction transaction(mDBConn, PR_FALSE,
                                       mozIStorageConnection::TRANSACTION_IMMEDIATE);
@@ -462,6 +446,41 @@ private:
     }
 
     return false;
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+  void FetchReferrerInfo(VisitData& aReferrer,
+                         VisitData& aPlace)
+  {
+    if (aReferrer.spec.IsEmpty()) {
+      return;
+    }
+
+    
+    
+    bool recentVisit = FetchVisitInfo(aReferrer, aPlace.visitTime);
+    
+    
+    if (recentVisit) {
+      aPlace.sessionId = aReferrer.sessionId;
+    }
+    
+    
+    else {
+      
+      
+      aReferrer.visitId = 0;
+    }
   }
 
   
