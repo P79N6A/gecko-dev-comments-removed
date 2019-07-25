@@ -255,149 +255,13 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
 
 
     public void onDrawFrame(GL10 gl) {
-        long frameStartTime = SystemClock.uptimeMillis();
-
-        TextureReaper.get().reap();
-        TextureGenerator.get().fill();
-
-        LayerController controller = mView.getController();
-        RenderContext screenContext = createScreenContext();
-
-        boolean updated = true;
-
-        synchronized (controller) {
-            Layer rootLayer = controller.getRoot();
-            RenderContext pageContext = createPageContext();
-
-            if (!pageContext.fuzzyEquals(mLastPageContext)) {
-                
-                
-                mVertScrollLayer.unfade();
-                mHorizScrollLayer.unfade();
-                mFadeRunnable.scheduleStartFade(ScrollbarLayer.FADE_DELAY);
-            } else if (mFadeRunnable.timeToFade()) {
-                boolean stillFading = mVertScrollLayer.fade() | mHorizScrollLayer.fade();
-                if (stillFading) {
-                    mFadeRunnable.scheduleNextFadeFrame();
-                }
-            }
-            mLastPageContext = pageContext;
-
-            
-            if (rootLayer != null) updated &= rootLayer.update(pageContext);
-            updated &= mBackgroundLayer.update(screenContext);
-            updated &= mShadowLayer.update(pageContext);
-            updateCheckerboardLayer(screenContext);
-            updated &= mFrameRateLayer.update(screenContext);
-            updated &= mVertScrollLayer.update(pageContext);
-            updated &= mHorizScrollLayer.update(pageContext);
-
-            for (Layer layer : mExtraLayers)
-                updated &= layer.update(pageContext);
-
-            
-            mBackgroundLayer.draw(screenContext);
-
-            
-            Rect pageRect = getPageRect();
-            RectF untransformedPageRect = new RectF(0.0f, 0.0f, pageRect.width(),
-                                                    pageRect.height());
-            if (!untransformedPageRect.contains(controller.getViewport()))
-                mShadowLayer.draw(pageContext);
-
-            
-            Rect scissorRect = transformToScissorRect(pageRect);
-            GLES20.glEnable(GLES20.GL_SCISSOR_TEST);
-            GLES20.glScissor(scissorRect.left, scissorRect.top,
-                             scissorRect.width(), scissorRect.height());
-
-            mCheckerboardLayer.draw(screenContext);
-
-            
-            if (rootLayer != null)
-                rootLayer.draw(pageContext);
-
-            GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
-
-            
-            for (Layer layer : mExtraLayers)
-                layer.draw(pageContext);
-
-            
-            IntSize screenSize = new IntSize(controller.getViewportSize());
-            if (pageRect.height() > screenSize.height)
-                mVertScrollLayer.draw(pageContext);
-
-            
-            if (pageRect.width() > screenSize.width)
-                mHorizScrollLayer.draw(pageContext);
-
-            
-            if ((rootLayer != null) &&
-                (mProfileRender || PanningPerfAPI.isRecordingCheckerboard())) {
-                
-                Rect viewport = RectUtils.round(pageContext.viewport);
-                Region validRegion = rootLayer.getValidRegion(pageContext);
-                validRegion.op(viewport, Region.Op.INTERSECT);
-
-                float checkerboard = 0.0f;
-                if (!(validRegion.isRect() && validRegion.getBounds().equals(viewport))) {
-                    int screenArea = viewport.width() * viewport.height();
-                    validRegion.op(viewport, Region.Op.REVERSE_DIFFERENCE);
-
-                    
-                    
-                    
-                    
-                    
-                    Rect r = new Rect();
-                    int checkerboardArea = 0;
-                    for (RegionIterator i = new RegionIterator(validRegion); i.next(r);) {
-                        checkerboardArea += r.width() * r.height();
-                    }
-
-                    checkerboard = checkerboardArea / (float)screenArea;
-                }
-
-                PanningPerfAPI.recordCheckerboard(checkerboard);
-
-                mCompleteFramesRendered += 1.0f - checkerboard;
-                mFramesRendered ++;
-
-                if (frameStartTime - mProfileOutputTime > 1000) {
-                    mProfileOutputTime = frameStartTime;
-                    printCheckerboardStats();
-                }
-            }
-        }
-
-        
-        if (mShowFrameRate) {
-            updateDroppedFrames(frameStartTime);
-
-            try {
-                GLES20.glEnable(GLES20.GL_BLEND);
-                GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
-                mFrameRateLayer.draw(screenContext);
-            } finally {
-                GLES20.glDisable(GLES20.GL_BLEND);
-            }
-        }
-
-        
-        if (!updated)
-            mView.requestRender();
-
-        PanningPerfAPI.recordFrameTime();
-
-        
-        IntBuffer pixelBuffer = mPixelBuffer;
-        if (updated && pixelBuffer != null) {
-            synchronized (pixelBuffer) {
-                pixelBuffer.position(0);
-                gl.glReadPixels(0, 0, (int)screenContext.viewport.width(), (int)screenContext.viewport.height(), GL10.GL_RGBA, GL10.GL_UNSIGNED_BYTE, pixelBuffer);
-                pixelBuffer.notify();
-            }
+        Frame frame = new Frame(true);
+        synchronized (mView.getController()) {
+            frame.beginDrawing();
+            frame.drawBackground();
+            frame.drawRootLayer();
+            frame.drawForeground();
+            frame.endDrawing();
         }
     }
 
@@ -591,6 +455,202 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
                 
                 mStarted = false;
                 mView.requestRender();
+            }
+        }
+    }
+
+    public class Frame {
+        
+        private final boolean mScissor;
+        
+        private long mFrameStartTime;
+        
+        private RenderContext mPageContext, mScreenContext;
+        
+        private boolean mUpdated;
+
+        public Frame(boolean scissor) {
+            mScissor = scissor;
+        }
+
+        public void beginDrawing() {
+            mFrameStartTime = SystemClock.uptimeMillis();
+
+            TextureReaper.get().reap();
+            TextureGenerator.get().fill();
+
+            LayerController controller = mView.getController();
+            mScreenContext = createScreenContext();
+
+            mUpdated = true;
+
+            Layer rootLayer = controller.getRoot();
+            mPageContext = createPageContext();
+
+            if (!mPageContext.fuzzyEquals(mLastPageContext)) {
+                
+                
+                mVertScrollLayer.unfade();
+                mHorizScrollLayer.unfade();
+                mFadeRunnable.scheduleStartFade(ScrollbarLayer.FADE_DELAY);
+            } else if (mFadeRunnable.timeToFade()) {
+                boolean stillFading = mVertScrollLayer.fade() | mHorizScrollLayer.fade();
+                if (stillFading) {
+                    mFadeRunnable.scheduleNextFadeFrame();
+                }
+            }
+            mLastPageContext = mPageContext;
+
+            
+            if (rootLayer != null) mUpdated &= rootLayer.update(mPageContext);
+            mUpdated &= mBackgroundLayer.update(mScreenContext);
+            mUpdated &= mShadowLayer.update(mPageContext);
+            updateCheckerboardLayer(mScreenContext);
+            mUpdated &= mFrameRateLayer.update(mScreenContext);
+            mUpdated &= mVertScrollLayer.update(mPageContext);
+            mUpdated &= mHorizScrollLayer.update(mPageContext);
+
+            for (Layer layer : mExtraLayers)
+                mUpdated &= layer.update(mPageContext);
+
+            GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
+
+            
+            if (!mUpdated)
+                mView.requestRender();
+
+            PanningPerfAPI.recordFrameTime();
+
+            
+            IntBuffer pixelBuffer = mPixelBuffer;
+            if (mUpdated && pixelBuffer != null) {
+                synchronized (pixelBuffer) {
+                    pixelBuffer.position(0);
+                    GLES20.glReadPixels(0, 0, (int)mScreenContext.viewport.width(),
+                                        (int)mScreenContext.viewport.height(), GLES20.GL_RGBA,
+                                        GLES20.GL_UNSIGNED_BYTE, pixelBuffer);
+                    pixelBuffer.notify();
+                }
+            }
+        }
+
+        public void drawBackground() {
+            
+            mBackgroundLayer.draw(mScreenContext);
+
+            
+            Rect pageRect = getPageRect();
+            RectF untransformedPageRect = new RectF(0.0f, 0.0f, pageRect.width(),
+                                                    pageRect.height());
+            if (!untransformedPageRect.contains(mView.getController().getViewport()))
+                mShadowLayer.draw(mPageContext);
+
+            
+            if (mScissor) {
+                Rect scissorRect = transformToScissorRect(pageRect);
+                GLES20.glEnable(GLES20.GL_SCISSOR_TEST);
+                GLES20.glScissor(scissorRect.left, scissorRect.top,
+                                 scissorRect.width(), scissorRect.height());
+            }
+
+            
+            mCheckerboardLayer.draw(mScreenContext);
+        }
+
+        
+        public void drawRootLayer() {
+            Layer rootLayer = mView.getController().getRoot();
+            if (rootLayer != null)
+                rootLayer.draw(mPageContext);
+        }
+
+        public void drawForeground() {
+            Rect pageRect = getPageRect();
+            LayerController controller = mView.getController();
+
+            
+            for (Layer layer : mExtraLayers)
+                layer.draw(mPageContext);
+
+            
+            IntSize screenSize = new IntSize(controller.getViewportSize());
+            if (pageRect.height() > screenSize.height)
+                mVertScrollLayer.draw(mPageContext);
+
+            
+            if (pageRect.width() > screenSize.width)
+                mHorizScrollLayer.draw(mPageContext);
+
+            
+            Layer rootLayer = controller.getRoot();
+            if ((rootLayer != null) &&
+                (mProfileRender || PanningPerfAPI.isRecordingCheckerboard())) {
+                
+                Rect viewport = RectUtils.round(mPageContext.viewport);
+                Region validRegion = rootLayer.getValidRegion(mPageContext);
+                validRegion.op(viewport, Region.Op.INTERSECT);
+
+                float checkerboard = 0.0f;
+                if (!(validRegion.isRect() && validRegion.getBounds().equals(viewport))) {
+                    int screenArea = viewport.width() * viewport.height();
+                    validRegion.op(viewport, Region.Op.REVERSE_DIFFERENCE);
+
+                    
+                    
+                    
+                    
+                    
+                    Rect r = new Rect();
+                    int checkerboardArea = 0;
+                    for (RegionIterator i = new RegionIterator(validRegion); i.next(r);) {
+                        checkerboardArea += r.width() * r.height();
+                    }
+
+                    checkerboard = checkerboardArea / (float)screenArea;
+                }
+
+                PanningPerfAPI.recordCheckerboard(checkerboard);
+
+                mCompleteFramesRendered += 1.0f - checkerboard;
+                mFramesRendered ++;
+
+                if (mFrameStartTime - mProfileOutputTime > 1000) {
+                    mProfileOutputTime = mFrameStartTime;
+                    printCheckerboardStats();
+                }
+            }
+
+            
+            if (mShowFrameRate) {
+                updateDroppedFrames(mFrameStartTime);
+
+                try {
+                    GLES20.glEnable(GLES20.GL_BLEND);
+                    GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
+                    mFrameRateLayer.draw(mScreenContext);
+                } finally {
+                    GLES20.glDisable(GLES20.GL_BLEND);
+                }
+            }
+        }
+
+        public void endDrawing() {
+            
+            if (!mUpdated)
+                mView.requestRender();
+
+            PanningPerfAPI.recordFrameTime();
+
+            
+            IntBuffer pixelBuffer = mPixelBuffer;
+            if (mUpdated && pixelBuffer != null) {
+                synchronized (pixelBuffer) {
+                    pixelBuffer.position(0);
+                    GLES20.glReadPixels(0, 0, (int)mScreenContext.viewport.width(),
+                                        (int)mScreenContext.viewport.height(), GLES20.GL_RGBA,
+                                        GLES20.GL_UNSIGNED_BYTE, pixelBuffer);
+                    pixelBuffer.notify();
+                }
             }
         }
     }
