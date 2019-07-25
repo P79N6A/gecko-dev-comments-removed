@@ -2175,7 +2175,12 @@ nsGenericElement::SetPrefix(const nsAString& aPrefix)
                                               getter_AddRefs(newNodeInfo));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  mNodeInfo = newNodeInfo;
+  mNodeInfo.swap(newNodeInfo);
+  NodeInfoChanged(newNodeInfo);
+
+  
+  
+  nsMutationGuard::DidMutate();
 
   return NS_OK;
 }
@@ -3570,6 +3575,8 @@ nsINode::doInsertChildAt(nsIContent* aKid, PRUint32 aIndex,
   PRUint32 childCount = aChildArray.ChildCount();
   NS_ENSURE_TRUE(aIndex <= childCount, NS_ERROR_ILLEGAL_VALUE);
 
+  
+  
   nsMutationGuard::DidMutate();
 
   PRBool isAppend = (aIndex == childCount);
@@ -4638,6 +4645,8 @@ nsGenericElement::SetAttrAndNotify(PRInt32 aNamespaceID,
     stateMask = PRUint32(IntrinsicState());
   }
 
+  nsMutationGuard::DidMutate();
+
   if (aNamespaceID == kNameSpaceID_None) {
     
     
@@ -4894,6 +4903,10 @@ nsGenericElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
   if (slots && slots->mAttributeMap) {
     slots->mAttributeMap->DropAttribute(aNameSpaceID, aName);
   }
+
+  
+  
+  nsMutationGuard::DidMutate();
 
   nsAttrValue oldValue;
   rv = mAttrsAndChildren.RemoveAttrAt(index, oldValue);

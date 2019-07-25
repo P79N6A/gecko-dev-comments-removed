@@ -1379,6 +1379,10 @@ nsXULElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName, PRBool aNotify)
       slots->mAttributeMap->DropAttribute(aNameSpaceID, aName);
     }
 
+    
+    
+    nsMutationGuard::DidMutate();
+
     nsAttrValue ignored;
     rv = mAttrsAndChildren.RemoveAttrAt(index, ignored);
     NS_ENSURE_SUCCESS(rv, rv);

@@ -78,6 +78,11 @@ public:
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
+
+  
+  virtual void NodeInfoChanged(nsINodeInfo* aOldNodeInfo);
+
+
 };
 
 #endif 
