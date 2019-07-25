@@ -1,43 +1,43 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is mozilla.org code.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998-2000
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Norris Boyd  <nboyd@atg.com>
- *   Mitch Stoltz <mstoltz@netscape.com>
- *   Christopher A. Aillon <christopher@aillon.com>
- *   Giorgio Maone <g.maone@informaction.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifndef nsScriptSecurityManager_h__
 #define nsScriptSecurityManager_h__
@@ -86,9 +86,9 @@ class DomainPolicy;
 #define DEBUG_CAPS_DomainPolicyLifeCycle
 #endif
 
-/////////////////////
-// PrincipalKey //
-/////////////////////
+
+
+
 
 class PrincipalKey : public PLDHashEntryHdr
 {
@@ -141,23 +141,23 @@ private:
     nsCOMPtr<nsIPrincipal> mKey;
 };
 
-////////////////////
-// Policy Storage //
-////////////////////
 
-// Property Policy
+
+
+
+
 union SecurityLevel
 {
     PRWord   level;
     char*    capability;
 };
 
-// Security levels
-// These values all have the low bit set (except UNDEFINED_ACCESS)
-// to distinguish them from pointer values, because no pointer
-// to allocated memory ever has the low bit set. A SecurityLevel
-// contains either one of these constants or a pointer to a string
-// representing the name of a capability.
+
+
+
+
+
+
 
 #define SCRIPT_SECURITY_UNDEFINED_ACCESS 0
 #define SCRIPT_SECURITY_ACCESS_IS_SET_BIT 1
@@ -175,7 +175,7 @@ union SecurityLevel
 
 struct PropertyPolicy : public PLDHashEntryHdr
 {
-    JSString       *key;  // interned string
+    JSString       *key;  
     SecurityLevel  mGet;
     SecurityLevel  mSet;
 };
@@ -199,7 +199,7 @@ ClearPropertyPolicyEntry(PLDHashTable *table, PLDHashEntryHdr *entry)
     pp->key = NULL;
 }
 
-// Class Policy
+
 #define NO_POLICY_FOR_CLASS (ClassPolicy*)1
 
 struct ClassPolicy : public PLDHashEntryHdr
@@ -207,8 +207,8 @@ struct ClassPolicy : public PLDHashEntryHdr
     char* key;
     PLDHashTable* mPolicy;
 
-    // Note: the DomainPolicy owns us, so if if dies we will too.  Hence no
-    // need to refcount it here (and in fact, we'd probably leak if we tried).
+    
+    
     DomainPolicy* mDomainWeAreWildcardFor;
 };
 
@@ -224,8 +224,8 @@ ClearClassPolicyEntry(PLDHashTable *table, PLDHashEntryHdr *entry)
     PL_DHashTableDestroy(cp->mPolicy);
 }
 
-// Note: actual impl is going to be after the DomainPolicy class definition,
-// since we need to access members of DomainPolicy in the impl
+
+
 static void
 MoveClassPolicyEntry(PLDHashTable *table,
                      const PLDHashEntryHdr *from,
@@ -263,7 +263,7 @@ InitClassPolicyEntry(PLDHashTable *table,
     return PR_TRUE;
 }
 
-// Domain Policy
+
 class DomainPolicy : public PLDHashTable
 {
 public:
@@ -351,7 +351,7 @@ MoveClassPolicyEntry(PLDHashTable *table,
 {
     memcpy(to, from, table->entrySize);
 
-    // Now update the mDefaultPolicy pointer that points to us, if any.
+    
     ClassPolicy* cp = static_cast<ClassPolicy*>(to);
     if (cp->mDomainWeAreWildcardFor) {
         NS_ASSERTION(cp->mDomainWeAreWildcardFor->mWildcardPolicy ==
@@ -361,9 +361,9 @@ MoveClassPolicyEntry(PLDHashTable *table,
     }
 }
 
-/////////////////////////////
-// nsScriptSecurityManager //
-/////////////////////////////
+
+
+
 #define NS_SCRIPTSECURITYMANAGER_CID \
 { 0x7ee2a4c0, 0x4b93, 0x17d3, \
 { 0xba, 0x18, 0x00, 0x60, 0xb0, 0xf1, 0x99, 0xa2 }}
@@ -393,12 +393,12 @@ public:
 
     JSContext* GetSafeJSContext();
 
-    /**
-     * Utility method for comparing two URIs.  For security purposes, two URIs
-     * are equivalent if their schemes, hosts, and ports (if any) match.  This
-     * method returns true if aSubjectURI and aObjectURI have the same origin,
-     * false otherwise.
-     */
+    
+
+
+
+
+
     static PRBool SecurityCompareURIs(nsIURI* aSourceURI, nsIURI* aTargetURI);
     static PRUint32 SecurityHashURI(nsIURI* aURI);
 
@@ -420,7 +420,7 @@ public:
 
 private:
 
-    // GetScriptSecurityManager is the only call that can make one
+    
     nsScriptSecurityManager();
     virtual ~nsScriptSecurityManager();
 
@@ -429,12 +429,12 @@ private:
                       jsid id, JSAccessMode mode,
                       jsval *vp);
 
-    // Decides, based on CSP, whether or not eval() and stuff can be executed.
+    
     static JSBool
     ContentSecurityPolicyPermitsJSAction(JSContext *cx);
 
-    // Returns null if a principal cannot be found; generally callers
-    // should error out at that point.
+    
+    
     static nsIPrincipal*
     doGetObjectPrincipal(JSObject *obj
 #ifdef DEBUG
@@ -442,8 +442,8 @@ private:
 #endif
                          );
 
-    // Returns null if a principal cannot be found.  Note that rv can be NS_OK
-    // when this happens -- this means that there was no JS running.
+    
+    
     nsIPrincipal*
     doGetSubjectPrincipal(nsresult* rv);
     
@@ -471,9 +471,9 @@ private:
     nsresult
     CreateCodebasePrincipal(nsIURI* aURI, nsIPrincipal** result);
 
-    // This is just like the API method, but it doesn't check that the subject
-    // name is non-empty or aCertificate is non-null, and it doesn't change the
-    // certificate in the table (if any) in any way if aModifyTable is false.
+    
+    
+    
     nsresult
     DoGetCertificatePrincipal(const nsACString& aCertFingerprint,
                               const nsACString& aSubjectName,
@@ -483,37 +483,37 @@ private:
                               PRBool aModifyTable,
                               nsIPrincipal **result);
 
-    // Returns null if a principal cannot be found.  Note that rv can be NS_OK
-    // when this happens -- this means that there was no script for the
-    // context.  Callers MUST pass in a non-null rv here.
+    
+    
+    
     nsIPrincipal*
     GetSubjectPrincipal(JSContext* cx, nsresult* rv);
 
-    // Returns null if a principal cannot be found.  Note that rv can be NS_OK
-    // when this happens -- this means that there was no script for the frame.
-    // Callers MUST pass in a non-null rv here.
+    
+    
+    
     nsIPrincipal*
     GetFramePrincipal(JSContext* cx, JSStackFrame* fp, nsresult* rv);
 
-    // Returns null if a principal cannot be found.  Note that rv can be NS_OK
-    // when this happens -- this means that there was no script.  Callers MUST
-    // pass in a non-null rv here.
+    
+    
+    
     static nsIPrincipal*
     GetScriptPrincipal(JSContext* cx, JSScript* script, nsresult* rv);
 
-    // Returns null if a principal cannot be found.  Note that rv can be NS_OK
-    // when this happens -- this means that there was no script associated
-    // with the function object, and no global object associated with the scope
-    // of obj (the last object on its parent chain).  If the caller is walking
-    // the JS stack, fp must point to the current frame in the stack iteration.
-    // Callers MUST pass in a non-null rv here.
+    
+    
+    
+    
+    
+    
     static nsIPrincipal*
     GetFunctionObjectPrincipal(JSContext* cx, JSObject* obj, JSStackFrame *fp,
                                nsresult* rv);
 
-    // Returns null if a principal cannot be found.  Note that rv can be NS_OK
-    // when this happens -- this means that there was no script
-    // running.  Callers MUST pass in a non-null rv here.
+    
+    
+    
     nsIPrincipal*
     GetPrincipalAndFrame(JSContext *cx,
                          JSStackFrame** frameResult,
@@ -529,37 +529,37 @@ private:
     nsresult
     SavePrincipal(nsIPrincipal* aToSave);
 
-    /**
-     * Check capability levels for an |aObj| that implements
-     * nsISecurityCheckedComponent.
-     *
-     * NB: This function also checks to see if aObj is a plugin and the user
-     * has set the "security.xpconnect.plugin.unrestricted" pref to allow
-     * anybody to script plugin objects from anywhere.
-     *
-     * @param cx The context we're running on.
-     *           NB: If null, "sameOrigin" does not have any effect.
-     * @param aObj The nsISupports representation of the object in question
-     *             object, possibly null.
-     * @param aJSObject The JSObject representation of the object in question
-     *                  if |cx| is non-null and |aObjectSecurityLevel| is
-     *                  "sameOrigin". If null will be calculated from aObj (if
-     *                  non-null) if and only if aObj is an XPCWrappedJS. The
-     *                  rationale behind this is that if we're creating a JS
-     *                  wrapper for an XPCWrappedJS, this object definitely
-     *                  expects to be exposed to JS.
-     * @param aSubjectPrincipal The nominal subject principal used when
-     *                          aObjectSecurityLevel is "sameOrigin". If null,
-     *                          this is calculated if it's needed.
-     * @param aObjectSecurityLevel Can be one of three values:
-     *                  - allAccess: Allow access no matter what.
-     *                  - noAccess: Deny access no matter what.
-     *                  - sameOrigin: If |cx| is null, behave like noAccess.
-     *                                Otherwise, possibly compute a subject
-     *                                and object principal and return true if
-     *                                and only if the subject has greater than
-     *                                or equal privileges to the object.
-     */
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     nsresult
     CheckXPCPermissions(JSContext* cx,
                         nsISupports* aObj, JSObject* aJSObject,
@@ -588,6 +588,13 @@ private:
     nsresult
     InitPrincipals(PRUint32 prefCount, const char** prefNames);
 
+
+#ifdef XPC_IDISPATCH_SUPPORT
+    
+    
+    nsresult
+    CheckComponentPermissions(JSContext *cx, const nsCID &aCID);
+#endif
 #ifdef DEBUG_CAPS_HACKER
     void
     PrintPolicyDB();
@@ -604,7 +611,7 @@ private:
         nsCOMPtr<nsIPrincipal> mPrincipal;
     };
 
-    // JS strings we need to clean up on shutdown
+    
     static jsid sEnabledID;
 
     inline void
@@ -625,6 +632,10 @@ private:
     PRPackedBool mIsJavaScriptEnabled;
     PRPackedBool mIsWritingPrefs;
     PRPackedBool mPolicyPrefsChanged;
+#ifdef XPC_IDISPATCH_SUPPORT    
+    PRPackedBool mXPCDefaultGrantAll;
+    static const char sXPCDefaultGrantAllName[];
+#endif
 
     static PRBool sStrictFileOriginPolicy;
 
@@ -651,4 +662,4 @@ public:
     NS_IMETHOD InitializeNameSet(nsIScriptContext* aScriptContext);
 };
 
-#endif // nsScriptSecurityManager_h__
+#endif 

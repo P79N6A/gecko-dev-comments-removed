@@ -1,50 +1,50 @@
-/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=4 sw=4 et tw=79:
- *
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Communicator client code, released
- * March 31, 1998.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   John Bandhauer <jband@netscape.com> (original author)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
 
-/* private inline methods (#include'd by xpcprivate.h). */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifndef xpcinlines_h___
 #define xpcinlines_h___
 
-/***************************************************************************/
+
 PRBool
 xpc::PtrAndPrincipalHashKey::KeyEquals(const PtrAndPrincipalHashKey* aKey) const
 {
@@ -81,7 +81,7 @@ XPCJSRuntime::AddObjectHolderRoot(XPCJSObjectHolder* holder)
     holder->AddToRootSet(GetMapLock(), &mObjectHolderRoots);
 }
 
-/***************************************************************************/
+
 
 inline JSBool
 XPCCallContext::IsValid() const
@@ -271,7 +271,11 @@ XPCCallContext::GetMember() const
 inline JSBool
 XPCCallContext::HasInterfaceAndMember() const
 {
-    return mState >= HAVE_NAME && mInterface && mMember;
+    return mState >= HAVE_NAME && mInterface && (mMember
+#ifdef XPC_IDISPATCH_SUPPORT
+        || mIDispatchMember
+#endif
+        );
 }
 
 inline jsid
@@ -380,7 +384,7 @@ XPCCallContext::SetDestroyJSContextInDestructor(JSBool b)
     mDestroyJSContextInDestructor = b;
 }
 
-/***************************************************************************/
+
 
 inline const nsIID*
 XPCNativeInterface::GetIID() const
@@ -414,7 +418,7 @@ XPCNativeInterface::HasAncestor(const nsIID* iid) const
     return found;
 }
 
-/***************************************************************************/
+
 
 inline JSBool
 XPCNativeSet::FindMember(jsid name, XPCNativeMember** pMember,
@@ -424,7 +428,7 @@ XPCNativeSet::FindMember(jsid name, XPCNativeMember** pMember,
     int count = (int) mInterfaceCount;
     int i;
 
-    // look for interface names first
+    
 
     for(i = 0, iface = mInterfaces; i < count; i++, iface++)
     {
@@ -438,7 +442,7 @@ XPCNativeSet::FindMember(jsid name, XPCNativeMember** pMember,
         }
     }
 
-    // look for method names
+    
     for(i = 0, iface = mInterfaces; i < count; i++, iface++)
     {
         XPCNativeMember* member = (*iface)->FindMember(name);
@@ -545,13 +549,13 @@ XPCNativeSet::HasInterfaceWithAncestor(XPCNativeInterface* aInterface) const
 inline JSBool
 XPCNativeSet::HasInterfaceWithAncestor(const nsIID* iid) const
 {
-    // We can safely skip the first interface which is *always* nsISupports.
+    
     XPCNativeInterface* const * pp = mInterfaces+1;
     for(int i = (int) mInterfaceCount; i > 1; i--, pp++)
         if((*pp)->HasAncestor(iid))
             return JS_TRUE;
 
-    // This is rare, so check last.
+    
     if(iid == &NS_GET_IID(nsISupports))
         return PR_TRUE;
 
@@ -603,27 +607,73 @@ inline void XPCNativeSet::ASSERT_NotMarked()
 }
 #endif
 
-/***************************************************************************/
+
 
 inline
 JSObject* XPCWrappedNativeTearOff::GetJSObject() const
 {
+#ifdef XPC_IDISPATCH_SUPPORT
+    if(IsIDispatch())
+    {
+        XPCDispInterface * iface = GetIDispatchInfo();
+        return iface ? iface->GetJSObject() : nsnull;
+    }
+#endif
     return mJSObject;
 }
 
 inline
 void XPCWrappedNativeTearOff::SetJSObject(JSObject*  JSObj)
 {
+#ifdef XPC_IDISPATCH_SUPPORT
+    if(IsIDispatch())
+    {
+        XPCDispInterface* iface = GetIDispatchInfo();
+        if(iface)
+            iface->SetJSObject(JSObj);
+    }
+    else
+#endif
         mJSObject = JSObj;
 }
+
+#ifdef XPC_IDISPATCH_SUPPORT
+inline void
+XPCWrappedNativeTearOff::SetIDispatch(JSContext* cx)
+{
+    mJSObject = (JSObject*)(((jsword)
+        ::XPCDispInterface::NewInstance(cx,
+                                          mNative)) | 2);
+}
+
+inline XPCDispInterface* 
+XPCWrappedNativeTearOff::GetIDispatchInfo() const
+{
+    NS_ASSERTION((jsword)mJSObject & 2, "XPCWrappedNativeTearOff::GetIDispatchInfo "
+                                "called on a non IDispatch interface");
+    return reinterpret_cast<XPCDispInterface*>
+                           ((((jsword)mJSObject) & ~JSOBJECT_MASK));
+}
+
+inline JSBool
+XPCWrappedNativeTearOff::IsIDispatch() const
+{
+    return (JSBool)(((jsword)mJSObject) & IDISPATCH_BIT);
+}
+
+#endif
 
 inline
 XPCWrappedNativeTearOff::~XPCWrappedNativeTearOff()
 {
     NS_ASSERTION(!(GetInterface()||GetNative()||GetJSObject()), "tearoff not empty in dtor");
+#ifdef XPC_IDISPATCH_SUPPORT
+    if(IsIDispatch())
+        delete GetIDispatchInfo();
+#endif
 }
 
-/***************************************************************************/
+
 
 inline JSBool
 XPCWrappedNative::HasInterfaceNoQI(const nsIID& iid)
@@ -645,8 +695,8 @@ XPCWrappedNative::SweepTearOffs()
             if(marked)
                 continue;
 
-            // If this tearoff does not have a live dedicated JSObject,
-            // then let's recycle it.
+            
+            
             if(!to->GetJSObject())
             {
                 nsISupports* obj = to->GetNative();
@@ -661,7 +711,7 @@ XPCWrappedNative::SweepTearOffs()
     }
 }
 
-/***************************************************************************/
+
 
 inline JSBool
 xpc_ForcePropertyResolve(JSContext* cx, JSObject* obj, jsid id)
@@ -759,6 +809,6 @@ XPCLazyCallContext::SetWrapper(JSObject* flattenedJSObject)
     mFlattenedJSObject = flattenedJSObject;
 }
 
-/***************************************************************************/
 
-#endif /* xpcinlines_h___ */
+
+#endif 
