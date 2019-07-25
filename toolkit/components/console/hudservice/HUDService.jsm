@@ -614,7 +614,7 @@ function NetworkPanel(aParent, aHttpActivity)
 
   
   this.browser = createAndAppendElement(this.panel, "browser", {
-    src: "chrome://global/content/NetworkPanel.xhtml",
+    src: "chrome://browser/content/NetworkPanel.xhtml",
     disablehistory: "true",
     flex: "1"
   });
