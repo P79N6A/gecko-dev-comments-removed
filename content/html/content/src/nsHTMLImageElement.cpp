@@ -510,7 +510,8 @@ nsHTMLImageElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
       return NS_OK;
     }
 
-    nsCOMPtr<imgIRequest> oldCurrentRequest = mCurrentRequest;
+    
+    mNewRequestsWillNeedAnimationReset = PR_TRUE;
 
     
     
@@ -519,17 +520,7 @@ nsHTMLImageElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
     
     LoadImage(aValue, PR_TRUE, aNotify);
 
-    if (mCurrentRequest && !mPendingRequest &&
-        oldCurrentRequest != mCurrentRequest) {
-      
-      
-      
-      nsCOMPtr<imgIContainer> container;
-      mCurrentRequest->GetImage(getter_AddRefs(container));
-      if (container) {
-        container->ResetAnimation();
-      }
-    }
+    mNewRequestsWillNeedAnimationReset = PR_FALSE;
   }
     
   return nsGenericHTMLElement::SetAttr(aNameSpaceID, aName, aPrefix, aValue,

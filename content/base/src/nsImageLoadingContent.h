@@ -339,6 +339,21 @@ private:
 
   PRPackedBool mBlockingOnload : 1;
 
+protected:
+  
+
+
+
+
+
+
+
+  PRPackedBool mNewRequestsWillNeedAnimationReset : 1;
+
+private:
+  PRPackedBool mPendingRequestNeedsResetAnimation : 1;
+  PRPackedBool mCurrentRequestNeedsResetAnimation : 1;
+
   
   PRUint8 mStateChangerDepth;
 };
