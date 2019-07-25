@@ -431,6 +431,9 @@ pref("dom.sms.enabled", true);
 pref("dom.sms.whitelist", "file://,http://homescreen.gaiamobile.org,http://sms.gaiamobile.org");
 
 
+pref("dom.mobileconnection.whitelist", "http://homescreen.gaiamobile.org");
+
+
 pref("dom.mozContacts.enabled", true);
 pref("dom.mozContacts.whitelist", "http://dialer.gaiamobile.org,http://sms.gaiamobile.org");
 
