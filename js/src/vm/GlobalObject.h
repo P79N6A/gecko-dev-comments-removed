@@ -94,10 +94,8 @@ class Debugger;
 
 
 
-class GlobalObject : public JSObject {
-    GlobalObject(const GlobalObject &other) MOZ_DELETE;
-    void operator=(const GlobalObject &other) MOZ_DELETE;
-
+class GlobalObject : public JSObject
+{
     
 
 
