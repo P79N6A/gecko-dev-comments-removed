@@ -1043,9 +1043,7 @@ pref("services.sync.prefs.sync.xpinstall.whitelist.required", true);
 #endif
 
 
-pref("devtools.errorconsole.enabled", true);
-
-
+pref("devtools.errorconsole.enabled", false);
 pref("devtools.inspector.enabled", false);
 
 
