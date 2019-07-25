@@ -149,6 +149,25 @@ public class AwesomeBar extends Activity {
     }
 
     @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        
+        
+        if (keyCode == KeyEvent.KEYCODE_BACK ||
+            keyCode == KeyEvent.KEYCODE_DPAD_UP ||
+            keyCode == KeyEvent.KEYCODE_DPAD_DOWN ||
+            keyCode == KeyEvent.KEYCODE_DPAD_LEFT ||
+            keyCode == KeyEvent.KEYCODE_DPAD_RIGHT ||
+            keyCode == KeyEvent.KEYCODE_DPAD_CENTER) {
+            return super.onKeyDown(keyCode, event);
+        } else {
+            
+            mText.requestFocusFromTouch();
+            mText.dispatchKeyEvent(event);
+            return true;
+        }
+    }
+
+    @Override
     public void onDestroy() {
         super.onDestroy();
         mAwesomeTabs.destroy();
