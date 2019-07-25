@@ -99,6 +99,106 @@ WebGLContext::WebGLContext()
 
 WebGLContext::~WebGLContext()
 {
+    DestroyResourcesAndContext();
+}
+
+static PLDHashOperator
+DeleteTextureFunction(const PRUint32& aKey, WebGLTexture *aValue, void *aData)
+{
+    gl::GLContext *gl = (gl::GLContext *) aData;
+    NS_ASSERTION(!aValue->Deleted(), "Texture is still in mMapTextures, but is deleted?");
+    GLuint name = aValue->GLName();
+    gl->fDeleteTextures(1, &name);
+    aValue->Delete();
+    return PL_DHASH_NEXT;
+}
+
+static PLDHashOperator
+DeleteBufferFunction(const PRUint32& aKey, WebGLBuffer *aValue, void *aData)
+{
+    gl::GLContext *gl = (gl::GLContext *) aData;
+    NS_ASSERTION(!aValue->Deleted(), "Buffer is still in mMapBuffers, but is deleted?");
+    GLuint name = aValue->GLName();
+    gl->fDeleteBuffers(1, &name);
+    aValue->Delete();
+    return PL_DHASH_NEXT;
+}
+
+static PLDHashOperator
+DeleteFramebufferFunction(const PRUint32& aKey, WebGLFramebuffer *aValue, void *aData)
+{
+    gl::GLContext *gl = (gl::GLContext *) aData;
+    NS_ASSERTION(!aValue->Deleted(), "Framebuffer is still in mMapFramebuffers, but is deleted?");
+    GLuint name = aValue->GLName();
+    gl->fDeleteFramebuffers(1, &name);
+    aValue->Delete();
+    return PL_DHASH_NEXT;
+}
+
+static PLDHashOperator
+DeleteRenderbufferFunction(const PRUint32& aKey, WebGLRenderbuffer *aValue, void *aData)
+{
+    gl::GLContext *gl = (gl::GLContext *) aData;
+    NS_ASSERTION(!aValue->Deleted(), "Renderbuffer is still in mMapRenderbuffers, but is deleted?");
+    GLuint name = aValue->GLName();
+    gl->fDeleteRenderbuffers(1, &name);
+    aValue->Delete();
+    return PL_DHASH_NEXT;
+}
+
+static PLDHashOperator
+DeleteProgramFunction(const PRUint32& aKey, WebGLProgram *aValue, void *aData)
+{
+    gl::GLContext *gl = (gl::GLContext *) aData;
+    NS_ASSERTION(!aValue->Deleted(), "Program is still in mMapPrograms, but is deleted?");
+    GLuint name = aValue->GLName();
+    gl->fDeleteProgram(name);
+    aValue->Delete();
+    return PL_DHASH_NEXT;
+}
+
+static PLDHashOperator
+DeleteShaderFunction(const PRUint32& aKey, WebGLShader *aValue, void *aData)
+{
+    gl::GLContext *gl = (gl::GLContext *) aData;
+    NS_ASSERTION(!aValue->Deleted(), "Shader is still in mMapShaders, but is deleted?");
+    GLuint name = aValue->GLName();
+    gl->fDeleteShader(name);
+    aValue->Delete();
+    return PL_DHASH_NEXT;
+}
+
+void
+WebGLContext::DestroyResourcesAndContext()
+{
+    if (!gl)
+        return;
+
+    gl->MakeCurrent();
+
+    mMapTextures.EnumerateRead(DeleteTextureFunction, gl);
+    mMapTextures.Clear();
+
+    mMapBuffers.EnumerateRead(DeleteBufferFunction, gl);
+    mMapBuffers.Clear();
+
+    mMapPrograms.EnumerateRead(DeleteProgramFunction, gl);
+    mMapPrograms.Clear();
+
+    mMapShaders.EnumerateRead(DeleteShaderFunction, gl);
+    mMapShaders.Clear();
+
+    mMapFramebuffers.EnumerateRead(DeleteFramebufferFunction, gl);
+    mMapFramebuffers.Clear();
+
+    mMapRenderbuffers.EnumerateRead(DeleteRenderbufferFunction, gl);
+    mMapRenderbuffers.Clear();
+
+    
+    
+    printf_stderr("--- WebGL context destroyed: %p\n", gl.get());
+
+    gl = nsnull;
 }
 
 void
@@ -141,38 +241,42 @@ WebGLContext::SetCanvasElement(nsHTMLCanvasElement* aParentCanvas)
 NS_IMETHODIMP
 WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
 {
+    if (mWidth == width && mHeight == height)
+        return NS_OK;
+
+    
+    
+    if (gl &&
+        gl->ResizeOffscreen(gfxIntSize(width, height)))
+    {
+        
+        mWidth = width;
+        mHeight = height;
+        return NS_OK;
+    }
+
+    
+    
+    
+    
+
     
     
     
     if (!(mGeneration+1).valid())
         return NS_ERROR_FAILURE; 
 
-    if (mWidth == width && mHeight == height)
-        return NS_OK;
-
-    if (gl) {
-        
-        if (gl->Resize(gfxIntSize(width, height))) {
-
-            mWidth = width;
-            mHeight = height;
-
-            gl->fViewport(0, 0, mWidth, mHeight);
-            gl->fClearColor(0, 0, 0, 0);
-            gl->fClear(LOCAL_GL_COLOR_BUFFER_BIT | LOCAL_GL_DEPTH_BUFFER_BIT | LOCAL_GL_STENCIL_BUFFER_BIT);
-
-            
-            return NS_OK;
-        }
-    }
+    
+    
+    DestroyResourcesAndContext();
 
     gl::ContextFormat format(gl::ContextFormat::BasicRGBA32);
     format.depth = 16;
     format.minDepth = 1;
 
-    gl = gl::GLContextProvider::CreatePBuffer(gfxIntSize(width, height),
-                                              gl::GLContextProvider::GetGlobalContext(),
-                                              format);
+    gl = gl::GLContextProvider::CreateOffscreen(gfxIntSize(width, height), format);
+
+    printf_stderr ("--- WebGL context created: %p\n", gl.get());
 
 #ifdef USE_GLES2
     
@@ -186,16 +290,13 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
 #endif
 
     if (!InitAndValidateGL()) {
-        gl = gl::GLContextProviderOSMesa::CreatePBuffer(gfxIntSize(width, height),
-                                                        nsnull,
-                                                        format);
+        gl = gl::GLContextProviderOSMesa::CreateOffscreen(gfxIntSize(width, height), format);
         if (!InitAndValidateGL()) {
             LogMessage("WebGL: Can't get a usable OpenGL context.");
             return NS_ERROR_FAILURE;
         }
-        else {
-            LogMessage("WebGL: Using software rendering via OSMesa");
-        }
+
+        LogMessage("WebGL: Using software rendering via OSMesa");
     }
 
     mWidth = width;
@@ -205,12 +306,25 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
     
     ++mGeneration;
 
+#if 0
+    if (mGeneration > 0) {
+        
+    }
+#endif
+
     MakeContextCurrent();
 
     
     
+    gl->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, gl->GetOffscreenFBO());
     gl->fViewport(0, 0, mWidth, mHeight);
-    gl->fClearColor(0, 0, 0, 0);
+    gl->fClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+#ifdef USE_GLES2
+    gl->fClearDepthf(0.0f);
+#else
+    gl->fClearDepth(0.0f);
+#endif
+    gl->fClearStencil(0);
     gl->fClear(LOCAL_GL_COLOR_BUFFER_BIT | LOCAL_GL_DEPTH_BUFFER_BIT | LOCAL_GL_STENCIL_BUFFER_BIT);
 
     return NS_OK;
@@ -348,26 +462,19 @@ WebGLContext::GetCanvasLayer(CanvasLayer *aOldLayer,
     
     
 
-    void* native_pbuffer = gl->GetNativeData(gl::GLContext::NativePBuffer);
     void* native_surface = gl->GetNativeData(gl::GLContext::NativeImageSurface);
 
-    if (native_pbuffer) {
-        data.mGLContext = gl.get();
-    }
-    else if (native_surface) {
+    if (native_surface) {
         data.mSurface = static_cast<gfxASurface*>(native_surface);
-    }
-    else {
-        NS_WARNING("The GLContext has neither a native PBuffer nor a native surface!");
-        return nsnull;
+    } else {
+        data.mGLContext = gl.get();
     }
 
     data.mSize = nsIntSize(mWidth, mHeight);
     data.mGLBufferIsPremultiplied = PR_FALSE;
 
     canvasLayer->Initialize(data);
-    
-    canvasLayer->SetIsOpaqueContent(PR_FALSE);
+    canvasLayer->SetIsOpaqueContent(gl->CreationFormat().alpha == 0 ? PR_TRUE : PR_FALSE);
     canvasLayer->Updated(nsIntRect(0, 0, mWidth, mHeight));
 
     mInvalidated = PR_FALSE;
