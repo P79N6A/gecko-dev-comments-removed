@@ -110,6 +110,7 @@ public class GeckoAppShell
     
     public static native void nativeInit();
     public static native void nativeRun(String args);
+    public static native void nativeQuit();
 
     
     public static native void setSurfaceView(GeckoSurfaceView sv);
