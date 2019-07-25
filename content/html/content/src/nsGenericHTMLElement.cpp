@@ -3755,6 +3755,21 @@ nsGenericHTMLFormElement::FieldSetDisabledChanged(bool aNotify)
   UpdateState(aNotify);
 }
 
+bool
+nsGenericHTMLFormElement::IsLabelable() const
+{
+  
+  
+  PRUint32 type = GetType();
+  return type & NS_FORM_INPUT_ELEMENT ||
+         type & NS_FORM_BUTTON_ELEMENT ||
+         
+         type == NS_FORM_METER ||
+         type == NS_FORM_OUTPUT ||
+         type == NS_FORM_SELECT ||
+         type == NS_FORM_TEXTAREA;
+}
+
 
 
 nsresult
