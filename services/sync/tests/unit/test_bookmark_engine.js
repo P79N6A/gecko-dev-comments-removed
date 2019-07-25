@@ -8,6 +8,44 @@ function makeEngine() {
 }
 var syncTesting = new SyncTestingInfrastructure(makeEngine);
 
+function test_ID_caching() {
+
+  _("Ensure that Places IDs are not cached.");
+  let engine = new BookmarksEngine();
+  let store = engine._store;
+  _("All IDs: " + JSON.stringify(store.getAllIDs()));
+
+  let mobileID = store.idForGUID("mobile");
+  _("Change the GUID for that item, and drop the mobile anno.");
+  store._setGUID(mobileID, "abcdefghijkl");
+  Svc.Annos.removeItemAnnotation(mobileID, "mobile/bookmarksRoot");
+
+  let err;
+  let newMobileID;
+
+  
+  try {
+    newMobileID = store.idForGUID("mobile", true);
+    _("New mobile ID: " + newMobileID);
+  } catch (ex) {
+    err = ex;
+    _("Error: " + Utils.exceptionStr(err));
+  }
+
+  do_check_true(!err);
+
+  
+  newMobileID = store.idForGUID("mobile", false);
+  _("New mobile ID: " + newMobileID);
+  do_check_true(!!newMobileID);
+  do_check_neq(newMobileID, mobileID);
+
+  
+  do_check_eq(newMobileID, store.idForGUID("mobile", false));
+
+  do_check_eq(store.GUIDForId(mobileID), "abcdefghijkl");
+}
+
 function test_processIncoming_error_orderChildren() {
   _("Ensure that _orderChildren() is called even when _processIncoming() throws an error.");
 
@@ -94,4 +132,5 @@ function run_test() {
   CollectionKeys.generateNewKeys();
 
   test_processIncoming_error_orderChildren();
+  test_ID_caching();
 }
