@@ -51,7 +51,6 @@
 #include "XPCWrapper.h"
 #include "nsJSPrincipals.h"
 #include "nsWrapperCache.h"
-#include "WrapperFactory.h"
 #include "AccessCheck.h"
 #include "nsJSUtils.h"
 
@@ -1086,39 +1085,18 @@ XPCConvert::NativeInterface2JSObject(XPCLazyCallContext& lccx,
     
     
     if (original == flat) {
-        if (xpc::WrapperFactory::IsLocationObject(flat)) {
-            JSObject *locationWrapper = wrapper->GetWrapper();
-            if (!locationWrapper) {
-                locationWrapper = xpc::WrapperFactory::WrapLocationObject(cx, flat);
-                if (!locationWrapper)
-                    return false;
 
-                
-                
-                wrapper->SetWrapper(locationWrapper);
-            }
+        
+        MOZ_ASSERT(js::IsObjectInContextCompartment(flat, cx));
 
-            flat = locationWrapper;
-        } else if (wrapper->NeedsSOW() &&
-                   !xpc::AccessCheck::isChrome(js::GetContextCompartment(cx))) {
-            JSObject *sowWrapper = wrapper->GetWrapper();
-            if (!sowWrapper) {
-                sowWrapper = xpc::WrapperFactory::WrapSOWObject(cx, flat);
-                if (!sowWrapper)
-                    return false;
+        
+        flat = wrapper->GetSameCompartmentSecurityWrapper(cx);
+        if (!flat)
+            return false;
 
-                
-                
-                wrapper->SetWrapper(sowWrapper);
-            }
-
-            flat = sowWrapper;
-        } else {
-            flat = JS_ObjectToOuterObject(cx, flat);
-            NS_ASSERTION(flat, "bad outer object hook!");
-            NS_ASSERTION(js::IsObjectInContextCompartment(flat, cx),
-                         "bad compartment");
-        }
+        
+        flat = JS_ObjectToOuterObject(cx, flat);
+        MOZ_ASSERT(flat, "bad outer object hook!");
     }
 
     *d = OBJECT_TO_JSVAL(flat);

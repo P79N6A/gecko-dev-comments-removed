@@ -2773,6 +2773,13 @@ public:
         mWrapperWord = newval;
     }
 
+    
+    
+    
+    
+    
+    JSObject *GetSameCompartmentSecurityWrapper(JSContext *cx);
+
     void NoteTearoffs(nsCycleCollectionTraversalCallback& cb);
 
     QITableEntry* GetOffsets()

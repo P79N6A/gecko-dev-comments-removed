@@ -2166,6 +2166,48 @@ XPCWrappedNative::InitTearOffJSObject(XPCCallContext& ccx,
     return true;
 }
 
+JSObject*
+XPCWrappedNative::GetSameCompartmentSecurityWrapper(JSContext *cx)
+{
+    
+    JSObject *flat = GetFlatJSObject();
+    JSObject *wrapper = GetWrapper();
+
+    
+    JSCompartment *cxCompartment = js::GetContextCompartment(cx);
+    MOZ_ASSERT(cxCompartment == js::GetObjectCompartment(flat));
+    if (xpc::AccessCheck::isChrome(cxCompartment)) {
+        MOZ_ASSERT(wrapper == NULL);
+        return flat;
+    }
+
+    
+    if (wrapper)
+        return wrapper;
+
+    
+    
+    
+    if (xpc::WrapperFactory::IsLocationObject(flat)) {
+        wrapper = xpc::WrapperFactory::WrapLocationObject(cx, flat);
+        if (!wrapper)
+            return NULL;
+    } else if (NeedsSOW()) {
+        wrapper = xpc::WrapperFactory::WrapSOWObject(cx, flat);
+        if (!wrapper)
+            return NULL;
+    }
+
+    
+    if (wrapper) {
+        SetWrapper(wrapper);
+        return wrapper;
+    }
+
+    
+    return flat;
+}
+
 
 
 static JSBool Throw(unsigned errNum, XPCCallContext& ccx)
