@@ -1125,7 +1125,16 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
             PRUint32 sizeHint = (PRUint32) len;
             sizeHint = NS_MIN<PRUint32>(sizeHint, 20000000); 
             RasterImage* rasterImage = static_cast<RasterImage*>(mImage.get());
-            rasterImage->SetSourceSizeHint(sizeHint);
+            rv = rasterImage->SetSourceSizeHint(sizeHint);
+            if (NS_FAILED(rv)) {
+              
+              rv = nsMemory::HeapMinimize(PR_TRUE);
+              rv |= rasterImage->SetSourceSizeHint(sizeHint);
+              
+              if (NS_FAILED(rv)) {
+                NS_WARNING("About to hit OOM in imagelib!");
+              }
+            }
           }
         }
       }
@@ -1146,12 +1155,13 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
 
   if (imageType == imgIContainer::TYPE_RASTER) {
     
+    
     PRUint32 bytesRead;
     rv = inStr->ReadSegments(RasterImage::WriteToRasterImage,
                              static_cast<void*>(mImage),
                              count, &bytesRead);
-    NS_ABORT_IF_FALSE(bytesRead == count,
-                      "WriteToRasterImage should consume everything!");
+    NS_ABORT_IF_FALSE(bytesRead == count || mImage->HasError(),
+  "WriteToRasterImage should consume everything or the image must be in error!");
   } else { 
     nsCOMPtr<nsIStreamListener> imageAsStream = do_QueryInterface(mImage);
     rv = imageAsStream->OnDataAvailable(aRequest, ctxt, inStr,

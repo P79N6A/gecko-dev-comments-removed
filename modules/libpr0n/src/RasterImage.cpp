@@ -1415,7 +1415,7 @@ nsresult
 RasterImage::SetSourceSizeHint(PRUint32 sizeHint)
 {
   if (sizeHint && StoringSourceData())
-    mSourceData.SetCapacity(sizeHint);
+    return mSourceData.SetCapacity(sizeHint) ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
   return NS_OK;
 }
 
@@ -2773,7 +2773,12 @@ RasterImage::WriteToRasterImage(nsIInputStream* ,
   
   
   
-  (void) image->AddSourceData(aFromRawSegment, aCount);
+  
+  nsresult rv = image->AddSourceData(aFromRawSegment, aCount);
+  if (rv == NS_ERROR_OUT_OF_MEMORY) {
+    image->DoError();
+    return rv;
+  }
 
   
   *aWriteCount = aCount;

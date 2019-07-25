@@ -117,8 +117,8 @@ NS_IMETHODIMP imgTools::DecodeImageData(nsIInputStream* aInStr,
                               static_cast<void*>(image),
                               length, &bytesRead);
   NS_ENSURE_SUCCESS(rv, rv);
-  NS_ABORT_IF_FALSE(bytesRead == length, "WriteToRasterImage should consume everything!");
-
+  NS_ABORT_IF_FALSE(bytesRead == length || image->HasError(),
+  "WriteToRasterImage should consume everything or the image must be in error!");
 
   
   rv = image->SourceDataComplete();

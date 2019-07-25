@@ -486,7 +486,7 @@ private:
   DiscardTrackerNode         mDiscardTrackerNode;
 
   
-  nsTArray<char>             mSourceData;
+  FallibleTArray<char>       mSourceData;
   nsCString                  mSourceDataMimeType;
   nsCString                  mURIString;
 
