@@ -54,6 +54,18 @@ SmsParent::RecvHasSupport(bool* aHasSupport)
   return true;
 }
 
+bool
+SmsParent::RecvGetNumberOfMessagesForText(const nsString& aText, PRUint16* aResult)
+{
+  *aResult = 0;
+
+  nsCOMPtr<nsISmsService> smsService = do_GetService(SMSSERVICE_CONTRACTID);
+  NS_ENSURE_TRUE(smsService, true);
+
+  smsService->GetNumberOfMessagesForText(aText, aResult);
+  return true;
+}
+
 } 
 } 
 } 
