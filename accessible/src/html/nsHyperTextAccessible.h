@@ -120,10 +120,10 @@ public:
 
 
 
-  nsresult DOMPointToHypertextOffset(nsIDOMNode* aNode, PRInt32 aNodeOffset,
-                                     PRInt32 *aHypertextOffset,
-                                     nsIAccessible **aFinalAccessible = nsnull,
-                                     PRBool aIsEndOffset = PR_FALSE);
+  nsAccessible *DOMPointToHypertextOffset(nsIDOMNode *aNode,
+                                          PRInt32 aNodeOffset,
+                                          PRInt32 *aHypertextOffset,
+                                          PRBool aIsEndOffset = PR_FALSE);
 
   
 
