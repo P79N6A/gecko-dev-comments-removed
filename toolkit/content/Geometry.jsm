@@ -213,6 +213,72 @@ let Util = {
 
 
 
+
+Util.Timeout = function(aCallback) {
+  this._callback = aCallback;
+  this._timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+  this._active = false;
+}
+
+Util.Timeout.prototype = {
+  
+  notify: function notify() {
+    this._active = false;
+    if (this._callback.notify)
+      this._callback.notify();
+    else
+      this._callback.apply(null);
+  },
+
+  
+  once: function once(aDelay, aCallback) {
+    if (aCallback)
+      this._callback = aCallback;
+    this.clear();
+    this._timer.initWithCallback(this, aDelay, this._timer.TYPE_ONE_SHOT);
+    this._active = true;
+    return this;
+  },
+
+  
+  interval: function interval(aDelay, aCallback) {
+    if (aCallback)
+      this._callback = aCallback;
+    this.clear();
+    this._timer.initWithCallback(this, aDelay, this._timer.TYPE_REPEATING_SLACK);
+    this._active = true;
+    return this;
+  },
+
+  
+  clear: function clear() {
+    if (this._active) {
+      this._timer.cancel();
+      this._active = false;
+    }
+    return this;
+  },
+
+  
+  flush: function flush() {
+    if (this._active) {
+      this.clear();
+      this.notify();
+    }
+    return this;
+  },
+
+  
+  isPending: function isPending() {
+    return this._active;
+  }
+};
+
+
+
+
+
+
 let Elements = {};
 
 [
