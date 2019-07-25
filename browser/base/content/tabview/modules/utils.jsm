@@ -526,12 +526,15 @@ let Utils = {
   
   trace: function Utils_trace() {
     var text = this.expandArgumentsForLog(arguments);
+
     
-    let stack = Error().stack.replace(/^.*?\n.*?\n/, "");
+    let stack = Error().stack.split("\n").splice(1);
+
     
-    if (this.trace.caller.name == 'Utils_assert')
-      stack = stack.replace(/^.*?\n/, "");
-    this.log('trace: ' + text + '\n' + stack);
+    if (stack[0].indexOf("Utils_assert(") == 0)
+      stack.splice(0, 1);
+
+    this.log('trace: ' + text + '\n' + stack.join("\n"));
   },
 
   
@@ -561,9 +564,9 @@ let Utils = {
         text = "tabview assert: " + label;
 
       
-      text += Error().stack.replace(/^.*?\n.*?\n/, "");
+      let stack = Error().stack.split("\n").splice(1);
 
-      throw text;
+      throw text + "\n" + stack.join("\n");
     }
   },
 
