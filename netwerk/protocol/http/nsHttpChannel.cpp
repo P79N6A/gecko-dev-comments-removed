@@ -70,6 +70,7 @@
 #include "nsDOMError.h"
 #include "nsAlgorithm.h"
 #include "sampler.h"
+#include "NullHttpTransaction.h"
 
 using namespace mozilla;
 
@@ -230,6 +231,16 @@ nsHttpChannel::Connect(bool firstTime)
 
     
     if (firstTime) {
+
+        
+        
+        nsCOMPtr<nsIInterfaceRequestor> callbacks;
+        NS_NewNotificationCallbacksAggregation(mCallbacks, mLoadGroup,
+                                               getter_AddRefs(callbacks));
+        if (callbacks)
+            gHttpHandler->SpeculativeConnect(mConnectionInfo,
+                                             callbacks, NS_GetCurrentThread());
+
         
         bool offline = gIOService->IsOffline();
         if (offline)

@@ -181,6 +181,13 @@ public:
         return mConnMgr->GetSocketThreadTarget(target);
     }
 
+    nsresult SpeculativeConnect(nsHttpConnectionInfo *ci,
+                                nsIInterfaceRequestor *callbacks,
+                                nsIEventTarget *target)
+    {
+        return mConnMgr->SpeculativeConnect(ci, callbacks, target);
+    }
+
     
     bool InPrivateBrowsingMode();
 
