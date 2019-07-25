@@ -153,10 +153,16 @@ const TEST_ADDONS = [ "appdisabled_1", "appdisabled_2",
                       "updateversion_1", "updateversion_2",
                       "userdisabled_1", "userdisabled_2" ];
 
-const DEBUG = false;
 
-const TEST_TIMEOUT = 30000; 
+const TEST_TIMEOUT = 20000; 
 var gTimeoutTimer;
+
+
+
+const CLOSE_WINDOW_TIMEOUT_MAXCOUNT = 10;
+
+
+var gCloseWindowTimeoutCounter = 0;
 
 
 
@@ -172,13 +178,12 @@ var gDocElem;
 var gPrefToCheck;
 var gDisableNoUpdateAddon = false;
 
-#include ../shared.js
 
-function debugDump(msg) {
-  if (DEBUG) {
-    dump("*** " + msg + "\n");
-  }
-}
+
+
+var DEBUG_AUS_TEST = false;
+
+#include ../shared.js
 
 
 
@@ -239,8 +244,11 @@ __defineGetter__("gIncompatibleListbox", function() {
 
 
 
+
+
+
 function runTestDefault() {
-  debugDump("Entering runTestDefault");
+  debugDump("entering");
 
   if (!("@mozilla.org/zipwriter;1" in AUS_Cc)) {
     ok(false, "nsIZipWriter is required to run these tests");
@@ -249,22 +257,53 @@ function runTestDefault() {
 
   SimpleTest.waitForExplicitFinish();
 
-  Services.ww.registerNotification(gWindowObserver);
-
-  setupPrefs();
-  removeUpdateDirsAndFiles();
-  reloadUpdateManagerData();
-  setupAddons(runTest);
+  runTestDefaultWaitForWindowClosed();
 }
 
 
 
 
+
+
+
+
+function runTestDefaultWaitForWindowClosed() {
+  gCloseWindowTimeoutCounter++;
+  if (gCloseWindowTimeoutCounter > CLOSE_WINDOW_TIMEOUT_MAXCOUNT) {
+    try {
+      finishTest();
+    }
+    catch (e) {
+      finishTestDefault();
+    }
+    return;
+  }
+
+  
+  
+  if (closeUpdateWindow()) {
+    SimpleTest.executeSoon(runTestDefaultWaitForWindowClosed);
+  }
+  else {
+    Services.ww.registerNotification(gWindowObserver);
+
+    gCloseWindowTimeoutCounter = 0;
+
+    setupPrefs();
+    removeUpdateDirsAndFiles();
+    reloadUpdateManagerData();
+    setupAddons(runTest);
+  }
+}
+
+
+
+
+
+
+
 function finishTestDefault() {
-  debugDump("Entering finishTestDefault");
-
-  gDocElem.removeEventListener("pageshow", onPageShowDefault, false);
-
+  debugDump("entering");
   if (gTimeoutTimer) {
     gTimeoutTimer.cancel();
     gTimeoutTimer = null;
@@ -272,12 +311,16 @@ function finishTestDefault() {
 
   verifyTestsRan();
 
-  Services.ww.unregisterNotification(gWindowObserver);
-
   resetPrefs();
   removeUpdateDirsAndFiles();
   reloadUpdateManagerData();
-  SimpleTest.finish();
+
+  Services.ww.unregisterNotification(gWindowObserver);
+  if (gDocElem) {
+    gDocElem.removeEventListener("pageshow", onPageShowDefault, false);
+  }
+
+  finishTestDefaultWaitForWindowClosed();
 }
 
 
@@ -289,10 +332,39 @@ function finishTestDefault() {
 
 
 function finishTestTimeout(aTimer) {
-  gTimeoutTimer = null;
   ok(false, "Test timed out. Maximum time allowed is " + (TEST_TIMEOUT / 1000) +
      " seconds");
-  gWin.close();
+
+  try {
+    finishTest();
+  }
+  catch (e) {
+    finishTestDefault();
+  }
+}
+
+
+
+
+
+
+
+
+function finishTestDefaultWaitForWindowClosed() {
+  gCloseWindowTimeoutCounter++;
+  if (gCloseWindowTimeoutCounter > CLOSE_WINDOW_TIMEOUT_MAXCOUNT) {
+    SimpleTest.finish();
+    return;
+  }
+
+  
+  
+  if (closeUpdateWindow()) {
+    SimpleTest.executeSoon(finishTestDefaultWaitForWindowClosed);
+  }
+  else {
+    SimpleTest.finish();
+  }
 }
 
 
@@ -301,12 +373,16 @@ function finishTestTimeout(aTimer) {
 
 
 function onPageShowDefault(aEvent) {
+  if (!gTimeoutTimer) {
+    debugDump("gTimeoutTimer is null... returning early");
+    return;
+  }
+
   
   
   if (aEvent.originalTarget.nodeName != "wizardpage") {
-    debugDump("onPageShowDefault - only handles events with an " +
-              "originalTarget nodeName of |wizardpage|. " +
-              "aEvent.originalTarget.nodeName = " +
+    debugDump("only handles events with an originalTarget nodeName of " +
+              "|wizardpage|. aEvent.originalTarget.nodeName = " +
               aEvent.originalTarget.nodeName + "... returning early");
     return;
   }
@@ -319,15 +395,19 @@ function onPageShowDefault(aEvent) {
 
 
 function defaultCallback(aEvent) {
-  debugDump("Entering defaultCallback - TESTS[" + gTestCounter + "], " +
-            "pageid: " + gTest.pageid + ", " +
-            "aEvent.originalTarget.nodeName: " + aEvent.originalTarget.nodeName);
+  if (!gTimeoutTimer) {
+    debugDump("gTimeoutTimer is null... returning early");
+    return;
+  }
+
+  debugDump("entering - TESTS[" + gTestCounter + "], pageid: " + gTest.pageid +
+            ", aEvent.originalTarget.nodeName: " +
+            aEvent.originalTarget.nodeName);
 
   if (gTest && gTest.extraStartFunction) {
-    debugDump("defaultCallback - calling extraStartFunction " +
-              gTest.extraStartFunction.name);
+    debugDump("calling extraStartFunction " + gTest.extraStartFunction.name);
     if (gTest.extraStartFunction(aEvent)) {
-      debugDump("defaultCallback - extraStartFunction early return");
+      debugDump("extraStartFunction early return");
       return;
     }
   }
@@ -337,8 +417,7 @@ function defaultCallback(aEvent) {
 
   
   if (gTest.extraCheckFunction) {
-    debugDump("delayedCallback - calling extraCheckFunction " +
-              gTest.extraCheckFunction.name);
+    debugDump("calling extraCheckFunction " + gTest.extraCheckFunction.name);
     gTest.extraCheckFunction();
   }
 
@@ -354,8 +433,12 @@ function defaultCallback(aEvent) {
 
 
 function delayedDefaultCallback() {
-  debugDump("Entering delayedDefaultCallback - TESTS[" + gTestCounter + "], " +
-            "pageid: " + gTest.pageid);
+  if (!gTimeoutTimer) {
+    debugDump("gTimeoutTimer is null... returning early");
+    return;
+  }
+
+  debugDump("entering - TESTS[" + gTestCounter + "], pageid: " + gTest.pageid);
 
   
   is(gDocElem.currentPage.pageid, gTest.pageid,
@@ -366,7 +449,7 @@ function delayedDefaultCallback() {
 
   
   if (gTest.extraDelayedCheckFunction) {
-    debugDump("delayedDefaultCallback - calling extraDelayedCheckFunction " +
+    debugDump("calling extraDelayedCheckFunction " +
               gTest.extraDelayedCheckFunction.name);
     gTest.extraDelayedCheckFunction();
   }
@@ -375,15 +458,14 @@ function delayedDefaultCallback() {
   gTest.ranTest = true;
 
   if (gTest.buttonClick) {
-    debugDump("delayedDefaultCallback - clicking " + gTest.buttonClick +
-              " button");
+    debugDump("clicking " + gTest.buttonClick + " button");
     if(gTest.extraDelayedFinishFunction) {
       throw("Tests cannot have a buttonClick and an extraDelayedFinishFunction property");
     }
     gDocElem.getButton(gTest.buttonClick).click();
   }
   else if (gTest.extraDelayedFinishFunction) {
-    debugDump("delayedDefaultCallback - calling extraDelayedFinishFunction " +
+    debugDump("calling extraDelayedFinishFunction " +
               gTest.extraDelayedFinishFunction.name);
     gTest.extraDelayedFinishFunction();
   }
@@ -395,8 +477,7 @@ function delayedDefaultCallback() {
 
 
 function checkButtonStates() {
-  debugDump("Entering checkButtonStates - TESTS[" + gTestCounter + "], " +
-            "pageid: " + gTest.pageid);
+  debugDump("entering - TESTS[" + gTestCounter + "], pageid: " + gTest.pageid);
 
   const buttonNames = ["extra1", "extra2", "back", "next", "finish", "cancel"];
   let buttonStates = getExpectedButtonStates();
@@ -471,8 +552,7 @@ function getExpectedButtonStates() {
 
 
 function addRemoteContentLoadListener() {
-  debugDump("Entering addRemoteContentLoadListener - TESTS[" + gTestCounter +
-            "], pageid: " + gTest.pageid);
+  debugDump("entering - TESTS[" + gTestCounter + "], pageid: " + gTest.pageid);
 
   gRemoteContent.addEventListener("load", remoteContentLoadListener, false);
 }
@@ -483,9 +563,8 @@ function addRemoteContentLoadListener() {
 function remoteContentLoadListener(aEvent) {
   
   if (aEvent.originalTarget.nodeName != "remotecontent") {
-    debugDump("remoteContentLoadListener - only handles events with an " +
-              "originalTarget nodeName of |remotecontent|. " +
-              "aEvent.originalTarget.nodeName = " +
+    debugDump("only handles events with an originalTarget nodeName of " +
+              "|remotecontent|. aEvent.originalTarget.nodeName = " +
               aEvent.originalTarget.nodeName);
     return;
   }
@@ -511,7 +590,7 @@ function waitForRemoteContentLoaded(aEvent) {
   
   if (gRemoteContentState != gTest.expectedRemoteContentState ||
       !aEvent.originalTarget.isSameNode(gRemoteContent)) {
-    debugDump("waitForRemoteContentLoaded - returning early\n" +
+    debugDump("returning early\n" +
               "gRemoteContentState: " + gRemoteContentState + "\n" +
               "expectedRemoteContentState: " +
               gTest.expectedRemoteContentState + "\n" +
@@ -539,8 +618,7 @@ function checkRemoteContentState() {
 
 
 function addRadioGroupSelectListenerAndClick() {
-  debugDump("Entering addRadioGroupSelectListenerAndClick - TESTS[" +
-            gTestCounter + "], pageid: " + gTest.pageid);
+  debugDump("entering - TESTS[" + gTestCounter + "], pageid: " + gTest.pageid);
 
   gAcceptDeclineLicense.addEventListener("select", radioGroupSelectListener,
                                          false);
@@ -553,9 +631,8 @@ function addRadioGroupSelectListenerAndClick() {
 function radioGroupSelectListener(aEvent) {
   
   if (aEvent.originalTarget.nodeName != "radiogroup") {
-    debugDump("remoteContentLoadListener - only handles events with an " +
-              "originalTarget nodeName of |radiogroup|. " +
-              "aEvent.originalTarget.nodeName = " +
+    debugDump("only handles events with an originalTarget nodeName of " +
+              "|radiogroup|. aEvent.originalTarget.nodeName = " +
               aEvent.originalTarget.nodeName);
     return;
   }
@@ -689,7 +766,7 @@ function getNewerPlatformVersion() {
 
 
 function verifyTestsRan() {
-  debugDump("Entering verifyTestsRan");
+  debugDump("entering");
 
   
   if (!TESTS) {
@@ -716,12 +793,12 @@ function setupPrefs() {
   gAppUpdateChannel = gDefaultPrefBranch.getCharPref(PREF_APP_UPDATE_CHANNEL);
   setUpdateChannel();
 
-  if (DEBUG) {
+  if (DEBUG_AUS_TEST) {
     Services.prefs.setBoolPref(PREF_APP_UPDATE_LOG, true)
   }
 
   if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_URL_OVERRIDE)) {
-    gAppUpdateURL = Services.prefs.setIntPref(PREF_APP_UPDATE_URL_OVERRIDE);
+    gAppUpdateURL = Services.prefs.getCharPref(PREF_APP_UPDATE_URL_OVERRIDE);
   }
 
   if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_ENABLED)) {
@@ -849,7 +926,7 @@ function resetPrefs() {
 
 
 function setupAddons(aCallback) {
-  debugDump("Entering setupAddons");
+  debugDump("entering");
 
   
   
@@ -871,6 +948,12 @@ function setupAddons(aCallback) {
           }
         }
       });
+      
+      
+      gTimeoutTimer = AUS_Cc["@mozilla.org/timer;1"].
+                      createInstance(AUS_Ci.nsITimer);
+      gTimeoutTimer.initWithCallback(finishTestTimeout, TEST_TIMEOUT,
+                                     AUS_Ci.nsITimer.TYPE_ONE_SHOT);
       aCallback();
     });
   }
@@ -956,13 +1039,13 @@ function setupAddons(aCallback) {
 
 
 function resetAddons(aCallback) {
-  debugDump("Entering resetAddons");
+  debugDump("entering");
   
   
   
   if (!Services.prefs.prefHasUserValue(PREF_DISABLEDADDONS)) {
-    debugDump("resetAddons - preference " + PREF_DISABLEDADDONS + " doesn't " +
-              "exist... returning early");
+    debugDump("preference " + PREF_DISABLEDADDONS + " doesn't exist... " +
+              "returning early");
     aCallback();
     return;
   }
@@ -1104,14 +1187,18 @@ function getInstallRDFString(aName) {
 
 
 
+
+
+
 function closeUpdateWindow() {
   let updateWindow = getUpdateWindow();
   if (!updateWindow)
-    return;
+    return false;
 
-  ok(false, "Found an existing Update Window from a previous test... " +
-            "attempting to close it.");
+  ok(false, "Found an existing Update Window from the current or a previous " +
+            "test... attempting to close it.");
   updateWindow.close();
+  return true;
 }
 
 
@@ -1146,7 +1233,7 @@ var errorsPrefObserver = {
     this.observedPref = aObservePref;
     this.maxErrorPref = aMaxErrorPref;
 
-    let maxErrors = aMaxErrorCount ? aMaxErrorCount : 5;
+    let maxErrors = aMaxErrorCount ? aMaxErrorCount : 2;
     Services.prefs.setIntPref(aMaxErrorPref, maxErrors);
     Services.prefs.addObserver(aObservePref, this, false);
   },
@@ -1159,11 +1246,11 @@ var errorsPrefObserver = {
       let errCount = Services.prefs.getIntPref(this.observedPref);
       let errMax = Services.prefs.getIntPref(this.maxErrorPref);
       if (errCount >= errMax) {
-        debugDump("errorsPrefObserver - removing pref observer");
+        debugDump("removing pref observer");
         Services.prefs.removeObserver(this.observedPref, this);
       }
       else {
-        debugDump("errorsPrefObserver - notifying AUS");
+        debugDump("notifying AUS");
         SimpleTest.executeSoon(function() {
           gAUS.notify(null);
         });
@@ -1181,9 +1268,8 @@ var gWindowObserver = {
 
     if (aTopic == "domwindowclosed") {
       if (win.location != URI_UPDATE_PROMPT_DIALOG) {
-        debugDump("gWindowObserver:observe - domwindowclosed event for " +
-                  "window not being tested - location: " + win.location +
-                  "... returning early");
+        debugDump("domwindowclosed event for window not being tested - " +
+                  "location: " + win.location + "... returning early");
         return;
       }
       
@@ -1197,13 +1283,12 @@ var gWindowObserver = {
       return;
     }
 
-    win.addEventListener("load", function onLoad() {
-      win.removeEventListener("load", onLoad, false);
+    win.addEventListener("load", function WO_observe_onLoad() {
+      win.removeEventListener("load", WO_observe_onLoad, false);
       
       if (win.location != URI_UPDATE_PROMPT_DIALOG) {
-        debugDump("gWindowObserver:observe:onLoad - load event for window " +
-                  "not being tested - location: " + win.location +
-                  "... returning early");
+        debugDump("load event for window not being tested - location: " +
+                  win.location + "... returning early");
         return;
       }
 
@@ -1216,11 +1301,6 @@ var gWindowObserver = {
            ", expected: " + PAGEID_DUMMY + "... returning early");
         return;
       }
-
-      gTimeoutTimer = AUS_Cc["@mozilla.org/timer;1"].
-                      createInstance(AUS_Ci.nsITimer);
-      gTimeoutTimer.initWithCallback(finishTestTimeout, TEST_TIMEOUT,
-                                     AUS_Ci.nsITimer.TYPE_ONE_SHOT);
 
       gWin = win;
       gDocElem = gWin.document.documentElement;

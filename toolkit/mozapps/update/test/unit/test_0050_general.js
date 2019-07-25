@@ -50,6 +50,7 @@ var gExpectedStatusText;
 
 function run_test() {
   do_test_pending();
+  do_register_cleanup(end_test);
   removeUpdateDirsAndFiles();
   setUpdateURLOverride();
   standardInit();
@@ -59,7 +60,6 @@ function run_test() {
 }
 
 function end_test() {
-  do_test_finished();
   cleanUp();
 }
 
@@ -78,7 +78,7 @@ function run_test_helper(aNextRunFunc, aExpectedStatusCode, aMsg) {
   gCheckFunc = check_test_helper;
   gNextRunFunc = aNextRunFunc;
   gExpectedStatusCode = aExpectedStatusCode;
-  dump("Testing: " + aMsg + "\n");
+  logTestInfo(aMsg, Components.stack.caller);
   gUpdateChecker.checkForUpdates(updateCheckListener, true);
 }
 
@@ -99,7 +99,7 @@ function run_test_pt1() {
   gStatusText = null;
   gCheckFunc = check_test_pt1;
   gExpectedStatusCode = 399;
-  dump("Testing: run_test_pt1 - default onerror error message\n");
+  logTestInfo("testing default onerror error message");
   gUpdateChecker.checkForUpdates(updateCheckListener, true);
 }
 
@@ -113,95 +113,95 @@ function check_test_pt1() {
 
 function run_test_pt2() {
   run_test_helper(run_test_pt3, 200,
-                  "run_test_pt2 - file malformed");
+                  "testing file malformed");
 }
 
 
 function run_test_pt3() {
   run_test_helper(run_test_pt4, 403,
-                  "run_test_pt3 - access denied");
+                  "testing access denied");
 }
 
 
 function run_test_pt4() {
   run_test_helper(run_test_pt5, 404,
-                  "run_test_pt4 - file not found");
+                  "testing file not found");
 }
 
 
 function run_test_pt5() {
   run_test_helper(run_test_pt6, 500,
-                  "run_test_pt5 - internal server error");
+                  "testing internal server error");
 }
 
 
 function run_test_pt6() {
   run_test_helper(run_test_pt7, AUS_Cr.NS_BINDING_FAILED,
-                  "run_test_pt6 - failed (unknown reason)");
+                  "testing failed (unknown reason)");
 }
 
 
 function run_test_pt7() {
   run_test_helper(run_test_pt8, AUS_Cr.NS_ERROR_NET_TIMEOUT,
-                  "run_test_pt7 - connection timed out");
+                  "testing connection timed out");
 }
 
 
 function run_test_pt8() {
   run_test_helper(run_test_pt9, AUS_Cr.NS_ERROR_OFFLINE,
-                  "run_test_pt8 - network offline");
+                  "testing network offline");
 }
 
 
 function run_test_pt9() {
   run_test_helper(run_test_pt10, AUS_Cr.NS_ERROR_PORT_ACCESS_NOT_ALLOWED,
-                  "run_test_pt9 - port not allowed");
+                  "testing port not allowed");
 }
 
 
 function run_test_pt10() {
   run_test_helper(run_test_pt11, AUS_Cr.NS_ERROR_NET_RESET,
-                  "run_test_pt10 - no data was received");
+                  "testing no data was received");
 }
 
 
 function run_test_pt11() {
   run_test_helper(run_test_pt12, AUS_Cr.NS_ERROR_UNKNOWN_HOST,
-                  "run_test_pt11 - update server not found");
+                  "testing update server not found");
 }
 
 
 function run_test_pt12() {
   run_test_helper(run_test_pt13, AUS_Cr.NS_ERROR_UNKNOWN_PROXY_HOST,
-                  "run_test_pt12 - proxy server not found");
+                  "testing proxy server not found");
 }
 
 
 function run_test_pt13() {
   run_test_helper(run_test_pt14, AUS_Cr.NS_ERROR_NET_INTERRUPT,
-                  "run_test_pt13 - data transfer interrupted");
+                  "testing data transfer interrupted");
 }
 
 
 function run_test_pt14() {
   run_test_helper(run_test_pt15, AUS_Cr.NS_ERROR_PROXY_CONNECTION_REFUSED,
-                  "run_test_pt14 - proxy server connection refused");
+                  "testing proxy server connection refused");
 }
 
 
 function run_test_pt15() {
   run_test_helper(run_test_pt16, 2153390069,
-                  "run_test_pt15 - server certificate expired");
+                  "testing server certificate expired");
 }
 
 
 function run_test_pt16() {
   run_test_helper(run_test_pt17, AUS_Cr.NS_ERROR_DOCUMENT_NOT_CACHED,
-                  "run_test_pt16 - network is offline");
+                  "testing network is offline");
 }
 
 
 function run_test_pt17() {
-  run_test_helper(end_test, AUS_Cr.NS_ERROR_CONNECTION_REFUSED,
-                  "run_test_pt17 - connection refused");
+  run_test_helper(do_test_finished, AUS_Cr.NS_ERROR_CONNECTION_REFUSED,
+                  "testing connection refused");
 }

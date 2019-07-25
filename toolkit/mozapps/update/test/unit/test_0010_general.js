@@ -39,8 +39,11 @@
 
 
 function run_test() {
+  do_test_pending();
+  do_register_cleanup(end_test);
+
   
-  dump("Testing: write access is required to the application directory\n");
+  logTestInfo("testing write access to the application directory");
   removeUpdateDirsAndFiles();
   var testFile = getCurrentProcessDir();
   testFile.append("update_write_access_test");
@@ -52,10 +55,15 @@ function run_test() {
   standardInit();
 
   
-  dump("Testing: nsIApplicationUpdateService:canCheckForUpdates\n");
+  logTestInfo("testing nsIApplicationUpdateService:canCheckForUpdates");
   do_check_true(gAUS.canCheckForUpdates);
   
-  dump("Testing: nsIApplicationUpdateService:canApplyUpdates\n");
+  logTestInfo("testing nsIApplicationUpdateService:canApplyUpdates");
   do_check_true(gAUS.canApplyUpdates);
+
+  do_test_finished();
+}
+
+function end_test() {
   cleanUp();
 }
