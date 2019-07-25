@@ -1012,13 +1012,13 @@ public:
     
     
     
-    virtual PRBool ProvidesHintedWidths() const {
+    virtual PRBool ProvidesGlyphWidths() const {
         return PR_FALSE;
     }
 
     
     
-    virtual PRInt32 GetHintedGlyphWidth(gfxContext *aCtx, PRUint16 aGID) {
+    virtual PRInt32 GetGlyphWidth(gfxContext *aCtx, PRUint16 aGID) {
         return -1;
     }
 

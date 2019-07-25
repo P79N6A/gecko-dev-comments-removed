@@ -120,7 +120,7 @@ protected:
     PRPackedBool mUseFontGetGlyph;
     
     
-    PRPackedBool mUseHintedWidths;
+    PRPackedBool mUseFontGlyphWidths;
 };
 
 #endif 

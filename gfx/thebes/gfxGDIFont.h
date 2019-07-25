@@ -76,10 +76,10 @@ public:
     
     virtual gfxFont* CopyWithAntialiasOption(AntialiasOption anAAOption);
 
-    virtual PRBool ProvidesHintedWidths() const { return PR_TRUE; }
+    virtual PRBool ProvidesGlyphWidths() const { return PR_TRUE; }
 
     
-    virtual PRInt32 GetHintedGlyphWidth(gfxContext *aCtx, PRUint16 aGID);
+    virtual PRInt32 GetGlyphWidth(gfxContext *aCtx, PRUint16 aGID);
 
 protected:
     virtual void CreatePlatformShaper();
