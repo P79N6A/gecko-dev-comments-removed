@@ -233,9 +233,20 @@ InstallTriggerManager.prototype = {
     
     
     
-    delete this.InstallTrigger; 
-    this.InstallTrigger = new InstallTrigger(this);
-    return this.InstallTrigger;
+    
+    
+    
+    
+    
+    
+    var obj = this;
+    while (!obj.hasOwnProperty('InstallTrigger')) {
+      obj = XPCNativeWrapper.unwrap(Object.getPrototypeOf(obj));
+    }
+
+    delete obj.InstallTrigger; 
+    obj.InstallTrigger = new InstallTrigger(this);
+    return obj.InstallTrigger;
   },
 
   
