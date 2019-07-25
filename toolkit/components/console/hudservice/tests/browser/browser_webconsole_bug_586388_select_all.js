@@ -31,31 +31,21 @@ function testSelectionWhenMovingBetweenBoxes() {
   jsterm.execute("5 + 6");
 
   outputNode = jsterm.outputNode;
-  let groupNode = outputNode.querySelector(".hud-group");
 
-  ok(groupNode.childNodes.length >= 3, "the output node has children after " +
+  ok(outputNode.childNodes.length >= 3, "the output node has children after " +
      "executing some JavaScript");
 
   
   
-  let selection = window.getSelection();
-  selection.removeAllRanges();
-  let range = document.createRange();
-  range.selectNode(outputNode.firstChild);
-  selection.addRange(range);
-  selection.collapseToStart();
-
   let commandController = window.commandController;
   ok(commandController != null, "the window has a command controller object");
 
   commandController.selectAll(outputNode);
-  for (let i = 0; i < groupNode.childNodes.length; i++) {
-    ok(selection.containsNode(groupNode.childNodes[i], false),
-       "HUD message " + i + " is selected after performing a regular " +
-       "browser select-all operation");
-  }
+  is(outputNode.selectedCount, outputNode.childNodes.length, "all console " +
+     "messages are selected after performing a regular browser select-all " +
+     "operation");
 
-  selection.removeAllRanges();
+  outputNode.selectedIndex = -1;
 
   
   
@@ -72,14 +62,13 @@ function testSelectionWhenMovingBetweenBoxes() {
                                 false, false, null);
   selectAllItem.dispatchEvent(commandEvent);
 
-  for (let i = 0; i < groupNode.childNodes.length; i++) {
-    ok(selection.containsNode(groupNode.childNodes[i], false),
-       "HUD message " + i + " is selected after performing a select-all " +
-       "operation from the context menu");
-  }
+  is(outputNode.selectedCount, outputNode.childNodes.length, "all console " +
+     "messages are selected after performing a select-all operation from " +
+     "the context menu");
 
-  selection.removeAllRanges();
-  selection = commandEvent = contextMenu = groupNode = range = null;
+  outputNode.selectedIndex = -1;
+
+  commandEvent = contextMenu = groupNode = range = null;
 
   finishTest();
 }

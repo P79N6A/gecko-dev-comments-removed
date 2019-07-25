@@ -66,6 +66,10 @@ XPCOMUtils.defineLazyServiceGetter(this, "mimeService",
                                    "@mozilla.org/mime;1",
                                    "nsIMIMEService");
 
+XPCOMUtils.defineLazyServiceGetter(this, "clipboardHelper",
+                                   "@mozilla.org/widget/clipboardhelper;1",
+                                   "nsIClipboardHelper");
+
 XPCOMUtils.defineLazyGetter(this, "NetUtil", function () {
   var obj = {};
   Cu.import("resource://gre/modules/NetUtil.jsm", obj);
@@ -117,6 +121,78 @@ const SEARCH_DELAY = 200;
 
 
 const DEFAULT_LOG_LIMIT = 200;
+
+
+
+const CATEGORY_NETWORK = 0;
+const CATEGORY_CSS = 1;
+const CATEGORY_JS = 2;
+const CATEGORY_WEBDEV = 3;
+const CATEGORY_MISC = 4;    
+const CATEGORY_INPUT = 5;   
+const CATEGORY_OUTPUT = 6;  
+
+
+
+const SEVERITY_ERROR = 0;
+const SEVERITY_WARNING = 1;
+const SEVERITY_INFO = 2;
+const SEVERITY_LOG = 3;
+
+
+
+const LEVELS = {
+  error: SEVERITY_ERROR,
+  warn: SEVERITY_WARNING,
+  info: SEVERITY_INFO,
+  log: SEVERITY_LOG,
+};
+
+
+const MIN_HTTP_ERROR_CODE = 400;
+
+const MAX_HTTP_ERROR_CODE = 600;
+
+
+const HTML_NS = "http://www.w3.org/1999/xhtml";
+
+
+const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
+
+
+const CATEGORY_CLASS_FRAGMENTS = [
+  "network",
+  "cssparser",
+  "exception",
+  "console",
+  "misc",
+  "input",
+  "output",
+];
+
+
+const SEVERITY_CLASS_FRAGMENTS = [
+  "error",
+  "warn",
+  "info",
+  "log",
+];
+
+
+
+
+
+
+const MESSAGE_PREFERENCE_KEYS = [
+
+  [ "network",    null,         null,   "networkinfo", ],  
+  [ "csserror",   "cssparser",  null,   null,          ],  
+  [ "exception",  "jswarn",     null,   null,          ],  
+  [ "error",      "warn",       "info", "log",         ],  
+  [ null,         null,         null,   null,          ],  
+  [ null,         null,         null,   null,          ],  
+  [ null,         null,         null,   null,          ],  
+];
 
 
 const ANIMATE_OUT = 0;
@@ -1009,8 +1085,10 @@ NetworkPanel.prototype =
 
 
 
+
 function pruneConsoleOutputIfNecessary(aConsoleNode)
 {
+  
   let logLimit;
   try {
     let prefBranch = Services.prefs.getBranch("devtools.hud.");
@@ -1019,22 +1097,13 @@ function pruneConsoleOutputIfNecessary(aConsoleNode)
     logLimit = DEFAULT_LOG_LIMIT;
   }
 
+  
   let messageNodes = aConsoleNode.querySelectorAll(".hud-msg-node");
   for (let i = 0; i < messageNodes.length - logLimit; i++) {
-    let messageNode = messageNodes[i];
-    let groupNode = messageNode.parentNode;
-    if (!groupNode.classList.contains("hud-group")) {
-      throw new Error("pruneConsoleOutputIfNecessary: message node not in a " +
-                      "HUD group");
-    }
-
-    groupNode.removeChild(messageNode);
-
-    
-    if (!groupNode.querySelector(".hud-msg-node")) {
-      groupNode.parentNode.removeChild(groupNode);
-    }
+    messageNodes[i].parentNode.removeChild(messageNodes[i]);
   }
+
+  return logLimit;
 }
 
 
@@ -1360,20 +1429,29 @@ HUD_SERVICE.prototype =
 
 
 
+  regroupOutput: function HS_regroupOutput(aOutputNode)
+  {
+    
+    
 
-
-
-
-
-  liftNode: function(aNode, aCallback) {
-    let parentNode = aNode.parentNode;
-    let siblingNode = aNode.nextSibling;
-    parentNode.removeChild(aNode);
-    aCallback();
-    parentNode.insertBefore(aNode, siblingNode);
+    let nodes = aOutputNode.querySelectorAll(".hud-msg-node" +
+      ":not(.hud-filtered-by-string):not(.hud-filtered-by-type)");
+    let lastTimestamp;
+    for (let i = 0; i < nodes.length; i++) {
+      let thisTimestamp = nodes[i].timestamp;
+      if (lastTimestamp != null &&
+          thisTimestamp >= lastTimestamp + NEW_GROUP_DELAY) {
+        nodes[i].classList.add("webconsole-new-group");
+      }
+      else {
+        nodes[i].classList.remove("webconsole-new-group");
+      }
+      lastTimestamp = thisTimestamp;
+    }
   },
 
   
+
 
 
 
@@ -1387,57 +1465,31 @@ HUD_SERVICE.prototype =
 
 
   adjustVisibilityForMessageType:
-  function HS_adjustVisibilityForMessageType(aHUDId, aMessageType, aState)
+  function HS_adjustVisibilityForMessageType(aHUDId, aPrefKey, aState)
   {
     let displayNode = this.getOutputNodeById(aHUDId);
     let outputNode = displayNode.querySelector(".hud-output-node");
     let doc = outputNode.ownerDocument;
 
-    this.maintainScrollPosition(outputNode, function() {
-      this.liftNode(outputNode, function() {
-        let xpath = ".//*[contains(@class, 'hud-msg-node') and " +
-          "contains(@class, 'hud-" + aMessageType + "')]";
-        let result = doc.evaluate(xpath, outputNode, null,
-          Ci.nsIDOMXPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
-        for (let i = 0; i < result.snapshotLength; i++) {
-          if (aState) {
-            result.snapshotItem(i).classList.remove("hud-filtered-by-type");
-          }
-          else {
-            result.snapshotItem(i).classList.add("hud-filtered-by-type");
-          }
-        }
-      });
-    });
-  },
-
-  
-
-
-
-
-
-
-
-
-  maintainScrollPosition:
-  function HS_maintainScrollPosition(aOutputNode, aCallback)
-  {
-    let oldScrollTop = aOutputNode.scrollTop;
-    let scrolledToBottom = oldScrollTop +
-      aOutputNode.clientHeight == aOutputNode.scrollHeight;
-
-    aCallback.call(this);
-
     
-    if (scrolledToBottom) {
-      aOutputNode.scrollTop = aOutputNode.scrollHeight -
-        aOutputNode.clientHeight;
+    
+    
+
+    let xpath = ".//*[contains(@class, 'hud-msg-node') and " +
+      "contains(concat(@class, ' '), 'hud-" + aPrefKey + " ')]";
+    let result = doc.evaluate(xpath, outputNode, null,
+      Ci.nsIDOMXPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
+    for (let i = 0; i < result.snapshotLength; i++) {
+      let node = result.snapshotItem(i);
+      if (aState) {
+        node.classList.remove("hud-filtered-by-type");
+      }
+      else {
+        node.classList.add("hud-filtered-by-type");
+      }
     }
-    else {
-      
-      aOutputNode.scrollTop = oldScrollTop;
-    }
+
+    this.regroupOutput(outputNode);
   },
 
   
@@ -1491,70 +1543,29 @@ HUD_SERVICE.prototype =
     let outputNode = displayNode.querySelector(".hud-output-node");
     let doc = outputNode.ownerDocument;
 
-    this.maintainScrollPosition(outputNode, function() {
-      this.liftNode(outputNode, function() {
-        let xpath = './/*[contains(@class, "hud-msg-node") and ' +
-          'not(contains(@class, "hud-filtered-by-string")) and not(' + fn + ')]';
-        let result = doc.evaluate(xpath, outputNode, null,
-          Ci.nsIDOMXPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
-        for (let i = 0; i < result.snapshotLength; i++) {
-          result.snapshotItem(i).classList.add("hud-filtered-by-string");
-        }
-
-        xpath = './/*[contains(@class, "hud-msg-node") and contains(@class, ' +
-          '"hud-filtered-by-string") and ' + fn + ']';
-        result = doc.evaluate(xpath, outputNode, null,
-          Ci.nsIDOMXPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
-        for (let i = 0; i < result.snapshotLength; i++) {
-          result.snapshotItem(i).classList.remove("hud-filtered-by-string");
-        }
-      });
-    });
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  adjustVisibilityForNewlyInsertedNode:
-  function HS_adjustVisibilityForNewlyInsertedNode(aHUDId, aNewNode) {
     
-    let searchString = this.getFilterStringByHUDId(aHUDId);
-    let xpath = ".[" + this.buildXPathFunctionForString(searchString) + "]";
-    let doc = aNewNode.ownerDocument;
-    let result = doc.evaluate(xpath, aNewNode, null,
+    
+    let xpath = './/*[contains(@class, "hud-msg-node") and ' +
+      'not(contains(@class, "hud-filtered-by-string")) and not(' + fn + ')]';
+    let result = doc.evaluate(xpath, outputNode, null,
       Ci.nsIDOMXPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
-    let hidden = false;
-
-    if (result.snapshotLength === 0) {
-      
-      aNewNode.classList.add("hud-filtered-by-string");
-      hidden = true;
+    for (let i = 0; i < result.snapshotLength; i++) {
+      let node = result.snapshotItem(i);
+      node.classList.add("hud-filtered-by-string");
     }
 
     
-    let classes = aNewNode.classList;
-    let msgType = null;
-    for (let i = 0; i < classes.length; i++) {
-      let klass = classes.item(i);
-      if (klass !== "hud-msg-node" && klass.indexOf("hud-") === 0) {
-        msgType = klass.substring(4);   
-        break;
-      }
-    }
-    if (msgType !== null && !this.getFilterState(aHUDId, msgType)) {
-      
-      aNewNode.classList.add("hud-filtered-by-type");
-      hidden = true;
+    
+    xpath = './/*[contains(@class, "hud-msg-node") and contains(@class, ' +
+      '"hud-filtered-by-string") and ' + fn + ']';
+    result = doc.evaluate(xpath, outputNode, null,
+      Ci.nsIDOMXPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
+    for (let i = 0; i < result.snapshotLength; i++) {
+      let node = result.snapshotItem(i);
+      node.classList.remove("hud-filtered-by-string");
     }
 
-    return hidden;
+    this.regroupOutput(outputNode);
   },
 
   
@@ -1880,85 +1891,22 @@ HUD_SERVICE.prototype =
 
 
 
-  logHUDMessage: function HS_logHUDMessage(aMessage,
-                                           aConsoleNode,
-                                           aMessageNode)
-  {
-    if (!aMessage) {
-      throw new Error(ERRORS.MISSING_ARGS);
-    }
-
-    let lastGroupNode = this.appendGroupIfNecessary(aConsoleNode,
-                                                    aMessage.timestamp);
-
-    lastGroupNode.appendChild(aMessageNode);
-
-    
-    this.storage.recordEntry(aMessage.hudId, aMessage);
-
-    pruneConsoleOutputIfNecessary(aConsoleNode);
-  },
-
-  
 
 
-
-
-
-
-
-  logConsoleAPIMessage: function HS_logConsoleAPIMessage(aHudId,
+  logConsoleAPIMessage: function HS_logConsoleAPIMessage(aHUDId,
                                                          aLevel,
                                                          aArguments)
   {
-    let hud = this.hudReferences[aHudId];
-    let messageNode = hud.makeXULNode("label");
-    let klass = "hud-msg-node hud-" + aLevel;
-    messageNode.setAttribute("class", klass);
-
+    
+    let hud = HUDService.hudReferences[aHUDId];
     let mappedArguments = Array.map(aArguments, hud.jsterm.formatResult,
                                     hud.jsterm);
-    let message = Array.join(mappedArguments, " ") + "\n";
-    let ts = ConsoleUtils.timestamp();
-    let timestampedMessage = ConsoleUtils.timestampString(ts) + ": " + message;
-    messageNode.appendChild(hud.chromeDocument.createTextNode(timestampedMessage));
-
-    let messageObject = {
-      logLevel: aLevel,
-      hudId: aHudId,
-      message: message,
-      timestamp: ts,
-      origin: "WebConsole"
-    };
-    this.logMessage(messageObject, hud.outputNode, messageNode);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  logMessage: function HS_logMessage(aMessage, aConsoleNode, aMessageNode)
-  {
-    if (!aMessage) {
-      throw new Error(ERRORS.MISSING_ARGS);
-    }
-
-    switch (aMessage.origin) {
-      case "network":
-      case "WebConsole":
-      case "console-listener":
-        this.logHUDMessage(aMessage, aConsoleNode, aMessageNode);
-        break;
-      default:
-        
-        break;
-    }
+    let joinedArguments = Array.join(mappedArguments, " ");
+    let node = ConsoleUtils.createMessageNode(hud.outputNode.ownerDocument,
+                                              CATEGORY_WEBDEV,
+                                              LEVELS[aLevel],
+                                              joinedArguments);
+    ConsoleUtils.outputMessageNode(node, aHUDId);
   },
 
   
@@ -1980,24 +1928,59 @@ HUD_SERVICE.prototype =
 
 
 
+
   logWarningAboutReplacedAPI:
   function HS_logWarningAboutReplacedAPI(aHUDId)
   {
-    let domId = "hud-log-node-" + this.sequenceId();
-    let outputNode = this.getConsoleOutputNode(aHUDId);
+    let hud = this.hudReferences[aHUDId];
+    let chromeDocument = hud.HUDBox.ownerDocument;
+    let message = stringBundle.GetStringFromName("ConsoleAPIDisabled");
+    let node = ConsoleUtils.createMessageNode(chromeDocument, CATEGORY_MISC,
+                                              SEVERITY_WARNING, message);
+    ConsoleUtils.outputMessageNode(node, aHUDId);
+  },
 
-    let msgFormat = {
-      logLevel: "error",
-      activityObject: {},
-      hudId: aHUDId,
-      origin: "console-listener",
-      domId: domId,
-      message: this.getStr("ConsoleAPIDisabled"),
-    };
+  
 
-    let messageObject =
-    this.messageFactory(msgFormat, "error", outputNode, msgFormat.activityObject);
-    this.logMessage(messageObject.messageObject, outputNode, messageObject.messageNode);
+
+
+
+
+
+
+
+  reportPageError: function HS_reportPageError(aCategory, aScriptError)
+  {
+    if (aCategory != CATEGORY_CSS && aCategory != CATEGORY_JS) {
+      throw Components.Exception("Unsupported category (must be one of CSS " +
+                                 "or JS)", Cr.NS_ERROR_INVALID_ARG,
+                                 Components.stack.caller);
+    }
+
+    
+    
+    let severity = SEVERITY_ERROR;
+    if ((aScriptError.flags & aScriptError.warningFlag) ||
+        (aScriptError.flags & aScriptError.strictFlag)) {
+      severity = SEVERITY_WARNING;
+    }
+
+    
+    let hudIds = ConsoleUtils.getHUDIdsForScriptError(aScriptError);
+    for (let i = 0; i < hudIds.length; i++) {
+      let hudId = hudIds[i];
+      let outputNode = this.hudReferences[hudId].outputNode;
+      let chromeDocument = outputNode.ownerDocument;
+
+      let node = ConsoleUtils.createMessageNode(chromeDocument,
+                                                aCategory,
+                                                severity,
+                                                aScriptError.errorMessage,
+                                                aScriptError.sourceName,
+                                                aScriptError.lineNumber);
+
+      ConsoleUtils.outputMessageNode(node, hudId);
+    }
   },
 
   
@@ -2142,7 +2125,7 @@ HUD_SERVICE.prototype =
             };
 
             
-            let loggedNode = self.logActivity("network", hudId, httpActivity);
+            let loggedNode = self.logNetActivity(httpActivity);
 
             
             
@@ -2164,11 +2147,15 @@ HUD_SERVICE.prototype =
             });
 
             
-            httpActivity.messageObject = loggedNode;
+            let linkNode = loggedNode.querySelector(".webconsole-msg-url");
+
+            httpActivity.messageObject = {
+              messageNode: loggedNode,
+              linkNode:    linkNode
+            };
             self.openRequests[httpActivity.id] = httpActivity;
 
             
-            let linkNode = loggedNode.messageNode;
             linkNode.setAttribute("aria-haspopup", "true");
             linkNode.addEventListener("mousedown", function(aEvent) {
               this._startX = aEvent.clientX;
@@ -2213,7 +2200,7 @@ HUD_SERVICE.prototype =
             httpActivity.timing[transCodes[aActivitySubtype]] = aTimestamp;
 
             switch (aActivitySubtype) {
-              case activityDistributor.ACTIVITY_SUBTYPE_REQUEST_BODY_SENT:
+              case activityDistributor.ACTIVITY_SUBTYPE_REQUEST_BODY_SENT: {
                 if (!self.saveRequestAndResponseBodies) {
                   httpActivity.request.bodyDiscarded = true;
                   break;
@@ -2244,8 +2231,9 @@ HUD_SERVICE.prototype =
                 }
                 httpActivity.request.body = sentBody;
                 break;
+              }
 
-              case activityDistributor.ACTIVITY_SUBTYPE_RESPONSE_HEADER:
+              case activityDistributor.ACTIVITY_SUBTYPE_RESPONSE_HEADER: {
                 
                 
                 
@@ -2259,29 +2247,38 @@ HUD_SERVICE.prototype =
 
                 
                 
-                textNode = msgObject.messageNode.firstChild;
+                textNode = msgObject.linkNode.firstChild;
                 textNode.parentNode.removeChild(textNode);
 
                 data = [ httpActivity.url,
                          httpActivity.response.status ];
 
-                msgObject.messageNode.appendChild(
-                  msgObject.textFactory(
-                    msgObject.prefix +
-                    self.getFormatStr("networkUrlWithStatus", data) + "\n"));
+                
+                
+                let text = self.getFormatStr("networkUrlWithStatus", data);
+
+                
+                
+                let chromeDocument = msgObject.messageNode.ownerDocument;
+                msgObject.linkNode.appendChild(
+                  chromeDocument.createTextNode(text));
+                msgObject.messageNode.clipboardText =
+                  msgObject.messageNode.textContent;
 
                 let status = parseInt(httpActivity.response.status.
                   replace(/^HTTP\/\d\.\d (\d+).+$/, "$1"));
 
-                if (status) {
-                  msgObject.messageNode.classList.
-                    add((status >= 400 && status < 600) ?
-                      "hud-error" : "hud-info");
+                if (status >= MIN_HTTP_ERROR_CODE &&
+                    status < MAX_HTTP_ERROR_CODE) {
+                  ConsoleUtils.setMessageType(msgObject.messageNode,
+                                              CATEGORY_NETWORK,
+                                              SEVERITY_ERROR);
                 }
 
                 break;
+              }
 
-              case activityDistributor.ACTIVITY_SUBTYPE_TRANSACTION_CLOSE:
+              case activityDistributor.ACTIVITY_SUBTYPE_TRANSACTION_CLOSE: {
                 let timing = httpActivity.timing;
                 let requestDuration =
                   Math.round((timing.RESPONSE_COMPLETE -
@@ -2289,22 +2286,30 @@ HUD_SERVICE.prototype =
 
                 
                 
-                textNode = msgObject.messageNode.firstChild;
+                textNode = msgObject.linkNode.firstChild;
                 textNode.parentNode.removeChild(textNode);
 
                 data = [ httpActivity.url,
                          httpActivity.response.status,
                          requestDuration ];
 
-                msgObject.messageNode.appendChild(
-                  msgObject.textFactory(
-                    msgObject.prefix +
-                    self.getFormatStr("networkUrlWithStatusAndDuration",
-                                      data) + "\n"));
+                
+                
+                let text = self.getFormatStr("networkUrlWithStatusAndDuration",
+                                             data);
+
+                
+                
+                let chromeDocument = msgObject.messageNode.ownerDocument;
+                msgObject.linkNode.appendChild(
+                  chromeDocument.createTextNode(text));
+                msgObject.messageNode.clipboardText =
+                  msgObject.messageNode.textContent;
 
                 delete self.openRequests[item.id];
                 updatePanel = true;
                 break;
+              }
             }
 
             if (updatePanel) {
@@ -2348,181 +2353,37 @@ HUD_SERVICE.prototype =
 
 
 
-
-
-  logNetActivity: function HS_logNetActivity(aType, aActivityObject)
+  logNetActivity: function HS_logNetActivity(aActivityObject)
   {
-    var outputNode, hudId;
-    try {
-      hudId = aActivityObject.hudId;
-      outputNode = this.getHeadsUpDisplay(hudId).
-                                  querySelector(".hud-output-node");
+    let hudId = aActivityObject.hudId;
+    let outputNode = this.hudReferences[hudId].outputNode;
 
-      
-      
-      var domId = "hud-log-node-" + this.sequenceId();
-
-      var message = { logLevel: aType,
-                      activityObj: aActivityObject,
-                      hudId: hudId,
-                      origin: "network",
-                      domId: domId,
-                    };
-      var msgType = this.getStr("typeNetwork");
-      var msg = msgType + " " +
-        aActivityObject.method +
-        " " +
-        aActivityObject.url;
-      message.message = msg;
-
-      var messageObject =
-        this.messageFactory(message, aType, outputNode, aActivityObject);
-
-      var timestampedMessage = messageObject.timestampedMessage;
-      var urlIdx = timestampedMessage.indexOf(aActivityObject.url);
-      messageObject.prefix = timestampedMessage.substring(0, urlIdx);
-
-      messageObject.messageNode.classList.add("hud-clickable");
-      messageObject.messageNode.setAttribute("crop", "end");
-
-      this.logMessage(messageObject.messageObject, outputNode, messageObject.messageNode);
-      return messageObject;
-    }
-    catch (ex) {
-      Cu.reportError(ex);
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-  logConsoleActivity: function HS_logConsoleActivity(aHUDId, aActivityObject)
-  {
-    var _msgLogLevel = this.scriptMsgLogLevel[aActivityObject.flags];
-    var msgLogLevel = this.getStr(_msgLogLevel);
-
-    var logLevel = "warn";
-
-    if (aActivityObject.flags in this.scriptErrorFlags) {
-      logLevel = this.scriptErrorFlags[aActivityObject.flags];
-    }
+    let chromeDocument = outputNode.ownerDocument;
+    let msgNode = chromeDocument.createElementNS(HTML_NS, "html:span");
 
     
+    let method = chromeDocument.createTextNode(aActivityObject.method + " ");
+    msgNode.appendChild(method);
+
     
-    var message = {
-      activity: aActivityObject,
-      origin: "console-listener",
-      hudId: aHUDId,
-    };
+    let linkNode = chromeDocument.createElementNS(HTML_NS, "html:span");
+    linkNode.appendChild(chromeDocument.createTextNode(aActivityObject.url));
+    linkNode.classList.add("hud-clickable");
+    linkNode.classList.add("webconsole-msg-url");
+    msgNode.appendChild(linkNode);
 
-    var lineColSubs = [aActivityObject.lineNumber,
-                       aActivityObject.columnNumber];
-    var lineCol = this.getFormatStr("errLineCol", lineColSubs);
+    let clipboardText = aActivityObject.method + " " + aActivityObject.url;
 
-    var errFileSubs = [aActivityObject.sourceName];
-    var errFile = this.getFormatStr("errFile", errFileSubs);
+    let messageNode = ConsoleUtils.createMessageNode(chromeDocument,
+                                                     CATEGORY_NETWORK,
+                                                     SEVERITY_LOG,
+                                                     msgNode,
+                                                     null,
+                                                     null,
+                                                     clipboardText);
 
-    var msgCategory = this.getStr("msgCategory");
-
-    message.logLevel = logLevel;
-    message.level = logLevel;
-
-    message.message = msgLogLevel + " " +
-                      aActivityObject.errorMessage + " " +
-                      errFile + " " +
-                      lineCol + " " +
-                      msgCategory + " " + aActivityObject.category;
-
-    let outputNode = this.hudReferences[aHUDId].outputNode;
-
-    var messageObject =
-    this.messageFactory(message, message.level, outputNode, aActivityObject);
-
-    this.logMessage(messageObject.messageObject, outputNode, messageObject.messageNode);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  logActivity: function HS_logActivity(aType, aHUDId, aActivityObject)
-  {
-    if (aType == "network") {
-      return this.logNetActivity(aType, aActivityObject);
-    }
-    else if (aType == "console-listener") {
-      this.logConsoleActivity(aHUDId, aActivityObject);
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  appendGroupIfNecessary:
-  function HS_appendGroupIfNecessary(aConsoleNode, aTimestamp)
-  {
-    let hudBox = aConsoleNode;
-    while (hudBox && !hudBox.classList.contains("hud-box")) {
-      hudBox = hudBox.parentNode;
-    }
-
-    let lastTimestamp = hudBox.lastTimestamp;
-    let delta = aTimestamp - lastTimestamp;
-    hudBox.lastTimestamp = aTimestamp;
-    if (delta < NEW_GROUP_DELAY) {
-      
-      
-      let lastGroupNode = aConsoleNode.querySelector(".hud-group:last-child");
-      if (lastGroupNode != null) {
-        return lastGroupNode;
-      }
-    }
-
-    let chromeDocument = aConsoleNode.ownerDocument;
-    let groupNode = chromeDocument.createElement("vbox");
-    groupNode.setAttribute("class", "hud-group");
-
-    aConsoleNode.appendChild(groupNode);
-    return groupNode;
-  },
-
-  
-
-
-
-
-
-
-
-
-  messageFactory:
-  function messageFactory(aMessage, aLevel, aOutputNode, aActivityObject)
-  {
-    
-    return new LogMessage(aMessage, aLevel, aOutputNode,  aActivityObject);
+    ConsoleUtils.outputMessageNode(messageNode, aActivityObject.hudId);
+    return messageNode;
   },
 
   
@@ -2876,6 +2737,33 @@ HUD_SERVICE.prototype =
       Services.prefs.setIntPref("devtools.hud.height", height);
     }
   },
+
+  
+
+
+
+
+
+
+  copySelectedItems: function HS_copySelectedItems(aOutputNode)
+  {
+    
+
+    let strings = [];
+    for (let i = 0; i < aOutputNode.selectedCount; i++) {
+      let item = aOutputNode.selectedItems[i];
+
+      
+      
+      if (i > 0 && item.classList.contains("webconsole-new-group")) {
+        strings.push("\n");
+      }
+
+      let timestampString = ConsoleUtils.timestampString(item.timestamp);
+      strings.push("[" + timestampString + "] " + item.clipboardText);
+    }
+    clipboardHelper.copyString(strings.join("\n"));
+  }
 };
 
 
@@ -3039,8 +2927,8 @@ HeadsUpDisplay.prototype = {
     var context = Cu.getWeakReference(aWindow);
 
     if (appName() == "FIREFOX") {
-      let outputCSSClassOverride = "hud-msg-node";
-      let mixin = new JSTermFirefoxMixin(context, aParentNode, aExistingConsole, outputCSSClassOverride);
+      let mixin = new JSTermFirefoxMixin(context, aParentNode,
+                                         aExistingConsole);
       this.jsterm = new JSTerm(context, aParentNode, mixin, this.console);
     }
     else {
@@ -3107,29 +2995,13 @@ HeadsUpDisplay.prototype = {
     consoleWrap.setAttribute("class", "hud-console-wrapper");
     consoleWrap.setAttribute("flex", "1");
 
-    this.outputNode = this.makeXULNode("scrollbox");
+    this.outputNode = this.makeXULNode("richlistbox");
     this.outputNode.setAttribute("class", "hud-output-node");
     this.outputNode.setAttribute("flex", "1");
     this.outputNode.setAttribute("orient", "vertical");
     this.outputNode.setAttribute("context", this.hudId + "-output-contextmenu");
     this.outputNode.setAttribute("style", "direction: ltr;");
-
-    this.outputNode.addEventListener("DOMNodeInserted", function(ev) {
-      
-      
-      
-      
-      let node = ev.target;
-      if (node.nodeType === node.ELEMENT_NODE &&
-          node.classList.contains("hud-msg-node")) {
-        let hidden = HUDService.
-          adjustVisibilityForNewlyInsertedNode(self.hudId, ev.target);
-
-        if (!hidden) {
-          ConsoleUtils.scrollToVisible(node);
-        }
-      }
-    }, false);
+    this.outputNode.setAttribute("seltype", "multiple");
 
     this.filterSpacer = this.makeXULNode("spacer");
     this.filterSpacer.setAttribute("flex", "1");
@@ -3286,6 +3158,7 @@ HeadsUpDisplay.prototype = {
     copyItem.setAttribute("accesskey", this.getStr("copyCmd.accesskey"));
     copyItem.setAttribute("key", "key_copy");
     copyItem.setAttribute("command", "cmd_copy");
+    copyItem.setAttribute("buttonType", "copy");
     menuPopup.appendChild(copyItem);
 
     let selectAllItem = this.makeXULNode("menuitem");
@@ -3902,7 +3775,7 @@ function JSTermHelper(aJSTerm)
       output.push("  " + pair.display);
     });
 
-    aJSTerm.writeOutput(output.join("\n"));
+    aJSTerm.writeOutput(output.join("\n"), CATEGORY_OUTPUT, SEVERITY_LOG);
   };
 
   
@@ -3915,7 +3788,7 @@ function JSTermHelper(aJSTerm)
   aJSTerm.sandbox.print = function JSTH_print(aString)
   {
     aJSTerm.helperEvaluated = true;
-    aJSTerm.writeOutput(aString);
+    aJSTerm.writeOutput("" + aString, CATEGORY_OUTPUT, SEVERITY_LOG);
   };
 }
 
@@ -3948,12 +3821,13 @@ function JSTerm(aContext, aParentNode, aMixin, aConsole)
   this.mixins = aMixin;
   this.console = aConsole;
 
-  this.xulElementFactory =
-    NodeFactory("xul", "xul", aParentNode.ownerDocument);
-
-  this.textFactory = NodeFactory("text", "xul", aParentNode.ownerDocument);
-
   this.setTimeout = aParentNode.ownerDocument.defaultView.setTimeout;
+
+  let node = aParentNode;
+  while (!node.hasAttribute("id")) {
+    node = node.parentNode;
+  }
+  this.hudId = node.getAttribute("id");
 
   this.historyIndex = 0;
   this.historyPlaceHolder = 0;  
@@ -3979,9 +3853,6 @@ JSTerm.prototype = {
     this.inputNode.addEventListener('input', eventHandlerInput, false);
     this.outputNode = this.mixins.outputNode;
     this.completeNode = this.mixins.completeNode;
-    if (this.mixins.cssClassOverride) {
-      this.cssClassOverride = this.mixins.cssClassOverride;
-    }
   },
 
   get codeInputString()
@@ -4039,11 +3910,11 @@ JSTerm.prototype = {
     
     aExecuteString = aExecuteString || this.inputNode.value;
     if (!aExecuteString) {
-      this.writeOutput("no value to execute");
+      this.writeOutput("no value to execute", CATEGORY_OUTPUT, SEVERITY_LOG);
       return;
     }
 
-    this.writeOutput(aExecuteString, true);
+    this.writeOutput(aExecuteString, CATEGORY_INPUT, SEVERITY_LOG);
 
     try {
       this.helperEvaluated = false;
@@ -4059,12 +3930,12 @@ JSTerm.prototype = {
           this.writeOutputJS(aExecuteString, result, resultString);
         }
         else {
-          this.writeOutput(resultString);
+          this.writeOutput(resultString, CATEGORY_OUTPUT, SEVERITY_LOG);
         }
       }
     }
     catch (ex) {
-      this.writeOutput(ex);
+      this.writeOutput("" + ex, CATEGORY_OUTPUT, SEVERITY_ERROR);
     }
 
     this.history.push(aExecuteString);
@@ -4160,20 +4031,23 @@ JSTerm.prototype = {
 
   writeOutputJS: function JST_writeOutputJS(aEvalString, aOutputObject, aOutputString)
   {
-    let lastGroupNode = HUDService.appendGroupIfNecessary(this.outputNode,
-                                                      Date.now());
+    let node = ConsoleUtils.createMessageNode(this.parentNode.ownerDocument,
+                                              CATEGORY_OUTPUT,
+                                              SEVERITY_LOG,
+                                              aOutputString);
 
-    var self = this;
-    var node = this.xulElementFactory("label");
-    node.setAttribute("class", "jsterm-output-line hud-clickable");
-    node.setAttribute("aria-haspopup", "true");
-    node.setAttribute("crop", "end");
+    let linkNode = node.querySelector(".webconsole-msg-body");
 
+    linkNode.classList.add("hud-clickable");
+    linkNode.setAttribute("aria-haspopup", "true");
+
+    
     node.addEventListener("mousedown", function(aEvent) {
       this._startX = aEvent.clientX;
       this._startY = aEvent.clientY;
     }, false);
 
+    let self = this;
     node.addEventListener("click", function(aEvent) {
       if (aEvent.detail != 1 || aEvent.button != 0 ||
           (this._startX != aEvent.clientX &&
@@ -4187,11 +4061,7 @@ JSTerm.prototype = {
       }
     }, false);
 
-    let textNode = this.textFactory(aOutputString + "\n");
-    node.appendChild(textNode);
-
-    lastGroupNode.appendChild(node);
-    pruneConsoleOutputIfNecessary(this.outputNode);
+    ConsoleUtils.outputMessageNode(node, this.hudId);
   },
 
   
@@ -4205,31 +4075,14 @@ JSTerm.prototype = {
 
 
 
-  writeOutput: function JST_writeOutput(aOutputMessage, aIsInput)
+
+  writeOutput: function JST_writeOutput(aOutputMessage, aCategory, aSeverity)
   {
-    let lastGroupNode = HUDService.appendGroupIfNecessary(this.outputNode,
-                                                          Date.now());
+    let node = ConsoleUtils.createMessageNode(this.parentNode.ownerDocument,
+                                              aCategory, aSeverity,
+                                              aOutputMessage);
 
-    var node = this.xulElementFactory("label");
-    if (aIsInput) {
-      node.setAttribute("class", "jsterm-input-line");
-      aOutputMessage = "> " + aOutputMessage;
-    }
-    else {
-      node.setAttribute("class", "jsterm-output-line");
-    }
-
-    if (this.cssClassOverride) {
-      let classes = this.cssClassOverride.split(" ");
-      for (let i = 0; i < classes.length; i++) {
-        node.classList.add(classes[i]);
-      }
-    }
-
-    var textNode = this.textFactory(aOutputMessage + "\n");
-    node.appendChild(textNode);
-    lastGroupNode.appendChild(node);
-    pruneConsoleOutputIfNecessary(this.outputNode);
+    ConsoleUtils.outputMessageNode(node, this.hudId);
   },
 
   
@@ -4729,16 +4582,20 @@ JSTerm.prototype = {
 
 
 
+
+
+
+
+
+
 function
 JSTermFirefoxMixin(aContext,
                    aParentNode,
-                   aExistingConsole,
-                   aCSSClassOverride)
+                   aExistingConsole)
 {
   
   
   
-  this.cssClassOverride = aCSSClassOverride;
   this.context = aContext;
   this.parentNode = aParentNode;
   this.existingConsoleNode = aExistingConsole;
@@ -4811,78 +4668,6 @@ JSTermFirefoxMixin.prototype = {
     this.parentNode.appendChild(this.term);
   }
 };
-
-
-
-
-function LogMessage(aMessage, aLevel, aOutputNode, aActivityObject)
-{
-  if (!aOutputNode || !aOutputNode.ownerDocument) {
-    throw new Error("aOutputNode is required and should be type nsIDOMNode");
-  }
-  if (!aMessage.origin) {
-    throw new Error("Cannot create and log a message without an origin");
-  }
-  this.message = aMessage;
-  if (aMessage.domId) {
-    
-    
-    this.domId = aMessage.domId;
-  }
-  this.activityObject = aActivityObject;
-  this.outputNode = aOutputNode;
-  this.level = aLevel;
-  this.origin = aMessage.origin;
-
-  this.xulElementFactory =
-  NodeFactory("xul", "xul", aOutputNode.ownerDocument);
-
-  this.textFactory = NodeFactory("text", "xul", aOutputNode.ownerDocument);
-
-  this.createLogNode();
-}
-
-LogMessage.prototype = {
-
-  
-
-
-
-
-  createLogNode: function LM_createLogNode()
-  {
-    this.messageNode = this.xulElementFactory("label");
-
-    var ts = ConsoleUtils.timestamp();
-    this.timestampedMessage = ConsoleUtils.timestampString(ts) + ": " +
-      this.message.message;
-    var messageTxtNode = this.textFactory(this.timestampedMessage + "\n");
-
-    this.messageNode.appendChild(messageTxtNode);
-
-    this.messageNode.classList.add("hud-msg-node");
-    this.messageNode.classList.add("hud-" + this.level);
-
-
-    if (this.activityObject.category == "CSS Parser") {
-      this.messageNode.classList.add("hud-cssparser");
-    }
-
-    var self = this;
-
-    var messageObject = {
-      logLevel: self.level,
-      message: self.message,
-      timestamp: ts,
-      activity: self.activityObject,
-      origin: self.origin,
-      hudId: self.message.hudId,
-    };
-
-    this.messageObject = messageObject;
-  }
-};
-
 
 
 
@@ -4986,14 +4771,287 @@ ConsoleUtils = {
 
 
   scrollToVisible: function ConsoleUtils_scrollToVisible(aNode) {
-    let scrollBoxNode = aNode.parentNode;
-    while (scrollBoxNode.tagName !== "scrollbox") {
-      scrollBoxNode = scrollBoxNode.parentNode;
+    
+    let richListBoxNode = aNode.parentNode;
+    while (richListBoxNode.tagName != "richlistbox") {
+      richListBoxNode = richListBoxNode.parentNode;
     }
 
-    let boxObject = scrollBoxNode.boxObject;
+    
+    let boxObject = richListBoxNode.scrollBoxObject;
     let nsIScrollBoxObject = boxObject.QueryInterface(Ci.nsIScrollBoxObject);
     nsIScrollBoxObject.ensureElementIsVisible(aNode);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  createMessageNode:
+  function ConsoleUtils_createMessageNode(aDocument, aCategory, aSeverity,
+                                          aBody, aSourceURL, aSourceLine,
+                                          aClipboardText) {
+    if (aBody instanceof Ci.nsIDOMNode && aClipboardText == null) {
+      throw new Error("HUDService.createMessageNode(): DOM node supplied " +
+                      "without any clipboard text");
+    }
+
+    
+    let markerNode = aDocument.createElementNS(XUL_NS, "xul:vbox");
+    markerNode.classList.add("webconsole-marker");
+
+    
+    
+    
+    let iconContainer = aDocument.createElementNS(XUL_NS, "xul:vbox");
+    iconContainer.classList.add("webconsole-msg-icon-container");
+
+    
+    
+    let iconNode = aDocument.createElementNS(XUL_NS, "xul:image");
+    iconNode.classList.add("webconsole-msg-icon");
+    iconContainer.appendChild(iconNode);
+
+    
+    let spacer = aDocument.createElementNS(XUL_NS, "xul:spacer");
+    spacer.setAttribute("flex", "1");
+    iconContainer.appendChild(spacer);
+
+    
+    let bodyNode = aDocument.createElementNS(XUL_NS, "xul:description");
+    bodyNode.setAttribute("flex", "1");
+    bodyNode.classList.add("webconsole-msg-body");
+
+    
+    
+    aClipboardText = aClipboardText ||
+                     (aBody + (aSourceURL ? " @ " + aSourceURL : "") +
+                              (aSourceLine ? ":" + aSourceLine : ""));
+    aBody = aBody instanceof Ci.nsIDOMNode ?
+            aBody : aDocument.createTextNode(aBody);
+
+    bodyNode.appendChild(aBody);
+
+    
+    let timestampNode = aDocument.createElementNS(XUL_NS, "xul:label");
+    timestampNode.classList.add("webconsole-timestamp");
+    let timestamp = ConsoleUtils.timestamp();
+    let timestampString = ConsoleUtils.timestampString(timestamp);
+    timestampNode.setAttribute("value", timestampString);
+
+    
+    
+    let locationNode;
+    if (aSourceURL) {
+      locationNode = this.createLocationNode(aDocument, aSourceURL,
+                                             aSourceLine);
+    }
+
+    
+    let node = aDocument.createElementNS(XUL_NS, "xul:richlistitem");
+    node.clipboardText = aClipboardText;
+    node.classList.add("hud-msg-node");
+
+    node.timestamp = timestamp;
+    ConsoleUtils.setMessageType(node, aCategory, aSeverity);
+
+    node.appendChild(timestampNode);
+    node.appendChild(markerNode);
+    node.appendChild(iconContainer);
+    node.appendChild(bodyNode);
+    if (locationNode) {
+      node.appendChild(locationNode);
+    }
+
+    return node;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  setMessageType:
+  function ConsoleUtils_setMessageType(aMessageNode, aNewCategory,
+                                       aNewSeverity) {
+    
+    if ("category" in aMessageNode) {
+      let oldCategory = aMessageNode.category;
+      let oldSeverity = aMessageNode.severity;
+      aMessageNode.classList.remove("webconsole-msg-" +
+                                    CATEGORY_CLASS_FRAGMENTS[oldCategory]);
+      aMessageNode.classList.remove("webconsole-msg-" +
+                                    SEVERITY_CLASS_FRAGMENTS[oldSeverity]);
+      let key = "hud-" + MESSAGE_PREFERENCE_KEYS[oldCategory][oldSeverity];
+      aMessageNode.classList.remove(key);
+    }
+
+    
+    aMessageNode.category = aNewCategory;
+    aMessageNode.severity = aNewSeverity;
+    aMessageNode.classList.add("webconsole-msg-" +
+                               CATEGORY_CLASS_FRAGMENTS[aNewCategory]);
+    aMessageNode.classList.add("webconsole-msg-" +
+                               SEVERITY_CLASS_FRAGMENTS[aNewSeverity]);
+    let key = "hud-" + MESSAGE_PREFERENCE_KEYS[aNewCategory][aNewSeverity];
+    aMessageNode.classList.add(key);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  createLocationNode:
+  function ConsoleUtils_createLocationNode(aDocument, aSourceURL,
+                                           aSourceLine) {
+    let locationNode = aDocument.createElementNS(XUL_NS, "xul:label");
+
+    
+    
+    let text = ConsoleUtils.abbreviateSourceURL(aSourceURL);
+    if (aSourceLine) {
+      text += ":" + aSourceLine;
+    }
+    locationNode.setAttribute("value", text);
+
+    
+    locationNode.setAttribute("crop", "center");
+    locationNode.setAttribute("title", aSourceURL);
+    locationNode.classList.add("webconsole-location");
+    locationNode.classList.add("text-link");
+
+    
+    locationNode.addEventListener("click", function() {
+      let viewSourceUtils = aDocument.defaultView.gViewSourceUtils;
+      viewSourceUtils.viewSource(aSourceURL, null, aDocument, aSourceLine);
+    }, true);
+
+    return locationNode;
+  },
+
+  
+
+
+
+
+
+
+
+
+  filterMessageNode: function(aNode, aHUDId) {
+    
+    let search = HUDService.getFilterStringByHUDId(aHUDId);
+    let xpath = ".[" + HUDService.buildXPathFunctionForString(search) + "]";
+    let doc = aNode.ownerDocument;
+    let result = doc.evaluate(xpath, aNode, null,
+      Ci.nsIDOMXPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
+    if (result.snapshotLength == 0) {
+      
+      aNode.classList.add("hud-filtered-by-string");
+    }
+
+    
+    let prefKey = MESSAGE_PREFERENCE_KEYS[aNode.category][aNode.severity];
+    if (prefKey && !HUDService.getFilterState(aHUDId, prefKey)) {
+      
+      aNode.classList.add("hud-filtered-by-type");
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+  outputMessageNode: function ConsoleUtils_outputMessageNode(aNode, aHUDId) {
+    ConsoleUtils.filterMessageNode(aNode, aHUDId);
+
+    let outputNode = HUDService.hudReferences[aHUDId].outputNode;
+    outputNode.appendChild(aNode);
+    HUDService.regroupOutput(outputNode);
+
+    if (pruneConsoleOutputIfNecessary(outputNode) == 0) {
+      
+      
+      return;
+    }
+
+    if (!aNode.classList.contains("hud-filtered-by-string") &&
+        !aNode.classList.contains("hud-filtered-by-type")) {
+      ConsoleUtils.scrollToVisible(aNode);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+  abbreviateSourceURL: function ConsoleUtils_abbreviateSourceURL(aSourceURL) {
+    
+    let hookIndex = aSourceURL.indexOf("?");
+    if (hookIndex > -1) {
+      aSourceURL = aSourceURL.substring(0, hookIndex);
+    }
+
+    
+    if (aSourceURL[aSourceURL.length - 1] == "/") {
+      aSourceURL = aSourceURL.substring(0, aSourceURL.length - 1);
+    }
+
+    
+    let slashIndex = aSourceURL.lastIndexOf("/");
+    if (slashIndex > -1) {
+      aSourceURL = aSourceURL.substring(slashIndex + 1);
+    }
+
+    return aSourceURL;
   },
 
   
@@ -5180,12 +5238,15 @@ HeadsUpDisplayUICommands = {
     var filter = aButton.getAttribute("buttonType");
     var hudId = aButton.getAttribute("hudId");
     switch (filter) {
-      case "selectAll":
-        let outputNode = HUDService.getOutputNodeById(hudId);
-        let chromeWindow = outputNode.ownerDocument.defaultView;
-        let commandController = chromeWindow.commandController;
-        commandController.selectAll(outputNode);
+      case "copy": {
+        let outputNode = HUDService.hudReferences[hudId].outputNode;
+        HUDService.copySelectedItems(outputNode);
         break;
+      }
+      case "selectAll": {
+        HUDService.hudReferences[hudId].outputNode.selectAll();
+        break;
+      }
       case "saveBodies": {
         let checked = aButton.getAttribute("checked") === "true";
         HUDService.saveRequestAndResponseBodies = checked;
@@ -5528,12 +5589,24 @@ CommandController.prototype = {
 
   _getFocusedOutputNode: function CommandController_getFocusedOutputNode()
   {
-    let anchorNode = this.window.getSelection().anchorNode;
-    while (!(anchorNode.nodeType === anchorNode.ELEMENT_NODE &&
-             anchorNode.classList.contains("hud-output-node"))) {
-      anchorNode = anchorNode.parentNode;
+    let element = this.window.document.commandDispatcher.focusedElement;
+    if (element && element.classList.contains("hud-output-node")) {
+      return element;
     }
-    return anchorNode;
+    return null;
+  },
+
+  
+
+
+
+
+
+
+
+  copy: function CommandController_copy(aOutputNode)
+  {
+    HUDService.copySelectedItems(aOutputNode);
   },
 
   
@@ -5545,25 +5618,43 @@ CommandController.prototype = {
 
   selectAll: function CommandController_selectAll(aOutputNode)
   {
-    let selection = this.window.getSelection();
-    selection.removeAllRanges();
-    selection.selectAllChildren(aOutputNode);
+    aOutputNode.selectAll();
   },
 
   supportsCommand: function CommandController_supportsCommand(aCommand)
   {
-    return aCommand === "cmd_selectAll" &&
+    return this.isCommandEnabled(aCommand) &&
            this._getFocusedOutputNode() != null;
   },
 
   isCommandEnabled: function CommandController_isCommandEnabled(aCommand)
   {
-    return aCommand === "cmd_selectAll";
+    let outputNode = this._getFocusedOutputNode();
+    if (!outputNode) {
+      return false;
+    }
+
+    switch (aCommand) {
+      case "cmd_copy":
+        
+        return outputNode.selectedCount > 0;
+      case "cmd_selectAll":
+        
+        return true;
+    }
   },
 
   doCommand: function CommandController_doCommand(aCommand)
   {
-    this.selectAll(this._getFocusedOutputNode());
+    let outputNode = this._getFocusedOutputNode();
+    switch (aCommand) {
+      case "cmd_copy":
+        this.copy(outputNode);
+        break;
+      case "cmd_selectAll":
+        this.selectAll(outputNode);
+        break;
+    }
   }
 };
 
@@ -5617,11 +5708,13 @@ HUDConsoleObserver = {
       case "xbl javascript":
         return;
 
+      case "CSS Parser":
+      case "CSS Loader":
+        HUDService.reportPageError(CATEGORY_CSS, aSubject);
+        return;
+
       default:
-        let hudIds = ConsoleUtils.getHUDIdsForScriptError(aSubject);
-        for (let i = 0; i < hudIds.length; i++) {
-          HUDService.logActivity("console-listener", hudIds[i], aSubject);
-        }
+        HUDService.reportPageError(CATEGORY_JS, aSubject);
         return;
     }
   }

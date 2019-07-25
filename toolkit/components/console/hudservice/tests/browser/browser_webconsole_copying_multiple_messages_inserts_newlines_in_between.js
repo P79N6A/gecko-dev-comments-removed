@@ -10,7 +10,6 @@
 
 
 
-
 const TEST_URI = "http://example.com/";
 
 function test()
@@ -44,15 +43,18 @@ function testNewlines() {
   let outputNode = hudNode.querySelector(".hud-output-node");
   ok(outputNode != null, "we have the output node");
 
-  let labels = outputNode.querySelectorAll("label");
-  is(labels.length, 20, "we found 20 labels in the output node");
+  outputNode.selectAll();
+  outputNode.focus();
 
-  for (let i = 0; i < labels.length; i++) {
-    let value = labels[i].textContent;
-    is(value[value.length - 1], "\n", "the value of label " + i + " ends " +
-       "with a newline");
+  let clipboardTexts = [];
+  for (let i = 0; i < outputNode.itemCount; i++) {
+    let item = outputNode.getItemAtIndex(i);
+    clipboardTexts.push("[" + ConsoleUtils.timestampString(item.timestamp) +
+                        "] " + item.clipboardText);
   }
 
-  finishTest();
+  waitForClipboard(clipboardTexts.join("\n"),
+                   function() { goDoCommand("cmd_copy"); },
+                   finishTest, finishTest);
 }
 
