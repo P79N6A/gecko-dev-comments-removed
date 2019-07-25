@@ -3347,7 +3347,7 @@ var PluginHelper = {
 
 var PermissionsHelper = {
 
-  _permissonTypes: ["password", "geo", "popup", "indexedDB",
+  _permissonTypes: ["password", "geolocation", "popup", "indexedDB",
                     "offline-app", "desktop-notification"],
   _permissionStrings: {
     "password": {
@@ -3355,10 +3355,10 @@ var PermissionsHelper = {
       allowed: "password.remember",
       denied: "password.never"
     },
-    "geo": {
+    "geolocation": {
       label: "geolocation.shareLocation",
-      allowed: "geolocation.alwaysShare",
-      denied: "geolocation.neverShare"
+      allowed: "geolocation.alwaysAllow",
+      denied: "geolocation.neverAllow"
     },
     "popup": {
       label: "blockPopups.label",
@@ -3471,7 +3471,7 @@ var PermissionsHelper = {
     }
 
     
-    if (aType == "geo")
+    if (aType == "geolocation")
       return Services.perms.testExactPermission(aURI, aType);
 
     return Services.perms.testPermission(aURI, aType);
