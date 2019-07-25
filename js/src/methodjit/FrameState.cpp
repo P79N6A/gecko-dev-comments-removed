@@ -244,17 +244,28 @@ FrameState::storeTo(FrameEntry *fe, Address address, bool popped)
     }
 
     
-    bool wasInRegister = fe->data.inRegister();
-    MaybeRegisterID dreg;
 
+
+
+
+
+    bool canPinDreg = true;
+    bool wasInRegister = fe->data.inRegister();
+
+    
+    MaybeRegisterID dreg;
     if (fe->data.inRegister()) {
         dreg = fe->data.reg();
     } else {
         JS_ASSERT(fe->data.inMemory());
-        dreg = popped ? allocReg() : allocReg(fe, RematInfo::DATA);
-        masm.loadPayload(addressOf(fe), dreg.reg());
-        if (!popped)
+        if (popped) {
+            dreg = allocReg();
+            canPinDreg = false;
+        } else {
+            dreg = allocReg(fe, RematInfo::DATA);
             fe->data.setRegister(dreg.reg());
+        }
+        masm.loadPayload(addressOf(fe), dreg.reg());
     }
     
     
@@ -263,16 +274,21 @@ FrameState::storeTo(FrameEntry *fe, Address address, bool popped)
     } else if (fe->isTypeKnown()) {
         masm.storeValueFromComponents(ImmType(fe->getKnownType()), dreg.reg(), address);
     } else {
-        pinReg(dreg.reg());
         JS_ASSERT(fe->type.inMemory());
+        if (canPinDreg)
+            pinReg(dreg.reg());
+
         RegisterID treg = popped ? allocReg() : allocReg(fe, RematInfo::TYPE);
         masm.loadTypeTag(addressOf(fe), treg);
         masm.storeValueFromComponents(treg, dreg.reg(), address);
+
         if (popped)
             freeReg(treg);
         else
             fe->type.setRegister(treg);
-        unpinReg(dreg.reg());
+
+        if (canPinDreg)
+            unpinReg(dreg.reg());
     }
 
     
