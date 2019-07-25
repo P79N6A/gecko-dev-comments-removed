@@ -141,6 +141,10 @@ public:
   
   static nsresult InitTables(mozIStorageConnection* aDBConn);
 
+  static nsNavBookmarks* GetBookmarksServiceIfAvailable() {
+    return gBookmarksService;
+  }
+
   static nsNavBookmarks* GetBookmarksService() {
     if (!gBookmarksService) {
       nsCOMPtr<nsINavBookmarksService> serv =

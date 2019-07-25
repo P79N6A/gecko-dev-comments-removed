@@ -115,6 +115,8 @@ main(int aArgc,
      char** aArgv)
 {
   ScopedXPCOM xpcom(TEST_NAME);
+  nsCOMPtr<ShutdownObserver> shutdownObserver = new ShutdownObserver();
+
 
   
   

@@ -85,6 +85,10 @@ public:
   
   static nsresult InitTables(mozIStorageConnection* aDBConn);
 
+  static nsFaviconService* GetFaviconServiceIfAvailable() {
+    return gFaviconService;
+  }
+
   
 
 

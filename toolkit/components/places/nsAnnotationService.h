@@ -66,6 +66,10 @@ public:
 
   static nsresult InitTables(mozIStorageConnection* aDBConn);
 
+  static nsAnnotationService* GetAnnotationServiceIfAvailable() {
+    return gAnnotationService;
+  }
+
   
 
 
