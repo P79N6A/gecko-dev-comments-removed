@@ -160,12 +160,6 @@ nsWindowGfx::ConvertHRGNToRegion(HRGN aRgn)
 
 
 
-void nsWindowGfx::OnSettingsChangeGfx(WPARAM wParam)
-{
-  
-  
-}
-
 
 nsIntRegion nsWindow::GetRegionToPaint(PRBool aForceFullRepaint,
                                        PAINTSTRUCT ps, HDC aDC)
