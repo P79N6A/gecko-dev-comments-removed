@@ -1238,8 +1238,7 @@ JSScript::NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg)
         if (!script->typeSetFunction(cx, fun, singleton))
             return NULL;
 
-        fun->u.i.script = script;
-        script->setOwnerObject(fun);
+        fun->setScript(script);
     } else {
         
 

@@ -734,7 +734,7 @@ class CallCompiler : public BaseCompiler
 
         
         Address scriptAddr(ic.funPtrReg, offsetof(JSFunction, u) +
-                           offsetof(JSFunction::U::Scripted, script));
+                           offsetof(JSFunction::U::Scripted, script_));
         masm.loadPtr(scriptAddr, t0);
 
         
