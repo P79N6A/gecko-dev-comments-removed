@@ -4141,7 +4141,6 @@ nsComputedDOMStyle::GetQueryablePropertyMap(PRUint32* aLength)
 
 
     
-    
     COMPUTED_STYLE_MAP_ENTRY(background_attachment,         BackgroundAttachment),
     COMPUTED_STYLE_MAP_ENTRY(background_color,              BackgroundColor),
     COMPUTED_STYLE_MAP_ENTRY(background_image,              BackgroundImage),
@@ -4177,13 +4176,9 @@ nsComputedDOMStyle::GetQueryablePropertyMap(PRUint32* aLength)
     COMPUTED_STYLE_MAP_ENTRY(content,                       Content),
     COMPUTED_STYLE_MAP_ENTRY(counter_increment,             CounterIncrement),
     COMPUTED_STYLE_MAP_ENTRY(counter_reset,                 CounterReset),
-    
-    
-    
     COMPUTED_STYLE_MAP_ENTRY(cursor,                        Cursor),
     COMPUTED_STYLE_MAP_ENTRY(direction,                     Direction),
     COMPUTED_STYLE_MAP_ENTRY(display,                       Display),
-    
     COMPUTED_STYLE_MAP_ENTRY(empty_cells,                   EmptyCells),
     COMPUTED_STYLE_MAP_ENTRY(float,                         CssFloat),
     
@@ -4233,22 +4228,10 @@ nsComputedDOMStyle::GetQueryablePropertyMap(PRUint32* aLength)
     COMPUTED_STYLE_MAP_ENTRY(page_break_after,              PageBreakAfter),
     COMPUTED_STYLE_MAP_ENTRY(page_break_before,             PageBreakBefore),
     
-    
-    
-    
-    
-    
     COMPUTED_STYLE_MAP_ENTRY(pointer_events,                PointerEvents),
     COMPUTED_STYLE_MAP_ENTRY(position,                      Position),
     COMPUTED_STYLE_MAP_ENTRY(quotes,                        Quotes),
-    
     COMPUTED_STYLE_MAP_ENTRY_LAYOUT(right,                  Right),
-    
-    
-    
-    
-    
-    
     
     COMPUTED_STYLE_MAP_ENTRY(table_layout,                  TableLayout),
     COMPUTED_STYLE_MAP_ENTRY(text_align,                    TextAlign),
@@ -4260,8 +4243,6 @@ nsComputedDOMStyle::GetQueryablePropertyMap(PRUint32* aLength)
     COMPUTED_STYLE_MAP_ENTRY(unicode_bidi,                  UnicodeBidi),
     COMPUTED_STYLE_MAP_ENTRY_LAYOUT(vertical_align,         VerticalAlign),
     COMPUTED_STYLE_MAP_ENTRY(visibility,                    Visibility),
-    
-    
     COMPUTED_STYLE_MAP_ENTRY(white_space,                   WhiteSpace),
     
     COMPUTED_STYLE_MAP_ENTRY_LAYOUT(width,                  Width),
