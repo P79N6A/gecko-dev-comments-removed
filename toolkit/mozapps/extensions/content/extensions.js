@@ -497,6 +497,8 @@ var gViewController = {
         }
       }
     }
+
+    window.controllers.removeController(this);
   },
 
   statePopped: function(e) {
@@ -1484,6 +1486,10 @@ var gDiscoverView = {
   
   loaded: false,
   _browser: null,
+  _loading: null,
+  _error: null,
+  homepageURL: null,
+  _loadListeners: [],
 
   initialize: function() {
     if (Services.prefs.getPrefType(PREF_DISCOVERURL) == Services.prefs.PREF_INVALID) {
@@ -1493,16 +1499,37 @@ var gDiscoverView = {
     }
 
     this.node = document.getElementById("discover-view");
+    this._loading = document.getElementById("discover-loading");
+    this._error = document.getElementById("discover-error");
     this._browser = document.getElementById("discover-browser");
 
     var url = Cc["@mozilla.org/toolkit/URLFormatterService;1"]
                 .getService(Ci.nsIURLFormatter)
                 .formatURLPref(PREF_DISCOVERURL);
 
-    var browser = gDiscoverView._browser;
+    var self = this;
+
+    function setURL(aURL) {
+      try {
+        self.homepageURL = Services.io.newURI(aURL, null, null);
+      } catch (e) {
+        self.showError();
+        notifyInitialized();
+        return;
+      }
+
+      self._browser.homePage = self.homepageURL.spec;
+      self._browser.addProgressListener(self, Ci.nsIWebProgress.NOTIFY_ALL |
+                                              Ci.nsIWebProgress.NOTIFY_STATE_ALL);
+
+      if (self.loaded)
+        self._loadBrowser(notifyInitialized);
+      else
+        notifyInitialized();
+    }
 
     if (Services.prefs.getBoolPref(PREF_BACKGROUND_UPDATE) == false) {
-      browser.homePage = url;
+      setURL(url);
       return;
     }
 
@@ -1520,38 +1547,121 @@ var gDiscoverView = {
         }
       });
 
-      browser.homePage = url + "#" + JSON.stringify(list);
-
-      if (gDiscoverView.loaded) {
-        browser.addEventListener("load", function() {
-          browser.removeEventListener("load", arguments.callee, true);
-          notifyInitialized();
-        }, true);
-        browser.goHome();
-      } else {
-        notifyInitialized();
-      }
+      setURL(url + "#" + JSON.stringify(list));
     });
   },
 
   show: function() {
-    if (!this.loaded) {
-      this.loaded = true;
-
-      var browser = gDiscoverView._browser;
-      browser.addEventListener("load", function() {
-        browser.removeEventListener("load", arguments.callee, true);
-        gViewController.updateCommands();
-        gViewController.notifyViewChanged();
-      }, true);
-      browser.goHome();
-    } else {
+    
+    
+    if (this.loaded && this.node.selectedPanel != this._error) {
       gViewController.updateCommands();
       gViewController.notifyViewChanged();
+      return;
     }
+
+    this.loaded = true;
+
+    
+    
+    if (!this.homepageURL) {
+      this._loadListeners.push(gViewController.notifyViewChanged.bind(gViewController));
+      return;
+    }
+
+    this._loadBrowser(gViewController.notifyViewChanged.bind(gViewController));
   },
 
   hide: function() { },
+
+  showError: function() {
+    this.node.selectedPanel = this._error;
+  },
+
+  _loadBrowser: function(aCallback) {
+    this.node.selectedPanel = this._loading;
+
+    if (aCallback)
+      this._loadListeners.push(aCallback);
+
+    if (this._browser.currentURI.equals(this.homepageURL))
+      this._browser.reload();
+    else
+      this._browser.goHome();
+  },
+
+  onLocationChange: function(aWebProgress, aRequest, aLocation) {
+    
+    if (aLocation.spec == "about:blank")
+      return;
+
+    
+    
+    
+    if (aLocation.host == this.homepageURL.host &&
+        (!this.homepageURL.schemeIs("https") || aLocation.schemeIs("https")))
+      return;
+
+    
+    
+    aRequest.cancel(Components.results.NS_BINDING_ABORTED);
+  },
+
+  onSecurityChange: function(aWebProgress, aRequest, aState) {
+    
+    if (!this.homepageURL.schemeIs("https"))
+      return;
+
+    
+    if (aState & Ci.nsIWebProgressListener.STATE_IS_SECURE)
+      return;
+
+    
+    
+    aRequest.cancel(Components.results.NS_BINDING_ABORTED);
+  },
+
+  onStateChange: function(aWebProgress, aRequest, aStateFlags, aStatus) {
+    
+    if (!(aStateFlags & (Ci.nsIWebProgressListener.STATE_IS_NETWORK)) ||
+        !(aStateFlags & (Ci.nsIWebProgressListener.STATE_STOP)))
+      return;
+
+    
+    
+    var location = this._browser.currentURI;
+
+    
+    if (Components.isSuccessCode(aStatus) && location && location.spec == "about:blank")
+      return;
+
+    
+    
+    
+    if (!Components.isSuccessCode(aStatus) ||
+        (aRequest && aRequest instanceof Ci.nsIHttpChannel && !aRequest.requestSucceeded) ||
+        location.host != this.homepageURL.host ||
+        (this.homepageURL.schemeIs("https") && !location.schemeIs("https"))) {
+      this.showError();
+    } else {
+      
+      this.node.selectedPanel = this._browser;
+      gViewController.updateCommands();
+    }
+
+    var listeners = this._loadListeners;
+    this._loadListeners = [];
+
+    listeners.forEach(function(aListener) {
+      aListener();
+    });
+  },
+
+  onProgressChange: function() { },
+  onStatusChange: function() { },
+
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
+                                         Ci.nsISupportsWeakReference]),
 
   getSelectedAddon: function() null
 };
