@@ -182,7 +182,9 @@ class OTSStream {
 
 
 
-bool Process(OTSStream *output, const uint8_t *input, size_t length);
+
+bool Process(OTSStream *output, const uint8_t *input, size_t length,
+             bool preserve_graphite_tables = false);
 
 
 

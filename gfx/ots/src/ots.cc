@@ -144,6 +144,17 @@ const struct {
   { Tag("vmtx"), ots::ots_vmtx_parse, ots::ots_vmtx_serialise,
     ots::ots_vmtx_should_serialise, ots::ots_vmtx_free, false },
   
+  { Tag("Silf"), ots::ots_silf_parse, ots::ots_silf_serialise,
+    ots::ots_silf_should_serialise, ots::ots_silf_free, false },
+  { Tag("Sill"), ots::ots_sill_parse, ots::ots_sill_serialise,
+    ots::ots_sill_should_serialise, ots::ots_sill_free, false },
+  { Tag("Gloc"), ots::ots_gloc_parse, ots::ots_gloc_serialise,
+    ots::ots_gloc_should_serialise, ots::ots_gloc_free, false },
+  { Tag("Glat"), ots::ots_glat_parse, ots::ots_glat_serialise,
+    ots::ots_glat_should_serialise, ots::ots_glat_free, false },
+  { Tag("Feat"), ots::ots_feat_parse, ots::ots_feat_serialise,
+    ots::ots_feat_should_serialise, ots::ots_feat_free, false },
+  
   { 0, NULL, NULL, NULL, NULL, false },
 };
 
@@ -586,11 +597,14 @@ void DisableDebugOutput() {
   g_debug_output = false;
 }
 
-bool Process(OTSStream *output, const uint8_t *data, size_t length) {
+bool Process(OTSStream *output, const uint8_t *data, size_t length,
+             bool preserveGraphite) {
   OpenTypeFile header;
   if (length < 4) {
     return OTS_FAILURE();
   }
+
+  header.preserve_graphite = preserveGraphite;
 
   bool result;
   if (data[0] == 'w' && data[1] == 'O' && data[2] == 'F' && data[3] == 'F') {
