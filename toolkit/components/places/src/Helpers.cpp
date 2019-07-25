@@ -185,7 +185,9 @@ GetReversedHostname(nsIURI* aURI, nsString& aRevHost)
 {
   nsCAutoString forward8;
   nsresult rv = aURI->GetHost(forward8);
-  NS_ENSURE_SUCCESS(rv, rv);
+  
+  if (NS_FAILED(rv))
+    return rv;
 
   
   GetReversedHostname(NS_ConvertUTF8toUTF16(forward8), aRevHost);
