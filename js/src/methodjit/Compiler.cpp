@@ -3924,7 +3924,7 @@ void
 mjit::Compiler::interruptCheckHelper()
 {
     Jump jump;
-    if (cx->runtime->gcZeal() >= js::gc::ZealVerifierThreshold) {
+    if (cx->runtime->gcZeal() == js::gc::ZealVerifierValue) {
         
         jump = masm.jump();
     } else {
@@ -6892,7 +6892,9 @@ mjit::Compiler::jsop_regexp()
         !cx->typeInferenceEnabled() ||
         analysis->localsAliasStack() ||
         types::TypeSet::HasObjectFlags(cx, globalObj->getType(cx),
-                                       types::OBJECT_FLAG_REGEXP_FLAGS_SET)) {
+                                       types::OBJECT_FLAG_REGEXP_FLAGS_SET) ||
+        cx->runtime->gcIncrementalState == gc::MARK)
+    {
         prepareStubCall(Uses(0));
         masm.move(ImmPtr(obj), Registers::ArgReg1);
         INLINE_STUBCALL(stubs::RegExp, REJOIN_FALLTHROUGH);
@@ -6946,6 +6948,7 @@ mjit::Compiler::jsop_regexp()
     }
 
     
+
 
 
 

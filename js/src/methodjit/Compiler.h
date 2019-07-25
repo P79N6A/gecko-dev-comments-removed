@@ -484,7 +484,7 @@ private:
     bool hasGlobalReallocation;
     bool oomInVector;       
     bool overflowICSpace;   
-    uint32_t gcNumber;
+    uint64_t gcNumber;
     enum { NoApplyTricks, LazyArgsObj } applyTricks;
     PCLengthEntry *pcLengths;
 

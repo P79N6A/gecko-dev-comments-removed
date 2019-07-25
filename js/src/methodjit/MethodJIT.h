@@ -402,7 +402,7 @@ struct RecompilationMonitor
     unsigned frameExpansions;
 
     
-    unsigned gcNumber;
+    uint64_t gcNumber;
 
     RecompilationMonitor(JSContext *cx)
         : cx(cx),

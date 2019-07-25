@@ -5369,7 +5369,7 @@ out:
 
 JS_FRIEND_DATA(Class) js::XMLClass = {
     js_XML_str,
-    JSCLASS_HAS_PRIVATE |
+    JSCLASS_HAS_PRIVATE | JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_HAS_CACHED_PROTO(JSProto_XML),
     JS_PropertyStub,         
     JS_PropertyStub,         
@@ -7922,7 +7922,7 @@ xmlfilter_finalize(JSContext *cx, JSObject *obj)
 
 Class js_XMLFilterClass = {
     "XMLFilter",
-    JSCLASS_HAS_PRIVATE | JSCLASS_IS_ANONYMOUS,
+    JSCLASS_HAS_PRIVATE | JSCLASS_IMPLEMENTS_BARRIERS | JSCLASS_IS_ANONYMOUS,
     JS_PropertyStub,         
     JS_PropertyStub,         
     JS_PropertyStub,         

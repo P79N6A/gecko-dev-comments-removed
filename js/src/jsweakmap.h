@@ -127,7 +127,7 @@ class WeakMapBase {
             
             
             if (next == WeakMapNotInList) {
-                JSRuntime *rt = tracer->context->runtime;
+                JSRuntime *rt = tracer->runtime;
                 next = rt->gcWeakMapList;
                 rt->gcWeakMapList = this;
             }
@@ -155,6 +155,8 @@ class WeakMapBase {
 
     
     static void traceAllMappings(WeakMapTracer *tracer);
+
+    void check() { JS_ASSERT(next == WeakMapNotInList); }
 
     
     static void resetWeakMapList(JSRuntime *rt);

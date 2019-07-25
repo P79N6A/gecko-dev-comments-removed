@@ -119,6 +119,12 @@ JSObject::setPrivate(void *data)
     privateWriteBarrierPost(pprivate);
 }
 
+inline void
+JSObject::initPrivate(void *data)
+{
+    privateRef(numFixedSlots()) = data;
+}
+
 inline bool
 JSObject::enumerate(JSContext *cx, JSIterateOp iterop, js::Value *statep, jsid *idp)
 {
@@ -605,17 +611,29 @@ JSObject::moveDenseArrayElements(uintN dstStart, uintN srcStart, uintN count)
 
 
 
-    uintN markStart, markEnd;
-    if (dstStart > srcStart) {
-        markStart = js::Max(srcStart + count, dstStart);
-        markEnd = dstStart + count;
-    } else {
-        markStart = dstStart;
-        markEnd = js::Min(dstStart + count, srcStart);
-    }
-    prepareElementRangeForOverwrite(markStart, markEnd);
 
-    memmove(elements + dstStart, elements + srcStart, count * sizeof(js::Value));
+
+
+
+
+
+
+
+    if (compartment()->needsBarrier()) {
+        if (dstStart < srcStart) {
+            js::HeapValue *dst = elements + dstStart;
+            js::HeapValue *src = elements + srcStart;
+            for (unsigned i = 0; i < count; i++, dst++, src++)
+                *dst = *src;
+        } else {
+            js::HeapValue *dst = elements + dstStart + count - 1;
+            js::HeapValue *src = elements + srcStart + count - 1;
+            for (unsigned i = 0; i < count; i++, dst--, src--)
+                *dst = *src;
+        }
+    } else {
+        memmove(elements + dstStart, elements + srcStart, count * sizeof(js::Value));
+    }
 }
 
 inline void
@@ -2122,6 +2140,18 @@ JSObject::writeBarrierPre(JSObject *obj)
     if (comp->needsBarrier()) {
         JS_ASSERT(!comp->rt->gcRunning);
         MarkObjectUnbarriered(comp->barrierTracer(), obj, "write barrier");
+    }
+#endif
+}
+
+inline void
+JSObject::readBarrier(JSObject *obj)
+{
+#ifdef JSGC_INCREMENTAL
+    JSCompartment *comp = obj->compartment();
+    if (comp->needsBarrier()) {
+        JS_ASSERT(!comp->rt->gcRunning);
+        MarkObjectUnbarriered(comp->barrierTracer(), obj, "read barrier");
     }
 #endif
 }

@@ -1556,6 +1556,9 @@ class StackSpace
     void markFrameSlots(JSTracer *trc, StackFrame *fp, Value *slotsEnd, jsbytecode *pc);
 
     
+    void markActiveCompartments();
+
+    
     JS_FRIEND_API(size_t) sizeOfCommitted();
 };
 

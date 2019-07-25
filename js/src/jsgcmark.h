@@ -146,6 +146,10 @@ MarkChildren(JSTracer *trc, JSObject *obj);
 void
 MarkCycleCollectorChildren(JSTracer *trc, const Shape *shape);
 
+void
+PushArena(GCMarker *gcmarker, ArenaHeader *aheader);
+
+
 
 
 

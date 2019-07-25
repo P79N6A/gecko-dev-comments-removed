@@ -1428,8 +1428,11 @@ typedef JSBool
 (* JSContextCallback)(JSContext *cx, uintN contextOp);
 
 typedef enum JSGCStatus {
+    
     JSGC_BEGIN,
     JSGC_END,
+
+    
     JSGC_MARK_END,
     JSGC_FINALIZE_END
 } JSGCStatus;
@@ -3290,7 +3293,10 @@ typedef enum JSGCParamKey {
     JSGC_UNUSED_CHUNKS = 7,
 
     
-    JSGC_TOTAL_CHUNKS = 8
+    JSGC_TOTAL_CHUNKS = 8,
+
+    
+    JSGC_SLICE_TIME_BUDGET = 9
 } JSGCParamKey;
 
 typedef enum JSGCMode {
@@ -3298,7 +3304,13 @@ typedef enum JSGCMode {
     JSGC_MODE_GLOBAL = 0,
 
     
-    JSGC_MODE_COMPARTMENT = 1
+    JSGC_MODE_COMPARTMENT = 1,
+
+    
+
+
+
+    JSGC_MODE_INCREMENTAL = 2
 } JSGCMode;
 
 extern JS_PUBLIC_API(void)
@@ -3393,7 +3405,9 @@ struct JSClass {
                                                    object in prototype chain
                                                    passed in via *objp in/out
                                                    parameter */
-#define JSCLASS_DOCUMENT_OBSERVER       (1<<6)  
+#define JSCLASS_IMPLEMENTS_BARRIERS     (1<<5)  
+
+#define JSCLASS_DOCUMENT_OBSERVER       (1<<6)  /* DOM document observer */
 
 
 
