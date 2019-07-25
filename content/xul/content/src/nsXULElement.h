@@ -408,23 +408,8 @@ public:
                                 bool aCompileEventHandlers);
     virtual void UnbindFromTree(bool aDeep, bool aNullParent);
     virtual void RemoveChildAt(PRUint32 aIndex, bool aNotify);
-    virtual bool GetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
-                           nsAString& aResult) const;
-    virtual bool HasAttr(PRInt32 aNameSpaceID, nsIAtom* aName) const;
-    virtual bool AttrValueIs(PRInt32 aNameSpaceID, nsIAtom* aName,
-                               const nsAString& aValue,
-                               nsCaseTreatment aCaseSensitive) const;
-    virtual bool AttrValueIs(PRInt32 aNameSpaceID, nsIAtom* aName,
-                               nsIAtom* aValue,
-                               nsCaseTreatment aCaseSensitive) const;
-    virtual PRInt32 FindAttrValueIn(PRInt32 aNameSpaceID,
-                                    nsIAtom* aName,
-                                    AttrValuesArray* aValues,
-                                    nsCaseTreatment aCaseSensitive) const;
     virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                                bool aNotify);
-    virtual const nsAttrName* GetAttrNameAt(PRUint32 aIndex) const;
-    virtual PRUint32 GetAttrCount() const;
     virtual void DestroyContent();
 
 #ifdef DEBUG
@@ -441,11 +426,8 @@ public:
     virtual nsIContent *GetBindingParent() const;
     virtual bool IsNodeOfType(PRUint32 aFlags) const;
     virtual bool IsFocusable(PRInt32 *aTabIndex = nsnull, bool aWithMouse = false);
-    virtual nsIAtom* DoGetID() const;
-    virtual const nsAttrValue* DoGetClasses() const;
 
     NS_IMETHOD WalkContentStyleRules(nsRuleWalker* aRuleWalker);
-    virtual mozilla::css::StyleRule* GetInlineStyleRule();
     virtual nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute,
                                                 PRInt32 aModType) const;
     NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;
@@ -471,8 +453,6 @@ public:
     virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
     virtual nsEventStates IntrinsicState() const;
 
-    nsresult EnsureLocalStyle();
-
     nsresult GetFrameLoader(nsIFrameLoader** aFrameLoader);
     already_AddRefed<nsFrameLoader> GetFrameLoader();
     nsresult SwapFrameLoaders(nsIFrameLoaderOwner* aOtherOwner);
@@ -486,15 +466,6 @@ public:
     {
       mBindingParent = aBindingParent;
     }
-
-    const nsAttrValue* GetAttrValue(const nsAString& aName);
-
-    
-
-
-
-
-    virtual nsAttrInfo GetAttrInfo(PRInt32 aNamespaceID, nsIAtom* aName) const;
 
     virtual nsXPCClassInfo* GetClassInfo();
 
@@ -533,9 +504,6 @@ protected:
     nsresult LoadSrc();
 
     
-    nsRefPtr<nsXULPrototypeElement>     mPrototype;
-
-    
 
 
 
@@ -544,12 +512,7 @@ protected:
     
 
 
-    nsresult MakeHeavyweight();
-
-    const nsAttrValue* FindLocalOrProtoAttr(PRInt32 aNameSpaceID,
-                                            nsIAtom *aName) const {
-        return nsXULElement::GetAttrInfo(aNameSpaceID, aName).mValue;
-    }
+    nsresult MakeHeavyweight(nsXULPrototypeElement* aPrototype);
 
     virtual nsresult BeforeSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
                                    const nsAttrValueOrString* aValue,
@@ -570,11 +533,6 @@ protected:
     
 
 
-    nsXULPrototypeAttribute *FindPrototypeAttribute(PRInt32 aNameSpaceID,
-                                                    nsIAtom *aName) const;
-    
-
-
     void AddListenerFor(const nsAttrName& aName,
                         bool aCompileEventHandlers);
     void MaybeAddPopupListener(nsIAtom* aLocalName);
@@ -588,8 +546,6 @@ protected:
     void SetTitlebarColor(nscolor aColor, bool aActive);
 
     void SetDrawsInTitlebar(bool aState);
-
-    const nsAttrName* InternalGetExistingAttrNameFromQName(const nsAString& aStr) const;
 
     void RemoveBroadcaster(const nsAString & broadcasterId);
 
