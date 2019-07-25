@@ -744,10 +744,8 @@ public:
 
 
 
-
   static nsresult GetFontMetricsForFrame(const nsIFrame* aFrame,
-                                         nsFontMetrics** aFontMetrics,
-                                         float aSizeInflation = 1.0f);
+                                         nsFontMetrics** aFontMetrics);
 
   
 
@@ -755,10 +753,8 @@ public:
 
 
 
-
   static nsresult GetFontMetricsForStyleContext(nsStyleContext* aStyleContext,
-                                                nsFontMetrics** aFontMetrics,
-                                                float aSizeInflation = 1.0f);
+                                                nsFontMetrics** aFontMetrics);
 
   
 
@@ -1456,59 +1452,6 @@ public:
 
   static bool Are3DTransformsEnabled();
 
-  
-
-
-
-  static bool IsContainerForFontSizeInflation(const nsIFrame *aFrame);
-
-  
-
-
-
-
-
-
-
-
-
-  static float FontSizeInflationFor(const nsHTMLReflowState &aReflowState);
-  static float FontSizeInflationFor(const nsIFrame *aFrame);
-  static float FontSizeInflationFor(const nsIFrame *aFrame,
-                                    nscoord aInflationContainerWidth);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  static nscoord InflationMinFontSizeFor(const nsHTMLReflowState
-                                                 &aReflowState);
-  static nscoord InflationMinFontSizeFor(const nsIFrame *aFrame);
-  static nscoord InflationMinFontSizeFor(const nsIFrame *aFrame,
-                                         nscoord aInflationContainerWidth);
-
-  
-
-
-
-
-
-
-  static float FontSizeInflationInner(const nsIFrame *aFrame,
-                                      nscoord aMinFontSize);
-
-  static bool FontSizeInflationEnabled(nsPresContext *aPresContext);
-
-  static void Initialize();
   static void Shutdown();
 
   

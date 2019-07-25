@@ -120,9 +120,6 @@ nsLineLayout::nsLineLayout(nsPresContext* aPresContext,
   mTopEdge = 0;
   mTrimmableWidth = 0;
 
-  mInflationMinFontSize =
-    nsLayoutUtils::InflationMinFontSizeFor(*aOuterReflowState);
-
   
   
   
@@ -1592,10 +1589,7 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
 
   
   nsRefPtr<nsFontMetrics> fm;
-  float inflation =
-    nsLayoutUtils::FontSizeInflationInner(spanFrame, mInflationMinFontSize);
-  nsLayoutUtils::GetFontMetricsForFrame(spanFrame, getter_AddRefs(fm),
-                                        inflation);
+  nsLayoutUtils::GetFontMetricsForFrame(spanFrame, getter_AddRefs(fm));
   mBlockReflowState->rendContext->SetFont(fm);
 
   bool preMode = mStyleText->WhiteSpaceIsSignificant();
@@ -1726,12 +1720,9 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
     
     
     
-    float inflation =
-      nsLayoutUtils::FontSizeInflationInner(spanFrame, mInflationMinFontSize);
     nscoord logicalHeight = nsHTMLReflowState::
       CalcLineHeight(spanFrame->GetStyleContext(),
-                     mBlockReflowState->ComputedHeight(),
-                     inflation);
+                     mBlockReflowState->ComputedHeight());
     nscoord contentHeight = spanFramePFD->mBounds.height -
       spanFramePFD->mBorderPadding.top - spanFramePFD->mBorderPadding.bottom;
 
@@ -1968,11 +1959,8 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
       if (verticalAlign.HasPercent()) {
         
         
-        float inflation =
-          nsLayoutUtils::FontSizeInflationInner(frame, mInflationMinFontSize);
         pctBasis = nsHTMLReflowState::CalcLineHeight(
-          frame->GetStyleContext(), mBlockReflowState->ComputedHeight(),
-          inflation);
+          frame->GetStyleContext(), mBlockReflowState->ComputedHeight());
       }
       nscoord offset =
         nsRuleNode::ComputeCoordPercentCalc(verticalAlign, pctBasis);
@@ -2631,7 +2619,7 @@ nsLineLayout::RelativePositionFrames(PerSpanData* psd, nsOverflowAreas& aOverflo
         if (pfd->GetFlag(PFD_RECOMPUTEOVERFLOW) ||
             frame->GetStyleContext()->HasTextDecorationLines()) {
           nsTextFrame* f = static_cast<nsTextFrame*>(frame);
-          r = f->RecomputeOverflow(*mBlockReflowState);
+          r = f->RecomputeOverflow();
         }
         frame->FinishAndStoreOverflow(r, frame->GetSize());
       }

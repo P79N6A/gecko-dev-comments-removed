@@ -676,7 +676,7 @@ nsBoxFrame::Reflow(nsPresContext*          aPresContext,
 
   
   nsBoxLayoutState state(aPresContext, aReflowState.rendContext,
-                         &aReflowState, aReflowState.mReflowDepth);
+                         aReflowState.mReflowDepth);
 
   nsSize computedSize(aReflowState.ComputedWidth(),aReflowState.ComputedHeight());
 

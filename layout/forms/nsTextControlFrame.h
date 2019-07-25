@@ -392,8 +392,7 @@ protected:
   
   
   nsresult CalcIntrinsicSize(nsRenderingContext* aRenderingContext,
-                             nsSize&             aIntrinsicSize,
-                             float               aFontSizeInflation);
+                             nsSize&              aIntrinsicSize);
 
   nsresult ScrollSelectionIntoView();
 

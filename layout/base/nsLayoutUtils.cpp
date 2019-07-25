@@ -128,9 +128,6 @@ bool nsLayoutUtils::gPreventAssertInCompareTreePosition = false;
 typedef gfxPattern::GraphicsFilter GraphicsFilter;
 typedef FrameMetrics::ViewID ViewID;
 
-static PRUint32 sFontSizeInflationEmPerLine;
-static PRUint32 sFontSizeInflationMinTwips;
-
 static ViewID sScrollIdCounter = FrameMetrics::START_SCROLL_ID;
 
 typedef nsDataHashtable<nsUint64HashKey, nsIContent*> ContentMap;
@@ -1928,26 +1925,22 @@ nsLayoutUtils::GetTextShadowRectsUnion(const nsRect& aTextAndDecorationsRect,
 
 nsresult
 nsLayoutUtils::GetFontMetricsForFrame(const nsIFrame* aFrame,
-                                      nsFontMetrics** aFontMetrics,
-                                      float aInflation)
+                                      nsFontMetrics** aFontMetrics)
 {
   return nsLayoutUtils::GetFontMetricsForStyleContext(aFrame->GetStyleContext(),
-                                                      aFontMetrics,
-                                                      aInflation);
+                                                      aFontMetrics);
 }
 
 nsresult
 nsLayoutUtils::GetFontMetricsForStyleContext(nsStyleContext* aStyleContext,
-                                             nsFontMetrics** aFontMetrics,
-                                             float aInflation)
+                                             nsFontMetrics** aFontMetrics)
 {
   
   gfxUserFontSet* fs = aStyleContext->PresContext()->GetUserFontSet();
 
-  nsFont font = aStyleContext->GetStyleFont()->mFont;
-  font.size = NSToCoordRound(font.size * aInflation);
   return aStyleContext->PresContext()->DeviceContext()->GetMetricsFor(
-                  font, aStyleContext->GetStyleVisibility()->mLanguage,
+                  aStyleContext->GetStyleFont()->mFont,
+                  aStyleContext->GetStyleVisibility()->mLanguage,
                   fs, *aFontMetrics);
 }
 
@@ -4275,8 +4268,8 @@ nsLayoutUtils::GetFontFacesForText(nsIFrame* aFrame,
     }
 
     
-    gfxSkipCharsIterator iter = curr->EnsureTextRun(nsTextFrame::eInflated);
-    gfxTextRun* textRun = curr->GetTextRun(nsTextFrame::eInflated);
+    gfxSkipCharsIterator iter = curr->EnsureTextRun();
+    gfxTextRun* textRun = curr->GetTextRun();
     NS_ENSURE_TRUE(textRun, NS_ERROR_OUT_OF_MEMORY);
 
     PRUint32 skipStart = iter.ConvertOriginalToSkipped(fstart);
@@ -4299,15 +4292,12 @@ nsLayoutUtils::GetTextRunMemoryForFrames(nsIFrame* aFrame, PRUint64* aTotal)
 
   if (aFrame->GetType() == nsGkAtoms::textFrame) {
     nsTextFrame* textFrame = static_cast<nsTextFrame*>(aFrame);
-    for (PRUint32 i = 0; i < 2; ++i) {
-      gfxTextRun *run = textFrame->GetTextRun(
-        (i != 0) ? nsTextFrame::eInflated : nsTextFrame::eNotInflated);
-      if (run) {
-        if (aTotal) {
-          run->AccountForSize(aTotal);
-        } else {
-          run->ClearSizeAccounted();
-        }
+    gfxTextRun *run = textFrame->GetTextRun();
+    if (run) {
+      if (aTotal) {
+        run->AccountForSize(aTotal);
+      } else {
+        run->ClearSizeAccounted();
       }
     }
     return NS_OK;
@@ -4325,16 +4315,6 @@ nsLayoutUtils::GetTextRunMemoryForFrames(nsIFrame* aFrame, PRUint64* aTotal)
   }
 
   return NS_OK;
-}
-
-
-void
-nsLayoutUtils::Initialize()
-{
-  mozilla::Preferences::AddUintVarCache(&sFontSizeInflationEmPerLine,
-                                        "font.size.inflation.emPerLine");
-  mozilla::Preferences::AddUintVarCache(&sFontSizeInflationMinTwips,
-                                        "font.size.inflation.minTwips");
 }
 
 
@@ -4498,312 +4478,4 @@ nsReflowFrameRunnable::Run()
       FrameNeedsReflow(mWeakFrame, mIntrinsicDirty, mBitToAdd);
   }
   return NS_OK;
-}
-
-
-
-
-
-
-static nscoord
-MinimumFontSizeFor(nsPresContext* aPresContext, nscoord aContainerWidth)
-{
-  if (sFontSizeInflationEmPerLine == 0 && sFontSizeInflationMinTwips == 0) {
-    return 0;
-  }
-  nscoord byLine = 0, byInch = 0;
-  if (sFontSizeInflationEmPerLine != 0) {
-    byLine = aContainerWidth / sFontSizeInflationEmPerLine;
-  }
-  if (sFontSizeInflationMinTwips != 0) {
-    
-    
-    nsDeviceContext *dx = aPresContext->DeviceContext();
-    nsRect clientRect;
-    dx->GetClientRect(clientRect); 
-    float deviceWidthInches =
-      float(clientRect.width) / float(dx->AppUnitsPerPhysicalInch());
-    byInch = NSToCoordRound(aContainerWidth /
-                            (deviceWidthInches * 1440 /
-                             sFontSizeInflationMinTwips ));
-  }
-  return NS_MAX(byLine, byInch);
-}
-
- float
-nsLayoutUtils::FontSizeInflationInner(const nsIFrame *aFrame,
-                                      nscoord aMinFontSize)
-{
-  
-  
-  
-  nscoord styleFontSize = aFrame->GetStyleFont()->mFont.size;
-  if (styleFontSize <= 0) {
-    
-    return 1.0;
-  }
-
-  if (aMinFontSize <= 0) {
-    
-    return 1.0;
-  }
-
-  
-  
-  
-  
-  float ratio = float(styleFontSize) / float(aMinFontSize);
-  if (ratio >= 1.5f) {
-    
-    return 1.0;
-  }
-
-  
-  
-  
-  
-  return (1.0f / ratio) + (1.0f / 3.0f);
-}
-
- bool
-nsLayoutUtils::IsContainerForFontSizeInflation(const nsIFrame *aFrame)
-{
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  bool isInline = aFrame->GetStyleDisplay()->mDisplay ==
-                    NS_STYLE_DISPLAY_INLINE ||
-                  aFrame->GetContent()->IsInNativeAnonymousSubtree();
-  NS_ASSERTION(!aFrame->IsFrameOfType(nsIFrame::eLineParticipant) || isInline,
-               "line participants must not be containers");
-  NS_ASSERTION(aFrame->GetType() != nsGkAtoms::bulletFrame || isInline,
-               "bullets should not be containers");
-  return !isInline;
-}
-
-static bool
-ShouldInflateFontsForContainer(const nsIFrame *aFrame)
-{
-  
-  
-  
-  
-  
-  
-  
-  return aFrame->GetStyleText()->mTextSizeAdjust !=
-           NS_STYLE_TEXT_SIZE_ADJUST_NONE &&
-         !(aFrame->GetStateBits() & NS_FRAME_IN_CONSTRAINED_HEIGHT);
-}
-
-nscoord
-nsLayoutUtils::InflationMinFontSizeFor(const nsHTMLReflowState &aReflowState)
-{
-#ifdef DEBUG
-  {
-    const nsHTMLReflowState *rs = &aReflowState;
-    const nsIFrame *f = aReflowState.frame;
-    for (; rs; rs = rs->parentReflowState, f = f->GetParent()) {
-      NS_ABORT_IF_FALSE(rs->frame == f,
-                        "reflow state parentage must match frame parentage");
-    }
-  }
-#endif
-
-  if (!FontSizeInflationEnabled(aReflowState.frame->PresContext())) {
-    return 0;
-  }
-
-  nsIFrame *reflowRoot = nsnull;
-  for (const nsHTMLReflowState *rs = &aReflowState; rs;
-       reflowRoot = rs->frame, rs = rs->parentReflowState) {
-    if (IsContainerForFontSizeInflation(rs->frame)) {
-      if (!ShouldInflateFontsForContainer(rs->frame)) {
-        return 0;
-      }
-
-      NS_ABORT_IF_FALSE(rs->ComputedWidth() != NS_INTRINSICSIZE,
-                        "must have a computed width");
-      return MinimumFontSizeFor(aReflowState.frame->PresContext(),
-                                rs->ComputedWidth());
-    }
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  return InflationMinFontSizeFor(reflowRoot->GetParent());
-}
-
-nscoord
-nsLayoutUtils::InflationMinFontSizeFor(const nsIFrame *aFrame)
-{
-#ifdef DEBUG
-  
-  
-  
-  
-  if (!(aFrame->IsBoxFrame() && IsContainerForFontSizeInflation(aFrame))) {
-    for (const nsIFrame *f = aFrame; f; f = f->GetParent()) {
-      NS_ABORT_IF_FALSE(!(f->GetStateBits() & NS_FRAME_IN_REFLOW),
-                        "must call nsHTMLReflowState& version during reflow");
-    }
-  }
-  
-  
-  
-#endif
-
-  if (!FontSizeInflationEnabled(aFrame->PresContext())) {
-    return 0;
-  }
-
-  for (const nsIFrame *f = aFrame; f; f = f->GetParent()) {
-    if (IsContainerForFontSizeInflation(f)) {
-      if (!ShouldInflateFontsForContainer(f)) {
-        return 0;
-      }
-
-      return MinimumFontSizeFor(aFrame->PresContext(),
-                                f->GetContentRect().width);
-    }
-  }
-
-  NS_ABORT_IF_FALSE(false, "root should always be container");
-
-  return 0;
-}
-
- nscoord
-nsLayoutUtils::InflationMinFontSizeFor(const nsIFrame *aFrame,
-                                       nscoord aInflationContainerWidth)
-{
-  if (!FontSizeInflationEnabled(aFrame->PresContext())) {
-    return 0;
-  }
-
-  for (const nsIFrame *f = aFrame; f; f = f->GetParent()) {
-    if (IsContainerForFontSizeInflation(f)) {
-      if (!ShouldInflateFontsForContainer(f)) {
-        return 0;
-      }
-
-      
-      
-      
-      return MinimumFontSizeFor(aFrame->PresContext(),
-                                aInflationContainerWidth);
-    }
-  }
-
-  NS_ABORT_IF_FALSE(false, "root should always be container");
-
-  return 0;
-}
-
-float
-nsLayoutUtils::FontSizeInflationFor(const nsHTMLReflowState &aReflowState)
-{
-#ifdef DEBUG
-  {
-    const nsHTMLReflowState *rs = &aReflowState;
-    const nsIFrame *f = aReflowState.frame;
-    for (; rs; rs = rs->parentReflowState, f = f->GetParent()) {
-      NS_ABORT_IF_FALSE(rs->frame == f,
-                        "reflow state parentage must match frame parentage");
-    }
-  }
-#endif
-
-  if (!FontSizeInflationEnabled(aReflowState.frame->PresContext())) {
-    return 1.0;
-  }
-
-  return FontSizeInflationInner(aReflowState.frame,
-             InflationMinFontSizeFor(aReflowState));
-}
-
-float
-nsLayoutUtils::FontSizeInflationFor(const nsIFrame *aFrame)
-{
-#ifdef DEBUG
-  
-  
-  
-  
-  if (!(aFrame->IsBoxFrame() && IsContainerForFontSizeInflation(aFrame))) {
-    for (const nsIFrame *f = aFrame; f; f = f->GetParent()) {
-      NS_ABORT_IF_FALSE(!(f->GetStateBits() & NS_FRAME_IN_REFLOW),
-                        "must call nsHTMLReflowState& version during reflow");
-    }
-  }
-  
-  
-  
-#endif
-
-  if (!FontSizeInflationEnabled(aFrame->PresContext())) {
-    return 1.0;
-  }
-
-  return FontSizeInflationInner(aFrame,
-                                InflationMinFontSizeFor(aFrame));
-}
-
- float
-nsLayoutUtils::FontSizeInflationFor(const nsIFrame *aFrame,
-                                    nscoord aInflationContainerWidth)
-{
-  if (!FontSizeInflationEnabled(aFrame->PresContext())) {
-    return 1.0;
-  }
-
-  return FontSizeInflationInner(aFrame,
-                                InflationMinFontSizeFor(aFrame,
-                                  aInflationContainerWidth));
-}
-
- bool
-nsLayoutUtils::FontSizeInflationEnabled(nsPresContext *aPresContext)
-{
-  return (sFontSizeInflationEmPerLine != 0 ||
-          sFontSizeInflationMinTwips != 0) &&
-         !aPresContext->IsChrome();
 }

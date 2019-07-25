@@ -257,10 +257,9 @@ void nsListControlFrame::PaintFocus(nsRenderingContext& aRC, nsPoint aPt)
     
     fRect.MoveBy(childframe->GetParent()->GetOffsetTo(this));
   } else {
-    float inflation = nsLayoutUtils::FontSizeInflationFor(this);
     fRect.x = fRect.y = 0;
     fRect.width = GetScrollPortRect().width;
-    fRect.height = CalcFallbackRowHeight(inflation);
+    fRect.height = CalcFallbackRowHeight();
     fRect.MoveBy(containerFrame->GetOffsetTo(this));
   }
   fRect += aPt;
@@ -284,7 +283,7 @@ void nsListControlFrame::PaintFocus(nsRenderingContext& aRC, nsPoint aPt)
 }
 
 void
-nsListControlFrame::InvalidateFocus(const nsHTMLReflowState *aReflowState)
+nsListControlFrame::InvalidateFocus()
 {
   if (mFocused != this)
     return;
@@ -294,16 +293,8 @@ nsListControlFrame::InvalidateFocus(const nsHTMLReflowState *aReflowState)
     
     
     
-    float inflation;
-    if (aReflowState) {
-      NS_ABORT_IF_FALSE(aReflowState->frame == this, "wrong reflow state");
-      inflation = nsLayoutUtils::FontSizeInflationFor(*aReflowState);
-    } else {
-      inflation = nsLayoutUtils::FontSizeInflationFor(this);
-    }
     nsRect invalidateArea = containerFrame->GetVisualOverflowRect();
-    nsRect emptyFallbackArea(0, 0, GetScrollPortRect().width,
-                             CalcFallbackRowHeight(inflation));
+    nsRect emptyFallbackArea(0, 0, GetScrollPortRect().width, CalcFallbackRowHeight());
     invalidateArea.UnionRect(invalidateArea, emptyFallbackArea);
     containerFrame->Invalidate(invalidateArea);
   }
@@ -374,11 +365,8 @@ GetNumberOfOptionsRecursive(nsIContent* aContent)
 
 
 
-
-
-
 nscoord
-nsListControlFrame::CalcHeightOfARow(const nsHTMLReflowState& aReflowState)
+nsListControlFrame::CalcHeightOfARow()
 {
   
   
@@ -389,9 +377,7 @@ nsListControlFrame::CalcHeightOfARow(const nsHTMLReflowState& aReflowState)
   
   
   if (heightOfARow == 0 && GetNumberOfOptions() == 0) {
-    nscoord minFontSize = nsLayoutUtils::InflationMinFontSizeFor(aReflowState);
-    float inflation = nsLayoutUtils::FontSizeInflationInner(this, minFontSize);
-    heightOfARow = CalcFallbackRowHeight(inflation);
+    heightOfARow = CalcFallbackRowHeight();
   }
 
   return heightOfARow;
@@ -514,7 +500,7 @@ nsListControlFrame::Reflow(nsPresContext*           aPresContext,
       
       
       
-      nscoord rowHeight = CalcHeightOfARow(aReflowState);
+      nscoord rowHeight = CalcHeightOfARow();
       if (rowHeight == 0) {
         
         mNumDisplayRows = 1;
@@ -1181,8 +1167,7 @@ nsListControlFrame::OnContentReset()
 }
 
 void 
-nsListControlFrame::ResetList(bool aAllowScrolling,
-                              const nsHTMLReflowState *aReflowState)
+nsListControlFrame::ResetList(bool aAllowScrolling)
 {
   
   
@@ -1206,7 +1191,7 @@ nsListControlFrame::ResetList(bool aAllowScrolling,
 
   mStartSelectionIndex = kNothingSelected;
   mEndSelectionIndex = kNothingSelected;
-  InvalidateFocus(aReflowState);
+  InvalidateFocus();
   
 } 
  
@@ -1759,7 +1744,7 @@ nsListControlFrame::DidReflow(nsPresContext*           aPresContext,
     
     
     
-    ResetList(!DidHistoryRestore() || mPostChildrenLoadedReset, aReflowState);
+    ResetList(!DidHistoryRestore() || mPostChildrenLoadedReset);
   }
 
   mHasPendingInterruptAtStartOfReflow = false;
@@ -1828,13 +1813,12 @@ nsListControlFrame::IsLeftButton(nsIDOMEvent* aMouseEvent)
 }
 
 nscoord
-nsListControlFrame::CalcFallbackRowHeight(float aFontSizeInflation)
+nsListControlFrame::CalcFallbackRowHeight()
 {
   nscoord rowHeight = 0;
 
   nsRefPtr<nsFontMetrics> fontMet;
-  nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fontMet),
-                                        aFontSizeInflation);
+  nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fontMet));
   if (fontMet) {
     rowHeight = fontMet->MaxHeight();
   }

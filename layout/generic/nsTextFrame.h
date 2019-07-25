@@ -65,16 +65,13 @@ class PropertyProvider;
 
 #define TEXT_HAS_NONCOLLAPSED_CHARACTERS NS_FRAME_STATE_BIT(31)
 
-#define TEXT_HAS_FONT_INFLATION          NS_FRAME_STATE_BIT(61)
-
 class nsTextFrame : public nsFrame {
 public:
   NS_DECL_FRAMEARENA_HELPERS
 
   friend class nsContinuingTextFrame;
 
-  nsTextFrame(nsStyleContext* aContext)
-    : nsFrame(aContext)
+  nsTextFrame(nsStyleContext* aContext) : nsFrame(aContext)
   {
     NS_ASSERTION(mContentOffset == 0, "Bogus content offset");
   }
@@ -228,13 +225,7 @@ public:
 #ifdef ACCESSIBILITY
   virtual already_AddRefed<nsAccessible> CreateAccessible();
 #endif
-
-  float GetFontSizeInflation() const;
-  bool HasFontSizeInflation() const {
-    return (GetStateBits() & TEXT_HAS_FONT_INFLATION) != 0;
-  }
-  void SetFontSizeInflation(float aInflation);
-
+  
   virtual void MarkIntrinsicWidthsDirty();
   virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext);
   virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext);
@@ -273,8 +264,7 @@ public:
                                    PRUint32 aSkippedStartOffset = 0,
                                    PRUint32 aSkippedMaxLength = PR_UINT32_MAX);
 
-  nsOverflowAreas
-    RecomputeOverflow(const nsHTMLReflowState& aBlockReflowState);
+  nsOverflowAreas RecomputeOverflow();
 
   void AddInlineMinWidthForFlow(nsRenderingContext *aRenderingContext,
                                 nsIFrame::InlineMinWidthData *aData);
@@ -289,7 +279,8 @@ public:
 
 
 
-  bool MeasureCharClippedText(nscoord aLeftEdge, nscoord aRightEdge,
+  bool MeasureCharClippedText(gfxContext* aCtx,
+                              nscoord aLeftEdge, nscoord aRightEdge,
                               nscoord* aSnappedLeftEdge,
                               nscoord* aSnappedRightEdge);
   
@@ -298,7 +289,8 @@ public:
 
 
 
-  bool MeasureCharClippedText(PropertyProvider& aProvider,
+  bool MeasureCharClippedText(gfxContext* aCtx,
+                              PropertyProvider& aProvider,
                               nscoord aLeftEdge, nscoord aRightEdge,
                               PRUint32* aStartOffset, PRUint32* aMaxLength,
                               nscoord* aSnappedLeftEdge,
@@ -373,16 +365,6 @@ public:
   
   PRInt32 GetInFlowContentLength();
 
-  enum TextRunType {
-    
-    
-    
-    eInflated,
-    
-    
-    eNotInflated
-  };
-
   
 
 
@@ -395,49 +377,19 @@ public:
 
 
 
-  gfxSkipCharsIterator EnsureTextRun(TextRunType aWhichTextRun,
-                                     float aInflation,
-                                     gfxContext* aReferenceContext = nsnull,
+  gfxSkipCharsIterator EnsureTextRun(gfxContext* aReferenceContext = nsnull,
                                      nsIFrame* aLineContainer = nsnull,
                                      const nsLineList::iterator* aLine = nsnull,
                                      PRUint32* aFlowEndInTextRun = nsnull);
-  
-  gfxSkipCharsIterator EnsureTextRun(TextRunType aWhichTextRun) {
-    return EnsureTextRun(aWhichTextRun,
-                         (aWhichTextRun == eInflated)
-                           ? GetFontSizeInflation() : 1.0f);
-  }
 
-
-  gfxTextRun* GetTextRun(TextRunType aWhichTextRun) {
-    if (aWhichTextRun == eInflated || !HasFontSizeInflation())
-      return mTextRun;
-    return GetUninflatedTextRun();
-  }
-  gfxTextRun* GetUninflatedTextRun();
-  void SetTextRun(gfxTextRun* aTextRun, TextRunType aWhichTextRun,
-                  float aInflation);
+  gfxTextRun* GetTextRun() { return mTextRun; }
+  void SetTextRun(gfxTextRun* aTextRun) { mTextRun = aTextRun; }
   
 
 
 
 
-
-  bool RemoveTextRun(gfxTextRun* aTextRun);
-  
-
-
-
-
-
-
-  void ClearTextRun(nsTextFrame* aStartContinuation,
-                    TextRunType aWhichTextRun);
-
-  void ClearTextRuns() {
-    ClearTextRun(nsnull, nsTextFrame::eInflated);
-    ClearTextRun(nsnull, nsTextFrame::eNotInflated);
-  }
+  void ClearTextRun(nsTextFrame* aStartContinuation);
 
   
   
@@ -482,7 +434,6 @@ protected:
   SelectionDetails* GetSelectionDetails();
 
   void UnionAdditionalOverflow(nsPresContext* aPresContext,
-                               const nsHTMLReflowState& aBlockReflowState,
                                PropertyProvider& aProvider,
                                nsRect* aVisualOverflowRect,
                                bool aIncludeTextDecorations);

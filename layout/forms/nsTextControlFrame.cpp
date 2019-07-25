@@ -217,8 +217,7 @@ nsTextControlFrame::GetType() const
 
 nsresult
 nsTextControlFrame::CalcIntrinsicSize(nsRenderingContext* aRenderingContext,
-                                      nsSize&             aIntrinsicSize,
-                                      float               aFontSizeInflation)
+                                      nsSize&              aIntrinsicSize)
 {
   
   nscoord lineHeight  = 0;
@@ -227,14 +226,12 @@ nsTextControlFrame::CalcIntrinsicSize(nsRenderingContext* aRenderingContext,
 
   nsRefPtr<nsFontMetrics> fontMet;
   nsresult rv =
-    nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fontMet),
-                                          aFontSizeInflation);
+    nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fontMet));
   NS_ENSURE_SUCCESS(rv, rv);
   aRenderingContext->SetFont(fontMet);
 
   lineHeight =
-    nsHTMLReflowState::CalcLineHeight(GetStyleContext(), NS_AUTOHEIGHT,
-                                      aFontSizeInflation);
+    nsHTMLReflowState::CalcLineHeight(GetStyleContext(), NS_AUTOHEIGHT);
   charWidth = fontMet->AveCharWidth();
   charMaxAdvance = fontMet->MaxAdvance();
 
@@ -501,16 +498,8 @@ nsTextControlFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
                                     nsSize aMargin, nsSize aBorder,
                                     nsSize aPadding, bool aShrinkWrap)
 {
-  float inflation;
-  if (nsLayoutUtils::IsContainerForFontSizeInflation(this)) {
-    
-    
-    inflation = 1.0f;
-  } else {
-    inflation = nsLayoutUtils::FontSizeInflationFor(this, aCBSize.width);
-  }
   nsSize autoSize;
-  nsresult rv = CalcIntrinsicSize(aRenderingContext, autoSize, inflation);
+  nsresult rv = CalcIntrinsicSize(aRenderingContext, autoSize);
   if (NS_FAILED(rv)) {
     
     autoSize.SizeTo(0, 0);
@@ -523,8 +512,7 @@ nsTextControlFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
                                     aCBSize, aAvailableWidth,
                                     aMargin, aBorder,
                                     aPadding, aShrinkWrap);
-    
-    NS_ASSERTION(inflation != 1.0f || ancestorAutoSize.width == autoSize.width,
+    NS_ASSERTION(ancestorAutoSize.width == autoSize.width,
                  "Incorrect size computed by ComputeAutoSize?");
   }
 #endif
@@ -565,11 +553,7 @@ nsTextControlFrame::GetPrefSize(nsBoxLayoutState& aState)
 
   nsSize pref(0,0);
 
-  
-  
-  
-  
-  nsresult rv = CalcIntrinsicSize(aState.GetRenderingContext(), pref, 1.0f);
+  nsresult rv = CalcIntrinsicSize(aState.GetRenderingContext(), pref);
   NS_ENSURE_SUCCESS(rv, pref);
   AddBorderAndPadding(pref);
 
@@ -615,37 +599,16 @@ nsTextControlFrame::GetBoxAscent(nsBoxLayoutState& aState)
   
   
 
-  float inflation;
-  if (nsLayoutUtils::IsContainerForFontSizeInflation(this)) {
-    inflation =
-      nsLayoutUtils::FontSizeInflationFor(this, GetContentRect().width);
-  } else {
-    const nsHTMLReflowState *outerReflowState = aState.OuterReflowState();
-    NS_ASSERTION(outerReflowState || !mParent || mParent->IsBoxFrame() ||
-                 !(mParent->GetStateBits() & NS_FRAME_IN_REFLOW),
-                 "when a text control is reflowed by one of its ancestors "
-                 "and its parent is non-XUL, we should have the outer "
-                 "reflow state in the box layout state");
-    if (outerReflowState && outerReflowState->frame == this) {
-      inflation = nsLayoutUtils::FontSizeInflationFor(*outerReflowState);
-    } else {
-      inflation = nsLayoutUtils::FontSizeInflationInner(this,
-                    nsLayoutUtils::InflationMinFontSizeFor(mParent));
-    }
-  }
-
   
   nsRect clientRect;
   GetClientRect(clientRect);
   nscoord lineHeight =
     IsSingleLineTextControl() ? clientRect.height :
-    nsHTMLReflowState::CalcLineHeight(GetStyleContext(), NS_AUTOHEIGHT,
-                                      inflation);
+    nsHTMLReflowState::CalcLineHeight(GetStyleContext(), NS_AUTOHEIGHT);
 
   nsRefPtr<nsFontMetrics> fontMet;
   nsresult rv =
-    nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fontMet),
-                                          inflation);
+    nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fontMet));
   NS_ENSURE_SUCCESS(rv, 0);
 
   nscoord ascent = nsLayoutUtils::GetCenteredFontBaseline(fontMet, lineHeight);
