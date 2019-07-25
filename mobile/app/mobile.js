@@ -370,9 +370,6 @@ pref("app.creditsURL", "http://www.mozilla.com/%LOCALE%/mobile/credits");
 pref("security.alternate_certificate_error_page", "certerror");
 
 
-pref("intl.locale.matchOS", true);
-
-
 pref("ui.-moz-dialog", "#efebe7");
 pref("ui.-moz-dialogtext", "#101010");
 pref("ui.-moz-field", "#fff");
