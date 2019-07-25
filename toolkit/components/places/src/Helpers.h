@@ -203,6 +203,13 @@ void ReverseString(const nsString& aInput, nsString& aReversed);
 
 
 
+
+
+nsresult GenerateGUID(nsCString& _guid);
+
+
+
+
 template<typename StatementType>
 class FinalizeStatementCacheProxy : public nsRunnable
 {
