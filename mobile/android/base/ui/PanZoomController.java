@@ -79,7 +79,7 @@ public class PanZoomController
     private static final float FLING_STOPPED_THRESHOLD = 0.1f;
     
     
-    private static final float PAN_THRESHOLD = 0.1f;
+    public static final float PAN_THRESHOLD = 0.1f;
     
     private static final double AXIS_LOCK_ANGLE = Math.PI / 6.0; 
     
