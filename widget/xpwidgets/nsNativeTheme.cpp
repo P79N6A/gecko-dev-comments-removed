@@ -54,13 +54,15 @@
 #include "nsProgressFrame.h"
 #include "nsMenuFrame.h"
 #include "mozilla/dom/Element.h"
+#include "nsIObserverService.h"
+#include "mozilla/Services.h"
 
 nsNativeTheme::nsNativeTheme()
 : mAnimatedContentTimeout(PR_UINT32_MAX)
 {
 }
 
-NS_IMPL_ISUPPORTS1(nsNativeTheme, nsITimerCallback)
+NS_IMPL_ISUPPORTS2(nsNativeTheme, nsITimerCallback, nsIObserver)
 
 nsIPresShell *
 nsNativeTheme::GetPresShell(nsIFrame* aFrame)
@@ -565,6 +567,150 @@ nsNativeTheme::QueueAnimatedContentForRefresh(nsIContent* aContent,
   return true;
 }
 
+inline bool
+IsFadeIn(nsNativeTheme::FadeState aState)
+{
+  return (aState == nsNativeTheme::FADE_IN ||
+          aState == nsNativeTheme::FADE_IN_FINISHED);
+}
+
+inline bool
+IsFadeOut(nsNativeTheme::FadeState aState)
+{
+  return (aState == nsNativeTheme::FADE_OUT);
+}
+
+bool
+nsNativeTheme::QueueAnimatedContentRefreshForFade(nsIContent* aContent,
+                                                  FadeState aFadeDirection,
+                                                  PRUint32 aMinimumFrameRate,
+                                                  PRUint32 aMilliseconds,
+                                                  PRUint32 aUserData)
+{
+  NS_ASSERTION(aContent, "Null pointer!");
+  NS_ASSERTION((aFadeDirection == FADE_IN ||
+                aFadeDirection == FADE_OUT), "Bad initial fade direction.");
+
+  
+  
+  if (NS_FAILED(InitFadeList()))
+    return false;
+
+  
+  
+  
+
+  FadeData* pFade = mAnimatedFadesList.Get(aContent);
+  if (pFade) {
+    
+    pFade->SetUserData(aUserData);
+
+    
+    if (IsFadeIn(pFade->GetState()) != IsFadeIn(aFadeDirection)) {
+      if (pFade->GetState() != FADE_IN_FINISHED) {
+        
+        
+        pFade->Reset(pFade->TimeoutUsed(), aFadeDirection);
+      } else {
+        
+        
+        
+        
+        pFade->Reset(TimeDuration::FromMilliseconds(aMilliseconds),
+                     aFadeDirection);
+      }
+    }
+
+    
+    if (pFade->GetTimeout() < TimeStamp::Now()) {
+      
+      
+      
+      if (IsFadeIn(pFade->GetState())) {
+        pFade->FadeInFinished();
+        
+        
+        if (!QueueAnimatedContentForRefresh(aContent, 1)) {
+          NS_WARNING("QueueAnimatedContentForRefresh failed???");
+          return false;
+        }
+      } else if (IsFadeOut(pFade->GetState())) {
+        
+        mAnimatedFadesList.Remove(aContent);
+        
+        if (!QueueAnimatedContentForRefresh(aContent, aMinimumFrameRate)) {
+          NS_WARNING("QueueAnimatedContentForRefresh failed???");
+          return false;
+        }
+      }
+    } else {
+      
+      if (!QueueAnimatedContentForRefresh(aContent, aMinimumFrameRate)) {
+        NS_WARNING("QueueAnimatedContentForRefresh failed???");
+        return false;
+      }
+    }
+    return true;
+  }
+
+  
+  
+  TimeStamp timeout = TimeStamp::Now() +
+    TimeDuration::FromMilliseconds(aMilliseconds);
+  nsAutoPtr<FadeData> newFade(new FadeData(timeout, aFadeDirection, aUserData));
+  if (!newFade) {
+    NS_WARNING("Out of memory!");
+    return false;
+  }
+  
+  if (!QueueAnimatedContentForRefresh(aContent, aMinimumFrameRate)) {
+    NS_WARNING("QueueAnimatedContentForRefresh failed???");
+    return false;
+  }
+  mAnimatedFadesList.Put(aContent, newFade);
+  newFade.forget();
+
+  return true;
+}
+
+
+
+nsresult
+nsNativeTheme::InitFadeList()
+{
+  if (mAnimatedFadesList.IsInitialized())
+    return NS_OK;
+  if (!mAnimatedFadesList.Init())
+    return NS_ERROR_UNEXPECTED;
+  nsCOMPtr<nsIObserverService> obsSvc =
+    mozilla::services::GetObserverService();
+  nsresult rv = NS_ERROR_UNEXPECTED;
+  if (obsSvc) {
+    rv = obsSvc->AddObserver(this, NS_XPCOM_WILL_SHUTDOWN_OBSERVER_ID, false);
+  }
+  return rv;
+}
+
+NS_IMETHODIMP
+nsNativeTheme::Observe(nsISupports* aSubject, const char* aTopic,
+                       const PRUnichar* aData)
+{
+  if (strcmp(aTopic, NS_XPCOM_WILL_SHUTDOWN_OBSERVER_ID) == 0) {
+    mAnimatedFadesList.Clear();
+    nsCOMPtr<nsIObserverService> obsSvc =
+      mozilla::services::GetObserverService();
+    nsresult rv = NS_ERROR_UNEXPECTED;
+    if (obsSvc) {
+      rv = obsSvc->RemoveObserver(this, NS_XPCOM_WILL_SHUTDOWN_OBSERVER_ID);
+    }
+    NS_ASSERTION(NS_SUCCEEDED(rv),
+      "nsNativeTheme RemoveObserver failed, this may cause a leak.");
+  }
+  return NS_OK;
+}
+
+
+
 NS_IMETHODIMP
 nsNativeTheme::Notify(nsITimer* aTimer)
 {
@@ -578,12 +724,88 @@ nsNativeTheme::Notify(nsITimer* aTimer)
     nsIFrame* frame = mAnimatedContentList[index]->GetPrimaryFrame();
     if (frame) {
       frame->InvalidateOverflowRect();
+    } else {
+      
+      
+      if (mAnimatedFadesList.IsInitialized()) {
+        mAnimatedFadesList.Remove(mAnimatedContentList[index]);
+      }
     }
   }
 
   mAnimatedContentList.Clear();
   mAnimatedContentTimeout = PR_UINT32_MAX;
+
   return NS_OK;
+}
+
+
+
+nsNativeTheme::FadeData*
+nsNativeTheme::GetFade(nsIContent* aContent)
+{
+  if (!aContent || !mAnimatedFadesList.IsInitialized())
+    return nsnull;
+  return mAnimatedFadesList.Get(reinterpret_cast<nsISupports*>(aContent));
+}
+
+nsNativeTheme::FadeState
+nsNativeTheme::GetFadeState(nsIContent* aContent)
+{
+  FadeData* pFade = GetFade(aContent);
+  if (!pFade)
+    return FADE_NOTACTIVE;
+  return pFade->GetState();
+}
+
+PRUint32
+nsNativeTheme::GetFadeTicks(nsIContent* aContent)
+{
+  FadeData* pFade = GetFade(aContent);
+  if (!pFade)
+    return 0;
+  return pFade->GetTicks();
+}
+
+double
+nsNativeTheme::GetFadeAlpha(nsIContent* aContent)
+{
+  return ((double)GetFadeTicks(aContent))/TICK_MAX;
+}
+
+PRUint32
+nsNativeTheme::GetFadeUserData(nsIContent* aContent)
+{
+  FadeData* pFade = GetFade(aContent);
+  if (!pFade)
+    return 0;
+  return pFade->GetUserData();
+}
+
+void
+nsNativeTheme::SetFadeUserData(nsIContent* aContent, PRUint32 aUserData)
+{
+  FadeData* pFade = GetFade(aContent);
+  if (pFade) {
+    pFade->SetUserData(aUserData);
+  }
+}
+
+void
+nsNativeTheme::CancelFade(nsIContent* aContent)
+{
+  if (aContent && mAnimatedFadesList.IsInitialized()) {
+    mAnimatedFadesList.Remove(reinterpret_cast<nsISupports*>(aContent));
+  }
+}
+
+void
+nsNativeTheme::FinishFadeIn(nsIContent* aContent)
+{
+  FadeData* pFade = GetFade(aContent);
+  if (pFade) {
+    pFade->FadeInFinished();
+  }
 }
 
 nsIFrame*
@@ -607,3 +829,4 @@ nsNativeTheme::GetAdjacentSiblingFrameWithSameAppearance(nsIFrame* aFrame,
     return nsnull;
   return sibling;
 }
+
