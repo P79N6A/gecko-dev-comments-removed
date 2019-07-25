@@ -466,7 +466,7 @@ JSThreadData::finish()
     JS_ASSERT(gcFreeLists.isEmpty());
     for (size_t i = 0; i != JS_ARRAY_LENGTH(scriptsToGC); ++i)
         JS_ASSERT(!scriptsToGC[i]);
-    JS_ASSERT(!conservativeGC.isEnabled());
+    JS_ASSERT(!conservativeGC.hasStackToScan());
 #endif
 
     if (dtoaState)
@@ -1000,7 +1000,13 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
     if (!cx->thread)
         JS_SetContextThread(cx);
 
-    JS_ASSERT_IF(rt->gcRunning, cx->outstandingRequests == 0);
+    
+
+
+
+
+
+    JS_ASSERT(cx->outstandingRequests <= cx->thread->requestDepth);
 #endif
 
     if (mode != JSDCM_NEW_FAILED) {
@@ -1025,7 +1031,7 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
 
 
 
-    if (cx->requestDepth == 0)
+    if (cx->thread->requestDepth == 0)
         js_WaitForGC(rt);
 #endif
     JS_REMOVE_LINK(&cx->link);
@@ -1034,7 +1040,7 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
         rt->state = JSRTS_LANDING;
     if (last || mode == JSDCM_FORCE_GC || mode == JSDCM_MAYBE_GC
 #ifdef JS_THREADSAFE
-        || cx->requestDepth != 0
+        || cx->outstandingRequests != 0
 #endif
         ) {
         JS_ASSERT(!rt->gcRunning);
@@ -1053,7 +1059,7 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
 
 
 
-            if (cx->requestDepth == 0)
+            if (cx->thread->requestDepth == 0)
                 JS_BeginRequest(cx);
 #endif
 
@@ -1079,7 +1085,7 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
 
 
 
-        while (cx->requestDepth != 0)
+        while (cx->outstandingRequests != 0)
             JS_EndRequest(cx);
 #endif
 
@@ -1102,7 +1108,11 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
         }
     }
 #ifdef JS_THREADSAFE
+#ifdef DEBUG
+    JSThread *t = cx->thread;
+#endif
     js_ClearContextThread(cx);
+    JS_ASSERT_IF(JS_CLIST_IS_EMPTY(&t->contextList), !t->requestDepth);
 #endif
 #ifdef JS_METER_DST_OFFSET_CACHING
     cx->dstOffsetCache.dumpStats();
@@ -1178,7 +1188,7 @@ js_NextActiveContext(JSRuntime *rt, JSContext *cx)
     JSContext *iter = cx;
 #ifdef JS_THREADSAFE
     while ((cx = js_ContextIterator(rt, JS_FALSE, &iter)) != NULL) {
-        if (cx->requestDepth)
+        if (cx->outstandingRequests && cx->thread->requestDepth)
             break;
     }
     return cx;
@@ -2118,7 +2128,7 @@ JSContext::checkMallocGCPressure(void *p)
 
 
 
-    if (runtime->isGCMallocLimitReached() && requestDepth != 0)
+    if (runtime->isGCMallocLimitReached() && thread->requestDepth != 0)
 #endif
     {
         if (!runtime->gcRunning) {
