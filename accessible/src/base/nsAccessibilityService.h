@@ -175,12 +175,6 @@ public:
   Accessible* GetOrCreateAccessible(nsINode* aNode, DocAccessible* aDoc,
                                     bool* aIsSubtreeHidden = nsnull);
 
-  
-
-
-
-  Accessible* GetAccessible(nsINode* aNode, nsIPresShell* aPresShell);
-
 private:
   
   

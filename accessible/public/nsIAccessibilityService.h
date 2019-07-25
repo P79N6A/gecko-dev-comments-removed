@@ -22,23 +22,13 @@ class nsObjectFrame;
 
 
 #define NS_IACCESSIBILITYSERVICE_IID \
-{ 0x10ff6dca, 0xb219, 0x4b64, \
- { 0x9a, 0x4c, 0x67, 0xa6, 0x2b, 0x86, 0xed, 0xce } }
+{ 0x84dd9182, 0x6639, 0x4377, \
+ { 0xa4, 0x13, 0xad, 0xe1, 0xae, 0x4e, 0x52, 0xdd } }
 
 class nsIAccessibilityService : public nsIAccessibleRetrieval
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_IACCESSIBILITYSERVICE_IID)
-
-  
-
-
-
-
-
-
-  virtual Accessible* GetAccessible(nsINode* aNode,
-                                    nsIPresShell* aPresShell) = 0;
 
   
 
