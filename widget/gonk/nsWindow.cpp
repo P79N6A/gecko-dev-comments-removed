@@ -79,6 +79,9 @@ nsWindow::nsWindow()
 {
     if (!sGLContext && !sFramebufferOpen) {
         
+        hal::SetScreenEnabled(true);
+
+        
         
         gNativeWindow = new android::FramebufferNativeWindow();
         sGLContext = GLContextProvider::CreateForWindow(this);
