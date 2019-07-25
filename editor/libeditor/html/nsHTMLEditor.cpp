@@ -4209,29 +4209,30 @@ nsHTMLEditor::RemoveBlockContainer(nsIDOMNode *inNode)
 
 
 
+nsINode*
+nsHTMLEditor::GetPriorHTMLSibling(nsINode* aNode)
+{
+  MOZ_ASSERT(aNode);
+
+  nsIContent* node = aNode->GetPreviousSibling();
+  while (node && !IsEditable(node)) {
+    node = node->GetPreviousSibling();
+  }
+
+  return node;
+}
+
 nsresult
 nsHTMLEditor::GetPriorHTMLSibling(nsIDOMNode *inNode, nsCOMPtr<nsIDOMNode> *outNode)
 {
-  NS_ENSURE_TRUE(outNode && inNode, NS_ERROR_NULL_POINTER);
-  nsresult res = NS_OK;
-  *outNode = nsnull;
-  nsCOMPtr<nsIDOMNode> temp, node = do_QueryInterface(inNode);
-  
-  while (1)
-  {
-    res = node->GetPreviousSibling(getter_AddRefs(temp));
-    NS_ENSURE_SUCCESS(res, res);
-    if (!temp) {
-      
-      return NS_OK;
-    }
-    
-    if (IsEditable(temp)) break;
-    
-    node = temp;
-  }
-  *outNode = temp;
-  return res;
+  NS_ENSURE_TRUE(outNode, NS_ERROR_NULL_POINTER);
+  *outNode = NULL;
+
+  nsCOMPtr<nsINode> node = do_QueryInterface(inNode);
+  NS_ENSURE_TRUE(node, NS_ERROR_NULL_POINTER);
+
+  *outNode = do_QueryInterface(GetPriorHTMLSibling(node));
+  return NS_OK;
 }
 
 
@@ -4240,23 +4241,31 @@ nsHTMLEditor::GetPriorHTMLSibling(nsIDOMNode *inNode, nsCOMPtr<nsIDOMNode> *outN
 
 
 
+
+nsINode*
+nsHTMLEditor::GetPriorHTMLSibling(nsINode* aParent, PRInt32 aOffset)
+{
+  MOZ_ASSERT(aParent);
+
+  nsIContent* node = aParent->GetChildAt(aOffset - 1);
+  if (!node || IsEditable(node)) {
+    return node;
+  }
+
+  return GetPriorHTMLSibling(node);
+}
 
 nsresult
 nsHTMLEditor::GetPriorHTMLSibling(nsIDOMNode *inParent, PRInt32 inOffset, nsCOMPtr<nsIDOMNode> *outNode)
 {
-  NS_ENSURE_TRUE(outNode && inParent, NS_ERROR_NULL_POINTER);
-  *outNode = nsnull;
-  nsCOMPtr<nsIDOMNode> node = nsEditor::GetChildAt(inParent,inOffset-1);
-  if (!node) {
-    
-    return NS_OK;
-  }
-  if (IsEditable(node)) {
-    *outNode = node;
-    return NS_OK;
-  }
-  
-  return GetPriorHTMLSibling(node, outNode);
+  NS_ENSURE_TRUE(outNode, NS_ERROR_NULL_POINTER);
+  *outNode = NULL;
+
+  nsCOMPtr<nsINode> parent = do_QueryInterface(inParent);
+  NS_ENSURE_TRUE(parent, NS_ERROR_NULL_POINTER);
+
+  *outNode = do_QueryInterface(GetPriorHTMLSibling(parent, inOffset));
+  return NS_OK;
 }
 
 
@@ -4264,30 +4273,31 @@ nsHTMLEditor::GetPriorHTMLSibling(nsIDOMNode *inParent, PRInt32 inOffset, nsCOMP
 
 
 
+
+nsINode*
+nsHTMLEditor::GetNextHTMLSibling(nsINode* aNode)
+{
+  MOZ_ASSERT(aNode);
+
+  nsIContent* node = aNode->GetNextSibling();
+  while (node && !IsEditable(node)) {
+    node = node->GetNextSibling();
+  }
+
+  return node;
+}
 
 nsresult
 nsHTMLEditor::GetNextHTMLSibling(nsIDOMNode *inNode, nsCOMPtr<nsIDOMNode> *outNode)
 {
   NS_ENSURE_TRUE(outNode, NS_ERROR_NULL_POINTER);
-  nsresult res = NS_OK;
   *outNode = nsnull;
-  nsCOMPtr<nsIDOMNode> temp, node = do_QueryInterface(inNode);
+
+  nsCOMPtr<nsINode> node = do_QueryInterface(inNode);
+  NS_ENSURE_TRUE(node, NS_ERROR_NULL_POINTER);
   
-  while (1)
-  {
-    res = node->GetNextSibling(getter_AddRefs(temp));
-    NS_ENSURE_SUCCESS(res, res);
-    if (!temp) {
-      
-      return NS_OK;
-    }
-    
-    if (IsEditable(temp)) break;
-    
-    node = temp;
-  }
-  *outNode = temp;
-  return res;
+  *outNode = do_QueryInterface(GetNextHTMLSibling(node));
+  return NS_OK;
 }
 
 
@@ -4296,23 +4306,30 @@ nsHTMLEditor::GetNextHTMLSibling(nsIDOMNode *inNode, nsCOMPtr<nsIDOMNode> *outNo
 
 
 
+nsINode*
+nsHTMLEditor::GetNextHTMLSibling(nsINode* aParent, PRInt32 aOffset)
+{
+  MOZ_ASSERT(aParent);
+
+  nsIContent* node = aParent->GetChildAt(aOffset + 1);
+  if (!node || IsEditable(node)) {
+    return node;
+  }
+
+  return GetNextHTMLSibling(node);
+}
 
 nsresult
 nsHTMLEditor::GetNextHTMLSibling(nsIDOMNode *inParent, PRInt32 inOffset, nsCOMPtr<nsIDOMNode> *outNode)
 {
-  NS_ENSURE_TRUE(outNode && inParent, NS_ERROR_NULL_POINTER);
-  *outNode = nsnull;
-  nsCOMPtr<nsIDOMNode> node = nsEditor::GetChildAt(inParent, inOffset + 1);
-  if (!node) {
-    
-    return NS_OK;
-  }
-  if (IsEditable(node)) {
-    *outNode = node;
-    return NS_OK;
-  }
-  
-  return GetNextHTMLSibling(node, outNode);
+  NS_ENSURE_TRUE(outNode, NS_ERROR_NULL_POINTER);
+  *outNode = NULL;
+
+  nsCOMPtr<nsINode> parent = do_QueryInterface(inParent);
+  NS_ENSURE_TRUE(parent, NS_ERROR_NULL_POINTER);
+
+  *outNode = do_QueryInterface(GetNextHTMLSibling(parent, inOffset));
+  return NS_OK;
 }
 
 
