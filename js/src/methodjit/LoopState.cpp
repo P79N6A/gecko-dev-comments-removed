@@ -331,7 +331,7 @@ LoopState::entryRedundant(const InvariantEntry &e0, const InvariantEntry &e1)
             constant = c0;
         else if (!SafeAdd(c0, c1, &constant))
             return false;
-        return constant >= JSObject::NSLOTS_LIMIT;
+        return constant >= (int32) JSObject::NELEMENTS_LIMIT;
     }
 
     

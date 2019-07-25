@@ -719,7 +719,7 @@ struct TypeObject : gc::Cell
     JSObject *singleton;
 
     
-    js::EmptyShape **emptyShapes;
+    js::ShapeKindArray *emptyShapes;
 
     
     TypeObjectFlags flags;

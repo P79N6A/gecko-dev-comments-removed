@@ -55,20 +55,7 @@ CallObject *
 CallObject::create(JSContext *cx, JSScript *script, JSObject &scopeChain, JSObject *callee)
 {
     Bindings &bindings = script->bindings;
-    size_t argsVars = bindings.countArgsAndVars();
-    size_t slots = RESERVED_SLOTS + argsVars + 1;  
-    gc::AllocKind kind = gc::GetGCObjectKind(slots);
-
-    
-
-
-
-
-
-    if (cx->typeInferenceEnabled() && gc::GetGCKindSlots(kind) < slots) {
-        kind = gc::GetGCObjectKind(RESERVED_SLOTS + 1);
-        JS_ASSERT(gc::GetGCKindSlots(kind) == RESERVED_SLOTS + 1);
-    }
+    gc::AllocKind kind = gc::GetGCObjectKind(bindings.lastShape()->numFixedSlots() + 1);
 
     JSObject *obj = js_NewGCObject(cx, kind);
     if (!obj)
