@@ -52,6 +52,8 @@
 
 #include "nsCOMPtr.h"
 
+#include "nsContentUtils.h"
+#include "nsCrossSiteListenerProxy.h"
 #include "nsNetUtil.h"
 #include "nsStreamUtils.h"
 #include "nsIHttpChannel.h"
@@ -419,6 +421,35 @@ static PRBool ShouldRevalidateEntry(imgCacheEntry *aEntry,
   }
 
   return bValidateEntry;
+}
+
+
+
+
+static bool
+ValidateCORS(imgRequest* request, PRInt32 corsmode, nsIPrincipal* loadingPrincipal)
+{
+  
+  
+  if (request->GetCORSMode() != corsmode) {
+    return false;
+  } else if (request->GetCORSMode() != imgIRequest::CORS_NONE) {
+    nsCOMPtr<nsIPrincipal> otherprincipal = request->GetLoadingPrincipal();
+
+    
+    
+    if (otherprincipal && !loadingPrincipal) {
+      return false;
+    }
+
+    if (otherprincipal && loadingPrincipal) {
+      PRBool equals = PR_FALSE;
+      otherprincipal->Equals(loadingPrincipal, &equals);
+      return !equals;
+    }
+  }
+
+  return true;
 }
 
 static nsresult NewImageChannel(nsIChannel **aResult,
@@ -1141,7 +1172,8 @@ PRBool imgLoader::ValidateRequestWithNewChannel(imgRequest *request,
                                                 imgIRequest *aExistingRequest,
                                                 imgIRequest **aProxyRequest,
                                                 nsIChannelPolicy *aPolicy,
-                                                nsIPrincipal* aLoadingPrincipal)
+                                                nsIPrincipal* aLoadingPrincipal,
+                                                PRInt32 aCORSMode)
 {
   
   
@@ -1205,8 +1237,18 @@ PRBool imgLoader::ValidateRequestWithNewChannel(imgRequest *request,
       return PR_FALSE;
 
     nsRefPtr<imgCacheValidator> hvc = new imgCacheValidator(progressproxy, request, aCX);
-    if (!hvc) {
-      return PR_FALSE;
+
+    nsCOMPtr<nsIStreamListener> listener = hvc.get();
+
+    if (aCORSMode != imgIRequest::CORS_NONE) {
+      PRBool withCredentials = aCORSMode == imgIRequest::CORS_USE_CREDENTIALS;
+      nsCOMPtr<nsIStreamListener> corsproxy =
+        new nsCORSListenerProxy(hvc, aLoadingPrincipal, newChannel, withCredentials, &rv);
+      if (NS_FAILED(rv)) {
+        return PR_FALSE;
+      }
+
+      listener = corsproxy;
     }
 
     newChannel->SetNotificationCallbacks(hvc);
@@ -1225,7 +1267,7 @@ PRBool imgLoader::ValidateRequestWithNewChannel(imgRequest *request,
     
     hvc->AddProxy(proxy);
 
-    rv = newChannel->AsyncOpen(static_cast<nsIStreamListener *>(hvc), nsnull);
+    rv = newChannel->AsyncOpen(listener, nsnull);
     if (NS_SUCCEEDED(rv))
       NS_ADDREF(*aProxyRequest = req.get());
 
@@ -1245,7 +1287,8 @@ PRBool imgLoader::ValidateEntry(imgCacheEntry *aEntry,
                                 imgIRequest *aExistingRequest,
                                 imgIRequest **aProxyRequest,
                                 nsIChannelPolicy *aPolicy,
-                                nsIPrincipal* aLoadingPrincipal)
+                                nsIPrincipal* aLoadingPrincipal,
+                                PRInt32 aCORSMode)
 {
   LOG_SCOPE(gImgLog, "imgLoader::ValidateEntry");
 
@@ -1280,6 +1323,9 @@ PRBool imgLoader::ValidateEntry(imgCacheEntry *aEntry,
   nsRefPtr<imgRequest> request(aEntry->GetRequest());
 
   if (!request)
+    return PR_FALSE;
+
+  if (!ValidateCORS(request, aCORSMode, aLoadingPrincipal))
     return PR_FALSE;
 
   PRBool validateRequest = PR_FALSE;
@@ -1360,8 +1406,8 @@ PRBool imgLoader::ValidateEntry(imgCacheEntry *aEntry,
                                          aReferrerURI, aLoadGroup, aObserver,
                                          aCX, aLoadFlags, aExistingRequest,
                                          aProxyRequest, aPolicy,
-                                         aLoadingPrincipal);
-  } 
+                                         aLoadingPrincipal, aCORSMode);
+  }
 
   return !validateRequest;
 }
@@ -1549,6 +1595,13 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
     requestFlags |= nsIRequest::LOAD_BACKGROUND;
   }
 
+  PRInt32 corsmode = imgIRequest::CORS_NONE;
+  if (aLoadFlags & imgILoader::LOAD_CORS_ANONYMOUS) {
+    corsmode = imgIRequest::CORS_ANONYMOUS;
+  } else if (aLoadFlags & imgILoader::LOAD_CORS_USE_CREDENTIALS) {
+    corsmode = imgIRequest::CORS_USE_CREDENTIALS;
+  }
+
   nsRefPtr<imgCacheEntry> entry;
 
   
@@ -1560,7 +1613,7 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
   if (cache.Get(spec, getter_AddRefs(entry)) && entry) {
     if (ValidateEntry(entry, aURI, aInitialDocumentURI, aReferrerURI,
                       aLoadGroup, aObserver, aCX, requestFlags, PR_TRUE,
-                      aRequest, _retval, aPolicy, aLoadingPrincipal)) {
+                      aRequest, _retval, aPolicy, aLoadingPrincipal, corsmode)) {
       request = getter_AddRefs(entry->GetRequest());
 
       
@@ -1618,7 +1671,7 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
 
     void *cacheId = NS_GetCurrentThread();
     request->Init(aURI, aURI, loadGroup, newChannel, entry, cacheId, aCX,
-                  aLoadingPrincipal);
+                  aLoadingPrincipal, corsmode);
 
     
     nsCOMPtr<nsIDocument> doc = do_QueryInterface(aCX);
@@ -1627,20 +1680,28 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
     }
 
     
-    ProxyListener *pl = new ProxyListener(static_cast<nsIStreamListener *>(request.get()));
-    if (!pl) {
-      request->CancelAndAbort(NS_ERROR_OUT_OF_MEMORY);
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
+    nsCOMPtr<nsIStreamListener> pl = new ProxyListener(request.get());
 
-    NS_ADDREF(pl);
+    
+    
+    nsCOMPtr<nsIStreamListener> listener = pl;
+    if (corsmode != imgIRequest::CORS_NONE) {
+      PRBool withCredentials = corsmode == imgIRequest::CORS_USE_CREDENTIALS;
+
+      nsCOMPtr<nsIStreamListener> corsproxy =
+        new nsCORSListenerProxy(pl, aLoadingPrincipal, newChannel,
+                                withCredentials, &rv);
+      if (NS_FAILED(rv)) {
+        return NS_ERROR_FAILURE;
+      }
+
+      listener = corsproxy;
+    }
 
     PR_LOG(gImgLog, PR_LOG_DEBUG,
            ("[this=%p] imgLoader::LoadImage -- Calling channel->AsyncOpen()\n", this));
 
-    nsresult openRes = newChannel->AsyncOpen(static_cast<nsIStreamListener *>(pl), nsnull);
-
-    NS_RELEASE(pl);
+    nsresult openRes = newChannel->AsyncOpen(listener, nsnull);
 
     if (NS_FAILED(openRes)) {
       PR_LOG(gImgLog, PR_LOG_DEBUG,
@@ -1748,7 +1809,7 @@ NS_IMETHODIMP imgLoader::LoadImageWithChannel(nsIChannel *channel, imgIDecoderOb
       
       if (ValidateEntry(entry, uri, nsnull, nsnull, nsnull, aObserver, aCX,
                         requestFlags, PR_FALSE, nsnull, nsnull, nsnull,
-                        nsnull)) {
+                        nsnull, imgIRequest::CORS_NONE)) {
         request = getter_AddRefs(entry->GetRequest());
       } else {
         nsCOMPtr<nsICachingChannel> cacheChan(do_QueryInterface(channel));
@@ -1807,7 +1868,7 @@ NS_IMETHODIMP imgLoader::LoadImageWithChannel(nsIChannel *channel, imgIDecoderOb
 
     
     request->Init(originalURI, uri, channel, channel, entry,
-                  NS_GetCurrentThread(), aCX, nsnull);
+                  NS_GetCurrentThread(), aCX, nsnull, imgIRequest::CORS_NONE);
 
     ProxyListener *pl = new ProxyListener(static_cast<nsIStreamListener *>(request.get()));
     NS_ADDREF(pl);
@@ -2101,6 +2162,7 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
   LOG_MSG_WITH_PARAM(gImgLog, "imgCacheValidator::OnStartRequest creating new request", "uri", spec.get());
 #endif
 
+  PRInt32 corsmode = mRequest->GetCORSMode();
   nsCOMPtr<nsIPrincipal> loadingPrincipal = mRequest->GetLoadingPrincipal();
 
   
@@ -2113,11 +2175,10 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
   nsCOMPtr<nsIURI> originalURI;
   channel->GetOriginalURI(getter_AddRefs(originalURI));
   mNewRequest->Init(originalURI, uri, channel, channel, mNewEntry,
-                    NS_GetCurrentThread(), mContext, loadingPrincipal);
+                    NS_GetCurrentThread(), mContext, loadingPrincipal,
+                    corsmode);
 
-  ProxyListener *pl = new ProxyListener(static_cast<nsIStreamListener *>(mNewRequest));
-
-  mDestListener = static_cast<nsIStreamListener*>(pl);
+  mDestListener = new ProxyListener(mNewRequest);
 
   
   

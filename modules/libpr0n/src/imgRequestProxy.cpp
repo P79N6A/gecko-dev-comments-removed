@@ -543,6 +543,17 @@ NS_IMETHODIMP imgRequestProxy::GetImagePrincipal(nsIPrincipal **aPrincipal)
 }
 
 
+NS_IMETHODIMP imgRequestProxy::GetCORSMode(PRInt32* aCorsMode)
+{
+  if (!mOwner)
+    return NS_ERROR_FAILURE;
+
+  *aCorsMode = mOwner->GetCORSMode();
+
+  return NS_OK;
+}
+
+
 
 NS_IMETHODIMP imgRequestProxy::GetPriority(PRInt32 *priority)
 {

@@ -96,7 +96,8 @@ public:
                 imgCacheEntry *aCacheEntry,
                 void *aCacheId,
                 void *aLoadId,
-                nsIPrincipal* aLoadingPrincipal);
+                nsIPrincipal* aLoadingPrincipal,
+                PRInt32 aCORSMode);
 
   
   nsresult AddProxy(imgRequestProxy *proxy);
@@ -135,6 +136,9 @@ public:
   
   
   static void SetCacheValidation(imgCacheEntry* aEntry, nsIRequest* aRequest);
+
+  
+  PRInt32 GetCORSMode() const { return mCORSMode; }
 
   
   
@@ -257,6 +261,10 @@ private:
 
   
   PRUint64 mWindowId;
+
+  
+  
+  PRInt32 mCORSMode;
 
   
   
