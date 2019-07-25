@@ -30,7 +30,7 @@ function run_test() {
 
     
     let outMARData = getBinaryFileData(outMAR);
-    compareBinaryData(outMARData, outMARData);
+    compareBinaryData(outMARData, refMARData);
   }
 
   
