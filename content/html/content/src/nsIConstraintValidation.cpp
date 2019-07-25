@@ -74,6 +74,8 @@ nsIConstraintValidation::GetValidationMessage(nsAString& aValidationMessage)
       GetValidationMessage(aValidationMessage, VALIDITY_STATE_PATTERN_MISMATCH);
     } else if (GetValidityState(VALIDITY_STATE_RANGE_OVERFLOW)) {
       GetValidationMessage(aValidationMessage, VALIDITY_STATE_RANGE_OVERFLOW);
+    } else if (GetValidityState(VALIDITY_STATE_RANGE_UNDERFLOW)) {
+      GetValidationMessage(aValidationMessage, VALIDITY_STATE_RANGE_UNDERFLOW);
     } else {
       
       
