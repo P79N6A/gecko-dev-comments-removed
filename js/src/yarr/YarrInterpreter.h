@@ -1,0 +1,380 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef YarrInterpreter_h
+#define YarrInterpreter_h
+
+#include "YarrPattern.h"
+
+namespace WTF {
+class BumpPointerAllocator;
+}
+using WTF::BumpPointerAllocator;
+
+namespace JSC { namespace Yarr {
+
+class ByteDisjunction;
+
+struct ByteTerm {
+    enum Type {
+        TypeBodyAlternativeBegin,
+        TypeBodyAlternativeDisjunction,
+        TypeBodyAlternativeEnd,
+        TypeAlternativeBegin,
+        TypeAlternativeDisjunction,
+        TypeAlternativeEnd,
+        TypeSubpatternBegin,
+        TypeSubpatternEnd,
+        TypeAssertionBOL,
+        TypeAssertionEOL,
+        TypeAssertionWordBoundary,
+        TypePatternCharacterOnce,
+        TypePatternCharacterFixed,
+        TypePatternCharacterGreedy,
+        TypePatternCharacterNonGreedy,
+        TypePatternCasedCharacterOnce,
+        TypePatternCasedCharacterFixed,
+        TypePatternCasedCharacterGreedy,
+        TypePatternCasedCharacterNonGreedy,
+        TypeCharacterClass,
+        TypeBackReference,
+        TypeParenthesesSubpattern,
+        TypeParenthesesSubpatternOnceBegin,
+        TypeParenthesesSubpatternOnceEnd,
+        TypeParenthesesSubpatternTerminalBegin,
+        TypeParenthesesSubpatternTerminalEnd,
+        TypeParentheticalAssertionBegin,
+        TypeParentheticalAssertionEnd,
+        TypeCheckInput,
+        TypeUncheckInput
+    } type;
+    union {
+        struct {
+            union {
+                UChar patternCharacter;
+                struct {
+                    UChar lo;
+                    UChar hi;
+                } casedCharacter;
+                CharacterClass* characterClass;
+                unsigned subpatternId;
+            };
+            union {
+                ByteDisjunction* parenthesesDisjunction;
+                unsigned parenthesesWidth;
+            };
+            QuantifierType quantityType;
+            unsigned quantityCount;
+        } atom;
+        struct {
+            int next;
+            int end;
+            bool onceThrough;
+        } alternative;
+        unsigned checkInputCount;
+    };
+    unsigned frameLocation;
+    bool m_capture : 1;
+    bool m_invert : 1;
+    int inputPosition;
+
+    
+    ByteTerm()
+    {
+    }
+
+    ByteTerm(UChar ch, int inputPos, unsigned frameLocation, unsigned quantityCount, QuantifierType quantityType)
+        : frameLocation(frameLocation)
+        , m_capture(false)
+        , m_invert(false)
+    {
+        switch (quantityType) {
+        case QuantifierFixedCount:
+            type = (quantityCount == 1) ? ByteTerm::TypePatternCharacterOnce : ByteTerm::TypePatternCharacterFixed;
+            break;
+        case QuantifierGreedy:
+            type = ByteTerm::TypePatternCharacterGreedy;
+            break;
+        case QuantifierNonGreedy:
+            type = ByteTerm::TypePatternCharacterNonGreedy;
+            break;
+        }
+
+        atom.patternCharacter = ch;
+        atom.quantityType = quantityType;
+        atom.quantityCount = quantityCount;
+        inputPosition = inputPos;
+    }
+
+    ByteTerm(UChar lo, UChar hi, int inputPos, unsigned frameLocation, unsigned quantityCount, QuantifierType quantityType)
+        : frameLocation(frameLocation)
+        , m_capture(false)
+        , m_invert(false)
+    {
+        switch (quantityType) {
+        case QuantifierFixedCount:
+            type = (quantityCount == 1) ? ByteTerm::TypePatternCasedCharacterOnce : ByteTerm::TypePatternCasedCharacterFixed;
+            break;
+        case QuantifierGreedy:
+            type = ByteTerm::TypePatternCasedCharacterGreedy;
+            break;
+        case QuantifierNonGreedy:
+            type = ByteTerm::TypePatternCasedCharacterNonGreedy;
+            break;
+        }
+
+        atom.casedCharacter.lo = lo;
+        atom.casedCharacter.hi = hi;
+        atom.quantityType = quantityType;
+        atom.quantityCount = quantityCount;
+        inputPosition = inputPos;
+    }
+
+    ByteTerm(CharacterClass* characterClass, bool invert, int inputPos)
+        : type(ByteTerm::TypeCharacterClass)
+        , m_capture(false)
+        , m_invert(invert)
+    {
+        atom.characterClass = characterClass;
+        atom.quantityType = QuantifierFixedCount;
+        atom.quantityCount = 1;
+        inputPosition = inputPos;
+    }
+
+    ByteTerm(Type type, unsigned subpatternId, ByteDisjunction* parenthesesInfo, bool capture, int inputPos)
+        : type(type)
+        , m_capture(capture)
+        , m_invert(false)
+    {
+        atom.subpatternId = subpatternId;
+        atom.parenthesesDisjunction = parenthesesInfo;
+        atom.quantityType = QuantifierFixedCount;
+        atom.quantityCount = 1;
+        inputPosition = inputPos;
+    }
+    
+    ByteTerm(Type type, bool invert = false)
+        : type(type)
+        , m_capture(false)
+        , m_invert(invert)
+    {
+        atom.quantityType = QuantifierFixedCount;
+        atom.quantityCount = 1;
+    }
+
+    ByteTerm(Type type, unsigned subpatternId, bool capture, bool invert, int inputPos)
+        : type(type)
+        , m_capture(capture)
+        , m_invert(invert)
+    {
+        atom.subpatternId = subpatternId;
+        atom.quantityType = QuantifierFixedCount;
+        atom.quantityCount = 1;
+        inputPosition = inputPos;
+    }
+
+    static ByteTerm BOL(int inputPos)
+    {
+        ByteTerm term(TypeAssertionBOL);
+        term.inputPosition = inputPos;
+        return term;
+    }
+
+    static ByteTerm CheckInput(unsigned count)
+    {
+        ByteTerm term(TypeCheckInput);
+        term.checkInputCount = count;
+        return term;
+    }
+
+    static ByteTerm UncheckInput(unsigned count)
+    {
+        ByteTerm term(TypeUncheckInput);
+        term.checkInputCount = count;
+        return term;
+    }
+    
+    static ByteTerm EOL(int inputPos)
+    {
+        ByteTerm term(TypeAssertionEOL);
+        term.inputPosition = inputPos;
+        return term;
+    }
+
+    static ByteTerm WordBoundary(bool invert, int inputPos)
+    {
+        ByteTerm term(TypeAssertionWordBoundary, invert);
+        term.inputPosition = inputPos;
+        return term;
+    }
+    
+    static ByteTerm BackReference(unsigned subpatternId, int inputPos)
+    {
+        return ByteTerm(TypeBackReference, subpatternId, false, false, inputPos);
+    }
+
+    static ByteTerm BodyAlternativeBegin(bool onceThrough)
+    {
+        ByteTerm term(TypeBodyAlternativeBegin);
+        term.alternative.next = 0;
+        term.alternative.end = 0;
+        term.alternative.onceThrough = onceThrough;
+        return term;
+    }
+
+    static ByteTerm BodyAlternativeDisjunction(bool onceThrough)
+    {
+        ByteTerm term(TypeBodyAlternativeDisjunction);
+        term.alternative.next = 0;
+        term.alternative.end = 0;
+        term.alternative.onceThrough = onceThrough;
+        return term;
+    }
+
+    static ByteTerm BodyAlternativeEnd()
+    {
+        ByteTerm term(TypeBodyAlternativeEnd);
+        term.alternative.next = 0;
+        term.alternative.end = 0;
+        term.alternative.onceThrough = false;
+        return term;
+    }
+
+    static ByteTerm AlternativeBegin()
+    {
+        ByteTerm term(TypeAlternativeBegin);
+        term.alternative.next = 0;
+        term.alternative.end = 0;
+        term.alternative.onceThrough = false;
+        return term;
+    }
+
+    static ByteTerm AlternativeDisjunction()
+    {
+        ByteTerm term(TypeAlternativeDisjunction);
+        term.alternative.next = 0;
+        term.alternative.end = 0;
+        term.alternative.onceThrough = false;
+        return term;
+    }
+
+    static ByteTerm AlternativeEnd()
+    {
+        ByteTerm term(TypeAlternativeEnd);
+        term.alternative.next = 0;
+        term.alternative.end = 0;
+        term.alternative.onceThrough = false;
+        return term;
+    }
+
+    static ByteTerm SubpatternBegin()
+    {
+        return ByteTerm(TypeSubpatternBegin);
+    }
+
+    static ByteTerm SubpatternEnd()
+    {
+        return ByteTerm(TypeSubpatternEnd);
+    }
+
+    bool invert()
+    {
+        return m_invert;
+    }
+
+    bool capture()
+    {
+        return m_capture;
+    }
+};
+
+class ByteDisjunction {
+    WTF_MAKE_FAST_ALLOCATED
+public:
+    ByteDisjunction(unsigned numSubpatterns, unsigned frameSize)
+        : m_numSubpatterns(numSubpatterns)
+        , m_frameSize(frameSize)
+    {
+    }
+
+    Vector<ByteTerm> terms;
+    unsigned m_numSubpatterns;
+    unsigned m_frameSize;
+};
+
+struct BytecodePattern {
+    WTF_MAKE_FAST_ALLOCATED
+public:
+    BytecodePattern(PassOwnPtr<ByteDisjunction> body, Vector<ByteDisjunction*> allParenthesesInfo, YarrPattern& pattern, BumpPointerAllocator* allocator)
+        : m_body(body)
+        , m_ignoreCase(pattern.m_ignoreCase)
+        , m_multiline(pattern.m_multiline)
+        , m_containsBeginChars(pattern.m_containsBeginChars)
+        , m_allocator(allocator)
+    {
+        newlineCharacterClass = pattern.newlineCharacterClass();
+        wordcharCharacterClass = pattern.wordcharCharacterClass();
+
+        m_allParenthesesInfo.append(allParenthesesInfo);
+        m_userCharacterClasses.append(pattern.m_userCharacterClasses);
+        
+        
+        
+        pattern.m_userCharacterClasses.clear();
+
+        m_beginChars.append(pattern.m_beginChars);
+    }
+
+    ~BytecodePattern()
+    {
+        deleteAllValues(m_allParenthesesInfo);
+        deleteAllValues(m_userCharacterClasses);
+    }
+
+    OwnPtr<ByteDisjunction> m_body;
+    bool m_ignoreCase;
+    bool m_multiline;
+    bool m_containsBeginChars;
+    
+    
+    BumpPointerAllocator* m_allocator;
+
+    CharacterClass* newlineCharacterClass;
+    CharacterClass* wordcharCharacterClass;
+
+    Vector<BeginChar> m_beginChars;
+
+private:
+    Vector<ByteDisjunction*> m_allParenthesesInfo;
+    Vector<CharacterClass*> m_userCharacterClasses;
+};
+
+} } 
+
+#endif 
