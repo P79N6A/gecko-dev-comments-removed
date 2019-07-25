@@ -513,17 +513,13 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
     
     
     
-    
     masm.linkExitFrame();
-
-    
-    masm.push(Operand(esp, 0));
 
     
     Register argsBase = InvalidReg;
     if (f.explicitArgs) {
         argsBase = regs.takeAny();
-        masm.lea(Operand(esp, sizeof(IonExitFrameLayout) + sizeof(uintptr_t)), argsBase);
+        masm.lea(Operand(esp, sizeof(IonExitFrameLayout)), argsBase);
     }
 
     
@@ -614,23 +610,10 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
         break;
     }
 
-    
-    
-    Register scratch = (f.outParam == Type_Value) ? ReturnReg : JSReturnReg_Type;
-    Label invalidated;
-    masm.pop(scratch);
-    masm.cmpl(scratch, Operand(esp, 0));
-    masm.j(Assembler::NotEqual, &invalidated);
-
     masm.retn(Imm32(sizeof(IonExitFrameLayout) + f.explicitStackSlots() * sizeof(void *)));
 
     masm.bind(&exception);
     masm.handleException();
-
-    masm.bind(&invalidated);
-    masm.cmpl(Operand(esp, 0), Imm32(0));
-    masm.j(Assembler::Equal, &exception);
-    masm.ret();
 
     Linker linker(masm);
     IonCode *wrapper = linker.newCode(cx);
