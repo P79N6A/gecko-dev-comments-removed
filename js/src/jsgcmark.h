@@ -52,6 +52,7 @@ namespace js {
 
 namespace ion {
     class IonCode;
+    
 }
 
 namespace gc {
@@ -212,13 +213,6 @@ Mark(JSTracer *trc, ion::IonCode *code, const char *name)
     MarkIonCode(trc, code, name);
 }
 
-
-
-inline void
-Mark(JSTracer *, const ion::VMFunction *, const char *)
-{
-}
-
 inline bool
 IsMarked(JSContext *cx, const js::Value &v)
 {
@@ -237,14 +231,6 @@ inline bool
 IsMarked(JSContext *cx, ion::IonCode *code)
 {
     return !IsAboutToBeFinalized(cx, code);
-}
-
-
-
-inline bool
-IsMarked(JSContext *, const ion::VMFunction *)
-{
-    return true;
 }
 
 inline bool

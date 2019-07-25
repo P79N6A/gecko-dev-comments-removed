@@ -206,8 +206,23 @@ struct IonScript
     void copyConstants(const Value *vp);
 };
 
+struct VMFunction;
+
+} 
+
+namespace gc {
+
+inline bool
+IsMarked(JSContext *, const ion::VMFunction *)
+{
+    
+    
+    return true;
 }
-}
+
+} 
+
+} 
 
 #endif 
 
