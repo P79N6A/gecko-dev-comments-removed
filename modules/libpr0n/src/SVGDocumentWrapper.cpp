@@ -266,15 +266,17 @@ SVGDocumentWrapper::OnStopRequest(nsIRequest* aRequest, nsISupports* ctxt,
                                   nsresult status)
 {
   if (mListener) {
+    mListener->OnStopRequest(aRequest, ctxt, status);
     
     
     
     
     
     nsCOMPtr<nsIParser> parser = do_QueryInterface(mListener);
-    parser->ContinueInterruptedParsing();
+    if (!parser->IsComplete()) {
+      parser->ContinueInterruptedParsing();
+    }
     FlushLayout();
-    mListener->OnStopRequest(aRequest, ctxt, status);
     mListener = nsnull;
 
     
