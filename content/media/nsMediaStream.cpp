@@ -70,7 +70,8 @@ nsMediaChannelStream::nsMediaChannelStream(nsMediaDecoder* aDecoder,
     mReopenOnError(PR_FALSE), mIgnoreClose(PR_FALSE),
     mCacheStream(this),
     mLock("nsMediaChannelStream.mLock"),
-    mCacheSuspendCount(0)
+    mCacheSuspendCount(0),
+    mIgnoreResume(PR_FALSE)
 {
 }
 
@@ -276,7 +277,10 @@ nsMediaChannelStream::OnStartRequest(nsIRequest* aRequest)
   mIgnoreClose = PR_FALSE;
   if (mSuspendCount > 0) {
     
+    
+    
     mChannel->Suspend();
+    mIgnoreResume = PR_FALSE;
   }
 
   
@@ -556,7 +560,7 @@ void nsMediaChannelStream::CloseChannel()
   if (mChannel) {
     if (mSuspendCount > 0) {
       
-      mChannel->Resume();
+      PossiblyResume();
     }
     
     
@@ -626,7 +630,7 @@ void nsMediaChannelStream::Suspend(PRBool aCloseImmediately)
         MutexAutoLock lock(mLock);
         mChannelStatistics.Stop(TimeStamp::Now());
       }
-      mChannel->Suspend();
+      PossiblySuspend();
       element->DownloadSuspended();
     }
   }
@@ -657,7 +661,7 @@ void nsMediaChannelStream::Resume()
       
       
       mReopenOnError = PR_TRUE;
-      mChannel->Resume();
+      PossiblyResume();
       element->DownloadResumed();
     } else {
       PRInt64 totalLength = mCacheStream.GetLength();
@@ -865,6 +869,29 @@ PRInt64
 nsMediaChannelStream::GetLength()
 {
   return mCacheStream.GetLength();
+}
+
+void
+nsMediaChannelStream::PossiblySuspend()
+{
+  PRBool isPending = PR_FALSE;
+  nsresult rv = mChannel->IsPending(&isPending);
+  if (NS_SUCCEEDED(rv) && isPending) {
+    mChannel->Suspend();
+    mIgnoreResume = PR_FALSE;
+  } else {
+    mIgnoreResume = PR_TRUE;
+  }
+}
+
+void
+nsMediaChannelStream::PossiblyResume()
+{
+  if (!mIgnoreResume) {
+    mChannel->Resume();
+  } else {
+    mIgnoreResume = PR_FALSE;
+  }
 }
 
 class nsMediaFileStream : public nsMediaStream

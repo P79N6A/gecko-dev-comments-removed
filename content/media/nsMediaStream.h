@@ -453,6 +453,14 @@ protected:
                                       PRUint32 *aWriteCount);
 
   
+  
+  
+  void PossiblySuspend();
+
+  
+  void PossiblyResume();
+
+  
   PRInt64            mOffset;
   nsRefPtr<Listener> mListener;
   
@@ -473,6 +481,11 @@ protected:
   Mutex               mLock;
   nsChannelStatistics mChannelStatistics;
   PRUint32            mCacheSuspendCount;
+
+  
+  
+  
+  PRPackedBool mIgnoreResume;
 };
 
 #endif
