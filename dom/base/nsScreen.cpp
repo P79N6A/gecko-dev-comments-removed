@@ -426,6 +426,24 @@ nsScreen::FullScreenEventListener::HandleEvent(nsIDOMEvent* aEvent)
   nsCOMPtr<nsIDOMEventTarget> target;
   aEvent->GetCurrentTarget(getter_AddRefs(target));
 
+  
+  
+  
+  nsCOMPtr<nsIDOMWindow> window = do_QueryInterface(target);
+  MOZ_ASSERT(window);
+
+  nsCOMPtr<nsIDOMDocument> doc;
+  window->GetDocument(getter_AddRefs(doc));
+  
+  
+  if (doc) {
+    bool fullscreen;
+    doc->GetMozFullScreen(&fullscreen);
+    if (fullscreen) {
+      return NS_OK;
+    }
+  }
+
   target->RemoveSystemEventListener(NS_LITERAL_STRING("mozfullscreenchange"),
                                     this, true);
 
