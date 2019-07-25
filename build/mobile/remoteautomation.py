@@ -122,11 +122,6 @@ class RemoteAutomation(Automation):
         if (self._remoteProfile):
             profileDir = self._remoteProfile
 
-        
-        
-        if app == "am" and extraArgs[0] == "instrument":
-            return app, extraArgs
- 
         cmd, args = Automation.buildCommandLine(self, app, debuggerInfo, profileDir, testURL, extraArgs)
         
         try:
