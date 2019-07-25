@@ -708,6 +708,14 @@ extern JS_PUBLIC_API(JSBool)
 JS_SameValue(JSContext *cx, jsval v1, jsval v2, JSBool *same);
 
 
+extern JS_PUBLIC_API(JSBool)
+JS_IsBuiltinEvalFunction(JSFunction *fun);
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_IsBuiltinFunctionConstructor(JSFunction *fun);
+
+
 
 
 
