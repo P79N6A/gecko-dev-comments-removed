@@ -397,9 +397,6 @@ nsWindow::nsWindow()
     mGdkWindow           = nsnull;
     mShell               = nsnull;
     mWindowGroup         = nsnull;
-    mContainerGotFocus   = PR_FALSE;
-    mContainerLostFocus  = PR_FALSE;
-    mContainerBlockFocus = PR_FALSE;
     mHasMappedToplevel   = PR_FALSE;
     mIsFullyObscured     = PR_FALSE;
     mRetryPointerGrab    = PR_FALSE;
@@ -904,30 +901,11 @@ NS_IMETHODIMP
 nsWindow::SetModal(PRBool aModal)
 {
     LOG(("nsWindow::SetModal [%p] %d\n", (void *)this, aModal));
-
-    
-    GtkWidget *grabWidget = nsnull;
-
-    GetToplevelWidget(&grabWidget);
-
-    if (!grabWidget)
+    if (mIsDestroyed)
+        return aModal ? NS_ERROR_NOT_AVAILABLE : NS_OK;
+    if (!mIsTopLevel || !mShell)
         return NS_ERROR_FAILURE;
-
-    
-    
-    if (mTransientParent) {
-        GtkWidget *transientWidget = GTK_WIDGET(mTransientParent);
-        nsRefPtr<nsWindow> parent = get_window_for_gtk_widget(transientWidget);
-        if (!parent)
-            return NS_ERROR_FAILURE;
-        parent->mContainerBlockFocus = aModal;
-    }
-
-    if (aModal)
-        gtk_window_set_modal(GTK_WINDOW(grabWidget), TRUE);
-    else
-        gtk_window_set_modal(GTK_WINDOW(grabWidget), FALSE);
-
+    gtk_window_set_modal(GTK_WINDOW(mShell), aModal ? TRUE : FALSE);
     return NS_OK;
 }
 
@@ -1388,7 +1366,6 @@ nsWindow::SetFocus(PRBool aRaise)
 
     if (!GTK_WIDGET_HAS_FOCUS(owningWidget)) {
         LOGFOCUS(("  grabbing focus for the toplevel [%p]\n", (void *)this));
-        owningWindow->mContainerBlockFocus = PR_FALSE;
 
         
         if (gRaiseWindows && aRaise && toplevelWidget &&
@@ -3105,8 +3082,7 @@ void
 nsWindow::OnContainerFocusInEvent(GtkWidget *aWidget, GdkEventFocus *aEvent)
 {
     LOGFOCUS(("OnContainerFocusInEvent [%p]\n", (void *)this));
-    
-    if (mContainerBlockFocus) {
+    if (!mEnabled) {
         LOGFOCUS(("Container focus is blocked [%p]\n", (void *)this));
         return;
     }
