@@ -235,6 +235,12 @@ struct ConstantSpec
 
 
 
+bool
+DefineConstants(JSContext* cx, JSObject* obj, ConstantSpec* cs);
+
+
+
+
 
 
 
