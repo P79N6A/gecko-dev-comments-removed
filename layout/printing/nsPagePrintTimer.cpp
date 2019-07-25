@@ -85,7 +85,7 @@ nsPagePrintTimer::Run()
     }
   }
   return NS_OK;
-};
+}
 
 
 NS_IMETHODIMP
