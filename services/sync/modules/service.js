@@ -710,6 +710,7 @@ WeaveSvc.prototype = {
       this._loggedIn = true;
       
       this._checkSyncStatus();
+      Svc.Prefs.set("autoconnect", true);
 
       return true;
     })))(),
@@ -725,6 +726,7 @@ WeaveSvc.prototype = {
 
     
     this._checkSyncStatus();
+    Svc.Prefs.set("autoconnect", false);
 
     Svc.Observer.notifyObservers(null, "weave:service:logout:finish", "");
   },
