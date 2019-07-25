@@ -142,6 +142,11 @@ const JPAKE_VERIFY_VALUE      = "0123456789ABCDEF";
 
 
 
+
+
+
+
+
 function JPAKEClient(controller) {
   this.controller = controller;
 
@@ -189,6 +194,11 @@ JPAKEClient.prototype = {
                 this._putStep,
                 this._getStep,
                 function(callback) {
+                  
+                  
+                  Utils.nextTick(this.controller.onPairingStart,
+                                 this.controller);
+
                   
                   this._maxTries = Svc.Prefs.get("jpake.maxTries");
                   callback();
