@@ -573,7 +573,11 @@ function test_getInterface()
   
   do_check_true(target != null);
 
-  run_next_test();
+ db.asyncClose(function() {
+   
+   gDBConn = null;
+   run_next_test();
+ });
 }
 
 
