@@ -679,7 +679,16 @@ var NativeWindow = {
     _callbacksId: 0,
     _promptId: 0,
 
-    show: function(aMessage, aValue, aButtons, aTabID) {
+  
+
+
+
+
+
+
+
+
+    show: function(aMessage, aValue, aButtons, aTabID, aOptions) {
       aButtons.forEach((function(aButton) {
         this._callbacks[this._callbacksId] = { cb: aButton.callback, prompt: this._promptId };
         aButton.callback = this._callbacksId;
@@ -694,7 +703,8 @@ var NativeWindow = {
           value: aValue,
           buttons: aButtons,
           
-          tabID: aTabID || BrowserApp.selectedTab.id
+          tabID: aTabID || BrowserApp.selectedTab.id,
+          options: aOptions || {}
         }
       };
       sendMessageToJava(json);
