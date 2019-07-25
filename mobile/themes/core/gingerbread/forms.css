@@ -250,11 +250,11 @@
   -moz-box-ordinal-group: 2; 
 }
 
-.option-command {
+.option-command:not([disabled="true"]):not(.optgroup) {
   list-style-image: url("chrome://browser/skin/images/radio-unselected-hdpi.png");
 }
 
-.option-command.selected {
+.option-command.selected:not(.optgroup) {
   list-style-image: url("chrome://browser/skin/images/radio-selected-hdpi.png");
 }
 
