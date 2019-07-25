@@ -76,6 +76,7 @@
 #include "jsstr.h"
 #include "jstracer.h"
 #include "jsdbgapi.h"
+#include "json.h"
 
 #include "jsscopeinlines.h"
 #include "jsscriptinlines.h"
@@ -1129,6 +1130,28 @@ obj_eval(JSContext *cx, uintN argc, Value *vp)
 
     JSString *str = argv[0].toString();
     JSScript *script = NULL;
+    
+    const jschar *chars;
+    size_t length;
+    str->getCharsAndLength(chars, length);
+
+    
+
+
+
+
+
+    if (length > 2 && chars[0] == '(' && chars[length-1] == ')') {
+        JSONParser *jp = js_BeginJSONParse(cx, vp, true);
+        JSBool ok = jp != NULL;
+        if (ok) {
+            
+            ok = js_ConsumeJSONText(cx, jp, chars+1, length-2);
+            ok &= js_FinishJSONParse(cx, jp, NullValue());
+            if (ok)
+                return JS_TRUE;
+        }
+    }
 
     
 
@@ -1216,7 +1239,7 @@ obj_eval(JSContext *cx, uintN argc, Value *vp)
         script = Compiler::compileScript(cx, scopeobj, callerFrame,
                                          principals,
                                          TCF_COMPILE_N_GO | TCF_NEED_MUTABLE_SCRIPT,
-                                         str->chars(), str->length(),
+                                         chars, length,
                                          NULL, file, line, str, staticLevel);
         if (!script)
             return JS_FALSE;
