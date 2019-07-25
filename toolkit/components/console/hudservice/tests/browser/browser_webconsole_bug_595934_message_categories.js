@@ -59,7 +59,6 @@ const TESTS = [
     category: "DOM:HTML",
     matchString: "document.all",
   },
-  
   { 
     file: "test-bug-595934-dom-events-external2.html",
     category: "DOM Events",
@@ -158,15 +157,18 @@ function testNext() {
 
   pos++;
   if (pos < TESTS.length) {
-    if (TESTS[pos].onload) {
-      let position = pos;
+    let test = TESTS[pos];
+    let testLocation = TESTS_PATH + test.file;
+    if (test.onload) {
       browser.addEventListener("load", function(aEvent) {
-        browser.removeEventListener(aEvent.type, arguments.callee, true);
-        TESTS[position].onload(aEvent);
+        if (content.location.href == testLocation) {
+          browser.removeEventListener(aEvent.type, arguments.callee, true);
+          test.onload(aEvent);
+        }
       }, true);
     }
 
-    content.location = TESTS_PATH + TESTS[pos].file;
+    content.location = testLocation;
   }
   else {
     executeSoon(finish);
