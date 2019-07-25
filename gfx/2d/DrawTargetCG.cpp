@@ -872,7 +872,10 @@ DrawTargetCG::Init(const IntSize &aSize, SurfaceFormat &)
 {
   
   
-  if (aSize.width == 0 || aSize.height == 0) {
+  if (aSize.width == 0 || aSize.height == 0 ||
+      
+      
+      aSize.width > 32767 || aSize.height > 32767) {
     mColorSpace = NULL;
     mCg = NULL;
     mData = NULL;
