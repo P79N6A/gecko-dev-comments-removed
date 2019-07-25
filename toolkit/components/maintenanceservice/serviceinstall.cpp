@@ -168,6 +168,61 @@ UpdateServiceDescription(SC_HANDLE serviceHandle)
 
 
 
+
+BOOL
+FixServicePath(SC_HANDLE service,
+               LPCWSTR currentServicePath,
+               BOOL &servicePathWasWrong)
+{
+  
+  
+  
+  
+  
+  
+  bool doesServiceHaveCorrectPath =
+    !wcsstr(currentServicePath, L"maintenanceservice_tmp.exe");
+  if (doesServiceHaveCorrectPath) {
+    LOG(("The MozillaMaintenance service path is correct.\n"));
+    servicePathWasWrong = FALSE;
+    return TRUE;
+  }
+  LOG(("The MozillaMaintenance path is NOT correct.\n"));
+  servicePathWasWrong = TRUE;
+
+  WCHAR fixedPath[MAX_PATH + 1] = { L'\0' };
+  wcsncpy(fixedPath, currentServicePath, MAX_PATH);
+  PathUnquoteSpacesW(fixedPath);
+  if (!PathRemoveFileSpecW(fixedPath)) {
+    LOG(("Couldn't remove file spec. (%d)\n", GetLastError()));
+    return FALSE;
+  }
+  if (!PathAppendSafe(fixedPath, L"maintenanceservice.exe")) {
+    LOG(("Couldn't append file spec. (%d)\n", GetLastError()));
+    return FALSE;
+  }
+  PathQuoteSpacesW(fixedPath);
+
+
+  if (!ChangeServiceConfigW(service, SERVICE_NO_CHANGE, SERVICE_NO_CHANGE,
+                            SERVICE_NO_CHANGE, fixedPath, NULL, NULL, NULL,
+                            NULL, NULL, NULL)) {
+    LOG(("Could not fix service path. (%d)\n", GetLastError()));
+    return FALSE;
+  }
+
+  LOG(("Fixed service path to: %ls.\n", fixedPath));
+  return TRUE;
+}
+
+
+
+
+
+
+
+
+
 BOOL
 SvcInstall(SvcInstallAction action)
 {
@@ -234,6 +289,30 @@ SvcInstall(SvcInstallAction action)
       *reinterpret_cast<QUERY_SERVICE_CONFIGW*>(serviceConfigBuffer.get());
 
     
+    BOOL servicePathWasWrong;
+    static BOOL alreadyCheckedFixServicePath = FALSE;
+    if (!alreadyCheckedFixServicePath) {
+      if (!FixServicePath(schService, serviceConfig.lpBinaryPathName,
+                          servicePathWasWrong)) {
+        LOG(("Could not fix service path. This should never happen. (%d)\n",
+              GetLastError()));
+        
+        
+        
+        return TRUE;
+      } else if (servicePathWasWrong) {
+        
+        
+        
+        
+        
+        alreadyCheckedFixServicePath = TRUE;
+        LOG(("Restarting install action: %d\n", action));
+        return SvcInstall(action);
+      }
+    }
+
+    
     
     
     PathUnquoteSpacesW(serviceConfig.lpBinaryPathName);
@@ -275,7 +354,7 @@ SvcInstall(SvcInstallAction action)
 
       if (!wcscmp(newServiceBinaryPath, serviceConfig.lpBinaryPathName)) {
         LOG(("File is already in the correct location, no action needed for "
-             "upgrade.\n"));
+             "upgrade.  The path is: \"%ls\"\n", newServiceBinaryPath));
         return TRUE;
       }
 
