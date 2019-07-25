@@ -3598,6 +3598,16 @@ var XPIProvider = {
 
     try {
       
+      for (let name in BOOTSTRAP_REASONS)
+        this.bootstrapScopes[aId][name] = BOOTSTRAP_REASONS[name];
+
+      
+      const features = [ "Worker", "ChromeWorker" ];
+
+      for (let feature of features)
+        this.bootstrapScopes[aId][feature] = gGlobalScope[feature];
+
+      
       
       
       if (aType == "dictionary") {
@@ -3614,17 +3624,6 @@ var XPIProvider = {
     catch (e) {
       WARN("Error loading bootstrap.js for " + aId, e);
     }
-
-    
-    for (let name in BOOTSTRAP_REASONS)
-      this.bootstrapScopes[aId][name] = BOOTSTRAP_REASONS[name];
-
-
-    
-    const features = [ "Worker", "ChromeWorker" ];
-
-    for each (let feature in features)
-      this.bootstrapScopes[aId][feature] = gGlobalScope[feature];
   },
 
   
