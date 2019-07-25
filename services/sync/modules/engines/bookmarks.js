@@ -111,7 +111,7 @@ BookmarksEngine.prototype = {
     
     let serverUrl = Utils.prefs.getCharPref( "xmpp.server.url" );
     let realm = Utils.prefs.getCharPref( "xmpp.server.realm" );
-    
+
     
     
     
@@ -121,7 +121,7 @@ BookmarksEngine.prototype = {
     let clientName = Utils.prefs.getCharPref( "xmpp.client.name" );
     let clientPassword = Utils.prefs.getCharPref( "xmpp.client.password" );
     let transport = new HTTPPollingTransport( serverUrl, false, 15000 );
-    let auth = new PlainAuthenticator(); 
+    let auth = new PlainAuthenticator();
     
     
     this._xmppClient = new XmppClient( clientName,
@@ -154,7 +154,8 @@ BookmarksEngine.prototype = {
 	  bmkEngine._incomingShareWithdrawn( directoryName, from );
 	}
       }
-    }
+    };
+
     this._xmppClient.registerMessageHandler( messageHandler );
     this._xmppClient.connect( realm, self.cb );
     yield;
@@ -243,7 +244,7 @@ BookmarksEngine.prototype = {
       } else {
 	this._log.warn( "No XMPP connection for share notification." );
       }
-    } 
+    }
 
     
 
@@ -301,7 +302,7 @@ BookmarksEngine.prototype = {
 
     let self = yield;
     let myUserName = ID.get('WeaveID').username;
-    this._log.debug("Sharing bookmarks from " + folder.getAttribute( "label" ) 
+    this._log.debug("Sharing bookmarks from " + folder.getAttribute( "label" )
                     + " with " + username);
 
     
@@ -384,7 +385,7 @@ BookmarksEngine.prototype = {
     let keyring = yield;
     let symKey = keyring[ myUserName ];
     
-    let json = this._store._wrapMount( folderNode, myUserName ); 
+    let json = this._store._wrapMount( folderNode, myUserName );
     
 
 
