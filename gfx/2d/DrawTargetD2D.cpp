@@ -1985,6 +1985,12 @@ DrawTargetD2D::CreatePartialBitmapForSurface(SourceSurfaceD2D *aSurface, Matrix 
   
   uploadRect = uploadRect.Intersect(rect);
 
+  if (uploadRect.IsEmpty()) {
+    
+    
+    return NULL;
+  }
+
   if (uploadRect.width <= mRT->GetMaximumBitmapSize() &&
       uploadRect.height <= mRT->GetMaximumBitmapSize()) {
             
