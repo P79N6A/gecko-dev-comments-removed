@@ -1633,6 +1633,11 @@ public:
                                    nsRegion* aVisibleRegionBeforeMove);
   NS_DISPLAY_DECL_NAME("Zoom", TYPE_ZOOM)
 
+  
+  PRInt32 GetChildAppUnitsPerDevPixel() { return mAPD; }
+  
+  PRInt32 GetParentAppUnitsPerDevPixel() { return mParentAPD; }
+
 private:
   PRInt32 mAPD, mParentAPD;
 };
