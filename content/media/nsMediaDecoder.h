@@ -54,6 +54,16 @@ class nsIStreamListener;
 class nsTimeRanges;
 
 
+
+
+#define FRAMEBUFFER_LENGTH_PER_CHANNEL 1024
+
+
+
+#define FRAMEBUFFER_LENGTH_MIN 512
+#define FRAMEBUFFER_LENGTH_MAX 16384
+
+
 class ShutdownThreadEvent : public nsRunnable 
 {
 public:
@@ -235,6 +245,14 @@ public:
 
   
   
+  PRUint32 GetFrameBufferLength() { return mFrameBufferLength; };
+
+  
+  
+  nsresult RequestFrameBufferLength(PRUint32 aLength);
+
+  
+  
   
   
   
@@ -311,6 +329,9 @@ protected:
 
   
   float mPixelAspectRatio;
+
+  
+  PRUint32 mFrameBufferLength;
 
   
   

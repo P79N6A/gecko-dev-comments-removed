@@ -50,6 +50,8 @@
 #include "nsIObserver.h"
 #include "ImageLayers.h"
 
+#include "nsAudioStream.h"
+
 
 
 
@@ -127,7 +129,7 @@ public:
   
   
   
-  void MetadataLoaded();
+  void MetadataLoaded(PRUint32 aChannels, PRUint32 aRate);
 
   
   
@@ -186,6 +188,9 @@ public:
   nsresult DispatchProgressEvent(const nsAString& aName);
   nsresult DispatchAsyncSimpleEvent(const nsAString& aName);
   nsresult DispatchAsyncProgressEvent(const nsAString& aName);
+  nsresult DispatchAudioAvailableEvent(float* aFrameBuffer,
+                                       PRUint32 aFrameBufferLength,
+                                       PRUint64 aTime);
 
   
   
@@ -284,6 +289,18 @@ public:
 
 
   void NotifyLoadError();
+
+  
+
+
+  void NotifyAudioAvailable(float* aFrameBuffer, PRUint32 aFrameBufferLength,
+                            PRUint64 aTime);
+
+  
+
+
+
+  PRBool MayHaveAudioAvailableEventListener();
 
   virtual PRBool IsNodeOfType(PRUint32 aFlags) const;
 
@@ -528,6 +545,12 @@ protected:
   float mVolume;
 
   
+  PRUint32 mChannels;
+
+  
+  PRUint32 mRate;
+
+  
   
   
   
@@ -543,6 +566,13 @@ protected:
   nsIntSize mMediaSize;
 
   nsRefPtr<gfxASurface> mPrintSurface;
+
+  
+  nsAutoPtr<nsAudioStream> mAudioStream;
+
+  
+  
+  PRBool mAllowAudioData;
 
   
   
@@ -636,6 +666,9 @@ protected:
   
   
   PRPackedBool mLoadIsSuspended;
+
+  
+  PRPackedBool mMediaSecurityVerified;
 };
 
 #endif
