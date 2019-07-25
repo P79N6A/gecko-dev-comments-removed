@@ -742,9 +742,9 @@ let UI = {
       } else {
         
         
-        if (self._privateBrowsing.transitionMode)
-          return; 
-          
+        if (self._storageBusyCount)
+          return;
+
         
         if (gBrowser.tabs.length > 1) {
           

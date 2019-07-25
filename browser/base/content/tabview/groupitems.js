@@ -2163,7 +2163,16 @@ let GroupItems = {
         }
 
         toClose.forEach(function(groupItem) {
-          groupItem.destroy({immediately: true});
+          
+          
+          
+          groupItem.getChildren().forEach(function (tabItem) {
+            if (tabItem.parent && tabItem.parent.hidden)
+              iQ(tabItem.container).show();
+            tabItem._reconnected = false;
+            tabItem._reconnect();
+          });
+          groupItem.close({immediately: true});
         });
       }
 
