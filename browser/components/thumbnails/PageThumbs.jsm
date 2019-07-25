@@ -15,22 +15,6 @@ const HTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
 
 
 
-
-
-
-const THUMBNAIL_WIDTH = 400;
-
-
-
-
-
-
-
-const THUMBNAIL_HEIGHT = 225;
-
-
-
-
 const THUMBNAIL_BG_COLOR = "#fff";
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -46,6 +30,13 @@ XPCOMUtils.defineLazyModuleGetter(this, "Services",
 
 
 let PageThumbs = {
+
+  
+
+
+  _thumbnailWidth : 0,
+  _thumbnailHeight : 0,
+
   
 
 
@@ -171,15 +162,16 @@ let PageThumbs = {
     let sw = aWindow.innerWidth;
     let sh = aWindow.innerHeight;
 
-    let scale = Math.max(THUMBNAIL_WIDTH / sw, THUMBNAIL_HEIGHT / sh);
+    let [thumbnailWidth, thumbnailHeight] = this._getThumbnailSize();
+    let scale = Math.max(thumbnailWidth / sw, thumbnailHeight / sh);
     let scaledWidth = sw * scale;
     let scaledHeight = sh * scale;
 
-    if (scaledHeight > THUMBNAIL_HEIGHT)
-      sh -= Math.floor(Math.abs(scaledHeight - THUMBNAIL_HEIGHT) * scale);
+    if (scaledHeight > thumbnailHeight)
+      sh -= Math.floor(Math.abs(scaledHeight - thumbnailHeight) * scale);
 
-    if (scaledWidth > THUMBNAIL_WIDTH)
-      sw -= Math.floor(Math.abs(scaledWidth - THUMBNAIL_WIDTH) * scale);
+    if (scaledWidth > thumbnailWidth)
+      sw -= Math.floor(Math.abs(scaledWidth - thumbnailWidth) * scale);
 
     return [sw, sh, scale];
   },
@@ -193,9 +185,26 @@ let PageThumbs = {
     let canvas = doc.createElementNS(HTML_NAMESPACE, "canvas");
     canvas.mozOpaque = true;
     canvas.mozImageSmoothingEnabled = true;
-    canvas.width = THUMBNAIL_WIDTH;
-    canvas.height = THUMBNAIL_HEIGHT;
+    let [thumbnailWidth, thumbnailHeight] = this._getThumbnailSize();
+    canvas.width = thumbnailWidth;
+    canvas.height = thumbnailHeight;
     return canvas;
+  },
+
+  
+
+
+
+  _getThumbnailSize: function PageThumbs_getThumbnailSize() {
+    if (!this._thumbnailWidth || !this._thumbnailHeight) {
+      let screenManager = Cc["@mozilla.org/gfx/screenmanager;1"]
+                            .getService(Ci.nsIScreenManager);
+      let left = {}, top = {}, width = {}, height = {};
+      screenManager.primaryScreen.GetRect(left, top, width, height);
+      this._thumbnailWidth = Math.round(width.value / 3);
+      this._thumbnailHeight = Math.round(height.value / 3);
+    }
+    return [this._thumbnailWidth, this._thumbnailHeight];
   }
 };
 
