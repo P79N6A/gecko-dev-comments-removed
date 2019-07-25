@@ -138,7 +138,6 @@ PlacesController.prototype = {
 
   supportsCommand: function PC_supportsCommand(aCommand) {
     
-    
     switch (aCommand) {
     case "cmd_undo":
     case "cmd_redo":
@@ -776,17 +775,6 @@ PlacesController.prototype = {
                                       .getIdForItemAt(ip.itemId, ip.index);
       this._view.selectItems([insertedNodeId], false);
     }
-  },
-
-
-  
-
-
-
-  newFolder: function PC_newFolder() {
-    Cu.reportError("PlacesController.newFolder is deprecated and will be \
-                   removed in a future release.  Use newItem instead.");
-    this.newItem("folder");
   },
 
   
