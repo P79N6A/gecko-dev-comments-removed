@@ -202,9 +202,11 @@ class XPCShellTests(object):
     ]
 
     if self.testingModulesDir:
+        
+        sanitized = self.testingModulesDir.replace('\\', '\\\\')
         self.xpcsCmd.extend([
             '-e',
-            'const _TESTING_MODULES_DIR = "%s";' % self.testingModulesDir
+            'const _TESTING_MODULES_DIR = "%s";' % sanitized
         ])
 
     self.xpcsCmd.extend(['-f', os.path.join(self.testharnessdir, 'head.js')])
@@ -587,9 +589,29 @@ class XPCShellTests(object):
             raise Exception("testsRootDir path does not exists: %s" %
                     testsRootDir)
 
+    
+    
+    
+    
+    
+    if not testingModulesDir:
+        ourDir = os.path.dirname(__file__)
+        possible = os.path.join(ourDir, os.path.pardir, 'modules')
+
+        if os.path.isdir(possible):
+            testingModulesDir = possible
+
     if testingModulesDir:
+        
+        
+        
+        testingModulesDir = os.path.normpath(testingModulesDir)
+
         if not os.path.isabs(testingModulesDir):
             testingModulesDir = os.path.abspath(testingModulesDir)
+
+        if not testingModulesDir.endswith(os.path.sep):
+            testingModulesDir += os.path.sep
 
     self.xpcshell = xpcshell
     self.xrePath = xrePath
@@ -664,6 +686,7 @@ class XPCShellTests(object):
       
       
       if testsRootDir is not None:
+          testsRootDir = os.path.normpath(testsRootDir)
           if test["here"].find(testsRootDir) != 0:
               raise Exception("testsRootDir is not a parent path of %s" %
                   test["here"])
