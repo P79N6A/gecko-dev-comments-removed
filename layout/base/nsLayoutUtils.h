@@ -156,6 +156,11 @@ public:
   static PRBool IsGeneratedContentFor(nsIContent* aContent, nsIFrame* aFrame,
                                       nsIAtom* aPseudoElement);
 
+#ifdef DEBUG
+  
+  static bool gPreventAssertInCompareTreePosition;
+#endif 
+
   
 
 

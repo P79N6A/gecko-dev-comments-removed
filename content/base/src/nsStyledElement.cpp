@@ -235,24 +235,9 @@ nsStyledElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 void
 nsStyledElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
 {
-  nsIDocument* doc = nsnull;
-
-  if (HasFlag(NODE_HAS_ID)) {
-    doc = GetCurrentDoc();
-  }
+  RemoveFromIdTable();
 
   nsStyledElementBase::UnbindFromTree(aDeep, aNullParent);
-
-  
-  
-  
-  
-  if (doc) {
-    nsIAtom* id = DoGetID();
-    if (id) {
-      doc->RemoveFromIdTable(this, id);
-    }
-  }
 }
 
 

@@ -1046,7 +1046,16 @@ CompareFormControlPosition(nsGenericHTMLFormElement *aControl1,
   
   
   
+  
+#ifdef DEBUG
+  nsLayoutUtils::gPreventAssertInCompareTreePosition = true;
+  PRInt32 rVal = nsLayoutUtils::CompareTreePosition(aControl1, aControl2, aForm);
+  nsLayoutUtils::gPreventAssertInCompareTreePosition = false;
+
+  return rVal;
+#else 
   return nsLayoutUtils::CompareTreePosition(aControl1, aControl2, aForm);
+#endif 
 }
  
 #ifdef DEBUG
@@ -1061,6 +1070,10 @@ static void
 AssertDocumentOrder(const nsTArray<nsGenericHTMLFormElement*>& aControls,
                     nsIContent* aForm)
 {
+  
+  
+  return;
+
   
   
   
