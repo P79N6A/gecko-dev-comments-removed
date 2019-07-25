@@ -46,6 +46,7 @@ const Cr = Components.results;
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/FileUtils.jsm");
+Components.utils.import("resource://gre/modules/AddonManager.jsm");
 
 const TOOLKIT_ID                      = "toolkit@mozilla.org"
 const KEY_PROFILEDIR                  = "ProfD";
@@ -779,95 +780,114 @@ Blocklist.prototype = {
   _blocklistUpdated: function(oldAddonEntries, oldPluginEntries) {
     var addonList = [];
 
-    var em = Cc["@mozilla.org/extensions/manager;1"].
-             getService(Ci.nsIExtensionManager);
-    var addons = em.updateAndGetNewBlocklistedItems();
+    var self = this;
+    AddonManager.getAddonsByTypes(["extension", "theme", "locale"], function(addons) {
 
-    for (let i = 0; i < addons.length; i++) {
-      let oldState = -1;
-      if (oldAddonEntries)
-        oldState = this._getAddonBlocklistState(addons[i].id, addons[i].version,
-                                                oldAddonEntries);
-      let state = this.getAddonBlocklistState(addons[i].id, addons[i].version);
-      
-      if (state == oldState)
-        continue;
+      for (let i = 0; i < addons.length; i++) {
+        let oldState = Ci.nsIBlocklistService.STATE_NOTBLOCKED;
+        if (oldAddonEntries)
+          oldState = self._getAddonBlocklistState(addons[i].id, addons[i].version,
+                                                  oldAddonEntries);
+        let state = self.getAddonBlocklistState(addons[i].id, addons[i].version);
 
-      addonList.push({
-        name: addons[i].name,
-        version: addons[i].version,
-        icon: addons[i].iconURL,
-        disable: false,
-        blocked: state == Ci.nsIBlocklistService.STATE_BLOCKED,
-        item: addons[i]
-      });
-    }
+        LOG("Blocklist state for " + addons[i].id + " changed from " + oldState + " to " + state);
 
-    var phs = Cc["@mozilla.org/plugin/host;1"].
-              getService(Ci.nsIPluginHost);
-    var plugins = phs.getPluginTags();
+        
+        if (state == 0)
+          continue;
 
-    for (let i = 0; i < plugins.length; i++) {
-      let oldState = -1;
-      if (oldPluginEntries)
-        oldState = this._getPluginBlocklistState(plugins[i], oldPluginEntries);
-      let state = this.getPluginBlocklistState(plugins[i]);
-      
-      if (state == oldState)
-        continue;
+        
+        if (state == oldState)
+          continue;
 
-      if (plugins[i].blocklisted) {
-        if (state == Ci.nsIBlocklistService.STATE_SOFTBLOCKED)
-          plugins[i].disabled = true;
-      }
-      else if (!plugins[i].disabled && state != Ci.nsIBlocklistService.STATE_NOT_BLOCKED) {
-        if (state == Ci.nsIBlocklistService.STATE_OUTDATED) {
-          gPref.setBoolPref(PREF_PLUGINS_NOTIFYUSER, true);
+        
+        
+        if (state == Ci.nsIBlocklistService.STATE_SOFTBLOCKED &&
+            oldState == Ci.nsIBlocklistService.STATE_BLOCKED) {
+          addons[i].userDisabled = true;
+          continue;
         }
-        else {
-          addonList.push({
-            name: plugins[i].name,
-            version: plugins[i].version,
-            icon: "chrome://mozapps/skin/plugins/pluginGeneric.png",
-            disable: false,
-            blocked: state == Ci.nsIBlocklistService.STATE_BLOCKED,
-            item: plugins[i]
-          });
-        }
+
+        
+        
+        if (!addons[i].isActive)
+          continue;
+
+        addonList.push({
+          name: addons[i].name,
+          version: addons[i].version,
+          icon: addons[i].iconURL,
+          disable: false,
+          blocked: state == Ci.nsIBlocklistService.STATE_BLOCKED,
+          item: addons[i]
+        });
       }
-      plugins[i].blocklisted = state == Ci.nsIBlocklistService.STATE_BLOCKED;
-    }
 
-    if (addonList.length == 0)
-      return;
+      AddonManagerPrivate.updateAddonAppDisabledStates();
 
-    var args = {
-      restart: false,
-      list: addonList
-    };
-    
-    args.wrappedJSObject = args;
+      var phs = Cc["@mozilla.org/plugin/host;1"].
+                getService(Ci.nsIPluginHost);
+      var plugins = phs.getPluginTags();
 
-    var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
-             getService(Ci.nsIWindowWatcher);
-    ww.openWindow(null, URI_BLOCKLIST_DIALOG, "",
-                  "chrome,centerscreen,dialog,modal,titlebar", args);
+      for (let i = 0; i < plugins.length; i++) {
+        let oldState = -1;
+        if (oldPluginEntries)
+          oldState = self._getPluginBlocklistState(plugins[i], oldPluginEntries);
+        let state = self.getPluginBlocklistState(plugins[i]);
+        
+        if (state == oldState)
+          continue;
 
-    for (let i = 0; i < addonList.length; i++) {
-      if (!addonList[i].disable)
-        continue;
+        if (plugins[i].blocklisted) {
+          if (state == Ci.nsIBlocklistService.STATE_SOFTBLOCKED)
+            plugins[i].disabled = true;
+        }
+        else if (!plugins[i].disabled && state != Ci.nsIBlocklistService.STATE_NOT_BLOCKED) {
+          if (state == Ci.nsIBlocklistService.STATE_OUTDATED) {
+            gPref.setBoolPref(PREF_PLUGINS_NOTIFYUSER, true);
+          }
+          else {
+            addonList.push({
+              name: plugins[i].name,
+              version: plugins[i].version,
+              icon: "chrome://mozapps/skin/plugins/pluginGeneric.png",
+              disable: false,
+              blocked: state == Ci.nsIBlocklistService.STATE_BLOCKED,
+              item: plugins[i]
+            });
+          }
+        }
+        plugins[i].blocklisted = state == Ci.nsIBlocklistService.STATE_BLOCKED;
+      }
 
-      if (addonList[i].item instanceof Ci.nsIUpdateItem)
-        em.disableItem(addonList[i].item.id);
-      else if (addonList[i].item instanceof Ci.nsIPluginTag)
-        addonList[i].item.disabled = true;
-      else
-        LOG("Blocklist::_blocklistUpdated: Unknown add-on type: " +
-            addonList[i].item);
-    }
+      if (addonList.length == 0)
+        return;
 
-    if (args.restart)
-      restartApp();
+      var args = {
+        restart: false,
+        list: addonList
+      };
+      
+      args.wrappedJSObject = args;
+
+      var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
+               getService(Ci.nsIWindowWatcher);
+      ww.openWindow(null, URI_BLOCKLIST_DIALOG, "",
+                    "chrome,centerscreen,dialog,modal,titlebar", args);
+
+      for (let i = 0; i < addonList.length; i++) {
+        if (!addonList[i].disable)
+          continue;
+
+        if (addonList[i].item instanceof Ci.nsIPluginTag)
+          addonList[i].item.disabled = true;
+        else
+          addonList[i].item.userDisabled = true;
+      }
+
+      if (args.restart)
+        restartApp();
+    });
   },
 
   classDescription: "Blocklist Service",

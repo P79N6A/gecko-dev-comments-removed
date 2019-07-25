@@ -370,6 +370,17 @@ var AddonManagerInternal = {
 
 
 
+  updateAddonAppDisabledStates: function AMI_updateAddonAppDisabledStates() {
+    this.providers.forEach(function(provider) {
+      callProvider(provider, "updateAddonAppDisabledStates");
+    });
+  },
+
+  
+
+
+
+
 
 
 
@@ -769,6 +780,10 @@ var AddonManagerPrivate = {
 
   notifyAddonChanged: function AMP_notifyAddonChanged(aId, aType, aPendingRestart) {
     AddonManagerInternal.notifyAddonChanged(aId, aType, aPendingRestart);
+  },
+
+  updateAddonAppDisabledStates: function AMP_updateAddonAppDisabledStates() {
+    AddonManagerInternal.updateAddonAppDisabledStates();
   },
 
   callInstallListeners: function AMP_callInstallListeners(aMethod) {

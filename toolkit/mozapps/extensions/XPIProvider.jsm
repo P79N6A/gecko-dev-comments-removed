@@ -399,7 +399,7 @@ function loadManifestFromRDF(aUri, aStream) {
   if (addon.type == "theme")
     addon.userDisabled = addon.internalName != XPIProvider.selectedSkin;
   else
-    addon.userDisabled = false;
+    addon.userDisabled = addon.blocklistState == Ci.nsIBlocklistService.STATE_SOFTBLOCKED;
   addon.appDisabled = !isUsableAddon(addon);
 
   addon.applyBackgroundUpdates = true;
@@ -1788,6 +1788,16 @@ var XPIProvider = {
     
     if (previousTheme)
       this.updateAddonDisabledState(previousTheme, true);
+  },
+
+  
+
+
+  updateAddonAppDisabledStates: function XPI_updateAddonAppDisabledStates() {
+    let addons = XPIDatabase.getAddons();
+    addons.forEach(function(aAddon) {
+      this.updateAddonDisabledState(aAddon);
+    }, this);
   },
 
   
