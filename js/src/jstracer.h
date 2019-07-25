@@ -321,17 +321,6 @@ public:
     }
 };
 
-#if defined(_MSC_VER) && _MSC_VER >= 1400 || (defined(__GNUC__) && __GNUC__ >= 4)
-#define USE_TRACE_TYPE_ENUM
-#endif
-
-
-
-
-
-
-const uint32 TT_INVALID = uint32(-1);
-
 typedef Queue<uint16> SlotList;
 
 class TypeMap : public Queue<JSValueType> {
