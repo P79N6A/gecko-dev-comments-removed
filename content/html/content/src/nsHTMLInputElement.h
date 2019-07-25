@@ -441,11 +441,6 @@ protected:
                        nsGkAtoms::image, eIgnoreCase);
   }
 
-  virtual PRBool AcceptAutofocus() const
-  {
-    return PR_TRUE;
-  }
-
   
 
 
