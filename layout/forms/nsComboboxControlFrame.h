@@ -137,7 +137,16 @@ public:
 
 
   virtual void RollupFromList();
-  virtual void AbsolutelyPositionDropDown();
+
+  
+
+
+
+
+
+  void GetAvailableDropdownSpace(nscoord* aAbove,
+                                 nscoord* aBelow,
+                                 nsPoint* aTranslation);
   virtual PRInt32 GetIndexOfDisplayArea();
   
 
@@ -184,17 +193,27 @@ public:
   static bool ToolkitHasNativePopup();
 
 protected:
+  friend class RedisplayTextEvent;
+  friend class nsAsyncResize;
+  friend class nsResizeDropdownAtFinalPosition;
 
   
   nsresult ReflowDropdown(nsPresContext*          aPresContext, 
                           const nsHTMLReflowState& aReflowState);
 
+  enum DropDownPositionState {
+    
+    eDropDownPositionSuppressed,
+    
+    eDropDownPositionPendingResize,
+    
+    eDropDownPositionFinal
+  };
+  DropDownPositionState AbsolutelyPositionDropDown();
+
   
   nscoord GetIntrinsicWidth(nsRenderingContext* aRenderingContext,
                             nsLayoutUtils::IntrinsicWidthType aType);
-protected:
-  class RedisplayTextEvent;
-  friend class RedisplayTextEvent;
 
   class RedisplayTextEvent : public nsRunnable {
   public:

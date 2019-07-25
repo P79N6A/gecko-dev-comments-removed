@@ -63,11 +63,6 @@ public:
   
 
 
-  virtual void AbsolutelyPositionDropDown() = 0;
-
-  
-
-
   virtual void OnContentReset() = 0;
   
   

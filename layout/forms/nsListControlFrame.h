@@ -130,7 +130,6 @@ public:
   virtual void CaptureMouseEvents(bool aGrabMouseEvents);
   virtual nscoord GetHeightOfARow();
   virtual PRInt32 GetNumberOfOptions();  
-  virtual void SyncViewWithFrame();
   virtual void AboutToDropDown();
 
   
@@ -231,6 +230,17 @@ public:
 
 
   bool IsInDropDownMode() const;
+
+  
+
+
+  PRUint32 GetNumDisplayRows() const { return mNumDisplayRows; }
+
+  
+
+
+
+  bool GetDropdownCanGrow() const { return mDropdownCanGrow; }
 
   
 
@@ -414,6 +424,10 @@ protected:
 
   bool mHasPendingInterruptAtStartOfReflow:1;
 
+  
+  
+  bool mDropdownCanGrow:1;
+  
   
   
   
