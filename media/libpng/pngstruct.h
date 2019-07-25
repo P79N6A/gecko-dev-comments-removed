@@ -248,6 +248,7 @@ struct png_struct_def
 #endif
 
 #ifdef PNG_TIME_RFC1123_SUPPORTED
+   
    char time_buffer[29]; 
 #endif
 

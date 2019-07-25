@@ -816,7 +816,8 @@ png_write_row(png_structp png_ptr, png_const_bytep row)
 
 #ifdef PNG_WRITE_CHECK_FOR_INVALID_INDEX_SUPPORTED
    
-   if(row_info.color_type == PNG_COLOR_TYPE_PALETTE)
+   if (row_info.color_type == PNG_COLOR_TYPE_PALETTE &&
+       png_ptr->num_palette_max >= 0)
       png_do_check_palette_indexes(png_ptr, &row_info);
 #endif
 

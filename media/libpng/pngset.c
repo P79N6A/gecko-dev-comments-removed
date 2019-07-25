@@ -1437,8 +1437,10 @@ png_set_benign_errors(png_structp png_ptr, int allowed)
 }
 #endif 
 
-#ifdef PNG_READ_CHECK_FOR_INVALID_INDEX_SUPPORTED
-   
+#ifdef PNG_CHECK_FOR_INVALID_INDEX_SUPPORTED
+
+
+
 void PNGAPI
 png_set_check_for_invalid_index(png_structp png_ptr, int allowed)
 {

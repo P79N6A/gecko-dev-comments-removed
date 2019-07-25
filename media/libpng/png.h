@@ -368,6 +368,10 @@
 
 
 
+
+
+
+
 #ifndef PNG_H
 #define PNG_H
 
@@ -381,9 +385,9 @@
 
 
 
-#define PNG_LIBPNG_VER_STRING "1.5.10"
+#define PNG_LIBPNG_VER_STRING "1.5.11"
 #define PNG_HEADER_VERSION_STRING \
-     " libpng version 1.5.10 - March 29, 2012\n"
+     " libpng version 1.5.11 - June 14, 2012\n"
 
 #define PNG_LIBPNG_VER_SONUM   15
 #define PNG_LIBPNG_VER_DLLNUM  15
@@ -391,7 +395,7 @@
 
 #define PNG_LIBPNG_VER_MAJOR   1
 #define PNG_LIBPNG_VER_MINOR   5
-#define PNG_LIBPNG_VER_RELEASE 10
+#define PNG_LIBPNG_VER_RELEASE 11
 
 
 
@@ -422,7 +426,7 @@
 
 
 
-#define PNG_LIBPNG_VER 10510 /* 1.5.10 */
+#define PNG_LIBPNG_VER 10511 /* 1.5.11 */
 
 #ifndef MOZPNGCONF_H
 #   include "mozpngconf.h"
@@ -549,7 +553,7 @@ extern "C" {
 
 
 
-typedef char* png_libpng_version_1_5_10;
+typedef char* png_libpng_version_1_5_11;
 
 
 

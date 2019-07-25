@@ -626,7 +626,7 @@ void
 png_do_check_palette_indexes(png_structp png_ptr, png_row_infop row_info)
 {
    if (png_ptr->num_palette < (1 << row_info->bit_depth) &&
-      png_ptr->num_palette_max >= 0)
+      png_ptr->num_palette > 0) 
    {
       
 
@@ -708,7 +708,7 @@ png_do_check_palette_indexes(png_structp png_ptr, png_row_infop row_info)
          {
             for (; rp > png_ptr->row_buf; rp--)
             {
-               if (*rp >= png_ptr->num_palette_max)
+               if (*rp > png_ptr->num_palette_max)
                   png_ptr->num_palette_max = (int) *rp;
             }
 
