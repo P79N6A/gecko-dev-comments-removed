@@ -184,7 +184,7 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *obj, JSObject *wrappedProto, JSO
         
         
         
-        if (!IS_WN_WRAPPER(obj)) {
+        if (!IS_WN_WRAPPER(obj) && !obj->getClass()->ext.innerObject) {
             wrapper = &FilteringWrapper<JSCrossCompartmentWrapper,
                                         CrossOriginAccessiblePropertiesOnly>::singleton;
         } else {
