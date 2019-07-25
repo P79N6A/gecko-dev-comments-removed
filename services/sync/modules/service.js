@@ -247,31 +247,9 @@ WeaveSvc.prototype = {
 
 
   onStartup: function onStartup() {
-    Status.service = STATUS_DELAYED;
-
-    
-    let wait = 0;
-    switch (Svc.AppInfo.ID) {
-      case FIREFOX_ID:
-        
-        let enum = Svc.WinMediator.getEnumerator("navigator:browser");
-        while (enum.hasMoreElements())
-          wait += enum.getNext().gBrowser.mTabs.length;
-        break;
-    }
-
-    
-    wait = Math.ceil(Math.max(5, Math.min(20, wait)));
-
     this._initLogs();
-    this._log.info("Loading Weave " + WEAVE_VERSION + " in " + wait + " sec.");
-    Utils.delay(this._onStartup, wait * 1000, this, "_startupTimer");
-  },
+    this._log.info("Loading Weave " + WEAVE_VERSION);
 
-  
-  
-  
-  _onStartup: function _onStartup() {
     Status.service = STATUS_OK;
     this.enabled = true;
 
@@ -309,8 +287,27 @@ WeaveSvc.prototype = {
     
     Svc.Obs.notify("weave:service:ready");
 
-    if (Svc.Prefs.get("autoconnect"))
-      this._autoConnect();
+    
+    if (Svc.Prefs.get("autoconnect")) {
+      Utils.delay(function() {
+        
+        let wait = 3;
+        switch (Svc.AppInfo.ID) {
+          case FIREFOX_ID:
+            
+            let enum = Svc.WinMediator.getEnumerator("navigator:browser");
+            while (enum.hasMoreElements()) {
+              Array.forEach(enum.getNext().gBrowser.mTabs, function(tab) {
+                wait += tab.hasAttribute("busy");
+              });
+            }
+            break;
+        }
+
+        this._log.debug("Autoconnecting in " + wait + " seconds");
+        Utils.delay(this._autoConnect, wait * 1000, this, "_autoTimer");
+      }, 2000, this, "_autoTimer");
+    }
   },
 
   _initLogs: function WeaveSvc__initLogs() {
