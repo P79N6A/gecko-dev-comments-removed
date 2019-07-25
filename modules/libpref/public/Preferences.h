@@ -191,6 +191,11 @@ public:
   
 
 
+  static PRBool HasUserValue(const char* aPref);
+
+  
+
+
 
 
 
