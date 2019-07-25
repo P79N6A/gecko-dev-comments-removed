@@ -880,16 +880,8 @@ js_CloseIterator(JSContext *cx, JSObject *obj)
 
 
 
-
-
-
-
-
-
-
-template<typename IdPredicate>
-static bool
-SuppressDeletedPropertyHelper(JSContext *cx, JSObject *obj, IdPredicate predicate)
+bool
+js_SuppressDeletedProperty(JSContext *cx, JSObject *obj, jsid id)
 {
     JSObject *iterobj = cx->enumerators;
     while (iterobj) {
@@ -901,7 +893,7 @@ SuppressDeletedPropertyHelper(JSContext *cx, JSObject *obj, IdPredicate predicat
             jsid *props_cursor = ni->currentKey();
             jsid *props_end = ni->endKey();
             for (jsid *idp = props_cursor; idp < props_end; ++idp) {
-                if (predicate(*idp)) {
+                if (*idp == id) {
                     
 
 
@@ -910,14 +902,14 @@ SuppressDeletedPropertyHelper(JSContext *cx, JSObject *obj, IdPredicate predicat
                         AutoObjectRooter proto(cx, obj->getProto());
                         AutoObjectRooter obj2(cx);
                         JSProperty *prop;
-                        if (!proto.object()->lookupProperty(cx, *idp, obj2.addr(), &prop))
+                        if (!proto.object()->lookupProperty(cx, id, obj2.addr(), &prop))
                             return false;
                         if (prop) {
                             uintN attrs;
                             if (obj2.object()->isNative()) {
                                 attrs = ((Shape *) prop)->attributes();
                                 JS_UNLOCK_OBJ(cx, obj2.object());
-                            } else if (!obj2.object()->getAttributes(cx, *idp, &attrs)) {
+                            } else if (!obj2.object()->getAttributes(cx, id, &attrs)) {
                                 return false;
                             }
                             if (attrs & JSPROP_ENUMERATE)
@@ -943,46 +935,13 @@ SuppressDeletedPropertyHelper(JSContext *cx, JSObject *obj, IdPredicate predicat
                         memmove(idp, idp + 1, (props_end - (idp + 1)) * sizeof(jsid));
                         ni->props_end = ni->endKey() - 1;
                     }
-                    if (predicate.matchesAtMostOne())
-                        break;
+                    break;
                 }
             }
         }
         iterobj = ni->next;
     }
     return true;
-}
-
-class SingleIdPredicate {
-    jsid id;
-public:
-    SingleIdPredicate(jsid id) : id(id) {}
-
-    bool operator()(jsid id) { return id == this->id; }
-    bool matchesAtMostOne() { return true; }
-};
-
-bool
-js_SuppressDeletedProperty(JSContext *cx, JSObject *obj, jsid id)
-{
-    return SuppressDeletedPropertyHelper(cx, obj, SingleIdPredicate(id));
-}
-
-class IndexRangePredicate {
-    jsint begin, end;
-public:
-    IndexRangePredicate(jsint begin, jsint end) : begin(begin), end(end) {}
-
-    bool operator()(jsid id) { 
-        return JSID_IS_INT(id) && begin <= JSID_TO_INT(id) && JSID_TO_INT(id) < end;
-    }
-    bool matchesAtMostOne() { return false; }
-};
-
-bool
-js_SuppressDeletedIndexProperties(JSContext *cx, JSObject *obj, jsint begin, jsint end)
-{
-    return SuppressDeletedPropertyHelper(cx, obj, IndexRangePredicate(begin, end));
 }
 
 JSBool

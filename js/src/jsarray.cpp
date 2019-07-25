@@ -2338,7 +2338,6 @@ array_splice(JSContext *cx, uintN argc, Value *vp)
     JSObject *obj = ComputeThisFromVp(cx, vp);
     if (!obj || !js_GetLengthProperty(cx, obj, &length))
         return JS_FALSE;
-    jsuint origlength = length;
 
     
     jsdouble d;
@@ -2452,9 +2451,6 @@ array_splice(JSContext *cx, uintN argc, Value *vp)
         }
         length -= delta;
     }
-
-    if (length < origlength && !js_SuppressDeletedIndexProperties(cx, obj, length, origlength))
-        return JS_FALSE;
 
     
 
