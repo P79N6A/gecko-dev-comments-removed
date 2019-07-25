@@ -333,6 +333,9 @@ mozSpellChecker::GetCurrentDictionary(nsAString &aDictionary)
 NS_IMETHODIMP 
 mozSpellChecker::SetCurrentDictionary(const nsAString &aDictionary)
 {
+  
+  nsRefPtr<mozSpellChecker> kungFuDeathGrip = this;
+
   mSpellCheckingEngine = nsnull;
 
   if (aDictionary.IsEmpty()) {
