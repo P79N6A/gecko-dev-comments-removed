@@ -10,14 +10,12 @@
 
 
 
-
 const STATE_CHECKED = nsIAccessibleStates.STATE_CHECKED;
 const STATE_CHECKABLE = nsIAccessibleStates.STATE_CHECKABLE;
 const STATE_COLLAPSED = nsIAccessibleStates.STATE_COLLAPSED;
 const STATE_DEFAULT = nsIAccessibleStates.STATE_DEFAULT;
 const STATE_EXPANDED = nsIAccessibleStates.STATE_EXPANDED;
 const STATE_EXTSELECTABLE = nsIAccessibleStates.STATE_EXTSELECTABLE;
-const STATE_FLOATING = nsIAccessibleStates.STATE_FLOATING;
 const STATE_FOCUSABLE = nsIAccessibleStates.STATE_FOCUSABLE;
 const STATE_FOCUSED = nsIAccessibleStates.STATE_FOCUSED;
 const STATE_HASPOPUP = nsIAccessibleStates.STATE_HASPOPUP;
@@ -39,11 +37,9 @@ const STATE_UNAVAILABLE = nsIAccessibleStates.STATE_UNAVAILABLE;
 const EXT_STATE_ACTIVE = nsIAccessibleStates.EXT_STATE_ACTIVE;
 const EXT_STATE_DEFUNCT = nsIAccessibleStates.EXT_STATE_DEFUNCT;
 const EXT_STATE_EDITABLE = nsIAccessibleStates.EXT_STATE_EDITABLE;
-const EXT_STATE_ENABLED = nsIAccessibleStates.EXT_STATE_ENABLED;
 const EXT_STATE_EXPANDABLE = nsIAccessibleStates.EXT_STATE_EXPANDABLE;
 const EXT_STATE_HORIZONTAL = nsIAccessibleStates.EXT_STATE_HORIZONTAL;
 const EXT_STATE_MULTI_LINE = nsIAccessibleStates.EXT_STATE_MULTI_LINE;
-const EXT_STATE_SENSITIVE = nsIAccessibleStates.EXT_STATE_SENSITIVE;
 const EXT_STATE_SINGLE_LINE = nsIAccessibleStates.EXT_STATE_SINGLE_LINE;
 const EXT_STATE_STALE = nsIAccessibleStates.EXT_STATE_STALE;
 const EXT_STATE_SUPPORTS_AUTOCOMPLETION =
@@ -73,7 +69,7 @@ function testStates(aAccOrElmOrID, aState, aExtraState, aAbsentState,
                     aAbsentExtraState, aTestName)
 {
   var [state, extraState] = getStates(aAccOrElmOrID);
-  var role = getRole(aAccOrElmOrID);
+
   var id = prettyName(aAccOrElmOrID) + (aTestName ? " [" + aTestName + "]": "");
 
   
@@ -103,6 +99,15 @@ function testStates(aAccOrElmOrID, aState, aExtraState, aAbsentState,
     isState(state & STATE_FOCUSED, 0, false,
               "Not focusable " + id + " must be not focused!");
   }
+
+  
+  if (state & STATE_READONLY)
+    isState(extraState & EXT_STATE_EDITABLE, 0, true,
+            "Read-only " + id + " cannot be editable!");
+
+  if (extraState & EXT_STATE_EDITABLE)
+    isState(state & STATE_READONLY, 0, true,
+            "Editable " + id + " cannot be readonly!");
 
   
   if (extraState & EXT_STATE_MULTI_LINE)
@@ -137,7 +142,7 @@ function testStates(aAccOrElmOrID, aState, aExtraState, aAbsentState,
   }
 
   
-  if (state & STATE_CHECKED || state & STATE_MIXED && role != ROLE_PROGRESSBAR)
+  if (state & STATE_CHECKED || state & STATE_MIXED)
     isState(state & STATE_CHECKABLE, STATE_CHECKABLE, false,
             "Checked or mixed element must be checkable!");
 

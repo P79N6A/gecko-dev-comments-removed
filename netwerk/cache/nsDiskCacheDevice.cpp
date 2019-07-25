@@ -4,6 +4,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <limits.h>
 
 
@@ -56,7 +91,7 @@ public:
     nsDiskCacheDeviceDeactivateEntryEvent(nsDiskCacheDevice *device,
                                           nsCacheEntry * entry,
                                           nsDiskCacheBinding * binding)
-        : mCanceled(false),
+        : mCanceled(PR_FALSE),
           mEntry(entry),
           mDevice(device),
           mBinding(binding)
@@ -65,7 +100,7 @@ public:
 
     NS_IMETHOD Run()
     {
-        nsCacheServiceAutoLock lock(LOCK_TELEM(NSDISKCACHEDEVICEDEACTIVATEENTRYEVENT_RUN));
+        nsCacheServiceAutoLock lock;
 #ifdef PR_LOGGING
         CACHE_LOG_DEBUG(("nsDiskCacheDeviceDeactivateEntryEvent[%p]\n", this));
 #endif
@@ -75,28 +110,12 @@ public:
         return NS_OK;
     }
 
-    void CancelEvent() { mCanceled = true; }
+    void CancelEvent() { mCanceled = PR_TRUE; }
 private:
     bool mCanceled;
     nsCacheEntry *mEntry;
     nsDiskCacheDevice *mDevice;
     nsDiskCacheBinding *mBinding;
-};
-
-class nsEvictDiskCacheEntriesEvent : public nsRunnable {
-public:
-    nsEvictDiskCacheEntriesEvent(nsDiskCacheDevice *device)
-        : mDevice(device) {}
-
-    NS_IMETHOD Run()
-    {
-        nsCacheServiceAutoLock lock(LOCK_TELEM(NSEVICTDISKCACHEENTRIESEVENT_RUN));
-        mDevice->EvictDiskCacheEntries(mDevice->mCacheCapacity);
-        return NS_OK;
-    }
-
-private:
-    nsDiskCacheDevice *mDevice;
 };
 
 
@@ -111,7 +130,7 @@ class nsDiskCacheEvictor : public nsDiskCacheRecordVisitor
 public:
     nsDiskCacheEvictor( nsDiskCacheMap *      cacheMap,
                         nsDiskCacheBindery *  cacheBindery,
-                        uint32_t              targetSize,
+                        PRUint32              targetSize,
                         const char *          clientID)
         : mCacheMap(cacheMap)
         , mBindery(cacheBindery)
@@ -121,18 +140,18 @@ public:
         mClientIDSize = clientID ? strlen(clientID) : 0;
     }
     
-    virtual int32_t  VisitRecord(nsDiskCacheRecord *  mapRecord);
+    virtual PRInt32  VisitRecord(nsDiskCacheRecord *  mapRecord);
  
 private:
         nsDiskCacheMap *     mCacheMap;
         nsDiskCacheBindery * mBindery;
-        uint32_t             mTargetSize;
+        PRUint32             mTargetSize;
         const char *         mClientID;
-        uint32_t             mClientIDSize;
+        PRUint32             mClientIDSize;
 };
 
 
-int32_t
+PRInt32
 nsDiskCacheEvictor::VisitRecord(nsDiskCacheRecord *  mapRecord)
 {
     if (mCacheMap->TotalSize() < mTargetSize)
@@ -158,12 +177,12 @@ nsDiskCacheEvictor::VisitRecord(nsDiskCacheRecord *  mapRecord)
         
         if (binding->mDeactivateEvent) {
             binding->mDeactivateEvent->CancelEvent();
-            binding->mDeactivateEvent = nullptr;
+            binding->mDeactivateEvent = nsnull;
         }
         
         
         
-        binding->mDoomed = true;         
+        binding->mDoomed = PR_TRUE;         
         nsCacheService::DoomEntry(binding->mCacheEntry);
     } else {
         
@@ -213,8 +232,8 @@ NS_IMETHODIMP nsDiskCacheDeviceInfo::GetUsageReport(char ** usageReport)
     buffer.AssignLiteral("  <tr>\n"
                          "    <th>Cache Directory:</th>\n"
                          "    <td>");
-    nsCOMPtr<nsIFile> cacheDir;
-    nsAutoString path;
+    nsCOMPtr<nsILocalFile> cacheDir;
+    nsAutoString           path;
     mDevice->getCacheDirectory(getter_AddRefs(cacheDir)); 
     nsresult rv = cacheDir->GetPath(path);
     if (NS_SUCCEEDED(rv)) {
@@ -232,7 +251,7 @@ NS_IMETHODIMP nsDiskCacheDeviceInfo::GetUsageReport(char ** usageReport)
 }
 
 
-NS_IMETHODIMP nsDiskCacheDeviceInfo::GetEntryCount(uint32_t *aEntryCount)
+NS_IMETHODIMP nsDiskCacheDeviceInfo::GetEntryCount(PRUint32 *aEntryCount)
 {
     NS_ENSURE_ARG_POINTER(aEntryCount);
     *aEntryCount = mDevice->getEntryCount();
@@ -240,7 +259,7 @@ NS_IMETHODIMP nsDiskCacheDeviceInfo::GetEntryCount(uint32_t *aEntryCount)
 }
 
 
-NS_IMETHODIMP nsDiskCacheDeviceInfo::GetTotalSize(uint32_t *aTotalSize)
+NS_IMETHODIMP nsDiskCacheDeviceInfo::GetTotalSize(PRUint32 *aTotalSize)
 {
     NS_ENSURE_ARG_POINTER(aTotalSize);
     
@@ -249,7 +268,7 @@ NS_IMETHODIMP nsDiskCacheDeviceInfo::GetTotalSize(uint32_t *aTotalSize)
 }
 
 
-NS_IMETHODIMP nsDiskCacheDeviceInfo::GetMaximumSize(uint32_t *aMaximumSize)
+NS_IMETHODIMP nsDiskCacheDeviceInfo::GetMaximumSize(PRUint32 *aMaximumSize)
 {
     NS_ENSURE_ARG_POINTER(aMaximumSize);
     
@@ -274,7 +293,7 @@ NS_IMETHODIMP nsDiskCacheDeviceInfo::GetMaximumSize(uint32_t *aMaximumSize)
 
 
 
-static inline void hashmix(uint32_t& a, uint32_t& b, uint32_t& c)
+static inline void hashmix(PRUint32& a, PRUint32& b, PRUint32& c)
 {
   a -= b; a -= c; a ^= (c>>13);
   b -= c; b -= a; b ^= (a<<8);
@@ -290,8 +309,8 @@ static inline void hashmix(uint32_t& a, uint32_t& b, uint32_t& c)
 PLDHashNumber
 nsDiskCache::Hash(const char * key, PLDHashNumber initval)
 {
-  const uint8_t *k = reinterpret_cast<const uint8_t*>(key);
-  uint32_t a, b, c, len, length;
+  const PRUint8 *k = reinterpret_cast<const PRUint8*>(key);
+  PRUint32 a, b, c, len, length;
 
   length = PL_strlen(key);
   
@@ -302,9 +321,9 @@ nsDiskCache::Hash(const char * key, PLDHashNumber initval)
   
   while (len >= 12)
   {
-    a += k[0] + (uint32_t(k[1])<<8) + (uint32_t(k[2])<<16) + (uint32_t(k[3])<<24);
-    b += k[4] + (uint32_t(k[5])<<8) + (uint32_t(k[6])<<16) + (uint32_t(k[7])<<24);
-    c += k[8] + (uint32_t(k[9])<<8) + (uint32_t(k[10])<<16) + (uint32_t(k[11])<<24);
+    a += k[0] + (PRUint32(k[1])<<8) + (PRUint32(k[2])<<16) + (PRUint32(k[3])<<24);
+    b += k[4] + (PRUint32(k[5])<<8) + (PRUint32(k[6])<<16) + (PRUint32(k[7])<<24);
+    c += k[8] + (PRUint32(k[9])<<8) + (PRUint32(k[10])<<16) + (PRUint32(k[11])<<24);
     hashmix(a, b, c);
     k += 12; len -= 12;
   }
@@ -312,17 +331,17 @@ nsDiskCache::Hash(const char * key, PLDHashNumber initval)
   
   c += length;
   switch(len) {              
-    case 11: c += (uint32_t(k[10])<<24);
-    case 10: c += (uint32_t(k[9])<<16);
-    case 9 : c += (uint32_t(k[8])<<8);
+    case 11: c += (PRUint32(k[10])<<24);
+    case 10: c += (PRUint32(k[9])<<16);
+    case 9 : c += (PRUint32(k[8])<<8);
     
-    case 8 : b += (uint32_t(k[7])<<24);
-    case 7 : b += (uint32_t(k[6])<<16);
-    case 6 : b += (uint32_t(k[5])<<8);
+    case 8 : b += (PRUint32(k[7])<<24);
+    case 7 : b += (PRUint32(k[6])<<16);
+    case 6 : b += (PRUint32(k[5])<<8);
     case 5 : b += k[4];
-    case 4 : a += (uint32_t(k[3])<<24);
-    case 3 : a += (uint32_t(k[2])<<16);
-    case 2 : a += (uint32_t(k[1])<<8);
+    case 4 : a += (PRUint32(k[3])<<24);
+    case 3 : a += (PRUint32(k[2])<<16);
+    case 2 : a += (PRUint32(k[1])<<8);
     case 1 : a += k[0];
     
   }
@@ -332,7 +351,7 @@ nsDiskCache::Hash(const char * key, PLDHashNumber initval)
 }
 
 nsresult
-nsDiskCache::Truncate(PRFileDesc *  fd, uint32_t  newEOF)
+nsDiskCache::Truncate(PRFileDesc *  fd, PRUint32  newEOF)
 {
     
 
@@ -343,7 +362,7 @@ nsDiskCache::Truncate(PRFileDesc *  fd, uint32_t  newEOF)
     }
 
 #elif defined(XP_WIN)
-    int32_t cnt = PR_Seek(fd, newEOF, PR_SEEK_SET);
+    PRInt32 cnt = PR_Seek(fd, newEOF, PR_SEEK_SET);
     if (cnt == -1)  return NS_ERROR_FAILURE;
     if (!SetEndOfFile((HANDLE) PR_FileDesc2NativeHandle(fd))) {
         NS_ERROR("SetEndOfFile failed");
@@ -369,8 +388,7 @@ nsDiskCache::Truncate(PRFileDesc *  fd, uint32_t  newEOF)
 nsDiskCacheDevice::nsDiskCacheDevice()
     : mCacheCapacity(0)
     , mMaxEntrySize(-1) 
-    , mInitialized(false)
-    , mClearingDiskCache(false)
+    , mInitialized(PR_FALSE)
 {
 }
 
@@ -401,17 +419,15 @@ nsDiskCacheDevice::Init()
     rv = mBindery.Init();
     if (NS_FAILED(rv))
         return rv;
-
-    nsDeleteDir::RemoveOldTrashes(mCacheDirectory);
-
+    
     
     rv = OpenDiskCache();
     if (NS_FAILED(rv)) {
-        (void) mCacheMap.Close(false);
+        (void) mCacheMap.Close(PR_FALSE);
         return rv;
     }
 
-    mInitialized = true;
+    mInitialized = PR_TRUE;
     return NS_OK;
 }
 
@@ -424,9 +440,20 @@ nsDiskCacheDevice::Shutdown()
 {
     nsCacheService::AssertOwnsLock();
 
-    nsresult rv = Shutdown_Private(true);
+    nsresult rv = Shutdown_Private(PR_TRUE);
     if (NS_FAILED(rv))
         return rv;
+
+    if (mCacheDirectory) {
+        
+        nsCOMPtr<nsIFile> trashDir;
+        GetTrashDir(mCacheDirectory, &trashDir);
+        if (trashDir) {
+            bool exists;
+            if (NS_SUCCEEDED(trashDir->Exists(&exists)) && exists)
+                DeleteDir(trashDir, PR_FALSE, PR_TRUE);
+        }
+    }
 
     return NS_OK;
 }
@@ -451,7 +478,7 @@ nsDiskCacheDevice::Shutdown_Private(bool    flush)
 
         mBindery.Reset();
 
-        mInitialized = false;
+        mInitialized = PR_FALSE;
     }
 
     return NS_OK;
@@ -476,22 +503,20 @@ nsDiskCacheDevice::GetDeviceID()
 nsCacheEntry *
 nsDiskCacheDevice::FindEntry(nsCString * key, bool *collision)
 {
-    Telemetry::AutoTimer<Telemetry::CACHE_DISK_SEARCH_2> timer;
-    if (!Initialized())  return nullptr;  
-    if (mClearingDiskCache)  return nullptr;
+    if (!Initialized())  return nsnull;  
     nsDiskCacheRecord       record;
-    nsDiskCacheBinding *    binding = nullptr;
+    nsDiskCacheBinding *    binding = nsnull;
     PLDHashNumber           hashNumber = nsDiskCache::Hash(key->get());
 
-    *collision = false;
+    *collision = PR_FALSE;
 
     binding = mBindery.FindActiveBinding(hashNumber);
     if (binding && !binding->mCacheEntry->Key()->Equals(*key)) {
-        *collision = true;
-        return nullptr;
+        *collision = PR_TRUE;
+        return nsnull;
     } else if (binding && binding->mDeactivateEvent) {
         binding->mDeactivateEvent->CancelEvent();
-        binding->mDeactivateEvent = nullptr;
+        binding->mDeactivateEvent = nsnull;
         CACHE_LOG_DEBUG(("CACHE: reusing deactivated entry %p " \
                          "req-key=%s  entry-key=%s\n",
                          binding->mCacheEntry, key, binding->mCacheEntry->Key()));
@@ -500,33 +525,28 @@ nsDiskCacheDevice::FindEntry(nsCString * key, bool *collision)
                                      
                                      
     }
-    binding = nullptr;
+    binding = nsnull;
 
     
     nsresult rv = mCacheMap.FindRecord(hashNumber, &record);
-    if (NS_FAILED(rv))  return nullptr;  
+    if (NS_FAILED(rv))  return nsnull;  
     
     nsDiskCacheEntry * diskEntry = mCacheMap.ReadDiskCacheEntry(&record);
-    if (!diskEntry) return nullptr;
+    if (!diskEntry) return nsnull;
     
     
     if (!key->Equals(diskEntry->Key())) {
-        *collision = true;
-        return nullptr;
+        *collision = PR_TRUE;
+        return nsnull;
     }
     
     nsCacheEntry * entry = diskEntry->CreateCacheEntry(this);
-    if (entry) {
-        binding = mBindery.CreateBinding(entry, &record);
-        if (!binding) {
-            delete entry;
-            entry = nullptr;
-        }
-    }
-
-    if (!entry) {
-      (void) mCacheMap.DeleteStorage(&record);
-      (void) mCacheMap.DeleteRecord(&record);
+    if (!entry)  return nsnull;
+    
+    binding = mBindery.CreateBinding(entry, &record);
+    if (!binding) {
+        delete entry;
+        return nsnull;
     }
     
     return entry;
@@ -578,7 +598,7 @@ nsDiskCacheDevice::DeactivateEntry_Private(nsCacheEntry * entry,
             
             (void) mCacheMap.DeleteStorage(&binding->mRecord);
             (void) mCacheMap.DeleteRecord(&binding->mRecord);
-            binding->mDoomed = true; 
+            binding->mDoomed = PR_TRUE; 
         }
     }
 
@@ -607,7 +627,6 @@ nsresult
 nsDiskCacheDevice::BindEntry(nsCacheEntry * entry)
 {
     if (!Initialized())  return  NS_ERROR_NOT_INITIALIZED;
-    if (mClearingDiskCache)  return NS_ERROR_NOT_AVAILABLE;
     nsresult rv = NS_OK;
     nsDiskCacheRecord record, oldRecord;
     nsDiskCacheBinding *binding;
@@ -624,10 +643,10 @@ nsDiskCacheDevice::BindEntry(nsCacheEntry * entry)
         
         if (binding->mDeactivateEvent) {
             binding->mDeactivateEvent->CancelEvent();
-            binding->mDeactivateEvent = nullptr;
+            binding->mDeactivateEvent = nsnull;
         }
         nsCacheService::DoomEntry(binding->mCacheEntry);
-        binding = nullptr;
+        binding = nsnull;
     }
 
     
@@ -659,7 +678,7 @@ nsDiskCacheDevice::BindEntry(nsCacheEntry * entry)
         rv = mCacheMap.AddRecord(&record, &oldRecord); 
         if (NS_FAILED(rv))  return rv;
         
-        uint32_t    oldHashNumber = oldRecord.HashNumber();
+        PRUint32    oldHashNumber = oldRecord.HashNumber();
         if (oldHashNumber) {
             
             nsDiskCacheBinding * oldBinding = mBindery.FindActiveBinding(oldHashNumber);
@@ -670,7 +689,7 @@ nsDiskCacheDevice::BindEntry(nsCacheEntry * entry)
                     
                     if (oldBinding->mDeactivateEvent) {
                         oldBinding->mDeactivateEvent->CancelEvent();
-                        oldBinding->mDeactivateEvent = nullptr;
+                        oldBinding->mDeactivateEvent = nsnull;
                     }
                 
                     nsCacheService::DoomEntry(oldBinding->mCacheEntry);
@@ -704,7 +723,7 @@ nsDiskCacheDevice::DoomEntry(nsCacheEntry * entry)
     CACHE_LOG_DEBUG(("CACHE: disk DoomEntry [%p]\n", entry));
 
     nsDiskCacheBinding * binding = GetCacheEntryBinding(entry);
-    NS_ASSERTION(binding, "DoomEntry: binding == nullptr");
+    NS_ASSERTION(binding, "DoomEntry: binding == nsnull");
     if (!binding)
         return;
 
@@ -715,7 +734,7 @@ nsDiskCacheDevice::DoomEntry(nsCacheEntry * entry)
 #endif
             mCacheMap.DeleteRecord(&binding->mRecord);
         NS_ASSERTION(NS_SUCCEEDED(rv),"DeleteRecord failed.");
-        binding->mDoomed = true; 
+        binding->mDoomed = PR_TRUE; 
     }
 }
 
@@ -726,7 +745,7 @@ nsDiskCacheDevice::DoomEntry(nsCacheEntry * entry)
 nsresult
 nsDiskCacheDevice::OpenInputStreamForEntry(nsCacheEntry *      entry,
                                            nsCacheAccessMode   mode, 
-                                           uint32_t            offset,
+                                           PRUint32            offset,
                                            nsIInputStream **   result)
 {
     CACHE_LOG_DEBUG(("CACHE: disk OpenInputStreamForEntry [%p %x %u]\n",
@@ -755,7 +774,7 @@ nsDiskCacheDevice::OpenInputStreamForEntry(nsCacheEntry *      entry,
 nsresult
 nsDiskCacheDevice::OpenOutputStreamForEntry(nsCacheEntry *      entry,
                                             nsCacheAccessMode   mode, 
-                                            uint32_t            offset,
+                                            PRUint32            offset,
                                             nsIOutputStream **  result)
 {
     CACHE_LOG_DEBUG(("CACHE: disk OpenOutputStreamForEntry [%p %x %u]\n",
@@ -786,7 +805,7 @@ nsDiskCacheDevice::GetFileForEntry(nsCacheEntry *    entry,
                                    nsIFile **        result)
 {
     NS_ENSURE_ARG_POINTER(result);
-    *result = nullptr;
+    *result = nsnull;
 
     nsresult             rv;
         
@@ -813,7 +832,7 @@ nsDiskCacheDevice::GetFileForEntry(nsCacheEntry *    entry,
     nsCOMPtr<nsIFile>  file;
     rv = mCacheMap.GetFileForDiskCacheRecord(&binding->mRecord,
                                              nsDiskCache::kData,
-                                             false,
+                                             PR_FALSE,
                                              getter_AddRefs(file));
     if (NS_FAILED(rv))  return rv;
     
@@ -828,7 +847,7 @@ nsDiskCacheDevice::GetFileForEntry(nsCacheEntry *    entry,
 
 
 nsresult
-nsDiskCacheDevice::OnDataSizeChange(nsCacheEntry * entry, int32_t deltaSize)
+nsDiskCacheDevice::OnDataSizeChange(nsCacheEntry * entry, PRInt32 deltaSize)
 {
     CACHE_LOG_DEBUG(("CACHE: disk OnDataSizeChange [%p %d]\n",
         entry, deltaSize));
@@ -843,8 +862,8 @@ nsDiskCacheDevice::OnDataSizeChange(nsCacheEntry * entry, int32_t deltaSize)
 
     NS_ASSERTION(binding->mRecord.ValidRecord(), "bad record");
 
-    uint32_t  newSize = entry->DataSize() + deltaSize;
-    uint32_t  newSizeK =  ((newSize + 0x3FF) >> 10);
+    PRUint32  newSize = entry->DataSize() + deltaSize;
+    PRUint32  newSizeK =  ((newSize + 0x3FF) >> 10);
 
     
     
@@ -859,7 +878,7 @@ nsDiskCacheDevice::OnDataSizeChange(nsCacheEntry * entry, int32_t deltaSize)
         return NS_ERROR_ABORT;
     }
 
-    uint32_t  sizeK = ((entry->DataSize() + 0x03FF) >> 10); 
+    PRUint32  sizeK = ((entry->DataSize() + 0x03FF) >> 10); 
 
     
     
@@ -867,7 +886,7 @@ nsDiskCacheDevice::OnDataSizeChange(nsCacheEntry * entry, int32_t deltaSize)
     if (newSizeK > kMaxDataSizeK) newSizeK = kMaxDataSizeK;
 
     
-    uint32_t  targetCapacity = mCacheCapacity > (newSizeK - sizeK)
+    PRUint32  targetCapacity = mCacheCapacity > (newSizeK - sizeK)
                              ? mCacheCapacity - (newSizeK - sizeK)
                              : 0;
     EvictDiskCacheEntries(targetCapacity);
@@ -888,7 +907,7 @@ public:
         , mVisitor(visitor)
     {}
     
-    virtual int32_t  VisitRecord(nsDiskCacheRecord *  mapRecord)
+    virtual PRInt32  VisitRecord(nsDiskCacheRecord *  mapRecord)
     {
         
         
@@ -937,13 +956,13 @@ nsDiskCacheDevice::Visit(nsICacheVisitor * visitor)
 
 
 bool
-nsDiskCacheDevice::EntryIsTooBig(int64_t entrySize)
+nsDiskCacheDevice::EntryIsTooBig(PRInt64 entrySize)
 {
     if (mMaxEntrySize == -1) 
-        return entrySize > (static_cast<int64_t>(mCacheCapacity) * 1024 / 8);
+        return entrySize > (static_cast<PRInt64>(mCacheCapacity) * 1024 / 8);
     else 
         return entrySize > mMaxEntrySize ||
-               entrySize > (static_cast<int64_t>(mCacheCapacity) * 1024 / 8);
+               entrySize > (static_cast<PRInt64>(mCacheCapacity) * 1024 / 8);
 }
 
 nsresult
@@ -954,7 +973,7 @@ nsDiskCacheDevice::EvictEntries(const char * clientID)
     if (!Initialized())  return NS_ERROR_NOT_INITIALIZED;
     nsresult  rv;
 
-    if (clientID == nullptr) {
+    if (clientID == nsnull) {
         
         rv = ClearDiskCache();
         if (rv != NS_ERROR_CACHE_IN_USE)
@@ -964,7 +983,7 @@ nsDiskCacheDevice::EvictEntries(const char * clientID)
     nsDiskCacheEvictor  evictor(&mCacheMap, &mBindery, 0, clientID);
     rv = mCacheMap.VisitRecords(&evictor);
     
-    if (clientID == nullptr)     
+    if (clientID == nsnull)     
         rv = mCacheMap.Trim(); 
     return rv;
 }
@@ -984,31 +1003,25 @@ nsDiskCacheDevice::OpenDiskCache()
     if (NS_FAILED(rv))
         return rv;
 
+    bool trashing = false;
     if (exists) {
         
-        nsDiskCache::CorruptCacheInfo corruptInfo;
-        rv = mCacheMap.Open(mCacheDirectory, &corruptInfo, true);
-
-        if (NS_SUCCEEDED(rv)) {
-            Telemetry::Accumulate(Telemetry::DISK_CACHE_CORRUPT_DETAILS,
-                                  corruptInfo);
-        } else if (rv == NS_ERROR_ALREADY_INITIALIZED) {
-          NS_WARNING("nsDiskCacheDevice::OpenDiskCache: already open!");
-        } else {
+        rv = mCacheMap.Open(mCacheDirectory);        
+        
+        if (rv == NS_ERROR_FILE_CORRUPTED) {
             
-            Telemetry::Accumulate(Telemetry::DISK_CACHE_CORRUPT_DETAILS,
-                                  corruptInfo);
-            
-            rv = nsDeleteDir::DeleteDir(mCacheDirectory, true, 60000);
+            rv = DeleteDir(mCacheDirectory, PR_TRUE, PR_FALSE, 60000);
             if (NS_FAILED(rv))
                 return rv;
-            exists = false;
+            exists = PR_FALSE;
+            trashing = PR_TRUE;
         }
+        else if (NS_FAILED(rv))
+            return rv;
     }
 
     
     if (!exists) {
-        nsCacheService::MarkStartingFresh();
         rv = mCacheDirectory->Create(nsIFile::DIRECTORY_TYPE, 0777);
         CACHE_LOG_PATH(PR_LOG_ALWAYS, "\ncreate cache directory: %s\n", mCacheDirectory);
         CACHE_LOG_ALWAYS(("mCacheDirectory->Create() = %x\n", rv));
@@ -1016,10 +1029,22 @@ nsDiskCacheDevice::OpenDiskCache()
             return rv;
     
         
-        nsDiskCache::CorruptCacheInfo corruptInfo;
-        rv = mCacheMap.Open(mCacheDirectory, &corruptInfo, false);
+        rv = mCacheMap.Open(mCacheDirectory);
         if (NS_FAILED(rv))
             return rv;
+    }
+
+    if (!trashing) {
+        
+        nsCOMPtr<nsIFile> trashDir;
+        GetTrashDir(mCacheDirectory, &trashDir);
+        if (trashDir) {
+            bool exists;
+            if (NS_SUCCEEDED(trashDir->Exists(&exists)) && exists) {
+                
+                DeleteDir(trashDir, PR_FALSE, PR_FALSE);
+            }
+        }
     }
 
     return NS_OK;
@@ -1032,17 +1057,13 @@ nsDiskCacheDevice::ClearDiskCache()
     if (mBindery.ActiveBindings())
         return NS_ERROR_CACHE_IN_USE;
 
-    mClearingDiskCache = true;
-
-    nsresult rv = Shutdown_Private(false);  
+    nsresult rv = Shutdown_Private(PR_FALSE);  
     if (NS_FAILED(rv))
         return rv;
 
-    mClearingDiskCache = false;
-
     
     
-    rv = nsDeleteDir::DeleteDir(mCacheDirectory, true);
+    rv = DeleteDir(mCacheDirectory, PR_TRUE, PR_FALSE);
     if (NS_FAILED(rv) && rv != NS_ERROR_FILE_TARGET_DOES_NOT_EXIST)
         return rv;
 
@@ -1051,7 +1072,7 @@ nsDiskCacheDevice::ClearDiskCache()
 
 
 nsresult
-nsDiskCacheDevice::EvictDiskCacheEntries(uint32_t  targetCapacity)
+nsDiskCacheDevice::EvictDiskCacheEntries(PRUint32  targetCapacity)
 {
     CACHE_LOG_DEBUG(("CACHE: disk EvictDiskCacheEntries [%u]\n",
         targetCapacity));
@@ -1062,7 +1083,7 @@ nsDiskCacheDevice::EvictDiskCacheEntries(uint32_t  targetCapacity)
         return NS_OK;
 
     
-    nsDiskCacheEvictor  evictor(&mCacheMap, &mBindery, targetCapacity, nullptr);
+    nsDiskCacheEvictor  evictor(&mCacheMap, &mBindery, targetCapacity, nsnull);
     return mCacheMap.EvictRecords(&evictor);
 }
 
@@ -1072,18 +1093,18 @@ nsDiskCacheDevice::EvictDiskCacheEntries(uint32_t  targetCapacity)
 
 
 void
-nsDiskCacheDevice::SetCacheParentDirectory(nsIFile * parentDir)
+nsDiskCacheDevice::SetCacheParentDirectory(nsILocalFile * parentDir)
 {
     nsresult rv;
     bool    exists;
 
     if (Initialized()) {
-        NS_ASSERTION(false, "Cannot switch cache directory when initialized");
+        NS_ASSERTION(PR_FALSE, "Cannot switch cache directory when initialized");
         return;
     }
 
     if (!parentDir) {
-        mCacheDirectory = nullptr;
+        mCacheDirectory = nsnull;
         return;
     }
 
@@ -1106,7 +1127,7 @@ nsDiskCacheDevice::SetCacheParentDirectory(nsIFile * parentDir)
 
 
 void
-nsDiskCacheDevice::getCacheDirectory(nsIFile ** result)
+nsDiskCacheDevice::getCacheDirectory(nsILocalFile ** result)
 {
     *result = mCacheDirectory;
     NS_IF_ADDREF(*result);
@@ -1117,44 +1138,38 @@ nsDiskCacheDevice::getCacheDirectory(nsIFile ** result)
 
 
 void
-nsDiskCacheDevice::SetCapacity(uint32_t  capacity)
+nsDiskCacheDevice::SetCapacity(PRUint32  capacity)
 {
     
     mCacheCapacity = capacity;
     if (Initialized()) {
-        if (NS_IsMainThread()) {
-            
-            nsCacheService::DispatchToCacheIOThread(
-                new nsEvictDiskCacheEntriesEvent(this));
-        } else {
-            
-            EvictDiskCacheEntries(mCacheCapacity);
-        }
+        
+        EvictDiskCacheEntries(mCacheCapacity);
     }
     
     mCacheMap.NotifyCapacityChange(capacity);
 }
 
 
-uint32_t nsDiskCacheDevice::getCacheCapacity()
+PRUint32 nsDiskCacheDevice::getCacheCapacity()
 {
     return mCacheCapacity;
 }
 
 
-uint32_t nsDiskCacheDevice::getCacheSize()
+PRUint32 nsDiskCacheDevice::getCacheSize()
 {
     return mCacheMap.TotalSize();
 }
 
 
-uint32_t nsDiskCacheDevice::getEntryCount()
+PRUint32 nsDiskCacheDevice::getEntryCount()
 {
     return mCacheMap.EntryCount();
 }
 
 void
-nsDiskCacheDevice::SetMaxEntrySize(int32_t maxSizeInKilobytes)
+nsDiskCacheDevice::SetMaxEntrySize(PRInt32 maxSizeInKilobytes)
 {
     
     

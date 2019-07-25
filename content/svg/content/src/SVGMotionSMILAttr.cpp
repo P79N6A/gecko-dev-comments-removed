@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "SVGMotionSMILAttr.h"
 #include "SVGMotionSMILType.h"
 #include "nsISMILAnimationElement.h"
@@ -38,7 +70,7 @@ SVGMotionSMILAttr::GetBaseValue() const
 void
 SVGMotionSMILAttr::ClearAnimValue()
 {
-  mSVGElement->SetAnimateMotionTransform(nullptr);
+  mSVGElement->SetAnimateMotionTransform(nsnull);
 }
 
 nsresult

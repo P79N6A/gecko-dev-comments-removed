@@ -6,6 +6,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsFontFaceLoader_h_
 #define nsFontFaceLoader_h_
 
@@ -39,7 +72,7 @@ public:
 
   
   
-  nsresult StartLoad(gfxProxyFontEntry *aFontToLoad,
+  nsresult StartLoad(gfxProxyFontEntry *aFontToLoad, 
                      const gfxFontFaceSrc *aFontFaceSrc);
 
   
@@ -65,23 +98,14 @@ protected:
     nsFontFaceRuleContainer      mContainer;
   };
 
-  void InsertRule(nsCSSFontFaceRule *aRule, uint8_t aSheetType,
+  void InsertRule(nsCSSFontFaceRule *aRule, PRUint8 aSheetType,
                   nsTArray<FontFaceRuleRecord>& oldRules,
                   bool& aFontSetModified);
 
   virtual nsresult LogMessage(gfxProxyFontEntry *aProxy,
                               const char *aMessage,
-                              uint32_t aFlags = nsIScriptError::errorFlag,
-                              nsresult aStatus = NS_OK);
-
-  nsresult CheckFontLoad(gfxProxyFontEntry *aFontToLoad,
-                         const gfxFontFaceSrc *aFontFaceSrc,
-                         nsIPrincipal **aPrincipal);
-
-  virtual nsresult SyncLoadFontData(gfxProxyFontEntry *aFontToLoad,
-                                    const gfxFontFaceSrc *aFontFaceSrc,
-                                    uint8_t* &aBuffer,
-                                    uint32_t &aBufferLength);
+                              PRUint32 aFlags = nsIScriptError::errorFlag,
+                              nsresult aStatus = 0);
 
   nsPresContext *mPresContext;  
 
@@ -109,7 +133,7 @@ public:
   
   void Cancel();
 
-  void DropChannel() { mChannel = nullptr; }
+  void DropChannel() { mChannel = nsnull; }
 
   void StartedLoading(nsIStreamLoader *aStreamLoader);
 

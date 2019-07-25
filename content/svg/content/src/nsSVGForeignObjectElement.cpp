@@ -3,12 +3,41 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsCOMPtr.h"
 #include "nsSVGForeignObjectElement.h"
-
-using namespace mozilla;
 
 nsSVGElement::LengthInfo nsSVGForeignObjectElement::sLengthInfo[4] =
 {
@@ -29,9 +58,8 @@ NS_IMPL_RELEASE_INHERITED(nsSVGForeignObjectElement,nsSVGForeignObjectElementBas
 DOMCI_NODE_DATA(SVGForeignObjectElement, nsSVGForeignObjectElement)
 
 NS_INTERFACE_TABLE_HEAD(nsSVGForeignObjectElement)
-  NS_NODE_INTERFACE_TABLE5(nsSVGForeignObjectElement, nsIDOMNode, nsIDOMElement,
-                           nsIDOMSVGElement, nsIDOMSVGTests,
-                           nsIDOMSVGForeignObjectElement)
+  NS_NODE_INTERFACE_TABLE4(nsSVGForeignObjectElement, nsIDOMNode, nsIDOMElement,
+                           nsIDOMSVGElement, nsIDOMSVGForeignObjectElement)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(SVGForeignObjectElement)
 NS_INTERFACE_MAP_END_INHERITING(nsSVGForeignObjectElementBase)
 
@@ -79,37 +107,16 @@ NS_IMETHODIMP nsSVGForeignObjectElement::GetHeight(nsIDOMSVGAnimatedLength * *aH
 
 
  gfxMatrix
-nsSVGForeignObjectElement::PrependLocalTransformsTo(const gfxMatrix &aMatrix,
-                                                    TransformTypes aWhich) const
+nsSVGForeignObjectElement::PrependLocalTransformTo(const gfxMatrix &aMatrix) const
 {
-  NS_ABORT_IF_FALSE(aWhich != eChildToUserSpace || aMatrix.IsIdentity(),
-                    "Skipping eUserSpaceToParent transforms makes no sense");
-
   
-  gfxMatrix fromUserSpace =
-    nsSVGForeignObjectElementBase::PrependLocalTransformsTo(aMatrix, aWhich);
-  if (aWhich == eUserSpaceToParent) {
-    return fromUserSpace;
-  }
+  gfxMatrix matrix = nsSVGForeignObjectElementBase::PrependLocalTransformTo(aMatrix);
+  
   
   float x, y;
   const_cast<nsSVGForeignObjectElement*>(this)->
-    GetAnimatedLengthValues(&x, &y, nullptr);
-  gfxMatrix toUserSpace = gfxMatrix().Translate(gfxPoint(x, y));
-  if (aWhich == eChildToUserSpace) {
-    return toUserSpace;
-  }
-  NS_ABORT_IF_FALSE(aWhich == eAllTransforms, "Unknown TransformTypes");
-  return toUserSpace * fromUserSpace;
-}
-
- bool
-nsSVGForeignObjectElement::HasValidDimensions() const
-{
-  return mLengthAttributes[WIDTH].IsExplicitlySet() &&
-         mLengthAttributes[WIDTH].GetAnimValInSpecifiedUnits() > 0 &&
-         mLengthAttributes[HEIGHT].IsExplicitlySet() &&
-         mLengthAttributes[HEIGHT].GetAnimValInSpecifiedUnits() > 0;
+    GetAnimatedLengthValues(&x, &y, nsnull);
+  return gfxMatrix().Translate(gfxPoint(x, y)) * matrix;
 }
 
 
@@ -129,7 +136,7 @@ nsSVGForeignObjectElement::IsAttributeMapped(const nsIAtom* name) const
     sViewportsMap
   };
 
-  return FindAttributeDependence(name, map) ||
+  return FindAttributeDependence(name, map, NS_ARRAY_LENGTH(map)) ||
     nsSVGForeignObjectElementBase::IsAttributeMapped(name);
 }
 
@@ -140,5 +147,5 @@ nsSVGElement::LengthAttributesInfo
 nsSVGForeignObjectElement::GetLengthInfo()
 {
   return LengthAttributesInfo(mLengthAttributes, sLengthInfo,
-                              ArrayLength(sLengthInfo));
+                              NS_ARRAY_LENGTH(sLengthInfo));
 }

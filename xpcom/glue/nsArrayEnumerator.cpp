@@ -3,7 +3,38 @@
 
 
 
-#include "mozilla/Attributes.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsArrayEnumerator.h"
 
@@ -13,7 +44,7 @@
 #include "nsCOMArray.h"
 #include "nsCOMPtr.h"
 
-class nsSimpleArrayEnumerator MOZ_FINAL : public nsISimpleEnumerator
+class nsSimpleArrayEnumerator : public nsISimpleEnumerator
 {
 public:
     
@@ -32,7 +63,7 @@ private:
 
 protected:
     nsCOMPtr<nsIArray> mValueArray;
-    uint32_t mIndex;
+    PRUint32 mIndex;
 };
 
 NS_IMPL_ISUPPORTS1(nsSimpleArrayEnumerator, nsISimpleEnumerator)
@@ -45,11 +76,11 @@ nsSimpleArrayEnumerator::HasMoreElements(bool* aResult)
         return NS_ERROR_NULL_POINTER;
 
     if (!mValueArray) {
-        *aResult = false;
+        *aResult = PR_FALSE;
         return NS_OK;
     }
 
-    uint32_t cnt;
+    PRUint32 cnt;
     nsresult rv = mValueArray->GetLength(&cnt);
     if (NS_FAILED(rv)) return rv;
     *aResult = (mIndex < cnt);
@@ -64,11 +95,11 @@ nsSimpleArrayEnumerator::GetNext(nsISupports** aResult)
         return NS_ERROR_NULL_POINTER;
 
     if (!mValueArray) {
-        *aResult = nullptr;
+        *aResult = nsnull;
         return NS_OK;
     }
 
-    uint32_t cnt;
+    PRUint32 cnt;
     nsresult rv = mValueArray->GetLength(&cnt);
     if (NS_FAILED(rv)) return rv;
     if (mIndex >= cnt)
@@ -82,7 +113,7 @@ NS_NewArrayEnumerator(nsISimpleEnumerator* *result,
                       nsIArray* array)
 {
     nsSimpleArrayEnumerator* enumer = new nsSimpleArrayEnumerator(array);
-    if (enumer == nullptr)
+    if (enumer == nsnull)
         return NS_ERROR_OUT_OF_MEMORY;
 
     NS_ADDREF(*result = enumer);
@@ -95,7 +126,7 @@ NS_NewArrayEnumerator(nsISimpleEnumerator* *result,
 
 
 
-class nsCOMArrayEnumerator MOZ_FINAL : public nsISimpleEnumerator
+class nsCOMArrayEnumerator : public nsISimpleEnumerator
 {
 public:
     
@@ -118,8 +149,8 @@ private:
     ~nsCOMArrayEnumerator(void);
 
 protected:
-    uint32_t mIndex;            
-    uint32_t mArraySize;        
+    PRUint32 mIndex;            
+    PRUint32 mArraySize;        
     
     
     nsISupports* mValueArray[1];
@@ -180,14 +211,14 @@ nsCOMArrayEnumerator::operator new (size_t size, const nsCOMArray_base& aArray)
     
     nsCOMArrayEnumerator * result =
         static_cast<nsCOMArrayEnumerator*>(::operator new(size));
-    NS_ENSURE_TRUE(result, nullptr);
+    NS_ENSURE_TRUE(result, nsnull);
 
     
     
     
     
-    uint32_t i;
-    uint32_t max = result->mArraySize = aArray.Count();
+    PRUint32 i;
+    PRUint32 max = result->mArraySize = aArray.Count();
     for (i = 0; i<max; i++) {
         result->mValueArray[i] = aArray[i];
         NS_IF_ADDREF(result->mValueArray[i]);

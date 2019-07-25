@@ -3,10 +3,41 @@
 
 
 
-#include "nsAppShellWindowEnumerator.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsIContentViewer.h"
 #include "nsIDocShell.h"
+#include "nsIDocumentViewer.h"
 #include "nsIDocument.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMElement.h"
@@ -16,6 +47,7 @@
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIXULWindow.h"
 
+#include "nsAppShellWindowEnumerator.h"
 #include "nsWindowMediator.h"
 
 
@@ -51,7 +83,7 @@ nsCOMPtr<nsIDOMNode> GetDOMNodeFromDocShell(nsIDocShell *aShell)
       nsCOMPtr<nsIDOMElement> element;
       domdoc->GetDocumentElement(getter_AddRefs(element));
       if (element)
-        node = element;
+        node = do_QueryInterface(element);
     }
   }
 
@@ -84,10 +116,10 @@ void GetWindowType(nsIXULWindow* aWindow, nsString &outType)
 
 
 
-nsWindowInfo::nsWindowInfo(nsIXULWindow* inWindow, int32_t inTimeStamp) :
+nsWindowInfo::nsWindowInfo(nsIXULWindow* inWindow, PRInt32 inTimeStamp) :
   mWindow(inWindow),mTimeStamp(inTimeStamp),mZLevel(nsIXULWindow::normalZ)
 {
-  ReferenceSelf(true, true);
+  ReferenceSelf(PR_TRUE, PR_TRUE);
 }
 
 nsWindowInfo::~nsWindowInfo()
@@ -165,7 +197,7 @@ NS_IMPL_ISUPPORTS1(nsAppShellWindowEnumerator, nsISimpleEnumerator)
 nsAppShellWindowEnumerator::nsAppShellWindowEnumerator(
     const PRUnichar* aTypeString,
     nsWindowMediator& aMediator) :
-      mWindowMediator(&aMediator), mType(aTypeString), mCurrentPosition(nullptr)
+      mWindowMediator(&aMediator), mType(aTypeString), mCurrentPosition(nsnull)
 {
   mWindowMediator->AddEnumerator(this);
   NS_ADDREF(mWindowMediator);
@@ -190,7 +222,7 @@ NS_IMETHODIMP nsAppShellWindowEnumerator::HasMoreElements(bool *retval)
   if (!retval)
     return NS_ERROR_INVALID_ARG;
 
-  *retval = mCurrentPosition ? true : false;
+  *retval = mCurrentPosition ? PR_TRUE : PR_FALSE;
   return NS_OK;
 }
 
@@ -221,7 +253,7 @@ NS_IMETHODIMP nsASDOMWindowEnumerator::GetNext(nsISupports **retval)
   if (!retval)
     return NS_ERROR_INVALID_ARG;
 
-  *retval = nullptr;
+  *retval = nsnull;
   if (mCurrentPosition) {
     nsCOMPtr<nsIDOMWindow> domWindow;
     GetDOMWindow(mCurrentPosition->mWindow, domWindow);
@@ -251,7 +283,7 @@ NS_IMETHODIMP nsASXULWindowEnumerator::GetNext(nsISupports **retval)
   if (!retval)
     return NS_ERROR_INVALID_ARG;
 
-  *retval = nullptr;
+  *retval = nsnull;
   if (mCurrentPosition) {
     CallQueryInterface(mCurrentPosition->mWindow, retval);
     mCurrentPosition = FindNext();
@@ -284,7 +316,7 @@ nsWindowInfo *nsASDOMWindowEarlyToLateEnumerator::FindNext()
 
   
   if (!mCurrentPosition)
-    return nullptr;
+    return nsnull;
 
   info = mCurrentPosition->mYounger;
   listEnd = mWindowMediator->mOldestWindow;
@@ -295,7 +327,7 @@ nsWindowInfo *nsASDOMWindowEarlyToLateEnumerator::FindNext()
     info = info->mYounger;
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 
@@ -329,7 +361,7 @@ nsWindowInfo *nsASXULWindowEarlyToLateEnumerator::FindNext()
 
 
   if (!mCurrentPosition)
-    return nullptr;
+    return nsnull;
 
   info = mCurrentPosition->mYounger;
   listEnd = mWindowMediator->mOldestWindow;
@@ -340,7 +372,7 @@ nsWindowInfo *nsASXULWindowEarlyToLateEnumerator::FindNext()
     info = info->mYounger;
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 
@@ -368,7 +400,7 @@ nsWindowInfo *nsASDOMWindowFrontToBackEnumerator::FindNext()
 
   
   if (!mCurrentPosition)
-    return nullptr;
+    return nsnull;
 
   info = mCurrentPosition->mLower;
   listEnd = mWindowMediator->mTopmostWindow;
@@ -379,7 +411,7 @@ nsWindowInfo *nsASDOMWindowFrontToBackEnumerator::FindNext()
     info = info->mLower;
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 
@@ -407,7 +439,7 @@ nsWindowInfo *nsASXULWindowFrontToBackEnumerator::FindNext()
 
   
   if (!mCurrentPosition)
-    return nullptr;
+    return nsnull;
 
   info = mCurrentPosition->mLower;
   listEnd = mWindowMediator->mTopmostWindow;
@@ -418,7 +450,7 @@ nsWindowInfo *nsASXULWindowFrontToBackEnumerator::FindNext()
     info = info->mLower;
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 
@@ -431,7 +463,7 @@ nsASDOMWindowBackToFrontEnumerator::nsASDOMWindowBackToFrontEnumerator(
   nsASDOMWindowEnumerator(aTypeString, aMediator)
 {
   mCurrentPosition = aMediator.mTopmostWindow ?
-                     aMediator.mTopmostWindow->mHigher : nullptr;
+                     aMediator.mTopmostWindow->mHigher : nsnull;
   AdjustInitialPosition();
 }
 
@@ -447,7 +479,7 @@ nsWindowInfo *nsASDOMWindowBackToFrontEnumerator::FindNext()
 
   
   if (!mCurrentPosition)
-    return nullptr;
+    return nsnull;
 
   info = mCurrentPosition->mHigher;
   listEnd = mWindowMediator->mTopmostWindow;
@@ -460,7 +492,7 @@ nsWindowInfo *nsASDOMWindowBackToFrontEnumerator::FindNext()
     info = info->mHigher;
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 
@@ -473,7 +505,7 @@ nsASXULWindowBackToFrontEnumerator::nsASXULWindowBackToFrontEnumerator(
       nsASXULWindowEnumerator(aTypeString, aMediator)
 {
   mCurrentPosition = aMediator.mTopmostWindow ?
-                     aMediator.mTopmostWindow->mHigher : nullptr;
+                     aMediator.mTopmostWindow->mHigher : nsnull;
   AdjustInitialPosition();
 }
 
@@ -489,7 +521,7 @@ nsWindowInfo *nsASXULWindowBackToFrontEnumerator::FindNext()
 
   
   if (!mCurrentPosition)
-    return nullptr;
+    return nsnull;
 
   info = mCurrentPosition->mHigher;
   listEnd = mWindowMediator->mTopmostWindow;
@@ -502,5 +534,5 @@ nsWindowInfo *nsASXULWindowBackToFrontEnumerator::FindNext()
     info = info->mHigher;
   }
 
-  return nullptr;
+  return nsnull;
 }

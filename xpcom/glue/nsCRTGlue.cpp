@@ -2,12 +2,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCRTGlue.h"
 #include "nsXPCOM.h"
 #include "nsDebug.h"
-#include "prtime.h"
-
-#include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -65,7 +98,7 @@ NS_strtok(const char *delims, char **str)
   return ret;
 }
 
-uint32_t
+PRUint32
 NS_strlen(const PRUnichar *aString)
 {
   const PRUnichar *end;
@@ -95,12 +128,12 @@ NS_strcmp(const PRUnichar *a, const PRUnichar *b)
 PRUnichar*
 NS_strdup(const PRUnichar *aString)
 {
-  uint32_t len = NS_strlen(aString);
+  PRUint32 len = NS_strlen(aString);
   return NS_strndup(aString, len);
 }
 
 PRUnichar*
-NS_strndup(const PRUnichar *aString, uint32_t aLen)
+NS_strndup(const PRUnichar *aString, PRUint32 aLen)
 {
   PRUnichar *newBuf = (PRUnichar*) NS_Alloc((aLen + 1) * sizeof(PRUnichar));
   if (newBuf) {
@@ -113,7 +146,7 @@ NS_strndup(const PRUnichar *aString, uint32_t aLen)
 char*
 NS_strdup(const char *aString)
 {
-  uint32_t len = strlen(aString);
+  PRUint32 len = strlen(aString);
   char *str = (char*) NS_Alloc(len + 1);
   if (str) {
     memcpy(str, aString, len);
@@ -191,31 +224,31 @@ bool NS_IsAscii(const PRUnichar *aString)
 {
   while(*aString) {
     if( 0x0080 <= *aString)
-      return false;
+      return PR_FALSE;
     aString++;
   }
-  return true;
+  return PR_TRUE;
 }
 
 bool NS_IsAscii(const char *aString)
 {
   while(*aString) {
     if( 0x80 & *aString)
-      return false;
+      return PR_FALSE;
     aString++;
   }
-  return true;
+  return PR_TRUE;
 }
 
-bool NS_IsAscii(const char* aString, uint32_t aLength)
+bool NS_IsAscii(const char* aString, PRUint32 aLength)
 {
   const char* end = aString + aLength;
   while (aString < end) {
     if (0x80 & *aString)
-      return false;
+      return PR_FALSE;
     ++aString;
   }
-  return true;
+  return PR_TRUE;
 }
 
 bool NS_IsAsciiAlpha(PRUnichar aChar)
@@ -237,32 +270,6 @@ bool NS_IsAsciiDigit(PRUnichar aChar)
   return aChar >= '0' && aChar <= '9';
 }
 
-
-#ifndef XPCOM_GLUE_AVOID_NSPR
-#define TABLE_SIZE 36
-static const char table[] = {
-  'a','b','c','d','e','f','g','h','i','j',
-  'k','l','m','n','o','p','q','r','s','t',
-  'u','v','w','x','y','z','0','1','2','3',
-  '4','5','6','7','8','9'
-};
-
-void NS_MakeRandomString(char *aBuf, int32_t aBufLen)
-{
-  
-  
-  double fpTime;
-  LL_L2D(fpTime, PR_Now());
-  srand((uint)(fpTime * 1e-6 + 0.5));   
-
-  int32_t i;
-  for (i=0;i<aBufLen;i++) {
-    *aBuf++ = table[rand()%TABLE_SIZE];
-  }
-  *aBuf = 0;
-}
-
-#endif
 #if defined(XP_WIN)
 void
 printf_stderr(const char *fmt, ...)

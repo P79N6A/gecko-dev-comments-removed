@@ -3,19 +3,50 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGUSEELEMENT_H__
 #define __NS_SVGUSEELEMENT_H__
 
-#include "DOMSVGTests.h"
-#include "mozilla/dom/FromParser.h"
+#include "nsIDOMSVGAnimatedString.h"
 #include "nsIDOMSVGURIReference.h"
 #include "nsIDOMSVGUseElement.h"
-#include "nsReferencedElement.h"
 #include "nsStubMutationObserver.h"
 #include "nsSVGGraphicElement.h"
 #include "nsSVGLength2.h"
 #include "nsSVGString.h"
 #include "nsTArray.h"
+#include "nsReferencedElement.h"
+#include "mozilla/dom/FromParser.h"
 
 class nsIContent;
 class nsINodeInfo;
@@ -32,9 +63,8 @@ NS_NewSVGSVGElement(nsIContent **aResult,
 typedef nsSVGGraphicElement nsSVGUseElementBase;
 
 class nsSVGUseElement : public nsSVGUseElementBase,
-                        public nsIDOMSVGUseElement,
-                        public DOMSVGTests,
                         public nsIDOMSVGURIReference,
+                        public nsIDOMSVGUseElement,
                         public nsStubMutationObserver
 {
   friend class nsSVGUseFrame;
@@ -72,17 +102,17 @@ public:
   void DestroyAnonymousContent();
 
   
-  virtual gfxMatrix PrependLocalTransformsTo(const gfxMatrix &aMatrix,
-                      TransformTypes aWhich = eAllTransforms) const;
-  virtual bool HasValidDimensions() const;
+  virtual gfxMatrix PrependLocalTransformTo(const gfxMatrix &aMatrix) const;
+  virtual void DidChangeLength(PRUint8 aAttrEnum, bool aDoSetAttr);
+  virtual void DidAnimateLength(PRUint8 aAttrEnum);
+  virtual void DidChangeString(PRUint8 aAttrEnum);
+  virtual void DidAnimateString(PRUint8 aAttrEnum);
 
   
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 protected:
   class SourceReference : public nsReferencedElement {
   public:
@@ -102,13 +132,8 @@ protected:
   virtual LengthAttributesInfo GetLengthInfo();
   virtual StringAttributesInfo GetStringInfo();
 
-  
-
-
-
-
-  bool OurWidthAndHeightAreUsed() const;
-  void SyncWidthOrHeight(nsIAtom *aName);
+  bool HasValidDimensions();
+  void SyncWidthHeight(PRUint8 aAttrEnum);
   void LookupHref();
   void TriggerReclone();
   void UnlinkSource();

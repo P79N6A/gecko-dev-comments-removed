@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIDOMHTMLOptGroupElement.h"
 #include "nsIDOMEventTarget.h"
 #include "nsGenericHTMLElement.h"
@@ -10,6 +42,7 @@
 #include "nsIFrame.h"
 #include "nsIFormControlFrame.h"
 #include "nsEventStates.h"
+#include "nsIDocument.h"
 
 #include "nsEventDispatcher.h"
 #include "nsHTMLSelectElement.h"
@@ -40,9 +73,9 @@ public:
   NS_DECL_NSIDOMHTMLOPTGROUPELEMENT
 
   
-  virtual nsresult InsertChildAt(nsIContent* aKid, uint32_t aIndex,
+  virtual nsresult InsertChildAt(nsIContent* aKid, PRUint32 aIndex,
                                  bool aNotify);
-  virtual void RemoveChildAt(uint32_t aIndex, bool aNotify);
+  virtual nsresult RemoveChildAt(PRUint32 aIndex, bool aNotify);
 
   
   virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
@@ -52,15 +85,6 @@ public:
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                                const nsAttrValue* aValue, bool aNotify);
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
-
-  virtual bool IsDisabled() const {
-    return HasAttr(kNameSpaceID_None, nsGkAtoms::disabled);
-  }
 protected:
 
   
@@ -111,7 +135,7 @@ NS_IMPL_STRING_ATTR(nsHTMLOptGroupElement, Label, label)
 nsresult
 nsHTMLOptGroupElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 {
-  aVisitor.mCanHandle = false;
+  aVisitor.mCanHandle = PR_FALSE;
   
   
   if (HasAttr(kNameSpaceID_None, nsGkAtoms::disabled)) {
@@ -143,12 +167,12 @@ nsHTMLOptGroupElement::GetSelect()
     }
   }
   
-  return nullptr;
+  return nsnull;
 }
 
 nsresult
 nsHTMLOptGroupElement::InsertChildAt(nsIContent* aKid,
-                                     uint32_t aIndex,
+                                     PRUint32 aIndex,
                                      bool aNotify)
 {
   nsSafeOptionListMutation safeMutation(GetSelect(), this, aKid, aIndex, aNotify);
@@ -159,32 +183,16 @@ nsHTMLOptGroupElement::InsertChildAt(nsIContent* aKid,
   return rv;
 }
 
-void
-nsHTMLOptGroupElement::RemoveChildAt(uint32_t aIndex, bool aNotify)
-{
-  nsSafeOptionListMutation safeMutation(GetSelect(), this, nullptr, aIndex,
-                                        aNotify);
-  nsGenericHTMLElement::RemoveChildAt(aIndex, aNotify);
-}
-
 nsresult
-nsHTMLOptGroupElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                                    const nsAttrValue* aValue, bool aNotify)
+nsHTMLOptGroupElement::RemoveChildAt(PRUint32 aIndex, bool aNotify)
 {
-  if (aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::disabled) {
-    
-    
-    for (nsIContent* child = nsINode::GetFirstChild(); child;
-         child = child->GetNextSibling()) {
-      if (child->IsHTML(nsGkAtoms::option)) {
-        
-        child->AsElement()->UpdateState(true);
-      }
-    }
+  nsSafeOptionListMutation safeMutation(GetSelect(), this, nsnull, aIndex,
+                                        aNotify);
+  nsresult rv = nsGenericHTMLElement::RemoveChildAt(aIndex, aNotify);
+  if (NS_FAILED(rv)) {
+    safeMutation.MutationFailed();
   }
-
-  return nsGenericHTMLElement::AfterSetAttr(aNameSpaceID, aName, aValue,
-                                            aNotify);
+  return rv;
 }
 
 nsEventStates

@@ -4,7 +4,38 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "prenv.h"
 #include "prerror.h"
@@ -54,7 +85,7 @@ class Subprocess
 {
 public:
     
-    int32_t mExitCode;
+    PRInt32 mExitCode;
     nsCString mStdout;
     nsCString mStderr;
 
@@ -69,19 +100,19 @@ public:
 
         NS_ASSERTION(PR_SUCCESS == PR_CreatePipe(&readStdin, &writeStdin),
                      "couldn't create child stdin pipe");
-        NS_ASSERTION(PR_SUCCESS == PR_SetFDInheritable(readStdin, true),
+        NS_ASSERTION(PR_SUCCESS == PR_SetFDInheritable(readStdin, PR_TRUE),
                      "couldn't set child stdin inheritable");
         PR_ProcessAttrSetStdioRedirect(pattr, PR_StandardInput, readStdin);
 
         NS_ASSERTION(PR_SUCCESS == PR_CreatePipe(&readStdout, &writeStdout),
                      "couldn't create child stdout pipe");
-        NS_ASSERTION(PR_SUCCESS == PR_SetFDInheritable(writeStdout, true),
+        NS_ASSERTION(PR_SUCCESS == PR_SetFDInheritable(writeStdout, PR_TRUE),
                      "couldn't set child stdout inheritable");
         PR_ProcessAttrSetStdioRedirect(pattr, PR_StandardOutput, writeStdout);
 
         NS_ASSERTION(PR_SUCCESS == PR_CreatePipe(&readStderr, &writeStderr),
                      "couldn't create child stderr pipe");
-        NS_ASSERTION(PR_SUCCESS == PR_SetFDInheritable(writeStderr, true),
+        NS_ASSERTION(PR_SUCCESS == PR_SetFDInheritable(writeStderr, PR_TRUE),
                      "couldn't set child stderr inheritable");
         PR_ProcessAttrSetStdioRedirect(pattr, PR_StandardError, writeStderr);
 
@@ -116,15 +147,15 @@ public:
         PR_DestroyProcessAttr(pattr);
     }
 
-    void RunToCompletion(uint32_t aWaitMs)
+    void RunToCompletion(PRUint32 aWaitMs)
     {
         PR_Close(mStdinfd);
 
         PRPollDesc pollfds[2];
-        int32_t nfds;
+        PRInt32 nfds;
         bool stdoutOpen = true, stderrOpen = true;
         char buf[4096];
-        int32_t len;
+        PRInt32 len;
 
         PRIntervalTime now = PR_IntervalNow();
         PRIntervalTime deadline = now + PR_MillisecondsToInterval(aWaitMs);
@@ -144,16 +175,16 @@ public:
                 ++nfds;
             }
 
-            int32_t rv = PR_Poll(pollfds, nfds, deadline - now);
+            PRInt32 rv = PR_Poll(pollfds, nfds, deadline - now);
             NS_ASSERTION(0 <= rv, PR_ErrorToName(PR_GetError()));
 
             if (0 == rv) {      
                 fputs("(timed out!)\n", stderr);
-                Finish(false); 
+                Finish(PR_FALSE); 
                 return;
             }
 
-            for (int32_t i = 0; i < nfds; ++i) {
+            for (PRInt32 i = 0; i < nfds; ++i) {
                 if (!pollfds[i].out_flags)
                     continue;
 
@@ -178,10 +209,10 @@ public:
                         mStderr += buf;
                 }
                 else if (isStdout) {
-                    stdoutOpen = false;
+                    stdoutOpen = PR_FALSE;
                 }
                 else {
-                    stderrOpen = false;
+                    stderrOpen = PR_FALSE;
                 }
             }
 
@@ -203,7 +234,7 @@ private:
         if (!normalExit) {
             PR_KillProcess(mProc);
             mExitCode = -1;
-            int32_t dummy;
+            PRInt32 dummy;
             PR_WaitProcess(mProc, &dummy);
         }
         else {
@@ -231,11 +262,11 @@ CheckForDeadlock(const char* test, const char* const* findTokens)
     if (0 == proc.mExitCode)
         return false;
 
-    int32_t idx = 0;
+    PRInt32 idx = 0;
     for (const char* const* tp = findTokens; *tp; ++tp) {
         const char* const token = *tp;
 #ifdef MOZILLA_INTERNAL_API
-        idx = proc.mStderr.Find(token, false, idx);
+        idx = proc.mStderr.Find(token, PR_FALSE, idx);
 #else
         nsCString tokenCString(token);
         idx = proc.mStderr.Find(tokenCString, idx);
@@ -257,7 +288,7 @@ CheckForDeadlock(const char* test, const char* const* findTokens)
 
 
 
-int
+nsresult
 Sanity_Child()
 {
     mozilla::Mutex m1("dd.sanity.m1");
@@ -285,7 +316,7 @@ Sanity()
 }
 
 
-int
+nsresult
 Sanity2_Child()
 {
     mozilla::Mutex m1("dd.sanity2.m1");
@@ -316,7 +347,7 @@ Sanity2()
 }
 
 
-int
+nsresult
 Sanity3_Child()
 {
     mozilla::Mutex m1("dd.sanity3.m1");
@@ -359,7 +390,7 @@ Sanity3()
 }
 
 
-int
+nsresult
 Sanity4_Child()
 {
     mozilla::ReentrantMonitor m1("dd.sanity4.m1");
@@ -398,7 +429,7 @@ mozilla::Mutex* ttM2;
 static void
 TwoThreads_thread(void* arg)
 {
-    int32_t m1First = NS_PTR_TO_INT32(arg);
+    PRInt32 m1First = NS_PTR_TO_INT32(arg);
     if (m1First) {
         ttM1->Lock();
         ttM2->Lock();
@@ -413,7 +444,7 @@ TwoThreads_thread(void* arg)
     }
 }
 
-int
+nsresult
 TwoThreads_Child()
 {
     ttM1 = new mozilla::Mutex("dd.twothreads.m1");
@@ -451,39 +482,39 @@ TwoThreads()
 
 
 mozilla::Mutex* cndMs[4];
-const uint32_t K = 100000;
+const PRUint32 K = 100000;
 
 static void
 ContentionNoDeadlock_thread(void* arg)
 {
-    int32_t starti = NS_PTR_TO_INT32(arg);
+    PRInt32 starti = NS_PTR_TO_INT32(arg);
 
-    for (uint32_t k = 0; k < K; ++k) {
-        for (int32_t i = starti; i < (int32_t) ArrayLength(cndMs); ++i)
+    for (PRUint32 k = 0; k < K; ++k) {
+        for (PRInt32 i = starti; i < (PRInt32) NS_ARRAY_LENGTH(cndMs); ++i)
             cndMs[i]->Lock();
         
-        for (int32_t i = ArrayLength(cndMs) - 1; i >= starti; --i)
+        for (PRInt32 i = NS_ARRAY_LENGTH(cndMs) - 1; i >= starti; --i)
             cndMs[i]->Unlock();
 
         starti = (starti + 1) % 3;
     }
 }
 
-int
+nsresult
 ContentionNoDeadlock_Child()
 {
     PRThread* threads[3];
 
-    for (uint32_t i = 0; i < ArrayLength(cndMs); ++i)
+    for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(cndMs); ++i)
         cndMs[i] = new mozilla::Mutex("dd.cnd.ms");
 
-    for (int32_t i = 0; i < (int32_t) ArrayLength(threads); ++i)
+    for (PRInt32 i = 0; i < (PRInt32) NS_ARRAY_LENGTH(threads); ++i)
         threads[i] = spawn(ContentionNoDeadlock_thread, NS_INT32_TO_PTR(i));
 
-    for (uint32_t i = 0; i < ArrayLength(threads); ++i)
+    for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(threads); ++i)
         PR_JoinThread(threads[i]);
 
-    for (uint32_t i = 0; i < ArrayLength(cndMs); ++i)
+    for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(cndMs); ++i)
         delete cndMs[i];
 
     return 0;
@@ -538,8 +569,7 @@ main(int argc, char** argv)
         if (!strcmp("ContentionNoDeadlock", test))
             return ContentionNoDeadlock_Child();
 
-        fail("%s | %s - unknown child test", __FILE__, __FUNCTION__);
-        return 2;
+        FAIL("unknown child test");
     }
 
     ScopedXPCOM xpcom("XPCOM deadlock detector correctness (" __FILE__ ")");

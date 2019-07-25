@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsFormData_h__
 #define nsFormData_h__
 
@@ -34,7 +66,7 @@ public:
                                    nsIDOMBlob* aBlob);
 
   NS_IMETHOD Initialize(nsISupports* aOwner, JSContext* aCx, JSObject* aObj,
-                        uint32_t aArgc, jsval* aArgv);
+                        PRUint32 aArgc, jsval* aArgv);
 private:
   struct FormDataTuple
   {

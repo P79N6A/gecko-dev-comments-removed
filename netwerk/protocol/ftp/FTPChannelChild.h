@@ -5,6 +5,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_net_FTPChannelChild_h
 #define mozilla_net_FTPChannelChild_h
 
@@ -61,60 +95,55 @@ public:
   
   NS_IMETHOD IsPending(bool* result);
 
-  nsresult OpenContentStream(bool async,
-                             nsIInputStream** stream,
-                             nsIChannel** channel) MOZ_OVERRIDE;
+  NS_OVERRIDE nsresult OpenContentStream(bool async,
+                                         nsIInputStream** stream,
+                                         nsIChannel** channel);
 
   bool IsSuspended();
 
 protected:
-  bool RecvOnStartRequest(const int32_t& aContentLength,
-                          const nsCString& aContentType,
-                          const PRTime& aLastModified,
-                          const nsCString& aEntityID,
-                          const URIParams& aURI) MOZ_OVERRIDE;
-  bool RecvOnDataAvailable(const nsCString& data,
-                           const uint64_t& offset,
-                           const uint32_t& count) MOZ_OVERRIDE;
-  bool RecvOnStopRequest(const nsresult& statusCode) MOZ_OVERRIDE;
-  bool RecvFailedAsyncOpen(const nsresult& statusCode) MOZ_OVERRIDE;
-  bool RecvDeleteSelf() MOZ_OVERRIDE;
+  NS_OVERRIDE bool RecvOnStartRequest(const PRInt32& aContentLength,
+                                      const nsCString& aContentType,
+                                      const PRTime& aLastModified,
+                                      const nsCString& aEntityID,
+                                      const IPC::URI& aURI);
+  NS_OVERRIDE bool RecvOnDataAvailable(const nsCString& data,
+                                       const PRUint32& offset,
+                                       const PRUint32& count);
+  NS_OVERRIDE bool RecvOnStopRequest(const nsresult& statusCode);
+  NS_OVERRIDE bool RecvCancelEarly(const nsresult& statusCode);
+  NS_OVERRIDE bool RecvDeleteSelf();
 
-  void DoOnStartRequest(const int32_t& aContentLength,
+  void DoOnStartRequest(const PRInt32& aContentLength,
                         const nsCString& aContentType,
                         const PRTime& aLastModified,
                         const nsCString& aEntityID,
-                        const URIParams& aURI);
+                        const IPC::URI& aURI);
   void DoOnDataAvailable(const nsCString& data,
-                         const uint64_t& offset,
-                         const uint32_t& count);
+                         const PRUint32& offset,
+                         const PRUint32& count);
   void DoOnStopRequest(const nsresult& statusCode);
-  void DoFailedAsyncOpen(const nsresult& statusCode);
+  void DoCancelEarly(const nsresult& statusCode);
   void DoDeleteSelf();
 
   friend class FTPStartRequestEvent;
   friend class FTPDataAvailableEvent;
   friend class FTPStopRequestEvent;
-  friend class FTPFailedAsyncOpenEvent;
+  friend class FTPCancelEarlyEvent;
   friend class FTPDeleteSelfEvent;
 
 private:
-  
-  void CompleteResume();
-  nsresult AsyncCall(void (FTPChannelChild::*funcPtr)(),
-                     nsRunnableMethod<FTPChannelChild> **retval = nullptr);
-
   nsCOMPtr<nsIInputStream> mUploadStream;
 
   bool mIPCOpen;
   ChannelEventQueue mEventQ;
   bool mCanceled;
-  uint32_t mSuspendCount;
+  PRUint32 mSuspendCount;
   bool mIsPending;
   bool mWasOpened;
   
   PRTime mLastModifiedTime;
-  uint64_t mStartPos;
+  PRUint64 mStartPos;
   nsCString mEntityID;
 };
 

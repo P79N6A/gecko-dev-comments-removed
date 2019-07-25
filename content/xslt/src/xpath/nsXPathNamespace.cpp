@@ -3,8 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsXPathNamespace.h"
-#include "nsDOMClassInfoID.h"
+#include "nsIDOMClassInfo.h"
 
 NS_IMPL_ADDREF(nsXPathNamespace)
 NS_IMPL_RELEASE(nsXPathNamespace)
@@ -35,7 +68,7 @@ NS_IMETHODIMP nsXPathNamespace::SetNodeValue(const nsAString & aNodeValue)
 }
 
 
-NS_IMETHODIMP nsXPathNamespace::GetNodeType(uint16_t *aNodeType)
+NS_IMETHODIMP nsXPathNamespace::GetNodeType(PRUint16 *aNodeType)
 {
     *aNodeType = XPATH_NAMESPACE_NODE;
     return NS_OK;
@@ -120,7 +153,7 @@ NS_IMETHODIMP nsXPathNamespace::HasChildNodes(bool *aResult)
 }
 
 
-NS_IMETHODIMP nsXPathNamespace::CloneNode(bool deep, uint8_t aOptionalArgc, nsIDOMNode **aResult)
+NS_IMETHODIMP nsXPathNamespace::CloneNode(bool deep, nsIDOMNode **aResult)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }

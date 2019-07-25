@@ -3,6 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsISelectionController.h"
 #include "nsIController.h"
 #include "nsIControllers.h"
@@ -54,7 +89,7 @@ protected:
                         bool *aUsesIndependentSelection);
   nsresult FindItNow(nsIPresShell *aPresShell, bool aIsLinksOnly,
                      bool aIsFirstVisiblePreferred, bool aFindPrev,
-                     uint16_t* aResult);
+                     PRUint16* aResult);
   nsresult GetSearchContainers(nsISupports *aContainer,
                                nsISelectionController *aSelectionController,
                                bool aIsFirstVisiblePreferred,
@@ -78,7 +113,7 @@ protected:
   nsCOMPtr<nsIDOMWindow> mCurrentWindow;
   
   
-  uint32_t mLastFindLength;
+  PRUint32 mLastFindLength;
 
   
   
@@ -93,25 +128,6 @@ protected:
 
   
   nsCOMPtr<nsIFind> mFind;
-
-  bool mCaseSensitive;
-
-  bool EnsureFind() {
-    if (mFind) {
-      return true;
-    }
-
-    mFind = do_CreateInstance("@mozilla.org/embedcomp/rangefind;1");
-    if (!mFind) {
-      return false;
-    }
-
-    mFind->SetCaseSensitive(mCaseSensitive);
-    mFind->SetWordBreaker(nullptr);
-
-    return true;
-  }
-
   nsCOMPtr<nsIWebBrowserFind> mWebBrowserFind;
 
   

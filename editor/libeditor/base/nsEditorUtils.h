@@ -4,24 +4,52 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsEditorUtils_h__
 #define nsEditorUtils_h__
 
 
 #include "nsCOMPtr.h"
-#include "nsDebug.h"
-#include "nsEditor.h"
 #include "nsIDOMNode.h"
+#include "nsISelection.h"
 #include "nsIEditor.h"
-#include "nscore.h"
-#include "prtypes.h"
+#include "nsIAtom.h"
+#include "nsEditor.h"
+#include "nsIContentIterator.h"
+#include "nsCOMArray.h"
 
-class nsIAtom;
-class nsIContentIterator;
-class nsIDOMDocument;
-class nsIDOMRange;
-class nsISelection;
-template <class E> class nsCOMArray;
+class nsPlaintextEditor;
 
 
 
@@ -45,7 +73,7 @@ class NS_STACK_CLASS nsAutoPlaceHolderBatch
 class nsAutoEditBatch : public nsAutoPlaceHolderBatch
 {
   public:
-    nsAutoEditBatch( nsIEditor *aEd) : nsAutoPlaceHolderBatch(aEd,nullptr)  {}
+    nsAutoEditBatch( nsIEditor *aEd) : nsAutoPlaceHolderBatch(aEd,nsnull)  {}
     ~nsAutoEditBatch() {}
 };
 
@@ -57,12 +85,12 @@ class NS_STACK_CLASS nsAutoSelectionReset
 {
   private:
     
-    nsRefPtr<mozilla::Selection> mSel;
+    nsCOMPtr<nsISelection> mSel;
     nsEditor *mEd;  
 
   public:
     
-    nsAutoSelectionReset(mozilla::Selection* aSel, nsEditor* aEd);
+    nsAutoSelectionReset(nsISelection *aSel, nsEditor *aEd);
     
     
     ~nsAutoSelectionReset();
@@ -78,15 +106,14 @@ class NS_STACK_CLASS nsAutoRules
 {
   public:
   
-  nsAutoRules(nsEditor *ed, EditAction action,
-              nsIEditor::EDirection aDirection) :
-         mEd(ed), mDoNothing(false)
+  nsAutoRules(nsEditor *ed, PRInt32 action, nsIEditor::EDirection aDirection) : 
+         mEd(ed), mDoNothing(PR_FALSE)
   { 
     if (mEd && !mEd->mAction) 
     {
       mEd->StartOperation(action, aDirection);
     }
-    else mDoNothing = true; 
+    else mDoNothing = PR_TRUE; 
   }
   ~nsAutoRules() 
   {
@@ -110,12 +137,12 @@ class NS_STACK_CLASS nsAutoTxnsConserveSelection
 {
   public:
   
-  nsAutoTxnsConserveSelection(nsEditor *ed) : mEd(ed), mOldState(true)
+  nsAutoTxnsConserveSelection(nsEditor *ed) : mEd(ed), mOldState(PR_TRUE)
   {
     if (mEd) 
     {
       mOldState = mEd->GetShouldTxnSetSelection();
-      mEd->SetShouldTxnSetSelection(false);
+      mEd->SetShouldTxnSetSelection(PR_FALSE);
     }
   }
   
@@ -161,6 +188,12 @@ class NS_STACK_CLASS nsAutoUpdateViewBatch
 
 
 
+class nsDomIterFunctor 
+{
+  public:
+    virtual void* operator()(nsIDOMNode* aNode)=0;
+};
+
 class nsBoolDomIterFunctor 
 {
   public:
@@ -175,6 +208,7 @@ class NS_STACK_CLASS nsDOMIterator
     
     nsresult Init(nsIDOMRange* aRange);
     nsresult Init(nsIDOMNode* aNode);
+    void ForEach(nsDomIterFunctor& functor) const;
     nsresult AppendList(nsBoolDomIterFunctor& functor,
                         nsCOMArray<nsIDOMNode>& arrayOfNodes) const;
   protected:
@@ -188,6 +222,7 @@ class nsDOMSubtreeIterator : public nsDOMIterator
     virtual ~nsDOMSubtreeIterator();
 
     nsresult Init(nsIDOMRange* aRange);
+    nsresult Init(nsIDOMNode* aNode);
 };
 
 class nsTrivialFunctor : public nsBoolDomIterFunctor
@@ -195,7 +230,7 @@ class nsTrivialFunctor : public nsBoolDomIterFunctor
   public:
     virtual bool operator()(nsIDOMNode* aNode)  
     {
-      return true;
+      return PR_TRUE;
     }
 };
 
@@ -206,16 +241,16 @@ class nsTrivialFunctor : public nsBoolDomIterFunctor
 struct NS_STACK_CLASS DOMPoint
 {
   nsCOMPtr<nsIDOMNode> node;
-  int32_t offset;
+  PRInt32 offset;
   
   DOMPoint() : node(0),offset(0) {}
-  DOMPoint(nsIDOMNode *aNode, int32_t aOffset) : 
+  DOMPoint(nsIDOMNode *aNode, PRInt32 aOffset) : 
                  node(aNode),offset(aOffset) {}
-  void SetPoint(nsIDOMNode *aNode, int32_t aOffset)
+  void SetPoint(nsIDOMNode *aNode, PRInt32 aOffset)
   {
     node = aNode; offset = aOffset;
   }
-  void GetPoint(nsCOMPtr<nsIDOMNode> &aNode, int32_t &aOffset)
+  void GetPoint(nsCOMPtr<nsIDOMNode> &aNode, PRInt32 &aOffset)
   {
     aNode = node; aOffset = offset;
   }
@@ -225,14 +260,15 @@ struct NS_STACK_CLASS DOMPoint
 class nsEditorUtils
 {
   public:
-    static bool IsDescendantOf(nsIDOMNode *aNode, nsIDOMNode *aParent, int32_t *aOffset = 0);
+    static bool IsDescendantOf(nsIDOMNode *aNode, nsIDOMNode *aParent, PRInt32 *aOffset = 0);
     static bool IsLeafNode(nsIDOMNode *aNode);
 };
 
 
+class nsIDragSession;
+class nsITransferable;
 class nsIDOMEvent;
 class nsISimpleEnumerator;
-class nsITransferable;
 
 class nsEditorHookUtils
 {

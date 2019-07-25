@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsIProxyObjectManager.h"
 #include "nsIClassInfoImpl.h"
 #include "nsThreadPool.h"
 #include "nsThreadManager.h"
@@ -43,7 +76,7 @@ nsThreadPool::nsThreadPool()
   , mIdleThreadLimit(DEFAULT_IDLE_THREAD_LIMIT)
   , mIdleThreadTimeout(DEFAULT_IDLE_THREAD_TIMEOUT)
   , mIdleCount(0)
-  , mShutdown(false)
+  , mShutdown(PR_FALSE)
 {
 }
 
@@ -63,11 +96,11 @@ nsThreadPool::PutEvent(nsIRunnable *event)
 
     LOG(("THRD-P(%p) put [%d %d %d]\n", this, mIdleCount, mThreads.Count(),
          mThreadLimit));
-    NS_ASSERTION(mIdleCount <= (uint32_t) mThreads.Count(), "oops");
+    NS_ASSERTION(mIdleCount <= (PRUint32) mThreads.Count(), "oops");
 
     
-    if (mIdleCount == 0 && mThreads.Count() < (int32_t) mThreadLimit)
-      spawnThread = true;
+    if (mIdleCount == 0 && mThreads.Count() < (PRInt32) mThreadLimit)
+      spawnThread = PR_TRUE;
 
     mEvents.PutEvent(event);
   }
@@ -85,10 +118,10 @@ nsThreadPool::PutEvent(nsIRunnable *event)
   bool killThread = false;
   {
     ReentrantMonitorAutoEnter mon(mEvents.GetReentrantMonitor());
-    if (mThreads.Count() < (int32_t) mThreadLimit) {
+    if (mThreads.Count() < (PRInt32) mThreadLimit) {
       mThreads.AppendObject(thread);
     } else {
-      killThread = true;  
+      killThread = PR_TRUE;  
     }
   }
   LOG(("THRD-P(%p) put [%p kill=%d]\n", this, thread.get(), killThread));
@@ -111,16 +144,20 @@ nsThreadPool::ShutdownThread(nsIThread *thread)
 
   NS_ASSERTION(!NS_IsMainThread(), "wrong thread");
 
-  nsRefPtr<nsIRunnable> r = NS_NewRunnableMethod(thread, &nsIThread::Shutdown);
-  NS_DispatchToMainThread(r);
+  nsCOMPtr<nsIThread> doomed;
+  NS_GetProxyForObject(NS_PROXY_TO_MAIN_THREAD, NS_GET_IID(nsIThread), thread,
+                       NS_PROXY_ASYNC, getter_AddRefs(doomed));
+  if (doomed) {
+    doomed->Shutdown();
+  } else {
+    NS_WARNING("failed to construct proxy to main thread");
+  }
 }
 
 NS_IMETHODIMP
 nsThreadPool::Run()
 {
   LOG(("THRD-P(%p) enter\n", this));
-
-  mThreadNaming.SetThreadPoolName(mName);
 
   nsCOMPtr<nsIThread> current;
   nsThreadManager::get()->GetCurrentThread(getter_AddRefs(current));
@@ -150,20 +187,20 @@ nsThreadPool::Run()
 
         
         if (mShutdown) {
-          exitThread = true;
+          exitThread = PR_TRUE;
         } else {
           if (wasIdle) {
             
             if (mIdleCount > mIdleThreadLimit || (now - idleSince) >= timeout)
-              exitThread = true;
+              exitThread = PR_TRUE;
           } else {
             
             if (mIdleCount == mIdleThreadLimit) {
-              exitThread = true;
+              exitThread = PR_TRUE;
             } else {
               ++mIdleCount;
               idleSince = now;
-              wasIdle = true;
+              wasIdle = PR_TRUE;
             }
           }
         }
@@ -178,7 +215,7 @@ nsThreadPool::Run()
           mon.Wait(delta);
         }
       } else if (wasIdle) {
-        wasIdle = false;
+        wasIdle = PR_FALSE;
         --mIdleCount;
       }
     }
@@ -201,7 +238,7 @@ nsThreadPool::Run()
 }
 
 NS_IMETHODIMP
-nsThreadPool::Dispatch(nsIRunnable *event, uint32_t flags)
+nsThreadPool::Dispatch(nsIRunnable *event, PRUint32 flags)
 {
   LOG(("THRD-P(%p) dispatch [%p %x]\n", this, event, flags));
 
@@ -232,7 +269,7 @@ nsThreadPool::IsOnCurrentThread(bool *result)
   
   NS_NOTREACHED("implement me");
 
-  *result = false;
+  *result = PR_FALSE;
   return NS_OK;
 }
 
@@ -243,7 +280,7 @@ nsThreadPool::Shutdown()
   nsCOMPtr<nsIThreadPoolListener> listener;
   {
     ReentrantMonitorAutoEnter mon(mEvents.GetReentrantMonitor());
-    mShutdown = true;
+    mShutdown = PR_TRUE;
     mon.NotifyAll();
 
     threads.AppendObjects(mThreads);
@@ -258,21 +295,21 @@ nsThreadPool::Shutdown()
   
   
 
-  for (int32_t i = 0; i < threads.Count(); ++i)
+  for (PRInt32 i = 0; i < threads.Count(); ++i)
     threads[i]->Shutdown();
 
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsThreadPool::GetThreadLimit(uint32_t *value)
+nsThreadPool::GetThreadLimit(PRUint32 *value)
 {
   *value = mThreadLimit;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsThreadPool::SetThreadLimit(uint32_t value)
+nsThreadPool::SetThreadLimit(PRUint32 value)
 {
   ReentrantMonitorAutoEnter mon(mEvents.GetReentrantMonitor());
   mThreadLimit = value;
@@ -283,14 +320,14 @@ nsThreadPool::SetThreadLimit(uint32_t value)
 }
 
 NS_IMETHODIMP
-nsThreadPool::GetIdleThreadLimit(uint32_t *value)
+nsThreadPool::GetIdleThreadLimit(PRUint32 *value)
 {
   *value = mIdleThreadLimit;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsThreadPool::SetIdleThreadLimit(uint32_t value)
+nsThreadPool::SetIdleThreadLimit(PRUint32 value)
 {
   ReentrantMonitorAutoEnter mon(mEvents.GetReentrantMonitor());
   mIdleThreadLimit = value;
@@ -301,14 +338,14 @@ nsThreadPool::SetIdleThreadLimit(uint32_t value)
 }
 
 NS_IMETHODIMP
-nsThreadPool::GetIdleThreadTimeout(uint32_t *value)
+nsThreadPool::GetIdleThreadTimeout(PRUint32 *value)
 {
   *value = mIdleThreadTimeout;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsThreadPool::SetIdleThreadTimeout(uint32_t value)
+nsThreadPool::SetIdleThreadTimeout(PRUint32 value)
 {
   ReentrantMonitorAutoEnter mon(mEvents.GetReentrantMonitor());
   mIdleThreadTimeout = value;
@@ -332,18 +369,5 @@ nsThreadPool::SetListener(nsIThreadPoolListener* aListener)
     ReentrantMonitorAutoEnter mon(mEvents.GetReentrantMonitor());
     mListener.swap(swappedListener);
   }
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsThreadPool::SetName(const nsACString& aName)
-{
-  {
-    ReentrantMonitorAutoEnter mon(mEvents.GetReentrantMonitor());
-    if (mThreads.Count())
-      return NS_ERROR_NOT_AVAILABLE;
-  }
-
-  mName = aName;
   return NS_OK;
 }

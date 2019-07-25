@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIScrollbarMediator_h___
 #define nsIScrollbarMediator_h___
 
@@ -16,8 +50,8 @@ public:
   NS_DECL_QUERYFRAME_TARGET(nsIScrollbarMediator)
 
   
-  NS_IMETHOD PositionChanged(nsScrollbarFrame* aScrollbar, int32_t aOldIndex, int32_t& aNewIndex) = 0;
-  NS_IMETHOD ScrollbarButtonPressed(nsScrollbarFrame* aScrollbar, int32_t aOldIndex, int32_t aNewIndex) = 0;
+  NS_IMETHOD PositionChanged(nsScrollbarFrame* aScrollbar, PRInt32 aOldIndex, PRInt32& aNewIndex) = 0;
+  NS_IMETHOD ScrollbarButtonPressed(nsScrollbarFrame* aScrollbar, PRInt32 aOldIndex, PRInt32 aNewIndex) = 0;
 
   NS_IMETHOD VisibilityChanged(bool aVisible) = 0;
 };

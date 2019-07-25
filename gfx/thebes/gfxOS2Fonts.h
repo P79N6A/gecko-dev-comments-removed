@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_OS2_FONTS_H
 #define GFX_OS2_FONTS_H
 
@@ -35,7 +67,7 @@ public:
     cairo_scaled_font_t *CairoScaledFont();
 
     
-    virtual uint32_t GetSpaceGlyph() {
+    virtual PRUint32 GetSpaceGlyph() {
         if (!mMetrics)
             GetMetrics();
         return mSpaceGlyph;
@@ -47,13 +79,12 @@ public:
 protected:
     virtual bool SetupCairoFont(gfxContext *aContext);
 
-    virtual FontType GetType() const { return FONT_TYPE_OS2; }
-
 private:
     cairo_font_face_t *mFontFace;
+    cairo_scaled_font_t *mScaledFont;
     Metrics *mMetrics;
     gfxFloat mAdjustedSize;
-    uint32_t mSpaceGlyph;
+    PRUint32 mSpaceGlyph;
     int mHinting;
     bool mAntialias;
 };
@@ -67,12 +98,12 @@ public:
     virtual gfxFontGroup *Copy(const gfxFontStyle *aStyle);
 
     
-    virtual gfxTextRun *MakeTextRun(const PRUnichar* aString, uint32_t aLength,
-                                    const Parameters* aParams, uint32_t aFlags);
-    virtual gfxTextRun *MakeTextRun(const uint8_t* aString, uint32_t aLength,
-                                    const Parameters* aParams, uint32_t aFlags);
+    virtual gfxTextRun *MakeTextRun(const PRUnichar* aString, PRUint32 aLength,
+                                    const Parameters* aParams, PRUint32 aFlags);
+    virtual gfxTextRun *MakeTextRun(const PRUint8* aString, PRUint32 aLength,
+                                    const Parameters* aParams, PRUint32 aFlags);
 
-    gfxOS2Font *GetFontAt(int32_t i) {
+    gfxOS2Font *GetFontAt(PRInt32 i) {
         
         
         
@@ -89,10 +120,10 @@ public:
     }
 
 protected:
-    void InitTextRun(gfxTextRun *aTextRun, const uint8_t *aUTF8Text,
-                     uint32_t aUTF8Length, uint32_t aUTF8HeaderLength);
-    void CreateGlyphRunsFT(gfxTextRun *aTextRun, const uint8_t *aUTF8,
-                           uint32_t aUTF8Length);
+    void InitTextRun(gfxTextRun *aTextRun, const PRUint8 *aUTF8Text,
+                     PRUint32 aUTF8Length, PRUint32 aUTF8HeaderLength);
+    void CreateGlyphRunsFT(gfxTextRun *aTextRun, const PRUint8 *aUTF8,
+                           PRUint32 aUTF8Length);
     static bool FontCallback(const nsAString& aFontName,
                                const nsACString& aGenericName,
                                bool aUseFontSet,

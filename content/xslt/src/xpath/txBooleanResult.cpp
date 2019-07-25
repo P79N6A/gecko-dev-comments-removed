@@ -7,6 +7,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "txExprResult.h"
 
 
@@ -14,7 +47,7 @@
 
 
 BooleanResult::BooleanResult(bool boolean)
-    : txAExprResult(nullptr)
+    : txAExprResult(nsnull)
 {
     this->value = boolean;
 } 
@@ -44,10 +77,10 @@ BooleanResult::stringValuePointer()
     
     
     
-    return nullptr;
+    return nsnull;
 }
 
-bool BooleanResult::booleanValue() {
+MBool BooleanResult::booleanValue() {
    return this->value;
 } 
 

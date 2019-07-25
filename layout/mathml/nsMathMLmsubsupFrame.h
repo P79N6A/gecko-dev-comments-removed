@@ -3,6 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsMathMLmsubsupFrame_h___
 #define nsMathMLmsubsupFrame_h___
 
@@ -41,7 +76,7 @@ protected:
   nsMathMLmsubsupFrame(nsStyleContext* aContext) : nsMathMLContainerFrame(aContext) {}
   virtual ~nsMathMLmsubsupFrame();
   
-  virtual int GetSkipSides() const { return 0; }
+  virtual PRIntn GetSkipSides() const { return 0; }
 };
 
 #endif 

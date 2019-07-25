@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsXBLProtoImpl_h__
 #define nsXBLProtoImpl_h__
 
@@ -19,11 +52,11 @@ class nsXBLProtoImpl
 {
 public:
   nsXBLProtoImpl() 
-    : mClassObject(nullptr),
-      mMembers(nullptr),
-      mFields(nullptr),
-      mConstructor(nullptr),
-      mDestructor(nullptr)
+    : mClassObject(nsnull),
+      mMembers(nsnull),
+      mFields(nsnull),
+      mConstructor(nsnull),
+      mDestructor(nsnull)
   { 
     MOZ_COUNT_CTOR(nsXBLProtoImpl); 
   }
@@ -40,7 +73,7 @@ public:
   nsresult InitTargetObjects(nsXBLPrototypeBinding* aBinding, nsIScriptContext* aContext, 
                              nsIContent* aBoundElement, 
                              nsIXPConnectJSObjectHolder** aScriptObjectHolder,
-                             JSObject** aTargetClassObject);
+                             void** aTargetClassObject);
   nsresult CompilePrototypeMembers(nsXBLPrototypeBinding* aBinding);
 
   void SetMemberList(nsXBLProtoImplMember* aMemberList)
@@ -69,37 +102,18 @@ public:
   void UndefineFields(JSContext* cx, JSObject* obj) const;
 
   bool CompiledMembers() const {
-    return mClassObject != nullptr;
+    return mClassObject != nsnull;
   }
-
-  nsresult Read(nsIScriptContext* aContext,
-                nsIObjectInputStream* aStream,
-                nsXBLPrototypeBinding* aBinding,
-                nsIScriptGlobalObject* aGlobal);
-  nsresult Write(nsIScriptContext* aContext,
-                 nsIObjectOutputStream* aStream,
-                 nsXBLPrototypeBinding* aBinding);
 
 protected:
-  
-  nsXBLProtoImplMember* AddMember(nsXBLProtoImplMember* aMember,
-                                  nsXBLProtoImplMember* aPreviousMember)
-  {
-    if (aPreviousMember)
-      aPreviousMember->SetNext(aMember);
-    else
-      mMembers = aMember;
-    return aMember;
-  }
-
   void DestroyMembers();
   
 public:
   nsCString mClassName; 
 
 protected:
-  JSObject* mClassObject; 
-                          
+  void* mClassObject;   
+                        
 
   nsXBLProtoImplMember* mMembers; 
 

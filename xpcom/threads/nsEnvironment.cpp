@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsEnvironment.h"
 #include "prenv.h"
 #include "prprf.h"
@@ -21,9 +55,9 @@ nsEnvironment::Create(nsISupports *aOuter, REFNSIID aIID,
                       void **aResult)
 {
     nsresult rv;
-    *aResult = nullptr;
+    *aResult = nsnull;
 
-    if (aOuter != nullptr) {
+    if (aOuter != nsnull) {
         return NS_ERROR_NO_AGGREGATION;
     }
 
@@ -46,11 +80,11 @@ nsEnvironment::~nsEnvironment()
 NS_IMETHODIMP
 nsEnvironment::Exists(const nsAString& aName, bool *aOutValue)
 {
-    nsAutoCString nativeName;
+    nsCAutoString nativeName;
     nsresult rv = NS_CopyUnicodeToNative(aName, nativeName);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    nsAutoCString nativeVal;
+    nsCAutoString nativeVal;
 #if defined(XP_UNIX)
     
 
@@ -75,11 +109,11 @@ nsEnvironment::Exists(const nsAString& aName, bool *aOutValue)
 NS_IMETHODIMP
 nsEnvironment::Get(const nsAString& aName, nsAString& aOutValue)
 {
-    nsAutoCString nativeName;
+    nsCAutoString nativeName;
     nsresult rv = NS_CopyUnicodeToNative(aName, nativeName);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    nsAutoCString nativeVal;
+    nsCAutoString nativeVal;
     const char *value = PR_GetEnv(nativeName.get());
     if (value && *value) {
         rv = NS_CopyNativeToUnicode(nsDependentCString(value), aOutValue);
@@ -99,27 +133,31 @@ nsEnvironment::Get(const nsAString& aName, nsAString& aOutValue)
 typedef nsBaseHashtableET<nsCharPtrHashKey,char*> EnvEntryType;
 typedef nsTHashtable<EnvEntryType> EnvHashType;
 
-static EnvHashType *gEnvHash = nullptr;
+static EnvHashType *gEnvHash = nsnull;
 
 static bool
 EnsureEnvHash()
 {
     if (gEnvHash)
-        return true;
+        return PR_TRUE;
 
     gEnvHash = new EnvHashType;
     if (!gEnvHash)
-        return false;
+        return PR_FALSE;
 
-    gEnvHash->Init();
-    return true;
+    if(gEnvHash->Init())
+        return PR_TRUE;
+
+    delete gEnvHash;
+    gEnvHash = nsnull;
+    return PR_FALSE;
 }
 
 NS_IMETHODIMP
 nsEnvironment::Set(const nsAString& aName, const nsAString& aValue)
 {
-    nsAutoCString nativeName;
-    nsAutoCString nativeVal;
+    nsCAutoString nativeName;
+    nsCAutoString nativeVal;
 
     nsresult rv = NS_CopyUnicodeToNative(aName, nativeName);
     NS_ENSURE_SUCCESS(rv, rv);

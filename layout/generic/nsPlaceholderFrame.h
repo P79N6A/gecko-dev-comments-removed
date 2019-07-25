@@ -31,11 +31,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsPlaceholderFrame_h___
 #define nsPlaceholderFrame_h___
 
 #include "nsFrame.h"
 #include "nsGkAtoms.h"
+
+class nsLineBox;
 
 nsIFrame* NS_NewPlaceholderFrame(nsIPresShell* aPresShell,
                                  nsStyleContext* aContext,
@@ -114,7 +148,7 @@ public:
 #endif 
   
 #ifdef DEBUG
-  NS_IMETHOD List(FILE* out, int32_t aIndent) const;
+  NS_IMETHOD List(FILE* out, PRInt32 aIndent) const;
 #endif 
 
   
@@ -134,7 +168,7 @@ public:
   virtual bool CanContinueTextRun() const;
 
 #ifdef ACCESSIBILITY
-  virtual already_AddRefed<Accessible> CreateAccessible()
+  virtual already_AddRefed<nsAccessible> CreateAccessible()
   {
     nsIFrame* realFrame = GetRealFrameForPlaceholder(this);
     return realFrame ? realFrame->CreateAccessible() :
@@ -142,7 +176,7 @@ public:
   }
 #endif
 
-  virtual nsIFrame* GetParentStyleContextFrame() const;
+  virtual nsIFrame* GetParentStyleContextFrame();
 
   
 
@@ -168,8 +202,17 @@ public:
     return outOfFlow;
   }
 
+  
+  
+  
+  
+  const nsLineBox* GetCachedLineBox() const {
+    return mCachedLineBox;
+  }
+
 protected:
   nsIFrame* mOutOfFlowFrame;
+  nsLineBox* mCachedLineBox;
 };
 
 #endif 

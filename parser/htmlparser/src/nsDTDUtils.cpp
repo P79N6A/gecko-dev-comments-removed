@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
        
   
 #include "nsIAtom.h"
@@ -90,17 +123,17 @@ void nsEntryStack::Empty(void) {
 
 
 
-void nsEntryStack::EnsureCapacityFor(int32_t aNewMax,int32_t aShiftOffset) {
+void nsEntryStack::EnsureCapacityFor(PRInt32 aNewMax,PRInt32 aShiftOffset) {
   if(mCapacity<aNewMax){ 
 
     const int kDelta=16;
 
-    int32_t theSize = kDelta * ((aNewMax / kDelta) + 1);
+    PRInt32 theSize = kDelta * ((aNewMax / kDelta) + 1);
     nsTagEntry* temp=new nsTagEntry[theSize]; 
     mCapacity=theSize;
 
     if(temp){ 
-      int32_t index=0; 
+      PRInt32 index=0; 
       for(index=0;index<mCount;++index) {
         temp[aShiftOffset+index]=mEntries[index];
       }
@@ -138,8 +171,8 @@ void nsEntryStack::PushTag(eHTMLTags aTag)
 {
   EnsureCapacityFor(mCount + 1);
   mEntries[mCount].mTag = aTag;
-  mEntries[mCount].mParent = nullptr;
-  mEntries[mCount].mStyles = nullptr;
+  mEntries[mCount].mParent = nsnull;
+  mEntries[mCount].mStyles = nsnull;
   ++mCount;
 }
 
@@ -155,7 +188,7 @@ void nsEntryStack::PushFront(nsCParserNode* aNode,
 {
   if(aNode) {
     if(mCount<mCapacity) {
-      int32_t index=0; 
+      PRInt32 index=0; 
       for(index=mCount;index>0;index--) {
         mEntries[index]=mEntries[index-1];
       }
@@ -182,11 +215,11 @@ void nsEntryStack::PushFront(nsCParserNode* aNode,
 void nsEntryStack::Append(nsEntryStack *aStack) {
   if(aStack) {
 
-    int32_t theCount=aStack->mCount;
+    PRInt32 theCount=aStack->mCount;
 
     EnsureCapacityFor(mCount+aStack->mCount,0);
 
-    int32_t theIndex=0;
+    PRInt32 theIndex=0;
     for(theIndex=0;theIndex<theCount;++theIndex){
       mEntries[mCount]=aStack->mEntries[theIndex];
       mEntries[mCount++].mParent=0;
@@ -207,7 +240,7 @@ void nsEntryStack::Append(nsEntryStack *aStack) {
 
 
 
-nsCParserNode* nsEntryStack::Remove(int32_t anIndex,
+nsCParserNode* nsEntryStack::Remove(PRInt32 anIndex,
                                     eHTMLTags aTag) 
 {
   nsCParserNode* result = 0;
@@ -215,7 +248,7 @@ nsCParserNode* nsEntryStack::Remove(int32_t anIndex,
     result = mEntries[anIndex].mNode;
     if (result)
       result->mUseCount--;
-    int32_t theIndex = 0;
+    PRInt32 theIndex = 0;
     mCount -= 1;
     for( theIndex = anIndex; theIndex < mCount; ++theIndex){
       mEntries[theIndex] = mEntries[theIndex+1];
@@ -226,15 +259,15 @@ nsCParserNode* nsEntryStack::Remove(int32_t anIndex,
     if (theStyleStack) {
       
       
-      uint32_t scount = theStyleStack->mCount;
+      PRUint32 scount = theStyleStack->mCount;
 #ifdef DEBUG_mrbkap
       NS_ASSERTION(scount != 0, "RemoveStyles has a bad style stack");
 #endif
       nsTagEntry *theStyleEntry = theStyleStack->mEntries;
-      for (uint32_t sindex = scount-1;; --sindex) {            
+      for (PRUint32 sindex = scount-1;; --sindex) {            
         if (theStyleEntry->mTag == aTag) {
           
-          theStyleEntry->mParent = nullptr;
+          theStyleEntry->mParent = nsnull;
           break;
         }
         if (sindex == 0) {
@@ -268,7 +301,7 @@ nsCParserNode* nsEntryStack::Pop(void)
     if (theStyleStack) {
       
       
-      uint32_t scount = theStyleStack->mCount;
+      PRUint32 scount = theStyleStack->mCount;
 
       
       
@@ -278,10 +311,10 @@ nsCParserNode* nsEntryStack::Pop(void)
       NS_ENSURE_TRUE(scount != 0, result);
 
       nsTagEntry *theStyleEntry = theStyleStack->mEntries;
-      for (uint32_t sindex = scount - 1;; --sindex) {
+      for (PRUint32 sindex = scount - 1;; --sindex) {
         if (theStyleEntry->mTag == mEntries[mCount].mTag) {
           
-          theStyleEntry->mParent = nullptr;
+          theStyleEntry->mParent = nsnull;
           break;
         }
         if (sindex == 0) {
@@ -316,7 +349,7 @@ eHTMLTags nsEntryStack::First() const
 
 
 
-nsCParserNode* nsEntryStack::NodeAt(int32_t anIndex) const 
+nsCParserNode* nsEntryStack::NodeAt(PRInt32 anIndex) const 
 {
   nsCParserNode* result=0;
   if((0<mCount) && (anIndex<mCount)) {
@@ -330,7 +363,7 @@ nsCParserNode* nsEntryStack::NodeAt(int32_t anIndex) const
 
 
 
-eHTMLTags nsEntryStack::TagAt(int32_t anIndex) const 
+eHTMLTags nsEntryStack::TagAt(PRInt32 anIndex) const 
 {
   eHTMLTags result=eHTMLTag_unknown;
   if((0<mCount) && (anIndex<mCount)) {
@@ -343,7 +376,7 @@ eHTMLTags nsEntryStack::TagAt(int32_t anIndex) const
 
 
 
-nsTagEntry* nsEntryStack::EntryAt(int32_t anIndex) const 
+nsTagEntry* nsEntryStack::EntryAt(PRInt32 anIndex) const 
 {
   nsTagEntry *result=0;
   if((0<mCount) && (anIndex<mCount)) {
@@ -358,7 +391,7 @@ nsTagEntry* nsEntryStack::EntryAt(int32_t anIndex) const
 
 
 
-eHTMLTags nsEntryStack::operator[](int32_t anIndex) const 
+eHTMLTags nsEntryStack::operator[](PRInt32 anIndex) const 
 {
   eHTMLTags result=eHTMLTag_unknown;
   if((0<mCount) && (anIndex<mCount)) {
@@ -444,7 +477,7 @@ nsDTDContext::~nsDTDContext()
 
 
 bool nsDTDContext::HasOpenContainer(eHTMLTags aTag) const {
-  int32_t theIndex=mStack.LastOf(aTag);
+  PRInt32 theIndex=mStack.LastOf(aTag);
   return bool(-1<theIndex);
 }
 
@@ -456,7 +489,7 @@ void nsDTDContext::Push(nsCParserNode* aNode,
                         nsEntryStack* aStyleStack, 
                         bool aRefCntNode) {
   if(aNode) {
-#ifdef  DEBUG
+#ifdef  NS_DEBUG
     eHTMLTags theTag = (eHTMLTags)aNode->GetNodeType();
     int size = mStack.mCount;
     if (size < eMaxTags)
@@ -468,7 +501,7 @@ void nsDTDContext::Push(nsCParserNode* aNode,
 
 void nsDTDContext::PushTag(eHTMLTags aTag)
 {
-#ifdef DEBUG
+#ifdef NS_DEBUG
   if (mStack.mCount < eMaxTags) {
     mXTags[mStack.mCount] = aTag;
   }
@@ -480,9 +513,9 @@ void nsDTDContext::PushTag(eHTMLTags aTag)
 nsTagEntry*
 nsDTDContext::PopEntry()
 {
-  int32_t theSize = mStack.mCount;
+  PRInt32 theSize = mStack.mCount;
   if(0<theSize) {
-#ifdef  DEBUG
+#ifdef  NS_DEBUG
     if (theSize <= eMaxTags)
       mXTags[theSize-1]=eHTMLTag_unknown;
 #endif
@@ -494,7 +527,7 @@ nsDTDContext::PopEntry()
 void nsDTDContext::PushEntry(nsTagEntry* aEntry, 
                              bool aRefCntNode)
 {
-#ifdef  DEBUG
+#ifdef  NS_DEBUG
     int size=mStack.mCount;
     if(size< eMaxTags && aEntry)
       mXTags[size]=aEntry->mTag;
@@ -508,13 +541,13 @@ void nsDTDContext::PushEntry(nsTagEntry* aEntry,
 
 void 
 nsDTDContext::MoveEntries(nsDTDContext& aDest,
-                          int32_t aCount)
+                          PRInt32 aCount)
 {
   NS_ASSERTION(aCount > 0 && mStack.mCount >= aCount, "cannot move entries");
   if (aCount > 0 && mStack.mCount >= aCount) {
     while (aCount) {
-      aDest.PushEntry(&mStack.mEntries[--mStack.mCount], false);
-#ifdef  DEBUG
+      aDest.PushEntry(&mStack.mEntries[--mStack.mCount], PR_FALSE);
+#ifdef  NS_DEBUG
       if (mStack.mCount < eMaxTags) {
         mXTags[mStack.mCount] = eHTMLTag_unknown;
       }
@@ -530,12 +563,12 @@ nsDTDContext::MoveEntries(nsDTDContext& aDest,
 
 nsCParserNode* nsDTDContext::Pop(nsEntryStack *&aChildStyleStack) {
 
-  int32_t         theSize=mStack.mCount;
+  PRInt32         theSize=mStack.mCount;
   nsCParserNode*  result=0;
 
   if(0<theSize) {
 
-#ifdef  DEBUG
+#ifdef  NS_DEBUG
     if ((theSize>0) && (theSize <= eMaxTags))
       mXTags[theSize-1]=eHTMLTag_unknown;
 #endif
@@ -573,7 +606,7 @@ eHTMLTags nsDTDContext::First(void) const {
 
 
 
-eHTMLTags nsDTDContext::TagAt(int32_t anIndex) const {
+eHTMLTags nsDTDContext::TagAt(PRInt32 anIndex) const {
   return mStack.TagAt(anIndex);
 }
 
@@ -598,7 +631,7 @@ eHTMLTags nsDTDContext::Last() const {
 
 
 
-nsEntryStack* nsDTDContext::GetStylesAt(int32_t anIndex) const {
+nsEntryStack* nsDTDContext::GetStylesAt(PRInt32 anIndex) const {
   nsEntryStack* result=0;
 
   if(anIndex<mStack.mCount){
@@ -646,8 +679,8 @@ void nsDTDContext::PushStyles(nsEntryStack *aStyles){
       if(!theStyles) {
         theEntry->mStyles=aStyles;
 
-        uint32_t scount=aStyles->mCount;
-        uint32_t sindex=0;
+        PRUint32 scount=aStyles->mCount;
+        PRUint32 sindex=0;
 
         theEntry=aStyles->mEntries;
         for(sindex=0;sindex<scount;++sindex){            
@@ -698,7 +731,7 @@ nsCParserNode* nsDTDContext::PopStyle(void){
 
 nsCParserNode* nsDTDContext::PopStyle(eHTMLTags aTag){
 
-  int32_t theLevel=0;
+  PRInt32 theLevel=0;
   nsCParserNode* result=0;
 
   for(theLevel=mStack.mCount-1;theLevel>0;theLevel--) {
@@ -727,12 +760,12 @@ nsCParserNode* nsDTDContext::PopStyle(eHTMLTags aTag){
 
 void nsDTDContext::RemoveStyle(eHTMLTags aTag){
   
-  int32_t theLevel=mStack.mCount;
+  PRInt32 theLevel=mStack.mCount;
   
   while (theLevel) {
     nsEntryStack *theStack=GetStylesAt(--theLevel);
     if (theStack) {
-      int32_t index=theStack->mCount;
+      PRInt32 index=theStack->mCount;
       while (index){
         nsTagEntry *theEntry=theStack->EntryAt(--index);
         if (aTag==(eHTMLTags)theEntry->mNode->GetNodeType()) {
@@ -760,8 +793,8 @@ void nsDTDContext::ReleaseGlobalObjects(void){
 
 
 static const size_t  kTokenBuckets[]       ={sizeof(CStartToken),sizeof(CAttributeToken),sizeof(CCommentToken),sizeof(CEndToken)};
-static const int32_t kNumTokenBuckets      = sizeof(kTokenBuckets) / sizeof(size_t);
-static const int32_t kInitialTokenPoolSize = sizeof(CToken) * 200;
+static const PRInt32 kNumTokenBuckets      = sizeof(kTokenBuckets) / sizeof(size_t);
+static const PRInt32 kInitialTokenPoolSize = NS_SIZE_IN_HEAP(sizeof(CToken)) * 200;
 
 
 
@@ -774,7 +807,7 @@ nsTokenAllocator::nsTokenAllocator() {
 
   mArenaPool.Init("TokenPool", kTokenBuckets, kNumTokenBuckets, kInitialTokenPoolSize);
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
   int i=0;
   for(i=0;i<eToken_last-1;++i) {
     mTotals[i]=0;
@@ -819,7 +852,7 @@ CToken* nsTokenAllocator::CreateTokenOfType(eHTMLTokenTypes aType,eHTMLTags aTag
 
   CToken* result=0;
 
-#ifdef  DEBUG
+#ifdef  NS_DEBUG
     mTotals[aType-1]++;
 #endif
   switch(aType){
@@ -836,7 +869,7 @@ CToken* nsTokenAllocator::CreateTokenOfType(eHTMLTokenTypes aType,eHTMLTags aTag
     case eToken_doctypeDecl:      result=new(mArenaPool) CDoctypeDeclToken(aString); break;
     case eToken_markupDecl:       result=new(mArenaPool) CMarkupDeclToken(aString); break;
       default:
-        NS_ASSERTION(false, "nsDTDUtils::CreateTokenOfType: illegal token type"); 
+        NS_ASSERTION(PR_FALSE, "nsDTDUtils::CreateTokenOfType: illegal token type"); 
         break;
   }
 
@@ -856,7 +889,7 @@ CToken* nsTokenAllocator::CreateTokenOfType(eHTMLTokenTypes aType,eHTMLTags aTag
 
   CToken* result=0;
 
-#ifdef  DEBUG
+#ifdef  NS_DEBUG
     mTotals[aType-1]++;
 #endif
   switch(aType){
@@ -873,7 +906,7 @@ CToken* nsTokenAllocator::CreateTokenOfType(eHTMLTokenTypes aType,eHTMLTags aTag
     case eToken_doctypeDecl:      result=new(mArenaPool) CDoctypeDeclToken(aTag); break;
     case eToken_markupDecl:       result=new(mArenaPool) CMarkupDeclToken(); break;
     default:
-      NS_ASSERTION(false, "nsDTDUtils::CreateTokenOfType: illegal token type"); 
+      NS_ASSERTION(PR_FALSE, "nsDTDUtils::CreateTokenOfType: illegal token type"); 
       break;
    }
 
@@ -921,8 +954,8 @@ nsNodeAllocator::nsNodeAllocator():mSharedNodes(0){
 #endif
 #else 
   static const size_t  kNodeBuckets[]       = { sizeof(nsCParserNode), sizeof(nsCParserStartNode) };
-  static const int32_t kNumNodeBuckets      = sizeof(kNodeBuckets) / sizeof(size_t);
-  static const int32_t kInitialNodePoolSize = sizeof(nsCParserNode) * 35; 
+  static const PRInt32 kNumNodeBuckets      = sizeof(kNodeBuckets) / sizeof(size_t);
+  static const PRInt32 kInitialNodePoolSize = NS_SIZE_IN_HEAP(sizeof(nsCParserNode)) * 35; 
 nsNodeAllocator::nsNodeAllocator() {
   mNodePool.Init("NodePool", kNodeBuckets, kNumNodeBuckets, kInitialNodePoolSize);
 #endif
@@ -940,7 +973,7 @@ nsNodeAllocator::~nsNodeAllocator() {
     RemoveNode(theNode);
 #endif
     ::operator delete(theNode); 
-    theNode=nullptr;
+    theNode=nsnull;
   }
 #ifdef DEBUG_TRACK_NODES
   if(mCount) {
@@ -993,3 +1026,127 @@ nsCParserNode* nsNodeAllocator::CreateNode(CToken* aToken,
 void DebugDumpContainmentRules(nsIDTD& theDTD,const char* aFilename,const char* aTitle) {
 }
 #endif
+
+
+
+
+
+
+NS_IMPL_ISUPPORTS1(nsObserverEntry, nsIObserverEntry)
+
+nsObserverEntry::nsObserverEntry(const nsAString& aTopic) : mTopic(aTopic) 
+{
+  memset(mObservers, 0, sizeof(mObservers));
+}
+
+nsObserverEntry::~nsObserverEntry() {
+  for (PRInt32 i = 0; i <= NS_HTML_TAG_MAX; ++i){
+    delete mObservers[i];
+  }
+}
+
+NS_IMETHODIMP
+nsObserverEntry::Notify(nsIParserNode* aNode,
+                        nsIParser* aParser,
+                        nsISupports* aDocShell,
+                        const PRUint32 aFlags) 
+{
+  NS_ENSURE_ARG_POINTER(aNode);
+  NS_ENSURE_ARG_POINTER(aParser);
+
+  nsresult result = NS_OK;
+  eHTMLTags theTag = (eHTMLTags)aNode->GetNodeType();
+ 
+  if (theTag <= NS_HTML_TAG_MAX) {
+    nsCOMArray<nsIElementObserver>* theObservers = mObservers[theTag];
+    if (theObservers) {
+      PRInt32   theCharsetSource;
+      nsCAutoString      charset;
+      aParser->GetDocumentCharset(charset,theCharsetSource);
+      NS_ConvertASCIItoUTF16 theCharsetValue(charset);
+
+      PRInt32 theAttrCount = aNode->GetAttributeCount(); 
+      PRInt32 theObserversCount = theObservers->Count();
+      if (0 < theObserversCount){
+        nsTArray<nsString> keys(theAttrCount + 4), values(theAttrCount + 4);
+
+        
+        
+        
+        
+        PRInt32 index;
+        for (index = 0; index < theAttrCount; ++index) {
+          keys.AppendElement(aNode->GetKeyAt(index));
+          values.AppendElement(aNode->GetValueAt(index));
+        } 
+
+        nsAutoString intValue;
+
+        keys.AppendElement(NS_LITERAL_STRING("charset")); 
+        values.AppendElement(theCharsetValue);       
+      
+        keys.AppendElement(NS_LITERAL_STRING("charsetSource")); 
+        intValue.AppendInt(PRInt32(theCharsetSource),10);
+        values.AppendElement(intValue); 
+
+        keys.AppendElement(NS_LITERAL_STRING("X_COMMAND"));
+        values.AppendElement(NS_LITERAL_STRING("text/html")); 
+
+        nsCOMPtr<nsIChannel> channel;
+        aParser->GetChannel(getter_AddRefs(channel));
+
+        for (index=0;index<theObserversCount;++index) {
+          nsIElementObserver* observer = theObservers->ObjectAt(index);
+          if (observer) {
+            result = observer->Notify(aDocShell, channel,
+                                      nsHTMLTags::GetStringValue(theTag),
+                                      &keys, &values, aFlags);
+            if (NS_FAILED(result)) {
+              break;
+            }
+
+            if (result == NS_HTMLPARSER_VALID_META_CHARSET) {
+              
+              
+              aParser->SetDocumentCharset(charset, kCharsetFromMetaTag);
+              result = NS_OK;
+            }
+          }
+        } 
+      } 
+    }
+  }
+  return result;
+}
+
+bool 
+nsObserverEntry::Matches(const nsAString& aString) {
+  bool result = aString.Equals(mTopic);
+  return result;
+}
+
+nsresult
+nsObserverEntry::AddObserver(nsIElementObserver *aObserver,
+                             eHTMLTags aTag) 
+{
+  if (aObserver) {
+    if (!mObservers[aTag]) {
+      mObservers[aTag] = new nsCOMArray<nsIElementObserver>();
+      if (!mObservers[aTag]) {
+        return NS_ERROR_OUT_OF_MEMORY;
+      }
+    }
+    mObservers[aTag]->AppendObject(aObserver);
+  }
+  return NS_OK;
+}
+
+void 
+nsObserverEntry::RemoveObserver(nsIElementObserver *aObserver)
+{
+  for (PRInt32 i=0; i <= NS_HTML_TAG_MAX; ++i){
+    if (mObservers[i]) {
+      mObservers[i]->RemoveObject(aObserver);
+    }
+  }
+}

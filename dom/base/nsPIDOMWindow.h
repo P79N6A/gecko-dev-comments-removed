@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsPIDOMWindow_h__
 #define nsPIDOMWindow_h__
 
@@ -16,13 +48,13 @@
 #include "nsIDOMEventTarget.h"
 #include "nsIDOMDocument.h"
 #include "nsCOMPtr.h"
+#include "nsEvent.h"
 #include "nsIURI.h"
 
 #define DOM_WINDOW_DESTROYED_TOPIC "dom-window-destroyed"
 #define DOM_WINDOW_FROZEN_TOPIC "dom-window-frozen"
 #define DOM_WINDOW_THAWED_TOPIC "dom-window-thawed"
 
-class nsIIdleObserver;
 class nsIPrincipal;
 
 
@@ -42,14 +74,14 @@ class nsIContent;
 class nsIDocument;
 class nsIScriptTimeoutHandler;
 struct nsTimeout;
-template <class> class nsScriptObjectHolder;
+class nsScriptObjectHolder;
 class nsXBLPrototypeHandler;
 class nsIArray;
 class nsPIWindowRoot;
 
 #define NS_PIDOMWINDOW_IID \
-{ 0x0c5763c6, 0x5e87, 0x4f6f, \
-  { 0xa2, 0xef, 0xcf, 0x4d, 0xeb, 0xd1, 0xbc, 0xc3 } }
+{ 0x8ce567b5, 0xcc8d, 0x410b, \
+  { 0xa2, 0x7b, 0x07, 0xaf, 0x31, 0xc0, 0x33, 0xb8 } }
 
 class nsPIDOMWindow : public nsIDOMWindowInternal
 {
@@ -65,32 +97,21 @@ public:
 
   virtual void SetActive(bool aActive)
   {
-    NS_PRECONDITION(IsOuterWindow(),
-                    "active state is only maintained on outer windows");
     mIsActive = aActive;
   }
 
-  virtual nsresult RegisterIdleObserver(nsIIdleObserver* aIdleObserver) = 0;
-  virtual nsresult UnregisterIdleObserver(nsIIdleObserver* aIdleObserver) = 0;
-
   bool IsActive()
   {
-    NS_PRECONDITION(IsOuterWindow(),
-                    "active state is only maintained on outer windows");
     return mIsActive;
   }
 
   virtual void SetIsBackground(bool aIsBackground)
   {
-    NS_PRECONDITION(IsOuterWindow(),
-                    "background state is only maintained on outer windows");
     mIsBackground = aIsBackground;
   }
 
   bool IsBackground()
   {
-    NS_PRECONDITION(IsOuterWindow(),
-                    "background state is only maintained on outer windows");
     return mIsBackground;
   }
 
@@ -109,7 +130,7 @@ public:
     return mParentTarget;
   }
 
-  bool HasMutationListeners(uint32_t aMutationEventType) const
+  bool HasMutationListeners(PRUint32 aMutationEventType) const
   {
     const nsPIDOMWindow *win;
 
@@ -119,13 +140,13 @@ public:
       if (!win) {
         NS_ERROR("No current inner window available!");
 
-        return false;
+        return PR_FALSE;
       }
     } else {
       if (!mOuterWindow) {
         NS_ERROR("HasMutationListeners() called on orphan inner window!");
 
-        return false;
+        return PR_FALSE;
       }
 
       win = this;
@@ -134,7 +155,7 @@ public:
     return (win->mMutationBits & aMutationEventType) != 0;
   }
 
-  void SetMutationListeners(uint32_t aType)
+  void SetMutationListeners(PRUint32 aType)
   {
     nsPIDOMWindow *win;
 
@@ -167,25 +188,7 @@ public:
   {
     return mDocument;
   }
-  nsIDocument* GetExtantDoc() const
-  {
-    return mDoc;
-  }
 
-  nsIDocument* GetDoc()
-  {
-    if (!mDoc) {
-      MaybeCreateDoc();
-    }
-    return mDoc;
-  }
-
-protected:
-  
-  
-  void MaybeCreateDoc();
-
-public:
   
   
   
@@ -240,13 +243,13 @@ public:
       if (!win) {
         NS_ERROR("No current inner window available!");
 
-        return false;
+        return PR_FALSE;
       }
     } else {
       if (!mOuterWindow) {
         NS_ERROR("IsLoading() called on orphan inner window!");
 
-        return false;
+        return PR_FALSE;
       }
 
       win = this;
@@ -265,13 +268,13 @@ public:
       if (!win) {
         NS_ERROR("No current inner window available!");
 
-        return false;
+        return PR_FALSE;
       }
     } else {
       if (!mOuterWindow) {
         NS_ERROR("IsHandlingResizeEvent() called on orphan inner window!");
 
-        return false;
+        return PR_FALSE;
       }
 
       win = this;
@@ -282,7 +285,12 @@ public:
 
   
   
-  virtual void SetInitialPrincipalToSubject() = 0;
+  
+  
+  
+  virtual void SetOpenerScriptPrincipal(nsIPrincipal* aPrincipal) = 0;
+  
+  virtual nsIPrincipal* GetOpenerScriptPrincipal() = 0;
 
   virtual PopupControlState PushPopupControlState(PopupControlState aState,
                                                   bool aForce) const = 0;
@@ -291,19 +299,19 @@ public:
 
   
   
-  virtual already_AddRefed<nsISupports> SaveWindowState() = 0;
+  virtual nsresult SaveWindowState(nsISupports **aState) = 0;
 
   
   virtual nsresult RestoreWindowState(nsISupports *aState) = 0;
 
   
-  virtual void SuspendTimeouts(uint32_t aIncrease = 1,
+  virtual void SuspendTimeouts(PRUint32 aIncrease = 1,
                                bool aFreezeChildren = true) = 0;
 
   
   virtual nsresult ResumeTimeouts(bool aThawChildren = true) = 0;
 
-  virtual uint32_t TimeoutSuspendCount() = 0;
+  virtual PRUint32 TimeoutSuspendCount() = 0;
 
   
   
@@ -313,11 +321,11 @@ public:
 
   
   virtual nsresult SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
-                                        int32_t interval,
-                                        bool aIsInterval, int32_t *aReturn) = 0;
+                                        PRInt32 interval,
+                                        bool aIsInterval, PRInt32 *aReturn) = 0;
 
   
-  virtual nsresult ClearTimeoutOrInterval(int32_t aTimerID) = 0;
+  virtual nsresult ClearTimeoutOrInterval(PRInt32 aTimerID) = 0;
 
   nsPIDOMWindow *GetOuterWindow()
   {
@@ -365,17 +373,9 @@ public:
   
 
 
-
   virtual void SetDocShell(nsIDocShell *aDocShell) = 0;
 
   
-
-
-  virtual void DetachFromDocShell() = 0;
-
-  
-
-
 
 
 
@@ -422,7 +422,7 @@ public:
 
   void SetHasPaintEventListeners()
   {
-    mMayHavePaintEventListener = true;
+    mMayHavePaintEventListener = PR_TRUE;
   }
 
   
@@ -440,7 +440,7 @@ public:
 
   void SetHasTouchEventListeners()
   {
-    mMayHaveTouchEventListener = true;
+    mMayHaveTouchEventListener = PR_TRUE;
     MaybeUpdateTouchState();
   }
 
@@ -453,14 +453,19 @@ public:
 
 
 
-
-  virtual nsresult SetFullScreenInternal(bool aIsFullScreen, bool aRequireTrust) = 0;
+  bool HasAudioAvailableEventListeners()
+  {
+    return mMayHaveAudioAvailableEventListener;
+  }
 
   
 
 
 
-  virtual void SetHasAudioAvailableEventListeners() = 0;
+  void SetHasAudioAvailableEventListeners()
+  {
+    mMayHaveAudioAvailableEventListener = PR_TRUE;
+  }
 
   
 
@@ -477,12 +482,17 @@ public:
 
   void SetHasMouseEnterLeaveEventListeners()
   {
-    mMayHaveMouseEnterLeaveEventListener = true;
-  }
+    mMayHaveMouseEnterLeaveEventListener = PR_TRUE;
+  }  
 
-  virtual JSObject* GetCachedXBLPrototypeHandler(nsXBLPrototypeHandler* aKey) = 0;
+  
+
+
+  virtual void InitJavaProperties() = 0;
+
+  virtual void* GetCachedXBLPrototypeHandler(nsXBLPrototypeHandler* aKey) = 0;
   virtual void CacheXBLPrototypeHandler(nsXBLPrototypeHandler* aKey,
-                                        nsScriptObjectHolder<JSObject>& aHandler) = 0;
+                                        nsScriptObjectHolder& aHandler) = 0;
 
   
 
@@ -495,18 +505,18 @@ public:
   nsIContent* GetFocusedNode()
   {
     if (IsOuterWindow()) {
-      return mInnerWindow ? mInnerWindow->mFocusedNode.get() : nullptr;
+      return mInnerWindow ? mInnerWindow->mFocusedNode.get() : nsnull;
     }
     return mFocusedNode;
   }
   virtual void SetFocusedNode(nsIContent* aNode,
-                              uint32_t aFocusMethod = 0,
+                              PRUint32 aFocusMethod = 0,
                               bool aNeedsFocus = false) = 0;
 
   
 
 
-  virtual uint32_t GetFocusMethod() = 0;
+  virtual PRUint32 GetFocusMethod() = 0;
 
   
 
@@ -518,7 +528,7 @@ public:
 
 
 
-  virtual bool TakeFocus(bool aFocus, uint32_t aFocusMethod) = 0;
+  virtual bool TakeFocus(bool aFocus, PRUint32 aFocusMethod) = 0;
 
   
 
@@ -564,12 +574,7 @@ public:
   
 
 
-  virtual void EnableDeviceSensor(uint32_t aType) = 0;
-
-  
-
-
-  virtual void DisableDeviceSensor(uint32_t aType) = 0;
+  virtual void SetHasOrientationEventListener() = 0;
 
   
 
@@ -585,31 +590,18 @@ public:
 
 
 
-  virtual uint32_t GetSerial() = 0;
+  virtual PRUint32 GetSerial() = 0;
 
   
 
 
-  uint64_t WindowID() const { return mWindowID; }
+  PRUint64 WindowID() const { return mWindowID; }
 
   
 
 
 
   virtual bool DispatchCustomEvent(const char *aEventName) = 0;
-
-  
-
-
-
-  virtual void RefreshCompartmentPrincipal() = 0;
-
-  
-
-
-  virtual nsresult
-  OpenNoNavigate(const nsAString& aUrl, const nsAString& aName,
-                 const nsAString& aOptions, nsIDOMWindow **_retval) = 0;
 
 protected:
   
@@ -623,7 +615,7 @@ protected:
   void SetChromeEventHandlerInternal(nsIDOMEventTarget* aChromeEventHandler) {
     mChromeEventHandler = aChromeEventHandler;
     
-    mParentTarget = nullptr;
+    mParentTarget = nsnull;
   }
 
   virtual void UpdateParentTarget() = 0;
@@ -633,7 +625,6 @@ protected:
   
   nsCOMPtr<nsIDOMEventTarget> mChromeEventHandler; 
   nsCOMPtr<nsIDOMDocument> mDocument; 
-  nsCOMPtr<nsIDocument> mDoc; 
 
   nsCOMPtr<nsIDOMEventTarget> mParentTarget; 
 
@@ -641,18 +632,19 @@ protected:
   nsCOMPtr<nsIDOMElement> mFrameElement;
   nsIDocShell           *mDocShell;  
 
-  uint32_t               mModalStateDepth;
+  PRUint32               mModalStateDepth;
 
   
   nsTimeout             *mRunningTimeout;
 
-  uint32_t               mMutationBits;
+  PRUint32               mMutationBits;
 
   bool                   mIsDocumentLoaded;
   bool                   mIsHandlingResizeEvent;
   bool                   mIsInnerWindow;
   bool                   mMayHavePaintEventListener;
   bool                   mMayHaveTouchEventListener;
+  bool                   mMayHaveAudioAvailableEventListener;
   bool                   mMayHaveMouseEnterLeaveEventListener;
 
   
@@ -678,7 +670,7 @@ protected:
 
   
   
-  uint64_t mWindowID;
+  PRUint64 mWindowID;
 
   
   
@@ -724,7 +716,7 @@ public:
     : mWindow(aWindow), mOldState(openAbused)
   {
     if (aWindow) {
-      mOldState = aWindow->PushPopupControlState(aState, false);
+      mOldState = aWindow->PushPopupControlState(aState, PR_FALSE);
     }
   }
 
@@ -744,7 +736,7 @@ protected:
 
 private:
   
-  static void* operator new(size_t ) CPP_THROW_NEW { return nullptr; }
+  static void* operator new(size_t ) CPP_THROW_NEW { return nsnull; }
   static void operator delete(void* ) {}
 };
 

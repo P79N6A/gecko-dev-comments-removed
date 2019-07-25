@@ -3,6 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_FT2UTILS_H
 #define GFX_FT2UTILS_H
 
@@ -39,15 +76,15 @@ public:
 
 
 
-    uint32_t GetGlyph(uint32_t aCharCode);
+    PRUint32 GetGlyph(PRUint32 aCharCode);
     
 
 
-    uint32_t GetUVSGlyph(uint32_t aCharCode, uint32_t aVariantSelector);
+    PRUint32 GetUVSGlyph(PRUint32 aCharCode, PRUint32 aVariantSelector);
 
-    void GetMetrics(gfxFont::Metrics* aMetrics, uint32_t* aSpaceGlyph);
+    void GetMetrics(gfxFont::Metrics* aMetrics, PRUint32* aSpaceGlyph);
 
-    bool GetFontTable(uint32_t aTag, FallibleTArray<uint8_t>& aBuffer);
+    bool GetFontTable(PRUint32 aTag, FallibleTArray<PRUint8>& aBuffer);
 
     
     
@@ -81,7 +118,7 @@ protected:
 
 
 
-    uint32_t GetCharExtents(char aChar, cairo_text_extents_t* aExtents);
+    PRUint32 GetCharExtents(char aChar, cairo_text_extents_t* aExtents);
 
     typedef FT_UInt (*CharVariantFunction)(FT_Face  face,
                                            FT_ULong charcode,

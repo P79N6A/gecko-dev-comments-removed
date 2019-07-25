@@ -4,6 +4,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsXULTemplateQueryProcessorRDF_h__
 #define nsXULTemplateQueryProcessorRDF_h__
 
@@ -30,7 +67,6 @@
 #include "nsClassHashtable.h"
 #include "nsRefPtrHashtable.h"
 #include "nsCycleCollectionParticipant.h"
-#include "mozilla/Attributes.h"
 
 #include "prlog.h"
 #ifdef PR_LOGGING
@@ -43,11 +79,10 @@ class nsXULTemplateResultRDF;
 
 
 
-class nsXULTemplateQueryProcessorRDF MOZ_FINAL : public nsIXULTemplateQueryProcessor,
-                                                 public nsIRDFObserver
+class nsXULTemplateQueryProcessorRDF : public nsIXULTemplateQueryProcessor,
+                                       public nsIRDFObserver
 {
 public:
-    typedef nsTArray<nsCOMPtr<nsXULTemplateResultRDF> > ResultArray;
 
     nsXULTemplateQueryProcessorRDF();
 
@@ -202,14 +237,14 @@ public:
 
 
 
-    void
+    nsresult
     AddBindingDependency(nsXULTemplateResultRDF* aResult,
                          nsIRDFResource* aResource);
 
     
 
 
-    void
+    nsresult
     RemoveBindingDependency(nsXULTemplateResultRDF* aResult,
                             nsIRDFResource* aResource);
 
@@ -242,7 +277,7 @@ public:
     
 
 
-    int32_t
+    PRInt32
     GetContainerIndexOf(nsIXULTemplateResult* aResult);
 
     
@@ -293,7 +328,7 @@ protected:
     bool mGenerationStarted;
 
     
-    int32_t mUpdateBatchNest;
+    PRInt32 mUpdateBatchNest;
 
     
     
@@ -315,7 +350,8 @@ protected:
 
 
 
-    nsClassHashtable<nsISupportsHashKey, ResultArray> mBindingDependencies;
+    nsClassHashtable<nsISupportsHashKey,
+                     nsCOMArray<nsXULTemplateResultRDF> > mBindingDependencies;
 
     
 
@@ -333,7 +369,7 @@ protected:
     
 
 
-    nsTArray<nsCOMPtr<nsITemplateRDFQuery> > mQueries;
+    nsCOMArray<nsITemplateRDFQuery> mQueries;
 
     
 

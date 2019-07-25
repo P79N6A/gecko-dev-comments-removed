@@ -3,25 +3,62 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
 #include "nsIDOMDocument.h"
+#include "nsIDOMXMLDocument.h"
 #include "nsIDOMNode.h"
+#include "nsIDOMNodeList.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMEvent.h"
 #include "nsIDOMEventTarget.h"
 #include "nsIDOMXPathNSResolver.h"
 #include "nsIDocument.h"
 #include "nsIContent.h"
-#include "nsComponentManagerUtils.h"
+#include "nsINameSpaceManager.h"
 #include "nsGkAtoms.h"
+#include "nsIServiceManager.h"
+#include "nsUnicharUtils.h"
 #include "nsIURI.h"
 #include "nsIArray.h"
-#include "nsIScriptContext.h"
+#include "nsContentUtils.h"
 #include "nsArrayUtils.h"
 #include "nsPIDOMWindow.h"
 #include "nsXULContentUtils.h"
 
+#include "nsXULTemplateBuilder.h"
 #include "nsXULTemplateQueryProcessorXML.h"
 #include "nsXULTemplateResultXML.h"
 #include "nsXULSortService.h"
@@ -40,11 +77,11 @@ nsXULTemplateResultSetXML::HasMoreElements(bool *aResult)
 {
     
     
-    uint32_t length;
+    PRUint32 length;
     if (NS_SUCCEEDED(mResults->GetSnapshotLength(&length)))
         *aResult = (mPosition < length);
     else
-        *aResult = false;
+        *aResult = PR_FALSE;
 
     return NS_OK;
 }
@@ -80,7 +117,7 @@ TraverseRuleToBindingsMap(nsISupports* aKey, nsXMLBindingSet* aMatch, void* aCon
     NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(*cb, "mRuleToBindingsMap key");
     cb->NoteXPCOMChild(aKey);
     NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(*cb, "mRuleToBindingsMap value");
-    cb->NoteNativeChild(aMatch, NS_CYCLE_COLLECTION_PARTICIPANT(nsXMLBindingSet));
+    cb->NoteNativeChild(aMatch, &NS_CYCLE_COLLECTION_NAME(nsXMLBindingSet));
     return PL_DHASH_NEXT;
 }
   
@@ -127,11 +164,11 @@ nsXULTemplateQueryProcessorXML::GetDatasource(nsIArray* aDataSources,
                                               bool* aShouldDelayBuilding,
                                               nsISupports** aResult)
 {
-    *aResult = nullptr;
-    *aShouldDelayBuilding = false;
+    *aResult = nsnull;
+    *aShouldDelayBuilding = PR_FALSE;
 
     nsresult rv;
-    uint32_t length;
+    PRUint32 length;
 
     aDataSources->GetLength(&length);
     if (length == 0)
@@ -149,7 +186,7 @@ nsXULTemplateQueryProcessorXML::GetDatasource(nsIArray* aDataSources,
     if (!uri)
         return NS_ERROR_UNEXPECTED;
 
-    nsAutoCString uriStr;
+    nsCAutoString uriStr;
     rv = uri->GetSpec(uriStr);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -176,26 +213,26 @@ nsXULTemplateQueryProcessorXML::GetDatasource(nsIArray* aDataSources,
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<nsPIDOMWindow> owner = do_QueryInterface(scriptObject);
-    req->Init(docPrincipal, context, owner, nullptr);
+    req->Init(docPrincipal, context, owner, nsnull);
 
-    rv = req->Open(NS_LITERAL_CSTRING("GET"), uriStr, true,
+    rv = req->Open(NS_LITERAL_CSTRING("GET"), uriStr, PR_TRUE,
                    EmptyString(), EmptyString());
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<nsIDOMEventTarget> target(do_QueryInterface(req));
-    rv = target->AddEventListener(NS_LITERAL_STRING("load"), this, false);
+    rv = target->AddEventListener(NS_LITERAL_STRING("load"), this, PR_FALSE);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = target->AddEventListener(NS_LITERAL_STRING("error"), this, false);
+    rv = target->AddEventListener(NS_LITERAL_STRING("error"), this, PR_FALSE);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = req->Send(nullptr);
+    rv = req->Send(nsnull);
     NS_ENSURE_SUCCESS(rv, rv);
 
     mTemplateBuilder = aBuilder;
     mRequest = req;
 
-    *aShouldDelayBuilding = true;
+    *aShouldDelayBuilding = PR_TRUE;
     return NS_OK;
 }
 
@@ -218,8 +255,9 @@ nsXULTemplateQueryProcessorXML::InitializeForBuilding(nsISupports* aDatasource,
     mEvaluator = do_CreateInstance("@mozilla.org/dom/xpath-evaluator;1");
     NS_ENSURE_TRUE(mEvaluator, NS_ERROR_OUT_OF_MEMORY);
 
-    if (!mRuleToBindingsMap.IsInitialized())
-        mRuleToBindingsMap.Init();
+    if (!mRuleToBindingsMap.IsInitialized() &&
+        !mRuleToBindingsMap.Init())
+        return NS_ERROR_OUT_OF_MEMORY;
 
     return NS_OK;
 }
@@ -227,7 +265,7 @@ nsXULTemplateQueryProcessorXML::InitializeForBuilding(nsISupports* aDatasource,
 NS_IMETHODIMP
 nsXULTemplateQueryProcessorXML::Done()
 {
-    mGenerationStarted = false;
+    mGenerationStarted = PR_FALSE;
 
     if (mRuleToBindingsMap.IsInitialized())
         mRuleToBindingsMap.Clear();
@@ -244,7 +282,7 @@ nsXULTemplateQueryProcessorXML::CompileQuery(nsIXULTemplateBuilder* aBuilder,
 {
     nsresult rv = NS_OK;
 
-    *_retval = nullptr;
+    *_retval = nsnull;
 
     nsCOMPtr<nsIContent> content = do_QueryInterface(aQueryNode);
 
@@ -313,7 +351,7 @@ nsXULTemplateQueryProcessorXML::GenerateResults(nsISupports* aDatasource,
     if (!aQuery)
         return NS_ERROR_INVALID_ARG;
 
-    mGenerationStarted = true;
+    mGenerationStarted = PR_TRUE;
 
     nsCOMPtr<nsXMLQuery> xmlquery = do_QueryInterface(aQuery);
     if (!xmlquery)
@@ -333,7 +371,7 @@ nsXULTemplateQueryProcessorXML::GenerateResults(nsISupports* aDatasource,
     nsCOMPtr<nsISupports> exprsupportsresults;
     nsresult rv = expr->Evaluate(context,
                                  nsIDOMXPathResult::ORDERED_NODE_SNAPSHOT_TYPE,
-                                 nullptr, getter_AddRefs(exprsupportsresults));
+                                 nsnull, getter_AddRefs(exprsupportsresults));
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<nsIDOMXPathResult> exprresults =
@@ -362,7 +400,8 @@ nsXULTemplateQueryProcessorXML::AddBinding(nsIDOMNode* aRuleNode,
     nsRefPtr<nsXMLBindingSet> bindings = mRuleToBindingsMap.GetWeak(aRuleNode);
     if (!bindings) {
         bindings = new nsXMLBindingSet();
-        mRuleToBindingsMap.Put(aRuleNode, bindings);
+        if (!bindings || !mRuleToBindingsMap.Put(aRuleNode, bindings))
+            return NS_ERROR_OUT_OF_MEMORY;
     }
 
     nsCOMPtr<nsIDOMXPathExpression> compiledexpr;
@@ -382,7 +421,7 @@ nsXULTemplateQueryProcessorXML::TranslateRef(nsISupports* aDatasource,
                                              const nsAString& aRefString,
                                              nsIXULTemplateResult** aRef)
 {
-    *aRef = nullptr;
+    *aRef = nsnull;
 
     
     nsCOMPtr<nsIDOMElement> rootElement;
@@ -397,7 +436,7 @@ nsXULTemplateQueryProcessorXML::TranslateRef(nsISupports* aDatasource,
         return NS_OK;
     
     nsXULTemplateResultXML* result =
-        new nsXULTemplateResultXML(nullptr, rootElement, nullptr);
+        new nsXULTemplateResultXML(nsnull, rootElement, nsnull);
     NS_ENSURE_TRUE(result, NS_ERROR_OUT_OF_MEMORY);
 
     *aRef = result;
@@ -411,8 +450,8 @@ NS_IMETHODIMP
 nsXULTemplateQueryProcessorXML::CompareResults(nsIXULTemplateResult* aLeft,
                                                nsIXULTemplateResult* aRight,
                                                nsIAtom* aVar,
-                                               uint32_t aSortHints,
-                                               int32_t* aResult)
+                                               PRUint32 aSortHints,
+                                               PRInt32* aResult)
 {
     *aResult = 0;
     if (!aVar)
@@ -470,12 +509,12 @@ nsXULTemplateQueryProcessorXML::HandleEvent(nsIDOMEvent* aEvent)
             mTemplateBuilder->SetDatasource(doc);
 
         
-        mTemplateBuilder = nullptr;
-        mRequest = nullptr;
+        mTemplateBuilder = nsnull;
+        mRequest = nsnull;
     }
     else if (eventType.EqualsLiteral("error")) {
-        mTemplateBuilder = nullptr;
-        mRequest = nullptr;
+        mTemplateBuilder = nsnull;
+        mRequest = nsnull;
     }
 
     return NS_OK;

@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef ____nstxttohtmlconv___h___
 #define ____nstxttohtmlconv___h___
 
@@ -76,7 +108,7 @@ public:
             return NS_ERROR_NO_AGGREGATION;
 
         nsTXTToHTMLConv* _s = new nsTXTToHTMLConv();
-        if (_s == nullptr)
+        if (_s == nsnull)
             return NS_ERROR_OUT_OF_MEMORY;
         NS_ADDREF(_s);
         rv = _s->Init();
@@ -92,11 +124,11 @@ public:
 
 protected:
     
-    int32_t FindToken(int32_t cursor, convToken* *_retval);
+    PRInt32 FindToken(PRInt32 cursor, convToken* *_retval);
 
     
     
-    int32_t CatHTML(int32_t front, int32_t back);
+    PRInt32 CatHTML(PRInt32 front, PRInt32 back);
 
     nsCOMPtr<nsIStreamListener>     mListener; 
     nsString                        mBuffer;   

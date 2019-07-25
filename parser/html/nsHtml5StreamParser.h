@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsHtml5StreamParser_h__
 #define nsHtml5StreamParser_h__
 
@@ -13,8 +46,9 @@
 #include "nsHtml5MetaScanner.h"
 #include "nsIUnicodeDecoder.h"
 #include "nsHtml5TreeOpExecutor.h"
-#include "nsHtml5OwningUTF16Buffer.h"
+#include "nsHtml5UTF16Buffer.h"
 #include "nsIInputStream.h"
+#include "nsICharsetAlias.h"
 #include "mozilla/Mutex.h"
 #include "nsHtml5AtomTable.h"
 #include "nsHtml5Speculation.h"
@@ -25,38 +59,6 @@ class nsHtml5Parser;
 
 #define NS_HTML5_STREAM_PARSER_READ_BUFFER_SIZE 1024
 #define NS_HTML5_STREAM_PARSER_SNIFFING_BUFFER_SIZE 1024
-
-enum eParserMode {
-  
-
-
-  NORMAL,
-
-  
-
-
-  VIEW_SOURCE_HTML,
-
-  
-
-
-  VIEW_SOURCE_XML,
-
-  
-
-
-  VIEW_SOURCE_PLAIN,
-
-  
-
-
-  PLAIN_TEXT,
-
-  
-
-
-  LOAD_AS_DATA
-};
 
 enum eBomState {
   
@@ -116,8 +118,7 @@ class nsHtml5StreamParser : public nsIStreamListener,
     static void InitializeStatics();
 
     nsHtml5StreamParser(nsHtml5TreeOpExecutor* aExecutor,
-                        nsHtml5Parser* aOwner,
-                        eParserMode aMode);
+                        nsHtml5Parser* aOwner);
                         
     virtual ~nsHtml5StreamParser();
 
@@ -148,7 +149,7 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
 
 
-    inline void SetDocumentCharset(const nsACString& aCharset, int32_t aSource) {
+    inline void SetDocumentCharset(const nsACString& aCharset, PRInt32 aSource) {
       NS_PRECONDITION(mStreamState == STREAM_NOT_STARTED,
                       "SetDocumentCharset called too late.");
       NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
@@ -179,24 +180,10 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
     void Terminate() {
       mozilla::MutexAutoLock autoLock(mTerminatedMutex);
-      mTerminated = true;
+      mTerminated = PR_TRUE;
     }
     
     void DropTimer();
-
-    
-
-
-
-
-    void SetEncodingFromExpat(const PRUnichar* aEncoding);
-
-    
-
-
-
-
-    void SetViewSourceTitle(nsIURI* aURL);
 
   private:
 
@@ -208,8 +195,6 @@ class nsHtml5StreamParser : public nsIStreamListener,
     }
 #endif
 
-    void MarkAsBroken();
-
     
 
 
@@ -218,7 +203,7 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
     void Interrupt() {
       mozilla::MutexAutoLock autoLock(mTerminatedMutex);
-      mInterrupted = true;
+      mInterrupted = PR_TRUE;
     }
 
     void Uninterrupt() {
@@ -226,7 +211,7 @@ class nsHtml5StreamParser : public nsIStreamListener,
       mTokenizerMutex.AssertCurrentThreadOwns();
       
       
-      mInterrupted = false;      
+      mInterrupted = PR_FALSE;      
     }
 
     
@@ -239,7 +224,7 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
     void DoStopRequest();
     
-    void DoDataAvailable(uint8_t* aBuffer, uint32_t aLength);
+    void DoDataAvailable(PRUint8* aBuffer, PRUint32 aLength);
 
     bool IsTerminatedOrInterrupted() {
       mozilla::MutexAutoLock autoLock(mTerminatedMutex);
@@ -261,40 +246,22 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
 
 
-    nsresult SniffStreamBytes(const uint8_t* aFromSegment,
-                              uint32_t aCount,
-                              uint32_t* aWriteCount);
+    nsresult SniffStreamBytes(const PRUint8* aFromSegment,
+                              PRUint32 aCount,
+                              PRUint32* aWriteCount);
 
     
 
 
-    nsresult WriteStreamBytes(const uint8_t* aFromSegment,
-                              uint32_t aCount,
-                              uint32_t* aWriteCount);
+    nsresult WriteStreamBytes(const PRUint8* aFromSegment,
+                              PRUint32 aCount,
+                              PRUint32* aWriteCount);
 
     
 
 
-    void SniffBOMlessUTF16BasicLatin(const uint8_t* aFromSegment,
-                                     uint32_t aCountToSniffingLimit);
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-    nsresult FinalizeSniffing(const uint8_t* aFromSegment,
-                              uint32_t aCount,
-                              uint32_t* aWriteCount,
-                              uint32_t aCountToSniffingLimit);
+    void SniffBOMlessUTF16BasicLatin(const PRUint8* aFromSegment,
+                                     PRUint32 aCountToSniffingLimit);
 
     
 
@@ -307,9 +274,12 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
 
 
-    nsresult SetupDecodingAndWriteSniffingBufferAndCurrentSegment(const uint8_t* aFromSegment,
-                                                                  uint32_t aCount,
-                                                                  uint32_t* aWriteCount);
+
+
+    nsresult FinalizeSniffing(const PRUint8* aFromSegment,
+                              PRUint32 aCount,
+                              PRUint32* aWriteCount,
+                              PRUint32 aCountToSniffingLimit);
 
     
 
@@ -322,9 +292,24 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
 
 
-    nsresult WriteSniffingBufferAndCurrentSegment(const uint8_t* aFromSegment,
-                                                  uint32_t aCount,
-                                                  uint32_t* aWriteCount);
+    nsresult SetupDecodingAndWriteSniffingBufferAndCurrentSegment(const PRUint8* aFromSegment,
+                                                                  PRUint32 aCount,
+                                                                  PRUint32* aWriteCount);
+
+    
+
+
+
+
+
+
+
+
+
+
+    nsresult WriteSniffingBufferAndCurrentSegment(const PRUint8* aFromSegment,
+                                                  PRUint32 aCount,
+                                                  PRUint32* aWriteCount);
 
     
 
@@ -338,16 +323,6 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
     nsresult SetupDecodingFromBom(const char* aCharsetName,
                                   const char* aDecoderCharsetName);
-
-    
-
-
-
-
-
-
-
-    bool PreferredForInternalEncodingDecl(nsACString& aEncoding);
 
     
 
@@ -366,22 +341,17 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
 
 
-    nsCString                     mViewSourceTitle;
-
-    
-
-
     nsCOMPtr<nsIUnicodeDecoder>   mUnicodeDecoder;
 
     
 
 
-    nsAutoArrayPtr<uint8_t>       mSniffingBuffer;
+    nsAutoArrayPtr<PRUint8>       mSniffingBuffer;
 
     
 
 
-    uint32_t                      mSniffingLength;
+    PRUint32                      mSniffingLength;
 
     
 
@@ -397,7 +367,7 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
 
 
-    int32_t                       mCharsetSource;
+    PRInt32                       mCharsetSource;
 
     
 
@@ -413,12 +383,12 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
 
 
-    nsRefPtr<nsHtml5OwningUTF16Buffer> mFirstBuffer;
+    nsRefPtr<nsHtml5UTF16Buffer>  mFirstBuffer;
 
     
 
 
-    nsHtml5OwningUTF16Buffer*     mLastBuffer; 
+    nsHtml5UTF16Buffer*           mLastBuffer; 
                       
 
     
@@ -510,11 +480,6 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
 
 
-    bool                          mInitialEncodingWasFromParentFrame;
-
-    
-
-
     nsCOMPtr<nsITimer>            mFlushTimer;
 
     
@@ -531,21 +496,16 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
 
 
-    eParserMode                   mMode;
+
+
+    static PRInt32                sTimerInitialDelay;
 
     
 
 
 
 
-    static int32_t                sTimerInitialDelay;
-
-    
-
-
-
-
-    static int32_t                sTimerSubsequentDelay;
+    static PRInt32                sTimerSubsequentDelay;
 };
 
 #endif 

@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "gfxUtils.h"
 #include "gfxContext.h"
 #include "gfxPlatform.h"
@@ -10,7 +42,6 @@
 #include "nsRegion.h"
 #include "yuv_convert.h"
 #include "ycbcr_to_rgb565.h"
-#include "sampler.h"
 
 #ifdef XP_WIN
 #include "gfxWindowsPlatform.h"
@@ -18,17 +49,16 @@
 
 using namespace mozilla;
 using namespace mozilla::layers;
-using namespace mozilla::gfx;
 
-static uint8_t sUnpremultiplyTable[256*256];
-static uint8_t sPremultiplyTable[256*256];
+static PRUint8 sUnpremultiplyTable[256*256];
+static PRUint8 sPremultiplyTable[256*256];
 static bool sTablesInitialized = false;
 
-static const uint8_t PremultiplyValue(uint8_t a, uint8_t v) {
+static const PRUint8 PremultiplyValue(PRUint8 a, PRUint8 v) {
     return sPremultiplyTable[a*256+v];
 }
 
-static const uint8_t UnpremultiplyValue(uint8_t a, uint8_t v) {
+static const PRUint8 UnpremultiplyValue(PRUint8 a, PRUint8 v) {
     return sUnpremultiplyTable[a*256+v];
 }
 
@@ -44,13 +74,13 @@ CalculateTables()
     
 
     
-    for (uint32_t c = 0; c <= 255; c++) {
+    for (PRUint32 c = 0; c <= 255; c++) {
         sUnpremultiplyTable[c] = c;
     }
 
     for (int a = 1; a <= 255; a++) {
         for (int c = 0; c <= 255; c++) {
-            sUnpremultiplyTable[a*256+c] = (uint8_t)((c * 255) / a);
+            sUnpremultiplyTable[a*256+c] = (PRUint8)((c * 255) / a);
         }
     }
 
@@ -62,7 +92,7 @@ CalculateTables()
         }
     }
 
-    sTablesInitialized = true;
+    sTablesInitialized = PR_TRUE;
 }
 
 void
@@ -93,26 +123,26 @@ gfxUtils::PremultiplyImageSurface(gfxImageSurface *aSourceSurface,
     if (!sTablesInitialized)
         CalculateTables();
 
-    uint8_t *src = aSourceSurface->Data();
-    uint8_t *dst = aDestSurface->Data();
+    PRUint8 *src = aSourceSurface->Data();
+    PRUint8 *dst = aDestSurface->Data();
 
-    uint32_t dim = aSourceSurface->Width() * aSourceSurface->Height();
-    for (uint32_t i = 0; i < dim; ++i) {
+    PRUint32 dim = aSourceSurface->Width() * aSourceSurface->Height();
+    for (PRUint32 i = 0; i < dim; ++i) {
 #ifdef IS_LITTLE_ENDIAN
-        uint8_t b = *src++;
-        uint8_t g = *src++;
-        uint8_t r = *src++;
-        uint8_t a = *src++;
+        PRUint8 b = *src++;
+        PRUint8 g = *src++;
+        PRUint8 r = *src++;
+        PRUint8 a = *src++;
 
         *dst++ = PremultiplyValue(a, b);
         *dst++ = PremultiplyValue(a, g);
         *dst++ = PremultiplyValue(a, r);
         *dst++ = a;
 #else
-        uint8_t a = *src++;
-        uint8_t r = *src++;
-        uint8_t g = *src++;
-        uint8_t b = *src++;
+        PRUint8 a = *src++;
+        PRUint8 r = *src++;
+        PRUint8 g = *src++;
+        PRUint8 b = *src++;
 
         *dst++ = a;
         *dst++ = PremultiplyValue(a, r);
@@ -150,77 +180,32 @@ gfxUtils::UnpremultiplyImageSurface(gfxImageSurface *aSourceSurface,
     if (!sTablesInitialized)
         CalculateTables();
 
-    uint8_t *src = aSourceSurface->Data();
-    uint8_t *dst = aDestSurface->Data();
+    PRUint8 *src = aSourceSurface->Data();
+    PRUint8 *dst = aDestSurface->Data();
 
-    uint32_t dim = aSourceSurface->Width() * aSourceSurface->Height();
-    for (uint32_t i = 0; i < dim; ++i) {
+    PRUint32 dim = aSourceSurface->Width() * aSourceSurface->Height();
+    for (PRUint32 i = 0; i < dim; ++i) {
 #ifdef IS_LITTLE_ENDIAN
-        uint8_t b = *src++;
-        uint8_t g = *src++;
-        uint8_t r = *src++;
-        uint8_t a = *src++;
+        PRUint8 b = *src++;
+        PRUint8 g = *src++;
+        PRUint8 r = *src++;
+        PRUint8 a = *src++;
 
         *dst++ = UnpremultiplyValue(a, b);
         *dst++ = UnpremultiplyValue(a, g);
         *dst++ = UnpremultiplyValue(a, r);
         *dst++ = a;
 #else
-        uint8_t a = *src++;
-        uint8_t r = *src++;
-        uint8_t g = *src++;
-        uint8_t b = *src++;
+        PRUint8 a = *src++;
+        PRUint8 r = *src++;
+        PRUint8 g = *src++;
+        PRUint8 b = *src++;
 
         *dst++ = a;
         *dst++ = UnpremultiplyValue(a, r);
         *dst++ = UnpremultiplyValue(a, g);
         *dst++ = UnpremultiplyValue(a, b);
 #endif
-    }
-}
-
-void
-gfxUtils::ConvertBGRAtoRGBA(gfxImageSurface *aSourceSurface,
-                            gfxImageSurface *aDestSurface) {
-    if (!aDestSurface)
-        aDestSurface = aSourceSurface;
-
-    NS_ABORT_IF_FALSE(aSourceSurface->Format() == aDestSurface->Format() &&
-                      aSourceSurface->Width() == aDestSurface->Width() &&
-                      aSourceSurface->Height() == aDestSurface->Height() &&
-                      aSourceSurface->Stride() == aDestSurface->Stride(),
-                      "Source and destination surfaces don't have identical characteristics");
-
-    NS_ABORT_IF_FALSE(aSourceSurface->Stride() == aSourceSurface->Width() * 4,
-                      "Source surface stride isn't tightly packed");
-
-    NS_ABORT_IF_FALSE(aSourceSurface->Format() == gfxASurface::ImageFormatARGB32,
-                      "Surfaces must be ARGB32");
-
-    uint8_t *src = aSourceSurface->Data();
-    uint8_t *dst = aDestSurface->Data();
-
-    uint32_t dim = aSourceSurface->Width() * aSourceSurface->Height();
-    uint8_t *srcEnd = src + 4*dim;
-
-    if (src == dst) {
-        uint8_t buffer[4];
-        for (; src != srcEnd; src += 4) {
-            buffer[0] = src[2];
-            buffer[1] = src[1];
-            buffer[2] = src[0];
-
-            src[0] = buffer[0];
-            src[1] = buffer[1];
-            src[2] = buffer[2];
-        }
-    } else {
-        for (; src != srcEnd; src += 4, dst += 4) {
-            dst[0] = src[2];
-            dst[1] = src[1];
-            dst[2] = src[0];
-            dst[3] = src[3];
-        }
     }
 }
 
@@ -261,7 +246,6 @@ CreateSamplingRestrictedDrawable(gfxDrawable* aDrawable,
                                  const gfxRect& aSubimage,
                                  const gfxImageSurface::gfxImageFormat aFormat)
 {
-    SAMPLE_LABEL("gfxUtils", "CreateSamplingRestricedDrawable");
     gfxRect userSpaceClipExtents = aContext->GetClipExtents();
     
     
@@ -283,22 +267,22 @@ CreateSamplingRestrictedDrawable(gfxDrawable* aDrawable,
     
     
     if (needed.IsEmpty())
-        return nullptr;
+        return nsnull;
 
-    gfxIntSize size(int32_t(needed.Width()), int32_t(needed.Height()));
+    gfxIntSize size(PRInt32(needed.Width()), PRInt32(needed.Height()));
     nsRefPtr<gfxASurface> temp =
         gfxPlatform::GetPlatform()->CreateOffscreenSurface(size, gfxASurface::ContentFromFormat(aFormat));
     if (!temp || temp->CairoStatus())
-        return nullptr;
+        return nsnull;
 
     nsRefPtr<gfxContext> tmpCtx = new gfxContext(temp);
     tmpCtx->SetOperator(OptimalFillOperator());
-    aDrawable->Draw(tmpCtx, needed - needed.TopLeft(), true,
+    aDrawable->Draw(tmpCtx, needed - needed.TopLeft(), PR_TRUE,
                     gfxPattern::FILTER_FAST, gfxMatrix().Translate(needed.TopLeft()));
 
     nsRefPtr<gfxPattern> resultPattern = new gfxPattern(temp);
     if (!resultPattern)
-        return nullptr;
+        return nsnull;
 
     nsRefPtr<gfxDrawable> drawable = 
         new gfxSurfaceDrawable(temp, size, gfxMatrix().Translate(-needed.TopLeft()));
@@ -312,11 +296,11 @@ struct NS_STACK_CLASS AutoCairoPixmanBugWorkaround
     AutoCairoPixmanBugWorkaround(gfxContext*      aContext,
                                  const gfxMatrix& aDeviceSpaceToImageSpace,
                                  const gfxRect&   aFill,
-                                 const gfxASurface* aSurface)
-     : mContext(aContext), mSucceeded(true), mPushedGroup(false)
+                                 const gfxASurface::gfxSurfaceType& aSurfaceType)
+     : mContext(aContext), mSucceeded(PR_TRUE), mPushedGroup(PR_FALSE)
     {
         
-        if (!aSurface || aSurface->GetType() == gfxASurface::SurfaceTypeQuartz)
+        if (aSurfaceType == gfxASurface::SurfaceTypeQuartz)
             return;
 
         if (!IsSafeImageTransformComponent(aDeviceSpaceToImageSpace.xx) ||
@@ -324,7 +308,7 @@ struct NS_STACK_CLASS AutoCairoPixmanBugWorkaround
             !IsSafeImageTransformComponent(aDeviceSpaceToImageSpace.yx) ||
             !IsSafeImageTransformComponent(aDeviceSpaceToImageSpace.yy)) {
             NS_WARNING("Scaling up too much, bailing out");
-            mSucceeded = false;
+            mSucceeded = PR_FALSE;
             return;
         }
 
@@ -348,7 +332,7 @@ struct NS_STACK_CLASS AutoCairoPixmanBugWorkaround
         mContext->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
         mContext->SetOperator(gfxContext::OPERATOR_OVER);
 
-        mPushedGroup = true;
+        mPushedGroup = PR_TRUE;
     }
 
     ~AutoCairoPixmanBugWorkaround()
@@ -382,73 +366,6 @@ DeviceToImageTransform(gfxContext* aContext,
     return gfxMatrix(deviceToUser).Multiply(aUserSpaceToImageSpace);
 }
 
-
-#ifdef MOZ_GFX_OPTIMIZE_MOBILE
-static gfxPattern::GraphicsFilter ReduceResamplingFilter(gfxPattern::GraphicsFilter aFilter,
-                                                         int aImgWidth, int aImgHeight,
-                                                         float aSourceWidth, float aSourceHeight)
-{
-    
-    
-    const int kSmallImageSizeThreshold = 8;
-
-    
-    
-    
-    const float kLargeStretch = 3.0f;
-
-    if (aImgWidth <= kSmallImageSizeThreshold
-        || aImgHeight <= kSmallImageSizeThreshold) {
-        
-        
-        return gfxPattern::FILTER_NEAREST;
-    }
-
-    if (aImgHeight * kLargeStretch <= aSourceHeight || aImgWidth * kLargeStretch <= aSourceWidth) {
-        
-
-        
-        
-        
-        
-        if (fabs(aSourceWidth - aImgWidth)/aImgWidth < 0.5 || fabs(aSourceHeight - aImgHeight)/aImgHeight < 0.5)
-            return gfxPattern::FILTER_NEAREST;
-
-        
-        
-        return aFilter;
-    }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    return aFilter;
-}
-#else
-static gfxPattern::GraphicsFilter ReduceResamplingFilter(gfxPattern::GraphicsFilter aFilter,
-                                                          int aImgWidth, int aImgHeight,
-                                                          int aSourceWidth, int aSourceHeight)
-{
-    
-    return aFilter;
-}
-#endif
-
  void
 gfxUtils::DrawPixelSnapped(gfxContext*      aContext,
                            gfxDrawable*     aDrawable,
@@ -458,42 +375,22 @@ gfxUtils::DrawPixelSnapped(gfxContext*      aContext,
                            const gfxRect&   aImageRect,
                            const gfxRect&   aFill,
                            const gfxImageSurface::gfxImageFormat aFormat,
-                           gfxPattern::GraphicsFilter aFilter,
-                           uint32_t         aImageFlags)
+                           const gfxPattern::GraphicsFilter& aFilter)
 {
-    SAMPLE_LABEL("gfxUtils", "DrawPixelSnapped");
-    bool doTile = !aImageRect.Contains(aSourceRect) &&
-                  !(aImageFlags & imgIContainer::FLAG_CLAMP);
+    bool doTile = !aImageRect.Contains(aSourceRect);
 
     nsRefPtr<gfxASurface> currentTarget = aContext->CurrentSurface();
+    gfxASurface::gfxSurfaceType surfaceType = currentTarget->GetType();
     gfxMatrix deviceSpaceToImageSpace =
         DeviceToImageTransform(aContext, aUserSpaceToImageSpace);
 
     AutoCairoPixmanBugWorkaround workaround(aContext, deviceSpaceToImageSpace,
-                                            aFill, currentTarget);
+                                            aFill, surfaceType);
     if (!workaround.Succeeded())
         return;
 
     nsRefPtr<gfxDrawable> drawable = aDrawable;
 
-    aFilter = ReduceResamplingFilter(aFilter, aImageRect.Width(), aImageRect.Height(), aSourceRect.Width(), aSourceRect.Height());
-
-    gfxMatrix userSpaceToImageSpace = aUserSpaceToImageSpace;
-
-    
-    
-    
-#ifdef MOZ_GFX_OPTIMIZE_MOBILE
-    
-    
-    
-    
-    
-    if (doTile && (userSpaceToImageSpace.y0 > 16384.0 || userSpaceToImageSpace.x0 > 16384.0)) {
-        userSpaceToImageSpace.x0 = fmod(userSpaceToImageSpace.x0, aImageRect.width);
-        userSpaceToImageSpace.y0 = fmod(userSpaceToImageSpace.y0, aImageRect.height);
-    }
-#else
     
     
     
@@ -513,9 +410,8 @@ gfxUtils::DrawPixelSnapped(gfxContext*      aContext,
         
         
         
-        doTile = false;
+        doTile = PR_FALSE;
     }
-#endif
 
     gfxContext::GraphicsOperator op = aContext->CurrentOperator();
     if ((op == gfxContext::OPERATOR_OVER || workaround.PushedGroup()) &&
@@ -523,7 +419,7 @@ gfxUtils::DrawPixelSnapped(gfxContext*      aContext,
         aContext->SetOperator(OptimalFillOperator());
     }
 
-    drawable->Draw(aContext, aFill, doTile, aFilter, userSpaceToImageSpace);
+    drawable->Draw(aContext, aFill, doTile, aFilter, aUserSpaceToImageSpace);
 
     aContext->SetOperator(op);
 }
@@ -551,7 +447,7 @@ PathFromRegionInternal(gfxContext* aContext, const nsIntRegion& aRegion,
   aContext->NewPath();
   nsIntRegionRectIterator iter(aRegion);
   const nsIntRect* r;
-  while ((r = iter.Next()) != nullptr) {
+  while ((r = iter.Next()) != nsnull) {
     aContext->Rectangle(gfxRect(r->x, r->y, r->width, r->height), aSnap);
   }
 }
@@ -567,13 +463,13 @@ ClipToRegionInternal(gfxContext* aContext, const nsIntRegion& aRegion,
  void
 gfxUtils::ClipToRegion(gfxContext* aContext, const nsIntRegion& aRegion)
 {
-  ClipToRegionInternal(aContext, aRegion, false);
+  ClipToRegionInternal(aContext, aRegion, PR_FALSE);
 }
 
  void
 gfxUtils::ClipToRegionSnapped(gfxContext* aContext, const nsIntRegion& aRegion)
 {
-  ClipToRegionInternal(aContext, aRegion, true);
+  ClipToRegionInternal(aContext, aRegion, PR_TRUE);
 }
 
  gfxFloat
@@ -601,30 +497,28 @@ gfxUtils::ClampToScaleFactor(gfxFloat aVal)
     power = ceil(power);
   }
 
-  gfxFloat scale = pow(kScaleResolution, power);
-
-  return NS_MAX(scale, 1.0);
+  return pow(kScaleResolution, power);
 }
 
 
  void
 gfxUtils::PathFromRegion(gfxContext* aContext, const nsIntRegion& aRegion)
 {
-  PathFromRegionInternal(aContext, aRegion, false);
+  PathFromRegionInternal(aContext, aRegion, PR_FALSE);
 }
 
  void
 gfxUtils::PathFromRegionSnapped(gfxContext* aContext, const nsIntRegion& aRegion)
 {
-  PathFromRegionInternal(aContext, aRegion, true);
+  PathFromRegionInternal(aContext, aRegion, PR_TRUE);
 }
 
 
 bool
 gfxUtils::GfxRectToIntRect(const gfxRect& aIn, nsIntRect* aOut)
 {
-  *aOut = nsIntRect(int32_t(aIn.X()), int32_t(aIn.Y()),
-  int32_t(aIn.Width()), int32_t(aIn.Height()));
+  *aOut = nsIntRect(PRInt32(aIn.X()), PRInt32(aIn.Y()),
+  PRInt32(aIn.Width()), PRInt32(aIn.Height()));
   return gfxRect(aOut->x, aOut->y, aOut->width, aOut->height).IsEqualEdges(aIn);
 }
 
@@ -660,7 +554,7 @@ gfxUtils::GetYCbCrToRGBDestFormatAndSize(const PlanarYCbCrImage::Data& aData,
                                         aData.mPicSize.width,
                                         aData.mPicSize.height,
                                         yuvtype)) {
-      prescale = false;
+      prescale = PR_FALSE;
     }
 #else
     
@@ -675,7 +569,7 @@ gfxUtils::GetYCbCrToRGBDestFormatAndSize(const PlanarYCbCrImage::Data& aData,
     
 
     if (aData.mPicX != 0 || aData.mPicY != 0 || yuvtype == gfx::YV24)
-      prescale = false;
+      prescale = PR_FALSE;
   }
   if (!prescale) {
     aSuggestedSize = aData.mPicSize;
@@ -687,7 +581,7 @@ gfxUtils::ConvertYCbCrToRGB(const PlanarYCbCrImage::Data& aData,
                             const gfxASurface::gfxImageFormat& aDestFormat,
                             const gfxIntSize& aDestSize,
                             unsigned char* aDestBuffer,
-                            int32_t aStride)
+                            PRInt32 aStride)
 {
   gfx::YUVType yuvtype =
     gfx::TypeFromSize(aData.mYSize.width,
@@ -761,46 +655,3 @@ gfxUtils::ConvertYCbCrToRGB(const PlanarYCbCrImage::Data& aData,
                                yuvtype);
   }
 }
-
-#ifdef MOZ_DUMP_PAINTING
- void
-gfxUtils::WriteAsPNG(DrawTarget* aDT, const char* aFile)
-{
-  aDT->Flush();
-  nsRefPtr<gfxASurface> surf = gfxPlatform::GetPlatform()->GetThebesSurfaceForDrawTarget(aDT);
-  if (surf) {
-    surf->WriteAsPNG(aFile);
-  } else {
-    NS_WARNING("Failed to get Thebes surface!");
-  }
-}
-
- void
-gfxUtils::DumpAsDataURL(DrawTarget* aDT)
-{
-  aDT->Flush();
-  nsRefPtr<gfxASurface> surf = gfxPlatform::GetPlatform()->GetThebesSurfaceForDrawTarget(aDT);
-  if (surf) {
-    surf->DumpAsDataURL();
-  } else {
-    NS_WARNING("Failed to get Thebes surface!");
-  }
-}
-
- void
-gfxUtils::CopyAsDataURL(DrawTarget* aDT)
-{
-  aDT->Flush();
-  nsRefPtr<gfxASurface> surf = gfxPlatform::GetPlatform()->GetThebesSurfaceForDrawTarget(aDT);
-  if (surf) {
-    surf->CopyAsDataURL();
-  } else {
-    NS_WARNING("Failed to get Thebes surface!");
-  }
-}
-
-bool gfxUtils::sDumpPaintList = getenv("MOZ_DUMP_PAINT_LIST") != 0;
-bool gfxUtils::sDumpPainting = getenv("MOZ_DUMP_PAINT") != 0;
-bool gfxUtils::sDumpPaintingToFile = getenv("MOZ_DUMP_PAINT_TO_FILE") != 0;
-FILE *gfxUtils::sDumpPaintFile = NULL;
-#endif

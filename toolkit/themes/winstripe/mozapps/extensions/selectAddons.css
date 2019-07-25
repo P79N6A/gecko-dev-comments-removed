@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #view-deck {
   background: Window;
 }
@@ -137,10 +170,6 @@
   list-style-image: url("chrome://mozapps/skin/plugins/pluginGeneric-16.png");
 }
 
-.addon-icon[type="dictionary"] {
-  list-style-image: url("chrome://mozapps/skin/extensions/dictionaryGeneric-16.png");
-}
-
 .action-list {
   margin-top: 10px;
   -moz-margin-start: 5em;
@@ -174,7 +203,7 @@
 }
 
 %ifdef WINSTRIPE_AERO
-@media (-moz-windows-default-theme) {
+@media all and (-moz-windows-default-theme) {
   #footer {
     background-color: #f1f5fb;
     box-shadow: 0px 1px 2px rgb(204,214,234) inset;

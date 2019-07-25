@@ -42,6 +42,7 @@
  
 #include "nsApplicationAccessible.h"
 
+#include "Relation.h"
 #include "States.h"
 #include "nsAccessibilityService.h"
 #include "nsAccUtils.h"
@@ -170,38 +171,20 @@ nsApplicationAccessible::ChildAtPoint(PRInt32 aX, PRInt32 aY,
   return nsnull;
 }
 
-NS_IMETHODIMP
-nsApplicationAccessible::GetRelationByType(PRUint32 aRelationType,
-                                           nsIAccessibleRelation **aRelation)
+nsAccessible*
+nsApplicationAccessible::FocusedChild()
 {
-  NS_ENSURE_ARG_POINTER(aRelation);
-  *aRelation = nsnull;
-  return NS_OK;
+  nsAccessible* focus = FocusMgr()->FocusedAccessible();
+  if (focus && focus->Parent() == this)
+    return focus;
+
+  return nsnull;
 }
 
-NS_IMETHODIMP
-nsApplicationAccessible::GetRelationsCount(PRUint32 *aCount)
+Relation
+nsApplicationAccessible::RelationByType(PRUint32 aRelationType)
 {
-  NS_ENSURE_ARG_POINTER(aCount);
-  *aCount = 0;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsApplicationAccessible::GetRelation(PRUint32 aIndex,
-                                     nsIAccessibleRelation **aRelation)
-{
-  NS_ENSURE_ARG_POINTER(aRelation);
-  *aRelation = nsnull;
-  return NS_ERROR_INVALID_ARG;
-}
-
-NS_IMETHODIMP
-nsApplicationAccessible::GetRelations(nsIArray **aRelations)
-{
-  NS_ENSURE_ARG_POINTER(aRelations);
-  *aRelations = nsnull;
-  return NS_OK;
+  return Relation();
 }
 
 NS_IMETHODIMP
@@ -220,7 +203,7 @@ nsApplicationAccessible::GetBounds(PRInt32 *aX, PRInt32 *aY,
 }
 
 NS_IMETHODIMP
-nsApplicationAccessible::SetSelected(PRBool aIsSelected)
+nsApplicationAccessible::SetSelected(bool aIsSelected)
 {
   return NS_OK;
 }
@@ -331,7 +314,7 @@ nsApplicationAccessible::IsDefunct() const
   return nsAccessibilityService::IsShutdown();
 }
 
-PRBool
+bool
 nsApplicationAccessible::Init()
 {
   mAppInfo = do_GetService("@mozilla.org/xre/app-info;1");
@@ -408,7 +391,7 @@ nsApplicationAccessible::CacheChildren()
   if (NS_FAILED(rv))
     return;
 
-  PRBool hasMore = PR_FALSE;
+  bool hasMore = false;
   windowEnumerator->HasMoreElements(&hasMore);
   while (hasMore) {
     nsCOMPtr<nsISupports> window;

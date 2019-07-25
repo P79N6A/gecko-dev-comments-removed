@@ -1,7 +1,7 @@
 Cu.import("resource://services-sync/engines.js");
 Cu.import("resource://services-sync/engines/bookmarks.js");
 Cu.import("resource://services-sync/record.js");
-Cu.import("resource://services-common/log4moz.js");
+Cu.import("resource://services-sync/log4moz.js");
 Cu.import("resource://services-sync/util.js");
 
 Cu.import("resource://services-sync/service.js");
@@ -58,8 +58,6 @@ function serverForFoo(engine) {
 
 
 add_test(function test_annotation_uploaded() {
-  new SyncTestingInfrastructure();
-
   let startCount = smartBookmarkCount();
   
   _("Start count is " + startCount);
@@ -73,7 +71,9 @@ add_test(function test_annotation_uploaded() {
   _("Create a smart bookmark in the toolbar.");
   let parent = PlacesUtils.toolbarFolderId;
   let uri =
-    Utils.makeURI("place:sort=" +
+    Utils.makeURI("place:redirectsMode=" +
+                  Ci.nsINavHistoryQueryOptions.REDIRECTS_MODE_TARGET +
+                  "&sort=" +
                   Ci.nsINavHistoryQueryOptions.SORT_BY_VISITCOUNT_DESCENDING +
                   "&maxResults=10");
   let title = "Most Visited";
@@ -106,6 +106,10 @@ add_test(function test_annotation_uploaded() {
   do_check_eq(smartBookmarkCount(), startCount + 1);
 
   _("Sync record to the server.");
+  Svc.Prefs.set("username", "foo");
+  Service.serverURL = "http://localhost:8080/";
+  Service.clusterURL = "http://localhost:8080/";
+
   let server = serverForFoo(engine);
   let collection = server.user("foo").collection("bookmarks");
 
@@ -131,6 +135,7 @@ add_test(function test_annotation_uploaded() {
     
     
     
+    PlacesUtils.bookmarks.setItemGUID(mostVisitedID, "abcdefabcdef");
     PlacesUtils.bookmarks.setItemTitle(mostVisitedID, "Not Most Visited");
     PlacesUtils.bookmarks.changeBookmarkURI(
       mostVisitedID, Utils.makeURI("http://something/else"));
@@ -173,11 +178,11 @@ add_test(function test_annotation_uploaded() {
 });
 
 add_test(function test_smart_bookmarks_duped() {
-  new SyncTestingInfrastructure();
-
   let parent = PlacesUtils.toolbarFolderId;
   let uri =
-    Utils.makeURI("place:sort=" +
+    Utils.makeURI("place:redirectsMode=" +
+                  Ci.nsINavHistoryQueryOptions.REDIRECTS_MODE_TARGET +
+                  "&sort=" +
                   Ci.nsINavHistoryQueryOptions.SORT_BY_VISITCOUNT_DESCENDING +
                   "&maxResults=10");
   let title = "Most Visited";
@@ -187,6 +192,10 @@ add_test(function test_smart_bookmarks_duped() {
   let record = store.createRecord(mostVisitedGUID);
   
   _("Prepare sync.");
+  Svc.Prefs.set("username", "foo");
+  Service.serverURL = "http://localhost:8080/";
+  Service.clusterURL = "http://localhost:8080/";
+
   let server = serverForFoo(engine);
   let collection = server.user("foo").collection("bookmarks");
 

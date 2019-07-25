@@ -3,12 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "mozilla/dom/ContentChild.h"
-
-#include "mozilla/Attributes.h"
-#include "mozilla/Util.h"
-#include "mozilla/HashFunctions.h"
-
 #include "nsXULAppAPI.h"
 
 #include "mozilla/Preferences.h"
@@ -19,6 +48,7 @@
 #include "nsNetUtil.h"
 #include "nsIFile.h"
 #include "nsIInputStream.h"
+#include "nsILocalFile.h"
 #include "nsIObserverService.h"
 #include "nsIStringEnumerator.h"
 #include "nsIZipReader.h"
@@ -36,6 +66,7 @@
 #include "prefapi.h"
 #include "prefread.h"
 #include "prefapi_private_data.h"
+#include "PrefTuple.h"
 
 #include "mozilla/Omnijar.h"
 #include "nsZipArchive.h"
@@ -53,11 +84,10 @@ static NS_DEFINE_CID(kZipReaderCID, NS_ZIPREADER_CID);
 static nsresult openPrefFile(nsIFile* aFile);
 static nsresult pref_InitInitialObjects(void);
 static nsresult pref_LoadPrefsInDirList(const char *listId);
-static nsresult ReadExtensionPrefs(nsIFile *aFile);
 
-Preferences* Preferences::sPreferences = nullptr;
-nsIPrefBranch* Preferences::sRootBranch = nullptr;
-nsIPrefBranch* Preferences::sDefaultRootBranch = nullptr;
+Preferences* Preferences::sPreferences = nsnull;
+nsIPrefBranch2* Preferences::sRootBranch = nsnull;
+nsIPrefBranch* Preferences::sDefaultRootBranch = nsnull;
 bool Preferences::sShutdown = false;
 
 class ValueObserverHashKey : public PLDHashEntryHdr {
@@ -72,8 +102,9 @@ public:
 
   static PLDHashNumber HashKey(const ValueObserverHashKey *aKey)
   {
-    PLDHashNumber hash = HashString(aKey->mPrefName);
-    return AddToHash(hash, aKey->mCallback);
+    PRUint32 strHash = nsCRT::HashCode(aKey->mPrefName.BeginReading(),
+                                       aKey->mPrefName.Length());
+    return PR_ROTATE_LEFT32(strHash, 4) ^ NS_PTR_TO_UINT32(aKey->mCallback);
   }
 
   ValueObserverHashKey(const char *aPref, PrefChangedFunc aCallback) :
@@ -93,14 +124,14 @@ public:
     return const_cast<ValueObserverHashKey*>(this);
   }
 
-  enum { ALLOW_MEMMOVE = true };
+  enum { ALLOW_MEMMOVE = PR_TRUE };
 
   nsCString mPrefName;
   PrefChangedFunc mCallback;
 };
 
-class ValueObserver MOZ_FINAL : public nsIObserver,
-                                public ValueObserverHashKey
+class ValueObserver : public nsIObserver,
+                      public ValueObserverHashKey
 {
 public:
   NS_DECL_ISUPPORTS
@@ -138,7 +169,7 @@ ValueObserver::Observe(nsISupports     *aSubject,
   NS_ASSERTION(!nsCRT::strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID),
                "invalid topic");
   NS_ConvertUTF16toUTF8 data(aData);
-  for (uint32_t i = 0; i < mClosures.Length(); i++) {
+  for (PRUint32 i = 0; i < mClosures.Length(); i++) {
     mCallback(data.get(), mClosures.ElementAt(i));
   }
 
@@ -149,14 +180,14 @@ struct CacheData {
   void* cacheLocation;
   union {
     bool defaultValueBool;
-    int32_t defaultValueInt;
-    uint32_t defaultValueUint;
+    PRInt32 defaultValueInt;
+    PRUint32 defaultValueUint;
   };
 };
 
-static nsTArray<nsAutoPtr<CacheData> >* gCacheData = nullptr;
+static nsTArray<nsAutoPtr<CacheData> >* gCacheData = nsnull;
 static nsRefPtrHashtable<ValueObserverHashKey,
-                         ValueObserver>* gObserverTable = nullptr;
+                         ValueObserver>* gObserverTable = nsnull;
 
 
 Preferences*
@@ -167,11 +198,34 @@ Preferences::GetInstanceForService()
     return sPreferences;
   }
 
-  NS_ENSURE_TRUE(!sShutdown, nullptr);
+  NS_ENSURE_TRUE(!sShutdown, nsnull);
 
-  sRootBranch = new nsPrefBranch("", false);
+  InitStaticMembers(PR_TRUE);
+  NS_IF_ADDREF(sPreferences);
+  return sPreferences;
+}
+
+
+bool
+Preferences::InitStaticMembers(bool aForService)
+{
+  if (sShutdown || sPreferences) {
+    return sPreferences != nsnull;
+  }
+
+  
+  
+  
+  
+  if (!aForService) {
+    nsCOMPtr<nsIPrefService> prefService =
+      do_GetService(NS_PREFSERVICE_CONTRACTID);
+    return sPreferences != nsnull;
+  }
+
+  sRootBranch = new nsPrefBranch("", PR_FALSE);
   NS_ADDREF(sRootBranch);
-  sDefaultRootBranch = new nsPrefBranch("", true);
+  sDefaultRootBranch = new nsPrefBranch("", PR_TRUE);
   NS_ADDREF(sDefaultRootBranch);
 
   sPreferences = new Preferences();
@@ -180,7 +234,7 @@ Preferences::GetInstanceForService()
   if (NS_FAILED(sPreferences->Init())) {
     
     NS_RELEASE(sPreferences);
-    return nullptr;
+    return PR_FALSE;
   }
 
   gCacheData = new nsTArray<nsAutoPtr<CacheData> >();
@@ -188,28 +242,15 @@ Preferences::GetInstanceForService()
   gObserverTable = new nsRefPtrHashtable<ValueObserverHashKey, ValueObserver>();
   gObserverTable->Init();
 
-  NS_ADDREF(sPreferences);
-  return sPreferences;
-}
-
-
-bool
-Preferences::InitStaticMembers()
-{
-  if (!sShutdown && !sPreferences) {
-    nsCOMPtr<nsIPrefService> prefService =
-      do_GetService(NS_PREFSERVICE_CONTRACTID);
-  }
-
-  return sPreferences != nullptr;
+  return PR_TRUE;
 }
 
 
 void
 Preferences::Shutdown()
 {
-  if (!sShutdown) {
-    sShutdown = true; 
+  if (!sShutdown ) {
+    sShutdown = PR_TRUE; 
 
     
     
@@ -235,15 +276,15 @@ Preferences::~Preferences()
   NS_ASSERTION(sPreferences == this, "Isn't this the singleton instance?");
 
   delete gObserverTable;
-  gObserverTable = nullptr;
+  gObserverTable = nsnull;
 
   delete gCacheData;
-  gCacheData = nullptr;
+  gCacheData = nsnull;
 
   NS_RELEASE(sRootBranch);
   NS_RELEASE(sDefaultRootBranch);
 
-  sPreferences = nullptr;
+  sPreferences = nsnull;
 
   PREF_Cleanup();
 }
@@ -259,6 +300,7 @@ NS_IMPL_THREADSAFE_RELEASE(Preferences)
 NS_INTERFACE_MAP_BEGIN(Preferences)
     NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIPrefService)
     NS_INTERFACE_MAP_ENTRY(nsIPrefService)
+    NS_INTERFACE_MAP_ENTRY(nsIPrefServiceInternal)
     NS_INTERFACE_MAP_ENTRY(nsIObserver)
     NS_INTERFACE_MAP_ENTRY(nsIPrefBranch)
     NS_INTERFACE_MAP_ENTRY(nsIPrefBranch2)
@@ -284,12 +326,13 @@ Preferences::Init()
 
   using mozilla::dom::ContentChild;
   if (XRE_GetProcessType() == GeckoProcessType_Content) {
-    InfallibleTArray<PrefSetting> prefs;
-    ContentChild::GetSingleton()->SendReadPrefsArray(&prefs);
+    InfallibleTArray<PrefTuple> array;
+    ContentChild::GetSingleton()->SendReadPrefsArray(&array);
 
     
-    for (uint32_t i = 0; i < prefs.Length(); ++i) {
-      pref_SetPref(prefs[i]);
+    nsTArray<PrefTuple>::size_type index = array.Length();
+    while (index-- > 0) {
+      pref_SetPrefTuple(array[index], PR_TRUE);
     }
     return NS_OK;
   }
@@ -303,7 +346,7 @@ Preferences::Init()
 
 
 
-  rv = PREF_CopyCharPref("general.config.filename", getter_Copies(lockFileName), false);
+  rv = sRootBranch->GetCharPref("general.config.filename", getter_Copies(lockFileName));
   if (NS_SUCCEEDED(rv))
     NS_CreateServicesFromCategory("pref-config-startup",
                                   static_cast<nsISupports *>(static_cast<void *>(this)),
@@ -314,19 +357,14 @@ Preferences::Init()
   if (!observerService)
     return NS_ERROR_FAILURE;
 
-  rv = observerService->AddObserver(this, "profile-before-change", true);
+  rv = observerService->AddObserver(this, "profile-before-change", PR_TRUE);
 
-  observerService->AddObserver(this, "load-extension-defaults", true);
+  if (NS_SUCCEEDED(rv))
+    rv = observerService->AddObserver(this, "profile-do-change", PR_TRUE);
+
+  observerService->AddObserver(this, "load-extension-defaults", PR_TRUE);
 
   return(rv);
-}
-
-
-nsresult
-Preferences::ResetAndReadUserPrefs()
-{
-  sPreferences->ResetUserPrefs();
-  return sPreferences->ReadUserPrefs(nullptr);
 }
 
 NS_IMETHODIMP
@@ -341,12 +379,15 @@ Preferences::Observe(nsISupports *aSubject, const char *aTopic,
   if (!nsCRT::strcmp(aTopic, "profile-before-change")) {
     if (!nsCRT::strcmp(someData, NS_LITERAL_STRING("shutdown-cleanse").get())) {
       if (mCurrentFile) {
-        mCurrentFile->Remove(false);
-        mCurrentFile = nullptr;
+        mCurrentFile->Remove(PR_FALSE);
+        mCurrentFile = nsnull;
       }
     } else {
-      rv = SavePrefFile(nullptr);
+      rv = SavePrefFile(nsnull);
     }
+  } else if (!nsCRT::strcmp(aTopic, "profile-do-change")) {
+    ResetUserPrefs();
+    rv = ReadUserPrefs(nsnull);
   } else if (!strcmp(aTopic, "load-extension-defaults")) {
     pref_LoadPrefsInDirList(NS_EXT_PREFS_DEFAULTS_DIR_LIST);
   } else if (!nsCRT::strcmp(aTopic, "reload-default-prefs")) {
@@ -367,17 +408,15 @@ Preferences::ReadUserPrefs(nsIFile *aFile)
 
   nsresult rv;
 
-  if (nullptr == aFile) {
+  if (nsnull == aFile) {
     rv = UseDefaultPrefFile();
-    
-    
-    (void) UseUserPrefFile();
+    UseUserPrefFile();
 
     NotifyServiceObservers(NS_PREFSERVICE_READ_TOPIC_ID);
+
   } else {
     rv = ReadAndOwnUserPrefFile(aFile);
   }
-
   return rv;
 }
 
@@ -421,8 +460,9 @@ Preferences::SavePrefFile(nsIFile *aFile)
   return SavePrefFileInternal(aFile);
 }
 
-static nsresult
-ReadExtensionPrefs(nsIFile *aFile)
+
+NS_IMETHODIMP
+Preferences::ReadExtensionPrefs(nsILocalFile *aFile)
 {
   nsresult rv;
   nsCOMPtr<nsIZipReader> reader = do_CreateInstance(kZipReaderCID, &rv);
@@ -440,7 +480,7 @@ ReadExtensionPrefs(nsIFile *aFile)
 
   bool more;
   while (NS_SUCCEEDED(rv = files->HasMore(&more)) && more) {
-    nsAutoCString entry;
+    nsCAutoString entry;
     rv = files->GetNext(entry);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -448,8 +488,7 @@ ReadExtensionPrefs(nsIFile *aFile)
     rv = reader->GetInputStream(entry, getter_AddRefs(stream));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    uint64_t avail;
-    uint32_t read;
+    PRUint32 avail, read;
 
     PrefParseState ps;
     PREF_InitParseState(&ps, PREF_ReaderCallback, NULL);
@@ -460,34 +499,58 @@ ReadExtensionPrefs(nsIFile *aFile)
         break;
       }
 
-      PREF_ParseBuf(&ps, buffer, read);
+      rv = PREF_ParseBuf(&ps, buffer, read);
+      if (NS_FAILED(rv)) {
+        NS_WARNING("Pref stream parse failed");
+        break;
+      }
     }
     PREF_FinalizeParseState(&ps);
   }
   return rv;
 }
 
-void
-Preferences::SetPreference(const PrefSetting& aPref)
+NS_IMETHODIMP
+Preferences::PrefHasUserValue(const nsACString& aPrefName, bool* aHasValue)
 {
-  pref_SetPref(aPref);
+  *aHasValue = PREF_HasUserPref(aPrefName.BeginReading());
+  return NS_OK;
 }
 
-void
-Preferences::GetPreference(PrefSetting* aPref)
+NS_IMETHODIMP
+Preferences::SetPreference(const PrefTuple *aPref)
 {
-  PrefHashEntry *entry = pref_HashTableLookup(aPref->name().get());
-  if (!entry)
-    return;
-
-  pref_GetPrefFromEntry(entry, aPref);
+  return pref_SetPrefTuple(*aPref, PR_TRUE);
 }
 
-void
-Preferences::GetPreferences(InfallibleTArray<PrefSetting>* aPrefs)
+NS_IMETHODIMP
+Preferences::ClearContentPref(const nsACString& aPrefName)
 {
-  aPrefs->SetCapacity(PL_DHASH_TABLE_SIZE(&gHashTable));
-  PL_DHashTableEnumerate(&gHashTable, pref_GetPrefs, aPrefs);
+  return PREF_ClearUserPref(aPrefName.BeginReading());
+}
+
+NS_IMETHODIMP
+Preferences::MirrorPreference(const nsACString& aPrefName, PrefTuple *aPref)
+{
+  PrefHashEntry *pref = pref_HashTableLookup(PromiseFlatCString(aPrefName).get());
+
+  if (!pref)
+    return NS_ERROR_NOT_AVAILABLE;
+
+  pref_GetTupleFromEntry(pref, aPref);
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+Preferences::MirrorPreferences(nsTArray<PrefTuple,
+                                        nsTArrayInfallibleAllocator> *aArray)
+{
+  aArray->SetCapacity(PL_DHASH_TABLE_SIZE(&gHashTable));
+
+  PL_DHashTableEnumerate(&gHashTable, pref_MirrorPrefs, aArray);
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -495,9 +558,9 @@ Preferences::GetBranch(const char *aPrefRoot, nsIPrefBranch **_retval)
 {
   nsresult rv;
 
-  if ((nullptr != aPrefRoot) && (*aPrefRoot != '\0')) {
+  if ((nsnull != aPrefRoot) && (*aPrefRoot != '\0')) {
     
-    nsPrefBranch* prefBranch = new nsPrefBranch(aPrefRoot, false);
+    nsPrefBranch* prefBranch = new nsPrefBranch(aPrefRoot, PR_FALSE);
     if (!prefBranch)
       return NS_ERROR_OUT_OF_MEMORY;
 
@@ -517,7 +580,7 @@ Preferences::GetDefaultBranch(const char *aPrefRoot, nsIPrefBranch **_retval)
   }
 
   
-  nsPrefBranch* prefBranch = new nsPrefBranch(aPrefRoot, true);
+  nsPrefBranch* prefBranch = new nsPrefBranch(aPrefRoot, PR_TRUE);
   if (!prefBranch)
     return NS_ERROR_OUT_OF_MEMORY;
 
@@ -534,7 +597,7 @@ Preferences::NotifyServiceObservers(const char *aTopic)
     return NS_ERROR_FAILURE;
 
   nsISupports *subject = (nsISupports *)((nsIPrefService *)this);
-  observerService->NotifyObservers(subject, aTopic, nullptr);
+  observerService->NotifyObservers(subject, aTopic, nsnull);
   
   return NS_OK;
 }
@@ -542,7 +605,7 @@ Preferences::NotifyServiceObservers(const char *aTopic)
 nsresult
 Preferences::UseDefaultPrefFile()
 {
-  nsresult rv;
+  nsresult rv, rv2;
   nsCOMPtr<nsIFile> aFile;
 
   rv = NS_GetSpecialDirectory(NS_APP_PREFS_50_FILE, getter_AddRefs(aFile));
@@ -552,10 +615,8 @@ Preferences::UseDefaultPrefFile()
     
     
     if (NS_FAILED(rv)) {
-      if (NS_FAILED(SavePrefFileInternal(aFile)))
-        NS_ERROR("Failed to save new shared pref file");
-      else
-        rv = NS_OK;
+      rv2 = SavePrefFileInternal(aFile);
+      NS_ASSERTION(NS_SUCCEEDED(rv2), "Failed to save new shared pref file");
     }
   }
   
@@ -602,10 +663,10 @@ Preferences::MakeBackupPrefFile(nsIFile *aFile)
   bool exists = false;
   newFile->Exists(&exists);
   if (exists) {
-    rv = newFile->Remove(false);
+    rv = newFile->Remove(PR_FALSE);
     NS_ENSURE_SUCCESS(rv, rv);
   }
-  rv = aFile->CopyTo(nullptr, newFilename);
+  rv = aFile->CopyTo(nsnull, newFilename);
   NS_ENSURE_SUCCESS(rv, rv);
   return rv;
 }
@@ -640,7 +701,7 @@ Preferences::ReadAndOwnUserPrefFile(nsIFile *aFile)
 nsresult
 Preferences::SavePrefFileInternal(nsIFile *aFile)
 {
-  if (nullptr == aFile) {
+  if (nsnull == aFile) {
     
     
     if (!gDirty)
@@ -676,13 +737,15 @@ Preferences::WritePrefFile(nsIFile* aFile)
 
 
 
+
+
 "
     NS_LINEBREAK
     NS_LINEBREAK;
 
   nsCOMPtr<nsIOutputStream> outStreamSink;
   nsCOMPtr<nsIOutputStream> outStream;
-  uint32_t                  writeAmount;
+  PRUint32                  writeAmount;
   nsresult                  rv;
 
   if (!gHashTable.ops)
@@ -717,7 +780,7 @@ Preferences::WritePrefFile(nsIFile* aFile)
   outStream->Write(outHeader, sizeof(outHeader) - 1, &writeAmount);
 
   char** walker = valueArray;
-  for (uint32_t valueIdx = 0; valueIdx < gHashTable.entryCount; valueIdx++, walker++) {
+  for (PRUint32 valueIdx = 0; valueIdx < gHashTable.entryCount; valueIdx++, walker++) {
     if (*walker) {
       outStream->Write(*walker, strlen(*walker), &writeAmount);
       outStream->Write(NS_LINEBREAK, NS_LINEBREAK_LEN, &writeAmount);
@@ -738,7 +801,7 @@ Preferences::WritePrefFile(nsIFile* aFile)
     }
   }
 
-  gDirty = false;
+  gDirty = PR_FALSE;
   return NS_OK;
 }
 
@@ -750,15 +813,13 @@ static nsresult openPrefFile(nsIFile* aFile)
   if (NS_FAILED(rv)) 
     return rv;        
 
-  uint64_t fileSize64;
-  rv = inStr->Available(&fileSize64);
+  PRUint32 fileSize;
+  rv = inStr->Available(&fileSize);
   if (NS_FAILED(rv))
     return rv;
-  NS_ENSURE_TRUE(fileSize64 <= PR_UINT32_MAX, NS_ERROR_FILE_TOO_BIG);
 
-  uint32_t fileSize = (uint32_t)fileSize64;
   nsAutoArrayPtr<char> fileBuffer(new char[fileSize]);
-  if (fileBuffer == nullptr)
+  if (fileBuffer == nsnull)
     return NS_ERROR_OUT_OF_MEMORY;
 
   PrefParseState ps;
@@ -768,7 +829,7 @@ static nsresult openPrefFile(nsIFile* aFile)
   
   nsresult rv2 = NS_OK;
   for (;;) {
-    uint32_t amtRead = 0;
+    PRUint32 amtRead = 0;
     rv = inStr->Read((char*)fileBuffer, fileSize, &amtRead);
     if (NS_FAILED(rv) || amtRead == 0)
       break;
@@ -788,7 +849,7 @@ static nsresult openPrefFile(nsIFile* aFile)
 static int
 pref_CompareFileNames(nsIFile* aFile1, nsIFile* aFile2, void* )
 {
-  nsAutoCString filename1, filename2;
+  nsCAutoString filename1, filename2;
   aFile1->GetNativeLeafName(filename1);
   aFile2->GetNativeLeafName(filename2);
 
@@ -801,7 +862,7 @@ pref_CompareFileNames(nsIFile* aFile1, nsIFile* aFile2, void* )
 
 
 static nsresult
-pref_LoadPrefsInDir(nsIFile* aDir, char const *const *aSpecialFiles, uint32_t aSpecialFilesCount)
+pref_LoadPrefsInDir(nsIFile* aDir, char const *const *aSpecialFiles, PRUint32 aSpecialFilesCount)
 {
   nsresult rv, rv2;
   bool hasMoreElements;
@@ -813,7 +874,7 @@ pref_LoadPrefsInDir(nsIFile* aDir, char const *const *aSpecialFiles, uint32_t aS
   if (NS_FAILED(rv)) {
     
     
-    if (rv == NS_ERROR_FILE_NOT_FOUND || rv == NS_ERROR_FILE_TARGET_DOES_NOT_EXIST)
+    if (rv == NS_ERROR_FILE_NOT_FOUND)
       rv = NS_OK;
     return rv;
   }
@@ -826,7 +887,7 @@ pref_LoadPrefsInDir(nsIFile* aDir, char const *const *aSpecialFiles, uint32_t aS
   nsCOMPtr<nsIFile> prefFile;
 
   while (hasMoreElements && NS_SUCCEEDED(rv)) {
-    nsAutoCString leafName;
+    nsCAutoString leafName;
 
     rv = dirIterator->GetNext(getter_AddRefs(prefFile));
     if (NS_FAILED(rv)) {
@@ -841,9 +902,9 @@ pref_LoadPrefsInDir(nsIFile* aDir, char const *const *aSpecialFiles, uint32_t aS
                        nsCaseInsensitiveCStringComparator())) {
       bool shouldParse = true;
       
-      for (uint32_t i = 0; i < aSpecialFilesCount; ++i) {
+      for (PRUint32 i = 0; i < aSpecialFilesCount; ++i) {
         if (leafName.Equals(nsDependentCString(aSpecialFiles[i]))) {
-          shouldParse = false;
+          shouldParse = PR_FALSE;
           
           
           specialFiles.ReplaceObjectAt(prefFile, i);
@@ -866,10 +927,10 @@ pref_LoadPrefsInDir(nsIFile* aDir, char const *const *aSpecialFiles, uint32_t aS
     return rv;
   }
 
-  prefFiles.Sort(pref_CompareFileNames, nullptr);
+  prefFiles.Sort(pref_CompareFileNames, nsnull);
   
-  uint32_t arrayCount = prefFiles.Count();
-  uint32_t i;
+  PRUint32 arrayCount = prefFiles.Count();
+  PRUint32 i;
   for (i = 0; i < arrayCount; ++i) {
     rv2 = openPrefFile(prefFiles[i]);
     if (NS_FAILED(rv2)) {
@@ -898,35 +959,25 @@ static nsresult pref_LoadPrefsInDirList(const char *listId)
 {
   nsresult rv;
   nsCOMPtr<nsIProperties> dirSvc(do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID, &rv));
-  if (NS_FAILED(rv))
-    return rv;
+  if (NS_FAILED(rv)) return rv;
 
-  nsCOMPtr<nsISimpleEnumerator> list;
+  nsCOMPtr<nsISimpleEnumerator> dirList;
   dirSvc->Get(listId,
               NS_GET_IID(nsISimpleEnumerator),
-              getter_AddRefs(list));
-  if (!list)
-    return NS_OK;
-
-  bool hasMore;
-  while (NS_SUCCEEDED(list->HasMoreElements(&hasMore)) && hasMore) {
-    nsCOMPtr<nsISupports> elem;
-    list->GetNext(getter_AddRefs(elem));
-    if (!elem)
-      continue;
-
-    nsCOMPtr<nsIFile> path = do_QueryInterface(elem);
-    if (!path)
-      continue;
-
-    nsAutoCString leaf;
-    path->GetNativeLeafName(leaf);
-
-    
-    if (Substring(leaf, leaf.Length() - 4).Equals(NS_LITERAL_CSTRING(".xpi")))
-      ReadExtensionPrefs(path);
-    else
-      pref_LoadPrefsInDir(path, nullptr, 0);
+              getter_AddRefs(dirList));
+  if (dirList) {
+    bool hasMore;
+    while (NS_SUCCEEDED(dirList->HasMoreElements(&hasMore)) && hasMore) {
+      nsCOMPtr<nsISupports> elem;
+      dirList->GetNext(getter_AddRefs(elem));
+      if (elem) {
+        nsCOMPtr<nsIFile> dir = do_QueryInterface(elem);
+        if (dir) {
+          
+          pref_LoadPrefsInDir(dir, nsnull, 0); 
+        }
+      }
+    }
   }
   return NS_OK;
 }
@@ -938,10 +989,10 @@ static nsresult pref_ReadPrefFromJar(nsZipArchive* jarReader, const char *name)
 
   PrefParseState ps;
   PREF_InitParseState(&ps, PREF_ReaderCallback, NULL);
-  PREF_ParseBuf(&ps, manifest, manifest.Length());
+  nsresult rv = PREF_ParseBuf(&ps, manifest, manifest.Length());
   PREF_FinalizeParseState(&ps);
 
-  return NS_OK;
+  return rv;
 }
 
 
@@ -970,18 +1021,14 @@ static nsresult pref_InitInitialObjects()
   
   
   
-  
-  
-  
-  
 
   nsZipFind *findPtr;
   nsAutoPtr<nsZipFind> find;
   nsTArray<nsCString> prefEntries;
   const char *entryName;
-  uint16_t entryNameLen;
+  PRUint16 entryNameLen;
 
-  nsRefPtr<nsZipArchive> jarReader = mozilla::Omnijar::GetReader(mozilla::Omnijar::GRE);
+  nsZipArchive* jarReader = mozilla::Omnijar::GetReader(mozilla::Omnijar::GRE);
   if (jarReader) {
     
     rv = pref_ReadPrefFromJar(jarReader, "greprefs.js");
@@ -993,11 +1040,11 @@ static nsresult pref_InitInitialObjects()
 
     find = findPtr;
     while (NS_SUCCEEDED(find->FindNext(&entryName, &entryNameLen))) {
-      prefEntries.AppendElement(Substring(entryName, entryNameLen));
+      prefEntries.AppendElement(Substring(entryName, entryName + entryNameLen));
     }
 
     prefEntries.Sort();
-    for (uint32_t i = prefEntries.Length(); i--; ) {
+    for (PRUint32 i = prefEntries.Length(); i--; ) {
       rv = pref_ReadPrefFromJar(jarReader, prefEntries[i].get());
       if (NS_FAILED(rv))
         NS_WARNING("Error parsing preferences.");
@@ -1042,27 +1089,22 @@ static nsresult pref_InitInitialObjects()
 #endif
   };
 
-  rv = pref_LoadPrefsInDir(defaultPrefDir, specialFiles, ArrayLength(specialFiles));
+  rv = pref_LoadPrefsInDir(defaultPrefDir, specialFiles, NS_ARRAY_LENGTH(specialFiles));
   if (NS_FAILED(rv))
     NS_WARNING("Error parsing application default preferences.");
 
   
-  
-  nsRefPtr<nsZipArchive> appJarReader = mozilla::Omnijar::GetReader(mozilla::Omnijar::APP);
-  
-  
-  if (!appJarReader)
-    appJarReader = mozilla::Omnijar::GetReader(mozilla::Omnijar::GRE);
+  nsZipArchive *appJarReader = mozilla::Omnijar::GetReader(mozilla::Omnijar::APP);
   if (appJarReader) {
     rv = appJarReader->FindInit("defaults/preferences/*.js$", &findPtr);
     NS_ENSURE_SUCCESS(rv, rv);
     find = findPtr;
     prefEntries.Clear();
     while (NS_SUCCEEDED(find->FindNext(&entryName, &entryNameLen))) {
-      prefEntries.AppendElement(Substring(entryName, entryNameLen));
+      prefEntries.AppendElement(Substring(entryName, entryName + entryNameLen));
     }
     prefEntries.Sort();
-    for (uint32_t i = prefEntries.Length(); i--; ) {
+    for (PRUint32 i = prefEntries.Length(); i--; ) {
       rv = pref_ReadPrefFromJar(appJarReader, prefEntries[i].get());
       if (NS_FAILED(rv))
         NS_WARNING("Error parsing preferences.");
@@ -1073,14 +1115,14 @@ static nsresult pref_InitInitialObjects()
   NS_ENSURE_SUCCESS(rv, rv);
 
   NS_CreateServicesFromCategory(NS_PREFSERVICE_APPDEFAULTS_TOPIC_ID,
-                                nullptr, NS_PREFSERVICE_APPDEFAULTS_TOPIC_ID);
+                                nsnull, NS_PREFSERVICE_APPDEFAULTS_TOPIC_ID);
 
   nsCOMPtr<nsIObserverService> observerService =
     mozilla::services::GetObserverService();
   if (!observerService)
     return NS_ERROR_FAILURE;
 
-  observerService->NotifyObservers(nullptr, NS_PREFSERVICE_APPDEFAULTS_TOPIC_ID, nullptr);
+  observerService->NotifyObservers(nsnull, NS_PREFSERVICE_APPDEFAULTS_TOPIC_ID, nsnull);
 
   return pref_LoadPrefsInDirList(NS_EXT_PREFS_DEFAULTS_DIR_LIST);
 }
@@ -1098,16 +1140,16 @@ Preferences::GetBool(const char* aPref, bool* aResult)
 {
   NS_PRECONDITION(aResult, "aResult must not be NULL");
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
-  return PREF_GetBoolPref(aPref, aResult, false);
+  return sRootBranch->GetBoolPref(aPref, aResult);
 }
 
 
 nsresult
-Preferences::GetInt(const char* aPref, int32_t* aResult)
+Preferences::GetInt(const char* aPref, PRInt32* aResult)
 {
   NS_PRECONDITION(aResult, "aResult must not be NULL");
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
-  return PREF_GetIntPref(aPref, aResult, false);
+  return sRootBranch->GetIntPref(aPref, aResult);
 }
 
 
@@ -1115,7 +1157,7 @@ nsAdoptingCString
 Preferences::GetCString(const char* aPref)
 {
   nsAdoptingCString result;
-  PREF_CopyCharPref(aPref, getter_Copies(result), false);
+  GetCString(aPref, &result);
   return result;
 }
 
@@ -1134,8 +1176,8 @@ Preferences::GetCString(const char* aPref, nsACString* aResult)
 {
   NS_PRECONDITION(aResult, "aResult must not be NULL");
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
-  nsAutoCString result;
-  nsresult rv = PREF_CopyCharPref(aPref, getter_Copies(result), false);
+  nsCAutoString result;
+  nsresult rv = sRootBranch->GetCharPref(aPref, getter_Copies(result));
   if (NS_SUCCEEDED(rv)) {
     *aResult = result;
   }
@@ -1148,8 +1190,8 @@ Preferences::GetString(const char* aPref, nsAString* aResult)
 {
   NS_PRECONDITION(aResult, "aResult must not be NULL");
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
-  nsAutoCString result;
-  nsresult rv = PREF_CopyCharPref(aPref, getter_Copies(result), false);
+  nsCAutoString result;
+  nsresult rv = sRootBranch->GetCharPref(aPref, getter_Copies(result));
   if (NS_SUCCEEDED(rv)) {
     CopyUTF8toUTF16(result, *aResult);
   }
@@ -1216,54 +1258,47 @@ Preferences::GetComplex(const char* aPref, const nsIID &aType, void** aResult)
 nsresult
 Preferences::SetCString(const char* aPref, const char* aValue)
 {
-  NS_ENSURE_TRUE(XRE_GetProcessType() == GeckoProcessType_Default, NS_ERROR_NOT_AVAILABLE);
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
-  return PREF_SetCharPref(aPref, aValue, false);
+  return sRootBranch->SetCharPref(aPref, aValue);
 }
 
 
 nsresult
 Preferences::SetCString(const char* aPref, const nsACString &aValue)
 {
-  NS_ENSURE_TRUE(XRE_GetProcessType() == GeckoProcessType_Default, NS_ERROR_NOT_AVAILABLE);
-  NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
-  return PREF_SetCharPref(aPref, PromiseFlatCString(aValue).get(), false);
+  return SetCString(aPref, PromiseFlatCString(aValue).get());
 }
 
 
 nsresult
 Preferences::SetString(const char* aPref, const PRUnichar* aValue)
 {
-  NS_ENSURE_TRUE(XRE_GetProcessType() == GeckoProcessType_Default, NS_ERROR_NOT_AVAILABLE);
-  NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
-  return PREF_SetCharPref(aPref, NS_ConvertUTF16toUTF8(aValue).get(), false);
+  NS_ConvertUTF16toUTF8 utf8(aValue);
+  return SetCString(aPref, utf8.get());
 }
 
 
 nsresult
 Preferences::SetString(const char* aPref, const nsAString &aValue)
 {
-  NS_ENSURE_TRUE(XRE_GetProcessType() == GeckoProcessType_Default, NS_ERROR_NOT_AVAILABLE);
-  NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
-  return PREF_SetCharPref(aPref, NS_ConvertUTF16toUTF8(aValue).get(), false);
+  NS_ConvertUTF16toUTF8 utf8(aValue);
+  return SetCString(aPref, utf8.get());
 }
 
 
 nsresult
 Preferences::SetBool(const char* aPref, bool aValue)
 {
-  NS_ENSURE_TRUE(XRE_GetProcessType() == GeckoProcessType_Default, NS_ERROR_NOT_AVAILABLE);
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
-  return PREF_SetBoolPref(aPref, aValue, false);
+  return sRootBranch->SetBoolPref(aPref, aValue);
 }
 
 
 nsresult
-Preferences::SetInt(const char* aPref, int32_t aValue)
+Preferences::SetInt(const char* aPref, PRInt32 aValue)
 {
-  NS_ENSURE_TRUE(XRE_GetProcessType() == GeckoProcessType_Default, NS_ERROR_NOT_AVAILABLE);
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
-  return PREF_SetIntPref(aPref, aValue, false);
+  return sRootBranch->SetIntPref(aPref, aValue);
 }
 
 
@@ -1279,27 +1314,21 @@ Preferences::SetComplex(const char* aPref, const nsIID &aType,
 nsresult
 Preferences::ClearUser(const char* aPref)
 {
-  NS_ENSURE_TRUE(XRE_GetProcessType() == GeckoProcessType_Default, NS_ERROR_NOT_AVAILABLE);
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
-  return PREF_ClearUserPref(aPref);
+  return sRootBranch->ClearUserPref(aPref);
 }
 
 
 bool
 Preferences::HasUserValue(const char* aPref)
 {
-  NS_ENSURE_TRUE(InitStaticMembers(), false);
-  return PREF_HasUserPref(aPref);
-}
-
-
-int32_t
-Preferences::GetType(const char* aPref)
-{
-  NS_ENSURE_TRUE(InitStaticMembers(), nsIPrefBranch::PREF_INVALID);
-  int32_t result;
-  return NS_SUCCEEDED(sRootBranch->GetPrefType(aPref, &result)) ?
-    result : nsIPrefBranch::PREF_INVALID;
+  NS_ENSURE_TRUE(InitStaticMembers(), PR_FALSE);
+  bool hasUserValue;
+  nsresult rv = sRootBranch->PrefHasUserValue(aPref, &hasUserValue);
+  if (NS_FAILED(rv)) {
+    return PR_FALSE;
+  }
+  return hasUserValue;
 }
 
 
@@ -1308,7 +1337,7 @@ Preferences::AddStrongObserver(nsIObserver* aObserver,
                                const char* aPref)
 {
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
-  return sRootBranch->AddObserver(aPref, aObserver, false);
+  return sRootBranch->AddObserver(aPref, aObserver, PR_FALSE);
 }
 
 
@@ -1317,7 +1346,7 @@ Preferences::AddWeakObserver(nsIObserver* aObserver,
                              const char* aPref)
 {
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
-  return sRootBranch->AddObserver(aPref, aObserver, true);
+  return sRootBranch->AddObserver(aPref, aObserver, PR_TRUE);
 }
 
 
@@ -1337,7 +1366,7 @@ nsresult
 Preferences::AddStrongObservers(nsIObserver* aObserver,
                                 const char** aPrefs)
 {
-  for (uint32_t i = 0; aPrefs[i]; i++) {
+  for (PRUint32 i = 0; aPrefs[i]; i++) {
     nsresult rv = AddStrongObserver(aObserver, aPrefs[i]);
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -1349,7 +1378,7 @@ nsresult
 Preferences::AddWeakObservers(nsIObserver* aObserver,
                               const char** aPrefs)
 {
-  for (uint32_t i = 0; aPrefs[i]; i++) {
+  for (PRUint32 i = 0; aPrefs[i]; i++) {
     nsresult rv = AddWeakObserver(aObserver, aPrefs[i]);
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -1366,7 +1395,7 @@ Preferences::RemoveObservers(nsIObserver* aObserver,
   }
   NS_ENSURE_TRUE(sPreferences, NS_ERROR_NOT_AVAILABLE);
 
-  for (uint32_t i = 0; aPrefs[i]; i++) {
+  for (PRUint32 i = 0; aPrefs[i]; i++) {
     nsresult rv = RemoveObserver(aObserver, aPrefs[i]);
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -1393,8 +1422,8 @@ Preferences::RegisterCallback(PrefChangedFunc aCallback,
   observer->AppendClosure(aClosure);
   nsresult rv = AddStrongObserver(observer, aPref);
   NS_ENSURE_SUCCESS(rv, rv);
-  gObserverTable->Put(observer, observer);
-  return NS_OK;
+  return gObserverTable->Put(observer, observer) ? NS_OK :
+                                                   NS_ERROR_OUT_OF_MEMORY;
 }
 
 
@@ -1449,16 +1478,16 @@ Preferences::AddBoolVarCache(bool* aCache,
 static int IntVarChanged(const char* aPref, void* aClosure)
 {
   CacheData* cache = static_cast<CacheData*>(aClosure);
-  *((int32_t*)cache->cacheLocation) =
+  *((PRInt32*)cache->cacheLocation) =
     Preferences::GetInt(aPref, cache->defaultValueInt);
   return 0;
 }
 
 
 nsresult
-Preferences::AddIntVarCache(int32_t* aCache,
+Preferences::AddIntVarCache(PRInt32* aCache,
                             const char* aPref,
-                            int32_t aDefault)
+                            PRInt32 aDefault)
 {
   NS_ASSERTION(aCache, "aCache must not be NULL");
   *aCache = Preferences::GetInt(aPref, aDefault);
@@ -1472,16 +1501,16 @@ Preferences::AddIntVarCache(int32_t* aCache,
 static int UintVarChanged(const char* aPref, void* aClosure)
 {
   CacheData* cache = static_cast<CacheData*>(aClosure);
-  *((uint32_t*)cache->cacheLocation) =
+  *((PRUint32*)cache->cacheLocation) =
     Preferences::GetUint(aPref, cache->defaultValueUint);
   return 0;
 }
 
 
 nsresult
-Preferences::AddUintVarCache(uint32_t* aCache,
+Preferences::AddUintVarCache(PRUint32* aCache,
                              const char* aPref,
-                             uint32_t aDefault)
+                             PRUint32 aDefault)
 {
   NS_ASSERTION(aCache, "aCache must not be NULL");
   *aCache = Preferences::GetUint(aPref, aDefault);
@@ -1496,28 +1525,25 @@ Preferences::AddUintVarCache(uint32_t* aCache,
 nsresult
 Preferences::GetDefaultBool(const char* aPref, bool* aResult)
 {
-  NS_PRECONDITION(aResult, "aResult must not be NULL");
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
-  return PREF_GetBoolPref(aPref, aResult, true);
+  return sDefaultRootBranch->GetBoolPref(aPref, aResult);
 }
 
 
 nsresult
-Preferences::GetDefaultInt(const char* aPref, int32_t* aResult)
+Preferences::GetDefaultInt(const char* aPref, PRInt32* aResult)
 {
-  NS_PRECONDITION(aResult, "aResult must not be NULL");
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
-  return PREF_GetIntPref(aPref, aResult, true);
+  return sDefaultRootBranch->GetIntPref(aPref, aResult);
 }
 
 
 nsresult
 Preferences::GetDefaultCString(const char* aPref, nsACString* aResult)
 {
-  NS_PRECONDITION(aResult, "aResult must not be NULL");
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
-  nsAutoCString result;
-  nsresult rv = PREF_CopyCharPref(aPref, getter_Copies(result), true);
+  nsCAutoString result;
+  nsresult rv = sDefaultRootBranch->GetCharPref(aPref, getter_Copies(result));
   if (NS_SUCCEEDED(rv)) {
     *aResult = result;
   }
@@ -1528,10 +1554,9 @@ Preferences::GetDefaultCString(const char* aPref, nsACString* aResult)
 nsresult
 Preferences::GetDefaultString(const char* aPref, nsAString* aResult)
 {
-  NS_PRECONDITION(aResult, "aResult must not be NULL");
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
-  nsAutoCString result;
-  nsresult rv = PREF_CopyCharPref(aPref, getter_Copies(result), true);
+  nsCAutoString result;
+  nsresult rv = sDefaultRootBranch->GetCharPref(aPref, getter_Copies(result));
   if (NS_SUCCEEDED(rv)) {
     CopyUTF8toUTF16(result, *aResult);
   }
@@ -1583,7 +1608,7 @@ nsAdoptingCString
 Preferences::GetDefaultCString(const char* aPref)
 {
   nsAdoptingCString result;
-  PREF_CopyCharPref(aPref, getter_Copies(result), true);
+  GetDefaultCString(aPref, &result);
   return result;
 }
 
@@ -1612,16 +1637,6 @@ Preferences::GetDefaultComplex(const char* aPref, const nsIID &aType,
 {
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
   return sDefaultRootBranch->GetComplexValue(aPref, aType, aResult);
-}
-
-
-int32_t
-Preferences::GetDefaultType(const char* aPref)
-{
-  NS_ENSURE_TRUE(InitStaticMembers(), nsIPrefBranch::PREF_INVALID);
-  int32_t result;
-  return NS_SUCCEEDED(sDefaultRootBranch->GetPrefType(aPref, &result)) ?
-    result : nsIPrefBranch::PREF_INVALID;
 }
 
 } 

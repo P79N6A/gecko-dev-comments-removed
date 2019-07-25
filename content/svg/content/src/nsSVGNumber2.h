@@ -3,37 +3,69 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGNUMBER2_H__
 #define __NS_SVGNUMBER2_H__
 
-#include "nsAutoPtr.h"
-#include "nsCycleCollectionParticipant.h"
-#include "nsError.h"
+#include "nsIDOMSVGNumber.h"
 #include "nsIDOMSVGAnimatedNumber.h"
-#include "nsISMILAttr.h"
-#include "nsMathUtils.h"
 #include "nsSVGElement.h"
-#include "mozilla/Attributes.h"
+#include "nsDOMError.h"
+#include "nsMathUtils.h"
 
-class nsISMILAnimationElement;
+#ifdef MOZ_SMIL
+#include "nsISMILAttr.h"
 class nsSMILValue;
+class nsISMILType;
+#endif 
 
 class nsSVGNumber2
 {
 
 public:
-  void Init(uint8_t aAttrEnum = 0xff, float aValue = 0) {
+  void Init(PRUint8 aAttrEnum = 0xff, float aValue = 0) {
     mAnimVal = mBaseVal = aValue;
     mAttrEnum = aAttrEnum;
-    mIsAnimated = false;
-    mIsBaseSet = false;
+    mIsAnimated = PR_FALSE;
+    mIsBaseSet = PR_FALSE;
   }
 
   nsresult SetBaseValueString(const nsAString& aValue,
-                              nsSVGElement *aSVGElement);
+                              nsSVGElement *aSVGElement,
+                              bool aDoSetAttr);
   void GetBaseValueString(nsAString& aValue);
 
-  void SetBaseValue(float aValue, nsSVGElement *aSVGElement);
+  void SetBaseValue(float aValue, nsSVGElement *aSVGElement, bool aDoSetAttr);
   float GetBaseValue() const
     { return mBaseVal; }
   void SetAnimValue(float aValue, nsSVGElement *aSVGElement);
@@ -50,19 +82,21 @@ public:
 
   nsresult ToDOMAnimatedNumber(nsIDOMSVGAnimatedNumber **aResult,
                                nsSVGElement* aSVGElement);
+#ifdef MOZ_SMIL
   
   nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement);
+#endif 
 
 private:
 
   float mAnimVal;
   float mBaseVal;
-  uint8_t mAttrEnum; 
+  PRUint8 mAttrEnum; 
   bool mIsAnimated;
   bool mIsBaseSet;
 
 public:
-  struct DOMAnimatedNumber MOZ_FINAL : public nsIDOMSVGAnimatedNumber
+  struct DOMAnimatedNumber : public nsIDOMSVGAnimatedNumber
   {
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS(DOMAnimatedNumber)
@@ -80,7 +114,7 @@ public:
         if (!NS_finite(aValue)) {
           return NS_ERROR_ILLEGAL_VALUE;
         }
-        mVal->SetBaseValue(aValue, mSVGElement);
+        mVal->SetBaseValue(aValue, mSVGElement, PR_TRUE);
         return NS_OK;
       }
 
@@ -88,12 +122,15 @@ public:
     
     NS_IMETHOD GetAnimVal(float* aResult)
     {
+#ifdef MOZ_SMIL
       mSVGElement->FlushAnimations();
+#endif
       *aResult = mVal->GetAnimValue();
       return NS_OK;
     }
   };
 
+#ifdef MOZ_SMIL
   struct SMILNumber : public nsISMILAttr
   {
   public:
@@ -115,6 +152,7 @@ public:
     virtual void ClearAnimValue();
     virtual nsresult SetAnimValue(const nsSMILValue& aValue);
   };
+#endif 
 };
 
 #endif 

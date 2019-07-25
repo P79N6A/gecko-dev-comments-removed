@@ -3,7 +3,38 @@
 
 
 
-#if defined(MOZ_WIDGET_GTK)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if defined(MOZ_WIDGET_GTK2)
 #include "gfxPlatformGtk.h"
 #define gfxToolkitPlatform gfxPlatformGtk
 #elif defined(MOZ_WIDGET_QT)
@@ -25,14 +56,11 @@
 #include "gfxFT2FontList.h"
 #include <locale.h>
 #include "gfxHarfBuzzShaper.h"
-#ifdef MOZ_GRAPHITE
-#include "gfxGraphiteShaper.h"
-#endif
-#include "nsGkAtoms.h"
+#include "gfxUnicodeProperties.h"
+#include "gfxAtoms.h"
 #include "nsTArray.h"
 #include "nsUnicodeRange.h"
 #include "nsCRT.h"
-#include "nsXULAppAPI.h"
 
 #include "prlog.h"
 #include "prinit.h"
@@ -69,7 +97,7 @@ gfxFT2FontGroup::FontCallback(const nsAString& fontName,
 #endif
     }
 
-    return true;
+    return PR_TRUE;
 }
 
 gfxFT2FontGroup::gfxFT2FontGroup(const nsAString& families,
@@ -85,7 +113,7 @@ gfxFT2FontGroup::gfxFT2FontGroup(const nsAString& families,
 
     if (familyArray.Length() == 0) {
         nsAutoString prefFamilies;
-        gfxToolkitPlatform::GetPlatform()->GetPrefFonts(aStyle->language, prefFamilies, nullptr);
+        gfxToolkitPlatform::GetPlatform()->GetPrefFonts(aStyle->language, prefFamilies, nsnull);
         if (!prefFamilies.IsEmpty()) {
             ForEachFont(prefFamilies, aStyle->language, FontCallback, &familyArray);
         }
@@ -97,11 +125,11 @@ gfxFT2FontGroup::gfxFT2FontGroup(const nsAString& families,
         QFont defaultFont;
         QFontInfo fi (defaultFont);
         familyArray.AppendElement(nsDependentString(static_cast<const PRUnichar *>(fi.family().utf16())));
-#elif defined(MOZ_WIDGET_GTK)
+#elif defined(MOZ_WIDGET_GTK2)
         FcResult result;
-        FcChar8 *family = nullptr;
+        FcChar8 *family = nsnull;
         FcPattern* pat = FcPatternCreate();
-        FcPattern *match = FcFontMatch(nullptr, pat, &result);
+        FcPattern *match = FcFontMatch(nsnull, pat, &result);
         if (match)
             FcPatternGetString(match, FC_FAMILY, 0, &family);
         if (family)
@@ -113,13 +141,12 @@ gfxFT2FontGroup::gfxFT2FontGroup(const nsAString& families,
             familyArray.AppendElement(nsDependentString(logFont.lfFaceName));
 #elif defined(ANDROID)
         familyArray.AppendElement(NS_LITERAL_STRING("Droid Sans"));
-        familyArray.AppendElement(NS_LITERAL_STRING("Roboto"));
 #else
 #error "Platform not supported"
 #endif
     }
 
-    for (uint32_t i = 0; i < familyArray.Length(); i++) {
+    for (PRUint32 i = 0; i < familyArray.Length(); i++) {
         nsRefPtr<gfxFT2Font> font = gfxFT2Font::GetOrMakeFont(familyArray[i], &mStyle);
         if (font) {
             mFonts.AppendElement(font);
@@ -135,13 +162,13 @@ gfxFT2FontGroup::~gfxFT2FontGroup()
 gfxFontGroup *
 gfxFT2FontGroup::Copy(const gfxFontStyle *aStyle)
 {
-    return new gfxFT2FontGroup(mFamilies, aStyle, nullptr);
+    return new gfxFT2FontGroup(mFamilies, aStyle, nsnull);
 }
 
 
 
 
-uint32_t getUTF8CharAndNext(const uint8_t *aString, uint8_t *aLength)
+PRUint32 getUTF8CharAndNext(const PRUint8 *aString, PRUint8 *aLength)
 {
     *aLength = 1;
     if (aString[0] < 0x80) { 
@@ -178,7 +205,7 @@ AddFontNameToArray(const nsAString& aName,
             list->AppendElement(aName);
     }
 
-    return true;
+    return PR_TRUE;
 }
 
 void
@@ -189,8 +216,8 @@ gfxFT2FontGroup::FamilyListToArrayList(const nsString& aFamilies,
     nsAutoTArray<nsString, 15> fonts;
     ForEachFont(aFamilies, aLangGroup, AddFontNameToArray, &fonts);
 
-    uint32_t len = fonts.Length();
-    for (uint32_t i = 0; i < len; ++i) {
+    PRUint32 len = fonts.Length();
+    for (PRUint32 i = 0; i < len; ++i) {
         const nsString& str = fonts[i];
         nsRefPtr<gfxFontEntry> fe = (gfxToolkitPlatform::GetPlatform()->FindFontEntry(str, mStyle));
         aFontEntryList->AppendElement(fe);
@@ -202,7 +229,7 @@ void gfxFT2FontGroup::GetPrefFonts(nsIAtom *aLangGroup, nsTArray<nsRefPtr<gfxFon
     NS_ASSERTION(aLangGroup, "aLangGroup is null");
     gfxToolkitPlatform *platform = gfxToolkitPlatform::GetPlatform();
     nsAutoTArray<nsRefPtr<gfxFontEntry>, 5> fonts;
-    nsAutoCString key;
+    nsCAutoString key;
     aLangGroup->ToUTF8String(key);
     key.Append("-");
     key.AppendInt(GetStyle()->style);
@@ -221,8 +248,8 @@ void gfxFT2FontGroup::GetPrefFonts(nsIAtom *aLangGroup, nsTArray<nsRefPtr<gfxFon
     aFontEntryList.AppendElements(fonts);
 }
 
-static int32_t GetCJKLangGroupIndex(const char *aLangGroup) {
-    int32_t i;
+static PRInt32 GetCJKLangGroupIndex(const char *aLangGroup) {
+    PRInt32 i;
     for (i = 0; i < COUNT_OF_CJK_LANG_GROUP; i++) {
         if (!PL_strcasecmp(aLangGroup, sCJKLangGroup[i]))
             return i;
@@ -234,7 +261,7 @@ static int32_t GetCJKLangGroupIndex(const char *aLangGroup) {
 void gfxFT2FontGroup::GetCJKPrefFonts(nsTArray<nsRefPtr<gfxFontEntry> >& aFontEntryList) {
     gfxToolkitPlatform *platform = gfxToolkitPlatform::GetPlatform();
 
-    nsAutoCString key("x-internal-cjk-");
+    nsCAutoString key("x-internal-cjk-");
     key.AppendInt(mStyle.style);
     key.Append("-");
     key.AppendInt(mStyle.weight);
@@ -258,9 +285,9 @@ void gfxFT2FontGroup::GetCJKPrefFonts(nsTArray<nsRefPtr<gfxFontEntry> >& aFontEn
                 const char *start = p;
                 while (++p != p_end && *p != kComma)
                      ;
-                nsAutoCString lang(Substring(start, p));
-                lang.CompressWhitespace(false, true);
-                int32_t index = GetCJKLangGroupIndex(lang.get());
+                nsCAutoString lang(Substring(start, p));
+                lang.CompressWhitespace(PR_FALSE, PR_TRUE);
+                PRInt32 index = GetCJKLangGroupIndex(lang.get());
                 if (index >= 0) {
                     nsCOMPtr<nsIAtom> atom = do_GetAtom(sCJKLangGroup[index]);
                     GetPrefFonts(atom, aFontEntryList);
@@ -272,44 +299,44 @@ void gfxFT2FontGroup::GetCJKPrefFonts(nsTArray<nsRefPtr<gfxFontEntry> >& aFontEn
         
 #ifdef XP_WIN
         switch (::GetACP()) {
-            case 932: GetPrefFonts(nsGkAtoms::Japanese, aFontEntryList); break;
-            case 936: GetPrefFonts(nsGkAtoms::zh_cn, aFontEntryList); break;
-            case 949: GetPrefFonts(nsGkAtoms::ko, aFontEntryList); break;
+            case 932: GetPrefFonts(gfxAtoms::ja, aFontEntryList); break;
+            case 936: GetPrefFonts(gfxAtoms::zh_cn, aFontEntryList); break;
+            case 949: GetPrefFonts(gfxAtoms::ko, aFontEntryList); break;
             
-            case 950: GetPrefFonts(nsGkAtoms::zh_tw, aFontEntryList); break;
+            case 950: GetPrefFonts(gfxAtoms::zh_tw, aFontEntryList); break;
         }
 #else
         const char *ctype = setlocale(LC_CTYPE, NULL);
         if (ctype) {
             if (!PL_strncasecmp(ctype, "ja", 2)) {
-                GetPrefFonts(nsGkAtoms::Japanese, aFontEntryList);
+                GetPrefFonts(gfxAtoms::ja, aFontEntryList);
             } else if (!PL_strncasecmp(ctype, "zh_cn", 5)) {
-                GetPrefFonts(nsGkAtoms::zh_cn, aFontEntryList);
+                GetPrefFonts(gfxAtoms::zh_cn, aFontEntryList);
             } else if (!PL_strncasecmp(ctype, "zh_hk", 5)) {
-                GetPrefFonts(nsGkAtoms::zh_hk, aFontEntryList);
+                GetPrefFonts(gfxAtoms::zh_hk, aFontEntryList);
             } else if (!PL_strncasecmp(ctype, "zh_tw", 5)) {
-                GetPrefFonts(nsGkAtoms::zh_tw, aFontEntryList);
+                GetPrefFonts(gfxAtoms::zh_tw, aFontEntryList);
             } else if (!PL_strncasecmp(ctype, "ko", 2)) {
-                GetPrefFonts(nsGkAtoms::ko, aFontEntryList);
+                GetPrefFonts(gfxAtoms::ko, aFontEntryList);
             }
         }
 #endif
 
         
-        GetPrefFonts(nsGkAtoms::Japanese, aFontEntryList);
-        GetPrefFonts(nsGkAtoms::ko, aFontEntryList);
-        GetPrefFonts(nsGkAtoms::zh_cn, aFontEntryList);
-        GetPrefFonts(nsGkAtoms::zh_hk, aFontEntryList);
-        GetPrefFonts(nsGkAtoms::zh_tw, aFontEntryList);
+        GetPrefFonts(gfxAtoms::ja, aFontEntryList);
+        GetPrefFonts(gfxAtoms::ko, aFontEntryList);
+        GetPrefFonts(gfxAtoms::zh_cn, aFontEntryList);
+        GetPrefFonts(gfxAtoms::zh_hk, aFontEntryList);
+        GetPrefFonts(gfxAtoms::zh_tw, aFontEntryList);
 
         platform->SetPrefFontEntries(key, aFontEntryList);
     }
 }
 
 already_AddRefed<gfxFT2Font>
-gfxFT2FontGroup::WhichFontSupportsChar(const nsTArray<nsRefPtr<gfxFontEntry> >& aFontEntryList, uint32_t aCh)
+gfxFT2FontGroup::WhichFontSupportsChar(const nsTArray<nsRefPtr<gfxFontEntry> >& aFontEntryList, PRUint32 aCh)
 {
-    for (uint32_t i = 0; i < aFontEntryList.Length(); i++) {
+    for (PRUint32 i = 0; i < aFontEntryList.Length(); i++) {
         gfxFontEntry *fe = aFontEntryList[i].get();
         if (fe->HasCharacter(aCh)) {
             nsRefPtr<gfxFT2Font> font =
@@ -317,14 +344,14 @@ gfxFT2FontGroup::WhichFontSupportsChar(const nsTArray<nsRefPtr<gfxFontEntry> >& 
             return font.forget();
         }
     }
-    return nullptr;
+    return nsnull;
 }
 
 already_AddRefed<gfxFont>
-gfxFT2FontGroup::WhichPrefFontSupportsChar(uint32_t aCh)
+gfxFT2FontGroup::WhichPrefFontSupportsChar(PRUint32 aCh)
 {
     if (aCh > 0xFFFF)
-        return nullptr;
+        return nsnull;
 
     nsRefPtr<gfxFT2Font> selectedFont;
 
@@ -335,7 +362,7 @@ gfxFT2FontGroup::WhichPrefFontSupportsChar(uint32_t aCh)
 
     
     if (!selectedFont) {
-        uint32_t unicodeRange = FindCharUnicodeRange(aCh);
+        PRUint32 unicodeRange = FindCharUnicodeRange(aCh);
 
         
         if (unicodeRange == kRangeSetCJK) {
@@ -363,16 +390,15 @@ gfxFT2FontGroup::WhichPrefFontSupportsChar(uint32_t aCh)
         return f.forget();
     }
 
-    return nullptr;
+    return nsnull;
 }
 
 already_AddRefed<gfxFont>
-gfxFT2FontGroup::WhichSystemFontSupportsChar(uint32_t aCh, int32_t aRunScript)
+gfxFT2FontGroup::WhichSystemFontSupportsChar(PRUint32 aCh)
 {
 #if defined(XP_WIN) || defined(ANDROID)
     FontEntry *fe = static_cast<FontEntry*>
-        (gfxPlatformFontList::PlatformFontList()->
-            SystemFindFontForChar(aCh, aRunScript, &mStyle));
+        (gfxPlatformFontList::PlatformFontList()->FindFontForChar(aCh, GetFontAt(0)));
     if (fe) {
         nsRefPtr<gfxFT2Font> f = gfxFT2Font::GetOrMakeFont(fe, &mStyle);
         nsRefPtr<gfxFont> font = f.get();
@@ -386,7 +412,7 @@ gfxFT2FontGroup::WhichSystemFontSupportsChar(uint32_t aCh, int32_t aRunScript)
     if (selectedFont)
         return selectedFont.forget();
 #endif
-    return nullptr;
+    return nsnull;
 }
 
 #endif 
@@ -396,68 +422,56 @@ gfxFT2FontGroup::WhichSystemFontSupportsChar(uint32_t aCh, int32_t aRunScript)
 
 
 bool
-gfxFT2Font::ShapeWord(gfxContext *aContext,
-                      gfxShapedWord *aShapedWord,
-                      const PRUnichar *aString,
-                      bool aPreferPlatformShaping)
+gfxFT2Font::InitTextRun(gfxContext *aContext,
+                        gfxTextRun *aTextRun,
+                        const PRUnichar *aString,
+                        PRUint32 aRunStart,
+                        PRUint32 aRunLength,
+                        PRInt32 aRunScript,
+                        bool aPreferPlatformShaping)
 {
     bool ok = false;
 
-#ifdef MOZ_GRAPHITE
-    if (FontCanSupportGraphite()) {
-        if (gfxPlatform::GetPlatform()->UseGraphiteShaping()) {
-            if (!mGraphiteShaper) {
-                mGraphiteShaper = new gfxGraphiteShaper(this);
-            }
-            ok = mGraphiteShaper->ShapeWord(aContext, aShapedWord, aString);
-        }
-    }
-#endif
-
-    if (!ok && gfxPlatform::GetPlatform()->UseHarfBuzzForScript(aShapedWord->Script())) {
+    if (gfxPlatform::GetPlatform()->UseHarfBuzzForScript(aRunScript)) {
         if (!mHarfBuzzShaper) {
             gfxFT2LockedFace face(this);
             mFUnitsConvFactor = face.XScale();
 
             mHarfBuzzShaper = new gfxHarfBuzzShaper(this);
         }
-        ok = mHarfBuzzShaper->ShapeWord(aContext, aShapedWord, aString);
+        ok = mHarfBuzzShaper->InitTextRun(aContext, aTextRun, aString,
+                                          aRunStart, aRunLength, aRunScript);
     }
 
     if (!ok) {
-        AddRange(aShapedWord, aString);
+        AddRange(aTextRun, aString, aRunStart, aRunLength);
     }
 
-    if (IsSyntheticBold()) {
-        float synBoldOffset =
-            GetSyntheticBoldOffset() * CalcXScale(aContext);
-        aShapedWord->AdjustAdvancesForSyntheticBold(synBoldOffset);
-    }
+    aTextRun->AdjustAdvancesForSyntheticBold(aContext, aRunStart, aRunLength);
 
-    return true;
+    return PR_TRUE;
 }
 
 void
-gfxFT2Font::AddRange(gfxShapedWord *aShapedWord, const PRUnichar *str)
+gfxFT2Font::AddRange(gfxTextRun *aTextRun, const PRUnichar *str, PRUint32 offset, PRUint32 len)
 {
-    const uint32_t appUnitsPerDevUnit = aShapedWord->AppUnitsPerDevUnit();
+    const PRUint32 appUnitsPerDevUnit = aTextRun->GetAppUnitsPerDevUnit();
     
     gfxFT2LockedFace faceLock(this);
     FT_Face face = faceLock.get();
 
-    gfxShapedWord::CompressedGlyph g;
+    gfxTextRun::CompressedGlyph g;
 
-    const gfxFT2Font::CachedGlyphData *cgd = nullptr, *cgdNext = nullptr;
+    const gfxFT2Font::CachedGlyphData *cgd = nsnull, *cgdNext = nsnull;
 
     FT_UInt spaceGlyph = GetSpaceGlyph();
 
-    uint32_t len = aShapedWord->Length();
-    for (uint32_t i = 0; i < len; i++) {
-        PRUnichar ch = str[i];
+    for (PRUint32 i = 0; i < len; i++) {
+        PRUint32 ch = str[offset + i];
 
         if (ch == 0) {
             
-            aShapedWord->SetMissingGlyph(i, 0, this);
+            aTextRun->SetMissingGlyph(offset + i, 0);
             continue;
         }
 
@@ -465,25 +479,25 @@ gfxFT2Font::AddRange(gfxShapedWord *aShapedWord, const PRUnichar *str)
 
         if (cgdNext) {
             cgd = cgdNext;
-            cgdNext = nullptr;
+            cgdNext = nsnull;
         } else {
             cgd = GetGlyphDataForChar(ch);
         }
 
         FT_UInt gid = cgd->glyphIndex;
-        int32_t advance = 0;
+        PRInt32 advance = 0;
 
         if (gid == 0) {
             advance = -1; 
         } else {
             
             
-            PRUnichar chNext = 0;
+            PRUint32 chNext = 0;
             FT_UInt gidNext = 0;
             FT_Pos lsbDeltaNext = 0;
 
             if (FT_HAS_KERNING(face) && i + 1 < len) {
-                chNext = str[i + 1];
+                chNext = str[offset + i + 1];
                 if (chNext != 0) {
                     cgdNext = GetGlyphDataForChar(chNext);
                     gidNext = cgdNext->glyphIndex;
@@ -511,14 +525,18 @@ gfxFT2Font::AddRange(gfxShapedWord *aShapedWord, const PRUnichar *str)
             
             advance = ((advance * appUnitsPerDevUnit + 32) >> 6);
         }
+#ifdef DEBUG_thebes_2
+        printf(" gid=%d, advance=%d (%s)\n", gid, advance,
+               NS_LossyConvertUTF16toASCII(font->GetName()).get());
+#endif
 
         if (advance >= 0 &&
-            gfxShapedWord::CompressedGlyph::IsSimpleAdvance(advance) &&
-            gfxShapedWord::CompressedGlyph::IsSimpleGlyphID(gid)) {
-            aShapedWord->SetSimpleGlyph(i, g.SetSimpleGlyph(advance, gid));
+            gfxTextRun::CompressedGlyph::IsSimpleAdvance(advance) &&
+            gfxTextRun::CompressedGlyph::IsSimpleGlyphID(gid)) {
+            aTextRun->SetSimpleGlyph(offset + i, g.SetSimpleGlyph(advance, gid));
         } else if (gid == 0) {
             
-            aShapedWord->SetMissingGlyph(i, ch, this);
+            aTextRun->SetMissingGlyph(offset + i, ch);
         } else {
             gfxTextRun::DetailedGlyph details;
             details.mGlyphID = gid;
@@ -526,8 +544,8 @@ gfxFT2Font::AddRange(gfxShapedWord *aShapedWord, const PRUnichar *str)
             details.mAdvance = advance;
             details.mXOffset = 0;
             details.mYOffset = 0;
-            g.SetComplex(aShapedWord->IsClusterStart(i), true, 1);
-            aShapedWord->SetGlyphs(i, g, &details);
+            g.SetComplex(aTextRun->IsClusterStart(offset + i), PR_TRUE, 1);
+            aTextRun->SetGlyphs(offset + i, g, &details);
         }
     }
 }
@@ -572,7 +590,7 @@ gfxFT2Font::GetOrMakeFont(const nsAString& aName, const gfxFontStyle *aStyle,
 #endif
     if (!fe) {
         NS_WARNING("Failed to find font entry for font!");
-        return nullptr;
+        return nsnull;
     }
 
     nsRefPtr<gfxFT2Font> font = GetOrMakeFont(fe, aStyle, aNeedsBold);
@@ -589,23 +607,20 @@ gfxFT2Font::GetOrMakeFont(FT2FontEntry *aFontEntry, const gfxFontStyle *aStyle,
         font = new gfxFT2Font(scaledFont, aFontEntry, aStyle, aNeedsBold);
         cairo_scaled_font_destroy(scaledFont);
         if (!font)
-            return nullptr;
+            return nsnull;
         gfxFontCache::GetCache()->AddNew(font);
     }
-    gfxFont *f = nullptr;
+    gfxFont *f = nsnull;
     font.swap(f);
     return static_cast<gfxFT2Font *>(f);
 }
 
 void
-gfxFT2Font::FillGlyphDataForChar(uint32_t ch, CachedGlyphData *gd)
+gfxFT2Font::FillGlyphDataForChar(PRUint32 ch, CachedGlyphData *gd)
 {
     gfxFT2LockedFace faceLock(this);
     FT_Face face = faceLock.get();
 
-    if (!face->charmap || face->charmap->encoding != FT_ENCODING_UNICODE) {
-        FT_Select_Charmap(face, FT_ENCODING_UNICODE);
-    }
     FT_UInt gid = FT_Get_Char_Index(face, ch);
 
     if (gid == 0) {
@@ -615,10 +630,11 @@ gfxFT2Font::FillGlyphDataForChar(uint32_t ch, CachedGlyphData *gd)
         return;
     }
 
-    FT_Int32 flags = gfxPlatform::GetPlatform()->FontHintingEnabled() ?
-                     FT_LOAD_DEFAULT :
-                     (FT_LOAD_NO_AUTOHINT | FT_LOAD_NO_HINTING);
-    FT_Error err = FT_Load_Glyph(face, gid, flags);
+#ifdef MOZ_GFX_OPTIMIZE_MOBILE
+    FT_Error err = FT_Load_Glyph(face, gid, FT_LOAD_NO_AUTOHINT | FT_LOAD_NO_HINTING);
+#else
+    FT_Error err = FT_Load_Glyph(face, gid, FT_LOAD_DEFAULT);
+#endif
 
     if (err) {
         
@@ -632,21 +648,4 @@ gfxFT2Font::FillGlyphDataForChar(uint32_t ch, CachedGlyphData *gd)
     gd->lsbDelta = face->glyph->lsb_delta;
     gd->rsbDelta = face->glyph->rsb_delta;
     gd->xAdvance = face->glyph->advance.x;
-}
-
-void
-gfxFT2Font::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                FontCacheSizes*   aSizes) const
-{
-    gfxFont::SizeOfExcludingThis(aMallocSizeOf, aSizes);
-    aSizes->mFontInstances +=
-        mCharGlyphCache.SizeOfExcludingThis(nullptr, aMallocSizeOf);
-}
-
-void
-gfxFT2Font::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                FontCacheSizes*   aSizes) const
-{
-    aSizes->mFontInstances += aMallocSizeOf(this);
-    SizeOfExcludingThis(aMallocSizeOf, aSizes);
 }

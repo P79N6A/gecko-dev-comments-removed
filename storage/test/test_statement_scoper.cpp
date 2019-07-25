@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "storage_test_harness.h"
 
 #include "mozStorageHelper.h"
@@ -28,7 +61,7 @@ test_automatic_reset()
   ), getter_AddRefs(stmt));
 
   
-  int32_t state = -1;
+  PRInt32 state = -1;
   (void)stmt->GetState(&state);
   do_check_true(state == mozIStorageStatement::MOZ_STORAGE_STATEMENT_READY);
 
@@ -67,7 +100,7 @@ test_Abandon()
   ), getter_AddRefs(stmt));
 
   
-  int32_t state = -1;
+  PRInt32 state = -1;
   (void)stmt->GetState(&state);
   do_check_true(state == mozIStorageStatement::MOZ_STORAGE_STATEMENT_READY);
 

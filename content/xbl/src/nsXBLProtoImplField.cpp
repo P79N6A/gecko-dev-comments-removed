@@ -3,21 +3,55 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIAtom.h"
 #include "nsString.h"
 #include "jsapi.h"
+#include "nsIContent.h"
+#include "nsString.h"
 #include "nsUnicharUtils.h"
 #include "nsReadableUtils.h"
 #include "mozilla/FunctionTimer.h"
 #include "nsXBLProtoImplField.h"
 #include "nsIScriptContext.h"
+#include "nsContentUtils.h"
 #include "nsIURI.h"
-#include "nsXBLSerialize.h"
-#include "nsXBLPrototypeBinding.h"
 
 nsXBLProtoImplField::nsXBLProtoImplField(const PRUnichar* aName, const PRUnichar* aReadOnly)
-  : mNext(nullptr),
-    mFieldText(nullptr),
+  : mNext(nsnull),
+    mFieldText(nsnull),
     mFieldTextLength(0),
     mLineNumber(0)
 {
@@ -30,20 +64,6 @@ nsXBLProtoImplField::nsXBLProtoImplField(const PRUnichar* aName, const PRUnichar
     if (readOnly.LowerCaseEqualsLiteral("true"))
       mJSAttributes |= JSPROP_READONLY;
   }
-}
-
-
-nsXBLProtoImplField::nsXBLProtoImplField(const bool aIsReadOnly)
-  : mNext(nullptr),
-    mFieldText(nullptr),
-    mFieldTextLength(0),
-    mLineNumber(0)
-{
-  MOZ_COUNT_CTOR(nsXBLProtoImplField);
-
-  mJSAttributes = JSPROP_ENUMERATE;
-  if (aIsReadOnly)
-    mJSAttributes |= JSPROP_READONLY;
 }
 
 nsXBLProtoImplField::~nsXBLProtoImplField()
@@ -84,20 +104,17 @@ nsXBLProtoImplField::InstallField(nsIScriptContext* aContext,
                   "uh-oh, bound node should NOT be null or bad things will "
                   "happen");
 
-  *aDidInstall = false;
+  *aDidInstall = PR_FALSE;
 
-  
-  if (IsEmpty()) {
+  if (mFieldTextLength == 0) {
     return NS_OK;
   }
-
-  nsAutoMicroTask mt;
 
   
   
   nsresult rv;
 
-  nsAutoCString uriSpec;
+  nsCAutoString uriSpec;
   aBindingDocURI->GetSpec(uriSpec);
   
   JSContext* cx = aContext->GetNativeContext();
@@ -115,10 +132,9 @@ nsXBLProtoImplField::InstallField(nsIScriptContext* aContext,
                                         aBoundNode,
                                         aPrincipal, uriSpec.get(),
                                         mLineNumber, JSVERSION_LATEST,
-                                        &result, &undefined);
-  if (NS_FAILED(rv)) {
+                                        (void*) &result, &undefined);
+  if (NS_FAILED(rv))
     return rv;
-  }
 
   if (undefined) {
     result = JSVAL_VOID;
@@ -128,53 +144,11 @@ nsXBLProtoImplField::InstallField(nsIScriptContext* aContext,
   nsDependentString name(mName);
   if (!::JS_DefineUCProperty(cx, aBoundNode,
                              reinterpret_cast<const jschar*>(mName), 
-                             name.Length(), result, nullptr, nullptr,
+                             name.Length(), result, nsnull, nsnull,
                              mJSAttributes)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  *aDidInstall = true;
+  *aDidInstall = PR_TRUE;
   return NS_OK;
-}
-
-nsresult
-nsXBLProtoImplField::Read(nsIScriptContext* aContext,
-                          nsIObjectInputStream* aStream)
-{
-  nsAutoString name;
-  nsresult rv = aStream->ReadString(name);
-  NS_ENSURE_SUCCESS(rv, rv);
-  mName = ToNewUnicode(name);
-
-  rv = aStream->Read32(&mLineNumber);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsAutoString fieldText;
-  rv = aStream->ReadString(fieldText);
-  NS_ENSURE_SUCCESS(rv, rv);
-  mFieldTextLength = fieldText.Length();
-  if (mFieldTextLength)
-    mFieldText = ToNewUnicode(fieldText);
-
-  return NS_OK;
-}
-
-nsresult
-nsXBLProtoImplField::Write(nsIScriptContext* aContext,
-                           nsIObjectOutputStream* aStream)
-{
-  XBLBindingSerializeDetails type = XBLBinding_Serialize_Field;
-
-  if (mJSAttributes & JSPROP_READONLY) {
-    type |= XBLBinding_Serialize_ReadOnly;
-  }
-
-  nsresult rv = aStream->Write8(type);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = aStream->WriteWStringZ(mName);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = aStream->Write32(mLineNumber);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return aStream->WriteWStringZ(mFieldText ? mFieldText : EmptyString().get());
 }

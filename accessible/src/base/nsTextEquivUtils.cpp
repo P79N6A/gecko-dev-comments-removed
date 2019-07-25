@@ -5,25 +5,57 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsTextEquivUtils.h"
 
-#include "Accessible-inl.h"
 #include "AccIterator.h"
 #include "nsAccessibilityService.h"
+#include "nsAccessible.h"
 #include "nsAccUtils.h"
-#include "nsStyleStructInlines.h"
 
 #include "nsIDOMXULLabeledControlEl.h"
 
 #include "nsArrayUtils.h"
 
-using namespace mozilla::a11y;
+#define NS_OK_NO_NAME_CLAUSE_HANDLED \
+NS_ERROR_GENERATE_SUCCESS(NS_ERROR_MODULE_GENERAL, 0x24)
 
 
 
 
 nsresult
-nsTextEquivUtils::GetNameFromSubtree(Accessible* aAccessible,
+nsTextEquivUtils::GetNameFromSubtree(nsAccessible *aAccessible,
                                      nsAString& aName)
 {
   aName.Truncate();
@@ -32,7 +64,9 @@ nsTextEquivUtils::GetNameFromSubtree(Accessible* aAccessible,
     return NS_OK;
 
   gInitiatorAcc = aAccessible;
-  if (GetRoleRule(aAccessible->Role()) == eFromSubtree) {
+
+  PRUint32 nameRule = gRoleToNameRulesMap[aAccessible->Role()];
+  if (nameRule == eFromSubtree) {
     
     if (aAccessible->IsContent()) {
       nsAutoString name;
@@ -43,13 +77,13 @@ nsTextEquivUtils::GetNameFromSubtree(Accessible* aAccessible,
     }
   }
 
-  gInitiatorAcc = nullptr;
+  gInitiatorAcc = nsnull;
 
   return NS_OK;
 }
 
 nsresult
-nsTextEquivUtils::GetTextEquivFromIDRefs(Accessible* aAccessible,
+nsTextEquivUtils::GetTextEquivFromIDRefs(nsAccessible *aAccessible,
                                          nsIAtom *aIDRefsAttr,
                                          nsAString& aTextEquiv)
 {
@@ -59,8 +93,8 @@ nsTextEquivUtils::GetTextEquivFromIDRefs(Accessible* aAccessible,
   if (!content)
     return NS_OK;
 
-  nsIContent* refContent = nullptr;
-  IDRefsIterator iter(aAccessible->Document(), content, aIDRefsAttr);
+  nsIContent* refContent = nsnull;
+  IDRefsIterator iter(content, aIDRefsAttr);
   while ((refContent = iter.NextElem())) {
     if (!aTextEquiv.IsEmpty())
       aTextEquiv += ' ';
@@ -74,7 +108,7 @@ nsTextEquivUtils::GetTextEquivFromIDRefs(Accessible* aAccessible,
 }
 
 nsresult
-nsTextEquivUtils::AppendTextEquivFromContent(Accessible* aInitiatorAcc,
+nsTextEquivUtils::AppendTextEquivFromContent(nsAccessible *aInitiatorAcc,
                                              nsIContent *aContent,
                                              nsAString *aString)
 {
@@ -83,6 +117,13 @@ nsTextEquivUtils::AppendTextEquivFromContent(Accessible* aInitiatorAcc,
     return NS_OK;
 
   gInitiatorAcc = aInitiatorAcc;
+
+  nsCOMPtr<nsIWeakReference> shell = nsCoreUtils::GetWeakShellFor(aContent);
+  if (!shell) {
+    NS_ASSERTION(PR_TRUE, "There is no presshell!");
+    gInitiatorAcc = nsnull;
+    return NS_ERROR_UNEXPECTED;
+  }
 
   
   
@@ -94,18 +135,18 @@ nsTextEquivUtils::AppendTextEquivFromContent(Accessible* aInitiatorAcc,
   bool goThroughDOMSubtree = true;
 
   if (isVisible) {
-    Accessible* accessible =
-      gInitiatorAcc->Document()->GetAccessible(aContent);
+    nsAccessible *accessible =
+      GetAccService()->GetAccessibleInWeakShell(aContent, shell);
     if (accessible) {
       rv = AppendFromAccessible(accessible, aString);
-      goThroughDOMSubtree = false;
+      goThroughDOMSubtree = PR_FALSE;
     }
   }
 
   if (goThroughDOMSubtree)
     rv = AppendFromDOMNode(aContent, aString);
 
-  gInitiatorAcc = nullptr;
+  gInitiatorAcc = nsnull;
   return rv;
 }
 
@@ -124,9 +165,9 @@ nsTextEquivUtils::AppendTextEquivFromTextContent(nsIContent *aContent,
         
         
         const nsStyleDisplay* display = frame->GetStyleDisplay();
-        if (display->IsBlockOutsideStyle() ||
+        if (display->IsBlockOutside() ||
             display->mDisplay == NS_STYLE_DISPLAY_TABLE_CELL) {
-          isHTMLBlock = true;
+          isHTMLBlock = PR_TRUE;
           if (!aString->IsEmpty()) {
             aString->Append(PRUnichar(' '));
           }
@@ -163,17 +204,17 @@ nsTextEquivUtils::AppendTextEquivFromTextContent(nsIContent *aContent,
 
 
 
-nsRefPtr<Accessible> nsTextEquivUtils::gInitiatorAcc;
+nsRefPtr<nsAccessible> nsTextEquivUtils::gInitiatorAcc;
 
 nsresult
-nsTextEquivUtils::AppendFromAccessibleChildren(Accessible* aAccessible,
+nsTextEquivUtils::AppendFromAccessibleChildren(nsAccessible *aAccessible,
                                                nsAString *aString)
 {
   nsresult rv = NS_OK_NO_NAME_CLAUSE_HANDLED;
 
-  uint32_t childCount = aAccessible->ChildCount();
-  for (uint32_t childIdx = 0; childIdx < childCount; childIdx++) {
-    Accessible* child = aAccessible->GetChildAt(childIdx);
+  PRInt32 childCount = aAccessible->GetChildCount();
+  for (PRInt32 childIdx = 0; childIdx < childCount; childIdx++) {
+    nsAccessible *child = aAccessible->GetChildAt(childIdx);
     rv = AppendFromAccessible(child, aString);
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -182,7 +223,7 @@ nsTextEquivUtils::AppendFromAccessibleChildren(Accessible* aAccessible,
 }
 
 nsresult
-nsTextEquivUtils::AppendFromAccessible(Accessible* aAccessible,
+nsTextEquivUtils::AppendFromAccessible(nsAccessible *aAccessible,
                                        nsAString *aString)
 {
   
@@ -193,32 +234,35 @@ nsTextEquivUtils::AppendFromAccessible(Accessible* aAccessible,
       return rv;
   }
 
+  nsAutoString text;
+  nsresult rv = aAccessible->GetName(text);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   bool isEmptyTextEquiv = true;
 
   
   
-  nsAutoString text;
-  if (aAccessible->Name(text) != eNameFromTooltip)
+  if (rv != NS_OK_NAME_FROM_TOOLTIP)
     isEmptyTextEquiv = !AppendString(aString, text);
 
   
-  nsresult rv = AppendFromValue(aAccessible, aString);
+  rv = AppendFromValue(aAccessible, aString);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (rv != NS_OK_NO_NAME_CLAUSE_HANDLED)
-    isEmptyTextEquiv = false;
+    isEmptyTextEquiv = PR_FALSE;
 
   
   
   
   if (isEmptyTextEquiv) {
-    uint32_t nameRule = GetRoleRule(aAccessible->Role());
+    PRUint32 nameRule = gRoleToNameRulesMap[aAccessible->Role()];
     if (nameRule & eFromSubtreeIfRec) {
       rv = AppendFromAccessibleChildren(aAccessible, aString);
       NS_ENSURE_SUCCESS(rv, rv);
 
       if (rv != NS_OK_NO_NAME_CLAUSE_HANDLED)
-        isEmptyTextEquiv = false;
+        isEmptyTextEquiv = PR_FALSE;
     }
   }
 
@@ -232,10 +276,11 @@ nsTextEquivUtils::AppendFromAccessible(Accessible* aAccessible,
 }
 
 nsresult
-nsTextEquivUtils::AppendFromValue(Accessible* aAccessible,
+nsTextEquivUtils::AppendFromValue(nsAccessible *aAccessible,
                                   nsAString *aString)
 {
-  if (GetRoleRule(aAccessible->Role()) != eFromValue)
+  PRUint32 nameRule = gRoleToNameRulesMap[aAccessible->Role()];
+  if (nameRule != eFromValue)
     return NS_OK_NO_NAME_CLAUSE_HANDLED;
 
   
@@ -245,7 +290,8 @@ nsTextEquivUtils::AppendFromValue(Accessible* aAccessible,
 
   nsAutoString text;
   if (aAccessible != gInitiatorAcc) {
-    aAccessible->Value(text);
+    nsresult rv = aAccessible->GetValue(text);
+    NS_ENSURE_SUCCESS(rv, rv);
 
     return AppendString(aString, text) ?
       NS_OK : NS_OK_NO_NAME_CLAUSE_HANDLED;
@@ -257,15 +303,18 @@ nsTextEquivUtils::AppendFromValue(Accessible* aAccessible,
 
   nsIContent *content = aAccessible->GetContent();
 
-  for (nsIContent* childContent = content->GetPreviousSibling(); childContent;
-       childContent = childContent->GetPreviousSibling()) {
+  nsCOMPtr<nsIContent> parent = content->GetParent();
+  PRInt32 indexOf = parent->IndexOf(content);
+
+  for (PRInt32 i = indexOf - 1; i >= 0; i--) {
     
-    if (!childContent->TextIsOnlyWhitespace()) {
-      for (nsIContent* siblingContent = content->GetNextSibling(); siblingContent;
-           siblingContent = siblingContent->GetNextSibling()) {
+    if (!parent->GetChildAt(i)->TextIsOnlyWhitespace()) {
+      PRUint32 childCount = parent->GetChildCount();
+      for (PRUint32 j = indexOf + 1; j < childCount; j++) {
         
-        if (!siblingContent->TextIsOnlyWhitespace()) {
-          aAccessible->Value(text);
+        if (!parent->GetChildAt(j)->TextIsOnlyWhitespace()) {
+          nsresult rv = aAccessible->GetValue(text);
+          NS_ENSURE_SUCCESS(rv, rv);
 
           return AppendString(aString, text) ?
             NS_OK : NS_OK_NO_NAME_CLAUSE_HANDLED;
@@ -283,8 +332,10 @@ nsresult
 nsTextEquivUtils::AppendFromDOMChildren(nsIContent *aContent,
                                         nsAString *aString)
 {
-  for (nsIContent* childContent = aContent->GetFirstChild(); childContent;
-       childContent = childContent->GetNextSibling()) {
+  PRUint32 childCount = aContent->GetChildCount();
+  for (PRUint32 childIdx = 0; childIdx < childCount; childIdx++) {
+    nsCOMPtr<nsIContent> childContent = aContent->GetChildAt(childIdx);
+
     nsresult rv = AppendFromDOMNode(childContent, aString);
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -331,13 +382,13 @@ nsTextEquivUtils::AppendString(nsAString *aString,
 {
   
   if (aTextEquivalent.IsEmpty())
-    return false;
+    return PR_FALSE;
 
   if (!aString->IsEmpty())
     aString->Append(PRUnichar(' '));
 
   aString->Append(aTextEquivalent);
-  return true;
+  return PR_TRUE;
 }
 
 bool
@@ -361,20 +412,131 @@ nsTextEquivUtils::IsWhitespace(PRUnichar aChar)
     aChar == '\r' || aChar == '\t' || aChar == 0xa0;
 }
 
-uint32_t 
-nsTextEquivUtils::GetRoleRule(role aRole)
+
+
+
+PRUint32 nsTextEquivUtils::gRoleToNameRulesMap[] =
 {
-#define ROLE(geckoRole, stringRole, atkRole, \
-             macRole, msaaRole, ia2Role, nameRule) \
-  case roles::geckoRole: \
-    return nameRule;
-
-  switch (aRole) {
-#include "RoleMap.h"
-    default:
-      MOZ_NOT_REACHED("Unknown role.");
-  }
-
-#undef ROLE
-}
-
+  eFromSubtreeIfRec, 
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eFromSubtree,      
+  eFromSubtree,      
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eFromSubtree,      
+  eFromSubtree,      
+  eFromSubtree,      
+  eFromSubtree,      
+  eFromSubtreeIfRec, 
+  eFromSubtree,      
+  eFromSubtree,      
+  eNoRule,           
+  eFromSubtreeIfRec, 
+  eFromSubtree,      
+  eNoRule,           
+  eFromSubtree,      
+  eFromSubtree,      
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eFromSubtree,      
+  eFromSubtree,      
+  eFromSubtree,      
+  eFromValue,        
+  eNoRule,           
+  eFromValue,        
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eFromSubtree,      
+  eFromSubtree,      
+  eFromSubtree,      
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eFromSubtree,      
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eFromSubtreeIfRec, 
+  eNoRule,           
+  eFromSubtree,      
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eFromSubtree,      
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eFromSubtree,      
+  eFromSubtree,      
+  eFromSubtree,      
+  eNoRule,           
+  eFromSubtreeIfRec, 
+  eFromSubtree,      
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eFromSubtreeIfRec, 
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eFromValue,        
+  eFromSubtreeIfRec, 
+  eNoRule,           
+  eFromSubtreeIfRec, 
+  eNoRule,           
+  eFromSubtreeIfRec, 
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eNoRule,           
+  eFromSubtree,      
+  eNoRule,           
+  eNoRule,           
+  eFromSubtree,      
+  eNoRule,           
+  eFromSubtree,      
+  eFromSubtree,      
+  eNoRule,           
+  eNoRule,           
+  eFromSubtree       
+};

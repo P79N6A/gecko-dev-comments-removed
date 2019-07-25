@@ -7,7 +7,7 @@ Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/record.js");
 Cu.import("resource://services-sync/engines/tabs.js");
 Cu.import("resource://services-sync/engines/history.js");
-Cu.import("resource://services-common/log4moz.js");
+Cu.import("resource://services-sync/log4moz.js");
   
 add_test(function test_locally_changed_keys() {
   let passphrase = "abcdeabcdeabcdeabcdeabcdea";
@@ -50,11 +50,14 @@ add_test(function test_locally_changed_keys() {
     Svc.Session = {
       getBrowserState: function () JSON.stringify(myTabs)
     };
-
-    setBasicCredentials("johndoe", "password", passphrase);
-    Service.serverURL = TEST_SERVER_URL;
-    Service.clusterURL = TEST_CLUSTER_URL;
-
+    
+    Weave.Service.username = "johndoe";
+    Weave.Service.password = "ilovejane";
+    Weave.Service.passphrase = passphrase;
+    
+    Weave.Service.serverURL = "http://localhost:8080/";
+    Weave.Service.clusterURL = "http://localhost:8080/";
+    
     Engines.register(HistoryEngine);
     Weave.Service._registerEngines();
     
@@ -76,7 +79,7 @@ add_test(function test_locally_changed_keys() {
     
     generateNewKeys();
     let serverKeys = CollectionKeys.asWBO("crypto", "keys");
-    serverKeys.encrypt(Weave.Identity.syncKeyBundle);
+    serverKeys.encrypt(Weave.Service.syncKeyBundle);
     do_check_true(serverKeys.upload(Weave.Service.cryptoKeysURL).success);
     
     

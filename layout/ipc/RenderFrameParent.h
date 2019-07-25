@@ -5,15 +5,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_layout_RenderFrameParent_h
 #define mozilla_layout_RenderFrameParent_h
 
-#include <map>
-
 #include "mozilla/layout/PRenderFrameParent.h"
-#include "mozilla/layers/ShadowLayersManager.h"
+
+#include <map>
 #include "nsDisplayList.h"
-#include "RenderFrameUtils.h"
+#include "Layers.h"
 
 class nsContentView;
 class nsFrameLoader;
@@ -21,43 +53,25 @@ class nsSubDocumentFrame;
 
 namespace mozilla {
 
-class InputEvent;
-
 namespace layers {
-class AsyncPanZoomController;
-class GestureEventListener;
-class TargetConfig;
 class ShadowLayersParent;
 }
 
 namespace layout {
 
-class RemoteContentController;
-
-class RenderFrameParent : public PRenderFrameParent,
-                          public mozilla::layers::ShadowLayersManager
+class RenderFrameParent : public PRenderFrameParent
 {
   typedef mozilla::layers::FrameMetrics FrameMetrics;
   typedef mozilla::layers::ContainerLayer ContainerLayer;
   typedef mozilla::layers::Layer Layer;
   typedef mozilla::layers::LayerManager LayerManager;
-  typedef mozilla::layers::TargetConfig TargetConfig;
   typedef mozilla::layers::ShadowLayersParent ShadowLayersParent;
   typedef FrameMetrics::ViewID ViewID;
 
 public:
   typedef std::map<ViewID, nsRefPtr<nsContentView> > ViewMap;
 
-  
-
-
-
-
-  RenderFrameParent(nsFrameLoader* aFrameLoader,
-                    ScrollingBehavior aScrollingBehavior,
-                    mozilla::layers::LayersBackend* aBackendType,
-                    int* aMaxTextureSize,
-                    uint64_t* aId);
+  RenderFrameParent(nsFrameLoader* aFrameLoader);
   virtual ~RenderFrameParent();
 
   void Destroy();
@@ -70,9 +84,7 @@ public:
 
   void ContentViewScaleChanged(nsContentView* aView);
 
-  virtual void ShadowLayersUpdated(ShadowLayersParent* aLayerTree,
-                                   const TargetConfig& aTargetConfig,
-                                   bool isFirstPaint) MOZ_OVERRIDE;
+  void ShadowLayersUpdated();
 
   NS_IMETHOD BuildDisplayList(nsDisplayListBuilder* aBuilder,
                               nsSubDocumentFrame* aFrame,
@@ -82,53 +94,25 @@ public:
   already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
                                      nsIFrame* aFrame,
                                      LayerManager* aManager,
-                                     const nsIntRect& aVisibleRect,
-                                     nsDisplayItem* aItem);
+                                     const nsIntRect& aVisibleRect);
 
   void OwnerContentChanged(nsIContent* aContent);
 
-  void SetBackgroundColor(nscolor aColor) { mBackgroundColor = gfxRGBA(aColor); };
-
-  void NotifyInputEvent(const nsInputEvent& aEvent,
-                        nsInputEvent* aOutEvent);
-
-  void NotifyDimensionsChanged(int width, int height);
-
-  void ZoomToRect(const gfxRect& aRect);
-
-  void ContentReceivedTouch(bool aPreventDefault);
-
 protected:
-  void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
+  NS_OVERRIDE void ActorDestroy(ActorDestroyReason why);
 
-  virtual bool RecvNotifyCompositorTransaction() MOZ_OVERRIDE;
-
-  virtual bool RecvCancelDefaultPanZoom() MOZ_OVERRIDE;
-
-  virtual PLayersParent* AllocPLayers() MOZ_OVERRIDE;
-  virtual bool DeallocPLayers(PLayersParent* aLayers) MOZ_OVERRIDE;
+  NS_OVERRIDE virtual PLayersParent* AllocPLayers(LayerManager::LayersBackend* aBackendType);
+  NS_OVERRIDE virtual bool DeallocPLayers(PLayersParent* aLayers);
 
 private:
   void BuildViewMap();
-  void TriggerRepaint();
-  void DispatchEventForPanZoomController(const InputEvent& aEvent);
 
+  LayerManager* GetLayerManager() const;
   ShadowLayersParent* GetShadowLayers() const;
-  uint64_t GetLayerTreeId() const;
   ContainerLayer* GetRootLayer() const;
-
-  
-  
-  
-  uint64_t mLayersId;
 
   nsRefPtr<nsFrameLoader> mFrameLoader;
   nsRefPtr<ContainerLayer> mContainer;
-  
-  
-  
-  nsRefPtr<layers::AsyncPanZoomController> mPanZoomController;
-  nsRefPtr<RemoteContentController> mContentController;
 
   
   
@@ -149,8 +133,6 @@ private:
   
   
   bool mFrameLoaderDestroyed;
-  
-  gfxRGBA mBackgroundColor;
 };
 
 } 
@@ -172,14 +154,15 @@ public:
     , mRemoteFrame(aRemoteFrame)
   {}
 
+  NS_OVERRIDE
   virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
-                                   LayerManager* aManager,
-                                   const ContainerParameters& aParameters) MOZ_OVERRIDE
-  { return mozilla::LAYER_ACTIVE_FORCE; }
+                                   LayerManager* aManager)
+  { return mozilla::LAYER_ACTIVE; }  
 
+  NS_OVERRIDE
   virtual already_AddRefed<Layer>
   BuildLayer(nsDisplayListBuilder* aBuilder, LayerManager* aManager,
-             const ContainerParameters& aContainerParameters) MOZ_OVERRIDE;
+             const ContainerParameters& aContainerParameters);
 
   NS_DISPLAY_DECL_NAME("Remote", TYPE_REMOTE)
 
@@ -209,20 +192,19 @@ public:
     , mId(aId)
   {}
 
-  nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) MOZ_OVERRIDE
+  NS_OVERRIDE nsRect GetBounds(nsDisplayListBuilder* aBuilder)
   {
-    *aSnap = false;
     return mRect;
   }
 
-  virtual uint32_t GetPerFrameKey()
+  virtual PRUint32 GetPerFrameKey()
   {
     NS_ABORT();
     return 0;
   }
 
-  void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
-               HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames) MOZ_OVERRIDE;
+  NS_OVERRIDE void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
+                           HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames);
 
   NS_DISPLAY_DECL_NAME("Remote-Shadow", TYPE_REMOTE_SHADOW)
 

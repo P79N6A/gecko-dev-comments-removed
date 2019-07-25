@@ -20,11 +20,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsPropertyTable_h_
 #define nsPropertyTable_h_
 
 #include "nscore.h"
-#include "prtypes.h"
 
 class nsIAtom;
 typedef PRUptrdiff PtrBits;
@@ -72,9 +103,9 @@ class nsPropertyTable
 
   void* GetProperty(nsPropertyOwner aObject,
                     nsIAtom    *aPropertyName,
-                    nsresult   *aResult = nullptr)
+                    nsresult   *aResult = nsnull)
   {
-    return GetPropertyInternal(aObject, aPropertyName, false, aResult);
+    return GetPropertyInternal(aObject, aPropertyName, PR_FALSE, aResult);
   }
 
   
@@ -100,7 +131,7 @@ class nsPropertyTable
                                    NSPropertyDtorFunc  aDtor,
                                    void               *aDtorData,
                                    bool                aTransfer = false,
-                                   void              **aOldValue = nullptr)
+                                   void              **aOldValue = nsnull)
   {
     return SetPropertyInternal(aObject, aPropertyName, aPropertyValue,
                                aDtor, aDtorData, aTransfer, aOldValue);
@@ -120,9 +151,9 @@ class nsPropertyTable
 
   void* UnsetProperty(nsPropertyOwner aObject,
                       nsIAtom    *aPropertyName,
-                      nsresult   *aStatus = nullptr)
+                      nsresult   *aStatus = nsnull)
   {
-    return GetPropertyInternal(aObject, aPropertyName, true, aStatus);
+    return GetPropertyInternal(aObject, aPropertyName, PR_TRUE, aStatus);
   }
 
   
@@ -154,16 +185,9 @@ class nsPropertyTable
 
 
 
-
-  NS_HIDDEN_(void) EnumerateAll(NSPropertyFunc aCallback, void *aData);
-
-  
-
-
-
   NS_HIDDEN_(void) DeleteAllProperties();
 
-  nsPropertyTable() : mPropertyList(nullptr) {}  
+  nsPropertyTable() : mPropertyList(nsnull) {}  
   ~nsPropertyTable() {
     DeleteAllProperties();
   }
@@ -177,8 +201,6 @@ class nsPropertyTable
                                void *aPropertyValue, void *aData);
 
   class PropertyList;
-
-  size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
 
  private:
   NS_HIDDEN_(void) DestroyPropertyList();

@@ -3,7 +3,36 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsIDOMHTMLParagraphElement.h"
 #include "nsIDOMEventTarget.h"
@@ -13,7 +42,6 @@
 #include "nsMappedAttributes.h"
 #include "nsRuleData.h"
 
-using namespace mozilla;
 
 
 
@@ -39,7 +67,7 @@ public:
   
   NS_DECL_NSIDOMHTMLPARAGRAPHELEMENT
 
-  virtual bool ParseAttribute(int32_t aNamespaceID,
+  virtual bool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
@@ -49,8 +77,6 @@ public:
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 };
 
 
@@ -88,7 +114,7 @@ NS_IMPL_STRING_ATTR(nsHTMLParagraphElement, Align, align)
 
 
 bool
-nsHTMLParagraphElement::ParseAttribute(int32_t aNamespaceID,
+nsHTMLParagraphElement::ParseAttribute(PRInt32 aNamespaceID,
                                        nsIAtom* aAttribute,
                                        const nsAString& aValue,
                                        nsAttrValue& aResult)
@@ -116,7 +142,7 @@ nsHTMLParagraphElement::IsAttributeMapped(const nsIAtom* aAttribute) const
     sCommonAttributeMap,
   };
 
-  return FindAttributeDependence(aAttribute, map);
+  return FindAttributeDependence(aAttribute, map, NS_ARRAY_LENGTH(map));
 }
 
 

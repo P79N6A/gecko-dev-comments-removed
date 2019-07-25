@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NSQTNETWORKMANAGER_H_
 #define NSQTNETWORKMANAGER_H_
 

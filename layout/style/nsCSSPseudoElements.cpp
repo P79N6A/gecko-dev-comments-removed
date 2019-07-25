@@ -5,15 +5,44 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsCSSPseudoElements.h"
 #include "nsAtomListUtils.h"
 #include "nsStaticAtom.h"
 #include "nsMemory.h"
 #include "nsCSSAnonBoxes.h"
-
-using namespace mozilla;
 
 
 #define CSS_PSEUDO_ELEMENT(name_, value_, flags_) \
@@ -38,7 +67,7 @@ static const nsStaticAtom CSSPseudoElements_info[] = {
 
 
 
-static const uint32_t CSSPseudoElements_flags[] = {
+static const PRUint32 CSSPseudoElements_flags[] = {
 #define CSS_PSEUDO_ELEMENT(name_, value_, flags_) \
   flags_,
 #include "nsCSSPseudoElementList.h"
@@ -47,13 +76,14 @@ static const uint32_t CSSPseudoElements_flags[] = {
 
 void nsCSSPseudoElements::AddRefAtoms()
 {
-  NS_RegisterStaticAtoms(CSSPseudoElements_info);
+  NS_RegisterStaticAtoms(CSSPseudoElements_info,
+                         NS_ARRAY_LENGTH(CSSPseudoElements_info));
 }
 
 bool nsCSSPseudoElements::IsPseudoElement(nsIAtom *aAtom)
 {
   return nsAtomListUtils::IsMember(aAtom, CSSPseudoElements_info,
-                                   ArrayLength(CSSPseudoElements_info));
+                                   NS_ARRAY_LENGTH(CSSPseudoElements_info));
 }
 
  bool
@@ -78,7 +108,7 @@ nsCSSPseudoElements::IsCSS2PseudoElement(nsIAtom *aAtom)
  nsCSSPseudoElements::Type
 nsCSSPseudoElements::GetPseudoType(nsIAtom *aAtom)
 {
-  for (uint32_t i = 0; i < ArrayLength(CSSPseudoElements_info); ++i) {
+  for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(CSSPseudoElements_info); ++i) {
     if (*CSSPseudoElements_info[i].mAtom == aAtom) {
       return Type(i);
     }
@@ -105,16 +135,16 @@ nsCSSPseudoElements::GetPseudoAtom(Type aType)
   return *CSSPseudoElements_info[aType].mAtom;
 }
 
- uint32_t
+ PRUint32
 nsCSSPseudoElements::FlagsForPseudoElement(nsIAtom *aAtom)
 {
-  uint32_t i;
-  for (i = 0; i < ArrayLength(CSSPseudoElements_info); ++i) {
+  PRUint32 i;
+  for (i = 0; i < NS_ARRAY_LENGTH(CSSPseudoElements_info); ++i) {
     if (*CSSPseudoElements_info[i].mAtom == aAtom) {
       break;
     }
   }
-  NS_ASSERTION(i < ArrayLength(CSSPseudoElements_info),
+  NS_ASSERTION(i < NS_ARRAY_LENGTH(CSSPseudoElements_info),
                "argument must be a pseudo-element");
   return CSSPseudoElements_flags[i];
 }

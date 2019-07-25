@@ -4,6 +4,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsFrame.h"
 #include "nsPresContext.h"
@@ -87,15 +124,6 @@ nsMathMLmfracFrame::CalcLineThickness(nsPresContext*  aPresContext,
   nscoord lineThickness = aDefaultRuleThickness;
   nscoord minimumThickness = onePixel;
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
   if (!aThicknessAttribute.IsEmpty()) {
     if (aThicknessAttribute.EqualsLiteral("thin")) {
       lineThickness = NSToCoordFloor(defaultThickness * THIN_FRACTION_LINE);
@@ -114,12 +142,17 @@ nsMathMLmfracFrame::CalcLineThickness(nsPresContext*  aPresContext,
       if (lineThickness < defaultThickness + onePixel)
         lineThickness = defaultThickness + onePixel;
     }
-    else {
-      
-      lineThickness = defaultThickness;
-      ParseNumericValue(aThicknessAttribute, &lineThickness,
-                        nsMathMLElement::PARSE_ALLOW_UNITLESS,
-                        aPresContext, aStyleContext);
+    else { 
+      nsCSSValue cssValue;
+      if (ParseNumericValue(aThicknessAttribute, cssValue)) {
+        nsCSSUnit unit = cssValue.GetUnit();
+        if (eCSSUnit_Number == unit)
+          lineThickness = nscoord(float(defaultThickness) * cssValue.GetFloatValue());
+        else if (eCSSUnit_Percent == unit)
+          lineThickness = nscoord(float(defaultThickness) * cssValue.GetPercentValue());
+        else if (eCSSUnit_Null != unit)
+          lineThickness = CalcLength(aPresContext, aStyleContext, cssValue);
+      }
     }
   }
 
@@ -156,9 +189,9 @@ nsMathMLmfracFrame::MeasureForWidth(nsRenderingContext& aRenderingContext,
                                     nsHTMLReflowMetrics& aDesiredSize)
 {
   return PlaceInternal(aRenderingContext,
-                       false,
+                       PR_FALSE,
                        aDesiredSize,
-                       true);
+                       PR_TRUE);
 }
 
 nscoord
@@ -179,7 +212,7 @@ nsMathMLmfracFrame::Place(nsRenderingContext& aRenderingContext,
   return PlaceInternal(aRenderingContext,
                        aPlaceOrigin,
                        aDesiredSize,
-                       false);
+                       PR_FALSE);
 }
 
 nsresult
@@ -193,7 +226,7 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
   nsBoundingMetrics bmNum, bmDen;
   nsHTMLReflowMetrics sizeNum;
   nsHTMLReflowMetrics sizeDen;
-  nsIFrame* frameDen = nullptr;
+  nsIFrame* frameDen = nsnull;
   nsIFrame* frameNum = mFrames.FirstChild();
   if (frameNum) 
     frameDen = frameNum->GetNextSibling();
@@ -239,12 +272,8 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
     
     
     
-    nscoord leftSpace = NS_MAX(onePixel,
-                               NS_MATHML_IS_RTL(mPresentationData.flags) ?
-                               coreData.trailingSpace : coreData.leadingSpace);
-    nscoord rightSpace = NS_MAX(onePixel,
-                                NS_MATHML_IS_RTL(mPresentationData.flags) ?
-                                coreData.leadingSpace : coreData.trailingSpace);
+    nscoord leftSpace = NS_MAX(onePixel, coreData.leftSpace);
+    nscoord rightSpace = NS_MAX(onePixel, coreData.rightSpace);
 
     
     
@@ -369,10 +398,10 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
       nscoord dy;
       
       dy = 0;
-      FinishReflowChild(frameNum, presContext, nullptr, sizeNum, dxNum, dy, 0);
+      FinishReflowChild(frameNum, presContext, nsnull, sizeNum, dxNum, dy, 0);
       
       dy = aDesiredSize.height - sizeDen.height;
-      FinishReflowChild(frameDen, presContext, nullptr, sizeDen, dxDen, dy, 0);
+      FinishReflowChild(frameDen, presContext, nsnull, sizeDen, dxDen, dy, 0);
       
       dy = aDesiredSize.ascent - (axisHeight + actualRuleThickness/2);
       mLineRect.SetRect(leftSpace, dy, width - (leftSpace + rightSpace),
@@ -393,8 +422,8 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
     nscoord slashMinHeight = slashRatio *
       NS_MIN(2 * mLineThickness, slashMaxWidthConstant);
 
-    nscoord leadingSpace = NS_MAX(padding, coreData.leadingSpace);
-    nscoord trailingSpace = NS_MAX(padding, coreData.trailingSpace);
+    nscoord leftSpace = NS_MAX(padding, coreData.leftSpace);
+    nscoord rightSpace = NS_MAX(padding, coreData.rightSpace);
     nscoord delta;
     
     
@@ -455,16 +484,11 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
     }
 
     
-    if (NS_MATHML_IS_RTL(mPresentationData.flags)) {
-      mBoundingMetrics.leftBearing = trailingSpace + bmDen.leftBearing;
-      mBoundingMetrics.rightBearing = trailingSpace + bmDen.width + mLineRect.width + bmNum.rightBearing;
-    } else {
-      mBoundingMetrics.leftBearing = leadingSpace + bmNum.leftBearing;
-      mBoundingMetrics.rightBearing = leadingSpace + bmNum.width + mLineRect.width + bmDen.rightBearing;
-    }
+    mBoundingMetrics.leftBearing = leftSpace + bmNum.leftBearing;
+    mBoundingMetrics.rightBearing =
+      leftSpace + bmNum.width + mLineRect.width + bmDen.rightBearing;
     mBoundingMetrics.width =
-      leadingSpace + bmNum.width + mLineRect.width + bmDen.width +
-      trailingSpace;
+      leftSpace + bmNum.width + mLineRect.width + bmDen.width + rightSpace;
 
     
     aDesiredSize.ascent = mBoundingMetrics.ascent + padding;
@@ -477,26 +501,18 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
     mReference.y = aDesiredSize.ascent;
     
     if (aPlaceOrigin) {
-      nscoord dx, dy;
+      FinishReflowChild(frameNum, presContext, nsnull, sizeNum,
+                        leftSpace,
+                        aDesiredSize.ascent - numShift - sizeNum.ascent, 0);
 
-      
-      dx = MirrorIfRTL(aDesiredSize.width, sizeNum.width,
-                       leadingSpace);
-      dy = aDesiredSize.ascent - numShift - sizeNum.ascent;
-      FinishReflowChild(frameNum, presContext, nullptr, sizeNum, dx, dy, 0);
+      mLineRect.SetRect(leftSpace + bmNum.width,
+                        aDesiredSize.ascent - mBoundingMetrics.ascent,
+                        mLineRect.width,
+                        aDesiredSize.height - 2 * padding);
 
-      
-      dx = MirrorIfRTL(aDesiredSize.width, mLineRect.width,
-                       leadingSpace + bmNum.width);
-      dy = aDesiredSize.ascent - mBoundingMetrics.ascent;
-      mLineRect.SetRect(dx, dy,
-                        mLineRect.width, aDesiredSize.height - 2 * padding);
-
-      
-      dx = MirrorIfRTL(aDesiredSize.width, sizeDen.width,
-                       leadingSpace + bmNum.width + mLineRect.width);
-      dy = aDesiredSize.ascent + denShift - sizeDen.ascent;
-      FinishReflowChild(frameDen, presContext, nullptr, sizeDen, dx, dy, 0);
+      FinishReflowChild(frameDen, presContext, nsnull, sizeDen,
+                        leftSpace + bmNum.width + mLineRect.width,
+                        aDesiredSize.ascent + denShift - sizeDen.ascent, 0);
     }
 
   }
@@ -505,10 +521,10 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
 }
 
 NS_IMETHODIMP
-nsMathMLmfracFrame::UpdatePresentationDataFromChildAt(int32_t         aFirstIndex,
-                                                      int32_t         aLastIndex,
-                                                      uint32_t        aFlagsValues,
-                                                      uint32_t        aFlagsToUpdate)
+nsMathMLmfracFrame::UpdatePresentationDataFromChildAt(PRInt32         aFirstIndex,
+                                                      PRInt32         aLastIndex,
+                                                      PRUint32        aFlagsValues,
+                                                      PRUint32        aFlagsToUpdate)
 {
   
   
@@ -533,9 +549,8 @@ class nsDisplayMathMLSlash : public nsDisplayItem {
 public:
   nsDisplayMathMLSlash(nsDisplayListBuilder* aBuilder,
                        nsIFrame* aFrame, const nsRect& aRect,
-                       nscoord aThickness, bool aRTL)
-    : nsDisplayItem(aBuilder, aFrame), mRect(aRect), mThickness(aThickness),
-      mRTL(aRTL) {
+                       nscoord aThickness)
+    : nsDisplayItem(aBuilder, aFrame), mRect(aRect), mThickness(aThickness) {
     MOZ_COUNT_CTOR(nsDisplayMathMLSlash);
   }
 #ifdef NS_BUILD_REFCNT_LOGGING
@@ -550,7 +565,6 @@ public:
 private:
   nsRect    mRect;
   nscoord   mThickness;
-  bool      mRTL;
 };
 
 void nsDisplayMathMLSlash::Paint(nsDisplayListBuilder* aBuilder,
@@ -561,25 +575,16 @@ void nsDisplayMathMLSlash::Paint(nsDisplayListBuilder* aBuilder,
   gfxRect rect = presContext->AppUnitsToGfxUnits(mRect + ToReferenceFrame());
   
   
-  aCtx->SetColor(mFrame->GetVisitedDependentColor(eCSSProperty_color));
+  aCtx->SetColor(mFrame->GetStyleColor()->mColor);
  
   
   gfxContext *gfxCtx = aCtx->ThebesContext();
   gfxPoint delta = gfxPoint(presContext->AppUnitsToGfxUnits(mThickness), 0);
   gfxCtx->NewPath();
-
-  if (mRTL) {
-    gfxCtx->MoveTo(rect.TopLeft());
-    gfxCtx->LineTo(rect.TopLeft() + delta);
-    gfxCtx->LineTo(rect.BottomRight());
-    gfxCtx->LineTo(rect.BottomRight() - delta);
-  } else {
-    gfxCtx->MoveTo(rect.BottomLeft());
-    gfxCtx->LineTo(rect.BottomLeft() + delta);
-    gfxCtx->LineTo(rect.TopRight());
-    gfxCtx->LineTo(rect.TopRight() - delta);
-  }
-
+  gfxCtx->MoveTo(rect.BottomLeft());
+  gfxCtx->LineTo(rect.BottomLeft() + delta);
+  gfxCtx->LineTo(rect.TopRight());
+  gfxCtx->LineTo(rect.TopRight() - delta);
   gfxCtx->ClosePath();
   gfxCtx->Fill();
 }
@@ -591,8 +596,7 @@ nsMathMLmfracFrame::DisplaySlash(nsDisplayListBuilder* aBuilder,
                                  const nsDisplayListSet& aLists) {
   if (!aFrame->GetStyleVisibility()->IsVisible() || aRect.IsEmpty())
     return NS_OK;
-
+  
   return aLists.Content()->AppendNewToTop(new (aBuilder)
-      nsDisplayMathMLSlash(aBuilder, aFrame, aRect, aThickness,
-                           NS_MATHML_IS_RTL(mPresentationData.flags)));
+      nsDisplayMathMLSlash(aBuilder, aFrame, aRect, aThickness));
 }

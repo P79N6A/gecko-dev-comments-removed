@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsComponentManagerUtils.h"
 #include "nsNativeCharsetUtils.h"
 #include "nsIServiceManager.h"
@@ -27,7 +59,7 @@ NS_IMPL_THREADSAFE_ISUPPORTS1(nsAuthSASL, nsIAuthModule)
 
 NS_IMETHODIMP
 nsAuthSASL::Init(const char *serviceName,
-                 uint32_t    serviceFlags,
+                 PRUint32    serviceFlags,
                  const PRUnichar *domain,
                  const PRUnichar *username,
                  const PRUnichar *password)
@@ -57,22 +89,22 @@ nsAuthSASL::Init(const char *serviceName,
     
     NS_ENSURE_SUCCESS(rv, rv);
 
-    mInnerModule->Init(serviceName, serviceFlags, nullptr, nullptr, nullptr);
+    mInnerModule->Init(serviceName, serviceFlags, nsnull, nsnull, nsnull);
 
     return NS_OK;
 }
 
 NS_IMETHODIMP
 nsAuthSASL::GetNextToken(const void *inToken,
-                         uint32_t    inTokenLen,
+                         PRUint32    inTokenLen,
                          void      **outToken,
-                         uint32_t   *outTokenLen)
+                         PRUint32   *outTokenLen)
 {
     nsresult rv;
     void *unwrappedToken;
     char *message;
-    uint32_t unwrappedTokenLen, messageLen;
-    nsAutoCString userbuf;
+    PRUint32 unwrappedTokenLen, messageLen;
+    nsCAutoString userbuf;
     
     if (!mInnerModule) 
         return NS_ERROR_NOT_INITIALIZED;
@@ -116,7 +148,7 @@ nsAuthSASL::GetNextToken(const void *inToken,
         strcpy(message+4, userbuf.get());
         
         
-        rv = mInnerModule->Wrap((void *) message, messageLen-1, false, 
+        rv = mInnerModule->Wrap((void *) message, messageLen-1, PR_FALSE, 
                                 outToken, outTokenLen);
         nsMemory::Free(message);
         Reset(); 
@@ -133,26 +165,19 @@ nsAuthSASL::GetNextToken(const void *inToken,
 
 NS_IMETHODIMP
 nsAuthSASL::Unwrap(const void *inToken,
-                   uint32_t    inTokenLen,
+                   PRUint32    inTokenLen,
                    void      **outToken,
-                   uint32_t   *outTokenLen)
+                   PRUint32   *outTokenLen)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
 nsAuthSASL::Wrap(const void *inToken,
-                 uint32_t    inTokenLen,
+                 PRUint32    inTokenLen,
                  bool        confidential,
                  void      **outToken,
-                 uint32_t   *outTokenLen)
+                 PRUint32   *outTokenLen)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-nsAuthSASL::GetModuleProperties(uint32_t *flags)
-{
-    *flags = 0;
-    return NS_OK;
 }

@@ -3,12 +3,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGGRADIENTELEMENT_H__
 #define __NS_SVGGRADIENTELEMENT_H__
 
 #include "nsIDOMSVGURIReference.h"
 #include "nsIDOMSVGGradientElement.h"
-#include "DOMSVGTests.h"
 #include "nsIDOMSVGUnitTypes.h"
 #include "nsSVGStylableElement.h"
 #include "nsSVGLength2.h"
@@ -21,7 +53,6 @@
 typedef nsSVGStylableElement nsSVGGradientElementBase;
 
 class nsSVGGradientElement : public nsSVGGradientElementBase,
-                             public DOMSVGTests,
                              public nsIDOMSVGURIReference,
                              public nsIDOMSVGUnitTypes
 {
@@ -43,8 +74,7 @@ public:
   
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;
 
-  virtual mozilla::SVGAnimatedTransformList*
-    GetAnimatedTransformList(uint32_t aFlags = 0);
+  virtual mozilla::SVGAnimatedTransformList* GetAnimatedTransformList();
   virtual nsIAtom* GetTransformListAttrName() const {
     return nsGkAtoms::gradientTransform;
   }
@@ -99,8 +129,6 @@ public:
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 protected:
 
   virtual LengthAttributesInfo GetLengthInfo();
@@ -144,8 +172,6 @@ public:
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 protected:
 
   virtual LengthAttributesInfo GetLengthInfo();

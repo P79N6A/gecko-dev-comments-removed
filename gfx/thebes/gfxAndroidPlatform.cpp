@@ -3,25 +3,48 @@
 
 
 
-#include "base/basictypes.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "gfxAndroidPlatform.h"
-#include "mozilla/gfx/2D.h"
 
 #include "gfxFT2FontList.h"
 #include "gfxImageSurface.h"
-#include "mozilla/dom/ContentChild.h"
-#include "nsXULAppAPI.h"
-#include "nsIScreen.h"
-#include "nsIScreenManager.h"
 
 #include "cairo.h"
 
 #include "ft2build.h"
 #include FT_FREETYPE_H
-using namespace mozilla;
-using namespace mozilla::dom;
-using namespace mozilla::gfx;
 
 static FT_Library gPlatformFTLibrary = NULL;
 
@@ -30,16 +53,6 @@ static FT_Library gPlatformFTLibrary = NULL;
 gfxAndroidPlatform::gfxAndroidPlatform()
 {
     FT_Init_FreeType(&gPlatformFTLibrary);
-
-    nsCOMPtr<nsIScreenManager> screenMgr = do_GetService("@mozilla.org/gfx/screenmanager;1");
-    nsCOMPtr<nsIScreen> screen;
-    screenMgr->GetPrimaryScreen(getter_AddRefs(screen));
-    mScreenDepth = 24;
-    screen->GetColorDepth(&mScreenDepth);
-
-    mOffscreenFormat = mScreenDepth == 16
-                       ? gfxASurface::ImageFormatRGB16_565
-                       : gfxASurface::ImageFormatRGB24;
 }
 
 gfxAndroidPlatform::~gfxAndroidPlatform()
@@ -55,7 +68,10 @@ gfxAndroidPlatform::CreateOffscreenSurface(const gfxIntSize& size,
                                       gfxASurface::gfxContentType contentType)
 {
     nsRefPtr<gfxASurface> newSurface;
-    newSurface = new gfxImageSurface(size, OptimalFormatForContent(contentType));
+    if (contentType == gfxImageSurface::CONTENT_COLOR)
+        newSurface = new gfxImageSurface (size, GetOffscreenFormat());
+    else
+        newSurface = new gfxImageSurface (size, gfxASurface::FormatFromContent(contentType));
 
     return newSurface.forget();
 }
@@ -93,7 +109,7 @@ gfxAndroidPlatform::ResolveFontName(const nsAString& aFontName,
     nsAutoString resolvedName;
     if (!gfxPlatformFontList::PlatformFontList()->
              ResolveFontName(aFontName, resolvedName)) {
-        aAborted = false;
+        aAborted = PR_FALSE;
         return NS_OK;
     }
     aAborted = !(*aCallback)(resolvedName, aClosure);
@@ -115,11 +131,11 @@ gfxAndroidPlatform::CreatePlatformFontList()
         return list;
     }
     gfxPlatformFontList::Shutdown();
-    return nullptr;
+    return nsnull;
 }
 
 bool
-gfxAndroidPlatform::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
+gfxAndroidPlatform::IsFontFormatSupported(nsIURI *aFontURI, PRUint32 aFormatFlags)
 {
     
     NS_ASSERTION(!(aFormatFlags & gfxUserFontSet::FLAG_FORMAT_NOT_USED),
@@ -129,16 +145,16 @@ gfxAndroidPlatform::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlag
     if (aFormatFlags & (gfxUserFontSet::FLAG_FORMAT_OPENTYPE |
                         gfxUserFontSet::FLAG_FORMAT_WOFF |
                         gfxUserFontSet::FLAG_FORMAT_TRUETYPE)) {
-        return true;
+        return PR_TRUE;
     }
 
     
     if (aFormatFlags != 0) {
-        return false;
+        return PR_FALSE;
     }
 
     
-    return true;
+    return PR_TRUE;
 }
 
 gfxFontGroup *
@@ -157,53 +173,10 @@ gfxAndroidPlatform::GetFTLibrary()
 
 gfxFontEntry* 
 gfxAndroidPlatform::MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
-                                     const uint8_t *aFontData, uint32_t aLength)
+                                     const PRUint8 *aFontData, PRUint32 aLength)
 {
     return gfxPlatformFontList::PlatformFontList()->MakePlatformFont(aProxyEntry,
                                                                      aFontData,
                                                                      aLength);
 }
 
-RefPtr<ScaledFont>
-gfxAndroidPlatform::GetScaledFontForFont(DrawTarget* aTarget, gfxFont *aFont)
-{
-    NativeFont nativeFont;
-    if (aTarget->GetType() == BACKEND_CAIRO) {
-        nativeFont.mType = NATIVE_FONT_CAIRO_FONT_FACE;
-        nativeFont.mFont = NULL;
-        return Factory::CreateScaledFontWithCairo(nativeFont, aFont->GetAdjustedSize(), aFont->GetCairoScaledFont());
-    }
- 
-    NS_ASSERTION(aFont->GetType() == gfxFont::FONT_TYPE_FT2, "Expecting Freetype font");
-    nativeFont.mType = NATIVE_FONT_SKIA_FONT_FACE;
-    nativeFont.mFont = static_cast<gfxFT2FontBase*>(aFont)->GetFontOptions();
-    return Factory::CreateScaledFontForNativeFont(nativeFont, aFont->GetAdjustedSize());
-}
-
-bool
-gfxAndroidPlatform::FontHintingEnabled()
-{
-    
-    
-#ifdef MOZ_USING_ANDROID_JAVA_WIDGETS
-    
-    
-    
-    
-    
-    
-    return false;
-#else
-    
-    
-    return (XRE_GetProcessType() != GeckoProcessType_Content ||
-            (ContentChild::GetSingleton()->IsForApp() &&
-             !ContentChild::GetSingleton()->IsForBrowser()));
-#endif 
-}
-
-int
-gfxAndroidPlatform::GetScreenDepth() const
-{
-    return mScreenDepth;
-}

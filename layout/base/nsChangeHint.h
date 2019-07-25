@@ -5,17 +5,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsChangeHint_h___
 #define nsChangeHint_h___
 
 #include "prtypes.h"
-#include "nsDebug.h"
 
 
 
 enum nsChangeHint {
-  
-  
   
   nsChangeHint_RepaintFrame = 0x01,
 
@@ -37,7 +66,6 @@ enum nsChangeHint {
   nsChangeHint_NeedDirtyReflow = 0x10,
 
   
-  
   nsChangeHint_SyncFrameView = 0x20,
 
   
@@ -58,64 +86,12 @@ enum nsChangeHint {
 
 
 
-
   nsChangeHint_UpdateOpacityLayer = 0x100,
-  
-
-
-
   nsChangeHint_UpdateTransformLayer = 0x200,
 
   
-
-
-
-
-  nsChangeHint_ReconstructFrame = 0x400,
-
   
-
-
-
-
-  nsChangeHint_UpdateOverflow = 0x800,
-
-  
-
-
-
-  nsChangeHint_ChildrenOnlyTransform = 0x1000,
-
-  
-
-
-
-
-
-
-
-
-
-  nsChangeHint_RecomputePosition = 0x2000,
-
-  
-
-
-
-
-
-  nsChangeHint_AddOrRemoveTransform = 0x4000,
-
-  
-
-
-
-
-
-  nsChangeHint_BorderStyleNoneChange = 0x8000
-
-  
-  
+  nsChangeHint_ReconstructFrame = 0x400
 };
 
 
@@ -155,70 +131,17 @@ inline bool NS_IsHintSubset(nsChangeHint aSubset, nsChangeHint aSuperSet) {
 }
 
 
-
-
-
-
-
-
-
-
-#define nsChangeHint_Hints_NotHandledForDescendants nsChangeHint( \
-          nsChangeHint_UpdateTransformLayer | \
-          nsChangeHint_UpdateEffects | \
-          nsChangeHint_UpdateOpacityLayer | \
-          nsChangeHint_UpdateOverflow | \
-          nsChangeHint_ChildrenOnlyTransform | \
-          nsChangeHint_RecomputePosition | \
-          nsChangeHint_AddOrRemoveTransform | \
-          nsChangeHint_BorderStyleNoneChange | \
-          nsChangeHint_NeedReflow | \
-          nsChangeHint_ClearAncestorIntrinsics)
-
-inline nsChangeHint NS_HintsNotHandledForDescendantsIn(nsChangeHint aChangeHint) {
-  nsChangeHint result = nsChangeHint(aChangeHint & (
-    nsChangeHint_UpdateTransformLayer |
-    nsChangeHint_UpdateEffects |
-    nsChangeHint_UpdateOpacityLayer |
-    nsChangeHint_UpdateOverflow |
-    nsChangeHint_ChildrenOnlyTransform |
-    nsChangeHint_RecomputePosition |
-    nsChangeHint_AddOrRemoveTransform |
-    nsChangeHint_BorderStyleNoneChange));
-
-  if (!NS_IsHintSubset(nsChangeHint_NeedDirtyReflow, aChangeHint) &&
-      NS_IsHintSubset(nsChangeHint_NeedReflow, aChangeHint)) {
-    
-    
-    NS_UpdateHint(result, nsChangeHint_NeedReflow);
-  }
-
-  if (!NS_IsHintSubset(nsChangeHint_ClearDescendantIntrinsics, aChangeHint) &&
-      NS_IsHintSubset(nsChangeHint_ClearAncestorIntrinsics, aChangeHint)) {
-    
-    
-    NS_UpdateHint(result, nsChangeHint_ClearAncestorIntrinsics);
-  }
-
-  NS_ABORT_IF_FALSE(NS_IsHintSubset(result,
-                                    nsChangeHint_Hints_NotHandledForDescendants),
-                    "something is inconsistent");
-
-  return result;
-}
-
-
 #define NS_STYLE_HINT_NONE \
   nsChangeHint(0)
 #define NS_STYLE_HINT_VISUAL \
   nsChangeHint(nsChangeHint_RepaintFrame | nsChangeHint_SyncFrameView)
-#define nsChangeHint_AllReflowHints                     \
+#define nsChangeHint_ReflowFrame                        \
   nsChangeHint(nsChangeHint_NeedReflow |                \
                nsChangeHint_ClearAncestorIntrinsics |   \
                nsChangeHint_ClearDescendantIntrinsics | \
                nsChangeHint_NeedDirtyReflow)
 #define NS_STYLE_HINT_REFLOW \
-  nsChangeHint(NS_STYLE_HINT_VISUAL | nsChangeHint_AllReflowHints)
+  nsChangeHint(NS_STYLE_HINT_VISUAL | nsChangeHint_ReflowFrame)
 #define NS_STYLE_HINT_FRAMECHANGE \
   nsChangeHint(NS_STYLE_HINT_REFLOW | nsChangeHint_ReconstructFrame)
 

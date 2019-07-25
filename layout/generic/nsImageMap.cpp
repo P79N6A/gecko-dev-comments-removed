@@ -5,6 +5,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsImageMap.h"
 
 #include "nsString.h"
@@ -21,16 +54,13 @@
 #include "nsGkAtoms.h"
 #include "nsIDOMEventTarget.h"
 #include "nsIPresShell.h"
-#include "nsImageFrame.h"
+#include "nsIFrame.h"
 #include "nsCoord.h"
 #include "nsIConsoleService.h"
 #include "nsIScriptError.h"
 #include "nsIStringBundle.h"
+#include "nsIDocument.h"
 #include "nsContentUtils.h"
-
-#ifdef ACCESSIBILITY
-#include "nsAccessibilityService.h"
-#endif
 
 namespace dom = mozilla::dom;
 
@@ -51,7 +81,7 @@ public:
 
   nsCOMPtr<nsIContent> mArea;
   nscoord* mCoords;
-  int32_t mNumCoords;
+  PRInt32 mNumCoords;
   bool mHasFocus;
 };
 
@@ -60,9 +90,9 @@ Area::Area(nsIContent* aArea)
 {
   MOZ_COUNT_CTOR(Area);
   NS_PRECONDITION(mArea, "How did that happen?");
-  mCoords = nullptr;
+  mCoords = nsnull;
   mNumCoords = 0;
-  mHasFocus = false;
+  mHasFocus = PR_FALSE;
 }
 
 Area::~Area()
@@ -86,20 +116,23 @@ is_space(char c)
 
 static void logMessage(nsIContent*      aContent,
                        const nsAString& aCoordsSpec,
-                       int32_t          aFlags,
+                       PRInt32          aFlags,
                        const char* aMessageName) {
-  nsIDocument* doc = aContent->OwnerDoc();
+  nsIDocument* doc = aContent->GetOwnerDoc();
 
   nsContentUtils::ReportToConsole(
-     aFlags, "ImageMap", doc,
      nsContentUtils::eLAYOUT_PROPERTIES,
      aMessageName,
-     nullptr,  
+     nsnull,  
      0, 
-     nullptr,
+     nsnull,
      PromiseFlatString(NS_LITERAL_STRING("coords=\"") +
                        aCoordsSpec +
-                       NS_LITERAL_STRING("\""))); 
+                       NS_LITERAL_STRING("\"")), 
+     0, 
+     0, 
+     aFlags,
+     "ImageMap", doc);
 }
 
 void Area::ParseCoords(const nsAString& aSpec)
@@ -108,14 +141,14 @@ void Area::ParseCoords(const nsAString& aSpec)
   if (cp) {
     char *tptr;
     char *n_str;
-    int32_t i, cnt;
-    int32_t *value_list;
+    PRInt32 i, cnt;
+    PRInt32 *value_list;
 
     
 
 
     mNumCoords = 0;
-    mCoords = nullptr;
+    mCoords = nsnull;
     if (*cp == '\0')
     {
       nsMemory::Free(cp);
@@ -167,14 +200,14 @@ void Area::ParseCoords(const nsAString& aSpec)
 
 
 
-      has_comma = false;
+      has_comma = PR_FALSE;
       while (is_space(*tptr) || *tptr == ',')
       {
         if (*tptr == ',')
         {
           if (!has_comma)
           {
-            has_comma = true;
+            has_comma = PR_TRUE;
           }
           else
           {
@@ -287,7 +320,7 @@ DefaultArea::DefaultArea(nsIContent* aArea)
 
 bool DefaultArea::IsInside(nscoord x, nscoord y) const
 {
-  return true;
+  return PR_TRUE;
 }
 
 void DefaultArea::Draw(nsIFrame* aFrame, nsRenderingContext& aRC)
@@ -336,14 +369,14 @@ void RectArea::ParseCoords(const nsAString& aSpec)
   Area::ParseCoords(aSpec);
 
   bool saneRect = true;
-  int32_t flag = nsIScriptError::warningFlag;
+  PRInt32 flag = nsIScriptError::warningFlag;
   if (mNumCoords >= 4) {
     if (mCoords[0] > mCoords[2]) {
       
       nscoord x = mCoords[2];
       mCoords[2] = mCoords[0];
       mCoords[0] = x;
-      saneRect = false;
+      saneRect = PR_FALSE;
     }
 
     if (mCoords[1] > mCoords[3]) {
@@ -351,15 +384,15 @@ void RectArea::ParseCoords(const nsAString& aSpec)
       nscoord y = mCoords[3];
       mCoords[3] = mCoords[1];
       mCoords[1] = y;
-      saneRect = false;
+      saneRect = PR_FALSE;
     }
 
     if (mNumCoords > 4) {
       
-      saneRect = false;
+      saneRect = PR_FALSE;
     }
   } else {
-    saneRect = false;
+    saneRect = PR_FALSE;
     flag = nsIScriptError::errorFlag;
   }
 
@@ -378,10 +411,10 @@ bool RectArea::IsInside(nscoord x, nscoord y) const
     NS_ASSERTION(x1 <= x2 && y1 <= y2,
                  "Someone screwed up RectArea::ParseCoords");
     if ((x >= x1) && (x <= x2) && (y >= y1) && (y <= y2)) {
-      return true;
+      return PR_TRUE;
     }
   }
-  return false;
+  return PR_FALSE;
 }
 
 void RectArea::Draw(nsIFrame* aFrame, nsRenderingContext& aRC)
@@ -455,15 +488,15 @@ void PolyArea::ParseCoords(const nsAString& aSpec)
 bool PolyArea::IsInside(nscoord x, nscoord y) const
 {
   if (mNumCoords >= 6) {
-    int32_t intersects = 0;
+    PRInt32 intersects = 0;
     nscoord wherex = x;
     nscoord wherey = y;
-    int32_t totalv = mNumCoords / 2;
-    int32_t totalc = totalv * 2;
+    PRInt32 totalv = mNumCoords / 2;
+    PRInt32 totalc = totalv * 2;
     nscoord xval = mCoords[totalc - 2];
     nscoord yval = mCoords[totalc - 1];
-    int32_t end = totalc;
-    int32_t pointer = 1;
+    PRInt32 end = totalc;
+    PRInt32 pointer = 1;
 
     if ((yval >= wherey) != (mCoords[pointer] >= wherey)) {
       if ((xval >= wherex) == (mCoords[0] >= wherex)) {
@@ -510,10 +543,10 @@ bool PolyArea::IsInside(nscoord x, nscoord y) const
       }
     }
     if ((intersects & 1) != 0) {
-      return true;
+      return PR_TRUE;
     }
   }
-  return false;
+  return PR_FALSE;
 }
 
 void PolyArea::Draw(nsIFrame* aFrame, nsRenderingContext& aRC)
@@ -523,7 +556,7 @@ void PolyArea::Draw(nsIFrame* aFrame, nsRenderingContext& aRC)
       nscoord x0 = nsPresContext::CSSPixelsToAppUnits(mCoords[0]);
       nscoord y0 = nsPresContext::CSSPixelsToAppUnits(mCoords[1]);
       nscoord x1, y1;
-      for (int32_t i = 2; i < mNumCoords; i += 2) {
+      for (PRInt32 i = 2; i < mNumCoords; i += 2) {
         x1 = nsPresContext::CSSPixelsToAppUnits(mCoords[i]);
         y1 = nsPresContext::CSSPixelsToAppUnits(mCoords[i+1]);
         aRC.DrawLine(x0, y0, x1, y1);
@@ -543,7 +576,7 @@ void PolyArea::GetRect(nsIFrame* aFrame, nsRect& aRect)
     nscoord x1, x2, y1, y2, xtmp, ytmp;
     x1 = x2 = nsPresContext::CSSPixelsToAppUnits(mCoords[0]);
     y1 = y2 = nsPresContext::CSSPixelsToAppUnits(mCoords[1]);
-    for (int32_t i = 2; i < mNumCoords; i += 2) {
+    for (PRInt32 i = 2; i < mNumCoords; i += 2) {
       xtmp = nsPresContext::CSSPixelsToAppUnits(mCoords[i]);
       ytmp = nsPresContext::CSSPixelsToAppUnits(mCoords[i+1]);
       x1 = x1 < xtmp ? x1 : xtmp;
@@ -578,7 +611,7 @@ void CircleArea::ParseCoords(const nsAString& aSpec)
   Area::ParseCoords(aSpec);
 
   bool wrongNumberOfCoords = false;
-  int32_t flag = nsIScriptError::warningFlag;
+  PRInt32 flag = nsIScriptError::warningFlag;
   if (mNumCoords >= 3) {
     if (mCoords[2] < 0) {
       logMessage(mArea,
@@ -588,10 +621,10 @@ void CircleArea::ParseCoords(const nsAString& aSpec)
     }
 
     if (mNumCoords > 3) {
-      wrongNumberOfCoords = true;
+      wrongNumberOfCoords = PR_TRUE;
     }
   } else {
-    wrongNumberOfCoords = true;
+    wrongNumberOfCoords = PR_TRUE;
     flag = nsIScriptError::errorFlag;
   }
 
@@ -611,16 +644,16 @@ bool CircleArea::IsInside(nscoord x, nscoord y) const
     nscoord y1 = mCoords[1];
     nscoord radius = mCoords[2];
     if (radius < 0) {
-      return false;
+      return PR_FALSE;
     }
     nscoord dx = x1 - x;
     nscoord dy = y1 - y;
     nscoord dist = (dx * dx) + (dy * dy);
     if (dist <= (radius * radius)) {
-      return true;
+      return PR_TRUE;
     }
   }
-  return false;
+  return PR_FALSE;
 }
 
 void CircleArea::Draw(nsIFrame* aFrame, nsRenderingContext& aRC)
@@ -659,8 +692,8 @@ void CircleArea::GetRect(nsIFrame* aFrame, nsRect& aRect)
 
 
 nsImageMap::nsImageMap() :
-  mImageFrame(nullptr),
-  mContainsBlockContents(false)
+  mImageFrame(nsnull),
+  mContainsBlockContents(PR_FALSE)
 {
 }
 
@@ -677,15 +710,18 @@ nsresult
 nsImageMap::GetBoundsForAreaContent(nsIContent *aContent,
                                     nsRect& aBounds)
 {
-  NS_ENSURE_TRUE(aContent && mImageFrame, NS_ERROR_INVALID_ARG);
+  NS_ENSURE_TRUE(aContent, NS_ERROR_INVALID_ARG);
 
   
-  uint32_t i, n = mAreas.Length();
+  PRUint32 i, n = mAreas.Length();
   for (i = 0; i < n; i++) {
     Area* area = mAreas.ElementAt(i);
     if (area->mArea == aContent) {
       aBounds = nsRect();
-      area->GetRect(mImageFrame, aBounds);
+      nsIFrame* frame = aContent->GetPrimaryFrame();
+      if (frame) {
+        area->GetRect(frame, aBounds);
+      }
       return NS_OK;
     }
   }
@@ -695,27 +731,24 @@ nsImageMap::GetBoundsForAreaContent(nsIContent *aContent,
 void
 nsImageMap::FreeAreas()
 {
-  uint32_t i, n = mAreas.Length();
+  PRUint32 i, n = mAreas.Length();
   for (i = 0; i < n; i++) {
     Area* area = mAreas.ElementAt(i);
-    if (area->mArea->IsInDoc()) {
-      NS_ASSERTION(area->mArea->GetPrimaryFrame() == mImageFrame,
-                   "Unexpected primary frame");
+    NS_ASSERTION(area->mArea->GetPrimaryFrame() == mImageFrame,
+                 "Unexpected primary frame");
+    area->mArea->SetPrimaryFrame(nsnull);
 
-      area->mArea->SetPrimaryFrame(nullptr);
-    }
-
-    area->mArea->RemoveSystemEventListener(NS_LITERAL_STRING("focus"), this,
-                                           false);
-    area->mArea->RemoveSystemEventListener(NS_LITERAL_STRING("blur"), this,
-                                           false);
+    area->mArea->RemoveEventListener(NS_LITERAL_STRING("focus"), this,
+                                     PR_FALSE);
+    area->mArea->RemoveEventListener(NS_LITERAL_STRING("blur"), this,
+                                     PR_FALSE);
     delete area;
   }
   mAreas.Clear();
 }
 
 nsresult
-nsImageMap::Init(nsImageFrame* aImageFrame, nsIContent* aMap)
+nsImageMap::Init(nsIFrame* aImageFrame, nsIContent* aMap)
 {
   NS_PRECONDITION(aMap, "null ptr");
   if (!aMap) {
@@ -736,7 +769,7 @@ nsImageMap::SearchForAreas(nsIContent* aParent, bool& aFoundArea,
                            bool& aFoundAnchor)
 {
   nsresult rv = NS_OK;
-  uint32_t i, n = aParent->GetChildCount();
+  PRUint32 i, n = aParent->GetChildCount();
 
   
   for (i = 0; i < n; i++) {
@@ -746,7 +779,7 @@ nsImageMap::SearchForAreas(nsIContent* aParent, bool& aFoundArea,
       
       
       if (!aFoundAnchor && child->Tag() == nsGkAtoms::area) {
-        aFoundArea = true;
+        aFoundArea = PR_TRUE;
         rv = AddArea(child);
         NS_ENSURE_SUCCESS(rv, rv);
 
@@ -759,14 +792,14 @@ nsImageMap::SearchForAreas(nsIContent* aParent, bool& aFoundArea,
       
       
       if (!aFoundArea && child->Tag() == nsGkAtoms::a) {
-        aFoundAnchor = true;
+        aFoundAnchor = PR_TRUE;
         rv = AddArea(child);
         NS_ENSURE_SUCCESS(rv, rv);
       }
     }
 
     if (child->IsElement()) {
-      mContainsBlockContents = true;
+      mContainsBlockContents = PR_TRUE;
       rv = SearchForAreas(child, aFoundArea, aFoundAnchor);
       NS_ENSURE_SUCCESS(rv, rv);
     }
@@ -783,18 +816,9 @@ nsImageMap::UpdateAreas()
 
   bool foundArea = false;
   bool foundAnchor = false;
-  mContainsBlockContents = false;
+  mContainsBlockContents = PR_FALSE;
 
-  nsresult rv = SearchForAreas(mMap, foundArea, foundAnchor);
-#ifdef ACCESSIBILITY
-  if (NS_SUCCEEDED(rv)) {
-    nsAccessibilityService* accService = GetAccService();
-    if (accService) {
-      accService->UpdateImageMap(mImageFrame);
-    }
-  }
-#endif
-  return rv;
+  return SearchForAreas(mMap, foundArea, foundAnchor);
 }
 
 nsresult
@@ -805,7 +829,7 @@ nsImageMap::AddArea(nsIContent* aArea)
      &nsGkAtoms::circle, &nsGkAtoms::circ,
      &nsGkAtoms::_default,
      &nsGkAtoms::poly, &nsGkAtoms::polygon,
-     nullptr};
+     nsnull};
 
   Area* area;
   switch (aArea->FindAttrValueIn(kNameSpaceID_None, nsGkAtoms::shape,
@@ -835,10 +859,10 @@ nsImageMap::AddArea(nsIContent* aArea)
     return NS_ERROR_OUT_OF_MEMORY;
 
   
-  aArea->AddSystemEventListener(NS_LITERAL_STRING("focus"), this, false,
-                                false);
-  aArea->AddSystemEventListener(NS_LITERAL_STRING("blur"), this, false,
-                                false);
+  aArea->AddEventListener(NS_LITERAL_STRING("focus"), this, PR_FALSE,
+                          PR_FALSE);
+  aArea->AddEventListener(NS_LITERAL_STRING("blur"), this, PR_FALSE,
+                          PR_FALSE);
 
   
   
@@ -854,31 +878,28 @@ nsImageMap::AddArea(nsIContent* aArea)
   return NS_OK;
 }
 
-nsIContent*
-nsImageMap::GetArea(nscoord aX, nscoord aY) const
+bool
+nsImageMap::IsInside(nscoord aX, nscoord aY,
+                     nsIContent** aContent) const
 {
   NS_ASSERTION(mMap, "Not initialized");
-  uint32_t i, n = mAreas.Length();
+  PRUint32 i, n = mAreas.Length();
   for (i = 0; i < n; i++) {
     Area* area = mAreas.ElementAt(i);
     if (area->IsInside(aX, aY)) {
-      return area->mArea;
+      NS_ADDREF(*aContent = area->mArea);
+
+      return PR_TRUE;
     }
   }
 
-  return nullptr;
-}
-
-nsIContent*
-nsImageMap::GetAreaAt(uint32_t aIndex) const
-{
-  return mAreas.ElementAt(aIndex)->mArea;
+  return PR_FALSE;
 }
 
 void
 nsImageMap::Draw(nsIFrame* aFrame, nsRenderingContext& aRC)
 {
-  uint32_t i, n = mAreas.Length();
+  PRUint32 i, n = mAreas.Length();
   for (i = 0; i < n; i++) {
     Area* area = mAreas.ElementAt(i);
     area->Draw(aFrame, aRC);
@@ -896,9 +917,9 @@ nsImageMap::MaybeUpdateAreas(nsIContent *aContent)
 void
 nsImageMap::AttributeChanged(nsIDocument*  aDocument,
                              dom::Element* aElement,
-                             int32_t       aNameSpaceID,
+                             PRInt32       aNameSpaceID,
                              nsIAtom*      aAttribute,
-                             int32_t       aModType)
+                             PRInt32       aModType)
 {
   
   
@@ -911,13 +932,6 @@ nsImageMap::AttributeChanged(nsIDocument*  aDocument,
       (aAttribute == nsGkAtoms::shape ||
        aAttribute == nsGkAtoms::coords)) {
     MaybeUpdateAreas(aElement->GetParent());
-  } else if (aElement == mMap &&
-             aNameSpaceID == kNameSpaceID_None &&
-             (aAttribute == nsGkAtoms::name ||
-              aAttribute == nsGkAtoms::id) &&
-             mImageFrame) {
-    
-    mImageFrame->DisconnectMap();
   }
 }
 
@@ -925,7 +939,7 @@ void
 nsImageMap::ContentAppended(nsIDocument *aDocument,
                             nsIContent* aContainer,
                             nsIContent* aFirstNewContent,
-                            int32_t     )
+                            PRInt32     )
 {
   MaybeUpdateAreas(aContainer);
 }
@@ -934,7 +948,7 @@ void
 nsImageMap::ContentInserted(nsIDocument *aDocument,
                             nsIContent* aContainer,
                             nsIContent* aChild,
-                            int32_t )
+                            PRInt32 )
 {
   MaybeUpdateAreas(aContainer);
 }
@@ -943,20 +957,10 @@ void
 nsImageMap::ContentRemoved(nsIDocument *aDocument,
                            nsIContent* aContainer,
                            nsIContent* aChild,
-                           int32_t aIndexInContainer,
+                           PRInt32 aIndexInContainer,
                            nsIContent* aPreviousSibling)
 {
   MaybeUpdateAreas(aContainer);
-}
-
-void
-nsImageMap::ParentChainChanged(nsIContent* aContent)
-{
-  NS_ASSERTION(aContent == mMap,
-               "Unexpected ParentChainChanged notification!");
-  if (mImageFrame) {
-    mImageFrame->DisconnectMap();
-  }
 }
 
 nsresult
@@ -973,17 +977,18 @@ nsImageMap::HandleEvent(nsIDOMEvent* aEvent)
   if (NS_SUCCEEDED(aEvent->GetTarget(getter_AddRefs(target))) && target) {
     nsCOMPtr<nsIContent> targetContent(do_QueryInterface(target));
     if (targetContent) {
-      uint32_t i, n = mAreas.Length();
+      PRUint32 i, n = mAreas.Length();
       for (i = 0; i < n; i++) {
         Area* area = mAreas.ElementAt(i);
         if (area->mArea == targetContent) {
           
           area->HasFocus(focus);
           
-          if (mImageFrame) {
+          nsIFrame* imgFrame = targetContent->GetPrimaryFrame();
+          if (imgFrame) {
             nsRect dmgRect;
-            area->GetRect(mImageFrame, dmgRect);
-            mImageFrame->Invalidate(dmgRect);
+            area->GetRect(imgFrame, dmgRect);
+            imgFrame->Invalidate(dmgRect);
           }
           break;
         }
@@ -997,6 +1002,5 @@ void
 nsImageMap::Destroy(void)
 {
   FreeAreas();
-  mImageFrame = nullptr;
   mMap->RemoveMutationObserver(this);
 }

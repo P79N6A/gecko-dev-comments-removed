@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "txExpr.h"
 #include "txNodeSet.h"
 #include "txNodeSetContext.h"
@@ -19,7 +52,7 @@ PredicateList::evaluatePredicates(txNodeSet* nodes,
     NS_ASSERTION(nodes, "called evaluatePredicates with NULL NodeSet");
     nsresult rv = NS_OK;
 
-    uint32_t i, len = mPredicates.Length();
+    PRUint32 i, len = mPredicates.Length();
     for (i = 0; i < len && !nodes->isEmpty(); ++i) {
         txNodeSetContext predContext(nodes, aContext);
         
@@ -27,7 +60,7 @@ PredicateList::evaluatePredicates(txNodeSet* nodes,
 
 
 
-        int32_t index = 0;
+        PRInt32 index = 0;
         while (predContext.hasNext()) {
             predContext.next();
             nsRefPtr<txAExprResult> exprResult;
@@ -60,23 +93,23 @@ PredicateList::isSensitiveTo(Expr::ContextSensitivity aContext)
     Expr::ContextSensitivity context =
         aContext & ~(Expr::NODE_CONTEXT | Expr::NODESET_CONTEXT);
     if (context == Expr::NO_CONTEXT) {
-        return false;
+        return PR_FALSE;
     }
 
-    uint32_t i, len = mPredicates.Length();
+    PRUint32 i, len = mPredicates.Length();
     for (i = 0; i < len; ++i) {
         if (mPredicates[i]->isSensitiveTo(context)) {
-            return true;
+            return PR_TRUE;
         }
     }
 
-    return false;
+    return PR_FALSE;
 }
 
 #ifdef TX_TO_STRING
 void PredicateList::toString(nsAString& dest)
 {
-    for (uint32_t i = 0; i < mPredicates.Length(); ++i) {
+    for (PRUint32 i = 0; i < mPredicates.Length(); ++i) {
         dest.Append(PRUnichar('['));
         mPredicates[i]->toString(dest);
         dest.Append(PRUnichar(']'));

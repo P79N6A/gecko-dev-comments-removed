@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsNullPrincipalURI.h"
 #include "nsNetUtil.h"
 #include "nsEscape.h"
@@ -14,13 +47,13 @@
 
 nsNullPrincipalURI::nsNullPrincipalURI(const nsCString &aSpec)
 {
-  int32_t dividerPosition = aSpec.FindChar(':');
+  PRInt32 dividerPosition = aSpec.FindChar(':');
   NS_ASSERTION(dividerPosition != -1, "Malformed URI!");
 
-  int32_t n = aSpec.Left(mScheme, dividerPosition);
+  PRInt32 n = aSpec.Left(mScheme, dividerPosition);
   NS_ASSERTION(n == dividerPosition, "Storing the scheme failed!");
 
-  int32_t count = aSpec.Length() - dividerPosition - 1;
+  PRInt32 count = aSpec.Length() - dividerPosition - 1;
   n = aSpec.Mid(mPath, dividerPosition + 1, count);
   NS_ASSERTION(n == count, "Storing the path failed!");
 
@@ -34,12 +67,11 @@ NS_IMPL_THREADSAFE_ADDREF(nsNullPrincipalURI)
 NS_IMPL_THREADSAFE_RELEASE(nsNullPrincipalURI)
 
 NS_INTERFACE_MAP_BEGIN(nsNullPrincipalURI)
-  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIURI)
+  NS_INTERFACE_MAP_ENTRY(nsISupports)
   if (aIID.Equals(kNullPrincipalURIImplementationCID))
     foundInterface = static_cast<nsIURI *>(this);
   else
   NS_INTERFACE_MAP_ENTRY(nsIURI)
-  NS_INTERFACE_MAP_ENTRY(nsISizeOf)
 NS_INTERFACE_MAP_END
 
 
@@ -55,7 +87,7 @@ nsNullPrincipalURI::GetAsciiHost(nsACString &_host)
 NS_IMETHODIMP
 nsNullPrincipalURI::GetAsciiSpec(nsACString &_spec)
 {
-  nsAutoCString buffer;
+  nsCAutoString buffer;
   (void)GetSpec(buffer);
   NS_EscapeURL(buffer, esc_OnlyNonASCII | esc_AlwaysCopy, _spec);
   return NS_OK;
@@ -139,13 +171,13 @@ nsNullPrincipalURI::GetPrePath(nsACString &_prePath)
 }
 
 NS_IMETHODIMP
-nsNullPrincipalURI::GetPort(int32_t *_port)
+nsNullPrincipalURI::GetPort(PRInt32 *_port)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-nsNullPrincipalURI::SetPort(int32_t aPort)
+nsNullPrincipalURI::SetPort(PRInt32 aPort)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -180,7 +212,7 @@ nsNullPrincipalURI::GetSpecIgnoringRef(nsACString &result)
 NS_IMETHODIMP
 nsNullPrincipalURI::GetHasRef(bool *result)
 {
-  *result = false;
+  *result = PR_FALSE;
   return NS_OK;
 }
 
@@ -234,7 +266,7 @@ nsNullPrincipalURI::CloneIgnoringRef(nsIURI **_newURI)
 NS_IMETHODIMP
 nsNullPrincipalURI::Equals(nsIURI *aOther, bool *_equals)
 {
-  *_equals = false;
+  *_equals = PR_FALSE;
   nsNullPrincipalURI *otherURI;
   nsresult rv = aOther->QueryInterface(kNullPrincipalURIImplementationCID,
                                        (void **)&otherURI);
@@ -267,19 +299,3 @@ nsNullPrincipalURI::SchemeIs(const char *aScheme, bool *_schemeIs)
   *_schemeIs = (0 == nsCRT::strcasecmp(mScheme.get(), aScheme));
   return NS_OK;
 }
-
-
-
-
-size_t
-nsNullPrincipalURI::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
-{
-  return mScheme.SizeOfExcludingThisIfUnshared(aMallocSizeOf) +
-         mPath.SizeOfExcludingThisIfUnshared(aMallocSizeOf);
-}
-
-size_t
-nsNullPrincipalURI::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const {
-  return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
-}
-

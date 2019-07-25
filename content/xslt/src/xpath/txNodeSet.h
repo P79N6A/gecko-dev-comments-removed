@@ -7,11 +7,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef txNodeSet_h__
 #define txNodeSet_h__
 
 #include "txExprResult.h"
-#include "nsError.h"
+#include "txError.h"
 #include "txXPathNode.h"
 
 class txNodeSet : public txAExprResult
@@ -108,7 +141,7 @@ public:
 
 
 
-    nsresult mark(int32_t aIndex);
+    nsresult mark(PRInt32 aIndex);
     nsresult sweep();
 
     
@@ -123,7 +156,7 @@ public:
 
 
 
-    int32_t indexOf(const txXPathNode& aNode, uint32_t aStart = 0) const;
+    PRInt32 indexOf(const txXPathNode& aNode, PRUint32 aStart = 0) const;
 
     
 
@@ -140,7 +173,7 @@ public:
 
 
 
-    const txXPathNode& get(int32_t aIndex) const;
+    const txXPathNode& get(PRInt32 aIndex) const;
 
     
 
@@ -148,14 +181,14 @@ public:
 
     bool isEmpty() const
     {
-        return mStart ? mStart == mEnd : true;
+        return mStart ? mStart == mEnd : PR_TRUE;
     }
 
     
 
 
 
-    int32_t size() const
+    PRInt32 size() const
     {
         return mStart ? mEnd - mStart : 0;
     }
@@ -168,7 +201,7 @@ private:
 
 
 
-    bool ensureGrowSize(int32_t aSize);
+    bool ensureGrowSize(PRInt32 aSize);
 
     
 
@@ -209,7 +242,7 @@ private:
                  destroyOp aDestroy);
 
     txXPathNode *mStart, *mEnd, *mStartBuffer, *mEndBuffer;
-    int32_t mDirection;
+    PRInt32 mDirection;
     
     bool* mMarks;
 };

@@ -4,6 +4,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
+
 #include "nsDownloadScanner.h"
 #include <comcat.h>
 #include <process.h>
@@ -14,7 +49,7 @@
 #include "nsNetUtil.h"
 #include "nsDeque.h"
 #include "nsIFileURL.h"
-#include "nsIPrefBranch.h"
+#include "nsIPrefBranch2.h"
 #include "nsXPCOMCIDInternal.h"
 
 
@@ -142,7 +177,7 @@ private:
 };
 
 nsDownloadScanner::nsDownloadScanner() :
-  mAESExists(false)
+  mAESExists(PR_FALSE)
 {
 }
  
@@ -168,14 +203,14 @@ nsDownloadScanner::Init()
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  mAESExists = true;
+  mAESExists = PR_TRUE;
 
   
   mWatchdog = new nsDownloadScannerWatchdog();
   if (mWatchdog) {
     rv = mWatchdog->Init();
     if (FAILED(rv))
-      mWatchdog = nullptr;
+      mWatchdog = nsnull;
   } else {
     rv = NS_ERROR_OUT_OF_MEMORY;
   }
@@ -196,9 +231,9 @@ nsDownloadScanner::IsAESAvailable()
                         IID_IAttachmentExecute, getter_AddRefs(ae));
   if (FAILED(hr)) {
     NS_WARNING("Could not instantiate attachment execution service\n");
-    return false;
+    return PR_FALSE;
   }
-  return true;
+  return PR_TRUE;
 }
 
 
@@ -211,7 +246,7 @@ nsDownloadScanner::CheckPolicy(nsIURI *aSource, nsIURI *aTarget)
   if (!mAESExists || !aSource || !aTarget)
     return AVPOLICY_DOWNLOAD;
 
-  nsAutoCString source;
+  nsCAutoString source;
   rv = aSource->GetSpec(source);
   if (NS_FAILED(rv))
     return AVPOLICY_DOWNLOAD;
@@ -307,7 +342,7 @@ nsresult ReleaseDispatcher::Run() {
 nsDownloadScanner::Scan::Scan(nsDownloadScanner *scanner, nsDownload *download)
   : mDLScanner(scanner), mThread(NULL), 
     mDownload(download), mStatus(AVSCAN_NOTSTARTED),
-    mSkipSource(false)
+    mSkipSource(PR_FALSE)
 {
   InitializeCriticalSection(&mStateSync);
 }
@@ -329,7 +364,7 @@ nsDownloadScanner::Scan::Start()
   nsresult rv = NS_OK;
 
   
-  nsCOMPtr<nsIFile> file;
+  nsCOMPtr<nsILocalFile> file;
   rv = mDownload->GetTargetFile(getter_AddRefs(file));
   NS_ENSURE_SUCCESS(rv, rv);
   rv = file->GetPath(mPath);
@@ -340,7 +375,7 @@ nsDownloadScanner::Scan::Start()
     do_GetService(XULAPPINFO_SERVICE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsAutoCString name;
+  nsCAutoString name;
   rv = appinfo->GetName(name);
   NS_ENSURE_SUCCESS(rv, rv);
   CopyUTF8toUTF16(name, mName);
@@ -350,7 +385,7 @@ nsDownloadScanner::Scan::Start()
   rv = mDownload->GetSource(getter_AddRefs(uri));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsAutoCString origin;
+  nsCAutoString origin;
   rv = uri->GetSpec(origin);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -417,7 +452,7 @@ nsDownloadScanner::Scan::Run()
 
   
   
-  mDownload = nullptr;
+  mDownload = nsnull;
 
   NS_RELEASE_THIS();
   return NS_OK;
@@ -467,13 +502,13 @@ nsDownloadScanner::Scan::DoScanAES()
         
         hr = ae->Save();
       } MOZ_SEH_EXCEPT(ExceptionFilterFunction(GetExceptionCode())) {
-        gotException = true;
+        gotException = PR_TRUE;
       }
 
       MOZ_SEH_TRY {
         ae = NULL;
       } MOZ_SEH_EXCEPT(ExceptionFilterFunction(GetExceptionCode())) {
-        gotException = true;
+        gotException = PR_TRUE;
       }
 
       if(gotException) {
@@ -499,7 +534,7 @@ nsDownloadScanner::Scan::DoScanAES()
     }
     return CheckAndSetState(newState, AVSCAN_SCANNING);
   }
-  return false;
+  return PR_FALSE;
 }
 #pragma warning(default: 4509)
 
@@ -725,3 +760,5 @@ nsDownloadScannerWatchdog::WatchdogThread(void *p) {
   _endthreadex(0);
   return 0;
 }
+
+#endif 

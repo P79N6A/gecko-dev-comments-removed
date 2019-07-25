@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "stdlib.h"
 #include "plstr.h"
 #include "plbase64.h"
@@ -15,6 +48,9 @@
 #include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIServiceManager.h"
+#include "nsIWindowWatcher.h"
+#include "nsIPrompt.h"
+#include "nsProxiedService.h"
 #include "nsITokenPasswordDialogs.h"
 
 #include "nsISecretDecoderRing.h"
@@ -29,6 +65,60 @@
 
 #include "nsNSSCleaner.h"
 NSSCleanupAutoPtrClass(PK11SlotInfo, PK11_FreeSlot)
+
+
+
+
+
+class nsSDRContext : public nsIInterfaceRequestor
+{
+public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIINTERFACEREQUESTOR
+
+  nsSDRContext();
+  virtual ~nsSDRContext();
+};
+
+NS_IMPL_ISUPPORTS1(nsSDRContext, nsIInterfaceRequestor)
+
+nsSDRContext::nsSDRContext()
+{
+}
+
+nsSDRContext::~nsSDRContext()
+{
+}
+
+
+NS_IMETHODIMP nsSDRContext::GetInterface(const nsIID & uuid, void * *result)
+{
+  if (!uuid.Equals(NS_GET_IID(nsIPrompt)))
+    return NS_ERROR_NO_INTERFACE;
+
+  nsCOMPtr<nsIPrompt> prompter;
+  nsresult rv;
+  nsCOMPtr<nsIWindowWatcher> wwatch(do_GetService(NS_WINDOWWATCHER_CONTRACTID, &rv));
+  if (NS_FAILED(rv))
+    return rv;
+
+  rv = wwatch->GetNewPrompter(0, getter_AddRefs(prompter));
+  if (!prompter)
+    return NS_ERROR_FAILURE;
+
+  nsCOMPtr<nsIPrompt> proxyPrompt;
+  rv = NS_GetProxyForObject(NS_PROXY_TO_MAIN_THREAD,
+                            NS_GET_IID(nsIPrompt),
+                            prompter,
+                            NS_PROXY_SYNC,
+                            getter_AddRefs(proxyPrompt));
+  if (!proxyPrompt)
+    return NS_ERROR_FAILURE;
+  *result = proxyPrompt;
+  NS_ADDREF((nsIPrompt*)*result);
+
+  return NS_OK;
+}
 
 
 
@@ -47,7 +137,7 @@ nsSecretDecoderRing::~nsSecretDecoderRing()
 
 
 NS_IMETHODIMP nsSecretDecoderRing::
-Encrypt(unsigned char * data, int32_t dataLen, unsigned char * *result, int32_t *_retval)
+Encrypt(unsigned char * data, PRInt32 dataLen, unsigned char * *result, PRInt32 *_retval)
 {
   nsNSSShutDownPreventionLock locker;
   nsresult rv = NS_OK;
@@ -57,7 +147,7 @@ Encrypt(unsigned char * data, int32_t dataLen, unsigned char * *result, int32_t 
   SECItem request;
   SECItem reply;
   SECStatus s;
-  nsCOMPtr<nsIInterfaceRequestor> ctx = new PipUIContext();
+  nsCOMPtr<nsIInterfaceRequestor> ctx = new nsSDRContext();
   if (!ctx) { rv = NS_ERROR_OUT_OF_MEMORY; goto loser; }
 
   slot = PK11_GetInternalKeySlot();
@@ -69,7 +159,7 @@ Encrypt(unsigned char * data, int32_t dataLen, unsigned char * *result, int32_t 
     goto loser;
 
   
-  s = PK11_Authenticate(slot, true, ctx);
+  s = PK11_Authenticate(slot, PR_TRUE, ctx);
   if (s != SECSuccess) { rv = NS_ERROR_FAILURE; goto loser; }
 
   
@@ -91,7 +181,7 @@ loser:
 
 
 NS_IMETHODIMP nsSecretDecoderRing::
-Decrypt(unsigned char * data, int32_t dataLen, unsigned char * *result, int32_t *_retval)
+Decrypt(unsigned char * data, PRInt32 dataLen, unsigned char * *result, PRInt32 *_retval)
 {
   nsNSSShutDownPreventionLock locker;
   nsresult rv = NS_OK;
@@ -100,7 +190,7 @@ Decrypt(unsigned char * data, int32_t dataLen, unsigned char * *result, int32_t 
   SECStatus s;
   SECItem request;
   SECItem reply;
-  nsCOMPtr<nsIInterfaceRequestor> ctx = new PipUIContext();
+  nsCOMPtr<nsIInterfaceRequestor> ctx = new nsSDRContext();
   if (!ctx) { rv = NS_ERROR_OUT_OF_MEMORY; goto loser; }
 
   *result = 0;
@@ -111,7 +201,7 @@ Decrypt(unsigned char * data, int32_t dataLen, unsigned char * *result, int32_t 
   if (!slot) { rv = NS_ERROR_NOT_AVAILABLE; goto loser; }
 
   
-  if (PK11_Authenticate(slot, true, ctx) != SECSuccess)
+  if (PK11_Authenticate(slot, PR_TRUE, ctx) != SECSuccess)
   {
     rv = NS_ERROR_NOT_AVAILABLE;
     goto loser;
@@ -138,9 +228,9 @@ EncryptString(const char *text, char **_retval)
   nsNSSShutDownPreventionLock locker;
   nsresult rv = NS_OK;
   unsigned char *encrypted = 0;
-  int32_t eLen;
+  PRInt32 eLen;
 
-  if (text == nullptr || _retval == nullptr) {
+  if (text == nsnull || _retval == nsnull) {
     rv = NS_ERROR_INVALID_POINTER;
     goto loser;
   }
@@ -164,11 +254,11 @@ DecryptString(const char *crypt, char **_retval)
   nsresult rv = NS_OK;
   char *r = 0;
   unsigned char *decoded = 0;
-  int32_t decodedLen;
+  PRInt32 decodedLen;
   unsigned char *decrypted = 0;
-  int32_t decryptedLen;
+  PRInt32 decryptedLen;
 
-  if (crypt == nullptr || _retval == nullptr) {
+  if (crypt == nsnull || _retval == nsnull) {
     rv = NS_ERROR_INVALID_POINTER;
     goto loser;
   }
@@ -220,7 +310,7 @@ ChangePassword()
                      NS_TOKENPASSWORDSDIALOG_CONTRACTID);
   if (NS_FAILED(rv)) return rv;
 
-  nsCOMPtr<nsIInterfaceRequestor> ctx = new PipUIContext();
+  nsCOMPtr<nsIInterfaceRequestor> ctx = new nsSDRContext();
   bool canceled;
 
   {
@@ -278,7 +368,7 @@ LogoutAndTeardown()
   
   nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
   if (os)
-    os->NotifyObservers(nullptr, "net:prune-dead-connections", nullptr);
+    os->NotifyObservers(nsnull, "net:prune-dead-connections", nsnull);
 
   return rv;
 }
@@ -293,7 +383,7 @@ SetWindow(nsISupports *w)
 
 
 nsresult nsSecretDecoderRing::
-encode(const unsigned char *data, int32_t dataLen, char **_retval)
+encode(const unsigned char *data, PRInt32 dataLen, char **_retval)
 {
   nsresult rv = NS_OK;
 
@@ -309,10 +399,10 @@ loser:
 }
 
 nsresult nsSecretDecoderRing::
-decode(const char *data, unsigned char **result, int32_t * _retval)
+decode(const char *data, unsigned char **result, PRInt32 * _retval)
 {
   nsresult rv = NS_OK;
-  uint32_t len = PL_strlen(data);
+  PRUint32 len = PL_strlen(data);
   int adjust = 0;
 
   

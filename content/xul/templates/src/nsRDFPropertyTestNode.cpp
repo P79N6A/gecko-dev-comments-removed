@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsRDFPropertyTestNode.h"
 #include "nsString.h"
 #include "nsXULContentUtils.h"
@@ -21,10 +54,10 @@ nsRDFPropertyTestNode::nsRDFPropertyTestNode(TestNode* aParent,
     : nsRDFTestNode(aParent),
       mProcessor(aProcessor),
       mSourceVariable(aSourceVariable),
-      mSource(nullptr),
+      mSource(nsnull),
       mProperty(aProperty),
       mTargetVariable(aTargetVariable),
-      mTarget(nullptr)
+      mTarget(nsnull)
 {
 #ifdef PR_LOGGING
     if (PR_LOG_TEST(gXULTemplateLog, PR_LOG_DEBUG)) {
@@ -59,7 +92,7 @@ nsRDFPropertyTestNode::nsRDFPropertyTestNode(TestNode* aParent,
       mSource(aSource),
       mProperty(aProperty),
       mTargetVariable(aTargetVariable),
-      mTarget(nullptr)
+      mTarget(nsnull)
 {
 #ifdef PR_LOGGING
     if (PR_LOG_TEST(gXULTemplateLog, PR_LOG_DEBUG)) {
@@ -91,7 +124,7 @@ nsRDFPropertyTestNode::nsRDFPropertyTestNode(TestNode* aParent,
     : nsRDFTestNode(aParent),
       mProcessor(aProcessor),
       mSourceVariable(aSourceVariable),
-      mSource(nullptr),
+      mSource(nsnull),
       mProperty(aProperty),
       mTargetVariable(0),
       mTarget(aTarget)
@@ -124,7 +157,7 @@ nsRDFPropertyTestNode::FilterInstantiations(InstantiationSet& aInstantiations,
     nsresult rv;
 
     if (aCantHandleYet)
-        *aCantHandleYet = false;
+        *aCantHandleYet = PR_FALSE;
 
     nsIRDFDataSource* ds = mProcessor->GetDataSource();
 
@@ -134,7 +167,7 @@ nsRDFPropertyTestNode::FilterInstantiations(InstantiationSet& aInstantiations,
         nsCOMPtr<nsIRDFResource> sourceRes;
 
         if (mSource) {
-            hasSourceBinding = true;
+            hasSourceBinding = PR_TRUE;
             sourceRes = mSource;
         }
         else {
@@ -148,7 +181,7 @@ nsRDFPropertyTestNode::FilterInstantiations(InstantiationSet& aInstantiations,
         nsCOMPtr<nsIRDFNode> targetValue;
 
         if (mTarget) {
-            hasTargetBinding = true;
+            hasTargetBinding = PR_TRUE;
             targetValue = mTarget;
         }
         else {
@@ -176,7 +209,7 @@ nsRDFPropertyTestNode::FilterInstantiations(InstantiationSet& aInstantiations,
             
             bool hasAssertion;
             rv = ds->HasAssertion(sourceRes, mProperty, targetValue,
-                                  true, &hasAssertion);
+                                  PR_TRUE, &hasAssertion);
             if (NS_FAILED(rv)) return rv;
 
 #ifdef PR_LOGGING
@@ -210,13 +243,13 @@ nsRDFPropertyTestNode::FilterInstantiations(InstantiationSet& aInstantiations,
             if (hasSourceBinding) {
                 rv = ds->GetTargets(sourceRes,
                                     mProperty,
-                                    true,
+                                    PR_TRUE,
                                     getter_AddRefs(results));
             }
             else {
                 rv = ds->GetSources(mProperty,
                                     targetValue,
-                                    true,
+                                    PR_TRUE,
                                     getter_AddRefs(results));
                 if (NS_FAILED(rv)) return rv;
             }
@@ -240,7 +273,7 @@ nsRDFPropertyTestNode::FilterInstantiations(InstantiationSet& aInstantiations,
                     variable = mTargetVariable;
 
                     value = do_QueryInterface(isupports);
-                    NS_ASSERTION(value != nullptr, "target is not an nsIRDFNode");
+                    NS_ASSERTION(value != nsnull, "target is not an nsIRDFNode");
 
 #ifdef PR_LOGGING
                     if (PR_LOG_TEST(gXULTemplateLog, PR_LOG_DEBUG)) {
@@ -261,7 +294,7 @@ nsRDFPropertyTestNode::FilterInstantiations(InstantiationSet& aInstantiations,
                     variable = mSourceVariable;
 
                     nsCOMPtr<nsIRDFResource> source = do_QueryInterface(isupports);
-                    NS_ASSERTION(source != nullptr, "source is not an nsIRDFResource");
+                    NS_ASSERTION(source != nsnull, "source is not an nsIRDFResource");
 
 #ifdef PR_LOGGING
                     if (PR_LOG_TEST(gXULTemplateLog, PR_LOG_DEBUG)) {
@@ -308,7 +341,7 @@ nsRDFPropertyTestNode::FilterInstantiations(InstantiationSet& aInstantiations,
                 return NS_ERROR_UNEXPECTED;
             }
 
-            *aCantHandleYet = true;
+            *aCantHandleYet = PR_TRUE;
             return NS_OK;
         }
     }
@@ -327,7 +360,7 @@ nsRDFPropertyTestNode::CanPropagate(nsIRDFResource* aSource,
     if ((mProperty.get() != aProperty) ||
         (mSource && mSource.get() != aSource) ||
         (mTarget && mTarget.get() != aTarget)) {
-        result = false;
+        result = PR_FALSE;
     }
     else {
         if (mSourceVariable)
@@ -336,7 +369,7 @@ nsRDFPropertyTestNode::CanPropagate(nsIRDFResource* aSource,
         if (mTargetVariable)
             aInitialBindings.AddAssignment(mTargetVariable, aTarget);
 
-        result = true;
+        result = PR_TRUE;
     }
 
 #ifdef PR_LOGGING

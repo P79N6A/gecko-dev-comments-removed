@@ -10,12 +10,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsEventSource_h__
 #define nsEventSource_h__
 
 #include "nsIEventSource.h"
 #include "nsIJSNativeInitializer.h"
-#include "nsDOMEventTargetHelper.h"
+#include "nsDOMEventTargetWrapperCache.h"
 #include "nsIObserver.h"
 #include "nsIStreamListener.h"
 #include "nsIChannelEventSink.h"
@@ -36,7 +69,7 @@
 class AsyncVerifyRedirectCallbackFwr;
 class nsAutoClearFields;
 
-class nsEventSource: public nsDOMEventTargetHelper,
+class nsEventSource: public nsDOMEventTargetWrapperCache,
                      public nsIEventSource,
                      public nsIJSNativeInitializer,
                      public nsIObserver,
@@ -51,14 +84,14 @@ public:
   nsEventSource();
   virtual ~nsEventSource();
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS_INHERITED(nsEventSource,
-                                                                   nsDOMEventTargetHelper)
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsEventSource,
+                                           nsDOMEventTargetWrapperCache)
 
   NS_DECL_NSIEVENTSOURCE
 
   
   NS_IMETHOD Initialize(nsISupports* aOwner, JSContext* cx, JSObject* obj,
-                        uint32_t argc, jsval* argv);
+                        PRUint32 argc, jsval* argv);
 
   NS_DECL_NSIOBSERVER
   NS_DECL_NSISTREAMLISTENER
@@ -69,7 +102,6 @@ public:
   
   static bool PrefEnabled();
 
-  virtual void DisconnectFromOwner();
 protected:
   nsresult GetBaseURI(nsIURI **aBaseURI);
 
@@ -92,28 +124,28 @@ protected:
   nsresult PrintErrorOnConsole(const char       *aBundleURI,
                                const PRUnichar  *aError,
                                const PRUnichar **aFormatStrings,
-                               uint32_t          aFormatStringsLen);
+                               PRUint32          aFormatStringsLen);
   nsresult ConsoleError();
 
   static NS_METHOD StreamReaderFunc(nsIInputStream *aInputStream,
                                     void           *aClosure,
                                     const char     *aFromRawSegment,
-                                    uint32_t        aToOffset,
-                                    uint32_t        aCount,
-                                    uint32_t       *aWriteCount);
+                                    PRUint32        aToOffset,
+                                    PRUint32        aCount,
+                                    PRUint32       *aWriteCount);
   nsresult SetFieldAndClear();
   nsresult ClearFields();
   nsresult ResetEvent();
   nsresult DispatchCurrentMessageEvent();
   nsresult ParseCharacter(PRUnichar aChr);
-  bool CheckCanRequestSrc(nsIURI* aSrc = nullptr);  
+  bool CheckCanRequestSrc(nsIURI* aSrc = nsnull);  
   nsresult CheckHealthOfRequestCallback(nsIRequest *aRequestCallback);
   nsresult OnRedirectVerifyCallback(nsresult result);
 
   nsCOMPtr<nsIURI> mSrc;
 
   nsString mLastEventID;
-  uint32_t mReconnectionTime;  
+  PRUint32 mReconnectionTime;  
 
   struct Message {
     nsString mEventName;
@@ -183,14 +215,16 @@ protected:
   bool mFrozen;
   bool mErrorLoadOnRedirect;
   bool mGoingToDispatchAllMessages;
-  bool mWithCredentials;
-  bool mWaitingForOnStopRequest;
 
   
   nsCOMPtr<nsIUnicodeDecoder> mUnicodeDecoder;
   nsresult mLastConvertionResult;
   nsString mLastFieldName;
   nsString mLastFieldValue;
+
+  nsRefPtr<nsDOMEventListenerWrapper> mOnOpenListener;
+  nsRefPtr<nsDOMEventListenerWrapper> mOnErrorListener;
+  nsRefPtr<nsDOMEventListenerWrapper> mOnMessageListener;
 
   nsCOMPtr<nsILoadGroup> mLoadGroup;
 
@@ -205,13 +239,13 @@ protected:
 
   nsCOMPtr<nsITimer> mTimer;
 
-  int32_t mReadyState;
+  PRInt32 mReadyState;
   nsString mOriginalURL;
 
   nsCOMPtr<nsIPrincipal> mPrincipal;
-  nsString mOrigin;
+  nsCString mOrigin;
 
-  uint32_t mRedirectFlags;
+  PRUint32 mRedirectFlags;
   nsCOMPtr<nsIAsyncVerifyRedirectCallback> mRedirectCallback;
   nsCOMPtr<nsIChannel> mNewRedirectChannel;
 
@@ -222,8 +256,8 @@ protected:
   
   
   nsString mScriptFile;
-  uint32_t mScriptLine;
-  uint64_t mInnerWindowID;
+  PRUint32 mScriptLine;
+  PRUint64 mInnerWindowID;
 
 private:
   nsEventSource(const nsEventSource& x);   

@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsTableOuterFrame.h"
 #include "nsTableFrame.h"
 #include "nsStyleContext.h"
@@ -20,9 +53,6 @@
 #include "nsIDOMNode.h"
 #include "nsDisplayList.h"
 #include "nsLayoutUtils.h"
-
-using namespace mozilla;
-using namespace mozilla::layout;
 
 
 
@@ -53,7 +83,7 @@ nsTableOuterFrame::GetBaseline() const
   nsIFrame* kid = mFrames.FirstChild();
   if (!kid) {
     NS_NOTREACHED("no inner table");
-    return nsContainerFrame::GetBaseline();
+    return nsHTMLContainerFrame::GetBaseline();
   }
 
   return kid->GetBaseline() + kid->GetPosition().y;
@@ -67,12 +97,7 @@ nsTableCaptionFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
 {
   nsSize result = nsBlockFrame::ComputeAutoSize(aRenderingContext, aCBSize,
                     aAvailableWidth, aMargin, aBorder, aPadding, aShrinkWrap);
-
-  
-  
-  AutoMaybeDisableFontInflation an(this);
-
-  uint8_t captionSide = GetStyleTableBorder()->mCaptionSide;
+  PRUint8 captionSide = GetStyleTableBorder()->mCaptionSide;
   if (captionSide == NS_STYLE_CAPTION_SIDE_LEFT ||
       captionSide == NS_STYLE_CAPTION_SIDE_RIGHT) {
     result.width = GetMinWidth(aRenderingContext);
@@ -93,7 +118,7 @@ nsTableCaptionFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
 }
 
 nsIFrame*
-nsTableCaptionFrame::GetParentStyleContextFrame() const
+nsTableCaptionFrame::GetParentStyleContextFrame()
 {
   NS_PRECONDITION(mContent->GetParent(),
                   "How could we not have a parent here?");
@@ -114,7 +139,7 @@ nsTableCaptionFrame::GetParentStyleContextFrame() const
 }
 
 #ifdef ACCESSIBILITY
-already_AddRefed<Accessible>
+already_AddRefed<nsAccessible>
 nsTableCaptionFrame::CreateAccessible()
 {
   if (!GetRect().IsEmpty()) {
@@ -125,11 +150,11 @@ nsTableCaptionFrame::CreateAccessible()
     }
   }
 
-  return nullptr;
+  return nsnull;
 }
 #endif
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
 NS_IMETHODIMP
 nsTableCaptionFrame::GetFrameName(nsAString& aResult) const
 {
@@ -148,7 +173,7 @@ NS_IMPL_FRAMEARENA_HELPERS(nsTableCaptionFrame)
 
 
 nsTableOuterFrame::nsTableOuterFrame(nsStyleContext* aContext):
-  nsContainerFrame(aContext)
+  nsHTMLContainerFrame(aContext)
 {
 }
 
@@ -158,10 +183,10 @@ nsTableOuterFrame::~nsTableOuterFrame()
 
 NS_QUERYFRAME_HEAD(nsTableOuterFrame)
   NS_QUERYFRAME_ENTRY(nsITableLayout)
-NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
+NS_QUERYFRAME_TAIL_INHERITING(nsHTMLContainerFrame)
 
 #ifdef ACCESSIBILITY
-already_AddRefed<Accessible>
+already_AddRefed<nsAccessible>
 nsTableOuterFrame::CreateAccessible()
 {
   nsAccessibilityService* accService = nsIPresShell::AccService();
@@ -170,7 +195,7 @@ nsTableOuterFrame::CreateAccessible()
                                                  PresContext()->PresShell());
   }
 
-  return nullptr;
+  return nsnull;
 }
 #endif
 
@@ -179,23 +204,24 @@ nsTableOuterFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
   DestroyAbsoluteFrames(aDestructRoot);
   mCaptionFrames.DestroyFramesFrom(aDestructRoot);
-  nsContainerFrame::DestroyFrom(aDestructRoot);
+  nsHTMLContainerFrame::DestroyFrom(aDestructRoot);
 }
 
-const nsFrameList&
+nsFrameList
 nsTableOuterFrame::GetChildList(ChildListID aListID) const
 {
   if (aListID == kCaptionList) {
     return mCaptionFrames;
   }
 
-  return nsContainerFrame::GetChildList(aListID);
+  return nsHTMLContainerFrame::GetChildList(aListID);
 }
 
 void
 nsTableOuterFrame::GetChildLists(nsTArray<ChildList>* aLists) const
 {
-  nsContainerFrame::GetChildLists(aLists);
+  nsHTMLContainerFrame::GetChildLists(aLists);
+  mFrames.AppendIfNonempty(aLists, kPrincipalList);
   mCaptionFrames.AppendIfNonempty(aLists, kCaptionList);
 }
 
@@ -241,7 +267,7 @@ nsTableOuterFrame::AppendFrames(ChildListID     aListID,
                        NS_FRAME_HAS_DIRTY_CHILDREN);
   }
   else {
-    NS_PRECONDITION(false, "unexpected child list");
+    NS_PRECONDITION(PR_FALSE, "unexpected child list");
     rv = NS_ERROR_UNEXPECTED;
   }
 
@@ -259,7 +285,7 @@ nsTableOuterFrame::InsertFrames(ChildListID     aListID,
     NS_ASSERTION(aFrameList.IsEmpty() ||
                  aFrameList.FirstChild()->GetType() == nsGkAtoms::tableCaptionFrame,
                  "inserting non-caption frame into captionList");
-    mCaptionFrames.InsertFrames(nullptr, aPrevFrame, aFrameList);
+    mCaptionFrames.InsertFrames(nsnull, aPrevFrame, aFrameList);
 
     
     
@@ -305,6 +331,8 @@ nsTableOuterFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 {
   
   
+  if (!IsVisibleInSelection(aBuilder))
+    return NS_OK;
 
   
   
@@ -344,8 +372,16 @@ nsTableOuterFrame::BuildDisplayListForInnerTable(nsDisplayListBuilder*   aBuilde
   return NS_OK;
 }
 
+void
+nsTableOuterFrame::SetSelected(bool          aSelected,
+                               SelectionType aType)
+{
+  nsFrame::SetSelected(aSelected, aType);
+  InnerTableFrame()->SetSelected(aSelected, aType);
+}
+
 nsIFrame*
-nsTableOuterFrame::GetParentStyleContextFrame() const
+nsTableOuterFrame::GetParentStyleContextFrame()
 {
   
   
@@ -369,8 +405,8 @@ nsTableOuterFrame::InitChildReflowState(nsPresContext&    aPresContext,
 {
   nsMargin collapseBorder;
   nsMargin collapsePadding(0,0,0,0);
-  nsMargin* pCollapseBorder  = nullptr;
-  nsMargin* pCollapsePadding = nullptr;
+  nsMargin* pCollapseBorder  = nsnull;
+  nsMargin* pCollapsePadding = nsnull;
   if (aReflowState.frame == InnerTableFrame() &&
       InnerTableFrame()->IsBorderCollapse()) {
     collapseBorder  = InnerTableFrame()->GetIncludedOuterBCBorder();
@@ -396,7 +432,7 @@ nsTableOuterFrame::GetChildMargin(nsPresContext*           aPresContext,
   
   nsHTMLReflowState childRS(aPresContext, aOuterRS, aChildFrame,
                             nsSize(aAvailWidth, aOuterRS.availableHeight),
-                            -1, -1, false);
+                            -1, -1, PR_FALSE);
   InitChildReflowState(*aPresContext, childRS);
 
   aMargin = childRS.mComputedMargin;
@@ -453,7 +489,7 @@ nsTableOuterFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
   maxWidth = nsLayoutUtils::IntrinsicForContainer(aRenderingContext,
                InnerTableFrame(), nsLayoutUtils::PREF_WIDTH);
   if (mCaptionFrames.NotEmpty()) {
-    uint8_t captionSide = GetCaptionSide();
+    PRUint8 captionSide = GetCaptionSide();
     switch(captionSide) {
     case NS_STYLE_CAPTION_SIDE_LEFT:
     case NS_STYLE_CAPTION_SIDE_RIGHT:
@@ -498,10 +534,8 @@ static nscoord
 ChildShrinkWrapWidth(nsRenderingContext *aRenderingContext,
                      nsIFrame *aChildFrame,
                      nsSize aCBSize, nscoord aAvailableWidth,
-                     nscoord *aMarginResult = nullptr)
+                     nscoord *aMarginResult = nsnull)
 {
-  AutoMaybeDisableFontInflation an(aChildFrame);
-
   nsCSSOffsetState offsets(aChildFrame, aRenderingContext, aCBSize.width);
   nsSize size = aChildFrame->ComputeSize(aRenderingContext, aCBSize,
                   aAvailableWidth,
@@ -513,7 +547,7 @@ ChildShrinkWrapWidth(nsRenderingContext *aRenderingContext,
                            offsets.mComputedPadding.TopBottom()),
                   nsSize(offsets.mComputedPadding.LeftRight(),
                          offsets.mComputedPadding.TopBottom()),
-                  true);
+                  PR_TRUE);
   if (aMarginResult)
     *aMarginResult = offsets.mComputedMargin.LeftRight();
   return size.width + offsets.mComputedMargin.LeftRight() +
@@ -537,7 +571,7 @@ nsTableOuterFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
   
 
   
-  uint8_t captionSide = GetCaptionSide();
+  PRUint8 captionSide = GetCaptionSide();
   nscoord width;
   if (captionSide == NO_SIDE) {
     width = ChildShrinkWrapWidth(aRenderingContext, InnerTableFrame(),
@@ -576,7 +610,7 @@ nsTableOuterFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
   return nsSize(width, NS_UNCONSTRAINEDSIZE);
 }
 
-uint8_t
+PRUint8
 nsTableOuterFrame::GetCaptionSide()
 {
   if (mCaptionFrames.NotEmpty()) {
@@ -587,7 +621,7 @@ nsTableOuterFrame::GetCaptionSide()
   }
 }
 
-uint8_t
+PRUint8
 nsTableOuterFrame::GetCaptionVerticalAlign()
 {
   const nsStyleCoord& va =
@@ -598,7 +632,7 @@ nsTableOuterFrame::GetCaptionVerticalAlign()
 }
 
 void
-nsTableOuterFrame::SetDesiredSize(uint8_t         aCaptionSide,
+nsTableOuterFrame::SetDesiredSize(PRUint8         aCaptionSide,
                                   const nsMargin& aInnerMargin,
                                   const nsMargin& aCaptionMargin,
                                   nscoord&        aWidth,
@@ -640,7 +674,7 @@ nsTableOuterFrame::SetDesiredSize(uint8_t         aCaptionSide,
 }
 
 nsresult 
-nsTableOuterFrame::GetCaptionOrigin(uint32_t         aCaptionSide,
+nsTableOuterFrame::GetCaptionOrigin(PRUint32         aCaptionSide,
                                     const nsSize&    aContainBlockSize,
                                     const nsSize&    aInnerSize, 
                                     const nsMargin&  aInnerMargin,
@@ -725,7 +759,7 @@ nsTableOuterFrame::GetCaptionOrigin(uint32_t         aCaptionSide,
 }
 
 nsresult 
-nsTableOuterFrame::GetInnerOrigin(uint32_t         aCaptionSide,
+nsTableOuterFrame::GetInnerOrigin(PRUint32         aCaptionSide,
                                   const nsSize&    aContainBlockSize,
                                   const nsSize&    aCaptionSize, 
                                   const nsMargin&  aCaptionMargin,
@@ -838,19 +872,19 @@ nsTableOuterFrame::OuterBeginReflowChild(nsPresContext*           aPresContext,
   
   nsHTMLReflowState &childRS = * new (aChildRSSpace)
     nsHTMLReflowState(aPresContext, aOuterRS, aChildFrame, availSize,
-                      -1, -1, false);
+                      -1, -1, PR_FALSE);
   InitChildReflowState(*aPresContext, childRS);
 
   
   if (mCaptionFrames.NotEmpty()) {
-    uint8_t captionSide = GetCaptionSide();
+    PRUint8 captionSide = GetCaptionSide();
     if (((captionSide == NS_STYLE_CAPTION_SIDE_BOTTOM ||
           captionSide == NS_STYLE_CAPTION_SIDE_BOTTOM_OUTSIDE) &&
          mCaptionFrames.FirstChild() == aChildFrame) || 
         ((captionSide == NS_STYLE_CAPTION_SIDE_TOP ||
           captionSide == NS_STYLE_CAPTION_SIDE_TOP_OUTSIDE) &&
          InnerTableFrame() == aChildFrame)) {
-      childRS.mFlags.mIsTopOfPage = false;
+      childRS.mFlags.mIsTopOfPage = PR_FALSE;
     }
   }
 }
@@ -870,7 +904,7 @@ nsTableOuterFrame::OuterDoReflowChild(nsPresContext*             aPresContext,
 }
 
 void 
-nsTableOuterFrame::UpdateReflowMetrics(uint8_t              aCaptionSide,
+nsTableOuterFrame::UpdateReflowMetrics(PRUint8              aCaptionSide,
                                        nsHTMLReflowMetrics& aMet,
                                        const nsMargin&      aInnerMargin,
                                        const nsMargin&      aCaptionMargin)
@@ -894,7 +928,7 @@ NS_METHOD nsTableOuterFrame::Reflow(nsPresContext*           aPresContext,
   DISPLAY_REFLOW(aPresContext, this, aOuterRS, aDesiredSize, aStatus);
 
   nsresult rv = NS_OK;
-  uint8_t captionSide = GetCaptionSide();
+  PRUint8 captionSide = GetCaptionSide();
 
   
   aDesiredSize.width = aDesiredSize.height = 0;
@@ -1079,11 +1113,11 @@ nsTableOuterFrame::GetType() const
 
 
 NS_IMETHODIMP 
-nsTableOuterFrame::GetCellDataAt(int32_t aRowIndex, int32_t aColIndex, 
+nsTableOuterFrame::GetCellDataAt(PRInt32 aRowIndex, PRInt32 aColIndex, 
                                  nsIDOMElement* &aCell,   
-                                 int32_t& aStartRowIndex, int32_t& aStartColIndex, 
-                                 int32_t& aRowSpan, int32_t& aColSpan,
-                                 int32_t& aActualRowSpan, int32_t& aActualColSpan,
+                                 PRInt32& aStartRowIndex, PRInt32& aStartColIndex, 
+                                 PRInt32& aRowSpan, PRInt32& aColSpan,
+                                 PRInt32& aActualRowSpan, PRInt32& aActualColSpan,
                                  bool& aIsSelected)
 {
   return InnerTableFrame()->GetCellDataAt(aRowIndex, aColIndex, aCell,
@@ -1093,22 +1127,22 @@ nsTableOuterFrame::GetCellDataAt(int32_t aRowIndex, int32_t aColIndex,
 }
 
 NS_IMETHODIMP
-nsTableOuterFrame::GetTableSize(int32_t& aRowCount, int32_t& aColCount)
+nsTableOuterFrame::GetTableSize(PRInt32& aRowCount, PRInt32& aColCount)
 {
   return InnerTableFrame()->GetTableSize(aRowCount, aColCount);
 }
 
 NS_IMETHODIMP
-nsTableOuterFrame::GetIndexByRowAndColumn(int32_t aRow, int32_t aColumn,
-                                          int32_t *aIndex)
+nsTableOuterFrame::GetIndexByRowAndColumn(PRInt32 aRow, PRInt32 aColumn,
+                                          PRInt32 *aIndex)
 {
   NS_ENSURE_ARG_POINTER(aIndex);
   return InnerTableFrame()->GetIndexByRowAndColumn(aRow, aColumn, aIndex);
 }
 
 NS_IMETHODIMP
-nsTableOuterFrame::GetRowAndColumnByIndex(int32_t aIndex,
-                                          int32_t *aRow, int32_t *aColumn)
+nsTableOuterFrame::GetRowAndColumnByIndex(PRInt32 aIndex,
+                                          PRInt32 *aRow, PRInt32 *aColumn)
 {
   NS_ENSURE_ARG_POINTER(aRow);
   NS_ENSURE_ARG_POINTER(aColumn);

@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef TRANSFRMX_MOZILLA_XML_OUTPUT_H
 #define TRANSFRMX_MOZILLA_XML_OUTPUT_H
 
@@ -13,7 +46,6 @@
 #include "nsCOMArray.h"
 #include "nsICSSLoaderObserver.h"
 #include "txStack.h"
-#include "mozilla/Attributes.h"
 
 class nsIContent;
 class nsIDOMDocument;
@@ -27,8 +59,8 @@ class nsNodeInfoManager;
 class nsIDocument;
 class nsINode;
 
-class txTransformNotifier MOZ_FINAL : public nsIScriptLoaderObserver,
-                                      public nsICSSLoaderObserver
+class txTransformNotifier : public nsIScriptLoaderObserver,
+                            public nsICSSLoaderObserver
 {
 public:
     txTransformNotifier();
@@ -54,7 +86,7 @@ private:
     nsCOMPtr<nsIDocument> mDocument;
     nsCOMPtr<nsITransformObserver> mObserver;
     nsCOMArray<nsIScriptElement> mScriptElements;
-    uint32_t mPendingStylesheetCount;
+    PRUint32 mPendingStylesheetCount;
     bool mInTransform;
 };
 
@@ -73,7 +105,7 @@ public:
 
     nsresult closePrevious(bool aFlushText);
 
-    nsresult createResultDocument(const nsSubstring& aName, int32_t aNsID,
+    nsresult createResultDocument(const nsSubstring& aName, PRInt32 aNsID,
                                   nsIDOMDocument* aSourceDocument);
 
 private:
@@ -85,9 +117,9 @@ private:
                                nsIContent** aResult);
 
     nsresult attributeInternal(nsIAtom* aPrefix, nsIAtom* aLocalName,
-                               int32_t aNsID, const nsString& aValue);
+                               PRInt32 aNsID, const nsString& aValue);
     nsresult startElementInternal(nsIAtom* aPrefix, nsIAtom* aLocalName,
-                                  int32_t aNsID);
+                                  PRInt32 aNsID);
 
     nsCOMPtr<nsIDocument> mDocument;
     nsCOMPtr<nsINode> mCurrentNode;     
@@ -104,7 +136,7 @@ private:
 
     nsRefPtr<txTransformNotifier> mNotifier;
 
-    uint32_t mTreeDepth, mBadChildLevel;
+    PRUint32 mTreeDepth, mBadChildLevel;
     nsCString mRefreshString;
 
     txStack mTableStateStack;

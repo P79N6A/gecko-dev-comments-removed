@@ -7,8 +7,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsGenericDOMDataNode.h"
 #include "nsIDOMText.h"
+
+#include "nsIAttribute.h"
+#include "nsIDocument.h"
+#include "nsThreadUtils.h"
+#include "nsDOMMemoryReporter.h"
 
 
 
@@ -33,20 +70,24 @@ public:
   NS_FORWARD_NSIDOMTEXT(nsGenericDOMDataNode::)
 
   
-  virtual bool IsNodeOfType(uint32_t aFlags) const;
+  NS_DECL_AND_IMPL_DOM_MEMORY_REPORTER_SIZEOF(nsTextNode, nsGenericDOMDataNode)
+
+  
+  virtual bool IsNodeOfType(PRUint32 aFlags) const;
 
   virtual nsGenericDOMDataNode* CloneDataNode(nsINodeInfo *aNodeInfo,
                                               bool aCloneText) const;
 
+  nsresult BindToAttribute(nsIAttribute* aAttr);
+  nsresult UnbindFromAttribute();
+
   virtual nsXPCClassInfo* GetClassInfo();
 
-  nsresult AppendTextForNormalize(const PRUnichar* aBuffer, uint32_t aLength,
+  nsresult AppendTextForNormalize(const PRUnichar* aBuffer, PRUint32 aLength,
                                   bool aNotify, nsIContent* aNextSibling);
 
-  virtual nsIDOMNode* AsDOMNode() { return this; }
-
 #ifdef DEBUG
-  virtual void List(FILE* out, int32_t aIndent) const;
-  virtual void DumpContent(FILE* out, int32_t aIndent, bool aDumpAll) const;
+  virtual void List(FILE* out, PRInt32 aIndent) const;
+  virtual void DumpContent(FILE* out, PRInt32 aIndent, bool aDumpAll) const;
 #endif
 };

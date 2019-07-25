@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsLocalHandlerApp.h"
 #include "nsIURI.h"
 #include "nsIProcess.h"
@@ -56,7 +90,7 @@ nsLocalHandlerApp::Equals(nsIHandlerApp *aHandlerApp, bool *_retval)
 {
   NS_ENSURE_ARG_POINTER(aHandlerApp);
 
-  *_retval = false;
+  *_retval = PR_FALSE;
 
   
   nsCOMPtr <nsILocalHandlerApp> localHandlerApp = do_QueryInterface(aHandlerApp);
@@ -72,7 +106,7 @@ nsLocalHandlerApp::Equals(nsIHandlerApp *aHandlerApp, bool *_retval)
 
   
   if (!executable && !mExecutable) {
-    *_retval = true;
+    *_retval = PR_TRUE;
     return NS_OK;
   }
 
@@ -81,13 +115,13 @@ nsLocalHandlerApp::Equals(nsIHandlerApp *aHandlerApp, bool *_retval)
     return NS_OK;
 
   
-  uint32_t len;
+  PRUint32 len;
   localHandlerApp->GetParameterCount(&len);
   if (mParameters.Length() != len)
     return NS_OK;
 
   
-  for (uint32_t idx = 0; idx < mParameters.Length(); idx++) {
+  for (PRUint32 idx = 0; idx < mParameters.Length(); idx++) {
     nsAutoString param;
     if (NS_FAILED(localHandlerApp->GetParameter(idx, param)) ||
         !param.Equals(mParameters[idx]))
@@ -102,7 +136,7 @@ nsLocalHandlerApp::LaunchWithURI(nsIURI *aURI,
                                  nsIInterfaceRequestor *aWindowContext)
 {
   
-  nsAutoCString spec;
+  nsCAutoString spec;
   aURI->GetAsciiSpec(spec);
   return LaunchWithIProcess(spec);
 }
@@ -120,7 +154,7 @@ nsLocalHandlerApp::LaunchWithIProcess(const nsCString& aArg)
 
   const char *string = aArg.get();
 
-  return process->Run(false, &string, 1);
+  return process->Run(PR_FALSE, &string, 1);
 }
 
 
@@ -143,7 +177,7 @@ nsLocalHandlerApp::SetExecutable(nsIFile *aExecutable)
 
 
 NS_IMETHODIMP
-nsLocalHandlerApp::GetParameterCount(uint32_t *aParameterCount)
+nsLocalHandlerApp::GetParameterCount(PRUint32 *aParameterCount)
 {
   *aParameterCount = mParameters.Length();
   return NS_OK;
@@ -167,7 +201,7 @@ nsLocalHandlerApp::AppendParameter(const nsAString & aParam)
 
 
 NS_IMETHODIMP
-nsLocalHandlerApp::GetParameter(uint32_t parameterIndex, nsAString & _retval)
+nsLocalHandlerApp::GetParameter(PRUint32 parameterIndex, nsAString & _retval)
 {
   if (mParameters.Length() <= parameterIndex)
     return NS_ERROR_INVALID_ARG;

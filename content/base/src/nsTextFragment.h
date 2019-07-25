@@ -8,14 +8,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsTextFragment_h___
 #define nsTextFragment_h___
-
-#include "mozilla/Attributes.h"
 
 #include "nsString.h"
 #include "nsReadableUtils.h"
 #include "nsTraceRefcnt.h"
+#include "nsDOMMemoryReporter.h"
 
 class nsString;
 class nsCString;
@@ -49,7 +80,7 @@ class nsCString;
 
 
 
-class nsTextFragment MOZ_FINAL {
+class NS_FINAL_CLASS nsTextFragment {
 public:
   static nsresult Init();
   static void Shutdown();
@@ -58,7 +89,7 @@ public:
 
 
   nsTextFragment()
-    : m1b(nullptr), mAllBits(0)
+    : m1b(nsnull), mAllBits(0)
   {
     MOZ_COUNT_CTOR(nsTextFragment);
     NS_ASSERTION(sizeof(FragmentBits) == 4, "Bad field packing!");
@@ -112,7 +143,7 @@ public:
 
 
 
-  uint32_t GetLength() const
+  PRUint32 GetLength() const
   {
     return mState.mLength;
   }
@@ -127,14 +158,14 @@ public:
 
 
 
-  void SetTo(const PRUnichar* aBuffer, int32_t aLength, bool aUpdateBidi);
+  void SetTo(const PRUnichar* aBuffer, PRInt32 aLength, bool aUpdateBidi);
 
   
 
 
 
 
-  void Append(const PRUnichar* aBuffer, uint32_t aLength, bool aUpdateBidi);
+  void Append(const PRUnichar* aBuffer, PRUint32 aLength, bool aUpdateBidi);
 
   
 
@@ -143,7 +174,8 @@ public:
     if (mState.mIs2b) {
       aString.Append(m2b, mState.mLength);
     } else {
-      AppendASCIItoUTF16(Substring(m1b, mState.mLength), aString);
+      AppendASCIItoUTF16(Substring(m1b, m1b + mState.mLength),
+                         aString);
     }
   }
 
@@ -152,11 +184,11 @@ public:
 
 
 
-  void AppendTo(nsAString& aString, int32_t aOffset, int32_t aLength) const {
+  void AppendTo(nsAString& aString, PRInt32 aOffset, PRInt32 aLength) const {
     if (mState.mIs2b) {
       aString.Append(m2b + aOffset, aLength);
     } else {
-      AppendASCIItoUTF16(Substring(m1b + aOffset, aLength), aString);
+      AppendASCIItoUTF16(Substring(m1b + aOffset, m1b + aOffset + aLength), aString);
     }
   }
 
@@ -166,15 +198,15 @@ public:
 
 
 
-  void CopyTo(PRUnichar *aDest, int32_t aOffset, int32_t aCount);
+  void CopyTo(PRUnichar *aDest, PRInt32 aOffset, PRInt32 aCount);
 
   
 
 
 
-  PRUnichar CharAt(int32_t aIndex) const
+  PRUnichar CharAt(PRInt32 aIndex) const
   {
-    NS_ASSERTION(uint32_t(aIndex) < mState.mLength, "bad index");
+    NS_ASSERTION(PRUint32(aIndex) < mState.mLength, "bad index");
     return mState.mIs2b ? m2b[aIndex] : static_cast<unsigned char>(m1b[aIndex]);
   }
 
@@ -184,13 +216,22 @@ public:
     
     
     
-    uint32_t mInHeap : 1;
-    uint32_t mIs2b : 1;
-    uint32_t mIsBidi : 1;
-    uint32_t mLength : 29;
+    PRUint32 mInHeap : 1;
+    PRUint32 mIs2b : 1;
+    PRUint32 mIsBidi : 1;
+    PRUint32 mLength : 29;
   };
 
-  size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  
+
+
+
+  PRInt64 SizeOf() const
+  {
+    PRInt64 size = sizeof(*this);
+    size += GetLength() * Is2b() ? sizeof(*m2b) : sizeof(*m1b);
+    return size;
+  }
 
 private:
   void ReleaseText();
@@ -199,7 +240,7 @@ private:
 
 
 
-  void UpdateBidiFlag(const PRUnichar* aBuffer, uint32_t aLength);
+  void UpdateBidiFlag(const PRUnichar* aBuffer, PRUint32 aLength);
  
   union {
     PRUnichar *m2b;
@@ -207,7 +248,7 @@ private:
   };
 
   union {
-    uint32_t mAllBits;
+    PRUint32 mAllBits;
     FragmentBits mState;
   };
 };

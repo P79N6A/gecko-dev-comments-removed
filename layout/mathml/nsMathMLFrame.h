@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsMathMLFrame_h___
 #define nsMathMLFrame_h___
 
@@ -82,14 +115,14 @@ public:
   }
 
   NS_IMETHOD
-  UpdatePresentationData(uint32_t        aFlagsValues,
-                         uint32_t        aFlagsToUpdate);
+  UpdatePresentationData(PRUint32        aFlagsValues,
+                         PRUint32        aFlagsToUpdate);
 
   NS_IMETHOD
-  UpdatePresentationDataFromChildAt(int32_t         aFirstIndex,
-                                    int32_t         aLastIndex,
-                                    uint32_t        aFlagsValues,
-                                    uint32_t        aFlagsToUpdate)
+  UpdatePresentationDataFromChildAt(PRInt32         aFirstIndex,
+                                    PRInt32         aLastIndex,
+                                    PRUint32        aFlagsValues,
+                                    PRUint32        aFlagsToUpdate)
   {
     return NS_OK;
   }
@@ -136,11 +169,6 @@ public:
                        nsPresentationData& aPresentationData);
 
   
-  static void
-  FindAttrDirectionality(nsIContent*         aContent,
-                         nsPresentationData& aPresentationData);
-
-  
   
   
   
@@ -152,18 +180,23 @@ public:
 
   
   
-  
-  
-  static void ParseNumericValue(const nsString&   aString,
-                                nscoord*          aLengthValue,
-                                uint32_t          aFlags,
-                                nsPresContext*    aPresContext,
-                                nsStyleContext*   aStyleContext);
+  static bool
+  ParseNumericValue(const nsString& aString,
+                    nsCSSValue&     aCSSValue) {
+    return nsMathMLElement::ParseNumericValue(aString, aCSSValue,
+            nsMathMLElement::PARSE_ALLOW_NEGATIVE |
+            nsMathMLElement::PARSE_ALLOW_UNITLESS);
+  }
 
   static nscoord 
   CalcLength(nsPresContext*   aPresContext,
              nsStyleContext*   aStyleContext,
              const nsCSSValue& aCSSValue);
+
+  static bool
+  ParseNamedSpaceValue(nsIFrame*   aMathMLmstyleFrame,
+                       nsString&   aString,
+                       nsCSSValue& aCSSValue);
 
   static eMathMLFrameType
   GetMathMLFrameTypeFor(nsIFrame* aFrame)
@@ -351,7 +384,7 @@ public:
                 nscoord&             aAxisHeight);
 
 protected:
-#if defined(DEBUG) && defined(SHOW_BOUNDING_BOX)
+#if defined(NS_DEBUG) && defined(SHOW_BOUNDING_BOX)
   nsresult DisplayBoundingMetrics(nsDisplayListBuilder* aBuilder,
                                   nsIFrame* aFrame, const nsPoint& aPt,
                                   const nsBoundingMetrics& aMetrics,

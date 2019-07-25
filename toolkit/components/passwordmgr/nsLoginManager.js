@@ -288,10 +288,18 @@ LoginManager.prototype = {
             
             if (!(domDoc instanceof Ci.nsIDOMHTMLDocument))
                 return;
-
-            this._pwmgr.log("onStateChange accepted: req = " +
-                            (aRequest ?  aRequest.name : "(null)") +
-                            ", flags = 0x" + aStateFlags.toString(16));
+            if (this._pwmgr._debug) {
+                let requestName = "(null)";
+                if (aRequest) {
+                    try {
+                        requestName = aRequest.name;
+                    } catch (ex if ex.result == Components.results.NS_ERROR_NOT_IMPLEMENTED) {
+                        
+                    }
+                }
+                this._pwmgr.log("onStateChange accepted: req = " + requestName +
+                                ", flags = 0x" + aStateFlags.toString(16));
+            }
 
             
             if (aStateFlags & Ci.nsIWebProgressListener.STATE_RESTORING) {

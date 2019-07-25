@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsNameSpaceMap_h__
 #define nsNameSpaceMap_h__
 
@@ -17,7 +50,7 @@ public:
     class Entry {
     public:
         Entry(const nsCSubstring& aURI, nsIAtom* aPrefix)
-            : mURI(aURI), mPrefix(aPrefix), mNext(nullptr) {
+            : mURI(aURI), mPrefix(aPrefix), mNext(nsnull) {
             MOZ_COUNT_CTOR(nsNameSpaceMap::Entry); }
 
         ~Entry() { MOZ_COUNT_DTOR(nsNameSpaceMap::Entry); }
@@ -48,7 +81,7 @@ public:
 
     public:
         const_iterator()
-            : mCurrent(nullptr) {}
+            : mCurrent(nsnull) {}
 
         const_iterator(const const_iterator& iter)
             : mCurrent(iter.mCurrent) {}
@@ -86,7 +119,7 @@ public:
         return const_iterator(mEntries); }
 
     const_iterator last() const {
-        return const_iterator(nullptr); }
+        return const_iterator(nsnull); }
 
     const_iterator GetNameSpaceOf(const nsCSubstring& aURI) const;
 

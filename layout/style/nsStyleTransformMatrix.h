@@ -7,6 +7,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsStyleTransformMatrix_h_
 #define nsStyleTransformMatrix_h_
 
@@ -29,13 +61,6 @@ namespace nsStyleTransformMatrix {
 
 
   nsCSSKeyword TransformFunctionOf(const nsCSSValue::Array* aData);
-
-  float ProcessTranslatePart(const nsCSSValue& aValue,
-                             nsStyleContext* aContext,
-                             nsPresContext* aPresContext,
-                             bool& aCanStoreInRuleTree,
-                             nscoord aSize,
-                             float aAppUnitsPerMatrixUnit);
 
   
 

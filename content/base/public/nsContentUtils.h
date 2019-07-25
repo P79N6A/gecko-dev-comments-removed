@@ -6,6 +6,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsContentUtils_h___
 #define nsContentUtils_h___
 
@@ -18,28 +51,38 @@
 #include <ieeefp.h>
 #endif
 
+
+#ifdef __FreeBSD__
+#include <ieeefp.h>
+#ifdef __alpha__
+static fp_except_t allmask = FP_X_INV|FP_X_OFL|FP_X_UFL|FP_X_DZ|FP_X_IMP;
+#else
+static fp_except_t allmask = FP_X_INV|FP_X_OFL|FP_X_UFL|FP_X_DZ|FP_X_IMP|FP_X_DNML;
+#endif
+static fp_except_t oldmask = fpsetmask(~allmask);
+#endif
+
 #include "nsAString.h"
 #include "nsIStatefulFrame.h"
+#include "nsINodeInfo.h"
 #include "nsNodeInfoManager.h"
+#include "nsContentList.h"
+#include "nsDOMClassInfoID.h"
 #include "nsIXPCScriptable.h"
 #include "nsDataHashtable.h"
+#include "nsIScriptRuntime.h"
+#include "nsIScriptGlobalObject.h"
 #include "nsIDOMEvent.h"
 #include "nsTArray.h"
+#include "nsTextFragment.h"
 #include "nsReadableUtils.h"
-#include "nsINode.h"
-#include "nsIDOMNode.h"
-#include "nsHtml5StringParser.h"
-#include "nsIDocument.h"
-#include "nsContentSink.h"
-#include "nsMathUtils.h"
-#include "nsThreadUtils.h"
-#include "nsIContent.h"
-#include "nsCharSeparatedTokenizer.h"
-#include "gfxContext.h"
-#include "gfxFont.h"
-
 #include "mozilla/AutoRestore.h"
-#include "mozilla/GuardObjects.h"
+#include "nsINode.h"
+#include "nsHashtable.h"
+#include "nsIDOMNode.h"
+#include "nsHtml5Parser.h"
+#include "nsIFragmentContentSink.h"
+#include "nsMathUtils.h"
 #include "mozilla/TimeStamp.h"
 
 struct nsNativeKeyEvent; 
@@ -52,13 +95,9 @@ class nsIDocument;
 class nsIDocumentObserver;
 class nsIDocShell;
 class nsINameSpaceManager;
-class nsIFragmentContentSink;
-class nsIScriptGlobalObject;
 class nsIScriptSecurityManager;
-class nsTextFragment;
 class nsIJSContextStack;
 class nsIThreadJSContextStack;
-class nsIParser;
 class nsIParserService;
 class nsIIOService;
 class nsIURI;
@@ -81,10 +120,10 @@ class nsEventListenerManager;
 class nsIScriptContext;
 class nsIRunnable;
 class nsIInterfaceRequestor;
-class nsINodeInfo;
 template<class E> class nsCOMArray;
 template<class K, class V> class nsRefPtrHashtable;
 struct JSRuntime;
+class nsIUGenCategory;
 class nsIWidget;
 class nsIDragSession;
 class nsIPresShell;
@@ -103,12 +142,8 @@ class nsAutoScriptBlockerSuppressNodeRemoved;
 struct nsIntMargin;
 class nsPIDOMWindow;
 class nsIDocumentLoaderFactory;
-class nsIDOMHTMLInputElement;
-class gfxTextObjectPaint;
 
 namespace mozilla {
-
-class Selection;
 
 namespace layers {
   class LayerManager;
@@ -134,54 +169,20 @@ enum EventNameType {
   EventNameType_All = 0xFFFF
 };
 
-
-
-
-
-struct ViewportInfo
-{
-    
-    
-    double defaultZoom;
-
-    
-    double minZoom;
-
-    
-    double maxZoom;
-
-    
-    
-    uint32_t width;
-
-    
-    
-    uint32_t height;
-
-    
-    
-    
-    
-    bool autoSize;
-
-    
-    bool allowZoom;
-};
-
 struct EventNameMapping
 {
   nsIAtom* mAtom;
-  uint32_t mId;
-  int32_t  mType;
-  uint32_t mStructType;
+  PRUint32 mId;
+  PRInt32  mType;
+  PRUint32 mStructType;
 };
 
 struct nsShortcutCandidate {
-  nsShortcutCandidate(uint32_t aCharCode, bool aIgnoreShift) :
+  nsShortcutCandidate(PRUint32 aCharCode, bool aIgnoreShift) :
     mCharCode(aCharCode), mIgnoreShift(aIgnoreShift)
   {
   }
-  uint32_t mCharCode;
+  PRUint32 mCharCode;
   bool     mIgnoreShift;
 };
 
@@ -203,6 +204,20 @@ public:
 
 
 
+
+
+
+
+
+
+  static nsresult GetContextAndScope(nsIDocument *aOldDocument,
+                                     nsIDocument *aNewDocument,
+                                     JSContext **aCx, JSObject **aNewScope);
+
+  
+
+
+
   static nsresult ReparentContentWrappersInScope(JSContext *cx,
                                                  nsIScriptGlobalObject *aOldScope,
                                                  nsIScriptGlobalObject *aNewScope);
@@ -216,9 +231,8 @@ public:
   
 
 
-  static bool     CallerHasUniversalXPConnect();
 
-  static bool     IsImageSrcSetDisabled();
+  static bool     IsCallerTrustedForCapability(const char* aCapability);
 
   
 
@@ -263,9 +277,9 @@ public:
 
 
   static nsresult GetAncestorsAndOffsets(nsIDOMNode* aNode,
-                                         int32_t aOffset,
+                                         PRInt32 aOffset,
                                          nsTArray<nsIContent*>* aAncestorNodes,
-                                         nsTArray<int32_t>* aAncestorOffsets);
+                                         nsTArray<PRInt32>* aAncestorOffsets);
 
   
 
@@ -306,12 +320,9 @@ public:
 
 
 
-  static int32_t ComparePoints(nsINode* aParent1, int32_t aOffset1,
-                               nsINode* aParent2, int32_t aOffset2,
-                               bool* aDisconnected = nullptr);
-  static int32_t ComparePoints(nsIDOMNode* aParent1, int32_t aOffset1,
-                               nsIDOMNode* aParent2, int32_t aOffset2,
-                               bool* aDisconnected = nullptr);
+  static PRInt32 ComparePoints(nsINode* aParent1, PRInt32 aOffset1,
+                               nsINode* aParent2, PRInt32 aOffset2,
+                               bool* aDisconnected = nsnull);
 
   
 
@@ -334,15 +345,18 @@ public:
 
 
 
-  static uint16_t ReverseDocumentPosition(uint16_t aDocumentPosition);
+  static PRUint16 ReverseDocumentPosition(PRUint16 aDocumentPosition);
 
-  static uint32_t CopyNewlineNormalizedUnicodeTo(const nsAString& aSource,
-                                                 uint32_t aSrcOffset,
+  static PRUint32 CopyNewlineNormalizedUnicodeTo(const nsAString& aSource,
+                                                 PRUint32 aSrcOffset,
                                                  PRUnichar* aDest,
-                                                 uint32_t aLength,
+                                                 PRUint32 aLength,
                                                  bool& aLastCharCR);
 
-  static uint32_t CopyNewlineNormalizedUnicodeTo(nsReadingIterator<PRUnichar>& aSrcStart, const nsReadingIterator<PRUnichar>& aSrcEnd, nsAString& aDest);
+  static PRUint32 CopyNewlineNormalizedUnicodeTo(nsReadingIterator<PRUnichar>& aSrcStart, const nsReadingIterator<PRUnichar>& aSrcEnd, nsAString& aDest);
+
+  static nsISupports *
+  GetClassInfoInstance(nsDOMClassInfoID aID);
 
   static const nsDependentSubstring TrimCharsInSet(const char* aSet,
                                                    const nsAString& aValue);
@@ -354,14 +368,14 @@ public:
   
 
 
-  static bool IsFirstLetterPunctuation(uint32_t aChar);
-  static bool IsFirstLetterPunctuationAt(const nsTextFragment* aFrag, uint32_t aOffset);
+  static bool IsPunctuationMark(PRUint32 aChar);
+  static bool IsPunctuationMarkAt(const nsTextFragment* aFrag, PRUint32 aOffset);
  
   
 
 
-  static bool IsAlphanumeric(uint32_t aChar);
-  static bool IsAlphanumericAt(const nsTextFragment* aFrag, uint32_t aOffset);
+  static bool IsAlphanumeric(PRUint32 aChar);
+  static bool IsAlphanumericAt(const nsTextFragment* aFrag, PRUint32 aOffset);
 
   
 
@@ -376,31 +390,12 @@ public:
   
 
 
-  static bool IsHTMLBlock(nsIAtom* aLocalName);
-
-  
-
-
-  static bool IsHTMLVoid(nsIAtom* aLocalName);
-
-  
-
-
 
 
 
 
 
   static bool ParseIntMarginValue(const nsAString& aString, nsIntMargin& aResult);
-
-  
-
-
-
-
-
-
-  static int32_t ParseLegacyFontSize(const nsAString& aValue);
 
   static void Shutdown();
 
@@ -409,8 +404,6 @@ public:
 
   static nsresult CheckSameOrigin(nsINode* aTrustedNode,
                                   nsIDOMNode* aUnTrustedNode);
-  static nsresult CheckSameOrigin(nsINode* aTrustedNode,
-                                  nsINode* unTrustedNode);
 
   
   static bool CanCallerAccess(nsIDOMNode *aNode);
@@ -474,6 +467,13 @@ public:
     return sIOService;
   }
 
+  static imgILoader* GetImgLoader()
+  {
+    if (!sImgLoaderInitialized)
+      InitImgLoader();
+    return sImgLoader;
+  }
+
 #ifdef MOZ_XTF
   static nsIXTFService* GetXTFService();
 #endif
@@ -524,11 +524,9 @@ public:
 
 
 
-  static bool CheckForBOM(const unsigned char* aBuffer, uint32_t aLength,
-                          nsACString& aCharset, bool *bigEndian = nullptr);
+  static bool CheckForBOM(const unsigned char* aBuffer, PRUint32 aLength,
+                            nsACString& aCharset, bool *bigEndian = nsnull);
 
-  static nsresult GuessCharset(const char *aData, uint32_t aDataLen,
-                               nsACString &aCharset);
 
   
 
@@ -542,36 +540,25 @@ public:
                               nsIContent *aContent);
 
   static nsresult CheckQName(const nsAString& aQualifiedName,
-                             bool aNamespaceAware = true,
-                             const PRUnichar** aColon = nullptr);
+                             bool aNamespaceAware = true);
 
   static nsresult SplitQName(const nsIContent* aNamespaceResolver,
                              const nsAFlatString& aQName,
-                             int32_t *aNamespace, nsIAtom **aLocalName);
+                             PRInt32 *aNamespace, nsIAtom **aLocalName);
 
   static nsresult GetNodeInfoFromQName(const nsAString& aNamespaceURI,
                                        const nsAString& aQualifiedName,
                                        nsNodeInfoManager* aNodeInfoManager,
-                                       uint16_t aNodeType,
+                                       PRUint16 aNodeType,
                                        nsINodeInfo** aNodeInfo);
 
   static void SplitExpatName(const PRUnichar *aExpatName, nsIAtom **aPrefix,
-                             nsIAtom **aTagName, int32_t *aNameSpaceID);
+                             nsIAtom **aTagName, PRInt32 *aNameSpaceID);
 
   
   
   
-  
-  static bool IsSitePermAllow(nsIPrincipal* aPrincipal, const char* aType);
-
-  
-  
-  
-  
-  static bool IsSitePermDeny(nsIPrincipal* aPrincipal, const char* aType);
-
-  
-  static bool HaveEqualPrincipals(nsIDocument* aDoc1, nsIDocument* aDoc2);
+  static bool IsSitePermAllow(nsIURI* aURI, const char* aType);
 
   static nsILineBreaker* LineBreaker()
   {
@@ -581,6 +568,11 @@ public:
   static nsIWordBreaker* WordBreaker()
   {
     return sWordBreaker;
+  }
+
+  static nsIUGenCategory* GetGenCat()
+  {
+    return sGenCat;
   }
 
   
@@ -594,7 +586,7 @@ public:
 
 
 
-  static bool HasNonEmptyAttr(const nsIContent* aContent, int32_t aNameSpaceID,
+  static bool HasNonEmptyAttr(const nsIContent* aContent, PRInt32 aNameSpaceID,
                                 nsIAtom* aName);
 
   
@@ -626,7 +618,7 @@ public:
                              nsISupports* aContext,
                              nsIDocument* aLoadingDocument,
                              nsIPrincipal* aLoadingPrincipal,
-                             int16_t* aImageBlockingStatus = nullptr);
+                             PRInt16* aImageBlockingStatus = nsnull);
   
 
 
@@ -645,20 +637,13 @@ public:
                             nsIPrincipal* aLoadingPrincipal,
                             nsIURI* aReferrer,
                             imgIDecoderObserver* aObserver,
-                            int32_t aLoadFlags,
+                            PRInt32 aLoadFlags,
                             imgIRequest** aRequest);
 
   
 
 
-
-  static imgILoader* GetImgLoaderForDocument(nsIDocument* aDoc);
-  static imgILoader* GetImgLoaderForChannel(nsIChannel* aChannel);
-
-  
-
-
-  static bool IsImageInCache(nsIURI* aURI, nsIDocument* aDocument);
+  static bool IsImageInCache(nsIURI* aURI);
 
   
 
@@ -667,7 +652,7 @@ public:
 
 
 
-  static already_AddRefed<imgIContainer> GetImageFromContent(nsIImageLoadingContent* aContent, imgIRequest **aRequest = nullptr);
+  static already_AddRefed<imgIContainer> GetImageFromContent(nsIImageLoadingContent* aContent, imgIRequest **aRequest = nsnull);
 
   
 
@@ -720,8 +705,8 @@ public:
 
 
 
-  static void GetEventArgNames(int32_t aNameSpaceID, nsIAtom *aEventName,
-                               uint32_t *aArgCount, const char*** aArgNames);
+  static void GetEventArgNames(PRInt32 aNameSpaceID, nsIAtom *aEventName,
+                               PRUint32 *aArgCount, const char*** aArgNames);
 
   
 
@@ -763,9 +748,6 @@ public:
 
 
 
-
-
-
   enum PropertiesFile {
     eCSS_PROPERTIES,
     eXBL_PROPERTIES,
@@ -774,24 +756,50 @@ public:
     eFORMS_PROPERTIES,
     ePRINTING_PROPERTIES,
     eDOM_PROPERTIES,
-    eHTMLPARSER_PROPERTIES,
     eSVG_PROPERTIES,
     eBRAND_PROPERTIES,
     eCOMMON_DIALOG_PROPERTIES,
     PropertiesFile_COUNT
   };
-  static nsresult ReportToConsole(uint32_t aErrorFlags,
-                                  const char *aCategory,
-                                  nsIDocument* aDocument,
-                                  PropertiesFile aFile,
+  static nsresult ReportToConsole(PropertiesFile aFile,
                                   const char *aMessageName,
-                                  const PRUnichar **aParams = nullptr,
-                                  uint32_t aParamsLength = 0,
-                                  nsIURI* aURI = nullptr,
-                                  const nsAFlatString& aSourceLine
-                                    = EmptyString(),
-                                  uint32_t aLineNumber = 0,
-                                  uint32_t aColumnNumber = 0);
+                                  const PRUnichar **aParams,
+                                  PRUint32 aParamsLength,
+                                  nsIURI* aURI,
+                                  const nsAFlatString& aSourceLine,
+                                  PRUint32 aLineNumber,
+                                  PRUint32 aColumnNumber,
+                                  PRUint32 aErrorFlags,
+                                  const char *aCategory,
+                                  PRUint64 aInnerWindowId = 0);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static nsresult ReportToConsole(PropertiesFile aFile,
+                                  const char *aMessageName,
+                                  const PRUnichar **aParams,
+                                  PRUint32 aParamsLength,
+                                  nsIURI* aURI,
+                                  const nsAFlatString& aSourceLine,
+                                  PRUint32 aLineNumber,
+                                  PRUint32 aColumnNumber,
+                                  PRUint32 aErrorFlags,
+                                  const char *aCategory,
+                                  nsIDocument* aDocument);
 
   
 
@@ -804,32 +812,11 @@ public:
 
 
 
-
-
-
-  static uint32_t ParseSandboxAttributeToFlags(const nsAString& aSandboxAttr);
-
-
-  
-
-
-
-private:
   static nsresult FormatLocalizedString(PropertiesFile aFile,
                                         const char* aKey,
-                                        const PRUnichar** aParams,
-                                        uint32_t aParamsLength,
+                                        const PRUnichar **aParams,
+                                        PRUint32 aParamsLength,
                                         nsXPIDLString& aResult);
-  
-public:
-  template<uint32_t N>
-  static nsresult FormatLocalizedString(PropertiesFile aFile,
-                                        const char* aKey,
-                                        const PRUnichar* (&aParams)[N],
-                                        nsXPIDLString& aResult)
-  {
-    return FormatLocalizedString(aFile, aKey, aParams, N, aResult);
-  }
 
   
 
@@ -881,7 +868,7 @@ public:
 
 
   static bool HasMutationListeners(nsINode* aNode,
-                                     uint32_t aType,
+                                     PRUint32 aType,
                                      nsINode* aTargetForSubtreeModified);
 
   
@@ -896,7 +883,7 @@ public:
 
 
   static bool HasMutationListeners(nsIDocument* aDocument,
-                                     uint32_t aType);
+                                     PRUint32 aType);
   
 
 
@@ -930,27 +917,7 @@ public:
                                        const nsAString& aEventName,
                                        bool aCanBubble,
                                        bool aCancelable,
-                                       bool *aDefaultAction = nullptr);
-                                       
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  static nsresult DispatchUntrustedEvent(nsIDocument* aDoc,
-                                         nsISupports* aTarget,
-                                         const nsAString& aEventName,
-                                         bool aCanBubble,
-                                         bool aCancelable,
-                                         bool *aDefaultAction = nullptr);
+                                       bool *aDefaultAction = nsnull);
 
   
 
@@ -972,7 +939,7 @@ public:
                                       const nsAString& aEventName,
                                       bool aCanBubble,
                                       bool aCancelable,
-                                      bool *aDefaultAction = nullptr);
+                                      bool *aDefaultAction = nsnull);
 
   
 
@@ -982,7 +949,7 @@ public:
 
 
 
-  static bool IsEventAttributeName(nsIAtom* aName, int32_t aType);
+  static bool IsEventAttributeName(nsIAtom* aName, PRInt32 aType);
 
   
 
@@ -991,7 +958,7 @@ public:
 
 
 
-  static uint32_t GetEventId(nsIAtom* aName);
+  static PRUint32 GetEventId(nsIAtom* aName);
 
   
 
@@ -1000,7 +967,7 @@ public:
 
 
 
-  static uint32_t GetEventCategory(const nsAString& aName);
+  static PRUint32 GetEventCategory(const nsAString& aName);
 
   
 
@@ -1012,8 +979,8 @@ public:
 
 
   static nsIAtom* GetEventIdAndAtom(const nsAString& aName,
-                                    uint32_t aEventStruct,
-                                    uint32_t* aEventID);
+                                    PRUint32 aEventStruct,
+                                    PRUint32* aEventID);
 
   
 
@@ -1040,8 +1007,6 @@ public:
   static nsEventListenerManager* GetListenerManager(nsINode* aNode,
                                                     bool aCreateIfNotFound);
 
-  static void UnmarkGrayJSListenersInCCGenerationDocuments(uint32_t aGeneration);
-
   
 
 
@@ -1064,7 +1029,7 @@ public:
 
 
   static bool IsValidNodeName(nsIAtom *aLocalName, nsIAtom *aPrefix,
-                                int32_t aNamespaceID);
+                                PRInt32 aNamespaceID);
 
   
 
@@ -1097,19 +1062,14 @@ public:
 
 
 
-
-
-
-  static nsresult ParseFragmentHTML(const nsAString& aSourceBuffer,
-                                    nsIContent* aTargetNode,
-                                    nsIAtom* aContextLocalName,
-                                    int32_t aContextNamespace,
-                                    bool aQuirks,
-                                    bool aPreventScriptExecution);
+  static void ParseFragmentHTML(const nsAString& aSourceBuffer,
+                                nsIContent* aTargetNode,
+                                nsIAtom* aContextLocalName,
+                                PRInt32 aContextNamespace,
+                                bool aQuirks,
+                                bool aPreventScriptExecution);
 
   
-
-
 
 
 
@@ -1137,43 +1097,6 @@ public:
 
 
 
-  static nsresult ParseDocumentHTML(const nsAString& aSourceBuffer,
-                                    nsIDocument* aTargetDocument,
-                                    bool aScriptingEnabledForNoscriptParsing);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static nsresult ConvertToPlainText(const nsAString& aSourceBuffer,
-                                     nsAString& aResultBuffer,
-                                     uint32_t aFlags,
-                                     uint32_t aWrapCol);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1185,7 +1108,6 @@ public:
                                  nsIURI* aBaseURI,
                                  nsIPrincipal* aPrincipal,
                                  nsIScriptGlobalObject* aScriptObject,
-                                 DocumentFlavor aFlavor,
                                  nsIDOMDocument** aResult);
 
   
@@ -1252,10 +1174,66 @@ public:
     }
   }
 
+  static void DropScriptObject(PRUint32 aLangID, void *aObject,
+                               const char *name, void *aClosure)
+  {
+    DropScriptObject(aLangID, aObject, aClosure);
+  }
+
   
 
 
   static void DestroyAnonymousContent(nsCOMPtr<nsIContent>* aContent);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static nsresult HoldScriptObject(PRUint32 aLangID, void* aScriptObjectHolder,
+                                   nsScriptObjectTracer* aTracer,
+                                   void* aNewObject, bool aWasHoldingObjects)
+  {
+    if (aLangID == nsIProgrammingLanguage::JAVASCRIPT) {
+      return aWasHoldingObjects ? NS_OK :
+                                  HoldJSObjects(aScriptObjectHolder, aTracer);
+    }
+
+    return HoldScriptObject(aLangID, aNewObject);
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+  static nsresult DropScriptObjects(PRUint32 aLangID, void* aScriptObjectHolder,
+                                    nsScriptObjectTracer* aTracer)
+  {
+    if (aLangID == nsIProgrammingLanguage::JAVASCRIPT) {
+      return DropJSObjects(aScriptObjectHolder);
+    }
+
+    aTracer->Trace(aScriptObjectHolder, DropScriptObject, nsnull);
+
+    return NS_OK;
+  }
 
   
 
@@ -1276,8 +1254,6 @@ public:
   static nsresult DropJSObjects(void* aScriptObjectHolder);
 
 #ifdef DEBUG
-  static bool AreJSObjectsHeld(void* aScriptObjectHolder); 
-
   static void CheckCCWrapperTraversal(nsISupports* aScriptObjectHolder,
                                       nsWrapperCache* aCache);
 #endif
@@ -1289,7 +1265,7 @@ public:
       nsXPCOMCycleCollectionParticipant* participant;
       CallQueryInterface(aScriptObjectHolder, &participant);
       HoldJSObjects(aScriptObjectHolder, participant);
-      aCache->SetPreservingWrapper(true);
+      aCache->SetPreservingWrapper(PR_TRUE);
 #ifdef DEBUG
       
       CheckCCWrapperTraversal(aScriptObjectHolder, aCache);
@@ -1297,9 +1273,27 @@ public:
     }
   }
   static void ReleaseWrapper(nsISupports* aScriptObjectHolder,
-                             nsWrapperCache* aCache);
+                             nsWrapperCache* aCache)
+  {
+    if (aCache->PreservingWrapper()) {
+      DropJSObjects(aScriptObjectHolder);
+      aCache->SetPreservingWrapper(PR_FALSE);
+    }
+  }
   static void TraceWrapper(nsWrapperCache* aCache, TraceCallback aCallback,
-                           void *aClosure);
+                           void *aClosure)
+  {
+    if (aCache->PreservingWrapper()) {
+      aCallback(nsIProgrammingLanguage::JAVASCRIPT,
+                aCache->GetWrapperPreserveColor(),
+                "Preserved wrapper", aClosure);
+    }
+  }
+
+  
+
+
+  static PRUint32 GetWidgetStatusFromIMEStatus(PRUint32 aState);
 
   
 
@@ -1333,34 +1327,17 @@ public:
 
   static nsresult CheckSecurityBeforeLoad(nsIURI* aURIToLoad,
                                           nsIPrincipal* aLoadingPrincipal,
-                                          uint32_t aCheckLoadFlags,
+                                          PRUint32 aCheckLoadFlags,
                                           bool aAllowData,
-                                          uint32_t aContentPolicyType,
+                                          PRUint32 aContentPolicyType,
                                           nsISupports* aContext,
                                           const nsACString& aMimeGuess = EmptyCString(),
-                                          nsISupports* aExtra = nullptr);
+                                          nsISupports* aExtra = nsnull);
 
   
 
 
   static bool IsSystemPrincipal(nsIPrincipal* aPrincipal);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static bool CombineResourcePrincipals(nsCOMPtr<nsIPrincipal>* aResourcePrincipal,
-                                        nsIPrincipal* aExtraPrincipal);
 
   
 
@@ -1383,12 +1360,6 @@ public:
                           nsIURI *aLinkURI, const nsString& aTargetSpec,
                           bool aClick, bool aIsUserTriggered,
                           bool aIsTrusted);
-
-  
-
-
-  static void GetLinkLocation(mozilla::dom::Element* aElement,
-                              nsString& aLocationString);
 
   
 
@@ -1428,7 +1399,7 @@ public:
 
 
   static void GetAccessKeyCandidates(nsKeyEvent* aNativeKeyEvent,
-                                     nsTArray<uint32_t>& aCandidates);
+                                     nsTArray<PRUint32>& aCandidates);
 
   
 
@@ -1448,14 +1419,7 @@ public:
 
   
   
-  static uint32_t FilterDropEffect(uint32_t aAction, uint32_t aEffectAllowed);
-
-  
-
-
-
-  static bool CheckForSubFrameDrop(nsIDragSession* aDragSession,
-                                   nsDragEvent* aDropEvent);
+  static PRUint32 FilterDropEffect(PRUint32 aAction, PRUint32 aEffectAllowed);
 
   
 
@@ -1502,6 +1466,13 @@ public:
 
 
 
+  static void AddScriptBlockerAndPreventAddingRunners();
+
+  
+
+
+
+
 
 
   static void RemoveScriptBlocker();
@@ -1536,27 +1507,6 @@ public:
 
 
 
-
-
-
-
-  static ViewportInfo GetViewportInfo(nsIDocument* aDocument);
-
-  
-  
-  static void EnterMicroTask() { ++sMicroTaskLevel; }
-  static void LeaveMicroTask();
-
-  static bool IsInMicroTask() { return sMicroTaskLevel != 0; }
-  static uint32_t MicroTaskLevel() { return sMicroTaskLevel; }
-  static void SetMicroTaskLevel(uint32_t aLevel) { sMicroTaskLevel = aLevel; }
-
-  
-
-
-
-
-
   static nsresult ProcessViewportInfo(nsIDocument *aDocument,
                                       const nsAString &viewportInfo);
 
@@ -1564,71 +1514,25 @@ public:
                                                       nsresult* aRv);
 
   static JSContext *GetCurrentJSContext();
-  static JSContext *GetSafeJSContext();
 
   
 
 
 
   static bool EqualsIgnoreASCIICase(const nsAString& aStr1,
-                                    const nsAString& aStr2);
+                                      const nsAString& aStr2);
 
   
 
 
-
-
-
-
-  static bool EqualsLiteralIgnoreASCIICase(const nsAString& aStr1,
-                                           const char* aStr2,
-                                           const uint32_t len);
-#ifdef NS_DISABLE_LITERAL_TEMPLATE
-  static inline bool
-  EqualsLiteralIgnoreASCIICase(const nsAString& aStr1,
-                               const char* aStr2)
-  {
-    uint32_t len = strlen(aStr2);
-    return EqualsLiteralIgnoreASCIICase(aStr1, aStr2, len);
-  }
-#else
-  template<int N>
-  static inline bool
-  EqualsLiteralIgnoreASCIICase(const nsAString& aStr1,
-                               const char (&aStr2)[N])
-  {
-    return EqualsLiteralIgnoreASCIICase(aStr1, aStr2, N-1);
-  }
-  template<int N>
-  static inline bool
-  EqualsLiteralIgnoreASCIICase(const nsAString& aStr1,
-                               char (&aStr2)[N])
-  {
-    const char* s = aStr2;
-    return EqualsLiteralIgnoreASCIICase(aStr1, s, N-1);
-  }
-#endif
+  static void ASCIIToLower(nsAString& aStr);
+  static void ASCIIToLower(const nsAString& aSource, nsAString& aDest);
 
   
 
 
-
-
-  static nsresult ASCIIToLower(nsAString& aStr);
-  static nsresult ASCIIToLower(const nsAString& aSource, nsAString& aDest);
-
-  
-
-
-
-
-  static nsresult ASCIIToUpper(nsAString& aStr);
-  static nsresult ASCIIToUpper(const nsAString& aSource, nsAString& aDest);
-
-  
-
-
-  static bool StringContainsASCIIUpper(const nsAString& aStr);
+  static void ASCIIToUpper(nsAString& aStr);
+  static void ASCIIToUpper(const nsAString& aSource, nsAString& aDest);
 
   
   static nsresult CheckSameOrigin(nsIChannel *aOldChannel, nsIChannel *aNewChannel);
@@ -1638,10 +1542,7 @@ public:
   {
     return sThreadJSContextStack;
   }
-
   
-  static void TraceSafeJSContext(JSTracer* aTrc);
-
 
   
 
@@ -1671,8 +1572,8 @@ public:
 
   static nsresult DispatchXULCommand(nsIContent* aTarget,
                                      bool aTrusted,
-                                     nsIDOMEvent* aSourceEvent = nullptr,
-                                     nsIPresShell* aShell = nullptr,
+                                     nsIDOMEvent* aSourceEvent = nsnull,
+                                     nsIPresShell* aShell = nsnull,
                                      bool aCtrl = false,
                                      bool aAlt = false,
                                      bool aShift = false,
@@ -1688,7 +1589,7 @@ public:
   static already_AddRefed<nsIDocument>
   GetDocumentFromScriptContext(nsIScriptContext *aScriptContext);
 
-  static bool CheckMayLoad(nsIPrincipal* aPrincipal, nsIChannel* aChannel, bool aAllowIfInheritsPrincipal);
+  static bool CheckMayLoad(nsIPrincipal* aPrincipal, nsIChannel* aChannel);
 
   
 
@@ -1701,10 +1602,10 @@ public:
                              nsISupports *native, const nsIID* aIID, jsval *vp,
                              
                              
-                             nsIXPConnectJSObjectHolder** aHolder = nullptr,
+                             nsIXPConnectJSObjectHolder** aHolder = nsnull,
                              bool aAllowWrapping = false)
   {
-    return WrapNative(cx, scope, native, nullptr, aIID, vp, aHolder,
+    return WrapNative(cx, scope, native, nsnull, aIID, vp, aHolder,
                       aAllowWrapping);
   }
 
@@ -1713,10 +1614,10 @@ public:
                              nsISupports *native, jsval *vp,
                              
                              
-                             nsIXPConnectJSObjectHolder** aHolder = nullptr,
+                             nsIXPConnectJSObjectHolder** aHolder = nsnull,
                              bool aAllowWrapping = false)
   {
-    return WrapNative(cx, scope, native, nullptr, nullptr, vp, aHolder,
+    return WrapNative(cx, scope, native, nsnull, nsnull, vp, aHolder,
                       aAllowWrapping);
   }
   static nsresult WrapNative(JSContext *cx, JSObject *scope,
@@ -1724,18 +1625,12 @@ public:
                              jsval *vp,
                              
                              
-                             nsIXPConnectJSObjectHolder** aHolder = nullptr,
+                             nsIXPConnectJSObjectHolder** aHolder = nsnull,
                              bool aAllowWrapping = false)
   {
-    return WrapNative(cx, scope, native, cache, nullptr, vp, aHolder,
+    return WrapNative(cx, scope, native, cache, nsnull, vp, aHolder,
                       aAllowWrapping);
   }
-
-  
-
-
-  static nsresult CreateArrayBuffer(JSContext *aCx, const nsACString& aData,
-                                    JSObject** aResult);
 
   static void StripNullChars(const nsAString& aInStr, nsAString& aOutStr);
 
@@ -1774,20 +1669,13 @@ public:
 
 
 
-  static nsIWidget *WidgetForDocument(nsIDocument *aDoc);
-
-  
-
-
-
-
 
 
 
 
 
   static already_AddRefed<mozilla::layers::LayerManager>
-  LayerManagerForDocument(nsIDocument *aDoc, bool *aAllowRetaining = nullptr);
+  LayerManagerForDocument(nsIDocument *aDoc, bool *aAllowRetaining = nsnull);
 
   
 
@@ -1804,7 +1692,7 @@ public:
 
 
   static already_AddRefed<mozilla::layers::LayerManager>
-  PersistentLayerManagerForDocument(nsIDocument *aDoc, bool *aAllowRetaining = nullptr);
+  PersistentLayerManagerForDocument(nsIDocument *aDoc, bool *aAllowRetaining = nsnull);
 
   
 
@@ -1830,29 +1718,9 @@ public:
   
 
 
-  static bool IsIdleObserverAPIEnabled() { return sIsIdleObserverAPIEnabled; }
-  
-  
 
 
-
-
-
-  static bool HasPluginWithUncontrolledEventDispatch(nsIDocument* aDoc);
-
-  
-
-
-
-
-
-  static bool HasPluginWithUncontrolledEventDispatch(nsIContent* aContent);
-
-  
-
-
-
-  static nsIDocument* GetRootDocument(nsIDocument* aDoc);
+  static bool IsFullScreenKeyInputRestricted();
 
   
 
@@ -1864,7 +1732,6 @@ public:
   static void GetShiftText(nsAString& text);
   static void GetControlText(nsAString& text);
   static void GetMetaText(nsAString& text);
-  static void GetOSText(nsAString& text);
   static void GetAltText(nsAString& text);
   static void GetModifierSeparatorText(nsAString& text);
 
@@ -1907,7 +1774,7 @@ public:
 
   static already_AddRefed<nsIDocumentLoaderFactory>
   FindInternalContentViewer(const char* aType,
-                            ContentViewerType* aLoaderType = nullptr);
+                            ContentViewerType* aLoaderType = nsnull);
 
   
 
@@ -1949,143 +1816,26 @@ public:
 
 
 
-
   static bool SetUpChannelOwner(nsIPrincipal* aLoadingPrincipal,
                                 nsIChannel* aChannel,
                                 nsIURI* aURI,
-                                bool aSetUpForAboutBlank,
-                                bool aForceOwner = false);
+                                bool aSetUpForAboutBlank);
 
   static nsresult Btoa(const nsAString& aBinaryData,
                        nsAString& aAsciiBase64String);
 
   static nsresult Atob(const nsAString& aAsciiString,
                        nsAString& aBinaryData);
-
   
-
-
- 
-  static nsresult JSArrayToAtomArray(JSContext* aCx, const JS::Value& aJSArray,
-                                     nsCOMArray<nsIAtom>& aRetVal);
-
-  
-
-
-
-
-
-
-
-
-  static bool IsAutocompleteEnabled(nsIDOMHTMLInputElement* aInput);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static bool GetPseudoAttributeValue(const nsString& aSource, nsIAtom *aName,
-                                      nsAString& aValue);
-
-  
-
-
-
-  static bool IsJavaScriptLanguage(const nsString& aName, uint32_t *aVerFlags);
-
-  
-
-
-
-  static JSVersion ParseJavascriptVersion(const nsAString& aVersionStr);
-
-  static bool IsJavascriptMIMEType(const nsAString& aMIMEType)
-  {
-    
-    static const char* jsTypes[] = {
-      "text/javascript",
-      "text/ecmascript",
-      "application/javascript",
-      "application/ecmascript",
-      "application/x-javascript",
-      "application/x-ecmascript",
-      "text/javascript1.0",
-      "text/javascript1.1",
-      "text/javascript1.2",
-      "text/javascript1.3",
-      "text/javascript1.4",
-      "text/javascript1.5",
-      "text/jscript",
-      "text/livescript",
-      "text/x-ecmascript",
-      "text/x-javascript",
-      nullptr
-    };
-
-    for (uint32_t i = 0; jsTypes[i]; ++i) {
-      if (aMIMEType.LowerCaseEqualsASCII(jsTypes[i])) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  static void SplitMimeType(const nsAString& aValue, nsString& aType,
-                            nsString& aParams);
-
-  
-
-
-
-
-
-
-
-
-
-
-  static nsresult IsUserIdle(uint32_t aRequestedIdleTimeInMS, bool* aUserIsIdle);
-
-  
-
-
-
-
-
-
-
-
-
-
-  static void GetSelectionInTextControl(mozilla::Selection* aSelection,
-                                        Element* aRoot,
-                                        int32_t& aOutStartOffset,
-                                        int32_t& aOutEndOffset);
-
-  static nsIEditor* GetHTMLEditor(nsPresContext* aPresContext);
-
-  static bool PaintSVGGlyph(Element *aElement, gfxContext *aContext,
-                            gfxFont::DrawMode aDrawMode,
-                            gfxTextObjectPaint *aObjectPaint);
-
-  static bool GetSVGGlyphExtents(Element *aElement, const gfxMatrix& aSVGToAppSpace,
-                                 gfxRect *aResult);
-
 private:
   static bool InitializeEventTable();
 
   static nsresult EnsureStringBundle(PropertiesFile aFile);
+
+  static nsIDOMScriptObjectFactory *GetDOMScriptObjectFactory();
+
+  static nsresult HoldScriptObject(PRUint32 aLangID, void* aObject);
+  static void DropScriptObject(PRUint32 aLangID, void *aObject, void *aClosure);
 
   static bool CanCallerAccess(nsIPrincipal* aSubjectPrincipal,
                                 nsIPrincipal* aPrincipal);
@@ -2095,14 +1845,6 @@ private:
                              const nsIID* aIID, jsval *vp,
                              nsIXPConnectJSObjectHolder** aHolder,
                              bool aAllowWrapping);
-                            
-  static nsresult DispatchEvent(nsIDocument* aDoc,
-                                nsISupports* aTarget,
-                                const nsAString& aEventName,
-                                bool aCanBubble,
-                                bool aCancelable,
-                                bool aTrusted,
-                                bool *aDefaultAction = nullptr);
 
   static void InitializeModifierStrings();
 
@@ -2131,9 +1873,7 @@ private:
 
   
   static imgILoader* sImgLoader;
-  static imgILoader* sPrivateImgLoader;
   static imgICache* sImgCache;
-  static imgICache* sPrivateImgCache;
 
   static nsIConsoleService* sConsoleService;
 
@@ -2149,23 +1889,25 @@ private:
 
   static nsILineBreaker* sLineBreaker;
   static nsIWordBreaker* sWordBreaker;
+  static nsIUGenCategory* sGenCat;
 
-  static uint32_t sJSGCThingRootCount;
+  static nsIScriptRuntime* sScriptRuntimes[NS_STID_ARRAY_UBOUND];
+  static PRInt32 sScriptRootCount[NS_STID_ARRAY_UBOUND];
+  static PRUint32 sJSGCThingRootCount;
 
 #ifdef IBMBIDI
   static nsIBidiKeyboard* sBidiKeyboard;
 #endif
 
   static bool sInitialized;
-  static uint32_t sScriptBlockerCount;
+  static PRUint32 sScriptBlockerCount;
 #ifdef DEBUG
-  static uint32_t sDOMNodeRemovedSuppressCount;
+  static PRUint32 sDOMNodeRemovedSuppressCount;
 #endif
-  static uint32_t sMicroTaskLevel;
   
   static nsTArray< nsCOMPtr<nsIRunnable> >* sBlockedScriptRunners;
-  static uint32_t sRunnersCountAtFirstBlocker;
-  static uint32_t sScriptBlockerCountWhereRunnersPrevented;
+  static PRUint32 sRunnersCountAtFirstBlocker;
+  static PRUint32 sScriptBlockerCountWhereRunnersPrevented;
 
   static nsIInterfaceRequestor* sSameOriginChecker;
 
@@ -2173,32 +1915,23 @@ private:
   static bool sAllowXULXBL_for_file;
   static bool sIsFullScreenApiEnabled;
   static bool sTrustedFullScreenOnly;
-  static uint32_t sHandlingInputTimeout;
-  static bool sIsIdleObserverAPIEnabled;
+  static bool sFullScreenKeyInputRestricted;
+  static PRUint32 sHandlingInputTimeout;
 
-  static nsHtml5StringParser* sHTMLFragmentParser;
+  static nsHtml5Parser* sHTMLFragmentParser;
   static nsIParser* sXMLFragmentParser;
   static nsIFragmentContentSink* sXMLFragmentSink;
-
-  
-
-
-  static bool sFragmentParsingActive;
 
   static nsString* sShiftText;
   static nsString* sControlText;
   static nsString* sMetaText;
-  static nsString* sOSText;
   static nsString* sAltText;
   static nsString* sModifierSeparator;
 };
 
-typedef nsCharSeparatedTokenizerTemplate<nsContentUtils::IsHTMLWhitespace>
-                                                    HTMLSplitOnSpacesTokenizer;
-
 #define NS_HOLD_JS_OBJECTS(obj, clazz)                                         \
   nsContentUtils::HoldJSObjects(NS_CYCLE_COLLECTION_UPCAST(obj, clazz),        \
-                                NS_CYCLE_COLLECTION_PARTICIPANT(clazz))
+                                &NS_CYCLE_COLLECTION_NAME(clazz))
 
 #define NS_DROP_JS_OBJECTS(obj, clazz)                                         \
   nsContentUtils::DropJSObjects(NS_CYCLE_COLLECTION_UPCAST(obj, clazz))
@@ -2239,15 +1972,15 @@ private:
 
 class NS_STACK_CLASS nsAutoScriptBlocker {
 public:
-  nsAutoScriptBlocker(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM) {
-    MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+  nsAutoScriptBlocker(MOZILLA_GUARD_OBJECT_NOTIFIER_ONLY_PARAM) {
+    MOZILLA_GUARD_OBJECT_NOTIFIER_INIT;
     nsContentUtils::AddScriptBlocker();
   }
   ~nsAutoScriptBlocker() {
     nsContentUtils::RemoveScriptBlocker();
   }
 private:
-  MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+  MOZILLA_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 class NS_STACK_CLASS nsAutoScriptBlockerSuppressNodeRemoved :
@@ -2265,27 +1998,96 @@ public:
   }
 };
 
-class NS_STACK_CLASS nsAutoMicroTask
-{
-public:
-  nsAutoMicroTask()
-  {
-    nsContentUtils::EnterMicroTask();
-  }
-  ~nsAutoMicroTask()
-  {
-    nsContentUtils::LeaveMicroTask();
-  }
-};
-
 #define NS_INTERFACE_MAP_ENTRY_TEAROFF(_interface, _allocator)                \
   if (aIID.Equals(NS_GET_IID(_interface))) {                                  \
     foundInterface = static_cast<_interface *>(_allocator);                   \
     if (!foundInterface) {                                                    \
-      *aInstancePtr = nullptr;                                                 \
+      *aInstancePtr = nsnull;                                                 \
       return NS_ERROR_OUT_OF_MEMORY;                                          \
     }                                                                         \
   } else
+
+
+
+
+
+
+
+
+
+
+
+
+#if defined(__arm) || defined(__arm32__) || defined(__arm26__) || defined(__arm__)
+#if !defined(__VFP_FP__)
+#define FPU_IS_ARM_FPA
+#endif
+#endif
+
+typedef union dpun {
+    struct {
+#if defined(IS_LITTLE_ENDIAN) && !defined(FPU_IS_ARM_FPA)
+        PRUint32 lo, hi;
+#else
+        PRUint32 hi, lo;
+#endif
+    } s;
+    PRFloat64 d;
+public:
+    operator double() const {
+        return d;
+    }
+} dpun;
+
+
+
+
+#if (__GNUC__ == 2 && __GNUC_MINOR__ > 95) || __GNUC__ > 2
+
+
+
+
+#define DOUBLE_HI32(x) (__extension__ ({ dpun u; u.d = (x); u.s.hi; }))
+#define DOUBLE_LO32(x) (__extension__ ({ dpun u; u.d = (x); u.s.lo; }))
+
+#else 
+
+
+
+
+
+#if defined(IS_LITTLE_ENDIAN) && !defined(FPU_IS_ARM_FPA)
+#define DOUBLE_HI32(x)        (((PRUint32 *)&(x))[1])
+#define DOUBLE_LO32(x)        (((PRUint32 *)&(x))[0])
+#else
+#define DOUBLE_HI32(x)        (((PRUint32 *)&(x))[0])
+#define DOUBLE_LO32(x)        (((PRUint32 *)&(x))[1])
+#endif
+
+#endif 
+
+#define DOUBLE_HI32_SIGNBIT   0x80000000
+#define DOUBLE_HI32_EXPMASK   0x7ff00000
+#define DOUBLE_HI32_MANTMASK  0x000fffff
+
+#define DOUBLE_IS_NaN(x)                                                \
+((DOUBLE_HI32(x) & DOUBLE_HI32_EXPMASK) == DOUBLE_HI32_EXPMASK && \
+ (DOUBLE_LO32(x) || (DOUBLE_HI32(x) & DOUBLE_HI32_MANTMASK)))
+
+#ifdef IS_BIG_ENDIAN
+#define DOUBLE_NaN {{DOUBLE_HI32_EXPMASK | DOUBLE_HI32_MANTMASK,   \
+                        0xffffffff}}
+#else
+#define DOUBLE_NaN {{0xffffffff,                                         \
+                        DOUBLE_HI32_EXPMASK | DOUBLE_HI32_MANTMASK}}
+#endif
+
+#if defined(XP_WIN)
+#define DOUBLE_COMPARE(LVAL, OP, RVAL)                                  \
+    (!DOUBLE_IS_NaN(LVAL) && !DOUBLE_IS_NaN(RVAL) && (LVAL) OP (RVAL))
+#else
+#define DOUBLE_COMPARE(LVAL, OP, RVAL) ((LVAL) OP (RVAL))
+#endif
 
 
 
@@ -2326,10 +2128,10 @@ public:
 #define NS_CONTENT_DELETE_LIST_MEMBER(type_, ptr_, member_)                   \
   {                                                                           \
     type_ *cur = (ptr_)->member_;                                             \
-    (ptr_)->member_ = nullptr;                                                 \
+    (ptr_)->member_ = nsnull;                                                 \
     while (cur) {                                                             \
       type_ *next = cur->member_;                                             \
-      cur->member_ = nullptr;                                                  \
+      cur->member_ = nsnull;                                                  \
       delete cur;                                                             \
       cur = next;                                                             \
     }                                                                         \
@@ -2343,29 +2145,12 @@ public:
   nsresult GetParameter(const char* aParameterName, nsAString& aResult);
   nsresult GetType(nsAString& aResult)
   {
-    return GetParameter(nullptr, aResult);
+    return GetParameter(nsnull, aResult);
   }
 
 private:
   NS_ConvertUTF16toUTF8 mString;
   nsIMIMEHeaderParam*   mService;
-};
-
-class nsDocElementCreatedNotificationRunner : public nsRunnable
-{
-public:
-    nsDocElementCreatedNotificationRunner(nsIDocument* aDoc)
-        : mDoc(aDoc)
-    {
-    }
-
-    NS_IMETHOD Run()
-    {
-        nsContentSink::NotifyDocElementCreated(mDoc);
-        return NS_OK;
-    }
-
-    nsCOMPtr<nsIDocument> mDoc;
 };
 
 #endif

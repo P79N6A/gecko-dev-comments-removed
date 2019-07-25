@@ -3,7 +3,36 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsSVGPolyElement.h"
 #include "DOMSVGPointList.h"
@@ -39,7 +68,7 @@ NS_IMETHODIMP
 nsSVGPolyElement::GetPoints(nsIDOMSVGPointList * *aPoints)
 {
   void *key = mPoints.GetBaseValKey();
-  *aPoints = DOMSVGPointList::GetDOMWrapper(key, this, false).get();
+  *aPoints = DOMSVGPointList::GetDOMWrapper(key, this, PR_FALSE).get();
   return NS_OK;
 }
 
@@ -48,7 +77,7 @@ NS_IMETHODIMP
 nsSVGPolyElement::GetAnimatedPoints(nsIDOMSVGPointList * *aAnimatedPoints)
 {
   void *key = mPoints.GetAnimValKey();
-  *aAnimatedPoints = DOMSVGPointList::GetDOMWrapper(key, this, true).get();
+  *aAnimatedPoints = DOMSVGPointList::GetDOMWrapper(key, this, PR_TRUE).get();
   return NS_OK;
 }
 
@@ -62,7 +91,7 @@ nsSVGPolyElement::IsAttributeMapped(const nsIAtom* name) const
     sMarkersMap
   };
   
-  return FindAttributeDependence(name, map) ||
+  return FindAttributeDependence(name, map, NS_ARRAY_LENGTH(map)) ||
     nsSVGPolyElementBase::IsAttributeMapped(name);
 }
 
@@ -73,9 +102,9 @@ bool
 nsSVGPolyElement::AttributeDefinesGeometry(const nsIAtom *aName)
 {
   if (aName == nsGkAtoms::points)
-    return true;
+    return PR_TRUE;
 
-  return false;
+  return PR_FALSE;
 }
 
 void
@@ -88,7 +117,7 @@ nsSVGPolyElement::GetMarkPoints(nsTArray<nsSVGMark> *aMarks)
 
   float px = 0.0, py = 0.0, prevAngle = 0.0;
 
-  for (uint32_t i = 0; i < points.Length(); ++i) {
+  for (PRUint32 i = 0; i < points.Length(); ++i) {
     float x = points[i].mX;
     float y = points[i].mY;
     float angle = atan2(y-py, x-px);
@@ -117,7 +146,7 @@ nsSVGPolyElement::ConstructPath(gfxContext *aCtx)
     return;
 
   aCtx->MoveTo(points[0]);
-  for (uint32_t i = 1; i < points.Length(); ++i) {
+  for (PRUint32 i = 1; i < points.Length(); ++i) {
     aCtx->LineTo(points[i]);
   }
 }

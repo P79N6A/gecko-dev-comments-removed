@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsTemplateMatch.h"
 #include "nsTemplateRule.h"
 
@@ -20,13 +53,13 @@ nsTemplateMatch::Destroy(nsFixedSizeAllocator& aPool,
         aMatch->mResult->HasBeenRemoved();
     aMatch->~nsTemplateMatch();
     aPool.Free(aMatch, sizeof(*aMatch));
-    aMatch = nullptr;
+    aMatch = nsnull;
 }
 
 nsresult
 nsTemplateMatch::RuleMatched(nsTemplateQuerySet* aQuerySet,
                              nsTemplateRule* aRule,
-                             int16_t aRuleIndex,
+                             PRInt16 aRuleIndex,
                              nsIXULTemplateResult* aResult)
 {
     

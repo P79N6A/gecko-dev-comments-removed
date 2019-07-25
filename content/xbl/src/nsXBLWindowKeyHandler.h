@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsXBLWindowKeyHandler_h__
 #define nsXBLWindowKeyHandler_h__
 
@@ -14,6 +48,7 @@ class nsIDOMElement;
 class nsIDOMEventTarget;
 class nsIDOMKeyEvent;
 class nsIDOMEventTarget;
+class nsIXBLDocumentInfo;
 class nsXBLSpecialDocInfo;
 class nsXBLPrototypeHandler;
 
@@ -40,7 +75,7 @@ protected:
   
   bool WalkHandlersAndExecute(nsIDOMKeyEvent* aKeyEvent, nsIAtom* aEventType,
                                 nsXBLPrototypeHandler* aHandler,
-                                uint32_t aCharCode, bool aIgnoreShiftKey);
+                                PRUint32 aCharCode, bool aIgnoreShiftKey);
 
   
   
@@ -48,7 +83,7 @@ protected:
 
   
   bool EventMatched(nsXBLPrototypeHandler* inHandler, nsIAtom* inEventType,
-                      nsIDOMKeyEvent* inEvent, uint32_t aCharCode,
+                      nsIDOMKeyEvent* inEvent, PRUint32 aCharCode,
                       bool aIgnoreShiftKey);
 
   
@@ -68,7 +103,7 @@ protected:
 
   
   static nsXBLSpecialDocInfo* sXBLSpecialDocInfo;
-  static uint32_t sRefCnt;
+  static PRUint32 sRefCnt;
 };
 
 nsresult

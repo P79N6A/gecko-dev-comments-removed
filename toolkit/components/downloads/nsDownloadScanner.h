@@ -1,9 +1,6 @@
 
 
-
-
-
-
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
 
 #ifndef nsDownloadScanner_h_
 #define nsDownloadScanner_h_
@@ -14,8 +11,12 @@
 #define INITGUID
 #include <windows.h>
 #define AVVENDOR
-#include <objidl.h>
 #include <msoav.h>
+
+#ifdef _WIN32_IE_IE60SP2
+#undef _WIN32_IE
+#define _WIN32_IE _WIN32_IE_IE60SP2
+#endif
 #include <shlobj.h>
 
 #include "nsAutoPtr.h"
@@ -120,3 +121,4 @@ private:
 };
 #endif
 
+#endif 

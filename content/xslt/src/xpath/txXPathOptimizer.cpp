@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "txXPathOptimizer.h"
 #include "txExprResult.h"
 #include "nsIAtom.h"
@@ -20,7 +53,7 @@ public:
     }
 
     
-    nsresult getVariable(int32_t aNamespace, nsIAtom* aLName,
+    nsresult getVariable(PRInt32 aNamespace, nsIAtom* aLName,
                          txAExprResult*& aResult)
     {
         NS_NOTREACHED("shouldn't depend on this context");
@@ -29,12 +62,12 @@ public:
     bool isStripSpaceAllowed(const txXPathNode& aNode)
     {
         NS_NOTREACHED("shouldn't depend on this context");
-        return false;
+        return PR_FALSE;
     }
     void* getPrivateContext()
     {
         NS_NOTREACHED("shouldn't depend on this context");
-        return nullptr;
+        return nsnull;
     }
     txResultRecycler* recycler()
     {
@@ -50,14 +83,14 @@ public:
         
         
 
-        return *static_cast<txXPathNode*>(nullptr);
+        return *static_cast<txXPathNode*>(nsnull);
     }
-    uint32_t size()
+    PRUint32 size()
     {
         NS_NOTREACHED("shouldn't depend on this context");
         return 1;
     }
-    uint32_t position()
+    PRUint32 position()
     {
         NS_NOTREACHED("shouldn't depend on this context");
         return 1;
@@ -71,7 +104,7 @@ private:
 nsresult
 txXPathOptimizer::optimize(Expr* aInExpr, Expr** aOutExpr)
 {
-    *aOutExpr = nullptr;
+    *aOutExpr = nsnull;
     nsresult rv = NS_OK;
 
     
@@ -99,10 +132,10 @@ txXPathOptimizer::optimize(Expr* aInExpr, Expr** aOutExpr)
     }
 
     
-    uint32_t i = 0;
+    PRUint32 i = 0;
     Expr* subExpr;
     while ((subExpr = aInExpr->getSubExprAt(i))) {
-        Expr* newExpr = nullptr;
+        Expr* newExpr = nsnull;
         rv = optimize(subExpr, &newExpr);
         NS_ENSURE_SUCCESS(rv, rv);
         if (newExpr) {
@@ -138,7 +171,7 @@ txXPathOptimizer::optimizeStep(Expr* aInExpr, Expr** aOutExpr)
 
     if (step->getAxisIdentifier() == LocationStep::ATTRIBUTE_AXIS) {
         
-        txNameTest* nameTest = nullptr;
+        txNameTest* nameTest = nsnull;
         if (!step->getSubExprAt(0) &&
             step->getNodeTest()->getType() == txNameTest::NAME_TEST &&
             (nameTest = static_cast<txNameTest*>(step->getNodeTest()))->
@@ -173,7 +206,7 @@ txXPathOptimizer::optimizePath(Expr* aInExpr, Expr** aOutExpr)
 {
     PathExpr* path = static_cast<PathExpr*>(aInExpr);
 
-    uint32_t i;
+    PRUint32 i;
     Expr* subExpr;
     
     
@@ -213,7 +246,7 @@ txXPathOptimizer::optimizePath(Expr* aInExpr, Expr** aOutExpr)
                 
                 if (!path->getSubExprAt(2)) {
                     *aOutExpr = path->getSubExprAt(1);
-                    path->setSubExprAt(1, nullptr);
+                    path->setSubExprAt(1, nsnull);
 
                     return NS_OK;
                 }
@@ -236,7 +269,7 @@ txXPathOptimizer::optimizeUnion(Expr* aInExpr, Expr** aOutExpr)
     
 
     nsresult rv;
-    uint32_t current;
+    PRUint32 current;
     Expr* subExpr;
     for (current = 0; (subExpr = uni->getSubExprAt(current)); ++current) {
         if (subExpr->getType() != Expr::LOCATIONSTEP_EXPR ||
@@ -247,11 +280,11 @@ txXPathOptimizer::optimizeUnion(Expr* aInExpr, Expr** aOutExpr)
         LocationStep* currentStep = static_cast<LocationStep*>(subExpr);
         LocationStep::LocationStepType axis = currentStep->getAxisIdentifier();
 
-        txUnionNodeTest* unionTest = nullptr;
+        txUnionNodeTest* unionTest = nsnull;
 
         
         
-        uint32_t i;
+        PRUint32 i;
         for (i = current + 1; (subExpr = uni->getSubExprAt(i)); ++i) {
             if (subExpr->getType() != Expr::LOCATIONSTEP_EXPR ||
                 subExpr->getSubExprAt(0)) {
@@ -279,7 +312,7 @@ txXPathOptimizer::optimizeUnion(Expr* aInExpr, Expr** aOutExpr)
             rv = unionTest->addNodeTest(step->getNodeTest());
             NS_ENSURE_SUCCESS(rv, rv);
 
-            step->setNodeTest(nullptr);
+            step->setNodeTest(nsnull);
 
             
             uni->deleteExprAt(i);
@@ -290,7 +323,7 @@ txXPathOptimizer::optimizeUnion(Expr* aInExpr, Expr** aOutExpr)
         
         if (unionTest && current == 0 && !uni->getSubExprAt(1)) {
             
-            uni->setSubExprAt(0, nullptr);
+            uni->setSubExprAt(0, nsnull);
             *aOutExpr = currentStep;
 
             

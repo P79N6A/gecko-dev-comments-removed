@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsJARChannel_h__
 #define nsJARChannel_h__
 
@@ -53,11 +85,8 @@ private:
     nsCString                       mSpec;
 #endif
 
-    bool                            mOpened;
-
     nsCOMPtr<nsIJARURI>             mJarURI;
     nsCOMPtr<nsIURI>                mOriginalURI;
-    nsCOMPtr<nsIURI>                mAppURI;
     nsCOMPtr<nsISupports>           mOwner;
     nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
     nsCOMPtr<nsISupports>           mSecurityInfo;
@@ -70,9 +99,9 @@ private:
     nsCString                       mContentDispositionHeader;
     
 
-    uint32_t                        mContentDisposition;
-    int32_t                         mContentLength;
-    uint32_t                        mLoadFlags;
+    PRUint32                        mContentDisposition;
+    PRInt32                         mContentLength;
+    PRUint32                        mLoadFlags;
     nsresult                        mStatus;
     bool                            mIsPending;
     bool                            mIsUnsafe;

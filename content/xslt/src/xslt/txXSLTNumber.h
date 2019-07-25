@@ -3,10 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef TRANSFRMX_TXXSLTNUMBER_H
 #define TRANSFRMX_TXXSLTNUMBER_H
 
-#include "nsError.h"
+#include "txError.h"
 #include "txList.h"
 #include "nsString.h"
 
@@ -46,13 +79,13 @@ private:
 
 
 
-    static int32_t getSiblingCount(txXPathTreeWalker& aWalker,
+    static PRInt32 getSiblingCount(txXPathTreeWalker& aWalker,
                                    txPattern* aCountPattern,
                                    txIMatchContext* aContext);
     
     static bool getPrevInDocumentOrder(txXPathTreeWalker& aWalker);
 
-    static bool isAlphaNumeric(PRUnichar ch);
+    static MBool isAlphaNumeric(PRUnichar ch);
 };
 
 class txFormattedCounter {
@@ -61,7 +94,7 @@ public:
     {
     }
     
-    virtual void appendNumber(int32_t aNumber, nsAString& aDest) = 0;
+    virtual void appendNumber(PRInt32 aNumber, nsAString& aDest) = 0;
 
     static nsresult getCounterFor(const nsAFlatString& aToken, int aGroupSize,
                                   const nsAString& aGroupSeparator,

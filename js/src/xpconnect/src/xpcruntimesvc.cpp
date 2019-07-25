@@ -71,7 +71,7 @@ NS_IMETHODIMP
 BackstagePass::NewResolve(nsIXPConnectWrappedNative *wrapper,
                           JSContext * cx, JSObject * obj,
                           jsid id, PRUint32 flags, 
-                          JSObject * *objp, PRBool *_retval)
+                          JSObject * *objp, bool *_retval)
 {
     JSBool resolved;
 

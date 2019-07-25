@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsDeque.h"
 #include "nsCRT.h"
 #ifdef DEBUG_rickg
@@ -138,13 +170,13 @@ nsDeque& nsDeque::Erase() {
 
 
 bool nsDeque::GrowCapacity() {
-  int32_t theNewSize=mCapacity<<2;
+  PRInt32 theNewSize=mCapacity<<2;
   NS_ASSERTION(theNewSize>mCapacity, "Overflow");
   if (theNewSize<=mCapacity)
-    return false;
+    return PR_FALSE;
   void** temp=(void**)malloc(theNewSize * sizeof(void*));
   if (!temp)
-    return false;
+    return PR_FALSE;
 
   
   
@@ -162,7 +194,7 @@ bool nsDeque::GrowCapacity() {
   mOrigin=0; 
   mData=temp;
 
-  return true;
+  return PR_TRUE;
 }
 
 
@@ -241,7 +273,7 @@ void* nsDeque::Pop() {
   void* result=0;
   if (mSize>0) {
     --mSize;
-    int32_t offset=modulus(mSize + mOrigin, mCapacity);
+    PRInt32 offset=modulus(mSize + mOrigin, mCapacity);
     result=mData[offset];
     mData[offset]=0;
     if (!mSize) {
@@ -310,27 +342,11 @@ void* nsDeque::PeekFront() {
 
 
 
-void* nsDeque::ObjectAt(int32_t aIndex) const {
+void* nsDeque::ObjectAt(PRInt32 aIndex) const {
   void* result=0;
   if ((aIndex>=0) && (aIndex<mSize)) {
     result=mData[modulus(mOrigin + aIndex, mCapacity)];
   }
-  return result;
-}
-
-void* nsDeque::RemoveObjectAt(int32_t aIndex) {
-  if ((aIndex<0) || (aIndex>=mSize)) {
-    return 0;
-  }
-  void* result=mData[modulus(mOrigin + aIndex, mCapacity)];
-
-  
-  
-  for (int32_t i=aIndex; i<mSize; i++) {
-    mData[modulus(mOrigin + i, mCapacity)] = mData[modulus(mOrigin + i + 1, mCapacity)];
-  }
-  mSize--;
-
   return result;
 }
 
@@ -370,7 +386,7 @@ void* nsDeque::Last() const {
 
 
 void nsDeque::ForEach(nsDequeFunctor& aFunctor) const{
-  for (int32_t i=0; i<mSize; i++) {
+  for (PRInt32 i=0; i<mSize; i++) {
     aFunctor(ObjectAt(i));
   }
 }
@@ -385,7 +401,7 @@ void nsDeque::ForEach(nsDequeFunctor& aFunctor) const{
 
 
 const void* nsDeque::FirstThat(nsDequeFunctor& aFunctor) const{
-  for (int32_t i=0; i<mSize; i++) {
+  for (PRInt32 i=0; i<mSize; i++) {
     void* obj=aFunctor(ObjectAt(i));
     if (obj) {
       return obj;

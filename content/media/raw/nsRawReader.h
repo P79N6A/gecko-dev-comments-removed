@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #if !defined(nsRawReader_h_)
 #define nsRawReader_h_
 
@@ -20,7 +54,7 @@ public:
   virtual bool DecodeAudioData();
 
   virtual bool DecodeVideoFrame(bool &aKeyframeSkip,
-                                  int64_t aTimeThreshold);
+                                  PRInt64 aTimeThreshold);
 
   virtual bool HasAudio()
   {
@@ -32,23 +66,18 @@ public:
     return true;
   }
 
-  virtual nsresult ReadMetadata(nsVideoInfo* aInfo,
-                                nsHTMLMediaElement::MetadataTags** aTags);
-  virtual nsresult Seek(int64_t aTime, int64_t aStartTime, int64_t aEndTime, int64_t aCurrentTime);
-  virtual nsresult GetBuffered(nsTimeRanges* aBuffered, int64_t aStartTime);
-
-  
-  bool IsSeekableInBufferedRanges() {
-    return true;
-  }
+  virtual nsresult ReadMetadata(nsVideoInfo* aInfo);
+  virtual nsresult Seek(PRInt64 aTime, PRInt64 aStartTime, PRInt64 aEndTime, PRInt64 aCurrentTime);
+  virtual nsresult GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime);
 
 private:
-  bool ReadFromResource(MediaResource *aResource, uint8_t *aBuf, uint32_t aLength);
+  bool ReadFromStream(nsMediaStream *aStream, PRUint8 *aBuf,
+                        PRUint32 aLength);
 
   nsRawVideoHeader mMetadata;
-  uint32_t mCurrentFrame;
+  PRUint32 mCurrentFrame;
   double mFrameRate;
-  uint32_t mFrameSize;
+  PRUint32 mFrameSize;
   nsIntRect mPicture;
 };
 

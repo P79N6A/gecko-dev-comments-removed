@@ -73,6 +73,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #if !defined(nsBuiltinDecoderStateMachine_h__)
 #define nsBuiltinDecoderStateMachine_h__
 
@@ -84,8 +117,6 @@
 #include "nsHTMLMediaElement.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "nsITimer.h"
-#include "AudioSegment.h"
-#include "VideoSegment.h"
 
 
 
@@ -105,11 +136,6 @@ public:
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
   typedef mozilla::TimeStamp TimeStamp;
   typedef mozilla::TimeDuration TimeDuration;
-  typedef mozilla::VideoFrameContainer VideoFrameContainer;
-  typedef nsBuiltinDecoder::DecodedStreamData DecodedStreamData;
-  typedef mozilla::SourceMediaStream SourceMediaStream;
-  typedef mozilla::AudioSegment AudioSegment;
-  typedef mozilla::VideoSegment VideoSegment;
 
   nsBuiltinDecoderStateMachine(nsBuiltinDecoder* aDecoder, nsBuiltinDecoderReader* aReader, bool aRealTime = false);
   ~nsBuiltinDecoderStateMachine();
@@ -122,11 +148,10 @@ public:
     return mState; 
   }
   virtual void SetVolume(double aVolume);
-  virtual void SetAudioCaptured(bool aCapture);
   virtual void Shutdown();
-  virtual int64_t GetDuration();
-  virtual void SetDuration(int64_t aDuration);
-  void SetEndTime(int64_t aEndTime);
+  virtual PRInt64 GetDuration();
+  virtual void SetDuration(PRInt64 aDuration);
+  void SetEndTime(PRInt64 aEndTime);
   virtual bool OnDecodeThread() const {
     return IsCurrentThread(mDecodeThread);
   }
@@ -137,7 +162,7 @@ public:
   virtual double GetCurrentTime() const;
   virtual void ClearPositionChangeFlag();
   virtual void SetSeekable(bool aSeekable);
-  virtual void UpdatePlaybackPosition(int64_t aTime);
+  virtual void UpdatePlaybackPosition(PRInt64 aTime);
   virtual void StartBuffering();
 
   
@@ -180,27 +205,32 @@ public:
     return IsCurrentThread(mAudioThread);
   }
 
-  bool OnStateMachineThread() const;
+  bool OnStateMachineThread() const {
+    return IsCurrentThread(GetStateMachineThread());
+  }
  
   nsresult GetBuffered(nsTimeRanges* aBuffered);
 
-  int64_t VideoQueueMemoryInUse() {
+  PRInt64 VideoQueueMemoryInUse() {
     if (mReader) {
       return mReader->VideoQueueMemoryInUse();
     }
     return 0;
   }
 
-  int64_t AudioQueueMemoryInUse() {
+  PRInt64 AudioQueueMemoryInUse() {
     if (mReader) {
       return mReader->AudioQueueMemoryInUse();
     }
     return 0;
   }
 
-  void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset);
+  void NotifyDataArrived(const char* aBuffer, PRUint32 aLength, PRUint32 aOffset) {
+    NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
+    mReader->NotifyDataArrived(aBuffer, aLength, aOffset);
+  }
 
-  int64_t GetEndMediaTime() const {
+  PRInt64 GetEndMediaTime() const {
     mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
     return mEndTime;
   }
@@ -210,16 +240,9 @@ public:
     return mSeekable;
   }
 
-  bool IsSeekableInBufferedRanges() {
-    if (mReader) {
-      return mReader->IsSeekableInBufferedRanges();
-    }
-    return false;
-  }
-
   
   
-  virtual void SetFrameBufferLength(uint32_t aLength);
+  virtual void SetFrameBufferLength(PRUint32 aLength);
 
   
   static nsIThread* GetStateMachineThread();
@@ -232,78 +255,23 @@ public:
 
   
   
-  void ScheduleStateMachineWithLockAndWakeDecoder();
-
   
-  
-  
-  nsresult ScheduleStateMachine(int64_t aUsecs);
-
-  
-  
-  
-  
-  nsresult StartDecodeThread();
+  nsresult ScheduleStateMachine(PRInt64 aUsecs);
 
   
   void TimeoutExpired();
 
   
-  void SetFragmentEndTime(int64_t aEndTime);
+  void SetFragmentEndTime(PRInt64 aEndTime);
 
   
-  void ReleaseDecoder() { mDecoder = nullptr; }
-
-   
-   
-   void NotifyAudioAvailableListener();
-
-  
-  
-  void SendStreamData();
-  void FinishStreamData();
-  bool HaveEnoughDecodedAudio(int64_t aAmpleAudioUSecs);
-  bool HaveEnoughDecodedVideo();
+  void ReleaseDecoder() { mDecoder = nsnull; }
 
 protected:
-  class WakeDecoderRunnable : public nsRunnable {
-  public:
-    WakeDecoderRunnable(nsBuiltinDecoderStateMachine* aSM)
-      : mMutex("WakeDecoderRunnable"), mStateMachine(aSM) {}
-    NS_IMETHOD Run()
-    {
-      nsRefPtr<nsBuiltinDecoderStateMachine> stateMachine;
-      {
-        
-        
-        MutexAutoLock lock(mMutex);
-        if (!mStateMachine)
-          return NS_OK;
-        stateMachine = mStateMachine;
-      }
-      stateMachine->ScheduleStateMachineWithLockAndWakeDecoder();
-      return NS_OK;
-    }
-    void Revoke()
-    {
-      MutexAutoLock lock(mMutex);
-      mStateMachine = nullptr;
-    }
-
-    Mutex mMutex;
-    
-    
-    
-    
-    
-    
-    nsBuiltinDecoderStateMachine* mStateMachine;
-  };
-  WakeDecoderRunnable* GetWakeDecoderRunnable();
 
   
   
-  bool HasLowDecodedData(int64_t aAudioUsecs) const;
+  bool HasLowDecodedData(PRInt64 aAudioUsecs) const;
 
   
   
@@ -311,13 +279,13 @@ protected:
 
   
   
-  int64_t GetUndecodedData() const;
+  PRInt64 GetUndecodedData() const;
 
   
   
   
   
-  int64_t AudioDecodedUsecs() const;
+  PRInt64 AudioDecodedUsecs() const;
 
   
   
@@ -334,7 +302,7 @@ protected:
   
   
   
-  void Wait(int64_t aUsecs);
+  void Wait(PRInt64 aUsecs);
 
   
   void UpdateReadyState();
@@ -344,7 +312,7 @@ protected:
 
   
   
-  int64_t GetAudioClock();
+  PRInt64 GetAudioClock();
 
   
   
@@ -356,7 +324,7 @@ protected:
   
   
   
-  void UpdatePlaybackPositionInternal(int64_t aTime);
+  void UpdatePlaybackPositionInternal(PRInt64 aTime);
 
   
   
@@ -376,16 +344,15 @@ protected:
   
   
   
-  uint32_t PlaySilence(uint32_t aFrames,
-                       uint32_t aChannels,
-                       uint64_t aFrameOffset);
+  PRUint32 PlaySilence(PRUint32 aFrames,
+                       PRUint32 aChannels,
+                       PRUint64 aFrameOffset);
 
   
   
   
-  uint32_t PlayFromAudioQueue(uint64_t aFrameOffset, uint32_t aChannels);
+  PRUint32 PlayFromAudioQueue(PRUint64 aFrameOffset, PRUint32 aChannels);
 
-  
   
   
   void StopDecodeThread();
@@ -396,9 +363,7 @@ protected:
 
   
   
-  
-  
-  nsresult ScheduleDecodeThread();
+  nsresult StartDecodeThread();
 
   
   
@@ -432,7 +397,7 @@ protected:
   
   
   
-  int64_t GetMediaTime() const {
+  PRInt64 GetMediaTime() const {
     mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
     return mStartTime + mCurrentFrameTime;
   }
@@ -444,7 +409,7 @@ protected:
   
   
   
-  int64_t GetDecodedAudioDuration();
+  PRInt64 GetDecodedAudioDuration();
 
   
   
@@ -461,11 +426,6 @@ protected:
   
   
   void DecodeThreadRun();
-
-  
-  
-  void SendStreamAudio(AudioData* aAudio, DecodedStreamData* aStream,
-                       AudioSegment* aOutput);
 
   
   nsresult CallRunStateMachine();
@@ -504,6 +464,13 @@ protected:
 
   
   
+  PRUint32 mCbCrSize;
+
+  
+  nsAutoArrayPtr<unsigned char> mCbCrBuffer;
+
+  
+  
   nsCOMPtr<nsIThread> mAudioThread;
 
   
@@ -527,7 +494,7 @@ protected:
   
   
   
-  int64_t mPlayDuration;
+  PRInt64 mPlayDuration;
 
   
   
@@ -538,20 +505,20 @@ protected:
   
   
   
-  int64_t mStartTime;
+  PRInt64 mStartTime;
 
   
   
   
-  int64_t mEndTime;
+  PRInt64 mEndTime;
 
   
   
   
-  int64_t mSeekTime;
+  PRInt64 mSeekTime;
 
   
-  int64_t mFragmentEndTime;
+  PRInt64 mFragmentEndTime;
 
   
   
@@ -568,29 +535,22 @@ protected:
   
   
   
-  
-  nsRevocableEventPtr<WakeDecoderRunnable> mPendingWakeDecoder;
+  PRInt64 mCurrentFrameTime;
 
   
   
   
   
-  int64_t mCurrentFrameTime;
+  PRInt64 mAudioStartTime;
 
   
   
   
-  
-  int64_t mAudioStartTime;
+  PRInt64 mAudioEndTime;
 
   
   
-  
-  int64_t mAudioEndTime;
-
-  
-  
-  int64_t mVideoFrameEndTime;
+  PRInt64 mVideoFrameEndTime;
   
   
   
@@ -599,15 +559,6 @@ protected:
 
   
   TimeStamp mDecodeStartTime;
-
-  
-  
-  uint32_t mBufferingWait;
-  int64_t  mLowDataThresholdUsecs;
-
-  
-  
-  bool mAudioCaptured;
 
   
   
@@ -675,17 +626,10 @@ protected:
 
   
   bool mRealTime;
+  
+  PRUint32 mBufferingWait;
+  PRInt64  mLowDataThresholdUsecs;
 
-  
-  
-  
-  bool mDidThrottleAudioDecoding;
-  bool mDidThrottleVideoDecoding;
-
-  
-  
-  bool mRequestedNewDecodeThread;
-  
 private:
   
   

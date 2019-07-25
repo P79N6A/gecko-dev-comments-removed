@@ -3,14 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __nsIContentIterator_h___
 #define __nsIContentIterator_h___
 
 #include "nsISupports.h"
-#include "nsCOMPtr.h"
 
 class nsINode;
 class nsIDOMRange;
+class nsIRange;
+class nsRange;
 
 #define NS_ICONTENTITERATOR_IID \
 { 0x2550078e, 0xae87, 0x4914, \
@@ -29,6 +62,7 @@ public:
 
 
   virtual nsresult Init(nsIDOMRange* aRange) = 0;
+  virtual nsresult Init(nsIRange* aRange) = 0;
 
   
 
@@ -64,8 +98,5 @@ public:
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIContentIterator, NS_ICONTENTITERATOR_IID)
 
-already_AddRefed<nsIContentIterator> NS_NewContentIterator();
-already_AddRefed<nsIContentIterator> NS_NewPreContentIterator();
-already_AddRefed<nsIContentIterator> NS_NewContentSubtreeIterator();
-
 #endif 
+

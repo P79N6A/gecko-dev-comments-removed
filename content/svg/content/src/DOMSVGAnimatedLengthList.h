@@ -3,15 +3,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_DOMSVGANIMATEDLENGTHLIST_H__
 #define MOZILLA_DOMSVGANIMATEDLENGTHLIST_H__
 
-#include "nsAutoPtr.h"
-#include "nsCOMPtr.h"
-#include "nsCycleCollectionParticipant.h"
 #include "nsIDOMSVGAnimatedLengthList.h"
-#include "nsSVGElement.h"
-#include "mozilla/Attributes.h"
+#include "nsCycleCollectionParticipant.h"
+#include "nsAutoPtr.h"
+#include "nsTArray.h"
+
+class nsSVGElement;
 
 namespace mozilla {
 
@@ -104,7 +135,7 @@ class DOMSVGLengthList;
 
 
 
-class DOMSVGAnimatedLengthList MOZ_FINAL : public nsIDOMSVGAnimatedLengthList
+class DOMSVGAnimatedLengthList : public nsIDOMSVGAnimatedLengthList
 {
   friend class DOMSVGLengthList;
 
@@ -127,8 +158,8 @@ public:
   static already_AddRefed<DOMSVGAnimatedLengthList>
     GetDOMWrapper(SVGAnimatedLengthList *aList,
                   nsSVGElement *aElement,
-                  uint8_t aAttrEnum,
-                  uint8_t aAxis);
+                  PRUint8 aAttrEnum,
+                  PRUint8 aAxis);
 
   
 
@@ -165,9 +196,9 @@ private:
 
 
 
-  DOMSVGAnimatedLengthList(nsSVGElement *aElement, uint8_t aAttrEnum, uint8_t aAxis)
-    : mBaseVal(nullptr)
-    , mAnimVal(nullptr)
+  DOMSVGAnimatedLengthList(nsSVGElement *aElement, PRUint8 aAttrEnum, PRUint8 aAxis)
+    : mBaseVal(nsnull)
+    , mAnimVal(nsnull)
     , mElement(aElement)
     , mAttrEnum(aAttrEnum)
     , mAxis(aAxis)
@@ -189,8 +220,8 @@ private:
   
   nsRefPtr<nsSVGElement> mElement;
 
-  uint8_t mAttrEnum;
-  uint8_t mAxis;
+  PRUint8 mAttrEnum;
+  PRUint8 mAxis;
 };
 
 } 

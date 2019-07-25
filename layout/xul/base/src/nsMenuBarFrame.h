@@ -7,6 +7,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsMenuBarFrame_h__
 #define nsMenuBarFrame_h__
 
@@ -56,6 +91,8 @@ public:
 
   virtual void DestroyFrom(nsIFrame* aDestructRoot);
 
+  virtual nsIAtom* GetType() const { return nsGkAtoms::menuBarFrame; }
+
   virtual void LockMenuUntilClosed(bool aLock) {}
   virtual bool IsMenuLocked() { return false; }
 
@@ -69,7 +106,7 @@ public:
   nsMenuFrame* ToggleMenuActiveState();
 
   bool IsActiveByKeyboard() { return mActiveByKeyboard; }
-  void SetActiveByKeyboard() { mActiveByKeyboard = true; }
+  void SetActiveByKeyboard() { mActiveByKeyboard = PR_TRUE; }
 
   
   
@@ -82,11 +119,11 @@ public:
   
   nsMenuFrame* FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent);
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     
     if (aFlags & (nsIFrame::eReplacedContainsBlock | nsIFrame::eReplaced))
-      return false;
+      return PR_FALSE;
     return nsBoxFrame::IsFrameOfType(aFlags);
   }
 

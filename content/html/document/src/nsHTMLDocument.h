@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsHTMLDocument_h___
 #define nsHTMLDocument_h___
 
@@ -31,7 +63,7 @@ class nsIEditorDocShell;
 class nsIParser;
 class nsIURI;
 class nsIMarkupDocumentViewer;
-class nsIDocShell;
+class nsIDocumentCharsetInfo;
 class nsICachingChannel;
 
 class nsHTMLDocument : public nsDocument,
@@ -40,7 +72,6 @@ class nsHTMLDocument : public nsDocument,
 {
 public:
   using nsDocument::SetDocumentURI;
-  using nsDocument::GetPlugins;
 
   nsHTMLDocument();
   virtual nsresult Init();
@@ -65,7 +96,7 @@ public:
                                      nsISupports* aContainer,
                                      nsIStreamListener **aDocListener,
                                      bool aReset = true,
-                                     nsIContentSink* aSink = nullptr);
+                                     nsIContentSink* aSink = nsnull);
   virtual void StopDocumentLoad();
 
   virtual void BeginLoad();
@@ -76,8 +107,11 @@ public:
 
   virtual bool IsWriting()
   {
-    return mWriteLevel != uint32_t(0);
+    return mWriteLevel != PRUint32(0);
   }
+
+  virtual bool GetIsFrameset() { return mIsFrameset; }
+  virtual void SetIsFrameset(bool aFrameset) { mIsFrameset = aFrameset; }
 
   virtual NS_HIDDEN_(nsContentList*) GetForms();
  
@@ -101,22 +135,25 @@ public:
                                     nsWrapperCache **aCache,
                                     nsresult *aResult);
 
-  nsIContent *GetBody();
-  Element *GetHead() { return GetHeadElement(); }
+  nsIContent *GetBody(nsresult *aResult);
   already_AddRefed<nsContentList> GetElementsByName(const nsAString & aName)
   {
-    return NS_GetFuncStringContentList(this, MatchNameAttribute, nullptr,
+    return NS_GetFuncStringContentList(this, MatchNameAttribute, nsnull,
                                        UseExistingNameString, aName);
   }
+
 
   virtual nsresult ResolveName(const nsAString& aName,
                                nsIContent *aForm,
                                nsISupports **aResult,
                                nsWrapperCache **aCache);
 
+  virtual void ScriptLoading(nsIScriptElement *aScript);
+  virtual void ScriptExecuted(nsIScriptElement *aScript);
+
   virtual void AddedForm();
   virtual void RemovedForm();
-  virtual int32_t GetNumFormsSynchronous();
+  virtual PRInt32 GetNumFormsSynchronous();
   virtual void TearingDownEditor(nsIEditor *aEditor);
   virtual void SetIsXHTML(bool aXHTML) { mIsRegularHTML = !aXHTML; }
   virtual void SetDocWriteDisabled(bool aDisabled)
@@ -124,7 +161,7 @@ public:
     mDisableDocWrite = aDisabled;
   }
 
-  nsresult ChangeContentEditableCount(nsIContent *aElement, int32_t aChange);
+  nsresult ChangeContentEditableCount(nsIContent *aElement, PRInt32 aChange);
   void DeferredContentEditableCountChange(nsIContent *aElement);
 
   virtual EditingState GetEditingState()
@@ -134,7 +171,7 @@ public:
 
   virtual void DisableCookieAccess()
   {
-    mDisableCookieAccess = true;
+    mDisableCookieAccess = PR_TRUE;
   }
 
   class nsAutoEditingState {
@@ -169,21 +206,17 @@ public:
   }
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual void DocSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const;
-  
-
 protected:
-  nsresult GetBodySize(int32_t* aWidth,
-                       int32_t* aHeight);
+  nsresult GetBodySize(PRInt32* aWidth,
+                       PRInt32* aHeight);
 
   nsIContent *MatchId(nsIContent *aContent, const nsAString& aId);
 
-  static bool MatchLinks(nsIContent *aContent, int32_t aNamespaceID,
+  static bool MatchLinks(nsIContent *aContent, PRInt32 aNamespaceID,
                            nsIAtom* aAtom, void* aData);
-  static bool MatchAnchors(nsIContent *aContent, int32_t aNamespaceID,
+  static bool MatchAnchors(nsIContent *aContent, PRInt32 aNamespaceID,
                              nsIAtom* aAtom, void* aData);
-  static bool MatchNameAttribute(nsIContent* aContent, int32_t aNamespaceID,
+  static bool MatchNameAttribute(nsIContent* aContent, PRInt32 aNamespaceID,
                                    nsIAtom* aAtom, void* aData);
   static void* UseExistingNameString(nsINode* aRootNode, const nsString* aName);
 
@@ -204,6 +237,11 @@ protected:
 
   void *GenerateParserKey(void);
 
+  virtual PRInt32 GetDefaultNamespaceID() const
+  {
+    return kNameSpaceID_XHTML;
+  }
+
   nsCOMPtr<nsIDOMHTMLCollection> mImages;
   nsCOMPtr<nsIDOMHTMLCollection> mApplets;
   nsCOMPtr<nsIDOMHTMLCollection> mEmbeds;
@@ -214,29 +252,32 @@ protected:
   nsRefPtr<nsContentList> mFormControls;
 
   
-  int32_t mNumForms;
+  PRInt32 mNumForms;
 
-  static uint32_t gWyciwygSessionCnt;
+  static PRUint32 gWyciwygSessionCnt;
 
   static bool TryHintCharset(nsIMarkupDocumentViewer* aMarkupDV,
-                               int32_t& aCharsetSource,
+                               PRInt32& aCharsetSource,
                                nsACString& aCharset);
   static bool TryUserForcedCharset(nsIMarkupDocumentViewer* aMarkupDV,
-                                     nsIDocShell*  aDocShell,
-                                     int32_t& aCharsetSource,
+                                     nsIDocumentCharsetInfo*  aDocInfo,
+                                     PRInt32& aCharsetSource,
                                      nsACString& aCharset);
   static bool TryCacheCharset(nsICachingChannel* aCachingChannel,
-                                int32_t& aCharsetSource,
+                                PRInt32& aCharsetSource,
                                 nsACString& aCharset);
   
-  bool TryParentCharset(nsIDocShell*  aDocShell,
+  bool TryParentCharset(nsIDocumentCharsetInfo*  aDocInfo,
                           nsIDocument* aParentDocument,
-                          int32_t& charsetSource, nsACString& aCharset);
-  static bool UseWeakDocTypeDefault(int32_t& aCharsetSource,
+                          PRInt32& charsetSource, nsACString& aCharset);
+  static bool UseWeakDocTypeDefault(PRInt32& aCharsetSource,
                                       nsACString& aCharset);
   static bool TryDefaultCharset(nsIMarkupDocumentViewer* aMarkupDV,
-                                  int32_t& aCharsetSource,
+                                  PRInt32& aCharsetSource,
                                   nsACString& aCharset);
+
+  void StartAutodetection(nsIDocShell *aDocShell, nsACString& aCharset,
+                          const char* aCommand);
 
   
   virtual void SetDocumentCharacterSet(const nsACString& aCharSetID);
@@ -245,10 +286,29 @@ protected:
   
   
   
-  uint32_t mWriteLevel;
+  
+  
+  
+  
+  enum {
+    eNotWriting,
+    eDocumentOpened,
+    ePendingClose,
+    eDocumentClosed
+  } mWriteState;
 
   
-  uint32_t mLoadFlags;
+  
+  
+  
+  PRUint32 mWriteLevel;
+
+  nsAutoTArray<nsIScriptElement*, 1> mPendingScripts;
+
+  
+  PRUint32 mLoadFlags;
+
+  bool mIsFrameset;
 
   bool mTooDeepWriteRecursion;
 
@@ -267,7 +327,7 @@ protected:
   nsresult EditingStateChanged();
   void MaybeEditingStateChanged();
 
-  uint32_t mContentEditableCount;
+  PRUint32 mContentEditableCount;
   EditingState mEditingState;
 
   nsresult   DoClipboardSecurityCheck(bool aPaste);

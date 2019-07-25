@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  
 
 
@@ -141,7 +173,7 @@ char* nsUnescape(char * str)
 }
 
 
-int32_t nsUnescapeCount(char * str)
+PRInt32 nsUnescapeCount(char * str)
 
 {
     register char *src = str;
@@ -190,11 +222,11 @@ int32_t nsUnescapeCount(char * str)
 char *
 nsEscapeHTML(const char * string)
 {
-    char *rv = nullptr;
+    char *rv = nsnull;
     
-    uint32_t len = PL_strlen(string);
+    PRUint32 len = PL_strlen(string);
     if (len >= (PR_UINT32_MAX / 6))
-      return nullptr;
+      return nsnull;
 
     rv = (char *)NS_Alloc( (6 * len) + 1 );
     char *ptr = rv;
@@ -254,24 +286,24 @@ nsEscapeHTML(const char * string)
 }
 
 PRUnichar *
-nsEscapeHTML2(const PRUnichar *aSourceBuffer, int32_t aSourceBufferLen)
+nsEscapeHTML2(const PRUnichar *aSourceBuffer, PRInt32 aSourceBufferLen)
 {
   
   if (aSourceBufferLen < 0) {
-    aSourceBufferLen = NS_strlen(aSourceBuffer);
+    aSourceBufferLen = nsCRT::strlen(aSourceBuffer); 
   }
 
   
-  if (uint32_t(aSourceBufferLen) >=
+  if (PRUint32(aSourceBufferLen) >=
       ((PR_UINT32_MAX - sizeof(PRUnichar)) / (6 * sizeof(PRUnichar))) )
-    return nullptr;
+    return nsnull;
 
   PRUnichar *resultBuffer = (PRUnichar *)nsMemory::Alloc(aSourceBufferLen *
                             6 * sizeof(PRUnichar) + sizeof(PRUnichar('\0')));
   PRUnichar *ptr = resultBuffer;
 
   if (resultBuffer) {
-    int32_t i;
+    PRInt32 i;
 
     for(i = 0; i < aSourceBufferLen; i++) {
       if(aSourceBuffer[i] == '<') {
@@ -360,13 +392,13 @@ const int EscapeChars[256] =
 
 
 bool NS_EscapeURL(const char *part,
-                           int32_t partLen,
-                           uint32_t flags,
+                           PRInt32 partLen,
+                           PRUint32 flags,
                            nsACString &result)
 {
     if (!part) {
         NS_NOTREACHED("null pointer");
-        return false;
+        return PR_FALSE;
     }
 
     int i = 0;
@@ -419,7 +451,7 @@ bool NS_EscapeURL(const char *part,
         if (!writing)
         {
           result.Append(part, i);
-          writing = true;
+          writing = PR_TRUE;
         }
         tempBuffer[tempBufferPos++] = HEX_ESCAPE;
         tempBuffer[tempBufferPos++] = hexChars[c >> 4];	
@@ -445,11 +477,11 @@ bool NS_EscapeURL(const char *part,
 
 #define ISHEX(c) memchr(hexChars, c, sizeof(hexChars)-1)
 
-bool NS_UnescapeURL(const char *str, int32_t len, uint32_t flags, nsACString &result)
+bool NS_UnescapeURL(const char *str, PRInt32 len, PRUint32 flags, nsACString &result)
 {
     if (!str) {
         NS_NOTREACHED("null pointer");
-        return false;
+        return PR_FALSE;
     }
 
     if (len < 0)
@@ -475,7 +507,7 @@ bool NS_UnescapeURL(const char *str, int32_t len, uint32_t flags, nsACString &re
                 !(skipControl && 
                   (*p1 < '2' || (*p1 == '7' && (*p2 == 'f' || *p2 == 'F'))))) {
                 
-                writing = true;
+                writing = PR_TRUE;
                 if (p > last) {
                     
                     result.Append(last, p - last);

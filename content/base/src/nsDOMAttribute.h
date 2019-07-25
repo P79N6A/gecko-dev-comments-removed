@@ -7,6 +7,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDOMAttribute_h___
 #define nsDOMAttribute_h___
 
@@ -24,14 +56,15 @@
 
 
 class nsDOMAttribute : public nsIAttribute,
-                       public nsIDOMAttr
+                       public nsIDOMAttr,
+                       public nsStubMutationObserver
 {
 public:
   nsDOMAttribute(nsDOMAttributeMap* aAttrMap,
                  already_AddRefed<nsINodeInfo> aNodeInfo,
                  const nsAString& aValue,
                  bool aNsAware);
-  virtual ~nsDOMAttribute() {}
+  virtual ~nsDOMAttribute();
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
 
@@ -49,15 +82,15 @@ public:
   nsresult SetOwnerDocument(nsIDocument* aDocument);
 
   
-  virtual bool IsNodeOfType(uint32_t aFlags) const;
-  virtual uint32_t GetChildCount() const;
-  virtual nsIContent *GetChildAt(uint32_t aIndex) const;
-  virtual nsIContent * const * GetChildArray(uint32_t* aChildCount) const;
-  virtual int32_t IndexOf(nsINode* aPossibleChild) const;
-  virtual nsresult InsertChildAt(nsIContent* aKid, uint32_t aIndex,
+  virtual bool IsNodeOfType(PRUint32 aFlags) const;
+  virtual PRUint32 GetChildCount() const;
+  virtual nsIContent *GetChildAt(PRUint32 aIndex) const;
+  virtual nsIContent * const * GetChildArray(PRUint32* aChildCount) const;
+  virtual PRInt32 IndexOf(nsINode* aPossibleChild) const;
+  virtual nsresult InsertChildAt(nsIContent* aKid, PRUint32 aIndex,
                                  bool aNotify);
   virtual nsresult AppendChildTo(nsIContent* aKid, bool aNotify);
-  virtual void RemoveChildAt(uint32_t aIndex, bool aNotify);
+  virtual nsresult RemoveChildAt(PRUint32 aIndex, bool aNotify);
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
   virtual already_AddRefed<nsIURI> GetBaseURI() const;
 
@@ -67,9 +100,9 @@ public:
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(nsDOMAttribute,
                                                          nsIAttribute)
 
-  virtual nsXPCClassInfo* GetClassInfo();
+  NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
 
-  virtual nsIDOMNode* AsDOMNode() { return this; }
+  virtual nsXPCClassInfo* GetClassInfo();
 protected:
   virtual mozilla::dom::Element* GetNameSpaceElement()
   {
@@ -80,12 +113,24 @@ protected:
 
 private:
   already_AddRefed<nsIAtom> GetNameAtom(nsIContent* aContent);
-  mozilla::dom::Element *GetContentInternal() const
-  {
-    return mAttrMap ? mAttrMap->GetContent() : nullptr;
-  }
+
+  void EnsureChildState();
+
+  
+
+
+  void doRemoveChild(bool aNotify);
 
   nsString mValue;
+  
+  
+  
+  nsIContent* mChild;
+
+  mozilla::dom::Element *GetContentInternal() const
+  {
+    return mAttrMap ? mAttrMap->GetContent() : nsnull;
+  }
 };
 
 

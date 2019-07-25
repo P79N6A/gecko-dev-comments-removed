@@ -9,10 +9,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsStyleSet_h_
 #define nsStyleSet_h_
-
-#include "mozilla/Attributes.h"
 
 #include "nsIStyleRuleProcessor.h"
 #include "nsCSSStyleSheet.h"
@@ -24,7 +57,6 @@
 #include "nsIStyleRule.h"
 #include "nsCSSPseudoElements.h"
 #include "nsCSSAnonBoxes.h"
-#include "mozilla/Attributes.h"
 
 class nsIURI;
 class nsCSSFontFaceRule;
@@ -33,21 +65,21 @@ class nsRuleWalker;
 struct RuleProcessorData;
 struct TreeMatchContext;
 
-class nsEmptyStyleRule MOZ_FINAL : public nsIStyleRule
+class nsEmptyStyleRule : public nsIStyleRule
 {
   NS_DECL_ISUPPORTS
   virtual void MapRuleInfoInto(nsRuleData* aRuleData);
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
+  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
 };
 
-class nsInitialStyleRule MOZ_FINAL : public nsIStyleRule
+class nsInitialStyleRule : public nsIStyleRule
 {
   NS_DECL_ISUPPORTS
   virtual void MapRuleInfoInto(nsRuleData* aRuleData);
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
+  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
 };
 
@@ -60,7 +92,7 @@ class nsStyleSet
  public:
   nsStyleSet();
 
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  size_t SizeOf() const;
 
   
   
@@ -192,7 +224,7 @@ class nsStyleSet
   nsRestyleHint HasAttributeDependentStyle(nsPresContext* aPresContext,
                                            mozilla::dom::Element* aElement,
                                            nsIAtom*       aAttribute,
-                                           int32_t        aModType,
+                                           PRInt32        aModType,
                                            bool           aAttrHasChanged);
 
   
@@ -238,11 +270,11 @@ class nsStyleSet
   bool GetAuthorStyleDisabled();
   nsresult SetAuthorStyleDisabled(bool aStyleDisabled);
 
-  int32_t SheetCount(sheetType aType) const {
+  PRInt32 SheetCount(sheetType aType) const {
     return mSheets[aType].Count();
   }
 
-  nsIStyleSheet* StyleSheetAt(sheetType aType, int32_t aIndex) const {
+  nsIStyleSheet* StyleSheetAt(sheetType aType, PRInt32 aIndex) const {
     return mSheets[aType].ObjectAt(aIndex);
   }
 
@@ -289,8 +321,9 @@ class nsStyleSet
   nsIStyleRule* InitialStyleRule();
 
  private:
-  nsStyleSet(const nsStyleSet& aCopy) MOZ_DELETE;
-  nsStyleSet& operator=(const nsStyleSet& aCopy) MOZ_DELETE;
+  
+  nsStyleSet(const nsStyleSet& aCopy);
+  nsStyleSet& operator=(const nsStyleSet& aCopy);
 
   
   bool BuildDefaultStyleData(nsPresContext* aPresContext);
@@ -371,14 +404,7 @@ class nsStyleSet
                          
                          
 
-  uint16_t mBatching;
-
-  unsigned mInShutdown : 1;
-  unsigned mAuthorStyleDisabled: 1;
-  unsigned mInReconstruct : 1;
-  unsigned mDirty : 8;  
-
-  uint32_t mUnusedRuleNodeCount; 
+  PRUint32 mUnusedRuleNodeCount; 
   nsTArray<nsStyleContext*> mRoots; 
 
   
@@ -389,10 +415,18 @@ class nsStyleSet
   
   nsRefPtr<nsInitialStyleRule> mInitialStyleRule;
 
+  PRUint16 mBatching;
+
   
   
   
   nsTArray<nsRuleNode*> mOldRuleTrees;
+
+  unsigned mInShutdown : 1;
+  unsigned mAuthorStyleDisabled: 1;
+  unsigned mInReconstruct : 1;
+  unsigned mDirty : 8;  
+
 };
 
 #ifdef _IMPL_NS_LAYOUT

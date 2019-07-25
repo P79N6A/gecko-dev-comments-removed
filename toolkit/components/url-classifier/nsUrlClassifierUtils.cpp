@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsEscape.h"
 #include "nsString.h"
 #include "nsIURI.h"
@@ -13,7 +45,7 @@
 #include "prmem.h"
 #include "prprf.h"
 
-static char int_to_hex_digit(int32_t i)
+static char int_to_hex_digit(PRInt32 i)
 {
   NS_ASSERTION((i >= 0) && (i <= 15), "int too big in int_to_hex_digit");
   return static_cast<char>(((i < 10) ? (i + '0') : ((i - 10) + 'A')));
@@ -22,56 +54,56 @@ static char int_to_hex_digit(int32_t i)
 static bool
 IsDecimal(const nsACString & num)
 {
-  for (uint32_t i = 0; i < num.Length(); i++) {
+  for (PRUint32 i = 0; i < num.Length(); i++) {
     if (!isdigit(num[i])) {
-      return false;
+      return PR_FALSE;
     }
   }
 
-  return true;
+  return PR_TRUE;
 }
 
 static bool
 IsHex(const nsACString & num)
 {
   if (num.Length() < 3) {
-    return false;
+    return PR_FALSE;
   }
 
   if (num[0] != '0' || !(num[1] == 'x' || num[1] == 'X')) {
-    return false;
+    return PR_FALSE;
   }
 
-  for (uint32_t i = 2; i < num.Length(); i++) {
+  for (PRUint32 i = 2; i < num.Length(); i++) {
     if (!isxdigit(num[i])) {
-      return false;
+      return PR_FALSE;
     }
   }
 
-  return true;
+  return PR_TRUE;
 }
 
 static bool
 IsOctal(const nsACString & num)
 {
   if (num.Length() < 2) {
-    return false;
+    return PR_FALSE;
   }
 
   if (num[0] != '0') {
-    return false;
+    return PR_FALSE;
   }
 
-  for (uint32_t i = 1; i < num.Length(); i++) {
+  for (PRUint32 i = 1; i < num.Length(); i++) {
     if (!isdigit(num[i]) || num[i] == '8' || num[i] == '9') {
-      return false;
+      return PR_FALSE;
     }
   }
 
-  return true;
+  return PR_TRUE;
 }
 
-nsUrlClassifierUtils::nsUrlClassifierUtils() : mEscapeCharmap(nullptr)
+nsUrlClassifierUtils::nsUrlClassifierUtils() : mEscapeCharmap(nsnull)
 {
 }
 
@@ -98,7 +130,7 @@ nsUrlClassifierUtils::GetKeyForURI(nsIURI * uri, nsACString & _retval)
   if (!innerURI)
     innerURI = uri;
 
-  nsAutoCString host;
+  nsCAutoString host;
   innerURI->GetAsciiHost(host);
 
   if (host.IsEmpty()) {
@@ -108,16 +140,16 @@ nsUrlClassifierUtils::GetKeyForURI(nsIURI * uri, nsACString & _retval)
   nsresult rv = CanonicalizeHostname(host, _retval);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsAutoCString path;
+  nsCAutoString path;
   rv = innerURI->GetPath(path);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  int32_t ref = path.FindChar('#');
+  PRInt32 ref = path.FindChar('#');
   if (ref != kNotFound)
     path.SetLength(ref);
 
-  nsAutoCString temp;
+  nsCAutoString temp;
   rv = CanonicalizePath(path, temp);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -133,24 +165,24 @@ nsresult
 nsUrlClassifierUtils::CanonicalizeHostname(const nsACString & hostname,
                                            nsACString & _retval)
 {
-  nsAutoCString unescaped;
+  nsCAutoString unescaped;
   if (!NS_UnescapeURL(PromiseFlatCString(hostname).get(),
                       PromiseFlatCString(hostname).Length(),
                       0, unescaped)) {
     unescaped.Assign(hostname);
   }
 
-  nsAutoCString cleaned;
+  nsCAutoString cleaned;
   CleanupHostname(unescaped, cleaned);
 
-  nsAutoCString temp;
+  nsCAutoString temp;
   ParseIPAddress(cleaned, temp);
   if (!temp.IsEmpty()) {
     cleaned.Assign(temp);
   }
 
   ToLowerCase(cleaned);
-  SpecialEncode(cleaned, false, _retval);
+  SpecialEncode(cleaned, PR_FALSE, _retval);
 
   return NS_OK;
 }
@@ -162,14 +194,14 @@ nsUrlClassifierUtils::CanonicalizePath(const nsACString & path,
 {
   _retval.Truncate();
 
-  nsAutoCString decodedPath(path);
-  nsAutoCString temp;
+  nsCAutoString decodedPath(path);
+  nsCAutoString temp;
   while (NS_UnescapeURL(decodedPath.get(), decodedPath.Length(), 0, temp)) {
     decodedPath.Assign(temp);
     temp.Truncate();
   }
 
-  SpecialEncode(decodedPath, true, _retval);
+  SpecialEncode(decodedPath, PR_TRUE, _retval);
   
 
   return NS_OK;
@@ -243,17 +275,17 @@ nsUrlClassifierUtils::ParseIPAddress(const nsACString & host,
   
   
   bool allowOctal = true;
-  uint32_t i;
+  PRUint32 i;
 
   for (i = 0; i < parts.Length(); i++) {
     const nsCString& part = parts[i];
     if (part[0] == '0') {
-      for (uint32_t j = 1; j < part.Length(); j++) {
+      for (PRUint32 j = 1; j < part.Length(); j++) {
         if (part[j] == 'x') {
           break;
         }
         if (part[j] == '8' || part[j] == '9') {
-          allowOctal = false;
+          allowOctal = PR_FALSE;
           break;
         }
       }
@@ -261,7 +293,7 @@ nsUrlClassifierUtils::ParseIPAddress(const nsACString & host,
   }
 
   for (i = 0; i < parts.Length(); i++) {
-    nsAutoCString canonical;
+    nsCAutoString canonical;
 
     if (i == parts.Length() - 1) {
       CanonicalNum(parts[i], 5 - parts.Length(), allowOctal, canonical);
@@ -286,7 +318,7 @@ nsUrlClassifierUtils::ParseIPAddress(const nsACString & host,
 
 void
 nsUrlClassifierUtils::CanonicalNum(const nsACString& num,
-                                   uint32_t bytes,
+                                   PRUint32 bytes,
                                    bool allowOctal,
                                    nsACString& _retval)
 {
@@ -296,7 +328,7 @@ nsUrlClassifierUtils::CanonicalNum(const nsACString& num,
     return;
   }
 
-  uint32_t val;
+  PRUint32 val;
   if (allowOctal && IsOctal(num)) {
     if (PR_sscanf(PromiseFlatCString(num).get(), "%o", &val) != 1) {
       return;
@@ -346,7 +378,7 @@ nsUrlClassifierUtils::SpecialEncode(const nsACString & url,
       _retval.Append(int_to_hex_digit(c / 16));
       _retval.Append(int_to_hex_digit(c % 16));
 
-      changed = true;
+      changed = PR_TRUE;
     } else if (foldSlashes && (c == '/' && lastChar == '/')) {
       
     } else {
@@ -387,12 +419,12 @@ nsUrlClassifierUtils::DecodeClientKey(const nsACString &key,
                                       nsACString &_retval)
 {
   
-  nsAutoCString base64(key);
+  nsCAutoString base64(key);
   UnUrlsafeBase64(base64);
 
   
   
-  uint32_t destLength;
+  PRUint32 destLength;
   destLength = base64.Length();
   if (destLength > 0 && base64[destLength - 1] == '=') {
     if (destLength > 1 && base64[destLength - 2] == '=') {

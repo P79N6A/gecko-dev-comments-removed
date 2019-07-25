@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozStorageStatementData_h
 #define mozStorageStatementData_h
 
@@ -121,7 +154,7 @@ public:
 
 
 
-  inline uint32_t needsTransaction()
+  inline PRUint32 needsTransaction()
   {
     MOZ_ASSERT(!NS_IsMainThread());
     

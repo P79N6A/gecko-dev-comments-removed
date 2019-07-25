@@ -5,6 +5,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIAtom.h"
 #include "nsElementTable.h"
 
@@ -841,15 +875,6 @@ const nsHTMLElement gHTMLElements[] = {
                 &gInHead,0,
   },
   {
-                                 eHTMLTag_meter,
-              eHTMLTag_unknown,eHTMLTag_unknown,
-              &gRootTags,&gRootTags,
-     0,0,0,0,
-              kFormControl, kFlowEntity, kNone,
-           0,kDefaultPropRange,
-                0,0,
-  },
-  {
                                  eHTMLTag_multicol,
               eHTMLTag_unknown,eHTMLTag_unknown,
               &gRootTags,&gRootTags,
@@ -1374,7 +1399,7 @@ const nsHTMLElement gHTMLElements[] = {
   }
 };
 
-#ifdef DEBUG  
+#ifdef NS_DEBUG  
 void CheckElementTable() {
   for (eHTMLTags t = eHTMLTag_unknown; t <= eHTMLTag_userdefined; t = eHTMLTags(t + 1)) {
     NS_ASSERTION(gHTMLElements[t].mTagID == t, "gHTMLElements entries does match tag list.");
@@ -1391,8 +1416,8 @@ void CheckElementTable() {
 
 
 
-int32_t nsHTMLElement::GetIndexOfChildOrSynonym(nsDTDContext& aContext,eHTMLTags aChildTag) {
-  int32_t theChildIndex=aContext.LastOf(aChildTag);
+PRInt32 nsHTMLElement::GetIndexOfChildOrSynonym(nsDTDContext& aContext,eHTMLTags aChildTag) {
+  PRInt32 theChildIndex=aContext.LastOf(aChildTag);
   if(kNotFound==theChildIndex) {
     const TagList* theSynTags=gHTMLElements[aChildTag].GetSynonymousTags(); 
     if(theSynTags) {
@@ -1408,7 +1433,7 @@ int32_t nsHTMLElement::GetIndexOfChildOrSynonym(nsDTDContext& aContext,eHTMLTags
 
 
 
-bool nsHTMLElement::HasSpecialProperty(int32_t aProperty) const{
+bool nsHTMLElement::HasSpecialProperty(PRInt32 aProperty) const{
   bool result=TestBits(mSpecialProperties,aProperty);
   return result;
 }
@@ -1437,7 +1462,7 @@ bool nsHTMLElement::IsContainer(eHTMLTags aChild) {
 
 
 
-bool nsHTMLElement::IsMemberOf(int32_t aSet) const{
+bool nsHTMLElement::IsMemberOf(PRInt32 aSet) const{
   return TestBits(aSet,mParentBits);
 }
 
@@ -1450,7 +1475,7 @@ bool nsHTMLElement::IsMemberOf(int32_t aSet) const{
 
 
 
-bool nsHTMLElement::ContainsSet(int32_t aSet) const{
+bool nsHTMLElement::ContainsSet(PRInt32 aSet) const{
   return TestBits(mParentBits,aSet);
 }
 
@@ -1573,7 +1598,7 @@ bool nsHTMLElement::IsSpecialParent(eHTMLTags aTag) const{
   bool result=false;
   if(mSpecialParents) {
     if(FindTagInSet(aTag,mSpecialParents->mTags,mSpecialParents->mCount))
-        result=true;
+        result=PR_TRUE;
   }
   return result;
 }
@@ -1591,10 +1616,10 @@ bool nsHTMLElement::IsSectionTag(eHTMLTags aTag){
     case eHTMLTag_frameset:
     case eHTMLTag_body:
     case eHTMLTag_head:
-      result=true;
+      result=PR_TRUE;
       break;
     default:
-      result=false;
+      result=PR_FALSE;
   }
   return result;
 }
@@ -1625,19 +1650,19 @@ bool nsHTMLElement::CanExclude(eHTMLTags aChild) const{
 
   if(gHTMLElements[aChild].HasSpecialProperty(kLegalOpen)) {
     
-    return false;
+    return PR_FALSE;
   }
 
   
   if(mSpecialKids) {
     if(FindTagInSet(aChild,mSpecialKids->mTags,mSpecialKids->mCount)) {
-      return false;
+      return PR_FALSE;
     }
   }
 
   if(mExclusionBits){
     if(gHTMLElements[aChild].IsMemberOf(mExclusionBits)) {
-      result=true;
+      result=PR_TRUE;
     }
   }
   return result;
@@ -1656,7 +1681,7 @@ bool nsHTMLElement::IsExcludableParent(eHTMLTags aParent) const{
     if(mExcludableParents) {
       const TagList* theParents=mExcludableParents;
       if(FindTagInSet(aParent,theParents->mTags,theParents->mCount))
-        result=true;
+        result=PR_TRUE;
     }
     if(!result) {
       
@@ -1672,7 +1697,7 @@ bool nsHTMLElement::IsExcludableParent(eHTMLTags aParent) const{
           case eHTMLTag_td:
           case eHTMLTag_th:
           case eHTMLTag_tr:
-            result=true;
+            result=PR_TRUE;
           default:
             break;
         }
@@ -1706,21 +1731,21 @@ bool nsHTMLElement::CanOmitEndTag(void) const{
 
 
 bool nsHTMLElement::IsChildOfHead(eHTMLTags aChild,bool& aExclusively) {
-  aExclusively = true;
+  aExclusively = PR_TRUE;
 
   
   if (gHTMLElements[aChild].mParentBits & kHeadContent) {
-    return true;
+    return PR_TRUE;
   }
 
 
   
   if (gHTMLElements[aChild].mParentBits & kHeadMisc) {
-    aExclusively = false;
-    return true;
+    aExclusively = PR_FALSE;
+    return PR_TRUE;
   }
 
-  return false;
+  return PR_FALSE;
 }
 
 
@@ -1741,7 +1766,7 @@ bool nsHTMLElement::SectionContains(eHTMLTags aChild,bool allowDepthSearch) cons
       if((eHTMLTag_unknown!=theRootBase) && (allowDepthSearch))
         result=SectionContains(theRootBase,allowDepthSearch);
     }
-    else result=true;
+    else result=PR_TRUE;
   }
   return result;
 }
@@ -1797,7 +1822,7 @@ bool nsHTMLElement::IsResidualStyleTag(eHTMLTags aChild) {
     case eHTMLTag_sup:       
     case eHTMLTag_tt:
     case eHTMLTag_u:       
-      result=true;
+      result=PR_TRUE;
       break;
 
     case eHTMLTag_abbr:
@@ -1810,7 +1835,7 @@ bool nsHTMLElement::IsResidualStyleTag(eHTMLTags aChild) {
     case eHTMLTag_samp:      
     case eHTMLTag_span:    
     case eHTMLTag_var:
-      result=false;
+      result=PR_FALSE;
     default:
       break;
   };
@@ -1823,8 +1848,8 @@ bool nsHTMLElement::IsResidualStyleTag(eHTMLTags aChild) {
 
 
 
-bool nsHTMLElement::CanContainType(int32_t aType) const{
-  int32_t answer=mInclusionBits & aType;
+bool nsHTMLElement::CanContainType(PRInt32 aType) const{
+  PRInt32 answer=mInclusionBits & aType;
   bool    result=bool(0!=answer);
   return result;
 }
@@ -1841,7 +1866,7 @@ bool nsHTMLElement::IsWhitespaceTag(eHTMLTags aChild) {
   switch(aChild) {
     case eHTMLTag_newline:
     case eHTMLTag_whitespace:
-      result=true;
+      result=PR_TRUE;
       break;
     default:
       break;
@@ -1863,7 +1888,7 @@ bool nsHTMLElement::IsTextTag(eHTMLTags aChild) {
     case eHTMLTag_entity:
     case eHTMLTag_newline:
     case eHTMLTag_whitespace:
-      result=true;
+      result=PR_TRUE;
       break;
     default:
       break;
@@ -1893,10 +1918,10 @@ bool nsHTMLElement::CanContainSelf(void) const {
 
 
 
-bool nsHTMLElement::CanAutoCloseTag(nsDTDContext& aContext,int32_t aIndex,
+bool nsHTMLElement::CanAutoCloseTag(nsDTDContext& aContext,PRInt32 aIndex,
                                       eHTMLTags aChildTag) const{
 
-  int32_t thePos;
+  PRInt32 thePos;
   bool    result = true;
   eHTMLTags thePrevTag;
 
@@ -1905,7 +1930,7 @@ bool nsHTMLElement::CanAutoCloseTag(nsDTDContext& aContext,int32_t aIndex,
 
     if (thePrevTag == eHTMLTag_applet ||
         thePrevTag == eHTMLTag_td) {
-          result = false;
+          result = PR_FALSE;
           break;
     }
   }
@@ -1919,7 +1944,7 @@ bool nsHTMLElement::CanAutoCloseTag(nsDTDContext& aContext,int32_t aIndex,
 
 
 
-eHTMLTags nsHTMLElement::GetCloseTargetForEndTag(nsDTDContext& aContext,int32_t anIndex,nsDTDMode aMode) const{
+eHTMLTags nsHTMLElement::GetCloseTargetForEndTag(nsDTDContext& aContext,PRInt32 anIndex,nsDTDMode aMode) const{
   eHTMLTags result=eHTMLTag_unknown;
 
   int theCount=aContext.GetCount();
@@ -2039,7 +2064,7 @@ eHTMLTags nsHTMLElement::GetCloseTargetForEndTag(nsDTDContext& aContext,int32_t 
     
 
     const TagList* theRootTags=gHTMLElements[mTagID].GetEndRootTags();
-    int32_t theIndexCopy=theIndex;
+    PRInt32 theIndexCopy=theIndex;
     while(--theIndex>=anIndex){
       eHTMLTags theTag=aContext.TagAt(theIndex);
       if(theTag == mTagID) {
@@ -2072,8 +2097,8 @@ eHTMLTags nsHTMLElement::GetCloseTargetForEndTag(nsDTDContext& aContext,int32_t 
       
       
 
-    int32_t theLastTable=aContext.LastOf(eHTMLTag_table);
-    int32_t theLastOfMe=aContext.LastOf(mTagID);
+    PRInt32 theLastTable=aContext.LastOf(eHTMLTag_table);
+    PRInt32 theLastOfMe=aContext.LastOf(mTagID);
     if(theLastTable<theLastOfMe) {
       return mTagID;
     }
@@ -2127,7 +2152,7 @@ bool nsHTMLElement::CanContain(eHTMLTags aChild,nsDTDMode aMode) const{
 
     if(gHTMLElements[aChild].HasSpecialProperty(kLegalOpen)) {
       
-      return true;
+      return PR_TRUE;
     }
 
     if(mTagID==aChild) {
@@ -2137,60 +2162,60 @@ bool nsHTMLElement::CanContain(eHTMLTags aChild,nsDTDMode aMode) const{
     const TagList* theCloseTags=gHTMLElements[aChild].GetAutoCloseStartTags();
     if(theCloseTags){
       if(FindTagInSet(mTagID,theCloseTags->mTags,theCloseTags->mCount))
-        return false;
+        return PR_FALSE;
     }
 
     if(gHTMLElements[aChild].mExcludableParents) {
       const TagList* theParents=gHTMLElements[aChild].mExcludableParents;
       if(FindTagInSet(mTagID,theParents->mTags,theParents->mCount))
-        return false;
+        return PR_FALSE;
     }
     
     if(gHTMLElements[aChild].IsExcludableParent(mTagID))
-      return false;
+      return PR_FALSE;
 
     if(gHTMLElements[aChild].IsBlockCloser(aChild)){
       if(nsHTMLElement::IsBlockParent(mTagID)){
-        return true;
+        return PR_TRUE;
       }
     }
 
     if(nsHTMLElement::IsInlineEntity(aChild)){
       if(nsHTMLElement::IsInlineParent(mTagID)){
-        return true;
+        return PR_TRUE;
       }
     }
 
     if(nsHTMLElement::IsFlowEntity(aChild)) {
       if(nsHTMLElement::IsFlowParent(mTagID)){
-        return true;
+        return PR_TRUE;
       }
     }
 
     if(nsHTMLElement::IsTextTag(aChild)) {
       
       if(nsHTMLElement::IsInlineParent(mTagID) || CanContainType(kCDATA)){
-        return true;
+        return PR_TRUE;
       }
     }
 
     if(CanContainType(gHTMLElements[aChild].mParentBits)) {
-      return true;
+      return PR_TRUE;
     }
  
     if(mSpecialKids) {
       if(FindTagInSet(aChild,mSpecialKids->mTags,mSpecialKids->mCount)) {
-        return true;
+        return PR_TRUE;
       }
     }
 
     
     if (aChild == eHTMLTag_table && mTagID == eHTMLTag_p && aMode == eDTDMode_quirks) {
-      return true;
+      return PR_TRUE;
     }
   }
   
-  return false;
+  return PR_FALSE;
 }
 
 #ifdef DEBUG

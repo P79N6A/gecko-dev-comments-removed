@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_SMILTARGETIDENTIFIER_H_
 #define NS_SMILTARGETIDENTIFIER_H_
 
@@ -26,8 +58,8 @@
 struct nsSMILTargetIdentifier
 {
   nsSMILTargetIdentifier()
-    : mElement(nullptr), mAttributeName(nullptr),
-      mAttributeNamespaceID(kNameSpaceID_Unknown), mIsCSS(false) {}
+    : mElement(nsnull), mAttributeName(nsnull),
+      mAttributeNamespaceID(kNameSpaceID_Unknown), mIsCSS(PR_FALSE) {}
 
   inline bool Equals(const nsSMILTargetIdentifier& aOther) const
   {
@@ -39,7 +71,7 @@ struct nsSMILTargetIdentifier
 
   nsRefPtr<mozilla::dom::Element> mElement;
   nsRefPtr<nsIAtom>    mAttributeName;
-  int32_t              mAttributeNamespaceID;
+  PRInt32              mAttributeNamespaceID;
   bool                 mIsCSS;
 };
 
@@ -58,7 +90,7 @@ class nsSMILWeakTargetIdentifier
 public:
   
   nsSMILWeakTargetIdentifier()
-    : mElement(nullptr), mAttributeName(nullptr), mIsCSS(false) {}
+    : mElement(nsnull), mAttributeName(nsnull), mIsCSS(PR_FALSE) {}
 
   
   nsSMILWeakTargetIdentifier&

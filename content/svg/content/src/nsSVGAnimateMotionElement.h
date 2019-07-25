@@ -3,11 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_SVGANIMATEMOTIONELEMENT_H_
 #define NS_SVGANIMATEMOTIONELEMENT_H_
 
-#include "nsIDOMSVGAnimateMotionElement.h"
 #include "nsSVGAnimationElement.h"
+#include "nsIDOMSVGAnimateMotionElement.h"
 #include "nsSVGEnum.h"
 #include "SVGMotionSMILAnimationFunction.h"
 
@@ -38,7 +70,7 @@ public:
 
   
   virtual nsSMILAnimationFunction& AnimationFunction();
-  virtual bool GetTargetAttributeName(int32_t *aNamespaceID,
+  virtual bool GetTargetAttributeName(PRInt32 *aNamespaceID,
                                         nsIAtom **aLocalName) const;
   virtual nsSMILTargetAttrType GetTargetAttributeType() const;
 
@@ -52,8 +84,6 @@ public:
   void MpathChanged() { mAnimationFunction.MpathChanged(); }
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 };
 
 #endif 

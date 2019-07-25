@@ -3,18 +3,50 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGPATTERNELEMENT_H__
 #define __NS_SVGPATTERNELEMENT_H__
 
-#include "DOMSVGTests.h"
+#include "nsSVGStylableElement.h"
+#include "nsIDOMSVGURIReference.h"
 #include "nsIDOMSVGFitToViewBox.h"
 #include "nsIDOMSVGPatternElement.h"
 #include "nsIDOMSVGUnitTypes.h"
-#include "nsIDOMSVGURIReference.h"
-#include "nsSVGEnum.h"
 #include "nsSVGLength2.h"
+#include "nsSVGEnum.h"
 #include "nsSVGString.h"
-#include "nsSVGStylableElement.h"
 #include "nsSVGViewBox.h"
 #include "SVGAnimatedPreserveAspectRatio.h"
 #include "SVGAnimatedTransformList.h"
@@ -24,10 +56,9 @@
 typedef nsSVGStylableElement nsSVGPatternElementBase;
 
 class nsSVGPatternElement : public nsSVGPatternElementBase,
-                            public nsIDOMSVGPatternElement,
-                            public DOMSVGTests,
                             public nsIDOMSVGURIReference,
                             public nsIDOMSVGFitToViewBox,
+                            public nsIDOMSVGPatternElement,
                             public nsIDOMSVGUnitTypes
 {
   friend class nsSVGPatternFrame;
@@ -63,13 +94,7 @@ public:
 
   virtual nsXPCClassInfo* GetClassInfo();
 
-  virtual nsIDOMNode* AsDOMNode() { return this; }
-
-  
-  virtual bool HasValidDimensions() const;
-
-  virtual mozilla::SVGAnimatedTransformList*
-    GetAnimatedTransformList(uint32_t aFlags = 0);
+  virtual mozilla::SVGAnimatedTransformList* GetAnimatedTransformList();
   virtual nsIAtom* GetTransformListAttrName() const {
     return nsGkAtoms::patternTransform;
   }

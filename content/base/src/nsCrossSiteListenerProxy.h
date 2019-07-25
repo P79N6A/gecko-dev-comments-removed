@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsCORSListenerProxy_h__
 #define nsCORSListenerProxy_h__
 
@@ -15,7 +47,6 @@
 #include "nsIInterfaceRequestor.h"
 #include "nsIChannelEventSink.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
-#include "mozilla/Attributes.h"
 
 class nsIURI;
 class nsIParser;
@@ -32,22 +63,16 @@ NS_StartCORSPreflight(nsIChannel* aRequestChannel,
                       nsTArray<nsCString>& aACUnsafeHeaders,
                       nsIChannel** aPreflightChannel);
 
-class nsCORSListenerProxy MOZ_FINAL : public nsIStreamListener,
-                                      public nsIInterfaceRequestor,
-                                      public nsIChannelEventSink,
-                                      public nsIAsyncVerifyRedirectCallback
+class nsCORSListenerProxy : public nsIStreamListener,
+                            public nsIInterfaceRequestor,
+                            public nsIChannelEventSink,
+                            public nsIAsyncVerifyRedirectCallback
 {
 public:
   nsCORSListenerProxy(nsIStreamListener* aOuter,
                       nsIPrincipal* aRequestingPrincipal,
                       nsIChannel* aChannel,
                       bool aWithCredentials,
-                      nsresult* aResult);
-  nsCORSListenerProxy(nsIStreamListener* aOuter,
-                      nsIPrincipal* aRequestingPrincipal,
-                      nsIChannel* aChannel,
-                      bool aWithCredentials,
-                      bool aAllowDataURI,
                       nsresult* aResult);
   nsCORSListenerProxy(nsIStreamListener* aOuter,
                       nsIPrincipal* aRequestingPrincipal,
@@ -70,7 +95,7 @@ public:
   static void Shutdown();
 
 private:
-  nsresult UpdateChannel(nsIChannel* aChannel, bool aAllowDataURI = false);
+  nsresult UpdateChannel(nsIChannel* aChannel);
   nsresult CheckRequestApproved(nsIRequest* aRequest);
 
   nsCOMPtr<nsIStreamListener> mOuterListener;

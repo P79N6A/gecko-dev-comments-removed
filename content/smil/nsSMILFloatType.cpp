@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSMILFloatType.h"
 #include "nsSMILValue.h"
 #include "nsDebug.h"
@@ -47,7 +80,7 @@ nsSMILFloatType::IsEqual(const nsSMILValue& aLeft,
 
 nsresult
 nsSMILFloatType::Add(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
-                     uint32_t aCount) const
+                     PRUint32 aCount) const
 {
   NS_PRECONDITION(aValueToAdd.mType == aDest.mType,
                   "Trying to add invalid types");

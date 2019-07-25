@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsAlgorithm.h"
 #include "nsUCSupport.h"
 #include "nsUTF8ToUnicode.h"
@@ -10,7 +42,7 @@
 
 #define UNICODE_BYTE_ORDER_MARK    0xFEFF
 
-static PRUnichar* EmitSurrogatePair(uint32_t ucs4, PRUnichar* aDest)
+static PRUnichar* EmitSurrogatePair(PRUint32 ucs4, PRUnichar* aDest)
 {
   NS_ASSERTION(ucs4 > 0xFFFF, "Should be a supplementary character");
   ucs4 -= 0x00010000;
@@ -47,8 +79,8 @@ nsUTF8ToUnicode::nsUTF8ToUnicode()
 
 
 NS_IMETHODIMP nsUTF8ToUnicode::GetMaxLength(const char * aSrc,
-                                            int32_t aSrcLength,
-                                            int32_t * aDestLength)
+                                            PRInt32 aSrcLength,
+                                            PRInt32 * aDestLength)
 {
   *aDestLength = aSrcLength + 1;
   return NS_OK;
@@ -65,7 +97,7 @@ NS_IMETHODIMP nsUTF8ToUnicode::Reset()
   mState = 0;     
                   
   mBytes = 1;     
-  mFirst = true;
+  mFirst = PR_TRUE;
 
   return NS_OK;
 
@@ -89,10 +121,10 @@ NS_IMETHODIMP nsUTF8ToUnicode::Reset()
 static inline void
 Convert_ascii_run (const char *&src,
                    PRUnichar *&dst,
-                   int32_t len)
+                   PRInt32 len)
 {
-  const uint32_t *src32;
-  uint32_t *dst32;
+  const PRUint32 *src32;
+  PRUint32 *dst32;
 
   
   
@@ -113,11 +145,11 @@ Convert_ascii_run (const char *&src,
   }
 
   
-  src32 = (const uint32_t*) src;
-  dst32 = (uint32_t*) dst;
+  src32 = (const PRUint32*) src;
+  dst32 = (PRUint32*) dst;
 
   while (len > 4) {
-    uint32_t in = *src32++;
+    PRUint32 in = *src32++;
 
     if (in & 0x80808080U) {
       src32--;
@@ -145,7 +177,7 @@ finish:
 namespace mozilla {
 namespace SSE2 {
 
-void Convert_ascii_run(const char *&src, PRUnichar *&dst, int32_t len);
+void Convert_ascii_run(const char *&src, PRUnichar *&dst, PRInt32 len);
 
 }
 }
@@ -154,7 +186,7 @@ void Convert_ascii_run(const char *&src, PRUnichar *&dst, int32_t len);
 static inline void
 Convert_ascii_run (const char *&src,
                    PRUnichar *&dst,
-                   int32_t len)
+                   PRInt32 len)
 {
 #ifdef MOZILLA_MAY_SUPPORT_SSE2
   if (mozilla::supports_sse2()) {
@@ -171,12 +203,12 @@ Convert_ascii_run (const char *&src,
 #endif
 
 NS_IMETHODIMP nsUTF8ToUnicode::Convert(const char * aSrc,
-                                       int32_t * aSrcLength,
+                                       PRInt32 * aSrcLength,
                                        PRUnichar * aDest,
-                                       int32_t * aDestLength)
+                                       PRInt32 * aDestLength)
 {
-  uint32_t aSrcLen   = (uint32_t) (*aSrcLength);
-  uint32_t aDestLen = (uint32_t) (*aDestLength);
+  PRUint32 aSrcLen   = (PRUint32) (*aSrcLength);
+  PRUint32 aDestLen = (PRUint32) (*aDestLength);
 
   const char *in, *inend;
   inend = aSrc + aSrcLen;
@@ -199,44 +231,44 @@ NS_IMETHODIMP nsUTF8ToUnicode::Convert(const char * aSrc,
     mUcs4 = 0;
     mState = 0;
     mBytes = 1;
-    mFirst = false;
+    mFirst = PR_FALSE;
   }
 
   
-  int32_t mUcs4 = this->mUcs4;
-  uint8_t mState = this->mState;
-  uint8_t mBytes = this->mBytes;
+  PRInt32 mUcs4 = this->mUcs4;
+  PRUint8 mState = this->mState;
+  PRUint8 mBytes = this->mBytes;
   bool mFirst = this->mFirst;
 
   
   
   if (mFirst && aSrcLen && (0 == (0x80 & (*aSrc))))
-    mFirst = false;
+    mFirst = PR_FALSE;
 
   for (in = aSrc; ((in < inend) && (out < outend)); ++in) {
     if (0 == mState) {
       
       
       if (0 == (0x80 & (*in))) {
-        int32_t max_loops = NS_MIN(inend - in, outend - out);
+        PRInt32 max_loops = NS_MIN(inend - in, outend - out);
         Convert_ascii_run(in, out, max_loops);
         --in; 
         mBytes = 1;
       } else if (0xC0 == (0xE0 & (*in))) {
         
-        mUcs4 = (uint32_t)(*in);
+        mUcs4 = (PRUint32)(*in);
         mUcs4 = (mUcs4 & 0x1F) << 6;
         mState = 1;
         mBytes = 2;
       } else if (0xE0 == (0xF0 & (*in))) {
         
-        mUcs4 = (uint32_t)(*in);
+        mUcs4 = (PRUint32)(*in);
         mUcs4 = (mUcs4 & 0x0F) << 12;
         mState = 2;
         mBytes = 3;
       } else if (0xF0 == (0xF8 & (*in))) {
         
-        mUcs4 = (uint32_t)(*in);
+        mUcs4 = (PRUint32)(*in);
         mUcs4 = (mUcs4 & 0x07) << 18;
         mState = 3;
         mBytes = 4;
@@ -249,13 +281,13 @@ NS_IMETHODIMP nsUTF8ToUnicode::Convert(const char * aSrc,
 
 
 
-        mUcs4 = (uint32_t)(*in);
+        mUcs4 = (PRUint32)(*in);
         mUcs4 = (mUcs4 & 0x03) << 24;
         mState = 4;
         mBytes = 5;
       } else if (0xFC == (0xFE & (*in))) {
         
-        mUcs4 = (uint32_t)(*in);
+        mUcs4 = (PRUint32)(*in);
         mUcs4 = (mUcs4 & 1) << 30;
         mState = 5;
         mBytes = 6;
@@ -274,8 +306,8 @@ NS_IMETHODIMP nsUTF8ToUnicode::Convert(const char * aSrc,
       
       if (0x80 == (0xC0 & (*in))) {
         
-        uint32_t shift = (mState - 1) * 6;
-        uint32_t tmp = *in;
+        PRUint32 shift = (mState - 1) * 6;
+        PRUint32 tmp = *in;
         tmp = (tmp & 0x0000003FL) << shift;
         mUcs4 |= tmp;
 
@@ -317,7 +349,7 @@ NS_IMETHODIMP nsUTF8ToUnicode::Convert(const char * aSrc,
           mUcs4  = 0;
           mState = 0;
           mBytes = 1;
-          mFirst = false;
+          mFirst = PR_FALSE;
         }
       } else {
         

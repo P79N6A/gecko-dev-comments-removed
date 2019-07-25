@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSMILCSSProperty.h"
 #include "nsSMILCSSValueType.h"
 #include "nsSMILValue.h"
@@ -17,7 +49,7 @@ using namespace mozilla::dom;
 
 
 static bool
-GetCSSComputedValue(Element* aElem,
+GetCSSComputedValue(nsIContent* aElem,
                     nsCSSProperty aPropID,
                     nsAString& aResult)
 {
@@ -31,20 +63,25 @@ GetCSSComputedValue(Element* aElem,
     
     
     
-    return false;
+    return PR_FALSE;
   }
 
   nsIPresShell* shell = doc->GetShell();
   if (!shell) {
     NS_WARNING("Unable to look up computed style -- no pres shell");
-    return false;
+    return PR_FALSE;
   }
 
-  nsRefPtr<nsComputedDOMStyle> computedStyle =
-    NS_NewComputedDOMStyle(aElem, EmptyString(), shell);
+  nsRefPtr<nsComputedDOMStyle> computedStyle;
+  nsCOMPtr<nsIDOMElement> domElement(do_QueryInterface(aElem));
+  nsresult rv = NS_NewComputedDOMStyle(domElement, EmptyString(), shell,
+                                       getter_AddRefs(computedStyle));
 
-  computedStyle->GetPropertyValue(aPropID, aResult);
-  return true;
+  if (NS_SUCCEEDED(rv)) {
+    computedStyle->GetPropertyValue(aPropID, aResult);
+    return PR_TRUE;
+  }
+  return PR_FALSE;
 }
 
 
@@ -86,7 +123,8 @@ nsSMILCSSProperty::GetBaseValue() const
   
   
   
-  nsICSSDeclaration* overrideDecl = mElement->GetSMILOverrideStyle();
+  nsCOMPtr<nsICSSDeclaration> overrideDecl =
+    do_QueryInterface(mElement->GetSMILOverrideStyle());
   nsAutoString cachedOverrideStyleVal;
   if (overrideDecl) {
     overrideDecl->GetPropertyValue(mPropID, cachedOverrideStyleVal);
@@ -115,7 +153,7 @@ nsSMILCSSProperty::GetBaseValue() const
     
     nsSMILCSSValueType::ValueFromString(mPropID, mElement,
                                         computedStyleVal, baseValue,
-                                        nullptr);
+                                        nsnull);
   }
   return baseValue;
 }
@@ -131,17 +169,14 @@ nsSMILCSSProperty::ValueFromString(const nsAString& aStr,
   nsSMILCSSValueType::ValueFromString(mPropID, mElement, aStr, aValue,
       &aPreventCachingOfSandwich);
 
-  if (aValue.IsNull()) {
-    return NS_ERROR_FAILURE;
-  }
-
   
   
   
   if (!aPreventCachingOfSandwich && mPropID == eCSSProperty_display) {
-    aPreventCachingOfSandwich = true;
+    aPreventCachingOfSandwich = PR_TRUE;
   }
-  return NS_OK;
+
+  return aValue.IsNull() ? NS_ERROR_FAILURE : NS_OK;
 }
 
 nsresult
@@ -157,13 +192,9 @@ nsSMILCSSProperty::SetAnimValue(const nsSMILValue& aValue)
   }
 
   
-  nsICSSDeclaration* overrideDecl = mElement->GetSMILOverrideStyle();
+  nsCOMPtr<nsICSSDeclaration> overrideDecl =
+    do_QueryInterface(mElement->GetSMILOverrideStyle());
   if (overrideDecl) {
-    nsAutoString oldValStr;
-    overrideDecl->GetPropertyValue(mPropID, oldValStr);
-    if (valStr.Equals(oldValStr)) {
-      return NS_OK;
-    }
     overrideDecl->SetPropertyValue(mPropID, valStr);
   }
   return NS_OK;
@@ -173,7 +204,8 @@ void
 nsSMILCSSProperty::ClearAnimValue()
 {
   
-  nsICSSDeclaration* overrideDecl = mElement->GetSMILOverrideStyle();
+  nsCOMPtr<nsICSSDeclaration> overrideDecl =
+    do_QueryInterface(mElement->GetSMILOverrideStyle());
   if (overrideDecl) {
     overrideDecl->SetPropertyValue(mPropID, EmptyString());
   }
@@ -219,7 +251,6 @@ nsSMILCSSProperty::IsPropertyAnimatable(nsCSSProperty aPropID)
     case eCSSProperty_font_style:
     case eCSSProperty_font_variant:
     case eCSSProperty_font_weight:
-    case eCSSProperty_height:
     case eCSSProperty_image_rendering:
     case eCSSProperty_letter_spacing:
     case eCSSProperty_lighting_color:
@@ -247,11 +278,9 @@ nsSMILCSSProperty::IsPropertyAnimatable(nsCSSProperty aPropID)
     case eCSSProperty_text_decoration:
     case eCSSProperty_text_decoration_line:
     case eCSSProperty_text_rendering:
-    case eCSSProperty_vector_effect:
-    case eCSSProperty_width:
     case eCSSProperty_visibility:
     case eCSSProperty_word_spacing:
-      return true;
+      return PR_TRUE;
 
     
     
@@ -263,9 +292,9 @@ nsSMILCSSProperty::IsPropertyAnimatable(nsCSSProperty aPropID)
     
     case eCSSProperty_direction:
     case eCSSProperty_unicode_bidi:
-      return false;
+      return PR_FALSE;
 
     default:
-      return false;
+      return PR_FALSE;
   }
 }

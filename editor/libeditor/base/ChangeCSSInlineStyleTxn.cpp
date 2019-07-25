@@ -3,26 +3,48 @@
 
 
 
-#include "ChangeCSSInlineStyleTxn.h"
-#include "nsAString.h"                  
-#include "nsCRT.h"                      
-#include "nsDebug.h"                    
-#include "nsError.h"                    
-#include "nsGkAtoms.h"                  
-#include "nsIAtom.h"                    
-#include "nsIDOMCSSStyleDeclaration.h"  
-#include "nsIDOMElement.h"              
-#include "nsIDOMElementCSSInlineStyle.h"
-#include "nsISupportsImpl.h"            
-#include "nsISupportsUtils.h"           
-#include "nsLiteralString.h"            
-#include "nsReadableUtils.h"            
-#include "nsString.h"                   
-#include "nsUnicharUtils.h"
-#include "nsXPCOM.h"                    
-#include "prtypes.h"                    
 
-class nsIEditor;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "ChangeCSSInlineStyleTxn.h"
+#include "nsIDOMElement.h"
+#include "nsIDOMCSSStyleDeclaration.h"
+#include "nsIDOMElementCSSInlineStyle.h"
+#include "nsReadableUtils.h"
+#include "nsUnicharUtils.h"
+#include "nsCRT.h"
+#include "nsIAtom.h"
+#include "nsGkAtoms.h"
 
 #define kNullCh (PRUnichar('\0'))
 
@@ -61,7 +83,7 @@ ChangeCSSInlineStyleTxn::ValueIncludes(const nsAString &aValueList, const nsAStr
     }
     end = start;
 
-    while ((kNullCh != *end) && (false == nsCRT::IsAsciiSpace(*end))) { 
+    while ((kNullCh != *end) && (PR_FALSE == nsCRT::IsAsciiSpace(*end))) { 
       end++;
     }
     *end = kNullCh; 
@@ -69,14 +91,14 @@ ChangeCSSInlineStyleTxn::ValueIncludes(const nsAString &aValueList, const nsAStr
     if (start < end) {
       if (aCaseSensitive) {
         if (!nsCRT::strcmp(value, start)) {
-          result = true;
+          result = PR_TRUE;
           break;
         }
       }
       else {
         if (nsDependentString(value).Equals(nsDependentString(start),
                                             nsCaseInsensitiveStringComparator())) {
-          result = true;
+          result = PR_TRUE;
           break;
         }
       }
@@ -104,7 +126,7 @@ ChangeCSSInlineStyleTxn::RemoveValueFromListOfValues(nsAString & aValues, const 
     }
     end = start;
 
-    while ((kNullCh != *end) && (false == nsCRT::IsAsciiSpace(*end))) { 
+    while ((kNullCh != *end) && (PR_FALSE == nsCRT::IsAsciiSpace(*end))) { 
       end++;
     }
     *end = kNullCh; 
@@ -141,8 +163,8 @@ NS_IMETHODIMP ChangeCSSInlineStyleTxn::Init(nsIEditor      *aEditor,
   NS_ADDREF(mProperty);
   mValue.Assign(aValue);
   mRemoveProperty = aRemoveProperty;
-  mUndoAttributeWasSet = false;
-  mRedoAttributeWasSet = false;
+  mUndoAttributeWasSet = PR_FALSE;
+  mRedoAttributeWasSet = PR_FALSE;
   mUndoValue.Truncate();
   mRedoValue.Truncate();
   return NS_OK;
@@ -225,7 +247,7 @@ NS_IMETHODIMP ChangeCSSInlineStyleTxn::DoTransaction(void)
   }
 
   
-  uint32_t length;
+  PRUint32 length;
   result = cssDecl->GetLength(&length);
   NS_ENSURE_SUCCESS(result, result);     
   if (!length) {
@@ -233,7 +255,7 @@ NS_IMETHODIMP ChangeCSSInlineStyleTxn::DoTransaction(void)
     NS_ENSURE_SUCCESS(result, result);     
   }
   else
-    mRedoAttributeWasSet = true;
+    mRedoAttributeWasSet = PR_TRUE;
 
   return cssDecl->GetPropertyValue(propertyNameString, mRedoValue);
 }
@@ -316,7 +338,7 @@ ChangeCSSInlineStyleTxn::AddValueToMultivalueProperty(nsAString & aValues, const
     
     aValues.Assign(aNewValue);
   }
-  else if (!ValueIncludes(aValues, aNewValue, false)) {
+  else if (!ValueIncludes(aValues, aNewValue, PR_FALSE)) {
     
     aValues.Append(PRUnichar(' '));
     aValues.Append(aNewValue);

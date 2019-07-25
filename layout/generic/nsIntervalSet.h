@@ -6,6 +6,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIntervalSet_h___
 #define nsIntervalSet_h___
 
@@ -68,8 +100,8 @@ private:
         Interval(coord_type aBegin, coord_type aEnd)
             : mBegin(aBegin),
               mEnd(aEnd),
-              mPrev(nullptr),
-              mNext(nullptr)
+              mPrev(nsnull),
+              mNext(nsnull)
         {
         }
 

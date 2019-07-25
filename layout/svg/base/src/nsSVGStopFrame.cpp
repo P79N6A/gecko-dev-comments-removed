@@ -4,10 +4,42 @@
 
 
 
-#include "nsFrame.h"
-#include "nsGkAtoms.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIDOMSVGStopElement.h"
 #include "nsStyleContext.h"
+#include "nsFrame.h"
+#include "nsGkAtoms.h"
 #include "nsSVGEffects.h"
 
 
@@ -33,17 +65,11 @@ public:
                   nsIFrame*        aPrevInFlow);
 #endif
 
-  NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                              const nsRect&           aDirtyRect,
-                              const nsDisplayListSet& aLists) {
-    return NS_OK;
-  }
-
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);
 
-  NS_IMETHOD AttributeChanged(int32_t         aNameSpaceID,
+  NS_IMETHOD AttributeChanged(PRInt32         aNameSpaceID,
                               nsIAtom*        aAttribute,
-                              int32_t         aModType);
+                              PRInt32         aModType);
 
   
 
@@ -52,7 +78,7 @@ public:
 
   virtual nsIAtom* GetType() const;
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     return nsSVGStopFrameBase::IsFrameOfType(aFlags & ~(nsIFrame::eSVG));
   }
@@ -100,9 +126,9 @@ nsSVGStopFrame::GetType() const
 }
 
 NS_IMETHODIMP
-nsSVGStopFrame::AttributeChanged(int32_t         aNameSpaceID,
+nsSVGStopFrame::AttributeChanged(PRInt32         aNameSpaceID,
                                  nsIAtom*        aAttribute,
-                                 int32_t         aModType)
+                                 PRInt32         aModType)
 {
   if (aNameSpaceID == kNameSpaceID_None &&
       aAttribute == nsGkAtoms::offset) {

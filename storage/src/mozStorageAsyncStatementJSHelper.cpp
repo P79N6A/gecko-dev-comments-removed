@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIXPConnect.h"
 #include "mozStorageAsyncStatement.h"
 #include "mozStorageService.h"
@@ -33,7 +66,7 @@ AsyncStatementJSHelper::getParams(AsyncStatement *aStatement,
   nsresult rv;
 
 #ifdef DEBUG
-  int32_t state;
+  PRInt32 state;
   (void)aStatement->GetState(&state);
   NS_ASSERTION(state == mozIStorageAsyncStatement::MOZ_STORAGE_STATEMENT_READY,
                "Invalid state to get the params object - all calls will fail!");
@@ -55,7 +88,7 @@ AsyncStatementJSHelper::getParams(AsyncStatement *aStatement,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  JSObject *obj = nullptr;
+  JSObject *obj = nsnull;
   rv = aStatement->mStatementParamsHolder->GetJSObject(&obj);
   NS_ENSURE_SUCCESS(rv, rv);
 

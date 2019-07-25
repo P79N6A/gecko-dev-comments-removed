@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef PluginPRLibrary_h
 #define PluginPRLibrary_h 1
 
@@ -18,21 +50,22 @@ class PluginPRLibrary : public PluginLibrary
 public:
     PluginPRLibrary(const char* aFilePath, PRLibrary* aLibrary) :
 #if defined(XP_UNIX) && !defined(XP_MACOSX)
-        mNP_Initialize(nullptr),
+        mNP_Initialize(nsnull),
 #else
-        mNP_Initialize(nullptr),
+        mNP_Initialize(nsnull),
 #endif
-        mNP_Shutdown(nullptr),
-        mNP_GetMIMEDescription(nullptr),
+        mNP_Shutdown(nsnull),
+        mNP_GetMIMEDescription(nsnull),
 #if defined(XP_UNIX) && !defined(XP_MACOSX)
-        mNP_GetValue(nullptr),
+        mNP_GetValue(nsnull),
 #endif
 #if defined(XP_WIN) || defined(XP_MACOSX) || defined(XP_OS2)
-        mNP_GetEntryPoints(nullptr),
+        mNP_GetEntryPoints(nsnull),
 #endif
-        mNPP_New(nullptr),
-        mNPP_ClearSiteData(nullptr),
-        mNPP_GetSitesWithData(nullptr),
+        mNPP_New(nsnull),
+        mNPP_GetValue(nsnull),
+        mNPP_ClearSiteData(nsnull),
+        mNPP_GetSitesWithData(nsnull),
         mLibrary(aLibrary),
         mFilePath(aFilePath)
     {
@@ -81,7 +114,7 @@ public:
         return true;
     }
 
-#if defined(XP_UNIX) && !defined(XP_MACOSX) && !defined(MOZ_WIDGET_GONK)
+#if defined(XP_UNIX) && !defined(XP_MACOSX)
     virtual nsresult NP_Initialize(NPNetscapeFuncs* bFuncs,
                                    NPPluginFuncs* pFuncs, NPError* error);
 #else
@@ -109,17 +142,20 @@ public:
     virtual nsresult NPP_GetSitesWithData(InfallibleTArray<nsCString>& result);
 
     virtual nsresult AsyncSetWindow(NPP instance, NPWindow* window);
-    virtual nsresult GetImageContainer(NPP instance, ImageContainer** aContainer);
+    virtual nsresult GetImage(NPP instance, ImageContainer* aContainer, Image** aImage);
     virtual nsresult GetImageSize(NPP instance, nsIntSize* aSize);
-    virtual bool IsOOP() MOZ_OVERRIDE { return false; }
+    NS_OVERRIDE virtual bool UseAsyncPainting() { return false; }
 #if defined(XP_MACOSX)
     virtual nsresult IsRemoteDrawingCoreAnimation(NPP instance, bool *aDrawing);
 #endif
-    virtual nsresult SetBackgroundUnknown(NPP instance) MOZ_OVERRIDE;
+    NS_OVERRIDE
+    virtual nsresult SetBackgroundUnknown(NPP instance);
+    NS_OVERRIDE
     virtual nsresult BeginUpdateBackground(NPP instance,
-                                           const nsIntRect&, gfxContext** aCtx) MOZ_OVERRIDE;
+                                           const nsIntRect&, gfxContext** aCtx);
+    NS_OVERRIDE
     virtual nsresult EndUpdateBackground(NPP instance,
-                                         gfxContext* aCtx, const nsIntRect&) MOZ_OVERRIDE;
+                                         gfxContext* aCtx, const nsIntRect&);
 #if defined(MOZ_WIDGET_QT) && (MOZ_PLATFORM_MAEMO == 6)
     virtual nsresult HandleGUIEvent(NPP instance,
                                     const nsGUIEvent& anEvent, bool* handled);
@@ -138,6 +174,7 @@ private:
     NP_GetEntryPointsFunc mNP_GetEntryPoints;
 #endif
     NPP_NewProcPtr mNPP_New;
+    NPP_GetValueProcPtr mNPP_GetValue;
     NPP_ClearSiteDataPtr mNPP_ClearSiteData;
     NPP_GetSitesWithDataPtr mNPP_GetSitesWithData;
     PRLibrary* mLibrary;

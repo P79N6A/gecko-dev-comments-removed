@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -153,13 +185,13 @@ main(int argc, char* argv[])
   printf("### launch daemon...\n");
 
   PRProcessAttr *attributes = PR_NewProcessAttr();
-  if (attributes == nullptr) {
+  if (attributes == nsnull) {
     printf("PR_NewProcessAttr() failed.\n");
     return -1;
   }
 
-  PRProcess *daemon = PR_CreateProcess("nsDnsAsyncLookup", nullptr, nullptr, attributes);
-  if (daemon == nullptr) {
+  PRProcess *daemon = PR_CreateProcess("nsDnsAsyncLookup", nsnull, nsnull, attributes);
+  if (daemon == nsnull) {
     printf("PR_CreateProcess failed.\n");
   } else {
     
@@ -203,7 +235,7 @@ main(int argc, char* argv[])
 	if(!strcmp(line, "quit") || !strcmp(line, "exit"))
 	  {
 	    fprintf(stderr, "bye now.\n");
-	    notDone = false;
+	    notDone = PR_FALSE;
 	  }
 	else if (!strncmp(line, "abort ", 6))
 	  {

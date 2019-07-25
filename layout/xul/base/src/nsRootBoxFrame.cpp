@@ -3,7 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsHTMLParts.h"
+#include "nsIDocument.h"
 #include "nsGUIEvent.h"
 #include "nsStyleConsts.h"
 #include "nsGkAtoms.h"
@@ -24,11 +57,11 @@ nsIRootBox*
 nsIRootBox::GetRootBox(nsIPresShell* aShell)
 {
   if (!aShell) {
-    return nullptr;
+    return nsnull;
   }
   nsIFrame* rootFrame = aShell->FrameManager()->GetRootFrame();
   if (!rootFrame) {
-    return nullptr;
+    return nsnull;
   }
 
   if (rootFrame) {
@@ -83,11 +116,11 @@ public:
 
   virtual nsIAtom* GetType() const;
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     
     if (aFlags & (nsIFrame::eReplacedContainsBlock | nsIFrame::eReplaced))
-      return false;
+      return PR_FALSE;
     return nsBoxFrame::IsFrameOfType(aFlags);
   }
   
@@ -112,9 +145,9 @@ NS_NewRootBoxFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 NS_IMPL_FRAMEARENA_HELPERS(nsRootBoxFrame)
 
 nsRootBoxFrame::nsRootBoxFrame(nsIPresShell* aShell, nsStyleContext* aContext):
-  nsBoxFrame(aShell, aContext, true)
+  nsBoxFrame(aShell, aContext, PR_TRUE)
 {
-  mPopupSetFrame = nullptr;
+  mPopupSetFrame = nsnull;
 
   nsCOMPtr<nsBoxLayout> layout;
   NS_NewStackLayout(aShell, layout);
@@ -181,7 +214,7 @@ nsRootBoxFrame::RemoveFrame(ChildListID     aListID,
 }
 
 #ifdef DEBUG_REFLOW
-int32_t gReflows = 0;
+PRInt32 gReflows = 0;
 #endif
 
 NS_IMETHODIMP
@@ -207,7 +240,7 @@ nsRootBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
-  nsresult rv = DisplayBorderBackgroundOutline(aBuilder, aLists, true);
+  nsresult rv = DisplayBorderBackgroundOutline(aBuilder, aLists, PR_TRUE);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return BuildDisplayListForChildren(aBuilder, aDirtyRect, aLists);

@@ -3,10 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsHTMLButtonControlFrame.h"
 
 #include "nsCOMPtr.h"
-#include "nsContainerFrame.h"
+#include "nsHTMLContainerFrame.h"
 #include "nsIFormControlFrame.h"
 #include "nsHTMLParts.h"
 #include "nsIFormControl.h"
@@ -21,6 +53,7 @@
 #include "nsCSSAnonBoxes.h"
 #include "nsStyleConsts.h"
 #include "nsIComponentManager.h"
+#include "nsIDocument.h"
 #include "nsButtonFrameRenderer.h"
 #include "nsFormControlFrame.h"
 #include "nsFrameManager.h"
@@ -43,7 +76,7 @@ NS_NewHTMLButtonControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 NS_IMPL_FRAMEARENA_HELPERS(nsHTMLButtonControlFrame)
 
 nsHTMLButtonControlFrame::nsHTMLButtonControlFrame(nsStyleContext* aContext)
-  : nsContainerFrame(aContext)
+  : nsHTMLContainerFrame(aContext)
 {
 }
 
@@ -54,9 +87,9 @@ nsHTMLButtonControlFrame::~nsHTMLButtonControlFrame()
 void
 nsHTMLButtonControlFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
-  nsFormControlFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), false);
+  nsFormControlFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), PR_FALSE);
   DestroyAbsoluteFrames(aDestructRoot);
-  nsContainerFrame::DestroyFrom(aDestructRoot);
+  nsHTMLContainerFrame::DestroyFrom(aDestructRoot);
 }
 
 NS_IMETHODIMP
@@ -65,7 +98,7 @@ nsHTMLButtonControlFrame::Init(
               nsIFrame*        aParent,
               nsIFrame*        aPrevInFlow)
 {
-  nsresult  rv = nsContainerFrame::Init(aContent, aParent, aPrevInFlow);
+  nsresult  rv = nsHTMLContainerFrame::Init(aContent, aParent, aPrevInFlow);
   if (NS_SUCCEEDED(rv)) {
     mRenderer.SetFrame(this, PresContext());
   }
@@ -74,19 +107,20 @@ nsHTMLButtonControlFrame::Init(
 
 NS_QUERYFRAME_HEAD(nsHTMLButtonControlFrame)
   NS_QUERYFRAME_ENTRY(nsIFormControlFrame)
-NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
+NS_QUERYFRAME_TAIL_INHERITING(nsHTMLContainerFrame)
 
 #ifdef ACCESSIBILITY
-already_AddRefed<Accessible>
+already_AddRefed<nsAccessible>
 nsHTMLButtonControlFrame::CreateAccessible()
 {
   nsAccessibilityService* accService = nsIPresShell::AccService();
   if (accService) {
-    return accService->CreateHTMLButtonAccessible(mContent,
-                                                  PresContext()->PresShell()); 
+    return IsInput() ?
+      accService->CreateHTMLButtonAccessible(mContent, PresContext()->PresShell()) :
+      accService->CreateHTML4ButtonAccessible(mContent, PresContext()->PresShell());
   }
 
-  return nullptr;
+  return nsnull;
 }
 #endif
 
@@ -144,7 +178,7 @@ nsHTMLButtonControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   if (IsInput() || GetStyleDisplay()->mOverflowX != NS_STYLE_OVERFLOW_VISIBLE) {
-    nsMargin border = GetStyleBorder()->GetComputedBorder();
+    nsMargin border = GetStyleBorder()->GetActualBorder();
     nsRect rect(aBuilder->ToReferenceFrame(this), GetSize());
     rect.Deflate(border);
     nscoord radii[8];
@@ -206,7 +240,7 @@ nsHTMLButtonControlFrame::Reflow(nsPresContext* aPresContext,
                   "Should have real computed width by now");
 
   if (mState & NS_FRAME_FIRST_REFLOW) {
-    nsFormControlFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), true);
+    nsFormControlFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), PR_TRUE);
   }
 
   
@@ -226,23 +260,22 @@ nsHTMLButtonControlFrame::Reflow(nsPresContext* aPresContext,
   aDesiredSize.width = aReflowState.ComputedWidth();
 
   
-  if (aReflowState.ComputedHeight() != NS_INTRINSICSIZE) {
+  if (aReflowState.ComputedHeight() != NS_INTRINSICSIZE) 
     aDesiredSize.height = aReflowState.ComputedHeight();
-  } else {
+  else
     aDesiredSize.height += focusPadding.TopBottom();
-
-    
-    
-    
-    
-    
-    aDesiredSize.height = NS_CSS_MINMAX(aDesiredSize.height,
-                                        aReflowState.mComputedMinHeight,
-                                        aReflowState.mComputedMaxHeight);
-  }
-
+  
   aDesiredSize.width += aReflowState.mComputedBorderPadding.LeftRight();
   aDesiredSize.height += aReflowState.mComputedBorderPadding.TopBottom();
+
+  
+  
+
+  
+  
+  aDesiredSize.height = NS_CSS_MINMAX(aDesiredSize.height,
+                                      aReflowState.mComputedMinHeight,
+                                      aReflowState.mComputedMaxHeight);
 
   aDesiredSize.ascent +=
     aReflowState.mComputedBorderPadding.top + focusPadding.top;
@@ -329,7 +362,7 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
   aDesiredSize.ascent += yoff;
 }
 
-int
+PRIntn
 nsHTMLButtonControlFrame::GetSkipSides() const
 {
   return 0;
@@ -339,7 +372,7 @@ nsresult nsHTMLButtonControlFrame::SetFormProperty(nsIAtom* aName, const nsAStri
 {
   if (nsGkAtoms::value == aName) {
     return mContent->SetAttr(kNameSpaceID_None, nsGkAtoms::value,
-                             aValue, true);
+                             aValue, PR_TRUE);
   }
   return NS_OK;
 }
@@ -353,13 +386,13 @@ nsresult nsHTMLButtonControlFrame::GetFormProperty(nsIAtom* aName, nsAString& aV
 }
 
 nsStyleContext*
-nsHTMLButtonControlFrame::GetAdditionalStyleContext(int32_t aIndex) const
+nsHTMLButtonControlFrame::GetAdditionalStyleContext(PRInt32 aIndex) const
 {
   return mRenderer.GetStyleContext(aIndex);
 }
 
 void
-nsHTMLButtonControlFrame::SetAdditionalStyleContext(int32_t aIndex, 
+nsHTMLButtonControlFrame::SetAdditionalStyleContext(PRInt32 aIndex, 
                                                     nsStyleContext* aStyleContext)
 {
   mRenderer.SetStyleContext(aIndex, aStyleContext);

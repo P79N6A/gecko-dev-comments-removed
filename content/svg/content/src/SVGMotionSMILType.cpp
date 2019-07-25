@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "SVGMotionSMILType.h"
 #include "nsSMILValue.h"
 #include "nsDebug.h"
@@ -112,7 +144,7 @@ struct MotionSegment
         mRotateType  != aOther.mRotateType ||
         (mRotateType == eRotateType_Explicit &&  
          mRotateAngle != aOther.mRotateAngle)) { 
-      return false;
+      return PR_FALSE;
     }
 
     
@@ -180,7 +212,7 @@ SVGMotionSMILType::Destroy(nsSMILValue& aValue) const
   MotionSegmentArray* arr = static_cast<MotionSegmentArray*>(aValue.mU.mPtr);
   delete arr;
 
-  aValue.mU.mPtr = nullptr;
+  aValue.mU.mPtr = nsnull;
   aValue.mType = &nsSMILNullType::sSingleton;
 }
 
@@ -214,18 +246,18 @@ SVGMotionSMILType::IsEqual(const nsSMILValue& aLeft,
 
   
   if (leftArr.Length() != rightArr.Length()) {
-    return false;
+    return PR_FALSE;
   }
 
   
-  uint32_t length = leftArr.Length(); 
-  for (uint32_t i = 0; i < length; ++i) {
+  PRUint32 length = leftArr.Length(); 
+  for (PRUint32 i = 0; i < length; ++i) {
     if (leftArr[i] != rightArr[i]) {
-      return false;
+      return PR_FALSE;
     }
   }
 
-  return true; 
+  return PR_TRUE; 
 }
 
 
@@ -255,7 +287,7 @@ GetAngleAndPointAtDistance(gfxFlattenedPath* aPath, float aDistance,
 
 nsresult
 SVGMotionSMILType::Add(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
-                       uint32_t aCount) const
+                       PRUint32 aCount) const
 {
   NS_ABORT_IF_FALSE(aDest.mType == aValueToAdd.mType,
                     "Incompatible SMIL types");
@@ -450,8 +482,8 @@ SVGMotionSMILType::CreateMatrix(const nsSMILValue& aSMILVal)
   const MotionSegmentArray& arr = ExtractMotionSegmentArray(aSMILVal);
 
   gfxMatrix matrix;
-  uint32_t length = arr.Length();
-  for (uint32_t i = 0; i < length; i++) {
+  PRUint32 length = arr.Length();
+  for (PRUint32 i = 0; i < length; i++) {
     gfxPoint point;  
     gfxFloat rotateAngle = arr[i].mRotateAngle; 
     if (arr[i].mSegmentType == eSegmentType_Translation) {

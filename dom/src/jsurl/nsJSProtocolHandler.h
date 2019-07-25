@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsJSProtocolHandler_h___
 #define nsJSProtocolHandler_h___
 
@@ -63,8 +96,6 @@ protected:
 class nsJSURI : public nsSimpleURI
 {
 public:
-    using nsSimpleURI::Read;
-    using nsSimpleURI::Write;
 
     nsJSURI() {}
 

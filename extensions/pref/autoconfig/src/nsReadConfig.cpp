@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifdef MOZ_LOGGING
 
 #define FORCE_PR_LOG
@@ -67,7 +101,7 @@ static void DisplayError(void)
     if (NS_FAILED(rv))
         return;
 
-    promptService->Alert(nullptr, title.get(), err.get());
+    promptService->Alert(nsnull, title.get(), err.get());
 }
 
 
@@ -75,7 +109,7 @@ static void DisplayError(void)
 NS_IMPL_THREADSAFE_ISUPPORTS2(nsReadConfig, nsIReadConfig, nsIObserver)
 
 nsReadConfig::nsReadConfig() :
-    mRead(false)
+    mRead(PR_FALSE)
 {
     if (!MCD)
       MCD = PR_NewLogModule("MCD");
@@ -89,7 +123,7 @@ nsresult nsReadConfig::Init()
         do_GetService("@mozilla.org/observer-service;1", &rv);
 
     if (observerService) {
-        rv = observerService->AddObserver(this, NS_PREFSERVICE_READ_TOPIC_ID, false);
+        rv = observerService->AddObserver(this, NS_PREFSERVICE_READ_TOPIC_ID, PR_FALSE);
     }
     return(rv);
 }
@@ -123,7 +157,7 @@ nsresult nsReadConfig::readConfigFile()
     nsresult rv = NS_OK;
     nsXPIDLCString lockFileName;
     nsXPIDLCString lockVendor;
-    uint32_t fileNameLen = 0;
+    PRUint32 fileNameLen = 0;
     
     nsCOMPtr<nsIPrefBranch> defaultPrefBranch;
     nsCOMPtr<nsIPrefService> prefService = 
@@ -131,7 +165,7 @@ nsresult nsReadConfig::readConfigFile()
     if (NS_FAILED(rv))
         return rv;
 
-    rv = prefService->GetDefaultBranch(nullptr, getter_AddRefs(defaultPrefBranch));
+    rv = prefService->GetDefaultBranch(nsnull, getter_AddRefs(defaultPrefBranch));
     if (NS_FAILED(rv))
         return rv;
         
@@ -156,16 +190,16 @@ nsresult nsReadConfig::readConfigFile()
             return rv;
         
         
-        rv = openAndEvaluateJSFile("prefcalls.js", 0, false, false);
+        rv = openAndEvaluateJSFile("prefcalls.js", 0, PR_FALSE, PR_FALSE);
         if (NS_FAILED(rv)) 
             return rv;
 
         
-        rv = openAndEvaluateJSFile("platform.js", 0, false, false);
+        rv = openAndEvaluateJSFile("platform.js", 0, PR_FALSE, PR_FALSE);
         if (NS_FAILED(rv)) 
             return rv;
 
-        mRead = true;
+        mRead = PR_TRUE;
     }
     
   
@@ -176,13 +210,13 @@ nsresult nsReadConfig::readConfigFile()
     
 
     nsCOMPtr<nsIPrefBranch> prefBranch;
-    rv = prefService->GetBranch(nullptr, getter_AddRefs(prefBranch));
+    rv = prefService->GetBranch(nsnull, getter_AddRefs(prefBranch));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    int32_t obscureValue = 0;
+    PRInt32 obscureValue = 0;
     (void) defaultPrefBranch->GetIntPref("general.config.obscure_value", &obscureValue);
     PR_LOG(MCD, PR_LOG_DEBUG, ("evaluating .cfg file %s with obscureValue %d\n", lockFileName.get(), obscureValue));
-    rv = openAndEvaluateJSFile(lockFileName.get(), obscureValue, true, true);
+    rv = openAndEvaluateJSFile(lockFileName.get(), obscureValue, PR_TRUE, PR_TRUE);
     if (NS_FAILED(rv))
     {
       PR_LOG(MCD, PR_LOG_DEBUG, ("error evaluating .cfg file %s %x\n", lockFileName.get(), rv));
@@ -233,7 +267,7 @@ nsresult nsReadConfig::readConfigFile()
 } 
 
 
-nsresult nsReadConfig::openAndEvaluateJSFile(const char *aFileName, int32_t obscureValue,
+nsresult nsReadConfig::openAndEvaluateJSFile(const char *aFileName, PRInt32 obscureValue,
                                              bool isEncoded,
                                              bool isBinDir)
 {
@@ -260,11 +294,11 @@ nsresult nsReadConfig::openAndEvaluateJSFile(const char *aFileName, int32_t obsc
         if (NS_FAILED(rv)) 
             return rv;
 
-        nsAutoCString location("resource://gre/defaults/autoconfig/");
+        nsCAutoString location("resource://gre/defaults/autoconfig/");
         location += aFileName;
 
         nsCOMPtr<nsIURI> uri;
-        rv = ioService->NewURI(location, nullptr, nullptr, getter_AddRefs(uri));
+        rv = ioService->NewURI(location, nsnull, nsnull, getter_AddRefs(uri));
         if (NS_FAILED(rv))
             return rv;
 
@@ -278,32 +312,25 @@ nsresult nsReadConfig::openAndEvaluateJSFile(const char *aFileName, int32_t obsc
             return rv;
     }
 
-    uint64_t fs64;
-    uint32_t amt = 0;
-    rv = inStr->Available(&fs64);
-    if (NS_FAILED(rv))
-        return rv;
-    
-    if (fs64 > PR_UINT32_MAX)
-      return NS_ERROR_FILE_TOO_BIG;
-    uint32_t fs = (uint32_t)fs64;
+    PRUint32 fs, amt = 0;
+    inStr->Available(&fs);
 
     char *buf = (char *)PR_Malloc(fs * sizeof(char));
     if (!buf) 
         return NS_ERROR_OUT_OF_MEMORY;
 
-    rv = inStr->Read(buf, (uint32_t)fs, &amt);
+    rv = inStr->Read(buf, fs, &amt);
     NS_ASSERTION((amt == fs), "failed to read the entire configuration file!!");
     if (NS_SUCCEEDED(rv)) {
         if (obscureValue > 0) {
 
             
-            for (uint32_t i = 0; i < amt; i++)
+            for (PRUint32 i = 0; i < amt; i++)
                 buf[i] -= obscureValue;
         }
         rv = EvaluateAdminConfigScript(buf, amt, aFileName,
-                                       false, true,
-                                       isEncoded ? true:false);
+                                       PR_FALSE, PR_TRUE,
+                                       isEncoded ? PR_TRUE:PR_FALSE);
     }
     inStr->Close();
     PR_Free(buf);

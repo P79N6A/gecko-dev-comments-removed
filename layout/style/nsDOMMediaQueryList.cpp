@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsDOMMediaQueryList.h"
 #include "nsPresContext.h"
 #include "nsIMediaList.h"
@@ -15,12 +47,12 @@ nsDOMMediaQueryList::nsDOMMediaQueryList(nsPresContext *aPresContext,
                                          const nsAString &aMediaQueryList)
   : mPresContext(aPresContext),
     mMediaList(new nsMediaList),
-    mMatchesValid(false)
+    mMatchesValid(PR_FALSE)
 {
   PR_INIT_CLIST(this);
 
   nsCSSParser parser;
-  parser.ParseMediaList(aMediaQueryList, nullptr, 0, mMediaList, false);
+  parser.ParseMediaList(aMediaQueryList, nsnull, 0, mMediaList, PR_FALSE);
 }
 
 nsDOMMediaQueryList::~nsDOMMediaQueryList()
@@ -42,7 +74,7 @@ if (tmp->mPresContext) {
   PR_REMOVE_LINK(tmp);
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mPresContext)
 }
-tmp->RemoveAllListeners();
+NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMARRAY(mListeners)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 DOMCI_DATA(MediaQueryList, nsDOMMediaQueryList)
@@ -68,7 +100,7 @@ NS_IMETHODIMP
 nsDOMMediaQueryList::GetMatches(bool *aMatches)
 {
   if (!mMatchesValid) {
-    NS_ABORT_IF_FALSE(!HasListeners(),
+    NS_ABORT_IF_FALSE(mListeners.Length() == 0,
                       "when listeners present, must keep mMatches current");
     RecomputeMatches();
   }
@@ -80,29 +112,14 @@ nsDOMMediaQueryList::GetMatches(bool *aMatches)
 NS_IMETHODIMP
 nsDOMMediaQueryList::AddListener(nsIDOMMediaQueryListListener *aListener)
 {
-  if (!aListener) {
-    return NS_OK;
-  }
-
-  if (!HasListeners()) {
-    
-    
-    
-    NS_ADDREF_THIS();
-  }
-
   if (!mMatchesValid) {
-    NS_ABORT_IF_FALSE(!HasListeners(),
+    NS_ABORT_IF_FALSE(mListeners.Length() == 0,
                       "when listeners present, must keep mMatches current");
     RecomputeMatches();
   }
 
   if (!mListeners.Contains(aListener)) {
     mListeners.AppendElement(aListener);
-    if (!HasListeners()) {
-      
-      NS_RELEASE_THIS();
-    }
   }
   return NS_OK;
 }
@@ -110,27 +127,10 @@ nsDOMMediaQueryList::AddListener(nsIDOMMediaQueryListListener *aListener)
 NS_IMETHODIMP
 nsDOMMediaQueryList::RemoveListener(nsIDOMMediaQueryListListener *aListener)
 {
-  bool removed = mListeners.RemoveElement(aListener);
+  mListeners.RemoveElement(aListener);
   NS_ABORT_IF_FALSE(!mListeners.Contains(aListener),
                     "duplicate occurrence of listeners");
-
-  if (removed && !HasListeners()) {
-    
-    NS_RELEASE_THIS();
-  }
-
   return NS_OK;
-}
-
-void
-nsDOMMediaQueryList::RemoveAllListeners()
-{
-  bool hadListeners = HasListeners();
-  mListeners.Clear();
-  if (hadListeners) {
-    
-    NS_RELEASE_THIS();
-  }
 }
 
 void
@@ -140,20 +140,20 @@ nsDOMMediaQueryList::RecomputeMatches()
     return;
   }
 
-  mMatches = mMediaList->Matches(mPresContext, nullptr);
-  mMatchesValid = true;
+  mMatches = mMediaList->Matches(mPresContext, nsnull);
+  mMatchesValid = PR_TRUE;
 }
 
 void
 nsDOMMediaQueryList::MediumFeaturesChanged(NotifyList &aListenersToNotify)
 {
-  mMatchesValid = false;
+  mMatchesValid = PR_FALSE;
 
   if (mListeners.Length()) {
     bool oldMatches = mMatches;
     RecomputeMatches();
     if (mMatches != oldMatches) {
-      for (uint32_t i = 0, i_end = mListeners.Length(); i != i_end; ++i) {
+      for (PRUint32 i = 0, i_end = mListeners.Length(); i != i_end; ++i) {
         HandleChangeData *d = aListenersToNotify.AppendElement();
         if (d) {
           d->mql = this;

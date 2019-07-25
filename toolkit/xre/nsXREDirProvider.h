@@ -3,19 +3,51 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsXREDirProvider_h__
 #define _nsXREDirProvider_h__
 
 #include "nsIDirectoryService.h"
 #include "nsIProfileMigrator.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 
 #include "nsCOMPtr.h"
 #include "nsCOMArray.h"
-#include "mozilla/Attributes.h"
 
-class nsXREDirProvider MOZ_FINAL : public nsIDirectoryServiceProvider2,
-                                   public nsIProfileStartup
+class nsXREDirProvider : public nsIDirectoryServiceProvider2,
+                         public nsIProfileStartup
 {
 public:
   
@@ -31,20 +63,9 @@ public:
 
   
   nsresult Initialize(nsIFile *aXULAppDir,
-                      nsIFile *aGREDir,
-                      nsIDirectoryServiceProvider* aAppProvider = nullptr);
+                      nsILocalFile *aGREDir,
+                      nsIDirectoryServiceProvider* aAppProvider = nsnull);
   ~nsXREDirProvider();
-
-  static nsXREDirProvider* GetSingleton();
-
-  nsresult GetUserProfilesRootDir(nsIFile** aResult,
-                                  const nsACString* aProfileName,
-                                  const nsACString* aAppName,
-                                  const nsACString* aVendorName);
-  nsresult GetUserProfilesLocalDir(nsIFile** aResult,
-                                   const nsACString* aProfileName,
-                                   const nsACString* aAppName,
-                                   const nsACString* aVendorName);
 
   
   
@@ -56,19 +77,12 @@ public:
 
   nsresult GetProfileDefaultsDir(nsIFile* *aResult);
 
-  static nsresult GetUserAppDataDirectory(nsIFile* *aFile) {
-    return GetUserDataDirectory(aFile, false, nullptr, nullptr, nullptr);
+  static nsresult GetUserAppDataDirectory(nsILocalFile* *aFile) {
+    return GetUserDataDirectory(aFile, PR_FALSE);
   }
-  static nsresult GetUserLocalDataDirectory(nsIFile* *aFile) {
-    return GetUserDataDirectory(aFile, true, nullptr, nullptr, nullptr);
+  static nsresult GetUserLocalDataDirectory(nsILocalFile* *aFile) {
+    return GetUserDataDirectory(aFile, PR_TRUE);
   }
-
-  
-  
-  static nsresult GetUserDataDirectory(nsIFile** aFile, bool aLocal,
-                                       const nsACString* aProfileName,
-                                       const nsACString* aAppName,
-                                       const nsACString* aVendorName);
 
   
   nsIFile* GetGREDir() { return mGREDir; }
@@ -101,20 +115,18 @@ public:
 
 protected:
   nsresult GetFilesInternal(const char* aProperty, nsISimpleEnumerator** aResult);
-  static nsresult GetUserDataDirectoryHome(nsIFile* *aFile, bool aLocal);
-  static nsresult GetSysUserExtensionsDirectory(nsIFile* *aFile);
+  static nsresult GetUserDataDirectory(nsILocalFile* *aFile, bool aLocal);
+  static nsresult GetUserDataDirectoryHome(nsILocalFile* *aFile, bool aLocal);
+  static nsresult GetSysUserExtensionsDirectory(nsILocalFile* *aFile);
 #if defined(XP_UNIX) || defined(XP_MACOSX)
-  static nsresult GetSystemExtensionsDirectory(nsIFile** aFile);
+  static nsresult GetSystemExtensionsDirectory(nsILocalFile** aFile);
 #endif
   static nsresult EnsureDirectoryExists(nsIFile* aDirectory);
   void EnsureProfileFileExists(nsIFile* aFile);
 
   
   
-  static nsresult AppendProfilePath(nsIFile* aFile,
-                                    const nsACString* aProfileName,
-                                    const nsACString* aAppName,
-                                    const nsACString* aVendorName);
+  static nsresult AppendProfilePath(nsIFile* aFile);
 
   static nsresult AppendSysUserExtensionPath(nsIFile* aFile);
 
@@ -131,7 +143,7 @@ protected:
   void Append(nsIFile* aDirectory);
 
   nsCOMPtr<nsIDirectoryServiceProvider> mAppProvider;
-  nsCOMPtr<nsIFile>      mGREDir;
+  nsCOMPtr<nsILocalFile> mGREDir;
   nsCOMPtr<nsIFile>      mXULAppDir;
   nsCOMPtr<nsIFile>      mProfileDir;
   nsCOMPtr<nsIFile>      mProfileLocalDir;

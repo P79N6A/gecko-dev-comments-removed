@@ -9,6 +9,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsAttrName_h___
 #define nsAttrName_h___
 
@@ -107,7 +140,7 @@ public:
     return reinterpret_cast<PtrBits>(aAtom) == mBits;
   }
 
-  bool Equals(nsIAtom* aLocalName, int32_t aNamespaceID) const
+  bool Equals(nsIAtom* aLocalName, PRInt32 aNamespaceID) const
   {
     if (aNamespaceID == kNameSpaceID_None) {
       return Equals(aLocalName);
@@ -120,12 +153,12 @@ public:
     return Equals(aNodeInfo->NameAtom(), aNodeInfo->NamespaceID());
   }
 
-  int32_t NamespaceID() const
+  PRInt32 NamespaceID() const
   {
     return IsAtom() ? kNameSpaceID_None : NodeInfo()->NamespaceID();
   }
 
-  int32_t NamespaceEquals(int32_t aNamespaceID) const
+  PRInt32 NamespaceEquals(PRInt32 aNamespaceID) const
   {
     return aNamespaceID == kNameSpaceID_None ?
            IsAtom() :
@@ -139,7 +172,7 @@ public:
 
   nsIAtom* GetPrefix() const
   {
-    return IsAtom() ? nullptr : NodeInfo()->GetPrefixAtom();
+    return IsAtom() ? nsnull : NodeInfo()->GetPrefixAtom();
   }
 
   bool QualifiedNameEquals(const nsAString& aName) const
@@ -158,7 +191,6 @@ public:
     }
   }
 
-#ifdef MOZILLA_INTERNAL_API
   void GetPrefix(nsAString& aStr) const
   {
     if (IsAtom()) {
@@ -168,9 +200,8 @@ public:
       NodeInfo()->GetPrefix(aStr);
     }
   }
-#endif
 
-  uint32_t HashValue() const
+  PRUint32 HashValue() const
   {
     
     

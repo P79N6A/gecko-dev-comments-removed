@@ -77,13 +77,19 @@ public:
   
   virtual PRUint8 ActionCount();
 
+  
+  virtual bool IsWidget() const;
+  virtual bool IsActiveWidget() const;
+  virtual bool AreItemsOperable() const;
+  virtual nsAccessible* ContainerWidget() const;
+
 protected:
 
   
   virtual void CacheChildren();
 
   
-  PRBool ContainsMenu();
+  bool ContainsMenu();
 };
 
 
@@ -129,7 +135,7 @@ public:
   virtual PRUint8 ActionCount();
 
 private:
-  PRBool DropmarkerOpen(PRBool aToggleOpen);
+  bool DropmarkerOpen(bool aToggleOpen);
 };
 
 
@@ -141,12 +147,9 @@ public:
   nsXULGroupboxAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  NS_IMETHOD GetRelationByType(PRUint32 aRelationType,
-                               nsIAccessibleRelation **aRelation);
-
-  
   virtual PRUint32 NativeRole();
   virtual nsresult GetNameInternal(nsAString& aName);
+  virtual Relation RelationByType(PRUint32 aRelationType);
 };
 
 
@@ -162,6 +165,9 @@ public:
   virtual void GetPositionAndSizeInternal(PRInt32 *aPosInSet,
                                           PRInt32 *aSetSize);
   virtual PRUint64 NativeState();
+
+  
+  virtual nsAccessible* ContainerWidget() const;
 };
 
 
@@ -175,6 +181,11 @@ public:
   
   virtual PRUint32 NativeRole();
   virtual PRUint64 NativeState();
+
+  
+  virtual bool IsWidget() const;
+  virtual bool IsActiveWidget() const;
+  virtual bool AreItemsOperable() const;
 };
 
 
@@ -202,7 +213,7 @@ public:
                                           PRInt32 *aSetSize);
 
   
-  static PRBool IsSeparator(nsAccessible *aAccessible);
+  static bool IsSeparator(nsAccessible *aAccessible);
 };
 
 
@@ -256,7 +267,7 @@ public:
   virtual void ApplyARIAState(PRUint64* aState);
   virtual PRUint32 NativeRole();
   virtual PRUint64 NativeState();
-  virtual PRBool GetAllowsAnonChildAccessibles();
+  virtual bool GetAllowsAnonChildAccessibles();
 
   
   virtual PRUint8 ActionCount();

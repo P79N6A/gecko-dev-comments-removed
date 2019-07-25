@@ -3,6 +3,37 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsFocusManager_h___
 #define nsFocusManager_h___
 
@@ -10,8 +41,6 @@
 #include "nsWeakReference.h"
 #include "nsIObserver.h"
 #include "nsIContent.h"
-#include "nsIWidget.h"
-#include "mozilla/Attributes.h"
 
 #define FOCUSMETHOD_MASK 0xF000
 #define FOCUSMETHODANDRING_MASK 0xF0F000
@@ -21,6 +50,12 @@
 class nsIDocShellTreeItem;
 class nsPIDOMWindow;
 
+namespace mozilla {
+namespace dom {
+  class TabParent;
+}
+}
+
 struct nsDelayedBlurOrFocusEvent;
 
 
@@ -28,12 +63,10 @@ struct nsDelayedBlurOrFocusEvent;
 
 
 
-class nsFocusManager MOZ_FINAL : public nsIFocusManager,
-                                 public nsIObserver,
-                                 public nsSupportsWeakReference
+class nsFocusManager : public nsIFocusManager,
+                       public nsIObserver,
+                       public nsSupportsWeakReference
 {
-  typedef mozilla::widget::InputContextAction InputContextAction;
-
 public:
 
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsFocusManager, nsIFocusManager)
@@ -56,16 +89,6 @@ public:
 
 
   nsIContent* GetFocusedContent() { return mFocusedContent; }
-
-  
-
-
-  nsPIDOMWindow* GetFocusedWindow() const { return mFocusedWindow; }
-
-  
-
-
-  nsPIDOMWindow* GetActiveWindow() const { return mActiveWindow; }
 
   
 
@@ -110,7 +133,9 @@ public:
   
 
 
-  static InputContextAction::Cause GetFocusMoveActionCause(uint32_t aFlags);
+
+
+  static PRUint32 GetFocusMoveReason(PRUint32 aFlags);
 
   static bool sMouseFocusesFormControl;
 
@@ -136,7 +161,7 @@ protected:
 
 
 
-  void SetFocusInner(nsIContent* aNewContent, int32_t aFlags,
+  void SetFocusInner(nsIContent* aNewContent, PRInt32 aFlags,
                      bool aFocusChanged, bool aAdjustWidget);
 
   
@@ -187,7 +212,7 @@ protected:
 
 
 
-  nsIContent* CheckIfFocusable(nsIContent* aContent, uint32_t aFlags);
+  nsIContent* CheckIfFocusable(nsIContent* aContent, PRUint32 aFlags);
 
   
 
@@ -243,7 +268,7 @@ protected:
 
   void Focus(nsPIDOMWindow* aWindow,
              nsIContent* aContent,
-             uint32_t aFlags,
+             PRUint32 aFlags,
              bool aIsNewDocument,
              bool aFocusChanged,
              bool aWindowRaised,
@@ -257,11 +282,11 @@ protected:
 
 
 
-  void SendFocusOrBlurEvent(uint32_t aType,
+  void SendFocusOrBlurEvent(PRUint32 aType,
                             nsIPresShell* aPresShell,
                             nsIDocument* aDocument,
                             nsISupports* aTarget,
-                            uint32_t aFocusMethod,
+                            PRUint32 aFocusMethod,
                             bool aWindowRaised,
                             bool aIsRefocus = false);
 
@@ -270,7 +295,7 @@ protected:
 
   void ScrollIntoView(nsIPresShell* aPresShell,
                       nsIContent* aContent,
-                      uint32_t aFlags);
+                      PRUint32 aFlags);
 
   
 
@@ -323,11 +348,9 @@ protected:
 
 
 
-
-
   nsresult DetermineElementToMoveFocus(nsPIDOMWindow* aWindow,
                                        nsIContent* aStart,
-                                       int32_t aType, bool aNoParentTraversal,
+                                       PRInt32 aType,
                                        nsIContent** aNextContent);
 
   
@@ -363,7 +386,7 @@ protected:
                                   nsIContent* aOriginalStartContent,
                                   nsIContent* aStartContent,
                                   bool aForward,
-                                  int32_t aCurrentTabIndex,
+                                  PRInt32 aCurrentTabIndex,
                                   bool aIgnoreTabIndex,
                                   nsIContent** aResultContent);
 
@@ -380,7 +403,7 @@ protected:
 
 
   nsIContent* GetNextTabbableMapArea(bool aForward,
-                                     int32_t aCurrentTabIndex,
+                                     PRInt32 aCurrentTabIndex,
                                      nsIContent* aImageContent,
                                      nsIContent* aStartContent);
 
@@ -389,8 +412,8 @@ protected:
 
 
 
-  int32_t GetNextTabIndex(nsIContent* aParent,
-                          int32_t aCurrentTabIndex,
+  PRInt32 GetNextTabIndex(nsIContent* aParent,
+                          PRInt32 aCurrentTabIndex,
                           bool aForward);
 
   
@@ -407,6 +430,12 @@ protected:
                               nsIDocument* aDocument,
                               bool aIsForDocNavigation,
                               bool aCheckVisibility);
+
+  
+
+
+
+  mozilla::dom::TabParent* GetRemoteForContent(nsIContent* aContent);
 
   
 
@@ -435,23 +464,8 @@ protected:
 
 
 
-  nsIContent* GetNextTabbablePanel(nsIDocument* aDocument, nsIFrame* aCurrentPopup, bool aForward);
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  nsIContent* GetNextTabbableDocument(nsIContent* aStartContent, bool aForward);
+  nsIContent* GetNextTabbableDocument(bool aForward);
 
   
 
@@ -511,8 +525,6 @@ private:
   
   
   nsCOMPtr<nsIDocument> mMouseDownEventHandlingDocument;
-
-  static bool sTestMode;
 
   
   static nsFocusManager* sInstance;

@@ -4,10 +4,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef dom_plugins_PluginModuleChild_h
 #define dom_plugins_PluginModuleChild_h 1
-
-#include "mozilla/Attributes.h"
 
 #include <string>
 #include <vector>
@@ -40,7 +71,11 @@
 
 
 
-#define NP_CALLBACK NP_LOADDS
+#ifdef XP_OS2
+#define NP_CALLBACK _System
+#else
+#define NP_CALLBACK
+#endif
 
 #if defined(XP_WIN)
 #define NS_NPAPIPLUGIN_CALLBACK(_type, _name) _type (__stdcall * _name)
@@ -74,17 +109,19 @@ class PluginModuleChild : public PPluginModuleChild
 {
     typedef mozilla::dom::PCrashReporterChild PCrashReporterChild;
 protected:
+    NS_OVERRIDE
     virtual mozilla::ipc::RPCChannel::RacyRPCPolicy
-    MediateRPCRace(const Message& parent, const Message& child) MOZ_OVERRIDE
+    MediateRPCRace(const Message& parent, const Message& child)
     {
         return MediateRace(parent, child);
     }
 
-    virtual bool ShouldContinueFromReplyTimeout() MOZ_OVERRIDE;
+    NS_OVERRIDE
+    virtual bool ShouldContinueFromReplyTimeout();
 
     
     virtual bool AnswerNP_GetEntryPoints(NPError* rv);
-    virtual bool AnswerNP_Initialize(const uint32_t& aFlags, NPError* rv);
+    virtual bool AnswerNP_Initialize(NPError* rv);
 
     virtual PPluginIdentifierChild*
     AllocPPluginIdentifier(const nsCString& aString,
@@ -144,21 +181,21 @@ protected:
 
     virtual PCrashReporterChild*
     AllocPCrashReporter(mozilla::dom::NativeThreadId* id,
-                        uint32_t* processType);
+                        PRUint32* processType);
     virtual bool
     DeallocPCrashReporter(PCrashReporterChild* actor);
     virtual bool
     AnswerPCrashReporterConstructor(PCrashReporterChild* actor,
                                     mozilla::dom::NativeThreadId* id,
-                                    uint32_t* processType);
+                                    PRUint32* processType);
 
     virtual void
     ActorDestroy(ActorDestroyReason why);
 
-    MOZ_NORETURN void QuickExit();
+    NS_NORETURN void QuickExit();
 
-    virtual bool
-    RecvProcessNativeEventsInRPCCall() MOZ_OVERRIDE;
+    NS_OVERRIDE virtual bool
+    RecvProcessNativeEventsInRPCCall();
 
 public:
     PluginModuleChild();
@@ -188,8 +225,6 @@ public:
 #ifdef DEBUG
     bool NPObjectIsRegistered(NPObject* aObject);
 #endif
-
-    bool AsyncDrawingAllowed() { return mAsyncDrawingAllowed; }
 
     
 
@@ -284,9 +319,6 @@ public:
         
         
         QUIRK_SILVERLIGHT_FOCUS_CHECK_PARENT            = 1 << 8,
-        
-        
-        QUIRK_ALLOW_OFFLINE_RENDERER                    = 1 << 9,
     };
 
     int GetQuirks() { return mQuirks; }
@@ -300,27 +332,30 @@ private:
     void InitQuirksModes(const nsCString& aMimeType);
     bool InitGraphics();
     void DeinitGraphics();
-#if defined(MOZ_WIDGET_GTK)
+#if defined(MOZ_WIDGET_GTK2)
     static gboolean DetectNestedEventLoop(gpointer data);
     static gboolean ProcessBrowserEvents(gpointer data);
 
-    virtual void EnteredCxxStack() MOZ_OVERRIDE;
-    virtual void ExitedCxxStack() MOZ_OVERRIDE;
+    NS_OVERRIDE
+    virtual void EnteredCxxStack();
+    NS_OVERRIDE
+    virtual void ExitedCxxStack();
 #elif defined(MOZ_WIDGET_QT)
 
-    virtual void EnteredCxxStack() MOZ_OVERRIDE;
-    virtual void ExitedCxxStack() MOZ_OVERRIDE;
+    NS_OVERRIDE
+    virtual void EnteredCxxStack();
+    NS_OVERRIDE
+    virtual void ExitedCxxStack();
 #endif
 
     PRLibrary* mLibrary;
     nsCString mPluginFilename; 
     nsCString mUserAgent;
     int mQuirks;
-    bool mAsyncDrawingAllowed;
 
     
     NP_PLUGINSHUTDOWN mShutdownFunc;
-#if defined(OS_LINUX) || defined(OS_BSD)
+#ifdef OS_LINUX
     NP_PLUGINUNIXINIT mInitializeFunc;
 #elif defined(OS_WIN) || defined(OS_MACOSX)
     NP_PLUGININIT mInitializeFunc;
@@ -330,7 +365,7 @@ private:
     NPPluginFuncs mFunctions;
     NPSavedData mSavedData;
 
-#if defined(MOZ_WIDGET_GTK)
+#if defined(MOZ_WIDGET_GTK2)
     
     
     
@@ -419,8 +454,10 @@ private:
     static PLDHashOperator CollectForInstance(NPObjectData* d, void* userArg);
 
 #if defined(OS_WIN)
-    virtual void EnteredCall() MOZ_OVERRIDE;
-    virtual void ExitedCall() MOZ_OVERRIDE;
+    NS_OVERRIDE
+    virtual void EnteredCall();
+    NS_OVERRIDE
+    virtual void ExitedCall();
 
     
     

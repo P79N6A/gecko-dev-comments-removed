@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef THEBESLAYERBUFFER_H_
 #define THEBESLAYERBUFFER_H_
 
@@ -66,7 +98,7 @@ public:
 
   void Clear()
   {
-    mBuffer = nullptr;
+    mBuffer = nsnull;
     mBufferRect.SetEmpty();
   }
 
@@ -81,7 +113,7 @@ public:
 
   struct PaintState {
     PaintState()
-      : mDidSelfCopy(false)
+      : mDidSelfCopy(PR_FALSE)
     {}
 
     nsRefPtr<gfxContext> mContext;
@@ -91,8 +123,7 @@ public:
   };
 
   enum {
-    PAINT_WILL_RESAMPLE = 0x01,
-    PAINT_NO_ROTATION = 0x02
+    PAINT_WILL_RESAMPLE = 0x01
   };
   
 
@@ -111,7 +142,7 @@ public:
 
 
   PaintState BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
-                        uint32_t aFlags);
+                        PRUint32 aFlags);
 
   enum {
     ALLOW_REPEAT = 0x01
@@ -122,7 +153,7 @@ public:
 
 
   virtual already_AddRefed<gfxASurface>
-  CreateBuffer(ContentType aType, const nsIntSize& aSize, uint32_t aFlags) = 0;
+  CreateBuffer(ContentType aType, const nsIntSize& aSize, PRUint32 aFlags) = 0;
 
   
 
@@ -139,18 +170,9 @@ protected:
     TOP, BOTTOM
   };
   nsIntRect GetQuadrantRectangle(XSide aXSide, YSide aYSide);
-  
-
-
-
-
   void DrawBufferQuadrant(gfxContext* aTarget, XSide aXSide, YSide aYSide,
-                          float aOpacity,
-                          gfxASurface* aMask,
-                          const gfxMatrix* aMaskTransform);
-  void DrawBufferWithRotation(gfxContext* aTarget, float aOpacity,
-                              gfxASurface* aMask = nullptr,
-                              const gfxMatrix* aMaskTransform = nullptr);
+                          float aOpacity);
+  void DrawBufferWithRotation(gfxContext* aTarget, float aOpacity);
 
   
 
@@ -169,16 +191,6 @@ protected:
     mBufferRect = aBufferRect;
     mBufferRotation = aBufferRotation;
     return tmp.forget();
-  }
-
-  
-
-
-
-
-  void SetBuffer(gfxASurface* aBuffer)
-  {
-    mBuffer = aBuffer;
   }
 
   

@@ -2,18 +2,51 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <string.h>
 
 #include "nsXPCOM.h"
 #include "nsINIParser.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 
 static bool
 StringCB(const char *aKey, const char *aValue, void* aClosure)
 {
   printf("%s=%s\n", aKey, aValue);
 
-  return true;
+  return PR_TRUE;
 }
 
 static bool
@@ -23,11 +56,11 @@ SectionCB(const char *aSection, void* aClosure)
 
   printf("[%s]\n", aSection);
 
-  ini->GetStrings(aSection, StringCB, nullptr);
+  ini->GetStrings(aSection, StringCB, nsnull);
 
   printf("\n");
 
-  return true;
+  return PR_TRUE;
 }
 
 int main(int argc, char **argv)
@@ -37,10 +70,10 @@ int main(int argc, char **argv)
     return 255;
   }
 
-  nsCOMPtr<nsIFile> lf;
+  nsCOMPtr<nsILocalFile> lf;
 
   nsresult rv = NS_NewNativeLocalFile(nsDependentCString(argv[1]),
-                                      true,
+                                      PR_TRUE,
                                       getter_AddRefs(lf));
   if (NS_FAILED(rv)) {
     fprintf(stderr, "Error: NS_NewNativeLocalFile failed\n");

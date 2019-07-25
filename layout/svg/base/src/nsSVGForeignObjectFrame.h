@@ -3,16 +3,49 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NSSVGFOREIGNOBJECTFRAME_H__
 #define NSSVGFOREIGNOBJECTFRAME_H__
 
 #include "nsContainerFrame.h"
-#include "nsIPresShell.h"
 #include "nsISVGChildFrame.h"
 #include "nsRegion.h"
-#include "nsSVGUtils.h"
+#include "nsIPresShell.h"
+#include "gfxRect.h"
+#include "gfxMatrix.h"
 
-class nsRenderingContext;
 class nsSVGOuterSVGFrame;
 
 typedef nsContainerFrame nsSVGForeignObjectFrameBase;
@@ -34,11 +67,9 @@ public:
                    nsIFrame*   aParent,
                    nsIFrame*   aPrevInFlow);
   virtual void DestroyFrom(nsIFrame* aDestructRoot);
-  NS_IMETHOD  AttributeChanged(int32_t         aNameSpaceID,
+  NS_IMETHOD  AttributeChanged(PRInt32         aNameSpaceID,
                                nsIAtom*        aAttribute,
-                               int32_t         aModType);
-
-  virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) MOZ_OVERRIDE;
+                               PRInt32         aModType);
 
   virtual nsIFrame* GetContentInsertionFrame() {
     return GetFirstPrincipalChild()->GetContentInsertionFrame();
@@ -49,9 +80,18 @@ public:
                     const nsHTMLReflowState& aReflowState,
                     nsReflowStatus&          aStatus);
 
-  NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                              const nsRect&           aDirtyRect,
-                              const nsDisplayListSet& aLists);
+  
+
+
+  virtual bool IsTransformed() const
+  {
+    return PR_TRUE;
+  }
+
+  
+
+
+  virtual gfx3DMatrix GetTransformMatrix(nsIFrame **aOutAncestor);
 
   
 
@@ -60,7 +100,7 @@ public:
 
   virtual nsIAtom* GetType() const;
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     return nsSVGForeignObjectFrameBase::IsFrameOfType(aFlags &
       ~(nsIFrame::eSVG | nsIFrame::eSVGForeignObject));
@@ -68,10 +108,7 @@ public:
 
   virtual void InvalidateInternal(const nsRect& aDamageRect,
                                   nscoord aX, nscoord aY, nsIFrame* aForChild,
-                                  uint32_t aFlags);
-
-  virtual bool IsSVGTransformed(gfxMatrix *aOwnTransform,
-                                gfxMatrix *aFromParentTransform) const;
+                                  PRUint32 aFlags);
 
 #ifdef DEBUG
   NS_IMETHOD GetFrameName(nsAString& aResult) const
@@ -81,26 +118,37 @@ public:
 #endif
 
   
-  NS_IMETHOD PaintSVG(nsRenderingContext *aContext,
+  NS_IMETHOD PaintSVG(nsSVGRenderState *aContext,
                       const nsIntRect *aDirtyRect);
   NS_IMETHOD_(nsIFrame*) GetFrameForPoint(const nsPoint &aPoint);
   NS_IMETHOD_(nsRect) GetCoveredRegion();
-  virtual void ReflowSVG();
-  virtual void NotifySVGChanged(uint32_t aFlags);
-  virtual SVGBBox GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
-                                      uint32_t aFlags);
+  NS_IMETHOD UpdateCoveredRegion();
+  NS_IMETHOD InitialUpdate();
+  virtual void NotifySVGChanged(PRUint32 aFlags);
+  NS_IMETHOD NotifyRedrawSuspended();
+  NS_IMETHOD NotifyRedrawUnsuspended();
+  virtual gfxRect GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
+                                      PRUint32 aFlags);
   NS_IMETHOD_(bool) IsDisplayContainer() { return true; }
+  NS_IMETHOD_(bool) HasValidCoveredRect() { return true; }
 
-  gfxMatrix GetCanvasTM(uint32_t aFor);
+  gfxMatrix GetCanvasTM();
+
+  
+  void MaybeReflowFromOuterSVGFrame();
 
 protected:
   
   void DoReflow();
   void RequestReflow(nsIPresShell::IntrinsicDirty aType);
+  void UpdateGraphic();
 
-  void InvalidateDirtyRect(const nsRect& aRect, uint32_t aFlags,
-                           bool aDuringReflowSVG);
-  void FlushDirtyRegion(uint32_t aFlags, bool aDuringReflowSVG);
+  
+  
+  gfxMatrix GetCanvasTMForChildren();
+  void InvalidateDirtyRect(nsSVGOuterSVGFrame* aOuter,
+                           const nsRect& aRect, PRUint32 aFlags);
+  void FlushDirtyRegion(PRUint32 aFlags);
 
   
   bool IsDisabled() const { return mRect.width <= 0 || mRect.height <= 0; }

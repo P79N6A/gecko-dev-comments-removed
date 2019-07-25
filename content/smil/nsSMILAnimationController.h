@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_SMILANIMATIONCONTROLLER_H_
 #define NS_SMILANIMATIONCONTROLLER_H_
 
@@ -45,8 +78,8 @@ public:
   void Disconnect();
 
   
-  virtual void Pause(uint32_t aType);
-  virtual void Resume(uint32_t aType);
+  virtual void Pause(PRUint32 aType);
+  virtual void Resume(PRUint32 aType);
   virtual nsSMILTime GetParentTime() const;
 
   
@@ -62,20 +95,13 @@ public:
   
   
   
-  
-  void Resample() { DoSample(false); }
-
+  void Resample() { DoSample(PR_FALSE); }
   void SetResampleNeeded()
   {
     if (!mRunningSample) {
-      if (!mResampleNeeded) {
-        FlagDocumentNeedsFlush();
-      }
-      mResampleNeeded = true;
+      mResampleNeeded = PR_TRUE;
     }
   }
-
-  
   void FlushResampleRequests()
   {
     if (!mResampleNeeded)
@@ -171,8 +197,6 @@ protected:
   
   virtual nsresult AddChild(nsSMILTimeContainer& aChild);
   virtual void     RemoveChild(nsSMILTimeContainer& aChild);
-
-  void FlagDocumentNeedsFlush();
 
   
   nsAutoRefCnt mRefCnt;

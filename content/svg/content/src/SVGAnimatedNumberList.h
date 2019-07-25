@@ -3,16 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_SVGANIMATEDNUMBERLIST_H__
 #define MOZILLA_SVGANIMATEDNUMBERLIST_H__
 
-#include "nsAutoPtr.h"
-#include "nsISMILAttr.h"
 #include "SVGNumberList.h"
 
-class nsISMILAnimationElement;
-class nsSMILValue;
 class nsSVGElement;
+
+#ifdef MOZ_SMIL
+#include "nsISMILAttr.h"
+#endif 
 
 namespace mozilla {
 
@@ -52,7 +83,7 @@ public:
 
   nsresult SetBaseValueString(const nsAString& aValue);
 
-  void ClearBaseValue(uint32_t aAttrEnum);
+  void ClearBaseValue(PRUint32 aAttrEnum);
 
   const SVGNumberList& GetAnimValue() const {
     return mAnimVal ? *mAnimVal : mBaseVal;
@@ -60,10 +91,10 @@ public:
 
   nsresult SetAnimValue(const SVGNumberList& aValue,
                         nsSVGElement *aElement,
-                        uint32_t aAttrEnum);
+                        PRUint32 aAttrEnum);
 
   void ClearAnimValue(nsSVGElement *aElement,
-                      uint32_t aAttrEnum);
+                      PRUint32 aAttrEnum);
 
   
   
@@ -77,8 +108,10 @@ public:
     return !!mAnimVal;
   }
 
+#ifdef MOZ_SMIL
   
-  nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement, uint8_t aAttrEnum);
+  nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement, PRUint8 aAttrEnum);
+#endif 
 
 private:
 
@@ -91,12 +124,13 @@ private:
   nsAutoPtr<SVGNumberList> mAnimVal;
   bool mIsBaseSet;
 
+#ifdef MOZ_SMIL
   struct SMILAnimatedNumberList : public nsISMILAttr
   {
   public:
     SMILAnimatedNumberList(SVGAnimatedNumberList* aVal,
                            nsSVGElement* aSVGElement,
-                           uint8_t aAttrEnum)
+                           PRUint8 aAttrEnum)
       : mVal(aVal)
       , mElement(aSVGElement)
       , mAttrEnum(aAttrEnum)
@@ -107,7 +141,7 @@ private:
     
     SVGAnimatedNumberList* mVal;
     nsSVGElement* mElement;
-    uint8_t mAttrEnum;
+    PRUint8 mAttrEnum;
 
     
     virtual nsresult ValueFromString(const nsAString& aStr,
@@ -118,6 +152,7 @@ private:
     virtual void ClearAnimValue();
     virtual nsresult SetAnimValue(const nsSMILValue& aValue);
   };
+#endif 
 };
 
 } 

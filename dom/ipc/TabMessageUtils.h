@@ -3,11 +3,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef TABMESSAGE_UTILS_H
 #define TABMESSAGE_UTILS_H
 
-#include "ipc/IPCMessageUtils.h"
-#include "nsIDOMEvent.h"
+#include "IPC/IPCMessageUtils.h"
+#include "nsIPrivateDOMEvent.h"
 #include "nsCOMPtr.h"
 
 #ifdef MOZ_CRASHREPORTER
@@ -18,7 +51,7 @@ namespace mozilla {
 namespace dom {
 struct RemoteDOMEvent
 {
-  nsCOMPtr<nsIDOMEvent> mEvent;
+  nsCOMPtr<nsIPrivateDOMEvent> mEvent;
 };
 
 bool ReadRemoteEvent(const IPC::Message* aMsg, void** aIter,
@@ -43,7 +76,7 @@ struct ParamTraits<mozilla::dom::RemoteDOMEvent>
 
   static void Write(Message* aMsg, const paramType& aParam)
   {
-    aParam.mEvent->Serialize(aMsg, true);
+    aParam.mEvent->Serialize(aMsg, PR_TRUE);
   }
 
   static bool Read(const Message* aMsg, void** aIter, paramType* aResult)

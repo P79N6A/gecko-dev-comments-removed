@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #if !defined(nsHTMLCanvasElement_h__)
 #define nsHTMLCanvasElement_h__
 
@@ -10,24 +42,20 @@
 #include "nsGenericHTMLElement.h"
 #include "nsGkAtoms.h"
 #include "nsSize.h"
-#include "nsError.h"
+#include "nsIFrame.h"
+#include "nsIDocument.h"
+#include "nsIDOMDocument.h"
+#include "nsDOMError.h"
 #include "nsNodeInfoManager.h"
 
+#include "nsICanvasRenderingContextInternal.h"
 #include "nsICanvasElementExternal.h"
+#include "nsIDOMCanvasRenderingContext2D.h"
 #include "nsLayoutUtils.h"
 
-class nsICanvasRenderingContextInternal;
-class nsIDOMFile;
-class nsHTMLCanvasPrintState;
-class nsITimerCallback;
-class nsIPropertyBag;
+#include "Layers.h"
 
-namespace mozilla {
-namespace layers {
-class CanvasLayer;
-class LayerManager;
-}
-}
+class nsIDOMFile;
 
 class nsHTMLCanvasElement : public nsGenericHTMLElement,
                             public nsICanvasElementExternal,
@@ -43,7 +71,7 @@ public:
   static nsHTMLCanvasElement* FromContent(nsIContent* aPossibleCanvas)
   {
     if (!aPossibleCanvas || !aPossibleCanvas->IsHTML(nsGkAtoms::canvas)) {
-      return nullptr;
+      return nsnull;
     }
     return static_cast<nsHTMLCanvasElement*>(aPossibleCanvas);
   }
@@ -65,6 +93,11 @@ public:
   
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsHTMLCanvasElement,
                                            nsGenericHTMLElement)
+
+  
+
+
+  nsIFrame *GetPrimaryCanvasFrame();
 
   
 
@@ -96,8 +129,8 @@ public:
 
 
 
-  int32_t CountContexts ();
-  nsICanvasRenderingContextInternal *GetContextAtIndex (int32_t index);
+  PRInt32 CountContexts ();
+  nsICanvasRenderingContextInternal *GetContextAtIndex (PRInt32 index);
 
   
 
@@ -109,28 +142,26 @@ public:
 
 
   NS_IMETHOD_(nsIntSize) GetSizeExternal();
-  NS_IMETHOD RenderContextsExternal(gfxContext *aContext,
-                                    gfxPattern::GraphicsFilter aFilter,
-                                    uint32_t aFlags = RenderFlagPremultAlpha);
+  NS_IMETHOD RenderContextsExternal(gfxContext *aContext, gfxPattern::GraphicsFilter aFilter);
 
-  virtual bool ParseAttribute(int32_t aNamespaceID,
+  virtual bool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
-  nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute, int32_t aModType) const;
+  nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute, PRInt32 aModType) const;
 
   
   
-  nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+  nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                    const nsAString& aValue, bool aNotify)
   {
-    return SetAttr(aNameSpaceID, aName, nullptr, aValue, aNotify);
+    return SetAttr(aNameSpaceID, aName, nsnull, aValue, aNotify);
   }
-  virtual nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+  virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                            nsIAtom* aPrefix, const nsAString& aValue,
                            bool aNotify);
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
-  nsresult CopyInnerTo(nsGenericElement* aDest);
+  nsresult CopyInnerTo(nsGenericElement* aDest) const;
 
   
 
@@ -151,12 +182,10 @@ public:
   void MarkContextClean();
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 protected:
   nsIntSize GetWidthHeight();
 
-  nsresult UpdateContext(nsIPropertyBag *aNewContextOptions = nullptr);
+  nsresult UpdateContext(nsIPropertyBag *aNewContextOptions = nsnull);
   nsresult ExtractData(const nsAString& aType,
                        const nsAString& aOptions,
                        nsIInputStream** aStream,
@@ -170,13 +199,9 @@ protected:
   nsresult GetContextHelper(const nsAString& aContextId,
                             bool aForceThebes,
                             nsICanvasRenderingContextInternal **aContext);
-  void CallPrintCallback();
 
   nsString mCurrentContextId;
-  nsCOMPtr<nsIDOMHTMLCanvasElement> mOriginalCanvas;
-  nsCOMPtr<nsIPrintCallback> mPrintCallback;
   nsCOMPtr<nsICanvasRenderingContextInternal> mCurrentContext;
-  nsCOMPtr<nsHTMLCanvasPrintState> mPrintState;
   
 public:
   
@@ -184,22 +209,6 @@ public:
   
   
   bool                     mWriteOnly;
-
-  bool IsPrintCallbackDone();
-
-  void HandlePrintCallback(nsPresContext::nsPresContextType aType);
-
-  nsresult DispatchPrintCallback(nsITimerCallback* aCallback);
-
-  void ResetPrintCallback();
-
-  nsIDOMHTMLCanvasElement* GetOriginalCanvas();
 };
-
-inline nsISupports*
-GetISupports(nsHTMLCanvasElement* p)
-{
-  return static_cast<nsGenericElement*>(p);
-}
 
 #endif 

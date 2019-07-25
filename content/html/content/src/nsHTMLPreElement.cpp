@@ -3,7 +3,36 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsIDOMHTMLPreElement.h"
 #include "nsIDOMEventTarget.h"
@@ -12,8 +41,6 @@
 #include "nsStyleConsts.h"
 #include "nsMappedAttributes.h"
 #include "nsRuleData.h"
-
-using namespace mozilla;
 
 class nsHTMLPreElement : public nsGenericHTMLElement,
                          public nsIDOMHTMLPreElement
@@ -35,10 +62,10 @@ public:
   NS_FORWARD_NSIDOMHTMLELEMENT(nsGenericHTMLElement::)
 
   
-  NS_IMETHOD GetWidth(int32_t* aWidth);
-  NS_IMETHOD SetWidth(int32_t aWidth);
+  NS_IMETHOD GetWidth(PRInt32* aWidth);
+  NS_IMETHOD SetWidth(PRInt32 aWidth);
 
-  virtual bool ParseAttribute(int32_t aNamespaceID,
+  virtual bool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
@@ -48,8 +75,6 @@ public:
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 };
 
 
@@ -87,7 +112,7 @@ NS_IMPL_INT_ATTR(nsHTMLPreElement, Width, width)
 
 
 bool
-nsHTMLPreElement::ParseAttribute(int32_t aNamespaceID,
+nsHTMLPreElement::ParseAttribute(PRInt32 aNamespaceID,
                                  nsIAtom* aAttribute,
                                  const nsAString& aValue,
                                  nsAttrValue& aResult)
@@ -155,7 +180,7 @@ nsHTMLPreElement::IsAttributeMapped(const nsIAtom* aAttribute) const
     { &nsGkAtoms::wrap },
     { &nsGkAtoms::cols },
     { &nsGkAtoms::width },
-    { nullptr },
+    { nsnull },
   };
   
   static const MappedAttributeEntry* const map[] = {
@@ -163,7 +188,7 @@ nsHTMLPreElement::IsAttributeMapped(const nsIAtom* aAttribute) const
     sCommonAttributeMap,
   };
 
-  return FindAttributeDependence(aAttribute, map);
+  return FindAttributeDependence(aAttribute, map, NS_ARRAY_LENGTH(map));
 }
 
 nsMapRuleToAttributesFunc

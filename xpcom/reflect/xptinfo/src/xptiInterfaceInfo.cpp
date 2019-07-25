@@ -5,6 +5,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "xptiprivate.h"
 #include "nsAtomicRefcnt.h"
 
@@ -80,16 +114,16 @@ xptiInterfaceEntry::ResolveLocked()
     int resolvedState = GetResolveState();
 
     if(resolvedState == FULLY_RESOLVED)
-        return true;
+        return PR_TRUE;
     if(resolvedState == RESOLVE_FAILED)
-        return false;
+        return PR_FALSE;
 
     NS_ASSERTION(GetResolveState() == PARTIALLY_RESOLVED, "bad state!");    
 
     
     
 
-    uint16_t parent_index = mDescriptor->parent_interface;
+    PRUint16 parent_index = mDescriptor->parent_interface;
 
     if(parent_index)
     {
@@ -99,7 +133,7 @@ xptiInterfaceEntry::ResolveLocked()
         if(!parent || !parent->EnsureResolvedLocked())
         {
             SetResolvedState(RESOLVE_FAILED);
-            return false;
+            return PR_FALSE;
         }
 
         mParent = parent;
@@ -116,7 +150,7 @@ xptiInterfaceEntry::ResolveLocked()
     LOG_RESOLVE(("+ complete resolve of %s\n", mName));
 
     SetResolvedState(FULLY_RESOLVED);
-    return true;
+    return PR_TRUE;
 }        
 
 
@@ -261,7 +295,7 @@ xptiInterfaceEntry::GetConstant(uint16 index, const nsXPTConstant** constant)
 
 
 nsresult 
-xptiInterfaceEntry::GetEntryForParam(uint16_t methodIndex, 
+xptiInterfaceEntry::GetEntryForParam(PRUint16 methodIndex, 
                                      const nsXPTParamInfo * param,
                                      xptiInterfaceEntry** entry)
 {
@@ -296,7 +330,7 @@ xptiInterfaceEntry::GetEntryForParam(uint16_t methodIndex,
     if(!theEntry)
     {
         NS_WARNING("Declared InterfaceInfo not found");
-        *entry = nullptr;
+        *entry = nsnull;
         return NS_ERROR_FAILURE;
     }
 
@@ -335,7 +369,7 @@ xptiInterfaceEntry::GetIIDForParam(uint16 methodIndex,
 }
 
 nsresult
-xptiInterfaceEntry::GetIIDForParamNoAlloc(uint16_t methodIndex, 
+xptiInterfaceEntry::GetIIDForParamNoAlloc(PRUint16 methodIndex, 
                                           const nsXPTParamInfo * param, 
                                           nsIID *iid)
 {
@@ -451,6 +485,52 @@ xptiInterfaceEntry::GetSizeIsArgNumberForParam(uint16 methodIndex,
 }
 
 nsresult
+xptiInterfaceEntry::GetLengthIsArgNumberForParam(uint16 methodIndex,
+                                                 const nsXPTParamInfo* param,
+                                                 uint16 dimension,
+                                                 uint8* argnum)
+{
+    if(!EnsureResolved())
+        return NS_ERROR_UNEXPECTED;
+
+    if(methodIndex < mMethodBaseIndex)
+        return mParent->
+            GetLengthIsArgNumberForParam(methodIndex, param, dimension, argnum);
+
+    if(methodIndex >= mMethodBaseIndex + 
+                      mDescriptor->num_methods)
+    {
+        NS_ERROR("bad index");
+        return NS_ERROR_INVALID_ARG;
+    }
+
+    const XPTTypeDescriptor *td;
+
+    if(dimension) {
+        nsresult rv = GetTypeInArray(param, dimension, &td);
+        if(NS_FAILED(rv)) {
+            return rv;
+        }
+    }
+    else
+        td = &param->type;
+
+    
+    switch (XPT_TDP_TAG(td->prefix)) {
+      case TD_ARRAY:
+      case TD_PSTRING_SIZE_IS:
+      case TD_PWSTRING_SIZE_IS:
+        break;
+      default:
+        NS_ERROR("not a length_is");
+        return NS_ERROR_INVALID_ARG;
+    }
+
+    *argnum = td->argnum2;
+    return NS_OK;
+}
+
+nsresult
 xptiInterfaceEntry::GetInterfaceIsArgNumberForParam(uint16 methodIndex,
                                                     const nsXPTParamInfo* param,
                                                     uint8* argnum)
@@ -516,7 +596,7 @@ xptiInterfaceEntry::GetIIDShared(const nsIID * *iid)
 nsresult 
 xptiInterfaceEntry::HasAncestor(const nsIID * iid, bool *_retval)
 {
-    *_retval = false;
+    *_retval = PR_FALSE;
 
     for(xptiInterfaceEntry* current = this; 
         current;
@@ -524,7 +604,7 @@ xptiInterfaceEntry::HasAncestor(const nsIID * iid, bool *_retval)
     {
         if(current->mIID.Equals(*iid))
         {
-            *_retval = true;
+            *_retval = PR_TRUE;
             break;
         }
         if(!current->EnsureResolved())
@@ -550,7 +630,7 @@ xptiInterfaceEntry::GetInterfaceInfo(xptiInterfaceInfo** info)
         mInfo = new xptiInterfaceInfo(this);
         if(!mInfo)
         {
-            *info = nullptr;    
+            *info = nsnull;    
             return NS_ERROR_OUT_OF_MEMORY;
         }
     }
@@ -565,7 +645,7 @@ xptiInterfaceEntry::LockedInvalidateInterfaceInfo()
     if(mInfo)
     {
         mInfo->Invalidate(); 
-        mInfo = nullptr;
+        mInfo = nsnull;
     }
 }
 
@@ -587,7 +667,7 @@ xptiInterfaceInfo::BuildParent()
 NS_IMPL_QUERY_INTERFACE1(xptiInterfaceInfo, nsIInterfaceInfo)
 
 xptiInterfaceInfo::xptiInterfaceInfo(xptiInterfaceEntry* entry)
-    : mEntry(entry), mParent(nullptr)
+    : mEntry(entry), mParent(nsnull)
 {
     LOG_INFO_CREATE(this);
 }
@@ -637,7 +717,7 @@ xptiInterfaceInfo::Release(void)
         if(mEntry)
         {
             mEntry->LockedInterfaceInfoDeathNotification();
-            mEntry = nullptr;
+            mEntry = nsnull;
         }
 
         delete this;

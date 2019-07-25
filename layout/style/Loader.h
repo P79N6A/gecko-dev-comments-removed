@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_css_Loader_h
 #define mozilla_css_Loader_h
 
@@ -18,8 +50,6 @@
 #include "nsTArray.h"
 #include "nsTObserverArray.h"
 #include "nsURIHashKey.h"
-#include "mozilla/Attributes.h"
-#include "mozilla/CORSMode.h"
 
 class nsIAtom;
 class nsICSSLoaderObserver;
@@ -32,53 +62,45 @@ class nsIStyleSheetLinkingElement;
 
 namespace mozilla {
 
-class URIPrincipalAndCORSModeHashKey : public nsURIHashKey
+class URIAndPrincipalHashKey : public nsURIHashKey
 {
 public:
-  typedef URIPrincipalAndCORSModeHashKey* KeyType;
-  typedef const URIPrincipalAndCORSModeHashKey* KeyTypePointer;
+  typedef URIAndPrincipalHashKey* KeyType;
+  typedef const URIAndPrincipalHashKey* KeyTypePointer;
 
-  URIPrincipalAndCORSModeHashKey(const URIPrincipalAndCORSModeHashKey* aKey)
-    : nsURIHashKey(aKey->mKey), mPrincipal(aKey->mPrincipal),
-      mCORSMode(aKey->mCORSMode)
+  URIAndPrincipalHashKey(const URIAndPrincipalHashKey* aKey)
+    : nsURIHashKey(aKey->mKey), mPrincipal(aKey->mPrincipal)
   {
-    MOZ_COUNT_CTOR(URIPrincipalAndCORSModeHashKey);
+    MOZ_COUNT_CTOR(URIAndPrincipalHashKey);
   }
-  URIPrincipalAndCORSModeHashKey(nsIURI* aURI, nsIPrincipal* aPrincipal,
-                                 CORSMode aCORSMode)
-    : nsURIHashKey(aURI), mPrincipal(aPrincipal), mCORSMode(aCORSMode)
+  URIAndPrincipalHashKey(nsIURI* aURI, nsIPrincipal* aPrincipal)
+    : nsURIHashKey(aURI), mPrincipal(aPrincipal)
   {
-    MOZ_COUNT_CTOR(URIPrincipalAndCORSModeHashKey);
+    MOZ_COUNT_CTOR(URIAndPrincipalHashKey);
   }
-  URIPrincipalAndCORSModeHashKey(const URIPrincipalAndCORSModeHashKey& toCopy)
-    : nsURIHashKey(toCopy), mPrincipal(toCopy.mPrincipal),
-      mCORSMode(toCopy.mCORSMode)
+  URIAndPrincipalHashKey(const URIAndPrincipalHashKey& toCopy)
+    : nsURIHashKey(toCopy), mPrincipal(toCopy.mPrincipal)
   {
-    MOZ_COUNT_CTOR(URIPrincipalAndCORSModeHashKey);
+    MOZ_COUNT_CTOR(URIAndPrincipalHashKey);
   }
-  ~URIPrincipalAndCORSModeHashKey()
+  ~URIAndPrincipalHashKey()
   {
-    MOZ_COUNT_DTOR(URIPrincipalAndCORSModeHashKey);
+    MOZ_COUNT_DTOR(URIAndPrincipalHashKey);
   }
 
-  URIPrincipalAndCORSModeHashKey* GetKey() const {
-    return const_cast<URIPrincipalAndCORSModeHashKey*>(this);
+  URIAndPrincipalHashKey* GetKey() const {
+    return const_cast<URIAndPrincipalHashKey*>(this);
   }
-  const URIPrincipalAndCORSModeHashKey* GetKeyPointer() const { return this; }
+  const URIAndPrincipalHashKey* GetKeyPointer() const { return this; }
 
-  bool KeyEquals(const URIPrincipalAndCORSModeHashKey* aKey) const {
+  bool KeyEquals(const URIAndPrincipalHashKey* aKey) const {
     if (!nsURIHashKey::KeyEquals(aKey->mKey)) {
-      return false;
+      return PR_FALSE;
     }
 
     if (!mPrincipal != !aKey->mPrincipal) {
       
-      return false;
-    }
-
-    if (mCORSMode != aKey->mCORSMode) {
-      
-      return false;
+      return PR_FALSE;
     }
 
     bool eq;
@@ -86,17 +108,16 @@ public:
       (NS_SUCCEEDED(mPrincipal->Equals(aKey->mPrincipal, &eq)) && eq);
   }
 
-  static const URIPrincipalAndCORSModeHashKey*
-  KeyToPointer(URIPrincipalAndCORSModeHashKey* aKey) { return aKey; }
-  static PLDHashNumber HashKey(const URIPrincipalAndCORSModeHashKey* aKey) {
+  static const URIAndPrincipalHashKey*
+  KeyToPointer(URIAndPrincipalHashKey* aKey) { return aKey; }
+  static PLDHashNumber HashKey(const URIAndPrincipalHashKey* aKey) {
     return nsURIHashKey::HashKey(aKey->mKey);
   }
 
-  enum { ALLOW_MEMMOVE = true };
+  enum { ALLOW_MEMMOVE = PR_TRUE };
 
 protected:
   nsCOMPtr<nsIPrincipal> mPrincipal;
-  CORSMode mCORSMode;
 };
 
 
@@ -117,7 +138,7 @@ enum StyleSheetState {
   eSheetComplete
 };
 
-class Loader MOZ_FINAL {
+class Loader {
 public:
   Loader();
   Loader(nsIDocument*);
@@ -158,7 +179,7 @@ public:
 
   nsresult LoadInlineStyle(nsIContent* aElement,
                            const nsAString& aBuffer,
-                           uint32_t aLineNumber,
+                           PRUint32 aLineNumber,
                            const nsAString& aTitle,
                            const nsAString& aMedia,
                            nsICSSLoaderObserver* aObserver,
@@ -184,13 +205,11 @@ public:
 
 
 
-
   nsresult LoadStyleLink(nsIContent* aElement,
                          nsIURI* aURL,
                          const nsAString& aTitle,
                          const nsAString& aMedia,
                          bool aHasAlternateRel,
-                         CORSMode aCORSMode,
                          nsICSSLoaderObserver* aObserver,
                          bool* aIsAlternate);
 
@@ -250,7 +269,7 @@ public:
 
 
   nsresult LoadSheetSync(nsIURI* aURL, nsCSSStyleSheet** aSheet) {
-    return LoadSheetSync(aURL, false, false, aSheet);
+    return LoadSheetSync(aURL, PR_FALSE, PR_FALSE, aSheet);
   }
 
   
@@ -286,8 +305,7 @@ public:
   nsresult LoadSheet(nsIURI* aURL,
                      nsIPrincipal* aOriginPrincipal,
                      const nsCString& aCharset,
-                     nsICSSLoaderObserver* aObserver,
-                     CORSMode aCORSMode = CORS_NONE);
+                     nsICSSLoaderObserver* aObserver);
 
   
 
@@ -366,18 +384,14 @@ private:
   
   
   
-  
   nsresult CreateSheet(nsIURI* aURI,
                        nsIContent* aLinkingContent,
                        nsIPrincipal* aLoaderPrincipal,
-                       CORSMode aCORSMode,
                        bool aSyncLoad,
-                       bool aHasAlternateRel,
-                       const nsAString& aTitle,
                        StyleSheetState& aSheetState,
-                       bool *aIsAlternate,
                        nsCSSStyleSheet** aSheet);
 
+  
   
   
   
@@ -385,7 +399,8 @@ private:
                         const nsAString& aTitle,
                         const nsAString& aMediaString,
                         nsMediaList* aMediaList,
-                        bool isAlternate);
+                        bool aHasAlternateRel = false,
+                        bool *aIsAlternate = nsnull);
 
   nsresult InsertSheetInDoc(nsCSSStyleSheet* aSheet,
                             nsIContent* aLinkingContent,
@@ -401,8 +416,7 @@ private:
                                         nsIPrincipal* aOriginPrincipal,
                                         const nsCString& aCharset,
                                         nsCSSStyleSheet** aSheet,
-                                        nsICSSLoaderObserver* aObserver,
-                                        CORSMode aCORSMode = CORS_NONE);
+                                        nsICSSLoaderObserver* aObserver);
 
   
   
@@ -445,11 +459,11 @@ private:
   void DoSheetComplete(SheetLoadData* aLoadData, nsresult aStatus,
                        LoadDataArray& aDatasToNotify);
 
-  nsRefPtrHashtable<URIPrincipalAndCORSModeHashKey, nsCSSStyleSheet>
+  nsRefPtrHashtable<URIAndPrincipalHashKey, nsCSSStyleSheet>
                     mCompleteSheets;
-  nsDataHashtable<URIPrincipalAndCORSModeHashKey, SheetLoadData*>
+  nsDataHashtable<URIAndPrincipalHashKey, SheetLoadData*>
                     mLoadingDatas; 
-  nsDataHashtable<URIPrincipalAndCORSModeHashKey, SheetLoadData*>
+  nsDataHashtable<URIAndPrincipalHashKey, SheetLoadData*>
                     mPendingDatas; 
 
   
@@ -475,7 +489,7 @@ private:
   
   
   
-  uint32_t          mDatasToNotifyOn;
+  PRUint32          mDatasToNotifyOn;
 
   nsCompatibility   mCompatMode;
   nsString          mPreferredSheet;  

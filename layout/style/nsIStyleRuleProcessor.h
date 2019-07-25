@@ -9,6 +9,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIStyleRuleProcessor_h___
 #define nsIStyleRuleProcessor_h___
 
@@ -30,8 +63,8 @@ class nsPresContext;
 
 
 #define NS_ISTYLE_RULE_PROCESSOR_IID     \
-{ 0xc1d6001e, 0x4fcb, 0x4c40, \
-  {0xbc, 0xe1, 0x5e, 0xba, 0x80, 0xbf, 0xd8, 0xf3} }
+{ 0x32612c0e, 0x3d34, 0x4a6f, \
+  {0x89, 0xd9, 0x46, 0x4f, 0x68, 0x11, 0xac, 0x13} }
 
 
 
@@ -126,8 +159,7 @@ public:
 
 
 
-  virtual size_t SizeOfExcludingThis(nsMallocSizeOfFun mallocSizeOf) const = 0;
-  virtual size_t SizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf) const = 0;
+  virtual PRInt64 SizeOf() const = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIStyleRuleProcessor,

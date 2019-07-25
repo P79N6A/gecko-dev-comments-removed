@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsFormControlFrame_h___
 #define nsFormControlFrame_h___
 
@@ -25,9 +57,7 @@ public:
 
   nsFormControlFrame(nsStyleContext*);
 
-  virtual nsIAtom* GetType() const;
-
-  virtual bool IsFrameOfType(uint32_t aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     return nsLeafFrame::IsFrameOfType(aFlags &
       ~(nsIFrame::eReplaced | nsIFrame::eReplacedContainsBlock));

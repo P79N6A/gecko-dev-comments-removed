@@ -3,6 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsScriptSecurityManager_h__
 #define nsScriptSecurityManager_h__
 
@@ -20,8 +56,6 @@
 #include "pldhash.h"
 #include "plstr.h"
 #include "nsIScriptExternalNameSet.h"
-
-#include "mozilla/StandardInteger.h"
 
 class nsIDocShell;
 class nsString;
@@ -95,12 +129,12 @@ public:
 
     static PLDHashNumber HashKey(KeyTypePointer aKey)
     {
-        uint32_t hash;
+        PRUint32 hash;
         const_cast<nsIPrincipal*>(aKey)->GetHashValue(&hash);
         return PLDHashNumber(hash);
     }
 
-    enum { ALLOW_MEMMOVE = true };
+    enum { ALLOW_MEMMOVE = PR_TRUE };
 
 private:
     nsCOMPtr<nsIPrincipal> mKey;
@@ -113,8 +147,8 @@ private:
 
 union SecurityLevel
 {
-    intptr_t   level;
-    char*      capability;
+    PRWord   level;
+    char*    capability;
 };
 
 
@@ -154,7 +188,7 @@ InitPropertyPolicyEntry(PLDHashTable *table,
     pp->key = (JSString *)key;
     pp->mGet.level = SCRIPT_SECURITY_UNDEFINED_ACCESS;
     pp->mSet.level = SCRIPT_SECURITY_UNDEFINED_ACCESS;
-    return true;
+    return PR_TRUE;
 }
 
 static void
@@ -184,7 +218,7 @@ ClearClassPolicyEntry(PLDHashTable *table, PLDHashEntryHdr *entry)
     if (cp->key)
     {
         PL_strfree(cp->key);
-        cp->key = nullptr;
+        cp->key = nsnull;
     }
     PL_DHashTableDestroy(cp->mPolicy);
 }
@@ -214,25 +248,25 @@ InitClassPolicyEntry(PLDHashTable *table,
     };
 
     ClassPolicy* cp = (ClassPolicy*)entry;
-    cp->mDomainWeAreWildcardFor = nullptr;
+    cp->mDomainWeAreWildcardFor = nsnull;
     cp->key = PL_strdup((const char*)key);
     if (!cp->key)
-        return false;
-    cp->mPolicy = PL_NewDHashTable(&classPolicyOps, nullptr,
+        return PR_FALSE;
+    cp->mPolicy = PL_NewDHashTable(&classPolicyOps, nsnull,
                                    sizeof(PropertyPolicy), 16);
     if (!cp->mPolicy) {
         PL_strfree(cp->key);
-        cp->key = nullptr;
-        return false;
+        cp->key = nsnull;
+        return PR_FALSE;
     }
-    return true;
+    return PR_TRUE;
 }
 
 
 class DomainPolicy : public PLDHashTable
 {
 public:
-    DomainPolicy() : mWildcardPolicy(nullptr),
+    DomainPolicy() : mWildcardPolicy(nsnull),
                      mRefCount(0)
     {
         mGeneration = sGeneration;
@@ -258,7 +292,7 @@ public:
             InitClassPolicyEntry
         };
 
-        return PL_DHashTableInit(this, &domainPolicyOps, nullptr,
+        return PL_DHashTableInit(this, &domainPolicyOps, nsnull,
                                  sizeof(ClassPolicy), 16);
     }
 
@@ -298,12 +332,12 @@ public:
     ClassPolicy* mWildcardPolicy;
 
 private:
-    uint32_t mRefCount;
-    uint32_t mGeneration;
-    static uint32_t sGeneration;
+    PRUint32 mRefCount;
+    PRUint32 mGeneration;
+    static PRUint32 sGeneration;
     
 #ifdef DEBUG_CAPS_DomainPolicyLifeCycle
-    static uint32_t sObjects;
+    static PRUint32 sObjects;
     static void _printPopulationInfo();
 #endif
 
@@ -365,7 +399,7 @@ public:
 
 
     static bool SecurityCompareURIs(nsIURI* aSourceURI, nsIURI* aTargetURI);
-    static uint32_t SecurityHashURI(nsIURI* aURI);
+    static PRUint32 SecurityHashURI(nsIURI* aURI);
 
     static nsresult 
     ReportError(JSContext* cx, const nsAString& messageTag,
@@ -374,7 +408,7 @@ public:
     static nsresult
     CheckSameOriginPrincipal(nsIPrincipal* aSubject,
                              nsIPrincipal* aObject);
-    static uint32_t
+    static PRUint32
     HashPrincipalByOrigin(nsIPrincipal* aPrincipal);
 
     static bool
@@ -390,21 +424,22 @@ private:
     virtual ~nsScriptSecurityManager();
 
     static JSBool
-    CheckObjectAccess(JSContext *cx, JSHandleObject obj,
-                      JSHandleId id, JSAccessMode mode,
-                      JSMutableHandleValue vp);
-    
+    CheckObjectAccess(JSContext *cx, JSObject *obj,
+                      jsid id, JSAccessMode mode,
+                      jsval *vp);
+
     
     static JSBool
     ContentSecurityPolicyPermitsJSAction(JSContext *cx);
 
     
     
-    static nsIPrincipal* doGetObjectPrincipal(JSObject *obj);
-#ifdef DEBUG
     static nsIPrincipal*
-    old_doGetObjectPrincipal(JSObject *obj, bool aAllowShortCircuit = true);
+    doGetObjectPrincipal(JSObject *obj
+#ifdef DEBUG
+                         , bool aAllowShortCircuit = true
 #endif
+                         );
 
     
     
@@ -412,10 +447,10 @@ private:
     doGetSubjectPrincipal(nsresult* rv);
     
     nsresult
-    CheckPropertyAccessImpl(uint32_t aAction,
+    CheckPropertyAccessImpl(PRUint32 aAction,
                             nsAXPCNativeCallContext* aCallContext,
                             JSContext* cx, JSObject* aJSObject,
-                            nsISupports* aObj,
+                            nsISupports* aObj, nsIURI* aTargetURI,
                             nsIClassInfo* aClassInfo,
                             const char* aClassName, jsid aProperty,
                             void** aCachedClassPolicy);
@@ -423,23 +458,17 @@ private:
     nsresult
     CheckSameOriginDOMProp(nsIPrincipal* aSubject, 
                            nsIPrincipal* aObject,
-                           uint32_t aAction);
+                           PRUint32 aAction);
 
     nsresult
     LookupPolicy(nsIPrincipal* principal,
                  ClassInfoData& aClassData, jsid aProperty,
-                 uint32_t aAction,
+                 PRUint32 aAction,
                  ClassPolicy** aCachedClassPolicy,
                  SecurityLevel* result);
 
     nsresult
-    GetCodebasePrincipalInternal(nsIURI* aURI, uint32_t aAppId,
-                                 bool aInMozBrowser,
-                                 nsIPrincipal** result);
-
-    nsresult
-    CreateCodebasePrincipal(nsIURI* aURI, uint32_t aAppId, bool aInMozBrowser,
-                            nsIPrincipal** result);
+    CreateCodebasePrincipal(nsIURI* aURI, nsIPrincipal** result);
 
     
     
@@ -469,7 +498,7 @@ private:
     
     
     static nsIPrincipal*
-    GetScriptPrincipal(JSScript* script, nsresult* rv);
+    GetScriptPrincipal(JSContext* cx, JSScript* script, nsresult* rv);
 
     
     
@@ -489,8 +518,15 @@ private:
                          JSStackFrame** frameResult,
                          nsresult* rv);
 
+    static bool
+    CheckConfirmDialog(JSContext* cx, nsIPrincipal* aPrincipal,
+                       const char* aCapability, bool *checkValue);
+
     static void
     FormatCapabilityString(nsAString& aCapability);
+
+    nsresult
+    SavePrincipal(nsIPrincipal* aToSave);
 
     
 
@@ -549,12 +585,23 @@ private:
                      DomainPolicy* aDomainPolicy);
 
     nsresult
-    InitPrincipals(uint32_t prefCount, const char** prefNames);
+    InitPrincipals(PRUint32 prefCount, const char** prefNames);
 
 #ifdef DEBUG_CAPS_HACKER
     void
     PrintPolicyDB();
 #endif
+
+    struct ContextPrincipal {
+        ContextPrincipal(ContextPrincipal *next, JSContext *cx,
+                         JSStackFrame *fp, nsIPrincipal *principal)
+            : mNext(next), mCx(cx), mFp(fp), mPrincipal(principal) {}
+
+        ContextPrincipal *mNext;
+        JSContext *mCx;
+        JSStackFrame *mFp;
+        nsCOMPtr<nsIPrincipal> mPrincipal;
+    };
 
     
     static jsid sEnabledID;
@@ -568,6 +615,7 @@ private:
 
     nsCOMPtr<nsIPrincipal> mSystemPrincipal;
     nsCOMPtr<nsIPrincipal> mSystemCertificate;
+    ContextPrincipal *mContextPrincipals;
     nsInterfaceHashtable<PrincipalKey, nsIPrincipal> mPrincipals;
     bool mPrefInitialized;
     bool mIsJavaScriptEnabled;
@@ -598,14 +646,5 @@ public:
 
     NS_IMETHOD InitializeNameSet(nsIScriptContext* aScriptContext);
 };
-
-namespace mozilla {
-
-void
-GetExtendedOrigin(nsIURI* aURI, uint32_t aAppid,
-                  bool aInMozBrowser,
-                  nsACString& aExtendedOrigin);
-
-} 
 
 #endif 

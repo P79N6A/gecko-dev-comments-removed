@@ -3,14 +3,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef SetDocTitleTxn_h__
 #define SetDocTitleTxn_h__
 
-#include "EditTxn.h"                    
-#include "nsString.h"                   
-#include "nscore.h"                     
-
-class nsIHTMLEditor;
+#include "EditTxn.h"
+#include "nsIEditor.h"
+#include "nsIHTMLEditor.h"
+#include "nsITransaction.h"
+#include "nsCOMPtr.h"
 
 
 

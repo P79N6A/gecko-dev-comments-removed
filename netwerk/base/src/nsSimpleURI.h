@@ -3,17 +3,48 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsSimpleURI_h__
 #define nsSimpleURI_h__
 
 #include "nsIURL.h"
 #include "nsAgg.h"
 #include "nsISerializable.h"
+#include "nsIIPCSerializable.h"
 #include "nsString.h"
 #include "nsIClassInfo.h"
 #include "nsIMutable.h"
-#include "nsISizeOf.h"
-#include "nsIIPCSerializableURI.h"
 
 #define NS_THIS_SIMPLEURI_IMPLEMENTATION_CID         \
 { /* 0b9bb0c2-fee6-470b-b9b9-9fd9462b5e19 */         \
@@ -25,33 +56,22 @@
 
 class nsSimpleURI : public nsIURI,
                     public nsISerializable,
+                    public nsIIPCSerializable,
                     public nsIClassInfo,
-                    public nsIMutable,
-                    public nsISizeOf,
-                    public nsIIPCSerializableURI
+                    public nsIMutable
 {
 public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIURI
     NS_DECL_NSISERIALIZABLE
+    NS_DECL_NSIIPCSERIALIZABLE
     NS_DECL_NSICLASSINFO
     NS_DECL_NSIMUTABLE
-    NS_DECL_NSIIPCSERIALIZABLEURI
 
     
 
     nsSimpleURI();
     virtual ~nsSimpleURI();
-
-    
-    
-    
-    
-    
-    
-    
-    virtual size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
-    virtual size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
 
 protected:
     

@@ -17,6 +17,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsBoxFrame.h"
 
 class nsProgressMeterFrame : public nsBoxFrame
@@ -28,17 +60,17 @@ public:
 
   NS_IMETHOD DoLayout(nsBoxLayoutState& aBoxLayoutState);
 
-  NS_IMETHOD AttributeChanged(int32_t aNameSpaceID,
+  NS_IMETHOD AttributeChanged(PRInt32 aNameSpaceID,
                               nsIAtom* aAttribute,
-                              int32_t aModType);
+                              PRInt32 aModType);
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
   NS_IMETHOD GetFrameName(nsAString& aResult) const;
 #endif
 
 protected:
   nsProgressMeterFrame(nsIPresShell* aPresShell, nsStyleContext* aContext) :
-    nsBoxFrame(aPresShell, aContext), mNeedsReflowCallback(true) {}
+    nsBoxFrame(aPresShell, aContext), mNeedsReflowCallback(PR_TRUE) {}
   virtual ~nsProgressMeterFrame();
 
   bool mNeedsReflowCallback;

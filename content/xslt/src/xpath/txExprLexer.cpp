@@ -7,19 +7,52 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "txExprLexer.h"
 #include "nsGkAtoms.h"
 #include "nsString.h"
-#include "nsError.h"
+#include "txError.h"
 #include "txXMLUtils.h"
 
 
 
 
 txExprLexer::txExprLexer()
-  : mCurrentItem(nullptr),
-    mFirstItem(nullptr),
-    mLastItem(nullptr),
+  : mCurrentItem(nsnull),
+    mFirstItem(nsnull),
+    mLastItem(nsnull),
     mTokenCount(0)
 {
 }
@@ -36,31 +69,29 @@ txExprLexer::~txExprLexer()
     delete tok;
     tok = temp;
   }
-  mCurrentItem = nullptr;
+  mCurrentItem = nsnull;
 }
 
 Token*
 txExprLexer::nextToken()
 {
-  if (!mCurrentItem) {
-    NS_NOTREACHED("nextToken called on uninitialized lexer");
-    return nullptr;
-  }
-
-  if (mCurrentItem->mType == Token::END) {
-    
-    return mCurrentItem;
-  }
-
+  NS_ASSERTION(mCurrentItem, "nextToken called beyoned the end");
   Token* token = mCurrentItem;
   mCurrentItem = mCurrentItem->mNext;
   return token;
 }
 
 void
+txExprLexer::pushBack()
+{
+  mCurrentItem = mCurrentItem ? mCurrentItem->mPrevious : mLastItem;
+}
+
+void
 txExprLexer::addToken(Token* aToken)
 {
   if (mLastItem) {
+    aToken->mPrevious = mLastItem;
     mLastItem->mNext = aToken;
   }
   if (!mFirstItem) {
@@ -80,7 +111,7 @@ bool
 txExprLexer::nextIsOperatorToken(Token* aToken)
 {
   if (!aToken || aToken->mType == Token::NULL_TOKEN) {
-    return false;
+    return PR_FALSE;
   }
   
   return aToken->mType < Token::COMMA ||
@@ -100,17 +131,17 @@ txExprLexer::parse(const nsASingleFragmentString& aPattern)
 
   
   
-  Token nullToken(nullptr, nullptr, Token::NULL_TOKEN);
+  Token nullToken(nsnull, nsnull, Token::NULL_TOKEN);
 
   Token::Type defType;
-  Token* newToken = nullptr;
+  Token* newToken = nsnull;
   Token* prevToken = &nullToken;
   bool isToken;
 
   while (mPosition < end) {
 
     defType = Token::CNAME;
-    isToken = true;
+    isToken = PR_TRUE;
 
     if (*mPosition == DOLLAR_SIGN) {
       if (++mPosition == end || !XMLUtils::isLetter(*mPosition)) {
@@ -189,7 +220,7 @@ txExprLexer::parse(const nsASingleFragmentString& aPattern)
       case TX_CR:
       case TX_LF:
         ++mPosition;
-        isToken = false;
+        isToken = PR_FALSE;
         break;
       case S_QUOTE :
       case D_QUOTE :
@@ -231,7 +262,7 @@ txExprLexer::parse(const nsASingleFragmentString& aPattern)
         }
         prevToken->mType = Token::AXIS_IDENTIFIER;
         ++mPosition;
-        isToken = false;
+        isToken = PR_FALSE;
         break;
       case FORWARD_SLASH :
         if (++mPosition < end && *mPosition == FORWARD_SLASH) {
@@ -311,7 +342,7 @@ txExprLexer::parse(const nsASingleFragmentString& aPattern)
           else {
             prevToken->mType = Token::FUNCTION_NAME_AND_PAREN;
           }
-          isToken = false;
+          isToken = PR_FALSE;
         }
         else {
           newToken = new Token(mPosition, Token::L_PAREN);

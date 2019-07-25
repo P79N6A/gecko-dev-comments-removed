@@ -8,22 +8,56 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsAttrValue.h"
 #include "nsIAtom.h"
 #include "nsUnicharUtils.h"
 #include "mozilla/css/StyleRule.h"
 #include "mozilla/css/Declaration.h"
+#include "nsIHTMLDocument.h"
+#include "nsIDocument.h"
 #include "nsContentUtils.h"
 #include "nsReadableUtils.h"
 #include "prprf.h"
-#include "mozilla/HashFunctions.h"
 
-using namespace mozilla;
+namespace css = mozilla::css;
 
 #define MISC_STR_PTR(_cont) \
   reinterpret_cast<void*>((_cont)->mStringBits & NS_ATTRVALUE_POINTERVALUE_MASK)
 
-nsTArray<const nsAttrValue::EnumTable*>* nsAttrValue::sEnumTableArray = nullptr;
+nsTArray<const nsAttrValue::EnumTable*>* nsAttrValue::sEnumTableArray = nsnull;
 
 nsAttrValue::nsAttrValue()
     : mBits(0)
@@ -37,12 +71,6 @@ nsAttrValue::nsAttrValue(const nsAttrValue& aOther)
 }
 
 nsAttrValue::nsAttrValue(const nsAString& aValue)
-    : mBits(0)
-{
-  SetTo(aValue);
-}
-
-nsAttrValue::nsAttrValue(nsIAtom* aValue)
     : mBits(0)
 {
   SetTo(aValue);
@@ -82,7 +110,7 @@ void
 nsAttrValue::Shutdown()
 {
   delete sEnumTableArray;
-  sEnumTableArray = nullptr;
+  sEnumTableArray = nsnull;
 }
 
 nsAttrValue::ValueType
@@ -99,7 +127,7 @@ nsAttrValue::Type() const
     }
     default:
     {
-      return static_cast<ValueType>(static_cast<uint16_t>(BaseType()));
+      return static_cast<ValueType>(static_cast<PRUint16>(BaseType()));
     }
   }
 }
@@ -143,10 +171,6 @@ nsAttrValue::Reset()
 void
 nsAttrValue::SetTo(const nsAttrValue& aOther)
 {
-  if (this == &aOther) {
-    return;
-  }
-
   switch (aOther.BaseType()) {
     case eStringBase:
     {
@@ -210,16 +234,6 @@ nsAttrValue::SetTo(const nsAttrValue& aOther)
       NS_ADDREF(cont->mCSSStyleRule = otherCont->mCSSStyleRule);
       break;
     }
-    case eURL:
-    {
-      NS_ADDREF(cont->mURL = otherCont->mURL);
-      break;
-    }
-    case eImage:
-    {
-      NS_ADDREF(cont->mImage = otherCont->mImage);
-      break;
-    }
     case eAtomArray:
     {
       if (!EnsureEmptyAtomArray() ||
@@ -242,13 +256,7 @@ nsAttrValue::SetTo(const nsAttrValue& aOther)
     }
     default:
     {
-      if (IsSVGType(otherCont->mType)) {
-        
-        
-        cont->mSVGAngle = otherCont->mSVGAngle;
-      } else {
-        NS_NOTREACHED("unknown type stored in MiscContainer");
-      }
+      NS_NOTREACHED("unknown type stored in MiscContainer");
       break;
     }
   }
@@ -279,38 +287,10 @@ nsAttrValue::SetTo(const nsAString& aValue)
 }
 
 void
-nsAttrValue::SetTo(nsIAtom* aValue)
+nsAttrValue::SetTo(PRInt16 aInt)
 {
   ResetIfSet();
-  if (aValue) {
-    NS_ADDREF(aValue);
-    SetPtrValueAndType(aValue, eAtomBase);
-  }
-}
-
-void
-nsAttrValue::SetTo(int16_t aInt)
-{
-  ResetIfSet();
-  SetIntValueAndType(aInt, eInteger, nullptr);
-}
-
-void
-nsAttrValue::SetTo(int32_t aInt, const nsAString* aSerialized)
-{
-  ResetIfSet();
-  SetIntValueAndType(aInt, eInteger, aSerialized);
-}
-
-void
-nsAttrValue::SetTo(double aValue, const nsAString* aSerialized)
-{
-  if (EnsureEmptyMiscContainer()) {
-    MiscContainer* cont = GetMiscContainer();
-    cont->mDoubleValue = aValue;
-    cont->mType = eDoubleValue;
-    SetMiscAtomOrString(aSerialized);
-  }
+  SetIntValueAndType(aInt, eInteger, nsnull);
 }
 
 void
@@ -320,17 +300,6 @@ nsAttrValue::SetTo(css::StyleRule* aValue, const nsAString* aSerialized)
     MiscContainer* cont = GetMiscContainer();
     NS_ADDREF(cont->mCSSStyleRule = aValue);
     cont->mType = eCSSStyleRule;
-    SetMiscAtomOrString(aSerialized);
-  }
-}
-
-void
-nsAttrValue::SetTo(css::URLValue* aValue, const nsAString* aSerialized)
-{
-  if (EnsureEmptyMiscContainer()) {
-    MiscContainer* cont = GetMiscContainer();
-    NS_ADDREF(cont->mURL = aValue);
-    cont->mType = eURL;
     SetMiscAtomOrString(aSerialized);
   }
 }
@@ -346,128 +315,6 @@ nsAttrValue::SetTo(const nsIntMargin& aValue)
 }
 
 void
-nsAttrValue::SetToSerialized(const nsAttrValue& aOther)
-{
-  if (aOther.Type() != nsAttrValue::eString &&
-      aOther.Type() != nsAttrValue::eAtom) {
-    nsAutoString val;
-    aOther.ToString(val);
-    SetTo(val);
-  } else {
-    SetTo(aOther);
-  }
-}
-
-void
-nsAttrValue::SetTo(const nsSVGAngle& aValue, const nsAString* aSerialized)
-{
-  SetSVGType(eSVGAngle, &aValue, aSerialized);
-}
-
-void
-nsAttrValue::SetTo(const nsSVGIntegerPair& aValue, const nsAString* aSerialized)
-{
-  SetSVGType(eSVGIntegerPair, &aValue, aSerialized);
-}
-
-void
-nsAttrValue::SetTo(const nsSVGLength2& aValue, const nsAString* aSerialized)
-{
-  SetSVGType(eSVGLength, &aValue, aSerialized);
-}
-
-void
-nsAttrValue::SetTo(const SVGLengthList& aValue,
-                   const nsAString* aSerialized)
-{
-  
-  
-  if (aSerialized && aSerialized->IsEmpty()) {
-    aSerialized = nullptr;
-  }
-  SetSVGType(eSVGLengthList, &aValue, aSerialized);
-}
-
-void
-nsAttrValue::SetTo(const SVGNumberList& aValue,
-                   const nsAString* aSerialized)
-{
-  
-  
-  if (aSerialized && aSerialized->IsEmpty()) {
-    aSerialized = nullptr;
-  }
-  SetSVGType(eSVGNumberList, &aValue, aSerialized);
-}
-
-void
-nsAttrValue::SetTo(const nsSVGNumberPair& aValue, const nsAString* aSerialized)
-{
-  SetSVGType(eSVGNumberPair, &aValue, aSerialized);
-}
-
-void
-nsAttrValue::SetTo(const SVGPathData& aValue,
-                   const nsAString* aSerialized)
-{
-  
-  
-  if (aSerialized && aSerialized->IsEmpty()) {
-    aSerialized = nullptr;
-  }
-  SetSVGType(eSVGPathData, &aValue, aSerialized);
-}
-
-void
-nsAttrValue::SetTo(const SVGPointList& aValue,
-                   const nsAString* aSerialized)
-{
-  
-  
-  if (aSerialized && aSerialized->IsEmpty()) {
-    aSerialized = nullptr;
-  }
-  SetSVGType(eSVGPointList, &aValue, aSerialized);
-}
-
-void
-nsAttrValue::SetTo(const SVGAnimatedPreserveAspectRatio& aValue,
-                   const nsAString* aSerialized)
-{
-  SetSVGType(eSVGPreserveAspectRatio, &aValue, aSerialized);
-}
-
-void
-nsAttrValue::SetTo(const SVGStringList& aValue,
-                   const nsAString* aSerialized)
-{
-  
-  
-  if (aSerialized && aSerialized->IsEmpty()) {
-    aSerialized = nullptr;
-  }
-  SetSVGType(eSVGStringList, &aValue, aSerialized);
-}
-
-void
-nsAttrValue::SetTo(const SVGTransformList& aValue,
-                   const nsAString* aSerialized)
-{
-  
-  
-  if (aSerialized && aSerialized->IsEmpty()) {
-    aSerialized = nullptr;
-  }
-  SetSVGType(eSVGTransformList, &aValue, aSerialized);
-}
-
-void
-nsAttrValue::SetTo(const nsSVGViewBox& aValue, const nsAString* aSerialized)
-{
-  SetSVGType(eSVGViewBox, &aValue, aSerialized);
-}
-
-void
 nsAttrValue::SwapValueWith(nsAttrValue& aOther)
 {
   PtrBits tmp = aOther.mBits;
@@ -478,7 +325,7 @@ nsAttrValue::SwapValueWith(nsAttrValue& aOther)
 void
 nsAttrValue::ToString(nsAString& aResult) const
 {
-  MiscContainer* cont = nullptr;
+  MiscContainer* cont = nsnull;
   if (BaseType() == eOtherBase) {
     cont = GetMiscContainer();
     void* ptr = MISC_STR_PTR(cont);
@@ -535,7 +382,7 @@ nsAttrValue::ToString(nsAString& aResult) const
 #endif
     case eEnum:
     {
-      GetEnumString(aResult, false);
+      GetEnumString(aResult, PR_FALSE);
       break;
     }
     case ePercent:
@@ -564,101 +411,11 @@ nsAttrValue::ToString(nsAString& aResult) const
       aResult.AppendFloat(GetDoubleValue());
       break;
     }
-    case eSVGAngle:
-    {
-      SVGAttrValueWrapper::ToString(GetMiscContainer()->mSVGAngle, aResult);
-      break;
-    }
-    case eSVGIntegerPair:
-    {
-      SVGAttrValueWrapper::ToString(GetMiscContainer()->mSVGIntegerPair,
-                                    aResult);
-      break;
-    }
-    case eSVGLength:
-    {
-      SVGAttrValueWrapper::ToString(GetMiscContainer()->mSVGLength, aResult);
-      break;
-    }
-    case eSVGLengthList:
-    {
-      SVGAttrValueWrapper::ToString(GetMiscContainer()->mSVGLengthList,
-                                    aResult);
-      break;
-    }
-    case eSVGNumberList:
-    {
-      SVGAttrValueWrapper::ToString(GetMiscContainer()->mSVGNumberList,
-                                    aResult);
-      break;
-    }
-    case eSVGNumberPair:
-    {
-      SVGAttrValueWrapper::ToString(GetMiscContainer()->mSVGNumberPair,
-                                    aResult);
-      break;
-    }
-    case eSVGPathData:
-    {
-      SVGAttrValueWrapper::ToString(GetMiscContainer()->mSVGPathData, aResult);
-      break;
-    }
-    case eSVGPointList:
-    {
-      SVGAttrValueWrapper::ToString(GetMiscContainer()->mSVGPointList, aResult);
-      break;
-    }
-    case eSVGPreserveAspectRatio:
-    {
-      SVGAttrValueWrapper::ToString(GetMiscContainer()->mSVGPreserveAspectRatio,
-                                    aResult);
-      break;
-    }
-    case eSVGStringList:
-    {
-      SVGAttrValueWrapper::ToString(GetMiscContainer()->mSVGStringList,
-                                    aResult);
-      break;
-    }
-    case eSVGTransformList:
-    {
-      SVGAttrValueWrapper::ToString(GetMiscContainer()->mSVGTransformList,
-                                    aResult);
-      break;
-    }
-    case eSVGViewBox:
-    {
-      SVGAttrValueWrapper::ToString(GetMiscContainer()->mSVGViewBox, aResult);
-      break;
-    }
     default:
     {
       aResult.Truncate();
       break;
     }
-  }
-}
-
-already_AddRefed<nsIAtom>
-nsAttrValue::GetAsAtom() const
-{
-  switch (Type()) {
-    case eString:
-      return do_GetAtom(GetStringValue());
-
-    case eAtom:
-      {
-        nsIAtom* atom = GetAtomValue();
-        NS_ADDREF(atom);
-        return atom;
-      }
-
-    default:
-      {
-        nsAutoString val;
-        ToString(val);
-        return do_GetAtom(val);
-      }
   }
 }
 
@@ -676,11 +433,11 @@ nsAttrValue::GetColorValue(nscolor& aColor) const
   if (Type() != eColor) {
     
     NS_ASSERTION(Type() == eString, "unexpected type for color-valued attr");
-    return false;
+    return PR_FALSE;
   }
 
   aColor = GetMiscContainer()->mColor;
-  return true;
+  return PR_TRUE;
 }
 
 void
@@ -688,10 +445,10 @@ nsAttrValue::GetEnumString(nsAString& aResult, bool aRealTag) const
 {
   NS_PRECONDITION(Type() == eEnum, "wrong type");
 
-  uint32_t allEnumBits =
-    (BaseType() == eIntegerBase) ? static_cast<uint32_t>(GetIntInternal())
+  PRUint32 allEnumBits =
+    (BaseType() == eIntegerBase) ? static_cast<PRUint32>(GetIntInternal())
                                    : GetMiscContainer()->mEnumValue;
-  int16_t val = allEnumBits >> NS_ATTRVALUE_ENUMTABLEINDEX_BITS;
+  PRInt16 val = allEnumBits >> NS_ATTRVALUE_ENUMTABLEINDEX_BITS;
   const EnumTable* table = sEnumTableArray->
     ElementAt(allEnumBits & NS_ATTRVALUE_ENUMTABLEINDEX_MASK);
 
@@ -699,7 +456,7 @@ nsAttrValue::GetEnumString(nsAString& aResult, bool aRealTag) const
     if (table->value == val) {
       aResult.AssignASCII(table->tag);
       if (!aRealTag && allEnumBits & NS_ATTRVALUE_ENUMTABLE_VALUE_NEEDS_TO_UPPER) {
-        nsContentUtils::ASCIIToUpper(aResult);
+        ToUpperCase(aResult);
       }
       return;
     }
@@ -709,7 +466,7 @@ nsAttrValue::GetEnumString(nsAString& aResult, bool aRealTag) const
   NS_NOTREACHED("couldn't find value in EnumTable");
 }
 
-uint32_t
+PRUint32
 nsAttrValue::GetAtomCount() const
 {
   ValueType type = Type();
@@ -726,10 +483,10 @@ nsAttrValue::GetAtomCount() const
 }
 
 nsIAtom*
-nsAttrValue::AtomAt(int32_t aIndex) const
+nsAttrValue::AtomAt(PRInt32 aIndex) const
 {
   NS_PRECONDITION(aIndex >= 0, "Index must not be negative");
-  NS_PRECONDITION(GetAtomCount() > uint32_t(aIndex), "aIndex out of range");
+  NS_PRECONDITION(GetAtomCount() > PRUint32(aIndex), "aIndex out of range");
   
   if (BaseType() == eAtomBase) {
     return GetAtomValue();
@@ -740,7 +497,7 @@ nsAttrValue::AtomAt(int32_t aIndex) const
   return GetAtomArrayValue()->ElementAt(aIndex);
 }
 
-uint32_t
+PRUint32
 nsAttrValue::HashValue() const
 {
   switch(BaseType()) {
@@ -748,8 +505,8 @@ nsAttrValue::HashValue() const
     {
       nsStringBuffer* str = static_cast<nsStringBuffer*>(GetPtr());
       if (str) {
-        uint32_t len = str->StorageSize()/sizeof(PRUnichar) - 1;
-        return HashString(static_cast<PRUnichar*>(str->Data()), len);
+        PRUint32 len = str->StorageSize()/sizeof(PRUnichar) - 1;
+        return nsCRT::HashCode(static_cast<PRUnichar*>(str->Data()), len);
       }
 
       return 0;
@@ -795,25 +552,16 @@ nsAttrValue::HashValue() const
     {
       return NS_PTR_TO_INT32(cont->mCSSStyleRule);
     }
-    
-    
-    case eURL:
-    case eImage:
-    {
-      nsString str;
-      ToString(str);
-      return HashString(str);
-    }
     case eAtomArray:
     {
-      uint32_t hash = 0;
-      uint32_t count = cont->mAtomArray->Length();
+      PRUint32 retval = 0;
+      PRUint32 count = cont->mAtomArray->Length();
       for (nsCOMPtr<nsIAtom> *cur = cont->mAtomArray->Elements(),
                              *end = cur + count;
            cur != end; ++cur) {
-        hash = AddToHash(hash, cur->get());
+        retval ^= NS_PTR_TO_INT32(cur->get());
       }
-      return hash;
+      return retval;
     }
     case eDoubleValue:
     {
@@ -826,10 +574,6 @@ nsAttrValue::HashValue() const
     }
     default:
     {
-      if (IsSVGType(cont->mType)) {
-        
-        return NS_PTR_TO_INT32(cont->mSVGAngle);
-      }
       NS_NOTREACHED("unknown type stored in MiscContainer");
       return 0;
     }
@@ -840,7 +584,7 @@ bool
 nsAttrValue::Equals(const nsAttrValue& aOther) const
 {
   if (BaseType() != aOther.BaseType()) {
-    return false;
+    return PR_FALSE;
   }
 
   switch(BaseType()) {
@@ -862,7 +606,7 @@ nsAttrValue::Equals(const nsAttrValue& aOther) const
   MiscContainer* thisCont = GetMiscContainer();
   MiscContainer* otherCont = aOther.GetMiscContainer();
   if (thisCont->mType != otherCont->mType) {
-    return false;
+    return PR_FALSE;
   }
 
   bool needsStringComparison = false;
@@ -871,28 +615,28 @@ nsAttrValue::Equals(const nsAttrValue& aOther) const
     case eInteger:
     {
       if (thisCont->mInteger == otherCont->mInteger) {
-        needsStringComparison = true;
+        needsStringComparison = PR_TRUE;
       }
       break;
     }
     case eEnum:
     {
       if (thisCont->mEnumValue == otherCont->mEnumValue) {
-        needsStringComparison = true;
+        needsStringComparison = PR_TRUE;
       }
       break;
     }
     case ePercent:
     {
       if (thisCont->mPercent == otherCont->mPercent) {
-        needsStringComparison = true;
+        needsStringComparison = PR_TRUE;
       }
       break;
     }
     case eColor:
     {
       if (thisCont->mColor == otherCont->mColor) {
-        needsStringComparison = true;
+        needsStringComparison = PR_TRUE;
       }
       break;
     }
@@ -900,24 +644,16 @@ nsAttrValue::Equals(const nsAttrValue& aOther) const
     {
       return thisCont->mCSSStyleRule == otherCont->mCSSStyleRule;
     }
-    case eURL:
-    {
-      return thisCont->mURL == otherCont->mURL;
-    }
-    case eImage:
-    {
-      return thisCont->mImage == otherCont->mImage;
-    }
     case eAtomArray:
     {
       
       
 
       if (!(*thisCont->mAtomArray == *otherCont->mAtomArray)) {
-        return false;
+        return PR_FALSE;
       }
 
-      needsStringComparison = true;
+      needsStringComparison = PR_TRUE;
       break;
     }
     case eDoubleValue:
@@ -930,23 +666,13 @@ nsAttrValue::Equals(const nsAttrValue& aOther) const
     }
     default:
     {
-      if (IsSVGType(thisCont->mType)) {
-        
-        
-        
-        
-        
-        NS_ABORT_IF_FALSE(false, "Comparing nsAttrValues that point to SVG "
-          "data");
-        return false;
-      }
       NS_NOTREACHED("unknown type stored in MiscContainer");
-      return false;
+      return PR_FALSE;
     }
   }
   if (needsStringComparison) {
     if (thisCont->mStringBits == otherCont->mStringBits) {
-      return true;
+      return PR_TRUE;
     }
     if ((static_cast<ValueBaseType>(thisCont->mStringBits & NS_ATTRVALUE_BASETYPE_MASK) ==
          eStringBase) &&
@@ -956,7 +682,7 @@ nsAttrValue::Equals(const nsAttrValue& aOther) const
         nsCheapString(reinterpret_cast<nsStringBuffer*>(otherCont->mStringBits)));
     }
   }
-  return false;
+  return PR_FALSE;
 }
 
 bool
@@ -1026,36 +752,6 @@ nsAttrValue::Equals(nsIAtom* aValue, nsCaseTreatment aCaseSensitive) const
 }
 
 bool
-nsAttrValue::EqualsAsStrings(const nsAttrValue& aOther) const
-{
-  if (Type() == aOther.Type()) {
-    return Equals(aOther);
-  }
-
-  
-  
-  
-  bool thisIsString = (BaseType() == eStringBase || BaseType() == eAtomBase);
-  const nsAttrValue& lhs = thisIsString ? *this : aOther;
-  const nsAttrValue& rhs = thisIsString ? aOther : *this;
-
-  switch (rhs.BaseType()) {
-    case eAtomBase:
-      return lhs.Equals(rhs.GetAtomValue(), eCaseMatters);
-
-    case eStringBase:
-      return lhs.Equals(rhs.GetStringValue(), eCaseMatters);
-
-    default:
-    {
-      nsAutoString val;
-      rhs.ToString(val);
-      return lhs.Equals(val, eCaseMatters);
-    }
-  }
-}
-
-bool
 nsAttrValue::Contains(nsIAtom* aValue, nsCaseTreatment aCaseSensitive) const
 {
   switch (BaseType()) {
@@ -1078,7 +774,7 @@ nsAttrValue::Contains(nsIAtom* aValue, nsCaseTreatment aCaseSensitive) const
       if (Type() == eAtomArray) {
         AtomArray* array = GetAtomArrayValue();
         if (aCaseSensitive == eCaseMatters) {
-          return array->Contains(aValue);
+          return array->IndexOf(aValue) != AtomArray::NoIndex;
         }
 
         nsDependentAtomString val1(aValue);
@@ -1091,41 +787,14 @@ nsAttrValue::Contains(nsIAtom* aValue, nsCaseTreatment aCaseSensitive) const
           
           if (nsContentUtils::EqualsIgnoreASCIICase(val1,
                 nsDependentAtomString(*cur))) {
-            return true;
+            return PR_TRUE;
           }
         }
       }
     }
   }
 
-  return false;
-}
-
-struct AtomArrayStringComparator {
-  bool Equals(nsIAtom* atom, const nsAString& string) const {
-    return atom->Equals(string);
-  }
-};
-
-bool
-nsAttrValue::Contains(const nsAString& aValue) const
-{
-  switch (BaseType()) {
-    case eAtomBase:
-    {
-      nsIAtom* atom = GetAtomValue();
-      return atom->Equals(aValue);
-    }
-    default:
-    {
-      if (Type() == eAtomArray) {
-        AtomArray* array = GetAtomArrayValue();
-        return array->Contains(aValue, AtomArrayStringComparator());
-      }
-    }
-  }
-
-  return false;
+  return PR_FALSE;
 }
 
 void
@@ -1149,7 +818,7 @@ nsAttrValue::ParseAtomArray(const nsAString& aValue)
   
   
   while (iter != end && nsContentUtils::IsHTMLWhitespace(*iter)) {
-    hasSpace = true;
+    hasSpace = PR_TRUE;
     ++iter;
   }
 
@@ -1173,7 +842,7 @@ nsAttrValue::ParseAtomArray(const nsAString& aValue)
 
   
   while (iter != end && nsContentUtils::IsHTMLWhitespace(*iter)) {
-    hasSpace = true;
+    hasSpace = PR_TRUE;
     ++iter;
   }
 
@@ -1181,7 +850,7 @@ nsAttrValue::ParseAtomArray(const nsAString& aValue)
     
     
     ResetIfSet();
-    nsIAtom* atom = nullptr;
+    nsIAtom* atom = nsnull;
     classAtom.swap(atom);
     SetPtrValueAndType(atom, eAtomBase);
     return;
@@ -1226,7 +895,7 @@ nsAttrValue::ParseAtomArray(const nsAString& aValue)
 void
 nsAttrValue::ParseStringOrAtom(const nsAString& aValue)
 {
-  uint32_t len = aValue.Length();
+  PRUint32 len = aValue.Length();
   
   
   if (len && len <= NS_ATTRVALUE_MAX_STRINGLENGTH_ATOM) {
@@ -1238,7 +907,7 @@ nsAttrValue::ParseStringOrAtom(const nsAString& aValue)
 }
 
 void
-nsAttrValue::SetIntValueAndType(int32_t aValue, ValueType aType,
+nsAttrValue::SetIntValueAndType(PRInt32 aValue, ValueType aType,
                                 const nsAString* aStringValue)
 {
   if (aStringValue || aValue > NS_ATTRVALUE_INTEGERTYPE_MAXVALUE ||
@@ -1276,10 +945,10 @@ nsAttrValue::SetIntValueAndType(int32_t aValue, ValueType aType,
   }
 }
 
-int16_t
+PRInt16
 nsAttrValue::GetEnumTableIndex(const EnumTable* aTable)
 {
-  int16_t index = sEnumTableArray->IndexOf(aTable);
+  PRInt16 index = sEnumTableArray->IndexOf(aTable);
   if (index < 0) {
     index = sEnumTableArray->Length();
     NS_ASSERTION(index <= NS_ATTRVALUE_ENUMTABLEINDEX_MAXVALUE,
@@ -1290,12 +959,12 @@ nsAttrValue::GetEnumTableIndex(const EnumTable* aTable)
   return index;
 }
 
-int32_t
+PRInt32
 nsAttrValue::EnumTableEntryToValue(const EnumTable* aEnumTable,
                                    const EnumTable* aTableEntry)
 {
-  int16_t index = GetEnumTableIndex(aEnumTable);
-  int32_t value = (aTableEntry->value << NS_ATTRVALUE_ENUMTABLEINDEX_BITS) +
+  PRInt16 index = GetEnumTableIndex(aEnumTable);
+  PRInt32 value = (aTableEntry->value << NS_ATTRVALUE_ENUMTABLEINDEX_BITS) +
                   index;
   return value;
 }
@@ -1312,22 +981,22 @@ nsAttrValue::ParseEnumValue(const nsAString& aValue,
   while (tableEntry->tag) {
     if (aCaseSensitive ? aValue.EqualsASCII(tableEntry->tag) :
                          aValue.LowerCaseEqualsASCII(tableEntry->tag)) {
-      int32_t value = EnumTableEntryToValue(aTable, tableEntry);
+      PRInt32 value = EnumTableEntryToValue(aTable, tableEntry);
 
       bool equals = aCaseSensitive || aValue.EqualsASCII(tableEntry->tag);
       if (!equals) {
         nsAutoString tag;
         tag.AssignASCII(tableEntry->tag);
-        nsContentUtils::ASCIIToUpper(tag);
+        ToUpperCase(tag);
         if ((equals = tag.Equals(aValue))) {
           value |= NS_ATTRVALUE_ENUMTABLE_VALUE_NEEDS_TO_UPPER;
         }
       }
-      SetIntValueAndType(value, eEnum, equals ? nullptr : &aValue);
+      SetIntValueAndType(value, eEnum, equals ? nsnull : &aValue);
       NS_ASSERTION(GetEnumValue() == tableEntry->value,
                    "failed to store enum properly");
 
-      return true;
+      return PR_TRUE;
     }
     tableEntry++;
   }
@@ -1337,10 +1006,10 @@ nsAttrValue::ParseEnumValue(const nsAString& aValue,
                     "aDefaultValue not inside aTable?");
     SetIntValueAndType(EnumTableEntryToValue(aTable, aDefaultValue),
                        eEnum, &aValue);
-    return true;
+    return PR_TRUE;
   }
 
-  return false;
+  return PR_FALSE;
 }
 
 bool
@@ -1348,52 +1017,52 @@ nsAttrValue::ParseSpecialIntValue(const nsAString& aString)
 {
   ResetIfSet();
 
-  nsresult ec;
+  PRInt32 ec;
   bool strict;
   bool isPercent = false;
   nsAutoString tmp(aString);
-  int32_t originalVal = StringToInteger(aString, &strict, &ec, true, &isPercent);
+  PRInt32 originalVal = StringToInteger(aString, &strict, &ec, PR_TRUE, &isPercent);
 
   if (NS_FAILED(ec)) {
-    return false;
+    return PR_FALSE;
   }
 
-  int32_t val = NS_MAX(originalVal, 0);
+  PRInt32 val = NS_MAX(originalVal, 0);
 
   
   if (isPercent || tmp.RFindChar('%') >= 0) {
-    isPercent = true;
+    isPercent = PR_TRUE;
   }
 
   strict = strict && (originalVal == val);
 
   SetIntValueAndType(val,
                      isPercent ? ePercent : eInteger,
-                     strict ? nullptr : &aString);
-  return true;
+                     strict ? nsnull : &aString);
+  return PR_TRUE;
 }
 
 bool
 nsAttrValue::ParseIntWithBounds(const nsAString& aString,
-                                int32_t aMin, int32_t aMax)
+                                PRInt32 aMin, PRInt32 aMax)
 {
   NS_PRECONDITION(aMin < aMax, "bad boundaries");
 
   ResetIfSet();
 
-  nsresult ec;
+  PRInt32 ec;
   bool strict;
-  int32_t originalVal = StringToInteger(aString, &strict, &ec);
+  PRInt32 originalVal = StringToInteger(aString, &strict, &ec);
   if (NS_FAILED(ec)) {
-    return false;
+    return PR_FALSE;
   }
 
-  int32_t val = NS_MAX(originalVal, aMin);
+  PRInt32 val = NS_MAX(originalVal, aMin);
   val = NS_MIN(val, aMax);
   strict = strict && (originalVal == val);
-  SetIntValueAndType(val, eInteger, strict ? nullptr : &aString);
+  SetIntValueAndType(val, eInteger, strict ? nsnull : &aString);
 
-  return true;
+  return PR_TRUE;
 }
 
 bool
@@ -1401,16 +1070,16 @@ nsAttrValue::ParseNonNegativeIntValue(const nsAString& aString)
 {
   ResetIfSet();
 
-  nsresult ec;
+  PRInt32 ec;
   bool strict;
-  int32_t originalVal = StringToInteger(aString, &strict, &ec);
+  PRInt32 originalVal = StringToInteger(aString, &strict, &ec);
   if (NS_FAILED(ec) || originalVal < 0) {
-    return false;
+    return PR_FALSE;
   }
 
-  SetIntValueAndType(originalVal, eInteger, strict ? nullptr : &aString);
+  SetIntValueAndType(originalVal, eInteger, strict ? nsnull : &aString);
 
-  return true;
+  return PR_TRUE;
 }
 
 bool
@@ -1418,16 +1087,16 @@ nsAttrValue::ParsePositiveIntValue(const nsAString& aString)
 {
   ResetIfSet();
 
-  nsresult ec;
+  PRInt32 ec;
   bool strict;
-  int32_t originalVal = StringToInteger(aString, &strict, &ec);
+  PRInt32 originalVal = StringToInteger(aString, &strict, &ec);
   if (NS_FAILED(ec) || originalVal <= 0) {
-    return false;
+    return PR_FALSE;
   }
 
-  SetIntValueAndType(originalVal, eInteger, strict ? nullptr : &aString);
+  SetIntValueAndType(originalVal, eInteger, strict ? nsnull : &aString);
 
-  return true;
+  return PR_TRUE;
 }
 
 void
@@ -1461,9 +1130,9 @@ nsAttrValue::ParseColor(const nsAString& aString)
   
   
   nsAutoString colorStr(aString);
-  colorStr.CompressWhitespace(true, true);
+  colorStr.CompressWhitespace(PR_TRUE, PR_TRUE);
   if (colorStr.IsEmpty()) {
-    return false;
+    return PR_FALSE;
   }
 
   nscolor color;
@@ -1473,12 +1142,12 @@ nsAttrValue::ParseColor(const nsAString& aString)
     nsDependentString withoutHash(colorStr.get() + 1, colorStr.Length() - 1);
     if (NS_HexToRGB(withoutHash, &color)) {
       SetColorValue(color, aString);
-      return true;
+      return PR_TRUE;
     }
   } else {
     if (NS_ColorNameToRGB(colorStr, &color)) {
       SetColorValue(color, aString);
-      return true;
+      return PR_TRUE;
     }
   }
 
@@ -1490,20 +1159,20 @@ nsAttrValue::ParseColor(const nsAString& aString)
   
   if (NS_LooseHexToRGB(colorStr, &color)) {
     SetColorValue(color, aString);
-    return true;
+    return PR_TRUE;
   }
 
-  return false;
+  return PR_FALSE;
 }
 
 bool nsAttrValue::ParseDoubleValue(const nsAString& aString)
 {
   ResetIfSet();
 
-  nsresult ec;
+  PRInt32 ec;
   double val = PromiseFlatString(aString).ToDouble(&ec);
   if (NS_FAILED(ec)) {
-    return false;
+    return PR_FALSE;
   }
   if (EnsureEmptyMiscContainer()) {
     MiscContainer* cont = GetMiscContainer();
@@ -1511,11 +1180,11 @@ bool nsAttrValue::ParseDoubleValue(const nsAString& aString)
     cont->mType = eDoubleValue;
     nsAutoString serializedFloat;
     serializedFloat.AppendFloat(val);
-    SetMiscAtomOrString(serializedFloat.Equals(aString) ? nullptr : &aString);
-    return true;
+    SetMiscAtomOrString(serializedFloat.Equals(aString) ? nsnull : &aString);
+    return PR_TRUE;
   }
 
-  return false;
+  return PR_FALSE;
 }
 
 bool
@@ -1525,43 +1194,17 @@ nsAttrValue::ParseIntMarginValue(const nsAString& aString)
 
   nsIntMargin margins;
   if (!nsContentUtils::ParseIntMarginValue(aString, margins))
-    return false;
+    return PR_FALSE;
 
   if (EnsureEmptyMiscContainer()) {
     MiscContainer* cont = GetMiscContainer();
     cont->mIntMargin = new nsIntMargin(margins);
     cont->mType = eIntMarginValue;
     SetMiscAtomOrString(&aString);
-    return true;
+    return PR_TRUE;
   }
 
-  return false;
-}
-
-void
-nsAttrValue::LoadImage(nsIDocument* aDocument)
-{
-  NS_ASSERTION(Type() == eURL, "wrong type");
-
-#ifdef DEBUG
-  {
-    nsString val;
-    ToString(val);
-    NS_ASSERTION(!val.IsEmpty(),
-                 "How did we end up with an empty string for eURL");
-  }
-#endif
-
-  MiscContainer* cont = GetMiscContainer();
-  mozilla::css::URLValue* url = cont->mURL;
-  mozilla::css::ImageValue* image = 
-    new css::ImageValue(url->GetURI(), url->mString, url->mReferrer,
-                        url->mOriginPrincipal, aDocument);
-
-  NS_ADDREF(image);
-  cont->mImage = image;
-  NS_RELEASE(url);
-  cont->mType = eImage;
+  return PR_FALSE;
 }
 
 void
@@ -1571,7 +1214,7 @@ nsAttrValue::SetMiscAtomOrString(const nsAString* aValue)
   NS_ASSERTION(!GetMiscContainer()->mStringBits,
                "Trying to re-set atom or string!");
   if (aValue) {
-    uint32_t len = aValue->Length();
+    PRUint32 len = aValue->Length();
     
     
     
@@ -1611,22 +1254,6 @@ nsAttrValue::ResetMiscAtomOrString()
   }
 }
 
-void
-nsAttrValue::SetSVGType(ValueType aType, const void* aValue,
-                        const nsAString* aSerialized) {
-  NS_ABORT_IF_FALSE(IsSVGType(aType), "Not an SVG type");
-  if (EnsureEmptyMiscContainer()) {
-    MiscContainer* cont = GetMiscContainer();
-    
-    
-    
-    
-    cont->mSVGAngle = static_cast<const nsSVGAngle*>(aValue);
-    cont->mType = aType;
-    SetMiscAtomOrString(aSerialized);
-  }
-}
-
 bool
 nsAttrValue::EnsureEmptyMiscContainer()
 {
@@ -1638,16 +1265,6 @@ nsAttrValue::EnsureEmptyMiscContainer()
       case eCSSStyleRule:
       {
         NS_RELEASE(cont->mCSSStyleRule);
-        break;
-      }
-      case eURL:
-      {
-        NS_RELEASE(cont->mURL);
-        break;
-      }
-      case eImage:
-      {
-        NS_RELEASE(cont->mImage);
         break;
       }
       case eAtomArray:
@@ -1670,7 +1287,7 @@ nsAttrValue::EnsureEmptyMiscContainer()
     ResetIfSet();
 
     cont = new MiscContainer;
-    NS_ENSURE_TRUE(cont, false);
+    NS_ENSURE_TRUE(cont, PR_FALSE);
 
     SetPtrValueAndType(cont, eOtherBase);
   }
@@ -1679,7 +1296,7 @@ nsAttrValue::EnsureEmptyMiscContainer()
   cont->mStringBits = 0;
   cont->mColor = 0;
 
-  return true;
+  return PR_TRUE;
 }
 
 bool
@@ -1688,33 +1305,33 @@ nsAttrValue::EnsureEmptyAtomArray()
   if (Type() == eAtomArray) {
     ResetMiscAtomOrString();
     GetAtomArrayValue()->Clear();
-    return true;
+    return PR_TRUE;
   }
 
   if (!EnsureEmptyMiscContainer()) {
     
-    return false;
+    return PR_FALSE;
   }
 
   AtomArray* array = new AtomArray;
   if (!array) {
     Reset();
-    return false;
+    return PR_FALSE;
   }
 
   MiscContainer* cont = GetMiscContainer();
   cont->mAtomArray = array;
   cont->mType = eAtomArray;
 
-  return true;
+  return PR_TRUE;
 }
 
 nsStringBuffer*
 nsAttrValue::GetStringBuffer(const nsAString& aValue) const
 {
-  uint32_t len = aValue.Length();
+  PRUint32 len = aValue.Length();
   if (!len) {
-    return nullptr;
+    return nsnull;
   }
 
   nsStringBuffer* buf = nsStringBuffer::FromString(aValue);
@@ -1725,7 +1342,7 @@ nsAttrValue::GetStringBuffer(const nsAString& aValue) const
 
   buf = nsStringBuffer::Alloc((len + 1) * sizeof(PRUnichar));
   if (!buf) {
-    return nullptr;
+    return nsnull;
   }
   PRUnichar *data = static_cast<PRUnichar*>(buf->Data());
   CopyUnicodeTo(aValue, 0, data, len);
@@ -1733,9 +1350,9 @@ nsAttrValue::GetStringBuffer(const nsAString& aValue) const
   return buf;
 }
 
-int32_t
+PRInt32
 nsAttrValue::StringToInteger(const nsAString& aValue, bool* aStrict,
-                             nsresult* aErrorCode,
+                             PRInt32* aErrorCode,
                              bool aCanBePercent,
                              bool* aIsPercent) const
 {
@@ -1767,8 +1384,8 @@ nsAttrValue::StringToInteger(const nsAString& aValue, bool* aStrict,
     ++iter;
   }
 
-  int32_t value = 0;
-  int32_t pValue = 0; 
+  PRInt32 value = 0;
+  PRInt32 pValue = 0; 
   while (iter != end) {
     if (*iter >= PRUnichar('0') && *iter <= PRUnichar('9')) {
       value = (value * 10) + (*iter - PRUnichar('0'));
@@ -1805,43 +1422,52 @@ nsAttrValue::StringToInteger(const nsAString& aValue, bool* aStrict,
   return value;
 }
 
-size_t
-nsAttrValue::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+PRInt64
+nsAttrValue::SizeOf() const
 {
-  size_t n = 0;
+  PRInt64 size = sizeof(*this);
 
   switch (BaseType()) {
     case eStringBase:
     {
+      
+      
       nsStringBuffer* str = static_cast<nsStringBuffer*>(GetPtr());
-      n += str ? str->SizeOfIncludingThisIfUnshared(aMallocSizeOf) : 0;
+      size += str ? str->StorageSize() : 0;
       break;
     }
     case eOtherBase:
     {
       MiscContainer* container = GetMiscContainer();
+
       if (!container) {
         break;
       }
-      n += aMallocSizeOf(container);
+
+      size += sizeof(*container);
 
       void* otherPtr = MISC_STR_PTR(container);
       
       
       if (otherPtr &&
           static_cast<ValueBaseType>(container->mStringBits & NS_ATTRVALUE_BASETYPE_MASK) == eStringBase) {
+        
+        
         nsStringBuffer* str = static_cast<nsStringBuffer*>(otherPtr);
-        n += str ? str->SizeOfIncludingThisIfUnshared(aMallocSizeOf) : 0;
+        size += str ? str->StorageSize() : 0;
       }
 
+      
+      
       if (Type() == eCSSStyleRule && container->mCSSStyleRule) {
         
-        
-        
+        size += sizeof(*container->mCSSStyleRule);
       } else if (Type() == eAtomArray && container->mAtomArray) {
+        size += sizeof(container->mAtomArray) + sizeof(nsTArrayHeader);
+        size += container->mAtomArray->Capacity() * sizeof(nsCOMPtr<nsIAtom>);
         
-        n += container->mAtomArray->SizeOfIncludingThis(aMallocSizeOf);
       }
+
       break;
     }
     case eAtomBase:    
@@ -1849,6 +1475,6 @@ nsAttrValue::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
       break;
   }
 
-  return n;
+  return size;
 }
 

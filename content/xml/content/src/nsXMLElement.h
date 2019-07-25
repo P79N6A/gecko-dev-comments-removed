@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsXMLElement_h___
 #define nsXMLElement_h___
 
@@ -32,8 +65,6 @@ public:
 
   virtual nsXPCClassInfo* GetClassInfo();
 
-  virtual nsIDOMNode* AsDOMNode() { return this; }
-
   
   virtual nsIAtom *GetIDAttributeName() const;
   virtual nsIAtom* DoGetID() const;
@@ -41,9 +72,9 @@ public:
                               nsIContent* aBindingParent,
                               bool aCompileEventHandlers);
   virtual void UnbindFromTree(bool aDeep, bool aNullParent);
-  virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
+  virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
                              bool aNotify);
-  virtual bool ParseAttribute(int32_t aNamespaceID,
+  virtual bool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);

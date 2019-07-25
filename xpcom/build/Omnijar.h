@@ -3,15 +3,49 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_Omnijar_h
 #define mozilla_Omnijar_h
 
 #include "nscore.h"
 #include "nsCOMPtr.h"
 #include "nsString.h"
-#include "nsIFile.h"
-#include "nsZipArchive.h"
 
+class nsIFile;
+class nsZipArchive;
 class nsIURI;
 
 namespace mozilla {
@@ -59,7 +93,7 @@ IsInitialized()
 
 
 
-static void Init(nsIFile *aGrePath = nullptr, nsIFile *aAppPath = nullptr);
+static void Init(nsIFile *aGrePath = nsnull, nsIFile *aAppPath = nsnull);
 
 
 
@@ -75,8 +109,8 @@ static inline already_AddRefed<nsIFile>
 GetPath(Type aType)
 {
     NS_ABORT_IF_FALSE(IsInitialized(), "Omnijar not initialized");
-    nsCOMPtr<nsIFile> path = sPath[aType];
-    return path.forget();
+    NS_IF_ADDREF(sPath[aType]);
+    return sPath[aType];
 }
 
 
@@ -94,19 +128,18 @@ HasOmnijar(Type aType)
 
 
 
-static inline already_AddRefed<nsZipArchive>
+static inline nsZipArchive *
 GetReader(Type aType)
 {
     NS_ABORT_IF_FALSE(IsInitialized(), "Omnijar not initialized");
-    nsRefPtr<nsZipArchive> reader = sReader[aType];
-    return reader.forget();
+    return sReader[aType];
 }
 
 
 
 
 
-static already_AddRefed<nsZipArchive> GetReader(nsIFile *aPath);
+static nsZipArchive *GetReader(nsIFile *aPath);
 
 
 

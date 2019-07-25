@@ -3,10 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "SVGPathData.h"
+#include "SVGAnimatedPathSegList.h"
 #include "SVGPathSegUtils.h"
 #include "nsSVGElement.h"
-#include "nsError.h"
+#include "nsDOMError.h"
+#include "nsContentUtils.h"
 #include "nsString.h"
 #include "nsSVGUtils.h"
 #include "string.h"
@@ -17,7 +50,7 @@
 
 using namespace mozilla;
 
-static bool IsMoveto(uint16_t aSegType)
+static bool IsMoveto(PRUint16 aSegType)
 {
   return aSegType == nsIDOMSVGPathSeg::PATHSEG_MOVETO_ABS ||
          aSegType == nsIDOMSVGPathSeg::PATHSEG_MOVETO_REL;
@@ -42,7 +75,7 @@ SVGPathData::GetValueAsString(nsAString& aValue) const
   if (!Length()) {
     return;
   }
-  uint32_t i = 0;
+  PRUint32 i = 0;
   for (;;) {
     nsAutoString segAsString;
     SVGPathSegUtils::GetValueAsString(&mData[i], segAsString);
@@ -69,17 +102,17 @@ SVGPathData::SetValueFromString(const nsAString& aValue)
 }
 
 nsresult
-SVGPathData::AppendSeg(uint32_t aType, ...)
+SVGPathData::AppendSeg(PRUint32 aType, ...)
 {
-  uint32_t oldLength = mData.Length();
-  uint32_t newLength = oldLength + 1 + SVGPathSegUtils::ArgCountForType(aType);
+  PRUint32 oldLength = mData.Length();
+  PRUint32 newLength = oldLength + 1 + SVGPathSegUtils::ArgCountForType(aType);
   if (!mData.SetLength(newLength)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
   mData[oldLength] = SVGPathSegUtils::EncodeType(aType);
   va_list args;
   va_start(args, aType);
-  for (uint32_t i = oldLength + 1; i < newLength; ++i) {
+  for (PRUint32 i = oldLength + 1; i < newLength; ++i) {
     
     mData[i] = float(va_arg(args, double));
   }
@@ -92,7 +125,7 @@ SVGPathData::GetPathLength() const
 {
   SVGPathTraversalState state;
 
-  uint32_t i = 0;
+  PRUint32 i = 0;
   while (i < mData.Length()) {
     SVGPathSegUtils::TraversePathSegment(&mData[i], state);
     i += 1 + SVGPathSegUtils::ArgCountForType(mData[i]);
@@ -104,10 +137,10 @@ SVGPathData::GetPathLength() const
 }
 
 #ifdef DEBUG
-uint32_t
+PRUint32
 SVGPathData::CountItems() const
 {
-  uint32_t i = 0, count = 0;
+  PRUint32 i = 0, count = 0;
 
   while (i < mData.Length()) {
     i += 1 + SVGPathSegUtils::ArgCountForType(mData[i]);
@@ -126,20 +159,20 @@ SVGPathData::GetSegmentLengths(nsTArray<double> *aLengths) const
   aLengths->Clear();
   SVGPathTraversalState state;
 
-  uint32_t i = 0;
+  PRUint32 i = 0;
   while (i < mData.Length()) {
     state.length = 0.0;
     SVGPathSegUtils::TraversePathSegment(&mData[i], state);
     if (!aLengths->AppendElement(state.length)) {
       aLengths->Clear();
-      return false;
+      return PR_FALSE;
     }
     i += 1 + SVGPathSegUtils::ArgCountForType(mData[i]);
   }
 
   NS_ABORT_IF_FALSE(i == mData.Length(), "Very, very bad - mData corrupt");
 
-  return true;
+  return PR_TRUE;
 }
 
 bool
@@ -149,9 +182,9 @@ SVGPathData::GetDistancesFromOriginToEndsOfVisibleSegments(nsTArray<double> *aOu
 
   aOutput->Clear();
 
-  uint32_t i = 0;
+  PRUint32 i = 0;
   while (i < mData.Length()) {
-    uint32_t segType = SVGPathSegUtils::DecodeType(mData[i]);
+    PRUint32 segType = SVGPathSegUtils::DecodeType(mData[i]);
     SVGPathSegUtils::TraversePathSegment(&mData[i], state);
 
     
@@ -167,7 +200,7 @@ SVGPathData::GetDistancesFromOriginToEndsOfVisibleSegments(nsTArray<double> *aOu
     if (i == 0 || (segType != nsIDOMSVGPathSeg::PATHSEG_MOVETO_ABS &&
                    segType != nsIDOMSVGPathSeg::PATHSEG_MOVETO_REL)) {
       if (!aOutput->AppendElement(state.length)) {
-        return false;
+        return PR_FALSE;
       }
     }
     i += 1 + SVGPathSegUtils::ArgCountForType(segType);
@@ -175,10 +208,10 @@ SVGPathData::GetDistancesFromOriginToEndsOfVisibleSegments(nsTArray<double> *aOu
 
   NS_ABORT_IF_FALSE(i == mData.Length(), "Very, very bad - mData corrupt?");
 
-  return true;
+  return PR_TRUE;
 }
 
-uint32_t
+PRUint32
 SVGPathData::GetPathSegAtLength(float aDistance) const
 {
   
@@ -186,7 +219,7 @@ SVGPathData::GetPathSegAtLength(float aDistance) const
   
   
 
-  uint32_t i = 0, segIndex = 0;
+  PRUint32 i = 0, segIndex = 0;
   SVGPathTraversalState state;
 
   while (i < mData.Length()) {
@@ -250,7 +283,7 @@ ApproximateZeroLengthSubpathSquareCaps(const gfxPoint &aPoint, gfxContext *aCtx)
 void
 SVGPathData::ConstructPath(gfxContext *aCtx) const
 {
-  if (mData.IsEmpty() || !IsMoveto(SVGPathSegUtils::DecodeType(mData[0]))) {
+  if (!mData.Length() || !IsMoveto(SVGPathSegUtils::DecodeType(mData[0]))) {
     return; 
   }
 
@@ -258,8 +291,7 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
   bool subpathHasLength = false;  
   bool subpathContainsNonArc = false;
 
-  uint32_t segType     = nsIDOMSVGPathSeg::PATHSEG_UNKNOWN;
-  uint32_t prevSegType = nsIDOMSVGPathSeg::PATHSEG_UNKNOWN;
+  PRUint32 segType, prevSegType = nsIDOMSVGPathSeg::PATHSEG_UNKNOWN;
   gfxPoint pathStart(0.0, 0.0); 
   gfxPoint segStart(0.0, 0.0);
   gfxPoint segEnd;
@@ -270,16 +302,16 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
   
   
 
-  uint32_t i = 0;
+  PRUint32 i = 0;
   while (i < mData.Length()) {
     segType = SVGPathSegUtils::DecodeType(mData[i++]);
-    uint32_t argCount = SVGPathSegUtils::ArgCountForType(segType);
+    PRUint32 argCount = SVGPathSegUtils::ArgCountForType(segType);
 
     switch (segType)
     {
     case nsIDOMSVGPathSeg::PATHSEG_CLOSEPATH:
       
-      subpathContainsNonArc = true;
+      subpathContainsNonArc = PR_TRUE;
       MAYBE_APPROXIMATE_ZERO_LENGTH_SUBPATH_SQUARE_CAPS;
       segEnd = pathStart;
       aCtx->ClosePath();
@@ -289,16 +321,16 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
       MAYBE_APPROXIMATE_ZERO_LENGTH_SUBPATH_SQUARE_CAPS;
       pathStart = segEnd = gfxPoint(mData[i], mData[i+1]);
       aCtx->MoveTo(segEnd);
-      subpathHasLength = false;
-      subpathContainsNonArc = false;
+      subpathHasLength = PR_FALSE;
+      subpathContainsNonArc = PR_FALSE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_MOVETO_REL:
       MAYBE_APPROXIMATE_ZERO_LENGTH_SUBPATH_SQUARE_CAPS;
       pathStart = segEnd = segStart + gfxPoint(mData[i], mData[i+1]);
       aCtx->MoveTo(segEnd);
-      subpathHasLength = false;
-      subpathContainsNonArc = false;
+      subpathHasLength = PR_FALSE;
+      subpathContainsNonArc = PR_FALSE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_LINETO_ABS:
@@ -307,7 +339,7 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
       if (!subpathHasLength) {
         subpathHasLength = (segEnd != segStart);
       }
-      subpathContainsNonArc = true;
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_LINETO_REL:
@@ -316,7 +348,7 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
       if (!subpathHasLength) {
         subpathHasLength = (segEnd != segStart);
       }
-      subpathContainsNonArc = true;
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_CURVETO_CUBIC_ABS:
@@ -327,7 +359,7 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
       if (!subpathHasLength) {
         subpathHasLength = (segEnd != segStart || segEnd != cp1 || segEnd != cp2);
       }
-      subpathContainsNonArc = true;
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_CURVETO_CUBIC_REL:
@@ -338,7 +370,7 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
       if (!subpathHasLength) {
         subpathHasLength = (segEnd != segStart || segEnd != cp1 || segEnd != cp2);
       }
-      subpathContainsNonArc = true;
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_CURVETO_QUADRATIC_ABS:
@@ -351,7 +383,7 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
       if (!subpathHasLength) {
         subpathHasLength = (segEnd != segStart || segEnd != cp1);
       }
-      subpathContainsNonArc = true;
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_CURVETO_QUADRATIC_REL:
@@ -364,7 +396,7 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
       if (!subpathHasLength) {
         subpathHasLength = (segEnd != segStart || segEnd != cp1);
       }
-      subpathContainsNonArc = true;
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_ARC_ABS:
@@ -398,7 +430,7 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
       if (!subpathHasLength) {
         subpathHasLength = (segEnd != segStart);
       }
-      subpathContainsNonArc = true;
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_LINETO_HORIZONTAL_REL:
@@ -407,7 +439,7 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
       if (!subpathHasLength) {
         subpathHasLength = (segEnd != segStart);
       }
-      subpathContainsNonArc = true;
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_LINETO_VERTICAL_ABS:
@@ -416,7 +448,7 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
       if (!subpathHasLength) {
         subpathHasLength = (segEnd != segStart);
       }
-      subpathContainsNonArc = true;
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_LINETO_VERTICAL_REL:
@@ -425,7 +457,7 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
       if (!subpathHasLength) {
         subpathHasLength = (segEnd != segStart);
       }
-      subpathContainsNonArc = true;
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_CURVETO_CUBIC_SMOOTH_ABS:
@@ -436,7 +468,7 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
       if (!subpathHasLength) {
         subpathHasLength = (segEnd != segStart || segEnd != cp1 || segEnd != cp2);
       }
-      subpathContainsNonArc = true;
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_CURVETO_CUBIC_SMOOTH_REL:
@@ -447,7 +479,7 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
       if (!subpathHasLength) {
         subpathHasLength = (segEnd != segStart || segEnd != cp1 || segEnd != cp2);
       }
-      subpathContainsNonArc = true;
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_CURVETO_QUADRATIC_SMOOTH_ABS:
@@ -460,7 +492,7 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
       if (!subpathHasLength) {
         subpathHasLength = (segEnd != segStart || segEnd != cp1);
       }
-      subpathContainsNonArc = true;
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_CURVETO_QUADRATIC_SMOOTH_REL:
@@ -473,7 +505,7 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
       if (!subpathHasLength) {
         subpathHasLength = (segEnd != segStart || segEnd != cp1);
       }
-      subpathContainsNonArc = true;
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     default:
@@ -486,8 +518,6 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
   }
 
   NS_ABORT_IF_FALSE(i == mData.Length(), "Very, very bad - mData corrupt");
-  NS_ABORT_IF_FALSE(prevSegType == segType,
-                    "prevSegType should be left at the final segType");
 
   MAYBE_APPROXIMATE_ZERO_LENGTH_SUBPATH_SQUARE_CAPS;
 }
@@ -495,32 +525,36 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
 already_AddRefed<gfxFlattenedPath>
 SVGPathData::ToFlattenedPath(const gfxMatrix& aMatrix) const
 {
-  nsRefPtr<gfxContext> tmpCtx =
+  nsRefPtr<gfxContext> ctx =
     new gfxContext(gfxPlatform::GetPlatform()->ScreenReferenceSurface());
 
-  tmpCtx->SetMatrix(aMatrix);
-  ConstructPath(tmpCtx);
-  tmpCtx->IdentityMatrix();
+  ctx->SetMatrix(aMatrix);
+  ConstructPath(ctx);
+  ctx->IdentityMatrix();
 
-  return tmpCtx->GetFlattenedPath();
+  return ctx->GetFlattenedPath();
 }
+
+static float AngleOfVector(gfxPoint v)
+{
+  
+  
+  
+  
+  
+
+  return (v != gfxPoint(0.0f, 0.0f)) ? atan2(v.y, v.x) : 0.0f;
+}
+
 
 static double
-AngleOfVector(const gfxPoint& aVector)
+CalcVectorAngle(double ux, double uy, double vx, double vy)
 {
-  
-  
-  
-  
-  
-
-  return (aVector != gfxPoint(0.0, 0.0)) ? atan2(aVector.y, aVector.x) : 0.0;
-}
-
-static float
-AngleOfVectorF(const gfxPoint& aVector)
-{
-  return static_cast<float>(AngleOfVector(aVector));
+  double ta = atan2(uy, ux);
+  double tb = atan2(vy, vx);
+  if (tb >= ta)
+    return tb-ta;
+  return 2 * M_PI - (ta-tb);
 }
 
 void
@@ -535,16 +569,16 @@ SVGPathData::GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const
   float pathStartAngle = 0.0f;
 
   
-  uint16_t prevSegType = nsIDOMSVGPathSeg::PATHSEG_UNKNOWN;
+  PRUint16 prevSegType = nsIDOMSVGPathSeg::PATHSEG_UNKNOWN;
   gfxPoint prevSegEnd(0.0, 0.0);
   float prevSegEndAngle = 0.0f;
   gfxPoint prevCP; 
 
-  uint32_t i = 0;
+  PRUint32 i = 0;
   while (i < mData.Length()) {
 
     
-    uint16_t segType =
+    PRUint16 segType =
       SVGPathSegUtils::DecodeType(mData[i++]); 
     gfxPoint &segStart = prevSegEnd;
     gfxPoint segEnd;
@@ -554,7 +588,7 @@ SVGPathData::GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const
     {
     case nsIDOMSVGPathSeg::PATHSEG_CLOSEPATH:
       segEnd = pathStart;
-      segStartAngle = segEndAngle = AngleOfVectorF(segEnd - segStart);
+      segStartAngle = segEndAngle = AngleOfVector(segEnd - segStart);
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_MOVETO_ABS:
@@ -567,7 +601,7 @@ SVGPathData::GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const
       pathStart = segEnd;
       
       
-      segStartAngle = segEndAngle = AngleOfVectorF(segEnd - segStart);
+      segStartAngle = segEndAngle = AngleOfVector(segEnd - segStart);
       i += 2;
       break;
 
@@ -578,7 +612,7 @@ SVGPathData::GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const
       } else {
         segEnd = segStart + gfxPoint(mData[i], mData[i+1]);
       }
-      segStartAngle = segEndAngle = AngleOfVectorF(segEnd - segStart);
+      segStartAngle = segEndAngle = AngleOfVector(segEnd - segStart);
       i += 2;
       break;
 
@@ -602,8 +636,8 @@ SVGPathData::GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const
       if (cp2 == segEnd) {
         cp2 = cp1;
       }
-      segStartAngle = AngleOfVectorF(cp1 - segStart);
-      segEndAngle = AngleOfVectorF(segEnd - cp2);
+      segStartAngle = AngleOfVector(cp1 - segStart);
+      segEndAngle = AngleOfVector(segEnd - cp2);
       i += 6;
       break;
     }
@@ -620,8 +654,8 @@ SVGPathData::GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const
         segEnd = segStart + gfxPoint(mData[i+2], mData[i+3]);
       }
       prevCP = cp1;
-      segStartAngle = AngleOfVectorF(cp1 - segStart);
-      segEndAngle = AngleOfVectorF(segEnd - cp1);
+      segStartAngle = AngleOfVector(cp1 - segStart);
+      segEndAngle = AngleOfVector(segEnd - cp1);
       i += 4;
       break;
     }
@@ -661,7 +695,7 @@ SVGPathData::GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const
 
       if (rx == 0.0 || ry == 0.0) {
         
-        segStartAngle = segEndAngle = AngleOfVectorF(segEnd - segStart);
+        segStartAngle = segEndAngle = AngleOfVector(segEnd - segStart);
         i += 7;
         break;
       }
@@ -702,9 +736,9 @@ SVGPathData::GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const
       double cyp = -root * ry * x1p / rx;
 
       double theta, delta;
-      theta = AngleOfVector(gfxPoint((x1p-cxp)/rx, (y1p-cyp)/ry));    
-      delta = AngleOfVector(gfxPoint((-x1p-cxp)/rx, (-y1p-cyp)/ry)) - 
-              theta;
+      theta = CalcVectorAngle(1.0, 0.0, (x1p-cxp)/rx, (y1p-cyp)/ry); 
+      delta = CalcVectorAngle((x1p-cxp)/rx, (y1p-cyp)/ry,
+                              (-x1p-cxp)/rx, (-y1p-cyp)/ry);         
       if (!sweepFlag && delta > 0)
         delta -= 2.0 * M_PI;
       else if (sweepFlag && delta < 0)
@@ -723,8 +757,8 @@ SVGPathData::GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const
         ty2 = -ty2;
       }
 
-      segStartAngle = static_cast<float>(atan2(ty1, tx1));
-      segEndAngle = static_cast<float>(atan2(ty2, tx2));
+      segStartAngle = atan2(ty1, tx1);
+      segEndAngle = atan2(ty2, tx2);
       i += 7;
       break;
     }
@@ -736,7 +770,7 @@ SVGPathData::GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const
       } else {
         segEnd = segStart + gfxPoint(mData[i++], 0.0f);
       }
-      segStartAngle = segEndAngle = AngleOfVectorF(segEnd - segStart);
+      segStartAngle = segEndAngle = AngleOfVector(segEnd - segStart);
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_LINETO_VERTICAL_ABS:
@@ -746,7 +780,7 @@ SVGPathData::GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const
       } else {
         segEnd = segStart + gfxPoint(0.0f, mData[i++]);
       }
-      segStartAngle = segEndAngle = AngleOfVectorF(segEnd - segStart);
+      segStartAngle = segEndAngle = AngleOfVector(segEnd - segStart);
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_CURVETO_CUBIC_SMOOTH_ABS:
@@ -769,8 +803,8 @@ SVGPathData::GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const
       if (cp2 == segEnd) {
         cp2 = cp1;
       }
-      segStartAngle = AngleOfVectorF(cp1 - segStart);
-      segEndAngle = AngleOfVectorF(segEnd - cp2);
+      segStartAngle = AngleOfVector(cp1 - segStart);
+      segEndAngle = AngleOfVector(segEnd - cp2);
       i += 4;
       break;
     }
@@ -787,8 +821,8 @@ SVGPathData::GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const
         segEnd = segStart + gfxPoint(mData[i], mData[i+1]);
       }
       prevCP = cp1;
-      segStartAngle = AngleOfVectorF(cp1 - segStart);
-      segEndAngle = AngleOfVectorF(segEnd - cp1);
+      segStartAngle = AngleOfVector(cp1 - segStart);
+      segEndAngle = AngleOfVector(segEnd - cp1);
       i += 2;
       break;
     }
@@ -796,7 +830,7 @@ SVGPathData::GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const
     default:
       
       
-      NS_ABORT_IF_FALSE(false, "Unknown segment type - path corruption?");
+      NS_ABORT_IF_FALSE(PR_FALSE, "Unknown segment type - path corruption?");
       return;
     }
 
@@ -818,8 +852,7 @@ SVGPathData::GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const
     }
 
     
-    if (!aMarks->AppendElement(nsSVGMark(static_cast<float>(segEnd.x),
-                                         static_cast<float>(segEnd.y), 0))) {
+    if (!aMarks->AppendElement(nsSVGMark(segEnd.x, segEnd.y, 0))) {
       aMarks->Clear(); 
       return;
     }

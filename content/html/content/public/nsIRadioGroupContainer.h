@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIRadioGroupContainer_h___
 #define nsIRadioGroupContainer_h___
 
@@ -41,15 +73,16 @@ public:
 
 
 
-  virtual void SetCurrentRadioButton(const nsAString& aName, 
-                                     nsIDOMHTMLInputElement* aRadio) = 0;
+  NS_IMETHOD SetCurrentRadioButton(const nsAString& aName,
+                                   nsIDOMHTMLInputElement* aRadio) = 0;
 
   
 
 
 
 
-  virtual nsIDOMHTMLInputElement* GetCurrentRadioButton(const nsAString& aName) = 0;
+  NS_IMETHOD GetCurrentRadioButton(const nsAString& aName,
+                                   nsIDOMHTMLInputElement** aRadio) = 0;
 
   
 
@@ -72,7 +105,8 @@ public:
 
 
 
-  virtual void AddToRadioGroup(const nsAString& aName, nsIFormControl* aRadio) = 0;
+  NS_IMETHOD AddToRadioGroup(const nsAString& aName,
+                             nsIFormControl* aRadio) = 0;
 
   
 
@@ -83,9 +117,23 @@ public:
 
 
 
-  virtual void RemoveFromRadioGroup(const nsAString& aName, nsIFormControl* aRadio) = 0;
+  NS_IMETHOD RemoveFromRadioGroup(const nsAString& aName,
+                                  nsIFormControl* aRadio) = 0;
 
-  virtual uint32_t GetRequiredRadioCount(const nsAString& aName) const = 0;
+  
+
+
+
+
+
+
+
+
+  NS_IMETHOD GetPositionInGroup(nsIDOMHTMLInputElement *aRadio,
+                                PRInt32 *aPositionIndex,
+                                PRInt32 *aItemsInGroup) = 0;
+
+  virtual PRUint32 GetRequiredRadioCount(const nsAString& aName) const = 0;
   virtual void RadioRequiredChanged(const nsAString& aName,
                                     nsIFormControl* aRadio) = 0;
   virtual bool GetValueMissingState(const nsAString& aName) const = 0;

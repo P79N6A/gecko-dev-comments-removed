@@ -7,7 +7,40 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsEffectiveTLDService.h"
 #include "nsIIDNService.h"
@@ -15,8 +48,6 @@
 #include "prnetdb.h"
 
 #include "mozilla/FunctionTimer.h"
-
-using namespace mozilla;
 
 NS_IMPL_ISUPPORTS1(nsEffectiveTLDService, nsIEffectiveTLDService)
 
@@ -37,17 +68,18 @@ nsEffectiveTLDService::Init()
   
   
   
-  mHash.Init(ArrayLength(gEntries) - 1);
+  if (!mHash.Init(NS_ARRAY_LENGTH(gEntries) - 1))
+    return NS_ERROR_OUT_OF_MEMORY;
 
   nsresult rv;
   mIDNService = do_GetService(NS_IDNSERVICE_CONTRACTID, &rv);
   if (NS_FAILED(rv)) return rv;
 
   
-  for (uint32_t i = 0; i < ArrayLength(gEntries) - 1; i++) {
+  for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(gEntries) - 1; i++) {
 #ifdef DEBUG
     nsDependentCString name(gEntries[i].domain);
-    nsAutoCString normalizedName(gEntries[i].domain);
+    nsCAutoString normalizedName(gEntries[i].domain);
     NS_ASSERTION(NS_SUCCEEDED(NormalizeHostname(normalizedName)),
                  "normalization failure!");
     NS_ASSERTION(name.Equals(normalizedName), "domain not normalized!");
@@ -71,7 +103,7 @@ nsEffectiveTLDService::GetPublicSuffix(nsIURI     *aURI,
   nsCOMPtr<nsIURI> innerURI = NS_GetInnermostURI(aURI);
   NS_ENSURE_ARG_POINTER(innerURI);
 
-  nsAutoCString host;
+  nsCAutoString host;
   nsresult rv = innerURI->GetAsciiHost(host);
   if (NS_FAILED(rv)) return rv;
 
@@ -83,7 +115,7 @@ nsEffectiveTLDService::GetPublicSuffix(nsIURI     *aURI,
 
 NS_IMETHODIMP
 nsEffectiveTLDService::GetBaseDomain(nsIURI     *aURI,
-                                     uint32_t    aAdditionalParts,
+                                     PRUint32    aAdditionalParts,
                                      nsACString &aBaseDomain)
 {
   NS_ENSURE_ARG_POINTER(aURI);
@@ -91,7 +123,7 @@ nsEffectiveTLDService::GetBaseDomain(nsIURI     *aURI,
   nsCOMPtr<nsIURI> innerURI = NS_GetInnermostURI(aURI);
   NS_ENSURE_ARG_POINTER(innerURI);
 
-  nsAutoCString host;
+  nsCAutoString host;
   nsresult rv = innerURI->GetAsciiHost(host);
   if (NS_FAILED(rv)) return rv;
 
@@ -106,7 +138,7 @@ nsEffectiveTLDService::GetPublicSuffixFromHost(const nsACString &aHostname,
 {
   
   
-  nsAutoCString normHostname(aHostname);
+  nsCAutoString normHostname(aHostname);
   nsresult rv = NormalizeHostname(normHostname);
   if (NS_FAILED(rv)) return rv;
 
@@ -118,12 +150,12 @@ nsEffectiveTLDService::GetPublicSuffixFromHost(const nsACString &aHostname,
 
 NS_IMETHODIMP
 nsEffectiveTLDService::GetBaseDomainFromHost(const nsACString &aHostname,
-                                             uint32_t          aAdditionalParts,
+                                             PRUint32          aAdditionalParts,
                                              nsACString       &aBaseDomain)
 {
   
   
-  nsAutoCString normHostname(aHostname);
+  nsCAutoString normHostname(aHostname);
   nsresult rv = NormalizeHostname(normHostname);
   if (NS_FAILED(rv)) return rv;
 
@@ -137,7 +169,7 @@ nsEffectiveTLDService::GetBaseDomainFromHost(const nsACString &aHostname,
 
 nsresult
 nsEffectiveTLDService::GetBaseDomainInternal(nsCString  &aHostname,
-                                             uint32_t    aAdditionalParts,
+                                             PRUint32    aAdditionalParts,
                                              nsACString &aBaseDomain)
 {
   if (aHostname.IsEmpty())
@@ -162,7 +194,7 @@ nsEffectiveTLDService::GetBaseDomainInternal(nsCString  &aHostname,
   
   
   
-  const char *prevDomain = nullptr;
+  const char *prevDomain = nsnull;
   const char *currDomain = aHostname.get();
   const char *nextDot = strchr(currDomain, '.');
   const char *end = currDomain + aHostname.Length();

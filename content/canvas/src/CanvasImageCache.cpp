@@ -3,25 +3,55 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "CanvasImageCache.h"
 #include "nsIImageLoadingContent.h"
 #include "nsExpirationTracker.h"
 #include "imgIRequest.h"
 #include "gfxASurface.h"
 #include "gfxPoint.h"
-#include "mozilla/dom/Element.h"
+#include "nsIDOMElement.h"
 #include "nsTHashtable.h"
 #include "nsHTMLCanvasElement.h"
 #include "nsContentUtils.h"
 
 namespace mozilla {
 
-using namespace dom;
-
 struct ImageCacheKey {
-  ImageCacheKey(Element* aImage, nsHTMLCanvasElement* aCanvas)
+  ImageCacheKey(nsIDOMElement* aImage, nsHTMLCanvasElement* aCanvas)
     : mImage(aImage), mCanvas(aCanvas) {}
-  Element* mImage;
+  nsIDOMElement* mImage;
   nsHTMLCanvasElement* mCanvas;
 };
 
@@ -36,14 +66,14 @@ struct ImageCacheEntryData {
   {}
   ImageCacheEntryData(const ImageCacheKey& aKey)
     : mImage(aKey.mImage)
-    , mILC(nullptr)
+    , mILC(nsnull)
     , mCanvas(aKey.mCanvas)
   {}
 
   nsExpirationState* GetExpirationState() { return &mState; }
 
   
-  nsRefPtr<Element> mImage;
+  nsCOMPtr<nsIDOMElement> mImage;
   nsIImageLoadingContent* mILC;
   nsRefPtr<nsHTMLCanvasElement> mCanvas;
   
@@ -72,14 +102,14 @@ public:
   static KeyTypePointer KeyToPointer(KeyType& key) { return &key; }
   static PLDHashNumber HashKey(KeyTypePointer key)
   {
-    return HashGeneric(key->mImage, key->mCanvas);
+    return (NS_PTR_TO_INT32(key->mImage) ^ NS_PTR_TO_INT32(key->mCanvas)) >> 2;
   }
-  enum { ALLOW_MEMMOVE = true };
+  enum { ALLOW_MEMMOVE = PR_TRUE };
 
   nsAutoPtr<ImageCacheEntryData> mData;
 };
 
-class ImageCache MOZ_FINAL : public nsExpirationTracker<ImageCacheEntryData,4> {
+class ImageCache : public nsExpirationTracker<ImageCacheEntryData,4> {
 public:
   
   enum { GENERATION_MS = 1000 };
@@ -102,9 +132,9 @@ public:
   nsTHashtable<ImageCacheEntry> mCache;
 };
 
-static ImageCache* gImageCache = nullptr;
+static ImageCache* gImageCache = nsnull;
 
-class CanvasImageCacheShutdownObserver MOZ_FINAL : public nsIObserver
+class CanvasImageCacheShutdownObserver : public nsIObserver
 {
 public:
   NS_DECL_ISUPPORTS
@@ -112,7 +142,7 @@ public:
 };
 
 void
-CanvasImageCache::NotifyDrawImage(Element* aImage,
+CanvasImageCache::NotifyDrawImage(nsIDOMElement* aImage,
                                   nsHTMLCanvasElement* aCanvas,
                                   imgIRequest* aRequest,
                                   gfxASurface* aSurface,
@@ -143,21 +173,21 @@ CanvasImageCache::NotifyDrawImage(Element* aImage,
 }
 
 gfxASurface*
-CanvasImageCache::Lookup(Element* aImage,
+CanvasImageCache::Lookup(nsIDOMElement* aImage,
                          nsHTMLCanvasElement* aCanvas,
                          gfxIntSize* aSize)
 {
   if (!gImageCache)
-    return nullptr;
+    return nsnull;
 
   ImageCacheEntry* entry = gImageCache->mCache.GetEntry(ImageCacheKey(aImage, aCanvas));
   if (!entry || !entry->mData->mILC)
-    return nullptr;
+    return nsnull;
 
   nsCOMPtr<imgIRequest> request;
   entry->mData->mILC->GetRequest(nsIImageLoadingContent::CURRENT_REQUEST, getter_AddRefs(request));
   if (request != entry->mData->mRequest)
-    return nullptr;
+    return nsnull;
 
   gImageCache->MarkUsed(entry->mData);
 
@@ -174,7 +204,7 @@ CanvasImageCacheShutdownObserver::Observe(nsISupports *aSubject,
 {
   if (strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID) == 0) {
     delete gImageCache;
-    gImageCache = nullptr;
+    gImageCache = nsnull;
 
     nsContentUtils::UnregisterShutdownObserver(this);
   }

@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCookiePromptService.h"
 #include "nsICookie.h"
 #include "nsICookieAcceptDialog.h"
@@ -30,10 +62,10 @@ NS_IMETHODIMP
 nsCookiePromptService::CookieDialog(nsIDOMWindow *aParent,
                                     nsICookie *aCookie,
                                     const nsACString &aHostname,
-                                    int32_t aCookiesFromHost,
+                                    PRInt32 aCookiesFromHost,
                                     bool aChangingCookie,
                                     bool *aRememberDecision,
-                                    int32_t *aAccept)
+                                    PRInt32 *aAccept)
 {
   nsresult rv;
 
@@ -49,7 +81,7 @@ nsCookiePromptService::CookieDialog(nsIDOMWindow *aParent,
     do_CreateInstance(NS_ARRAY_CONTRACTID, &rv);
   if (NS_FAILED(rv)) return rv;
 
-  rv = objects->AppendElement(aCookie, false);
+  rv = objects->AppendElement(aCookie, PR_FALSE);
   if (NS_FAILED(rv)) return rv;
 
   block->SetObjects(objects);
@@ -82,7 +114,7 @@ nsCookiePromptService::CookieDialog(nsIDOMWindow *aParent,
   if (NS_FAILED(rv)) return rv;
 
   
-  int32_t tempValue;
+  PRInt32 tempValue;
   block->GetInt(nsICookieAcceptDialog::ACCEPT_COOKIE, &tempValue);
   *aAccept = tempValue;
   

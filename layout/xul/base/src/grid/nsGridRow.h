@@ -10,14 +10,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsGridRow_h___
 #define nsGridRow_h___
 
-#include "nsCoord.h"
+#include "nsIFrame.h"
 
 class nsGridLayout2;
 class nsBoxLayoutState;
-class nsIFrame;
 
 
 
@@ -27,22 +58,22 @@ class nsGridRow
 public:
    nsGridRow();
    ~nsGridRow();
+   
+   void Init(nsIBox* aBox, bool aIsBogus);
 
-   void Init(nsIFrame* aBox, bool aIsBogus);
 
-
-   nsIFrame* GetBox()   { return mBox;          }
+   nsIBox* GetBox()   { return mBox;          }
    bool IsPrefSet() { return (mPref != -1); }
    bool IsMinSet()  { return (mMin  != -1); }
    bool IsMaxSet()  { return (mMax  != -1); } 
    bool IsFlexSet() { return (mFlex != -1); }
    bool IsOffsetSet() { return (mTop != -1 && mBottom != -1); }
-   bool IsCollapsed();
+   bool IsCollapsed(nsBoxLayoutState& aState);
 
 public:
 
    bool    mIsBogus;
-   nsIFrame* mBox;
+   nsIBox* mBox;
    nscoord mFlex;
    nscoord mPref;
    nscoord mMin;

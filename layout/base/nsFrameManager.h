@@ -16,6 +16,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsFrameManager_h_
 #define _nsFrameManager_h_
 
@@ -49,13 +82,18 @@ class nsFrameManager : public nsFrameManagerBase
   typedef nsIFrame::ChildListID ChildListID;
 
 public:
-  nsFrameManager(nsIPresShell *aPresShell) NS_HIDDEN {
-    mPresShell = aPresShell;
-  }
+  nsFrameManager() NS_HIDDEN;
   ~nsFrameManager() NS_HIDDEN;
 
+  void* operator new(size_t aSize, nsIPresShell* aHost) {
+    NS_ASSERTION(aSize == sizeof(nsFrameManager), "Unexpected subclass");
+    NS_ASSERTION(aSize == sizeof(nsFrameManagerBase),
+                 "Superclass/subclass mismatch");
+    return aHost->FrameManager();
+  }
+
   
-  NS_HIDDEN_(nsresult) Init(nsStyleSet* aStyleSet);
+  NS_HIDDEN_(nsresult) Init(nsIPresShell* aPresShell, nsStyleSet* aStyleSet);
 
   
 
@@ -65,7 +103,7 @@ public:
   NS_HIDDEN_(void) Destroy();
 
   
-  NS_HIDDEN_(nsPlaceholderFrame*) GetPlaceholderFrameFor(const nsIFrame* aFrame);
+  NS_HIDDEN_(nsPlaceholderFrame*) GetPlaceholderFrameFor(nsIFrame* aFrame);
   NS_HIDDEN_(nsresult)
     RegisterPlaceholderFrame(nsPlaceholderFrame* aPlaceholderFrame);
 
@@ -95,8 +133,7 @@ public:
                                     nsFrameList&    aFrameList);
 
   NS_HIDDEN_(nsresult) RemoveFrame(ChildListID     aListID,
-                                   nsIFrame*       aOldFrame,
-                                   bool            aInvalidate = true);
+                                   nsIFrame*       aOldFrame);
 
   
 
@@ -132,9 +169,6 @@ public:
 
 
 
-
-
-
   NS_HIDDEN_(void) CaptureFrameState(nsIFrame*              aFrame,
                                      nsILayoutHistoryState* aState);
 
@@ -155,7 +189,7 @@ public:
                                         nsIStatefulFrame::SpecialStateID aID =
                                                       nsIStatefulFrame::eNoID);
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
   
 
 
@@ -191,7 +225,6 @@ private:
                           nsIContent        *aParentContent,
                           nsStyleChangeList *aChangeList, 
                           nsChangeHint       aMinChange,
-                          nsChangeHint       aParentFrameHintsNotHandledForDescendants,
                           nsRestyleHint      aRestyleHint,
                           RestyleTracker&    aRestyleTracker,
                           DesiredA11yNotifications aDesiredA11yNotifications,

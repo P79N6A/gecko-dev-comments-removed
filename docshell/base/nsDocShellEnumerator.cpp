@@ -5,16 +5,48 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsDocShellEnumerator.h"
 
 #include "nsIDocShellTreeItem.h"
 #include "nsIDocShellTreeNode.h"
 
-nsDocShellEnumerator::nsDocShellEnumerator(int32_t inEnumerationDirection)
-: mRootItem(nullptr)
+nsDocShellEnumerator::nsDocShellEnumerator(PRInt32 inEnumerationDirection)
+: mRootItem(nsnull)
 , mCurIndex(0)
 , mDocShellType(nsIDocShellTreeItem::typeAll)
-, mArrayValid(false)
+, mArrayValid(PR_FALSE)
 , mEnumerationDirection(inEnumerationDirection)
 {
 }
@@ -30,7 +62,7 @@ NS_IMPL_ISUPPORTS1(nsDocShellEnumerator, nsISimpleEnumerator)
 NS_IMETHODIMP nsDocShellEnumerator::GetNext(nsISupports **outCurItem)
 {
   NS_ENSURE_ARG_POINTER(outCurItem);
-  *outCurItem = nullptr;
+  *outCurItem = nsnull;
   
   nsresult rv = EnsureDocShellArray();
   if (NS_FAILED(rv)) return rv;
@@ -49,7 +81,7 @@ NS_IMETHODIMP nsDocShellEnumerator::GetNext(nsISupports **outCurItem)
 NS_IMETHODIMP nsDocShellEnumerator::HasMoreElements(bool *outHasMore)
 {
   NS_ENSURE_ARG_POINTER(outHasMore);
-  *outHasMore = false;
+  *outHasMore = PR_FALSE;
 
   nsresult rv = EnsureDocShellArray();
   if (NS_FAILED(rv)) return rv;
@@ -73,14 +105,14 @@ nsresult nsDocShellEnumerator::SetEnumerationRootItem(nsIDocShellTreeItem * aEnu
   return NS_OK;
 }
 
-nsresult nsDocShellEnumerator::GetEnumDocShellType(int32_t *aEnumerationItemType)
+nsresult nsDocShellEnumerator::GetEnumDocShellType(PRInt32 *aEnumerationItemType)
 {
   NS_ENSURE_ARG_POINTER(aEnumerationItemType);
   *aEnumerationItemType = mDocShellType;
   return NS_OK;
 }
 
-nsresult nsDocShellEnumerator::SetEnumDocShellType(int32_t aEnumerationItemType)
+nsresult nsDocShellEnumerator::SetEnumDocShellType(PRInt32 aEnumerationItemType)
 {
   mDocShellType = aEnumerationItemType;
   ClearState();
@@ -97,7 +129,7 @@ nsresult nsDocShellEnumerator::EnsureDocShellArray()
 {
   if (!mArrayValid)
   {
-    mArrayValid = true;
+    mArrayValid = PR_TRUE;
     return BuildDocShellArray(mItemArray);
   }
   
@@ -107,7 +139,7 @@ nsresult nsDocShellEnumerator::EnsureDocShellArray()
 nsresult nsDocShellEnumerator::ClearState()
 {
   mItemArray.Clear();
-  mArrayValid = false;
+  mArrayValid = PR_FALSE;
   mCurIndex = 0;
   return NS_OK;
 }
@@ -126,7 +158,7 @@ nsresult nsDocShellForwardsEnumerator::BuildArrayRecursive(nsIDocShellTreeItem* 
   nsCOMPtr<nsIDocShellTreeNode> itemAsNode = do_QueryInterface(inItem, &rv);
   if (NS_FAILED(rv)) return rv;
 
-  int32_t   itemType;
+  PRInt32   itemType;
   
   if ((mDocShellType == nsIDocShellTreeItem::typeAll) ||
       (NS_SUCCEEDED(inItem->GetItemType(&itemType)) && (itemType == mDocShellType)))
@@ -135,11 +167,11 @@ nsresult nsDocShellForwardsEnumerator::BuildArrayRecursive(nsIDocShellTreeItem* 
       return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  int32_t   numChildren;
+  PRInt32   numChildren;
   rv = itemAsNode->GetChildCount(&numChildren);
   if (NS_FAILED(rv)) return rv;
   
-  for (int32_t i = 0; i < numChildren; ++i)
+  for (PRInt32 i = 0; i < numChildren; ++i)
   {
     nsCOMPtr<nsIDocShellTreeItem> curChild;
     rv = itemAsNode->GetChildAt(i, getter_AddRefs(curChild));
@@ -159,11 +191,11 @@ nsresult nsDocShellBackwardsEnumerator::BuildArrayRecursive(nsIDocShellTreeItem*
   nsCOMPtr<nsIDocShellTreeNode> itemAsNode = do_QueryInterface(inItem, &rv);
   if (NS_FAILED(rv)) return rv;
 
-  int32_t   numChildren;
+  PRInt32   numChildren;
   rv = itemAsNode->GetChildCount(&numChildren);
   if (NS_FAILED(rv)) return rv;
   
-  for (int32_t i = numChildren - 1; i >= 0; --i)
+  for (PRInt32 i = numChildren - 1; i >= 0; --i)
   {
     nsCOMPtr<nsIDocShellTreeItem> curChild;
     rv = itemAsNode->GetChildAt(i, getter_AddRefs(curChild));
@@ -173,7 +205,7 @@ nsresult nsDocShellBackwardsEnumerator::BuildArrayRecursive(nsIDocShellTreeItem*
     if (NS_FAILED(rv)) return rv;
   }
 
-  int32_t   itemType;
+  PRInt32   itemType;
   
   if ((mDocShellType == nsIDocShellTreeItem::typeAll) ||
       (NS_SUCCEEDED(inItem->GetItemType(&itemType)) && (itemType == mDocShellType)))

@@ -7,6 +7,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDOMDocumentType_h
 #define nsDOMDocumentType_h
 
@@ -65,7 +97,7 @@ public:
   }
 
   
-  virtual bool IsNodeOfType(uint32_t aFlags) const;
+  virtual bool IsNodeOfType(PRUint32 aFlags) const;
 
   
   virtual const nsTextFragment* GetText();
@@ -74,8 +106,6 @@ public:
                                               bool aCloneText) const;
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 protected:
   nsString mPublicId;
   nsString mSystemId;

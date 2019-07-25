@@ -10,10 +10,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIContent.h"
 #include "nsFocusManager.h"
 #include "nsIControllers.h"
 #include "nsIDOMDocument.h"
+#include "nsIDOMXULDocument.h"
+#include "nsIDOMHTMLDocument.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMWindow.h"
 #include "nsIDOMXULElement.h"
@@ -31,9 +66,8 @@
 #include "nsContentUtils.h"
 #include "nsReadableUtils.h"
 #include "nsCRT.h"
-#include "nsError.h"
+#include "nsDOMError.h"
 #include "nsEventDispatcher.h"
-#include "nsDOMClassInfoID.h"
 
 #ifdef PR_LOGGING
 static PRLogModuleInfo* gLog;
@@ -42,7 +76,7 @@ static PRLogModuleInfo* gLog;
 
 
 nsXULCommandDispatcher::nsXULCommandDispatcher(nsIDocument* aDocument)
-    : mDocument(aDocument), mUpdaters(nullptr)
+    : mDocument(aDocument), mUpdaters(nsnull)
 {
 
 #ifdef PR_LOGGING
@@ -93,7 +127,7 @@ nsXULCommandDispatcher::Disconnect()
     mUpdaters = mUpdaters->mNext;
     delete doomed;
   }
-  mDocument = nullptr;
+  mDocument = nsnull;
 }
 
 already_AddRefed<nsPIWindowRoot>
@@ -106,31 +140,31 @@ nsXULCommandDispatcher::GetWindowRoot()
     }
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 nsIContent*
 nsXULCommandDispatcher::GetRootFocusedContentAndWindow(nsPIDOMWindow** aWindow)
 {
-  *aWindow = nullptr;
+  *aWindow = nsnull;
 
   if (mDocument) {
     nsCOMPtr<nsPIDOMWindow> win = mDocument->GetWindow();
     if (win) {
       nsCOMPtr<nsPIDOMWindow> rootWindow = win->GetPrivateRoot();
       if (rootWindow) {
-        return nsFocusManager::GetFocusedDescendant(rootWindow, true, aWindow);
+        return nsFocusManager::GetFocusedDescendant(rootWindow, PR_TRUE, aWindow);
       }
     }
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 NS_IMETHODIMP
 nsXULCommandDispatcher::GetFocusedElement(nsIDOMElement** aElement)
 {
-  *aElement = nullptr;
+  *aElement = nsnull;
 
   nsCOMPtr<nsPIDOMWindow> focusedWindow;
   nsIContent* focusedContent =
@@ -154,7 +188,7 @@ nsXULCommandDispatcher::GetFocusedElement(nsIDOMElement** aElement)
 NS_IMETHODIMP
 nsXULCommandDispatcher::GetFocusedWindow(nsIDOMWindow** aWindow)
 {
-  *aWindow = nullptr;
+  *aWindow = nsnull;
 
   nsCOMPtr<nsPIDOMWindow> window;
   GetRootFocusedContentAndWindow(getter_AddRefs(window));
@@ -216,7 +250,7 @@ nsXULCommandDispatcher::SetFocusedWindow(nsIDOMWindow* aWindow)
 NS_IMETHODIMP
 nsXULCommandDispatcher::AdvanceFocus()
 {
-  return AdvanceFocusIntoSubtree(nullptr);
+  return AdvanceFocusIntoSubtree(nsnull);
 }
 
 NS_IMETHODIMP
@@ -228,7 +262,7 @@ nsXULCommandDispatcher::RewindFocus()
   nsCOMPtr<nsIDOMElement> result;
   nsIFocusManager* fm = nsFocusManager::GetFocusManager();
   if (fm)
-    return fm->MoveFocus(win, nullptr, nsIFocusManager::MOVEFOCUS_BACKWARD,
+    return fm->MoveFocus(win, nsnull, nsIFocusManager::MOVEFOCUS_BACKWARD,
                          0, getter_AddRefs(result));
   return NS_OK;
 }
@@ -252,11 +286,9 @@ nsXULCommandDispatcher::AddCommandUpdater(nsIDOMElement* aElement,
                                           const nsAString& aEvents,
                                           const nsAString& aTargets)
 {
-  NS_PRECONDITION(aElement != nullptr, "null ptr");
+  NS_PRECONDITION(aElement != nsnull, "null ptr");
   if (! aElement)
     return NS_ERROR_NULL_POINTER;
-
-  NS_ENSURE_TRUE(mDocument, NS_ERROR_UNEXPECTED);
 
   nsresult rv = nsContentUtils::CheckSameOrigin(mDocument, aElement);
 
@@ -270,9 +302,9 @@ nsXULCommandDispatcher::AddCommandUpdater(nsIDOMElement* aElement,
   while (updater) {
     if (updater->mElement == aElement) {
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
       if (PR_LOG_TEST(gLog, PR_LOG_NOTICE)) {
-        nsAutoCString eventsC, targetsC, aeventsC, atargetsC; 
+        nsCAutoString eventsC, targetsC, aeventsC, atargetsC; 
         eventsC.AssignWithConversion(updater->mEvents);
         targetsC.AssignWithConversion(updater->mTargets);
         CopyUTF16toUTF8(aEvents, aeventsC);
@@ -298,9 +330,9 @@ nsXULCommandDispatcher::AddCommandUpdater(nsIDOMElement* aElement,
     link = &(updater->mNext);
     updater = updater->mNext;
   }
-#ifdef DEBUG
+#ifdef NS_DEBUG
   if (PR_LOG_TEST(gLog, PR_LOG_NOTICE)) {
-    nsAutoCString aeventsC, atargetsC; 
+    nsCAutoString aeventsC, atargetsC; 
     CopyUTF16toUTF8(aEvents, aeventsC);
     CopyUTF16toUTF8(aTargets, atargetsC);
 
@@ -324,7 +356,7 @@ nsXULCommandDispatcher::AddCommandUpdater(nsIDOMElement* aElement,
 NS_IMETHODIMP
 nsXULCommandDispatcher::RemoveCommandUpdater(nsIDOMElement* aElement)
 {
-  NS_PRECONDITION(aElement != nullptr, "null ptr");
+  NS_PRECONDITION(aElement != nsnull, "null ptr");
   if (! aElement)
     return NS_ERROR_NULL_POINTER;
 
@@ -333,9 +365,9 @@ nsXULCommandDispatcher::RemoveCommandUpdater(nsIDOMElement* aElement)
 
   while (updater) {
     if (updater->mElement == aElement) {
-#ifdef DEBUG
+#ifdef NS_DEBUG
       if (PR_LOG_TEST(gLog, PR_LOG_NOTICE)) {
-        nsAutoCString eventsC, targetsC; 
+        nsCAutoString eventsC, targetsC; 
         eventsC.AssignWithConversion(updater->mEvents);
         targetsC.AssignWithConversion(updater->mTargets);
         PR_LOG(gLog, PR_LOG_NOTICE,
@@ -373,7 +405,7 @@ nsXULCommandDispatcher::UpdateCommands(const nsAString& aEventName)
 
   nsCOMArray<nsIContent> updaters;
 
-  for (Updater* updater = mUpdaters; updater != nullptr; updater = updater->mNext) {
+  for (Updater* updater = mUpdaters; updater != nsnull; updater = updater->mNext) {
     
     
     if (! Matches(updater->mEvents, aEventName))
@@ -383,25 +415,25 @@ nsXULCommandDispatcher::UpdateCommands(const nsAString& aEventName)
       continue;
 
     nsCOMPtr<nsIContent> content = do_QueryInterface(updater->mElement);
-    NS_ASSERTION(content != nullptr, "not an nsIContent");
+    NS_ASSERTION(content != nsnull, "not an nsIContent");
     if (! content)
       return NS_ERROR_UNEXPECTED;
 
     updaters.AppendObject(content);
   }
 
-  for (int32_t u = 0; u < updaters.Count(); u++) {
+  for (PRInt32 u = 0; u < updaters.Count(); u++) {
     nsIContent* content = updaters[u];
 
     nsCOMPtr<nsIDocument> document = content->GetDocument();
 
-    NS_ASSERTION(document != nullptr, "element has no document");
+    NS_ASSERTION(document != nsnull, "element has no document");
     if (! document)
       continue;
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
     if (PR_LOG_TEST(gLog, PR_LOG_NOTICE)) {
-      nsAutoCString aeventnameC; 
+      nsCAutoString aeventnameC; 
       CopyUTF16toUTF8(aEventName, aeventnameC);
       PR_LOG(gLog, PR_LOG_NOTICE,
              ("xulcmd[%p] update %p event=%s",
@@ -418,9 +450,9 @@ nsXULCommandDispatcher::UpdateCommands(const nsAString& aEventName)
       
       nsEventStatus status = nsEventStatus_eIgnore;
 
-      nsEvent event(true, NS_XUL_COMMAND_UPDATE);
+      nsEvent event(PR_TRUE, NS_XUL_COMMAND_UPDATE);
 
-      nsEventDispatcher::Dispatch(content, context, &event, nullptr, &status);
+      nsEventDispatcher::Dispatch(content, context, &event, nsnull, &status);
     }
   }
   return NS_OK;
@@ -431,27 +463,27 @@ nsXULCommandDispatcher::Matches(const nsString& aList,
                                 const nsAString& aElement)
 {
   if (aList.EqualsLiteral("*"))
-    return true; 
+    return PR_TRUE; 
 
-  int32_t indx = aList.Find(PromiseFlatString(aElement));
+  PRInt32 indx = aList.Find(PromiseFlatString(aElement));
   if (indx == -1)
-    return false; 
+    return PR_FALSE; 
 
   
   
   if (indx > 0) {
     PRUnichar ch = aList[indx - 1];
     if (! nsCRT::IsAsciiSpace(ch) && ch != PRUnichar(','))
-      return false;
+      return PR_FALSE;
   }
 
   if (indx + aElement.Length() < aList.Length()) {
     PRUnichar ch = aList[indx + aElement.Length()];
     if (! nsCRT::IsAsciiSpace(ch) && ch != PRUnichar(','))
-      return false;
+      return PR_FALSE;
   }
 
-  return true;
+  return PR_TRUE;
 }
 
 NS_IMETHODIMP
@@ -475,7 +507,7 @@ nsXULCommandDispatcher::GetControllerForCommand(const char *aCommand, nsIControl
 NS_IMETHODIMP
 nsXULCommandDispatcher::GetSuppressFocusScroll(bool* aSuppressFocusScroll)
 {
-  *aSuppressFocusScroll = false;
+  *aSuppressFocusScroll = PR_FALSE;
   return NS_OK;
 }
 

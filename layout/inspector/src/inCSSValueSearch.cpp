@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "inCSSValueSearch.h"
 
 #include "nsIComponentManager.h"
@@ -16,21 +49,19 @@
 #include "nsIDOMCSSStyleDeclaration.h"
 #include "nsIDOMCSSImportRule.h"
 #include "nsIDOMCSSMediaRule.h"
-#include "nsIDOMCSSSupportsRule.h"
 #include "nsIURI.h"
-#include "nsIDocument.h"
 #include "nsNetUtil.h"
 
 
 inCSSValueSearch::inCSSValueSearch()
-  : mResults(nullptr),
-    mProperties(nullptr),
+  : mResults(nsnull),
+    mProperties(nsnull),
     mResultCount(0),
     mPropertyCount(0),
-    mIsActive(false),
-    mHoldResults(true),
-    mReturnRelativeURLs(true),
-    mNormalizeChromeURLs(false)
+    mIsActive(PR_FALSE),
+    mHoldResults(PR_TRUE),
+    mReturnRelativeURLs(PR_TRUE),
+    mNormalizeChromeURLs(PR_FALSE)
 {
   nsCSSProps::AddRefTable();
   mProperties = new nsCSSProperty[100];
@@ -56,7 +87,7 @@ inCSSValueSearch::GetIsActive(bool *aIsActive)
 }
 
 NS_IMETHODIMP 
-inCSSValueSearch::GetResultCount(int32_t *aResultCount)
+inCSSValueSearch::GetResultCount(PRInt32 *aResultCount)
 {
   *aResultCount = mResultCount;
   return NS_OK;
@@ -95,9 +126,9 @@ inCSSValueSearch::SearchSync()
   nsresult rv = mDocument->GetStyleSheets(getter_AddRefs(sheets));
   NS_ENSURE_SUCCESS(rv, NS_OK);
 
-  uint32_t length;
+  PRUint32 length;
   sheets->GetLength(&length);
-  for (uint32_t i = 0; i < length; ++i) {
+  for (PRUint32 i = 0; i < length; ++i) {
     nsCOMPtr<nsIDOMStyleSheet> sheet;
     sheets->Item(i, getter_AddRefs(sheet));
     nsCOMPtr<nsIDOMCSSStyleSheet> cssSheet = do_QueryInterface(sheet);
@@ -136,7 +167,7 @@ inCSSValueSearch::SearchStep(bool* _retval)
 
 
 NS_IMETHODIMP 
-inCSSValueSearch::GetStringResultAt(int32_t aIndex, nsAString& _retval)
+inCSSValueSearch::GetStringResultAt(PRInt32 aIndex, nsAString& _retval)
 {
   if (mHoldResults) {
     nsAutoString* result = mResults->ElementAt(aIndex);
@@ -150,13 +181,13 @@ inCSSValueSearch::GetStringResultAt(int32_t aIndex, nsAString& _retval)
 }
 
 NS_IMETHODIMP 
-inCSSValueSearch::GetIntResultAt(int32_t aIndex, int32_t *_retval)
+inCSSValueSearch::GetIntResultAt(PRInt32 aIndex, PRInt32 *_retval)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP 
-inCSSValueSearch::GetUIntResultAt(int32_t aIndex, uint32_t *_retval)
+inCSSValueSearch::GetUIntResultAt(PRInt32 aIndex, PRUint32 *_retval)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -226,8 +257,7 @@ NS_IMETHODIMP
 inCSSValueSearch::AddPropertyCriteria(const PRUnichar *aPropName)
 {
   nsCSSProperty prop =
-    nsCSSProps::LookupProperty(nsDependentString(aPropName),
-                               nsCSSProps::eAny);
+    nsCSSProps::LookupProperty(nsDependentString(aPropName));
   mProperties[mPropertyCount] = prop;
   mPropertyCount++;
   return NS_OK;
@@ -264,9 +294,9 @@ inCSSValueSearch::InitSearch()
 }
 
 nsresult
-inCSSValueSearch::KillSearch(int16_t aResult)
+inCSSValueSearch::KillSearch(PRInt16 aResult)
 {
-  mIsActive = true;
+  mIsActive = PR_TRUE;
   mObserver->OnSearchEnd(this, aResult);
 
   return NS_OK;
@@ -281,7 +311,7 @@ inCSSValueSearch::SearchStyleSheet(nsIDOMCSSStyleSheet* aStyleSheet, nsIURI* aBa
   if (href.IsEmpty())
     baseURL = aBaseURL;
   else
-    NS_NewURI(getter_AddRefs(baseURL), href, nullptr, aBaseURL);
+    NS_NewURI(getter_AddRefs(baseURL), href, nsnull, aBaseURL);
 
   nsCOMPtr<nsIDOMCSSRuleList> rules;
   nsresult rv = aStyleSheet->GetCssRules(getter_AddRefs(rules));
@@ -293,12 +323,12 @@ inCSSValueSearch::SearchStyleSheet(nsIDOMCSSStyleSheet* aStyleSheet, nsIURI* aBa
 nsresult
 inCSSValueSearch::SearchRuleList(nsIDOMCSSRuleList* aRuleList, nsIURI* aBaseURL)
 {
-  uint32_t length;
+  PRUint32 length;
   aRuleList->GetLength(&length);
-  for (uint32_t i = 0; i < length; ++i) {
+  for (PRUint32 i = 0; i < length; ++i) {
     nsCOMPtr<nsIDOMCSSRule> rule;
     aRuleList->Item(i, getter_AddRefs(rule));
-    uint16_t type;
+    PRUint16 type;
     rule->GetType(&type);
     switch (type) {
       case nsIDOMCSSRule::STYLE_RULE: {
@@ -318,12 +348,6 @@ inCSSValueSearch::SearchRuleList(nsIDOMCSSRuleList* aRuleList, nsIURI* aBaseURL)
         mediaRule->GetCssRules(getter_AddRefs(childRules));
         SearchRuleList(childRules, aBaseURL);
       } break;
-      case nsIDOMCSSRule::SUPPORTS_RULE: {
-        nsCOMPtr<nsIDOMCSSSupportsRule> supportsRule = do_QueryInterface(rule);
-        nsCOMPtr<nsIDOMCSSRuleList> childRules;
-        supportsRule->GetCssRules(getter_AddRefs(childRules));
-        SearchRuleList(childRules, aBaseURL);
-      } break;
       default:
         
         break;
@@ -339,10 +363,10 @@ inCSSValueSearch::SearchStyleRule(nsIDOMCSSStyleRule* aStyleRule, nsIURI* aBaseU
   nsresult rv = aStyleRule->GetStyle(getter_AddRefs(decl));
   NS_ENSURE_SUCCESS(rv, rv);
   
-  uint32_t length;
+  PRUint32 length;
   decl->GetLength(&length);
   nsAutoString property, value;
-  for (uint32_t i = 0; i < length; ++i) {
+  for (PRUint32 i = 0; i < length; ++i) {
     decl->Item(i, property);
     
     
@@ -361,9 +385,9 @@ inCSSValueSearch::SearchStyleValue(const nsAFlatString& aValue, nsIURI* aBaseURL
       Substring(aValue, 4, aValue.Length() - 5);
     
     nsCOMPtr<nsIURI> uri;
-    nsresult rv = NS_NewURI(getter_AddRefs(uri), url, nullptr, aBaseURL);
+    nsresult rv = NS_NewURI(getter_AddRefs(uri), url, nsnull, aBaseURL);
     NS_ENSURE_SUCCESS(rv, rv);
-    nsAutoCString spec;
+    nsCAutoString spec;
     uri->GetSpec(spec);
     nsAutoString *result = new NS_ConvertUTF8toUTF16(spec);
     if (mReturnRelativeURLs)
@@ -379,13 +403,13 @@ nsresult
 inCSSValueSearch::EqualizeURL(nsAutoString* aURL)
 {
   if (mNormalizeChromeURLs) {
-    if (aURL->Find("chrome://", false, 0, 1) >= 0) {
-      uint32_t len = aURL->Length();
+    if (aURL->Find("chrome://", PR_FALSE, 0, 1) >= 0) {
+      PRUint32 len = aURL->Length();
       PRUnichar* result = new PRUnichar[len-8];
       const PRUnichar* src = aURL->get();
-      uint32_t i = 9;
-      uint32_t milestone = 0;
-      uint32_t s = 0;
+      PRUint32 i = 9;
+      PRUint32 milestone = 0;
+      PRUint32 s = 0;
       while (i < len) {
         if (src[i] == '/') {
           milestone += 1;

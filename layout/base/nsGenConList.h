@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsGenConList_h___
 #define nsGenConList_h___
 
@@ -26,14 +58,14 @@ struct nsGenConNode : public PRCList {
   
   
   
-  const int32_t mContentIndex;
+  const PRInt32 mContentIndex;
 
   
   
   nsCOMPtr<nsIDOMCharacterData> mText;
 
-  nsGenConNode(int32_t aContentIndex)
-    : mPseudoFrame(nullptr)
+  nsGenConNode(PRInt32 aContentIndex)
+    : mPseudoFrame(nsnull)
     , mContentIndex(aContentIndex)
   {
   }
@@ -55,7 +87,7 @@ struct nsGenConNode : public PRCList {
   {
     mPseudoFrame = aPseudoFrame;
     CheckFrameAssertions();
-    return false;
+    return PR_FALSE;
   }
 
   virtual ~nsGenConNode() {} 
@@ -63,7 +95,7 @@ struct nsGenConNode : public PRCList {
 protected:
   void CheckFrameAssertions() {
     NS_ASSERTION(mContentIndex <
-                   int32_t(mPseudoFrame->GetStyleContent()->ContentCount()),
+                   PRInt32(mPseudoFrame->GetStyleContent()->ContentCount()),
                  "index out of range");
       
       
@@ -83,9 +115,9 @@ protected:
 class nsGenConList {
 protected:
   nsGenConNode* mFirstNode;
-  uint32_t mSize;
+  PRUint32 mSize;
 public:
-  nsGenConList() : mFirstNode(nullptr), mSize(0) {}
+  nsGenConList() : mFirstNode(nsnull), mSize(0) {}
   ~nsGenConList() { Clear(); }
   void Clear();
   static nsGenConNode* Next(nsGenConNode* aNode) {

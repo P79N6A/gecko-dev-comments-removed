@@ -3,15 +3,49 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "mozPersonalDictionary.h"
 #include "nsIUnicharInputStream.h"
 #include "nsReadableUtils.h"
 #include "nsIFile.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsICharsetConverterManager.h"
+#include "nsICharsetAlias.h"
 #include "nsIObserverService.h"
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
+#include "nsIPrefBranch2.h"
 #include "nsIWeakReference.h"
 #include "nsCRT.h"
 #include "nsNetUtil.h"
@@ -48,7 +82,7 @@ NS_INTERFACE_MAP_END
 NS_IMPL_CYCLE_COLLECTION_1(mozPersonalDictionary, mEncoder)
 
 mozPersonalDictionary::mozPersonalDictionary()
- : mDirty(false)
+ : mDirty(PR_FALSE)
 {
 }
 
@@ -58,15 +92,15 @@ mozPersonalDictionary::~mozPersonalDictionary()
 
 nsresult mozPersonalDictionary::Init()
 {
-  mDictionaryTable.Init();
-  mIgnoreTable.Init();
+  if (!mDictionaryTable.Init() || !mIgnoreTable.Init())
+    return NS_ERROR_OUT_OF_MEMORY;
 
   nsresult rv;
   nsCOMPtr<nsIObserverService> svc = 
            do_GetService("@mozilla.org/observer-service;1", &rv);
    
   if (NS_SUCCEEDED(rv) && svc) 
-    rv = svc->AddObserver(this, "profile-do-change", true); 
+    rv = svc->AddObserver(this, "profile-do-change", PR_TRUE); 
 
   if (NS_FAILED(rv)) return rv;
 
@@ -108,23 +142,23 @@ NS_IMETHODIMP mozPersonalDictionary::Load()
   mDictionaryTable.Clear();
 
   PRUnichar c;
-  uint32_t nRead;
+  PRUint32 nRead;
   bool done = false;
   do{  
     if( (NS_OK != convStream->Read(&c, 1, &nRead)) || (nRead != 1)) break;
     while(!done && ((c == '\n') || (c == '\r'))){
-      if( (NS_OK != convStream->Read(&c, 1, &nRead)) || (nRead != 1)) done = true;
+      if( (NS_OK != convStream->Read(&c, 1, &nRead)) || (nRead != 1)) done = PR_TRUE;
     }
     if (!done){ 
       nsAutoString word;
       while((c != '\n') && (c != '\r') && !done){
         word.Append(c);
-        if( (NS_OK != convStream->Read(&c, 1, &nRead)) || (nRead != 1)) done = true;
+        if( (NS_OK != convStream->Read(&c, 1, &nRead)) || (nRead != 1)) done = PR_TRUE;
       }
       mDictionaryTable.PutEntry(word.get());
     }
   } while(!done);
-  mDirty = false;
+  mDirty = PR_FALSE;
   
   return res;
 }
@@ -133,7 +167,7 @@ NS_IMETHODIMP mozPersonalDictionary::Load()
 
 
 static PLDHashOperator
-AddHostToStringArray(nsUnicharPtrHashKey *aEntry, void *aArg)
+AddHostToStringArray(nsUniCharEntry *aEntry, void *aArg)
 {
   static_cast<nsTArray<nsString>*>(aArg)->AppendElement(nsDependentString(aEntry->GetKey()));
   return PL_DHASH_NEXT;
@@ -165,9 +199,9 @@ NS_IMETHODIMP mozPersonalDictionary::Save()
   nsTArray<nsString> array(mDictionaryTable.Count());
   mDictionaryTable.EnumerateEntries(AddHostToStringArray, &array);
 
-  uint32_t bytesWritten;
-  nsAutoCString utf8Key;
-  for (uint32_t i = 0; i < array.Length(); ++i ) {
+  PRUint32 bytesWritten;
+  nsCAutoString utf8Key;
+  for (PRUint32 i = 0; i < array.Length(); ++i ) {
     CopyUTF16toUTF8(array[i], utf8Key);
 
     bufferedOutputStream->Write(utf8Key.get(), utf8Key.Length(), &bytesWritten);
@@ -180,7 +214,7 @@ NS_IMETHODIMP mozPersonalDictionary::Save()
 NS_IMETHODIMP mozPersonalDictionary::GetWordList(nsIStringEnumerator **aWords)
 {
   NS_ENSURE_ARG_POINTER(aWords);
-  *aWords = nullptr;
+  *aWords = nsnull;
 
   nsTArray<nsString> *array = new nsTArray<nsString>(mDictionaryTable.Count());
   if (!array)
@@ -207,7 +241,7 @@ NS_IMETHODIMP mozPersonalDictionary::Check(const PRUnichar *aWord, const PRUnich
 NS_IMETHODIMP mozPersonalDictionary::AddWord(const PRUnichar *aWord, const PRUnichar *aLang)
 {
   mDictionaryTable.PutEntry(aWord);
-  mDirty = true;
+  mDirty = PR_TRUE;
   return NS_OK;
 }
 
@@ -215,7 +249,7 @@ NS_IMETHODIMP mozPersonalDictionary::AddWord(const PRUnichar *aWord, const PRUni
 NS_IMETHODIMP mozPersonalDictionary::RemoveWord(const PRUnichar *aWord, const PRUnichar *aLang)
 {
   mDictionaryTable.RemoveEntry(aWord);
-  mDirty = true;
+  mDirty = PR_TRUE;
   return NS_OK;
 }
 
@@ -249,7 +283,7 @@ NS_IMETHODIMP mozPersonalDictionary::RemoveCorrection(const PRUnichar *word, con
 }
 
 
-NS_IMETHODIMP mozPersonalDictionary::GetCorrection(const PRUnichar *word, PRUnichar ***words, uint32_t *count)
+NS_IMETHODIMP mozPersonalDictionary::GetCorrection(const PRUnichar *word, PRUnichar ***words, PRUint32 *count)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }

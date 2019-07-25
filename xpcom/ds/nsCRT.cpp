@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  
 
 
@@ -22,7 +54,11 @@
 #include "nsCRT.h"
 #include "nsIServiceManager.h"
 #include "nsCharTraits.h"
+#include "prbit.h"
 #include "nsUTF8Utils.h"
+
+#define ADD_TO_HASHVAL(hashval, c) \
+    hashval = PR_ROTATE_LEFT32(hashval, 4) ^ (c);
 
 
 
@@ -39,7 +75,7 @@ char* nsCRT::strtok(char* string, const char* delims, char* *newStr)
   NS_ASSERTION(string, "Unlike regular strtok, the first argument cannot be null.");
 
   char delimTable[DELIM_TABLE_SIZE];
-  uint32_t i;
+  PRUint32 i;
   char* result;
   char* str = string;
 
@@ -47,19 +83,19 @@ char* nsCRT::strtok(char* string, const char* delims, char* *newStr)
     delimTable[i] = '\0';
 
   for (i = 0; delims[i]; i++) {
-    SET_DELIM(delimTable, static_cast<uint8_t>(delims[i]));
+    SET_DELIM(delimTable, static_cast<PRUint8>(delims[i]));
   }
   NS_ASSERTION(delims[i] == '\0', "too many delimiters");
 
   
-  while (*str && IS_DELIM(delimTable, static_cast<uint8_t>(*str))) {
+  while (*str && IS_DELIM(delimTable, static_cast<PRUint8>(*str))) {
     str++;
   }
   result = str;
 
   
   while (*str) {
-    if (IS_DELIM(delimTable, static_cast<uint8_t>(*str))) {
+    if (IS_DELIM(delimTable, static_cast<PRUint8>(*str))) {
       *str++ = '\0';
       break;
     }
@@ -81,7 +117,7 @@ char* nsCRT::strtok(char* string, const char* delims, char* *newStr)
 
 
 
-int32_t nsCRT::strcmp(const PRUnichar* s1, const PRUnichar* s2) {
+PRInt32 nsCRT::strcmp(const PRUnichar* s1, const PRUnichar* s2) {
   if(s1 && s2) {
     for (;;) {
       PRUnichar c1 = *s1++;
@@ -111,7 +147,7 @@ int32_t nsCRT::strcmp(const PRUnichar* s1, const PRUnichar* s2) {
 
 
 
-int32_t nsCRT::strncmp(const PRUnichar* s1, const PRUnichar* s2, uint32_t n) {
+PRInt32 nsCRT::strncmp(const PRUnichar* s1, const PRUnichar* s2, PRUint32 n) {
   if(s1 && s2) { 
     if(n != 0) {
       do {
@@ -127,8 +163,8 @@ int32_t nsCRT::strncmp(const PRUnichar* s1, const PRUnichar* s2, uint32_t n) {
   return 0;
 }
 
-const char* nsCRT::memmem(const char* haystack, uint32_t haystackLen,
-                          const char* needle, uint32_t needleLen)
+const char* nsCRT::memmem(const char* haystack, PRUint32 haystackLen,
+                          const char* needle, PRUint32 needleLen)
 {
   
   if (!(haystack && needle && haystackLen && needleLen &&
@@ -141,7 +177,7 @@ const char* nsCRT::memmem(const char* haystack, uint32_t haystackLen,
   
   
   
-  for (int32_t i = 0; i < haystackLen - needleLen; i++) {
+  for (PRInt32 i = 0; i < haystackLen - needleLen; i++) {
     if (!memcmp(haystack + i, needle, needleLen))
       return haystack + i;
   }
@@ -151,11 +187,11 @@ const char* nsCRT::memmem(const char* haystack, uint32_t haystackLen,
 
 PRUnichar* nsCRT::strdup(const PRUnichar* str)
 {
-  uint32_t len = NS_strlen(str);
+  PRUint32 len = nsCRT::strlen(str);
   return strndup(str, len);
 }
 
-PRUnichar* nsCRT::strndup(const PRUnichar* str, uint32_t len)
+PRUnichar* nsCRT::strndup(const PRUnichar* str, PRUint32 len)
 {
 	nsCppSharedAllocator<PRUnichar> shared_allocator;
 	PRUnichar* rslt = shared_allocator.allocate(len + 1); 
@@ -167,14 +203,114 @@ PRUnichar* nsCRT::strndup(const PRUnichar* str, uint32_t len)
   return rslt;
 }
 
+  
 
 
-int64_t nsCRT::atoll(const char *str)
+
+
+
+
+
+
+
+PRUint32 nsCRT::HashCode(const char* str, PRUint32* resultingStrLen)
+{
+  PRUint32 h = 0;
+  const char* s = str;
+
+  if (!str) return h;
+
+  unsigned char c;
+  while ( (c = *s++) )
+    ADD_TO_HASHVAL(h, c);
+
+  if ( resultingStrLen )
+    *resultingStrLen = (s-str)-1;
+  return h;
+}
+
+PRUint32 nsCRT::HashCode(const char* start, PRUint32 length)
+{
+  PRUint32 h = 0;
+  const char* s = start;
+  const char* end = start + length;
+
+  unsigned char c;
+  while ( s < end ) {
+    c = *s++;
+    ADD_TO_HASHVAL(h, c);
+  }
+
+  return h;
+}
+
+PRUint32 nsCRT::HashCode(const PRUnichar* str, PRUint32* resultingStrLen)
+{
+  PRUint32 h = 0;
+  const PRUnichar* s = str;
+
+  if (!str) return h;
+
+  PRUnichar c;
+  while ( (c = *s++) )
+    ADD_TO_HASHVAL(h, c);
+
+  if ( resultingStrLen )
+    *resultingStrLen = (s-str)-1;
+  return h;
+}
+
+PRUint32 nsCRT::HashCode(const PRUnichar* start, PRUint32 length)
+{
+  PRUint32 h = 0;
+  const PRUnichar* s = start;
+  const PRUnichar* end = start + length;
+
+  PRUnichar c;
+  while ( s < end ) {
+    c = *s++;
+    ADD_TO_HASHVAL(h, c);
+  }
+
+  return h;
+}
+
+PRUint32 nsCRT::HashCodeAsUTF16(const char* start, PRUint32 length,
+                                bool* err)
+{
+  PRUint32 h = 0;
+  const char* s = start;
+  const char* end = start + length;
+
+  *err = PR_FALSE;
+
+  while ( s < end )
+    {
+      PRUint32 ucs4 = UTF8CharEnumerator::NextChar(&s, end, err);
+      if (*err) {
+	return 0;
+      }
+
+      if (ucs4 < PLANE1_BASE) {
+        ADD_TO_HASHVAL(h, ucs4);
+      }
+      else {
+        ADD_TO_HASHVAL(h, H_SURROGATE(ucs4));
+        ADD_TO_HASHVAL(h, L_SURROGATE(ucs4));
+      }
+    }
+
+  return h;
+}
+
+
+
+PRInt64 nsCRT::atoll(const char *str)
 {
     if (!str)
         return LL_Zero();
 
-    int64_t ll = LL_Zero(), digitll = LL_Zero();
+    PRInt64 ll = LL_Zero(), digitll = LL_Zero();
 
     while (*str && *str >= '0' && *str <= '9') {
         LL_MUL(ll, ll, 10);

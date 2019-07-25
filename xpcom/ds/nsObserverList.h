@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsObserverList_h___
 #define nsObserverList_h___
 
@@ -14,15 +46,14 @@
 #include "nsIWeakReference.h"
 #include "nsHashKeys.h"
 #include "nsISimpleEnumerator.h"
-#include "mozilla/Attributes.h"
 
 struct ObserverRef
 {
   ObserverRef(const ObserverRef& o) :
     isWeakRef(o.isWeakRef), ref(o.ref) { }
   
-  ObserverRef(nsIObserver* aObserver) : isWeakRef(false), ref(aObserver) { }
-  ObserverRef(nsIWeakReference* aWeak) : isWeakRef(true), ref(aWeak) { }
+  ObserverRef(nsIObserver* aObserver) : isWeakRef(PR_FALSE), ref(aObserver) { }
+  ObserverRef(nsIWeakReference* aWeak) : isWeakRef(PR_TRUE), ref(aWeak) { }
 
   bool isWeakRef;
   nsCOMPtr<nsISupports> ref;
@@ -60,15 +91,11 @@ public:
   
   void FillObserverArray(nsCOMArray<nsIObserver> &aArray);
 
-  
-  
-  void UnmarkGrayStrongObservers();
-
 private:
   nsTArray<ObserverRef> mObservers;
 };
 
-class nsObserverEnumerator MOZ_FINAL : public nsISimpleEnumerator
+class nsObserverEnumerator : public nsISimpleEnumerator
 {
 public:
     NS_DECL_ISUPPORTS
@@ -79,7 +106,7 @@ public:
 private:
     ~nsObserverEnumerator() { }
 
-    int32_t mIndex; 
+    PRInt32 mIndex; 
     nsCOMArray<nsIObserver> mObservers;
 };
 

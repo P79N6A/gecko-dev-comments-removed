@@ -1,7 +1,41 @@
 /* -*- Mode: Java; c-basic-offset: 4; tab-width: 20; indent-tabs-mode: nil; -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Android code.
+ *
+ * The Initial Developer of the Original Code is Mozilla Foundation.
+ * Portions created by the Initial Developer are Copyright (C) 2011
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Vladimir Vukicevic <vladimir@pobox.com>
+ *   Wes Johnston <wjohnston@mozilla.com>
+ *   Mark Finkle <mfinkle@mozilla.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #filter substitution
 package @ANDROID_PACKAGE_NAME@;
@@ -26,7 +60,7 @@ import android.net.Uri;
 import android.graphics.*;
 
 
-public class LauncherShortcuts extends Activity {
+public class LauncherShortcuts extends ListActivity {
 
     private ArrayList <HashMap<String, String>> mWebappsList;
     private File mWebappsFolder;
@@ -35,7 +69,6 @@ public class LauncherShortcuts extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.launch_app_list);
 
         final Intent intent = getIntent();
@@ -47,8 +80,9 @@ public class LauncherShortcuts extends Activity {
         }
     }
 
-    public void onListItemClick(int id) {
-        HashMap<String, String> map = mWebappsList.get(id);
+    @Override
+    public void onListItemClick(ListView l, View v, int position, long id) {
+        HashMap<String, String> map = mWebappsList.get((int) id);
         
         String uri = map.get("uri").toString();
         String title = map.get("title").toString();
@@ -95,11 +129,8 @@ public class LauncherShortcuts extends Activity {
                 size = 72;
         }
 
-        Bitmap bitmap = BitmapFactory.decodeFile(favicon);
-        if (bitmap != null) {
-            Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, size, size, true);
-            intent.putExtra(Intent.EXTRA_SHORTCUT_ICON, scaledBitmap);
-        }
+        Bitmap bitmap = Bitmap.createScaledBitmap(BitmapFactory.decodeFile(favicon), size, size, true);
+        intent.putExtra(Intent.EXTRA_SHORTCUT_ICON, bitmap);
 
         // Now, return the result to the launcher
         setResult(RESULT_OK, intent);
@@ -185,42 +216,16 @@ public class LauncherShortcuts extends Activity {
         @Override
         protected void onPostExecute(Void unused) {
             if (mWebappsList != null) {
-                AlertDialog.Builder builder;
-                
-                if (android.os.Build.VERSION.SDK_INT >= 11) {
-                    builder = new AlertDialog.Builder(LauncherShortcuts.this, AlertDialog.THEME_HOLO_LIGHT);
-                } else {
-                    builder = new AlertDialog.Builder(LauncherShortcuts.this);
-                }
-                
-                builder.setTitle(R.string.launcher_shortcuts_title);
-                builder.setAdapter(new SimpleAdapter(
+                TextView emptyText = (TextView)findViewById(android.R.id.empty);
+                emptyText.setText("");
+
+                setListAdapter(new SimpleAdapter(
                     LauncherShortcuts.this,
                     mWebappsList,
                     R.layout.launch_app_listitem,
                     new String[] { "favicon", "title" },
                     new int[] { R.id.favicon, R.id.title }
-                ), new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int id) {
-                        dialog.dismiss();
-                        onListItemClick(id);
-                        finish();
-                    }
-                });
-                
-                builder.setOnCancelListener(new DialogInterface.OnCancelListener() {
-                    @Override
-                    public void onCancel(DialogInterface dialog) {
-                        dialog.dismiss();
-                        finish();
-                    }
-                });
-                
-                builder.create().show();
-            } else {
-                Toast.makeText(LauncherShortcuts.this, R.string.launcher_shortcuts_empty, Toast.LENGTH_LONG).show();
-                finish();
+                ));
             }
         }
     }

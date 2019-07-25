@@ -10,6 +10,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsGridRowLayout.h"
 #include "nsBoxLayoutState.h"
 #include "nsIScrollableFrame.h"
@@ -22,38 +54,38 @@ nsGridRowLayout::nsGridRowLayout():nsSprocketLayout()
 }
 
 void
-nsGridRowLayout::ChildrenInserted(nsIFrame* aBox, nsBoxLayoutState& aState,
-                                  nsIFrame* aPrevBox,
+nsGridRowLayout::ChildrenInserted(nsIBox* aBox, nsBoxLayoutState& aState,
+                                  nsIBox* aPrevBox,
                                   const nsFrameList::Slice& aNewChildren)
 {
   ChildAddedOrRemoved(aBox, aState);
 }
 
 void
-nsGridRowLayout::ChildrenAppended(nsIFrame* aBox, nsBoxLayoutState& aState,
+nsGridRowLayout::ChildrenAppended(nsIBox* aBox, nsBoxLayoutState& aState,
                                   const nsFrameList::Slice& aNewChildren)
 {
   ChildAddedOrRemoved(aBox, aState);
 }
 
 void
-nsGridRowLayout::ChildrenRemoved(nsIFrame* aBox, nsBoxLayoutState& aState, nsIFrame* aChildList)
+nsGridRowLayout::ChildrenRemoved(nsIBox* aBox, nsBoxLayoutState& aState, nsIBox* aChildList)
 {
   ChildAddedOrRemoved(aBox, aState);
 }
 
 void
-nsGridRowLayout::ChildrenSet(nsIFrame* aBox, nsBoxLayoutState& aState, nsIFrame* aChildList)
+nsGridRowLayout::ChildrenSet(nsIBox* aBox, nsBoxLayoutState& aState, nsIBox* aChildList)
 {
   ChildAddedOrRemoved(aBox, aState);
 }
 
 nsIGridPart*
-nsGridRowLayout::GetParentGridPart(nsIFrame* aBox, nsIFrame** aParentBox)
+nsGridRowLayout::GetParentGridPart(nsIBox* aBox, nsIBox** aParentBox)
 {
   
   
-  *aParentBox = nullptr;
+  *aParentBox = nsnull;
   
   
   aBox = nsGrid::GetScrollBox(aBox);
@@ -71,30 +103,30 @@ nsGridRowLayout::GetParentGridPart(nsIFrame* aBox, nsIFrame** aParentBox)
     }
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 
 nsGrid*
-nsGridRowLayout::GetGrid(nsIFrame* aBox, int32_t* aIndex, nsGridRowLayout* aRequestor)
+nsGridRowLayout::GetGrid(nsIBox* aBox, PRInt32* aIndex, nsGridRowLayout* aRequestor)
 {
 
-   if (aRequestor == nullptr)
+   if (aRequestor == nsnull)
    {
-      nsIFrame* parentBox; 
+      nsIBox* parentBox; 
       nsIGridPart* parent = GetParentGridPart(aBox, &parentBox);
       if (parent)
          return parent->GetGrid(parentBox, aIndex, this);
-      return nullptr;
+      return nsnull;
    }
 
-   int32_t index = -1;
-   nsIFrame* child = aBox->GetChildBox();
-   int32_t count = 0;
+   PRInt32 index = -1;
+   nsIBox* child = aBox->GetChildBox();
+   PRInt32 count = 0;
    while(child)
    {
      
-     nsIFrame* childBox = nsGrid::GetScrolledBox(child);
+     nsIBox* childBox = nsGrid::GetScrolledBox(child);
 
      nsBoxLayout* layout = childBox->GetLayoutManager();
      nsIGridPart* gridRow = nsGrid::GetPartFromBox(childBox);
@@ -116,25 +148,25 @@ nsGridRowLayout::GetGrid(nsIFrame* aBox, int32_t* aIndex, nsGridRowLayout* aRequ
    
    if (index == -1) {
      *aIndex = -1;
-     return nullptr;
+     return nsnull;
    }
 
    (*aIndex) += index;
 
-   nsIFrame* parentBox; 
+   nsIBox* parentBox; 
    nsIGridPart* parent = GetParentGridPart(aBox, &parentBox);
    if (parent)
      return parent->GetGrid(parentBox, aIndex, this);
 
-   return nullptr;
+   return nsnull;
 }
 
 nsMargin
-nsGridRowLayout::GetTotalMargin(nsIFrame* aBox, bool aIsHorizontal)
+nsGridRowLayout::GetTotalMargin(nsIBox* aBox, bool aIsHorizontal)
 {
   
   nsMargin margin(0,0,0,0);
-  nsIFrame* parent = nullptr;
+  nsIBox* parent = nsnull;
   nsIGridPart* part = GetParentGridPart(aBox, &parent);
   if (part && parent) {
     
@@ -143,15 +175,15 @@ nsGridRowLayout::GetTotalMargin(nsIFrame* aBox, bool aIsHorizontal)
     aBox = nsGrid::GetScrollBox(aBox);
 
     
-    nsIFrame* next = aBox->GetNextBox();
+    nsIBox* next = aBox->GetNextBox();
 
     
-    nsIFrame* child = parent->GetChildBox();
+    nsIBox* child = parent->GetChildBox();
 
     margin = part->GetTotalMargin(parent, aIsHorizontal);
 
     
-    if (child == aBox || next == nullptr) {
+    if (child == aBox || next == nsnull) {
 
        
        
@@ -165,7 +197,7 @@ nsGridRowLayout::GetTotalMargin(nsIFrame* aBox, bool aIsHorizontal)
 
        
        
-       if (next != nullptr)
+       if (next != nsnull)
        {
           if (aIsHorizontal)
               margin.bottom = 0;

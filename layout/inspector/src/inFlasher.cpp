@@ -2,6 +2,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "inFlasher.h"
 #include "inLayoutUtils.h"
 
@@ -18,7 +52,7 @@
 inFlasher::inFlasher() :
   mColor(NS_RGB(0,0,0)),
   mThickness(0),
-  mInvert(false)
+  mInvert(PR_FALSE)
 {
 }
 
@@ -67,7 +101,7 @@ inFlasher::SetColor(const nsAString& aColor)
 }
 
 NS_IMETHODIMP
-inFlasher::GetThickness(uint16_t *aThickness)
+inFlasher::GetThickness(PRUint16 *aThickness)
 {
   NS_PRECONDITION(aThickness, "Null pointer");
   *aThickness = mThickness;
@@ -75,7 +109,7 @@ inFlasher::GetThickness(uint16_t *aThickness)
 }
 
 NS_IMETHODIMP
-inFlasher::SetThickness(uint16_t aThickness)
+inFlasher::SetThickness(PRUint16 aThickness)
 {
   mThickness = aThickness;
   return NS_OK;
@@ -134,10 +168,10 @@ inFlasher::DrawElementOutline(nsIDOMElement* aElement)
         rcontext->InvertRect(rect);
       }
 
-      bool isLastFrame = frame->GetNextContinuation() == nullptr;
+      bool isLastFrame = frame->GetNextContinuation() == nsnull;
       DrawOutline(rect.x, rect.y, rect.width, rect.height, rcontext,
                   isFirstFrame, isLastFrame);
-      isFirstFrame = false;
+      isFirstFrame = PR_FALSE;
     }
     frame = frame->GetNextContinuation();
   }
@@ -161,8 +195,8 @@ inFlasher::ScrollElementIntoView(nsIDOMElement *aElement)
 
   nsCOMPtr<nsIContent> content = do_QueryInterface(aElement);
   presShell->ScrollContentIntoView(content,
-                                   nsIPresShell::ScrollAxis(),
-                                   nsIPresShell::ScrollAxis(),
+                                   NS_PRESSHELL_SCROLL_ANYWHERE ,
+                                   NS_PRESSHELL_SCROLL_ANYWHERE ,
                                    nsIPresShell::SCROLL_OVERFLOW_HIDDEN);
 
   return NS_OK;

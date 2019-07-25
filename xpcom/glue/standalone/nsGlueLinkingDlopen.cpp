@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsGlueLinking.h"
 #include "nsXPCOMGlue.h"
 #include "nscore.h"
@@ -26,18 +60,6 @@
 #define LEADING_UNDERSCORE "_"
 #else
 #define LEADING_UNDERSCORE
-#endif
-
-#if defined(MOZ_LINKER) && !defined(ANDROID)
-extern "C" {
-NS_HIDDEN __typeof(dlopen) __wrap_dlopen;
-NS_HIDDEN __typeof(dlsym) __wrap_dlsym;
-NS_HIDDEN __typeof(dlclose) __wrap_dlclose;
-}
-
-#define dlopen __wrap_dlopen
-#define dlsym __wrap_dlsym
-#define dlclose __wrap_dlclose
 #endif
 
 #ifdef NS_TRACE_MALLOC
@@ -206,15 +228,9 @@ XPCOMGlueLoad(const char *xpcomFile, GetFrozenFunctionsFunc *func)
 
             XPCOMGlueLoadDependentLibs(xpcomDir, ReadDependentCB);
 
-#ifdef __GLIBC__
-            
-            
-            sXULLibHandle = dlopen(XUL_DLL, RTLD_GLOBAL | RTLD_LAZY);
-#else
             snprintf(lastSlash, MAXPATHLEN - strlen(xpcomDir), "/" XUL_DLL);
 
             sXULLibHandle = dlopen(xpcomDir, RTLD_GLOBAL | RTLD_LAZY);
-#endif
 
 #ifdef NS_TRACE_MALLOC
             _malloc = (__ptr_t(*)(size_t)) dlsym(sXULLibHandle, "malloc");
@@ -230,7 +246,7 @@ XPCOMGlueLoad(const char *xpcomFile, GetFrozenFunctionsFunc *func)
     
     
 
-    void *libHandle = nullptr;
+    void *libHandle = nsnull;
 
     if (xpcomFile[0] != '.' || xpcomFile[1] != '\0') {
         libHandle = dlopen(xpcomFile, RTLD_GLOBAL | RTLD_LAZY);
@@ -278,7 +294,7 @@ XPCOMGlueUnload()
         _valloc = __libc_valloc;
 #endif
         dlclose(sXULLibHandle);
-        sXULLibHandle = nullptr;
+        sXULLibHandle = nsnull;
     }
 }
 

@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIOService.h"
 #include "nsSyncStreamListener.h"
 #include "nsIPipe.h"
@@ -13,14 +45,14 @@ nsSyncStreamListener::Init()
                       getter_AddRefs(mPipeOut),
                       nsIOService::gDefaultSegmentSize,
                       PR_UINT32_MAX, 
-                      false,
-                      false);
+                      PR_FALSE,
+                      PR_FALSE);
 }
 
 nsresult
 nsSyncStreamListener::WaitForData()
 {
-    mKeepWaiting = true;
+    mKeepWaiting = PR_TRUE;
 
     while (mKeepWaiting)
         NS_ENSURE_STATE(NS_ProcessNextEvent(NS_GetCurrentThread()));
@@ -64,10 +96,10 @@ NS_IMETHODIMP
 nsSyncStreamListener::OnDataAvailable(nsIRequest     *request,
                                       nsISupports    *context,
                                       nsIInputStream *stream,
-                                      uint64_t        offset,
-                                      uint32_t        count)
+                                      PRUint32        offset,
+                                      PRUint32        count)
 {
-    uint32_t bytesWritten;
+    PRUint32 bytesWritten;
 
     nsresult rv = mPipeOut->WriteFrom(stream, count, &bytesWritten);
 
@@ -82,7 +114,7 @@ nsSyncStreamListener::OnDataAvailable(nsIRequest     *request,
     
     NS_ASSERTION(bytesWritten == count, "did not write all data"); 
 
-    mKeepWaiting = false; 
+    mKeepWaiting = PR_FALSE; 
     return NS_OK;
 }
 
@@ -92,8 +124,8 @@ nsSyncStreamListener::OnStopRequest(nsIRequest  *request,
                                     nsresult     status)
 {
     mStatus = status;
-    mKeepWaiting = false; 
-    mDone = true;
+    mKeepWaiting = PR_FALSE; 
+    mDone = PR_TRUE;
     return NS_OK;
 }
 
@@ -105,20 +137,20 @@ NS_IMETHODIMP
 nsSyncStreamListener::Close()
 {
     mStatus = NS_BASE_STREAM_CLOSED;
-    mDone = true;
+    mDone = PR_TRUE;
 
     
     
     
     if (mPipeIn) {
         mPipeIn->Close();
-        mPipeIn = nullptr;
+        mPipeIn = nsnull;
     }
     return NS_OK;
 }
 
 NS_IMETHODIMP
-nsSyncStreamListener::Available(uint64_t *result)
+nsSyncStreamListener::Available(PRUint32 *result)
 {
     if (NS_FAILED(mStatus))
         return mStatus;
@@ -134,19 +166,19 @@ nsSyncStreamListener::Available(uint64_t *result)
 
 NS_IMETHODIMP
 nsSyncStreamListener::Read(char     *buf,
-                           uint32_t  bufLen,
-                           uint32_t *result)
+                           PRUint32  bufLen,
+                           PRUint32 *result)
 {
     if (mStatus == NS_BASE_STREAM_CLOSED) {
         *result = 0;
         return NS_OK;
     }
 
-    uint64_t avail64;
-    if (NS_FAILED(Available(&avail64)))
+    PRUint32 avail;
+    if (NS_FAILED(Available(&avail)))
         return mStatus;
 
-    uint32_t avail = (uint32_t)NS_MIN(avail64, (uint64_t)bufLen);
+    avail = NS_MIN(avail, bufLen);
     mStatus = mPipeIn->Read(buf, avail, result);
     return mStatus;
 }
@@ -154,19 +186,19 @@ nsSyncStreamListener::Read(char     *buf,
 NS_IMETHODIMP
 nsSyncStreamListener::ReadSegments(nsWriteSegmentFun  writer,
                                    void              *closure,
-                                   uint32_t           count,
-                                   uint32_t          *result)
+                                   PRUint32           count,
+                                   PRUint32          *result)
 {
     if (mStatus == NS_BASE_STREAM_CLOSED) {
         *result = 0;
         return NS_OK;
     }
 
-    uint64_t avail64;
-    if (NS_FAILED(Available(&avail64)))
+    PRUint32 avail;
+    if (NS_FAILED(Available(&avail)))
         return mStatus;
 
-    uint32_t avail = (uint32_t)NS_MIN(avail64, (uint64_t)count);
+    avail = NS_MIN(avail, count);
     mStatus = mPipeIn->ReadSegments(writer, closure, avail, result);
     return mStatus;
 }
@@ -174,6 +206,6 @@ nsSyncStreamListener::ReadSegments(nsWriteSegmentFun  writer,
 NS_IMETHODIMP
 nsSyncStreamListener::IsNonBlocking(bool *result)
 {
-    *result = false;
+    *result = PR_FALSE;
     return NS_OK;
 }

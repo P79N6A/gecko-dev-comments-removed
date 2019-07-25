@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsEventListenerService_h__
 #define nsEventListenerService_h__
 #include "nsIEventListenerService.h"
@@ -12,7 +44,6 @@
 #include "nsString.h"
 #include "nsCycleCollectionParticipant.h"
 #include "jsapi.h"
-#include "mozilla/Attributes.h"
 
 
 class nsEventListenerInfo : public nsIEventListenerInfo
@@ -29,7 +60,7 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS(nsEventListenerInfo)
   NS_DECL_NSIEVENTLISTENERINFO
 protected:
-  bool GetJSVal(JSContext* aCx, mozilla::Maybe<JSAutoCompartment>& aAc, jsval* aJSVal);
+  bool GetJSVal(jsval* aJSVal);
 
   nsString                      mType;
   
@@ -39,7 +70,7 @@ protected:
   bool                          mInSystemEventGroup;
 };
 
-class nsEventListenerService MOZ_FINAL : public nsIEventListenerService
+class nsEventListenerService : public nsIEventListenerService
 {
 public:
   NS_DECL_ISUPPORTS

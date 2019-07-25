@@ -3,31 +3,52 @@
 
 
 
-#include <stdio.h>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "CreateElementTxn.h"
-#include "mozilla/dom/Element.h"
-#include "nsAlgorithm.h"
-#include "nsDebug.h"
 #include "nsEditor.h"
-#include "nsError.h"
-#include "nsIContent.h"
-#include "nsIDOMCharacterData.h"
-#include "nsIEditor.h"
-#include "nsINode.h"
+#include "nsIDOMDocument.h"
+#include "nsIDOMNodeList.h"
 #include "nsISelection.h"
-#include "nsISupportsUtils.h"
-#include "nsMemory.h"
+#include "nsIDOMElement.h"
 #include "nsReadableUtils.h"
-#include "nsStringFwd.h"
-#include "nsString.h"
-#include "nsAString.h"
 
-#ifdef DEBUG
+
+#include "nsIContent.h"
+
+#ifdef NS_DEBUG
 static bool gNoisy = false;
 #endif
-
-using namespace mozilla;
 
 CreateElementTxn::CreateElementTxn()
   : EditTxn()
@@ -55,7 +76,7 @@ NS_INTERFACE_MAP_END_INHERITING(EditTxn)
 NS_IMETHODIMP CreateElementTxn::Init(nsEditor      *aEditor,
                                      const nsAString &aTag,
                                      nsIDOMNode     *aParent,
-                                     uint32_t        aOffsetInParent)
+                                     PRUint32        aOffsetInParent)
 {
   NS_ASSERTION(aEditor&&aParent, "null args");
   if (!aEditor || !aParent) { return NS_ERROR_NULL_POINTER; }
@@ -64,13 +85,21 @@ NS_IMETHODIMP CreateElementTxn::Init(nsEditor      *aEditor,
   mTag = aTag;
   mParent = do_QueryInterface(aParent);
   mOffsetInParent = aOffsetInParent;
+#ifdef NS_DEBUG
+  {
+    nsCOMPtr<nsIDOMNodeList> testChildNodes;
+    nsresult testResult = mParent->GetChildNodes(getter_AddRefs(testChildNodes));
+    NS_ASSERTION(testChildNodes, "bad parent type, can't have children.");
+    NS_ASSERTION(NS_SUCCEEDED(testResult), "bad result.");
+  }
+#endif
   return NS_OK;
 }
 
 
 NS_IMETHODIMP CreateElementTxn::DoTransaction(void)
 {
-#ifdef DEBUG
+#ifdef NS_DEBUG
   if (gNoisy)
   {
     char* nodename = ToNewCString(mTag);
@@ -83,18 +112,21 @@ NS_IMETHODIMP CreateElementTxn::DoTransaction(void)
   NS_ASSERTION(mEditor && mParent, "bad state");
   NS_ENSURE_TRUE(mEditor && mParent, NS_ERROR_NOT_INITIALIZED);
 
-  nsCOMPtr<dom::Element> newContent;
+  nsCOMPtr<nsIContent> newContent;
  
   
   nsresult result = mEditor->CreateHTMLContent(mTag, getter_AddRefs(newContent));
   NS_ENSURE_SUCCESS(result, result);
-  NS_ENSURE_STATE(newContent);
-
-  mNewNode = newContent->AsDOMNode();
+  nsCOMPtr<nsIDOMElement>newElement = do_QueryInterface(newContent);
+  NS_ENSURE_TRUE(newElement, NS_ERROR_NULL_POINTER);
+  mNewNode = do_QueryInterface(newElement);
   
   mEditor->MarkNodeDirty(mNewNode);
+ 
+  NS_ASSERTION(((NS_SUCCEEDED(result)) && (mNewNode)), "could not create element.");
+  NS_ENSURE_TRUE(mNewNode, NS_ERROR_NULL_POINTER);
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
   if (gNoisy)
   {
     printf("  newNode = %p\n", static_cast<void*>(mNewNode.get()));
@@ -102,49 +134,56 @@ NS_IMETHODIMP CreateElementTxn::DoTransaction(void)
 #endif
 
   
-  if (CreateElementTxn::eAppend == int32_t(mOffsetInParent)) {
-    nsCOMPtr<nsIDOMNode> resultNode;
-    return mParent->AppendChild(mNewNode, getter_AddRefs(resultNode));
-  }
-
-  nsCOMPtr<nsINode> parent = do_QueryInterface(mParent);
-  NS_ENSURE_STATE(parent);
-
-  mOffsetInParent = NS_MIN(mOffsetInParent, parent->GetChildCount());
-
-  
-  nsIContent* refNode = parent->GetChildAt(mOffsetInParent);
-  mRefNode = refNode ? refNode->AsDOMNode() : nullptr;
-
   nsCOMPtr<nsIDOMNode> resultNode;
-  result = mParent->InsertBefore(mNewNode, mRefNode, getter_AddRefs(resultNode));
-  NS_ENSURE_SUCCESS(result, result); 
-
-  
-  bool bAdjustSelection;
-  mEditor->ShouldTxnSetSelection(&bAdjustSelection);
-  if (!bAdjustSelection) {
-    
-    return NS_OK;
+  if (CreateElementTxn::eAppend==(PRInt32)mOffsetInParent)
+  {
+    result = mParent->AppendChild(mNewNode, getter_AddRefs(resultNode));
   }
+  else
+  {
+    nsCOMPtr<nsIDOMNodeList> childNodes;
+    result = mParent->GetChildNodes(getter_AddRefs(childNodes));
+    if ((NS_SUCCEEDED(result)) && (childNodes))
+    {
+      PRUint32 count;
+      childNodes->GetLength(&count);
+      if (mOffsetInParent>count)
+        mOffsetInParent = count;
+      result = childNodes->Item(mOffsetInParent, getter_AddRefs(mRefNode));
+      NS_ENSURE_SUCCESS(result, result); 
 
-  nsCOMPtr<nsISelection> selection;
-  result = mEditor->GetSelection(getter_AddRefs(selection));
-  NS_ENSURE_SUCCESS(result, result);
-  NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
+      result = mParent->InsertBefore(mNewNode, mRefNode, getter_AddRefs(resultNode));
+      NS_ENSURE_SUCCESS(result, result); 
 
-  nsCOMPtr<nsIContent> parentContent = do_QueryInterface(mParent);
-  NS_ENSURE_STATE(parentContent);
+      
+      bool bAdjustSelection;
+      mEditor->ShouldTxnSetSelection(&bAdjustSelection);
+      if (bAdjustSelection)
+      {
+        nsCOMPtr<nsISelection> selection;
+        result = mEditor->GetSelection(getter_AddRefs(selection));
+        NS_ENSURE_SUCCESS(result, result);
+        NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
 
-  result = selection->CollapseNative(parentContent,
-                                     parentContent->IndexOf(newContent) + 1);
-  NS_ASSERTION((NS_SUCCEEDED(result)), "selection could not be collapsed after insert.");
+        PRInt32 offset=0;
+        result = nsEditor::GetChildOffset(mNewNode, mParent, offset);
+        NS_ENSURE_SUCCESS(result, result);
+
+        result = selection->Collapse(mParent, offset+1);
+        NS_ASSERTION((NS_SUCCEEDED(result)), "selection could not be collapsed after insert.");
+       }
+      else
+      {
+        
+      }
+    }
+  }
   return result;
 }
 
 NS_IMETHODIMP CreateElementTxn::UndoTransaction(void)
 {
-#ifdef DEBUG
+#ifdef NS_DEBUG
   if (gNoisy)
   {
     printf("Undo Create Element, mParent = %p, node = %p\n",
@@ -162,7 +201,7 @@ NS_IMETHODIMP CreateElementTxn::UndoTransaction(void)
 
 NS_IMETHODIMP CreateElementTxn::RedoTransaction(void)
 {
-#ifdef DEBUG
+#ifdef NS_DEBUG
   if (gNoisy) { printf("Redo Create Element\n"); }
 #endif
 

@@ -10,12 +10,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsGridCell_h___
 #define nsGridCell_h___
 
+#include "nsIFrame.h"
+
 class nsBoxLayoutState;
 struct nsSize;
-class nsIFrame;
 
 
 
@@ -34,17 +67,17 @@ public:
     nsSize      GetPrefSize(nsBoxLayoutState& aBoxLayoutState);
     nsSize      GetMinSize(nsBoxLayoutState& aBoxLayoutState);
     nsSize      GetMaxSize(nsBoxLayoutState& aBoxLayoutState);
-    bool        IsCollapsed();
+    bool        IsCollapsed(nsBoxLayoutState& aBoxLayoutState);
 
 
-    nsIFrame*   GetBoxInColumn()               { return mBoxInColumn; }
-    nsIFrame*   GetBoxInRow()                  { return mBoxInRow; }
-    void        SetBoxInRow(nsIFrame* aBox)    { mBoxInRow = aBox; }
-    void        SetBoxInColumn(nsIFrame* aBox) { mBoxInColumn = aBox; }
+    nsIBox*     GetBoxInColumn()             { return mBoxInColumn; }
+    nsIBox*     GetBoxInRow()                { return mBoxInRow; }
+    void        SetBoxInRow(nsIBox* aBox)    { mBoxInRow = aBox; }
+    void        SetBoxInColumn(nsIBox* aBox) { mBoxInColumn = aBox; }
 
 private:
-    nsIFrame* mBoxInColumn;
-    nsIFrame* mBoxInRow;
+    nsIBox* mBoxInColumn;
+    nsIBox* mBoxInRow;
 };
 
 #endif

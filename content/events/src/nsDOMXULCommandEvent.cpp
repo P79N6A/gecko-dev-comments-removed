@@ -4,19 +4,51 @@
 
 
 
-#include "nsDOMClassInfoID.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsDOMXULCommandEvent.h"
+#include "nsContentUtils.h"
 
 nsDOMXULCommandEvent::nsDOMXULCommandEvent(nsPresContext* aPresContext,
                                            nsInputEvent* aEvent)
   : nsDOMUIEvent(aPresContext,
-                 aEvent ? aEvent : new nsInputEvent(false, 0, nullptr))
+                 aEvent ? aEvent : new nsInputEvent(PR_FALSE, 0, nsnull))
 {
   if (aEvent) {
-    mEventIsInternal = false;
+    mEventIsInternal = PR_FALSE;
   }
   else {
-    mEventIsInternal = true;
+    mEventIsInternal = PR_TRUE;
     mEvent->time = PR_Now();
   }
 }
@@ -47,7 +79,7 @@ NS_IMETHODIMP
 nsDOMXULCommandEvent::GetAltKey(bool* aIsDown)
 {
   NS_ENSURE_ARG_POINTER(aIsDown);
-  *aIsDown = Event()->IsAlt();
+  *aIsDown = Event()->isAlt;
   return NS_OK;
 }
 
@@ -55,7 +87,7 @@ NS_IMETHODIMP
 nsDOMXULCommandEvent::GetCtrlKey(bool* aIsDown)
 {
   NS_ENSURE_ARG_POINTER(aIsDown);
-  *aIsDown = Event()->IsControl();
+  *aIsDown = Event()->isControl;
   return NS_OK;
 }
 
@@ -63,7 +95,7 @@ NS_IMETHODIMP
 nsDOMXULCommandEvent::GetShiftKey(bool* aIsDown)
 {
   NS_ENSURE_ARG_POINTER(aIsDown);
-  *aIsDown = Event()->IsShift();
+  *aIsDown = Event()->isShift;
   return NS_OK;
 }
 
@@ -71,7 +103,7 @@ NS_IMETHODIMP
 nsDOMXULCommandEvent::GetMetaKey(bool* aIsDown)
 {
   NS_ENSURE_ARG_POINTER(aIsDown);
-  *aIsDown = Event()->IsMeta();
+  *aIsDown = Event()->isMeta;
   return NS_OK;
 }
 
@@ -87,7 +119,7 @@ NS_IMETHODIMP
 nsDOMXULCommandEvent::InitCommandEvent(const nsAString& aType,
                                        bool aCanBubble, bool aCancelable,
                                        nsIDOMWindow* aView,
-                                       int32_t aDetail,
+                                       PRInt32 aDetail,
                                        bool aCtrlKey, bool aAltKey,
                                        bool aShiftKey, bool aMetaKey,
                                        nsIDOMEvent* aSourceEvent)
@@ -96,7 +128,11 @@ nsDOMXULCommandEvent::InitCommandEvent(const nsAString& aType,
                                           aView, aDetail);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  Event()->InitBasicModifiers(aCtrlKey, aAltKey, aShiftKey, aMetaKey);
+  nsInputEvent *event = Event();
+  event->isControl = aCtrlKey;
+  event->isAlt = aAltKey;
+  event->isShift = aShiftKey;
+  event->isMeta = aMetaKey;
   mSourceEvent = aSourceEvent;
 
   return NS_OK;

@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsCommandManager_h__
 #define nsCommandManager_h__
 
@@ -26,8 +59,6 @@ class nsCommandManager :  public nsICommandManager,
 
 {
 public:
-  typedef nsTArray<nsCOMPtr<nsIObserver> > ObserverList;
-
                         nsCommandManager();
   virtual               ~nsCommandManager();
 
@@ -52,7 +83,8 @@ protected:
 
 
 protected:
-  nsClassHashtable<nsCharPtrHashKey, ObserverList> mObserversTable;
+
+  nsClassHashtable<nsCharPtrHashKey, nsCOMArray<nsIObserver> > mObserversTable;
 
   nsIDOMWindow*         mWindow;      
 };

@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsInputStreamChannel.h"
 
 
@@ -17,9 +49,9 @@ nsInputStreamChannel::OpenContentStream(bool async, nsIInputStream **result,
   
   
 
-  int64_t len = ContentLength64();
+  PRInt64 len = ContentLength64();
   if (len < 0) {
-    uint64_t avail;
+    PRUint32 avail;
     nsresult rv = mContentStream->Available(&avail);
     if (rv == NS_BASE_STREAM_CLOSED) {
       
@@ -30,7 +62,7 @@ nsInputStreamChannel::OpenContentStream(bool async, nsIInputStream **result,
     SetContentLength64(avail);
   }
 
-  EnableSynthesizedProgressEvents(true);
+  EnableSynthesizedProgressEvents(PR_TRUE);
   
   NS_ADDREF(*result = mContentStream);
   return NS_OK;

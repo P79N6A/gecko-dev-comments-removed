@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
 #include "nsCOMArray.h"
@@ -19,6 +52,7 @@
 #include "nsIDOMGeoPositionError.h"
 #include "nsIDOMGeoPositionCallback.h"
 #include "nsIDOMGeoPositionErrorCallback.h"
+#include "nsIDOMGeoPositionOptions.h"
 #include "nsIDOMNavigatorGeolocation.h"
 #include "nsIDOMGeoPositionCoords.h"
 
@@ -79,8 +113,8 @@ class MaemoLocationProvider : public nsIGeolocationProvider,
   double mPrevLong;
 
   bool mIgnoreBigHErr;
-  int32_t mMaxHErr;
+  PRInt32 mMaxHErr;
   bool mIgnoreBigVErr;
-  int32_t mMaxVErr;
+  PRInt32 mMaxVErr;
 
 };

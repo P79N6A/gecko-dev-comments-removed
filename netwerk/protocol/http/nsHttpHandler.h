@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsHttpHandler_h__
 #define nsHttpHandler_h__
 
@@ -10,7 +43,6 @@
 #include "nsHttpAuthCache.h"
 #include "nsHttpConnection.h"
 #include "nsHttpConnectionMgr.h"
-#include "ASpdySession.h"
 
 #include "nsXPIDLString.h"
 #include "nsString.h"
@@ -22,13 +54,13 @@
 #include "nsIIOService.h"
 #include "nsIObserver.h"
 #include "nsIObserverService.h"
+#include "nsIPrivateBrowsingService.h"
 #include "nsIStreamConverterService.h"
 #include "nsICacheSession.h"
 #include "nsICookieService.h"
 #include "nsIIDNService.h"
 #include "nsITimer.h"
 #include "nsIStrictTransportSecurityService.h"
-#include "nsISpeculativeConnect.h"
 
 class nsHttpConnectionInfo;
 class nsHttpHeaderArray;
@@ -44,7 +76,6 @@ class nsIPrefBranch;
 class nsHttpHandler : public nsIHttpProtocolHandler
                     , public nsIObserver
                     , public nsSupportsWeakReference
-                    , public nsISpeculativeConnect
 {
 public:
     NS_DECL_ISUPPORTS
@@ -52,48 +83,33 @@ public:
     NS_DECL_NSIPROXIEDPROTOCOLHANDLER
     NS_DECL_NSIHTTPPROTOCOLHANDLER
     NS_DECL_NSIOBSERVER
-    NS_DECL_NSISPECULATIVECONNECT
 
     nsHttpHandler();
     virtual ~nsHttpHandler();
 
     nsresult Init();
     nsresult AddStandardRequestHeaders(nsHttpHeaderArray *,
-                                       uint8_t capabilities);
+                                       PRUint8 capabilities,
+                                       bool useProxy);
     bool     IsAcceptableEncoding(const char *encoding);
 
     const nsAFlatCString &UserAgent();
 
     nsHttpVersion  HttpVersion()             { return mHttpVersion; }
     nsHttpVersion  ProxyHttpVersion()        { return mProxyHttpVersion; }
-    uint8_t        ReferrerLevel()           { return mReferrerLevel; }
+    PRUint8        ReferrerLevel()           { return mReferrerLevel; }
     bool           SendSecureXSiteReferrer() { return mSendSecureXSiteReferrer; }
-    uint8_t        RedirectionLimit()        { return mRedirectionLimit; }
-    PRIntervalTime IdleTimeout()             { return mIdleTimeout; }
-    PRIntervalTime SpdyTimeout()             { return mSpdyTimeout; }
-    uint16_t       MaxRequestAttempts()      { return mMaxRequestAttempts; }
+    PRUint8        RedirectionLimit()        { return mRedirectionLimit; }
+    PRUint16       IdleTimeout()             { return mIdleTimeout; }
+    PRUint16       MaxRequestAttempts()      { return mMaxRequestAttempts; }
     const char    *DefaultSocketType()       { return mDefaultSocketType.get();  }
     nsIIDNService *IDNConverter()            { return mIDNConverter; }
-    uint32_t       PhishyUserPassLength()    { return mPhishyUserPassLength; }
-    uint8_t        GetQoSBits()              { return mQoSBits; }
-    uint16_t       GetIdleSynTimeout()       { return mIdleSynTimeout; }
+    PRUint32       PhishyUserPassLength()    { return mPhishyUserPassLength; }
+    PRUint8        GetQoSBits()              { return mQoSBits; }
+    PRUint16       GetIdleSynTimeout()       { return mIdleSynTimeout; }
     bool           FastFallbackToIPv4()      { return mFastFallbackToIPv4; }
-    uint32_t       MaxSocketCount();
-    bool           EnforceAssocReq()         { return mEnforceAssocReq; }
 
     bool           IsPersistentHttpsCachingEnabled() { return mEnablePersistentHttpsCaching; }
-    bool           IsTelemetryEnabled() { return mTelemetryEnabled; }
-    bool           AllowExperiments() { return mTelemetryEnabled && mAllowExperiments; }
-
-    bool           IsSpdyEnabled() { return mEnableSpdy; }
-    bool           IsSpdyV2Enabled() { return mSpdyV2; }
-    bool           IsSpdyV3Enabled() { return mSpdyV3; }
-    bool           CoalesceSpdy() { return mCoalesceSpdy; }
-    bool           UseAlternateProtocol() { return mUseAlternateProtocol; }
-    uint32_t       SpdySendingChunkSize() { return mSpdySendingChunkSize; }
-    PRIntervalTime SpdyPingThreshold() { return mSpdyPingThreshold; }
-    PRIntervalTime SpdyPingTimeout() { return mSpdyPingTimeout; }
-    uint32_t       ConnectTimeout()  { return mConnectTimeout; }
 
     bool           PromptTempRedirect()      { return mPromptTempRedirect; }
 
@@ -101,9 +117,9 @@ public:
     nsHttpConnectionMgr *ConnMgr()   { return mConnMgr; }
 
     
-    bool UseCache() const { return mUseCache; }
-    uint32_t GenerateUniqueID() { return ++mLastUniqueID; }
-    uint32_t SessionStartTime() { return mSessionStartTime; }
+    nsresult GetCacheSession(nsCacheStoragePolicy, nsICacheSession **);
+    PRUint32 GenerateUniqueID() { return ++mLastUniqueID; }
+    PRUint32 SessionStartTime() { return mSessionStartTime; }
 
     
     
@@ -118,14 +134,14 @@ public:
     
     
     
-    nsresult InitiateTransaction(nsHttpTransaction *trans, int32_t priority)
+    nsresult InitiateTransaction(nsHttpTransaction *trans, PRInt32 priority)
     {
         return mConnMgr->AddTransaction(trans, priority);
     }
 
     
     
-    nsresult RescheduleTransaction(nsHttpTransaction *trans, int32_t priority)
+    nsresult RescheduleTransaction(nsHttpTransaction *trans, PRInt32 priority)
     {
         return mConnMgr->RescheduleTransaction(trans, priority);
     }
@@ -154,12 +170,8 @@ public:
         return mConnMgr->GetSocketThreadTarget(target);
     }
 
-    nsresult SpeculativeConnect(nsHttpConnectionInfo *ci,
-                                nsIInterfaceRequestor *callbacks,
-                                nsIEventTarget *target)
-    {
-        return mConnMgr->SpeculativeConnect(ci, callbacks, target);
-    }
+    
+    bool InPrivateBrowsingMode();
 
     
     
@@ -169,9 +181,6 @@ public:
     nsresult GetIOService(nsIIOService** service);
     nsICookieService * GetCookieService(); 
     nsIStrictTransportSecurityService * GetSTSService();
-
-    
-    uint32_t Get32BitsOfPseudoRandom();
 
     
     void OnModifyRequest(nsIHttpChannel *chan)
@@ -194,7 +203,7 @@ public:
     
     
     nsresult AsyncOnChannelRedirect(nsIChannel* oldChan, nsIChannel* newChan,
-                               uint32_t flags);
+                               PRUint32 flags);
 
     
     
@@ -205,33 +214,8 @@ public:
 
     
     
-    static nsresult GenerateHostPort(const nsCString& host, int32_t port,
+    static nsresult GenerateHostPort(const nsCString& host, PRInt32 port,
                                      nsCString& hostLine);
-
-    bool GetPipelineAggressive()     { return mPipelineAggressive; }
-    void GetMaxPipelineObjectSize(int64_t *outVal)
-    {
-        *outVal = mMaxPipelineObjectSize;
-    }
-
-    bool GetPipelineEnabled()
-    {
-        return mCapabilities & NS_HTTP_ALLOW_PIPELINING;
-    }
-
-    bool GetPipelineRescheduleOnTimeout()
-    {
-        return mPipelineRescheduleOnTimeout;
-    }
-
-    PRIntervalTime GetPipelineRescheduleTimeout()
-    {
-        return mPipelineRescheduleTimeout;
-    }
-    
-    PRIntervalTime GetPipelineTimeout()   { return mPipelineReadTimeout; }
-
-    mozilla::net::SpdyInformation *SpdyInfo() { return &mSpdyInfo; }
 
 private:
 
@@ -270,44 +254,43 @@ private:
     
     
 
-    uint8_t  mHttpVersion;
-    uint8_t  mProxyHttpVersion;
-    uint8_t  mCapabilities;
-    uint8_t  mProxyCapabilities;
-    uint8_t  mReferrerLevel;
+    PRUint8  mHttpVersion;
+    PRUint8  mProxyHttpVersion;
+    PRUint8  mCapabilities;
+    PRUint8  mProxyCapabilities;
+    PRUint8  mReferrerLevel;
 
     bool mFastFallbackToIPv4;
 
-    PRIntervalTime mIdleTimeout;
-    PRIntervalTime mSpdyTimeout;
+    PRUint16 mIdleTimeout;
+    PRUint16 mMaxRequestAttempts;
+    PRUint16 mMaxRequestDelay;
+    PRUint16 mIdleSynTimeout;
 
-    uint16_t mMaxRequestAttempts;
-    uint16_t mMaxRequestDelay;
-    uint16_t mIdleSynTimeout;
+    PRUint16 mMaxConnections;
+    PRUint8  mMaxConnectionsPerServer;
+    PRUint8  mMaxPersistentConnectionsPerServer;
+    PRUint8  mMaxPersistentConnectionsPerProxy;
+    PRUint8  mMaxPipelinedRequests;
 
-    uint16_t mMaxConnections;
-    uint8_t  mMaxPersistentConnectionsPerServer;
-    uint8_t  mMaxPersistentConnectionsPerProxy;
-    uint16_t mMaxPipelinedRequests;
-    uint16_t mMaxOptimisticPipelinedRequests;
-    bool     mPipelineAggressive;
-    int64_t  mMaxPipelineObjectSize;
-    bool     mPipelineRescheduleOnTimeout;
-    PRIntervalTime mPipelineRescheduleTimeout;
-    PRIntervalTime mPipelineReadTimeout;
-
-    uint8_t  mRedirectionLimit;
+    PRUint8  mRedirectionLimit;
 
     
     
     
     
-    uint8_t  mPhishyUserPassLength;
+    PRUint8  mPhishyUserPassLength;
 
-    uint8_t  mQoSBits;
+    PRUint8  mQoSBits;
 
     bool mPipeliningOverSSL;
-    bool mEnforceAssocReq;
+
+    
+    enum {
+        PRIVATE_BROWSING_OFF = PR_FALSE,
+        PRIVATE_BROWSING_ON = PR_TRUE,
+        PRIVATE_BROWSING_UNKNOWN = 2
+    } mInPrivateBrowsingMode;
 
     nsCString mAccept;
     nsCString mAcceptLanguages;
@@ -316,8 +299,8 @@ private:
     nsXPIDLCString mDefaultSocketType;
 
     
-    uint32_t                  mLastUniqueID;
-    uint32_t                  mSessionStartTime;
+    PRUint32                  mLastUniqueID;
+    PRUint32                  mSessionStartTime;
 
     
     nsCString      mLegacyAppName;
@@ -330,8 +313,6 @@ private:
     nsXPIDLCString mAppName;
     nsXPIDLCString mAppVersion;
     nsCString      mCompatFirefox;
-    bool           mCompatFirefoxEnabled;
-    nsXPIDLCString mCompatDevice;
 
     nsCString      mUserAgent;
     nsXPIDLCString mUserAgentOverride;
@@ -349,27 +330,6 @@ private:
 
     
     bool           mDoNotTrackEnabled;
-    
-    
-    bool           mTelemetryEnabled;
-
-    
-    bool           mAllowExperiments;
-
-    
-    mozilla::net::SpdyInformation mSpdyInfo;
-    bool           mEnableSpdy;
-    bool           mSpdyV2;
-    bool           mSpdyV3;
-    bool           mCoalesceSpdy;
-    bool           mUseAlternateProtocol;
-    uint32_t       mSpdySendingChunkSize;
-    PRIntervalTime mSpdyPingThreshold;
-    PRIntervalTime mSpdyPingTimeout;
-
-    
-    
-    uint32_t       mConnectTimeout;
 };
 
 
@@ -383,7 +343,6 @@ extern nsHttpHandler *gHttpHandler;
 
 class nsHttpsHandler : public nsIHttpProtocolHandler
                      , public nsSupportsWeakReference
-                     , public nsISpeculativeConnect
 {
 public:
     
@@ -393,7 +352,6 @@ public:
     NS_DECL_NSIPROTOCOLHANDLER
     NS_FORWARD_NSIPROXIEDPROTOCOLHANDLER (gHttpHandler->)
     NS_FORWARD_NSIHTTPPROTOCOLHANDLER    (gHttpHandler->)
-    NS_FORWARD_NSISPECULATIVECONNECT     (gHttpHandler->)
 
     nsHttpsHandler() { }
     virtual ~nsHttpsHandler() { }

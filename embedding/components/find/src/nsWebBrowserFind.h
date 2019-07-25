@@ -4,6 +4,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsWebBrowserFindImpl_h__
 #define nsWebBrowserFindImpl_h__
 
@@ -95,6 +130,8 @@ protected:
     nsWeakPtr       mCurrentSearchFrame;    
     nsWeakPtr       mRootSearchFrame;       
     nsWeakPtr       mLastFocusedWindow;     
+    
+    nsCOMPtr<nsIFind> mFind;
 };
 
 #endif

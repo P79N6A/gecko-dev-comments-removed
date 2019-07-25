@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsTreeRows_h__
 #define nsTreeRows_h__
 
@@ -77,18 +110,18 @@ public:
         
 
 
-        int32_t mCount;
+        PRInt32 mCount;
 
         
 
 
-        int32_t mCapacity;
+        PRInt32 mCapacity;
 
         
 
 
 
-        int32_t mSubtreeSize;
+        PRInt32 mSubtreeSize;
 
         
 
@@ -104,32 +137,32 @@ public:
               mCount(0),
               mCapacity(0),
               mSubtreeSize(0),
-              mRows(nullptr) {}
+              mRows(nsnull) {}
 
         ~Subtree();
 
         
 
 
-        int32_t Count() const { return mCount; }
+        PRInt32 Count() const { return mCount; }
 
         
 
 
 
-        int32_t GetSubtreeSize() const { return mSubtreeSize; }
+        PRInt32 GetSubtreeSize() const { return mSubtreeSize; }
 
         
 
 
-        const Row& operator[](int32_t aIndex) const {
+        const Row& operator[](PRInt32 aIndex) const {
             NS_PRECONDITION(aIndex >= 0 && aIndex < mCount, "bad index");
             return mRows[aIndex]; }
 
         
 
 
-        Row& operator[](int32_t aIndex) {
+        Row& operator[](PRInt32 aIndex) {
             NS_PRECONDITION(aIndex >= 0 && aIndex < mCount, "bad index");
             return mRows[aIndex]; }
 
@@ -142,12 +175,12 @@ public:
         
 
 
-        iterator InsertRowAt(nsTemplateMatch* aMatch, int32_t aIndex);
+        iterator InsertRowAt(nsTemplateMatch* aMatch, PRInt32 aIndex);
 
         
 
 
-        void RemoveRowAt(int32_t aChildIndex);
+        void RemoveRowAt(PRInt32 aChildIndex);
     };
 
     friend class Subtree;
@@ -158,7 +191,7 @@ protected:
 
     struct Link {
         Subtree* mParent;
-        int32_t  mChildIndex;
+        PRInt32  mChildIndex;
 
         Link&
         operator=(const Link& aLink) {
@@ -174,7 +207,7 @@ protected:
         Subtree* GetParent() { return mParent; }
         const Subtree* GetParent() const { return mParent; }
 
-        int32_t GetChildIndex() const { return mChildIndex; }
+        PRInt32 GetChildIndex() const { return mChildIndex; }
 
         Row& GetRow() { return (*mParent)[mChildIndex]; }
         const Row& GetRow() const { return (*mParent)[mChildIndex]; }
@@ -186,7 +219,7 @@ public:
 
     class iterator {
     protected:
-        int32_t mRowIndex;
+        PRInt32 mRowIndex;
         nsAutoTArray<Link, 8> mLink;
 
         void Next();
@@ -198,17 +231,17 @@ public:
         
 
 
-        void Append(Subtree* aParent, int32_t aChildIndex);
+        void Append(Subtree* aParent, PRInt32 aChildIndex);
 
         
 
 
-        void Push(Subtree *aParent, int32_t aChildIndex);
+        void Push(Subtree *aParent, PRInt32 aChildIndex);
 
         
 
 
-        void SetRowIndex(int32_t aRowIndex) { mRowIndex = aRowIndex; }
+        void SetRowIndex(PRInt32 aRowIndex) { mRowIndex = aRowIndex; }
 
         
 
@@ -248,18 +281,18 @@ public:
         
 
 
-        int32_t GetChildIndex() const { return GetTop().GetChildIndex(); }
+        PRInt32 GetChildIndex() const { return GetTop().GetChildIndex(); }
 
         
 
 
 
-        int32_t GetDepth() const { return mLink.Length(); }
+        PRInt32 GetDepth() const { return mLink.Length(); }
 
         
 
 
-        int32_t GetRowIndex() const { return mRowIndex; }
+        PRInt32 GetRowIndex() const { return mRowIndex; }
 
         
 
@@ -290,9 +323,9 @@ public:
     
 
 
-    iterator operator[](int32_t aIndex);
+    iterator operator[](PRInt32 aIndex);
 
-    nsTreeRows() : mRoot(nullptr) {}
+    nsTreeRows() : mRoot(nsnull) {}
     ~nsTreeRows() {}
 
     
@@ -301,7 +334,7 @@ public:
 
 
     Subtree*
-    EnsureSubtreeFor(Subtree* aParent, int32_t aChildIndex);
+    EnsureSubtreeFor(Subtree* aParent, PRInt32 aChildIndex);
 
     
 
@@ -318,25 +351,25 @@ public:
 
     Subtree*
     GetSubtreeFor(const Subtree* aParent,
-                  int32_t aChildIndex,
-                  int32_t* aSubtreeSize = nullptr);
+                  PRInt32 aChildIndex,
+                  PRInt32* aSubtreeSize = nsnull);
 
     
 
 
-    int32_t
+    PRInt32
     GetSubtreeSizeFor(const Subtree* aParent,
-                      int32_t aChildIndex) {
-        int32_t size;
+                      PRInt32 aChildIndex) {
+        PRInt32 size;
         GetSubtreeFor(aParent, aChildIndex, &size);
         return size; }
 
     
 
 
-    int32_t
+    PRInt32
     GetSubtreeSizeFor(const iterator& aIterator) {
-        int32_t size;
+        PRInt32 size;
         GetSubtreeFor(aIterator.GetParent(), aIterator.GetChildIndex(), &size);
         return size; }
 
@@ -345,7 +378,7 @@ public:
 
 
     void
-    RemoveSubtreeFor(Subtree* aParent, int32_t aChildIndex);
+    RemoveSubtreeFor(Subtree* aParent, PRInt32 aChildIndex);
 
     
 
@@ -358,7 +391,7 @@ public:
     
 
 
-    int32_t
+    PRInt32
     RemoveRowAt(iterator& aIterator) {
         iterator temp = aIterator--;
         Subtree* parent = temp.GetParent();
@@ -370,7 +403,7 @@ public:
 
 
     iterator
-    InsertRowAt(nsTemplateMatch* aMatch, Subtree* aSubtree, int32_t aChildIndex) {
+    InsertRowAt(nsTemplateMatch* aMatch, Subtree* aSubtree, PRInt32 aChildIndex) {
         InvalidateCachedRow();
         return aSubtree->InsertRowAt(aMatch, aChildIndex); }
 
@@ -388,7 +421,7 @@ public:
     
 
 
-    int32_t Count() const { return mRoot.GetSubtreeSize(); }
+    PRInt32 Count() const { return mRoot.GetSubtreeSize(); }
 
     
 

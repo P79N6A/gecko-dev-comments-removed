@@ -6,7 +6,39 @@
 
 
 
-#include "nsContainerFrame.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsHTMLContainerFrame.h"
 #include "nsLegendFrame.h"
 #include "nsIDOMNode.h"
 #include "nsIDOMHTMLFieldSetElement.h"
@@ -31,12 +63,9 @@
 #include "nsDisplayList.h"
 #include "nsRenderingContext.h"
 
-using namespace mozilla;
-using namespace mozilla::layout;
-
 class nsLegendFrame;
 
-class nsFieldSetFrame : public nsContainerFrame {
+class nsFieldSetFrame : public nsHTMLContainerFrame {
 public:
   NS_DECL_FRAMEARENA_HELPERS
 
@@ -53,7 +82,7 @@ public:
   virtual nsSize ComputeSize(nsRenderingContext *aRenderingContext,
                              nsSize aCBSize, nscoord aAvailableWidth,
                              nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                             uint32_t aFlags) MOZ_OVERRIDE;
+                             bool aShrinkWrap);
   virtual nscoord GetBaseline() const;
   virtual void DestroyFrom(nsIFrame* aDestructRoot);
 
@@ -67,7 +96,7 @@ public:
                               const nsDisplayListSet& aLists);
 
   void PaintBorderBackground(nsRenderingContext& aRenderingContext,
-    nsPoint aPt, const nsRect& aDirtyRect, uint32_t aBGFlags);
+    nsPoint aPt, const nsRect& aDirtyRect, PRUint32 aBGFlags);
 
   NS_IMETHOD AppendFrames(ChildListID    aListID,
                           nsFrameList&   aFrameList);
@@ -80,7 +109,7 @@ public:
   virtual nsIAtom* GetType() const;
 
 #ifdef ACCESSIBILITY  
-  virtual already_AddRefed<Accessible> CreateAccessible();
+  virtual already_AddRefed<nsAccessible> CreateAccessible();
 #endif
 
 #ifdef DEBUG
@@ -91,11 +120,9 @@ public:
 
 protected:
 
-  virtual int GetSkipSides() const;
+  virtual PRIntn GetSkipSides() const;
   void ReparentFrameList(const nsFrameList& aFrameList);
 
-  
-  
   nsIFrame* mLegendFrame;
   nsIFrame* mContentFrame;
   nsRect    mLegendRect;
@@ -111,10 +138,10 @@ NS_NewFieldSetFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 NS_IMPL_FRAMEARENA_HELPERS(nsFieldSetFrame)
 
 nsFieldSetFrame::nsFieldSetFrame(nsStyleContext* aContext)
-  : nsContainerFrame(aContext)
+  : nsHTMLContainerFrame(aContext)
 {
-  mContentFrame = nullptr;
-  mLegendFrame  = nullptr;
+  mContentFrame = nsnull;
+  mLegendFrame  = nsnull;
   mLegendSpace  = 0;
 }
 
@@ -122,7 +149,7 @@ void
 nsFieldSetFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
   DestroyAbsoluteFrames(aDestructRoot);
-  nsContainerFrame::DestroyFrom(aDestructRoot);
+  nsHTMLContainerFrame::DestroyFrom(aDestructRoot);
 }
 
 nsIAtom*
@@ -142,11 +169,11 @@ nsFieldSetFrame::SetInitialChildList(ChildListID    aListID,
     mLegendFrame  = aChildList.FirstChild();
   } else {
     mContentFrame = aChildList.FirstChild();
-    mLegendFrame  = nullptr;
+    mLegendFrame  = nsnull;
   }
 
   
-  return nsContainerFrame::SetInitialChildList(kPrincipalList, aChildList);
+  return nsHTMLContainerFrame::SetInitialChildList(kPrincipalList, aChildList);
 }
 
 class nsDisplayFieldSetBorderBackground : public nsDisplayItem {
@@ -243,12 +270,12 @@ nsFieldSetFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
 void
 nsFieldSetFrame::PaintBorderBackground(nsRenderingContext& aRenderingContext,
-    nsPoint aPt, const nsRect& aDirtyRect, uint32_t aBGFlags)
+    nsPoint aPt, const nsRect& aDirtyRect, PRUint32 aBGFlags)
 {
-  int skipSides = GetSkipSides();
+  PRIntn skipSides = GetSkipSides();
   const nsStyleBorder* borderStyle = GetStyleBorder();
        
-  nscoord topBorder = borderStyle->GetComputedBorderWidth(NS_SIDE_TOP);
+  nscoord topBorder = borderStyle->GetActualBorderWidth(NS_SIDE_TOP);
   nscoord yoff = 0;
   nsPresContext* presContext = PresContext();
      
@@ -369,18 +396,14 @@ nsFieldSetFrame::GetPrefWidth(nsRenderingContext* aRenderingContext)
 nsFieldSetFrame::ComputeSize(nsRenderingContext *aRenderingContext,
                              nsSize aCBSize, nscoord aAvailableWidth,
                              nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                             uint32_t aFlags)
+                             bool aShrinkWrap)
 {
   nsSize result =
-    nsContainerFrame::ComputeSize(aRenderingContext, aCBSize, aAvailableWidth,
-                                  aMargin, aBorder, aPadding, aFlags);
+    nsHTMLContainerFrame::ComputeSize(aRenderingContext, aCBSize,
+                                      aAvailableWidth,
+                                      aMargin, aBorder, aPadding, aShrinkWrap);
 
   
-
-  
-  
-  AutoMaybeDisableFontInflation an(this);
-
   nscoord minWidth = GetMinWidth(aRenderingContext);
   if (minWidth > result.width)
     result.width = minWidth;
@@ -408,8 +431,8 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
   bool reflowLegend;
 
   if (aReflowState.ShouldReflowAllKids()) {
-    reflowContent = mContentFrame != nullptr;
-    reflowLegend = mLegendFrame != nullptr;
+    reflowContent = mContentFrame != nsnull;
+    reflowLegend = mLegendFrame != nsnull;
   } else {
     reflowContent = mContentFrame && NS_SUBTREE_DIRTY(mContentFrame);
     reflowLegend = mLegendFrame && NS_SUBTREE_DIRTY(mLegendFrame);
@@ -469,7 +492,7 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
     
     
     if (mLegendSpace != oldSpace && mContentFrame) {
-      reflowContent = true;
+      reflowContent = PR_TRUE;
     }
 
     FinishReflowChild(mLegendFrame, aPresContext, &legendReflowState, 
@@ -530,8 +553,7 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
   if (mLegendFrame) {
     
     if (contentRect.width > mLegendRect.width) {
-      int32_t align = static_cast<nsLegendFrame*>
-        (mLegendFrame->GetContentInsertionFrame())->GetAlign();
+      PRInt32 align = static_cast<nsLegendFrame*>(mLegendFrame)->GetAlign();
 
       switch(align) {
         case NS_STYLE_TEXT_ALIGN_RIGHT:
@@ -590,7 +612,7 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
   return NS_OK;
 }
 
-int
+PRIntn
 nsFieldSetFrame::GetSkipSides() const
 {
   return 0;
@@ -617,7 +639,7 @@ nsFieldSetFrame::InsertFrames(ChildListID    aListID,
   
   ReparentFrameList(aFrameList);
   if (NS_UNLIKELY(aPrevFrame == mLegendFrame)) {
-    aPrevFrame = nullptr;
+    aPrevFrame = nsnull;
   }
   return mContentFrame->InsertFrames(aListID, aPrevFrame, aFrameList);
 }
@@ -632,7 +654,7 @@ nsFieldSetFrame::RemoveFrame(ChildListID    aListID,
 }
 
 #ifdef ACCESSIBILITY
-already_AddRefed<Accessible>
+already_AddRefed<nsAccessible>
 nsFieldSetFrame::CreateAccessible()
 {
   nsAccessibilityService* accService = nsIPresShell::AccService();
@@ -641,7 +663,7 @@ nsFieldSetFrame::CreateAccessible()
                                                     PresContext()->PresShell());
   }
 
-  return nullptr;
+  return nsnull;
 }
 #endif
 

@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsTreeStyleCache.h"
 #include "nsISupportsArray.h"
 #include "nsStyleSet.h"
@@ -17,7 +51,7 @@ nsTreeStyleCache::GetStyleContext(nsICSSPseudoComparator* aComparator,
                                   nsIAtom* aPseudoElement,
                                   nsISupportsArray* aInputWord)
 {
-  uint32_t count;
+  PRUint32 count;
   aInputWord->Count(&count);
   nsDFAState startState(0);
   nsDFAState* currState = &startState;
@@ -26,7 +60,7 @@ nsTreeStyleCache::GetStyleContext(nsICSSPseudoComparator* aComparator,
   if (!mTransitionTable) {
     
     mTransitionTable =
-      new nsObjectHashtable(nullptr, nullptr, DeleteDFAState, nullptr);
+      new nsObjectHashtable(nsnull, nsnull, DeleteDFAState, nsnull);
   }
 
   
@@ -40,7 +74,7 @@ nsTreeStyleCache::GetStyleContext(nsICSSPseudoComparator* aComparator,
     mTransitionTable->Put(&key, currState);
   }
 
-  for (uint32_t i = 0; i < count; i++) {
+  for (PRUint32 i = 0; i < count; i++) {
     nsCOMPtr<nsIAtom> pseudo = getter_AddRefs(static_cast<nsIAtom*>(aInputWord->ElementAt(i)));
     nsTransitionKey key(currState->GetStateID(), pseudo);
     currState = static_cast<nsDFAState*>(mTransitionTable->Get(&key));
@@ -55,7 +89,7 @@ nsTreeStyleCache::GetStyleContext(nsICSSPseudoComparator* aComparator,
 
   
   
-  nsStyleContext* result = nullptr;
+  nsStyleContext* result = nsnull;
   if (mCache)
     result = static_cast<nsStyleContext*>(mCache->Get(currState));
   if (!result) {
@@ -66,7 +100,7 @@ nsTreeStyleCache::GetStyleContext(nsICSSPseudoComparator* aComparator,
 
     
     if (!mCache) {
-      mCache = new nsObjectHashtable(nullptr, nullptr, ReleaseStyleContext, nullptr);
+      mCache = new nsObjectHashtable(nsnull, nsnull, ReleaseStyleContext, nsnull);
     }
     mCache->Put(currState, result);
   }
@@ -81,7 +115,7 @@ nsTreeStyleCache::DeleteDFAState(nsHashKey *aKey,
 {
   nsDFAState* entry = static_cast<nsDFAState*>(aData);
   delete entry;
-  return true;
+  return PR_TRUE;
 }
 
 bool
@@ -91,5 +125,5 @@ nsTreeStyleCache::ReleaseStyleContext(nsHashKey *aKey,
 {
   nsStyleContext* context = static_cast<nsStyleContext*>(aData);
   context->Release();
-  return true;
+  return PR_TRUE;
 }

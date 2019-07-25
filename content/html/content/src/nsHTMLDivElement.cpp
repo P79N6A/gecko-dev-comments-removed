@@ -3,7 +3,36 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsIDOMHTMLDivElement.h"
 #include "nsIDOMEventTarget.h"
@@ -11,8 +40,7 @@
 #include "nsGkAtoms.h"
 #include "nsStyleConsts.h"
 #include "nsMappedAttributes.h"
-
-using namespace mozilla;
+#include "nsDOMMemoryReporter.h"
 
 class nsHTMLDivElement : public nsGenericHTMLElement,
                          public nsIDOMHTMLDivElement
@@ -36,7 +64,10 @@ public:
   
   NS_DECL_NSIDOMHTMLDIVELEMENT
 
-  virtual bool ParseAttribute(int32_t aNamespaceID,
+  NS_DECL_AND_IMPL_DOM_MEMORY_REPORTER_SIZEOF(nsHTMLDivElement,
+                                              nsGenericHTMLElement)
+
+  virtual bool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
@@ -45,7 +76,6 @@ public:
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   virtual nsXPCClassInfo* GetClassInfo();
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 };
 
 
@@ -81,7 +111,7 @@ NS_IMPL_STRING_ATTR(nsHTMLDivElement, Align, align)
 
 
 bool
-nsHTMLDivElement::ParseAttribute(int32_t aNamespaceID,
+nsHTMLDivElement::ParseAttribute(PRInt32 aNamespaceID,
                                  nsIAtom* aAttribute,
                                  const nsAString& aValue,
                                  nsAttrValue& aResult)
@@ -135,7 +165,7 @@ nsHTMLDivElement::IsAttributeMapped(const nsIAtom* aAttribute) const
       sDivAlignAttributeMap,
       sCommonAttributeMap
     };
-    return FindAttributeDependence(aAttribute, map);
+    return FindAttributeDependence(aAttribute, map, NS_ARRAY_LENGTH(map));
   }
   if (mNodeInfo->Equals(nsGkAtoms::marquee)) {  
     static const MappedAttributeEntry* const map[] = {
@@ -143,7 +173,7 @@ nsHTMLDivElement::IsAttributeMapped(const nsIAtom* aAttribute) const
       sBackgroundColorAttributeMap,
       sCommonAttributeMap
     };
-    return FindAttributeDependence(aAttribute, map);
+    return FindAttributeDependence(aAttribute, map, NS_ARRAY_LENGTH(map));
   }
 
   return nsGenericHTMLElement::IsAttributeMapped(aAttribute);

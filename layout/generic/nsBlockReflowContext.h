@@ -6,6 +6,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsBlockReflowContext_h___
 #define nsBlockReflowContext_h___
 
@@ -77,7 +109,7 @@ public:
 
   static bool ComputeCollapsedTopMargin(const nsHTMLReflowState& aRS,
                                           nsCollapsingMargin* aMargin, nsIFrame* aClearanceFrame,
-                                          bool* aMayNeedRetry, bool* aIsEmpty = nullptr);
+                                          bool* aMayNeedRetry, bool* aIsEmpty = nsnull);
 
 protected:
   nsPresContext* mPresContext;

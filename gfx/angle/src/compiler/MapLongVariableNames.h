@@ -13,47 +13,21 @@
 #include "compiler/VariableInfo.h"
 
 
-#define MAX_SHORTENED_IDENTIFIER_SIZE 32
-
-
-
-
-class LongNameMap {
-public:
-    static LongNameMap* GetInstance();
-    void Release();
-
-    
-    
-    const char* Find(const char* originalName) const;
-
-    
-    void Insert(const char* originalName, const char* mappedName);
-
-    
-    int Size() const;
-
-private:
-    LongNameMap();
-    ~LongNameMap();
-
-    size_t refCount;
-    std::map<std::string, std::string> mLongNameMap;
-};
+#define MAX_IDENTIFIER_NAME_SIZE 32
 
 
 
 class MapLongVariableNames : public TIntermTraverser {
 public:
-    MapLongVariableNames(LongNameMap* globalMap);
+    MapLongVariableNames(std::map<std::string, std::string>& varyingLongNameMap);
 
     virtual void visitSymbol(TIntermSymbol*);
     virtual bool visitLoop(Visit, TIntermLoop*);
 
 private:
-    TString mapGlobalLongName(const TString& name);
+    TString mapVaryingLongName(const TString& name);
 
-    LongNameMap* mGlobalMap;
+    std::map<std::string, std::string>& mVaryingLongNameMap;
 };
 
 #endif  

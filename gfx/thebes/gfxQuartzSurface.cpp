@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "gfxQuartzSurface.h"
 #include "gfxContext.h"
 
@@ -49,26 +81,6 @@ gfxQuartzSurface::gfxQuartzSurface(CGContextRef context,
     unsigned int width = static_cast<unsigned int>(mSize.width);
     unsigned int height = static_cast<unsigned int>(mSize.height);
 
-    cairo_surface_t *surf =
-        cairo_quartz_surface_create_for_cg_context(context,
-                                                   width, height);
-
-    CGContextRetain(mCGContext);
-
-    Init(surf);
-}
-
-gfxQuartzSurface::gfxQuartzSurface(CGContextRef context,
-                                   const gfxIntSize& size,
-                                   bool aForPrinting)
-    : mCGContext(context), mSize(size), mForPrinting(aForPrinting)
-{
-    if (!CheckSurfaceSize(size))
-        MakeInvalid();
-
-    unsigned int width = static_cast<unsigned int>(mSize.width);
-    unsigned int height = static_cast<unsigned int>(mSize.height);
-
     cairo_surface_t *surf = 
         cairo_quartz_surface_create_for_cg_context(context,
                                                    width, height);
@@ -85,7 +97,7 @@ gfxQuartzSurface::gfxQuartzSurface(cairo_surface_t *csurf,
     mCGContext = cairo_quartz_surface_get_cg_context (csurf);
     CGContextRetain (mCGContext);
 
-    Init(csurf, true);
+    Init(csurf, PR_TRUE);
 }
 
 gfxQuartzSurface::gfxQuartzSurface(unsigned char *data,
@@ -93,7 +105,7 @@ gfxQuartzSurface::gfxQuartzSurface(unsigned char *data,
                                    long stride,
                                    gfxImageFormat format,
                                    bool aForPrinting)
-    : mCGContext(nullptr), mSize(desiredSize), mForPrinting(aForPrinting)
+    : mCGContext(nsnull), mSize(desiredSize), mForPrinting(aForPrinting)
 {
     gfxIntSize size((unsigned int) floor(desiredSize.width),
                     (unsigned int) floor(desiredSize.height));
@@ -122,7 +134,7 @@ gfxQuartzSurface::CreateSimilarSurface(gfxContentType aType,
                                              aSize.width, aSize.height);
     if (cairo_surface_status(surface)) {
         cairo_surface_destroy(surface);
-        return nullptr;
+        return nsnull;
     }
 
     nsRefPtr<gfxASurface> result = Wrap(surface);
@@ -136,7 +148,7 @@ gfxQuartzSurface::GetCGContextWithClip(gfxContext *ctx)
 	return cairo_quartz_get_cg_context_with_clip(ctx->GetCairo());
 }
 
-int32_t gfxQuartzSurface::GetDefaultContextFlags() const
+PRInt32 gfxQuartzSurface::GetDefaultContextFlags() const
 {
     if (mForPrinting)
         return gfxContext::FLAG_DISABLE_SNAPPING |
@@ -149,7 +161,7 @@ already_AddRefed<gfxImageSurface> gfxQuartzSurface::GetAsImageSurface()
 {
     cairo_surface_t *surface = cairo_quartz_surface_get_image(mSurface);
     if (!surface)
-        return nullptr;
+        return nsnull;
 
     nsRefPtr<gfxASurface> img = Wrap(surface);
 

@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 @import url("chrome://global/skin/inContentUI.css");
 
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
@@ -54,7 +87,7 @@
   border-bottom: 1px solid #CAD4E0;  
 }
 
-@media (max-width: 600px) {
+@media all and (max-width: 600px) {
   .global-warning-text {
     display: none;
   }
@@ -196,14 +229,14 @@
   border-bottom: 0;
   height: 0;
   opacity: 0;
-  transition-property: height, opacity;
-  transition-duration: 1s, 0.8s;
+  -moz-transition-property: height, opacity;
+  -moz-transition-duration: 1s, 0.8s;
 }
 
 .category:not([disabled]) {
   height: 52px;
-  transition-property: height, opacity;
-  transition-duration: 1s, 0.8s;
+  -moz-transition-property: height, opacity;
+  -moz-transition-duration: 1s, 0.8s;
 }
 
 .category[selected] {
@@ -218,7 +251,7 @@
 }
 
 
-@media (max-width: 800px) {
+@media all and (max-width: 800px) {
   .category-name {
     display: none;
   }
@@ -265,9 +298,6 @@
 #category-plugin > .category-icon {
   list-style-image: url("chrome://mozapps/skin/extensions/category-plugins.png");
 }
-#category-dictionary > .category-icon {
-  list-style-image: url("chrome://mozapps/skin/extensions/category-dictionaries.png");
-}
 #category-availableUpdates > .category-icon {
   list-style-image: url("chrome://mozapps/skin/extensions/category-available.png");
 }
@@ -286,7 +316,7 @@
   margin: 0;
 }
 
-@media (-moz-windows-default-theme) {
+@media all and (-moz-windows-default-theme) {
   #header-search {
     -moz-appearance: none;
     border: 1px solid rgba(0, 0, 0, 0.32);
@@ -462,10 +492,6 @@
   list-style-image: url("chrome://mozapps/skin/plugins/pluginGeneric.png");
 }
 
-.addon-view[type="dictionary"] .icon {
-  list-style-image: url("chrome://mozapps/skin/extensions/dictionaryGeneric.png");
-}
-
 .name-container {
   font-size: 150%;
   font-weight: bold;
@@ -560,14 +586,14 @@
   height: 0;
   overflow: hidden;
   opacity: 0;
-  transition-property: height, opacity;
-  transition-duration: 0.5s, 0.5s;
+  -moz-transition-property: height, opacity;
+  -moz-transition-duration: 0.5s, 0.5s;
 }
 
 .addon[show-relnotes] .relnotes-container {
   opacity: 1;
-  transition-property: height, opacity;
-  transition-duration: 0.5s, 0.5s;
+  -moz-transition-property: height, opacity;
+  -moz-transition-duration: 0.5s, 0.5s;
 }
 
 .addon .relnotes-header {
@@ -712,8 +738,8 @@
 
 #detail-view[loading-extended] .loading {
   opacity: 1;
-  transition-property: opacity;
-  transition-duration: 1s;
+  -moz-transition-property: opacity;
+  -moz-transition-duration: 1s;
 }
 
 .detail-view-container {
@@ -732,13 +758,9 @@
   -moz-margin-start: 0;
 }
 
-#detail-icon-container {
-  width: 64px;
+#detail-icon {
   -moz-margin-end: 10px;
   margin-top: 6px;
-}
-
-#detail-icon {
   max-width: 64px;
   max-height: 64px;
 }
@@ -830,9 +852,9 @@
   background-color: #0459F7;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1),
               0 0 3.5px hsl(190, 90%, 80%);
-  transition: background-color .4s ease-in,
-              border-color .3s ease-in,
-              box-shadow .3s ease-in;
+  -moz-transition: background-color .4s ease-in,
+                   border-color .3s ease-in,
+                   box-shadow .3s ease-in
 }
 
 #detail-contrib-btn:active:hover {
@@ -848,7 +870,6 @@
 }
 
 #detail-grid > columns > column:first-child {
-  min-width: 15em;
   max-width: 25em;
 }
 
@@ -880,25 +901,15 @@ setting[first-row="true"] {
   margin-top: 2em;
 }
 
-setting {
-  -moz-box-align: start;
-}
-
-.preferences-alignment {
-  min-height: 30px;
-  -moz-box-align: center;
-}
-
 .preferences-description {
   font-size: 90.9%;
   color: graytext;
   margin-top: -2px;
   -moz-margin-start: 2em;
-  white-space: pre-wrap;
 }
 
-.preferences-description:empty {
-  display: none;
+setting[type="string"] > .setting-input > textbox {
+  -moz-box-flex: 1;
 }
 
 setting[type="radio"] > radiogroup {

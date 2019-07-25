@@ -4,18 +4,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_TimeStamp_h
 #define mozilla_TimeStamp_h
-
-#include "mozilla/Assertions.h"
 
 #include "prinrval.h"
 #include "nsDebug.h"
 #include "prlong.h"
-
-namespace IPC {
-template <typename T> struct ParamTraits;
-}
+#include "mozilla/Util.h"
 
 namespace mozilla {
 
@@ -40,7 +67,7 @@ public:
   
   struct _SomethingVeryRandomHere;
   TimeDuration(_SomethingVeryRandomHere* aZero) : mValue(0) {
-    MOZ_ASSERT(!aZero, "Who's playing funny games here?");
+    MOZ_ASSERT(!aZero && "Who's playing funny games here?");
   }
   
 
@@ -65,9 +92,6 @@ public:
     return FromMilliseconds(aSeconds * 1000.0);
   }
   static TimeDuration FromMilliseconds(double aMilliseconds);
-  static inline TimeDuration FromMicroseconds(double aMicroseconds) {
-    return FromMilliseconds(aMicroseconds / 1000.0);
-  }
 
   TimeDuration operator+(const TimeDuration& aOther) const {
     return TimeDuration::FromTicks(mValue + aOther.mValue);
@@ -99,9 +123,6 @@ public:
   bool operator>(const TimeDuration& aOther) const {
     return mValue > aOther.mValue;
   }
-  bool operator==(const TimeDuration& aOther) const {
-    return mValue == aOther.mValue;
-  }
 
   
   
@@ -118,9 +139,8 @@ public:
 
 private:
   friend class TimeStamp;
-  friend struct IPC::ParamTraits<mozilla::TimeDuration>;
 
-  static TimeDuration FromTicks(int64_t aTicks) {
+  static TimeDuration FromTicks(PRInt64 aTicks) {
     TimeDuration t;
     t.mValue = aTicks;
     return t;
@@ -129,25 +149,19 @@ private:
   static TimeDuration FromTicks(double aTicks) {
     
     
-    if (aTicks >= double(INT64_MAX))
-      return TimeDuration::FromTicks(INT64_MAX);
+    if (aTicks >= double(LL_MAXINT))
+      return TimeDuration::FromTicks(LL_MAXINT);
 
     
-    if (aTicks <= double(INT64_MIN))
-      return TimeDuration::FromTicks(INT64_MIN);
+    if (aTicks <= double(LL_MININT))
+      return TimeDuration::FromTicks(LL_MININT);
 
-    return TimeDuration::FromTicks(int64_t(aTicks));
+    return TimeDuration::FromTicks(PRInt64(aTicks));
   }
 
   
-  int64_t mValue;
+  PRInt64 mValue;
 };
-
-
-
-
-
-
 
 
 
@@ -196,10 +210,10 @@ public:
 
 
   TimeDuration operator-(const TimeStamp& aOther) const {
-    MOZ_ASSERT(!IsNull(), "Cannot compute with a null value");
-    MOZ_ASSERT(!aOther.IsNull(), "Cannot compute with aOther null value");
+    MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
+    MOZ_ASSERT(!aOther.IsNull() && "Cannot compute with aOther null value");
     PR_STATIC_ASSERT(-LL_MAXINT > LL_MININT);
-    int64_t ticks = int64_t(mValue - aOther.mValue);
+    PRInt64 ticks = PRInt64(mValue - aOther.mValue);
     
     if (mValue > aOther.mValue) {
       if (ticks < 0) {
@@ -214,54 +228,54 @@ public:
   }
 
   TimeStamp operator+(const TimeDuration& aOther) const {
-    MOZ_ASSERT(!IsNull(), "Cannot compute with a null value");
+    MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
     return TimeStamp(mValue + aOther.mValue);
   }
   TimeStamp operator-(const TimeDuration& aOther) const {
-    MOZ_ASSERT(!IsNull(), "Cannot compute with a null value");
+    MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
     return TimeStamp(mValue - aOther.mValue);
   }
   TimeStamp& operator+=(const TimeDuration& aOther) {
-    MOZ_ASSERT(!IsNull(), "Cannot compute with a null value");
+    MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
     mValue += aOther.mValue;
     return *this;
   }
   TimeStamp& operator-=(const TimeDuration& aOther) {
-    MOZ_ASSERT(!IsNull(), "Cannot compute with a null value");
+    MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
     mValue -= aOther.mValue;
     return *this;
   }
 
   bool operator<(const TimeStamp& aOther) const {
-    MOZ_ASSERT(!IsNull(), "Cannot compute with a null value");
-    MOZ_ASSERT(!aOther.IsNull(), "Cannot compute with aOther null value");
+    MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
+    MOZ_ASSERT(!aOther.IsNull() && "Cannot compute with aOther null value");
     return mValue < aOther.mValue;
   }
   bool operator<=(const TimeStamp& aOther) const {
-    MOZ_ASSERT(!IsNull(), "Cannot compute with a null value");
-    MOZ_ASSERT(!aOther.IsNull(), "Cannot compute with aOther null value");
+    MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
+    MOZ_ASSERT(!aOther.IsNull() && "Cannot compute with aOther null value");
     return mValue <= aOther.mValue;
   }
   bool operator>=(const TimeStamp& aOther) const {
-    MOZ_ASSERT(!IsNull(), "Cannot compute with a null value");
-    MOZ_ASSERT(!aOther.IsNull(), "Cannot compute with aOther null value");
+    MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
+    MOZ_ASSERT(!aOther.IsNull() && "Cannot compute with aOther null value");
     return mValue >= aOther.mValue;
   }
   bool operator>(const TimeStamp& aOther) const {
-    MOZ_ASSERT(!IsNull(), "Cannot compute with a null value");
-    MOZ_ASSERT(!aOther.IsNull(), "Cannot compute with aOther null value");
+    MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
+    MOZ_ASSERT(!aOther.IsNull() && "Cannot compute with aOther null value");
     return mValue > aOther.mValue;
   }
   bool operator==(const TimeStamp& aOther) const {
     
     MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
-    MOZ_ASSERT(!aOther.IsNull(), "Cannot compute with aOther null value");
+    MOZ_ASSERT(!aOther.IsNull() && "Cannot compute with aOther null value");
     return mValue == aOther.mValue;
   }
   bool operator!=(const TimeStamp& aOther) const {
     
-    MOZ_ASSERT(!IsNull(), "Cannot compute with a null value");
-    MOZ_ASSERT(!aOther.IsNull(), "Cannot compute with aOther null value");
+    MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
+    MOZ_ASSERT(!aOther.IsNull() && "Cannot compute with aOther null value");
     return mValue != aOther.mValue;
   }
 
@@ -273,9 +287,7 @@ public:
   static NS_HIDDEN_(void) Shutdown();
 
 private:
-  friend struct IPC::ParamTraits<mozilla::TimeStamp>;
-
-  TimeStamp(uint64_t aValue) : mValue(aValue) {}
+  TimeStamp(PRUint64 aValue) : mValue(aValue) {}
 
   
 
@@ -290,7 +302,7 @@ private:
 
 
 
-  uint64_t mValue;
+  PRUint64 mValue;
 };
 
 }

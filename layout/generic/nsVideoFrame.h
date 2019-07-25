@@ -6,6 +6,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsVideoFrame_h___
 #define nsVideoFrame_h___
 
@@ -16,13 +48,8 @@
 #include "nsITimer.h"
 #include "nsTArray.h"
 #include "nsIAnonymousContentCreator.h"
-
-namespace mozilla {
-namespace layers {
-class Layer;
-class LayerManager;
-}
-}
+#include "Layers.h"
+#include "ImageLayers.h"
 
 class nsPresContext;
 class nsDisplayItem;
@@ -44,9 +71,9 @@ public:
                               const nsRect&           aDirtyRect,
                               const nsDisplayListSet& aLists);
 
-  NS_IMETHOD AttributeChanged(int32_t aNameSpaceID,
+  NS_IMETHOD AttributeChanged(PRInt32 aNameSpaceID,
                               nsIAtom* aAttribute,
-                              int32_t aModType);
+                              PRInt32 aModType);
 
   
   nsSize GetVideoIntrinsicSize(nsRenderingContext *aRenderingContext);
@@ -54,7 +81,7 @@ public:
   virtual nsSize ComputeSize(nsRenderingContext *aRenderingContext,
                              nsSize aCBSize, nscoord aAvailableWidth,
                              nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                             uint32_t aFlags) MOZ_OVERRIDE;
+                             bool aShrinkWrap);
   virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext);
   virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext);
   virtual void DestroyFrom(nsIFrame* aDestructRoot);
@@ -66,19 +93,19 @@ public:
                     nsReflowStatus&          aStatus);
 
 #ifdef ACCESSIBILITY
-  virtual already_AddRefed<Accessible> CreateAccessible();
+  virtual already_AddRefed<nsAccessible> CreateAccessible();
 #endif
 
   virtual nsIAtom* GetType() const;
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     return nsSplittableFrame::IsFrameOfType(aFlags & ~(nsIFrame::eReplaced));
   }
   
   virtual nsresult CreateAnonymousContent(nsTArray<ContentInfo>& aElements);
   virtual void AppendAnonymousContentTo(nsBaseContentList& aElements,
-                                        uint32_t aFilters);
+                                        PRUint32 aFilters);
 
   nsIContent* GetPosterImage() { return mPosterImage; }
 
@@ -113,10 +140,10 @@ protected:
   virtual ~nsVideoFrame();
 
   nsMargin mBorderPadding;
-
+  
   
   nsCOMPtr<nsIContent> mVideoControls;
-
+  
   
   nsCOMPtr<nsIContent> mPosterImage;
 };

@@ -5,6 +5,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsDBusService.h"
 #include "nsComponentManagerUtils.h"
 
@@ -13,8 +47,8 @@
 #include <dbus/dbus-glib.h>
 
 nsDBusService::nsDBusService() {
-  mConnection = nullptr;
-  mSingleClient = nullptr;
+  mConnection = nsnull;
+  mSingleClient = nsnull;
 }
 
 nsDBusService::~nsDBusService() {
@@ -23,13 +57,13 @@ nsDBusService::~nsDBusService() {
   if (mReconnectTimer) {
     mReconnectTimer->Cancel();
   }
-  gSingleton = nullptr;
+  gSingleton = nsnull;
 }
 
 NS_IMPL_ISUPPORTS1(nsDBusService, nsDBusService)
 NS_DEFINE_STATIC_IID_ACCESSOR(nsDBusService, NS_DBUS_IID)
 
-nsDBusService* nsDBusService::gSingleton = nullptr;
+nsDBusService* nsDBusService::gSingleton = nsnull;
 
 already_AddRefed<nsDBusService>
 nsDBusService::Get() {
@@ -46,7 +80,7 @@ nsDBusService::AddClient(DBusClient* client) {
   mSingleClient = client;
   nsresult rv = CreateConnection();
   if (NS_FAILED(rv)) {
-    mSingleClient = nullptr;
+    mSingleClient = nsnull;
   }
   return rv;
 }
@@ -54,15 +88,15 @@ nsDBusService::AddClient(DBusClient* client) {
 void
 nsDBusService::RemoveClient(DBusClient* client) {
   NS_ASSERTION(mSingleClient == client, "Removing wrong client");
-  mSingleClient = nullptr;
+  mSingleClient = nsnull;
 }
   
 DBusPendingCall*
 nsDBusService::SendWithReply(DBusClient* client, DBusMessage* message) {
-  DBusPendingCall* reply = nullptr;
+  DBusPendingCall* reply = nsnull;
   if (mConnection) {
     if (!dbus_connection_send_with_reply(mConnection, message, &reply, -1)) {
-      reply = nullptr;
+      reply = nsnull;
     }
   }
   dbus_message_unref(message);
@@ -73,7 +107,7 @@ bool nsDBusService::HandleMessage(DBusMessage* message) {
   if (dbus_message_is_signal(message, DBUS_INTERFACE_LOCAL,
                             "Disconnected")) {
     HandleDBusDisconnect();
-    return false;
+    return PR_FALSE;
   }
   
   return mSingleClient && mSingleClient->HandleMessage(message);
@@ -91,7 +125,7 @@ void nsDBusService::DoTimerCallback(nsITimer *aTimer) {
     nsresult rv = CreateConnection();
     if (NS_SUCCEEDED(rv)) {
       mReconnectTimer->Cancel();
-      mReconnectTimer = nullptr;
+      mReconnectTimer = nsnull;
     }
   }
 }
@@ -107,7 +141,7 @@ void nsDBusService::DropConnection() {
       mSingleClient->UnregisterWithConnection(mConnection);
     }
     dbus_connection_unref(mConnection);
-    mConnection = nullptr;
+    mConnection = nsnull;
   }
 }
 
@@ -121,7 +155,7 @@ void nsDBusService::HandleDBusDisconnect() {
   rv = mReconnectTimer->InitWithFuncCallback(TimerCallback, this,
                                              5000, nsITimer::TYPE_REPEATING_SLACK);
   if (NS_FAILED(rv)) {
-    mReconnectTimer = nullptr;
+    mReconnectTimer = nsnull;
     return;
   }
 }
@@ -131,7 +165,7 @@ nsresult nsDBusService::CreateConnection() {
   if (!mConnection)
     return NS_ERROR_FAILURE;
 
-  dbus_connection_set_exit_on_disconnect(mConnection, false);
+  dbus_connection_set_exit_on_disconnect(mConnection, PR_FALSE);
   dbus_connection_setup_with_g_main(mConnection, NULL);
 
   if (!dbus_connection_add_filter(mConnection, dbus_filter, this, NULL))

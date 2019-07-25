@@ -20,6 +20,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nscore.h"
 #include "nsCOMPtr.h"
 #include "nsIRDFContainerUtils.h"
@@ -54,7 +87,7 @@ private:
 
     nsCOMPtr<nsISimpleEnumerator>   mCurrent;
     nsCOMPtr<nsIRDFNode>            mResult;
-    int32_t mNextIndex;
+    PRInt32 mNextIndex;
 
 public:
     ContainerEnumeratorImpl(nsIRDFDataSource* ds, nsIRDFResource* container);
@@ -85,7 +118,7 @@ ContainerEnumeratorImpl::Init()
     if (gRefCnt++ == 0) {
         nsresult rv;
         nsCOMPtr<nsIRDFService> rdf = do_GetService(kRDFServiceCID);
-        NS_ASSERTION(rdf != nullptr, "unable to acquire resource manager");
+        NS_ASSERTION(rdf != nsnull, "unable to acquire resource manager");
         if (! rdf)
             return NS_ERROR_FAILURE;
 
@@ -115,7 +148,7 @@ NS_IMPL_ISUPPORTS1(ContainerEnumeratorImpl, nsISimpleEnumerator)
 NS_IMETHODIMP
 ContainerEnumeratorImpl::HasMoreElements(bool* aResult)
 {
-    NS_PRECONDITION(aResult != nullptr, "null ptr");
+    NS_PRECONDITION(aResult != nsnull, "null ptr");
     if (! aResult)
         return NS_ERROR_NULL_POINTER;
 
@@ -123,7 +156,7 @@ ContainerEnumeratorImpl::HasMoreElements(bool* aResult)
 
     
     if (mResult) {
-        *aResult = true;
+        *aResult = PR_TRUE;
         return NS_OK;
     }
 
@@ -137,10 +170,10 @@ ContainerEnumeratorImpl::HasMoreElements(bool* aResult)
     
     
     
-    int32_t max = 0;
+    PRInt32 max = 0;
 
     nsCOMPtr<nsISimpleEnumerator> targets;
-    rv = mDataSource->GetTargets(mContainer, kRDF_nextVal, true, getter_AddRefs(targets));
+    rv = mDataSource->GetTargets(mContainer, kRDF_nextVal, PR_TRUE, getter_AddRefs(targets));
     if (NS_FAILED(rv)) return rv;
 
     while (1) {
@@ -159,8 +192,8 @@ ContainerEnumeratorImpl::HasMoreElements(bool* aResult)
          const PRUnichar *nextValStr;
          nextValLiteral->GetValueConst(&nextValStr);
 		 
-         nsresult err;
-         int32_t nextVal = nsAutoString(nextValStr).ToInteger(&err);
+         PRInt32 err;
+         PRInt32 nextVal = nsAutoString(nextValStr).ToInteger(&err);
 
          if (nextVal > max)
              max = nextVal;
@@ -174,7 +207,7 @@ ContainerEnumeratorImpl::HasMoreElements(bool* aResult)
             rv = gRDFC->IndexToOrdinalResource(mNextIndex, getter_AddRefs(mOrdinalProperty));
             if (NS_FAILED(rv)) return rv;
 
-            rv = mDataSource->GetTargets(mContainer, mOrdinalProperty, true, getter_AddRefs(mCurrent));
+            rv = mDataSource->GetTargets(mContainer, mOrdinalProperty, PR_TRUE, getter_AddRefs(mCurrent));
             if (NS_FAILED(rv)) return rv;
 
             ++mNextIndex;
@@ -188,7 +221,7 @@ ContainerEnumeratorImpl::HasMoreElements(bool* aResult)
             
             
             if (! hasMore) {
-                mCurrent = nullptr;
+                mCurrent = nsnull;
                 continue;
             }
 
@@ -200,13 +233,13 @@ ContainerEnumeratorImpl::HasMoreElements(bool* aResult)
             mResult = do_QueryInterface(result, &rv);
             if (NS_FAILED(rv)) return rv;
 
-            *aResult = true;
+            *aResult = PR_TRUE;
             return NS_OK;
         }
     }
 
     
-    *aResult = false;
+    *aResult = PR_FALSE;
     return NS_OK;
 }
 
@@ -224,7 +257,7 @@ ContainerEnumeratorImpl::GetNext(nsISupports** aResult)
         return NS_ERROR_UNEXPECTED;
 
     NS_ADDREF(*aResult = mResult);
-    mResult = nullptr;
+    mResult = nsnull;
 
     return NS_OK;
 }
@@ -237,15 +270,15 @@ NS_NewContainerEnumerator(nsIRDFDataSource* aDataSource,
                           nsIRDFResource* aContainer,
                           nsISimpleEnumerator** aResult)
 {
-    NS_PRECONDITION(aDataSource != nullptr, "null ptr");
+    NS_PRECONDITION(aDataSource != nsnull, "null ptr");
     if (! aDataSource)
         return NS_ERROR_NULL_POINTER;
 
-    NS_PRECONDITION(aContainer != nullptr, "null ptr");
+    NS_PRECONDITION(aContainer != nsnull, "null ptr");
     if (! aContainer)
         return NS_ERROR_NULL_POINTER;
 
-    NS_PRECONDITION(aResult != nullptr, "null ptr");
+    NS_PRECONDITION(aResult != nsnull, "null ptr");
     if (! aResult)
         return NS_ERROR_NULL_POINTER;
 

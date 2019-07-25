@@ -18,15 +18,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIDOMScriptObjectFactory.h"
 #include "nsIObserver.h"
 #include "nsIExceptionService.h"
 #include "nsIScriptRuntime.h"
 #include "nsIScriptGlobalObject.h" 
-#include "mozilla/Attributes.h"
 
-class nsDOMScriptObjectFactory MOZ_FINAL : public nsIDOMScriptObjectFactory,
-                                           public nsIObserver
+class nsDOMScriptObjectFactory : public nsIDOMScriptObjectFactory,
+                                 public nsIObserver
 {
 public:
   nsDOMScriptObjectFactory();
@@ -37,6 +68,19 @@ public:
   NS_DECL_NSIOBSERVER
 
   
+  NS_IMETHOD GetScriptRuntime(const nsAString &aLanguageName,
+                              nsIScriptRuntime **aLanguage);
+
+  NS_IMETHOD GetScriptRuntimeByID(PRUint32 aLanguageID, 
+                                  nsIScriptRuntime **aLanguage);
+
+  NS_IMETHOD GetIDForScriptType(const nsAString &aLanguageName,
+                                PRUint32 *aLanguageID);
+
+  NS_IMETHOD NewScriptGlobalObject(bool aIsChrome,
+                                   bool aIsModalContentWindow,
+                                   nsIScriptGlobalObject **aGlobal);
+
   NS_IMETHOD_(nsISupports *) GetClassInfoInstance(nsDOMClassInfoID aID);
   NS_IMETHOD_(nsISupports *) GetExternalClassInfoInstance(const nsAString& aName);
 
@@ -44,12 +88,16 @@ public:
                                   nsDOMClassInfoExternalConstructorFnc aConstructorFptr,
                                   const nsIID *aProtoChainInterface,
                                   const nsIID **aInterfaces,
-                                  uint32_t aScriptableFlags,
+                                  PRUint32 aScriptableFlags,
                                   bool aHasClassInterface,
                                   const nsCID *aConstructorCID);
+
+protected:
+  bool mLoadedAllLanguages;
+  nsCOMPtr<nsIScriptRuntime> mLanguageArray[NS_STID_ARRAY_UBOUND];
 };
 
-class nsDOMExceptionProvider MOZ_FINAL : public nsIExceptionProvider
+class nsDOMExceptionProvider : public nsIExceptionProvider
 {
 public:
   NS_DECL_ISUPPORTS

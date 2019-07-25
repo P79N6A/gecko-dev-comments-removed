@@ -3,7 +3,42 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsContentCID.h"
 #include "nsIDocument.h"
@@ -36,7 +71,6 @@
 #include "pldhash.h"
 #include "rdf.h"
 
-using namespace mozilla;
 using namespace mozilla::dom;
 
 
@@ -119,7 +153,7 @@ protected:
                              bool aNotify,
                              nsTemplateMatch* aMatch,
                              nsIContent** aContainer,
-                             int32_t* aNewIndexInContainer);
+                             PRInt32* aNewIndexInContainer);
 
     
 
@@ -215,7 +249,7 @@ protected:
                                        bool aNotify,
                                        nsTemplateQuerySet* aQuerySet,
                                        nsIContent** aContainer,
-                                       int32_t* aNewIndexInContainer);
+                                       PRInt32* aNewIndexInContainer);
 
     
 
@@ -230,7 +264,7 @@ protected:
 
     nsresult
     EnsureElementHasGenericChild(nsIContent* aParent,
-                                 int32_t aNameSpaceID,
+                                 PRInt32 aNameSpaceID,
                                  nsIAtom* aTag,
                                  bool aNotify,
                                  nsIContent** aResult);
@@ -246,7 +280,7 @@ protected:
                          nsCOMArray<nsIContent>& aElements);
 
     nsresult
-    CreateElement(int32_t aNameSpaceID,
+    CreateElement(PRInt32 aNameSpaceID,
                   nsIAtom* aTag,
                   nsIContent** aResult);
 
@@ -307,7 +341,7 @@ protected:
 
     nsresult
     CompareResultToNode(nsIXULTemplateResult* aResult, nsIContent* aContent,
-                        int32_t* aSortOrder);
+                        PRInt32* aSortOrder);
 
     
 
@@ -341,7 +375,7 @@ protected:
 nsresult
 NS_NewXULContentBuilder(nsISupports* aOuter, REFNSIID aIID, void** aResult)
 {
-    NS_PRECONDITION(aOuter == nullptr, "no aggregation");
+    NS_PRECONDITION(aOuter == nsnull, "no aggregation");
     if (aOuter)
         return NS_ERROR_NO_AGGREGATION;
 
@@ -363,7 +397,7 @@ NS_NewXULContentBuilder(nsISupports* aOuter, REFNSIID aIID, void** aResult)
 
 nsXULContentBuilder::nsXULContentBuilder()
 {
-  mSortState.initialized = false;
+  mSortState.initialized = PR_FALSE;
 }
 
 void
@@ -379,7 +413,7 @@ nsXULContentBuilder::Uninit(bool aIsFinal)
     mContentSupportMap.Clear();
     mTemplateMap.Clear();
 
-    mSortState.initialized = false;
+    mSortState.initialized = PR_FALSE;
 
     nsXULTemplateBuilder::Uninit(aIsFinal);
 }
@@ -394,7 +428,7 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
                                               bool aNotify,
                                               nsTemplateMatch* aMatch,
                                               nsIContent** aContainer,
-                                              int32_t* aNewIndexInContainer)
+                                              PRInt32* aNewIndexInContainer)
 {
     
     
@@ -468,7 +502,7 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
          tmplKid;
          tmplKid = tmplKid->GetNextSibling()) {
 
-        int32_t nameSpaceID = tmplKid->GetNameSpaceID();
+        PRInt32 nameSpaceID = tmplKid->GetNameSpaceID();
 
         
         
@@ -517,8 +551,8 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
             
             
             if (tmplKid->HasAttr(kNameSpaceID_None, nsGkAtoms::uri) && aMatch->IsActive()) {
-                isGenerationElement = true;
-                isUnique = false;
+                isGenerationElement = PR_TRUE;
+                isUnique = PR_FALSE;
             }
         }
 
@@ -550,7 +584,7 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
                 return rv;
 
             if (rv == NS_ELEMENT_WAS_THERE) {
-                realKidAlreadyExisted = true;
+                realKidAlreadyExisted = PR_TRUE;
             }
             else {
                 
@@ -560,7 +594,7 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
                     *aContainer = aRealNode;
                     NS_ADDREF(*aContainer);
 
-                    uint32_t indx = aRealNode->GetChildCount();
+                    PRUint32 indx = aRealNode->GetChildCount();
 
                     
                     
@@ -573,7 +607,7 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
             
             
             
-            rv = BuildContentFromTemplate(tmplKid, aResourceNode, realKid, true,
+            rv = BuildContentFromTemplate(tmplKid, aResourceNode, realKid, PR_TRUE,
                                           aIsSelfReference, aChild, aNotify, aMatch,
                                           aContainer, aNewIndexInContainer);
 
@@ -597,12 +631,12 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
             if (NS_FAILED(rv))
                 return rv;
 
-            rv = realKid->SetAttr(kNameSpaceID_None, nsGkAtoms::id, id, false);
+            rv = realKid->SetAttr(kNameSpaceID_None, nsGkAtoms::id, id, PR_FALSE);
             if (NS_FAILED(rv))
                 return rv;
 
             
-            SetContainerAttrs(realKid, aChild, true, false);
+            SetContainerAttrs(realKid, aChild, PR_TRUE, PR_FALSE);
         }
         else if (tag == nsGkAtoms::textnode &&
                  nameSpaceID == kNameSpaceID_XUL) {
@@ -612,7 +646,7 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
             
             
             PRUnichar attrbuf[128];
-            nsFixedString attrValue(attrbuf, ArrayLength(attrbuf), 0);
+            nsFixedString attrValue(attrbuf, NS_ARRAY_LENGTH(attrbuf), 0);
             tmplKid->GetAttr(kNameSpaceID_None, nsGkAtoms::value, attrValue);
             if (!attrValue.IsEmpty()) {
                 nsAutoString value;
@@ -624,7 +658,7 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
                                     mRoot->NodeInfo()->NodeInfoManager());
                 if (NS_FAILED(rv)) return rv;
 
-                content->SetText(value, false);
+                content->SetText(value, PR_FALSE);
 
                 rv = aRealNode->AppendChildTo(content, aNotify);
                 if (NS_FAILED(rv)) return rv;
@@ -640,7 +674,7 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
                 return NS_ERROR_FAILURE;
             }
             nsCOMPtr<nsIDOMNode> clonedNode;
-            tmplTextNode->CloneNode(false, 1, getter_AddRefs(clonedNode));
+            tmplTextNode->CloneNode(PR_FALSE, getter_AddRefs(clonedNode));
             nsCOMPtr<nsIContent> clonedContent = do_QueryInterface(clonedNode);
             if (!clonedContent) {
                 NS_ERROR("failed to clone textnode");
@@ -662,7 +696,7 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
                 *aContainer = aRealNode;
                 NS_ADDREF(*aContainer);
 
-                uint32_t indx = aRealNode->GetChildCount();
+                PRUint32 indx = aRealNode->GetChildCount();
 
                 
                 
@@ -675,7 +709,7 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
             
             mTemplateMap.Put(realKid, tmplKid);
 
-            rv = CopyAttributesToElement(tmplKid, realKid, aChild, false);
+            rv = CopyAttributesToElement(tmplKid, realKid, aChild, PR_FALSE);
             if (NS_FAILED(rv)) return rv;
 
             
@@ -693,16 +727,16 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
                 
                 
                 
-                rv = BuildContentFromTemplate(tmplKid, aResourceNode, realKid, false,
-                                              false, aChild, false, aMatch,
-                                              nullptr ,
-                                              nullptr );
+                rv = BuildContentFromTemplate(tmplKid, aResourceNode, realKid, PR_FALSE,
+                                              PR_FALSE, aChild, PR_FALSE, aMatch,
+                                              nsnull ,
+                                              nsnull );
                 if (NS_FAILED(rv)) return rv;
 
                 if (isGenerationElement) {
                     
-                    rv = CreateContainerContents(realKid, aChild, false,
-                                                 false, false);
+                    rv = CreateContainerContents(realKid, aChild, PR_FALSE,
+                                                 PR_FALSE, PR_FALSE);
                     if (NS_FAILED(rv)) return rv;
                 }
             }
@@ -736,11 +770,11 @@ nsXULContentBuilder::CopyAttributesToElement(nsIContent* aTemplateNode,
     nsresult rv;
 
     
-    uint32_t numAttribs = aTemplateNode->GetAttrCount();
+    PRUint32 numAttribs = aTemplateNode->GetAttrCount();
 
-    for (uint32_t attr = 0; attr < numAttribs; attr++) {
+    for (PRUint32 attr = 0; attr < numAttribs; attr++) {
         const nsAttrName* name = aTemplateNode->GetAttrNameAt(attr);
-        int32_t attribNameSpaceID = name->NamespaceID();
+        PRInt32 attribNameSpaceID = name->NamespaceID();
         
         
         nsCOMPtr<nsIAtom> attribName = name->LocalName();
@@ -751,7 +785,7 @@ nsXULContentBuilder::CopyAttributesToElement(nsIContent* aTemplateNode,
             
             
             PRUnichar attrbuf[128];
-            nsFixedString attribValue(attrbuf, ArrayLength(attrbuf), 0);
+            nsFixedString attribValue(attrbuf, NS_ARRAY_LENGTH(attrbuf), 0);
             aTemplateNode->GetAttr(attribNameSpaceID, attribName, attribValue);
             if (!attribValue.IsEmpty()) {
                 nsAutoString value;
@@ -801,7 +835,7 @@ nsXULContentBuilder::AddPersistentAttributes(nsIContent* aTemplateNode,
     while (!persist.IsEmpty()) {
         attribute.Truncate();
 
-        int32_t offset = persist.FindCharInSet(" ,");
+        PRInt32 offset = persist.FindCharInSet(" ,");
         if (offset > 0) {
             persist.Left(attribute, offset);
             persist.Cut(0, offset + 1);
@@ -817,7 +851,7 @@ nsXULContentBuilder::AddPersistentAttributes(nsIContent* aTemplateNode,
             break;
 
         nsCOMPtr<nsIAtom> tag;
-        int32_t nameSpaceID;
+        PRInt32 nameSpaceID;
 
         nsCOMPtr<nsINodeInfo> ni =
             aTemplateNode->GetExistingAttrNameFromQName(attribute);
@@ -837,14 +871,14 @@ nsXULContentBuilder::AddPersistentAttributes(nsIContent* aTemplateNode,
         NS_ENSURE_SUCCESS(rv, rv);
 
         nsCOMPtr<nsIRDFNode> target;
-        rv = mDB->GetTarget(resource, property, true, getter_AddRefs(target));
+        rv = mDB->GetTarget(resource, property, PR_TRUE, getter_AddRefs(target));
         NS_ENSURE_SUCCESS(rv, rv);
 
         if (! target)
             continue;
 
         nsCOMPtr<nsIRDFLiteral> value = do_QueryInterface(target);
-        NS_ASSERTION(value != nullptr, "unable to stomach that sort of node");
+        NS_ASSERTION(value != nsnull, "unable to stomach that sort of node");
         if (! value)
             continue;
 
@@ -853,7 +887,7 @@ nsXULContentBuilder::AddPersistentAttributes(nsIContent* aTemplateNode,
         NS_ENSURE_SUCCESS(rv, rv);
 
         rv = aRealNode->SetAttr(nameSpaceID, tag, nsDependentString(valueStr),
-                                false);
+                                PR_FALSE);
         NS_ENSURE_SUCCESS(rv, rv);
     }
 
@@ -868,13 +902,13 @@ nsXULContentBuilder::SynchronizeUsingTemplate(nsIContent* aTemplateNode,
     
     
     nsresult rv;
-    rv = CopyAttributesToElement(aTemplateNode, aRealElement, aResult, true);
+    rv = CopyAttributesToElement(aTemplateNode, aRealElement, aResult, PR_TRUE);
     if (NS_FAILED(rv))
         return rv;
 
-    uint32_t count = aTemplateNode->GetChildCount();
+    PRUint32 count = aTemplateNode->GetChildCount();
 
-    for (uint32_t loop = 0; loop < count; ++loop) {
+    for (PRUint32 loop = 0; loop < count; ++loop) {
         nsIContent *tmplKid = aTemplateNode->GetChildAt(loop);
 
         if (! tmplKid)
@@ -889,13 +923,13 @@ nsXULContentBuilder::SynchronizeUsingTemplate(nsIContent* aTemplateNode,
         if (tmplKid->NodeInfo()->Equals(nsGkAtoms::textnode,
                                         kNameSpaceID_XUL)) {
             PRUnichar attrbuf[128];
-            nsFixedString attrValue(attrbuf, ArrayLength(attrbuf), 0);
+            nsFixedString attrValue(attrbuf, NS_ARRAY_LENGTH(attrbuf), 0);
             tmplKid->GetAttr(kNameSpaceID_None, nsGkAtoms::value, attrValue);
             if (!attrValue.IsEmpty()) {
                 nsAutoString value;
                 rv = SubstituteText(aResult, attrValue, value);
                 if (NS_FAILED(rv)) return rv;
-                realKid->SetText(value, true);
+                realKid->SetText(value, PR_TRUE);
             }
         }
 
@@ -911,7 +945,7 @@ nsXULContentBuilder::RemoveMember(nsIContent* aContent)
 {
     nsCOMPtr<nsIContent> parent = aContent->GetParent();
     if (parent) {
-        int32_t pos = parent->IndexOf(aContent);
+        PRInt32 pos = parent->IndexOf(aContent);
 
         NS_ASSERTION(pos >= 0, "parent doesn't think this child has an index");
         if (pos < 0) return NS_OK;
@@ -919,7 +953,8 @@ nsXULContentBuilder::RemoveMember(nsIContent* aContent)
         
         
         
-        parent->RemoveChildAt(pos, true);
+        nsresult rv = parent->RemoveChildAt(pos, PR_TRUE);
+        if (NS_FAILED(rv)) return rv;
     }
 
     
@@ -962,17 +997,17 @@ nsXULContentBuilder::CreateTemplateAndContainerContents(nsIContent* aElement,
 
         if (mRootResult) {
             CreateContainerContents(aElement, mRootResult, aForceCreation,
-                                    false, true);
+                                    PR_FALSE, PR_TRUE);
         }
     }
     else if (!(mFlags & eDontRecurse)) {
         
         
         
-        nsTemplateMatch *match = nullptr;
+        nsTemplateMatch *match = nsnull;
         if (mContentSupportMap.Get(aElement, &match))
             CreateContainerContents(aElement, match->mResult, aForceCreation,
-                                    false, true);
+                                    PR_FALSE, PR_TRUE);
     }
 
     PR_LOG(gXULTemplateLog, PR_LOG_ALWAYS,
@@ -1036,12 +1071,12 @@ nsXULContentBuilder::CreateContainerContents(nsIContent* aElement,
         xulcontent->SetTemplateGenerated();
     }
 
-    int32_t newIndexInContainer = -1;
-    nsIContent* container = nullptr;
+    PRInt32 newIndexInContainer = -1;
+    nsIContent* container = nsnull;
 
-    int32_t querySetCount = mQuerySets.Length();
+    PRInt32 querySetCount = mQuerySets.Length();
 
-    for (int32_t r = 0; r < querySetCount; r++) {
+    for (PRInt32 r = 0; r < querySetCount; r++) {
         nsTemplateQuerySet* queryset = mQuerySets[r];
 
         nsIAtom* tag = queryset->GetTag();
@@ -1054,7 +1089,7 @@ nsXULContentBuilder::CreateContainerContents(nsIContent* aElement,
 
     if (aNotifyAtEnd && container) {
         MOZ_AUTO_DOC_UPDATE(container->GetCurrentDoc(), UPDATE_CONTENT_MODEL,
-                            true);
+                            PR_TRUE);
         nsNodeUtils::ContentAppended(container,
                                      container->GetChildAt(newIndexInContainer),
                                      newIndexInContainer);
@@ -1071,7 +1106,7 @@ nsXULContentBuilder::CreateContainerContentsForQuerySet(nsIContent* aElement,
                                                         bool aNotify,
                                                         nsTemplateQuerySet* aQuerySet,
                                                         nsIContent** aContainer,
-                                                        int32_t* aNewIndexInContainer)
+                                                        PRInt32* aNewIndexInContainer)
 {
 #ifdef PR_LOGGING
     if (PR_LOG_TEST(gXULTemplateLog, PR_LOG_DEBUG)) {
@@ -1127,16 +1162,16 @@ nsXULContentBuilder::CreateContainerContentsForQuerySet(nsIContent* aElement,
 
         bool generateContent = true;
 
-        nsTemplateMatch* prevmatch = nullptr;
-        nsTemplateMatch* existingmatch = nullptr;
-        nsTemplateMatch* removematch = nullptr;
+        nsTemplateMatch* prevmatch = nsnull;
+        nsTemplateMatch* existingmatch = nsnull;
+        nsTemplateMatch* removematch = nsnull;
         if (mMatchMap.Get(resultid, &existingmatch)){
             
             while (existingmatch) {
                 
                 
                 
-                int32_t priority = existingmatch->QuerySetPriority();
+                PRInt32 priority = existingmatch->QuerySetPriority();
                 if (priority > aQuerySet->Priority())
                     break;
 
@@ -1150,7 +1185,7 @@ nsXULContentBuilder::CreateContainerContentsForQuerySet(nsIContent* aElement,
                     }
 
                     if (existingmatch->IsActive())
-                        generateContent = false;
+                        generateContent = PR_FALSE;
                 }
 
                 prevmatch = existingmatch;
@@ -1160,24 +1195,24 @@ nsXULContentBuilder::CreateContainerContentsForQuerySet(nsIContent* aElement,
 
         if (removematch) {
             
-            rv = ReplaceMatch(removematch->mResult, nullptr, nullptr, aElement);
+            rv = ReplaceMatch(removematch->mResult, nsnull, nsnull, aElement);
             if (NS_FAILED(rv))
                 return rv;
 
             if (mFlags & eLoggingEnabled)
-                OutputMatchToLog(resultid, removematch, false);
+                OutputMatchToLog(resultid, removematch, PR_FALSE);
         }
 
         if (generateContent) {
             
             
 
-            int16_t ruleindex;
-            nsTemplateRule* matchedrule = nullptr;
+            PRInt16 ruleindex;
+            nsTemplateRule* matchedrule = nsnull;
             rv = DetermineMatchedRule(aElement, nextresult, aQuerySet,
                                       &matchedrule, &ruleindex);
             if (NS_FAILED(rv)) {
-                nsTemplateMatch::Destroy(mPool, newmatch, false);
+                nsTemplateMatch::Destroy(mPool, newmatch, PR_FALSE);
                 return rv;
             }
 
@@ -1185,13 +1220,13 @@ nsXULContentBuilder::CreateContainerContentsForQuerySet(nsIContent* aElement,
                 rv = newmatch->RuleMatched(aQuerySet, matchedrule,
                                            ruleindex, nextresult);
                 if (NS_FAILED(rv)) {
-                    nsTemplateMatch::Destroy(mPool, newmatch, false);
+                    nsTemplateMatch::Destroy(mPool, newmatch, PR_FALSE);
                     return rv;
                 }
 
                 
                 nsCOMPtr<nsIContent> action = matchedrule->GetAction();
-                BuildContentFromTemplate(action, aElement, aElement, true,
+                BuildContentFromTemplate(action, aElement, aElement, PR_TRUE,
                                          mRefVariable == matchedrule->GetMemberVariable(),
                                          nextresult, aNotify, newmatch,
                                          aContainer, aNewIndexInContainer);
@@ -1199,18 +1234,19 @@ nsXULContentBuilder::CreateContainerContentsForQuerySet(nsIContent* aElement,
         }
 
         if (mFlags & eLoggingEnabled)
-            OutputMatchToLog(resultid, newmatch, true);
+            OutputMatchToLog(resultid, newmatch, PR_TRUE);
 
         if (prevmatch) {
             prevmatch->mNext = newmatch;
         }
-        else {
-            mMatchMap.Put(resultid, newmatch);
+        else if (!mMatchMap.Put(resultid, newmatch)) {
+            nsTemplateMatch::Destroy(mPool, newmatch, PR_TRUE);
+            return NS_ERROR_OUT_OF_MEMORY;
         }
 
         if (removematch) {
             newmatch->mNext = removematch->mNext;
-            nsTemplateMatch::Destroy(mPool, removematch, true);
+            nsTemplateMatch::Destroy(mPool, removematch, PR_TRUE);
         }
         else {
             newmatch->mNext = existingmatch;
@@ -1222,7 +1258,7 @@ nsXULContentBuilder::CreateContainerContentsForQuerySet(nsIContent* aElement,
 
 nsresult
 nsXULContentBuilder::EnsureElementHasGenericChild(nsIContent* parent,
-                                                  int32_t nameSpaceID,
+                                                  PRInt32 nameSpaceID,
                                                   nsIAtom* tag,
                                                   bool aNotify,
                                                   nsIContent** result)
@@ -1260,7 +1296,7 @@ nsXULContentBuilder::IsOpen(nsIContent* aElement)
 {
     
     if (!aElement->IsXUL())
-        return true;
+        return PR_TRUE;
 
     
     nsIAtom *tag = aElement->Tag();
@@ -1271,7 +1307,7 @@ nsXULContentBuilder::IsOpen(nsIContent* aElement)
         tag == nsGkAtoms::treeitem)
         return aElement->AttrValueIs(kNameSpaceID_None, nsGkAtoms::open,
                                      nsGkAtoms::_true, eCaseMatters);
-    return true;
+    return PR_TRUE;
 }
 
 nsresult
@@ -1280,17 +1316,17 @@ nsXULContentBuilder::RemoveGeneratedContent(nsIContent* aElement)
     
     
     nsAutoTArray<nsIContent*, 8> ungenerated;
-    if (ungenerated.AppendElement(aElement) == nullptr)
+    if (ungenerated.AppendElement(aElement) == nsnull)
         return NS_ERROR_OUT_OF_MEMORY;
 
-    uint32_t count;
+    PRUint32 count;
     while (0 != (count = ungenerated.Length())) {
         
-        uint32_t last = count - 1;
+        PRUint32 last = count - 1;
         nsCOMPtr<nsIContent> element = ungenerated[last];
         ungenerated.RemoveElementAt(last);
 
-        uint32_t i = element->GetChildCount();
+        PRUint32 i = element->GetChildCount();
 
         while (i-- > 0) {
             nsCOMPtr<nsIContent> child = element->GetChildAt(i);
@@ -1313,13 +1349,13 @@ nsXULContentBuilder::RemoveGeneratedContent(nsIContent* aElement)
             if (! tmpl) {
                 
                 
-                if (ungenerated.AppendElement(child) == nullptr)
+                if (ungenerated.AppendElement(child) == nsnull)
                     return NS_ERROR_OUT_OF_MEMORY;
                 continue;
             }
 
             
-            element->RemoveChildAt(i, true);
+            element->RemoveChildAt(i, PR_TRUE);
 
             
             mContentSupportMap.Remove(child);
@@ -1351,26 +1387,29 @@ nsXULContentBuilder::GetElementsForResult(nsIXULTemplateResult* aResult,
 }
 
 nsresult
-nsXULContentBuilder::CreateElement(int32_t aNameSpaceID,
+nsXULContentBuilder::CreateElement(PRInt32 aNameSpaceID,
                                    nsIAtom* aTag,
                                    nsIContent** aResult)
 {
     nsCOMPtr<nsIDocument> doc = mRoot->GetDocument();
-    NS_ASSERTION(doc != nullptr, "not initialized");
+    NS_ASSERTION(doc != nsnull, "not initialized");
     if (! doc)
         return NS_ERROR_NOT_INITIALIZED;
 
+    nsresult rv;
     nsCOMPtr<nsIContent> result;
-    nsCOMPtr<nsINodeInfo> nodeInfo =
-        doc->NodeInfoManager()->GetNodeInfo(aTag, nullptr, aNameSpaceID,
-                                            nsIDOMNode::ELEMENT_NODE);
 
-    nsresult rv = NS_NewElement(getter_AddRefs(result), nodeInfo.forget(),
-                                NOT_FROM_PARSER);
+    nsCOMPtr<nsINodeInfo> nodeInfo;
+    nodeInfo = doc->NodeInfoManager()->GetNodeInfo(aTag, nsnull, aNameSpaceID,
+                                                   nsIDOMNode::ELEMENT_NODE);
+
+    rv = NS_NewElement(getter_AddRefs(result), aNameSpaceID, nodeInfo.forget(),
+                       NOT_FROM_PARSER);
     if (NS_FAILED(rv))
         return rv;
 
-    result.forget(aResult);
+    *aResult = result;
+    NS_ADDREF(*aResult);
     return NS_OK;
 }
 
@@ -1380,7 +1419,7 @@ nsXULContentBuilder::SetContainerAttrs(nsIContent *aElement,
                                        bool aIgnoreNonContainers,
                                        bool aNotify)
 {
-    NS_PRECONDITION(aResult != nullptr, "null ptr");
+    NS_PRECONDITION(aResult != nsnull, "null ptr");
     if (! aResult)
         return NS_ERROR_NULL_POINTER;
 
@@ -1422,7 +1461,7 @@ nsXULContentBuilder::SetContainerAttrs(nsIContent *aElement,
 NS_IMETHODIMP
 nsXULContentBuilder::CreateContents(nsIContent* aElement, bool aForceCreation)
 {
-    NS_PRECONDITION(aElement != nullptr, "null ptr");
+    NS_PRECONDITION(aElement != nsnull, "null ptr");
     if (! aElement)
         return NS_ERROR_NULL_POINTER;
 
@@ -1439,7 +1478,7 @@ nsXULContentBuilder::HasGeneratedContent(nsIRDFResource* aResource,
                                          nsIAtom* aTag,
                                          bool* aGenerated)
 {
-    *aGenerated = false;
+    *aGenerated = PR_FALSE;
     NS_ENSURE_TRUE(mRoot, NS_ERROR_NOT_INITIALIZED);
     NS_ENSURE_STATE(mRootResult);
 
@@ -1451,7 +1490,7 @@ nsXULContentBuilder::HasGeneratedContent(nsIRDFResource* aResource,
     
     if (aResource == rootresource) {
         if (!aTag || mRoot->Tag() == aTag)
-            *aGenerated = true;
+            *aGenerated = PR_TRUE;
     }
     else {
         const char* uri;
@@ -1467,9 +1506,9 @@ nsXULContentBuilder::HasGeneratedContent(nsIRDFResource* aResource,
         nsCOMArray<nsIContent> elements;
         xuldoc->GetElementsForID(refID, elements);
 
-        uint32_t cnt = elements.Count();
+        PRUint32 cnt = elements.Count();
 
-        for (int32_t i = int32_t(cnt) - 1; i >= 0; --i) {
+        for (PRInt32 i = PRInt32(cnt) - 1; i >= 0; --i) {
             nsCOMPtr<nsIContent> content = elements.SafeObjectAt(i);
 
             do {
@@ -1477,7 +1516,7 @@ nsXULContentBuilder::HasGeneratedContent(nsIRDFResource* aResource,
                 if (content == mRoot || mContentSupportMap.Get(content, &match)) {
                     
                     if (!aTag || content->Tag() == aTag) {
-                        *aGenerated = true;
+                        *aGenerated = PR_TRUE;
                         return NS_OK;
                     }
                 }
@@ -1502,11 +1541,11 @@ nsXULContentBuilder::GetResultForContent(nsIDOMElement* aElement,
         *aResult = mRootResult;
     }
     else {
-        nsTemplateMatch *match = nullptr;
+        nsTemplateMatch *match = nsnull;
         if (mContentSupportMap.Get(content, &match))
             *aResult = match->mResult;
         else
-            *aResult = nullptr;
+            *aResult = nsnull;
     }
 
     NS_IF_ADDREF(*aResult);
@@ -1521,9 +1560,9 @@ nsXULContentBuilder::GetResultForContent(nsIDOMElement* aElement,
 void
 nsXULContentBuilder::AttributeChanged(nsIDocument* aDocument,
                                       Element*     aElement,
-                                      int32_t      aNameSpaceID,
+                                      PRInt32      aNameSpaceID,
                                       nsIAtom*     aAttribute,
-                                      int32_t      aModType)
+                                      PRInt32      aModType)
 {
     nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
 
@@ -1545,7 +1584,7 @@ nsXULContentBuilder::AttributeChanged(nsIDocument* aDocument,
          (aAttribute == nsGkAtoms::sortDirection) ||
          (aAttribute == nsGkAtoms::sortResource) ||
          (aAttribute == nsGkAtoms::sortResource2)))
-        mSortState.initialized = false;
+        mSortState.initialized = PR_FALSE;
 
     
     nsXULTemplateBuilder::AttributeChanged(aDocument, aElement, aNameSpaceID,
@@ -1572,26 +1611,26 @@ bool
 nsXULContentBuilder::GetInsertionLocations(nsIXULTemplateResult* aResult,
                                            nsCOMArray<nsIContent>** aLocations)
 {
-    *aLocations = nullptr;
+    *aLocations = nsnull;
 
     nsAutoString ref;
     nsresult rv = aResult->GetBindingFor(mRefVariable, ref);
     if (NS_FAILED(rv))
-        return false;
+        return PR_FALSE;
 
     nsCOMPtr<nsIXULDocument> xuldoc = do_QueryInterface(mRoot->GetDocument());
     if (! xuldoc)
-        return false;
+        return PR_FALSE;
 
     *aLocations = new nsCOMArray<nsIContent>;
-    NS_ENSURE_TRUE(*aLocations, false);
+    NS_ENSURE_TRUE(*aLocations, PR_FALSE);
 
     xuldoc->GetElementsForID(ref, **aLocations);
-    uint32_t count = (*aLocations)->Count();
+    PRUint32 count = (*aLocations)->Count();
 
     bool found = false;
 
-    for (uint32_t t = 0; t < count; t++) {
+    for (PRUint32 t = 0; t < count; t++) {
         nsCOMPtr<nsIContent> content = (*aLocations)->SafeObjectAt(t);
 
         nsTemplateMatch* refmatch;
@@ -1603,13 +1642,13 @@ nsXULContentBuilder::GetInsertionLocations(nsIXULTemplateResult* aResult,
             
             nsXULElement *xulcontent = nsXULElement::FromContent(content);
             if (!xulcontent || xulcontent->GetTemplateGenerated()) {
-                found = true;
+                found = PR_TRUE;
                 continue;
             }
         }
 
         
-        (*aLocations)->ReplaceObjectAt(nullptr, t);
+        (*aLocations)->ReplaceObjectAt(nsnull, t);
     }
 
     return found;
@@ -1642,7 +1681,7 @@ nsXULContentBuilder::ReplaceMatch(nsIXULTemplateResult* aOldResult,
                 return rv;
 
             if (refResult)
-                SetContainerAttrs(content, refResult, false, true);
+                SetContainerAttrs(content, refResult, PR_FALSE, PR_TRUE);
         }
     }
 
@@ -1652,9 +1691,9 @@ nsXULContentBuilder::ReplaceMatch(nsIXULTemplateResult* aOldResult,
         if (NS_FAILED(rv))
             return rv;
 
-        uint32_t count = elements.Count();
+        PRUint32 count = elements.Count();
 
-        for (int32_t e = int32_t(count) - 1; e >= 0; --e) {
+        for (PRInt32 e = PRInt32(count) - 1; e >= 0; --e) {
             nsCOMPtr<nsIContent> child = elements.SafeObjectAt(e);
 
             nsTemplateMatch* match;
@@ -1667,10 +1706,10 @@ nsXULContentBuilder::ReplaceMatch(nsIXULTemplateResult* aOldResult,
 
     if (aNewMatch) {
         nsCOMPtr<nsIContent> action = aNewMatchRule->GetAction();
-        return BuildContentFromTemplate(action, content, content, true,
+        return BuildContentFromTemplate(action, content, content, PR_TRUE,
                                         mRefVariable == aNewMatchRule->GetMemberVariable(),
-                                        aNewMatch->mResult, true, aNewMatch,
-                                        nullptr, nullptr);
+                                        aNewMatch->mResult, PR_TRUE, aNewMatch,
+                                        nsnull, nsnull);
     }
 
     return NS_OK;
@@ -1683,9 +1722,9 @@ nsXULContentBuilder::SynchronizeResult(nsIXULTemplateResult* aResult)
     nsCOMArray<nsIContent> elements;
     GetElementsForResult(aResult, elements);
 
-    uint32_t cnt = elements.Count();
+    PRUint32 cnt = elements.Count();
 
-    for (int32_t i = int32_t(cnt) - 1; i >= 0; --i) {
+    for (PRInt32 i = PRInt32(cnt) - 1; i >= 0; --i) {
         nsCOMPtr<nsIContent> element = elements.SafeObjectAt(i);
 
         nsTemplateMatch* match;
@@ -1731,7 +1770,7 @@ nsXULContentBuilder::OpenContainer(nsIContent* aElement)
             xuldoc->GetTemplateBuilderFor(content, getter_AddRefs(builder));
             if (builder) {
                 if (builder == this)
-                    rightBuilder = true;
+                    rightBuilder = PR_TRUE;
                 break;
             }
 
@@ -1742,7 +1781,7 @@ nsXULContentBuilder::OpenContainer(nsIContent* aElement)
             return NS_OK;
     }
 
-    CreateTemplateAndContainerContents(aElement, false);
+    CreateTemplateAndContainerContents(aElement, PR_FALSE);
 
     return NS_OK;
 }
@@ -1764,7 +1803,7 @@ nsXULContentBuilder::RebuildAll()
         return NS_OK;
 
     if (mQueriesCompiled)
-        Uninit(false);
+        Uninit(PR_FALSE);
 
     nsresult rv = CompileQueries();
     if (NS_FAILED(rv))
@@ -1779,7 +1818,7 @@ nsXULContentBuilder::RebuildAll()
 
     
     
-    CreateTemplateAndContainerContents(mRoot, false);
+    CreateTemplateAndContainerContents(mRoot, PR_FALSE);
 
     return NS_OK;
 }
@@ -1789,13 +1828,13 @@ nsXULContentBuilder::RebuildAll()
 nsresult
 nsXULContentBuilder::CompareResultToNode(nsIXULTemplateResult* aResult,
                                          nsIContent* aContent,
-                                         int32_t* aSortOrder)
+                                         PRInt32* aSortOrder)
 {
     NS_ASSERTION(aSortOrder, "CompareResultToNode: null out param aSortOrder");
   
     *aSortOrder = 0;
 
-    nsTemplateMatch *match = nullptr;
+    nsTemplateMatch *match = nsnull;
     if (!mContentSupportMap.Get(aContent, &match)) {
         *aSortOrder = mSortState.sortStaticsLast ? -1 : 1;
         return NS_OK;
@@ -1807,15 +1846,15 @@ nsXULContentBuilder::CompareResultToNode(nsIXULTemplateResult* aResult,
     if (mSortState.direction == nsSortState_natural) {
         
         nsresult rv = mQueryProcessor->CompareResults(aResult, match->mResult,
-                                                      nullptr, mSortState.sortHints,
+                                                      nsnull, mSortState.sortHints,
                                                       aSortOrder);
         NS_ENSURE_SUCCESS(rv, rv);
     }
     else {
         
         
-        int32_t length = mSortState.sortKeys.Count();
-        for (int32_t t = 0; t < length; t++) {
+        PRInt32 length = mSortState.sortKeys.Count();
+        for (PRInt32 t = 0; t < length; t++) {
             nsresult rv = mQueryProcessor->CompareResults(aResult, match->mResult,
                                                           mSortState.sortKeys[t],
                                                           mSortState.sortHints, aSortOrder);
@@ -1857,7 +1896,7 @@ nsXULContentBuilder::InsertSortedNode(nsIContent* aContainer,
     
     
     
-    mSortState.isContainerRDFSeq = false;
+    mSortState.isContainerRDFSeq = PR_FALSE;
     if (mSortState.direction == nsSortState_natural) {
         nsCOMPtr<nsISupports> ref;
         nsresult rv = aResult->GetBindingObjectFor(mRefVariable, getter_AddRefs(ref));
@@ -1872,26 +1911,26 @@ nsXULContentBuilder::InsertSortedNode(nsIContent* aContainer,
     }
 
     bool childAdded = false;
-    uint32_t numChildren = aContainer->GetChildCount();
+    PRUint32 numChildren = aContainer->GetChildCount();
 
     if (mSortState.direction != nsSortState_natural ||
         (mSortState.direction == nsSortState_natural && mSortState.isContainerRDFSeq))
     {
         
-        int32_t realNumChildren = numChildren;
-        nsIContent *child = nullptr;
+        PRInt32 realNumChildren = numChildren;
+        nsIContent *child = nsnull;
 
         
-        int32_t staticCount = 0;
+        PRInt32 staticCount = 0;
 
         nsAutoString staticValue;
         aContainer->GetAttr(kNameSpaceID_None, nsGkAtoms::staticHint, staticValue);
         if (!staticValue.IsEmpty())
         {
             
-            nsresult strErr = NS_OK;
+            PRInt32 strErr = 0;
             staticCount = staticValue.ToInteger(&strErr);
-            if (NS_FAILED(strErr))
+            if (strErr)
                 staticCount = 0;
         } else {
             
@@ -1915,13 +1954,13 @@ nsXULContentBuilder::InsertSortedNode(nsIContent* aContainer,
             
             nsAutoString valueStr;
             valueStr.AppendInt(staticCount);
-            aContainer->SetAttr(kNameSpaceID_None, nsGkAtoms::staticHint, valueStr, false);
+            aContainer->SetAttr(kNameSpaceID_None, nsGkAtoms::staticHint, valueStr, PR_FALSE);
         }
 
         if (staticCount <= 0) {
             numChildren += staticCount;
             staticCount = 0;
-        } else if (staticCount > (int32_t)numChildren) {
+        } else if (staticCount > (PRInt32)numChildren) {
             staticCount = numChildren;
             numChildren -= staticCount;
         }
@@ -1929,7 +1968,7 @@ nsXULContentBuilder::InsertSortedNode(nsIContent* aContainer,
         
         if (numChildren > 0) {
             nsIContent *temp;
-            int32_t direction;
+            PRInt32 direction;
 
             
             
@@ -1940,21 +1979,21 @@ nsXULContentBuilder::InsertSortedNode(nsIContent* aContainer,
                 rv = CompareResultToNode(aResult, temp, &direction);
                 if (direction < 0) {
                     aContainer->InsertChildAt(aNode, staticCount, aNotify);
-                    childAdded = true;
+                    childAdded = PR_TRUE;
                 } else
-                    mSortState.lastWasFirst = false;
+                    mSortState.lastWasFirst = PR_FALSE;
             } else if (mSortState.lastWasLast) {
                 child = aContainer->GetChildAt(realNumChildren - 1);
                 temp = child;
                 rv = CompareResultToNode(aResult, temp, &direction);
                 if (direction > 0) {
                     aContainer->InsertChildAt(aNode, realNumChildren, aNotify);
-                    childAdded = true;
+                    childAdded = PR_TRUE;
                 } else
-                    mSortState.lastWasLast = false;
+                    mSortState.lastWasLast = PR_FALSE;
             }
 
-            int32_t left = staticCount + 1, right = realNumChildren, x;
+            PRInt32 left = staticCount + 1, right = realNumChildren, x;
             while (!childAdded && right >= left) {
                 x = (left + right) / 2;
                 child = aContainer->GetChildAt(x - 1);
@@ -1965,9 +2004,9 @@ nsXULContentBuilder::InsertSortedNode(nsIContent* aContainer,
                     (x == right && direction >= 0) ||
                     left == right)
                 {
-                    int32_t thePos = (direction > 0 ? x : x - 1);
+                    PRInt32 thePos = (direction > 0 ? x : x - 1);
                     aContainer->InsertChildAt(aNode, thePos, aNotify);
-                    childAdded = true;
+                    childAdded = PR_TRUE;
 
                     mSortState.lastWasFirst = (thePos == staticCount);
                     mSortState.lastWasLast = (thePos >= realNumChildren);

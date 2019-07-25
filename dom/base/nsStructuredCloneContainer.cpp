@@ -5,18 +5,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsStructuredCloneContainer.h"
 
 #include "nsCOMPtr.h"
+#include "nsIDocument.h"
 #include "nsIJSContextStack.h"
 #include "nsIScriptContext.h"
 #include "nsIVariant.h"
 #include "nsServiceManagerUtils.h"
 #include "nsContentUtils.h"
-
-#include "mozilla/Base64.h"
-
-using namespace mozilla;
+#include "xpcprivate.h"
 
 NS_IMPL_ADDREF(nsStructuredCloneContainer)
 NS_IMPL_RELEASE(nsStructuredCloneContainer)
@@ -27,7 +56,7 @@ NS_INTERFACE_MAP_BEGIN(nsStructuredCloneContainer)
 NS_INTERFACE_MAP_END
 
 nsStructuredCloneContainer::nsStructuredCloneContainer()
-  : mData(nullptr), mSize(0), mVersion(0)
+  : mData(nsnull), mSize(0), mVersion(0)
 {
 }
 
@@ -51,20 +80,20 @@ nsStructuredCloneContainer::InitFromVariant(nsIVariant *aData, JSContext *aCx)
 
   
   JSAutoRequest ar(aCx);
- JSAutoCompartment ac(aCx, JS_GetGlobalObject(aCx));
-  JS_WrapValue(aCx, &jsData);
+  JSAutoEnterCompartment ac;
+  NS_ENSURE_STATE(ac.enter(aCx, JS_GetGlobalObject(aCx)));
 
   nsCxPusher cxPusher;
   cxPusher.Push(aCx);
 
-  uint64_t* jsBytes = nullptr;
+  PRUint64* jsBytes = nsnull;
   bool success = JS_WriteStructuredClone(aCx, jsData, &jsBytes, &mSize,
-                                           nullptr, nullptr);
+                                           nsnull, nsnull);
   NS_ENSURE_STATE(success);
   NS_ENSURE_STATE(jsBytes);
 
   
-  mData = (uint64_t*) malloc(mSize);
+  mData = (PRUint64*) malloc(mSize);
   if (!mData) {
     mSize = 0;
     mVersion = 0;
@@ -87,19 +116,19 @@ nsStructuredCloneContainer::InitFromVariant(nsIVariant *aData, JSContext *aCx)
 
 nsresult
 nsStructuredCloneContainer::InitFromBase64(const nsAString &aData,
-                                           uint32_t aFormatVersion,
+                                           PRUint32 aFormatVersion,
                                            JSContext *aCx)
 {
   NS_ENSURE_STATE(!mData);
 
   NS_ConvertUTF16toUTF8 data(aData);
 
-  nsAutoCString binaryData;
-  nsresult rv = Base64Decode(data, binaryData);
+  nsCAutoString binaryData;
+  nsresult rv = nsXPConnect::Base64Decode(data, binaryData);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  mData = (uint64_t*) malloc(binaryData.Length());
+  mData = (PRUint64*) malloc(binaryData.Length());
   NS_ENSURE_STATE(mData);
   memcpy(mData, binaryData.get(), binaryData.Length());
 
@@ -115,12 +144,12 @@ nsStructuredCloneContainer::DeserializeToVariant(JSContext *aCx,
 {
   NS_ENSURE_STATE(mData);
   NS_ENSURE_ARG_POINTER(aData);
-  *aData = nullptr;
+  *aData = nsnull;
 
   
   jsval jsStateObj;
   bool success = JS_ReadStructuredClone(aCx, mData, mSize, mVersion,
-                                          &jsStateObj, nullptr, nullptr);
+                                          &jsStateObj, nsnull, nsnull);
   NS_ENSURE_STATE(success);
 
   
@@ -140,9 +169,9 @@ nsStructuredCloneContainer::GetDataAsBase64(nsAString &aOut)
   NS_ENSURE_STATE(mData);
   aOut.Truncate();
 
-  nsAutoCString binaryData(reinterpret_cast<char*>(mData), mSize);
-  nsAutoCString base64Data;
-  nsresult rv = Base64Encode(binaryData, base64Data);
+  nsCAutoString binaryData(reinterpret_cast<char*>(mData), mSize);
+  nsCAutoString base64Data;
+  nsresult rv = nsXPConnect::Base64Encode(binaryData, base64Data);
   NS_ENSURE_SUCCESS(rv, rv);
 
   aOut.Assign(NS_ConvertASCIItoUTF16(base64Data));
@@ -150,7 +179,7 @@ nsStructuredCloneContainer::GetDataAsBase64(nsAString &aOut)
 }
 
 nsresult
-nsStructuredCloneContainer::GetSerializedNBytes(uint64_t *aSize)
+nsStructuredCloneContainer::GetSerializedNBytes(PRUint64 *aSize)
 {
   NS_ENSURE_STATE(mData);
   NS_ENSURE_ARG_POINTER(aSize);
@@ -164,7 +193,7 @@ nsStructuredCloneContainer::GetSerializedNBytes(uint64_t *aSize)
 }
 
 nsresult
-nsStructuredCloneContainer::GetFormatVersion(uint32_t *aFormatVersion)
+nsStructuredCloneContainer::GetFormatVersion(PRUint32 *aFormatVersion)
 {
   NS_ENSURE_STATE(mData);
   NS_ENSURE_ARG_POINTER(aFormatVersion);

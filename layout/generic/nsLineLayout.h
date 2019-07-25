@@ -14,6 +14,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsLineLayout_h___
 #define nsLineLayout_h___
 
@@ -39,21 +72,20 @@ public:
   ~nsLineLayout();
 
   void Init(nsBlockReflowState* aState, nscoord aMinLineHeight,
-            int32_t aLineNumber) {
+            PRInt32 aLineNumber) {
     mBlockRS = aState;
     mMinLineHeight = aMinLineHeight;
     mLineNumber = aLineNumber;
   }
 
-  int32_t GetLineNumber() const {
+  PRInt32 GetLineNumber() const {
     return mLineNumber;
   }
 
   void BeginLineReflow(nscoord aX, nscoord aY,
                        nscoord aWidth, nscoord aHeight,
                        bool aImpactedByFloats,
-                       bool aIsTopOfPage,
-                       uint8_t aDirection);
+                       bool aIsTopOfPage);
 
   void EndLineReflow();
 
@@ -77,9 +109,9 @@ public:
   
   nscoord EndSpan(nsIFrame* aFrame);
 
-  int32_t GetCurrentSpanCount() const;
+  PRInt32 GetCurrentSpanCount() const;
 
-  void SplitLineTo(int32_t aNewCount);
+  void SplitLineTo(PRInt32 aNewCount);
 
   bool IsZeroHeight();
 
@@ -101,7 +133,7 @@ public:
 
   bool TrimTrailingWhiteSpace();
 
-  void HorizontalAlignFrames(nsRect& aLineBounds, bool aIsLastLine);
+  void HorizontalAlignFrames(nsRect& aLineBounds, bool aAllowJustify);
 
   
 
@@ -129,10 +161,10 @@ protected:
 #define LL_LINEATSTART                 0x00010000
 #define LL_LASTFLAG                    LL_LINEATSTART
 
-  void SetFlag(uint32_t aFlag, bool aValue)
+  void SetFlag(PRUint32 aFlag, bool aValue)
   {
     NS_ASSERTION(aFlag<=LL_LASTFLAG, "bad flag");
-    NS_ASSERTION(aValue==false || aValue==true, "bad value");
+    NS_ASSERTION(aValue==PR_FALSE || aValue==PR_TRUE, "bad value");
     if (aValue) { 
       mFlags |= aFlag;
     }
@@ -141,7 +173,7 @@ protected:
     }
   }
 
-  bool GetFlag(uint32_t aFlag) const
+  bool GetFlag(PRUint32 aFlag) const
   {
     NS_ASSERTION(aFlag<=LL_LASTFLAG, "bad flag");
     return !!(mFlags & aFlag);
@@ -151,7 +183,7 @@ public:
 
   
 
-  void SetTextJustificationWeights(int32_t aNumSpaces, int32_t aNumLetters) {
+  void SetTextJustificationWeights(PRInt32 aNumSpaces, PRInt32 aNumLetters) {
     mTextJustificationNumSpaces = aNumSpaces;
     mTextJustificationNumLetters = aNumLetters;
   }
@@ -228,7 +260,7 @@ public:
   
   
   void SetDirtyNextLine() {
-    SetFlag(LL_DIRTYNEXTLINE, true);
+    SetFlag(LL_DIRTYNEXTLINE, PR_TRUE);
   }
   bool GetDirtyNextLine() {
     return GetFlag(LL_DIRTYNEXTLINE);
@@ -262,7 +294,7 @@ public:
 
 
 
-  bool NotifyOptionalBreakPosition(nsIContent* aContent, int32_t aOffset,
+  bool NotifyOptionalBreakPosition(nsIContent* aContent, PRInt32 aOffset,
                                      bool aFits, gfxBreakPriority aPriority) {
     NS_ASSERTION(!aFits || !GetFlag(LL_NEEDBACKUP),
                   "Shouldn't be updating the break position with a break that fits after we've already flagged an overrun");
@@ -282,7 +314,7 @@ public:
 
 
 
-  void RestoreSavedBreakPosition(nsIContent* aContent, int32_t aOffset,
+  void RestoreSavedBreakPosition(nsIContent* aContent, PRInt32 aOffset,
                                  gfxBreakPriority aPriority) {
     mLastOptionalBreakContent = aContent;
     mLastOptionalBreakContentOffset = aOffset;
@@ -292,14 +324,14 @@ public:
 
 
   void ClearOptionalBreakPosition() {
-    SetFlag(LL_NEEDBACKUP, false);
-    mLastOptionalBreakContent = nullptr;
+    SetFlag(LL_NEEDBACKUP, PR_FALSE);
+    mLastOptionalBreakContent = nsnull;
     mLastOptionalBreakContentOffset = -1;
     mLastOptionalBreakPriority = eNoBreak;
   }
   
   
-  nsIContent* GetLastOptionalBreakPosition(int32_t* aOffset,
+  nsIContent* GetLastOptionalBreakPosition(PRInt32* aOffset,
                                            gfxBreakPriority* aPriority) {
     *aOffset = mLastOptionalBreakContentOffset;
     *aPriority = mLastOptionalBreakPriority;
@@ -321,12 +353,12 @@ public:
   
   
   
-  void ForceBreakAtPosition(nsIContent* aContent, int32_t aOffset) {
+  void ForceBreakAtPosition(nsIContent* aContent, PRInt32 aOffset) {
     mForceBreakContent = aContent;
     mForceBreakContentOffset = aOffset;
   }
-  bool HaveForcedBreakPosition() { return mForceBreakContent != nullptr; }
-  int32_t GetForcedBreakPosition(nsIContent* aContent) {
+  bool HaveForcedBreakPosition() { return mForceBreakContent != nsnull; }
+  PRInt32 GetForcedBreakPosition(nsIContent* aContent) {
     return mForceBreakContent == aContent ? mForceBreakContentOffset : -1;
   }
 
@@ -336,14 +368,11 @@ public:
 
 
   nsIFrame* GetLineContainerFrame() const { return mBlockReflowState->frame; }
-  const nsHTMLReflowState* GetLineContainerRS() const {
-    return mBlockReflowState;
-  }
   const nsLineList::iterator* GetLine() const {
-    return GetFlag(LL_GOTLINEBOX) ? &mLineBox : nullptr;
+    return GetFlag(LL_GOTLINEBOX) ? &mLineBox : nsnull;
   }
   nsLineList::iterator* GetLine() {
-    return GetFlag(LL_GOTLINEBOX) ? &mLineBox : nullptr;
+    return GetFlag(LL_GOTLINEBOX) ? &mLineBox : nsnull;
   }
   
   
@@ -405,11 +434,11 @@ protected:
     nsMargin mOffsets;
 
     
-    int32_t mJustificationNumSpaces;
-    int32_t mJustificationNumLetters;
+    PRInt32 mJustificationNumSpaces;
+    PRInt32 mJustificationNumLetters;
     
     
-    uint8_t mVerticalAlign;
+    PRUint8 mVerticalAlign;
 
 
 #define PFD_RELATIVEPOS                 0x00000001
@@ -422,13 +451,13 @@ protected:
 #define PFD_SKIPWHENTRIMMINGWHITESPACE  0x00000080
 #define PFD_LASTFLAG                    PFD_SKIPWHENTRIMMINGWHITESPACE
 
-    uint8_t mFlags;
+    PRUint8 mFlags;
 
-    void SetFlag(uint32_t aFlag, bool aValue)
+    void SetFlag(PRUint32 aFlag, bool aValue)
     {
       NS_ASSERTION(aFlag<=PFD_LASTFLAG, "bad flag");
       NS_ASSERTION(aFlag<=PR_UINT8_MAX, "bad flag");
-      NS_ASSERTION(aValue==false || aValue==true, "bad value");
+      NS_ASSERTION(aValue==PR_FALSE || aValue==PR_TRUE, "bad value");
       if (aValue) { 
         mFlags |= aFlag;
       }
@@ -437,7 +466,7 @@ protected:
       }
     }
 
-    bool GetFlag(uint32_t aFlag) const
+    bool GetFlag(PRUint32 aFlag) const
     {
       NS_ASSERTION(aFlag<=PFD_LASTFLAG, "bad flag");
       return !!(mFlags & aFlag);
@@ -465,7 +494,7 @@ protected:
 
     const nsHTMLReflowState* mReflowState;
     bool mNoWrap;
-    uint8_t mDirection;
+    PRUint8 mDirection;
     bool mChangedFrameDirection;
     bool mZeroEffectiveSpanBox;
     bool mContainsFloat;
@@ -481,7 +510,7 @@ protected:
     nscoord* mBaseline;
 
     void AppendFrame(PerFrameData* pfd) {
-      if (nullptr == mLastFrame) {
+      if (nsnull == mLastFrame) {
         mFirstFrame = pfd;
       }
       else {
@@ -496,8 +525,8 @@ protected:
   PerSpanData* mCurrentSpan;
 
   gfxBreakPriority mLastOptionalBreakPriority;
-  int32_t     mLastOptionalBreakContentOffset;
-  int32_t     mForceBreakContentOffset;
+  PRInt32     mLastOptionalBreakContentOffset;
+  PRInt32     mForceBreakContentOffset;
 
   nscoord mMinLineHeight;
   
@@ -507,17 +536,15 @@ protected:
 
   
   
-  int32_t mLineNumber;
-  int32_t mTextJustificationNumSpaces;
-  int32_t mTextJustificationNumLetters;
+  PRInt32 mLineNumber;
+  PRInt32 mTextJustificationNumSpaces;
+  PRInt32 mTextJustificationNumLetters;
 
-  int32_t mTotalPlacedFrames;
+  PRInt32 mTotalPlacedFrames;
 
   nscoord mTopEdge;
   nscoord mMaxTopBoxHeight;
   nscoord mMaxBottomBoxHeight;
-
-  nscoord mInflationMinFontSize;
 
   
   
@@ -526,14 +553,16 @@ protected:
   
   nscoord mTrimmableWidth;
 
-  int32_t mSpanDepth;
+  PRInt32 mSpanDepth;
 #ifdef DEBUG
-  int32_t mSpansAllocated, mSpansFreed;
-  int32_t mFramesAllocated, mFramesFreed;
+  PRInt32 mSpansAllocated, mSpansFreed;
+  PRInt32 mFramesAllocated, mFramesFreed;
 #endif
   PLArenaPool mArena; 
 
-  uint32_t mFlags;
+  PRUint32 mFlags;
+
+  PRUint8 mTextAlign;
 
   nsresult NewPerFrameData(PerFrameData** aResult);
 
@@ -551,7 +580,7 @@ protected:
                         nsHTMLReflowState& aReflowState);
 
   bool CanPlaceFrame(PerFrameData* pfd,
-                       uint8_t aFrameDirection,
+                       PRUint8 aFrameDirection,
                        bool aNotSafeToBreak,
                        bool aFrameCanContinueTextRun,
                        bool aCanRollBackBeforeFrame,
@@ -572,15 +601,15 @@ protected:
 
   bool TrimTrailingWhiteSpaceIn(PerSpanData* psd, nscoord* aDeltaWidth);
 
-  void ComputeJustificationWeights(PerSpanData* psd, int32_t* numSpaces, int32_t* numLetters);
+  void ComputeJustificationWeights(PerSpanData* psd, PRInt32* numSpaces, PRInt32* numLetters);
 
   struct FrameJustificationState {
-    int32_t mTotalNumSpaces;
-    int32_t mTotalNumLetters;
+    PRInt32 mTotalNumSpaces;
+    PRInt32 mTotalNumLetters;
     nscoord mTotalWidthForSpaces;
     nscoord mTotalWidthForLetters;
-    int32_t mNumSpacesProcessed;
-    int32_t mNumLettersProcessed;
+    PRInt32 mNumSpacesProcessed;
+    PRInt32 mNumLettersProcessed;
     nscoord mWidthForSpacesProcessed;
     nscoord mWidthForLettersProcessed;
   };
@@ -592,7 +621,7 @@ protected:
 
 
 #ifdef DEBUG
-  void DumpPerSpanData(PerSpanData* psd, int32_t aIndent);
+  void DumpPerSpanData(PerSpanData* psd, PRInt32 aIndent);
 #endif
 };
 

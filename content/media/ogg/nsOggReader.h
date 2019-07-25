@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #if !defined(nsOggReader_h_)
 #define nsOggReader_h_
 
@@ -36,32 +69,21 @@ public:
   
   
   virtual bool DecodeVideoFrame(bool &aKeyframeSkip,
-                                  int64_t aTimeThreshold);
+                                  PRInt64 aTimeThreshold);
 
   virtual bool HasAudio() {
-    return (mVorbisState != 0 && mVorbisState->mActive) ||
-           (mOpusState != 0 && mOpusState->mActive);
+    return mVorbisState != 0 && mVorbisState->mActive;
   }
 
   virtual bool HasVideo() {
     return mTheoraState != 0 && mTheoraState->mActive;
   }
 
-  virtual nsresult ReadMetadata(nsVideoInfo* aInfo,
-                                nsHTMLMediaElement::MetadataTags** aTags);
-  virtual nsresult Seek(int64_t aTime, int64_t aStartTime, int64_t aEndTime, int64_t aCurrentTime);
-  virtual nsresult GetBuffered(nsTimeRanges* aBuffered, int64_t aStartTime);
-
-  
-  virtual bool IsSeekableInBufferedRanges() {
-    return true;
-  }
+  virtual nsresult ReadMetadata(nsVideoInfo* aInfo);
+  virtual nsresult Seek(PRInt64 aTime, PRInt64 aStartTime, PRInt64 aEndTime, PRInt64 aCurrentTime);
+  virtual nsresult GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime);
 
 private:
-
-  
-  
-  nsresult ResetDecode(bool start);
 
   bool HasSkeleton() {
     return mSkeletonState != 0 && mSkeletonState->mActive;
@@ -74,10 +96,10 @@ private:
     SEEK_INDEX_FAIL,  
     SEEK_FATAL_ERROR  
   };
-  IndexedSeekResult SeekToKeyframeUsingIndex(int64_t aTarget);
+  IndexedSeekResult SeekToKeyframeUsingIndex(PRInt64 aTarget);
 
   
-  IndexedSeekResult RollbackIndexedSeek(int64_t aOffset);
+  IndexedSeekResult RollbackIndexedSeek(PRInt64 aOffset);
 
   
   
@@ -92,10 +114,10 @@ private:
         mTimeEnd(0)
     {}
 
-    SeekRange(int64_t aOffsetStart,
-              int64_t aOffsetEnd,
-              int64_t aTimeStart,
-              int64_t aTimeEnd)
+    SeekRange(PRInt64 aOffsetStart,
+              PRInt64 aOffsetEnd,
+              PRInt64 aTimeStart,
+              PRInt64 aTimeEnd)
       : mOffsetStart(aOffsetStart),
         mOffsetEnd(aOffsetEnd),
         mTimeStart(aTimeStart),
@@ -109,8 +131,8 @@ private:
              mTimeEnd == 0;
     }
 
-    int64_t mOffsetStart, mOffsetEnd; 
-    int64_t mTimeStart, mTimeEnd; 
+    PRInt64 mOffsetStart, mOffsetEnd; 
+    PRInt64 mTimeStart, mTimeEnd; 
   };
 
   
@@ -118,11 +140,9 @@ private:
   
   
   
-  
-  nsresult SeekInBufferedRange(int64_t aTarget,
-                               int64_t aAdjustedTarget,
-                               int64_t aStartTime,
-                               int64_t aEndTime,
+  nsresult SeekInBufferedRange(PRInt64 aTarget,
+                               PRInt64 aStartTime,
+                               PRInt64 aEndTime,
                                const nsTArray<SeekRange>& aRanges,
                                const SeekRange& aRange);
 
@@ -132,14 +152,14 @@ private:
   
   
   
-  nsresult SeekInUnbuffered(int64_t aTarget,
-                            int64_t aStartTime,
-                            int64_t aEndTime,
+  nsresult SeekInUnbuffered(PRInt64 aTarget,
+                            PRInt64 aStartTime,
+                            PRInt64 aEndTime,
                             const nsTArray<SeekRange>& aRanges);
 
   
   
-  int64_t RangeEndTime(int64_t aEndOffset);
+  PRInt64 RangeEndTime(PRInt64 aEndOffset);
 
   
   
@@ -148,14 +168,14 @@ private:
   
   
   
-  int64_t RangeEndTime(int64_t aStartOffset,
-                       int64_t aEndOffset,
+  PRInt64 RangeEndTime(PRInt64 aStartOffset,
+                       PRInt64 aEndOffset,
                        bool aCachedDataOnly);
 
   
   
   
-  int64_t RangeStartTime(int64_t aOffset);
+  PRInt64 RangeStartTime(PRInt64 aOffset);
 
   
   
@@ -163,13 +183,13 @@ private:
   
   
   
-  nsresult SeekBisection(int64_t aTarget,
+  nsresult SeekBisection(PRInt64 aTarget,
                          const SeekRange& aRange,
-                         uint32_t aFuzz);
+                         PRUint32 aFuzz);
 
   
   
-  bool IsKnownStream(uint32_t aSerial);
+  bool IsKnownStream(PRUint32 aSerial);
 
   
   
@@ -186,9 +206,9 @@ private:
   
   
   SeekRange SelectSeekRange(const nsTArray<SeekRange>& aRanges,
-                            int64_t aTarget,
-                            int64_t aStartTime,
-                            int64_t aEndTime,
+                            PRInt64 aTarget,
+                            PRInt64 aStartTime,
+                            PRInt64 aEndTime,
                             bool aExact);
 private:
 
@@ -198,18 +218,14 @@ private:
 
   
   
-  nsresult DecodeOpus(ogg_packet* aPacket);
+  
+  
+  
+  nsresult DecodeTheora(ogg_packet* aPacket, PRInt64 aTimeThreshold);
 
   
   
-  
-  
-  
-  nsresult DecodeTheora(ogg_packet* aPacket, int64_t aTimeThreshold);
-
-  
-  
-  int64_t ReadOggPage(ogg_page* aPage);
+  PRInt64 ReadOggPage(ogg_page* aPage);
 
   
   
@@ -223,31 +239,19 @@ private:
   ogg_packet* NextOggPacket(nsOggCodecState* aCodecState);
 
   
-  
-  void BuildSerialList(nsTArray<uint32_t>& aTracks);
-
-  
   nsClassHashtable<nsUint32HashKey, nsOggCodecState> mCodecStates;
 
   
   
   
   
-  nsAutoTArray<uint32_t,4> mKnownStreams;
+  nsAutoTArray<PRUint32,4> mKnownStreams;
 
   
   nsTheoraState* mTheoraState;
 
   
   nsVorbisState* mVorbisState;
-
-  
-  nsOpusState *mOpusState;
-
-  
-  
-  
-  bool mOpusEnabled;
 
   
   nsSkeletonState* mSkeletonState;
@@ -261,16 +265,14 @@ private:
   
   
   
-  uint32_t mVorbisSerial;
-  uint32_t mOpusSerial;
-  uint32_t mTheoraSerial;
+  PRUint32 mVorbisSerial;
+  PRUint32 mTheoraSerial;
   vorbis_info mVorbisInfo;
-  int mOpusPreSkip;
   th_info mTheoraInfo;
 
   
   
-  int64_t mPageOffset;
+  PRInt64 mPageOffset;
 
   
   

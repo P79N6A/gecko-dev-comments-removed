@@ -6,6 +6,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __nsStrictTransportSecurityService_h__
 #define __nsStrictTransportSecurityService_h__
 
@@ -51,9 +84,6 @@
 
 
 
-
-
-
 class nsSTSHostEntry : public PLDHashEntryHdr
 {
   public:
@@ -61,10 +91,9 @@ class nsSTSHostEntry : public PLDHashEntryHdr
     explicit nsSTSHostEntry(const nsSTSHostEntry& toCopy);
 
     nsCString    mHost;
-    PRTime       mExpireTime;
-    uint32_t     mStsPermission;
-    bool         mExpired;
-    bool         mIncludeSubdomains;
+    PRInt64      mExpireTime;
+    bool mDeleted;
+    bool mIncludeSubdomains;
 
     
     typedef const char* KeyType;
@@ -87,38 +116,13 @@ class nsSTSHostEntry : public PLDHashEntryHdr
 
     static PLDHashNumber HashKey(KeyTypePointer aKey)
     {
-      return PL_DHashStringKey(nullptr, aKey);
-    }
-
-    void SetExpireTime(PRTime aExpireTime)
-    {
-      mExpireTime = aExpireTime;
-      mExpired = false;
-    }
-
-    bool IsExpired()
-    {
-      
-      
-      
-      if (mExpired || mExpireTime == 0) {
-        return mExpired;
-      }
-
-      PRTime now = PR_Now() / PR_USEC_PER_MSEC;
-      if (now > mExpireTime) {
-        mExpired = true;
-      }
-
-      return mExpired;
+      return PL_DHashStringKey(nsnull, aKey);
     }
 
     
-    enum { ALLOW_MEMMOVE = false };
+    enum { ALLOW_MEMMOVE = PR_FALSE };
 };
 
-
-class nsSTSPreload;
 
 class nsStrictTransportSecurityService : public nsIStrictTransportSecurityService
                                        , public nsIObserver
@@ -134,19 +138,21 @@ public:
 
 private:
   nsresult GetHost(nsIURI *aURI, nsACString &aResult);
-  nsresult GetPrincipalForURI(nsIURI *aURI, nsIPrincipal **aPrincipal);
-  nsresult SetStsState(nsIURI* aSourceURI, int64_t maxage, bool includeSubdomains);
+  nsresult SetStsState(nsIURI* aSourceURI, PRInt64 maxage, bool includeSubdomains);
   nsresult ProcessStsHeaderMutating(nsIURI* aSourceURI, char* aHeader);
-  const nsSTSPreload *GetPreloadListEntry(const char *aHost);
 
   
   nsresult AddPermission(nsIURI     *aURI,
                          const char *aType,
-                         uint32_t   aPermission,
-                         uint32_t   aExpireType,
-                         int64_t    aExpireTime);
+                         PRUint32   aPermission,
+                         PRUint32   aExpireType,
+                         PRInt64    aExpireTime);
   nsresult RemovePermission(const nsCString  &aHost,
                             const char       *aType);
+  nsresult TestPermission(nsIURI     *aURI,
+                          const char *aType,
+                          PRUint32   *aPermission,
+                          bool       testExact);
 
   
   nsCOMPtr<nsIPermissionManager> mPermMgr;

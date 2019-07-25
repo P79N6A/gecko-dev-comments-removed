@@ -4,6 +4,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsDiskCacheDevice_h_
 #define _nsDiskCacheDevice_h_
 
@@ -12,7 +47,7 @@
 #include "nsDiskCacheBlockFile.h"
 #include "nsDiskCacheEntry.h"
 
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "nsIObserver.h"
 #include "nsCOMArray.h"
 
@@ -35,53 +70,51 @@ public:
 
     virtual nsresult OpenInputStreamForEntry(nsCacheEntry *    entry,
                                              nsCacheAccessMode mode,
-                                             uint32_t          offset,
+                                             PRUint32          offset,
                                              nsIInputStream ** result);
 
     virtual nsresult OpenOutputStreamForEntry(nsCacheEntry *     entry,
                                               nsCacheAccessMode  mode,
-                                              uint32_t           offset,
+                                              PRUint32           offset,
                                               nsIOutputStream ** result);
 
     virtual nsresult        GetFileForEntry(nsCacheEntry *    entry,
                                             nsIFile **        result);
 
-    virtual nsresult        OnDataSizeChange(nsCacheEntry * entry, int32_t deltaSize);
+    virtual nsresult        OnDataSizeChange(nsCacheEntry * entry, PRInt32 deltaSize);
     
     virtual nsresult        Visit(nsICacheVisitor * visitor);
 
     virtual nsresult        EvictEntries(const char * clientID);
 
-    bool                    EntryIsTooBig(int64_t entrySize);
+    bool                    EntryIsTooBig(PRInt64 entrySize);
 
     
 
 
-    void                    SetCacheParentDirectory(nsIFile * parentDir);
-    void                    SetCapacity(uint32_t  capacity);
-    void                    SetMaxEntrySize(int32_t  maxSizeInKilobytes);
+    void                    SetCacheParentDirectory(nsILocalFile * parentDir);
+    void                    SetCapacity(PRUint32  capacity);
+    void                    SetMaxEntrySize(PRInt32  maxSizeInKilobytes);
 
 
 
-    void                    getCacheDirectory(nsIFile ** result);
-    uint32_t                getCacheCapacity();
-    uint32_t                getCacheSize();
-    uint32_t                getEntryCount();
+    void                    getCacheDirectory(nsILocalFile ** result);
+    PRUint32                getCacheCapacity();
+    PRUint32                getCacheSize();
+    PRUint32                getEntryCount();
     
     nsDiskCacheMap *        CacheMap()    { return &mCacheMap; }
     
 private:    
     friend class nsDiskCacheDeviceDeactivateEntryEvent;
-    friend class nsEvictDiskCacheEntriesEvent;
-    friend class nsDiskCacheMap;
     
 
 
 
     inline bool IsValidBinding(nsDiskCacheBinding *binding)
     {
-        NS_ASSERTION(binding, "  binding == nullptr");
-        NS_ASSERTION(binding->mDeactivateEvent == nullptr,
+        NS_ASSERTION(binding, "  binding == nsnull");
+        NS_ASSERTION(binding->mDeactivateEvent == nsnull,
                      "  entry in process of deactivation");
         return (binding && !binding->mDeactivateEvent);
     }
@@ -95,19 +128,18 @@ private:
     nsresult                OpenDiskCache();
     nsresult                ClearDiskCache();
 
-    nsresult                EvictDiskCacheEntries(uint32_t  targetCapacity);
+    nsresult                EvictDiskCacheEntries(PRUint32  targetCapacity);
     
     
 
 
-    nsCOMPtr<nsIFile>       mCacheDirectory;
+    nsCOMPtr<nsILocalFile>  mCacheDirectory;
     nsDiskCacheBindery      mBindery;
-    uint32_t                mCacheCapacity;     
-    int32_t                 mMaxEntrySize;      
+    PRUint32                mCacheCapacity;     
+    PRInt32                 mMaxEntrySize;      
     
     nsDiskCacheMap          mCacheMap;
     bool                    mInitialized;
-    bool                    mClearingDiskCache;
 };
 
 #endif 

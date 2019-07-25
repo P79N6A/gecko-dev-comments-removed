@@ -8,45 +8,76 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsMappedAttributes_h___
 #define nsMappedAttributes_h___
 
 #include "nsAttrAndChildArray.h"
 #include "nsMappedAttributeElement.h"
 #include "nsIStyleRule.h"
-#include "mozilla/Attributes.h"
 
 class nsIAtom;
 class nsHTMLStyleSheet;
 class nsRuleWalker;
 
-class nsMappedAttributes MOZ_FINAL : public nsIStyleRule
+class nsMappedAttributes : public nsIStyleRule
 {
 public:
   nsMappedAttributes(nsHTMLStyleSheet* aSheet,
                      nsMapRuleToAttributesFunc aMapRuleFunc);
 
-  
-  void* operator new(size_t size, uint32_t aAttrCount = 1) CPP_THROW_NEW;
+  void* operator new(size_t size, PRUint32 aAttrCount = 1) CPP_THROW_NEW;
+
   nsMappedAttributes* Clone(bool aWillAddAttr);
 
   NS_DECL_ISUPPORTS
 
-  void SetAndTakeAttr(nsIAtom* aAttrName, nsAttrValue& aValue);
+  nsresult SetAndTakeAttr(nsIAtom* aAttrName, nsAttrValue& aValue);
   const nsAttrValue* GetAttr(nsIAtom* aAttrName) const;
-  const nsAttrValue* GetAttr(const nsAString& aAttrName) const;
 
-  uint32_t Count() const
+  PRUint32 Count() const
   {
     return mAttrCount;
   }
 
   bool Equals(const nsMappedAttributes* aAttributes) const;
-  uint32_t HashValue() const;
+  PRUint32 HashValue() const;
 
   void DropStyleSheetReference()
   {
-    mSheet = nullptr;
+    mSheet = nsnull;
   }
   void SetStyleSheet(nsHTMLStyleSheet* aSheet);
   nsHTMLStyleSheet* GetStyleSheet()
@@ -54,30 +85,30 @@ public:
     return mSheet;
   }
 
-  const nsAttrName* NameAt(uint32_t aPos) const
+  const nsAttrName* NameAt(PRUint32 aPos) const
   {
     NS_ASSERTION(aPos < mAttrCount, "out-of-bounds");
     return &Attrs()[aPos].mName;
   }
-  const nsAttrValue* AttrAt(uint32_t aPos) const
+  const nsAttrValue* AttrAt(PRUint32 aPos) const
   {
     NS_ASSERTION(aPos < mAttrCount, "out-of-bounds");
     return &Attrs()[aPos].mValue;
   }
   
   
-  void RemoveAttrAt(uint32_t aPos, nsAttrValue& aValue);
+  void RemoveAttrAt(PRUint32 aPos, nsAttrValue& aValue);
   const nsAttrName* GetExistingAttrNameFromQName(const nsAString& aName) const;
-  int32_t IndexOfAttr(nsIAtom* aLocalName) const;
+  PRInt32 IndexOfAttr(nsIAtom* aLocalName, PRInt32 aNamespaceID) const;
   
 
   
   virtual void MapRuleInfoInto(nsRuleData* aRuleData);
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
+  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
 
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  PRInt64 SizeOf() const;
 
 private:
   nsMappedAttributes(const nsMappedAttributes& aCopy);
@@ -105,9 +136,9 @@ private:
     return reinterpret_cast<InternalAttr*>(&(mAttrs[0]));
   }
 
-  uint16_t mAttrCount;
+  PRUint16 mAttrCount;
 #ifdef DEBUG
-  uint16_t mBufferSize;
+  PRUint16 mBufferSize;
 #endif
   nsHTMLStyleSheet* mSheet; 
   nsMapRuleToAttributesFunc mRuleMapper;

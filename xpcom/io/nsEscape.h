@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _ESCAPE_H_
 #define _ESCAPE_H_
 
@@ -43,7 +75,7 @@ char * nsUnescape(char * str);
 
 
 
-int32_t nsUnescapeCount (char * str);
+PRInt32 nsUnescapeCount (char * str);
 	
 
 
@@ -54,7 +86,7 @@ nsEscapeHTML(const char * string);
 
 PRUnichar *
 nsEscapeHTML2(const PRUnichar *aSourceBuffer,
-              int32_t aSourceBufferLen = -1);
+              PRInt32 aSourceBufferLen = -1);
  
 
 
@@ -111,8 +143,8 @@ enum EscapeMask {
 
 
 bool NS_EscapeURL(const char *str,
-                           int32_t len,
-                           uint32_t flags,
+                           PRInt32 len,
+                           PRUint32 flags,
                            nsACString &result);
 
 
@@ -127,12 +159,12 @@ bool NS_EscapeURL(const char *str,
 
 
 bool NS_UnescapeURL(const char *str,
-                             int32_t len,
-                             uint32_t flags,
+                             PRInt32 len,
+                             PRUint32 flags,
                              nsACString &result);
 
 
-inline int32_t NS_UnescapeURL(char *str) {
+inline PRInt32 NS_UnescapeURL(char *str) {
     return nsUnescapeCount(str);
 }
 
@@ -140,13 +172,13 @@ inline int32_t NS_UnescapeURL(char *str) {
 
 
 inline const nsCSubstring &
-NS_EscapeURL(const nsCSubstring &str, uint32_t flags, nsCSubstring &result) {
+NS_EscapeURL(const nsCSubstring &str, PRUint32 flags, nsCSubstring &result) {
     if (NS_EscapeURL(str.Data(), str.Length(), flags, result))
         return result;
     return str;
 }
 inline const nsCSubstring &
-NS_UnescapeURL(const nsCSubstring &str, uint32_t flags, nsCSubstring &result) {
+NS_UnescapeURL(const nsCSubstring &str, PRUint32 flags, nsCSubstring &result) {
     if (NS_UnescapeURL(str.Data(), str.Length(), flags, result))
         return result;
     return str;
@@ -162,9 +194,9 @@ NS_Escape(const nsCString& aOriginal, nsCString& aEscaped,
 {
   char* esc = nsEscape(aOriginal.get(), aMask);
   if (! esc)
-    return false;
+    return PR_FALSE;
   aEscaped.Adopt(esc);
-  return true;
+  return PR_TRUE;
 }
 
 

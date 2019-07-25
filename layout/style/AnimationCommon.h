@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_css_AnimationCommon_h
 #define mozilla_css_AnimationCommon_h
 
@@ -15,15 +48,11 @@
 #include "mozilla/dom/Element.h"
 #include "nsSMILKeySpline.h"
 #include "nsStyleStruct.h"
-#include "mozilla/Attributes.h"
 
 class nsPresContext;
 
-
 namespace mozilla {
 namespace css {
-
-bool IsGeometricProperty(nsCSSProperty aProperty);
 
 struct CommonElementAnimationData;
 
@@ -42,10 +71,7 @@ public:
   virtual nsRestyleHint
     HasAttributeDependentStyle(AttributeRuleProcessorData* aData);
   virtual bool MediumFeaturesChanged(nsPresContext* aPresContext);
-  virtual NS_MUST_OVERRIDE size_t
-    SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const MOZ_OVERRIDE;
-  virtual NS_MUST_OVERRIDE size_t
-    SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const MOZ_OVERRIDE;
+  virtual PRInt64 SizeOf() const;
 
   
 
@@ -70,7 +96,7 @@ protected:
 
 
 
-class AnimValuesStyleRule MOZ_FINAL : public nsIStyleRule
+class AnimValuesStyleRule : public nsIStyleRule
 {
 public:
   
@@ -79,7 +105,7 @@ public:
   
   virtual void MapRuleInfoInto(nsRuleData* aRuleData);
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
+  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
 
   void AddValue(nsCSSProperty aProperty, nsStyleAnimation::Value &aStartValue)
@@ -110,16 +136,10 @@ public:
   typedef nsTimingFunction::Type Type;
   void Init(const nsTimingFunction &aFunction);
   double GetValue(double aPortion) const;
-  const nsSMILKeySpline* GetFunction() const {
-    NS_ASSERTION(mType == nsTimingFunction::Function, "Type mismatch");
-    return &mTimingFunction;
-  }
-  Type GetType() const { return mType; }
-  uint32_t GetSteps() const { return mSteps; }
 private:
   Type mType;
   nsSMILKeySpline mTimingFunction;
-  uint32_t mSteps;
+  PRUint32 mSteps;
 };
 
 struct CommonElementAnimationData : public PRCList
@@ -151,14 +171,6 @@ struct CommonElementAnimationData : public PRCList
     mElement->DeleteProperty(mElementProperty);
   }
 
-  static bool
-  CanAnimatePropertyOnCompositor(const dom::Element *aElement,
-                                 nsCSSProperty aProperty,
-                                 bool aHasGeometricProperties);
-
-  static void LogAsyncAnimationFailure(nsCString& aMessage,
-                                       const nsIContent* aContent = nullptr);
-
   dom::Element *mElement;
 
   
@@ -166,17 +178,6 @@ struct CommonElementAnimationData : public PRCList
   nsIAtom *mElementProperty;
 
   CommonAnimationManager *mManager;
-
-  
-  
-  
-  
-  
-  
-  
-  nsRefPtr<mozilla::css::AnimValuesStyleRule> mStyleRule;
-  
-  TimeStamp mStyleRuleRefreshTime;
 
 #ifdef DEBUG
   bool mCalledPropertyDtor;

@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_SMILANIMATIONFUNCTION_H_
 #define NS_SMILANIMATIONFUNCTION_H_
 
@@ -57,7 +90,7 @@ public:
 
 
   virtual bool SetAttr(nsIAtom* aAttribute, const nsAString& aValue,
-                         nsAttrValue& aResult, nsresult* aParseResult = nullptr);
+                         nsAttrValue& aResult, nsresult* aParseResult = nsnull);
 
   
 
@@ -78,7 +111,7 @@ public:
 
   void SampleAt(nsSMILTime aSampleTime,
                 const nsSMILTimeValue& aSimpleDuration,
-                uint32_t aRepeatIteration);
+                PRUint32 aRepeatIteration);
 
   
 
@@ -89,7 +122,7 @@ public:
 
 
 
-  void SampleLastValue(uint32_t aRepeatIteration);
+  void SampleLastValue(PRUint32 aRepeatIteration);
 
   
 
@@ -135,7 +168,7 @@ public:
 
 
 
-  int8_t CompareTo(const nsSMILAnimationFunction* aOther) const;
+  PRInt8 CompareTo(const nsSMILAnimationFunction* aOther) const;
 
   
 
@@ -194,10 +227,10 @@ public:
   void ClearHasChanged()
   {
     NS_ABORT_IF_FALSE(HasChanged(),
-                      "clearing mHasChanged flag, when it's already false");
+                      "clearing mHasChanged flag, when it's already PR_FALSE");
     NS_ABORT_IF_FALSE(!IsActiveOrFrozen(),
                       "clearing mHasChanged flag for active animation");
-    mHasChanged = false;
+    mHasChanged = PR_FALSE;
   }
 
   
@@ -213,24 +246,6 @@ public:
 
 
   bool UpdateCachedTarget(const nsSMILTargetIdentifier& aNewTarget);
-
-  
-
-
-
-
-  bool WasSkippedInPrevSample() const {
-    return mWasSkippedInPrevSample;
-  }
-
-  
-
-
-
-
-  void SetWasSkipped() {
-    mWasSkippedInPrevSample = true;
-  }
 
   
   class Comparator {
@@ -303,7 +318,7 @@ protected:
 
 
 
-  double   ScaleIntervalProgress(double aProgress, uint32_t aIntervalIndex);
+  double   ScaleIntervalProgress(double aProgress, PRUint32 aIntervalIndex);
 
   
   
@@ -319,9 +334,9 @@ protected:
   virtual nsresult GetValues(const nsISMILAttr& aSMILAttr,
                              nsSMILValueArray& aResult);
 
-  virtual void CheckValueListDependentAttrs(uint32_t aNumValues);
-  void         CheckKeyTimes(uint32_t aNumValues);
-  void         CheckKeySplines(uint32_t aNumValues);
+  virtual void CheckValueListDependentAttrs(PRUint32 aNumValues);
+  void         CheckKeyTimes(PRUint32 aNumValues);
+  void         CheckKeySplines(PRUint32 aNumValues);
 
   virtual bool IsToAnimation() const {
     return !HasAttr(nsGkAtoms::values) &&
@@ -405,7 +420,7 @@ protected:
   
   nsSMILTime                    mSampleTime; 
   nsSMILTimeValue               mSimpleDuration;
-  uint32_t                      mRepeatIteration;
+  PRUint32                      mRepeatIteration;
 
   nsSMILTime                    mBeginTime; 
 
@@ -418,7 +433,32 @@ protected:
   
   
   
-  uint16_t                      mErrorFlags;
+  PRUint16                      mErrorFlags;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsSMILValue                   mFrozenValue;
 
   
   
@@ -426,13 +466,12 @@ protected:
   nsSMILWeakTargetIdentifier    mLastTarget;
 
   
-  bool mIsActive:1;
-  bool mIsFrozen:1;
-  bool mLastValue:1;
-  bool mHasChanged:1;
-  bool mValueNeedsReparsingEverySample:1;
-  bool mPrevSampleWasSingleValueAnimation:1;
-  bool mWasSkippedInPrevSample:1;
+  bool                          mIsActive:1;
+  bool                          mIsFrozen:1;
+  bool                          mLastValue:1;
+  bool                          mHasChanged:1;
+  bool                          mValueNeedsReparsingEverySample:1;
+  bool                          mPrevSampleWasSingleValueAnimation:1;
 };
 
 #endif 

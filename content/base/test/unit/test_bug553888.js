@@ -2,7 +2,40 @@
 
 
 
-Components.utils.import("resource://testing-common/httpd.js");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+do_load_httpd_js();
 
 var server = null;
 
@@ -36,7 +69,7 @@ function headerCheckHandler(metadata, response) {
 }
 
 function run_test() {
-  var server = new HttpServer();
+  var server = new nsHttpServer();
   server.registerPathHandler(redirectPath, redirectHandler);
   server.registerPathHandler(headerCheckPath, headerCheckHandler);
   server.start(SERVER_PORT);

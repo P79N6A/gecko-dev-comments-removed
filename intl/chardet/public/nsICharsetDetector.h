@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsICharsetDetector_h__
 #define nsICharsetDetector_h__
 
@@ -36,7 +68,7 @@ public:
 
 
 
-  NS_IMETHOD DoIt(const char* aBytesArray, uint32_t aLen, bool* oDontFeedMe) = 0;
+  NS_IMETHOD DoIt(const char* aBytesArray, PRUint32 aLen, bool* oDontFeedMe) = 0;
 
   
 

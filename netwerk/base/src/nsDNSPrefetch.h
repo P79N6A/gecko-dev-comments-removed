@@ -3,20 +3,52 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDNSPrefetch_h___
 #define nsDNSPrefetch_h___
 
 #include "nsCOMPtr.h"
 #include "nsString.h"
 #include "mozilla/TimeStamp.h"
-#include "mozilla/Attributes.h"
 
 #include "nsIDNSListener.h"
 
 class nsIURI;
 class nsIDNSService;
 
-class nsDNSPrefetch MOZ_FINAL : public nsIDNSListener
+class nsDNSPrefetch : public nsIDNSListener
 {
 public:
     NS_DECL_ISUPPORTS
@@ -44,7 +76,7 @@ private:
     mozilla::TimeStamp mStartTimestamp;
     mozilla::TimeStamp mEndTimestamp;
 
-    nsresult Prefetch(uint16_t flags);
+    nsresult Prefetch(PRUint16 flags);
 };
 
 #endif 

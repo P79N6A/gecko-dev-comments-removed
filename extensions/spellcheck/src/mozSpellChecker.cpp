@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "mozSpellChecker.h"
 #include "nsIServiceManager.h"
 #include "mozISpellI18NManager.h"
@@ -36,8 +68,8 @@ mozSpellChecker::~mozSpellChecker()
     
     mPersonalDictionary->EndSession();
   }
-  mSpellCheckingEngine = nullptr;
-  mPersonalDictionary = nullptr;
+  mSpellCheckingEngine = nsnull;
+  mPersonalDictionary = nsnull;
 }
 
 nsresult 
@@ -45,7 +77,7 @@ mozSpellChecker::Init()
 {
   mPersonalDictionary = do_GetService("@mozilla.org/spellchecker/personaldictionary;1");
   
-  mSpellCheckingEngine = nullptr;
+  mSpellCheckingEngine = nsnull;
 
   return NS_OK;
 } 
@@ -65,8 +97,8 @@ mozSpellChecker::NextMisspelledWord(nsAString &aWord, nsTArray<nsString> *aSugge
   if(!aSuggestions||!mConverter)
     return NS_ERROR_NULL_POINTER;
 
-  int32_t selOffset;
-  int32_t begin,end;
+  PRInt32 selOffset;
+  PRInt32 begin,end;
   nsresult result;
   result = SetupDoc(&selOffset);
   bool isMisspelled,done;
@@ -111,12 +143,12 @@ mozSpellChecker::CheckWord(const nsAString &aWord, bool *aIsMisspelled, nsTArray
   if(!mSpellCheckingEngine)
     return NS_ERROR_NULL_POINTER;
 
-  *aIsMisspelled = false;
+  *aIsMisspelled = PR_FALSE;
   result = mSpellCheckingEngine->Check(PromiseFlatString(aWord).get(), &correct);
   NS_ENSURE_SUCCESS(result, result);
   if(!correct){
     if(aSuggestions){
-      uint32_t count,i;
+      PRUint32 count,i;
       PRUnichar **words;
       
       result = mSpellCheckingEngine->Suggest(PromiseFlatString(aWord).get(), &words, &count);
@@ -128,7 +160,7 @@ mozSpellChecker::CheckWord(const nsAString &aWord, bool *aIsMisspelled, nsTArray
       if (count)
         NS_FREE_XPCOM_ALLOCATED_POINTER_ARRAY(count, words);
     }
-    *aIsMisspelled = true;
+    *aIsMisspelled = PR_TRUE;
   }
   return NS_OK;
 }
@@ -142,9 +174,9 @@ mozSpellChecker::Replace(const nsAString &aOldWord, const nsAString &aNewWord, b
   nsAutoString newWord(aNewWord); 
 
   if(aAllOccurrences){
-    int32_t selOffset;
-    int32_t startBlock,currentBlock,currOffset;
-    int32_t begin,end;
+    PRInt32 selOffset;
+    PRInt32 startBlock,currentBlock,currOffset;
+    PRInt32 begin,end;
     bool done;
     nsresult result;
     nsAutoString str;
@@ -172,7 +204,7 @@ mozSpellChecker::Replace(const nsAString &aOldWord, const nsAString &aNewWord, b
               
               if((currentBlock == startBlock)&&(begin < selOffset)){
                 selOffset +=
-                  int32_t(aNewWord.Length()) - int32_t(aOldWord.Length());
+                  PRInt32(aNewWord.Length()) - PRInt32(aOldWord.Length());
                 if(selOffset < begin) selOffset=begin;
               }
               mTsDoc->SetSelection(begin, end-begin);
@@ -286,13 +318,13 @@ mozSpellChecker::GetDictionaryList(nsTArray<nsString> *aDictionaryList)
   rv = GetEngineList(&spellCheckingEngines);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  for (int32_t i = 0; i < spellCheckingEngines.Count(); i++) {
+  for (PRUint32 i = 0; i < spellCheckingEngines.Count(); i++) {
     nsCOMPtr<mozISpellCheckingEngine> engine = spellCheckingEngines[i];
 
-    uint32_t count = 0;
+    PRUint32 count = 0;
     PRUnichar **words = NULL;
     engine->GetDictionaryList(&words, &count);
-    for (uint32_t k = 0; k < count; k++) {
+    for (PRUint32 k = 0; k < count; k++) {
       nsAutoString dictName;
 
       dictName.Assign(words[k]);
@@ -333,10 +365,7 @@ mozSpellChecker::GetCurrentDictionary(nsAString &aDictionary)
 NS_IMETHODIMP 
 mozSpellChecker::SetCurrentDictionary(const nsAString &aDictionary)
 {
-  
-  nsRefPtr<mozSpellChecker> kungFuDeathGrip = this;
-
-  mSpellCheckingEngine = nullptr;
+  mSpellCheckingEngine = nsnull;
 
   if (aDictionary.IsEmpty()) {
     return NS_OK;
@@ -347,7 +376,7 @@ mozSpellChecker::SetCurrentDictionary(const nsAString &aDictionary)
   rv = GetEngineList(&spellCheckingEngines);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  for (int32_t i = 0; i < spellCheckingEngines.Count(); i++) {
+  for (PRUint32 i = 0; i < spellCheckingEngines.Count(); i++) {
     
     
     
@@ -393,18 +422,18 @@ mozSpellChecker::CheckCurrentDictionary()
   }
 
   
-  mSpellCheckingEngine = nullptr;
+  mSpellCheckingEngine = nsnull;
   return NS_OK;
 }
 
 nsresult
-mozSpellChecker::SetupDoc(int32_t *outBlockOffset)
+mozSpellChecker::SetupDoc(PRInt32 *outBlockOffset)
 {
   nsresult  rv;
 
   nsITextServicesDocument::TSDBlockSelectionStatus blockStatus;
-  int32_t selOffset;
-  int32_t selLength;
+  PRInt32 selOffset;
+  PRInt32 selLength;
   *outBlockOffset = 0;
 
   if (!mFromStart) 
@@ -445,7 +474,7 @@ mozSpellChecker::SetupDoc(int32_t *outBlockOffset)
   else 
   {
     rv = mTsDoc->FirstBlock();
-    mFromStart = false;
+    mFromStart = PR_FALSE;
   }
   return rv;
 }
@@ -455,9 +484,9 @@ mozSpellChecker::SetupDoc(int32_t *outBlockOffset)
 
 
 nsresult
-mozSpellChecker::GetCurrentBlockIndex(nsITextServicesDocument *aDoc, int32_t *outBlockIndex)
+mozSpellChecker::GetCurrentBlockIndex(nsITextServicesDocument *aDoc, PRInt32 *outBlockIndex)
 {
-  int32_t  blockIndex = 0;
+  PRInt32  blockIndex = 0;
   bool     isDone = false;
   nsresult result = NS_OK;
 

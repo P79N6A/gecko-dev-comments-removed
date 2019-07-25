@@ -3,30 +3,50 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NSSVGEFFECTS_H_
 #define NSSVGEFFECTS_H_
 
-#include "FramePropertyTable.h"
-#include "mozilla/dom/Element.h"
-#include "nsHashKeys.h"
-#include "nsID.h"
+#include "nsIContent.h"
 #include "nsIFrame.h"
-#include "nsIMutationObserver.h"
-#include "nsInterfaceHashtable.h"
-#include "nsISupportsBase.h"
-#include "nsISupportsImpl.h"
 #include "nsReferencedElement.h"
 #include "nsStubMutationObserver.h"
 #include "nsSVGUtils.h"
-#include "nsTHashtable.h"
-#include "nsTraceRefcnt.h"
+#include "nsInterfaceHashtable.h"
 #include "nsURIHashKey.h"
 
-class nsIAtom;
-class nsIPresShell;
-class nsIURI;
 class nsSVGClipPathFrame;
-class nsSVGPaintServerFrame;
 class nsSVGFilterFrame;
 class nsSVGMaskFrame;
 
@@ -45,7 +65,7 @@ class nsSVGRenderingObserver : public nsStubMutationObserver {
 public:
   typedef mozilla::dom::Element Element;
   nsSVGRenderingObserver()
-    : mInObserverList(false)
+    : mInObserverList(PR_FALSE)
     {}
   virtual ~nsSVGRenderingObserver()
     {}
@@ -231,7 +251,7 @@ public:
   { mObservers.RemoveEntry(aObserver); }
 #ifdef DEBUG
   bool Contains(nsSVGRenderingObserver* aObserver)
-  { return (mObservers.GetEntry(aObserver) != nullptr); }
+  { return (mObservers.GetEntry(aObserver) != nsnull); }
 #endif
   bool IsEmpty()
   { return mObservers.Count() == 0; }
@@ -249,7 +269,7 @@ public:
   void RemoveAll();
 
 private:
-  nsTHashtable<nsPtrHashKey<nsSVGRenderingObserver> > mObservers;
+  nsTHashtable<nsVoidPtrHashKey> mObservers;
 };
 
 class nsSVGEffects {
@@ -280,13 +300,6 @@ public:
   NS_DECLARE_FRAME_PROPERTY(HrefProperty, DestroySupports)
   NS_DECLARE_FRAME_PROPERTY(BackgroundImageProperty, DestroyHashtable)
 
-  
-
-
-  static nsSVGPaintServerFrame *GetPaintServer(nsIFrame *aTargetFrame,
-                                               const nsStyleSVGPaint *aPaint,
-                                               const FramePropertyDescriptor *aProperty);
-
   struct EffectProperties {
     nsSVGFilterProperty*   mFilter;
     nsSVGPaintingProperty* mMask;
@@ -314,10 +327,10 @@ public:
 
     nsSVGFilterFrame *GetFilterFrame(bool *aOK) {
       if (!mFilter)
-        return nullptr;
+        return nsnull;
       nsSVGFilterFrame *filter = mFilter->GetFilterFrame();
       if (!filter) {
-        *aOK = false;
+        *aOK = PR_FALSE;
       }
       return filter;
     }
@@ -338,7 +351,7 @@ public:
   static nsSVGFilterProperty *GetFilterProperty(nsIFrame *aFrame);
   static nsSVGFilterFrame *GetFilterFrame(nsIFrame *aFrame) {
     nsSVGFilterProperty *prop = GetFilterProperty(aFrame);
-    return prop ? prop->GetFilterFrame() : nullptr;
+    return prop ? prop->GetFilterFrame() : nsnull;
   }
 
   

@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIDirectoryService.h"
 #include "DirectoryProvider.h"
 
@@ -23,7 +56,6 @@
 #include "nsServiceManagerUtils.h"
 #include "nsStringAPI.h"
 #include "nsXULAppAPI.h"
-#include "nsIPrefLocalizedString.h"
 
 namespace mozilla {
 namespace browser {
@@ -37,14 +69,14 @@ DirectoryProvider::GetFile(const char *aKey, bool *aPersist, nsIFile* *aResult)
 {
   nsresult rv;
 
-  *aResult = nullptr;
+  *aResult = nsnull;
 
   
   
 
   nsCOMPtr<nsIFile> file;
 
-  char const* leafName = nullptr;
+  char const* leafName = nsnull;
 
   if (!strcmp(aKey, NS_APP_BOOKMARKS_50_FILE)) {
     leafName = "bookmarks.html";
@@ -54,7 +86,7 @@ DirectoryProvider::GetFile(const char *aKey, bool *aPersist, nsIFile* *aResult)
       nsCString path;
       rv = prefs->GetCharPref("browser.bookmarks.file", getter_Copies(path));
       if (NS_SUCCEEDED(rv)) {
-        NS_NewNativeLocalFile(path, true, getter_AddRefs(file));
+        NS_NewNativeLocalFile(path, PR_TRUE, (nsILocalFile**)(nsIFile**) getter_AddRefs(file));
       }
     }
   }
@@ -91,7 +123,7 @@ DirectoryProvider::GetFile(const char *aKey, bool *aPersist, nsIFile* *aResult)
     file->AppendNative(leafstr);
   }
 
-  *aPersist = true;
+  *aPersist = PR_TRUE;
   NS_ADDREF(*aResult = file);
 
   return NS_OK;
@@ -168,18 +200,7 @@ AppendDistroSearchDirs(nsIProperties* aDirSvc, nsCOMArray<nsIFile> &array)
     localePlugins->AppendNative(NS_LITERAL_CSTRING("locale"));
 
     nsCString locale;
-    nsCOMPtr<nsIPrefLocalizedString> prefString;
-    rv = prefs->GetComplexValue("general.useragent.locale",
-                                NS_GET_IID(nsIPrefLocalizedString),
-                                getter_AddRefs(prefString));
-    if (NS_SUCCEEDED(rv)) {
-      nsAutoString wLocale;
-      prefString->GetData(getter_Copies(wLocale));
-      CopyUTF16toUTF8(wLocale, locale);
-    } else {
-      rv = prefs->GetCharPref("general.useragent.locale", getter_Copies(locale));
-    }
-
+    rv = prefs->GetCharPref("general.useragent.locale", getter_Copies(locale));
     if (NS_SUCCEEDED(rv)) {
 
       nsCOMPtr<nsIFile> curLocalePlugins;
@@ -251,7 +272,7 @@ DirectoryProvider::GetFiles(const char *aKey, nsISimpleEnumerator* *aResult)
     if (NS_FAILED(rv))
       return rv;
 
-    static char const *const kAppendSPlugins[] = {"searchplugins", nullptr};
+    static char const *const kAppendSPlugins[] = {"searchplugins", nsnull};
 
     nsCOMPtr<nsISimpleEnumerator> extEnum =
       new AppendingEnumerator(list, kAppendSPlugins);
@@ -269,7 +290,7 @@ NS_IMPL_ISUPPORTS1(DirectoryProvider::AppendingEnumerator, nsISimpleEnumerator)
 NS_IMETHODIMP
 DirectoryProvider::AppendingEnumerator::HasMoreElements(bool *aResult)
 {
-  *aResult = mNext ? true : false;
+  *aResult = mNext ? PR_TRUE : PR_FALSE;
   return NS_OK;
 }
 
@@ -279,7 +300,7 @@ DirectoryProvider::AppendingEnumerator::GetNext(nsISupports* *aResult)
   if (aResult)
     NS_ADDREF(*aResult = mNext);
 
-  mNext = nullptr;
+  mNext = nsnull;
 
   nsresult rv;
 
@@ -309,7 +330,7 @@ DirectoryProvider::AppendingEnumerator::GetNext(nsISupports* *aResult)
     if (NS_SUCCEEDED(rv) && exists)
       break;
 
-    mNext = nullptr;
+    mNext = nsnull;
   }
 
   return NS_OK;
@@ -322,7 +343,7 @@ DirectoryProvider::AppendingEnumerator::AppendingEnumerator
   mAppendList(aAppendList)
 {
   
-  GetNext(nullptr);
+  GetNext(nsnull);
 }
 
 } 

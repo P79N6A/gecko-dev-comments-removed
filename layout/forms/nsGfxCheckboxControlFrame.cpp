@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsGfxCheckboxControlFrame.h"
 #include "nsIContent.h"
 #include "nsCOMPtr.h"
@@ -15,6 +47,7 @@
 #include "nsIDOMHTMLInputElement.h"
 #include "nsDisplayList.h"
 #include "nsCSSAnonBoxes.h"
+#include "nsIDOMHTMLInputElement.h"
 
 static void
 PaintCheckMark(nsIFrame* aFrame,
@@ -26,10 +59,10 @@ PaintCheckMark(nsIFrame* aFrame,
   rect.Deflate(aFrame->GetUsedBorderAndPadding());
 
   
-  const int32_t checkPolygonX[] = { -3, -1,  3,  3, -1, -3 };
-  const int32_t checkPolygonY[] = { -1,  1, -3, -1,  3,  1 };
-  const int32_t checkNumPoints = sizeof(checkPolygonX) / sizeof(int32_t);
-  const int32_t checkSize      = 9; 
+  const PRInt32 checkPolygonX[] = { -3, -1,  3,  3, -1, -3 };
+  const PRInt32 checkPolygonY[] = { -1,  1, -3, -1,  3,  1 };
+  const PRInt32 checkNumPoints = sizeof(checkPolygonX) / sizeof(PRInt32);
+  const PRInt32 checkSize      = 9; 
                                     
 
   
@@ -39,7 +72,7 @@ PaintCheckMark(nsIFrame* aFrame,
 
   nsPoint paintPolygon[checkNumPoints];
   
-  for (int32_t polyIndex = 0; polyIndex < checkNumPoints; polyIndex++) {
+  for (PRInt32 polyIndex = 0; polyIndex < checkNumPoints; polyIndex++) {
     paintPolygon[polyIndex] = paintCenter +
                               nsPoint(checkPolygonX[polyIndex] * paintScale,
                                       checkPolygonY[polyIndex] * paintScale);
@@ -88,7 +121,7 @@ nsGfxCheckboxControlFrame::~nsGfxCheckboxControlFrame()
 }
 
 #ifdef ACCESSIBILITY
-already_AddRefed<Accessible>
+already_AddRefed<nsAccessible>
 nsGfxCheckboxControlFrame::CreateAccessible()
 {
   nsAccessibilityService* accService = nsIPresShell::AccService();
@@ -97,7 +130,7 @@ nsGfxCheckboxControlFrame::CreateAccessible()
                                                     PresContext()->PresShell());
   }
 
-  return nullptr;
+  return nsnull;
 }
 #endif
 

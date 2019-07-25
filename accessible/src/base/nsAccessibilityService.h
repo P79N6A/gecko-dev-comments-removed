@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __nsAccessibilityService_h__
 #define __nsAccessibilityService_h__
 
@@ -15,9 +48,6 @@
 
 #include "nsIObserver.h"
 
-class nsImageFrame;
-class nsITreeView;
-
 namespace mozilla {
 namespace a11y {
 
@@ -25,34 +55,6 @@ namespace a11y {
 
 
 FocusManager* FocusMgr();
-
-enum EPlatformDisabledState {
-  ePlatformIsForceEnabled = -1,
-  ePlatformIsEnabled = 0,
-  ePlatformIsDisabled = 1
-};
-
-
-
-
-EPlatformDisabledState PlatformDisabledState();
-
-#ifdef MOZ_ACCESSIBILITY_ATK
-
-
-
-
-
-void PreInit();
-#endif
-
-#if defined(MOZ_ACCESSIBILITY_ATK) || defined(XP_MACOSX)
-
-
-
-
-bool ShouldA11yBeEnabled();
-#endif
 
 } 
 } 
@@ -70,85 +72,67 @@ public:
   NS_DECL_NSIOBSERVER
 
   
-  virtual Accessible* GetRootDocumentAccessible(nsIPresShell* aPresShell,
-                                                bool aCanCreate);
-  already_AddRefed<Accessible>
-    CreateHTMLButtonAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
-  already_AddRefed<Accessible>
+  virtual nsAccessible* GetAccessibleInShell(nsINode* aNode,
+                                             nsIPresShell* aPresShell);
+  virtual nsAccessible* GetRootDocumentAccessible(nsIPresShell* aPresShell,
+                                                  bool aCanCreate);
+
+  virtual already_AddRefed<nsAccessible>
     CreateHTMLBRAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
-  already_AddRefed<Accessible>
-    CreateHTMLCanvasAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
-  already_AddRefed<Accessible>
+  virtual already_AddRefed<nsAccessible>
+    CreateHTML4ButtonAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
+  virtual already_AddRefed<nsAccessible>
+    CreateHTMLButtonAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
+  virtual already_AddRefed<nsAccessible>
     CreateHTMLCaptionAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
-  already_AddRefed<Accessible>
+  virtual already_AddRefed<nsAccessible>
     CreateHTMLCheckboxAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
-  already_AddRefed<Accessible>
+  virtual already_AddRefed<nsAccessible>
     CreateHTMLComboboxAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
-  already_AddRefed<Accessible>
-    CreateHTMLFileInputAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
-  already_AddRefed<Accessible>
+  virtual already_AddRefed<nsAccessible>
     CreateHTMLGroupboxAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
-  already_AddRefed<Accessible>
+  virtual already_AddRefed<nsAccessible>
     CreateHTMLHRAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
-  already_AddRefed<Accessible>
+  virtual already_AddRefed<nsAccessible>
     CreateHTMLImageAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
-  already_AddRefed<Accessible>
-    CreateHTMLImageMapAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
-  already_AddRefed<Accessible>
+  virtual already_AddRefed<nsAccessible>
     CreateHTMLLabelAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
-  already_AddRefed<Accessible>
+  virtual already_AddRefed<nsAccessible>
     CreateHTMLLIAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
-  already_AddRefed<Accessible>
+  virtual already_AddRefed<nsAccessible>
     CreateHTMLListboxAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
-  already_AddRefed<Accessible>
+  virtual already_AddRefed<nsAccessible>
     CreateHTMLMediaAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
-  already_AddRefed<Accessible>
+  virtual already_AddRefed<nsAccessible>
     CreateHTMLObjectFrameAccessible(nsObjectFrame* aFrame, nsIContent* aContent,
                                     nsIPresShell* aPresShell);
-  already_AddRefed<Accessible>
+  virtual already_AddRefed<nsAccessible>
     CreateHTMLRadioButtonAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
-  already_AddRefed<Accessible>
+  virtual already_AddRefed<nsAccessible>
     CreateHTMLTableAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
-  already_AddRefed<Accessible>
+  virtual already_AddRefed<nsAccessible>
     CreateHTMLTableCellAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
-  already_AddRefed<Accessible>
-    CreateHTMLTableRowAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
-  already_AddRefed<Accessible>
-    CreateTextLeafAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
-  already_AddRefed<Accessible>
+  virtual already_AddRefed<nsAccessible>
+    CreateHTMLTextAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
+  virtual already_AddRefed<nsAccessible>
     CreateHTMLTextFieldAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
-  already_AddRefed<Accessible>
+  virtual already_AddRefed<nsAccessible>
     CreateHyperTextAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
-  already_AddRefed<Accessible>
+  virtual already_AddRefed<nsAccessible>
     CreateOuterDocAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
 
-  
+  virtual nsAccessible* AddNativeRootAccessible(void* aAtkAccessible);
+  virtual void RemoveNativeRootAccessible(nsAccessible* aRootAccessible);
 
+  virtual void ContentRangeInserted(nsIPresShell* aPresShell,
+                                    nsIContent* aContainer,
+                                    nsIContent* aStartChild,
+                                    nsIContent* aEndChild);
 
-
-  virtual Accessible* AddNativeRootAccessible(void* aAtkAccessible);
-  virtual void RemoveNativeRootAccessible(Accessible* aRootAccessible);
-
-  
-
-
-
-  void ContentRangeInserted(nsIPresShell* aPresShell, nsIContent* aContainer,
-                            nsIContent* aStartChild, nsIContent* aEndChild);
-
-  
-
-
-  void ContentRemoved(nsIPresShell* aPresShell, nsIContent* aContainer,
-                      nsIContent* aChild);
+  virtual void ContentRemoved(nsIPresShell* aPresShell, nsIContent* aContainer,
+                              nsIContent* aChild);
 
   virtual void UpdateText(nsIPresShell* aPresShell, nsIContent* aContent);
-
-  
-
-
-  void TreeViewChanged(nsIPresShell* aPresShell, nsIContent* aContent,
-                       nsITreeView* aView);
 
   
 
@@ -157,28 +141,19 @@ public:
                                 nsIContent* aHTMLListItemContent,
                                 bool aHasBullet);
 
-  
+  virtual void NotifyOfAnchorJumpTo(nsIContent *aTarget);
 
-
-  void UpdateImageMap(nsImageFrame* aImageFrame);
-
-  
-
-
-
-  void NotifyOfAnchorJumpTo(nsIContent *aTarget);
+  virtual void PresShellDestroyed(nsIPresShell* aPresShell);
 
   
 
 
   virtual void PresShellActivated(nsIPresShell* aPresShell);
 
-  
+  virtual void RecreateAccessible(nsIPresShell* aPresShell,
+                                  nsIContent* aContent);
 
-
-  void RecreateAccessible(nsIPresShell* aPresShell, nsIContent* aContent);
-
-  virtual void FireAccessibleEvent(uint32_t aEvent, Accessible* aTarget);
+  virtual void FireAccessibleEvent(PRUint32 aEvent, nsAccessible* aTarget);
 
   
 
@@ -196,8 +171,45 @@ public:
 
 
 
-  Accessible* GetOrCreateAccessible(nsINode* aNode, DocAccessible* aDoc,
-                                    bool* aIsSubtreeHidden = nullptr);
+
+  nsAccessible* GetOrCreateAccessible(nsINode* aNode, nsIPresShell* aPresShell,
+                                      nsIWeakReference* aWeakShell,
+                                      bool* aIsSubtreeHidden = nsnull);
+
+  
+
+
+  nsAccessible* GetAccessible(nsINode* aNode);
+
+  
+
+
+
+
+
+  inline nsAccessible* GetAccessibleInWeakShell(nsINode* aNode,
+                                                nsIWeakReference* aWeakShell)
+  {
+    
+    return GetAccessible(aNode);
+  }
+
+  
+
+
+
+  nsAccessible* GetAccessibleOrContainer(nsINode* aNode,
+                                         nsIWeakReference* aWeakShell);
+
+  
+
+
+  inline nsAccessible* GetContainerAccessible(nsINode* aNode,
+                                              nsIWeakReference* aWeakShell)
+  {
+    return aNode ?
+      GetAccessibleOrContainer(aNode->GetNodeParent(), aWeakShell) : nsnull;
+  }
 
 private:
   
@@ -221,29 +233,29 @@ private:
 
 
 
-  already_AddRefed<Accessible>
-    CreateAccessibleByType(nsIContent* aContent, DocAccessible* aDoc);
+  already_AddRefed<nsAccessible>
+    CreateAccessibleByType(nsIContent* aContent, nsIWeakReference* aWeakShell);
 
   
 
 
-  already_AddRefed<Accessible>
+  already_AddRefed<nsAccessible>
     CreateHTMLAccessibleByMarkup(nsIFrame* aFrame, nsIContent* aContent,
-                                 DocAccessible* aDoc);
+                                 nsIWeakReference* aWeakShell);
 
   
 
 
-  already_AddRefed<Accessible>
+  already_AddRefed<nsAccessible>
     CreateAccessibleForDeckChild(nsIFrame* aFrame, nsIContent* aContent,
-                                 DocAccessible* aDoc);
+                                 nsIWeakReference* aWeakShell);
 
 #ifdef MOZ_XUL
   
 
 
-  already_AddRefed<Accessible>
-    CreateAccessibleForXULTree(nsIContent* aContent, DocAccessible* aDoc);
+  already_AddRefed<nsAccessible>
+    CreateAccessibleForXULTree(nsIContent* aContent, nsIWeakReference* aWeakShell);
 #endif
 
   
@@ -279,6 +291,137 @@ GetAccService()
 {
   return nsAccessibilityService::gAccessibilityService;
 }
+
+
+
+
+
+static const char kRoleNames[][20] = {
+  "nothing",             
+  "titlebar",            
+  "menubar",             
+  "scrollbar",           
+  "grip",                
+  "sound",               
+  "cursor",              
+  "caret",               
+  "alert",               
+  "window",              
+  "internal frame",      
+  "menupopup",           
+  "menuitem",            
+  "tooltip",             
+  "application",         
+  "document",            
+  "pane",                
+  "chart",               
+  "dialog",              
+  "border",              
+  "grouping",            
+  "separator",           
+  "toolbar",             
+  "statusbar",           
+  "table",               
+  "columnheader",        
+  "rowheader",           
+  "column",              
+  "row",                 
+  "cell",                
+  "link",                
+  "helpballoon",         
+  "character",           
+  "list",                
+  "listitem",            
+  "outline",             
+  "outlineitem",         
+  "pagetab",             
+  "propertypage",        
+  "indicator",           
+  "graphic",             
+  "statictext",          
+  "text leaf",           
+  "pushbutton",          
+  "checkbutton",         
+  "radiobutton",         
+  "combobox",            
+  "droplist",            
+  "progressbar",         
+  "dial",                
+  "hotkeyfield",         
+  "slider",              
+  "spinbutton",          
+  "diagram",             
+  "animation",           
+  "equation",            
+  "buttondropdown",      
+  "buttonmenu",          
+  "buttondropdowngrid",  
+  "whitespace",          
+  "pagetablist",         
+  "clock",               
+  "splitbutton",         
+  "ipaddress",           
+  "accel label",         
+  "arrow",               
+  "canvas",              
+  "check menu item",     
+  "color chooser",       
+  "date editor",         
+  "desktop icon",        
+  "desktop frame",       
+  "directory pane",      
+  "file chooser",        
+  "font chooser",        
+  "chrome window",       
+  "glass pane",          
+  "html container",      
+  "icon",                
+  "label",               
+  "layered pane",        
+  "option pane",         
+  "password text",       
+  "popup menu",          
+  "radio menu item",     
+  "root pane",           
+  "scroll pane",         
+  "split pane",          
+  "table column header", 
+  "table row header",    
+  "tear off menu item",  
+  "terminal",            
+  "text container",      
+  "toggle button",       
+  "tree table",          
+  "viewport",            
+  "header",              
+  "footer",              
+  "paragraph",           
+  "ruler",               
+  "autocomplete",        
+  "editbar",             
+  "entry",               
+  "caption",             
+  "document frame",      
+  "heading",             
+  "page",                
+  "section",             
+  "redundant object",    
+  "form",                
+  "ime",                 
+  "app root",            
+  "parent menuitem",     
+  "calendar",            
+  "combobox list",       
+  "combobox option",     
+  "image map",           
+  "listbox option",      
+  "listbox rich option", 
+  "listbox",             
+  "flat equation",       
+  "gridcell",            
+  "embedded object",     
+  "note"                 
+};
 
 
 
@@ -330,7 +473,7 @@ static const char kEventTypeNames[][40] = {
   "document attributes changed",             
   "document content changed",                
   "property changed",                        
-  "page changed",                           
+  "selection changed",                       
   "text attribute changed",                  
   "text caret moved",                        
   "text changed",                            
@@ -371,7 +514,7 @@ static const char kEventTypeNames[][40] = {
   "hypertext changed",                       
   "hypertext links count changed",           
   "object attribute changed",                
-  "virtual cursor changed"                   
+  "page changed"                             
 };
 
 

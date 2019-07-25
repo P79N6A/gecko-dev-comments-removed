@@ -4,7 +4,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsAutoPtr.h"
+#include "prtime.h"
 
 #include "sqlite3.h"
 
@@ -18,8 +52,6 @@
 #include "mozStoragePrivateHelpers.h"
 #include "mozStorageStatementData.h"
 #include "mozStorageAsyncStatementExecution.h"
-
-#include "mozilla/Telemetry.h"
 
 namespace mozilla {
 namespace storage {
@@ -181,17 +213,7 @@ AsyncExecuteStatements::execute(StatementDataArray &aStatements,
 
   
   nsIEventTarget *target = aConnection->getAsyncExecutionTarget();
-
-  
-  
-  
-  
-  
-  MOZ_ASSERT(target);
-  if (!target) {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-
+  NS_ENSURE_TRUE(target, NS_ERROR_NOT_AVAILABLE);
   nsresult rv = target->Dispatch(event, NS_DISPATCH_NORMAL);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -204,7 +226,7 @@ AsyncExecuteStatements::AsyncExecuteStatements(StatementDataArray &aStatements,
                                                Connection *aConnection,
                                                mozIStorageStatementCallback *aCallback)
 : mConnection(aConnection)
-, mTransactionManager(nullptr)
+, mTransactionManager(nsnull)
 , mCallback(aCallback)
 , mCallingThread(::do_GetCurrentThread())
 , mMaxWait(TimeDuration::FromMilliseconds(MAX_MILLISECONDS_BETWEEN_RESULTS))
@@ -213,7 +235,6 @@ AsyncExecuteStatements::AsyncExecuteStatements(StatementDataArray &aStatements,
 , mCancelRequested(false)
 , mMutex(aConnection->sharedAsyncExecutionMutex)
 , mDBMutex(aConnection->sharedDBMutex)
-  , mRequestStartDate(TimeStamp::Now())
 {
   (void)mStatements.SwapElements(aStatements);
   NS_ASSERTION(mStatements.Length(), "We weren't given any statements!");
@@ -243,7 +264,7 @@ AsyncExecuteStatements::bindExecuteAndProcessStatement(StatementData &aData,
 {
   mMutex.AssertNotCurrentThreadOwns();
 
-  sqlite3_stmt *aStatement = nullptr;
+  sqlite3_stmt *aStatement = nsnull;
   
   (void)aData.getSqliteStatement(&aStatement);
   NS_ASSERTION(aStatement, "You broke the code; do not call here like that!");
@@ -336,25 +357,19 @@ bool
 AsyncExecuteStatements::executeStatement(sqlite3_stmt *aStatement)
 {
   mMutex.AssertNotCurrentThreadOwns();
-  Telemetry::AutoTimer<Telemetry::MOZ_STORAGE_ASYNC_REQUESTS_MS> finallySendExecutionDuration(mRequestStartDate);
+
   while (true) {
     
     SQLiteMutexAutoLock lockedScope(mDBMutex);
 
-    int rc = mConnection->stepStatement(aStatement);
+    int rc = stepStmt(aStatement);
     
     if (rc == SQLITE_DONE)
-    {
-      Telemetry::Accumulate(Telemetry::MOZ_STORAGE_ASYNC_REQUESTS_SUCCESS, true);
       return false;
-    }
 
     
     if (rc == SQLITE_ROW)
-    {
-      Telemetry::Accumulate(Telemetry::MOZ_STORAGE_ASYNC_REQUESTS_SUCCESS, true);
       return true;
-    }
 
     
     if (rc == SQLITE_BUSY) {
@@ -368,7 +383,6 @@ AsyncExecuteStatements::executeStatement(sqlite3_stmt *aStatement)
 
     
     mState = ERROR;
-    Telemetry::Accumulate(Telemetry::MOZ_STORAGE_ASYNC_REQUESTS_SUCCESS, false);
 
     
     
@@ -431,7 +445,7 @@ AsyncExecuteStatements::notifyComplete()
   
   
   
-  for (uint32_t i = 0; i < mStatements.Length(); i++)
+  for (PRUint32 i = 0; i < mStatements.Length(); i++)
     mStatements[i].finalize();
 
   
@@ -448,7 +462,7 @@ AsyncExecuteStatements::notifyComplete()
       (void)mTransactionManager->Rollback();
     }
     delete mTransactionManager;
-    mTransactionManager = nullptr;
+    mTransactionManager = nsnull;
   }
 
   
@@ -459,7 +473,7 @@ AsyncExecuteStatements::notifyComplete()
                "Should have given up ownership of mStatements!");
 
   
-  mCallback = nullptr;
+  mCallback = nsnull;
 
   (void)mCallingThread->Dispatch(completionEvent, NS_DISPATCH_NORMAL);
 
@@ -467,7 +481,7 @@ AsyncExecuteStatements::notifyComplete()
 }
 
 nsresult
-AsyncExecuteStatements::notifyError(int32_t aErrorCode,
+AsyncExecuteStatements::notifyError(PRInt32 aErrorCode,
                                     const char *aMessage)
 {
   mMutex.AssertNotCurrentThreadOwns();
@@ -510,7 +524,7 @@ AsyncExecuteStatements::notifyResults()
 
   nsresult rv = mCallingThread->Dispatch(notifier, NS_DISPATCH_NORMAL);
   if (NS_SUCCEEDED(rv))
-    mResultSet = nullptr; 
+    mResultSet = nsnull; 
   return rv;
 }
 
@@ -526,7 +540,7 @@ AsyncExecuteStatements::statementsNeedTransaction()
   
   
   
-  for (uint32_t i = 0, transactionsCount = 0; i < mStatements.Length(); ++i) {
+  for (PRUint32 i = 0, transactionsCount = 0; i < mStatements.Length(); ++i) {
     transactionsCount += mStatements[i].needsTransaction();
     if (transactionsCount > 1) {
       return true;
@@ -577,12 +591,12 @@ AsyncExecuteStatements::Run()
     return notifyComplete();
 
   if (statementsNeedTransaction()) {
-    mTransactionManager = new mozStorageTransaction(mConnection, false,
+    mTransactionManager = new mozStorageTransaction(mConnection, PR_FALSE,
                                                     mozIStorageConnection::TRANSACTION_IMMEDIATE);
   }
 
   
-  for (uint32_t i = 0; i < mStatements.Length(); i++) {
+  for (PRUint32 i = 0; i < mStatements.Length(); i++) {
     bool finished = (i == (mStatements.Length() - 1));
 
     sqlite3_stmt *stmt;

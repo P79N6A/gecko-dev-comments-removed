@@ -3,30 +3,51 @@
 
 
 
-#include "SetDocTitleTxn.h"
-#include "mozilla/dom/Element.h"        
-#include "nsAString.h"
-#include "nsCOMPtr.h"                   
-#include "nsDebug.h"                    
-#include "nsError.h"                    
-#include "nsIDOMCharacterData.h"        
-#include "nsIDOMDocument.h"             
-#include "nsIDOMElement.h"              
-#include "nsIDOMNode.h"                 
-#include "nsIDOMNodeList.h"             
-#include "nsIDOMText.h"                 
-#include "nsIDocument.h"                
-#include "nsIEditor.h"                  
-#include "nsIHTMLEditor.h"              
-#include "nsLiteralString.h"            
-#include "prtypes.h"                    
 
-using namespace mozilla;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "SetDocTitleTxn.h"
+#include "nsIDOMNode.h"
+#include "nsIDOMNodeList.h"
+#include "nsIDOMDocument.h"
+#include "nsIDOMHTMLDocument.h"
+#include "nsIDOMText.h"
+#include "nsIDOMElement.h"
 
 
 SetDocTitleTxn::SetDocTitleTxn()
   : EditTxn()
-, mIsTransient(false)
+, mIsTransient(PR_FALSE)
 {
 }
 
@@ -74,7 +95,7 @@ nsresult SetDocTitleTxn::SetDomTitle(const nsAString& aTitle)
 
   
   
-  mIsTransient = true;
+  mIsTransient = PR_TRUE;
 
   nsCOMPtr<nsIDOMNode>titleNode;
   if(titleList)
@@ -108,17 +129,20 @@ nsresult SetDocTitleTxn::SetDomTitle(const nsAString& aTitle)
   }
 
   
-  mIsTransient = false;
+  mIsTransient = PR_FALSE;
 
   
-  nsCOMPtr<nsIDocument> document = do_QueryInterface(domDoc);
-  NS_ENSURE_STATE(document);
-
-  dom::Element* head = document->GetHeadElement();
-  NS_ENSURE_STATE(head);
+  nsCOMPtr<nsIDOMNodeList> headList;
+  res = domDoc->GetElementsByTagName(NS_LITERAL_STRING("head"),getter_AddRefs(headList));
+  NS_ENSURE_SUCCESS(res, res);
+  NS_ENSURE_TRUE(headList, NS_ERROR_FAILURE);
+  
+  nsCOMPtr<nsIDOMNode>headNode;
+  headList->Item(0, getter_AddRefs(headNode));
+  NS_ENSURE_TRUE(headNode, NS_ERROR_FAILURE);
 
   bool     newTitleNode = false;
-  uint32_t newTitleIndex = 0;
+  PRUint32 newTitleIndex = 0;
 
   if (!titleNode)
   {
@@ -129,10 +153,15 @@ nsresult SetDocTitleTxn::SetDomTitle(const nsAString& aTitle)
     NS_ENSURE_TRUE(titleElement, NS_ERROR_FAILURE);
 
     titleNode = do_QueryInterface(titleElement);
-    newTitleNode = true;
+    newTitleNode = PR_TRUE;
 
     
-    newTitleIndex = head->GetChildCount();
+    
+    nsCOMPtr<nsIDOMNodeList> children;
+    res = headNode->GetChildNodes(getter_AddRefs(children));
+    NS_ENSURE_SUCCESS(res, res);
+    if (children)
+      children->GetLength(&newTitleIndex);
   }
 
   
@@ -162,7 +191,7 @@ nsresult SetDocTitleTxn::SetDomTitle(const nsAString& aTitle)
   if (newTitleNode)
   {
     
-    res = editor->InsertNode(titleNode, head->AsDOMNode(), newTitleIndex);
+    res = editor->InsertNode(titleNode, headNode, newTitleIndex);
   }
   return res;
 }

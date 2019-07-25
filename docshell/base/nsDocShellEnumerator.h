@@ -6,6 +6,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIEnumerator.h"
 
 #include "nsCOMPtr.h"
@@ -42,7 +75,7 @@ protected:
   
 public:
 
-                              nsDocShellEnumerator(int32_t inEnumerationDirection);
+                              nsDocShellEnumerator(PRInt32 inEnumerationDirection);
   virtual                     ~nsDocShellEnumerator();
 
   
@@ -56,8 +89,8 @@ public:
   nsresult                    GetEnumerationRootItem(nsIDocShellTreeItem * *aEnumerationRootItem);
   nsresult                    SetEnumerationRootItem(nsIDocShellTreeItem * aEnumerationRootItem);
   
-  nsresult                    GetEnumDocShellType(int32_t *aEnumerationItemType);
-  nsresult                    SetEnumDocShellType(int32_t aEnumerationItemType);
+  nsresult                    GetEnumDocShellType(PRInt32 *aEnumerationItemType);
+  nsresult                    SetEnumDocShellType(PRInt32 aEnumerationItemType);
     
   nsresult                    First();
 
@@ -74,12 +107,12 @@ protected:
   nsWeakPtr                   mRootItem;      
   
   nsTArray<nsWeakPtr>         mItemArray;     
-  uint32_t                    mCurIndex;
+  PRUint32                    mCurIndex;
   
-  int32_t                     mDocShellType;  
+  PRInt32                     mDocShellType;  
   bool                        mArrayValid;    
 
-  const int8_t                mEnumerationDirection;
+  const PRInt8                mEnumerationDirection;
 };
 
 

@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "txExpr.h"
 #include "txNodeSet.h"
 #include "txNodeSetContext.h"
@@ -47,7 +80,7 @@ PathExpr::addExpr(Expr* aExpr, PathOperator aPathOp)
 nsresult
 PathExpr::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
 {
-    *aResult = nullptr;
+    *aResult = nsnull;
 
     
     
@@ -67,10 +100,10 @@ PathExpr::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
 
         return NS_OK;
     }
-    res = nullptr; 
+    res = nsnull; 
 
     
-    uint32_t i, len = mItems.Length();
+    PRUint32 i, len = mItems.Length();
     for (i = 1; i < len; ++i) {
         PathExprItem& pxi = mItems[i];
         nsRefPtr<txNodeSet> tmpNodes;
@@ -160,7 +193,7 @@ PathExpr::evalDescendants(Expr* aStep, const txXPathNode& aNode,
 
     resNodes->addAndTransfer(newSet);
 
-    bool filterWS = aContext->isStripSpaceAllowed(aNode);
+    MBool filterWS = aContext->isStripSpaceAllowed(aNode);
 
     txXPathTreeWalker walker(aNode);
     if (!walker.moveToFirstChild()) {
@@ -188,12 +221,12 @@ PathExpr::getType()
 TX_IMPL_EXPR_STUBS_BASE(PathExpr, NODESET_RESULT)
 
 Expr*
-PathExpr::getSubExprAt(uint32_t aPos)
+PathExpr::getSubExprAt(PRUint32 aPos)
 {
-    return aPos < mItems.Length() ? mItems[aPos].expr.get() : nullptr;
+    return aPos < mItems.Length() ? mItems[aPos].expr.get() : nsnull;
 }
 void
-PathExpr::setSubExprAt(uint32_t aPos, Expr* aExpr)
+PathExpr::setSubExprAt(PRUint32 aPos, Expr* aExpr)
 {
     NS_ASSERTION(aPos < mItems.Length(), "setting bad subexpression index");
     mItems[aPos].expr.forget();
@@ -205,26 +238,26 @@ bool
 PathExpr::isSensitiveTo(ContextSensitivity aContext)
 {
     if (mItems[0].expr->isSensitiveTo(aContext)) {
-        return true;
+        return PR_TRUE;
     }
 
     
     Expr::ContextSensitivity context =
         aContext & ~(Expr::NODE_CONTEXT | Expr::NODESET_CONTEXT);
     if (context == NO_CONTEXT) {
-        return false;
+        return PR_FALSE;
     }
 
-    uint32_t i, len = mItems.Length();
+    PRUint32 i, len = mItems.Length();
     for (i = 0; i < len; ++i) {
         NS_ASSERTION(!mItems[i].expr->isSensitiveTo(Expr::NODESET_CONTEXT),
                      "Step cannot depend on nodeset-context");
         if (mItems[i].expr->isSensitiveTo(context)) {
-            return true;
+            return PR_TRUE;
         }
     }
 
-    return false;
+    return PR_FALSE;
 }
 
 #ifdef TX_TO_STRING
@@ -237,7 +270,7 @@ PathExpr::toString(nsAString& dest)
         mItems[0].expr->toString(dest);
     }
     
-    uint32_t i, len = mItems.Length();
+    PRUint32 i, len = mItems.Length();
     for (i = 1; i < len; ++i) {
         switch (mItems[i].pathOp) {
             case DESCENDANT_OP:

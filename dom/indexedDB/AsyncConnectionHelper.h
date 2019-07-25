@@ -4,106 +4,79 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_dom_indexeddb_asyncconnectionhelper_h__
 #define mozilla_dom_indexeddb_asyncconnectionhelper_h__
 
 
-#include "DatabaseInfo.h"
 #include "IndexedDatabase.h"
 #include "IDBDatabase.h"
 #include "IDBRequest.h"
 
 #include "mozIStorageProgressHandler.h"
-#include "nsIEventTarget.h"
 #include "nsIRunnable.h"
+#include "nsIThread.h"
 
-#include "nsDOMEvent.h"
+#include "mozilla/TimeStamp.h"
 
 class mozIStorageConnection;
 
 BEGIN_INDEXEDDB_NAMESPACE
 
-class AutoSetCurrentTransaction;
 class IDBTransaction;
 
-namespace ipc {
-class ResponseValue;
-}
 
 
 
-class HelperBase : public nsIRunnable
+
+
+
+
+
+
+class AsyncConnectionHelper : public nsIRunnable,
+                              public mozIStorageProgressHandler
 {
   friend class IDBRequest;
 
 public:
-  enum ChildProcessSendResult
-  {
-    Success_Sent = 0,
-    Success_NotSent,
-    Error
-  };
-
-  virtual ChildProcessSendResult
-  MaybeSendResponseToChildProcess(nsresult aResultCode) = 0;
-
-  virtual nsresult GetResultCode() = 0;
-
-  virtual nsresult GetSuccessResult(JSContext* aCx,
-                                    jsval* aVal) = 0;
-
-  IDBRequest* GetRequest() const
-  {
-    return mRequest;
-  }
-
-protected:
-  HelperBase(IDBRequest* aRequest)
-    : mRequest(aRequest)
-  { }
-
-  virtual ~HelperBase();
-
-  
-
-
-
-  nsresult WrapNative(JSContext* aCx,
-                      nsISupports* aNative,
-                      jsval* aResult);
-
-  
-
-
-
-
-  virtual void ReleaseMainThreadObjects();
-
-  nsRefPtr<IDBRequest> mRequest;
-};
-
-
-
-
-
-
-
-
-
-
-class AsyncConnectionHelper : public HelperBase,
-                              public mozIStorageProgressHandler
-{
-  friend class AutoSetCurrentTransaction;
-
-public:
-  typedef ipc::ResponseValue ResponseValue;
-
   NS_DECL_ISUPPORTS
   NS_DECL_NSIRUNNABLE
   NS_DECL_MOZISTORAGEPROGRESSHANDLER
 
-  virtual nsresult Dispatch(nsIEventTarget* aDatabaseThread);
+  nsresult Dispatch(nsIEventTarget* aDatabaseThread);
 
   
   nsresult DispatchToTransactionPool();
@@ -116,26 +89,15 @@ public:
 
   static IDBTransaction* GetCurrentTransaction();
 
-  bool HasTransaction()
-  {
-    return mTransaction;
-  }
-
   nsISupports* GetSource()
   {
-    return mRequest ? mRequest->Source() : nullptr;
+    return mRequest ? mRequest->Source() : nsnull;
   }
 
-  virtual nsresult GetResultCode() MOZ_OVERRIDE
+  nsresult GetResultCode()
   {
     return mResultCode;
   }
-
-  virtual nsresult OnParentProcessRequestComplete(
-                                           const ResponseValue& aResponseValue);
-
-  virtual nsresult
-  UnpackResponseFromParentProcess(const ResponseValue& aResponseValue) = 0;
 
 protected:
   AsyncConnectionHelper(IDBDatabase* aDatabase,
@@ -149,6 +111,14 @@ protected:
   
 
 
+  void SetTimeoutMS(PRUint32 aTimeoutMS)
+  {
+    mTimeoutDuration = TimeDuration::FromMilliseconds(aTimeoutMS);
+  }
+
+  
+
+
 
 
   virtual nsresult Init();
@@ -157,13 +127,6 @@ protected:
 
 
   virtual nsresult DoDatabaseWork(mozIStorageConnection* aConnection) = 0;
-
-  
-
-
-
-
-  virtual already_AddRefed<nsDOMEvent> CreateSuccessEvent();
 
   
 
@@ -185,57 +148,46 @@ protected:
 
 
   virtual nsresult GetSuccessResult(JSContext* aCx,
-                                    jsval* aVal) MOZ_OVERRIDE;
+                                    jsval* aVal);
 
   
 
 
 
 
-  virtual void ReleaseMainThreadObjects() MOZ_OVERRIDE;
+  virtual void ReleaseMainThreadObjects();
 
   
 
 
-  static nsresult ConvertCloneReadInfosToArray(
+
+  nsresult WrapNative(JSContext* aCx,
+                      nsISupports* aNative,
+                      jsval* aResult);
+
+  
+
+
+  static nsresult ConvertCloneBuffersToArray(
                                 JSContext* aCx,
-                                nsTArray<StructuredCloneReadInfo>& aReadInfos,
+                                nsTArray<JSAutoStructuredCloneBuffer>& aBuffers,
                                 jsval* aResult);
-
-  
-
-
-  static void SetCurrentTransaction(IDBTransaction* aTransaction);
 
 protected:
   nsRefPtr<IDBDatabase> mDatabase;
   nsRefPtr<IDBTransaction> mTransaction;
+  nsRefPtr<IDBRequest> mRequest;
 
 private:
   nsCOMPtr<mozIStorageProgressHandler> mOldProgressHandler;
+
+  mozilla::TimeStamp mStartTime;
+  mozilla::TimeDuration mTimeoutDuration;
+
   nsresult mResultCode;
   bool mDispatched;
 };
 
-NS_STACK_CLASS
-class StackBasedEventTarget : public nsIEventTarget
-{
-public:
-  NS_DECL_ISUPPORTS_INHERITED
-};
-
-class MainThreadEventTarget : public StackBasedEventTarget
-{
-public:
-  NS_DECL_NSIEVENTTARGET
-};
-
-class NoDispatchEventTarget : public StackBasedEventTarget
-{
-public:
-  NS_DECL_NSIEVENTTARGET
-};
-
 END_INDEXEDDB_NAMESPACE
 
-#endif
+#endif 

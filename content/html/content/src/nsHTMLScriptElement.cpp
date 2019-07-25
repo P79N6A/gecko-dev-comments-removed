@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIDOMHTMLScriptElement.h"
 #include "nsIDOMEventTarget.h"
 #include "nsGenericHTMLElement.h"
@@ -19,12 +51,12 @@
 #include "nsIScriptGlobalObject.h"
 #include "nsIXPConnect.h"
 #include "nsServiceManagerUtils.h"
-#include "nsError.h"
+#include "nsIDOMDocument.h"
+#include "nsContentErrors.h"
 #include "nsIArray.h"
 #include "nsTArray.h"
 #include "nsDOMJSUtils.h"
 
-using namespace mozilla;
 using namespace mozilla::dom;
 
 class nsHTMLScriptElement : public nsGenericHTMLElement,
@@ -49,26 +81,8 @@ public:
   NS_FORWARD_NSIDOMELEMENT(nsGenericHTMLElement::)
 
   
-  NS_FORWARD_NSIDOMHTMLELEMENT_BASIC(nsGenericHTMLElement::)
-  NS_IMETHOD Click() {
-    return nsGenericHTMLElement::Click();
-  }
-  NS_IMETHOD GetTabIndex(int32_t* aTabIndex) {
-    return nsGenericHTMLElement::GetTabIndex(aTabIndex);
-  }
-  NS_IMETHOD SetTabIndex(int32_t aTabIndex) {
-    return nsGenericHTMLElement::SetTabIndex(aTabIndex);
-  }
-  NS_IMETHOD Focus() {
-    return nsGenericHTMLElement::Focus();
-  }
-  NS_IMETHOD GetDraggable(bool* aDraggable) {
-    return nsGenericHTMLElement::GetDraggable(aDraggable);
-  }
-  NS_IMETHOD GetInnerHTML(nsAString& aInnerHTML);
-  NS_IMETHOD SetInnerHTML(const nsAString& aInnerHTML);
+  NS_FORWARD_NSIDOMHTMLELEMENT(nsGenericHTMLElement::)
 
-  
   NS_DECL_NSIDOMHTMLSCRIPTELEMENT
 
   
@@ -76,29 +90,30 @@ public:
   virtual void GetScriptText(nsAString& text);
   virtual void GetScriptCharset(nsAString& charset);
   virtual void FreezeUriAsyncDefer();
-  virtual CORSMode GetCORSMode() const;
 
   
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
                               bool aCompileEventHandlers);
-  virtual bool ParseAttribute(int32_t aNamespaceID,
-                              nsIAtom* aAttribute,
-                              const nsAString& aValue,
-                              nsAttrValue& aResult);
+
+  virtual nsresult GetInnerHTML(nsAString& aInnerHTML);
+  virtual nsresult SetInnerHTML(const nsAString& aInnerHTML);
+  virtual nsresult DoneAddingChildren(bool aHaveNotified);
+  virtual bool IsDoneAddingChildren();
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   
-  virtual nsresult AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
-                                const nsAttrValue* aValue, bool aNotify);
+  virtual nsresult AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
+                                const nsAString* aValue, bool aNotify);
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 protected:
+  bool IsOnloadEventForWindow();
+
   
   virtual bool HasScriptContent();
+  virtual nsresult MaybeProcessScript();
 };
 
 
@@ -153,33 +168,17 @@ nsHTMLScriptElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   return NS_OK;
 }
 
-bool
-nsHTMLScriptElement::ParseAttribute(int32_t aNamespaceID,
-                                    nsIAtom* aAttribute,
-                                    const nsAString& aValue,
-                                    nsAttrValue& aResult)
-{
-  if (aNamespaceID == kNameSpaceID_None &&
-      aAttribute == nsGkAtoms::crossorigin) {
-    ParseCORSValue(aValue, aResult);
-    return true;
-  }
-
-  return nsGenericHTMLElement::ParseAttribute(aNamespaceID, aAttribute, aValue,
-                                              aResult);
-}
-
 nsresult
 nsHTMLScriptElement::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
 {
-  *aResult = nullptr;
+  *aResult = nsnull;
 
   nsCOMPtr<nsINodeInfo> ni = aNodeInfo;
   nsHTMLScriptElement* it =
     new nsHTMLScriptElement(ni.forget(), NOT_FROM_PARSER);
 
   nsCOMPtr<nsINode> kungFuDeathGrip = it;
-  nsresult rv = const_cast<nsHTMLScriptElement*>(this)->CopyInnerTo(it);
+  nsresult rv = CopyInnerTo(it);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -195,14 +194,14 @@ nsHTMLScriptElement::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
 NS_IMETHODIMP
 nsHTMLScriptElement::GetText(nsAString& aValue)
 {
-  nsContentUtils::GetNodeTextContent(this, false, aValue);
+  nsContentUtils::GetNodeTextContent(this, PR_FALSE, aValue);
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsHTMLScriptElement::SetText(const nsAString& aValue)
 {
-  return nsContentUtils::SetNodeTextContent(this, aValue, true);
+  return nsContentUtils::SetNodeTextContent(this, aValue, PR_TRUE);
 }
 
 
@@ -212,13 +211,12 @@ NS_IMPL_URI_ATTR(nsHTMLScriptElement, Src, src)
 NS_IMPL_STRING_ATTR(nsHTMLScriptElement, Type, type)
 NS_IMPL_STRING_ATTR(nsHTMLScriptElement, HtmlFor, _for)
 NS_IMPL_STRING_ATTR(nsHTMLScriptElement, Event, event)
-NS_IMPL_STRING_ATTR(nsHTMLScriptElement, CrossOrigin, crossorigin)
 
 nsresult
 nsHTMLScriptElement::GetAsync(bool* aValue)
 {
   if (mForceAsync) {
-    *aValue = true;
+    *aValue = PR_TRUE;
     return NS_OK;
   }
   return GetBoolAttr(nsGkAtoms::async, aValue);
@@ -227,16 +225,16 @@ nsHTMLScriptElement::GetAsync(bool* aValue)
 nsresult
 nsHTMLScriptElement::SetAsync(bool aValue)
 {
-  mForceAsync = false;
+  mForceAsync = PR_FALSE;
   return SetBoolAttr(nsGkAtoms::async, aValue);
 }
 
 nsresult
-nsHTMLScriptElement::AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
-                                  const nsAttrValue* aValue, bool aNotify)
+nsHTMLScriptElement::AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
+                                  const nsAString* aValue, bool aNotify)
 {
   if (nsGkAtoms::async == aName && kNameSpaceID_None == aNamespaceID) {
-    mForceAsync = false;
+    mForceAsync = PR_FALSE;
   }
   return nsGenericHTMLElement::AfterSetAttr(aNamespaceID, aName, aValue,
                                             aNotify);
@@ -245,14 +243,33 @@ nsHTMLScriptElement::AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
 nsresult
 nsHTMLScriptElement::GetInnerHTML(nsAString& aInnerHTML)
 {
-  nsContentUtils::GetNodeTextContent(this, false, aInnerHTML);
+  nsContentUtils::GetNodeTextContent(this, PR_FALSE, aInnerHTML);
   return NS_OK;
 }
 
 nsresult
 nsHTMLScriptElement::SetInnerHTML(const nsAString& aInnerHTML)
 {
-  return nsContentUtils::SetNodeTextContent(this, aInnerHTML, true);
+  return nsContentUtils::SetNodeTextContent(this, aInnerHTML, PR_TRUE);
+}
+
+nsresult
+nsHTMLScriptElement::DoneAddingChildren(bool aHaveNotified)
+{
+  mDoneAddingChildren = PR_TRUE;
+  nsresult rv = MaybeProcessScript();
+  if (!mAlreadyStarted) {
+    
+    
+    LoseParserInsertedness();
+  }
+  return rv;
+}
+
+bool
+nsHTMLScriptElement::IsDoneAddingChildren()
+{
+  return mDoneAddingChildren;
 }
 
 
@@ -290,7 +307,7 @@ nsHTMLScriptElement::FreezeUriAsyncDefer()
     GetSrc(src);
     NS_NewURI(getter_AddRefs(mUri), src);
     
-    mExternal = true;
+    mExternal = PR_TRUE;
 
     bool defer, async;
     GetAsync(&async);
@@ -300,13 +317,7 @@ nsHTMLScriptElement::FreezeUriAsyncDefer()
     mAsync = async;
   }
   
-  mFrozen = true;
-}
-
-CORSMode
-nsHTMLScriptElement::GetCORSMode() const
-{
-  return AttrValueToCORSMode(GetParsedAttr(nsGkAtoms::crossorigin));
+  mFrozen = PR_TRUE;
 }
 
 bool
@@ -314,4 +325,15 @@ nsHTMLScriptElement::HasScriptContent()
 {
   return (mFrozen ? mExternal : HasAttr(kNameSpaceID_None, nsGkAtoms::src)) ||
          nsContentUtils::HasNonEmptyTextContent(this);
+}
+
+nsresult
+nsHTMLScriptElement::MaybeProcessScript()
+{
+  nsresult rv = nsScriptElement::MaybeProcessScript();
+  if (rv == NS_CONTENT_SCRIPT_IS_EVENTHANDLER)
+    
+    rv = NS_OK;
+
+  return rv;
 }

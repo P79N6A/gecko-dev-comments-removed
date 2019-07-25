@@ -9,6 +9,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "FixedTableLayoutStrategy.h"
 #include "nsTableFrame.h"
 #include "nsTableColFrame.h"
@@ -49,7 +81,7 @@ FixedTableLayoutStrategy::GetMinWidth(nsRenderingContext* aRenderingContext)
     
 
     nsTableCellMap *cellMap = mTableFrame->GetCellMap();
-    int32_t colCount = cellMap->GetColCount();
+    PRInt32 colCount = cellMap->GetColCount();
     nscoord spacing = mTableFrame->GetCellSpacingX();
 
     nscoord result = 0;
@@ -58,7 +90,7 @@ FixedTableLayoutStrategy::GetMinWidth(nsRenderingContext* aRenderingContext)
         result += spacing * (colCount + 1);
     }
 
-    for (int32_t col = 0; col < colCount; ++col) {
+    for (PRInt32 col = 0; col < colCount; ++col) {
         nsTableColFrame *colFrame = mTableFrame->GetColFrame(col);
         if (!colFrame) {
             NS_ERROR("column frames out of sync with cell map");
@@ -80,7 +112,7 @@ FixedTableLayoutStrategy::GetMinWidth(nsRenderingContext* aRenderingContext)
             
             
             bool originates;
-            int32_t colSpan;
+            PRInt32 colSpan;
             nsTableCellFrame *cellFrame =
                 cellMap->GetCellInfoAt(0, col, &originates, &colSpan);
             if (cellFrame) {
@@ -159,7 +191,7 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
     mLastCalcWidth = tableWidth;
 
     nsTableCellMap *cellMap = mTableFrame->GetCellMap();
-    int32_t colCount = cellMap->GetColCount();
+    PRInt32 colCount = cellMap->GetColCount();
     nscoord spacing = mTableFrame->GetCellSpacingX();
 
     if (colCount == 0) {
@@ -183,7 +215,7 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
 
     
 
-    uint32_t unassignedCount = 0;
+    PRUint32 unassignedCount = 0;
     nscoord unassignedSpace = tableWidth;
     const nscoord unassignedMarker = nscoord_MIN;
 
@@ -196,7 +228,7 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
     
     nscoord specTotal = 0;
 
-    for (int32_t col = 0; col < colCount; ++col) {
+    for (PRInt32 col = 0; col < colCount; ++col) {
         nsTableColFrame *colFrame = mTableFrame->GetColFrame(col);
         if (!colFrame) {
             oldColWidths.AppendElement(0);
@@ -227,7 +259,7 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
             
             
             bool originates;
-            int32_t colSpan;
+            PRInt32 colSpan;
             nsTableCellFrame *cellFrame =
                 cellMap->GetCellInfoAt(0, col, &originates, &colSpan);
             if (cellFrame) {
@@ -296,7 +328,7 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
             nscoord pctUsed = NSToCoordFloor(pctTotal * float(tableWidth));
             nscoord reduce = NS_MIN(pctUsed, -unassignedSpace);
             float reduceRatio = float(reduce) / pctTotal;
-            for (int32_t col = 0; col < colCount; ++col) {
+            for (PRInt32 col = 0; col < colCount; ++col) {
                 nsTableColFrame *colFrame = mTableFrame->GetColFrame(col);
                 if (!colFrame) {
                     NS_ERROR("column frames out of sync with cell map");
@@ -317,7 +349,7 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
         
         
         nscoord toAssign = unassignedSpace / unassignedCount;
-        for (int32_t col = 0; col < colCount; ++col) {
+        for (PRInt32 col = 0; col < colCount; ++col) {
             nsTableColFrame *colFrame = mTableFrame->GetColFrame(col);
             if (!colFrame) {
                 NS_ERROR("column frames out of sync with cell map");
@@ -331,7 +363,7 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
         if (specTotal > 0) {
             
             nscoord specUndist = specTotal;
-            for (int32_t col = 0; col < colCount; ++col) {
+            for (PRInt32 col = 0; col < colCount; ++col) {
                 nsTableColFrame *colFrame = mTableFrame->GetColFrame(col);
                 if (!colFrame) {
                     NS_ERROR("column frames out of sync with cell map");
@@ -356,7 +388,7 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
         } else if (pctTotal > 0) {
             
             float pctUndist = pctTotal;
-            for (int32_t col = 0; col < colCount; ++col) {
+            for (PRInt32 col = 0; col < colCount; ++col) {
                 nsTableColFrame *colFrame = mTableFrame->GetColFrame(col);
                 if (!colFrame) {
                     NS_ERROR("column frames out of sync with cell map");
@@ -381,8 +413,8 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
             NS_ASSERTION(unassignedSpace == 0, "failed to redistribute");
         } else {
             
-            int32_t colsLeft = colCount;
-            for (int32_t col = 0; col < colCount; ++col) {
+            PRInt32 colsLeft = colCount;
+            for (PRInt32 col = 0; col < colCount; ++col) {
                 nsTableColFrame *colFrame = mTableFrame->GetColFrame(col);
                 if (!colFrame) {
                     NS_ERROR("column frames out of sync with cell map");
@@ -398,7 +430,7 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
             NS_ASSERTION(unassignedSpace == 0, "failed to redistribute");
         }
     }
-    for (int32_t col = 0; col < colCount; ++col) {
+    for (PRInt32 col = 0; col < colCount; ++col) {
         nsTableColFrame *colFrame = mTableFrame->GetColFrame(col);
         if (!colFrame) {
             NS_ERROR("column frames out of sync with cell map");
@@ -406,7 +438,7 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
         }
         if (oldColWidths.ElementAt(col) != colFrame->GetFinalWidth()) {
             mTableFrame->DidResizeColumns();
-            break;
         }
+            break;
     }
 }

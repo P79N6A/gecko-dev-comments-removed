@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsURILoader.h"
 #include "nsAutoPtr.h"
 #include "nsIURIContentListener.h"
@@ -35,7 +67,7 @@
 #include "nsString.h"
 #include "nsNetUtil.h"
 #include "nsReadableUtils.h"
-#include "nsError.h"
+#include "nsDOMError.h"
 
 #include "nsICategoryManager.h"
 #include "nsCExternalHandlerService.h" 
@@ -46,12 +78,11 @@
 #include "nsMimeTypes.h"
 
 #include "nsDocLoader.h"
-#include "mozilla/Attributes.h"
 
 #include "mozilla/FunctionTimer.h"
 #ifdef NS_FUNCTION_TIMER
 #define TIME_URILOADER_FUNCTION(req)                         \
-    nsAutoCString name__("N/A");                             \
+    nsCAutoString name__("N/A");                             \
     (req)->GetName(name__);                                  \
     NS_TIME_FUNCTION_FMT("%s (line %d) (request: %s)",       \
                          MOZ_FUNCTION_NAME,                  \
@@ -62,7 +93,7 @@
 #endif
 
 #ifdef PR_LOGGING
-PRLogModuleInfo* nsURILoader::mLog = nullptr;
+PRLogModuleInfo* nsURILoader::mLog = nsnull;
 #endif
 
 #define LOG(args) PR_LOG(nsURILoader::mLog, PR_LOG_DEBUG, args)
@@ -75,7 +106,7 @@ PRLogModuleInfo* nsURILoader::mLog = nullptr;
 
 
 
-class nsDocumentOpenInfo MOZ_FINAL : public nsIStreamListener
+class nsDocumentOpenInfo : public nsIStreamListener
 {
 public:
   
@@ -84,7 +115,7 @@ public:
   
   
   nsDocumentOpenInfo(nsIInterfaceRequestor* aWindowContext,
-                     uint32_t aFlags,
+                     PRUint32 aFlags,
                      nsURILoader* aURILoader);
 
   NS_DECL_ISUPPORTS
@@ -151,7 +182,7 @@ protected:
 
 
 
-  uint32_t mFlags;
+  PRUint32 mFlags;
 
   
 
@@ -180,7 +211,7 @@ nsDocumentOpenInfo::nsDocumentOpenInfo()
 }
 
 nsDocumentOpenInfo::nsDocumentOpenInfo(nsIInterfaceRequestor* aWindowContext,
-                                       uint32_t aFlags,
+                                       PRUint32 aFlags,
                                        nsURILoader* aURILoader)
   : m_originalContext(aWindowContext),
     mFlags(aFlags),
@@ -222,7 +253,7 @@ NS_IMETHODIMP nsDocumentOpenInfo::OnStartRequest(nsIRequest *request, nsISupport
   nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(request, &rv));
 
   if (NS_SUCCEEDED(rv)) {
-    uint32_t responseCode = 0;
+    PRUint32 responseCode = 0;
 
     rv = httpChannel->GetResponseStatus(&responseCode);
 
@@ -277,10 +308,8 @@ NS_IMETHODIMP nsDocumentOpenInfo::OnStartRequest(nsIRequest *request, nsISupport
   return rv;
 }
 
-NS_IMETHODIMP
-nsDocumentOpenInfo::OnDataAvailable(nsIRequest *request, nsISupports * aCtxt,
-                                    nsIInputStream * inStr,
-                                    uint64_t sourceOffset, uint32_t count)
+NS_IMETHODIMP nsDocumentOpenInfo::OnDataAvailable(nsIRequest *request, nsISupports * aCtxt,
+                                                  nsIInputStream * inStr, PRUint32 sourceOffset, PRUint32 count)
 {
   TIME_URILOADER_FUNCTION(request);
 
@@ -356,10 +385,10 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest *request, nsISupports * 
   
   
   bool forceExternalHandling = false;
-  uint32_t disposition;
+  PRUint32 disposition;
   rv = aChannel->GetContentDisposition(&disposition);
   if (NS_SUCCEEDED(rv) && disposition == nsIChannel::DISPOSITION_ATTACHMENT)
-    forceExternalHandling = true;
+    forceExternalHandling = PR_TRUE;
 
   LOG(("  forceExternalHandling: %s", forceExternalHandling ? "yes" : "no"));
     
@@ -388,9 +417,9 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest *request, nsISupports * 
       
       
       
-      int32_t count = mURILoader->m_listeners.Count();
+      PRInt32 count = mURILoader->m_listeners.Count();
       nsCOMPtr<nsIURIContentListener> listener;
-      for (int32_t i = 0; i < count; i++) {
+      for (PRInt32 i = 0; i < count; i++) {
         listener = do_QueryReferent(mURILoader->m_listeners[i]);
         if (listener) {
           if (TryContentListener(listener, aChannel)) {
@@ -433,7 +462,7 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest *request, nsISupports * 
       
       
       
-      nsAutoCString handlerContractID (NS_CONTENT_HANDLER_CONTRACTID_PREFIX);
+      nsCAutoString handlerContractID (NS_CONTENT_HANDLER_CONTRACTID_PREFIX);
       handlerContractID += mContentType;
 
       nsCOMPtr<nsIContentHandler> contentHandler =
@@ -477,7 +506,7 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest *request, nsISupports * 
     if (mContentType != anyType) {
       rv = ConvertData(request, m_contentListener, mContentType, anyType);
       if (NS_FAILED(rv)) {
-        m_targetStreamListener = nullptr;
+        m_targetStreamListener = nsnull;
       } else if (m_targetStreamListener) {
         
         
@@ -534,11 +563,11 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest *request, nsISupports * 
     rv = helperAppService->DoContent(mContentType,
                                      request,
                                      m_originalContext,
-                                     false,
+                                     PR_FALSE,
                                      getter_AddRefs(m_targetStreamListener));
     if (NS_FAILED(rv)) {
       request->SetLoadFlags(loadFlags);
-      m_targetStreamListener = nullptr;
+      m_targetStreamListener = nsnull;
     }
   }
       
@@ -587,7 +616,7 @@ nsDocumentOpenInfo::ConvertData(nsIRequest *request,
   
   nextLink->m_contentListener = aListener;
   
-  nextLink->m_targetStreamListener = nullptr;
+  nextLink->m_targetStreamListener = nsnull;
 
   
   
@@ -627,13 +656,13 @@ nsDocumentOpenInfo::TryContentListener(nsIURIContentListener* aListener,
                            getter_Copies(typeToUse),
                            &listenerWantsContent);
   } else {
-    aListener->CanHandleContent(mContentType.get(), false,
+    aListener->CanHandleContent(mContentType.get(), PR_FALSE,
                                 getter_Copies(typeToUse),
                                 &listenerWantsContent);
   }
   if (!listenerWantsContent) {
     LOG(("  Listener is not interested"));
-    return false;
+    return PR_FALSE;
   }
 
   if (!typeToUse.IsEmpty() && typeToUse != mContentType) {
@@ -643,7 +672,7 @@ nsDocumentOpenInfo::TryContentListener(nsIURIContentListener* aListener,
 
     if (NS_FAILED(rv)) {
       
-      m_targetStreamListener = nullptr;
+      m_targetStreamListener = nsnull;
     }
 
     LOG(("  Found conversion: %s", m_targetStreamListener ? "yes" : "no"));
@@ -651,7 +680,7 @@ nsDocumentOpenInfo::TryContentListener(nsIURIContentListener* aListener,
     
     
     
-    return m_targetStreamListener != nullptr;
+    return m_targetStreamListener != nsnull;
   }
 
   
@@ -684,8 +713,8 @@ nsDocumentOpenInfo::TryContentListener(nsIURIContentListener* aListener,
     
     
     aChannel->SetLoadFlags(loadFlags);
-    m_targetStreamListener = nullptr;
-    return false;
+    m_targetStreamListener = nsnull;
+    return PR_FALSE;
   }
 
   if (abort) {
@@ -693,13 +722,13 @@ nsDocumentOpenInfo::TryContentListener(nsIURIContentListener* aListener,
     
     
     LOG(("  Listener has aborted the load"));
-    m_targetStreamListener = nullptr;
+    m_targetStreamListener = nsnull;
   }
 
   NS_ASSERTION(abort || m_targetStreamListener, "DoContent returned no listener?");
 
   
-  return true;
+  return PR_TRUE;
 }
 
 
@@ -763,7 +792,7 @@ NS_IMETHODIMP nsURILoader::OpenURI(nsIChannel *channel,
   if (LOG_ENABLED()) {
     nsCOMPtr<nsIURI> uri;
     channel->GetURI(getter_AddRefs(uri));
-    nsAutoCString spec;
+    nsCAutoString spec;
     uri->GetAsciiSpec(spec);
     LOG(("nsURILoader::OpenURI for %s", spec.get()));
   }
@@ -773,7 +802,7 @@ NS_IMETHODIMP nsURILoader::OpenURI(nsIChannel *channel,
   nsresult rv = OpenChannel(channel,
                             aIsContentPreferred ? IS_CONTENT_PREFERRED : 0,
                             aWindowContext,
-                            false,
+                            PR_FALSE,
                             getter_AddRefs(loader));
 
   if (NS_SUCCEEDED(rv)) {
@@ -783,7 +812,7 @@ NS_IMETHODIMP nsURILoader::OpenURI(nsIChannel *channel,
     
 
     
-    rv = channel->AsyncOpen(loader, nullptr);
+    rv = channel->AsyncOpen(loader, nsnull);
 
     
     if (rv == NS_ERROR_NO_CONTENT) {
@@ -798,7 +827,7 @@ NS_IMETHODIMP nsURILoader::OpenURI(nsIChannel *channel,
 }
 
 nsresult nsURILoader::OpenChannel(nsIChannel* channel,
-                                  uint32_t aFlags,
+                                  PRUint32 aFlags,
                                   nsIInterfaceRequestor* aWindowContext,
                                   bool aChannelIsOpen,
                                   nsIStreamListener** aListener)
@@ -812,7 +841,7 @@ nsresult nsURILoader::OpenChannel(nsIChannel* channel,
   if (LOG_ENABLED()) {
     nsCOMPtr<nsIURI> uri;
     channel->GetURI(getter_AddRefs(uri));
-    nsAutoCString spec;
+    nsCAutoString spec;
     uri->GetAsciiSpec(spec);
     LOG(("nsURILoader::OpenChannel for %s", spec.get()));
   }
@@ -878,10 +907,10 @@ nsresult nsURILoader::OpenChannel(nsIChannel* channel,
     
     
     
-    loadGroup->AddRequest(channel, nullptr);
+    loadGroup->AddRequest(channel, nsnull);
 
    if (oldGroup) {
-      oldGroup->RemoveRequest(channel, nullptr, NS_BINDING_RETARGETED);
+      oldGroup->RemoveRequest(channel, nsnull, NS_BINDING_RETARGETED);
     }
   }
 
@@ -895,13 +924,13 @@ nsresult nsURILoader::OpenChannel(nsIChannel* channel,
 }
 
 NS_IMETHODIMP nsURILoader::OpenChannel(nsIChannel* channel,
-                                       uint32_t aFlags,
+                                       PRUint32 aFlags,
                                        nsIInterfaceRequestor* aWindowContext,
                                        nsIStreamListener** aListener)
 {
   bool pending;
   if (NS_FAILED(channel->IsPending(&pending))) {
-    pending = false;
+    pending = PR_FALSE;
   }
 
   return OpenChannel(channel, aFlags, aWindowContext, pending, aListener);

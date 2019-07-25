@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifdef WIN32_LEAN_AND_MEAN
 #undef WIN32_LEAN_AND_MEAN
 #endif
@@ -111,7 +145,7 @@ static void DoInitCommonControls()
   ic.dwICC = ICC_PROGRESS_CLASS;
   InitCommonControlsEx(&ic);
   
-  LoadLibrary(L"Msftedit.dll");
+  LoadLibrary(L"riched20.dll");
 }
 
 static bool GetBoolValue(HKEY hRegKey, LPCTSTR valueName, DWORD* value)
@@ -1033,7 +1067,6 @@ static BOOL CALLBACK CrashReporterDialogProc(HWND hwndDlg, UINT message,
     description += Str(ST_CRASHREPORTERDESCRIPTION);
     SetDlgItemText(hwndDlg, IDC_DESCRIPTIONTEXT, description.c_str());
 
-
     
     CHARFORMAT fmt = { 0, };
     fmt.cbSize = sizeof(fmt);
@@ -1044,12 +1077,9 @@ static BOOL CALLBACK CrashReporterDialogProc(HWND hwndDlg, UINT message,
     SendDlgItemMessage(hwndDlg, IDC_DESCRIPTIONTEXT, EM_SETCHARFORMAT,
                        SCF_SELECTION, (LPARAM)&fmt);
     SendDlgItemMessage(hwndDlg, IDC_DESCRIPTIONTEXT, EM_SETSEL, 0, 0);
-    
+
     SendDlgItemMessage(hwndDlg, IDC_DESCRIPTIONTEXT,
                        EM_SETTARGETDEVICE, (WPARAM)NULL, 0);
-    
-    SendDlgItemMessage(hwndDlg, IDC_DESCRIPTIONTEXT,
-                       EM_REQUESTRESIZE, 0, 0);
 
     
     if (gQueryParameters.find(L"URL") == gQueryParameters.end()) {

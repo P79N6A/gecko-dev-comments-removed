@@ -8,6 +8,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsSplittableFrame_h___
 #define nsSplittableFrame_h___
 
@@ -76,7 +108,7 @@ protected:
   nsSplittableFrame(nsStyleContext* aContext) : nsFrame(aContext) {}
 
 #ifdef DEBUG
-  virtual void DumpBaseRegressionData(nsPresContext* aPresContext, FILE* out, int32_t aIndent);
+  virtual void DumpBaseRegressionData(nsPresContext* aPresContext, FILE* out, PRInt32 aIndent);
 #endif
 
   nsIFrame*   mPrevContinuation;

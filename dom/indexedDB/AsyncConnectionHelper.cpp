@@ -4,7 +4,38 @@
 
 
 
-#include "base/basictypes.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "AsyncConnectionHelper.h"
 
@@ -13,26 +44,29 @@
 #include "nsContentUtils.h"
 #include "nsProxyRelease.h"
 #include "nsThreadUtils.h"
-#include "nsWrapperCacheInlines.h"
 
 #include "IDBEvents.h"
 #include "IDBTransaction.h"
 #include "IndexedDatabaseManager.h"
 #include "TransactionThreadPool.h"
 
-#include "ipc/IndexedDBChild.h"
+using mozilla::TimeStamp;
+using mozilla::TimeDuration;
 
 USING_INDEXEDDB_NAMESPACE
 
 namespace {
 
-IDBTransaction* gCurrentTransaction = nullptr;
+IDBTransaction* gCurrentTransaction = nsnull;
 
-const uint32_t kProgressHandlerGranularity = 1000;
+const PRUint32 kProgressHandlerGranularity = 1000;
+const PRUint32 kDefaultTimeoutMS = 30000;
 
-class TransactionPoolEventTarget : public StackBasedEventTarget
+NS_STACK_CLASS
+class TransactionPoolEventTarget : public nsIEventTarget
 {
 public:
+  NS_DECL_ISUPPORTS
   NS_DECL_NSIEVENTTARGET
 
   TransactionPoolEventTarget(IDBTransaction* aTransaction)
@@ -47,29 +81,28 @@ private:
 
 inline
 nsresult
-ConvertCloneReadInfosToArrayInternal(
+ConvertCloneBuffersToArrayInternal(
                                 JSContext* aCx,
-                                nsTArray<StructuredCloneReadInfo>& aReadInfos,
+                                nsTArray<JSAutoStructuredCloneBuffer>& aBuffers,
                                 jsval* aResult)
 {
-  JSObject* array = JS_NewArrayObject(aCx, 0, nullptr);
+  JSObject* array = JS_NewArrayObject(aCx, 0, nsnull);
   if (!array) {
     NS_WARNING("Failed to make array!");
     return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
   }
 
-  if (!aReadInfos.IsEmpty()) {
-    if (!JS_SetArrayLength(aCx, array, uint32_t(aReadInfos.Length()))) {
+  if (!aBuffers.IsEmpty()) {
+    if (!JS_SetArrayLength(aCx, array, jsuint(aBuffers.Length()))) {
       NS_WARNING("Failed to set array length!");
       return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
     }
 
-    for (uint32_t index = 0, count = aReadInfos.Length(); index < count;
-         index++) {
-      StructuredCloneReadInfo& readInfo = aReadInfos[index];
+    for (uint32 index = 0, count = aBuffers.Length(); index < count; index++) {
+      JSAutoStructuredCloneBuffer& buffer = aBuffers[index];
 
       jsval val;
-      if (!IDBObjectStore::DeserializeValue(aCx, readInfo, &val)) {
+      if (!IDBObjectStore::DeserializeValue(aCx, buffer, &val)) {
         NS_WARNING("Failed to decode!");
         return NS_ERROR_DOM_DATA_CLONE_ERR;
       }
@@ -87,69 +120,25 @@ ConvertCloneReadInfosToArrayInternal(
 
 } 
 
-HelperBase::~HelperBase()
-{
-  if (!NS_IsMainThread()) {
-    IDBRequest* request;
-    mRequest.forget(&request);
-
-    if (request) {
-      nsCOMPtr<nsIThread> mainThread;
-      NS_GetMainThread(getter_AddRefs(mainThread));
-      NS_WARN_IF_FALSE(mainThread, "Couldn't get the main thread!");
-
-      if (mainThread) {
-        NS_ProxyRelease(mainThread, static_cast<nsIDOMEventTarget*>(request));
-      }
-    }
-  }
-}
-
-nsresult
-HelperBase::WrapNative(JSContext* aCx,
-                       nsISupports* aNative,
-                       jsval* aResult)
-{
-  NS_ASSERTION(aCx, "Null context!");
-  NS_ASSERTION(aNative, "Null pointer!");
-  NS_ASSERTION(aResult, "Null pointer!");
-  NS_ASSERTION(mRequest, "Null request!");
-
-  JSObject* global = mRequest->GetParentObject();
-  NS_ASSERTION(global, "This should never be null!");
-
-  nsresult rv =
-    nsContentUtils::WrapNative(aCx, global, aNative, aResult);
-  NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
-
-  return NS_OK;
-}
-
-void
-HelperBase::ReleaseMainThreadObjects()
-{
-  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-
-  mRequest = nullptr;
-}
-
 AsyncConnectionHelper::AsyncConnectionHelper(IDBDatabase* aDatabase,
                                              IDBRequest* aRequest)
-: HelperBase(aRequest),
-  mDatabase(aDatabase),
+: mDatabase(aDatabase),
+  mRequest(aRequest),
+  mTimeoutDuration(TimeDuration::FromMilliseconds(kDefaultTimeoutMS)),
   mResultCode(NS_OK),
-  mDispatched(false)
+  mDispatched(PR_FALSE)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 }
 
 AsyncConnectionHelper::AsyncConnectionHelper(IDBTransaction* aTransaction,
                                              IDBRequest* aRequest)
-: HelperBase(aRequest),
-  mDatabase(aTransaction->mDatabase),
+: mDatabase(aTransaction->mDatabase),
   mTransaction(aTransaction),
+  mRequest(aRequest),
+  mTimeoutDuration(TimeDuration::FromMilliseconds(kDefaultTimeoutMS)),
   mResultCode(NS_OK),
-  mDispatched(false)
+  mDispatched(PR_FALSE)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 }
@@ -163,6 +152,9 @@ AsyncConnectionHelper::~AsyncConnectionHelper()
     IDBTransaction* transaction;
     mTransaction.forget(&transaction);
 
+    IDBRequest* request;
+    mRequest.forget(&request);
+
     nsCOMPtr<nsIThread> mainThread;
     NS_GetMainThread(getter_AddRefs(mainThread));
     NS_WARN_IF_FALSE(mainThread, "Couldn't get the main thread!");
@@ -174,6 +166,9 @@ AsyncConnectionHelper::~AsyncConnectionHelper()
       if (transaction) {
         NS_ProxyRelease(mainThread,
                         static_cast<nsIIDBTransaction*>(transaction));
+      }
+      if (request) {
+        NS_ProxyRelease(mainThread, static_cast<nsIDOMEventTarget*>(request));
       }
     }
   }
@@ -189,7 +184,8 @@ AsyncConnectionHelper::Run()
 {
   if (NS_IsMainThread()) {
     if (mTransaction &&
-        mTransaction->IsAborted()) {
+        mTransaction->IsAborted() &&
+        NS_SUCCEEDED(mResultCode)) {
       
       
       mResultCode = NS_ERROR_DOM_INDEXEDDB_ABORT_ERR;
@@ -198,41 +194,18 @@ AsyncConnectionHelper::Run()
     IDBTransaction* oldTransaction = gCurrentTransaction;
     gCurrentTransaction = mTransaction;
 
-    ChildProcessSendResult sendResult =
-      IndexedDatabaseManager::IsMainProcess() ?
-      MaybeSendResponseToChildProcess(mResultCode) :
-      Success_NotSent;
-
-    NS_ASSERTION(sendResult == Success_Sent || sendResult == Success_NotSent ||
-                 sendResult == Error,
-                 "Unknown result from MaybeSendResultsToChildProcess!");
-
-    if (sendResult == Success_Sent) {
-      if (mRequest) {
-        mRequest->NotifyHelperSentResultsToChildProcess(NS_OK);
+    if (mRequest) {
+      nsresult rv = mRequest->SetDone(this);
+      if (NS_SUCCEEDED(mResultCode) && NS_FAILED(rv)) {
+        mResultCode = rv;
       }
     }
-    else if (sendResult == Error) {
-      NS_WARNING("MaybeSendResultsToChildProcess failed!");
-      mResultCode = NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
-      if (mRequest) {
-        mRequest->NotifyHelperSentResultsToChildProcess(mResultCode);
-      }
-    }
-    else if (sendResult == Success_NotSent) {
-      if (mRequest) {
-        nsresult rv = mRequest->NotifyHelperCompleted(this);
-        if (NS_SUCCEEDED(mResultCode) && NS_FAILED(rv)) {
-          mResultCode = rv;
-        }
-      }
 
-      
-      
-      if (NS_FAILED(mResultCode) ||
-          NS_FAILED((mResultCode = OnSuccess()))) {
-        OnError();
-      }
+    
+    
+    if (NS_FAILED(mResultCode) ||
+        NS_FAILED((mResultCode = OnSuccess()))) {
+      OnError();
     }
 
     NS_ASSERTION(gCurrentTransaction == mTransaction, "Should be unchanged!");
@@ -250,8 +223,6 @@ AsyncConnectionHelper::Run()
     return NS_OK;
   }
 
-  NS_ASSERTION(IndexedDatabaseManager::IsMainProcess(), "Wrong process!");
-
   nsresult rv = NS_OK;
   nsCOMPtr<mozIStorageConnection> connection;
 
@@ -262,20 +233,19 @@ AsyncConnectionHelper::Run()
     }
   }
 
-  bool setProgressHandler = false;
   if (connection) {
     rv = connection->SetProgressHandler(kProgressHandlerGranularity, this,
                                         getter_AddRefs(mOldProgressHandler));
     NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "SetProgressHandler failed!");
     if (NS_SUCCEEDED(rv)) {
-      setProgressHandler = true;
+      mStartTime = TimeStamp::Now();
     }
   }
 
   if (NS_SUCCEEDED(rv)) {
     bool hasSavepoint = false;
     if (mDatabase) {
-      IndexedDatabaseManager::SetCurrentWindow(mDatabase->GetOwner());
+      IndexedDatabaseManager::SetCurrentDatabase(mDatabase);
 
       
       if (mTransaction) {
@@ -288,7 +258,7 @@ AsyncConnectionHelper::Run()
     mResultCode = DoDatabaseWork(connection);
 
     if (mDatabase) {
-      IndexedDatabaseManager::SetCurrentWindow(nullptr);
+      IndexedDatabaseManager::SetCurrentDatabase(nsnull);
 
       
       if (hasSavepoint) {
@@ -313,16 +283,18 @@ AsyncConnectionHelper::Run()
     }
   }
 
-  if (setProgressHandler) {
+  if (!mStartTime.IsNull()) {
     nsCOMPtr<mozIStorageProgressHandler> handler;
     rv = connection->RemoveProgressHandler(getter_AddRefs(handler));
     NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "RemoveProgressHandler failed!");
 #ifdef DEBUG
     if (NS_SUCCEEDED(rv)) {
-      NS_ASSERTION(SameCOMIdentity(handler, static_cast<nsIRunnable*>(this)),
-                   "Mismatch!");
+      nsCOMPtr<nsISupports> handlerSupports(do_QueryInterface(handler));
+      nsCOMPtr<nsISupports> thisSupports = do_QueryObject(this);
+      NS_ASSERTION(thisSupports == handlerSupports, "Mismatch!");
     }
 #endif
+    mStartTime = TimeStamp();
   }
 
   return NS_DispatchToMainThread(this, NS_DISPATCH_NORMAL);
@@ -334,7 +306,13 @@ AsyncConnectionHelper::OnProgress(mozIStorageConnection* aConnection,
 {
   if (mDatabase && mDatabase->IsInvalidated()) {
     
-    *_retval = true;
+    *_retval = PR_TRUE;
+    return NS_OK;
+  }
+
+  TimeDuration elapsed = TimeStamp::Now() - mStartTime;
+  if (elapsed >= mTimeoutDuration) {
+    *_retval = PR_TRUE;
     return NS_OK;
   }
 
@@ -342,28 +320,36 @@ AsyncConnectionHelper::OnProgress(mozIStorageConnection* aConnection,
     return mOldProgressHandler->OnProgress(aConnection, _retval);
   }
 
-  *_retval = false;
+  *_retval = PR_FALSE;
   return NS_OK;
 }
 
 nsresult
-AsyncConnectionHelper::Dispatch(nsIEventTarget* aTarget)
+AsyncConnectionHelper::Dispatch(nsIEventTarget* aDatabaseThread)
 {
+#ifdef DEBUG
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+  {
+    bool sameThread;
+    nsresult rv = aDatabaseThread->IsOnCurrentThread(&sameThread);
+    NS_ASSERTION(NS_SUCCEEDED(rv), "IsOnCurrentThread failed!");
+    NS_ASSERTION(!sameThread, "Dispatching to main thread not supported!");
+  }
+#endif
 
   nsresult rv = Init();
   if (NS_FAILED(rv)) {
     return rv;
   }
 
-  rv = aTarget->Dispatch(this, NS_DISPATCH_NORMAL);
+  rv = aDatabaseThread->Dispatch(this, NS_DISPATCH_NORMAL);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (mTransaction) {
     mTransaction->OnNewRequest();
   }
 
-  mDispatched = true;
+  mDispatched = PR_TRUE;
 
   return NS_OK;
 }
@@ -374,17 +360,6 @@ AsyncConnectionHelper::DispatchToTransactionPool()
   NS_ASSERTION(mTransaction, "Only ok to call this with a transaction!");
   TransactionPoolEventTarget target(mTransaction);
   return Dispatch(&target);
-}
-
-
-void
-AsyncConnectionHelper::SetCurrentTransaction(IDBTransaction* aTransaction)
-{
-  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-  NS_ASSERTION(!aTransaction || !gCurrentTransaction,
-               "Stepping on another transaction!");
-
-  gCurrentTransaction = aTransaction;
 }
 
 
@@ -404,20 +379,14 @@ AsyncConnectionHelper::Init()
   return NS_OK;
 }
 
-already_AddRefed<nsDOMEvent>
-AsyncConnectionHelper::CreateSuccessEvent()
-{
-  return CreateGenericEvent(NS_LITERAL_STRING(SUCCESS_EVT_STR),
-                            eDoesNotBubble, eNotCancelable);
-}
-
 nsresult
 AsyncConnectionHelper::OnSuccess()
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
   NS_ASSERTION(mRequest, "Null request!");
 
-  nsRefPtr<nsDOMEvent> event = CreateSuccessEvent();
+  nsRefPtr<nsDOMEvent> event =
+    CreateGenericEvent(NS_LITERAL_STRING(SUCCESS_EVT_STR));
   if (!event) {
     NS_ERROR("Failed to create event!");
     return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
@@ -438,7 +407,7 @@ AsyncConnectionHelper::OnSuccess()
   if ((internalEvent->flags & NS_EVENT_FLAG_EXCEPTION_THROWN) &&
       mTransaction &&
       mTransaction->IsOpen()) {
-    rv = mTransaction->Abort(NS_ERROR_DOM_INDEXEDDB_ABORT_ERR);
+    rv = mTransaction->Abort();
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -453,8 +422,7 @@ AsyncConnectionHelper::OnError()
 
   
   nsRefPtr<nsDOMEvent> event =
-    CreateGenericEvent(NS_LITERAL_STRING(ERROR_EVT_STR), eDoesBubble,
-                       eCancelable);
+    CreateGenericEvent(NS_LITERAL_STRING(ERROR_EVT_STR), PR_TRUE);
   if (!event) {
     NS_ERROR("Failed to create event!");
     return;
@@ -468,20 +436,10 @@ AsyncConnectionHelper::OnError()
                  mTransaction->IsAborted(),
                  "How else can this be closed?!");
 
-    nsEvent* internalEvent = event->GetInternalNSEvent();
-    NS_ASSERTION(internalEvent, "This should never be null!");
-
-    if ((internalEvent->flags & NS_EVENT_FLAG_EXCEPTION_THROWN) &&
-        mTransaction &&
-        mTransaction->IsOpen() &&
-        NS_FAILED(mTransaction->Abort(NS_ERROR_DOM_INDEXEDDB_ABORT_ERR))) {
-      NS_WARNING("Failed to abort transaction!");
-    }
-
     if (doDefault &&
         mTransaction &&
         mTransaction->IsOpen() &&
-        NS_FAILED(mTransaction->Abort(mRequest))) {
+        NS_FAILED(mTransaction->Abort())) {
       NS_WARNING("Failed to abort transaction!");
     }
   }
@@ -505,125 +463,86 @@ AsyncConnectionHelper::ReleaseMainThreadObjects()
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
-  mDatabase = nullptr;
-  mTransaction = nullptr;
-
-  HelperBase::ReleaseMainThreadObjects();
+  mDatabase = nsnull;
+  mTransaction = nsnull;
+  mRequest = nsnull;
 }
 
 nsresult
-AsyncConnectionHelper::OnParentProcessRequestComplete(
-                                            const ResponseValue& aResponseValue)
-{
-  NS_ASSERTION(!IndexedDatabaseManager::IsMainProcess(), "Wrong process!");
-
-  if (aResponseValue.type() == ResponseValue::Tnsresult) {
-    NS_ASSERTION(NS_FAILED(aResponseValue.get_nsresult()), "Huh?");
-    SetError(aResponseValue.get_nsresult());
-  }
-  else {
-    nsresult rv = UnpackResponseFromParentProcess(aResponseValue);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  return Run();
-}
-
-
-nsresult
-AsyncConnectionHelper::ConvertCloneReadInfosToArray(
-                                  JSContext* aCx,
-                                  nsTArray<StructuredCloneReadInfo>& aReadInfos,
+AsyncConnectionHelper::WrapNative(JSContext* aCx,
+                                  nsISupports* aNative,
                                   jsval* aResult)
+{
+  NS_ASSERTION(aCx, "Null context!");
+  NS_ASSERTION(aNative, "Null pointer!");
+  NS_ASSERTION(aResult, "Null pointer!");
+  NS_ASSERTION(mRequest, "Null request!");
+
+  JSObject* global =
+    static_cast<JSObject*>(mRequest->ScriptContext()->GetNativeGlobal());
+  NS_ENSURE_TRUE(global, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
+
+  nsresult rv =
+    nsContentUtils::WrapNative(aCx, global, aNative, aResult);
+  NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
+
+  return NS_OK;
+}
+
+
+nsresult
+AsyncConnectionHelper::ConvertCloneBuffersToArray(
+                                JSContext* aCx,
+                                nsTArray<JSAutoStructuredCloneBuffer>& aBuffers,
+                                jsval* aResult)
 {
   NS_ASSERTION(aCx, "Null context!");
   NS_ASSERTION(aResult, "Null pointer!");
 
   JSAutoRequest ar(aCx);
 
-  nsresult rv = ConvertCloneReadInfosToArrayInternal(aCx, aReadInfos, aResult);
+  nsresult rv = ConvertCloneBuffersToArrayInternal(aCx, aBuffers, aResult);
 
-  for (uint32_t index = 0; index < aReadInfos.Length(); index++) {
-    aReadInfos[index].mCloneBuffer.clear();
+  for (PRUint32 index = 0; index < aBuffers.Length(); index++) {
+    aBuffers[index].clear();
   }
-  aReadInfos.Clear();
+  aBuffers.Clear();
 
   return rv;
 }
 
 NS_IMETHODIMP_(nsrefcnt)
-StackBasedEventTarget::AddRef()
+TransactionPoolEventTarget::AddRef()
 {
   NS_NOTREACHED("Don't call me!");
   return 2;
 }
 
 NS_IMETHODIMP_(nsrefcnt)
-StackBasedEventTarget::Release()
+TransactionPoolEventTarget::Release()
 {
   NS_NOTREACHED("Don't call me!");
   return 1;
 }
 
-NS_IMETHODIMP
-StackBasedEventTarget::QueryInterface(REFNSIID aIID,
-                                      void** aInstancePtr)
-{
-  NS_NOTREACHED("Don't call me!");
-  return NS_NOINTERFACE;
-}
-
-NS_IMETHODIMP
-MainThreadEventTarget::Dispatch(nsIRunnable* aRunnable,
-                                uint32_t aFlags)
-{
-  NS_ASSERTION(aRunnable, "Null pointer!");
-
-  nsCOMPtr<nsIRunnable> runnable = aRunnable;
-  return NS_DispatchToMainThread(aRunnable, aFlags);
-}
-
-NS_IMETHODIMP
-MainThreadEventTarget::IsOnCurrentThread(bool* aIsOnCurrentThread)
-{
-  *aIsOnCurrentThread = NS_IsMainThread();
-  return NS_OK;
-}
+NS_IMPL_QUERY_INTERFACE1(TransactionPoolEventTarget, nsIEventTarget)
 
 NS_IMETHODIMP
 TransactionPoolEventTarget::Dispatch(nsIRunnable* aRunnable,
-                                     uint32_t aFlags)
+                                     PRUint32 aFlags)
 {
   NS_ASSERTION(aRunnable, "Null pointer!");
   NS_ASSERTION(aFlags == NS_DISPATCH_NORMAL, "Unsupported!");
 
   TransactionThreadPool* pool = TransactionThreadPool::GetOrCreate();
-  NS_ENSURE_TRUE(pool, NS_ERROR_UNEXPECTED);
+  NS_ENSURE_TRUE(pool, NS_ERROR_FAILURE);
 
-  nsresult rv = pool->Dispatch(mTransaction, aRunnable, false, nullptr);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
+  return pool->Dispatch(mTransaction, aRunnable, false, nsnull);
 }
 
 NS_IMETHODIMP
-TransactionPoolEventTarget::IsOnCurrentThread(bool* aIsOnCurrentThread)
+TransactionPoolEventTarget::IsOnCurrentThread(bool* aResult)
 {
-  *aIsOnCurrentThread = false;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-NoDispatchEventTarget::Dispatch(nsIRunnable* aRunnable,
-                                uint32_t aFlags)
-{
-  nsCOMPtr<nsIRunnable> runnable = aRunnable;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-NoDispatchEventTarget::IsOnCurrentThread(bool* aIsOnCurrentThread)
-{
-  *aIsOnCurrentThread = true;
+  *aResult = PR_FALSE;
   return NS_OK;
 }

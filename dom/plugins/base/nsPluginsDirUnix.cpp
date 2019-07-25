@@ -3,9 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsNPAPIPlugin.h"
 #include "nsNPAPIPluginInstance.h"
 #include "nsIMemory.h"
+#include "nsIPluginStreamListener.h"
 #include "nsPluginsDir.h"
 #include "nsPluginsDirUtils.h"
 #include "prmem.h"
@@ -13,7 +47,7 @@
 #include "prerror.h"
 #include <sys/stat.h>
 #include "nsString.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "nsIPrefBranch.h"
 #include "nsIPrefService.h"
 
@@ -118,7 +152,7 @@ static void LoadExtraSharedLibs()
     
     nsresult res;
     nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID, &res));
-    if (NS_SUCCEEDED(res) && (prefs != nullptr)) {
+    if (NS_SUCCEEDED(res) && (prefs != nsnull)) {
         char *sonameList = NULL;
         bool prefSonameListIsSet = true;
         res = prefs->GetCharPref(PREF_PLUGINS_SONAME, &sonameList);
@@ -209,7 +243,7 @@ static void LoadExtraSharedLibs()
 
 bool nsPluginsDir::IsPluginFile(nsIFile* file)
 {
-    nsAutoCString filename;
+    nsCAutoString filename;
     if (NS_FAILED(file->GetNativeLeafName(filename)))
         return false;
 
@@ -258,7 +292,7 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary **outLibrary)
         return NS_ERROR_FILE_NOT_FOUND;
 
     nsresult rv;
-    nsAutoCString path;
+    nsCAutoString path;
     rv = mPlugin->GetNativePath(path);
     if (NS_FAILED(rv))
         return rv;
@@ -303,23 +337,19 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary **outLibrary)
     pLibrary = *outLibrary;
 #endif  
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
     printf("LoadPlugin() %s returned %lx\n", 
            libSpec.value.pathname, (unsigned long)pLibrary);
 #endif
-
-    if (!pLibrary) {
-        return NS_ERROR_FAILURE;
-    }
     
     return NS_OK;
 }
 
 nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info, PRLibrary **outLibrary)
 {
-    *outLibrary = nullptr;
+    *outLibrary = nsnull;
 
-    info.fVersion = nullptr;
+    info.fVersion = nsnull;
 
     
     nsresult rv = LoadPlugin(outLibrary);
@@ -348,12 +378,12 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info, PRLibrary **outLibrary)
         return rv;
     }
 
-    nsAutoCString path;
+    nsCAutoString path;
     if (NS_FAILED(rv = mPlugin->GetNativePath(path)))
         return rv;
     info.fFullPath = PL_strdup(path.get());
 
-    nsAutoCString fileName;
+    nsCAutoString fileName;
     if (NS_FAILED(rv = mPlugin->GetNativeLeafName(fileName)))
         return rv;
     info.fFileName = PL_strdup(fileName.get());
@@ -364,7 +394,7 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info, PRLibrary **outLibrary)
     }
 
     const char *name = NULL;
-    npGetValue(NULL, NPPVpluginNameString, &name);
+    NPError nperr = npGetValue(NULL, NPPVpluginNameString, &name);
     if (name) {
         info.fName = PL_strdup(name);
     }
@@ -373,7 +403,7 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info, PRLibrary **outLibrary)
     }
 
     const char *description = NULL;
-    npGetValue(NULL, NPPVpluginDescriptionString, &description);
+    nperr = npGetValue(NULL, NPPVpluginDescriptionString, &description);
     if (description) {
         info.fDescription = PL_strdup(description);
     }
@@ -386,20 +416,20 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info, PRLibrary **outLibrary)
 
 nsresult nsPluginFile::FreePluginInfo(nsPluginInfo& info)
 {
-    if (info.fName != nullptr)
+    if (info.fName != nsnull)
         PL_strfree(info.fName);
 
-    if (info.fDescription != nullptr)
+    if (info.fDescription != nsnull)
         PL_strfree(info.fDescription);
 
-    for (uint32_t i = 0; i < info.fVariantCount; i++) {
-        if (info.fMimeTypeArray[i] != nullptr)
+    for (PRUint32 i = 0; i < info.fVariantCount; i++) {
+        if (info.fMimeTypeArray[i] != nsnull)
             PL_strfree(info.fMimeTypeArray[i]);
 
-        if (info.fMimeDescriptionArray[i] != nullptr)
+        if (info.fMimeDescriptionArray[i] != nsnull)
             PL_strfree(info.fMimeDescriptionArray[i]);
 
-        if (info.fExtensionArray[i] != nullptr)
+        if (info.fExtensionArray[i] != nsnull)
             PL_strfree(info.fExtensionArray[i]);
     }
 
@@ -407,13 +437,13 @@ nsresult nsPluginFile::FreePluginInfo(nsPluginInfo& info)
     PR_FREEIF(info.fMimeDescriptionArray);
     PR_FREEIF(info.fExtensionArray);
 
-    if (info.fFullPath != nullptr)
+    if (info.fFullPath != nsnull)
         PL_strfree(info.fFullPath);
 
-    if (info.fFileName != nullptr)
+    if (info.fFileName != nsnull)
         PL_strfree(info.fFileName);
 
-    if (info.fVersion != nullptr)
+    if (info.fVersion != nsnull)
         PL_strfree(info.fVersion);
 
     return NS_OK;

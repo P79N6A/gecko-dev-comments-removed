@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsWebBrowserPersist_h__
 #define nsWebBrowserPersist_h__
 
@@ -20,7 +53,7 @@
 #include "nsIDocumentEncoder.h"
 #include "nsITransport.h"
 #include "nsIProgressEventSink.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "nsIWebProgressListener2.h"
 
 #include "nsHashtable.h"
@@ -81,14 +114,14 @@ private:
     void Cleanup();
     void CleanupLocalFiles();
     nsresult GetValidURIFromObject(nsISupports *aObject, nsIURI **aURI) const;
-    nsresult GetLocalFileFromURI(nsIURI *aURI, nsIFile **aLocalFile) const;
+    nsresult GetLocalFileFromURI(nsIURI *aURI, nsILocalFile **aLocalFile) const;
     nsresult AppendPathToURI(nsIURI *aURI, const nsAString & aPath) const;
     nsresult MakeAndStoreLocalFilenameInURIMap(
         nsIURI *aURI, bool aNeedsPersisting, URIData **aData);
     nsresult MakeOutputStream(
         nsIURI *aFile, nsIOutputStream **aOutputStream);
     nsresult MakeOutputStreamFromFile(
-        nsIFile *aFile, nsIOutputStream **aOutputStream);
+        nsILocalFile *aFile, nsIOutputStream **aOutputStream);
     nsresult MakeOutputStreamFromURI(nsIURI *aURI, nsIOutputStream  **aOutStream);
     nsresult CreateChannelFromURI(nsIURI *aURI, nsIChannel **aChannel);
     nsresult StartUpload(nsIStorageStream *aOutStream, nsIURI *aDestinationURI,
@@ -103,22 +136,24 @@ private:
     nsresult StoreURI(
         const char *aURI,
         bool aNeedsPersisting = true,
-        URIData **aData = nullptr);
+        URIData **aData = nsnull);
     nsresult StoreURI(
         nsIURI *aURI,
         bool aNeedsPersisting = true,
-        URIData **aData = nullptr);
+        URIData **aData = nsnull);
     nsresult StoreURIAttributeNS(
         nsIDOMNode *aNode, const char *aNamespaceURI, const char *aAttribute,
         bool aNeedsPersisting = true,
-        URIData **aData = nullptr);
+        URIData **aData = nsnull);
     nsresult StoreURIAttribute(
         nsIDOMNode *aNode, const char *aAttribute,
         bool aNeedsPersisting = true,
-        URIData **aData = nullptr)
+        URIData **aData = nsnull)
     {
         return StoreURIAttributeNS(aNode, "", aAttribute, aNeedsPersisting, aData);
     }
+    bool GetQuotedAttributeValue(
+    const nsAString &aSource, const nsAString &aAttribute, nsAString &aValue);
     bool DocumentEncoderExists(const PRUnichar *aContentType);
 
     nsresult GetNodeToFixup(nsIDOMNode *aNodeIn, nsIDOMNode **aNodeOut);
@@ -136,7 +171,7 @@ private:
     nsresult SaveDocumentWithFixup(
         nsIDOMDocument *pDocument, nsIDocumentEncoderNodeFixup *pFixup,
         nsIURI *aFile, bool aReplaceExisting, const nsACString &aFormatType,
-        const nsCString &aSaveCharset, uint32_t  aFlags);
+        const nsCString &aSaveCharset, PRUint32  aFlags);
     nsresult SaveSubframeContent(
         nsIDOMDocument *aFrameContent, URIData *aData);
     nsresult SetDocumentBase(nsIDOMDocument *aDocument, nsIURI *aBaseURI);
@@ -177,7 +212,7 @@ private:
     nsCOMPtr<nsIURI>          mCurrentBaseURI;
     nsCString                 mCurrentCharset;
     nsCOMPtr<nsIURI>          mTargetBaseURI;
-    uint32_t                  mCurrentThingsToPersist;
+    PRUint32                  mCurrentThingsToPersist;
 
     nsCOMPtr<nsIMIMEService>  mMIMEService;
     nsCOMPtr<nsIURI>          mURI;
@@ -202,12 +237,12 @@ private:
     bool                      mStartSaving;
     bool                      mReplaceExisting;
     bool                      mSerializingOutput;
-    uint32_t                  mPersistFlags;
-    nsresult                  mPersistResult;
-    int64_t                   mTotalCurrentProgress;
-    int64_t                   mTotalMaxProgress;
-    int16_t                   mWrapColumn;
-    uint32_t                  mEncodingFlags;
+    PRUint32                  mPersistFlags;
+    PRUint32                  mPersistResult;
+    PRInt64                   mTotalCurrentProgress;
+    PRInt64                   mTotalMaxProgress;
+    PRInt16                   mWrapColumn;
+    PRUint32                  mEncodingFlags;
     nsString                  mContentType;
 };
 

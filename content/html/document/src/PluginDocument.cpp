@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "MediaDocument.h"
 #include "nsIPluginDocument.h"
 #include "nsGkAtoms.h"
@@ -15,8 +47,6 @@
 #include "nsContentPolicyUtils.h"
 #include "nsIPropertyBag2.h"
 #include "mozilla/dom/Element.h"
-#include "nsObjectLoadingContent.h"
-#include "sampler.h"
 
 namespace mozilla {
 namespace dom {
@@ -37,7 +67,7 @@ public:
                                      nsISupports*        aContainer,
                                      nsIStreamListener** aDocListener,
                                      bool                aReset = true,
-                                     nsIContentSink*     aSink = nullptr);
+                                     nsIContentSink*     aSink = nsnull);
 
   virtual void SetScriptGlobalObject(nsIScriptGlobalObject* aScriptGlobalObject);
   virtual bool CanSavePresentation(nsIRequest *aNewRequest);
@@ -46,7 +76,7 @@ public:
   nsIContent*      GetPluginContent() { return mPluginContent; }
 
   void AllowNormalInstantiation() {
-    mWillHandleInstantiation = false;
+    mWillHandleInstantiation = PR_FALSE;
   }
 
   void StartLayout() { MediaDocument::StartLayout(); }
@@ -83,7 +113,6 @@ private:
 NS_IMETHODIMP
 PluginStreamListener::OnStartRequest(nsIRequest* request, nsISupports *ctxt)
 {
-  SAMPLE_LABEL("PluginStreamListener", "OnStartRequest");
   
   
   nsresult rv = SetupPlugin();
@@ -115,12 +144,20 @@ PluginStreamListener::SetupPlugin()
   
   shell->FlushPendingNotifications(Flush_Layout);
 
-  nsCOMPtr<nsIObjectLoadingContent> olc(do_QueryInterface(embed));
-  if (!olc) {
+  nsIFrame* frame = embed->GetPrimaryFrame();
+  if (!frame) {
+    mPluginDoc->AllowNormalInstantiation();
+    return NS_OK;
+  }
+
+  nsIObjectFrame* objFrame = do_QueryFrame(frame);
+  if (!objFrame) {
+    mPluginDoc->AllowNormalInstantiation();
     return NS_ERROR_UNEXPECTED;
   }
-  nsObjectLoadingContent* olcc = static_cast<nsObjectLoadingContent*>(olc.get());
-  nsresult rv = olcc->InstantiatePluginInstance();
+
+  nsresult rv = objFrame->Instantiate(mPluginDoc->GetType().get(),
+                                      mDocument->nsIDocument::GetDocumentURI());
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -137,7 +174,7 @@ PluginStreamListener::SetupPlugin()
   
 
 PluginDocument::PluginDocument()
-  : mWillHandleInstantiation(true)
+  : mWillHandleInstantiation(PR_TRUE)
 {
 }
 
@@ -178,9 +215,8 @@ PluginDocument::SetScriptGlobalObject(nsIScriptGlobalObject* aScriptGlobalObject
         CreateSyntheticPluginDocument();
       NS_ASSERTION(NS_SUCCEEDED(rv), "failed to create synthetic document");
     }
-    BecomeInteractive();
   } else {
-    mStreamListener = nullptr;
+    mStreamListener = nsnull;
   }
 }
 
@@ -190,7 +226,7 @@ PluginDocument::CanSavePresentation(nsIRequest *aNewRequest)
 {
   
   
-  return false;
+  return PR_FALSE;
 }
 
 
@@ -239,7 +275,7 @@ PluginDocument::StartDocumentLoad(const char*         aCommand,
 nsresult
 PluginDocument::CreateSyntheticPluginDocument()
 {
-  NS_ASSERTION(!GetShell() || !GetShell()->DidInitialize(),
+  NS_ASSERTION(!GetShell() || !GetShell()->DidInitialReflow(),
                "Creating synthetic plugin document content too late");
 
   
@@ -255,13 +291,13 @@ PluginDocument::CreateSyntheticPluginDocument()
 
   
   NS_NAMED_LITERAL_STRING(zero, "0");
-  body->SetAttr(kNameSpaceID_None, nsGkAtoms::marginwidth, zero, false);
-  body->SetAttr(kNameSpaceID_None, nsGkAtoms::marginheight, zero, false);
+  body->SetAttr(kNameSpaceID_None, nsGkAtoms::marginwidth, zero, PR_FALSE);
+  body->SetAttr(kNameSpaceID_None, nsGkAtoms::marginheight, zero, PR_FALSE);
 
 
   
   nsCOMPtr<nsINodeInfo> nodeInfo;
-  nodeInfo = mNodeInfoManager->GetNodeInfo(nsGkAtoms::embed, nullptr,
+  nodeInfo = mNodeInfoManager->GetNodeInfo(nsGkAtoms::embed, nsnull,
                                            kNameSpaceID_XHTML,
                                            nsIDOMNode::ELEMENT_NODE);
   NS_ENSURE_TRUE(nodeInfo, NS_ERROR_OUT_OF_MEMORY);
@@ -271,28 +307,28 @@ PluginDocument::CreateSyntheticPluginDocument()
 
   
   mPluginContent->SetAttr(kNameSpaceID_None, nsGkAtoms::name,
-                          NS_LITERAL_STRING("plugin"), false);
+                          NS_LITERAL_STRING("plugin"), PR_FALSE);
 
   
   NS_NAMED_LITERAL_STRING(percent100, "100%");
   mPluginContent->SetAttr(kNameSpaceID_None, nsGkAtoms::width, percent100,
-                          false);
+                          PR_FALSE);
   mPluginContent->SetAttr(kNameSpaceID_None, nsGkAtoms::height, percent100,
-                          false);
+                          PR_FALSE);
 
   
-  nsAutoCString src;
+  nsCAutoString src;
   mDocumentURI->GetSpec(src);
   mPluginContent->SetAttr(kNameSpaceID_None, nsGkAtoms::src,
-                          NS_ConvertUTF8toUTF16(src), false);
+                          NS_ConvertUTF8toUTF16(src), PR_FALSE);
 
   
   mPluginContent->SetAttr(kNameSpaceID_None, nsGkAtoms::type,
-                          NS_ConvertUTF8toUTF16(mMimeType), false);
+                          NS_ConvertUTF8toUTF16(mMimeType), PR_FALSE);
 
   
   
-  body->AppendChildTo(mPluginContent, false);
+  body->AppendChildTo(mPluginContent, PR_FALSE);
 
   return NS_OK;
 
@@ -319,14 +355,14 @@ PluginDocument::Print()
   nsIObjectFrame* objectFrame =
     do_QueryFrame(mPluginContent->GetPrimaryFrame());
   if (objectFrame) {
-    nsRefPtr<nsNPAPIPluginInstance> pi;
+    nsCOMPtr<nsNPAPIPluginInstance> pi;
     objectFrame->GetPluginInstance(getter_AddRefs(pi));
     if (pi) {
       NPPrint npprint;
       npprint.mode = NP_FULL;
-      npprint.print.fullPrint.pluginPrinted = false;
-      npprint.print.fullPrint.printOne = false;
-      npprint.print.fullPrint.platformPrint = nullptr;
+      npprint.print.fullPrint.pluginPrinted = PR_FALSE;
+      npprint.print.fullPrint.printOne = PR_FALSE;
+      npprint.print.fullPrint.platformPrint = nsnull;
 
       pi->Print(&npprint);
     }

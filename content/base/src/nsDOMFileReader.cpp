@@ -3,20 +3,54 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsDOMFileReader.h"
 
 #include "nsContentCID.h"
 #include "nsContentUtils.h"
-#include "nsDOMClassInfoID.h"
+#include "nsDOMClassInfo.h"
 #include "nsDOMFile.h"
-#include "nsError.h"
-#include "nsCharsetAlias.h"
+#include "nsDOMError.h"
+#include "nsICharsetAlias.h"
+#include "nsICharsetDetector.h"
 #include "nsICharsetConverterManager.h"
 #include "nsIConverterInputStream.h"
 #include "nsIFile.h"
 #include "nsIFileStreams.h"
 #include "nsIInputStream.h"
 #include "nsIMIMEService.h"
+#include "nsIPlatformCharset.h"
 #include "nsIUnicodeDecoder.h"
 #include "nsNetCID.h"
 #include "nsNetUtil.h"
@@ -30,23 +64,23 @@
 #include "nsIURI.h"
 #include "nsStreamUtils.h"
 #include "nsXPCOM.h"
+#include "nsIPrivateDOMEvent.h"
 #include "nsIDOMEventListener.h"
 #include "nsIJSContextStack.h"
 #include "nsJSEnvironment.h"
 #include "nsIScriptGlobalObject.h"
+#include "nsIDOMClassInfo.h"
 #include "nsCExternalHandlerService.h"
 #include "nsIStreamConverterService.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsLayoutStatics.h"
 #include "nsIScriptObjectPrincipal.h"
-#include "nsBlobProtocolHandler.h"
+#include "nsFileDataProtocolHandler.h"
 #include "mozilla/Preferences.h"
+#include "xpcprivate.h"
 #include "xpcpublic.h"
-#include "nsIScriptSecurityManager.h"
-#include "nsDOMJSUtils.h"
-#include "nsDOMEventTargetHelper.h"
-
-#include "jsfriendapi.h"
+#include "xpcquickstubs.h"
+#include "jstypedarray.h"
 
 using namespace mozilla;
 
@@ -62,19 +96,29 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsDOMFileReader,
                                                   FileIOObject)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mFile)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mPrincipal)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mChannel)
+  NS_CYCLE_COLLECTION_TRAVERSE_EVENT_HANDLER(load)
+  NS_CYCLE_COLLECTION_TRAVERSE_EVENT_HANDLER(loadstart)
+  NS_CYCLE_COLLECTION_TRAVERSE_EVENT_HANDLER(loadend)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsDOMFileReader,
                                                 FileIOObject)
-  tmp->mResultArrayBuffer = nullptr;
+  tmp->mResultArrayBuffer = nsnull;
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mFile)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mPrincipal)
+  NS_CYCLE_COLLECTION_UNLINK_EVENT_HANDLER(load)
+  NS_CYCLE_COLLECTION_UNLINK_EVENT_HANDLER(loadstart)
+  NS_CYCLE_COLLECTION_UNLINK_EVENT_HANDLER(loadend)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(nsDOMFileReader,
-                                               nsDOMEventTargetHelper)
-  NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mResultArrayBuffer)
+                                               nsDOMEventTargetWrapperCache)
+  if(tmp->mResultArrayBuffer) {
+    NS_IMPL_CYCLE_COLLECTION_TRACE_JS_CALLBACK(tmp->mResultArrayBuffer,
+                                               "mResultArrayBuffer")
+  }
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 DOMCI_DATA(FileReader, nsDOMFileReader)
@@ -84,18 +128,12 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(nsDOMFileReader)
   NS_INTERFACE_MAP_ENTRY(nsIInterfaceRequestor)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
   NS_INTERFACE_MAP_ENTRY(nsIJSNativeInitializer)
+  NS_INTERFACE_MAP_ENTRY(nsICharsetDetectionObserver)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(FileReader)
 NS_INTERFACE_MAP_END_INHERITING(FileIOObject)
 
 NS_IMPL_ADDREF_INHERITED(nsDOMFileReader, FileIOObject)
 NS_IMPL_RELEASE_INHERITED(nsDOMFileReader, FileIOObject)
-
-NS_IMPL_EVENT_HANDLER(nsDOMFileReader, load)
-NS_IMPL_EVENT_HANDLER(nsDOMFileReader, loadend)
-NS_IMPL_EVENT_HANDLER(nsDOMFileReader, loadstart)
-NS_IMPL_FORWARD_EVENT_HANDLER(nsDOMFileReader, abort, FileIOObject)
-NS_IMPL_FORWARD_EVENT_HANDLER(nsDOMFileReader, progress, FileIOObject)
-NS_IMPL_FORWARD_EVENT_HANDLER(nsDOMFileReader, error, FileIOObject)
 
 void
 nsDOMFileReader::RootResultArrayBuffer()
@@ -107,10 +145,19 @@ nsDOMFileReader::RootResultArrayBuffer()
 
 
 
+NS_IMETHODIMP
+nsDOMFileReader::Notify(const char *aCharset, nsDetectionConfident aConf)
+{
+  mCharset = aCharset;
+  return NS_OK;
+}
+
+
+
 nsDOMFileReader::nsDOMFileReader()
-  : mFileData(nullptr),
+  : mFileData(nsnull),
     mDataLen(0), mDataFormat(FILE_AS_BINARY),
-    mResultArrayBuffer(nullptr)     
+    mResultArrayBuffer(nsnull)     
 {
   nsLayoutStatics::AddRef();
   SetDOMStringToNull(mResult);
@@ -126,7 +173,7 @@ nsDOMFileReader::~nsDOMFileReader()
 nsresult
 nsDOMFileReader::Init()
 {
-  nsDOMEventTargetHelper::Init();
+  nsDOMEventTargetWrapperCache::Init();
 
   nsIScriptSecurityManager *secMan = nsContentUtils::GetSecurityManager();
   nsCOMPtr<nsIPrincipal> subjectPrincipal;
@@ -140,23 +187,32 @@ nsDOMFileReader::Init()
   return NS_OK;
 }
 
+NS_IMPL_EVENT_HANDLER(nsDOMFileReader, load)
+NS_IMPL_EVENT_HANDLER(nsDOMFileReader, loadstart)
+NS_IMPL_EVENT_HANDLER(nsDOMFileReader, loadend)
+NS_IMPL_FORWARD_EVENT_HANDLER(nsDOMFileReader, abort, FileIOObject)
+NS_IMPL_FORWARD_EVENT_HANDLER(nsDOMFileReader, progress, FileIOObject)
+NS_IMPL_FORWARD_EVENT_HANDLER(nsDOMFileReader, error, FileIOObject)
+
 NS_IMETHODIMP
 nsDOMFileReader::Initialize(nsISupports* aOwner, JSContext* cx, JSObject* obj,
-                            uint32_t argc, jsval *argv)
+                            PRUint32 argc, jsval *argv)
 {
-  nsCOMPtr<nsPIDOMWindow> owner = do_QueryInterface(aOwner);
-  if (!owner) {
+  mOwner = do_QueryInterface(aOwner);
+  if (!mOwner) {
     NS_WARNING("Unexpected nsIJSNativeInitializer owner");
     return NS_OK;
   }
-
-  BindToOwner(owner);
 
   
   
   nsCOMPtr<nsIScriptObjectPrincipal> scriptPrincipal = do_QueryInterface(aOwner);
   NS_ENSURE_STATE(scriptPrincipal);
   mPrincipal = scriptPrincipal->GetPrincipal();
+  nsCOMPtr<nsIScriptGlobalObject> sgo = do_QueryInterface(aOwner);
+  NS_ENSURE_STATE(sgo);
+  mScriptContext = sgo->GetContext();
+  NS_ENSURE_STATE(mScriptContext);
 
   return NS_OK; 
 }
@@ -172,7 +228,7 @@ nsDOMFileReader::GetInterface(const nsIID & aIID, void **aResult)
 
 
 NS_IMETHODIMP
-nsDOMFileReader::GetReadyState(uint16_t *aReadyState)
+nsDOMFileReader::GetReadyState(PRUint16 *aReadyState)
 {
   return FileIOObject::GetReadyState(aReadyState);
 }
@@ -187,21 +243,18 @@ nsDOMFileReader::GetResult(JSContext* aCx, jsval* aResult)
     } else {
       *aResult = JSVAL_NULL;
     }
-    if (!JS_WrapValue(aCx, aResult)) {
-      return NS_ERROR_FAILURE;
-    }
     return NS_OK;
   }
  
   nsString tmpResult = mResult;
-  if (!xpc::StringToJsval(aCx, tmpResult, aResult)) {
+  if (!xpc_qsStringToJsval(aCx, tmpResult, aResult)) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDOMFileReader::GetError(nsIDOMDOMError** aError)
+nsDOMFileReader::GetError(nsIDOMFileError** aError)
 {
   return FileIOObject::GetError(aError);
 }
@@ -215,20 +268,20 @@ nsDOMFileReader::ReadAsArrayBuffer(nsIDOMBlob* aFile, JSContext* aCx)
 NS_IMETHODIMP
 nsDOMFileReader::ReadAsBinaryString(nsIDOMBlob* aFile)
 {
-  return ReadFileContent(nullptr, aFile, EmptyString(), FILE_AS_BINARY);
+  return ReadFileContent(nsnull, aFile, EmptyString(), FILE_AS_BINARY);
 }
 
 NS_IMETHODIMP
 nsDOMFileReader::ReadAsText(nsIDOMBlob* aFile,
                             const nsAString &aCharset)
 {
-  return ReadFileContent(nullptr, aFile, aCharset, FILE_AS_TEXT);
+  return ReadFileContent(nsnull, aFile, aCharset, FILE_AS_TEXT);
 }
 
 NS_IMETHODIMP
 nsDOMFileReader::ReadAsDataURL(nsIDOMBlob* aFile)
 {
-  return ReadFileContent(nullptr, aFile, EmptyString(), FILE_AS_DATAURL);
+  return ReadFileContent(nsnull, aFile, EmptyString(), FILE_AS_DATAURL);
 }
 
 NS_IMETHODIMP
@@ -242,15 +295,15 @@ nsDOMFileReader::DoAbort(nsAString& aEvent)
 {
   
   SetDOMStringToNull(mResult);
-  mResultArrayBuffer = nullptr;
+  mResultArrayBuffer = nsnull;
     
   
   if (mChannel) {
     
     mChannel->Cancel(NS_ERROR_FAILURE);
-    mChannel = nullptr;
+    mChannel = nsnull;
   }
-  mFile = nullptr;
+  mFile = nsnull;
 
   
   FreeFileData();
@@ -265,9 +318,9 @@ NS_METHOD
 ReadFuncBinaryString(nsIInputStream* in,
                      void* closure,
                      const char* fromRawSegment,
-                     uint32_t toOffset,
-                     uint32_t count,
-                     uint32_t *writeCount)
+                     PRUint32 toOffset,
+                     PRUint32 count,
+                     PRUint32 *writeCount)
 {
   PRUnichar* dest = static_cast<PRUnichar*>(closure) + toOffset;
   PRUnichar* end = dest + count;
@@ -286,42 +339,37 @@ nsresult
 nsDOMFileReader::DoOnDataAvailable(nsIRequest *aRequest,
                                    nsISupports *aContext,
                                    nsIInputStream *aInputStream,
-                                   uint64_t aOffset,
-                                   uint32_t aCount)
+                                   PRUint32 aOffset,
+                                   PRUint32 aCount)
 {
   if (mDataFormat == FILE_AS_BINARY) {
     
     NS_ASSERTION(mResult.Length() == aOffset,
                  "unexpected mResult length");
-    uint32_t oldLen = mResult.Length();
-    if (uint64_t(oldLen) + aCount > PR_UINT32_MAX)
-      return NS_ERROR_OUT_OF_MEMORY;
-
-    PRUnichar *buf = nullptr;
-    mResult.GetMutableData(&buf, oldLen + aCount, fallible_t());
+    PRUint32 oldLen = mResult.Length();
+    PRUnichar *buf = nsnull;
+    mResult.GetMutableData(&buf, oldLen + aCount);
     NS_ENSURE_TRUE(buf, NS_ERROR_OUT_OF_MEMORY);
 
-    uint32_t bytesRead = 0;
+    PRUint32 bytesRead = 0;
     aInputStream->ReadSegments(ReadFuncBinaryString, buf + oldLen, aCount,
                                &bytesRead);
     NS_ASSERTION(bytesRead == aCount, "failed to read data");
   }
   else if (mDataFormat == FILE_AS_ARRAYBUFFER) {
-    uint32_t bytesRead = 0;
-    aInputStream->Read((char*)JS_GetArrayBufferData(mResultArrayBuffer, NULL) + aOffset,
-                       aCount, &bytesRead);
+    JSObject* abuf = js::ArrayBuffer::getArrayBuffer(mResultArrayBuffer);
+    NS_ASSERTION(abuf, "What happened?");
+  
+    PRUint32 bytesRead = 0;
+    aInputStream->Read((char*)JS_GetArrayBufferData(abuf) + aOffset, aCount, &bytesRead);
     NS_ASSERTION(bytesRead == aCount, "failed to read data");
   }
   else {
     
-    if (aOffset + aCount > PR_UINT32_MAX) {
-      
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
     mFileData = (char *)PR_Realloc(mFileData, aOffset + aCount);
     NS_ENSURE_TRUE(mFileData, NS_ERROR_OUT_OF_MEMORY);
 
-    uint32_t bytesRead = 0;
+    PRUint32 bytesRead = 0;
     aInputStream->Read(mFileData + aOffset, aCount, &bytesRead);
     NS_ASSERTION(bytesRead == aCount, "failed to read data");
 
@@ -338,13 +386,6 @@ nsDOMFileReader::DoOnStopRequest(nsIRequest *aRequest,
                                  nsAString& aSuccessEvent,
                                  nsAString& aTerminationEvent)
 {
-  
-  nsCOMPtr<nsIChannel> channel;
-  mChannel.swap(channel);
-
-  nsCOMPtr<nsIDOMBlob> file;
-  mFile.swap(file);
-
   aSuccessEvent = NS_LITERAL_STRING(LOAD_STR);
   aTerminationEvent = NS_LITERAL_STRING(LOADEND_STR);
 
@@ -364,11 +405,11 @@ nsDOMFileReader::DoOnStopRequest(nsIRequest *aRequest,
       rv = GetAsText(mCharset, mFileData, mDataLen, mResult);
       break;
     case FILE_AS_DATAURL:
-      rv = GetAsDataURL(file, mFileData, mDataLen, mResult);
+      rv = GetAsDataURL(mFile, mFileData, mDataLen, mResult);
       break;
   }
   
-  mResult.SetIsVoid(false);
+  mResult.SetIsVoid(PR_FALSE);
 
   FreeFileData();
 
@@ -388,7 +429,7 @@ nsDOMFileReader::ReadFileContent(JSContext* aCx,
 
   
   Abort();
-  mError = nullptr;
+  mError = nsnull;
   SetDOMStringToNull(mResult);
   mTransferred = 0;
   mTotal = 0;
@@ -418,7 +459,7 @@ nsDOMFileReader::ReadFileContent(JSContext* aCx,
   mTotal = mozilla::dom::kUnknownSize;
   mFile->GetSize(&mTotal);
 
-  rv = mChannel->AsyncOpen(this, nullptr);
+  rv = mChannel->AsyncOpen(this, nsnull);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -427,7 +468,7 @@ nsDOMFileReader::ReadFileContent(JSContext* aCx,
   
   if (mDataFormat == FILE_AS_ARRAYBUFFER) {
     RootResultArrayBuffer();
-    mResultArrayBuffer = JS_NewArrayBuffer(aCx, mTotal);
+    mResultArrayBuffer = js_CreateArrayBuffer(aCx, mTotal);
     if (!mResultArrayBuffer) {
       NS_WARNING("Failed to create JS array buffer");
       return NS_ERROR_FAILURE;
@@ -440,20 +481,23 @@ nsDOMFileReader::ReadFileContent(JSContext* aCx,
 nsresult
 nsDOMFileReader::GetAsText(const nsACString &aCharset,
                            const char *aFileData,
-                           uint32_t aDataLen,
+                           PRUint32 aDataLen,
                            nsAString& aResult)
 {
   nsresult rv;
-  nsAutoCString charsetGuess;
+  nsCAutoString charsetGuess;
   if (!aCharset.IsEmpty()) {
     charsetGuess = aCharset;
   } else {
-    rv = nsContentUtils::GuessCharset(aFileData, aDataLen, charsetGuess);
+    rv = GuessCharset(aFileData, aDataLen, charsetGuess);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  nsAutoCString charset;
-  rv = nsCharsetAlias::GetPreferred(charsetGuess, charset);
+  nsCAutoString charset;
+  nsCOMPtr<nsICharsetAlias> alias = do_GetService(NS_CHARSETALIAS_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = alias->GetPreferred(charsetGuess, charset);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = ConvertStream(aFileData, aDataLen, charset.get(), aResult);
@@ -464,7 +508,7 @@ nsDOMFileReader::GetAsText(const nsACString &aCharset,
 nsresult
 nsDOMFileReader::GetAsDataURL(nsIDOMBlob *aFile,
                               const char *aFileData,
-                              uint32_t aDataLen,
+                              PRUint32 aDataLen,
                               nsAString& aResult)
 {
   aResult.AssignLiteral("data:");
@@ -479,21 +523,21 @@ nsDOMFileReader::GetAsDataURL(nsIDOMBlob *aFile,
   }
   aResult.AppendLiteral(";base64,");
 
-  uint32_t totalRead = 0;
+  PRUint32 totalRead = 0;
   while (aDataLen > totalRead) {
-    uint32_t numEncode = 4096;
-    uint32_t amtRemaining = aDataLen - totalRead;
+    PRUint32 numEncode = 4096;
+    PRUint32 amtRemaining = aDataLen - totalRead;
     if (numEncode > amtRemaining)
       numEncode = amtRemaining;
 
     
     if (numEncode > 3) {
-      uint32_t leftOver = numEncode % 3;
+      PRUint32 leftOver = numEncode % 3;
       numEncode -= leftOver;
     }
 
     
-    char *base64 = PL_Base64Encode(aFileData + totalRead, numEncode, nullptr);
+    char *base64 = PL_Base64Encode(aFileData + totalRead, numEncode, nsnull);
     AppendASCIItoUTF16(nsDependentCString(base64), aResult);
     PR_Free(base64);
 
@@ -505,7 +549,7 @@ nsDOMFileReader::GetAsDataURL(nsIDOMBlob *aFile,
 
 nsresult
 nsDOMFileReader::ConvertStream(const char *aFileData,
-                               uint32_t aDataLen,
+                               PRUint32 aDataLen,
                                const char *aCharset,
                                nsAString &aResult)
 {
@@ -518,16 +562,93 @@ nsDOMFileReader::ConvertStream(const char *aFileData,
   rv = charsetConverter->GetUnicodeDecoder(aCharset, getter_AddRefs(unicodeDecoder));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  int32_t destLength;
+  PRInt32 destLength;
   rv = unicodeDecoder->GetMaxLength(aFileData, aDataLen, &destLength);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (!aResult.SetLength(destLength, fallible_t()))
-    return NS_ERROR_OUT_OF_MEMORY;
+  aResult.SetLength(destLength);  
+  destLength = aResult.Length();
 
-  int32_t srcLength = aDataLen;
+  PRInt32 srcLength = aDataLen;
   rv = unicodeDecoder->Convert(aFileData, &srcLength, aResult.BeginWriting(), &destLength);
   aResult.SetLength(destLength); 
 
   return rv;
+}
+
+nsresult
+nsDOMFileReader::GuessCharset(const char *aFileData,
+                              PRUint32 aDataLen,
+                              nsACString &aCharset)
+{
+  
+  nsCOMPtr<nsICharsetDetector> detector
+    = do_CreateInstance(NS_CHARSET_DETECTOR_CONTRACTID_BASE
+                        "universal_charset_detector");
+  if (!detector) {
+    
+    const nsAdoptingCString& detectorName =
+      Preferences::GetLocalizedCString("intl.charset.detector");
+    if (!detectorName.IsEmpty()) {
+      nsCAutoString detectorContractID;
+      detectorContractID.AssignLiteral(NS_CHARSET_DETECTOR_CONTRACTID_BASE);
+      detectorContractID += detectorName;
+      detector = do_CreateInstance(detectorContractID.get());
+    }
+  }
+
+  nsresult rv;
+  
+  
+  if (detector && aDataLen != 0) {
+    mCharset.Truncate();
+    detector->Init(this);
+
+    bool done;
+
+    rv = detector->DoIt(aFileData, aDataLen, &done);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = detector->Done();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    aCharset = mCharset;
+  } else {
+    
+    unsigned char sniffBuf[3];
+    PRUint32 numRead = (aDataLen >= sizeof(sniffBuf) ? sizeof(sniffBuf) : aDataLen);
+    memcpy(sniffBuf, aFileData, numRead);
+
+    if (numRead >= 2 &&
+               sniffBuf[0] == 0xfe &&
+               sniffBuf[1] == 0xff) {
+      aCharset = "UTF-16BE";
+    } else if (numRead >= 2 &&
+               sniffBuf[0] == 0xff &&
+               sniffBuf[1] == 0xfe) {
+      aCharset = "UTF-16LE";
+    } else if (numRead >= 3 &&
+               sniffBuf[0] == 0xef &&
+               sniffBuf[1] == 0xbb &&
+               sniffBuf[2] == 0xbf) {
+      aCharset = "UTF-8";
+    }
+  }
+
+  if (aCharset.IsEmpty()) {
+    
+    nsCOMPtr<nsIPlatformCharset> platformCharset =
+      do_GetService(NS_PLATFORMCHARSET_CONTRACTID, &rv);
+    if (NS_SUCCEEDED(rv)) {
+      rv = platformCharset->GetCharset(kPlatformCharsetSel_PlainTextInFile,
+                                       aCharset);
+    }
+  }
+
+  if (aCharset.IsEmpty()) {
+    
+    aCharset.AssignLiteral("UTF-8");
+  }
+
+  return NS_OK;
 }

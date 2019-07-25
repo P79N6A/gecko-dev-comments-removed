@@ -3,12 +3,52 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsPagePrintTimer.h"
 #include "nsIContentViewer.h"
 #include "nsIServiceManager.h"
 #include "nsPrintEngine.h"
 
 NS_IMPL_ISUPPORTS1(nsPagePrintTimer, nsITimerCallback)
+
+nsPagePrintTimer::nsPagePrintTimer() :
+  mPrintEngine(nsnull),
+  mDelay(0),
+  mFiringCount(0),
+  mPrintObj(nsnull)
+{
+}
 
 nsPagePrintTimer::~nsPagePrintTimer()
 {
@@ -30,7 +70,7 @@ nsPagePrintTimer::StartTimer(bool aUseDelay)
   if (NS_FAILED(result)) {
     NS_WARNING("unable to start the timer");
   } else {
-    uint32_t delay = 0;
+    PRUint32 delay = 0;
     if (aUseDelay) {
       if (mFiringCount < 10) {
         
@@ -45,60 +85,59 @@ nsPagePrintTimer::StartTimer(bool aUseDelay)
 }
 
 
-NS_IMETHODIMP
-nsPagePrintTimer::Run() 
-{
-  bool initNewTimer = true;
-  
-  
-  bool inRange;
-  bool donePrinting;
-
-  
-  
-  donePrinting = mPrintEngine->PrintPage(mPrintObj, inRange);
-  if (donePrinting) {
-    
-    if (mPrintEngine->DonePrintingPages(mPrintObj, NS_OK)) {
-      initNewTimer = false;
-    }
-  }
-
-  
-  
-  
-  Stop(); 
-  if (initNewTimer) {
-    ++mFiringCount;
-    nsresult result = StartTimer(inRange);
-    if (NS_FAILED(result)) {
-      donePrinting = true;     
-      mPrintEngine->SetIsPrinting(false);
-    }
-  }
-  return NS_OK;
-}
 
 
 NS_IMETHODIMP
 nsPagePrintTimer::Notify(nsITimer *timer)
 {
   if (mDocViewerPrint) {
-    bool donePrePrint = mPrintEngine->PrePrintPage();
-
-    if (donePrePrint) {
-      NS_DispatchToMainThread(this);
+    bool initNewTimer = true;
+    
+    
+    bool inRange;
+    
+    
+    bool donePrinting = mPrintEngine->PrintPage(mPrintObj, inRange);
+    if (donePrinting) {
+      
+      if (mPrintEngine->DonePrintingPages(mPrintObj, NS_OK)) {
+        initNewTimer = PR_FALSE;
+      }
     }
 
+    
+    
+    
+    Stop(); 
+    if (initNewTimer) {
+      ++mFiringCount;
+      nsresult result = StartTimer(inRange);
+      if (NS_FAILED(result)) {
+        donePrinting = PR_TRUE;     
+        mPrintEngine->SetIsPrinting(PR_FALSE);
+      }
+    }
   }
   return NS_OK;
+}
+
+void 
+nsPagePrintTimer::Init(nsPrintEngine*          aPrintEngine,
+                       nsIDocumentViewerPrint* aDocViewerPrint,
+                       PRUint32                aDelay)
+{
+  mPrintEngine     = aPrintEngine;
+  mDocViewerPrint  = aDocViewerPrint;
+  mDelay           = aDelay;
+
+  mDocViewerPrint->IncrementDestroyRefCount();
 }
 
 nsresult 
 nsPagePrintTimer::Start(nsPrintObject* aPO)
 {
   mPrintObj = aPO;
-  return StartTimer(false);
+  return StartTimer(PR_FALSE);
 }
 
 
@@ -107,6 +146,25 @@ nsPagePrintTimer::Stop()
 {
   if (mTimer) {
     mTimer->Cancel();
-    mTimer = nullptr;
+    mTimer = nsnull;
   }
 }
+
+nsresult NS_NewPagePrintTimer(nsPagePrintTimer **aResult)
+{
+
+  NS_PRECONDITION(aResult, "null param");
+
+  nsPagePrintTimer* result = new nsPagePrintTimer;
+
+  if (!result) {
+    *aResult = nsnull;
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  NS_ADDREF(result);
+  *aResult = result;
+
+  return NS_OK;
+}
+

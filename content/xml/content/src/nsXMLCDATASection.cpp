@@ -3,9 +3,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIDOMCDATASection.h"
 #include "nsGenericDOMDataNode.h"
 #include "nsGkAtoms.h"
+#include "nsIDocument.h"
+#include "nsContentUtils.h"
+#include "nsDOMMemoryReporter.h"
+
 
 class nsXMLCDATASection : public nsGenericDOMDataNode,
                           public nsIDOMCDATASection
@@ -27,20 +63,22 @@ public:
   NS_FORWARD_NSIDOMTEXT(nsGenericDOMDataNode::)
 
   
+  NS_DECL_AND_IMPL_DOM_MEMORY_REPORTER_SIZEOF(nsXMLCDATASection,
+                                              nsGenericDOMDataNode)
+
+  
   
 
   
-  virtual bool IsNodeOfType(uint32_t aFlags) const;
+  virtual bool IsNodeOfType(PRUint32 aFlags) const;
 
   virtual nsGenericDOMDataNode* CloneDataNode(nsINodeInfo *aNodeInfo,
                                               bool aCloneText) const;
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 #ifdef DEBUG
-  virtual void List(FILE* out, int32_t aIndent) const;
-  virtual void DumpContent(FILE* out, int32_t aIndent,bool aDumpAll) const;
+  virtual void List(FILE* out, PRInt32 aIndent) const;
+  virtual void DumpContent(FILE* out, PRInt32 aIndent,bool aDumpAll) const;
 #endif
 };
 
@@ -50,11 +88,11 @@ NS_NewXMLCDATASection(nsIContent** aInstancePtrResult,
 {
   NS_PRECONDITION(aNodeInfoManager, "Missing nodeinfo manager");
 
-  *aInstancePtrResult = nullptr;
+  *aInstancePtrResult = nsnull;
 
   nsCOMPtr<nsINodeInfo> ni;
   ni = aNodeInfoManager->GetNodeInfo(nsGkAtoms::cdataTagName,
-                                     nullptr, kNameSpaceID_None,
+                                     nsnull, kNameSpaceID_None,
                                      nsIDOMNode::CDATA_SECTION_NODE);
   NS_ENSURE_TRUE(ni, NS_ERROR_OUT_OF_MEMORY);
 
@@ -94,7 +132,7 @@ NS_IMPL_RELEASE_INHERITED(nsXMLCDATASection, nsGenericDOMDataNode)
 
 
 bool
-nsXMLCDATASection::IsNodeOfType(uint32_t aFlags) const
+nsXMLCDATASection::IsNodeOfType(PRUint32 aFlags) const
 {
   return !(aFlags & ~(eCONTENT | eTEXT | eDATA_NODE));
 }
@@ -113,9 +151,9 @@ nsXMLCDATASection::CloneDataNode(nsINodeInfo *aNodeInfo, bool aCloneText) const
 
 #ifdef DEBUG
 void
-nsXMLCDATASection::List(FILE* out, int32_t aIndent) const
+nsXMLCDATASection::List(FILE* out, PRInt32 aIndent) const
 {
-  int32_t index;
+  PRInt32 index;
   for (index = aIndent; --index >= 0; ) fputs("  ", out);
 
   fprintf(out, "CDATASection refcount=%d<", mRefCnt.get());
@@ -128,7 +166,7 @@ nsXMLCDATASection::List(FILE* out, int32_t aIndent) const
 }
 
 void
-nsXMLCDATASection::DumpContent(FILE* out, int32_t aIndent,
+nsXMLCDATASection::DumpContent(FILE* out, PRInt32 aIndent,
                                bool aDumpAll) const {
 }
 #endif

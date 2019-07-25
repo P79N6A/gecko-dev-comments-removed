@@ -4,6 +4,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsOSHelperAppService_h__
 #define nsOSHelperAppService_h__
 
@@ -42,10 +77,10 @@ public:
                                    bool * aHandlerExists);
 
 protected:
-  virtual void FixFilePermissions(nsIFile* aFile);
+  virtual void FixFilePermissions(nsILocalFile* aFile);
 
 private:
-  uint32_t mPermissions;
+  PRUint32 mPermissions;
 };
 
 #endif 

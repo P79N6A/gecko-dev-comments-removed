@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_PATTERN_H
 #define GFX_PATTERN_H
 
@@ -12,8 +44,6 @@
 #include "gfxMatrix.h"
 #include "nsISupportsImpl.h"
 #include "nsAutoPtr.h"
-#include "mozilla/gfx/2D.h"
-#include "mozilla/Util.h"
 
 class gfxContext;
 class gfxASurface;
@@ -31,8 +61,6 @@ public:
     gfxPattern(gfxFloat x0, gfxFloat y0, gfxFloat x1, gfxFloat y1); 
     gfxPattern(gfxFloat cx0, gfxFloat cy0, gfxFloat radius0,
                gfxFloat cx1, gfxFloat cy1, gfxFloat radius1); 
-    gfxPattern(mozilla::gfx::SourceSurface *aSurface,
-               const mozilla::gfx::Matrix &aTransform); 
     virtual ~gfxPattern();
 
     cairo_pattern_t *CairoPattern();
@@ -40,15 +68,6 @@ public:
 
     void SetMatrix(const gfxMatrix& matrix);
     gfxMatrix GetMatrix() const;
-
-    
-
-
-
-
-    mozilla::gfx::Pattern *GetPattern(mozilla::gfx::DrawTarget *aTarget,
-                                      mozilla::gfx::Matrix *aPatternTransform = nullptr);
-    bool IsOpaque();
 
     enum GraphicsExtend {
         EXTEND_NONE,
@@ -88,8 +107,7 @@ public:
         FILTER_BEST,
         FILTER_NEAREST,
         FILTER_BILINEAR,
-        FILTER_GAUSSIAN,
-        FILTER_SENTINEL
+        FILTER_GAUSSIAN
     };
 
     void SetFilter(GraphicsFilter filter);
@@ -102,25 +120,6 @@ public:
 
 protected:
     cairo_pattern_t *mPattern;
-
-    void AdjustTransformForPattern(mozilla::gfx::Matrix &aPatternTransform,
-                                   const mozilla::gfx::Matrix &aCurrentTransform,
-                                   const mozilla::gfx::Matrix *aOriginalTransform);
-
-    union {
-      mozilla::AlignedStorage2<mozilla::gfx::ColorPattern> mColorPattern;
-      mozilla::AlignedStorage2<mozilla::gfx::LinearGradientPattern> mLinearGradientPattern;
-      mozilla::AlignedStorage2<mozilla::gfx::RadialGradientPattern> mRadialGradientPattern;
-      mozilla::AlignedStorage2<mozilla::gfx::SurfacePattern> mSurfacePattern;
-    };
-
-    mozilla::gfx::Pattern *mGfxPattern;
-
-    mozilla::RefPtr<mozilla::gfx::SourceSurface> mSourceSurface;
-    mozilla::gfx::Matrix mTransform;
-    mozilla::RefPtr<mozilla::gfx::GradientStops> mStops;
-    mozilla::gfx::ExtendMode mExtend;
-    mozilla::gfx::Filter mFilter;
 };
 
 #endif 

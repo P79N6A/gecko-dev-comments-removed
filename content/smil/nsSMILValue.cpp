@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSMILValue.h"
 #include "nsDebug.h"
 #include <string.h>
@@ -47,7 +80,7 @@ bool
 nsSMILValue::operator==(const nsSMILValue& aVal) const
 {
   if (&aVal == this)
-    return true;
+    return PR_TRUE;
 
   return mType == aVal.mType && mType->IsEqual(*this, aVal);
 }
@@ -66,7 +99,7 @@ nsSMILValue::Swap(nsSMILValue& aOther)
 }
 
 nsresult
-nsSMILValue::Add(const nsSMILValue& aValueToAdd, uint32_t aCount)
+nsSMILValue::Add(const nsSMILValue& aValueToAdd, PRUint32 aCount)
 {
   if (aValueToAdd.mType != mType) {
     NS_ERROR("Trying to add incompatible types");

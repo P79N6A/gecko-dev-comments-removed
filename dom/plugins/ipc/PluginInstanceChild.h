@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef dom_plugins_PluginInstanceChild_h
 #define dom_plugins_PluginInstanceChild_h 1
 
@@ -11,13 +43,11 @@
 #include "mozilla/plugins/PluginScriptableObjectChild.h"
 #include "mozilla/plugins/StreamNotifyChild.h"
 #include "mozilla/plugins/PPluginSurfaceChild.h"
-#include "mozilla/ipc/CrossProcessMutex.h"
-#include "nsClassHashtable.h"
 #if defined(OS_WIN)
 #include "mozilla/gfx/SharedDIBWin.h"
 #elif defined(MOZ_WIDGET_COCOA)
 #include "PluginUtilsOSX.h"
-#include "mozilla/gfx/QuartzSupport.h"
+#include "nsCoreAnimationSupport.h"
 #include "base/timer.h"
 
 using namespace mozilla::plugins::PluginUtilsOSX;
@@ -33,18 +63,7 @@ using namespace mozilla::plugins::PluginUtilsOSX;
 #include "mozilla/PaintTracker.h"
 #include "gfxASurface.h"
 
-#include <map>
-
-#if defined(MOZ_WIDGET_GTK)
-#include "gtk2xtbin.h"
-#endif
-
 namespace mozilla {
-
-namespace layers {
-struct RemoteImageData;
-}
-
 namespace plugins {
 
 class PBrowserStreamChild;
@@ -116,15 +135,17 @@ protected:
         return true;
     }
 
+    NS_OVERRIDE
     virtual bool
-    AnswerPaint(const NPRemoteEvent& event, int16_t* handled) MOZ_OVERRIDE
+    AnswerPaint(const NPRemoteEvent& event, int16_t* handled)
     {
         PaintTracker pt;
         return AnswerNPP_HandleEvent(event, handled);
     }
 
+    NS_OVERRIDE
     virtual bool
-    RecvWindowPosChanged(const NPRemoteEvent& event) MOZ_OVERRIDE;
+    RecvWindowPosChanged(const NPRemoteEvent& event);
 
     virtual bool
     AnswerNPP_Destroy(NPError* result);
@@ -135,8 +156,8 @@ protected:
     virtual bool
     DeallocPPluginScriptableObject(PPluginScriptableObjectChild* aObject);
 
-    virtual bool
-    RecvPPluginScriptableObjectConstructor(PPluginScriptableObjectChild* aActor) MOZ_OVERRIDE;
+    NS_OVERRIDE virtual bool
+    RecvPPluginScriptableObjectConstructor(PPluginScriptableObjectChild* aActor);
 
     virtual PBrowserStreamChild*
     AllocPBrowserStream(const nsCString& url,
@@ -179,22 +200,14 @@ protected:
                        const bool& file,
                        NPError* result);
 
-    virtual bool
-    DeallocPStreamNotify(PStreamNotifyChild* notifyData) MOZ_OVERRIDE;
+    NS_OVERRIDE virtual bool
+    DeallocPStreamNotify(PStreamNotifyChild* notifyData);
 
     virtual bool
     AnswerSetPluginFocus();
 
     virtual bool
     AnswerUpdateWindow();
-
-    virtual bool
-    RecvNPP_DidComposite();
-
-#if defined(MOZ_X11) && defined(XP_UNIX) && !defined(XP_MACOSX)
-    bool CreateWindow(const NPRemoteWindow& aWindow);
-    void DeleteWindow();
-#endif
 
 public:
     PluginInstanceChild(const NPPluginFuncs* aPluginIface);
@@ -223,10 +236,6 @@ public:
 
     void InvalidateRect(NPRect* aInvalidRect);
 
-#ifdef MOZ_WIDGET_COCOA
-    void Invalidate();
-#endif 
-
     uint32_t ScheduleTimer(uint32_t interval, bool repeat, TimerFunc func);
     void UnscheduleTimer(uint32_t id);
 
@@ -236,13 +245,6 @@ public:
 
     void NPN_URLRedirectResponse(void* notifyData, NPBool allow);
 
-    NPError NPN_InitAsyncSurface(NPSize *size, NPImageFormat format,
-                                 void *initData, NPAsyncSurface *surface);
-    NPError NPN_FinalizeAsyncSurface(NPAsyncSurface *surface);
-
-    void NPN_SetCurrentAsyncSurface(NPAsyncSurface *surface, NPRect *changed);
-
-    void DoAsyncRedraw();
 private:
     friend class PluginModuleChild;
 
@@ -250,21 +252,21 @@ private:
     InternalGetNPObjectForValue(NPNVariable aValue,
                                 NPObject** aObject);
 
-    bool IsAsyncDrawing();
-
-    NPError DeallocateAsyncBitmapSurface(NPAsyncSurface *aSurface);
-
+    NS_OVERRIDE
     virtual bool RecvUpdateBackground(const SurfaceDescriptor& aBackground,
-                                      const nsIntRect& aRect) MOZ_OVERRIDE;
+                                      const nsIntRect& aRect);
 
+    NS_OVERRIDE
     virtual PPluginBackgroundDestroyerChild*
-    AllocPPluginBackgroundDestroyer() MOZ_OVERRIDE;
+    AllocPPluginBackgroundDestroyer();
 
+    NS_OVERRIDE
     virtual bool
-    RecvPPluginBackgroundDestroyerConstructor(PPluginBackgroundDestroyerChild* aActor) MOZ_OVERRIDE;
+    RecvPPluginBackgroundDestroyerConstructor(PPluginBackgroundDestroyerChild* aActor);
 
+    NS_OVERRIDE
     virtual bool
-    DeallocPPluginBackgroundDestroyer(PPluginBackgroundDestroyerChild* aActor) MOZ_OVERRIDE;
+    DeallocPPluginBackgroundDestroyer(PPluginBackgroundDestroyerChild* aActor);
 
 #if defined(OS_WIN)
     static bool RegisterWindowClass();
@@ -329,7 +331,7 @@ private:
                               HWND aWnd, UINT aMsg,
                               WPARAM aWParam, LPARAM aLParam,
                               bool isWindowed)
-          : ChildAsyncCall(aInst, nullptr, nullptr),
+          : ChildAsyncCall(aInst, nsnull, nsnull),
           mWnd(aWnd),
           mMsg(aMsg),
           mWParam(aWParam),
@@ -337,7 +339,7 @@ private:
           mWindowed(isWindowed)
         {}
 
-        void Run() MOZ_OVERRIDE;
+        NS_OVERRIDE void Run();
 
         WNDPROC GetProc();
         HWND GetWnd() { return mWnd; }
@@ -354,23 +356,10 @@ private:
     };
 
 #endif
+
     const NPPluginFuncs* mPluginIface;
     NPP_t mData;
     NPWindow mWindow;
-    int16_t               mDrawingModel;
-    NPAsyncSurface* mCurrentAsyncSurface;
-    struct AsyncBitmapData {
-      void *mRemotePtr;
-      Shmem mShmem;
-    };
-
-    static PLDHashOperator DeleteSurface(NPAsyncSurface* surf, nsAutoPtr<AsyncBitmapData> &data, void* userArg);
-    nsClassHashtable<nsPtrHashKey<NPAsyncSurface>, AsyncBitmapData> mAsyncBitmaps;
-    Shmem mRemoteImageDataShmem;
-    mozilla::layers::RemoteImageData *mRemoteImageData;
-    nsAutoPtr<CrossProcessMutex> mRemoteImageDataMutex;
-    mozilla::Mutex mAsyncInvalidateMutex;
-    CancelableTask *mAsyncInvalidateTask;
 
     
     PluginScriptableObjectChild* mCachedWindowActor;
@@ -378,10 +367,6 @@ private:
 
 #if defined(MOZ_X11) && defined(XP_UNIX) && !defined(XP_MACOSX)
     NPSetWindowCallbackStruct mWsInfo;
-#if defined(MOZ_WIDGET_GTK)
-    bool mXEmbed;
-    XtClient mXtClient;
-#endif
 #elif defined(OS_WIN)
     HWND mPluginWindowHWND;
     WNDPROC mPluginWndProc;
@@ -425,7 +410,7 @@ private:
     };
     gfx::SharedDIBWin mSharedSurfaceDib;
     struct {
-      uint16_t        doublePass;
+      PRUint16        doublePass;
       HDC             hdc;
       HBITMAP         bmp;
     } mAlphaExtract;
@@ -433,15 +418,13 @@ private:
 #if defined(MOZ_WIDGET_COCOA)
 private:
 #if defined(__i386__)
-    NPEventModel                  mEventModel;
+    NPEventModel          mEventModel;
 #endif
-    CGColorSpaceRef               mShColorSpace;
-    CGContextRef                  mShContext;
-    mozilla::RefPtr<nsCARenderer> mCARenderer;
-    void                         *mCGLayer;
-
-    
-    uint32_t                      mCARefreshTimer;
+    CGColorSpaceRef       mShColorSpace;
+    CGContextRef          mShContext;
+    int16_t               mDrawingModel;
+    nsCARenderer          mCARenderer;
+    void                 *mCGLayer;
 
 public:
     const NPCocoaEvent* getCurrentEvent() {

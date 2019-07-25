@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsHTMLFieldSetElement.h"
 #include "nsIDOMHTMLFormElement.h"
 #include "nsIDOMEventTarget.h"
@@ -18,11 +50,11 @@ NS_IMPL_NS_NEW_HTML_ELEMENT(FieldSet)
 
 nsHTMLFieldSetElement::nsHTMLFieldSetElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsGenericHTMLFormElement(aNodeInfo)
-  , mElements(nullptr)
-  , mFirstLegend(nullptr)
+  , mElements(nsnull)
+  , mFirstLegend(nsnull)
 {
   
-  SetBarredFromConstraintValidation(true);
+  SetBarredFromConstraintValidation(PR_TRUE);
 
   
   AddStatesSilently(NS_EVENT_STATE_ENABLED);
@@ -30,8 +62,8 @@ nsHTMLFieldSetElement::nsHTMLFieldSetElement(already_AddRefed<nsINodeInfo> aNode
 
 nsHTMLFieldSetElement::~nsHTMLFieldSetElement()
 {
-  uint32_t length = mDependentElements.Length();
-  for (uint32_t i = 0; i < length; ++i) {
+  PRUint32 length = mDependentElements.Length();
+  for (PRUint32 i=0; i<length; ++i) {
     mDependentElements[i]->ForgetFieldSet(this);
   }
 }
@@ -77,7 +109,7 @@ nsresult
 nsHTMLFieldSetElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 {
   
-  aVisitor.mCanHandle = false;
+  aVisitor.mCanHandle = PR_FALSE;
   if (IsElementDisabledForEvents(aVisitor.mEvent->message, NULL)) {
     return NS_OK;
   }
@@ -86,18 +118,18 @@ nsHTMLFieldSetElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 }
 
 nsresult
-nsHTMLFieldSetElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                                    const nsAttrValue* aValue, bool aNotify)
+nsHTMLFieldSetElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
+                                    const nsAString* aValue, bool aNotify)
 {
   if (aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::disabled &&
       nsINode::GetFirstChild()) {
     if (!mElements) {
-      mElements = new nsContentList(this, MatchListedElements, nullptr, nullptr,
-                                    true);
+      mElements = new nsContentList(this, MatchListedElements, nsnull, nsnull,
+                                    PR_TRUE);
     }
 
-    uint32_t length = mElements->Length(true);
-    for (uint32_t i=0; i<length; ++i) {
+    PRUint32 length = mElements->Length(PR_TRUE);
+    for (PRUint32 i=0; i<length; ++i) {
       static_cast<nsGenericHTMLFormElement*>(mElements->GetNodeAt(i))
         ->FieldSetDisabledChanged(aNotify);
     }
@@ -124,19 +156,20 @@ nsHTMLFieldSetElement::GetType(nsAString& aType)
 
 
 bool
-nsHTMLFieldSetElement::MatchListedElements(nsIContent* aContent, int32_t aNamespaceID,
+nsHTMLFieldSetElement::MatchListedElements(nsIContent* aContent, PRInt32 aNamespaceID,
                                            nsIAtom* aAtom, void* aData)
 {
   nsCOMPtr<nsIFormControl> formControl = do_QueryInterface(aContent);
-  return formControl && formControl->GetType() != NS_FORM_LABEL;
+  return formControl && formControl->GetType() != NS_FORM_LABEL &&
+                        formControl->GetType() != NS_FORM_PROGRESS;
 }
 
 NS_IMETHODIMP
 nsHTMLFieldSetElement::GetElements(nsIDOMHTMLCollection** aElements)
 {
   if (!mElements) {
-    mElements = new nsContentList(this, MatchListedElements, nullptr, nullptr,
-                                  true);
+    mElements = new nsContentList(this, MatchListedElements, nsnull, nsnull,
+                                  PR_TRUE);
   }
 
   NS_ADDREF(*aElements = mElements);
@@ -158,7 +191,7 @@ nsHTMLFieldSetElement::SubmitNamesValues(nsFormSubmission* aFormSubmission)
 }
 
 nsresult
-nsHTMLFieldSetElement::InsertChildAt(nsIContent* aChild, uint32_t aIndex,
+nsHTMLFieldSetElement::InsertChildAt(nsIContent* aChild, PRUint32 aIndex,
                                      bool aNotify)
 {
   bool firstLegendHasChanged = false;
@@ -170,7 +203,7 @@ nsHTMLFieldSetElement::InsertChildAt(nsIContent* aChild, uint32_t aIndex,
     } else {
       
       
-      if (int32_t(aIndex) <= IndexOf(mFirstLegend)) {
+      if (PRInt32(aIndex) <= IndexOf(mFirstLegend)) {
         mFirstLegend = aChild;
         firstLegendHasChanged = true;
       }
@@ -187,15 +220,15 @@ nsHTMLFieldSetElement::InsertChildAt(nsIContent* aChild, uint32_t aIndex,
   return rv;
 }
 
-void
-nsHTMLFieldSetElement::RemoveChildAt(uint32_t aIndex, bool aNotify)
+nsresult
+nsHTMLFieldSetElement::RemoveChildAt(PRUint32 aIndex, bool aNotify)
 {
   bool firstLegendHasChanged = false;
 
   if (mFirstLegend && (GetChildAt(aIndex) == mFirstLegend)) {
     
     nsIContent* child = mFirstLegend->GetNextSibling();
-    mFirstLegend = nullptr;
+    mFirstLegend = nsnull;
     firstLegendHasChanged = true;
 
     for (; child; child = child->GetNextSibling()) {
@@ -206,11 +239,14 @@ nsHTMLFieldSetElement::RemoveChildAt(uint32_t aIndex, bool aNotify)
     }
   }
 
-  nsGenericHTMLFormElement::RemoveChildAt(aIndex, aNotify);
+  nsresult rv = nsGenericHTMLFormElement::RemoveChildAt(aIndex, aNotify);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   if (firstLegendHasChanged) {
     NotifyElementsForFirstLegendChange(aNotify);
   }
+
+  return rv;
 }
 
 void
@@ -223,12 +259,12 @@ nsHTMLFieldSetElement::NotifyElementsForFirstLegendChange(bool aNotify)
 
 
   if (!mElements) {
-    mElements = new nsContentList(this, MatchListedElements, nullptr, nullptr,
-                                  true);
+    mElements = new nsContentList(this, MatchListedElements, nsnull, nsnull,
+                                  PR_TRUE);
   }
 
-  uint32_t length = mElements->Length(true);
-  for (uint32_t i = 0; i < length; ++i) {
+  PRUint32 length = mElements->Length(PR_TRUE);
+  for (PRUint32 i=0; i<length; ++i) {
     static_cast<nsGenericHTMLFormElement*>(mElements->GetNodeAt(i))
       ->FieldSetFirstLegendChanged(aNotify);
   }

@@ -3,12 +3,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "SVGAnimatedNumberList.h"
 #include "DOMSVGAnimatedNumberList.h"
 #include "nsSVGElement.h"
 #include "nsSVGAttrTearoffTable.h"
+#ifdef MOZ_SMIL
 #include "nsSMILValue.h"
 #include "SVGNumberListSMILType.h"
+#endif 
 
 namespace mozilla {
 
@@ -36,7 +69,7 @@ SVGAnimatedNumberList::SetBaseValueString(const nsAString& aValue)
   
   
 
-  mIsBaseSet = true;
+  mIsBaseSet = PR_TRUE;
   rv = mBaseVal.CopyFrom(newBaseValue);
   if (NS_FAILED(rv) && domWrapper) {
     
@@ -47,7 +80,7 @@ SVGAnimatedNumberList::SetBaseValueString(const nsAString& aValue)
 }
 
 void
-SVGAnimatedNumberList::ClearBaseValue(uint32_t aAttrEnum)
+SVGAnimatedNumberList::ClearBaseValue(PRUint32 aAttrEnum)
 {
   DOMSVGAnimatedNumberList *domWrapper =
     DOMSVGAnimatedNumberList::GetDOMWrapperIfExists(this);
@@ -56,14 +89,14 @@ SVGAnimatedNumberList::ClearBaseValue(uint32_t aAttrEnum)
     domWrapper->InternalBaseValListWillChangeTo(SVGNumberList());
   }
   mBaseVal.Clear();
-  mIsBaseSet = false;
+  mIsBaseSet = PR_FALSE;
   
 }
 
 nsresult
 SVGAnimatedNumberList::SetAnimValue(const SVGNumberList& aNewAnimValue,
                                     nsSVGElement *aElement,
-                                    uint32_t aAttrEnum)
+                                    PRUint32 aAttrEnum)
 {
   DOMSVGAnimatedNumberList *domWrapper =
     DOMSVGAnimatedNumberList::GetDOMWrapperIfExists(this);
@@ -102,7 +135,7 @@ SVGAnimatedNumberList::SetAnimValue(const SVGNumberList& aNewAnimValue,
 
 void
 SVGAnimatedNumberList::ClearAnimValue(nsSVGElement *aElement,
-                                      uint32_t aAttrEnum)
+                                      PRUint32 aAttrEnum)
 {
   DOMSVGAnimatedNumberList *domWrapper =
     DOMSVGAnimatedNumberList::GetDOMWrapperIfExists(this);
@@ -114,13 +147,14 @@ SVGAnimatedNumberList::ClearAnimValue(nsSVGElement *aElement,
     
     domWrapper->InternalAnimValListWillChangeTo(mBaseVal);
   }
-  mAnimVal = nullptr;
+  mAnimVal = nsnull;
   aElement->DidAnimateNumberList(aAttrEnum);
 }
 
+#ifdef MOZ_SMIL
 nsISMILAttr*
 SVGAnimatedNumberList::ToSMILAttr(nsSVGElement *aSVGElement,
-                                  uint8_t aAttrEnum)
+                                  PRUint8 aAttrEnum)
 {
   return new SMILAnimatedNumberList(this, aSVGElement, aAttrEnum);
 }
@@ -139,7 +173,7 @@ SVGAnimatedNumberList::
     nlai->SetInfo(mElement);
     aValue.Swap(val);
   }
-  aPreventCachingOfSandwich = false;
+  aPreventCachingOfSandwich = PR_FALSE;
   return rv;
 }
 
@@ -181,5 +215,6 @@ SVGAnimatedNumberList::SMILAnimatedNumberList::ClearAnimValue()
     mVal->ClearAnimValue(mElement, mAttrEnum);
   }
 }
+#endif 
 
 } 

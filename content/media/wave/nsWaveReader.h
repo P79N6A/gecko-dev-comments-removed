@@ -3,13 +3,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #if !defined(nsWaveReader_h_)
 #define nsWaveReader_h_
 
 #include "nsBuiltinDecoderReader.h"
 
-class nsBuiltinDecoder;
-class nsTimeRanges;
+class nsMediaDecoder;
 
 class nsWaveReader : public nsBuiltinDecoderReader
 {
@@ -20,7 +51,7 @@ public:
   virtual nsresult Init(nsBuiltinDecoderReader* aCloneDonor);
   virtual bool DecodeAudioData();
   virtual bool DecodeVideoFrame(bool &aKeyframeSkip,
-                                  int64_t aTimeThreshold);
+                                  PRInt64 aTimeThreshold);
 
   virtual bool HasAudio()
   {
@@ -32,38 +63,32 @@ public:
     return false;
   }
 
-  virtual nsresult ReadMetadata(nsVideoInfo* aInfo,
-                                nsHTMLMediaElement::MetadataTags** aTags);
-  virtual nsresult Seek(int64_t aTime, int64_t aStartTime, int64_t aEndTime, int64_t aCurrentTime);
-  virtual nsresult GetBuffered(nsTimeRanges* aBuffered, int64_t aStartTime);
-
-  
-  virtual bool IsSeekableInBufferedRanges() {
-    return true;
-  }
+  virtual nsresult ReadMetadata(nsVideoInfo* aInfo);
+  virtual nsresult Seek(PRInt64 aTime, PRInt64 aStartTime, PRInt64 aEndTime, PRInt64 aCurrentTime);
+  virtual nsresult GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime);
 
 private:
-  bool ReadAll(char* aBuf, int64_t aSize, int64_t* aBytesRead = nullptr);
+  bool ReadAll(char* aBuf, PRInt64 aSize, PRInt64* aBytesRead = nsnull);
   bool LoadRIFFChunk();
-  bool ScanForwardUntil(uint32_t aWantedChunk, uint32_t* aChunkSize);
+  bool ScanForwardUntil(PRUint32 aWantedChunk, PRUint32* aChunkSize);
   bool LoadFormatChunk();
   bool FindDataOffset();
 
   
   
   
-  double BytesToTime(int64_t aBytes) const;
+  double BytesToTime(PRInt64 aBytes) const;
 
   
   
   
-  int64_t TimeToBytes(double aTime) const;
+  PRInt64 TimeToBytes(double aTime) const;
 
   
   
-  int64_t RoundDownToFrame(int64_t aBytes) const;
-  int64_t GetDataLength();
-  int64_t GetPosition();
+  PRInt64 RoundDownToFrame(PRInt64 aBytes) const;
+  PRInt64 GetDataLength();
+  PRInt64 GetPosition();
 
   
 
@@ -71,25 +96,25 @@ private:
 
 
   
-  uint32_t mSampleRate;
+  PRUint32 mSampleRate;
 
   
-  uint32_t mChannels;
+  PRUint32 mChannels;
 
   
   
-  uint32_t mFrameSize;
+  PRUint32 mFrameSize;
 
   
   nsAudioStream::SampleFormat mSampleFormat;
 
   
   
-  int64_t mWaveLength;
+  PRInt64 mWaveLength;
 
   
   
-  int64_t mWavePCMOffset;
+  PRInt64 mWavePCMOffset;
 };
 
 #endif

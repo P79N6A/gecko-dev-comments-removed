@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef CharDistribution_h__
 #define CharDistribution_h__
 
@@ -15,15 +47,15 @@
 class CharDistributionAnalysis
 {
 public:
-  CharDistributionAnalysis() {Reset(false);}
+  CharDistributionAnalysis() {Reset(PR_FALSE);}
 
   
-  void HandleData(const char* aBuf, uint32_t aLen) {}
+  void HandleData(const char* aBuf, PRUint32 aLen) {}
   
   
-  void HandleOneChar(const char* aStr, uint32_t aCharLen)
+  void HandleOneChar(const char* aStr, PRUint32 aCharLen)
   {
-    int32_t order;
+    PRInt32 order;
 
     
     order = (aCharLen == 2) ? GetOrder(aStr) : -1;
@@ -32,7 +64,7 @@ public:
     {
       mTotalChars++;
       
-      if ((uint32_t)order < mTableSize)
+      if ((PRUint32)order < mTableSize)
       {
         if (512 > mCharToFreqOrder[order])
           mFreqChars++;
@@ -46,11 +78,15 @@ public:
   
   void      Reset(bool aIsPreferredLanguage) 
   {
-    mDone = false;
+    mDone = PR_FALSE;
     mTotalChars = 0;
     mFreqChars = 0;
     mDataThreshold = aIsPreferredLanguage ? 0 : MINIMUM_DATA_THRESHOLD;
   }
+
+  
+  
+  void      SetOpion(){}
 
   
   
@@ -60,25 +96,25 @@ protected:
   
   
   
-  virtual int32_t GetOrder(const char* str) {return -1;}
+  virtual PRInt32 GetOrder(const char* str) {return -1;}
   
   
   bool     mDone;
 
   
-  uint32_t mFreqChars;
+  PRUint32 mFreqChars;
 
   
-  uint32_t mTotalChars;
+  PRUint32 mTotalChars;
 
   
-  uint32_t mDataThreshold;
+  PRUint32 mDataThreshold;
 
   
-  const int16_t  *mCharToFreqOrder;
+  const PRInt16  *mCharToFreqOrder;
 
   
-  uint32_t mTableSize;
+  PRUint32 mTableSize;
 
   
   
@@ -96,7 +132,7 @@ protected:
   
   
   
-  int32_t GetOrder(const char* str) 
+  PRInt32 GetOrder(const char* str) 
   { if ((unsigned char)*str >= (unsigned char)0xc4)  
       return 94*((unsigned char)str[0]-(unsigned char)0xc4) + (unsigned char)str[1] - (unsigned char)0xa1;
     else
@@ -114,7 +150,7 @@ protected:
   
   
   
-  int32_t GetOrder(const char* str) 
+  PRInt32 GetOrder(const char* str) 
   { if ((unsigned char)*str >= (unsigned char)0xb0)  
       return 94*((unsigned char)str[0]-(unsigned char)0xb0) + (unsigned char)str[1] - (unsigned char)0xa1;
     else
@@ -131,7 +167,7 @@ protected:
   
   
   
-  int32_t GetOrder(const char* str) 
+  PRInt32 GetOrder(const char* str) 
   { if ((unsigned char)*str >= (unsigned char)0xb0 && (unsigned char)str[1] >= (unsigned char)0xa1)  
       return 94*((unsigned char)str[0]-(unsigned char)0xb0) + (unsigned char)str[1] - (unsigned char)0xa1;
     else
@@ -149,7 +185,7 @@ protected:
   
   
   
-  int32_t GetOrder(const char* str) 
+  PRInt32 GetOrder(const char* str) 
   { if ((unsigned char)*str >= (unsigned char)0xa4)  
       if ((unsigned char)str[1] >= (unsigned char)0xa1)
         return 157*((unsigned char)str[0]-(unsigned char)0xa4) + (unsigned char)str[1] - (unsigned char)0xa1 +63;
@@ -169,9 +205,9 @@ protected:
   
   
   
-  int32_t GetOrder(const char* str) 
+  PRInt32 GetOrder(const char* str) 
   { 
-    int32_t order;
+    PRInt32 order;
     if ((unsigned char)*str >= (unsigned char)0x81 && (unsigned char)*str <= (unsigned char)0x9f)  
       order = 188 * ((unsigned char)str[0]-(unsigned char)0x81);
     else if ((unsigned char)*str >= (unsigned char)0xe0 && (unsigned char)*str <= (unsigned char)0xef)  
@@ -194,7 +230,7 @@ protected:
   
   
   
-  int32_t GetOrder(const char* str) 
+  PRInt32 GetOrder(const char* str) 
   { if ((unsigned char)*str >= (unsigned char)0xa0)  
       return 94*((unsigned char)str[0]-(unsigned char)0xa1) + (unsigned char)str[1] - (unsigned char)0xa1;
     else

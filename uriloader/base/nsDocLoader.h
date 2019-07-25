@@ -6,6 +6,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDocLoader_h__
 #define nsDocLoader_h__
 
@@ -107,21 +139,21 @@ protected:
     void Destroy();
     virtual void DestroyChildren();
 
-    nsIDocumentLoader* ChildAt(int32_t i) {
+    nsIDocumentLoader* ChildAt(PRInt32 i) {
         return static_cast<nsDocLoader*>(mChildList[i]);
     }
 
-    nsIDocumentLoader* SafeChildAt(int32_t i) {
+    nsIDocumentLoader* SafeChildAt(PRInt32 i) {
         return static_cast<nsDocLoader*>(mChildList.SafeElementAt(i));
     }
 
     void FireOnProgressChange(nsDocLoader* aLoadInitiator,
                               nsIRequest *request,
-                              int64_t aProgress,
-                              int64_t aProgressMax,
-                              int64_t aProgressDelta,
-                              int64_t aTotalProgress,
-                              int64_t aMaxTotalProgress);
+                              PRInt64 aProgress,
+                              PRInt64 aProgressMax,
+                              PRInt64 aProgressDelta,
+                              PRInt64 aTotalProgress,
+                              PRInt64 aMaxTotalProgress);
 
     
     
@@ -133,7 +165,7 @@ protected:
 
     void FireOnStateChange(nsIWebProgress *aProgress,
                            nsIRequest* request,
-                           int32_t aStateFlags,
+                           PRInt32 aStateFlags,
                            nsresult aStatus);
 
     
@@ -143,7 +175,7 @@ protected:
     
     void DoFireOnStateChange(nsIWebProgress * const aProgress,
                              nsIRequest* const request,
-                             int32_t &aStateFlags,
+                             PRInt32 &aStateFlags,
                              const nsresult aStatus);
 
     void FireOnStatusChange(nsIWebProgress *aWebProgress,
@@ -153,12 +185,11 @@ protected:
 
     void FireOnLocationChange(nsIWebProgress* aWebProgress,
                               nsIRequest* aRequest,
-                              nsIURI *aUri,
-                              uint32_t aFlags);
+                              nsIURI *aUri);
 
     bool RefreshAttempted(nsIWebProgress* aWebProgress,
                             nsIURI *aURI,
-                            int32_t aDelay,
+                            PRInt32 aDelay,
                             bool aSameURI);
 
     
@@ -169,8 +200,8 @@ protected:
     
     virtual void OnRedirectStateChange(nsIChannel* aOldChannel,
                                        nsIChannel* aNewChannel,
-                                       uint32_t aRedirectFlags,
-                                       uint32_t aStateFlags) {}
+                                       PRUint32 aRedirectFlags,
+                                       PRUint32 aStateFlags) {}
 
     void doStartDocumentLoad();
     void doStartURLLoad(nsIRequest *request);
@@ -190,7 +221,7 @@ protected:
     
     void ChildDoneWithOnload(nsIDocumentLoader* aChild) {
         mChildrenInOnload.RemoveObject(aChild);
-        DocLoaderIsEmpty(true);
+        DocLoaderIsEmpty(PR_TRUE);
     }        
 
 protected:
@@ -212,16 +243,16 @@ protected:
 
     
     
-    int32_t mProgressStateFlags;
+    PRInt32 mProgressStateFlags;
 
-    int64_t mCurrentSelfProgress;
-    int64_t mMaxSelfProgress;
+    PRInt64 mCurrentSelfProgress;
+    PRInt64 mMaxSelfProgress;
 
-    int64_t mCurrentTotalProgress;
-    int64_t mMaxTotalProgress;
+    PRInt64 mCurrentTotalProgress;
+    PRInt64 mMaxTotalProgress;
 
     PLDHashTable mRequestInfoHash;
-    int64_t mCompletedTotalProgress;
+    PRInt64 mCompletedTotalProgress;
 
     PRCList mStatusInfoList;
 
@@ -261,13 +292,13 @@ private:
 
     nsListenerInfo *GetListenerInfo(nsIWebProgressListener* aListener);
 
-    int64_t GetMaxTotalProgress();
+    PRInt64 GetMaxTotalProgress();
 
     nsresult AddRequestInfo(nsIRequest* aRequest);
     void RemoveRequestInfo(nsIRequest* aRequest);
     nsRequestInfo *GetRequestInfo(nsIRequest* aRequest);
     void ClearRequestInfoHash();
-    int64_t CalculateMaxProgress();
+    PRInt64 CalculateMaxProgress();
 
 
     

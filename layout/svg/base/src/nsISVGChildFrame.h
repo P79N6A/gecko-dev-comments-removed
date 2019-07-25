@@ -3,34 +3,59 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_ISVGCHILDFRAME_H__
 #define __NS_ISVGCHILDFRAME_H__
 
-#include "gfxRect.h"
+
 #include "nsQueryFrame.h"
+#include "nsCOMPtr.h"
 #include "nsRect.h"
+#include "gfxRect.h"
+#include "gfxMatrix.h"
 
-class nsIFrame;
-class nsRenderingContext;
-
-struct gfxMatrix;
-struct nsPoint;
-class SVGBBox;
+class gfxContext;
+class nsSVGRenderState;
 
 namespace mozilla {
-class SVGAnimatedLengthList;
 class SVGAnimatedNumberList;
-class SVGLengthList;
 class SVGNumberList;
+class SVGAnimatedLengthList;
+class SVGLengthList;
 class SVGUserUnitList;
 }
-
-
-
-
-
-
-
 
 class nsISVGChildFrame : public nsQueryFrame
 {
@@ -45,7 +70,7 @@ public:
 
   
   
-  NS_IMETHOD PaintSVG(nsRenderingContext* aContext,
+  NS_IMETHOD PaintSVG(nsSVGRenderState* aContext,
                       const nsIntRect *aDirtyRect)=0;
 
   
@@ -56,29 +81,14 @@ public:
 
   
   NS_IMETHOD_(nsRect) GetCoveredRegion()=0;
+  NS_IMETHOD UpdateCoveredRegion()=0;
 
   
   
   
   
-  
-  virtual void ReflowSVG()=0;
+  NS_IMETHOD InitialUpdate()=0;
 
-  
-
-
-
-
-
-  enum RequestingCanvasTMFor {
-    FOR_PAINTING = 1,
-    FOR_HIT_TESTING,
-    FOR_OUTERSVG_TM
-  };
-
-  
-  
-  
   
   
   
@@ -87,20 +97,13 @@ public:
   
   
   enum SVGChangedFlags {
-    TRANSFORM_CHANGED     = 0x01,
-    COORD_CONTEXT_CHANGED = 0x02,
-    FULL_ZOOM_CHANGED     = 0x04
+    SUPPRESS_INVALIDATION = 0x01,
+    TRANSFORM_CHANGED     = 0x02,
+    COORD_CONTEXT_CHANGED = 0x04
   };
-  
-
-
-
-
-
-
-
-
-  virtual void NotifySVGChanged(uint32_t aFlags)=0;
+  virtual void NotifySVGChanged(PRUint32 aFlags)=0;
+  NS_IMETHOD NotifyRedrawSuspended()=0;
+  NS_IMETHOD NotifyRedrawUnsuspended()=0;
 
   
 
@@ -123,11 +126,14 @@ public:
 
 
 
-  virtual SVGBBox GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
-                                      uint32_t aFlags) = 0;
+  virtual gfxRect GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
+                                      PRUint32 aFlags) = 0;
 
   
   NS_IMETHOD_(bool) IsDisplayContainer()=0;
+
+  
+  NS_IMETHOD_(bool) HasValidCoveredRect()=0;
 };
 
 #endif 

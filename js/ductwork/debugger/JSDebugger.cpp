@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "JSDebugger.h"
 #include "nsIXPConnect.h"
 #include "nsThreadUtils.h"
@@ -36,27 +69,17 @@ JSDebugger::~JSDebugger()
 }
 
 NS_IMETHODIMP
-JSDebugger::AddClass(const JS::Value &global, JSContext* cx)
+JSDebugger::AddClass(JSContext *cx)
 {
   nsresult rv;
   nsCOMPtr<nsIXPConnect> xpc = do_GetService(nsIXPConnect::GetCID(), &rv);
 
-  if (!global.isObject()) {
-    return NS_ERROR_INVALID_ARG;
-  }
-  
-  JSObject* obj = &global.toObject();
-  obj = JS_UnwrapObjectAndInnerize(obj);
-  if (!obj) {
-    return NS_ERROR_FAILURE;
+  JSObject* global = JS_GetGlobalForScopeChain(cx);
+  if (!global) {
+    return NS_ERROR_NOT_AVAILABLE;
   }
 
-  JSAutoCompartment ac(cx, obj);
-  if (JS_GetGlobalForObject(cx, obj) != obj) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  if (!JS_DefineDebuggerObject(cx, obj)) {
+  if (!JS_DefineDebuggerObject(cx, global)) {
     return NS_ERROR_FAILURE;
   }
 

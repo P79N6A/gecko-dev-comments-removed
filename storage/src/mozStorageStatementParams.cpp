@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsMemory.h"
 #include "nsString.h"
 
@@ -20,7 +54,7 @@ namespace storage {
 StatementParams::StatementParams(mozIStorageStatement *aStatement) :
     mStatement(aStatement)
 {
-  NS_ASSERTION(mStatement != nullptr, "mStatement is null");
+  NS_ASSERTION(mStatement != nsnull, "mStatement is null");
   (void)mStatement->GetParameterCount(&mParamCount);
 }
 
@@ -76,7 +110,7 @@ StatementParams::SetProperty(nsIXPConnectWrappedNative *aWrapper,
     return NS_ERROR_INVALID_ARG;
   }
 
-  *_retval = true;
+  *_retval = PR_TRUE;
   return NS_OK;
 }
 
@@ -84,7 +118,7 @@ NS_IMETHODIMP
 StatementParams::NewEnumerate(nsIXPConnectWrappedNative *aWrapper,
                               JSContext *aCtx,
                               JSObject *aScopeObj,
-                              uint32_t aEnumOp,
+                              PRUint32 aEnumOp,
                               jsval *_statep,
                               jsid *_idp,
                               bool *_retval)
@@ -109,14 +143,14 @@ StatementParams::NewEnumerate(nsIXPConnectWrappedNative *aWrapper,
       NS_ASSERTION(*_statep != JSVAL_NULL, "Internal state is null!");
 
       
-      uint32_t index = static_cast<uint32_t>(JSVAL_TO_INT(*_statep));
+      PRUint32 index = static_cast<PRUint32>(JSVAL_TO_INT(*_statep));
       if (index >= mParamCount) {
         *_statep = JSVAL_NULL;
         return NS_OK;
       }
 
       
-      nsAutoCString name;
+      nsCAutoString name;
       nsresult rv = mStatement->GetParameterName(index, name);
       NS_ENSURE_SUCCESS(rv, rv);
 
@@ -127,7 +161,7 @@ StatementParams::NewEnumerate(nsIXPConnectWrappedNative *aWrapper,
 
       
       if (!::JS_ValueToId(aCtx, STRING_TO_JSVAL(jsname), _idp)) {
-        *_retval = false;
+        *_retval = PR_FALSE;
         return NS_OK;
       }
 
@@ -153,7 +187,7 @@ StatementParams::NewResolve(nsIXPConnectWrappedNative *aWrapper,
                             JSContext *aCtx,
                             JSObject *aScopeObj,
                             jsid aId,
-                            uint32_t aFlags,
+                            PRUint32 aFlags,
                             JSObject **_objp,
                             bool *_retval)
 {
@@ -165,15 +199,15 @@ StatementParams::NewResolve(nsIXPConnectWrappedNative *aWrapper,
   bool resolved = false;
   bool ok = true;
   if (JSID_IS_INT(aId)) {
-    uint32_t idx = JSID_TO_INT(aId);
+    PRUint32 idx = JSID_TO_INT(aId);
 
     
     
     if (idx >= mParamCount)
       return NS_ERROR_INVALID_ARG;
 
-    ok = ::JS_DefineElement(aCtx, aScopeObj, idx, JSVAL_VOID, nullptr,
-                            nullptr, JSPROP_ENUMERATE);
+    ok = ::JS_DefineElement(aCtx, aScopeObj, idx, JSVAL_VOID, nsnull,
+                            nsnull, JSPROP_ENUMERATE);
     resolved = true;
   }
   else if (JSID_IS_STRING(aId)) {
@@ -185,17 +219,17 @@ StatementParams::NewResolve(nsIXPConnectWrappedNative *aWrapper,
     
     
     NS_ConvertUTF16toUTF8 name(nameChars, nameLength);
-    uint32_t idx;
+    PRUint32 idx;
     nsresult rv = mStatement->GetParameterIndex(name, &idx);
     if (NS_SUCCEEDED(rv)) {
-      ok = ::JS_DefinePropertyById(aCtx, aScopeObj, aId, JSVAL_VOID, nullptr,
-                                   nullptr, JSPROP_ENUMERATE);
+      ok = ::JS_DefinePropertyById(aCtx, aScopeObj, aId, JSVAL_VOID, nsnull,
+                                   nsnull, JSPROP_ENUMERATE);
       resolved = true;
     }
   }
 
   *_retval = ok;
-  *_objp = resolved && ok ? aScopeObj : nullptr;
+  *_objp = resolved && ok ? aScopeObj : nsnull;
   return NS_OK;
 }
 

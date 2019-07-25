@@ -7,6 +7,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
@@ -67,10 +100,10 @@ function WifiGeoPositionProvider() {
     gTestingEnabled = Services.prefs.getBoolPref("geo.wifi.testing");
   } catch (e) {}
 
-  this.wifiService = null;
-  this.timer = null;
-  this.hasSeenWiFi = false;
-  this.started = false;
+  wifiService = null;
+  timer = null;
+  hasSeenWiFi = false;
+  started = false;
 }
 
 WifiGeoPositionProvider.prototype = {
@@ -102,11 +135,6 @@ WifiGeoPositionProvider.prototype = {
       this.wifiService = Cc["@mozilla.org/wifi/monitor;1"].getService(Components.interfaces.nsIWifiMonitor);
       this.wifiService.startWatching(this);
     }
-    if (this.hasSeenWiFi) {
-      this.hasSeenWiFi = false;
-      this.wifiService.stopWatching(this);
-      this.wifiService.startWatching(this);
-    }
   },
 
   shutdown: function() { 
@@ -128,9 +156,6 @@ WifiGeoPositionProvider.prototype = {
     if (Services.prefs.getIntPref("network.cookie.lifetimePolicy") != 0)
       Services.prefs.deleteBranch("geo.wifi.access_token.");
     this.started = false;
-  },
-
-  setHighAccuracy: function(enable) {
   },
 
   getAccessTokenForURL: function(url)
@@ -178,7 +203,7 @@ WifiGeoPositionProvider.prototype = {
 
     let accessToken = this.getAccessTokenForURL(providerUrlBase);
     if (accessToken !== "")
-      providerUrl = providerUrl + "&access_token="+accessToken;
+      providerUrl = providerUrl + "&access_token="+access_token;
 
     function sort(a, b) {
       return b.signal - a.signal;
@@ -192,20 +217,18 @@ WifiGeoPositionProvider.prototype = {
     };
 
     if (accessPoints) {
-        providerUrl = providerUrl + accessPoints.sort(sort).map(encode).join("");
+        accessPoints.sort(sort).map(encode).join("");
+        
+        let x = providerUrl.length - 2000;
+        if (x >= 0) {
+            
+            let doomed = providerUrl.lastIndexOf("&", 2000);
+            LOG("Doomed:"+doomed);
+            providerUrl = providerUrl.substring(0, doomed);
+        }
     }
 
     providerUrl = encodeURI(providerUrl);
-
-    
-    let x = providerUrl.length - 2000;
-    if (x >= 0) {
-	
-	let doomed = providerUrl.lastIndexOf("&", 2000);
-	LOG("Doomed:"+doomed);
-	providerUrl = providerUrl.substring(0, doomed);
-    }
-    
     LOG("************************************* Sending request:\n" + providerUrl + "\n");
 
     
@@ -214,7 +237,7 @@ WifiGeoPositionProvider.prototype = {
 
     
     xhr.mozBackgroundRequest = true;
-    xhr.open("GET", providerUrl, true);
+    xhr.open("GET", providerUrl, false);
     xhr.channel.loadFlags = Ci.nsIChannel.LOAD_ANONYMOUS;
     xhr.addEventListener("error", function(req) {
         LOG("onerror: " + req);

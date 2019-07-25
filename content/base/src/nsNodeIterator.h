@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  
 
 
@@ -22,24 +55,26 @@ class nsIDOMNodeFilter;
 
 class nsNodeIterator : public nsIDOMNodeIterator,
                        public nsTraversal,
-                       public nsStubMutationObserver
+                       public nsStubMutationObserver2
 {
 public:
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_NSIDOMNODEITERATOR
 
     nsNodeIterator(nsINode *aRoot,
-                   uint32_t aWhatToShow,
-                   nsIDOMNodeFilter *aFilter);
+                   PRUint32 aWhatToShow,
+                   nsIDOMNodeFilter *aFilter,
+                   bool aExpandEntityReferences);
     virtual ~nsNodeIterator();
 
     NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
+    NS_DECL_NSIMUTATIONOBSERVER2_ATTRIBUTECHILDREMOVED
 
     NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsNodeIterator, nsIDOMNodeIterator)
 
 private:
     struct NodePointer {
-        NodePointer() : mNode(nullptr) {}
+        NodePointer() : mNode(nsnull) {};
         NodePointer(nsINode *aNode, bool aBeforeNode);
 
         typedef bool (NodePointer::*MoveToMethodType)(nsINode*);
@@ -51,7 +86,7 @@ private:
 
         void AdjustAfterRemoval(nsINode *aRoot, nsINode *aContainer, nsIContent *aChild, nsIContent *aPreviousSibling);
 
-        void Clear() { mNode = nullptr; }
+        void Clear() { mNode = nsnull; }
 
         nsINode *mNode;
         bool mBeforeNode;

@@ -15,10 +15,6 @@
 
 
 
-var EXPORTED_SYMBOLS = [ "Templater", "template" ];
-
-Components.utils.import("resource://gre/modules/Services.jsm");
-const Node = Components.interfaces.nsIDOMNode;
 
 
 
@@ -43,54 +39,23 @@ const Node = Components.interfaces.nsIDOMNode;
 
 
 
+var EXPORTED_SYMBOLS = ["Templater"];
 
-function template(node, data, options) {
-  var template = new Templater(options || {});
-  template.processNode(node, data);
-  return template;
+const Ci = Components.interfaces;
+const Cu = Components.utils;
+
+Cu.import("resource://gre/modules/Services.jsm");
+
+const Node = Ci.nsIDOMNode;
+
+
+
+
+
+
+function Templater() {
+  this.stack = [];
 }
-
-
-
-
-
-function Templater(options) {
-  if (options == null) {
-    options = { allowEval: true };
-  }
-  this.options = options;
-  if (options.stack && Array.isArray(options.stack)) {
-    this.stack = options.stack;
-  }
-  else if (typeof options.stack === 'string') {
-    this.stack = [ options.stack ];
-  }
-  else {
-    this.stack = [];
-  }
-  this.nodes = [];
-}
-
-
-
-
-
-
-
-
-Templater.prototype._templateRegion = /\$\{([^}]*)\}/g;
-
-
-
-
-
-Templater.prototype._splitSpecial = /\uF001|\uF002/;
-
-
-
-
-
-Templater.prototype._isPropertyScript = /^[_a-zA-Z0-9.]*$/;
 
 
 
@@ -106,7 +71,6 @@ Templater.prototype.processNode = function(node, data) {
     data = {};
   }
   this.stack.push(node.nodeName + (node.id ? '#' + node.id : ''));
-  var pushedNode = false;
   try {
     
     if (node.attributes && node.attributes.length) {
@@ -123,9 +87,7 @@ Templater.prototype.processNode = function(node, data) {
         }
       }
       
-      this.nodes.push(data.__element);
       data.__element = node;
-      pushedNode = true;
       
       
       var attrs = Array.prototype.slice.call(node.attributes);
@@ -155,12 +117,8 @@ Templater.prototype.processNode = function(node, data) {
             }
           } else {
             
-            var newValue = value.replace(this._templateRegion, function(path) {
-              var insert = this._envEval(path.slice(2, -1), data, value);
-              if (this.options.blankNullUndefined && insert == null) {
-                insert = '';
-              }
-              return insert;
+            var newValue = value.replace(/\$\{[^}]*\}/g, function(path) {
+              return this._envEval(path.slice(2, -1), data, value);
             }.bind(this));
             
             
@@ -184,13 +142,11 @@ Templater.prototype.processNode = function(node, data) {
       this.processNode(childNodes[j], data);
     }
 
-    if (node.nodeType === 3 ) {
+    if (node.nodeType === Node.TEXT_NODE) {
       this._processTextNode(node, data);
     }
   } finally {
-    if (pushedNode) {
-      data.__element = this.nodes.pop();
-    }
+    delete data.__element;
     this.stack.pop();
   }
 };
@@ -307,9 +263,9 @@ Templater.prototype._processForEachMember = function(member, template, siblingNo
   try {
     this._handleAsync(member, siblingNode, function(reply, node) {
       data[paramName] = reply;
-      if (template.nodeName.toLowerCase() === 'loop') {
-        for (var i = 0; i < template.childNodes.length; i++) {
-          var clone = template.childNodes[i].cloneNode(true);
+      if (node.nodeName.toLowerCase() === 'loop') {
+        for (var i = 0; i < node.childNodes.length; i++) {
+          var clone = node.childNodes[i].cloneNode(true);
           node.parentNode.insertBefore(clone, node);
           this.processNode(clone, data);
         }
@@ -345,8 +301,8 @@ Templater.prototype._processTextNode = function(node, data) {
   
   
   
-  value = value.replace(this._templateRegion, '\uF001$$$1\uF002');
-  var parts = value.split(this._splitSpecial);
+  value = value.replace(/\$\{([^}]*)\}/g, '\uF001$$$1\uF002');
+  var parts = value.split(/\uF001|\uF002/);
   if (parts.length > 1) {
     parts.forEach(function(part) {
       if (part === null || part === undefined || part === '') {
@@ -356,30 +312,8 @@ Templater.prototype._processTextNode = function(node, data) {
         part = this._envEval(part.slice(1), data, node.data);
       }
       this._handleAsync(part, node, function(reply, siblingNode) {
-        var doc = siblingNode.ownerDocument;
-        if (reply == null) {
-          reply = this.options.blankNullUndefined ? '' : '' + reply;
-        }
-        if (typeof reply.cloneNode === 'function') {
-          
-          reply = this._maybeImportNode(reply, doc);
-          siblingNode.parentNode.insertBefore(reply, siblingNode);
-        } else if (typeof reply.item === 'function' && reply.length) {
-          
-          
-          
-          var list = Array.prototype.slice.call(reply, 0);
-          list.forEach(function(child) {
-            var imported = this._maybeImportNode(child, doc);
-            siblingNode.parentNode.insertBefore(imported, siblingNode);
-          }.bind(this));
-        }
-        else {
-          
-          reply = doc.createTextNode(reply.toString());
-          siblingNode.parentNode.insertBefore(reply, siblingNode);
-        }
-
+        reply = this._toNode(reply, siblingNode.ownerDocument);
+        siblingNode.parentNode.insertBefore(reply, siblingNode);
       }.bind(this));
     }, this);
     node.parentNode.removeChild(node);
@@ -392,8 +326,16 @@ Templater.prototype._processTextNode = function(node, data) {
 
 
 
-Templater.prototype._maybeImportNode = function(node, doc) {
-  return node.ownerDocument === doc ? node : doc.importNode(node, true);
+
+Templater.prototype._toNode = function(thing, document) {
+  if (thing == null) {
+    thing = '' + thing;
+  }
+  
+  if (typeof thing.cloneNode !== 'function') {
+    thing = document.createTextNode(thing.toString());
+  }
+  return thing;
 };
 
 
@@ -407,7 +349,7 @@ Templater.prototype._maybeImportNode = function(node, doc) {
 
 
 Templater.prototype._handleAsync = function(thing, siblingNode, inserter) {
-  if (thing != null && typeof thing.then === 'function') {
+  if (typeof thing.then === 'function') {
     
     var tempNode = siblingNode.ownerDocument.createElement('span');
     siblingNode.parentNode.insertBefore(tempNode, siblingNode);
@@ -427,7 +369,7 @@ Templater.prototype._handleAsync = function(thing, siblingNode, inserter) {
 
 
 Templater.prototype._stripBraces = function(str) {
-  if (!str.match(this._templateRegion)) {
+  if (!str.match(/\$\{.*\}/g)) {
     this._handleError('Expected ' + str + ' to match ${...}');
     return str;
   }
@@ -452,6 +394,7 @@ Templater.prototype._stripBraces = function(str) {
 
 
 Templater.prototype._property = function(path, data, newValue) {
+  this.stack.push(path);
   try {
     if (typeof path === 'string') {
       path = path.split('.');
@@ -467,13 +410,12 @@ Templater.prototype._property = function(path, data, newValue) {
       return value;
     }
     if (!value) {
-      this._handleError('"' + path[0] + '" is undefined');
+      this._handleError('Can\'t find path=' + path);
       return null;
     }
     return this._property(path.slice(1), value, newValue);
-  } catch (ex) {
-    this._handleError('Path error with \'' + path + '\'', ex);
-    return '${' + path + '}';
+  } finally {
+    this.stack.pop();
   }
 };
 
@@ -491,25 +433,17 @@ Templater.prototype._property = function(path, data, newValue) {
 
 
 Templater.prototype._envEval = function(script, data, frame) {
-  try {
-    this.stack.push(frame.replace(/\s+/g, ' '));
-    if (this._isPropertyScript.test(script)) {
-      return this._property(script, data);
-    } else {
-      if (!this.options.allowEval) {
-        this._handleError('allowEval is not set, however \'' + script + '\'' +
-            ' can not be resolved using a simple property path.');
-        return '${' + script + '}';
-      }
-      with (data) {
-        return eval(script);
-      }
+  with (data) {
+    try {
+      this.stack.push(frame);
+      return eval(script);
+    } catch (ex) {
+      this._handleError('Template error evaluating \'' + script + '\'' +
+          ' environment=' + Object.keys(data).join(', '), ex);
+      return script;
+    } finally {
+      this.stack.pop();
     }
-  } catch (ex) {
-    this._handleError('Template error evaluating \'' + script + '\'', ex);
-    return '${' + script + '}';
-  } finally {
-    this.stack.pop();
   }
 };
 
@@ -520,7 +454,8 @@ Templater.prototype._envEval = function(script, data, frame) {
 
 
 Templater.prototype._handleError = function(message, ex) {
-  this._logError(message + ' (In: ' + this.stack.join(' > ') + ')');
+  this._logError(message);
+  this._logError('In: ' + this.stack.join(' > '));
   if (ex) {
     this._logError(ex);
   }
@@ -535,3 +470,4 @@ Templater.prototype._handleError = function(message, ex) {
 Templater.prototype._logError = function(message) {
   Services.console.logStringMessage(message);
 };
+

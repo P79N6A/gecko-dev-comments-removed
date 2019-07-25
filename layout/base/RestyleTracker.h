@@ -8,6 +8,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_css_RestyleTracker_h
 #define mozilla_css_RestyleTracker_h
 
@@ -24,10 +57,10 @@ class RestyleTracker {
 public:
   typedef mozilla::dom::Element Element;
 
-  RestyleTracker(uint32_t aRestyleBits,
+  RestyleTracker(PRUint32 aRestyleBits,
                  nsCSSFrameConstructor* aFrameConstructor) :
     mRestyleBits(aRestyleBits), mFrameConstructor(aFrameConstructor),
-    mHaveLaterSiblingRestyles(false)
+    mHaveLaterSiblingRestyles(PR_FALSE)
   {
     NS_PRECONDITION((mRestyleBits & ~ELEMENT_ALL_RESTYLE_FLAGS) == 0,
                     "Why do we have these bits set?");
@@ -43,11 +76,11 @@ public:
                     "Shouldn't have both root flags");
   }
 
-  void Init() {
-    mPendingRestyles.Init();
+  bool Init() {
+    return mPendingRestyles.Init();
   }
 
-  uint32_t Count() const {
+  PRUint32 Count() const {
     return mPendingRestyles.Count();
   }
 
@@ -61,21 +94,15 @@ public:
   
 
 
-  void ProcessRestyles() {
-    
-    
-    if (mPendingRestyles.Count()) {
-      DoProcessRestyles();
-    }
-  }
+  void ProcessRestyles();
 
   
-  uint32_t RestyleBit() const {
+  PRUint32 RestyleBit() const {
     return mRestyleBits & ELEMENT_PENDING_RESTYLE_FLAGS;
   }
 
   
-  uint32_t RootBit() const {
+  PRUint32 RootBit() const {
     return mRestyleBits & ~ELEMENT_PENDING_RESTYLE_FLAGS;
   }
   
@@ -116,17 +143,12 @@ private:
                                 nsRestyleHint aRestyleHint,
                                 nsChangeHint aChangeHint);
 
-  
-
-
-  void DoProcessRestyles();
-
   typedef nsDataHashtable<nsISupportsHashKey, RestyleData> PendingRestyleTable;
   typedef nsAutoTArray< nsRefPtr<Element>, 32> RestyleRootArray;
   
   
   
-  uint32_t mRestyleBits;
+  PRUint32 mRestyleBits;
   nsCSSFrameConstructor* mFrameConstructor; 
   
   

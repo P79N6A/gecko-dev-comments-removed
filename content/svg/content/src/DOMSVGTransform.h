@@ -4,22 +4,48 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_DOMSVGTRANSFORM_H__
 #define MOZILLA_DOMSVGTRANSFORM_H__
 
-#include "DOMSVGTransformList.h"
-#include "nsAutoPtr.h"
-#include "nsCycleCollectionParticipant.h"
-#include "nsDebug.h"
-#include "nsID.h"
 #include "nsIDOMSVGTransform.h"
-#include "nsTArray.h"
+#include "DOMSVGTransformList.h"
 #include "SVGTransform.h"
-#include "mozilla/Attributes.h"
-
-class nsSVGElement;
-
-struct gfxMatrix;
+#include "nsCycleCollectionParticipant.h"
+#include "nsAutoPtr.h"
 
 
 
@@ -39,7 +65,7 @@ class DOMSVGMatrix;
 
 
 
-class DOMSVGTransform MOZ_FINAL : public nsIDOMSVGTransform
+class DOMSVGTransform : public nsIDOMSVGTransform
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_DOMSVGTRANSFORM_IID)
@@ -51,7 +77,7 @@ public:
 
 
   DOMSVGTransform(DOMSVGTransformList *aList,
-                  uint32_t aListIndex,
+                  PRUint32 aListIndex,
                   bool aIsAnimValItem);
 
   
@@ -79,7 +105,7 @@ public:
     
     
     if (mList) {
-      mList->mItems[mListIndex] = nullptr;
+      mList->mItems[mListIndex] = nsnull;
     }
   };
 
@@ -115,15 +141,15 @@ public:
 
 
   void InsertingIntoList(DOMSVGTransformList *aList,
-                         uint32_t aListIndex,
+                         PRUint32 aListIndex,
                          bool aIsAnimValItem);
 
-  static uint32_t MaxListIndex() {
+  static PRUint32 MaxListIndex() {
     return (1U << MOZ_SVG_LIST_INDEX_BIT_COUNT) - 1;
   }
 
   
-  void UpdateListIndex(uint32_t aListIndex) {
+  void UpdateListIndex(PRUint32 aListIndex) {
     mListIndex = aListIndex;
   }
 
@@ -173,15 +199,14 @@ private:
   SVGTransform& Transform() {
     return HasOwner() ? InternalItem() : *mTransform;
   }
-  inline nsAttrValue NotifyElementWillChange();
-  void NotifyElementDidChange(const nsAttrValue& aEmptyOrOldValue);
+  void NotifyElementOfChange();
 
   nsRefPtr<DOMSVGTransformList> mList;
 
   
   
 
-  uint32_t mListIndex:MOZ_SVG_LIST_INDEX_BIT_COUNT;
+  PRUint32 mListIndex:MOZ_SVG_LIST_INDEX_BIT_COUNT;
   bool mIsAnimValItem:1;
 
   
@@ -202,16 +227,6 @@ private:
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(DOMSVGTransform, MOZILLA_DOMSVGTRANSFORM_IID)
-
-nsAttrValue
-DOMSVGTransform::NotifyElementWillChange()
-{
-  nsAttrValue result;
-  if (HasOwner()) {
-    result = Element()->WillChangeTransformList();
-  }
-  return result;
-}
 
 } 
 

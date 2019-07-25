@@ -1,7 +1,3 @@
-
-
-
-
 #include "nsGkAtoms.h"
 #include "txXSLTFunctions.h"
 #include "txExecutionState.h"
@@ -26,7 +22,7 @@ CurrentFunctionCall::CurrentFunctionCall()
 nsresult
 CurrentFunctionCall::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
 {
-    *aResult = nullptr;
+    *aResult = nsnull;
 
     if (!requireParams(0, 0, aContext))
         return NS_ERROR_XPATH_BAD_ARGUMENT_COUNT;

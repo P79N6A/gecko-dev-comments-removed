@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSMILCompositor.h"
 #include "nsSMILCSSProperty.h"
 #include "nsCSSProps.h"
@@ -73,7 +105,7 @@ nsSMILCompositor::ComposeAttribute()
 
   
   
-  uint32_t firstFuncToCompose = GetFirstFuncToAffectSandwich();
+  PRUint32 firstFuncToCompose = GetFirstFuncToAffectSandwich();
 
   
   nsSMILValue sandwichResultValue;
@@ -87,8 +119,8 @@ nsSMILCompositor::ComposeAttribute()
   }
 
   
-  uint32_t length = mAnimationFunctions.Length();
-  for (uint32_t i = firstFuncToCompose; i < length; ++i) {
+  PRUint32 length = mAnimationFunctions.Length();
+  for (PRUint32 i = firstFuncToCompose; i < length; ++i) {
     mAnimationFunctions[i]->ComposeResult(*smilAttr, sandwichResultValue);
   }
   if (sandwichResultValue.IsNull()) {
@@ -124,8 +156,7 @@ nsSMILCompositor::CreateSMILAttr()
 {
   if (mKey.mIsCSS) {
     nsCSSProperty propId =
-      nsCSSProps::LookupProperty(nsDependentAtomString(mKey.mAttributeName),
-                                 nsCSSProps::eEnabled);
+      nsCSSProps::LookupProperty(nsDependentAtomString(mKey.mAttributeName));
     if (nsSMILCSSProperty::IsPropertyAnimatable(propId)) {
       return new nsSMILCSSProperty(propId, mKey.mElement.get());
     }
@@ -133,38 +164,23 @@ nsSMILCompositor::CreateSMILAttr()
     return mKey.mElement->GetAnimatedAttr(mKey.mAttributeNamespaceID,
                                           mKey.mAttributeName);
   }
-  return nullptr;
+  return nsnull;
 }
 
-uint32_t
+PRUint32
 nsSMILCompositor::GetFirstFuncToAffectSandwich()
 {
-  uint32_t i;
+  PRUint32 i;
   for (i = mAnimationFunctions.Length(); i > 0; --i) {
     nsSMILAnimationFunction* curAnimFunc = mAnimationFunctions[i-1];
-    
-    
-    
-    
-    
-    mForceCompositing |=
-      curAnimFunc->UpdateCachedTarget(mKey) ||
-      curAnimFunc->HasChanged() ||
-      curAnimFunc->WasSkippedInPrevSample();
+    if (curAnimFunc->UpdateCachedTarget(mKey) ||
+        (!mForceCompositing && curAnimFunc->HasChanged())) {
+      mForceCompositing = PR_TRUE;
+    }
 
     if (curAnimFunc->WillReplace()) {
       --i;
       break;
-    }
-  }
-  
-  
-  
-  
-  
-  if (mForceCompositing) {
-    for (uint32_t j = i; j > 0; --j) {
-      mAnimationFunctions[j-1]->SetWasSkipped();
     }
   }
   return i;
@@ -177,10 +193,10 @@ nsSMILCompositor::UpdateCachedBaseValue(const nsSMILValue& aBaseValue)
     
     mCachedBaseValue = new nsSMILValue(aBaseValue);
     NS_WARN_IF_FALSE(mCachedBaseValue, "failed to cache base value (OOM?)");
-    mForceCompositing = true;
+    mForceCompositing = PR_TRUE;
   } else if (*mCachedBaseValue != aBaseValue) {
     
     *mCachedBaseValue = aBaseValue;
-    mForceCompositing = true;
+    mForceCompositing = PR_TRUE;
   }
 }

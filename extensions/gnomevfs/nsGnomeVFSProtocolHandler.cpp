@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 extern "C" {
 #include <libgnomevfs/gnome-vfs.h>
 #include <libgnomevfs/gnome-vfs-standard-callbacks.h>
@@ -15,7 +47,7 @@ extern "C" {
 #include "mozilla/ModuleUtils.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIPrefService.h"
-#include "nsIPrefBranch.h"
+#include "nsIPrefBranch2.h"
 #include "nsIObserver.h"
 #include "nsThreadUtils.h"
 #include "nsProxyRelease.h"
@@ -32,7 +64,6 @@ extern "C" {
 #include "prtime.h"
 #include "prprf.h"
 #include "plstr.h"
-#include "mozilla/Attributes.h"
 
 #define MOZ_GNOMEVFS_SCHEME              "moz-gnomevfs"
 #define MOZ_GNOMEVFS_SUPPORTED_PROTOCOLS "network.gnomevfs.supported-protocols"
@@ -157,7 +188,7 @@ ProxiedAuthCallback(gconstpointer in,
     
     
     
-    nsAutoCString spec;
+    nsCAutoString spec;
     uri->GetSpec(spec);
     int uriLen = strlen(authIn->uri);
     if (!StringHead(spec, uriLen).Equals(nsDependentCString(authIn->uri, uriLen)))
@@ -168,7 +199,7 @@ ProxiedAuthCallback(gconstpointer in,
   }
 #endif
 
-  nsAutoCString scheme, hostPort;
+  nsCAutoString scheme, hostPort;
   uri->GetScheme(scheme);
   uri->GetHostPort(hostPort);
 
@@ -235,9 +266,9 @@ ProxiedAuthCallback(gconstpointer in,
   
   nsresult rv;
   bool retval = false;
-  PRUnichar *user = nullptr, *pass = nullptr;
+  PRUnichar *user = nsnull, *pass = nsnull;
 
-  rv = prompt->PromptUsernameAndPassword(nullptr, message.get(),
+  rv = prompt->PromptUsernameAndPassword(nsnull, message.get(),
                                          key.get(),
                                          nsIAuthPrompt::SAVE_PASSWORD_PERMANENTLY,
                                          &user, &pass, &retval);
@@ -309,7 +340,7 @@ FileInfoComparator(gconstpointer a, gconstpointer b)
 
 
 
-class nsGnomeVFSInputStream MOZ_FINAL : public nsIInputStream
+class nsGnomeVFSInputStream : public nsIInputStream
 {
   public:
     NS_DECL_ISUPPORTS
@@ -317,14 +348,14 @@ class nsGnomeVFSInputStream MOZ_FINAL : public nsIInputStream
 
     nsGnomeVFSInputStream(const nsCString &uriSpec)
       : mSpec(uriSpec)
-      , mChannel(nullptr)
-      , mHandle(nullptr)
-      , mBytesRemaining(PR_UINT64_MAX)
+      , mChannel(nsnull)
+      , mHandle(nsnull)
+      , mBytesRemaining(PR_UINT32_MAX)
       , mStatus(NS_OK)
-      , mDirList(nullptr)
-      , mDirListPtr(nullptr)
+      , mDirList(nsnull)
+      , mDirListPtr(nsnull)
       , mDirBufCursor(0)
-      , mDirOpen(false) {}
+      , mDirOpen(PR_FALSE) {}
 
    ~nsGnomeVFSInputStream() { Close(); }
 
@@ -348,19 +379,19 @@ class nsGnomeVFSInputStream MOZ_FINAL : public nsIInputStream
 
   private:
     GnomeVFSResult DoOpen();
-    GnomeVFSResult DoRead(char *aBuf, uint32_t aCount, uint32_t *aCountRead);
+    GnomeVFSResult DoRead(char *aBuf, PRUint32 aCount, PRUint32 *aCountRead);
     nsresult       SetContentTypeOfChannel(const char *contentType);
 
   private:
     nsCString                mSpec;
     nsIChannel              *mChannel; 
     GnomeVFSHandle          *mHandle;
-    uint64_t                 mBytesRemaining;
+    PRUint32                 mBytesRemaining;
     nsresult                 mStatus;
     GList                   *mDirList;
     GList                   *mDirListPtr;
     nsCString                mDirBuf;
-    uint32_t                 mDirBufCursor;
+    PRUint32                 mDirBufCursor;
     bool                     mDirOpen;
 };
 
@@ -369,7 +400,7 @@ nsGnomeVFSInputStream::DoOpen()
 {
   GnomeVFSResult rv;
 
-  NS_ASSERTION(mHandle == nullptr, "already open");
+  NS_ASSERTION(mHandle == nsnull, "already open");
 
   
   
@@ -429,18 +460,17 @@ nsGnomeVFSInputStream::DoOpen()
       if (info.mime_type && (strcmp(info.mime_type, APPLICATION_OCTET_STREAM) != 0))
         SetContentTypeOfChannel(info.mime_type);
 
-      mBytesRemaining = info.size;
+      
+      mBytesRemaining = (PRUint32) info.size;
 
       
       
-      if (mBytesRemaining != PR_UINT64_MAX) {
-        
-        mChannel->SetContentLength(NS_MAX((int32_t)mBytesRemaining, PR_INT32_MAX));
-      }
+      if (mBytesRemaining != PR_UINT32_MAX)
+        mChannel->SetContentLength(mBytesRemaining);
     }
     else
     {
-      mDirOpen = true;
+      mDirOpen = PR_TRUE;
 
       
       mDirList = g_list_sort(mDirList, FileInfoComparator);
@@ -469,7 +499,7 @@ nsGnomeVFSInputStream::DoOpen()
 }
 
 GnomeVFSResult
-nsGnomeVFSInputStream::DoRead(char *aBuf, uint32_t aCount, uint32_t *aCountRead)
+nsGnomeVFSInputStream::DoRead(char *aBuf, PRUint32 aCount, PRUint32 *aCountRead)
 {
   GnomeVFSResult rv;
 
@@ -479,8 +509,7 @@ nsGnomeVFSInputStream::DoRead(char *aBuf, uint32_t aCount, uint32_t *aCountRead)
     rv = gnome_vfs_read(mHandle, aBuf, aCount, &bytesRead);
     if (rv == GNOME_VFS_OK)
     {
-      
-      *aCountRead = (uint32_t) bytesRead;
+      *aCountRead = (PRUint32) bytesRead;
       mBytesRemaining -= *aCountRead;
     }
   }
@@ -491,10 +520,10 @@ nsGnomeVFSInputStream::DoRead(char *aBuf, uint32_t aCount, uint32_t *aCountRead)
     while (aCount && rv != GNOME_VFS_ERROR_EOF)
     {
       
-      uint32_t bufLen = mDirBuf.Length() - mDirBufCursor;
+      PRUint32 bufLen = mDirBuf.Length() - mDirBufCursor;
       if (bufLen)
       {
-        uint32_t n = NS_MIN(bufLen, aCount);
+        PRUint32 n = NS_MIN(bufLen, aCount);
         memcpy(aBuf, mDirBuf.get() + mDirBufCursor, n);
         *aCountRead += n;
         aBuf += n;
@@ -534,7 +563,7 @@ nsGnomeVFSInputStream::DoRead(char *aBuf, uint32_t aCount, uint32_t *aCountRead)
 
         
         
-        mDirBuf.AppendInt(int32_t(info->size));
+        mDirBuf.AppendInt(PRInt32(info->size));
         mDirBuf.Append(' ');
 
         
@@ -636,16 +665,16 @@ nsGnomeVFSInputStream::Close()
   if (mHandle)
   {
     gnome_vfs_close(mHandle);
-    mHandle = nullptr;
+    mHandle = nsnull;
   }
 
   if (mDirList)
   {
     
-    g_list_foreach(mDirList, (GFunc) gnome_vfs_file_info_unref, nullptr);
+    g_list_foreach(mDirList, (GFunc) gnome_vfs_file_info_unref, nsnull);
     g_list_free(mDirList);
-    mDirList = nullptr;
-    mDirListPtr = nullptr;
+    mDirList = nsnull;
+    mDirListPtr = nsnull;
   }
 
   if (mChannel)
@@ -657,7 +686,7 @@ nsGnomeVFSInputStream::Close()
       rv = NS_ProxyRelease(thread, mChannel);
 
     NS_ASSERTION(thread && NS_SUCCEEDED(rv), "leaking channel reference");
-    mChannel = nullptr;
+    mChannel = nsnull;
   }
 
   mSpec.Truncate(); 
@@ -670,7 +699,7 @@ nsGnomeVFSInputStream::Close()
 }
 
 NS_IMETHODIMP
-nsGnomeVFSInputStream::Available(uint64_t *aResult)
+nsGnomeVFSInputStream::Available(PRUint32 *aResult)
 {
   if (NS_FAILED(mStatus))
     return mStatus;
@@ -681,8 +710,8 @@ nsGnomeVFSInputStream::Available(uint64_t *aResult)
 
 NS_IMETHODIMP
 nsGnomeVFSInputStream::Read(char *aBuf,
-                            uint32_t aCount,
-                            uint32_t *aCountRead)
+                            PRUint32 aCount,
+                            PRUint32 *aCountRead)
 {
   *aCountRead = 0;
 
@@ -716,8 +745,8 @@ nsGnomeVFSInputStream::Read(char *aBuf,
 NS_IMETHODIMP
 nsGnomeVFSInputStream::ReadSegments(nsWriteSegmentFun aWriter,
                                     void *aClosure,
-                                    uint32_t aCount,
-                                    uint32_t *aResult)
+                                    PRUint32 aCount,
+                                    PRUint32 *aResult)
 {
   
   
@@ -729,14 +758,14 @@ nsGnomeVFSInputStream::ReadSegments(nsWriteSegmentFun aWriter,
 NS_IMETHODIMP
 nsGnomeVFSInputStream::IsNonBlocking(bool *aResult)
 {
-  *aResult = false;
+  *aResult = PR_FALSE;
   return NS_OK;
 }
 
 
 
-class nsGnomeVFSProtocolHandler MOZ_FINAL : public nsIProtocolHandler
-                                          , public nsIObserver
+class nsGnomeVFSProtocolHandler : public nsIProtocolHandler
+                                , public nsIObserver
 {
   public:
     NS_DECL_ISUPPORTS
@@ -770,11 +799,11 @@ nsGnomeVFSProtocolHandler::Init()
     }
   }
 
-  nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
+  nsCOMPtr<nsIPrefBranch2> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
   if (prefs)
   {
     InitSupportedProtocolsPref(prefs);
-    prefs->AddObserver(MOZ_GNOMEVFS_SUPPORTED_PROTOCOLS, this, false);
+    prefs->AddObserver(MOZ_GNOMEVFS_SUPPORTED_PROTOCOLS, this, PR_FALSE);
   }
 
   return NS_OK;
@@ -802,21 +831,21 @@ nsGnomeVFSProtocolHandler::IsSupportedProtocol(const nsCString &aSpec)
   const char *specString = aSpec.get();
   const char *colon = strchr(specString, ':');
   if (!colon)
-    return false;
+    return PR_FALSE;
 
-  uint32_t length = colon - specString + 1;
+  PRUint32 length = colon - specString + 1;
 
   
   nsCString scheme(specString, length);
 
   char *found = PL_strcasestr(mSupportedProtocols.get(), scheme.get());
   if (!found)
-    return false;
+    return PR_FALSE;
 
   if (found[length] != ',' && found[length] != '\0')
-    return false;
+    return PR_FALSE;
 
-  return true;
+  return PR_TRUE;
 }
 
 NS_IMETHODIMP
@@ -827,14 +856,14 @@ nsGnomeVFSProtocolHandler::GetScheme(nsACString &aScheme)
 }
 
 NS_IMETHODIMP
-nsGnomeVFSProtocolHandler::GetDefaultPort(int32_t *aDefaultPort)
+nsGnomeVFSProtocolHandler::GetDefaultPort(PRInt32 *aDefaultPort)
 {
   *aDefaultPort = -1;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsGnomeVFSProtocolHandler::GetProtocolFlags(uint32_t *aProtocolFlags)
+nsGnomeVFSProtocolHandler::GetProtocolFlags(PRUint32 *aProtocolFlags)
 {
   
   *aProtocolFlags = URI_STD | URI_DANGEROUS_TO_LOAD;
@@ -901,7 +930,7 @@ nsGnomeVFSProtocolHandler::NewChannel(nsIURI *aURI, nsIChannel **aResult)
   NS_ENSURE_ARG_POINTER(aURI);
   nsresult rv;
 
-  nsAutoCString spec;
+  nsCAutoString spec;
   rv = aURI->GetSpec(spec);
   if (NS_FAILED(rv))
     return rv;
@@ -924,12 +953,12 @@ nsGnomeVFSProtocolHandler::NewChannel(nsIURI *aURI, nsIChannel **aResult)
 }
 
 NS_IMETHODIMP
-nsGnomeVFSProtocolHandler::AllowPort(int32_t aPort,
+nsGnomeVFSProtocolHandler::AllowPort(PRInt32 aPort,
                                      const char *aScheme,
                                      bool *aResult)
 {
   
-  *aResult = false; 
+  *aResult = PR_FALSE; 
   return NS_OK;
 }
 

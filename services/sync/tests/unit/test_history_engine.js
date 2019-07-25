@@ -1,6 +1,3 @@
-
-
-
 Cu.import("resource://services-sync/record.js");
 Cu.import("resource://services-sync/engines/history.js");
 Cu.import("resource://services-sync/constants.js");
@@ -8,13 +5,15 @@ Cu.import("resource://services-sync/engines.js");
 Cu.import("resource://services-sync/identity.js");
 Cu.import("resource://services-sync/util.js");
 
+var syncTesting = new SyncTestingInfrastructure();
+
 add_test(function test_processIncoming_mobile_history_batched() {
   _("SyncEngine._processIncoming works on history engine.");
 
   let FAKE_DOWNLOAD_LIMIT = 100;
-
-  new SyncTestingInfrastructure();
-
+  
+  Svc.Prefs.set("clusterURL", "http://localhost:8080/");
+  Svc.Prefs.set("username", "foo");
   Svc.Prefs.set("client.type", "mobile");
   PlacesUtils.history.removeAllPages();
   Engines.register(HistoryEngine);

@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsBidi_h__
 #define nsBidi_h__
 
@@ -83,7 +116,7 @@
 
 
 
-typedef uint8_t nsBidiLevel;
+typedef PRUint8 nsBidiLevel;
 
 
 
@@ -164,15 +197,15 @@ typedef enum nsBidiDirection nsBidiDirection;
 
 #define GETINITIALDIRPROPSMEMORY(length) \
                                          GetMemory((void **)&mDirPropsMemory, &mDirPropsSize, \
-                                         true, (length))
+                                         PR_TRUE, (length))
 
 #define GETINITIALLEVELSMEMORY(length) \
                                        GetMemory((void **)&mLevelsMemory, &mLevelsSize, \
-                                       true, (length))
+                                       PR_TRUE, (length))
 
 #define GETINITIALRUNSMEMORY(length) \
                                      GetMemory((void **)&mRunsMemory, &mRunsSize, \
-                                     true, (length)*sizeof(Run))
+                                     PR_TRUE, (length)*sizeof(Run))
 
 
 
@@ -180,7 +213,7 @@ typedef enum nsBidiDirection nsBidiDirection;
 
 
 
-typedef uint8_t DirProp;
+typedef PRUint8 DirProp;
 
 #define DIRPROP_FLAG(dir) (1UL<<(dir))
 
@@ -246,7 +279,7 @@ typedef uint8_t DirProp;
 
 
 #define UTF16_APPEND_CHAR_UNSAFE(s, i, c){ \
-                                         if((uint32_t)(c)<=0xffff) { \
+                                         if((PRUint32)(c)<=0xffff) { \
                                          (s)[(i)++]=(PRUnichar)(c); \
                                          } else { \
                                          (s)[(i)++]=(PRUnichar)((c)>>10)+0xd7c0; \
@@ -301,7 +334,7 @@ typedef uint8_t DirProp;
 }
 
 #define UTF16_BACK_N_UNSAFE(s, i, n) { \
-                                     int32_t __N=(n); \
+                                     PRInt32 __N=(n); \
                                      while(__N>0) { \
                                      UTF16_BACK_1_UNSAFE(s, i); \
                                      --__N; \
@@ -336,7 +369,7 @@ typedef uint8_t DirProp;
 }
 
 #define UTF16_BACK_N_SAFE(s, start, i, n) { \
-                                          int32_t __N=(n); \
+                                          PRInt32 __N=(n); \
                                           while(__N>0 && (i)>(start)) { \
                                           UTF16_BACK_1_SAFE(s, start, i); \
                                           --__N; \
@@ -352,7 +385,7 @@ typedef uint8_t DirProp;
 #define UTF_APPEND_CHAR_UNSAFE(s, i, c)              UTF16_APPEND_CHAR_UNSAFE(s, i, c)
 #define UTF_APPEND_CHAR_SAFE(s, i, length, c)        UTF16_APPEND_CHAR_SAFE(s, i, length, c)
 
-#define UTF_PREV_CHAR(s, start, i, c)                UTF_PREV_CHAR_SAFE(s, start, i, c, false)
+#define UTF_PREV_CHAR(s, start, i, c)                UTF_PREV_CHAR_SAFE(s, start, i, c, PR_FALSE)
 #define UTF_BACK_1(s, start, i)                      UTF_BACK_1_SAFE(s, start, i)
 #define UTF_BACK_N(s, start, i, n)                   UTF_BACK_N_SAFE(s, start, i, n)
 #define UTF_APPEND_CHAR(s, i, length, c)             UTF_APPEND_CHAR_SAFE(s, i, length, c)
@@ -360,23 +393,23 @@ typedef uint8_t DirProp;
 
 
 typedef struct Run {
-  int32_t logicalStart,  
+  PRInt32 logicalStart,  
   visualLimit;  
 } Run;
 
 
 #define INDEX_ODD_BIT (1UL<<31)
 
-#define MAKE_INDEX_ODD_PAIR(index, level) (index|((uint32_t)level<<31))
-#define ADD_ODD_BIT_FROM_LEVEL(x, level)  ((x)|=((uint32_t)level<<31))
+#define MAKE_INDEX_ODD_PAIR(index, level) (index|((PRUint32)level<<31))
+#define ADD_ODD_BIT_FROM_LEVEL(x, level)  ((x)|=((PRUint32)level<<31))
 #define REMOVE_ODD_BIT(x)          ((x)&=~INDEX_ODD_BIT)
 
 #define GET_INDEX(x)   (x&~INDEX_ODD_BIT)
-#define GET_ODD_BIT(x) ((uint32_t)x>>31)
+#define GET_ODD_BIT(x) ((PRUint32)x>>31)
 #define IS_ODD_RUN(x)  ((x&INDEX_ODD_BIT)!=0)
 #define IS_EVEN_RUN(x) ((x&INDEX_ODD_BIT)==0)
 
-typedef uint32_t Flags;
+typedef PRUint32 Flags;
 
 
 
@@ -475,7 +508,7 @@ public:
 
 
 
-  nsresult SetPara(const PRUnichar *aText, int32_t aLength, nsBidiLevel aParaLevel, nsBidiLevel *aEmbeddingLevels);
+  nsresult SetPara(const PRUnichar *aText, PRInt32 aLength, nsBidiLevel aParaLevel, nsBidiLevel *aEmbeddingLevels);
 
   
 
@@ -487,15 +520,6 @@ public:
 
 
   nsresult GetDirection(nsBidiDirection* aDirection);
-
-  
-
-
-
-
-
-
-  nsresult GetParaLevel(nsBidiLevel* aParaLevel);
 
 #ifdef FULL_BIDI_ENGINE
   
@@ -531,14 +555,23 @@ public:
 
 
 
-  nsresult SetLine(nsIBidi* aParaBidi, int32_t aStart, int32_t aLimit);  
+  nsresult SetLine(nsIBidi* aParaBidi, PRInt32 aStart, PRInt32 aLimit);  
 
   
 
 
 
 
-  nsresult GetLength(int32_t* aLength);
+  nsresult GetLength(PRInt32* aLength);
+
+  
+
+
+
+
+
+
+  nsresult GetParaLevel(nsBidiLevel* aParaLevel);
 
   
 
@@ -549,7 +582,7 @@ public:
 
 
 
-  nsresult GetLevelAt(int32_t aCharIndex,  nsBidiLevel* aLevel);
+  nsresult GetLevelAt(PRInt32 aCharIndex,  nsBidiLevel* aLevel);
 
   
 
@@ -571,7 +604,7 @@ public:
 
 
 
-  nsresult GetCharTypeAt(int32_t aCharIndex,  nsCharType* aType);
+  nsresult GetCharTypeAt(PRInt32 aCharIndex,  nsCharType* aType);
 
   
 
@@ -592,7 +625,7 @@ public:
 
 
 
-  nsresult GetLogicalRun(int32_t aLogicalStart, int32_t* aLogicalLimit, nsBidiLevel* aLevel);
+  nsresult GetLogicalRun(PRInt32 aLogicalStart, PRInt32* aLogicalLimit, nsBidiLevel* aLevel);
 
   
 
@@ -604,7 +637,7 @@ public:
 
 
 
-  nsresult CountRuns(int32_t* aRunCount);
+  nsresult CountRuns(PRInt32* aRunCount);
 
   
 
@@ -654,7 +687,7 @@ public:
 
 
 
-  nsresult GetVisualRun(int32_t aRunIndex, int32_t* aLogicalStart, int32_t* aLength, nsBidiDirection* aDirection);
+  nsresult GetVisualRun(PRInt32 aRunIndex, PRInt32* aLogicalStart, PRInt32* aLength, nsBidiDirection* aDirection);
 
 #ifdef FULL_BIDI_ENGINE
   
@@ -674,7 +707,7 @@ public:
 
 
 
-  nsresult GetVisualIndex(int32_t aLogicalIndex, int32_t* aVisualIndex);
+  nsresult GetVisualIndex(PRInt32 aLogicalIndex, PRInt32* aVisualIndex);
 
   
 
@@ -691,7 +724,7 @@ public:
 
 
 
-  nsresult GetLogicalIndex(int32_t aVisualIndex, int32_t* aLogicalIndex);
+  nsresult GetLogicalIndex(PRInt32 aVisualIndex, PRInt32* aLogicalIndex);
 
   
 
@@ -705,7 +738,7 @@ public:
 
 
 
-  nsresult GetLogicalMap(int32_t *aIndexMap);
+  nsresult GetLogicalMap(PRInt32 *aIndexMap);
 
   
 
@@ -719,7 +752,7 @@ public:
 
 
 
-  nsresult GetVisualMap(int32_t *aIndexMap);
+  nsresult GetVisualMap(PRInt32 *aIndexMap);
 
   
 
@@ -740,7 +773,7 @@ public:
 
 
 
-  static nsresult ReorderLogical(const nsBidiLevel *aLevels, int32_t aLength, int32_t *aIndexMap);
+  static nsresult ReorderLogical(const nsBidiLevel *aLevels, PRInt32 aLength, PRInt32 *aIndexMap);
 #endif 
   
 
@@ -761,7 +794,7 @@ public:
 
 
 
-  static nsresult ReorderVisual(const nsBidiLevel *aLevels, int32_t aLength, int32_t *aIndexMap);
+  static nsresult ReorderVisual(const nsBidiLevel *aLevels, PRInt32 aLength, PRInt32 *aIndexMap);
 
 #ifdef FULL_BIDI_ENGINE
   
@@ -777,7 +810,7 @@ public:
 
 
 
-  nsresult InvertMap(const int32_t *aSrcMap, int32_t *aDestMap, int32_t aLength);
+  nsresult InvertMap(const PRInt32 *aSrcMap, PRInt32 *aDestMap, PRInt32 aLength);
 #endif 
   
 
@@ -814,16 +847,16 @@ public:
 
 
 
-  nsresult WriteReverse(const PRUnichar *aSrc, int32_t aSrcLength, PRUnichar *aDest, uint16_t aOptions, int32_t *aDestSize);
+  nsresult WriteReverse(const PRUnichar *aSrc, PRInt32 aSrcLength, PRUnichar *aDest, PRUint16 aOptions, PRInt32 *aDestSize);
 
 protected:
   friend class nsBidiPresUtils;
 
   
-  int32_t mLength;
+  PRInt32 mLength;
 
   
-  size_t mDirPropsSize, mLevelsSize, mRunsSize;
+  PRSize mDirPropsSize, mLevelsSize, mRunsSize;
 
   
   DirProp* mDirPropsMemory;
@@ -847,10 +880,10 @@ protected:
 
   
   
-  int32_t mTrailingWSStart;
+  PRInt32 mTrailingWSStart;
 
   
-  int32_t mRunCount;     
+  PRInt32 mRunCount;     
   Run* mRuns;
 
   
@@ -860,7 +893,7 @@ private:
 
   void Init();
 
-  bool GetMemory(void **aMemory, size_t* aSize, bool aMayAllocate, size_t aSizeNeeded);
+  bool GetMemory(void **aMemory, PRSize* aSize, bool aMayAllocate, PRSize aSizeNeeded);
 
   void Free();
 
@@ -872,7 +905,7 @@ private:
 
   nsBidiDirection DirectionFromFlags(Flags aFlags);
 
-  void ResolveImplicitLevels(int32_t aStart, int32_t aLimit, DirProp aSOR, DirProp aEOR);
+  void ResolveImplicitLevels(PRInt32 aStart, PRInt32 aLimit, DirProp aSOR, DirProp aEOR);
 
   void AdjustWSLevels();
 
@@ -884,10 +917,10 @@ private:
 
   void ReorderLine(nsBidiLevel aMinLevel, nsBidiLevel aMaxLevel);
 
-  static bool PrepareReorder(const nsBidiLevel *aLevels, int32_t aLength, int32_t *aIndexMap, nsBidiLevel *aMinLevel, nsBidiLevel *aMaxLevel);
+  static bool PrepareReorder(const nsBidiLevel *aLevels, PRInt32 aLength, PRInt32 *aIndexMap, nsBidiLevel *aMinLevel, nsBidiLevel *aMaxLevel);
 
-  int32_t doWriteReverse(const PRUnichar *src, int32_t srcLength,
-                         PRUnichar *dest, uint16_t options);
+  PRInt32 doWriteReverse(const PRUnichar *src, PRInt32 srcLength,
+                         PRUnichar *dest, PRUint16 options);
 
 };
 

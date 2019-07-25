@@ -10,6 +10,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsImageBoxFrame.h"
 #include "nsGkAtoms.h"
 #include "nsStyleContext.h"
@@ -23,19 +55,24 @@
 #include "nsLeafFrame.h"
 #include "nsIPresShell.h"
 #include "nsIDocument.h"
+#include "nsIHTMLDocument.h"
+#include "nsStyleConsts.h"
 #include "nsImageMap.h"
 #include "nsILinkHandler.h"
 #include "nsIURL.h"
 #include "nsILoadGroup.h"
-#include "nsContainerFrame.h"
+#include "nsHTMLContainerFrame.h"
 #include "prprf.h"
 #include "nsCSSRendering.h"
 #include "nsIDOMHTMLImageElement.h"
 #include "nsINameSpaceManager.h"
 #include "nsTextFragment.h"
 #include "nsIDOMHTMLMapElement.h"
+#include "nsBoxLayoutState.h"
+#include "nsIDOMDocument.h"
 #include "nsTransform2D.h"
 #include "nsITheme.h"
+#include "nsIImageLoadingContent.h"
 
 #include "nsIServiceManager.h"
 #include "nsIURI.h"
@@ -52,20 +89,25 @@
 class nsImageBoxFrameEvent : public nsRunnable
 {
 public:
-  nsImageBoxFrameEvent(nsIContent *content, uint32_t message)
+  nsImageBoxFrameEvent(nsIContent *content, PRUint32 message)
     : mContent(content), mMessage(message) {}
 
   NS_IMETHOD Run();
 
 private:
   nsCOMPtr<nsIContent> mContent;
-  uint32_t mMessage;
+  PRUint32 mMessage;
 };
 
 NS_IMETHODIMP
 nsImageBoxFrameEvent::Run()
 {
-  nsIPresShell *pres_shell = mContent->OwnerDoc()->GetShell();
+  nsIDocument* doc = mContent->GetOwnerDoc();
+  if (!doc) {
+    return NS_OK;
+  }
+
+  nsIPresShell *pres_shell = doc->GetShell();
   if (!pres_shell) {
     return NS_OK;
   }
@@ -76,10 +118,10 @@ nsImageBoxFrameEvent::Run()
   }
 
   nsEventStatus status = nsEventStatus_eIgnore;
-  nsEvent event(true, mMessage);
+  nsEvent event(PR_TRUE, mMessage);
 
   event.flags |= NS_EVENT_FLAG_CANT_BUBBLE;
-  nsEventDispatcher::Dispatch(mContent, pres_context, &event, nullptr, &status);
+  nsEventDispatcher::Dispatch(mContent, pres_context, &event, nsnull, &status);
   return NS_OK;
 }
 
@@ -92,7 +134,7 @@ nsImageBoxFrameEvent::Run()
 
 
 void
-FireImageDOMEvent(nsIContent* aContent, uint32_t aMessage)
+FireImageDOMEvent(nsIContent* aContent, PRUint32 aMessage)
 {
   NS_ASSERTION(aMessage == NS_LOAD || aMessage == NS_LOAD_ERROR,
                "invalid message");
@@ -116,9 +158,9 @@ NS_NewImageBoxFrame (nsIPresShell* aPresShell, nsStyleContext* aContext)
 NS_IMPL_FRAMEARENA_HELPERS(nsImageBoxFrame)
 
 NS_IMETHODIMP
-nsImageBoxFrame::AttributeChanged(int32_t aNameSpaceID,
+nsImageBoxFrame::AttributeChanged(PRInt32 aNameSpaceID,
                                   nsIAtom* aAttribute,
-                                  int32_t aModType)
+                                  PRInt32 aModType)
 {
   nsresult rv = nsLeafBoxFrame::AttributeChanged(aNameSpaceID, aAttribute,
                                                  aModType);
@@ -139,8 +181,8 @@ nsImageBoxFrame::nsImageBoxFrame(nsIPresShell* aShell, nsStyleContext* aContext)
   mIntrinsicSize(0,0),
   mRequestRegistered(false),
   mLoadFlags(nsIRequest::LOAD_NORMAL),
-  mUseSrcAttr(false),
-  mSuppressStyleCheck(false)
+  mUseSrcAttr(PR_FALSE),
+  mSuppressStyleCheck(PR_FALSE)
 {
   MarkIntrinsicWidthsDirty();
 }
@@ -161,7 +203,10 @@ void
 nsImageBoxFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
   if (mImageRequest) {
-    nsLayoutUtils::DeregisterImageRequest(PresContext(), mImageRequest,
+    nsPresContext* presContext = PresContext();
+    NS_ASSERTION(presContext, "No PresContext");
+    nsLayoutUtils::DeregisterImageRequest(presContext,
+                                          mImageRequest,
                                           &mRequestRegistered);
 
     
@@ -169,7 +214,7 @@ nsImageBoxFrame::DestroyFrom(nsIFrame* aDestructRoot)
   }
 
   if (mListener)
-    reinterpret_cast<nsImageBoxListener*>(mListener.get())->SetFrame(nullptr); 
+    reinterpret_cast<nsImageBoxListener*>(mListener.get())->SetFrame(nsnull); 
 
   nsLeafBoxFrame::DestroyFrom(aDestructRoot);
 }
@@ -188,9 +233,9 @@ nsImageBoxFrame::Init(nsIContent*      aContent,
     NS_RELEASE(listener);
   }
 
-  mSuppressStyleCheck = true;
+  mSuppressStyleCheck = PR_TRUE;
   nsresult rv = nsLeafBoxFrame::Init(aContent, aParent, aPrevInFlow);
-  mSuppressStyleCheck = false;
+  mSuppressStyleCheck = PR_FALSE;
 
   UpdateLoadFlags();
   UpdateImage();
@@ -202,12 +247,13 @@ void
 nsImageBoxFrame::UpdateImage()
 {
   nsPresContext* presContext = PresContext();
+  NS_ASSERTION(presContext, "No PresContext");
 
   if (mImageRequest) {
     nsLayoutUtils::DeregisterImageRequest(presContext, mImageRequest,
                                           &mRequestRegistered);
     mImageRequest->CancelAndForgetObserver(NS_ERROR_FAILURE);
-    mImageRequest = nullptr;
+    mImageRequest = nsnull;
   }
 
   
@@ -233,18 +279,18 @@ nsImageBoxFrame::UpdateImage()
                                 doc->GetDocumentURI(), mListener, mLoadFlags,
                                 getter_AddRefs(mImageRequest));
 
-      if (mImageRequest) {
-        nsLayoutUtils::RegisterImageRequestIfAnimated(presContext,
-                                                      mImageRequest,
-                                                      &mRequestRegistered);
-      }
+      
+      nsLayoutUtils::RegisterImageRequest(presContext,
+                                          mImageRequest,
+                                          &mRequestRegistered);
+
     }
   } else {
     
     
-    uint8_t appearance = GetStyleDisplay()->mAppearance;
-    if (!(appearance && nsBox::gTheme &&
-          nsBox::gTheme->ThemeSupportsWidget(nullptr, this, appearance))) {
+    PRUint8 appearance = GetStyleDisplay()->mAppearance;
+    if (!(appearance && nsBox::gTheme && 
+          nsBox::gTheme->ThemeSupportsWidget(nsnull, this, appearance))) {
       
       imgIRequest *styleRequest = GetStyleList()->GetListStyleImage();
       if (styleRequest) {
@@ -267,7 +313,7 @@ void
 nsImageBoxFrame::UpdateLoadFlags()
 {
   static nsIContent::AttrValuesArray strings[] =
-    {&nsGkAtoms::always, &nsGkAtoms::never, nullptr};
+    {&nsGkAtoms::always, &nsGkAtoms::never, nsnull};
   switch (mContent->FindAttrValueIn(kNameSpaceID_None, nsGkAtoms::validate,
                                     strings, eCaseMatters)) {
     case 0:
@@ -308,15 +354,15 @@ void nsDisplayXULImage::Paint(nsDisplayListBuilder* aBuilder,
   static_cast<nsImageBoxFrame*>(mFrame)->
     PaintImage(*aCtx, mVisibleRect, ToReferenceFrame(),
                aBuilder->ShouldSyncDecodeImages()
-                 ? (uint32_t) imgIContainer::FLAG_SYNC_DECODE
-                 : (uint32_t) imgIContainer::FLAG_NONE);
+                 ? (PRUint32) imgIContainer::FLAG_SYNC_DECODE
+                 : (PRUint32) imgIContainer::FLAG_NONE);
 }
 
 NS_IMETHODIMP
 nsImageBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                   const nsRect&           aDirtyRect,
                                   const nsDisplayListSet& aLists)
-{
+{       
   nsresult rv = nsLeafBoxFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -337,7 +383,7 @@ nsImageBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 void
 nsImageBoxFrame::PaintImage(nsRenderingContext& aRenderingContext,
                             const nsRect& aDirtyRect, nsPoint aPt,
-                            uint32_t aFlags)
+                            PRUint32 aFlags)
 {
   nsRect rect;
   GetClientRect(rect);
@@ -359,7 +405,7 @@ nsImageBoxFrame::PaintImage(nsRenderingContext& aRenderingContext,
     bool hasSubRect = !mUseSrcAttr && (mSubRect.width > 0 || mSubRect.height > 0);
     nsLayoutUtils::DrawSingleImage(&aRenderingContext, imgCon,
         nsLayoutUtils::GetGraphicsFilterForFrame(this),
-        rect, dirty, aFlags, hasSubRect ? &mSubRect : nullptr);
+        rect, dirty, aFlags, hasSubRect ? &mSubRect : nsnull);
   }
 }
 
@@ -383,8 +429,8 @@ nsImageBoxFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 
   
   const nsStyleDisplay* disp = GetStyleDisplay();
-  if (disp->mAppearance && nsBox::gTheme &&
-      nsBox::gTheme->ThemeSupportsWidget(nullptr, this, disp->mAppearance))
+  if (disp->mAppearance && nsBox::gTheme && 
+      nsBox::gTheme->ThemeSupportsWidget(nsnull, this, disp->mAppearance))
     return;
 
   
@@ -438,9 +484,9 @@ nsImageBoxFrame::GetPrefSize(nsBoxLayoutState& aState)
   size.height += borderPadding.TopBottom();
 
   bool widthSet, heightSet;
-  nsIFrame::AddCSSPrefSize(this, size, widthSet, heightSet);
+  nsIBox::AddCSSPrefSize(this, size, widthSet, heightSet);
   NS_ASSERTION(size.width != NS_INTRINSICSIZE && size.height != NS_INTRINSICSIZE,
-               "non-intrinsic size expected");
+               "non-nintrinsic size expected");
 
   nsSize minSize = GetMinSize(aState);
   nsSize maxSize = GetMaxSize(aState);
@@ -459,7 +505,7 @@ nsImageBoxFrame::GetPrefSize(nsBoxLayoutState& aState)
                                                                  maxSize.width, maxSize.height,
                                                                  intrinsicSize.width, intrinsicSize.height);
     NS_ASSERTION(size.width != NS_INTRINSICSIZE && size.height != NS_INTRINSICSIZE,
-                 "non-intrinsic size expected");
+                 "non-nintrinsic size expected");
     size.width += borderPadding.LeftRight();
     size.height += borderPadding.TopBottom();
     return size;
@@ -470,8 +516,8 @@ nsImageBoxFrame::GetPrefSize(nsBoxLayoutState& aState)
       
       
       nscoord height = size.height - borderPadding.TopBottom();
-      size.width = nscoord(int64_t(height) * int64_t(intrinsicSize.width) /
-                           int64_t(intrinsicSize.height));
+      size.width = nscoord(PRInt64(height) * PRInt64(intrinsicSize.width) /
+                           PRInt64(intrinsicSize.height));
     }
     else {
       size.width = intrinsicSize.width;
@@ -482,8 +528,8 @@ nsImageBoxFrame::GetPrefSize(nsBoxLayoutState& aState)
   else if (!heightSet) {
     if (intrinsicSize.width > 0) {
       nscoord width = size.width - borderPadding.LeftRight();
-      size.height = nscoord(int64_t(width) * int64_t(intrinsicSize.height) /
-                            int64_t(intrinsicSize.width));
+      size.height = nscoord(PRInt64(width) * PRInt64(intrinsicSize.height) /
+                            PRInt64(intrinsicSize.width));
     }
     else {
       size.height = intrinsicSize.height;
@@ -503,7 +549,7 @@ nsImageBoxFrame::GetMinSize(nsBoxLayoutState& aState)
   DISPLAY_MIN_SIZE(this, size);
   AddBorderAndPadding(size);
   bool widthSet, heightSet;
-  nsIFrame::AddCSSMinSize(aState, this, size, widthSet, heightSet);
+  nsIBox::AddCSSMinSize(aState, this, size, widthSet, heightSet);
   return size;
 }
 
@@ -562,10 +608,31 @@ NS_IMETHODIMP nsImageBoxFrame::OnStopContainer(imgIRequest *request,
   return NS_OK;
 }
 
+NS_IMETHODIMP nsImageBoxFrame::OnStartDecode(imgIRequest* aRequest)
+{
+  nsPresContext* presContext = PresContext();
+  NS_ASSERTION(presContext, "No PresContext");
+
+  nsLayoutUtils::RegisterImageRequest(presContext,
+                                      mImageRequest,
+                                      &mRequestRegistered);
+
+  return NS_OK;
+}
+
 NS_IMETHODIMP nsImageBoxFrame::OnStopDecode(imgIRequest *request,
                                             nsresult aStatus,
                                             const PRUnichar *statusArg)
 {
+  
+  
+  nsPresContext* presContext = PresContext();
+  NS_ASSERTION(presContext, "No PresContext");
+
+  nsLayoutUtils::DeregisterImageRequestIfNotAnimated(presContext,
+                                                     mImageRequest,
+                                                     &mRequestRegistered);
+
   if (NS_SUCCEEDED(aStatus))
     
     FireImageDOMEvent(mContent, NS_LOAD);
@@ -580,17 +647,7 @@ NS_IMETHODIMP nsImageBoxFrame::OnStopDecode(imgIRequest *request,
   return NS_OK;
 }
 
-NS_IMETHODIMP nsImageBoxFrame::OnImageIsAnimated(imgIRequest *aRequest)
-{
-  
-  nsLayoutUtils::RegisterImageRequest(PresContext(), aRequest,
-                                      &mRequestRegistered);
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsImageBoxFrame::FrameChanged(imgIRequest *aRequest,
-                                            imgIContainer *aContainer,
+NS_IMETHODIMP nsImageBoxFrame::FrameChanged(imgIContainer *aContainer,
                                             const nsIntRect *aDirtyRect)
 {
   nsBoxLayoutState state(PresContext());
@@ -627,6 +684,15 @@ NS_IMETHODIMP nsImageBoxListener::OnStopContainer(imgIRequest *request,
   return mFrame->OnStopContainer(request, image);
 }
 
+NS_IMETHODIMP nsImageBoxListener::OnStartDecode(imgIRequest *aRequest)
+{
+  if (!mFrame) {
+    return NS_OK;
+  }
+
+  return mFrame->OnStartDecode(aRequest);
+}
+
 NS_IMETHODIMP nsImageBoxListener::OnStopDecode(imgIRequest *request,
                                                nsresult status,
                                                const PRUnichar *statusArg)
@@ -637,21 +703,12 @@ NS_IMETHODIMP nsImageBoxListener::OnStopDecode(imgIRequest *request,
   return mFrame->OnStopDecode(request, status, statusArg);
 }
 
-NS_IMETHODIMP nsImageBoxListener::OnImageIsAnimated(imgIRequest* aRequest)
-{
-  if (!mFrame)
-    return NS_OK;
-
-  return mFrame->OnImageIsAnimated(aRequest);
-}
-
-NS_IMETHODIMP nsImageBoxListener::FrameChanged(imgIRequest *aRequest,
-                                               imgIContainer *aContainer,
+NS_IMETHODIMP nsImageBoxListener::FrameChanged(imgIContainer *aContainer,
                                                const nsIntRect *aDirtyRect)
 {
   if (!mFrame)
     return NS_ERROR_FAILURE;
 
-  return mFrame->FrameChanged(aRequest, aContainer, aDirtyRect);
+  return mFrame->FrameChanged(aContainer, aDirtyRect);
 }
 

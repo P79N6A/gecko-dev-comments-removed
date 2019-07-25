@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef jsclass_h__
 #define jsclass_h__
 
@@ -20,9 +52,9 @@
 
 namespace js {
 
+class AutoIdVector;
 class PropertyName;
 class SpecialId;
-class PropertyId;
 
 static JS_ALWAYS_INLINE jsid
 SPECIALID_TO_JSID(const SpecialId &sid);
@@ -38,13 +70,12 @@ SPECIALID_TO_JSID(const SpecialId &sid);
 
 
 
-class SpecialId
-{
+
+class SpecialId {
     uintptr_t bits;
 
     
     friend JS_ALWAYS_INLINE jsid SPECIALID_TO_JSID(const SpecialId &sid);
-    friend class PropertyId;
 
     static const uintptr_t TYPE_VOID = JSID_TYPE_VOID;
     static const uintptr_t TYPE_OBJECT = JSID_TYPE_OBJECT;
@@ -144,77 +175,85 @@ JSID_TO_SPECIALID(jsid id)
     return SpecialId::defaultXMLNamespace();
 }
 
-typedef JS::Handle<SpecialId> HandleSpecialId;
 
 
-
 typedef JSBool
-(* LookupGenericOp)(JSContext *cx, HandleObject obj, HandleId id,
-                    MutableHandleObject objp, MutableHandleShape propp);
+(* LookupGenericOp)(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
+                    JSProperty **propp);
 typedef JSBool
-(* LookupPropOp)(JSContext *cx, HandleObject obj, HandlePropertyName name,
-                 MutableHandleObject objp, MutableHandleShape propp);
+(* LookupPropOp)(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
+                 JSProperty **propp);
 typedef JSBool
-(* LookupElementOp)(JSContext *cx, HandleObject obj, uint32_t index,
-                    MutableHandleObject objp, MutableHandleShape propp);
+(* LookupElementOp)(JSContext *cx, JSObject *obj, uint32 index, JSObject **objp,
+                    JSProperty **propp);
 typedef JSBool
-(* LookupSpecialOp)(JSContext *cx, HandleObject obj, HandleSpecialId sid,
-                    MutableHandleObject objp, MutableHandleShape propp);
+(* LookupSpecialOp)(JSContext *cx, JSObject *obj, SpecialId sid, JSObject **objp,
+                    JSProperty **propp);
 typedef JSBool
-(* DefineGenericOp)(JSContext *cx, HandleObject obj, HandleId id, HandleValue value,
-                    PropertyOp getter, StrictPropertyOp setter, unsigned attrs);
+(* DefineGenericOp)(JSContext *cx, JSObject *obj, jsid id, const Value *value,
+                    PropertyOp getter, StrictPropertyOp setter, uintN attrs);
 typedef JSBool
-(* DefinePropOp)(JSContext *cx, HandleObject obj, HandlePropertyName name, HandleValue value,
-                 PropertyOp getter, StrictPropertyOp setter, unsigned attrs);
+(* DefinePropOp)(JSContext *cx, JSObject *obj, jsid id, const Value *value,
+                 PropertyOp getter, StrictPropertyOp setter, uintN attrs);
 typedef JSBool
-(* DefineElementOp)(JSContext *cx, HandleObject obj, uint32_t index, HandleValue value,
-                    PropertyOp getter, StrictPropertyOp setter, unsigned attrs);
+(* DefineElementOp)(JSContext *cx, JSObject *obj, uint32 index, const Value *value,
+                    PropertyOp getter, StrictPropertyOp setter, uintN attrs);
 typedef JSBool
-(* DefineSpecialOp)(JSContext *cx, HandleObject obj, HandleSpecialId sid, HandleValue value,
-                    PropertyOp getter, StrictPropertyOp setter, unsigned attrs);
+(* DefineSpecialOp)(JSContext *cx, JSObject *obj, SpecialId sid, const Value *value,
+                    PropertyOp getter, StrictPropertyOp setter, uintN attrs);
 typedef JSBool
-(* GenericIdOp)(JSContext *cx, HandleObject obj, HandleObject receiver, HandleId id, MutableHandleValue vp);
+(* GenericIdOp)(JSContext *cx, JSObject *obj, JSObject *receiver, jsid id, Value *vp);
 typedef JSBool
-(* PropertyIdOp)(JSContext *cx, HandleObject obj, HandleObject receiver, HandlePropertyName name, MutableHandleValue vp);
+(* PropertyIdOp)(JSContext *cx, JSObject *obj, JSObject *receiver, PropertyName *name, Value *vp);
 typedef JSBool
-(* ElementIdOp)(JSContext *cx, HandleObject obj, HandleObject receiver, uint32_t index, MutableHandleValue vp);
+(* ElementIdOp)(JSContext *cx, JSObject *obj, JSObject *receiver, uint32 index, Value *vp);
 typedef JSBool
-(* ElementIfPresentOp)(JSContext *cx, HandleObject obj, HandleObject receiver, uint32_t index, MutableHandleValue vp, bool* present);
+(* SpecialIdOp)(JSContext *cx, JSObject *obj, JSObject *receiver, SpecialId sid, Value *vp);
 typedef JSBool
-(* SpecialIdOp)(JSContext *cx, HandleObject obj, HandleObject receiver, HandleSpecialId sid, MutableHandleValue vp);
+(* StrictGenericIdOp)(JSContext *cx, JSObject *obj, jsid id, Value *vp, JSBool strict);
 typedef JSBool
-(* StrictGenericIdOp)(JSContext *cx, HandleObject obj, HandleId id, MutableHandleValue vp, JSBool strict);
+(* StrictPropertyIdOp)(JSContext *cx, JSObject *obj, jsid id, Value *vp, JSBool strict);
 typedef JSBool
-(* StrictPropertyIdOp)(JSContext *cx, HandleObject obj, HandlePropertyName name, MutableHandleValue vp, JSBool strict);
+(* StrictElementIdOp)(JSContext *cx, JSObject *obj, uint32 index, Value *vp, JSBool strict);
 typedef JSBool
-(* StrictElementIdOp)(JSContext *cx, HandleObject obj, uint32_t index, MutableHandleValue vp, JSBool strict);
+(* StrictSpecialIdOp)(JSContext *cx, JSObject *obj, SpecialId sid, Value *vp, JSBool strict);
 typedef JSBool
-(* StrictSpecialIdOp)(JSContext *cx, HandleObject obj, HandleSpecialId sid, MutableHandleValue vp, JSBool strict);
+(* GenericAttributesOp)(JSContext *cx, JSObject *obj, jsid id, uintN *attrsp);
 typedef JSBool
-(* GenericAttributesOp)(JSContext *cx, HandleObject obj, HandleId id, unsigned *attrsp);
+(* AttributesOp)(JSContext *cx, JSObject *obj, jsid id, uintN *attrsp);
 typedef JSBool
-(* PropertyAttributesOp)(JSContext *cx, HandleObject obj, HandlePropertyName name, unsigned *attrsp);
+(* ElementAttributesOp)(JSContext *cx, JSObject *obj, uint32 index, uintN *attrsp);
 typedef JSBool
-(* ElementAttributesOp)(JSContext *cx, HandleObject obj, uint32_t index, unsigned *attrsp);
+(* SpecialAttributesOp)(JSContext *cx, JSObject *obj, SpecialId sid, uintN *attrsp);
 typedef JSBool
-(* SpecialAttributesOp)(JSContext *cx, HandleObject obj, HandleSpecialId sid, unsigned *attrsp);
+(* DeleteGenericOp)(JSContext *cx, JSObject *obj, jsid id, Value *vp, JSBool strict);
 typedef JSBool
-(* DeletePropertyOp)(JSContext *cx, HandleObject obj, HandlePropertyName name, MutableHandleValue vp, JSBool strict);
+(* DeleteIdOp)(JSContext *cx, JSObject *obj, jsid id, Value *vp, JSBool strict);
 typedef JSBool
-(* DeleteElementOp)(JSContext *cx, HandleObject obj, uint32_t index, MutableHandleValue vp, JSBool strict);
+(* DeleteElementOp)(JSContext *cx, JSObject *obj, uint32 index, Value *vp, JSBool strict);
 typedef JSBool
-(* DeleteSpecialOp)(JSContext *cx, HandleObject obj, HandleSpecialId sid, MutableHandleValue vp, JSBool strict);
+(* DeleteSpecialOp)(JSContext *cx, JSObject *obj, SpecialId sid, Value *vp, JSBool strict);
 typedef JSType
-(* TypeOfOp)(JSContext *cx, HandleObject obj);
+(* TypeOfOp)(JSContext *cx, JSObject *obj);
+
+
+
+
+
+
+
+
+typedef JSBool
+(* FixOp)(JSContext *cx, JSObject *obj, bool *fixed, AutoIdVector *props);
 
 typedef JSObject *
-(* ObjectOp)(JSContext *cx, HandleObject obj);
+(* ObjectOp)(JSContext *cx, JSObject *obj);
 typedef void
-(* FinalizeOp)(FreeOp *fop, JSObject *obj);
+(* FinalizeOp)(JSContext *cx, JSObject *obj);
 
 #define JS_CLASS_MEMBERS                                                      \
     const char          *name;                                                \
-    uint32_t            flags;                                                \
+    uint32              flags;                                                \
                                                                               \
     /* Mandatory non-null function pointer members. */                        \
     JSPropertyOp        addProperty;                                          \
@@ -224,13 +263,15 @@ typedef void
     JSEnumerateOp       enumerate;                                            \
     JSResolveOp         resolve;                                              \
     JSConvertOp         convert;                                              \
-    FinalizeOp          finalize;                                             \
+    JSFinalizeOp        finalize;                                             \
                                                                               \
     /* Optionally non-null members start here. */                             \
+    JSClassInternal     reserved0;                                            \
     JSCheckAccessOp     checkAccess;                                          \
     JSNative            call;                                                 \
-    JSHasInstanceOp     hasInstance;                                          \
     JSNative            construct;                                            \
+    JSXDRObjectOp       xdrObject;                                            \
+    JSHasInstanceOp     hasInstance;                                          \
     JSTraceOp           trace
 
 
@@ -272,51 +313,49 @@ struct ObjectOps
     GenericIdOp         getGeneric;
     PropertyIdOp        getProperty;
     ElementIdOp         getElement;
-    ElementIfPresentOp  getElementIfPresent; 
     SpecialIdOp         getSpecial;
     StrictGenericIdOp   setGeneric;
     StrictPropertyIdOp  setProperty;
     StrictElementIdOp   setElement;
     StrictSpecialIdOp   setSpecial;
     GenericAttributesOp getGenericAttributes;
-    PropertyAttributesOp getPropertyAttributes;
+    AttributesOp        getAttributes;
     ElementAttributesOp getElementAttributes;
     SpecialAttributesOp getSpecialAttributes;
     GenericAttributesOp setGenericAttributes;
-    PropertyAttributesOp setPropertyAttributes;
+    AttributesOp        setAttributes;
     ElementAttributesOp setElementAttributes;
     SpecialAttributesOp setSpecialAttributes;
-    DeletePropertyOp    deleteProperty;
+    DeleteGenericOp     deleteGeneric;
+    DeleteIdOp          deleteProperty;
     DeleteElementOp     deleteElement;
     DeleteSpecialOp     deleteSpecial;
 
     JSNewEnumerateOp    enumerate;
     TypeOfOp            typeOf;
+    FixOp               fix;
     ObjectOp            thisObject;
+    FinalizeOp          clear;
 };
 
 #define JS_NULL_OBJECT_OPS                                                    \
     {NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,   \
-     NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,        \
-     NULL,NULL,NULL,NULL}
+     NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,   \
+     NULL,NULL,NULL,NULL,NULL}
 
 struct Class
 {
     JS_CLASS_MEMBERS;
     ClassExtension      ext;
     ObjectOps           ops;
-    uint8_t             pad[sizeof(JSClass) - sizeof(ClassSizeMeasurement) -
+    uint8               pad[sizeof(JSClass) - sizeof(ClassSizeMeasurement) -
                             sizeof(ClassExtension) - sizeof(ObjectOps)];
 
     
-    static const uint32_t NON_NATIVE = JSCLASS_INTERNAL_FLAG2;
+    static const uint32 NON_NATIVE = JSCLASS_INTERNAL_FLAG2;
 
     bool isNative() const {
         return !(flags & NON_NATIVE);
-    }
-
-    bool hasPrivate() const {
-        return !!(flags & JSCLASS_HAS_PRIVATE);
     }
 };
 
@@ -330,9 +369,11 @@ JS_STATIC_ASSERT(offsetof(JSClass, enumerate) == offsetof(Class, enumerate));
 JS_STATIC_ASSERT(offsetof(JSClass, resolve) == offsetof(Class, resolve));
 JS_STATIC_ASSERT(offsetof(JSClass, convert) == offsetof(Class, convert));
 JS_STATIC_ASSERT(offsetof(JSClass, finalize) == offsetof(Class, finalize));
+JS_STATIC_ASSERT(offsetof(JSClass, reserved0) == offsetof(Class, reserved0));
 JS_STATIC_ASSERT(offsetof(JSClass, checkAccess) == offsetof(Class, checkAccess));
 JS_STATIC_ASSERT(offsetof(JSClass, call) == offsetof(Class, call));
 JS_STATIC_ASSERT(offsetof(JSClass, construct) == offsetof(Class, construct));
+JS_STATIC_ASSERT(offsetof(JSClass, xdrObject) == offsetof(Class, xdrObject));
 JS_STATIC_ASSERT(offsetof(JSClass, hasInstance) == offsetof(Class, hasInstance));
 JS_STATIC_ASSERT(offsetof(JSClass, trace) == offsetof(Class, trace));
 JS_STATIC_ASSERT(sizeof(JSClass) == sizeof(Class));
@@ -342,31 +383,18 @@ Jsvalify(Class *c)
 {
     return (JSClass *)c;
 }
-static JS_ALWAYS_INLINE const JSClass *
-Jsvalify(const Class *c)
-{
-    return (const JSClass *)c;
-}
 
 static JS_ALWAYS_INLINE Class *
 Valueify(JSClass *c)
 {
     return (Class *)c;
 }
-static JS_ALWAYS_INLINE const Class *
-Valueify(const JSClass *c)
-{
-    return (const Class *)c;
-}
 
 
 
 
 
-enum ESClassValue {
-    ESClass_Array, ESClass_Number, ESClass_String, ESClass_Boolean,
-    ESClass_RegExp, ESClass_ArrayBuffer
-};
+enum ESClassValue { ESClass_Array, ESClass_Number, ESClass_String, ESClass_Boolean };
 
 
 
@@ -377,30 +405,7 @@ enum ESClassValue {
 inline bool
 ObjectClassIs(JSObject &obj, ESClassValue classValue, JSContext *cx);
 
-
-inline bool
-IsObjectWithClass(const Value &v, ESClassValue classValue, JSContext *cx);
-
 }  
-
-namespace JS {
-
-inline bool
-IsPoisonedSpecialId(js::SpecialId iden)
-{
-    if (iden.isObject())
-        return IsPoisonedPtr(iden.toObject());
-    return false;
-}
-
-template <> struct RootMethods<js::SpecialId>
-{
-    static js::SpecialId initial() { return js::SpecialId(); }
-    static ThingRootKind kind() { return THING_ROOT_ID; }
-    static bool poisoned(js::SpecialId id) { return IsPoisonedSpecialId(id); }
-};
-
-} 
 
 #endif  
 

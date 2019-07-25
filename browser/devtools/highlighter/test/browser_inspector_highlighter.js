@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 let doc;
 let h1;
 let div;
@@ -60,44 +94,43 @@ function setupHighlighterTests()
   InspectorUI.toggleInspectorUI();
 }
 
-function runSelectionTests(subject)
+function runSelectionTests()
 {
   Services.obs.removeObserver(runSelectionTests,
     InspectorUI.INSPECTOR_NOTIFICATIONS.OPENED, false);
 
-  is(subject.wrappedJSObject, InspectorUI,
-     "InspectorUI accessible in the observer");
-
-  InspectorUI.highlighter.outline.setAttribute("disable-transitions", "true");
-
   executeSoon(function() {
-    InspectorUI.highlighter.addListener("nodeselected", performTestComparisons);
+    Services.obs.addObserver(performTestComparisons,
+      InspectorUI.INSPECTOR_NOTIFICATIONS.HIGHLIGHTING, false);
     EventUtils.synthesizeMouse(h1, 2, 2, {type: "mousemove"}, content);
   });
 }
 
 function performTestComparisons(evt)
 {
-  InspectorUI.highlighter.removeListener("nodeselected", performTestComparisons);
+  Services.obs.removeObserver(performTestComparisons,
+    InspectorUI.INSPECTOR_NOTIFICATIONS.HIGHLIGHTING);
 
   InspectorUI.stopInspecting();
-  ok(isHighlighting(), "highlighter is highlighting");
-  is(getHighlitNode(), h1, "highlighter matches selection")
+  ok(InspectorUI.highlighter.isHighlighting, "highlighter is highlighting");
+  is(InspectorUI.highlighter.highlitNode, h1, "highlighter matches selection")
   is(InspectorUI.selection, h1, "selection matches node");
-  is(InspectorUI.selection, getHighlitNode(), "selection matches highlighter");
+  is(InspectorUI.selection, InspectorUI.highlighter.highlitNode, "selection matches highlighter");
 
+  Services.obs.addObserver(finishTestComparisons,
+      InspectorUI.INSPECTOR_NOTIFICATIONS.HIGHLIGHTING, false);
 
   div = doc.querySelector("div#checkOutThisWickedSpread");
 
   executeSoon(function() {
-    InspectorUI.highlighter.addListener("nodeselected", finishTestComparisons);
     InspectorUI.inspectNode(div);
   });
 }
 
 function finishTestComparisons()
 {
-  InspectorUI.highlighter.removeListener("nodeselected", finishTestComparisons);
+  Services.obs.removeObserver(finishTestComparisons,
+    InspectorUI.INSPECTOR_NOTIFICATIONS.HIGHLIGHTING);
 
   
   let divDims = div.getBoundingClientRect();
@@ -105,46 +138,41 @@ function finishTestComparisons()
   let divHeight = divDims.height;
 
   
-  let outlineDims = 
-    InspectorUI.highlighter.outline.getBoundingClientRect();
-  let outlineWidth = outlineDims.width;
-  let outlineHeight = outlineDims.height;
+  let veilBoxDims = 
+    InspectorUI.highlighter.veilTransparentBox.getBoundingClientRect();
+  let veilBoxWidth = veilBoxDims.width;
+  let veilBoxHeight = veilBoxDims.height;
 
-  
-  
-  
-
+  is(veilBoxWidth, divWidth, "transparent veil box width matches dimensions of element (no zoom)");
+  is(veilBoxHeight, divHeight, "transparent veil box height matches dimensions of element (no zoom)");
   
   let contentViewer = InspectorUI.browser.docShell.contentViewer
                              .QueryInterface(Ci.nsIMarkupDocumentViewer);
   contentViewer.fullZoom = 2;
 
   
+  let zoom =
+      InspectorUI.win.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+      .getInterface(Components.interfaces.nsIDOMWindowUtils)
+      .screenPixelsPerCSSPixel;
+
+  is(zoom, 2, "zoom is 2?");
+
   
+  let divDims = div.getBoundingClientRect();
+  let divWidth = divDims.width * zoom;
+  let divHeight = divDims.height * zoom;
 
-  window.setTimeout(function() {
-    
-    let zoom = InspectorUI.highlighter.zoom;
-    is(zoom, 2, "zoom is 2?");
+  
+  let veilBoxDims = InspectorUI.highlighter.veilTransparentBox.getBoundingClientRect();
+  let veilBoxWidth = veilBoxDims.width;
+  let veilBoxHeight = veilBoxDims.height;
 
-    
-    let divDims = div.getBoundingClientRect();
-    let divWidth = divDims.width * zoom;
-    let divHeight = divDims.height * zoom;
+  is(veilBoxWidth, divWidth, "transparent veil box width matches width of element (2x zoom)");
+  is(veilBoxHeight, divHeight, "transparent veil box height matches width of element (2x zoom)");
 
-    
-    let outlineDims = 
-      InspectorUI.highlighter.outline.getBoundingClientRect();
-    let outlineWidth = outlineDims.width;
-    let outlineHeight = outlineDims.height;
-
-    
-    
-    
-
-    doc = h1 = div = null;
-    executeSoon(finishUp);
-  }, 500);
+  doc = h1 = div = null;
+  executeSoon(finishUp);
 }
 
 function finishUp() {

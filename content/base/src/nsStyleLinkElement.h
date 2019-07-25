@@ -10,6 +10,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsStyleLinkElement_h___
 #define nsStyleLinkElement_h___
 
@@ -19,13 +52,6 @@
 #include "nsIStyleSheet.h"
 #include "nsIURI.h"
 #include "nsTArray.h"
-#include "mozilla/CORSMode.h"
-
-#define PREFETCH      0x00000001
-#define DNS_PREFETCH  0x00000002
-#define STYLESHEET    0x00000004
-#define NEXT          0x00000008
-#define ALTERNATE     0x00000010
 
 class nsIDocument;
 
@@ -52,11 +78,11 @@ public:
   NS_IMETHOD GetCharset(nsAString& aCharset);
 
   virtual void OverrideBaseURI(nsIURI* aNewBaseURI);
-  virtual void SetLineNumber(uint32_t aLineNumber);
+  virtual void SetLineNumber(PRUint32 aLineNumber);
 
-  static uint32_t ParseLinkTypes(const nsAString& aTypes);
-  
-  void UpdateStyleSheetInternal() { UpdateStyleSheetInternal(nullptr); }
+  static void ParseLinkTypes(const nsAString& aTypes, nsTArray<nsString>& aResult);
+
+  void UpdateStyleSheetInternal() { UpdateStyleSheetInternal(nsnull); }
 protected:
   
 
@@ -77,12 +103,6 @@ protected:
 
   nsIStyleSheet* GetStyleSheet() { return mStyleSheet; }
 
-  virtual mozilla::CORSMode GetCORSMode() const
-  {
-    
-    return mozilla::CORS_NONE;
-  }
-
 private:
   
 
@@ -102,7 +122,7 @@ private:
 protected:
   bool mDontLoadStyle;
   bool mUpdatesEnabled;
-  uint32_t mLineNumber;
+  PRUint32 mLineNumber;
 };
 
 #endif 

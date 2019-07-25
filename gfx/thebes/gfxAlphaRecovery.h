@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _GFXALPHARECOVERY_H_
 #define _GFXALPHARECOVERY_H_
 
@@ -28,7 +60,7 @@ public:
 
 
 
-    static uint32_t GoodAlignmentLog2() { return 4;  }
+    static PRUint32 GoodAlignmentLog2() { return 4;  }
 
     
 
@@ -38,7 +70,7 @@ public:
 
     static bool RecoverAlpha (gfxImageSurface *blackSurface,
                                 const gfxImageSurface *whiteSurface,
-                                Analysis *analysis = nullptr);
+                                Analysis *analysis = nsnull);
 
 #ifdef MOZILLA_MAY_SUPPORT_SSE2
     
@@ -90,11 +122,11 @@ public:
 
 
 
-    static inline uint32_t
-    RecoverPixel(uint32_t black, uint32_t white)
+    static inline PRUint32
+    RecoverPixel(PRUint32 black, PRUint32 white)
     {
-        const uint32_t GREEN_MASK = 0x0000FF00;
-        const uint32_t ALPHA_MASK = 0xFF000000;
+        const PRUint32 GREEN_MASK = 0x0000FF00;
+        const PRUint32 ALPHA_MASK = 0xFF000000;
 
         
 
@@ -104,12 +136,12 @@ public:
 
 
 
-        uint32_t diff = (white & GREEN_MASK) - (black & GREEN_MASK);
+        PRUint32 diff = (white & GREEN_MASK) - (black & GREEN_MASK);
         
 
-        uint32_t limit = diff & ALPHA_MASK;
+        PRUint32 limit = diff & ALPHA_MASK;
         
-        uint32_t alpha = (ALPHA_MASK - (diff << 16)) | limit;
+        PRUint32 alpha = (ALPHA_MASK - (diff << 16)) | limit;
 
         return alpha | (black & ~ALPHA_MASK);
     }

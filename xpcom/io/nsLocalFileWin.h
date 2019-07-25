@@ -3,6 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsLocalFileWIN_H_
 #define _nsLocalFileWIN_H_
 
@@ -16,15 +51,25 @@
 #include "nsIHashable.h"
 #include "nsIClassInfoImpl.h"
 
-#include "mozilla/Attributes.h"
-
 #include "windows.h"
+
+
+#if (_MSC_VER == 1100)
+#include <objbase.h>
+DEFINE_OLEGUID(IID_IPersistFile, 0x0000010BL, 0, 0);
+#endif
+
 #include "shlobj.h"
 
 #include <sys/stat.h>
 
-class nsLocalFile MOZ_FINAL : public nsILocalFileWin,
-                              public nsIHashable
+typedef LPITEMIDLIST (WINAPI *ILCreateFromPathWPtr)(PCWSTR);
+typedef HRESULT (WINAPI *SHOpenFolderAndSelectItemsPtr)(PCIDLIST_ABSOLUTE, UINT, 
+                                                        PCUITEMID_CHILD_ARRAY,
+                                                        DWORD);
+
+class nsLocalFile : public nsILocalFileWin,
+                    public nsIHashable
 {
 public:
     NS_DEFINE_STATIC_CID_ACCESSOR(NS_LOCAL_FILE_CID)
@@ -57,7 +102,6 @@ private:
     ~nsLocalFile() {}
 
     bool mDirty;            
-    bool mResolveDirty;
     bool mFollowSymlinks;   
     
     
@@ -73,15 +117,9 @@ private:
 
     PRFileInfo64 mFileInfo64;
 
-    void MakeDirty() 
-    { 
-      mDirty = true;
-      mResolveDirty = true;
-      mShortWorkingPath.Truncate();
-    }
+    void MakeDirty() { mDirty = PR_TRUE; mShortWorkingPath.Truncate(); }
 
     nsresult ResolveAndStat();
-    nsresult Resolve();
     nsresult ResolveShortcut();
 
     void EnsureShortPath();
@@ -93,10 +131,16 @@ private:
                             bool followSymlinks, bool move,
                             bool skipNtfsAclReset = false);
 
-    nsresult SetModDate(int64_t aLastModifiedTime, const PRUnichar *filePath);
+    nsresult SetModDate(PRInt64 aLastModifiedTime, const PRUnichar *filePath);
     nsresult HasFileAttribute(DWORD fileAttrib, bool *_retval);
     nsresult AppendInternal(const nsAFlatString &node,
                             bool multipleComponents);
+    nsresult RevealClassic(); 
+    nsresult RevealUsingShell(); 
+
+    static ILCreateFromPathWPtr sILCreateFromPathW;
+    static SHOpenFolderAndSelectItemsPtr sSHOpenFolderAndSelectItems;
+    static PRLibrary *sLibShell;
 };
 
 #endif

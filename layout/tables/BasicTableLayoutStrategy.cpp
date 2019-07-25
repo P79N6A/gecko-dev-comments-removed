@@ -9,15 +9,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "BasicTableLayoutStrategy.h"
 #include "nsTableFrame.h"
 #include "nsTableCellFrame.h"
 #include "nsLayoutUtils.h"
 #include "nsGkAtoms.h"
 #include "SpanningCellSorter.h"
-
-using namespace mozilla;
-using namespace mozilla::layout;
 
 namespace css = mozilla::css;
 
@@ -80,54 +109,9 @@ GetWidthInfo(nsRenderingContext *aRenderingContext,
              nsIFrame *aFrame, bool aIsCell)
 {
     nscoord minCoord, prefCoord;
-    const nsStylePosition *stylePos = aFrame->GetStylePosition();
-    bool isQuirks = aFrame->PresContext()->CompatibilityMode() ==
-                    eCompatibility_NavQuirks;
-    nscoord boxSizingToBorderEdge = 0;
     if (aIsCell) {
-        
-        
-        AutoMaybeDisableFontInflation an(aFrame);
-
         minCoord = aFrame->GetMinWidth(aRenderingContext);
         prefCoord = aFrame->GetPrefWidth(aRenderingContext);
-        
-        
-        
-        
-        
-        
-
-        
-        nsIFrame::IntrinsicWidthOffsetData offsets = aFrame->IntrinsicWidthOffsets(aRenderingContext);
-
-        
-        
-        
-        
-        
-        
-        
-        if (isQuirks) {
-            boxSizingToBorderEdge = offsets.hPadding + offsets.hBorder;
-        }
-        else {
-            switch (stylePos->mBoxSizing) {
-                case NS_STYLE_BOX_SIZING_CONTENT:
-                    boxSizingToBorderEdge = offsets.hPadding + offsets.hBorder;
-                    break;
-                case NS_STYLE_BOX_SIZING_PADDING:
-                    minCoord += offsets.hPadding;
-                    prefCoord += offsets.hPadding;
-                    boxSizingToBorderEdge = offsets.hBorder;
-                    break;
-                default:
-                    
-                    minCoord += offsets.hPadding + offsets.hBorder;
-                    prefCoord += offsets.hPadding + offsets.hBorder;
-                    break;
-            }
-        }
     } else {
         minCoord = 0;
         prefCoord = 0;
@@ -135,17 +119,16 @@ GetWidthInfo(nsRenderingContext *aRenderingContext,
     float prefPercent = 0.0f;
     bool hasSpecifiedWidth = false;
 
+    
+
+    const nsStylePosition *stylePos = aFrame->GetStylePosition();
     const nsStyleCoord &width = stylePos->mWidth;
     nsStyleUnit unit = width.GetUnit();
     
     
     
     if (unit == eStyleUnit_Coord) {
-        hasSpecifiedWidth = true;
-        
-        
-        
-        
+        hasSpecifiedWidth = PR_TRUE;
         nscoord w = nsLayoutUtils::ComputeWidthValue(aRenderingContext,
                                                      aFrame, 0, 0, 0, width);
         
@@ -153,7 +136,9 @@ GetWidthInfo(nsRenderingContext *aRenderingContext,
         
         
         
-        if (aIsCell && w > minCoord && isQuirks &&
+        if (aIsCell && w > minCoord &&
+            aFrame->PresContext()->CompatibilityMode() ==
+              eCompatibility_NavQuirks &&
             aFrame->GetContent()->HasAttr(kNameSpaceID_None,
                                           nsGkAtoms::nowrap)) {
             minCoord = w;
@@ -235,8 +220,12 @@ GetWidthInfo(nsRenderingContext *aRenderingContext,
 
     
     if (aIsCell) {
-        minCoord += boxSizingToBorderEdge;
-        prefCoord = NSCoordSaturatingAdd(prefCoord, boxSizingToBorderEdge);
+        nsIFrame::IntrinsicWidthOffsetData offsets =
+            aFrame->IntrinsicWidthOffsets(aRenderingContext);
+        
+        nscoord add = offsets.hPadding + offsets.hBorder;
+        minCoord += add;
+        prefCoord = NSCoordSaturatingAdd(prefCoord, add);
     }
 
     return CellWidthInfo(minCoord, prefCoord, prefPercent, hasSpecifiedWidth);
@@ -246,14 +235,14 @@ static inline CellWidthInfo
 GetCellWidthInfo(nsRenderingContext *aRenderingContext,
                  nsTableCellFrame *aCellFrame)
 {
-    return GetWidthInfo(aRenderingContext, aCellFrame, true);
+    return GetWidthInfo(aRenderingContext, aCellFrame, PR_TRUE);
 }
 
 static inline CellWidthInfo
 GetColWidthInfo(nsRenderingContext *aRenderingContext,
                 nsIFrame *aFrame)
 {
-    return GetWidthInfo(aRenderingContext, aFrame, false);
+    return GetWidthInfo(aRenderingContext, aFrame, PR_FALSE);
 }
 
 
@@ -269,12 +258,11 @@ BasicTableLayoutStrategy::ComputeColumnIntrinsicWidths(nsRenderingContext* aRend
     nsTableFrame *tableFrame = mTableFrame;
     nsTableCellMap *cellMap = tableFrame->GetCellMap();
 
-    mozilla::AutoStackArena arena;
-    SpanningCellSorter spanningCells;
+    SpanningCellSorter spanningCells(tableFrame->PresContext()->PresShell());
 
     
     
-    int32_t col, col_end;
+    PRInt32 col, col_end;
     for (col = 0, col_end = cellMap->GetColCount(); col < col_end; ++col) {
         nsTableColFrame *colFrame = tableFrame->GetColFrame(col);
         if (!colFrame) {
@@ -309,7 +297,7 @@ BasicTableLayoutStrategy::ComputeColumnIntrinsicWidths(nsRenderingContext* aRend
         
         
         nsCellMapColumnIterator columnIter(cellMap, col);
-        int32_t row, colSpan;
+        PRInt32 row, colSpan;
         nsTableCellFrame* cellFrame;
         while ((cellFrame = columnIter.GetNextFrame(&row, &colSpan))) {
             if (colSpan > 1) {
@@ -332,7 +320,7 @@ BasicTableLayoutStrategy::ComputeColumnIntrinsicWidths(nsRenderingContext* aRend
     }
 #ifdef DEBUG_TABLE_STRATEGY
     printf("ComputeColumnIntrinsicWidths single\n");
-    mTableFrame->Dump(false, true, false);
+    mTableFrame->Dump(PR_FALSE, PR_TRUE, PR_FALSE);
 #endif
 
     
@@ -354,12 +342,12 @@ BasicTableLayoutStrategy::ComputeColumnIntrinsicWidths(nsRenderingContext* aRend
     
     
     SpanningCellSorter::Item *item;
-    int32_t colSpan;
+    PRInt32 colSpan;
     while ((item = spanningCells.GetNext(&colSpan))) {
         NS_ASSERTION(colSpan > 1,
                      "cell should not have been put in spanning cell sorter");
         do {
-            int32_t row = item->row;
+            PRInt32 row = item->row;
             col = item->col;
             CellData *cellData = cellMap->GetDataAt(row, col);
             NS_ASSERTION(cellData && cellData->IsOrig(),
@@ -420,7 +408,7 @@ BasicTableLayoutStrategy::ComputeColumnIntrinsicWidths(nsRenderingContext* aRend
 
 #ifdef DEBUG_TABLE_STRATEGY
     printf("ComputeColumnIntrinsicWidths spanning\n");
-    mTableFrame->Dump(false, true, false);
+    mTableFrame->Dump(PR_FALSE, PR_TRUE, PR_FALSE);
 #endif
 }
 
@@ -432,12 +420,12 @@ BasicTableLayoutStrategy::ComputeIntrinsicWidths(nsRenderingContext* aRenderingC
     nsTableCellMap *cellMap = mTableFrame->GetCellMap();
     nscoord min = 0, pref = 0, max_small_pct_pref = 0, nonpct_pref_total = 0;
     float pct_total = 0.0f; 
-    int32_t colCount = cellMap->GetColCount();
+    PRInt32 colCount = cellMap->GetColCount();
     nscoord spacing = mTableFrame->GetCellSpacingX();
     nscoord add = spacing; 
                            
 
-    for (int32_t col = 0; col < colCount; ++col) {
+    for (PRInt32 col = 0; col < colCount; ++col) {
         nsTableColFrame *colFrame = mTableFrame->GetColFrame(col);
         if (!colFrame) {
             NS_ERROR("column frames out of sync with cell map");
@@ -537,29 +525,29 @@ BasicTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
         ComputeIntrinsicWidths(aReflowState.rendContext);
 
     nsTableCellMap *cellMap = mTableFrame->GetCellMap();
-    int32_t colCount = cellMap->GetColCount();
+    PRInt32 colCount = cellMap->GetColCount();
     if (colCount <= 0)
         return; 
 
-    DistributeWidthToColumns(width, 0, colCount, BTLS_FINAL_WIDTH, false);
+    DistributeWidthToColumns(width, 0, colCount, BTLS_FINAL_WIDTH, PR_FALSE);
 
 #ifdef DEBUG_TABLE_STRATEGY
     printf("ComputeColumnWidths final\n");
-    mTableFrame->Dump(false, true, false);
+    mTableFrame->Dump(PR_FALSE, PR_TRUE, PR_FALSE);
 #endif
 }
 
 void
 BasicTableLayoutStrategy::DistributePctWidthToColumns(float aSpanPrefPct,
-                                                      int32_t aFirstCol,
-                                                      int32_t aColCount)
+                                                      PRInt32 aFirstCol,
+                                                      PRInt32 aColCount)
 {
     
-    int32_t nonPctColCount = 0; 
+    PRInt32 nonPctColCount = 0; 
     nscoord nonPctTotalPrefWidth = 0; 
     
 
-    int32_t scol, scol_end;
+    PRInt32 scol, scol_end;
     for (scol = aFirstCol, scol_end = aFirstCol + aColCount;
          scol < scol_end; ++scol) {
         nsTableColFrame *scolFrame = mTableFrame->GetColFrame(scol);
@@ -635,8 +623,8 @@ BasicTableLayoutStrategy::DistributePctWidthToColumns(float aSpanPrefPct,
 
 void
 BasicTableLayoutStrategy::DistributeWidthToColumns(nscoord aWidth, 
-                                                   int32_t aFirstCol, 
-                                                   int32_t aColCount,
+                                                   PRInt32 aFirstCol, 
+                                                   PRInt32 aColCount,
                                                    BtlsWidthType aWidthType,
                                                    bool aSpanHasSpecifiedWidth)
 {
@@ -651,7 +639,7 @@ BasicTableLayoutStrategy::DistributeWidthToColumns(nscoord aWidth,
     
     
     
-    for (int32_t col = aFirstCol + 1; col < aFirstCol + aColCount; ++col) {
+    for (PRInt32 col = aFirstCol + 1; col < aFirstCol + aColCount; ++col) {
         if (mTableFrame->ColumnHasCellSpacingBefore(col)) {
             subtract += spacing;
         }
@@ -724,10 +712,10 @@ BasicTableLayoutStrategy::DistributeWidthToColumns(nscoord aWidth,
             total_flex_pref = 0,
             total_fixed_pref = 0;
     float total_pct = 0.0f; 
-    int32_t numInfiniteWidthCols = 0;
-    int32_t numNonSpecZeroWidthCols = 0;
+    PRInt32 numInfiniteWidthCols = 0;
+    PRInt32 numNonSpecZeroWidthCols = 0;
 
-    int32_t col;
+    PRInt32 col;
     nsTableCellMap *cellMap = mTableFrame->GetCellMap();
     for (col = aFirstCol; col < aFirstCol + aColCount; ++col) {
         nsTableColFrame *colFrame = mTableFrame->GetColFrame(col);
@@ -761,7 +749,8 @@ BasicTableLayoutStrategy::DistributeWidthToColumns(nscoord aWidth,
                 total_fixed_pref = NSCoordSaturatingAdd(total_fixed_pref, 
                                                         pref_width);
             } else if (pref_width == 0) {
-                if (cellMap->GetNumCellsOriginatingInCol(col) > 0) {
+                if (aWidthType == BTLS_FINAL_WIDTH &&
+                    cellMap->GetNumCellsOriginatingInCol(col) > 0) {
                     ++numNonSpecZeroWidthCols;
                 }
             } else {
@@ -822,6 +811,9 @@ BasicTableLayoutStrategy::DistributeWidthToColumns(nscoord aWidth,
             l2t = FLEX_FLEX_LARGE;
             basis.c = total_flex_pref;
         } else if (numNonSpecZeroWidthCols > 0) {
+            NS_ASSERTION(aWidthType == BTLS_FINAL_WIDTH,
+                         "numNonSpecZeroWidthCols should only "
+                         "be set when we're setting final width.");
             l2t = FLEX_FLEX_LARGE_ZERO;
             basis.c = numNonSpecZeroWidthCols;
         } else if (total_fixed_pref > 0) {
@@ -951,6 +943,9 @@ BasicTableLayoutStrategy::DistributeWidthToColumns(nscoord aWidth,
                 }
                 break;
             case FLEX_FLEX_LARGE_ZERO:
+                NS_ASSERTION(aWidthType == BTLS_FINAL_WIDTH,
+                             "FLEX_FLEX_LARGE_ZERO only should be hit "
+                             "when we're setting final width.");
                 if (pct == 0.0f &&
                     !colFrame->GetHasSpecifiedCoord() &&
                     cellMap->GetNumCellsOriginatingInCol(col) > 0) {

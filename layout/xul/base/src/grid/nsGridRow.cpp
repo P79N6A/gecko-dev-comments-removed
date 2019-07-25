@@ -10,12 +10,44 @@
 
 
 
-#include "nsGridRow.h"
-#include "nsBoxLayoutState.h"
-#include "nsIFrame.h"
 
-nsGridRow::nsGridRow():mIsBogus(false),
-                       mBox(nullptr), 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsGridRow.h"
+#include "nsIFrame.h"
+#include "nsBoxLayoutState.h"
+
+nsGridRow::nsGridRow():mIsBogus(PR_FALSE),
+                       mBox(nsnull), 
                        mFlex(-1),
                        mPref(-1),
                        mMin(-1),
@@ -30,7 +62,7 @@ nsGridRow::nsGridRow():mIsBogus(false),
 }
 
 void
-nsGridRow::Init(nsIFrame* aBox, bool aIsBogus)
+nsGridRow::Init(nsIBox* aBox, bool aIsBogus)
 {
   mBox = aBox;
   mIsBogus = aIsBogus;
@@ -50,8 +82,8 @@ nsGridRow::~nsGridRow()
 }
 
 bool 
-nsGridRow::IsCollapsed()
+nsGridRow::IsCollapsed(nsBoxLayoutState& aState)
 {
-  return mBox && mBox->IsCollapsed();
+  return mBox && mBox->IsCollapsed(aState);
 }
 

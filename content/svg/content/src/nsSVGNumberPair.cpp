@@ -3,14 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSVGNumberPair.h"
 #include "nsSVGUtils.h"
 #include "nsCharSeparatedTokenizer.h"
 #include "prdtoa.h"
-#include "nsError.h"
+#include "nsDOMError.h"
 #include "nsMathUtils.h"
+#ifdef MOZ_SMIL
 #include "nsSMILValue.h"
 #include "SVGNumberPairSMILType.h"
+#endif 
 
 using namespace mozilla;
 
@@ -40,7 +73,7 @@ ParseNumberOptionalNumber(const nsAString& aValue,
     return NS_ERROR_DOM_SYNTAX_ERR;
   }
 
-  uint32_t i;
+  PRUint32 i;
   for (i = 0; i < 2 && tokenizer.hasMoreTokens(); ++i) {
     NS_ConvertUTF16toUTF8 utf8Token(tokenizer.nextToken());
     const char *token = utf8Token.get();
@@ -70,7 +103,8 @@ ParseNumberOptionalNumber(const nsAString& aValue,
 
 nsresult
 nsSVGNumberPair::SetBaseValueString(const nsAString &aValueAsString,
-                                    nsSVGElement *aSVGElement)
+                                    nsSVGElement *aSVGElement,
+                                    bool aDoSetAttr)
 {
   float val[2];
 
@@ -81,14 +115,16 @@ nsSVGNumberPair::SetBaseValueString(const nsAString &aValueAsString,
 
   mBaseVal[0] = val[0];
   mBaseVal[1] = val[1];
-  mIsBaseSet = true;
+  mIsBaseSet = PR_TRUE;
   if (!mIsAnimated) {
     mAnimVal[0] = mBaseVal[0];
     mAnimVal[1] = mBaseVal[1];
   }
+#ifdef MOZ_SMIL
   else {
     aSVGElement->AnimationNeedsResample();
   }
+#endif
 
   
   
@@ -97,7 +133,7 @@ nsSVGNumberPair::SetBaseValueString(const nsAString &aValueAsString,
 }
 
 void
-nsSVGNumberPair::GetBaseValueString(nsAString &aValueAsString) const
+nsSVGNumberPair::GetBaseValueString(nsAString &aValueAsString)
 {
   aValueAsString.Truncate();
   aValueAsString.AppendFloat(mBaseVal[0]);
@@ -109,54 +145,49 @@ nsSVGNumberPair::GetBaseValueString(nsAString &aValueAsString) const
 
 void
 nsSVGNumberPair::SetBaseValue(float aValue, PairIndex aPairIndex,
-                              nsSVGElement *aSVGElement)
+                              nsSVGElement *aSVGElement,
+                              bool aDoSetAttr)
 {
-  uint32_t index = (aPairIndex == eFirst ? 0 : 1);
-  if (mIsBaseSet && mBaseVal[index] == aValue) {
-    return;
-  }
-  nsAttrValue emptyOrOldValue = aSVGElement->WillChangeNumberPair(mAttrEnum);
+  PRUint32 index = (aPairIndex == eFirst ? 0 : 1);
   mBaseVal[index] = aValue;
-  mIsBaseSet = true;
+  mIsBaseSet = PR_TRUE;
   if (!mIsAnimated) {
     mAnimVal[index] = aValue;
   }
+#ifdef MOZ_SMIL
   else {
     aSVGElement->AnimationNeedsResample();
   }
-  aSVGElement->DidChangeNumberPair(mAttrEnum, emptyOrOldValue);
+#endif
+  aSVGElement->DidChangeNumberPair(mAttrEnum, aDoSetAttr);
 }
 
 void
 nsSVGNumberPair::SetBaseValues(float aValue1, float aValue2,
-                               nsSVGElement *aSVGElement)
+                               nsSVGElement *aSVGElement,
+                               bool aDoSetAttr)
 {
-  if (mIsBaseSet && mBaseVal[0] == aValue1 && mBaseVal[1] == aValue2) {
-    return;
-  }
-  nsAttrValue emptyOrOldValue = aSVGElement->WillChangeNumberPair(mAttrEnum);
   mBaseVal[0] = aValue1;
   mBaseVal[1] = aValue2;
-  mIsBaseSet = true;
+  mIsBaseSet = PR_TRUE;
   if (!mIsAnimated) {
     mAnimVal[0] = aValue1;
     mAnimVal[1] = aValue2;
   }
+#ifdef MOZ_SMIL
   else {
     aSVGElement->AnimationNeedsResample();
   }
-  aSVGElement->DidChangeNumberPair(mAttrEnum, emptyOrOldValue);
+#endif
+  aSVGElement->DidChangeNumberPair(mAttrEnum, aDoSetAttr);
 }
 
 void
 nsSVGNumberPair::SetAnimValue(const float aValue[2], nsSVGElement *aSVGElement)
 {
-  if (mIsAnimated && mAnimVal[0] == aValue[0] && mAnimVal[1] == aValue[1]) {
-    return;
-  }
   mAnimVal[0] = aValue[0];
   mAnimVal[1] = aValue[1];
-  mIsAnimated = true;
+  mIsAnimated = PR_TRUE;
   aSVGElement->DidAnimateNumberPair(mAttrEnum);
 }
 
@@ -170,6 +201,7 @@ nsSVGNumberPair::ToDOMAnimatedNumber(nsIDOMSVGAnimatedNumber **aResult,
   return NS_OK;
 }
 
+#ifdef MOZ_SMIL
 nsISMILAttr*
 nsSVGNumberPair::ToSMILAttr(nsSVGElement *aSVGElement)
 {
@@ -193,7 +225,7 @@ nsSVGNumberPair::SMILNumberPair::ValueFromString(const nsAString& aStr,
   val.mU.mNumberPair[0] = values[0];
   val.mU.mNumberPair[1] = values[1];
   aValue = val;
-  aPreventCachingOfSandwich = false;
+  aPreventCachingOfSandwich = PR_FALSE;
 
   return NS_OK;
 }
@@ -211,10 +243,8 @@ void
 nsSVGNumberPair::SMILNumberPair::ClearAnimValue()
 {
   if (mVal->mIsAnimated) {
-    mVal->mIsAnimated = false;
-    mVal->mAnimVal[0] = mVal->mBaseVal[0];
-    mVal->mAnimVal[1] = mVal->mBaseVal[1];
-    mSVGElement->DidAnimateNumberPair(mVal->mAttrEnum);
+    mVal->SetAnimValue(mVal->mBaseVal, mSVGElement);
+    mVal->mIsAnimated = PR_FALSE;
   }
 }
 
@@ -228,3 +258,4 @@ nsSVGNumberPair::SMILNumberPair::SetAnimValue(const nsSMILValue& aValue)
   }
   return NS_OK;
 }
+#endif 

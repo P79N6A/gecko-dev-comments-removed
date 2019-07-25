@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsXULTooltipListener_h__
 #define nsXULTooltipListener_h__
 
@@ -18,9 +50,8 @@
 #include "nsITreeColumns.h"
 #endif
 #include "nsWeakPtr.h"
-#include "mozilla/Attributes.h"
 
-class nsXULTooltipListener MOZ_FINAL : public nsIDOMEventListener
+class nsXULTooltipListener : public nsIDOMEventListener
 {
 public:
   NS_DECL_ISUPPORTS
@@ -36,7 +67,7 @@ public:
       mInstance = new nsXULTooltipListener();
     return mInstance;
   }
-  static void ClearTooltipCache() { mInstance = nullptr; }
+  static void ClearTooltipCache() { mInstance = nsnull; }
 
 protected:
 
@@ -45,7 +76,7 @@ protected:
 
   
   static bool sShowTooltips;
-  static uint32_t sTooltipListenerCount;
+  static PRUint32 sTooltipListenerCount;
 
   void KillTooltipTimer();
 
@@ -77,11 +108,12 @@ protected:
 
   
   
-  int32_t mMouseScreenX, mMouseScreenY;
+  PRInt32 mMouseScreenX, mMouseScreenY;
 
   
   enum {
-    kTooltipMouseMoveTolerance = 7     
+    kTooltipMouseMoveTolerance = 7,    
+    kTooltipShowTime = 500             
   };
 
   
@@ -93,7 +125,7 @@ protected:
   
   bool mIsSourceTree;
   bool mNeedTitletip;
-  int32_t mLastTreeRow;
+  PRInt32 mLastTreeRow;
   nsCOMPtr<nsITreeColumn> mLastTreeCol;
 #endif
 };

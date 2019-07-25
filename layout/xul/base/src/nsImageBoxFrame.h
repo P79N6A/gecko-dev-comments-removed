@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsImageBoxFrame_h___
 #define nsImageBoxFrame_h___
 
@@ -24,13 +56,11 @@ public:
   
   NS_IMETHOD OnStartContainer(imgIRequest *request, imgIContainer *image);
   NS_IMETHOD OnStopContainer(imgIRequest *request, imgIContainer *image);
+  NS_IMETHOD OnStartDecode(imgIRequest *aRequest);
   NS_IMETHOD OnStopDecode(imgIRequest *request, nsresult status,
                           const PRUnichar *statusArg);
-  NS_IMETHOD OnImageIsAnimated(imgIRequest* aRequest);
-
   
-  NS_IMETHOD FrameChanged(imgIRequest *aRequest,
-                          imgIContainer *aContainer,
+  NS_IMETHOD FrameChanged(imgIContainer *aContainer,
                           const nsIntRect *aDirtyRect);
 
   void SetFrame(nsImageBoxFrame *frame) { mFrame = frame; }
@@ -44,6 +74,7 @@ class nsImageBoxFrame : public nsLeafBoxFrame
 public:
   NS_DECL_FRAMEARENA_HELPERS
 
+  
   virtual nsSize GetPrefSize(nsBoxLayoutState& aBoxLayoutState);
   virtual nsSize GetMinSize(nsBoxLayoutState& aBoxLayoutState);
   virtual nscoord GetBoxAscent(nsBoxLayoutState& aBoxLayoutState);
@@ -51,13 +82,15 @@ public:
 
   friend nsIFrame* NS_NewImageBoxFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
+  
+
   NS_IMETHOD  Init(nsIContent*      aContent,
                    nsIFrame*        aParent,
                    nsIFrame*        asPrevInFlow);
 
-  NS_IMETHOD AttributeChanged(int32_t aNameSpaceID,
+  NS_IMETHOD AttributeChanged(PRInt32 aNameSpaceID,
                               nsIAtom* aAttribute,
-                              int32_t aModType);
+                              PRInt32 aModType);
 
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);
 
@@ -87,20 +120,18 @@ public:
 
   NS_IMETHOD OnStartContainer(imgIRequest *request, imgIContainer *image);
   NS_IMETHOD OnStopContainer(imgIRequest *request, imgIContainer *image);
+  NS_IMETHOD OnStartDecode(imgIRequest *aRequest);
   NS_IMETHOD OnStopDecode(imgIRequest *request,
                           nsresult status,
                           const PRUnichar *statusArg);
-  NS_IMETHOD OnImageIsAnimated(imgIRequest* aRequest);
-
-  NS_IMETHOD FrameChanged(imgIRequest *aRequest,
-                          imgIContainer *aContainer,
+  NS_IMETHOD FrameChanged(imgIContainer *aContainer,
                           const nsIntRect *aDirtyRect);
 
   virtual ~nsImageBoxFrame();
 
   void  PaintImage(nsRenderingContext& aRenderingContext,
                    const nsRect& aDirtyRect,
-                   nsPoint aPt, uint32_t aFlags);
+                   nsPoint aPt, PRUint32 aFlags);
 
 protected:
   nsImageBoxFrame(nsIPresShell* aShell, nsStyleContext* aContext);
@@ -120,7 +151,7 @@ private:
   nsCOMPtr<imgIRequest> mImageRequest;
   nsCOMPtr<imgIDecoderObserver> mListener;
 
-  int32_t mLoadFlags;
+  PRInt32 mLoadFlags;
 
   bool mUseSrcAttr; 
   bool mSuppressStyleCheck;

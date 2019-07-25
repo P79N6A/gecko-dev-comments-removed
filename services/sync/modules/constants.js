@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 let EXPORTED_SYMBOLS = [((this[key] = val), key) for ([key, val] in Iterator({
 
 WEAVE_CHANNEL:                         "@weave_channel@",
@@ -71,11 +105,9 @@ DEFAULT_MOBILE_GUID_FETCH_BATCH_SIZE:  50,
 
 
 DEFAULT_STORE_BATCH_SIZE:              1,
-HISTORY_STORE_BATCH_SIZE:              50,      
-FORMS_STORE_BATCH_SIZE:                50,      
-PASSWORDS_STORE_BATCH_SIZE:            50,      
-ADDONS_STORE_BATCH_SIZE:               1000000, 
-APPS_STORE_BATCH_SIZE:                 50,      
+HISTORY_STORE_BATCH_SIZE:              50, 
+FORMS_STORE_BATCH_SIZE:                50, 
+PASSWORDS_STORE_BATCH_SIZE:            50, 
 
 
 SINGLE_USER_THRESHOLD:                 1000,
@@ -135,7 +167,7 @@ ABORT_SYNC_COMMAND:                    "aborting sync, process commands said so"
 NO_SYNC_NODE_FOUND:                    "error.sync.reason.no_node_found",
 OVER_QUOTA:                            "error.sync.reason.over_quota",
 PROLONGED_SYNC_FAILURE:                "error.sync.prolonged_failure",
-SERVER_MAINTENANCE:                    "error.sync.reason.serverMaintenance",
+SERVER_MAINTENANCE:                    "error.sync.reason.server_maintenance",
 
 RESPONSE_OVER_QUOTA:                   "14",
 

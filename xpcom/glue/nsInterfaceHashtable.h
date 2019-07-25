@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsInterfaceHashtable_h__
 #define nsInterfaceHashtable_h__
 
@@ -33,7 +65,7 @@ public:
 
 
 
-  bool Get(KeyType aKey, UserDataType* pData) const;
+  bool Get(KeyType aKey, UserDataType* pData NS_OUTPARAM) const;
 
   
 
@@ -46,7 +78,7 @@ public:
 
 
 
-  Interface* GetWeak(KeyType aKey, bool* aFound = nullptr) const;
+  Interface* GetWeak(KeyType aKey, bool* aFound = nsnull) const;
 };
 
 
@@ -70,7 +102,7 @@ public:
 
 
 
-  bool Get(KeyType aKey, UserDataType* pData) const;
+  bool Get(KeyType aKey, UserDataType* pData NS_OUTPARAM) const;
 
   
   
@@ -98,15 +130,15 @@ nsInterfaceHashtable<KeyClass,Interface>::Get
       NS_IF_ADDREF(*pInterface);
     }
 
-    return true;
+    return PR_TRUE;
   }
 
   
   
   if (pInterface)
-    *pInterface = nullptr;
+    *pInterface = nsnull;
 
-  return false;
+  return PR_FALSE;
 }
 
 template<class KeyClass, class Interface>
@@ -131,15 +163,15 @@ nsInterfaceHashtable<KeyClass,Interface>::GetWeak
   if (ent)
   {
     if (aFound)
-      *aFound = true;
+      *aFound = PR_TRUE;
 
     return ent->mData;
   }
 
   
   if (aFound)
-    *aFound = false;
-  return nullptr;
+    *aFound = PR_FALSE;
+  return nsnull;
 }
 
 
@@ -166,17 +198,17 @@ nsInterfaceHashtableMT<KeyClass,Interface>::Get
 
     PR_Unlock(this->mLock);
 
-    return true;
+    return PR_TRUE;
   }
 
   
   
   if (pInterface)
-    *pInterface = nullptr;
+    *pInterface = nsnull;
 
   PR_Unlock(this->mLock);
 
-  return false;
+  return PR_FALSE;
 }
 
 #endif 

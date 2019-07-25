@@ -3,46 +3,55 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_SVGCONTAINERFRAME_H
 #define NS_SVGCONTAINERFRAME_H
 
-#include "gfxMatrix.h"
-#include "gfxRect.h"
 #include "nsContainerFrame.h"
-#include "nsFrame.h"
-#include "nsIFrame.h"
 #include "nsISVGChildFrame.h"
-#include "nsQueryFrame.h"
-#include "nsRect.h"
-#include "nsSVGUtils.h"
-
-class nsFrameList;
-class nsIContent;
-class nsIPresShell;
-class nsRenderingContext;
-class nsStyleContext;
-
-struct nsPoint;
+#include "nsSVGSVGElement.h"
+#include "gfxRect.h"
+#include "gfxMatrix.h"
 
 typedef nsContainerFrame nsSVGContainerFrameBase;
-
-
-
-
-
-
-
 
 class nsSVGContainerFrame : public nsSVGContainerFrameBase
 {
   friend nsIFrame* NS_NewSVGContainerFrame(nsIPresShell* aPresShell,
                                            nsStyleContext* aContext);
 protected:
-  nsSVGContainerFrame(nsStyleContext* aContext)
-    : nsSVGContainerFrameBase(aContext)
-  {
-    AddStateBits(NS_FRAME_SVG_LAYOUT);
-  }
+  nsSVGContainerFrame(nsStyleContext* aContext) :
+    nsSVGContainerFrameBase(aContext) {}
 
 public:
   NS_DECL_QUERYFRAME_TARGET(nsSVGContainerFrame)
@@ -50,20 +59,7 @@ public:
   NS_DECL_FRAMEARENA_HELPERS
 
   
-  virtual gfxMatrix GetCanvasTM(uint32_t aFor) {
-    return gfxMatrix();
-  }
-
-  
-
-
-
-
-
-
-  virtual bool HasChildrenOnlyTransform(gfxMatrix *aTransform) const {
-    return false;
-  }
+  virtual gfxMatrix GetCanvasTM() { return gfxMatrix(); }
 
   
   NS_IMETHOD AppendFrames(ChildListID     aListID,
@@ -73,35 +69,23 @@ public:
                           nsFrameList&    aFrameList);
   NS_IMETHOD RemoveFrame(ChildListID     aListID,
                          nsIFrame*       aOldFrame);
+  NS_IMETHOD Init(nsIContent*      aContent,
+                  nsIFrame*        aParent,
+                  nsIFrame*        aPrevInFlow);
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     return nsSVGContainerFrameBase::IsFrameOfType(
             aFlags & ~(nsIFrame::eSVG | nsIFrame::eSVGContainer));
   }
-
-  NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                              const nsRect&           aDirtyRect,
-                              const nsDisplayListSet& aLists) {
-    return NS_OK;
-  }
-
-  virtual bool UpdateOverflow();
 };
-
-
-
-
 
 class nsSVGDisplayContainerFrame : public nsSVGContainerFrame,
                                    public nsISVGChildFrame
 {
 protected:
-  nsSVGDisplayContainerFrame(nsStyleContext* aContext)
-    : nsSVGContainerFrame(aContext)
-  {
-     AddStateBits(NS_FRAME_MAY_BE_TRANSFORMED);
-  }
+  nsSVGDisplayContainerFrame(nsStyleContext* aContext) :
+    nsSVGContainerFrame(aContext) {}
 
 public:
   NS_DECL_QUERYFRAME_TARGET(nsSVGDisplayContainerFrame)
@@ -118,23 +102,20 @@ public:
                   nsIFrame*        aParent,
                   nsIFrame*        aPrevInFlow);
 
-  NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                              const nsRect&           aDirtyRect,
-                              const nsDisplayListSet& aLists);
-
-  virtual bool IsSVGTransformed(gfxMatrix *aOwnTransform = nullptr,
-                                gfxMatrix *aFromParentTransform = nullptr) const;
-
   
-  NS_IMETHOD PaintSVG(nsRenderingContext* aContext,
+  NS_IMETHOD PaintSVG(nsSVGRenderState* aContext,
                       const nsIntRect *aDirtyRect);
   NS_IMETHOD_(nsIFrame*) GetFrameForPoint(const nsPoint &aPoint);
   NS_IMETHOD_(nsRect) GetCoveredRegion();
-  virtual void ReflowSVG();
-  virtual void NotifySVGChanged(uint32_t aFlags);
-  virtual SVGBBox GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
-                                      uint32_t aFlags);
+  NS_IMETHOD UpdateCoveredRegion();
+  NS_IMETHOD InitialUpdate();
+  virtual void NotifySVGChanged(PRUint32 aFlags);
+  NS_IMETHOD NotifyRedrawSuspended();
+  NS_IMETHOD NotifyRedrawUnsuspended();
+  virtual gfxRect GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
+                                      PRUint32 aFlags);
   NS_IMETHOD_(bool) IsDisplayContainer() { return true; }
+  NS_IMETHOD_(bool) HasValidCoveredRect() { return false; }
 };
 
 #endif

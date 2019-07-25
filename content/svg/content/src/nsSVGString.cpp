@@ -3,9 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSVGString.h"
+#ifdef MOZ_SMIL
 #include "nsSMILValue.h"
 #include "SMILStringType.h"
+#endif 
 
 using namespace mozilla;
 
@@ -31,13 +64,15 @@ nsSVGString::SetBaseValue(const nsAString& aValue,
 {
   NS_ASSERTION(aSVGElement, "Null element passed to SetBaseValue");
 
-  mIsBaseSet = true;
   if (aDoSetAttr) {
+    mIsBaseSet = PR_TRUE;
     aSVGElement->SetStringBaseValue(mAttrEnum, aValue);
   }
+#ifdef MOZ_SMIL
   if (mAnimVal) {
     aSVGElement->AnimationNeedsResample();
   }
+#endif
 
   aSVGElement->DidChangeString(mAttrEnum);
 }
@@ -57,9 +92,6 @@ void
 nsSVGString::SetAnimValue(const nsAString& aValue, nsSVGElement *aSVGElement)
 {
   if (aSVGElement->IsStringAnimatable(mAttrEnum)) {
-    if (mAnimVal && mAnimVal->Equals(aValue)) {
-      return;
-    }
     if (!mAnimVal) {
       mAnimVal = new nsString();
     }
@@ -80,6 +112,7 @@ nsSVGString::ToDOMAnimatedString(nsIDOMSVGAnimatedString **aResult,
   return NS_OK;
 }
 
+#ifdef MOZ_SMIL
 nsISMILAttr*
 nsSVGString::ToSMILAttr(nsSVGElement *aSVGElement)
 {
@@ -96,7 +129,7 @@ nsSVGString::SMILString::ValueFromString(const nsAString& aStr,
 
   *static_cast<nsAString*>(val.mU.mPtr) = aStr;
   aValue.Swap(val);
-  aPreventCachingOfSandwich = false;
+  aPreventCachingOfSandwich = PR_FALSE;
   return NS_OK;
 }
 
@@ -112,7 +145,7 @@ void
 nsSVGString::SMILString::ClearAnimValue()
 {
   if (mVal->mAnimVal) {
-    mVal->mAnimVal = nullptr;
+    mVal->mAnimVal = nsnull;
     mSVGElement->DidAnimateString(mVal->mAttrEnum);
   }
 }
@@ -127,3 +160,4 @@ nsSVGString::SMILString::SetAnimValue(const nsSMILValue& aValue)
   }
   return NS_OK;
 }
+#endif 

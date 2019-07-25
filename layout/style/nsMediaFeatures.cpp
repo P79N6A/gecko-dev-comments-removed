@@ -5,7 +5,37 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsMediaFeatures.h"
 #include "nsGkAtoms.h"
@@ -20,13 +50,13 @@
 
 using namespace mozilla;
 
-static const int32_t kOrientationKeywords[] = {
+static const PRInt32 kOrientationKeywords[] = {
   eCSSKeyword_portrait,                 NS_STYLE_ORIENTATION_PORTRAIT,
   eCSSKeyword_landscape,                NS_STYLE_ORIENTATION_LANDSCAPE,
   eCSSKeyword_UNKNOWN,                  -1
 };
 
-static const int32_t kScanKeywords[] = {
+static const PRInt32 kScanKeywords[] = {
   eCSSKeyword_progressive,              NS_STYLE_SCAN_PROGRESSIVE,
   eCSSKeyword_interlace,                NS_STYLE_SCAN_INTERLACE,
   eCSSKeyword_UNKNOWN,                  -1
@@ -135,7 +165,7 @@ GetOrientation(nsPresContext* aPresContext, const nsMediaFeature*,
                nsCSSValue& aResult)
 {
     nsSize size = GetSize(aPresContext);
-    int32_t orientation;
+    PRInt32 orientation;
     if (size.width > size.height) {
         orientation = NS_STYLE_ORIENTATION_LANDSCAPE;
     } else {
@@ -152,7 +182,7 @@ GetDeviceOrientation(nsPresContext* aPresContext, const nsMediaFeature*,
                      nsCSSValue& aResult)
 {
     nsSize size = GetDeviceSize(aPresContext);
-    int32_t orientation;
+    PRInt32 orientation;
     if (size.width > size.height) {
         orientation = NS_STYLE_ORIENTATION_LANDSCAPE;
     } else {
@@ -209,13 +239,13 @@ GetColor(nsPresContext* aPresContext, const nsMediaFeature*,
     
     
     nsDeviceContext *dx = GetDeviceContextFor(aPresContext);
-    uint32_t depth;
+    PRUint32 depth;
     dx->GetDepth(depth);
     
     
     
     depth /= 3;
-    aResult.SetIntValue(int32_t(depth), eCSSUnit_Integer);
+    aResult.SetIntValue(PRInt32(depth), eCSSUnit_Integer);
     return NS_OK;
 }
 
@@ -249,17 +279,8 @@ GetResolution(nsPresContext* aPresContext, const nsMediaFeature*,
               nsCSSValue& aResult)
 {
     
-    
-    
-    
-    
-    nsIPresShell *shell = aPresContext->PresShell();
-    float appUnitsPerInch = shell->GetIsViewportOverridden() ?
-            GetDeviceContextFor(aPresContext)->AppUnitsPerPhysicalInch() :
-            nsPresContext::AppUnitsPerCSSInch();
-
-    float dpi = appUnitsPerInch /
-                float(aPresContext->AppUnitsPerDevPixel());
+    nsDeviceContext *dx = GetDeviceContextFor(aPresContext);
+    float dpi = float(dx->AppUnitsPerPhysicalInch()) / float(dx->AppUnitsPerDevPixel());
     aResult.SetFloatValue(dpi, eCSSUnit_Inch);
     return NS_OK;
 }
@@ -311,7 +332,7 @@ GetWindowsTheme(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
 {
     aResult.Reset();
 #ifdef XP_WIN
-    uint8_t windowsThemeId =
+    PRUint8 windowsThemeId =
         nsCSSRuleProcessor::GetWindowsThemeIdentifier();
 
     
@@ -319,7 +340,7 @@ GetWindowsTheme(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
         return NS_OK;
 
     
-    for (size_t i = 0; i < ArrayLength(themeStrings); ++i) {
+    for (size_t i = 0; i < NS_ARRAY_LENGTH(themeStrings); ++i) {
         if (windowsThemeId == themeStrings[i].id) {
             aResult.SetStringValue(nsDependentString(themeStrings[i].name),
                                    eCSSUnit_Ident);
@@ -327,14 +348,6 @@ GetWindowsTheme(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
         }
     }
 #endif
-    return NS_OK;
-}
-
-static nsresult
-GetIsGlyph(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
-          nsCSSValue& aResult)
-{
-    aResult.SetIntValue(aPresContext->IsGlyph() ? 1 : 0, eCSSUnit_Integer);
     return NS_OK;
 }
 
@@ -353,28 +366,28 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::width,
         nsMediaFeature::eMinMaxAllowed,
         nsMediaFeature::eLength,
-        { nullptr },
+        { nsnull },
         GetWidth
     },
     {
         &nsGkAtoms::height,
         nsMediaFeature::eMinMaxAllowed,
         nsMediaFeature::eLength,
-        { nullptr },
+        { nsnull },
         GetHeight
     },
     {
         &nsGkAtoms::deviceWidth,
         nsMediaFeature::eMinMaxAllowed,
         nsMediaFeature::eLength,
-        { nullptr },
+        { nsnull },
         GetDeviceWidth
     },
     {
         &nsGkAtoms::deviceHeight,
         nsMediaFeature::eMinMaxAllowed,
         nsMediaFeature::eLength,
-        { nullptr },
+        { nsnull },
         GetDeviceHeight
     },
     {
@@ -388,42 +401,42 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::aspectRatio,
         nsMediaFeature::eMinMaxAllowed,
         nsMediaFeature::eIntRatio,
-        { nullptr },
+        { nsnull },
         GetAspectRatio
     },
     {
         &nsGkAtoms::deviceAspectRatio,
         nsMediaFeature::eMinMaxAllowed,
         nsMediaFeature::eIntRatio,
-        { nullptr },
+        { nsnull },
         GetDeviceAspectRatio
     },
     {
         &nsGkAtoms::color,
         nsMediaFeature::eMinMaxAllowed,
         nsMediaFeature::eInteger,
-        { nullptr },
+        { nsnull },
         GetColor
     },
     {
         &nsGkAtoms::colorIndex,
         nsMediaFeature::eMinMaxAllowed,
         nsMediaFeature::eInteger,
-        { nullptr },
+        { nsnull },
         GetColorIndex
     },
     {
         &nsGkAtoms::monochrome,
         nsMediaFeature::eMinMaxAllowed,
         nsMediaFeature::eInteger,
-        { nullptr },
+        { nsnull },
         GetMonochrome
     },
     {
         &nsGkAtoms::resolution,
         nsMediaFeature::eMinMaxAllowed,
         nsMediaFeature::eResolution,
-        { nullptr },
+        { nsnull },
         GetResolution
     },
     {
@@ -437,7 +450,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::grid,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eBoolInteger,
-        { nullptr },
+        { nsnull },
         GetGrid
     },
 
@@ -446,7 +459,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_device_pixel_ratio,
         nsMediaFeature::eMinMaxAllowed,
         nsMediaFeature::eFloat,
-        { nullptr },
+        { nsnull },
         GetDevicePixelRatio
     },
     {
@@ -460,7 +473,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_is_resource_document,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eBoolInteger,
-        { nullptr },
+        { nsnull },
         GetIsResourceDocument
     },
     {
@@ -572,26 +585,15 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_windows_theme,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eIdent,
-        { nullptr },
+        { nsnull },
         GetWindowsTheme
     },
-
-    
-    
     
     {
-        &nsGkAtoms::_moz_is_glyph,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eBoolInteger,
-        { nullptr },
-        GetIsGlyph
-    },
-    
-    {
-        nullptr,
+        nsnull,
         nsMediaFeature::eMinMaxAllowed,
         nsMediaFeature::eInteger,
-        { nullptr },
-        nullptr
+        { nsnull },
+        nsnull
     },
 };

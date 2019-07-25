@@ -21,6 +21,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _NSDEQUE
 #define _NSDEQUE
 
@@ -57,7 +89,7 @@ class nsDequeIterator;
 class NS_COM_GLUE nsDeque {
   friend class nsDequeIterator;
   public:
-   nsDeque(nsDequeFunctor* aDeallocator = nullptr);
+   nsDeque(nsDequeFunctor* aDeallocator = nsnull);
   ~nsDeque();
 
   
@@ -66,7 +98,7 @@ class NS_COM_GLUE nsDeque {
 
 
 
-  inline int32_t GetSize() const {return mSize;}
+  inline PRInt32 GetSize() const {return mSize;}
 
   
 
@@ -125,14 +157,6 @@ class NS_COM_GLUE nsDeque {
 
 
 
-
-  void* RemoveObjectAt(int aIndex);
-
-  
-
-
-
-
   nsDeque& Empty();
 
   
@@ -185,9 +209,9 @@ class NS_COM_GLUE nsDeque {
   void SetDeallocator(nsDequeFunctor* aDeallocator);
 
 protected:
-  int32_t         mSize;
-  int32_t         mCapacity;
-  int32_t         mOrigin;
+  PRInt32         mSize;
+  PRInt32         mCapacity;
+  PRInt32         mOrigin;
   nsDequeFunctor* mDeallocator;
   void*           mBuffer[8];
   void**          mData;
@@ -370,7 +394,7 @@ public:
 
   protected:
 
-  int32_t         mIndex;
+  PRInt32         mIndex;
   const nsDeque&  mDeque;
 };
 #endif

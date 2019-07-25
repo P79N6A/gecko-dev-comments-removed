@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NSCATEGORYMANAGER_H
 #define NSCATEGORYMANAGER_H
 
@@ -12,7 +44,6 @@
 #include "nsClassHashtable.h"
 #include "nsICategoryManager.h"
 #include "mozilla/Mutex.h"
-#include "mozilla/Attributes.h"
 
 #define NS_CATEGORYMANAGER_CLASSNAME     "Category Manager"
 
@@ -63,9 +94,9 @@ public:
     mTable.Clear();
   }
 
-  uint32_t Count() {
+  PRUint32 Count() {
     mozilla::MutexAutoLock lock(mLock);
-    uint32_t tCount = mTable.Count();
+    PRUint32 tCount = mTable.Count();
     return tCount;
   }
 
@@ -93,7 +124,7 @@ private:
 
 
 
-class nsCategoryManager MOZ_FINAL
+class nsCategoryManager
   : public nsICategoryManager
 {
 public:
@@ -126,7 +157,7 @@ private:
 
   CategoryNode* get_category(const char* aName);
   void NotifyObservers(const char* aTopic,
-                       const char* aCategoryName, 
+                       const char* aCategoryName,
                        const char* aEntryName);
 
   PLArenaPool mArena;

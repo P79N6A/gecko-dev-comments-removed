@@ -5,6 +5,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsStyleContext_h_
 #define _nsStyleContext_h_
 
@@ -188,7 +222,7 @@ public:
   #undef STYLE_STRUCT_INHERITED
 
   nsRuleNode* GetRuleNode() { return mRuleNode; }
-  void AddStyleBit(const uint32_t& aBit) { mBits |= aBit; }
+  void AddStyleBit(const PRUint32& aBit) { mBits |= aBit; }
 
   
 
@@ -223,7 +257,7 @@ public:
 
   #define STYLE_STRUCT(name_, checkdata_cb_, ctor_args_)  \
     const nsStyle##name_ * GetStyle##name_() {            \
-      return DoGetStyle##name_(true);                  \
+      return DoGetStyle##name_(PR_TRUE);                  \
     }
   #include "nsStyleStructList.h"
   #undef STYLE_STRUCT
@@ -237,31 +271,14 @@ public:
 
   #define STYLE_STRUCT(name_, checkdata_cb_, ctor_args_)  \
     const nsStyle##name_ * PeekStyle##name_() {           \
-      return DoGetStyle##name_(false);                 \
+      return DoGetStyle##name_(PR_FALSE);                 \
     }
   #include "nsStyleStructList.h"
   #undef STYLE_STRUCT
 
   void* GetUniqueStyleData(const nsStyleStructID& aSID);
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  nsChangeHint CalcStyleDifference(nsStyleContext* aOther,
-                                   nsChangeHint aParentHintsNotHandledForDescendants);
+  nsChangeHint CalcStyleDifference(nsStyleContext* aOther);
 
   
 
@@ -316,7 +333,7 @@ public:
   }
 
 #ifdef DEBUG
-  void List(FILE* out, int32_t aIndent);
+  void List(FILE* out, PRInt32 aIndent);
 #endif
 
 protected:
@@ -347,7 +364,7 @@ protected:
       const nsStyle##name_ * cachedData = mCachedResetData              \
         ? static_cast<nsStyle##name_*>(                                 \
             mCachedResetData->mStyleStructs[eStyleStruct_##name_])      \
-        : nullptr;                                                       \
+        : nsnull;                                                       \
       if (cachedData) /* Have it cached already, yay */                 \
         return cachedData;                                              \
       /* Have the rulenode deal */                                      \
@@ -407,9 +424,9 @@ protected:
   
   nsResetStyleData*       mCachedResetData; 
   nsInheritedStyleData    mCachedInheritedData; 
-  uint32_t                mBits; 
+  PRUint32                mBits; 
                                  
-  uint32_t                mRefCnt;
+  PRUint32                mRefCnt;
 };
 
 already_AddRefed<nsStyleContext>

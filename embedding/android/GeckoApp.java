@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 package org.mozilla.gecko;
 
 import java.io.*;
@@ -45,7 +79,6 @@ abstract public class GeckoApp
 
     public static AbsoluteLayout mainLayout;
     public static GeckoSurfaceView surfaceView;
-    public static SurfaceView cameraView;
     public static GeckoApp mAppContext;
     public static boolean mFullscreen = false;
     public static File sGREDir = null;
@@ -53,9 +86,8 @@ abstract public class GeckoApp
     public Handler mMainHandler;
     private IntentFilter mConnectivityFilter;
     private BroadcastReceiver mConnectivityReceiver;
-    private BroadcastReceiver mBatteryReceiver;
 
-    enum LaunchState {PreLaunch, Launching, WaitForDebugger,
+    enum LaunchState {PreLaunch, Launching, WaitButton,
                       Launched, GeckoRunning, GeckoExiting};
     private static LaunchState sLaunchState = LaunchState.PreLaunch;
     private static boolean sTryCatchAttached = false;
@@ -297,9 +329,7 @@ abstract public class GeckoApp
                 } catch (Exception e) {
                     Log.e(LOG_FILE_NAME, "top level exception", e);
                     StringWriter sw = new StringWriter();
-                    PrintWriter pw = new PrintWriter(sw);
-                    e.printStackTrace(pw);
-                    pw.flush();
+                    e.printStackTrace(new PrintWriter(sw));
                     GeckoAppShell.reportJavaCrash(sw.toString());
                 }
             }
@@ -323,9 +353,7 @@ abstract public class GeckoApp
                     } catch (Exception e) {
                         Log.e(LOG_FILE_NAME, "top level exception", e);
                         StringWriter sw = new StringWriter();
-                        PrintWriter pw = new PrintWriter(sw);
-                        e.printStackTrace(pw);
-                        pw.flush();
+                        e.printStackTrace(new PrintWriter(sw));
                         GeckoAppShell.reportJavaCrash(sw.toString());
                     }
                     
@@ -349,11 +377,6 @@ abstract public class GeckoApp
                              WindowManager.LayoutParams.FLAG_FULLSCREEN : 0,
                              WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
-        if (cameraView == null) {
-            cameraView = new SurfaceView(this);
-            cameraView.getHolder().setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-        }
-
         if (surfaceView == null)
             surfaceView = new GeckoSurfaceView(this);
         else
@@ -365,7 +388,6 @@ abstract public class GeckoApp
                                                            AbsoluteLayout.LayoutParams.MATCH_PARENT,
                                                            0,
                                                            0));
-
         setContentView(mainLayout,
                        new ViewGroup.LayoutParams(ViewGroup.LayoutParams.FILL_PARENT,
                                                   ViewGroup.LayoutParams.FILL_PARENT));
@@ -373,17 +395,6 @@ abstract public class GeckoApp
         mConnectivityFilter = new IntentFilter();
         mConnectivityFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
         mConnectivityReceiver = new GeckoConnectivityReceiver();
-
-        IntentFilter batteryFilter = new IntentFilter();
-        batteryFilter.addAction(Intent.ACTION_BATTERY_CHANGED);
-        mBatteryReceiver = new GeckoBatteryManager();
-        registerReceiver(mBatteryReceiver, batteryFilter);
-
-        if (SmsManager.getInstance() != null) {
-            SmsManager.getInstance().start();
-        }
-
-        GeckoNetworkManager.getInstance().init();
 
         if (!checkAndSetLaunchState(LaunchState.PreLaunch,
                                     LaunchState.Launching))
@@ -406,15 +417,6 @@ abstract public class GeckoApp
         mLibLoadThread.start();
     }
 
-    public void enableCameraView() {
-        
-        mainLayout.addView(cameraView, new AbsoluteLayout.LayoutParams(8, 16, 0, 0));
-    }
-
-    public void disableCameraView() {
-        mainLayout.removeView(cameraView);
-    }
-
     @Override
     protected void onNewIntent(Intent intent) {
         if (checkLaunchState(LaunchState.GeckoExiting)) {
@@ -425,19 +427,21 @@ abstract public class GeckoApp
         }
         final String action = intent.getAction();
         if (ACTION_DEBUG.equals(action) &&
-            checkAndSetLaunchState(LaunchState.Launching, LaunchState.WaitForDebugger)) {
-
-            mMainHandler.postDelayed(new Runnable() {
-                public void run() {
-                    Log.i(LOG_FILE_NAME, "Launching from debug intent after 5s wait");
+            checkAndSetLaunchState(LaunchState.Launching, LaunchState.WaitButton)) {
+            final Button launchButton = new Button(this);
+            launchButton.setText("Launch"); 
+            launchButton.setOnClickListener(new Button.OnClickListener() {
+                public void onClick (View v) {
+                    
+                    mainLayout.removeView(launchButton);
                     setLaunchState(LaunchState.Launching);
                     launch(null);
                 }
-            }, 1000 * 5 );
-            Log.i(LOG_FILE_NAME, "Intent : ACTION_DEBUG - waiting 5s before launching");
+            });
+            mainLayout.addView(launchButton, 300, 200);
             return;
         }
-        if (checkLaunchState(LaunchState.WaitForDebugger) || launch(intent))
+        if (checkLaunchState(LaunchState.WaitButton) || launch(intent))
             return;
 
         if (Intent.ACTION_MAIN.equals(action)) {
@@ -477,8 +481,6 @@ abstract public class GeckoApp
         super.onPause();
 
         unregisterReceiver(mConnectivityReceiver);
-        GeckoNetworkManager.getInstance().stop();
-        GeckoScreenOrientationListener.getInstance().stop();
     }
 
     @Override
@@ -497,8 +499,6 @@ abstract public class GeckoApp
             onNewIntent(getIntent());
 
         registerReceiver(mConnectivityReceiver, mConnectivityFilter);
-        GeckoNetworkManager.getInstance().start();
-        GeckoScreenOrientationListener.getInstance().start();
     }
 
     @Override
@@ -515,6 +515,7 @@ abstract public class GeckoApp
         
         
         
+
 
         GeckoAppShell.sendEventToGecko(new GeckoEvent(GeckoEvent.ACTIVITY_STOPPING));
         super.onStop();
@@ -541,24 +542,12 @@ abstract public class GeckoApp
     public void onDestroy()
     {
         Log.i(LOG_FILE_NAME, "destroy");
-
         
         
         if (isFinishing())
             GeckoAppShell.sendEventToGecko(new GeckoEvent(GeckoEvent.ACTIVITY_SHUTDOWN));
 
-        if (SmsManager.getInstance() != null) {
-            SmsManager.getInstance().stop();
-            if (isFinishing())
-                SmsManager.getInstance().shutdown();
-        }
-
-        GeckoNetworkManager.getInstance().stop();
-        GeckoScreenOrientationListener.getInstance().stop();
-
         super.onDestroy();
-
-        unregisterReceiver(mBatteryReceiver);
     }
 
     @Override
@@ -604,6 +593,11 @@ abstract public class GeckoApp
             
             Log.w(LOG_FILE_NAME, "error removing files", ex);
         }
+        unpackFile(zip, buf, null, "application.ini");
+        unpackFile(zip, buf, null, getContentProcessName());
+        try {
+            unpackFile(zip, buf, null, "update.locale");
+        } catch (Exception e) {}
 
         
         Enumeration<? extends ZipEntry> zipEntries = zip.entries();
@@ -611,6 +605,16 @@ abstract public class GeckoApp
             ZipEntry entry = zipEntries.nextElement();
             if (entry.getName().startsWith("extensions/") && entry.getName().endsWith(".xpi")) {
                 Log.i("GeckoAppJava", "installing extension : " + entry.getName());
+                unpackFile(zip, buf, entry, entry.getName());
+            }
+        }
+
+        
+        Enumeration<? extends ZipEntry> hyphenEntries = zip.entries();
+        while (hyphenEntries.hasMoreElements()) {
+            ZipEntry entry = hyphenEntries.nextElement();
+            if (entry.getName().startsWith("hyphenation/")) {
+                Log.i("GeckoAppJava", "installing hyphenation : " + entry.getName());
                 unpackFile(zip, buf, entry, entry.getName());
             }
         }
@@ -671,6 +675,7 @@ abstract public class GeckoApp
         Map<String,String> envMap = System.getenv();
         Set<Map.Entry<String,String>> envSet = envMap.entrySet();
         Iterator<Map.Entry<String,String>> envIter = envSet.iterator();
+        StringBuffer envstr = new StringBuffer();
         int c = 0;
         while (envIter.hasNext()) {
             Map.Entry<String,String> entry = envIter.next();

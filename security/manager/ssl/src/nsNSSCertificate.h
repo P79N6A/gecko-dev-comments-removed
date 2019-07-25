@@ -3,6 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _NS_NSSCERTIFICATE_H_
 #define _NS_NSSCERTIFICATE_H_
 
@@ -47,7 +82,7 @@ public:
   
   virtual ~nsNSSCertificate();
   nsresult FormatUIStrings(const nsAutoString &nickname, nsAutoString &nickWithSerial, nsAutoString &details);
-  static nsNSSCertificate* Create(CERTCertificate *cert = nullptr);
+  static nsNSSCertificate* Create(CERTCertificate *cert = nsnull);
   static nsNSSCertificate* ConstructFromDER(char *certDER, int derLen);
 
   
@@ -57,7 +92,7 @@ public:
 private:
   CERTCertificate *mCert;
   bool             mPermDelete;
-  uint32_t         mCertType;
+  PRUint32         mCertType;
   nsCOMPtr<nsIASN1Object> mASN1Structure;
   nsresult CreateASN1Struct();
   nsresult CreateTBSCertificateASN1Struct(nsIASN1Sequence **retSequence,
@@ -81,7 +116,7 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIX509CERTLIST
 
-  nsNSSCertList(CERTCertList *certList = nullptr, bool adopt = false);
+  nsNSSCertList(CERTCertList *certList = nsnull, bool adopt = false);
   virtual ~nsNSSCertList();
 
   static CERTCertList *DupCertList(CERTCertList *aCertList);

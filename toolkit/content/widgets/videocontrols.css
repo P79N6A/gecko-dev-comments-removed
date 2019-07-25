@@ -1,7 +1,3 @@
-
-
-
-
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
 @namespace html url("http://www.w3.org/1999/xhtml");
 
@@ -24,14 +20,9 @@
 .mediaControlsFrame {
   direction: ltr;
   
-  text-align: left;
   list-style-image: none !important;
   font: normal normal normal 100%/normal sans-serif !important;
   text-decoration: none !important;
-}
-
-.controlsSpacer[hideCursor] {
-  cursor: none;
 }
 
 
@@ -41,24 +32,24 @@
 
 
 .controlBar:not([immediate]) {
-  transition-property: opacity;
-  transition-duration: 1ms;
+  -moz-transition-property: opacity;
+  -moz-transition-duration: 1ms;
 }
 .controlBar[fadeout] {
   opacity: 0;
 }
 .volumeStack:not([immediate]) {
-  transition-property: opacity, margin-top;
-  transition-duration: 1ms, 1ms;
+  -moz-transition-property: opacity, margin-top;
+  -moz-transition-duration: 1ms, 1ms;
 }
 .volumeStack[fadeout] {
   opacity: 0;
   margin-top: 0;
 }
 .statusOverlay:not([immediate]) {
-  transition-property: opacity;
-  transition-duration: 1ms;
-  transition-delay: 750ms;
+  -moz-transition-property: opacity;
+  -moz-transition-duration: 1ms;
+  -moz-transition-delay: 750ms;
 }
 .statusOverlay[fadeout] {
   opacity: 0;
@@ -102,18 +93,4 @@ html|span.statActivity[seeking] > html|span.statActivitySeeking {
 .controlBar[size="small"] .progressBar,
 .controlBar[size="small"] .scrubber {
   visibility: hidden;
-}
-
-
-.errorLabel {
-  display: none;
-}
-
-[error="errorAborted"]         > [anonid="errorAborted"],
-[error="errorNetwork"]         > [anonid="errorNetwork"],
-[error="errorDecode"]          > [anonid="errorDecode"],
-[error="errorSrcNotSupported"] > [anonid="errorSrcNotSupported"],
-[error="errorNoSource"]        > [anonid="errorNoSource"],
-[error="errorGeneric"]         > [anonid="errorGeneric"] {
-  display: inline;
 }

@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsString.h"
 #include "nsReadableUtils.h"
 #include "nsTArray.h"
@@ -34,7 +66,7 @@ protected:
 protected:
 
   nsHashtable&  mHashTable;
-  int32_t       mIndex;
+  PRInt32       mIndex;
   char **       mGroupNames;        
   bool          mInitted;
   
@@ -46,8 +78,8 @@ NS_IMPL_ISUPPORTS1(nsGroupsEnumerator, nsISimpleEnumerator)
 nsGroupsEnumerator::nsGroupsEnumerator(nsHashtable& inHashTable)
 : mHashTable(inHashTable)
 , mIndex(-1)
-, mGroupNames(nullptr)
-, mInitted(false)
+, mGroupNames(nsnull)
+, mInitted(PR_FALSE)
 {
   
 }
@@ -110,7 +142,7 @@ nsGroupsEnumerator::HashEnum(nsHashKey *aKey, void *aData, void* aClosure)
   
   groupsEnum->mGroupNames[groupsEnum->mIndex] = (char*)stringKey->GetString();
   groupsEnum->mIndex ++;
-  return true;
+  return PR_TRUE;
 }
 
 nsresult
@@ -125,7 +157,7 @@ nsGroupsEnumerator::Initialize()
   mHashTable.Enumerate(HashEnum, (void*)this);
 
   mIndex = -1;
-  mInitted = true;
+  mInitted = PR_TRUE;
   return NS_OK;
 }
 
@@ -145,7 +177,7 @@ public:
 protected:
 
   nsTArray<char*>* mGroupArray;
-  int32_t          mIndex;
+  PRInt32          mIndex;
   
 };
 
@@ -167,7 +199,7 @@ nsNamedGroupEnumerator::HasMoreElements(bool *_retval)
 {
   NS_ENSURE_ARG_POINTER(_retval);
   
-  int32_t arrayLen = mGroupArray ? mGroupArray->Length() : 0;
+  PRInt32 arrayLen = mGroupArray ? mGroupArray->Length() : 0;
   *_retval = (mIndex < arrayLen - 1); 
   return NS_OK;
 }
@@ -182,7 +214,7 @@ nsNamedGroupEnumerator::GetNext(nsISupports **_retval)
     return NS_ERROR_FAILURE;
 
   mIndex ++;
-  if (mIndex >= int32_t(mGroupArray->Length()))
+  if (mIndex >= PRInt32(mGroupArray->Length()))
     return NS_ERROR_FAILURE;
     
   PRUnichar   *thisGroupName = (PRUnichar*)mGroupArray->ElementAt(mIndex);
@@ -229,7 +261,7 @@ nsControllerCommandGroup::AddCommandToGroup(const char * aCommand, const char *a
 {
   nsCStringKey   groupKey(aGroup);  
   nsTArray<char*>* commandList;
-  if ((commandList = (nsTArray<char*> *)mGroupsHash.Get(&groupKey)) == nullptr)
+  if ((commandList = (nsTArray<char*> *)mGroupsHash.Get(&groupKey)) == nsnull)
   {
     
     commandList = new nsAutoTArray<char*, 8>;
@@ -256,8 +288,8 @@ nsControllerCommandGroup::RemoveCommandFromGroup(const char * aCommand, const ch
   nsTArray<char*>* commandList = (nsTArray<char*> *)mGroupsHash.Get(&groupKey);
   if (!commandList) return NS_OK;     
 
-  uint32_t numEntries = commandList->Length();
-  for (uint32_t i = 0; i < numEntries; i ++)
+  PRUint32 numEntries = commandList->Length();
+  for (PRUint32 i = 0; i < numEntries; i ++)
   {
     char*  commandString = commandList->ElementAt(i);
     if (!nsCRT::strcmp(aCommand,commandString))
@@ -276,19 +308,19 @@ NS_IMETHODIMP
 nsControllerCommandGroup::IsCommandInGroup(const char * aCommand, const char * aGroup, bool *_retval)
 {
   NS_ENSURE_ARG_POINTER(_retval);
-  *_retval = false;
+  *_retval = PR_FALSE;
   
   nsCStringKey   groupKey(aGroup);
   nsTArray<char*>* commandList = (nsTArray<char*> *)mGroupsHash.Get(&groupKey);
   if (!commandList) return NS_OK;     
   
-  uint32_t numEntries = commandList->Length();
-  for (uint32_t i = 0; i < numEntries; i ++)
+  PRUint32 numEntries = commandList->Length();
+  for (PRUint32 i = 0; i < numEntries; i ++)
   {
     char*  commandString = commandList->ElementAt(i);
     if (!nsCRT::strcmp(aCommand,commandString))
     {
-      *_retval = true;
+      *_retval = PR_TRUE;
       break;
     }
   }
@@ -327,8 +359,8 @@ bool nsControllerCommandGroup::ClearEnumerator(nsHashKey *aKey, void *aData, voi
   nsTArray<char*>* commandList = (nsTArray<char*> *)aData;
   if (commandList)
   {  
-    uint32_t numEntries = commandList->Length();
-    for (uint32_t i = 0; i < numEntries; i ++)
+    PRUint32 numEntries = commandList->Length();
+    for (PRUint32 i = 0; i < numEntries; i ++)
     {
       char* commandString = commandList->ElementAt(i);
       nsMemory::Free(commandString);
@@ -337,5 +369,5 @@ bool nsControllerCommandGroup::ClearEnumerator(nsHashKey *aKey, void *aData, voi
     delete commandList;
   }
 
-  return true;
+  return PR_TRUE;
 }

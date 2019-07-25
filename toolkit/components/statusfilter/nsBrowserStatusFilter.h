@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsBrowserStatusFilter_h__
 #define nsBrowserStatusFilter_h__
 
@@ -48,16 +81,16 @@ private:
 
     
     nsString                         mStatusMsg;
-    int64_t                          mCurProgress;
-    int64_t                          mMaxProgress;
+    PRInt64                          mCurProgress;
+    PRInt64                          mMaxProgress;
 
     nsString                         mCurrentStatusMsg;
     bool                             mStatusIsDirty;
-    int32_t                          mCurrentPercentage;
+    PRInt32                          mCurrentPercentage;
 
     
-    int32_t                          mTotalRequests;
-    int32_t                          mFinishedRequests;
+    PRInt32                          mTotalRequests;
+    PRInt32                          mFinishedRequests;
     bool                             mUseRealProgressFlag;
 
     

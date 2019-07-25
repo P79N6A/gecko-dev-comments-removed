@@ -3,9 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "SVGPathSegListSMILType.h"
 #include "nsSMILValue.h"
-#include "SVGPathSegUtils.h"
 #include "SVGPathData.h"
 #include "mozilla/Util.h"
 #include <math.h>
@@ -35,7 +65,7 @@ SVGPathSegListSMILType::Destroy(nsSMILValue& aValue) const
 {
   NS_PRECONDITION(aValue.mType == this, "Unexpected SMIL value type");
   delete static_cast<SVGPathDataAndOwner*>(aValue.mU.mPtr);
-  aValue.mU.mPtr = nullptr;
+  aValue.mU.mPtr = nsnull;
   aValue.mType = &nsSMILNullType::sSingleton;
 }
 
@@ -106,8 +136,8 @@ CanInterpolate(const SVGPathDataAndOwner& aStart,
   SVGPathDataAndOwner::const_iterator pEndDataEnd = aEnd.end();
 
   while (pStart < pStartDataEnd && pEnd < pEndDataEnd) {
-    uint32_t startType = SVGPathSegUtils::DecodeType(*pStart);
-    uint32_t endType = SVGPathSegUtils::DecodeType(*pEnd);
+    PRUint32 startType = SVGPathSegUtils::DecodeType(*pStart);
+    PRUint32 endType = SVGPathSegUtils::DecodeType(*pEnd);
 
     if (SVGPathSegUtils::IsArcType(startType) &&
         SVGPathSegUtils::IsArcType(endType) &&
@@ -181,7 +211,7 @@ AddWeightedPathSegs(double aCoeff1,
   NS_ABORT_IF_FALSE(aSeg2, "2nd segment must be non-null");
   NS_ABORT_IF_FALSE(aResultSeg, "result segment must be non-null");
 
-  uint32_t segType = SVGPathSegUtils::DecodeType(aSeg2[0]);
+  PRUint32 segType = SVGPathSegUtils::DecodeType(aSeg2[0]);
   NS_ABORT_IF_FALSE(!aSeg1 || SVGPathSegUtils::DecodeType(*aSeg1) == segType,
                     "unexpected segment type");
 
@@ -199,8 +229,8 @@ AddWeightedPathSegs(double aCoeff1,
 
   
   
-  uint32_t numArgs = SVGPathSegUtils::ArgCountForType(segType);
-  for (uint32_t i = 1; i < 1 + numArgs; ++i) {
+  PRUint32 numArgs = SVGPathSegUtils::ArgCountForType(segType);
+  for (PRUint32 i = 1; i < 1 + numArgs; ++i) {
      
     if (!(isArcType && (i == LARGE_ARC_FLAG_IDX || i == SWEEP_FLAG_IDX))) {
       aResultSeg[i] = (aSeg1 ? aCoeff1 * aSeg1[i] : 0.0) + aCoeff2 * aSeg2[i];
@@ -252,7 +282,7 @@ AddWeightedPathSegLists(double aCoeff1, const SVGPathDataAndOwner& aList1,
 
   SVGPathDataAndOwner::const_iterator iter1, end1;
   if (aList1.IsIdentity()) {
-    iter1 = end1 = nullptr; 
+    iter1 = end1 = nsnull; 
   } else {
     iter1 = aList1.begin();
     end1 = aList1.end();
@@ -290,10 +320,10 @@ ConvertPathSegmentData(SVGPathDataAndOwner::const_iterator& aStart,
                        SVGPathDataAndOwner::iterator& aResult,
                        SVGPathTraversalState& aState)
 {
-  uint32_t startType = SVGPathSegUtils::DecodeType(*aStart);
-  uint32_t endType = SVGPathSegUtils::DecodeType(*aEnd);
+  PRUint32 startType = SVGPathSegUtils::DecodeType(*aStart);
+  PRUint32 endType = SVGPathSegUtils::DecodeType(*aEnd);
 
-  uint32_t segmentLengthIncludingType =
+  PRUint32 segmentLengthIncludingType =
       1 + SVGPathSegUtils::ArgCountForType(startType);
 
   SVGPathDataAndOwner::const_iterator pResultSegmentBegin = aResult;
@@ -397,7 +427,7 @@ ConvertAllPathSegmentData(SVGPathDataAndOwner::const_iterator aStart,
 nsresult
 SVGPathSegListSMILType::Add(nsSMILValue& aDest,
                             const nsSMILValue& aValueToAdd,
-                            uint32_t aCount) const
+                            PRUint32 aCount) const
 {
   NS_PRECONDITION(aDest.mType == this, "Unexpected SMIL type");
   NS_PRECONDITION(aValueToAdd.mType == this, "Incompatible SMIL type");

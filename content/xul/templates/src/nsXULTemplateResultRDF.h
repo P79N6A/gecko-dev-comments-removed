@@ -3,6 +3,37 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsXULTemplateResultRDF_h__
 #define nsXULTemplateResultRDF_h__
 
@@ -13,12 +44,11 @@
 #include "nsRuleNetwork.h"
 #include "nsIXULTemplateResult.h"
 #include "nsRDFBinding.h"
-#include "mozilla/Attributes.h"
 
 
 
 
-class nsXULTemplateResultRDF MOZ_FINAL : public nsIXULTemplateResult
+class nsXULTemplateResultRDF : public nsIXULTemplateResult
 {
 public:
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -38,7 +68,7 @@ public:
 
     nsXULTemplateQueryProcessorRDF* GetProcessor()
     {
-        return (mQuery ? mQuery->Processor() : nullptr);
+        return (mQuery ? mQuery->Processor() : nsnull);
     }
 
     

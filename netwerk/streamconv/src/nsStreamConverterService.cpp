@@ -18,6 +18,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsStreamConverterService.h"
 #include "nsIServiceManager.h"
 #include "nsIComponentManager.h"
@@ -44,7 +76,7 @@ NS_IMPL_ISUPPORTS1(nsStreamConverterService, nsIStreamConverterService)
 
 
 
-nsStreamConverterService::nsStreamConverterService() : mAdjacencyList(nullptr) {
+nsStreamConverterService::nsStreamConverterService() : mAdjacencyList(nsnull) {
 }
 
 nsStreamConverterService::~nsStreamConverterService() {
@@ -59,13 +91,13 @@ static bool DeleteAdjacencyEntry(nsHashKey *aKey, void *aData, void* closure) {
     delete entry->key;
     delete entry->data.edges;
     delete entry;
-    return true;   
+    return PR_TRUE;   
 }
 
 nsresult
 nsStreamConverterService::Init() {
-    mAdjacencyList = new nsObjectHashtable(nullptr, nullptr,
-                                           DeleteAdjacencyEntry, nullptr);
+    mAdjacencyList = new nsObjectHashtable(nsnull, nsnull,
+                                           DeleteAdjacencyEntry, nsnull);
     if (!mAdjacencyList) return NS_ERROR_OUT_OF_MEMORY;
     return NS_OK;
 }
@@ -102,12 +134,12 @@ nsStreamConverterService::BuildGraph() {
     while (NS_SUCCEEDED(rv)) {
 
         
-        nsAutoCString entryString;
+        nsCAutoString entryString;
         rv = entry->GetData(entryString);
         if (NS_FAILED(rv)) return rv;
         
         
-        nsAutoCString contractID(NS_ISTREAMCONVERTER_KEY);
+        nsCAutoString contractID(NS_ISTREAMCONVERTER_KEY);
         contractID.Append(entryString);
 
         
@@ -130,7 +162,7 @@ nsStreamConverterService::AddAdjacency(const char *aContractID) {
     nsresult rv;
     
 
-    nsAutoCString fromStr, toStr;
+    nsCAutoString fromStr, toStr;
     rv = ParseFromTo(aContractID, fromStr, toStr);
     if (NS_FAILED(rv)) return rv;
 
@@ -154,7 +186,7 @@ nsStreamConverterService::AddAdjacency(const char *aContractID) {
         nsCOMArray<nsIAtom>* edgeArray = new nsCOMArray<nsIAtom>;
         if (!edgeArray) {
             delete newFromKey;
-            data->key = nullptr;
+            data->key = nsnull;
             delete data;
             return NS_ERROR_OUT_OF_MEMORY;
         }
@@ -179,7 +211,7 @@ nsStreamConverterService::AddAdjacency(const char *aContractID) {
         nsCOMArray<nsIAtom>* edgeArray = new nsCOMArray<nsIAtom>;
         if (!edgeArray) {
             delete newToKey;
-            data->key = nullptr;
+            data->key = nsnull;
             delete data;
             return NS_ERROR_OUT_OF_MEMORY;
         }
@@ -204,16 +236,16 @@ nsStreamConverterService::AddAdjacency(const char *aContractID) {
 nsresult
 nsStreamConverterService::ParseFromTo(const char *aContractID, nsCString &aFromRes, nsCString &aToRes) {
 
-    nsAutoCString ContractIDStr(aContractID);
+    nsCAutoString ContractIDStr(aContractID);
 
-    int32_t fromLoc = ContractIDStr.Find("from=");
-    int32_t toLoc   = ContractIDStr.Find("to=");
+    PRInt32 fromLoc = ContractIDStr.Find("from=");
+    PRInt32 toLoc   = ContractIDStr.Find("to=");
     if (-1 == fromLoc || -1 == toLoc ) return NS_ERROR_FAILURE;
 
     fromLoc = fromLoc + 5;
     toLoc = toLoc + 3;
 
-    nsAutoCString fromStr, toStr;
+    nsCAutoString fromStr, toStr;
 
     ContractIDStr.Mid(fromStr, fromLoc, toLoc - 4 - fromLoc);
     ContractIDStr.Mid(toStr, toLoc, ContractIDStr.Length() - toLoc);
@@ -231,24 +263,24 @@ static bool InitBFSTable(nsHashKey *aKey, void *aData, void* closure) {
     NS_ASSERTION((SCTableData*)aData, "no data in the table enumeration");
     
     nsHashtable *BFSTable = (nsHashtable*)closure;
-    if (!BFSTable) return false;
+    if (!BFSTable) return PR_FALSE;
 
     BFSState *state = new BFSState;
-    if (!state) return false;
+    if (!state) return PR_FALSE;
 
     state->color = white;
     state->distance = -1;
-    state->predecessor = nullptr;
+    state->predecessor = nsnull;
 
     SCTableData *data = new SCTableData(static_cast<nsCStringKey*>(aKey));
     if (!data) {
         delete state;
-        return false;
+        return PR_FALSE;
     }
     data->data.state = state;
 
     BFSTable->Put(aKey, data);
-    return true;   
+    return PR_TRUE;   
 }
 
 
@@ -256,9 +288,9 @@ static bool DeleteBFSEntry(nsHashKey *aKey, void *aData, void *closure) {
     SCTableData *data = (SCTableData*)aData;
     BFSState *state = data->data.state;
     delete state;
-    data->key = nullptr;
+    data->key = nsnull;
     delete data;
-    return true;
+    return PR_TRUE;
 }
 
 class CStreamConvDeallocator : public nsDequeFunctor {
@@ -279,21 +311,21 @@ nsresult
 nsStreamConverterService::FindConverter(const char *aContractID, nsTArray<nsCString> **aEdgeList) {
     nsresult rv;
     if (!aEdgeList) return NS_ERROR_NULL_POINTER;
-    *aEdgeList = nullptr;
+    *aEdgeList = nsnull;
 
     
 
-    int32_t vertexCount = mAdjacencyList->Count();
+    PRInt32 vertexCount = mAdjacencyList->Count();
     if (0 >= vertexCount) return NS_ERROR_FAILURE;
 
     
-    nsObjectHashtable lBFSTable(nullptr, nullptr, DeleteBFSEntry, nullptr);
+    nsObjectHashtable lBFSTable(nsnull, nsnull, DeleteBFSEntry, nsnull);
     mAdjacencyList->Enumerate(InitBFSTable, &lBFSTable);
 
     NS_ASSERTION(lBFSTable.Count() == vertexCount, "strmconv BFS table init problem");
 
     
-    nsAutoCString fromC, toC;
+    nsCAutoString fromC, toC;
     rv = ParseFromTo(aContractID, fromC, toC);
     if (NS_FAILED(rv)) return rv;
 
@@ -338,9 +370,9 @@ nsStreamConverterService::FindConverter(const char *aContractID, nsTArray<nsCStr
         NS_ASSERTION(headVertexState, "problem with the BFS strmconv algorithm");
         if (!headVertexState) return NS_ERROR_FAILURE;
 
-        int32_t edgeCount = edges->Count();
+        PRInt32 edgeCount = edges->Count();
 
-        for (int32_t i = 0; i < edgeCount; i++) {
+        for (PRInt32 i = 0; i < edgeCount; i++) {
             nsIAtom* curVertexAtom = edges->ObjectAt(i);
             nsAutoString curVertexStr;
             curVertexAtom->ToString(curVertexStr);
@@ -375,19 +407,19 @@ nsStreamConverterService::FindConverter(const char *aContractID, nsTArray<nsCStr
         headVertexState->color = black;
         nsCStringKey *cur = (nsCStringKey*)grayQ.PopFront();
         delete cur;
-        cur = nullptr;
+        cur = nsnull;
     }
     
     
 
     
 
-    nsAutoCString fromStr, toStr;
+    nsCAutoString fromStr, toStr;
     rv = ParseFromTo(aContractID, fromStr, toStr);
     if (NS_FAILED(rv)) return rv;
 
     
-    nsAutoCString ContractIDPrefix(NS_ISTREAMCONVERTER_KEY);
+    nsCAutoString ContractIDPrefix(NS_ISTREAMCONVERTER_KEY);
     nsTArray<nsCString> *shortestPath = new nsTArray<nsCString>();
     if (!shortestPath) return NS_ERROR_OUT_OF_MEMORY;
 
@@ -419,7 +451,7 @@ nsStreamConverterService::FindConverter(const char *aContractID, nsTArray<nsCStr
         if (!predecessorData) break; 
 
         
-        nsAutoCString newContractID(ContractIDPrefix);
+        nsCAutoString newContractID(ContractIDPrefix);
         newContractID.AppendLiteral("?from=");
 
         nsCStringKey *predecessorKey = predecessorData->key;
@@ -451,7 +483,7 @@ nsStreamConverterService::CanConvert(const char* aFromType,
     if (NS_FAILED(rv))
         return rv;
 
-    nsAutoCString contractID;
+    nsCAutoString contractID;
     contractID.AssignLiteral(NS_ISTREAMCONVERTER_KEY "?from=");
     contractID.Append(aFromType);
     contractID.AppendLiteral("&to=");
@@ -469,7 +501,7 @@ nsStreamConverterService::CanConvert(const char* aFromType,
     if (NS_FAILED(rv))
         return rv;
 
-    nsTArray<nsCString> *converterChain = nullptr;
+    nsTArray<nsCString> *converterChain = nsnull;
     rv = FindConverter(contractID.get(), &converterChain);
     *_retval = NS_SUCCEEDED(rv);
 
@@ -488,7 +520,7 @@ nsStreamConverterService::Convert(nsIInputStream *aFromStream,
 
     
     
-    nsAutoCString contractID;
+    nsCAutoString contractID;
     contractID.AssignLiteral(NS_ISTREAMCONVERTER_KEY "?from=");
     contractID.Append(aFromType);
     contractID.AppendLiteral("&to=");
@@ -501,7 +533,7 @@ nsStreamConverterService::Convert(nsIInputStream *aFromStream,
         rv = BuildGraph();
         if (NS_FAILED(rv)) return rv;
 
-        nsTArray<nsCString> *converterChain = nullptr;
+        nsTArray<nsCString> *converterChain = nsnull;
 
         rv = FindConverter(cContractID, &converterChain);
         if (NS_FAILED(rv)) {
@@ -510,7 +542,7 @@ nsStreamConverterService::Convert(nsIInputStream *aFromStream,
             return NS_ERROR_FAILURE;
         }
 
-        int32_t edgeCount = int32_t(converterChain->Length());
+        PRInt32 edgeCount = PRInt32(converterChain->Length());
         NS_ASSERTION(edgeCount > 0, "findConverter should have failed");
 
 
@@ -519,7 +551,7 @@ nsStreamConverterService::Convert(nsIInputStream *aFromStream,
         nsCOMPtr<nsIInputStream> dataToConvert = aFromStream;
         nsCOMPtr<nsIInputStream> convertedData;
 
-        for (int32_t i = edgeCount-1; i >= 0; i--) {
+        for (PRInt32 i = edgeCount-1; i >= 0; i--) {
             const char *lContractID = converterChain->ElementAt(i).get();
 
             converter = do_CreateInstance(lContractID, &rv);
@@ -529,7 +561,7 @@ nsStreamConverterService::Convert(nsIInputStream *aFromStream,
                 return rv;
             }
 
-            nsAutoCString fromStr, toStr;
+            nsCAutoString fromStr, toStr;
             rv = ParseFromTo(lContractID, fromStr, toStr);
             if (NS_FAILED(rv)) {
                 delete converterChain;
@@ -569,7 +601,7 @@ nsStreamConverterService::AsyncConvertData(const char *aFromType,
 
     
     
-    nsAutoCString contractID;
+    nsCAutoString contractID;
     contractID.AssignLiteral(NS_ISTREAMCONVERTER_KEY "?from=");
     contractID.Append(aFromType);
     contractID.AppendLiteral("&to=");
@@ -582,7 +614,7 @@ nsStreamConverterService::AsyncConvertData(const char *aFromType,
         rv = BuildGraph();
         if (NS_FAILED(rv)) return rv;
 
-        nsTArray<nsCString> *converterChain = nullptr;
+        nsTArray<nsCString> *converterChain = nsnull;
 
         rv = FindConverter(cContractID, &converterChain);
         if (NS_FAILED(rv)) {
@@ -599,7 +631,7 @@ nsStreamConverterService::AsyncConvertData(const char *aFromType,
 
         
         
-        int32_t edgeCount = int32_t(converterChain->Length());
+        PRInt32 edgeCount = PRInt32(converterChain->Length());
         NS_ASSERTION(edgeCount > 0, "findConverter should have failed");
         for (int i = 0; i < edgeCount; i++) {
             const char *lContractID = converterChain->ElementAt(i).get();
@@ -608,7 +640,7 @@ nsStreamConverterService::AsyncConvertData(const char *aFromType,
             nsCOMPtr<nsIStreamConverter> converter(do_CreateInstance(lContractID));
             NS_ASSERTION(converter, "graph construction problem, built a contractid that wasn't registered");
 
-            nsAutoCString fromStr, toStr;
+            nsCAutoString fromStr, toStr;
             rv = ParseFromTo(lContractID, fromStr, toStr);
             if (NS_FAILED(rv)) {
                 delete converterChain;
@@ -655,7 +687,7 @@ nsStreamConverterService::AsyncConvertData(const char *aFromType,
 nsresult
 NS_NewStreamConv(nsStreamConverterService** aStreamConv)
 {
-    NS_PRECONDITION(aStreamConv != nullptr, "null ptr");
+    NS_PRECONDITION(aStreamConv != nsnull, "null ptr");
     if (!aStreamConv) return NS_ERROR_NULL_POINTER;
 
     *aStreamConv = new nsStreamConverterService();

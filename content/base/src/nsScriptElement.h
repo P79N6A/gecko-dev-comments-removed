@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIScriptLoaderObserver.h"
 #include "nsIScriptElement.h"
 #include "nsStubMutationObserver.h"
@@ -39,5 +72,18 @@ protected:
 
   virtual bool HasScriptContent() = 0;
 
-  virtual bool MaybeProcessScript();
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual nsresult MaybeProcessScript();
 };

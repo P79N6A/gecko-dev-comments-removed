@@ -1,7 +1,3 @@
-
-
-
-
 #ifndef nsCppSharedAllocator_h__
 #define nsCppSharedAllocator_h__
 
@@ -57,7 +53,7 @@ class nsCppSharedAllocator
       pointer
       allocate( size_type n, const void* =0 )
         {
-          return reinterpret_cast<pointer>(nsMemory::Alloc(static_cast<uint32_t>(n*sizeof(T))));
+          return reinterpret_cast<pointer>(nsMemory::Alloc(static_cast<PRUint32>(n*sizeof(T))));
         }
 
       void
@@ -91,14 +87,14 @@ template <class T>
 bool
 operator==( const nsCppSharedAllocator<T>&, const nsCppSharedAllocator<T>& )
   {
-    return true;
+    return PR_TRUE;
   }
 
 template <class T>
 bool
 operator!=( const nsCppSharedAllocator<T>&, const nsCppSharedAllocator<T>& )
   {
-    return false;
+    return PR_FALSE;
   }
 
 #endif 

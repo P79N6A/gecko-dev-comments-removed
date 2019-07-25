@@ -10,6 +10,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsStyleLinkElement.h"
 
 #include "nsIContent.h"
@@ -27,15 +60,15 @@
 #include "nsContentUtils.h"
 
 nsStyleLinkElement::nsStyleLinkElement()
-  : mDontLoadStyle(false)
-  , mUpdatesEnabled(true)
+  : mDontLoadStyle(PR_FALSE)
+  , mUpdatesEnabled(PR_TRUE)
   , mLineNumber(1)
 {
 }
 
 nsStyleLinkElement::~nsStyleLinkElement()
 {
-  nsStyleLinkElement::SetStyleSheet(nullptr);
+  nsStyleLinkElement::SetStyleSheet(nsnull);
 }
 
 NS_IMETHODIMP 
@@ -43,7 +76,7 @@ nsStyleLinkElement::SetStyleSheet(nsIStyleSheet* aStyleSheet)
 {
   nsRefPtr<nsCSSStyleSheet> cssSheet = do_QueryObject(mStyleSheet);
   if (cssSheet) {
-    cssSheet->SetOwningNode(nullptr);
+    cssSheet->SetOwningNode(nsnull);
   }
 
   mStyleSheet = aStyleSheet;
@@ -81,7 +114,7 @@ NS_IMETHODIMP
 nsStyleLinkElement::GetSheet(nsIDOMStyleSheet** aSheet)
 {
   NS_ENSURE_ARG_POINTER(aSheet);
-  *aSheet = nullptr;
+  *aSheet = nsnull;
 
   if (mStyleSheet) {
     CallQueryInterface(mStyleSheet, aSheet);
@@ -115,61 +148,44 @@ nsStyleLinkElement::OverrideBaseURI(nsIURI* aNewBaseURI)
 }
 
  void
-nsStyleLinkElement::SetLineNumber(uint32_t aLineNumber)
+nsStyleLinkElement::SetLineNumber(PRUint32 aLineNumber)
 {
   mLineNumber = aLineNumber;
 }
 
-uint32_t ToLinkMask(const nsAString& aLink)
-{ 
-  if (aLink.EqualsLiteral("prefetch"))
-     return PREFETCH;
-  else if (aLink.EqualsLiteral("dns-prefetch"))
-     return DNS_PREFETCH;
-  else if (aLink.EqualsLiteral("stylesheet"))
-    return STYLESHEET;
-  else if (aLink.EqualsLiteral("next"))
-    return NEXT;
-  else if (aLink.EqualsLiteral("alternate"))
-    return ALTERNATE;
-  else 
-    return 0;
-}
-
-uint32_t nsStyleLinkElement::ParseLinkTypes(const nsAString& aTypes)
+void nsStyleLinkElement::ParseLinkTypes(const nsAString& aTypes,
+                                        nsTArray<nsString>& aResult)
 {
-  uint32_t linkMask = 0;
   nsAString::const_iterator start, done;
   aTypes.BeginReading(start);
   aTypes.EndReading(done);
   if (start == done)
-    return linkMask;
+    return;
 
   nsAString::const_iterator current(start);
-  bool inString = !nsContentUtils::IsHTMLWhitespace(*current);
+  bool inString = !nsCRT::IsAsciiSpace(*current);
   nsAutoString subString;
-  
+
   while (current != done) {
-    if (nsContentUtils::IsHTMLWhitespace(*current)) {
+    if (nsCRT::IsAsciiSpace(*current)) {
       if (inString) {
-        nsContentUtils::ASCIIToLower(Substring(start, current), subString);
-        linkMask |= ToLinkMask(subString);
-        inString = false;
+        ToLowerCase(Substring(start, current), subString);
+        aResult.AppendElement(subString);
+        inString = PR_FALSE;
       }
     }
     else {
       if (!inString) {
         start = current;
-        inString = true;
+        inString = PR_TRUE;
       }
     }
     ++current;
   }
   if (inString) {
-    nsContentUtils::ASCIIToLower(Substring(start, current), subString);
-    linkMask |= ToLinkMask(subString);
+    ToLowerCase(Substring(start, current), subString);
+    aResult.AppendElement(subString);
   }
-  return linkMask;
 }
 
 NS_IMETHODIMP
@@ -177,8 +193,8 @@ nsStyleLinkElement::UpdateStyleSheet(nsICSSLoaderObserver* aObserver,
                                      bool* aWillNotify,
                                      bool* aIsAlternate)
 {
-  return DoUpdateStyleSheet(nullptr, aObserver, aWillNotify, aIsAlternate,
-                            false);
+  return DoUpdateStyleSheet(nsnull, aObserver, aWillNotify, aIsAlternate,
+                            PR_FALSE);
 }
 
 nsresult
@@ -186,7 +202,7 @@ nsStyleLinkElement::UpdateStyleSheetInternal(nsIDocument *aOldDocument,
                                              bool aForceUpdate)
 {
   bool notify, alternate;
-  return DoUpdateStyleSheet(aOldDocument, nullptr, &notify, &alternate,
+  return DoUpdateStyleSheet(aOldDocument, nsnull, &notify, &alternate,
                             aForceUpdate);
 }
 
@@ -197,7 +213,7 @@ nsStyleLinkElement::DoUpdateStyleSheet(nsIDocument *aOldDocument,
                                        bool* aIsAlternate,
                                        bool aForceUpdate)
 {
-  *aWillNotify = false;
+  *aWillNotify = PR_FALSE;
 
   if (mStyleSheet && aOldDocument) {
     
@@ -207,7 +223,7 @@ nsStyleLinkElement::DoUpdateStyleSheet(nsIDocument *aOldDocument,
     aOldDocument->BeginUpdate(UPDATE_STYLE);
     aOldDocument->RemoveStyleSheet(mStyleSheet);
     aOldDocument->EndUpdate(UPDATE_STYLE);
-    nsStyleLinkElement::SetStyleSheet(nullptr);
+    nsStyleLinkElement::SetStyleSheet(nsnull);
   }
 
   if (mDontLoadStyle || !mUpdatesEnabled) {
@@ -243,7 +259,7 @@ nsStyleLinkElement::DoUpdateStyleSheet(nsIDocument *aOldDocument,
     doc->BeginUpdate(UPDATE_STYLE);
     doc->RemoveStyleSheet(mStyleSheet);
     doc->EndUpdate(UPDATE_STYLE);
-    nsStyleLinkElement::SetStyleSheet(nullptr);
+    nsStyleLinkElement::SetStyleSheet(nsnull);
   }
 
   if (!uri && !isInline) {
@@ -263,7 +279,7 @@ nsStyleLinkElement::DoUpdateStyleSheet(nsIDocument *aOldDocument,
   nsresult rv = NS_OK;
   if (isInline) {
     nsAutoString text;
-    nsContentUtils::GetNodeTextContent(thisContent, false, text);
+    nsContentUtils::GetNodeTextContent(thisContent, PR_FALSE, text);
 
     
     rv = doc->CSSLoader()->
@@ -276,14 +292,14 @@ nsStyleLinkElement::DoUpdateStyleSheet(nsIDocument *aOldDocument,
     uri->Clone(getter_AddRefs(clonedURI));
     NS_ENSURE_TRUE(clonedURI, NS_ERROR_OUT_OF_MEMORY);
     rv = doc->CSSLoader()->
-      LoadStyleLink(thisContent, clonedURI, title, media, isAlternate,
-                    GetCORSMode(), aObserver, &isAlternate);
+      LoadStyleLink(thisContent, clonedURI, title, media, isAlternate, aObserver,
+                    &isAlternate);
     if (NS_FAILED(rv)) {
       
       
       
-      doneLoading = true;
-      isAlternate = false;
+      doneLoading = PR_TRUE;
+      isAlternate = PR_FALSE;
       rv = NS_OK;
     }
   }

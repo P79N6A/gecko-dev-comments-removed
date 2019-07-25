@@ -9,6 +9,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsTextFragment.h"
 #include "nsCRT.h"
 #include "nsReadableUtils.h"
@@ -31,7 +63,7 @@ nsresult
 nsTextFragment::Init()
 {
   
-  uint32_t i;
+  PRUint32 i;
   for (i = 0; i <= TEXTFRAG_MAX_NEWLINES; ++i) {
     sSpaceSharedString[i] = new char[1 + i + TEXTFRAG_WHITE_AFTER_NEWLINE];
     sTabSharedString[i] = new char[1 + i + TEXTFRAG_WHITE_AFTER_NEWLINE];
@@ -39,7 +71,7 @@ nsTextFragment::Init()
                    NS_ERROR_OUT_OF_MEMORY);
     sSpaceSharedString[i][0] = ' ';
     sTabSharedString[i][0] = ' ';
-    uint32_t j;
+    PRUint32 j;
     for (j = 1; j < 1 + i; ++j) {
       sSpaceSharedString[i][j] = '\n';
       sTabSharedString[i][j] = '\n';
@@ -62,12 +94,12 @@ nsTextFragment::Init()
 void
 nsTextFragment::Shutdown()
 {
-  uint32_t  i;
+  PRUint32  i;
   for (i = 0; i <= TEXTFRAG_MAX_NEWLINES; ++i) {
     delete [] sSpaceSharedString[i];
     delete [] sTabSharedString[i];
-    sSpaceSharedString[i] = nullptr;
-    sTabSharedString[i] = nullptr;
+    sSpaceSharedString[i] = nsnull;
+    sTabSharedString[i] = nsnull;
   }
 }
 
@@ -84,8 +116,8 @@ nsTextFragment::ReleaseText()
     nsMemory::Free(m2b); 
   }
 
-  m1b = nullptr;
-  mState.mIsBidi = false;
+  m1b = nsnull;
+  mState.mIsBidi = PR_FALSE;
 
   
   mAllBits = 0;
@@ -114,34 +146,34 @@ nsTextFragment::operator=(const nsTextFragment& aOther)
   return *this;
 }
 
-static inline int32_t
+static inline PRInt32
 FirstNon8BitUnvectorized(const PRUnichar *str, const PRUnichar *end)
 {
 #if PR_BYTES_PER_WORD == 4
   const size_t mask = 0xff00ff00;
-  const uint32_t alignMask = 0x3;
-  const uint32_t numUnicharsPerWord = 2;
+  const PRUint32 alignMask = 0x3;
+  const PRUint32 numUnicharsPerWord = 2;
 #elif PR_BYTES_PER_WORD == 8
   const size_t mask = 0xff00ff00ff00ff00;
-  const uint32_t alignMask = 0x7;
-  const uint32_t numUnicharsPerWord = 4;
+  const PRUint32 alignMask = 0x7;
+  const PRUint32 numUnicharsPerWord = 4;
 #else
 #error Unknown platform!
 #endif
 
-  const int32_t len = end - str;
-  int32_t i = 0;
+  const PRInt32 len = end - str;
+  PRInt32 i = 0;
 
   
-  int32_t alignLen =
-    NS_MIN(len, int32_t(((-NS_PTR_TO_INT32(str)) & alignMask) / sizeof(PRUnichar)));
+  PRInt32 alignLen =
+    NS_MIN(len, PRInt32(((-NS_PTR_TO_INT32(str)) & alignMask) / sizeof(PRUnichar)));
   for (; i < alignLen; i++) {
     if (str[i] > 255)
       return i;
   }
 
   
-  const int32_t wordWalkEnd = ((len - i) / numUnicharsPerWord) * numUnicharsPerWord;
+  const PRInt32 wordWalkEnd = ((len - i) / numUnicharsPerWord) * numUnicharsPerWord;
   for (; i < wordWalkEnd; i += numUnicharsPerWord) {
     const size_t word = *reinterpret_cast<const size_t*>(str + i);
     if (word & mask)
@@ -160,7 +192,7 @@ FirstNon8BitUnvectorized(const PRUnichar *str, const PRUnichar *end)
 #ifdef MOZILLA_MAY_SUPPORT_SSE2
 namespace mozilla {
   namespace SSE2 {
-    int32_t FirstNon8Bit(const PRUnichar *str, const PRUnichar *end);
+    PRInt32 FirstNon8Bit(const PRUnichar *str, const PRUnichar *end);
   }
 }
 #endif
@@ -172,7 +204,7 @@ namespace mozilla {
 
 
 
-static inline int32_t
+static inline PRInt32
 FirstNon8Bit(const PRUnichar *str, const PRUnichar *end)
 {
 #ifdef MOZILLA_MAY_SUPPORT_SSE2
@@ -185,7 +217,7 @@ FirstNon8Bit(const PRUnichar *str, const PRUnichar *end)
 }
 
 void
-nsTextFragment::SetTo(const PRUnichar* aBuffer, int32_t aLength, bool aUpdateBidi)
+nsTextFragment::SetTo(const PRUnichar* aBuffer, PRInt32 aLength, bool aUpdateBidi)
 {
   ReleaseText();
 
@@ -196,8 +228,8 @@ nsTextFragment::SetTo(const PRUnichar* aBuffer, int32_t aLength, bool aUpdateBid
   PRUnichar firstChar = *aBuffer;
   if (aLength == 1 && firstChar < 256) {
     m1b = sSingleCharSharedString + firstChar;
-    mState.mInHeap = false;
-    mState.mIs2b = false;
+    mState.mInHeap = PR_FALSE;
+    mState.mIs2b = PR_FALSE;
     mState.mLength = 1;
 
     return;
@@ -235,8 +267,8 @@ nsTextFragment::SetTo(const PRUnichar* aBuffer, int32_t aLength, bool aUpdateBid
         ++m1b;
       }
 
-      mState.mInHeap = false;
-      mState.mIs2b = false;
+      mState.mInHeap = PR_FALSE;
+      mState.mIs2b = PR_FALSE;
       mState.mLength = aLength;
 
       return;        
@@ -244,7 +276,7 @@ nsTextFragment::SetTo(const PRUnichar* aBuffer, int32_t aLength, bool aUpdateBid
   }
 
   
-  int32_t first16bit = FirstNon8Bit(ucp, uend);
+  PRInt32 first16bit = FirstNon8Bit(ucp, uend);
 
   if (first16bit != -1) { 
     
@@ -254,7 +286,7 @@ nsTextFragment::SetTo(const PRUnichar* aBuffer, int32_t aLength, bool aUpdateBid
       return;
     }
 
-    mState.mIs2b = true;
+    mState.mIs2b = PR_TRUE;
     if (aUpdateBidi) {
       UpdateBidiFlag(aBuffer + first16bit, aLength - first16bit);
     }
@@ -270,16 +302,16 @@ nsTextFragment::SetTo(const PRUnichar* aBuffer, int32_t aLength, bool aUpdateBid
     LossyConvertEncoding16to8 converter(buff);
     copy_string(aBuffer, aBuffer+aLength, converter);
     m1b = buff;
-    mState.mIs2b = false;
+    mState.mIs2b = PR_FALSE;
   }
 
   
-  mState.mInHeap = true;
+  mState.mInHeap = PR_TRUE;
   mState.mLength = aLength;
 }
 
 void
-nsTextFragment::CopyTo(PRUnichar *aDest, int32_t aOffset, int32_t aCount)
+nsTextFragment::CopyTo(PRUnichar *aDest, PRInt32 aOffset, PRInt32 aCount)
 {
   NS_ASSERTION(aOffset >= 0, "Bad offset passed to nsTextFragment::CopyTo()!");
   NS_ASSERTION(aCount >= 0, "Bad count passed to nsTextFragment::CopyTo()!");
@@ -288,7 +320,7 @@ nsTextFragment::CopyTo(PRUnichar *aDest, int32_t aOffset, int32_t aCount)
     aOffset = 0;
   }
 
-  if (uint32_t(aOffset + aCount) > GetLength()) {
+  if (PRUint32(aOffset + aCount) > GetLength()) {
     aCount = mState.mLength - aOffset;
   }
 
@@ -305,7 +337,7 @@ nsTextFragment::CopyTo(PRUnichar *aDest, int32_t aOffset, int32_t aCount)
 }
 
 void
-nsTextFragment::Append(const PRUnichar* aBuffer, uint32_t aLength, bool aUpdateBidi)
+nsTextFragment::Append(const PRUnichar* aBuffer, PRUint32 aLength, bool aUpdateBidi)
 {
   
   
@@ -336,7 +368,7 @@ nsTextFragment::Append(const PRUnichar* aBuffer, uint32_t aLength, bool aUpdateB
   }
 
   
-  int32_t first16bit = FirstNon8Bit(aBuffer, aBuffer + aLength);
+  PRInt32 first16bit = FirstNon8Bit(aBuffer, aBuffer + aLength);
 
   if (first16bit != -1) { 
     
@@ -353,14 +385,14 @@ nsTextFragment::Append(const PRUnichar* aBuffer, uint32_t aLength, bool aUpdateB
 
     memcpy(buff + mState.mLength, aBuffer, aLength * sizeof(PRUnichar));
     mState.mLength += aLength;
-    mState.mIs2b = true;
+    mState.mIs2b = PR_TRUE;
 
     if (mState.mInHeap) {
       nsMemory::Free(m2b);
     }
     m2b = buff;
 
-    mState.mInHeap = true;
+    mState.mInHeap = PR_TRUE;
 
     if (aUpdateBidi) {
       UpdateBidiFlag(aBuffer + first16bit, aLength - first16bit);
@@ -385,7 +417,7 @@ nsTextFragment::Append(const PRUnichar* aBuffer, uint32_t aLength, bool aUpdateB
     }
 
     memcpy(buff, m1b, mState.mLength);
-    mState.mInHeap = true;
+    mState.mInHeap = PR_TRUE;
   }
 
   
@@ -397,31 +429,17 @@ nsTextFragment::Append(const PRUnichar* aBuffer, uint32_t aLength, bool aUpdateB
 
 }
 
- size_t
-nsTextFragment::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
-{
-  if (Is2b()) {
-    return aMallocSizeOf(m2b);
-  }
-
-  if (mState.mInHeap) {
-    return aMallocSizeOf(m1b);
-  }
-
-  return 0;
-}
-
 
 
 void
-nsTextFragment::UpdateBidiFlag(const PRUnichar* aBuffer, uint32_t aLength)
+nsTextFragment::UpdateBidiFlag(const PRUnichar* aBuffer, PRUint32 aLength)
 {
   if (mState.mIs2b && !mState.mIsBidi) {
     const PRUnichar* cp = aBuffer;
     const PRUnichar* end = cp + aLength;
     while (cp < end) {
       PRUnichar ch1 = *cp++;
-      uint32_t utf32Char = ch1;
+      PRUint32 utf32Char = ch1;
       if (NS_IS_HIGH_SURROGATE(ch1) &&
           cp < end &&
           NS_IS_LOW_SURROGATE(*cp)) {
@@ -429,7 +447,7 @@ nsTextFragment::UpdateBidiFlag(const PRUnichar* aBuffer, uint32_t aLength)
         utf32Char = SURROGATE_TO_UCS4(ch1, ch2);
       }
       if (UTF32_CHAR_IS_BIDI(utf32Char) || IS_BIDI_CONTROL_CHAR(utf32Char)) {
-        mState.mIsBidi = true;
+        mState.mIsBidi = PR_TRUE;
         break;
       }
     }

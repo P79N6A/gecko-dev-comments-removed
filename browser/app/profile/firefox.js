@@ -1,19 +1,46 @@
-# -*- Mode: JavaScript; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http:
+# -*- Mode: Java; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http:
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is mozilla.org code.
+#
+# The Initial Developer of the Original Code is 
+# Netscape Communications Corporation.
+# Portions created by the Initial Developer are Copyright (C) 1998
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either the GNU General Public License Version 2 or later (the "GPL"), or 
+# the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
 
 
 
 #filter substitution
 
-#
-# SYNTAX HINTS:
-#
-#  - Dashes are delimiters; use underscores instead.
-#  - The first character after a period must be alphabetic.
-#  - Computed values (e.g. 50 * 1024) don't work.
-#
+# SYNTAX HINTS:  dashes are delimiters.  Use underscores instead.
+#  The first character after a period must be alphabetic.
 
 #ifdef XP_UNIX
 #ifndef XP_MACOSX
@@ -28,20 +55,12 @@ pref("browser.hiddenWindowChromeURL", "chrome://browser/content/hiddenWindow.xul
 pref("extensions.logging.enabled", false);
 
 
-pref("extensions.strictCompatibility", false);
-
-
-
-pref("extensions.minCompatibleAppVersion", "4.0");
-
-
 pref("extensions.getAddons.cache.enabled", true);
 pref("extensions.getAddons.maxResults", 15);
-pref("extensions.getAddons.get.url", "https://services.addons.mozilla.org/%LOCALE%/firefox/api/%API_VERSION%/search/guid:%IDS%?src=firefox&appOS=%OS%&appVersion=%VERSION%");
-pref("extensions.getAddons.getWithPerformance.url", "https://services.addons.mozilla.org/%LOCALE%/firefox/api/%API_VERSION%/search/guid:%IDS%?src=firefox&appOS=%OS%&appVersion=%VERSION%&tMain=%TIME_MAIN%&tFirstPaint=%TIME_FIRST_PAINT%&tSessionRestored=%TIME_SESSION_RESTORED%");
-pref("extensions.getAddons.search.browseURL", "https://addons.mozilla.org/%LOCALE%/firefox/search?q=%TERMS%&platform=%OS%&appver=%VERSION%");
-pref("extensions.getAddons.search.url", "https://services.addons.mozilla.org/%LOCALE%/firefox/api/%API_VERSION%/search/%TERMS%/all/%MAX_RESULTS%/%OS%/%VERSION%/%COMPATIBILITY_MODE%?src=firefox");
-pref("extensions.webservice.discoverURL", "https://services.addons.mozilla.org/%LOCALE%/firefox/discovery/pane/%VERSION%/%OS%/%COMPATIBILITY_MODE%");
+pref("extensions.getAddons.get.url", "https://services.addons.mozilla.org/%LOCALE%/firefox/api/%API_VERSION%/search/guid:%IDS%?src=firefox&appOS=%OS%&appVersion=%VERSION%&tMain=%TIME_MAIN%&tFirstPaint=%TIME_FIRST_PAINT%&tSessionRestored=%TIME_SESSION_RESTORED%");
+pref("extensions.getAddons.search.browseURL", "https://addons.mozilla.org/%LOCALE%/firefox/search?q=%TERMS%");
+pref("extensions.getAddons.search.url", "https://services.addons.mozilla.org/%LOCALE%/firefox/api/%API_VERSION%/search/%TERMS%/all/%MAX_RESULTS%/%OS%/%VERSION%?src=firefox");
+pref("extensions.webservice.discoverURL", "https://services.addons.mozilla.org/%LOCALE%/firefox/discovery/pane/%VERSION%/%OS%");
 
 
 pref("extensions.blocklist.enabled", true);
@@ -55,13 +74,10 @@ pref("extensions.blocklist.itemURL", "https://addons.mozilla.org/%LOCALE%/%APP%/
 
 pref("extensions.update.autoUpdateDefault", true);
 
-pref("extensions.hotfix.id", "firefox-hotfix@mozilla.org");
-pref("extensions.hotfix.cert.checkAttributes", true);
-pref("extensions.hotfix.certs.1.sha1Fingerprint", "F1:DB:F9:6A:7B:B8:04:FA:48:3C:16:95:C7:2F:17:C6:5B:C2:9F:45");
 
 
 
-pref("extensions.autoDisableScopes", 15);
+pref("extensions.autoDisableScopes", 10);
 
 
 pref("browser.dictionaries.download.url", "https://addons.mozilla.org/%LOCALE%/firefox/dictionaries/");
@@ -146,10 +162,6 @@ pref("app.update.mode", 1);
 pref("app.update.silent", false);
 
 
-
-pref("app.update.stage.enabled", true);
-
-
 pref("app.update.url", "https://aus3.mozilla.org/update/3/%PRODUCT%/%VERSION%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/update.xml");
 
 
@@ -160,6 +172,7 @@ pref("app.update.url", "https://aus3.mozilla.org/update/3/%PRODUCT%/%VERSION%/%B
 
 
 
+pref("app.update.promptWaitTime", 43200);
 
 pref("app.update.idletime", 60);
 
@@ -178,19 +191,13 @@ pref("app.update.showInstalledUI", false);
 pref("app.update.incompatible.mode", 0);
 
 
-#ifdef MOZ_MAINTENANCE_SERVICE
-pref("app.update.service.enabled", true);
-#endif
-
-
 
 
 
 
 
 pref("extensions.update.enabled", true);
-pref("extensions.update.url", "https://versioncheck.addons.mozilla.org/update/VersionCheck.php?reqVersion=%REQ_VERSION%&id=%ITEM_ID%&version=%ITEM_VERSION%&maxAppVersion=%ITEM_MAXAPPVERSION%&status=%ITEM_STATUS%&appID=%APP_ID%&appVersion=%APP_VERSION%&appOS=%APP_OS%&appABI=%APP_ABI%&locale=%APP_LOCALE%&currentAppVersion=%CURRENT_APP_VERSION%&updateType=%UPDATE_TYPE%&compatMode=%COMPATIBILITY_MODE%");
-pref("extensions.update.background.url", "https://versioncheck-bg.addons.mozilla.org/update/VersionCheck.php?reqVersion=%REQ_VERSION%&id=%ITEM_ID%&version=%ITEM_VERSION%&maxAppVersion=%ITEM_MAXAPPVERSION%&status=%ITEM_STATUS%&appID=%APP_ID%&appVersion=%APP_VERSION%&appOS=%APP_OS%&appABI=%APP_ABI%&locale=%APP_LOCALE%&currentAppVersion=%CURRENT_APP_VERSION%&updateType=%UPDATE_TYPE%&compatMode=%COMPATIBILITY_MODE%");
+pref("extensions.update.url", "https://versioncheck.addons.mozilla.org/update/VersionCheck.php?reqVersion=%REQ_VERSION%&id=%ITEM_ID%&version=%ITEM_VERSION%&maxAppVersion=%ITEM_MAXAPPVERSION%&status=%ITEM_STATUS%&appID=%APP_ID%&appVersion=%APP_VERSION%&appOS=%APP_OS%&appABI=%APP_ABI%&locale=%APP_LOCALE%&currentAppVersion=%CURRENT_APP_VERSION%&updateType=%UPDATE_TYPE%");
 pref("extensions.update.interval", 86400);  
                                             
 
@@ -215,17 +222,13 @@ pref("keyword.URL", "");
 pref("general.useragent.locale", "@AB_CD@");
 pref("general.skins.selectedSkin", "classic/1.0");
 
-pref("general.smoothScroll", true);
+pref("general.smoothScroll", false);
 #ifdef UNIX_BUT_NOT_MAC
 pref("general.autoScroll", false);
 #else
 pref("general.autoScroll", true);
 #endif
 
-
-
-
-pref("general.useragent.override.aol.com", "Gecko/[^ ]*#Gecko/20100101");
 
 
 pref("browser.shell.checkDefaultBrowser", true);
@@ -263,8 +266,7 @@ pref("browser.urlbar.doubleClickSelectsAll", true);
 #else
 pref("browser.urlbar.doubleClickSelectsAll", false);
 #endif
-pref("browser.urlbar.autoFill", true);
-pref("browser.urlbar.autoFill.typed", true);
+pref("browser.urlbar.autoFill", false);
 
 
 
@@ -302,8 +304,6 @@ pref("browser.urlbar.default.behavior", 0);
 pref("browser.urlbar.formatting.enabled", true);
 pref("browser.urlbar.trimURLs", true);
 
-pref("browser.altClickSave", false);
-
 
 
 
@@ -326,12 +326,6 @@ pref("browser.download.manager.scanWhenDone", true);
 pref("browser.download.manager.resumeOnWakeDelay", 10000);
 
 
-pref("browser.download.useToolkitUI", false);
-
-
-pref("browser.download.panel.removeFinishedDownloads", false);
-
-
 pref("browser.search.searchEnginesURL",      "https://addons.mozilla.org/%LOCALE%/firefox/search-engines/");
 
 
@@ -347,9 +341,6 @@ pref("browser.search.order.3",                "chrome://browser-region/locale/re
 
 
 pref("browser.search.openintab", false);
-
-
-pref("browser.search.context.loadInBackground", false);
 
 
 pref("browser.search.update", true);
@@ -372,11 +363,6 @@ pref("browser.link.open_newwindow", 3);
 
 
 
-pref("browser.link.open_newwindow.override.external", -1);
-
-
-
-
 pref("browser.link.open_newwindow.restriction", 2);
 
 
@@ -392,7 +378,6 @@ pref("browser.tabs.loadDivertedInBackground", false);
 pref("browser.tabs.loadBookmarksInBackground", false);
 pref("browser.tabs.tabClipWidth", 140);
 pref("browser.tabs.animate", true);
-pref("browser.tabs.onTop", true);
 pref("browser.tabs.drawInTitlebar", true);
 
 
@@ -496,19 +481,10 @@ pref("browser.gesture.pinch.threshold", 150);
 pref("browser.gesture.pinch.latched", false);
 pref("browser.gesture.pinch.threshold", 25);
 #endif
-#ifdef XP_WIN
-
-pref("browser.gesture.pinch.out", "cmd_fullZoomEnlarge");
-pref("browser.gesture.pinch.in", "cmd_fullZoomReduce");
-pref("browser.gesture.pinch.out.shift", "cmd_fullZoomReset");
-pref("browser.gesture.pinch.in.shift", "cmd_fullZoomReset");
-#else
-
 pref("browser.gesture.pinch.out", "");
 pref("browser.gesture.pinch.in", "");
 pref("browser.gesture.pinch.out.shift", "");
 pref("browser.gesture.pinch.in.shift", "");
-#endif
 pref("browser.gesture.twist.latched", false);
 pref("browser.gesture.twist.threshold", 25);
 pref("browser.gesture.twist.right", "");
@@ -516,22 +492,33 @@ pref("browser.gesture.twist.left", "");
 pref("browser.gesture.tap", "cmd_fullZoomReset");
 
 
-
-
-
 #ifdef XP_MACOSX
 
 
 
-pref("mousewheel.with_alt.action", 2);
-pref("mousewheel.with_shift.action", 1);
+pref("mousewheel.withshiftkey.action",0);
+pref("mousewheel.withshiftkey.sysnumlines",true);
+pref("mousewheel.withshiftkey.numlines",1);
+pref("mousewheel.withaltkey.action",2);
+pref("mousewheel.withaltkey.sysnumlines",false);
+pref("mousewheel.withaltkey.numlines",1);
+pref("mousewheel.withmetakey.action",0);
+pref("mousewheel.withmetakey.sysnumlines",false);
+pref("mousewheel.withmetakey.numlines",1);
 #else
-pref("mousewheel.with_alt.action", 1);
-pref("mousewheel.with_shift.action", 2);
+pref("mousewheel.withshiftkey.action",2);
+pref("mousewheel.withshiftkey.sysnumlines",false);
+pref("mousewheel.withshiftkey.numlines",1);
+pref("mousewheel.withaltkey.action",0);
+pref("mousewheel.withaltkey.sysnumlines",false);
+pref("mousewheel.withaltkey.numlines",1);
+pref("mousewheel.withmetakey.action",0);
+pref("mousewheel.withmetakey.sysnumlines",true);
+pref("mousewheel.withmetakey.numlines",1);
 #endif
-pref("mousewheel.with_control.action",3);
-pref("mousewheel.with_meta.action", 1);  
-pref("mousewheel.with_win.action", 1);
+pref("mousewheel.withcontrolkey.action",3);
+pref("mousewheel.withcontrolkey.sysnumlines",false);
+pref("mousewheel.withcontrolkey.numlines",1);
 
 
 pref("alerts.slideIncrement", 1);
@@ -589,10 +576,8 @@ pref("plugins.use_layers", true);
 pref("plugins.hide_infobar_for_carbon_failure_plugin", false);
 #endif
 
-pref("plugins.update.url", "https://www.mozilla.org/%LOCALE%/plugincheck/");
+pref("plugins.update.url", "https://www.mozilla.com/%LOCALE%/plugincheck/");
 pref("plugins.update.notifyUser", false);
-
-pref("plugins.click_to_play", false);
 
 #ifdef XP_WIN
 pref("browser.preferences.instantApply", false);
@@ -604,9 +589,6 @@ pref("browser.preferences.animateFadeIn", true);
 #else
 pref("browser.preferences.animateFadeIn", false);
 #endif
-
-
-pref("browser.preferences.inContent", false);
 
 pref("browser.download.show_plugins_in_list", true);
 pref("browser.download.hide_plugins_without_extensions", true);
@@ -709,22 +691,33 @@ pref("gecko.handlerService.schemes.ircs.3.uriTemplate", "chrome://browser-region
 pref("gecko.handlerService.allowRegisterFromDifferentHost", false);
 
 #ifdef MOZ_SAFE_BROWSING
-pref("browser.safebrowsing.enabled", true);
-pref("browser.safebrowsing.malware.enabled", true);
-pref("browser.safebrowsing.debug", false);
 
-pref("browser.safebrowsing.updateURL", "http://safebrowsing.clients.google.com/safebrowsing/downloads?client=SAFEBROWSING_ID&appver=%VERSION%&pver=2.2");
-pref("browser.safebrowsing.keyURL", "https://sb-ssl.google.com/safebrowsing/newkey?client=SAFEBROWSING_ID&appver=%VERSION%&pver=2.2");
-pref("browser.safebrowsing.gethashURL", "http://safebrowsing.clients.google.com/safebrowsing/gethash?client=SAFEBROWSING_ID&appver=%VERSION%&pver=2.2");
-pref("browser.safebrowsing.reportURL", "http://safebrowsing.clients.google.com/safebrowsing/report?");
-pref("browser.safebrowsing.reportGenericURL", "http://%LOCALE%.phish-generic.mozilla.com/?hl=%LOCALE%");
-pref("browser.safebrowsing.reportErrorURL", "http://%LOCALE%.phish-error.mozilla.com/?hl=%LOCALE%");
-pref("browser.safebrowsing.reportPhishURL", "http://%LOCALE%.phish-report.mozilla.com/?hl=%LOCALE%");
-pref("browser.safebrowsing.reportMalwareURL", "http://%LOCALE%.malware-report.mozilla.com/?hl=%LOCALE%");
-pref("browser.safebrowsing.reportMalwareErrorURL", "http://%LOCALE%.malware-error.mozilla.com/?hl=%LOCALE%");
+pref("browser.safebrowsing.enabled", true);
+
+
+pref("browser.safebrowsing.malware.enabled", true);
+
+
+pref("browser.safebrowsing.provider.0.updateURL", "http://safebrowsing.clients.google.com/safebrowsing/downloads?client={moz:client}&appver={moz:version}&pver=2.2");
+
+pref("browser.safebrowsing.dataProvider", 0);
+
+
+pref("browser.safebrowsing.provider.0.name", "Google");
+pref("browser.safebrowsing.provider.0.keyURL", "https://sb-ssl.google.com/safebrowsing/newkey?client={moz:client}&appver={moz:version}&pver=2.2");
+pref("browser.safebrowsing.provider.0.reportURL", "http://safebrowsing.clients.google.com/safebrowsing/report?");
+pref("browser.safebrowsing.provider.0.gethashURL", "http://safebrowsing.clients.google.com/safebrowsing/gethash?client={moz:client}&appver={moz:version}&pver=2.2");
+
+
+pref("browser.safebrowsing.provider.0.reportGenericURL", "http://{moz:locale}.phish-generic.mozilla.com/?hl={moz:locale}");
+pref("browser.safebrowsing.provider.0.reportErrorURL", "http://{moz:locale}.phish-error.mozilla.com/?hl={moz:locale}");
+pref("browser.safebrowsing.provider.0.reportPhishURL", "http://{moz:locale}.phish-report.mozilla.com/?hl={moz:locale}");
+pref("browser.safebrowsing.provider.0.reportMalwareURL", "http://{moz:locale}.malware-report.mozilla.com/?hl={moz:locale}");
+pref("browser.safebrowsing.provider.0.reportMalwareErrorURL", "http://{moz:locale}.malware-error.mozilla.com/?hl={moz:locale}");
+
 
 pref("browser.safebrowsing.warning.infoURL", "http://www.mozilla.com/%LOCALE%/firefox/phishing-protection/");
-pref("browser.safebrowsing.malware.reportURL", "http://safebrowsing.clients.google.com/safebrowsing/diagnostic?client=%NAME%&hl=%LOCALE%&site=");
+pref("browser.geolocation.warning.infoURL", "http://www.mozilla.com/%LOCALE%/firefox/geolocation/");
 
 
 
@@ -734,18 +727,23 @@ pref("urlclassifier.alternate_error_page", "blocked");
 pref("urlclassifier.gethashnoise", 4);
 
 
-pref("urlclassifier.randomizeclient", true);
-
-
 pref("urlclassifier.gethashtables", "goog-phish-shavar,goog-malware-shavar");
 
 
 
 
 pref("urlclassifier.confirm-age", 2700);
-#endif
 
-pref("browser.geolocation.warning.infoURL", "http://www.mozilla.com/%LOCALE%/firefox/geolocation/");
+
+pref("urlclassifier.updatecachemax", 41943040);
+
+
+pref("urlclassifier.lookupcachemax", 1048576);
+
+
+pref("browser.safebrowsing.malware.reportURL", "http://safebrowsing.clients.google.com/safebrowsing/diagnostic?client=%NAME%&hl=%LOCALE%&site=");
+
+#endif
 
 pref("browser.EULA.version", 3);
 pref("browser.rights.version", 3);
@@ -782,13 +780,9 @@ pref("browser.sessionstore.max_resumed_crashes", 1);
 
 
 
-pref("browser.sessionstore.restore_on_demand", true);
+pref("browser.sessionstore.restore_on_demand", false);
 
 pref("browser.sessionstore.restore_hidden_tabs", false);
-
-
-
-pref("browser.sessionstore.restore_pinned_tabs_on_demand", false);
 
 
 pref("accessibility.blockautorefresh", false);
@@ -836,6 +830,12 @@ pref("browser.ssl_override_behavior", 2);
 
 
 
+
+
+pref("browser.identity.ssl_domain_display", 1);
+
+
+
 pref("browser.offline-apps.notify", true);
 
 
@@ -851,7 +851,7 @@ pref("browser.zoom.updateBackgroundTabs", true);
 pref("breakpad.reportURL", "http://crash-stats.mozilla.com/report/index/");
 
 
-pref("app.support.baseURL", "http://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/");
+pref("app.support.baseURL", "http://support.mozilla.com/1/firefox/%VERSION%/%OS%/%LOCALE%/");
 
 
 pref("security.alternate_certificate_error_page", "certerror");
@@ -881,7 +881,6 @@ pref("dom.ipc.plugins.enabled.i386", false);
 pref("dom.ipc.plugins.enabled.i386.flash player.plugin", true);
 pref("dom.ipc.plugins.enabled.i386.javaplugin2_npapi.plugin", true);
 pref("dom.ipc.plugins.enabled.i386.javaappletplugin.plugin", true);
-pref("dom.ipc.plugins.enabled.i386.silverlight.plugin", true);
 
 pref("dom.ipc.plugins.enabled.x86_64", true);
 #else
@@ -917,18 +916,12 @@ pref("browser.taskbar.lists.refreshInSeconds", 120);
 
 #ifdef MOZ_SERVICES_SYNC
 
-pref("services.sync.registerEngines", "Bookmarks,Form,History,Password,Prefs,Tab,Addons");
+pref("services.sync.registerEngines", "Bookmarks,Form,History,Password,Prefs,Tab");
 
 pref("services.sync.prefs.sync.accessibility.blockautorefresh", true);
 pref("services.sync.prefs.sync.accessibility.browsewithcaret", true);
 pref("services.sync.prefs.sync.accessibility.typeaheadfind", true);
 pref("services.sync.prefs.sync.accessibility.typeaheadfind.linksonly", true);
-pref("services.sync.prefs.sync.addons.ignoreUserEnabledChanges", true);
-
-
-
-
-
 pref("services.sync.prefs.sync.app.update.mode", true);
 pref("services.sync.prefs.sync.browser.download.manager.closeWhenDone", true);
 pref("services.sync.prefs.sync.browser.download.manager.retention", true);
@@ -941,7 +934,6 @@ pref("services.sync.prefs.sync.browser.safebrowsing.enabled", true);
 pref("services.sync.prefs.sync.browser.safebrowsing.malware.enabled", true);
 pref("services.sync.prefs.sync.browser.search.selectedEngine", true);
 pref("services.sync.prefs.sync.browser.search.update", true);
-pref("services.sync.prefs.sync.browser.sessionstore.restore_on_demand", true);
 pref("services.sync.prefs.sync.browser.startup.homepage", true);
 pref("services.sync.prefs.sync.browser.startup.page", true);
 pref("services.sync.prefs.sync.browser.tabs.autoHide", true);
@@ -950,6 +942,7 @@ pref("services.sync.prefs.sync.browser.tabs.loadInBackground", true);
 pref("services.sync.prefs.sync.browser.tabs.warnOnClose", true);
 pref("services.sync.prefs.sync.browser.tabs.warnOnOpen", true);
 pref("services.sync.prefs.sync.browser.urlbar.autocomplete.enabled", true);
+pref("services.sync.prefs.sync.browser.urlbar.autoFill", true);
 pref("services.sync.prefs.sync.browser.urlbar.default.behavior", true);
 pref("services.sync.prefs.sync.browser.urlbar.maxRichResults", true);
 pref("services.sync.prefs.sync.dom.disable_open_during_load", true);
@@ -958,6 +951,7 @@ pref("services.sync.prefs.sync.dom.disable_window_move_resize", true);
 pref("services.sync.prefs.sync.dom.event.contextmenu.enabled", true);
 pref("services.sync.prefs.sync.extensions.personas.current", true);
 pref("services.sync.prefs.sync.extensions.update.enabled", true);
+pref("services.sync.prefs.sync.general.smoothScroll", true);
 pref("services.sync.prefs.sync.intl.accept_languages", true);
 pref("services.sync.prefs.sync.javascript.enabled", true);
 pref("services.sync.prefs.sync.layout.spellcheckDefault", true);
@@ -1001,76 +995,16 @@ pref("services.sync.prefs.sync.xpinstall.whitelist.required", true);
 pref("devtools.errorconsole.enabled", false);
 
 
-pref("devtools.toolbar.enabled", true);
-pref("devtools.toolbar.visible", false);
-pref("devtools.gcli.allowSet", false);
-pref("devtools.commands.dir", "");
-
-
 pref("devtools.inspector.enabled", true);
-pref("devtools.inspector.htmlHeight", 112);
-pref("devtools.inspector.htmlPanelOpen", false);
-pref("devtools.inspector.sidebarOpen", false);
-pref("devtools.inspector.activeSidebar", "ruleview");
-
-
-pref("devtools.layoutview.enabled", true);
-pref("devtools.layoutview.open", false);
-
-
-pref("devtools.responsiveUI.enabled", true);
-
-
-pref("devtools.debugger.enabled", true);
-pref("devtools.debugger.chrome-enabled", false);
-pref("devtools.debugger.remote-host", "localhost");
-pref("devtools.debugger.remote-autoconnect", false);
-pref("devtools.debugger.remote-connection-retries", 3);
-pref("devtools.debugger.remote-timeout", 3000);
-
-
-pref("devtools.debugger.ui.height", 250);
-pref("devtools.debugger.ui.remote-win.width", 900);
-pref("devtools.debugger.ui.remote-win.height", 400);
-pref("devtools.debugger.ui.stackframes-width", 200);
-pref("devtools.debugger.ui.stackframes-pane-visible", true);
-pref("devtools.debugger.ui.variables-width", 300);
-pref("devtools.debugger.ui.variables-pane-visible", true);
 
 
 pref("devtools.styleinspector.enabled", true);
 
 
-pref("devtools.tilt.enabled", true);
-pref("devtools.tilt.intro_transition", true);
-pref("devtools.tilt.outro_transition", true);
-
-
-pref("devtools.ruleview.enabled", true);
-
-
 pref("devtools.scratchpad.enabled", true);
 
 
-
-
-pref("devtools.scratchpad.recentFilesMax", 10);
-
-
-pref("devtools.styleeditor.enabled", true);
-pref("devtools.styleeditor.transitions", true);
-
-
 pref("devtools.chrome.enabled", false);
-
-
-pref("devtools.gcli.hideIntro", false);
-
-
-pref("devtools.gcli.eagerHelper", 2);
-
-
-pref("devtools.gcli.allowSet", false);
 
 
 
@@ -1081,22 +1015,7 @@ pref("devtools.hud.height", 0);
 
 
 
-pref("devtools.webconsole.position", "below");
-
-
-pref("devtools.webconsole.filter.network", true);
-pref("devtools.webconsole.filter.networkinfo", true);
-pref("devtools.webconsole.filter.csserror", true);
-pref("devtools.webconsole.filter.cssparser", true);
-pref("devtools.webconsole.filter.exception", true);
-pref("devtools.webconsole.filter.jswarn", true);
-pref("devtools.webconsole.filter.error", true);
-pref("devtools.webconsole.filter.warn", true);
-pref("devtools.webconsole.filter.info", true);
-pref("devtools.webconsole.filter.log", true);
-
-
-pref("devtools.webconsole.fontSize", 0);
+pref("devtools.webconsole.position", "above");
 
 
 
@@ -1117,6 +1036,9 @@ pref("devtools.editor.expandtab", true);
 
 
 
+
+
+
 pref("devtools.editor.component", "orion");
 
 
@@ -1127,57 +1049,3 @@ pref("browser.menu.showCharacterEncoding", "chrome://browser/locale/browser.prop
 pref("prompts.tab_modal.enabled", true);
 
 pref("browser.panorama.animate_zoom", true);
-
-
-pref("browser.newtab.url", "about:newtab");
-
-pref("browser.newtab.preload", false);
-
-
-pref("browser.newtabpage.enabled", true);
-
-
-pref("browser.newtabpage.rows", 3);
-
-
-pref("browser.newtabpage.columns", 3);
-
-
-pref("full-screen-api.enabled", true);
-
-
-
-
-pref("full-screen-api.approval-required", true);
-
-
-
-
-pref("toolkit.startup.max_resumed_crashes", 3);
-
-
-
-
-pref("pdfjs.disabled", false);
-
-
-pref("pdfjs.firstRun", true);
-
-
-pref("pdfjs.previousHandler.preferredAction", 0);
-pref("pdfjs.previousHandler.alwaysAskBeforeHandling", false);
-
-
-
-
-pref("image.mem.max_decoded_image_kb", 256000);
-
-
-pref("social.manifest.motown", "{\"origin\":\"https://motown-dev.mozillalabs.com\",\"name\":\"MoTown\",\"workerURL\":\"https://motown-dev.mozillalabs.com/social/worker.js\",\"iconURL\":\"https://motown-dev.mozillalabs.com/images/motown-icon.png\",\"sidebarURL\":\"https://motown-dev.mozillalabs.com/social/sidebar\"}");
-
-
-pref("social.activation.whitelist", "https://motown-dev.mozillalabs.com");
-pref("social.sidebar.open", true);
-pref("social.active", false);
-
-pref("dom.identity.enabled", false);

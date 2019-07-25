@@ -5,6 +5,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsFrame_h___
 #define nsFrame_h___
 
@@ -30,9 +63,9 @@
 #define NS_FRAME_TRACE_CHILD_REFLOW 0x4
 #define NS_FRAME_TRACE_NEW_FRAMES   0x8
 
-#define NS_FRAME_LOG_TEST(_lm,_bit) (int((_lm)->level) & (_bit))
+#define NS_FRAME_LOG_TEST(_lm,_bit) (PRIntn((_lm)->level) & (_bit))
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
 #define NS_FRAME_LOG(_bit,_args)                                \
   PR_BEGIN_MACRO                                                \
     if (NS_FRAME_LOG_TEST(nsFrame::GetLogModuleInfo(),_bit)) {  \
@@ -44,10 +77,10 @@
 #endif
 
 
-#ifdef DEBUG
-#define NS_FRAME_TRACE_IN(_method) Trace(_method, true)
+#ifdef NS_DEBUG
+#define NS_FRAME_TRACE_IN(_method) Trace(_method, PR_TRUE)
 
-#define NS_FRAME_TRACE_OUT(_method) Trace(_method, false)
+#define NS_FRAME_TRACE_OUT(_method) Trace(_method, PR_FALSE)
 
 
 #define NS_FRAME_TRACE_MSG(_bit,_args)                          \
@@ -64,10 +97,10 @@
     }                                                           \
   PR_END_MACRO
 
-#define NS_FRAME_TRACE_REFLOW_IN(_method) Trace(_method, true)
+#define NS_FRAME_TRACE_REFLOW_IN(_method) Trace(_method, PR_TRUE)
 
 #define NS_FRAME_TRACE_REFLOW_OUT(_method, _status) \
-  Trace(_method, false, _status)
+  Trace(_method, PR_FALSE, _status)
 
 #else
 #define NS_FRAME_TRACE(_bits,_args)
@@ -97,7 +130,6 @@
 
 
 struct nsBoxLayoutMetrics;
-class nsDisplayBackground;
 
 
 
@@ -153,12 +185,12 @@ public:
   NS_IMETHOD  RemoveFrame(ChildListID     aListID,
                           nsIFrame*       aOldFrame);
   virtual void DestroyFrom(nsIFrame* aDestructRoot);
-  virtual nsStyleContext* GetAdditionalStyleContext(int32_t aIndex) const;
-  virtual void SetAdditionalStyleContext(int32_t aIndex,
+  virtual nsStyleContext* GetAdditionalStyleContext(PRInt32 aIndex) const;
+  virtual void SetAdditionalStyleContext(PRInt32 aIndex,
                                          nsStyleContext* aStyleContext);
   virtual void SetParent(nsIFrame* aParent);
   virtual nscoord GetBaseline() const;
-  virtual const nsFrameList& GetChildList(ChildListID aListID) const;
+  virtual nsFrameList GetChildList(ChildListID aListID) const;
   virtual void GetChildLists(nsTArray<ChildList>* aLists) const;
 
   NS_IMETHOD  HandleEvent(nsPresContext* aPresContext, 
@@ -169,25 +201,25 @@ public:
   NS_IMETHOD  GetCursor(const nsPoint&    aPoint,
                         nsIFrame::Cursor& aCursor);
 
-  NS_IMETHOD  GetPointFromOffset(int32_t                inOffset,
+  NS_IMETHOD  GetPointFromOffset(PRInt32                inOffset,
                                  nsPoint*               outPoint);
 
-  NS_IMETHOD  GetChildFrameContainingOffset(int32_t     inContentOffset,
+  NS_IMETHOD  GetChildFrameContainingOffset(PRInt32     inContentOffset,
                                  bool                   inHint,
-                                 int32_t*               outFrameContentOffset,
+                                 PRInt32*               outFrameContentOffset,
                                  nsIFrame*              *outChildFrame);
 
   static nsresult  GetNextPrevLineFromeBlockFrame(nsPresContext* aPresContext,
                                         nsPeekOffsetStruct *aPos, 
                                         nsIFrame *aBlockFrame, 
-                                        int32_t aLineStart, 
-                                        int8_t aOutSideLimit
+                                        PRInt32 aLineStart, 
+                                        PRInt8 aOutSideLimit
                                         );
 
   NS_IMETHOD  CharacterDataChanged(CharacterDataChangeInfo* aInfo);
-  NS_IMETHOD  AttributeChanged(int32_t         aNameSpaceID,
+  NS_IMETHOD  AttributeChanged(PRInt32         aNameSpaceID,
                                nsIAtom*        aAttribute,
-                               int32_t         aModType);
+                               PRInt32         aModType);
   virtual nsSplittableType GetSplittableType() const;
   virtual nsIFrame* GetPrevContinuation() const;
   NS_IMETHOD  SetPrevContinuation(nsIFrame*);
@@ -200,15 +232,16 @@ public:
   NS_IMETHOD  GetOffsetFromView(nsPoint& aOffset, nsIView** aView) const;
   virtual nsIAtom* GetType() const;
 
-  NS_IMETHOD  IsSelectable(bool* aIsSelectable, uint8_t* aSelectStyle) const;
+  NS_IMETHOD  GetSelected(bool *aSelected) const;
+  NS_IMETHOD  IsSelectable(bool* aIsSelectable, PRUint8* aSelectStyle) const;
 
   NS_IMETHOD  GetSelectionController(nsPresContext *aPresContext, nsISelectionController **aSelCon);
 
-  virtual bool PeekOffsetNoAmount(bool aForward, int32_t* aOffset);
-  virtual bool PeekOffsetCharacter(bool aForward, int32_t* aOffset,
+  virtual bool PeekOffsetNoAmount(bool aForward, PRInt32* aOffset);
+  virtual bool PeekOffsetCharacter(bool aForward, PRInt32* aOffset,
                                      bool aRespectClusters = true);
   virtual bool PeekOffsetWord(bool aForward, bool aWordSelectEatSpace, bool aIsKeyboardSelect,
-                                int32_t* aOffset, PeekWordState *aState);
+                                PRInt32* aOffset, PeekWordState *aState);
   
 
 
@@ -222,16 +255,16 @@ public:
                                      bool aPunctAfter, bool aWhitespaceAfter,
                                      bool aIsKeyboardSelect);
 
-  NS_IMETHOD  CheckVisibility(nsPresContext* aContext, int32_t aStartIndex, int32_t aEndIndex, bool aRecurse, bool *aFinished, bool *_retval);
+  NS_IMETHOD  CheckVisibility(nsPresContext* aContext, PRInt32 aStartIndex, PRInt32 aEndIndex, bool aRecurse, bool *aFinished, bool *_retval);
 
-  NS_IMETHOD  GetOffsets(int32_t &aStart, int32_t &aEnd) const;
+  NS_IMETHOD  GetOffsets(PRInt32 &aStart, PRInt32 &aEnd) const;
   virtual void ChildIsDirty(nsIFrame* aChild);
 
 #ifdef ACCESSIBILITY
-  virtual already_AddRefed<Accessible> CreateAccessible();
+  virtual already_AddRefed<nsAccessible> CreateAccessible();
 #endif
 
-  virtual nsIFrame* GetParentStyleContextFrame() const {
+  virtual nsIFrame* GetParentStyleContextFrame() {
     return DoGetParentStyleContextFrame();
   }
 
@@ -242,7 +275,7 @@ public:
 
 
 
-  nsIFrame* DoGetParentStyleContextFrame() const;
+  nsIFrame* DoGetParentStyleContextFrame();
 
   virtual bool IsEmpty();
   virtual bool IsSelfEmpty();
@@ -262,7 +295,7 @@ public:
   virtual nsSize ComputeSize(nsRenderingContext *aRenderingContext,
                              nsSize aCBSize, nscoord aAvailableWidth,
                              nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                             uint32_t aFlags) MOZ_OVERRIDE;
+                             bool aShrinkWrap);
 
   
   
@@ -296,28 +329,6 @@ public:
                            nscoord aWidthInCB);
 
   NS_IMETHOD  WillReflow(nsPresContext* aPresContext);
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   NS_IMETHOD  Reflow(nsPresContext*          aPresContext,
                      nsHTMLReflowMetrics&     aDesiredSize,
                      const nsHTMLReflowState& aReflowState,
@@ -336,10 +347,10 @@ public:
   void DestroyAbsoluteFrames(nsIFrame* aDestructRoot);
   virtual bool CanContinueTextRun() const;
 
-  virtual bool UpdateOverflow();
-
   
-
+  
+  
+  
   NS_IMETHOD HandlePress(nsPresContext* aPresContext,
                          nsGUIEvent *    aEvent,
                          nsEventStatus*  aEventStatus);
@@ -357,20 +368,13 @@ public:
                            nsGUIEvent *    aEvent,
                            nsEventStatus*  aEventStatus);
 
-  enum { SELECT_ACCUMULATE = 0x01 };
+  NS_IMETHOD PeekBackwardAndForward(nsSelectionAmount aAmountBack,
+                                    nsSelectionAmount aAmountForward,
+                                    PRInt32 aStartPos,
+                                    nsPresContext* aPresContext,
+                                    bool aJumpLines,
+                                    bool aMultipleSelection);
 
-  nsresult PeekBackwardAndForward(nsSelectionAmount aAmountBack,
-                                  nsSelectionAmount aAmountForward,
-                                  int32_t aStartPos,
-                                  nsPresContext* aPresContext,
-                                  bool aJumpLines,
-                                  uint32_t aSelectFlags);
-
-  nsresult SelectByTypeAtPoint(nsPresContext* aPresContext,
-                               const nsPoint& aPoint,
-                               nsSelectionAmount aBeginAmountType,
-                               nsSelectionAmount aEndAmountType,
-                               uint32_t aSelectFlags);
 
   
   
@@ -417,7 +421,7 @@ public:
   virtual const void* GetStyleDataExternal(nsStyleStructID aSID) const;
 
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
   
 
 
@@ -434,9 +438,9 @@ public:
 
   
   
-  static int32_t ContentIndexInContainer(const nsIFrame* aFrame);
+  static PRInt32 ContentIndexInContainer(const nsIFrame* aFrame);
 
-  static void IndentBy(FILE* out, int32_t aIndent) {
+  static void IndentBy(FILE* out, PRInt32 aIndent) {
     while (--aIndent >= 0) fputs("  ", out);
   }
   
@@ -462,7 +466,7 @@ public:
 
 
 
-  virtual void DumpBaseRegressionData(nsPresContext* aPresContext, FILE* out, int32_t aIndent);
+  virtual void DumpBaseRegressionData(nsPresContext* aPresContext, FILE* out, PRInt32 aIndent);
   
   nsresult MakeFrameName(const nsAString& aKind, nsAString& aResult) const;
 
@@ -478,7 +482,7 @@ public:
   static void  DisplayReflowExit(nsPresContext*      aPresContext,
                                  nsIFrame*            aFrame,
                                  nsHTMLReflowMetrics& aMetrics,
-                                 uint32_t             aStatus,
+                                 PRUint32             aStatus,
                                  void*                aFrameTreeNode);
   static void  DisplayLayoutExit(nsIFrame* aFrame,
                                  void* aFrameTreeNode);
@@ -505,12 +509,9 @@ public:
 
 
 
-
-
   nsresult DisplayBackgroundUnconditional(nsDisplayListBuilder*   aBuilder,
                                           const nsDisplayListSet& aLists,
-                                          bool aForceBackground,
-                                          nsDisplayBackground** aBackground);
+                                          bool aForceBackground = false);
   
 
 
@@ -559,9 +560,9 @@ protected:
 
 
   nsresult DisplaySelectionOverlay(nsDisplayListBuilder* aBuilder,
-      nsDisplayList* aList, uint16_t aContentType = nsISelectionDisplay::DISPLAY_FRAMES);
+      nsDisplayList* aList, PRUint16 aContentType = nsISelectionDisplay::DISPLAY_FRAMES);
 
-  int16_t DisplaySelection(nsPresContext* aPresContext, bool isOkToTurnOn = false);
+  PRInt16 DisplaySelection(nsPresContext* aPresContext, bool isOkToTurnOn = false);
   
   
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);
@@ -576,46 +577,19 @@ public:
   
   
   
-  static int32_t GetLineNumber(nsIFrame *aFrame,
+  static PRInt32 GetLineNumber(nsIFrame *aFrame,
                                bool aLockScroll,
-                               nsIFrame** aContainingBlock = nullptr);
+                               nsIFrame** aContainingBlock = nsnull);
 
   
-
-
-  static bool ApplyOverflowClipping(const nsIFrame* aFrame,
-                                    const nsStyleDisplay* aDisp)
+  static bool ApplyPaginatedOverflowClipping(const nsIFrame* aFrame)
   {
-    
-    if (NS_UNLIKELY(aDisp->mOverflowX == NS_STYLE_OVERFLOW_CLIP)) {
-      return true;
-    }
-
-    
-    if (aDisp->mOverflowX == NS_STYLE_OVERFLOW_HIDDEN &&
-        aDisp->mOverflowY == NS_STYLE_OVERFLOW_HIDDEN) {
-      
-      nsIAtom* type = aFrame->GetType();
-      if (type == nsGkAtoms::tableFrame ||
-          type == nsGkAtoms::tableCellFrame ||
-          type == nsGkAtoms::bcTableCellFrame ||
-          type == nsGkAtoms::svgOuterSVGFrame ||
-          type == nsGkAtoms::svgInnerSVGFrame ||
-          type == nsGkAtoms::svgForeignObjectFrame) {
-        return true;
-      }
-    }
-
-    if ((aFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT)) {
-      return false;
-    }
-
     
     
     return
-      (aFrame->GetStateBits() & NS_BLOCK_CLIP_PAGINATED_OVERFLOW) != 0 &&
       aFrame->PresContext()->IsPaginated() &&
-      aFrame->GetType() == nsGkAtoms::blockFrame;
+      aFrame->GetType() == nsGkAtoms::blockFrame &&
+      (aFrame->GetStateBits() & NS_BLOCK_CLIP_PAGINATED_OVERFLOW) != 0;
   }
 
 protected:
@@ -630,8 +604,8 @@ protected:
   
   NS_IMETHOD GetDataForTableSelection(const nsFrameSelection *aFrameSelection,
                                       nsIPresShell *aPresShell, nsMouseEvent *aMouseEvent, 
-                                      nsIContent **aParentContent, int32_t *aContentOffset, 
-                                      int32_t *aTarget);
+                                      nsIContent **aParentContent, PRInt32 *aContentOffset, 
+                                      PRInt32 *aTarget);
 
   
   static void FillCursorInformationFromStyle(const nsStyleUserInterface* ui,
@@ -646,7 +620,7 @@ protected:
   nsBoxLayoutMetrics* BoxMetrics() const;
 
   
-  void FireDOMEvent(const nsAString& aDOMEventName, nsIContent *aContent = nullptr);
+  void FireDOMEvent(const nsAString& aDOMEventName, nsIContent *aContent = nsnull);
 
 private:
   nsresult BoxReflow(nsBoxLayoutState& aState,
@@ -663,17 +637,17 @@ private:
 
   virtual nsILineIterator* GetLineIterator();
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
 public:
   
 
-  NS_IMETHOD  List(FILE* out, int32_t aIndent) const;
+  NS_IMETHOD  List(FILE* out, PRInt32 aIndent) const;
   
 
 
 
   static void RootFrameList(nsPresContext* aPresContext,
-                            FILE* out, int32_t aIndent);
+                            FILE* out, PRInt32 aIndent);
 
   static void DumpFrameTree(nsIFrame* aFrame);
 
@@ -696,7 +670,7 @@ public:
 
 
   NS_IMETHOD  DumpRegressionData(nsPresContext* aPresContext,
-                                 FILE* out, int32_t aIndent);
+                                 FILE* out, PRInt32 aIndent);
 
   
 
@@ -728,14 +702,8 @@ public:
   static void ShowEventTargetFrameBorder(bool aEnable);
   static bool GetShowEventTargetFrameBorder();
 
-#endif
-#ifdef MOZ_DUMP_PAINTING
-public:
-
   static void PrintDisplayList(nsDisplayListBuilder* aBuilder,
-                               const nsDisplayList& aList,
-                               FILE* aFile = stdout,
-                               bool aDumpHtml = false);
+                               const nsDisplayList& aList);
 
 #endif
 };

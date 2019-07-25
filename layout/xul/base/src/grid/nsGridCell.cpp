@@ -10,13 +10,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsGridCell.h"
 #include "nsFrame.h"
 #include "nsBox.h"
 #include "nsGridLayout2.h"
 
 
-nsGridCell::nsGridCell():mBoxInColumn(nullptr),mBoxInRow(nullptr)
+nsGridCell::nsGridCell():mBoxInColumn(nsnull),mBoxInRow(nsnull)
 {
     MOZ_COUNT_CTOR(nsGridCell);
 }                                               
@@ -118,10 +150,10 @@ nsGridCell::GetMaxSize(nsBoxLayoutState& aState)
 
 
 bool
-nsGridCell::IsCollapsed()
+nsGridCell::IsCollapsed(nsBoxLayoutState& aState)
 {
-  return ((mBoxInColumn && mBoxInColumn->IsCollapsed()) ||
-          (mBoxInRow && mBoxInRow->IsCollapsed()));
+  return ((mBoxInColumn && mBoxInColumn->IsCollapsed(aState)) ||
+          (mBoxInRow && mBoxInRow->IsCollapsed(aState)));
 }
 
 

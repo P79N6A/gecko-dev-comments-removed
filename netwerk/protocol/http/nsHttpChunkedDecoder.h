@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsHttpChunkedDecoder_h__
 #define nsHttpChunkedDecoder_h__
 
@@ -14,36 +47,34 @@
 class nsHttpChunkedDecoder
 {
 public:
-    nsHttpChunkedDecoder() : mTrailers(nullptr)
+    nsHttpChunkedDecoder() : mTrailers(nsnull)
                            , mChunkRemaining(0)
-                           , mReachedEOF(false)
-                           , mWaitEOF(false) {}
+                           , mReachedEOF(PR_FALSE)
+                           , mWaitEOF(PR_FALSE) {}
    ~nsHttpChunkedDecoder() { delete mTrailers; }
 
     bool ReachedEOF() { return mReachedEOF; }
 
     
     nsresult HandleChunkedContent(char *buf,
-                                  uint32_t count,
-                                  uint32_t *contentRead,
-                                  uint32_t *contentRemaining);
+                                  PRUint32 count,
+                                  PRUint32 *contentRead,
+                                  PRUint32 *contentRemaining);
 
     nsHttpHeaderArray *Trailers() { return mTrailers; }
 
     nsHttpHeaderArray *TakeTrailers() { nsHttpHeaderArray *h = mTrailers;
-                                        mTrailers = nullptr;
+                                        mTrailers = nsnull;
                                         return h; }
-
-    uint32_t GetChunkRemaining() { return mChunkRemaining; }
 
 private:
     nsresult ParseChunkRemaining(char *buf,
-                                 uint32_t count,
-                                 uint32_t *countRead);
+                                 PRUint32 count,
+                                 PRUint32 *countRead);
 
 private:
     nsHttpHeaderArray *mTrailers;
-    uint32_t           mChunkRemaining;
+    PRUint32           mChunkRemaining;
     nsCString          mLineBuf; 
     bool               mReachedEOF;
     bool               mWaitEOF;

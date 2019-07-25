@@ -3,15 +3,52 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsTreeBodyFrame_h
 #define nsTreeBodyFrame_h
-
-#include "mozilla/Attributes.h"
 
 #include "nsLeafBoxFrame.h"
 #include "nsITreeView.h"
 #include "nsICSSPseudoComparator.h"
 #include "nsIScrollbarMediator.h"
+#include "nsIDragSession.h"
 #include "nsITimer.h"
 #include "nsIReflowCallback.h"
 #include "nsTArray.h"
@@ -24,6 +61,7 @@
 #include "nsScrollbarFrame.h"
 #include "nsThreadUtils.h"
 #include "mozilla/LookAndFeel.h"
+#include "nsITreeImageListener.h"
 
 class nsOverflowChecker;
 class nsTreeImageListener;
@@ -40,7 +78,7 @@ struct nsTreeImageCacheEntry
 };
 
 
-class nsTreeBodyFrame MOZ_FINAL
+class NS_FINAL_CLASS nsTreeBodyFrame
   : public nsLeafBoxFrame
   , public nsICSSPseudoComparator
   , public nsIScrollbarMediator
@@ -57,7 +95,9 @@ public:
   
   
   
-  nsresult OnImageIsAnimated(imgIRequest* aRequest);
+  nsresult OnStartDecode(imgIRequest* aRequest);
+  nsresult OnStopDecode(imgIRequest* aRequest, nsresult aStatus,
+                        const PRUnichar* aStatusArg);
 
   
   nsresult GetColumns(nsITreeColumns **aColumns);
@@ -66,41 +106,42 @@ public:
   nsresult GetFocused(bool *aFocused);
   nsresult SetFocused(bool aFocused);
   nsresult GetTreeBody(nsIDOMElement **aElement);
-  nsresult GetRowHeight(int32_t *aValue);
-  nsresult GetRowWidth(int32_t *aValue);
-  nsresult GetHorizontalPosition(int32_t *aValue);
+  nsresult GetRowHeight(PRInt32 *aValue);
+  nsresult GetRowWidth(PRInt32 *aValue);
+  nsresult GetHorizontalPosition(PRInt32 *aValue);
   nsresult GetSelectionRegion(nsIScriptableRegion **aRegion);
-  nsresult GetFirstVisibleRow(int32_t *aValue);
-  nsresult GetLastVisibleRow(int32_t *aValue);
-  nsresult GetPageLength(int32_t *aValue);
-  nsresult EnsureRowIsVisible(int32_t aRow);
-  nsresult EnsureCellIsVisible(int32_t aRow, nsITreeColumn *aCol);
-  nsresult ScrollToRow(int32_t aRow);
-  nsresult ScrollByLines(int32_t aNumLines);
-  nsresult ScrollByPages(int32_t aNumPages);
-  nsresult ScrollToCell(int32_t aRow, nsITreeColumn *aCol);
+  nsresult GetFirstVisibleRow(PRInt32 *aValue);
+  nsresult GetLastVisibleRow(PRInt32 *aValue);
+  nsresult GetPageLength(PRInt32 *aValue);
+  nsresult EnsureRowIsVisible(PRInt32 aRow);
+  nsresult EnsureCellIsVisible(PRInt32 aRow, nsITreeColumn *aCol);
+  nsresult ScrollToRow(PRInt32 aRow);
+  nsresult ScrollByLines(PRInt32 aNumLines);
+  nsresult ScrollByPages(PRInt32 aNumPages);
+  nsresult ScrollToCell(PRInt32 aRow, nsITreeColumn *aCol);
   nsresult ScrollToColumn(nsITreeColumn *aCol);
-  nsresult ScrollToHorizontalPosition(int32_t aValue);
+  nsresult ScrollToHorizontalPosition(PRInt32 aValue);
   nsresult Invalidate();
   nsresult InvalidateColumn(nsITreeColumn *aCol);
-  nsresult InvalidateRow(int32_t aRow);
-  nsresult InvalidateCell(int32_t aRow, nsITreeColumn *aCol);
-  nsresult InvalidateRange(int32_t aStart, int32_t aEnd);
-  nsresult InvalidateColumnRange(int32_t aStart, int32_t aEnd,
+  nsresult InvalidateRow(PRInt32 aRow);
+  nsresult InvalidateCell(PRInt32 aRow, nsITreeColumn *aCol);
+  nsresult InvalidateRange(PRInt32 aStart, PRInt32 aEnd);
+  nsresult InvalidateColumnRange(PRInt32 aStart, PRInt32 aEnd,
                                  nsITreeColumn *aCol);
-  nsresult GetRowAt(int32_t aX, int32_t aY, int32_t *aValue);
-  nsresult GetCellAt(int32_t aX, int32_t aY, int32_t *aRow,
+  nsresult GetRowAt(PRInt32 aX, PRInt32 aY, PRInt32 *aValue);
+  nsresult GetCellAt(PRInt32 aX, PRInt32 aY, PRInt32 *aRow,
                      nsITreeColumn **aCol, nsACString &aChildElt);
-  nsresult GetCoordsForCellItem(int32_t aRow, nsITreeColumn *aCol,
+  nsresult GetCoordsForCellItem(PRInt32 aRow, nsITreeColumn *aCol,
                                 const nsACString &aElt,
-                                int32_t *aX, int32_t *aY,
-                                int32_t *aWidth, int32_t *aHeight);
-  nsresult IsCellCropped(int32_t aRow, nsITreeColumn *aCol, bool *aResult);
-  nsresult RowCountChanged(int32_t aIndex, int32_t aCount);
+                                PRInt32 *aX, PRInt32 *aY,
+                                PRInt32 *aWidth, PRInt32 *aHeight);
+  nsresult IsCellCropped(PRInt32 aRow, nsITreeColumn *aCol, bool *aResult);
+  nsresult RowCountChanged(PRInt32 aIndex, PRInt32 aCount);
   nsresult BeginUpdateBatch();
   nsresult EndUpdateBatch();
   nsresult ClearStyleAndImageCaches();
 
+  
   virtual nsSize GetMinSize(nsBoxLayoutState& aBoxLayoutState);
   virtual void SetBounds(nsBoxLayoutState& aBoxLayoutState, const nsRect& aRect,
                          bool aRemoveOverflowArea = false);
@@ -113,8 +154,8 @@ public:
   virtual bool PseudoMatches(nsCSSSelector* aSelector);
 
   
-  NS_IMETHOD PositionChanged(nsScrollbarFrame* aScrollbar, int32_t aOldIndex, int32_t& aNewIndex);
-  NS_IMETHOD ScrollbarButtonPressed(nsScrollbarFrame* aScrollbar, int32_t aOldIndex, int32_t aNewIndex);
+  NS_IMETHOD PositionChanged(nsScrollbarFrame* aScrollbar, PRInt32 aOldIndex, PRInt32& aNewIndex);
+  NS_IMETHOD ScrollbarButtonPressed(nsScrollbarFrame* aScrollbar, PRInt32 aOldIndex, PRInt32 aNewIndex);
   NS_IMETHOD VisibilityChanged(bool aVisible) { Invalidate(); return NS_OK; }
 
   
@@ -167,7 +208,7 @@ protected:
                    const nsRect&        aDirtyRect);
 
   
-  void PaintRow(int32_t              aRowIndex,
+  void PaintRow(PRInt32              aRowIndex,
                 const nsRect&        aRowRect,
                 nsPresContext*       aPresContext,
                 nsRenderingContext& aRenderingContext,
@@ -175,14 +216,14 @@ protected:
                 nsPoint              aPt);
 
   
-  void PaintSeparator(int32_t              aRowIndex,
+  void PaintSeparator(PRInt32              aRowIndex,
                       const nsRect&        aSeparatorRect,
                       nsPresContext*      aPresContext,
                       nsRenderingContext& aRenderingContext,
                       const nsRect&        aDirtyRect);
 
   
-  void PaintCell(int32_t              aRowIndex, 
+  void PaintCell(PRInt32              aRowIndex, 
                  nsTreeColumn*        aColumn,
                  const nsRect&        aCellRect,
                  nsPresContext*       aPresContext,
@@ -192,7 +233,7 @@ protected:
                  nsPoint              aPt);
 
   
-  void PaintTwisty(int32_t              aRowIndex,
+  void PaintTwisty(PRInt32              aRowIndex,
                    nsTreeColumn*        aColumn,
                    const nsRect&        aTwistyRect,
                    nsPresContext*      aPresContext,
@@ -202,7 +243,7 @@ protected:
                    nscoord&             aCurrX);
 
   
-  void PaintImage(int32_t              aRowIndex,
+  void PaintImage(PRInt32              aRowIndex,
                   nsTreeColumn*        aColumn,
                   const nsRect&        aImageRect,
                   nsPresContext*      aPresContext,
@@ -212,7 +253,7 @@ protected:
                   nscoord&             aCurrX);
 
   
-  void PaintText(int32_t              aRowIndex, 
+  void PaintText(PRInt32              aRowIndex, 
                  nsTreeColumn*        aColumn,
                  const nsRect&        aTextRect,
                  nsPresContext*      aPresContext,
@@ -222,7 +263,7 @@ protected:
                  bool                 aTextRTL);
 
   
-  void PaintCheckbox(int32_t              aRowIndex, 
+  void PaintCheckbox(PRInt32              aRowIndex, 
                      nsTreeColumn*        aColumn,
                      const nsRect&        aCheckboxRect,
                      nsPresContext*      aPresContext,
@@ -230,7 +271,7 @@ protected:
                      const nsRect&        aDirtyRect);
 
   
-  void PaintProgressMeter(int32_t              aRowIndex, 
+  void PaintProgressMeter(PRInt32              aRowIndex, 
                           nsTreeColumn*        aColumn,
                           const nsRect&        aProgressMeterRect,
                           nsPresContext*      aPresContext,
@@ -253,34 +294,34 @@ protected:
                             const nsRect&        aDirtyRect);
 
 
-  int32_t GetLastVisibleRow() {
+  PRInt32 GetLastVisibleRow() {
     return mTopRowIndex + mPageLength;
   }
 
   
   
-  int32_t GetRowAt(nscoord aX, nscoord aY);
+  PRInt32 GetRowAt(nscoord aX, nscoord aY);
 
   
   
   void CheckTextForBidi(nsAutoString& aText);
 
   void AdjustForCellText(nsAutoString& aText,
-                         int32_t aRowIndex,  nsTreeColumn* aColumn,
+                         PRInt32 aRowIndex,  nsTreeColumn* aColumn,
                          nsRenderingContext& aRenderingContext,
                          nsRect& aTextRect);
 
   
   nsIAtom* GetItemWithinCellAt(nscoord aX, const nsRect& aCellRect,
-                               int32_t aRowIndex, nsTreeColumn* aColumn);
+                               PRInt32 aRowIndex, nsTreeColumn* aColumn);
 
   
   
-  void GetCellAt(nscoord aX, nscoord aY, int32_t* aRow, nsTreeColumn** aCol,
+  void GetCellAt(nscoord aX, nscoord aY, PRInt32* aRow, nsTreeColumn** aCol,
                  nsIAtom** aChildElt);
 
   
-  nsITheme* GetTwistyRect(int32_t aRowIndex,
+  nsITheme* GetTwistyRect(PRInt32 aRowIndex,
                           nsTreeColumn* aColumn,
                           nsRect& aImageRect,
                           nsRect& aTwistyRect,
@@ -289,12 +330,12 @@ protected:
                           nsStyleContext* aTwistyContext);
 
   
-  nsresult GetImage(int32_t aRowIndex, nsTreeColumn* aCol, bool aUseContext,
+  nsresult GetImage(PRInt32 aRowIndex, nsTreeColumn* aCol, bool aUseContext,
                     nsStyleContext* aStyleContext, bool& aAllowImageRegions, imgIContainer** aResult);
 
   
   
-  nsRect GetImageSize(int32_t aRowIndex, nsTreeColumn* aCol, bool aUseContext, nsStyleContext* aStyleContext);
+  nsRect GetImageSize(PRInt32 aRowIndex, nsTreeColumn* aCol, bool aUseContext, nsStyleContext* aStyleContext);
 
   
   nsSize GetImageDestSize(nsStyleContext* aStyleContext, bool useImageRegion, imgIContainer* image);
@@ -303,10 +344,10 @@ protected:
   nsRect GetImageSourceRect(nsStyleContext* aStyleContext, bool useImageRegion, imgIContainer* image);
 
   
-  int32_t GetRowHeight();
+  PRInt32 GetRowHeight();
 
   
-  int32_t GetIndentation();
+  PRInt32 GetIndentation();
 
   
   void CalcInnerBox();
@@ -341,17 +382,17 @@ protected:
 
   
   
-  void PrefillPropertyArray(int32_t aRowIndex, nsTreeColumn* aCol);
+  void PrefillPropertyArray(PRInt32 aRowIndex, nsTreeColumn* aCol);
 
   
-  nsresult ScrollInternal(const ScrollParts& aParts, int32_t aRow);
-  nsresult ScrollToRowInternal(const ScrollParts& aParts, int32_t aRow);
+  nsresult ScrollInternal(const ScrollParts& aParts, PRInt32 aRow);
+  nsresult ScrollToRowInternal(const ScrollParts& aParts, PRInt32 aRow);
   nsresult ScrollToColumnInternal(const ScrollParts& aParts, nsITreeColumn* aCol);
-  nsresult ScrollHorzInternal(const ScrollParts& aParts, int32_t aPosition);
-  nsresult EnsureRowIsVisibleInternal(const ScrollParts& aParts, int32_t aRow);
+  nsresult ScrollHorzInternal(const ScrollParts& aParts, PRInt32 aPosition);
+  nsresult EnsureRowIsVisibleInternal(const ScrollParts& aParts, PRInt32 aRow);
 
   
-  nsPoint AdjustClientCoordsToBoxCoordSpace(int32_t aX, int32_t aY);
+  nsPoint AdjustClientCoordsToBoxCoordSpace(PRInt32 aX, PRInt32 aY);
 
   
   void EnsureBoxObject();
@@ -361,7 +402,7 @@ protected:
   
   nsIContent* GetBaseElement();
 
-  nsresult GetCellWidth(int32_t aRow, nsTreeColumn* aCol,
+  nsresult GetCellWidth(PRInt32 aRow, nsTreeColumn* aCol,
                         nsRenderingContext* aRenderingContext,
                         nscoord& aDesiredSize, nscoord& aCurrentSize);
   nscoord CalcMaxRowWidth();
@@ -373,19 +414,19 @@ protected:
   
   bool OffsetForHorzScroll(nsRect& rect, bool clip);
 
-  bool CanAutoScroll(int32_t aRowIndex);
+  bool CanAutoScroll(PRInt32 aRowIndex);
 
   
   
   
   
-  void ComputeDropPosition(nsGUIEvent* aEvent, int32_t* aRow, int16_t* aOrient,
-                           int16_t* aScrollLines);
+  void ComputeDropPosition(nsGUIEvent* aEvent, PRInt32* aRow, PRInt16* aOrient,
+                           PRInt16* aScrollLines);
 
   
   void MarkDirtyIfSelect();
 
-  void InvalidateDropFeedback(int32_t aRow, int16_t aOrientation) {
+  void InvalidateDropFeedback(PRInt32 aRow, PRInt16 aOrientation) {
     InvalidateRow(aRow);
     if (aOrientation != nsITreeView::DROP_ON)
       InvalidateRow(aRow + aOrientation);
@@ -395,7 +436,7 @@ public:
   static
   already_AddRefed<nsTreeColumn> GetColumnImpl(nsITreeColumn* aUnknownCol) {
     if (!aUnknownCol)
-      return nullptr;
+      return nsnull;
 
     nsTreeColumn* col;
     aUnknownCol->QueryInterface(NS_GET_IID(nsTreeColumn), (void**)&col);
@@ -418,7 +459,7 @@ protected:
   
   
   nsresult CreateTimer(const mozilla::LookAndFeel::IntID aID,
-                       nsTimerCallbackFunc aFunc, int32_t aType,
+                       nsTimerCallbackFunc aFunc, PRInt32 aType,
                        nsITimer** aTimer);
 
   static void OpenCallback(nsITimer *aTimer, void *aClosure);
@@ -433,7 +474,7 @@ protected:
   public:
     NS_DECL_NSIRUNNABLE
     ScrollEvent(nsTreeBodyFrame *aInner) : mInner(aInner) {}
-    void Revoke() { mInner = nullptr; }
+    void Revoke() { mInner = nsnull; }
   private:
     nsTreeBodyFrame* mInner;
   };
@@ -457,7 +498,7 @@ protected:
 
 
 
-  void FireRowCountChangedEvent(int32_t aIndex, int32_t aCount);
+  void FireRowCountChangedEvent(PRInt32 aIndex, PRInt32 aCount);
 
   
 
@@ -473,7 +514,7 @@ protected:
 
 
 
-  void FireInvalidateEvent(int32_t aStartRow, int32_t aEndRow,
+  void FireInvalidateEvent(PRInt32 aStartRow, PRInt32 aEndRow,
                            nsITreeColumn *aStartCol, nsITreeColumn *aEndCol);
 #endif
 
@@ -496,25 +537,24 @@ protected:
       bool                     mDropAllowed;
 
       
-      bool mIsDragging;
+      PRInt32                  mDropRow;
 
       
-      int32_t                  mDropRow;
+      PRInt16                  mDropOrient;
 
       
-      int16_t                  mDropOrient;
+      PRInt16                  mScrollLines;
 
       
-      int16_t                  mScrollLines;
+      PRUint32                 mDragAction;
 
-      
-      uint32_t                 mDragAction;
+      nsCOMPtr<nsIDragSession> mDragSession;
 
       
       nsCOMPtr<nsITimer>       mTimer;
 
       
-      nsTArray<int32_t>        mArray;
+      nsTArray<PRInt32>        mArray;
   };
 
   Slots* mSlots;
@@ -549,8 +589,8 @@ protected:
   
   
   
-  int32_t mTopRowIndex;
-  int32_t mPageLength;
+  PRInt32 mTopRowIndex;
+  PRInt32 mPageLength;
 
   
   nscoord mHorzPosition;
@@ -563,17 +603,17 @@ protected:
 
   
   nsRect mInnerBox; 
-  int32_t mRowHeight;
-  int32_t mIndentation;
+  PRInt32 mRowHeight;
+  PRInt32 mIndentation;
   nscoord mStringWidth;
 
-  int32_t mUpdateBatchNest;
+  PRInt32 mUpdateBatchNest;
 
   
-  int32_t mRowCount;
+  PRInt32 mRowCount;
 
   
-  int32_t mMouseOverRow;
+  PRInt32 mMouseOverRow;
 
   
   bool mFocused;

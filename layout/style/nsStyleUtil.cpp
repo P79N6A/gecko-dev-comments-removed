@@ -3,29 +3,344 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <math.h>
-
-#include "mozilla/Util.h"
-
 #include "nsStyleUtil.h"
 #include "nsCRT.h"
 #include "nsStyleConsts.h"
 
 #include "nsGkAtoms.h"
 #include "nsIContent.h"
+#include "nsIDocument.h"
 #include "nsINameSpaceManager.h"
 #include "nsIURI.h"
 #include "nsNetUtil.h"
 #include "nsReadableUtils.h"
+#include "nsContentUtils.h"
 #include "nsTextFormatter.h"
 #include "nsCSSProps.h"
-#include "nsRuleNode.h"
-
-using namespace mozilla;
 
 
 
 
+
+nscoord
+nsStyleUtil::CalcFontPointSize(PRInt32 aHTMLSize, PRInt32 aBasePointSize,
+                               nsPresContext* aPresContext,
+                               nsFontSizeType aFontSizeType)
+{
+#define sFontSizeTableMin  9 
+#define sFontSizeTableMax 16 
+
+
+
+
+
+
+
+  static PRInt32 sStrictFontSizeTable[sFontSizeTableMax - sFontSizeTableMin + 1][8] =
+  {
+      { 9,    9,     9,     9,    11,    14,    18,    27},
+      { 9,    9,     9,    10,    12,    15,    20,    30},
+      { 9,    9,    10,    11,    13,    17,    22,    33},
+      { 9,    9,    10,    12,    14,    18,    24,    36},
+      { 9,   10,    12,    13,    16,    20,    26,    39},
+      { 9,   10,    12,    14,    17,    21,    28,    42},
+      { 9,   10,    13,    15,    18,    23,    30,    45},
+      { 9,   10,    13,    16,    18,    24,    32,    48}
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static PRInt32 sQuirksFontSizeTable[sFontSizeTableMax - sFontSizeTableMin + 1][8] =
+  {
+      { 9,    9,     9,     9,    11,    14,    18,    28 },
+      { 9,    9,     9,    10,    12,    15,    20,    31 },
+      { 9,    9,     9,    11,    13,    17,    22,    34 },
+      { 9,    9,    10,    12,    14,    18,    24,    37 },
+      { 9,    9,    10,    13,    16,    20,    26,    40 }, 
+      { 9,    9,    11,    14,    17,    21,    28,    42 },
+      { 9,   10,    12,    15,    17,    23,    30,    45 },
+      { 9,   10,    13,    16,    18,    24,    32,    48 }  
+  };
+
+
+
+
+
+#if 0
+
+
+
+      { ?,    8,    11,    12,    13,    16,    21,    32 }, 
+      { ?,    9,    12,    13,    16,    21,    27,    40 }, 
+      { ?,   10,    13,    16,    18,    24,    32,    48 }, 
+      { ?,   13,    16,    19,    21,    27,    37,    ?? }, 
+      { ?,   16,    19,    21,    24,    32,    43,    ?? }  
+
+
+
+
+
+
+#endif
+
+  static PRInt32 sFontSizeFactors[8] = { 60,75,89,100,120,150,200,300 };
+
+  static PRInt32 sCSSColumns[7]  = {0, 1, 2, 3, 4, 5, 6}; 
+  static PRInt32 sHTMLColumns[7] = {1, 2, 3, 4, 5, 6, 7}; 
+
+  double dFontSize;
+
+  if (aFontSizeType == eFontSize_HTML) {
+    aHTMLSize--;    
+  }
+
+  if (aHTMLSize < 0)
+    aHTMLSize = 0;
+  else if (aHTMLSize > 6)
+    aHTMLSize = 6;
+
+  PRInt32* column;
+  switch (aFontSizeType)
+  {
+    case eFontSize_HTML: column = sHTMLColumns; break;
+    case eFontSize_CSS:  column = sCSSColumns;  break;
+  }
+
+  
+  PRInt32 fontSize = nsPresContext::AppUnitsToIntCSSPixels(aBasePointSize);
+
+  if ((fontSize >= sFontSizeTableMin) && (fontSize <= sFontSizeTableMax))
+  {
+    PRInt32 row = fontSize - sFontSizeTableMin;
+
+    if (aPresContext->CompatibilityMode() == eCompatibility_NavQuirks) {
+      dFontSize = nsPresContext::CSSPixelsToAppUnits(sQuirksFontSizeTable[row][column[aHTMLSize]]);
+    } else {
+      dFontSize = nsPresContext::CSSPixelsToAppUnits(sStrictFontSizeTable[row][column[aHTMLSize]]);
+    }
+  }
+  else
+  {
+    PRInt32 factor = sFontSizeFactors[column[aHTMLSize]];
+    dFontSize = (factor * aBasePointSize) / 100;
+  }
+
+
+  if (1.0 < dFontSize) {
+    return (nscoord)dFontSize;
+  }
+  return (nscoord)1;
+}
+
+
+
+
+
+
+nscoord nsStyleUtil::FindNextSmallerFontSize(nscoord aFontSize, PRInt32 aBasePointSize, 
+                                             nsPresContext* aPresContext,
+                                             nsFontSizeType aFontSizeType)
+{
+  PRInt32 index;
+  PRInt32 indexMin;
+  PRInt32 indexMax;
+  float relativePosition;
+  nscoord smallerSize;
+  nscoord indexFontSize = aFontSize; 
+  nscoord smallestIndexFontSize;
+  nscoord largestIndexFontSize;
+  nscoord smallerIndexFontSize;
+  nscoord largerIndexFontSize;
+
+  nscoord onePx = nsPresContext::CSSPixelsToAppUnits(1);
+
+  if (aFontSizeType == eFontSize_HTML) {
+    indexMin = 1;
+    indexMax = 7;
+  } else {
+    indexMin = 0;
+    indexMax = 6;
+  }
+  
+  smallestIndexFontSize = CalcFontPointSize(indexMin, aBasePointSize, aPresContext, aFontSizeType);
+  largestIndexFontSize = CalcFontPointSize(indexMax, aBasePointSize, aPresContext, aFontSizeType); 
+  if (aFontSize > smallestIndexFontSize) {
+    if (aFontSize < NSToCoordRound(float(largestIndexFontSize) * 1.5)) { 
+      
+      for (index = indexMax; index >= indexMin; index--) {
+        indexFontSize = CalcFontPointSize(index, aBasePointSize, aPresContext, aFontSizeType);
+        if (indexFontSize < aFontSize)
+          break;
+      } 
+      
+      if (indexFontSize == smallestIndexFontSize) {
+        smallerIndexFontSize = indexFontSize - onePx;
+        largerIndexFontSize = CalcFontPointSize(index+1, aBasePointSize, aPresContext, aFontSizeType);
+      } else if (indexFontSize == largestIndexFontSize) {
+        smallerIndexFontSize = CalcFontPointSize(index-1, aBasePointSize, aPresContext, aFontSizeType);
+        largerIndexFontSize = NSToCoordRound(float(largestIndexFontSize) * 1.5);
+      } else {
+        smallerIndexFontSize = CalcFontPointSize(index-1, aBasePointSize, aPresContext, aFontSizeType);
+        largerIndexFontSize = CalcFontPointSize(index+1, aBasePointSize, aPresContext, aFontSizeType);
+      }
+      
+      relativePosition = float(aFontSize - indexFontSize) / float(largerIndexFontSize - indexFontSize);            
+      
+      smallerSize = smallerIndexFontSize + NSToCoordRound(relativePosition * (indexFontSize - smallerIndexFontSize));      
+    }
+    else {  
+      smallerSize = NSToCoordRound(float(aFontSize) / 1.5);
+    }
+  }
+  else { 
+    smallerSize = NS_MAX(aFontSize - onePx, onePx);
+  }
+  return smallerSize;
+}
+
+
+
+
+
+nscoord nsStyleUtil::FindNextLargerFontSize(nscoord aFontSize, PRInt32 aBasePointSize, 
+                                            nsPresContext* aPresContext,
+                                            nsFontSizeType aFontSizeType)
+{
+  PRInt32 index;
+  PRInt32 indexMin;
+  PRInt32 indexMax;
+  float relativePosition;
+  nscoord adjustment;
+  nscoord largerSize;
+  nscoord indexFontSize = aFontSize; 
+  nscoord smallestIndexFontSize;
+  nscoord largestIndexFontSize;
+  nscoord smallerIndexFontSize;
+  nscoord largerIndexFontSize;
+
+  nscoord onePx = nsPresContext::CSSPixelsToAppUnits(1);
+
+  if (aFontSizeType == eFontSize_HTML) {
+    indexMin = 1;
+    indexMax = 7;
+  } else {
+    indexMin = 0;
+    indexMax = 6;
+  }
+  
+  smallestIndexFontSize = CalcFontPointSize(indexMin, aBasePointSize, aPresContext, aFontSizeType);
+  largestIndexFontSize = CalcFontPointSize(indexMax, aBasePointSize, aPresContext, aFontSizeType); 
+  if (aFontSize > (smallestIndexFontSize - onePx)) {
+    if (aFontSize < largestIndexFontSize) { 
+      
+      for (index = indexMin; index <= indexMax; index++) { 
+        indexFontSize = CalcFontPointSize(index, aBasePointSize, aPresContext, aFontSizeType);
+        if (indexFontSize > aFontSize)
+          break;
+      }
+      
+      if (indexFontSize == smallestIndexFontSize) {
+        smallerIndexFontSize = indexFontSize - onePx;
+        largerIndexFontSize = CalcFontPointSize(index+1, aBasePointSize, aPresContext, aFontSizeType);
+      } else if (indexFontSize == largestIndexFontSize) {
+        smallerIndexFontSize = CalcFontPointSize(index-1, aBasePointSize, aPresContext, aFontSizeType);
+        largerIndexFontSize = NSCoordSaturatingMultiply(largestIndexFontSize, 1.5);
+      } else {
+        smallerIndexFontSize = CalcFontPointSize(index-1, aBasePointSize, aPresContext, aFontSizeType);
+        largerIndexFontSize = CalcFontPointSize(index+1, aBasePointSize, aPresContext, aFontSizeType);
+      }
+      
+      relativePosition = float(aFontSize - smallerIndexFontSize) / float(indexFontSize - smallerIndexFontSize);
+      
+      adjustment = NSCoordSaturatingNonnegativeMultiply(largerIndexFontSize - indexFontSize, relativePosition);
+      largerSize = NSCoordSaturatingAdd(indexFontSize, adjustment);
+    }
+    else {  
+      largerSize = NSCoordSaturatingMultiply(aFontSize, 1.5);
+    }
+  }
+  else { 
+    largerSize = NSCoordSaturatingAdd(aFontSize, onePx);
+  }
+  return largerSize;
+}
+
+
+
+
+
+PRInt32 
+nsStyleUtil::ConstrainFontWeight(PRInt32 aWeight)
+{
+  aWeight = ((aWeight < 100) ? 100 : ((aWeight > 900) ? 900 : aWeight));
+  PRInt32 base = ((aWeight / 100) * 100);
+  PRInt32 step = (aWeight % 100);
+  bool    negativeStep = bool(50 < step);
+  PRInt32 maxStep;
+  if (negativeStep) {
+    step = 100 - step;
+    maxStep = (base / 100);
+    base += 100;
+  }
+  else {
+    maxStep = ((900 - base) / 100);
+  }
+  if (maxStep < step) {
+    step = maxStep;
+  }
+  return (base + ((negativeStep) ? -step : step));
+}
 
 
 bool nsStyleUtil::DashMatchCompare(const nsAString& aAttributeValue,
@@ -33,10 +348,10 @@ bool nsStyleUtil::DashMatchCompare(const nsAString& aAttributeValue,
                                      const nsStringComparator& aComparator)
 {
   bool result;
-  uint32_t selectorLen = aSelectorValue.Length();
-  uint32_t attributeLen = aAttributeValue.Length();
+  PRUint32 selectorLen = aSelectorValue.Length();
+  PRUint32 attributeLen = aAttributeValue.Length();
   if (selectorLen > attributeLen) {
-    result = false;
+    result = PR_FALSE;
   }
   else {
     nsAString::const_iterator iter;
@@ -46,7 +361,7 @@ bool nsStyleUtil::DashMatchCompare(const nsAString& aAttributeValue,
       
       
       
-      result = false;
+      result = PR_FALSE;
     }
     else {
       result = StringBeginsWith(aAttributeValue, aSelectorValue, aComparator);
@@ -74,7 +389,7 @@ void nsStyleUtil::AppendEscapedCSSString(const nsString& aString,
 
 
      PRUnichar buf[5];
-     nsTextFormatter::snprintf(buf, ArrayLength(buf), NS_LITERAL_STRING("\\%hX ").get(), *in);
+     nsTextFormatter::snprintf(buf, NS_ARRAY_LENGTH(buf), NS_LITERAL_STRING("\\%hX ").get(), *in);
      aReturn.Append(buf);
    
     } else switch (*in) {
@@ -115,7 +430,7 @@ nsStyleUtil::AppendEscapedCSSIdent(const nsString& aIdent, nsAString& aReturn)
   }
 
   bool first = true;
-  for (; in != end; ++in, first = false)
+  for (; in != end; ++in, first = PR_FALSE)
   {
     if (*in < 0x20 || (first && '0' <= *in && *in <= '9'))
     {
@@ -130,7 +445,7 @@ nsStyleUtil::AppendEscapedCSSIdent(const nsString& aIdent, nsAString& aReturn)
 
 
       PRUnichar buf[5];
-      nsTextFormatter::snprintf(buf, ArrayLength(buf),
+      nsTextFormatter::snprintf(buf, NS_ARRAY_LENGTH(buf),
                                 NS_LITERAL_STRING("\\%hX ").get(), *in);
       aReturn.Append(buf);
     } else {
@@ -151,12 +466,12 @@ nsStyleUtil::AppendEscapedCSSIdent(const nsString& aIdent, nsAString& aReturn)
 
  void
 nsStyleUtil::AppendBitmaskCSSValue(nsCSSProperty aProperty,
-                                   int32_t aMaskedValue,
-                                   int32_t aFirstMask,
-                                   int32_t aLastMask,
+                                   PRInt32 aMaskedValue,
+                                   PRInt32 aFirstMask,
+                                   PRInt32 aLastMask,
                                    nsAString& aResult)
 {
-  for (int32_t mask = aFirstMask; mask <= aLastMask; mask <<= 1) {
+  for (PRInt32 mask = aFirstMask; mask <= aLastMask; mask <<= 1) {
     if (mask & aMaskedValue) {
       AppendASCIItoUTF16(nsCSSProps::LookupPropertyValue(aProperty, mask),
                          aResult);
@@ -169,61 +484,8 @@ nsStyleUtil::AppendBitmaskCSSValue(nsCSSProperty aProperty,
   NS_ABORT_IF_FALSE(aMaskedValue == 0, "unexpected bit remaining in bitfield");
 }
 
- void
-nsStyleUtil::AppendFontFeatureSettings(const nsTArray<gfxFontFeature>& aFeatures,
-                                       nsAString& aResult)
-{
-  for (uint32_t i = 0, numFeat = aFeatures.Length(); i < numFeat; i++) {
-    const gfxFontFeature& feat = aFeatures[i];
-
-    if (i != 0) {
-        aResult.AppendLiteral(", ");
-    }
-
-    
-    char tag[7];
-    tag[0] = '"';
-    tag[1] = (feat.mTag >> 24) & 0xff;
-    tag[2] = (feat.mTag >> 16) & 0xff;
-    tag[3] = (feat.mTag >> 8) & 0xff;
-    tag[4] = feat.mTag & 0xff;
-    tag[5] = '"';
-    tag[6] = 0;
-    aResult.AppendASCII(tag);
-
-    
-    if (feat.mValue == 0) {
-      
-      aResult.AppendLiteral(" off");
-    } else if (feat.mValue > 1) {
-      aResult.AppendLiteral(" ");
-      aResult.AppendInt(feat.mValue);
-    }
-    
-  }
-}
-
- void
-nsStyleUtil::AppendFontFeatureSettings(const nsCSSValue& aSrc,
-                                       nsAString& aResult)
-{
-  nsCSSUnit unit = aSrc.GetUnit();
-
-  if (unit == eCSSUnit_Normal) {
-    aResult.AppendLiteral("normal");
-    return;
-  }
-
-  NS_PRECONDITION(unit == eCSSUnit_PairList || unit == eCSSUnit_PairListDep,
-                  "improper value unit for font-feature-settings:");
-
-  nsTArray<gfxFontFeature> featureSettings;
-  nsRuleNode::ComputeFontFeatures(aSrc.GetPairListValue(), featureSettings);
-  AppendFontFeatureSettings(featureSettings, aResult);
-}
-
  float
-nsStyleUtil::ColorComponentToFloat(uint8_t aAlpha)
+nsStyleUtil::ColorComponentToFloat(PRUint8 aAlpha)
 {
   
   
@@ -248,7 +510,7 @@ nsStyleUtil::IsSignificantChild(nsIContent* aChild, bool aTextIsSignificant,
 
   if (!isText && !aChild->IsNodeOfType(nsINode::eCOMMENT) &&
       !aChild->IsNodeOfType(nsINode::ePROCESSING_INSTRUCTION)) {
-    return true;
+    return PR_TRUE;
   }
 
   return aTextIsSignificant && isText && aChild->TextLength() != 0 &&

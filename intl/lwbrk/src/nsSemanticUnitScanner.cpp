@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSemanticUnitScanner.h"
 #include "prmem.h"
 
@@ -27,7 +59,7 @@ NS_IMETHODIMP nsSemanticUnitScanner::Start(const char *characterSet)
 }
 
 
-NS_IMETHODIMP nsSemanticUnitScanner::Next(const PRUnichar *text, int32_t length, int32_t pos, bool isLastBuffer, int32_t *begin, int32_t *end, bool *_retval)
+NS_IMETHODIMP nsSemanticUnitScanner::Next(const PRUnichar *text, PRInt32 length, PRInt32 pos, bool isLastBuffer, PRInt32 *begin, PRInt32 *end, bool *_retval)
 {
     
     
@@ -36,24 +68,24 @@ NS_IMETHODIMP nsSemanticUnitScanner::Next(const PRUnichar *text, int32_t length,
     if (pos >= length) {
        *begin = pos;
        *end = pos;
-       *_retval = false;
+       *_retval = PR_FALSE;
        return NS_OK;
     }
 
-    uint8_t char_class = nsSampleWordBreaker::GetClass(text[pos]);
+    PRUint8 char_class = nsSampleWordBreaker::GetClass(text[pos]);
 
     
     
     if (kWbClassHanLetter == char_class) {
        *begin = pos;
        *end = pos+1;
-       *_retval = true;
+       *_retval = PR_TRUE;
        return NS_OK;
     }
 
-    int32_t next;
+    PRInt32 next;
     
-    next = NextWord(text, (uint32_t) length, (uint32_t) pos);
+    next = NextWord(text, (PRUint32) length, (PRUint32) pos);
 
     
     if (next == NS_WORDBREAKER_NEED_MORE_TEXT) {
@@ -73,7 +105,7 @@ NS_IMETHODIMP nsSemanticUnitScanner::Next(const PRUnichar *text, int32_t length,
     
     *begin = pos;
     *end = next;
-    *_retval = true;
+    *_retval = PR_TRUE;
     return NS_OK;
 }
 

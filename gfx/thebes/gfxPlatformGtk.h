@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_PLATFORM_GTK_H
 #define GFX_PLATFORM_GTK_H
 
@@ -10,11 +43,9 @@
 #include "nsAutoRef.h"
 #include "nsTArray.h"
 
-#if (MOZ_WIDGET_GTK == 2)
 extern "C" {
     typedef struct _GdkDrawable GdkDrawable;
 }
-#endif
 
 class gfxFontconfigUtils;
 #ifndef MOZ_PANGO
@@ -34,9 +65,6 @@ public:
 
     already_AddRefed<gfxASurface> CreateOffscreenSurface(const gfxIntSize& size,
                                                          gfxASurface::gfxContentType contentType);
-
-    mozilla::RefPtr<mozilla::gfx::ScaledFont>
-      GetScaledFontForFont(mozilla::gfx::DrawTarget* aTarget, gfxFont *aFont);
 
     nsresult GetFontList(nsIAtom *aLangGroup,
                          const nsACString& aGenericFamily,
@@ -67,21 +95,21 @@ public:
 
 
     virtual gfxFontEntry* MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
-                                           const uint8_t *aFontData,
-                                           uint32_t aLength);
+                                           const PRUint8 *aFontData,
+                                           PRUint32 aLength);
 
     
 
 
 
     virtual bool IsFontFormatSupported(nsIURI *aFontURI,
-                                         uint32_t aFormatFlags);
+                                         PRUint32 aFormatFlags);
 #endif
 
 #ifndef MOZ_PANGO
     FontFamily *FindFontFamily(const nsAString& aName);
     FontEntry *FindFontEntry(const nsAString& aFamilyName, const gfxFontStyle& aFontStyle);
-    already_AddRefed<gfxFont> FindFontForChar(uint32_t aCh, gfxFont *aFont);
+    already_AddRefed<gfxFont> FindFontForChar(PRUint32 aCh, gfxFont *aFont);
     bool GetPrefFontEntries(const nsCString& aLangGroup, nsTArray<nsRefPtr<gfxFontEntry> > *aFontEntryList);
     void SetPrefFontEntries(const nsCString& aLangGroup, nsTArray<nsRefPtr<gfxFontEntry> >& aFontEntryList);
 #endif
@@ -90,15 +118,13 @@ public:
     FT_Library GetFTLibrary();
 #endif
 
-#if (MOZ_WIDGET_GTK == 2)
     static void SetGdkDrawable(gfxASurface *target,
                                GdkDrawable *drawable);
     static GdkDrawable *GetGdkDrawable(gfxASurface *target);
-#endif
 
-    static int32_t GetDPI();
+    static PRInt32 GetDPI();
 
-    static bool UseXRender() {
+    static bool UseClientSideRendering() {
 #if defined(MOZ_X11) && defined(MOZ_PLATFORM_MAEMO)
         
         
@@ -109,11 +135,9 @@ public:
         
         
         
-        return true;
-#elif defined(MOZ_X11)
-        return sUseXRender;
+        return PR_TRUE;
 #else
-        return false;
+        return PR_FALSE;
 #endif
     }
 
@@ -124,9 +148,6 @@ protected:
 
 private:
     virtual qcms_profile *GetPlatformCMSOutputProfile();
-#ifdef MOZ_X11
-    static bool sUseXRender;
-#endif
 };
 
 #endif 

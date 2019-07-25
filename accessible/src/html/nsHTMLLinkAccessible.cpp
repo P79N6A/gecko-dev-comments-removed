@@ -77,7 +77,7 @@ nsHTMLLinkAccessible::NativeState()
 
   states  &= ~states::READONLY;
 
-  if (mContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::name)) {
+  if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::name)) {
     
     
     
@@ -178,7 +178,7 @@ nsHTMLLinkAccessible::AnchorURIAt(PRUint32 aAnchorIndex)
 
 
 
-PRBool
+bool
 nsHTMLLinkAccessible::IsLinked()
 {
   if (IsDefunct())

@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsGeoLocation_h
 #define nsGeoLocation_h
 
@@ -25,15 +57,15 @@
 #include "nsIDOMGeoPositionError.h"
 #include "nsIDOMGeoPositionCallback.h"
 #include "nsIDOMGeoPositionErrorCallback.h"
+#include "nsIDOMGeoPositionOptions.h"
 #include "nsIDOMNavigatorGeolocation.h"
 
 #include "nsPIDOMWindow.h"
 
 #include "nsIGeolocationProvider.h"
 #include "nsIContentPermissionPrompt.h"
-#include "DictionaryHelpers.h"
+
 #include "PCOMContentPermissionRequestChild.h"
-#include "mozilla/Attributes.h"
 
 class nsGeolocationService;
 class nsGeolocation;
@@ -53,8 +85,9 @@ class nsGeolocationRequest
   nsGeolocationRequest(nsGeolocation* locator,
                        nsIDOMGeoPositionCallback* callback,
                        nsIDOMGeoPositionErrorCallback* errorCallback,
+                       nsIDOMGeoPositionOptions* options,
                        bool watchPositionRequest = false);
-  nsresult Init(JSContext* aCx, const jsval& aOptions);
+  nsresult Init();
   void Shutdown();
 
   
@@ -73,7 +106,7 @@ class nsGeolocationRequest
 
  private:
 
-  void NotifyError(int16_t errorCode);
+  void NotifyError(PRInt16 errorCode);
   bool mAllowed;
   bool mCleared;
   bool mIsWatchPositionRequest;
@@ -81,7 +114,7 @@ class nsGeolocationRequest
   nsCOMPtr<nsITimer> mTimeoutTimer;
   nsCOMPtr<nsIDOMGeoPositionCallback> mCallback;
   nsCOMPtr<nsIDOMGeoPositionErrorCallback> mErrorCallback;
-  nsAutoPtr<mozilla::dom::GeoPositionOptions> mOptions;
+  nsCOMPtr<nsIDOMGeoPositionOptions> mOptions;
 
   nsRefPtr<nsGeolocation> mLocator;
 };
@@ -89,7 +122,7 @@ class nsGeolocationRequest
 
 
 
-class nsGeolocationService MOZ_FINAL : public nsIGeolocationUpdate, public nsIObserver
+class nsGeolocationService : public nsIGeolocationUpdate, public nsIObserver
 {
 public:
 
@@ -101,13 +134,9 @@ public:
   NS_DECL_NSIGEOLOCATIONUPDATE
   NS_DECL_NSIOBSERVER
 
-  nsGeolocationService() {
-      mHigherAccuracy = false;
-  }
+  nsGeolocationService() {mTimeout = 6000;};
 
   nsresult Init();
-
-  void HandleMozsettingChanged(const PRUnichar* aData);
 
   
   void AddLocator(nsGeolocation* locator);
@@ -125,9 +154,6 @@ public:
   
   void     SetDisconnectTimer();
 
-  
-  void     SetHigherAccuracy(bool aEnable);
-
 private:
 
   ~nsGeolocationService();
@@ -136,6 +162,9 @@ private:
   
   
   nsCOMPtr<nsITimer> mDisconnectTimer;
+
+  
+  PRInt32 mTimeout;
 
   
   nsCOMArray<nsIGeolocationProvider> mProviders;
@@ -147,16 +176,13 @@ private:
 
   
   nsCOMPtr<nsIDOMGeoPosition> mLastPosition;
-
-  
-  bool mHigherAccuracy;
 };
 
 
 
 
  
-class nsGeolocation MOZ_FINAL : public nsIDOMGeoGeolocation
+class nsGeolocation : public nsIDOMGeoGeolocation
 {
 public:
 
@@ -167,7 +193,7 @@ public:
 
   nsGeolocation();
 
-  nsresult Init(nsIDOMWindow* contentDom=nullptr);
+  nsresult Init(nsIDOMWindow* contentDom=nsnull);
 
   
   void Update(nsIDOMGeoPosition* aPosition);
@@ -182,7 +208,7 @@ public:
   void Shutdown();
 
   
-  nsIPrincipal* GetPrincipal() { return mPrincipal; }
+  nsIURI* GetURI() { return mURI; }
 
   
   nsIWeakReference* GetOwner() { return mOwner; }
@@ -208,7 +234,7 @@ private:
   nsWeakPtr mOwner;
 
   
-  nsCOMPtr<nsIPrincipal> mPrincipal;
+  nsCOMPtr<nsIURI> mURI;
 
   
   nsRefPtr<nsGeolocationService> mService;

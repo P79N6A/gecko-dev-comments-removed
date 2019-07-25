@@ -11,7 +11,37 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsPluginsDir.h"
 #include "prlink.h"
@@ -23,10 +53,9 @@
 #include "winbase.h"
 
 #include "nsString.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "nsUnicharUtils.h"
-
-using namespace mozilla;
+#include "nsSetDllDirectory.h"
 
 
 
@@ -39,17 +68,17 @@ static char* GetKeyValue(void* verbuf, const WCHAR* key,
   WCHAR *buf = NULL;
   UINT blen;
 
-  if (_snwprintf_s(keybuf, ArrayLength(keybuf), _TRUNCATE,
+  if (_snwprintf_s(keybuf, NS_ARRAY_LENGTH(keybuf), _TRUNCATE,
                    keyFormat, language, codepage, key) < 0)
   {
     NS_NOTREACHED("plugin info key too long for buffer!");
-    return nullptr;
+    return nsnull;
   }
 
   if (::VerQueryValueW(verbuf, keybuf, (void **)&buf, &blen) == 0 ||
-      buf == nullptr || blen == 0)
+      buf == nsnull || blen == 0)
   {
-    return nullptr;
+    return nsnull;
   }
 
   return PL_strdup(NS_ConvertUTF16toUTF8(buf, blen).get());
@@ -70,12 +99,12 @@ static char* GetVersion(void* verbuf)
                        LOWORD(fileInfo->dwFileVersionLS));
   }
 
-  return nullptr;
+  return nsnull;
 }
 
-static uint32_t CalculateVariantCount(char* mimeTypes)
+static PRUint32 CalculateVariantCount(char* mimeTypes)
 {
-  uint32_t variants = 1;
+  PRUint32 variants = 1;
 
   if (!mimeTypes)
     return 0;
@@ -90,7 +119,7 @@ static uint32_t CalculateVariantCount(char* mimeTypes)
   return variants;
 }
 
-static char** MakeStringArray(uint32_t variants, char* data)
+static char** MakeStringArray(PRUint32 variants, char* data)
 {
   
   
@@ -107,7 +136,7 @@ static char** MakeStringArray(uint32_t variants, char* data)
 
   char * start = data;
 
-  for (uint32_t i = 0; i < variants; i++) {
+  for (PRUint32 i = 0; i < variants; i++) {
     char * p = PL_strchr(start, '|');
     if (p)
       *p = 0;
@@ -128,12 +157,12 @@ static char** MakeStringArray(uint32_t variants, char* data)
   return array;
 }
 
-static void FreeStringArray(uint32_t variants, char ** array)
+static void FreeStringArray(PRUint32 variants, char ** array)
 {
   if ((variants == 0) || !array)
     return;
 
-  for (uint32_t i = 0; i < variants; i++) {
+  for (PRUint32 i = 0; i < variants; i++) {
     if (array[i]) {
       PL_strfree(array[i]);
       array[i] = NULL;
@@ -188,7 +217,7 @@ static bool CanLoadPlugin(const PRUnichar* aBinaryPath)
 
 bool nsPluginsDir::IsPluginFile(nsIFile* file)
 {
-  nsAutoCString path;
+  nsCAutoString path;
   if (NS_FAILED(file->GetNativePath(path)))
     return false;
 
@@ -205,8 +234,8 @@ bool nsPluginsDir::IsPluginFile(nsIFile* file)
   if (extension)
     ++extension;
 
-  uint32_t fullLength = PL_strlen(filename);
-  uint32_t extLength = PL_strlen(extension);
+  PRUint32 fullLength = PL_strlen(filename);
+  PRUint32 extLength = PL_strlen(extension);
   if (fullLength >= 7 && extLength == 3) {
     if (!PL_strncasecmp(filename, "np", 2) && !PL_strncasecmp(extension, "dll", 3)) {
       
@@ -239,15 +268,17 @@ nsPluginFile::~nsPluginFile()
 
 nsresult nsPluginFile::LoadPlugin(PRLibrary **outLibrary)
 {
-  if (!mPlugin)
+  nsCOMPtr<nsILocalFile> plugin = do_QueryInterface(mPlugin);
+
+  if (!plugin)
     return NS_ERROR_NULL_POINTER;
 
   bool protectCurrentDirectory = true;
 
   nsAutoString pluginFolderPath;
-  mPlugin->GetPath(pluginFolderPath);
+  plugin->GetPath(pluginFolderPath);
 
-  int32_t idx = pluginFolderPath.RFindChar('\\');
+  PRInt32 idx = pluginFolderPath.RFindChar('\\');
   if (kNotFound == idx)
     return NS_ERROR_FILE_INVALID_PATH;
 
@@ -268,15 +299,15 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary **outLibrary)
   }
 
   if (protectCurrentDirectory) {
-    SetDllDirectory(NULL);
+    mozilla::NS_SetDllDirectory(NULL);
   }
 
-  nsresult rv = mPlugin->Load(outLibrary);
+  nsresult rv = plugin->Load(outLibrary);
   if (NS_FAILED(rv))
       *outLibrary = NULL;
 
   if (protectCurrentDirectory) {
-    SetDllDirectory(L"");
+    mozilla::NS_SetDllDirectory(L"");
   }
 
   if (restoreOrigDir) {
@@ -292,11 +323,11 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary **outLibrary)
 
 nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info, PRLibrary **outLibrary)
 {
-  *outLibrary = nullptr;
+  *outLibrary = nsnull;
 
   nsresult rv = NS_OK;
   DWORD zerome, versionsize;
-  void* verbuf = nullptr;
+  void* verbuf = nsnull;
 
   if (!mPlugin)
     return NS_ERROR_NULL_POINTER;

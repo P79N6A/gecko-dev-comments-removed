@@ -3,15 +3,44 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsSVGStylableElement.h"
 #include "nsIDOMSVGStopElement.h"
 #include "nsSVGNumber2.h"
 #include "nsSVGUtils.h"
 #include "nsGenericHTMLElement.h"
-
-using namespace mozilla;
 
 typedef nsSVGStylableElement nsSVGStopElementBase;
 
@@ -41,8 +70,6 @@ public:
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 protected:
 
   virtual NumberAttributesInfo GetNumberInfo();
@@ -52,7 +79,7 @@ protected:
 };
 
 nsSVGElement::NumberInfo nsSVGStopElement::sNumberInfo =
-{ &nsGkAtoms::offset, 0, true };
+{ &nsGkAtoms::offset, 0, PR_TRUE };
 
 NS_IMPL_NS_NEW_SVG_ELEMENT(Stop)
 
@@ -112,7 +139,7 @@ nsSVGStopElement::IsAttributeMapped(const nsIAtom* name) const
     sGradientStopMap
   };
   
-  return FindAttributeDependence(name, map) ||
+  return FindAttributeDependence(name, map, NS_ARRAY_LENGTH(map)) ||
     nsSVGStopElementBase::IsAttributeMapped(name);
 }
 

@@ -3,21 +3,50 @@
 
 
 
-#include "nsCaseTreatment.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsComposeTxtSrvFilter.h"
-#include "nsError.h"                    
-#include "nsIContent.h"                 
-#include "nsID.h"
-#include "nsIDOMNode.h"                 
-#include "nsINameSpaceManager.h"        
-#include "nsLiteralString.h"            
-#include "nscore.h"                     
+#include "nsIContent.h"
+#include "nsIDOMNode.h"
+#include "nsString.h"
+#include "nsINameSpaceManager.h"
 
 nsComposeTxtSrvFilter::nsComposeTxtSrvFilter() :
-  mIsForMail(false)
+  mIsForMail(PR_FALSE)
 {
 
   mBlockQuoteAtom  = do_GetAtom("blockquote");
+  mPreAtom         = do_GetAtom("pre");
   mSpanAtom        = do_GetAtom("span");
   mTableAtom       = do_GetAtom("table");
   mMozQuoteAtom    = do_GetAtom("_moz_quote");
@@ -37,7 +66,7 @@ NS_IMPL_ISUPPORTS1(nsComposeTxtSrvFilter, nsITextServicesFilter)
 NS_IMETHODIMP 
 nsComposeTxtSrvFilter::Skip(nsIDOMNode* aNode, bool *_retval)
 {
-  *_retval = false;
+  *_retval = PR_FALSE;
 
   
   
@@ -50,7 +79,7 @@ nsComposeTxtSrvFilter::Skip(nsIDOMNode* aNode, bool *_retval)
         *_retval = content->AttrValueIs(kNameSpaceID_None, mTypeAtom,
                                         mCiteAtom, eIgnoreCase);
       }
-    } else if (tag == mSpanAtom) {
+    } else if (tag == mPreAtom || tag == mSpanAtom) {
       if (mIsForMail) {
         *_retval = content->AttrValueIs(kNameSpaceID_None, mMozQuoteAtom,
                                         mTrueAtom, eIgnoreCase);
@@ -63,7 +92,7 @@ nsComposeTxtSrvFilter::Skip(nsIDOMNode* aNode, bool *_retval)
                tag == mTextAreaAtom ||
                tag == mSelectAreaAtom ||
                tag == mMapAtom) {
-      *_retval = true;
+      *_retval = PR_TRUE;
     } else if (tag == mTableAtom) {
       if (mIsForMail) {
         *_retval =

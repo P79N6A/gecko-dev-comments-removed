@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIAtom.h"
 #include "nsParser.h"
 #include "nsString.h"
@@ -14,7 +47,7 @@
 #include "nsIChannel.h"
 #include "nsICachingChannel.h"
 #include "nsICacheEntryDescriptor.h"
-#include "nsCharsetAlias.h"
+#include "nsICharsetAlias.h"
 #include "nsICharsetConverterManager.h"
 #include "nsIInputStream.h"
 #include "CNavDTD.h"
@@ -31,22 +64,24 @@
 #include "nsIFragmentContentSink.h"
 #include "nsStreamUtils.h"
 #include "nsHTMLTokenizer.h"
+#include "nsIDocument.h"
 #include "nsNetUtil.h"
 #include "nsScriptLoader.h"
 #include "nsDataHashtable.h"
 #include "nsIThreadPool.h"
 #include "nsXPCOMCIDInternal.h"
 #include "nsMimeTypes.h"
+#include "nsViewSourceHTML.h"
 #include "mozilla/CondVar.h"
 #include "mozilla/Mutex.h"
 #include "nsParserConstants.h"
-#include "nsCharsetSource.h"
 
 using namespace mozilla;
 
 #define NS_PARSER_FLAG_PARSER_ENABLED         0x00000002
 #define NS_PARSER_FLAG_OBSERVERS_ENABLED      0x00000004
 #define NS_PARSER_FLAG_PENDING_CONTINUE_EVENT 0x00000008
+#define NS_PARSER_FLAG_CAN_INTERRUPT          0x00000010
 #define NS_PARSER_FLAG_FLUSH_TOKENS           0x00000020
 #define NS_PARSER_FLAG_CAN_TOKENIZE           0x00000040
 
@@ -128,7 +163,503 @@ public:
 
 
 
-nsICharsetConverterManager* nsParser::sCharsetConverterManager = nullptr;
+template <class Type>
+class Holder {
+public:
+  typedef void (*Reaper)(Type *);
+
+  Holder(Reaper aReaper)
+    : mHoldee(nsnull), mReaper(aReaper)
+  {
+  }
+
+  ~Holder() {
+    if (mHoldee) {
+      mReaper(mHoldee);
+    }
+  }
+
+  Type *get() {
+    return mHoldee;
+  }
+  const Holder &operator =(Type *aHoldee) {
+    if (mHoldee && aHoldee != mHoldee) {
+      mReaper(mHoldee);
+    }
+    mHoldee = aHoldee;
+    return *this;
+  }
+
+private:
+  Type *mHoldee;
+  Reaper mReaper;
+};
+
+class nsSpeculativeScriptThread : public nsIRunnable {
+public:
+  nsSpeculativeScriptThread()
+    : mLock("nsSpeculativeScriptThread.mLock"),
+      mCVar(mLock, "nsSpeculativeScriptThread.mCVar"),
+      mKeepParsing(PR_FALSE),
+      mCurrentlyParsing(PR_FALSE),
+      mNumConsumed(0),
+      mContext(nsnull),
+      mTerminated(PR_FALSE) {
+  }
+
+  ~nsSpeculativeScriptThread() {
+    NS_ASSERTION(NS_IsMainThread() || !mDocument,
+                 "Destroying the document on the wrong thread");
+  }
+
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIRUNNABLE
+
+  nsresult StartParsing(nsParser *aParser);
+  void StopParsing(bool aFromDocWrite);
+
+  enum PrefetchType { NONE, SCRIPT, STYLESHEET, IMAGE };
+  struct PrefetchEntry {
+    PrefetchType type;
+    nsString uri;
+    nsString charset;
+    nsString elementType;
+  };
+
+  nsIDocument *GetDocument() {
+    NS_ASSERTION(NS_IsMainThread(), "Potential threadsafety hazard");
+    return mDocument;
+  }
+
+  bool Parsing() {
+    return mCurrentlyParsing;
+  }
+
+  CParserContext *Context() {
+    return mContext;
+  }
+
+  typedef nsDataHashtable<nsCStringHashKey, bool> PreloadedType;
+  PreloadedType& GetPreloadedURIs() {
+    return mPreloadedURIs;
+  }
+
+  void Terminate() {
+    mTerminated = PR_TRUE;
+    StopParsing(PR_FALSE);
+  }
+  bool Terminated() {
+    return mTerminated;
+  }
+
+private:
+
+  void ProcessToken(CToken *aToken);
+
+  void AddToPrefetchList(const nsAString &src,
+                         const nsAString &charset,
+                         const nsAString &elementType,
+                         PrefetchType type);
+
+  void FlushURIs();
+
+  
+  nsTokenAllocator mTokenAllocator;
+
+  
+  
+  Mutex mLock;
+  CondVar mCVar;
+
+  volatile bool mKeepParsing;
+  volatile bool mCurrentlyParsing;
+  nsRefPtr<nsHTMLTokenizer> mTokenizer;
+  nsAutoPtr<nsScanner> mScanner;
+
+  enum { kBatchPrefetchURIs = 5 };
+  nsAutoTArray<PrefetchEntry, kBatchPrefetchURIs> mURIs;
+
+  
+  PRUint32 mNumConsumed;
+
+  
+  nsCOMPtr<nsIDocument> mDocument;
+  CParserContext *mContext;
+  PreloadedType mPreloadedURIs;
+  bool mTerminated;
+};
+
+class nsPreloadURIs : public nsIRunnable {
+public:
+  nsPreloadURIs(nsAutoTArray<nsSpeculativeScriptThread::PrefetchEntry, 5> &aURIs,
+                nsSpeculativeScriptThread *aScriptThread)
+    : mURIs(aURIs),
+      mScriptThread(aScriptThread) {
+  }
+
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIRUNNABLE
+
+  static void PreloadURIs(const nsAutoTArray<nsSpeculativeScriptThread::PrefetchEntry, 5> &aURIs,
+                          nsSpeculativeScriptThread *aScriptThread);
+
+private:
+  nsAutoTArray<nsSpeculativeScriptThread::PrefetchEntry, 5> mURIs;
+  nsRefPtr<nsSpeculativeScriptThread> mScriptThread;
+};
+
+NS_IMPL_THREADSAFE_ISUPPORTS1(nsPreloadURIs, nsIRunnable)
+
+NS_IMETHODIMP
+nsPreloadURIs::Run()
+{
+  PreloadURIs(mURIs, mScriptThread);
+  return NS_OK;
+}
+
+void
+nsPreloadURIs::PreloadURIs(const nsAutoTArray<nsSpeculativeScriptThread::PrefetchEntry, 5> &aURIs,
+                           nsSpeculativeScriptThread *aScriptThread)
+{
+  NS_ASSERTION(NS_IsMainThread(), "Touching non-threadsafe objects off thread");
+
+  if (aScriptThread->Terminated()) {
+    return;
+  }
+
+  nsIDocument *doc = aScriptThread->GetDocument();
+  NS_ASSERTION(doc, "We shouldn't have started preloading without a document");
+
+  
+  
+  
+  
+  
+  nsIURI *base = doc->GetDocBaseURI();
+  const nsCString &charset = doc->GetDocumentCharacterSet();
+  nsSpeculativeScriptThread::PreloadedType &alreadyPreloaded =
+    aScriptThread->GetPreloadedURIs();
+  for (PRUint32 i = 0, e = aURIs.Length(); i < e; ++i) {
+    const nsSpeculativeScriptThread::PrefetchEntry &pe = aURIs[i];
+    nsCOMPtr<nsIURI> uri;
+    nsresult rv = NS_NewURI(getter_AddRefs(uri), pe.uri, charset.get(), base);
+    if (NS_FAILED(rv)) {
+      NS_WARNING("Failed to create a URI");
+      continue;
+    }
+
+    nsCAutoString spec;
+    uri->GetSpec(spec);
+    bool answer;
+    if (alreadyPreloaded.Get(spec, &answer)) {
+      
+      continue;
+    }
+
+    alreadyPreloaded.Put(spec, PR_TRUE);
+
+    switch (pe.type) {
+      case nsSpeculativeScriptThread::SCRIPT:
+        doc->ScriptLoader()->PreloadURI(uri, pe.charset, pe.elementType);
+        break;
+      case nsSpeculativeScriptThread::IMAGE:
+        doc->MaybePreLoadImage(uri, EmptyString());
+        break;
+      case nsSpeculativeScriptThread::STYLESHEET:
+        doc->PreloadStyle(uri, pe.charset);
+        break;
+      case nsSpeculativeScriptThread::NONE:
+        NS_NOTREACHED("Uninitialized preload entry?");
+        break;
+    }
+  }
+}
+
+NS_IMPL_THREADSAFE_ISUPPORTS1(nsSpeculativeScriptThread, nsIRunnable)
+
+NS_IMETHODIMP
+nsSpeculativeScriptThread::Run()
+{
+  NS_ASSERTION(!NS_IsMainThread(), "Speculative parsing on the main thread?");
+
+  mNumConsumed = 0;
+
+  mTokenizer->WillTokenize(PR_FALSE, &mTokenAllocator);
+  while (mKeepParsing) {
+    bool flushTokens = false;
+    nsresult rv = mTokenizer->ConsumeToken(*mScanner, flushTokens);
+    if (NS_FAILED(rv)) {
+      break;
+    }
+
+    mNumConsumed += mScanner->Mark();
+
+    
+    CToken *token;
+    while (mKeepParsing && (token = mTokenizer->PopToken())) {
+      ProcessToken(token);
+    }
+  }
+  mTokenizer->DidTokenize(PR_FALSE);
+
+  if (mKeepParsing) {
+    
+    
+    
+    if (!mURIs.IsEmpty()) {
+      FlushURIs();
+    }
+  }
+
+  {
+    MutexAutoLock al(mLock);
+
+    mCurrentlyParsing = PR_FALSE;
+    mCVar.Notify();
+  }
+  return NS_OK;
+}
+
+nsresult
+nsSpeculativeScriptThread::StartParsing(nsParser *aParser)
+{
+  NS_ASSERTION(NS_IsMainThread(), "Called on the wrong thread");
+  NS_ASSERTION(!mCurrentlyParsing, "Bad race happening");
+
+  if (!aParser->ThreadPool()) {
+    return NS_OK;
+  }
+
+  nsIContentSink *sink = aParser->GetContentSink();
+  if (!sink) {
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIDocument> doc = do_QueryInterface(sink->GetTarget());
+  if (!doc) {
+    return NS_OK;
+  }
+
+  nsAutoString toScan;
+  CParserContext *context = aParser->PeekContext();
+  if (!mTokenizer) {
+    if (!mPreloadedURIs.Init(15)) {
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+
+    mTokenizer = new nsHTMLTokenizer(context->mDTDMode, context->mDocType,
+                                     context->mParserCommand, 0);
+    if (!mTokenizer) {
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+    mTokenizer->CopyState(context->mTokenizer);
+    context->mScanner->CopyUnusedData(toScan);
+    if (toScan.IsEmpty()) {
+      return NS_OK;
+    }
+  } else if (context == mContext) {
+    
+    nsScannerIterator end;
+    context->mScanner->EndReading(end);
+
+    nsScannerIterator start;
+    context->mScanner->CurrentPosition(start);
+
+    if (mNumConsumed > context->mNumConsumed) {
+      
+      
+      PRUint32 distance = Distance(start, end);
+      start.advance(NS_MIN(mNumConsumed - context->mNumConsumed, distance));
+    }
+
+    if (start == end) {
+      
+      return NS_OK;
+    }
+
+    CopyUnicodeTo(start, end, toScan);
+  } else {
+    
+    context->mScanner->CopyUnusedData(toScan);
+    if (toScan.IsEmpty()) {
+      
+      return NS_OK;
+    }
+  }
+
+  nsCAutoString charset;
+  PRInt32 source;
+  aParser->GetDocumentCharset(charset, source);
+
+  mScanner = new nsScanner(toScan, charset, source);
+  if (!mScanner) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+  mScanner->SetIncremental(PR_TRUE);
+
+  mDocument.swap(doc);
+  mKeepParsing = PR_TRUE;
+  mCurrentlyParsing = PR_TRUE;
+  mContext = context;
+  return aParser->ThreadPool()->Dispatch(this, NS_DISPATCH_NORMAL);
+}
+
+void
+nsSpeculativeScriptThread::StopParsing(bool )
+{
+  NS_ASSERTION(NS_IsMainThread(), "Can't stop parsing from another thread");
+
+  {
+    MutexAutoLock al(mLock);
+
+    mKeepParsing = PR_FALSE;
+    if (mCurrentlyParsing) {
+      mCVar.Wait();
+      NS_ASSERTION(!mCurrentlyParsing, "Didn't actually stop parsing?");
+    }
+  }
+
+  
+  if (mTerminated) {
+    
+    
+    
+    mDocument = nsnull;
+    mTokenizer = nsnull;
+    mScanner = nsnull;
+  } else if (mURIs.Length()) {
+    
+    nsPreloadURIs::PreloadURIs(mURIs, this);
+    mURIs.Clear();
+  }
+
+  
+  
+  
+}
+
+void
+nsSpeculativeScriptThread::ProcessToken(CToken *aToken)
+{
+  
+
+  CHTMLToken *token = static_cast<CHTMLToken *>(aToken);
+  switch (static_cast<eHTMLTokenTypes>(token->GetTokenType())) {
+    case eToken_start: {
+        CStartToken *start = static_cast<CStartToken *>(aToken);
+        nsHTMLTag tag = static_cast<nsHTMLTag>(start->GetTypeID());
+        PRInt16 attrs = start->GetAttributeCount();
+        PRInt16 i = 0;
+        nsAutoString src;
+        nsAutoString elementType;
+        nsAutoString charset;
+        nsAutoString href;
+        nsAutoString rel;
+        PrefetchType ptype = NONE;
+
+        switch (tag) {
+          case eHTMLTag_link:
+              ptype = STYLESHEET;
+              break;
+
+          case eHTMLTag_img:
+              ptype = IMAGE;
+              break;
+
+          case eHTMLTag_script:
+              ptype = SCRIPT;
+              break;
+
+          default:
+              break;
+        }
+
+        
+        
+        
+        if (ptype != NONE) {
+            
+            for (; i < attrs ; ++i) {
+              CAttributeToken *attr = static_cast<CAttributeToken *>(mTokenizer->PopToken());
+              NS_ASSERTION(attr->GetTokenType() == eToken_attribute, "Weird token");
+
+              if (attr->GetKey().EqualsLiteral("src")) {
+                src.Assign(attr->GetValue());
+              } else if (attr->GetKey().EqualsLiteral("href")) {
+                href.Assign(attr->GetValue());
+              } else if (attr->GetKey().EqualsLiteral("rel")) {
+                rel.Assign(attr->GetValue());
+              } else if (attr->GetKey().EqualsLiteral("charset")) {
+                charset.Assign(attr->GetValue());
+              } else if (attr->GetKey().EqualsLiteral("type")) {
+                elementType.Assign(attr->GetValue());
+              }
+
+              IF_FREE(attr, &mTokenAllocator);
+            }
+
+            
+            if (ptype == STYLESHEET) {
+              if (rel.EqualsLiteral("stylesheet")) {
+                src = href; 
+              } else {
+                src.Truncate(); 
+              }
+            }
+
+            
+            if (!src.IsEmpty()) {
+              AddToPrefetchList(src, charset, elementType, ptype);
+            }
+        } else {
+            
+            for (; i < attrs ; ++i) {
+              CToken *attr = mTokenizer->PopToken();
+              IF_FREE(attr, &mTokenAllocator);
+            }
+        }
+        break;
+      }
+
+    default:
+      break;
+  }
+
+  IF_FREE(aToken, &mTokenAllocator);
+}
+
+void
+nsSpeculativeScriptThread::AddToPrefetchList(const nsAString &src,
+                                             const nsAString &charset,
+                                             const nsAString &elementType,
+                                             PrefetchType type)
+{
+  PrefetchEntry *pe = mURIs.AppendElement();
+  pe->type = type;
+  pe->uri = src;
+  pe->charset = charset;
+  pe->elementType = elementType;
+
+  if (mURIs.Length() == kBatchPrefetchURIs) {
+    FlushURIs();
+  }
+}
+
+void
+nsSpeculativeScriptThread::FlushURIs()
+{
+  nsCOMPtr<nsIRunnable> r = new nsPreloadURIs(mURIs, this);
+  if (!r) {
+    return;
+  }
+
+  mURIs.Clear();
+  NS_DispatchToMainThread(r, NS_DISPATCH_NORMAL);
+}
+
+nsICharsetAlias* nsParser::sCharsetAliasService = nsnull;
+nsICharsetConverterManager* nsParser::sCharsetConverterManager = nsnull;
+nsIThreadPool* nsParser::sSpeculativeThreadPool = nsnull;
 
 
 
@@ -139,11 +670,31 @@ nsParser::Init()
 {
   nsresult rv;
 
+  nsCOMPtr<nsICharsetAlias> charsetAlias =
+    do_GetService(NS_CHARSETALIAS_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   nsCOMPtr<nsICharsetConverterManager> charsetConverter =
     do_GetService(NS_CHARSETCONVERTERMANAGER_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  charsetAlias.swap(sCharsetAliasService);
   charsetConverter.swap(sCharsetConverterManager);
+
+  nsCOMPtr<nsIThreadPool> threadPool =
+    do_CreateInstance(NS_THREADPOOL_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = threadPool->SetThreadLimit(kSpeculativeThreadLimit);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = threadPool->SetIdleThreadLimit(kIdleThreadLimit);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = threadPool->SetIdleThreadTimeout(kIdleThreadTimeout);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  threadPool.swap(sSpeculativeThreadPool);
 
   return NS_OK;
 }
@@ -155,7 +706,12 @@ nsParser::Init()
 
 void nsParser::Shutdown()
 {
+  NS_IF_RELEASE(sCharsetAliasService);
   NS_IF_RELEASE(sCharsetConverterManager);
+  if (sSpeculativeThreadPool) {
+    sSpeculativeThreadPool->Shutdown();
+    NS_RELEASE(sSpeculativeThreadPool);
+  }
 }
 
 #ifdef DEBUG
@@ -167,7 +723,7 @@ static bool gDumpContent=false;
 
 nsParser::nsParser()
 {
-  Initialize(true);
+  Initialize(PR_TRUE);
 }
 
 nsParser::~nsParser()
@@ -178,9 +734,9 @@ nsParser::~nsParser()
 void
 nsParser::Initialize(bool aConstructor)
 {
-#ifdef DEBUG
+#ifdef NS_DEBUG
   if (!gDumpContent) {
-    gDumpContent = PR_GetEnv("PARSER_DUMP_CONTENT") != nullptr;
+    gDumpContent = PR_GetEnv("PARSER_DUMP_CONTENT") != nsnull;
   }
 #endif
 
@@ -190,28 +746,28 @@ nsParser::Initialize(bool aConstructor)
   }
   else {
     
-    mObserver = nullptr;
+    mObserver = nsnull;
+    mParserFilter = nsnull;
     mUnusedInput.Truncate();
   }
 
-  mContinueEvent = nullptr;
+  mContinueEvent = nsnull;
   mCharsetSource = kCharsetUninitialized;
   mCharset.AssignLiteral("ISO-8859-1");
   mInternalState = NS_OK;
-  mStreamStatus = NS_OK;
+  mStreamStatus = 0;
   mCommand = eViewNormal;
   mFlags = NS_PARSER_FLAG_OBSERVERS_ENABLED |
            NS_PARSER_FLAG_PARSER_ENABLED |
            NS_PARSER_FLAG_CAN_TOKENIZE;
 
-  mProcessingNetworkData = false;
-  mIsAboutBlank = false;
+  mProcessingNetworkData = PR_FALSE;
 }
 
 void
 nsParser::Cleanup()
 {
-#ifdef DEBUG
+#ifdef NS_DEBUG
   if (gDumpContent) {
     if (mSink) {
       
@@ -241,6 +797,10 @@ nsParser::Cleanup()
   
   
   NS_ASSERTION(!(mFlags & NS_PARSER_FLAG_PENDING_CONTINUE_EVENT), "bad");
+  if (mSpeculativeScriptThread) {
+    mSpeculativeScriptThread->Terminate();
+    mSpeculativeScriptThread = nsnull;
+  }
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsParser)
@@ -298,6 +858,12 @@ nsParser::PostContinueEvent()
 }
 
 NS_IMETHODIMP_(void)
+nsParser::SetParserFilter(nsIParserFilter * aFilter)
+{
+  mParserFilter = aFilter;
+}
+
+NS_IMETHODIMP_(void)
 nsParser::GetCommand(nsCString& aCommand)
 {
   aCommand = mCommandStr;
@@ -344,7 +910,7 @@ nsParser::SetCommand(eParserCommands aParserCommand)
 
 
 NS_IMETHODIMP_(void)
-nsParser::SetDocumentCharset(const nsACString& aCharset, int32_t aCharsetSource)
+nsParser::SetDocumentCharset(const nsACString& aCharset, PRInt32 aCharsetSource)
 {
   mCharset = aCharset;
   mCharsetSource = aCharsetSource;
@@ -375,10 +941,6 @@ nsParser::SetContentSink(nsIContentSink* aSink)
 
   if (mSink) {
     mSink->SetParser(this);
-    nsCOMPtr<nsIHTMLContentSink> htmlSink = do_QueryInterface(mSink);
-    if (htmlSink) {
-      mIsAboutBlank = true;
-    }
   }
 }
 
@@ -405,8 +967,8 @@ nsParser::GetContentSink()
 
 
 
-static int32_t
-ParsePS(const nsString& aBuffer, int32_t aIndex)
+static PRInt32
+ParsePS(const nsString& aBuffer, PRInt32 aIndex)
 {
   for (;;) {
     PRUnichar ch = aBuffer.CharAt(aIndex);
@@ -414,9 +976,9 @@ ParsePS(const nsString& aBuffer, int32_t aIndex)
         (ch == PRUnichar('\n')) || (ch == PRUnichar('\r'))) {
       ++aIndex;
     } else if (ch == PRUnichar('-')) {
-      int32_t tmpIndex;
+      PRInt32 tmpIndex;
       if (aBuffer.CharAt(aIndex+1) == PRUnichar('-') &&
-          kNotFound != (tmpIndex=aBuffer.Find("--",false,aIndex+2,-1))) {
+          kNotFound != (tmpIndex=aBuffer.Find("--",PR_FALSE,aIndex+2,-1))) {
         aIndex = tmpIndex + 2;
       } else {
         return aIndex;
@@ -435,7 +997,7 @@ ParsePS(const nsString& aBuffer, int32_t aIndex)
 
 static bool
 ParseDocTypeDecl(const nsString &aBuffer,
-                 int32_t *aResultFlags,
+                 PRInt32 *aResultFlags,
                  nsString &aPublicID,
                  nsString &aSystemID)
 {
@@ -444,16 +1006,16 @@ ParseDocTypeDecl(const nsString &aBuffer,
 
   
   
-  int32_t theIndex = 0;
+  PRInt32 theIndex = 0;
   do {
     theIndex = aBuffer.FindChar('<', theIndex);
     if (theIndex == kNotFound) break;
     PRUnichar nextChar = aBuffer.CharAt(theIndex+1);
     if (nextChar == PRUnichar('!')) {
-      int32_t tmpIndex = theIndex + 2;
+      PRInt32 tmpIndex = theIndex + 2;
       if (kNotFound !=
-          (theIndex=aBuffer.Find("DOCTYPE", true, tmpIndex, 0))) {
-        haveDoctype = true;
+          (theIndex=aBuffer.Find("DOCTYPE", PR_TRUE, tmpIndex, 0))) {
+        haveDoctype = PR_TRUE;
         theIndex += 7; 
         break;
       }
@@ -467,15 +1029,15 @@ ParseDocTypeDecl(const nsString &aBuffer,
   } while (theIndex != kNotFound);
 
   if (!haveDoctype)
-    return true;
+    return PR_TRUE;
   *aResultFlags |= PARSE_DTD_HAVE_DOCTYPE;
 
   theIndex = ParsePS(aBuffer, theIndex);
-  theIndex = aBuffer.Find("HTML", true, theIndex, 0);
+  theIndex = aBuffer.Find("HTML", PR_TRUE, theIndex, 0);
   if (kNotFound == theIndex)
-    return false;
+    return PR_FALSE;
   theIndex = ParsePS(aBuffer, theIndex+4);
-  int32_t tmpIndex = aBuffer.Find("PUBLIC", true, theIndex, 0);
+  PRInt32 tmpIndex = aBuffer.Find("PUBLIC", PR_TRUE, theIndex, 0);
 
   if (kNotFound != tmpIndex) {
     theIndex = ParsePS(aBuffer, tmpIndex+6);
@@ -488,15 +1050,15 @@ ParseDocTypeDecl(const nsString &aBuffer,
 
     PRUnichar lit = aBuffer.CharAt(theIndex);
     if ((lit != PRUnichar('\"')) && (lit != PRUnichar('\'')))
-      return false;
+      return PR_FALSE;
 
     
     
 
-    int32_t PublicIDStart = theIndex + 1;
-    int32_t PublicIDEnd = aBuffer.FindChar(lit, PublicIDStart);
+    PRInt32 PublicIDStart = theIndex + 1;
+    PRInt32 PublicIDEnd = aBuffer.FindChar(lit, PublicIDStart);
     if (kNotFound == PublicIDEnd)
-      return false;
+      return PR_FALSE;
     theIndex = ParsePS(aBuffer, PublicIDEnd + 1);
     PRUnichar next = aBuffer.CharAt(theIndex);
     if (next == PRUnichar('>')) {
@@ -509,10 +1071,10 @@ ParseDocTypeDecl(const nsString &aBuffer,
                (next == PRUnichar('\''))) {
       
       *aResultFlags |= PARSE_DTD_HAVE_SYSTEM_ID;
-      int32_t SystemIDStart = theIndex + 1;
-      int32_t SystemIDEnd = aBuffer.FindChar(next, SystemIDStart);
+      PRInt32 SystemIDStart = theIndex + 1;
+      PRInt32 SystemIDEnd = aBuffer.FindChar(next, SystemIDStart);
       if (kNotFound == SystemIDEnd)
-        return false;
+        return PR_FALSE;
       aSystemID =
         Substring(aBuffer, SystemIDStart, SystemIDEnd - SystemIDStart);
     } else if (next == PRUnichar('[')) {
@@ -520,16 +1082,16 @@ ParseDocTypeDecl(const nsString &aBuffer,
       *aResultFlags |= PARSE_DTD_HAVE_INTERNAL_SUBSET;
     } else {
       
-      return false;
+      return PR_FALSE;
     }
 
     
     
     aPublicID = Substring(aBuffer, PublicIDStart, PublicIDEnd - PublicIDStart);
-    aPublicID.CompressWhitespace(true, true);
+    aPublicID.CompressWhitespace(PR_TRUE, PR_TRUE);
     *aResultFlags |= PARSE_DTD_HAVE_PUBLIC_ID;
   } else {
-    tmpIndex=aBuffer.Find("SYSTEM", true, theIndex, 0);
+    tmpIndex=aBuffer.Find("SYSTEM", PR_TRUE, theIndex, 0);
     if (kNotFound != tmpIndex) {
       
       *aResultFlags |= PARSE_DTD_HAVE_SYSTEM_ID;
@@ -537,13 +1099,13 @@ ParseDocTypeDecl(const nsString &aBuffer,
       theIndex = ParsePS(aBuffer, tmpIndex+6);
       PRUnichar next = aBuffer.CharAt(theIndex);
       if (next != PRUnichar('\"') && next != PRUnichar('\''))
-        return false;
+        return PR_FALSE;
 
-      int32_t SystemIDStart = theIndex + 1;
-      int32_t SystemIDEnd = aBuffer.FindChar(next, SystemIDStart);
+      PRInt32 SystemIDStart = theIndex + 1;
+      PRInt32 SystemIDEnd = aBuffer.FindChar(next, SystemIDStart);
 
       if (kNotFound == SystemIDEnd)
-        return false;
+        return PR_FALSE;
       aSystemID =
         Substring(aBuffer, SystemIDStart, SystemIDEnd - SystemIDStart);
       theIndex = ParsePS(aBuffer, SystemIDEnd + 1);
@@ -553,9 +1115,9 @@ ParseDocTypeDecl(const nsString &aBuffer,
     if (nextChar == PRUnichar('['))
       *aResultFlags |= PARSE_DTD_HAVE_INTERNAL_SUBSET;
     else if (nextChar != PRUnichar('>'))
-      return false;
+      return PR_FALSE;
   }
-  return true;
+  return PR_TRUE;
 }
 
 struct PubIDInfo
@@ -672,8 +1234,8 @@ VerifyPublicIDs()
 {
   static bool gVerified = false;
   if (!gVerified) {
-    gVerified = true;
-    uint32_t i;
+    gVerified = PR_TRUE;
+    PRUint32 i;
     for (i = 0; i < ELEMENTS_OF(kPublicIDs) - 1; ++i) {
       if (nsCRT::strcmp(kPublicIDs[i].name, kPublicIDs[i+1].name) >= 0) {
         NS_NOTREACHED("doctypes out of order");
@@ -682,7 +1244,7 @@ VerifyPublicIDs()
       }
     }
     for (i = 0; i < ELEMENTS_OF(kPublicIDs); ++i) {
-      nsAutoCString lcPubID(kPublicIDs[i].name);
+      nsCAutoString lcPubID(kPublicIDs[i].name);
       ToLowerCase(lcPubID);
       if (nsCRT::strcmp(kPublicIDs[i].name, lcPubID.get()) != 0) {
         NS_NOTREACHED("doctype not lower case");
@@ -701,7 +1263,7 @@ DetermineHTMLParseMode(const nsString& aBuffer,
 #ifdef DEBUG
   VerifyPublicIDs();
 #endif
-  int32_t resultFlags;
+  PRInt32 resultFlags;
   nsAutoString publicIDUCS2, sysIDUCS2;
   if (ParseDocTypeDecl(aBuffer, &resultFlags, publicIDUCS2, sysIDUCS2)) {
     if (!(resultFlags & PARSE_DTD_HAVE_DOCTYPE)) {
@@ -726,7 +1288,7 @@ DetermineHTMLParseMode(const nsString& aBuffer,
     } else {
       
       
-      nsAutoCString publicID;
+      nsCAutoString publicID;
       publicID.AssignWithConversion(publicIDUCS2);
 
       
@@ -736,12 +1298,12 @@ DetermineHTMLParseMode(const nsString& aBuffer,
       
       
       
-      int32_t minimum = 0;
-      int32_t maximum = ELEMENTS_OF(kPublicIDs) - 1;
-      int32_t index;
+      PRInt32 minimum = 0;
+      PRInt32 maximum = ELEMENTS_OF(kPublicIDs) - 1;
+      PRInt32 index;
       for (;;) {
         index = (minimum + maximum) / 2;
-        int32_t comparison =
+        PRInt32 comparison =
             nsCRT::strcmp(publicID.get(), kPublicIDs[index].name);
         if (comparison == 0)
           break;
@@ -792,7 +1354,6 @@ DetermineParseMode(const nsString& aBuffer, nsDTDMode& aParseMode,
   if (aMimeType.EqualsLiteral(TEXT_HTML)) {
     DetermineHTMLParseMode(aBuffer, aParseMode, aDocType);
   } else if (aMimeType.EqualsLiteral(TEXT_PLAIN) ||
-             aMimeType.EqualsLiteral(TEXT_CACHE_MANIFEST) ||
              aMimeType.EqualsLiteral(TEXT_CSS) ||
              aMimeType.EqualsLiteral(APPLICATION_JAVASCRIPT) ||
              aMimeType.EqualsLiteral(APPLICATION_XJAVASCRIPT) ||
@@ -815,8 +1376,9 @@ FindSuitableDTD(CParserContext& aParserContext)
   aParserContext.mAutoDetectStatus = ePrimaryDetect;
 
   
-  NS_ABORT_IF_FALSE(aParserContext.mParserCommand != eViewSource,
-    "The old parser is not supposed to be used for View Source anymore.");
+  if (aParserContext.mParserCommand == eViewSource) {
+    return new CViewSourceHTML();
+  }
 
   
   
@@ -835,7 +1397,7 @@ nsParser::CancelParsingEvents()
   if (mFlags & NS_PARSER_FLAG_PENDING_CONTINUE_EVENT) {
     NS_ASSERTION(mContinueEvent, "mContinueEvent is null");
     
-    mContinueEvent = nullptr;
+    mContinueEvent = nsnull;
     mFlags &= ~NS_PARSER_FLAG_PENDING_CONTINUE_EVENT;
   }
   return NS_OK;
@@ -974,10 +1536,36 @@ nsParser::DidBuildModel(nsresult anErrorCode)
 
       
       mParserContext->mRequest = 0;
+
+      if (mSpeculativeScriptThread) {
+        mSpeculativeScriptThread->Terminate();
+        mSpeculativeScriptThread = nsnull;
+      }
     }
   }
 
   return result;
+}
+
+void
+nsParser::SpeculativelyParse()
+{
+  if (mParserContext->mParserCommand == eViewNormal &&
+      !mParserContext->mMimeType.EqualsLiteral("text/html")) {
+    return;
+  }
+
+  if (!mSpeculativeScriptThread) {
+    mSpeculativeScriptThread = new nsSpeculativeScriptThread();
+    if (!mSpeculativeScriptThread) {
+      return;
+    }
+  }
+
+  nsresult rv = mSpeculativeScriptThread->StartParsing(this);
+  if (NS_FAILED(rv)) {
+    mSpeculativeScriptThread = nsnull;
+  }
 }
 
 
@@ -1040,6 +1628,21 @@ nsParser::SetUnusedInput(nsString& aBuffer)
   mUnusedInput = aBuffer;
 }
 
+NS_IMETHODIMP_(void *)
+nsParser::GetRootContextKey()
+{
+  CParserContext* pc = mParserContext;
+  if (!pc) {
+    return nsnull;
+  }
+
+  while (pc->mPrevContext) {
+    pc = pc->mPrevContext;
+  }
+
+  return pc->mKey;
+}
+
 
 
 
@@ -1066,6 +1669,10 @@ nsParser::Terminate(void)
   
   
   CancelParsingEvents();
+  if (mSpeculativeScriptThread) {
+    mSpeculativeScriptThread->Terminate();
+    mSpeculativeScriptThread = nsnull;
+  }
 
   
   
@@ -1084,7 +1691,7 @@ nsParser::Terminate(void)
   } else if (mSink) {
     
     
-    result = mSink->DidBuildModel(true);
+    result = mSink->DidBuildModel(PR_TRUE);
     NS_ENSURE_SUCCESS(result, result);
   }
 
@@ -1114,15 +1721,19 @@ nsParser::ContinueInterruptedParsing()
   }
 #endif
 
+  if (mSpeculativeScriptThread) {
+    mSpeculativeScriptThread->StopParsing(PR_FALSE);
+  }
+
   bool isFinalChunk = mParserContext &&
                         mParserContext->mStreamListenerState == eOnStop;
 
-  mProcessingNetworkData = true;
+  mProcessingNetworkData = PR_TRUE;
   if (mSink) {
     mSink->WillParse();
   }
-  result = ResumeParse(true, isFinalChunk); 
-  mProcessingNetworkData = false;
+  result = ResumeParse(PR_TRUE, isFinalChunk); 
+  mProcessingNetworkData = PR_FALSE;
 
   if (result != NS_OK) {
     result=mInternalState;
@@ -1157,12 +1768,6 @@ nsParser::UnblockParser()
   }
 }
 
-NS_IMETHODIMP_(void)
-nsParser::ContinueInterruptedParsingAsync()
-{
-  mSink->ContinueInterruptedParsingAsync();
-}
-
 
 
 
@@ -1189,7 +1794,7 @@ void nsParser::HandleParserContinueEvent(nsParserContinueEvent *ev)
     return;
 
   mFlags &= ~NS_PARSER_FLAG_PENDING_CONTINUE_EVENT;
-  mContinueEvent = nullptr;
+  mContinueEvent = nsnull;
 
   NS_ASSERTION(IsOkToProcessNetworkData(),
                "Interrupted in the middle of a script?");
@@ -1197,9 +1802,15 @@ void nsParser::HandleParserContinueEvent(nsParserContinueEvent *ev)
 }
 
 bool
+nsParser::CanInterrupt()
+{
+  return (mFlags & NS_PARSER_FLAG_CAN_INTERRUPT) != 0;
+}
+
+bool
 nsParser::IsInsertionPointDefined()
 {
-  return true;
+  return PR_TRUE;
 }
 
 void
@@ -1213,14 +1824,24 @@ nsParser::EndEvaluatingParserInsertedScript()
 }
 
 void
-nsParser::MarkAsNotScriptCreated(const char* aCommand)
+nsParser::MarkAsNotScriptCreated()
 {
 }
 
 bool
 nsParser::IsScriptCreated()
 {
-  return false;
+  return PR_FALSE;
+}
+
+void
+nsParser::SetCanInterrupt(bool aCanInterrupt)
+{
+  if (aCanInterrupt) {
+    mFlags |= NS_PARSER_FLAG_CAN_INTERRUPT;
+  } else {
+    mFlags &= ~NS_PARSER_FLAG_CAN_INTERRUPT;
+  }
 }
 
 
@@ -1238,24 +1859,25 @@ nsParser::Parse(nsIURI* aURL,
 {
 
   NS_PRECONDITION(aURL, "Error: Null URL given");
+  NS_ASSERTION(!mSpeculativeScriptThread, "Can't reuse a parser like this");
 
   nsresult result=kBadURL;
   mObserver = aListener;
 
   if (aURL) {
-    nsAutoCString spec;
+    nsCAutoString spec;
     nsresult rv = aURL->GetSpec(spec);
     if (rv != NS_OK) {
       return rv;
     }
     NS_ConvertUTF8toUTF16 theName(spec);
 
-    nsScanner* theScanner = new nsScanner(theName, false, mCharset,
+    nsScanner* theScanner = new nsScanner(theName, PR_FALSE, mCharset,
                                           mCharsetSource);
     CParserContext* pc = new CParserContext(mParserContext, theScanner, aKey,
                                             mCommand, aListener);
     if (pc && theScanner) {
-      pc->mMultipart = true;
+      pc->mMultipart = PR_TRUE;
       pc->mContextType = CParserContext::eCTURL;
       pc->mDTDMode = aMode;
       PushContext(*pc);
@@ -1273,10 +1895,15 @@ nsParser::Parse(nsIURI* aURL,
 
 
 
-nsresult
+
+
+
+NS_IMETHODIMP
 nsParser::Parse(const nsAString& aSourceBuffer,
                 void* aKey,
-                bool aLastCall)
+                const nsACString& aMimeType,
+                bool aLastCall,
+                nsDTDMode aMode)
 {
   nsresult result = NS_OK;
 
@@ -1293,6 +1920,15 @@ nsParser::Parse(const nsAString& aSourceBuffer,
     
     return result;
   }
+
+  if (mSpeculativeScriptThread) {
+    mSpeculativeScriptThread->StopParsing(PR_TRUE);
+  }
+
+  
+  
+  if (aMode == eDTDMode_fragment)
+    mCommand = eViewFragment;
 
   
   
@@ -1316,8 +1952,7 @@ nsParser::Parse(const nsAString& aSourceBuffer,
 
       eAutoDetectResult theStatus = eUnknownDetect;
 
-      if (mParserContext &&
-          mParserContext->mMimeType.EqualsLiteral("application/xml")) {
+      if (mParserContext && mParserContext->mMimeType == aMimeType) {
         
         NS_ASSERTION(mDTD, "How come the DTD is null?");
 
@@ -1342,25 +1977,30 @@ nsParser::Parse(const nsAString& aSourceBuffer,
       if (pc->mMultipart) {
         pc->mStreamListenerState = eOnDataAvail;
         if (pc->mScanner) {
-          pc->mScanner->SetIncremental(true);
+          pc->mScanner->SetIncremental(PR_TRUE);
         }
       } else {
         pc->mStreamListenerState = eOnStop;
         if (pc->mScanner) {
-          pc->mScanner->SetIncremental(false);
+          pc->mScanner->SetIncremental(PR_FALSE);
         }
       }
       
 
       pc->mContextType=CParserContext::eCTString;
-      pc->SetMimeType(NS_LITERAL_CSTRING("application/xml"));
-      pc->mDTDMode = eDTDMode_full_standards;
+      pc->SetMimeType(aMimeType);
+      if (pc->mPrevContext && aMode == eDTDMode_autodetect) {
+        
+        pc->mDTDMode = pc->mPrevContext->mDTDMode;
+      } else {
+        pc->mDTDMode = aMode;
+      }
 
       mUnusedInput.Truncate();
 
       pc->mScanner->Append(aSourceBuffer);
       
-      result = ResumeParse(false, false, false);
+      result = ResumeParse(PR_FALSE, PR_FALSE, PR_FALSE);
     } else {
       pc->mScanner->Append(aSourceBuffer);
       if (!pc->mPrevContext) {
@@ -1368,14 +2008,14 @@ nsParser::Parse(const nsAString& aSourceBuffer,
         
         if (aLastCall) {
           pc->mStreamListenerState = eOnStop;
-          pc->mScanner->SetIncremental(false);
+          pc->mScanner->SetIncremental(PR_FALSE);
         }
 
         if (pc == mParserContext) {
           
           
           
-          ResumeParse(false, false, false);
+          ResumeParse(PR_FALSE, PR_FALSE, PR_FALSE);
         }
       }
     }
@@ -1390,11 +2030,13 @@ nsParser::ParseFragment(const nsAString& aSourceBuffer,
 {
   nsresult result = NS_OK;
   nsAutoString  theContext;
-  uint32_t theCount = aTagStack.Length();
-  uint32_t theIndex = 0;
+  PRUint32 theCount = aTagStack.Length();
+  PRUint32 theIndex = 0;
 
   
   mFlags &= ~NS_PARSER_FLAG_OBSERVERS_ENABLED;
+
+  NS_ASSERTION(!mSpeculativeScriptThread, "Can't reuse a parser like this");
 
   for (theIndex = 0; theIndex < theCount; theIndex++) {
     theContext.AppendLiteral("<");
@@ -1412,7 +2054,9 @@ nsParser::ParseFragment(const nsAString& aSourceBuffer,
   
   result = Parse(theContext,
                  (void*)&theContext,
-                 false);
+                 NS_LITERAL_CSTRING("application/xml"),
+                 PR_FALSE,
+                 eDTDMode_full_standards);
   if (NS_FAILED(result)) {
     mFlags |= NS_PARSER_FLAG_OBSERVERS_ENABLED;
     return result;
@@ -1434,14 +2078,18 @@ nsParser::ParseFragment(const nsAString& aSourceBuffer,
   if (theCount == 0) {
     result = Parse(aSourceBuffer,
                    &theContext,
-                   true);
+                   NS_LITERAL_CSTRING("application/xml"),
+                   PR_TRUE,
+                   eDTDMode_full_standards);
     fragSink->DidBuildContent();
   } else {
     
     
     result = Parse(aSourceBuffer + NS_LITERAL_STRING("</"),
                    &theContext,
-                   false);
+                   NS_LITERAL_CSTRING("application/xml"),
+                   PR_FALSE,
+                   eDTDMode_full_standards);
     fragSink->DidBuildContent();
 
     if (NS_SUCCEEDED(result)) {
@@ -1454,7 +2102,7 @@ nsParser::ParseFragment(const nsAString& aSourceBuffer,
 
         nsString& thisTag = aTagStack[theIndex];
         
-        int32_t endOfTag = thisTag.FindChar(PRUnichar(' '));
+        PRInt32 endOfTag = thisTag.FindChar(PRUnichar(' '));
         if (endOfTag == -1) {
           endContext.Append(thisTag);
         } else {
@@ -1466,7 +2114,9 @@ nsParser::ParseFragment(const nsAString& aSourceBuffer,
 
       result = Parse(endContext,
                      &theContext,
-                     true);
+                     NS_LITERAL_CSTRING("application/xml"),
+                     PR_TRUE,
+                     eDTDMode_full_standards);
     }
   }
 
@@ -1505,6 +2155,8 @@ nsParser::ResumeParse(bool allowIteration, bool aIsFinalChunk,
 
   if ((mFlags & NS_PARSER_FLAG_PARSER_ENABLED) &&
       mInternalState != NS_ERROR_HTMLPARSER_STOPPARSING) {
+    NS_ASSERTION(!mSpeculativeScriptThread || !mSpeculativeScriptThread->Parsing(),
+                 "Bad races happening, expect to crash!");
 
     result = WillBuildModel(mParserContext->mScanner->GetFilename());
     if (NS_FAILED(result)) {
@@ -1528,6 +2180,7 @@ nsParser::ResumeParse(bool allowIteration, bool aIsFinalChunk,
 
         
         
+        SetCanInterrupt(aCanInterrupt);
         nsresult theTokenizerResult = (mFlags & NS_PARSER_FLAG_CAN_TOKENIZE)
                                       ? Tokenize(aIsFinalChunk)
                                       : NS_OK;
@@ -1536,6 +2189,7 @@ nsParser::ResumeParse(bool allowIteration, bool aIsFinalChunk,
         if (result == NS_ERROR_HTMLPARSER_INTERRUPTED && aIsFinalChunk) {
           PostContinueEvent();
         }
+        SetCanInterrupt(PR_FALSE);
 
         theIterationIsOk = theTokenizerResult != kEOF &&
                            result != NS_ERROR_HTMLPARSER_INTERRUPTED;
@@ -1552,6 +2206,7 @@ nsParser::ResumeParse(bool allowIteration, bool aIsFinalChunk,
           if (mFlags & NS_PARSER_FLAG_PARSER_ENABLED) {
             
             BlockParser();
+            SpeculativelyParse();
           }
           return NS_OK;
         }
@@ -1616,7 +2271,7 @@ nsParser::ResumeParse(bool allowIteration, bool aIsFinalChunk,
 nsresult
 nsParser::BuildModel()
 {
-  nsITokenizer* theTokenizer = nullptr;
+  nsITokenizer* theTokenizer = nsnull;
 
   nsresult result = NS_OK;
   if (mParserContext) {
@@ -1625,9 +2280,11 @@ nsParser::BuildModel()
 
   if (NS_SUCCEEDED(result)) {
     if (mDTD) {
+      
       bool inDocWrite = !!mParserContext->mPrevContext;
       result = mDTD->BuildModel(theTokenizer,
                                 
+                                CanInterrupt() && !inDocWrite,
                                 !inDocWrite, 
                                 &mCharset);
     }
@@ -1656,10 +2313,10 @@ nsParser::OnStartRequest(nsIRequest *request, nsISupports* aContext)
 
   NS_ASSERTION(!mParserContext->mPrevContext,
                "Clobbering DTD for non-root parser context!");
-  mDTD = nullptr;
+  mDTD = nsnull;
 
   nsresult rv;
-  nsAutoCString contentType;
+  nsCAutoString contentType;
   nsCOMPtr<nsIChannel> channel = do_QueryInterface(request);
   if (channel) {
     rv = channel->GetContentType(contentType);
@@ -1686,15 +2343,15 @@ static inline bool IsSecondMarker(unsigned char aChar)
     case '?':
     case 'h':
     case 'H':
-      return true;
+      return PR_TRUE;
     default:
-      return false;
+      return PR_FALSE;
   }
 }
 
 static bool
-DetectByteOrderMark(const unsigned char* aBytes, int32_t aLen,
-                    nsCString& oCharset, int32_t& oCharsetSource)
+DetectByteOrderMark(const unsigned char* aBytes, PRInt32 aLen,
+                    nsCString& oCharset, PRInt32& oCharsetSource)
 {
  oCharsetSource= kCharsetFromAutoDetection;
  oCharset.Truncate();
@@ -1733,7 +2390,7 @@ DetectByteOrderMark(const unsigned char* aBytes, int32_t aLen,
        
        
        
-       int32_t i;
+       PRInt32 i;
        bool versionFound = false, encodingFound = false;
        for (i=6; i < aLen && !encodingFound; ++i) {
          
@@ -1759,7 +2416,7 @@ DetectByteOrderMark(const unsigned char* aBytes, int32_t aLen,
                if (qi == '\'' || qi == '"') {
                  if (q && q == qi) {
                    
-                   versionFound = true;
+                   versionFound = PR_TRUE;
                    break;
                  } else {
                    
@@ -1778,20 +2435,20 @@ DetectByteOrderMark(const unsigned char* aBytes, int32_t aLen,
            if ((((char*)aBytes)[i] == 'g') &&
              (i >= 25) && 
              (0 == PL_strncmp("encodin", (char*)(aBytes+i-7), 7 ))) {
-             int32_t encStart = 0;
+             PRInt32 encStart = 0;
              char q = 0;
              for (++i; i < aLen; ++i) {
                char qi = ((char*)aBytes)[i];
                if (qi == '\'' || qi == '"') {
                  if (q && q == qi) {
-                   int32_t count = i - encStart;
+                   PRInt32 count = i - encStart;
                    
                    if (count > 0 && 
                      (0 != PL_strcmp("UTF-16", (char*)(aBytes+encStart)))) {
                      oCharset.Assign((char*)(aBytes+encStart),count);
                      oCharsetSource = kCharsetFromMetaTag;
                    }
-                   encodingFound = true;
+                   encodingFound = PR_TRUE;
                    break;
                  } else {
                    encStart = i+1;
@@ -1845,9 +2502,9 @@ GetNextChar(nsACString::const_iterator& aStart,
 
 bool
 nsParser::DetectMetaTag(const char* aBytes,
-                        int32_t aLen,
+                        PRInt32 aLen,
                         nsCString& aCharset,
-                        int32_t& aCharsetSource)
+                        PRInt32& aCharsetSource)
 {
   aCharsetSource= kCharsetFromMetaTag;
   aCharset.SetLength(0);
@@ -1855,7 +2512,7 @@ nsParser::DetectMetaTag(const char* aBytes,
   
   
   if (!mParserContext->mMimeType.EqualsLiteral(TEXT_HTML)) {
-    return false;
+    return PR_FALSE;
   }
 
   
@@ -1880,7 +2537,7 @@ nsParser::DetectMetaTag(const char* aBytes,
           GetNextChar(currPos, end) != '-') {
         
         if (!FindCharInReadable('>', currPos, end)) {
-          return false; 
+          return PR_FALSE; 
         }
 
         
@@ -1896,9 +2553,9 @@ nsParser::DetectMetaTag(const char* aBytes,
             GetNextChar(currPos, end) == '-') {
           foundMatch = !foundMatch; 
         } else if (currPos == end) {
-          return false; 
+          return PR_FALSE; 
         } else if (foundMatch && *currPos == '>') {
-          foundMDC = true; 
+          foundMDC = PR_TRUE; 
           ++currPos;
         }
       }
@@ -1958,31 +2615,20 @@ nsParser::DetectMetaTag(const char* aBytes,
     
     if (currPos != tokEnd) {
       aCharset.Assign(currPos.get(), tokEnd.get() - currPos.get());
-      return true;
+      return PR_TRUE;
     }
 
     
     currPos = tagEnd;
   }
 
-  return false;
-}
-
-static NS_METHOD
-NoOpParserWriteFunc(nsIInputStream* in,
-                void* closure,
-                const char* fromRawSegment,
-                uint32_t toOffset,
-                uint32_t count,
-                uint32_t *writeCount)
-{
-  *writeCount = count;
-  return NS_OK;
+  return PR_FALSE;
 }
 
 typedef struct {
   bool mNeedCharsetCheck;
   nsParser* mParser;
+  nsIParserFilter* mParserFilter;
   nsScanner* mScanner;
   nsIRequest* mRequest;
 } ParserWriteStruct;
@@ -1997,30 +2643,31 @@ static NS_METHOD
 ParserWriteFunc(nsIInputStream* in,
                 void* closure,
                 const char* fromRawSegment,
-                uint32_t toOffset,
-                uint32_t count,
-                uint32_t *writeCount)
+                PRUint32 toOffset,
+                PRUint32 count,
+                PRUint32 *writeCount)
 {
   nsresult result;
   ParserWriteStruct* pws = static_cast<ParserWriteStruct*>(closure);
   const char* buf = fromRawSegment;
-  uint32_t theNumRead = count;
+  PRUint32 theNumRead = count;
 
   if (!pws) {
     return NS_ERROR_FAILURE;
   }
 
   if (pws->mNeedCharsetCheck) {
-    int32_t guessSource;
-    nsAutoCString guess;
-    nsAutoCString preferred;
+    PRInt32 guessSource;
+    nsCAutoString guess;
+    nsCAutoString preferred;
 
-    pws->mNeedCharsetCheck = false;
+    pws->mNeedCharsetCheck = PR_FALSE;
     if (pws->mParser->DetectMetaTag(buf, theNumRead, guess, guessSource) ||
         ((count >= 4) &&
          DetectByteOrderMark((const unsigned char*)buf,
                              theNumRead, guess, guessSource))) {
-      result = nsCharsetAlias::GetPreferred(guess, preferred);
+      nsCOMPtr<nsICharsetAlias> alias(do_GetService(NS_CHARSETALIAS_CONTRACTID));
+      result = alias->GetPreferred(guess, preferred);
       
       
       if (NS_SUCCEEDED(result) &&
@@ -2051,6 +2698,9 @@ ParserWriteFunc(nsIInputStream* in,
     }
   }
 
+  if (pws->mParserFilter)
+    pws->mParserFilter->RawBuffer(buf, &theNumRead);
+
   result = pws->mScanner->Append(buf, theNumRead, pws->mRequest);
   if (NS_SUCCEEDED(result)) {
     *writeCount = count;
@@ -2061,8 +2711,8 @@ ParserWriteFunc(nsIInputStream* in,
 
 nsresult
 nsParser::OnDataAvailable(nsIRequest *request, nsISupports* aContext,
-                          nsIInputStream *pIStream, uint64_t sourceOffset,
-                          uint32_t aLength)
+                          nsIInputStream *pIStream, PRUint32 sourceOffset,
+                          PRUint32 aLength)
 {
   NS_PRECONDITION((eOnStart == mParserContext->mStreamListenerState ||
                    eOnDataAvail == mParserContext->mStreamListenerState),
@@ -2071,18 +2721,6 @@ nsParser::OnDataAvailable(nsIRequest *request, nsISupports* aContext,
                   "Must have a buffered input stream");
 
   nsresult rv = NS_OK;
-
-  if (mIsAboutBlank) {
-    MOZ_ASSERT(false, "Must not get OnDataAvailable for about:blank");
-    
-    
-    uint32_t totalRead;
-    rv = pIStream->ReadSegments(NoOpParserWriteFunc,
-                                nullptr,
-                                aLength,
-                                &totalRead);
-    return rv;
-  }
 
   CParserContext *theContext = mParserContext;
 
@@ -2093,19 +2731,25 @@ nsParser::OnDataAvailable(nsIRequest *request, nsISupports* aContext,
   if (theContext) {
     theContext->mStreamListenerState = eOnDataAvail;
 
+    if ((mFlags & NS_PARSER_FLAG_PARSER_ENABLED) &&
+        mSpeculativeScriptThread) {
+      mSpeculativeScriptThread->StopParsing(PR_FALSE);
+    }
+
     if (eInvalidDetect == theContext->mAutoDetectStatus) {
       if (theContext->mScanner) {
         nsScannerIterator iter;
         theContext->mScanner->EndReading(iter);
-        theContext->mScanner->SetPosition(iter, true);
+        theContext->mScanner->SetPosition(iter, PR_TRUE);
       }
     }
 
-    uint32_t totalRead;
+    PRUint32 totalRead;
     ParserWriteStruct pws;
     pws.mNeedCharsetCheck =
       (0 == sourceOffset) && (mCharsetSource < kCharsetFromMetaTag);
     pws.mParser = this;
+    pws.mParserFilter = mParserFilter;
     pws.mScanner = theContext->mScanner;
     pws.mRequest = request;
 
@@ -2118,12 +2762,12 @@ nsParser::OnDataAvailable(nsIRequest *request, nsISupports* aContext,
     
     if (IsOkToProcessNetworkData() &&
         theContext->mScanner->FirstNonWhitespacePosition() >= 0) {
-      mProcessingNetworkData = true;
+      mProcessingNetworkData = PR_TRUE;
       if (mSink) {
         mSink->WillParse();
       }
       rv = ResumeParse();
-      mProcessingNetworkData = false;
+      mProcessingNetworkData = PR_FALSE;
     }
   } else {
     rv = NS_ERROR_UNEXPECTED;
@@ -2142,11 +2786,16 @@ nsParser::OnStopRequest(nsIRequest *request, nsISupports* aContext,
 {
   nsresult rv = NS_OK;
 
+  if ((mFlags & NS_PARSER_FLAG_PARSER_ENABLED) &&
+      mSpeculativeScriptThread) {
+    mSpeculativeScriptThread->StopParsing(PR_FALSE);
+  }
+
   CParserContext *pc = mParserContext;
   while (pc) {
     if (pc->mRequest == request) {
       pc->mStreamListenerState = eOnStop;
-      pc->mScanner->SetIncremental(false);
+      pc->mScanner->SetIncremental(PR_FALSE);
       break;
     }
 
@@ -2155,13 +2804,16 @@ nsParser::OnStopRequest(nsIRequest *request, nsISupports* aContext,
 
   mStreamStatus = status;
 
+  if (mParserFilter)
+    mParserFilter->Finish();
+
   if (IsOkToProcessNetworkData() && NS_SUCCEEDED(rv)) {
-    mProcessingNetworkData = true;
+    mProcessingNetworkData = PR_TRUE;
     if (mSink) {
       mSink->WillParse();
     }
-    rv = ResumeParse(true, true);
-    mProcessingNetworkData = false;
+    rv = ResumeParse(PR_TRUE, PR_TRUE);
+    mProcessingNetworkData = PR_FALSE;
   }
 
   
@@ -2192,12 +2844,12 @@ bool
 nsParser::WillTokenize(bool aIsFinalChunk)
 {
   if (!mParserContext) {
-    return true;
+    return PR_TRUE;
   }
 
   nsITokenizer* theTokenizer;
   nsresult result = mParserContext->GetTokenizer(mDTD, mSink, theTokenizer);
-  NS_ENSURE_SUCCESS(result, false);
+  NS_ENSURE_SUCCESS(result, PR_FALSE);
   return NS_SUCCEEDED(theTokenizer->WillTokenize(aIsFinalChunk,
                                                  &mTokenAllocator));
 }
@@ -2247,7 +2899,7 @@ nsresult nsParser::Tokenize(bool aIsFinalChunk)
           break;
         }
         if (NS_ERROR_HTMLPARSER_STOPPARSING == result) {
-          killSink = true;
+          killSink = PR_TRUE;
           result = Terminate();
           break;
         }
@@ -2263,7 +2915,7 @@ nsresult nsParser::Tokenize(bool aIsFinalChunk)
     DidTokenize(aIsFinalChunk);
 
     if (killSink) {
-      mSink = nullptr;
+      mSink = nsnull;
     }
   } else {
     result = mInternalState = NS_ERROR_HTMLPARSER_BADTOKENIZER;
@@ -2281,12 +2933,12 @@ bool
 nsParser::DidTokenize(bool aIsFinalChunk)
 {
   if (!mParserContext) {
-    return true;
+    return PR_TRUE;
   }
 
   nsITokenizer* theTokenizer;
   nsresult rv = mParserContext->GetTokenizer(mDTD, mSink, theTokenizer);
-  NS_ENSURE_SUCCESS(rv, false);
+  NS_ENSURE_SUCCESS(rv, PR_FALSE);
 
   rv = theTokenizer->DidTokenize(aIsFinalChunk);
   return NS_SUCCEEDED(rv);
@@ -2324,8 +2976,9 @@ nsParser::GetDTD(nsIDTD** aDTD)
 
 
 
-nsIStreamListener*
-nsParser::GetStreamListener()
+NS_IMETHODIMP
+nsParser::GetStreamListener(nsIStreamListener** aListener)
 {
-  return this;
+  NS_ADDREF(*aListener = this);
+  return NS_OK;
 }

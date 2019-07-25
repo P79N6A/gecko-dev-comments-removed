@@ -5,6 +5,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "CAccessibleTable.h"
 
 #include "Accessible2.h"
@@ -132,7 +165,7 @@ __try {
   if (!tableAcc)
     return E_FAIL;
 
-  int32_t childIndex = 0;
+  PRInt32 childIndex = 0;
   nsresult rv = tableAcc->GetCellIndexAt(aRowIndex, aColumnIndex, &childIndex);
   if (NS_FAILED(rv))
     return GetHRESULT(rv);
@@ -183,7 +216,7 @@ __try {
   if (!tableAcc)
     return E_FAIL;
 
-  int32_t columnsSpanned = 0;
+  PRInt32 columnsSpanned = 0;
   nsresult rv = tableAcc->GetColumnExtentAt(aRow, aColumn, &columnsSpanned);
   if (NS_FAILED(rv))
     return GetHRESULT(rv);
@@ -219,7 +252,7 @@ __try {
   if (!tableAcc)
     return E_FAIL;
 
-  int32_t columnIndex = 0;
+  PRInt32 columnIndex = 0;
   nsresult rv = tableAcc->GetColumnIndexAt(aChildIndex, &columnIndex);
   if (NS_FAILED(rv))
     return GetHRESULT(rv);
@@ -243,7 +276,7 @@ __try {
   if (!tableAcc)
     return E_FAIL;
 
-  int32_t columnCount = 0;
+  PRInt32 columnCount = 0;
   nsresult rv = tableAcc->GetColumnCount(&columnCount);
   if (NS_FAILED(rv))
     return GetHRESULT(rv);
@@ -267,7 +300,7 @@ __try {
   if (!tableAcc)
     return E_FAIL;
 
-  int32_t rowCount = 0;
+  PRInt32 rowCount = 0;
   nsresult rv = tableAcc->GetRowCount(&rowCount);
   if (NS_FAILED(rv))
     return GetHRESULT(rv);
@@ -291,7 +324,7 @@ __try {
   if (!tableAcc)
     return E_FAIL;
 
-  uint32_t count = 0;
+  PRUint32 count = 0;
   nsresult rv = tableAcc->GetSelectedCellCount(&count);
   if (NS_FAILED(rv))
     return GetHRESULT(rv);
@@ -314,7 +347,7 @@ __try {
   if (!tableAcc)
     return E_FAIL;
 
-  uint32_t count = 0;
+  PRUint32 count = 0;
   nsresult rv = tableAcc->GetSelectedColumnCount(&count);
   if (NS_FAILED(rv))
     return GetHRESULT(rv);
@@ -337,7 +370,7 @@ __try {
   if (!tableAcc)
     return E_FAIL;
 
-  uint32_t count = 0;
+  PRUint32 count = 0;
   nsresult rv = tableAcc->GetSelectedRowCount(&count);
   if (NS_FAILED(rv))
     return GetHRESULT(rv);
@@ -386,7 +419,7 @@ __try {
   if (!tableAcc)
     return E_FAIL;
 
-  int32_t rowsSpanned = 0;
+  PRInt32 rowsSpanned = 0;
   nsresult rv = tableAcc->GetRowExtentAt(aRow, aColumn, &rowsSpanned);
   if (NS_FAILED(rv))
     return GetHRESULT(rv);
@@ -422,7 +455,7 @@ __try {
   if (!tableAcc)
     return E_FAIL;
 
-  int32_t rowIndex = 0;
+  PRInt32 rowIndex = 0;
   nsresult rv = tableAcc->GetRowIndexAt(aChildIndex, &rowIndex);
   if (NS_FAILED(rv))
     return GetHRESULT(rv);
@@ -637,17 +670,17 @@ __try {
   if (!tableAcc)
     return E_FAIL;
 
-  int32_t rowIdx = -1, columnIdx = -1;
+  PRInt32 rowIdx = -1, columnIdx = -1;
   nsresult rv = tableAcc->GetRowAndColumnIndicesAt(aIndex, &rowIdx, &columnIdx);
   if (NS_FAILED(rv))
     return GetHRESULT(rv);
 
-  int32_t rowExtents = 0;
+  PRInt32 rowExtents = 0;
   rv = tableAcc->GetRowExtentAt(rowIdx, columnIdx, &rowExtents);
   if (NS_FAILED(rv))
     return GetHRESULT(rv);
 
-  int32_t columnExtents = 0;
+  PRInt32 columnExtents = 0;
   rv = tableAcc->GetColumnExtentAt(rowIdx, columnIdx, &columnExtents);
   if (NS_FAILED(rv))
     return GetHRESULT(rv);
@@ -750,8 +783,8 @@ CAccessibleTable::GetSelectedItems(long **aItems, long *aItemsCount,
   if (!tableAcc)
     return E_FAIL;
 
-  uint32_t size = 0;
-  int32_t *items = nullptr;
+  PRUint32 size = 0;
+  PRInt32 *items = nsnull;
 
   nsresult rv = NS_OK;
   switch (aType) {
@@ -779,7 +812,7 @@ CAccessibleTable::GetSelectedItems(long **aItems, long *aItemsCount,
     return E_OUTOFMEMORY;
 
   *aItemsCount = size;
-  for (uint32_t index = 0; index < size; ++index)
+  for (PRUint32 index = 0; index < size; ++index)
     (*aItems)[index] = items[index];
 
   nsMemory::Free(items);

@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "xptcprivate.h"
 #include "xptiprivate.h"
 
@@ -14,20 +46,17 @@
 
 extern "C" {
 
-#ifndef __GNUC__
-static
-#endif
-nsresult __stdcall
-PrepareAndDispatch(nsXPTCStubBase* self, uint32_t methodIndex,
-                   uint32_t* args, uint32_t* stackBytesToPop)
+static nsresult __stdcall
+PrepareAndDispatch(nsXPTCStubBase* self, PRUint32 methodIndex,
+                   PRUint32* args, PRUint32* stackBytesToPop)
 {
 #define PARAM_BUFFER_COUNT     16
 
     nsXPTCMiniVariant paramBuffer[PARAM_BUFFER_COUNT];
     nsXPTCMiniVariant* dispatchParams = NULL;
     const nsXPTMethodInfo* info = NULL;
-    uint8_t paramCount;
-    uint8_t i;
+    PRUint8 paramCount;
+    PRUint8 i;
     nsresult result = NS_ERROR_FAILURE;
 
     
@@ -35,7 +64,7 @@ PrepareAndDispatch(nsXPTCStubBase* self, uint32_t methodIndex,
 
     NS_ASSERTION(self,"no self");
 
-    self->mEntry->GetMethodInfo(uint16_t(methodIndex), &info);
+    self->mEntry->GetMethodInfo(PRUint16(methodIndex), &info);
     NS_ASSERTION(info,"no method info");
 
     paramCount = info->GetParamCount();
@@ -47,7 +76,7 @@ PrepareAndDispatch(nsXPTCStubBase* self, uint32_t methodIndex,
         dispatchParams = paramBuffer;
     NS_ASSERTION(dispatchParams,"no place for params");
 
-    uint32_t* ap = args;
+    PRUint32* ap = args;
     for(i = 0; i < paramCount; i++, ap++)
     {
         const nsXPTParamInfo& param = info->GetParam(i);
@@ -62,14 +91,14 @@ PrepareAndDispatch(nsXPTCStubBase* self, uint32_t methodIndex,
         
         switch(type)
         {
-        case nsXPTType::T_I8     : dp->val.i8  = *((int8_t*)  ap);       break;
-        case nsXPTType::T_I16    : dp->val.i16 = *((int16_t*) ap);       break;
-        case nsXPTType::T_I32    : dp->val.i32 = *((int32_t*) ap);       break;
-        case nsXPTType::T_I64    : dp->val.i64 = *((int64_t*) ap); ap++; break;
-        case nsXPTType::T_U8     : dp->val.u8  = *((uint8_t*) ap);       break;
-        case nsXPTType::T_U16    : dp->val.u16 = *((uint16_t*)ap);       break;
-        case nsXPTType::T_U32    : dp->val.u32 = *((uint32_t*)ap);       break;
-        case nsXPTType::T_U64    : dp->val.u64 = *((uint64_t*)ap); ap++; break;
+        case nsXPTType::T_I8     : dp->val.i8  = *((PRInt8*)  ap);       break;
+        case nsXPTType::T_I16    : dp->val.i16 = *((PRInt16*) ap);       break;
+        case nsXPTType::T_I32    : dp->val.i32 = *((PRInt32*) ap);       break;
+        case nsXPTType::T_I64    : dp->val.i64 = *((PRInt64*) ap); ap++; break;
+        case nsXPTType::T_U8     : dp->val.u8  = *((PRUint8*) ap);       break;
+        case nsXPTType::T_U16    : dp->val.u16 = *((PRUint16*)ap);       break;
+        case nsXPTType::T_U32    : dp->val.u32 = *((PRUint32*)ap);       break;
+        case nsXPTType::T_U64    : dp->val.u64 = *((PRUint64*)ap); ap++; break;
         case nsXPTType::T_FLOAT  : dp->val.f   = *((float*)   ap);       break;
         case nsXPTType::T_DOUBLE : dp->val.d   = *((double*)  ap); ap++; break;
         case nsXPTType::T_BOOL   : dp->val.b   = *((bool*)  ap);       break;
@@ -80,9 +109,9 @@ PrepareAndDispatch(nsXPTCStubBase* self, uint32_t methodIndex,
             break;
         }
     }
-    *stackBytesToPop = ((uint32_t)ap) - ((uint32_t)args);
+    *stackBytesToPop = ((PRUint32)ap) - ((PRUint32)args);
 
-    result = self->mOuter->CallMethod((uint16_t)methodIndex, info, dispatchParams);
+    result = self->mOuter->CallMethod((PRUint16)methodIndex, info, dispatchParams);
 
     if(dispatchParams != paramBuffer)
         delete [] dispatchParams;
@@ -127,58 +156,20 @@ __declspec(naked) nsresult __stdcall nsXPTCStubBase::Stub##n() \
 
 #else
 
-asm(".text\n\t"
-    ".align     4\n\t"
-    "SharedStub:\n\t"
-    "push       %ebp\n\t"
-    "mov        %esp, %ebp\n\t"
-    "push       %ecx\n\t"
-    "lea        -4(%ebp), %eax\n\t"
-    "push       %eax\n\t"
-    "lea        12(%ebp), %eax\n\t"
-    "push       %eax\n\t"
-    "push       %ecx\n\t"
-    "movl       8(%ebp), %eax\n\t"
-    "push       %eax\n\t"
-    "call       _PrepareAndDispatch@16\n\t"
-    "mov        4(%ebp), %edx\n\t"
-    "mov        -4(%ebp), %ecx\n\t"
-    "add        $8, %ecx\n\t"
-    "mov        %ebp, %esp\n\t"
-    "pop        %ebp\n\t"
-    "add        %ecx, %esp\n\t"
-    "jmp        *%edx"
-);
-
 #define STUB_ENTRY(n) \
-asm(".text\n\t" \
-    ".align     4\n\t" \
-    ".if	" #n " < 10\n\t" \
-    ".globl     __ZN14nsXPTCStubBase5Stub" #n "Ev@4\n\t" \
-    ".def       __ZN14nsXPTCStubBase5Stub" #n "Ev@4; \n\t" \
-    ".scl       3\n\t" \
-    ".type      46\n\t" \
-    ".endef\n\t" \
-    "__ZN14nsXPTCStubBase5Stub" #n "Ev@4:\n\t" \
-    ".elseif	" #n " < 100\n\t" \
-    ".globl     __ZN14nsXPTCStubBase6Stub" #n "Ev@4\n\t" \
-    ".def       __ZN14nsXPTCStubBase6Stub" #n "Ev@4\n\t" \
-    ".scl       3\n\t" \
-    ".type      46\n\t" \
-    ".endef\n\t" \
-    "__ZN14nsXPTCStubBase6Stub" #n "Ev@4:\n\t" \
-    ".elseif    " #n " < 1000\n\t" \
-    ".globl     __ZN14nsXPTCStubBase7Stub" #n "Ev@4\n\t" \
-    ".def       __ZN14nsXPTCStubBase7Stub" #n "Ev@4\n\t" \
-    ".scl       3\n\t" \
-    ".type      46\n\t" \
-    ".endef\n\t" \
-    "__ZN14nsXPTCStubBase7Stub" #n "Ev@4:\n\t" \
-    ".else\n\t" \
-    ".err	\"stub number " #n " >= 1000 not yet supported\"\n\t" \
-    ".endif\n\t" \
-    "mov $" #n ", %ecx\n\t" \
-    "jmp SharedStub");
+nsresult __stdcall nsXPTCStubBase::Stub##n() \
+{ \
+  PRUint32 *args, stackBytesToPop = 0; \
+  nsresult result = 0; \
+  nsXPTCStubBase *obj; \
+  __asm__ __volatile__ ( \
+    "leal   0x0c(%%ebp), %%ecx\n\t"    /* args */ \
+    "movl   0x08(%%ebp), %%edx\n\t"    /* this */ \
+    : "=c" (args), \
+      "=d" (obj)); \
+  result = PrepareAndDispatch(obj, n, args, &stackBytesToPop); \
+  return result; \
+}   
 
 #endif
 

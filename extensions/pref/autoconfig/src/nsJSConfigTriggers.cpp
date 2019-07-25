@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifdef MOZ_LOGGING
 
 #define FORCE_PR_LOG
@@ -18,17 +51,13 @@
 #include "nsIPrefService.h"
 #include "nsIJSContextStack.h"
 #include "nspr.h"
-#include "mozilla/Attributes.h"
-#include "nsContentUtils.h"
-#include "nsIScriptSecurityManager.h"
-#include "nsJSPrincipals.h"
 
 extern PRLogModuleInfo *MCD;
 
 
 
 
-class AutoConfigSecMan MOZ_FINAL : public nsIXPCSecurityManager
+class AutoConfigSecMan : public nsIXPCSecurityManager
 {
 public:
     NS_DECL_ISUPPORTS
@@ -63,7 +92,7 @@ AutoConfigSecMan::CanGetService(JSContext *aJSContext, const nsCID & aCID)
 }
 
 NS_IMETHODIMP 
-AutoConfigSecMan::CanAccess(uint32_t aAction, 
+AutoConfigSecMan::CanAccess(PRUint32 aAction, 
                             nsAXPCNativeCallContext *aCallContext, 
                             JSContext *aJSContext, JSObject *aJSObject, 
                             nsISupports *aObj, nsIClassInfo *aClassInfo, 
@@ -74,13 +103,13 @@ AutoConfigSecMan::CanAccess(uint32_t aAction,
 
 
 
-static  JSContext *autoconfig_cx = nullptr;
+static  JSContext *autoconfig_cx = nsnull;
 static  JSObject *autoconfig_glob;
 
 static JSClass global_class = {
     "autoconfig_global", JSCLASS_GLOBAL_FLAGS,
     JS_PropertyStub,  JS_PropertyStub,  JS_PropertyStub,  JS_StrictPropertyStub,
-    JS_EnumerateStub, JS_ResolveStub,   JS_ConvertStub,   nullptr
+    JS_EnumerateStub, JS_ResolveStub,   JS_ConvertStub,   nsnull
 };
 
 static void
@@ -131,9 +160,11 @@ nsresult CentralizedAdminPrefManagerInit()
         static_cast<nsIXPCSecurityManager*>(new AutoConfigSecMan());
     xpc->SetSecurityManagerForJSContext(autoconfig_cx, secman, 0);
 
-    autoconfig_glob = JS_NewGlobalObject(autoconfig_cx, &global_class, NULL);
+    autoconfig_glob = JS_NewCompartmentAndGlobalObject(autoconfig_cx, &global_class, NULL);
     if (autoconfig_glob) {
-        JSAutoCompartment ac(autoconfig_cx, autoconfig_glob);
+        JSAutoEnterCompartment ac;
+        if(!ac.enter(autoconfig_cx, autoconfig_glob))
+            return NS_ERROR_FAILURE;
         if (JS_InitStandardClasses(autoconfig_cx, autoconfig_glob)) {
             
             rv = xpc->InitClasses(autoconfig_cx, autoconfig_glob);
@@ -144,7 +175,7 @@ nsresult CentralizedAdminPrefManagerInit()
 
     
     JS_DestroyContext(autoconfig_cx);
-    autoconfig_cx = nullptr;
+    autoconfig_cx = nsnull;
     return NS_ERROR_FAILURE;
 }
 
@@ -193,13 +224,8 @@ nsresult EvaluateAdminConfigScript(const char *js_buffer, size_t length,
     }
 
     JS_BeginRequest(autoconfig_cx);
-    nsCOMPtr<nsIPrincipal> principal;
-    nsContentUtils::GetSecurityManager()->GetSystemPrincipal(getter_AddRefs(principal));
-    JS::CompileOptions options(autoconfig_cx);
-    options.setPrincipals(nsJSPrincipals::get(principal))
-           .setFileAndLine(filename, 1);
-    JS::RootedObject glob(autoconfig_cx, autoconfig_glob);
-    ok = JS::Evaluate(autoconfig_cx, glob, options, js_buffer, length, nullptr);
+    ok = JS_EvaluateScript(autoconfig_cx, autoconfig_glob,
+                           js_buffer, length, filename, 0, nsnull);
     JS_EndRequest(autoconfig_cx);
 
     JS_MaybeGC(autoconfig_cx);

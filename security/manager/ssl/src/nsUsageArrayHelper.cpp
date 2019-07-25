@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsUsageArrayHelper.h"
 
 #include "nsCOMPtr.h"
@@ -31,11 +64,11 @@ nsUsageArrayHelper::nsUsageArrayHelper(CERTCertificate *aCert)
 void
 nsUsageArrayHelper::check(const char *suffix,
                         SECCertificateUsage aCertUsage,
-                        uint32_t &aCounter,
+                        PRUint32 &aCounter,
                         PRUnichar **outUsages)
 {
   if (!aCertUsage) return;
-  nsAutoCString typestr;
+  nsCAutoString typestr;
   switch (aCertUsage) {
   case certificateUsageSSLClient:
     typestr = "VerifySSLClient";
@@ -87,7 +120,7 @@ nsUsageArrayHelper::check(const char *suffix,
 }
 
 void
-nsUsageArrayHelper::verifyFailed(uint32_t *_verified, int err)
+nsUsageArrayHelper::verifyFailed(PRUint32 *_verified, int err)
 {
   switch (err) {
   
@@ -108,8 +141,6 @@ nsUsageArrayHelper::verifyFailed(uint32_t *_verified, int err)
   case SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE:
     
     *_verified = nsNSSCertificate::INVALID_CA; break;
-  case SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED:
-    *_verified = nsNSSCertificate::SIGNATURE_ALGORITHM_DISABLED; break;
   case SEC_ERROR_CERT_USAGES_INVALID: 
   
   case SECSuccess:
@@ -122,9 +153,9 @@ nsUsageArrayHelper::verifyFailed(uint32_t *_verified, int err)
 nsresult
 nsUsageArrayHelper::GetUsagesArray(const char *suffix,
                       bool localOnly,
-                      uint32_t outArraySize,
-                      uint32_t *_verified,
-                      uint32_t *_count,
+                      PRUint32 outArraySize,
+                      PRUint32 *_verified,
+                      PRUint32 *_count,
                       PRUnichar **outUsages)
 {
   nsNSSShutDownPreventionLock locker;
@@ -147,7 +178,7 @@ nsUsageArrayHelper::GetUsagesArray(const char *suffix,
     }
   }
   
-  uint32_t &count = *_count;
+  PRUint32 &count = *_count;
   count = 0;
   SECCertificateUsage usages = 0;
   int err = 0;
@@ -157,7 +188,7 @@ if (!nsNSSComponent::globalConstFlagUsePKIXVerification) {
   
   
   (void)
-  CERT_VerifyCertificateNow(defaultcertdb, mCert, true,
+  CERT_VerifyCertificateNow(defaultcertdb, mCert, PR_TRUE,
 			    certificateUsageSSLClient |
 			    certificateUsageSSLServer |
 			    certificateUsageSSLServerWithStepUp |

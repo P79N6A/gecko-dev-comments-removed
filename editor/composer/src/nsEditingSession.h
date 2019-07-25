@@ -3,47 +3,72 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsEditingSession_h__
 #define nsEditingSession_h__
 
 
 #ifndef nsWeakReference_h__
-#include "nsWeakReference.h"            
+#include "nsWeakReference.h"
 #endif
 
-#include "nsAutoPtr.h"                  
-#include "nsCOMPtr.h"                   
-#include "nsISupportsImpl.h"            
-#include "nsIWeakReferenceUtils.h"      
-#include "nsWeakReference.h"            
-#include "nscore.h"                     
-#include "prtypes.h"                    
+#include "nsITimer.h"
+#include "nsAutoPtr.h"
 
 #ifndef __gen_nsIWebProgressListener_h__
 #include "nsIWebProgressListener.h"
 #endif
 
 #ifndef __gen_nsIEditingSession_h__
-#include "nsIEditingSession.h"          
+#include "nsIEditingSession.h"
 #endif
 
-#include "nsString.h"                   
-
-class nsIDOMWindow;
-class nsISupports;
-class nsITimer;
+#include "nsString.h"
 
 #define NS_EDITINGSESSION_CID                            \
 { 0xbc26ff01, 0xf2bd, 0x11d4, { 0xa7, 0x3c, 0xe5, 0xa4, 0xb5, 0xa8, 0xbd, 0xfc } }
 
 
-class nsComposerCommandsUpdater;
-class nsIChannel;
-class nsIControllers;
-class nsIDocShell;
-class nsIEditor;
-class nsIEditorDocShell;
 class nsIWebProgress;
+class nsIDocShell;
+class nsIEditorDocShell;
+class nsIChannel;
+class nsIEditor;
+class nsIControllers;
+
+class nsComposerCommandsUpdater;
 
 class nsEditingSession : public nsIEditingSession,
                          public nsIWebProgressListener,
@@ -72,11 +97,11 @@ protected:
   nsresult        SetupEditorCommandController(const char *aControllerClassName,
                                                nsIDOMWindow *aWindow,
                                                nsISupports *aContext,
-                                               uint32_t *aControllerId);
+                                               PRUint32 *aControllerId);
 
   nsresult        SetContextOnControllerById(nsIControllers* aControllers, 
                                             nsISupports* aContext,
-                                            uint32_t aID);
+                                            PRUint32 aID);
 
   nsresult        PrepareForEditing(nsIDOMWindow *aWindow);
 
@@ -127,7 +152,7 @@ protected:
   bool            mProgressListenerRegistered;
 
   
-  uint16_t        mImageAnimationMode;
+  PRUint16        mImageAnimationMode;
 
   
   
@@ -135,11 +160,11 @@ protected:
   
   
   nsCString       mEditorType; 
-  uint32_t        mEditorFlags;
-  uint32_t        mEditorStatus;
-  uint32_t        mBaseCommandControllerId;
-  uint32_t        mDocStateControllerId;
-  uint32_t        mHTMLCommandControllerId;
+  PRUint32        mEditorFlags;
+  PRUint32        mEditorStatus;
+  PRUint32        mBaseCommandControllerId;
+  PRUint32        mDocStateControllerId;
+  PRUint32        mHTMLCommandControllerId;
 
   
   nsWeakPtr       mDocShell;

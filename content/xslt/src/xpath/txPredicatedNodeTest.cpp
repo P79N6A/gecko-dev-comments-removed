@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "txExpr.h"
 #include "txExprResult.h"
 #include "txSingleNodeContext.h"
@@ -21,13 +54,13 @@ txPredicatedNodeTest::matches(const txXPathNode& aNode,
                               txIMatchContext* aContext)
 {
     if (!mNodeTest->matches(aNode, aContext)) {
-        return false;
+        return PR_FALSE;
     }
 
     txSingleNodeContext context(aNode, aContext);
     nsRefPtr<txAExprResult> res;
     nsresult rv = mPredicate->evaluate(&context, getter_AddRefs(res));
-    NS_ENSURE_SUCCESS(rv, false);
+    NS_ENSURE_SUCCESS(rv, PR_FALSE);
 
     return res->booleanValue();
 }

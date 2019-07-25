@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef TRANSFRMX_EXPRRESULT_H
 #define TRANSFRMX_EXPRRESULT_H
 
@@ -73,7 +107,7 @@ public:
 
 
 
-    virtual bool booleanValue()          = 0;
+    virtual MBool booleanValue()          = 0;
 
     
 
@@ -97,12 +131,12 @@ private:
 class BooleanResult : public txAExprResult {
 
 public:
-    BooleanResult(bool aValue);
+    BooleanResult(MBool aValue);
 
     TX_DECL_EXPRRESULT
 
 private:
-    bool value;
+    MBool value;
 };
 
 class NumberResult : public txAExprResult {

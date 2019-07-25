@@ -10,47 +10,11 @@ var gProvider;
 
 const SETTINGS_ROWS = 8;
 
-var MockFilePicker = SpecialPowers.MockFilePicker;
-MockFilePicker.init();
-
 var observer = {
-  lastDisplayed: null,
-  callback: null,
-  checkDisplayed: function(aExpected) {
-    is(this.lastDisplayed, aExpected, "'addon-options-displayed' notification should have fired");
-    this.lastDisplayed = null;
-  },
-  checkNotDisplayed: function() {
-    is(this.lastDisplayed, null, "'addon-options-displayed' notification should not have fired");
-  },
-  lastHidden: null,
-  checkHidden: function(aExpected) {
-    is(this.lastHidden, aExpected, "'addon-options-hidden' notification should have fired");
-    this.lastHidden = null;
-  },
-  checkNotHidden: function() {
-    is(this.lastHidden, null, "'addon-options-hidden' notification should not have fired");
-  },
+  lastData: null,
   observe: function(aSubject, aTopic, aData) {
-    if (aTopic == "addon-options-displayed") {
-      this.lastDisplayed = aData;
-      
-      
-      var setting = aSubject.querySelector("rows > setting[first-row] ~ setting");
-      var input = gManagerWindow.document.getAnonymousElementByAttribute(setting, "class", "preferences-title");
-      isnot(input, null, "XBL binding should be applied");
-
-      
-      gManagerWindow.document.getElementById("detail-controls").style.marginBottom = "1000px";
-
-      if (this.callback) {
-        var tempCallback = this.callback;
-        this.callback = null;
-        tempCallback();
-      }
-    } else if (aTopic == "addon-options-hidden") {
-      this.lastHidden = aData;
-    }
+    if (aTopic == "addon-options-displayed")
+      this.lastData = aData;
   }
 };
 
@@ -66,17 +30,6 @@ function installAddon(aCallback) {
   }, "application/x-xpinstall");
 }
 
-function checkScrolling(aShouldHaveScrolled) {
-  var detailView = gManagerWindow.document.getElementById("detail-view");
-  var boxObject = detailView.boxObject;
-  boxObject.QueryInterface(Ci.nsIScrollBoxObject);
-  ok(detailView.scrollHeight > boxObject.height, "Page should require scrolling");
-  if (aShouldHaveScrolled)
-    isnot(detailView.scrollTop, 0, "Page should have scrolled");
-  else
-    is(detailView.scrollTop, 0, "Page should not have scrolled");
-}
-
 function test() {
   waitForExplicitFinish();
 
@@ -87,8 +40,7 @@ function test() {
     name: "Inline Settings (Regular)",
     version: "1",
     optionsURL: CHROMEROOT + "options.xul",
-    optionsType: AddonManager.OPTIONS_TYPE_INLINE,
-    operationsRequiringRestart: AddonManager.OP_NEEDS_RESTART_DISABLE,
+    optionsType: AddonManager.OPTIONS_TYPE_INLINE
   },{
     id: "inlinesettings3@tests.mozilla.org",
     name: "Inline Settings (More Options)",
@@ -109,7 +61,6 @@ function test() {
       gCategoryUtilities = new CategoryUtilities(gManagerWindow);
 
       Services.obs.addObserver(observer, "addon-options-displayed", false);
-      Services.obs.addObserver(observer, "addon-options-hidden", false);
 
       run_next_test();
     });
@@ -131,12 +82,7 @@ function end_test() {
   Services.prefs.clearUserPref("extensions.inlinesettings3.radioString");
   Services.prefs.clearUserPref("extensions.inlinesettings3.menulist");
 
-  MockFilePicker.cleanup();
-
   close_manager(gManagerWindow, function() {
-    observer.checkHidden("inlinesettings2@tests.mozilla.org");
-    Services.obs.removeObserver(observer, "addon-options-hidden");
-
     AddonManager.getAddonByID("inlinesettings1@tests.mozilla.org", function(aAddon) {
       aAddon.uninstall();
       finish();
@@ -189,21 +135,19 @@ add_test(function() {
   EventUtils.synthesizeMouseAtCenter(button, { clickCount: 1 }, gManagerWindow);
 
   wait_for_view_load(gManagerWindow, function() {
-    observer.checkDisplayed("inlinesettings1@tests.mozilla.org");
-    is(gManagerWindow.gViewController.currentViewId,
-       "addons://detail/inlinesettings1%40tests.mozilla.org/preferences",
-       "Current view should scroll to preferences");
-    checkScrolling(true);
+    is(observer.lastData, "inlinesettings1@tests.mozilla.org", "Observer notification should have fired");
 
     var grid = gManagerWindow.document.getElementById("detail-grid");
     var settings = grid.querySelectorAll("rows > setting");
     is(settings.length, SETTINGS_ROWS, "Grid should have settings children");
 
+    
+    settings[0].clientTop;
+
     ok(settings[0].hasAttribute("first-row"), "First visible row should have first-row attribute");
     Services.prefs.setBoolPref("extensions.inlinesettings1.bool", false);
     var input = gManagerWindow.document.getAnonymousElementByAttribute(settings[0], "anonid", "input");
     isnot(input.checked, true, "Checkbox should have initial value");
-    is(input.label, "Check box label", "Checkbox should be labelled");
     EventUtils.synthesizeMouseAtCenter(input, { clickCount: 1 }, gManagerWindow);
     is(input.checked, true, "Checkbox should have updated value");
     is(Services.prefs.getBoolPref("extensions.inlinesettings1.bool"), true, "Bool pref should have been updated");
@@ -268,54 +212,52 @@ add_test(function() {
     is(Services.prefs.getCharPref("extensions.inlinesettings1.color"), "#FF9900", "Color pref should have been updated");
 
     try {
+      mockFilePickerFactory.register();
+
       ok(!settings[6].hasAttribute("first-row"), "Not the first row");
       var button = gManagerWindow.document.getAnonymousElementByAttribute(settings[6], "anonid", "button");
       input = gManagerWindow.document.getAnonymousElementByAttribute(settings[6], "anonid", "input");
       is(input.value, "", "Label value should be empty");
-      is(input.tooltipText, "", "Label tooltip should be empty");
 
       var profD = Services.dirsvc.get("ProfD", Ci.nsIFile);
       var curProcD = Services.dirsvc.get("CurProcD", Ci.nsIFile);
 
-      MockFilePicker.returnFiles = [profD];
-      MockFilePicker.returnValue = Ci.nsIFilePicker.returnOK;
+      _returnFile = profD;
+      _returnValue = Ci.nsIFilePicker.returnOK;
       EventUtils.synthesizeMouseAtCenter(button, { clickCount: 1 }, gManagerWindow);
-      is(MockFilePicker.mode, Ci.nsIFilePicker.modeOpen, "File picker mode should be open file");
+      is(_mode, Ci.nsIFilePicker.modeOpen, "File picker mode should be open file");
       is(input.value, profD.path, "Label value should match file chosen");
-      is(input.tooltipText, profD.path, "Label tooltip should match file chosen");
       is(Services.prefs.getCharPref("extensions.inlinesettings1.file"), profD.path, "File pref should match file chosen");
 
-      MockFilePicker.returnFiles = [curProcD];
-      MockFilePicker.returnValue = Ci.nsIFilePicker.returnCancel;
+      _returnFile = curProcD;
+      _returnValue = Ci.nsIFilePicker.returnCancel;
       EventUtils.synthesizeMouseAtCenter(button, { clickCount: 1 }, gManagerWindow);
-      is(MockFilePicker.mode, Ci.nsIFilePicker.modeOpen, "File picker mode should be open file");
+      is(_mode, Ci.nsIFilePicker.modeOpen, "File picker mode should be open file");
       is(input.value, profD.path, "Label value should not have changed");
-      is(input.tooltipText, profD.path, "Label tooltip should not have changed");
       is(Services.prefs.getCharPref("extensions.inlinesettings1.file"), profD.path, "File pref should not have changed");
 
       ok(!settings[7].hasAttribute("first-row"), "Not the first row");
       button = gManagerWindow.document.getAnonymousElementByAttribute(settings[7], "anonid", "button");
       input = gManagerWindow.document.getAnonymousElementByAttribute(settings[7], "anonid", "input");
       is(input.value, "", "Label value should be empty");
-      is(input.tooltipText, "", "Label tooltip should be empty");
 
-      MockFilePicker.returnFiles = [profD];
-      MockFilePicker.returnValue = Ci.nsIFilePicker.returnOK;
+      _returnFile = profD;
+      _returnValue = Ci.nsIFilePicker.returnOK;
       EventUtils.synthesizeMouseAtCenter(button, { clickCount: 1 }, gManagerWindow);
-      is(MockFilePicker.mode, Ci.nsIFilePicker.modeGetFolder, "File picker mode should be directory");
+      is(_mode, Ci.nsIFilePicker.modeGetFolder, "File picker mode should be directory");
       is(input.value, profD.path, "Label value should match file chosen");
-      is(input.tooltipText, profD.path, "Label tooltip should match file chosen");
       is(Services.prefs.getCharPref("extensions.inlinesettings1.directory"), profD.path, "Directory pref should match file chosen");
 
-      MockFilePicker.returnFiles = [curProcD];
-      MockFilePicker.returnValue = Ci.nsIFilePicker.returnCancel;
+      _returnFile = curProcD;
+      _returnValue = Ci.nsIFilePicker.returnCancel;
       EventUtils.synthesizeMouseAtCenter(button, { clickCount: 1 }, gManagerWindow);
-      is(MockFilePicker.mode, Ci.nsIFilePicker.modeGetFolder, "File picker mode should be directory");
+      is(_mode, Ci.nsIFilePicker.modeGetFolder, "File picker mode should be directory");
       is(input.value, profD.path, "Label value should not have changed");
-      is(input.tooltipText, profD.path, "Label tooltip should not have changed");
       is(Services.prefs.getCharPref("extensions.inlinesettings1.directory"), profD.path, "Directory pref should not have changed");
 
     } finally {
+      mockFilePickerFactory.unregister();
+
       button = gManagerWindow.document.getElementById("detail-prefs-btn");
       is_element_hidden(button, "Preferences button should not be visible");
 
@@ -326,8 +268,6 @@ add_test(function() {
 
 
 add_test(function() {
-  observer.checkHidden("inlinesettings1@tests.mozilla.org");
-
   var addon = get_addon_element(gManagerWindow, "inlinesettings3@tests.mozilla.org");
   addon.parentNode.ensureElementIsVisible(addon);
 
@@ -335,11 +275,14 @@ add_test(function() {
   EventUtils.synthesizeMouseAtCenter(button, { clickCount: 1 }, gManagerWindow);
 
   wait_for_view_load(gManagerWindow, function() {
-    observer.checkDisplayed("inlinesettings3@tests.mozilla.org");
+    is(observer.lastData, "inlinesettings3@tests.mozilla.org", "Observer notification should have fired");
 
     var grid = gManagerWindow.document.getElementById("detail-grid");
     var settings = grid.querySelectorAll("rows > setting");
     is(settings.length, 4, "Grid should have settings children");
+
+    
+    settings[0].clientTop;
 
     ok(settings[0].hasAttribute("first-row"), "First visible row should have first-row attribute");
     Services.prefs.setBoolPref("extensions.inlinesettings3.radioBool", false);
@@ -391,8 +334,6 @@ add_test(function() {
 
 
 add_test(function() {
-  observer.checkHidden("inlinesettings3@tests.mozilla.org");
-
   var addon = get_addon_element(gManagerWindow, "inlinesettings2@tests.mozilla.org");
   addon.parentNode.ensureElementIsVisible(addon);
 
@@ -400,11 +341,14 @@ add_test(function() {
   EventUtils.synthesizeMouseAtCenter(button, { clickCount: 1 }, gManagerWindow);
 
   wait_for_view_load(gManagerWindow, function() {
-    observer.checkDisplayed("inlinesettings2@tests.mozilla.org");
+    is(observer.lastData, "inlinesettings2@tests.mozilla.org", "Observer notification should have fired");
 
     var grid = gManagerWindow.document.getElementById("detail-grid");
     var settings = grid.querySelectorAll("rows > setting");
     is(settings.length, 5, "Grid should have settings children");
+
+    
+    settings[0].clientTop;
 
     var node = settings[0];
     node = settings[0];
@@ -415,26 +359,45 @@ add_test(function() {
     is(node.nodeName, "setting", "Should be a setting node");
     ok(node.hasAttribute("first-row"), "First visible row should have first-row attribute");
     var description = gManagerWindow.document.getAnonymousElementByAttribute(node, "class", "preferences-description");
-    is(description.textContent, "Description Attribute", "Description node should contain description");
+    is(description.textContent.trim(), "", "Description node should be empty");
+
+    node = node.nextSibling;
+    is(node.nodeName, "row", "Setting should be followed by a row node");
+    is_element_visible(node, "Description should be visible");
+    is(node.textContent, "Description Attribute", "Description should be in this row");
 
     node = settings[2];
     is(node.nodeName, "setting", "Should be a setting node");
     ok(!node.hasAttribute("first-row"), "Not the first row");
     description = gManagerWindow.document.getAnonymousElementByAttribute(node, "class", "preferences-description");
-    is(description.textContent, "Description Text Node", "Description node should contain description");
+    is(description.textContent.trim(), "", "Description node should be empty");
+
+    node = node.nextSibling;
+    is(node.nodeName, "row", "Setting should be followed by a row node");
+    is_element_visible(node, "Description should be visible");
+    is(node.textContent, "Description Text Node", "Description should be in this row");
 
     node = settings[3];
     is(node.nodeName, "setting", "Should be a setting node");
     ok(!node.hasAttribute("first-row"), "Not the first row");
     description = gManagerWindow.document.getAnonymousElementByAttribute(node, "class", "preferences-description");
-    is(description.textContent, "This is a test, all this text should be visible", "Description node should contain description");
+    is(description.textContent.trim(), "", "Description node should be empty");
     var button = node.firstElementChild;
     isnot(button, null, "There should be a button");
+
+    node = node.nextSibling;
+    is(node.nodeName, "row", "Setting should be followed by a row node");
+    is_element_visible(node, "Description should be visible");
+    is(node.textContent.trim(), "This is a test, all this text should be visible", "Description should be in this row");
 
     node = settings[4];
     is_element_hidden(node, "Unsupported settings should not be visible");
     ok(!node.hasAttribute("first-row"), "Hidden row is not the first row");
 
+    node = node.nextSibling;
+    is(node.nodeName, "row", "Setting should be followed by a row node");
+    is_element_hidden(node, "Descriptions of unsupported settings should not be visible");
+    
     var button = gManagerWindow.document.getElementById("detail-prefs-btn");
     is_element_hidden(button, "Preferences button should not be visible");
 
@@ -444,8 +407,6 @@ add_test(function() {
 
 
 add_test(function() {
-  observer.checkHidden("inlinesettings2@tests.mozilla.org");
-
   var addon = get_addon_element(gManagerWindow, "noninlinesettings@tests.mozilla.org");
   addon.parentNode.ensureElementIsVisible(addon);
 
@@ -453,7 +414,7 @@ add_test(function() {
   EventUtils.synthesizeMouseAtCenter(button, { clickCount: 1 }, gManagerWindow);
 
   wait_for_view_load(gManagerWindow, function() {
-    observer.checkNotDisplayed();
+    is(observer.lastData, "inlinesettings2@tests.mozilla.org", "Observer notification should not have fired");
 
     var grid = gManagerWindow.document.getElementById("detail-grid");
     var settings = grid.querySelectorAll("rows > setting");
@@ -468,21 +429,13 @@ add_test(function() {
 
 
 add_test(function() {
-  observer.checkNotHidden();
-
   var addon = get_addon_element(gManagerWindow, "inlinesettings1@tests.mozilla.org");
   addon.parentNode.ensureElementIsVisible(addon);
 
-  var button = gManagerWindow.document.getAnonymousElementByAttribute(addon, "anonid", "details-btn");
+  var button = gManagerWindow.document.getAnonymousElementByAttribute(addon, "anonid", "preferences-btn");
   EventUtils.synthesizeMouseAtCenter(button, { clickCount: 1 }, gManagerWindow);
 
   wait_for_view_load(gManagerWindow, function() {
-    observer.checkDisplayed("inlinesettings1@tests.mozilla.org");
-    is(gManagerWindow.gViewController.currentViewId,
-       "addons://detail/inlinesettings1%40tests.mozilla.org",
-       "Current view should not scroll to preferences");
-    checkScrolling(false);
-
     var grid = gManagerWindow.document.getElementById("detail-grid");
     var settings = grid.querySelectorAll("rows > setting");
     is(settings.length, SETTINGS_ROWS, "Grid should have settings children");
@@ -491,8 +444,6 @@ add_test(function() {
     var button = gManagerWindow.document.getElementById("detail-disable-btn");
     button.focus(); 
     EventUtils.synthesizeMouseAtCenter(button, { clickCount: 1 }, gManagerWindow);
-
-    observer.checkHidden("inlinesettings1@tests.mozilla.org");
 
     settings = grid.querySelectorAll("rows > setting");
     is(settings.length, 0, "Grid should not have settings children");
@@ -516,53 +467,68 @@ add_test(function() {
         var button = gManagerWindow.document.getElementById("detail-enable-btn");
         EventUtils.synthesizeMouseAtCenter(button, { clickCount: 1 }, gManagerWindow);
 
-        observer.callback = function() {
-          observer.checkDisplayed("inlinesettings1@tests.mozilla.org");
+        settings = grid.querySelectorAll("rows > setting");
+        is(settings.length, SETTINGS_ROWS, "Grid should have settings children");
 
-          settings = grid.querySelectorAll("rows > setting");
-          is(settings.length, SETTINGS_ROWS, "Grid should have settings children");
-
-          gCategoryUtilities.openType("extension", run_next_test);
-        };
+        gCategoryUtilities.openType("extension", run_next_test);
       });
     });
   });
 });
 
+var _returnFile, _returnValue, _mode;
 
+function MockFilePicker() { };
+MockFilePicker.prototype = {
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIFilePicker]),
+  init: function(aParent, aTitle, aMode) {
+    _mode = aMode;
+  },
+  appendFilters: function(aFilterMask) { },
+  appendFilter: function(aTitle, aFilter) { },
+  defaultString: "",
+  defaultExtension: "",
+  filterIndex: 0,
+  displayDirectory: null,
+  get file() {
+    return _returnFile;
+  },
+  get fileURL() {
+    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+  },
+  get files() {
+    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+  },
+  show: function() {
+    return _returnValue;
+  }
+};
+var mockFilePickerFactory = {
+  registrar: Components.manager.QueryInterface(Ci.nsIComponentRegistrar),
+  contractID: "@mozilla.org/filepicker;1",
+  classID: Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator).generateUUID(),
 
+  register: function() {
+    this.registrar.registerFactory(this.classID, "", this.contractID, this);
+  },
 
-add_test(function() {
-  observer.checkHidden("inlinesettings1@tests.mozilla.org");
+  unregister: function() {
+    this.registrar.unregisterFactory(this.classID, this);
+  },
 
-  var addon = get_addon_element(gManagerWindow, "inlinesettings2@tests.mozilla.org");
-  addon.parentNode.ensureElementIsVisible(addon);
+  
+  createInstance: function(aOuter, aIID) {
+    if (aOuter) {
+      throw Components.results.NS_ERROR_NO_AGGREGATION;
+    }
+    return new MockFilePicker().QueryInterface(aIID);
+  },
 
-  var button = gManagerWindow.document.getAnonymousElementByAttribute(addon, "anonid", "details-btn");
-  EventUtils.synthesizeMouseAtCenter(button, { clickCount: 1 }, gManagerWindow);
+  lockFactory: function(aLock) {
+    throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
+  },
 
-  wait_for_view_load(gManagerWindow, function() {
-    observer.checkDisplayed("inlinesettings2@tests.mozilla.org");
-
-    var grid = gManagerWindow.document.getElementById("detail-grid");
-    var settings = grid.querySelectorAll("rows > setting");
-    ok(settings.length > 0, "Grid should have settings children");
-
-    
-    var button = gManagerWindow.document.getElementById("detail-disable-btn");
-    button.focus(); 
-    EventUtils.synthesizeMouseAtCenter(button, { clickCount: 1 }, gManagerWindow);
-    observer.checkNotHidden();
-
-    settings = grid.querySelectorAll("rows > setting");
-    ok(settings.length > 0, "Grid should still have settings children");
-
-    
-    button = gManagerWindow.document.getElementById("detail-enable-btn");
-    button.focus(); 
-    EventUtils.synthesizeMouseAtCenter(button, { clickCount: 1 }, gManagerWindow);
-    observer.checkNotDisplayed();
-
-    gCategoryUtilities.openType("extension", run_next_test);
-  });
-});
+  QueryInterface: XPCOMUtils.generateQI([
+    Ci.nsIFactory
+  ])
+};

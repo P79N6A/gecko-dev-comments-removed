@@ -3,8 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "TestHarness.h"
 
+#include "nsIProxyObjectManager.h"
 #include "nsIThread.h"
 #include "nsIThreadPool.h"
 
@@ -14,7 +47,6 @@
 #include "prinrval.h"
 #include "prmon.h"
 #include "prthread.h"
-#include "mozilla/Attributes.h"
 
 #include "mozilla/ReentrantMonitor.h"
 using namespace mozilla;
@@ -24,10 +56,10 @@ using namespace mozilla;
 
 #define IDLE_THREAD_TIMEOUT 3600000
 
-static nsIThread** gCreatedThreadList = nullptr;
-static nsIThread** gShutDownThreadList = nullptr;
+static nsIThread** gCreatedThreadList = nsnull;
+static nsIThread** gShutDownThreadList = nsnull;
 
-static ReentrantMonitor* gReentrantMonitor = nullptr;
+static ReentrantMonitor* gReentrantMonitor = nsnull;
 
 static bool gAllRunnablesPosted = false;
 static bool gAllThreadsCreated = false;
@@ -45,7 +77,7 @@ static bool gAllThreadsShutDown = false;
   PR_END_MACRO
 #endif
 
-class Listener MOZ_FINAL : public nsIThreadPoolListener
+class Listener : public nsIThreadPoolListener
 {
 public:
   NS_DECL_ISUPPORTS
@@ -66,21 +98,21 @@ Listener::OnThreadCreated()
     mon.Wait();
   }
 
-  for (uint32_t i = 0; i < NUMBER_OF_THREADS; i++) {
+  for (PRUint32 i = 0; i < NUMBER_OF_THREADS; i++) {
     nsIThread* thread = gCreatedThreadList[i];
     TEST_ASSERTION(thread != current, "Saw the same thread twice!");
 
     if (!thread) {
       gCreatedThreadList[i] = current;
       if (i == (NUMBER_OF_THREADS - 1)) {
-        gAllThreadsCreated = true;
+        gAllThreadsCreated = PR_TRUE;
         mon.NotifyAll();
       }
       return NS_OK;
     }
   }
 
-  TEST_ASSERTION(false, "Too many threads!");
+  TEST_ASSERTION(PR_FALSE, "Too many threads!");
   return NS_ERROR_FAILURE;
 }
 
@@ -92,21 +124,21 @@ Listener::OnThreadShuttingDown()
 
   ReentrantMonitorAutoEnter mon(*gReentrantMonitor);
 
-  for (uint32_t i = 0; i < NUMBER_OF_THREADS; i++) {
+  for (PRUint32 i = 0; i < NUMBER_OF_THREADS; i++) {
     nsIThread* thread = gShutDownThreadList[i];
     TEST_ASSERTION(thread != current, "Saw the same thread twice!");
 
     if (!thread) {
       gShutDownThreadList[i] = current;
       if (i == (NUMBER_OF_THREADS - 1)) {
-        gAllThreadsShutDown = true;
+        gAllThreadsShutDown = PR_TRUE;
         mon.NotifyAll();
       }
       return NS_OK;
     }
   }
 
-  TEST_ASSERTION(false, "Too many threads!");
+  TEST_ASSERTION(PR_FALSE, "Too many threads!");
   return NS_ERROR_FAILURE;
 }
 
@@ -122,7 +154,7 @@ public:
   ~AutoCreateAndDestroyReentrantMonitor() {
     if (*mReentrantMonitorPtr) {
       delete *mReentrantMonitorPtr;
-      *mReentrantMonitorPtr = nullptr;
+      *mReentrantMonitorPtr = nsnull;
     }
   }
 
@@ -135,16 +167,23 @@ int main(int argc, char** argv)
   ScopedXPCOM xpcom("ThreadPoolListener");
   NS_ENSURE_FALSE(xpcom.failed(), 1);
 
-  nsIThread* createdThreadList[NUMBER_OF_THREADS] = { nullptr };
+  nsIThread* createdThreadList[NUMBER_OF_THREADS] = { nsnull };
   gCreatedThreadList = createdThreadList;
 
-  nsIThread* shutDownThreadList[NUMBER_OF_THREADS] = { nullptr };
+  nsIThread* shutDownThreadList[NUMBER_OF_THREADS] = { nsnull };
   gShutDownThreadList = shutDownThreadList;
 
   AutoCreateAndDestroyReentrantMonitor newMon(&gReentrantMonitor);
   NS_ENSURE_TRUE(gReentrantMonitor, 1);
 
   nsresult rv;
+
+  
+  
+  
+  nsCOMPtr<nsIProxyObjectManager> proxyObjMgr =
+    do_GetService(NS_XPCOMPROXY_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIThreadPool> pool =
     do_CreateInstance(NS_THREADPOOL_CONTRACTID, &rv);
@@ -168,7 +207,7 @@ int main(int argc, char** argv)
   {
     ReentrantMonitorAutoEnter mon(*gReentrantMonitor);
 
-    for (uint32_t i = 0; i < NUMBER_OF_THREADS; i++) {
+    for (PRUint32 i = 0; i < NUMBER_OF_THREADS; i++) {
       nsCOMPtr<nsIRunnable> runnable = new nsRunnable();
       NS_ENSURE_TRUE(runnable, 1);
 
@@ -176,7 +215,7 @@ int main(int argc, char** argv)
       NS_ENSURE_SUCCESS(rv, 1);
     }
 
-    gAllRunnablesPosted = true;
+    gAllRunnablesPosted = PR_TRUE;
     mon.NotifyAll();
   }
 
@@ -197,17 +236,17 @@ int main(int argc, char** argv)
     }
   }
 
-  for (uint32_t i = 0; i < NUMBER_OF_THREADS; i++) {
+  for (PRUint32 i = 0; i < NUMBER_OF_THREADS; i++) {
     nsIThread* created = gCreatedThreadList[i];
     NS_ENSURE_TRUE(created, 1);
 
     bool match = false;
-    for (uint32_t j = 0; j < NUMBER_OF_THREADS; j++) {
+    for (PRUint32 j = 0; j < NUMBER_OF_THREADS; j++) {
       nsIThread* destroyed = gShutDownThreadList[j];
       NS_ENSURE_TRUE(destroyed, 1);
 
       if (destroyed == created) {
-        match = true;
+        match = PR_TRUE;
         break;
       }
     }

@@ -6,10 +6,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsFloatManager_h_
 #define nsFloatManager_h_
-
-#include "mozilla/Attributes.h"
 
 #include "nsIntervalSet.h"
 #include "nsCoord.h"
@@ -77,7 +108,7 @@ public:
   friend struct SavedState;
   struct SavedState {
   private:
-    uint32_t mFloatInfoCount;
+    PRUint32 mFloatInfoCount;
     nscoord mX, mY;
     bool mPushedLeftFloatPastBreak;
     bool mPushedRightFloatPastBreak;
@@ -160,9 +191,9 @@ public:
 
 
   void SetPushedLeftFloatPastBreak()
-    { mPushedLeftFloatPastBreak = true; }
+    { mPushedLeftFloatPastBreak = PR_TRUE; }
   void SetPushedRightFloatPastBreak()
-    { mPushedRightFloatPastBreak = true; }
+    { mPushedRightFloatPastBreak = PR_TRUE; }
 
   
 
@@ -170,9 +201,9 @@ public:
 
 
   void SetSplitLeftFloatAcrossBreak()
-    { mSplitLeftFloatAcrossBreak = true; }
+    { mSplitLeftFloatAcrossBreak = PR_TRUE; }
   void SetSplitRightFloatAcrossBreak()
-    { mSplitRightFloatAcrossBreak = true; }
+    { mSplitRightFloatAcrossBreak = PR_TRUE; }
 
   
 
@@ -246,13 +277,13 @@ public:
     
     DONT_CLEAR_PUSHED_FLOATS = (1<<0)
   };
-  nscoord ClearFloats(nscoord aY, uint8_t aBreakType, uint32_t aFlags = 0) const;
+  nscoord ClearFloats(nscoord aY, PRUint8 aBreakType, PRUint32 aFlags = 0) const;
 
   
 
 
 
-  bool ClearContinues(uint8_t aBreakType) const;
+  bool ClearContinues(PRUint8 aBreakType) const;
 
   void AssertStateMatches(SavedState *aState) const
   {
@@ -310,11 +341,11 @@ private:
   bool mSplitLeftFloatAcrossBreak;
   bool mSplitRightFloatAcrossBreak;
 
-  static int32_t sCachedFloatManagerCount;
+  static PRInt32 sCachedFloatManagerCount;
   static void* sCachedFloatManagers[NS_FLOAT_MANAGER_CACHE_SIZE];
 
-  nsFloatManager(const nsFloatManager&) MOZ_DELETE;
-  void operator=(const nsFloatManager&) MOZ_DELETE;
+  nsFloatManager(const nsFloatManager&);  
+  void operator=(const nsFloatManager&);  
 };
 
 
@@ -326,8 +357,8 @@ class nsAutoFloatManager {
 public:
   nsAutoFloatManager(nsHTMLReflowState& aReflowState)
     : mReflowState(aReflowState),
-      mNew(nullptr),
-      mOld(nullptr) {}
+      mNew(nsnull),
+      mOld(nsnull) {}
 
   ~nsAutoFloatManager();
 

@@ -2,24 +2,54 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "AccIterator.h"
 
 #include "nsAccessibilityService.h"
-#include "Accessible.h"
+#include "nsAccessible.h"
 
 #include "mozilla/dom/Element.h"
-#include "nsBindingManager.h"
-
-using namespace mozilla;
-using namespace mozilla::a11y;
 
 
 
 
 
-AccIterator::AccIterator(Accessible* aAccessible,
-                         filters::FilterFuncPtr aFilterFunc) :
-  mFilterFunc(aFilterFunc)
+AccIterator::AccIterator(nsAccessible *aAccessible,
+                         filters::FilterFuncPtr aFilterFunc,
+                         IterationType aIterationType) :
+  mFilterFunc(aFilterFunc), mIsDeep(aIterationType != eFlatNav)
 {
   mState = new IteratorState(aAccessible);
 }
@@ -33,36 +63,36 @@ AccIterator::~AccIterator()
   }
 }
 
-Accessible*
+nsAccessible*
 AccIterator::Next()
 {
   while (mState) {
-    Accessible* child = mState->mParent->GetChildAt(mState->mIndex++);
+    nsAccessible *child = mState->mParent->GetChildAt(mState->mIndex++);
     if (!child) {
-      IteratorState* tmp = mState;
+      IteratorState *tmp = mState;
       mState = mState->mParentState;
       delete tmp;
 
       continue;
     }
 
-    uint32_t result = mFilterFunc(child);
-    if (result & filters::eMatch)
+    bool isComplying = mFilterFunc(child);
+    if (isComplying)
       return child;
 
-    if (!(result & filters::eSkipSubtree)) {
-      IteratorState* childState = new IteratorState(child, mState);
+    if (mIsDeep) {
+      IteratorState *childState = new IteratorState(child, mState);
       mState = childState;
     }
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 
 
 
-AccIterator::IteratorState::IteratorState(Accessible* aParent,
+AccIterator::IteratorState::IteratorState(nsAccessible *aParent,
                                           IteratorState *mParentState) :
   mParent(aParent), mIndex(0), mParentState(mParentState)
 {
@@ -74,10 +104,10 @@ AccIterator::IteratorState::IteratorState(Accessible* aParent,
 
 
 RelatedAccIterator::
-  RelatedAccIterator(DocAccessible* aDocument, nsIContent* aDependentContent,
+  RelatedAccIterator(nsDocAccessible* aDocument, nsIContent* aDependentContent,
                      nsIAtom* aRelAttr) :
-  mDocument(aDocument), mRelAttr(aRelAttr), mProviders(nullptr),
-  mBindingParent(nullptr), mIndex(0)
+  mDocument(aDocument), mRelAttr(aRelAttr), mProviders(nsnull),
+  mBindingParent(nsnull), mIndex(0)
 {
   mBindingParent = aDependentContent->GetBindingParent();
   nsIAtom* IDAttr = mBindingParent ?
@@ -88,36 +118,32 @@ RelatedAccIterator::
     mProviders = mDocument->mDependentIDsHash.Get(id);
 }
 
-Accessible*
+nsAccessible*
 RelatedAccIterator::Next()
 {
   if (!mProviders)
-    return nullptr;
+    return nsnull;
 
   while (mIndex < mProviders->Length()) {
-    DocAccessible::AttrRelProvider* provider = (*mProviders)[mIndex++];
+    nsDocAccessible::AttrRelProvider* provider = (*mProviders)[mIndex++];
 
     
     
-    if (provider->mRelAttr == mRelAttr) {
-      nsIContent* bindingParent = provider->mContent->GetBindingParent();
-      bool inScope = mBindingParent == bindingParent ||
-        mBindingParent == provider->mContent;
+    if (provider->mRelAttr == mRelAttr &&
+        (!mBindingParent ||
+         mBindingParent == provider->mContent->GetBindingParent())) {
+      nsAccessible* related = mDocument->GetAccessible(provider->mContent);
+      if (related)
+        return related;
 
-      if (inScope) {
-        Accessible* related = mDocument->GetAccessible(provider->mContent);
-        if (related)
-          return related;
-
-        
-        
-        if (provider->mContent == mDocument->GetContent())
-          return mDocument;
-      }
+      
+      
+      if (provider->mContent == mDocument->GetContent())
+        return mDocument;
     }
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 
@@ -126,19 +152,19 @@ RelatedAccIterator::Next()
 
 
 HTMLLabelIterator::
-  HTMLLabelIterator(DocAccessible* aDocument, const Accessible* aAccessible,
+  HTMLLabelIterator(nsDocAccessible* aDocument, const nsAccessible* aAccessible,
                     LabelFilter aFilter) :
   mRelIter(aDocument, aAccessible->GetContent(), nsGkAtoms::_for),
   mAcc(aAccessible), mLabelFilter(aFilter)
 {
 }
 
-Accessible*
+nsAccessible*
 HTMLLabelIterator::Next()
 {
   
   
-  Accessible* label = nullptr;
+  nsAccessible* label = nsnull;
   while ((label = mRelIter.Next())) {
     if (label->GetContent()->Tag() == nsGkAtoms::label)
       return label;
@@ -146,12 +172,12 @@ HTMLLabelIterator::Next()
 
   
   if (mLabelFilter == eSkipAncestorLabel || !mAcc->IsWidget())
-    return nullptr;
+    return nsnull;
 
   
   
   
-  Accessible* walkUp = mAcc->Parent();
+  nsAccessible* walkUp = mAcc->Parent();
   while (walkUp && !walkUp->IsDoc()) {
     nsIContent* walkUpElm = walkUp->GetContent();
     if (walkUpElm->IsHTML()) {
@@ -168,7 +194,7 @@ HTMLLabelIterator::Next()
     walkUp = walkUp->Parent();
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 
@@ -177,21 +203,21 @@ HTMLLabelIterator::Next()
 
 
 HTMLOutputIterator::
-HTMLOutputIterator(DocAccessible* aDocument, nsIContent* aElement) :
+HTMLOutputIterator(nsDocAccessible* aDocument, nsIContent* aElement) :
   mRelIter(aDocument, aElement, nsGkAtoms::_for)
 {
 }
 
-Accessible*
+nsAccessible*
 HTMLOutputIterator::Next()
 {
-  Accessible* output = nullptr;
+  nsAccessible* output = nsnull;
   while ((output = mRelIter.Next())) {
     if (output->GetContent()->Tag() == nsGkAtoms::output)
       return output;
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 
@@ -200,21 +226,21 @@ HTMLOutputIterator::Next()
 
 
 XULLabelIterator::
-  XULLabelIterator(DocAccessible* aDocument, nsIContent* aElement) :
+  XULLabelIterator(nsDocAccessible* aDocument, nsIContent* aElement) :
   mRelIter(aDocument, aElement, nsGkAtoms::control)
 {
 }
 
-Accessible*
+nsAccessible*
 XULLabelIterator::Next()
 {
-  Accessible* label = nullptr;
+  nsAccessible* label = nsnull;
   while ((label = mRelIter.Next())) {
     if (label->GetContent()->Tag() == nsGkAtoms::label)
       return label;
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 
@@ -223,34 +249,40 @@ XULLabelIterator::Next()
 
 
 XULDescriptionIterator::
-  XULDescriptionIterator(DocAccessible* aDocument, nsIContent* aElement) :
+  XULDescriptionIterator(nsDocAccessible* aDocument, nsIContent* aElement) :
   mRelIter(aDocument, aElement, nsGkAtoms::control)
 {
 }
 
-Accessible*
+nsAccessible*
 XULDescriptionIterator::Next()
 {
-  Accessible* descr = nullptr;
+  nsAccessible* descr = nsnull;
   while ((descr = mRelIter.Next())) {
     if (descr->GetContent()->Tag() == nsGkAtoms::description)
       return descr;
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 
 
 
 
-IDRefsIterator::
-  IDRefsIterator(DocAccessible* aDoc, nsIContent* aContent,
-                 nsIAtom* aIDRefsAttr) :
-  mContent(aContent), mDoc(aDoc), mCurrIdx(0)
+IDRefsIterator::IDRefsIterator(nsIContent* aContent, nsIAtom* aIDRefsAttr) :
+  mCurrIdx(0)
 {
-  if (mContent->IsInDoc())
-    mContent->GetAttr(kNameSpaceID_None, aIDRefsAttr, mIDs);
+  if (!aContent->IsInDoc() ||
+      !aContent->GetAttr(kNameSpaceID_None, aIDRefsAttr, mIDs))
+    return;
+
+  if (aContent->IsInAnonymousSubtree()) {
+    mXBLDocument = do_QueryInterface(aContent->GetOwnerDoc());
+    mBindingParent = do_QueryInterface(aContent->GetBindingParent());
+  } else {
+    mDocument = aContent->GetOwnerDoc();
+  }
 }
 
 const nsDependentSubstring
@@ -286,54 +318,40 @@ IDRefsIterator::NextElem()
       return refContent;
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 nsIContent*
 IDRefsIterator::GetElem(const nsDependentSubstring& aID)
 {
-  
-  
-  if (!mContent->IsInAnonymousSubtree()) {
-    dom::Element* refElm = mContent->OwnerDoc()->GetElementById(aID);
-    if (refElm || !mContent->OwnerDoc()->BindingManager()->GetBinding(mContent))
-      return refElm;
+  if (mXBLDocument) {
+    
+    
+
+    nsCOMPtr<nsIDOMElement> refElm;
+    mXBLDocument->GetAnonymousElementByAttribute(mBindingParent,
+                                                 NS_LITERAL_STRING("anonid"),
+                                                 aID,
+                                                 getter_AddRefs(refElm));
+    nsCOMPtr<nsIContent> refContent = do_QueryInterface(refElm);
+    return refContent;
   }
 
-  
-  
-
-  
-  nsIContent* bindingParent = mContent->GetBindingParent();
-  if (bindingParent) {
-    nsIContent* refElm = bindingParent->OwnerDoc()->
-      GetAnonymousElementByAttribute(bindingParent, nsGkAtoms::anonid, aID);
-
-    if (refElm)
-      return refElm;
-  }
-
-  
-  if (mContent->OwnerDoc()->BindingManager()->GetBinding(mContent)) {
-    return mContent->OwnerDoc()->
-      GetAnonymousElementByAttribute(mContent, nsGkAtoms::anonid, aID);
-  }
-
-  return nullptr;
+  return mDocument->GetElementById(aID);
 }
 
-Accessible*
+nsAccessible*
 IDRefsIterator::Next()
 {
   nsIContent* nextElm = NextElem();
-  return nextElm ? mDoc->GetAccessible(nextElm) : nullptr;
+  return nextElm ? GetAccService()->GetAccessible(nextElm) : nsnull;
 }
 
-Accessible*
+nsAccessible*
 SingleAccIterator::Next()
 {
-  nsRefPtr<Accessible> nextAcc;
+  nsRefPtr<nsAccessible> nextAcc;
   mAcc.swap(nextAcc);
-  return (nextAcc && !nextAcc->IsDefunct()) ? nextAcc : nullptr;
+  return (nextAcc && !nextAcc->IsDefunct()) ? nextAcc : nsnull;
 }
 

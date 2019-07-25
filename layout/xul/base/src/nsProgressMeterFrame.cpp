@@ -10,6 +10,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsProgressMeterFrame.h"
 #include "nsCSSRendering.h"
 #include "nsIContent.h"
@@ -20,7 +52,6 @@
 #include "nsBoxLayoutState.h"
 #include "nsIReflowCallback.h"
 #include "nsContentUtils.h"
-#include "mozilla/Attributes.h"
 
 
 
@@ -43,7 +74,7 @@ nsProgressMeterFrame :: ~nsProgressMeterFrame ( )
 {
 }
 
-class nsAsyncProgressMeterInit MOZ_FINAL : public nsIReflowCallback
+class nsAsyncProgressMeterInit : public nsIReflowCallback
 {
 public:
   nsAsyncProgressMeterInit(nsIFrame* aFrame) : mWeakFrame(aFrame) {}
@@ -54,8 +85,8 @@ public:
     nsIFrame* frame = mWeakFrame.GetFrame();
     if (frame) {
       nsAutoScriptBlocker scriptBlocker;
-      frame->AttributeChanged(kNameSpaceID_None, nsGkAtoms::mode, 0);
-      shouldFlush = true;
+      frame->AttributeChanged(kNameSpaceID_None, nsGkAtoms::value, 0);
+      shouldFlush = PR_TRUE;
     }
     delete this;
     return shouldFlush;
@@ -77,15 +108,15 @@ nsProgressMeterFrame::DoLayout(nsBoxLayoutState& aState)
     if (cb) {
       PresContext()->PresShell()->PostReflowCallback(cb);
     }
-    mNeedsReflowCallback = false;
+    mNeedsReflowCallback = PR_FALSE;
   }
   return nsBoxFrame::DoLayout(aState);
 }
 
 NS_IMETHODIMP
-nsProgressMeterFrame::AttributeChanged(int32_t aNameSpaceID,
+nsProgressMeterFrame::AttributeChanged(PRInt32 aNameSpaceID,
                                        nsIAtom* aAttribute,
-                                       int32_t aModType)
+                                       PRInt32 aModType)
 {
   NS_ASSERTION(!nsContentUtils::IsSafeToRunScript(),
       "Scripts not blocked in nsProgressMeterFrame::AttributeChanged!");
@@ -96,11 +127,7 @@ nsProgressMeterFrame::AttributeChanged(int32_t aNameSpaceID,
   }
 
   
-  bool undetermined = mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::mode,
-                                            nsGkAtoms::undetermined, eCaseMatters);
-  if (nsGkAtoms::mode == aAttribute ||
-      (!undetermined &&
-       (nsGkAtoms::value == aAttribute || nsGkAtoms::max == aAttribute))) {
+  if (nsGkAtoms::value == aAttribute || nsGkAtoms::max == aAttribute) {
     nsIFrame* barChild = GetFirstPrincipalChild();
     if (!barChild) return NS_OK;
     nsIFrame* remainderChild = barChild->GetNextSibling();
@@ -108,27 +135,24 @@ nsProgressMeterFrame::AttributeChanged(int32_t aNameSpaceID,
     nsCOMPtr<nsIContent> remainderContent = remainderChild->GetContent();
     if (!remainderContent) return NS_OK;
 
-    int32_t flex = 1, maxFlex = 1;
-    if (!undetermined) {
-      nsAutoString value, maxValue;
-      mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::value, value);
-      mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::max, maxValue);
+    nsAutoString value, maxValue;
+    mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::value, value);
+    mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::max, maxValue);
 
-      nsresult error;
-      flex = value.ToInteger(&error);
-      maxFlex = maxValue.ToInteger(&error);
-      if (NS_FAILED(error) || maxValue.IsEmpty()) {
-        maxFlex = 100;
-      }
-      if (maxFlex < 1) {
-        maxFlex = 1;
-      }
-      if (flex < 0) {
-        flex = 0;
-      }
-      if (flex > maxFlex) {
-        flex = maxFlex;
-      }
+    PRInt32 error;
+    PRInt32 flex = value.ToInteger(&error);
+    PRInt32 maxFlex = maxValue.ToInteger(&error);
+    if (NS_FAILED(error) || maxValue.IsEmpty()) {
+      maxFlex = 100;
+    }
+    if (maxFlex < 1) {
+      maxFlex = 1;
+    }
+    if (flex < 0) {
+      flex = 0;
+    }
+    if (flex > maxFlex) {
+      flex = maxFlex;
     }
 
     nsContentUtils::AddScriptRunner(new nsSetAttrRunnable(
@@ -141,7 +165,7 @@ nsProgressMeterFrame::AttributeChanged(int32_t aNameSpaceID,
   return NS_OK;
 }
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
 NS_IMETHODIMP
 nsProgressMeterFrame::GetFrameName(nsAString& aResult) const
 {

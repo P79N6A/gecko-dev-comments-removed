@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIContentSink_h___
 #define nsIContentSink_h___
 
@@ -21,11 +54,12 @@
 #include "mozFlushType.h"
 #include "nsIDTD.h"
 
-class nsParserBase;
+class nsIParser;
+
 
 #define NS_ICONTENT_SINK_IID \
-{ 0xcf9a7cbb, 0xfcbc, 0x4e13, \
-  { 0x8e, 0xf5, 0x18, 0xef, 0x2d, 0x3d, 0x58, 0x29 } }
+{ 0x57b395ad, 0x4276, 0x408c, \
+  { 0x9f, 0x98, 0x70, 0x44, 0xb5, 0x02, 0x5c, 0x3d } }
 
 class nsIContentSink : public nsISupports {
 public:
@@ -89,7 +123,7 @@ public:
 
 
 
-  NS_IMETHOD SetParser(nsParserBase* aParser)=0;
+  NS_IMETHOD SetParser(nsIParser* aParser)=0;
 
   
 
@@ -118,13 +152,9 @@ public:
 
   virtual bool IsScriptExecuting()
   {
-    return false;
+    return PR_FALSE;
   }
   
-  
-
-
-  virtual void ContinueInterruptedParsingAsync() {}
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIContentSink, NS_ICONTENT_SINK_IID)

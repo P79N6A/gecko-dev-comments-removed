@@ -38,22 +38,49 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
-const RX_UNIVERSAL_SELECTOR = /\s*\*\s*/g;
-const RX_NOT = /:not\((.*?)\)/g;
-const RX_PSEUDO_CLASS_OR_ELT = /(:[\w-]+\().*?\)/g;
-const RX_CONNECTORS = /\s*[\s>+~]\s*/g;
-const RX_ID = /\s*#\w+\s*/g;
-const RX_CLASS_OR_ATTRIBUTE = /\s*(?:\.\w+|\[.+?\])\s*/g;
-const RX_PSEUDO = /\s*:?:([\w-]+)(\(?\)?)\s*/g;
-
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-var EXPORTED_SYMBOLS = ["CssLogic", "CssSelector"];
+var EXPORTED_SYMBOLS = ["CssLogic"];
 
 function CssLogic()
 {
@@ -124,7 +151,6 @@ CssLogic.prototype = {
   
   _matchId: 0,
 
-  _matchedRules: null,
   _matchedSelectors: null,
   _unmatchedSelectors: null,
 
@@ -140,7 +166,6 @@ CssLogic.prototype = {
     this._sheetIndex = 0;
     this._sheets = {};
     this._sheetsCached = false;
-    this._matchedRules = null;
     this._matchedSelectors = null;
     this._unmatchedSelectors = null;
   },
@@ -175,7 +200,6 @@ CssLogic.prototype = {
       this._propertyInfos = {};
     }
 
-    this._matchedRules = null;
     this._matchedSelectors = null;
     this._unmatchedSelectors = null;
     let win = this.viewedDocument.defaultView;
@@ -195,7 +219,6 @@ CssLogic.prototype = {
 
 
 
-
   set sourceFilter(aValue) {
     let oldValue = this._sourceFilter;
     this._sourceFilter = aValue;
@@ -205,7 +228,7 @@ CssLogic.prototype = {
     
     this.forEachSheet(function(aSheet) {
       aSheet._sheetAllowed = -1;
-      if (aSheet.contentSheet && aSheet.sheetAllowed) {
+      if (!aSheet.systemSheet && aSheet.sheetAllowed) {
         ruleCount += aSheet.ruleCount;
       }
     }, this);
@@ -218,7 +241,6 @@ CssLogic.prototype = {
         aValue == CssLogic.FILTER.UA);
 
     if (needFullUpdate) {
-      this._matchedRules = null;
       this._matchedSelectors = null;
       this._unmatchedSelectors = null;
       this._propertyInfos = {};
@@ -266,7 +288,7 @@ CssLogic.prototype = {
     
     Array.prototype.forEach.call(this.viewedDocument.styleSheets,
         this._cacheSheet, this);
-
+    
     this._sheetsCached = true;
   },
 
@@ -286,19 +308,19 @@ CssLogic.prototype = {
     }
 
     
-    if (!this.mediaMatches(aDomSheet)) {
+    if (!CssLogic.sheetMediaAllowed(aDomSheet)) {
       return;
     }
 
     
-    let cssSheet = this.getSheet(aDomSheet, this._sheetIndex++);
+    let cssSheet = this.getSheet(aDomSheet, false, this._sheetIndex++);
     if (cssSheet._passId != this._passId) {
       cssSheet._passId = this._passId;
 
       
       Array.prototype.forEach.call(aDomSheet.cssRules, function(aDomRule) {
         if (aDomRule.type == Ci.nsIDOMCSSRule.IMPORT_RULE && aDomRule.styleSheet &&
-            this.mediaMatches(aDomRule)) {
+            CssLogic.sheetMediaAllowed(aDomRule)) {
           this._cacheSheet(aDomRule.styleSheet);
         }
       }, this);
@@ -318,7 +340,7 @@ CssLogic.prototype = {
 
     let sheets = [];
     this.forEachSheet(function (aSheet) {
-      if (aSheet.contentSheet) {
+      if (!aSheet.systemSheet) {
         sheets.push(aSheet);
       }
     }, this);
@@ -336,14 +358,16 @@ CssLogic.prototype = {
 
 
 
-  getSheet: function CL_getSheet(aDomSheet, aIndex)
+
+
+  getSheet: function CL_getSheet(aDomSheet, aSystemSheet, aIndex)
   {
-    let cacheId = "";
+    let cacheId = aSystemSheet ? "1" : "0";
 
     if (aDomSheet.href) {
-      cacheId = aDomSheet.href;
+      cacheId += aDomSheet.href;
     } else if (aDomSheet.ownerNode && aDomSheet.ownerNode.ownerDocument) {
-      cacheId = aDomSheet.ownerNode.ownerDocument.location;
+      cacheId += aDomSheet.ownerNode.ownerDocument.location;
     }
 
     let sheet = null;
@@ -352,10 +376,8 @@ CssLogic.prototype = {
     if (cacheId in this._sheets) {
       for (let i = 0, numSheets = this._sheets[cacheId].length; i < numSheets; i++) {
         sheet = this._sheets[cacheId][i];
-        if (sheet.domSheet === aDomSheet) {
-          if (aIndex != -1) {
-            sheet.index = aIndex;
-          }
+        if (sheet.domSheet == aDomSheet) {
+          sheet.index = aIndex;
           sheetFound = true;
           break;
         }
@@ -367,8 +389,8 @@ CssLogic.prototype = {
         this._sheets[cacheId] = [];
       }
 
-      sheet = new CssSheet(this, aDomSheet, aIndex);
-      if (sheet.sheetAllowed && sheet.contentSheet) {
+      sheet = new CssSheet(this, aDomSheet, aSystemSheet, aIndex);
+      if (sheet.sheetAllowed && !aSystemSheet) {
         this._ruleCount += sheet.ruleCount;
       }
 
@@ -391,27 +413,6 @@ CssLogic.prototype = {
     for each (let sheet in this._sheets) {
       sheet.forEach(aCallback, aScope);
     }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  forSomeSheets: function CssLogic_forSomeSheets(aCallback, aScope)
-  {
-    for each (let sheets in this._sheets) {
-      if (sheets.some(aCallback, aScope)) {
-        return true;
-      }
-    }
-    return false;
   },
 
   
@@ -463,54 +464,77 @@ CssLogic.prototype = {
       return;
     }
 
-    if (!this._matchedRules) {
-      this._buildMatchedRules();
-    }
-
     this._matchedSelectors = [];
     this._unmatchedSelectors = null;
     this._passId++;
+    this._matchId++;
 
-    for (let i = 0; i < this._matchedRules.length; i++) {
-      let rule = this._matchedRules[i][0];
-      let status = this._matchedRules[i][1];
-
-      rule.selectors.forEach(function (aSelector) {
-        if (aSelector._matchId !== this._matchId &&
-            (aSelector.elementStyle ||
-             this._selectorMatchesElement(aSelector))) {
-          aSelector._matchId = this._matchId;
-          this._matchedSelectors.push([ aSelector, status ]);
-          if (aCallback) {
-            aCallback.call(aScope, aSelector, status);
-          }
-        }
-      }, this);
-
-      rule._passId = this._passId;
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-  _selectorMatchesElement: function CL__selectorMatchesElement(aSelector)
-  {
     let element = this.viewedElement;
+    let filter = this.sourceFilter;
+    let sheetIndex = 0;
+    let domRules = null;
     do {
-      if (element.mozMatchesSelector(aSelector)) {
-        return true;
+      try {
+        domRules = this.domUtils.getCSSStyleRules(element);
+      } catch (ex) {
+        Services.console.
+            logStringMessage("CssLogic_processMatchedSelectors error: " + ex);
+        continue;
+      }
+
+      let status = (this.viewedElement == element) ?
+          CssLogic.STATUS.MATCHED : CssLogic.STATUS.PARENT_MATCH;
+
+      for (let i = 0, numRules = domRules.Count(); i < numRules; i++) {
+        let domRule = domRules.GetElementAt(i);
+        if (domRule.type !== Ci.nsIDOMCSSRule.STYLE_RULE) {
+          continue;
+        }
+
+        let domSheet = domRule.parentStyleSheet;
+        let systemSheet = CssLogic.isSystemStyleSheet(domSheet);
+        if (filter !== CssLogic.FILTER.UA && systemSheet) {
+          continue;
+        }
+
+        let sheet = this.getSheet(domSheet, systemSheet, sheetIndex);
+        let rule = sheet.getRule(domRule);
+
+        rule.selectors.forEach(function (aSelector) {
+          if (aSelector._matchId !== this._matchId &&
+              element.mozMatchesSelector(aSelector)) {
+            aSelector._matchId = this._matchId;
+            this._matchedSelectors.push([ aSelector, status ]);
+            if (aCallback) {
+              aCallback.call(aScope, aSelector, status);
+            }
+          }
+        }, this);
+
+        if (sheet._passId !== this._passId) {
+          sheetIndex++;
+          sheet._passId = this._passId;
+        }
+
+        if (rule._passId !== this._passId) {
+          rule._passId = this._passId;
+        }
+      }
+
+      
+      if (element.style.length > 0) {
+        let rule = new CssRule(null, { style: element.style }, element);
+        let selector = rule.selectors[0];
+        selector._matchId = this._matchId;
+
+        this._matchedSelectors.push([ selector, status ]);
+        if (aCallback) {
+          aCallback.call(aScope, selector, status);
+        }
+        rule._passId = this._passId;
       }
     } while ((element = element.parentNode) &&
-             element.nodeType === Ci.nsIDOMNode.ELEMENT_NODE);
-
-    return false;
+        element.nodeType === Ci.nsIDOMNode.ELEMENT_NODE);
   },
 
   
@@ -527,6 +551,10 @@ CssLogic.prototype = {
 
   processUnmatchedSelectors: function CL_processUnmatchedSelectors(aCallback, aScope)
   {
+    if (!this._matchedSelectors) {
+      this.processMatchedSelectors();
+    }
+
     if (this._unmatchedSelectors) {
       if (aCallback) {
         this._unmatchedSelectors.forEach(aCallback, aScope);
@@ -534,21 +562,16 @@ CssLogic.prototype = {
       return;
     }
 
-    if (!this._matchedSelectors) {
-      this.processMatchedSelectors();
-    }
-
     this._unmatchedSelectors = [];
 
     this.forEachSheet(function (aSheet) {
-      
-      if (!aSheet.contentSheet || aSheet.disabled || !aSheet.mediaMatches) {
+      if (aSheet.systemSheet) {
         return;
       }
 
       aSheet.forEachRule(function (aRule) {
         aRule.selectors.forEach(function (aSelector) {
-          if (aSelector._matchId !== this._matchId) {
+          if (aSelector._matchId != this._matchId) {
             this._unmatchedSelectors.push(aSelector);
             if (aCallback) {
               aCallback.call(aScope, aSelector);
@@ -558,217 +581,6 @@ CssLogic.prototype = {
       }, this);
     }, this);
   },
-
-  
-
-
-
-
-
-
-
-  hasMatchedSelectors: function CL_hasMatchedSelectors(aProperties)
-  {
-    if (!this._matchedRules) {
-      this._buildMatchedRules();
-    }
-
-    let result = {};
-
-    this._matchedRules.some(function(aValue) {
-      let rule = aValue[0];
-      let status = aValue[1];
-      aProperties = aProperties.filter(function(aProperty) {
-        
-        
-        if (rule.getPropertyValue(aProperty) &&
-            (status == CssLogic.STATUS.MATCHED ||
-             (status == CssLogic.STATUS.PARENT_MATCH &&
-              this.domUtils.isInheritedProperty(aProperty)))) {
-          result[aProperty] = true;
-          return false;
-        }
-        return true; 
-      }.bind(this));
-      return aProperties.length == 0;
-    }, this);
-
-    return result;
-  },
-
-  
-
-
-
-
-
-  _buildMatchedRules: function CL__buildMatchedRules()
-  {
-    let domRules;
-    let element = this.viewedElement;
-    let filter = this.sourceFilter;
-    let sheetIndex = 0;
-
-    this._matchId++;
-    this._passId++;
-    this._matchedRules = [];
-
-    if (!element) {
-      return;
-    }
-
-    do {
-      let status = this.viewedElement === element ?
-                   CssLogic.STATUS.MATCHED : CssLogic.STATUS.PARENT_MATCH;
-
-      try {
-        domRules = this.domUtils.getCSSStyleRules(element);
-      } catch (ex) {
-        Services.console.
-          logStringMessage("CL__buildMatchedRules error: " + ex);
-        continue;
-      }
-
-      for (let i = 0, n = domRules.Count(); i < n; i++) {
-        let domRule = domRules.GetElementAt(i);
-        if (domRule.type !== Ci.nsIDOMCSSRule.STYLE_RULE) {
-          continue;
-        }
-
-        let sheet = this.getSheet(domRule.parentStyleSheet, -1);
-        if (sheet._passId !== this._passId) {
-          sheet.index = sheetIndex++;
-          sheet._passId = this._passId;
-        }
-
-        if (filter === CssLogic.FILTER.ALL && !sheet.contentSheet) {
-          continue;
-        }
-
-        let rule = sheet.getRule(domRule);
-        if (rule._passId === this._passId) {
-          continue;
-        }
-
-        rule._matchId = this._matchId;
-        rule._passId = this._passId;
-        this._matchedRules.push([rule, status]);
-      }
-
-
-      
-      if (element.style.length > 0) {
-        let rule = new CssRule(null, { style: element.style }, element);
-        rule._matchId = this._matchId;
-        rule._passId = this._passId;
-        this._matchedRules.push([rule, status]);
-      }
-    } while ((element = element.parentNode) &&
-              element.nodeType === Ci.nsIDOMNode.ELEMENT_NODE);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  hasUnmatchedSelectors: function CL_hasUnmatchedSelectors(aProperties)
-  {
-    if (!this._matchedRules) {
-      this._buildMatchedRules();
-    }
-
-    let result = {};
-
-    this.forSomeSheets(function (aSheet) {
-      if (!aSheet.contentSheet || aSheet.disabled || !aSheet.mediaMatches) {
-        return false;
-      }
-
-      return aSheet.forSomeRules(function (aRule) {
-        let unmatched = aRule._matchId !== this._matchId ||
-                        this._ruleHasUnmatchedSelector(aRule);
-        if (!unmatched) {
-          return false;
-        }
-
-        aProperties = aProperties.filter(function(aProperty) {
-          if (!aRule.getPropertyValue(aProperty)) {
-            
-            
-            return true;
-          }
-
-          result[aProperty] = true;
-
-          
-          
-          
-          return false;
-        });
-
-        return aProperties.length == 0;
-      }, this);
-    }, this);
-
-    aProperties.forEach(function(aProperty) { result[aProperty] = false; });
-
-    return result;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  _ruleHasUnmatchedSelector: function CL__ruleHasUnmatchedSelector(aRule)
-  {
-    if (!aRule._cssSheet && aRule.sourceElement) {
-      
-      return false;
-    }
-
-    let element = this.viewedElement;
-    let selectors = aRule.selectors;
-
-    do {
-      selectors = selectors.filter(function(aSelector) {
-        return !element.mozMatchesSelector(aSelector);
-      });
-
-      if (selectors.length == 0) {
-        break;
-      }
-    } while ((element = element.parentNode) &&
-             element.nodeType === Ci.nsIDOMNode.ELEMENT_NODE);
-
-    return selectors.length > 0;
-  },
-
-  
-
-
-
-
-
-
-  mediaMatches: function CL_mediaMatches(aDomObject)
-  {
-    let mediaText = aDomObject.media.mediaText;
-    return !mediaText || this.viewedDocument.defaultView.
-                         matchMedia(mediaText).matches;
-   },
 };
 
 
@@ -839,7 +651,7 @@ CssLogic.getShortNamePath = function CssLogic_getShortNamePath(aElement)
 CssLogic.l10n = function(aName) CssLogic._strings.GetStringFromName(aName);
 
 XPCOMUtils.defineLazyGetter(CssLogic, "_strings", function() Services.strings
-        .createBundle("chrome://browser/locale/devtools/styleinspector.properties"));
+          .createBundle("chrome://browser/locale/styleinspector.properties"));
 
 
 
@@ -848,17 +660,23 @@ XPCOMUtils.defineLazyGetter(CssLogic, "_strings", function() Services.strings
 
 
 
-CssLogic.isContentStylesheet = function CssLogic_isContentStylesheet(aSheet)
+CssLogic.isSystemStyleSheet = function CssLogic_isSystemStyleSheet(aSheet)
 {
-  
-  if (aSheet.ownerNode) {
+  if (!aSheet) {
     return true;
   }
 
+  let url = aSheet.href;
+
+  if (!url) return false;
+  if (url.length === 0) return true;
+
   
-  if (aSheet.ownerRule instanceof Ci.nsIDOMCSSImportRule) {
-    return CssLogic.isContentStylesheet(aSheet.parentStyleSheet);
-  }
+  if (url[0] === 'h') return false;
+  if (url.substr(0, 9) === "resource:") return true;
+  if (url.substr(0, 7) === "chrome:") return true;
+  if (url === "XPCSafeJSObjectWrapper.cpp") return true;
+  if (url.substr(0, 6) === "about:") return true;
 
   return false;
 };
@@ -868,37 +686,31 @@ CssLogic.isContentStylesheet = function CssLogic_isContentStylesheet(aSheet)
 
 
 
-CssLogic.shortSource = function CssLogic_shortSource(aSheet)
+
+
+
+
+CssLogic.sheetMediaAllowed = function CssLogic_sheetMediaAllowed(aDomObject)
 {
-  
-  if (!aSheet || !aSheet.href) {
-    return CssLogic.l10n("rule.sourceInline");
+  let result = false;
+  let media = aDomObject.media;
+
+  if (media.length > 0) {
+    let mediaItem = null;
+    for (let m = 0, mediaLen = media.length; m < mediaLen; m++) {
+      mediaItem = media.item(m).toLowerCase();
+      if (mediaItem === CssLogic.MEDIA.SCREEN ||
+          mediaItem === CssLogic.MEDIA.ALL) {
+        result = true;
+        break;
+      }
+    }
+  } else {
+    result = true;
   }
 
-  
-  let url = {};
-  try {
-    url = Services.io.newURI(aSheet.href, null, null);
-    url = url.QueryInterface(Ci.nsIURL);
-  } catch (ex) {
-    
-  }
-
-  if (url.fileName) {
-    return url.fileName;
-  }
-
-  if (url.filePath) {
-    return url.filePath;
-  }
-
-  if (url.query) {
-    return url.query;
-  }
-
-  let dataUrl = aSheet.href.match(/^(data:[^,]*),/);
-  return dataUrl ? dataUrl[1] : aSheet.href;
-}
+  return result;
+};
 
 
 
@@ -910,11 +722,13 @@ CssLogic.shortSource = function CssLogic_shortSource(aSheet)
 
 
 
-function CssSheet(aCssLogic, aDomSheet, aIndex)
+
+function CssSheet(aCssLogic, aDomSheet, aSystemSheet, aIndex)
 {
   this._cssLogic = aCssLogic;
   this.domSheet = aDomSheet;
-  this.index = this.contentSheet ? aIndex : -100 * aIndex;
+  this.systemSheet = aSystemSheet;
+  this.index = this.systemSheet ? -100 * aIndex : aIndex;
 
   
   this._href = null;
@@ -932,44 +746,6 @@ function CssSheet(aCssLogic, aDomSheet, aIndex)
 
 CssSheet.prototype = {
   _passId: null,
-  _contentSheet: null,
-  _mediaMatches: null,
-
-  
-
-
-
-
-
-  get contentSheet()
-  {
-    if (this._contentSheet === null) {
-      this._contentSheet = CssLogic.isContentStylesheet(this.domSheet);
-    }
-    return this._contentSheet;
-  },
-
-  
-
-
-
-  get disabled()
-  {
-    return this.domSheet.disabled;
-  },
-
-  
-
-
-
-
-  get mediaMatches()
-  {
-    if (this._mediaMatches === null) {
-      this._mediaMatches = this._cssLogic.mediaMatches(this.domSheet);
-    }
-    return this._mediaMatches;
-  },
 
   
 
@@ -1001,7 +777,31 @@ CssSheet.prototype = {
       return this._shortSource;
     }
 
-    this._shortSource = CssLogic.shortSource(this.domSheet);
+    
+    if (!this.domSheet.href) {
+      this._shortSource = CssLogic.l10n("rule.sourceInline");
+      return this._shortSource;
+    }
+
+    
+    let url = Services.io.newURI(this.domSheet.href, null, null);
+    url = url.QueryInterface(Ci.nsIURL);
+    if (url.fileName) {
+      this._shortSource = url.fileName;
+      return this._shortSource;
+    }
+
+    if (url.filePath) {
+      this._shortSource = url.filePath;
+      return this._shortSource;
+    }
+
+    if (url.query) {
+      this._shortSource = url.query;
+      return this._shortSource;
+    }
+
+    this._shortSource = this.domSheet.href;
     return this._shortSource;
   },
 
@@ -1020,7 +820,7 @@ CssSheet.prototype = {
     this._sheetAllowed = true;
 
     let filter = this._cssLogic.sourceFilter;
-    if (filter === CssLogic.FILTER.ALL && !this.contentSheet) {
+    if (filter === CssLogic.FILTER.ALL && this.systemSheet) {
       this._sheetAllowed = false;
     }
     if (filter !== CssLogic.FILTER.ALL && filter !== CssLogic.FILTER.UA) {
@@ -1062,7 +862,7 @@ CssSheet.prototype = {
     if (cacheId in this._rules) {
       for (let i = 0, rulesLen = this._rules[cacheId].length; i < rulesLen; i++) {
         rule = this._rules[cacheId][i];
-        if (rule._domRule === aDomRule) {
+        if (rule._domRule == aDomRule) {
           ruleFound = true;
           break;
         }
@@ -1104,7 +904,7 @@ CssSheet.prototype = {
         aCallback.call(aScope, this.getRule(aDomRule));
         ruleCount++;
       } else if (aDomRule.type == Ci.nsIDOMCSSRule.MEDIA_RULE &&
-          aDomRule.cssRules && this._cssLogic.mediaMatches(aDomRule)) {
+          aDomRule.cssRules && CssLogic.sheetMediaAllowed(aDomRule)) {
         Array.prototype.forEach.call(aDomRule.cssRules, _iterator, this);
       }
     }
@@ -1112,36 +912,6 @@ CssSheet.prototype = {
     Array.prototype.forEach.call(domRules, _iterator, this);
 
     this._ruleCount = ruleCount;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  forSomeRules: function CssSheet_forSomeRules(aCallback, aScope)
-  {
-    let domRules = this.domSheet.cssRules;
-    function _iterator(aDomRule) {
-      if (aDomRule.type == Ci.nsIDOMCSSRule.STYLE_RULE) {
-        return aCallback.call(aScope, this.getRule(aDomRule));
-      } else if (aDomRule.type == Ci.nsIDOMCSSRule.MEDIA_RULE &&
-          aDomRule.cssRules && this._cssLogic.mediaMatches(aDomRule)) {
-        return Array.prototype.some.call(aDomRule.cssRules, _iterator, this);
-      }
-    }
-    return Array.prototype.some.call(domRules, _iterator, this);
   },
 
   toString: function CssSheet_toString()
@@ -1168,40 +938,25 @@ function CssRule(aCssSheet, aDomRule, aElement)
   this._cssSheet = aCssSheet;
   this._domRule = aDomRule;
 
-  let parentRule = aDomRule.parentRule;
-  if (parentRule && parentRule.type == Ci.nsIDOMCSSRule.MEDIA_RULE) {
-    this.mediaText = parentRule.media.mediaText;
-  }
-
   if (this._cssSheet) {
     
     this._selectors = null;
     this.line = this._cssSheet._cssLogic.domUtils.getRuleLine(this._domRule);
     this.source = this._cssSheet.shortSource + ":" + this.line;
-    if (this.mediaText) {
-      this.source += " @media " + this.mediaText;
-    }
     this.href = this._cssSheet.href;
-    this.contentRule = this._cssSheet.contentSheet;
+    this.systemRule = this._cssSheet.systemSheet;
   } else if (aElement) {
     this._selectors = [ new CssSelector(this, "@element.style") ];
     this.line = -1;
     this.source = CssLogic.l10n("rule.sourceElement");
     this.href = "#";
-    this.contentRule = true;
+    this.systemRule = false;
     this.sourceElement = aElement;
   }
 }
 
 CssRule.prototype = {
   _passId: null,
-
-  mediaText: "",
-
-  get isMediaRule()
-  {
-    return !!this.mediaText;
-  },
 
   
 
@@ -1386,9 +1141,9 @@ CssSelector.prototype = {
 
 
 
-  get contentRule()
+  get systemRule()
   {
-    return this._cssRule.contentRule;
+    return this._cssRule.systemRule;
   },
 
   
@@ -1428,31 +1183,6 @@ CssSelector.prototype = {
 
 
 
-  get pseudoElements()
-  {
-    if (!CssSelector._pseudoElements) {
-      let pseudos = CssSelector._pseudoElements = new Set();
-      pseudos.add("after");
-      pseudos.add("before");
-      pseudos.add("first-letter");
-      pseudos.add("first-line");
-      pseudos.add("selection");
-      pseudos.add("-moz-focus-inner");
-      pseudos.add("-moz-focus-outer");
-      pseudos.add("-moz-list-bullet");
-      pseudos.add("-moz-list-number");
-      pseudos.add("-moz-math-anonymous");
-      pseudos.add("-moz-math-stretchy");
-      pseudos.add("-moz-progress-bar");
-      pseudos.add("-moz-selection");
-    }
-    return CssSelector._pseudoElements;
-  },
-
-  
-
-
-
 
 
 
@@ -1464,58 +1194,37 @@ CssSelector.prototype = {
       return this._specificity;
     }
 
-    let specificity = {
-      ids: 0,
-      classes: 0,
-      tags: 0
-    };
+    let specificity = {};
 
-    let text = this.text;
+    specificity.ids = 0;
+    specificity.classes = 0;
+    specificity.tags = 0;
 
+    
+    
     if (!this.elementStyle) {
-      
-      
-      text = text.replace(RX_UNIVERSAL_SELECTOR, "");
-
-      
-      
-      text = text.replace(RX_NOT, " $1");
-
-      
-      text = text.replace(RX_PSEUDO_CLASS_OR_ELT, " $1)");
-
-      
-      text = text.replace(RX_CONNECTORS, " ");
-
-      text.split(/\s/).forEach(function(aSimple) {
+      this.text.split(/[ >+]/).forEach(function(aSimple) {
         
-        aSimple = aSimple.replace(RX_ID, function() {
-          specificity.ids++;
-          return "";
-        });
-
+        if (!aSimple) {
+          return;
+        }
         
-        aSimple = aSimple.replace(RX_CLASS_OR_ATTRIBUTE, function() {
-          specificity.classes++;
-          return "";
-        });
-
-        aSimple = aSimple.replace(RX_PSEUDO, function(aDummy, aPseudoName) {
-          if (this.pseudoElements.has(aPseudoName)) {
-            
-            specificity.tags++;
-          } else {
-            
-            specificity.classes++;
-          }
-          return "";
-        }.bind(this));
-
-        if (aSimple) {
+        
+        specificity.ids += (aSimple.match(/#/g) || []).length;
+        
+        specificity.classes += (aSimple.match(/\./g) || []).length;
+        specificity.classes += (aSimple.match(/\[/g) || []).length;
+        
+        specificity.tags += (aSimple.match(/:/g) || []).length;
+        
+        
+        let tag = aSimple.split(/[#.[:]/)[0];
+        if (tag && tag != "*") {
           specificity.tags++;
         }
       }, this);
     }
+
     this._specificity = specificity;
 
     return this._specificity;
@@ -1555,7 +1264,6 @@ function CssPropertyInfo(aCssLogic, aProperty)
   
   
   this._matchedSelectors = null;
-  this._unmatchedSelectors = null;
 }
 
 CssPropertyInfo.prototype = {
@@ -1697,10 +1405,7 @@ CssPropertyInfo.prototype = {
   {
     let cssRule = aSelector._cssRule;
     let value = cssRule.getPropertyValue(this.property);
-    if (value &&
-        (aStatus == CssLogic.STATUS.MATCHED ||
-         (aStatus == CssLogic.STATUS.PARENT_MATCH &&
-          this._cssLogic.domUtils.isInheritedProperty(this.property)))) {
+    if (value) {
       let selectorInfo = new CssSelectorInfo(aSelector, this.property, value,
           aStatus);
       this._matchedSelectors.push(selectorInfo);
@@ -1732,7 +1437,6 @@ CssPropertyInfo.prototype = {
   },
 
   
-
 
 
 
@@ -1827,12 +1531,12 @@ function CssSelectorInfo(aSelector, aProperty, aValue, aStatus)
 
 
 
-  let scorePrefix = this.contentRule ? 2 : 0;
+  let scorePrefix = this.systemRule ? 0 : 2;
   if (this.elementStyle) {
     scorePrefix++;
   }
   if (this.important) {
-    scorePrefix += this.contentRule ? 2 : 1;
+    scorePrefix += this.systemRule ? 1 : 2;
   }
 
   this.specificityScore = "" + scorePrefix + this.specificity.ids +
@@ -1935,9 +1639,9 @@ CssSelectorInfo.prototype = {
 
 
 
-  get contentRule()
+  get systemRule()
   {
-    return this.selector.contentRule;
+    return this.selector.systemRule;
   },
 
   
@@ -1949,8 +1653,8 @@ CssSelectorInfo.prototype = {
 
   compareTo: function CssSelectorInfo_compareTo(aThat)
   {
-    if (!this.contentRule && aThat.contentRule) return 1;
-    if (this.contentRule && !aThat.contentRule) return -1;
+    if (this.systemRule && !aThat.systemRule) return 1;
+    if (!this.systemRule && aThat.systemRule) return -1;
 
     if (this.elementStyle && !aThat.elementStyle) {
       if (!this.important && aThat.important) return 1;

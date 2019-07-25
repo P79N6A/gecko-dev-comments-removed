@@ -3,7 +3,36 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsIDOMHTMLTableColElement.h"
 #include "nsIDOMEventTarget.h"
@@ -12,8 +41,6 @@
 #include "nsGkAtoms.h"
 #include "nsStyleConsts.h"
 #include "nsRuleData.h"
-
-using namespace mozilla;
 
 
 
@@ -41,7 +68,7 @@ public:
   
   NS_DECL_NSIDOMHTMLTABLECOLELEMENT
 
-  virtual bool ParseAttribute(int32_t aNamespaceID,
+  virtual bool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
@@ -51,8 +78,6 @@ public:
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 };
 
 
@@ -95,7 +120,7 @@ NS_IMPL_STRING_ATTR(nsHTMLTableColElement, Width, width)
 
 
 bool
-nsHTMLTableColElement::ParseAttribute(int32_t aNamespaceID,
+nsHTMLTableColElement::ParseAttribute(PRInt32 aNamespaceID,
                                       nsIAtom* aAttribute,
                                       const nsAString& aValue,
                                       nsAttrValue& aResult)
@@ -133,7 +158,7 @@ void MapAttributesIntoRule(const nsMappedAttributes* aAttributes, nsRuleData* aD
       
       const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::span);
       if (value && value->Type() == nsAttrValue::eInteger) {
-        int32_t val = value->GetIntegerValue();
+        PRInt32 val = value->GetIntegerValue();
         
         
         
@@ -194,7 +219,7 @@ nsHTMLTableColElement::IsAttributeMapped(const nsIAtom* aAttribute) const
     { &nsGkAtoms::align },
     { &nsGkAtoms::valign },
     { &nsGkAtoms::span },
-    { nullptr }
+    { nsnull }
   };
 
   static const MappedAttributeEntry* const map[] = {
@@ -202,7 +227,7 @@ nsHTMLTableColElement::IsAttributeMapped(const nsIAtom* aAttribute) const
     sCommonAttributeMap,
   };
 
-  return FindAttributeDependence(aAttribute, map);
+  return FindAttributeDependence(aAttribute, map, NS_ARRAY_LENGTH(map));
 }
 
 

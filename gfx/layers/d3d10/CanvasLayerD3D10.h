@@ -3,14 +3,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_CANVASLAYERD3D10_H
 #define GFX_CANVASLAYERD3D10_H
 
 #include "LayerManagerD3D10.h"
 #include "GLContext.h"
 #include "gfxASurface.h"
-
-#include "mozilla/Preferences.h"
 
 namespace mozilla {
 namespace layers {
@@ -22,12 +53,11 @@ public:
   CanvasLayerD3D10(LayerManagerD3D10 *aManager)
     : CanvasLayer(aManager, NULL)
     , LayerD3D10(aManager)
-    , mDataIsPremultiplied(false)
-    , mNeedsYFlip(false)
-    , mHasAlpha(true)
+    , mDataIsPremultiplied(PR_FALSE)
+    , mNeedsYFlip(PR_FALSE)
+    , mHasAlpha(PR_TRUE)
   {
       mImplData = static_cast<LayerD3D10*>(this);
-      mForceReadback = Preferences::GetBool("webgl.force-layers-readback", false);
   }
 
   ~CanvasLayerD3D10();
@@ -50,30 +80,13 @@ private:
   nsRefPtr<ID3D10Texture2D> mTexture;
   nsRefPtr<ID3D10ShaderResourceView> mSRView;
 
+  PRUint32 mCanvasFramebuffer;
+
   bool mDataIsPremultiplied;
   bool mNeedsYFlip;
   bool mIsD2DTexture;
   bool mUsingSharedTexture;
   bool mHasAlpha;
-  bool mForceReadback;
-
-  nsAutoArrayPtr<uint8_t> mCachedTempBlob;
-  uint32_t mCachedTempBlob_Size;
-
-  uint8_t* GetTempBlob(const uint32_t aSize)
-  {
-      if (!mCachedTempBlob || aSize != mCachedTempBlob_Size) {
-          mCachedTempBlob = new uint8_t[aSize];
-          mCachedTempBlob_Size = aSize;
-      }
-
-      return mCachedTempBlob;
-  }
-
-  void DiscardTempBlob()
-  {
-      mCachedTempBlob = nullptr;
-  }
 };
 
 } 

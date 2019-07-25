@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsFileStreams_h__
 #define nsFileStreams_h__
 
@@ -17,41 +49,30 @@
 #include "nsCOMPtr.h"
 #include "prlog.h"
 #include "prio.h"
-#include "nsIIPCSerializableInputStream.h"
+#include "nsIIPCSerializable.h"
 
 template<class CharType> class nsLineBuffer;
 
 
 
-class nsFileStreamBase : public nsISeekableStream
+class nsFileStream : public nsISeekableStream
 {
 public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSISEEKABLESTREAM
 
-    nsFileStreamBase();
-    virtual ~nsFileStreamBase();
+    nsFileStream();
+    virtual ~nsFileStream();
+
+    nsresult Close();
 
 protected:
-    nsresult Close();
-    nsresult Available(uint64_t* _retval);
-    nsresult Read(char* aBuf, uint32_t aCount, uint32_t* _retval);
-    nsresult ReadSegments(nsWriteSegmentFun aWriter, void* aClosure,
-                          uint32_t aCount, uint32_t* _retval);
-    nsresult IsNonBlocking(bool* _retval);
-    nsresult Flush();
-    nsresult Write(const char* aBuf, uint32_t aCount, uint32_t* _retval);
-    nsresult WriteFrom(nsIInputStream* aFromStream, uint32_t aCount,
-                       uint32_t* _retval);
-    nsresult WriteSegments(nsReadSegmentFun aReader, void* aClosure,
-                           uint32_t aCount, uint32_t* _retval);
-
     PRFileDesc* mFD;
 
     
 
 
-    int32_t mBehaviorFlags;
+    PRInt32 mBehaviorFlags;
 
     
 
@@ -59,9 +80,9 @@ protected:
     bool mDeferredOpen;
 
     struct OpenParams {
-        nsCOMPtr<nsIFile> localFile;
-        int32_t ioFlags;
-        int32_t perm;
+        nsCOMPtr<nsILocalFile> localFile;
+        PRInt32 ioFlags;
+        PRInt32 perm;
     };
 
     
@@ -74,7 +95,7 @@ protected:
 
 
 
-    nsresult MaybeOpen(nsIFile* aFile, int32_t aIoFlags, int32_t aPerm,
+    nsresult MaybeOpen(nsILocalFile* aFile, PRInt32 aIoFlags, PRInt32 aPerm,
                        bool aDeferred);
 
     
@@ -99,40 +120,26 @@ protected:
 
 
 
-class nsFileInputStream : public nsFileStreamBase,
+class nsFileInputStream : public nsFileStream,
                           public nsIFileInputStream,
                           public nsILineInputStream,
-                          public nsIIPCSerializableInputStream
+                          public nsIIPCSerializable
 {
 public:
     NS_DECL_ISUPPORTS_INHERITED
+    NS_DECL_NSIINPUTSTREAM
     NS_DECL_NSIFILEINPUTSTREAM
     NS_DECL_NSILINEINPUTSTREAM
-    NS_DECL_NSIIPCSERIALIZABLEINPUTSTREAM
+    NS_DECL_NSIIPCSERIALIZABLE
+    
+    
+    NS_IMETHOD Seek(PRInt32 aWhence, PRInt64 aOffset);
 
-    NS_IMETHOD Close();
-    NS_IMETHOD Tell(int64_t *aResult);
-    NS_IMETHOD Available(uint64_t* _retval);
-    NS_IMETHOD Read(char* aBuf, uint32_t aCount, uint32_t* _retval);
-    NS_IMETHOD ReadSegments(nsWriteSegmentFun aWriter, void *aClosure,
-                            uint32_t aCount, uint32_t* _retval)
+    nsFileInputStream() : nsFileStream() 
     {
-        return nsFileStreamBase::ReadSegments(aWriter, aClosure, aCount,
-                                              _retval);
+        mLineBuffer = nsnull;
     }
-    NS_IMETHOD IsNonBlocking(bool* _retval)
-    {
-        return nsFileStreamBase::IsNonBlocking(_retval);
-    } 
-    
-    
-    NS_IMETHOD Seek(int32_t aWhence, int64_t aOffset);
-
-    nsFileInputStream()
-      : mLineBuffer(nullptr), mIOFlags(0), mPerm(0), mCachedPosition(0)
-    {}
-
-    virtual ~nsFileInputStream()
+    virtual ~nsFileInputStream() 
     {
         Close();
     }
@@ -150,23 +157,22 @@ protected:
     
 
 
-    int32_t mIOFlags;
+    PRInt32 mIOFlags;
     
 
 
-    int32_t mPerm;
-
-    
-
-
-    int64_t mCachedPosition;
+    PRInt32 mPerm;
 
 protected:
     
 
 
 
-    nsresult Open(nsIFile* file, int32_t ioFlags, int32_t perm);
+    nsresult Open(nsIFile* file, PRInt32 ioFlags, PRInt32 perm);
+    
+
+
+    nsresult Reopen() { return Open(mFile, mIOFlags, mPerm); }
 };
 
 
@@ -175,49 +181,40 @@ class nsPartialFileInputStream : public nsFileInputStream,
                                  public nsIPartialFileInputStream
 {
 public:
-    using nsFileInputStream::Init;
-    using nsFileInputStream::Read;
     NS_DECL_ISUPPORTS_INHERITED
     NS_DECL_NSIPARTIALFILEINPUTSTREAM
-    NS_DECL_NSIIPCSERIALIZABLEINPUTSTREAM
 
-    nsPartialFileInputStream()
-      : mStart(0), mLength(0), mPosition(0)
-    { }
-
-    NS_IMETHOD Tell(int64_t *aResult);
-    NS_IMETHOD Available(uint64_t *aResult);
-    NS_IMETHOD Read(char* aBuf, uint32_t aCount, uint32_t* aResult);
-    NS_IMETHOD Seek(int32_t aWhence, int64_t aOffset);
+    NS_IMETHOD Tell(PRInt64 *aResult);
+    NS_IMETHOD Available(PRUint32 *aResult);
+    NS_IMETHOD Read(char* aBuf, PRUint32 aCount, PRUint32* aResult);
+    NS_IMETHOD Seek(PRInt32 aWhence, PRInt64 aOffset);
 
     static nsresult
     Create(nsISupports *aOuter, REFNSIID aIID, void **aResult);
 
 private:
-    uint64_t TruncateSize(uint64_t aSize) {
-          return NS_MIN<uint64_t>(mLength - mPosition, aSize);
+    PRUint32 TruncateSize(PRUint32 aSize) {
+          return (PRUint32)NS_MIN<PRUint64>(mLength - mPosition, aSize);
     }
 
-    uint64_t mStart;
-    uint64_t mLength;
-    uint64_t mPosition;
+    PRUint64 mStart;
+    PRUint64 mLength;
+    PRUint64 mPosition;
 };
 
 
 
-class nsFileOutputStream : public nsFileStreamBase,
+class nsFileOutputStream : public nsFileStream,
                            public nsIFileOutputStream
 {
 public:
     NS_DECL_ISUPPORTS_INHERITED
+    NS_DECL_NSIOUTPUTSTREAM
     NS_DECL_NSIFILEOUTPUTSTREAM
-    NS_FORWARD_NSIOUTPUTSTREAM(nsFileStreamBase::)
 
-    virtual ~nsFileOutputStream()
-    {
-        Close();
-    }
-
+    nsFileOutputStream() : nsFileStream() {}
+    virtual ~nsFileOutputStream() { nsFileOutputStream::Close(); }
+    
     static nsresult
     Create(nsISupports *aOuter, REFNSIID aIID, void **aResult);
 };
@@ -232,19 +229,16 @@ public:
     NS_DECL_NSISAFEOUTPUTSTREAM
 
     nsSafeFileOutputStream() :
-        mTargetFileExists(true),
+        mTargetFileExists(PR_TRUE),
         mWriteResult(NS_OK) {}
 
-    virtual ~nsSafeFileOutputStream()
-    {
-        Close();
-    }
+    virtual ~nsSafeFileOutputStream() { nsSafeFileOutputStream::Close(); }
 
     virtual nsresult DoOpen();
 
     NS_IMETHODIMP Close();
-    NS_IMETHODIMP Write(const char *buf, uint32_t count, uint32_t *result);
-    NS_IMETHODIMP Init(nsIFile* file, int32_t ioFlags, int32_t perm, int32_t behaviorFlags);
+    NS_IMETHODIMP Write(const char *buf, PRUint32 count, PRUint32 *result);
+    NS_IMETHODIMP Init(nsIFile* file, PRInt32 ioFlags, PRInt32 perm, PRInt32 behaviorFlags);
 
 protected:
     nsCOMPtr<nsIFile>         mTargetFile;
@@ -252,48 +246,6 @@ protected:
 
     bool     mTargetFileExists;
     nsresult mWriteResult; 
-};
-
-
-
-class nsFileStream : public nsFileStreamBase,
-                     public nsIInputStream,
-                     public nsIOutputStream,
-                     public nsIFileStream,
-                     public nsIFileMetadata
-{
-public:
-    NS_DECL_ISUPPORTS_INHERITED
-    NS_DECL_NSIFILESTREAM
-    NS_DECL_NSIFILEMETADATA
-    NS_FORWARD_NSIINPUTSTREAM(nsFileStreamBase::)
-
-    
-    
-    NS_IMETHOD Flush()
-    {
-        return nsFileStreamBase::Flush();
-    }
-    NS_IMETHOD Write(const char* aBuf, uint32_t aCount, uint32_t* _retval)
-    {
-        return nsFileStreamBase::Write(aBuf, aCount, _retval);
-    }
-    NS_IMETHOD WriteFrom(nsIInputStream* aFromStream, uint32_t aCount,
-                         uint32_t* _retval)
-    {
-        return nsFileStreamBase::WriteFrom(aFromStream, aCount, _retval);
-    }
-    NS_IMETHOD WriteSegments(nsReadSegmentFun aReader, void* aClosure,
-                             uint32_t aCount, uint32_t* _retval)
-    {
-        return nsFileStreamBase::WriteSegments(aReader, aClosure, aCount,
-                                               _retval);
-    }
-
-    virtual ~nsFileStream()
-    {
-        Close();
-    }
 };
 
 

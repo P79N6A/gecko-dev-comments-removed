@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nscore.h"
 #include "nsString.h"
 #include "nsPosixLocale.h"
@@ -61,7 +93,7 @@ nsPosixLocale::GetXPLocale(const char* posixLocale, nsAString& locale)
   char  extra[MAX_EXTRA_LEN+1];
   char  posix_locale[MAX_LOCALE_LEN+1];
 
-  if (posixLocale!=nullptr) {
+  if (posixLocale!=nsnull) {
     if (strcmp(posixLocale,"C")==0 || strcmp(posixLocale,"POSIX")==0) {
       locale.AssignLiteral("en-US");
       return NS_OK;
@@ -109,7 +141,7 @@ ParseLocaleString(const char* locale_string, char* language, char* country, char
   *country = '\0';
   *extra = '\0';
   if (strlen(locale_string) < 2) {
-    return(false);
+    return(PR_FALSE);
   }
 
   
@@ -126,19 +158,19 @@ ParseLocaleString(const char* locale_string, char* language, char* country, char
     NS_ASSERTION((len == 2) || (len == 3), "language code too short");
     NS_ASSERTION(len < 3, "reminder: verify we can handle 3+ character language code in all parts of the system; eg: language packs");
     *language = '\0';
-    return(false);
+    return(PR_FALSE);
   }
 
   
   if (*src == '\0') {
-    return(true);
+    return(PR_TRUE);
   }
 
   if ((*src != '_') && (*src != '-') && (*src != '.') && (*src != '@')) {
     NS_ASSERTION(isalpha(*src), "language code too long");
     NS_ASSERTION(!isalpha(*src), "unexpected language/country separator");
     *language = '\0';
-    return(false);
+    return(PR_FALSE);
   }
 
   
@@ -157,13 +189,13 @@ ParseLocaleString(const char* locale_string, char* language, char* country, char
       NS_ASSERTION(len == 2, "unexpected country code length");
       *language = '\0';
       *country = '\0';
-      return(false);
+      return(PR_FALSE);
     }
   }
 
   
   if (*src == '\0') {
-    return(true);
+    return(PR_TRUE);
   }
 
   if ((*src != '.') && (*src != '@')) {
@@ -171,7 +203,7 @@ ParseLocaleString(const char* locale_string, char* language, char* country, char
     NS_ASSERTION(!isalpha(*src), "unexpected country/extra separator");
     *language = '\0';
     *country = '\0';
-    return(false);
+    return(PR_FALSE);
   }
 
   
@@ -191,13 +223,13 @@ ParseLocaleString(const char* locale_string, char* language, char* country, char
       *language = '\0';
       *country = '\0';
       *extra = '\0';
-      return(false);
+      return(PR_FALSE);
     }
   }
 
   
   if (*src == '\0') {
-    return(true);
+    return(PR_TRUE);
   }
 
   
@@ -220,13 +252,13 @@ ParseLocaleString(const char* locale_string, char* language, char* country, char
       *country = '\0';
       *extra = '\0';
       *modifier = '\0';
-      return(false);
+      return(PR_FALSE);
     }
   }
 
   
   if (*src == '\0') {
-    return(true);
+    return(PR_TRUE);
   }
 
   NS_ASSERTION(*src == '\0', "extra/modifier code too long");
@@ -234,6 +266,6 @@ ParseLocaleString(const char* locale_string, char* language, char* country, char
   *country = '\0';
   *extra = '\0';
 
-  return(false);
+  return(PR_FALSE);
 }
 

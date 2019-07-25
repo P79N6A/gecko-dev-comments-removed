@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsViewManager_h___
 #define nsViewManager_h___
 #include "nsCOMPtr.h"
@@ -14,7 +46,7 @@
 #include "nsVoidArray.h"
 #include "nsThreadUtils.h"
 #include "nsView.h"
-#include "nsIPresShell.h"
+#include "nsIViewObserver.h"
 #include "nsDeviceContext.h"
 
 
@@ -42,6 +74,15 @@
 
 
 
+
+
+
+
+
+
+
+class nsInvalidateEvent;
+
 class nsViewManager : public nsIViewManager {
 public:
   nsViewManager();
@@ -63,9 +104,12 @@ public:
   NS_IMETHOD  SetWindowDimensions(nscoord width, nscoord height);
   NS_IMETHOD  FlushDelayedResize(bool aDoReflow);
 
-  NS_IMETHOD  InvalidateView(nsIView *aView);
-  NS_IMETHOD  InvalidateViewNoSuppression(nsIView *aView, const nsRect &aRect);
-  NS_IMETHOD  InvalidateAllViews();
+  NS_IMETHOD  Composite(void);
+
+  NS_IMETHOD  UpdateView(nsIView *aView, PRUint32 aUpdateFlags);
+  NS_IMETHOD  UpdateViewNoSuppression(nsIView *aView, const nsRect &aRect,
+                                      PRUint32 aUpdateFlags);
+  NS_IMETHOD  UpdateAllViews(PRUint32 aUpdateFlags);
 
   NS_IMETHOD  DispatchEvent(nsGUIEvent *aEvent,
       nsIView* aTargetView, nsEventStatus* aStatus);
@@ -74,7 +118,7 @@ public:
                           bool above);
 
   NS_IMETHOD  InsertChild(nsIView *parent, nsIView *child,
-                          int32_t zindex);
+                          PRInt32 zindex);
 
   NS_IMETHOD  RemoveChild(nsIView *parent);
 
@@ -86,27 +130,26 @@ public:
 
   NS_IMETHOD  SetViewVisibility(nsIView *aView, nsViewVisibility aVisible);
 
-  NS_IMETHOD  SetViewZIndex(nsIView *aView, bool aAuto, int32_t aZIndex, bool aTopMost=false);
+  NS_IMETHOD  SetViewZIndex(nsIView *aView, bool aAuto, PRInt32 aZIndex, bool aTopMost=false);
 
-  virtual void SetPresShell(nsIPresShell *aPresShell) { mPresShell = aPresShell; }
-  virtual nsIPresShell* GetPresShell() { return mPresShell; }
+  virtual void SetViewObserver(nsIViewObserver *aObserver) { mObserver = aObserver; }
+  virtual nsIViewObserver* GetViewObserver() { return mObserver; }
 
   NS_IMETHOD  GetDeviceContext(nsDeviceContext *&aContext);
 
-  virtual nsIViewManager* IncrementDisableRefreshCount();
-  virtual void DecrementDisableRefreshCount();
+  virtual nsIViewManager* BeginUpdateViewBatch(void);
+  NS_IMETHOD  EndUpdateViewBatch(PRUint32 aUpdateFlags);
 
   NS_IMETHOD GetRootWidget(nsIWidget **aWidget);
+  NS_IMETHOD ForceUpdate();
  
   NS_IMETHOD IsPainting(bool& aIsPainting);
-  NS_IMETHOD GetLastUserEventTime(uint32_t& aTime);
-  static uint32_t gLastUserEventTime;
+  NS_IMETHOD GetLastUserEventTime(PRUint32& aTime);
+  void ProcessInvalidateEvent();
+  static PRUint32 gLastUserEventTime;
 
   
   void InvalidateHierarchy();
-
-  virtual void ProcessPendingUpdates();
-  virtual void UpdateWidgetGeometry();
 
 protected:
   virtual ~nsViewManager();
@@ -114,30 +157,44 @@ protected:
 private:
 
   void FlushPendingInvalidates();
-  void ProcessPendingUpdatesForView(nsView *aView,
-                                    bool aFlushDirtyRegion = true);
-  void FlushDirtyRegionToWidget(nsView* aView);
+  void ProcessPendingUpdates(nsView *aView, bool aDoInvalidate);
   
 
 
   void CallWillPaintOnObservers(bool aWillSendDidPaint);
-  void CallDidPaintOnObserver();
+  void CallDidPaintOnObservers();
   void ReparentChildWidgets(nsIView* aView, nsIWidget *aNewWidget);
   void ReparentWidgets(nsIView* aView, nsIView *aParent);
-  void InvalidateWidgetArea(nsView *aWidgetView, const nsRegion &aDamagedRegion);
+  void UpdateWidgetArea(nsView *aWidgetView, nsIWidget* aWidget,
+                        const nsRegion &aDamagedRegion,
+                        nsView* aIgnoreWidgetView);
 
-  void InvalidateViews(nsView *aView);
+  void UpdateViews(nsView *aView, PRUint32 aUpdateFlags);
+
+  void TriggerRefresh(PRUint32 aUpdateFlags);
 
   
-  void Refresh(nsView *aView, const nsIntRegion& aRegion, bool aWillSendDidPaint);
+  void Refresh(nsView *aView, nsIWidget *aWidget,
+               const nsIntRegion& aRegion, PRUint32 aUpdateFlags);
+  
+  
+  void RenderViews(nsView *aRootView, nsIWidget *aWidget,
+                   const nsRegion& aRegion, const nsIntRegion& aIntRegion,
+                   bool aPaintDefaultBackground, bool aWillSendDidPaint);
 
-  void InvalidateRectDifference(nsView *aView, const nsRect& aRect, const nsRect& aCutOut);
+  void InvalidateRectDifference(nsView *aView, const nsRect& aRect, const nsRect& aCutOut, PRUint32 aUpdateFlags);
   void InvalidateHorizontalBandDifference(nsView *aView, const nsRect& aRect, const nsRect& aCutOut,
-                                          nscoord aY1, nscoord aY2, bool aInCutOut);
+                                          PRUint32 aUpdateFlags, nscoord aY1, nscoord aY2, bool aInCutOut);
 
   
 
   bool IsViewInserted(nsView *aView);
+
+  
+
+
+
+  void UpdateWidgetsForView(nsView* aView);
 
   
 
@@ -148,6 +205,31 @@ private:
 
   void DoSetWindowDimensions(nscoord aWidth, nscoord aHeight);
 
+  
+  void IncrementUpdateCount() {
+    NS_ASSERTION(IsRootVM(),
+                 "IncrementUpdateCount called on non-root viewmanager");
+    ++mUpdateCnt;
+  }
+
+  void DecrementUpdateCount() {
+    NS_ASSERTION(IsRootVM(),
+                 "DecrementUpdateCount called on non-root viewmanager");
+    --mUpdateCnt;
+  }
+
+  PRInt32 UpdateCount() const {
+    NS_ASSERTION(IsRootVM(),
+                 "DecrementUpdateCount called on non-root viewmanager");
+    return mUpdateCnt;
+  }
+
+  void ClearUpdateCount() {
+    NS_ASSERTION(IsRootVM(),
+                 "DecrementUpdateCount called on non-root viewmanager");
+    mUpdateCnt = 0;
+  }
+
   bool IsPainting() const {
     return RootViewManager()->mPainting;
   }
@@ -156,35 +238,29 @@ private:
     RootViewManager()->mPainting = aPainting;
   }
 
-  nsresult InvalidateView(nsIView *aView, const nsRect &aRect);
+  nsresult UpdateView(nsIView *aView, const nsRect &aRect, PRUint32 aUpdateFlags);
 
 public: 
   nsView* GetRootViewImpl() const { return mRootView; }
   nsViewManager* RootViewManager() const { return mRootViewManager; }
   bool IsRootVM() const { return this == RootViewManager(); }
 
-  
-  
-  
-  bool IsPaintingAllowed() { return RootViewManager()->mRefreshDisableCount == 0; }
+  nsEventStatus HandleEvent(nsView* aView, nsGUIEvent* aEvent);
 
-  void WillPaintWindow(nsIWidget* aWidget, bool aWillSendDidPaint);
-  bool PaintWindow(nsIWidget* aWidget, nsIntRegion aRegion,
-                   bool aSentWillPaint, bool aWillSendDidPaint);
-  void DidPaintWindow();
+  bool IsRefreshEnabled() { return RootViewManager()->mUpdateBatchCnt == 0; }
 
   
   
-  void PostPendingUpdate();
+  void PostPendingUpdate() { RootViewManager()->mHasPendingUpdates = PR_TRUE; }
 
-  uint32_t AppUnitsPerDevPixel() const
+  PRUint32 AppUnitsPerDevPixel() const
   {
     return mContext->AppUnitsPerDevPixel();
   }
 
 private:
   nsRefPtr<nsDeviceContext> mContext;
-  nsIPresShell   *mPresShell;
+  nsIViewObserver   *mObserver;
 
   
   
@@ -195,23 +271,49 @@ private:
   
   nsViewManager     *mRootViewManager;
 
+  nsRevocableEventPtr<nsInvalidateEvent> mInvalidateEvent;
+
   
   
   
   
-  int32_t           mRefreshDisableCount;
+  
+  
+  PRInt32           mUpdateCnt;
+  PRInt32           mUpdateBatchCnt;
+  PRUint32          mUpdateBatchFlags;
   
   bool              mPainting;
   bool              mRecursiveRefreshPending;
   bool              mHasPendingUpdates;
-  bool              mHasPendingWidgetGeometryChanges;
   bool              mInScroll;
 
   
-  static int32_t           mVMCount;        
+  static PRInt32           mVMCount;        
 
   
   static nsVoidArray       *gViewManagers;
+
+  void PostInvalidateEvent();
+};
+
+
+#define NS_VMREFRESH_DOUBLE_BUFFER      0x0001
+
+class nsInvalidateEvent : public nsRunnable {
+public:
+  nsInvalidateEvent(class nsViewManager *vm) : mViewManager(vm) {
+    NS_ASSERTION(mViewManager, "null parameter");
+  }
+  void Revoke() { mViewManager = nsnull; }
+
+  NS_IMETHOD Run() {
+    if (mViewManager)
+      mViewManager->ProcessInvalidateEvent();
+    return NS_OK;
+  }
+protected:
+  class nsViewManager *mViewManager;
 };
 
 #endif 

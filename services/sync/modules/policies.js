@@ -2,6 +2,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const EXPORTED_SYMBOLS = ["SyncScheduler",
                           "ErrorHandler",
                           "SendCredentialsController"];
@@ -9,7 +44,7 @@ const EXPORTED_SYMBOLS = ["SyncScheduler",
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.import("resource://services-sync/constants.js");
-Cu.import("resource://services-common/log4moz.js");
+Cu.import("resource://services-sync/log4moz.js");
 Cu.import("resource://services-sync/util.js");
 Cu.import("resource://services-sync/engines.js");
 Cu.import("resource://services-sync/engines/clients.js");
@@ -19,12 +54,6 @@ Cu.import("resource://services-sync/main.js");
 
 let SyncScheduler = {
   _log: Log4Moz.repository.getLogger("Sync.SyncScheduler"),
-
-  _fatalLoginStatus: [LOGIN_FAILED_NO_USERNAME,
-                      LOGIN_FAILED_NO_PASSWORD,
-                      LOGIN_FAILED_NO_PASSPHRASE,
-                      LOGIN_FAILED_INVALID_PASSPHRASE,
-                      LOGIN_FAILED_LOGIN_REJECTED],
 
   
 
@@ -43,25 +72,15 @@ let SyncScheduler = {
     this.idle = false;
 
     this.hasIncomingItems = false;
+    this.numClients = 0;
 
-    this.clearSyncTriggers();
+    this.nextSync = 0,
+    this.syncInterval = this.singleDeviceInterval;
+    this.syncThreshold = SINGLE_USER_THRESHOLD;
   },
-
-  
-  get nextSync() Svc.Prefs.get("nextSync", 0) * 1000,
-  set nextSync(value) Svc.Prefs.set("nextSync", Math.floor(value / 1000)),
-
-  get syncInterval() Svc.Prefs.get("syncInterval", this.singleDeviceInterval),
-  set syncInterval(value) Svc.Prefs.set("syncInterval", value),
-
-  get syncThreshold() Svc.Prefs.get("syncThreshold", SINGLE_USER_THRESHOLD),
-  set syncThreshold(value) Svc.Prefs.set("syncThreshold", value),
 
   get globalScore() Svc.Prefs.get("globalScore", 0),
   set globalScore(value) Svc.Prefs.set("globalScore", value),
-
-  get numClients() Svc.Prefs.get("numClients", 0),
-  set numClients(value) Svc.Prefs.set("numClients", value),
 
   init: function init() {
     this._log.level = Log4Moz.Level[Svc.Prefs.get("log.logger.service.main")];
@@ -84,10 +103,10 @@ let SyncScheduler = {
     if (Status.checkSetup() == STATUS_OK) {
       Svc.Idle.addIdleObserver(this, Svc.Prefs.get("scheduler.idleTime"));
     }
+
   },
 
   observe: function observe(subject, topic, data) {
-    this._log.trace("Handling " + topic);
     switch(topic) {
       case "weave:engine:score:updated":
         if (Status.login == LOGIN_SUCCEEDED) {
@@ -144,16 +163,12 @@ let SyncScheduler = {
       case "weave:service:login:error":
         this.clearSyncTriggers();
 
+        
+        
         if (Status.login == MASTER_PASSWORD_LOCKED) {
-          
-          
           this._log.debug("Couldn't log in: master password is locked.");
           this._log.trace("Scheduling a sync at MASTER_PASSWORD_LOCKED_RETRY_INTERVAL");
           this.scheduleAtInterval(MASTER_PASSWORD_LOCKED_RETRY_INTERVAL);
-        } else if (this._fatalLoginStatus.indexOf(Status.login) == -1) {
-          
-          
-          this.checkSyncStatus();
         }
         break;
       case "weave:service:logout:finish":
@@ -185,15 +200,12 @@ let SyncScheduler = {
         }
         break;
       case "weave:engine:sync:applied":
-        let numItems = subject.succeeded;
-        this._log.trace("Engine " + data + " successfully applied " + numItems +
-                        " items.");
-        if (numItems) {
+        let numItems = subject.applied;
+        this._log.trace("Engine " + data + " applied " + numItems + " items.");
+        if (numItems)
           this.hasIncomingItems = true;
-        }
         break;
       case "weave:service:setup-complete":
-         Services.prefs.savePrefFile(null);
          Svc.Idle.addIdleObserver(this, Svc.Prefs.get("scheduler.idleTime"));
          break;
       case "weave:service:start-over":
@@ -345,10 +357,6 @@ let SyncScheduler = {
 
     
     if (Status.backoffInterval && interval < Status.backoffInterval) {
-      this._log.trace("Requested interval " + interval +
-                      " ms is smaller than the backoff interval. " + 
-                      "Using backoff interval " +
-                      Status.backoffInterval + " ms instead.");
       interval = Status.backoffInterval;
     }
 
@@ -356,23 +364,18 @@ let SyncScheduler = {
       
       
       let currentInterval = this.nextSync - Date.now();
-      this._log.trace("There's already a sync scheduled in " +
-                      currentInterval + " ms.");
-      if (currentInterval < interval && this.syncTimer) {
-        this._log.trace("Ignoring scheduling request for next sync in " +
-                        interval + " ms.");
+      if (currentInterval < interval) {
         return;
       }
     }
 
     
     if (interval <= 0) {
-      this._log.trace("Requested sync should happen right away.");
       this.syncIfMPUnlocked();
       return;
     }
 
-    this._log.debug("Next sync in " + interval + " ms.");
+    this._log.trace("Next sync in " + Math.ceil(interval / 1000) + " sec.");
     Utils.namedTimer(this.syncIfMPUnlocked, interval, this, "syncTimer");
 
     
@@ -385,15 +388,13 @@ let SyncScheduler = {
 
 
   scheduleAtInterval: function scheduleAtInterval(minimumInterval) {
-    let interval = Utils.calculateBackoff(this._syncErrors,
-                                          MINIMUM_BACKOFF_INTERVAL,
-                                          Status.backoffInterval);
-    if (minimumInterval) {
+    let interval = Utils.calculateBackoff(this._syncErrors, MINIMUM_BACKOFF_INTERVAL);
+    if (minimumInterval)
       interval = Math.max(minimumInterval, interval);
-    }
 
-    this._log.debug("Starting client-initiated backoff. Next sync in " +
-                    interval + " ms.");
+    let d = new Date(Date.now() + interval);
+    this._log.config("Starting backoff, next sync at:" + d.toString());
+
     this.scheduleNextSync(interval);
   },
 
@@ -413,10 +414,7 @@ let SyncScheduler = {
 
   autoConnect: function autoConnect() {
     if (Weave.Service._checkSetup() == STATUS_OK && !Weave.Service._checkSync()) {
-      
-      
-      
-      this.scheduleNextSync(this.nextSync - Date.now());
+      Utils.nextTick(Weave.Service.sync, Weave.Service);
     }
 
     
@@ -430,7 +428,6 @@ let SyncScheduler = {
 
 
   handleSyncError: function handleSyncError() {
-    this._log.trace("In handleSyncError. Error count: " + this._syncErrors);
     this._syncErrors++;
 
     
@@ -440,8 +437,6 @@ let SyncScheduler = {
         this.scheduleNextSync();
         return;
       }
-      this._log.debug("Sync error count has exceeded " +
-                      MAX_ERROR_COUNT_BEFORE_BACKOFF + "; enforcing backoff.");
       Status.enforceBackoff = true;
     }
 
@@ -453,8 +448,7 @@ let SyncScheduler = {
 
 
   clearSyncTriggers: function clearSyncTriggers() {
-    this._log.debug("Clearing sync triggers and the global score.");
-    this.globalScore = this.nextSync = 0;
+    this._log.debug("Clearing sync triggers.");
 
     
     if (this.syncTimer)
@@ -506,7 +500,6 @@ let ErrorHandler = {
   },
 
   observe: function observe(subject, topic, data) {
-    this._log.trace("Handling " + topic);
     switch(topic) {
       case "weave:engine:sync:applied":
         if (subject.newFailed) {
@@ -527,10 +520,9 @@ let ErrorHandler = {
         this._log.debug(engine_name + " failed: " + Utils.exceptionStr(exception));
         break;
       case "weave:service:login:error":
-        this.resetFileLog(Svc.Prefs.get("log.appender.file.logOnError"),
-                          LOG_PREFIX_ERROR);
-
         if (this.shouldReportError()) {
+          this.resetFileLog(Svc.Prefs.get("log.appender.file.logOnError"),
+                            LOG_PREFIX_ERROR);
           this.notifyOnNextTick("weave:ui:login:error");
         } else {
           this.notifyOnNextTick("weave:ui:clear-error");
@@ -543,10 +535,9 @@ let ErrorHandler = {
           Weave.Service.logout();
         }
 
-        this.resetFileLog(Svc.Prefs.get("log.appender.file.logOnError"),
-                          LOG_PREFIX_ERROR);
-
         if (this.shouldReportError()) {
+          this.resetFileLog(Svc.Prefs.get("log.appender.file.logOnError"),
+                            LOG_PREFIX_ERROR);
           this.notifyOnNextTick("weave:ui:sync:error");
         } else {
           this.notifyOnNextTick("weave:ui:sync:finish");
@@ -555,19 +546,6 @@ let ErrorHandler = {
         this.dontIgnoreErrors = false;
         break;
       case "weave:service:sync:finish":
-        this._log.trace("Status.service is " + Status.service);
-
-        
-        
-        
-        
-        if (Status.sync    == SYNC_SUCCEEDED &&
-            Status.service == STATUS_OK) {
-          
-          this._log.trace("Clearing lastSyncReassigned.");
-          Svc.Prefs.reset("lastSyncReassigned");
-        }
-
         if (Status.service == SYNC_FAILED_PARTIAL) {
           this._log.debug("Some engines did not sync correctly.");
           this.resetFileLog(Svc.Prefs.get("log.appender.file.logOnError"),
@@ -589,12 +567,7 @@ let ErrorHandler = {
   },
 
   notifyOnNextTick: function notifyOnNextTick(topic) {
-    Utils.nextTick(function() {
-      this._log.trace("Notifying " + topic +
-                      ". Status.login is " + Status.login +
-                      ". Status.sync is " + Status.sync);
-      Svc.Obs.notify(topic);
-    }, this);
+    Utils.nextTick(function() Svc.Obs.notify(topic));
   },
 
   
@@ -714,7 +687,6 @@ let ErrorHandler = {
 
   shouldReportError: function shouldReportError() {
     if (Status.login == MASTER_PASSWORD_LOCKED) {
-      this._log.trace("shouldReportError: false (master password locked).");
       return false;
     }
 
@@ -726,17 +698,7 @@ let ErrorHandler = {
     if (lastSync && ((Date.now() - Date.parse(lastSync)) >
         Svc.Prefs.get("errorhandler.networkFailureReportTimeout") * 1000)) {
       Status.sync = PROLONGED_SYNC_FAILURE;
-      this._log.trace("shouldReportError: true (prolonged sync failure).");
       return true;
-    }
- 
-    
-    
-    
-    if (!Weave.Service.clusterURL) {
-      this._log.trace("shouldReportError: false (no cluster URL; " +
-                      "possible node reassignment).");
-      return false;
     }
 
     return ([Status.login, Status.sync].indexOf(SERVER_MAINTENANCE) == -1 &&
@@ -757,24 +719,7 @@ let ErrorHandler = {
 
       case 401:
         Weave.Service.logout();
-        this._log.info("Got 401 response; resetting clusterURL.");
-        Svc.Prefs.reset("clusterURL");
-
-        let delay = 0;
-        if (Svc.Prefs.get("lastSyncReassigned")) {
-          
-          
-          
-          
-          
-          this._log.warn("Last sync also failed for 401. Delaying next sync.");
-          delay = MINIMUM_BACKOFF_INTERVAL;
-        } else {
-          this._log.debug("New mid-sync 401 failure. Making a note.");
-          Svc.Prefs.set("lastSyncReassigned", true);
-        }
-        this._log.info("Attempting to schedule another sync.");
-        SyncScheduler.scheduleNextSync(delay);
+        Status.login = LOGIN_FAILED_LOGIN_REJECTED;
         break;
 
       case 500:
@@ -874,9 +819,9 @@ SendCredentialsController.prototype = {
 
   sendCredentials: function sendCredentials() {
     this._log.trace("Sending credentials.");
-    let credentials = {account:   Weave.Identity.account,
-                       password:  Weave.Identity.basicPassword,
-                       synckey:   Weave.Identity.syncKey,
+    let credentials = {account:   Weave.Service.account,
+                       password:  Weave.Service.password,
+                       synckey:   Weave.Service.passphrase,
                        serverURL: Weave.Service.serverURL};
     this.jpakeclient.sendAndComplete(credentials);
   },

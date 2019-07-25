@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsEventShell_H_
 #define _nsEventShell_H_
 
@@ -28,7 +61,7 @@ public:
 
 
 
-  static void FireEvent(uint32_t aEventType, Accessible* aAccessible,
+  static void FireEvent(PRUint32 aEventType, nsAccessible *aAccessible,
                         EIsFromUserInput aIsFromUserInput = eAutoDetect);
 
   

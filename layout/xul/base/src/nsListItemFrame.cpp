@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsListItemFrame.h"
 
 #include "nsCOMPtr.h"
@@ -58,10 +92,10 @@ NS_NewListItemFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
   nsCOMPtr<nsBoxLayout> layout = NS_NewGridRowLeafLayout();
   if (!layout) {
-    return nullptr;
+    return nsnull;
   }
   
-  return new (aPresShell) nsListItemFrame(aPresShell, aContext, false, layout);
+  return new (aPresShell) nsListItemFrame(aPresShell, aContext, PR_FALSE, layout);
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsListItemFrame)

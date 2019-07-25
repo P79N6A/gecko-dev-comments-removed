@@ -3,28 +3,55 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsHTMLCSSUtils_h__
 #define nsHTMLCSSUtils_h__
 
-#include "nsCOMPtr.h"                   
-#include "nsTArray.h"                   
-#include "nscore.h"                     
-#include "prtypes.h"                    
+#include "nsCOMPtr.h"
+#include "nsString.h"
+#include "nsTArray.h"
+#include "nsIDOMNode.h"
+#include "nsIDOMElement.h"
+#include "nsIHTMLEditor.h"
+#include "ChangeCSSInlineStyleTxn.h"
+#include "nsEditProperty.h"
+#include "nsIDOMCSSStyleDeclaration.h"
 
-class ChangeCSSInlineStyleTxn;
-class nsComputedDOMStyle;
-class nsIAtom;
-class nsIContent;
-class nsIDOMCSSStyleDeclaration;
-class nsIDOMElement;
-class nsIDOMNode;
-class nsINode;
-class nsString;
-namespace mozilla {
-namespace dom {
-class Element;
-}  
-}  
+#define SPECIFIED_STYLE_TYPE    1
+#define COMPUTED_STYLE_TYPE     2
 
 class nsHTMLEditor;
 class nsIDOMWindow;
@@ -62,8 +89,6 @@ public:
     eCSSEditableProperty_width
   };
 
-  enum StyleType { eSpecified, eComputed };
-
 
   struct CSSEquivTable {
     nsCSSEditableProperty cssProperty;
@@ -83,18 +108,7 @@ public:
 
 
 
-
-
-
-
-
-
-  bool IsCSSEditableProperty(nsIContent* aNode, nsIAtom* aProperty,
-                             const nsAString* aAttribute,
-                             const nsAString* aValue = nullptr);
-  bool IsCSSEditableProperty(nsIDOMNode* aNode, nsIAtom* aProperty,
-                             const nsAString* aAttribute,
-                             const nsAString* aValue = nullptr);
+  bool        IsCSSEditableProperty(nsIDOMNode * aNode, nsIAtom * aProperty, const nsAString * aAttribute);
 
   
 
@@ -108,7 +122,7 @@ public:
                              const nsAString & aValue,
                              bool aSuppressTransaction);
   nsresult    SetCSSPropertyPixels(nsIDOMElement *aElement, nsIAtom *aProperty,
-                                   int32_t aIntValue, bool aSuppressTxn);
+                                   PRInt32 aIntValue, bool aSuppressTxn);
   nsresult    RemoveCSSProperty(nsIDOMElement * aElement, nsIAtom * aProperty,
                                 const nsAString & aPropertyValue, bool aSuppressTransaction);
 
@@ -124,7 +138,9 @@ public:
                              const nsAString & aValue);
   nsresult    SetCSSPropertyPixels(nsIDOMElement * aElement,
                                    const nsAString & aProperty,
-                                   int32_t aIntValue);
+                                   PRInt32 aIntValue);
+  nsresult    RemoveCSSProperty(nsIDOMElement * aElement,
+                                const nsAString & aProperty);
 
   
 
@@ -174,15 +190,7 @@ public:
 
 
 
-
-
-
-
-  nsresult    GetCSSEquivalentToHTMLInlineStyleSet(nsINode* aNode,
-                                                   nsIAtom * aHTMLProperty,
-                                                   const nsAString * aAttribute,
-                                                   nsAString & aValueString,
-                                                   StyleType aStyleType);
+  nsresult    HasClassOrID(nsIDOMElement * aElement, bool & aReturn);
 
   
 
@@ -194,20 +202,29 @@ public:
 
 
 
+  nsresult    GetCSSEquivalentToHTMLInlineStyleSet(nsIDOMNode * aNode,
+                                                   nsIAtom * aHTMLProperty,
+                                                   const nsAString * aAttribute,
+                                                   nsAString & aValueString,
+                                                   PRUint8 aStyleType);
+
+  
 
 
-  bool IsCSSEquivalentToHTMLInlineStyleSet(nsIContent* aContent,
-                                           nsIAtom* aProperty,
-                                           const nsAString* aAttribute,
-                                           const nsAString& aValue,
-                                           StyleType aStyleType);
+
+
+
+
+
+
+
 
   nsresult    IsCSSEquivalentToHTMLInlineStyleSet(nsIDOMNode * aNode,
                                                   nsIAtom * aHTMLProperty,
                                                   const nsAString * aAttribute,
                                                   bool & aIsSet,
                                                   nsAString & aValueString,
-                                                  StyleType aStyleType);
+                                                  PRUint8 aStyleType);
 
   
 
@@ -220,19 +237,11 @@ public:
 
 
 
-
-
-
-  int32_t     SetCSSEquivalentToHTMLStyle(mozilla::dom::Element* aElement,
-                                          nsIAtom* aProperty,
-                                          const nsAString* aAttribute,
-                                          const nsAString* aValue,
-                                          bool aSuppressTransaction);
   nsresult    SetCSSEquivalentToHTMLStyle(nsIDOMNode * aNode,
                                           nsIAtom * aHTMLProperty,
                                           const nsAString * aAttribute,
                                           const nsAString * aValue,
-                                          int32_t * aCount,
+                                          PRInt32 * aCount,
                                           bool aSuppressTransaction);
 
   
@@ -265,7 +274,7 @@ public:
 
 
 
-  void        SetCSSEnabled(bool aIsCSSPrefChecked);
+  nsresult    SetCSSEnabled(bool aIsCSSPrefChecked);
 
   
 
@@ -282,8 +291,6 @@ public:
 
 
 
-  bool ElementsSameStyle(mozilla::dom::Element* aFirstNode,
-                         mozilla::dom::Element* aSecondNode);
   bool ElementsSameStyle(nsIDOMNode *aFirstNode, nsIDOMNode *aSecondNode);
 
   
@@ -293,7 +300,7 @@ public:
 
 
   nsresult GetInlineStyles(nsIDOMElement * aElement, nsIDOMCSSStyleDeclaration ** aCssDecl,
-                           uint32_t * aLength);
+                           PRUint32 * aLength);
 
   
 
@@ -301,16 +308,15 @@ public:
 
 
 
-  mozilla::dom::Element* GetElementContainerOrSelf(nsINode* aNode);
-  already_AddRefed<nsIDOMElement> GetElementContainerOrSelf(nsIDOMNode* aNode);
+  nsresult GetElementContainerOrSelf(nsIDOMNode * aNode, nsIDOMElement ** aElement);
 
   
 
 
-  already_AddRefed<nsComputedDOMStyle>
-    GetComputedStyle(nsIDOMElement* aElement);
-  already_AddRefed<nsComputedDOMStyle>
-    GetComputedStyle(mozilla::dom::Element* aElement);
+
+
+
+  nsresult        GetDefaultViewCSS(nsIDOMNode* aNode, nsIDOMWindow** aWindow);
 
 
 private:
@@ -353,12 +359,12 @@ private:
 
 
 
-  void      GenerateCSSDeclarationsFromHTMLStyle(mozilla::dom::Element* aNode,
-                                                 nsIAtom* aHTMLProperty,
-                                                 const nsAString* aAttribute,
-                                                 const nsAString* aValue,
-                                                 nsTArray<nsIAtom*>& aPropertyArray,
-                                                 nsTArray<nsString>& aValueArray,
+  void      GenerateCSSDeclarationsFromHTMLStyle(nsIDOMNode * aNode,
+                                                 nsIAtom * aHTMLProperty,
+                                                 const nsAString *aAttribute,
+                                                 const nsAString *aValue,
+                                                 nsTArray<nsIAtom*> & aPropertyArray,
+                                                 nsTArray<nsString> & aValueArray,
                                                  bool aGetOrRemoveRequest);
 
   
@@ -382,10 +388,12 @@ private:
 
 
 
-  nsresult GetCSSInlinePropertyBase(nsINode* aNode, nsIAtom* aProperty,
-                                    nsAString& aValue, StyleType aStyleType);
-  nsresult GetCSSInlinePropertyBase(nsIDOMNode* aNode, nsIAtom* aProperty,
-                                    nsAString& aValue, StyleType aStyleType);
+
+
+  nsresult    GetCSSInlinePropertyBase(nsIDOMNode * aNode, nsIAtom * aProperty,
+                                       nsAString & aValue,
+                                       nsIDOMWindow* aWindow,
+                                       PRUint8 aStyleType);
 
 
 private:

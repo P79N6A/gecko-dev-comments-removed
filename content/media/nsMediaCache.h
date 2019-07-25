@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsMediaCache_h_
 #define nsMediaCache_h_
 
@@ -11,11 +43,8 @@
 #include "nsIPrincipal.h"
 #include "nsCOMPtr.h"
 
+class nsByteRange;
 namespace mozilla {
-
-class ChannelMediaResource;
-class MediaByteRange;
-class MediaResource;
 class ReentrantMonitorAutoEnter;
 }
 
@@ -173,6 +202,8 @@ class ReentrantMonitorAutoEnter;
 
 class nsMediaCache;
 
+class nsMediaChannelStream;
+
 
 
 
@@ -180,12 +211,9 @@ class nsMediaCache;
 
 
 class nsMediaCacheStream {
-public:
-  typedef mozilla::ChannelMediaResource ChannelMediaResource;
-  typedef mozilla::MediaByteRange MediaByteRange;
-  typedef mozilla::MediaResource MediaResource;
   typedef mozilla::ReentrantMonitorAutoEnter ReentrantMonitorAutoEnter;
 
+public:
   enum {
     
     BLOCK_SIZE = 32768
@@ -197,17 +225,15 @@ public:
 
   
   
-  nsMediaCacheStream(ChannelMediaResource* aClient)
-    : mClient(aClient), mInitialized(false),
-      mHasHadUpdate(false),
-      mClosed(false),
-      mDidNotifyDataEnded(false), mResourceID(0),
+  nsMediaCacheStream(nsMediaChannelStream* aClient)
+    : mClient(aClient), mResourceID(0), mInitialized(false),
       mIsSeekable(false), mCacheSuspended(false),
-      mChannelEnded(false),
+      mUsingNullPrincipal(false),
       mChannelOffset(0), mStreamLength(-1),  
       mStreamOffset(0), mPlaybackBytesPerSecond(10000),
       mPinCount(0), mCurrentMode(MODE_PLAYBACK),
-      mMetadataInPartialBlockBuffer(false) {}
+      mMetadataInPartialBlockBuffer(false),
+      mClosed(false) {}
   ~nsMediaCacheStream();
 
   
@@ -235,19 +261,7 @@ public:
   
   bool IsClosed() const { return mClosed; }
   
-  bool IsAvailableForSharing() const
-  {
-    return !mClosed &&
-      (!mDidNotifyDataEnded || NS_SUCCEEDED(mNotifyDataEndedStatus));
-  }
-  
-  
   nsIPrincipal* GetCurrentPrincipal() { return mPrincipal; }
-  
-  
-  
-  
-  void EnsureCacheUpdate();
 
   
   
@@ -262,7 +276,7 @@ public:
   
   
   
-  void NotifyDataLength(int64_t aLength);
+  void NotifyDataLength(PRInt64 aLength);
   
   
   
@@ -270,14 +284,14 @@ public:
   
   
   
-  void NotifyDataStarted(int64_t aOffset);
+  void NotifyDataStarted(PRInt64 aOffset);
   
   
   
   
   
   
-  void NotifyDataReceived(int64_t aSize, const char* aData,
+  void NotifyDataReceived(PRInt64 aSize, const char* aData,
                           nsIPrincipal* aPrincipal);
   
   void NotifyDataEnded(nsresult aStatus);
@@ -293,42 +307,41 @@ public:
   
   
   
-  int64_t GetLength();
+  PRInt64 GetLength();
+  
+  PRInt64 GetResourceID() { return mResourceID; }
   
   
-  int64_t GetResourceID() { return mResourceID; }
+  PRInt64 GetCachedDataEnd(PRInt64 aOffset);
   
   
-  int64_t GetCachedDataEnd(int64_t aOffset);
-  
-  
-  int64_t GetNextCachedData(int64_t aOffset);
+  PRInt64 GetNextCachedData(PRInt64 aOffset);
   
   
   
   
-  nsresult GetCachedRanges(nsTArray<MediaByteRange>& aRanges);
+  nsresult GetCachedRanges(nsTArray<nsByteRange>& aRanges);
 
   
   
   
   
   nsresult ReadFromCache(char* aBuffer,
-                         int64_t aOffset,
-                         int64_t aCount);
+                         PRInt64 aOffset,
+                         PRInt64 aCount);
 
   
   
   
   
-  bool IsDataCachedToEndOfStream(int64_t aOffset);
+  bool IsDataCachedToEndOfStream(PRInt64 aOffset);
   
   void SetReadMode(ReadMode aMode);
   
   
   
   
-  void SetPlaybackRate(uint32_t aBytesPerSecond);
+  void SetPlaybackRate(PRUint32 aBytesPerSecond);
   
   bool IsSeekable();
 
@@ -336,20 +349,14 @@ public:
   
   
   
-  bool AreAllStreamsForResourceSuspended(MediaResource** aActiveResource);
-
+  
+  nsresult Seek(PRInt32 aWhence, PRInt64 aOffset);
+  PRInt64 Tell();
   
   
   
   
-  
-  nsresult Seek(int32_t aWhence, int64_t aOffset);
-  int64_t Tell();
-  
-  
-  
-  
-  nsresult Read(char* aBuffer, uint32_t aCount, uint32_t* aBytes);
+  nsresult Read(char* aBuffer, PRUint32 aCount, PRUint32* aBytes);
 
 private:
   friend class nsMediaCache;
@@ -370,23 +377,23 @@ private:
       NS_ASSERTION(mFirstBlock == -1 && mCount == 0,
                    "Destroying non-empty block list");
     }
-    void AddFirstBlock(int32_t aBlock);
-    void AddAfter(int32_t aBlock, int32_t aBefore);
-    void RemoveBlock(int32_t aBlock);
+    void AddFirstBlock(PRInt32 aBlock);
+    void AddAfter(PRInt32 aBlock, PRInt32 aBefore);
+    void RemoveBlock(PRInt32 aBlock);
     
-    int32_t GetFirstBlock() const { return mFirstBlock; }
+    PRInt32 GetFirstBlock() const { return mFirstBlock; }
     
-    int32_t GetLastBlock() const;
-    
-    
-    int32_t GetNextBlock(int32_t aBlock) const;
+    PRInt32 GetLastBlock() const;
     
     
-    int32_t GetPrevBlock(int32_t aBlock) const;
+    PRInt32 GetNextBlock(PRInt32 aBlock) const;
+    
+    
+    PRInt32 GetPrevBlock(PRInt32 aBlock) const;
     bool IsEmpty() const { return mFirstBlock < 0; }
-    int32_t GetCount() const { return mCount; }
+    PRInt32 GetCount() const { return mCount; }
     
-    void NotifyBlockSwapped(int32_t aBlockIndex1, int32_t aBlockIndex2);
+    void NotifyBlockSwapped(PRInt32 aBlockIndex1, PRInt32 aBlockIndex2);
 #ifdef DEBUG
     
     void Verify();
@@ -400,27 +407,27 @@ private:
       Entry(const Entry& toCopy) : nsUint32HashKey(&toCopy.GetKey()),
         mNextBlock(toCopy.mNextBlock), mPrevBlock(toCopy.mPrevBlock) {}
 
-      int32_t mNextBlock;
-      int32_t mPrevBlock;
+      PRInt32 mNextBlock;
+      PRInt32 mPrevBlock;
     };
     nsTHashtable<Entry> mEntries;
 
     
-    int32_t mFirstBlock;
+    PRInt32 mFirstBlock;
     
-    int32_t mCount;
+    PRInt32 mCount;
   };
 
   
   
   
   
-  int64_t GetCachedDataEndInternal(int64_t aOffset);
+  PRInt64 GetCachedDataEndInternal(PRInt64 aOffset);
   
   
   
   
-  int64_t GetNextCachedDataInternal(int64_t aOffset);
+  PRInt64 GetNextCachedDataInternal(PRInt64 aOffset);
   
   
   
@@ -428,30 +435,21 @@ private:
   
   void CloseInternal(ReentrantMonitorAutoEnter& aReentrantMonitor);
   
-  bool UpdatePrincipal(nsIPrincipal* aPrincipal);
+  void UpdatePrincipal(nsIPrincipal* aPrincipal);
 
   
-  ChannelMediaResource*  mClient;
+  nsMediaChannelStream*  mClient;
   nsCOMPtr<nsIPrincipal> mPrincipal;
   
+  
+  
+  PRInt64                mResourceID;
+  
   bool                   mInitialized;
-  
-  
-  bool                   mHasHadUpdate;
-  
-  
-  bool                   mClosed;
-  
-  bool                   mDidNotifyDataEnded;
 
   
   
-  
 
-  
-  
-  
-  int64_t mResourceID;
   
   bool mIsSeekable;
   
@@ -459,21 +457,22 @@ private:
   
   bool mCacheSuspended;
   
-  bool mChannelEnded;
   
-  int64_t      mChannelOffset;
+  bool mUsingNullPrincipal;
+  
+  PRInt64      mChannelOffset;
   
   
-  int64_t      mStreamLength;
+  PRInt64      mStreamLength;
 
   
   
 
   
-  int64_t           mStreamOffset;
+  PRInt64           mStreamOffset;
   
   
-  nsTArray<int32_t> mBlocks;
+  nsTArray<PRInt32> mBlocks;
   
   
   
@@ -483,17 +482,17 @@ private:
   
   BlockList         mPlayedBlocks;
   
-  uint32_t          mPlaybackBytesPerSecond;
+  PRUint32          mPlaybackBytesPerSecond;
   
   
-  uint32_t          mPinCount;
-  
-  
-  nsresult          mNotifyDataEndedStatus;
+  PRUint32          mPinCount;
   
   ReadMode          mCurrentMode;
   
   bool              mMetadataInPartialBlockBuffer;
+  
+  
+  bool              mClosed;
 
   
   
@@ -503,7 +502,7 @@ private:
   
   
   
-  int64_t           mPartialBlockBuffer[BLOCK_SIZE/sizeof(int64_t)];
+  PRInt64           mPartialBlockBuffer[BLOCK_SIZE/sizeof(PRInt64)];
 };
 
 #endif

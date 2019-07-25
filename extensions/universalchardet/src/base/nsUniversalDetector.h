@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsUniversalDetector_h__
 #define nsUniversalDetector_h__
 
@@ -31,9 +63,9 @@ typedef enum {
 
 class nsUniversalDetector {
 public:
-   nsUniversalDetector(uint32_t aLanguageFilter);
+   nsUniversalDetector(PRUint32 aLanguageFilter);
    virtual ~nsUniversalDetector();
-   virtual nsresult HandleData(const char* aBuf, uint32_t aLen);
+   virtual nsresult HandleData(const char* aBuf, PRUint32 aLen);
    virtual void DataEnd(void);
 
 protected:
@@ -46,8 +78,8 @@ protected:
    bool    mGotData;
    char    mLastChar;
    const char *  mDetectedCharset;
-   int32_t mBestGuess;
-   uint32_t mLanguageFilter;
+   PRInt32 mBestGuess;
+   PRUint32 mLanguageFilter;
 
    nsCharSetProber  *mCharSetProbers[NUM_OF_CHARSET_PROBERS];
    nsCharSetProber  *mEscCharSetProber;

@@ -3,10 +3,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_LAYERMANAGEROGL_H
 #define GFX_LAYERMANAGEROGL_H
 
-#include "LayerManagerOGLProgram.h"
+#include "Layers.h"
 
 #include "mozilla/layers/ShadowLayers.h"
 
@@ -33,6 +67,8 @@ typedef int GLsizei;
 #include "nsIWidget.h"
 #include "GLContext.h"
 
+#include "LayerManagerOGLProgram.h"
+
 namespace mozilla {
 namespace layers {
 
@@ -42,7 +78,6 @@ class ShadowContainerLayer;
 class ShadowImageLayer;
 class ShadowCanvasLayer;
 class ShadowColorLayer;
-struct FPSState;
 
 
 
@@ -55,8 +90,7 @@ class THEBES_API LayerManagerOGL :
   typedef mozilla::gl::ShaderProgramType ProgramType;
 
 public:
-  LayerManagerOGL(nsIWidget *aWidget, int aSurfaceWidth = -1, int aSurfaceHeight = -1,
-                  bool aIsRenderingToEGLSurface = false);
+  LayerManagerOGL(nsIWidget *aWidget);
   virtual ~LayerManagerOGL();
 
   void CleanupResources();
@@ -72,11 +106,11 @@ public:
 
 
 
-  bool Initialize(bool force = false) {
-    return Initialize(CreateContext(), force);
+  bool Initialize() {
+    return Initialize(CreateContext());
   }
 
-  bool Initialize(nsRefPtr<GLContext> aContext, bool force = false);
+  bool Initialize(nsRefPtr<GLContext> aContext);
 
   
 
@@ -103,8 +137,7 @@ public:
 
   void EndConstruction();
 
-  virtual bool EndEmptyTransaction(EndTransactionFlags aFlags = END_DEFAULT);
-  virtual void NotifyShadowTreeTransaction();
+  virtual bool EndEmptyTransaction();
   virtual void EndTransaction(DrawThebesLayerCallback aCallback,
                               void* aCallbackData,
                               EndTransactionFlags aFlags = END_DEFAULT);
@@ -115,13 +148,8 @@ public:
   {
       if (!mGLContext)
           return false;
-      int32_t maxSize = mGLContext->GetMaxTextureSize();
+      PRInt32 maxSize = mGLContext->GetMaxTextureSize();
       return aSize <= gfxIntSize(maxSize, maxSize);
-  }
-
-  virtual int32_t GetMaxTextureSize() const
-  {
-    return mGLContext->GetMaxTextureSize();
   }
 
   virtual already_AddRefed<ThebesLayer> CreateThebesLayer();
@@ -134,18 +162,26 @@ public:
 
   virtual already_AddRefed<CanvasLayer> CreateCanvasLayer();
 
+  virtual already_AddRefed<ImageContainer> CreateImageContainer();
+
   virtual already_AddRefed<ShadowThebesLayer> CreateShadowThebesLayer();
   virtual already_AddRefed<ShadowContainerLayer> CreateShadowContainerLayer();
   virtual already_AddRefed<ShadowImageLayer> CreateShadowImageLayer();
   virtual already_AddRefed<ShadowColorLayer> CreateShadowColorLayer();
   virtual already_AddRefed<ShadowCanvasLayer> CreateShadowCanvasLayer();
-  virtual already_AddRefed<ShadowRefLayer> CreateShadowRefLayer();
 
   virtual LayersBackend GetBackendType() { return LAYERS_OPENGL; }
   virtual void GetBackendName(nsAString& name) { name.AssignLiteral("OpenGL"); }
 
-  virtual already_AddRefed<gfxASurface>
-    CreateOptimalMaskSurface(const gfxIntSize &aSize);
+  
+
+
+
+  
+
+
+  void ForgetImageContainer(ImageContainer* aContainer);
+  void RememberImageContainer(ImageContainer* aContainer);
 
   
 
@@ -158,55 +194,82 @@ public:
     mGLContext->MakeCurrent(aForce);
   }
 
-  ShaderProgramOGL* GetBasicLayerProgram(bool aOpaque, bool aIsRGB,
-                                         MaskType aMask = MaskNone)
+  ColorTextureLayerProgram *GetColorTextureLayerProgram(ProgramType type){
+    return static_cast<ColorTextureLayerProgram*>(mPrograms[type]);
+  }
+
+  ColorTextureLayerProgram *GetRGBALayerProgram() {
+    return static_cast<ColorTextureLayerProgram*>(mPrograms[gl::RGBALayerProgramType]);
+  }
+  ColorTextureLayerProgram *GetBGRALayerProgram() {
+    return static_cast<ColorTextureLayerProgram*>(mPrograms[gl::BGRALayerProgramType]);
+  }
+  ColorTextureLayerProgram *GetRGBXLayerProgram() {
+    return static_cast<ColorTextureLayerProgram*>(mPrograms[gl::RGBXLayerProgramType]);
+  }
+  ColorTextureLayerProgram *GetBGRXLayerProgram() {
+    return static_cast<ColorTextureLayerProgram*>(mPrograms[gl::BGRXLayerProgramType]);
+  }
+  ColorTextureLayerProgram *GetBasicLayerProgram(bool aOpaque, bool aIsRGB)
   {
-    gl::ShaderProgramType format = gl::BGRALayerProgramType;
     if (aIsRGB) {
-      if (aOpaque) {
-        format = gl::RGBXLayerProgramType;
-      } else {
-        format = gl::RGBALayerProgramType;
-      }
+      return aOpaque
+        ? GetRGBXLayerProgram()
+        : GetRGBALayerProgram();
     } else {
-      if (aOpaque) {
-        format = gl::BGRXLayerProgramType;
-      }
+      return aOpaque
+        ? GetBGRXLayerProgram()
+        : GetBGRALayerProgram();
     }
-    return GetProgram(format, aMask);
   }
 
-  ShaderProgramOGL* GetProgram(gl::ShaderProgramType aType,
-                               Layer* aMaskLayer) {
-    if (aMaskLayer)
-      return GetProgram(aType, Mask2d);
-    return GetProgram(aType, MaskNone);
+  ColorTextureLayerProgram *GetRGBARectLayerProgram() {
+    return static_cast<ColorTextureLayerProgram*>(mPrograms[gl::RGBARectLayerProgramType]);
+  }
+  SolidColorLayerProgram *GetColorLayerProgram() {
+    return static_cast<SolidColorLayerProgram*>(mPrograms[gl::ColorLayerProgramType]);
+  }
+  YCbCrTextureLayerProgram *GetYCbCrLayerProgram() {
+    return static_cast<YCbCrTextureLayerProgram*>(mPrograms[gl::YCbCrLayerProgramType]);
+  }
+  ComponentAlphaTextureLayerProgram *GetComponentAlphaPass1LayerProgram() {
+    return static_cast<ComponentAlphaTextureLayerProgram*>
+             (mPrograms[gl::ComponentAlphaPass1ProgramType]);
+  }
+  ComponentAlphaTextureLayerProgram *GetComponentAlphaPass2LayerProgram() {
+    return static_cast<ComponentAlphaTextureLayerProgram*>
+             (mPrograms[gl::ComponentAlphaPass2ProgramType]);
+  }
+  CopyProgram *GetCopy2DProgram() {
+    return static_cast<CopyProgram*>(mPrograms[gl::Copy2DProgramType]);
+  }
+  CopyProgram *GetCopy2DRectProgram() {
+    return static_cast<CopyProgram*>(mPrograms[gl::Copy2DRectProgramType]);
   }
 
-  ShaderProgramOGL* GetProgram(gl::ShaderProgramType aType,
-                               MaskType aMask = MaskNone) {
-    NS_ASSERTION(ProgramProfileOGL::ProgramExists(aType, aMask),
-                 "Invalid program type.");
-    return mPrograms[aType].mVariations[aMask];
-  }
-
-  ShaderProgramOGL* GetFBOLayerProgram(MaskType aMask = MaskNone) {
-    return GetProgram(GetFBOLayerProgramType(), aMask);
-  }
-
-  gl::ShaderProgramType GetFBOLayerProgramType() {
+  ColorTextureLayerProgram *GetFBOLayerProgram() {
     if (mFBOTextureTarget == LOCAL_GL_TEXTURE_RECTANGLE_ARB)
-      return gl::RGBARectLayerProgramType;
-    return gl::RGBALayerProgramType;
+      return static_cast<ColorTextureLayerProgram*>(mPrograms[gl::RGBARectLayerProgramType]);
+    return static_cast<ColorTextureLayerProgram*>(mPrograms[gl::RGBALayerProgramType]);
   }
 
-  GLContext* gl() const { return mGLContext; }
+  GLContext *gl() const { return mGLContext; }
 
   DrawThebesLayerCallback GetThebesLayerCallback() const
   { return mThebesLayerCallback; }
 
   void* GetThebesLayerCallbackData() const
   { return mThebesLayerCallbackData; }
+
+  
+  
+  
+  
+  GLContext *glForResources() const {
+    if (mGLContext->GetSharedContext())
+      return mGLContext->GetSharedContext();
+    return mGLContext;
+  }
 
   
 
@@ -245,7 +308,6 @@ public:
 
 
   void CreateFBOWithTexture(const nsIntRect& aRect, InitMode aInit,
-                            GLuint aCurrentFrameBuffer,
                             GLuint *aFBO, GLuint *aTexture);
 
   GLuint QuadVBO() { return mQuadVBO; }
@@ -304,26 +366,25 @@ public:
     }
   }
 
-  void BindAndDrawQuad(ShaderProgramOGL *aProg,
+  void BindAndDrawQuad(LayerProgram *aProg,
                        bool aFlipped = false)
   {
-    NS_ASSERTION(aProg->HasInitialized(), "Shader program not correctly initialized");
-    BindAndDrawQuad(aProg->AttribLocation(ShaderProgramOGL::VertexCoordAttrib),
-                    aProg->AttribLocation(ShaderProgramOGL::TexCoordAttrib),
+    BindAndDrawQuad(aProg->AttribLocation(LayerProgram::VertexAttrib),
+                    aProg->AttribLocation(LayerProgram::TexCoordAttrib),
                     aFlipped);
   }
 
-  void BindAndDrawQuadWithTextureRect(ShaderProgramOGL *aProg,
+  void BindAndDrawQuadWithTextureRect(LayerProgram *aProg,
                                       const nsIntRect& aTexCoordRect,
                                       const nsIntSize& aTexSize,
-                                      GLenum aWrapMode = LOCAL_GL_REPEAT,
-                                      bool aFlipped = false);
+                                      GLenum aWrapMode = LOCAL_GL_REPEAT);
+                                      
 
 #ifdef MOZ_LAYERS_HAVE_LOG
   virtual const char* Name() const { return "OGL"; }
 #endif 
 
-  const nsIntSize& GetWidgetSize() {
+  const nsIntSize& GetWigetSize() {
     return mWidgetSize;
   }
 
@@ -337,7 +398,7 @@ public:
 
 
   void SetupPipeline(int aWidth, int aHeight, WorldTransforPolicy aTransformPolicy);
-
+  
   
 
 
@@ -347,21 +408,10 @@ public:
   gfxMatrix& GetWorldTransform(void);
   void WorldTransformRect(nsIntRect& aRect);
 
-  
-
-
-  void SetSurfaceSize(int width, int height);
-
-  bool CompositingDisabled() { return mCompositingDisabled; }
-  void SetCompositingDisabled(bool aCompositingDisabled) { mCompositingDisabled = aCompositingDisabled; }
-
 private:
   
   nsIWidget *mWidget;
   nsIntSize mWidgetSize;
-
-  
-  nsIntSize mSurfaceSize;
 
   
 
@@ -373,15 +423,19 @@ private:
   already_AddRefed<mozilla::gl::GLContext> CreateContext();
 
   
+  
+  
+  nsTArray<ImageContainer*> mImageContainers;
+
+  static ProgramType sLayerProgramTypes[];
+
+  
   GLuint mBackBufferFBO;
   GLuint mBackBufferTexture;
   nsIntSize mBackBufferSize;
 
   
-  struct ShaderProgramVariations {
-    ShaderProgramOGL* mVariations[NumMaskTypes];
-  };
-  nsTArray<ShaderProgramVariations> mPrograms;
+  nsTArray<LayerManagerOGLProgram*> mPrograms;
 
   
   GLenum mFBOTextureTarget;
@@ -396,14 +450,6 @@ private:
 
   
   bool mHasBGRA;
-  bool mCompositingDisabled;
-
-  
-
-
-
-
-  bool mIsRenderingToEGLSurface;
 
   
   LayerOGL *RootLayer() const;
@@ -421,28 +467,46 @@ private:
   
 
 
-  void CopyToTarget(gfxContext *aTarget);
+  void CopyToTarget();
 
   
+
+
+
+
+
+
+
 
 
   void SetLayerProgramProjectionMatrix(const gfx3DMatrix& aMatrix);
 
   
 
-
-
-  void AddPrograms(gl::ShaderProgramType aType);
-
-  
-
   DrawThebesLayerCallback mThebesLayerCallback;
   void *mThebesLayerCallbackData;
   gfxMatrix mWorldMatrix;
-  nsAutoPtr<FPSState> mFPS;
+
+  struct FPSState
+  {
+      GLuint texture;
+      int fps;
+      bool initialized;
+      int fcount;
+      TimeStamp last;
+
+      FPSState()
+        : texture(0)
+        , fps(0)
+        , initialized(false)
+        , fcount(0)
+      {
+        last = TimeStamp::Now();
+      }
+      void DrawFPS(GLContext*, CopyProgram*);
+  } mFPS;
 
   static bool sDrawFPS;
-  static bool sFrameCounter;
 };
 
 
@@ -452,13 +516,13 @@ class LayerOGL
 {
 public:
   LayerOGL(LayerManagerOGL *aManager)
-    : mOGLManager(aManager), mDestroyed(false)
+    : mOGLManager(aManager), mDestroyed(PR_FALSE)
   { }
 
   virtual ~LayerOGL() { }
 
   virtual LayerOGL *GetFirstChildOGL() {
-    return nullptr;
+    return nsnull;
   }
 
   
@@ -475,24 +539,8 @@ public:
 
   LayerManagerOGL* OGLManager() const { return mOGLManager; }
   GLContext *gl() const { return mOGLManager->gl(); }
-  virtual void CleanupResources() = 0;
 
-  
-
-
-
-
-
-
-
-
-
-  virtual bool LoadAsTexture(GLuint aTextureUnit, gfxIntSize* aSize)
-  {
-    NS_WARNING("LoadAsTexture called without being overriden");
-    return false;
-  }
-
+  void ApplyFilter(gfxPattern::GraphicsFilter aFilter);
 protected:
   LayerManagerOGL *mOGLManager;
   bool mDestroyed;

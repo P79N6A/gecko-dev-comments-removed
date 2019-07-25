@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsXPCOM.h"
 #include "nsMemory.h"
 #include "nsXPCOMPrivate.h"
@@ -24,7 +56,7 @@ nsMemory::HeapMinimize(bool aImmediate)
 }
 
 NS_COM_GLUE void*
-nsMemory::Clone(const void* ptr, size_t size)
+nsMemory::Clone(const void* ptr, PRSize size)
 {
     void* newPtr = NS_Alloc(size);
     if (newPtr)
@@ -37,7 +69,7 @@ nsMemory::GetGlobalMemoryService()
 {
     nsIMemory* mem;
     nsresult rv = NS_GetMemoryManager(&mem);
-    if (NS_FAILED(rv)) return nullptr;
+    if (NS_FAILED(rv)) return nsnull;
    
     return mem;
 }

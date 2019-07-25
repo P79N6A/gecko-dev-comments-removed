@@ -34,15 +34,48 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_DOMSVGMATRIX_H__
 #define MOZILLA_DOMSVGMATRIX_H__
 
+#include "nsIDOMSVGMatrix.h"
 #include "DOMSVGTransform.h"
 #include "gfxMatrix.h"
 #include "nsAutoPtr.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsIDOMSVGMatrix.h"
-#include "mozilla/Attributes.h"
 
 
 
@@ -58,7 +91,7 @@ namespace mozilla {
 
 
 
-class DOMSVGMatrix MOZ_FINAL : public nsIDOMSVGMatrix
+class DOMSVGMatrix : public nsIDOMSVGMatrix
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_DOMSVGMATRIX_IID)
@@ -96,7 +129,7 @@ private:
   }
 
   bool IsAnimVal() const {
-    return mTransform ? mTransform->IsAnimVal() : false;
+    return mTransform ? mTransform->IsAnimVal() : PR_FALSE;
   }
 
   nsRefPtr<DOMSVGTransform> mTransform;

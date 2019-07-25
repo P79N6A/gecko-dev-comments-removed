@@ -3,13 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsContentCreatorFunctions.h"
 #include "nsIDOMHTMLElement.h"
 #include "nsIDOMHTMLMenuItemElement.h"
 #include "nsXULContextMenuBuilder.h"
 
-using namespace mozilla;
-using namespace mozilla::dom;
 
 nsXULContextMenuBuilder::nsXULContextMenuBuilder()
   : mCurrentGeneratedItemId(0)
@@ -56,20 +85,20 @@ nsXULContextMenuBuilder::OpenContainer(const nsAString& aLabel)
     mCurrentNode = mFragment;
   } else {
     nsCOMPtr<nsIContent> menu;
-    nsresult rv = CreateElement(nsGkAtoms::menu, nullptr, getter_AddRefs(menu));
+    nsresult rv = CreateElement(nsGkAtoms::menu, nsnull, getter_AddRefs(menu));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    menu->SetAttr(kNameSpaceID_None, nsGkAtoms::label, aLabel, false);
+    menu->SetAttr(kNameSpaceID_None, nsGkAtoms::label, aLabel, PR_FALSE);
 
     nsCOMPtr<nsIContent> menuPopup;
-    rv = CreateElement(nsGkAtoms::menupopup, nullptr,
+    rv = CreateElement(nsGkAtoms::menupopup, nsnull,
                        getter_AddRefs(menuPopup));
     NS_ENSURE_SUCCESS(rv, rv);
         
-    rv = menu->AppendChildTo(menuPopup, false);
+    rv = menu->AppendChildTo(menuPopup, PR_FALSE);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = mCurrentNode->AppendChildTo(menu, false);
+    rv = mCurrentNode->AppendChildTo(menu, PR_FALSE);
     NS_ENSURE_SUCCESS(rv, rv);
 
     mCurrentNode = menuPopup;
@@ -97,26 +126,26 @@ nsXULContextMenuBuilder::AddItemFor(nsIDOMHTMLMenuItemElement* aElement,
     
     
     menuitem->SetAttr(kNameSpaceID_None, nsGkAtoms::type,
-                      NS_LITERAL_STRING("checkbox"), false);
+                      NS_LITERAL_STRING("checkbox"), PR_FALSE);
     bool checked;
     aElement->GetChecked(&checked);
     if (checked) {
       menuitem->SetAttr(kNameSpaceID_None, nsGkAtoms::checked,
-                        NS_LITERAL_STRING("true"), false);
+                        NS_LITERAL_STRING("true"), PR_FALSE);
     }
   }
 
   nsAutoString label;
   aElement->GetLabel(label);
-  menuitem->SetAttr(kNameSpaceID_None, nsGkAtoms::label, label, false);
+  menuitem->SetAttr(kNameSpaceID_None, nsGkAtoms::label, label, PR_FALSE);
 
   nsAutoString icon;
   aElement->GetIcon(icon);
   if (!icon.IsEmpty()) {
     menuitem->SetAttr(kNameSpaceID_None, nsGkAtoms::_class,
-                      NS_LITERAL_STRING("menuitem-iconic"), false);
+                      NS_LITERAL_STRING("menuitem-iconic"), PR_FALSE);
     if (aCanLoadIcon) {
-      menuitem->SetAttr(kNameSpaceID_None, nsGkAtoms::image, icon, false);
+      menuitem->SetAttr(kNameSpaceID_None, nsGkAtoms::image, icon, PR_FALSE);
     }
   }
 
@@ -124,10 +153,10 @@ nsXULContextMenuBuilder::AddItemFor(nsIDOMHTMLMenuItemElement* aElement,
   aElement->GetDisabled(&disabled);
   if (disabled) {
     menuitem->SetAttr(kNameSpaceID_None, nsGkAtoms::disabled,
-                      NS_LITERAL_STRING("true"), false);
+                      NS_LITERAL_STRING("true"), PR_FALSE);
   }
 
-  return mCurrentNode->AppendChildTo(menuitem, false);
+  return mCurrentNode->AppendChildTo(menuitem, PR_FALSE);
 }
 
 NS_IMETHODIMP
@@ -138,11 +167,11 @@ nsXULContextMenuBuilder::AddSeparator()
   }
 
   nsCOMPtr<nsIContent> menuseparator;
-  nsresult rv = CreateElement(nsGkAtoms::menuseparator, nullptr,
+  nsresult rv = CreateElement(nsGkAtoms::menuseparator, nsnull,
                               getter_AddRefs(menuseparator));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  return mCurrentNode->AppendChildTo(menuseparator, false);
+  return mCurrentNode->AppendChildTo(menuseparator, PR_FALSE);
 }
 
 NS_IMETHODIMP
@@ -152,14 +181,13 @@ nsXULContextMenuBuilder::UndoAddSeparator()
     return NS_ERROR_NOT_INITIALIZED;
   }
 
-  uint32_t count = mCurrentNode->GetChildCount();
+  PRUint32 count = mCurrentNode->GetChildCount();
   if (!count ||
       mCurrentNode->GetChildAt(count - 1)->Tag() != nsGkAtoms::menuseparator) {
     return NS_OK;
   }
 
-  mCurrentNode->RemoveChildAt(count - 1, false);
-  return NS_OK;
+  return mCurrentNode->RemoveChildAt(count - 1, PR_FALSE);
 }
 
 NS_IMETHODIMP
@@ -170,7 +198,7 @@ nsXULContextMenuBuilder::CloseContainer()
   }
 
   if (mCurrentNode == mFragment) {
-    mCurrentNode = nullptr;
+    mCurrentNode = nsnull;
   } else {
     nsIContent* parent = mCurrentNode->GetParent();
     mCurrentNode = parent->GetParent();
@@ -196,8 +224,8 @@ nsXULContextMenuBuilder::Init(nsIDOMDocumentFragment* aDocumentFragment,
 NS_IMETHODIMP
 nsXULContextMenuBuilder::Click(const nsAString& aGeneratedItemId)
 {
-  nsresult rv;
-  int32_t idx = nsString(aGeneratedItemId).ToInteger(&rv);
+  PRInt32 rv;
+  PRInt32 idx = nsString(aGeneratedItemId).ToInteger(&rv);
   if (NS_SUCCEEDED(rv)) {
     nsCOMPtr<nsIDOMHTMLElement> element = mElements.SafeObjectAt(idx);
     if (element) {
@@ -213,13 +241,14 @@ nsXULContextMenuBuilder::CreateElement(nsIAtom* aTag,
                                        nsIDOMHTMLElement* aHTMLElement,
                                        nsIContent** aResult)
 {
-  *aResult = nullptr;
+  *aResult = nsnull;
 
   nsCOMPtr<nsINodeInfo> nodeInfo = mDocument->NodeInfoManager()->GetNodeInfo(
-    aTag, nullptr, kNameSpaceID_XUL, nsIDOMNode::ELEMENT_NODE);
+    aTag, nsnull, kNameSpaceID_XUL, nsIDOMNode::ELEMENT_NODE);
   NS_ENSURE_TRUE(nodeInfo, NS_ERROR_OUT_OF_MEMORY);
 
-  nsresult rv = NS_NewElement(aResult, nodeInfo.forget(), NOT_FROM_PARSER);
+  nsresult rv = NS_NewElement(aResult, kNameSpaceID_XUL, nodeInfo.forget(),
+                              mozilla::dom::NOT_FROM_PARSER);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -232,7 +261,7 @@ nsXULContextMenuBuilder::CreateElement(nsIAtom* aTag,
   }
 
   (*aResult)->SetAttr(kNameSpaceID_None, mGeneratedItemIdAttr, generateditemid,
-                      false);
+                      PR_FALSE);
 
   return NS_OK;
 }

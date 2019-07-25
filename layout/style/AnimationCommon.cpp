@@ -3,33 +3,46 @@
 
 
 
-#include "gfxPlatform.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "AnimationCommon.h"
 #include "nsRuleData.h"
 #include "nsCSSValue.h"
 #include "nsStyleContext.h"
-#include "nsIFrame.h"
-#include "nsAnimationManager.h"
-#include "nsLayoutUtils.h"
 
 namespace mozilla {
 namespace css {
-
- bool
-IsGeometricProperty(nsCSSProperty aProperty)
-{
-  switch (aProperty) {
-    case eCSSProperty_bottom:
-    case eCSSProperty_height:
-    case eCSSProperty_left:
-    case eCSSProperty_right:
-    case eCSSProperty_top:
-    case eCSSProperty_width:
-      return true;
-    default:
-      return false;
-  }
-}
 
 CommonAnimationManager::CommonAnimationManager(nsPresContext *aPresContext)
   : mPresContext(aPresContext)
@@ -48,7 +61,7 @@ CommonAnimationManager::Disconnect()
   
   RemoveAllElementData();
 
-  mPresContext = nullptr;
+  mPresContext = nsnull;
 }
 
 void
@@ -98,7 +111,7 @@ CommonAnimationManager::HasStateDependentStyle(StateRuleProcessorData* aData)
 bool
 CommonAnimationManager::HasDocumentStateDependentStyle(StateRuleProcessorData* aData)
 {
-  return false;
+  return PR_FALSE;
 }
 
 nsRestyleHint
@@ -110,26 +123,13 @@ CommonAnimationManager::HasAttributeDependentStyle(AttributeRuleProcessorData* a
  bool
 CommonAnimationManager::MediumFeaturesChanged(nsPresContext* aPresContext)
 {
-  return false;
+  return PR_FALSE;
 }
 
- size_t
-CommonAnimationManager::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+ PRInt64
+CommonAnimationManager::SizeOf() const
 {
-  
-  
-  
-  
-  
-  
-
-  return 0;
-}
-
- size_t
-CommonAnimationManager::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
-{
-  return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
+  return sizeof(*this);
 }
 
  bool
@@ -164,7 +164,7 @@ AnimValuesStyleRule::MapRuleInfoInto(nsRuleData* aRuleData)
     return;
   }
 
-  for (uint32_t i = 0, i_end = mPropertyValuePairs.Length(); i < i_end; ++i) {
+  for (PRUint32 i = 0, i_end = mPropertyValuePairs.Length(); i < i_end; ++i) {
     PropertyValuePair &cv = mPropertyValuePairs[i];
     if (aRuleData->mSIDs & nsCachedStyleData::GetBitForSID(
                              nsCSSProps::kSIDTable[cv.mProperty]))
@@ -185,7 +185,7 @@ AnimValuesStyleRule::MapRuleInfoInto(nsRuleData* aRuleData)
 
 #ifdef DEBUG
  void
-AnimValuesStyleRule::List(FILE* out, int32_t aIndent) const
+AnimValuesStyleRule::List(FILE* out, PRInt32 aIndent) const
 {
   
 }
@@ -204,10 +204,10 @@ ComputedTimingFunction::Init(const nsTimingFunction &aFunction)
 }
 
 static inline double
-StepEnd(uint32_t aSteps, double aPortion)
+StepEnd(PRUint32 aSteps, double aPortion)
 {
   NS_ABORT_IF_FALSE(0.0 <= aPortion && aPortion <= 1.0, "out of range");
-  uint32_t step = uint32_t(aPortion * aSteps); 
+  PRUint32 step = PRUint32(aPortion * aSteps); 
   return double(step) / double(aSteps);
 }
 
@@ -226,100 +226,11 @@ ComputedTimingFunction::GetValue(double aPortion) const
       
       return 1.0 - StepEnd(mSteps, 1.0 - aPortion);
     default:
-      NS_ABORT_IF_FALSE(false, "bad type");
+      NS_ABORT_IF_FALSE(PR_FALSE, "bad type");
       
     case nsTimingFunction::StepEnd:
       return StepEnd(mSteps, aPortion);
   }
-}
-
-bool
-CommonElementAnimationData::CanAnimatePropertyOnCompositor(const dom::Element *aElement,
-                                                           nsCSSProperty aProperty,
-                                                           bool aHasGeometricProperties)
-{
-  bool shouldLog = nsLayoutUtils::IsAnimationLoggingEnabled();
-  if (shouldLog && !gfxPlatform::OffMainThreadCompositingEnabled()) {
-    nsCString message;
-    message.AppendLiteral("Performance warning: Compositor disabled");
-    LogAsyncAnimationFailure(message);
-    return false;
-  }
-
-  nsIFrame* frame = aElement->GetPrimaryFrame();
-  if (IsGeometricProperty(aProperty)) {
-    if (shouldLog) {
-      nsCString message;
-      message.AppendLiteral("Performance warning: Async animation of geometric property '");
-      message.Append(aProperty);
-      message.AppendLiteral(" is disabled");
-      LogAsyncAnimationFailure(message, aElement);
-    }
-    return false;
-  }
-  if (aProperty == eCSSProperty_opacity) {
-    bool enabled = nsLayoutUtils::AreOpacityAnimationsEnabled();
-    if (!enabled && shouldLog) {
-      nsCString message;
-      message.AppendLiteral("Performance warning: Async animation of 'opacity' is disabled");
-      LogAsyncAnimationFailure(message);
-    }
-    return enabled;
-  }
-  if (aProperty == eCSSProperty_transform) {
-    if (frame->Preserves3D() &&
-        frame->Preserves3DChildren()) {
-      if (shouldLog) {
-        nsCString message;
-        message.AppendLiteral("Gecko bug: Async animation of 'preserve-3d' transforms is not supported.  See bug 779598");
-        LogAsyncAnimationFailure(message, aElement);
-      }
-      return false;
-    }
-    if (frame->IsSVGTransformed()) {
-      if (shouldLog) {
-        nsCString message;
-        message.AppendLiteral("Gecko bug: Async 'transform' animations of frames with SVG transforms is not supported.  See bug 779599");
-        LogAsyncAnimationFailure(message, aElement);
-      }
-      return false;
-    }
-    if (aHasGeometricProperties) {
-      if (shouldLog) {
-        nsCString message;
-        message.AppendLiteral("Performance warning: Async animation of 'transform' not possible due to presence of geometric properties");
-        LogAsyncAnimationFailure(message, aElement);
-      }
-      return false;
-    }
-    bool enabled = nsLayoutUtils::AreTransformAnimationsEnabled();
-    if (!enabled && shouldLog) {
-      nsCString message;
-      message.AppendLiteral("Performance warning: Async animation of 'transform' is disabled");
-      LogAsyncAnimationFailure(message);
-    }
-    return enabled;
-  }
-  return true;
-}
-
- void
-CommonElementAnimationData::LogAsyncAnimationFailure(nsCString& aMessage,
-                                                     const nsIContent* aContent)
-{
-  if (aContent) {
-    aMessage.AppendLiteral(" [");
-    aMessage.Append(nsAtomCString(aContent->Tag()));
-
-    nsIAtom* id = aContent->GetID();
-    if (id) {
-      aMessage.AppendLiteral(" with id '");
-      aMessage.Append(nsAtomCString(aContent->GetID()));
-      aMessage.AppendLiteral("'");
-    }
-    aMessage.AppendLiteral("]");
-  }
-  printf_stderr(aMessage.get());
 }
 
 }

@@ -3,13 +3,50 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "prmem.h"
 #include "prprf.h"
 
 #include "nsISupportsArray.h"
 #include "nsIFile.h"
 #include "nsNetUtil.h"
+#include "nsILocalFile.h"
 #include "nsIDirectoryService.h"
+#include "nsIWindowWatcher.h"
+#include "nsIPrompt.h"
+#include "nsProxiedService.h"
 #include "nsThreadUtils.h"
 
 #include "nsNSSComponent.h"
@@ -50,11 +87,11 @@ static NS_DEFINE_CID(kNSSComponentCID, NS_NSSCOMPONENT_CID);
 
 
 nsPKCS12Blob::nsPKCS12Blob():mCertArray(0),
-                             mTmpFile(nullptr),
-                             mTmpFilePath(nullptr),
-                             mDigest(nullptr),
-                             mDigestIterator(nullptr),
-                             mTokenSet(false)
+                             mTmpFile(nsnull),
+                             mTmpFilePath(nsnull),
+                             mDigest(nsnull),
+                             mDigestIterator(nsnull),
+                             mTokenSet(PR_FALSE)
 {
   mUIContext = new PipUIContext();
 }
@@ -86,7 +123,7 @@ nsPKCS12Blob::SetToken(nsIPK11Token *token)
      PK11_FreeSlot(slot);
    }
  }
- mTokenSet = true;
+ mTokenSet = PR_TRUE;
  return rv;
 }
 
@@ -95,7 +132,7 @@ nsPKCS12Blob::SetToken(nsIPK11Token *token)
 
 
 nsresult
-nsPKCS12Blob::ImportFromFile(nsIFile *file)
+nsPKCS12Blob::ImportFromFile(nsILocalFile *file)
 {
   nsNSSShutDownPreventionLock locker;
   nsresult rv = NS_OK;
@@ -116,7 +153,7 @@ nsPKCS12Blob::ImportFromFile(nsIFile *file)
   }
 
   
-  rv = mToken->Login(true);
+  rv = mToken->Login(PR_TRUE);
   if (NS_FAILED(rv)) return rv;
   
   RetryReason wantRetry;
@@ -135,7 +172,7 @@ nsPKCS12Blob::ImportFromFile(nsIFile *file)
 }
 
 nsresult
-nsPKCS12Blob::ImportFromFileHelper(nsIFile *file, 
+nsPKCS12Blob::ImportFromFileHelper(nsILocalFile *file, 
                                    nsPKCS12Blob::ImportMode aImportMode,
                                    nsPKCS12Blob::RetryReason &aWantRetry)
 {
@@ -145,7 +182,7 @@ nsPKCS12Blob::ImportFromFileHelper(nsIFile *file,
   SEC_PKCS12DecoderContext *dcx = NULL;
   SECItem unicodePw;
 
-  PK11SlotInfo *slot=nullptr;
+  PK11SlotInfo *slot=nsnull;
   nsXPIDLString tokenName;
   unicodePw.data = NULL;
   
@@ -235,7 +272,7 @@ finish:
   
   if (dcx)
     SEC_PKCS12DecoderFinish(dcx);
-  SECITEM_ZfreeItem(&unicodePw, false);
+  SECITEM_ZfreeItem(&unicodePw, PR_FALSE);
   return NS_OK;
 }
 
@@ -288,12 +325,12 @@ isExtractable(SECKEYPrivateKey *privKey)
 
   rv=PK11_ReadRawAttribute(PK11_TypePrivKey, privKey, CKA_EXTRACTABLE, &value);
   if (rv != SECSuccess) {
-    return false;
+    return PR_FALSE;
   }
   if ((value.len == 1) && (value.data != NULL)) {
     isExtractable = !!(*(CK_BBOOL*)value.data);
   }
-  SECITEM_FreeItem(&value, false);
+  SECITEM_FreeItem(&value, PR_FALSE);
   return isExtractable;
 }
   
@@ -308,7 +345,7 @@ isExtractable(SECKEYPrivateKey *privKey)
 
 
 nsresult
-nsPKCS12Blob::ExportToFile(nsIFile *file, 
+nsPKCS12Blob::ExportToFile(nsILocalFile *file, 
                            nsIX509Cert **certs, int numCerts)
 {
   nsNSSShutDownPreventionLock locker;
@@ -319,14 +356,14 @@ nsPKCS12Blob::ExportToFile(nsIFile *file,
   SECItem unicodePw;
   nsAutoString filePath;
   int i;
-  nsCOMPtr<nsIFile> localFileRef;
+  nsCOMPtr<nsILocalFile> localFileRef;
   NS_ASSERTION(mToken, "Need to set the token before exporting");
   
 
   bool InformedUserNoSmartcardBackup = false;
   int numCertsExported = 0;
 
-  rv = mToken->Login(true);
+  rv = mToken->Login(PR_TRUE);
   if (NS_FAILED(rv)) goto finish;
   
   unicodePw.data = NULL;
@@ -384,7 +421,7 @@ nsPKCS12Blob::ExportToFile(nsIFile *file,
 
         if (!privKeyIsExtractable) {
           if (!InformedUserNoSmartcardBackup) {
-            InformedUserNoSmartcardBackup = true;
+            InformedUserNoSmartcardBackup = PR_TRUE;
             handleError(PIP_PKCS12_NOSMARTCARD_EXPORT);
           }
           continue;
@@ -409,7 +446,7 @@ nsPKCS12Blob::ExportToFile(nsIFile *file,
     
     srv = SEC_PKCS12AddCertAndKey(ecx, certSafe, NULL, nssCert,
                                   CERT_GetDefaultCertDB(), 
-                                  keySafe, NULL, true, &unicodePw,
+                                  keySafe, NULL, PR_TRUE, &unicodePw,
                       SEC_OID_PKCS12_V2_PBE_WITH_SHA1_AND_3KEY_TRIPLE_DES_CBC);
     if (srv) goto finish;
     
@@ -424,7 +461,7 @@ nsPKCS12Blob::ExportToFile(nsIFile *file,
   
   
   
-  if (filePath.RFind(".p12", true, -1, 4) < 0) {
+  if (filePath.RFind(".p12", PR_TRUE, -1, 4) < 0) {
     
     
     
@@ -451,7 +488,7 @@ finish:
     PR_Close(this->mTmpFile);
     this->mTmpFile = NULL;
   }
-  SECITEM_ZfreeItem(&unicodePw, false);
+  SECITEM_ZfreeItem(&unicodePw, PR_FALSE);
   return rv;
 }
 
@@ -545,12 +582,12 @@ nsPKCS12Blob::getPKCS12FilePassword(SECItem *unicodePw)
 
 
 nsresult
-nsPKCS12Blob::inputToDecoder(SEC_PKCS12DecoderContext *dcx, nsIFile *file)
+nsPKCS12Blob::inputToDecoder(SEC_PKCS12DecoderContext *dcx, nsILocalFile *file)
 {
   nsNSSShutDownPreventionLock locker;
   nsresult rv;
   SECStatus srv;
-  uint32_t amount;
+  PRUint32 amount;
   char buf[PIP_PKCS12_BUFFER_SIZE];
 
   nsCOMPtr<nsIInputStream> fileStream;
@@ -560,7 +597,7 @@ nsPKCS12Blob::inputToDecoder(SEC_PKCS12DecoderContext *dcx, nsIFile *file)
     return rv;
   }
 
-  while (true) {
+  while (PR_TRUE) {
     rv = fileStream->Read(buf, PIP_PKCS12_BUFFER_SIZE, &amount);
     if (NS_FAILED(rv)) {
       return rv;
@@ -580,6 +617,29 @@ nsPKCS12Blob::inputToDecoder(SEC_PKCS12DecoderContext *dcx, nsIFile *file)
   }
   return NS_OK;
 }
+
+#ifdef XP_MAC
+
+OSErr ConvertMacPathToUnixPath(const char *macPath, char **unixPath)
+{
+  PRIntn len;
+  char *cursor;
+  
+  len = PL_strlen(macPath);
+  cursor = (char*)PR_Malloc(len+2);
+  if (!cursor)
+    return memFullErr;
+    
+  memcpy(cursor+1, macPath, len+1);
+  *unixPath = cursor;
+  *cursor = '/';
+  while ((cursor = PL_strchr(cursor, ':')) != NULL) {
+    *cursor = '/';
+    cursor++;
+  }
+  return noErr;
+}
+#endif
 
 
 
@@ -629,11 +689,11 @@ nsPKCS12Blob::digest_close(void *arg, PRBool remove_it)
   NS_ENSURE_TRUE(cx, SECFailure);
 
   delete cx->mDigestIterator;
-  cx->mDigestIterator = nullptr;
+  cx->mDigestIterator = nsnull;
 
   if (remove_it) {  
     delete cx->mDigest;
-    cx->mDigest = nullptr;
+    cx->mDigest = nsnull;
   }
   
   return SECSuccess;
@@ -675,7 +735,7 @@ nsPKCS12Blob::digest_write(void *arg, unsigned char *buf, unsigned long len)
   NS_ENSURE_FALSE(cx->mDigestIterator, SECFailure);
   
   cx->mDigest->Append(reinterpret_cast<char *>(buf),
-                     static_cast<uint32_t>(len));
+                     static_cast<PRUint32>(len));
   
   return len;
 }
@@ -687,10 +747,10 @@ SECItem * PR_CALLBACK
 nsPKCS12Blob::nickname_collision(SECItem *oldNick, PRBool *cancel, void *wincx)
 {
   nsNSSShutDownPreventionLock locker;
-  *cancel = false;
+  *cancel = PR_FALSE;
   nsresult rv;
   nsCOMPtr<nsINSSComponent> nssComponent(do_GetService(kNSSComponentCID, &rv));
-  if (NS_FAILED(rv)) return nullptr;
+  if (NS_FAILED(rv)) return nsnull;
   int count = 1;
   nsCString nickname;
   nsAutoString nickFromProp;
@@ -735,7 +795,7 @@ nsPKCS12Blob::nickname_collision(SECItem *oldNick, PRBool *cancel, void *wincx)
   }
   SECItem *newNick = new SECItem;
   if (!newNick)
-    return nullptr;
+    return nsnull;
 
   newNick->type = siAsciiString;
   newNick->data = (unsigned char*) nsCRT::strdup(nickname.get());
@@ -767,31 +827,68 @@ pip_ucs2_ascii_conversion_fn(PRBool toUnicode,
   
   *outBufLen = inBufLen;
   memcpy(outBuf, inBuf, inBufLen);
-  return true;
+  return PR_TRUE;
 }
 
 void
 nsPKCS12Blob::handleError(int myerr)
 {
-  if (!NS_IsMainThread()) {
-    NS_ERROR("nsPKCS12Blob::handleError called off the mai nthread.");
+  nsPSMUITracker tracker;
+  if (tracker.isUIForbidden()) {
     return;
   }
 
+  nsresult rv;
   int prerr = PORT_GetError();
   PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("PKCS12: NSS/NSPR error(%d)", prerr));
   PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("PKCS12: I called(%d)", myerr));
-
-  const char * msgID = nullptr;
-
+  nsCOMPtr<nsINSSComponent> nssComponent(do_GetService(kNSSComponentCID, &rv));
+  if (NS_FAILED(rv)) return;
+  nsCOMPtr<nsIPrompt> errPrompt;
+  nsCOMPtr<nsIWindowWatcher> wwatch(do_GetService(NS_WINDOWWATCHER_CONTRACTID));
+  if (wwatch) {
+    wwatch->GetNewPrompter(0, getter_AddRefs(errPrompt));
+    if (errPrompt) {
+      nsCOMPtr<nsIPrompt> proxyPrompt;
+      NS_GetProxyForObject(NS_PROXY_TO_MAIN_THREAD,
+                           NS_GET_IID(nsIPrompt), errPrompt,
+                           NS_PROXY_SYNC, getter_AddRefs(proxyPrompt));
+      if (!proxyPrompt) return;
+    } else {
+      return;
+    }
+  } else {
+    return;
+  }
+  nsAutoString errorMsg;
   switch (myerr) {
-  case PIP_PKCS12_RESTORE_OK:       msgID = "SuccessfulP12Restore"; break;
-  case PIP_PKCS12_BACKUP_OK:        msgID = "SuccessfulP12Backup";  break;
+  case PIP_PKCS12_RESTORE_OK:
+    rv = nssComponent->GetPIPNSSBundleString("SuccessfulP12Restore", errorMsg);
+    if (NS_FAILED(rv)) return;
+    errPrompt->Alert(nsnull, errorMsg.get());
+    return;
+  case PIP_PKCS12_BACKUP_OK:
+    rv = nssComponent->GetPIPNSSBundleString("SuccessfulP12Backup", errorMsg);
+    if (NS_FAILED(rv)) return;
+    errPrompt->Alert(nsnull, errorMsg.get());
+    return;
   case PIP_PKCS12_USER_CANCELED:
     return;  
-  case PIP_PKCS12_NOSMARTCARD_EXPORT: msgID = "PKCS12InfoNoSmartcardBackup"; break;
-  case PIP_PKCS12_RESTORE_FAILED:   msgID = "PKCS12UnknownErrRestore"; break;
-  case PIP_PKCS12_BACKUP_FAILED:    msgID = "PKCS12UnknownErrBackup"; break;
+  case PIP_PKCS12_NOSMARTCARD_EXPORT:
+    rv = nssComponent->GetPIPNSSBundleString("PKCS12InfoNoSmartcardBackup", errorMsg);
+    if (NS_FAILED(rv)) return;
+    errPrompt->Alert(nsnull, errorMsg.get());
+    return;
+  case PIP_PKCS12_RESTORE_FAILED:
+    rv = nssComponent->GetPIPNSSBundleString("PKCS12UnknownErrRestore", errorMsg);
+    if (NS_FAILED(rv)) return;
+    errPrompt->Alert(nsnull, errorMsg.get());
+    return;
+  case PIP_PKCS12_BACKUP_FAILED:
+    rv = nssComponent->GetPIPNSSBundleString("PKCS12UnknownErrBackup", errorMsg);
+    if (NS_FAILED(rv)) return;
+    errPrompt->Alert(nsnull, errorMsg.get());
+    return;
   case PIP_PKCS12_NSS_ERROR:
     switch (prerr) {
     
@@ -807,29 +904,40 @@ nsPKCS12Blob::handleError(int myerr)
       
       
     case SEC_ERROR_PKCS12_PRIVACY_PASSWORD_INCORRECT:
-      msgID = "PKCS12PasswordInvalid";
-      break;
+      rv = nssComponent->GetPIPNSSBundleString("PKCS12PasswordInvalid", errorMsg);
+      if (NS_FAILED(rv)) return;
+      errPrompt->Alert(nsnull, errorMsg.get());
+    break;
 #endif
-
-    case SEC_ERROR_BAD_PASSWORD: msgID = "PK11BadPassword"; break;
-
+    case SEC_ERROR_BAD_PASSWORD:
+      rv = nssComponent->GetPIPNSSBundleString("PK11BadPassword", errorMsg);
+      if (NS_FAILED(rv)) return;
+      errPrompt->Alert(nsnull, errorMsg.get());
+      break;
     case SEC_ERROR_BAD_DER:
     case SEC_ERROR_PKCS12_CORRUPT_PFX_STRUCTURE:
     case SEC_ERROR_PKCS12_INVALID_MAC:
-      msgID = "PKCS12DecodeErr";
+      rv = nssComponent->GetPIPNSSBundleString("PKCS12DecodeErr", errorMsg);
+      if (NS_FAILED(rv)) return;
+      errPrompt->Alert(nsnull, errorMsg.get());
       break;
-
-    case SEC_ERROR_PKCS12_DUPLICATE_DATA: msgID = "PKCS12DupData"; break;
+    case SEC_ERROR_PKCS12_DUPLICATE_DATA:
+      rv = nssComponent->GetPIPNSSBundleString("PKCS12DupData", errorMsg);
+      if (NS_FAILED(rv)) return;
+      errPrompt->Alert(nsnull, errorMsg.get());
+      break;
+    default:
+      rv = nssComponent->GetPIPNSSBundleString("PKCS12UnknownErr", errorMsg);
+      if (NS_FAILED(rv)) return;
+      errPrompt->Alert(nsnull, errorMsg.get());
     }
     break;
+  case 0: 
+  default:
+    rv = nssComponent->GetPIPNSSBundleString("PKCS12UnknownErr", errorMsg);
+    if (NS_FAILED(rv)) return;
+    errPrompt->Alert(nsnull, errorMsg.get());
+    break;
   }
-
-  if (!msgID)
-    msgID = "PKCS12UnknownErr";
-
-  nsresult rv;
-  nsCOMPtr<nsINSSComponent> nssComponent = do_GetService(kNSSComponentCID, &rv);
-  if (NS_SUCCEEDED(rv))
-    (void) nssComponent->ShowAlertFromStringBundle(msgID);
 }
 

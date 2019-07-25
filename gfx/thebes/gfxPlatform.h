@@ -3,13 +3,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_PLATFORM_H
 #define GFX_PLATFORM_H
 
 #include "prtypes.h"
 #include "prlog.h"
 #include "nsTArray.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsIObserver.h"
 
 #include "gfxTypes.h"
@@ -20,7 +53,6 @@
 
 #include "gfx2DGlue.h"
 #include "mozilla/RefPtr.h"
-#include "GfxInfoCollector.h"
 
 #ifdef XP_OS2
 #undef OS2EMX_PLAIN_CHAR
@@ -100,37 +132,15 @@ enum eGfxLog {
     
     eGfxLog_textrun          = 2,
     
-    eGfxLog_textrunui        = 3,
-    
-    eGfxLog_cmapdata         = 4
+    eGfxLog_textrunui        = 3
 };
 
 
-const uint32_t kMaxLenPrefLangList = 32;
+const PRUint32 kMaxLenPrefLangList = 32;
 
 #define UNINITIALIZED_VALUE  (-1)
 
 typedef gfxASurface::gfxImageFormat gfxImageFormat;
-
-inline const char*
-GetBackendName(mozilla::gfx::BackendType aBackend)
-{
-  switch (aBackend) {
-      case mozilla::gfx::BACKEND_DIRECT2D:
-        return "direct2d";
-      case mozilla::gfx::BACKEND_COREGRAPHICS_ACCELERATED:
-        return "quartz accelerated";
-      case mozilla::gfx::BACKEND_COREGRAPHICS:
-        return "quartz";
-      case mozilla::gfx::BACKEND_CAIRO:
-        return "cairo";
-      case mozilla::gfx::BACKEND_SKIA:
-        return "skia";
-      case mozilla::gfx::BACKEND_NONE:
-        return "none";
-  }
-  MOZ_NOT_REACHED("Incomplete switch");
-}
 
 class THEBES_API gfxPlatform {
 public:
@@ -141,6 +151,10 @@ public:
 
     static gfxPlatform *GetPlatform();
 
+    
+
+
+    static void Init();
 
     
 
@@ -155,59 +169,21 @@ public:
     virtual already_AddRefed<gfxASurface> CreateOffscreenSurface(const gfxIntSize& size,
                                                                  gfxASurface::gfxContentType contentType) = 0;
 
-    
-
-
-
-
-
-
-
-    virtual already_AddRefed<gfxASurface>
-      CreateOffscreenImageSurface(const gfxIntSize& aSize,
-                                  gfxASurface::gfxContentType aContentType);
 
     virtual already_AddRefed<gfxASurface> OptimizeImage(gfxImageSurface *aSurface,
                                                         gfxASurface::gfxImageFormat format);
 
     virtual mozilla::RefPtr<mozilla::gfx::DrawTarget>
-      CreateDrawTargetForSurface(gfxASurface *aSurface, const mozilla::gfx::IntSize& aSize);
-
-    
-
-
-
-
-
-
+      CreateDrawTargetForSurface(gfxASurface *aSurface);
 
     virtual mozilla::RefPtr<mozilla::gfx::SourceSurface>
       GetSourceSurfaceForSurface(mozilla::gfx::DrawTarget *aTarget, gfxASurface *aSurface);
 
     virtual mozilla::RefPtr<mozilla::gfx::ScaledFont>
-      GetScaledFontForFont(mozilla::gfx::DrawTarget* aTarget, gfxFont *aFont);
+      GetScaledFontForFont(gfxFont *aFont);
 
     virtual already_AddRefed<gfxASurface>
       GetThebesSurfaceForDrawTarget(mozilla::gfx::DrawTarget *aTarget);
-
-    virtual mozilla::RefPtr<mozilla::gfx::DrawTarget>
-      CreateOffscreenDrawTarget(const mozilla::gfx::IntSize& aSize, mozilla::gfx::SurfaceFormat aFormat);
-
-    virtual mozilla::RefPtr<mozilla::gfx::DrawTarget>
-      CreateDrawTargetForData(unsigned char* aData, const mozilla::gfx::IntSize& aSize, 
-                              int32_t aStride, mozilla::gfx::SurfaceFormat aFormat);
-
-    bool SupportsAzureCanvas();
-
-    void GetAzureBackendInfo(mozilla::widget::InfoObject &aObj) {
-      aObj.DefineProperty("AzureCanvasBackend", GetBackendName(mPreferredCanvasBackend));
-      aObj.DefineProperty("AzureFallbackCanvasBackend", GetBackendName(mFallbackCanvasBackend));
-      aObj.DefineProperty("AzureContentBackend", GetBackendName(GetContentBackend()));
-    }
-
-    mozilla::gfx::BackendType GetPreferredCanvasBackend() {
-      return mPreferredCanvasBackend;
-    }
 
     
 
@@ -236,7 +212,7 @@ public:
 
     virtual gfxPlatformFontList *CreatePlatformFontList() {
         NS_NOTREACHED("oops, this platform doesn't have a gfxPlatformFontList implementation");
-        return nullptr;
+        return nsnull;
     }
 
     
@@ -274,7 +250,7 @@ public:
 
     virtual gfxFontEntry* LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
                                           const nsAString& aFontName)
-    { return nullptr; }
+    { return nsnull; }
 
     
 
@@ -285,8 +261,8 @@ public:
 
 
     virtual gfxFontEntry* MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
-                                           const uint8_t *aFontData,
-                                           uint32_t aLength);
+                                           const PRUint8 *aFontData,
+                                           PRUint32 aLength);
 
     
 
@@ -303,37 +279,15 @@ public:
 
 
 
-
-
-    virtual bool FontHintingEnabled() { return true; }
+    bool UseHarfBuzzForScript(PRInt32 aScriptCode);
 
     
-
-
-    bool UseCmapsDuringSystemFallback();
-
-#ifdef MOZ_GRAPHITE
-    
-
-
-
-    bool UseGraphiteShaping();
-#endif
-
-    
-
-
-
-
-    bool UseHarfBuzzForScript(int32_t aScriptCode);
-
-    
-    virtual bool IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags) { return false; }
+    virtual bool IsFontFormatSupported(nsIURI *aFontURI, PRUint32 aFormatFlags) { return false; }
 
     void GetPrefFonts(nsIAtom *aLanguage, nsString& array, bool aAppendUnicode = true);
 
     
-    void GetLangPrefs(eFontPrefLang aPrefLangs[], uint32_t &aLen, eFontPrefLang aCharLang, eFontPrefLang aPageLang);
+    void GetLangPrefs(eFontPrefLang aPrefLangs[], PRUint32 &aLen, eFontPrefLang aCharLang, eFontPrefLang aPageLang);
     
     
 
@@ -342,7 +296,7 @@ public:
 
     typedef bool (*PrefFontCallback) (eFontPrefLang aLang, const nsAString& aName,
                                         void *aClosure);
-    static bool ForEachPrefFont(eFontPrefLang aLangArray[], uint32_t aLangArrayLen,
+    static bool ForEachPrefFont(eFontPrefLang aLangArray[], PRUint32 aLangArrayLen,
                                   PrefFontCallback aCallback,
                                   void *aClosure);
 
@@ -356,31 +310,14 @@ public:
     static const char* GetPrefLangName(eFontPrefLang aLang);
    
     
-    static eFontPrefLang GetFontPrefLangFor(uint8_t aUnicodeRange);
+    static eFontPrefLang GetFontPrefLangFor(PRUint8 aUnicodeRange);
 
     
     static bool IsLangCJK(eFontPrefLang aLang);
     
     
-    static void AppendPrefLang(eFontPrefLang aPrefLangs[], uint32_t& aLen, eFontPrefLang aAddLang);
-
+    static void AppendPrefLang(eFontPrefLang aPrefLangs[], PRUint32& aLen, eFontPrefLang aAddLang);
     
-    
-    virtual void GetCommonFallbackFonts(const uint32_t ,
-                                        int32_t ,
-                                        nsTArray<const char*>& )
-    {
-        
-    }
-
-    
-    static bool UseProgressiveTilePainting();
-
-    
-    static bool UseAzureContentDrawing();
-
-    static bool OffMainThreadCompositingEnabled();
-
     
 
 
@@ -432,100 +369,40 @@ public:
 
     virtual void FontsPrefsChanged(const char *aPref);
 
-    int32_t GetBidiNumeralOption();
-
     
 
 
 
     gfxASurface* ScreenReferenceSurface() { return mScreenReferenceSurface; }
 
-    virtual mozilla::gfx::SurfaceFormat Optimal2DFormatForContent(gfxASurface::gfxContentType aContent);
-
-    virtual gfxImageFormat OptimalFormatForContent(gfxASurface::gfxContentType aContent);
-
     virtual gfxImageFormat GetOffscreenFormat()
-    { return gfxASurface::ImageFormatRGB24; }
+    { return gfxASurface::FormatFromContent(gfxASurface::CONTENT_COLOR); }
 
     
 
 
     static PRLogModuleInfo* GetLog(eGfxLog aWhichLog);
 
-    bool WorkAroundDriverBugs() const { return mWorkAroundDriverBugs; }
-
-    virtual int GetScreenDepth() const;
-
 protected:
     gfxPlatform();
     virtual ~gfxPlatform();
 
-    void AppendCJKPrefLangs(eFontPrefLang aPrefLangs[], uint32_t &aLen, 
+    void AppendCJKPrefLangs(eFontPrefLang aPrefLangs[], PRUint32 &aLen, 
                             eFontPrefLang aCharLang, eFontPrefLang aPageLang);
+                                               
+    PRInt8  mAllowDownloadableFonts;
+    PRInt8  mDownloadableFontsSanitize;
 
     
-
-
-
-    mozilla::RefPtr<mozilla::gfx::DrawTarget>
-      CreateDrawTargetForBackend(mozilla::gfx::BackendType aBackend,
-                                 const mozilla::gfx::IntSize& aSize,
-                                 mozilla::gfx::SurfaceFormat aFormat);
-
-    
-
-
-
-
-
-    void InitCanvasBackend(uint32_t aBackendBitmask);
-    
-
-
-
-    static mozilla::gfx::BackendType GetCanvasBackendPref(uint32_t aBackendBitmask);
-    static mozilla::gfx::BackendType BackendTypeForName(const nsCString& aName);
-
-    virtual mozilla::gfx::BackendType GetContentBackend()
-    {
-      return mozilla::gfx::BACKEND_NONE;
-    }
-
-    int8_t  mAllowDownloadableFonts;
-    int8_t  mDownloadableFontsSanitize;
-#ifdef MOZ_GRAPHITE
-    int8_t  mGraphiteShapingEnabled;
-#endif
-
-    int8_t  mBidiNumeralOption;
-
-    
-    
-    int8_t  mFallbackUsesCmaps;
-
-    
-    int32_t mUseHarfBuzzScripts;
+    PRInt32 mUseHarfBuzzScripts;
 
 private:
-    
-
-
-    static void Init();
-
     virtual qcms_profile* GetPlatformCMSOutputProfile();
 
     nsRefPtr<gfxASurface> mScreenReferenceSurface;
-    nsTArray<uint32_t> mCJKPrefLangs;
+    nsTArray<PRUint32> mCJKPrefLangs;
     nsCOMPtr<nsIObserver> mSRGBOverrideObserver;
     nsCOMPtr<nsIObserver> mFontPrefsObserver;
-
-    
-    mozilla::gfx::BackendType mPreferredCanvasBackend;
-    
-    mozilla::gfx::BackendType mFallbackCanvasBackend;
-
-    mozilla::widget::GfxInfoCollector<gfxPlatform> mAzureCanvasBackendCollector;
-    bool mWorkAroundDriverBugs;
 };
 
 #endif 

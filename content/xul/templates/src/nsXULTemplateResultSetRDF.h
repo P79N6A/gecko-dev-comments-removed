@@ -3,6 +3,37 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsXULTemplateResultSetRDF_h__
 #define nsXULTemplateResultSetRDF_h__
 
@@ -11,7 +42,6 @@
 #include "nsRuleNetwork.h"
 #include "nsRDFQuery.h"
 #include "nsXULTemplateResultRDF.h"
-#include "mozilla/Attributes.h"
 
 class nsXULTemplateQueryProcessorRDF;
 class nsXULTemplateResultRDF;
@@ -19,7 +49,7 @@ class nsXULTemplateResultRDF;
 
 
 
-class nsXULTemplateResultSetRDF MOZ_FINAL : public nsISimpleEnumerator
+class nsXULTemplateResultSetRDF : public nsISimpleEnumerator
 {
 private:
     nsXULTemplateQueryProcessorRDF* mProcessor;
@@ -48,8 +78,8 @@ public:
         : mProcessor(aProcessor),
           mQuery(aQuery),
           mInstantiations(aInstantiations),
-          mCurrent(nullptr),
-          mCheckedNext(false)
+          mCurrent(nsnull),
+          mCheckedNext(PR_FALSE)
     { }
 
     ~nsXULTemplateResultSetRDF()

@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDOMOfflineResourceList_h___
 #define nsDOMOfflineResourceList_h___
 
@@ -45,7 +78,8 @@ public:
 
   nsDOMOfflineResourceList(nsIURI* aManifestURI,
                            nsIURI* aDocumentURI,
-                           nsPIDOMWindow* aWindow);
+                           nsPIDOMWindow* aWindow,
+                           nsIScriptContext* aScriptContext);
   virtual ~nsDOMOfflineResourceList();
 
   void FirePendingEvents();
@@ -79,11 +113,20 @@ private:
   nsCOMPtr<nsIApplicationCache> mAvailableApplicationCache;
   nsCOMPtr<nsIOfflineCacheUpdate> mCacheUpdate;
   bool mExposeCacheUpdateStatus;
-  uint16_t mStatus;
+  PRUint16 mStatus;
 
   
   char **mCachedKeys;
-  uint32_t mCachedKeysCount;
+  PRUint32 mCachedKeysCount;
+
+  nsRefPtr<nsDOMEventListenerWrapper> mOnCheckingListener;
+  nsRefPtr<nsDOMEventListenerWrapper> mOnErrorListener;
+  nsRefPtr<nsDOMEventListenerWrapper> mOnNoUpdateListener;
+  nsRefPtr<nsDOMEventListenerWrapper> mOnDownloadingListener;
+  nsRefPtr<nsDOMEventListenerWrapper> mOnProgressListener;
+  nsRefPtr<nsDOMEventListenerWrapper> mOnCachedListener;
+  nsRefPtr<nsDOMEventListenerWrapper> mOnUpdateReadyListener;
+  nsRefPtr<nsDOMEventListenerWrapper> mOnObsoleteListener;
 
   nsCOMArray<nsIDOMEvent> mPendingEvents;
 };

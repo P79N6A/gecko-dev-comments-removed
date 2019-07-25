@@ -3,16 +3,52 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsdirectoryviewer__h____
 #define nsdirectoryviewer__h____
 
 #include "nsNetUtil.h"
 #include "nsIStreamListener.h"
 #include "nsIContentViewer.h"
+#ifdef MOZ_RDF
 #include "nsIHTTPIndex.h"
 #include "nsIRDFService.h"
 #include "nsIRDFDataSource.h"
 #include "nsIRDFLiteral.h"
+#endif
 #include "nsIDocumentLoaderFactory.h"
 #include "nsITimer.h"
 #include "nsISupportsArray.h"
@@ -32,6 +68,7 @@ public:
     NS_DECL_NSIDOCUMENTLOADERFACTORY
 };
 
+#ifdef MOZ_RDF
 class nsHTTPIndex : public nsIHTTPIndex,
                     public nsIRDFDataSource,
                     public nsIStreamListener,
@@ -112,9 +149,11 @@ public:
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsHTTPIndex, nsIHTTPIndex)
 };
+#endif
 
 
 #define NS_DIRECTORYVIEWERFACTORY_CID \
 { 0x82776710, 0x5690, 0x11d3, { 0xbe, 0x36, 0x0, 0x10, 0x4b, 0xde, 0x60, 0x48 } }
+
 
 #endif

@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_XTFELEMENTWRAPPER_H__
 #define __NS_XTFELEMENTWRAPPER_H__
 
@@ -10,10 +43,8 @@
 #include "nsXMLElement.h"
 #include "nsIXTFAttributeHandler.h"
 #include "nsIXTFElement.h"
-#include "mozilla/Attributes.h"
 
 typedef nsXMLElement nsXTFElementWrapperBase;
-class nsXTFClassInfo;
 
 
 
@@ -22,7 +53,8 @@ class nsXTFClassInfo;
 
 
 class nsXTFElementWrapper : public nsXTFElementWrapperBase,
-                            public nsIXTFElementWrapper
+                            public nsIXTFElementWrapper,
+                            public nsXPCClassInfo
 {
 public:
   nsXTFElementWrapper(already_AddRefed<nsINodeInfo> aNodeInfo, nsIXTFElement* aXTFElement);
@@ -50,36 +82,36 @@ public:
                               bool aCompileEventHandlers);
   virtual void UnbindFromTree(bool aDeep = true,
                               bool aNullParent = true);
-  nsresult InsertChildAt(nsIContent* aKid, uint32_t aIndex,
+  nsresult InsertChildAt(nsIContent* aKid, PRUint32 aIndex,
                          bool aNotify);
-  void RemoveChildAt(uint32_t aIndex, bool aNotify);
+  nsresult RemoveChildAt(PRUint32 aIndex, bool aNotify);
   nsIAtom *GetIDAttributeName() const;
-  nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+  nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                    nsIAtom* aPrefix, const nsAString& aValue,
                    bool aNotify);
-  bool GetAttr(int32_t aNameSpaceID, nsIAtom* aName, 
+  bool GetAttr(PRInt32 aNameSpaceID, nsIAtom* aName, 
                  nsAString& aResult) const;
-  bool HasAttr(int32_t aNameSpaceID, nsIAtom* aName) const;
-  virtual bool AttrValueIs(int32_t aNameSpaceID, nsIAtom* aName,
+  bool HasAttr(PRInt32 aNameSpaceID, nsIAtom* aName) const;
+  virtual bool AttrValueIs(PRInt32 aNameSpaceID, nsIAtom* aName,
                              const nsAString& aValue,
                              nsCaseTreatment aCaseSensitive) const;
-  virtual bool AttrValueIs(int32_t aNameSpaceID, nsIAtom* aName,
+  virtual bool AttrValueIs(PRInt32 aNameSpaceID, nsIAtom* aName,
                              nsIAtom* aValue,
                              nsCaseTreatment aCaseSensitive) const;
-  virtual int32_t FindAttrValueIn(int32_t aNameSpaceID,
+  virtual PRInt32 FindAttrValueIn(PRInt32 aNameSpaceID,
                                   nsIAtom* aName,
                                   AttrValuesArray* aValues,
                                   nsCaseTreatment aCaseSensitive) const;
-  nsresult UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttr, 
+  nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttr, 
                      bool aNotify);
-  const nsAttrName* GetAttrNameAt(uint32_t aIndex) const;
-  uint32_t GetAttrCount() const;
+  const nsAttrName* GetAttrNameAt(PRUint32 aIndex) const;
+  PRUint32 GetAttrCount() const;
   virtual already_AddRefed<nsINodeInfo> GetExistingAttrNameFromQName(const nsAString& aStr) const;
 
   virtual nsEventStates IntrinsicState() const;
 
   virtual void BeginAddingChildren();
-  virtual void DoneAddingChildren(bool aHaveNotified);
+  virtual nsresult DoneAddingChildren(bool aHaveNotified);
 
   virtual nsIAtom *GetClassAttributeName() const;
   virtual const nsAttrValue* DoGetClasses() const;
@@ -107,7 +139,7 @@ public:
       ci->PreserveWrapper(aNative);
     }
   }
-  virtual uint32_t GetInterfacesBitmap()
+  virtual PRUint32 GetInterfacesBitmap()
   {
     nsXPCClassInfo *ci = GetBaseXPCClassInfo();
     return ci ? ci->GetInterfacesBitmap() :  0;
@@ -121,7 +153,7 @@ public:
   }
   nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
-  virtual nsXPCClassInfo* GetClassInfo();
+  virtual nsXPCClassInfo* GetClassInfo() { return this; }
 
   virtual void NodeInfoChanged(nsINodeInfo* aOldNodeInfo)
   {
@@ -148,7 +180,7 @@ protected:
 
   nsCOMPtr<nsIXTFElement> mXTFElement;
 
-  uint32_t mNotificationMask;
+  PRUint32 mNotificationMask;
   nsCOMPtr<nsIXTFAttributeHandler> mAttributeHandler;
 
   
@@ -161,39 +193,9 @@ protected:
   nsAttrName mTmpAttrName;
 
   nsCOMPtr<nsIAtom> mClassAttributeName;
-
-  nsRefPtr<nsXTFClassInfo> mClassInfo;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsXTFElementWrapper, NS_XTFELEMENTWRAPPER_IID)
-
-class nsXTFClassInfo MOZ_FINAL : public nsXPCClassInfo
-{
-public:
-  nsXTFClassInfo(nsXTFElementWrapper* aWrapper) : mWrapper(aWrapper) {}
-
-  void Disconnect() { mWrapper = nullptr; }
-
-  NS_DECL_ISUPPORTS
-  NS_FORWARD_SAFE_NSICLASSINFO(mWrapper);
-  NS_FORWARD_SAFE_NSIXPCSCRIPTABLE(mWrapper);
-
-  
-  virtual void PreserveWrapper(nsISupports* aNative)
-  {
-    if (mWrapper) {
-      mWrapper->PreserveWrapper(aNative);
-    }
-  }
-
-  virtual uint32_t GetInterfacesBitmap()
-  {
-    return mWrapper ? mWrapper->GetInterfacesBitmap() : 0;
-  }
-
-private:
-  nsXTFElementWrapper* mWrapper;  
-};
 
 nsresult
 NS_NewXTFElementWrapper(nsIXTFElement* aXTFElement, already_AddRefed<nsINodeInfo> aNodeInfo,

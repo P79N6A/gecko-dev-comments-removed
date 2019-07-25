@@ -3,28 +3,49 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsError.h"
 #include "nsBuiltinDecoderStateMachine.h"
 #include "nsBuiltinDecoder.h"
 #include "nsOggReader.h"
 #include "VideoUtils.h"
 #include "theora/theoradec.h"
-#ifdef MOZ_OPUS
-#include "opus/opus.h"
-extern "C" {
-#include "opus/opus_multistream.h"
-}
-#endif
 #include "nsTimeRanges.h"
 #include "mozilla/TimeStamp.h"
 
 using namespace mozilla;
-
-
-
-#ifdef MOZ_WIDGET_GONK
-#define OGG_ESTIMATE_BUFFERED 1
-#endif
 
 
 
@@ -48,11 +69,7 @@ extern PRLogModuleInfo* gBuiltinDecoderLog;
 
 
 
-static const uint32_t SEEK_FUZZ_USECS = 500000;
-
-
-
-static const int64_t SEEK_OPUS_PREROLL = 80 * USECS_PER_MS;
+static const PRUint32 SEEK_FUZZ_USECS = 500000;
 
 enum PageSyncResult {
   PAGE_SYNC_ERROR = 1,
@@ -62,11 +79,11 @@ enum PageSyncResult {
 
 
 static PageSyncResult
-PageSync(MediaResource* aResource,
+PageSync(nsMediaStream* aStream,
          ogg_sync_state* aState,
          bool aCachedDataOnly,
-         int64_t aOffset,
-         int64_t aEndOffset,
+         PRInt64 aOffset,
+         PRInt64 aEndOffset,
          ogg_page* aPage,
          int& aSkippedBytes);
 
@@ -74,17 +91,23 @@ PageSync(MediaResource* aResource,
 
 static const int PAGE_STEP = 8192;
 
+class nsAutoReleasePacket {
+public:
+  nsAutoReleasePacket(ogg_packet* aPacket) : mPacket(aPacket) { }
+  ~nsAutoReleasePacket() {
+    nsOggCodecState::ReleasePacket(mPacket);
+  }
+private:
+  ogg_packet* mPacket;
+};
+
 nsOggReader::nsOggReader(nsBuiltinDecoder* aDecoder)
   : nsBuiltinDecoderReader(aDecoder),
-    mTheoraState(nullptr),
-    mVorbisState(nullptr),
-    mOpusState(nullptr),
-    mOpusEnabled(nsHTMLMediaElement::IsOpusEnabled()),
-    mSkeletonState(nullptr),
+    mTheoraState(nsnull),
+    mVorbisState(nsnull),
+    mSkeletonState(nsnull),
     mVorbisSerial(0),
-    mOpusSerial(0),
     mTheoraSerial(0),
-    mOpusPreSkip(0),
     mPageOffset(0)
 {
   MOZ_COUNT_CTOR(nsOggReader);
@@ -98,18 +121,17 @@ nsOggReader::~nsOggReader()
 }
 
 nsresult nsOggReader::Init(nsBuiltinDecoderReader* aCloneDonor) {
-  mCodecStates.Init();
+  bool init = mCodecStates.Init();
+  NS_ASSERTION(init, "Failed to initialize mCodecStates");
+  if (!init) {
+    return NS_ERROR_FAILURE;
+  }
   int ret = ogg_sync_init(&mOggState);
   NS_ENSURE_TRUE(ret == 0, NS_ERROR_FAILURE);
   return NS_OK;
 }
 
 nsresult nsOggReader::ResetDecode()
-{
-  return ResetDecode(false);
-}
-
-nsresult nsOggReader::ResetDecode(bool start)
 {
   NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
   nsresult res = NS_OK;
@@ -123,9 +145,6 @@ nsresult nsOggReader::ResetDecode(bool start)
   if (mVorbisState && NS_FAILED(mVorbisState->Reset())) {
     res = NS_ERROR_FAILURE;
   }
-  if (mOpusState && NS_FAILED(mOpusState->Reset(start))) {
-    res = NS_ERROR_FAILURE;
-  }
   if (mTheoraState && NS_FAILED(mTheoraState->Reset())) {
     res = NS_ERROR_FAILURE;
   }
@@ -137,57 +156,17 @@ bool nsOggReader::ReadHeaders(nsOggCodecState* aState)
 {
   while (!aState->DoneReadingHeaders()) {
     ogg_packet* packet = NextOggPacket(aState);
-    
-    if (!packet || !aState->DecodeHeader(packet)) {
+    nsAutoReleasePacket autoRelease(packet);
+    if (!packet || !aState->IsHeader(packet)) {
       aState->Deactivate();
-      return false;
+    } else {
+      aState->DecodeHeader(packet);
     }
   }
   return aState->Init();
 }
 
-void nsOggReader::BuildSerialList(nsTArray<uint32_t>& aTracks)
-{
-  if (HasVideo()) {
-    aTracks.AppendElement(mTheoraState->mSerial);
-  }
-  if (HasAudio()) {
-    if (mVorbisState) {
-      aTracks.AppendElement(mVorbisState->mSerial);
-    } else if(mOpusState) {
-      aTracks.AppendElement(mOpusState->mSerial);
-    }
-  }
-}
-
-static
-nsHTMLMediaElement::MetadataTags* TagsFromVorbisComment(vorbis_comment *vc)
-{
-  nsHTMLMediaElement::MetadataTags* tags;
-  int i;
-
-  tags = new nsHTMLMediaElement::MetadataTags;
-  tags->Init();
-  for (i = 0; i < vc->comments; i++) {
-    char *comment = vc->user_comments[i];
-    char *div = (char*)memchr(comment, '=', vc->comment_lengths[i]);
-    if (!div) {
-      LOG(PR_LOG_DEBUG, ("Invalid vorbis comment: no separator"));
-      continue;
-    }
-    
-    nsCString key = nsCString(comment, div-comment);
-    uint32_t value_length = vc->comment_lengths[i] - (div-comment);
-    
-    nsCString value = nsCString(div + 1, value_length);
-    tags->Put(key, value);
-  }
-
-  return tags;
-}
-
-nsresult nsOggReader::ReadMetadata(nsVideoInfo* aInfo,
-                                   nsHTMLMediaElement::MetadataTags** aTags)
+nsresult nsOggReader::ReadMetadata(nsVideoInfo* aInfo)
 {
   NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
 
@@ -195,14 +174,11 @@ nsresult nsOggReader::ReadMetadata(nsVideoInfo* aInfo,
   
   
 
-  NS_ASSERTION(aTags, "Called with null MetadataTags**.");
-  *aTags = nullptr;
-
   ogg_page page;
   nsAutoTArray<nsOggCodecState*,4> bitstreams;
   bool readAllBOS = false;
   while (!readAllBOS) {
-    int64_t pageOffset = ReadOggPage(&page);
+    PRInt64 pageOffset = ReadOggPage(&page);
     if (pageOffset == -1) {
       
       break;
@@ -216,12 +192,13 @@ nsresult nsOggReader::ReadMetadata(nsVideoInfo* aInfo,
       
       
       readAllBOS = true;
-    } else if (!mCodecStates.Get(serial, nullptr)) {
+    } else if (!mCodecStates.Get(serial, nsnull)) {
       
       
       
       codecState = nsOggCodecState::Create(&page);
-      mCodecStates.Put(serial, codecState);
+      DebugOnly<bool> r = mCodecStates.Put(serial, codecState);
+      NS_ASSERTION(r, "Failed to insert into mCodecStates");
       bitstreams.AppendElement(codecState);
       mKnownStreams.AppendElement(serial);
       if (codecState &&
@@ -239,17 +216,6 @@ nsresult nsOggReader::ReadMetadata(nsVideoInfo* aInfo,
         
         
         mTheoraState = static_cast<nsTheoraState*>(codecState);
-      }
-      if (codecState &&
-          codecState->GetType() == nsOggCodecState::TYPE_OPUS &&
-          !mOpusState)
-      {
-        if (mOpusEnabled) {
-          mOpusState = static_cast<nsOpusState*>(codecState);
-        } else {
-          NS_WARNING("Opus decoding disabled."
-                     " See media.opus.enabled in about:config");
-        }
       }
       if (codecState &&
           codecState->GetType() == nsOggCodecState::TYPE_SKELETON &&
@@ -272,10 +238,9 @@ nsresult nsOggReader::ReadMetadata(nsVideoInfo* aInfo,
   
 
   
-  for (uint32_t i = 0; i < bitstreams.Length(); i++) {
+  for (PRUint32 i = 0; i < bitstreams.Length(); i++) {
     nsOggCodecState* s = bitstreams[i];
-    if (s != mVorbisState && s != mOpusState &&
-        s != mTheoraState && s != mSkeletonState) {
+    if (s != mVorbisState && s != mTheoraState && s != mSkeletonState) {
       s->Deactivate();
     }
   }
@@ -301,12 +266,9 @@ nsresult nsOggReader::ReadMetadata(nsVideoInfo* aInfo,
       mInfo.mDisplay = displaySize;
       mPicture = picture;
 
-      VideoFrameContainer* container = mDecoder->GetVideoFrameContainer();
-      if (container) {
-        container->SetCurrentFrame(gfxIntSize(displaySize.width, displaySize.height),
-                                   nullptr,
-                                   TimeStamp::Now());
-      }
+      mDecoder->SetVideoData(gfxIntSize(displaySize.width, displaySize.height),
+                             nsnull,
+                             TimeStamp::Now());
 
       
       memcpy(&mTheoraInfo, &mTheoraState->mInfo, sizeof(mTheoraInfo));
@@ -322,19 +284,10 @@ nsresult nsOggReader::ReadMetadata(nsVideoInfo* aInfo,
     memcpy(&mVorbisInfo, &mVorbisState->mInfo, sizeof(mVorbisInfo));
     mVorbisInfo.codec_setup = NULL;
     mVorbisSerial = mVorbisState->mSerial;
-    *aTags = TagsFromVorbisComment(&mVorbisState->mComment);
   } else {
     memset(&mVorbisInfo, 0, sizeof(mVorbisInfo));
   }
-#ifdef MOZ_OPUS
-  if (mOpusState && ReadHeaders(mOpusState)) {
-    mInfo.mHasAudio = true;
-    mInfo.mAudioRate = mOpusState->mRate;
-    mInfo.mAudioChannels = mOpusState->mChannels > 2 ? 2 : mOpusState->mChannels;
-    mOpusSerial = mOpusState->mSerial;
-    mOpusPreSkip = mOpusState->mPreSkip;
-  }
-#endif
+
   if (mSkeletonState) {
     if (!HasAudio() && !HasVideo()) {
       
@@ -343,9 +296,14 @@ nsresult nsOggReader::ReadMetadata(nsVideoInfo* aInfo,
     } else if (ReadHeaders(mSkeletonState) && mSkeletonState->HasIndex()) {
       
       
-      nsAutoTArray<uint32_t, 2> tracks;
-      BuildSerialList(tracks);
-      int64_t duration = 0;
+      nsAutoTArray<PRUint32, 2> tracks;
+      if (HasVideo()) {
+        tracks.AppendElement(mTheoraState->mSerial);
+      }
+      if (HasAudio()) {
+        tracks.AppendElement(mVorbisState->mSerial);
+      }
+      PRInt64 duration = 0;
       if (NS_SUCCEEDED(mSkeletonState->GetDuration(tracks, duration))) {
         ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
         mDecoder->GetStateMachine()->SetDuration(duration);
@@ -354,23 +312,21 @@ nsresult nsOggReader::ReadMetadata(nsVideoInfo* aInfo,
     }
   }
 
-  if (HasAudio() || HasVideo()) {
+  {
     ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
 
-    MediaResource* resource = mDecoder->GetResource();
+    nsMediaStream* stream = mDecoder->GetCurrentStream();
     if (mDecoder->GetStateMachine()->GetDuration() == -1 &&
         mDecoder->GetStateMachine()->GetState() != nsDecoderStateMachine::DECODER_STATE_SHUTDOWN &&
-        resource->GetLength() >= 0 &&
+        stream->GetLength() >= 0 &&
         mDecoder->GetStateMachine()->IsSeekable())
     {
       
       
-      mDecoder->GetResource()->StartSeekingForMetadata();
-      int64_t length = resource->GetLength();
-
+      PRInt64 length = stream->GetLength();
       NS_ASSERTION(length > 0, "Must have a content length to get end time");
 
-      int64_t endTime = 0;
+      PRInt64 endTime = 0;
       {
         ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
         endTime = RangeEndTime(length);
@@ -379,10 +335,7 @@ nsresult nsOggReader::ReadMetadata(nsVideoInfo* aInfo,
         mDecoder->GetStateMachine()->SetEndTime(endTime);
         LOG(PR_LOG_DEBUG, ("Got Ogg duration from seeking to end %lld", endTime));
       }
-      mDecoder->GetResource()->EndSeekingForMetadata();
     }
-  } else {
-    return NS_ERROR_FAILURE;
   }
   *aInfo = mInfo;
 
@@ -402,21 +355,21 @@ nsresult nsOggReader::DecodeVorbis(ogg_packet* aPacket) {
   }
 
   VorbisPCMValue** pcm = 0;
-  int32_t frames = 0;
-  uint32_t channels = mVorbisState->mInfo.channels;
+  PRInt32 frames = 0;
+  PRUint32 channels = mVorbisState->mInfo.channels;
   ogg_int64_t endFrame = aPacket->granulepos;
   while ((frames = vorbis_synthesis_pcmout(&mVorbisState->mDsp, &pcm)) > 0) {
     mVorbisState->ValidateVorbisPacketSamples(aPacket, frames);
     nsAutoArrayPtr<AudioDataValue> buffer(new AudioDataValue[frames * channels]);
-    for (uint32_t j = 0; j < channels; ++j) {
+    for (PRUint32 j = 0; j < channels; ++j) {
       VorbisPCMValue* channel = pcm[j];
-      for (uint32_t i = 0; i < uint32_t(frames); ++i) {
+      for (PRUint32 i = 0; i < PRUint32(frames); ++i) {
         buffer[i*channels + j] = MOZ_CONVERT_VORBIS_SAMPLE(channel[i]);
       }
     }
 
-    int64_t duration = mVorbisState->Time((int64_t)frames);
-    int64_t startTime = mVorbisState->Time(endFrame - frames);
+    PRInt64 duration = mVorbisState->Time((PRInt64)frames);
+    PRInt64 startTime = mVorbisState->Time(endFrame - frames);
     mAudioQueue.Push(new AudioData(mPageOffset,
                                    startTime,
                                    duration,
@@ -430,167 +383,20 @@ nsresult nsOggReader::DecodeVorbis(ogg_packet* aPacket) {
   }
   return NS_OK;
 }
-#ifdef MOZ_OPUS
-nsresult nsOggReader::DecodeOpus(ogg_packet* aPacket) {
-  NS_ASSERTION(aPacket->granulepos != -1, "Must know opus granulepos!");
-
-  
-  int32_t frames_number = opus_packet_get_nb_frames(aPacket->packet,
-                                                    aPacket->bytes);
-  int32_t samples = opus_packet_get_samples_per_frame(aPacket->packet,
-                                                      (opus_int32) mOpusState->mRate);
-  int32_t frames = frames_number*samples;
-
-  if (frames <= 0)
-    return NS_ERROR_FAILURE;
-  uint32_t channels = mOpusState->mChannels;
-  nsAutoArrayPtr<AudioDataValue> buffer(new AudioDataValue[frames * channels]);
-
-  
-#ifdef MOZ_SAMPLE_TYPE_FLOAT32
-  int ret = opus_multistream_decode_float(mOpusState->mDecoder,
-                                          aPacket->packet, aPacket->bytes,
-                                          buffer, frames, false);
-#else
-  int ret = opus_multistream_decode(mOpusState->mDecoder,
-                                    aPacket->packet, aPacket->bytes,
-                                    buffer, frames, false);
-#endif
-  if (ret < 0)
-    return NS_ERROR_FAILURE;
-  NS_ASSERTION(ret == frames, "Opus decoded too few audio samples");
-
-  int64_t endFrame = aPacket->granulepos;
-  int64_t startFrame;
-  
-  if (aPacket->e_o_s && mOpusState->mPrevPacketGranulepos != -1) {
-    startFrame = mOpusState->mPrevPacketGranulepos;
-    frames = static_cast<int32_t>(NS_MAX(static_cast<int64_t>(0),
-                                         NS_MIN(endFrame - startFrame,
-                                                static_cast<int64_t>(frames))));
-  } else {
-    startFrame = endFrame - frames;
-  }
-
-  
-  if (mOpusState->mSkip > 0) {
-    int32_t skipFrames = NS_MIN(mOpusState->mSkip, frames);
-    if (skipFrames == frames) {
-      
-      mOpusState->mSkip -= frames;
-      LOG(PR_LOG_DEBUG, ("Opus decoder skipping %d frames"
-                         " (whole packet)", frames));
-      return NS_OK;
-    }
-    int32_t keepFrames = frames - skipFrames;
-    int samples = keepFrames * channels;
-    nsAutoArrayPtr<AudioDataValue> trimBuffer(new AudioDataValue[samples]);
-    for (int i = 0; i < samples; i++)
-      trimBuffer[i] = buffer[skipFrames*channels + i];
-
-    startFrame = endFrame - keepFrames;
-    frames = keepFrames;
-    buffer = trimBuffer;
-
-    mOpusState->mSkip -= skipFrames;
-    LOG(PR_LOG_DEBUG, ("Opus decoder skipping %d frames", skipFrames));
-  }
-  
-  
-  mOpusState->mPrevPacketGranulepos = endFrame;
-
-  
-#ifdef MOZ_SAMPLE_TYPE_FLOAT32
-  if (mOpusState->mGain != 1.0f) {
-    float gain = mOpusState->mGain;
-    int samples = frames * channels;
-    for (int i = 0; i < samples; i++) {
-      buffer[i] *= gain;
-    }
-  }
-#else
-  if (mOpusState->mGain_Q16 != 65536) {
-    int64_t gain_Q16 = mOpusState->mGain_Q16;
-    int samples = frames * channels;
-    for (int i = 0; i < samples; i++) {
-      int32_t val = static_cast<int32_t>((gain_Q16*buffer[i] + 32768)>>16);
-      buffer[i] = static_cast<AudioDataValue>(MOZ_CLIP_TO_15(val));
-    }
-  }
-#endif
-
-  
-  if (channels > 2) {
-    
-    
-    if (channels > 8)
-      return NS_ERROR_FAILURE;
-
-#ifdef MOZ_SAMPLE_TYPE_FLOAT32
-    uint32_t out_channels;
-    out_channels = 2;
-
-    
-    nsAutoArrayPtr<AudioDataValue> dBuffer(new AudioDataValue[frames * out_channels]);
-    
-    static const float dmatrix[6][8][2]= {
-        { {0.5858f,0}, {0.4142f,0.4142f}, {0,0.5858f}},
-        { {0.4226f,0}, {0,0.4226f}, {0.366f,0.2114f}, {0.2114f,0.366f}},
-        { {0.651f,0}, {0.46f,0.46f}, {0,0.651f}, {0.5636f,0.3254f}, {0.3254f,0.5636f}},
-        { {0.529f,0}, {0.3741f,0.3741f}, {0,0.529f}, {0.4582f,0.2645f}, {0.2645f,0.4582f}, {0.3741f,0.3741f}},
-        { {0.4553f,0}, {0.322f,0.322f}, {0,0.4553f}, {0.3943f,0.2277f}, {0.2277f,0.3943f}, {0.2788f,0.2788f}, {0.322f,0.322f}},
-        { {0.3886f,0}, {0.2748f,0.2748f}, {0,0.3886f}, {0.3366f,0.1943f}, {0.1943f,0.3366f}, {0.3366f,0.1943f}, {0.1943f,0.3366f}, {0.2748f,0.2748f}},
-    };
-    for (int32_t i = 0; i < frames; i++) {
-      float sampL = 0.0;
-      float sampR = 0.0;
-      for (uint32_t j = 0; j < channels; j++) {
-        sampL+=buffer[i*channels+j]*dmatrix[channels-3][j][0];
-        sampR+=buffer[i*channels+j]*dmatrix[channels-3][j][1];
-      }
-      dBuffer[i*out_channels]=sampL;
-      dBuffer[i*out_channels+1]=sampR;
-    }
-    channels = out_channels;
-    buffer = dBuffer;
-#else
-  return NS_ERROR_FAILURE;
-#endif
-  }
-
-  LOG(PR_LOG_DEBUG, ("Opus decoder pushing %d frames", frames));
-  int64_t startTime = mOpusState->Time(startFrame);
-  int64_t endTime = mOpusState->Time(endFrame);
-  mAudioQueue.Push(new AudioData(mPageOffset,
-                                 startTime,
-                                 endTime - startTime,
-                                 frames,
-                                 buffer.forget(),
-                                 channels));
-  return NS_OK;
-}
-#endif 
 
 bool nsOggReader::DecodeAudioData()
 {
   NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
-  NS_ASSERTION(mVorbisState != nullptr || mOpusState != nullptr,
-    "Need audio codec state to decode audio");
+  NS_ASSERTION(mVorbisState!=0, "Need Vorbis state to decode audio");
 
   
   ogg_packet* packet = 0;
-  nsOggCodecState* codecState;
-  if (mVorbisState)
-    codecState = static_cast<nsOggCodecState*>(mVorbisState);
-  else
-    codecState = static_cast<nsOggCodecState*>(mOpusState);
   do {
     if (packet) {
       nsOggCodecState::ReleasePacket(packet);
     }
-    packet = NextOggPacket(codecState);
-  } while (packet && codecState->IsHeader(packet));
-
+    packet = NextOggPacket(mVorbisState);
+  } while (packet && mVorbisState->IsHeader(packet));
   if (!packet) {
     mAudioQueue.Finish();
     return false;
@@ -598,15 +404,8 @@ bool nsOggReader::DecodeAudioData()
 
   NS_ASSERTION(packet && packet->granulepos != -1,
     "Must have packet with known granulepos");
-  nsAutoRef<ogg_packet> autoRelease(packet);
-  if (mVorbisState) {
-    DecodeVorbis(packet);
-#ifdef MOZ_OPUS
-  } else if (mOpusState) {
-    DecodeOpus(packet);
-#endif
-  }
-
+  nsAutoReleasePacket autoRelease(packet);
+  DecodeVorbis(packet);
   if (packet->e_o_s) {
     
     
@@ -618,7 +417,7 @@ bool nsOggReader::DecodeAudioData()
   return true;
 }
 
-nsresult nsOggReader::DecodeTheora(ogg_packet* aPacket, int64_t aTimeThreshold)
+nsresult nsOggReader::DecodeTheora(ogg_packet* aPacket, PRInt64 aTimeThreshold)
 {
   NS_ASSERTION(aPacket->granulepos >= TheoraVersion(&mTheoraState->mInfo,3,2,1),
     "Packets must have valid granulepos and packetno");
@@ -627,7 +426,7 @@ nsresult nsOggReader::DecodeTheora(ogg_packet* aPacket, int64_t aTimeThreshold)
   if (ret != 0 && ret != TH_DUPFRAME) {
     return NS_ERROR_FAILURE;
   }
-  int64_t time = mTheoraState->StartTime(aPacket->granulepos);
+  PRInt64 time = mTheoraState->StartTime(aPacket->granulepos);
 
   
   
@@ -637,7 +436,7 @@ nsresult nsOggReader::DecodeTheora(ogg_packet* aPacket, int64_t aTimeThreshold)
     return NS_OK;
   }
 
-  int64_t endTime = mTheoraState->Time(aPacket->granulepos);
+  PRInt64 endTime = mTheoraState->Time(aPacket->granulepos);
   if (endTime < aTimeThreshold) {
     
     
@@ -656,12 +455,11 @@ nsresult nsOggReader::DecodeTheora(ogg_packet* aPacket, int64_t aTimeThreshold)
     NS_ASSERTION(ret == 0, "th_decode_ycbcr_out failed");
     bool isKeyframe = th_packet_iskeyframe(aPacket) == 1;
     VideoData::YCbCrBuffer b;
-    for (uint32_t i=0; i < 3; ++i) {
+    for (PRUint32 i=0; i < 3; ++i) {
       b.mPlanes[i].mData = buffer[i].data;
       b.mPlanes[i].mHeight = buffer[i].height;
       b.mPlanes[i].mWidth = buffer[i].width;
       b.mPlanes[i].mStride = buffer[i].stride;
-      b.mPlanes[i].mOffset = b.mPlanes[i].mSkip = 0;
     }
 
     VideoData *v = VideoData::Create(mInfo,
@@ -685,13 +483,13 @@ nsresult nsOggReader::DecodeTheora(ogg_packet* aPacket, int64_t aTimeThreshold)
 }
 
 bool nsOggReader::DecodeVideoFrame(bool &aKeyframeSkip,
-                                     int64_t aTimeThreshold)
+                                     PRInt64 aTimeThreshold)
 {
   NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
 
   
   
-  uint32_t parsed = 0, decoded = 0;
+  PRUint32 parsed = 0, decoded = 0;
   nsMediaDecoder::AutoNotifyDecoded autoNotify(mDecoder, parsed, decoded);
 
   
@@ -706,13 +504,13 @@ bool nsOggReader::DecodeVideoFrame(bool &aKeyframeSkip,
     mVideoQueue.Finish();
     return false;
   }
-  nsAutoRef<ogg_packet> autoRelease(packet);
+  nsAutoReleasePacket autoRelease(packet);
 
   parsed++;
   NS_ASSERTION(packet && packet->granulepos != -1,
                 "Must know first packet's granulepos");
   bool eos = packet->e_o_s;
-  int64_t frameEndTime = mTheoraState->Time(packet->granulepos);
+  PRInt64 frameEndTime = mTheoraState->Time(packet->granulepos);
   if (!aKeyframeSkip ||
      (th_packet_iskeyframe(packet) && frameEndTime >= aTimeThreshold))
   {
@@ -734,7 +532,7 @@ bool nsOggReader::DecodeVideoFrame(bool &aKeyframeSkip,
   return true;
 }
 
-int64_t nsOggReader::ReadOggPage(ogg_page* aPage)
+PRInt64 nsOggReader::ReadOggPage(ogg_page* aPage)
 {
   NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
 
@@ -752,9 +550,9 @@ int64_t nsOggReader::ReadOggPage(ogg_page* aPage)
     NS_ASSERTION(buffer, "ogg_sync_buffer failed");
 
     
-    uint32_t bytesRead = 0;
+    PRUint32 bytesRead = 0;
 
-    nsresult rv = mDecoder->GetResource()->Read(buffer, 4096, &bytesRead);
+    nsresult rv = mDecoder->GetCurrentStream()->Read(buffer, 4096, &bytesRead);
     if (NS_FAILED(rv) || (bytesRead == 0 && ret == 0)) {
       
       return -1;
@@ -766,7 +564,7 @@ int64_t nsOggReader::ReadOggPage(ogg_page* aPage)
     ret = ogg_sync_wrote(&mOggState, bytesRead);
     NS_ENSURE_TRUE(ret == 0, -1);    
   }
-  int64_t offset = mPageOffset;
+  PRInt64 offset = mPageOffset;
   mPageOffset += aPage->header_len + aPage->body_len;
   
   return offset;
@@ -777,23 +575,23 @@ ogg_packet* nsOggReader::NextOggPacket(nsOggCodecState* aCodecState)
   NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
 
   if (!aCodecState || !aCodecState->mActive) {
-    return nullptr;
+    return nsnull;
   }
 
   ogg_packet* packet;
-  while ((packet = aCodecState->PacketOut()) == nullptr) {
+  while ((packet = aCodecState->PacketOut()) == nsnull) {
     
     
     ogg_page page;
     if (ReadOggPage(&page) == -1) {
-      return nullptr;
+      return nsnull;
     }
 
-    uint32_t serial = ogg_page_serialno(&page);
-    nsOggCodecState* codecState = nullptr;
+    PRUint32 serial = ogg_page_serialno(&page);
+    nsOggCodecState* codecState = nsnull;
     mCodecStates.Get(serial, &codecState);
     if (codecState && NS_FAILED(codecState->PageIn(&page))) {
-      return nullptr;
+      return nsnull;
     }
   }
 
@@ -808,21 +606,21 @@ GetChecksum(ogg_page* page)
     return 0;
   }
   const unsigned char* p = page->header + 22;
-  uint32_t c =  p[0] +
+  PRUint32 c =  p[0] +
                (p[1] << 8) + 
                (p[2] << 16) +
                (p[3] << 24);
   return c;
 }
 
-int64_t nsOggReader::RangeStartTime(int64_t aOffset)
+PRInt64 nsOggReader::RangeStartTime(PRInt64 aOffset)
 {
   NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
-  MediaResource* resource = mDecoder->GetResource();
-  NS_ENSURE_TRUE(resource != nullptr, 0);
-  nsresult res = resource->Seek(nsISeekableStream::NS_SEEK_SET, aOffset);
-  NS_ENSURE_SUCCESS(res, 0);
-  int64_t startTime = 0;
+  nsMediaStream* stream = mDecoder->GetCurrentStream();
+  NS_ENSURE_TRUE(stream != nsnull, nsnull);
+  nsresult res = stream->Seek(nsISeekableStream::NS_SEEK_SET, aOffset);
+  NS_ENSURE_SUCCESS(res, nsnull);
+  PRInt64 startTime = 0;
   nsBuiltinDecoderReader::FindStartTime(startTime);
   return startTime;
 }
@@ -837,25 +635,25 @@ struct nsAutoOggSyncState {
   ogg_sync_state mState;
 };
 
-int64_t nsOggReader::RangeEndTime(int64_t aEndOffset)
+PRInt64 nsOggReader::RangeEndTime(PRInt64 aEndOffset)
 {
   NS_ASSERTION(mDecoder->OnStateMachineThread() || mDecoder->OnDecodeThread(),
                "Should be on state machine or decode thread.");
 
-  MediaResource* resource = mDecoder->GetResource();
-  NS_ENSURE_TRUE(resource != nullptr, -1);
-  int64_t position = resource->Tell();
-  int64_t endTime = RangeEndTime(0, aEndOffset, false);
-  nsresult res = resource->Seek(nsISeekableStream::NS_SEEK_SET, position);
+  nsMediaStream* stream = mDecoder->GetCurrentStream();
+  NS_ENSURE_TRUE(stream != nsnull, -1);
+  PRInt64 position = stream->Tell();
+  PRInt64 endTime = RangeEndTime(0, aEndOffset, false);
+  nsresult res = stream->Seek(nsISeekableStream::NS_SEEK_SET, position);
   NS_ENSURE_SUCCESS(res, -1);
   return endTime;
 }
 
-int64_t nsOggReader::RangeEndTime(int64_t aStartOffset,
-                                  int64_t aEndOffset,
+PRInt64 nsOggReader::RangeEndTime(PRInt64 aStartOffset,
+                                  PRInt64 aEndOffset,
                                   bool aCachedDataOnly)
 {
-  MediaResource* resource = mDecoder->GetResource();
+  nsMediaStream* stream = mDecoder->GetCurrentStream();
   nsAutoOggSyncState sync;
 
   
@@ -865,13 +663,11 @@ int64_t nsOggReader::RangeEndTime(int64_t aStartOffset,
   
   
   const int step = 5000;
-  const int maxOggPageSize = 65306;
-  int64_t readStartOffset = aEndOffset;
-  int64_t readLimitOffset = aEndOffset;
-  int64_t readHead = aEndOffset;
-  int64_t endTime = -1;
-  uint32_t checksumAfterSeek = 0;
-  uint32_t prevChecksumAfterSeek = 0;
+  PRInt64 readStartOffset = aEndOffset;
+  PRInt64 readHead = aEndOffset;
+  PRInt64 endTime = -1;
+  PRUint32 checksumAfterSeek = 0;
+  PRUint32 prevChecksumAfterSeek = 0;
   bool mustBackOff = false;
   while (true) {
     ogg_page page;    
@@ -888,41 +684,32 @@ int64_t nsOggReader::RangeEndTime(int64_t aStartOffset,
         prevChecksumAfterSeek = checksumAfterSeek;
         checksumAfterSeek = 0;
         ogg_sync_reset(&sync.mState);
-        readStartOffset = NS_MAX(static_cast<int64_t>(0), readStartOffset - step);
-        
-        
-        
-        
-        readLimitOffset = NS_MIN(readLimitOffset,
-                                 readStartOffset + maxOggPageSize);
+        readStartOffset = NS_MAX(static_cast<PRInt64>(0), readStartOffset - step);
         readHead = NS_MAX(aStartOffset, readStartOffset);
       }
 
-      int64_t limit = NS_MIN(static_cast<int64_t>(PR_UINT32_MAX),
+      PRInt64 limit = NS_MIN(static_cast<PRInt64>(PR_UINT32_MAX),
                              aEndOffset - readHead);
-      limit = NS_MAX(static_cast<int64_t>(0), limit);
-      limit = NS_MIN(limit, static_cast<int64_t>(step));
-      uint32_t bytesToRead = static_cast<uint32_t>(limit);
-      uint32_t bytesRead = 0;
+      limit = NS_MAX(static_cast<PRInt64>(0), limit);
+      limit = NS_MIN(limit, static_cast<PRInt64>(step));
+      PRUint32 bytesToRead = static_cast<PRUint32>(limit);
+      PRUint32 bytesRead = 0;
       char* buffer = ogg_sync_buffer(&sync.mState, bytesToRead);
       NS_ASSERTION(buffer, "Must have buffer");
       nsresult res;
       if (aCachedDataOnly) {
-        res = resource->ReadFromCache(buffer, readHead, bytesToRead);
+        res = stream->ReadFromCache(buffer, readHead, bytesToRead);
         NS_ENSURE_SUCCESS(res, -1);
         bytesRead = bytesToRead;
       } else {
         NS_ASSERTION(readHead < aEndOffset,
-                     "resource pos must be before range end");
-        res = resource->Seek(nsISeekableStream::NS_SEEK_SET, readHead);
+                     "Stream pos must be before range end");
+        res = stream->Seek(nsISeekableStream::NS_SEEK_SET, readHead);
         NS_ENSURE_SUCCESS(res, -1);
-        res = resource->Read(buffer, bytesToRead, &bytesRead);
+        res = stream->Read(buffer, bytesToRead, &bytesRead);
         NS_ENSURE_SUCCESS(res, -1);
       }
       readHead += bytesRead;
-      if (readHead > readLimitOffset) {
-        mustBackOff = true;
-      }
 
       
       
@@ -939,7 +726,7 @@ int64_t nsOggReader::RangeEndTime(int64_t aStartOffset,
       continue;
     }
 
-    uint32_t checksum = GetChecksum(&page);
+    PRUint32 checksum = GetChecksum(&page);
     if (checksumAfterSeek == 0) {
       
       
@@ -956,10 +743,10 @@ int64_t nsOggReader::RangeEndTime(int64_t aStartOffset,
       continue;
     }
 
-    int64_t granulepos = ogg_page_granulepos(&page);
+    PRInt64 granulepos = ogg_page_granulepos(&page);
     int serial = ogg_page_serialno(&page);
 
-    nsOggCodecState* codecState = nullptr;
+    nsOggCodecState* codecState = nsnull;
     mCodecStates.Get(serial, &codecState);
 
     if (!codecState) {
@@ -970,7 +757,7 @@ int64_t nsOggReader::RangeEndTime(int64_t aStartOffset,
       break;
     }
 
-    int64_t t = codecState->Time(granulepos);
+    PRInt64 t = codecState->Time(granulepos);
     if (t != -1) {
       endTime = t;
     }
@@ -982,19 +769,19 @@ int64_t nsOggReader::RangeEndTime(int64_t aStartOffset,
 nsresult nsOggReader::GetSeekRanges(nsTArray<SeekRange>& aRanges)
 {
   NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
-  nsTArray<MediaByteRange> cached;
-  nsresult res = mDecoder->GetResource()->GetCachedRanges(cached);
+  nsTArray<nsByteRange> cached;
+  nsresult res = mDecoder->GetCurrentStream()->GetCachedRanges(cached);
   NS_ENSURE_SUCCESS(res, res);
 
-  for (uint32_t index = 0; index < cached.Length(); index++) {
-    MediaByteRange& range = cached[index];
-    int64_t startTime = -1;
-    int64_t endTime = -1;
+  for (PRUint32 index = 0; index < cached.Length(); index++) {
+    nsByteRange& range = cached[index];
+    PRInt64 startTime = -1;
+    PRInt64 endTime = -1;
     if (NS_FAILED(ResetDecode())) {
       return NS_ERROR_FAILURE;
     }
-    int64_t startOffset = range.mStart;
-    int64_t endOffset = range.mEnd;
+    PRInt64 startOffset = range.mStart;
+    PRInt64 endOffset = range.mEnd;
     startTime = RangeStartTime(startOffset);
     if (startTime != -1 &&
         ((endTime = RangeEndTime(endOffset)) != -1))
@@ -1015,17 +802,17 @@ nsresult nsOggReader::GetSeekRanges(nsTArray<SeekRange>& aRanges)
 
 nsOggReader::SeekRange
 nsOggReader::SelectSeekRange(const nsTArray<SeekRange>& ranges,
-                             int64_t aTarget,
-                             int64_t aStartTime,
-                             int64_t aEndTime,
+                             PRInt64 aTarget,
+                             PRInt64 aStartTime,
+                             PRInt64 aEndTime,
                              bool aExact)
 {
   NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
-  int64_t so = 0;
-  int64_t eo = mDecoder->GetResource()->GetLength();
-  int64_t st = aStartTime;
-  int64_t et = aEndTime;
-  for (uint32_t i = 0; i < ranges.Length(); i++) {
+  PRInt64 so = 0;
+  PRInt64 eo = mDecoder->GetCurrentStream()->GetLength();
+  PRInt64 st = aStartTime;
+  PRInt64 et = aEndTime;
+  for (PRUint32 i = 0; i < ranges.Length(); i++) {
     const SeekRange &r = ranges[i];
     if (r.mTimeStart < aTarget) {
       so = r.mOffsetStart;
@@ -1047,26 +834,31 @@ nsOggReader::SelectSeekRange(const nsTArray<SeekRange>& ranges,
   return SeekRange(so, eo, st, et);
 }
 
-nsOggReader::IndexedSeekResult nsOggReader::RollbackIndexedSeek(int64_t aOffset)
+nsOggReader::IndexedSeekResult nsOggReader::RollbackIndexedSeek(PRInt64 aOffset)
 {
   mSkeletonState->Deactivate();
-  MediaResource* resource = mDecoder->GetResource();
-  NS_ENSURE_TRUE(resource != nullptr, SEEK_FATAL_ERROR);
-  nsresult res = resource->Seek(nsISeekableStream::NS_SEEK_SET, aOffset);
+  nsMediaStream* stream = mDecoder->GetCurrentStream();
+  NS_ENSURE_TRUE(stream != nsnull, SEEK_FATAL_ERROR);
+  nsresult res = stream->Seek(nsISeekableStream::NS_SEEK_SET, aOffset);
   NS_ENSURE_SUCCESS(res, SEEK_FATAL_ERROR);
   return SEEK_INDEX_FAIL;
 }
  
-nsOggReader::IndexedSeekResult nsOggReader::SeekToKeyframeUsingIndex(int64_t aTarget)
+nsOggReader::IndexedSeekResult nsOggReader::SeekToKeyframeUsingIndex(PRInt64 aTarget)
 {
-  MediaResource* resource = mDecoder->GetResource();
-  NS_ENSURE_TRUE(resource != nullptr, SEEK_FATAL_ERROR);
+  nsMediaStream* stream = mDecoder->GetCurrentStream();
+  NS_ENSURE_TRUE(stream != nsnull, SEEK_FATAL_ERROR);
   if (!HasSkeleton() || !mSkeletonState->HasIndex()) {
     return SEEK_INDEX_FAIL;
   }
   
-  nsAutoTArray<uint32_t, 2> tracks;
-  BuildSerialList(tracks);
+  nsAutoTArray<PRUint32, 2> tracks;
+  if (HasVideo()) {
+    tracks.AppendElement(mTheoraState->mSerial);
+  }
+  if (HasAudio()) {
+    tracks.AppendElement(mVorbisState->mSerial);
+  }
   nsSkeletonState::nsSeekTarget keyframe;
   if (NS_FAILED(mSkeletonState->IndexedSeekTarget(aTarget,
                                                   tracks,
@@ -1077,10 +869,10 @@ nsOggReader::IndexedSeekResult nsOggReader::SeekToKeyframeUsingIndex(int64_t aTa
   }
 
   
-  int64_t tell = resource->Tell();
+  PRInt64 tell = stream->Tell();
 
   
-  if (keyframe.mKeyPoint.mOffset > resource->GetLength() ||
+  if (keyframe.mKeyPoint.mOffset > stream->GetLength() ||
       keyframe.mKeyPoint.mOffset < 0)
   {
     
@@ -1088,7 +880,7 @@ nsOggReader::IndexedSeekResult nsOggReader::SeekToKeyframeUsingIndex(int64_t aTa
   }
   LOG(PR_LOG_DEBUG, ("Seeking using index to keyframe at offset %lld\n",
                      keyframe.mKeyPoint.mOffset));
-  nsresult res = resource->Seek(nsISeekableStream::NS_SEEK_SET,
+  nsresult res = stream->Seek(nsISeekableStream::NS_SEEK_SET,
                               keyframe.mKeyPoint.mOffset);
   NS_ENSURE_SUCCESS(res, SEEK_FATAL_ERROR);
   mPageOffset = keyframe.mKeyPoint.mOffset;
@@ -1101,11 +893,11 @@ nsOggReader::IndexedSeekResult nsOggReader::SeekToKeyframeUsingIndex(int64_t aTa
   
   ogg_page page;
   int skippedBytes = 0;
-  PageSyncResult syncres = PageSync(resource,
+  PageSyncResult syncres = PageSync(stream,
                                     &mOggState,
                                     false,
                                     mPageOffset,
-                                    resource->GetLength(),
+                                    stream->GetLength(),
                                     &page,
                                     skippedBytes);
   NS_ENSURE_TRUE(syncres != PAGE_SYNC_ERROR, SEEK_FATAL_ERROR);
@@ -1114,13 +906,13 @@ nsOggReader::IndexedSeekResult nsOggReader::SeekToKeyframeUsingIndex(int64_t aTa
                        "or sync error after seek"));
     return RollbackIndexedSeek(tell);
   }
-  uint32_t serial = ogg_page_serialno(&page);
+  PRUint32 serial = ogg_page_serialno(&page);
   if (serial != keyframe.mSerial) {
     
     
     return RollbackIndexedSeek(tell);
   }
-  nsOggCodecState* codecState = nullptr;
+  nsOggCodecState* codecState = nsnull;
   mCodecStates.Get(serial, &codecState);
   if (codecState &&
       codecState->mActive &&
@@ -1134,65 +926,59 @@ nsOggReader::IndexedSeekResult nsOggReader::SeekToKeyframeUsingIndex(int64_t aTa
   return SEEK_OK;
 }
 
-nsresult nsOggReader::SeekInBufferedRange(int64_t aTarget,
-                                          int64_t aAdjustedTarget,
-                                          int64_t aStartTime,
-                                          int64_t aEndTime,
+nsresult nsOggReader::SeekInBufferedRange(PRInt64 aTarget,
+                                          PRInt64 aStartTime,
+                                          PRInt64 aEndTime,
                                           const nsTArray<SeekRange>& aRanges,
                                           const SeekRange& aRange)
 {
   LOG(PR_LOG_DEBUG, ("%p Seeking in buffered data to %lld using bisection search", mDecoder, aTarget));
-  nsresult res = NS_OK;
-  if (HasVideo() || aAdjustedTarget >= aTarget) {
-    
-    
-    nsresult res = SeekBisection(aTarget, aRange, 0);
-    if (NS_FAILED(res) || !HasVideo()) {
-      return res;
-    }
 
-    
-    
-    bool eof;
-    do {
-      bool skip = false;
-      eof = !DecodeVideoFrame(skip, 0);
-      {
-        ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-        if (mDecoder->GetDecodeState() == nsBuiltinDecoderStateMachine::DECODER_STATE_SHUTDOWN) {
-          return NS_ERROR_FAILURE;
-        }
-      }
-    } while (!eof &&
-             mVideoQueue.GetSize() == 0);
-
-    VideoData* video = mVideoQueue.PeekFront();
-    if (video && !video->mKeyframe) {
-      
-      
-      NS_ASSERTION(video->mTimecode != -1, "Must have a granulepos");
-      int shift = mTheoraState->mInfo.keyframe_granule_shift;
-      int64_t keyframeGranulepos = (video->mTimecode >> shift) << shift;
-      int64_t keyframeTime = mTheoraState->StartTime(keyframeGranulepos);
-      SEEK_LOG(PR_LOG_DEBUG, ("Keyframe for %lld is at %lld, seeking back to it",
-                              video->mTime, keyframeTime));
-      aAdjustedTarget = NS_MIN(aAdjustedTarget, keyframeTime);
-    }
+  
+  
+  nsresult res = SeekBisection(aTarget, aRange, 0);
+  if (NS_FAILED(res) || !HasVideo()) {
+    return res;
   }
-  if (aAdjustedTarget < aTarget) {
+
+  
+  
+  bool eof;
+  do {
+    bool skip = false;
+    eof = !DecodeVideoFrame(skip, 0);
+    {
+      ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+      if (mDecoder->GetDecodeState() == nsBuiltinDecoderStateMachine::DECODER_STATE_SHUTDOWN) {
+        return NS_ERROR_FAILURE;
+      }
+    }
+  } while (!eof &&
+           mVideoQueue.GetSize() == 0);
+
+  VideoData* video = mVideoQueue.PeekFront();
+  if (video && !video->mKeyframe) {
+    
+    
+    NS_ASSERTION(video->mTimecode != -1, "Must have a granulepos");
+    int shift = mTheoraState->mInfo.keyframe_granule_shift;
+    PRInt64 keyframeGranulepos = (video->mTimecode >> shift) << shift;
+    PRInt64 keyframeTime = mTheoraState->StartTime(keyframeGranulepos);
+    SEEK_LOG(PR_LOG_DEBUG, ("Keyframe for %lld is at %lld, seeking back to it",
+                            video->mTime, keyframeTime));
     SeekRange k = SelectSeekRange(aRanges,
-                                  aAdjustedTarget,
+                                  keyframeTime,
                                   aStartTime,
                                   aEndTime,
                                   false);
-    res = SeekBisection(aAdjustedTarget, k, SEEK_FUZZ_USECS);
+    res = SeekBisection(keyframeTime, k, SEEK_FUZZ_USECS);
   }
   return res;
 }
 
-nsresult nsOggReader::SeekInUnbuffered(int64_t aTarget,
-                                       int64_t aStartTime,
-                                       int64_t aEndTime,
+nsresult nsOggReader::SeekInUnbuffered(PRInt64 aTarget,
+                                       PRInt64 aStartTime,
+                                       PRInt64 aEndTime,
                                        const nsTArray<SeekRange>& aRanges)
 {
   LOG(PR_LOG_DEBUG, ("%p Seeking in unbuffered data to %lld using bisection search", mDecoder, aTarget));
@@ -1209,44 +995,36 @@ nsresult nsOggReader::SeekInUnbuffered(int64_t aTarget,
   
   
   
-  int64_t keyframeOffsetMs = 0;
+  PRInt64 keyframeOffsetMs = 0;
   if (HasVideo() && mTheoraState) {
     keyframeOffsetMs = mTheoraState->MaxKeyframeOffset();
   }
-  
-  if (HasAudio() && mOpusState) {
-    keyframeOffsetMs = NS_MAX(keyframeOffsetMs, SEEK_OPUS_PREROLL);
-  }
-  int64_t seekTarget = NS_MAX(aStartTime, aTarget - keyframeOffsetMs);
+  PRInt64 seekTarget = NS_MAX(aStartTime, aTarget - keyframeOffsetMs);
   
   
   SeekRange k = SelectSeekRange(aRanges, seekTarget, aStartTime, aEndTime, false);
   return SeekBisection(seekTarget, k, SEEK_FUZZ_USECS);
 }
 
-nsresult nsOggReader::Seek(int64_t aTarget,
-                           int64_t aStartTime,
-                           int64_t aEndTime,
-                           int64_t aCurrentTime)
+nsresult nsOggReader::Seek(PRInt64 aTarget,
+                           PRInt64 aStartTime,
+                           PRInt64 aEndTime,
+                           PRInt64 aCurrentTime)
 {
   NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
   LOG(PR_LOG_DEBUG, ("%p About to seek to %lld", mDecoder, aTarget));
   nsresult res;
-  MediaResource* resource = mDecoder->GetResource();
-  NS_ENSURE_TRUE(resource != nullptr, NS_ERROR_FAILURE);
-  int64_t adjustedTarget = aTarget;
-  if (HasAudio() && mOpusState){
-    adjustedTarget = NS_MAX(aStartTime, aTarget - SEEK_OPUS_PREROLL);
-  }
+  nsMediaStream* stream = mDecoder->GetCurrentStream();
+  NS_ENSURE_TRUE(stream != nsnull, NS_ERROR_FAILURE);
 
-  if (adjustedTarget == aStartTime) {
+  if (aTarget == aStartTime) {
     
     
-    res = resource->Seek(nsISeekableStream::NS_SEEK_SET, 0);
+    res = stream->Seek(nsISeekableStream::NS_SEEK_SET, 0);
     NS_ENSURE_SUCCESS(res,res);
 
     mPageOffset = 0;
-    res = ResetDecode(true);
+    res = ResetDecode();
     NS_ENSURE_SUCCESS(res,res);
 
     NS_ASSERTION(aStartTime != -1, "mStartTime should be known");
@@ -1255,10 +1033,7 @@ nsresult nsOggReader::Seek(int64_t aTarget,
       mDecoder->UpdatePlaybackPosition(aStartTime);
     }
   } else {
-    
-    
-    
-    IndexedSeekResult sres = SeekToKeyframeUsingIndex(adjustedTarget);
+    IndexedSeekResult sres = SeekToKeyframeUsingIndex(aTarget);
     NS_ENSURE_TRUE(sres != SEEK_FATAL_ERROR, NS_ERROR_FAILURE);
     if (sres == SEEK_INDEX_FAIL) {
       
@@ -1274,7 +1049,7 @@ nsresult nsOggReader::Seek(int64_t aTarget,
       if (!r.IsNull()) {
         
         
-        res = SeekInBufferedRange(aTarget, adjustedTarget, aStartTime, aEndTime, ranges, r);
+        res = SeekInBufferedRange(aTarget, aStartTime, aEndTime, ranges, r);
         NS_ENSURE_SUCCESS(res,res);
       } else {
         
@@ -1294,19 +1069,19 @@ nsresult nsOggReader::Seek(int64_t aTarget,
 
 
 static PageSyncResult
-PageSync(MediaResource* aResource,
+PageSync(nsMediaStream* aStream,
          ogg_sync_state* aState,
          bool aCachedDataOnly,
-         int64_t aOffset,
-         int64_t aEndOffset,
+         PRInt64 aOffset,
+         PRInt64 aEndOffset,
          ogg_page* aPage,
          int& aSkippedBytes)
 {
   aSkippedBytes = 0;
   
   int ret = 0;
-  uint32_t bytesRead = 0;
-  int64_t readHead = aOffset;
+  PRUint32 bytesRead = 0;
+  PRInt64 readHead = aOffset;
   while (ret <= 0) {
     ret = ogg_sync_pageseek(aState, aPage);
     if (ret == 0) {
@@ -1314,7 +1089,7 @@ PageSync(MediaResource* aResource,
       NS_ASSERTION(buffer, "Must have a buffer");
 
       
-      int64_t bytesToRead = NS_MIN(static_cast<int64_t>(PAGE_STEP),
+      PRInt64 bytesToRead = NS_MIN(static_cast<PRInt64>(PAGE_STEP),
                                    aEndOffset - readHead);
       NS_ASSERTION(bytesToRead <= PR_UINT32_MAX, "bytesToRead range check");
       if (bytesToRead <= 0) {
@@ -1322,16 +1097,16 @@ PageSync(MediaResource* aResource,
       }
       nsresult rv = NS_OK;
       if (aCachedDataOnly) {
-        rv = aResource->ReadFromCache(buffer, readHead,
-                                      static_cast<uint32_t>(bytesToRead));
+        rv = aStream->ReadFromCache(buffer, readHead,
+                                    static_cast<PRUint32>(bytesToRead));
         NS_ENSURE_SUCCESS(rv,PAGE_SYNC_ERROR);
-        bytesRead = static_cast<uint32_t>(bytesToRead);
+        bytesRead = static_cast<PRUint32>(bytesToRead);
       } else {
-        rv = aResource->Seek(nsISeekableStream::NS_SEEK_SET, readHead);
+        rv = aStream->Seek(nsISeekableStream::NS_SEEK_SET, readHead);
         NS_ENSURE_SUCCESS(rv,PAGE_SYNC_ERROR);
-        rv = aResource->Read(buffer,
-                             static_cast<uint32_t>(bytesToRead),
-                             &bytesRead);
+        rv = aStream->Read(buffer,
+                           static_cast<PRUint32>(bytesToRead),
+                           &bytesRead);
         NS_ENSURE_SUCCESS(rv,PAGE_SYNC_ERROR);
       }
       if (bytesRead == 0 && NS_SUCCEEDED(rv)) {
@@ -1358,19 +1133,19 @@ PageSync(MediaResource* aResource,
   return PAGE_SYNC_OK;
 }
 
-nsresult nsOggReader::SeekBisection(int64_t aTarget,
+nsresult nsOggReader::SeekBisection(PRInt64 aTarget,
                                     const SeekRange& aRange,
-                                    uint32_t aFuzz)
+                                    PRUint32 aFuzz)
 {
   NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
   nsresult res;
-  MediaResource* resource = mDecoder->GetResource();
+  nsMediaStream* stream = mDecoder->GetCurrentStream();
 
   if (aTarget == aRange.mTimeStart) {
     if (NS_FAILED(ResetDecode())) {
       return NS_ERROR_FAILURE;
     }
-    res = resource->Seek(nsISeekableStream::NS_SEEK_SET, 0);
+    res = stream->Seek(nsISeekableStream::NS_SEEK_SET, 0);
     NS_ENSURE_SUCCESS(res,res);
     mPageOffset = 0;
     return NS_OK;
@@ -1385,12 +1160,12 @@ nsresult nsOggReader::SeekBisection(int64_t aTarget,
   ogg_int64_t endTime = aRange.mTimeEnd;
 
   ogg_int64_t seekTarget = aTarget;
-  int64_t seekLowerBound = NS_MAX(static_cast<int64_t>(0), aTarget - aFuzz);
+  PRInt64 seekLowerBound = NS_MAX(static_cast<PRInt64>(0), aTarget - aFuzz);
   int hops = 0;
-  DebugOnly<ogg_int64_t> previousGuess = -1;
+  ogg_int64_t previousGuess = -1;
   int backsteps = 0;
   const int maxBackStep = 10;
-  NS_ASSERTION(static_cast<uint64_t>(PAGE_STEP) * pow(2.0, maxBackStep) < PR_INT32_MAX,
+  NS_ASSERTION(static_cast<PRUint64>(PAGE_STEP) * pow(2.0, maxBackStep) < PR_INT32_MAX,
                "Backstep calculation must not overflow");
 
   
@@ -1439,7 +1214,7 @@ nsresult nsOggReader::SeekBisection(int64_t aTarget,
         
         
         SEEK_LOG(PR_LOG_DEBUG, ("Backing off %d bytes, backsteps=%d",
-          static_cast<int32_t>(PAGE_STEP * pow(2.0, backsteps)), backsteps));
+          static_cast<PRInt32>(PAGE_STEP * pow(2.0, backsteps)), backsteps));
         guess -= PAGE_STEP * static_cast<ogg_int64_t>(pow(2.0, backsteps));
 
         if (guess <= startOffset) {
@@ -1477,7 +1252,7 @@ nsresult nsOggReader::SeekBisection(int64_t aTarget,
       
       
       
-      PageSyncResult res = PageSync(resource,
+      PageSyncResult res = PageSync(stream,
                                     &mOggState,
                                     false,
                                     guess,
@@ -1507,8 +1282,8 @@ nsresult nsOggReader::SeekBisection(int64_t aTarget,
       ogg_int64_t videoTime = -1;
       do {
         
-        uint32_t serial = ogg_page_serialno(&page);
-        nsOggCodecState* codecState = nullptr;
+        PRUint32 serial = ogg_page_serialno(&page);
+        nsOggCodecState* codecState = nsnull;
         mCodecStates.Get(serial, &codecState);
         if (codecState && codecState->mActive) {
           int ret = ogg_stream_pagein(&codecState->mState, &page);
@@ -1517,14 +1292,11 @@ nsresult nsOggReader::SeekBisection(int64_t aTarget,
 
         ogg_int64_t granulepos = ogg_page_granulepos(&page);
 
-        if (HasAudio() && granulepos > 0 && audioTime == -1) {
-          if (mVorbisState && serial == mVorbisState->mSerial) {
-            audioTime = mVorbisState->Time(granulepos);
-#ifdef MOZ_OPUS
-          } else if (mOpusState && serial == mOpusState->mSerial) {
-            audioTime = mOpusState->Time(granulepos);
-#endif
-          }
+        if (HasAudio() &&
+            granulepos > 0 &&
+            serial == mVorbisState->mSerial &&
+            audioTime == -1) {
+          audioTime = mVorbisState->Time(granulepos);
         }
         
         if (HasVideo() &&
@@ -1543,8 +1315,8 @@ nsresult nsOggReader::SeekBisection(int64_t aTarget,
           break;
         }
         
-      } while ((HasAudio() && audioTime == -1) ||
-               (HasVideo() && videoTime == -1));
+      } while ((mVorbisState && audioTime == -1) ||
+               (mTheoraState && videoTime == -1));
 
       NS_ASSERTION(mPageOffset <= endOffset, "Page read cursor should be inside range");
 
@@ -1580,7 +1352,7 @@ nsresult nsOggReader::SeekBisection(int64_t aTarget,
       
       SEEK_LOG(PR_LOG_DEBUG, ("Terminating seek at offset=%lld", startOffset));
       NS_ASSERTION(startTime < aTarget, "Start time must always be less than target");
-      res = resource->Seek(nsISeekableStream::NS_SEEK_SET, startOffset);
+      res = stream->Seek(nsISeekableStream::NS_SEEK_SET, startOffset);
       NS_ENSURE_SUCCESS(res,res);
       mPageOffset = startOffset;
       if (NS_FAILED(ResetDecode())) {
@@ -1592,7 +1364,7 @@ nsresult nsOggReader::SeekBisection(int64_t aTarget,
     SEEK_LOG(PR_LOG_DEBUG, ("Time at offset %lld is %lld", guess, granuleTime));
     if (granuleTime < seekTarget && granuleTime > seekLowerBound) {
       
-      res = resource->Seek(nsISeekableStream::NS_SEEK_SET, pageOffset);
+      res = stream->Seek(nsISeekableStream::NS_SEEK_SET, pageOffset);
       NS_ENSURE_SUCCESS(res,res);
       mPageOffset = pageOffset;
       if (NS_FAILED(ResetDecode())) {
@@ -1624,19 +1396,9 @@ nsresult nsOggReader::SeekBisection(int64_t aTarget,
   return NS_OK;
 }
 
-nsresult nsOggReader::GetBuffered(nsTimeRanges* aBuffered, int64_t aStartTime)
+nsresult nsOggReader::GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime)
 {
-#ifdef OGG_ESTIMATE_BUFFERED
-  MediaResource* stream = mDecoder->GetResource();
-  int64_t durationUs = 0;
-  {
-    ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-    durationUs = mDecoder->GetStateMachine()->GetDuration();
-  }
-  GetEstimatedBufferedTimeRanges(stream, durationUs, aBuffered);
   
-  return NS_OK;
-#else
   
   
   
@@ -1645,9 +1407,9 @@ nsresult nsOggReader::GetBuffered(nsTimeRanges* aBuffered, int64_t aStartTime)
     return NS_OK;
   }
 
-  MediaResource* resource = mDecoder->GetResource();
-  nsTArray<MediaByteRange> ranges;
-  nsresult res = resource->GetCachedRanges(ranges);
+  nsMediaStream* stream = mDecoder->GetCurrentStream();
+  nsTArray<nsByteRange> ranges;
+  nsresult res = stream->GetCachedRanges(ranges);
   NS_ENSURE_SUCCESS(res, res);
 
   
@@ -1656,16 +1418,16 @@ nsresult nsOggReader::GetBuffered(nsTimeRanges* aBuffered, int64_t aStartTime)
   
   
   nsAutoOggSyncState sync;
-  for (uint32_t index = 0; index < ranges.Length(); index++) {
+  for (PRUint32 index = 0; index < ranges.Length(); index++) {
     
-    int64_t startOffset = ranges[index].mStart;
-    int64_t endOffset = ranges[index].mEnd;
+    PRInt64 startOffset = ranges[index].mStart;
+    PRInt64 endOffset = ranges[index].mEnd;
 
     
     
     
     
-    int64_t startTime = (startOffset == 0) ? aStartTime : -1;
+    PRInt64 startTime = (startOffset == 0) ? aStartTime : -1;
 
     
     
@@ -1673,8 +1435,8 @@ nsresult nsOggReader::GetBuffered(nsTimeRanges* aBuffered, int64_t aStartTime)
     ogg_sync_reset(&sync.mState);
     while (startTime == -1) {
       ogg_page page;
-      int32_t discard;
-      PageSyncResult res = PageSync(resource,
+      PRInt32 discard;
+      PageSyncResult res = PageSync(stream,
                                     &sync.mState,
                                     true,
                                     startOffset,
@@ -1689,7 +1451,7 @@ nsresult nsOggReader::GetBuffered(nsTimeRanges* aBuffered, int64_t aStartTime)
         break;
       }
 
-      int64_t granulepos = ogg_page_granulepos(&page);
+      PRInt64 granulepos = ogg_page_granulepos(&page);
       if (granulepos == -1) {
         
         
@@ -1697,13 +1459,9 @@ nsresult nsOggReader::GetBuffered(nsTimeRanges* aBuffered, int64_t aStartTime)
         continue;
       }
 
-      uint32_t serial = ogg_page_serialno(&page);
+      PRUint32 serial = ogg_page_serialno(&page);
       if (mVorbisState && serial == mVorbisSerial) {
         startTime = nsVorbisState::Time(&mVorbisInfo, granulepos);
-        NS_ASSERTION(startTime > 0, "Must have positive start time");
-      }
-      else if (mOpusState && serial == mOpusSerial) {
-        startTime = nsOpusState::Time(mOpusPreSkip, granulepos);
         NS_ASSERTION(startTime > 0, "Must have positive start time");
       }
       else if (mTheoraState && serial == mTheoraSerial) {
@@ -1719,16 +1477,14 @@ nsresult nsOggReader::GetBuffered(nsTimeRanges* aBuffered, int64_t aStartTime)
       else {
         
         
-        
-        
-        return NS_OK;
+        return PAGE_SYNC_ERROR;
       }
     }
 
     if (startTime != -1) {
       
       
-      int64_t endTime = RangeEndTime(startOffset, endOffset, true);
+      PRInt64 endTime = RangeEndTime(startOffset, endOffset, true);
       if (endTime != -1) {
         aBuffered->Add((startTime - aStartTime) / static_cast<double>(USECS_PER_S),
                        (endTime - aStartTime) / static_cast<double>(USECS_PER_S));
@@ -1737,13 +1493,12 @@ nsresult nsOggReader::GetBuffered(nsTimeRanges* aBuffered, int64_t aStartTime)
   }
 
   return NS_OK;
-#endif
 }
 
-bool nsOggReader::IsKnownStream(uint32_t aSerial)
+bool nsOggReader::IsKnownStream(PRUint32 aSerial)
 {
-  for (uint32_t i = 0; i < mKnownStreams.Length(); i++) {
-    uint32_t serial = mKnownStreams[i];
+  for (PRUint32 i = 0; i < mKnownStreams.Length(); i++) {
+    PRUint32 serial = mKnownStreams[i];
     if (serial == aSerial) {
       return true;
     }

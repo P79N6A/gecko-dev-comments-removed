@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_TPRIORITY_QUEUE_H_
 #define NS_TPRIORITY_QUEUE_H_
 
@@ -79,7 +111,7 @@ public:
   {
     T* elem = mElements.AppendElement(aElement);
     if (!elem)
-      return false; 
+      return PR_FALSE; 
 
     
     size_type i = mElements.Length() - 1;
@@ -92,7 +124,7 @@ public:
       i = parent;
     }
 
-    return true;
+    return PR_TRUE;
   }
 
   

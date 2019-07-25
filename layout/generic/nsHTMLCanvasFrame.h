@@ -5,27 +5,54 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsHTMLCanvasFrame_h___
 #define nsHTMLCanvasFrame_h___
 
-#include "nsContainerFrame.h"
+#include "nsSplittableFrame.h"
 #include "nsString.h"
 #include "nsAString.h"
 #include "nsIIOService.h"
-
-namespace mozilla {
-namespace layers {
-class Layer;
-class LayerManager;
-}
-}
+#include "Layers.h"
+#include "ImageLayers.h"
 
 class nsPresContext;
 class nsDisplayItem;
 
 nsIFrame* NS_NewHTMLCanvasFrame (nsIPresShell* aPresShell, nsStyleContext* aContext);
 
-class nsHTMLCanvasFrame : public nsContainerFrame
+class nsHTMLCanvasFrame : public nsSplittableFrame
 {
 public:
   typedef mozilla::layers::Layer Layer;
@@ -33,7 +60,7 @@ public:
 
   NS_DECL_FRAMEARENA_HELPERS
 
-  nsHTMLCanvasFrame(nsStyleContext* aContext) : nsContainerFrame(aContext) {}
+  nsHTMLCanvasFrame(nsStyleContext* aContext) : nsSplittableFrame(aContext) {}
 
   NS_IMETHOD Init(nsIContent* aContent,
                   nsIFrame*   aParent,
@@ -57,22 +84,22 @@ public:
   virtual nsSize ComputeSize(nsRenderingContext *aRenderingContext,
                              nsSize aCBSize, nscoord aAvailableWidth,
                              nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                             uint32_t aFlags) MOZ_OVERRIDE;
+                             bool aShrinkWrap);
 
   NS_IMETHOD Reflow(nsPresContext*          aPresContext,
                     nsHTMLReflowMetrics&     aDesiredSize,
                     const nsHTMLReflowState& aReflowState,
                     nsReflowStatus&          aStatus);
-
+  
   nsRect GetInnerArea() const;
 
 #ifdef ACCESSIBILITY
-  virtual already_AddRefed<Accessible> CreateAccessible();
+  virtual already_AddRefed<nsAccessible> CreateAccessible();
 #endif
 
   virtual nsIAtom* GetType() const;
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     return nsSplittableFrame::IsFrameOfType(aFlags & ~(nsIFrame::eReplaced));
   }
@@ -80,11 +107,6 @@ public:
 #ifdef DEBUG
   NS_IMETHOD GetFrameName(nsAString& aResult) const;
 #endif
-
-  
-  virtual nsIFrame* GetContentInsertionFrame() {
-    return GetFirstPrincipalChild()->GetContentInsertionFrame();
-  }
 
 protected:
   virtual ~nsHTMLCanvasFrame();

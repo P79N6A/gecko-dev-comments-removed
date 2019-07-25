@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "PerfMeasurement.h"
 #include "jsperf.h"
 #include "mozilla/ModuleUtils.h"
@@ -74,12 +107,16 @@ NS_IMETHODIMP
 Module::Call(nsIXPConnectWrappedNative* wrapper,
              JSContext* cx,
              JSObject* obj,
-             uint32_t argc,
+             PRUint32 argc,
              jsval* argv,
              jsval* vp,
              bool* _retval)
 {
-  JSObject* global = JS_GetGlobalForScopeChain(cx);
+  JSObject* scope = JS_GetScopeChain(cx);
+  if (!scope)
+    return NS_ERROR_NOT_AVAILABLE;
+
+  JSObject* global = JS_GetGlobalForObject(cx, scope);
   if (!global)
     return NS_ERROR_NOT_AVAILABLE;
 

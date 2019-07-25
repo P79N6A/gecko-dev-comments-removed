@@ -3,14 +3,48 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsAccTreeWalker_H_
 #define _nsAccTreeWalker_H_
 
 #include "nsAutoPtr.h"
 #include "nsIContent.h"
+#include "nsIWeakReference.h"
 
-class Accessible;
-class DocAccessible;
+class nsAccessible;
 struct WalkState;
 
 
@@ -19,7 +53,7 @@ struct WalkState;
 class nsAccTreeWalker
 {
 public:
-  nsAccTreeWalker(DocAccessible* aDoc, nsIContent* aNode, 
+  nsAccTreeWalker(nsIWeakReference *aShell, nsIContent *aNode, 
                   bool aWalkAnonymousContent, bool aWalkCache = false);
   virtual ~nsAccTreeWalker();
 
@@ -30,7 +64,7 @@ public:
 
 
 
-  Accessible* NextChild()
+  inline nsAccessible* NextChild()
   {
     return NextChildInternal(false);
   }
@@ -44,7 +78,7 @@ private:
 
 
 
-  Accessible* NextChildInternal(bool aNoWalkUp);
+  nsAccessible* NextChildInternal(bool aNoWalkUp);
 
   
 
@@ -59,8 +93,8 @@ private:
 
   void PopState();
 
-  DocAccessible* mDoc;
-  int32_t mChildFilter;
+  nsCOMPtr<nsIWeakReference> mWeakShell;
+  PRInt32 mChildFilter;
   bool mWalkCache;
   WalkState* mState;
 };

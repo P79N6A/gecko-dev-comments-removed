@@ -4,6 +4,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsFrame.h"
 #include "nsPresContext.h"
@@ -36,9 +72,9 @@ nsMathMLmunderoverFrame::~nsMathMLmunderoverFrame()
 }
 
 NS_IMETHODIMP
-nsMathMLmunderoverFrame::AttributeChanged(int32_t         aNameSpaceID,
+nsMathMLmunderoverFrame::AttributeChanged(PRInt32         aNameSpaceID,
                                           nsIAtom*        aAttribute,
-                                          int32_t         aModType)
+                                          PRInt32         aModType)
 {
   if (nsGkAtoms::accent_ == aAttribute ||
       nsGkAtoms::accentunder_ == aAttribute) {
@@ -52,8 +88,8 @@ nsMathMLmunderoverFrame::AttributeChanged(int32_t         aNameSpaceID,
 }
 
 NS_IMETHODIMP
-nsMathMLmunderoverFrame::UpdatePresentationData(uint32_t        aFlagsValues,
-                                                uint32_t        aFlagsToUpdate)
+nsMathMLmunderoverFrame::UpdatePresentationData(PRUint32        aFlagsValues,
+                                                PRUint32        aFlagsToUpdate)
 {
   nsMathMLContainerFrame::UpdatePresentationData(aFlagsValues, aFlagsToUpdate);
   
@@ -68,10 +104,10 @@ nsMathMLmunderoverFrame::UpdatePresentationData(uint32_t        aFlagsValues,
 }
 
 NS_IMETHODIMP
-nsMathMLmunderoverFrame::UpdatePresentationDataFromChildAt(int32_t         aFirstIndex,
-                                                           int32_t         aLastIndex,
-                                                           uint32_t        aFlagsValues,
-                                                           uint32_t        aFlagsToUpdate)
+nsMathMLmunderoverFrame::UpdatePresentationDataFromChildAt(PRInt32         aFirstIndex,
+                                                           PRInt32         aLastIndex,
+                                                           PRUint32        aFlagsValues,
+                                                           PRUint32        aFlagsToUpdate)
 {
   
   
@@ -88,7 +124,7 @@ nsMathMLmunderoverFrame::UpdatePresentationDataFromChildAt(int32_t         aFirs
   
 
   
-  int32_t index = 0;
+  PRInt32 index = 0;
   nsIFrame* childFrame = mFrames.FirstChild();
   while (childFrame) {
     if ((index >= aFirstIndex) &&
@@ -154,8 +190,8 @@ nsMathMLmunderoverFrame::TransmitAutomaticData()
 
 
 
-  nsIFrame* overscriptFrame = nullptr;
-  nsIFrame* underscriptFrame = nullptr;
+  nsIFrame* overscriptFrame = nsnull;
+  nsIFrame* underscriptFrame = nsnull;
   nsIFrame* baseFrame = mFrames.FirstChild();
   nsIAtom* tag = mContent->Tag();
 
@@ -257,7 +293,7 @@ nsMathMLmunderoverFrame::TransmitAutomaticData()
 
   if (tag == nsGkAtoms::mover_ ||
       tag == nsGkAtoms::munderover_) {
-    uint32_t compress = NS_MATHML_EMBELLISH_IS_ACCENTOVER(mEmbellishData.flags)
+    PRUint32 compress = NS_MATHML_EMBELLISH_IS_ACCENTOVER(mEmbellishData.flags)
       ? NS_MATHML_COMPRESSED : 0;
     SetIncrementScriptLevel(tag == nsGkAtoms::mover_ ? 1 : 2,
                             !NS_MATHML_EMBELLISH_IS_ACCENTOVER(mEmbellishData.flags) || subsupDisplay);
@@ -341,8 +377,8 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
   nsHTMLReflowMetrics baseSize;
   nsHTMLReflowMetrics underSize;
   nsHTMLReflowMetrics overSize;
-  nsIFrame* overFrame = nullptr;
-  nsIFrame* underFrame = nullptr;
+  nsIFrame* overFrame = nsnull;
+  nsIFrame* underFrame = nsnull;
   nsIFrame* baseFrame = mFrames.FirstChild();
   underSize.ascent = 0; 
   overSize.ascent = 0;
@@ -493,22 +529,7 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
     overDelta2 = 0;
   }
 
-  nscoord dxBase = 0, dxOver = 0, dxUnder = 0;
-  nsAutoString valueAlign;
-  enum {
-    center,
-    left,
-    right
-  } alignPosition = center;
-
-  if (GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::align,
-                   valueAlign)) {
-    if (valueAlign.EqualsLiteral("left")) {
-      alignPosition = left;
-    } else if (valueAlign.EqualsLiteral("right")) {
-      alignPosition = right;
-    }
-  }
+  nscoord dxBase, dxOver = 0, dxUnder = 0;
 
   
   
@@ -524,24 +545,13 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
 
   if (NS_MATHML_EMBELLISH_IS_ACCENTOVER(mEmbellishData.flags)) {
     mBoundingMetrics.width = bmBase.width; 
-    if (alignPosition == center) {
-      dxOver += correction;
-    }
+    dxOver += correction + (mBoundingMetrics.width - overWidth)/2;
   }
   else {
     mBoundingMetrics.width = NS_MAX(bmBase.width, overWidth);
-    if (alignPosition == center) {
-      dxOver += correction/2;
-    }
+    dxOver += correction/2 + (mBoundingMetrics.width - overWidth)/2;
   }
-  
-  if (alignPosition == center) {
-    dxOver += (mBoundingMetrics.width - overWidth)/2;
-    dxBase = (mBoundingMetrics.width - bmBase.width)/2;
-  } else if (alignPosition == right) {
-    dxOver += mBoundingMetrics.width - overWidth;
-    dxBase = mBoundingMetrics.width - bmBase.width;
-  }
+  dxBase = (mBoundingMetrics.width - bmBase.width)/2;
 
   mBoundingMetrics.ascent = 
     bmBase.ascent + overDelta1 + bmOver.ascent + bmOver.descent;
@@ -564,6 +574,8 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
            overSize.ascent + bmOver.descent + overDelta1 + bmBase.ascent);
   ascentAnonymousBase = NS_MAX(ascentAnonymousBase, baseSize.ascent);
 
+  GetItalicCorrection(bmAnonymousBase, correction);
+
   
   nscoord underWidth = bmUnder.width;
   if (!underWidth) {
@@ -572,19 +584,13 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
   }
 
   nscoord maxWidth = NS_MAX(bmAnonymousBase.width, underWidth);
-  if (alignPosition == center &&
-      !NS_MATHML_EMBELLISH_IS_ACCENTUNDER(mEmbellishData.flags)) {
-    GetItalicCorrection(bmAnonymousBase, correction);
-    dxUnder += -correction/2;
+  if (NS_MATHML_EMBELLISH_IS_ACCENTUNDER(mEmbellishData.flags)) {
+    dxUnder += (maxWidth - underWidth)/2;;
   }
-  nscoord dxAnonymousBase = 0;
-  if (alignPosition == center) {
-    dxUnder += (maxWidth - underWidth)/2;
-    dxAnonymousBase = (maxWidth - bmAnonymousBase.width)/2;
-  } else if (alignPosition == right) {
-    dxUnder += maxWidth - underWidth;
-    dxAnonymousBase = maxWidth - bmAnonymousBase.width;
+  else {
+    dxUnder += -correction/2 + (maxWidth - underWidth)/2;
   }
+  nscoord dxAnonymousBase = (maxWidth - bmAnonymousBase.width)/2;
 
   
   
@@ -621,16 +627,16 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
     if (overFrame) {
       dy = aDesiredSize.ascent - mBoundingMetrics.ascent + bmOver.ascent 
         - overSize.ascent;
-      FinishReflowChild (overFrame, PresContext(), nullptr, overSize, dxOver, dy, 0);
+      FinishReflowChild (overFrame, PresContext(), nsnull, overSize, dxOver, dy, 0);
     }
     
     dy = aDesiredSize.ascent - baseSize.ascent;
-    FinishReflowChild (baseFrame, PresContext(), nullptr, baseSize, dxBase, dy, 0);
+    FinishReflowChild (baseFrame, PresContext(), nsnull, baseSize, dxBase, dy, 0);
     
     if (underFrame) {
       dy = aDesiredSize.ascent + mBoundingMetrics.descent - bmUnder.descent 
         - underSize.ascent;
-      FinishReflowChild (underFrame, PresContext(), nullptr, underSize,
+      FinishReflowChild (underFrame, PresContext(), nsnull, underSize,
                          dxUnder, dy, 0);
     }
   }

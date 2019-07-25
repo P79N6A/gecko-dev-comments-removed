@@ -3,12 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_GDIFONTLIST_H
 #define GFX_GDIFONTLIST_H
 
 #include "gfxWindowsPlatform.h"
 #include "gfxPlatformFontList.h"
-#include "nsGkAtoms.h"
+#include "gfxAtoms.h"
 
 #include <windows.h>
 
@@ -35,11 +70,11 @@ class AutoSelectFont
 {
 public:
     AutoSelectFont(HDC aDC, LOGFONTW *aLogFont)
-        : mOwnsFont(false)
+        : mOwnsFont(PR_FALSE)
     {
         mFont = ::CreateFontIndirectW(aLogFont);
         if (mFont) {
-            mOwnsFont = true;
+            mOwnsFont = PR_TRUE;
             mDC = aDC;
             mOldFont = (HFONT)::SelectObject(aDC, mFont);
         } else {
@@ -48,7 +83,7 @@ public:
     }
 
     AutoSelectFont(HDC aDC, HFONT aFont)
-        : mOwnsFont(false)
+        : mOwnsFont(PR_FALSE)
     {
         mDC = aDC;
         mFont = aFont;
@@ -111,8 +146,8 @@ public:
 
     virtual bool IsSymbolFont();
 
-    void FillLogFont(LOGFONTW *aLogFont, uint16_t aWeight, gfxFloat aSize,
-                     bool aUseCleartype);
+    void FillLogFont(LOGFONTW *aLogFont, bool aItalic,
+                     PRUint16 aWeight, gfxFloat aSize, bool aUseCleartype);
 
     static gfxWindowsFontType DetermineFontType(const NEWTEXTMETRICW& metrics, 
                                                 DWORD fontType)
@@ -148,7 +183,7 @@ public:
 
     virtual bool MatchesGenericFamily(const nsACString& aGeneric) const {
         if (aGeneric.IsEmpty()) {
-            return true;
+            return PR_TRUE;
         }
 
         
@@ -166,7 +201,7 @@ public:
         
         switch (mWindowsFamily) {
         case FF_DONTCARE:
-            return false;
+            return PR_FALSE;
         case FF_ROMAN:
             return aGeneric.EqualsLiteral("serif");
         case FF_SWISS:
@@ -179,46 +214,46 @@ public:
             return aGeneric.EqualsLiteral("fantasy");
         }
 
-        return false;
+        return PR_FALSE;
     }
 
     virtual bool SupportsLangGroup(nsIAtom* aLangGroup) const {
-        if (!aLangGroup || aLangGroup == nsGkAtoms::Unicode) {
-            return true;
+        if (!aLangGroup || aLangGroup == gfxAtoms::x_unicode) {
+            return PR_TRUE;
         }
 
-        int16_t bit = -1;
+        PRInt16 bit = -1;
 
         
-        if (aLangGroup == nsGkAtoms::x_western) {
+        if (aLangGroup == gfxAtoms::x_western) {
             bit = ANSI_CHARSET;
-        } else if (aLangGroup == nsGkAtoms::Japanese) {
+        } else if (aLangGroup == gfxAtoms::ja) {
             bit = SHIFTJIS_CHARSET;
-        } else if (aLangGroup == nsGkAtoms::ko) {
+        } else if (aLangGroup == gfxAtoms::ko) {
             bit = HANGEUL_CHARSET;
-        } else if (aLangGroup == nsGkAtoms::ko_xxx) {
+        } else if (aLangGroup == gfxAtoms::ko_xxx) {
             bit = JOHAB_CHARSET;
-        } else if (aLangGroup == nsGkAtoms::zh_cn) {
+        } else if (aLangGroup == gfxAtoms::zh_cn) {
             bit = GB2312_CHARSET;
-        } else if (aLangGroup == nsGkAtoms::zh_tw) {
+        } else if (aLangGroup == gfxAtoms::zh_tw) {
             bit = CHINESEBIG5_CHARSET;
-        } else if (aLangGroup == nsGkAtoms::el_) {
+        } else if (aLangGroup == gfxAtoms::el) {
             bit = GREEK_CHARSET;
-        } else if (aLangGroup == nsGkAtoms::tr) {
+        } else if (aLangGroup == gfxAtoms::tr) {
             bit = TURKISH_CHARSET;
-        } else if (aLangGroup == nsGkAtoms::he) {
+        } else if (aLangGroup == gfxAtoms::he) {
             bit = HEBREW_CHARSET;
-        } else if (aLangGroup == nsGkAtoms::ar) {
+        } else if (aLangGroup == gfxAtoms::ar) {
             bit = ARABIC_CHARSET;
-        } else if (aLangGroup == nsGkAtoms::x_baltic) {
+        } else if (aLangGroup == gfxAtoms::x_baltic) {
             bit = BALTIC_CHARSET;
-        } else if (aLangGroup == nsGkAtoms::x_cyrillic) {
+        } else if (aLangGroup == gfxAtoms::x_cyrillic) {
             bit = RUSSIAN_CHARSET;
-        } else if (aLangGroup == nsGkAtoms::th) {
+        } else if (aLangGroup == gfxAtoms::th) {
             bit = THAI_CHARSET;
-        } else if (aLangGroup == nsGkAtoms::x_central_euro) {
+        } else if (aLangGroup == gfxAtoms::x_central_euro) {
             bit = EASTEUROPE_CHARSET;
-        } else if (aLangGroup == nsGkAtoms::x_symbol) {
+        } else if (aLangGroup == gfxAtoms::x_symbol) {
             bit = SYMBOL_CHARSET;
         }
 
@@ -226,10 +261,10 @@ public:
             return mCharset.test(bit);
         }
 
-        return false;
+        return PR_FALSE;
     }
 
-    virtual bool SupportsRange(uint8_t range) {
+    virtual bool SupportsRange(PRUint8 range) {
         return mUnicodeRanges.test(range);
     }
 
@@ -237,34 +272,25 @@ public:
         return !HasCmapTable(); 
     }
 
-    virtual bool TestCharacterMap(uint32_t aCh);
-
-    virtual void SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                     FontListSizes*    aSizes) const;
+    virtual bool TestCharacterMap(PRUint32 aCh);
 
     
     static GDIFontEntry* CreateFontEntry(const nsAString& aName,
                                          gfxWindowsFontType aFontType,
                                          bool aItalic,
-                                         uint16_t aWeight, int16_t aStretch,
-                                         gfxUserFontData* aUserFontData,
-                                         bool aFamilyHasItalicFace);
+                                         PRUint16 aWeight, PRInt16 aStretch,
+                                         gfxUserFontData* aUserFontData);
 
     
     static GDIFontEntry* LoadLocalFont(const gfxProxyFontEntry &aProxyEntry,
                                        const nsAString& aFullname);
 
-    uint8_t mWindowsFamily;
-    uint8_t mWindowsPitch;
+    PRUint8 mWindowsFamily;
+    PRUint8 mWindowsPitch;
 
     gfxWindowsFontType mFontType;
     bool mForceGDI    : 1;
-
-    
-    
-    
-    
-    bool mFamilyHasItalicFace : 1;
+    bool mUnknownCMAP : 1;
 
     gfxSparseBitSet mCharset;
     gfxSparseBitSet mUnicodeRanges;
@@ -273,15 +299,15 @@ protected:
     friend class gfxWindowsFont;
 
     GDIFontEntry(const nsAString& aFaceName, gfxWindowsFontType aFontType,
-                 bool aItalic, uint16_t aWeight, int16_t aStretch,
-                 gfxUserFontData *aUserFontData, bool aFamilyHasItalicFace);
+                 bool aItalic, PRUint16 aWeight, PRInt16 aStretch,
+                 gfxUserFontData *aUserFontData);
 
     void InitLogFont(const nsAString& aName, gfxWindowsFontType aFontType);
 
     virtual gfxFont *CreateFontInstance(const gfxFontStyle *aFontStyle, bool aNeedsBold);
 
-    virtual nsresult GetFontTable(uint32_t aTableTag,
-                                  FallibleTArray<uint8_t>& aBuffer);
+    virtual nsresult GetFontTable(PRUint32 aTableTag,
+                                  FallibleTArray<PRUint8>& aBuffer);
 
     LOGFONTW mLogFont;
 };
@@ -316,15 +342,10 @@ public:
                                           const nsAString& aFontName);
 
     virtual gfxFontEntry* MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
-                                           const uint8_t *aFontData, uint32_t aLength);
+                                           const PRUint8 *aFontData, PRUint32 aLength);
 
     virtual bool ResolveFontName(const nsAString& aFontName,
                                    nsAString& aResolvedFontName);
-
-    virtual void SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                     FontListSizes*    aSizes) const;
-    virtual void SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                     FontListSizes*    aSizes) const;
 
 private:
     friend class gfxWindowsPlatform;
@@ -340,7 +361,7 @@ private:
                                           DWORD fontType,
                                           LPARAM lParam);
 
-    typedef nsRefPtrHashtable<nsStringHashKey, gfxFontFamily> FontTable;
+    typedef nsDataHashtable<nsStringHashKey, nsRefPtr<gfxFontFamily> > FontTable;
 
     FontTable mFontSubstitutes;
     nsTArray<nsString> mNonExistingFonts;

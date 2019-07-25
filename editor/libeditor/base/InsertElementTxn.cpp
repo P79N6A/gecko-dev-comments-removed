@@ -3,21 +3,45 @@
 
 
 
-#include <stdio.h>                      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "InsertElementTxn.h"
-#include "nsAString.h"
-#include "nsDebug.h"                    
-#include "nsError.h"                    
-#include "nsIContent.h"                 
-#include "nsIEditor.h"                  
-#include "nsINode.h"                    
-#include "nsISelection.h"               
-#include "nsMemory.h"                   
-#include "nsReadableUtils.h"            
-#include "nsString.h"                   
+#include "nsISelection.h"
+#include "nsIContent.h"
+#include "nsIDOMNodeList.h"
+#include "nsReadableUtils.h"
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
 static bool gNoisy = false;
 #endif
 
@@ -46,7 +70,7 @@ NS_INTERFACE_MAP_END_INHERITING(EditTxn)
 
 NS_IMETHODIMP InsertElementTxn::Init(nsIDOMNode *aNode,
                                      nsIDOMNode *aParent,
-                                     int32_t     aOffset,
+                                     PRInt32     aOffset,
                                      nsIEditor  *aEditor)
 {
   NS_ASSERTION(aNode && aParent && aEditor, "bad arg");
@@ -63,7 +87,7 @@ NS_IMETHODIMP InsertElementTxn::Init(nsIDOMNode *aNode,
 
 NS_IMETHODIMP InsertElementTxn::DoTransaction(void)
 {
-#ifdef DEBUG
+#ifdef NS_DEBUG
   if (gNoisy) 
   { 
     nsCOMPtr<nsIContent>nodeAsContent = do_QueryInterface(mNode);
@@ -83,23 +107,26 @@ NS_IMETHODIMP InsertElementTxn::DoTransaction(void)
 
   NS_ENSURE_TRUE(mNode && mParent, NS_ERROR_NOT_INITIALIZED);
 
-  nsCOMPtr<nsINode> parent = do_QueryInterface(mParent);
-  NS_ENSURE_STATE(parent);
-
-  uint32_t count = parent->GetChildCount();
-  if (mOffset > int32_t(count) || mOffset == -1) {
+  nsCOMPtr<nsIDOMNodeList> childNodes;
+  nsresult result = mParent->GetChildNodes(getter_AddRefs(childNodes));
+  NS_ENSURE_SUCCESS(result, result);
+  nsCOMPtr<nsIDOMNode>refNode;
+  if (childNodes)
+  {
+    PRUint32 count;
+    childNodes->GetLength(&count);
+    if (mOffset>(PRInt32)count) mOffset = count;
     
-    mOffset = count;
+    if (mOffset == -1) mOffset = count;
+    result = childNodes->Item(mOffset, getter_AddRefs(refNode));
+    NS_ENSURE_SUCCESS(result, result); 
+    
   }
-
-  nsIContent* refContent = parent->GetChildAt(mOffset);
-  
-  nsCOMPtr<nsIDOMNode> refNode = refContent ? refContent->AsDOMNode() : nullptr;
 
   mEditor->MarkNodeDirty(mNode);
 
   nsCOMPtr<nsIDOMNode> resultNode;
-  nsresult result = mParent->InsertBefore(mNode, refNode, getter_AddRefs(resultNode));
+  result = mParent->InsertBefore(mNode, refNode, getter_AddRefs(resultNode));
   NS_ENSURE_SUCCESS(result, result);
   NS_ENSURE_TRUE(resultNode, NS_ERROR_NULL_POINTER);
 
@@ -124,7 +151,7 @@ NS_IMETHODIMP InsertElementTxn::DoTransaction(void)
 
 NS_IMETHODIMP InsertElementTxn::UndoTransaction(void)
 {
-#ifdef DEBUG
+#ifdef NS_DEBUG
   if (gNoisy)
   {
     printf("%p Undo Insert Element of %p into parent %p at offset %d\n",

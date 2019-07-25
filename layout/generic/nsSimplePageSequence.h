@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsSimplePageSequence_h___
 #define nsSimplePageSequence_h___
 
@@ -10,7 +42,6 @@
 #include "nsIPrintSettings.h"
 #include "nsIPrintOptions.h"
 #include "nsIDateTimeFormat.h"
-#include "nsHTMLCanvasElement.h"
 
 
 
@@ -65,9 +96,9 @@ public:
                                const nsDisplayListSet& aLists);
 
   
-  NS_IMETHOD SetPageNo(int32_t aPageNo) { return NS_OK;}
+  NS_IMETHOD SetPageNo(PRInt32 aPageNo) { return NS_OK;}
   NS_IMETHOD SetSelectionHeight(nscoord aYOffset, nscoord aHeight) { mYSelOffset = aYOffset; mSelectionHeight = aHeight; return NS_OK; }
-  NS_IMETHOD SetTotalNumPages(int32_t aTotal) { mTotalPages = aTotal; return NS_OK; }
+  NS_IMETHOD SetTotalNumPages(PRInt32 aTotal) { mTotalPages = aTotal; return NS_OK; }
   
   
   NS_IMETHOD GetSTFPercent(float& aSTFPercent);
@@ -77,13 +108,11 @@ public:
                         nsIPrintSettings* aPrintSettings,
                         PRUnichar*        aDocTitle,
                         PRUnichar*        aDocURL);
-  NS_IMETHOD PrePrintNextPage(nsITimerCallback* aCallback, bool* aDone);
   NS_IMETHOD PrintNextPage();
-  NS_IMETHOD ResetPrintCanvasList();
-  NS_IMETHOD GetCurrentPageNum(int32_t* aPageNum);
-  NS_IMETHOD GetNumPages(int32_t* aNumPages);
+  NS_IMETHOD GetCurrentPageNum(PRInt32* aPageNum);
+  NS_IMETHOD GetNumPages(PRInt32* aNumPages);
   NS_IMETHOD IsDoingPrintRange(bool* aDoing);
-  NS_IMETHOD GetPrintRange(int32_t* aFromPage, int32_t* aToPage);
+  NS_IMETHOD GetPrintRange(PRInt32* aFromPage, PRInt32* aToPage);
   NS_IMETHOD DoPageEnd();
 
   
@@ -96,12 +125,8 @@ public:
 
 
   virtual nsIAtom* GetType() const;
-
-  virtual void InvalidateInternal(const nsRect& aDamageRect,
-                                  nscoord aX, nscoord aY,
-                                  nsIFrame* aForChild,
-                                  uint32_t aFlags);
-#ifdef DEBUG
+  
+#ifdef NS_DEBUG
   NS_IMETHOD  GetFrameName(nsAString& aResult) const;
 #endif
 
@@ -125,8 +150,6 @@ protected:
                       const nsHTMLReflowState& aReflowState,
                       nscoord aWidth, nscoord aHeight);
 
-  void         DetermineWhetherToPrintPage();
-
   nsMargin mMargin;
 
   
@@ -137,13 +160,11 @@ protected:
 
   
   nsIFrame *   mCurrentPageFrame;
-  int32_t      mPageNum;
-  int32_t      mTotalPages;
-  int32_t      mPrintRangeType;
-  int32_t      mFromPageNum;
-  int32_t      mToPageNum;
-  nsTArray<int32_t> mPageRanges;
-  nsTArray<nsRefPtr<nsHTMLCanvasElement> > mCurrentCanvasList;
+  PRInt32      mPageNum;
+  PRInt32      mTotalPages;
+  PRInt32      mPrintRangeType;
+  PRInt32      mFromPageNum;
+  PRInt32      mToPageNum;
 
   
   nscoord      mSelectionHeight;
@@ -154,10 +175,6 @@ protected:
   bool mDoingPageRange;
 
   bool mIsPrintingSelection;
-
-  bool mCalledBeginPage;
-
-  bool mCurrentCanvasListSetup;
 };
 
 #endif 

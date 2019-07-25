@@ -3,6 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsExternalHelperAppService_h__
 #define nsExternalHelperAppService_h__
 
@@ -26,6 +63,7 @@
 #include "nsString.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
+#include "nsILocalFile.h"
 #include "nsIChannel.h"
 #include "nsITimer.h"
 
@@ -35,8 +73,6 @@
 #include "nsCOMArray.h"
 #include "nsWeakReference.h"
 #include "nsIPrompt.h"
-#include "nsAutoPtr.h"
-#include "mozilla/Attributes.h"
 
 class nsExternalAppHandler;
 class nsIMIMEInfo;
@@ -111,6 +147,12 @@ public:
   virtual NS_HIDDEN_(nsresult) OSProtocolHandlerExists(const char *aScheme,
                                                        bool *aExists) = 0;
 
+  
+
+
+
+  bool InPrivateBrowsing() const { return mInPrivateBrowsing; }
+
 protected:
   
 
@@ -147,7 +189,7 @@ protected:
 
 
 
-  virtual void FixFilePermissions(nsIFile* aFile);
+  virtual void FixFilePermissions(nsILocalFile* aFile);
 
 #ifdef PR_LOGGING
   
@@ -165,12 +207,7 @@ protected:
   
 
 
-  static void ExpungeTemporaryFilesHelper(nsCOMArray<nsIFile> &fileList);
-  
-
-
-  static nsresult DeleteTemporaryFileHelper(nsIFile* aTemporaryFile,
-                                            nsCOMArray<nsIFile> &aFileList);
+  static void ExpungeTemporaryFilesHelper(nsCOMArray<nsILocalFile> &fileList);
   
 
 
@@ -185,12 +222,16 @@ protected:
   
 
 
-  nsCOMArray<nsIFile> mTemporaryFilesList;
+  nsCOMArray<nsILocalFile> mTemporaryFilesList;
   
 
 
 
-  nsCOMArray<nsIFile> mTemporaryPrivateFilesList;
+  nsCOMArray<nsILocalFile> mTemporaryPrivateFilesList;
+  
+
+
+  bool mInPrivateBrowsing;
 };
 
 
@@ -201,9 +242,9 @@ protected:
 
 
 
-class nsExternalAppHandler MOZ_FINAL : public nsIStreamListener,
-                                       public nsIHelperAppLauncher,
-                                       public nsITimerCallback
+class nsExternalAppHandler : public nsIStreamListener,
+                             public nsIHelperAppLauncher,
+                             public nsITimerCallback
 {
 public:
   NS_DECL_ISUPPORTS
@@ -223,12 +264,10 @@ public:
 
 
 
-
   nsExternalAppHandler(nsIMIMEInfo * aMIMEInfo, const nsCSubstring& aFileExtension,
                        nsIInterfaceRequestor * aWindowContext,
-                       nsExternalHelperAppService * aExtProtSvc,
                        const nsAString& aFilename,
-                       uint32_t aReason, bool aForceSave);
+                       PRUint32 aReason, bool aForceSave);
 
   ~nsExternalAppHandler();
 
@@ -292,7 +331,7 @@ protected:
 
 
 
-  uint32_t mReason;
+  PRUint32 mReason;
 
   
 
@@ -300,8 +339,8 @@ protected:
   bool mTempFileIsExecutable;
 
   PRTime mTimeDownloadStarted;
-  int64_t mContentLength;
-  int64_t mProgress; 
+  PRInt64 mContentLength;
+  PRInt64 mProgress; 
 
   
 
@@ -310,7 +349,7 @@ protected:
 
   nsCOMPtr<nsIFile> mFinalFileDestination;
 
-  uint32_t mBufferSize;
+  PRUint32 mBufferSize;
   char    *mDataBuffer;
 
   
@@ -332,7 +371,7 @@ protected:
 
 
   nsresult CreateProgressListener();
-  nsresult PromptForSaveToFile(nsIFile ** aNewFile,
+  nsresult PromptForSaveToFile(nsILocalFile ** aNewFile,
                                const nsAFlatString &aDefaultFile,
                                const nsAFlatString &aDefaultFileExt);
 
@@ -408,8 +447,8 @@ protected:
 
 
   nsCOMPtr<nsIRequest> mRequest;
-
-  nsRefPtr<nsExternalHelperAppService> mExtProtSvc;
 };
+
+extern NS_HIDDEN_(nsExternalHelperAppService*) gExtProtSvc;
 
 #endif 

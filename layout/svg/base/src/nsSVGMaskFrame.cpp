@@ -4,14 +4,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsIDocument.h"
 #include "nsSVGMaskFrame.h"
-
-
+#include "nsSVGContainerFrame.h"
+#include "nsSVGMaskElement.h"
+#include "nsSVGEffects.h"
 #include "gfxContext.h"
 #include "gfxImageSurface.h"
-#include "nsRenderingContext.h"
-#include "nsSVGEffects.h"
-#include "nsSVGMaskElement.h"
 
 
 
@@ -25,7 +54,7 @@ NS_NewSVGMaskFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 NS_IMPL_FRAMEARENA_HELPERS(nsSVGMaskFrame)
 
 already_AddRefed<gfxPattern>
-nsSVGMaskFrame::ComputeMaskAlpha(nsRenderingContext *aContext,
+nsSVGMaskFrame::ComputeMaskAlpha(nsSVGRenderState *aContext,
                                  nsIFrame* aParent,
                                  const gfxMatrix &aMatrix,
                                  float aOpacity)
@@ -35,13 +64,13 @@ nsSVGMaskFrame::ComputeMaskAlpha(nsRenderingContext *aContext,
   
   if (mInUse) {
     NS_WARNING("Mask loop detected!");
-    return nullptr;
+    return nsnull;
   }
   AutoMaskReferencer maskRef(this);
 
   nsSVGMaskElement *mask = static_cast<nsSVGMaskElement*>(mContent);
 
-  uint16_t units =
+  PRUint16 units =
     mask->mEnumAttributes[nsSVGMaskElement::MASKUNITS].GetAnimValue();
   gfxRect bbox;
   if (units == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX) {
@@ -51,15 +80,19 @@ nsSVGMaskFrame::ComputeMaskAlpha(nsRenderingContext *aContext,
   gfxRect maskArea = nsSVGUtils::GetRelativeRect(units,
     &mask->mLengthAttributes[nsSVGMaskElement::X], bbox, aParent);
 
-  gfxContext *gfx = aContext->ThebesContext();
+  gfxContext *gfx = aContext->GetGfxContext();
 
-  
   gfx->Save();
   nsSVGUtils::SetClipRect(gfx, aMatrix, maskArea);
-  gfx->IdentityMatrix();
   gfxRect clipExtents = gfx->GetClipExtents();
   clipExtents.RoundOut();
   gfx->Restore();
+
+#ifdef DEBUG_tor
+  fprintf(stderr, "clip extent: %f,%f %fx%f\n",
+          clipExtents.X(), clipExtents.Y(),
+          clipExtents.Width(), clipExtents.Height());
+#endif
 
   bool resultOverflows;
   gfxIntSize surfaceSize =
@@ -69,28 +102,18 @@ nsSVGMaskFrame::ComputeMaskAlpha(nsRenderingContext *aContext,
 
   
   if (surfaceSize.width <= 0 || surfaceSize.height <= 0)
-    return nullptr;
+    return nsnull;
 
   if (resultOverflows)
-    return nullptr;
+    return nsnull;
 
   nsRefPtr<gfxImageSurface> image =
     new gfxImageSurface(surfaceSize, gfxASurface::ImageFormatARGB32);
   if (!image || image->CairoStatus())
-    return nullptr;
+    return nsnull;
+  image->SetDeviceOffset(-clipExtents.TopLeft());
 
-  
-  
-  
-  
-  
-  
-  gfxMatrix matrix =
-    gfx->CurrentMatrix() * gfxMatrix().Translate(-clipExtents.TopLeft());
-
-  nsRenderingContext tmpCtx;
-  tmpCtx.Init(this->PresContext()->DeviceContext(), image);
-  tmpCtx.ThebesContext()->SetMatrix(matrix);
+  nsSVGRenderState tmpState(image);
 
   mMaskParent = aParent;
   if (mMaskParentMatrix) {
@@ -104,13 +127,14 @@ nsSVGMaskFrame::ComputeMaskAlpha(nsRenderingContext *aContext,
     
     nsISVGChildFrame* SVGFrame = do_QueryFrame(kid);
     if (SVGFrame) {
-      SVGFrame->NotifySVGChanged(nsISVGChildFrame::TRANSFORM_CHANGED);
+      SVGFrame->NotifySVGChanged(nsISVGChildFrame::SUPPRESS_INVALIDATION |
+                                 nsISVGChildFrame::TRANSFORM_CHANGED);
     }
-    nsSVGUtils::PaintFrameWithEffects(&tmpCtx, nullptr, kid);
+    nsSVGUtils::PaintFrameWithEffects(&tmpState, nsnull, kid);
   }
 
-  uint8_t *data   = image->Data();
-  int32_t  stride = image->Stride();
+  PRUint8 *data   = image->Data();
+  PRInt32  stride = image->Stride();
 
   nsIntRect rect(0, 0, surfaceSize.width, surfaceSize.height);
   nsSVGUtils::UnPremultiplyImageDataAlpha(data, stride, rect);
@@ -119,13 +143,13 @@ nsSVGMaskFrame::ComputeMaskAlpha(nsRenderingContext *aContext,
     nsSVGUtils::ConvertImageDataToLinearRGB(data, stride, rect);
   }
 
-  for (int32_t y = 0; y < surfaceSize.height; y++)
-    for (int32_t x = 0; x < surfaceSize.width; x++) {
-      uint8_t *pixel = data + stride * y + 4 * x;
+  for (PRInt32 y = 0; y < surfaceSize.height; y++)
+    for (PRInt32 x = 0; x < surfaceSize.width; x++) {
+      PRUint8 *pixel = data + stride * y + 4 * x;
 
       
-      uint8_t alpha =
-        static_cast<uint8_t>
+      PRUint8 alpha =
+        static_cast<PRUint8>
                    ((pixel[GFX_ARGB32_OFFSET_R] * 0.2125 +
                         pixel[GFX_ARGB32_OFFSET_G] * 0.7154 +
                         pixel[GFX_ARGB32_OFFSET_B] * 0.0721) *
@@ -135,7 +159,6 @@ nsSVGMaskFrame::ComputeMaskAlpha(nsRenderingContext *aContext,
     }
 
   gfxPattern *retval = new gfxPattern(image);
-  retval->SetMatrix(matrix);
   NS_IF_ADDREF(retval);
   return retval;
 }
@@ -143,14 +166,14 @@ nsSVGMaskFrame::ComputeMaskAlpha(nsRenderingContext *aContext,
  void
 nsSVGMaskFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 {
-  nsSVGEffects::InvalidateDirectRenderingObservers(this);
+  nsSVGEffects::InvalidateRenderingObservers(this);
   nsSVGMaskFrameBase::DidSetStyleContext(aOldStyleContext);
 }
 
 NS_IMETHODIMP
-nsSVGMaskFrame::AttributeChanged(int32_t  aNameSpaceID,
+nsSVGMaskFrame::AttributeChanged(PRInt32  aNameSpaceID,
                                  nsIAtom* aAttribute,
-                                 int32_t  aModType)
+                                 PRInt32  aModType)
 {
   if (aNameSpaceID == kNameSpaceID_None &&
       (aAttribute == nsGkAtoms::x ||
@@ -159,7 +182,7 @@ nsSVGMaskFrame::AttributeChanged(int32_t  aNameSpaceID,
        aAttribute == nsGkAtoms::height||
        aAttribute == nsGkAtoms::maskUnits ||
        aAttribute == nsGkAtoms::maskContentUnits)) {
-    nsSVGEffects::InvalidateDirectRenderingObservers(this);
+    nsSVGEffects::InvalidateRenderingObservers(this);
   }
 
   return nsSVGMaskFrameBase::AttributeChanged(aNameSpaceID,
@@ -186,7 +209,7 @@ nsSVGMaskFrame::GetType() const
 }
 
 gfxMatrix
-nsSVGMaskFrame::GetCanvasTM(uint32_t aFor)
+nsSVGMaskFrame::GetCanvasTM()
 {
   NS_ASSERTION(mMaskParentMatrix, "null parent matrix");
 

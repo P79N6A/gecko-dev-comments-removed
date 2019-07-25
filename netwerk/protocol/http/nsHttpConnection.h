@@ -3,18 +3,50 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsHttpConnection_h__
 #define nsHttpConnection_h__
 
 #include "nsHttp.h"
 #include "nsHttpConnectionInfo.h"
+#include "nsAHttpConnection.h"
 #include "nsAHttpTransaction.h"
 #include "nsXPIDLString.h"
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
 #include "prinrval.h"
-#include "ASpdySession.h"
-#include "mozilla/TimeStamp.h"
 
 #include "nsIStreamListener.h"
 #include "nsISocketTransport.h"
@@ -22,9 +54,6 @@
 #include "nsIAsyncOutputStream.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIEventTarget.h"
-
-class nsHttpRequestHead;
-class nsHttpResponseHead;
 
 
 
@@ -57,15 +86,14 @@ public:
     
     
     
-    nsresult Init(nsHttpConnectionInfo *info, uint16_t maxHangTime,
+    nsresult Init(nsHttpConnectionInfo *info, PRUint16 maxHangTime,
                   nsISocketTransport *, nsIAsyncInputStream *,
                   nsIAsyncOutputStream *, nsIInterfaceRequestor *,
-                  nsIEventTarget *, PRIntervalTime);
+                  nsIEventTarget *);
 
     
     
-    
-    nsresult Activate(nsAHttpTransaction *, uint8_t caps, int32_t pri);
+    nsresult Activate(nsAHttpTransaction *, PRUint8 caps);
 
     
     void Close(nsresult reason);
@@ -73,22 +101,17 @@ public:
     
     
 
-    bool     SupportsPipelining();
-    bool     IsKeepAlive() { return mUsingSpdyVersion ||
-                                    (mKeepAliveMask && mKeepAlive); }
+    bool     SupportsPipelining() { return mSupportsPipelining; }
+    bool     IsKeepAlive() { return mKeepAliveMask && mKeepAlive; }
     bool     CanReuse();   
-    bool     CanDirectlyActivate();
 
     
-    uint32_t TimeToLive();
+    PRUint32 TimeToLive();
 
-    void     DontReuse();
+    void     DontReuse()   { mKeepAliveMask = PR_FALSE;
+                             mKeepAlive = PR_FALSE;
+                             mIdleTimeout = 0; }
     void     DropTransport() { DontReuse(); mSocketTransport = 0; }
-
-    bool     IsProxyConnectInProgress()
-    {
-        return mProxyConnectInProgress;
-    }
 
     bool     LastTransactionExpectedNoContent()
     {
@@ -100,7 +123,6 @@ public:
         mLastTransactionExpectedNoContent = val;
     }
 
-    nsISocketTransport   *Transport()      { return mSocketTransport; }
     nsAHttpTransaction   *Transaction()    { return mTransaction; }
     nsHttpConnectionInfo *ConnectionInfo() { return mConnInfo; }
 
@@ -114,15 +136,15 @@ public:
     void     GetSecurityInfo(nsISupports **);
     bool     IsPersistent() { return IsKeepAlive(); }
     bool     IsReused();
-    void     SetIsReusedAfter(uint32_t afterMilliseconds);
-    void     SetIdleTimeout(PRIntervalTime val) {mIdleTimeout = val;}
-    nsresult PushBack(const char *data, uint32_t length);
+    void     SetIsReusedAfter(PRUint32 afterMilliseconds);
+    void     SetIdleTimeout(PRUint16 val) {mIdleTimeout = val;}
+    nsresult PushBack(const char *data, PRUint32 length);
     nsresult ResumeSend();
     nsresult ResumeRecv();
-    int64_t  MaxBytesRead() {return mMaxBytesRead;}
+    PRInt64  MaxBytesRead() {return mMaxBytesRead;}
 
     static NS_METHOD ReadFromStream(nsIInputStream *, void *, const char *,
-                                    uint32_t, uint32_t, uint32_t *);
+                                    PRUint32, PRUint32, PRUint32 *);
 
     
     
@@ -130,29 +152,6 @@ public:
     
     void BeginIdleMonitoring();
     void EndIdleMonitoring();
-
-    bool UsingSpdy() { return !!mUsingSpdyVersion; }
-    bool EverUsedSpdy() { return mEverUsedSpdy; }
-
-    
-    
-    bool ReportedNPN() { return mReportedSpdy; }
-
-    
-    void  ReadTimeoutTick(PRIntervalTime now);
-
-    nsAHttpTransaction::Classifier Classification() { return mClassification; }
-    void Classify(nsAHttpTransaction::Classifier newclass)
-    {
-        mClassification = newclass;
-    }
-
-    
-    void  ReadTimeoutTick();
-
-    int64_t BytesWritten() { return mTotalBytesWritten; }
-
-    void    PrintDiagnostics(nsCString &log);
 
 private:
     
@@ -164,25 +163,9 @@ private:
 
     nsresult SetupProxyConnect();
 
-    PRIntervalTime IdleTime();
     bool     IsAlive();
     bool     SupportsPipelining(nsHttpResponseHead *);
     
-    
-    
-    bool     EnsureNPNComplete();
-    void     SetupNPN(uint8_t caps);
-
-    
-    
-    void     HandleAlternateProtocol(nsHttpResponseHead *);
-
-    
-    void     StartSpdy(uint8_t versionLevel);
-
-    
-    nsresult AddTransaction(nsAHttpTransaction *, int32_t);
-
 private:
     nsCOMPtr<nsISocketTransport>    mSocketTransport;
     nsCOMPtr<nsIAsyncInputStream>   mSocketIn;
@@ -203,54 +186,23 @@ private:
 
     nsRefPtr<nsHttpConnectionInfo> mConnInfo;
 
-    PRIntervalTime                  mLastReadTime;
-    PRIntervalTime                  mMaxHangTime;    
-    PRIntervalTime                  mIdleTimeout;    
+    PRUint32                        mLastReadTime;
+    PRUint16                        mMaxHangTime;    
+    PRUint16                        mIdleTimeout;    
     PRIntervalTime                  mConsiderReusedAfterInterval;
     PRIntervalTime                  mConsiderReusedAfterEpoch;
-    int64_t                         mCurrentBytesRead;   
-    int64_t                         mMaxBytesRead;       
-    int64_t                         mTotalBytesRead;     
-    int64_t                         mTotalBytesWritten;  
+    PRInt64                         mCurrentBytesRead;   
+    PRInt64                         mMaxBytesRead;       
 
     nsRefPtr<nsIAsyncInputStream>   mInputOverflow;
 
-    PRIntervalTime                  mRtt;
-
     bool                            mKeepAlive;
     bool                            mKeepAliveMask;
-    bool                            mDontReuse;
     bool                            mSupportsPipelining;
     bool                            mIsReused;
     bool                            mCompletedProxyConnect;
     bool                            mLastTransactionExpectedNoContent;
     bool                            mIdleMonitoring;
-    bool                            mProxyConnectInProgress;
-
-    
-    
-    uint32_t                        mHttp1xTransactionCount;
-
-    
-    
-    
-    uint32_t                        mRemainingConnectionUses;
-
-    nsAHttpTransaction::Classifier  mClassification;
-
-    
-    bool                            mNPNComplete;
-    bool                            mSetupNPNCalled;
-
-    
-    uint8_t                         mUsingSpdyVersion;
-
-    nsRefPtr<mozilla::net::ASpdySession> mSpdySession;
-    int32_t                         mPriority;
-    bool                            mReportedSpdy;
-
-    
-    bool                            mEverUsedSpdy;
 };
 
 #endif 

@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef TRANSFRMX_LIST_H
 #define TRANSFRMX_LIST_H
 
@@ -13,7 +46,7 @@ class txListIterator;
 
 
 
-class txList : public txObject {
+class txList : public TxObject {
 
 friend class txListIterator;
 
@@ -32,7 +65,14 @@ public:
     
 
 
-    int32_t getLength();
+
+
+    void* get(int index);
+
+    
+
+
+    PRInt32 getLength();
 
     
 
@@ -45,8 +85,18 @@ public:
     
 
 
+    nsresult insert(int index, void* objPtr);
+
+    
+
+
     nsresult add(void* objPtr);
 
+    
+
+
+    void* remove(void* objPtr);
+    
     
 
 
@@ -60,6 +110,9 @@ protected:
         void* objPtr;
     };
 
+    ListItem* getFirstItem();
+    ListItem* getLastItem();
+
     
 
 
@@ -70,7 +123,7 @@ private:
 
       ListItem* firstItem;
       ListItem* lastItem;
-      int32_t itemCount;
+      PRInt32 itemCount;
 
       nsresult insertAfter(void* objPtr, ListItem* sItem);
       nsresult insertBefore(void* objPtr, ListItem* sItem);
@@ -111,7 +164,14 @@ public:
 
 
 
-    bool  hasNext();
+    MBool  hasNext();
+
+    
+
+
+
+
+    MBool  hasPrevious();
 
     
 
@@ -128,6 +188,11 @@ public:
 
     void* current();
     
+    
+
+
+    void* advance(int i);
+
     
 
 
@@ -153,7 +218,7 @@ private:
    txList* list;
 
    
-   bool atEndOfList;
+   MBool atEndOfList;
 };
 
 typedef txList List;

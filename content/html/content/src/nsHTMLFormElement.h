@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsHTMLFormElement_h__
 #define nsHTMLFormElement_h__
 
@@ -17,12 +49,46 @@
 #include "nsIURI.h"
 #include "nsIWeakReferenceUtils.h"
 #include "nsPIDOMWindow.h"
+#include "nsUnicharUtils.h"
 #include "nsThreadUtils.h"
 #include "nsInterfaceHashtable.h"
 #include "nsDataHashtable.h"
 
 class nsFormControlList;
 class nsIMutableArray;
+
+
+
+
+
+
+class nsStringCaseInsensitiveHashKey : public PLDHashEntryHdr
+{
+public:
+  typedef const nsAString& KeyType;
+  typedef const nsAString* KeyTypePointer;
+  nsStringCaseInsensitiveHashKey(KeyTypePointer aStr) : mStr(*aStr) { } 
+  nsStringCaseInsensitiveHashKey(const nsStringCaseInsensitiveHashKey& toCopy) : mStr(toCopy.mStr) { }
+  ~nsStringCaseInsensitiveHashKey() { }
+
+  KeyType GetKey() const { return mStr; }
+  bool KeyEquals(const KeyTypePointer aKey) const
+  {
+    return mStr.Equals(*aKey,nsCaseInsensitiveStringComparator());
+  }
+
+  static KeyTypePointer KeyToPointer(KeyType aKey) { return &aKey; }
+  static PLDHashNumber HashKey(const KeyTypePointer aKey)
+  {
+      nsAutoString tmKey(*aKey);
+      ToLowerCase(tmKey);
+      return HashString(tmKey);
+  }
+  enum { ALLOW_MEMMOVE = PR_TRUE };
+
+private:
+  const nsString mStr;
+};
 
 class nsHTMLFormElement : public nsGenericHTMLElement,
                           public nsIDOMHTMLFormElement,
@@ -55,34 +121,38 @@ public:
   NS_DECL_NSIWEBPROGRESSLISTENER
 
   
-  NS_IMETHOD_(nsIFormControl*) GetElementAt(int32_t aIndex) const;
-  NS_IMETHOD_(uint32_t) GetElementCount() const;
+  NS_IMETHOD_(nsIFormControl*) GetElementAt(PRInt32 aIndex) const;
+  NS_IMETHOD_(PRUint32) GetElementCount() const;
   NS_IMETHOD_(already_AddRefed<nsISupports>) ResolveName(const nsAString& aName);
-  NS_IMETHOD_(int32_t) IndexOfControl(nsIFormControl* aControl);
+  NS_IMETHOD_(PRInt32) IndexOfControl(nsIFormControl* aControl);
   NS_IMETHOD_(nsIFormControl*) GetDefaultSubmitElement() const;
 
   
-  void SetCurrentRadioButton(const nsAString& aName,
-                             nsIDOMHTMLInputElement* aRadio);
-  nsIDOMHTMLInputElement* GetCurrentRadioButton(const nsAString& aName);
+  NS_IMETHOD SetCurrentRadioButton(const nsAString& aName,
+                                   nsIDOMHTMLInputElement* aRadio);
+  NS_IMETHOD GetCurrentRadioButton(const nsAString& aName,
+                                   nsIDOMHTMLInputElement** aRadio);
+  NS_IMETHOD GetPositionInGroup(nsIDOMHTMLInputElement *aRadio,
+                                PRInt32 *aPositionIndex,
+                                PRInt32 *aItemsInGroup);
   NS_IMETHOD GetNextRadioButton(const nsAString& aName,
                                 const bool aPrevious,
                                 nsIDOMHTMLInputElement*  aFocusedRadio,
                                 nsIDOMHTMLInputElement** aRadioOut);
   NS_IMETHOD WalkRadioGroup(const nsAString& aName, nsIRadioVisitor* aVisitor,
                             bool aFlushContent);
-  void AddToRadioGroup(const nsAString& aName, nsIFormControl* aRadio);
-  void RemoveFromRadioGroup(const nsAString& aName, nsIFormControl* aRadio);
-  virtual uint32_t GetRequiredRadioCount(const nsAString& aName) const;
+  NS_IMETHOD AddToRadioGroup(const nsAString& aName,
+                             nsIFormControl* aRadio);
+  NS_IMETHOD RemoveFromRadioGroup(const nsAString& aName,
+                                  nsIFormControl* aRadio);
+  virtual PRUint32 GetRequiredRadioCount(const nsAString& aName) const;
   virtual void RadioRequiredChanged(const nsAString& aName,
                                     nsIFormControl* aRadio);
   virtual bool GetValueMissingState(const nsAString& aName) const;
   virtual void SetValueMissingState(const nsAString& aName, bool aValue);
 
-  virtual nsEventStates IntrinsicState() const;
-
   
-  virtual bool ParseAttribute(int32_t aNamespaceID,
+  virtual bool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
@@ -95,16 +165,16 @@ public:
                               bool aCompileEventHandlers);
   virtual void UnbindFromTree(bool aDeep = true,
                               bool aNullParent = true);
-  nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+  nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                    const nsAString& aValue, bool aNotify)
   {
-    return SetAttr(aNameSpaceID, aName, nullptr, aValue, aNotify);
+    return SetAttr(aNameSpaceID, aName, nsnull, aValue, aNotify);
   }
-  virtual nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+  virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                            nsIAtom* aPrefix, const nsAString& aValue,
                            bool aNotify);
-  virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                                const nsAttrValue* aValue, bool aNotify);
+  virtual nsresult AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
+                                const nsAString* aValue, bool aNotify);
 
   
 
@@ -221,8 +291,6 @@ public:
 
   virtual nsXPCClassInfo* GetClassInfo();
 
-  virtual nsIDOMNode* AsDOMNode() { return this; }
-
   
 
 
@@ -260,7 +328,7 @@ protected:
   };
 
   nsresult DoSubmitOrReset(nsEvent* aEvent,
-                           int32_t aMessage);
+                           PRInt32 aMessage);
   nsresult DoReset();
 
   
@@ -346,7 +414,7 @@ protected:
   
   nsInterfaceHashtable<nsStringCaseInsensitiveHashKey,nsIDOMHTMLInputElement> mSelectedRadioButtons;
   
-  nsDataHashtable<nsStringCaseInsensitiveHashKey,uint32_t> mRequiredRadioButtonCounts;
+  nsDataHashtable<nsStringCaseInsensitiveHashKey,PRUint32> mRequiredRadioButtonCounts;
   
   nsDataHashtable<nsStringCaseInsensitiveHashKey,bool> mValueMissingRadioGroups;
   
@@ -387,7 +455,7 @@ protected:
 
 
 
-  int32_t mInvalidElementsCount;
+  PRInt32 mInvalidElementsCount;
 
   
 

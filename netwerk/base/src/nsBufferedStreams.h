@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsBufferedStreams_h__
 #define nsBufferedStreams_h__
 
@@ -13,7 +45,7 @@
 #include "nsISeekableStream.h"
 #include "nsIStreamBufferAccess.h"
 #include "nsCOMPtr.h"
-#include "nsIIPCSerializableInputStream.h"
+#include "nsIIPCSerializable.h"
 
 
 
@@ -29,30 +61,29 @@ public:
     nsresult Close();
 
 protected:
-    nsresult Init(nsISupports* stream, uint32_t bufferSize);
+    nsresult Init(nsISupports* stream, PRUint32 bufferSize);
     NS_IMETHOD Fill() = 0;
     NS_IMETHOD Flush() = 0;
 
-    uint32_t                    mBufferSize;
+    PRUint32                    mBufferSize;
     char*                       mBuffer;
 
     
-    int64_t                     mBufferStartOffset;
+    PRInt64                     mBufferStartOffset;
 
     
     
-    uint32_t                    mCursor;
+    PRUint32                    mCursor;
 
     
     
     
-    uint32_t                    mFillPoint;
+    PRUint32                    mFillPoint;
 
     nsISupports*                mStream;        
 
     bool                        mBufferDisabled;
-    bool                        mEOF;  
-    uint8_t                     mGetBufferCount;
+    PRUint8                     mGetBufferCount;
 };
 
 
@@ -60,14 +91,14 @@ protected:
 class nsBufferedInputStream : public nsBufferedStream,
                               public nsIBufferedInputStream,
                               public nsIStreamBufferAccess,
-                              public nsIIPCSerializableInputStream
+                              public nsIIPCSerializable
 {
 public:
     NS_DECL_ISUPPORTS_INHERITED
     NS_DECL_NSIINPUTSTREAM
     NS_DECL_NSIBUFFEREDINPUTSTREAM
     NS_DECL_NSISTREAMBUFFERACCESS
-    NS_DECL_NSIIPCSERIALIZABLEINPUTSTREAM
+    NS_DECL_NSIIPCSERIALIZABLE
 
     nsBufferedInputStream() : nsBufferedStream() {}
     virtual ~nsBufferedInputStream() {}

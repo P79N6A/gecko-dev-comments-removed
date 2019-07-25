@@ -5,6 +5,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifdef nsWindowsRestart_cpp
 #error "nsWindowsRestart.cpp is not a header file, and must only be included once."
 #else
@@ -15,9 +49,21 @@
 
 #include <shellapi.h>
 
+#ifndef ERROR_ELEVATION_REQUIRED
+#define ERROR_ELEVATION_REQUIRED 740L
+#endif
 
-#include <userenv.h>
-#pragma comment(lib, "userenv.lib")
+BOOL (WINAPI *pCreateProcessWithTokenW)(HANDLE,
+                                        DWORD,
+                                        LPCWSTR,
+                                        LPWSTR,
+                                        DWORD,
+                                        LPVOID,
+                                        LPCWSTR,
+                                        LPSTARTUPINFOW,
+                                        LPPROCESS_INFORMATION);
+
+BOOL (WINAPI *pIsUserAnAdmin)(VOID);
 
 
 
@@ -116,7 +162,7 @@ static PRUnichar* ArgToString(PRUnichar *d, const PRUnichar *s)
 
 
 
-PRUnichar*
+static PRUnichar*
 MakeCommandLine(int argc, PRUnichar **argv)
 {
   int i;
@@ -184,19 +230,11 @@ FreeAllocStrings(int argc, PRUnichar **argv)
 
 
 
-
+BOOL
+WinLaunchChild(const PRUnichar *exePath, int argc, PRUnichar **argv);
 
 BOOL
-WinLaunchChild(const PRUnichar *exePath, 
-               int argc, PRUnichar **argv, 
-               HANDLE userToken = NULL,
-               HANDLE *hProcess = NULL);
-
-BOOL
-WinLaunchChild(const PRUnichar *exePath, 
-               int argc, char **argv, 
-               HANDLE userToken,
-               HANDLE *hProcess)
+WinLaunchChild(const PRUnichar *exePath, int argc, char **argv)
 {
   PRUnichar** argvConverted = new PRUnichar*[argc];
   if (!argvConverted)
@@ -210,85 +248,50 @@ WinLaunchChild(const PRUnichar *exePath,
     }
   }
 
-  BOOL ok = WinLaunchChild(exePath, argc, argvConverted, userToken, hProcess);
+  BOOL ok = WinLaunchChild(exePath, argc, argvConverted);
   FreeAllocStrings(argc, argvConverted);
   return ok;
 }
 
 BOOL
-WinLaunchChild(const PRUnichar *exePath, 
-               int argc, 
-               PRUnichar **argv, 
-               HANDLE userToken,
-               HANDLE *hProcess)
+WinLaunchChild(const PRUnichar *exePath, int argc, PRUnichar **argv)
 {
   PRUnichar *cl;
   BOOL ok;
 
   cl = MakeCommandLine(argc, argv);
-  if (!cl) {
+  if (!cl)
     return FALSE;
-  }
 
-  STARTUPINFOW si = {0};
-  si.cb = sizeof(STARTUPINFOW);
-  si.lpDesktop = L"winsta0\\Default";
+  STARTUPINFOW si = {sizeof(si), 0};
   PROCESS_INFORMATION pi = {0};
 
-  if (userToken == NULL) {
-    ok = CreateProcessW(exePath,
-                        cl,
-                        NULL,  
-                        NULL,  
-                        FALSE, 
-                        0,     
-                        NULL,  
-                        NULL,  
-                        &si,
-                        &pi);
-  } else {
-    
-    
-    LPVOID environmentBlock = NULL;
-    if (!CreateEnvironmentBlock(&environmentBlock, userToken, TRUE)) {
-      environmentBlock = NULL;
-    }
-
-    ok = CreateProcessAsUserW(userToken, 
-                              exePath,
-                              cl,
-                              NULL,  
-                              NULL,  
-                              FALSE, 
-                              0,     
-                              environmentBlock,
-                              NULL,  
-                              &si,
-                              &pi);
-
-    if (environmentBlock) {
-      DestroyEnvironmentBlock(environmentBlock);
-    }
-  }
+  ok = CreateProcessW(exePath,
+                      cl,
+                      NULL,  
+                      NULL,  
+                      FALSE, 
+                      0,     
+                      NULL,  
+                      NULL,  
+                      &si,
+                      &pi);
 
   if (ok) {
-    if (hProcess) {
-      *hProcess = pi.hProcess; 
-    } else {
-      CloseHandle(pi.hProcess);
-    }
+    CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
   } else {
     LPVOID lpMsgBuf = NULL;
     FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                  FORMAT_MESSAGE_FROM_SYSTEM |
-                  FORMAT_MESSAGE_IGNORE_INSERTS,
-                  NULL,
-                  GetLastError(),
-                  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                  (LPTSTR) &lpMsgBuf,
-                  0,
-                  NULL);
+		  FORMAT_MESSAGE_FROM_SYSTEM |
+		  FORMAT_MESSAGE_IGNORE_INSERTS,
+		  NULL,
+		  GetLastError(),
+		  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		  (LPTSTR) &lpMsgBuf,
+		  0,
+		  NULL
+		  );
     wprintf(L"Error restarting: %s\n", lpMsgBuf ? lpMsgBuf : L"(null)");
     if (lpMsgBuf)
       LocalFree(lpMsgBuf);

@@ -3,11 +3,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsPluginSafety_h_
 #define nsPluginSafety_h_
 
 #include "npapi.h"
 #include "nsPluginHost.h"
+#include "nsIPrefBranch.h"
+#include "nsIPrefService.h"
 #include <prinrval.h>
 
 #if defined(XP_WIN)
@@ -18,15 +52,14 @@ void NS_NotifyPluginCall(PRIntervalTime);
 
 #ifdef CALL_SAFETY_ON
 
-#include "mozilla/Preferences.h"
-
 extern bool gSkipPluginSafeCalls;
 
-#define NS_INIT_PLUGIN_SAFE_CALLS                                  \
-PR_BEGIN_MACRO                                                     \
-  gSkipPluginSafeCalls =                                           \
-    ::mozilla::Preferences::GetBool("plugin.dont_try_safe_calls",  \
-                                    gSkipPluginSafeCalls);         \
+#define NS_INIT_PLUGIN_SAFE_CALLS                               \
+PR_BEGIN_MACRO                                                  \
+  nsresult res;                                                 \
+  nsCOMPtr<nsIPrefBranch> pref(do_GetService(NS_PREFSERVICE_CONTRACTID, &res)); \
+  if(NS_SUCCEEDED(res) && pref)                                 \
+    res = pref->GetBoolPref("plugin.dont_try_safe_calls", &gSkipPluginSafeCalls);\
 PR_END_MACRO
 
 #define NS_TRY_SAFE_CALL_RETURN(ret, fun, pluginInst) \
@@ -44,8 +77,8 @@ PR_BEGIN_MACRO                                     \
     {                                              \
       nsresult res;                                \
       nsCOMPtr<nsIPluginHost> host(do_GetService(MOZ_PLUGIN_HOST_CONTRACTID, &res));\
-      if(NS_SUCCEEDED(res) && (host != nullptr))    \
-        static_cast<nsPluginHost*>(host.get())->HandleBadPlugin(nullptr, pluginInst); \
+      if(NS_SUCCEEDED(res) && (host != nsnull))    \
+        static_cast<nsPluginHost*>(host.get())->HandleBadPlugin(nsnull, pluginInst); \
       ret = (NPError)NS_ERROR_FAILURE;             \
     }                                              \
   }                                                \
@@ -67,8 +100,8 @@ PR_BEGIN_MACRO                              \
     {                                       \
       nsresult res;                         \
       nsCOMPtr<nsIPluginHost> host(do_GetService(MOZ_PLUGIN_HOST_CONTRACTID, &res));\
-      if(NS_SUCCEEDED(res) && (host != nullptr))\
-        static_cast<nsPluginHost*>(host.get())->HandleBadPlugin(nullptr, pluginInst);\
+      if(NS_SUCCEEDED(res) && (host != nsnull))\
+        static_cast<nsPluginHost*>(host.get())->HandleBadPlugin(nsnull, pluginInst);\
     }                                       \
   }                                         \
   NS_NotifyPluginCall(startTime);		   \

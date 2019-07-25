@@ -3,7 +3,44 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #define PANGO_ENABLE_BACKEND
 #define PANGO_ENABLE_ENGINE
@@ -15,7 +52,7 @@
 #include "nsTArray.h"
 
 #include "gfxContext.h"
-#ifdef MOZ_WIDGET_GTK
+#ifdef MOZ_WIDGET_GTK2
 #include "gfxPlatformGtk.h"
 #endif
 #ifdef MOZ_WIDGET_QT
@@ -24,16 +61,13 @@
 #include "gfxPangoFonts.h"
 #include "gfxFT2FontBase.h"
 #include "gfxFT2Utils.h"
-#include "harfbuzz/hb.h"
-#include "harfbuzz/hb-ot.h"
+#include "harfbuzz/hb-unicode.h"
+#include "harfbuzz/hb-ot-tag.h"
 #include "gfxHarfBuzzShaper.h"
-#ifdef MOZ_GRAPHITE
-#include "gfxGraphiteShaper.h"
-#endif
-#include "nsUnicodeProperties.h"
-#include "nsUnicodeScriptCodes.h"
+#include "gfxUnicodeProperties.h"
 #include "gfxFontconfigUtils.h"
 #include "gfxUserFontSet.h"
+#include "gfxAtoms.h"
 
 #include <cairo.h>
 #include <cairo-ft.h>
@@ -44,16 +78,11 @@
 #include <pango/pango-modules.h>
 #include <pango/pangofc-fontmap.h>
 
-#include FT_TRUETYPE_TABLES_H
-
-#ifdef MOZ_WIDGET_GTK
+#ifdef MOZ_WIDGET_GTK2
 #include <gdk/gdk.h>
 #endif
 
 #include <math.h>
-
-using namespace mozilla;
-using namespace mozilla::unicode;
 
 #define FLOAT_PANGO_SCALE ((gfxFloat)PANGO_SCALE)
 
@@ -72,7 +101,7 @@ using namespace mozilla::unicode;
 
 #define PRINTING_FC_PROPERTY "gfx.printing"
 
-struct gfxPangoFcFont;
+class gfxPangoFcFont;
 
 
 int moz_pango_units_from_double(double d) {
@@ -83,9 +112,8 @@ static PangoLanguage *GuessPangoLanguage(nsIAtom *aLanguage);
 
 static cairo_scaled_font_t *
 CreateScaledFont(FcPattern *aPattern, cairo_font_face_t *aFace);
-static void SetMissingGlyphs(gfxShapedWord *aShapedWord, const gchar *aUTF8,
-                             uint32_t aUTF8Length, uint32_t *aUTF16Offset,
-                             gfxFont *aFont);
+static void SetMissingGlyphs(gfxTextRun *aTextRun, const gchar *aUTF8,
+                             PRUint32 aUTF8Length, PRUint32 *aUTF16Offset);
 
 static PangoFontMap *gPangoFontMap;
 static PangoFontMap *GetPangoFontMap();
@@ -100,10 +128,10 @@ public:
     static void AddRef(T *aPtr) { g_object_ref(aPtr); }
 };
 
-template <>
+NS_SPECIALIZE_TEMPLATE
 class nsAutoRefTraits<PangoFont> : public gfxGObjectRefTraits<PangoFont> { };
 
-template <>
+NS_SPECIALIZE_TEMPLATE
 class nsAutoRefTraits<PangoCoverage>
     : public nsPointerRefTraits<PangoCoverage> {
 public:
@@ -124,7 +152,7 @@ public:
 static PRFuncPtr
 FindFunctionSymbol(const char *name)
 {
-    PRLibrary *lib = nullptr;
+    PRLibrary *lib = nsnull;
     PRFuncPtr result = PR_FindFunctionSymbolAndLibrary(name, &lib);
     if (lib) {
         PR_UnloadLibrary(lib);
@@ -161,8 +189,8 @@ public:
         return mPatterns;
     }
 
-    bool ShouldUseHarfBuzz(int32_t aRunScript);
-    void SkipHarfBuzz() { mSkipHarfBuzz = true; }
+    bool ShouldUseHarfBuzz(PRInt32 aRunScript);
+    void SkipHarfBuzz() { mSkipHarfBuzz = PR_TRUE; }
 
     static gfxFcFontEntry *LookupFontEntry(cairo_font_face_t *aFace)
     {
@@ -180,26 +208,22 @@ public:
     virtual nsString RealFaceName();
 
     
-    virtual bool TestCharacterMap(uint32_t aCh)
+    virtual bool TestCharacterMap(PRUint32 aCh)
     {
-        for (uint32_t i = 0; i < mPatterns.Length(); ++i) {
+        for (PRUint32 i = 0; i < mPatterns.Length(); ++i) {
             if (HasChar(mPatterns[i], aCh)) {
-                return true;
+                return PR_TRUE;
             }
         }
-        return false;
+        return PR_FALSE;
     }
 
 protected:
     gfxFcFontEntry(const nsAString& aName)
         : gfxFontEntry(aName),
-          mSkipHarfBuzz(false), mSkipGraphiteCheck(false)
+          mSkipHarfBuzz(PR_FALSE), mSkipGraphiteCheck(PR_FALSE)
     {
     }
-
-#ifdef MOZ_GRAPHITE
-    virtual void CheckForGraphiteTables();
-#endif
 
     
     
@@ -252,29 +276,16 @@ gfxFcFontEntry::RealFaceName()
     return gfxFontEntry::RealFaceName();
 }
 
-#ifdef MOZ_GRAPHITE
-void
-gfxFcFontEntry::CheckForGraphiteTables()
-{
-    FcChar8 *capability;
-    mHasGraphiteTables =
-        !mPatterns.IsEmpty() &&
-        FcPatternGetString(mPatterns[0],
-                           FC_CAPABILITY, 0, &capability) == FcResultMatch &&
-        FcStrStr(capability, gfxFontconfigUtils::ToFcChar8("ttable:Silf"));
-}
-#endif
-
 bool
-gfxFcFontEntry::ShouldUseHarfBuzz(int32_t aRunScript) {
+gfxFcFontEntry::ShouldUseHarfBuzz(PRInt32 aRunScript) {
     if (mSkipHarfBuzz ||
         !gfxPlatform::GetPlatform()->UseHarfBuzzForScript(aRunScript))
     {
-        return false;
+        return PR_FALSE;
     }
 
     if (mSkipGraphiteCheck) {
-        return true;
+        return PR_TRUE;
     }
 
     
@@ -286,27 +297,26 @@ gfxFcFontEntry::ShouldUseHarfBuzz(int32_t aRunScript) {
                            FC_CAPABILITY, 0, &capability) == FcResultNoMatch ||
         !FcStrStr(capability, gfxFontconfigUtils::ToFcChar8("ttable:Silf")))
     {
-        mSkipGraphiteCheck = true;
-        return true;
+        mSkipGraphiteCheck = PR_TRUE;
+        return PR_TRUE;
     }
 
     
-    hb_script_t script = (aRunScript <= MOZ_SCRIPT_INHERITED) ?
-        HB_SCRIPT_LATIN :
-        hb_script_t(GetScriptTagForCode(aRunScript));
+    hb_script_t script =
+        aRunScript <= HB_SCRIPT_INHERITED ? HB_SCRIPT_LATIN
+        : static_cast<hb_script_t>(aRunScript);
 
     
     
     const FcChar8 otCapTemplate[] = "otlayout:XXXX";
     FcChar8 otCap[NS_ARRAY_LENGTH(otCapTemplate)];
-    memcpy(otCap, otCapTemplate, ArrayLength(otCapTemplate));
+    memcpy(otCap, otCapTemplate, NS_ARRAY_LENGTH(otCapTemplate));
     
-    const uint32_t scriptOffset = ArrayLength(otCapTemplate) - 5;
+    const PRUint32 scriptOffset = NS_ARRAY_LENGTH(otCapTemplate) - 5;
 
-    hb_tag_t tags[2];
-    hb_ot_tags_from_script(script, &tags[0], &tags[1]);
-    for (int i = 0; i < 2; ++i) {
-        hb_tag_t scriptTag = tags[i];
+    for (const hb_tag_t *scriptTags = hb_ot_tags_from_script(script);
+         hb_tag_t scriptTag = *scriptTags;
+         scriptTags++) {
         if (scriptTag == HB_TAG('D','F','L','T')) { 
             continue;
         }
@@ -317,11 +327,11 @@ gfxFcFontEntry::ShouldUseHarfBuzz(int32_t aRunScript) {
         otCap[scriptOffset + 2] = scriptTag >> 8;
         otCap[scriptOffset + 3] = scriptTag;
         if (FcStrStr(capability, otCap)) {
-            return true;
+            return PR_TRUE;
         }
     }
 
-    return false; 
+    return PR_FALSE; 
 }
 
 
@@ -406,7 +416,7 @@ protected:
         mItalic = aProxyEntry.mItalic;
         mWeight = aProxyEntry.mWeight;
         mStretch = aProxyEntry.mStretch;
-        mIsUserFont = true;
+        mIsUserFont = PR_TRUE;
     }
 
     
@@ -453,7 +463,7 @@ gfxUserFcFontEntry::AdjustPatternToCSS(FcPattern *aPattern)
     FcChar8 *unused;
     if (FcPatternGetString(aPattern,
                            FC_FULLNAME, 0, &unused) == FcResultNoMatch) {
-        nsAutoCString fullname;
+        nsCAutoString fullname;
         if (gfxFontconfigUtils::GetFullnameFromFamilyAndStyle(aPattern,
                                                               &fullname)) {
             FcPatternAddString(aPattern, FC_FULLNAME,
@@ -461,7 +471,7 @@ gfxUserFcFontEntry::AdjustPatternToCSS(FcPattern *aPattern)
         }
     }
 
-    nsAutoCString family;
+    nsCAutoString family;
     family.Append(FONT_FACE_FAMILY_PREFIX);
     AppendUTF16toUTF8(Name(), family);
 
@@ -491,7 +501,7 @@ public:
         if (!mPatterns.SetCapacity(aPatterns.Length()))
             return; 
 
-        for (uint32_t i = 0; i < aPatterns.Length(); ++i) {
+        for (PRUint32 i = 0; i < aPatterns.Length(); ++i) {
             FcPattern *pattern = FcPatternDuplicate(aPatterns.ElementAt(i));
             if (!pattern)
                 return; 
@@ -501,7 +511,7 @@ public:
             mPatterns.AppendElement();
             mPatterns[i].own(pattern);
         }
-        mIsLocalUserFont = true;
+        mIsLocalUserFont = PR_TRUE;
     }
 };
 
@@ -518,7 +528,7 @@ class gfxDownloadedFcFontEntry : public gfxUserFcFontEntry {
 public:
     
     gfxDownloadedFcFontEntry(const gfxProxyFontEntry &aProxyEntry,
-                             const uint8_t *aData, FT_Face aFace)
+                             const PRUint8 *aData, FT_Face aFace)
         : gfxUserFcFontEntry(aProxyEntry), mFontData(aData), mFace(aFace)
     {
         NS_PRECONDITION(aFace != NULL, "aFace is NULL!");
@@ -535,16 +545,13 @@ public:
     
     PangoCoverage *GetPangoCoverage();
 
-    virtual nsresult
-    GetFontTable(uint32_t aTableTag, FallibleTArray<uint8_t>& aBuffer) MOZ_OVERRIDE;
-
 protected:
     void InitPattern();
 
     
     
     
-    const uint8_t* mFontData;
+    const PRUint8* mFontData;
 
     FT_Face mFace;
 
@@ -576,11 +583,11 @@ static gfxDownloadedFcFontEntry *GetDownloadedFontEntry(FcPattern *aPattern)
 {
     FcValue value;
     if (FcPatternGet(aPattern, kFontEntryFcProp, 0, &value) != FcResultMatch)
-        return nullptr;
+        return nsnull;
 
     if (value.type != FcTypeFTFace) {
         NS_NOTREACHED("Wrong type for -moz-font-entry font property");
-        return nullptr;
+        return nsnull;
     }
 
     return static_cast<gfxDownloadedFcFontEntry*>(value.u.f);
@@ -704,11 +711,11 @@ bool gfxDownloadedFcFontEntry::SetCairoFace(cairo_font_face_t *aFace)
     if (CAIRO_STATUS_SUCCESS !=
         cairo_font_face_set_user_data(aFace, &sFontEntryKey, this,
                                       ReleaseDownloadedFontEntry))
-        return false;
+        return PR_FALSE;
 
     
     NS_ADDREF(this);
-    return true;
+    return PR_TRUE;
 }
 
 static PangoCoverage *NewPangoCoverage(FcPattern *aFont)
@@ -726,8 +733,8 @@ static PangoCoverage *NewPangoCoverage(FcPattern *aFont)
     for (base = FcCharSetFirstPage(charset, map, &next);
          base != FC_CHARSET_DONE;
          base = FcCharSetNextPage(charset, map, &next)) {
-        for (uint32_t i = 0; i < FC_CHARSET_MAP_SIZE; ++i) {
-            uint32_t offset = 0;
+        for (PRUint32 i = 0; i < FC_CHARSET_MAP_SIZE; ++i) {
+            PRUint32 offset = 0;
             FcChar32 bitmap = map[i];
             for (; bitmap; bitmap >>= 1) {
                 if (bitmap & 1) {
@@ -753,29 +760,6 @@ gfxDownloadedFcFontEntry::GetPangoCoverage()
     return mPangoCoverage;
 }
 
-nsresult
-gfxDownloadedFcFontEntry::GetFontTable(uint32_t aTableTag,
-                                       FallibleTArray<uint8_t>& aBuffer)
-{
-    FT_ULong length = 0;
-    FT_Error error = FT_Load_Sfnt_Table(mFace, aTableTag, 0, nullptr, &length);
-    if (error) {
-        return NS_ERROR_NOT_AVAILABLE;
-    }
-
-    if (!aBuffer.SetLength(length)) {
-        return NS_ERROR_OUT_OF_MEMORY;
-    }
-
-    error = FT_Load_Sfnt_Table(mFace, aTableTag, 0, aBuffer.Elements(), &length);
-    if (error) {
-        aBuffer.Clear();
-        return NS_ERROR_FAILURE;
-    }
-
-    return NS_OK;
-}
-
 
 
 
@@ -787,8 +771,7 @@ class gfxFcFont : public gfxFT2FontBase {
 public:
     virtual ~gfxFcFont();
     static already_AddRefed<gfxFcFont>
-    GetOrMakeFont(FcPattern *aRequestedPattern, FcPattern *aFontPattern,
-                  const gfxFontStyle *aFontStyle);
+    GetOrMakeFont(FcPattern *aRequestedPattern, FcPattern *aFontPattern);
 
     
     PangoFont *GetPangoFont() {
@@ -799,15 +782,21 @@ public:
     }
 
 protected:
-    virtual bool ShapeWord(gfxContext *aContext,
-                           gfxShapedWord *aShapedWord,
-                           const PRUnichar *aString,
-                           bool aPreferPlatformShaping);
+    virtual bool InitTextRun(gfxContext *aContext,
+                               gfxTextRun *aTextRun,
+                               const PRUnichar *aString,
+                               PRUint32 aRunStart,
+                               PRUint32 aRunLength,
+                               PRInt32 aRunScript,
+                               bool aPreferPlatformShaping);
 
-    bool InitGlyphRunWithPango(gfxShapedWord *aTextRun,
-                               const PRUnichar *aString);
+    bool InitGlyphRunWithPango(gfxTextRun *aTextRun,
+                                 const PRUnichar *aString,
+                                 PRUint32 aRunStart, PRUint32 aRunLength,
+                                 PangoScript aScript);
 
 private:
+    static already_AddRefed<gfxFcFont> GetOrMakeFont(FcPattern *aPattern);
     gfxFcFont(cairo_scaled_font_t *aCairoFont, gfxFcFontEntry *aFontEntry,
               const gfxFontStyle *aFontStyle);
 
@@ -975,10 +964,10 @@ gfx_pango_fc_font_get_coverage(PangoFont *font, PangoLanguage *lang)
     return pango_coverage_ref(self->mCoverage);
 }
 
-static int32_t
+static PRInt32
 GetDPI()
 {
-#if defined(MOZ_WIDGET_GTK)
+#if defined(MOZ_WIDGET_GTK2)
     return gfxPlatformGtk::GetDPI();
 #elif defined(MOZ_WIDGET_QT)
     return gfxQtPlatform::GetDPI();
@@ -1182,7 +1171,7 @@ public:
                                gfxUserFontSet *aUserFontSet)
         : mSortPattern(aPattern), mUserFontSet(aUserFontSet),
           mFcFontsTrimmed(0),
-          mHaveFallbackFonts(false)
+          mHaveFallbackFonts(PR_FALSE)
     {
         bool waitForUserFont;
         mFcFontSet = SortPreferredFonts(waitForUserFont);
@@ -1191,7 +1180,7 @@ public:
 
     
     
-    gfxFcFont *GetFontAt(uint32_t i, const gfxFontStyle *aFontStyle)
+    gfxFcFont *GetFontAt(PRUint32 i)
     {
         if (i >= mFonts.Length() || !mFonts[i].mFont) { 
             
@@ -1200,13 +1189,12 @@ public:
                 return NULL;
 
             mFonts[i].mFont =
-                gfxFcFont::GetOrMakeFont(mSortPattern, fontPattern,
-                                         aFontStyle);
+                gfxFcFont::GetOrMakeFont(mSortPattern, fontPattern);
         }
         return mFonts[i].mFont;
     }
 
-    FcPattern *GetFontPatternAt(uint32_t i);
+    FcPattern *GetFontPatternAt(PRUint32 i);
 
     bool WaitingForUserFont() const {
         return mWaitingForUserFont;
@@ -1270,8 +1258,8 @@ private:
 
 static const nsTArray< nsCountedRef<FcPattern> >*
 FindFontPatterns(gfxUserFontSet *mUserFontSet,
-                 const nsACString &aFamily, uint8_t aStyle,
-                 uint16_t aWeight, int16_t aStretch,
+                 const nsACString &aFamily, PRUint8 aStyle,
+                 PRUint16 aWeight, PRInt16 aStretch,
                  bool& aFoundFamily, bool& aWaitForUserFont)
 {
     
@@ -1292,8 +1280,8 @@ FindFontPatterns(gfxUserFontSet *mUserFontSet,
                                      needsBold, aWaitForUserFont));
 
     
-    if (!fontEntry && aStyle != NS_FONT_STYLE_NORMAL) {
-        style.style = NS_FONT_STYLE_NORMAL;
+    if (!fontEntry && aStyle != FONT_STYLE_NORMAL) {
+        style.style = FONT_STYLE_NORMAL;
         fontEntry = static_cast<gfxUserFcFontEntry*>
             (mUserFontSet->FindFontEntry(utf16Family, style, aFoundFamily,
                                          needsBold, aWaitForUserFont));
@@ -1329,14 +1317,14 @@ SlantIsAcceptable(FcPattern *aFont, int aRequestedSlant)
 {
     
     if (aRequestedSlant == FC_SLANT_ITALIC)
-        return true;
+        return PR_TRUE;
 
     int slant;
     FcResult result = FcPatternGetInteger(aFont, FC_SLANT, 0, &slant);
     
     
     if (result != FcResultMatch)
-        return true;
+        return PR_TRUE;
 
     switch (aRequestedSlant) {
         case FC_SLANT_ROMAN:
@@ -1348,7 +1336,7 @@ SlantIsAcceptable(FcPattern *aFont, int aRequestedSlant)
             return slant != FC_SLANT_ITALIC;
     }
 
-    return true;
+    return PR_TRUE;
 }
 
 
@@ -1362,7 +1350,7 @@ SizeIsAcceptable(FcPattern *aFont, double aRequestedSize)
                               FC_PIXEL_SIZE, v, &size) == FcResultMatch) {
         ++v;
         if (5.0 * fabs(size - aRequestedSize) < aRequestedSize)
-            return true;
+            return PR_TRUE;
     }
 
     
@@ -1374,7 +1362,7 @@ SizeIsAcceptable(FcPattern *aFont, double aRequestedSize)
 nsReturnRef<FcFontSet>
 gfxFcFontSet::SortPreferredFonts(bool &aWaitForUserFont)
 {
-    aWaitForUserFont = false;
+    aWaitForUserFont = PR_FALSE;
 
     gfxFontconfigUtils *utils = gfxFontconfigUtils::GetFontconfigUtils();
     if (!utils)
@@ -1433,7 +1421,7 @@ gfxFcFontSet::SortPreferredFonts(bool &aWaitForUserFont)
     for (int v = 0;
          FcPatternGetString(mSortPattern,
                             FC_FAMILY, v, &family) == FcResultMatch; ++v) {
-        const nsTArray< nsCountedRef<FcPattern> > *familyFonts = nullptr;
+        const nsTArray< nsCountedRef<FcPattern> > *familyFonts = nsnull;
 
         
         bool isUserFont = false;
@@ -1444,16 +1432,16 @@ gfxFcFontSet::SortPreferredFonts(bool &aWaitForUserFont)
             NS_NAMED_LITERAL_CSTRING(userPrefix, FONT_FACE_FAMILY_PREFIX);
 
             if (StringBeginsWith(cFamily, userPrefix)) {
-                isUserFont = true;
+                isUserFont = PR_TRUE;
 
                 
                 nsDependentCSubstring cssFamily(cFamily, userPrefix.Length());
 
-                uint8_t thebesStyle =
+                PRUint8 thebesStyle =
                     gfxFontconfigUtils::FcSlantToThebesStyle(requestedSlant);
-                uint16_t thebesWeight =
+                PRUint16 thebesWeight =
                     gfxFontconfigUtils::GetThebesWeight(mSortPattern);
-                int16_t thebesStretch =
+                PRInt16 thebesStretch =
                     gfxFontconfigUtils::GetThebesStretch(mSortPattern);
 
                 bool foundFamily, waitForUserFont;
@@ -1462,7 +1450,7 @@ gfxFcFontSet::SortPreferredFonts(bool &aWaitForUserFont)
                                                thebesWeight, thebesStretch,
                                                foundFamily, waitForUserFont);
                 if (waitForUserFont) {
-                    aWaitForUserFont = true;
+                    aWaitForUserFont = PR_TRUE;
                 }
                 NS_ASSERTION(foundFamily,
                              "expected to find a user font, but it's missing!");
@@ -1501,7 +1489,7 @@ gfxFcFontSet::SortPreferredFonts(bool &aWaitForUserFont)
             entry->mKey = family; 
         }
 
-        for (uint32_t f = 0; f < familyFonts->Length(); ++f) {
+        for (PRUint32 f = 0; f < familyFonts->Length(); ++f) {
             FcPattern *font = familyFonts->ElementAt(f);
 
             
@@ -1511,7 +1499,7 @@ gfxFcFontSet::SortPreferredFonts(bool &aWaitForUserFont)
             if (requestedSize != -1.0 && !SizeIsAcceptable(font, requestedSize))
                 continue;
 
-            for (uint32_t r = 0; r < requiredLangs.Length(); ++r) {
+            for (PRUint32 r = 0; r < requiredLangs.Length(); ++r) {
                 const LangSupportEntry& entry = requiredLangs[r];
                 FcLangResult support =
                     gfxFontconfigUtils::GetLangSupport(font, entry.mLang);
@@ -1530,19 +1518,19 @@ gfxFcFontSet::SortPreferredFonts(bool &aWaitForUserFont)
     }
 
     FcPattern *truncateMarker = NULL;
-    for (uint32_t r = 0; r < requiredLangs.Length(); ++r) {
+    for (PRUint32 r = 0; r < requiredLangs.Length(); ++r) {
         const nsTArray< nsCountedRef<FcPattern> >& langFonts =
             utils->GetFontsForLang(requiredLangs[r].mLang);
 
         bool haveLangFont = false;
-        for (uint32_t f = 0; f < langFonts.Length(); ++f) {
+        for (PRUint32 f = 0; f < langFonts.Length(); ++f) {
             FcPattern *font = langFonts[f];
             if (!SlantIsAcceptable(font, requestedSlant))
                 continue;
             if (requestedSize != -1.0 && !SizeIsAcceptable(font, requestedSize))
                 continue;
 
-            haveLangFont = true;
+            haveLangFont = PR_TRUE;
             if (FcFontSetAdd(fontSet, font)) {
                 FcPatternReference(font);
             }
@@ -1622,15 +1610,15 @@ gfxFcFontSet::SortFallbackFonts()
 
 
 FcPattern *
-gfxFcFontSet::GetFontPatternAt(uint32_t i)
+gfxFcFontSet::GetFontPatternAt(PRUint32 i)
 {
     while (i >= mFonts.Length()) {
         while (!mFcFontSet) {
             if (mHaveFallbackFonts)
-                return nullptr;
+                return nsnull;
 
             mFcFontSet = SortFallbackFonts();
-            mHaveFallbackFonts = true;
+            mHaveFallbackFonts = PR_TRUE;
             mFcFontsTrimmed = 0;
             
         }
@@ -1759,7 +1747,7 @@ gfx_pango_font_map_class_init(gfxPangoFontMapClass *klass)
     
 }
 
-#ifdef MOZ_WIDGET_GTK
+#ifdef MOZ_WIDGET_GTK2
 static void ApplyGdkScreenFontOptions(FcPattern *aPattern);
 #endif
 
@@ -1796,7 +1784,7 @@ PrepareSortPattern(FcPattern *aPattern, double aFallbackSize,
        cairo_ft_font_options_substitute(options, aPattern);
        cairo_font_options_destroy(options);
 #endif
-#ifdef MOZ_WIDGET_GTK
+#ifdef MOZ_WIDGET_GTK2
        ApplyGdkScreenFontOptions(aPattern);
 #endif
     }
@@ -1831,7 +1819,7 @@ static int
 FFRECountHyphens (const nsAString &aFFREName)
 {
     int h = 0;
-    int32_t hyphen = 0;
+    PRInt32 hyphen = 0;
     while ((hyphen = aFFREName.FindChar('-', hyphen)) >= 0) {
         ++h;
         ++hyphen;
@@ -1848,7 +1836,7 @@ FamilyCallback (const nsAString& fontName, const nsACString& genericName,
 
     
     if (genericName.Length() && FFRECountHyphens(fontName) >= 3)
-        return true;
+        return PR_TRUE;
 
     if (!list->Contains(fontName)) {
         
@@ -1889,7 +1877,7 @@ FamilyCallback (const nsAString& fontName, const nsACString& genericName,
         }
     }
 
-    return true;
+    return PR_TRUE;
 }
 
 gfxPangoFontGroup::gfxPangoFontGroup (const nsAString& families,
@@ -1925,7 +1913,7 @@ gfxPangoFontGroup::GetFcFamilies(nsTArray<nsString> *aFcFamilyList,
     FamilyCallbackData data(aFcFamilyList, mUserFontSet);
     
     
-    ForEachFontInternal(mFamilies, aLanguage, true, false, true,
+    ForEachFontInternal(mFamilies, aLanguage, PR_TRUE, PR_FALSE, PR_TRUE,
                         FamilyCallback, &data);
 }
 
@@ -1933,14 +1921,14 @@ gfxFcFont *
 gfxPangoFontGroup::GetBaseFont()
 {
     if (!mFonts[0]) {
-        mFonts[0] = GetBaseFontSet()->GetFontAt(0, GetStyle());
+        mFonts[0] = GetBaseFontSet()->GetFontAt(0);
     }
 
     return static_cast<gfxFcFont*>(mFonts[0].get());
 }
 
 gfxFont *
-gfxPangoFontGroup::GetFontAt(int32_t i) {
+gfxPangoFontGroup::GetFontAt(PRInt32 i) {
     
     
     
@@ -1960,7 +1948,7 @@ gfxPangoFontGroup::UpdateFontList()
     if (!mUserFontSet)
         return;
 
-    uint64_t newGeneration = mUserFontSet->GetGeneration();
+    PRUint64 newGeneration = mUserFontSet->GetGeneration();
     if (newGeneration == mCurrGeneration)
         return;
 
@@ -1968,7 +1956,7 @@ gfxPangoFontGroup::UpdateFontList()
     mFontSets.Clear();
     mUnderlineOffset = UNDERLINE_OFFSET_NOT_SET;
     mCurrGeneration = newGeneration;
-    mSkipDrawing = false;
+    mSkipDrawing = PR_FALSE;
 }
 
 already_AddRefed<gfxFcFontSet>
@@ -2021,7 +2009,7 @@ gfxPangoFontGroup::GetFontSet(PangoLanguage *aLang)
     if (!aLang)
         return mFontSets[0].mFontSet;
 
-    for (uint32_t i = 0; i < mFontSets.Length(); ++i) {
+    for (PRUint32 i = 0; i < mFontSets.Length(); ++i) {
         if (mFontSets[i].mLang == aLang)
             return mFontSets[i].mFontSet;
     }
@@ -2034,39 +2022,33 @@ gfxPangoFontGroup::GetFontSet(PangoLanguage *aLang)
 }
 
 already_AddRefed<gfxFont>
-gfxPangoFontGroup::FindFontForChar(uint32_t aCh, uint32_t aPrevCh,
-                                   int32_t aRunScript,
+gfxPangoFontGroup::FindFontForChar(PRUint32 aCh, PRUint32 aPrevCh,
+                                   PRInt32 aRunScript,
                                    gfxFont *aPrevMatchedFont,
-                                   uint8_t *aMatchType)
+                                   PRUint8 *aMatchType)
 {
     if (aPrevMatchedFont) {
+        PRUint8 category = gfxUnicodeProperties::GetGeneralCategory(aCh);
         
         
         
-        uint8_t category = GetGeneralCategory(aCh);
-        if (category == HB_UNICODE_GENERAL_CATEGORY_CONTROL) {
+        
+        if ((category == HB_CATEGORY_CONTROL ||
+             category == HB_CATEGORY_FORMAT  ||
+             gfxFontUtils::IsVarSelector(aCh))) {
             return nsRefPtr<gfxFont>(aPrevMatchedFont).forget();
         }
 
         
         
-        if (gfxFontUtils::IsJoinControl(aCh) ||
-            gfxFontUtils::IsJoinCauser(aPrevCh)) {
-            if (aPrevMatchedFont->HasCharacter(aCh)) {
-                return nsRefPtr<gfxFont>(aPrevMatchedFont).forget();
-            }
-        }
-    }
-
-    
-    
-    
-    if (gfxFontUtils::IsVarSelector(aCh)) {
-        if (aPrevMatchedFont) {
+        
+        
+        
+        if (aCh == ' ' ||
+            (gfxFontUtils::IsJoinCauser(aPrevCh) &&
+             static_cast<gfxFcFont*>(aPrevMatchedFont)->GetGlyph(aCh))) {
             return nsRefPtr<gfxFont>(aPrevMatchedFont).forget();
         }
-        
-        return nullptr;
     }
 
     
@@ -2102,7 +2084,7 @@ gfxPangoFontGroup::FindFontForChar(uint32_t aCh, uint32_t aPrevCh,
     
 
     gfxFcFontSet *fontSet = GetBaseFontSet();
-    uint32_t nextFont = 0;
+    PRUint32 nextFont = 0;
     FcPattern *basePattern = NULL;
     if (!mStyle.systemFont && mPangoLanguage) {
         basePattern = fontSet->GetFontPatternAt(0);
@@ -2115,7 +2097,6 @@ gfxPangoFontGroup::FindFontForChar(uint32_t aCh, uint32_t aPrevCh,
     }
 
     
-    
     const PangoScript script = static_cast<PangoScript>(aRunScript);
     
     
@@ -2127,7 +2108,7 @@ gfxPangoFontGroup::FindFontForChar(uint32_t aCh, uint32_t aPrevCh,
         nextFont = 0;
     }
 
-    for (uint32_t i = nextFont;
+    for (PRUint32 i = nextFont;
          FcPattern *pattern = fontSet->GetFontPatternAt(i);
          ++i) {
         if (pattern == basePattern) {
@@ -2136,21 +2117,12 @@ gfxPangoFontGroup::FindFontForChar(uint32_t aCh, uint32_t aPrevCh,
 
         if (HasChar(pattern, aCh)) {
             *aMatchType = gfxTextRange::kFontGroup;
-            return nsRefPtr<gfxFont>(fontSet->GetFontAt(i, GetStyle())).forget();
+            return nsRefPtr<gfxFont>(fontSet->GetFontAt(i)).forget();
         }
     }
 
-    return nullptr;
+    return nsnull;
 }
-
-
-
-PR_STATIC_ASSERT(MOZ_SCRIPT_COMMON    == PANGO_SCRIPT_COMMON);
-PR_STATIC_ASSERT(MOZ_SCRIPT_INHERITED == PANGO_SCRIPT_INHERITED);
-PR_STATIC_ASSERT(MOZ_SCRIPT_ARABIC    == PANGO_SCRIPT_ARABIC);
-PR_STATIC_ASSERT(MOZ_SCRIPT_LATIN     == PANGO_SCRIPT_LATIN);
-PR_STATIC_ASSERT(MOZ_SCRIPT_UNKNOWN   == PANGO_SCRIPT_UNKNOWN);
-PR_STATIC_ASSERT(MOZ_SCRIPT_NKO       == PANGO_SCRIPT_NKO);
 
 
 
@@ -2206,43 +2178,37 @@ gfxFcFont::~gfxFcFont()
 }
 
 bool
-gfxFcFont::ShapeWord(gfxContext *aContext,
-                     gfxShapedWord *aShapedWord,
-                     const PRUnichar *aString,
-                     bool aPreferPlatformShaping)
+gfxFcFont::InitTextRun(gfxContext *aContext,
+                       gfxTextRun *aTextRun,
+                       const PRUnichar *aString,
+                       PRUint32 aRunStart,
+                       PRUint32 aRunLength,
+                       PRInt32 aRunScript,
+                       bool aPreferPlatformShaping)
 {
     gfxFcFontEntry *fontEntry = static_cast<gfxFcFontEntry*>(GetFontEntry());
 
-#ifdef MOZ_GRAPHITE
-    if (FontCanSupportGraphite()) {
-        if (gfxPlatform::GetPlatform()->UseGraphiteShaping()) {
-            if (!mGraphiteShaper) {
-                mGraphiteShaper = new gfxGraphiteShaper(this);
-            }
-            if (mGraphiteShaper->ShapeWord(aContext, aShapedWord, aString)) {
-                return true;
-            }
-        }
-    }
-#endif
-
-    if (fontEntry->ShouldUseHarfBuzz(aShapedWord->Script())) {
+    if (fontEntry->ShouldUseHarfBuzz(aRunScript)) {
         if (!mHarfBuzzShaper) {
             gfxFT2LockedFace face(this);
             mHarfBuzzShaper = new gfxHarfBuzzShaper(this);
             
             mFUnitsConvFactor = face.XScale();
         }
-        if (mHarfBuzzShaper->ShapeWord(aContext, aShapedWord, aString)) {
-            return true;
+        if (mHarfBuzzShaper->
+            InitTextRun(aContext, aTextRun, aString,
+                        aRunStart, aRunLength, aRunScript)) {
+            return PR_TRUE;
         }
 
         
         fontEntry->SkipHarfBuzz();
-        mHarfBuzzShaper = nullptr;
+        mHarfBuzzShaper = nsnull;
     }
 
-    bool ok = InitGlyphRunWithPango(aShapedWord, aString);
+    const PangoScript script = static_cast<PangoScript>(aRunScript);
+    bool ok = InitGlyphRunWithPango(aTextRun,
+                                      aString, aRunStart, aRunLength, script);
 
     NS_WARN_IF_FALSE(ok, "shaper failed, expect scrambled or missing text");
     return ok;
@@ -2267,7 +2233,7 @@ gfxPangoFontGroup::NewFontEntry(const gfxProxyFontEntry &aProxyEntry,
 {
     gfxFontconfigUtils *utils = gfxFontconfigUtils::GetFontconfigUtils();
     if (!utils)
-        return nullptr;
+        return nsnull;
 
     
     
@@ -2288,7 +2254,7 @@ gfxPangoFontGroup::NewFontEntry(const gfxProxyFontEntry &aProxyEntry,
 
     nsAutoRef<FcPattern> pattern(FcPatternCreate());
     if (!pattern)
-        return nullptr;
+        return nsnull;
 
     NS_ConvertUTF16toUTF8 fullname(aFullname);
     FcPatternAddString(pattern, FC_FULLNAME,
@@ -2306,7 +2272,7 @@ gfxPangoFontGroup::NewFontEntry(const gfxProxyFontEntry &aProxyEntry,
             return new gfxLocalFcFontEntry(aProxyEntry, fonts);
     }
 
-    return nullptr;
+    return nsnull;
 }
 
  FT_Library
@@ -2324,7 +2290,7 @@ gfxPangoFontGroup::GetFTLibrary()
         gfxFontStyle style;
         nsRefPtr<gfxPangoFontGroup> fontGroup =
             new gfxPangoFontGroup(NS_LITERAL_STRING("sans-serif"),
-                                  &style, nullptr);
+                                  &style, nsnull);
 
         gfxFcFont *font = fontGroup->GetBaseFont();
         if (!font)
@@ -2342,7 +2308,7 @@ gfxPangoFontGroup::GetFTLibrary()
 
  gfxFontEntry *
 gfxPangoFontGroup::NewFontEntry(const gfxProxyFontEntry &aProxyEntry,
-                                const uint8_t *aFontData, uint32_t aLength)
+                                const PRUint8 *aFontData, PRUint32 aLength)
 {
     
     
@@ -2354,7 +2320,7 @@ gfxPangoFontGroup::NewFontEntry(const gfxProxyFontEntry &aProxyEntry,
         FT_New_Memory_Face(GetFTLibrary(), aFontData, aLength, 0, &face);
     if (error != 0) {
         NS_Free((void*)aFontData);
-        return nullptr;
+        return nsnull;
     }
 
     return new gfxDownloadedFcFontEntry(aProxyEntry, aFontData, face);
@@ -2388,8 +2354,7 @@ GetPixelSize(FcPattern *aPattern)
 
 
 already_AddRefed<gfxFcFont>
-gfxFcFont::GetOrMakeFont(FcPattern *aRequestedPattern, FcPattern *aFontPattern,
-                         const gfxFontStyle *aFontStyle)
+gfxFcFont::GetOrMakeFont(FcPattern *aRequestedPattern, FcPattern *aFontPattern)
 {
     nsAutoRef<FcPattern> renderPattern
         (FcFontRenderPrepare(NULL, aRequestedPattern, aFontPattern));
@@ -2440,13 +2405,30 @@ gfxFcFont::GetOrMakeFont(FcPattern *aRequestedPattern, FcPattern *aFontPattern,
         }
     }
 
-    gfxFontStyle style(*aFontStyle);
-    style.size = GetPixelSize(renderPattern);
-    style.style = gfxFontconfigUtils::GetThebesStyle(renderPattern);
-    style.weight = gfxFontconfigUtils::GetThebesWeight(renderPattern);
+    cairo_scaled_font_t *cairoFont = CreateScaledFont(renderPattern, face);
 
-    nsRefPtr<gfxFont> font = gfxFontCache::GetCache()->Lookup(fe, &style);
+    nsRefPtr<gfxFcFont> font = static_cast<gfxFcFont*>
+        (cairo_scaled_font_get_user_data(cairoFont, &sGfxFontKey));
+
     if (!font) {
+        gfxFloat size = GetPixelSize(renderPattern);
+
+        
+        
+        PRUint8 style = gfxFontconfigUtils::GetThebesStyle(renderPattern);
+        PRUint16 weight = gfxFontconfigUtils::GetThebesWeight(renderPattern);
+
+        
+        
+        
+        nsIAtom *language = gfxAtoms::en; 
+        
+        gfxFontStyle fontStyle(style, weight, NS_FONT_STRETCH_NORMAL,
+                               size, language, 0.0,
+                               PR_TRUE, PR_FALSE,
+                               NS_LITERAL_STRING(""),
+                               NS_LITERAL_STRING(""));
+
         
         
         
@@ -2454,16 +2436,12 @@ gfxFcFont::GetOrMakeFont(FcPattern *aRequestedPattern, FcPattern *aFontPattern,
         
         
         
-        cairo_scaled_font_t *cairoFont = CreateScaledFont(renderPattern, face);
-        font = new gfxFcFont(cairoFont, fe, &style);
-        gfxFontCache::GetCache()->AddNew(font);
-        cairo_scaled_font_destroy(cairoFont);
+        font = new gfxFcFont(cairoFont, fe, &fontStyle);
     }
 
+    cairo_scaled_font_destroy(cairoFont);
     cairo_font_face_destroy(face);
-
-    nsRefPtr<gfxFcFont> retval(static_cast<gfxFcFont*>(font.get()));
-    return retval.forget();
+    return font.forget();
 }
 
 static PangoFontMap *
@@ -2500,7 +2478,7 @@ gfxPangoFontGroup::GetBaseFontSet()
 
     double size = GetPixelSize(pattern);
     if (size != 0.0 && mStyle.sizeAdjust != 0.0) {
-        gfxFcFont *font = fontSet->GetFontAt(0, GetStyle());
+        gfxFcFont *font = fontSet->GetFontAt(0);
         if (font) {
             const gfxFont::Metrics& metrics = font->GetMetrics();
 
@@ -2730,11 +2708,58 @@ CreateScaledFont(FcPattern *aPattern, cairo_font_face_t *aFace)
     return scaledFont;
 }
 
-static int32_t
-ConvertPangoToAppUnits(int32_t aCoordinate, uint32_t aAppUnitsPerDevUnit)
+static void
+SetupClusterBoundaries(gfxTextRun* aTextRun, const gchar *aUTF8, PRUint32 aUTF8Length,
+                       PRUint32 aUTF16Offset, PangoAnalysis *aAnalysis)
 {
-    int64_t v = (int64_t(aCoordinate)*aAppUnitsPerDevUnit + PANGO_SCALE/2)/PANGO_SCALE;
-    return int32_t(v);
+    if (aTextRun->GetFlags() & gfxTextRunFactory::TEXT_IS_8BIT) {
+        
+        
+        
+        
+        return;
+    }
+
+    
+    
+    
+    
+    nsAutoTArray<PangoLogAttr,2000> buffer;
+    if (!buffer.AppendElements(aUTF8Length + 1))
+        return;
+
+    pango_break(aUTF8, aUTF8Length, aAnalysis,
+                buffer.Elements(), buffer.Length());
+
+    const gchar *p = aUTF8;
+    const gchar *end = aUTF8 + aUTF8Length;
+    const PangoLogAttr *attr = buffer.Elements();
+    gfxTextRun::CompressedGlyph g;
+    while (p < end) {
+        if (!attr->is_cursor_position) {
+            aTextRun->SetGlyphs(aUTF16Offset, g.SetComplex(PR_FALSE, PR_TRUE, 0), nsnull);
+        }
+        ++aUTF16Offset;
+        
+        gunichar ch = g_utf8_get_char(p);
+        NS_ASSERTION(ch != 0, "Shouldn't have NUL in pango_break");
+        NS_ASSERTION(!IS_SURROGATE(ch), "Shouldn't have surrogates in UTF8");
+        if (ch >= 0x10000) {
+            
+            aTextRun->SetGlyphs(aUTF16Offset, g.SetComplex(PR_FALSE, PR_FALSE, 0), nsnull);
+            ++aUTF16Offset;
+        }
+        
+        p = g_utf8_next_char(p);
+        ++attr;
+    }
+}
+
+static PRInt32
+ConvertPangoToAppUnits(PRInt32 aCoordinate, PRUint32 aAppUnitsPerDevUnit)
+{
+    PRInt64 v = (PRInt64(aCoordinate)*aAppUnitsPerDevUnit + PANGO_SCALE/2)/PANGO_SCALE;
+    return PRInt32(v);
 }
 
 
@@ -2744,46 +2769,47 @@ ConvertPangoToAppUnits(int32_t aCoordinate, uint32_t aAppUnitsPerDevUnit)
 
  
 static nsresult
-SetGlyphsForCharacterGroup(const PangoGlyphInfo *aGlyphs, uint32_t aGlyphCount,
-                           gfxShapedWord *aShapedWord,
-                           const gchar *aUTF8, uint32_t aUTF8Length,
-                           uint32_t *aUTF16Offset,
+SetGlyphsForCharacterGroup(const PangoGlyphInfo *aGlyphs, PRUint32 aGlyphCount,
+                           gfxTextRun *aTextRun,
+                           const gchar *aUTF8, PRUint32 aUTF8Length,
+                           PRUint32 *aUTF16Offset,
                            PangoGlyphUnit aOverrideSpaceWidth)
 {
-    uint32_t utf16Offset = *aUTF16Offset;
-    uint32_t wordLength = aShapedWord->Length();
-    const uint32_t appUnitsPerDevUnit = aShapedWord->AppUnitsPerDevUnit();
+    PRUint32 utf16Offset = *aUTF16Offset;
+    PRUint32 textRunLength = aTextRun->GetLength();
+    const PRUint32 appUnitsPerDevUnit = aTextRun->GetAppUnitsPerDevUnit();
+    const gfxTextRun::CompressedGlyph *charGlyphs = aTextRun->GetCharacterGlyphs();
 
     
     
     PangoGlyphUnit width = aGlyphs[0].geometry.width;
     if (aOverrideSpaceWidth && aUTF8[0] == ' ' &&
-        (utf16Offset + 1 == wordLength ||
-         aShapedWord->IsClusterStart(utf16Offset))) {
+        (utf16Offset + 1 == textRunLength ||
+         charGlyphs[utf16Offset].IsClusterStart())) {
         width = aOverrideSpaceWidth;
     }
-    int32_t advance = ConvertPangoToAppUnits(width, appUnitsPerDevUnit);
+    PRInt32 advance = ConvertPangoToAppUnits(width, appUnitsPerDevUnit);
 
-    gfxShapedWord::CompressedGlyph g;
-    bool atClusterStart = aShapedWord->IsClusterStart(utf16Offset);
+    gfxTextRun::CompressedGlyph g;
+    bool atClusterStart = aTextRun->IsClusterStart(utf16Offset);
     
     if (aGlyphCount == 1 && advance >= 0 && atClusterStart &&
         aGlyphs[0].geometry.x_offset == 0 &&
         aGlyphs[0].geometry.y_offset == 0 &&
         !IS_EMPTY_GLYPH(aGlyphs[0].glyph) &&
-        gfxShapedWord::CompressedGlyph::IsSimpleAdvance(advance) &&
-        gfxShapedWord::CompressedGlyph::IsSimpleGlyphID(aGlyphs[0].glyph)) {
-        aShapedWord->SetSimpleGlyph(utf16Offset,
-                                    g.SetSimpleGlyph(advance, aGlyphs[0].glyph));
+        gfxTextRun::CompressedGlyph::IsSimpleAdvance(advance) &&
+        gfxTextRun::CompressedGlyph::IsSimpleGlyphID(aGlyphs[0].glyph)) {
+        aTextRun->SetSimpleGlyph(utf16Offset,
+                                 g.SetSimpleGlyph(advance, aGlyphs[0].glyph));
     } else {
-        nsAutoTArray<gfxShapedWord::DetailedGlyph,10> detailedGlyphs;
+        nsAutoTArray<gfxTextRun::DetailedGlyph,10> detailedGlyphs;
         if (!detailedGlyphs.AppendElements(aGlyphCount))
             return NS_ERROR_OUT_OF_MEMORY;
 
-        int32_t direction = aShapedWord->IsRightToLeft() ? -1 : 1;
-        uint32_t pangoIndex = direction > 0 ? 0 : aGlyphCount - 1;
-        uint32_t detailedIndex = 0;
-        for (uint32_t i = 0; i < aGlyphCount; ++i) {
+        PRInt32 direction = aTextRun->IsRightToLeft() ? -1 : 1;
+        PRUint32 pangoIndex = direction > 0 ? 0 : aGlyphCount - 1;
+        PRUint32 detailedIndex = 0;
+        for (PRUint32 i = 0; i < aGlyphCount; ++i) {
             const PangoGlyphInfo &glyph = aGlyphs[pangoIndex];
             pangoIndex += direction;
             
@@ -2791,7 +2817,7 @@ SetGlyphsForCharacterGroup(const PangoGlyphInfo *aGlyphs, uint32_t aGlyphCount,
             if (IS_EMPTY_GLYPH(glyph.glyph))
                 continue;
 
-            gfxShapedWord::DetailedGlyph *details = &detailedGlyphs[detailedIndex];
+            gfxTextRun::DetailedGlyph *details = &detailedGlyphs[detailedIndex];
             ++detailedIndex;
 
             details->mGlyphID = glyph.glyph;
@@ -2805,8 +2831,8 @@ SetGlyphsForCharacterGroup(const PangoGlyphInfo *aGlyphs, uint32_t aGlyphCount,
             details->mYOffset =
                 float(glyph.geometry.y_offset)*appUnitsPerDevUnit/PANGO_SCALE;
         }
-        g.SetComplex(atClusterStart, true, detailedIndex);
-        aShapedWord->SetGlyphs(utf16Offset, g, detailedGlyphs.Elements());
+        g.SetComplex(atClusterStart, PR_TRUE, detailedIndex);
+        aTextRun->SetGlyphs(utf16Offset, g, detailedGlyphs.Elements());
     }
 
     
@@ -2831,23 +2857,22 @@ SetGlyphsForCharacterGroup(const PangoGlyphInfo *aGlyphs, uint32_t aGlyphCount,
         if (p >= end)
             break;
 
-        if (utf16Offset >= wordLength) {
+        if (utf16Offset >= textRunLength) {
             NS_ERROR("Someone has added too many glyphs!");
             return NS_ERROR_FAILURE;
         }
 
-        g.SetComplex(aShapedWord->IsClusterStart(utf16Offset), false, 0);
-        aShapedWord->SetGlyphs(utf16Offset, g, nullptr);
+        g.SetComplex(aTextRun->IsClusterStart(utf16Offset), PR_FALSE, 0);
+        aTextRun->SetGlyphs(utf16Offset, g, nsnull);
     }
     *aUTF16Offset = utf16Offset;
     return NS_OK;
 }
 
 static nsresult
-SetGlyphs(gfxShapedWord *aShapedWord, const gchar *aUTF8, uint32_t aUTF8Length,
-          uint32_t *aUTF16Offset, PangoGlyphString *aGlyphs,
-          PangoGlyphUnit aOverrideSpaceWidth,
-          gfxFont *aFont)
+SetGlyphs(gfxTextRun *aTextRun, const gchar *aUTF8, PRUint32 aUTF8Length,
+          PRUint32 *aUTF16Offset, PangoGlyphString *aGlyphs,
+          PangoGlyphUnit aOverrideSpaceWidth)
 {
     gint numGlyphs = aGlyphs->num_glyphs;
     PangoGlyphInfo *glyphs = aGlyphs->glyphs;
@@ -2863,7 +2888,7 @@ SetGlyphs(gfxShapedWord *aShapedWord, const gchar *aUTF8, uint32_t aUTF8Length,
     nsAutoTArray<gint,2000> logGlyphs;
     if (!logGlyphs.AppendElements(aUTF8Length + 1))
         return NS_ERROR_OUT_OF_MEMORY;
-    uint32_t utf8Index = 0;
+    PRUint32 utf8Index = 0;
     for(; utf8Index < aUTF8Length; ++utf8Index)
         logGlyphs[utf8Index] = -1;
     logGlyphs[aUTF8Length] = numGlyphs;
@@ -2879,29 +2904,29 @@ SetGlyphs(gfxShapedWord *aShapedWord, const gchar *aUTF8, uint32_t aUTF8Length,
         }
     }
 
-    uint32_t utf16Offset = *aUTF16Offset;
-    uint32_t wordLength = aShapedWord->Length();
+    PRUint32 utf16Offset = *aUTF16Offset;
+    PRUint32 textRunLength = aTextRun->GetLength();
     utf8Index = 0;
     
     gint nextGlyphClusterStart = logGlyphs[utf8Index];
     NS_ASSERTION(nextGlyphClusterStart >= 0, "No glyphs! - NUL in string?");
     while (utf8Index < aUTF8Length) {
-        if (utf16Offset >= wordLength) {
+        if (utf16Offset >= textRunLength) {
           NS_ERROR("Someone has added too many glyphs!");
           return NS_ERROR_FAILURE;
         }
         gint glyphClusterStart = nextGlyphClusterStart;
         
-        uint32_t clusterUTF8Start = utf8Index;
+        PRUint32 clusterUTF8Start = utf8Index;
         
-        NS_WARN_IF_FALSE(aShapedWord->IsClusterStart(utf16Offset),
-                         "Glyph cluster not aligned on character cluster.");
+        NS_ASSERTION(aTextRun->GetCharacterGlyphs()->IsClusterStart(),
+                     "Glyph cluster not aligned on character cluster.");
         do {
             ++utf8Index;
             nextGlyphClusterStart = logGlyphs[utf8Index];
         } while (nextGlyphClusterStart < 0);
         const gchar *clusterUTF8 = &aUTF8[clusterUTF8Start];
-        uint32_t clusterUTF8Length = utf8Index - clusterUTF8Start;
+        PRUint32 clusterUTF8Length = utf8Index - clusterUTF8Start;
 
         bool haveMissingGlyph = false;
         gint glyphIndex = glyphClusterStart;
@@ -2912,7 +2937,7 @@ SetGlyphs(gfxShapedWord *aShapedWord, const gchar *aUTF8, uint32_t aUTF8Length,
                 
                 
                 
-                haveMissingGlyph = true;
+                haveMissingGlyph = PR_TRUE;
             }
             glyphIndex++;
         } while (glyphIndex < numGlyphs && 
@@ -2920,12 +2945,12 @@ SetGlyphs(gfxShapedWord *aShapedWord, const gchar *aUTF8, uint32_t aUTF8Length,
 
         nsresult rv;
         if (haveMissingGlyph) {
-            SetMissingGlyphs(aShapedWord, clusterUTF8, clusterUTF8Length,
-                             &utf16Offset, aFont);
+            SetMissingGlyphs(aTextRun, clusterUTF8, clusterUTF8Length,
+                             &utf16Offset);
         } else {
             rv = SetGlyphsForCharacterGroup(&glyphs[glyphClusterStart],
                                             glyphIndex - glyphClusterStart,
-                                            aShapedWord,
+                                            aTextRun,
                                             clusterUTF8, clusterUTF8Length,
                                             &utf16Offset, aOverrideSpaceWidth);
             NS_ENSURE_SUCCESS(rv,rv);
@@ -2936,19 +2961,18 @@ SetGlyphs(gfxShapedWord *aShapedWord, const gchar *aUTF8, uint32_t aUTF8Length,
 }
 
 static void
-SetMissingGlyphs(gfxShapedWord *aShapedWord, const gchar *aUTF8,
-                 uint32_t aUTF8Length, uint32_t *aUTF16Offset,
-                 gfxFont *aFont)
+SetMissingGlyphs(gfxTextRun *aTextRun, const gchar *aUTF8,
+                 PRUint32 aUTF8Length, PRUint32 *aUTF16Offset)
 {
-    uint32_t utf16Offset = *aUTF16Offset;
-    uint32_t wordLength = aShapedWord->Length();
-    for (uint32_t index = 0; index < aUTF8Length;) {
-        if (utf16Offset >= wordLength) {
+    PRUint32 utf16Offset = *aUTF16Offset;
+    PRUint32 textRunLength = aTextRun->GetLength();
+    for (PRUint32 index = 0; index < aUTF8Length;) {
+        if (utf16Offset >= textRunLength) {
             NS_ERROR("Someone has added too many glyphs!");
             break;
         }
         gunichar ch = g_utf8_get_char(aUTF8 + index);
-        aShapedWord->SetMissingGlyph(utf16Offset, ch, aFont);
+        aTextRun->SetMissingGlyph(utf16Offset, ch);
 
         ++utf16Offset;
         NS_ASSERTION(!IS_SURROGATE(ch), "surrogates should not appear in UTF8");
@@ -2962,20 +2986,20 @@ SetMissingGlyphs(gfxShapedWord *aShapedWord, const gchar *aUTF8,
 }
 
 static void
-InitGlyphRunWithPangoAnalysis(gfxShapedWord *aShapedWord,
-                              const gchar *aUTF8, uint32_t aUTF8Length,
+InitGlyphRunWithPangoAnalysis(gfxTextRun *aTextRun,
+                              const gchar *aUTF8, PRUint32 aUTF8Length,
+                              PRUint32 *aUTF16Offset,
                               PangoAnalysis *aAnalysis,
-                              PangoGlyphUnit aOverrideSpaceWidth,
-                              gfxFont *aFont)
+                              PangoGlyphUnit aOverrideSpaceWidth)
 {
-    uint32_t utf16Offset = 0;
+    PRUint32 utf16Offset = *aUTF16Offset;
     PangoGlyphString *glyphString = pango_glyph_string_new();
 
     const gchar *p = aUTF8;
     const gchar *end = p + aUTF8Length;
     while (p < end) {
         if (*p == 0) {
-            aShapedWord->SetMissingGlyph(utf16Offset, 0, aFont);
+            aTextRun->SetMissingGlyph(utf16Offset, 0);
             ++p;
             ++utf16Offset;
             continue;
@@ -2990,11 +3014,13 @@ InitGlyphRunWithPangoAnalysis(gfxShapedWord *aShapedWord,
         gint len = p - text;
 
         pango_shape(text, len, aAnalysis, glyphString);
-        SetGlyphs(aShapedWord, text, len, &utf16Offset, glyphString,
-                  aOverrideSpaceWidth, aFont);
+        SetupClusterBoundaries(aTextRun, text, len, utf16Offset, aAnalysis);
+        SetGlyphs(aTextRun, text, len, &utf16Offset, glyphString,
+                  aOverrideSpaceWidth);
     }
 
     pango_glyph_string_free(glyphString);
+    *aUTF16Offset = utf16Offset;
 }
 
 
@@ -3018,18 +3044,21 @@ typedef union {
 } PangoAnalysisUnion;
 
 bool
-gfxFcFont::InitGlyphRunWithPango(gfxShapedWord *aShapedWord,
-                                 const PRUnichar *aString)
+gfxFcFont::InitGlyphRunWithPango(gfxTextRun *aTextRun,
+                                 const PRUnichar *aString,
+                                 PRUint32 aRunStart, PRUint32 aRunLength,
+                                 PangoScript aScript)
 {
-    const PangoScript script = static_cast<PangoScript>(aShapedWord->Script());
-    NS_ConvertUTF16toUTF8 utf8(aString, aShapedWord->Length());
+    NS_ConvertUTF16toUTF8 utf8(aString + aRunStart, aRunLength);
 
     PangoFont *font = GetPangoFont();
+    gfxPangoFontGroup *fontGroup =
+        static_cast<gfxPangoFontGroup*>(aTextRun->GetFontGroup());
 
     hb_language_t languageOverride = NULL;
-    if (GetStyle()->languageOverride) {
+    if (fontGroup->GetStyle()->languageOverride) {
         languageOverride =
-            hb_ot_tag_to_language(GetStyle()->languageOverride);
+            hb_ot_tag_to_language(fontGroup->GetStyle()->languageOverride);
     } else if (GetFontEntry()->mLanguageOverride) {
         languageOverride =
             hb_ot_tag_to_language(GetFontEntry()->mLanguageOverride);
@@ -3040,18 +3069,14 @@ gfxFcFont::InitGlyphRunWithPango(gfxShapedWord *aShapedWord,
         language =
             pango_language_from_string(hb_language_to_string(languageOverride));
     } else {
-#if 0 
         language = fontGroup->GetPangoLanguage();
-#endif
-        
-        language = GuessPangoLanguage(GetStyle()->language);
-
         
         
         
         
         
         
+        const PangoScript script = static_cast<PangoScript>(aScript);
         PangoLanguage *scriptLang;
         if ((!language ||
              !pango_language_includes_script(language, script)) &&
@@ -3072,14 +3097,14 @@ gfxFcFont::InitGlyphRunWithPango(gfxShapedWord *aShapedWord,
         g_quark_from_static_string(PANGO_RENDER_TYPE_FC);
     PangoMap *shapeMap = pango_find_map(language, engineShapeId, renderFcId);
     if (!shapeMap) {
-        return false;
+        return PR_FALSE;
     }
 
     
     PangoEngineShape *shapeEngine =
-        PANGO_ENGINE_SHAPE(pango_map_get_engine(shapeMap, script));
+        PANGO_ENGINE_SHAPE(pango_map_get_engine(shapeMap, aScript));
     if (!shapeEngine) {
-        return false;
+        return PR_FALSE;
     }
 
     PangoEngineShapeClass *shapeClass = static_cast<PangoEngineShapeClass*>
@@ -3098,7 +3123,7 @@ gfxFcFont::InitGlyphRunWithPango(gfxShapedWord *aShapedWord,
     {
         GSList *exact_engines;
         GSList *fallback_engines;
-        pango_map_get_engines(shapeMap, script,
+        pango_map_get_engines(shapeMap, aScript,
                               &exact_engines, &fallback_engines);
 
         GSList *engines = g_slist_concat(exact_engines, fallback_engines);
@@ -3125,10 +3150,10 @@ gfxFcFont::InitGlyphRunWithPango(gfxShapedWord *aShapedWord,
     analysis.local.shape_engine = shapeEngine;
     
     analysis.local.lang_engine =
-        PANGO_ENGINE_LANG(pango_map_get_engine(langMap, script));
+        PANGO_ENGINE_LANG(pango_map_get_engine(langMap, aScript));
 
     analysis.local.font = font;
-    analysis.local.level = aShapedWord->IsRightToLeft() ? 1 : 0;
+    analysis.local.level = aTextRun->IsRightToLeft() ? 1 : 0;
     
     
     
@@ -3142,7 +3167,7 @@ gfxFcFont::InitGlyphRunWithPango(gfxShapedWord *aShapedWord,
     analysis.local.flags = 0;
 #endif
     
-    analysis.local.script = script;
+    analysis.local.script = aScript;
 
     analysis.local.language = language;
     
@@ -3151,9 +3176,10 @@ gfxFcFont::InitGlyphRunWithPango(gfxShapedWord *aShapedWord,
     PangoGlyphUnit spaceWidth =
         moz_pango_units_from_double(GetMetrics().spaceWidth);
 
-    InitGlyphRunWithPangoAnalysis(aShapedWord, utf8.get(), utf8.Length(),
-                                  &analysis.pango, spaceWidth, this);
-    return true;
+    PRUint32 utf16Offset = aRunStart;
+    InitGlyphRunWithPangoAnalysis(aTextRun, utf8.get(), utf8.Length(),
+                                  &utf16Offset, &analysis.pango, spaceWidth);
+    return PR_TRUE;
 }
 
 
@@ -3165,7 +3191,7 @@ GuessPangoLanguage(nsIAtom *aLanguage)
 
     
     
-    nsAutoCString lang;
+    nsCAutoString lang;
     gfxFontconfigUtils::GetSampleLangForGroup(aLanguage, &lang);
     if (lang.IsEmpty())
         return NULL;
@@ -3173,7 +3199,7 @@ GuessPangoLanguage(nsIAtom *aLanguage)
     return pango_language_from_string(lang.get());
 }
 
-#ifdef MOZ_WIDGET_GTK
+#ifdef MOZ_WIDGET_GTK2
 
 
 

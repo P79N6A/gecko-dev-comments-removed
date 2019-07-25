@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsStringBundleTextOverride.h"
 #include "nsString.h"
 #include "nsEscape.h"
@@ -19,7 +52,7 @@ static NS_DEFINE_CID(kPersistentPropertiesCID, NS_IPERSISTENTPROPERTIES_CID);
 class URLPropertyElement : public nsIPropertyElement
 {
 public:
-    URLPropertyElement(nsIPropertyElement *aRealElement, uint32_t aURLLength) :
+    URLPropertyElement(nsIPropertyElement *aRealElement, PRUint32 aURLLength) :
         mRealElement(aRealElement),
         mURLLength(aURLLength)
     { }
@@ -30,7 +63,7 @@ public:
     
 private:
     nsCOMPtr<nsIPropertyElement> mRealElement;
-    uint32_t mURLLength;
+    PRUint32 mURLLength;
 };
 
 NS_IMPL_ISUPPORTS1(URLPropertyElement, nsIPropertyElement)
@@ -141,7 +174,7 @@ nsStringBundleTextOverride::Init()
     
     
 
-    nsAutoCString customStringsURLSpec;
+    nsCAutoString customStringsURLSpec;
     rv = NS_GetURLSpecFromFile(customStringsFile, customStringsURLSpec);
     if (NS_FAILED(rv)) return rv;
     
@@ -175,7 +208,7 @@ nsStringBundleTextOverride::Init()
 
         nsCOMPtr<nsIPropertyElement> prop = do_QueryInterface(sup);
 
-        nsAutoCString key;
+        nsCAutoString key;
         nsAutoString value;
         prop->GetKey(key);
         prop->GetValue(value);
@@ -195,7 +228,7 @@ nsStringBundleTextOverride::GetStringFromName(const nsACString& aURL,
                                               nsAString& aResult)
 {
     
-    nsAutoCString combinedURL(aURL + NS_LITERAL_CSTRING("#") + key);
+    nsCAutoString combinedURL(aURL + NS_LITERAL_CSTRING("#") + key);
 
     
     combinedURL.ReplaceSubstring(":", "%3A");
@@ -240,7 +273,7 @@ nsPropertyEnumeratorByURL::GetNext(nsISupports **aResult)
     NS_ADDREF(*aResult);
 
     
-    mCurrent = nullptr;
+    mCurrent = nsnull;
     
     return NS_OK;
 }
@@ -258,7 +291,7 @@ nsPropertyEnumeratorByURL::HasMoreElements(bool * aResult)
         mCurrent = do_QueryInterface(supports);
 
         if (mCurrent) {
-            nsAutoCString curKey;
+            nsCAutoString curKey;
             mCurrent->GetKey(curKey);
         
             if (StringBeginsWith(curKey, mURL))
@@ -269,9 +302,9 @@ nsPropertyEnumeratorByURL::HasMoreElements(bool * aResult)
     }
 
     if (!hasMore)
-        mCurrent = nullptr;
+        mCurrent = PR_FALSE;
     
-    *aResult = mCurrent ? true : false;
+    *aResult = mCurrent ? PR_TRUE : PR_FALSE;
     
     return NS_OK;
 }

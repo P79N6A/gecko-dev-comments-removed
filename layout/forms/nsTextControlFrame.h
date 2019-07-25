@@ -3,10 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsTextControlFrame_h___
 #define nsTextControlFrame_h___
 
-#include "nsContainerFrame.h"
+#include "nsStackFrame.h"
 #include "nsBlockFrame.h"
 #include "nsIFormControlFrame.h"
 #include "nsIAnonymousContentCreator.h"
@@ -17,8 +49,8 @@
 #include "nsITextControlElement.h"
 #include "nsIStatefulFrame.h"
 #include "nsContentUtils.h" 
-#include "nsIEditor.h"
 
+class nsIEditor;
 class nsISelectionController;
 class nsIDOMCharacterData;
 #ifdef ACCESSIBILITY
@@ -26,13 +58,8 @@ class nsIAccessible;
 #endif
 class EditorInitializerEntryTracker;
 class nsTextEditorState;
-namespace mozilla {
-namespace dom {
-class Element;
-}
-}
 
-class nsTextControlFrame : public nsContainerFrame,
+class nsTextControlFrame : public nsStackFrame,
                            public nsIAnonymousContentCreator,
                            public nsITextControlFrame,
                            public nsIStatefulFrame
@@ -49,13 +76,11 @@ public:
 
   virtual nsIScrollableFrame* GetScrollTargetFrame() {
     if (!IsScrollable())
-      return nullptr;
+      return nsnull;
     return do_QueryFrame(GetFirstPrincipalChild());
   }
 
   virtual nscoord GetMinWidth(nsRenderingContext* aRenderingContext);
-  virtual nscoord GetPrefWidth(nsRenderingContext* aRenderingContext);
-
   virtual nsSize ComputeAutoSize(nsRenderingContext *aRenderingContext,
                                  nsSize aCBSize, nscoord aAvailableWidth,
                                  nsSize aMargin, nsSize aBorder,
@@ -66,18 +91,21 @@ public:
                     const nsHTMLReflowState& aReflowState,
                     nsReflowStatus&          aStatus);
 
+  virtual nsSize GetPrefSize(nsBoxLayoutState& aBoxLayoutState);
   virtual nsSize GetMinSize(nsBoxLayoutState& aBoxLayoutState);
-  virtual bool IsCollapsed();
+  virtual nsSize GetMaxSize(nsBoxLayoutState& aBoxLayoutState);
+  virtual nscoord GetBoxAscent(nsBoxLayoutState& aBoxLayoutState);
+  virtual bool IsCollapsed(nsBoxLayoutState& aBoxLayoutState);
 
-  DECL_DO_GLOBAL_REFLOW_COUNT_DSP(nsTextControlFrame, nsContainerFrame)
+  DECL_DO_GLOBAL_REFLOW_COUNT_DSP(nsTextControlFrame, nsStackFrame)
 
   virtual bool IsLeaf() const;
   
 #ifdef ACCESSIBILITY
-  virtual already_AddRefed<Accessible> CreateAccessible();
+  virtual already_AddRefed<nsAccessible> CreateAccessible();
 #endif
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
   NS_IMETHOD GetFrameName(nsAString& aResult) const
   {
     aResult.AssignLiteral("nsTextControlFrame");
@@ -85,18 +113,18 @@ public:
   }
 #endif
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     
     
-    return nsContainerFrame::IsFrameOfType(aFlags &
+    return nsStackFrame::IsFrameOfType(aFlags &
       ~(nsIFrame::eReplaced | nsIFrame::eReplacedContainsBlock));
   }
 
   
   virtual nsresult CreateAnonymousContent(nsTArray<ContentInfo>& aElements);
   virtual void AppendAnonymousContentTo(nsBaseContentList& aElements,
-                                        uint32_t aFilter);
+                                        PRUint32 aFilter);
 
   
 
@@ -114,15 +142,16 @@ public:
 
 
   NS_IMETHOD    GetEditor(nsIEditor **aEditor);
-  NS_IMETHOD    GetTextLength(int32_t* aTextLength);
-  NS_IMETHOD    SetSelectionStart(int32_t aSelectionStart);
-  NS_IMETHOD    SetSelectionEnd(int32_t aSelectionEnd);
-  NS_IMETHOD    SetSelectionRange(int32_t aSelectionStart,
-                                  int32_t aSelectionEnd,
+  NS_IMETHOD    GetTextLength(PRInt32* aTextLength);
+  NS_IMETHOD    CheckFireOnChange();
+  NS_IMETHOD    SetSelectionStart(PRInt32 aSelectionStart);
+  NS_IMETHOD    SetSelectionEnd(PRInt32 aSelectionEnd);
+  NS_IMETHOD    SetSelectionRange(PRInt32 aSelectionStart,
+                                  PRInt32 aSelectionEnd,
                                   SelectionDirection aDirection = eNone);
-  NS_IMETHOD    GetSelectionRange(int32_t* aSelectionStart,
-                                  int32_t* aSelectionEnd,
-                                  SelectionDirection* aDirection = nullptr);
+  NS_IMETHOD    GetSelectionRange(PRInt32* aSelectionStart,
+                                  PRInt32* aSelectionEnd,
+                                  SelectionDirection* aDirection = nsnull);
   NS_IMETHOD    GetOwnedSelectionController(nsISelectionController** aSelCon);
   virtual nsFrameSelection* GetOwnedFrameSelection();
 
@@ -148,68 +177,90 @@ public:
   virtual nsIAtom* GetType() const;
 
   
-  NS_IMETHOD AttributeChanged(int32_t         aNameSpaceID,
+  NS_IMETHOD AttributeChanged(PRInt32         aNameSpaceID,
                               nsIAtom*        aAttribute,
-                              int32_t         aModType);
+                              PRInt32         aModType);
 
   nsresult GetText(nsString& aText);
-
-  NS_IMETHOD PeekOffset(nsPeekOffsetStruct *aPos);
 
   NS_DECL_QUERYFRAME
 
   
   
-  NS_DECLARE_FRAME_PROPERTY(TextControlInitializer, nullptr)
+  NS_DECLARE_FRAME_PROPERTY(TextControlInitializer, nsnull)
 
-protected:
-  
-
-
-  void ReflowTextControlChild(nsIFrame*                aFrame,
-                              nsPresContext*           aPresContext,
-                              const nsHTMLReflowState& aReflowState,
-                              nsReflowStatus&          aStatus,
-                              nsHTMLReflowMetrics& aParentDesiredSize);
 
 public: 
+  void FireOnInput(bool aTrusted);
   void SetValueChanged(bool aValueChanged);
   
+  nsresult InitFocusedValue();
+
+  void SetFireChangeEventState(bool aNewState)
+  {
+    mFireChangeEventState = aNewState;
+  }
+
+  bool GetFireChangeEventState() const
+  {
+    return mFireChangeEventState;
+  }    
+
   
   nsresult MaybeBeginSecureKeyboardInput();
   void MaybeEndSecureKeyboardInput();
 
-  NS_STACK_CLASS class ValueSetter {
+  class ValueSetter {
   public:
-    ValueSetter(nsIEditor* aEditor)
-      : mEditor(aEditor)
-      , mCanceled(false)
+    ValueSetter(nsTextControlFrame* aFrame,
+                bool aHasFocusValue)
+      : mFrame(aFrame)
+      
+      
+      
+      
+      
+      , mFocusValueInit(!mFrame->mFireChangeEventState && aHasFocusValue)
+      , mOuterTransaction(false)
+      , mInited(false)
     {
-      MOZ_ASSERT(aEditor);
-
-      
-      
-      
-      mEditor->GetSuppressDispatchingInputEvent(&mOuterTransaction);
+      NS_ASSERTION(aFrame, "Should pass a valid frame");
     }
     void Cancel() {
-      mCanceled = true;
+      mInited = PR_FALSE;
     }
     void Init() {
-      mEditor->SetSuppressDispatchingInputEvent(true);
+      
+      
+      
+
+      
+      
+      
+      mOuterTransaction = mFrame->mNotifyOnInput;
+      if (mOuterTransaction)
+        mFrame->mNotifyOnInput = PR_FALSE;
+
+      mInited = PR_TRUE;
     }
     ~ValueSetter() {
-      mEditor->SetSuppressDispatchingInputEvent(mOuterTransaction);
-
-      if (mCanceled) {
+      if (!mInited)
         return;
+
+      if (mOuterTransaction)
+        mFrame->mNotifyOnInput = PR_TRUE;
+
+      if (mFocusValueInit) {
+        
+        mFrame->InitFocusedValue();
       }
     }
 
   private:
-    nsCOMPtr<nsIEditor> mEditor;
+    nsTextControlFrame* mFrame;
+    bool mFocusValueInit;
     bool mOuterTransaction;
-    bool mCanceled;
+    bool mInited;
   };
   friend class ValueSetter;
 
@@ -230,9 +281,9 @@ public:
   DEFINE_TEXTCTRL_CONST_FORWARDER(bool, IsTextArea)
   DEFINE_TEXTCTRL_CONST_FORWARDER(bool, IsPlainTextControl)
   DEFINE_TEXTCTRL_CONST_FORWARDER(bool, IsPasswordTextControl)
-  DEFINE_TEXTCTRL_FORWARDER(int32_t, GetCols)
-  DEFINE_TEXTCTRL_FORWARDER(int32_t, GetWrapCols)
-  DEFINE_TEXTCTRL_FORWARDER(int32_t, GetRows)
+  DEFINE_TEXTCTRL_FORWARDER(PRInt32, GetCols)
+  DEFINE_TEXTCTRL_FORWARDER(PRInt32, GetWrapCols)
+  DEFINE_TEXTCTRL_FORWARDER(PRInt32, GetRows)
 
 #undef DEFINE_TEXTCTRL_CONST_FORWARDER
 #undef DEFINE_TEXTCTRL_FORWARDER
@@ -255,7 +306,7 @@ protected:
         nsCOMPtr<nsIPresShell> shell =
           mFrame->PresContext()->GetPresShell();
         bool observes = shell->ObservesNativeAnonMutationsForPrint();
-        shell->ObserveNativeAnonMutationsForPrint(true);
+        shell->ObserveNativeAnonMutationsForPrint(PR_TRUE);
         
         mFrame->EnsureEditorInitialized();
         shell->ObserveNativeAnonMutationsForPrint(observes);
@@ -272,7 +323,7 @@ protected:
 
     
     void Revoke() {
-      mFrame = nullptr;
+      mFrame = nsnull;
     }
 
   private:
@@ -290,14 +341,15 @@ protected:
     NS_DECL_NSIRUNNABLE
 
     void Revoke() {
-      mFrame = nullptr;
+      mFrame = nsnull;
     }
 
   private:
     nsTextControlFrame* mFrame;
   };
 
-  nsresult OffsetToDOMPoint(int32_t aOffset, nsIDOMNode** aResult, int32_t* aPosition);
+  nsresult DOMPointToOffset(nsIDOMNode* aNode, PRInt32 aNodeOffset, PRInt32 *aResult);
+  nsresult OffsetToDOMPoint(PRInt32 aOffset, nsIDOMNode** aResult, PRInt32* aPosition);
 
   
 
@@ -313,14 +365,14 @@ protected:
 
   nsresult UpdateValueDisplay(bool aNotify,
                               bool aBeforeEditorInit = false,
-                              const nsAString *aValue = nullptr);
+                              const nsAString *aValue = nsnull);
 
   
 
 
 
 
-  bool GetMaxLength(int32_t* aMaxLength);
+  bool GetMaxLength(PRInt32* aMaxLength);
 
   
 
@@ -340,24 +392,26 @@ protected:
   
   
   nsresult CalcIntrinsicSize(nsRenderingContext* aRenderingContext,
-                             nsSize&             aIntrinsicSize,
-                             float               aFontSizeInflation);
+                             nsSize&              aIntrinsicSize);
 
   nsresult ScrollSelectionIntoView();
 
 private:
   
-  nsresult SetSelectionInternal(nsIDOMNode *aStartNode, int32_t aStartOffset,
-                                nsIDOMNode *aEndNode, int32_t aEndOffset,
+  nsresult SetSelectionInternal(nsIDOMNode *aStartNode, PRInt32 aStartOffset,
+                                nsIDOMNode *aEndNode, PRInt32 aEndOffset,
                                 SelectionDirection aDirection = eNone);
   nsresult SelectAllOrCollapseToEndOfText(bool aSelect);
-  nsresult SetSelectionEndPoints(int32_t aSelStart, int32_t aSelEnd,
+  nsresult SetSelectionEndPoints(PRInt32 aSelStart, PRInt32 aSelEnd,
                                  SelectionDirection aDirection = eNone);
+
+  
+  bool GetNotifyOnInput() const { return mNotifyOnInput; }
+  void SetNotifyOnInput(bool val) { mNotifyOnInput = val; }
 
   
 
 
-  mozilla::dom::Element* GetRootNodeAndInitializeEditor();
   nsresult GetRootNodeAndInitializeEditor(nsIDOMElement **aRootElement);
 
   void FinishedInitializer() {
@@ -368,6 +422,10 @@ private:
   
   bool mUseEditor;
   bool mIsProcessing;
+  bool mNotifyOnInput;
+  
+  
+  bool mFireChangeEventState;
   
   bool mUsePlaceholder;
 
@@ -376,6 +434,7 @@ private:
   friend class EditorInitializerEntryTracker;
 #endif
 
+  nsString mFocusedValue;
   nsRevocableEventPtr<ScrollOnFocusEvent> mScrollEvent;
 };
 

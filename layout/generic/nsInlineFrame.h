@@ -5,11 +5,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsInlineFrame_h___
 #define nsInlineFrame_h___
 
-#include "nsContainerFrame.h"
+#include "nsHTMLContainerFrame.h"
 #include "nsLineLayout.h"
+
+class nsAnonymousBlockFrame;
+
+#define nsInlineFrameSuper nsHTMLContainerFrame
 
 
 
@@ -28,7 +64,7 @@
 
 
 
-class nsInlineFrame : public nsContainerFrame
+class nsInlineFrame : public nsInlineFrameSuper
 {
 public:
   NS_DECL_QUERYFRAME_TARGET(nsInlineFrame)
@@ -38,19 +74,12 @@ public:
   friend nsIFrame* NS_NewInlineFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
   
-
-
-  NS_IMETHOD Init(nsIContent*      aContent,
-                  nsIFrame*        aParent,
-                  nsIFrame*        aPrevInFlow);
-
-  
   NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                               const nsRect&           aDirtyRect,
                               const nsDisplayListSet& aLists);
 
 #ifdef ACCESSIBILITY
-  virtual already_AddRefed<Accessible> CreateAccessible();
+  virtual already_AddRefed<nsAccessible> CreateAccessible();
 #endif
 
 #ifdef DEBUG
@@ -58,9 +87,9 @@ public:
 #endif
   virtual nsIAtom* GetType() const;
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
-    return nsContainerFrame::IsFrameOfType(aFlags &
+    return nsInlineFrameSuper::IsFrameOfType(aFlags &
       ~(nsIFrame::eBidiInlineContainer | nsIFrame::eLineParticipant));
   }
 
@@ -69,7 +98,7 @@ public:
 
   virtual void DestroyFrom(nsIFrame* aDestructRoot);
 
-  virtual bool PeekOffsetCharacter(bool aForward, int32_t* aOffset,
+  virtual bool PeekOffsetCharacter(bool aForward, PRInt32* aOffset,
                                      bool aRespectClusters = true);
   
   
@@ -80,7 +109,7 @@ public:
   virtual nsSize ComputeSize(nsRenderingContext *aRenderingContext,
                              nsSize aCBSize, nscoord aAvailableWidth,
                              nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                             uint32_t aFlags) MOZ_OVERRIDE;
+                             bool aShrinkWrap);
   virtual nsRect ComputeTightBounds(gfxContext* aContext) const;
   NS_IMETHOD Reflow(nsPresContext* aPresContext,
                     nsHTMLReflowMetrics& aDesiredSize,
@@ -125,17 +154,17 @@ protected:
                                      
 
     InlineReflowState()  {
-      mPrevFrame = nullptr;
-      mNextInFlow = nullptr;
-      mLineContainer = nullptr;
-      mLineLayout = nullptr;
-      mSetParentPointer = false;
+      mPrevFrame = nsnull;
+      mNextInFlow = nsnull;
+      mLineContainer = nsnull;
+      mLineLayout = nsnull;
+      mSetParentPointer = PR_FALSE;
     }
   };
 
-  nsInlineFrame(nsStyleContext* aContext) : nsContainerFrame(aContext) {}
+  nsInlineFrame(nsStyleContext* aContext) : nsInlineFrameSuper(aContext) {}
 
-  virtual int GetSkipSides() const;
+  virtual PRIntn GetSkipSides() const;
 
   nsresult ReflowFrames(nsPresContext* aPresContext,
                         const nsHTMLReflowState& aReflowState,

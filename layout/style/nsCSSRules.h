@@ -6,17 +6,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsCSSRules_h_
 #define nsCSSRules_h_
 
-#include "mozilla/Attributes.h"
-
 #include "mozilla/css/GroupRule.h"
-#include "mozilla/Preferences.h"
-#include "nsIDOMCSSFontFaceRule.h"
 #include "nsIDOMCSSMediaRule.h"
 #include "nsIDOMCSSMozDocumentRule.h"
-#include "nsIDOMCSSSupportsRule.h"
+#include "nsIDOMCSSFontFaceRule.h"
 #include "nsIDOMMozCSSKeyframeRule.h"
 #include "nsIDOMMozCSSKeyframesRule.h"
 #include "nsIDOMCSSStyleDeclaration.h"
@@ -40,8 +70,8 @@ class nsMediaList;
 namespace mozilla {
 namespace css {
 
-class MediaRule MOZ_FINAL : public GroupRule,
-                            public nsIDOMCSSMediaRule
+class NS_FINAL_CLASS MediaRule : public GroupRule,
+                                 public nsIDOMCSSMediaRule
 {
 public:
   MediaRule();
@@ -54,12 +84,12 @@ public:
 
   
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
+  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
 
   
   virtual void SetStyleSheet(nsCSSStyleSheet* aSheet); 
-  virtual int32_t GetType() const;
+  virtual PRInt32 GetType() const;
   virtual already_AddRefed<Rule> Clone() const;
   virtual nsIDOMCSSRule* GetDOMRule()
   {
@@ -79,15 +109,12 @@ public:
   
   nsresult SetMedia(nsMediaList* aMedia);
   
-  virtual NS_MUST_OVERRIDE size_t
-    SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
-
 protected:
   nsRefPtr<nsMediaList> mMedia;
 };
 
-class DocumentRule MOZ_FINAL : public GroupRule,
-                               public nsIDOMCSSMozDocumentRule
+class NS_FINAL_CLASS DocumentRule : public GroupRule,
+                                    public nsIDOMCSSMozDocumentRule
 {
 public:
   DocumentRule();
@@ -100,11 +127,11 @@ public:
 
   
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
+  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
 
   
-  virtual int32_t GetType() const;
+  virtual PRInt32 GetType() const;
   virtual already_AddRefed<Rule> Clone() const;
   virtual nsIDOMCSSRule* GetDOMRule()
   {
@@ -133,20 +160,17 @@ public:
     nsCString url;
     URL *next;
 
-    URL() : next(nullptr) {}
+    URL() : next(nsnull) {}
     URL(const URL& aOther)
       : func(aOther.func)
       , url(aOther.url)
-      , next(aOther.next ? new URL(*aOther.next) : nullptr)
+      , next(aOther.next ? new URL(*aOther.next) : nsnull)
     {
     }
     ~URL();
   };
 
   void SetURLs(URL *aURLs) { mURLs = aURLs; }
-
-  virtual NS_MUST_OVERRIDE size_t
-    SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
 
 protected:
   nsAutoPtr<URL> mURLs; 
@@ -157,32 +181,25 @@ protected:
 
 
 class nsCSSFontFaceRule;
-class nsCSSFontFaceStyleDecl : public nsICSSDeclaration
+class nsCSSFontFaceStyleDecl : public nsIDOMCSSStyleDeclaration
 {
 public:
-  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMCSSSTYLEDECLARATION
-  NS_DECL_NSICSSDECLARATION
-
-  nsCSSFontFaceStyleDecl()
-  {
-    SetIsDOMBinding();
-  }
-
-  virtual nsINode *GetParentObject();
-  virtual void IndexedGetter(uint32_t aIndex, bool& aFound, nsAString& aPropName);
 
   nsresult GetPropertyValue(nsCSSFontDesc aFontDescID,
-                            nsAString & aResult) const;
-
-  virtual JSObject* WrapObject(JSContext *cx, JSObject *scope,
-                               bool *triedToWrap);
+                            nsAString & aResult NS_OUTPARAM) const;
 
 protected:
   friend class nsCSSFontFaceRule;
-#define CSS_FONT_DESC(name_, method_) nsCSSValue m##method_;
-#include "nsCSSFontDescList.h"
-#undef CSS_FONT_DESC
+  nsCSSValue mFamily;
+  nsCSSValue mStyle;
+  nsCSSValue mWeight;
+  nsCSSValue mStretch;
+  nsCSSValue mSrc;
+  nsCSSValue mUnicodeRange;
+  nsCSSValue mFontFeatureSettings;
+  nsCSSValue mFontLanguageOverride;
 
   static nsCSSValue nsCSSFontFaceStyleDecl::* const Fields[];  
   inline nsCSSFontFaceRule* ContainingRule();
@@ -195,8 +212,8 @@ private:
   void* operator new(size_t size) CPP_THROW_NEW;
 };
 
-class nsCSSFontFaceRule MOZ_FINAL : public mozilla::css::Rule,
-                                    public nsIDOMCSSFontFaceRule
+class NS_FINAL_CLASS nsCSSFontFaceRule : public mozilla::css::Rule,
+                                         public nsIDOMCSSFontFaceRule
 {
 public:
   nsCSSFontFaceRule() {}
@@ -205,19 +222,17 @@ public:
     
     : mozilla::css::Rule(aCopy), mDecl(aCopy.mDecl) {}
 
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(nsCSSFontFaceRule,
-                                                         mozilla::css::Rule)
+  NS_DECL_ISUPPORTS_INHERITED
 
   
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
+  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
 
   
   DECL_STYLE_RULE_INHERIT
 
-  virtual int32_t GetType() const;
+  virtual PRInt32 GetType() const;
   virtual already_AddRefed<mozilla::css::Rule> Clone() const;
 
   
@@ -229,8 +244,6 @@ public:
   void SetDesc(nsCSSFontDesc aDescID, nsCSSValue const & aValue);
   void GetDesc(nsCSSFontDesc aDescID, nsCSSValue & aValue);
 
-  virtual size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
-
 protected:
   friend class nsCSSFontFaceStyleDecl;
   nsCSSFontFaceStyleDecl mDecl;
@@ -240,7 +253,7 @@ protected:
 
 struct nsFontFaceRuleContainer {
   nsRefPtr<nsCSSFontFaceRule> mRule;
-  uint8_t mSheetType;
+  PRUint8 mSheetType;
 };
 
 inline nsCSSFontFaceRule*
@@ -260,8 +273,8 @@ nsCSSFontFaceStyleDecl::ContainingRule() const
 namespace mozilla {
 namespace css {
 
-class CharsetRule MOZ_FINAL : public Rule,
-                              public nsIDOMCSSCharsetRule
+class NS_FINAL_CLASS CharsetRule : public Rule,
+                                   public nsIDOMCSSCharsetRule
 {
 public:
   CharsetRule(const nsAString& aEncoding);
@@ -277,11 +290,11 @@ public:
 
   
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
+  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
 
   
-  virtual int32_t GetType() const;
+  virtual PRInt32 GetType() const;
   virtual already_AddRefed<Rule> Clone() const;
 
   
@@ -290,8 +303,6 @@ public:
   
   NS_IMETHOD GetEncoding(nsAString& aEncoding);
   NS_IMETHOD SetEncoding(const nsAString& aEncoding);
-
-  virtual size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
 
 private:
   nsString  mEncoding;
@@ -302,33 +313,39 @@ private:
 
 class nsCSSKeyframeRule;
 
-class nsCSSKeyframeStyleDeclaration MOZ_FINAL : public nsDOMCSSDeclaration
+class NS_FINAL_CLASS nsCSSKeyframeStyleDeclaration
+                         : public nsDOMCSSDeclaration
 {
 public:
   nsCSSKeyframeStyleDeclaration(nsCSSKeyframeRule *aRule);
   virtual ~nsCSSKeyframeStyleDeclaration();
 
   NS_IMETHOD GetParentRule(nsIDOMCSSRule **aParent);
-  void DropReference() { mRule = nullptr; }
+  void DropReference() { mRule = nsnull; }
   virtual mozilla::css::Declaration* GetCSSDeclaration(bool aAllocate);
   virtual nsresult SetCSSDeclaration(mozilla::css::Declaration* aDecl);
   virtual void GetCSSParsingEnvironment(CSSParsingEnvironment& aCSSParseEnv);
   virtual nsIDocument* DocToUpdate();
 
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(nsCSSKeyframeStyleDeclaration,
-                                                         nsICSSDeclaration)
+  NS_IMETHOD_(nsrefcnt) AddRef();
+  NS_IMETHOD_(nsrefcnt) Release();
 
-  virtual nsINode* GetParentObject();
+  virtual nsINode *GetParentObject()
+  {
+    return nsnull;
+  }
 
 protected:
+  nsAutoRefCnt mRefCnt;
+  NS_DECL_OWNINGTHREAD
+
   
   
   nsCSSKeyframeRule *mRule;
 };
 
-class nsCSSKeyframeRule MOZ_FINAL : public mozilla::css::Rule,
-                                    public nsIDOMMozCSSKeyframeRule
+class NS_FINAL_CLASS nsCSSKeyframeRule : public mozilla::css::Rule,
+                                         public nsIDOMMozCSSKeyframeRule
 {
 public:
   
@@ -346,12 +363,12 @@ public:
 
   
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
+  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
 
   
   DECL_STYLE_RULE_INHERIT
-  virtual int32_t GetType() const;
+  virtual PRInt32 GetType() const;
   virtual already_AddRefed<mozilla::css::Rule> Clone() const;
 
   
@@ -365,8 +382,6 @@ public:
 
   void ChangeDeclaration(mozilla::css::Declaration* aDeclaration);
 
-  virtual size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
-
 private:
   nsAutoTArray<float, 1>                     mKeys;
   nsAutoPtr<mozilla::css::Declaration>       mDeclaration;
@@ -374,8 +389,8 @@ private:
   nsRefPtr<nsCSSKeyframeStyleDeclaration>    mDOMDeclaration;
 };
 
-class nsCSSKeyframesRule MOZ_FINAL : public mozilla::css::GroupRule,
-                                     public nsIDOMMozCSSKeyframesRule
+class NS_FINAL_CLASS nsCSSKeyframesRule : public mozilla::css::GroupRule,
+                                          public nsIDOMMozCSSKeyframesRule
 {
 public:
   nsCSSKeyframesRule(const nsSubstring& aName)
@@ -390,11 +405,11 @@ public:
 
   
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
+  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
 
   
-  virtual int32_t GetType() const;
+  virtual PRInt32 GetType() const;
   virtual already_AddRefed<mozilla::css::Rule> Clone() const;
   virtual nsIDOMCSSRule* GetDOMRule()
   {
@@ -413,58 +428,10 @@ public:
 
   const nsString& GetName() { return mName; }
 
-  virtual size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
-
 private:
-  uint32_t FindRuleIndexForKey(const nsAString& aKey);
+  PRUint32 FindRuleIndexForKey(const nsAString& aKey);
 
   nsString                                   mName;
 };
-
-namespace mozilla {
-
-class CSSSupportsRule : public css::GroupRule,
-                        public nsIDOMCSSSupportsRule
-{
-public:
-  CSSSupportsRule(bool aConditionMet, const nsString& aCondition);
-  CSSSupportsRule(const CSSSupportsRule& aCopy);
-
-  
-#ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
-#endif
-
-  
-  virtual int32_t GetType() const;
-  virtual already_AddRefed<mozilla::css::Rule> Clone() const;
-  virtual bool UseForPresentation(nsPresContext* aPresContext,
-                                  nsMediaQueryResultCacheKey& aKey);
-  virtual nsIDOMCSSRule* GetDOMRule()
-  {
-    return this;
-  }
-
-  NS_DECL_ISUPPORTS_INHERITED
-
-  
-  NS_DECL_NSIDOMCSSRULE
-
-  
-  NS_DECL_NSIDOMCSSSUPPORTSRULE
-
-  virtual size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
-
-  static bool PrefEnabled()
-  {
-    return Preferences::GetBool("layout.css.supports-rule.enabled");
-  }
-
-protected:
-  bool mUseGroup;
-  nsString mCondition;
-};
-
-} 
 
 #endif 

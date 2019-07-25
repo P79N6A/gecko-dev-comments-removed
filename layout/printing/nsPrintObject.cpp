@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsPrintObject.h"
 #include "nsIContentViewer.h"
 #include "nsIDOMDocument.h"
@@ -18,9 +50,9 @@
 
 
 nsPrintObject::nsPrintObject() :
-  mContent(nullptr), mFrameType(eFrame), mParent(nullptr),
-  mHasBeenPrinted(false), mDontPrint(true), mPrintAsIs(false),
-  mSharedPresShell(false), mInvisible(false), mDidCreateDocShell(false),
+  mContent(nsnull), mFrameType(eFrame), mParent(nsnull),
+  mHasBeenPrinted(PR_FALSE), mDontPrint(PR_TRUE), mPrintAsIs(PR_FALSE),
+  mSharedPresShell(PR_FALSE), mInvisible(PR_FALSE), mDidCreateDocShell(PR_FALSE),
   mShrinkRatio(1.0), mZoomRatio(1.0)
 {
   MOZ_COUNT_CTOR(nsPrintObject);
@@ -30,7 +62,7 @@ nsPrintObject::nsPrintObject() :
 nsPrintObject::~nsPrintObject()
 {
   MOZ_COUNT_DTOR(nsPrintObject);
-  for (uint32_t i=0;i<mKids.Length();i++) {
+  for (PRUint32 i=0;i<mKids.Length();i++) {
     nsPrintObject* po = mKids[i];
     delete po;
   }
@@ -42,8 +74,8 @@ nsPrintObject::~nsPrintObject()
       baseWin->Destroy();
     }
   }                            
-  mDocShell = nullptr;
-  mTreeOwner = nullptr; 
+  mDocShell = nsnull;
+  mTreeOwner = nsnull; 
 }
 
 
@@ -58,12 +90,12 @@ nsPrintObject::Init(nsIDocShell* aDocShell, nsIDOMDocument* aDoc,
   } else {
     mTreeOwner = do_GetInterface(aDocShell);
     nsCOMPtr<nsIDocShellTreeItem> item = do_QueryInterface(aDocShell);
-    int32_t itemType = 0;
+    PRInt32 itemType = 0;
     item->GetItemType(&itemType);
     
     mDocShell = do_CreateInstance("@mozilla.org/docshell;1");
     NS_ENSURE_TRUE(mDocShell, NS_ERROR_OUT_OF_MEMORY);
-    mDidCreateDocShell = true;
+    mDidCreateDocShell = PR_TRUE;
     nsCOMPtr<nsIDocShellTreeItem> newItem = do_QueryInterface(mDocShell);
     newItem->SetItemType(itemType);
     newItem->SetTreeOwner(mTreeOwner);
@@ -100,13 +132,13 @@ nsPrintObject::Init(nsIDocShell* aDocShell, nsIDOMDocument* aDoc,
 void 
 nsPrintObject::DestroyPresentation()
 {
-  mPresContext = nullptr;
+  mPresContext = nsnull;
   if (mPresShell) {
     mPresShell->EndObservingDocument();
     nsAutoScriptBlocker scriptBlocker;
     mPresShell->Destroy();
   }
-  mPresShell   = nullptr;
-  mViewManager = nullptr;
+  mPresShell   = nsnull;
+  mViewManager = nsnull;
 }
 

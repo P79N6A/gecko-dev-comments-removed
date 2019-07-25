@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsProgressFrame.h"
 
 #include "nsIDOMHTMLProgressElement.h"
@@ -18,7 +50,6 @@
 #include "nsContentCreatorFunctions.h"
 #include "nsContentUtils.h"
 #include "nsFormControlFrame.h"
-#include "nsContentList.h"
 #include "nsFontMetrics.h"
 #include "mozilla/dom/Element.h"
 
@@ -32,8 +63,8 @@ NS_NewProgressFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 NS_IMPL_FRAMEARENA_HELPERS(nsProgressFrame)
 
 nsProgressFrame::nsProgressFrame(nsStyleContext* aContext)
-  : nsContainerFrame(aContext)
-  , mBarDiv(nullptr)
+  : nsHTMLContainerFrame(aContext)
+  , mBarDiv(nsnull)
 {
 }
 
@@ -47,9 +78,9 @@ nsProgressFrame::DestroyFrom(nsIFrame* aDestructRoot)
   NS_ASSERTION(!GetPrevContinuation(),
                "nsProgressFrame should not have continuations; if it does we "
                "need to call RegUnregAccessKey only for the first.");
-  nsFormControlFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), false);
+  nsFormControlFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), PR_FALSE);
   nsContentUtils::DestroyAnonymousContent(&mBarDiv);
-  nsContainerFrame::DestroyFrom(aDestructRoot);
+  nsHTMLContainerFrame::DestroyFrom(aDestructRoot);
 }
 
 nsresult
@@ -59,7 +90,7 @@ nsProgressFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
   nsCOMPtr<nsIDocument> doc = mContent->GetDocument();
 
   nsCOMPtr<nsINodeInfo> nodeInfo;
-  nodeInfo = doc->NodeInfoManager()->GetNodeInfo(nsGkAtoms::div, nullptr,
+  nodeInfo = doc->NodeInfoManager()->GetNodeInfo(nsGkAtoms::div, nsnull,
                                                  kNameSpaceID_XHTML,
                                                  nsIDOMNode::ELEMENT_NODE);
   NS_ENSURE_TRUE(nodeInfo, NS_ERROR_OUT_OF_MEMORY);
@@ -84,7 +115,7 @@ nsProgressFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
 
 void
 nsProgressFrame::AppendAnonymousContentTo(nsBaseContentList& aElements,
-                                          uint32_t aFilter)
+                                          PRUint32 aFilter)
 {
   aElements.MaybeAppendElement(mBarDiv);
 }
@@ -92,16 +123,8 @@ nsProgressFrame::AppendAnonymousContentTo(nsBaseContentList& aElements,
 NS_QUERYFRAME_HEAD(nsProgressFrame)
   NS_QUERYFRAME_ENTRY(nsProgressFrame)
   NS_QUERYFRAME_ENTRY(nsIAnonymousContentCreator)
-NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
+NS_QUERYFRAME_TAIL_INHERITING(nsHTMLContainerFrame)
 
-
-NS_IMETHODIMP
-nsProgressFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                  const nsRect&           aDirtyRect,
-                                  const nsDisplayListSet& aLists)
-{
-  return BuildDisplayListForInline(aBuilder, aDirtyRect, aLists);
-}
 
 NS_IMETHODIMP nsProgressFrame::Reflow(nsPresContext*           aPresContext,
                                       nsHTMLReflowMetrics&     aDesiredSize,
@@ -117,7 +140,7 @@ NS_IMETHODIMP nsProgressFrame::Reflow(nsPresContext*           aPresContext,
                "need to call RegUnregAccessKey only for the first.");
 
   if (mState & NS_FRAME_FIRST_REFLOW) {
-    nsFormControlFrame::RegUnRegAccessKey(this, true);
+    nsFormControlFrame::RegUnRegAccessKey(this, PR_TRUE);
   }
 
   nsIFrame* barFrame = mBarDiv->GetPrimaryFrame();
@@ -129,6 +152,9 @@ NS_IMETHODIMP nsProgressFrame::Reflow(nsPresContext*           aPresContext,
                        aReflowState.mComputedBorderPadding.LeftRight();
   aDesiredSize.height = aReflowState.ComputedHeight() +
                         aReflowState.mComputedBorderPadding.TopBottom();
+  aDesiredSize.height = NS_CSS_MINMAX(aDesiredSize.height,
+                                      aReflowState.mComputedMinHeight,
+                                      aReflowState.mComputedMaxHeight);
 
   aDesiredSize.SetOverflowAreasToDesiredBounds();
   ConsiderChildOverflow(aDesiredSize.mOverflowAreas, barFrame);
@@ -211,9 +237,9 @@ nsProgressFrame::ReflowBarFrame(nsIFrame*                aBarFrame,
 }
 
 NS_IMETHODIMP
-nsProgressFrame::AttributeChanged(int32_t  aNameSpaceID,
+nsProgressFrame::AttributeChanged(PRInt32  aNameSpaceID,
                                   nsIAtom* aAttribute,
-                                  int32_t  aModType)
+                                  PRInt32  aModType)
 {
   NS_ASSERTION(mBarDiv, "Progress bar div must exist!");
 
@@ -226,7 +252,8 @@ nsProgressFrame::AttributeChanged(int32_t  aNameSpaceID,
     Invalidate(GetVisualOverflowRectRelativeToSelf());
   }
 
-  return nsContainerFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
+  return nsHTMLContainerFrame::AttributeChanged(aNameSpaceID, aAttribute,
+                                                aModType);
 }
 
 nsSize
@@ -235,11 +262,9 @@ nsProgressFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
                                  nsSize aMargin, nsSize aBorder,
                                  nsSize aPadding, bool aShrinkWrap)
 {
-  float inflation = nsLayoutUtils::FontSizeInflationFor(this);
   nsRefPtr<nsFontMetrics> fontMet;
   NS_ENSURE_SUCCESS(nsLayoutUtils::GetFontMetricsForFrame(this,
-                                                          getter_AddRefs(fontMet),
-                                                          inflation),
+                                                          getter_AddRefs(fontMet)),
                     nsSize(0, 0));
 
   nsSize autoSize;

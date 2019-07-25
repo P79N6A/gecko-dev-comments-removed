@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsUTF7ToUnicode_h___
 #define nsUTF7ToUnicode_h___
 
@@ -28,24 +60,24 @@ public:
 
 protected:
 
-  int32_t                   mEncoding;      
-  uint32_t                  mEncBits;
-  int32_t                   mEncStep;
+  PRInt32                   mEncoding;      
+  PRUint32                  mEncBits;
+  PRInt32                   mEncStep;
   char                      mLastChar;
   char                      mEscChar;
   bool                      mFreshBase64;
 
-  nsresult DecodeDirect(const char * aSrc, int32_t * aSrcLength, 
-      PRUnichar * aDest, int32_t * aDestLength);
-  nsresult DecodeBase64(const char * aSrc, int32_t * aSrcLength, 
-      PRUnichar * aDest, int32_t * aDestLength);
-  uint32_t CharToValue(char aChar);
+  nsresult DecodeDirect(const char * aSrc, PRInt32 * aSrcLength, 
+      PRUnichar * aDest, PRInt32 * aDestLength);
+  nsresult DecodeBase64(const char * aSrc, PRInt32 * aSrcLength, 
+      PRUnichar * aDest, PRInt32 * aDestLength);
+  PRUint32 CharToValue(char aChar);
 
   
   
 
-  NS_IMETHOD ConvertNoBuff(const char * aSrc, int32_t * aSrcLength, 
-      PRUnichar * aDest, int32_t * aDestLength);
+  NS_IMETHOD ConvertNoBuff(const char * aSrc, PRInt32 * aSrcLength, 
+      PRUnichar * aDest, PRInt32 * aDestLength);
   NS_IMETHOD Reset();
 };
 

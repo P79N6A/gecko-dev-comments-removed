@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __nsAppShellService_h
 #define __nsAppShellService_h
 
@@ -13,14 +45,13 @@
 #include "nsWebShellWindow.h"
 #include "nsStringFwd.h"
 #include "nsAutoPtr.h"
-#include "mozilla/Attributes.h"
 
 
 #define NS_APPSHELLSERVICE_CID \
 { 0x99907d, 0x123c, 0x4853, { 0xa4, 0x6a, 0x43, 0x9, 0x8b, 0x5f, 0xb6, 0x8c } }
 
-class nsAppShellService MOZ_FINAL : public nsIAppShellService,
-                                    public nsIObserver
+class nsAppShellService : public nsIAppShellService,
+                          public nsIObserver
 {
 public:
   NS_DECL_ISUPPORTS
@@ -34,16 +65,16 @@ protected:
 
   nsresult JustCreateTopWindow(nsIXULWindow *aParent,
                                nsIURI *aUrl, 
-                               uint32_t aChromeMask,
-                               int32_t aInitialWidth, int32_t aInitialHeight,
-                               bool aIsHiddenWindow,
+                               PRUint32 aChromeMask,
+                               PRInt32 aInitialWidth, PRInt32 aInitialHeight,
+                               bool aIsHiddenWindow, nsIAppShell* aAppShell,
                                nsWebShellWindow **aResult);
-  uint32_t CalculateWindowZLevel(nsIXULWindow *aParent, uint32_t aChromeMask);
+  PRUint32 CalculateWindowZLevel(nsIXULWindow *aParent, PRUint32 aChromeMask);
 
   nsRefPtr<nsWebShellWindow>  mHiddenWindow;
   bool                        mXPCOMWillShutDown;
   bool                        mXPCOMShuttingDown;
-  uint16_t                    mModalWindowCount;
+  PRUint16                    mModalWindowCount;
   bool                        mApplicationProvidedHiddenWindow;
 };
 

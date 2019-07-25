@@ -3,8 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "base/basictypes.h"
-#include "ipc/IPCMessageUtils.h"
+#include "IPC/IPCMessageUtils.h"
 
 #include "nsDOMScrollAreaEvent.h"
 #include "nsGUIEvent.h"
@@ -25,7 +57,7 @@ nsDOMScrollAreaEvent::~nsDOMScrollAreaEvent()
   if (mEventIsInternal && mEvent) {
     if (mEvent->eventStructType == NS_SCROLLAREA_EVENT) {
       delete static_cast<nsScrollAreaEvent *>(mEvent);
-      mEvent = nullptr;
+      mEvent = nsnull;
     }
   }
 }
@@ -70,7 +102,7 @@ nsDOMScrollAreaEvent::InitScrollAreaEvent(const nsAString &aEventType,
                                           bool aCanBubble,
                                           bool aCancelable,
                                           nsIDOMWindow *aView,
-                                          int32_t aDetail,
+                                          PRInt32 aDetail,
                                           float aX, float aY,
                                           float aWidth, float aHeight)
 {
@@ -82,7 +114,7 @@ nsDOMScrollAreaEvent::InitScrollAreaEvent(const nsAString &aEventType,
   return NS_OK;
 }
 
-NS_IMETHODIMP_(void)
+void
 nsDOMScrollAreaEvent::Serialize(IPC::Message* aMsg,
                                 bool aSerializeInterfaceType)
 {
@@ -90,7 +122,7 @@ nsDOMScrollAreaEvent::Serialize(IPC::Message* aMsg,
     IPC::WriteParam(aMsg, NS_LITERAL_STRING("scrollareaevent"));
   }
 
-  nsDOMEvent::Serialize(aMsg, false);
+  nsDOMEvent::Serialize(aMsg, PR_FALSE);
 
   float val;
   mClientArea.GetLeft(&val);
@@ -103,19 +135,19 @@ nsDOMScrollAreaEvent::Serialize(IPC::Message* aMsg,
   IPC::WriteParam(aMsg, val);
 }
 
-NS_IMETHODIMP_(bool)
+bool
 nsDOMScrollAreaEvent::Deserialize(const IPC::Message* aMsg, void** aIter)
 {
-  NS_ENSURE_TRUE(nsDOMEvent::Deserialize(aMsg, aIter), false);
+  NS_ENSURE_TRUE(nsDOMEvent::Deserialize(aMsg, aIter), PR_FALSE);
 
   float x, y, width, height;
-  NS_ENSURE_TRUE(IPC::ReadParam(aMsg, aIter, &x), false);
-  NS_ENSURE_TRUE(IPC::ReadParam(aMsg, aIter, &y), false);
-  NS_ENSURE_TRUE(IPC::ReadParam(aMsg, aIter, &width), false);
-  NS_ENSURE_TRUE(IPC::ReadParam(aMsg, aIter, &height), false);
+  NS_ENSURE_TRUE(IPC::ReadParam(aMsg, aIter, &x), PR_FALSE);
+  NS_ENSURE_TRUE(IPC::ReadParam(aMsg, aIter, &y), PR_FALSE);
+  NS_ENSURE_TRUE(IPC::ReadParam(aMsg, aIter, &width), PR_FALSE);
+  NS_ENSURE_TRUE(IPC::ReadParam(aMsg, aIter, &height), PR_FALSE);
   mClientArea.SetRect(x, y, width, height);
 
-  return true;
+  return PR_TRUE;
 }
 
 nsresult

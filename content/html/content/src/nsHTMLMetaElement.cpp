@@ -2,12 +2,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIDOMHTMLMetaElement.h"
 #include "nsIDOMEventTarget.h"
 #include "nsGenericHTMLElement.h"
 #include "nsGkAtoms.h"
 #include "nsStyleConsts.h"
-#include "nsAsyncDOMEvent.h"
+#include "nsPLDOMEvent.h"
 #include "nsContentUtils.h"
 
 
@@ -43,12 +75,6 @@ public:
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
-
-protected:
-  virtual void GetItemValueText(nsAString& text);
-  virtual void SetItemValueText(const nsAString& text);
 };
 
 
@@ -87,19 +113,6 @@ NS_IMPL_STRING_ATTR(nsHTMLMetaElement, HttpEquiv, httpEquiv)
 NS_IMPL_STRING_ATTR(nsHTMLMetaElement, Name, name)
 NS_IMPL_STRING_ATTR(nsHTMLMetaElement, Scheme, scheme)
 
-void
-nsHTMLMetaElement::GetItemValueText(nsAString& aValue)
-{
-  GetContent(aValue);
-}
-
-void
-nsHTMLMetaElement::SetItemValueText(const nsAString& aValue)
-{
-  SetContent(aValue);
-}
-
-
 nsresult
 nsHTMLMetaElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
@@ -135,7 +148,9 @@ nsHTMLMetaElement::CreateAndDispatchEvent(nsIDocument* aDoc,
   if (!aDoc)
     return;
 
-  nsRefPtr<nsAsyncDOMEvent> event = new nsAsyncDOMEvent(this, aEventName, true,
-                                                        true);
-  event->PostDOMEvent();
+  nsRefPtr<nsPLDOMEvent> event = new nsPLDOMEvent(this, aEventName, PR_TRUE,
+                                                  PR_TRUE);
+  if (event) {
+    event->PostDOMEvent();
+  }
 }

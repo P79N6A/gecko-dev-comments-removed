@@ -3,6 +3,50 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsTextFrame_h__
 #define nsTextFrame_h__
 
@@ -21,30 +65,17 @@ class PropertyProvider;
 
 #define TEXT_HAS_NONCOLLAPSED_CHARACTERS NS_FRAME_STATE_BIT(31)
 
-
-
-#define TEXT_FORCE_TRIM_WHITESPACE       NS_FRAME_STATE_BIT(32)
-
-#define TEXT_HAS_FONT_INFLATION          NS_FRAME_STATE_BIT(61)
-
-typedef nsFrame nsTextFrameBase;
-
-class nsTextFrame : public nsTextFrameBase {
+class nsTextFrame : public nsFrame {
 public:
-  NS_DECL_QUERYFRAME_TARGET(nsTextFrame)
   NS_DECL_FRAMEARENA_HELPERS
 
   friend class nsContinuingTextFrame;
 
-  nsTextFrame(nsStyleContext* aContext)
-    : nsTextFrameBase(aContext)
+  nsTextFrame(nsStyleContext* aContext) : nsFrame(aContext)
   {
     NS_ASSERTION(mContentOffset == 0, "Bogus content offset");
   }
   
-  
-  NS_DECL_QUERYFRAME
-
   
   NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                               const nsRect&           aDirtyRect,
@@ -79,7 +110,7 @@ public:
   virtual nsIFrame* GetNextInFlowVirtual() const { return GetNextInFlow(); }
   nsIFrame* GetNextInFlow() const {
     return mNextContinuation && (mNextContinuation->GetStateBits() & NS_FRAME_IS_FLUID_CONTINUATION) ? 
-      mNextContinuation : nullptr;
+      mNextContinuation : nsnull;
   }
   NS_IMETHOD SetNextInFlow(nsIFrame* aNextInFlow) {
     NS_ASSERTION (!aNextInFlow || GetType() == aNextInFlow->GetType(),
@@ -105,7 +136,7 @@ public:
 
   virtual nsIAtom* GetType() const;
   
-  virtual bool IsFrameOfType(uint32_t aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     
     
@@ -114,7 +145,7 @@ public:
   }
 
 #ifdef DEBUG
-  NS_IMETHOD List(FILE* out, int32_t aIndent) const;
+  NS_IMETHOD List(FILE* out, PRInt32 aIndent) const;
   NS_IMETHOD GetFrameName(nsAString& aResult) const;
   NS_IMETHOD_(nsFrameState) GetDebugStateBits() const ;
 #endif
@@ -131,34 +162,38 @@ public:
 
 
 
-  void SetSelectedRange(uint32_t aStart, uint32_t aEnd, bool aSelected,
+  virtual void SetSelected(bool          aSelected,
+                           SelectionType aType);
+  void SetSelectedRange(PRUint32 aStart,
+                        PRUint32 aEnd,
+                        bool aSelected,
                         SelectionType aType);
 
-  virtual bool PeekOffsetNoAmount(bool aForward, int32_t* aOffset);
-  virtual bool PeekOffsetCharacter(bool aForward, int32_t* aOffset,
+  virtual bool PeekOffsetNoAmount(bool aForward, PRInt32* aOffset);
+  virtual bool PeekOffsetCharacter(bool aForward, PRInt32* aOffset,
                                      bool aRespectClusters = true);
   virtual bool PeekOffsetWord(bool aForward, bool aWordSelectEatSpace, bool aIsKeyboardSelect,
-                                int32_t* aOffset, PeekWordState* aState);
+                                PRInt32* aOffset, PeekWordState* aState);
 
-  NS_IMETHOD CheckVisibility(nsPresContext* aContext, int32_t aStartIndex, int32_t aEndIndex, bool aRecurse, bool *aFinished, bool *_retval);
+  NS_IMETHOD CheckVisibility(nsPresContext* aContext, PRInt32 aStartIndex, PRInt32 aEndIndex, bool aRecurse, bool *aFinished, bool *_retval);
   
   
   enum { ALLOW_FRAME_CREATION_AND_DESTRUCTION = 0x01 };
 
   
-  void SetLength(int32_t aLength, nsLineLayout* aLineLayout,
-                 uint32_t aSetLengthFlags = 0);
+  void SetLength(PRInt32 aLength, nsLineLayout* aLineLayout,
+                 PRUint32 aSetLengthFlags = 0);
   
-  NS_IMETHOD GetOffsets(int32_t &start, int32_t &end)const;
+  NS_IMETHOD GetOffsets(PRInt32 &start, PRInt32 &end)const;
   
-  virtual void AdjustOffsetsForBidi(int32_t start, int32_t end);
+  virtual void AdjustOffsetsForBidi(PRInt32 start, PRInt32 end);
   
-  NS_IMETHOD GetPointFromOffset(int32_t                 inOffset,
+  NS_IMETHOD GetPointFromOffset(PRInt32                 inOffset,
                                 nsPoint*                outPoint);
   
-  NS_IMETHOD  GetChildFrameContainingOffset(int32_t     inContentOffset,
+  NS_IMETHOD  GetChildFrameContainingOffset(PRInt32     inContentOffset,
                                             bool                    inHint,
-                                            int32_t*                outFrameContentOffset,
+                                            PRInt32*                outFrameContentOffset,
                                             nsIFrame*               *outChildFrame);
   
   virtual bool IsVisibleInSelection(nsISelection* aSelection);
@@ -188,16 +223,9 @@ public:
   }
   
 #ifdef ACCESSIBILITY
-  virtual already_AddRefed<Accessible> CreateAccessible();
+  virtual already_AddRefed<nsAccessible> CreateAccessible();
 #endif
-
-  float GetFontSizeInflation() const;
-  bool IsCurrentFontInflation(float aInflation) const;
-  bool HasFontSizeInflation() const {
-    return (GetStateBits() & TEXT_HAS_FONT_INFLATION) != 0;
-  }
-  void SetFontSizeInflation(float aInflation);
-
+  
   virtual void MarkIntrinsicWidthsDirty();
   virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext);
   virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext);
@@ -208,7 +236,7 @@ public:
   virtual nsSize ComputeSize(nsRenderingContext *aRenderingContext,
                              nsSize aCBSize, nscoord aAvailableWidth,
                              nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                             uint32_t aFlags) MOZ_OVERRIDE;
+                             bool aShrinkWrap);
   virtual nsRect ComputeTightBounds(gfxContext* aContext) const;
   NS_IMETHOD Reflow(nsPresContext* aPresContext,
                     nsHTMLReflowMetrics& aMetrics,
@@ -230,31 +258,18 @@ public:
     nscoord      mDeltaWidth;
   };
   TrimOutput TrimTrailingWhiteSpace(nsRenderingContext* aRC);
-  virtual nsresult GetRenderedText(nsAString* aString = nullptr,
-                                   gfxSkipChars* aSkipChars = nullptr,
-                                   gfxSkipCharsIterator* aSkipIter = nullptr,
-                                   uint32_t aSkippedStartOffset = 0,
-                                   uint32_t aSkippedMaxLength = PR_UINT32_MAX);
+  virtual nsresult GetRenderedText(nsAString* aString = nsnull,
+                                   gfxSkipChars* aSkipChars = nsnull,
+                                   gfxSkipCharsIterator* aSkipIter = nsnull,
+                                   PRUint32 aSkippedStartOffset = 0,
+                                   PRUint32 aSkippedMaxLength = PR_UINT32_MAX);
 
-  nsOverflowAreas
-    RecomputeOverflow(const nsHTMLReflowState& aBlockReflowState);
-
-  enum TextRunType {
-    
-    
-    
-    eInflated,
-    
-    
-    eNotInflated
-  };
+  nsOverflowAreas RecomputeOverflow();
 
   void AddInlineMinWidthForFlow(nsRenderingContext *aRenderingContext,
-                                nsIFrame::InlineMinWidthData *aData,
-                                TextRunType aTextRunType);
+                                nsIFrame::InlineMinWidthData *aData);
   void AddInlinePrefWidthForFlow(nsRenderingContext *aRenderingContext,
-                                 InlinePrefWidthData *aData,
-                                 TextRunType aTextRunType);
+                                 InlinePrefWidthData *aData);
 
   
 
@@ -264,100 +279,26 @@ public:
 
 
 
-  bool MeasureCharClippedText(nscoord aLeftEdge, nscoord aRightEdge,
-                              nscoord* aSnappedLeftEdge,
-                              nscoord* aSnappedRightEdge);
-  
-
-
-
-
-
-  bool MeasureCharClippedText(PropertyProvider& aProvider,
+  bool MeasureCharClippedText(gfxContext* aCtx,
                               nscoord aLeftEdge, nscoord aRightEdge,
-                              uint32_t* aStartOffset, uint32_t* aMaxLength,
                               nscoord* aSnappedLeftEdge,
                               nscoord* aSnappedRightEdge);
-
   
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  struct DrawPathCallbacks : gfxTextRun::DrawCallbacks
-  {
-    
-
-
-
-    virtual void NotifyBeforeText(nscolor aColor) { }
-
-    
-
-
-
-    virtual void NotifyAfterText() { }
-
-    
-
-
-
-    virtual void NotifyBeforeSelectionBackground(nscolor aColor) { }
-
-    
-
-
-
-    virtual void NotifySelectionBackgroundPathEmitted() { }
-
-    
-
-
-
-    virtual void NotifyBeforeDecorationLine(nscolor aColor) { }
-
-    
-
-
-
-    virtual void NotifyDecorationLinePathEmitted() { }
-
-    
-
-
-
-    virtual void NotifyBeforeSelectionDecorationLine(nscolor aColor) { }
-
-    
-
-
-
-    virtual void NotifySelectionDecorationLinePathEmitted() { }
-  };
-
-  
-  
+  bool MeasureCharClippedText(gfxContext* aCtx,
+                              PropertyProvider& aProvider,
+                              nscoord aLeftEdge, nscoord aRightEdge,
+                              PRUint32* aStartOffset, PRUint32* aMaxLength,
+                              nscoord* aSnappedLeftEdge,
+                              nscoord* aSnappedRightEdge);
   
   
   void PaintText(nsRenderingContext* aRenderingContext, nsPoint aPt,
-                 const nsRect& aDirtyRect, const nsCharClipDisplayItem& aItem,
-                 DrawPathCallbacks* aCallbacks = nullptr);
+                 const nsRect& aDirtyRect, const nsCharClipDisplayItem& aItem);
   
   
   
@@ -366,11 +307,10 @@ public:
                               const gfxPoint& aTextBaselinePt,
                               const gfxRect& aDirtyRect,
                               PropertyProvider& aProvider,
-                              uint32_t aContentOffset,
-                              uint32_t aContentLength,
+                              PRUint32 aContentOffset,
+                              PRUint32 aContentLength,
                               nsTextPaintStyle& aTextPaintStyle,
-                              const nsCharClipDisplayItem::ClipEdges& aClipEdges,
-                              DrawPathCallbacks* aCallbacks);
+                              const nsCharClipDisplayItem::ClipEdges& aClipEdges);
   
   
   
@@ -381,88 +321,50 @@ public:
                                     const gfxPoint& aTextBaselinePt,
                                     const gfxRect& aDirtyRect,
                                     PropertyProvider& aProvider,
-                                    uint32_t aContentOffset,
-                                    uint32_t aContentLength,
+                                    PRUint32 aContentOffset,
+                                    PRUint32 aContentLength,
                                     nsTextPaintStyle& aTextPaintStyle,
                                     SelectionDetails* aDetails,
                                     SelectionType* aAllTypes,
-                             const nsCharClipDisplayItem::ClipEdges& aClipEdges,
-                                    DrawPathCallbacks* aCallbacks);
+                            const nsCharClipDisplayItem::ClipEdges& aClipEdges);
   
   void PaintTextSelectionDecorations(gfxContext* aCtx,
                                      const gfxPoint& aFramePt,
                                      const gfxPoint& aTextBaselinePt,
                                      const gfxRect& aDirtyRect,
                                      PropertyProvider& aProvider,
-                                     uint32_t aContentOffset,
-                                     uint32_t aContentLength,
+                                     PRUint32 aContentOffset,
+                                     PRUint32 aContentLength,
                                      nsTextPaintStyle& aTextPaintStyle,
                                      SelectionDetails* aDetails,
-                                     SelectionType aSelectionType,
-                                     DrawPathCallbacks* aCallbacks);
+                                     SelectionType aSelectionType);
 
-  virtual nscolor GetCaretColorAt(int32_t aOffset);
+  virtual nscolor GetCaretColorAt(PRInt32 aOffset);
 
-  int16_t GetSelectionStatus(int16_t* aSelectionFlags);
+  PRInt16 GetSelectionStatus(PRInt16* aSelectionFlags);
 
 #ifdef DEBUG
-  void ToCString(nsCString& aBuf, int32_t* aTotalContentLength) const;
+  void ToCString(nsCString& aBuf, PRInt32* aTotalContentLength) const;
 #endif
 
-  int32_t GetContentOffset() const { return mContentOffset; }
-  int32_t GetContentLength() const
+  PRInt32 GetContentOffset() const { return mContentOffset; }
+  PRInt32 GetContentLength() const
   {
     NS_ASSERTION(GetContentEnd() - mContentOffset >= 0, "negative length");
     return GetContentEnd() - mContentOffset;
   }
-  int32_t GetContentEnd() const;
+  PRInt32 GetContentEnd() const;
   
   
   
-  int32_t GetContentLengthHint() const { return mContentLengthHint; }
+  PRInt32 GetContentLengthHint() const { return mContentLengthHint; }
 
   
   
   
   
-  int32_t GetInFlowContentLength();
+  PRInt32 GetInFlowContentLength();
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  gfxSkipCharsIterator EnsureTextRun(TextRunType aWhichTextRun,
-                                     gfxContext* aReferenceContext = nullptr,
-                                     nsIFrame* aLineContainer = nullptr,
-                                     const nsLineList::iterator* aLine = nullptr,
-                                     uint32_t* aFlowEndInTextRun = nullptr);
-
-  gfxTextRun* GetTextRun(TextRunType aWhichTextRun) {
-    if (aWhichTextRun == eInflated || !HasFontSizeInflation())
-      return mTextRun;
-    return GetUninflatedTextRun();
-  }
-  gfxTextRun* GetUninflatedTextRun();
-  void SetTextRun(gfxTextRun* aTextRun, TextRunType aWhichTextRun,
-                  float aInflation);
-  
-
-
-
-
-
-  bool RemoveTextRun(gfxTextRun* aTextRun);
   
 
 
@@ -470,23 +372,32 @@ public:
 
 
 
-  void ClearTextRun(nsTextFrame* aStartContinuation,
-                    TextRunType aWhichTextRun);
 
-  void ClearTextRuns() {
-    ClearTextRun(nullptr, nsTextFrame::eInflated);
-    if (HasFontSizeInflation()) {
-      ClearTextRun(nullptr, nsTextFrame::eNotInflated);
-    }
-  }
+
+
+
+
+  gfxSkipCharsIterator EnsureTextRun(gfxContext* aReferenceContext = nsnull,
+                                     nsIFrame* aLineContainer = nsnull,
+                                     const nsLineList::iterator* aLine = nsnull,
+                                     PRUint32* aFlowEndInTextRun = nsnull);
+
+  gfxTextRun* GetTextRun() { return mTextRun; }
+  void SetTextRun(gfxTextRun* aTextRun) { mTextRun = aTextRun; }
+  
+
+
+
+
+  void ClearTextRun(nsTextFrame* aStartContinuation);
 
   
   
   
   struct TrimmedOffsets {
-    int32_t mStart;
-    int32_t mLength;
-    int32_t GetEnd() const { return mStart + mLength; }
+    PRInt32 mStart;
+    PRInt32 mLength;
+    PRInt32 GetEnd() { return mStart + mLength; }
   };
   TrimmedOffsets GetTrimmedOffsets(const nsTextFragment* aFrag,
                                    bool aTrimAfter);
@@ -495,8 +406,6 @@ public:
   void ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
                   nsRenderingContext* aRenderingContext, bool aShouldBlink,
                   nsHTMLReflowMetrics& aMetrics, nsReflowStatus& aStatus);
-
-  bool IsFloatingFirstLetterChild() const;
 
 protected:
   virtual ~nsTextFrame();
@@ -510,20 +419,14 @@ protected:
   
   
   
-  int32_t     mContentOffset;
+  PRInt32     mContentOffset;
   
   
   
   
-  int32_t     mContentLengthHint;
+  PRInt32     mContentLengthHint;
   nscoord     mAscent;
   gfxTextRun* mTextRun;
-
-  
-
-
-
-  virtual bool IsFrameSelected() const;
 
   
   
@@ -531,13 +434,12 @@ protected:
   SelectionDetails* GetSelectionDetails();
 
   void UnionAdditionalOverflow(nsPresContext* aPresContext,
-                               const nsHTMLReflowState& aBlockReflowState,
                                PropertyProvider& aProvider,
                                nsRect* aVisualOverflowRect,
                                bool aIncludeTextDecorations);
 
-  void PaintOneShadow(uint32_t aOffset,
-                      uint32_t aLength,
+  void PaintOneShadow(PRUint32 aOffset,
+                      PRUint32 aLength,
                       nsCSSShadowItem* aShadowDetails,
                       PropertyProvider* aProvider,
                       const nsRect& aDirtyRect,
@@ -546,8 +448,7 @@ protected:
                       gfxContext* aCtx,
                       const nscolor& aForegroundColor,
                       const nsCharClipDisplayItem::ClipEdges& aClipEdges,
-                      nscoord aLeftSideOffset,
-                      gfxRect& aBoundingBox);
+                      nscoord aLeftSideOffset);
 
   struct LineDecoration {
     nsIFrame* mFrame;
@@ -557,12 +458,12 @@ protected:
     nscoord mBaselineOffset;
 
     nscolor mColor;
-    uint8_t mStyle;
+    PRUint8 mStyle;
 
     LineDecoration(nsIFrame *const aFrame,
                    const nscoord aOff,
                    const nscolor aColor,
-                   const uint8_t aStyle)
+                   const PRUint8 aStyle)
       : mFrame(aFrame),
         mBaselineOffset(aOff),
         mColor(aColor),
@@ -601,59 +502,50 @@ protected:
       return !mStrikes.IsEmpty();
     }
   };
-  enum TextDecorationColorResolution {
-    eResolvedColors,
-    eUnresolvedColors
-  };
   void GetTextDecorations(nsPresContext* aPresContext,
-                          TextDecorationColorResolution aColorResolution,
                           TextDecorations& aDecorations);
 
   void DrawTextRun(gfxContext* const aCtx,
                    const gfxPoint& aTextBaselinePt,
-                   uint32_t aOffset,
-                   uint32_t aLength,
+                   PRUint32 aOffset,
+                   PRUint32 aLength,
                    PropertyProvider& aProvider,
-                   nscolor aTextColor,
                    gfxFloat& aAdvanceWidth,
-                   bool aDrawSoftHyphen,
-                   DrawPathCallbacks* aCallbacks);
+                   bool aDrawSoftHyphen);
 
   void DrawTextRunAndDecorations(gfxContext* const aCtx,
                                  const gfxRect& aDirtyRect,
                                  const gfxPoint& aFramePt,
                                  const gfxPoint& aTextBaselinePt,
-                                 uint32_t aOffset,
-                                 uint32_t aLength,
+                                 PRUint32 aOffset,
+                                 PRUint32 aLength,
                                  PropertyProvider& aProvider,
                                  const nsTextPaintStyle& aTextStyle,
-                                 nscolor aTextColor,
                              const nsCharClipDisplayItem::ClipEdges& aClipEdges,
                                  gfxFloat& aAdvanceWidth,
                                  bool aDrawSoftHyphen,
                                  const TextDecorations& aDecorations,
-                                 const nscolor* const aDecorationOverrideColor,
-                                 DrawPathCallbacks* aCallbacks);
+                                 const nscolor* const aDecorationOverrideColor);
 
   void DrawText(gfxContext* const aCtx,
                 const gfxRect& aDirtyRect,
                 const gfxPoint& aFramePt,
                 const gfxPoint& aTextBaselinePt,
-                uint32_t aOffset,
-                uint32_t aLength,
+                PRUint32 aOffset,
+                PRUint32 aLength,
                 PropertyProvider& aProvider,
                 const nsTextPaintStyle& aTextStyle,
-                nscolor aTextColor,
                 const nsCharClipDisplayItem::ClipEdges& aClipEdges,
                 gfxFloat& aAdvanceWidth,
                 bool aDrawSoftHyphen,
-                const nscolor* const aDecorationOverrideColor = nullptr,
-                DrawPathCallbacks* aCallbacks = nullptr);
+                const nscolor* const aDecorationOverrideColor = nsnull);
 
   
   
   bool CombineSelectionUnderlineRect(nsPresContext* aPresContext,
                                        nsRect& aRect);
+
+  bool IsFloatingFirstLetterChild();
 
   ContentOffsets GetCharacterOffsetAtFramePointInternal(const nsPoint &aPoint,
                    bool aForInsertionPoint);

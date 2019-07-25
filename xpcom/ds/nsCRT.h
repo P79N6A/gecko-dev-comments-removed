@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsCRT_h___
 #define nsCRT_h___
 
@@ -72,23 +104,50 @@ public:
   };
 
   
-  static int32_t strcmp(const char* s1, const char* s2) {
-    return int32_t(PL_strcmp(s1, s2));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  static PRUint32 strlen(const char* s) {                                       
+    return PRUint32(::strlen(s));                                               
+  }                                                                             
+
+  
+  static PRInt32 strcmp(const char* s1, const char* s2) {
+    return PRInt32(PL_strcmp(s1, s2));
   }
 
-  static int32_t strncmp(const char* s1, const char* s2,
-                         uint32_t aMaxLen) {
-    return int32_t(PL_strncmp(s1, s2, aMaxLen));
+  static PRInt32 strncmp(const char* s1, const char* s2,
+                         PRUint32 aMaxLen) {
+    return PRInt32(PL_strncmp(s1, s2, aMaxLen));
   }
 
   
-  static int32_t strcasecmp(const char* s1, const char* s2) {
-    return int32_t(PL_strcasecmp(s1, s2));
+  static PRInt32 strcasecmp(const char* s1, const char* s2) {
+    return PRInt32(PL_strcasecmp(s1, s2));
   }
 
   
-  static int32_t strncasecmp(const char* s1, const char* s2, uint32_t aMaxLen) {
-    int32_t result=int32_t(PL_strncasecmp(s1, s2, aMaxLen));
+  static PRInt32 strncasecmp(const char* s1, const char* s2, PRUint32 aMaxLen) {
+    PRInt32 result=PRInt32(PL_strncasecmp(s1, s2, aMaxLen));
     
     
     if (result<0) 
@@ -96,18 +155,18 @@ public:
     return result;
   }
 
-  static int32_t strncmp(const char* s1, const char* s2, int32_t aMaxLen) {
+  static PRInt32 strncmp(const char* s1, const char* s2, PRInt32 aMaxLen) {
     
-    int32_t diff = ((const unsigned char*)s1)[0] - ((const unsigned char*)s2)[0];
+    PRInt32 diff = ((const unsigned char*)s1)[0] - ((const unsigned char*)s2)[0];
     if (diff != 0) return diff;
-    return int32_t(PL_strncmp(s1,s2,unsigned(aMaxLen)));
+    return PRInt32(PL_strncmp(s1,s2,unsigned(aMaxLen)));
   }
   
   static char* strdup(const char* str) {
     return PL_strdup(str);
   }
 
-  static char* strndup(const char* str, uint32_t len) {
+  static char* strndup(const char* str, PRUint32 len) {
     return PL_strndup(str, len);
   }
 
@@ -136,17 +195,26 @@ public:
 
   static char* strtok(char* str, const char* delims, char* *newStr); 
 
+  static PRUint32 strlen(const PRUnichar* s) {
+    
+    if (!s) {
+      NS_ERROR("Passing null to nsCRT::strlen");
+      return 0;
+    }
+    return NS_strlen(s);
+  }
+
   
-  static int32_t strcmp(const PRUnichar* s1, const PRUnichar* s2);
+  static PRInt32 strcmp(const PRUnichar* s1, const PRUnichar* s2);
   
-  static int32_t strncmp(const PRUnichar* s1, const PRUnichar* s2,
-                         uint32_t aMaxLen);
+  static PRInt32 strncmp(const PRUnichar* s1, const PRUnichar* s2,
+                         PRUint32 aMaxLen);
 
   
   
   
-  static const char* memmem(const char* haystack, uint32_t haystackLen,
-                            const char* needle, uint32_t needleLen);
+  static const char* memmem(const char* haystack, PRUint32 haystackLen,
+                            const char* needle, PRUint32 needleLen);
 
   
   
@@ -154,7 +222,7 @@ public:
 
   
   
-  static PRUnichar* strndup(const PRUnichar* str, uint32_t len);
+  static PRUnichar* strndup(const PRUnichar* str, PRUint32 len);
 
   static void free(PRUnichar* str) {
   	nsCppSharedAllocator<PRUnichar> shared_allocator;
@@ -162,7 +230,29 @@ public:
   }
 
   
-  static int64_t atoll(const char *str);
+  
+  static PRUint32 HashCode(const char* str,
+                           PRUint32* resultingStrLen = nsnull);
+
+  
+  static PRUint32 HashCode(const char* start, PRUint32 length);
+
+  
+  
+  static PRUint32 HashCode(const PRUnichar* str,
+                           PRUint32* resultingStrLen = nsnull);
+
+  
+  static PRUint32 HashCode(const PRUnichar* str, PRUint32 strLen);
+
+  
+  
+  
+  static PRUint32 HashCodeAsUTF16(const char* start, PRUint32 length,
+                                  bool* err);
+
+  
+  static PRInt64 atoll(const char *str);
   
   static char ToUpper(char aChar) { return NS_ToUpper(aChar); }
   static char ToLower(char aChar) { return NS_ToLower(aChar); }
@@ -176,15 +266,12 @@ public:
   static bool IsAsciiDigit(PRUnichar aChar) { return NS_IsAsciiDigit(aChar); }
   static bool IsAsciiSpace(PRUnichar aChar) { return NS_IsAsciiWhitespace(aChar); }
   static bool IsAscii(const char* aString) { return NS_IsAscii(aString); }
-  static bool IsAscii(const char* aString, uint32_t aLength) { return NS_IsAscii(aString, aLength); }
+  static bool IsAscii(const char* aString, PRUint32 aLength) { return NS_IsAscii(aString, aLength); }
 };
 
 
-inline bool
-NS_IS_SPACE(PRUnichar c)
-{
-  return ((int(c) & 0x7f) == int(c)) && isspace(int(c));
-}
+#define NS_IS_SPACE(VAL) \
+  (((((intn)(VAL)) & 0x7f) == ((intn)(VAL))) && isspace((intn)(VAL)) )
 
 #define NS_IS_CNTRL(i)   ((((unsigned int) (i)) > 0x7f) ? (int) 0 : iscntrl(i))
 #define NS_IS_DIGIT(i)   ((((unsigned int) (i)) > 0x7f) ? (int) 0 : isdigit(i))

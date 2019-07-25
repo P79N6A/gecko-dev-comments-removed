@@ -1,10 +1,5 @@
-const Cm = Components.manager;
 
-const TEST_CLUSTER_URL = "http://localhost:8080/";
-const TEST_SERVER_URL  = "http://localhost:8080/";
-
-
-Cu.import("resource://services-common/log4moz.js");
+Cu.import("resource://services-sync/log4moz.js");
 const SYNC_HTTP_LOGGER = "Sync.Test.Server";
 const SYNC_API_VERSION = "1.1";
 
@@ -15,15 +10,37 @@ function new_timestamp() {
   return Math.round(Date.now() / 10) / 100;
 }
 
-function return_timestamp(request, response, timestamp) {
-  if (!timestamp) {
-    timestamp = new_timestamp();
+function httpd_setup (handlers) {
+  let server = new nsHttpServer();
+  let port   = 8080;
+  for (let path in handlers) {
+    server.registerPathHandler(path, handlers[path]);
   }
-  let body = "" + timestamp;
-  response.setHeader("X-Weave-Timestamp", body);
-  response.setStatusLine(request.httpVersion, 200, "OK");
-  response.bodyOutputStream.write(body, body.length);
-  return timestamp;
+  try {
+    server.start(port);
+  } catch (ex) {
+    _("==========================================");
+    _("Got exception starting HTTP server on port " + port);
+    _("Error: " + Utils.exceptionStr(ex));
+    _("Is there a process already listening on port " + port + "?");
+    _("==========================================");
+    do_throw(ex);
+  }
+
+  return server;
+}
+
+function httpd_handler(statusCode, status, body) {
+  return function handler(request, response) {
+    
+    request.body = readBytesFromInputStream(request.bodyInputStream);
+    handler.request = request;
+
+    response.setStatusLine(request.httpVersion, statusCode, status);
+    if (body) {
+      response.bodyOutputStream.write(body, body.length);
+    }
+  };
 }
 
 function basic_auth_header(user, password) {
@@ -31,12 +48,8 @@ function basic_auth_header(user, password) {
 }
 
 function basic_auth_matches(req, user, password) {
-  if (!req.hasHeader("Authorization")) {
-    return false;
-  }
-
-  let expected = basic_auth_header(user, Utils.encodeUTF8(password));
-  return req.getHeader("Authorization") == expected;
+  return req.hasHeader("Authorization") &&
+         (req.getHeader("Authorization") == basic_auth_header(user, password));
 }
 
 function httpd_basic_auth_handler(body, metadata, response) {
@@ -49,6 +62,21 @@ function httpd_basic_auth_handler(body, metadata, response) {
     response.setHeader("WWW-Authenticate", 'Basic realm="secret"', false);
   }
   response.bodyOutputStream.write(body, body.length);
+}
+
+
+
+
+
+function readBytesFromInputStream(inputStream, count) {
+  var BinaryInputStream = Components.Constructor(
+      "@mozilla.org/binaryinputstream;1",
+      "nsIBinaryInputStream",
+      "setInputStream");
+  if (!count) {
+    count = inputStream.available();
+  }
+  return new BinaryInputStream(inputStream).readBytes(count);
 }
 
 
@@ -249,16 +277,6 @@ ServerCollection.prototype = {
 
   insert: function insert(id, payload, modified) {
     return this.insertWBO(new ServerWBO(id, payload, modified));
-  },
-
-  
-
-
-
-
-
-  remove: function remove(id) {
-    delete this._wbos[id];
   },
 
   _inResultSet: function(wbo, options) {
@@ -480,8 +498,7 @@ function track_collections_helper() {
       default:
         throw "Non-GET on info_collections.";
     }
-
-    response.setHeader("Content-Type", "application/json");
+        
     response.setHeader("X-Weave-Timestamp",
                        "" + new_timestamp(),
                        false);
@@ -510,15 +527,7 @@ function track_collections_helper() {
 
 let SyncServerCallback = {
   onCollectionDeleted: function onCollectionDeleted(user, collection) {},
-  onItemDeleted: function onItemDeleted(user, collection, wboID) {},
-
-  
-
-
-
-
-
-  onRequest: function onRequest(request) {},
+  onItemDeleted: function onItemDeleted(user, collection, wboID) {}
 };
 
 
@@ -527,7 +536,7 @@ let SyncServerCallback = {
 
 function SyncServer(callback) {
   this.callback = callback || {__proto__: SyncServerCallback};
-  this.server   = new HttpServer();
+  this.server   = new nsHttpServer();
   this.started  = false;
   this.users    = {};
   this._log     = Log4Moz.repository.getLogger(SYNC_HTTP_LOGGER);
@@ -599,7 +608,7 @@ SyncServer.prototype = {
 
 
   timestamp: function timestamp() {
-    return new_timestamp();
+    return Math.round(Date.now() / 10) / 100;
   },
 
   
@@ -698,27 +707,6 @@ SyncServer.prototype = {
 
 
 
-  deleteCollections: function deleteCollections(username) {
-    if (!(username in this.users)) {
-      throw new Error("Unknown user.");
-    }
-    let userCollections = this.users[username].collections;
-    for each (let [name, coll] in Iterator(userCollections)) {
-      this._log.trace("Bulk deleting " + name + " for " + username + "...");
-      coll.delete({});
-    }
-    this.users[username].collections = {};
-    return this.timestamp();
-  },
-
-  
-
-
-
-
-
-
-
 
 
   user: function user(username) {
@@ -728,13 +716,11 @@ SyncServer.prototype = {
     let modified         = function (collectionName) {
       return collection(collectionName).timestamp;
     }
-    let deleteCollections = this.deleteCollections.bind(this, username);
     return {
-      collection:        collection,
-      createCollection:  createCollection,
-      createContents:    createContents,
-      deleteCollections: deleteCollections,
-      modified:          modified
+      collection:       collection,
+      createCollection: createCollection,
+      createContents:   createContents,
+      modified:         modified
     };
   },
 
@@ -757,7 +743,7 @@ SyncServer.prototype = {
 
 
 
-  pathRE: /^\/([0-9]+(?:\.[0-9]+)?)\/([-._a-zA-Z0-9]+)(?:\/([^\/]+)(?:\/(.+))?)?$/,
+  pathRE: /^\/([0-9]+(?:\.[0-9]+)?)\/([-._a-zA-Z0-9]+)\/([^\/]+)\/(.*)$/,
   storageRE: /^([-_a-zA-Z0-9]+)(?:\/([-_a-zA-Z0-9]+)\/?)?$/,
 
   defaultHeaders: {},
@@ -783,24 +769,7 @@ SyncServer.prototype = {
 
 
   handleDefault: function handleDefault(handler, req, resp) {
-    try {
-      this._handleDefault(handler, req, resp);
-    } catch (e) {
-      if (e instanceof HttpError) {
-        this.respond(req, resp, e.code, e.description, "", {});
-      } else {
-        throw e;
-      }
-    }
-  },
-
-  _handleDefault: function _handleDefault(handler, req, resp) {
     this._log.debug("SyncServer: Handling request: " + req.method + " " + req.path);
-
-    if (this.callback.onRequest) {
-      this.callback.onRequest(req);
-    }
-
     let parts = this.pathRE.exec(req.path);
     if (!parts) {
       this._log.debug("SyncServer: Unexpected request: bad URL " + req.path);
@@ -846,25 +815,6 @@ SyncServer.prototype = {
 
   toplevelHandlers: {
     "storage": function handleStorage(handler, req, resp, version, username, rest) {
-      let respond = this.respond.bind(this, req, resp);
-      if (!rest || !rest.length) {
-        this._log.debug("SyncServer: top-level storage " +
-                        req.method + " request.");
-
-        
-        if (req.method != "DELETE") {
-          respond(405, "Method Not Allowed", "[]", {"Allow": "DELETE"});
-          return;
-        }
-
-        
-        let timestamp = this.user(username).deleteCollections();
-
-        
-        respond(200, "OK", JSON.stringify(timestamp));
-        return;
-      }
-
       let match = this.storageRE.exec(rest);
       if (!match) {
         this._log.warn("SyncServer: Unknown storage operation " + rest);
@@ -872,13 +822,10 @@ SyncServer.prototype = {
       }
       let [all, collection, wboID] = match;
       let coll = this.getCollection(username, collection);
+      let respond = this.respond.bind(this, req, resp);
       switch (req.method) {
         case "GET":
           if (!coll) {
-            if (wboID) {
-              respond(404, "Not found", "Not found");
-              return;
-            }
             
             respond(200, "OK", "[]");
             return;
@@ -903,9 +850,9 @@ SyncServer.prototype = {
             let wbo = coll.wbo(wboID);
             if (wbo) {
               wbo.delete();
-              this.callback.onItemDeleted(username, collection, wboID);
             }
             respond(200, "OK", "{}");
+            this.callback.onItemDeleted(username, collectin, wboID);
             return;
           }
           coll.collectionHandler(req, resp);

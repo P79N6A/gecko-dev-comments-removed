@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsChromeRegistry_h
 #define nsChromeRegistry_h
 
@@ -28,7 +62,6 @@
 #include "nsIXPConnect.h"
 
 #include "mozilla/Omnijar.h"
-#include "mozilla/FileLocation.h"
 
 class nsIDOMWindow;
 class nsIURL;
@@ -57,16 +90,16 @@ public:
   NS_IMETHOD ReloadChrome();
   NS_IMETHOD RefreshSkins();
   NS_IMETHOD AllowScriptsForPackage(nsIURI* url,
-                                    bool* _retval);
+                                    bool* _retval NS_OUTPARAM);
   NS_IMETHOD AllowContentToAccess(nsIURI* url,
-                                  bool* _retval);
+                                  bool* _retval NS_OUTPARAM);
 
   
   NS_IMETHOD_(bool) WrappersEnabled(nsIURI *aURI);
   NS_IMETHOD ConvertChromeURL(nsIURI* aChromeURI, nsIURI* *aResult);
 
   
-  nsChromeRegistry() : mInitialized(false) { }
+  nsChromeRegistry() : mInitialized(PR_FALSE) { }
   virtual ~nsChromeRegistry();
 
   virtual nsresult Init();
@@ -86,14 +119,14 @@ protected:
   virtual nsresult UpdateSelectedLocale() = 0;
 
   static void LogMessage(const char* aMsg, ...);
-  static void LogMessageWithContext(nsIURI* aURL, uint32_t aLineNumber, uint32_t flags,
+  static void LogMessageWithContext(nsIURI* aURL, PRUint32 aLineNumber, PRUint32 flags,
                                     const char* aMsg, ...);
 
   virtual nsIURI* GetBaseURIFromPackage(const nsCString& aPackage,
                                         const nsCString& aProvider,
                                         const nsCString& aPath) = 0;
   virtual nsresult GetFlagsFromPackage(const nsCString& aPackage,
-                                       uint32_t* aFlags) = 0;
+                                       PRUint32* aFlags) = 0;
 
   nsresult SelectLocaleFromPref(nsIPrefBranch* prefs);
 
@@ -106,9 +139,16 @@ public:
 
   struct ManifestProcessingContext
   {
-    ManifestProcessingContext(NSLocationType aType, mozilla::FileLocation &aFile)
+    ManifestProcessingContext(NSLocationType aType, nsILocalFile* aFile)
       : mType(aType)
       , mFile(aFile)
+      , mPath(NULL)
+    { }
+
+    ManifestProcessingContext(NSLocationType aType, nsILocalFile* aFile, const char* aPath)
+      : mType(aType)
+      , mFile(aFile)
+      , mPath(aPath)
     { }
 
     ~ManifestProcessingContext()
@@ -120,7 +160,8 @@ public:
     already_AddRefed<nsIURI> ResolveURI(const char* uri);
 
     NSLocationType mType;
-    mozilla::FileLocation mFile;
+    nsILocalFile* mFile;
+    const char* mPath;
     nsCOMPtr<nsIURI> mManifestURI;
     nsCOMPtr<nsIXPConnect> mXPConnect;
   };

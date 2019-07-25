@@ -3,11 +3,48 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsMathMLContainerFrame_h___
 #define nsMathMLContainerFrame_h___
 
 #include "nsCOMPtr.h"
-#include "nsContainerFrame.h"
+#include "nsHTMLContainerFrame.h"
 #include "nsBlockFrame.h"
 #include "nsInlineFrame.h"
 #include "nsMathMLAtoms.h"
@@ -29,11 +66,11 @@
 #define STRETCH_CONSIDER_ACTUAL_SIZE    0x00000001 // just use our current size
 #define STRETCH_CONSIDER_EMBELLISHMENTS 0x00000002 // size calculations include embellishments
 
-class nsMathMLContainerFrame : public nsContainerFrame,
+class nsMathMLContainerFrame : public nsHTMLContainerFrame,
                                public nsMathMLFrame {
   friend class nsMathMLmfencedFrame;
 public:
-  nsMathMLContainerFrame(nsStyleContext* aContext) : nsContainerFrame(aContext) {}
+  nsMathMLContainerFrame(nsStyleContext* aContext) : nsHTMLContainerFrame(aContext) {}
 
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS
@@ -48,10 +85,10 @@ public:
           nsHTMLReflowMetrics& aDesiredStretchSize);
 
   NS_IMETHOD
-  UpdatePresentationDataFromChildAt(int32_t         aFirstIndex,
-                                    int32_t         aLastIndex,
-                                    uint32_t        aFlagsValues,
-                                    uint32_t        aFlagsToUpdate)
+  UpdatePresentationDataFromChildAt(PRInt32         aFirstIndex,
+                                    PRInt32         aLastIndex,
+                                    PRUint32        aFlagsValues,
+                                    PRUint32        aFlagsToUpdate)
   {
     PropagatePresentationDataFromChildAt(this, aFirstIndex, aLastIndex,
       aFlagsValues, aFlagsToUpdate);
@@ -68,19 +105,19 @@ public:
   
   
   void
-  SetIncrementScriptLevel(int32_t aChildIndex, bool aIncrement);
+  SetIncrementScriptLevel(PRInt32 aChildIndex, bool aIncrement);
 
   
   
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     return !(aFlags & nsIFrame::eLineParticipant) &&
-      nsContainerFrame::IsFrameOfType(aFlags &
+      nsHTMLContainerFrame::IsFrameOfType(aFlags &
               ~(nsIFrame::eMathML | nsIFrame::eExcludesIgnorableWhitespace));
   }
 
-  virtual int GetSkipSides() const { return 0; }
+  virtual PRIntn GetSkipSides() const { return 0; }
 
   NS_IMETHOD
   AppendFrames(ChildListID     aListID,
@@ -117,7 +154,7 @@ public:
   WillReflow(nsPresContext* aPresContext)
   {
     mPresentationData.flags &= ~NS_MATHML_ERROR;
-    return nsContainerFrame::WillReflow(aPresContext);
+    return nsHTMLContainerFrame::WillReflow(aPresContext);
   }
 
   NS_IMETHOD
@@ -127,14 +164,12 @@ public:
 
   {
     mPresentationData.flags &= ~NS_MATHML_STRETCH_DONE;
-    return nsContainerFrame::DidReflow(aPresContext, aReflowState, aStatus);
+    return nsHTMLContainerFrame::DidReflow(aPresContext, aReflowState, aStatus);
   }
 
   NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                               const nsRect&           aDirtyRect,
                               const nsDisplayListSet& aLists);
-
-  virtual bool UpdateOverflow();
 
   
   
@@ -154,17 +189,9 @@ public:
   
   
   NS_IMETHOD
-  AttributeChanged(int32_t         aNameSpaceID,
+  AttributeChanged(PRInt32         aNameSpaceID,
                    nsIAtom*        aAttribute,
-                   int32_t         aModType);
-
-  
-  nscoord
-  MirrorIfRTL(nscoord aParentWidth, nscoord aChildWidth, nscoord aChildLeading)
-  {
-    return (NS_MATHML_IS_RTL(mPresentationData.flags) ?
-            aParentWidth - aChildWidth - aChildLeading : aChildLeading);
-  }
+                   PRInt32         aModType);
 
   
   
@@ -220,13 +247,13 @@ protected:
   
   
   virtual nsresult
-  ChildListChanged(int32_t aModType);
+  ChildListChanged(PRInt32 aModType);
 
   
   
   void
   GetPreferredStretchSize(nsRenderingContext& aRenderingContext,
-                          uint32_t             aOptions,
+                          PRUint32             aOptions,
                           nsStretchDirection   aStretchDirection,
                           nsBoundingMetrics&   aPreferredStretchSize);
 
@@ -286,7 +313,7 @@ protected:
   GetReflowAndBoundingMetricsFor(nsIFrame*            aFrame,
                                  nsHTMLReflowMetrics& aReflowMetrics,
                                  nsBoundingMetrics&   aBoundingMetrics,
-                                 eMathMLFrameType*    aMathMLFrameType = nullptr);
+                                 eMathMLFrameType*    aMathMLFrameType = nsnull);
 
   
   
@@ -296,16 +323,16 @@ protected:
   
   static void
   PropagatePresentationDataFor(nsIFrame*       aFrame,
-                               uint32_t        aFlagsValues,
-                               uint32_t        aFlagsToUpdate);
+                               PRUint32        aFlagsValues,
+                               PRUint32        aFlagsToUpdate);
 
 public:
   static void
   PropagatePresentationDataFromChildAt(nsIFrame*       aParentFrame,
-                                       int32_t         aFirstChildIndex,
-                                       int32_t         aLastChildIndex,
-                                       uint32_t        aFlagsValues,
-                                       uint32_t        aFlagsToUpdate);
+                                       PRInt32         aFirstChildIndex,
+                                       PRInt32         aLastChildIndex,
+                                       PRUint32        aFlagsValues,
+                                       PRUint32        aFlagsToUpdate);
 
   
   
@@ -353,7 +380,7 @@ protected:
 
 
 
-  static void DidReflowChildren(nsIFrame* aFirst, nsIFrame* aStop = nullptr);
+  static void DidReflowChildren(nsIFrame* aFirst, nsIFrame* aStop = nsnull);
 
 private:
   class RowChildFrameIterator;
@@ -374,7 +401,7 @@ public:
   NS_DECL_FRAMEARENA_HELPERS
 
   friend nsIFrame* NS_NewMathMLmathBlockFrame(nsIPresShell* aPresShell,
-          nsStyleContext* aContext, uint32_t aFlags);
+          nsStyleContext* aContext, PRUint32 aFlags);
 
   
   
@@ -426,7 +453,7 @@ public:
     return rv;
   }
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const {
+  virtual bool IsFrameOfType(PRUint32 aFlags) const {
     return nsBlockFrame::IsFrameOfType(aFlags &
               ~(nsIFrame::eMathML | nsIFrame::eExcludesIgnorableWhitespace));
   }
@@ -496,7 +523,7 @@ public:
     return rv;
   }
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const {
+  virtual bool IsFrameOfType(PRUint32 aFlags) const {
       return nsInlineFrame::IsFrameOfType(aFlags &
                 ~(nsIFrame::eMathML | nsIFrame::eExcludesIgnorableWhitespace));
   }

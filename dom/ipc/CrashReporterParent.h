@@ -3,10 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "mozilla/dom/PCrashReporterParent.h"
 #include "mozilla/dom/TabMessageUtils.h"
 #include "nsXULAppAPI.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 #ifdef MOZ_CRASHREPORTER
 #include "nsExceptionHandler.h"
 #endif
@@ -38,6 +71,13 @@ public:
 
 
 
+  bool
+  GenerateHangCrashReport(const AnnotationTable* processNotes);
+
+  
+
+
+
   template<class Toplevel>
   bool
   GenerateCrashReport(Toplevel* t, const AnnotationTable* processNotes);
@@ -45,23 +85,25 @@ public:
   
 
 
-  bool
-  GenerateChildData(const AnnotationTable* processNotes);
-
-  bool
-  GenerateCrashReportForMinidump(nsIFile* minidump,
-                                 const AnnotationTable* processNotes);
-
-  
-
-
   template<class Toplevel>
-  static bool CreateCrashReporter(Toplevel* actor);
+  static void CreateCrashReporter(Toplevel* actor);
 #endif
   
   void
-    SetChildData(const NativeThreadId& id, const uint32_t& processType);
+    SetChildData(const NativeThreadId& id, const PRUint32& processType);
 
+  
+
+
+  const nsString& HangID() {
+    return mHangID;
+  }
+  
+
+
+  const nsString& ParentDumpID() {
+    return mParentDumpID;
+  }
   
 
 
@@ -69,30 +111,29 @@ public:
     return mChildDumpID;
   }
 
-  void
-  AnnotateCrashReport(const nsCString& key, const nsCString& data);
-
  protected:
   virtual void ActorDestroy(ActorDestroyReason why);
 
   virtual bool
     RecvAddLibraryMappings(const InfallibleTArray<Mapping>& m);
   virtual bool
-    RecvAnnotateCrashReport(const nsCString& key, const nsCString& data) {
-    AnnotateCrashReport(key, data);
-    return true;
-  }
+    RecvAnnotateCrashReport(const nsCString& key, const nsCString& data);
   virtual bool
     RecvAppendAppNotes(const nsCString& data);
 
 #ifdef MOZ_CRASHREPORTER
+  bool
+  GenerateChildData(const AnnotationTable* processNotes);
+
   AnnotationTable mNotes;
 #endif
   nsCString mAppNotes;
+  nsString mHangID;
   nsString mChildDumpID;
+  nsString mParentDumpID;
   NativeThreadId mMainThread;
   time_t mStartTime;
-  uint32_t mProcessType;
+  PRUint32 mProcessType;
   bool mInitialized;
 };
 
@@ -107,11 +148,15 @@ CrashReporterParent::GeneratePairedMinidump(Toplevel* t)
 #else
   child = t->OtherProcess();
 #endif
-  nsCOMPtr<nsIFile> childDump;
+  nsCOMPtr<nsILocalFile> childDump;
+  nsCOMPtr<nsILocalFile> parentDump;
   if (CrashReporter::CreatePairedMinidumps(child,
                                            mMainThread,
-                                           getter_AddRefs(childDump)) &&
-      CrashReporter::GetIDFromMinidump(childDump, mChildDumpID)) {
+                                           &mHangID,
+                                           getter_AddRefs(childDump),
+                                           getter_AddRefs(parentDump)) &&
+      CrashReporter::GetIDFromMinidump(childDump, mChildDumpID) &&
+      CrashReporter::GetIDFromMinidump(parentDump, mParentDumpID)) {
     return true;
   }
   return false;
@@ -122,8 +167,8 @@ inline bool
 CrashReporterParent::GenerateCrashReport(Toplevel* t,
                                          const AnnotationTable* processNotes)
 {
-  nsCOMPtr<nsIFile> crashDump;
-  if (t->TakeMinidump(getter_AddRefs(crashDump), NULL) &&
+  nsCOMPtr<nsILocalFile> crashDump;
+  if (t->TakeMinidump(getter_AddRefs(crashDump)) &&
       CrashReporter::GetIDFromMinidump(crashDump, mChildDumpID)) {
     return GenerateChildData(processNotes);
   }
@@ -131,12 +176,12 @@ CrashReporterParent::GenerateCrashReport(Toplevel* t,
 }
 
 template<class Toplevel>
- bool
+ void
 CrashReporterParent::CreateCrashReporter(Toplevel* actor)
 {
 #ifdef MOZ_CRASHREPORTER
   NativeThreadId id;
-  uint32_t processType;
+  PRUint32 processType;
   PCrashReporterParent* p =
       actor->CallPCrashReporterConstructor(&id, &processType);
   if (p) {
@@ -144,9 +189,7 @@ CrashReporterParent::CreateCrashReporter(Toplevel* actor)
   } else {
     NS_ERROR("Error creating crash reporter actor");
   }
-  return !!p;
 #endif
-  return false;
 }
 
 #endif

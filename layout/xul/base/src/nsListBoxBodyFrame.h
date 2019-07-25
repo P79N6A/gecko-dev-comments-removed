@@ -3,6 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsListBoxBodyFrame_h
 #define nsListBoxBodyFrame_h
 
@@ -34,14 +69,14 @@ public:
   NS_DECL_FRAMEARENA_HELPERS
 
   
-  nsresult GetRowCount(int32_t *aResult);
-  nsresult GetNumberOfVisibleRows(int32_t *aResult);
-  nsresult GetIndexOfFirstVisibleRow(int32_t *aResult);
-  nsresult EnsureIndexIsVisible(int32_t aRowIndex);
-  nsresult ScrollToIndex(int32_t aRowIndex);
-  nsresult ScrollByLines(int32_t aNumLines);
-  nsresult GetItemAtIndex(int32_t aIndex, nsIDOMElement **aResult);
-  nsresult GetIndexOfItem(nsIDOMElement *aItem, int32_t *aResult);
+  nsresult GetRowCount(PRInt32 *aResult);
+  nsresult GetNumberOfVisibleRows(PRInt32 *aResult);
+  nsresult GetIndexOfFirstVisibleRow(PRInt32 *aResult);
+  nsresult EnsureIndexIsVisible(PRInt32 aRowIndex);
+  nsresult ScrollToIndex(PRInt32 aRowIndex);
+  nsresult ScrollByLines(PRInt32 aNumLines);
+  nsresult GetItemAtIndex(PRInt32 aIndex, nsIDOMElement **aResult);
+  nsresult GetIndexOfItem(nsIDOMElement *aItem, PRInt32 *aResult);
 
   friend nsIFrame* NS_NewListBoxBodyFrame(nsIPresShell* aPresShell,
                                           nsStyleContext* aContext);
@@ -52,17 +87,18 @@ public:
                   nsIFrame*       aPrevInFlow);
   virtual void DestroyFrom(nsIFrame* aDestructRoot);
 
-  NS_IMETHOD AttributeChanged(int32_t aNameSpaceID, nsIAtom* aAttribute, int32_t aModType);
+  NS_IMETHOD AttributeChanged(PRInt32 aNameSpaceID, nsIAtom* aAttribute, PRInt32 aModType);
 
   
-  NS_IMETHOD PositionChanged(nsScrollbarFrame* aScrollbar, int32_t aOldIndex, int32_t& aNewIndex);
-  NS_IMETHOD ScrollbarButtonPressed(nsScrollbarFrame* aScrollbar, int32_t aOldIndex, int32_t aNewIndex);
+  NS_IMETHOD PositionChanged(nsScrollbarFrame* aScrollbar, PRInt32 aOldIndex, PRInt32& aNewIndex);
+  NS_IMETHOD ScrollbarButtonPressed(nsScrollbarFrame* aScrollbar, PRInt32 aOldIndex, PRInt32 aNewIndex);
   NS_IMETHOD VisibilityChanged(bool aVisible);
 
   
   virtual bool ReflowFinished();
   virtual void ReflowCallbackCanceled();
 
+  
   NS_IMETHOD DoLayout(nsBoxLayoutState& aBoxLayoutState);
   virtual void MarkIntrinsicWidthsDirty();
 
@@ -70,9 +106,9 @@ public:
   virtual nsSize GetPrefSize(nsBoxLayoutState& aBoxLayoutState);
 
   
-  int32_t GetRowCount();
-  int32_t GetRowHeightAppUnits() { return mRowHeight; }
-  int32_t GetFixedRowSize();
+  PRInt32 GetRowCount();
+  PRInt32 GetRowHeightAppUnits() { return mRowHeight; }
+  PRInt32 GetFixedRowSize();
   void SetRowHeight(nscoord aRowHeight);
   nscoord GetYPosition();
   nscoord GetAvailableHeight();
@@ -80,14 +116,14 @@ public:
 
   
   nsresult InternalPositionChangedCallback();
-  nsresult InternalPositionChanged(bool aUp, int32_t aDelta);
+  nsresult InternalPositionChanged(bool aUp, PRInt32 aDelta);
   
   
-  nsresult DoInternalPositionChangedSync(bool aUp, int32_t aDelta);
+  nsresult DoInternalPositionChangedSync(bool aUp, PRInt32 aDelta);
   
-  nsresult DoInternalPositionChanged(bool aUp, int32_t aDelta);
+  nsresult DoInternalPositionChanged(bool aUp, PRInt32 aDelta);
   nsListScrollSmoother* GetSmoother();
-  void VerticalScroll(int32_t aDelta);
+  void VerticalScroll(PRInt32 aDelta);
 
   
   nsIFrame* GetFirstFrame();
@@ -95,10 +131,10 @@ public:
 
   
   void CreateRows();
-  void DestroyRows(int32_t& aRowsToLose);
-  void ReverseDestroyRows(int32_t& aRowsToLose);
-  nsIFrame* GetFirstItemBox(int32_t aOffset, bool* aCreated);
-  nsIFrame* GetNextItemBox(nsIFrame* aBox, int32_t aOffset, bool* aCreated);
+  void DestroyRows(PRInt32& aRowsToLose);
+  void ReverseDestroyRows(PRInt32& aRowsToLose);
+  nsIBox* GetFirstItemBox(PRInt32 aOffset, bool* aCreated);
+  nsIBox* GetNextItemBox(nsIBox* aBox, PRInt32 aOffset, bool* aCreated);
   bool ContinueReflow(nscoord height);
   NS_IMETHOD ListBoxAppendFrames(nsFrameList& aFrameList);
   NS_IMETHOD ListBoxInsertFrames(nsIFrame* aPrevFrame, nsFrameList& aFrameList);
@@ -106,16 +142,16 @@ public:
   void OnContentRemoved(nsPresContext* aPresContext,  nsIContent* aContainer,
                         nsIFrame* aChildFrame, nsIContent* aOldNextSibling);
 
-  void GetListItemContentAt(int32_t aIndex, nsIContent** aContent);
-  void GetListItemNextSibling(nsIContent* aListItem, nsIContent** aContent, int32_t& aSiblingIndex);
+  void GetListItemContentAt(PRInt32 aIndex, nsIContent** aContent);
+  void GetListItemNextSibling(nsIContent* aListItem, nsIContent** aContent, PRInt32& aSiblingIndex);
 
   void PostReflowCallback();
 
   bool SetBoxObject(nsPIBoxObject* aBoxObject)
   {
-    NS_ENSURE_TRUE(!mBoxObject, false);
+    NS_ENSURE_TRUE(!mBoxObject, PR_FALSE);
     mBoxObject = aBoxObject;
-    return true;
+    return PR_TRUE;
   }
 
   virtual bool SupportsOrdinalsInChildren();
@@ -130,7 +166,7 @@ protected:
   {
   public:
     nsPositionChangedEvent(nsListBoxBodyFrame* aFrame,
-                           bool aUp, int32_t aDelta) :
+                           bool aUp, PRInt32 aDelta) :
       mFrame(aFrame), mUp(aUp), mDelta(aDelta)
     {}
   
@@ -146,12 +182,12 @@ protected:
     }
 
     void Revoke() {
-      mFrame = nullptr;
+      mFrame = nsnull;
     }
 
     nsListBoxBodyFrame* mFrame;
     bool mUp;
-    int32_t mDelta;
+    PRInt32 mDelta;
   };
 
   void ComputeTotalRowCount();
@@ -167,19 +203,19 @@ protected:
 
   nsListScrollSmoother* mScrollSmoother;
 
-  int32_t mRowsToPrepend;
+  PRInt32 mRowsToPrepend;
 
   
-  int32_t mRowCount;
+  PRInt32 mRowCount;
   nscoord mRowHeight;
   nscoord mAvailableHeight;
   nscoord mStringWidth;
 
   
-  int32_t mCurrentIndex; 
-  int32_t mOldIndex; 
-  int32_t mYPosition;
-  int32_t mTimePerRow;
+  PRInt32 mCurrentIndex; 
+  PRInt32 mOldIndex; 
+  PRInt32 mYPosition;
+  PRInt32 mTimePerRow;
 
   
   bool mRowHeightWasSet;

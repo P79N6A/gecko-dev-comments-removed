@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsBaseHashtable_h__
 #define nsBaseHashtable_h__
 
@@ -50,8 +82,6 @@ template<class KeyClass,class DataType,class UserDataType>
 class nsBaseHashtable :
   protected nsTHashtable< nsBaseHashtableET<KeyClass,DataType> >
 {
-  typedef mozilla::fallible_t fallible_t;
-
 public:
   typedef typename KeyClass::KeyType KeyType;
   typedef nsBaseHashtableET<KeyClass,DataType> EntryType;
@@ -65,16 +95,8 @@ public:
 
 
 
-  void Init(uint32_t initSize = PL_DHASH_MIN_SIZE)
-  { nsTHashtable<EntryType>::Init(initSize); }
-
-  bool Init(const fallible_t&) NS_WARN_UNUSED_RESULT
-  { return Init(PL_DHASH_MIN_SIZE, fallible_t()); }
-
-  bool Init(uint32_t initSize, const fallible_t&) NS_WARN_UNUSED_RESULT
-  { return nsTHashtable<EntryType>::Init(initSize, fallible_t()); }
-
-
+  bool Init(PRUint32 initSize = PL_DHASH_MIN_SIZE)
+  { return nsTHashtable<EntryType>::Init(initSize); }
 
   
 
@@ -87,7 +109,7 @@ public:
 
 
 
-  uint32_t Count() const
+  PRUint32 Count() const
   { return nsTHashtable<EntryType>::Count(); }
 
   
@@ -99,17 +121,17 @@ public:
 
 
 
-  bool Get(KeyType aKey, UserDataType* pData) const
+  bool Get(KeyType aKey, UserDataType* pData NS_OUTPARAM) const
   {
     EntryType* ent = this->GetEntry(aKey);
 
     if (!ent)
-      return false;
+      return PR_FALSE;
 
     if (pData)
       *pData = ent->mData;
 
-    return true;
+    return PR_TRUE;
   }
 
   
@@ -125,7 +147,7 @@ public:
   {
     EntryType* ent = this->GetEntry(aKey);
     if (!ent)
-      return 0;
+      return NULL;
 
     return ent->mData;
   }
@@ -136,22 +158,16 @@ public:
 
 
 
-  void Put(KeyType aKey, UserDataType aData)
-  {
-    if (!Put(aKey, aData, fallible_t()))
-      NS_RUNTIMEABORT("OOM");
-  }
-
-  bool Put(KeyType aKey, UserDataType aData, const fallible_t&) NS_WARN_UNUSED_RESULT
+  bool Put(KeyType aKey, UserDataType aData)
   {
     EntryType* ent = this->PutEntry(aKey);
 
     if (!ent)
-      return false;
+      return PR_FALSE;
 
     ent->mData = aData;
 
-    return true;
+    return PR_TRUE;
   }
 
   
@@ -179,7 +195,7 @@ public:
 
 
 
-  uint32_t EnumerateRead(EnumReadFunction enumFunc, void* userArg) const
+  PRUint32 EnumerateRead(EnumReadFunction enumFunc, void* userArg) const
   {
     NS_ASSERTION(this->mTable.entrySize,
                  "nsBaseHashtable was not initialized properly.");
@@ -212,7 +228,7 @@ public:
 
 
 
-  uint32_t Enumerate(EnumFunction enumFunc, void* userArg)
+  PRUint32 Enumerate(EnumFunction enumFunc, void* userArg)
   {
     NS_ASSERTION(this->mTable.entrySize,
                  "nsBaseHashtable was not initialized properly.");
@@ -228,66 +244,6 @@ public:
 
   void Clear() { nsTHashtable<EntryType>::Clear(); }
 
-  
-
-
-
-
-
-
-
-
-  typedef size_t
-    (* SizeOfEntryExcludingThisFun)(KeyType           aKey,
-                                    const DataType    &aData,
-                                    nsMallocSizeOfFun mallocSizeOf,
-                                    void*             userArg);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  size_t SizeOfIncludingThis(SizeOfEntryExcludingThisFun sizeOfEntryExcludingThis,
-                             nsMallocSizeOfFun mallocSizeOf, void *userArg = nullptr)
-  {
-    return mallocSizeOf(this) + this->SizeOfExcludingThis(sizeOfEntryExcludingThis,
-                                                          mallocSizeOf, userArg);
-  }
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  size_t SizeOfExcludingThis(SizeOfEntryExcludingThisFun sizeOfEntryExcludingThis,
-                             nsMallocSizeOfFun mallocSizeOf, void *userArg = nullptr) const
-  {
-    if (!IsInitialized()) {
-      return 0;
-    }
-    if (sizeOfEntryExcludingThis) {
-      s_SizeOfArgs args = { sizeOfEntryExcludingThis, userArg };
-      return PL_DHashTableSizeOfExcludingThis(&this->mTable, s_SizeOfStub,
-                                              mallocSizeOf, &args);
-    }
-    return PL_DHashTableSizeOfExcludingThis(&this->mTable, NULL, mallocSizeOf);
-  }
-
 protected:
   
 
@@ -302,7 +258,7 @@ protected:
 
   static PLDHashOperator s_EnumReadStub(PLDHashTable    *table,
                                         PLDHashEntryHdr *hdr,
-                                        uint32_t         number,
+                                        PRUint32         number,
                                         void            *arg);
 
   struct s_EnumArgs
@@ -313,20 +269,9 @@ protected:
 
   static PLDHashOperator s_EnumStub(PLDHashTable      *table,
                                     PLDHashEntryHdr   *hdr,
-                                    uint32_t           number,
+                                    PRUint32           number,
                                     void              *arg);
-
-  struct s_SizeOfArgs
-  {
-    SizeOfEntryExcludingThisFun func;
-    void* userArg;
-  };
-  
-  static size_t s_SizeOfStub(PLDHashEntryHdr *entry,
-                             nsMallocSizeOfFun mallocSizeOf,
-                             void *arg);
 };
-
 
 
 
@@ -345,18 +290,18 @@ public:
   typedef typename
     nsBaseHashtable<KeyClass,DataType,UserDataType>::EnumReadFunction EnumReadFunction;
 
-  nsBaseHashtableMT() : mLock(nullptr) { }
+  nsBaseHashtableMT() : mLock(nsnull) { }
   ~nsBaseHashtableMT();
 
-  void Init(uint32_t initSize = PL_DHASH_MIN_SIZE);
-  bool IsInitialized() const { return mLock != nullptr; }
-  uint32_t Count() const;
+  bool Init(PRUint32 initSize = PL_DHASH_MIN_SIZE);
+  bool IsInitialized() const { return mLock != nsnull; }
+  PRUint32 Count() const;
   bool Get(KeyType aKey, UserDataType* pData) const;
-  void Put(KeyType aKey, UserDataType aData);
+  bool Put(KeyType aKey, UserDataType aData);
   void Remove(KeyType aKey);
 
-  uint32_t EnumerateRead(EnumReadFunction enumFunc, void* userArg) const;
-  uint32_t Enumerate(EnumFunction enumFunc, void* userArg);
+  PRUint32 EnumerateRead(EnumReadFunction enumFunc, void* userArg) const;
+  PRUint32 Enumerate(EnumFunction enumFunc, void* userArg);
   void Clear();
 
 protected:
@@ -392,7 +337,7 @@ nsBaseHashtableET<KeyClass,DataType>::~nsBaseHashtableET()
 template<class KeyClass,class DataType,class UserDataType>
 PLDHashOperator
 nsBaseHashtable<KeyClass,DataType,UserDataType>::s_EnumReadStub
-  (PLDHashTable *table, PLDHashEntryHdr *hdr, uint32_t number, void* arg)
+  (PLDHashTable *table, PLDHashEntryHdr *hdr, PRUint32 number, void* arg)
 {
   EntryType* ent = static_cast<EntryType*>(hdr);
   s_EnumReadArgs* eargs = (s_EnumReadArgs*) arg;
@@ -411,7 +356,7 @@ nsBaseHashtable<KeyClass,DataType,UserDataType>::s_EnumReadStub
 template<class KeyClass,class DataType,class UserDataType>
 PLDHashOperator
 nsBaseHashtable<KeyClass,DataType,UserDataType>::s_EnumStub
-  (PLDHashTable *table, PLDHashEntryHdr *hdr, uint32_t number, void* arg)
+  (PLDHashTable *table, PLDHashEntryHdr *hdr, PRUint32 number, void* arg)
 {
   EntryType* ent = static_cast<EntryType*>(hdr);
   s_EnumArgs* eargs = (s_EnumArgs*) arg;
@@ -419,16 +364,6 @@ nsBaseHashtable<KeyClass,DataType,UserDataType>::s_EnumStub
   return (eargs->func)(ent->GetKey(), ent->mData, eargs->userArg);
 }
 
-template<class KeyClass,class DataType,class UserDataType>
-size_t
-nsBaseHashtable<KeyClass,DataType,UserDataType>::s_SizeOfStub
-  (PLDHashEntryHdr *hdr, nsMallocSizeOfFun mallocSizeOf, void *arg)
-{
-  EntryType* ent = static_cast<EntryType*>(hdr);
-  s_SizeOfArgs* eargs = static_cast<s_SizeOfArgs*>(arg);
-
-  return (eargs->func)(ent->GetKey(), ent->mData, mallocSizeOf, eargs->userArg);
-}
 
 
 
@@ -442,23 +377,24 @@ nsBaseHashtableMT<KeyClass,DataType,UserDataType>::~nsBaseHashtableMT()
 }
 
 template<class KeyClass,class DataType,class UserDataType>
-void
-nsBaseHashtableMT<KeyClass,DataType,UserDataType>::Init(uint32_t initSize)
+bool
+nsBaseHashtableMT<KeyClass,DataType,UserDataType>::Init(PRUint32 initSize)
 {
-  if (!nsTHashtable<EntryType>::IsInitialized())
-    nsTHashtable<EntryType>::Init(initSize);
+  if (!nsTHashtable<EntryType>::IsInitialized() && !nsTHashtable<EntryType>::Init(initSize))
+    return PR_FALSE;
 
   this->mLock = PR_NewLock();
-  if (!this->mLock)
-    NS_RUNTIMEABORT("OOM");
+  NS_ASSERTION(this->mLock, "Error creating lock during nsBaseHashtableL::Init()");
+
+  return (this->mLock != nsnull);
 }
 
 template<class KeyClass,class DataType,class UserDataType>
-uint32_t
+PRUint32
 nsBaseHashtableMT<KeyClass,DataType,UserDataType>::Count() const
 {
   PR_Lock(this->mLock);
-  uint32_t count = nsTHashtable<EntryType>::Count();
+  PRUint32 count = nsTHashtable<EntryType>::Count();
   PR_Unlock(this->mLock);
 
   return count;
@@ -478,13 +414,16 @@ nsBaseHashtableMT<KeyClass,DataType,UserDataType>::Get(KeyType       aKey,
 }
 
 template<class KeyClass,class DataType,class UserDataType>
-void
+bool
 nsBaseHashtableMT<KeyClass,DataType,UserDataType>::Put(KeyType      aKey,
                                                            UserDataType aData)
 {
   PR_Lock(this->mLock);
-  nsBaseHashtable<KeyClass,DataType,UserDataType>::Put(aKey, aData);
+  bool res =
+    nsBaseHashtable<KeyClass,DataType,UserDataType>::Put(aKey, aData);
   PR_Unlock(this->mLock);
+
+  return res;
 }
 
 template<class KeyClass,class DataType,class UserDataType>
@@ -497,12 +436,12 @@ nsBaseHashtableMT<KeyClass,DataType,UserDataType>::Remove(KeyType aKey)
 }
 
 template<class KeyClass,class DataType,class UserDataType>
-uint32_t
+PRUint32
 nsBaseHashtableMT<KeyClass,DataType,UserDataType>::EnumerateRead
   (EnumReadFunction fEnumCall, void* userArg) const
 {
   PR_Lock(this->mLock);
-  uint32_t count =
+  PRUint32 count =
     nsBaseHashtable<KeyClass,DataType,UserDataType>::EnumerateRead(fEnumCall, userArg);
   PR_Unlock(this->mLock);
 
@@ -510,12 +449,12 @@ nsBaseHashtableMT<KeyClass,DataType,UserDataType>::EnumerateRead
 }
 
 template<class KeyClass,class DataType,class UserDataType>
-uint32_t
+PRUint32
 nsBaseHashtableMT<KeyClass,DataType,UserDataType>::Enumerate
   (EnumFunction fEnumCall, void* userArg)
 {
   PR_Lock(this->mLock);
-  uint32_t count =
+  PRUint32 count =
     nsBaseHashtable<KeyClass,DataType,UserDataType>::Enumerate(fEnumCall, userArg);
   PR_Unlock(this->mLock);
 

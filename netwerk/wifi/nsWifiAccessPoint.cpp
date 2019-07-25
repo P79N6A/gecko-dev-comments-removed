@@ -2,6 +2,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsWifiAccessPoint.h"
 #include "nsString.h"
 #include "nsMemory.h"
@@ -18,8 +53,8 @@ NS_IMPL_THREADSAFE_ISUPPORTS1(nsWifiAccessPoint, nsIWifiAccessPoint)
 nsWifiAccessPoint::nsWifiAccessPoint()
 {
   
-  mMac[0] = '\0';
-  mSsid[0] = '\0';
+  mMac[0] = nsnull;
+  mSsid[0] = nsnull;
   mSsidLen = 0;
 }
 
@@ -48,7 +83,7 @@ NS_IMETHODIMP nsWifiAccessPoint::GetRawSSID(nsACString& aRawSsid)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsWifiAccessPoint::GetSignal(int32_t *aSignal)
+NS_IMETHODIMP nsWifiAccessPoint::GetSignal(PRInt32 *aSignal)
 {
   NS_ENSURE_ARG(aSignal);
   *aSignal = mSignal;
@@ -61,24 +96,24 @@ bool AccessPointsEqual(nsCOMArray<nsWifiAccessPoint>& a, nsCOMArray<nsWifiAccess
 {
   if (a.Count() != b.Count()) {
     LOG(("AccessPoint lists have different lengths\n"));
-    return false;
+    return PR_FALSE;
   }
 
-  for (int32_t i = 0; i < a.Count(); i++) {
+  for (PRInt32 i = 0; i < a.Count(); i++) {
     LOG(("++ Looking for %s\n", a[i]->mSsid));
     bool found = false;
-    for (int32_t j = 0; j < b.Count(); j++) {
+    for (PRInt32 j = 0; j < b.Count(); j++) {
       LOG(("   %s->%s | %s->%s\n", a[i]->mSsid, b[j]->mSsid, a[i]->mMac, b[j]->mMac));
       if (!strcmp(a[i]->mSsid, b[j]->mSsid) &&
           !strcmp(a[i]->mMac, b[j]->mMac)) {
-        found = true;
+        found = PR_TRUE;
       }
     }
     if (!found)
-      return false;
+      return PR_FALSE;
   }
   LOG(("   match!\n"));
-  return true;
+  return PR_TRUE;
 }
 
 void ReplaceArray(nsCOMArray<nsWifiAccessPoint>& a, nsCOMArray<nsWifiAccessPoint>& b)
@@ -86,7 +121,7 @@ void ReplaceArray(nsCOMArray<nsWifiAccessPoint>& a, nsCOMArray<nsWifiAccessPoint
   a.Clear();
 
   
-  for (int32_t i = 0; i < b.Count(); i++) {
+  for (PRInt32 i = 0; i < b.Count(); i++) {
     a.AppendObject(b[i]);
   }
 

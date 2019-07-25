@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _NSPSMBACKGROUNDTHREAD_H_
 #define _NSPSMBACKGROUNDTHREAD_H_
 
@@ -41,14 +74,11 @@ private:
     ePSMThreadStopped = 2
   } mExitState;
 
-  
-  nsCString mName;
-
 public:
   nsPSMBackgroundThread();
   virtual ~nsPSMBackgroundThread();
 
-  nsresult startThread(const nsCSubstring & name);
+  nsresult startThread();
   void requestExit();
 };
 

@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsXPCOM_h__
 #define nsXPCOM_h__
 
@@ -30,6 +63,8 @@
 # define NS_LogDtor                  NS_LogDtor_P
 # define NS_LogCOMPtrAddRef          NS_LogCOMPtrAddRef_P
 # define NS_LogCOMPtrRelease         NS_LogCOMPtrRelease_P
+# define NS_CycleCollectorSuspect    NS_CycleCollectorSuspect_P
+# define NS_CycleCollectorForget     NS_CycleCollectorForget_P
 # define NS_CycleCollectorSuspect2   NS_CycleCollectorSuspect2_P
 # define NS_CycleCollectorForget2    NS_CycleCollectorForget2_P
 #endif
@@ -194,12 +229,12 @@ NS_GetMemoryManager(nsIMemory* *result);
 XPCOM_API(nsresult)
 NS_NewLocalFile(const nsAString &path, 
                 bool followLinks, 
-                nsIFile* *result);
+                nsILocalFile* *result);
 
 XPCOM_API(nsresult)
 NS_NewNativeLocalFile(const nsACString &path, 
                       bool followLinks, 
-                      nsIFile* *result);
+                      nsILocalFile* *result);
 
 #endif
 
@@ -212,7 +247,8 @@ NS_NewNativeLocalFile(const nsACString &path,
 
 
 XPCOM_API(void*)
-NS_Alloc(size_t size);
+NS_Alloc(PRSize size);
+
 
 
 
@@ -230,7 +266,7 @@ NS_Alloc(size_t size);
 
 
 XPCOM_API(void*)
-NS_Realloc(void* ptr, size_t size);
+NS_Realloc(void* ptr, PRSize size);
 
 
 
@@ -270,9 +306,9 @@ enum {
 
 
 XPCOM_API(void)
-NS_DebugBreak(uint32_t aSeverity,
+NS_DebugBreak(PRUint32 aSeverity,
               const char *aStr, const char *aExpr,
-              const char *aFile, int32_t aLine);
+              const char *aFile, PRInt32 aLine);
 
 
 
@@ -307,10 +343,10 @@ NS_LogTerm();
 
 
 XPCOM_API(void)
-NS_LogCtor(void *aPtr, const char *aTypeName, uint32_t aInstanceSize);
+NS_LogCtor(void *aPtr, const char *aTypeName, PRUint32 aInstanceSize);
 
 XPCOM_API(void)
-NS_LogDtor(void *aPtr, const char *aTypeName, uint32_t aInstanceSize);
+NS_LogDtor(void *aPtr, const char *aTypeName, PRUint32 aInstanceSize);
 
 
 
@@ -324,7 +360,7 @@ NS_LogDtor(void *aPtr, const char *aTypeName, uint32_t aInstanceSize);
 
 XPCOM_API(void)
 NS_LogAddRef(void *aPtr, nsrefcnt aNewRefCnt,
-             const char *aTypeName, uint32_t aInstanceSize);
+             const char *aTypeName, PRUint32 aInstanceSize);
 
 XPCOM_API(void)
 NS_LogRelease(void *aPtr, nsrefcnt aNewRefCnt, const char *aTypeName);
@@ -356,10 +392,14 @@ NS_LogCOMPtrRelease(void *aCOMPtr, nsISupports *aObject);
 
 #ifdef __cplusplus
 
-class nsCycleCollectionParticipant;
+XPCOM_API(bool)
+NS_CycleCollectorSuspect(nsISupports *n);
+
+XPCOM_API(bool)
+NS_CycleCollectorForget(nsISupports *n);
 
 XPCOM_API(nsPurpleBufferEntry*)
-NS_CycleCollectorSuspect2(void *n, nsCycleCollectionParticipant *p);
+NS_CycleCollectorSuspect2(nsISupports *n);
 
 XPCOM_API(bool)
 NS_CycleCollectorForget2(nsPurpleBufferEntry *e);

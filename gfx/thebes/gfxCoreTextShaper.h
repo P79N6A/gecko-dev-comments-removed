@@ -3,6 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_CORETEXTSHAPER_H
 #define GFX_CORETEXTSHAPER_H
 
@@ -22,9 +57,12 @@ public:
 
     virtual ~gfxCoreTextShaper();
 
-    virtual bool ShapeWord(gfxContext *aContext,
-                           gfxShapedWord *aShapedWord,
-                           const PRUnichar *aText);
+    virtual bool InitTextRun(gfxContext *aContext,
+                               gfxTextRun *aTextRun,
+                               const PRUnichar *aString,
+                               PRUint32 aRunStart,
+                               PRUint32 aRunLength,
+                               PRInt32 aRunScript);
 
     
     static void Shutdown();
@@ -33,9 +71,11 @@ protected:
     CTFontRef mCTFont;
     CFDictionaryRef mAttributesDict;
 
-    nsresult SetGlyphsFromRun(gfxShapedWord *aShapedWord,
+    nsresult SetGlyphsFromRun(gfxTextRun *aTextRun,
                               CTRunRef aCTRun,
-                              int32_t aStringOffset);
+                              PRInt32 aStringOffset,
+                              PRInt32 aLayoutStart,
+                              PRInt32 aLayoutLength);
 
     CTFontRef CreateCTFontWithDisabledLigatures(CGFloat aSize);
 

@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef dom_plugins_PluginProcessChild_h
 #define dom_plugins_PluginProcessChild_h 1
 
@@ -25,8 +58,8 @@ public:
     virtual ~PluginProcessChild()
     { }
 
-    virtual bool Init() MOZ_OVERRIDE;
-    virtual void CleanUp() MOZ_OVERRIDE;
+    NS_OVERRIDE virtual bool Init();
+    NS_OVERRIDE virtual void CleanUp();
 
 protected:
     static PluginProcessChild* current() {

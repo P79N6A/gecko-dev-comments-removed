@@ -22,15 +22,7 @@
 #include "compiler/SymbolTable.h"
 #include "compiler/VariableInfo.h"
 
-class LongNameMap;
 class TCompiler;
-class TDependencyGraph;
-
-
-
-
-
-bool isWebGLBasedSpec(ShShaderSpec spec);
 
 
 
@@ -78,8 +70,6 @@ protected:
     
     bool detectRecursion(TIntermNode* root);
     
-    void rewriteCSSShader(TIntermNode* root);
-    
     
     bool validateLimitations(TIntermNode* root);
     
@@ -88,13 +78,6 @@ protected:
     void mapLongVariableNames(TIntermNode* root);
     
     virtual void translate(TIntermNode* root) = 0;
-    
-    bool enforceTimingRestrictions(TIntermNode* root, bool outputGraph);
-    
-    bool enforceVertexShaderTimingRestrictions(TIntermNode* root);
-    
-    
-    bool enforceFragmentShaderTimingRestrictions(const TDependencyGraph& graph);
     
     const TExtensionBehavior& getExtensionBehavior() const;
 
@@ -118,7 +101,7 @@ private:
     TVariableInfoList uniforms;  
 
     
-    LongNameMap* longNameMap;
+    std::map<std::string, std::string> varyingLongNameMap;
 };
 
 

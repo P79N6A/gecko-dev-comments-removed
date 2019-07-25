@@ -3,33 +3,96 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsBidiUtils.h"
+#include "bidicattable.h"
 #include "nsCharTraits.h"
-#include "nsUnicodeProperties.h"
+
+static nsCharType ebc2ucd[15] = {
+  eCharType_OtherNeutral, 
+  eCharType_LeftToRight,
+  eCharType_RightToLeft,
+  eCharType_RightToLeftArabic,
+  eCharType_ArabicNumber,
+  eCharType_EuropeanNumber,
+  eCharType_EuropeanNumberSeparator,
+  eCharType_EuropeanNumberTerminator,
+  eCharType_CommonNumberSeparator,
+  eCharType_OtherNeutral,
+  eCharType_DirNonSpacingMark,
+  eCharType_BoundaryNeutral,
+  eCharType_BlockSeparator,
+  eCharType_SegmentSeparator,
+  eCharType_WhiteSpaceNeutral
+};
+
+static nsCharType cc2ucd[5] = {
+  eCharType_LeftToRightEmbedding,
+  eCharType_RightToLeftEmbedding,
+  eCharType_PopDirectionalFormat,
+  eCharType_LeftToRightOverride,
+  eCharType_RightToLeftOverride
+};
 
 #define ARABIC_TO_HINDI_DIGIT_INCREMENT (START_HINDI_DIGITS - START_ARABIC_DIGITS)
 #define PERSIAN_TO_HINDI_DIGIT_INCREMENT (START_HINDI_DIGITS - START_FARSI_DIGITS)
 #define ARABIC_TO_PERSIAN_DIGIT_INCREMENT (START_FARSI_DIGITS - START_ARABIC_DIGITS)
 #define NUM_TO_ARABIC(c) \
   ((((c)>=START_HINDI_DIGITS) && ((c)<=END_HINDI_DIGITS)) ? \
-   ((c) - (uint16_t)ARABIC_TO_HINDI_DIGIT_INCREMENT) : \
+   ((c) - (PRUint16)ARABIC_TO_HINDI_DIGIT_INCREMENT) : \
    ((((c)>=START_FARSI_DIGITS) && ((c)<=END_FARSI_DIGITS)) ? \
-    ((c) - (uint16_t)ARABIC_TO_PERSIAN_DIGIT_INCREMENT) : \
+    ((c) - (PRUint16)ARABIC_TO_PERSIAN_DIGIT_INCREMENT) : \
      (c)))
 #define NUM_TO_HINDI(c) \
   ((((c)>=START_ARABIC_DIGITS) && ((c)<=END_ARABIC_DIGITS)) ? \
-   ((c) + (uint16_t)ARABIC_TO_HINDI_DIGIT_INCREMENT): \
+   ((c) + (PRUint16)ARABIC_TO_HINDI_DIGIT_INCREMENT): \
    ((((c)>=START_FARSI_DIGITS) && ((c)<=END_FARSI_DIGITS)) ? \
-    ((c) + (uint16_t)PERSIAN_TO_HINDI_DIGIT_INCREMENT) : \
+    ((c) + (PRUint16)PERSIAN_TO_HINDI_DIGIT_INCREMENT) : \
      (c)))
 #define NUM_TO_PERSIAN(c) \
   ((((c)>=START_HINDI_DIGITS) && ((c)<=END_HINDI_DIGITS)) ? \
-   ((c) - (uint16_t)PERSIAN_TO_HINDI_DIGIT_INCREMENT) : \
+   ((c) - (PRUint16)PERSIAN_TO_HINDI_DIGIT_INCREMENT) : \
    ((((c)>=START_ARABIC_DIGITS) && ((c)<=END_ARABIC_DIGITS)) ? \
-    ((c) + (uint16_t)ARABIC_TO_PERSIAN_DIGIT_INCREMENT) : \
+    ((c) + (PRUint16)ARABIC_TO_PERSIAN_DIGIT_INCREMENT) : \
      (c)))
 
-PRUnichar HandleNumberInChar(PRUnichar aChar, bool aPrevCharArabic, uint32_t aNumFlag)
+PRUnichar HandleNumberInChar(PRUnichar aChar, bool aPrevCharArabic, PRUint32 aNumFlag)
 {
   
   
@@ -63,9 +126,9 @@ PRUnichar HandleNumberInChar(PRUnichar aChar, bool aPrevCharArabic, uint32_t aNu
   }
 }
 
-nsresult HandleNumbers(PRUnichar* aBuffer, uint32_t aSize, uint32_t aNumFlag)
+nsresult HandleNumbers(PRUnichar* aBuffer, PRUint32 aSize, PRUint32 aNumFlag)
 {
-  uint32_t i;
+  PRUint32 i;
 
   switch (aNumFlag) {
     case IBMBIDI_NUMERAL_HINDI:
@@ -85,14 +148,12 @@ nsresult HandleNumbers(PRUnichar* aBuffer, uint32_t aSize, uint32_t aNumFlag)
 }
 
 #define LRM_CHAR 0x200e
-#define LRE_CHAR 0x202a
-#define RLO_CHAR 0x202e
-bool IsBidiControl(uint32_t aChar)
+bool IsBidiControl(PRUint32 aChar)
 {
   
   
-  return ((LRE_CHAR <= aChar && aChar <= RLO_CHAR) ||
-          ((aChar)&0xfffffe)==LRM_CHAR);
+  
+  return (eBidiCat_CC == GetBidiCat(aChar) || ((aChar)&0xfffffe)==LRM_CHAR);
 }
 
 bool HasRTLChars(const nsAString& aString)
@@ -101,12 +162,32 @@ bool HasRTLChars(const nsAString& aString)
 
 
 
-  int32_t length = aString.Length();
-  for (int32_t i = 0; i < length; i++) {
+  PRInt32 length = aString.Length();
+  for (PRInt32 i = 0; i < length; i++) {
     PRUnichar ch = aString.CharAt(i);
     if (ch >= 0xD800 || IS_IN_BMP_RTL_BLOCK(ch)) {
-      return true;
+      return PR_TRUE;
     }
   }
-  return false;
+  return PR_FALSE;
+}
+
+nsCharType GetCharType(PRUint32 aChar)
+{
+  nsCharType oResult;
+  eBidiCategory bCat = GetBidiCat(aChar);
+  if (eBidiCat_CC != bCat) {
+    NS_ASSERTION((PRUint32) bCat < (sizeof(ebc2ucd)/sizeof(nsCharType)), "size mismatch");
+    if((PRUint32) bCat < (sizeof(ebc2ucd)/sizeof(nsCharType)))
+      oResult = ebc2ucd[bCat];
+    else 
+      oResult = ebc2ucd[0]; 
+  } else {
+    NS_ASSERTION((aChar-0x202a) < (sizeof(cc2ucd)/sizeof(nsCharType)), "size mismatch");
+    if((aChar-0x202a) < (sizeof(cc2ucd)/sizeof(nsCharType)))
+      oResult = cc2ucd[aChar - 0x202a];
+    else 
+      oResult = ebc2ucd[0]; 
+  }
+  return oResult;
 }

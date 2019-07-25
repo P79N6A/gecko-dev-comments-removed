@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "adreader.h"
 
 #include <stdio.h>
@@ -33,7 +66,7 @@ struct AllocationNode {
     
     
     
-    uint32_t index;
+    PRUint32 index;
 
     bool reached;
     bool is_root;
@@ -131,7 +164,7 @@ int main(int argc, char **argv)
         for (ADLog::const_iterator entry = log.begin(), entry_end = log.end();
              entry != entry_end; ++entry, ++cur_node) {
             const ADLog::Entry *e = cur_node->entry = *entry;
-            cur_node->reached = false;
+            cur_node->reached = PR_FALSE;
 
             for (ADLog::Pointer p = e->address,
                             p_end = e->address + e->datasize;
@@ -164,7 +197,7 @@ int main(int argc, char **argv)
     
     
     {
-        uint32_t dfs_index = 0;
+        PRUint32 dfs_index = 0;
         nsVoidArray stack;
 
         for (AllocationNode *n = nodes, *n_end = nodes+count; n != n_end; ++n) {
@@ -174,19 +207,19 @@ int main(int argc, char **argv)
             stack.AppendElement(n);
 
             do {
-                uint32_t pos = stack.Count() - 1;
+                PRUint32 pos = stack.Count() - 1;
                 AllocationNode *n =
                     static_cast<AllocationNode*>(stack[pos]);
                 if (n->reached) {
                     n->index = dfs_index++;
                     stack.RemoveElementAt(pos);
                 } else {
-                    n->reached = true;
+                    n->reached = PR_TRUE;
 
                     
                     
                     nsVoidArray &pt = n->pointers_to;
-                    for (int32_t i = pt.Count() - 1; i >= 0; --i) {
+                    for (PRInt32 i = pt.Count() - 1; i >= 0; --i) {
                         if (!static_cast<AllocationNode*>(pt[i])->reached) {
                             stack.AppendElement(pt[i]);
                         }
@@ -213,10 +246,10 @@ int main(int argc, char **argv)
     }
 
     
-    uint32_t num_sccs = 0;
+    PRUint32 num_sccs = 0;
     {
         for (size_t i = 0; i < count; ++i) {
-            nodes[i].reached = false;
+            nodes[i].reached = PR_FALSE;
         }
         nsVoidArray stack;
         for (AllocationNode **sn = sorted_nodes,
@@ -228,13 +261,13 @@ int main(int argc, char **argv)
             
             stack.AppendElement(*sn);
             do {
-                uint32_t pos = stack.Count() - 1;
+                PRUint32 pos = stack.Count() - 1;
                 AllocationNode *n =
                     static_cast<AllocationNode*>(stack[pos]);
                 stack.RemoveElementAt(pos);
 
                 if (!n->reached) {
-                    n->reached = true;
+                    n->reached = PR_TRUE;
                     n->index = num_sccs;
                     stack.AppendElements(n->pointers_from);
                 }
@@ -245,10 +278,10 @@ int main(int argc, char **argv)
 
     
     
-    uint32_t num_root_nodes = count;
+    PRUint32 num_root_nodes = count;
     {
         for (size_t i = 0; i < count; ++i) {
-            nodes[i].is_root = true;
+            nodes[i].is_root = PR_TRUE;
         }
 
         nsVoidArray stack;
@@ -268,13 +301,13 @@ int main(int argc, char **argv)
             }
 
             while (stack.Count() > 0) {
-                uint32_t pos = stack.Count() - 1;
+                PRUint32 pos = stack.Count() - 1;
                 AllocationNode *n =
                     static_cast<AllocationNode*>(stack[pos]);
                 stack.RemoveElementAt(pos);
 
                 if (n->is_root) {
-                    n->is_root = false;
+                    n->is_root = PR_FALSE;
                     --num_root_nodes;
                     stack.AppendElements(n->pointers_to);
                 }
@@ -302,13 +335,13 @@ int main(int argc, char **argv)
                count, num_root_nodes, num_sccs);
 
         for (size_t i = 0; i < count; ++i) {
-            nodes[i].reached = false;
+            nodes[i].reached = PR_FALSE;
         }
 
         
         
-        for (int32_t root_type = true;
-             root_type == true || root_type == false; --root_type) {
+        for (PRInt32 root_type = PR_TRUE;
+             root_type == PR_TRUE || root_type == PR_FALSE; --root_type) {
             if (root_type) {
                 printf("\n\n"
                        "<div class=\"root\">\n"
@@ -318,7 +351,7 @@ int main(int argc, char **argv)
                        "<div class=\"nonroot\">\n"
                        "<h1 id=\"nonroot\">Non-root components</h1>\n");
             }
-            uint32_t component = (uint32_t)-1;
+            PRUint32 component = (PRUint32)-1;
             bool one_object_component;
             for (const AllocationNode *const* sn = sorted_nodes,
                                   *const* sn_end = sorted_nodes + count;
@@ -370,7 +403,7 @@ int main(int argc, char **argv)
 
                 if (n->pointers_from.Count()) {
                     printf("\nPointers from:\n");
-                    for (uint32_t i = 0, i_end = n->pointers_from.Count();
+                    for (PRUint32 i = 0, i_end = n->pointers_from.Count();
                          i != i_end; ++i) {
                         AllocationNode *t = static_cast<AllocationNode*>
                                                        (n->pointers_from[i]);

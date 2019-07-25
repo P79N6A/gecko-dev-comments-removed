@@ -3,7 +3,38 @@
 
 
 
-#include "mozilla/FloatingPoint.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "txStylesheet.h"
 #include "txExpr.h"
@@ -16,7 +47,7 @@
 #include "txXPathTreeWalker.h"
 
 txStylesheet::txStylesheet()
-    : mRootFrame(nullptr)
+    : mRootFrame(nsnull)
 {
 }
 
@@ -68,7 +99,7 @@ txStylesheet::init()
 
     nt.forget();
 
-    mCharactersTemplate = new txValueOf(nodeExpr, false);
+    mCharactersTemplate = new txValueOf(nodeExpr, PR_FALSE);
     NS_ENSURE_TRUE(mCharactersTemplate, NS_ERROR_OUT_OF_MEMORY);
 
     mCharactersTemplate->mNext = new txReturn();
@@ -112,9 +143,9 @@ txStylesheet::findTemplate(const txXPathNode& aNode,
 {
     NS_ASSERTION(aImportFrame, "missing ImportFrame pointer");
 
-    *aImportFrame = nullptr;
-    txInstruction* matchTemplate = nullptr;
-    ImportFrame* endFrame = nullptr;
+    *aImportFrame = nsnull;
+    txInstruction* matchTemplate = nsnull;
+    ImportFrame* endFrame = nsnull;
     txListIterator frameIter(&mImportFrames);
 
     if (aImportedBy) {
@@ -140,7 +171,7 @@ txStylesheet::findTemplate(const txXPathNode& aNode,
 
         if (templates) {
             
-            uint32_t i, len = templates->Length();
+            PRUint32 i, len = templates->Length();
             for (i = 0; i < len && !matchTemplate; ++i) {
                 MatchableTemplate& templ = (*templates)[i];
                 if (templ.mMatch->matches(aNode, aContext)) {
@@ -237,26 +268,26 @@ txStylesheet::getKeyMap()
 bool
 txStylesheet::isStripSpaceAllowed(const txXPathNode& aNode, txIMatchContext* aContext)
 {
-    int32_t frameCount = mStripSpaceTests.Length();
+    PRInt32 frameCount = mStripSpaceTests.Length();
     if (frameCount == 0) {
-        return false;
+        return PR_FALSE;
     }
 
     txXPathTreeWalker walker(aNode);
 
     if (txXPathNodeUtils::isText(walker.getCurrentPosition()) &&
         (!txXPathNodeUtils::isWhitespace(aNode) || !walker.moveToParent())) {
-        return false;
+        return PR_FALSE;
     }
 
     const txXPathNode& node = walker.getCurrentPosition();
 
     if (!txXPathNodeUtils::isElement(node)) {
-        return false;
+        return PR_FALSE;
     }
 
     
-    int32_t i;
+    PRInt32 i;
     for (i = 0; i < frameCount; ++i) {
         txStripSpaceTest* sst = mStripSpaceTests[i];
         if (sst->matches(node, aContext)) {
@@ -264,7 +295,7 @@ txStylesheet::isStripSpaceAllowed(const txXPathNode& aNode, txIMatchContext* aCo
         }
     }
 
-    return false;
+    return PR_FALSE;
 }
 
 nsresult
@@ -276,7 +307,7 @@ txStylesheet::doneCompiling()
     rv = frameIter.addAfter(mRootFrame);
     NS_ENSURE_SUCCESS(rv, rv);
     
-    mRootFrame = nullptr;
+    mRootFrame = nsnull;
     frameIter.next();
     rv = addFrames(frameIter);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -405,19 +436,19 @@ txStylesheet::addTemplate(txTemplateItem* aTemplate,
     if (simple->getType() == txPattern::UNION_PATTERN) {
         unionPattern = simple;
         simple = unionPattern->getSubPatternAt(0);
-        unionPattern->setSubPatternAt(0, nullptr);
+        unionPattern->setSubPatternAt(0, nsnull);
     }
 
-    uint32_t unionPos = 1; 
+    PRUint32 unionPos = 1; 
     while (simple) {
         double priority = aTemplate->mPrio;
-        if (MOZ_DOUBLE_IS_NaN(priority)) {
+        if (Double::isNaN(priority)) {
             priority = simple->getDefaultPriority();
-            NS_ASSERTION(!MOZ_DOUBLE_IS_NaN(priority),
+            NS_ASSERTION(!Double::isNaN(priority),
                          "simple pattern without default priority");
         }
 
-        uint32_t i, len = templates->Length();
+        PRUint32 i, len = templates->Length();
         for (i = 0; i < len; ++i) {
             if (priority > (*templates)[i].mPriority) {
                 break;
@@ -434,7 +465,7 @@ txStylesheet::addTemplate(txTemplateItem* aTemplate,
         if (unionPattern) {
             simple = unionPattern->getSubPatternAt(unionPos);
             if (simple) {
-                unionPattern->setSubPatternAt(unionPos, nullptr);
+                unionPattern->setSubPatternAt(unionPos, nsnull);
             }
             ++unionPos;
         }
@@ -473,11 +504,11 @@ nsresult
 txStylesheet::addStripSpace(txStripSpaceItem* aStripSpaceItem,
                             nsTArray<txStripSpaceTest*>& aFrameStripSpaceTests)
 {
-    int32_t testCount = aStripSpaceItem->mStripSpaceTests.Length();
+    PRInt32 testCount = aStripSpaceItem->mStripSpaceTests.Length();
     for (; testCount > 0; --testCount) {
         txStripSpaceTest* sst = aStripSpaceItem->mStripSpaceTests[testCount-1];
         double priority = sst->getDefaultPriority();
-        int32_t i, frameCount = aFrameStripSpaceTests.Length();
+        PRInt32 i, frameCount = aFrameStripSpaceTests.Length();
         for (i = 0; i < frameCount; ++i) {
             if (aFrameStripSpaceTests[i]->getDefaultPriority() < priority) {
                 break;
@@ -510,7 +541,7 @@ txStylesheet::addAttributeSet(txAttributeSetItem* aAttributeSetItem)
     
     
     txInstruction* instr = aAttributeSetItem->mFirstInstruction;
-    txInstruction* lastNonReturn = nullptr;
+    txInstruction* lastNonReturn = nsnull;
     while (instr->mNext) {
         lastNonReturn = instr;
         instr = instr->mNext;

@@ -10,11 +10,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsXHTMLContentSerializer.h"
 
 #include "nsIDOMElement.h"
 #include "nsIContent.h"
 #include "nsIDocument.h"
+#include "nsIDOMDocument.h"
 #include "nsINameSpaceManager.h"
 #include "nsString.h"
 #include "nsUnicharUtils.h"
@@ -36,7 +71,7 @@
 
 static const char kMozStr[] = "moz";
 
-static const int32_t kLongLineLen = 128;
+static const PRInt32 kLongLineLen = 128;
 
 #define kXMLNS "xmlns"
 
@@ -51,7 +86,7 @@ nsresult NS_NewXHTMLContentSerializer(nsIContentSerializer** aSerializer)
 }
 
 nsXHTMLContentSerializer::nsXHTMLContentSerializer()
-  : mIsHTMLSerializer(false)
+  : mIsHTMLSerializer(PR_FALSE)
 {
 }
 
@@ -61,7 +96,7 @@ nsXHTMLContentSerializer::~nsXHTMLContentSerializer()
 }
 
 NS_IMETHODIMP
-nsXHTMLContentSerializer::Init(uint32_t aFlags, uint32_t aWrapColumn,
+nsXHTMLContentSerializer::Init(PRUint32 aFlags, PRUint32 aWrapColumn,
                               const char* aCharSet, bool aIsCopying,
                               bool aRewriteEncodingDeclaration)
 {
@@ -79,11 +114,11 @@ nsXHTMLContentSerializer::Init(uint32_t aFlags, uint32_t aWrapColumn,
 
   mRewriteEncodingDeclaration = aRewriteEncodingDeclaration;
   mIsCopying = aIsCopying;
-  mIsFirstChildOfOL = false;
+  mIsFirstChildOfOL = PR_FALSE;
   mInBody = 0;
   mDisableEntityEncoding = 0;
-  mBodyOnly = (mFlags & nsIDocumentEncoder::OutputBodyOnly) ? true
-                                                            : false;
+  mBodyOnly = (mFlags & nsIDocumentEncoder::OutputBodyOnly) ? PR_TRUE
+                                                            : PR_FALSE;
 
   
   if (mFlags & nsIDocumentEncoder::OutputEncodeW3CEntities) {
@@ -97,22 +132,22 @@ nsXHTMLContentSerializer::Init(uint32_t aFlags, uint32_t aWrapColumn,
 
 
 bool
-nsXHTMLContentSerializer::HasLongLines(const nsString& text, int32_t& aLastNewlineOffset)
+nsXHTMLContentSerializer::HasLongLines(const nsString& text, PRInt32& aLastNewlineOffset)
 {
-  uint32_t start=0;
-  uint32_t theLen = text.Length();
+  PRUint32 start=0;
+  PRUint32 theLen = text.Length();
   bool rv = false;
   aLastNewlineOffset = kNotFound;
   for (start = 0; start < theLen; ) {
-    int32_t eol = text.FindChar('\n', start);
+    PRInt32 eol = text.FindChar('\n', start);
     if (eol < 0) {
       eol = text.Length();
     }
     else {
       aLastNewlineOffset = eol;
     }
-    if (int32_t(eol - start) > kLongLineLen)
-      rv = true;
+    if (PRInt32(eol - start) > kLongLineLen)
+      rv = PR_TRUE;
     start = eol + 1;
   }
   return rv;
@@ -120,8 +155,8 @@ nsXHTMLContentSerializer::HasLongLines(const nsString& text, int32_t& aLastNewli
 
 NS_IMETHODIMP
 nsXHTMLContentSerializer::AppendText(nsIContent* aText,
-                                     int32_t aStartOffset,
-                                     int32_t aEndOffset,
+                                     PRInt32 aStartOffset,
+                                     PRInt32 aEndOffset,
                                      nsAString& aStr)
 {
   NS_ENSURE_ARG(aText);
@@ -129,7 +164,7 @@ nsXHTMLContentSerializer::AppendText(nsIContent* aText,
   nsAutoString data;
   nsresult rv;
 
-  rv = AppendTextData(aText, aStartOffset, aEndOffset, data, true);
+  rv = AppendTextData(aText, aStartOffset, aEndOffset, data, PR_TRUE);
   if (NS_FAILED(rv))
     return NS_ERROR_FAILURE;
 
@@ -143,12 +178,12 @@ nsXHTMLContentSerializer::AppendText(nsIContent* aText,
     AppendToStringWrapped(data, aStr);
   }
   else {
-    int32_t lastNewlineOffset = kNotFound;
+    PRInt32 lastNewlineOffset = kNotFound;
     if (HasLongLines(data, lastNewlineOffset)) {
       
-      mDoWrap = true;
+      mDoWrap = PR_TRUE;
       AppendToStringWrapped(data, aStr);
-      mDoWrap = false;
+      mDoWrap = PR_FALSE;
     }
     else {
       AppendToStringConvertLF(data, aStr);
@@ -181,8 +216,8 @@ nsXHTMLContentSerializer::EscapeURI(nsIContent* aContent, const nsAString& aURI,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  int32_t start = 0;
-  int32_t end;
+  PRInt32 start = 0;
+  PRInt32 end;
   nsAutoString part;
   nsXPIDLCString escapedURI;
   aEscapedURI.Truncate(0);
@@ -206,7 +241,7 @@ nsXHTMLContentSerializer::EscapeURI(nsIContent* aContent, const nsAString& aURI,
     start = end + 1;
   }
 
-  if (start < (int32_t) aURI.Length()) {
+  if (start < (PRInt32) aURI.Length()) {
     
     part = Substring(aURI, start, aURI.Length()-start);
     if (textToSubURI) {
@@ -229,16 +264,16 @@ nsXHTMLContentSerializer::SerializeAttributes(nsIContent* aContent,
                                               const nsAString& aTagNamespaceURI,
                                               nsIAtom* aTagName,
                                               nsAString& aStr,
-                                              uint32_t aSkipAttr,
+                                              PRUint32 aSkipAttr,
                                               bool aAddNSAttr)
 {
   nsresult rv;
-  uint32_t index, count;
+  PRUint32 index, count;
   nsAutoString prefixStr, uriStr, valueStr;
   nsAutoString xmlnsStr;
   xmlnsStr.AssignLiteral(kXMLNS);
 
-  int32_t contentNamespaceID = aContent->GetNameSpaceID();
+  PRInt32 contentNamespaceID = aContent->GetNameSpaceID();
 
   
   
@@ -251,10 +286,10 @@ nsXHTMLContentSerializer::SerializeAttributes(nsIContent* aContent,
       
       
       nsAutoString start;
-      int32_t startAttrVal = 0;
+      PRInt32 startAttrVal = 0;
       aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::start, start);
       if (!start.IsEmpty()) {
-        nsresult rv = NS_OK;
+        PRInt32 rv = 0;
         startAttrVal = start.ToInteger(&rv);
         
         
@@ -264,7 +299,7 @@ nsXHTMLContentSerializer::SerializeAttributes(nsIContent* aContent,
         else
           startAttrVal = 0;
       }
-      olState state (startAttrVal, true);
+      olState state (startAttrVal, PR_TRUE);
       mOLStateStack.AppendElement(state);
     }
     else if (aTagName == nsGkAtoms::li) {
@@ -281,10 +316,10 @@ nsXHTMLContentSerializer::SerializeAttributes(nsIContent* aContent,
   if (aAddNSAttr) {
     if (aTagPrefix.IsEmpty()) {
       
-      SerializeAttr(EmptyString(), xmlnsStr, aTagNamespaceURI, aStr, true);
+      SerializeAttr(EmptyString(), xmlnsStr, aTagNamespaceURI, aStr, PR_TRUE);
     } else {
       
-      SerializeAttr(xmlnsStr, aTagPrefix, aTagNamespaceURI, aStr, true);
+      SerializeAttr(xmlnsStr, aTagPrefix, aTagNamespaceURI, aStr, PR_TRUE);
     }
     PushNameSpaceDecl(aTagPrefix, aTagNamespaceURI, aOriginalElement);
   }
@@ -303,7 +338,7 @@ nsXHTMLContentSerializer::SerializeAttributes(nsIContent* aContent,
     }
 
     const nsAttrName* name = aContent->GetAttrNameAt(index);
-    int32_t namespaceID = name->NamespaceID();
+    PRInt32 namespaceID = name->NamespaceID();
     nsIAtom* attrName = name->LocalName();
     nsIAtom* attrPrefix = name->GetPrefix();
 
@@ -324,7 +359,7 @@ nsXHTMLContentSerializer::SerializeAttributes(nsIContent* aContent,
     bool addNSAttr = false;
     if (kNameSpaceID_XMLNS != namespaceID) {
       nsContentUtils::NameSpaceManager()->GetNameSpaceURI(namespaceID, uriStr);
-      addNSAttr = ConfirmPrefix(prefixStr, uriStr, aOriginalElement, true);
+      addNSAttr = ConfirmPrefix(prefixStr, uriStr, aOriginalElement, PR_TRUE);
     }
 
     aContent->GetAttr(namespaceID, attrName, valueStr);
@@ -400,7 +435,7 @@ nsXHTMLContentSerializer::SerializeAttributes(nsIContent* aContent,
     if (addNSAttr) {
       NS_ASSERTION(!prefixStr.IsEmpty(),
                    "Namespaced attributes must have a prefix");
-      SerializeAttr(xmlnsStr, prefixStr, uriStr, aStr, true);
+      SerializeAttr(xmlnsStr, prefixStr, uriStr, aStr, PR_TRUE);
       PushNameSpaceDecl(prefixStr, uriStr, aOriginalElement);
     }
   }
@@ -410,7 +445,7 @@ nsXHTMLContentSerializer::SerializeAttributes(nsIContent* aContent,
 void 
 nsXHTMLContentSerializer::AppendEndOfElementStart(nsIContent *aOriginalElement,
                                                   nsIAtom * aName,
-                                                  int32_t aNamespaceID,
+                                                  PRInt32 aNamespaceID,
                                                   nsAString& aStr)
 {
   
@@ -472,7 +507,7 @@ nsXHTMLContentSerializer::AfterElementStart(nsIContent * aContent,
         child->GetAttr(kNameSpaceID_None, nsGkAtoms::httpEquiv, header);
 
         if (header.LowerCaseEqualsLiteral("content-type")) {
-          hasMeta = true;
+          hasMeta = PR_TRUE;
           break;
         }
       }
@@ -501,7 +536,7 @@ nsXHTMLContentSerializer::AfterElementEnd(nsIContent * aContent,
 {
   NS_ASSERTION(!mIsHTMLSerializer, "nsHTMLContentSerializer shouldn't call this method !");
 
-  int32_t namespaceID = aContent->GetNameSpaceID();
+  PRInt32 namespaceID = aContent->GetNameSpaceID();
   nsIAtom *name = aContent->Tag();
 
   
@@ -530,24 +565,24 @@ nsXHTMLContentSerializer::CheckElementStart(nsIContent * aContent,
   
   
   
-  aForceFormat = !(mFlags & nsIDocumentEncoder::OutputIgnoreMozDirty) &&
-                 aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::mozdirty);
+  aForceFormat = aContent->HasAttr(kNameSpaceID_None,
+                                   nsGkAtoms::mozdirty);
 
   nsIAtom *name = aContent->Tag();
-  int32_t namespaceID = aContent->GetNameSpaceID();
+  PRInt32 namespaceID = aContent->GetNameSpaceID();
 
   if (namespaceID == kNameSpaceID_XHTML) {
     if (name == nsGkAtoms::br && mPreLevel > 0 && 
         (mFlags & nsIDocumentEncoder::OutputNoFormattingInPre)) {
       AppendNewLineToString(aStr);
-      return false;
+      return PR_FALSE;
     }
 
     if (name == nsGkAtoms::body) {
       ++mInBody;
     }
   }
-  return true;
+  return PR_TRUE;
 }
 
 bool
@@ -557,11 +592,11 @@ nsXHTMLContentSerializer::CheckElementEnd(nsIContent * aContent,
 {
   NS_ASSERTION(!mIsHTMLSerializer, "nsHTMLContentSerializer shouldn't call this method !");
 
-  aForceFormat = !(mFlags & nsIDocumentEncoder::OutputIgnoreMozDirty) &&
-                 aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::mozdirty);
+  aForceFormat = aContent->HasAttr(kNameSpaceID_None,
+                                   nsGkAtoms::mozdirty);
 
   nsIAtom *name = aContent->Tag();
-  int32_t namespaceID = aContent->GetNameSpaceID();
+  PRInt32 namespaceID = aContent->GetNameSpaceID();
 
   
   
@@ -587,14 +622,14 @@ nsXHTMLContentSerializer::CheckElementEnd(nsIContent * aContent,
         if (!isContainer) {
           
           
-          return false;
+          return PR_FALSE;
         }
       }
     }
     
     
     
-    return true;
+    return PR_TRUE;
   }
 
   bool dummyFormat;
@@ -624,7 +659,7 @@ nsXHTMLContentSerializer::IsShorthandAttr(const nsIAtom* aAttrName,
   
   if ((aAttrName == nsGkAtoms::checked) &&
       (aElementName == nsGkAtoms::input)) {
-    return true;
+    return PR_TRUE;
   }
 
   
@@ -634,19 +669,19 @@ nsXHTMLContentSerializer::IsShorthandAttr(const nsIAtom* aAttrName,
        aElementName == nsGkAtoms::menu ||
        aElementName == nsGkAtoms::ol ||
        aElementName == nsGkAtoms::ul)) {
-    return true;
+    return PR_TRUE;
   }
 
   
   if ((aAttrName == nsGkAtoms::declare) &&
       (aElementName == nsGkAtoms::object)) {
-    return true;
+    return PR_TRUE;
   }
 
   
   if ((aAttrName == nsGkAtoms::defer) &&
       (aElementName == nsGkAtoms::script)) {
-    return true;
+    return PR_TRUE;
   }
 
   
@@ -657,68 +692,68 @@ nsXHTMLContentSerializer::IsShorthandAttr(const nsIAtom* aAttrName,
        aElementName == nsGkAtoms::option ||
        aElementName == nsGkAtoms::select ||
        aElementName == nsGkAtoms::textarea)) {
-    return true;
+    return PR_TRUE;
   }
 
   
   if ((aAttrName == nsGkAtoms::ismap) &&
       (aElementName == nsGkAtoms::img ||
        aElementName == nsGkAtoms::input)) {
-    return true;
+    return PR_TRUE;
   }
 
   
   if ((aAttrName == nsGkAtoms::multiple) &&
       (aElementName == nsGkAtoms::select)) {
-    return true;
+    return PR_TRUE;
   }
 
   
   if ((aAttrName == nsGkAtoms::noresize) &&
       (aElementName == nsGkAtoms::frame)) {
-    return true;
+    return PR_TRUE;
   }
 
   
   if ((aAttrName == nsGkAtoms::noshade) &&
       (aElementName == nsGkAtoms::hr)) {
-    return true;
+    return PR_TRUE;
   }
 
   
   if ((aAttrName == nsGkAtoms::nowrap) &&
       (aElementName == nsGkAtoms::td ||
        aElementName == nsGkAtoms::th)) {
-    return true;
+    return PR_TRUE;
   }
 
   
   if ((aAttrName == nsGkAtoms::readonly) &&
       (aElementName == nsGkAtoms::input ||
        aElementName == nsGkAtoms::textarea)) {
-    return true;
+    return PR_TRUE;
   }
 
   
   if ((aAttrName == nsGkAtoms::selected) &&
       (aElementName == nsGkAtoms::option)) {
-    return true;
+    return PR_TRUE;
   }
 
 #ifdef MOZ_MEDIA
   
   if ((aElementName == nsGkAtoms::video || aElementName == nsGkAtoms::audio) &&
-    (aAttrName == nsGkAtoms::autoplay || aAttrName == nsGkAtoms::muted ||
+    (aAttrName == nsGkAtoms::autoplay ||
      aAttrName == nsGkAtoms::controls)) {
-    return true;
+    return PR_TRUE;
   }
 #endif
 
-  return false;
+  return PR_FALSE;
 }
 
 bool
-nsXHTMLContentSerializer::LineBreakBeforeOpen(int32_t aNamespaceID, nsIAtom* aName)
+nsXHTMLContentSerializer::LineBreakBeforeOpen(PRInt32 aNamespaceID, nsIAtom* aName)
 {
 
   if (aNamespaceID != kNameSpaceID_XHTML) {
@@ -733,7 +768,7 @@ nsXHTMLContentSerializer::LineBreakBeforeOpen(int32_t aNamespaceID, nsIAtom* aNa
       aName == nsGkAtoms::option ||
       aName == nsGkAtoms::script ||
       aName == nsGkAtoms::html) {
-    return true;
+    return PR_TRUE;
   }
   else {
     nsIParserService* parserService = nsContentUtils::GetParserService();
@@ -750,11 +785,11 @@ nsXHTMLContentSerializer::LineBreakBeforeOpen(int32_t aNamespaceID, nsIAtom* aNa
 }
 
 bool 
-nsXHTMLContentSerializer::LineBreakAfterOpen(int32_t aNamespaceID, nsIAtom* aName)
+nsXHTMLContentSerializer::LineBreakAfterOpen(PRInt32 aNamespaceID, nsIAtom* aName)
 {
 
   if (aNamespaceID != kNameSpaceID_XHTML) {
-    return false;
+    return PR_FALSE;
   }
 
   if ((aName == nsGkAtoms::html) ||
@@ -774,18 +809,18 @@ nsXHTMLContentSerializer::LineBreakAfterOpen(int32_t aNamespaceID, nsIAtom* aNam
       (aName == nsGkAtoms::map) ||
       (aName == nsGkAtoms::area) ||
       (aName == nsGkAtoms::style)) {
-    return true;
+    return PR_TRUE;
   }
 
-  return false;
+  return PR_FALSE;
 }
 
 bool 
-nsXHTMLContentSerializer::LineBreakBeforeClose(int32_t aNamespaceID, nsIAtom* aName)
+nsXHTMLContentSerializer::LineBreakBeforeClose(PRInt32 aNamespaceID, nsIAtom* aName)
 {
 
   if (aNamespaceID != kNameSpaceID_XHTML) {
-    return false;
+    return PR_FALSE;
   }
 
   if ((aName == nsGkAtoms::html) ||
@@ -797,17 +832,17 @@ nsXHTMLContentSerializer::LineBreakBeforeClose(int32_t aNamespaceID, nsIAtom* aN
       (aName == nsGkAtoms::select) ||
       (aName == nsGkAtoms::table) ||
       (aName == nsGkAtoms::tbody)) {
-    return true;
+    return PR_TRUE;
   }
-  return false;
+  return PR_FALSE;
 }
 
 bool 
-nsXHTMLContentSerializer::LineBreakAfterClose(int32_t aNamespaceID, nsIAtom* aName)
+nsXHTMLContentSerializer::LineBreakAfterClose(PRInt32 aNamespaceID, nsIAtom* aName)
 {
 
   if (aNamespaceID != kNameSpaceID_XHTML) {
-    return false;
+    return PR_FALSE;
   }
 
   if ((aName == nsGkAtoms::html) ||
@@ -827,7 +862,7 @@ nsXHTMLContentSerializer::LineBreakAfterClose(int32_t aNamespaceID, nsIAtom* aNa
       (aName == nsGkAtoms::p) ||
       (aName == nsGkAtoms::map) ||
       (aName == nsGkAtoms::div)) {
-    return true;
+    return PR_TRUE;
   }
   else {
     nsIParserService* parserService = nsContentUtils::GetParserService();
@@ -840,7 +875,7 @@ nsXHTMLContentSerializer::LineBreakAfterClose(int32_t aNamespaceID, nsIAtom* aNa
     }
   }
 
-  return false;
+  return PR_FALSE;
 }
 
 
@@ -893,18 +928,18 @@ nsXHTMLContentSerializer::SerializeLIValueAttribute(nsIContent* aElement,
   nsCOMPtr<nsIDOMNode> currNode = do_QueryInterface(aElement);
   nsAutoString valueStr;
 
-  olState state (0, false);
+  olState state (0, PR_FALSE);
 
   if (!mOLStateStack.IsEmpty()) {
     state = mOLStateStack[mOLStateStack.Length()-1];
     
     
-    state.isFirstListItem = false;
+    state.isFirstListItem = PR_FALSE;
     mOLStateStack[mOLStateStack.Length()-1] = state;
   }
 
-  int32_t startVal = state.startVal;
-  int32_t offset = 0;
+  PRInt32 startVal = state.startVal;
+  PRInt32 offset = 0;
 
   
   
@@ -919,8 +954,8 @@ nsXHTMLContentSerializer::SerializeLIValueAttribute(nsIContent* aElement,
         if (valueStr.IsEmpty())
           offset++;
         else {
-          found = true;
-          nsresult rv = NS_OK;
+          found = PR_TRUE;
+          PRInt32 rv = 0;
           startVal = valueStr.ToInteger(&rv);
         }
       }
@@ -934,7 +969,7 @@ nsXHTMLContentSerializer::SerializeLIValueAttribute(nsIContent* aElement,
   if (offset == 0 && found) {
     
     
-    SerializeAttr(EmptyString(), NS_LITERAL_STRING("value"), valueStr, aStr, false);
+    SerializeAttr(EmptyString(), NS_LITERAL_STRING("value"), valueStr, aStr, PR_FALSE);
   }
   else if (offset == 1 && !found) {
     
@@ -949,7 +984,7 @@ nsXHTMLContentSerializer::SerializeLIValueAttribute(nsIContent* aElement,
 
     
     valueStr.AppendInt(startVal + offset);
-    SerializeAttr(EmptyString(), NS_LITERAL_STRING("value"), valueStr, aStr, false);
+    SerializeAttr(EmptyString(), NS_LITERAL_STRING("value"), valueStr, aStr, PR_FALSE);
   }
 }
 
@@ -964,20 +999,20 @@ nsXHTMLContentSerializer::IsFirstChildOfOL(nsIContent* aElement)
   if (parentNode)
     parentNode->GetNodeName(parentName);
   else
-    return false;
+    return PR_FALSE;
 
   if (parentName.LowerCaseEqualsLiteral("ol")) {
 
     if (!mOLStateStack.IsEmpty()) {
       olState state = mOLStateStack[mOLStateStack.Length()-1];
       if (state.isFirstListItem)
-        return true;
+        return PR_TRUE;
     }
 
-    return false;
+    return PR_FALSE;
   }
   else
-    return false;
+    return PR_FALSE;
 }
 
 bool
@@ -988,11 +1023,11 @@ nsXHTMLContentSerializer::HasNoChildren(nsIContent * aContent) {
        child = child->GetNextSibling()) {
        
     if (!child->IsNodeOfType(nsINode::eTEXT))
-      return false;
+      return PR_FALSE;
 
     if (child->TextLength())
-      return false;
+      return PR_FALSE;
   }
 
-  return true;
+  return PR_TRUE;
 }

@@ -7,6 +7,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsStyleTransformMatrix.h"
 #include "nsAutoPtr.h"
 #include "nsCSSValue.h"
@@ -39,32 +71,39 @@ static double FlushToZero(double aVal)
     return aVal;
 }
 
-float
+
+static nscoord CalcLength(const nsCSSValue &aValue,
+                          nsStyleContext* aContext,
+                          nsPresContext* aPresContext,
+                          bool &aCanStoreInRuleTree)
+{
+  if (aValue.GetUnit() == eCSSUnit_Pixel ||
+      aValue.GetUnit() == eCSSUnit_Number) {
+    
+    
+    
+    
+    
+    
+    
+    return nsPresContext::CSSPixelsToAppUnits(aValue.GetFloatValue());
+  }
+  return nsRuleNode::CalcLength(aValue, aContext, aPresContext,
+                                aCanStoreInRuleTree);
+}
+
+static float
 ProcessTranslatePart(const nsCSSValue& aValue,
                      nsStyleContext* aContext,
                      nsPresContext* aPresContext,
                      bool& aCanStoreInRuleTree,
-                     nscoord aSize,
-                     float aAppUnitsPerMatrixUnit)
+                     nscoord aSize, float aAppUnitsPerMatrixUnit)
 {
   nscoord offset = 0;
   float percent = 0.0f;
 
   if (aValue.GetUnit() == eCSSUnit_Percent) {
     percent = aValue.GetPercentValue();
-  } else if (aValue.GetUnit() == eCSSUnit_Pixel ||
-             aValue.GetUnit() == eCSSUnit_Number) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    return aValue.GetFloatValue() *
-           (float(nsPresContext::AppUnitsPerCSSPixel()) / aAppUnitsPerMatrixUnit);
   } else if (aValue.IsCalcUnit()) {
     nsRuleNode::ComputedCalc result =
       nsRuleNode::SpecifiedCalcToComputedCalc(aValue, aContext, aPresContext,
@@ -72,8 +111,8 @@ ProcessTranslatePart(const nsCSSValue& aValue,
     percent = result.mPercent;
     offset = result.mLength;
   } else {
-    offset = nsRuleNode::CalcLength(aValue, aContext, aPresContext,
-                                    aCanStoreInRuleTree);
+    offset = CalcLength(aValue, aContext, aPresContext,
+                         aCanStoreInRuleTree);
   }
 
   return (percent * NSAppUnitsToFloatPixels(aSize, aAppUnitsPerMatrixUnit)) + 
@@ -433,12 +472,7 @@ ProcessRotate3D(gfx3DMatrix& aMatrix, const nsCSSValue::Array* aData)
 
 
 
-
-  
-
-
-
-  double theta = -aData->Item(4).GetAngleValueInRadians();
+  double theta = aData->Item(4).GetAngleValueInRadians();
   float cosTheta = FlushToZero(cos(theta));
   float sinTheta = FlushToZero(sin(theta));
 
@@ -616,7 +650,7 @@ ReadTransforms(const nsCSSValueList* aList,
 {
   gfx3DMatrix result;
 
-  for (const nsCSSValueList* curr = aList; curr != nullptr; curr = curr->mNext) {
+  for (const nsCSSValueList* curr = aList; curr != nsnull; curr = curr->mNext) {
     const nsCSSValue &currElem = curr->mValue;
     NS_ASSERTION(currElem.GetUnit() == eCSSUnit_Function,
                  "Stream should consist solely of functions!");

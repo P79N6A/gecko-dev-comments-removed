@@ -3,34 +3,68 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #if !defined(nsMediaDecoder_h_)
 #define nsMediaDecoder_h_
 
+#include "mozilla/XPCOM.h"
+
+#include "nsIPrincipal.h"
+#include "nsSize.h"
+#include "prlog.h"
+#include "gfxContext.h"
+#include "gfxRect.h"
+#include "nsITimer.h"
+#include "ImageLayers.h"
 #include "mozilla/ReentrantMonitor.h"
-#include "VideoFrameContainer.h"
-#include "MediaStreamGraph.h"
-#include "nsIObserver.h"
+#include "mozilla/Mutex.h"
+#include "nsIMemoryReporter.h"
 
 class nsHTMLMediaElement;
+class nsMediaStream;
 class nsIStreamListener;
 class nsTimeRanges;
-class nsIMemoryReporter;
-class nsIPrincipal;
-class nsITimer;
-
-namespace mozilla {
-class MediaResource;
-}
 
 
 
 
-static const uint32_t FRAMEBUFFER_LENGTH_PER_CHANNEL = 1024;
+static const PRUint32 FRAMEBUFFER_LENGTH_PER_CHANNEL = 1024;
 
 
 
-static const uint32_t FRAMEBUFFER_LENGTH_MIN = 512;
-static const uint32_t FRAMEBUFFER_LENGTH_MAX = 16384;
+static const PRUint32 FRAMEBUFFER_LENGTH_MIN = 512;
+static const PRUint32 FRAMEBUFFER_LENGTH_MAX = 16384;
 
 
 
@@ -38,15 +72,12 @@ static const uint32_t FRAMEBUFFER_LENGTH_MAX = 16384;
 class nsMediaDecoder : public nsIObserver
 {
 public:
-  typedef mozilla::MediaResource MediaResource;
-  typedef mozilla::ReentrantMonitor ReentrantMonitor;
-  typedef mozilla::SourceMediaStream SourceMediaStream;
-  typedef mozilla::ProcessedMediaStream ProcessedMediaStream;
-  typedef mozilla::MediaInputPort MediaInputPort;
-  typedef mozilla::MainThreadMediaStreamListener MainThreadMediaStreamListener;
   typedef mozilla::TimeStamp TimeStamp;
   typedef mozilla::TimeDuration TimeDuration;
-  typedef mozilla::VideoFrameContainer VideoFrameContainer;
+  typedef mozilla::layers::ImageContainer ImageContainer;
+  typedef mozilla::layers::Image Image;
+  typedef mozilla::ReentrantMonitor ReentrantMonitor;
+  typedef mozilla::Mutex Mutex;
 
   nsMediaDecoder();
   virtual ~nsMediaDecoder();
@@ -61,7 +92,7 @@ public:
 
   
   
-  virtual MediaResource* GetResource() = 0;
+  virtual nsMediaStream* GetCurrentStream() = 0;
 
   
   virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal() = 0;
@@ -102,16 +133,6 @@ public:
 
   
   
-  virtual void SetAudioCaptured(bool aCaptured) = 0;
-
-  
-  
-  
-  virtual void AddOutputStream(ProcessedMediaStream* aStream,
-                               bool aFinishWhenEnded) = 0;
-
-  
-  
   virtual nsresult Play() = 0;
 
   
@@ -119,7 +140,7 @@ public:
   
   
   
-  virtual nsresult Load(MediaResource* aResource,
+  virtual nsresult Load(nsMediaStream* aStream,
                         nsIStreamListener **aListener,
                         nsMediaDecoder* aCloneDonor) = 0;
 
@@ -137,11 +158,6 @@ public:
   
   virtual bool IsEnded() const = 0;
 
-  
-  
-  
-  virtual void NotifyAudioAvailableListener() = 0;
-
   struct Statistics {
     
     double mPlaybackRate;
@@ -149,15 +165,15 @@ public:
     
     double mDownloadRate;
     
-    int64_t mTotalBytes;
+    PRInt64 mTotalBytes;
     
     
-    int64_t mDownloadPosition;
+    PRInt64 mDownloadPosition;
     
     
-    int64_t mDecoderPosition;
+    PRInt64 mDecoderPosition;
     
-    int64_t mPlaybackPosition;
+    PRInt64 mPlaybackPosition;
     
     
     
@@ -181,14 +197,14 @@ public:
 
     
     
-    uint32_t GetParsedFrames() {
+    PRUint32 GetParsedFrames() {
       mozilla::ReentrantMonitorAutoEnter mon(mReentrantMonitor);
       return mParsedFrames;
     }
 
     
     
-    uint32_t GetDecodedFrames() {
+    PRUint32 GetDecodedFrames() {
       mozilla::ReentrantMonitorAutoEnter mon(mReentrantMonitor);
       return mDecodedFrames;
     }
@@ -196,14 +212,14 @@ public:
     
     
     
-    uint32_t GetPresentedFrames() {
+    PRUint32 GetPresentedFrames() {
       mozilla::ReentrantMonitorAutoEnter mon(mReentrantMonitor);
       return mPresentedFrames;
     }
 
     
     
-    void NotifyDecodedFrames(uint32_t aParsed, uint32_t aDecoded) {
+    void NotifyDecodedFrames(PRUint32 aParsed, PRUint32 aDecoded) {
       if (aParsed == 0 && aDecoded == 0)
         return;
       mozilla::ReentrantMonitorAutoEnter mon(mReentrantMonitor);
@@ -225,15 +241,15 @@ public:
 
     
     
-    uint32_t mParsedFrames;
+    PRUint32 mParsedFrames;
 
     
     
-    uint32_t mDecodedFrames;
+    PRUint32 mDecodedFrames;
 
     
     
-    uint32_t mPresentedFrames;
+    PRUint32 mPresentedFrames;
   };
 
   
@@ -241,16 +257,21 @@ public:
   
   class AutoNotifyDecoded {
   public:
-    AutoNotifyDecoded(nsMediaDecoder* aDecoder, uint32_t& aParsed, uint32_t& aDecoded)
+    AutoNotifyDecoded(nsMediaDecoder* aDecoder, PRUint32& aParsed, PRUint32& aDecoded)
       : mDecoder(aDecoder), mParsed(aParsed), mDecoded(aDecoded) {}
     ~AutoNotifyDecoded() {
       mDecoder->GetFrameStatistics().NotifyDecodedFrames(mParsed, mDecoded);
     }
   private:
     nsMediaDecoder* mDecoder;
-    uint32_t& mParsed;
-    uint32_t& mDecoded;
+    PRUint32& mParsed;
+    PRUint32& mDecoded;
   };
+
+  
+  
+  
+  double GetFrameDelay();
 
   
   
@@ -280,12 +301,7 @@ public:
   virtual void SetEndTime(double aTime) = 0;
 
   
-  void Invalidate()
-  {
-    if (mVideoFrameContainer) {
-      mVideoFrameContainer->Invalidate();
-    }
-  }
+  virtual void Invalidate();
 
   
   
@@ -314,11 +330,7 @@ public:
 
   
   
-  virtual void NotifyPrincipalChanged() = 0;
-
-  
-  
-  virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset) = 0;
+  virtual void NotifyDataArrived(const char* aBuffer, PRUint32 aLength, PRUint32 aOffset) = 0;
 
   
   
@@ -345,11 +357,11 @@ public:
 
   
   
-  uint32_t GetFrameBufferLength() { return mFrameBufferLength; }
+  PRUint32 GetFrameBufferLength() { return mFrameBufferLength; };
 
   
   
-  virtual nsresult RequestFrameBufferLength(uint32_t aLength);
+  nsresult RequestFrameBufferLength(PRUint32 aLength);
 
   
   
@@ -357,6 +369,18 @@ public:
   
   
   virtual void MoveLoadsToBackground()=0;
+
+  
+  
+  
+  ImageContainer* GetImageContainer() { return mImageContainer; }
+
+  
+  
+  
+  void SetVideoData(const gfxIntSize& aSize,
+                    Image* aImage,
+                    TimeStamp aTarget);
 
   
   
@@ -368,14 +392,8 @@ public:
 
   
   
-  virtual int64_t VideoQueueMemoryInUse() = 0;
-  virtual int64_t AudioQueueMemoryInUse() = 0;
-
-  VideoFrameContainer* GetVideoFrameContainer() { return mVideoFrameContainer; }
-  mozilla::layers::ImageContainer* GetImageContainer()
-  {
-    return mVideoFrameContainer ? mVideoFrameContainer->GetImageContainer() : nullptr;
-  }
+  virtual PRInt64 VideoQueueMemoryInUse() = 0;
+  virtual PRInt64 AudioQueueMemoryInUse() = 0;
 
 protected:
 
@@ -399,10 +417,22 @@ protected:
   
   nsHTMLMediaElement* mElement;
 
+  PRInt32 mRGBWidth;
+  PRInt32 mRGBHeight;
+
   
   FrameStatistics mFrameStats;
 
-  nsRefPtr<VideoFrameContainer> mVideoFrameContainer;
+  
+  
+  TimeStamp mPaintTarget;
+
+  
+  
+  
+  TimeDuration mPaintDelay;
+
+  nsRefPtr<ImageContainer> mImageContainer;
 
   
   
@@ -416,11 +446,36 @@ protected:
   TimeStamp mDataTime;
 
   
-  uint32_t mFrameBufferLength;
+  
+  
+  
+  
+  
+  
+  
+  
+  Mutex mVideoUpdateLock;
+
+  
+  PRUint32 mFrameBufferLength;
 
   
   
   bool mPinnedForSeek;
+
+  
+  
+  
+  
+  bool mSizeChanged;
+
+  
+  
+  
+  
+  
+  
+  bool mImageContainerSizeChanged;
 
   
   
@@ -463,22 +518,22 @@ public:
     decoders.RemoveElement(aDecoder);
     if (decoders.IsEmpty()) {
       delete sUniqueInstance;
-      sUniqueInstance = nullptr;
+      sUniqueInstance = nsnull;
     }
   }
 
-  static int64_t GetDecodedVideoMemory() {
+  static PRInt64 GetDecodedVideoMemory() {
     DecodersArray& decoders = Decoders();
-    int64_t result = 0;
+    PRInt64 result = 0;
     for (size_t i = 0; i < decoders.Length(); ++i) {
       result += decoders[i]->VideoQueueMemoryInUse();
     }
     return result;
   }
 
-  static int64_t GetDecodedAudioMemory() {
+  static PRInt64 GetDecodedAudioMemory() {
     DecodersArray& decoders = Decoders();
-    int64_t result = 0;
+    PRInt64 result = 0;
     for (size_t i = 0; i < decoders.Length(); ++i) {
       result += decoders[i]->AudioQueueMemoryInUse();
     }

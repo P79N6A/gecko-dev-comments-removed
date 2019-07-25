@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __inFlasher_h__
 #define __inFlasher_h__
 
@@ -36,7 +69,7 @@ protected:
 
   nscolor mColor;
 
-  uint16_t mThickness;
+  PRUint16 mThickness;
   bool mInvert;
 };
 

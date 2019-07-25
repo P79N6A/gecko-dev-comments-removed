@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_PLATFORM_MAC_H
 #define GFX_PLATFORM_MAC_H
 
@@ -12,13 +45,10 @@
 #define MAC_OS_X_VERSION_10_4_HEX 0x00001040
 #define MAC_OS_X_VERSION_10_5_HEX 0x00001050
 #define MAC_OS_X_VERSION_10_6_HEX 0x00001060
-#define MAC_OS_X_VERSION_10_7_HEX 0x00001070
 
 #define MAC_OS_X_MAJOR_VERSION_MASK 0xFFFFFFF0U
 
 class gfxTextRun;
-class gfxFontFamily;
-class mozilla::gfx::DrawTarget;
 
 class THEBES_API gfxPlatformMac : public gfxPlatform {
 public:
@@ -31,15 +61,9 @@ public:
 
     already_AddRefed<gfxASurface> CreateOffscreenSurface(const gfxIntSize& size,
                                                          gfxASurface::gfxContentType contentType);
-    virtual already_AddRefed<gfxASurface>
-      CreateOffscreenImageSurface(const gfxIntSize& aSize,
-                                  gfxASurface::gfxContentType aContentType);
-    
+
     already_AddRefed<gfxASurface> OptimizeImage(gfxImageSurface *aSurface,
                                                 gfxASurface::gfxImageFormat format);
-    
-    mozilla::RefPtr<mozilla::gfx::ScaledFont>
-      GetScaledFontForFont(mozilla::gfx::DrawTarget* aTarget, gfxFont *aFont);
 
     nsresult ResolveFontName(const nsAString& aFontName,
                              FontResolverCallback aCallback,
@@ -57,39 +81,31 @@ public:
     virtual gfxPlatformFontList* CreatePlatformFontList();
 
     virtual gfxFontEntry* MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
-                                           const uint8_t *aFontData,
-                                           uint32_t aLength);
+                                           const PRUint8 *aFontData,
+                                           PRUint32 aLength);
 
-    bool IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags);
+    bool IsFontFormatSupported(nsIURI *aFontURI, PRUint32 aFormatFlags);
 
     nsresult GetFontList(nsIAtom *aLangGroup,
                          const nsACString& aGenericFamily,
                          nsTArray<nsString>& aListOfFonts);
     nsresult UpdateFontList();
 
-    virtual void GetCommonFallbackFonts(const uint32_t aCh,
-                                        int32_t aRunScript,
-                                        nsTArray<const char*>& aFontList);
-
     
     
-    int32_t OSXVersion();
-
-    bool UseAcceleratedCanvas();
+    PRInt32 OSXVersion();
 
     
-    uint32_t GetAntiAliasingThreshold() { return mFontAntiAliasingThreshold; }
+    PRUint32 GetAntiAliasingThreshold() { return mFontAntiAliasingThreshold; }
 
-    virtual already_AddRefed<gfxASurface>
-    GetThebesSurfaceForDrawTarget(mozilla::gfx::DrawTarget *aTarget);
 private:
     virtual qcms_profile* GetPlatformCMSOutputProfile();
     
     
-    static uint32_t ReadAntiAliasingThreshold();    
+    static PRUint32 ReadAntiAliasingThreshold();    
     
-    int32_t mOSXVersion;
-    uint32_t mFontAntiAliasingThreshold;
+    PRInt32 mOSXVersion;
+    PRUint32 mFontAntiAliasingThreshold;
 };
 
 #endif 

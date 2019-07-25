@@ -3,10 +3,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsTitleBarFrame.h"
 #include "nsIContent.h"
 #include "nsIDocument.h"
+#include "nsIDOMXULDocument.h"
 #include "nsIDOMNodeList.h"
 #include "nsGkAtoms.h"
 #include "nsIWidget.h"
@@ -33,9 +67,9 @@ NS_NewTitleBarFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 NS_IMPL_FRAMEARENA_HELPERS(nsTitleBarFrame)
 
 nsTitleBarFrame::nsTitleBarFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
-:nsBoxFrame(aPresShell, aContext, false)
+:nsBoxFrame(aPresShell, aContext, PR_FALSE)
 {
-  mTrackingMouseMove = false;
+  mTrackingMouseMove = PR_FALSE;
   UpdateMouseThrough();
 }
 
@@ -76,11 +110,11 @@ nsTitleBarFrame::HandleEvent(nsPresContext* aPresContext,
          nsCOMPtr<nsISupports> cont = aPresContext->GetContainer();
          nsCOMPtr<nsIDocShellTreeItem> dsti = do_QueryInterface(cont);
          if (dsti) {
-           int32_t type = -1;
+           PRInt32 type = -1;
            if (NS_SUCCEEDED(dsti->GetItemType(&type)) &&
                type == nsIDocShellTreeItem::typeChrome) {
              
-             mTrackingMouseMove = true;
+             mTrackingMouseMove = PR_TRUE;
 
              
              nsIPresShell::SetCapturingContent(GetContent(), CAPTURE_IGNOREALLOWED);
@@ -91,7 +125,7 @@ nsTitleBarFrame::HandleEvent(nsPresContext* aPresContext,
          }
 
          *aEventStatus = nsEventStatus_eConsumeNoDefault;
-         doDefault = false;
+         doDefault = PR_FALSE;
        }
      }
      break;
@@ -103,13 +137,13 @@ nsTitleBarFrame::HandleEvent(nsPresContext* aPresContext,
             nsMouseEvent::eLeftButton)
        {
          
-         mTrackingMouseMove = false;
+         mTrackingMouseMove = PR_FALSE;
 
          
-         nsIPresShell::SetCapturingContent(nullptr, 0);
+         nsIPresShell::SetCapturingContent(nsnull, 0);
 
          *aEventStatus = nsEventStatus_eConsumeNoDefault;
-         doDefault = false;
+         doDefault = PR_FALSE;
        }
      }
      break;
@@ -120,21 +154,18 @@ nsTitleBarFrame::HandleEvent(nsPresContext* aPresContext,
          nsIntPoint nsMoveBy = aEvent->refPoint - mLastPoint;
 
          nsIFrame* parent = GetParent();
-         while (parent) {
-           nsMenuPopupFrame* popupFrame = do_QueryFrame(parent);
-           if (popupFrame)
-             break;
+         while (parent && parent->GetType() != nsGkAtoms::menuPopupFrame)
            parent = parent->GetParent();
-         }
 
          
          
          if (parent) {
            nsMenuPopupFrame* menuPopupFrame = static_cast<nsMenuPopupFrame*>(parent);
-           nsCOMPtr<nsIWidget> widget = menuPopupFrame->GetWidget();
+           nsCOMPtr<nsIWidget> widget;
+           menuPopupFrame->GetWidget(getter_AddRefs(widget));
            nsIntRect bounds;
            widget->GetScreenBounds(bounds);
-           menuPopupFrame->MoveTo(bounds.x + nsMoveBy.x, bounds.y + nsMoveBy.y, false);
+           menuPopupFrame->MoveTo(bounds.x + nsMoveBy.x, bounds.y + nsMoveBy.y, PR_FALSE);
          }
          else {
            nsIPresShell* presShell = aPresContext->PresShell();
@@ -146,7 +177,7 @@ nsTitleBarFrame::HandleEvent(nsPresContext* aPresContext,
 
          *aEventStatus = nsEventStatus_eConsumeNoDefault;
 
-         doDefault = false;
+         doDefault = PR_FALSE;
        }
      }
      break;
@@ -173,5 +204,5 @@ nsTitleBarFrame::MouseClicked(nsPresContext* aPresContext, nsGUIEvent* aEvent)
   
   nsContentUtils::DispatchXULCommand(mContent,
                                      aEvent ?
-                                       NS_IS_TRUSTED_EVENT(aEvent) : false);
+                                       NS_IS_TRUSTED_EVENT(aEvent) : PR_FALSE);
 }

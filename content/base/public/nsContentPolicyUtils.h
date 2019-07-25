@@ -11,6 +11,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __nsContentPolicyUtils_h__
 #define __nsContentPolicyUtils_h__
 
@@ -65,7 +98,7 @@ class nsACString;
 
 
 inline const char *
-NS_CP_ResponseName(int16_t response)
+NS_CP_ResponseName(PRInt16 response)
 {
   switch (response) {
     CASE_RETURN( REJECT_REQUEST );
@@ -88,7 +121,7 @@ NS_CP_ResponseName(int16_t response)
 
 
 inline const char *
-NS_CP_ContentTypeName(uint32_t contentType)
+NS_CP_ContentTypeName(PRUint32 contentType)
 {
   switch (contentType) {
     CASE_RETURN( TYPE_OTHER             );
@@ -106,7 +139,6 @@ NS_CP_ContentTypeName(uint32_t contentType)
     CASE_RETURN( TYPE_DTD               );
     CASE_RETURN( TYPE_FONT              );
     CASE_RETURN( TYPE_MEDIA             );
-    CASE_RETURN( TYPE_WEBSOCKET         );
    default:
     return "<Unknown Type>";
   }
@@ -125,16 +157,14 @@ NS_CP_ContentTypeName(uint32_t contentType)
         return NS_ERROR_FAILURE;                                              \
                                                                               \
     return policy-> action (contentType, contentLocation, requestOrigin,      \
-                            context, mimeType, extra, originPrincipal,        \
-                            decision);                                        \
+                            context, mimeType, extra, decision);              \
   PR_END_MACRO
 
 
 #define CHECK_CONTENT_POLICY_WITH_SERVICE(action, _policy)                    \
   PR_BEGIN_MACRO                                                              \
     return _policy-> action (contentType, contentLocation, requestOrigin,     \
-                             context, mimeType, extra, originPrincipal,       \
-                             decision);                                       \
+                             context, mimeType, extra, decision);             \
   PR_END_MACRO
 
 
@@ -176,15 +206,15 @@ NS_CP_ContentTypeName(uint32_t contentType)
 
 
 inline nsresult
-NS_CheckContentLoadPolicy(uint32_t          contentType,
+NS_CheckContentLoadPolicy(PRUint32          contentType,
                           nsIURI           *contentLocation,
                           nsIPrincipal     *originPrincipal,
                           nsISupports      *context,
                           const nsACString &mimeType,
                           nsISupports      *extra,
-                          int16_t          *decision,
-                          nsIContentPolicy *policyService = nullptr,
-                          nsIScriptSecurityManager* aSecMan = nullptr)
+                          PRInt16          *decision,
+                          nsIContentPolicy *policyService = nsnull,
+                          nsIScriptSecurityManager* aSecMan = nsnull)
 {
     CHECK_PRINCIPAL;
     if (policyService) {
@@ -203,15 +233,15 @@ NS_CheckContentLoadPolicy(uint32_t          contentType,
 
 
 inline nsresult
-NS_CheckContentProcessPolicy(uint32_t          contentType,
+NS_CheckContentProcessPolicy(PRUint32          contentType,
                              nsIURI           *contentLocation,
                              nsIPrincipal     *originPrincipal,
                              nsISupports      *context,
                              const nsACString &mimeType,
                              nsISupports      *extra,
-                             int16_t          *decision,
-                             nsIContentPolicy *policyService = nullptr,
-                             nsIScriptSecurityManager* aSecMan = nullptr)
+                             PRInt16          *decision,
+                             nsIContentPolicy *policyService = nsnull,
+                             nsIScriptSecurityManager* aSecMan = nsnull)
 {
     CHECK_PRINCIPAL;
     if (policyService) {
@@ -250,7 +280,7 @@ inline nsIDocShell*
 NS_CP_GetDocShellFromContext(nsISupports *aContext)
 {
     if (!aContext) {
-        return nullptr;
+        return nsnull;
     }
 
     nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aContext);
@@ -264,7 +294,7 @@ NS_CP_GetDocShellFromContext(nsISupports *aContext)
             
             nsCOMPtr<nsIContent> content = do_QueryInterface(aContext);
             if (content) {
-                doc = content->OwnerDoc();
+                doc = content->GetOwnerDoc();
             }
         }
 
@@ -278,7 +308,7 @@ NS_CP_GetDocShellFromContext(nsISupports *aContext)
     }
 
     if (!window) {
-        return nullptr;
+        return nsnull;
     }
 
     return window->GetDocShell();

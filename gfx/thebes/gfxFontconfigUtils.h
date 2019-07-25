@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_FONTCONFIG_UTILS_H
 #define GFX_FONTCONFIG_UTILS_H
 
@@ -16,7 +49,7 @@
 #include <fontconfig/fontconfig.h>
 
 
-template <>
+NS_SPECIALIZE_TEMPLATE
 class nsAutoRefTraits<FcPattern> : public nsPointerRefTraits<FcPattern>
 {
 public:
@@ -24,14 +57,14 @@ public:
     static void AddRef(FcPattern *ptr) { FcPatternReference(ptr); }
 };
 
-template <>
+NS_SPECIALIZE_TEMPLATE
 class nsAutoRefTraits<FcFontSet> : public nsPointerRefTraits<FcFontSet>
 {
 public:
     static void Release(FcFontSet *ptr) { FcFontSetDestroy(ptr); }
 };
 
-template <>
+NS_SPECIALIZE_TEMPLATE
 class nsAutoRefTraits<FcCharSet> : public nsPointerRefTraits<FcCharSet>
 {
 public:
@@ -113,17 +146,17 @@ public:
         return reinterpret_cast<const char*>(aChar8Ptr);
     }
 
-    static uint8_t FcSlantToThebesStyle(int aFcSlant);
-    static uint8_t GetThebesStyle(FcPattern *aPattern); 
-    static uint16_t GetThebesWeight(FcPattern *aPattern);
-    static int16_t GetThebesStretch(FcPattern *aPattern);
+    static PRUint8 FcSlantToThebesStyle(int aFcSlant);
+    static PRUint8 GetThebesStyle(FcPattern *aPattern); 
+    static PRUint16 GetThebesWeight(FcPattern *aPattern);
+    static PRInt16 GetThebesStretch(FcPattern *aPattern);
 
     static int GetFcSlant(const gfxFontStyle& aFontStyle);
     
     
-    static int FcWeightForBaseWeight(int8_t aBaseWeight);
+    static int FcWeightForBaseWeight(PRInt8 aBaseWeight);
 
-    static int FcWidthForThebesStretch(int16_t aStretch);
+    static int FcWidthForThebesStretch(PRInt16 aStretch);
 
     static bool GetFullnameFromFamilyAndStyle(FcPattern *aFont,
                                                 nsACString *aFullname);
@@ -162,13 +195,13 @@ protected:
         
         
         static PLDHashNumber HashKey(const FcChar8 *aKey) {
-            uint32_t hash = 0;
+            PRUint32 hash = 0;
             for (const FcChar8 *c = aKey; *c != '\0'; ++c) {
                 hash = PR_ROTATE_LEFT32(hash, 3) ^ FcToLower(*c);
             }
             return hash;
         }
-        enum { ALLOW_MEMMOVE = true };
+        enum { ALLOW_MEMMOVE = PR_TRUE };
     };
 
 public:
@@ -206,7 +239,7 @@ public:
         
         
         CopiedFcStrEntry(KeyTypePointer aName) {
-            mKey.SetIsVoid(true);
+            mKey.SetIsVoid(PR_TRUE);
         }
 
         CopiedFcStrEntry(const CopiedFcStrEntry& toCopy)
@@ -233,7 +266,7 @@ protected:
             : DepFcStrEntry(toCopy), mFonts(toCopy.mFonts) { }
 
         bool AddFont(FcPattern *aFont) {
-            return mFonts.AppendElement(aFont) != nullptr;
+            return mFonts.AppendElement(aFont) != nsnull;
         }
         const nsTArray< nsCountedRef<FcPattern> >& GetFonts() {
             return mFonts;
@@ -264,14 +297,14 @@ protected:
         bool KeyEquals(KeyTypePointer aKey) const;
 
         bool AddFont(FcPattern *aFont) {
-            return mFonts.AppendElement(aFont) != nullptr;
+            return mFonts.AppendElement(aFont) != nsnull;
         }
         const nsTArray< nsCountedRef<FcPattern> >& GetFonts() {
             return mFonts;
         }
 
         
-        enum { ALLOW_MEMMOVE = false };
+        enum { ALLOW_MEMMOVE = PR_FALSE };
     private:
         
         nsAutoTArray<nsCountedRef<FcPattern>,1> mFonts;

@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIConstraintValidation.h"
 
 #include "nsAString.h"
@@ -10,15 +42,16 @@
 #include "nsHTMLFormElement.h"
 #include "nsDOMValidityState.h"
 #include "nsIFormControl.h"
+#include "nsHTMLFormElement.h"
 #include "nsContentUtils.h"
 
-const uint16_t nsIConstraintValidation::sContentSpecifiedMaxLengthMessage = 256;
+const PRUint16 nsIConstraintValidation::sContentSpecifiedMaxLengthMessage = 256;
 
 nsIConstraintValidation::nsIConstraintValidation()
   : mValidityBitField(0)
-  , mValidity(nullptr)
+  , mValidity(nsnull)
   
-  , mBarredFromConstraintValidation(false)
+  , mBarredFromConstraintValidation(PR_FALSE)
 {
 }
 
@@ -72,13 +105,9 @@ nsIConstraintValidation::GetValidationMessage(nsAString& aValidationMessage)
       GetValidationMessage(aValidationMessage, VALIDITY_STATE_TYPE_MISMATCH);
     } else if (GetValidityState(VALIDITY_STATE_PATTERN_MISMATCH)) {
       GetValidationMessage(aValidationMessage, VALIDITY_STATE_PATTERN_MISMATCH);
-    } else if (GetValidityState(VALIDITY_STATE_RANGE_OVERFLOW)) {
-      GetValidationMessage(aValidationMessage, VALIDITY_STATE_RANGE_OVERFLOW);
-    } else if (GetValidityState(VALIDITY_STATE_RANGE_UNDERFLOW)) {
-      GetValidationMessage(aValidationMessage, VALIDITY_STATE_RANGE_UNDERFLOW);
-    } else if (GetValidityState(VALIDITY_STATE_STEP_MISMATCH)) {
-      GetValidationMessage(aValidationMessage, VALIDITY_STATE_STEP_MISMATCH);
     } else {
+      
+      
       
       return NS_ERROR_UNEXPECTED;
     }
@@ -93,18 +122,18 @@ nsresult
 nsIConstraintValidation::CheckValidity(bool* aValidity)
 {
   if (!IsCandidateForConstraintValidation() || IsValid()) {
-    *aValidity = true;
+    *aValidity = PR_TRUE;
     return NS_OK;
   }
 
-  *aValidity = false;
+  *aValidity = PR_FALSE;
 
   nsCOMPtr<nsIContent> content = do_QueryInterface(this);
   NS_ASSERTION(content, "This class should be inherited by HTML elements only!");
 
-  return nsContentUtils::DispatchTrustedEvent(content->OwnerDoc(), content,
+  return nsContentUtils::DispatchTrustedEvent(content->GetOwnerDoc(), content,
                                               NS_LITERAL_STRING("invalid"),
-                                              false, true);
+                                              PR_FALSE, PR_TRUE);
 }
 
 void

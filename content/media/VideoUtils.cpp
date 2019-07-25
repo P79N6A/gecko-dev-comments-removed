@@ -2,31 +2,207 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "VideoUtils.h"
-#include "MediaResource.h"
-#include "nsTimeRanges.h"
 #include "nsMathUtils.h"
 #include "prtypes.h"
 
-#include "mozilla/StandardInteger.h"
 
 
+bool AddOverflow32(PRUint32 a, PRUint32 b, PRUint32& aResult) {
+  PRUint64 rl = static_cast<PRUint64>(a) + static_cast<PRUint64>(b);
+  if (rl > PR_UINT32_MAX) {
+    return false;
+  }
+  aResult = static_cast<PRUint32>(rl);
+  return true;
+}
 
-CheckedInt64 FramesToUsecs(int64_t aFrames, uint32_t aRate) {
-  return (CheckedInt64(aFrames) * USECS_PER_S) / aRate;
+bool MulOverflow32(PRUint32 a, PRUint32 b, PRUint32& aResult)
+{
+  
+  
+  
+  PRUint64 a64 = a;
+  PRUint64 b64 = b;
+  PRUint64 r64 = a64 * b64;
+  if (r64 > PR_UINT32_MAX)
+     return false;
+  aResult = static_cast<PRUint32>(r64);
+  return true;
 }
 
 
 
-CheckedInt64 UsecsToFrames(int64_t aUsecs, uint32_t aRate) {
-  return (CheckedInt64(aUsecs) * aRate) / USECS_PER_S;
+bool AddOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult) {
+  if (b < 1) {
+    if (PR_INT64_MIN - b <= a) {
+      aResult = a + b;
+      return true;
+    }
+  } else if (PR_INT64_MAX - b >= a) {
+    aResult = a + b;
+    return true;
+  }
+  return false;
 }
 
-static int32_t ConditionDimension(float aValue)
+
+
+
+bool MulOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult) {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  PRInt64 sign = (!(a < 0) == !(b < 0)) ? 1 : -1;
+
+  PRInt64 abs_a = (a < 0) ? -a : a;
+  PRInt64 abs_b = (b < 0) ? -b : b;
+
+  if (abs_a < 0) {
+    NS_ASSERTION(a == PR_INT64_MIN, "How else can this happen?");
+    if (b == 0 || b == 1) {
+      aResult = a * b;
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  if (abs_b < 0) {
+    NS_ASSERTION(b == PR_INT64_MIN, "How else can this happen?");
+    if (a == 0 || a == 1) {
+      aResult = a * b;
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  NS_ASSERTION(abs_a >= 0 && abs_b >= 0, "abs values must be non-negative");
+
+  PRInt64 a_hi = abs_a >> 32;
+  PRInt64 a_lo = abs_a & 0xFFFFFFFF;
+  PRInt64 b_hi = abs_b >> 32;
+  PRInt64 b_lo = abs_b & 0xFFFFFFFF;
+
+  NS_ASSERTION((a_hi<<32) + a_lo == abs_a, "Partition must be correct");
+  NS_ASSERTION((b_hi<<32) + b_lo == abs_b, "Partition must be correct");
+
+  
+  
+  
+  if (a_hi != 0 && b_hi != 0) {
+    return false;
+  }
+
+  
+  NS_ASSERTION(a_hi == 0 || b_hi == 0, "One of these must be 0");
+
+  
+  
+  
+  
+  PRInt64 q = a_hi * b_lo + a_lo * b_hi;
+  if (q > PR_INT32_MAX) {
+    
+    return false;
+  }
+  q <<= 32;
+
+  
+  PRUint64 lo = a_lo * b_lo;
+  if (lo > PR_INT64_MAX) {
+    return false;
+  }
+
+  
+  if (!AddOverflow(q, static_cast<PRInt64>(lo), aResult)) {
+    return false;
+  }
+
+  aResult *= sign;
+  NS_ASSERTION(a * b == aResult, "We didn't overflow, but result is wrong!");
+  return true;
+}
+
+
+
+bool FramesToUsecs(PRInt64 aFrames, PRUint32 aRate, PRInt64& aOutUsecs)
+{
+  PRInt64 x;
+  if (!MulOverflow(aFrames, USECS_PER_S, x))
+    return false;
+  aOutUsecs = x / aRate;
+  return true;
+}
+
+
+
+bool UsecsToFrames(PRInt64 aUsecs, PRUint32 aRate, PRInt64& aOutFrames)
+{
+  PRInt64 x;
+  if (!MulOverflow(aUsecs, aRate, x))
+    return false;
+  aOutFrames = x / USECS_PER_S;
+  return true;
+}
+
+static PRInt32 ConditionDimension(float aValue)
 {
   
   if (aValue > 1.0 && aValue <= PR_INT32_MAX)
-    return int32_t(NS_round(aValue));
+    return PRInt32(NS_round(aValue));
   return 0;
 }
 
@@ -40,52 +216,3 @@ void ScaleDisplayByAspectRatio(nsIntSize& aDisplay, float aAspectRatio)
     aDisplay.height = ConditionDimension(aDisplay.height / aAspectRatio);
   }
 }
-
-static int64_t BytesToTime(int64_t offset, int64_t length, int64_t durationUs) {
-  NS_ASSERTION(length > 0, "Must have positive length");
-  double r = double(offset) / double(length);
-  if (r > 1.0)
-    r = 1.0;
-  return int64_t(double(durationUs) * r);
-}
-
-void GetEstimatedBufferedTimeRanges(mozilla::MediaResource* aStream,
-                                    int64_t aDurationUsecs,
-                                    nsTimeRanges* aOutBuffered)
-{
-  
-  if (aDurationUsecs <= 0 || !aStream || !aOutBuffered)
-    return;
-
-  
-  if (aStream->IsDataCachedToEndOfResource(0)) {
-    aOutBuffered->Add(0, double(aDurationUsecs) / USECS_PER_S);
-    return;
-  }
-
-  int64_t totalBytes = aStream->GetLength();
-
-  
-  
-  
-  if (totalBytes <= 0)
-    return;
-
-  int64_t startOffset = aStream->GetNextCachedData(0);
-  while (startOffset >= 0) {
-    int64_t endOffset = aStream->GetCachedDataEnd(startOffset);
-    
-    NS_ASSERTION(startOffset >= 0, "Integer underflow in GetBuffered");
-    NS_ASSERTION(endOffset >= 0, "Integer underflow in GetBuffered");
-
-    int64_t startUs = BytesToTime(startOffset, totalBytes, aDurationUsecs);
-    int64_t endUs = BytesToTime(endOffset, totalBytes, aDurationUsecs);
-    if (startUs != endUs) {
-      aOutBuffered->Add(double(startUs) / USECS_PER_S,
-                        double(endUs) / USECS_PER_S);
-    }
-    startOffset = aStream->GetNextCachedData(endOffset);
-  }
-  return;
-}
-

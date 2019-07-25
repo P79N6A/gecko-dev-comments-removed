@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsAutodialMaemo.h"
 #include "nsNetCID.h"
 #include "nsCOMPtr.h"
@@ -38,7 +71,7 @@ bool
 nsAutodial::ShouldDialOnNetworkError()
 {
   if (nsMaemoNetworkManager::IsConnected())
-    return false;
+    return PR_FALSE;
 
-  return true;
+  return PR_TRUE;
 }

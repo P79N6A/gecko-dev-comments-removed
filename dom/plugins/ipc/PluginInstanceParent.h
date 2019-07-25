@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef dom_plugins_PluginInstanceParent_h
 #define dom_plugins_PluginInstanceParent_h 1
 
@@ -11,10 +43,8 @@
 #include "mozilla/plugins/PluginScriptableObjectParent.h"
 #if defined(OS_WIN)
 #include "mozilla/gfx/SharedDIBWin.h"
-#include <d3d10_1.h>
-#include "nsRefPtrHashtable.h"
 #elif defined(MOZ_WIDGET_COCOA)
-#include "mozilla/gfx/QuartzSupport.h"
+#include "nsCoreAnimationSupport.h"
 #endif
 
 #include "npfunctions.h"
@@ -23,18 +53,13 @@
 #include "nsHashKeys.h"
 #include "nsRect.h"
 #include "gfxASurface.h"
-
+#include "ImageLayers.h"
 #ifdef MOZ_X11
 class gfxXlibSurface;
 #endif
 #include "nsGUIEvent.h"
-#include "mozilla/unused.h"
 
 namespace mozilla {
-namespace layers {
-class ImageContainer;
-class CompositionNotifySink;
-}
 namespace plugins {
 
 class PBrowserStreamParent;
@@ -58,13 +83,13 @@ public:
     bool Init();
     NPError Destroy();
 
-    virtual void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
+    NS_OVERRIDE virtual void ActorDestroy(ActorDestroyReason why);
 
     virtual PPluginScriptableObjectParent*
     AllocPPluginScriptableObject();
 
-    virtual bool
-    RecvPPluginScriptableObjectConstructor(PPluginScriptableObjectParent* aActor) MOZ_OVERRIDE;
+    NS_OVERRIDE virtual bool
+    RecvPPluginScriptableObjectConstructor(PPluginScriptableObjectParent* aActor);
 
     virtual bool
     DeallocPPluginScriptableObject(PPluginScriptableObjectParent* aObject);
@@ -105,9 +130,6 @@ public:
                                        NPError* result);
     virtual bool
     AnswerNPN_GetValue_NPNVprivateModeBool(bool* value, NPError* result);
-
-    virtual bool
-    AnswerNPN_GetValue_DrawingModelSupport(const NPNVariable& model, bool* value);
   
     virtual bool
     AnswerNPN_GetValue_NPNVdocumentOrigin(nsCString* value, NPError* result);
@@ -122,9 +144,7 @@ public:
                                                   NPError* result);
     virtual bool
     AnswerNPN_SetValue_NPPVpluginDrawingModel(const int& drawingModel,
-                                              OptionalShmem *remoteImageData,
-                                              CrossProcessMutexHandle *mutex,
-                                              NPError* result);
+                                             NPError* result);
     virtual bool
     AnswerNPN_SetValue_NPPVpluginEventModel(const int& eventModel,
                                              NPError* result);
@@ -144,13 +164,13 @@ public:
                        const bool& file,
                        NPError* result);
 
-    virtual bool
+    NS_OVERRIDE virtual bool
     AnswerPStreamNotifyConstructor(PStreamNotifyParent* actor,
                                    const nsCString& url,
                                    const nsCString& target,
                                    const bool& post, const nsCString& buffer,
                                    const bool& file,
-                                   NPError* result) MOZ_OVERRIDE;
+                                   NPError* result);
 
     virtual bool
     DeallocPStreamNotify(PStreamNotifyParent* notifyData);
@@ -178,17 +198,17 @@ public:
     virtual bool
     AnswerNPN_PopPopupsEnabledState();
 
-    virtual bool
+    NS_OVERRIDE virtual bool
     AnswerNPN_GetValueForURL(const NPNURLVariable& variable,
                              const nsCString& url,
-                             nsCString* value, NPError* result) MOZ_OVERRIDE;
+                             nsCString* value, NPError* result);
 
-    virtual bool
+    NS_OVERRIDE virtual bool
     AnswerNPN_SetValueForURL(const NPNURLVariable& variable,
                              const nsCString& url,
-                             const nsCString& value, NPError* result) MOZ_OVERRIDE;
+                             const nsCString& value, NPError* result);
 
-    virtual bool
+    NS_OVERRIDE virtual bool
     AnswerNPN_GetAuthenticationInfo(const nsCString& protocol,
                                     const nsCString& host,
                                     const int32_t& port,
@@ -196,9 +216,9 @@ public:
                                     const nsCString& realm,
                                     nsCString* username,
                                     nsCString* password,
-                                    NPError* result) MOZ_OVERRIDE;
+                                    NPError* result);
 
-    virtual bool
+    NS_OVERRIDE virtual bool
     AnswerNPN_ConvertPoint(const double& sourceX,
                            const bool&   ignoreDestX,
                            const double& sourceY,
@@ -207,21 +227,10 @@ public:
                            const NPCoordinateSpace& destSpace,
                            double *destX,
                            double *destY,
-                           bool *result) MOZ_OVERRIDE;
+                           bool *result);
 
-    virtual bool
-    AnswerNPN_InitAsyncSurface(const gfxIntSize& size,
-                               const NPImageFormat& format,
-                               NPRemoteAsyncSurface* surfData,
-                               bool* result);
-
-    virtual bool
-    RecvRedrawPlugin();
-
-    virtual bool
-    RecvNegotiatedCarbon() MOZ_OVERRIDE;
-
-    virtual bool RecvReleaseDXGISharedSurface(const DXGISharedSurfaceHandle &aHandle);
+    NS_OVERRIDE virtual bool
+    RecvNegotiatedCarbon();
 
     NPError NPP_SetWindow(const NPWindow* aWindow);
 
@@ -270,8 +279,12 @@ public:
     virtual bool
     AnswerPluginFocusChange(const bool& gotFocus);
 
+#ifdef MOZ_WIDGET_COCOA
+    void Invalidate();
+#endif 
+
     nsresult AsyncSetWindow(NPWindow* window);
-    nsresult GetImageContainer(mozilla::layers::ImageContainer** aContainer);
+    nsresult GetImage(mozilla::layers::ImageContainer* aContainer, mozilla::layers::Image** aImage);
     nsresult GetImageSize(nsIntSize* aSize);
 #ifdef XP_MACOSX
     nsresult IsRemoteDrawingCoreAnimation(bool *aDrawing);
@@ -285,8 +298,6 @@ public:
     nsresult HandleGUIEvent(const nsGUIEvent& anEvent, bool* handled);
 #endif
 
-    void DidComposite() { unused << SendNPP_DidComposite(); }
-
 private:
     
     
@@ -294,32 +305,36 @@ private:
     void DestroyBackground();
     SurfaceDescriptor BackgroundDescriptor() ;
 
-    typedef mozilla::layers::ImageContainer ImageContainer;
-    ImageContainer *GetImageContainer();
-
+    NS_OVERRIDE
     virtual PPluginBackgroundDestroyerParent*
-    AllocPPluginBackgroundDestroyer() MOZ_OVERRIDE;
+    AllocPPluginBackgroundDestroyer();
 
+    NS_OVERRIDE
     virtual bool
-    DeallocPPluginBackgroundDestroyer(PPluginBackgroundDestroyerParent* aActor) MOZ_OVERRIDE;
+    DeallocPPluginBackgroundDestroyer(PPluginBackgroundDestroyerParent* aActor);
+
+    
+    enum PluginQuirks {
+        
+        
+        
+        COREANIMATION_REFRESH_TIMER = 1,
+    };
+
+    void InitQuirksModes(const nsCString& aMimeType);
 
     bool InternalGetValueForNPObject(NPNVariable aVariable,
                                      PPluginScriptableObjectParent** aValue,
                                      NPError* aResult);
-
-    bool IsAsyncDrawing();
 
 private:
     PluginModuleParent* mParent;
     NPP mNPP;
     const NPNetscapeFuncs* mNPNIface;
     NPWindowType mWindowType;
-    Shmem mRemoteImageDataShmem;
-    nsAutoPtr<CrossProcessMutex> mRemoteImageDataMutex;
-    int16_t            mDrawingModel;
-    nsAutoPtr<mozilla::layers::CompositionNotifySink> mNotifySink;
+    int mQuirks;
 
-    nsDataHashtable<nsPtrHashKey<NPObject>, PluginScriptableObjectParent*> mScriptableObjects;
+    nsDataHashtable<nsVoidPtrHashKey, PluginScriptableObjectParent*> mScriptableObjects;
 
 #if defined(OS_WIN)
 private:
@@ -341,9 +356,6 @@ private:
     HWND               mPluginHWND;
     WNDPROC            mPluginWndProc;
     bool               mNestedEventState;
-
-    
-    nsRefPtrHashtable<nsPtrHashKey<void>, ID3D10Texture2D> mTextureMap;
 #endif 
 #if defined(MOZ_WIDGET_COCOA)
 private:
@@ -351,8 +363,9 @@ private:
     uint16_t               mShWidth;
     uint16_t               mShHeight;
     CGColorSpaceRef        mShColorSpace;
-    RefPtr<MacIOSurface> mIOSurface;
-    RefPtr<MacIOSurface> mFrontIOSurface;
+    int16_t                mDrawingModel;
+    nsRefPtr<nsIOSurface> mIOSurface;
+    nsRefPtr<nsIOSurface> mFrontIOSurface;
 #endif 
 
     
@@ -367,8 +380,6 @@ private:
     
     
     nsRefPtr<gfxASurface>    mBackground;
-
-    nsRefPtr<ImageContainer> mImageContainer;
 };
 
 

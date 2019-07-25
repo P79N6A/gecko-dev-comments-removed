@@ -2,28 +2,61 @@
 
 
 
-#include "nsAutoPtr.h"
-#include "nsCOMPtr.h"
-#include "nsDebug.h"
-#include "nsEditor.h"
-#include "nsError.h"
-#include "nsHTMLEditUtils.h"
-#include "nsHTMLEditor.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsHTMLEditorEventListener.h"
-#include "nsIDOMElement.h"
+#include "nsHTMLEditor.h"
+#include "nsString.h"
+
 #include "nsIDOMEvent.h"
-#include "nsIDOMEventTarget.h"
+#include "nsIDOMNSEvent.h"
+#include "nsIDOMElement.h"
 #include "nsIDOMMouseEvent.h"
-#include "nsIDOMNode.h"
-#include "nsIDOMRange.h"
-#include "nsIEditor.h"
-#include "nsIHTMLEditor.h"
-#include "nsIHTMLInlineTableEditor.h"
-#include "nsIHTMLObjectResizer.h"
 #include "nsISelection.h"
-#include "nsISupportsImpl.h"
-#include "nsLiteralString.h"
-#include "prtypes.h"
+#include "nsIDOMRange.h"
+#include "nsIDOMNSRange.h"
+#include "nsIDOMEventTarget.h"
+#include "nsIDOMHTMLTableElement.h"
+#include "nsIDOMHTMLTableCellElement.h"
+#include "nsIContent.h"
+
+#include "nsIHTMLObjectResizer.h"
+#include "nsEditProperty.h"
+#include "nsTextEditUtils.h"
+#include "nsHTMLEditUtils.h"
 
 
 
@@ -68,7 +101,7 @@ nsHTMLEditorEventListener::MouseUp(nsIDOMEvent* aMouseEvent)
   NS_ENSURE_TRUE(target, NS_ERROR_NULL_POINTER);
   nsCOMPtr<nsIDOMElement> element = do_QueryInterface(target);
 
-  int32_t clientX, clientY;
+  PRInt32 clientX, clientY;
   mouseEvent->GetClientX(&clientX);
   mouseEvent->GetClientY(&clientY);
   htmlEditor->MouseUp(clientX, clientY, element);
@@ -92,26 +125,22 @@ nsHTMLEditorEventListener::MouseDown(nsIDOMEvent* aMouseEvent)
   
   
   
-  uint16_t buttonNumber;
+  PRUint16 buttonNumber;
   nsresult res = mouseEvent->GetButton(&buttonNumber);
   NS_ENSURE_SUCCESS(res, res);
 
   bool isContextClick = buttonNumber == 2;
 
-  int32_t clickCount;
+  PRInt32 clickCount;
   res = mouseEvent->GetDetail(&clickCount);
   NS_ENSURE_SUCCESS(res, res);
 
   nsCOMPtr<nsIDOMEventTarget> target;
-  res = aMouseEvent->GetExplicitOriginalTarget(getter_AddRefs(target));
+  nsCOMPtr<nsIDOMNSEvent> internalEvent = do_QueryInterface(aMouseEvent);
+  res = internalEvent->GetExplicitOriginalTarget(getter_AddRefs(target));
   NS_ENSURE_SUCCESS(res, res);
   NS_ENSURE_TRUE(target, NS_ERROR_NULL_POINTER);
   nsCOMPtr<nsIDOMElement> element = do_QueryInterface(target);
-
-  
-  if (element && !htmlEditor->IsDescendantOfEditorRoot(element)) {
-    return NS_OK;
-  }
 
   if (isContextClick || (buttonNumber == 0 && clickCount == 2))
   {
@@ -125,29 +154,40 @@ nsHTMLEditorEventListener::MouseDown(nsIDOMEvent* aMouseEvent)
     NS_ENSURE_SUCCESS(res, res);
     NS_ENSURE_TRUE(parent, NS_ERROR_FAILURE);
 
-    int32_t offset = 0;
+    PRInt32 offset = 0;
     res = mouseEvent->GetRangeOffset(&offset);
     NS_ENSURE_SUCCESS(res, res);
 
     
     bool nodeIsInSelection = false;
-    if (isContextClick && !selection->Collapsed()) {
-      int32_t rangeCount;
-      res = selection->GetRangeCount(&rangeCount);
-      NS_ENSURE_SUCCESS(res, res);
+    if (isContextClick)
+    {
+      bool isCollapsed;
+      selection->GetIsCollapsed(&isCollapsed);
+      if (!isCollapsed)
+      {
+        PRInt32 rangeCount;
+        res = selection->GetRangeCount(&rangeCount);
+        NS_ENSURE_SUCCESS(res, res);
 
-      for (int32_t i = 0; i < rangeCount; i++) {
-        nsCOMPtr<nsIDOMRange> range;
+        for (PRInt32 i = 0; i < rangeCount; i++)
+        {
+          nsCOMPtr<nsIDOMRange> range;
 
-        res = selection->GetRangeAt(i, getter_AddRefs(range));
-        if (NS_FAILED(res) || !range)
-          continue;
+          res = selection->GetRangeAt(i, getter_AddRefs(range));
+          if (NS_FAILED(res) || !range) 
+            continue;
 
-        res = range->IsPointInRange(parent, offset, &nodeIsInSelection);
+          nsCOMPtr<nsIDOMNSRange> nsrange(do_QueryInterface(range));
+          if (NS_FAILED(res) || !nsrange) 
+            continue;
 
-        
-        if (nodeIsInSelection)
-          break;
+          res = nsrange->IsPointInRange(parent, offset, &nodeIsInSelection);
+
+          
+          if (nodeIsInSelection)
+            break;
+        }
       }
     }
     nsCOMPtr<nsIDOMNode> node = do_QueryInterface(target);
@@ -214,7 +254,7 @@ nsHTMLEditorEventListener::MouseDown(nsIDOMEvent* aMouseEvent)
   else if (!isContextClick && buttonNumber == 0 && clickCount == 1)
   {
     
-    int32_t clientX, clientY;
+    PRInt32 clientX, clientY;
     mouseEvent->GetClientX(&clientX);
     mouseEvent->GetClientY(&clientY);
     htmlEditor->MouseDown(clientX, clientY, element, aMouseEvent);

@@ -3,42 +3,70 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsFirstLetterFrame_h__
 #define nsFirstLetterFrame_h__
 
 
 
-#include "nsContainerFrame.h"
+#include "nsHTMLContainerFrame.h"
 
-class nsFirstLetterFrame : public nsContainerFrame {
+#define nsFirstLetterFrameSuper nsHTMLContainerFrame
+
+class nsFirstLetterFrame : public nsFirstLetterFrameSuper {
 public:
   NS_DECL_QUERYFRAME_TARGET(nsFirstLetterFrame)
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS
 
-  nsFirstLetterFrame(nsStyleContext* aContext) : nsContainerFrame(aContext) {}
-
-  NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                              const nsRect&           aDirtyRect,
-                              const nsDisplayListSet& aLists);
+  nsFirstLetterFrame(nsStyleContext* aContext) : nsHTMLContainerFrame(aContext) {}
 
   NS_IMETHOD Init(nsIContent*      aContent,
                   nsIFrame*        aParent,
                   nsIFrame*        aPrevInFlow);
   NS_IMETHOD SetInitialChildList(ChildListID     aListID,
                                  nsFrameList&    aChildList);
-#ifdef DEBUG
+#ifdef NS_DEBUG
   NS_IMETHOD GetFrameName(nsAString& aResult) const;
 #endif
   virtual nsIAtom* GetType() const;
 
-  bool IsFloating() const { return GetStateBits() & NS_FRAME_OUT_OF_FLOW; }
-
-  virtual bool IsFrameOfType(uint32_t aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
-    if (!IsFloating())
+    if (!GetStyleDisplay()->IsFloating())
       aFlags = aFlags & ~(nsIFrame::eLineParticipant);
-    return nsContainerFrame::IsFrameOfType(aFlags &
+    return nsFirstLetterFrameSuper::IsFrameOfType(aFlags &
       ~(nsIFrame::eBidiInlineContainer));
   }
 
@@ -51,7 +79,7 @@ public:
   virtual nsSize ComputeSize(nsRenderingContext *aRenderingContext,
                              nsSize aCBSize, nscoord aAvailableWidth,
                              nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                             uint32_t aFlags) MOZ_OVERRIDE;
+                             bool aShrinkWrap);
   NS_IMETHOD Reflow(nsPresContext*          aPresContext,
                     nsHTMLReflowMetrics&     aDesiredSize,
                     const nsHTMLReflowState& aReflowState,
@@ -61,9 +89,9 @@ public:
   virtual nscoord GetBaseline() const;
 
 
-  NS_IMETHOD GetChildFrameContainingOffset(int32_t inContentOffset,
+  NS_IMETHOD GetChildFrameContainingOffset(PRInt32 inContentOffset,
                                            bool inHint,
-                                           int32_t* outFrameContentOffset,
+                                           PRInt32* outFrameContentOffset,
                                            nsIFrame **outChildFrame);
 
   nscoord GetFirstLetterBaseline() const { return mBaseline; }
@@ -80,7 +108,7 @@ public:
 protected:
   nscoord mBaseline;
 
-  virtual int GetSkipSides() const;
+  virtual PRIntn GetSkipSides() const;
 
   void DrainOverflowFrames(nsPresContext* aPresContext);
 };

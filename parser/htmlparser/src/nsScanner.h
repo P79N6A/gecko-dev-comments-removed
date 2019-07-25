@@ -16,6 +16,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef SCANNER
 #define SCANNER
 
@@ -52,7 +84,7 @@ class nsScanner {
 
 
 
-      nsScanner(const nsAString& anHTMLString, const nsACString& aCharset, int32_t aSource);
+      nsScanner(const nsAString& anHTMLString, const nsACString& aCharset, PRInt32 aSource);
 
       
 
@@ -64,7 +96,7 @@ class nsScanner {
 
 
 
-      nsScanner(nsString& aFilename,bool aCreateStream, const nsACString& aCharset, int32_t aSource);
+      nsScanner(nsString& aFilename,bool aCreateStream, const nsACString& aCharset, PRInt32 aSource);
 
       ~nsScanner();
 
@@ -85,9 +117,9 @@ class nsScanner {
 
 
 
-      nsresult Peek(PRUnichar& ch, uint32_t aOffset=0);
+      nsresult Peek(PRUnichar& ch, PRUint32 aOffset=0);
 
-      nsresult Peek(nsAString& aStr, int32_t aNumChars, int32_t aOffset = 0);
+      nsresult Peek(nsAString& aStr, PRInt32 aNumChars, PRInt32 aOffset = 0);
 
       
 
@@ -104,7 +136,7 @@ class nsScanner {
 
 
 
-      nsresult SkipWhitespace(int32_t& aNewlinesSkipped);
+      nsresult SkipWhitespace(PRInt32& aNewlinesSkipped);
 
       
 
@@ -122,13 +154,13 @@ class nsScanner {
 
 
       nsresult ReadEntityIdentifier(nsString& aString);
-      nsresult ReadNumber(nsString& aString,int32_t aBase);
+      nsresult ReadNumber(nsString& aString,PRInt32 aBase);
       nsresult ReadWhitespace(nsScannerSharedSubstring& aString, 
-                              int32_t& aNewlinesSkipped,
+                              PRInt32& aNewlinesSkipped,
                               bool& aHaveCR);
       nsresult ReadWhitespace(nsScannerIterator& aStart, 
                               nsScannerIterator& aEnd,
-                              int32_t& aNewlinesSkipped);
+                              PRInt32& aNewlinesSkipped);
 
       
 
@@ -175,7 +207,7 @@ class nsScanner {
 
 
 
-      int32_t Mark(void);
+      PRInt32 Mark(void);
 
       
 
@@ -215,7 +247,7 @@ class nsScanner {
 
 
 
-      nsresult Append(const char* aBuffer, uint32_t aLen,
+      nsresult Append(const char* aBuffer, PRUint32 aLen,
                       nsIRequest *aRequest);
 
       
@@ -248,7 +280,7 @@ class nsScanner {
 
 
 
-      nsresult SetDocumentCharset(const nsACString& aCharset, int32_t aSource);
+      nsresult SetDocumentCharset(const nsACString& aCharset, PRInt32 aSource);
 
       void BindSubstring(nsScannerSubstring& aSubstring, const nsScannerIterator& aStart, const nsScannerIterator& aEnd);
       void CurrentPosition(nsScannerIterator& aPosition);
@@ -273,7 +305,7 @@ class nsScanner {
 
 
 
-      int32_t FirstNonWhitespacePosition()
+      PRInt32 FirstNonWhitespacePosition()
       {
         return mFirstNonWhitespacePosition;
       }
@@ -289,14 +321,14 @@ class nsScanner {
 
   protected:
 
-      bool AppendToBuffer(nsScannerString::Buffer *, nsIRequest *aRequest, int32_t aErrorPos = -1);
+      bool AppendToBuffer(nsScannerString::Buffer *, nsIRequest *aRequest, PRInt32 aErrorPos = -1);
       bool AppendToBuffer(const nsAString& aStr)
       {
         nsScannerString::Buffer* buf = nsScannerString::AllocBufferFromString(aStr);
         if (!buf)
-          return false;
-        AppendToBuffer(buf, nullptr);
-        return true;
+          return PR_FALSE;
+        AppendToBuffer(buf, nsnull);
+        return PR_TRUE;
       }
 
       nsScannerString*             mSlidingBuffer;
@@ -305,13 +337,13 @@ class nsScanner {
       nsScannerIterator            mEndPosition;     
       nsScannerIterator            mFirstInvalidPosition; 
       nsString        mFilename;
-      uint32_t        mCountRemaining; 
+      PRUint32        mCountRemaining; 
                                        
       bool            mIncremental;
       bool            mHasInvalidCharacter;
       PRUnichar       mReplacementCharacter;
-      int32_t         mFirstNonWhitespacePosition;
-      int32_t         mCharsetSource;
+      PRInt32         mFirstNonWhitespacePosition;
+      PRInt32         mCharsetSource;
       nsCString       mCharset;
       nsCOMPtr<nsIUnicodeDecoder> mUnicodeDecoder;
 

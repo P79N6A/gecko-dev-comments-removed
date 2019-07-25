@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsHttpAuthCache_h__
 #define nsHttpAuthCache_h__
 
@@ -30,15 +64,15 @@ class nsHttpAuthIdentity
 {
 public:
     nsHttpAuthIdentity()
-        : mUser(nullptr)
-        , mPass(nullptr)
-        , mDomain(nullptr)
+        : mUser(nsnull)
+        , mPass(nsnull)
+        , mDomain(nsnull)
     {
     }
     nsHttpAuthIdentity(const PRUnichar *domain,
                        const PRUnichar *user,
                        const PRUnichar *password)
-        : mUser(nullptr)
+        : mUser(nsnull)
     {
         Set(domain, user, password);
     }
@@ -95,9 +129,9 @@ private:
                     const char *challenge,
                     const nsHttpAuthIdentity *ident,
                     nsISupports *metadata)
-        : mRoot(nullptr)
-        , mTail(nullptr)
-        , mRealm(nullptr)
+        : mRoot(nsnull)
+        , mTail(nsnull)
+        , mRealm(nsnull)
     {
         Set(path, realm, creds, challenge, ident, metadata);
     }
@@ -152,7 +186,7 @@ private:
 
     void ClearAuthEntry(const char *realm);
 
-    uint32_t EntryCount() { return mList.Length(); }
+    PRUint32 EntryCount() { return mList.Length(); }
 
 private:
     nsTArray<nsAutoPtr<nsHttpAuthEntry> > mList;
@@ -178,7 +212,7 @@ public:
     
     nsresult GetAuthEntryForPath(const char *scheme,
                                  const char *host,
-                                 int32_t     port,
+                                 PRInt32     port,
                                  const char *path,
                                  nsHttpAuthEntry **entry);
 
@@ -187,7 +221,7 @@ public:
     
     nsresult GetAuthEntryForDomain(const char *scheme,
                                    const char *host,
-                                   int32_t     port,
+                                   PRInt32     port,
                                    const char *realm,
                                    nsHttpAuthEntry **entry);
 
@@ -198,7 +232,7 @@ public:
     
     nsresult SetAuthEntry(const char *scheme,
                           const char *host,
-                          int32_t     port,
+                          PRInt32     port,
                           const char *directory,
                           const char *realm,
                           const char *credentials,
@@ -208,7 +242,7 @@ public:
 
     void ClearAuthEntry(const char *scheme,
                         const char *host,
-                        int32_t     port,
+                        PRInt32     port,
                         const char *realm);
 
     
@@ -217,14 +251,14 @@ public:
 private:
     nsHttpAuthNode *LookupAuthNode(const char *scheme,
                                    const char *host,
-                                   int32_t     port,
+                                   PRInt32     port,
                                    nsCString  &key);
 
     
-    static void*        AllocTable(void *, size_t size);
+    static void*        AllocTable(void *, PRSize size);
     static void         FreeTable(void *, void *item);
     static PLHashEntry* AllocEntry(void *, const void *key);
-    static void         FreeEntry(void *, PLHashEntry *he, unsigned flag);
+    static void         FreeEntry(void *, PLHashEntry *he, PRUintn flag);
 
     static PLHashAllocOps gHashAllocOps;
     

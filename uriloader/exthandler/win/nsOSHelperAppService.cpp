@@ -5,6 +5,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsOSHelperAppService.h"
 #include "nsISupports.h"
 #include "nsString.h"
@@ -33,19 +68,25 @@ static nsresult GetExtensionFromWindowsMimeDatabase(const nsACString& aMimeType,
 
 nsOSHelperAppService::nsOSHelperAppService() : 
   nsExternalHelperAppService()
-  , mAppAssoc(nullptr)
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
+  , mAppAssoc(nsnull)
+#endif
 {
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
   CoInitialize(NULL);
   CoCreateInstance(CLSID_ApplicationAssociationRegistration, NULL, CLSCTX_INPROC,
                    IID_IApplicationAssociationRegistration, (void**)&mAppAssoc);
+#endif
 }
 
 nsOSHelperAppService::~nsOSHelperAppService()
 {
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
   if (mAppAssoc)
     mAppAssoc->Release();
-  mAppAssoc = nullptr;
+  mAppAssoc = nsnull;
   CoUninitialize();
+#endif
 }
 
 
@@ -102,7 +143,7 @@ static nsresult GetExtensionFrom4xRegistryInfo(const nsACString& aMimeType,
   
   
 
-  int32_t pos = aFileExtension.FindChar(PRUnichar(','));
+  PRInt32 pos = aFileExtension.FindChar(PRUnichar(','));
   if (pos > 0) {
     
     
@@ -115,12 +156,13 @@ static nsresult GetExtensionFrom4xRegistryInfo(const nsACString& aMimeType,
 nsresult nsOSHelperAppService::OSProtocolHandlerExists(const char * aProtocolScheme, bool * aHandlerExists)
 {
   
-  *aHandlerExists = false;
+  *aHandlerExists = PR_FALSE;
   if (aProtocolScheme && *aProtocolScheme)
   {
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
     
     if (mAppAssoc) {
-      PRUnichar * pResult = nullptr;
+      PRUnichar * pResult = nsnull;
       NS_ConvertASCIItoUTF16 scheme(aProtocolScheme);
       
       HRESULT hr = mAppAssoc->QueryCurrentDefault(scheme.get(),
@@ -128,10 +170,11 @@ nsresult nsOSHelperAppService::OSProtocolHandlerExists(const char * aProtocolSch
                                                   &pResult);
       if (SUCCEEDED(hr)) {
         CoTaskMemFree(pResult);
-        *aHandlerExists = true;
+        *aHandlerExists = PR_TRUE;
       }
       return NS_OK;
     }
+#endif
 
     HKEY hKey;
     LONG err = ::RegOpenKeyExW(HKEY_CLASSES_ROOT,
@@ -160,9 +203,10 @@ NS_IMETHODIMP nsOSHelperAppService::GetApplicationDescription(const nsACString& 
 
   NS_ConvertASCIItoUTF16 buf(aScheme);
 
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
   
   if (mAppAssoc) {
-    PRUnichar * pResult = nullptr;
+    PRUnichar * pResult = nsnull;
     
     HRESULT hr = mAppAssoc->QueryCurrentDefault(buf.get(),
                                                 AT_URLPROTOCOL, AL_EFFECTIVE,
@@ -176,6 +220,7 @@ NS_IMETHODIMP nsOSHelperAppService::GetApplicationDescription(const nsACString& 
     }
     return NS_ERROR_NOT_AVAILABLE;
   }
+#endif
 
   nsCOMPtr<nsIFile> app;
   GetDefaultAppInfo(buf, _retval, getter_AddRefs(app));
@@ -239,7 +284,7 @@ nsresult nsOSHelperAppService::GetMIMEInfoFromRegistry(const nsAFlatString& file
 nsOSHelperAppService::typeFromExtEquals(const PRUnichar* aExt, const char *aType)
 {
   if (!aType)
-    return false;
+    return PR_FALSE;
   nsAutoString fileExtToUse;
   if (aExt[0] != PRUnichar('.'))
     fileExtToUse = PRUnichar('.');
@@ -276,22 +321,22 @@ static void CleanupHandlerPath(nsString& aPath)
   
   
 
-  int32_t lastCommaPos = aPath.RFindChar(',');
+  PRInt32 lastCommaPos = aPath.RFindChar(',');
   if (lastCommaPos != kNotFound)
     aPath.Truncate(lastCommaPos);
 
   aPath.AppendLiteral(" ");
 
   
-  uint32_t index = aPath.Find(".exe ", true);
+  PRUint32 index = aPath.Find(".exe ", PR_TRUE);
   if (index == kNotFound)
-    index = aPath.Find(".dll ", true);
+    index = aPath.Find(".dll ", PR_TRUE);
   if (index == kNotFound)
-    index = aPath.Find(".cpl ", true);
+    index = aPath.Find(".cpl ", PR_TRUE);
 
   if (index != kNotFound)
     aPath.Truncate(index + 4);
-  aPath.Trim(" ", true, true);
+  aPath.Trim(" ", PR_TRUE, PR_TRUE);
 }
 
 
@@ -308,15 +353,15 @@ static void StripRundll32(nsString& aCommandString)
   NS_NAMED_LITERAL_STRING(rundllSegmentShort, "rundll32 ");
 
   
-  int32_t strLen = rundllSegment.Length();
-  int32_t index = aCommandString.Find(rundllSegment, true);
+  PRInt32 strLen = rundllSegment.Length();
+  PRInt32 index = aCommandString.Find(rundllSegment, PR_TRUE);
   if (index == kNotFound) {
     strLen = rundllSegmentShort.Length();
-    index = aCommandString.Find(rundllSegmentShort, true);
+    index = aCommandString.Find(rundllSegmentShort, PR_TRUE);
   }
 
   if (index != kNotFound) {
-    uint32_t rundllSegmentLength = index + strLen;
+    PRUint32 rundllSegmentLength = index + strLen;
     aCommandString.Cut(0, rundllSegmentLength);
   }
 }
@@ -345,17 +390,17 @@ static void StripRundll32(nsString& aCommandString)
   
 
   
-  uint32_t bufLength = ::ExpandEnvironmentStringsW(handlerCommand.get(),
+  PRUint32 bufLength = ::ExpandEnvironmentStringsW(handlerCommand.get(),
                                                    L"", 0);
   if (bufLength == 0) 
-    return false;
+    return PR_FALSE;
 
   nsAutoArrayPtr<PRUnichar> destination(new PRUnichar[bufLength]);
   if (!destination)
-    return false;
+    return PR_FALSE;
   if (!::ExpandEnvironmentStringsW(handlerCommand.get(), destination,
                                    bufLength))
-    return false;
+    return PR_FALSE;
 
   handlerCommand = destination;
 
@@ -371,7 +416,7 @@ static void StripRundll32(nsString& aCommandString)
   CleanupHandlerPath(handlerCommand);
 
   aCommandHandler.Assign(handlerCommand);
-  return true;
+  return PR_TRUE;
 }
 
 
@@ -388,7 +433,7 @@ nsOSHelperAppService::GetDefaultAppInfo(const nsAString& aAppInfo,
   
   
   aDefaultDescription = aAppInfo;
-  *aDefaultApplication = nullptr;
+  *aDefaultApplication = nsnull;
 
   if (aAppInfo.IsEmpty())
     return NS_ERROR_FAILURE;
@@ -428,38 +473,8 @@ nsOSHelperAppService::GetDefaultAppInfo(const nsAString& aAppInfo,
      
     
     rv = regKey->ReadStringValue(EmptyString(), handlerCommand);
-    if (NS_FAILED(rv)) {
-
-      
-      nsAutoString delegateExecute;
-      rv = regKey->ReadStringValue(NS_LITERAL_STRING("DelegateExecute"), delegateExecute);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      
-      nsAutoString delegateExecuteRegPath;
-      delegateExecuteRegPath.AssignLiteral("CLSID\\");
-      delegateExecuteRegPath.Append(delegateExecute);
-      delegateExecuteRegPath.AppendLiteral("\\InProcServer32");
-      rv = chkKey->Open(nsIWindowsRegKey::ROOT_KEY_CLASSES_ROOT,
-                        delegateExecuteRegPath, 
-                        nsIWindowsRegKey::ACCESS_QUERY_VALUE);
-      if (NS_SUCCEEDED(rv)) {
-        rv = chkKey->ReadStringValue(EmptyString(), handlerCommand);
-      }
-
-      if (NS_FAILED(rv)) {
-        
-        delegateExecuteRegPath.AssignLiteral("CLSID\\");
-        delegateExecuteRegPath.Append(delegateExecute);
-        delegateExecuteRegPath.AppendLiteral("\\LocalServer32");
-        rv = chkKey->Open(nsIWindowsRegKey::ROOT_KEY_CLASSES_ROOT,
-                          delegateExecuteRegPath, 
-                          nsIWindowsRegKey::ACCESS_QUERY_VALUE);
-        NS_ENSURE_SUCCESS(rv, rv);
-        rv = chkKey->ReadStringValue(EmptyString(), handlerCommand);
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
-    }
+    if (NS_FAILED(rv))
+      return NS_ERROR_FAILURE;
   }
 
   if (!CleanupCmdHandlerPath(handlerCommand))
@@ -470,12 +485,12 @@ nsOSHelperAppService::GetDefaultAppInfo(const nsAString& aAppInfo,
   
   
   
-  nsCOMPtr<nsIFile> lf;
-  NS_NewLocalFile(handlerCommand, true, getter_AddRefs(lf));
+  nsCOMPtr<nsILocalFile> lf;
+  NS_NewLocalFile(handlerCommand, PR_TRUE, getter_AddRefs(lf));
   if (!lf)
     return NS_ERROR_FILE_NOT_FOUND;
 
-  nsILocalFileWin* lfw = nullptr;
+  nsILocalFileWin* lfw = nsnull;
   CallQueryInterface(lf, &lfw);
 
   if (lfw) {
@@ -491,7 +506,7 @@ nsOSHelperAppService::GetDefaultAppInfo(const nsAString& aAppInfo,
 already_AddRefed<nsMIMEInfoWin> nsOSHelperAppService::GetByExtension(const nsAFlatString& aFileExt, const char *aTypeHint)
 {
   if (aFileExt.IsEmpty())
-    return nullptr;
+    return nsnull;
 
   
   
@@ -505,15 +520,15 @@ already_AddRefed<nsMIMEInfoWin> nsOSHelperAppService::GetByExtension(const nsAFl
   nsCOMPtr<nsIWindowsRegKey> regKey = 
     do_CreateInstance("@mozilla.org/windows-registry-key;1");
   if (!regKey) 
-    return nullptr; 
+    return nsnull; 
 
   nsresult rv = regKey->Open(nsIWindowsRegKey::ROOT_KEY_CLASSES_ROOT,
                              fileExtToUse,
                              nsIWindowsRegKey::ACCESS_QUERY_VALUE);
   if (NS_FAILED(rv))
-    return nullptr; 
+    return nsnull; 
 
-  nsAutoCString typeToUse;
+  nsCAutoString typeToUse;
   if (aTypeHint && *aTypeHint) {
     typeToUse.Assign(aTypeHint);
   }
@@ -521,7 +536,7 @@ already_AddRefed<nsMIMEInfoWin> nsOSHelperAppService::GetByExtension(const nsAFl
     nsAutoString temp;
     if (NS_FAILED(regKey->ReadStringValue(NS_LITERAL_STRING("Content Type"),
                   temp)) || temp.IsEmpty()) {
-      return nullptr; 
+      return nsnull; 
     }
     
     LossyAppendUTF16toASCII(temp, typeToUse);
@@ -529,7 +544,7 @@ already_AddRefed<nsMIMEInfoWin> nsOSHelperAppService::GetByExtension(const nsAFl
 
   nsMIMEInfoWin* mimeInfo = new nsMIMEInfoWin(typeToUse);
   if (!mimeInfo)
-    return nullptr; 
+    return nsnull; 
 
   NS_ADDREF(mimeInfo);
 
@@ -540,25 +555,27 @@ already_AddRefed<nsMIMEInfoWin> nsOSHelperAppService::GetByExtension(const nsAFl
   nsAutoString appInfo;
   bool found;
 
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
   
   if (mAppAssoc) {
     
     
     nsString assocType(fileExtToUse);
-    PRUnichar * pResult = nullptr;
+    PRUnichar * pResult = nsnull;
     HRESULT hr = mAppAssoc->QueryCurrentDefault(assocType.get(),
                                                 AT_FILEEXTENSION, AL_EFFECTIVE,
                                                 &pResult);
     if (SUCCEEDED(hr)) {
-      found = true;
+      found = PR_TRUE;
       appInfo.Assign(pResult);
       CoTaskMemFree(pResult);
     } 
     else {
-      found = false;
+      found = PR_FALSE;
     }
   } 
   else
+#endif
   {
     found = NS_SUCCEEDED(regKey->ReadStringValue(EmptyString(), 
                                                  appInfo));
@@ -566,11 +583,11 @@ already_AddRefed<nsMIMEInfoWin> nsOSHelperAppService::GetByExtension(const nsAFl
 
   
   if (appInfo.EqualsLiteral("XPSViewer.Document"))
-    found = false;
+    found = PR_FALSE;
 
   if (!found) {
     NS_IF_RELEASE(mimeInfo); 
-    return nullptr;
+    return nsnull;
   }
 
   
@@ -580,7 +597,7 @@ already_AddRefed<nsMIMEInfoWin> nsOSHelperAppService::GetByExtension(const nsAFl
   if (NS_FAILED(GetDefaultAppInfo(appInfo, defaultDescription,
                                   getter_AddRefs(defaultApplication)))) {
     NS_IF_RELEASE(mimeInfo);
-    return nullptr;
+    return nsnull;
   }
 
   mimeInfo->SetDefaultDescription(defaultDescription);
@@ -594,7 +611,7 @@ already_AddRefed<nsMIMEInfoWin> nsOSHelperAppService::GetByExtension(const nsAFl
 
 already_AddRefed<nsIMIMEInfo> nsOSHelperAppService::GetMIMEInfoFromOS(const nsACString& aMIMEType, const nsACString& aFileExt, bool *aFound)
 {
-  *aFound = true;
+  *aFound = PR_TRUE;
 
   const nsCString& flatType = PromiseFlatCString(aMIMEType);
   const nsCString& flatExt = PromiseFlatCString(aFileExt);
@@ -619,7 +636,7 @@ already_AddRefed<nsIMIMEInfo> nsOSHelperAppService::GetMIMEInfoFromOS(const nsAC
     }
   }
   
-  nsMIMEInfoWin* mi = nullptr;
+  nsMIMEInfoWin* mi = nsnull;
   if (!fileExtension.IsEmpty())
     mi = GetByExtension(fileExtension, flatType.get()).get();
   LOG(("Extension lookup on '%s' found: 0x%p\n", fileExtension.get(), mi));
@@ -652,7 +669,7 @@ already_AddRefed<nsIMIMEInfo> nsOSHelperAppService::GetMIMEInfoFromOS(const nsAC
       return mi;
     }
     if (!miByExt && !mi) {
-      *aFound = false;
+      *aFound = PR_FALSE;
       mi = new nsMIMEInfoWin(flatType);
       if (mi) {
         NS_ADDREF(mi);

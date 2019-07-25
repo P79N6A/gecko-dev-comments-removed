@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsBindingManager_h_
 #define nsBindingManager_h_
 
@@ -61,15 +95,13 @@ public:
   void RemovedFromDocument(nsIContent* aContent, nsIDocument* aOldDocument)
   {
     if (aContent->HasFlag(NODE_MAY_BE_IN_BINDING_MNGR)) {
-      RemovedFromDocumentInternal(aContent, aOldDocument,
-                                  aContent->GetBindingParent());
+      RemovedFromDocumentInternal(aContent, aOldDocument);
     }
   }
   void RemovedFromDocumentInternal(nsIContent* aContent,
-                                   nsIDocument* aOldDocument,
-                                   nsIContent* aContentBindingParent);
+                                   nsIDocument* aOldDocument);
 
-  nsIAtom* ResolveTag(nsIContent* aContent, int32_t* aNameSpaceID);
+  nsIAtom* ResolveTag(nsIContent* aContent, PRInt32* aNameSpaceID);
 
   
 
@@ -141,14 +173,14 @@ public:
   
   
   nsIContent* GetInsertionPoint(nsIContent* aParent,
-                                const nsIContent* aChild, uint32_t* aIndex);
+                                const nsIContent* aChild, PRUint32* aIndex);
 
   
 
 
 
 
-  nsIContent* GetSingleInsertionPoint(nsIContent* aParent, uint32_t* aIndex,
+  nsIContent* GetSingleInsertionPoint(nsIContent* aParent, PRUint32* aIndex,
                                       bool* aMultipleInsertionPoints);
 
   nsIContent* GetNestedInsertionPoint(nsIContent* aParent,
@@ -163,7 +195,7 @@ public:
                                nsIPrincipal* aOriginPrincipal);
 
   nsresult AddToAttachedQueue(nsXBLBinding* aBinding);
-  void ProcessAttachedQueue(uint32_t aSkipSize = 0);
+  void ProcessAttachedQueue(PRUint32 aSkipSize = 0);
 
   void ExecuteDetachedHandlers();
 
@@ -223,7 +255,7 @@ protected:
   
   
   void HandleChildInsertion(nsIContent* aContainer, nsIContent* aChild,
-                            uint32_t aIndexInContainer, bool aAppend);
+                            PRUint32 aIndexInContainer, bool aAppend);
 
   
   
@@ -234,9 +266,9 @@ protected:
   
   nsXBLInsertionPoint* FindInsertionPointAndIndex(nsIContent* aContainer,
                                                   nsIContent* aInsertionParent,
-                                                  uint32_t aIndexInContainer,
-                                                  int32_t aAppend,
-                                                  int32_t* aInsertionIndex);
+                                                  PRUint32 aIndexInContainer,
+                                                  PRInt32 aAppend,
+                                                  PRInt32* aInsertionIndex);
 
   
   
@@ -298,7 +330,7 @@ protected:
   nsBindingList mAttachedStack;
   bool mProcessingAttachedStack;
   bool mDestroyed;
-  uint32_t mAttachedStackSizeOnOutermost;
+  PRUint32 mAttachedStackSizeOnOutermost;
 
   
   friend class nsRunnableMethod<nsBindingManager>;

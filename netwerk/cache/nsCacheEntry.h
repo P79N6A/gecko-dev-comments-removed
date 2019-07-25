@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsCacheEntry_h_
 #define _nsCacheEntry_h_
 
@@ -31,7 +65,7 @@ class nsCacheEntry : public PRCList
 {
 public:
 
-    nsCacheEntry(const nsACString &   key,
+    nsCacheEntry(nsCString *          key,
                  bool                 streamBased,
                  nsCacheStoragePolicy storagePolicy);
     ~nsCacheEntry();
@@ -43,29 +77,26 @@ public:
                              nsCacheDevice *       device,
                              nsCacheEntry **       result);
                                       
-    nsCString *  Key()  { return &mKey; }
+    nsCString *  Key()  { return mKey; }
 
-    int32_t  FetchCount()                              { return mFetchCount; }
-    void     SetFetchCount( int32_t   count)           { mFetchCount = count; }
+    PRInt32  FetchCount()                              { return mFetchCount; }
+    void     SetFetchCount( PRInt32   count)           { mFetchCount = count; }
     void     Fetched();
 
-    uint32_t LastFetched()                             { return mLastFetched; }
-    void     SetLastFetched( uint32_t  lastFetched)    { mLastFetched = lastFetched; }
+    PRUint32 LastFetched()                             { return mLastFetched; }
+    void     SetLastFetched( PRUint32  lastFetched)    { mLastFetched = lastFetched; }
 
-    uint32_t LastModified()                            { return mLastModified; }
-    void     SetLastModified( uint32_t lastModified)   { mLastModified = lastModified; }
+    PRUint32 LastModified()                            { return mLastModified; }
+    void     SetLastModified( PRUint32 lastModified)   { mLastModified = lastModified; }
 
-    uint32_t ExpirationTime()                     { return mExpirationTime; }
-    void     SetExpirationTime( uint32_t expires) { mExpirationTime = expires; }
+    PRUint32 ExpirationTime()                     { return mExpirationTime; }
+    void     SetExpirationTime( PRUint32 expires) { mExpirationTime = expires; }
 
-    uint32_t Size()                               
-        { return mDataSize + mMetaData.Size() + mKey.Length() ; }
+    PRUint32 Size()                               
+        { return mDataSize + mMetaData.Size() + (mKey ? mKey->Length() : 0); }
 
     nsCacheDevice * CacheDevice()                            { return mCacheDevice; }
     void            SetCacheDevice( nsCacheDevice * device)  { mCacheDevice = device; }
-    void            SetCustomCacheDevice( nsCacheDevice * device )
-                                                             { mCustomDevice = device; }
-    nsCacheDevice * CustomCacheDevice()                      { return mCustomDevice; }
     const char *    GetDeviceID();
 
     
@@ -74,11 +105,11 @@ public:
     nsISupports *Data()                           { return mData; }
     void         SetData( nsISupports * data);
 
-    int64_t  PredictedDataSize()                  { return mPredictedDataSize; }
-    void     SetPredictedDataSize(int64_t size)   { mPredictedDataSize = size; }
+    PRInt64  PredictedDataSize()                  { return mPredictedDataSize; }
+    void     SetPredictedDataSize(PRInt64 size)   { mPredictedDataSize = size; }
 
-    uint32_t DataSize()                           { return mDataSize; }
-    void     SetDataSize( uint32_t  size)         { mDataSize = size; }
+    PRUint32 DataSize()                           { return mDataSize; }
+    void     SetDataSize( PRUint32  size)         { mDataSize = size; }
 
     void     TouchData();
     
@@ -89,9 +120,9 @@ public:
     nsresult     SetMetaDataElement( const char *  key,
                                      const char *  value) { return mMetaData.SetElement(key, value); }
     nsresult VisitMetaDataElements( nsICacheMetaDataVisitor * visitor) { return mMetaData.VisitElements(visitor); }
-    nsresult FlattenMetaData(char * buffer, uint32_t bufSize) { return mMetaData.FlattenMetaData(buffer, bufSize); }
-    nsresult UnflattenMetaData(const char * buffer, uint32_t bufSize) { return mMetaData.UnflattenMetaData(buffer, bufSize); }
-    uint32_t MetaDataSize() { return mMetaData.Size(); }  
+    nsresult FlattenMetaData(char * buffer, PRUint32 bufSize) { return mMetaData.FlattenMetaData(buffer, bufSize); }
+    nsresult UnflattenMetaData(const char * buffer, PRUint32 bufSize) { return mMetaData.UnflattenMetaData(buffer, bufSize); }
+    PRUint32 MetaDataSize() { return mMetaData.Size(); }  
 
     void     TouchMetaData();
 
@@ -116,8 +147,7 @@ public:
         eActiveMask          = 0x00002000,
         eInitializedMask     = 0x00004000,
         eValidMask           = 0x00008000,
-        eBindingMask         = 0x00010000,
-        ePrivateMask         = 0x00020000
+        eBindingMask         = 0x00010000
     };
     
     void MarkBinding()         { mFlags |=  eBindingMask; }
@@ -133,8 +163,6 @@ public:
     void MarkStreamData()      { mFlags |=  eStreamDataMask; }
     void MarkValid()           { mFlags |=  eValidMask; }
     void MarkInvalid()         { mFlags &= ~eValidMask; }
-    void MarkPrivate()         { mFlags |=  ePrivateMask; }
-    void MarkPublic()          { mFlags &= ~ePrivateMask; }
     
     
 
@@ -151,7 +179,6 @@ public:
                                         !(PR_CLIST_IS_EMPTY(&mRequestQ) &&
                                           PR_CLIST_IS_EMPTY(&mDescriptorQ)); }
     bool IsNotInUse()        { return !IsInUse(); }
-    bool IsPrivate()         { return (mFlags & ePrivateMask) != 0; }
 
 
     bool IsAllowedInMemory()
@@ -162,9 +189,9 @@ public:
 
     bool IsAllowedOnDisk()
     {
-        return !IsPrivate() && ((StoragePolicy() == nsICache::STORE_ANYWHERE) ||
+        return (StoragePolicy() == nsICache::STORE_ANYWHERE) ||
             (StoragePolicy() == nsICache::STORE_ON_DISK) ||
-            (StoragePolicy() == nsICache::STORE_ON_DISK_AS_FILE));
+            (StoragePolicy() == nsICache::STORE_ON_DISK_AS_FILE);
     }
 
     bool IsAllowedOffline()
@@ -209,17 +236,16 @@ private:
     void MarkActive()          { mFlags |=  eActiveMask; }
     void MarkInactive()        { mFlags &= ~eActiveMask; }
 
-    nsCString               mKey;
-    uint32_t                mFetchCount;     
-    uint32_t                mLastFetched;    
-    uint32_t                mLastModified;   
-    uint32_t                mLastValidated;  
-    uint32_t                mExpirationTime; 
-    uint32_t                mFlags;          
-    int64_t                 mPredictedDataSize;  
-    uint32_t                mDataSize;       
+    nsCString *             mKey;            
+    PRUint32                mFetchCount;     
+    PRUint32                mLastFetched;    
+    PRUint32                mLastModified;   
+    PRUint32                mLastValidated;  
+    PRUint32                mExpirationTime; 
+    PRUint32                mFlags;          
+    PRInt64                 mPredictedDataSize;  
+    PRUint32                mDataSize;       
     nsCacheDevice *         mCacheDevice;    
-    nsCacheDevice *         mCustomDevice;   
     nsCOMPtr<nsISupports>   mSecurityInfo;   
     nsISupports *           mData;           
     nsCOMPtr<nsIThread>     mThread;
@@ -243,7 +269,7 @@ public:
     }
 
     virtual ~nsCacheEntryInfo() {}
-    void    DetachEntry() { mCacheEntry = nullptr; }
+    void    DetachEntry() { mCacheEntry = nsnull; }
     
 private:
     nsCacheEntry * mCacheEntry;
@@ -293,12 +319,12 @@ private:
     static
     PLDHashOperator       FreeCacheEntries(PLDHashTable *    table,
                                            PLDHashEntryHdr * hdr,
-                                           uint32_t          number,
+                                           PRUint32          number,
                                            void *            arg);
     static
     PLDHashOperator       VisitEntry(PLDHashTable *         table,
                                      PLDHashEntryHdr *      hdr,
-                                     uint32_t               number,
+                                     PRUint32               number,
                                      void *                 arg);
                                      
     

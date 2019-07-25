@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nspr.h"
 #include "nsDataChannel.h"
 #include "nsDataHandler.h"
@@ -14,7 +46,7 @@
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIProgressEventSink.h"
 #include "nsNetCID.h"
-#include "nsError.h"
+#include "nsNetError.h"
 
 static NS_DEFINE_CID(kSimpleURICID, NS_SIMPLEURI_CID);
 
@@ -32,7 +64,7 @@ nsresult
 nsDataHandler::Create(nsISupports* aOuter, const nsIID& aIID, void* *aResult) {
 
     nsDataHandler* ph = new nsDataHandler();
-    if (ph == nullptr)
+    if (ph == nsnull)
         return NS_ERROR_OUT_OF_MEMORY;
     NS_ADDREF(ph);
     nsresult rv = ph->QueryInterface(aIID, aResult);
@@ -50,17 +82,16 @@ nsDataHandler::GetScheme(nsACString &result) {
 }
 
 NS_IMETHODIMP
-nsDataHandler::GetDefaultPort(int32_t *result) {
+nsDataHandler::GetDefaultPort(PRInt32 *result) {
     
     *result = -1;
     return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDataHandler::GetProtocolFlags(uint32_t *result) {
+nsDataHandler::GetProtocolFlags(PRUint32 *result) {
     *result = URI_NORELATIVE | URI_NOAUTH | URI_INHERITS_SECURITY_CONTEXT |
-        URI_LOADABLE_BY_ANYONE | URI_NON_PERSISTABLE | URI_IS_LOCAL_RESOURCE |
-        URI_SYNC_LOAD_IS_OK;
+        URI_LOADABLE_BY_ANYONE | URI_NON_PERSISTABLE | URI_IS_LOCAL_RESOURCE;
     return NS_OK;
 }
 
@@ -83,7 +114,7 @@ nsDataHandler::NewURI(const nsACString &aSpec,
         rv = uri->SetRef(spec);
     } else {
         
-        nsAutoCString contentType, contentCharset, dataBuffer, hashRef;
+        nsCAutoString contentType, contentCharset, dataBuffer, hashRef;
         bool base64;
         rv = ParseURI(spec, contentType, contentCharset, base64, dataBuffer, hashRef);
         if (NS_FAILED(rv))
@@ -129,13 +160,11 @@ nsDataHandler::NewChannel(nsIURI* uri, nsIChannel* *result) {
 }
 
 NS_IMETHODIMP 
-nsDataHandler::AllowPort(int32_t port, const char *scheme, bool *_retval) {
+nsDataHandler::AllowPort(PRInt32 port, const char *scheme, bool *_retval) {
     
-    *_retval = false;
+    *_retval = PR_FALSE;
     return NS_OK;
 }
-
-#define BASE64_EXTENSION ";base64"
 
 nsresult
 nsDataHandler::ParseURI(nsCString& spec,
@@ -144,7 +173,7 @@ nsDataHandler::ParseURI(nsCString& spec,
                         bool&    isBase64,
                         nsCString& dataBuffer,
                         nsCString& hashRef) {
-    isBase64 = false;
+    isBase64 = PR_FALSE;
 
     
     char *buffer = (char *) PL_strcasestr(spec.BeginWriting(), "data:");
@@ -162,17 +191,10 @@ nsDataHandler::ParseURI(nsCString& spec,
     *comma = '\0';
 
     
-    char *base64 = PL_strcasestr(buffer, BASE64_EXTENSION);
+    char *base64 = PL_strcasestr(buffer, ";base64");
     if (base64) {
-        char *beyond = base64 + strlen(BASE64_EXTENSION);
-        
-        
-        
-        
-        if (*beyond == '\0' || *beyond == ';') {
-            isBase64 = true;
-            *base64 = '\0';
-        }
+        isBase64 = PR_TRUE;
+        *base64 = '\0';
     }
 
     if (comma == buffer) {

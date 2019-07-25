@@ -3,68 +3,99 @@
 
 
 
-#include "mozilla/Assertions.h"         
-#include "mozilla/Preferences.h"        
-#include "mozilla/dom/Element.h"        
-#include "nsAString.h"
-#include "nsCaret.h"                    
-#include "nsDebug.h"                    
-#include "nsEditor.h"                   
-#include "nsEditorEventListener.h"
-#include "nsEventListenerManager.h"     
-#include "nsFocusManager.h"             
-#include "nsGUIEvent.h"                 
-#include "nsGkAtoms.h"                  
-#include "nsIClipboard.h"               
-#include "nsIContent.h"                 
-#include "nsID.h"
-#include "nsIDOMDOMStringList.h"        
-#include "nsIDOMDataTransfer.h"         
-#include "nsIDOMDocument.h"             
-#include "nsIDOMDragEvent.h"            
-#include "nsIDOMElement.h"              
-#include "nsIDOMEvent.h"                
-#include "nsIDOMEventTarget.h"          
-#include "nsIDOMKeyEvent.h"             
-#include "nsIDOMMouseEvent.h"           
-#include "nsIDOMNode.h"                 
-#include "nsIDOMRange.h"                
-#include "nsIDocument.h"                
-#include "nsIEditor.h"                  
-#include "nsIEditorIMESupport.h"
-#include "nsIEditorMailSupport.h"       
-#include "nsIFocusManager.h"            
-#include "nsIFormControl.h"             
-#include "nsIMEStateManager.h"          
-#include "nsINode.h"                    
-#include "nsIPlaintextEditor.h"         
-#include "nsIPresShell.h"               
-#include "nsIPrivateTextEvent.h"        
-#include "nsIPrivateTextRange.h"        
-#include "nsISelection.h"               
-#include "nsISelectionController.h"     
-#include "nsISelectionPrivate.h"        
-#include "nsITransferable.h"            
-#include "nsLiteralString.h"            
-#include "nsServiceManagerUtils.h"      
-#include "nsString.h"                   
-#include "prtypes.h"                    
-#ifdef HANDLE_NATIVE_TEXT_DIRECTION_SWITCH
-#include "nsContentUtils.h"             
-#include "nsIBidiKeyboard.h"            
-#endif
 
-class nsPresContext;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsEditorEventListener.h"
+#include "nsEditor.h"
+
+#include "nsIDOMDOMStringList.h"
+#include "nsIDOMEvent.h"
+#include "nsIDOMNSEvent.h"
+#include "nsIDOMDocument.h"
+#include "nsIDOMEventTarget.h"
+#include "nsIDocument.h"
+#include "nsIPresShell.h"
+#include "nsISelection.h"
+#include "nsISelectionController.h"
+#include "nsIDOMKeyEvent.h"
+#include "nsIDOMMouseEvent.h"
+#include "nsIPrivateTextEvent.h"
+#include "nsIEditorMailSupport.h"
+#include "nsFocusManager.h"
+#include "nsEventListenerManager.h"
+#include "mozilla/Preferences.h"
+
+
+#include "nsIServiceManager.h"
+#include "nsIClipboard.h"
+#include "nsIDragService.h"
+#include "nsIDragSession.h"
+#include "nsIContent.h"
+#include "nsISupportsPrimitives.h"
+#include "nsIDOMNSRange.h"
+#include "nsEditorUtils.h"
+#include "nsISelectionPrivate.h"
+#include "nsIDOMDragEvent.h"
+#include "nsIFocusManager.h"
+#include "nsIDOMWindow.h"
+#include "nsContentUtils.h"
+#include "nsIBidiKeyboard.h"
 
 using namespace mozilla;
 
+class nsAutoEditorKeypressOperation {
+public:
+  nsAutoEditorKeypressOperation(nsEditor *aEditor, nsIDOMNSEvent *aEvent)
+    : mEditor(aEditor) {
+    mEditor->BeginKeypressHandling(aEvent);
+  }
+  ~nsAutoEditorKeypressOperation() {
+    mEditor->EndKeypressHandling();
+  }
+
+private:
+  nsEditor *mEditor;
+};
+
 nsEditorEventListener::nsEditorEventListener() :
-  mEditor(nullptr), mCommitText(false),
-  mInTransaction(false)
+  mEditor(nsnull), mCommitText(PR_FALSE),
+  mInTransaction(PR_FALSE)
 #ifdef HANDLE_NATIVE_TEXT_DIRECTION_SWITCH
-  , mHaveBidiKeyboards(false)
-  , mShouldSwitchTextDirection(false)
-  , mSwitchToRTL(false)
+  , mHaveBidiKeyboards(PR_FALSE)
+  , mShouldSwitchTextDirection(PR_FALSE)
+  , mSwitchToRTL(PR_FALSE)
 #endif
 {
 }
@@ -109,7 +140,7 @@ nsEditorEventListener::InstallToEditor()
   NS_ENSURE_TRUE(piTarget, NS_ERROR_FAILURE);
 
   
-  nsEventListenerManager* elmP = piTarget->GetListenerManager(true);
+  nsEventListenerManager* elmP = piTarget->GetListenerManager(PR_TRUE);
   NS_ENSURE_STATE(elmP);
 
 #ifdef HANDLE_NATIVE_TEXT_DIRECTION_SWITCH
@@ -124,6 +155,12 @@ nsEditorEventListener::InstallToEditor()
 #endif
   elmP->AddEventListenerByType(this,
                                NS_LITERAL_STRING("keypress"),
+                               NS_EVENT_FLAG_BUBBLE |
+                               NS_PRIV_EVENT_UNTRUSTED_PERMITTED |
+                               NS_EVENT_FLAG_SYSTEM_EVENT);
+  
+  elmP->AddEventListenerByType(this,
+                               NS_LITERAL_STRING("draggesture"),
                                NS_EVENT_FLAG_BUBBLE |
                                NS_EVENT_FLAG_SYSTEM_EVENT);
   elmP->AddEventListenerByType(this,
@@ -142,11 +179,6 @@ nsEditorEventListener::InstallToEditor()
                                NS_LITERAL_STRING("drop"),
                                NS_EVENT_FLAG_BUBBLE |
                                NS_EVENT_FLAG_SYSTEM_EVENT);
-  
-  
-  
-  
-  
   elmP->AddEventListenerByType(this,
                                NS_LITERAL_STRING("mousedown"),
                                NS_EVENT_FLAG_CAPTURE);
@@ -166,16 +198,13 @@ nsEditorEventListener::InstallToEditor()
                                NS_EVENT_FLAG_CAPTURE);
   elmP->AddEventListenerByType(this,
                                NS_LITERAL_STRING("text"),
-                               NS_EVENT_FLAG_BUBBLE |
-                               NS_EVENT_FLAG_SYSTEM_EVENT);
+                               NS_EVENT_FLAG_BUBBLE);
   elmP->AddEventListenerByType(this,
                                NS_LITERAL_STRING("compositionstart"),
-                               NS_EVENT_FLAG_BUBBLE |
-                               NS_EVENT_FLAG_SYSTEM_EVENT);
+                               NS_EVENT_FLAG_BUBBLE);
   elmP->AddEventListenerByType(this,
                                NS_LITERAL_STRING("compositionend"),
-                               NS_EVENT_FLAG_BUBBLE |
-                               NS_EVENT_FLAG_SYSTEM_EVENT);
+                               NS_EVENT_FLAG_BUBBLE);
 
   return NS_OK;
 }
@@ -187,7 +216,7 @@ nsEditorEventListener::Disconnect()
     return;
   }
   UninstallFromEditor();
-  mEditor = nullptr;
+  mEditor = nsnull;
 }
 
 void
@@ -199,7 +228,7 @@ nsEditorEventListener::UninstallFromEditor()
   }
 
   nsEventListenerManager* elmP =
-    piTarget->GetListenerManager(true);
+    piTarget->GetListenerManager(PR_TRUE);
   if (!elmP) {
     return;
   }
@@ -216,6 +245,10 @@ nsEditorEventListener::UninstallFromEditor()
 #endif
   elmP->RemoveEventListenerByType(this,
                                   NS_LITERAL_STRING("keypress"),
+                                  NS_EVENT_FLAG_BUBBLE |
+                                  NS_EVENT_FLAG_SYSTEM_EVENT);
+  elmP->RemoveEventListenerByType(this,
+                                  NS_LITERAL_STRING("draggesture"),
                                   NS_EVENT_FLAG_BUBBLE |
                                   NS_EVENT_FLAG_SYSTEM_EVENT);
   elmP->RemoveEventListenerByType(this,
@@ -251,16 +284,13 @@ nsEditorEventListener::UninstallFromEditor()
                                   NS_EVENT_FLAG_CAPTURE);
   elmP->RemoveEventListenerByType(this,
                                   NS_LITERAL_STRING("text"),
-                                  NS_EVENT_FLAG_BUBBLE |
-                                  NS_EVENT_FLAG_SYSTEM_EVENT);
+                                  NS_EVENT_FLAG_BUBBLE);
   elmP->RemoveEventListenerByType(this,
                                   NS_LITERAL_STRING("compositionstart"),
-                                  NS_EVENT_FLAG_BUBBLE |
-                                  NS_EVENT_FLAG_SYSTEM_EVENT);
+                                  NS_EVENT_FLAG_BUBBLE);
   elmP->RemoveEventListenerByType(this,
                                   NS_LITERAL_STRING("compositionend"),
-                                  NS_EVENT_FLAG_BUBBLE |
-                                  NS_EVENT_FLAG_SYSTEM_EVENT);
+                                  NS_EVENT_FLAG_BUBBLE);
 }
 
 already_AddRefed<nsIPresShell>
@@ -291,6 +321,8 @@ nsEditorEventListener::HandleEvent(nsIDOMEvent* aEvent)
 
   nsCOMPtr<nsIDOMDragEvent> dragEvent = do_QueryInterface(aEvent);
   if (dragEvent) {
+    if (eventType.EqualsLiteral("draggesture"))
+      return DragGesture(dragEvent);
     if (eventType.EqualsLiteral("dragenter"))
       return DragEnter(dragEvent);
     if (eventType.EqualsLiteral("dragover"))
@@ -323,10 +355,8 @@ nsEditorEventListener::HandleEvent(nsIDOMEvent* aEvent)
     return HandleText(aEvent);
   if (eventType.EqualsLiteral("compositionstart"))
     return HandleStartComposition(aEvent);
-  if (eventType.EqualsLiteral("compositionend")) {
-    HandleEndComposition(aEvent);
-    return NS_OK;
-  }
+  if (eventType.EqualsLiteral("compositionend"))
+    return HandleEndComposition(aEvent);
 
   return NS_OK;
 }
@@ -398,7 +428,7 @@ nsEditorEventListener::KeyUp(nsIDOMEvent* aKeyEvent)
       return NS_OK;
     }
 
-    uint32_t keyCode = 0;
+    PRUint32 keyCode = 0;
     keyEvent->GetKeyCode(&keyCode);
     if (keyCode == nsIDOMKeyEvent::DOM_VK_SHIFT ||
         keyCode == nsIDOMKeyEvent::DOM_VK_CONTROL) {
@@ -406,7 +436,7 @@ nsEditorEventListener::KeyUp(nsIDOMEvent* aKeyEvent)
         mEditor->SwitchTextDirectionTo(mSwitchToRTL ?
           nsIPlaintextEditor::eEditorRightToLeft :
           nsIPlaintextEditor::eEditorLeftToRight);
-        mShouldSwitchTextDirection = false;
+        mShouldSwitchTextDirection = PR_FALSE;
       }
     }
   }
@@ -424,17 +454,17 @@ nsEditorEventListener::KeyDown(nsIDOMEvent* aKeyEvent)
       return NS_OK;
     }
 
-    uint32_t keyCode = 0;
+    PRUint32 keyCode = 0;
     keyEvent->GetKeyCode(&keyCode);
     if (keyCode == nsIDOMKeyEvent::DOM_VK_SHIFT) {
       bool switchToRTL;
       if (IsCtrlShiftPressed(switchToRTL)) {
-        mShouldSwitchTextDirection = true;
+        mShouldSwitchTextDirection = PR_TRUE;
         mSwitchToRTL = switchToRTL;
       }
     } else if (keyCode != nsIDOMKeyEvent::DOM_VK_CONTROL) {
       
-      mShouldSwitchTextDirection = false;
+      mShouldSwitchTextDirection = PR_FALSE;
     }
   }
 
@@ -452,7 +482,8 @@ nsEditorEventListener::KeyPress(nsIDOMEvent* aKeyEvent)
   }
 
   
-  nsEditor::HandlingTrustedAction operation(mEditor, aKeyEvent);
+  nsCOMPtr<nsIDOMNSEvent> NSEvent = do_QueryInterface(aKeyEvent);
+  nsAutoEditorKeypressOperation operation(mEditor, NSEvent);
 
   
   
@@ -460,10 +491,12 @@ nsEditorEventListener::KeyPress(nsIDOMEvent* aKeyEvent)
   
   
 
-  bool defaultPrevented;
-  aKeyEvent->GetDefaultPrevented(&defaultPrevented);
-  if (defaultPrevented) {
-    return NS_OK;
+  if (NSEvent) {
+    bool defaultPrevented;
+    NSEvent->GetPreventDefault(&defaultPrevented);
+    if (defaultPrevented) {
+      return NS_OK;
+    }
   }
 
   nsCOMPtr<nsIDOMKeyEvent> keyEvent = do_QueryInterface(aKeyEvent);
@@ -481,31 +514,16 @@ nsEditorEventListener::MouseClick(nsIDOMEvent* aMouseEvent)
   NS_ENSURE_TRUE(mEditor, NS_ERROR_NOT_AVAILABLE);
 
   nsCOMPtr<nsIDOMMouseEvent> mouseEvent = do_QueryInterface(aMouseEvent);
-  NS_ENSURE_TRUE(mouseEvent, NS_OK);
-
-  
-  if (mEditor->IsReadonly() || mEditor->IsDisabled() ||
-      !mEditor->IsAcceptableInputEvent(aMouseEvent)) {
+  nsCOMPtr<nsIDOMNSEvent> nsevent = do_QueryInterface(aMouseEvent);
+  bool isTrusted = false;
+  if (!mouseEvent || !nsevent ||
+      NS_FAILED(nsevent->GetIsTrusted(&isTrusted)) || !isTrusted) {
+    
     return NS_OK;
   }
 
-  
-  
-  nsCOMPtr<nsIContent> focusedContent = mEditor->GetFocusedContent();
-  if (focusedContent) {
-    nsIDocument* currentDoc = focusedContent->GetCurrentDoc();
-    nsCOMPtr<nsIPresShell> presShell = GetPresShell();
-    nsPresContext* presContext =
-      presShell ? presShell->GetPresContext() : nullptr;
-    if (presContext && currentDoc) {
-      nsIMEStateManager::OnClickInEditor(presContext,
-        currentDoc->HasFlag(NODE_IS_EDITABLE) ? nullptr : focusedContent,
-        mouseEvent);
-    }
-  }
-
   bool preventDefault;
-  nsresult rv = aMouseEvent->GetDefaultPrevented(&preventDefault);
+  nsresult rv = nsevent->GetPreventDefault(&preventDefault);
   if (NS_FAILED(rv) || preventDefault) {
     
     return rv;
@@ -515,7 +533,7 @@ nsEditorEventListener::MouseClick(nsIDOMEvent* aMouseEvent)
   
   mEditor->ForceCompositionEnd();
 
-  uint16_t button = (uint16_t)-1;
+  PRUint16 button = (PRUint16)-1;
   mouseEvent->GetButton(&button);
   
   if (button == 1)
@@ -526,7 +544,7 @@ nsEditorEventListener::MouseClick(nsIDOMEvent* aMouseEvent)
       nsCOMPtr<nsIDOMNode> parent;
       if (NS_FAILED(mouseEvent->GetRangeParent(getter_AddRefs(parent))))
         return NS_ERROR_NULL_POINTER;
-      int32_t offset = 0;
+      PRInt32 offset = 0;
       if (NS_FAILED(mouseEvent->GetRangeOffset(&offset)))
         return NS_ERROR_NULL_POINTER;
 
@@ -543,16 +561,13 @@ nsEditorEventListener::MouseClick(nsIDOMEvent* aMouseEvent)
       if (ctrlKey)
         mailEditor = do_QueryObject(mEditor);
 
-      int32_t clipboard = nsIClipboard::kGlobalClipboard;
-      nsCOMPtr<nsIClipboard> clipboardService =
-        do_GetService("@mozilla.org/widget/clipboard;1", &rv);
-      if (NS_SUCCEEDED(rv)) {
-        bool selectionSupported;
-        rv = clipboardService->SupportsSelectionClipboard(&selectionSupported);
-        if (NS_SUCCEEDED(rv) && selectionSupported) {
-          clipboard = nsIClipboard::kSelectionClipboard;
-        }
-      }
+      PRInt32 clipboard;
+
+#if defined(XP_OS2) || defined(XP_WIN32)
+      clipboard = nsIClipboard::kGlobalClipboard;
+#else
+      clipboard = nsIClipboard::kSelectionClipboard;
+#endif
 
       if (mailEditor)
         mailEditor->PasteAsQuotation(clipboard);
@@ -605,15 +620,24 @@ nsEditorEventListener::HandleText(nsIDOMEvent* aTextEvent)
     return NS_OK;
   }
 
-  
-  nsEditor::HandlingTrustedAction operation(mEditor, aTextEvent);
-
   return mEditor->UpdateIMEComposition(composedText, textRangeList);
 }
 
 
 
 
+
+nsresult
+nsEditorEventListener::DragGesture(nsIDOMDragEvent* aDragEvent)
+{
+  
+  bool canDrag;
+  nsresult rv = mEditor->CanDrag(aDragEvent, &canDrag);
+  if ( NS_SUCCEEDED(rv) && canDrag )
+    rv = mEditor->DoDrag(aDragEvent);
+
+  return rv;
+}
 
 nsresult
 nsEditorEventListener::DragEnter(nsIDOMDragEvent* aDragEvent)
@@ -624,7 +648,7 @@ nsEditorEventListener::DragEnter(nsIDOMDragEvent* aDragEvent)
   if (!mCaret) {
     mCaret = new nsCaret();
     mCaret->Init(presShell);
-    mCaret->SetCaretReadOnly(true);
+    mCaret->SetCaretReadOnly(PR_TRUE);
   }
 
   presShell->SetCaret(mCaret);
@@ -636,21 +660,27 @@ nsresult
 nsEditorEventListener::DragOver(nsIDOMDragEvent* aDragEvent)
 {
   nsCOMPtr<nsIDOMNode> parent;
-  bool defaultPrevented;
-  aDragEvent->GetDefaultPrevented(&defaultPrevented);
-  if (defaultPrevented) {
-    return NS_OK;
+  nsCOMPtr<nsIDOMNSEvent> domNSEvent = do_QueryInterface(aDragEvent);
+  if (domNSEvent) {
+    bool defaultPrevented;
+    domNSEvent->GetPreventDefault(&defaultPrevented);
+    if (defaultPrevented)
+      return NS_OK;
   }
 
   aDragEvent->GetRangeParent(getter_AddRefs(parent));
   nsCOMPtr<nsIContent> dropParent = do_QueryInterface(parent);
   NS_ENSURE_TRUE(dropParent, NS_ERROR_FAILURE);
 
-  if (dropParent->IsEditable() && CanDrop(aDragEvent)) {
+  if (!dropParent->IsEditable()) {
+    return NS_OK;
+  }
+
+  if (CanDrop(aDragEvent)) {
     aDragEvent->PreventDefault(); 
 
     if (mCaret) {
-      int32_t offset = 0;
+      PRInt32 offset = 0;
       nsresult rv = aDragEvent->GetRangeOffset(&offset);
       NS_ENSURE_SUCCESS(rv, rv);
 
@@ -664,12 +694,6 @@ nsEditorEventListener::DragOver(nsIDOMDragEvent* aDragEvent)
   }
   else
   {
-    if (!IsFileControlTextBox()) {
-      
-      
-      aDragEvent->StopPropagation();
-    }
-
     if (mCaret)
     {
       mCaret->EraseCaret();
@@ -685,7 +709,7 @@ nsEditorEventListener::CleanupDragDropCaret()
   if (mCaret)
   {
     mCaret->EraseCaret();
-    mCaret->SetCaretVisible(false);    
+    mCaret->SetCaretVisible(PR_FALSE);    
 
     nsCOMPtr<nsIPresShell> presShell = GetPresShell();
     if (presShell)
@@ -694,7 +718,7 @@ nsEditorEventListener::CleanupDragDropCaret()
     }
 
     mCaret->Terminate();
-    mCaret = nullptr;
+    mCaret = nsnull;
   }
 }
 
@@ -711,10 +735,12 @@ nsEditorEventListener::Drop(nsIDOMDragEvent* aMouseEvent)
 {
   CleanupDragDropCaret();
 
-  bool defaultPrevented;
-  aMouseEvent->GetDefaultPrevented(&defaultPrevented);
-  if (defaultPrevented) {
-    return NS_OK;
+  nsCOMPtr<nsIDOMNSEvent> domNSEvent = do_QueryInterface(aMouseEvent);
+  if (domNSEvent) {
+    bool defaultPrevented;
+    domNSEvent->GetPreventDefault(&defaultPrevented);
+    if (defaultPrevented)
+      return NS_OK;
   }
 
   nsCOMPtr<nsIDOMNode> parent;
@@ -722,10 +748,14 @@ nsEditorEventListener::Drop(nsIDOMDragEvent* aMouseEvent)
   nsCOMPtr<nsIContent> dropParent = do_QueryInterface(parent);
   NS_ENSURE_TRUE(dropParent, NS_ERROR_FAILURE);
 
-  if (!dropParent->IsEditable() || !CanDrop(aMouseEvent)) {
+  if (!dropParent->IsEditable()) {
+    return NS_OK;
+  }
+
+  if (!CanDrop(aMouseEvent)) {
     
-    if ((mEditor->IsReadonly() || mEditor->IsDisabled()) &&
-        !IsFileControlTextBox()) {
+    if (mEditor->IsReadonly() || mEditor->IsDisabled())
+    {
       
       
       
@@ -737,6 +767,8 @@ nsEditorEventListener::Drop(nsIDOMDragEvent* aMouseEvent)
 
   aMouseEvent->StopPropagation();
   aMouseEvent->PreventDefault();
+  
+  
   return mEditor->InsertFromDrop(aMouseEvent);
 }
 
@@ -745,16 +777,16 @@ nsEditorEventListener::CanDrop(nsIDOMDragEvent* aEvent)
 {
   
   if (mEditor->IsReadonly() || mEditor->IsDisabled()) {
-    return false;
+    return PR_FALSE;
   }
 
   nsCOMPtr<nsIDOMDataTransfer> dataTransfer;
   aEvent->GetDataTransfer(getter_AddRefs(dataTransfer));
-  NS_ENSURE_TRUE(dataTransfer, false);
+  NS_ENSURE_TRUE(dataTransfer, PR_FALSE);
 
   nsCOMPtr<nsIDOMDOMStringList> types;
   dataTransfer->GetTypes(getter_AddRefs(types));
-  NS_ENSURE_TRUE(types, false);
+  NS_ENSURE_TRUE(types, PR_FALSE);
 
   
   
@@ -770,62 +802,72 @@ nsEditorEventListener::CanDrop(nsIDOMDragEvent* aEvent)
     }
   }
 
-  NS_ENSURE_TRUE(typeSupported, false);
+  NS_ENSURE_TRUE(typeSupported, PR_FALSE);
+
+  nsCOMPtr<nsIDOMNSDataTransfer> dataTransferNS(do_QueryInterface(dataTransfer));
+  NS_ENSURE_TRUE(dataTransferNS, PR_FALSE);
 
   
   
   
   nsCOMPtr<nsIDOMNode> sourceNode;
-  dataTransfer->GetMozSourceNode(getter_AddRefs(sourceNode));
+  dataTransferNS->GetMozSourceNode(getter_AddRefs(sourceNode));
   if (!sourceNode)
-    return true;
+    return PR_TRUE;
 
   
   
 
-  nsCOMPtr<nsIDOMDocument> domdoc = mEditor->GetDOMDocument();
-  NS_ENSURE_TRUE(domdoc, false);
+  nsCOMPtr<nsIDOMDocument> domdoc;
+  nsresult rv = mEditor->GetDocument(getter_AddRefs(domdoc));
+  NS_ENSURE_SUCCESS(rv, PR_FALSE);
 
   nsCOMPtr<nsIDOMDocument> sourceDoc;
-  nsresult rv = sourceNode->GetOwnerDocument(getter_AddRefs(sourceDoc));
-  NS_ENSURE_SUCCESS(rv, false);
+  rv = sourceNode->GetOwnerDocument(getter_AddRefs(sourceDoc));
+  NS_ENSURE_SUCCESS(rv, PR_FALSE);
   if (domdoc == sourceDoc)      
   {
     nsCOMPtr<nsISelection> selection;
     rv = mEditor->GetSelection(getter_AddRefs(selection));
     if (NS_FAILED(rv) || !selection)
-      return false;
+      return PR_FALSE;
     
+    bool isCollapsed;
+    rv = selection->GetIsCollapsed(&isCollapsed);
+    NS_ENSURE_SUCCESS(rv, PR_FALSE);
+  
     
-    if (!selection->Collapsed()) {
+    if (!isCollapsed)
+    {
       nsCOMPtr<nsIDOMNode> parent;
       rv = aEvent->GetRangeParent(getter_AddRefs(parent));
-      if (NS_FAILED(rv) || !parent) return false;
+      if (NS_FAILED(rv) || !parent) return PR_FALSE;
 
-      int32_t offset = 0;
+      PRInt32 offset = 0;
       rv = aEvent->GetRangeOffset(&offset);
-      NS_ENSURE_SUCCESS(rv, false);
+      NS_ENSURE_SUCCESS(rv, PR_FALSE);
 
-      int32_t rangeCount;
+      PRInt32 rangeCount;
       rv = selection->GetRangeCount(&rangeCount);
-      NS_ENSURE_SUCCESS(rv, false);
+      NS_ENSURE_SUCCESS(rv, PR_FALSE);
 
-      for (int32_t i = 0; i < rangeCount; i++)
+      for (PRInt32 i = 0; i < rangeCount; i++)
       {
         nsCOMPtr<nsIDOMRange> range;
         rv = selection->GetRangeAt(i, getter_AddRefs(range));
-        if (NS_FAILED(rv) || !range) 
+        nsCOMPtr<nsIDOMNSRange> nsrange(do_QueryInterface(range));
+        if (NS_FAILED(rv) || !nsrange) 
           continue; 
 
         bool inRange = true;
-        (void)range->IsPointInRange(parent, offset, &inRange);
+        (void)nsrange->IsPointInRange(parent, offset, &inRange);
         if (inRange)
-          return false;  
+          return PR_FALSE;  
       }
     }
   }
   
-  return true;
+  return PR_TRUE;
 }
 
 NS_IMETHODIMP
@@ -838,18 +880,19 @@ nsEditorEventListener::HandleStartComposition(nsIDOMEvent* aCompositionEvent)
   return mEditor->BeginIMEComposition();
 }
 
-void
+NS_IMETHODIMP
 nsEditorEventListener::HandleEndComposition(nsIDOMEvent* aCompositionEvent)
 {
-  MOZ_ASSERT(mEditor);
+  NS_ENSURE_TRUE(mEditor, NS_ERROR_NOT_AVAILABLE);
   if (!mEditor->IsAcceptableInputEvent(aCompositionEvent)) {
-    return;
+    return NS_OK;
   }
 
   
-  nsEditor::HandlingTrustedAction operation(mEditor, aCompositionEvent);
+  nsCOMPtr<nsIDOMNSEvent> NSEvent = do_QueryInterface(aCompositionEvent);
+  nsAutoEditorKeypressOperation operation(mEditor, NSEvent);
 
-  mEditor->EndIMEComposition();
+  return mEditor->EndIMEComposition();
 }
 
 NS_IMETHODIMP
@@ -862,9 +905,6 @@ nsEditorEventListener::Focus(nsIDOMEvent* aEvent)
   if (mEditor->IsDisabled()) {
     return NS_OK;
   }
-
-  
-  SpellCheckIfNeeded();
 
   nsCOMPtr<nsIDOMEventTarget> target;
   aEvent->GetTarget(getter_AddRefs(target));
@@ -932,18 +972,18 @@ nsEditorEventListener::Blur(nsIDOMEvent* aEvent)
     nsCOMPtr<nsISelectionPrivate> selectionPrivate =
       do_QueryInterface(selection);
     if (selectionPrivate) {
-      selectionPrivate->SetAncestorLimiter(nullptr);
+      selectionPrivate->SetAncestorLimiter(nsnull);
     }
 
     nsCOMPtr<nsIPresShell> presShell = GetPresShell();
     if (presShell) {
       nsRefPtr<nsCaret> caret = presShell->GetCaret();
       if (caret) {
-        caret->SetIgnoreUserModify(true);
+        caret->SetIgnoreUserModify(PR_TRUE);
       }
     }
 
-    selCon->SetCaretEnabled(false);
+    selCon->SetCaretEnabled(PR_FALSE);
 
     if(mEditor->IsFormWidget() || mEditor->IsPasswordEditor() ||
        mEditor->IsReadonly() || mEditor->IsDisabled() ||
@@ -960,33 +1000,5 @@ nsEditorEventListener::Blur(nsIDOMEvent* aEvent)
   }
 
   return NS_OK;
-}
-
-void
-nsEditorEventListener::SpellCheckIfNeeded() {
-  
-  
-  uint32_t currentFlags = 0;
-  mEditor->GetFlags(&currentFlags);
-  if(currentFlags & nsIPlaintextEditor::eEditorSkipSpellCheck)
-  {
-    currentFlags ^= nsIPlaintextEditor::eEditorSkipSpellCheck;
-    mEditor->SetFlags(currentFlags);
-  }
-}
-
-bool
-nsEditorEventListener::IsFileControlTextBox()
-{
-  dom::Element* root = mEditor->GetRoot();
-  if (root && root->IsInNativeAnonymousSubtree()) {
-    nsIContent* parent = root->FindFirstNonNativeAnonymous();
-    if (parent && parent->IsHTML(nsGkAtoms::input)) {
-      nsCOMPtr<nsIFormControl> formControl = do_QueryInterface(parent);
-      MOZ_ASSERT(formControl);
-      return formControl->GetType() == NS_FORM_INPUT_FILE;
-    }
-  }
-  return false;
 }
 

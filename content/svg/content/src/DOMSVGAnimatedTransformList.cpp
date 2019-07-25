@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "DOMSVGAnimatedTransformList.h"
 #include "DOMSVGTransformList.h"
 #include "SVGAnimatedTransformList.h"
@@ -58,13 +91,14 @@ DOMSVGAnimatedTransformList::GetAnimVal(nsIDOMSVGTransformList** aAnimVal)
 DOMSVGAnimatedTransformList::GetDOMWrapper(SVGAnimatedTransformList *aList,
                                            nsSVGElement *aElement)
 {
-  nsRefPtr<DOMSVGAnimatedTransformList> wrapper =
+  DOMSVGAnimatedTransformList *wrapper =
     sSVGAnimatedTransformListTearoffTable.GetTearoff(aList);
   if (!wrapper) {
     wrapper = new DOMSVGAnimatedTransformList(aElement);
     sSVGAnimatedTransformListTearoffTable.AddTearoff(aList, wrapper);
   }
-  return wrapper.forget();
+  NS_ADDREF(wrapper);
+  return wrapper;
 }
 
  DOMSVGAnimatedTransformList*
@@ -83,7 +117,7 @@ DOMSVGAnimatedTransformList::~DOMSVGAnimatedTransformList()
 
 void
 DOMSVGAnimatedTransformList::InternalBaseValListWillChangeLengthTo(
-  uint32_t aNewLength)
+  PRUint32 aNewLength)
 {
   
   
@@ -114,7 +148,7 @@ DOMSVGAnimatedTransformList::InternalBaseValListWillChangeLengthTo(
 
 void
 DOMSVGAnimatedTransformList::InternalAnimValListWillChangeLengthTo(
-  uint32_t aNewLength)
+  PRUint32 aNewLength)
 {
   if (mAnimVal) {
     mAnimVal->InternalListLengthWillChange(aNewLength);

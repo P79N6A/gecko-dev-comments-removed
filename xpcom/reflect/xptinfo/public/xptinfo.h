@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef xptiinfo_h___
 #define xptiinfo_h___
 
@@ -27,43 +59,34 @@ public:
     nsXPTType(const XPTTypeDescriptorPrefix& prefix)
         {*(XPTTypeDescriptorPrefix*)this = prefix;}
 
-    nsXPTType(const uint8_t& prefix)
-        {*(uint8_t*)this = prefix;}
+    nsXPTType(const PRUint8& prefix)
+        {*(PRUint8*)this = prefix;}
 
-    nsXPTType& operator=(uint8_t val)
+    nsXPTType& operator=(PRUint8 val)
         {flags = val; return *this;}
 
     nsXPTType& operator=(const nsXPTType& other)
         {flags = other.flags; return *this;}
 
-    operator uint8_t() const
+    operator PRUint8() const
         {return flags;}
 
-    
-    
-    
-    
-    
-    
-    
-    bool IsArithmetic() const
-        {return flags <= T_WCHAR;}
+    bool IsPointer() const
+        {return 0 != (XPT_TDP_IS_POINTER(flags));}
 
-    
-    
-    
-    
-    
-    bool deprecated_IsPointer() const
-        {return !IsArithmetic() && TagPart() != T_JSVAL;}
+    bool IsReference() const
+        {return 0 != (XPT_TDP_IS_REFERENCE(flags));}
+
+    bool IsArithmetic() const     
+        {return flags <= T_WCHAR;}
 
     bool IsInterfacePointer() const
         {  switch (TagPart()) {
              default:
-               return false;
+               return PR_FALSE;
              case T_INTERFACE:
              case T_INTERFACE_IS:
-               return true;
+               return PR_TRUE;
            }
         }
 
@@ -76,17 +99,17 @@ public:
     bool IsDependent() const
         {  switch (TagPart()) {
              default:
-               return false;
+               return PR_FALSE;
              case T_INTERFACE_IS:
              case TD_ARRAY:
              case T_PSTRING_SIZE_IS:
              case T_PWSTRING_SIZE_IS:
-               return true;
+               return PR_TRUE;
            }
         }
 
-    uint8_t TagPart() const
-        {return (uint8_t) (flags & XPT_TDP_TAGMASK);}
+    PRUint8 TagPart() const
+        {return (PRUint8) (flags & XPT_TDP_TAGMASK);}
 
     enum
     {
@@ -165,9 +188,9 @@ public:
     bool WantsOptArgc()  const {return 0 != (XPT_MD_WANTS_OPT_ARGC(flags));}
     bool WantsContext()  const {return 0 != (XPT_MD_WANTS_CONTEXT(flags));}
     const char* GetName()  const {return name;}
-    uint8_t GetParamCount()  const {return num_args;}
+    PRUint8 GetParamCount()  const {return num_args;}
     
-    const nsXPTParamInfo GetParam(uint8_t idx) const
+    const nsXPTParamInfo GetParam(PRUint8 idx) const
         {
             NS_PRECONDITION(idx < GetParamCount(),"bad arg");
             return params[idx];

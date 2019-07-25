@@ -2,12 +2,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIStyleSheetLinkingElement_h__
 #define nsIStyleSheetLinkingElement_h__
 
 
 #include "nsISupports.h"
 
+class nsIDocument;
 class nsICSSLoaderObserver;
 class nsIURI;
 
@@ -91,7 +124,7 @@ public:
   
   
   
-  virtual void SetLineNumber(uint32_t aLineNumber) = 0;
+  virtual void SetLineNumber(PRUint32 aLineNumber) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIStyleSheetLinkingElement,

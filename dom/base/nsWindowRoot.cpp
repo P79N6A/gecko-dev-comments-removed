@@ -3,13 +3,50 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsWindowRoot.h"
 #include "nsPIDOMWindow.h"
+#include "nsIDOMDocument.h"
+#include "nsIDocument.h"
 #include "nsEventListenerManager.h"
 #include "nsPresContext.h"
 #include "nsLayoutCID.h"
 #include "nsContentCID.h"
+#include "nsIPrivateDOMEvent.h"
 #include "nsString.h"
 #include "nsEventDispatcher.h"
 #include "nsGUIEvent.h"
@@ -68,21 +105,19 @@ NS_IMPL_DOMTARGET_DEFAULTS(nsWindowRoot)
 NS_IMETHODIMP
 nsWindowRoot::RemoveEventListener(const nsAString& aType, nsIDOMEventListener* aListener, bool aUseCapture)
 {
-  nsRefPtr<nsEventListenerManager> elm = GetListenerManager(false);
+  nsRefPtr<nsEventListenerManager> elm = GetListenerManager(PR_FALSE);
   if (elm) {
     elm->RemoveEventListener(aType, aListener, aUseCapture);
   }
   return NS_OK;
 }
 
-NS_IMPL_REMOVE_SYSTEM_EVENT_LISTENER(nsWindowRoot)
-
 NS_IMETHODIMP
 nsWindowRoot::DispatchEvent(nsIDOMEvent* aEvt, bool *aRetVal)
 {
   nsEventStatus status = nsEventStatus_eIgnore;
   nsresult rv =  nsEventDispatcher::DispatchDOMEvent(
-    static_cast<nsIDOMEventTarget*>(this), nullptr, aEvt, nullptr, &status);
+    static_cast<nsIDOMEventTarget*>(this), nsnull, aEvt, nsnull, &status);
   *aRetVal = (status != nsEventStatus_eConsumeNoDefault);
   return rv;
 }
@@ -102,33 +137,17 @@ NS_IMETHODIMP
 nsWindowRoot::AddEventListener(const nsAString& aType,
                                nsIDOMEventListener *aListener,
                                bool aUseCapture, bool aWantsUntrusted,
-                               uint8_t aOptionalArgc)
+                               PRUint8 aOptionalArgc)
 {
   NS_ASSERTION(!aWantsUntrusted || aOptionalArgc > 1,
                "Won't check if this is chrome, you want to set "
-               "aWantsUntrusted to false or make the aWantsUntrusted "
+               "aWantsUntrusted to PR_FALSE or make the aWantsUntrusted "
                "explicit by making optional_argc non-zero.");
 
-  nsEventListenerManager* elm = GetListenerManager(true);
+  nsEventListenerManager* elm = GetListenerManager(PR_TRUE);
   NS_ENSURE_STATE(elm);
   elm->AddEventListener(aType, aListener, aUseCapture, aWantsUntrusted);
   return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWindowRoot::AddSystemEventListener(const nsAString& aType,
-                                     nsIDOMEventListener *aListener,
-                                     bool aUseCapture,
-                                     bool aWantsUntrusted,
-                                     uint8_t aOptionalArgc)
-{
-  NS_ASSERTION(!aWantsUntrusted || aOptionalArgc > 1,
-               "Won't check if this is chrome, you want to set "
-               "aWantsUntrusted to false or make the aWantsUntrusted "
-               "explicit by making optional_argc non-zero.");
-
-  return NS_AddSystemEventListener(this, aType, aListener, aUseCapture,
-                                   aWantsUntrusted);
 }
 
 nsEventListenerManager*
@@ -146,14 +165,14 @@ nsIScriptContext*
 nsWindowRoot::GetContextForEventHandlers(nsresult* aRv)
 {
   *aRv = NS_OK;
-  return nullptr;
+  return nsnull;
 }
 
 nsresult
 nsWindowRoot::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 {
-  aVisitor.mCanHandle = true;
-  aVisitor.mForceContentDispatch = true; 
+  aVisitor.mCanHandle = PR_TRUE;
+  aVisitor.mForceContentDispatch = PR_TRUE; 
   
   aVisitor.mItemData = static_cast<nsISupports *>(mWindow);
   aVisitor.mParentTarget = mParent;
@@ -175,7 +194,7 @@ nsWindowRoot::GetWindow()
 nsresult
 nsWindowRoot::GetControllers(nsIControllers** aResult)
 {
-  *aResult = nullptr;
+  *aResult = nsnull;
 
   
   
@@ -183,7 +202,7 @@ nsWindowRoot::GetControllers(nsIControllers** aResult)
 
   nsCOMPtr<nsPIDOMWindow> focusedWindow;
   nsIContent* focusedContent =
-    nsFocusManager::GetFocusedDescendant(mWindow, true, getter_AddRefs(focusedWindow));
+    nsFocusManager::GetFocusedDescendant(mWindow, PR_TRUE, getter_AddRefs(focusedWindow));
   if (focusedContent) {
 #ifdef MOZ_XUL
     nsCOMPtr<nsIDOMXULElement> xulElement(do_QueryInterface(focusedContent));
@@ -218,38 +237,41 @@ nsWindowRoot::GetControllerForCommand(const char * aCommand,
                                       nsIController** _retval)
 {
   NS_ENSURE_ARG_POINTER(_retval);
-  *_retval = nullptr;
+  *_retval = nsnull;
 
-  {
-    nsCOMPtr<nsIControllers> controllers;
-    GetControllers(getter_AddRefs(controllers));
-    if (controllers) {
-      nsCOMPtr<nsIController> controller;
-      controllers->GetControllerForCommand(aCommand, getter_AddRefs(controller));
-      if (controller) {
-        controller.forget(_retval);
-        return NS_OK;
-      }
+  nsCOMPtr<nsIControllers> controllers;
+  nsCOMPtr<nsIController> controller;
+
+  GetControllers(getter_AddRefs(controllers));
+  if (controllers) {
+    controllers->GetControllerForCommand(aCommand, getter_AddRefs(controller));
+    if (controller) {
+      controller.swap(*_retval);
+      return NS_OK;
     }
   }
 
   nsCOMPtr<nsPIDOMWindow> focusedWindow;
-  nsFocusManager::GetFocusedDescendant(mWindow, true, getter_AddRefs(focusedWindow));
+  nsFocusManager::GetFocusedDescendant(mWindow, PR_TRUE, getter_AddRefs(focusedWindow));
   while (focusedWindow) {
-    nsCOMPtr<nsIControllers> controllers;
-    focusedWindow->GetControllers(getter_AddRefs(controllers));
-    if (controllers) {
-      nsCOMPtr<nsIController> controller;
-      controllers->GetControllerForCommand(aCommand,
-                                           getter_AddRefs(controller));
+    nsCOMPtr<nsIDOMWindow> domWindow(do_QueryInterface(focusedWindow));
+
+    nsCOMPtr<nsIControllers> controllers2;
+    domWindow->GetControllers(getter_AddRefs(controllers2));
+    if (controllers2) {
+      controllers2->GetControllerForCommand(aCommand,
+                                            getter_AddRefs(controller));
       if (controller) {
-        controller.forget(_retval);
+        controller.swap(*_retval);
         return NS_OK;
       }
     }
 
     
-    nsGlobalWindow *win = static_cast<nsGlobalWindow*>(focusedWindow.get());
+    nsCOMPtr<nsPIDOMWindow> piWindow = do_QueryInterface(focusedWindow); 
+    nsGlobalWindow *win =
+      static_cast<nsGlobalWindow *>
+                 (static_cast<nsIDOMWindow*>(piWindow));
     focusedWindow = win->GetPrivateParent();
   }
   
@@ -274,6 +296,8 @@ nsresult
 NS_NewWindowRoot(nsPIDOMWindow* aWindow, nsIDOMEventTarget** aResult)
 {
   *aResult = new nsWindowRoot(aWindow);
+  if (!*aResult)
+    return NS_ERROR_OUT_OF_MEMORY;
   NS_ADDREF(*aResult);
   return NS_OK;
 }

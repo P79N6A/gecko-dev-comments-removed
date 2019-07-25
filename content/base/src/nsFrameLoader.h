@@ -8,6 +8,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsFrameLoader_h_
 #define nsFrameLoader_h_
 
@@ -19,20 +52,14 @@
 #include "nsIURI.h"
 #include "nsAutoPtr.h"
 #include "nsFrameMessageManager.h"
+#include "Layers.h"
 #include "mozilla/dom/Element.h"
-#include "mozilla/Attributes.h"
-#include "FrameMetrics.h"
-#include "nsStubMutationObserver.h"
 
 class nsIURI;
 class nsSubDocumentFrame;
 class nsIView;
 class nsIInProcessContentFrameMessageManager;
 class AutoResetInShow;
-class nsITabParent;
-class nsIDocShellTreeItem;
-class nsIDocShellTreeOwner;
-class nsIDocShellTreeNode;
 
 namespace mozilla {
 namespace dom {
@@ -61,7 +88,7 @@ class QX11EmbedContainer;
 
 
 
-class nsContentView MOZ_FINAL : public nsIContentView
+class nsContentView : public nsIContentView
 {
 public:
   typedef mozilla::layers::FrameMetrics::ViewID ViewID;
@@ -104,8 +131,6 @@ public:
                 ViewConfig aConfig = ViewConfig())
     : mViewportSize(0, 0)
     , mContentSize(0, 0)
-    , mParentScaleX(1.0)
-    , mParentScaleY(1.0)
     , mFrameLoader(aFrameLoader)
     , mScrollId(aScrollId)
     , mConfig(aConfig)
@@ -125,8 +150,6 @@ public:
 
   nsSize mViewportSize;
   nsSize mContentSize;
-  float mParentScaleX;
-  float mParentScaleY;
 
   nsFrameLoader* mFrameLoader;  
 
@@ -138,9 +161,8 @@ private:
 };
 
 
-class nsFrameLoader MOZ_FINAL : public nsIFrameLoader,
-                                public nsIContentViewManager,
-                                public nsStubMutationObserver
+class nsFrameLoader : public nsIFrameLoader,
+                      public nsIContentViewManager
 {
   friend class AutoResetInShow;
   typedef mozilla::dom::PBrowserParent PBrowserParent;
@@ -152,7 +174,7 @@ protected:
 
 public:
   ~nsFrameLoader() {
-    mNeedsAsyncDestroy = true;
+    mNeedsAsyncDestroy = PR_TRUE;
     if (mMessageManager) {
       mMessageManager->Disconnect();
     }
@@ -171,7 +193,6 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsFrameLoader, nsIFrameLoader)
   NS_DECL_NSIFRAMELOADER
   NS_DECL_NSICONTENTVIEWMANAGER
-  NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
   NS_HIDDEN_(nsresult) CheckForRecursiveLoad(nsIURI* aURI);
   nsresult ReallyStartLoading();
   void Finalize();
@@ -183,14 +204,14 @@ public:
 
 
 
-  bool Show(int32_t marginWidth, int32_t marginHeight,
-              int32_t scrollbarPrefX, int32_t scrollbarPrefY,
+  bool Show(PRInt32 marginWidth, PRInt32 marginHeight,
+              PRInt32 scrollbarPrefX, PRInt32 scrollbarPrefY,
               nsSubDocumentFrame* frame);
 
   
 
 
-  void MarginsChanged(uint32_t aMarginWidth, uint32_t aMarginHeight);
+  void MarginsChanged(PRUint32 aMarginWidth, PRUint32 aMarginHeight);
 
   
 
@@ -217,7 +238,7 @@ public:
 
   nsIFrame* GetPrimaryFrameOfOwningContent() const
   {
-    return mOwnerContent ? mOwnerContent->GetPrimaryFrame() : nullptr;
+    return mOwnerContent ? mOwnerContent->GetPrimaryFrame() : nsnull;
   }
 
   
@@ -225,7 +246,7 @@ public:
 
 
   nsIDocument* GetOwnerDoc() const
-  { return mOwnerContent ? mOwnerContent->OwnerDoc() : nullptr; }
+  { return mOwnerContent ? mOwnerContent->GetOwnerDoc() : nsnull; }
 
   PBrowserParent* GetRemoteBrowser();
 
@@ -260,63 +281,11 @@ public:
   nsFrameMessageManager* GetFrameMessageManager() { return mMessageManager; }
 
   mozilla::dom::Element* GetOwnerContent() { return mOwnerContent; }
-  bool ShouldClipSubdocument() { return mClipSubdocument; }
-
-  bool ShouldClampScrollPosition() { return mClampScrollPosition; }
-
-  
-
-
-
-
-
-
-
-  void SetRemoteBrowser(nsITabParent* aTabParent);
-
-  
-
-
-
-
-
-
-
-
-
-  void SetDetachedSubdocView(nsIView* aDetachedView,
-                             nsIDocument* aContainerDoc);
-
-  
-
-
-
-  nsIView* GetDetachedSubdocView(nsIDocument** aContainerDoc) const;
+  void SetOwnerContent(mozilla::dom::Element* aContent);
 
 private:
 
-  void SetOwnerContent(mozilla::dom::Element* aContent);
-
   bool ShouldUseRemoteProcess();
-
-  
-
-
-
-
-  bool OwnerIsBrowserFrame();
-
-  
-
-
-
-  bool OwnerIsAppFrame();
-
-  
-
-
-
-  void GetOwnerAppManifestURL(nsAString& aOut);
 
   
 
@@ -343,34 +312,14 @@ private:
   
   bool ShowRemoteFrame(const nsIntSize& size);
 
-  bool AddTreeItemToTreeOwner(nsIDocShellTreeItem* aItem,
-                              nsIDocShellTreeOwner* aOwner,
-                              int32_t aParentType,
-                              nsIDocShellTreeNode* aParentNode);
-
-  nsIAtom* TypeAttrName() const {
-    return mOwnerContent->IsXUL() ? nsGkAtoms::type : nsGkAtoms::mozframetype;
-  }
-
   nsCOMPtr<nsIDocShell> mDocShell;
   nsCOMPtr<nsIURI> mURIToLoad;
   mozilla::dom::Element* mOwnerContent; 
-
 public:
   
   nsRefPtr<nsFrameMessageManager> mMessageManager;
   nsCOMPtr<nsIInProcessContentFrameMessageManager> mChildMessageManager;
 private:
-  
-  
-  nsIView* mDetachedSubdocViews;
-  
-  
-  
-  
-  
-  nsCOMPtr<nsIDocument> mContainerDocWhileDetached;
-
   bool mDepthTooGreat : 1;
   bool mIsTopLevelContent : 1;
   bool mDestroyCalled : 1;
@@ -385,12 +334,7 @@ private:
 
   bool mDelayRemoteDialogs : 1;
   bool mRemoteBrowserShown : 1;
-  bool mRemoteFrame : 1;
-  bool mClipSubdocument : 1;
-  bool mClampScrollPosition : 1;
-  bool mRemoteBrowserInitialized : 1;
-  bool mObservingOwnerContent : 1;
-
+  bool mRemoteFrame;
   
   nsCOMPtr<nsIObserver> mChildHost;
   RenderFrameParent* mCurrentRemoteFrame;
@@ -399,11 +343,11 @@ private:
   
   
   
-  uint32_t mRenderMode;
+  PRUint32 mRenderMode;
 
   
   
-  uint32_t mEventMode;
+  PRUint32 mEventMode;
 };
 
 #endif

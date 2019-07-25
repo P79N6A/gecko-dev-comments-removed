@@ -8,6 +8,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsGkAtoms.h"
 #include "txIXPathContext.h"
 #include "txXSLTFunctions.h"
@@ -29,8 +62,8 @@ retrieveNode(txExecutionState* aExecutionState, const nsAString& aUri,
     nsAutoString absUrl;
     URIUtils::resolveHref(aUri, aBaseUri, absUrl);
 
-    int32_t hash = absUrl.RFindChar(PRUnichar('#'));
-    uint32_t urlEnd, fragStart, fragEnd;
+    PRInt32 hash = absUrl.RFindChar(PRUnichar('#'));
+    PRUint32 urlEnd, fragStart, fragEnd;
     if (hash == kNotFound) {
         urlEnd = absUrl.Length();
         fragStart = 0;
@@ -70,7 +103,7 @@ nsresult
 DocumentFunctionCall::evaluate(txIEvalContext* aContext,
                                txAExprResult** aResult)
 {
-    *aResult = nullptr;
+    *aResult = nsnull;
     txExecutionState* es =
         static_cast<txExecutionState*>(aContext->getPrivateContext());
 
@@ -88,7 +121,7 @@ DocumentFunctionCall::evaluate(txIEvalContext* aContext,
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsAutoString baseURI;
-    bool baseURISet = false;
+    MBool baseURISet = MB_FALSE;
 
     if (mParams.Length() == 2) {
         
@@ -101,7 +134,7 @@ DocumentFunctionCall::evaluate(txIEvalContext* aContext,
         
         
         
-        baseURISet = true;
+        baseURISet = MB_TRUE;
 
         if (!nodeSet2->isEmpty()) {
             txXPathNodeUtils::getBaseURI(nodeSet2->get(0), baseURI);
@@ -113,7 +146,7 @@ DocumentFunctionCall::evaluate(txIEvalContext* aContext,
         txNodeSet* nodeSet1 = static_cast<txNodeSet*>
                                          (static_cast<txAExprResult*>
                                                      (exprResult1));
-        int32_t i;
+        PRInt32 i;
         for (i = 0; i < nodeSet1->size(); ++i) {
             const txXPathNode& node = nodeSet1->get(i);
             nsAutoString uriStr;

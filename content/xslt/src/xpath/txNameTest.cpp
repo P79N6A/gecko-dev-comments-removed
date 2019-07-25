@@ -3,14 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "txExpr.h"
 #include "nsIAtom.h"
 #include "nsGkAtoms.h"
 #include "txXPathTreeWalker.h"
 #include "txIXPathContext.h"
 
-txNameTest::txNameTest(nsIAtom* aPrefix, nsIAtom* aLocalName, int32_t aNSID,
-                       uint16_t aNodeType)
+txNameTest::txNameTest(nsIAtom* aPrefix, nsIAtom* aLocalName, PRInt32 aNSID,
+                       PRUint16 aNodeType)
     :mPrefix(aPrefix), mLocalName(aLocalName), mNamespace(aNSID),
      mNodeType(aNodeType)
 {
@@ -31,23 +64,23 @@ bool txNameTest::matches(const txXPathNode& aNode, txIMatchContext* aContext)
          !txXPathNodeUtils::isAttribute(aNode)) ||
         (mNodeType == txXPathNodeType::DOCUMENT_NODE &&
          !txXPathNodeUtils::isRoot(aNode))) {
-        return false;
+        return PR_FALSE;
     }
 
     
     if (mLocalName == nsGkAtoms::_asterix && !mPrefix)
-        return true;
+        return MB_TRUE;
 
     
     if (mNamespace != txXPathNodeUtils::getNamespaceID(aNode) 
         && !(mNamespace == kNameSpaceID_None &&
              txXPathNodeUtils::isHTMLElementInHTMLDocument(aNode))
        )
-        return false;
+        return MB_FALSE;
 
     
     if (mLocalName == nsGkAtoms::_asterix)
-        return true;
+        return MB_TRUE;
 
     
     return txXPathNodeUtils::localNameEquals(aNode, mLocalName);

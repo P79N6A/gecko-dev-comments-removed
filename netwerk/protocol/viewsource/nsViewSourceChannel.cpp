@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsViewSourceChannel.h"
 #include "nsIIOService.h"
 #include "nsIServiceManager.h"
@@ -28,7 +62,6 @@ NS_INTERFACE_MAP_BEGIN(nsViewSourceChannel)
     NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIHttpChannel, mHttpChannel)
     NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIHttpChannelInternal, mHttpChannelInternal)
     NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsICachingChannel, mCachingChannel)
-    NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIApplicationCacheChannel, mApplicationCacheChannel)
     NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIUploadChannel, mUploadChannel)
     NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsIRequest, nsIViewSourceChannel)
     NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsIChannel, nsIViewSourceChannel)
@@ -40,7 +73,7 @@ nsViewSourceChannel::Init(nsIURI* uri)
 {
     mOriginalURI = uri;
 
-    nsAutoCString path;
+    nsCAutoString path;
     nsresult rv = uri->GetPath(path);
     if (NS_FAILED(rv))
       return rv;
@@ -48,7 +81,7 @@ nsViewSourceChannel::Init(nsIURI* uri)
     nsCOMPtr<nsIIOService> pService(do_GetIOService(&rv));
     if (NS_FAILED(rv)) return rv;
 
-    nsAutoCString scheme;
+    nsCAutoString scheme;
     rv = pService->ExtractScheme(path, scheme);
     if (NS_FAILED(rv))
       return rv;
@@ -59,7 +92,7 @@ nsViewSourceChannel::Init(nsIURI* uri)
       return NS_ERROR_INVALID_ARG;
     }
 
-    rv = pService->NewChannel(path, nullptr, nullptr, getter_AddRefs(mChannel));
+    rv = pService->NewChannel(path, nsnull, nsnull, getter_AddRefs(mChannel));
     if (NS_FAILED(rv))
       return rv;
  
@@ -67,7 +100,6 @@ nsViewSourceChannel::Init(nsIURI* uri)
     mHttpChannel = do_QueryInterface(mChannel);
     mHttpChannelInternal = do_QueryInterface(mChannel);
     mCachingChannel = do_QueryInterface(mChannel);
-    mApplicationCacheChannel = do_QueryInterface(mChannel);
     mUploadChannel = do_QueryInterface(mChannel);
     
     return NS_OK;
@@ -158,12 +190,12 @@ nsViewSourceChannel::GetURI(nsIURI* *aURI)
       return NS_ERROR_UNEXPECTED;
     }
 
-    nsAutoCString spec;
+    nsCAutoString spec;
     uri->GetSpec(spec);
 
     
 
-    return NS_NewURI(aURI, nsAutoCString(NS_LITERAL_CSTRING("view-source:")+spec), nullptr);
+    return NS_NewURI(aURI, nsCAutoString(NS_LITERAL_CSTRING("view-source:")+spec), nsnull);
 }
 
 NS_IMETHODIMP
@@ -173,7 +205,7 @@ nsViewSourceChannel::Open(nsIInputStream **_retval)
 
     nsresult rv = mChannel->Open(_retval);
     if (NS_SUCCEEDED(rv)) {
-        mOpened = true;
+        mOpened = PR_TRUE;
     }
     
     return rv;
@@ -196,17 +228,17 @@ nsViewSourceChannel::AsyncOpen(nsIStreamListener *aListener, nsISupports *ctxt)
     mChannel->GetLoadGroup(getter_AddRefs(loadGroup));
     if (loadGroup)
         loadGroup->AddRequest(static_cast<nsIViewSourceChannel*>
-                                         (this), nullptr);
+                                         (this), nsnull);
     
     nsresult rv = mChannel->AsyncOpen(this, ctxt);
 
     if (NS_FAILED(rv) && loadGroup)
         loadGroup->RemoveRequest(static_cast<nsIViewSourceChannel*>
                                             (this),
-                                 nullptr, rv);
+                                 nsnull, rv);
 
     if (NS_SUCCEEDED(rv)) {
-        mOpened = true;
+        mOpened = PR_TRUE;
     }
     
     return rv;
@@ -226,7 +258,7 @@ nsViewSourceChannel::AsyncOpen(nsIStreamListener *aListener, nsISupports *ctxt)
 
 
 NS_IMETHODIMP
-nsViewSourceChannel::GetLoadFlags(uint32_t *aLoadFlags)
+nsViewSourceChannel::GetLoadFlags(PRUint32 *aLoadFlags)
 {
     NS_ENSURE_TRUE(mChannel, NS_ERROR_FAILURE);
 
@@ -244,7 +276,7 @@ nsViewSourceChannel::GetLoadFlags(uint32_t *aLoadFlags)
 }
 
 NS_IMETHODIMP
-nsViewSourceChannel::SetLoadFlags(uint32_t aLoadFlags)
+nsViewSourceChannel::SetLoadFlags(PRUint32 aLoadFlags)
 {
     NS_ENSURE_TRUE(mChannel, NS_ERROR_FAILURE);
 
@@ -256,7 +288,7 @@ nsViewSourceChannel::SetLoadFlags(uint32_t aLoadFlags)
     
     
     
-    mIsDocument = (aLoadFlags & ::nsIChannel::LOAD_DOCUMENT_URI) ? true : false;
+    mIsDocument = (aLoadFlags & ::nsIChannel::LOAD_DOCUMENT_URI) ? PR_TRUE : PR_FALSE;
 
     return mChannel->SetLoadFlags((aLoadFlags |
                                    ::nsIRequest::LOAD_FROM_CACHE) &
@@ -274,7 +306,7 @@ nsViewSourceChannel::GetContentType(nsACString &aContentType)
     {
         
         nsresult rv;
-        nsAutoCString contentType;
+        nsCAutoString contentType;
         rv = mChannel->GetContentType(contentType);
         if (NS_FAILED(rv)) return rv;
 
@@ -340,7 +372,7 @@ nsViewSourceChannel::SetContentCharset(const nsACString &aContentCharset)
 }
 
 NS_IMETHODIMP
-nsViewSourceChannel::GetContentDisposition(uint32_t *aContentDisposition)
+nsViewSourceChannel::GetContentDisposition(PRUint32 *aContentDisposition)
 {
     NS_ENSURE_TRUE(mChannel, NS_ERROR_FAILURE);
 
@@ -364,7 +396,7 @@ nsViewSourceChannel::GetContentDispositionHeader(nsACString &aContentDisposition
 }
 
 NS_IMETHODIMP
-nsViewSourceChannel::GetContentLength(int32_t *aContentLength)
+nsViewSourceChannel::GetContentLength(PRInt32 *aContentLength)
 {
     NS_ENSURE_TRUE(mChannel, NS_ERROR_FAILURE);
 
@@ -372,7 +404,7 @@ nsViewSourceChannel::GetContentLength(int32_t *aContentLength)
 }
 
 NS_IMETHODIMP
-nsViewSourceChannel::SetContentLength(int32_t aContentLength)
+nsViewSourceChannel::SetContentLength(PRInt32 aContentLength)
 {
     NS_ENSURE_TRUE(mChannel, NS_ERROR_FAILURE);
 
@@ -485,7 +517,7 @@ nsViewSourceChannel::OnStopRequest(nsIRequest *aRequest, nsISupports* aContext,
         {
             loadGroup->RemoveRequest(static_cast<nsIViewSourceChannel*>
                                                 (this),
-                                     nullptr, aStatus);
+                                     nsnull, aStatus);
         }
     }
     return mListener->OnStopRequest(static_cast<nsIViewSourceChannel*>
@@ -497,9 +529,8 @@ nsViewSourceChannel::OnStopRequest(nsIRequest *aRequest, nsISupports* aContext,
 
 NS_IMETHODIMP
 nsViewSourceChannel::OnDataAvailable(nsIRequest *aRequest, nsISupports* aContext,
-                                     nsIInputStream *aInputStream,
-                                     uint64_t aSourceOffset,
-                                     uint32_t aLength) 
+                               nsIInputStream *aInputStream, PRUint32 aSourceOffset,
+                               PRUint32 aLength) 
 {
     NS_ENSURE_TRUE(mListener, NS_ERROR_FAILURE);
     return mListener->OnDataAvailable(static_cast<nsIViewSourceChannel*>
@@ -581,21 +612,21 @@ nsViewSourceChannel::SetAllowPipelining(bool aAllowPipelining)
 }
 
 NS_IMETHODIMP
-nsViewSourceChannel::GetRedirectionLimit(uint32_t *aRedirectionLimit)
+nsViewSourceChannel::GetRedirectionLimit(PRUint32 *aRedirectionLimit)
 {
     return !mHttpChannel ? NS_ERROR_NULL_POINTER :
         mHttpChannel->GetRedirectionLimit(aRedirectionLimit);
 }
 
 NS_IMETHODIMP
-nsViewSourceChannel::SetRedirectionLimit(uint32_t aRedirectionLimit)
+nsViewSourceChannel::SetRedirectionLimit(PRUint32 aRedirectionLimit)
 {
     return !mHttpChannel ? NS_ERROR_NULL_POINTER :
         mHttpChannel->SetRedirectionLimit(aRedirectionLimit);
 }
 
 NS_IMETHODIMP
-nsViewSourceChannel::GetResponseStatus(uint32_t *aResponseStatus)
+nsViewSourceChannel::GetResponseStatus(PRUint32 *aResponseStatus)
 {
     return !mHttpChannel ? NS_ERROR_NULL_POINTER :
         mHttpChannel->GetResponseStatus(aResponseStatus);
@@ -652,7 +683,7 @@ nsViewSourceChannel::VisitResponseHeaders(nsIHttpHeaderVisitor *aVisitor)
         return NS_ERROR_NULL_POINTER;
 
     NS_NAMED_LITERAL_CSTRING(contentTypeStr, "Content-Type");
-    nsAutoCString contentType;
+    nsCAutoString contentType;
     nsresult rv =
         mHttpChannel->GetResponseHeader(contentTypeStr, contentType);
     if (NS_SUCCEEDED(rv))

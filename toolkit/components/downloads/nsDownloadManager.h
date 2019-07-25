@@ -3,33 +3,69 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef downloadmanager___h___
 #define downloadmanager___h___
 
-#if defined(XP_WIN)
+#if defined(XP_WIN) && (MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN)
 #define DOWNLOAD_SCANNER
 #endif
 
 #include "nsIDownload.h"
 #include "nsIDownloadManager.h"
 #include "nsIDownloadProgressListener.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "nsIMIMEInfo.h"
 #include "nsINavHistoryService.h"
 #include "nsIObserver.h"
 #include "nsIObserverService.h"
 #include "nsIStringBundle.h"
 #include "nsISupportsPrimitives.h"
-#include "nsWeakReference.h"
 #include "nsITimer.h"
-#include "nsString.h"
 
 #include "mozStorageHelper.h"
 #include "nsAutoPtr.h"
 #include "nsCOMArray.h"
 
-typedef int16_t DownloadState;
-typedef int16_t DownloadType;
+typedef PRInt16 DownloadState;
+typedef PRInt16 DownloadType;
 
 class nsDownload;
 
@@ -39,8 +75,7 @@ class nsDownload;
 
 class nsDownloadManager : public nsIDownloadManager,
                           public nsINavHistoryObserver,
-                          public nsIObserver,
-                          public nsSupportsWeakReference
+                          public nsIObserver
 {
 public:
   NS_DECL_ISUPPORTS
@@ -55,9 +90,9 @@ public:
   virtual ~nsDownloadManager();
   nsDownloadManager() :
       mDBType(DATABASE_DISK)
-    , mInPrivateBrowsing(false)
+    , mInPrivateBrowsing(PR_FALSE)
 #ifdef DOWNLOAD_SCANNER
-    , mScanner(nullptr)
+    , mScanner(nsnull)
 #endif
   {
   }
@@ -71,7 +106,6 @@ protected:
 
   nsresult InitDB();
   nsresult InitFileDB();
-  void CloseDB();
   nsresult InitMemoryDB();
   already_AddRefed<mozIStorageConnection> GetFileDBConnection(nsIFile *dbFile) const;
   already_AddRefed<mozIStorageConnection> GetMemoryDBConnection() const;
@@ -91,7 +125,7 @@ protected:
 
   nsresult RestoreActiveDownloads();
 
-  nsresult GetDownloadFromDB(uint32_t aID, nsDownload **retVal);
+  nsresult GetDownloadFromDB(PRUint32 aID, nsDownload **retVal);
 
   
 
@@ -106,32 +140,32 @@ protected:
 
 
 
-  int64_t AddDownloadToDB(const nsAString &aName,
+  PRInt64 AddDownloadToDB(const nsAString &aName,
                           const nsACString &aSource,
                           const nsACString &aTarget,
                           const nsAString &aTempPath,
-                          int64_t aStartTime,
-                          int64_t aEndTime,
+                          PRInt64 aStartTime,
+                          PRInt64 aEndTime,
                           const nsACString &aMimeType,
                           const nsACString &aPreferredApp,
                           nsHandlerInfoAction aPreferredAction);
 
-  void NotifyListenersOnDownloadStateChange(int16_t aOldState,
+  void NotifyListenersOnDownloadStateChange(PRInt16 aOldState,
                                             nsIDownload *aDownload);
   void NotifyListenersOnProgressChange(nsIWebProgress *aProgress,
                                        nsIRequest *aRequest,
-                                       int64_t aCurSelfProgress,
-                                       int64_t aMaxSelfProgress,
-                                       int64_t aCurTotalProgress,
-                                       int64_t aMaxTotalProgress,
+                                       PRInt64 aCurSelfProgress,
+                                       PRInt64 aMaxSelfProgress,
+                                       PRInt64 aCurTotalProgress,
+                                       PRInt64 aMaxTotalProgress,
                                        nsIDownload *aDownload);
   void NotifyListenersOnStateChange(nsIWebProgress *aProgress,
                                     nsIRequest *aRequest,
-                                    uint32_t aStateFlags,
+                                    PRUint32 aStateFlags,
                                     nsresult aStatus,
                                     nsIDownload *aDownload);
 
-  nsDownload *FindDownload(uint32_t aID);
+  nsDownload *FindDownload(PRUint32 aID);
 
   
 
@@ -185,14 +219,14 @@ protected:
   static void ResumeOnWakeCallback(nsITimer *aTimer, void *aClosure);
   nsCOMPtr<nsITimer> mResumeOnWakeTimer;
 
-  void ConfirmCancelDownloads(int32_t aCount,
+  void ConfirmCancelDownloads(PRInt32 aCount,
                               nsISupportsPRBool *aCancelDownloads,
                               const PRUnichar *aTitle,
                               const PRUnichar *aCancelMessageMultiple,
                               const PRUnichar *aCancelMessageSingle,
                               const PRUnichar *aDontCancelButton);
 
-  int32_t GetRetentionBehavior();
+  PRInt32 GetRetentionBehavior();
 
   
 
@@ -287,13 +321,13 @@ protected:
   
 
 
-  void SetStartTime(int64_t aStartTime);
+  void SetStartTime(PRInt64 aStartTime);
 
   
 
 
 
-  void SetProgressBytes(int64_t aCurrBytes, int64_t aMaxBytes);
+  void SetProgressBytes(PRInt64 aCurrBytes, PRInt64 aMaxBytes);
 
   
 
@@ -378,26 +412,26 @@ private:
   nsCOMPtr<nsIURI> mReferrer;
   nsCOMPtr<nsICancelable> mCancelable;
   nsCOMPtr<nsIRequest> mRequest;
-  nsCOMPtr<nsIFile> mTempFile;
+  nsCOMPtr<nsILocalFile> mTempFile;
   nsCOMPtr<nsIMIMEInfo> mMIMEInfo;
 
   DownloadState mDownloadState;
   DownloadType mDownloadType;
 
-  uint32_t mID;
-  int32_t mPercentComplete;
+  PRUint32 mID;
+  PRInt32 mPercentComplete;
 
   
 
 
 
 
-  int64_t mCurrBytes;
-  int64_t mMaxBytes;
+  PRInt64 mCurrBytes;
+  PRInt64 mMaxBytes;
 
   PRTime mStartTime;
   PRTime mLastUpdate;
-  int64_t mResumedAt;
+  PRInt64 mResumedAt;
   double mSpeed;
 
   bool mHasMultipleFiles;

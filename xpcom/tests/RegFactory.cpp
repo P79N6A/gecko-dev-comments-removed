@@ -3,13 +3,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <iostream.h>
 #include "plstr.h"
 #include "prlink.h"
 #include "nsIComponentRegistrar.h"
 #include "nsIComponentManager.h"
 #include "nsIServiceManager.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "nsCOMPtr.h"
 #include "nsString.h"
 
@@ -37,11 +69,11 @@ void print_err(nsresult err)
 
 nsresult Register(nsIComponentRegistrar* registrar, const char *path) 
 { 
-  nsCOMPtr<nsIFile> file;
+  nsCOMPtr<nsILocalFile> file;
   nsresult rv =
     NS_NewLocalFile(
       NS_ConvertUTF8toUTF16(path),
-      true,
+      PR_TRUE,
       getter_AddRefs(file));
   if (NS_FAILED(rv)) return rv;
   rv = registrar->AutoRegister(file);
@@ -70,7 +102,7 @@ int ProcessArgs(nsIComponentRegistrar* registrar, int argc, char *argv[])
       for (j = 1; argv[i][j] != '\0'; j++) {
         switch (argv[i][j]) {
         case 'u':
-          gUnreg = true;
+          gUnreg = PR_TRUE;
           break;
         default:
           cerr << "Unknown option '" << argv[i][j] << "'\n";
@@ -109,7 +141,7 @@ int main(int argc, char *argv[])
   nsresult rv;
   {
     nsCOMPtr<nsIServiceManager> servMan;
-    rv = NS_InitXPCOM2(getter_AddRefs(servMan), nullptr, nullptr);
+    rv = NS_InitXPCOM2(getter_AddRefs(servMan), nsnull, nsnull);
     if (NS_FAILED(rv)) return -1;
     nsCOMPtr<nsIComponentRegistrar> registrar = do_QueryInterface(servMan);
     NS_ASSERTION(registrar, "Null nsIComponentRegistrar");
@@ -117,7 +149,7 @@ int main(int argc, char *argv[])
     
     if (argc <= 1)
     {
-      rv = registrar->AutoRegister(nullptr);
+      rv = registrar->AutoRegister(nsnull);
       ret = (NS_FAILED(rv)) ? -1 : 0;
     }
     else

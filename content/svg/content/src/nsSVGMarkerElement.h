@@ -3,19 +3,49 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGMARKERELEMENT_H__
 #define __NS_SVGMARKERELEMENT_H__
 
-#include "gfxMatrix.h"
-#include "nsIDOMSVGFitToViewBox.h"
-#include "nsIDOMSVGMarkerElement.h"
-#include "nsSVGAngle.h"
-#include "nsSVGEnum.h"
 #include "nsSVGGraphicElement.h"
+#include "nsIDOMSVGMarkerElement.h"
+#include "nsIDOMSVGFitToViewBox.h"
 #include "nsSVGLength2.h"
+#include "nsSVGEnum.h"
+#include "nsSVGAngle.h"
 #include "nsSVGViewBox.h"
 #include "SVGAnimatedPreserveAspectRatio.h"
-#include "mozilla/Attributes.h"
+#include "gfxMatrix.h"
 
 class nsSVGOrientType
 {
@@ -24,20 +54,20 @@ public:
    : mAnimVal(nsIDOMSVGMarkerElement::SVG_MARKER_ORIENT_ANGLE),
      mBaseVal(nsIDOMSVGMarkerElement::SVG_MARKER_ORIENT_ANGLE) {}
 
-  nsresult SetBaseValue(uint16_t aValue,
+  nsresult SetBaseValue(PRUint16 aValue,
                         nsSVGElement *aSVGElement);
 
   
   
-  void SetBaseValue(uint16_t aValue)
-    { mAnimVal = mBaseVal = uint8_t(aValue); }
+  void SetBaseValue(PRUint16 aValue)
+    { mAnimVal = mBaseVal = PRUint8(aValue); }
   
-  void SetAnimValue(uint16_t aValue)
-    { mAnimVal = uint8_t(aValue); }
+  void SetAnimValue(PRUint16 aValue)
+    { mAnimVal = PRUint8(aValue); }
 
-  uint16_t GetBaseValue() const
+  PRUint16 GetBaseValue() const
     { return mBaseVal; }
-  uint16_t GetAnimValue() const
+  PRUint16 GetAnimValue() const
     { return mAnimVal; }
 
   nsresult ToDOMAnimatedEnum(nsIDOMSVGAnimatedEnumeration **aResult,
@@ -47,7 +77,7 @@ private:
   nsSVGEnumValue mAnimVal;
   nsSVGEnumValue mBaseVal;
 
-  struct DOMAnimatedEnum MOZ_FINAL : public nsIDOMSVGAnimatedEnumeration
+  struct DOMAnimatedEnum : public nsIDOMSVGAnimatedEnumeration
   {
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS(DOMAnimatedEnum)
@@ -59,11 +89,11 @@ private:
     nsSVGOrientType *mVal; 
     nsRefPtr<nsSVGElement> mSVGElement;
 
-    NS_IMETHOD GetBaseVal(uint16_t* aResult)
+    NS_IMETHOD GetBaseVal(PRUint16* aResult)
       { *aResult = mVal->GetBaseValue(); return NS_OK; }
-    NS_IMETHOD SetBaseVal(uint16_t aValue)
+    NS_IMETHOD SetBaseVal(PRUint16 aValue)
       { return mVal->SetBaseValue(aValue, mSVGElement); }
-    NS_IMETHOD GetAnimVal(uint16_t* aResult)
+    NS_IMETHOD GetAnimVal(PRUint16* aResult)
       { *aResult = mVal->GetAnimValue(); return NS_OK; }
   };
 };
@@ -98,13 +128,10 @@ public:
   
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* name) const;
 
-  virtual bool GetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+  virtual bool GetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                          nsAString& aResult) const;
-  virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
+  virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
                              bool aNotify);
-
-  
-  virtual bool HasValidDimensions() const;
 
   
   gfxMatrix GetMarkerTransform(float aStrokeWidth,
@@ -117,11 +144,9 @@ public:
   nsSVGOrientType* GetOrientType() { return &mOrientType; }
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 protected:
 
-  virtual bool ParseAttribute(int32_t aNameSpaceID, nsIAtom* aName,
+  virtual bool ParseAttribute(PRInt32 aNameSpaceID, nsIAtom* aName,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
 

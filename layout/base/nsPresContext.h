@@ -5,33 +5,76 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsPresContext_h___
 #define nsPresContext_h___
 
 #include "nsISupports.h"
 #include "nsColor.h"
 #include "nsCoord.h"
+#include "nsAString.h"
 #include "nsCOMPtr.h"
 #include "nsIPresShell.h"
 #include "nsRect.h"
 #include "nsDeviceContext.h"
 #include "nsFont.h"
+#include "nsIWeakReference.h"
+#include "nsITheme.h"
+#include "nsILanguageAtomService.h"
 #include "nsIObserver.h"
 #include "nsITimer.h"
 #include "nsCRT.h"
+#include "nsIPrintSettings.h"
 #include "FramePropertyTable.h"
 #include "nsGkAtoms.h"
+#include "nsIDocument.h"
 #include "nsRefPtrHashtable.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsChangeHint.h"
 
 #include "gfxRect.h"
+#include "nsRegion.h"
 #include "nsTArray.h"
 #include "nsAutoPtr.h"
+#include "nsThreadUtils.h"
 #include "nsIWidget.h"
 #include "mozilla/TimeStamp.h"
+#include "nsIContent.h"
 #include "prclist.h"
 
+class nsImageLoader;
 #ifdef IBMBIDI
 class nsBidiPresUtils;
 #endif 
@@ -40,12 +83,6 @@ struct nsRect;
 
 class imgIRequest;
 
-class nsAString;
-class nsIPrintSettings;
-class nsIDocument;
-class nsILanguageAtomService;
-class nsITheme;
-class nsIContent;
 class nsFontMetrics;
 class nsIFrame;
 class nsFrameManager;
@@ -55,6 +92,7 @@ class nsIAtom;
 class nsEventStateManager;
 class nsIURI;
 class nsICSSPseudoComparator;
+class nsIAtom;
 struct nsStyleBackground;
 struct nsStyleBorder;
 class nsIRunnable;
@@ -72,6 +110,19 @@ class nsIDOMMediaQueryList;
 class nsRenderingContext;
 #endif
 
+enum nsWidgetType {
+  eWidgetType_Button  	= 1,
+  eWidgetType_Checkbox	= 2,
+  eWidgetType_Radio			= 3,
+  eWidgetType_Text			= 4
+};
+
+enum nsLanguageSpecificTransformType {
+  eLanguageSpecificTransformType_Unknown = -1,
+  eLanguageSpecificTransformType_None = 0,
+  eLanguageSpecificTransformType_Japanese
+};
+
 
 enum nsPresContext_CachedBoolPrefType {
   kPresContext_UseDocumentColors = 1,
@@ -81,14 +132,15 @@ enum nsPresContext_CachedBoolPrefType {
 
 
 enum nsPresContext_CachedIntPrefType {
-  kPresContext_ScrollbarSide = 1,
+  kPresContext_MinimumFontSize = 1,
+  kPresContext_ScrollbarSide,
   kPresContext_BidiDirection
 };
 
 
 
-const uint8_t kPresContext_DefaultVariableFont_ID = 0x00; 
-const uint8_t kPresContext_DefaultFixedFont_ID    = 0x01; 
+const PRUint8 kPresContext_DefaultVariableFont_ID = 0x00; 
+const PRUint8 kPresContext_DefaultFixedFont_ID    = 0x01; 
 
 #ifdef DEBUG
 struct nsAutoLayoutPhase;
@@ -105,7 +157,7 @@ class nsInvalidateRequestList {
 public:
   struct Request {
     nsRect   mRect;
-    uint32_t mFlags;
+    PRUint32 mFlags;
   };
 
   nsTArray<Request> mRequests;
@@ -115,7 +167,6 @@ public:
 #define NS_AUTHOR_SPECIFIED_BACKGROUND      (1 << 0)
 #define NS_AUTHOR_SPECIFIED_BORDER          (1 << 1)
 #define NS_AUTHOR_SPECIFIED_PADDING         (1 << 2)
-#define NS_AUTHOR_SPECIFIED_TEXT_SHADOW     (1 << 3)
 
 class nsRootPresContext;
 
@@ -169,21 +220,8 @@ public:
 
 
 
-  nsPresContext* GetParentPresContext();
-
-  
-
-
-
-  nsPresContext* GetToplevelContentDocumentPresContext();
-
-  
-
-
-
 
   nsRootPresContext* GetRootPresContext();
-  nsRootPresContext* GetDisplayRootPresContext();
   virtual bool IsRoot() { return false; }
 
   nsIDocument* Document() const
@@ -198,7 +236,7 @@ public:
   nsStyleSet* StyleSet() { return GetPresShell()->StyleSet(); }
 
   nsFrameManager* FrameManager()
-    { return GetPresShell()->FrameManager(); }
+    { return GetPresShell()->FrameManager(); } 
 
   nsTransitionManager* TransitionManager() { return mTransitionManager; }
   nsAnimationManager* AnimationManager() { return mAnimationManager; }
@@ -224,7 +262,7 @@ public:
   NS_HIDDEN_(void) HandleMediaFeatureValuesChangedEvent();
   void FlushPendingMediaFeatureValuesChanged() {
     if (mPendingMediaFeatureValuesChanged)
-      MediaFeatureValuesChanged(false);
+      MediaFeatureValuesChanged(PR_FALSE);
   }
 
   
@@ -237,8 +275,9 @@ public:
 
 
 
-  nsCompatibility CompatibilityMode() const;
-
+  nsCompatibility CompatibilityMode() const {
+    return Document()->GetCompatibilityMode();
+  }
   
 
 
@@ -247,14 +286,14 @@ public:
   
 
 
-  uint16_t     ImageAnimationMode() const { return mImageAnimationMode; }
-  virtual NS_HIDDEN_(void) SetImageAnimationModeExternal(uint16_t aMode);
-  NS_HIDDEN_(void) SetImageAnimationModeInternal(uint16_t aMode);
+  PRUint16     ImageAnimationMode() const { return mImageAnimationMode; }
+  virtual NS_HIDDEN_(void) SetImageAnimationModeExternal(PRUint16 aMode);
+  NS_HIDDEN_(void) SetImageAnimationModeInternal(PRUint16 aMode);
 #ifdef _IMPL_NS_LAYOUT
-  void SetImageAnimationMode(uint16_t aMode)
+  void SetImageAnimationMode(PRUint16 aMode)
   { SetImageAnimationModeInternal(aMode); }
 #else
-  void SetImageAnimationMode(uint16_t aMode)
+  void SetImageAnimationMode(PRUint16 aMode)
   { SetImageAnimationModeExternal(aMode); }
 #endif
 
@@ -267,7 +306,7 @@ public:
   {
     if (mShell)
       return mShell->AllocateMisc(aSize);
-    return nullptr;
+    return nsnull;
   }
 
   void FreeToShell(size_t aSize, void* aFreeChunk)
@@ -294,10 +333,7 @@ public:
 
 
 
-
-
-  NS_HIDDEN_(const nsFont*) GetDefaultFont(uint8_t aFontID,
-                                           nsIAtom *aLanguage) const;
+  NS_HIDDEN_(const nsFont*) GetDefaultFont(PRUint8 aFontID) const;
 
   
   
@@ -316,16 +352,18 @@ public:
       NS_ERROR("Invalid arg passed to GetCachedBoolPref");
     }
 
-    return false;
+    return PR_FALSE;
   }
 
   
   
-  int32_t GetCachedIntPref(nsPresContext_CachedIntPrefType aPrefType) const
+  PRInt32 GetCachedIntPref(nsPresContext_CachedIntPrefType aPrefType) const
   {
     
     
     switch (aPrefType) {
+    case kPresContext_MinimumFontSize:
+      return mMinimumFontSizePref;
     case kPresContext_ScrollbarSide:
       return mPrefScrollbarSide;
     case kPresContext_BidiDirection:
@@ -334,7 +372,7 @@ public:
       NS_ERROR("invalid arg passed to GetCachedIntPref");
     }
 
-    return false;
+    return PR_FALSE;
   }
 
   
@@ -355,9 +393,52 @@ public:
   void SetBodyTextColor(nscolor aColor) { mBodyTextColor = aColor; }
 
   bool GetUseFocusColors() const { return mUseFocusColors; }
-  uint8_t FocusRingWidth() const { return mFocusRingWidth; }
+  PRUint8 FocusRingWidth() const { return mFocusRingWidth; }
   bool GetFocusRingOnAnything() const { return mFocusRingOnAnything; }
-  uint8_t GetFocusRingStyle() const { return mFocusRingStyle; }
+  PRUint8 GetFocusRingStyle() const { return mFocusRingStyle; }
+
+  
+
+
+
+  enum ImageLoadType {
+    BACKGROUND_IMAGE,
+    BORDER_IMAGE,
+    IMAGE_LOAD_TYPE_COUNT
+  };
+
+  
+
+
+
+
+
+  NS_HIDDEN_(void) SetImageLoaders(nsIFrame* aTargetFrame,
+                                   ImageLoadType aType,
+                                   nsImageLoader* aImageLoaders);
+
+  
+
+
+
+
+  NS_HIDDEN_(void) SetupBackgroundImageLoaders(nsIFrame* aFrame,
+                                               const nsStyleBackground*
+                                                 aStyleBackground);
+
+  
+
+
+
+
+  NS_HIDDEN_(void) SetupBorderImageLoaders(nsIFrame* aFrame,
+                                           const nsStyleBorder* aStyleBorder);
+
+  
+
+
+
+  NS_HIDDEN_(void) StopImagesFor(nsIFrame* aTargetFrame);
 
   NS_HIDDEN_(void) SetContainer(nsISupports* aContainer);
 
@@ -462,21 +543,16 @@ public:
     if (HasCachedStyleData()) {
       
       
-      MediaFeatureValuesChanged(true);
+      MediaFeatureValuesChanged(PR_TRUE);
       RebuildAllStyleData(NS_STYLE_HINT_REFLOW);
     }
   }
 
-  
-
-
-
-  int32_t MinFontSize(nsIAtom *aLanguage) const {
-    const LangGroupFontPrefs *prefs = GetFontPrefsForLang(aLanguage);
-    return NS_MAX(mMinFontSize, prefs->mMinimumFontSize);
+  PRInt32 MinFontSize() const {
+    return NS_MAX(mMinFontSize, mMinimumFontSizePref);
   }
 
-  void SetMinFontSize(int32_t aMinFontSize) {
+  void SetMinFontSize(PRInt32 aMinFontSize) {
     if (aMinFontSize == mMinFontSize)
       return;
 
@@ -484,7 +560,7 @@ public:
     if (HasCachedStyleData()) {
       
       
-      MediaFeatureValuesChanged(true);
+      MediaFeatureValuesChanged(PR_TRUE);
       RebuildAllStyleData(NS_STYLE_HINT_REFLOW);
     }
   }
@@ -495,23 +571,12 @@ public:
   nscoord GetAutoQualityMinFontSize() {
     return DevPixelsToAppUnits(mAutoQualityMinFontSizePixelsPref);
   }
-
   
+  static PRInt32 AppUnitsPerCSSPixel() { return nsDeviceContext::AppUnitsPerCSSPixel(); }
+  PRUint32 AppUnitsPerDevPixel() const  { return mDeviceContext->AppUnitsPerDevPixel(); }
+  static PRInt32 AppUnitsPerCSSInch() { return nsDeviceContext::AppUnitsPerCSSInch(); }
 
-
-
-
-
-
-
-
-  float ScreenWidthInchesForFontInflation(bool* aChanged = nullptr);
-
-  static int32_t AppUnitsPerCSSPixel() { return nsDeviceContext::AppUnitsPerCSSPixel(); }
-  uint32_t AppUnitsPerDevPixel() const  { return mDeviceContext->AppUnitsPerDevPixel(); }
-  static int32_t AppUnitsPerCSSInch() { return nsDeviceContext::AppUnitsPerCSSInch(); }
-
-  static nscoord CSSPixelsToAppUnits(int32_t aPixels)
+  static nscoord CSSPixelsToAppUnits(PRInt32 aPixels)
   { return NSIntPixelsToAppUnits(aPixels,
                                  nsDeviceContext::AppUnitsPerCSSPixel()); }
 
@@ -519,7 +584,7 @@ public:
   { return NSFloatPixelsToAppUnits(aPixels,
              float(nsDeviceContext::AppUnitsPerCSSPixel())); }
 
-  static int32_t AppUnitsToIntCSSPixels(nscoord aAppUnits)
+  static PRInt32 AppUnitsToIntCSSPixels(nscoord aAppUnits)
   { return NSAppUnitsToIntPixels(aAppUnits,
              float(nsDeviceContext::AppUnitsPerCSSPixel())); }
 
@@ -527,15 +592,15 @@ public:
   { return NSAppUnitsToFloatPixels(aAppUnits,
              float(nsDeviceContext::AppUnitsPerCSSPixel())); }
 
-  nscoord DevPixelsToAppUnits(int32_t aPixels) const
+  nscoord DevPixelsToAppUnits(PRInt32 aPixels) const
   { return NSIntPixelsToAppUnits(aPixels,
                                  mDeviceContext->AppUnitsPerDevPixel()); }
 
-  int32_t AppUnitsToDevPixels(nscoord aAppUnits) const
+  PRInt32 AppUnitsToDevPixels(nscoord aAppUnits) const
   { return NSAppUnitsToIntPixels(aAppUnits,
              float(mDeviceContext->AppUnitsPerDevPixel())); }
 
-  int32_t CSSPixelsToDevPixels(int32_t aPixels)
+  PRInt32 CSSPixelsToDevPixels(PRInt32 aPixels)
   { return AppUnitsToDevPixels(CSSPixelsToAppUnits(aPixels)); }
 
   float CSSPixelsToDevPixels(float aPixels)
@@ -544,10 +609,10 @@ public:
                                    float(mDeviceContext->AppUnitsPerDevPixel()));
   }
 
-  int32_t DevPixelsToIntCSSPixels(int32_t aPixels)
+  PRInt32 DevPixelsToIntCSSPixels(PRInt32 aPixels)
   { return AppUnitsToIntCSSPixels(DevPixelsToAppUnits(aPixels)); }
 
-  float DevPixelsToFloatCSSPixels(int32_t aPixels)
+  float DevPixelsToFloatCSSPixels(PRInt32 aPixels)
   { return AppUnitsToFloatCSSPixels(DevPixelsToAppUnits(aPixels)); }
 
   
@@ -584,8 +649,8 @@ public:
   struct ScrollbarStyles {
     
     
-    uint8_t mHorizontal, mVertical;
-    ScrollbarStyles(uint8_t h, uint8_t v) : mHorizontal(h), mVertical(v) {}
+    PRUint8 mHorizontal, mVertical;
+    ScrollbarStyles(PRUint8 h, PRUint8 v) : mHorizontal(h), mVertical(v) {}
     ScrollbarStyles() {}
     bool operator==(const ScrollbarStyles& aStyles) const {
       return aStyles.mHorizontal == mHorizontal && aStyles.mVertical == mVertical;
@@ -594,7 +659,7 @@ public:
       return aStyles.mHorizontal != mHorizontal || aStyles.mVertical != mVertical;
     }
   };
-  void SetViewportOverflowOverride(uint8_t aX, uint8_t aY)
+  void SetViewportOverflowOverride(PRUint8 aX, PRUint8 aY)
   {
     mViewportStyleOverflow.mHorizontal = aX;
     mViewportStyleOverflow.mVertical = aY;
@@ -627,13 +692,13 @@ public:
 
 
 
+  virtual bool BidiEnabledExternal() const { return BidiEnabledInternal(); }
+  bool BidiEnabledInternal() const { return Document()->GetBidiEnabled(); }
 #ifdef _IMPL_NS_LAYOUT
   bool BidiEnabled() const { return BidiEnabledInternal(); }
 #else
   bool BidiEnabled() const { return BidiEnabledExternal(); }
 #endif
-  virtual bool BidiEnabledExternal() const;
-  bool BidiEnabledInternal() const;
 
   
 
@@ -673,15 +738,15 @@ public:
   
 
   
-  NS_HIDDEN_(void) SetBidi(uint32_t aBidiOptions,
+  NS_HIDDEN_(void) SetBidi(PRUint32 aBidiOptions,
                            bool aForceRestyle = false);
 
   
 
 
 
-
-  NS_HIDDEN_(uint32_t) GetBidi() const;
+  
+  NS_HIDDEN_(PRUint32) GetBidi() const;
 #endif 
 
   
@@ -751,7 +816,7 @@ public:
   }
 
   virtual void InvalidateIsChromeCacheExternal();
-  void InvalidateIsChromeCacheInternal() { mIsChromeIsCached = false; }
+  void InvalidateIsChromeCacheInternal() { mIsChromeIsCached = PR_FALSE; }
 #ifdef _IMPL_NS_LAYOUT
   void InvalidateIsChromeCache()
   { InvalidateIsChromeCacheInternal(); }
@@ -761,7 +826,7 @@ public:
 #endif
 
   
-  virtual bool HasAuthorSpecifiedRules(nsIFrame *aFrame, uint32_t ruleTypeMask) const;
+  virtual bool HasAuthorSpecifiedRules(nsIFrame *aFrame, PRUint32 ruleTypeMask) const;
 
   
   bool UseDocumentColors() const {
@@ -792,7 +857,7 @@ public:
   
   bool EnsureSafeToHandOutCSSRules();
 
-  void NotifyInvalidation(const nsRect& aRect, uint32_t aFlags);
+  void NotifyInvalidation(const nsRect& aRect, PRUint32 aFlags);
   void NotifyDidPaintForSubtree();
   void FireDOMPaintEvent();
 
@@ -846,8 +911,8 @@ public:
       mInterruptsEnabled(aCtx->mInterruptsEnabled),
       mHasPendingInterrupt(aCtx->mHasPendingInterrupt)
     {
-      mCtx->mInterruptsEnabled = false;
-      mCtx->mHasPendingInterrupt = false;
+      mCtx->mInterruptsEnabled = PR_FALSE;
+      mCtx->mHasPendingInterrupt = PR_FALSE;
     }
     ~InterruptPreventer() {
       mCtx->mInterruptsEnabled = mInterruptsEnabled;
@@ -881,40 +946,56 @@ public:
 
 
 
-  nsIFrame* GetPrimaryFrameFor(nsIContent* aContent);
+  nsIFrame* GetPrimaryFrameFor(nsIContent* aContent) {
+    NS_PRECONDITION(aContent, "Don't do that");
+    if (GetPresShell() &&
+        GetPresShell()->GetDocument() == aContent->GetCurrentDoc()) {
+      return aContent->GetPrimaryFrame();
+    }
+    return nsnull;
+  }
 
   void NotifyDestroyingFrame(nsIFrame* aFrame)
   {
     PropertyTable()->DeleteAllFor(aFrame);
   }
+  inline void ForgetUpdatePluginGeometryFrame(nsIFrame* aFrame);
+
+  void DestroyImageLoaders();
+
+  bool GetContainsUpdatePluginGeometryFrame()
+  {
+    return mContainsUpdatePluginGeometryFrame;
+  }
+
+  void SetContainsUpdatePluginGeometryFrame(bool aValue)
+  {
+    mContainsUpdatePluginGeometryFrame = aValue;
+  }
 
   bool MayHaveFixedBackgroundFrames() { return mMayHaveFixedBackgroundFrames; }
-  void SetHasFixedBackgroundFrame() { mMayHaveFixedBackgroundFrames = true; }
+  void SetHasFixedBackgroundFrame() { mMayHaveFixedBackgroundFrames = PR_TRUE; }
 
-  virtual size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
-  virtual size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const {
-    return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
+  PRUint32 EstimateMemoryUsed() {
+    PRUint32 result = 0;
+
+    result += sizeof(nsPresContext);
+
+    return result;
   }
 
   bool IsRootContentDocument();
-  bool IsCrossProcessRootContentDocument();
-
-  bool IsGlyph() const {
-    return mIsGlyph;
-  }
-
-  void SetIsGlyph(bool aValue) {
-    mIsGlyph = aValue;
-  }
 
 protected:
   friend class nsRunnableMethod<nsPresContext>;
   NS_HIDDEN_(void) ThemeChangedInternal();
   NS_HIDDEN_(void) SysColorChangedInternal();
 
-  NS_HIDDEN_(void) SetImgAnimations(nsIContent *aParent, uint16_t aMode);
-  NS_HIDDEN_(void) SetSMILAnimations(nsIDocument *aDoc, uint16_t aNewMode,
-                                     uint16_t aOldMode);
+  NS_HIDDEN_(void) SetImgAnimations(nsIContent *aParent, PRUint16 aMode);
+#ifdef MOZ_SMIL
+  NS_HIDDEN_(void) SetSMILAnimations(nsIDocument *aDoc, PRUint16 aNewMode,
+                                     PRUint16 aOldMode);
+#endif 
   NS_HIDDEN_(void) GetDocumentColorPreferences();
 
   NS_HIDDEN_(void) PreferenceChanged(const char* aPrefName);
@@ -924,92 +1005,17 @@ protected:
   static NS_HIDDEN_(void) PrefChangedUpdateTimerCallback(nsITimer *aTimer, void *aClosure);
 
   NS_HIDDEN_(void) GetUserPreferences();
+  NS_HIDDEN_(void) GetFontPreferences();
 
-  
-  
-  struct LangGroupFontPrefs;
-  friend class nsAutoPtr<LangGroupFontPrefs>;
-  struct LangGroupFontPrefs {
-    
-    LangGroupFontPrefs()
-      : mLangGroup(nullptr)
-      , mMinimumFontSize(0)
-      , mDefaultVariableFont("serif", NS_FONT_STYLE_NORMAL, NS_FONT_VARIANT_NORMAL,
-                             NS_FONT_WEIGHT_NORMAL, NS_FONT_STRETCH_NORMAL, 0, 0)
-      , mDefaultFixedFont("monospace", NS_FONT_STYLE_NORMAL,
-                          NS_FONT_VARIANT_NORMAL, NS_FONT_WEIGHT_NORMAL,
-                          NS_FONT_STRETCH_NORMAL, 0, 0)
-      , mDefaultSerifFont("serif", NS_FONT_STYLE_NORMAL, NS_FONT_VARIANT_NORMAL,
-                        NS_FONT_WEIGHT_NORMAL, NS_FONT_STRETCH_NORMAL, 0, 0)
-      , mDefaultSansSerifFont("sans-serif", NS_FONT_STYLE_NORMAL,
-                              NS_FONT_VARIANT_NORMAL, NS_FONT_WEIGHT_NORMAL,
-                              NS_FONT_STRETCH_NORMAL, 0, 0)
-      , mDefaultMonospaceFont("monospace", NS_FONT_STYLE_NORMAL,
-                              NS_FONT_VARIANT_NORMAL, NS_FONT_WEIGHT_NORMAL,
-                              NS_FONT_STRETCH_NORMAL, 0, 0)
-      , mDefaultCursiveFont("cursive", NS_FONT_STYLE_NORMAL,
-                            NS_FONT_VARIANT_NORMAL, NS_FONT_WEIGHT_NORMAL,
-                            NS_FONT_STRETCH_NORMAL, 0, 0)
-      , mDefaultFantasyFont("fantasy", NS_FONT_STYLE_NORMAL,
-                            NS_FONT_VARIANT_NORMAL, NS_FONT_WEIGHT_NORMAL,
-                            NS_FONT_STRETCH_NORMAL, 0, 0)
-    {}
+  NS_HIDDEN_(void) UpdateCharSet(const nsAFlatCString& aCharSet);
 
-    size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const {
-      size_t n = 0;
-      LangGroupFontPrefs *curr = mNext;
-      while (curr) {
-        n += aMallocSizeOf(curr);
-
-        
-        
-        
-        
-
-        curr = curr->mNext;
-      }
-      return n;
-    }
-
-    nsCOMPtr<nsIAtom> mLangGroup;
-    nscoord mMinimumFontSize;
-    nsFont mDefaultVariableFont;
-    nsFont mDefaultFixedFont;
-    nsFont mDefaultSerifFont;
-    nsFont mDefaultSansSerifFont;
-    nsFont mDefaultMonospaceFont;
-    nsFont mDefaultCursiveFont;
-    nsFont mDefaultFantasyFont;
-    nsAutoPtr<LangGroupFontPrefs> mNext;
-  };
-
-  
-
-
-
-  const LangGroupFontPrefs* GetFontPrefsForLang(nsIAtom *aLanguage) const;
-
-  void ResetCachedFontPrefs() {
-    
-    mLangGroupFontPrefs.mNext = nullptr;
-
-    
-    mLangGroupFontPrefs.mLangGroup = nullptr;
-  }
-
-  NS_HIDDEN_(void) UpdateCharSet(const nsCString& aCharSet);
-
-public:
-  void DoChangeCharSet(const nsCString& aCharSet);
-
-protected:
   void InvalidateThebesLayers();
   void AppUnitsPerDevPixelChanged();
 
   bool MayHavePaintEventListener();
 
   void HandleRebuildUserFontSet() {
-    mPostedFlushUserFontSet = false;
+    mPostedFlushUserFontSet = PR_FALSE;
     FlushUserFontSet();
   }
 
@@ -1023,16 +1029,16 @@ protected:
   
   
   
-
+  
   nsPresContextType     mType;
   nsIPresShell*         mShell;         
   nsCOMPtr<nsIDocument> mDocument;
-  nsRefPtr<nsDeviceContext> mDeviceContext; 
-                                            
-                                            
-                                            
-                                            
-  nsRefPtr<nsEventStateManager> mEventManager;
+  nsDeviceContext*     mDeviceContext; 
+                                        
+                                        
+                                        
+                                        
+  nsEventStateManager* mEventManager;   
   nsRefPtr<nsRefreshDriver> mRefreshDriver;
   nsRefPtr<nsTransitionManager> mTransitionManager;
   nsRefPtr<nsAnimationManager> mAnimationManager;
@@ -1046,30 +1052,21 @@ protected:
   
   
   
-  nsCOMPtr<nsIAtom>     mLanguage;
+  nsIAtom*              mLanguage;      
 
-public:
-  
-  
-
-  
-  
-  bool                  mInflationDisabledForShrinkWrap;
-
-protected:
+  nsRefPtrHashtable<nsVoidPtrHashKey, nsImageLoader>
+                        mImageLoaders[IMAGE_LOAD_TYPE_COUNT];
 
   nsWeakPtr             mContainer;
 
   PRCList               mDOMMediaQueryLists;
 
-  int32_t               mMinFontSize;   
+  PRInt32               mMinFontSize;   
   float                 mTextZoom;      
   float                 mFullZoom;      
 
-  float                 mLastFontInflationScreenWidth;
-
-  int32_t               mCurAppUnitsPerDevPixel;
-  int32_t               mAutoQualityMinFontSizePixelsPref;
+  PRInt32               mCurAppUnitsPerDevPixel;
+  PRInt32               mAutoQualityMinFontSizePixelsPref;
 
   nsCOMPtr<nsITheme> mTheme;
   nsCOMPtr<nsILanguageAtomService> mLangService;
@@ -1082,6 +1079,9 @@ protected:
 
   
   nsUserFontSet*        mUserFontSet;
+  
+  PRInt32               mFontScaler;
+  nscoord               mMinimumFontSizePref;
 
   nsRect                mVisibleArea;
   nsSize                mPageSize;
@@ -1101,16 +1101,22 @@ protected:
   nscolor               mBodyTextColor;
 
   ScrollbarStyles       mViewportStyleOverflow;
-  uint8_t               mFocusRingWidth;
+  PRUint8               mFocusRingWidth;
 
-  uint16_t              mImageAnimationMode;
-  uint16_t              mImageAnimationModePref;
+  PRUint16              mImageAnimationMode;
+  PRUint16              mImageAnimationModePref;
 
-  LangGroupFontPrefs    mLangGroupFontPrefs;
+  nsFont                mDefaultVariableFont;
+  nsFont                mDefaultFixedFont;
+  nsFont                mDefaultSerifFont;
+  nsFont                mDefaultSansSerifFont;
+  nsFont                mDefaultMonospaceFont;
+  nsFont                mDefaultCursiveFont;
+  nsFont                mDefaultFantasyFont;
 
   nscoord               mBorderWidthTable[3];
 
-  uint32_t              mInterruptChecksToSkip;
+  PRUint32              mInterruptChecksToSkip;
 
   mozilla::TimeStamp    mReflowStartTime;
 
@@ -1141,9 +1147,6 @@ protected:
   unsigned              mMayHaveFixedBackgroundFrames : 1;
 
   
-  unsigned              mIsGlyph : 1;
-
-  
   unsigned              mUserFontSetDirty : 1;
   
   unsigned              mGetUserFontSetCalled : 1;
@@ -1159,6 +1162,7 @@ protected:
   unsigned              mProcessingRestyles : 1;
   unsigned              mProcessingAnimationStyleChange : 1;
 
+  unsigned              mContainsUpdatePluginGeometryFrame : 1;
   unsigned              mFireAfterPaintEvents : 1;
 
   
@@ -1188,14 +1192,12 @@ protected:
     eDefaultFont_COUNT
   };
 
-  nscolor MakeColorPref(const nsString& aColor);
-
 #ifdef DEBUG
 private:
   friend struct nsAutoLayoutPhase;
-  uint32_t mLayoutPhaseCount[eLayoutPhase_COUNT];
+  PRUint32 mLayoutPhaseCount[eLayoutPhase_COUNT];
 public:
-  uint32_t LayoutPhaseCount(nsLayoutPhase aPhase) {
+  PRUint32 LayoutPhaseCount(nsLayoutPhase aPhase) {
     return mLayoutPhaseCount[aPhase];
   }
 #endif
@@ -1217,7 +1219,7 @@ public:
   {
     if (mNotifyDidPaintTimer) {
       mNotifyDidPaintTimer->Cancel();
-      mNotifyDidPaintTimer = nullptr;
+      mNotifyDidPaintTimer = nsnull;
     }
   }
 
@@ -1227,13 +1229,13 @@ public:
 
 
 
-  void RegisterPluginForGeometryUpdates(nsIContent* aPlugin);
+  void RegisterPluginForGeometryUpdates(nsObjectFrame* aPlugin);
   
 
 
 
 
-  void UnregisterPluginForGeometryUpdates(nsIContent* aPlugin);
+  void UnregisterPluginForGeometryUpdates(nsObjectFrame* aPlugin);
 
   
 
@@ -1266,7 +1268,29 @@ public:
 
 
 
-  void RequestUpdatePluginGeometry();
+
+  void SynchronousPluginGeometryUpdate();
+
+  
+
+
+
+
+  void RequestUpdatePluginGeometry(nsIFrame* aFrame);
+
+  
+
+
+
+  void RootForgetUpdatePluginGeometryFrame(nsIFrame* aFrame);
+
+  
+
+
+
+
+
+  void RootForgetUpdatePluginGeometryFrameForPresContext(nsPresContext* aPresContext);
 
   
 
@@ -1278,60 +1302,29 @@ public:
   
 
 
+  PRUint32 GetDOMGeneration() { return mDOMGeneration; }
 
-
-
-  uint32_t GetDOMGeneration() { return mDOMGeneration; }
-
-  
-
-
-
-
-  void AddWillPaintObserver(nsIRunnable* aRunnable);
-
-  
-
-
-  void FlushWillPaintObservers();
-
-  virtual size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const MOZ_OVERRIDE;
-
-protected:
-  class RunWillPaintObservers : public nsRunnable {
-  public:
-    RunWillPaintObservers(nsRootPresContext* aPresContext) : mPresContext(aPresContext) {}
-    void Revoke() { mPresContext = nullptr; }
-    NS_IMETHOD Run()
-    {
-      if (mPresContext) {
-        mPresContext->FlushWillPaintObservers();
-      }
-      return NS_OK;
-    }
-    nsRootPresContext* mPresContext;
-  };
-
-  friend class nsPresContext;
-  void CancelUpdatePluginGeometryTimer()
-  {
-    if (mUpdatePluginGeometryTimer) {
-      mUpdatePluginGeometryTimer->Cancel();
-      mUpdatePluginGeometryTimer = nullptr;
-    }
-  }
-
+private:
   nsCOMPtr<nsITimer> mNotifyDidPaintTimer;
-  nsCOMPtr<nsITimer> mUpdatePluginGeometryTimer;
-  nsTHashtable<nsRefPtrHashKey<nsIContent> > mRegisteredPlugins;
+  nsTHashtable<nsPtrHashKey<nsObjectFrame> > mRegisteredPlugins;
   
   
   
-  nsTArray<nsCOMPtr<nsIRunnable> > mWillPaintObservers;
-  nsRevocableEventPtr<RunWillPaintObservers> mWillPaintFallbackEvent;
-  uint32_t mDOMGeneration;
+  nsIFrame* mUpdatePluginGeometryForFrame;
+  PRUint32 mDOMGeneration;
   bool mNeedsToUpdatePluginGeometry;
 };
+
+inline void
+nsPresContext::ForgetUpdatePluginGeometryFrame(nsIFrame* aFrame)
+{
+  if (mContainsUpdatePluginGeometryFrame) {
+    nsRootPresContext* rootPC = GetRootPresContext();
+    if (rootPC) {
+      rootPC->RootForgetUpdatePluginGeometryFrame(aFrame);
+    }
+  }
+}
 
 #ifdef MOZ_REFLOW_PERF
 

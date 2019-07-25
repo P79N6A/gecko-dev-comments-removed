@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <stdio.h>
 #include "nsISupports.h"
 #include "nsXPCOM.h"
@@ -25,7 +57,7 @@ struct testcaseLine {
 #ifdef DEBUG_smontagu
 #define DEBUG_NAMED_TESTCASE(t, s) \
   printf(t ": "); \
-  for (uint32_t i = 0; i < s.Length(); ++i) \
+  for (PRUint32 i = 0; i < s.Length(); ++i) \
     printf("%x ", s.CharAt(i)); \
   printf("\n")
 #else
@@ -39,7 +71,7 @@ struct testcaseLine {
    normalizer->NormalizeUnicode##form(comparison, normalized);\
    DEBUG_NAMED_TESTCASE(#form "(" #comparison ")", normalized);\
    if (!base.Equals(normalized)) {\
-     rv = false;\
+     rv = PR_FALSE;\
      showError(description, #base " != " #form "(" #comparison ")\n");\
    }
 
@@ -124,7 +156,7 @@ bool TestInvariants(testcaseLine* testLine)
   return rv;
 }
 
-uint32_t UTF32CodepointFromTestcase(testcaseLine* testLine)
+PRUint32 UTF32CodepointFromTestcase(testcaseLine* testLine)
 {
   if (!IS_SURROGATE(testLine->c1[0]))
     return testLine->c1[0];
@@ -135,7 +167,7 @@ uint32_t UTF32CodepointFromTestcase(testcaseLine* testLine)
   return SURROGATE_TO_UCS4(testLine->c1[0], testLine->c1[1]);
 }
 
-bool TestUnspecifiedCodepoint(uint32_t codepoint)
+bool TestUnspecifiedCodepoint(PRUint32 codepoint)
 {
   bool rv = true;
   PRUnichar unicharArray[3];
@@ -174,9 +206,9 @@ void TestPart0()
 {
   printf("Test Part0: Specific cases\n");
 
-  uint32_t i = 0;
-  uint32_t numFailed = 0;
-  uint32_t numPassed = 0;
+  PRUint32 i = 0;
+  PRUint32 numFailed = 0;
+  PRUint32 numPassed = 0;
 
   while (Part0TestData[i].c1[0] != 0) {
     if (TestInvariants(&Part0TestData[i++]))
@@ -191,11 +223,11 @@ void TestPart1()
 {
   printf("Test Part1: Character by character test\n");
 
-  uint32_t i = 0;
-  uint32_t numFailed = 0;
-  uint32_t numPassed = 0;
-  uint32_t codepoint;
-  uint32_t testDataCodepoint = UTF32CodepointFromTestcase(&Part1TestData[i]);
+  PRUint32 i = 0;
+  PRUint32 numFailed = 0;
+  PRUint32 numPassed = 0;
+  PRUint32 codepoint;
+  PRUint32 testDataCodepoint = UTF32CodepointFromTestcase(&Part1TestData[i]);
 
   for (codepoint = 1; codepoint < 0x110000; ++codepoint) {
     if (testDataCodepoint == codepoint) {
@@ -218,9 +250,9 @@ void TestPart2()
 {
   printf("Test Part2: Canonical Order Test\n");
 
-  uint32_t i = 0;
-  uint32_t numFailed = 0;
-  uint32_t numPassed = 0;
+  PRUint32 i = 0;
+  PRUint32 numFailed = 0;
+  PRUint32 numPassed = 0;
 
   while (Part2TestData[i].c1[0] != 0) {
     if (TestInvariants(&Part2TestData[i++]))
@@ -235,9 +267,9 @@ void TestPart3()
 {
   printf("Test Part3: PRI #29 Test\n");
 
-  uint32_t i = 0;
-  uint32_t numFailed = 0;
-  uint32_t numPassed = 0;
+  PRUint32 i = 0;
+  PRUint32 numFailed = 0;
+  PRUint32 numPassed = 0;
 
   while (Part3TestData[i].c1[0] != 0) {
     if (TestInvariants(&Part3TestData[i++]))
@@ -263,9 +295,9 @@ int main(int argc, char** argv) {
   printf("NormalizationTest: test nsIUnicodeNormalizer. UCD version: %s\n", 
          versionText); 
   if (argc <= 1)
-    verboseMode = false;
+    verboseMode = PR_FALSE;
   else if ((argc == 2) && (!strcmp(argv[1], "-v")))
-    verboseMode = true;
+    verboseMode = PR_TRUE;
   else {
     printf("                   Usage: NormalizationTest [OPTION]..\n");
     printf("Options:\n");
@@ -273,17 +305,17 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  nsresult rv = NS_InitXPCOM2(nullptr, nullptr, nullptr);
+  nsresult rv = NS_InitXPCOM2(nsnull, nsnull, nsnull);
   if (NS_FAILED(rv)) {
     printf("NS_InitXPCOM2 failed\n");
     return 1;
   }
   
-  normalizer = nullptr;
+  normalizer = NULL;
   nsresult res;
   res = CallGetService(kUnicodeNormalizerCID, &normalizer);
   
- if(NS_FAILED(res) || !normalizer) {
+ if(NS_FAILED(res) || ( normalizer == NULL ) ) {
     printf("GetService failed\n");
     return 1;
   }

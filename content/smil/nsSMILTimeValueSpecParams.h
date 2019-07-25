@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_SMILTIMEVALUESPECPARAMS_H_
 #define NS_SMILTIMEVALUESPECPARAMS_H_
 
@@ -22,7 +54,7 @@ public:
   nsSMILTimeValueSpecParams()
   :
     mType(INDEFINITE),
-    mSyncBegin(false),
+    mSyncBegin(PR_FALSE),
     mRepeatIterationOrAccessKey(0)
   { }
 
@@ -62,7 +94,7 @@ public:
 
   
   
-  uint32_t          mRepeatIterationOrAccessKey;
+  PRUint32          mRepeatIterationOrAccessKey;
 };
 
 #endif 

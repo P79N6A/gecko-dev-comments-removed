@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsPrincipal_h__
 #define nsPrincipal_h__
 
@@ -13,39 +47,43 @@
 #include "nsJSPrincipals.h"
 #include "nsTArray.h"
 #include "nsAutoPtr.h"
-#include "nsIProtocolHandler.h"
-#include "nsNetUtil.h"
-#include "nsScriptSecurityManager.h"
 
 class nsIObjectInputStream;
 class nsIObjectOutputStream;
-class DomainPolicy; 
 
-class nsBasePrincipal : public nsJSPrincipals
+class nsPrincipal : public nsIPrincipal
 {
 public:
-  nsBasePrincipal();
+  nsPrincipal();
 
 protected:
-  virtual ~nsBasePrincipal();
+  virtual ~nsPrincipal();
 
 public:
-  NS_IMETHOD_(nsrefcnt) AddRef(void);
-  NS_IMETHOD_(nsrefcnt) Release(void);
-  NS_IMETHOD GetPreferences(char** prefBranch, char** id, char** subjectName, char** grantedList, char** deniedList, bool* isTrusted);
-  NS_IMETHOD GetSecurityPolicy(void** aSecurityPolicy);
-  NS_IMETHOD SetSecurityPolicy(void* aSecurityPolicy);
-  NS_IMETHOD CanEnableCapability(const char* capability, int16_t* _retval);
-  NS_IMETHOD IsCapabilityEnabled(const char* capability, void* annotation, bool* _retval);
-  NS_IMETHOD EnableCapability(const char* capability, void** annotation);
-  NS_IMETHOD GetHasCertificate(bool* aHasCertificate);
-  NS_IMETHOD GetFingerprint(nsACString& aFingerprint);
-  NS_IMETHOD GetPrettyName(nsACString& aPrettyName);
-  NS_IMETHOD GetSubjectName(nsACString& aSubjectName);
-  NS_IMETHOD GetCertificate(nsISupports** aCertificate);
-  NS_IMETHOD GetCsp(nsIContentSecurityPolicy** aCsp);
-  NS_IMETHOD SetCsp(nsIContentSecurityPolicy* aCsp);
+  
+  
+  NS_DECL_ISUPPORTS_INHERITED
 public:
+
+  NS_DECL_NSIPRINCIPAL
+  NS_DECL_NSISERIALIZABLE
+
+  
+  
+  nsresult Init(const nsACString& aCertFingerprint,
+                const nsACString& aSubjectName,
+                const nsACString& aPrettyName,
+                nsISupports* aCert,
+                nsIURI *aCodebase);
+  nsresult InitFromPersistent(const char* aPrefName,
+                              const nsCString& aFingerprint,
+                              const nsCString& aSubjectName,
+                              const nsACString& aPrettyName,
+                              const char* aGrantedList,
+                              const char* aDeniedList,
+                              nsISupports* aCert,
+                              bool aIsCert,
+                              bool aTrusted);
 
   
   
@@ -56,19 +94,18 @@ public:
 
   enum AnnotationValue { AnnotationEnabled=1, AnnotationDisabled };
 
-  nsresult SetCapability(const char* capability, void** annotation, 
+  void SetURI(nsIURI *aURI);
+  nsresult SetCapability(const char *capability, void **annotation, 
                          AnnotationValue value);
 
   static const char sInvalid[];
 
 protected:
-  
-  nsresult SetCanEnableCapability(const char* capability, int16_t canEnable);
-
+  nsJSPrincipals mJSPrincipals;
   nsTArray< nsAutoPtr<nsHashtable> > mAnnotations;
   nsHashtable* mCapabilities;
   nsCString mPrefName;
-  static int32_t sCapabilitiesOrdinal;
+  static PRInt32 sCapabilitiesOrdinal;
 
   
   
@@ -97,10 +134,6 @@ protected:
   
   bool CertificateEquals(nsIPrincipal *aOther);
 
-#ifdef DEBUG
-  virtual void dumpImpl() = 0;
-#endif
-
   
   
   
@@ -109,133 +142,15 @@ protected:
   DomainPolicy* mSecurityPolicy;
 
   nsCOMPtr<nsIContentSecurityPolicy> mCSP;
-  bool mTrusted;
-};
-
-class nsPrincipal : public nsBasePrincipal
-{
-public:
-  NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_NSISERIALIZABLE
-  NS_IMETHOD Equals(nsIPrincipal* other, bool* _retval);
-  NS_IMETHOD EqualsIgnoringDomain(nsIPrincipal* other, bool* _retval);
-  NS_IMETHOD GetHashValue(uint32_t* aHashValue);
-  NS_IMETHOD GetURI(nsIURI** aURI);
-  NS_IMETHOD GetDomain(nsIURI** aDomain);
-  NS_IMETHOD SetDomain(nsIURI* aDomain);
-  NS_IMETHOD GetOrigin(char** aOrigin);
-  NS_IMETHOD Subsumes(nsIPrincipal* other, bool* _retval);
-  NS_IMETHOD SubsumesIgnoringDomain(nsIPrincipal* other, bool* _retval);
-  NS_IMETHOD CheckMayLoad(nsIURI* uri, bool report, bool allowIfInheritsPrincipal);
-  NS_IMETHOD GetExtendedOrigin(nsACString& aExtendedOrigin);
-  NS_IMETHOD GetAppStatus(uint16_t* aAppStatus);
-  NS_IMETHOD GetAppId(uint32_t* aAppStatus);
-  NS_IMETHOD GetIsInBrowserElement(bool* aIsInBrowserElement);
-#ifdef DEBUG
-  virtual void dumpImpl();
-#endif
-
-  nsPrincipal();
-
-  
-  
-  nsresult Init(const nsACString& aCertFingerprint,
-                const nsACString& aSubjectName,
-                const nsACString& aPrettyName,
-                nsISupports* aCert,
-                nsIURI* aCodebase,
-                uint32_t aAppId,
-                bool aInMozBrowser);
-  nsresult InitFromPersistent(const char* aPrefName,
-                              const nsCString& aFingerprint,
-                              const nsCString& aSubjectName,
-                              const nsACString& aPrettyName,
-                              const char* aGrantedList,
-                              const char* aDeniedList,
-                              nsISupports* aCert,
-                              bool aIsCert,
-                              bool aTrusted,
-                              uint32_t aAppId,
-                              bool aInMozBrowser);
-
-  virtual void GetScriptLocation(nsACString& aStr) MOZ_OVERRIDE;
-  void SetURI(nsIURI* aURI);
-
-  static bool IsPrincipalInherited(nsIURI* aURI) {
-    
-    
-    bool doesInheritSecurityContext;
-    nsresult rv =
-    NS_URIChainHasFlags(aURI,
-                        nsIProtocolHandler::URI_INHERITS_SECURITY_CONTEXT,
-                        &doesInheritSecurityContext);
-
-    if (NS_SUCCEEDED(rv) && doesInheritSecurityContext) {
-      return true;
-    }
-
-    return false;
-  }
-
-
-  
-
-
-  static nsresult GetOriginForURI(nsIURI* aURI, char **aOrigin);
-
-  nsCOMPtr<nsIURI> mDomain;
   nsCOMPtr<nsIURI> mCodebase;
-  uint32_t mAppId;
-  bool mInMozBrowser;
+  nsCOMPtr<nsIURI> mDomain;
+  bool mTrusted;
+  bool mInitialized;
   
   bool mCodebaseImmutable;
   bool mDomainImmutable;
-  bool mInitialized;
-
-protected:
-  virtual ~nsPrincipal();
-
-  
-
-
-  uint16_t GetAppStatus();
 };
 
-class nsExpandedPrincipal : public nsIExpandedPrincipal, public nsBasePrincipal
-{
-public:
-  nsExpandedPrincipal(nsTArray< nsCOMPtr<nsIPrincipal> > &aWhiteList);
-
-protected:
-  virtual ~nsExpandedPrincipal();
-
-public:
-  NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_NSIEXPANDEDPRINCIPAL
-  NS_DECL_NSISERIALIZABLE
-  NS_IMETHOD Equals(nsIPrincipal* other, bool* _retval);
-  NS_IMETHOD EqualsIgnoringDomain(nsIPrincipal* other, bool* _retval);
-  NS_IMETHOD GetHashValue(uint32_t* aHashValue);
-  NS_IMETHOD GetURI(nsIURI** aURI);
-  NS_IMETHOD GetDomain(nsIURI** aDomain);
-  NS_IMETHOD SetDomain(nsIURI* aDomain);
-  NS_IMETHOD GetOrigin(char** aOrigin);
-  NS_IMETHOD Subsumes(nsIPrincipal* other, bool* _retval);
-  NS_IMETHOD SubsumesIgnoringDomain(nsIPrincipal* other, bool* _retval);
-  NS_IMETHOD CheckMayLoad(nsIURI* uri, bool report, bool allowIfInheritsPrincipal);
-  NS_IMETHOD GetExtendedOrigin(nsACString& aExtendedOrigin);
-  NS_IMETHOD GetAppStatus(uint16_t* aAppStatus);
-  NS_IMETHOD GetAppId(uint32_t* aAppStatus);
-  NS_IMETHOD GetIsInBrowserElement(bool* aIsInBrowserElement);
-#ifdef DEBUG
-  virtual void dumpImpl();
-#endif
-  
-  virtual void GetScriptLocation(nsACString &aStr) MOZ_OVERRIDE;
-
-private:
-  nsTArray< nsCOMPtr<nsIPrincipal> > mPrincipals;
-};
 
 #define NS_PRINCIPAL_CLASSNAME  "principal"
 #define NS_PRINCIPAL_CONTRACTID "@mozilla.org/principal;1"
@@ -243,10 +158,5 @@ private:
   { 0x36102b6b, 0x7b62, 0x451a, \
     { 0xa1, 0xc8, 0xa0, 0xd4, 0x56, 0xc9, 0x2d, 0xc5 }}
 
-#define NS_EXPANDEDPRINCIPAL_CLASSNAME  "expandedprincipal"
-#define NS_EXPANDEDPRINCIPAL_CONTRACTID "@mozilla.org/expandedprincipal;1"
-#define NS_EXPANDEDPRINCIPAL_CID \
-  { 0xb33a3807, 0xb76c, 0x44e5, \
-    { 0xb9, 0x9d, 0x95, 0x7e, 0xe9, 0xba, 0x6e, 0x39 }}
 
 #endif 

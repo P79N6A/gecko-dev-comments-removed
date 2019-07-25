@@ -18,11 +18,6 @@
 
 #include "libGLESv2/Context.h"
 
-namespace
-{
-    enum { INITIAL_INDEX_BUFFER_SIZE = 4096 * sizeof(GLuint) };
-}
-
 namespace gl
 {
 
@@ -128,8 +123,7 @@ class IndexDataManager
     IndexDataManager(Context *context, IDirect3DDevice9 *evice);
     virtual ~IndexDataManager();
 
-    GLenum prepareIndexData(GLenum type, GLsizei count, Buffer *arrayElementBuffer, const GLvoid *indices, TranslatedIndexData *translated);
-    StaticIndexBuffer *getCountingIndices(GLsizei count);
+    GLenum prepareIndexData(GLenum type, GLsizei count, Buffer *arrayElementBuffer, const void *indices, TranslatedIndexData *translated);
 
   private:
     DISALLOW_COPY_AND_ASSIGN(IndexDataManager);
@@ -141,7 +135,6 @@ class IndexDataManager
 
     StreamingIndexBuffer *mStreamingBufferShort;
     StreamingIndexBuffer *mStreamingBufferInt;
-    StaticIndexBuffer *mCountingBuffer;
 };
 
 }

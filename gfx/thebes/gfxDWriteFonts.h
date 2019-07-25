@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_WINDOWSDWRITEFONTS_H
 #define GFX_WINDOWSDWRITEFONTS_H
 
@@ -31,11 +63,9 @@ public:
 
     virtual const gfxFont::Metrics& GetMetrics();
 
-    virtual uint32_t GetSpaceGlyph();
+    virtual PRUint32 GetSpaceGlyph();
 
     virtual bool SetupCairoFont(gfxContext *aContext);
-
-    virtual bool AllowSubpixelAA() { return mAllowManualShowGlyphs; }
 
     virtual bool IsValid();
 
@@ -47,27 +77,18 @@ public:
 
     
     virtual RunMetrics Measure(gfxTextRun *aTextRun,
-                               uint32_t aStart, uint32_t aEnd,
+                               PRUint32 aStart, PRUint32 aEnd,
                                BoundingBoxType aBoundingBoxType,
                                gfxContext *aContextForTightBoundingBox,
                                Spacing *aSpacing);
 
     
     
-    virtual hb_blob_t *GetFontTable(uint32_t aTag);
+    virtual hb_blob_t *GetFontTable(PRUint32 aTag);
 
     virtual bool ProvidesGlyphWidths();
 
-    virtual int32_t GetGlyphWidth(gfxContext *aCtx, uint16_t aGID);
-
-    virtual mozilla::TemporaryRef<mozilla::gfx::GlyphRenderingOptions> GetGlyphRenderingOptions();
-
-    virtual void SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                     FontCacheSizes*   aSizes) const;
-    virtual void SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                     FontCacheSizes*   aSizes) const;
-
-    virtual FontType GetType() const { return FONT_TYPE_DWRITE; }
+    virtual PRInt32 GetGlyphWidth(gfxContext *aCtx, PRUint16 aGID);
 
 protected:
     friend class gfxDWriteShaper;
@@ -78,13 +99,13 @@ protected:
 
     void ComputeMetrics(AntialiasOption anAAOption);
 
-    bool HasBitmapStrikeForSize(uint32_t aSize);
+    bool HasBitmapStrikeForSize(PRUint32 aSize);
 
     cairo_font_face_t *CairoFontFace();
 
     cairo_scaled_font_t *CairoScaledFont();
 
-    gfxFloat MeasureGlyphWidth(uint16_t aGlyph);
+    gfxFloat MeasureGlyphWidth(PRUint16 aGlyph);
 
     static void DestroyBlobFunc(void* userArg);
 
@@ -93,11 +114,12 @@ protected:
 
     nsRefPtr<IDWriteFontFace> mFontFace;
     cairo_font_face_t *mCairoFontFace;
+    cairo_scaled_font_t *mCairoScaledFont;
 
     gfxFont::Metrics          *mMetrics;
 
     
-    nsDataHashtable<nsUint32HashKey,int32_t>    mGlyphWidths;
+    nsDataHashtable<nsUint32HashKey,PRInt32>    mGlyphWidths;
 
     bool mNeedsOblique;
     bool mNeedsBold;

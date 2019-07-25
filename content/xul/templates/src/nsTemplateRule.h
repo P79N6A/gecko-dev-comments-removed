@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsTemplateRule_h__
 #define nsTemplateRule_h__
 
@@ -254,7 +287,7 @@ protected:
     
     
     
-    int32_t mPriority;
+    PRInt32 mPriority;
 
 public:
 
@@ -269,7 +302,7 @@ public:
     
     nsCOMPtr<nsIAtom> mTag;
 
-    nsTemplateQuerySet(int32_t aPriority)
+    nsTemplateQuerySet(PRInt32 aPriority)
         : mPriority(aPriority)
     {
         MOZ_COUNT_CTOR(nsTemplateQuerySet);
@@ -280,7 +313,7 @@ public:
         MOZ_COUNT_DTOR(nsTemplateQuerySet);
     }
 
-    int32_t Priority() const
+    PRInt32 Priority() const
     {
         return mPriority;
     }
@@ -295,7 +328,7 @@ public:
         
         
         if (mRules.Length() == PR_INT16_MAX)
-            return nullptr;
+            return nsnull;
 
         return mRules.AppendElement(nsTemplateRule(aRuleNode, aAction,
                                     aQuerySet));
@@ -306,17 +339,17 @@ public:
         mRules.RemoveElementAt(aRule - mRules.Elements());
     }
 
-    int16_t RuleCount() const
+    PRInt16 RuleCount() const
     {
         return mRules.Length();
     }
 
-    nsTemplateRule* GetRuleAt(int16_t aIndex)
+    nsTemplateRule* GetRuleAt(PRInt16 aIndex)
     {
-        if (uint32_t(aIndex) < mRules.Length()) {
+        if (PRUint32(aIndex) < mRules.Length()) {
             return &mRules[aIndex];
         }
-        return nullptr;
+        return nsnull;
     }
 
     void Clear()

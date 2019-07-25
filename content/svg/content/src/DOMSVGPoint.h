@@ -3,18 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_DOMSVGPOINT_H__
 #define MOZILLA_DOMSVGPOINT_H__
 
-#include "DOMSVGPointList.h"
-#include "gfxPoint.h"
-#include "nsAutoPtr.h"
-#include "nsCycleCollectionParticipant.h"
-#include "nsDebug.h"
 #include "nsIDOMSVGPoint.h"
-#include "nsTArray.h"
+#include "DOMSVGPointList.h"
 #include "SVGPoint.h"
-#include "mozilla/Attributes.h"
+#include "gfxPoint.h"
+#include "nsCycleCollectionParticipant.h"
+#include "nsAutoPtr.h"
+#include "nsMathUtils.h"
 
 class nsSVGElement;
 
@@ -45,7 +74,7 @@ namespace mozilla {
 
 
 
-class DOMSVGPoint MOZ_FINAL : public nsIDOMSVGPoint
+class DOMSVGPoint : public nsIDOMSVGPoint
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_DOMSVGPOINT_IID)
@@ -57,11 +86,11 @@ public:
 
 
   DOMSVGPoint(DOMSVGPointList *aList,
-              uint32_t aListIndex,
+              PRUint32 aListIndex,
               bool aIsAnimValItem)
     : mList(aList)
     , mListIndex(aListIndex)
-    , mIsReadonly(false)
+    , mIsReadonly(PR_FALSE)
     , mIsAnimValItem(aIsAnimValItem)
   {
     
@@ -71,11 +100,11 @@ public:
     NS_ABORT_IF_FALSE(IndexIsValid(), "Bad index for DOMSVGPoint!");
   }
 
-  DOMSVGPoint(const DOMSVGPoint *aPt = nullptr)
-    : mList(nullptr)
+  DOMSVGPoint(const DOMSVGPoint *aPt = nsnull)
+    : mList(nsnull)
     , mListIndex(0)
-    , mIsReadonly(false)
-    , mIsAnimValItem(false)
+    , mIsReadonly(PR_FALSE)
+    , mIsAnimValItem(PR_FALSE)
   {
     if (aPt) {
       mPt = aPt->ToSVGPoint();
@@ -83,20 +112,20 @@ public:
   }
 
   DOMSVGPoint(float aX, float aY)
-    : mList(nullptr)
+    : mList(nsnull)
     , mListIndex(0)
-    , mIsReadonly(false)
-    , mIsAnimValItem(false)
+    , mIsReadonly(PR_FALSE)
+    , mIsAnimValItem(PR_FALSE)
   {
     mPt.mX = aX;
     mPt.mY = aY;
   }
 
   DOMSVGPoint(const gfxPoint &aPt)
-    : mList(nullptr)
+    : mList(nsnull)
     , mListIndex(0)
-    , mIsReadonly(false)
-    , mIsAnimValItem(false)
+    , mIsReadonly(PR_FALSE)
+    , mIsAnimValItem(PR_FALSE)
   {
     mPt.mX = float(aPt.x);
     mPt.mY = float(aPt.y);
@@ -110,7 +139,7 @@ public:
     
     
     if (mList) {
-      mList->mItems[mListIndex] = nullptr;
+      mList->mItems[mListIndex] = nsnull;
     }
   }
 
@@ -146,15 +175,15 @@ public:
 
 
   void InsertingIntoList(DOMSVGPointList *aList,
-                         uint32_t aListIndex,
+                         PRUint32 aListIndex,
                          bool aIsAnimValItem);
 
-  static uint32_t MaxListIndex() {
+  static PRUint32 MaxListIndex() {
     return (1U << MOZ_SVG_LIST_INDEX_BIT_COUNT) - 1;
   }
 
   
-  void UpdateListIndex(uint32_t aListIndex) {
+  void UpdateListIndex(PRUint32 aListIndex) {
     mListIndex = aListIndex;
   }
 
@@ -203,9 +232,9 @@ protected:
   
   
 
-  uint32_t mListIndex:MOZ_SVG_LIST_INDEX_BIT_COUNT;
-  uint32_t mIsReadonly:1;    
-  uint32_t mIsAnimValItem:1; 
+  PRUint32 mListIndex:MOZ_SVG_LIST_INDEX_BIT_COUNT;
+  PRUint32 mIsReadonly:1;    
+  PRUint32 mIsAnimValItem:1; 
 
   
   SVGPoint mPt;

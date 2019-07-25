@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsThreadManager_h__
 #define nsThreadManager_h__
 
@@ -49,15 +81,15 @@ public:
 private:
   nsThreadManager()
     : mCurThreadIndex(0)
-    , mMainPRThread(nullptr)
-    , mLock(nullptr)
-    , mInitialized(false) {
+    , mMainPRThread(nsnull)
+    , mLock(nsnull)
+    , mInitialized(PR_FALSE) {
   }
   
   static nsThreadManager sInstance;
 
-  nsRefPtrHashtable<nsPtrHashKey<PRThread>, nsThread> mThreadsByPRThread;
-  unsigned             mCurThreadIndex;  
+  nsRefPtrHashtable<nsVoidPtrHashKey, nsThread> mThreadsByPRThread;
+  PRUintn             mCurThreadIndex;  
   nsRefPtr<nsThread>  mMainThread;
   PRThread           *mMainPRThread;
   

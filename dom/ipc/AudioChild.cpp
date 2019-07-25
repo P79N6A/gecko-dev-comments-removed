@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "mozilla/dom/AudioChild.h"
 
 namespace mozilla {
@@ -14,11 +47,10 @@ NS_IMPL_THREADSAFE_RELEASE(AudioChild);
 AudioChild::AudioChild()
   : mLastPosition(-1),
     mLastPositionTimestamp(0),
-    mWriteCounter(0),
     mMinWriteSize(-2),
     mAudioReentrantMonitor("AudioChild.mReentrantMonitor"),
-    mIPCOpen(true),
-    mDrained(false)
+    mIPCOpen(PR_TRUE),
+    mDrained(PR_FALSE)
 {
   MOZ_COUNT_CTOR(AudioChild);
 }
@@ -31,12 +63,12 @@ AudioChild::~AudioChild()
 void
 AudioChild::ActorDestroy(ActorDestroyReason aWhy)
 {
-  mIPCOpen = false;
+  mIPCOpen = PR_FALSE;
 }
 
 bool
-AudioChild::RecvPositionInFramesUpdate(const int64_t& position,
-                                       const int64_t& time)
+AudioChild::RecvPositionInFramesUpdate(const PRInt64& position,
+                                       const PRInt64& time)
 {
   mLastPosition = position;
   mLastPositionTimestamp = time;
@@ -47,12 +79,12 @@ bool
 AudioChild::RecvDrainDone()
 {
   ReentrantMonitorAutoEnter mon(mAudioReentrantMonitor);
-  mDrained = true;
+  mDrained = PR_TRUE;
   mAudioReentrantMonitor.NotifyAll();
   return true;
 }
 
-int32_t
+PRInt32
 AudioChild::WaitForMinWriteSize()
 {
   ReentrantMonitorAutoEnter mon(mAudioReentrantMonitor);
@@ -64,7 +96,7 @@ AudioChild::WaitForMinWriteSize()
 }
 
 bool
-AudioChild::RecvMinWriteSizeDone(const int32_t& minFrames)
+AudioChild::RecvMinWriteSizeDone(const PRInt32& minFrames)
 {
   ReentrantMonitorAutoEnter mon(mAudioReentrantMonitor);
   mMinWriteSize = minFrames;
@@ -81,32 +113,13 @@ AudioChild::WaitForDrain()
   }
 }
 
-bool
-AudioChild::RecvWriteDone()
-{
-  ReentrantMonitorAutoEnter mon(mAudioReentrantMonitor);
-  mWriteCounter += 1;
-  mAudioReentrantMonitor.NotifyAll();
-  return true;
-}
-
-void
-AudioChild::WaitForWrite()
-{
-  ReentrantMonitorAutoEnter mon(mAudioReentrantMonitor);
-  uint64_t writeCounter = mWriteCounter;
-  while (mWriteCounter == writeCounter && mIPCOpen) {
-    mAudioReentrantMonitor.Wait();
-  }
-}
-
-int64_t
+PRInt64
 AudioChild::GetLastKnownPosition()
 {
   return mLastPosition;
 }
 
-int64_t
+PRInt64
 AudioChild::GetLastKnownPositionTimestamp()
 {
   return mLastPositionTimestamp;

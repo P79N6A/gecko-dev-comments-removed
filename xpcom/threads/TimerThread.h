@@ -3,6 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef TimerThread_h___
 #define TimerThread_h___
 
@@ -14,12 +49,11 @@
 
 #include "nsTArray.h"
 
-#include "mozilla/Attributes.h"
 #include "mozilla/Monitor.h"
 #include "mozilla/TimeStamp.h"
 
-class TimerThread MOZ_FINAL : public nsIRunnable,
-                              public nsIObserver
+class TimerThread : public nsIRunnable,
+                    public nsIObserver
 {
 public:
   typedef mozilla::Monitor Monitor;
@@ -43,7 +77,7 @@ public:
 #define FILTER_DURATION         1e3     /* one second */
 #define FILTER_FEEDBACK_MAX     100     /* 1/10th of a second */
 
-  void UpdateFilter(uint32_t aDelay, TimeStamp aTimeout,
+  void UpdateFilter(PRUint32 aDelay, TimeStamp aTimeout,
                     TimeStamp aNow);
 
   void DoBeforeSleep();
@@ -52,13 +86,13 @@ public:
 private:
   ~TimerThread();
 
-  int32_t mInitInProgress;
+  PRInt32 mInitInProgress;
   bool    mInitialized;
 
   
   
   
-  int32_t AddTimerInternal(nsTimerImpl *aTimer);
+  PRInt32 AddTimerInternal(nsTimerImpl *aTimer);
   bool    RemoveTimerInternal(nsTimerImpl *aTimer);
   void    ReleaseTimerInternal(nsTimerImpl *aTimer);
 
@@ -75,9 +109,9 @@ private:
 #define DELAY_LINE_LENGTH_MASK  PR_BITMASK(DELAY_LINE_LENGTH_LOG2)
 #define DELAY_LINE_LENGTH       PR_BIT(DELAY_LINE_LENGTH_LOG2)
 
-  int32_t  mDelayLine[DELAY_LINE_LENGTH]; 
-  uint32_t mDelayLineCounter;
-  uint32_t mMinTimerPeriod;     
+  PRInt32  mDelayLine[DELAY_LINE_LENGTH]; 
+  PRUint32 mDelayLineCounter;
+  PRUint32 mMinTimerPeriod;     
   TimeDuration mTimeoutAdjustment;
 };
 

@@ -3,33 +3,58 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGBOOLEAN_H__
 #define __NS_SVGBOOLEAN_H__
 
-#include "nsAutoPtr.h"
-#include "nsCycleCollectionParticipant.h"
-#include "nsError.h"
 #include "nsIDOMSVGAnimatedBoolean.h"
-#include "nsISMILAttr.h"
-#include "nsISupportsImpl.h"
 #include "nsSVGElement.h"
-#include "mozilla/Attributes.h"
-
-class nsISMILAnimationElement;
-class nsSMILValue;
+#include "nsDOMError.h"
 
 class nsSVGBoolean
 {
 
 public:
-  void Init(uint8_t aAttrEnum = 0xff, bool aValue = false) {
+  void Init(PRUint8 aAttrEnum = 0xff, bool aValue = false) {
     mAnimVal = mBaseVal = aValue;
     mAttrEnum = aAttrEnum;
-    mIsAnimated = false;
+    mIsAnimated = PR_FALSE;
   }
 
-  nsresult SetBaseValueAtom(const nsIAtom* aValue, nsSVGElement *aSVGElement);
-  nsIAtom* GetBaseValueAtom() const;
+  nsresult SetBaseValueString(const nsAString& aValue,
+                              nsSVGElement *aSVGElement,
+                              bool aDoSetAttr);
+  void GetBaseValueString(nsAString& aValue);
 
   void SetBaseValue(bool aValue, nsSVGElement *aSVGElement);
   bool GetBaseValue() const
@@ -41,18 +66,20 @@ public:
 
   nsresult ToDOMAnimatedBoolean(nsIDOMSVGAnimatedBoolean **aResult,
                                 nsSVGElement* aSVGElement);
+#ifdef MOZ_SMIL
   
   nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement);
+#endif 
 
 private:
 
   bool mAnimVal;
   bool mBaseVal;
   bool mIsAnimated;
-  uint8_t mAttrEnum; 
+  PRUint8 mAttrEnum; 
 
 public:
-  struct DOMAnimatedBoolean MOZ_FINAL : public nsIDOMSVGAnimatedBoolean
+  struct DOMAnimatedBoolean : public nsIDOMSVGAnimatedBoolean
   {
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS(DOMAnimatedBoolean)
@@ -72,12 +99,15 @@ public:
     
     NS_IMETHOD GetAnimVal(bool* aResult)
     {
+#ifdef MOZ_SMIL
       mSVGElement->FlushAnimations();
+#endif
       *aResult = mVal->GetAnimValue();
       return NS_OK;
     }
   };
 
+#ifdef MOZ_SMIL
   struct SMILBool : public nsISMILAttr
   {
   public:
@@ -99,5 +129,6 @@ public:
     virtual void ClearAnimValue();
     virtual nsresult SetAnimValue(const nsSMILValue& aValue);
   };
+#endif 
 };
 #endif 

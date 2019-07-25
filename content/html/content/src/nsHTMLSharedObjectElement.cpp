@@ -4,12 +4,42 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsGenericHTMLElement.h"
 #include "nsObjectLoadingContent.h"
 #include "nsGkAtoms.h"
-#include "nsError.h"
+#include "nsDOMError.h"
 #include "nsIDocument.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMHTMLAppletElement.h"
@@ -17,10 +47,14 @@
 #include "nsThreadUtils.h"
 #include "nsIDOMGetSVGDocument.h"
 #include "nsIDOMSVGDocument.h"
-#include "nsIScriptError.h"
-#include "nsIWidget.h"
 
-using namespace mozilla;
+
+
+#ifdef XP_WIN
+#undef GetClassName
+#undef GetObject
+#endif
+
 using namespace mozilla::dom;
 
 class nsHTMLSharedObjectElement : public nsGenericHTMLElement
@@ -44,24 +78,7 @@ public:
   NS_FORWARD_NSIDOMELEMENT(nsGenericHTMLElement::)
 
   
-  NS_FORWARD_NSIDOMHTMLELEMENT_BASIC(nsGenericHTMLElement::)
-  NS_IMETHOD Click() {
-    return nsGenericHTMLElement::Click();
-  }
-  NS_IMETHOD GetTabIndex(int32_t* aTabIndex);
-  NS_IMETHOD SetTabIndex(int32_t aTabIndex);
-  NS_IMETHOD Focus() {
-    return nsGenericHTMLElement::Focus();
-  }
-  NS_IMETHOD GetDraggable(bool* aDraggable) {
-    return nsGenericHTMLElement::GetDraggable(aDraggable);
-  }
-  NS_IMETHOD GetInnerHTML(nsAString& aInnerHTML) {
-    return nsGenericHTMLElement::GetInnerHTML(aInnerHTML);
-  }
-  NS_IMETHOD SetInnerHTML(const nsAString& aInnerHTML) {
-    return nsGenericHTMLElement::SetInnerHTML(aInnerHTML);
-  }
+  NS_FORWARD_NSIDOMHTMLELEMENT(nsGenericHTMLElement::)
 
   
   NS_DECL_NSIDOMHTMLAPPLETELEMENT
@@ -83,17 +100,19 @@ public:
                               bool aCompileEventHandlers);
   virtual void UnbindFromTree(bool aDeep = true,
                               bool aNullParent = true);
-  virtual nsresult SetAttr(int32_t aNameSpaceID, nsIAtom *aName,
+  virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom *aName,
                            nsIAtom *aPrefix, const nsAString &aValue,
                            bool aNotify);
 
-  virtual bool IsHTMLFocusable(bool aWithMouse, bool *aIsFocusable, int32_t *aTabIndex);
-  virtual IMEState GetDesiredIMEState();
+  NS_IMETHOD GetTabIndex(PRInt32 *aTabIndex);
+  NS_IMETHOD SetTabIndex(PRInt32 aTabIndex);
+  virtual bool IsHTMLFocusable(bool aWithMouse, bool *aIsFocusable, PRInt32 *aTabIndex);
+  virtual PRUint32 GetDesiredIMEState();
 
-  virtual void DoneAddingChildren(bool aHaveNotified);
+  virtual nsresult DoneAddingChildren(bool aHaveNotified);
   virtual bool IsDoneAddingChildren();
 
-  virtual bool ParseAttribute(int32_t aNamespaceID,
+  virtual bool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom *aAttribute,
                                 const nsAString &aValue,
                                 nsAttrValue &aResult);
@@ -103,13 +122,13 @@ public:
   virtual void DestroyContent();
 
   
-  virtual uint32_t GetCapabilities() const;
+  virtual PRUint32 GetCapabilities() const;
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
-  nsresult CopyInnerTo(nsGenericElement* aDest);
+  nsresult CopyInnerTo(nsGenericElement* aDest) const;
 
-  void StartObjectLoad() { StartObjectLoad(true); }
+  void StartObjectLoad() { StartObjectLoad(PR_TRUE); }
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED_NO_UNLINK(nsHTMLSharedObjectElement,
                                                      nsGenericHTMLElement)
@@ -119,11 +138,6 @@ public:
     return static_cast<nsXPCClassInfo*>(GetClassInfoInternal());
   }
   nsIClassInfo* GetClassInfoInternal();
-
-  virtual nsIDOMNode* AsDOMNode()
-  {
-    return static_cast<nsIDOMHTMLAppletElement*>(this);
-  }
 private:
   
 
@@ -153,9 +167,6 @@ private:
   
   
   bool mIsDoneAddingChildren;
-
-  virtual void GetItemValueText(nsAString& text);
-  virtual void SetItemValueText(const nsAString& text);
 };
 
 
@@ -174,26 +185,6 @@ nsHTMLSharedObjectElement::nsHTMLSharedObjectElement(already_AddRefed<nsINodeInf
   AddStatesSilently(NS_EVENT_STATE_LOADING);
 }
 
-void
-nsHTMLSharedObjectElement::GetItemValueText(nsAString& aValue)
-{
-  if (mNodeInfo->Equals(nsGkAtoms::applet)) {
-    nsGenericHTMLElement::GetItemValueText(aValue);
-  } else {
-    GetSrc(aValue);
-  }
-}
-
-void
-nsHTMLSharedObjectElement::SetItemValueText(const nsAString& aValue)
-{
-  if (mNodeInfo->Equals(nsGkAtoms::applet)) {
-    nsGenericHTMLElement::SetItemValueText(aValue);
-  } else {
-    SetSrc(aValue);
-  }
-}
-
 nsHTMLSharedObjectElement::~nsHTMLSharedObjectElement()
 {
   UnregisterFreezableElement();
@@ -206,11 +197,11 @@ nsHTMLSharedObjectElement::IsDoneAddingChildren()
   return mIsDoneAddingChildren;
 }
 
-void
+nsresult
 nsHTMLSharedObjectElement::DoneAddingChildren(bool aHaveNotified)
 {
   if (!mIsDoneAddingChildren) {
-    mIsDoneAddingChildren = true;
+    mIsDoneAddingChildren = PR_TRUE;
 
     
     
@@ -218,6 +209,8 @@ nsHTMLSharedObjectElement::DoneAddingChildren(bool aHaveNotified)
       StartObjectLoad(aHaveNotified);
     }
   }
+
+  return NS_OK;
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsHTMLSharedObjectElement)
@@ -241,7 +234,7 @@ nsHTMLSharedObjectElement::GetClassInfoInternal()
   if (mNodeInfo->Equals(nsGkAtoms::embed)) {
     return NS_GetDOMClassInfoInstance(eDOMClassInfo_HTMLEmbedElement_id);
   }
-  return nullptr;
+  return nsnull;
 }
 
 NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(nsHTMLSharedObjectElement)
@@ -254,7 +247,6 @@ NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(nsHTMLSharedObjectElement)
     NS_INTERFACE_TABLE_ENTRY(nsHTMLSharedObjectElement, nsIObjectLoadingContent)
     NS_INTERFACE_TABLE_ENTRY(nsHTMLSharedObjectElement, imgIDecoderObserver)
     NS_INTERFACE_TABLE_ENTRY(nsHTMLSharedObjectElement, nsIImageLoadingContent)
-    NS_INTERFACE_TABLE_ENTRY(nsHTMLSharedObjectElement, imgIOnloadBlocker)
     NS_INTERFACE_TABLE_ENTRY(nsHTMLSharedObjectElement, nsIInterfaceRequestor)
     NS_INTERFACE_TABLE_ENTRY(nsHTMLSharedObjectElement, nsIChannelEventSink)
   NS_OFFSET_AND_INTERFACE_TABLE_END
@@ -280,11 +272,6 @@ nsHTMLSharedObjectElement::BindToTree(nsIDocument *aDocument,
                                                  aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = nsObjectLoadingContent::BindToTree(aDocument, aParent,
-                                          aBindingParent,
-                                          aCompileEventHandlers);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   
   if (mIsDoneAddingChildren) {
     void (nsHTMLSharedObjectElement::*start)() =
@@ -299,20 +286,19 @@ void
 nsHTMLSharedObjectElement::UnbindFromTree(bool aDeep,
                                           bool aNullParent)
 {
-  nsObjectLoadingContent::UnbindFromTree(aDeep, aNullParent);
+  RemovedFromDocument();
   nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
 }
 
 
+
 nsresult
-nsHTMLSharedObjectElement::SetAttr(int32_t aNameSpaceID, nsIAtom *aName,
+nsHTMLSharedObjectElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom *aName,
                                    nsIAtom *aPrefix, const nsAString &aValue,
                                    bool aNotify)
 {
-  nsresult rv = nsGenericHTMLElement::SetAttr(aNameSpaceID, aName, aPrefix,
-                                              aValue, aNotify);
-  NS_ENSURE_SUCCESS(rv, rv);
-
+  
+  
   
   
   
@@ -322,16 +308,19 @@ nsHTMLSharedObjectElement::SetAttr(int32_t aNameSpaceID, nsIAtom *aName,
   
   if (aNotify && IsInDoc() && mIsDoneAddingChildren &&
       aNameSpaceID == kNameSpaceID_None && aName == URIAttrName()) {
-    return LoadObject(aNotify, true);
+    nsCAutoString type;
+    GetTypeAttrValue(type);
+    LoadObject(aValue, aNotify, type, PR_TRUE);
   }
 
-  return NS_OK;
+  return nsGenericHTMLElement::SetAttr(aNameSpaceID, aName, aPrefix, aValue,
+                                       aNotify);
 }
 
 bool
 nsHTMLSharedObjectElement::IsHTMLFocusable(bool aWithMouse,
                                            bool *aIsFocusable,
-                                           int32_t *aTabIndex)
+                                           PRInt32 *aTabIndex)
 {
   if (mNodeInfo->Equals(nsGkAtoms::embed) || Type() == eType_Plugin) {
     
@@ -340,20 +329,20 @@ nsHTMLSharedObjectElement::IsHTMLFocusable(bool aWithMouse,
       GetTabIndex(aTabIndex);
     }
 
-    *aIsFocusable = true;
+    *aIsFocusable = PR_TRUE;
 
     
-    return true;
+    return PR_TRUE;
   }
 
   return nsGenericHTMLElement::IsHTMLFocusable(aWithMouse, aIsFocusable, aTabIndex);
 }
 
-nsIContent::IMEState
+PRUint32
 nsHTMLSharedObjectElement::GetDesiredIMEState()
 {
   if (Type() == eType_Plugin) {
-    return IMEState(IMEState::PLUGIN);
+    return nsIContent::IME_STATUS_PLUGIN;
   }
    
   return nsGenericHTMLElement::GetDesiredIMEState();
@@ -379,14 +368,14 @@ nsHTMLSharedObjectElement::GetSVGDocument(nsIDOMDocument **aResult)
 {
   NS_ENSURE_ARG_POINTER(aResult);
 
-  *aResult = nullptr;
+  *aResult = nsnull;
 
   if (!IsInDoc()) {
     return NS_OK;
   }
 
   
-  nsIDocument *sub_doc = OwnerDoc()->GetSubDocumentFor(this);
+  nsIDocument *sub_doc = GetOwnerDoc()->GetSubDocumentFor(this);
   if (!sub_doc) {
     return NS_OK;
   }
@@ -395,7 +384,7 @@ nsHTMLSharedObjectElement::GetSVGDocument(nsIDOMDocument **aResult)
 }
 
 bool
-nsHTMLSharedObjectElement::ParseAttribute(int32_t aNamespaceID,
+nsHTMLSharedObjectElement::ParseAttribute(PRInt32 aNamespaceID,
                                           nsIAtom *aAttribute,
                                           const nsAString &aValue,
                                           nsAttrValue &aResult)
@@ -405,7 +394,7 @@ nsHTMLSharedObjectElement::ParseAttribute(int32_t aNamespaceID,
       return ParseAlignValue(aValue, aResult);
     }
     if (ParseImageAttribute(aAttribute, aValue, aResult)) {
-      return true;
+      return PR_TRUE;
     }
   }
 
@@ -449,7 +438,7 @@ nsHTMLSharedObjectElement::IsAttributeMapped(const nsIAtom *aAttribute) const
     sImageAlignAttributeMap,
   };
 
-  return FindAttributeDependence(aAttribute, map);
+  return FindAttributeDependence(aAttribute, map, NS_ARRAY_LENGTH(map));
 }
 
 
@@ -466,14 +455,20 @@ nsHTMLSharedObjectElement::GetAttributeMappingFunction() const
 void
 nsHTMLSharedObjectElement::StartObjectLoad(bool aNotify)
 {
-  
-  
-  if (!IsInDoc() || !OwnerDoc()->IsActive()) {
-    return;
-  }
+  nsCAutoString type;
+  GetTypeAttrValue(type);
 
-  LoadObject(aNotify);
-  SetIsNetworkCreated(false);
+  nsAutoString uri;
+  if (!GetAttr(kNameSpaceID_None, URIAttrName(), uri)) {
+    
+    
+    
+    LoadObject(nsnull, aNotify, type);
+  }
+  else {
+    LoadObject(uri, aNotify, type);
+  }
+  SetIsNetworkCreated(PR_FALSE);
 }
 
 nsEventStates
@@ -482,10 +477,10 @@ nsHTMLSharedObjectElement::IntrinsicState() const
   return nsGenericHTMLElement::IntrinsicState() | ObjectState();
 }
 
-uint32_t
+PRUint32
 nsHTMLSharedObjectElement::GetCapabilities() const
 {
-  uint32_t capabilities = eSupportPlugins | eAllowPluginSkipChannel;
+  PRUint32 capabilities = eSupportPlugins | eOverrideServerType;
   if (mNodeInfo->Equals(nsGkAtoms::embed)) {
     capabilities |= eSupportSVG | eSupportImages;
   }
@@ -496,17 +491,17 @@ nsHTMLSharedObjectElement::GetCapabilities() const
 void
 nsHTMLSharedObjectElement::DestroyContent()
 {
-  nsObjectLoadingContent::DestroyContent();
+  RemovedFromDocument();
   nsGenericHTMLElement::DestroyContent();
 }
 
 nsresult
-nsHTMLSharedObjectElement::CopyInnerTo(nsGenericElement* aDest)
+nsHTMLSharedObjectElement::CopyInnerTo(nsGenericElement* aDest) const
 {
   nsresult rv = nsGenericHTMLElement::CopyInnerTo(aDest);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (aDest->OwnerDoc()->IsStaticDocument()) {
+  if (aDest->GetOwnerDoc()->IsStaticDocument()) {
     CreateStaticClone(static_cast<nsHTMLSharedObjectElement*>(aDest));
   }
 

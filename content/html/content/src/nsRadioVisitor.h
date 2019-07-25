@@ -3,12 +3,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsRadioVisitor_h__
 #define _nsRadioVisitor_h__
 
 #include "nsIRadioVisitor.h"
 
 class nsIFormControl;
+class nsIDocument;
+
 
 
 

@@ -3,13 +3,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nswindowsshellservice_h____
 #define nswindowsshellservice_h____
 
 #include "nscore.h"
 #include "nsStringAPI.h"
 #include "nsIWindowsShellService.h"
-#include "nsITimer.h"
 
 #include <windows.h>
 #include <ole2.h>
@@ -17,16 +49,17 @@
 class nsWindowsShellService : public nsIWindowsShellService
 {
 public:
-  nsWindowsShellService();
-  virtual ~nsWindowsShellService();
+  nsWindowsShellService() : mCheckedThisSession(PR_FALSE) {}; 
+  virtual ~nsWindowsShellService() {};
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSISHELLSERVICE
   NS_DECL_NSIWINDOWSSHELLSERVICE
 
 protected:
-  static nsresult IsDefaultBrowser(bool* aIsDefaultBrowser);
-  static bool IsDefaultBrowserVista(bool* aIsDefaultBrowser);
+  bool      IsDefaultBrowserVista(bool* aIsDefaultBrowser);
+
+  bool      GetMailAccountKey(HKEY* aResult);
 
 private:
   bool      mCheckedThisSession;

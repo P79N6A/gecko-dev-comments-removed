@@ -3,21 +3,51 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsTHashtable_h__
 #define nsTHashtable_h__
 
 #include "nscore.h"
-#include "prtypes.h"
 #include "pldhash.h"
 #include "nsDebug.h"
 #include NEW_H
-#include "mozilla/fallible.h"
 
 
 NS_COM_GLUE PLDHashOperator
 PL_DHashStubEnumRemove(PLDHashTable    *table,
                        PLDHashEntryHdr *entry,
-                       uint32_t         ordinal,
+                       PRUint32         ordinal,
                        void            *userArg);
 
 
@@ -75,8 +105,6 @@ PL_DHashStubEnumRemove(PLDHashTable    *table,
 template<class EntryType>
 class nsTHashtable
 {
-  typedef mozilla::fallible_t fallible_t;
-
 public:
   
 
@@ -94,14 +122,7 @@ public:
 
 
 
-  void Init(uint32_t initSize = PL_DHASH_MIN_SIZE)
-  {
-    if (!Init(initSize, fallible_t()))
-      NS_RUNTIMEABORT("OOM");
-  }
-  bool Init(const fallible_t&) NS_WARN_UNUSED_RESULT
-  { return Init(PL_DHASH_MIN_SIZE, fallible_t()); }
-  bool Init(uint32_t initSize, const fallible_t&) NS_WARN_UNUSED_RESULT;
+  bool Init(PRUint32 initSize = PL_DHASH_MIN_SIZE);
 
   
 
@@ -113,7 +134,7 @@ public:
 
 
 
-  uint32_t GetGeneration() const { return mTable.generation; }
+  PRUint32 GetGeneration() const { return mTable.generation; }
 
   
 
@@ -129,7 +150,7 @@ public:
 
 
 
-  uint32_t Count() const { return mTable.entryCount; }
+  PRUint32 Count() const { return mTable.entryCount; }
 
   
 
@@ -147,17 +168,7 @@ public:
                             const_cast<PLDHashTable*>(&mTable),
                             EntryType::KeyToPointer(aKey),
                             PL_DHASH_LOOKUP));
-    return PL_DHASH_ENTRY_IS_BUSY(entry) ? entry : nullptr;
-  }
-
-  
-
-
-
-
-  bool Contains(KeyType aKey) const
-  {
-    return !!GetEntry(aKey);
+    return PL_DHASH_ENTRY_IS_BUSY(entry) ? entry : nsnull;
   }
 
   
@@ -167,14 +178,6 @@ public:
 
 
   EntryType* PutEntry(KeyType aKey)
-  {
-    EntryType* e = PutEntry(aKey, fallible_t());
-    if (!e)
-      NS_RUNTIMEABORT("OOM");
-    return e;
-  }
-
-  EntryType* PutEntry(KeyType aKey, const fallible_t&) NS_WARN_UNUSED_RESULT
   {
     NS_ASSERTION(mTable.entrySize, "nsTHashtable was not initialized properly.");
     
@@ -230,7 +233,7 @@ public:
 
 
 
-  uint32_t EnumerateEntries(Enumerator enumFunc, void* userArg)
+  PRUint32 EnumerateEntries(Enumerator enumFunc, void* userArg)
   {
     NS_ASSERTION(mTable.entrySize, "nsTHashtable was not initialized properly.");
     
@@ -245,60 +248,8 @@ public:
   {
     NS_ASSERTION(mTable.entrySize, "nsTHashtable was not initialized properly.");
 
-    PL_DHashTableEnumerate(&mTable, PL_DHashStubEnumRemove, nullptr);
+    PL_DHashTableEnumerate(&mTable, PL_DHashStubEnumRemove, nsnull);
   }
-
-  
-
-
-
-
-
-
-
-  typedef size_t (* SizeOfEntryExcludingThisFun)(EntryType* aEntry,
-                                                 nsMallocSizeOfFun mallocSizeOf,
-                                                 void *arg);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  size_t SizeOfExcludingThis(SizeOfEntryExcludingThisFun sizeOfEntryExcludingThis,
-                             nsMallocSizeOfFun mallocSizeOf, void *userArg = NULL) const
-  {
-    if (!IsInitialized()) {
-      return 0;
-    }
-    if (sizeOfEntryExcludingThis) {
-      s_SizeOfArgs args = { sizeOfEntryExcludingThis, userArg };
-      return PL_DHashTableSizeOfExcludingThis(&mTable, s_SizeOfStub, mallocSizeOf, &args);
-    }
-    return PL_DHashTableSizeOfExcludingThis(&mTable, NULL, mallocSizeOf);
-  }
-
-#ifdef DEBUG
-  
-
-
-
-
-
-  void MarkImmutable()
-  {
-    NS_ASSERTION(mTable.entrySize, "nsTHashtable was not initialized properly.");
-
-    PL_DHashMarkTableImmutable(&mTable);
-  }
-#endif
 
 protected:
   PLDHashTable mTable;
@@ -339,26 +290,8 @@ protected:
   
   static PLDHashOperator s_EnumStub(PLDHashTable    *table,
                                     PLDHashEntryHdr *entry,
-                                    uint32_t         number,
+                                    PRUint32         number,
                                     void            *arg);
-
-  
-
-
-
-
-
-
-  struct s_SizeOfArgs
-  {
-    SizeOfEntryExcludingThisFun userFunc;
-    void* userArg;
-  };
-  
-  static size_t s_SizeOfStub(PLDHashEntryHdr *entry,
-                             nsMallocSizeOfFun mallocSizeOf,
-                             void *arg);
-
 private:
   
   nsTHashtable(nsTHashtable<EntryType>& toCopy);
@@ -387,12 +320,12 @@ nsTHashtable<EntryType>::~nsTHashtable()
 
 template<class EntryType>
 bool
-nsTHashtable<EntryType>::Init(uint32_t initSize, const fallible_t&)
+nsTHashtable<EntryType>::Init(PRUint32 initSize)
 {
   if (mTable.entrySize)
   {
     NS_ERROR("nsTHashtable::Init() should not be called twice.");
-    return true;
+    return PR_TRUE;
   }
 
   static PLDHashTableOps sOps = 
@@ -412,14 +345,14 @@ nsTHashtable<EntryType>::Init(uint32_t initSize, const fallible_t&)
     sOps.moveEntry = s_CopyEntry;
   }
   
-  if (!PL_DHashTableInit(&mTable, &sOps, nullptr, sizeof(EntryType), initSize))
+  if (!PL_DHashTableInit(&mTable, &sOps, nsnull, sizeof(EntryType), initSize))
   {
     
     mTable.entrySize = 0;
-    return false;
+    return PR_FALSE;
   }
 
-  return true;
+  return PR_TRUE;
 }
 
 
@@ -471,33 +404,20 @@ nsTHashtable<EntryType>::s_InitEntry(PLDHashTable    *table,
                                      const void      *key)
 {
   new(entry) EntryType(reinterpret_cast<KeyTypePointer>(key));
-  return true;
+  return PR_TRUE;
 }
 
 template<class EntryType>
 PLDHashOperator
 nsTHashtable<EntryType>::s_EnumStub(PLDHashTable    *table,
                                     PLDHashEntryHdr *entry,
-                                    uint32_t         number,
+                                    PRUint32         number,
                                     void            *arg)
 {
   
   return (* reinterpret_cast<s_EnumArgs*>(arg)->userFunc)(
     reinterpret_cast<EntryType*>(entry),
     reinterpret_cast<s_EnumArgs*>(arg)->userArg);
-}
-
-template<class EntryType>
-size_t
-nsTHashtable<EntryType>::s_SizeOfStub(PLDHashEntryHdr *entry,
-                                      nsMallocSizeOfFun mallocSizeOf,
-                                      void *arg)
-{
-  
-  return (* reinterpret_cast<s_SizeOfArgs*>(arg)->userFunc)(
-    reinterpret_cast<EntryType*>(entry),
-    mallocSizeOf,
-    reinterpret_cast<s_SizeOfArgs*>(arg)->userArg);
 }
 
 #endif 

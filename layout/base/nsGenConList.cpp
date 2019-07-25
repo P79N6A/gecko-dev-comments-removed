@@ -6,6 +6,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsGenConList.h"
 #include "nsLayoutUtils.h"
 
@@ -23,7 +55,7 @@ nsGenConList::Clear()
   }
   delete mFirstNode;
 
-  mFirstNode = nullptr;
+  mFirstNode = nsnull;
   mSize = 0;
 }
 
@@ -31,18 +63,18 @@ bool
 nsGenConList::DestroyNodesFor(nsIFrame* aFrame)
 {
   if (!mFirstNode)
-    return false; 
+    return PR_FALSE; 
   nsGenConNode* node;
   bool destroyed = false;
   while (mFirstNode->mPseudoFrame == aFrame) {
-    destroyed = true;
+    destroyed = PR_TRUE;
     node = Next(mFirstNode);
     bool isLastNode = node == mFirstNode; 
     Remove(mFirstNode);
     delete mFirstNode;
     if (isLastNode) {
-      mFirstNode = nullptr;
-      return true;
+      mFirstNode = nsnull;
+      return PR_TRUE;
     }
     else {
       mFirstNode = node;
@@ -51,7 +83,7 @@ nsGenConList::DestroyNodesFor(nsIFrame* aFrame)
   node = Next(mFirstNode);
   while (node != mFirstNode) {
     if (node->mPseudoFrame == aFrame) {
-      destroyed = true;
+      destroyed = PR_TRUE;
       nsGenConNode *nextNode = Next(node);
       Remove(node);
       delete node;
@@ -71,7 +103,7 @@ nsGenConList::DestroyNodesFor(nsIFrame* aFrame)
 
 
 
-inline int32_t PseudoCompareType(nsIFrame* aFrame, nsIContent** aContent)
+inline PRInt32 PseudoCompareType(nsIFrame* aFrame, nsIContent** aContent)
 {
   nsIAtom *pseudo = aFrame->GetStyleContext()->GetPseudo();
   if (pseudo == nsCSSPseudoElements::before) {
@@ -97,8 +129,8 @@ nsGenConList::NodeAfter(const nsGenConNode* aNode1, const nsGenConNode* aNode2)
   }
   nsIContent *content1;
   nsIContent *content2;
-  int32_t pseudoType1 = PseudoCompareType(frame1, &content1);
-  int32_t pseudoType2 = PseudoCompareType(frame2, &content2);
+  PRInt32 pseudoType1 = PseudoCompareType(frame1, &content1);
+  PRInt32 pseudoType2 = PseudoCompareType(frame2, &content2);
   if (pseudoType1 == 0 || pseudoType2 == 0) {
     if (content1 == content2) {
       NS_ASSERTION(pseudoType1 != pseudoType2, "identical");
@@ -115,7 +147,7 @@ nsGenConList::NodeAfter(const nsGenConNode* aNode1, const nsGenConNode* aNode2)
     }
   }
   
-  int32_t cmp = nsLayoutUtils::DoCompareTreePosition(content1, content2,
+  PRInt32 cmp = nsLayoutUtils::DoCompareTreePosition(content1, content2,
                                                      pseudoType1, -pseudoType2);
   NS_ASSERTION(cmp != 0, "same content, different frames");
   return cmp > 0;
@@ -134,14 +166,14 @@ nsGenConList::Insert(nsGenConNode* aNode)
 
       
       
-      uint32_t first = 0, last = mSize - 1;
+      PRUint32 first = 0, last = mSize - 1;
 
       
       nsGenConNode *curNode = Prev(mFirstNode);
-      uint32_t curIndex = mSize - 1;
+      PRUint32 curIndex = mSize - 1;
 
       while (first != last) {
-        uint32_t test = (first + last) / 2;
+        PRUint32 test = (first + last) / 2;
         if (last == curIndex) {
           for ( ; curIndex != test; --curIndex)
             curNode = Prev(curNode);

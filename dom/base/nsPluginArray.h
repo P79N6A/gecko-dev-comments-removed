@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsPluginArray_h___
 #define nsPluginArray_h___
 
@@ -11,14 +43,8 @@
 #include "nsIDOMPlugin.h"
 #include "nsIPluginHost.h"
 #include "nsIURL.h"
-#include "nsWeakReference.h"
 
-namespace mozilla {
-namespace dom {
-class Navigator;
-} 
-} 
-
+class nsNavigator;
 class nsIDocShell;
 
 
@@ -26,7 +52,7 @@ class nsIDocShell;
 class nsPluginArray : public nsIDOMPluginArray
 {
 public:
-  nsPluginArray(mozilla::dom::Navigator* navigator, nsIDocShell *aDocShell);
+  nsPluginArray(nsNavigator* navigator, nsIDocShell *aDocShell);
   virtual ~nsPluginArray();
 
   NS_DECL_ISUPPORTS
@@ -36,7 +62,7 @@ public:
 
   nsresult GetPluginHost(nsIPluginHost** aPluginHost);
 
-  nsIDOMPlugin* GetItemAt(uint32_t aIndex, nsresult* aResult);
+  nsIDOMPlugin* GetItemAt(PRUint32 aIndex, nsresult* aResult);
   nsIDOMPlugin* GetNamedItem(const nsAString& aName, nsresult* aResult);
 
   static nsPluginArray* FromSupports(nsISupports* aSupports)
@@ -61,14 +87,15 @@ private:
   bool AllowPlugins();
 
 public:
+  void SetDocShell(nsIDocShell *aDocShell);
   void Invalidate();
 
 protected:
-  mozilla::dom::Navigator* mNavigator;
+  nsNavigator* mNavigator;
   nsCOMPtr<nsIPluginHost> mPluginHost;
-  uint32_t mPluginCount;
+  PRUint32 mPluginCount;
   nsIDOMPlugin** mPluginArray;
-  nsWeakPtr mDocShell;
+  nsIDocShell* mDocShell; 
 };
 
 class nsPluginElement : public nsIDOMPlugin
@@ -80,7 +107,7 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMPLUGIN
 
-  nsIDOMMimeType* GetItemAt(uint32_t aIndex, nsresult* aResult);
+  nsIDOMMimeType* GetItemAt(PRUint32 aIndex, nsresult* aResult);
   nsIDOMMimeType* GetNamedItem(const nsAString& aName, nsresult* aResult);
 
   static nsPluginElement* FromSupports(nsISupports* aSupports)
@@ -105,7 +132,7 @@ private:
 
 protected:
   nsIDOMPlugin* mPlugin;
-  uint32_t mMimeTypeCount;
+  PRUint32 mMimeTypeCount;
   nsIDOMMimeType** mMimeTypeArray;
 };
 

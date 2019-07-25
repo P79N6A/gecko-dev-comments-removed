@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsHtml5AtomTable_h_
 #define nsHtml5AtomTable_h_
 
@@ -79,8 +112,9 @@ class nsHtml5AtomTable
     
 
 
-    inline void Init() {
-      mTable.Init();
+
+    inline bool Init() {
+      return mTable.Init();
     }
     
     

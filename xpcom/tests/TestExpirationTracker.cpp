@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <prthread.h>
@@ -15,15 +47,15 @@
 #include "nsDirectoryServiceUtils.h"
 #include "nsComponentManagerUtils.h"
 #include "nsXPCOM.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "prinrval.h"
 #include "nsThreadUtils.h"
 
 namespace TestExpirationTracker {
 
 struct Object {
-  Object() : mExpired(false) { Touch(); }
-  void Touch() { mLastUsed = PR_IntervalNow(); mExpired = false; }
+  Object() : mExpired(PR_FALSE) { Touch(); }
+  void Touch() { mLastUsed = PR_IntervalNow(); mExpired = PR_FALSE; }
 
   nsExpirationState mExpiration;
   nsExpirationState* GetExpirationState() { return &mExpiration; }
@@ -33,19 +65,19 @@ struct Object {
 };
 
 static bool error;
-static uint32_t periodMS = 100;
-static uint32_t ops = 1000;
-static uint32_t iterations = 2;
+static PRUint32 periodMS = 100;
+static PRUint32 ops = 1000;
+static PRUint32 iterations = 2;
 static bool logging = 0;
-static uint32_t sleepPeriodMS = 50;
-static uint32_t slackMS = 20; 
+static PRUint32 sleepPeriodMS = 50;
+static PRUint32 slackMS = 20; 
 
 static void SignalError() {
   printf("ERROR!\n");
-  error = true;
+  error = PR_TRUE;
 }
 
-template <uint32_t K> class Tracker : public nsExpirationTracker<Object,K> {
+template <PRUint32 K> class Tracker : public nsExpirationTracker<Object,K> {
 public:
   Tracker() : nsExpirationTracker<Object,K>(periodMS) {
     Object* obj = new Object();
@@ -83,7 +115,7 @@ public:
       break;
     }
     case 1: {
-      obj = mUniverse[uint32_t(rand())%mUniverse.Length()];
+      obj = mUniverse[PRUint32(rand())%mUniverse.Length()];
       if (obj->mExpiration.IsTracked()) {
         nsExpirationTracker<Object,K>::RemoveObject(obj);
         LogAction(obj, "Removed");
@@ -91,7 +123,7 @@ public:
       break;
     }
     case 2: {
-      obj = mUniverse[uint32_t(rand())%mUniverse.Length()];
+      obj = mUniverse[PRUint32(rand())%mUniverse.Length()];
       if (!obj->mExpiration.IsTracked()) {
         obj->Touch();
         nsExpirationTracker<Object,K>::AddObject(obj);
@@ -100,7 +132,7 @@ public:
       break;
     }
     case 3: {
-      obj = mUniverse[uint32_t(rand())%mUniverse.Length()];
+      obj = mUniverse[PRUint32(rand())%mUniverse.Length()];
       if (obj->mExpiration.IsTracked()) {
         obj->Touch();
         nsExpirationTracker<Object,K>::MarkUsed(obj);
@@ -115,11 +147,11 @@ protected:
   void NotifyExpired(Object* aObj) {
     LogAction(aObj, "Expired");
     PRIntervalTime now = PR_IntervalNow();
-    uint32_t timeDiffMS = (now - aObj->mLastUsed)*1000/PR_TicksPerSecond();
+    PRUint32 timeDiffMS = (now - aObj->mLastUsed)*1000/PR_TicksPerSecond();
     
     
-    uint32_t lowerBoundMS = (K-1)*periodMS - slackMS;
-    uint32_t upperBoundMS = K*(periodMS + sleepPeriodMS) + slackMS;
+    PRUint32 lowerBoundMS = (K-1)*periodMS - slackMS;
+    PRUint32 upperBoundMS = K*(periodMS + sleepPeriodMS) + slackMS;
     if (logging) {
       printf("Checking: %d-%d = %d [%d,%d]\n",
              now, aObj->mLastUsed, timeDiffMS, lowerBoundMS, upperBoundMS);
@@ -132,21 +164,21 @@ protected:
       }
     }
     aObj->Touch();
-    aObj->mExpired = true;
+    aObj->mExpired = PR_TRUE;
     DoRandomOperation();
     DoRandomOperation();
     DoRandomOperation();
   }
 };
 
-template <uint32_t K> static bool test_random() {
+template <PRUint32 K> static bool test_random() {
   srand(K);
-  error = false;
+  error = PR_FALSE;
  
-  for (uint32_t j = 0; j < iterations; ++j) {
+  for (PRUint32 j = 0; j < iterations; ++j) {
     Tracker<K> tracker;
 
-    uint32_t i = 0;
+    PRUint32 i = 0;
     for (i = 0; i < ops; ++i) {
       if ((rand() & 0xF) == 0) {
         
@@ -155,7 +187,7 @@ template <uint32_t K> static bool test_random() {
         }
         PR_Sleep(PR_MillisecondsToInterval(sleepPeriodMS));
         
-        NS_ProcessPendingEvents(nullptr);
+        NS_ProcessPendingEvents(nsnull);
       }
       tracker.DoRandomOperation();
     }
@@ -178,7 +210,7 @@ static const struct Test {
   DECL_TEST(test_random3),
   DECL_TEST(test_random4),
   DECL_TEST(test_random8),
-  { nullptr, nullptr }
+  { nsnull, nsnull }
 };
 
 }
@@ -190,15 +222,15 @@ int main(int argc, char **argv) {
   if (argc > 1)
     count = atoi(argv[1]);
 
-  if (NS_FAILED(NS_InitXPCOM2(nullptr, nullptr, nullptr)))
+  if (NS_FAILED(NS_InitXPCOM2(nsnull, nsnull, nsnull)))
     return -1;
 
   while (count--) {
-    for (const Test* t = tests; t->name != nullptr; ++t) {
+    for (const Test* t = tests; t->name != nsnull; ++t) {
       printf("%25s : %s\n", t->name, t->func() ? "SUCCESS" : "FAILURE");
     }
   }
   
-  NS_ShutdownXPCOM(nullptr);
+  NS_ShutdownXPCOM(nsnull);
   return 0;
 }

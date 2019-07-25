@@ -5,6 +5,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsDiskCacheStreams_h_
 #define _nsDiskCacheStreams_h_
 
@@ -14,30 +48,35 @@
 
 #include "nsIInputStream.h"
 #include "nsIOutputStream.h"
-#include "nsIDiskCacheStreamInternal.h"
 
 #include "pratom.h"
 
 class nsDiskCacheInputStream;
+class nsDiskCacheOutputStream;
 class nsDiskCacheDevice;
 
-class nsDiskCacheStreamIO : public nsIOutputStream, nsIDiskCacheStreamInternal {
+class nsDiskCacheStreamIO : public nsISupports {
 public:
              nsDiskCacheStreamIO(nsDiskCacheBinding *   binding);
     virtual ~nsDiskCacheStreamIO();
     
     NS_DECL_ISUPPORTS
-    NS_DECL_NSIOUTPUTSTREAM
-    NS_DECL_NSIDISKCACHESTREAMINTERNAL
 
-    nsresult    GetInputStream(uint32_t offset, nsIInputStream ** inputStream);
-    nsresult    GetOutputStream(uint32_t offset, nsIOutputStream ** outputStream);
+    nsresult    GetInputStream(PRUint32 offset, nsIInputStream ** inputStream);
+    nsresult    GetOutputStream(PRUint32 offset, nsIOutputStream ** outputStream);
 
-    nsresult    Seek(int32_t whence, int32_t offset);
-    nsresult    Tell(uint32_t * position);    
+    nsresult    CloseOutputStream(nsDiskCacheOutputStream * outputStream);
+    nsresult    CloseOutputStreamInternal(nsDiskCacheOutputStream * outputStream);
+        
+    nsresult    Write( const char * buffer,
+                       PRUint32     count,
+                       PRUint32 *   bytesWritten);
+
+    nsresult    Seek(PRInt32 whence, PRInt32 offset);
+    nsresult    Tell(PRUint32 * position);    
     nsresult    SetEOF();
 
-    nsresult    ClearBinding();
+    void        ClearBinding();
     
     void        IncrementInputStreamCount() { PR_ATOMIC_INCREMENT(&mInStreamCount); }
     void        DecrementInputStreamCount()
@@ -50,25 +89,30 @@ public:
     
     nsDiskCacheStreamIO() { NS_NOTREACHED("oops"); }
 private:
-    nsresult    OpenCacheFile(int flags, PRFileDesc ** fd);
+
+
+    void        Close();
+    nsresult    OpenCacheFile(PRIntn flags, PRFileDesc ** fd);
     nsresult    ReadCacheBlocks();
     nsresult    FlushBufferToFile();
     void        UpdateFileSize();
     void        DeleteBuffer();
+    nsresult    Flush();
+
 
     nsDiskCacheBinding *        mBinding;       
     nsDiskCacheDevice *         mDevice;
-    int32_t                     mInStreamCount;
-    nsCOMPtr<nsIFile>           mLocalFile;
+    nsDiskCacheOutputStream *   mOutStream;     
+    PRInt32                     mInStreamCount;
+    nsCOMPtr<nsILocalFile>      mLocalFile;
     PRFileDesc *                mFD;
 
-    uint32_t                    mStreamPos;     
-    uint32_t                    mStreamEnd;
-    uint32_t                    mBufPos;        
-    uint32_t                    mBufEnd;        
-    uint32_t                    mBufSize;       
-    bool                        mBufDirty;      
-    bool                        mOutputStreamIsOpen; 
+    PRUint32                    mStreamPos;     
+    PRUint32                    mStreamEnd;
+    PRUint32                    mBufPos;        
+    PRUint32                    mBufEnd;        
+    PRUint32                    mBufSize;       
+    bool                        mBufDirty;
     char *                      mBuffer;
     
 };

@@ -4,12 +4,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "storage_test_harness.h"
 
 #include "mozStorageHelper.h"
-
-using namespace mozilla;
-
+  
 
 
 
@@ -35,7 +66,7 @@ test_ASCIIString()
   ), getter_AddRefs(select));
 
   
-  nsAutoCString inserted("I'm an ASCII string");
+  nsCAutoString inserted("I'm an ASCII string");
   {
     mozStorageStatementScoper scoper(insert);
     bool hasResult;
@@ -44,7 +75,7 @@ test_ASCIIString()
     do_check_false(hasResult);
   }
 
-  nsAutoCString result;
+  nsCAutoString result;
   {
     mozStorageStatementScoper scoper(select);
     bool hasResult;
@@ -80,8 +111,8 @@ test_CString()
   
   static const char sCharArray[] =
     "I'm not a \xff\x00\xac\xde\xbb ASCII string!";
-  nsAutoCString inserted(sCharArray, ArrayLength(sCharArray) - 1);
-  do_check_true(inserted.Length() == ArrayLength(sCharArray) - 1);
+  nsCAutoString inserted(sCharArray, NS_ARRAY_LENGTH(sCharArray) - 1);
+  do_check_true(inserted.Length() == NS_ARRAY_LENGTH(sCharArray) - 1);
   {
     mozStorageStatementScoper scoper(insert);
     bool hasResult;
@@ -91,7 +122,7 @@ test_CString()
   }
 
   {
-    nsAutoCString result;
+    nsCAutoString result;
 
     mozStorageStatementScoper scoper(select);
     bool hasResult;
@@ -127,8 +158,8 @@ test_UTFStrings()
   
   static const char sCharArray[] =
     "I'm a \xc3\xbb\xc3\xbc\xc3\xa2\xc3\xa4\xc3\xa7 UTF8 string!";
-  nsAutoCString insertedUTF8(sCharArray, ArrayLength(sCharArray) - 1);
-  do_check_true(insertedUTF8.Length() == ArrayLength(sCharArray) - 1);
+  nsCAutoString insertedUTF8(sCharArray, NS_ARRAY_LENGTH(sCharArray) - 1);
+  do_check_true(insertedUTF8.Length() == NS_ARRAY_LENGTH(sCharArray) - 1);
   NS_ConvertUTF8toUTF16 insertedUTF16(insertedUTF8);
   do_check_true(insertedUTF8 == NS_ConvertUTF16toUTF8(insertedUTF16));
   {
@@ -140,7 +171,7 @@ test_UTFStrings()
   }
 
   {
-    nsAutoCString result;
+    nsCAutoString result;
 
     mozStorageStatementScoper scoper(select);
     bool hasResult;
@@ -176,7 +207,7 @@ test_UTFStrings()
   }
 
   {
-    nsAutoCString result;
+    nsCAutoString result;
 
     mozStorageStatementScoper scoper(select);
     bool hasResult;

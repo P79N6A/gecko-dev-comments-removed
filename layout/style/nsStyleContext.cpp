@@ -2,6 +2,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  
 
 
@@ -18,13 +52,10 @@
 #include "nsStyleContext.h"
 #include "prlog.h"
 #include "nsStyleAnimation.h"
-#include "mozilla/Util.h"
 
 #ifdef DEBUG
 
 #endif
-
-using namespace mozilla;
 
 
 
@@ -35,20 +66,17 @@ nsStyleContext::nsStyleContext(nsStyleContext* aParent,
                                nsRuleNode* aRuleNode,
                                nsPresContext* aPresContext)
   : mParent(aParent),
-    mChild(nullptr),
-    mEmptyChild(nullptr),
+    mChild(nsnull),
+    mEmptyChild(nsnull),
     mPseudoTag(aPseudoTag),
     mRuleNode(aRuleNode),
-    mAllocations(nullptr),
-    mCachedResetData(nullptr),
-    mBits(((uint32_t)aPseudoType) << NS_STYLE_CONTEXT_TYPE_SHIFT),
+    mAllocations(nsnull),
+    mCachedResetData(nsnull),
+    mBits(((PRUint32)aPseudoType) << NS_STYLE_CONTEXT_TYPE_SHIFT),
     mRefCnt(0)
 {
-  
-  
-  MOZ_STATIC_ASSERT((PR_UINT32_MAX >> NS_STYLE_CONTEXT_TYPE_SHIFT) >=
-                    nsCSSPseudoElements::ePseudo_MAX,
-                    "pseudo element bits no longer fit in a uint32_t");
+  PR_STATIC_ASSERT((PR_UINT32_MAX >> NS_STYLE_CONTEXT_TYPE_SHIFT) >=
+                   nsCSSPseudoElements::ePseudo_MAX);
 
   mNextSibling = this;
   mPrevSibling = this;
@@ -77,7 +105,7 @@ nsStyleContext::nsStyleContext(nsStyleContext* aParent,
 
 nsStyleContext::~nsStyleContext()
 {
-  NS_ASSERTION((nullptr == mChild) && (nullptr == mEmptyChild), "destructing context with children");
+  NS_ASSERTION((nsnull == mChild) && (nsnull == mEmptyChild), "destructing context with children");
 
   nsPresContext *presContext = mRuleNode->GetPresContext();
 
@@ -121,7 +149,7 @@ void nsStyleContext::AddChild(nsStyleContext* aChild)
 
 void nsStyleContext::RemoveChild(nsStyleContext* aChild)
 {
-  NS_PRECONDITION(nullptr != aChild && this == aChild->mParent, "bad argument");
+  NS_PRECONDITION(nsnull != aChild && this == aChild->mParent, "bad argument");
 
   nsStyleContext **list = aChild->mRuleNode->IsRoot() ? &mEmptyChild : &mChild;
 
@@ -132,7 +160,7 @@ void nsStyleContext::RemoveChild(nsStyleContext* aChild)
   } 
   else {
     NS_ASSERTION((*list) == aChild, "bad sibling pointers");
-    (*list) = nullptr;
+    (*list) = nsnull;
   }
 
   aChild->mPrevSibling->mNextSibling = aChild->mNextSibling;
@@ -149,10 +177,10 @@ nsStyleContext::FindChildWithRules(const nsIAtom* aPseudoTag,
 {
   NS_ABORT_IF_FALSE(aRulesIfVisited || !aRelevantLinkVisited,
     "aRelevantLinkVisited should only be set when we have a separate style");
-  uint32_t threshold = 10; 
+  PRUint32 threshold = 10; 
                            
 
-  nsStyleContext* result = nullptr;
+  nsStyleContext* result = nsnull;
   nsStyleContext *list = aRuleNode->IsRoot() ? mEmptyChild : mChild;
 
   if (list) {
@@ -202,7 +230,7 @@ const void* nsStyleContext::GetCachedStyleData(nsStyleStructID aSID)
     if (mCachedResetData) {
       cachedData = mCachedResetData->mStyleStructs[aSID];
     } else {
-      cachedData = nullptr;
+      cachedData = nsnull;
     }
   } else {
     cachedData = mCachedInheritedData.mStyleStructs[aSID];
@@ -215,7 +243,7 @@ const void* nsStyleContext::GetStyleData(nsStyleStructID aSID)
   const void* cachedData = GetCachedStyleData(aSID);
   if (cachedData)
     return cachedData; 
-  return mRuleNode->GetStyleData(aSID, this, true); 
+  return mRuleNode->GetStyleData(aSID, this, PR_TRUE); 
 }
 
 
@@ -254,7 +282,7 @@ nsStyleContext::GetUniqueStyleData(const nsStyleStructID& aSID)
 
   default:
     NS_ERROR("Struct type not supported.  Please find another way to do this if you can!");
-    return nullptr;
+    return nsnull;
   }
 
   if (!result) {
@@ -306,7 +334,7 @@ nsStyleContext::ApplyStyleFixups(nsPresContext* aPresContext)
   } else {
     
     const nsStyleTextReset* text = GetStyleTextReset();
-    uint8_t decorationLine = text->mTextDecorationLine;
+    PRUint8 decorationLine = text->mTextDecorationLine;
     if (decorationLine != NS_STYLE_TEXT_DECORATION_LINE_NONE &&
         decorationLine != NS_STYLE_TEXT_DECORATION_LINE_OVERRIDE_ALL) {
       mBits |= NS_STYLE_HAS_TEXT_DECORATION_LINES;
@@ -346,17 +374,10 @@ nsStyleContext::ApplyStyleFixups(nsPresContext* aPresContext)
         disp->mDisplay != NS_STYLE_DISPLAY_TABLE) {
       nsStyleDisplay *mutable_display = static_cast<nsStyleDisplay*>
                                                    (GetUniqueStyleData(eStyleStruct_Display));
-      
-      
-      
-      
-      
       if (mutable_display->mDisplay == NS_STYLE_DISPLAY_INLINE_TABLE)
-        mutable_display->mOriginalDisplay = mutable_display->mDisplay =
-          NS_STYLE_DISPLAY_TABLE;
+        mutable_display->mDisplay = NS_STYLE_DISPLAY_TABLE;
       else
-        mutable_display->mOriginalDisplay = mutable_display->mDisplay =
-          NS_STYLE_DISPLAY_BLOCK;
+        mutable_display->mDisplay = NS_STYLE_DISPLAY_BLOCK;
     }
   }
 
@@ -365,13 +386,8 @@ nsStyleContext::ApplyStyleFixups(nsPresContext* aPresContext)
 }
 
 nsChangeHint
-nsStyleContext::CalcStyleDifference(nsStyleContext* aOther,
-                                    nsChangeHint aParentHintsNotHandledForDescendants)
+nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
 {
-  NS_ABORT_IF_FALSE(NS_IsHintSubset(aParentHintsNotHandledForDescendants,
-                                    nsChangeHint_Hints_NotHandledForDescendants),
-                    "caller is passing inherited hints, but shouldn't be");
-
   nsChangeHint hint = NS_STYLE_HINT_NONE;
   NS_ENSURE_TRUE(aOther, hint);
   
@@ -388,25 +404,17 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther,
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
   bool compare = mRuleNode != aOther->mRuleNode;
 
 #define DO_STRUCT_DIFFERENCE(struct_)                                         \
   PR_BEGIN_MACRO                                                              \
+    NS_ASSERTION(NS_IsHintSubset(nsStyle##struct_::MaxDifference(), maxHint), \
+                 "Struct placed in the wrong maxHint section");               \
     const nsStyle##struct_* this##struct_ = PeekStyle##struct_();             \
     if (this##struct_) {                                                      \
       const nsStyle##struct_* other##struct_ = aOther->GetStyle##struct_();   \
-      nsChangeHint maxDifference = nsStyle##struct_::MaxDifference();         \
-      if ((compare ||                                                         \
-           (maxDifference & aParentHintsNotHandledForDescendants)) &&         \
-          !NS_IsHintSubset(maxDifference, hint) &&                            \
+      if ((compare || nsStyle##struct_::ForceCompare()) &&                    \
+          !NS_IsHintSubset(maxHint, hint) &&                                  \
           this##struct_ != other##struct_) {                                  \
         NS_ASSERTION(NS_IsHintSubset(                                         \
              this##struct_->CalcDifference(*other##struct_),                  \
@@ -421,8 +429,12 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther,
   
   
   
-  
+  nsChangeHint maxHint = nsChangeHint(NS_STYLE_HINT_FRAMECHANGE |
+      nsChangeHint_UpdateTransformLayer | nsChangeHint_UpdateOpacityLayer);
   DO_STRUCT_DIFFERENCE(Display);
+
+  maxHint = nsChangeHint(NS_STYLE_HINT_FRAMECHANGE |
+      nsChangeHint_UpdateCursor);
   DO_STRUCT_DIFFERENCE(XUL);
   DO_STRUCT_DIFFERENCE(Column);
   DO_STRUCT_DIFFERENCE(Content);
@@ -434,16 +446,35 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther,
   DO_STRUCT_DIFFERENCE(UIReset);
   DO_STRUCT_DIFFERENCE(Text);
   DO_STRUCT_DIFFERENCE(List);
+  
+  
   DO_STRUCT_DIFFERENCE(Quotes);
+
+  maxHint = nsChangeHint(NS_STYLE_HINT_REFLOW | nsChangeHint_UpdateEffects);
   DO_STRUCT_DIFFERENCE(SVGReset);
   DO_STRUCT_DIFFERENCE(SVG);
-  DO_STRUCT_DIFFERENCE(Position);
+
+  
+  
+  maxHint = NS_STYLE_HINT_REFLOW;
+      
+  
+  
+  
   DO_STRUCT_DIFFERENCE(Font);
   DO_STRUCT_DIFFERENCE(Margin);
   DO_STRUCT_DIFFERENCE(Padding);
   DO_STRUCT_DIFFERENCE(Border);
+  DO_STRUCT_DIFFERENCE(Position);
   DO_STRUCT_DIFFERENCE(TextReset);
+
+  
+  
+  maxHint = nsChangeHint(NS_STYLE_HINT_VISUAL | nsChangeHint_UpdateEffects);
   DO_STRUCT_DIFFERENCE(Background);
+
+  
+  maxHint = NS_STYLE_HINT_VISUAL;
   DO_STRUCT_DIFFERENCE(Color);
 
 #undef DO_STRUCT_DIFFERENCE
@@ -482,7 +513,7 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther,
     if (PeekStyleColor()) {
       if (thisVis->GetStyleColor()->mColor !=
           otherVis->GetStyleColor()->mColor) {
-        change = true;
+        change = PR_TRUE;
       }
     }
 
@@ -490,7 +521,7 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther,
     if (!change && PeekStyleBackground()) {
       if (thisVis->GetStyleBackground()->mBackgroundColor !=
           otherVis->GetStyleBackground()->mBackgroundColor) {
-        change = true;
+        change = PR_TRUE;
       }
     }
 
@@ -504,7 +535,7 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther,
         thisVisBorder->GetBorderColor(side, thisColor, thisFG);
         otherVisBorder->GetBorderColor(side, otherColor, otherFG);
         if (thisFG != otherFG || (!thisFG && thisColor != otherColor)) {
-          change = true;
+          change = PR_TRUE;
           break;
         }
       }
@@ -521,7 +552,7 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther,
           (haveColor = thisVisOutline->GetOutlineColor(thisColor)) != 
             otherVisOutline->GetOutlineColor(otherColor) ||
           (haveColor && thisColor != otherColor)) {
-        change = true;
+        change = PR_TRUE;
       }
     }
 
@@ -532,7 +563,7 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther,
       if (thisVisColumn->mColumnRuleColor != otherVisColumn->mColumnRuleColor ||
           thisVisColumn->mColumnRuleColorIsForeground !=
             otherVisColumn->mColumnRuleColorIsForeground) {
-        change = true;
+        change = PR_TRUE;
       }
     }
 
@@ -548,7 +579,7 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther,
                                             otherVisDecColorIsFG);
       if (thisVisDecColorIsFG != otherVisDecColorIsFG ||
           (!thisVisDecColorIsFG && thisVisDecColor != otherVisDecColor)) {
-        change = true;
+        change = PR_TRUE;
       }
     }
 
@@ -558,7 +589,7 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther,
       const nsStyleSVG *otherVisSVG = otherVis->GetStyleSVG();
       if (thisVisSVG->mFill != otherVisSVG->mFill ||
           thisVisSVG->mStroke != otherVisSVG->mStroke) {
-        change = true;
+        change = PR_TRUE;
       }
     }
 
@@ -595,10 +626,10 @@ nsStyleContext::Mark()
 }
 
 #ifdef DEBUG
-void nsStyleContext::List(FILE* out, int32_t aIndent)
+void nsStyleContext::List(FILE* out, PRInt32 aIndent)
 {
   
-  int32_t ix;
+  PRInt32 ix;
   for (ix = aIndent; --ix >= 0; ) fputs("  ", out);
   fprintf(out, "%p(%d) parent=%p ",
           (void*)this, mRefCnt, (void *)mParent);
@@ -626,14 +657,14 @@ void nsStyleContext::List(FILE* out, int32_t aIndent)
     fputs("{}\n", out);
   }
 
-  if (nullptr != mChild) {
+  if (nsnull != mChild) {
     nsStyleContext* child = mChild;
     do {
       child->List(out, aIndent + 1);
       child = child->mNextSibling;
     } while (mChild != child);
   }
-  if (nullptr != mEmptyChild) {
+  if (nsnull != mEmptyChild) {
     nsStyleContext* child = mEmptyChild;
     do {
       child->List(out, aIndent + 1);
@@ -649,7 +680,7 @@ void*
 nsStyleContext::operator new(size_t sz, nsPresContext* aPresContext) CPP_THROW_NEW
 {
   
-  return aPresContext->PresShell()->AllocateByObjectID(nsPresArena::nsStyleContext_id, sz);
+  return aPresContext->AllocateFromShell(sz);
 }
 
 
@@ -665,7 +696,7 @@ nsStyleContext::Destroy()
 
   
   
-  presContext->PresShell()->FreeByObjectID(nsPresArena::nsStyleContext_id, this);
+  presContext->FreeToShell(sizeof(nsStyleContext), this);
 }
 
 already_AddRefed<nsStyleContext>
@@ -683,40 +714,21 @@ NS_NewStyleContext(nsStyleContext* aParentContext,
   return context;
 }
 
-static inline void
-ExtractAnimationValue(nsCSSProperty aProperty,
-                      nsStyleContext* aStyleContext,
-                      nsStyleAnimation::Value& aResult)
-{
-  DebugOnly<bool> success =
-    nsStyleAnimation::ExtractComputedValue(aProperty, aStyleContext, aResult);
-  NS_ABORT_IF_FALSE(success,
-                    "aProperty must be extractable by nsStyleAnimation");
-}
-
-static nscolor
-ExtractColor(nsCSSProperty aProperty,
-             nsStyleContext *aStyleContext)
+static nscolor ExtractColor(nsCSSProperty aProperty,
+                            nsStyleContext *aStyleContext)
 {
   nsStyleAnimation::Value val;
-  ExtractAnimationValue(aProperty, aStyleContext, val);
+#ifdef DEBUG
+  bool success =
+#endif
+    nsStyleAnimation::ExtractComputedValue(aProperty, aStyleContext, val);
+  NS_ABORT_IF_FALSE(success,
+                    "aProperty must be extractable by nsStyleAnimation");
   return val.GetColorValue();
 }
 
-static nscolor
-ExtractColorLenient(nsCSSProperty aProperty,
-                    nsStyleContext *aStyleContext)
-{
-  nsStyleAnimation::Value val;
-  ExtractAnimationValue(aProperty, aStyleContext, val);
-  if (val.GetUnit() == nsStyleAnimation::eUnit_Color) {
-    return val.GetColorValue();
-  }
-  return NS_RGBA(0, 0, 0, 0);
-}
-
 struct ColorIndexSet {
-  uint8_t colorIndex, alphaIndex;
+  PRUint8 colorIndex, alphaIndex;
 };
 
 static const ColorIndexSet gVisitedIndices[2] = { { 0, 0 }, { 1, 0 } };
@@ -737,20 +749,15 @@ nsStyleContext::GetVisitedDependentColor(nsCSSProperty aProperty)
                aProperty == eCSSProperty_stroke,
                "we need to add to nsStyleContext::CalcStyleDifference");
 
-  bool isPaintProperty = aProperty == eCSSProperty_fill ||
-                         aProperty == eCSSProperty_stroke;
-
   nscolor colors[2];
-  colors[0] = isPaintProperty ? ExtractColorLenient(aProperty, this)
-                              : ExtractColor(aProperty, this);
+  colors[0] = ExtractColor(aProperty, this);
 
   nsStyleContext *visitedStyle = this->GetStyleIfVisited();
   if (!visitedStyle) {
     return colors[0];
   }
 
-  colors[1] = isPaintProperty ? ExtractColorLenient(aProperty, visitedStyle)
-                              : ExtractColor(aProperty, visitedStyle);
+  colors[1] = ExtractColor(aProperty, visitedStyle);
 
   return nsStyleContext::CombineVisitedColors(colors,
                                               this->RelevantLinkVisited());
@@ -764,7 +771,7 @@ nsStyleContext::CombineVisitedColors(nscolor *aColors, bool aLinkIsVisited)
     
     
     
-    aLinkIsVisited = false;
+    aLinkIsVisited = PR_FALSE;
   }
 
   

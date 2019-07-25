@@ -3,6 +3,37 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "gfxDrawable.h"
 #include "gfxASurface.h"
 #include "gfxContext.h"
@@ -41,13 +72,6 @@ PreparePatternForUntiledDrawing(gfxPattern* aPattern,
                                 gfxASurface *currentTarget,
                                 const gfxPattern::GraphicsFilter aDefaultFilter)
 {
-    if (!currentTarget) {
-        
-        aPattern->SetExtend(gfxPattern::EXTEND_PAD);
-        aPattern->SetFilter(aDefaultFilter);
-        return;
-    }
-
     
     
     
@@ -73,7 +97,15 @@ PreparePatternForUntiledDrawing(gfxPattern* aPattern,
             
             
             
-            if (static_cast<gfxXlibSurface*>(currentTarget)->IsPadSlow()) {
+
+            gfxXlibSurface *xlibSurface =
+                static_cast<gfxXlibSurface *>(currentTarget);
+            Display *dpy = xlibSurface->XDisplay();
+            
+            
+            if (VendorRelease(dpy) >= 60700000 ||
+                VendorRelease(dpy) < 10699000) {
+
                 bool isDownscale =
                     aDeviceToImage.xx >= 1.0 && aDeviceToImage.yy >= 1.0 &&
                     aDeviceToImage.xy == 0.0 && aDeviceToImage.yx == 0.0;
@@ -131,7 +163,7 @@ gfxSurfaceDrawable::Draw(gfxContext* aContext,
     aContext->SetPattern(pattern);
     aContext->Rectangle(aFillRect);
     aContext->Fill();
-    return true;
+    return PR_TRUE;
 }
 
 gfxCallbackDrawable::gfxCallbackDrawable(gfxDrawingCallback* aCallback,
@@ -147,10 +179,10 @@ gfxCallbackDrawable::MakeSurfaceDrawable(const gfxPattern::GraphicsFilter aFilte
     nsRefPtr<gfxASurface> surface =
         gfxPlatform::GetPlatform()->CreateOffscreenSurface(mSize, gfxASurface::CONTENT_COLOR_ALPHA);
     if (!surface || surface->CairoStatus() != 0)
-        return nullptr;
+        return nsnull;
 
     nsRefPtr<gfxContext> ctx = new gfxContext(surface);
-    Draw(ctx, gfxRect(0, 0, mSize.width, mSize.height), false, aFilter);
+    Draw(ctx, gfxRect(0, 0, mSize.width, mSize.height), PR_FALSE, aFilter);
     nsRefPtr<gfxSurfaceDrawable> drawable = new gfxSurfaceDrawable(surface, mSize);
     return drawable.forget();
 }
@@ -173,7 +205,7 @@ gfxCallbackDrawable::Draw(gfxContext* aContext,
     if (mCallback)
         return (*mCallback)(aContext, aFillRect, aFilter, aTransform);
 
-    return false;
+    return PR_FALSE;
 }
 
 gfxPatternDrawable::gfxPatternDrawable(gfxPattern* aPattern,
@@ -197,7 +229,7 @@ public:
                               const gfxPattern::GraphicsFilter& aFilter,
                               const gfxMatrix& aTransform = gfxMatrix())
     {
-        return mDrawable->Draw(aContext, aFillRect, false, aFilter,
+        return mDrawable->Draw(aContext, aFillRect, PR_FALSE, aFilter,
                                aTransform);
     }
 private:
@@ -222,7 +254,7 @@ gfxPatternDrawable::Draw(gfxContext* aContext,
                          const gfxMatrix& aTransform)
 {
     if (!mPattern)
-        return false;
+        return PR_FALSE;
 
     if (aRepeat) {
         
@@ -233,7 +265,7 @@ gfxPatternDrawable::Draw(gfxContext* aContext,
         
         
         nsRefPtr<gfxCallbackDrawable> callbackDrawable = MakeCallbackDrawable();
-        return callbackDrawable->Draw(aContext, aFillRect, true, aFilter,
+        return callbackDrawable->Draw(aContext, aFillRect, PR_TRUE, aFilter,
                                       aTransform);
     }
 
@@ -244,5 +276,5 @@ gfxPatternDrawable::Draw(gfxContext* aContext,
     aContext->Rectangle(aFillRect);
     aContext->Fill();
     mPattern->SetMatrix(oldMatrix);
-    return true;
+    return PR_TRUE;
 }

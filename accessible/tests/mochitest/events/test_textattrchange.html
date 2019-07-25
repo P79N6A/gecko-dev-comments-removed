@@ -14,8 +14,6 @@
   <script type="application/javascript"
           src="../common.js"></script>
   <script type="application/javascript"
-          src="../role.js"></script>
-  <script type="application/javascript"
           src="../states.js"></script>
   <script type="application/javascript"
           src="../events.js"></script>
@@ -51,9 +49,7 @@
 
       this.finalCheck = function spelledTextInvoker_finalCheck()
       {
-        var defAttrs = buildDefaultTextAttrs(this.DOMNode, kInputFontSize,
-                                             kNormalFontWeight,
-                                             kInputFontFamily);
+        var defAttrs = buildDefaultTextAttrs(this.DOMNode, kInputFontSize);
         testDefaultTextAttrs(aID, defAttrs);
 
         var attrs = { };

@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsBoxFrame.h"
 #include "nsCSSRendering.h"
 #include "nsRenderingContext.h"
@@ -43,7 +75,7 @@ public:
   virtual bool GetInitialVAlignment(Valignment& aValign)  { aValign = vAlign_Top; return true; } 
   virtual bool GetInitialAutoStretch(bool& aStretch)    { aStretch = true; return true; } 
 
-  nsIFrame* GetCaptionBox(nsPresContext* aPresContext, nsRect& aCaptionRect);
+  nsIBox* GetCaptionBox(nsPresContext* aPresContext, nsRect& aCaptionRect);
 };
 
 
@@ -126,14 +158,14 @@ nsGroupBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 void
 nsGroupBoxFrame::PaintBorderBackground(nsRenderingContext& aRenderingContext,
     nsPoint aPt, const nsRect& aDirtyRect) {
-  int skipSides = 0;
+  PRIntn skipSides = 0;
   const nsStyleBorder* borderStyleData = GetStyleBorder();
-  const nsMargin& border = borderStyleData->GetComputedBorder();
+  const nsMargin& border = borderStyleData->GetActualBorder();
   nscoord yoff = 0;
   nsPresContext* presContext = PresContext();
 
   nsRect groupRect;
-  nsIFrame* groupBox = GetCaptionBox(presContext, groupRect);
+  nsIBox* groupBox = GetCaptionBox(presContext, groupRect);
 
   if (groupBox) {        
     
@@ -207,25 +239,25 @@ nsGroupBoxFrame::PaintBorderBackground(nsRenderingContext& aRenderingContext,
   }
 }
 
-nsIFrame*
+nsIBox*
 nsGroupBoxFrame::GetCaptionBox(nsPresContext* aPresContext, nsRect& aCaptionRect)
 {
     
-    nsIFrame* box = GetChildBox();
+    nsIBox* box = GetChildBox();
 
     
     if (!box)
-      return nullptr;
+      return nsnull;
 
     
     box = box->GetChildBox();
 
     
     if (!box)
-      return nullptr;
+      return nsnull;
 
     
-    nsIFrame* child = box->GetChildBox();
+    nsIBox* child = box->GetChildBox();
 
     if (child) {
        

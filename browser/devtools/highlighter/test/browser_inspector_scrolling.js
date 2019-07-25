@@ -4,6 +4,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 let doc;
 let div;
 let iframe;
@@ -38,8 +73,8 @@ function inspectNode()
 {
   Services.obs.removeObserver(inspectNode,
     InspectorUI.INSPECTOR_NOTIFICATIONS.OPENED, false);
-
-  InspectorUI.highlighter.addListener("nodeselected", performScrollingTest);
+  Services.obs.addObserver(performScrollingTest,
+    InspectorUI.INSPECTOR_NOTIFICATIONS.HIGHLIGHTING, false);
 
   executeSoon(function() {
     InspectorUI.inspectNode(div);
@@ -48,13 +83,12 @@ function inspectNode()
 
 function performScrollingTest()
 {
-  InspectorUI.highlighter.removeListener("nodeselected", performScrollingTest);
+  Services.obs.removeObserver(performScrollingTest,
+    InspectorUI.INSPECTOR_NOTIFICATIONS.HIGHLIGHTING, false);
 
-  executeSoon(function() {
-    EventUtils.synthesizeWheel(div, 10, 10,
-      { deltaY: 50.0, deltaMode: WheelEvent.DOM_DELTA_PIXEL },
-      iframe.contentWindow);
-  });
+  EventUtils.synthesizeMouseScroll(div, 10, 10,
+    {axis:"vertical", delta:50, type:"MozMousePixelScroll"},
+    iframe.contentWindow);
 
   gBrowser.selectedBrowser.addEventListener("scroll", function() {
     gBrowser.selectedBrowser.removeEventListener("scroll", arguments.callee,

@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsURILoader_h__
 #define nsURILoader_h__
 
@@ -14,7 +46,6 @@
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsString.h"
 #include "nsIWeakReference.h"
-#include "mozilla/Attributes.h"
 
 #ifdef MOZ_LOGGING
 
@@ -24,7 +55,7 @@
 
 class nsDocumentOpenInfo;
 
-class nsURILoader MOZ_FINAL : public nsIURILoader
+class nsURILoader : public nsIURILoader
 {
 public:
   NS_DECL_NSIURILOADER
@@ -39,7 +70,7 @@ protected:
 
 
   NS_HIDDEN_(nsresult) OpenChannel(nsIChannel* channel,
-                                   uint32_t aFlags,
+                                   PRUint32 aFlags,
                                    nsIInterfaceRequestor* aWindowContext,
                                    bool aChannelOpen,
                                    nsIStreamListener** aListener);
@@ -60,5 +91,23 @@ protected:
   
   friend class nsDocumentOpenInfo;
 };
+
+
+
+
+
+#define NS_ERROR_MALWARE_URI   NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_URILOADER, 30)
+#define NS_ERROR_PHISHING_URI  NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_URILOADER, 31)
+
+
+
+
+
+#define NS_ERROR_SAVE_LINK_AS_TIMEOUT  NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_URILOADER, 32)
+
+
+
+
+#define NS_ERROR_PARSED_DATA_CACHED    NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_URILOADER, 33)
 
 #endif 

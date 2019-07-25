@@ -3,6 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsMathMLmfracFrame_h___
 #define nsMathMLmfracFrame_h___
 
@@ -74,10 +110,10 @@ public:
   TransmitAutomaticData();
 
   NS_IMETHOD
-  UpdatePresentationDataFromChildAt(int32_t         aFirstIndex,
-                                    int32_t         aLastIndex,
-                                    uint32_t        aFlagsValues,
-                                    uint32_t        aFlagsToUpdate);
+  UpdatePresentationDataFromChildAt(PRInt32         aFirstIndex,
+                                    PRInt32         aLastIndex,
+                                    PRUint32        aFlagsValues,
+                                    PRUint32        aFlagsToUpdate);
 
   
   virtual nscoord
@@ -95,7 +131,7 @@ protected:
   nsMathMLmfracFrame(nsStyleContext* aContext) : nsMathMLContainerFrame(aContext) {}
   virtual ~nsMathMLmfracFrame();
   
-  virtual int GetSkipSides() const { return 0; }
+  virtual PRIntn GetSkipSides() const { return 0; }
 
   nsresult PlaceInternal(nsRenderingContext& aRenderingContext,
                          bool                 aPlaceOrigin,

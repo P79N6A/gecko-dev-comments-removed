@@ -3,6 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsCookieService_h__
 #define nsCookieService_h__
 
@@ -91,10 +127,10 @@ class nsCookieEntry : public PLDHashEntryHdr
 
     static PLDHashNumber HashKey(KeyTypePointer aKey)
     {
-      return mozilla::HashString(*aKey);
+      return HashString(*aKey);
     }
 
-    enum { ALLOW_MEMMOVE = true };
+    enum { ALLOW_MEMMOVE = PR_TRUE };
 
     inline ArrayType& GetCookies() { return mCookies; }
 
@@ -129,8 +165,8 @@ struct DBState
   };
 
   nsTHashtable<nsCookieEntry>     hostTable;
-  uint32_t                        cookieCount;
-  int64_t                         cookieOldestTime;
+  PRUint32                        cookieCount;
+  PRInt64                         cookieOldestTime;
   nsCOMPtr<nsIFile>               cookieFile;
   nsCOMPtr<mozIStorageConnection> dbConn;
   nsCOMPtr<mozIStorageAsyncStatement> stmtInsert;
@@ -228,22 +264,22 @@ class nsCookieService : public nsICookieService
     void                          GetCookieStringInternal(nsIURI *aHostURI, bool aIsForeign, bool aHttpBound, nsCString &aCookie);
     nsresult                      SetCookieStringCommon(nsIURI *aHostURI, const char *aCookieHeader, const char *aServerTime, nsIChannel *aChannel, bool aFromHttp);
     void                          SetCookieStringInternal(nsIURI *aHostURI, bool aIsForeign, nsDependentCString &aCookieHeader, const nsCString &aServerTime, bool aFromHttp);
-    bool                          SetCookieInternal(nsIURI *aHostURI, const nsCString& aBaseDomain, bool aRequireHostMatch, CookieStatus aStatus, nsDependentCString &aCookieHeader, int64_t aServerTime, bool aFromHttp);
-    void                          AddInternal(const nsCString& aBaseDomain, nsCookie *aCookie, int64_t aCurrentTimeInUsec, nsIURI *aHostURI, const char *aCookieHeader, bool aFromHttp);
+    bool                          SetCookieInternal(nsIURI *aHostURI, const nsCString& aBaseDomain, bool aRequireHostMatch, CookieStatus aStatus, nsDependentCString &aCookieHeader, PRInt64 aServerTime, bool aFromHttp);
+    void                          AddInternal(const nsCString& aBaseDomain, nsCookie *aCookie, PRInt64 aCurrentTimeInUsec, nsIURI *aHostURI, const char *aCookieHeader, bool aFromHttp);
     void                          RemoveCookieFromList(const nsListIter &aIter, mozIStorageBindingParamsArray *aParamsArray = NULL);
     void                          AddCookieToList(const nsCString& aBaseDomain, nsCookie *aCookie, DBState *aDBState, mozIStorageBindingParamsArray *aParamsArray, bool aWriteToDB = true);
-    void                          UpdateCookieInList(nsCookie *aCookie, int64_t aLastAccessed, mozIStorageBindingParamsArray *aParamsArray);
+    void                          UpdateCookieInList(nsCookie *aCookie, PRInt64 aLastAccessed, mozIStorageBindingParamsArray *aParamsArray);
     static bool                   GetTokenValue(nsASingleFragmentCString::const_char_iterator &aIter, nsASingleFragmentCString::const_char_iterator &aEndIter, nsDependentCSubstring &aTokenString, nsDependentCSubstring &aTokenValue, bool &aEqualsFound);
     static bool                   ParseAttributes(nsDependentCString &aCookieHeader, nsCookieAttributes &aCookie);
     bool                          RequireThirdPartyCheck();
     CookieStatus                  CheckPrefs(nsIURI *aHostURI, bool aIsForeign, const nsCString &aBaseDomain, bool aRequireHostMatch, const char *aCookieHeader);
     bool                          CheckDomain(nsCookieAttributes &aCookie, nsIURI *aHostURI, const nsCString &aBaseDomain, bool aRequireHostMatch);
     static bool                   CheckPath(nsCookieAttributes &aCookie, nsIURI *aHostURI);
-    static bool                   GetExpiry(nsCookieAttributes &aCookie, int64_t aServerTime, int64_t aCurrentTime);
+    static bool                   GetExpiry(nsCookieAttributes &aCookie, PRInt64 aServerTime, PRInt64 aCurrentTime);
     void                          RemoveAllFromMemory();
-    already_AddRefed<nsIArray>    PurgeCookies(int64_t aCurrentTimeInUsec);
+    already_AddRefed<nsIArray>    PurgeCookies(PRInt64 aCurrentTimeInUsec);
     bool                          FindCookie(const nsCString& aBaseDomain, const nsAFlatCString &aHost, const nsAFlatCString &aName, const nsAFlatCString &aPath, nsListIter &aIter);
-    static void                   FindStaleCookie(nsCookieEntry *aEntry, int64_t aCurrentTime, nsListIter &aIter);
+    static void                   FindStaleCookie(nsCookieEntry *aEntry, PRInt64 aCurrentTime, nsListIter &aIter);
     void                          NotifyRejected(nsIURI *aHostURI);
     void                          NotifyChanged(nsISupports *aSubject, const PRUnichar *aData);
     void                          NotifyPurged(nsICookie2* aCookie);
@@ -268,11 +304,11 @@ class nsCookieService : public nsICookieService
     nsRefPtr<DBState>             mPrivateDBState;
 
     
-    uint8_t                       mCookieBehavior; 
+    PRUint8                       mCookieBehavior; 
     bool                          mThirdPartySession;
-    uint16_t                      mMaxNumberOfCookies;
-    uint16_t                      mMaxCookiesPerHost;
-    int64_t                       mCookiePurgeAge;
+    PRUint16                      mMaxNumberOfCookies;
+    PRUint16                      mMaxCookiesPerHost;
+    PRInt64                       mCookiePurgeAge;
 
     
     friend PLDHashOperator purgeCookiesCallback(nsCookieEntry *aEntry, void *aArg);

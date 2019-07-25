@@ -3,21 +3,55 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsDOMKeyboardEvent.h"
-#include "nsDOMClassInfoID.h"
+#include "nsContentUtils.h"
 
 nsDOMKeyboardEvent::nsDOMKeyboardEvent(nsPresContext* aPresContext,
                                        nsKeyEvent* aEvent)
   : nsDOMUIEvent(aPresContext, aEvent ? aEvent :
-                 new nsKeyEvent(false, 0, nullptr))
+                 new nsKeyEvent(PR_FALSE, 0, nsnull))
 {
   NS_ASSERTION(mEvent->eventStructType == NS_KEY_EVENT, "event type mismatch");
 
   if (aEvent) {
-    mEventIsInternal = false;
+    mEventIsInternal = PR_FALSE;
   }
   else {
-    mEventIsInternal = true;
+    mEventIsInternal = PR_TRUE;
     mEvent->time = PR_Now();
   }
 }
@@ -26,7 +60,7 @@ nsDOMKeyboardEvent::~nsDOMKeyboardEvent()
 {
   if (mEventIsInternal) {
     delete static_cast<nsKeyEvent*>(mEvent);
-    mEvent = nullptr;
+    mEvent = nsnull;
   }
 }
 
@@ -44,7 +78,7 @@ NS_IMETHODIMP
 nsDOMKeyboardEvent::GetAltKey(bool* aIsDown)
 {
   NS_ENSURE_ARG_POINTER(aIsDown);
-  *aIsDown = static_cast<nsInputEvent*>(mEvent)->IsAlt();
+  *aIsDown = ((nsInputEvent*)mEvent)->isAlt;
   return NS_OK;
 }
 
@@ -52,7 +86,7 @@ NS_IMETHODIMP
 nsDOMKeyboardEvent::GetCtrlKey(bool* aIsDown)
 {
   NS_ENSURE_ARG_POINTER(aIsDown);
-  *aIsDown = static_cast<nsInputEvent*>(mEvent)->IsControl();
+  *aIsDown = ((nsInputEvent*)mEvent)->isControl;
   return NS_OK;
 }
 
@@ -60,7 +94,7 @@ NS_IMETHODIMP
 nsDOMKeyboardEvent::GetShiftKey(bool* aIsDown)
 {
   NS_ENSURE_ARG_POINTER(aIsDown);
-  *aIsDown = static_cast<nsInputEvent*>(mEvent)->IsShift();
+  *aIsDown = ((nsInputEvent*)mEvent)->isShift;
   return NS_OK;
 }
 
@@ -68,22 +102,12 @@ NS_IMETHODIMP
 nsDOMKeyboardEvent::GetMetaKey(bool* aIsDown)
 {
   NS_ENSURE_ARG_POINTER(aIsDown);
-  *aIsDown = static_cast<nsInputEvent*>(mEvent)->IsMeta();
+  *aIsDown = ((nsInputEvent*)mEvent)->isMeta;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDOMKeyboardEvent::GetModifierState(const nsAString& aKey,
-                                     bool* aState)
-{
-  NS_ENSURE_ARG_POINTER(aState);
-
-  *aState = GetModifierStateInternal(aKey);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDOMKeyboardEvent::GetCharCode(uint32_t* aCharCode)
+nsDOMKeyboardEvent::GetCharCode(PRUint32* aCharCode)
 {
   NS_ENSURE_ARG_POINTER(aCharCode);
 
@@ -96,14 +120,13 @@ nsDOMKeyboardEvent::GetCharCode(uint32_t* aCharCode)
     *aCharCode = ((nsKeyEvent*)mEvent)->charCode;
     break;
   default:
-    *aCharCode = 0;
     break;
   }
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDOMKeyboardEvent::GetKeyCode(uint32_t* aKeyCode)
+nsDOMKeyboardEvent::GetKeyCode(PRUint32* aKeyCode)
 {
   NS_ENSURE_ARG_POINTER(aKeyCode);
 
@@ -123,7 +146,7 @@ nsDOMKeyboardEvent::GetKeyCode(uint32_t* aKeyCode)
 
 
 nsresult
-nsDOMKeyboardEvent::Which(uint32_t* aWhich)
+nsDOMKeyboardEvent::Which(PRUint32* aWhich)
 {
   NS_ENSURE_ARG_POINTER(aWhich);
 
@@ -135,7 +158,7 @@ nsDOMKeyboardEvent::Which(uint32_t* aWhich)
       
       
       {
-        uint32_t keyCode = ((nsKeyEvent*)mEvent)->keyCode;
+        PRUint32 keyCode = ((nsKeyEvent*)mEvent)->keyCode;
         if (keyCode == NS_VK_RETURN || keyCode == NS_VK_BACK) {
           *aWhich = keyCode;
           return NS_OK;
@@ -152,25 +175,19 @@ nsDOMKeyboardEvent::Which(uint32_t* aWhich)
 }
 
 NS_IMETHODIMP
-nsDOMKeyboardEvent::GetLocation(uint32_t* aLocation)
-{
-  NS_ENSURE_ARG_POINTER(aLocation);
-
-  *aLocation = static_cast<nsKeyEvent*>(mEvent)->location;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsDOMKeyboardEvent::InitKeyEvent(const nsAString& aType, bool aCanBubble, bool aCancelable,
                                  nsIDOMWindow* aView, bool aCtrlKey, bool aAltKey,
                                  bool aShiftKey, bool aMetaKey,
-                                 uint32_t aKeyCode, uint32_t aCharCode)
+                                 PRUint32 aKeyCode, PRUint32 aCharCode)
 {
   nsresult rv = nsDOMUIEvent::InitUIEvent(aType, aCanBubble, aCancelable, aView, 0);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsKeyEvent* keyEvent = static_cast<nsKeyEvent*>(mEvent);
-  keyEvent->InitBasicModifiers(aCtrlKey, aAltKey, aShiftKey, aMetaKey);
+  keyEvent->isControl = aCtrlKey;
+  keyEvent->isAlt = aAltKey;
+  keyEvent->isShift = aShiftKey;
+  keyEvent->isMeta = aMetaKey;
   keyEvent->keyCode = aKeyCode;
   keyEvent->charCode = aCharCode;
 

@@ -3,6 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsSecureBrowserUIImpl_h_
 #define nsSecureBrowserUIImpl_h_
 
@@ -27,11 +63,9 @@
 #include "pldhash.h"
 #include "nsINetUtil.h"
 
-class nsISSLStatus;
 class nsITransportSecurityInfo;
 class nsISecurityWarningDialogs;
 class nsIChannel;
-class nsIInterfaceRequestor;
 
 #define NS_SECURE_BROWSER_UI_CID \
 { 0xcc75499a, 0x1dd1, 0x11b2, {0x8a, 0x82, 0xca, 0x41, 0x0a, 0xc9, 0x07, 0xb8}}
@@ -83,26 +117,24 @@ protected:
   bool mNotifiedToplevelIsEV;
 
   void ResetStateTracking();
-  uint32_t mNewToplevelSecurityState;
+  PRUint32 mNewToplevelSecurityState;
   bool mNewToplevelIsEV;
   bool mNewToplevelSecurityStateKnown;
   bool mIsViewSource;
 
   nsXPIDLString mInfoTooltip;
-  int32_t mDocumentRequestsInProgress;
-  int32_t mSubRequestsHighSecurity;
-  int32_t mSubRequestsLowSecurity;
-  int32_t mSubRequestsBrokenSecurity;
-  int32_t mSubRequestsNoSecurity;
-  bool mRestoreSubrequests;
-  bool mOnLocationChangeSeen;
+  PRInt32 mDocumentRequestsInProgress;
+  PRInt32 mSubRequestsHighSecurity;
+  PRInt32 mSubRequestsLowSecurity;
+  PRInt32 mSubRequestsBrokenSecurity;
+  PRInt32 mSubRequestsNoSecurity;
 #ifdef DEBUG
   
-  int32_t mOnStateLocationChangeReentranceDetection;
+  PRInt32 mOnStateLocationChangeReentranceDetection;
 #endif
 
   static already_AddRefed<nsISupports> ExtractSecurityInfo(nsIRequest* aRequest);
-  static nsresult MapInternalToExternalState(uint32_t* aState, lockIconState lock, bool ev);
+  static nsresult MapInternalToExternalState(PRUint32* aState, lockIconState lock, bool ev);
   nsresult UpdateSecurityState(nsIRequest* aRequest, bool withNewLocation,
                                bool withUpdateStatus, bool withUpdateTooltip);
   bool UpdateMyFlags(bool &showWarning, lockIconState &warnSecurityState);
@@ -117,7 +149,7 @@ protected:
   void ObtainEventSink(nsIChannel *channel, 
                        nsCOMPtr<nsISecurityEventSink> &sink);
 
-  nsCOMPtr<nsISSLStatus> mSSLStatus;
+  nsCOMPtr<nsISupports> mSSLStatus;
   nsCOMPtr<nsISupports> mCurrentToplevelSecurityInfo;
 
   void GetBundleString(const PRUnichar* name, nsAString &outString);
@@ -133,8 +165,8 @@ protected:
   bool ConfirmPostToInsecure();
   bool ConfirmPostToInsecureFromSecure();
 
-  bool GetNSSDialogs(nsCOMPtr<nsISecurityWarningDialogs> & dialogs,
-                     nsCOMPtr<nsIInterfaceRequestor> & window);
+  
+  static nsresult GetNSSDialogs(nsISecurityWarningDialogs **);
 
   PLDHashTable mTransferringRequests;
 };

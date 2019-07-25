@@ -3,6 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_UNISCRIBESHAPER_H
 #define GFX_UNISCRIBESHAPER_H
 
@@ -29,9 +64,12 @@ public:
         MOZ_COUNT_DTOR(gfxUniscribeShaper);
     }
 
-    virtual bool ShapeWord(gfxContext *aContext,
-                           gfxShapedWord *aShapedWord,
-                           const PRUnichar *aString);
+    virtual bool InitTextRun(gfxContext *aContext,
+                               gfxTextRun *aTextRun,
+                               const PRUnichar *aString,
+                               PRUint32 aRunStart,
+                               PRUint32 aRunLength,
+                               PRInt32 aRunScript);
 
     SCRIPT_CACHE *ScriptCache() { return &mScriptCache; }
 

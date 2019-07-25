@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #if !defined(nsOggCodecState_h_)
 #define nsOggCodecState_h_
 
@@ -13,22 +46,10 @@
 #else
 #include <vorbis/codec.h>
 #endif
-#ifdef MOZ_OPUS
-#include <opus/opus.h>
-extern "C" {
-#include "opus/opus_multistream.h"
-}
-
-#include "nsBuiltinDecoderStateMachine.h"
-#include "nsBuiltinDecoderReader.h"
-#endif
-#include <nsAutoRef.h>
 #include <nsDeque.h>
 #include <nsTArray.h>
 #include <nsClassHashtable.h>
 #include "VideoUtils.h"
-
-#include "mozilla/StandardInteger.h"
 
 
 
@@ -43,7 +64,7 @@ class OggPacketDeallocator : public nsDequeFunctor {
     ogg_packet* p = static_cast<ogg_packet*>(aPacket);
     delete [] p->packet;
     delete p;
-    return nullptr;
+    return nsnull;
   }
 };
 
@@ -78,9 +99,8 @@ public:
   enum CodecType {
     TYPE_VORBIS=0,
     TYPE_THEORA=1,
-    TYPE_OPUS=2,
-    TYPE_SKELETON=3,
-    TYPE_UNKNOWN=4
+    TYPE_SKELETON=2,
+    TYPE_UNKNOWN=3
   };
 
   virtual ~nsOggCodecState();
@@ -90,8 +110,6 @@ public:
   static nsOggCodecState* Create(ogg_page* aPage);
   
   virtual CodecType GetType() { return TYPE_UNKNOWN; }
-
-  
   
   
   virtual bool DecodeHeader(ogg_packet* aPacket) {
@@ -99,10 +117,10 @@ public:
   }
 
   
-  virtual int64_t Time(int64_t granulepos) { return -1; }
+  virtual PRInt64 Time(PRInt64 granulepos) { return -1; }
 
   
-  virtual int64_t StartTime(int64_t granulepos) { return -1; }
+  virtual PRInt64 StartTime(PRInt64 granulepos) { return -1; }
 
   
   virtual bool Init();
@@ -150,10 +168,10 @@ public:
   virtual nsresult PageIn(ogg_page* aPage);
 
   
-  uint64_t mPacketCount;
+  PRUint64 mPacketCount;
 
   
-  uint32_t mSerial;
+  PRUint32 mSerial;
 
   
   ogg_stream_state mState;
@@ -198,14 +216,14 @@ public:
 
   CodecType GetType() { return TYPE_VORBIS; }
   bool DecodeHeader(ogg_packet* aPacket);
-  int64_t Time(int64_t granulepos);
+  PRInt64 Time(PRInt64 granulepos);
   bool Init();
   nsresult Reset();
   bool IsHeader(ogg_packet* aPacket);
   nsresult PageIn(ogg_page* aPage); 
 
   
-  static int64_t Time(vorbis_info* aInfo, int64_t aGranulePos); 
+  static PRInt64 Time(vorbis_info* aInfo, PRInt64 aGranulePos); 
 
   vorbis_info mInfo;
   vorbis_comment mComment;
@@ -227,7 +245,7 @@ private:
   
   
   
-  int64_t mGranulepos;
+  PRInt64 mGranulepos;
 
 #ifdef VALIDATE_VORBIS_SAMPLE_CALCULATION
   
@@ -268,18 +286,18 @@ public:
 
   CodecType GetType() { return TYPE_THEORA; }
   bool DecodeHeader(ogg_packet* aPacket);
-  int64_t Time(int64_t granulepos);
-  int64_t StartTime(int64_t granulepos);
+  PRInt64 Time(PRInt64 granulepos);
+  PRInt64 StartTime(PRInt64 granulepos);
   bool Init();
   bool IsHeader(ogg_packet* aPacket);
   nsresult PageIn(ogg_page* aPage); 
 
   
   
-  int64_t MaxKeyframeOffset();
+  PRInt64 MaxKeyframeOffset();
 
   
-  static int64_t Time(th_info* aInfo, int64_t aGranulePos); 
+  static PRInt64 Time(th_info* aInfo, PRInt64 aGranulePos); 
 
   th_info mInfo;
   th_comment mComment;
@@ -299,63 +317,6 @@ private:
 
 };
 
-class nsOpusState : public nsOggCodecState {
-#ifdef MOZ_OPUS
-public:
-  nsOpusState(ogg_page* aBosPage);
-  virtual ~nsOpusState();
-
-  CodecType GetType() { return TYPE_OPUS; }
-  bool DecodeHeader(ogg_packet* aPacket);
-  int64_t Time(int64_t aGranulepos);
-  bool Init();
-  nsresult Reset();
-  nsresult Reset(bool aStart);
-  bool IsHeader(ogg_packet* aPacket);
-  nsresult PageIn(ogg_page* aPage);
-
-  
-  static int64_t Time(int aPreSkip, int64_t aGranulepos);
-
-  
-  int mRate;        
-  uint32_t mNominalRate; 
-  int mChannels;    
-  uint16_t mPreSkip; 
-#ifdef MOZ_SAMPLE_TYPE_FLOAT32
-  float mGain;      
-#else
-  int32_t mGain_Q16; 
-#endif
-  int mChannelMapping; 
-  int mStreams;     
-  int mCoupledStreams; 
-  unsigned char mMappingTable[255]; 
-
-  OpusMSDecoder *mDecoder;
-
-  int mSkip;        
-  
-  
-  int64_t mPrevPacketGranulepos;
-
-private:
-
-  
-  
-  
-  
-  
-  bool ReconstructOpusGranulepos();
-
-  
-  
-  
-  int64_t mPrevPageGranulepos;
-
-#endif 
-};
-
 
 
 #define SKELETON_VERSION(major, minor) (((major)<<16)|(minor))
@@ -366,35 +327,35 @@ public:
   ~nsSkeletonState();
   CodecType GetType() { return TYPE_SKELETON; }
   bool DecodeHeader(ogg_packet* aPacket);
-  int64_t Time(int64_t granulepos) { return -1; }
+  PRInt64 Time(PRInt64 granulepos) { return -1; }
   bool Init() { return true; }
   bool IsHeader(ogg_packet* aPacket) { return true; }
 
   
   
-  bool IsPresentable(int64_t aTime) { return aTime >= mPresentationTime; }
+  bool IsPresentable(PRInt64 aTime) { return aTime >= mPresentationTime; }
 
   
   
   class nsKeyPoint {
   public:
     nsKeyPoint()
-      : mOffset(INT64_MAX),
-        mTime(INT64_MAX) {}
+      : mOffset(PR_INT64_MAX),
+        mTime(PR_INT64_MAX) {}
 
-    nsKeyPoint(int64_t aOffset, int64_t aTime)
+    nsKeyPoint(PRInt64 aOffset, PRInt64 aTime)
       : mOffset(aOffset),
         mTime(aTime) {}
 
     
-    int64_t mOffset;
+    PRInt64 mOffset;
 
     
-    int64_t mTime;
+    PRInt64 mTime;
 
     bool IsNull() {
-      return mOffset == INT64_MAX &&
-             mTime == INT64_MAX;
+      return mOffset == PR_INT64_MAX &&
+             mTime == PR_INT64_MAX;
     }
   };
 
@@ -404,7 +365,7 @@ public:
   public:
     nsSeekTarget() : mSerial(0) {}
     nsKeyPoint mKeyPoint;
-    uint32_t mSerial;
+    PRUint32 mSerial;
     bool IsNull() {
       return mKeyPoint.IsNull() &&
              mSerial == 0;
@@ -414,8 +375,8 @@ public:
   
   
   
-  nsresult IndexedSeekTarget(int64_t aTarget,
-                             nsTArray<uint32_t>& aTracks,
+  nsresult IndexedSeekTarget(PRInt64 aTarget,
+                             nsTArray<PRUint32>& aTracks,
                              nsSeekTarget& aResult);
 
   bool HasIndex() const {
@@ -426,7 +387,7 @@ public:
   
   
   
-  nsresult GetDuration(const nsTArray<uint32_t>& aTracks, int64_t& aDuration);
+  nsresult GetDuration(const nsTArray<PRUint32>& aTracks, PRInt64& aDuration);
 
 private:
 
@@ -435,25 +396,25 @@ private:
 
   
   
-  nsresult IndexedSeekTargetForTrack(uint32_t aSerialno,
-                                     int64_t aTarget,
+  nsresult IndexedSeekTargetForTrack(PRUint32 aSerialno,
+                                     PRInt64 aTarget,
                                      nsKeyPoint& aResult);
 
   
-  uint32_t mVersion;
+  PRUint32 mVersion;
 
   
-  int64_t mPresentationTime;
+  PRInt64 mPresentationTime;
 
   
-  int64_t mLength;
+  PRInt64 mLength;
 
   
   
   class nsKeyFrameIndex {
   public:
 
-    nsKeyFrameIndex(int64_t aStartTime, int64_t aEndTime) 
+    nsKeyFrameIndex(PRInt64 aStartTime, PRInt64 aEndTime) 
       : mStartTime(aStartTime),
         mEndTime(aEndTime)
     {
@@ -464,23 +425,23 @@ private:
       MOZ_COUNT_DTOR(nsKeyFrameIndex);
     }
 
-    void Add(int64_t aOffset, int64_t aTimeMs) {
+    void Add(PRInt64 aOffset, PRInt64 aTimeMs) {
       mKeyPoints.AppendElement(nsKeyPoint(aOffset, aTimeMs));
     }
 
-    const nsKeyPoint& Get(uint32_t aIndex) const {
+    const nsKeyPoint& Get(PRUint32 aIndex) const {
       return mKeyPoints[aIndex];
     }
 
-    uint32_t Length() const {
+    PRUint32 Length() const {
       return mKeyPoints.Length();
     }
 
     
-    const int64_t mStartTime;
+    const PRInt64 mStartTime;
 
     
-    const int64_t mEndTime;
+    const PRInt64 mEndTime;
 
   private:
     nsTArray<nsKeyPoint> mKeyPoints;
@@ -488,17 +449,6 @@ private:
 
   
   nsClassHashtable<nsUint32HashKey, nsKeyFrameIndex> mIndex;
-};
-
-
-
-template <>
-class nsAutoRefTraits<ogg_packet> : public nsPointerRefTraits<ogg_packet>
-{
-public:
-  static void Release(ogg_packet* aPacket) {
-    nsOggCodecState::ReleasePacket(aPacket);
-  }
 };
 
 #endif

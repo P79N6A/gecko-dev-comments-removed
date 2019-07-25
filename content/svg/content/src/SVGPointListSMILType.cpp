@@ -3,6 +3,37 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "SVGPointListSMILType.h"
 #include "nsSMILValue.h"
 #include "SVGPointList.h"
@@ -32,7 +63,7 @@ SVGPointListSMILType::Destroy(nsSMILValue& aValue) const
 {
   NS_PRECONDITION(aValue.mType == this, "Unexpected SMIL value type");
   delete static_cast<SVGPointListAndInfo*>(aValue.mU.mPtr);
-  aValue.mU.mPtr = nullptr;
+  aValue.mU.mPtr = nsnull;
   aValue.mType = &nsSMILNullType::sSingleton;
 }
 
@@ -65,7 +96,7 @@ SVGPointListSMILType::IsEqual(const nsSMILValue& aLeft,
 nsresult
 SVGPointListSMILType::Add(nsSMILValue& aDest,
                           const nsSMILValue& aValueToAdd,
-                          uint32_t aCount) const
+                          PRUint32 aCount) const
 {
   NS_PRECONDITION(aDest.mType == this, "Unexpected SMIL type");
   NS_PRECONDITION(aValueToAdd.mType == this, "Incompatible SMIL type");
@@ -89,7 +120,7 @@ SVGPointListSMILType::Add(nsSMILValue& aDest,
     if (!dest.SetLength(valueToAdd.Length())) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
-    for (uint32_t i = 0; i < dest.Length(); ++i) {
+    for (PRUint32 i = 0; i < dest.Length(); ++i) {
       dest[i] = aCount * valueToAdd[i];
     }
     dest.SetInfo(valueToAdd.Element()); 
@@ -102,7 +133,7 @@ SVGPointListSMILType::Add(nsSMILValue& aDest,
     
     return NS_ERROR_FAILURE;
   }
-  for (uint32_t i = 0; i < dest.Length(); ++i) {
+  for (PRUint32 i = 0; i < dest.Length(); ++i) {
     dest[i] += aCount * valueToAdd[i];
   }
   dest.SetInfo(valueToAdd.Element()); 
@@ -133,7 +164,7 @@ SVGPointListSMILType::ComputeDistance(const nsSMILValue& aFrom,
 
   double total = 0.0;
 
-  for (uint32_t i = 0; i < to.Length(); ++i) {
+  for (PRUint32 i = 0; i < to.Length(); ++i) {
     double dx = to[i].mX - from[i].mX;
     double dy = to[i].mY - from[i].mY;
     total += dx * dx + dy * dy;
@@ -184,12 +215,12 @@ SVGPointListSMILType::Interpolate(const nsSMILValue& aStartVal,
 
   if (start.Length() != end.Length()) {
     NS_ABORT_IF_FALSE(start.Length() == 0, "Not an identity value");
-    for (uint32_t i = 0; i < end.Length(); ++i) {
+    for (PRUint32 i = 0; i < end.Length(); ++i) {
       result[i] = aUnitDistance * end[i];
     }
     return NS_OK;
   }
-  for (uint32_t i = 0; i < end.Length(); ++i) {
+  for (PRUint32 i = 0; i < end.Length(); ++i) {
     result[i] = start[i] + (end[i] - start[i]) * aUnitDistance;
   }
   return NS_OK;

@@ -3,23 +3,56 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsGkAtoms.h"
 #include "nsIDOMSVGPathSeg.h"
 #include "DOMSVGPathSeg.h"
 #include "DOMSVGPathSegList.h"
 #include "nsCOMPtr.h"
-#include "nsContentUtils.h"
+#include "nsIFrame.h"
+#include "nsSVGPathDataParser.h"
 #include "nsSVGPathElement.h"
 #include "nsSVGUtils.h"
 #include "DOMSVGPoint.h"
 #include "gfxContext.h"
+#include "gfxPlatform.h"
 
 using namespace mozilla;
 
 nsSVGElement::NumberInfo nsSVGPathElement::sNumberInfo = 
-{ &nsGkAtoms::pathLength, 0, false };
+{ &nsGkAtoms::pathLength, 0, PR_FALSE };
 
 NS_IMPL_NS_NEW_SVG_ELEMENT(Path)
 
@@ -32,9 +65,9 @@ NS_IMPL_RELEASE_INHERITED(nsSVGPathElement,nsSVGPathElementBase)
 DOMCI_NODE_DATA(SVGPathElement, nsSVGPathElement)
 
 NS_INTERFACE_TABLE_HEAD(nsSVGPathElement)
-  NS_NODE_INTERFACE_TABLE6(nsSVGPathElement, nsIDOMNode, nsIDOMElement,
-                           nsIDOMSVGElement, nsIDOMSVGTests,
-                           nsIDOMSVGPathElement, nsIDOMSVGAnimatedPathData)
+  NS_NODE_INTERFACE_TABLE5(nsSVGPathElement, nsIDOMNode, nsIDOMElement,
+                           nsIDOMSVGElement, nsIDOMSVGPathElement,
+                           nsIDOMSVGAnimatedPathData)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(SVGPathElement)
 NS_INTERFACE_MAP_END_INHERITING(nsSVGPathElementBase)
 
@@ -104,7 +137,7 @@ nsSVGPathElement::GetPointAtLength(float distance, nsIDOMSVGPoint **_retval)
 
 
 NS_IMETHODIMP
-nsSVGPathElement::GetPathSegAtLength(float distance, uint32_t *_retval)
+nsSVGPathElement::GetPathSegAtLength(float distance, PRUint32 *_retval)
 {
   NS_ENSURE_FINITE(distance, NS_ERROR_ILLEGAL_VALUE);
   *_retval = mD.GetAnimValue().GetPathSegAtLength(distance);
@@ -305,12 +338,6 @@ nsSVGPathElement::CreateSVGPathSegCurvetoQuadraticSmoothRel(float x, float y, ns
 
 
 
- bool
-nsSVGPathElement::HasValidDimensions() const
-{
-  return !mD.GetAnimValue().IsEmpty();
-}
-
 nsSVGElement::NumberAttributesInfo
 nsSVGPathElement::GetNumberInfo()
 {
@@ -324,7 +351,7 @@ nsSVGPathElement::GetNumberInfo()
 NS_IMETHODIMP nsSVGPathElement::GetPathSegList(nsIDOMSVGPathSegList * *aPathSegList)
 {
   void *key = mD.GetBaseValKey();
-  *aPathSegList = DOMSVGPathSegList::GetDOMWrapper(key, this, false).get();
+  *aPathSegList = DOMSVGPathSegList::GetDOMWrapper(key, this, PR_FALSE).get();
   return *aPathSegList ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
 }
 
@@ -339,7 +366,7 @@ NS_IMETHODIMP nsSVGPathElement::GetAnimatedPathSegList(nsIDOMSVGPathSegList * *a
 {
   void *key = mD.GetAnimValKey();
   *aAnimatedPathSegList =
-    DOMSVGPathSegList::GetDOMWrapper(key, this, true).get();
+    DOMSVGPathSegList::GetDOMWrapper(key, this, PR_TRUE).get();
   return *aAnimatedPathSegList ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
 }
 
@@ -359,7 +386,7 @@ nsSVGPathElement::IsAttributeMapped(const nsIAtom* name) const
     sMarkersMap
   };
 
-  return FindAttributeDependence(name, map) ||
+  return FindAttributeDependence(name, map, NS_ARRAY_LENGTH(map)) ||
     nsSVGPathElementBase::IsAttributeMapped(name);
 }
 
@@ -382,7 +409,7 @@ nsSVGPathElement::AttributeDefinesGeometry(const nsIAtom *aName)
 bool
 nsSVGPathElement::IsMarkable()
 {
-  return true;
+  return PR_TRUE;
 }
 
 void
@@ -398,24 +425,16 @@ nsSVGPathElement::ConstructPath(gfxContext *aCtx)
 }
 
 gfxFloat
-nsSVGPathElement::GetPathLengthScale(PathLengthScaleForType aFor)
+nsSVGPathElement::GetScale()
 {
-  NS_ABORT_IF_FALSE(aFor == eForTextPath || aFor == eForStroking,
-                    "Unknown enum");
   if (mPathLength.IsExplicitlySet()) {
-    float authorsPathLengthEstimate = mPathLength.GetAnimValue();
-    if (authorsPathLengthEstimate > 0) {
-      gfxMatrix matrix;
-      if (aFor == eForTextPath) {
-        
-        
-        
-        matrix = PrependLocalTransformsTo(matrix);
-      }
-      nsRefPtr<gfxFlattenedPath> path = GetFlattenedPath(matrix);
-      if (path) {
-        return path->GetLength() / authorsPathLengthEstimate;
-      }
+
+    nsRefPtr<gfxFlattenedPath> flat =
+      GetFlattenedPath(PrependLocalTransformTo(gfxMatrix()));
+    float pathLength = mPathLength.GetAnimValue();
+
+    if (flat && pathLength != 0) {
+      return flat->GetLength() / pathLength;
     }
   }
   return 1.0;

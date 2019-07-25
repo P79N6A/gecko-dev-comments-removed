@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsCookie_h__
 #define nsCookie_h__
 
@@ -36,9 +69,9 @@ class nsCookie : public nsICookie2
              const char     *aHost,
              const char     *aPath,
              const char     *aEnd,
-             int64_t         aExpiry,
-             int64_t         aLastAccessed,
-             int64_t         aCreationTime,
+             PRInt64         aExpiry,
+             PRInt64         aLastAccessed,
+             PRInt64         aCreationTime,
              bool            aIsSession,
              bool            aIsSecure,
              bool            aIsHttpOnly)
@@ -50,16 +83,16 @@ class nsCookie : public nsICookie2
      , mExpiry(aExpiry)
      , mLastAccessed(aLastAccessed)
      , mCreationTime(aCreationTime)
-     , mIsSession(aIsSession != false)
-     , mIsSecure(aIsSecure != false)
-     , mIsHttpOnly(aIsHttpOnly != false)
+     , mIsSession(aIsSession != PR_FALSE)
+     , mIsSecure(aIsSecure != PR_FALSE)
+     , mIsHttpOnly(aIsHttpOnly != PR_FALSE)
     {
     }
 
   public:
     
     
-    static int64_t GenerateUniqueCreationTime(int64_t aCreationTime);
+    static PRInt64 GenerateUniqueCreationTime(PRInt64 aCreationTime);
 
     
     
@@ -67,9 +100,9 @@ class nsCookie : public nsICookie2
                              const nsACString &aValue,
                              const nsACString &aHost,
                              const nsACString &aPath,
-                             int64_t           aExpiry,
-                             int64_t           aLastAccessed,
-                             int64_t           aCreationTime,
+                             PRInt64           aExpiry,
+                             PRInt64           aLastAccessed,
+                             PRInt64           aCreationTime,
                              bool              aIsSession,
                              bool              aIsSecure,
                              bool              aIsHttpOnly);
@@ -82,21 +115,21 @@ class nsCookie : public nsICookie2
     inline const nsDependentCString Host()  const { return nsDependentCString(mHost, mPath - 1); }
     inline const nsDependentCString RawHost() const { return nsDependentCString(IsDomain() ? mHost + 1 : mHost, mPath - 1); }
     inline const nsDependentCString Path()  const { return nsDependentCString(mPath, mEnd); }
-    inline int64_t Expiry()                 const { return mExpiry; }        
-    inline int64_t LastAccessed()           const { return mLastAccessed; }  
-    inline int64_t CreationTime()           const { return mCreationTime; }  
+    inline PRInt64 Expiry()                 const { return mExpiry; }        
+    inline PRInt64 LastAccessed()           const { return mLastAccessed; }  
+    inline PRInt64 CreationTime()           const { return mCreationTime; }  
     inline bool IsSession()               const { return mIsSession; }
     inline bool IsDomain()                const { return *mHost == '.'; }
     inline bool IsSecure()                const { return mIsSecure; }
     inline bool IsHttpOnly()              const { return mIsHttpOnly; }
 
     
-    inline void SetExpiry(int64_t aExpiry)        { mExpiry = aExpiry; }
-    inline void SetLastAccessed(int64_t aTime)    { mLastAccessed = aTime; }
+    inline void SetExpiry(PRInt64 aExpiry)        { mExpiry = aExpiry; }
+    inline void SetLastAccessed(PRInt64 aTime)    { mLastAccessed = aTime; }
     inline void SetIsSession(bool aIsSession)   { mIsSession = (bool) aIsSession; }
     
     
-    inline void SetCreationTime(int64_t aTime)    { mCreationTime = aTime; }
+    inline void SetCreationTime(PRInt64 aTime)    { mCreationTime = aTime; }
 
   protected:
     
@@ -109,9 +142,9 @@ class nsCookie : public nsICookie2
     const char  *mHost;
     const char  *mPath;
     const char  *mEnd;
-    int64_t      mExpiry;
-    int64_t      mLastAccessed;
-    int64_t      mCreationTime;
+    PRInt64      mExpiry;
+    PRInt64      mLastAccessed;
+    PRInt64      mCreationTime;
     bool mIsSession;
     bool mIsSecure;
     bool mIsHttpOnly;

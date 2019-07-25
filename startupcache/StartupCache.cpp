@@ -3,10 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "prio.h"
 #include "prtypes.h"
 #include "pldhash.h"
-#include "nsXPCOMStrings.h"
 #include "mozilla/scache/StartupCache.h"
 
 #include "nsAutoPtr.h"
@@ -15,7 +48,7 @@
 #include "nsDirectoryServiceUtils.h"
 #include "nsIClassInfo.h"
 #include "nsIFile.h"
-#include "nsIMemoryReporter.h"
+#include "nsILocalFile.h"
 #include "nsIObserver.h"
 #include "nsIObserverService.h"
 #include "nsIOutputStream.h"
@@ -32,7 +65,6 @@
 #include "mozilla/Omnijar.h"
 #include "prenv.h"
 #include "mozilla/FunctionTimer.h"
-#include "mozilla/Telemetry.h"
 #include "nsThreadUtils.h"
 #include "nsXULAppAPI.h"
 #include "nsIProtocolHandler.h"
@@ -51,37 +83,6 @@
 
 namespace mozilla {
 namespace scache {
-
-static int64_t
-GetStartupCacheMappingSize()
-{
-    mozilla::scache::StartupCache* sc = mozilla::scache::StartupCache::GetSingleton();
-    return sc ? sc->SizeOfMapping() : 0;
-}
-
-NS_MEMORY_REPORTER_IMPLEMENT(StartupCacheMapping,
-    "explicit/startup-cache/mapping",
-    KIND_NONHEAP,
-    nsIMemoryReporter::UNITS_BYTES,
-    GetStartupCacheMappingSize,
-    "Memory used to hold the mapping of the startup cache from file.  This "
-    "memory is likely to be swapped out shortly after start-up.")
-
-NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(StartupCacheDataMallocSizeOf, "startup-cache/data")
-
-static int64_t
-GetStartupCacheDataSize()
-{
-    mozilla::scache::StartupCache* sc = mozilla::scache::StartupCache::GetSingleton();
-    return sc ? sc->HeapSizeOfIncludingThis(StartupCacheDataMallocSizeOf) : 0;
-}
-
-NS_MEMORY_REPORTER_IMPLEMENT(StartupCacheData,
-    "explicit/startup-cache/data",
-    KIND_HEAP,
-    nsIMemoryReporter::UNITS_BYTES,
-    GetStartupCacheDataSize,
-    "Memory used by the startup cache for things other than the file mapping.")
 
 static const char sStartupCacheName[] = "startupCache." SC_WORDSIZE "." SC_ENDIAN;
 static NS_DEFINE_CID(kZipReaderCID, NS_ZIPREADER_CID);
@@ -110,18 +111,16 @@ StartupCache::InitSingleton()
   rv = StartupCache::gStartupCache->Init();
   if (NS_FAILED(rv)) {
     delete StartupCache::gStartupCache;
-    StartupCache::gStartupCache = nullptr;
+    StartupCache::gStartupCache = nsnull;
   }
   return rv;
 }
 
 StartupCache* StartupCache::gStartupCache;
 bool StartupCache::gShutdownInitiated;
-enum StartupCache::TelemetrifyAge StartupCache::gPostFlushAgeAction = StartupCache::IGNORE_AGE;
 
 StartupCache::StartupCache() 
-  : mArchive(NULL), mStartupWriteInitiated(false), mWriteThread(NULL),
-    mMappingMemoryReporter(nullptr), mDataMemoryReporter(nullptr) { }
+  : mArchive(NULL), mStartupWriteInitiated(PR_FALSE), mWriteThread(NULL) {}
 
 StartupCache::~StartupCache() 
 {
@@ -134,11 +133,7 @@ StartupCache::~StartupCache()
   
   WaitOnWriteThread();
   WriteToDisk();
-  gStartupCache = nullptr;
-  (void)::NS_UnregisterMemoryReporter(mMappingMemoryReporter);
-  (void)::NS_UnregisterMemoryReporter(mDataMemoryReporter);
-  mMappingMemoryReporter = nullptr;
-  mDataMemoryReporter = nullptr;
+  gStartupCache = nsnull;
 }
 
 nsresult
@@ -161,7 +156,7 @@ StartupCache::Init()
   
   char *env = PR_GetEnv("MOZ_STARTUP_CACHE");
   if (env) {
-    rv = NS_NewLocalFile(NS_ConvertUTF8toUTF16(env), false, getter_AddRefs(mFile));
+    rv = NS_NewLocalFile(NS_ConvertUTF8toUTF16(env), PR_FALSE, getter_AddRefs(mFile));
   } else {
     nsCOMPtr<nsIFile> file;
     rv = NS_GetSpecialDirectory("ProfLDS",
@@ -197,13 +192,13 @@ StartupCache::Init()
   
   mListener = new StartupCacheListener();  
   rv = mObserverService->AddObserver(mListener, NS_XPCOM_SHUTDOWN_OBSERVER_ID,
-                                     false);
+                                     PR_FALSE);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = mObserverService->AddObserver(mListener, "startupcache-invalidate",
-                                     false);
+                                     PR_FALSE);
   NS_ENSURE_SUCCESS(rv, rv);
   
-  rv = LoadArchive(RECORD_AGE);
+  rv = LoadArchive();
   
   
   
@@ -211,12 +206,6 @@ StartupCache::Init()
     NS_WARNING("Failed to load startupcache file correctly, removing!");
     InvalidateCache();
   }
-
-  mMappingMemoryReporter = new NS_MEMORY_REPORTER_NAME(StartupCacheMapping);
-  mDataMemoryReporter    = new NS_MEMORY_REPORTER_NAME(StartupCacheData);
-  (void)::NS_RegisterMemoryReporter(mMappingMemoryReporter);
-  (void)::NS_RegisterMemoryReporter(mDataMemoryReporter);
-
   return NS_OK;
 }
 
@@ -224,7 +213,7 @@ StartupCache::Init()
 
 
 nsresult
-StartupCache::LoadArchive(enum TelemetrifyAge flag)
+StartupCache::LoadArchive() 
 {
   bool exists;
   mArchive = NULL;
@@ -233,60 +222,13 @@ StartupCache::LoadArchive(enum TelemetrifyAge flag)
     return NS_ERROR_FILE_NOT_FOUND;
   
   mArchive = new nsZipArchive();
-  rv = mArchive->OpenArchive(mFile);
-  if (NS_FAILED(rv) || flag == IGNORE_AGE)
-    return rv;
-
-  nsCString comment;
-  if (!mArchive->GetComment(comment)) {
-    return rv;
-  }
-
-  const char *data;
-  size_t len = NS_CStringGetData(comment, &data);
-  PRTime creationStamp;
-  
-  
-  if (len == sizeof(creationStamp)) {
-    memcpy(&creationStamp, data, len);
-    PRTime current = PR_Now();
-    int64_t diff = current - creationStamp;
-
-    
-    
-    int64_t usec_per_hour = PR_USEC_PER_SEC * int64_t(3600);
-    int64_t hour_diff = (diff + usec_per_hour - 1) / usec_per_hour;
-    mozilla::Telemetry::Accumulate(Telemetry::STARTUP_CACHE_AGE_HOURS,
-                                   hour_diff);
-  }
-
-  return rv;
+  return mArchive->OpenArchive(mFile);
 }
-
-namespace {
-
-nsresult
-GetBufferFromZipArchive(nsZipArchive *zip, bool doCRC, const char* id,
-                        char** outbuf, uint32_t* length)
-{
-  if (!zip)
-    return NS_ERROR_NOT_AVAILABLE;
-
-  nsZipItemPtr<char> zipItem(zip, id, doCRC);
-  if (!zipItem)
-    return NS_ERROR_NOT_AVAILABLE;
-
-  *outbuf = zipItem.Forget();
-  *length = zipItem.Length();
-  return NS_OK;
-}
-
-} 
 
 
 
 nsresult
-StartupCache::GetBuffer(const char* id, char** outbuf, uint32_t* length) 
+StartupCache::GetBuffer(const char* id, char** outbuf, PRUint32* length) 
 {
   NS_ASSERTION(NS_IsMainThread(), "Startup cache only available on main thread");
   WaitOnWriteThread();
@@ -302,24 +244,41 @@ StartupCache::GetBuffer(const char* id, char** outbuf, uint32_t* length)
     }
   }
 
-  nsresult rv = GetBufferFromZipArchive(mArchive, true, id, outbuf, length);
-  if (NS_SUCCEEDED(rv))
-    return rv;
+  if (mArchive) {
+    nsZipItemPtr<char> zipItem(mArchive, id, true);
+    if (zipItem) {
+      *outbuf = zipItem.Forget();
+      *length = zipItem.Length();
+      return NS_OK;
+    } 
+  }
 
-  nsRefPtr<nsZipArchive> omnijar = mozilla::Omnijar::GetReader(mozilla::Omnijar::APP);
-  
-  rv = GetBufferFromZipArchive(omnijar, false, id, outbuf, length);
-  if (NS_SUCCEEDED(rv))
-    return rv;
+  if (mozilla::Omnijar::GetReader(mozilla::Omnijar::APP)) {
+    
+    nsZipItemPtr<char> zipItem(mozilla::Omnijar::GetReader(mozilla::Omnijar::APP), id);
+    if (zipItem) {
+      *outbuf = zipItem.Forget();
+      *length = zipItem.Length();
+      return NS_OK;
+    } 
+  }
 
-  omnijar = mozilla::Omnijar::GetReader(mozilla::Omnijar::GRE);
-  
-  return GetBufferFromZipArchive(omnijar, false, id, outbuf, length);
+  if (mozilla::Omnijar::GetReader(mozilla::Omnijar::GRE)) {
+    
+    nsZipItemPtr<char> zipItem(mozilla::Omnijar::GetReader(mozilla::Omnijar::GRE), id);
+    if (zipItem) {
+      *outbuf = zipItem.Forget();
+      *length = zipItem.Length();
+      return NS_OK;
+    } 
+  }
+
+  return NS_ERROR_NOT_AVAILABLE;
 }
 
 
 nsresult
-StartupCache::PutBuffer(const char* id, const char* inbuf, uint32_t len) 
+StartupCache::PutBuffer(const char* id, const char* inbuf, PRUint32 len) 
 {
   NS_ASSERTION(NS_IsMainThread(), "Startup cache only available on main thread");
   WaitOnWriteThread();
@@ -336,39 +295,17 @@ StartupCache::PutBuffer(const char* id, const char* inbuf, uint32_t len)
   
 #ifdef DEBUG
   mTable.Get(idStr, &entry);
-  NS_ASSERTION(entry == nullptr, "Existing entry in StartupCache.");
+  NS_ASSERTION(entry == nsnull, "Existing entry in StartupCache.");
   
   if (mArchive) {
     nsZipItem* zipItem = mArchive->GetItem(id);
-    NS_ASSERTION(zipItem == nullptr, "Existing entry in disk StartupCache.");
+    NS_ASSERTION(zipItem == nsnull, "Existing entry in disk StartupCache.");
   }
 #endif
   
   entry = new CacheEntry(data.forget(), len);
   mTable.Put(idStr, entry);
   return ResetStartupWriteTimer();
-}
-
-size_t
-StartupCache::SizeOfMapping() 
-{
-    return mArchive ? mArchive->SizeOfMapping() : 0;
-}
-
-size_t
-StartupCache::HeapSizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf)
-{
-    
-    
-    return aMallocSizeOf(this) +
-           mTable.SizeOfExcludingThis(SizeOfEntryExcludingThis, aMallocSizeOf);
-}
-
- size_t
-StartupCache::SizeOfEntryExcludingThis(const nsACString& key, const nsAutoPtr<CacheEntry>& data,
-                                       nsMallocSizeOfFun mallocSizeOf, void *)
-{
-    return data->SizeOfExcludingThis(mallocSizeOf);
 }
 
 struct CacheWriteHolder
@@ -393,10 +330,10 @@ CacheCloseHelper(const nsACString& key, nsAutoPtr<CacheEntry>& data,
 #ifdef DEBUG
   bool hasEntry;
   rv = writer->HasEntry(key, &hasEntry);
-  NS_ASSERTION(NS_SUCCEEDED(rv) && hasEntry == false, 
+  NS_ASSERTION(NS_SUCCEEDED(rv) && hasEntry == PR_FALSE, 
                "Existing entry in disk StartupCache.");
 #endif
-  rv = writer->AddEntryStream(key, holder->time, true, stream, false);
+  rv = writer->AddEntryStream(key, holder->time, PR_TRUE, stream, PR_FALSE);
   
   if (NS_FAILED(rv)) {
     NS_WARNING("cache entry deleted but not written to disk.");
@@ -413,7 +350,7 @@ void
 StartupCache::WriteToDisk() 
 {
   nsresult rv;
-  mStartupWriteInitiated = true;
+  mStartupWriteInitiated = PR_TRUE;
 
   if (mTable.Count() == 0)
     return;
@@ -428,17 +365,6 @@ StartupCache::WriteToDisk()
     return;
   } 
 
-  
-  
-  
-  
-  PRTime now = PR_Now();
-  if (!mArchive) {
-    nsCString comment;
-    comment.Assign((char *)&now, sizeof(now));
-    zipW->SetComment(comment);
-  }
-
   nsCOMPtr<nsIStringInputStream> stream 
     = do_CreateInstance("@mozilla.org/io/string-input-stream;1", &rv);
   if (NS_FAILED(rv)) {
@@ -449,7 +375,7 @@ StartupCache::WriteToDisk()
   CacheWriteHolder holder;
   holder.stream = stream;
   holder.writer = zipW;
-  holder.time = now;
+  holder.time = PR_Now();
 
   mTable.Enumerate(CacheCloseHelper, &holder);
 
@@ -458,7 +384,7 @@ StartupCache::WriteToDisk()
   zipW->Close();
 
   
-  LoadArchive(gPostFlushAgeAction);
+  LoadArchive();
   
   return;
 }
@@ -470,7 +396,7 @@ StartupCache::InvalidateCache()
   mTable.Clear();
   mArchive = NULL;
   mFile->Remove(false);
-  LoadArchive(gPostFlushAgeAction);
+  LoadArchive();
 }
 
 
@@ -493,7 +419,6 @@ StartupCache::WaitOnWriteThread()
 void 
 StartupCache::ThreadedWrite(void *aClosure)
 {
-  PR_SetCurrentThreadName("StartupCache");
   gStartupCache->WriteToDisk();
 }
 
@@ -528,7 +453,7 @@ StartupCacheListener::Observe(nsISupports *subject, const char* topic, const PRU
   if (strcmp(topic, NS_XPCOM_SHUTDOWN_OBSERVER_ID) == 0) {
     
     sc->WaitOnWriteThread();
-    StartupCache::gShutdownInitiated = true;
+    StartupCache::gShutdownInitiated = PR_TRUE;
   } else if (strcmp(topic, "startupcache-invalidate") == 0) {
     sc->InvalidateCache();
   }
@@ -554,7 +479,7 @@ StartupCache::GetDebugObjectOutputStream(nsIObjectOutputStream* aStream,
 nsresult
 StartupCache::ResetStartupWriteTimer()
 {
-  mStartupWriteInitiated = false;
+  mStartupWriteInitiated = PR_FALSE;
   nsresult rv;
   if (!mTimer)
     mTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
@@ -564,13 +489,6 @@ StartupCache::ResetStartupWriteTimer()
   
   mTimer->InitWithFuncCallback(StartupCache::WriteTimeout, this, 60000,
                                nsITimer::TYPE_ONE_SHOT);
-  return NS_OK;
-}
-
-nsresult
-StartupCache::RecordAgesAlways()
-{
-  gPostFlushAgeAction = RECORD_AGE;
   return NS_OK;
 }
 
@@ -587,24 +505,24 @@ StartupCacheDebugOutputStream::CheckReferences(nsISupports* aObject)
   nsCOMPtr<nsIClassInfo> classInfo = do_QueryInterface(aObject);
   if (!classInfo) {
     NS_ERROR("aObject must implement nsIClassInfo");
-    return false;
+    return PR_FALSE;
   }
   
-  uint32_t flags;
+  PRUint32 flags;
   rv = classInfo->GetFlags(&flags);
-  NS_ENSURE_SUCCESS(rv, false);
+  NS_ENSURE_SUCCESS(rv, PR_FALSE);
   if (flags & nsIClassInfo::SINGLETON)
-    return true;
+    return PR_TRUE;
   
   nsISupportsHashKey* key = mObjectMap->GetEntry(aObject);
   if (key) {
     NS_ERROR("non-singleton aObject is referenced multiple times in this" 
                   "serialization, we don't support that.");
-    return false;
+    return PR_FALSE;
   }
 
   mObjectMap->PutEntry(aObject);
-  return true;
+  return PR_TRUE;
 }
 
 
@@ -657,19 +575,19 @@ StartupCacheDebugOutputStream::WriteID(nsID const& aID)
 }
 
 char*
-StartupCacheDebugOutputStream::GetBuffer(uint32_t aLength, uint32_t aAlignMask)
+StartupCacheDebugOutputStream::GetBuffer(PRUint32 aLength, PRUint32 aAlignMask)
 {
   return mBinaryStream->GetBuffer(aLength, aAlignMask);
 }
 
 void
-StartupCacheDebugOutputStream::PutBuffer(char* aBuffer, uint32_t aLength)
+StartupCacheDebugOutputStream::PutBuffer(char* aBuffer, PRUint32 aLength)
 {
   mBinaryStream->PutBuffer(aBuffer, aLength);
 }
 #endif 
 
-StartupCacheWrapper* StartupCacheWrapper::gStartupCacheWrapper = nullptr;
+StartupCacheWrapper* StartupCacheWrapper::gStartupCacheWrapper = nsnull;
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(StartupCacheWrapper, nsIStartupCache)
 
@@ -683,7 +601,7 @@ StartupCacheWrapper* StartupCacheWrapper::GetSingleton()
 }
 
 nsresult 
-StartupCacheWrapper::GetBuffer(const char* id, char** outbuf, uint32_t* length) 
+StartupCacheWrapper::GetBuffer(const char* id, char** outbuf, PRUint32* length) 
 {
   StartupCache* sc = StartupCache::GetSingleton();
   if (!sc) {
@@ -693,7 +611,7 @@ StartupCacheWrapper::GetBuffer(const char* id, char** outbuf, uint32_t* length)
 }
 
 nsresult
-StartupCacheWrapper::PutBuffer(const char* id, const char* inbuf, uint32_t length) 
+StartupCacheWrapper::PutBuffer(const char* id, char* inbuf, PRUint32 length) 
 {
   StartupCache* sc = StartupCache::GetSingleton();
   if (!sc) {
@@ -751,12 +669,6 @@ StartupCacheWrapper::GetObserver(nsIObserver** obv) {
   }
   NS_ADDREF(*obv = sc->mListener);
   return NS_OK;
-}
-
-nsresult
-StartupCacheWrapper::RecordAgesAlways() {
-  StartupCache *sc = StartupCache::GetSingleton();
-  return sc ? sc->RecordAgesAlways() : NS_ERROR_NOT_INITIALIZED;
 }
 
 } 

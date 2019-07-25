@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCacheMetaData.h"
 #include "nsICacheEntryDescriptor.h"
 #include "prmem.h"
@@ -25,7 +59,7 @@ nsCacheMetaData::GetElement(const char * key)
         data = value + strlen(value) + 1;
     }
     NS_ABORT_IF_FALSE(data == limit, "Metadata corrupted");
-    return nullptr;
+    return nsnull;
 }
 
 
@@ -33,15 +67,15 @@ nsresult
 nsCacheMetaData::SetElement(const char * key,
                             const char * value)
 {
-    const uint32_t keySize = strlen(key) + 1;
+    const PRUint32 keySize = strlen(key) + 1;
     char * pos = (char *)GetElement(key);
 
     if (!value) {
         
         if (pos) {
-            uint32_t oldValueSize = strlen(pos) + 1;
-            uint32_t offset = pos - mBuffer;
-            uint32_t remainder = mMetaSize - (offset + oldValueSize);
+            PRUint32 oldValueSize = strlen(pos) + 1;
+            PRUint32 offset = pos - mBuffer;
+            PRUint32 remainder = mMetaSize - (offset + oldValueSize);
 
             memmove(pos - keySize, pos + oldValueSize, remainder);
             mMetaSize -= keySize + oldValueSize;
@@ -49,12 +83,12 @@ nsCacheMetaData::SetElement(const char * key,
         return NS_OK;
     }
 
-    const uint32_t valueSize = strlen(value) + 1;
-    uint32_t newSize = mMetaSize + valueSize;
+    const PRUint32 valueSize = strlen(value) + 1;
+    PRUint32 newSize = mMetaSize + valueSize;
     if (pos) {
-        const uint32_t oldValueSize = strlen(pos) + 1;
-        const uint32_t offset = pos - mBuffer;
-        const uint32_t remainder = mMetaSize - (offset + oldValueSize);
+        const PRUint32 oldValueSize = strlen(pos) + 1;
+        const PRUint32 offset = pos - mBuffer;
+        const PRUint32 remainder = mMetaSize - (offset + oldValueSize);
 
         
         newSize -= oldValueSize;
@@ -84,7 +118,7 @@ nsCacheMetaData::SetElement(const char * key,
 }
 
 nsresult
-nsCacheMetaData::FlattenMetaData(char * buffer, uint32_t bufSize)
+nsCacheMetaData::FlattenMetaData(char * buffer, PRUint32 bufSize)
 {
     if (mMetaSize > bufSize) {
         NS_ERROR("buffer size too small for meta data.");
@@ -96,7 +130,7 @@ nsCacheMetaData::FlattenMetaData(char * buffer, uint32_t bufSize)
 }
 
 nsresult
-nsCacheMetaData::UnflattenMetaData(const char * data, uint32_t size)
+nsCacheMetaData::UnflattenMetaData(const char * data, PRUint32 size)
 {
     if (data && size) {
         
@@ -107,7 +141,7 @@ nsCacheMetaData::UnflattenMetaData(const char * data, uint32_t size)
         
         
         bool odd = false;
-        for (uint32_t i = 0; i < size; i++) {
+        for (int i = 0; i < size; i++) {
             if (data[i] == '\0') 
                 odd = !odd;
         }
@@ -139,7 +173,7 @@ nsCacheMetaData::VisitElements(nsICacheMetaDataVisitor * visitor)
         bool keepGoing;
         nsresult rv = visitor->VisitMetaDataElement(key, data, &keepGoing);
         if (NS_FAILED(rv) || !keepGoing)
-            return NS_OK;
+            break;
 
         
         data += strlen(data) + 1;
@@ -149,7 +183,7 @@ nsCacheMetaData::VisitElements(nsICacheMetaDataVisitor * visitor)
 }
 
 nsresult
-nsCacheMetaData::EnsureBuffer(uint32_t bufSize)
+nsCacheMetaData::EnsureBuffer(PRUint32 bufSize)
 {
     if (mBufferSize < bufSize) {
         char * buf = (char *)PR_REALLOC(mBuffer, bufSize);

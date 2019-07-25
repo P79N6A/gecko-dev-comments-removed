@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIOService.h"
 #include "nsBinHexDecoder.h"
 #include "nsIServiceManager.h"
@@ -29,8 +62,8 @@ nsBinHexDecoder::nsBinHexDecoder() :
   mDonePos(3), mInCRC(0), mCount(0), mMarker(0), mPosInbuff(0),
   mPosOutputBuff(0)
 {
-  mDataBuffer = nullptr;
-  mOutgoingBuffer = nullptr;
+  mDataBuffer = nsnull;
+  mOutgoingBuffer = nsnull;
 
   mOctetBuf.val = 0;
   mHeader.type = 0;
@@ -120,14 +153,14 @@ NS_IMETHODIMP
 nsBinHexDecoder::OnDataAvailable(nsIRequest* request,
                                  nsISupports *aCtxt,
                                  nsIInputStream *aStream,
-                                 uint64_t aSourceOffset,
-                                 uint32_t aCount)
+                                 PRUint32 aSourceOffset,
+                                 PRUint32 aCount)
 {
   nsresult rv = NS_OK;
 
   if (mOutputStream && mDataBuffer && aCount > 0)
   {
-    uint32_t numBytesRead = 0;
+    PRUint32 numBytesRead = 0;
     while (aCount > 0) 
     {
       aStream->Read(mDataBuffer, NS_MIN(aCount, nsIOService::gDefaultSegmentSize - 1), &numBytesRead);
@@ -147,15 +180,15 @@ nsBinHexDecoder::OnDataAvailable(nsIRequest* request,
 nsresult nsBinHexDecoder::ProcessNextState(nsIRequest * aRequest, nsISupports * aContext)
 {
   nsresult status = NS_OK;
-  uint16_t tmpcrc, cval;
+  PRUint16 tmpcrc, cval;
   unsigned char ctmp, c = mRlebuf;
 
   
   ctmp = mInCRC ? c : 0;
   cval = mCRC & 0xf000;
-  tmpcrc = ((uint16_t) (mCRC << 4) | (ctmp >> 4)) ^ (cval | (cval >> 7) | (cval >> 12));
+  tmpcrc = ((PRUint16) (mCRC << 4) | (ctmp >> 4)) ^ (cval | (cval >> 7) | (cval >> 12));
   cval = tmpcrc & 0xf000;
-  mCRC = ((uint16_t) (tmpcrc << 4) | (ctmp & 0x0f)) ^ (cval | (cval >> 7) | (cval >> 12));
+  mCRC = ((PRUint16) (tmpcrc << 4) | (ctmp & 0x0f)) ^ (cval | (cval >> 7) | (cval >> 12));
 
   
   switch (mState)
@@ -219,9 +252,9 @@ nsresult nsBinHexDecoder::ProcessNextState(nsIRequest * aRequest, nsISupports * 
         
         if (mState == BINHEX_STATE_DFORK)
         {
-          uint32_t numBytesWritten = 0;
+          PRUint32 numBytesWritten = 0;
           mOutputStream->Write(mOutgoingBuffer, mPosOutputBuff, &numBytesWritten);
-          if (int32_t(numBytesWritten) != mPosOutputBuff)
+          if (PRInt32(numBytesWritten) != mPosOutputBuff)
             status = NS_ERROR_FAILURE;
 
           
@@ -239,13 +272,13 @@ nsresult nsBinHexDecoder::ProcessNextState(nsIRequest * aRequest, nsISupports * 
 
         mInCRC = 1;
       }
-      else if (mPosOutputBuff >= (int32_t) nsIOService::gDefaultSegmentSize)
+      else if (mPosOutputBuff >= (PRInt32) nsIOService::gDefaultSegmentSize)
       {
         if (mState == BINHEX_STATE_DFORK)
         {
-          uint32_t numBytesWritten = 0;
+          PRUint32 numBytesWritten = 0;
           mOutputStream->Write(mOutgoingBuffer, mPosOutputBuff, &numBytesWritten);
-          if (int32_t(numBytesWritten) != mPosOutputBuff)
+          if (PRInt32(numBytesWritten) != mPosOutputBuff)
             status = NS_ERROR_FAILURE;
 
           mNextListener->OnDataAvailable(aRequest, aContext, mInputStream, 0, numBytesWritten);
@@ -303,11 +336,11 @@ nsresult nsBinHexDecoder::ProcessNextState(nsIRequest * aRequest, nsISupports * 
   return NS_OK;
 }
 
-nsresult nsBinHexDecoder::ProcessNextChunk(nsIRequest * aRequest, nsISupports * aContext, uint32_t numBytesInBuffer)
+nsresult nsBinHexDecoder::ProcessNextChunk(nsIRequest * aRequest, nsISupports * aContext, PRUint32 numBytesInBuffer)
 {
   bool foundStart;
-  int16_t octetpos, c = 0;
-  uint32_t val;
+  PRInt16 octetpos, c = 0;
+  PRUint32 val;
   mPosInDataBuffer = 0; 
 
   NS_ENSURE_TRUE(numBytesInBuffer > 0, NS_ERROR_FAILURE);
@@ -315,7 +348,7 @@ nsresult nsBinHexDecoder::ProcessNextChunk(nsIRequest * aRequest, nsISupports * 
   
   if (mState == BINHEX_STATE_START)
   {
-    foundStart = false;
+    foundStart = PR_FALSE;
     
     while (mPosInDataBuffer < numBytesInBuffer)
     {
@@ -328,7 +361,7 @@ nsresult nsBinHexDecoder::ProcessNextChunk(nsIRequest * aRequest, nsISupports * 
         c = mDataBuffer[mPosInDataBuffer++];
         if (c == ':')
         {
-          foundStart = true;
+          foundStart = PR_TRUE;
           break;
         }
       }
@@ -353,7 +386,7 @@ nsresult nsBinHexDecoder::ProcessNextChunk(nsIRequest * aRequest, nsISupports * 
       c = GetNextChar(numBytesInBuffer);
       if (c == 0)  return NS_OK;
 
-      if ((val = BHEXVAL(c)) == uint32_t(-1))
+      if ((val = BHEXVAL(c)) == PRUint32(-1))
       {
         
         if (c)
@@ -422,7 +455,7 @@ nsresult nsBinHexDecoder::ProcessNextChunk(nsIRequest * aRequest, nsISupports * 
   return   NS_OK;
 }
 
-int16_t nsBinHexDecoder::GetNextChar(uint32_t numBytesInBuffer)
+PRInt16 nsBinHexDecoder::GetNextChar(PRUint32 numBytesInBuffer)
 {
   char c = 0;
 
@@ -454,7 +487,7 @@ nsBinHexDecoder::OnStartRequest(nsIRequest* request, nsISupports *aCtxt)
   rv = NS_NewPipe(getter_AddRefs(mInputStream), getter_AddRefs(mOutputStream),
                   nsIOService::gDefaultSegmentSize,
                   nsIOService::gDefaultSegmentSize,
-                  true, true);
+                  PR_TRUE, PR_TRUE);
 
   
   return rv;
@@ -479,7 +512,7 @@ nsresult nsBinHexDecoder::DetectContentType(nsIRequest* aRequest,
   nsCOMPtr<nsIMIMEService> mimeService(do_GetService("@mozilla.org/mime;1", &rv));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsAutoCString contentType;
+  nsCAutoString contentType;
 
   
   const char * fileExt = strrchr(aFilename.get(), '.');

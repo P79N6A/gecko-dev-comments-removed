@@ -3,6 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsAboutCache.h"
 #include "nsIIOService.h"
 #include "nsIServiceManager.h"
@@ -18,7 +54,7 @@
 
 #include "nsICacheService.h"
 
-static PRTime SecondsToPRTime(uint32_t t_sec)
+static PRTime SecondsToPRTime(PRUint32 t_sec)
 {
     PRTime t_usec, usec_per_sec;
     LL_I2L(t_usec, t_sec);
@@ -26,7 +62,7 @@ static PRTime SecondsToPRTime(uint32_t t_sec)
     LL_MUL(t_usec, t_usec, usec_per_sec);
     return t_usec;
 }
-static void PrintTimeString(char *buf, uint32_t bufsize, uint32_t t_sec)
+static void PrintTimeString(char *buf, PRUint32 bufsize, PRUint32 t_sec)
 {
     PRExplodedTime et;
     PRTime t_usec = SecondsToPRTime(t_sec);
@@ -42,9 +78,9 @@ nsAboutCache::NewChannel(nsIURI *aURI, nsIChannel **result)
 {
     NS_ENSURE_ARG_POINTER(aURI);
     nsresult rv;
-    uint32_t bytesWritten;
+    PRUint32 bytesWritten;
 
-    *result = nullptr;
+    *result = nsnull;
     
     nsCOMPtr<nsICacheService> cacheService = 
              do_GetService(NS_CACHESERVICE_CONTRACTID, &rv);
@@ -54,7 +90,7 @@ nsAboutCache::NewChannel(nsIURI *aURI, nsIChannel **result)
     nsCOMPtr<nsIOutputStream> outputStream;
 
     
-    rv = NS_NewStorageStream(256, (uint32_t)-1, getter_AddRefs(storageStream));
+    rv = NS_NewStorageStream(256, (PRUint32)-1, getter_AddRefs(storageStream));
     if (NS_FAILED(rv)) return rv;
 
     rv = storageStream->GetOutputStream(0, getter_AddRefs(outputStream));
@@ -106,18 +142,18 @@ nsAboutCache::NewChannel(nsIURI *aURI, nsIChannel **result)
     rv = storageStream->NewInputStream(0, getter_AddRefs(inStr));
     if (NS_FAILED(rv)) return rv;
 
-    nsCOMPtr<nsIChannel> channel;
-    rv = NS_NewInputStreamChannel(getter_AddRefs(channel), aURI, inStr,
+    nsIChannel* channel;
+    rv = NS_NewInputStreamChannel(&channel, aURI, inStr,
                                   NS_LITERAL_CSTRING("text/html"),
                                   NS_LITERAL_CSTRING("utf-8"));
     if (NS_FAILED(rv)) return rv;
 
-    channel.forget(result);
+    *result = channel;
     return rv;
 }
 
 NS_IMETHODIMP
-nsAboutCache::GetURIFlags(nsIURI *aURI, uint32_t *result)
+nsAboutCache::GetURIFlags(nsIURI *aURI, PRUint32 *result)
 {
     *result = 0;
     return NS_OK;
@@ -128,10 +164,10 @@ nsAboutCache::VisitDevice(const char *deviceID,
                           nsICacheDeviceInfo *deviceInfo,
                           bool *visitEntries)
 {
-    uint32_t bytesWritten, value, entryCount;
+    PRUint32 bytesWritten, value, entryCount;
     nsXPIDLCString str;
 
-    *visitEntries = false;
+    *visitEntries = PR_FALSE;
 
     if (mDeviceID.IsEmpty() || mDeviceID.Equals(deviceID)) {
 
@@ -195,7 +231,7 @@ nsAboutCache::VisitDevice(const char *deviceID,
         } else { 
             mBuffer.AppendLiteral("</table>\n");
             if (entryCount != 0) {
-                *visitEntries = true;
+                *visitEntries = PR_TRUE;
                 mBuffer.AppendLiteral("<hr/>\n"
                                       "<table id=\"entries\">\n"
                                       "  <colgroup>\n"
@@ -233,8 +269,8 @@ nsAboutCache::VisitEntry(const char *deviceID,
       return NS_ERROR_FAILURE;
 
     nsresult        rv;
-    uint32_t        bytesWritten;
-    nsAutoCString   key;
+    PRUint32        bytesWritten;
+    nsCAutoString   key;
     nsXPIDLCString  clientID;
     bool            streamBased;
     
@@ -248,7 +284,7 @@ nsAboutCache::VisitEntry(const char *deviceID,
     if (NS_FAILED(rv)) return rv;
 
     
-    nsAutoCString url;
+    nsCAutoString url;
     url.AssignLiteral("about:cache-entry?client=");
     url += clientID;
     url.AppendLiteral("&amp;sb=");
@@ -269,14 +305,14 @@ nsAboutCache::VisitEntry(const char *deviceID,
     mBuffer.AppendLiteral("</a></td>\n");
 
     
-    uint32_t length = 0;
+    PRUint32 length = 0;
     entryInfo->GetDataSize(&length);
     mBuffer.AppendLiteral("    <td>");
     mBuffer.AppendInt(length);
     mBuffer.AppendLiteral(" bytes</td>\n");
 
     
-    int32_t fetchCount = 0;
+    PRInt32 fetchCount = 0;
     entryInfo->GetFetchCount(&fetchCount);
     mBuffer.AppendLiteral("    <td>");
     mBuffer.AppendInt(fetchCount);
@@ -284,7 +320,7 @@ nsAboutCache::VisitEntry(const char *deviceID,
 
     
     char buf[255];
-    uint32_t t;
+    PRUint32 t;
 
     
     mBuffer.AppendLiteral("    <td>");
@@ -312,7 +348,7 @@ nsAboutCache::VisitEntry(const char *deviceID,
 
     mStream->Write(mBuffer.get(), mBuffer.Length(), &bytesWritten);
 
-    *visitNext = true;
+    *visitNext = PR_TRUE;
     return NS_OK;
 }
 
@@ -327,7 +363,7 @@ nsAboutCache::ParseURI(nsIURI * uri, nsCString &deviceID)
 
     deviceID.Truncate();
 
-    nsAutoCString path;
+    nsCAutoString path;
     rv = uri->GetPath(path);
     if (NS_FAILED(rv)) return rv;
 
@@ -348,7 +384,7 @@ nsresult
 nsAboutCache::Create(nsISupports *aOuter, REFNSIID aIID, void **aResult)
 {
     nsAboutCache* about = new nsAboutCache();
-    if (about == nullptr)
+    if (about == nsnull)
         return NS_ERROR_OUT_OF_MEMORY;
     NS_ADDREF(about);
     nsresult rv = about->QueryInterface(aIID, aResult);

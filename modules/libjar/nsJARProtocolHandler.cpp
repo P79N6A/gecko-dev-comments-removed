@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsAutoPtr.h"
 #include "nsJARProtocolHandler.h"
 #include "nsIIOService.h"
@@ -24,7 +57,7 @@ static NS_DEFINE_CID(kZipReaderCacheCID, NS_ZIPREADERCACHE_CID);
 
 
 
-nsJARProtocolHandler *gJarHandler = nullptr;
+nsJARProtocolHandler *gJarHandler = nsnull;
 
 nsJARProtocolHandler::nsJARProtocolHandler()
 {
@@ -66,13 +99,13 @@ nsJARProtocolHandler::GetSingleton()
     if (!gJarHandler) {
         gJarHandler = new nsJARProtocolHandler();
         if (!gJarHandler)
-            return nullptr;
+            return nsnull;
 
         NS_ADDREF(gJarHandler);
         nsresult rv = gJarHandler->Init();
         if (NS_FAILED(rv)) {
             NS_RELEASE(gJarHandler);
-            return nullptr;
+            return nsnull;
         }
     }
     NS_ADDREF(gJarHandler);
@@ -98,14 +131,14 @@ nsJARProtocolHandler::GetScheme(nsACString &result)
 }
 
 NS_IMETHODIMP
-nsJARProtocolHandler::GetDefaultPort(int32_t *result)
+nsJARProtocolHandler::GetDefaultPort(PRInt32 *result)
 {
     *result = -1;        
     return NS_OK;
 }
 
 NS_IMETHODIMP
-nsJARProtocolHandler::GetProtocolFlags(uint32_t *result)
+nsJARProtocolHandler::GetProtocolFlags(PRUint32 *result)
 {
     
     
@@ -159,10 +192,10 @@ nsJARProtocolHandler::NewChannel(nsIURI *uri, nsIChannel **result)
 
 
 NS_IMETHODIMP
-nsJARProtocolHandler::AllowPort(int32_t port, const char *scheme, bool *_retval)
+nsJARProtocolHandler::AllowPort(PRInt32 port, const char *scheme, bool *_retval)
 {
     
-    *_retval = false;
+    *_retval = PR_FALSE;
     return NS_OK;
 }
 

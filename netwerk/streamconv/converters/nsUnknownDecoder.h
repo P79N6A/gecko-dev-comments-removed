@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsUnknownDecoder_h__
 #define nsUnknownDecoder_h__
 
@@ -86,7 +118,7 @@ protected:
     typedef bool (nsUnknownDecoder::*TypeSniffFunc)(nsIRequest* aRequest);
     
     const char* mBytes;
-    uint32_t mByteLen;
+    PRUint32 mByteLen;
     
     
     const char* mMimeType;
@@ -94,16 +126,16 @@ protected:
   };
 
 #define SNIFFER_ENTRY(_bytes, _type) \
-  { _bytes, sizeof(_bytes) - 1, _type, nullptr }
+  { _bytes, sizeof(_bytes) - 1, _type, nsnull }
 
 #define SNIFFER_ENTRY_WITH_FUNC(_bytes, _func) \
-  { _bytes, sizeof(_bytes) - 1, nullptr, _func }
+  { _bytes, sizeof(_bytes) - 1, nsnull, _func }
 
   static nsSnifferEntry sSnifferEntries[];
-  static uint32_t sSnifferEntryNum;
+  static PRUint32 sSnifferEntryNum;
   
   char *mBuffer;
-  uint32_t mBufferLen;
+  PRUint32 mBufferLen;
   bool mRequireHTMLsuffix;
 
   nsCString mContentType;

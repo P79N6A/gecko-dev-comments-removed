@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __inDeepTreeWalker_h___
 #define __inDeepTreeWalker_h___
 
@@ -19,7 +52,7 @@ struct DeepTreeStackItem
 {
   nsCOMPtr<nsIDOMNode> node;
   nsCOMPtr<nsIDOMNodeList> kids;
-  uint32_t lastIndex; 
+  PRUint32 lastIndex; 
                       
 };
 
@@ -42,7 +75,7 @@ protected:
   bool mShowSubDocuments;
   nsCOMPtr<nsIDOMNode> mRoot;
   nsCOMPtr<nsIDOMNode> mCurrentNode;
-  uint32_t mWhatToShow;
+  PRUint32 mWhatToShow;
   
   nsAutoTArray<DeepTreeStackItem, 8> mStack;
   nsCOMPtr<inIDOMUtils> mDOMUtils;

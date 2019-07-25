@@ -3,76 +3,112 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGCLASS_H__
 #define __NS_SVGCLASS_H__
 
-#include "nsAutoPtr.h"
-#include "nsCycleCollectionParticipant.h"
-#include "nsError.h"
 #include "nsIDOMSVGAnimatedString.h"
-#include "nsISMILAttr.h"
-#include "nsString.h"
-#include "mozilla/Attributes.h"
-
-class nsSVGStylableElement;
+#include "nsSVGElement.h"
+#include "nsDOMError.h"
 
 class nsSVGClass
 {
 
 public:
   void Init() {
-    mAnimVal = nullptr;
+    mAnimVal = nsnull;
   }
 
   void SetBaseValue(const nsAString& aValue,
-                    nsSVGStylableElement *aSVGElement,
+                    nsSVGElement *aSVGElement,
                     bool aDoSetAttr);
-  void GetBaseValue(nsAString& aValue, const nsSVGStylableElement *aSVGElement) const;
+  void GetBaseValue(nsAString& aValue, nsSVGElement *aSVGElement) const
+    { aSVGElement->GetAttr(kNameSpaceID_None, nsGkAtoms::_class, aValue); }
 
-  void SetAnimValue(const nsAString& aValue, nsSVGStylableElement *aSVGElement);
-  void GetAnimValue(nsAString& aValue, const nsSVGStylableElement *aSVGElement) const;
+  void SetAnimValue(const nsAString& aValue, nsSVGElement *aSVGElement);
+  void GetAnimValue(nsAString& aValue, const nsSVGElement *aSVGElement) const;
   bool IsAnimated() const
     { return !!mAnimVal; }
 
   nsresult ToDOMAnimatedString(nsIDOMSVGAnimatedString **aResult,
-                               nsSVGStylableElement *aSVGElement);
+                               nsSVGElement *aSVGElement);
+#ifdef MOZ_SMIL
   
-  nsISMILAttr* ToSMILAttr(nsSVGStylableElement *aSVGElement);
+  nsISMILAttr* ToSMILAttr(nsSVGElement *aSVGElement);
+#endif 
 
 private:
 
   nsAutoPtr<nsString> mAnimVal;
 
 public:
-  struct DOMAnimatedString MOZ_FINAL : public nsIDOMSVGAnimatedString
+  struct DOMAnimatedString : public nsIDOMSVGAnimatedString
   {
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS(DOMAnimatedString)
 
-    DOMAnimatedString(nsSVGClass *aVal, nsSVGStylableElement *aSVGElement)
+    DOMAnimatedString(nsSVGClass *aVal, nsSVGElement *aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
 
     nsSVGClass* mVal; 
-    nsRefPtr<nsSVGStylableElement> mSVGElement;
+    nsRefPtr<nsSVGElement> mSVGElement;
 
     NS_IMETHOD GetBaseVal(nsAString& aResult)
       { mVal->GetBaseValue(aResult, mSVGElement); return NS_OK; }
     NS_IMETHOD SetBaseVal(const nsAString& aValue)
-      { mVal->SetBaseValue(aValue, mSVGElement, true); return NS_OK; }
+      { mVal->SetBaseValue(aValue, mSVGElement, PR_TRUE); return NS_OK; }
 
-    NS_IMETHOD GetAnimVal(nsAString& aResult);
+    NS_IMETHOD GetAnimVal(nsAString& aResult)
+    { 
+#ifdef MOZ_SMIL
+      mSVGElement->FlushAnimations();
+#endif
+      mVal->GetAnimValue(aResult, mSVGElement); return NS_OK;
+    }
+
   };
+#ifdef MOZ_SMIL
   struct SMILString : public nsISMILAttr
   {
   public:
-    SMILString(nsSVGClass *aVal, nsSVGStylableElement *aSVGElement)
+    SMILString(nsSVGClass *aVal, nsSVGElement *aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
 
     
     
     
     nsSVGClass* mVal;
-    nsSVGStylableElement* mSVGElement;
+    nsSVGElement* mSVGElement;
 
     
     virtual nsresult ValueFromString(const nsAString& aStr,
@@ -83,5 +119,6 @@ public:
     virtual void ClearAnimValue();
     virtual nsresult SetAnimValue(const nsSMILValue& aValue);
   };
+#endif 
 };
 #endif 

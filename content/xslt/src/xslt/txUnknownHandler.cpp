@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "txUnknownHandler.h"
 #include "txExecutionState.h"
 #include "txStringUtils.h"
@@ -11,7 +44,7 @@
 
 txUnknownHandler::txUnknownHandler(txExecutionState* aEs)
     : mEs(aEs),
-      mFlushed(false)
+      mFlushed(PR_FALSE)
 {
     MOZ_COUNT_CTOR_INHERITED(txUnknownHandler, txBufferingHandler);
 }
@@ -23,7 +56,7 @@ txUnknownHandler::~txUnknownHandler()
 
 nsresult
 txUnknownHandler::attribute(nsIAtom* aPrefix, nsIAtom* aLocalName,
-                            nsIAtom* aLowercaseLocalName, int32_t aNsID,
+                            nsIAtom* aLowercaseLocalName, PRInt32 aNsID,
                             const nsString& aValue)
 {
     return mFlushed ?
@@ -35,7 +68,7 @@ txUnknownHandler::attribute(nsIAtom* aPrefix, nsIAtom* aLocalName,
 
 nsresult
 txUnknownHandler::attribute(nsIAtom* aPrefix, const nsSubstring& aLocalName,
-                            const int32_t aNsID, const nsString& aValue)
+                            const PRInt32 aNsID, const nsString& aValue)
 {
     return mFlushed ?
            mEs->mResultHandler->attribute(aPrefix, aLocalName, aNsID, aValue) :
@@ -75,7 +108,7 @@ txUnknownHandler::endDocument(nsresult aResult)
         NS_ASSERTION(mEs->mResultHandler == this,
                      "We're leaking mEs->mResultHandler.");
 
-        nsresult rv = createHandlerAndFlush(false, EmptyString(),
+        nsresult rv = createHandlerAndFlush(PR_FALSE, EmptyString(),
                                             kNameSpaceID_None);
         NS_ENSURE_SUCCESS(rv, rv);
     }
@@ -110,7 +143,7 @@ txUnknownHandler::startDocument()
 
 nsresult
 txUnknownHandler::startElement(nsIAtom* aPrefix, nsIAtom* aLocalName,
-                               nsIAtom* aLowercaseLocalName, int32_t aNsID)
+                               nsIAtom* aLowercaseLocalName, PRInt32 aNsID)
 {
     if (!mFlushed) {
         
@@ -144,7 +177,7 @@ txUnknownHandler::startElement(nsIAtom* aPrefix, nsIAtom* aLocalName,
 
 nsresult
 txUnknownHandler::startElement(nsIAtom* aPrefix, const nsSubstring& aLocalName,
-                               const int32_t aNsID)
+                               const PRInt32 aNsID)
 {
     if (!mFlushed) {
         
@@ -164,7 +197,7 @@ txUnknownHandler::startElement(nsIAtom* aPrefix, const nsSubstring& aLocalName,
 
 nsresult txUnknownHandler::createHandlerAndFlush(bool aHTMLRoot,
                                                  const nsSubstring& aName,
-                                                 const int32_t aNsID)
+                                                 const PRInt32 aNsID)
 {
     NS_ENSURE_TRUE(mBuffer, NS_ERROR_NOT_INITIALIZED);
 
@@ -187,7 +220,7 @@ nsresult txUnknownHandler::createHandlerAndFlush(bool aHTMLRoot,
     
     mEs->mObsoleteHandler = this;
 
-    mFlushed = true;
+    mFlushed = PR_TRUE;
 
     
     

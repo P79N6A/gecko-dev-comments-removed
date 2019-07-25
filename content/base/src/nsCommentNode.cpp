@@ -7,11 +7,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIDOMComment.h"
 #include "nsGenericDOMDataNode.h"
 
 #include "nsCOMPtr.h"
+#include "nsIDocument.h"
 #include "nsGenericElement.h" 
+#include "nsDOMMemoryReporter.h"
 
 class nsCommentNode : public nsGenericDOMDataNode,
                       public nsIDOMComment
@@ -30,20 +64,22 @@ public:
   NS_FORWARD_NSIDOMCHARACTERDATA(nsGenericDOMDataNode::)
 
   
+  NS_DECL_AND_IMPL_DOM_MEMORY_REPORTER_SIZEOF(nsCommentNode,
+                                              nsGenericDOMDataNode)
+
+  
   
 
   
-  virtual bool IsNodeOfType(uint32_t aFlags) const;
+  virtual bool IsNodeOfType(PRUint32 aFlags) const;
 
   virtual nsGenericDOMDataNode* CloneDataNode(nsINodeInfo *aNodeInfo,
                                               bool aCloneText) const;
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 #ifdef DEBUG
-  virtual void List(FILE* out, int32_t aIndent) const;
-  virtual void DumpContent(FILE* out = stdout, int32_t aIndent = 0,
+  virtual void List(FILE* out, PRInt32 aIndent) const;
+  virtual void DumpContent(FILE* out = stdout, PRInt32 aIndent = 0,
                            bool aDumpAll = true) const
   {
     return;
@@ -57,7 +93,7 @@ NS_NewCommentNode(nsIContent** aInstancePtrResult,
 {
   NS_PRECONDITION(aNodeInfoManager, "Missing nodeinfo manager");
 
-  *aInstancePtrResult = nullptr;
+  *aInstancePtrResult = nsnull;
 
   nsCOMPtr<nsINodeInfo> ni = aNodeInfoManager->GetCommentNodeInfo();
   NS_ENSURE_TRUE(ni, NS_ERROR_OUT_OF_MEMORY);
@@ -98,7 +134,7 @@ NS_IMPL_RELEASE_INHERITED(nsCommentNode, nsGenericDOMDataNode)
 
 
 bool
-nsCommentNode::IsNodeOfType(uint32_t aFlags) const
+nsCommentNode::IsNodeOfType(PRUint32 aFlags) const
 {
   return !(aFlags & ~(eCONTENT | eCOMMENT | eDATA_NODE));
 }
@@ -117,9 +153,9 @@ nsCommentNode::CloneDataNode(nsINodeInfo *aNodeInfo, bool aCloneText) const
 
 #ifdef DEBUG
 void
-nsCommentNode::List(FILE* out, int32_t aIndent) const
+nsCommentNode::List(FILE* out, PRInt32 aIndent) const
 {
-  int32_t indx;
+  PRInt32 indx;
   for (indx = aIndent; --indx >= 0; ) fputs("  ", out);
 
   fprintf(out, "Comment@%p refcount=%d<!--", (void*)this, mRefCnt.get());

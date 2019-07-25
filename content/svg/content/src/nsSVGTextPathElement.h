@@ -3,25 +3,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGTEXTPATHELEMENT_H__
 #define __NS_SVGTEXTPATHELEMENT_H__
 
-#include "nsIDOMElement.h"
-#include "nsIDOMNode.h"
-#include "nsIDOMSVGElement.h"
-#include "nsIDOMSVGTextContentElement.h"
-#include "nsIDOMSVGTextPathElement.h"
-#include "nsIDOMSVGURIReference.h"
 #include "nsSVGEnum.h"
 #include "nsSVGLength2.h"
 #include "nsSVGString.h"
 #include "nsSVGTextContentElement.h"
-
-class nsIAtom;
-class nsIContent;
-class nsINode;
-class nsINodeInfo;
-class nsXPCClassInfo;
 
 typedef nsSVGTextContentElement nsSVGTextPathElementBase;
 
@@ -56,8 +76,6 @@ public:
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 protected:
 
   virtual LengthAttributesInfo GetLengthInfo();

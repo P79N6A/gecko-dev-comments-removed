@@ -3,19 +3,49 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGINTEGERPAIR_H__
 #define __NS_SVGINTEGERPAIR_H__
 
-#include "nsAutoPtr.h"
-#include "nsCycleCollectionParticipant.h"
-#include "nsError.h"
 #include "nsIDOMSVGAnimatedInteger.h"
-#include "nsISMILAttr.h"
 #include "nsSVGElement.h"
-#include "mozilla/Attributes.h"
+#include "nsDOMError.h"
 
-class nsISMILAnimationElement;
+#ifdef MOZ_SMIL
+#include "nsISMILAttr.h"
 class nsSMILValue;
+class nsISMILType;
+#endif 
 
 class nsSVGIntegerPair
 {
@@ -26,24 +56,25 @@ public:
     eSecond
   };
 
-  void Init(uint8_t aAttrEnum = 0xff, int32_t aValue1 = 0, int32_t aValue2 = 0) {
+  void Init(PRUint8 aAttrEnum = 0xff, PRInt32 aValue1 = 0, PRInt32 aValue2 = 0) {
     mAnimVal[0] = mBaseVal[0] = aValue1;
     mAnimVal[1] = mBaseVal[1] = aValue2;
     mAttrEnum = aAttrEnum;
-    mIsAnimated = false;
-    mIsBaseSet = false;
+    mIsAnimated = PR_FALSE;
+    mIsBaseSet = PR_FALSE;
   }
 
   nsresult SetBaseValueString(const nsAString& aValue,
-                              nsSVGElement *aSVGElement);
-  void GetBaseValueString(nsAString& aValue) const;
+                              nsSVGElement *aSVGElement,
+                              bool aDoSetAttr);
+  void GetBaseValueString(nsAString& aValue);
 
-  void SetBaseValue(int32_t aValue, PairIndex aIndex, nsSVGElement *aSVGElement);
-  void SetBaseValues(int32_t aValue1, int32_t aValue2, nsSVGElement *aSVGElement);
-  int32_t GetBaseValue(PairIndex aIndex) const
+  void SetBaseValue(PRInt32 aValue, PairIndex aIndex, nsSVGElement *aSVGElement, bool aDoSetAttr);
+  void SetBaseValues(PRInt32 aValue1, PRInt32 aValue2, nsSVGElement *aSVGElement, bool aDoSetAttr);
+  PRInt32 GetBaseValue(PairIndex aIndex) const
     { return mBaseVal[aIndex == eFirst ? 0 : 1]; }
-  void SetAnimValue(const int32_t aValue[2], nsSVGElement *aSVGElement);
-  int32_t GetAnimValue(PairIndex aIndex) const
+  void SetAnimValue(const PRInt32 aValue[2], nsSVGElement *aSVGElement);
+  PRInt32 GetAnimValue(PairIndex aIndex) const
     { return mAnimVal[aIndex == eFirst ? 0 : 1]; }
 
   
@@ -57,19 +88,21 @@ public:
   nsresult ToDOMAnimatedInteger(nsIDOMSVGAnimatedInteger **aResult,
                                 PairIndex aIndex,
                                 nsSVGElement* aSVGElement);
+#ifdef MOZ_SMIL
   
   nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement);
+#endif 
 
 private:
 
-  int32_t mAnimVal[2];
-  int32_t mBaseVal[2];
-  uint8_t mAttrEnum; 
+  PRInt32 mAnimVal[2];
+  PRInt32 mBaseVal[2];
+  PRUint8 mAttrEnum; 
   bool mIsAnimated;
   bool mIsBaseSet;
 
 public:
-  struct DOMAnimatedInteger MOZ_FINAL : public nsIDOMSVGAnimatedInteger
+  struct DOMAnimatedInteger : public nsIDOMSVGAnimatedInteger
   {
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS(DOMAnimatedInteger)
@@ -81,24 +114,27 @@ public:
     nsRefPtr<nsSVGElement> mSVGElement;
     PairIndex mIndex; 
 
-    NS_IMETHOD GetBaseVal(int32_t* aResult)
+    NS_IMETHOD GetBaseVal(PRInt32* aResult)
       { *aResult = mVal->GetBaseValue(mIndex); return NS_OK; }
-    NS_IMETHOD SetBaseVal(int32_t aValue)
+    NS_IMETHOD SetBaseVal(PRInt32 aValue)
       {
-        mVal->SetBaseValue(aValue, mIndex, mSVGElement);
+        mVal->SetBaseValue(aValue, mIndex, mSVGElement, PR_TRUE);
         return NS_OK;
       }
 
     
     
-    NS_IMETHOD GetAnimVal(int32_t* aResult)
+    NS_IMETHOD GetAnimVal(PRInt32* aResult)
     {
+#ifdef MOZ_SMIL
       mSVGElement->FlushAnimations();
+#endif
       *aResult = mVal->GetAnimValue(mIndex);
       return NS_OK;
     }
   };
 
+#ifdef MOZ_SMIL
   struct SMILIntegerPair : public nsISMILAttr
   {
   public:
@@ -120,6 +156,7 @@ public:
     virtual void ClearAnimValue();
     virtual nsresult SetAnimValue(const nsSMILValue& aValue);
   };
+#endif 
 };
 
 #endif 

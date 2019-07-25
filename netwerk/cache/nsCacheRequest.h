@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsCacheRequest_h_
 #define _nsCacheRequest_h_
 
@@ -28,7 +62,7 @@ private:
     friend class nsCacheEntry;
     friend class nsProcessRequestEvent;
 
-    nsCacheRequest( const nsACString &    key,
+    nsCacheRequest( nsCString *           key, 
                     nsICacheListener *    listener,
                     nsCacheAccessMode     accessRequested,
                     bool                  blockingMode,
@@ -37,8 +71,7 @@ private:
           mInfo(0),
           mListener(listener),
           mLock("nsCacheRequest.mLock"),
-          mCondVar(mLock, "nsCacheRequest.mCondVar"),
-          mProfileDir(session->ProfileDir())
+          mCondVar(mLock, "nsCacheRequest.mCondVar")
     {
         MOZ_COUNT_CTOR(nsCacheRequest);
         PR_INIT_CLIST(this);
@@ -46,7 +79,6 @@ private:
         SetStoragePolicy(session->StoragePolicy());
         if (session->IsStreamBased())             MarkStreamBased();
         if (session->WillDoomEntriesIfExpired())  MarkDoomEntriesIfExpired();
-        if (session->IsPrivate())                 MarkPrivate();
         if (blockingMode == nsICache::BLOCKING)    MarkBlockingMode();
         MarkWaitingForValidation();
         NS_IF_ADDREF(mListener);
@@ -55,6 +87,7 @@ private:
     ~nsCacheRequest()
     {
         MOZ_COUNT_DTOR(nsCacheRequest);
+        delete mKey;
         NS_ASSERTION(PR_CLIST_IS_EMPTY(this), "request still on a list");
 
         if (mListener)
@@ -67,7 +100,6 @@ private:
     enum CacheRequestInfo {
         eStoragePolicyMask         = 0x000000FF,
         eStreamBasedMask           = 0x00000100,
-        ePrivateMask               = 0x00000200,
         eDoomEntriesIfExpiredMask  = 0x00001000,
         eBlockingModeMask          = 0x00010000,
         eWaitingForValidationMask  = 0x00100000,
@@ -106,12 +138,8 @@ private:
 
     nsCacheStoragePolicy StoragePolicy()
     {
-        return (nsCacheStoragePolicy)(mInfo & eStoragePolicyMask);
+        return (nsCacheStoragePolicy)(mInfo & 0xFF);
     }
-
-    void   MarkPrivate() { mInfo |= ePrivateMask; }
-    void   MarkPublic() { mInfo &= ~ePrivateMask; }
-    bool   IsPrivate() { return (mInfo & ePrivateMask) != 0; }
 
     void   MarkWaitingForValidation() { mInfo |=  eWaitingForValidationMask; }
     void   DoneWaitingForValidation() { mInfo &= ~eWaitingForValidationMask; }
@@ -146,13 +174,12 @@ private:
     
 
 
-    nsCString                  mKey;
-    uint32_t                   mInfo;
+    nsCString *                mKey;
+    PRUint32                   mInfo;
     nsICacheListener *         mListener;  
     nsCOMPtr<nsIThread>        mThread;
     Mutex                      mLock;
     CondVar                    mCondVar;
-    nsCOMPtr<nsIFile>          mProfileDir;
 };
 
 #endif 

@@ -5,8 +5,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsObjectFrame_h___
 #define nsObjectFrame_h___
+
+#ifdef XP_WIN
+#include <windows.h>
+#endif
 
 #include "nsPluginInstanceOwner.h"
 #include "nsIObjectFrame.h"
@@ -14,6 +50,8 @@
 #include "nsRegion.h"
 #include "nsDisplayList.h"
 #include "nsIReflowCallback.h"
+#include "Layers.h"
+#include "ImageLayers.h"
 
 #ifdef ACCESSIBILITY
 class nsIAccessible;
@@ -21,18 +59,9 @@ class nsIAccessible;
 
 class nsPluginHost;
 class nsPresContext;
-class nsRootPresContext;
 class nsDisplayPlugin;
 class nsIOSurface;
 class PluginBackgroundSink;
-
-namespace mozilla {
-namespace layers {
-class ImageContainer;
-class Layer;
-class LayerManager;
-}
-}
 
 #define nsObjectFrameSuper nsFrame
 
@@ -79,7 +108,7 @@ public:
 
   virtual nsIAtom* GetType() const;
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     return nsObjectFrameSuper::IsFrameOfType(aFlags & ~(nsIFrame::eReplaced));
   }
@@ -95,8 +124,19 @@ public:
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);
 
   NS_METHOD GetPluginInstance(nsNPAPIPluginInstance** aPluginInstance);
-
+  virtual nsresult Instantiate(nsIChannel* aChannel, nsIStreamListener** aStreamListener);
+  virtual nsresult Instantiate(const char* aMimeType, nsIURI* aURI);
+  virtual void TryNotifyContentObjectWrapper();
+  virtual void StopPlugin();
   virtual void SetIsDocumentActive(bool aIsActive);
+
+  
+
+
+
+
+
+  void StopPluginInternal(bool aDelayedStop);
 
   NS_IMETHOD GetCursor(const nsPoint& aPoint, nsIFrame::Cursor& aCursor);
 
@@ -116,14 +156,14 @@ public:
 
   
 #ifdef ACCESSIBILITY
-  virtual already_AddRefed<Accessible> CreateAccessible();
+  virtual already_AddRefed<nsAccessible> CreateAccessible();
 #ifdef XP_WIN
   NS_IMETHOD GetPluginPort(HWND *aPort);
 #endif
 #endif
 
   
-  nsresult PrepForDrawing(nsIWidget *aWidget);
+  nsresult CreateWidget(nscoord aWidth, nscoord aHeight, bool aViewOnly);
 
   
   static nsIObjectFrame* GetNextObjectFrame(nsPresContext* aPresContext,
@@ -133,7 +173,7 @@ public:
   virtual bool ReflowFinished();
   virtual void ReflowCallbackCanceled();
 
-  void UpdateImageLayer(const gfxRect& aRect);
+  void UpdateImageLayer(ImageContainer* aContainer, const gfxRect& aRect);
 
   
 
@@ -143,10 +183,10 @@ public:
                                      LayerManager* aManager,
                                      nsDisplayItem* aItem);
 
-  LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
-                           LayerManager* aManager);
+  virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
+                                   LayerManager* aManager);
 
-  already_AddRefed<ImageContainer> GetImageContainer();
+  already_AddRefed<ImageContainer> GetImageContainer(LayerManager* aManager = nsnull);
   
 
 
@@ -167,9 +207,21 @@ public:
 
   static void EndSwapDocShells(nsIContent* aContent, void*);
 
-  bool PaintedByGecko();
+  nsIWidget* GetWidget() { return mWidget; }
 
-  nsIWidget* GetWidget() { return mInnerView ? mWidget : nullptr; }
+protected:
+  nsObjectFrame(nsStyleContext* aContext);
+  virtual ~nsObjectFrame();
+
+  
+  
+  void GetDesiredSize(nsPresContext* aPresContext,
+                      const nsHTMLReflowState& aReflowState,
+                      nsHTMLReflowMetrics& aDesiredSize);
+
+  nsresult InstantiatePlugin(nsPluginHost* aPluginHost, 
+                             const char* aMimetype,
+                             nsIURI* aURL);
 
   
 
@@ -182,25 +234,15 @@ public:
 
   nsresult CallSetWindow(bool aCheckIsHidden = true);
 
-  void SetInstanceOwner(nsPluginInstanceOwner* aOwner);
-
-protected:
-  nsObjectFrame(nsStyleContext* aContext);
-  virtual ~nsObjectFrame();
-
-  
-  
-  void GetDesiredSize(nsPresContext* aPresContext,
-                      const nsHTMLReflowState& aReflowState,
-                      nsHTMLReflowMetrics& aDesiredSize);
-
-  bool IsFocusable(int32_t *aTabIndex = nullptr, bool aWithMouse = false);
+  bool IsFocusable(PRInt32 *aTabIndex = nsnull, bool aWithMouse = false);
 
   
   bool IsHidden(bool aCheckVisibilityStyle = true) const;
 
   bool IsOpaque() const;
   bool IsTransparentMode() const;
+
+  void NotifyContentObjectWrapper();
 
   nsIntPoint GetWindowOriginInPixels(bool aWindowless);
 
@@ -212,6 +254,12 @@ protected:
   void PaintPlugin(nsDisplayListBuilder* aBuilder,
                    nsRenderingContext& aRenderingContext,
                    const nsRect& aDirtyRect, const nsRect& aPluginRect);
+
+  
+
+
+
+  NS_HIDDEN_(nsresult) PrepareInstanceOwner();
 
   
 
@@ -234,15 +282,6 @@ protected:
 
 private:
   
-  
-  
-  
-  void RegisterPluginForGeometryUpdates();
-
-  
-  
-  void UnregisterPluginForGeometryUpdates();
-
   class PluginEventNotifier : public nsRunnable {
   public:
     PluginEventNotifier(const nsString &aEventType) : 
@@ -252,8 +291,8 @@ private:
   private:
     nsString mEventType;
   };
-
-  nsPluginInstanceOwner*          mInstanceOwner; 
+  
+  nsRefPtr<nsPluginInstanceOwner> mInstanceOwner;
   nsIView*                        mInnerView;
   nsCOMPtr<nsIWidget>             mWidget;
   nsIntRect                       mWindowlessRect;
@@ -263,17 +302,16 @@ private:
 
   PluginBackgroundSink*           mBackgroundSink;
 
+  
+  
+  
+  bool mPreventInstantiation;
+
   bool mReflowCallbackPosted;
 
   
   
   nsRefPtr<ImageContainer> mImageContainer;
-
-  
-  
-  
-  
-  nsRefPtr<nsRootPresContext> mRootPresContextRegisteredWith;
 };
 
 class nsDisplayPlugin : public nsDisplayItem {
@@ -289,9 +327,9 @@ public:
   }
 #endif
 
-  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap);
+  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder);
   virtual nsRegion GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
-                                   bool* aSnap);
+                                   bool* aForceTransparentSurface = nsnull);
   virtual void Paint(nsDisplayListBuilder* aBuilder,
                      nsRenderingContext* aCtx);
   virtual bool ComputeVisibility(nsDisplayListBuilder* aBuilder,
@@ -320,8 +358,7 @@ public:
   }
 
   virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
-                                   LayerManager* aManager,
-                                   const ContainerParameters& aParameters)
+                                   LayerManager* aManager)
   {
     return static_cast<nsObjectFrame*>(mFrame)->GetLayerState(aBuilder,
                                                               aManager);

@@ -8,6 +8,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSplittableFrame.h"
 #include "nsIContent.h"
 #include "nsPresContext.h"
@@ -101,34 +133,34 @@ nsIFrame* nsSplittableFrame::GetLastContinuation() const
 #ifdef DEBUG
 bool nsSplittableFrame::IsInPrevContinuationChain(nsIFrame* aFrame1, nsIFrame* aFrame2)
 {
-  int32_t iterations = 0;
+  PRInt32 iterations = 0;
   while (aFrame1 && iterations < 10) {
     
     if (aFrame1 == aFrame2)
-      return true;
+      return PR_TRUE;
     aFrame1 = aFrame1->GetPrevContinuation();
     ++iterations;
   }
-  return false;
+  return PR_FALSE;
 }
 
 bool nsSplittableFrame::IsInNextContinuationChain(nsIFrame* aFrame1, nsIFrame* aFrame2)
 {
-  int32_t iterations = 0;
+  PRInt32 iterations = 0;
   while (aFrame1 && iterations < 10) {
     
     if (aFrame1 == aFrame2)
-      return true;
+      return PR_TRUE;
     aFrame1 = aFrame1->GetNextContinuation();
     ++iterations;
   }
-  return false;
+  return PR_FALSE;
 }
 #endif
 
 nsIFrame* nsSplittableFrame::GetPrevInFlow() const
 {
-  return (GetStateBits() & NS_FRAME_IS_FLUID_CONTINUATION) ? mPrevContinuation : nullptr;
+  return (GetStateBits() & NS_FRAME_IS_FLUID_CONTINUATION) ? mPrevContinuation : nsnull;
 }
 
 NS_METHOD nsSplittableFrame::SetPrevInFlow(nsIFrame* aFrame)
@@ -143,7 +175,7 @@ NS_METHOD nsSplittableFrame::SetPrevInFlow(nsIFrame* aFrame)
 nsIFrame* nsSplittableFrame::GetNextInFlow() const
 {
   return mNextContinuation && (mNextContinuation->GetStateBits() & NS_FRAME_IS_FLUID_CONTINUATION) ? 
-    mNextContinuation : nullptr;
+    mNextContinuation : nsnull;
 }
 
 NS_METHOD nsSplittableFrame::SetNextInFlow(nsIFrame* aFrame)
@@ -201,20 +233,20 @@ nsSplittableFrame::RemoveFromFlow(nsIFrame* aFrame)
     }
   }
 
-  aFrame->SetPrevInFlow(nullptr);
-  aFrame->SetNextInFlow(nullptr);
+  aFrame->SetPrevInFlow(nsnull);
+  aFrame->SetNextInFlow(nsnull);
 }
 
 #ifdef DEBUG
 void
-nsSplittableFrame::DumpBaseRegressionData(nsPresContext* aPresContext, FILE* out, int32_t aIndent)
+nsSplittableFrame::DumpBaseRegressionData(nsPresContext* aPresContext, FILE* out, PRInt32 aIndent)
 {
   nsFrame::DumpBaseRegressionData(aPresContext, out, aIndent);
-  if (nullptr != mNextContinuation) {
+  if (nsnull != mNextContinuation) {
     IndentBy(out, aIndent);
     fprintf(out, "<next-continuation va=\"%ld\"/>\n", PRUptrdiff(mNextContinuation));
   }
-  if (nullptr != mPrevContinuation) {
+  if (nsnull != mPrevContinuation) {
     IndentBy(out, aIndent);
     fprintf(out, "<prev-continuation va=\"%ld\"/>\n", PRUptrdiff(mPrevContinuation));
   }

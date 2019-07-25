@@ -3,19 +3,44 @@
 
 
 
-#include <stdio.h>                      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "InsertTextTxn.h"
-#include "nsAString.h"
-#include "nsDebug.h"                    
-#include "nsError.h"                    
-#include "nsIDOMCharacterData.h"        
-#include "nsIEditor.h"                  
-#include "nsISelection.h"               
-#include "nsISupportsUtils.h"           
-#include "nsITransaction.h"             
+#include "nsIDOMCharacterData.h"
+#include "nsISelection.h"
+#include "EditAggregateTxn.h"
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
 static bool gNoisy = false;
 #endif
 
@@ -45,7 +70,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(InsertTextTxn)
 NS_INTERFACE_MAP_END_INHERITING(EditTxn)
 
 NS_IMETHODIMP InsertTextTxn::Init(nsIDOMCharacterData *aElement,
-                                  uint32_t             aOffset,
+                                  PRUint32             aOffset,
                                   const nsAString     &aStringToInsert,
                                   nsIEditor           *aEditor)
 {
@@ -69,7 +94,7 @@ NS_IMETHODIMP InsertTextTxn::Init(nsIDOMCharacterData *aElement,
 
 NS_IMETHODIMP InsertTextTxn::DoTransaction(void)
 {
-#ifdef DEBUG
+#ifdef NS_DEBUG
   if (gNoisy)
   {
     printf("Do Insert Text element = %p\n",
@@ -105,7 +130,7 @@ NS_IMETHODIMP InsertTextTxn::DoTransaction(void)
 
 NS_IMETHODIMP InsertTextTxn::UndoTransaction(void)
 {
-#ifdef DEBUG
+#ifdef NS_DEBUG
   if (gNoisy)
   {
     printf("Undo Insert Text element = %p\n",
@@ -116,7 +141,7 @@ NS_IMETHODIMP InsertTextTxn::UndoTransaction(void)
   NS_ASSERTION(mElement && mEditor, "bad state");
   if (!mElement || !mEditor) { return NS_ERROR_NOT_INITIALIZED; }
 
-  uint32_t length = mStringToInsert.Length();
+  PRUint32 length = mStringToInsert.Length();
   return mElement->DeleteData(mOffset, length);
 }
 
@@ -124,13 +149,13 @@ NS_IMETHODIMP InsertTextTxn::Merge(nsITransaction *aTransaction, bool *aDidMerge
 {
   
   if (aDidMerge)
-    *aDidMerge = false;
+    *aDidMerge = PR_FALSE;
   nsresult result = NS_OK;
   if (aDidMerge && aTransaction)
   {
     
     
-    InsertTextTxn *otherInsTxn = nullptr;
+    InsertTextTxn *otherInsTxn = nsnull;
     aTransaction->QueryInterface(InsertTextTxn::GetCID(), (void **)&otherInsTxn);
     if (otherInsTxn)
     {
@@ -139,8 +164,8 @@ NS_IMETHODIMP InsertTextTxn::Merge(nsITransaction *aTransaction, bool *aDidMerge
         nsAutoString otherData;
         otherInsTxn->GetData(otherData);
         mStringToInsert += otherData;
-        *aDidMerge = true;
-#ifdef DEBUG
+        *aDidMerge = PR_TRUE;
+#ifdef NS_DEBUG
         if (gNoisy)
         {
           printf("InsertTextTxn assimilated %p\n",
@@ -175,9 +200,9 @@ bool InsertTextTxn::IsSequentialInsert(InsertTextTxn *aOtherTxn)
   if (aOtherTxn && aOtherTxn->mElement == mElement)
   {
     
-    int32_t length = mStringToInsert.Length();
+    PRInt32 length = mStringToInsert.Length();
     if (aOtherTxn->mOffset == (mOffset + length))
-      return true;
+      return PR_TRUE;
   }
-  return false;
+  return PR_FALSE;
 }

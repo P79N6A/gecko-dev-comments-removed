@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsMimeTypeArray_h___
 #define nsMimeTypeArray_h___
 
@@ -26,9 +58,9 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMMIMETYPEARRAY
 
-  void Refresh();
+  nsresult Refresh();
 
-  nsIDOMMimeType* GetItemAt(uint32_t aIndex, nsresult* aResult);
+  nsIDOMMimeType* GetItemAt(PRUint32 aIndex, nsresult* aResult);
   nsIDOMMimeType* GetNamedItem(const nsAString& aName, nsresult* aResult);
 
   static nsMimeTypeArray* FromSupports(nsISupports* aSupports)
@@ -51,7 +83,7 @@ public:
   void Invalidate()
   {
     
-    mNavigator = nullptr;
+    mNavigator = nsnull;
     Clear();
   }
 
@@ -62,7 +94,7 @@ private:
 protected:
   nsIDOMNavigator* mNavigator;
   
-  uint32_t mPluginMimeTypeCount;
+  PRUint32 mPluginMimeTypeCount;
   
   
   
@@ -80,7 +112,7 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMMIMETYPE
 
-  void DetachPlugin() { mPlugin = nullptr; }
+  void DetachPlugin() { mPlugin = nsnull; }
 
 protected:
   nsIDOMPlugin* mPlugin;

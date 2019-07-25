@@ -6,6 +6,36 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_INTERNAL_API
 #error Cannot use internal string classes without MOZILLA_INTERNAL_API defined. Use the frozen header nsStringAPI.h instead.
 #endif
@@ -20,7 +50,7 @@ class nsTStringComparator_CharT
 
       nsTStringComparator_CharT() {}
 
-      virtual int operator()( const char_type*, const char_type*, uint32_t, uint32_t ) const = 0;
+      virtual int operator()( const char_type*, const char_type*, PRUint32, PRUint32 ) const = 0;
   };
 
 
@@ -35,7 +65,7 @@ class nsTDefaultStringComparator_CharT
 
       nsTDefaultStringComparator_CharT() {}
 
-      virtual int operator()( const char_type*, const char_type*, uint32_t, uint32_t ) const;
+      virtual int operator()( const char_type*, const char_type*, PRUint32, PRUint32 ) const;
   };
 
   
@@ -53,8 +83,6 @@ class nsTDefaultStringComparator_CharT
 class nsTSubstring_CharT
   {
     public:
-      typedef mozilla::fallible_t                 fallible_t;
-
       typedef CharT                               char_type;
 
       typedef nsCharTraits<char_type>             char_traits;
@@ -76,8 +104,8 @@ class nsTSubstring_CharT
       typedef char_type*                          char_iterator;
       typedef const char_type*                    const_char_iterator;
 
-      typedef uint32_t                            size_type;
-      typedef uint32_t                            index_type;
+      typedef PRUint32                            size_type;
+      typedef PRUint32                            index_type;
 
     public:
 
@@ -128,49 +156,14 @@ class nsTSubstring_CharT
       
       char_iterator BeginWriting()
         {
-          if (!EnsureMutable())
-            NS_RUNTIMEABORT("OOM");
-
-          return mData;
-        }
-
-      char_iterator BeginWriting( const fallible_t& )
-        {
           return EnsureMutable() ? mData : char_iterator(0);
         }
 
       char_iterator EndWriting()
         {
-          if (!EnsureMutable())
-            NS_RUNTIMEABORT("OOM");
-
-          return mData + mLength;
-        }
-
-      char_iterator EndWriting( const fallible_t& )
-        {
           return EnsureMutable() ? (mData + mLength) : char_iterator(0);
         }
 
-      char_iterator& BeginWriting( char_iterator& iter )
-        {
-          return iter = BeginWriting();
-        }
-
-      char_iterator& BeginWriting( char_iterator& iter, const fallible_t& )
-        {
-          return iter = BeginWriting(fallible_t());
-        }
-
-      char_iterator& EndWriting( char_iterator& iter )
-        {
-          return iter = EndWriting();
-        }
-
-      char_iterator& EndWriting( char_iterator& iter, const fallible_t& )
-        {
-          return iter = EndWriting(fallible_t());
-        }
 
         
 
@@ -178,7 +171,7 @@ class nsTSubstring_CharT
       
       iterator& BeginWriting( iterator& iter )
         {
-          char_type *data = BeginWriting();
+          char_type *data = EnsureMutable() ? mData : nsnull;
           iter.mStart = data;
           iter.mEnd = data + mLength;
           iter.mPosition = iter.mStart;
@@ -187,12 +180,23 @@ class nsTSubstring_CharT
 
       iterator& EndWriting( iterator& iter )
         {
-          char_type *data = BeginWriting();
+          char_type *data = EnsureMutable() ? mData : nsnull;
           iter.mStart = data;
           iter.mEnd = data + mLength;
           iter.mPosition = iter.mEnd;
           return iter;
         }
+
+      char_iterator& BeginWriting( char_iterator& iter )
+        {
+          return iter = EnsureMutable() ? mData : char_iterator(0);
+        }
+
+      char_iterator& EndWriting( char_iterator& iter )
+        {
+          return iter = EnsureMutable() ? (mData + mLength) : char_iterator(0);
+        }
+
 
         
 
@@ -249,7 +253,7 @@ class nsTSubstring_CharT
         }
 
       size_type NS_FASTCALL CountChar( char_type ) const;
-      int32_t NS_FASTCALL FindChar( char_type, index_type offset = 0 ) const;
+      PRInt32 NS_FASTCALL FindChar( char_type, index_type offset = 0 ) const;
 
 
         
@@ -335,32 +339,13 @@ class nsTSubstring_CharT
 
 
       void NS_FASTCALL Assign( char_type c );
-      bool NS_FASTCALL Assign( char_type c, const fallible_t& ) NS_WARN_UNUSED_RESULT;
-
-      void NS_FASTCALL
-        Assign( const char_type* data, size_type length = size_type(-1) );
-      bool NS_FASTCALL Assign( const char_type* data, size_type length, const fallible_t& ) NS_WARN_UNUSED_RESULT;
-
+      void NS_FASTCALL Assign( const char_type* data, size_type length = size_type(-1) );
       void NS_FASTCALL Assign( const self_type& );
-      bool NS_FASTCALL Assign( const self_type&, const fallible_t& ) NS_WARN_UNUSED_RESULT;
-
       void NS_FASTCALL Assign( const substring_tuple_type& );
-      bool NS_FASTCALL Assign( const substring_tuple_type&, const fallible_t& ) NS_WARN_UNUSED_RESULT;
 
       void NS_FASTCALL AssignASCII( const char* data, size_type length );
-      bool NS_FASTCALL AssignASCII( const char* data, size_type length, const fallible_t& ) NS_WARN_UNUSED_RESULT;
+      void NS_FASTCALL AssignASCII( const char* data );
 
-      void NS_FASTCALL AssignASCII( const char* data )
-        {
-          AssignASCII(data, strlen(data));
-        }
-      bool NS_FASTCALL AssignASCII( const char* data, const fallible_t& ) NS_WARN_UNUSED_RESULT
-        {
-          return AssignASCII(data, strlen(data), fallible_t());
-        }
-
-    
-    
     
     
     
@@ -390,7 +375,7 @@ class nsTSubstring_CharT
 
       void NS_FASTCALL Replace( index_type cutStart, size_type cutLength, char_type c );
       void NS_FASTCALL Replace( index_type cutStart, size_type cutLength, const char_type* data, size_type length = size_type(-1) );
-      void Replace( index_type cutStart, size_type cutLength, const self_type& str )      { Replace(cutStart, cutLength, str.Data(), str.Length()); }
+             void Replace( index_type cutStart, size_type cutLength, const self_type& str )      { Replace(cutStart, cutLength, str.Data(), str.Length()); }
       void NS_FASTCALL Replace( index_type cutStart, size_type cutLength, const substring_tuple_type& tuple );
 
       void NS_FASTCALL ReplaceASCII( index_type cutStart, size_type cutLength, const char* data, size_type length = size_type(-1) );
@@ -402,38 +387,34 @@ class nsTSubstring_CharT
 
       void AppendASCII( const char* data, size_type length = size_type(-1) )                     { ReplaceASCII(mLength, 0, data, length); }
 
-      
-
-
-
       void AppendPrintf( const char* format, ... );
-      void AppendInt( int32_t aInteger )
-                 { AppendPrintf( "%d", aInteger ); }
-      void AppendInt( int32_t aInteger, int aRadix )
+      void AppendInt( PRInt32 aInteger )
+                 { AppendPrintf31( "%d", aInteger ); }
+      void AppendInt( PRInt32 aInteger, int aRadix )
         {
           const char *fmt = aRadix == 10 ? "%d" : aRadix == 8 ? "%o" : "%x";
-          AppendPrintf( fmt, aInteger );
+          AppendPrintf31( fmt, aInteger );
         }
-      void AppendInt( uint32_t aInteger )
-                 { AppendPrintf( "%u", aInteger ); }
-      void AppendInt( uint32_t aInteger, int aRadix )
+      void AppendInt( PRUint32 aInteger )
+                 { AppendPrintf31( "%u", aInteger ); }
+      void AppendInt( PRUint32 aInteger, int aRadix )
         {
           const char *fmt = aRadix == 10 ? "%u" : aRadix == 8 ? "%o" : "%x";
-          AppendPrintf( fmt, aInteger );
+          AppendPrintf31( fmt, aInteger );
         }
-      void AppendInt( int64_t aInteger )
-                 { AppendPrintf( "%lld", aInteger ); }
-      void AppendInt( int64_t aInteger, int aRadix )
+      void AppendInt( PRInt64 aInteger )
+                 { AppendPrintf31( "%lld", aInteger ); }
+      void AppendInt( PRInt64 aInteger, int aRadix )
         {
           const char *fmt = aRadix == 10 ? "%lld" : aRadix == 8 ? "%llo" : "%llx";
-          AppendPrintf( fmt, aInteger );
+          AppendPrintf31( fmt, aInteger );
         }
-      void AppendInt( uint64_t aInteger )
-                 { AppendPrintf( "%llu", aInteger ); }
-      void AppendInt( uint64_t aInteger, int aRadix )
+      void AppendInt( PRUint64 aInteger )
+                 { AppendPrintf31( "%llu", aInteger ); }
+      void AppendInt( PRUint64 aInteger, int aRadix )
         {
           const char *fmt = aRadix == 10 ? "%llu" : aRadix == 8 ? "%llo" : "%llx";
-          AppendPrintf( fmt, aInteger );
+          AppendPrintf31( fmt, aInteger );
         }
 
       
@@ -445,6 +426,8 @@ class nsTSubstring_CharT
                       { DoAppendFloat(aFloat, 15); }
   private:
       void NS_FASTCALL DoAppendFloat( double aFloat, int digits );
+      
+      void AppendPrintf31( const char* format, ... );
   public:
 
     
@@ -483,11 +466,13 @@ class nsTSubstring_CharT
 
 
 
-      void NS_FASTCALL SetCapacity( size_type newCapacity );
-      bool NS_FASTCALL SetCapacity( size_type newCapacity, const fallible_t& ) NS_WARN_UNUSED_RESULT;
+
+
+
+
+      bool NS_FASTCALL SetCapacity( size_type newCapacity );
 
       void NS_FASTCALL SetLength( size_type newLength );
-      bool NS_FASTCALL SetLength( size_type newLength, const fallible_t& ) NS_WARN_UNUSED_RESULT;
 
       void Truncate( size_type newLength = 0 )
         {
@@ -523,20 +508,11 @@ class nsTSubstring_CharT
 
 
 
-      size_type GetMutableData( char_type** data, size_type newLen = size_type(-1) )
-        {
-          if (!EnsureMutable(newLen))
-            NS_RUNTIMEABORT("OOM");
-
-          *data = mData;
-          return mLength;
-        }
-
-      size_type GetMutableData( char_type** data, size_type newLen, const fallible_t& )
+      inline size_type GetMutableData( char_type** data, size_type newLen = size_type(-1) )
         {
           if (!EnsureMutable(newLen))
             {
-              *data = nullptr;
+              *data = nsnull;
               return 0;
             }
 
@@ -560,7 +536,7 @@ class nsTSubstring_CharT
 
 
          
-      void StripChar( char_type aChar, int32_t aOffset=0 );
+      void StripChar( char_type aChar, PRInt32 aOffset=0 );
 
         
 
@@ -570,7 +546,7 @@ class nsTSubstring_CharT
 
 
 
-      void StripChars( const char_type* aChars, uint32_t aOffset=0 );
+      void StripChars( const char_type* aChars, PRUint32 aOffset=0 );
 
         
 
@@ -593,7 +569,7 @@ class nsTSubstring_CharT
 
 
       nsTSubstring_CharT(const substring_tuple_type& tuple)
-        : mData(nullptr),
+        : mData(nsnull),
           mLength(0),
           mFlags(F_NONE)
         {
@@ -609,24 +585,14 @@ class nsTSubstring_CharT
         
 #if defined(DEBUG) || defined(FORCE_BUILD_REFCNT_LOGGING)
 #define XPCOM_STRING_CONSTRUCTOR_OUT_OF_LINE
-      nsTSubstring_CharT( char_type *data, size_type length, uint32_t flags );
+       nsTSubstring_CharT( char_type *data, size_type length, PRUint32 flags );
 #else
 #undef XPCOM_STRING_CONSTRUCTOR_OUT_OF_LINE
-      nsTSubstring_CharT( char_type *data, size_type length, uint32_t flags )
-        : mData(data),
-          mLength(length),
-          mFlags(flags) {}
+       nsTSubstring_CharT( char_type *data, size_type length, PRUint32 flags )
+         : mData(data),
+           mLength(length),
+           mFlags(flags) {}
 #endif 
-
-      size_t SizeOfExcludingThisMustBeUnshared(nsMallocSizeOfFun mallocSizeOf)
-        const;
-      size_t SizeOfIncludingThisMustBeUnshared(nsMallocSizeOfFun mallocSizeOf)
-        const;
-
-      size_t SizeOfExcludingThisIfUnshared(nsMallocSizeOfFun mallocSizeOf)
-        const;
-      size_t SizeOfIncludingThisIfUnshared(nsMallocSizeOfFun mallocSizeOf)
-        const;
 
     protected:
 
@@ -638,7 +604,7 @@ class nsTSubstring_CharT
 
       char_type*  mData;
       size_type   mLength;
-      uint32_t    mFlags;
+      PRUint32    mFlags;
 
         
       nsTSubstring_CharT()
@@ -648,7 +614,7 @@ class nsTSubstring_CharT
 
         
       explicit
-      nsTSubstring_CharT( uint32_t flags )
+      nsTSubstring_CharT( PRUint32 flags )
         : mFlags(flags) {}
 
         
@@ -683,7 +649,7 @@ class nsTSubstring_CharT
 
 
 
-      bool NS_FASTCALL MutatePrep( size_type capacity, char_type** old_data, uint32_t* old_flags );
+      bool NS_FASTCALL MutatePrep( size_type capacity, char_type** old_data, PRUint32* old_flags );
 
         
 
@@ -706,25 +672,24 @@ class nsTSubstring_CharT
 
 
       bool ReplacePrep(index_type cutStart, size_type cutLength,
-                       size_type newLength) NS_WARN_UNUSED_RESULT
+                         size_type newLength)
       {
         cutLength = NS_MIN(cutLength, mLength - cutStart);
-        uint32_t newTotalLen = mLength - cutLength + newLength;
+        PRUint32 newTotalLen = mLength - cutLength + newLength;
         if (cutStart == mLength && Capacity() > newTotalLen) {
           mFlags &= ~F_VOIDED;
           mData[newTotalLen] = char_type(0);
           mLength = newTotalLen;
-          return true;
+          return PR_TRUE;
         }
         return ReplacePrepInternal(cutStart, cutLength, newLength, newTotalLen);
       }
 
       bool NS_FASTCALL ReplacePrepInternal(index_type cutStart,
-                                           size_type cutLength,
-                                           size_type newFragLength,
-                                           size_type newTotalLength)
-        NS_WARN_UNUSED_RESULT;
-
+                                             size_type cutLength,
+                                             size_type newFragLength,
+                                             size_type newTotalLength);
+      
         
 
 
@@ -738,7 +703,7 @@ class nsTSubstring_CharT
 
 
 
-      bool NS_FASTCALL EnsureMutable( size_type newLen = size_type(-1) ) NS_WARN_UNUSED_RESULT;
+      bool NS_FASTCALL EnsureMutable( size_type newLen = size_type(-1) );
 
         
 
@@ -759,14 +724,11 @@ class nsTSubstring_CharT
         
 
 
-      void SetDataFlags(uint32_t dataFlags)
+      void SetDataFlags(PRUint32 dataFlags)
         {
           NS_ASSERTION((dataFlags & 0xFFFF0000) == 0, "bad flags");
           mFlags = dataFlags | (mFlags & 0xFFFF0000);
         }
-
-      static int AppendFunc( void* arg, const char* s, uint32_t len);
-      void AppendPrintf( const char* format, va_list ap );
 
     public:
 

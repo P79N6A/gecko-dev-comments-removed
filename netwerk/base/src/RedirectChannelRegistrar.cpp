@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "RedirectChannelRegistrar.h"
 
 namespace mozilla {
@@ -17,13 +49,13 @@ RedirectChannelRegistrar::nsCOMPtrHashtable<KeyClass,T>::Get(KeyType aKey, T** r
     if (retVal)
       NS_IF_ADDREF(*retVal = ent->mData);
 
-    return true;
+    return PR_TRUE;
   }
 
   if (retVal)
-    *retVal = nullptr;
+    *retVal = nsnull;
 
-  return false;
+  return PR_FALSE;
 }
 
 NS_IMPL_ISUPPORTS1(RedirectChannelRegistrar, nsIRedirectChannelRegistrar)
@@ -37,7 +69,7 @@ RedirectChannelRegistrar::RedirectChannelRegistrar()
 
 NS_IMETHODIMP
 RedirectChannelRegistrar::RegisterChannel(nsIChannel *channel,
-                                          uint32_t *_retval)
+                                          PRUint32 *_retval NS_OUTPARAM)
 {
   mRealChannels.Put(mId, channel);
   *_retval = mId;
@@ -52,8 +84,8 @@ RedirectChannelRegistrar::RegisterChannel(nsIChannel *channel,
 }
 
 NS_IMETHODIMP
-RedirectChannelRegistrar::GetRegisteredChannel(uint32_t id,
-                                               nsIChannel **_retval)
+RedirectChannelRegistrar::GetRegisteredChannel(PRUint32 id,
+                                               nsIChannel **_retval NS_OUTPARAM)
 {
   if (!mRealChannels.Get(id, _retval))
     return NS_ERROR_NOT_AVAILABLE;
@@ -62,7 +94,7 @@ RedirectChannelRegistrar::GetRegisteredChannel(uint32_t id,
 }
 
 NS_IMETHODIMP
-RedirectChannelRegistrar::LinkChannels(uint32_t id,
+RedirectChannelRegistrar::LinkChannels(PRUint32 id,
                                        nsIParentChannel *channel,
                                        nsIChannel** _retval)
 {
@@ -74,8 +106,8 @@ RedirectChannelRegistrar::LinkChannels(uint32_t id,
 }
 
 NS_IMETHODIMP
-RedirectChannelRegistrar::GetParentChannel(uint32_t id,
-                                           nsIParentChannel **_retval)
+RedirectChannelRegistrar::GetParentChannel(PRUint32 id,
+                                           nsIParentChannel **_retval NS_OUTPARAM)
 {
   if (!mParentChannels.Get(id, _retval))
     return NS_ERROR_NOT_AVAILABLE;
@@ -84,7 +116,7 @@ RedirectChannelRegistrar::GetParentChannel(uint32_t id,
 }
 
 NS_IMETHODIMP
-RedirectChannelRegistrar::DeregisterChannels(uint32_t id)
+RedirectChannelRegistrar::DeregisterChannels(PRUint32 id)
 {
   mRealChannels.Remove(id);
   mParentChannels.Remove(id);

@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_RECT_H
 #define GFX_RECT_H
 
@@ -13,7 +45,6 @@
 #include "nsDebug.h"
 #include "mozilla/gfx/BaseMargin.h"
 #include "mozilla/gfx/BaseRect.h"
-#include "mozilla/Assertions.h"
 #include "nsRect.h"
 
 struct gfxMargin : public mozilla::gfx::BaseMargin<gfxFloat, gfxMargin> {
@@ -76,6 +107,27 @@ struct THEBES_API gfxRect :
 
     bool WithinEpsilonOfIntegerPixels(gfxFloat aEpsilon) const;
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    void Round();
+
+    
+    
+    void RoundIn();
+    
+    
+    
+    void RoundOut();
+
     gfxPoint AtCorner(mozilla::css::Corner corner) const {
         switch (corner) {
             case NS_CORNER_TOP_LEFT: return TopLeft();
@@ -95,8 +147,11 @@ struct THEBES_API gfxRect :
             case NS_SIDE_RIGHT: return TopRight();
             case NS_SIDE_BOTTOM: return BottomRight();
             case NS_SIDE_LEFT: return BottomLeft();
+            default:
+                NS_ERROR("Invalid side!");
+                break;
         }
-        MOZ_NOT_REACHED("Incomplet switch");
+        return gfxPoint(0.0, 0.0);
     }
 
     gfxPoint CWCorner(mozilla::css::Side side) const {
@@ -105,8 +160,11 @@ struct THEBES_API gfxRect :
             case NS_SIDE_RIGHT: return BottomRight();
             case NS_SIDE_BOTTOM: return BottomLeft();
             case NS_SIDE_LEFT: return TopLeft();
+            default:
+                NS_ERROR("Invalid side!");
+                break;
         }
-        MOZ_NOT_REACHED("Incomplet switch");
+        return gfxPoint(0.0, 0.0);
     }
 
     

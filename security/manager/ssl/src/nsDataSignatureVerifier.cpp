@@ -2,6 +2,34 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsDataSignatureVerifier.h"
 #include "nsCOMPtr.h"
 #include "nsString.h"
@@ -46,22 +74,22 @@ nsDataSignatureVerifier::VerifyData(const nsACString & aData,
     if (!NSSBase64_DecodeBuffer(arena, &keyItem,
                                 nsPromiseFlatCString(aPublicKey).get(),
                                 aPublicKey.Length())) {
-        PORT_FreeArena(arena, false);
+        PORT_FreeArena(arena, PR_FALSE);
         return NS_ERROR_FAILURE;
     }
     
     
     CERTSubjectPublicKeyInfo *pki = SECKEY_DecodeDERSubjectPublicKeyInfo(&keyItem);
     if (!pki) {
-        PORT_FreeArena(arena, false);
+        PORT_FreeArena(arena, PR_FALSE);
         return NS_ERROR_FAILURE;
     }
     SECKEYPublicKey *publicKey = SECKEY_ExtractPublicKey(pki);
     SECKEY_DestroySubjectPublicKeyInfo(pki);
-    pki = nullptr;
+    pki = nsnull;
     
     if (!publicKey) {
-        PORT_FreeArena(arena, false);
+        PORT_FreeArena(arena, PR_FALSE);
         return NS_ERROR_FAILURE;
     }
     
@@ -72,7 +100,7 @@ nsDataSignatureVerifier::VerifyData(const nsACString & aData,
                                 nsPromiseFlatCString(aSignature).get(),
                                 aSignature.Length())) {
         SECKEY_DestroyPublicKey(publicKey);
-        PORT_FreeArena(arena, false);
+        PORT_FreeArena(arena, PR_FALSE);
         return NS_ERROR_FAILURE;
     }
     
@@ -84,7 +112,7 @@ nsDataSignatureVerifier::VerifyData(const nsACString & aData,
                                           &signatureItem);
     if (ss != SECSuccess) {
         SECKEY_DestroyPublicKey(publicKey);
-        PORT_FreeArena(arena, false);
+        PORT_FreeArena(arena, PR_FALSE);
         return NS_ERROR_FAILURE;
     }
     
@@ -98,7 +126,7 @@ nsDataSignatureVerifier::VerifyData(const nsACString & aData,
     
     
     SECKEY_DestroyPublicKey(publicKey);
-    PORT_FreeArena(arena, false);
+    PORT_FreeArena(arena, PR_FALSE);
     
     *_retval = (ss == SECSuccess);
 

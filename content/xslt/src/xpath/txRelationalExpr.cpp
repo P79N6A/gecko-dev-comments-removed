@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsContentUtils.h"
 #include "txExpr.h"
 #include "txNodeSet.h"
 #include "txIXPathContext.h"
@@ -29,19 +63,19 @@ RelationalExpr::compareResults(txIEvalContext* aContext, txAExprResult* aLeft,
         txNodeSet* nodeSet = static_cast<txNodeSet*>(aLeft);
         nsRefPtr<StringResult> strResult;
         rv = aContext->recycler()->getStringResult(getter_AddRefs(strResult));
-        NS_ENSURE_SUCCESS(rv, false);
+        NS_ENSURE_SUCCESS(rv, PR_FALSE);
 
-        int32_t i;
+        PRInt32 i;
         for (i = 0; i < nodeSet->size(); ++i) {
             strResult->mValue.Truncate();
             txXPathNodeUtils::appendNodeValue(nodeSet->get(i),
                                               strResult->mValue);
             if (compareResults(aContext, strResult, aRight)) {
-                return true;
+                return PR_TRUE;
             }
         }
 
-        return false;
+        return PR_FALSE;
     }
 
     
@@ -54,19 +88,19 @@ RelationalExpr::compareResults(txIEvalContext* aContext, txAExprResult* aLeft,
         txNodeSet* nodeSet = static_cast<txNodeSet*>(aRight);
         nsRefPtr<StringResult> strResult;
         rv = aContext->recycler()->getStringResult(getter_AddRefs(strResult));
-        NS_ENSURE_SUCCESS(rv, false);
+        NS_ENSURE_SUCCESS(rv, PR_FALSE);
 
-        int32_t i;
+        PRInt32 i;
         for (i = 0; i < nodeSet->size(); ++i) {
             strResult->mValue.Truncate();
             txXPathNodeUtils::appendNodeValue(nodeSet->get(i),
                                               strResult->mValue);
             if (compareResults(aContext, aLeft, strResult)) {
-                return true;
+                return PR_TRUE;
             }
         }
 
-        return false;
+        return PR_FALSE;
     }
 
     
@@ -85,7 +119,7 @@ RelationalExpr::compareResults(txIEvalContext* aContext, txAExprResult* aLeft,
                  rtype == txAExprResult::NUMBER) {
             double lval = aLeft->numberValue();
             double rval = aRight->numberValue();
-            result = (lval == rval);
+            result = DOUBLE_COMPARE(lval, ==, rval);
         }
 
         
@@ -120,19 +154,19 @@ RelationalExpr::compareResults(txIEvalContext* aContext, txAExprResult* aLeft,
     switch (mOp) {
         case LESS_THAN:
         {
-            return (leftDbl < rightDbl);
+            return DOUBLE_COMPARE(leftDbl, <, rightDbl);
         }
         case LESS_OR_EQUAL:
         {
-            return (leftDbl <= rightDbl);
+            return DOUBLE_COMPARE(leftDbl, <=, rightDbl);
         }
         case GREATER_THAN:
         {
-            return (leftDbl > rightDbl);
+            return DOUBLE_COMPARE(leftDbl, >, rightDbl);
         }
         case GREATER_OR_EQUAL:
         {
-            return (leftDbl >= rightDbl);
+            return DOUBLE_COMPARE(leftDbl, >=, rightDbl);
         }
         default:
         {
@@ -140,13 +174,13 @@ RelationalExpr::compareResults(txIEvalContext* aContext, txAExprResult* aLeft,
         }
     }
 
-    return false;
+    return PR_FALSE;
 }
 
 nsresult
 RelationalExpr::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
 {
-    *aResult = nullptr;
+    *aResult = nsnull;
     nsRefPtr<txAExprResult> lResult;
     nsresult rv = mLeftExpr->evaluate(aContext, getter_AddRefs(lResult));
     NS_ENSURE_SUCCESS(rv, rv);

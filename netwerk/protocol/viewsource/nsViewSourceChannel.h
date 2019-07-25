@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsViewSourceChannel_h___
 #define nsViewSourceChannel_h___
 
@@ -17,17 +50,14 @@
 #include "nsIHttpChannel.h"
 #include "nsIHttpChannelInternal.h"
 #include "nsICachingChannel.h"
-#include "nsIApplicationCacheChannel.h"
 #include "nsIUploadChannel.h"
-#include "mozilla/Attributes.h"
 
-class nsViewSourceChannel MOZ_FINAL : public nsIViewSourceChannel,
-                                      public nsIStreamListener,
-                                      public nsIHttpChannel,
-                                      public nsIHttpChannelInternal,
-                                      public nsICachingChannel,
-                                      public nsIApplicationCacheChannel,
-                                      public nsIUploadChannel
+class nsViewSourceChannel : public nsIViewSourceChannel,
+                            public nsIStreamListener,
+                            public nsIHttpChannel,
+                            public nsIHttpChannelInternal,
+                            public nsICachingChannel,
+                            public nsIUploadChannel
 {
 
 public:
@@ -40,15 +70,13 @@ public:
     NS_DECL_NSIHTTPCHANNEL
     NS_FORWARD_SAFE_NSICACHEINFOCHANNEL(mCachingChannel)
     NS_FORWARD_SAFE_NSICACHINGCHANNEL(mCachingChannel)
-    NS_FORWARD_SAFE_NSIAPPLICATIONCACHECHANNEL(mApplicationCacheChannel)
-    NS_FORWARD_SAFE_NSIAPPLICATIONCACHECONTAINER(mApplicationCacheChannel)
     NS_FORWARD_SAFE_NSIUPLOADCHANNEL(mUploadChannel)
     NS_FORWARD_SAFE_NSIHTTPCHANNELINTERNAL(mHttpChannelInternal)
 
     
     nsViewSourceChannel()
-        : mIsDocument(false)
-        , mOpened(false) {}
+        : mIsDocument(PR_FALSE)
+        , mOpened(PR_FALSE) {}
 
     NS_HIDDEN_(nsresult) Init(nsIURI* uri);
 
@@ -57,7 +85,6 @@ protected:
     nsCOMPtr<nsIHttpChannel>    mHttpChannel;
     nsCOMPtr<nsIHttpChannelInternal>    mHttpChannelInternal;
     nsCOMPtr<nsICachingChannel> mCachingChannel;
-    nsCOMPtr<nsIApplicationCacheChannel> mApplicationCacheChannel;
     nsCOMPtr<nsIUploadChannel>  mUploadChannel;
     nsCOMPtr<nsIStreamListener> mListener;
     nsCOMPtr<nsIURI>            mOriginalURI;

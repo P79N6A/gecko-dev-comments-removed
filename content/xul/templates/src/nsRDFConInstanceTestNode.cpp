@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIComponentManager.h"
 #include "nsIRDFContainer.h"
 #include "nsIRDFContainerUtils.h"
@@ -40,7 +73,7 @@ nsRDFConInstanceTestNode::nsRDFConInstanceTestNode(TestNode* aParent,
 {
 #ifdef PR_LOGGING
     if (PR_LOG_TEST(gXULTemplateLog, PR_LOG_DEBUG)) {
-        nsAutoCString props;
+        nsCAutoString props;
 
         nsResourceSet& containmentProps = aProcessor->ContainmentProperties();
         nsResourceSet::ConstIterator last = containmentProps.Last();
@@ -80,7 +113,7 @@ nsRDFConInstanceTestNode::FilterInstantiations(InstantiationSet& aInstantiations
     nsresult rv;
 
     if (aCantHandleYet)
-        *aCantHandleYet = false;
+        *aCantHandleYet = PR_FALSE;
 
     nsCOMPtr<nsIRDFContainerUtils> rdfc
         = do_GetService("@mozilla.org/rdf/container-utils;1");
@@ -137,7 +170,7 @@ nsRDFConInstanceTestNode::FilterInstantiations(InstantiationSet& aInstantiations
                 rv = rdfcontainer->Init(ds, valueres);
                 if (NS_FAILED(rv)) return rv;
 
-                int32_t count;
+                PRInt32 count;
                 rv = rdfcontainer->GetCount(&count);
                 if (NS_FAILED(rv)) return rv;
 
@@ -154,10 +187,10 @@ nsRDFConInstanceTestNode::FilterInstantiations(InstantiationSet& aInstantiations
                      property != containmentProps.Last();
                      ++property) {
                     nsCOMPtr<nsIRDFNode> target;
-                    rv = ds->GetTarget(valueres, *property, true, getter_AddRefs(target));
+                    rv = ds->GetTarget(valueres, *property, PR_TRUE, getter_AddRefs(target));
                     if (NS_FAILED(rv)) return rv;
 
-                    if (target != nullptr) {
+                    if (target != nsnull) {
                         
                         empty = eFalse;
                         container = eTrue;
@@ -186,7 +219,7 @@ nsRDFConInstanceTestNode::FilterInstantiations(InstantiationSet& aInstantiations
                         if (NS_FAILED(rv)) return rv;
 
                         nsCOMPtr<nsIRDFResource> property = do_QueryInterface(isupports);
-                        NS_ASSERTION(property != nullptr, "not a property");
+                        NS_ASSERTION(property != nsnull, "not a property");
                         if (! property)
                             return NS_ERROR_UNEXPECTED;
 
@@ -241,11 +274,11 @@ nsRDFConInstanceTestNode::CanPropagate(nsIRDFResource* aSource,
         = do_GetService("@mozilla.org/rdf/container-utils;1");
 
     if (! rdfc)
-        return false;
+        return PR_FALSE;
 
     
     rv = rdfc->IsOrdinalProperty(aProperty, &canpropagate);
-    if (NS_FAILED(rv)) return false;
+    if (NS_FAILED(rv)) return PR_FALSE;
 
     if (! canpropagate) {
         canpropagate = mProcessor->ContainmentProperties().Contains(aProperty);
@@ -271,10 +304,10 @@ nsRDFConInstanceTestNode::CanPropagate(nsIRDFResource* aSource,
 
     if (canpropagate) {
         aInitialBindings.AddAssignment(mContainerVariable, aSource);
-        return true;
+        return PR_TRUE;
     }
 
-    return false;
+    return PR_FALSE;
 }
 
 void

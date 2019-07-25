@@ -4,6 +4,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsFrame.h"
 #include "nsPresContext.h"
@@ -61,43 +96,25 @@ nsMathMLmsubsupFrame::Place(nsRenderingContext& aRenderingContext,
   nscoord scriptSpace = 0;
 
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   nsAutoString value;
   nscoord subScriptShift = 0;
   GetAttribute(mContent, mPresentationData.mstyle,
                nsGkAtoms::subscriptshift_, value);
   if (!value.IsEmpty()) {
-    ParseNumericValue(value, &subScriptShift,
-                      nsMathMLElement::PARSE_ALLOW_NEGATIVE,
-                      PresContext(), mStyleContext);
+    nsCSSValue cssValue;
+    if (ParseNumericValue(value, cssValue) && cssValue.IsLengthUnit()) {
+      subScriptShift = CalcLength(PresContext(), mStyleContext, cssValue);
+    }
   }
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   
   nscoord supScriptShift = 0;
   GetAttribute(mContent, mPresentationData.mstyle,
                nsGkAtoms::superscriptshift_, value);
   if (!value.IsEmpty()) {
-    ParseNumericValue(value, &supScriptShift,
-                      nsMathMLElement::PARSE_ALLOW_NEGATIVE,
-                      PresContext(), mStyleContext);
+    nsCSSValue cssValue;
+    if (ParseNumericValue(value, cssValue) && cssValue.IsLengthUnit()) {
+      supScriptShift = CalcLength(PresContext(), mStyleContext, cssValue);
+    }
   }
 
   return nsMathMLmsubsupFrame::PlaceSubSupScript(PresContext(),
@@ -133,8 +150,8 @@ nsMathMLmsubsupFrame::PlaceSubSupScript(nsPresContext*      aPresContext,
   nsHTMLReflowMetrics subScriptSize;
   nsHTMLReflowMetrics supScriptSize;
   nsBoundingMetrics bmBase, bmSubScript, bmSupScript;
-  nsIFrame* subScriptFrame = nullptr;
-  nsIFrame* supScriptFrame = nullptr;
+  nsIFrame* subScriptFrame = nsnull;
+  nsIFrame* supScriptFrame = nsnull;
   nsIFrame* baseFrame = aFrame->GetFirstPrincipalChild();
   if (baseFrame)
     subScriptFrame = baseFrame->GetNextSibling();
@@ -319,21 +336,18 @@ nsMathMLmsubsupFrame::PlaceSubSupScript(nsPresContext*      aPresContext,
   if (aPlaceOrigin) {
     nscoord dx, dy;
     
-    dx = aFrame->MirrorIfRTL(aDesiredSize.width, baseSize.width, 0);
-    dy = aDesiredSize.ascent - baseSize.ascent;
-    FinishReflowChild(baseFrame, aPresContext, nullptr,
+    dx = 0; dy = aDesiredSize.ascent - baseSize.ascent;
+    FinishReflowChild(baseFrame, aPresContext, nsnull,
                       baseSize, dx, dy, 0);
     
-    dx = aFrame->MirrorIfRTL(aDesiredSize.width, subScriptSize.width,
-                             bmBase.width);
+    dx = bmBase.width;
     dy = aDesiredSize.ascent - (subScriptSize.ascent - subScriptShift);
-    FinishReflowChild(subScriptFrame, aPresContext, nullptr,
+    FinishReflowChild(subScriptFrame, aPresContext, nsnull,
                       subScriptSize, dx, dy, 0);
     
-    dx = aFrame->MirrorIfRTL(aDesiredSize.width, supScriptSize.width,
-                             bmBase.width + italicCorrection);
+    dx = bmBase.width + italicCorrection;
     dy = aDesiredSize.ascent - (supScriptSize.ascent + supScriptShift);
-    FinishReflowChild(supScriptFrame, aPresContext, nullptr,
+    FinishReflowChild(supScriptFrame, aPresContext, nsnull,
                       supScriptSize, dx, dy, 0);
   }
 

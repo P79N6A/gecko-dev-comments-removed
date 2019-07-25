@@ -3,13 +3,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsMathMLmactionFrame_h___
 #define nsMathMLmactionFrame_h___
 
 #include "nsCOMPtr.h"
 #include "nsMathMLContainerFrame.h"
 #include "nsIDOMEventListener.h"
-#include "mozilla/Attributes.h"
 
 
 
@@ -34,7 +66,7 @@ public:
                       nsFrameList&    aChildList);
 
   virtual nsresult
-  ChildListChanged(int32_t aModType);
+  ChildListChanged(PRInt32 aModType);
 
   NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                               const nsRect&           aDirtyRect,
@@ -51,17 +83,12 @@ public:
          const nsHTMLReflowState& aReflowState,
          nsReflowStatus&          aStatus);
 
-  NS_IMETHOD
-  AttributeChanged(int32_t  aNameSpaceID,
-                   nsIAtom* aAttribute,
-                   int32_t  aModType);
-
 private:
   void MouseClick();
   void MouseOver();
   void MouseOut();
 
-  class MouseListener MOZ_FINAL : public nsIDOMEventListener
+  class MouseListener : public nsIDOMEventListener
   {
     NS_DECL_ISUPPORTS
     NS_DECL_NSIDOMEVENTLISTENER
@@ -75,13 +102,14 @@ protected:
   nsMathMLmactionFrame(nsStyleContext* aContext) : nsMathMLContainerFrame(aContext) {}
   virtual ~nsMathMLmactionFrame();
   
-  virtual int GetSkipSides() const { return 0; }
+  virtual PRIntn GetSkipSides() const { return 0; }
 
 private:
-  int32_t         mActionType;
-  int32_t         mChildCount;
-  int32_t         mSelection;
+  PRInt32         mActionType;
+  PRInt32         mChildCount;
+  PRInt32         mSelection;
   nsIFrame*       mSelectedFrame;
+  nsString        mRestyle;
   nsCOMPtr<MouseListener> mListener;
 
   

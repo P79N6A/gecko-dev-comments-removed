@@ -3,7 +3,36 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsIDOMHTMLLIElement.h"
 #include "nsIDOMEventTarget.h"
@@ -12,8 +41,6 @@
 #include "nsStyleConsts.h"
 #include "nsMappedAttributes.h"
 #include "nsRuleData.h"
-
-using namespace mozilla;
 
 class nsHTMLLIElement : public nsGenericHTMLElement,
                         public nsIDOMHTMLLIElement
@@ -37,7 +64,7 @@ public:
   
   NS_DECL_NSIDOMHTMLLIELEMENT
 
-  virtual bool ParseAttribute(int32_t aNamespaceID,
+  virtual bool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
@@ -45,7 +72,6 @@ public:
   virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction() const;
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
   virtual nsXPCClassInfo* GetClassInfo();
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 };
 
 
@@ -102,7 +128,7 @@ static const nsAttrValue::EnumTable kOrderedListItemTypeTable[] = {
 };
 
 bool
-nsHTMLLIElement::ParseAttribute(int32_t aNamespaceID,
+nsHTMLLIElement::ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult)
@@ -110,8 +136,8 @@ nsHTMLLIElement::ParseAttribute(int32_t aNamespaceID,
   if (aNamespaceID == kNameSpaceID_None) {
     if (aAttribute == nsGkAtoms::type) {
       return aResult.ParseEnumValue(aValue, kOrderedListItemTypeTable,
-                                    true) ||
-             aResult.ParseEnumValue(aValue, kUnorderedListItemTypeTable, false);
+                                    PR_TRUE) ||
+             aResult.ParseEnumValue(aValue, kUnorderedListItemTypeTable, PR_FALSE);
     }
     if (aAttribute == nsGkAtoms::value) {
       return aResult.ParseIntValue(aValue);
@@ -144,7 +170,7 @@ nsHTMLLIElement::IsAttributeMapped(const nsIAtom* aAttribute) const
 {
   static const MappedAttributeEntry attributes[] = {
     { &nsGkAtoms::type },
-    { nullptr },
+    { nsnull },
   };
 
   static const MappedAttributeEntry* const map[] = {
@@ -152,7 +178,7 @@ nsHTMLLIElement::IsAttributeMapped(const nsIAtom* aAttribute) const
     sCommonAttributeMap,
   };
 
-  return FindAttributeDependence(aAttribute, map);
+  return FindAttributeDependence(aAttribute, map, NS_ARRAY_LENGTH(map));
 }
 
 

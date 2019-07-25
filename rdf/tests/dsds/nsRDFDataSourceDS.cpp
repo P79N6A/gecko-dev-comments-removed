@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCRT.h"
 #include "nsCOMPtr.h"
 
@@ -19,7 +52,7 @@
 
 #include "nsXPIDLString.h"
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
 #include <stdio.h>
 #endif
 
@@ -80,9 +113,9 @@ private:
   
 };
 
-nsIRDFResource* nsRDFDataSourceDataSource::kNC_Name=nullptr;
-nsIRDFResource* nsRDFDataSourceDataSource::kNC_Value=nullptr;
-nsIRDFResource* nsRDFDataSourceDataSource::kNC_Child=nullptr;
+nsIRDFResource* nsRDFDataSourceDataSource::kNC_Name=nsnull;
+nsIRDFResource* nsRDFDataSourceDataSource::kNC_Value=nsnull;
+nsIRDFResource* nsRDFDataSourceDataSource::kNC_Child=nsnull;
 
 
 nsRDFDataSourceDataSource::nsRDFDataSourceDataSource()
@@ -110,7 +143,7 @@ NS_IMETHODIMP nsRDFDataSourceDataSource::GetLoaded(bool *aLoaded)
     if (remote) {
         return remote->GetLoaded(aLoaded);
     }
-    *aLoaded = true;
+    *aLoaded = PR_TRUE;
     return NS_OK;
 }
 
@@ -124,7 +157,7 @@ nsRDFDataSourceDataSource::Init(const char *uri)
 
   
   NS_NAMED_LITERAL_CSTRING(prefix, "rdf:datasource");
-  nsAutoCString mInnerURI;
+  nsCAutoString mInnerURI;
   mInnerURI = Substring(mURI, prefix.Length() + 1);
   
   if (mInnerURI.IsEmpty() || mInnerURI == prefix) {
@@ -278,7 +311,7 @@ nsRDFDataSourceDataSource::GetTargets(nsIRDFResource *aSource,
 
       
       nsCOMPtr<nsISimpleEnumerator> targetEnumerator;
-      rv = mDataSource->GetTargets(aSource, arc, true,
+      rv = mDataSource->GetTargets(aSource, arc, PR_TRUE,
                                    getter_AddRefs(targetEnumerator));
 
       bool hasMoreTargets;

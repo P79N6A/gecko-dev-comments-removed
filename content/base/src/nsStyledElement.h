@@ -10,11 +10,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_STYLEDELEMENT_H_
 #define __NS_STYLEDELEMENT_H_
 
 #include "nsString.h"
 #include "nsGenericElement.h"
+#include "nsDOMMemoryReporter.h"
 
 namespace mozilla {
 namespace css {
@@ -34,6 +68,10 @@ protected:
   {}
 
 public:
+
+  NS_DECL_AND_IMPL_DOM_MEMORY_REPORTER_SIZEOF(nsStyledElementNotElementCSSInlineStyle,
+                                              nsStyledElementBase)
+
   
   virtual nsIAtom* GetClassAttributeName() const;
   virtual nsIAtom* GetIDAttributeName() const;
@@ -41,14 +79,17 @@ public:
   virtual const nsAttrValue* DoGetClasses() const;
 
   virtual mozilla::css::StyleRule* GetInlineStyleRule();
-  virtual nsresult SetInlineStyleRule(mozilla::css::StyleRule* aStyleRule,
-                                      const nsAString* aSerialized,
-                                      bool aNotify);
+  NS_IMETHOD SetInlineStyleRule(mozilla::css::StyleRule* aStyleRule, bool aNotify);
 
-  virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
+  virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
+                              nsIContent* aBindingParent,
+                              bool aCompileEventHandlers);
+  virtual void UnbindFromTree(bool aDeep, bool aNullParent);
+
+  virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
                              bool aNotify);
-  virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
-                                const nsAttrValue* aValue, bool aNotify);
+  virtual nsresult AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
+                                const nsAString* aValue, bool aNotify);
 
   nsIDOMCSSStyleDeclaration* GetStyle(nsresult* retval);
 
@@ -65,10 +106,8 @@ protected:
                            nsAttrValue& aResult,
                            bool aForceInDataDoc);
 
-  virtual bool ParseAttribute(int32_t aNamespaceID, nsIAtom* aAttribute,
+  virtual bool ParseAttribute(PRInt32 aNamespaceID, nsIAtom* aAttribute,
                                 const nsAString& aValue, nsAttrValue& aResult);
-
-  friend class nsGenericElement;
 
   
 
@@ -80,6 +119,10 @@ protected:
 };
 
 class nsStyledElement : public nsStyledElementNotElementCSSInlineStyle {
+public:
+  NS_DECL_AND_IMPL_DOM_MEMORY_REPORTER_SIZEOF(nsStyledElement,
+                                              nsStyledElementNotElementCSSInlineStyle)
+
 protected:
   inline nsStyledElement(already_AddRefed<nsINodeInfo> aNodeInfo)
     : nsStyledElementNotElementCSSInlineStyle(aNodeInfo)

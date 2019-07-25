@@ -9,45 +9,99 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsContentSink.h"
 #include "nsScriptLoader.h"
 #include "nsIDocument.h"
 #include "nsIDOMDocument.h"
 #include "mozilla/css/Loader.h"
+#include "nsStyleConsts.h"
 #include "nsStyleLinkElement.h"
+#include "nsINodeInfo.h"
 #include "nsIDocShell.h"
-#include "nsILoadContext.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsCPrefetchService.h"
 #include "nsIURI.h"
 #include "nsNetUtil.h"
 #include "nsIHttpChannel.h"
 #include "nsIContent.h"
+#include "nsIScriptElement.h"
+#include "nsIParser.h"
+#include "nsContentErrors.h"
 #include "nsIPresShell.h"
 #include "nsPresContext.h"
 #include "nsIViewManager.h"
+#include "nsIContentViewer.h"
 #include "nsIAtom.h"
 #include "nsGkAtoms.h"
 #include "nsIDOMWindow.h"
+#include "nsIPrincipal.h"
+#include "nsIScriptGlobalObject.h"
 #include "nsNetCID.h"
 #include "nsIOfflineCacheUpdate.h"
 #include "nsIApplicationCache.h"
 #include "nsIApplicationCacheContainer.h"
 #include "nsIApplicationCacheChannel.h"
 #include "nsIScriptSecurityManager.h"
+#include "nsIDOMLoadStatus.h"
 #include "nsICookieService.h"
 #include "nsIPrompt.h"
+#include "nsServiceManagerUtils.h"
 #include "nsContentUtils.h"
+#include "nsParserUtils.h"
+#include "nsCRT.h"
+#include "nsEscape.h"
+#include "nsWeakReference.h"
+#include "nsUnicharUtils.h"
 #include "nsNodeInfoManager.h"
 #include "nsIAppShell.h"
 #include "nsIWidget.h"
 #include "nsWidgetsCID.h"
+#include "nsIRequest.h"
+#include "nsNodeUtils.h"
 #include "nsIDOMNode.h"
+#include "nsThreadUtils.h"
+#include "nsPIDOMWindow.h"
 #include "mozAutoDocUpdate.h"
 #include "nsIWebNavigation.h"
+#include "nsIDocumentLoader.h"
+#include "nsICachingChannel.h"
+#include "nsICacheEntryDescriptor.h"
 #include "nsGenericHTMLElement.h"
 #include "nsHTMLDNSPrefetch.h"
-#include "nsIObserverService.h"
+#include "nsISupportsPrimitives.h"
 #include "mozilla/Preferences.h"
 #include "nsParserConstants.h"
 
@@ -55,16 +109,68 @@ using namespace mozilla;
 
 PRLogModuleInfo* gContentSinkLogModuleInfo;
 
+class nsScriptLoaderObserverProxy : public nsIScriptLoaderObserver
+{
+public:
+  nsScriptLoaderObserverProxy(nsIScriptLoaderObserver* aInner)
+    : mInner(do_GetWeakReference(aInner))
+  {
+  }
+  virtual ~nsScriptLoaderObserverProxy()
+  {
+  }
+  
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSISCRIPTLOADEROBSERVER
+
+  nsWeakPtr mInner;
+};
+
+NS_IMPL_ISUPPORTS1(nsScriptLoaderObserverProxy, nsIScriptLoaderObserver)
+
+NS_IMETHODIMP
+nsScriptLoaderObserverProxy::ScriptAvailable(nsresult aResult,
+                                             nsIScriptElement *aElement,
+                                             bool aIsInline,
+                                             nsIURI *aURI,
+                                             PRInt32 aLineNo)
+{
+  nsCOMPtr<nsIScriptLoaderObserver> inner = do_QueryReferent(mInner);
+
+  if (inner) {
+    return inner->ScriptAvailable(aResult, aElement, aIsInline, aURI,
+                                  aLineNo);
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsScriptLoaderObserverProxy::ScriptEvaluated(nsresult aResult,
+                                             nsIScriptElement *aElement,
+                                             bool aIsInline)
+{
+  nsCOMPtr<nsIScriptLoaderObserver> inner = do_QueryReferent(mInner);
+
+  if (inner) {
+    return inner->ScriptEvaluated(aResult, aElement, aIsInline);
+  }
+
+  return NS_OK;
+}
+
+
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsContentSink)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsContentSink)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsContentSink)
   NS_INTERFACE_MAP_ENTRY(nsICSSLoaderObserver)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
+  NS_INTERFACE_MAP_ENTRY(nsIScriptLoaderObserver)
   NS_INTERFACE_MAP_ENTRY(nsIDocumentObserver)
   NS_INTERFACE_MAP_ENTRY(nsIMutationObserver)
   NS_INTERFACE_MAP_ENTRY(nsITimerCallback)
-  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIDocumentObserver)
+  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIScriptLoaderObserver)
 NS_INTERFACE_MAP_END
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsContentSink)
@@ -76,6 +182,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsContentSink)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mParser)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mNodeInfoManager)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mScriptLoader)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMARRAY(mScriptElements)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsContentSink)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mDocument)
@@ -83,6 +190,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsContentSink)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NATIVE_MEMBER(mNodeInfoManager,
                                                   nsNodeInfoManager)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mScriptLoader)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMARRAY(mScriptElements)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 
@@ -99,7 +207,7 @@ nsContentSink::nsContentSink()
   NS_ASSERTION(mInNotification == 0, "What?");
   NS_ASSERTION(!mDeferredLayoutStart, "What?");
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
   if (!gContentSinkLogModuleInfo) {
     gContentSinkLogModuleInfo = PR_NewLogModule("nscontentsink");
   }
@@ -116,23 +224,24 @@ nsContentSink::~nsContentSink()
 }
 
 bool    nsContentSink::sNotifyOnTimer;
-int32_t nsContentSink::sBackoffCount;
-int32_t nsContentSink::sNotificationInterval;
-int32_t nsContentSink::sInteractiveDeflectCount;
-int32_t nsContentSink::sPerfDeflectCount;
-int32_t nsContentSink::sPendingEventMode;
-int32_t nsContentSink::sEventProbeRate;
-int32_t nsContentSink::sInteractiveParseTime;
-int32_t nsContentSink::sPerfParseTime;
-int32_t nsContentSink::sInteractiveTime;
-int32_t nsContentSink::sInitialPerfTime;
-int32_t nsContentSink::sEnablePerfMode;
+PRInt32 nsContentSink::sBackoffCount;
+PRInt32 nsContentSink::sNotificationInterval;
+PRInt32 nsContentSink::sInteractiveDeflectCount;
+PRInt32 nsContentSink::sPerfDeflectCount;
+PRInt32 nsContentSink::sPendingEventMode;
+PRInt32 nsContentSink::sEventProbeRate;
+PRInt32 nsContentSink::sInteractiveParseTime;
+PRInt32 nsContentSink::sPerfParseTime;
+PRInt32 nsContentSink::sInteractiveTime;
+PRInt32 nsContentSink::sInitialPerfTime;
+PRInt32 nsContentSink::sEnablePerfMode;
+bool    nsContentSink::sCanInterruptParser;
 
 void
 nsContentSink::InitializeStatics()
 {
   Preferences::AddBoolVarCache(&sNotifyOnTimer,
-                               "content.notify.ontimer", true);
+                               "content.notify.ontimer", PR_TRUE);
   
   Preferences::AddIntVarCache(&sBackoffCount,
                               "content.notify.backoffcount", -1);
@@ -163,6 +272,8 @@ nsContentSink::InitializeStatics()
                               "content.sink.initial_perf_time", 2000000);
   Preferences::AddIntVarCache(&sEnablePerfMode,
                               "content.sink.enable_perf_mode", 0);
+  Preferences::AddBoolVarCache(&sCanInterruptParser,
+                               "content.interrupt.parsing", PR_TRUE);
 }
 
 nsresult
@@ -184,13 +295,20 @@ nsContentSink::Init(nsIDocument* aDoc,
   mDocShell = do_QueryInterface(aContainer);
   mScriptLoader = mDocument->ScriptLoader();
 
-  if (!mRunsToCompletion) {
+  if (!mFragmentMode) {
     if (mDocShell) {
-      uint32_t loadType = 0;
+      PRUint32 loadType = 0;
       mDocShell->GetLoadType(&loadType);
       mDocument->SetChangeScrollPosWhenScrollingToRef(
         (loadType & nsIDocShell::LOAD_CMD_HISTORY) == 0);
     }
+
+    
+    nsCOMPtr<nsIScriptLoaderObserver> proxy =
+      new nsScriptLoaderObserverProxy(this);
+    NS_ENSURE_TRUE(proxy, NS_ERROR_OUT_OF_MEMORY);
+
+    mScriptLoader->AddObserver(proxy);
 
     ProcessHTTPHeaders(aChannel);
   }
@@ -206,6 +324,10 @@ nsContentSink::Init(nsIDocument* aDoc,
     FavorPerformanceHint(!mDynamicLowerValue, 0);
   }
 
+  
+  
+  mCanInterruptParser = !mFragmentMode && sCanInterruptParser;
+
   return NS_OK;
 }
 
@@ -214,7 +336,7 @@ nsContentSink::StyleSheetLoaded(nsCSSStyleSheet* aSheet,
                                 bool aWasAlternate,
                                 nsresult aStatus)
 {
-  NS_ASSERTION(!mRunsToCompletion, "How come a fragment parser observed sheets?");
+  NS_ASSERTION(!mFragmentMode, "How come a fragment parser observed sheets?");
   if (!aWasAlternate) {
     NS_ASSERTION(mPendingSheetCount > 0, "How'd that happen?");
     --mPendingSheetCount;
@@ -231,7 +353,7 @@ nsContentSink::StyleSheetLoaded(nsCSSStyleSheet* aSheet,
         
         
         
-        StartLayout(false);
+        StartLayout(PR_FALSE);
       }
 
       
@@ -239,6 +361,90 @@ nsContentSink::StyleSheetLoaded(nsCSSStyleSheet* aSheet,
     }
     
     mScriptLoader->RemoveExecuteBlocker();
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsContentSink::ScriptAvailable(nsresult aResult,
+                               nsIScriptElement *aElement,
+                               bool aIsInline,
+                               nsIURI *aURI,
+                               PRInt32 aLineNo)
+{
+  PRUint32 count = mScriptElements.Count();
+
+  
+  
+  
+  NS_ASSERTION(count == 0 ||
+               mScriptElements.IndexOf(aElement) == PRInt32(count - 1) ||
+               mScriptElements.IndexOf(aElement) == -1,
+               "script found at unexpected position");
+
+  
+  if (count == 0 || aElement != mScriptElements[count - 1]) {
+    return NS_OK;
+  }
+
+  NS_ASSERTION(!aElement->GetScriptDeferred(), "defer script was in mScriptElements");
+  NS_ASSERTION(!aElement->GetScriptAsync(), "async script was in mScriptElements");
+
+  if (mParser && !mParser->IsParserEnabled()) {
+    
+    
+    
+    
+    mParser->UnblockParser();
+  }
+
+  if (NS_SUCCEEDED(aResult)) {
+    PreEvaluateScript();
+  } else {
+    mScriptElements.RemoveObjectAt(count - 1);
+
+    if (mParser && aResult != NS_BINDING_ABORTED) {
+      
+      
+      
+      
+      
+      
+      
+      
+      ContinueInterruptedParsingAsync();
+    }
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsContentSink::ScriptEvaluated(nsresult aResult,
+                               nsIScriptElement *aElement,
+                               bool aIsInline)
+{
+  mDeflectedCount = sPerfDeflectCount;
+
+  
+  PRInt32 count = mScriptElements.Count();
+  if (count == 0 || aElement != mScriptElements[count - 1]) {
+    return NS_OK;
+  }
+
+  NS_ASSERTION(!aElement->GetScriptDeferred(), "defer script was in mScriptElements");
+  NS_ASSERTION(!aElement->GetScriptAsync(), "async script was in mScriptElements");
+
+  
+  mScriptElements.RemoveObjectAt(count - 1); 
+
+  if (NS_SUCCEEDED(aResult)) {
+    PostEvaluateScript(aElement);
+  }
+
+  if (mParser && mParser->IsParserEnabled()) {
+    ContinueInterruptedParsingAsync();
   }
 
   return NS_OK;
@@ -256,7 +462,7 @@ nsContentSink::ProcessHTTPHeaders(nsIChannel* aChannel)
   
   
   
-  nsAutoCString linkHeader;
+  nsCAutoString linkHeader;
   
   nsresult rv = httpchannel->GetResponseHeader(NS_LITERAL_CSTRING("link"),
                                                linkHeader);
@@ -350,7 +556,7 @@ nsContentSink::DoProcessLinkHeader()
 {
   nsAutoString value;
   mDocument->GetHeaderData(nsGkAtoms::link, value);
-  ProcessLinkHeader(value);
+  ProcessLinkHeader(nsnull, value);
 }
 
 
@@ -361,7 +567,7 @@ nsContentSink::LinkContextIsOurDocument(const nsSubstring& aAnchor)
 {
   if (aAnchor.IsEmpty()) {
     
-    return true;
+    return PR_TRUE;
   }
 
   nsIURI* docUri = mDocument->GetDocumentURI();
@@ -374,73 +580,32 @@ nsContentSink::LinkContextIsOurDocument(const nsSubstring& aAnchor)
   
   if (NS_FAILED(rv)) {
     
-    return false;
+    return PR_FALSE;
   }
   
   
   nsCOMPtr<nsIURI> resolvedUri;
   rv = NS_NewURI(getter_AddRefs(resolvedUri), aAnchor,
-      nullptr, contextUri);
+      nsnull, contextUri);
   
   if (NS_FAILED(rv)) {
     
-    return false;
+    return PR_FALSE;
   }
 
   bool same;
   rv = contextUri->Equals(resolvedUri, &same); 
   if (NS_FAILED(rv)) {
     
-    return false;
+    return PR_FALSE;
   }
 
   return same;
 }
 
-
-
-
-
-
-
-bool
-nsContentSink::Decode5987Format(nsAString& aEncoded) {
-
-  nsresult rv;
-  nsCOMPtr<nsIMIMEHeaderParam> mimehdrpar =
-  do_GetService(NS_MIMEHEADERPARAM_CONTRACTID, &rv);
-  if (NS_FAILED(rv))
-    return false;
-
-  nsAutoCString asciiValue;
-
-  const PRUnichar* encstart = aEncoded.BeginReading();
-  const PRUnichar* encend = aEncoded.EndReading();
-
-  
-  
-  while (encstart != encend) {
-    if (*encstart > 0 && *encstart < 128) {
-      asciiValue.Append((char)*encstart);
-    } else {
-      return false;
-    }
-    encstart++;
-  }
-
-  nsAutoString decoded;
-  nsAutoCString language;
-
-  rv = mimehdrpar->DecodeRFC5987Param(asciiValue, language, decoded);
-  if (NS_FAILED(rv))
-    return false;
-
-  aEncoded = decoded;
-  return true;
-}
-
 nsresult
-nsContentSink::ProcessLinkHeader(const nsAString& aLinkData)
+nsContentSink::ProcessLinkHeader(nsIContent* aElement,
+                                 const nsAString& aLinkData)
 {
   nsresult rv = NS_OK;
 
@@ -451,7 +616,6 @@ nsContentSink::ProcessLinkHeader(const nsAString& aLinkData)
   nsAutoString href;
   nsAutoString rel;
   nsAutoString title;
-  nsAutoString titleStar;
   nsAutoString type;
   nsAutoString media;
   nsAutoString anchor;
@@ -476,7 +640,7 @@ nsContentSink::ProcessLinkHeader(const nsAString& aLinkData)
     end = start;
     last = end - 1;
 
-    bool wasQuotedString = false;
+    bool needsUnescape = false;
     
     
     while (*end != kNullCh && *end != kSemicolon && *end != kComma) {
@@ -490,14 +654,14 @@ nsContentSink::ProcessLinkHeader(const nsAString& aLinkData)
           quote = kGreaterThan;
         }
         
-        wasQuotedString = (ch == kQuote);
+        needsUnescape = (ch == kQuote);
         
         PRUnichar* closeQuote = (end + 1);
 
         
         while (*closeQuote != kNullCh && quote != *closeQuote) {
           
-          if (wasQuotedString && *closeQuote == kBackSlash && *(closeQuote + 1) != kNullCh) {
+          if (needsUnescape && *closeQuote == kBackSlash && *(closeQuote + 1) != kNullCh) {
             ++closeQuote;
           }
 
@@ -551,7 +715,7 @@ nsContentSink::ProcessLinkHeader(const nsAString& aLinkData)
         }
       } else {
         PRUnichar* equals = start;
-        seenParameters = true;
+        seenParameters = PR_TRUE;
 
         while ((*equals != kNullCh) && (*equals != kEqual)) {
           equals++;
@@ -572,7 +736,7 @@ nsContentSink::ProcessLinkHeader(const nsAString& aLinkData)
             value++;
           }
 
-          if (wasQuotedString) {
+          if (needsUnescape) {
             
             PRUnichar* unescaped = value;
             PRUnichar *src = value;
@@ -597,20 +761,6 @@ nsContentSink::ProcessLinkHeader(const nsAString& aLinkData)
               title = value;
               title.CompressWhitespace();
             }
-          } else if (attr.LowerCaseEqualsLiteral("title*")) {
-            if (titleStar.IsEmpty() && !wasQuotedString) {
-              
-              
-              nsAutoString tmp;
-              tmp = value;
-              if (Decode5987Format(tmp)) {
-                titleStar = tmp;
-                titleStar.CompressWhitespace();
-              } else {
-                
-                titleStar.Truncate();
-              }
-            }
           } else if (attr.LowerCaseEqualsLiteral("type")) {
             if (type.IsEmpty()) {
               type = value;
@@ -621,8 +771,7 @@ nsContentSink::ProcessLinkHeader(const nsAString& aLinkData)
               media = value;
 
               
-              
-              nsContentUtils::ASCIIToLower(media);
+              ToLowerCase(media);
             }
           } else if (attr.LowerCaseEqualsLiteral("anchor")) {
             if (anchor.IsEmpty()) {
@@ -639,10 +788,7 @@ nsContentSink::ProcessLinkHeader(const nsAString& aLinkData)
 
       href.Trim(" \t\n\r\f"); 
       if (!href.IsEmpty() && !rel.IsEmpty()) {
-        rv = ProcessLink(anchor, href, rel,
-                         
-                         titleStar.IsEmpty() ? title : titleStar,
-                         type, media);
+        rv = ProcessLink(aElement, anchor, href, rel, title, type, media);
       }
 
       href.Truncate();
@@ -652,7 +798,7 @@ nsContentSink::ProcessLinkHeader(const nsAString& aLinkData)
       media.Truncate();
       anchor.Truncate();
       
-      seenParameters = false;
+      seenParameters = PR_FALSE;
     }
 
     start = ++end;
@@ -660,10 +806,7 @@ nsContentSink::ProcessLinkHeader(const nsAString& aLinkData)
                 
   href.Trim(" \t\n\r\f"); 
   if (!href.IsEmpty() && !rel.IsEmpty()) {
-    rv = ProcessLink(anchor, href, rel,
-                     
-                     titleStar.IsEmpty() ? title : titleStar,
-                     type, media);
+    rv = ProcessLink(aElement, anchor, href, rel, title, type, media);
   }
 
   return rv;
@@ -671,11 +814,14 @@ nsContentSink::ProcessLinkHeader(const nsAString& aLinkData)
 
 
 nsresult
-nsContentSink::ProcessLink(const nsSubstring& aAnchor, const nsSubstring& aHref,
+nsContentSink::ProcessLink(nsIContent* aElement,
+                           const nsSubstring& aAnchor, const nsSubstring& aHref,
                            const nsSubstring& aRel, const nsSubstring& aTitle,
                            const nsSubstring& aType, const nsSubstring& aMedia)
 {
-  uint32_t linkTypes = nsStyleLinkElement::ParseLinkTypes(aRel);
+  
+  nsTArray<nsString> linkTypes;
+  nsStyleLinkElement::ParseLinkTypes(aRel, linkTypes);
 
   
   
@@ -685,23 +831,23 @@ nsContentSink::ProcessLink(const nsSubstring& aAnchor, const nsSubstring& aHref,
     return NS_OK;
   }
   
-  bool hasPrefetch = linkTypes & PREFETCH;
+  bool hasPrefetch = linkTypes.Contains(NS_LITERAL_STRING("prefetch"));
   
-  if (hasPrefetch || (linkTypes & NEXT)) {
-    PrefetchHref(aHref, mDocument, hasPrefetch);
+  if (hasPrefetch || linkTypes.Contains(NS_LITERAL_STRING("next"))) {
+    PrefetchHref(aHref, aElement, hasPrefetch);
   }
 
-  if (!aHref.IsEmpty() && (linkTypes & DNS_PREFETCH)) {
+  if ((!aHref.IsEmpty()) && linkTypes.Contains(NS_LITERAL_STRING("dns-prefetch"))) {
     PrefetchDNS(aHref);
   }
 
   
-  if (!(linkTypes & STYLESHEET)) {
+  if (!linkTypes.Contains(NS_LITERAL_STRING("stylesheet"))) {
     return NS_OK;
   }
 
-  bool isAlternate = linkTypes & ALTERNATE;
-  return ProcessStyleLink(nullptr, aHref, isAlternate, aTitle, aType,
+  bool isAlternate = linkTypes.Contains(NS_LITERAL_STRING("alternate"));
+  return ProcessStyleLink(aElement, aHref, isAlternate, aTitle, aType,
                           aMedia);
 }
 
@@ -720,7 +866,7 @@ nsContentSink::ProcessStyleLink(nsIContent* aElement,
 
   nsAutoString  mimeType;
   nsAutoString  params;
-  nsContentUtils::SplitMimeType(aType, mimeType, params);
+  nsParserUtils::SplitMimeType(aType, mimeType, params);
 
   
   if (!mimeType.IsEmpty() && !mimeType.LowerCaseEqualsLiteral("text/css")) {
@@ -729,7 +875,7 @@ nsContentSink::ProcessStyleLink(nsIContent* aElement,
   }
 
   nsCOMPtr<nsIURI> url;
-  nsresult rv = NS_NewURI(getter_AddRefs(url), aHref, nullptr,
+  nsresult rv = NS_NewURI(getter_AddRefs(url), aHref, nsnull,
                           mDocument->GetDocBaseURI());
   
   if (NS_FAILED(rv)) {
@@ -737,19 +883,13 @@ nsContentSink::ProcessStyleLink(nsIContent* aElement,
     return NS_OK;
   }
 
-  NS_ASSERTION(!aElement ||
-               aElement->NodeType() == nsIDOMNode::PROCESSING_INSTRUCTION_NODE,
-               "We only expect processing instructions here");
-
-  
   
   bool isAlternate;
   rv = mCSSLoader->LoadStyleLink(aElement, url, aTitle, aMedia, aAlternate,
-                                 CORS_NONE,
-                                 mRunsToCompletion ? nullptr : this, &isAlternate);
+                                 mFragmentMode ? nsnull : this, &isAlternate);
   NS_ENSURE_SUCCESS(rv, rv);
   
-  if (!isAlternate && !mRunsToCompletion) {
+  if (!isAlternate && !mFragmentMode) {
     ++mPendingSheetCount;
     mScriptLoader->AddExecuteBlocker();
   }
@@ -772,7 +912,7 @@ nsContentSink::ProcessMETATag(nsIContent* aContent)
     nsAutoString result;
     aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::content, result);
     if (!result.IsEmpty()) {
-      nsContentUtils::ASCIIToLower(header);
+      ToLowerCase(header);
       nsCOMPtr<nsIAtom> fieldAtom(do_GetAtom(header));
       rv = ProcessHeaderData(fieldAtom, result, aContent); 
     }
@@ -784,7 +924,7 @@ nsContentSink::ProcessMETATag(nsIContent* aContent)
     nsAutoString result;
     aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::content, result);
     if (!result.IsEmpty()) {
-      nsContentUtils::ASCIIToLower(result);
+      ToLowerCase(result);
       mDocument->SetHeaderData(nsGkAtoms::handheldFriendly, result);
     }
   }
@@ -795,7 +935,7 @@ nsContentSink::ProcessMETATag(nsIContent* aContent)
 
 void
 nsContentSink::PrefetchHref(const nsAString &aHref,
-                            nsINode *aSource,
+                            nsIContent *aSource,
                             bool aExplicit)
 {
   
@@ -811,12 +951,11 @@ nsContentSink::PrefetchHref(const nsAString &aHref,
 
   nsCOMPtr<nsIDocShellTreeItem> treeItem, parentItem;
   do {
-    uint32_t appType = 0;
+    PRUint32 appType = 0;
     nsresult rv = docshell->GetAppType(&appType);
     if (NS_FAILED(rv) || appType == nsIDocShell::APP_TYPE_MAIL)
       return; 
-    treeItem = do_QueryInterface(docshell);
-    if (treeItem) {
+    if (treeItem = do_QueryInterface(docshell)) {
       treeItem->GetParent(getter_AddRefs(parentItem));
       if (parentItem) {
         treeItem = parentItem;
@@ -837,7 +976,7 @@ nsContentSink::PrefetchHref(const nsAString &aHref,
     const nsACString &charset = mDocument->GetDocumentCharacterSet();
     nsCOMPtr<nsIURI> uri;
     NS_NewURI(getter_AddRefs(uri), aHref,
-              charset.IsEmpty() ? nullptr : PromiseFlatCString(charset).get(),
+              charset.IsEmpty() ? nsnull : PromiseFlatCString(charset).get(),
               mDocument->GetDocBaseURI());
     if (uri) {
       nsCOMPtr<nsIDOMNode> domNode = do_QueryInterface(aSource);
@@ -860,7 +999,7 @@ nsContentSink::PrefetchDNS(const nsAString &aHref)
     if (!uri) {
       return;
     }
-    nsAutoCString host;
+    nsCAutoString host;
     uri->GetHost(host);
     CopyUTF8toUTF16(host, hostname);
   }
@@ -886,7 +1025,7 @@ nsContentSink::SelectDocAppCache(nsIApplicationCache *aLoadApplicationCache,
                "mDocument must implement nsIApplicationCacheContainer.");
 
   if (aLoadApplicationCache) {
-    nsAutoCString groupID;
+    nsCAutoString groupID;
     rv = aLoadApplicationCache->GetGroupID(groupID);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -908,8 +1047,8 @@ nsContentSink::SelectDocAppCache(nsIApplicationCache *aLoadApplicationCache,
       
       
       
-#ifdef DEBUG
-      nsAutoCString docURISpec, clientID;
+#ifdef NS_DEBUG
+      nsCAutoString docURISpec, clientID;
       mDocumentURI->GetAsciiSpec(docURISpec);
       aLoadApplicationCache->GetClientID(clientID);
       SINK_TRACE(gContentSinkLogModuleInfo, SINK_TRACE_CALLS,
@@ -949,7 +1088,7 @@ nsContentSink::SelectDocAppCacheNoManifest(nsIApplicationCache *aLoadApplication
                                            nsIURI **aManifestURI,
                                            CacheSelectionAction *aAction)
 {
-  *aManifestURI = nullptr;
+  *aManifestURI = nsnull;
   *aAction = CACHE_SELECTION_NONE;
 
   nsresult rv;
@@ -962,8 +1101,8 @@ nsContentSink::SelectDocAppCacheNoManifest(nsIApplicationCache *aLoadApplication
     NS_ASSERTION(applicationCacheDocument,
                  "mDocument must implement nsIApplicationCacheContainer.");
 
-#ifdef DEBUG
-    nsAutoCString docURISpec, clientID;
+#ifdef NS_DEBUG
+    nsCAutoString docURISpec, clientID;
     mDocumentURI->GetAsciiSpec(docURISpec);
     aLoadApplicationCache->GetClientID(clientID);
     SINK_TRACE(gContentSinkLogModuleInfo, SINK_TRACE_CALLS,
@@ -975,7 +1114,7 @@ nsContentSink::SelectDocAppCacheNoManifest(nsIApplicationCache *aLoadApplication
 
     
     
-    nsAutoCString groupID;
+    nsCAutoString groupID;
     rv = aLoadApplicationCache->GetGroupID(groupID);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1014,13 +1153,6 @@ nsContentSink::ProcessOfflineManifest(const nsAString& aManifestSpec)
   
   
   if (!mDocShell) {
-    return;
-  }
-
-  
-  
-  nsCOMPtr<nsILoadContext> loadContext = do_QueryInterface(mDocShell);
-  if (loadContext->UsePrivateBrowsing()) {
     return;
   }
 
@@ -1069,7 +1201,7 @@ nsContentSink::ProcessOfflineManifest(const nsAString& aManifestSpec)
     }
 
     
-    rv = mDocument->NodePrincipal()->CheckMayLoad(manifestURI, true, false);
+    rv = mDocument->NodePrincipal()->CheckMayLoad(manifestURI, PR_TRUE);
     if (NS_FAILED(rv)) {
       action = CACHE_SELECTION_RESELECT_WITHOUT_MANIFEST;
     }
@@ -1082,7 +1214,7 @@ nsContentSink::ProcessOfflineManifest(const nsAString& aManifestSpec)
       bool fetchedWithHTTPGetOrEquiv = false;
       nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(mDocument->GetChannel()));
       if (httpChannel) {
-        nsAutoCString method;
+        nsCAutoString method;
         rv = httpChannel->GetRequestMethod(method);
         if (NS_SUCCEEDED(rv))
           fetchedWithHTTPGetOrEquiv = method.Equals("GET");
@@ -1136,7 +1268,7 @@ nsContentSink::ProcessOfflineManifest(const nsAString& aManifestSpec)
     break;
   }
   default:
-    NS_ASSERTION(false,
+    NS_ASSERTION(PR_FALSE,
           "Cache selection algorithm didn't decide on proper action");
     break;
   }
@@ -1156,14 +1288,14 @@ nsContentSink::StartLayout(bool aIgnorePendingSheets)
     return;
   }
   
-  mDeferredLayoutStart = true;
+  mDeferredLayoutStart = PR_TRUE;
 
   if (!aIgnorePendingSheets && WaitForPendingSheets()) {
     
     return;
   }
 
-  mDeferredLayoutStart = false;
+  mDeferredLayoutStart = PR_FALSE;
 
   
   
@@ -1173,20 +1305,20 @@ nsContentSink::StartLayout(bool aIgnorePendingSheets)
   
   FlushTags();
 
-  mLayoutStarted = true;
+  mLayoutStarted = PR_TRUE;
   mLastNotificationTime = PR_Now();
 
-  mDocument->SetMayStartLayout(true);
+  mDocument->SetMayStartLayout(PR_TRUE);
   nsCOMPtr<nsIPresShell> shell = mDocument->GetShell();
   
   
   
   
   
-  if (shell && !shell->DidInitialize()) {
+  if (shell && !shell->DidInitialReflow()) {
     nsRect r = shell->GetPresContext()->GetVisibleArea();
     nsCOMPtr<nsIPresShell> shellGrip = shell;
-    nsresult rv = shell->Initialize(r.width, r.height);
+    nsresult rv = shell->InitialReflow(r.width, r.height);
     if (NS_FAILED(rv)) {
       return;
     }
@@ -1199,7 +1331,7 @@ nsContentSink::StartLayout(bool aIgnorePendingSheets)
 }
 
 void
-nsContentSink::NotifyAppend(nsIContent* aContainer, uint32_t aStartIndex)
+nsContentSink::NotifyAppend(nsIContent* aContainer, PRUint32 aStartIndex)
 {
   if (aContainer->GetCurrentDoc() != mDocument) {
     
@@ -1226,15 +1358,15 @@ nsContentSink::Notify(nsITimer *timer)
 {
   if (mParsing) {
     
-    mDroppedTimer = true;
+    mDroppedTimer = PR_TRUE;
     return NS_OK;
   }
   
 #ifdef MOZ_DEBUG
   {
     PRTime now = PR_Now();
-    int64_t diff, interval;
-    int32_t delay;
+    PRInt64 diff, interval;
+    PRInt32 delay;
 
     LL_I2L(interval, GetNotificationInterval());
     LL_SUB(diff, now, mLastNotificationTime);
@@ -1251,7 +1383,7 @@ nsContentSink::Notify(nsITimer *timer)
 #endif
 
   if (WaitForPendingSheets()) {
-    mDeferredFlushTags = true;
+    mDeferredFlushTags = PR_TRUE;
   } else {
     FlushTags();
 
@@ -1260,7 +1392,7 @@ nsContentSink::Notify(nsITimer *timer)
     ScrollToRef();
   }
 
-  mNotificationTimer = nullptr;
+  mNotificationTimer = nsnull;
   return NS_OK;
 }
 
@@ -1269,26 +1401,26 @@ nsContentSink::IsTimeToNotify()
 {
   if (!sNotifyOnTimer || !mLayoutStarted || !mBackoffCount ||
       mInMonolithicContainer) {
-    return false;
+    return PR_FALSE;
   }
 
   if (WaitForPendingSheets()) {
-    mDeferredFlushTags = true;
-    return false;
+    mDeferredFlushTags = PR_TRUE;
+    return PR_FALSE;
   }
 
   PRTime now = PR_Now();
-  int64_t interval, diff;
+  PRInt64 interval, diff;
 
   LL_I2L(interval, GetNotificationInterval());
   LL_SUB(diff, now, mLastNotificationTime);
 
   if (LL_CMP(diff, >, interval)) {
     mBackoffCount--;
-    return true;
+    return PR_TRUE;
   }
 
-  return false;
+  return PR_FALSE;
 }
 
 nsresult
@@ -1300,12 +1432,12 @@ nsContentSink::WillInterruptImpl()
              ("nsContentSink::WillInterrupt: this=%p", this));
 #ifndef SINK_NO_INCREMENTAL
   if (WaitForPendingSheets()) {
-    mDeferredFlushTags = true;
+    mDeferredFlushTags = PR_TRUE;
   } else if (sNotifyOnTimer && mLayoutStarted) {
     if (mBackoffCount && !mInMonolithicContainer) {
-      int64_t now = PR_Now();
-      int64_t interval = GetNotificationInterval();
-      int64_t diff = now - mLastNotificationTime;
+      PRInt64 now = PR_Now();
+      PRInt64 interval = GetNotificationInterval();
+      PRInt64 diff = now - mLastNotificationTime;
 
       
       if (diff > interval || mDroppedTimer) {
@@ -1316,11 +1448,11 @@ nsContentSink::WillInterruptImpl()
         result = FlushTags();
         if (mDroppedTimer) {
           ScrollToRef();
-          mDroppedTimer = false;
+          mDroppedTimer = PR_FALSE;
         }
       } else if (!mNotificationTimer) {
         interval -= diff;
-        int32_t delay = interval;
+        PRInt32 delay = interval;
 
         
         delay /= PR_USEC_PER_MSEC;
@@ -1336,7 +1468,7 @@ nsContentSink::WillInterruptImpl()
             mNotificationTimer->InitWithCallback(this, delay,
                                                  nsITimer::TYPE_ONE_SHOT);
           if (NS_FAILED(result)) {
-            mNotificationTimer = nullptr;
+            mNotificationTimer = nsnull;
           }
         }
       }
@@ -1349,7 +1481,7 @@ nsContentSink::WillInterruptImpl()
   }
 #endif
 
-  mParsing = false;
+  mParsing = PR_FALSE;
 
   return result;
 }
@@ -1360,7 +1492,7 @@ nsContentSink::WillResumeImpl()
   SINK_TRACE(gContentSinkLogModuleInfo, SINK_TRACE_CALLS,
              ("nsContentSink::WillResume: this=%p", this));
 
-  mParsing = true;
+  mParsing = PR_TRUE;
 
   return NS_OK;
 }
@@ -1368,7 +1500,7 @@ nsContentSink::WillResumeImpl()
 nsresult
 nsContentSink::DidProcessATokenImpl()
 {
-  if (mRunsToCompletion || !mParser) {
+  if (!mCanInterruptParser || !mParser || !mParser->CanInterrupt()) {
     return NS_OK;
   }
 
@@ -1399,7 +1531,7 @@ nsContentSink::DidProcessATokenImpl()
 
   
   if (!mHasPendingEvent &&
-      mDeflectedCount < uint32_t(mDynamicLowerValue ? sInteractiveDeflectCount :
+      mDeflectedCount < PRUint32(mDynamicLowerValue ? sInteractiveDeflectCount :
                                                       sPerfDeflectCount)) {
     return NS_OK;
   }
@@ -1417,7 +1549,7 @@ nsContentSink::DidProcessATokenImpl()
 
 
 void
-nsContentSink::FavorPerformanceHint(bool perfOverStarvation, uint32_t starvationDelay)
+nsContentSink::FavorPerformanceHint(bool perfOverStarvation, PRUint32 starvationDelay)
 {
   static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
   nsCOMPtr<nsIAppShell> appShell = do_GetService(kAppShellCID);
@@ -1460,9 +1592,7 @@ nsContentSink::EndUpdate(nsIDocument *aDocument, nsUpdateType aUpdateType)
 void
 nsContentSink::DidBuildModelImpl(bool aTerminated)
 {
-  if (mDocument) {
-    MOZ_ASSERT(mDocument->GetReadyStateEnum() ==
-               nsIDocument::READYSTATE_LOADING, "Bad readyState");
+  if (mDocument && !aTerminated) {
     mDocument->SetReadyStateInternal(nsIDocument::READYSTATE_INTERACTIVE);
   }
 
@@ -1471,7 +1601,7 @@ nsContentSink::DidBuildModelImpl(bool aTerminated)
   }
 
   if (!mDocument->HaveFiredDOMTitleChange()) {
-    mDocument->NotifyPossibleTitleChange(false);
+    mDocument->NotifyPossibleTitleChange(PR_FALSE);
   }
 
   
@@ -1499,16 +1629,16 @@ nsContentSink::DropParserAndPerfHint(void)
   
   
   
-  nsRefPtr<nsParserBase> kungFuDeathGrip(mParser.forget());
+  nsCOMPtr<nsIParser> kungFuDeathGrip(mParser.forget());
 
   if (mDynamicLowerValue) {
     
     
-    FavorPerformanceHint(true, 0);
+    FavorPerformanceHint(PR_TRUE, 0);
   }
 
-  if (!mRunsToCompletion) {
-    mDocument->UnblockOnload(true);
+  if (mCanInterruptParser) {
+    mDocument->UnblockOnload(PR_TRUE);
   }
 }
 
@@ -1521,7 +1651,7 @@ nsContentSink::IsScriptExecutingImpl()
 nsresult
 nsContentSink::WillParseImpl(void)
 {
-  if (mRunsToCompletion) {
+  if (!mCanInterruptParser) {
     return NS_OK;
   }
 
@@ -1530,18 +1660,17 @@ nsContentSink::WillParseImpl(void)
     return NS_OK;
   }
 
-  uint32_t currentTime = PR_IntervalToMicroseconds(PR_IntervalNow());
+  PRUint32 currentTime = PR_IntervalToMicroseconds(PR_IntervalNow());
 
   if (sEnablePerfMode == 0) {
     nsIViewManager* vm = shell->GetViewManager();
     NS_ENSURE_TRUE(vm, NS_ERROR_FAILURE);
-    uint32_t lastEventTime;
+    PRUint32 lastEventTime;
     vm->GetLastUserEventTime(lastEventTime);
 
     bool newDynLower =
-      mDocument->IsInBackgroundWindow() ||
-      ((currentTime - mBeginLoadTime) > uint32_t(sInitialPerfTime) &&
-       (currentTime - lastEventTime) < uint32_t(sInteractiveTime));
+      (currentTime - mBeginLoadTime) > PRUint32(sInitialPerfTime) &&
+      (currentTime - lastEventTime) < PRUint32(sInteractiveTime);
     
     if (mDynamicLowerValue != newDynLower) {
       FavorPerformanceHint(!newDynLower, 0);
@@ -1550,7 +1679,7 @@ nsContentSink::WillParseImpl(void)
   }
   
   mDeflectedCount = 0;
-  mHasPendingEvent = false;
+  mHasPendingEvent = PR_FALSE;
 
   mCurrentParseEndTime = currentTime +
     (mDynamicLowerValue ? sInteractiveParseTime : sPerfParseTime);
@@ -1561,7 +1690,7 @@ nsContentSink::WillParseImpl(void)
 void
 nsContentSink::WillBuildModelImpl()
 {
-  if (!mRunsToCompletion) {
+  if (mCanInterruptParser) {
     mDocument->BlockOnload();
 
     mBeginLoadTime = PR_IntervalToMicroseconds(PR_IntervalNow());
@@ -1574,6 +1703,25 @@ nsContentSink::WillBuildModelImpl()
 
     DoProcessLinkHeader();
   }
+}
+
+void
+nsContentSink::ContinueInterruptedParsingIfEnabled()
+{
+  
+  if (mParser && mParser->IsParserEnabled()) {
+    mParser->ContinueInterruptedParsing();
+  }
+}
+
+
+void
+nsContentSink::ContinueInterruptedParsingAsync()
+{
+  nsCOMPtr<nsIRunnable> ev = NS_NewRunnableMethod(this,
+    &nsContentSink::ContinueInterruptedParsingIfEnabled);
+
+  NS_DispatchToCurrentThread(ev);
 }
 
 

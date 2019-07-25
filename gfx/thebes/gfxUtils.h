@@ -3,15 +3,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_UTILS_H
 #define GFX_UTILS_H
 
 #include "gfxTypes.h"
 #include "gfxPattern.h"
 #include "gfxImageSurface.h"
-#include "ImageContainer.h"
-#include "mozilla/gfx/2D.h"
-#include "imgIContainer.h"
+#include "ImageLayers.h"
 
 class gfxDrawable;
 class nsIntRegion;
@@ -30,12 +60,9 @@ public:
 
 
     static void PremultiplyImageSurface(gfxImageSurface *aSourceSurface,
-                                        gfxImageSurface *aDestSurface = nullptr);
+                                        gfxImageSurface *aDestSurface = nsnull);
     static void UnpremultiplyImageSurface(gfxImageSurface *aSurface,
-                                          gfxImageSurface *aDestSurface = nullptr);
-
-    static void ConvertBGRAtoRGBA(gfxImageSurface *aSourceSurface,
-                                  gfxImageSurface *aDestSurface = nullptr);
+                                          gfxImageSurface *aDestSurface = nsnull);
 
     
 
@@ -58,8 +85,7 @@ public:
                                  const gfxRect&   aImageRect,
                                  const gfxRect&   aFill,
                                  const gfxImageSurface::gfxImageFormat aFormat,
-                                 gfxPattern::GraphicsFilter aFilter,
-                                 uint32_t         aImageFlags = imgIContainer::FLAG_NONE);
+                                 const gfxPattern::GraphicsFilter& aFilter);
 
     
 
@@ -123,72 +149,7 @@ public:
                       const gfxASurface::gfxImageFormat& aDestFormat,
                       const gfxIntSize& aDestSize,
                       unsigned char* aDestBuffer,
-                      int32_t aStride);
-
-#ifdef MOZ_DUMP_PAINTING
-    
-
-
-    static void WriteAsPNG(mozilla::gfx::DrawTarget* aDT, const char* aFile);
-
-    
-
-
-    static void DumpAsDataURL(mozilla::gfx::DrawTarget* aDT);
-
-    
-
-
-    static void CopyAsDataURL(mozilla::gfx::DrawTarget* aDT);
-
-    static bool sDumpPaintList;
-    static bool sDumpPainting;
-    static bool sDumpPaintingToFile;
-    static FILE* sDumpPaintFile;
-#endif
+                      PRInt32 aStride);
 };
-
-namespace mozilla {
-namespace gfx {
-
-
-
-
-
-
-
-
-
-
-
-
-static inline bool
-IsPowerOfTwo(int aNumber)
-{
-    return (aNumber & (aNumber - 1)) == 0;
-}
-
-
-
-
-
-static inline int
-NextPowerOfTwo(int aNumber)
-{
-#if defined(__arm__)
-    return 1 << (32 - __builtin_clz(aNumber - 1));
-#else
-    --aNumber;
-    aNumber |= aNumber >> 1;
-    aNumber |= aNumber >> 2;
-    aNumber |= aNumber >> 4;
-    aNumber |= aNumber >> 8;
-    aNumber |= aNumber >> 16;
-    return ++aNumber;
-#endif
-}
-
-} 
-} 
 
 #endif

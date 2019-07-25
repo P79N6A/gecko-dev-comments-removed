@@ -4,30 +4,59 @@
 
 
 
-#include "mozilla/mozalloc.h"           
-#include "nsAString.h"
-#include "nsComponentManagerUtils.h"    
-#include "nsComposerCommandsUpdater.h"
-#include "nsDebug.h"                    
-#include "nsError.h"                    
-#include "nsICommandManager.h"          
-#include "nsID.h"                       
-#include "nsIDOMWindow.h"               
-#include "nsIDocShell.h"                
-#include "nsIInterfaceRequestorUtils.h"  
-#include "nsISelection.h"               
-#include "nsITransactionManager.h"      
-#include "nsLiteralString.h"            
-#include "nsPICommandUpdater.h"         
-#include "nsPIDOMWindow.h"              
 
-class nsIDOMDocument;
-class nsITransaction;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsPIDOMWindow.h"
+#include "nsComposerCommandsUpdater.h"
+#include "nsComponentManagerUtils.h"
+#include "nsIDOMDocument.h"
+#include "nsISelection.h"
+
+#include "nsIInterfaceRequestorUtils.h"
+#include "nsString.h"
+
+#include "nsICommandManager.h"
+
+#include "nsIDocShell.h"
+#include "nsITransactionManager.h"
 
 nsComposerCommandsUpdater::nsComposerCommandsUpdater()
 :  mDirtyState(eStateUninitialized)
 ,  mSelectionCollapsed(eStateUninitialized)
-,  mFirstDoOfFirstUndo(true)
+,  mFirstDoOfFirstUndo(PR_TRUE)
 {
 }
 
@@ -62,7 +91,7 @@ nsComposerCommandsUpdater::NotifyDocumentWillBeDestroyed()
   if (mUpdateTimer)
   {
     mUpdateTimer->Cancel();
-    mUpdateTimer = nullptr;
+    mUpdateTimer = nsnull;
   }
   
   
@@ -84,7 +113,7 @@ nsComposerCommandsUpdater::NotifyDocumentStateChanged(bool aNowDirty)
 
 NS_IMETHODIMP
 nsComposerCommandsUpdater::NotifySelectionChanged(nsIDOMDocument *,
-                                                  nsISelection *, int16_t)
+                                                  nsISelection *, PRInt16)
 {
   return PrimeUpdateTimer();
 }
@@ -97,7 +126,7 @@ NS_IMETHODIMP
 nsComposerCommandsUpdater::WillDo(nsITransactionManager *aManager,
                                   nsITransaction *aTransaction, bool *aInterrupt)
 {
-  *aInterrupt = false;
+  *aInterrupt = PR_FALSE;
   return NS_OK;
 }
 
@@ -106,13 +135,13 @@ nsComposerCommandsUpdater::DidDo(nsITransactionManager *aManager,
   nsITransaction *aTransaction, nsresult aDoResult)
 {
   
-  int32_t undoCount;
+  PRInt32 undoCount;
   aManager->GetNumberOfUndoItems(&undoCount);
   if (undoCount == 1)
   {
     if (mFirstDoOfFirstUndo)
       UpdateCommandGroup(NS_LITERAL_STRING("undo"));
-    mFirstDoOfFirstUndo = false;
+    mFirstDoOfFirstUndo = PR_FALSE;
   }
 	
   return NS_OK;
@@ -123,7 +152,7 @@ nsComposerCommandsUpdater::WillUndo(nsITransactionManager *aManager,
                                     nsITransaction *aTransaction,
                                     bool *aInterrupt)
 {
-  *aInterrupt = false;
+  *aInterrupt = PR_FALSE;
   return NS_OK;
 }
 
@@ -132,10 +161,10 @@ nsComposerCommandsUpdater::DidUndo(nsITransactionManager *aManager,
                                    nsITransaction *aTransaction,
                                    nsresult aUndoResult)
 {
-  int32_t undoCount;
+  PRInt32 undoCount;
   aManager->GetNumberOfUndoItems(&undoCount);
   if (undoCount == 0)
-    mFirstDoOfFirstUndo = true;    
+    mFirstDoOfFirstUndo = PR_TRUE;    
 
   UpdateCommandGroup(NS_LITERAL_STRING("undo"));
   return NS_OK;
@@ -146,7 +175,7 @@ nsComposerCommandsUpdater::WillRedo(nsITransactionManager *aManager,
                                     nsITransaction *aTransaction,
                                     bool *aInterrupt)
 {
-  *aInterrupt = false;
+  *aInterrupt = PR_FALSE;
   return NS_OK;
 }
 
@@ -163,7 +192,7 @@ NS_IMETHODIMP
 nsComposerCommandsUpdater::WillBeginBatch(nsITransactionManager *aManager,
                                           bool *aInterrupt)
 {
-  *aInterrupt = false;
+  *aInterrupt = PR_FALSE;
   return NS_OK;
 }
 
@@ -178,7 +207,7 @@ NS_IMETHODIMP
 nsComposerCommandsUpdater::WillEndBatch(nsITransactionManager *aManager,
                                         bool *aInterrupt)
 {
-  *aInterrupt = false;
+  *aInterrupt = PR_FALSE;
   return NS_OK;
 }
 
@@ -195,7 +224,7 @@ nsComposerCommandsUpdater::WillMerge(nsITransactionManager *aManager,
                                      nsITransaction *aTransactionToMerge,
                                      bool *aInterrupt)
 {
-  *aInterrupt = false;
+  *aInterrupt = PR_FALSE;
   return NS_OK;
 }
 
@@ -236,7 +265,7 @@ nsComposerCommandsUpdater::PrimeUpdateTimer()
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  const uint32_t kUpdateTimerDelay = 150;
+  const PRUint32 kUpdateTimerDelay = 150;
   return mUpdateTimer->InitWithCallback(static_cast<nsITimerCallback*>(this),
                                         kUpdateTimerDelay,
                                         nsITimer::TYPE_ONE_SHOT);
@@ -340,7 +369,7 @@ bool
 nsComposerCommandsUpdater::SelectionIsCollapsed()
 {
   nsCOMPtr<nsIDOMWindow> domWindow = do_QueryReferent(mDOMWindow);
-  NS_ENSURE_TRUE(domWindow, true);
+  NS_ENSURE_TRUE(domWindow, PR_TRUE);
 
   nsCOMPtr<nsISelection> domSelection;
   if (NS_SUCCEEDED(domWindow->GetSelection(getter_AddRefs(domSelection))) && domSelection)
@@ -352,17 +381,17 @@ nsComposerCommandsUpdater::SelectionIsCollapsed()
 
   NS_WARNING("nsComposerCommandsUpdater::SelectionIsCollapsed - no domSelection");
 
-  return false;
+  return PR_FALSE;
 }
 
 already_AddRefed<nsPICommandUpdater>
 nsComposerCommandsUpdater::GetCommandUpdater()
 {
   nsCOMPtr<nsIDocShell> docShell = do_QueryReferent(mDocShell);
-  NS_ENSURE_TRUE(docShell, nullptr);
+  NS_ENSURE_TRUE(docShell, nsnull);
   nsCOMPtr<nsICommandManager> manager = do_GetInterface(docShell);
   nsCOMPtr<nsPICommandUpdater> updater = do_QueryInterface(manager);
-  nsPICommandUpdater* retVal = nullptr;
+  nsPICommandUpdater* retVal = nsnull;
   updater.swap(retVal);
   return retVal;
 }

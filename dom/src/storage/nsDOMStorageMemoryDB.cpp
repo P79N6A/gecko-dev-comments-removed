@@ -3,8 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
-#include "nsError.h"
+#include "nsDOMError.h"
 #include "nsDOMStorage.h"
 #include "nsDOMStorageMemoryDB.h"
 #include "nsNetUtil.h"
@@ -12,7 +46,8 @@
 nsresult
 nsDOMStorageMemoryDB::Init(nsDOMStoragePersistentDB* aPreloadDB)
 {
-  mData.Init(20);
+  if (!mData.Init(20))
+    return NS_ERROR_OUT_OF_MEMORY;
 
   mPreloadDB = aPreloadDB;
   return NS_OK;
@@ -32,7 +67,7 @@ AllKeyEnum(nsSessionStorageEntry* aEntry, void* userArg)
   aEntry->mItem->GetValue(item->mValue);
   nsresult rv = aEntry->mItem->GetSecure(&item->mSecure);
   if (NS_FAILED(rv))
-    item->mSecure = false;
+    item->mSecure = PR_FALSE;
 
   target->Put(aEntry->GetKey(), item);
   return PL_DHASH_NEXT;
@@ -45,13 +80,16 @@ nsDOMStorageMemoryDB::GetItemsTable(DOMStorageImpl* aStorage,
   if (mData.Get(aStorage->GetScopeDBKey(), aMemoryStorage))
     return NS_OK;
 
-  *aMemoryStorage = nullptr;
+  *aMemoryStorage = nsnull;
 
   nsInMemoryStorage* storageData = new nsInMemoryStorage();
   if (!storageData)
     return NS_ERROR_OUT_OF_MEMORY;
 
-  storageData->mTable.Init();
+  if (!storageData->mTable.Init()) {
+    delete storageData;
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
 
   if (mPreloadDB) {
     nsresult rv;
@@ -62,9 +100,9 @@ nsDOMStorageMemoryDB::GetItemsTable(DOMStorageImpl* aStorage,
     rv = mPreloadDB->GetAllKeys(aStorage, &keys);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    mPreloading = true;
+    mPreloading = PR_TRUE;
     keys.EnumerateEntries(AllKeyEnum, &storageData->mTable);
-    mPreloading = false;
+    mPreloading = PR_FALSE;
   }
 
   mData.Put(aStorage->GetScopeDBKey(), storageData);
@@ -149,9 +187,9 @@ nsDOMStorageMemoryDB::SetKey(DOMStorageImpl* aStorage,
                              const nsAString& aKey,
                              const nsAString& aValue,
                              bool aSecure,
-                             int32_t aQuota,
+                             PRInt32 aQuota,
                              bool aExcludeOfflineFromUsage,
-                             int32_t *aNewUsage)
+                             PRInt32 *aNewUsage)
 {
   nsresult rv;
 
@@ -159,7 +197,7 @@ nsDOMStorageMemoryDB::SetKey(DOMStorageImpl* aStorage,
   rv = GetItemsTable(aStorage, &storage);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  int32_t usage = 0;
+  PRInt32 usage = 0;
   if (!aStorage->GetQuotaDomainDBKey(!aExcludeOfflineFromUsage).IsEmpty()) {
     rv = GetUsage(aStorage, aExcludeOfflineFromUsage, &usage);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -228,7 +266,7 @@ nsresult
 nsDOMStorageMemoryDB::RemoveKey(DOMStorageImpl* aStorage,
                                 const nsAString& aKey,
                                 bool aExcludeOfflineFromUsage,
-                                int32_t aKeyUsage)
+                                PRInt32 aKeyUsage)
 {
   nsresult rv;
 
@@ -307,7 +345,7 @@ nsresult
 nsDOMStorageMemoryDB::RemoveOwner(const nsACString& aOwner,
                                   bool aIncludeSubDomains)
 {
-  nsAutoCString subdomainsDBKey;
+  nsCAutoString subdomainsDBKey;
   nsDOMStorageDBWrapper::CreateDomainScopeDBKey(aOwner, subdomainsDBKey);
 
   if (!aIncludeSubDomains)
@@ -315,7 +353,7 @@ nsDOMStorageMemoryDB::RemoveOwner(const nsACString& aOwner,
 
   RemoveOwnersStruc struc;
   struc.mSubDomain = &subdomainsDBKey;
-  struc.mMatch = true;
+  struc.mMatch = PR_TRUE;
   mData.Enumerate(RemoveOwnersEnum, &struc);
 
   MarkAllScopesDirty();
@@ -337,9 +375,10 @@ nsDOMStorageMemoryDB::RemoveOwners(const nsTArray<nsString> &aOwners,
     return RemoveAll();
   }
 
-  for (uint32_t i = 0; i < aOwners.Length(); i++) {
-    nsAutoCString quotaKey;
-    nsDOMStorageDBWrapper::CreateDomainScopeDBKey(
+  for (PRUint32 i = 0; i < aOwners.Length(); i++) {
+    nsCAutoString quotaKey;
+    nsresult rv;
+    rv = nsDOMStorageDBWrapper::CreateDomainScopeDBKey(
       NS_ConvertUTF16toUTF8(aOwners[i]), quotaKey);
 
     if (!aIncludeSubDomains)
@@ -368,7 +407,7 @@ nsDOMStorageMemoryDB::RemoveAll()
 
 nsresult
 nsDOMStorageMemoryDB::GetUsage(DOMStorageImpl* aStorage,
-                               bool aExcludeOfflineFromUsage, int32_t *aUsage)
+                               bool aExcludeOfflineFromUsage, PRInt32 *aUsage)
 {
   return GetUsageInternal(aStorage->GetQuotaDomainDBKey(!aExcludeOfflineFromUsage),
                           aExcludeOfflineFromUsage, aUsage);
@@ -377,24 +416,24 @@ nsDOMStorageMemoryDB::GetUsage(DOMStorageImpl* aStorage,
 nsresult
 nsDOMStorageMemoryDB::GetUsage(const nsACString& aDomain,
                                bool aIncludeSubDomains,
-                               int32_t *aUsage)
+                               PRInt32 *aUsage)
 {
   nsresult rv;
 
-  nsAutoCString quotadomainDBKey;
+  nsCAutoString quotadomainDBKey;
   rv = nsDOMStorageDBWrapper::CreateQuotaDomainDBKey(aDomain,
                                                      aIncludeSubDomains,
-                                                     false,
+                                                     PR_FALSE,
                                                      quotadomainDBKey);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  return GetUsageInternal(quotadomainDBKey, false, aUsage);
+  return GetUsageInternal(quotadomainDBKey, PR_FALSE, aUsage);
 }
 
 struct GetUsageEnumStruc
 {
-  int32_t mUsage;
-  int32_t mExcludeOfflineFromUsage;
+  PRInt32 mUsage;
+  PRInt32 mExcludeOfflineFromUsage;
   nsCString mSubdomain;
 };
 
@@ -407,7 +446,7 @@ GetUsageEnum(const nsACString& key,
 
   if (StringBeginsWith(key, struc->mSubdomain)) {
     if (struc->mExcludeOfflineFromUsage) {
-      nsAutoCString domain;
+      nsCAutoString domain;
       nsresult rv = nsDOMStorageDBWrapper::GetDomainFromScopeKey(key, domain);
       if (NS_SUCCEEDED(rv) && IsOfflineAllowed(domain))
         return PL_DHASH_NEXT;
@@ -422,7 +461,7 @@ GetUsageEnum(const nsACString& key,
 nsresult
 nsDOMStorageMemoryDB::GetUsageInternal(const nsACString& aQuotaDomainDBKey,
                                        bool aExcludeOfflineFromUsage,
-                                       int32_t *aUsage)
+                                       PRInt32 *aUsage)
 {
   GetUsageEnumStruc struc;
   struc.mUsage = 0;

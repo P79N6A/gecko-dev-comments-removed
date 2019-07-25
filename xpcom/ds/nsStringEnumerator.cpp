@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsStringEnumerator.h"
 #include "prtypes.h"
 #include "nsCRT.h"
@@ -11,15 +44,14 @@
 #include "nsReadableUtils.h"
 #include "nsISimpleEnumerator.h"
 #include "nsSupportsPrimitives.h"
-#include "mozilla/Attributes.h"
 
 
 
 
 
-class nsStringEnumerator MOZ_FINAL : public nsIStringEnumerator,
-                                     public nsIUTF8StringEnumerator,
-                                     public nsISimpleEnumerator
+class nsStringEnumerator : public nsIStringEnumerator,
+                           public nsIUTF8StringEnumerator,
+                           public nsISimpleEnumerator
 {
 public:
     nsStringEnumerator(const nsTArray<nsString>* aArray, bool aOwnsArray) :
@@ -64,11 +96,11 @@ private:
         const nsTArray<nsCString>* mCArray;
     };
 
-    inline uint32_t Count() {
+    inline PRUint32 Count() {
         return mIsUnicode ? mArray->Length() : mCArray->Length();
     }
     
-    uint32_t mIndex;
+    PRUint32 mIndex;
 
     
     
@@ -147,7 +179,7 @@ nsStringEnumerator::GetNext(nsACString& aResult)
 
 template<class T>
 static inline nsresult
-StringEnumeratorTail(T** aResult)
+StringEnumeratorTail(T** aResult NS_INPARAM)
 {
     if (!*aResult)
         return NS_ERROR_OUT_OF_MEMORY;

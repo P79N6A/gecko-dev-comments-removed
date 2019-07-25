@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "TestHarness.h"
 #include "nsRegion.h"
 
@@ -11,9 +43,9 @@ class TestLargestRegion {
     nsRegion region(r);
     if (!region.GetLargestRectangle().IsEqualInterior(r)) {
       fail("largest rect of singleton %d %d %d %d", r.x, r.y, r.width, r.height);
-      return false;
+      return PR_FALSE;
     }
-    return true;
+    return PR_TRUE;
   }
   
   static bool TestNonRectangular() {
@@ -22,7 +54,7 @@ class TestLargestRegion {
     const int nTests = 19;
     struct {
       nsRect rect;
-      int64_t expectedArea;
+      PRInt64 expectedArea;
     } tests[nTests] = {
       
       { nsRect(0, 0, 20, 10), 600 },
@@ -53,7 +85,7 @@ class TestLargestRegion {
     };
 
     bool success = true;
-    for (int32_t i = 0; i < nTests; i++) {
+    for (PRInt32 i = 0; i < nTests; i++) {
       nsRegion r2;
       r2.Sub(r, tests[i].rect);
 
@@ -63,7 +95,7 @@ class TestLargestRegion {
       nsRect largest = r2.GetLargestRectangle();
       if (largest.width * largest.height != tests[i].expectedArea) {
         fail("Did not succesfully find largest rectangle in non-rectangular region on iteration %d", i);
-        success = false;
+        success = PR_FALSE;
       }
     }
 
@@ -74,7 +106,7 @@ class TestLargestRegion {
     const int nTests = 4;
     struct {
       nsRect rect1, rect2;
-      int64_t expectedArea;
+      PRInt64 expectedArea;
     } tests[nTests] = {
       { nsRect(0, 0, 75, 40),  nsRect(0, 60, 75, 40),  2500 },
       { nsRect(25, 0, 75, 40), nsRect(25, 60, 75, 40), 2500 },
@@ -82,7 +114,7 @@ class TestLargestRegion {
       { nsRect(0, 0, 75, 40),  nsRect(25, 60, 75, 40), 2000 },
     };
     bool success = true;
-    for (int32_t i = 0; i < nTests; i++) {
+    for (PRInt32 i = 0; i < nTests; i++) {
       nsRegion r2;
 
       r2.Sub(r, tests[i].rect1);
@@ -94,7 +126,7 @@ class TestLargestRegion {
       nsRect largest = r2.GetLargestRectangle();
       if (largest.width * largest.height != tests[i].expectedArea) {
         fail("Did not succesfully find largest rectangle in two-rect-subtract region on iteration %d", i);
-        success = false;
+        success = PR_FALSE;
       }
     }
     return success;
@@ -104,18 +136,18 @@ class TestLargestRegion {
     r.Or(r, nsRect(0, 300, 50, 50));
     if (!r.GetLargestRectangle(nsRect(0, 300, 10, 10)).IsEqualInterior(nsRect(0, 300, 50, 50))) {
       fail("Chose wrong rectangle");
-      return false;
+      return PR_FALSE;
     }
-    return true;
+    return PR_TRUE;
   }
   static bool TestContainsSpecifiedOverflowingRect() {
     nsRegion r(nsRect(0, 0, 100, 100));
     r.Or(r, nsRect(0, 300, 50, 50));
     if (!r.GetLargestRectangle(nsRect(0, 290, 10, 20)).IsEqualInterior(nsRect(0, 300, 50, 50))) {
       fail("Chose wrong rectangle");
-      return false;
+      return PR_FALSE;
     }
-    return true;
+    return PR_TRUE;
   }
 public:
   static bool Test() {
@@ -124,17 +156,17 @@ public:
         !TestSingleRect(nsRect(-20, 40, 10, 8)) ||
         !TestSingleRect(nsRect(-20, -40, 10, 8)) ||
         !TestSingleRect(nsRect(-10, -10, 20, 20)))
-      return false;
+      return PR_FALSE;
     if (!TestNonRectangular())
-      return false;
+      return PR_FALSE;
     if (!TwoRectTest())
-      return false;
+      return PR_FALSE;
     if (!TestContainsSpecifiedRect())
-      return false;
+      return PR_FALSE;
     if (!TestContainsSpecifiedOverflowingRect())
-      return false;
+      return PR_FALSE;
     passed("TestLargestRegion");
-    return true;
+    return PR_TRUE;
   }
 };
 

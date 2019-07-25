@@ -3,15 +3,45 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsSVGPathGeometryElement.h"
 #include "nsIDOMSVGRectElement.h"
 #include "nsSVGLength2.h"
 #include "nsGkAtoms.h"
 #include "gfxContext.h"
-
-using namespace mozilla;
 
 typedef nsSVGPathGeometryElement nsSVGRectElementBase;
 
@@ -34,16 +64,11 @@ public:
   NS_FORWARD_NSIDOMSVGELEMENT(nsSVGRectElementBase::)
 
   
-  virtual bool HasValidDimensions() const;
-
-  
   virtual void ConstructPath(gfxContext *aCtx);
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 protected:
 
   virtual LengthAttributesInfo GetLengthInfo();
@@ -74,9 +99,8 @@ NS_IMPL_RELEASE_INHERITED(nsSVGRectElement,nsSVGRectElementBase)
 DOMCI_NODE_DATA(SVGRectElement, nsSVGRectElement)
 
 NS_INTERFACE_TABLE_HEAD(nsSVGRectElement)
-  NS_NODE_INTERFACE_TABLE5(nsSVGRectElement, nsIDOMNode, nsIDOMElement,
-                           nsIDOMSVGElement, nsIDOMSVGTests,
-                           nsIDOMSVGRectElement)
+  NS_NODE_INTERFACE_TABLE4(nsSVGRectElement, nsIDOMNode, nsIDOMElement,
+                           nsIDOMSVGElement, nsIDOMSVGRectElement)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(SVGRectElement)
 NS_INTERFACE_MAP_END_INHERITING(nsSVGRectElementBase)
 
@@ -135,20 +159,11 @@ NS_IMETHODIMP nsSVGRectElement::GetRy(nsIDOMSVGAnimatedLength * *aRy)
 
 
 
- bool
-nsSVGRectElement::HasValidDimensions() const
-{
-  return mLengthAttributes[WIDTH].IsExplicitlySet() &&
-         mLengthAttributes[WIDTH].GetAnimValInSpecifiedUnits() > 0 &&
-         mLengthAttributes[HEIGHT].IsExplicitlySet() &&
-         mLengthAttributes[HEIGHT].GetAnimValInSpecifiedUnits() > 0;
-}
-
 nsSVGElement::LengthAttributesInfo
 nsSVGRectElement::GetLengthInfo()
 {
   return LengthAttributesInfo(mLengthAttributes, sLengthInfo,
-                              ArrayLength(sLengthInfo));
+                              NS_ARRAY_LENGTH(sLengthInfo));
 }
 
 
@@ -159,7 +174,7 @@ nsSVGRectElement::ConstructPath(gfxContext *aCtx)
 {
   float x, y, width, height, rx, ry;
 
-  GetAnimatedLengthValues(&x, &y, &width, &height, &rx, &ry, nullptr);
+  GetAnimatedLengthValues(&x, &y, &width, &height, &rx, &ry, nsnull);
 
   
 

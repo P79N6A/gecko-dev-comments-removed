@@ -3,26 +3,53 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifdef DEBUG
 
 #include <stdio.h>
 
+#include "nsIEditor.h"
+#include "nsIHTMLEditor.h"
 #include "TextEditorTest.h"
-#include "nsDebug.h"
-#include "nsEditProperty.h"
-#include "nsError.h"
+#include "nsISelection.h"
 #include "nsIDOMCharacterData.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMNode.h"
 #include "nsIDOMNodeList.h"
-#include "nsIEditor.h"
-#include "nsIHTMLEditor.h"
-#include "nsIPlaintextEditor.h"
-#include "nsISelection.h"
-#include "nsLiteralString.h"
-#include "nsReadableUtils.h"
+#include "nsEditProperty.h"
 #include "nsString.h"
-#include "nsStringFwd.h"
+#include "nsReadableUtils.h"
 
 #define TEST_RESULT(r) { if (NS_FAILED(r)) {printf("FAILURE result=%X\n", r); return r; } }
 #define TEST_POINTER(p) { if (!p) {printf("FAILURE null pointer\n"); return NS_ERROR_NULL_POINTER; } }
@@ -37,7 +64,7 @@ TextEditorTest::~TextEditorTest()
   printf("destroyed a TextEditorTest\n");
 }
 
-void TextEditorTest::Run(nsIEditor *aEditor, int32_t *outNumTests, int32_t *outNumTestsFailed)
+void TextEditorTest::Run(nsIEditor *aEditor, PRInt32 *outNumTests, PRInt32 *outNumTestsFailed)
 {
   if (!aEditor) return;
   mTextEditor = do_QueryInterface(aEditor);
@@ -45,7 +72,7 @@ void TextEditorTest::Run(nsIEditor *aEditor, int32_t *outNumTests, int32_t *outN
   RunUnitTest(outNumTests, outNumTestsFailed);
 }
 
-nsresult TextEditorTest::RunUnitTest(int32_t *outNumTests, int32_t *outNumTestsFailed)
+nsresult TextEditorTest::RunUnitTest(PRInt32 *outNumTests, PRInt32 *outNumTestsFailed)
 {
   nsresult result;
   
@@ -95,7 +122,7 @@ nsresult TextEditorTest::InitDoc()
 {
   nsresult result = mEditor->SelectAll();
   TEST_RESULT(result);
-  result = mEditor->DeleteSelection(nsIEditor::eNext, nsIEditor::eStrip);
+  result = mEditor->DeleteSelection(nsIEditor::eNext);
   TEST_RESULT(result);
   return result;
 }
@@ -138,7 +165,7 @@ nsresult TextEditorTest::TestTextProperties()
   result = doc->GetElementsByTagName(textTag, getter_AddRefs(nodeList));
   TEST_RESULT(result);
   TEST_POINTER(nodeList.get());
-  uint32_t count;
+  PRUint32 count;
   nodeList->GetLength(&count);
   NS_ASSERTION(0!=count, "there are no text nodes in the document!");
   nsCOMPtr<nsIDOMNode>textNode;
@@ -154,7 +181,7 @@ nsresult TextEditorTest::TestTextProperties()
   TEST_POINTER(selection.get());
   nsCOMPtr<nsIDOMCharacterData>textData;
   textData = do_QueryInterface(textNode);
-  uint32_t length;
+  PRUint32 length;
   textData->GetLength(&length);
   selection->Collapse(textNode, 0);
   selection->Extend(textNode, length);
@@ -170,16 +197,16 @@ nsresult TextEditorTest::TestTextProperties()
 
   result = htmlEditor->GetInlineProperty(nsEditProperty::b, empty, empty, &first, &any, &all);
   TEST_RESULT(result);
-  NS_ASSERTION(false==first, "first should be false");
-  NS_ASSERTION(false==any, "any should be false");
-  NS_ASSERTION(false==all, "all should be false");
+  NS_ASSERTION(PR_FALSE==first, "first should be false");
+  NS_ASSERTION(PR_FALSE==any, "any should be false");
+  NS_ASSERTION(PR_FALSE==all, "all should be false");
   result = htmlEditor->SetInlineProperty(nsEditProperty::b, empty, empty);
   TEST_RESULT(result);
   result = htmlEditor->GetInlineProperty(nsEditProperty::b, empty, empty, &first, &any, &all);
   TEST_RESULT(result);
-  NS_ASSERTION(true==first, "first should be true");
-  NS_ASSERTION(true==any, "any should be true");
-  NS_ASSERTION(true==all, "all should be true");
+  NS_ASSERTION(PR_TRUE==first, "first should be true");
+  NS_ASSERTION(PR_TRUE==any, "any should be true");
+  NS_ASSERTION(PR_TRUE==all, "all should be true");
   mEditor->DebugDumpContent();
 
   
@@ -188,9 +215,9 @@ nsresult TextEditorTest::TestTextProperties()
   TEST_RESULT(result);
   result = htmlEditor->GetInlineProperty(nsEditProperty::b, empty, empty, &first, &any, &all);
   TEST_RESULT(result);
-  NS_ASSERTION(false==first, "first should be false");
-  NS_ASSERTION(false==any, "any should be false");
-  NS_ASSERTION(false==all, "all should be false");
+  NS_ASSERTION(PR_FALSE==first, "first should be false");
+  NS_ASSERTION(PR_FALSE==any, "any should be false");
+  NS_ASSERTION(PR_FALSE==all, "all should be false");
   mEditor->DebugDumpContent();
 
   
@@ -201,23 +228,23 @@ nsresult TextEditorTest::TestTextProperties()
   TEST_RESULT(result);
   result = htmlEditor->GetInlineProperty(nsEditProperty::b, empty, empty, &first, &any, &all);
   TEST_RESULT(result);
-  NS_ASSERTION(true==first, "first should be true");
-  NS_ASSERTION(true==any, "any should be true");
-  NS_ASSERTION(true==all, "all should be true");
+  NS_ASSERTION(PR_TRUE==first, "first should be true");
+  NS_ASSERTION(PR_TRUE==any, "any should be true");
+  NS_ASSERTION(PR_TRUE==all, "all should be true");
   mEditor->DebugDumpContent();
   
   result = htmlEditor->SetInlineProperty(nsEditProperty::i, empty, empty);
   TEST_RESULT(result);
   result = htmlEditor->GetInlineProperty(nsEditProperty::i, empty, empty, &first, &any, &all);
   TEST_RESULT(result);
-  NS_ASSERTION(true==first, "first should be true");
-  NS_ASSERTION(true==any, "any should be true");
-  NS_ASSERTION(true==all, "all should be true");
+  NS_ASSERTION(PR_TRUE==first, "first should be true");
+  NS_ASSERTION(PR_TRUE==any, "any should be true");
+  NS_ASSERTION(PR_TRUE==all, "all should be true");
   result = htmlEditor->GetInlineProperty(nsEditProperty::b, empty, empty, &first, &any, &all);
   TEST_RESULT(result);
-  NS_ASSERTION(true==first, "first should be true");
-  NS_ASSERTION(true==any, "any should be true");
-  NS_ASSERTION(true==all, "all should be true");
+  NS_ASSERTION(PR_TRUE==first, "first should be true");
+  NS_ASSERTION(PR_TRUE==any, "any should be true");
+  NS_ASSERTION(PR_TRUE==all, "all should be true");
   mEditor->DebugDumpContent();
 
   
@@ -238,9 +265,9 @@ nsresult TextEditorTest::TestTextProperties()
   TEST_RESULT(result);
   result = htmlEditor->GetInlineProperty(nsEditProperty::u, empty, empty, &first, &any, &all);
   TEST_RESULT(result);
-  NS_ASSERTION(true==first, "first should be true");
-  NS_ASSERTION(true==any, "any should be true");
-  NS_ASSERTION(true==all, "all should be true");
+  NS_ASSERTION(PR_TRUE==first, "first should be true");
+  NS_ASSERTION(PR_TRUE==any, "any should be true");
+  NS_ASSERTION(PR_TRUE==all, "all should be true");
   mEditor->DebugDumpContent();
 
   return result;

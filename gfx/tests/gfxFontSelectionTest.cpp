@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsTArray.h"
 #include "nsString.h"
@@ -13,6 +45,7 @@
 #include "gfxContext.h"
 #include "gfxFont.h"
 #include "gfxPlatform.h"
+#include "gfxTextRunWordCache.h"
 
 #include "gfxFontTest.h"
 
@@ -20,7 +53,7 @@
 #include "gfxTestCocoaHelper.h"
 #endif
 
-#ifdef MOZ_WIDGET_GTK
+#ifdef MOZ_WIDGET_GTK2
 #include "gtk/gtk.h"
 #endif
 
@@ -32,6 +65,8 @@ enum {
 };
 
 class FrameTextRunCache;
+
+static gfxTextRunWordCache *gTextRunCache;
 
 struct LiteralArray {
     LiteralArray (unsigned long l1) {
@@ -77,7 +112,7 @@ struct TestEntry {
           fontStyle(aFontStyle),
           stringType(S_ASCII),
           string(aString),
-          isRTL(false)
+          isRTL(PR_FALSE)
     {
     }
 
@@ -89,7 +124,7 @@ struct TestEntry {
           fontStyle(aFontStyle),
           stringType(stringType),
           string(aString),
-          isRTL(false)
+          isRTL(PR_FALSE)
     {
     }
 
@@ -106,17 +141,17 @@ struct TestEntry {
             
             
             if ( !fontName.Equals(aFontName))
-                return false;
+                return PR_FALSE;
 
             if (num_glyphs != int(glyphs.data.Length()))
-                return false;
+                return PR_FALSE;
 
             for (int j = 0; j < num_glyphs; j++) {
                 if (glyphs.data[j] != aGlyphs[j].index)
-                return false;
+                return PR_FALSE;
             }
 
-            return true;
+            return PR_TRUE;
         }
 
         nsCString fontName;
@@ -125,7 +160,7 @@ struct TestEntry {
     
     void SetRTL()
     {
-        isRTL = true;
+        isRTL = PR_TRUE;
     }
 
     
@@ -163,17 +198,17 @@ struct TestEntry {
         if (expectItems.Length() == 0 ||
             store->items.Length() != expectItems.Length())
         {
-            return false;
+            return PR_FALSE;
         }
 
-        for (uint32_t i = 0; i < expectItems.Length(); i++) {
+        for (PRUint32 i = 0; i < expectItems.Length(); i++) {
             if (!expectItems[i].Compare(store->items[i].platformFont,
                                         store->items[i].glyphs,
                                         store->items[i].num_glyphs))
-                return false;
+                return PR_FALSE;
         }
 
-        return true;
+        return PR_TRUE;
     }
 
     const char *utf8FamilyString;
@@ -227,7 +262,7 @@ DumpStore (gfxFontTestStore *store) {
         printf ("(empty)\n");
     }
 
-    for (uint32_t i = 0;
+    for (PRUint32 i = 0;
          i < store->items.Length();
          i++)
     {
@@ -242,9 +277,9 @@ DumpStore (gfxFontTestStore *store) {
 
 void
 DumpTestExpect (TestEntry *test) {
-    for (uint32_t i = 0; i < test->expectItems.Length(); i++) {
+    for (PRUint32 i = 0; i < test->expectItems.Length(); i++) {
         printf ("Run[% 2d]: '%s' ", i, nsPromiseFlatCString(test->expectItems[i].fontName).get());
-        for (uint32_t j = 0; j < test->expectItems[i].glyphs.data.Length(); j++)
+        for (PRUint32 j = 0; j < test->expectItems[i].glyphs.data.Length(); j++)
             printf ("%d ", int(test->expectItems[i].glyphs.data[j]));
 
         printf ("\n");
@@ -255,29 +290,29 @@ bool
 RunTest (TestEntry *test, gfxContext *ctx) {
     nsRefPtr<gfxFontGroup> fontGroup;
 
-    fontGroup = gfxPlatform::GetPlatform()->CreateFontGroup(NS_ConvertUTF8toUTF16(test->utf8FamilyString), &test->fontStyle, nullptr);
+    fontGroup = gfxPlatform::GetPlatform()->CreateFontGroup(NS_ConvertUTF8toUTF16(test->utf8FamilyString), &test->fontStyle, nsnull);
 
     nsAutoPtr<gfxTextRun> textRun;
     gfxTextRunFactory::Parameters params = {
-      ctx, nullptr, nullptr, nullptr, 0, 60
+      ctx, nsnull, nsnull, nsnull, 0, 60
     };
-    uint32_t flags = gfxTextRunFactory::TEXT_IS_PERSISTENT;
+    PRUint32 flags = gfxTextRunFactory::TEXT_IS_PERSISTENT;
     if (test->isRTL) {
         flags |= gfxTextRunFactory::TEXT_IS_RTL;
     }
-    uint32_t length;
+    PRUint32 length;
     if (test->stringType == S_ASCII) {
         flags |= gfxTextRunFactory::TEXT_IS_ASCII | gfxTextRunFactory::TEXT_IS_8BIT;
         length = strlen(test->string);
-        textRun = fontGroup->MakeTextRun(reinterpret_cast<const uint8_t*>(test->string), length, &params, flags);
+        textRun = gfxTextRunWordCache::MakeTextRun(reinterpret_cast<const PRUint8*>(test->string), length, fontGroup, &params, flags);
     } else {
         NS_ConvertUTF8toUTF16 str(nsDependentCString(test->string));
         length = str.Length();
-        textRun = fontGroup->MakeTextRun(str.get(), length, &params, flags);
+        textRun = gfxTextRunWordCache::MakeTextRun(str.get(), length, fontGroup, &params, flags);
     }
 
     gfxFontTestStore::NewStore();
-    textRun->Draw(ctx, gfxPoint(0,0), 0, length, nullptr, nullptr);
+    textRun->Draw(ctx, gfxPoint(0,0), 0, length, nsnull, nsnull);
     gfxFontTestStore *s = gfxFontTestStore::CurrentStore();
 
     gTextRunCache->RemoveTextRun(textRun);
@@ -286,10 +321,10 @@ RunTest (TestEntry *test, gfxContext *ctx) {
         DumpStore(s);
         printf ("  expected:\n");
         DumpTestExpect(test);
-        return false;
+        return PR_FALSE;
     }
 
-    return true;
+    return PR_TRUE;
 }
 
 int
@@ -297,7 +332,7 @@ main (int argc, char **argv) {
     int passed = 0;
     int failed = 0;
 
-#ifdef MOZ_WIDGET_GTK
+#ifdef MOZ_WIDGET_GTK2
     gtk_init(&argc, &argv); 
 #endif
 #ifdef XP_MACOSX
@@ -305,12 +340,15 @@ main (int argc, char **argv) {
 #endif
 
     
-    nsresult rv = NS_InitXPCOM2(nullptr, nullptr, nullptr);
+    nsresult rv = NS_InitXPCOM2(nsnull, nsnull, nsnull);
     if (NS_FAILED(rv))
         return -1;
 
-    if (!gfxPlatform::GetPlatform())
+    rv = gfxPlatform::Init();
+    if (NS_FAILED(rv))
         return -1;
+
+    gTextRunCache = new gfxTextRunWordCache();
 
     
     fflush (stderr);

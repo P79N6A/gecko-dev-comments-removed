@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsX11ErrorHandler.h"
 
 #include "prenv.h"
@@ -23,7 +56,7 @@ X11Error(Display *display, XErrorEvent *event) {
   unsigned long age = NextRequest(display) - event->serial;
 
   
-  nsAutoCString message;
+  nsCAutoString message;
   if (event->request_code < 128) {
     
     message.AppendInt(event->request_code);
@@ -79,7 +112,7 @@ X11Error(Display *display, XErrorEvent *event) {
                           buffer, sizeof(buffer));
   }
 
-  nsAutoCString notes;
+  nsCAutoString notes;
   if (buffer[0]) {
     notes.Append(buffer);
   } else {
@@ -112,7 +145,7 @@ X11Error(Display *display, XErrorEvent *event) {
       notes.Append("; sync");
     } else {
       notes.Append("; ");
-      notes.AppendInt(uint32_t(age));
+      notes.AppendInt(PRUint32(age));
       notes.Append(" requests ago");
     }
   }
@@ -133,7 +166,7 @@ X11Error(Display *display, XErrorEvent *event) {
   
   
   notes.Append("; id=0x");
-  notes.AppendInt(uint32_t(event->resourceid), 16);
+  notes.AppendInt(PRUint32(event->resourceid), 16);
 #ifdef MOZ_X11
   
   

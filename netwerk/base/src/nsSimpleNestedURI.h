@@ -13,6 +13,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsSimpleNestedURI_h__
 #define nsSimpleNestedURI_h__
 
@@ -36,6 +69,7 @@ public:
 
     NS_DECL_ISUPPORTS_INHERITED
     NS_DECL_NSINESTEDURI
+    NS_DECL_NSIIPCSERIALIZABLE
 
     
   

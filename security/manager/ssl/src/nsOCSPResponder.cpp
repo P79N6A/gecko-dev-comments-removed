@@ -2,6 +2,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsOCSPResponder.h"
 
 #include "nsCOMPtr.h"
@@ -55,41 +89,41 @@ bool nsOCSPResponder::IncludeCert(CERTCertificate *aCert)
   trust = aCert->trust;
   nickname = aCert->nickname;
 
-  PR_ASSERT(trust != nullptr);
+  PR_ASSERT(trust != nsnull);
 
   
-  if (trust == nullptr) {
-    return false;
+  if (trust == nsnull) {
+    return PR_FALSE;
   }
 
   if ( ( ( trust->sslFlags & CERTDB_INVISIBLE_CA ) ||
          (trust->emailFlags & CERTDB_INVISIBLE_CA ) ||
          (trust->objectSigningFlags & CERTDB_INVISIBLE_CA ) ) ||
        nickname == NULL) {
-      return false;
+      return PR_FALSE;
   }
   if ((trust->sslFlags & CERTDB_VALID_CA) ||
       (trust->emailFlags & CERTDB_VALID_CA) ||
       (trust->objectSigningFlags & CERTDB_VALID_CA)) {
-      return true;
+      return PR_TRUE;
   }
-  return false;
+  return PR_FALSE;
 }
 
 
 
 
 
-int32_t nsOCSPResponder::CmpCAName(nsIOCSPResponder *a, nsIOCSPResponder *b)
+PRInt32 nsOCSPResponder::CmpCAName(nsIOCSPResponder *a, nsIOCSPResponder *b)
 {
-  int32_t cmp1;
+  PRInt32 cmp1;
   nsXPIDLString aTok, bTok;
   a->GetResponseSigner(getter_Copies(aTok));
   b->GetResponseSigner(getter_Copies(bTok));
-  if (aTok != nullptr && bTok != nullptr) {
+  if (aTok != nsnull && bTok != nsnull) {
     cmp1 = Compare(aTok, bTok);
   } else {
-    cmp1 = (aTok == nullptr) ? 1 : -1;
+    cmp1 = (aTok == nsnull) ? 1 : -1;
   }
   return cmp1;
 }
@@ -98,7 +132,7 @@ int32_t nsOCSPResponder::CmpCAName(nsIOCSPResponder *a, nsIOCSPResponder *b)
 
 
 
-int32_t nsOCSPResponder::CompareEntries(nsIOCSPResponder *a, nsIOCSPResponder *b)
+PRInt32 nsOCSPResponder::CompareEntries(nsIOCSPResponder *a, nsIOCSPResponder *b)
 {
   nsXPIDLString aURL, bURL;
   nsAutoString aURLAuto, bURLAuto;

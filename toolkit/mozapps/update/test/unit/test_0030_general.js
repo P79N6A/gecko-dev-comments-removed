@@ -5,6 +5,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 var gNextRunFunc;
 var gStatusResult;
 var gExpectedStatusResult;
@@ -12,7 +45,6 @@ var gExpectedStatusResult;
 function run_test() {
   do_test_pending();
   do_register_cleanup(end_test);
-  Services.prefs.setBoolPref(PREF_APP_UPDATE_STAGE_ENABLED, false);
   removeUpdateDirsAndFiles();
   setUpdateURLOverride();
   
@@ -63,12 +95,17 @@ function run_test_helper_pt1(aMsg, aExpectedStatusResult, aNextRunFunc) {
 
 function check_test_helper_pt1_1() {
   do_check_eq(gUpdateCount, 1);
+  let channelchange = getUpdatesDir();
+  channelchange.append("0");
+  channelchange.append(CHANNEL_CHANGE_FILE);
+  do_check_false(channelchange.exists());
   gCheckFunc = check_test_helper_pt1_2;
   var bestUpdate = gAUS.selectUpdate(gUpdates, gUpdateCount);
   var state = gAUS.downloadUpdate(bestUpdate, false);
   if (state == STATE_NONE || state == STATE_FAILED)
     do_throw("nsIApplicationUpdateService:downloadUpdate returned " + state);
   gAUS.addDownloadListener(downloadListener);
+  channelchange.create(AUS_Ci.nsIFile.FILE_TYPE, PERMS_FILE);
 }
 
 function check_test_helper_pt1_2() {

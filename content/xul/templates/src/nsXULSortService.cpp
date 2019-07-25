@@ -20,10 +20,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsIContent.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMNode.h"
+#include "nsIDocument.h"
 #include "nsINameSpaceManager.h"
 #include "nsIServiceManager.h"
 #include "nsGkAtoms.h"
@@ -45,7 +82,7 @@ XULSortServiceImpl::SetSortHints(nsIContent *aNode, nsSortState* aSortState)
 {
   
   aNode->SetAttr(kNameSpaceID_None, nsGkAtoms::sort,
-                 aSortState->sort, true);
+                 aSortState->sort, PR_TRUE);
 
   nsAutoString direction;
   if (aSortState->direction == nsSortState_descending)
@@ -53,7 +90,7 @@ XULSortServiceImpl::SetSortHints(nsIContent *aNode, nsSortState* aSortState)
   else if (aSortState->direction == nsSortState_ascending)
     direction.AssignLiteral("ascending");
   aNode->SetAttr(kNameSpaceID_None, nsGkAtoms::sortDirection,
-                 direction, true);
+                 direction, PR_TRUE);
 
   
   if (aNode->NodeInfo()->Equals(nsGkAtoms::tree, kNameSpaceID_XUL)) {
@@ -88,16 +125,16 @@ XULSortServiceImpl::SetSortColumnHints(nsIContent *content,
           child->GetAttr(kNameSpaceID_None, nsGkAtoms::resource, value);
         if (value == sortResource) {
           child->SetAttr(kNameSpaceID_None, nsGkAtoms::sortActive,
-                         NS_LITERAL_STRING("true"), true);
+                         NS_LITERAL_STRING("true"), PR_TRUE);
           child->SetAttr(kNameSpaceID_None, nsGkAtoms::sortDirection,
-                         sortDirection, true);
+                         sortDirection, PR_TRUE);
           
           
         } else if (!value.IsEmpty()) {
           child->UnsetAttr(kNameSpaceID_None, nsGkAtoms::sortActive,
-                           true);
+                           PR_TRUE);
           child->UnsetAttr(kNameSpaceID_None, nsGkAtoms::sortDirection,
-                           true);
+                           PR_TRUE);
         }
       }
     }
@@ -194,16 +231,16 @@ testSortCallback(const void *data1, const void *data2, void *privateData)
   contentSortInfo *right = (contentSortInfo *)data2;
   nsSortState* sortState = (nsSortState *)privateData;
       
-  int32_t sortOrder = 0;
+  PRInt32 sortOrder = 0;
 
   if (sortState->direction == nsSortState_natural && sortState->processor) {
     
     sortState->processor->CompareResults(left->result, right->result,
-                                         nullptr, sortState->sortHints, &sortOrder);
+                                         nsnull, sortState->sortHints, &sortOrder);
   }
   else {
-    int32_t length = sortState->sortKeys.Count();
-    for (int32_t t = 0; t < length; t++) {
+    PRInt32 length = sortState->sortKeys.Count();
+    for (PRInt32 t = 0; t < length; t++) {
       
       if (sortState->processor) {
         sortState->processor->CompareResults(left->result, right->result,
@@ -236,15 +273,15 @@ XULSortServiceImpl::SortContainer(nsIContent *aContainer, nsSortState* aSortStat
   nsresult rv = GetItemsToSort(aContainer, aSortState, items);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  uint32_t numResults = items.Length();
+  PRUint32 numResults = items.Length();
   if (!numResults)
     return NS_OK;
 
-  uint32_t i;
+  PRUint32 i;
 
   
   if (aSortState->inbetweenSeparatorSort) {
-    uint32_t startIndex = 0;
+    PRUint32 startIndex = 0;
     for (i = 0; i < numResults; i++) {
       if (i > startIndex + 1) {
         nsAutoString type;
@@ -288,8 +325,8 @@ XULSortServiceImpl::SortContainer(nsIContent *aContainer, nsSortState* aSortStat
       
       
       items[i].parent = parent;
-      int32_t index = parent->IndexOf(child);
-      parent->RemoveChildAt(index, true);
+      PRInt32 index = parent->IndexOf(child);
+      parent->RemoveChildAt(index, PR_TRUE);
     }
   }
 
@@ -299,7 +336,7 @@ XULSortServiceImpl::SortContainer(nsIContent *aContainer, nsSortState* aSortStat
     nsIContent* child = items[i].content;
     nsIContent* parent = items[i].parent;
     if (parent) {
-      parent->AppendChildTo(child, true);
+      parent->AppendChildTo(child, PR_TRUE);
 
       
       
@@ -326,13 +363,13 @@ XULSortServiceImpl::SortContainer(nsIContent *aContainer, nsSortState* aSortStat
 
 nsresult
 XULSortServiceImpl::InvertSortInfo(nsTArray<contentSortInfo>& aData,
-                                   int32_t aStart, int32_t aNumItems)
+                                   PRInt32 aStart, PRInt32 aNumItems)
 {
   if (aNumItems > 1) {
     
-    int32_t upPoint = (aNumItems + 1) / 2 + aStart;
-    int32_t downPoint = (aNumItems - 2) / 2 + aStart;
-    int32_t half = aNumItems / 2;
+    PRInt32 upPoint = (aNumItems + 1) / 2 + aStart;
+    PRInt32 downPoint = (aNumItems - 2) / 2 + aStart;
+    PRInt32 half = aNumItems / 2;
     while (half-- > 0) {
       aData[downPoint--].swap(aData[upPoint++]);
     }
@@ -350,8 +387,8 @@ XULSortServiceImpl::InitializeSortState(nsIContent* aRootElement,
   
   if (aContainer != aSortState->lastContainer.get()) {
     aSortState->lastContainer = aContainer;
-    aSortState->lastWasFirst = false;
-    aSortState->lastWasLast = false;
+    aSortState->lastWasFirst = PR_FALSE;
+    aSortState->lastWasLast = PR_FALSE;
   }
 
   
@@ -403,7 +440,7 @@ XULSortServiceImpl::InitializeSortState(nsIContent* aRootElement,
     else if (token.EqualsLiteral("ascending"))
       aSortState->direction = nsSortState_ascending;
     else if (token.EqualsLiteral("twostate"))
-      noNaturalState = true;
+      noNaturalState = PR_TRUE;
   }
 
   
@@ -413,7 +450,7 @@ XULSortServiceImpl::InitializeSortState(nsIContent* aRootElement,
   }
 
   
-  aSortState->invertSort = false;
+  aSortState->invertSort = PR_FALSE;
 
   nsAutoString existingsort;
   aRootElement->GetAttr(kNameSpaceID_None, nsGkAtoms::sort, existingsort);
@@ -424,11 +461,11 @@ XULSortServiceImpl::InitializeSortState(nsIContent* aRootElement,
   if (sort.Equals(existingsort)) {
     if (aSortState->direction == nsSortState_descending) {
       if (existingsortDirection.EqualsLiteral("ascending"))
-        aSortState->invertSort = true;
+        aSortState->invertSort = PR_TRUE;
     }
     else if (aSortState->direction == nsSortState_ascending &&
              existingsortDirection.EqualsLiteral("descending")) {
-      aSortState->invertSort = true;
+      aSortState->invertSort = PR_TRUE;
     }
   }
 
@@ -442,21 +479,21 @@ XULSortServiceImpl::InitializeSortState(nsIContent* aRootElement,
                                   nsGkAtoms::sortStaticsLast,
                                   nsGkAtoms::_true, eCaseMatters);
 
-  aSortState->initialized = true;
+  aSortState->initialized = PR_TRUE;
 
   return NS_OK;
 }
 
-int32_t
+PRInt32
 XULSortServiceImpl::CompareValues(const nsAString& aLeft,
                                   const nsAString& aRight,
-                                  uint32_t aSortHints)
+                                  PRUint32 aSortHints)
 {
   if (aSortHints & SORT_INTEGER) {
-    nsresult err;
-    int32_t leftint = PromiseFlatString(aLeft).ToInteger(&err);
+    PRInt32 err;
+    PRInt32 leftint = PromiseFlatString(aLeft).ToInteger(&err);
     if (NS_SUCCEEDED(err)) {
-      int32_t rightint = PromiseFlatString(aRight).ToInteger(&err);
+      PRInt32 rightint = PromiseFlatString(aRight).ToInteger(&err);
       if (NS_SUCCEEDED(err)) {
         return leftint - rightint;
       }
@@ -470,7 +507,7 @@ XULSortServiceImpl::CompareValues(const nsAString& aLeft,
 
   nsICollation* collation = nsXULContentUtils::GetCollation();
   if (collation) {
-    int32_t result;
+    PRInt32 result;
     collation->CompareString(nsICollation::kCollationCaseInSensitive,
                              aLeft, aRight, &result);
     return result;
@@ -498,7 +535,7 @@ XULSortServiceImpl::Sort(nsIDOMNode* aNode,
   SetSortHints(sortNode, &sortState);
   rv = SortContainer(sortNode, &sortState);
   
-  sortState.processor = nullptr; 
+  sortState.processor = nsnull; 
   return rv;
 }
 

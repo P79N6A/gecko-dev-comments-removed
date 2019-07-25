@@ -3,35 +3,49 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsLayoutStylesheetCache.h"
 
 #include "nsAppDirectoryServiceDefs.h"
 #include "mozilla/css/Loader.h"
 #include "nsIFile.h"
 #include "nsLayoutCID.h"
-#include "nsIMemoryReporter.h"
 #include "nsNetUtil.h"
 #include "nsIObserverService.h"
 #include "nsServiceManagerUtils.h"
 #include "nsIXULRuntime.h"
 #include "nsCSSStyleSheet.h"
-
-NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(LayoutStyleSheetCacheMallocSizeOf,
-                                     "layout/style-sheet-cache")
-
-static int64_t
-GetStylesheetCacheSize()
-{
-  return nsLayoutStylesheetCache::SizeOfIncludingThis(
-           LayoutStyleSheetCacheMallocSizeOf);
-}
-
-NS_MEMORY_REPORTER_IMPLEMENT(Sheets,
-  "explicit/layout/style-sheet-cache",
-  KIND_HEAP,
-  nsIMemoryReporter::UNITS_BYTES,
-  GetStylesheetCacheSize,
-  "Memory used for some built-in style sheets.")
 
 NS_IMPL_ISUPPORTS1(nsLayoutStylesheetCache, nsIObserver)
 
@@ -41,16 +55,16 @@ nsLayoutStylesheetCache::Observe(nsISupports* aSubject,
                             const PRUnichar* aData)
 {
   if (!strcmp(aTopic, "profile-before-change")) {
-    mUserContentSheet = nullptr;
-    mUserChromeSheet  = nullptr;
+    mUserContentSheet = nsnull;
+    mUserChromeSheet  = nsnull;
   }
   else if (!strcmp(aTopic, "profile-do-change")) {
     InitFromProfile();
   }
   else if (strcmp(aTopic, "chrome-flush-skin-caches") == 0 ||
            strcmp(aTopic, "chrome-flush-caches") == 0) {
-    mScrollbarsSheet = nullptr;
-    mFormsSheet = nullptr;
+    mScrollbarsSheet = nsnull;
+    mFormsSheet = nsnull;
   }
   else {
     NS_NOTREACHED("Unexpected observer topic.");
@@ -63,7 +77,7 @@ nsLayoutStylesheetCache::ScrollbarsSheet()
 {
   EnsureGlobal();
   if (!gStyleCache)
-    return nullptr;
+    return nsnull;
 
   if (!gStyleCache->mScrollbarsSheet) {
     nsCOMPtr<nsIURI> sheetURI;
@@ -72,7 +86,7 @@ nsLayoutStylesheetCache::ScrollbarsSheet()
 
     
     if (sheetURI)
-      LoadSheet(sheetURI, gStyleCache->mScrollbarsSheet, false);
+      LoadSheet(sheetURI, gStyleCache->mScrollbarsSheet, PR_FALSE);
     NS_ASSERTION(gStyleCache->mScrollbarsSheet, "Could not load scrollbars.css.");
   }
 
@@ -84,7 +98,7 @@ nsLayoutStylesheetCache::FormsSheet()
 {
   EnsureGlobal();
   if (!gStyleCache)
-    return nullptr;
+    return nsnull;
 
   if (!gStyleCache->mFormsSheet) {
     nsCOMPtr<nsIURI> sheetURI;
@@ -93,7 +107,7 @@ nsLayoutStylesheetCache::FormsSheet()
 
     
     if (sheetURI)
-      LoadSheet(sheetURI, gStyleCache->mFormsSheet, true);
+      LoadSheet(sheetURI, gStyleCache->mFormsSheet, PR_TRUE);
 
     NS_ASSERTION(gStyleCache->mFormsSheet, "Could not load forms.css.");
   }
@@ -106,7 +120,7 @@ nsLayoutStylesheetCache::UserContentSheet()
 {
   EnsureGlobal();
   if (!gStyleCache)
-    return nullptr;
+    return nsnull;
 
   return gStyleCache->mUserContentSheet;
 }
@@ -116,7 +130,7 @@ nsLayoutStylesheetCache::UserChromeSheet()
 {
   EnsureGlobal();
   if (!gStyleCache)
-    return nullptr;
+    return nsnull;
 
   return gStyleCache->mUserChromeSheet;
 }
@@ -126,7 +140,7 @@ nsLayoutStylesheetCache::UASheet()
 {
   EnsureGlobal();
   if (!gStyleCache)
-    return nullptr;
+    return nsnull;
 
   return gStyleCache->mUASheet;
 }
@@ -136,19 +150,9 @@ nsLayoutStylesheetCache::QuirkSheet()
 {
   EnsureGlobal();
   if (!gStyleCache)
-    return nullptr;
+    return nsnull;
 
   return gStyleCache->mQuirkSheet;
-}
-
-nsCSSStyleSheet*
-nsLayoutStylesheetCache::FullScreenOverrideSheet()
-{
-  EnsureGlobal();
-  if (!gStyleCache)
-    return nullptr;
-
-  return gStyleCache->mFullScreenOverrideSheet;
 }
 
 void
@@ -158,38 +162,6 @@ nsLayoutStylesheetCache::Shutdown()
   NS_IF_RELEASE(gStyleCache);
 }
 
-size_t
-nsLayoutStylesheetCache::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf)
-{
-  if (nsLayoutStylesheetCache::gStyleCache) {
-    return nsLayoutStylesheetCache::gStyleCache->
-      SizeOfIncludingThisHelper(aMallocSizeOf);
-  }
-  return 0;
-}
-
-size_t
-nsLayoutStylesheetCache::SizeOfIncludingThisHelper(nsMallocSizeOfFun aMallocSizeOf) const
-{
-  size_t n = aMallocSizeOf(this);
-
-  #define MEASURE(s) n += s ? s->SizeOfIncludingThis(aMallocSizeOf) : 0;
-
-  MEASURE(mScrollbarsSheet);
-  MEASURE(mFormsSheet);
-  MEASURE(mUserContentSheet);
-  MEASURE(mUserChromeSheet);
-  MEASURE(mUASheet);
-  MEASURE(mQuirkSheet);
-  MEASURE(mFullScreenOverrideSheet);
-
-  
-  
-  
-
-  return n;
-}
-
 nsLayoutStylesheetCache::nsLayoutStylesheetCache()
 {
   nsCOMPtr<nsIObserverService> obsSvc =
@@ -197,10 +169,10 @@ nsLayoutStylesheetCache::nsLayoutStylesheetCache()
   NS_ASSERTION(obsSvc, "No global observer service?");
 
   if (obsSvc) {
-    obsSvc->AddObserver(this, "profile-before-change", false);
-    obsSvc->AddObserver(this, "profile-do-change", false);
-    obsSvc->AddObserver(this, "chrome-flush-skin-caches", false);
-    obsSvc->AddObserver(this, "chrome-flush-caches", false);
+    obsSvc->AddObserver(this, "profile-before-change", PR_FALSE);
+    obsSvc->AddObserver(this, "profile-do-change", PR_FALSE);
+    obsSvc->AddObserver(this, "chrome-flush-skin-caches", PR_FALSE);
+    obsSvc->AddObserver(this, "chrome-flush-caches", PR_FALSE);
   }
 
   InitFromProfile();
@@ -210,30 +182,15 @@ nsLayoutStylesheetCache::nsLayoutStylesheetCache()
   nsCOMPtr<nsIURI> uri;
   NS_NewURI(getter_AddRefs(uri), "resource://gre-resources/ua.css");
   if (uri) {
-    LoadSheet(uri, mUASheet, true);
+    LoadSheet(uri, mUASheet, PR_TRUE);
   }
   NS_ASSERTION(mUASheet, "Could not load ua.css");
 
   NS_NewURI(getter_AddRefs(uri), "resource://gre-resources/quirk.css");
   if (uri) {
-    LoadSheet(uri, mQuirkSheet, true);
+    LoadSheet(uri, mQuirkSheet, PR_TRUE);
   }
   NS_ASSERTION(mQuirkSheet, "Could not load quirk.css");
-
-  NS_NewURI(getter_AddRefs(uri), "resource://gre-resources/full-screen-override.css");
-  if (uri) {
-    LoadSheet(uri, mFullScreenOverrideSheet, true);
-  }
-  NS_ASSERTION(mFullScreenOverrideSheet, "Could not load full-screen-override.css");
-
-  mSheetsReporter = new NS_MEMORY_REPORTER_NAME(Sheets);
-  (void)::NS_RegisterMemoryReporter(mSheetsReporter);
-}
-
-nsLayoutStylesheetCache::~nsLayoutStylesheetCache()
-{
-  (void)::NS_UnregisterMemoryReporter(mSheetsReporter);
-  mSheetsReporter = nullptr;
 }
 
 void
@@ -288,7 +245,7 @@ nsLayoutStylesheetCache::LoadSheetFile(nsIFile* aFile, nsRefPtr<nsCSSStyleSheet>
   nsCOMPtr<nsIURI> uri;
   NS_NewFileURI(getter_AddRefs(uri), aFile);
 
-  LoadSheet(uri, aSheet, false);
+  LoadSheet(uri, aSheet, PR_FALSE);
 }
 
 void
@@ -307,13 +264,13 @@ nsLayoutStylesheetCache::LoadSheet(nsIURI* aURI,
   }
 
   if (gCSSLoader) {
-    gCSSLoader->LoadSheetSync(aURI, aEnableUnsafeRules, true,
+    gCSSLoader->LoadSheetSync(aURI, aEnableUnsafeRules, PR_TRUE,
                               getter_AddRefs(aSheet));
   }
 }
 
 nsLayoutStylesheetCache*
-nsLayoutStylesheetCache::gStyleCache = nullptr;
+nsLayoutStylesheetCache::gStyleCache = nsnull;
 
 mozilla::css::Loader*
-nsLayoutStylesheetCache::gCSSLoader = nullptr;
+nsLayoutStylesheetCache::gCSSLoader = nsnull;

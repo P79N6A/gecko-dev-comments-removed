@@ -3,13 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsComposeTxtSrvFilter_h__
 #define nsComposeTxtSrvFilter_h__
 
-#include "nsCOMPtr.h"                   
-#include "nsIAtom.h"                    
-#include "nsISupportsImpl.h"            
 #include "nsITextServicesFilter.h"
+#include "nsIAtom.h"
 
 
 
@@ -36,6 +66,7 @@ public:
 protected:
   bool              mIsForMail;
   nsCOMPtr<nsIAtom> mBlockQuoteAtom;
+  nsCOMPtr<nsIAtom> mPreAtom;          
   nsCOMPtr<nsIAtom> mSpanAtom;         
   nsCOMPtr<nsIAtom> mMozQuoteAtom;     
   nsCOMPtr<nsIAtom> mTableAtom;

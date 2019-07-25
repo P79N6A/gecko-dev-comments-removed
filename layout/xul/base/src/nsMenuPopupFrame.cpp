@@ -4,6 +4,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsMenuPopupFrame.h"
 #include "nsGkAtoms.h"
 #include "nsIContent.h"
@@ -44,6 +80,7 @@
 #include "nsIDocShellTreeOwner.h"
 #include "nsIBaseWindow.h"
 #include "nsISound.h"
+#include "nsIRootBox.h"
 #include "nsIScreenManager.h"
 #include "nsIServiceManager.h"
 #include "nsThemeConstants.h"
@@ -53,7 +90,7 @@
 
 using namespace mozilla;
 
-int8_t nsMenuPopupFrame::sDefaultLevelIsTop = -1;
+PRInt8 nsMenuPopupFrame::sDefaultLevelIsTop = -1;
 
 
 
@@ -76,26 +113,25 @@ NS_QUERYFRAME_TAIL_INHERITING(nsBoxFrame)
 
 nsMenuPopupFrame::nsMenuPopupFrame(nsIPresShell* aShell, nsStyleContext* aContext)
   :nsBoxFrame(aShell, aContext),
-  mCurrentMenu(nullptr),
+  mCurrentMenu(nsnull),
   mPrefSize(-1, -1),
-  mLastClientOffset(0, 0),
   mPopupType(ePopupTypePanel),
   mPopupState(ePopupClosed),
   mPopupAlignment(POPUPALIGNMENT_NONE),
   mPopupAnchor(POPUPALIGNMENT_NONE),
   mConsumeRollupEvent(nsIPopupBoxObject::ROLLUP_DEFAULT),
-  mFlipBoth(false),
-  mIsOpenChanged(false),
-  mIsContextMenu(false),
-  mAdjustOffsetForContextMenu(false),
-  mGeneratedChildren(false),
-  mMenuCanOverlapOSBar(false),
-  mShouldAutoPosition(true),
-  mInContentShell(true),
-  mIsMenuLocked(false),
-  mIsDragPopup(false),
-  mHFlip(false),
-  mVFlip(false)
+  mFlipBoth(PR_FALSE),
+  mIsOpenChanged(PR_FALSE),
+  mIsContextMenu(PR_FALSE),
+  mAdjustOffsetForContextMenu(PR_FALSE),
+  mGeneratedChildren(PR_FALSE),
+  mMenuCanOverlapOSBar(PR_FALSE),
+  mShouldAutoPosition(PR_TRUE),
+  mInContentShell(PR_TRUE),
+  mIsMenuLocked(PR_FALSE),
+  mIsDragPopup(PR_FALSE),
+  mHFlip(PR_FALSE),
+  mVFlip(PR_FALSE)
 {
   
   
@@ -119,7 +155,7 @@ nsMenuPopupFrame::Init(nsIContent*      aContent,
   mMenuCanOverlapOSBar =
     LookAndFeel::GetInt(LookAndFeel::eIntID_MenusCanOverlapOSBar) != 0;
 
-  rv = CreatePopupView();
+  rv = CreatePopupViewForFrame();
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -127,31 +163,33 @@ nsMenuPopupFrame::Init(nsIContent*      aContent,
   
   nsIView* ourView = GetView();
   nsIViewManager* viewManager = ourView->GetViewManager();
-  viewManager->SetViewFloating(ourView, true);
+  viewManager->SetViewFloating(ourView, PR_TRUE);
 
   mPopupType = ePopupTypePanel;
-  nsIDocument* doc = aContent->OwnerDoc();
-  int32_t namespaceID;
-  nsCOMPtr<nsIAtom> tag = doc->BindingManager()->ResolveTag(aContent, &namespaceID);
-  if (namespaceID == kNameSpaceID_XUL) {
-    if (tag == nsGkAtoms::menupopup || tag == nsGkAtoms::popup)
-      mPopupType = ePopupTypeMenu;
-    else if (tag == nsGkAtoms::tooltip)
-      mPopupType = ePopupTypeTooltip;
+  nsIDocument* doc = aContent->GetOwnerDoc();
+  if (doc) {
+    PRInt32 namespaceID;
+    nsCOMPtr<nsIAtom> tag = doc->BindingManager()->ResolveTag(aContent, &namespaceID);
+    if (namespaceID == kNameSpaceID_XUL) {
+      if (tag == nsGkAtoms::menupopup || tag == nsGkAtoms::popup)
+        mPopupType = ePopupTypeMenu;
+      else if (tag == nsGkAtoms::tooltip)
+        mPopupType = ePopupTypeTooltip;
+    }
   }
 
   if (mPopupType == ePopupTypePanel &&
       aContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
                             nsGkAtoms::drag, eIgnoreCase)) {
-    mIsDragPopup = true;
+    mIsDragPopup = PR_TRUE;
   }
 
   nsCOMPtr<nsISupports> cont = PresContext()->GetContainer();
   nsCOMPtr<nsIDocShellTreeItem> dsti = do_QueryInterface(cont);
-  int32_t type = -1;
+  PRInt32 type = -1;
   if (dsti && NS_SUCCEEDED(dsti->GetItemType(&type)) &&
       type == nsIDocShellTreeItem::typeChrome)
-    mInContentShell = false;
+    mInContentShell = PR_FALSE;
 
   
   
@@ -200,7 +238,7 @@ nsMenuPopupFrame::PopupLevel(bool aIsNoAutoHide) const
 
   
   static nsIContent::AttrValuesArray strings[] =
-    {&nsGkAtoms::top, &nsGkAtoms::parent, &nsGkAtoms::floating, nullptr};
+    {&nsGkAtoms::top, &nsGkAtoms::parent, &nsGkAtoms::floating, nsnull};
   switch (mContent->FindAttrValueIn(kNameSpaceID_None, nsGkAtoms::level,
                                     strings, eCaseMatters)) {
     case 0:
@@ -241,7 +279,7 @@ nsMenuPopupFrame::CreateWidgetForView(nsIView* aView)
   nsWidgetInitData widgetData;
   widgetData.mWindowType = eWindowType_popup;
   widgetData.mBorderStyle = eBorderStyle_default;
-  widgetData.clipSiblings = true;
+  widgetData.clipSiblings = PR_TRUE;
   widgetData.mPopupHint = mPopupType;
   widgetData.mNoAutoHide = IsNoAutoHide();
   widgetData.mIsDragPopup = mIsDragPopup;
@@ -267,7 +305,7 @@ nsMenuPopupFrame::CreateWidgetForView(nsIView* aView)
                                      (eTransparencyTransparent ==
                                       mode);
   nsIContent* parentContent = GetContent()->GetParent();
-  nsIAtom *tag = nullptr;
+  nsIAtom *tag = nsnull;
   if (parentContent)
     tag = parentContent->Tag();
   widgetData.mDropShadow = !(viewHasTransparentContent || tag == nsGkAtoms::menulist);
@@ -293,7 +331,7 @@ nsMenuPopupFrame::CreateWidgetForView(nsIView* aView)
   }
 
   nsresult rv = aView->CreateWidgetForPopup(&widgetData, parentWidget,
-                                            true, true);
+                                            PR_TRUE, PR_TRUE);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -310,10 +348,10 @@ nsMenuPopupFrame::CreateWidgetForView(nsIView* aView)
   return NS_OK;
 }
 
-uint8_t
+PRUint8
 nsMenuPopupFrame::GetShadowStyle()
 {
-  uint8_t shadow = GetStyleUIReset()->mWindowShadow;
+  PRUint8 shadow = GetStyleUIReset()->mWindowShadow;
   if (shadow != NS_STYLE_WINDOW_SHADOW_DEFAULT)
     return shadow;
 
@@ -337,7 +375,7 @@ public:
 
   NS_IMETHOD Run()
   {
-    nsMouseEvent event(true, NS_XUL_POPUP_SHOWN, nullptr, nsMouseEvent::eReal);
+    nsMouseEvent event(PR_TRUE, NS_XUL_POPUP_SHOWN, nsnull, nsMouseEvent::eReal);
     return nsEventDispatcher::Dispatch(mPopup, mPresContext, &event);                 
   }
 
@@ -352,7 +390,7 @@ nsMenuPopupFrame::SetInitialChildList(ChildListID  aListID,
 {
   
   if (aChildList.NotEmpty())
-    mGeneratedChildren = true;
+    mGeneratedChildren = PR_TRUE;
   return nsBoxFrame::SetInitialChildList(aListID, aChildList);
 }
 
@@ -360,7 +398,7 @@ bool
 nsMenuPopupFrame::IsLeaf() const
 {
   if (mGeneratedChildren)
-    return false;
+    return PR_FALSE;
 
   if (mPopupType != ePopupTypeMenu) {
     
@@ -416,12 +454,12 @@ nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu, b
   
   bool sizeChanged = (mPrefSize != prefSize);
   if (sizeChanged) {
-    SetBounds(aState, nsRect(0, 0, prefSize.width, prefSize.height), false);
+    SetBounds(aState, nsRect(0, 0, prefSize.width, prefSize.height), PR_FALSE);
     mPrefSize = prefSize;
   }
 
   if (shouldPosition) {
-    SetPopupPosition(aParentMenu, false);
+    SetPopupPosition(aParentMenu, PR_FALSE);
   }
 
   nsRect bounds(GetRect());
@@ -438,7 +476,7 @@ nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu, b
       
       mPrefSize = newsize;
       if (isOpen) {
-        SetPopupPosition(nullptr, false);
+        SetPopupPosition(nsnull, PR_FALSE);
       }
     }
   }
@@ -450,24 +488,31 @@ nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu, b
     nsRect rect = GetRect();
     rect.x = rect.y = 0;
 
-    if (sizeChanged) {
-      
+    
+    
+    
+    
+    
+    if (mPopupType == ePopupTypePanel && view) {
       nsIWidget* widget = view->GetWidget();
       if (widget) {
-        SetSizeConstraints(pc, widget, minSize, maxSize);
+        nsIntSize popupSize = nsIntSize(pc->AppUnitsToDevPixels(rect.width),
+                                        pc->AppUnitsToDevPixels(rect.height));
+        popupSize = widget->ClientToWindowSize(popupSize);
+        rect.width = pc->DevPixelsToAppUnits(popupSize.width);
+        rect.height = pc->DevPixelsToAppUnits(popupSize.height);
       }
     }
-
     viewManager->ResizeView(view, rect);
 
     viewManager->SetViewVisibility(view, nsViewVisibility_kShow);
     mPopupState = ePopupOpenAndVisible;
-    nsContainerFrame::SyncFrameViewProperties(pc, this, nullptr, view, 0);
+    nsContainerFrame::SyncFrameViewProperties(pc, this, nsnull, view, 0);
   }
 
   
   if (mIsOpenChanged) {
-    mIsOpenChanged = false;
+    mIsOpenChanged = PR_FALSE;
     nsCOMPtr<nsIRunnable> event = new nsXULPopupShownEvent(GetContent(), pc);
     NS_DispatchToCurrentThread(event);
   }
@@ -481,7 +526,7 @@ nsMenuPopupFrame::GetTriggerContent(nsMenuPopupFrame* aMenuPopupFrame)
       return aMenuPopupFrame->mTriggerContent;
 
     
-    nsMenuFrame* menuFrame = do_QueryFrame(aMenuPopupFrame->GetParent());
+    nsMenuFrame* menuFrame = aMenuPopupFrame->GetParentMenu();
     if (!menuFrame)
       break;
 
@@ -492,14 +537,14 @@ nsMenuPopupFrame::GetTriggerContent(nsMenuPopupFrame* aMenuPopupFrame)
     aMenuPopupFrame = static_cast<nsMenuPopupFrame *>(parentPopup);
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 void
 nsMenuPopupFrame::InitPositionFromAnchorAlign(const nsAString& aAnchor,
                                               const nsAString& aAlign)
 {
-  mTriggerContent = nullptr;
+  mTriggerContent = nsnull;
 
   if (aAnchor.EqualsLiteral("topleft"))
     mPopupAnchor = POPUPALIGNMENT_TOPLEFT;
@@ -536,7 +581,7 @@ void
 nsMenuPopupFrame::InitializePopup(nsIContent* aAnchorContent,
                                   nsIContent* aTriggerContent,
                                   const nsAString& aPosition,
-                                  int32_t aXPos, int32_t aYPos,
+                                  PRInt32 aXPos, PRInt32 aYPos,
                                   bool aAttributesOverride)
 {
   EnsureWidget();
@@ -546,7 +591,7 @@ nsMenuPopupFrame::InitializePopup(nsIContent* aAnchorContent,
   mTriggerContent = aTriggerContent;
   mXPos = aXPos;
   mYPos = aYPos;
-  mAdjustOffsetForContextMenu = false;
+  mAdjustOffsetForContextMenu = PR_FALSE;
 
   
   
@@ -573,7 +618,7 @@ nsMenuPopupFrame::InitializePopup(nsIContent* aAnchorContent,
     mFlipBoth = flip.EqualsLiteral("both");
 
     position.CompressWhitespace();
-    int32_t spaceIdx = position.FindChar(' ');
+    PRInt32 spaceIdx = position.FindChar(' ');
     
     
     if (spaceIdx >= 0) {
@@ -637,14 +682,14 @@ nsMenuPopupFrame::InitializePopup(nsIContent* aAnchorContent,
     mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::left, left);
     mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::top, top);
 
-    nsresult err;
+    PRInt32 err;
     if (!left.IsEmpty()) {
-      int32_t x = left.ToInteger(&err);
+      PRInt32 x = left.ToInteger(&err);
       if (NS_SUCCEEDED(err))
         mScreenXPos = x;
     }
     if (!top.IsEmpty()) {
-      int32_t y = top.ToInteger(&err);
+      PRInt32 y = top.ToInteger(&err);
       if (NS_SUCCEEDED(err))
         mScreenYPos = y;
     }
@@ -653,17 +698,17 @@ nsMenuPopupFrame::InitializePopup(nsIContent* aAnchorContent,
 
 void
 nsMenuPopupFrame::InitializePopupAtScreen(nsIContent* aTriggerContent,
-                                          int32_t aXPos, int32_t aYPos,
+                                          PRInt32 aXPos, PRInt32 aYPos,
                                           bool aIsContextMenu)
 {
   EnsureWidget();
 
   mPopupState = ePopupShowing;
-  mAnchorContent = nullptr;
+  mAnchorContent = nsnull;
   mTriggerContent = aTriggerContent;
   mScreenXPos = aXPos;
   mScreenYPos = aYPos;
-  mFlipBoth = false;
+  mFlipBoth = PR_FALSE;
   mPopupAnchor = POPUPALIGNMENT_NONE;
   mPopupAlignment = POPUPALIGNMENT_NONE;
   mIsContextMenu = aIsContextMenu;
@@ -674,13 +719,13 @@ void
 nsMenuPopupFrame::InitializePopupWithAnchorAlign(nsIContent* aAnchorContent,
                                                  nsAString& aAnchor,
                                                  nsAString& aAlign,
-                                                 int32_t aXPos, int32_t aYPos)
+                                                 PRInt32 aXPos, PRInt32 aYPos)
 {
   EnsureWidget();
 
   mPopupState = ePopupShowing;
-  mAdjustOffsetForContextMenu = false;
-  mFlipBoth = false;
+  mAdjustOffsetForContextMenu = PR_FALSE;
+  mFlipBoth = PR_FALSE;
 
   
   
@@ -694,7 +739,7 @@ nsMenuPopupFrame::InitializePopupWithAnchorAlign(nsIContent* aAnchorContent,
     InitPositionFromAnchorAlign(aAnchor, aAlign);
   }
   else {
-    mAnchorContent = nullptr;
+    mAnchorContent = nsnull;
     mPopupAnchor = POPUPALIGNMENT_NONE;
     mPopupAlignment = POPUPALIGNMENT_NONE;
     mScreenXPos = aXPos;
@@ -711,9 +756,9 @@ nsMenuPopupFrame::ShowPopup(bool aIsContextMenu, bool aSelectFirstItem)
 
   if (mPopupState == ePopupShowing) {
     mPopupState = ePopupOpen;
-    mIsOpenChanged = true;
+    mIsOpenChanged = PR_TRUE;
 
-    nsMenuFrame* menuFrame = do_QueryFrame(GetParent());
+    nsMenuFrame* menuFrame = GetParentMenu();
     if (menuFrame) {
       nsWeakFrame weakFrame(this);
       menuFrame->PopupOpened();
@@ -733,7 +778,7 @@ nsMenuPopupFrame::ShowPopup(bool aIsContextMenu, bool aSelectFirstItem)
     }
   }
 
-  mShouldAutoPosition = true;
+  mShouldAutoPosition = PR_TRUE;
 }
 
 void
@@ -759,13 +804,13 @@ nsMenuPopupFrame::HidePopup(bool aDeselectMenu, nsPopupState aNewState)
         if (win) {
           nsCOMPtr<nsPIWindowRoot> root = win->GetTopWindowRoot();
           if (root) {
-            root->SetPopupNode(nullptr);
+            root->SetPopupNode(nsnull);
           }
         }
       }
     }
-    mTriggerContent = nullptr;
-    mAnchorContent = nullptr;
+    mTriggerContent = nsnull;
+    mAnchorContent = nsnull;
   }
 
   
@@ -779,19 +824,20 @@ nsMenuPopupFrame::HidePopup(bool aDeselectMenu, nsPopupState aNewState)
   mPopupState = aNewState;
 
   if (IsMenu())
-    SetCurrentMenuItem(nullptr);
+    SetCurrentMenuItem(nsnull);
 
   mIncrementalString.Truncate();
 
-  LockMenuUntilClosed(false);
+  LockMenuUntilClosed(PR_FALSE);
 
-  mIsOpenChanged = false;
-  mCurrentMenu = nullptr; 
-  mHFlip = mVFlip = false;
+  mIsOpenChanged = PR_FALSE;
+  mCurrentMenu = nsnull; 
+  mHFlip = mVFlip = PR_FALSE;
 
   nsIView* view = GetView();
   nsIViewManager* viewManager = view->GetViewManager();
   viewManager->SetViewVisibility(view, nsViewVisibility_kHide);
+  viewManager->ResizeView(view, nsRect(0, 0, 0, 0));
 
   FireDOMEvent(NS_LITERAL_STRING("DOMMenuInactive"), mContent);
 
@@ -803,10 +849,10 @@ nsMenuPopupFrame::HidePopup(bool aDeselectMenu, nsPopupState aNewState)
 
   if (state.HasState(NS_EVENT_STATE_HOVER)) {
     nsEventStateManager *esm = PresContext()->EventStateManager();
-    esm->SetContentState(nullptr, NS_EVENT_STATE_HOVER);
+    esm->SetContentState(nsnull, NS_EVENT_STATE_HOVER);
   }
 
-  nsMenuFrame* menuFrame = do_QueryFrame(GetParent());
+  nsMenuFrame* menuFrame = GetParentMenu();
   if (menuFrame) {
     menuFrame->PopupClosed(aDeselectMenu);
   }
@@ -815,13 +861,13 @@ nsMenuPopupFrame::HidePopup(bool aDeselectMenu, nsPopupState aNewState)
 void
 nsMenuPopupFrame::InvalidateInternal(const nsRect& aDamageRect,
                                      nscoord aX, nscoord aY, nsIFrame* aForChild,
-                                     uint32_t aFlags)
+                                     PRUint32 aFlags)
 {
   InvalidateRoot(aDamageRect + nsPoint(aX, aY), aFlags);
 }
 
 void
-nsMenuPopupFrame::GetLayoutFlags(uint32_t& aFlags)
+nsMenuPopupFrame::GetLayoutFlags(PRUint32& aFlags)
 {
   aFlags = NS_FRAME_NO_SIZE_VIEW | NS_FRAME_NO_MOVE_VIEW | NS_FRAME_NO_VISIBILITY;
 }
@@ -858,7 +904,7 @@ nsMenuPopupFrame::GetRootViewForPopup(nsIFrame* aStartFrame)
     view = temp;
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 nsPoint
@@ -866,8 +912,8 @@ nsMenuPopupFrame::AdjustPositionForAnchorAlign(nsRect& anchorRect,
                                                FlipStyle& aHFlip, FlipStyle& aVFlip)
 {
   
-  int8_t popupAnchor(mPopupAnchor);
-  int8_t popupAlign(mPopupAlignment);
+  PRInt8 popupAnchor(mPopupAnchor);
+  PRInt8 popupAlign(mPopupAlignment);
   if (IsDirectionRTL()) {
     
     if (popupAnchor < POPUPALIGNMENT_LEFTCENTER) {
@@ -1001,7 +1047,7 @@ nsMenuPopupFrame::FlipOrResize(nscoord& aScreenPoint, nscoord aSize,
       else {
         
         
-        *aFlipSide = true;
+        *aFlipSide = PR_TRUE;
         aScreenPoint = endpos + aMarginEnd;
         
         
@@ -1036,7 +1082,7 @@ nsMenuPopupFrame::FlipOrResize(nscoord& aScreenPoint, nscoord aSize,
       else {
         
         
-        *aFlipSide = true;
+        *aFlipSide = PR_TRUE;
         aScreenPoint = startpos - aSize - aMarginBegin - aOffsetForContextMenu;
 
         
@@ -1108,7 +1154,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove)
   bool sizedToPopup = false;
   if (aAnchorFrame->GetContent()) {
     
-    sizedToPopup = nsMenuFrame::IsSizedToPopup(aAnchorFrame->GetContent(), false);
+    sizedToPopup = nsMenuFrame::IsSizedToPopup(aAnchorFrame->GetContent(), PR_FALSE);
   }
 
   
@@ -1182,7 +1228,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove)
     
     
     
-    if (IsNoAutoHide() && PopupLevel(true) != ePopupLevelParent) {
+    if (IsNoAutoHide() && PopupLevel(PR_TRUE) != ePopupLevelParent) {
       
       
       mScreenXPos = presContext->AppUnitsToIntCSSPixels(screenPoint.x - margin.left);
@@ -1194,13 +1240,13 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove)
     
     
     
-    int32_t factor = devContext->UnscaledAppUnitsPerDevPixel();
+    PRInt32 factor = devContext->UnscaledAppUnitsPerDevPixel();
 
     
     
     
     if (mAdjustOffsetForContextMenu) {
-      int32_t offsetForContextMenuDev =
+      PRInt32 offsetForContextMenuDev =
         nsPresContext::CSSPixelsToAppUnits(2) / factor;
       offsetForContextMenu = presContext->DevPixelsToAppUnits(offsetForContextMenuDev);
     }
@@ -1274,6 +1320,8 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove)
 
   nsIView* view = GetView();
   NS_ASSERTION(view, "popup with no view");
+  presContext->GetPresShell()->GetViewManager()->
+    MoveViewTo(view, viewPoint.x, viewPoint.y);
 
   
   
@@ -1281,13 +1329,10 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove)
   
   nsIWidget* widget = view->GetWidget();
   if (mPopupType == ePopupTypePanel && widget) {
-    mLastClientOffset = widget->GetClientOffset();
-    viewPoint.x += presContext->DevPixelsToAppUnits(mLastClientOffset.x);
-    viewPoint.y += presContext->DevPixelsToAppUnits(mLastClientOffset.y);
+    nsIntPoint offset = widget->GetClientOffset();
+    viewPoint.x += presContext->DevPixelsToAppUnits(offset.x);
+    viewPoint.y += presContext->DevPixelsToAppUnits(offset.y);
   }
-
-  presContext->GetPresShell()->GetViewManager()->
-    MoveViewTo(view, viewPoint.x, viewPoint.y);
 
   
   nsBoxFrame::SetPosition(viewPoint - GetParent()->GetOffsetTo(rootFrame));
@@ -1325,8 +1370,8 @@ nsMenuPopupFrame::GetConstraintRect(const nsRect& aAnchorRect,
     
     
     nsRect rect = mInContentShell ? aRootScreenRect : aAnchorRect;
-    int32_t width = rect.width > 0 ? presContext->AppUnitsToDevPixels(rect.width) : 1;
-    int32_t height = rect.height > 0 ? presContext->AppUnitsToDevPixels(rect.height) : 1;
+    PRInt32 width = rect.width > 0 ? presContext->AppUnitsToDevPixels(rect.width) : 1;
+    PRInt32 height = rect.height > 0 ? presContext->AppUnitsToDevPixels(rect.height) : 1;
     sm->ScreenForRect(presContext->AppUnitsToDevPixels(rect.x),
                       presContext->AppUnitsToDevPixels(rect.y),
                       width, height, getter_AddRefs(screen));
@@ -1353,9 +1398,9 @@ nsMenuPopupFrame::GetConstraintRect(const nsRect& aAnchorRect,
   return screenRect;
 }
 
-void nsMenuPopupFrame::CanAdjustEdges(int8_t aHorizontalSide, int8_t aVerticalSide, nsIntPoint& aChange)
+void nsMenuPopupFrame::CanAdjustEdges(PRInt8 aHorizontalSide, PRInt8 aVerticalSide, nsIntPoint& aChange)
 {
-  int8_t popupAlign(mPopupAlignment);
+  PRInt8 popupAlign(mPopupAlignment);
   if (IsDirectionRTL()) {
     popupAlign = -popupAlign;
   }
@@ -1389,18 +1434,11 @@ bool nsMenuPopupFrame::ConsumeOutsideClicks()
   if (mConsumeRollupEvent != nsIPopupBoxObject::ROLLUP_DEFAULT)
     return (mConsumeRollupEvent == nsIPopupBoxObject::ROLLUP_CONSUME);
 
-  if (mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::consumeoutsideclicks,
-                            nsGkAtoms::_true, eCaseMatters))
-    return true;
-  if (mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::consumeoutsideclicks,
-                            nsGkAtoms::_false, eCaseMatters))
-    return false;
-
   nsCOMPtr<nsIContent> parentContent = mContent->GetParent();
   if (parentContent) {
     nsINodeInfo *ni = parentContent->NodeInfo();
     if (ni->Equals(nsGkAtoms::menulist, kNameSpaceID_XUL))
-      return true;  
+      return PR_TRUE;  
 #if defined(XP_WIN) || defined(XP_OS2)
     
     if (ni->Equals(nsGkAtoms::menu, kNameSpaceID_XUL) ||
@@ -1412,18 +1450,18 @@ bool nsMenuPopupFrame::ConsumeOutsideClicks()
                                      nsGkAtoms::menu, eCaseMatters) ||
           parentContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
                                      nsGkAtoms::menuButton, eCaseMatters)))) {
-      return false;
+      return PR_FALSE;
     }
 #endif
     if (ni->Equals(nsGkAtoms::textbox, kNameSpaceID_XUL)) {
       
       if (parentContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
                                      nsGkAtoms::autocomplete, eCaseMatters))
-        return false;
+        return PR_FALSE;
     }
   }
 
-  return true;
+  return PR_TRUE;
 }
 
 
@@ -1431,7 +1469,7 @@ bool nsMenuPopupFrame::ConsumeOutsideClicks()
 nsIScrollableFrame* nsMenuPopupFrame::GetScrollFrame(nsIFrame* aStart)
 {
   if (!aStart)
-    return nullptr;  
+    return nsnull;  
 
   
   nsIFrame* currFrame = aStart;
@@ -1452,19 +1490,19 @@ nsIScrollableFrame* nsMenuPopupFrame::GetScrollFrame(nsIFrame* aStart)
     currFrame = currFrame->GetNextSibling();
   } while (currFrame);
 
-  return nullptr;
+  return nsnull;
 }
 
 void nsMenuPopupFrame::EnsureMenuItemIsVisible(nsMenuFrame* aMenuItem)
 {
   if (aMenuItem) {
-    aMenuItem->PresContext()->PresShell()->ScrollFrameRectIntoView(
-      aMenuItem,
-      nsRect(nsPoint(0,0), aMenuItem->GetRect().Size()),
-      nsIPresShell::ScrollAxis(),
-      nsIPresShell::ScrollAxis(),
-      nsIPresShell::SCROLL_OVERFLOW_HIDDEN |
-      nsIPresShell::SCROLL_FIRST_ANCESTOR_ONLY);
+    aMenuItem->PresContext()->PresShell()->
+      ScrollFrameRectIntoView(aMenuItem,
+                              nsRect(nsPoint(0,0), aMenuItem->GetRect().Size()),
+                              NS_PRESSHELL_SCROLL_ANYWHERE,
+                              NS_PRESSHELL_SCROLL_ANYWHERE,
+                              nsIPresShell::SCROLL_OVERFLOW_HIDDEN |
+                              nsIPresShell::SCROLL_FIRST_ANCESTOR_ONLY);
   }
 }
 
@@ -1474,12 +1512,12 @@ NS_IMETHODIMP nsMenuPopupFrame::SetCurrentMenuItem(nsMenuFrame* aMenuItem)
     return NS_OK;
 
   if (mCurrentMenu) {
-    mCurrentMenu->SelectMenu(false);
+    mCurrentMenu->SelectMenu(PR_FALSE);
   }
 
   if (aMenuItem) {
     EnsureMenuItemIsVisible(aMenuItem);
-    aMenuItem->SelectMenu(true);
+    aMenuItem->SelectMenu(PR_TRUE);
   }
 
   mCurrentMenu = aMenuItem;
@@ -1490,7 +1528,7 @@ NS_IMETHODIMP nsMenuPopupFrame::SetCurrentMenuItem(nsMenuFrame* aMenuItem)
 void
 nsMenuPopupFrame::CurrentMenuIsBeingDestroyed()
 {
-  mCurrentMenu = nullptr;
+  mCurrentMenu = nsnull;
 }
 
 NS_IMETHODIMP
@@ -1508,7 +1546,7 @@ nsMenuPopupFrame::ChangeMenuItem(nsMenuFrame* aMenuItem,
 
   
   if (mCurrentMenu) {
-    mCurrentMenu->SelectMenu(false);
+    mCurrentMenu->SelectMenu(PR_FALSE);
     nsMenuPopupFrame* popup = mCurrentMenu->GetPopup();
     if (popup) {
       if (mCurrentMenu->IsOpen()) {
@@ -1521,7 +1559,7 @@ nsMenuPopupFrame::ChangeMenuItem(nsMenuFrame* aMenuItem,
   
   if (aMenuItem) {
     EnsureMenuItemIsVisible(aMenuItem);
-    aMenuItem->SelectMenu(true);
+    aMenuItem->SelectMenu(PR_TRUE);
   }
 
   mCurrentMenu = aMenuItem;
@@ -1538,31 +1576,31 @@ nsMenuPopupFrame::Enter(nsGUIEvent* aEvent)
   if (mCurrentMenu)
     return mCurrentMenu->Enter(aEvent);
 
-  return nullptr;
+  return nsnull;
 }
 
 nsMenuFrame*
 nsMenuPopupFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, bool& doAction)
 {
-  uint32_t charCode, keyCode;
+  PRUint32 charCode, keyCode;
   aKeyEvent->GetCharCode(&charCode);
   aKeyEvent->GetKeyCode(&keyCode);
 
-  doAction = false;
+  doAction = PR_FALSE;
 
   
-  nsIFrame* immediateParent = nullptr;
+  nsIFrame* immediateParent = nsnull;
   PresContext()->PresShell()->
-    FrameConstructor()->GetInsertionPoint(this, nullptr, &immediateParent);
+    FrameConstructor()->GetInsertionPoint(this, nsnull, &immediateParent);
   if (!immediateParent)
     immediateParent = this;
 
-  uint32_t matchCount = 0, matchShortcutCount = 0;
+  PRUint32 matchCount = 0, matchShortcutCount = 0;
   bool foundActive = false;
   bool isShortcut;
-  nsMenuFrame* frameBefore = nullptr;
-  nsMenuFrame* frameAfter = nullptr;
-  nsMenuFrame* frameShortcut = nullptr;
+  nsMenuFrame* frameBefore = nsnull;
+  nsMenuFrame* frameAfter = nsnull;
+  nsMenuFrame* frameShortcut = nsnull;
 
   nsIContent* parentContent = mContent->GetParent();
 
@@ -1577,7 +1615,7 @@ nsMenuPopupFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, bool& doAction
     if (keyCode == NS_VK_BACK) {
       if (!isMenu && !mIncrementalString.IsEmpty()) {
         mIncrementalString.SetLength(mIncrementalString.Length() - 1);
-        return nullptr;
+        return nsnull;
       }
       else {
 #ifdef XP_WIN
@@ -1587,7 +1625,7 @@ nsMenuPopupFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, bool& doAction
 #endif  
       }
     }
-    return nullptr;
+    return nsnull;
   }
   else {
     PRUnichar uniChar = ToLowerCase(static_cast<PRUnichar>(charCode));
@@ -1601,7 +1639,7 @@ nsMenuPopupFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, bool& doAction
 
   
   nsAutoString incrementalString(mIncrementalString);
-  uint32_t charIndex = 1, stringLength = incrementalString.Length();
+  PRUint32 charIndex = 1, stringLength = incrementalString.Length();
   while (charIndex < stringLength && incrementalString[charIndex] == incrementalString[charIndex - 1]) {
     charIndex++;
   }
@@ -1620,7 +1658,7 @@ nsMenuPopupFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, bool& doAction
   
   currFrame = immediateParent->GetFirstPrincipalChild();
 
-  int32_t menuAccessKey = -1;
+  PRInt32 menuAccessKey = -1;
   nsMenuBarListener::GetMenuAccessKey(&menuAccessKey);
 
   
@@ -1629,53 +1667,52 @@ nsMenuPopupFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, bool& doAction
     nsIContent* current = currFrame->GetContent();
     
     
-    if (nsXULPopupManager::IsValidMenuItem(PresContext(), current, true)) {
+    if (nsXULPopupManager::IsValidMenuItem(PresContext(), current, PR_TRUE)) {
       nsAutoString textKey;
       if (menuAccessKey >= 0) {
         
         current->GetAttr(kNameSpaceID_None, nsGkAtoms::accesskey, textKey);
       }
       if (textKey.IsEmpty()) { 
-        isShortcut = false;
+        isShortcut = PR_FALSE;
         current->GetAttr(kNameSpaceID_None, nsGkAtoms::label, textKey);
         if (textKey.IsEmpty()) 
           current->GetAttr(kNameSpaceID_None, nsGkAtoms::value, textKey);
       }
       else
-        isShortcut = true;
+        isShortcut = PR_TRUE;
 
       if (StringBeginsWith(textKey, incrementalString,
                            nsCaseInsensitiveStringComparator())) {
         
-        nsMenuFrame* menu = do_QueryFrame(currFrame);
-        if (menu) {
+        if (currFrame->GetType() == nsGkAtoms::menuFrame) {
           
           matchCount++;
           if (isShortcut) {
             
             matchShortcutCount++;
             
-            frameShortcut = menu;
+            frameShortcut = static_cast<nsMenuFrame *>(currFrame);
           }
           if (!foundActive) {
             
             if (!frameBefore)
-              frameBefore = menu;
+              frameBefore = static_cast<nsMenuFrame *>(currFrame);
           }
           else {
             
             if (!frameAfter)
-              frameAfter = menu;
+              frameAfter = static_cast<nsMenuFrame *>(currFrame);
           }
         }
         else
-          return nullptr;
+          return nsnull;
       }
 
       
       if (current->AttrValueIs(kNameSpaceID_None, nsGkAtoms::menuactive,
                                nsGkAtoms::_true, eCaseMatters)) {
-        foundActive = true;
+        foundActive = PR_TRUE;
         if (stringLength > 1) {
           
           
@@ -1710,7 +1747,7 @@ nsMenuPopupFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, bool& doAction
   }
 #endif  
 
-  return nullptr;
+  return nsnull;
 }
 
 void
@@ -1719,23 +1756,25 @@ nsMenuPopupFrame::LockMenuUntilClosed(bool aLock)
   mIsMenuLocked = aLock;
 
   
-  nsMenuFrame* menu = do_QueryFrame(GetParent());
-  if (menu) {
-    nsMenuParent* parentParent = menu->GetMenuParent();
+  nsIFrame* parent = GetParent();
+  if (parent && parent->GetType() == nsGkAtoms::menuFrame) {
+    nsMenuParent* parentParent = static_cast<nsMenuFrame*>(parent)->GetMenuParent();
     if (parentParent) {
       parentParent->LockMenuUntilClosed(aLock);
     }
   }
 }
 
-nsIWidget*
-nsMenuPopupFrame::GetWidget()
+NS_IMETHODIMP
+nsMenuPopupFrame::GetWidget(nsIWidget **aWidget)
 {
   nsIView * view = GetRootViewForPopup(this);
   if (!view)
-    return nullptr;
+    return NS_OK;
 
-  return view->GetWidget();
+  *aWidget = view->GetWidget();
+  NS_IF_ADDREF(*aWidget);
+  return NS_OK;
 }
 
 void
@@ -1760,9 +1799,9 @@ nsMenuPopupFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
 
 NS_IMETHODIMP 
-nsMenuPopupFrame::AttributeChanged(int32_t aNameSpaceID,
+nsMenuPopupFrame::AttributeChanged(PRInt32 aNameSpaceID,
                                    nsIAtom* aAttribute,
-                                   int32_t aModType)
+                                   PRInt32 aModType)
 
 {
   nsresult rv = nsBoxFrame::AttributeChanged(aNameSpaceID, aAttribute,
@@ -1799,22 +1838,22 @@ nsMenuPopupFrame::MoveToAttributePosition()
   nsAutoString left, top;
   mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::left, left);
   mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::top, top);
-  nsresult err1, err2;
-  int32_t xpos = left.ToInteger(&err1);
-  int32_t ypos = top.ToInteger(&err2);
+  PRInt32 err1, err2;
+  PRInt32 xpos = left.ToInteger(&err1);
+  PRInt32 ypos = top.ToInteger(&err2);
 
   if (NS_SUCCEEDED(err1) && NS_SUCCEEDED(err2))
-    MoveTo(xpos, ypos, false);
+    MoveTo(xpos, ypos, PR_FALSE);
 }
 
 void
 nsMenuPopupFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
-  nsMenuFrame* menu = do_QueryFrame(GetParent());
-  if (menu) {
+  nsIFrame* parent = GetParent();
+  if (parent && parent->GetType() == nsGkAtoms::menuFrame) {
     
     nsContentUtils::AddScriptRunner(
-      new nsUnsetAttrRunnable(menu->GetContent(), nsGkAtoms::open));
+      new nsUnsetAttrRunnable(parent->GetContent(), nsGkAtoms::open));
   }
 
   nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
@@ -1824,7 +1863,7 @@ nsMenuPopupFrame::DestroyFrom(nsIFrame* aDestructRoot)
   nsIRootBox* rootBox =
     nsIRootBox::GetRootBox(PresContext()->GetPresShell());
   if (rootBox && rootBox->GetDefaultTooltip() == mContent) {
-    rootBox->SetDefaultTooltip(nullptr);
+    rootBox->SetDefaultTooltip(nsnull);
   }
 
   nsBoxFrame::DestroyFrom(aDestructRoot);
@@ -1832,13 +1871,10 @@ nsMenuPopupFrame::DestroyFrom(nsIFrame* aDestructRoot)
 
 
 void
-nsMenuPopupFrame::MoveTo(int32_t aLeft, int32_t aTop, bool aUpdateAttrs)
+nsMenuPopupFrame::MoveTo(PRInt32 aLeft, PRInt32 aTop, bool aUpdateAttrs)
 {
-  nsIWidget* widget = GetWidget();
-  if ((mScreenXPos == aLeft && mScreenYPos == aTop) &&
-      (!widget || widget->GetClientOffset() == mLastClientOffset)) {
+  if (mScreenXPos == aLeft && mScreenYPos == aTop)
     return;
-  }
 
   
   
@@ -1850,7 +1886,7 @@ nsMenuPopupFrame::MoveTo(int32_t aLeft, int32_t aTop, bool aUpdateAttrs)
   mScreenXPos = aLeft - presContext->AppUnitsToIntCSSPixels(margin.left);
   mScreenYPos = aTop - presContext->AppUnitsToIntCSSPixels(margin.top);
 
-  SetPopupPosition(nullptr, true);
+  SetPopupPosition(nsnull, PR_TRUE);
 
   nsCOMPtr<nsIContent> popup = mContent;
   if (aUpdateAttrs && (popup->HasAttr(kNameSpaceID_None, nsGkAtoms::left) ||
@@ -1859,8 +1895,8 @@ nsMenuPopupFrame::MoveTo(int32_t aLeft, int32_t aTop, bool aUpdateAttrs)
     nsAutoString left, top;
     left.AppendInt(aLeft);
     top.AppendInt(aTop);
-    popup->SetAttr(kNameSpaceID_None, nsGkAtoms::left, left, false);
-    popup->SetAttr(kNameSpaceID_None, nsGkAtoms::top, top, false);
+    popup->SetAttr(kNameSpaceID_None, nsGkAtoms::left, left, PR_FALSE);
+    popup->SetAttr(kNameSpaceID_None, nsGkAtoms::top, top, PR_FALSE);
   }
 }
 
@@ -1877,7 +1913,7 @@ nsMenuPopupFrame::SetAutoPosition(bool aShouldAutoPosition)
 }
 
 void
-nsMenuPopupFrame::SetConsumeRollupEvent(uint32_t aConsumeMode)
+nsMenuPopupFrame::SetConsumeRollupEvent(PRUint32 aConsumeMode)
 {
   mConsumeRollupEvent = aConsumeMode;
 }
@@ -1887,20 +1923,24 @@ nsMenuPopupFrame::SetConsumeRollupEvent(uint32_t aConsumeMode)
 
 
 nsresult
-nsMenuPopupFrame::CreatePopupView()
+nsMenuPopupFrame::CreatePopupViewForFrame()
 {
   if (HasView()) {
     return NS_OK;
   }
 
+  nsViewVisibility visibility = nsViewVisibility_kShow;
+  PRInt32 zIndex = 0;
+  bool    autoZIndex = false;
+
+  nsIView* parentView;
   nsIViewManager* viewManager = PresContext()->GetPresShell()->GetViewManager();
-  NS_ASSERTION(nullptr != viewManager, "null view manager");
+  NS_ASSERTION(nsnull != viewManager, "null view manager");
 
   
-  nsIView* parentView = viewManager->GetRootView();
-  nsViewVisibility visibility = nsViewVisibility_kHide;
-  int32_t zIndex = PR_INT32_MAX;
-  bool    autoZIndex = false;
+  parentView = viewManager->GetRootView();
+  visibility = nsViewVisibility_kHide;
+  zIndex = PR_INT32_MAX;
 
   NS_ASSERTION(parentView, "no parent view");
 
@@ -1909,14 +1949,14 @@ nsMenuPopupFrame::CreatePopupView()
   if (view) {
     viewManager->SetViewZIndex(view, autoZIndex, zIndex);
     
-    viewManager->InsertChild(parentView, view, nullptr, true);
+    viewManager->InsertChild(parentView, view, nsnull, PR_TRUE);
   }
 
   
   SetView(view);
 
   NS_FRAME_LOG(NS_FRAME_TRACE_CALLS,
-    ("nsMenuPopupFrame::CreatePopupView: frame=%p view=%p", this, view));
+    ("nsMenuPopupFrame::CreatePopupViewForFrame: frame=%p view=%p", this, view));
 
   if (!view)
     return NS_ERROR_OUT_OF_MEMORY;

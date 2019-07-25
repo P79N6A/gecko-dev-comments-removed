@@ -3,7 +3,38 @@
 
 
 
-#include "mozilla/FloatingPoint.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "txXSLTFunctions.h"
 #include "nsGkAtoms.h"
@@ -45,7 +76,7 @@ nsresult
 txFormatNumberFunctionCall::evaluate(txIEvalContext* aContext,
                                      txAExprResult** aResult)
 {
-    *aResult = nullptr;
+    *aResult = nsnull;
     if (!requireParams(2, 3, aContext))
         return NS_ERROR_XPATH_BAD_ARGUMENT_COUNT;
 
@@ -65,7 +96,7 @@ txFormatNumberFunctionCall::evaluate(txIEvalContext* aContext,
         rv = mParams[2]->evaluateToString(aContext, formatQName);
         NS_ENSURE_SUCCESS(rv, rv);
 
-        rv = formatName.init(formatQName, mMappings, false);
+        rv = formatName.init(formatQName, mMappings, MB_FALSE);
         NS_ENSURE_SUCCESS(rv, rv);
     }
 
@@ -81,16 +112,16 @@ txFormatNumberFunctionCall::evaluate(txIEvalContext* aContext,
     }
 
     
-    if (MOZ_DOUBLE_IS_NaN(value)) {
+    if (Double::isNaN(value)) {
         return aContext->recycler()->getStringResult(format->mNaN, aResult);
     }
 
-    if (value == MOZ_DOUBLE_POSITIVE_INFINITY()) {
+    if (value == Double::POSITIVE_INFINITY) {
         return aContext->recycler()->getStringResult(format->mInfinity,
                                                      aResult);
     }
 
-    if (value == MOZ_DOUBLE_NEGATIVE_INFINITY()) {
+    if (value == Double::NEGATIVE_INFINITY) {
         nsAutoString res;
         res.Append(format->mMinusSign);
         res.Append(format->mInfinity);
@@ -106,13 +137,13 @@ txFormatNumberFunctionCall::evaluate(txIEvalContext* aContext,
     int multiplier=1;
     int groupSize=-1;
 
-    uint32_t pos = 0;
-    uint32_t formatLen = formatStr.Length();
-    bool inQuote;
+    PRUint32 pos = 0;
+    PRUint32 formatLen = formatStr.Length();
+    MBool inQuote;
 
     
-    inQuote = false;
-    if (MOZ_DOUBLE_IS_NEGATIVE(value)) {
+    inQuote = MB_FALSE;
+    if (Double::isNeg(value)) {
         while (pos < formatLen &&
                (inQuote ||
                 formatStr.CharAt(pos) != format->mPatternSeparator)) {
@@ -131,7 +162,7 @@ txFormatNumberFunctionCall::evaluate(txIEvalContext* aContext,
 
     
     FormatParseState pState = Prefix;
-    inQuote = false;
+    inQuote = MB_FALSE;
 
     PRUnichar c = 0;
     while (pos < formatLen && pState != Finished) {
@@ -277,7 +308,7 @@ txFormatNumberFunctionCall::evaluate(txIEvalContext* aContext,
     char* buf = new char[bufsize];
     NS_ENSURE_TRUE(buf, NS_ERROR_OUT_OF_MEMORY);
 
-    int bufIntDigits, sign;
+    PRIntn bufIntDigits, sign;
     char* endp;
     PR_dtoa(value, 0, 0, &bufIntDigits, &sign, &endp, buf, bufsize-1);
 
@@ -295,11 +326,11 @@ txFormatNumberFunctionCall::evaluate(txIEvalContext* aContext,
                   maxFractionSize +         
                   (intDigits-1)/groupSize); 
 
-    int32_t i = bufIntDigits + maxFractionSize - 1;
-    bool carry = (0 <= i+1) && (i+1 < buflen) && (buf[i+1] >= '5');
-    bool hasFraction = false;
+    PRInt32 i = bufIntDigits + maxFractionSize - 1;
+    MBool carry = (i+1 < buflen) && (buf[i+1] >= '5');
+    MBool hasFraction = MB_FALSE;
 
-    uint32_t resPos = res.Length()-1;
+    PRUint32 resPos = res.Length()-1;
 
     
     for (; i >= bufIntDigits; --i) {
@@ -317,7 +348,7 @@ txFormatNumberFunctionCall::evaluate(txIEvalContext* aContext,
         }
 
         if (hasFraction || digit != 0 || i < bufIntDigits+minFractionSize) {
-            hasFraction = true;
+            hasFraction = MB_TRUE;
             res.SetCharAt((PRUnichar)(digit + format->mZeroDigit),
                           resPos--);
         }
@@ -417,7 +448,7 @@ txDecimalFormat::txDecimalFormat() : mInfinity(NS_LITERAL_STRING("Infinity")),
     mPatternSeparator = ';';
 }
 
-bool txDecimalFormat::isEqual(txDecimalFormat* other)
+MBool txDecimalFormat::isEqual(txDecimalFormat* other)
 {
     return mDecimalSeparator == other->mDecimalSeparator &&
            mGroupingSeparator == other->mGroupingSeparator &&

@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NSCLIENTAUTHREMEMBER_H__
 #define __NSCLIENTAUTHREMEMBER_H__
 
@@ -15,7 +48,6 @@
 #include "nsNSSCertificate.h"
 #include "nsString.h"
 #include "nsWeakReference.h"
-#include "mozilla/Attributes.h"
 
 class nsClientAuthRemember
 {
@@ -45,7 +77,7 @@ public:
 
 
 
-class nsClientAuthRememberEntry MOZ_FINAL : public PLDHashEntryHdr
+class nsClientAuthRememberEntry : public PLDHashEntryHdr
 {
   public:
     
@@ -90,10 +122,10 @@ class nsClientAuthRememberEntry MOZ_FINAL : public PLDHashEntryHdr
     {
       
       
-      return PL_DHashStringKey(nullptr, aKey);
+      return PL_DHashStringKey(nsnull, aKey);
     }
 
-    enum { ALLOW_MEMMOVE = false };
+    enum { ALLOW_MEMMOVE = PR_FALSE };
 
     
     inline const nsCString &HostWithCert() const { return mHostWithCert; }
@@ -107,8 +139,8 @@ class nsClientAuthRememberEntry MOZ_FINAL : public PLDHashEntryHdr
     nsCString mHostWithCert;
 };
 
-class nsClientAuthRememberService MOZ_FINAL : public nsIObserver,
-                                              public nsSupportsWeakReference
+class nsClientAuthRememberService : public nsIObserver,
+                                    public nsSupportsWeakReference
 {
 public:
   NS_DECL_ISUPPORTS

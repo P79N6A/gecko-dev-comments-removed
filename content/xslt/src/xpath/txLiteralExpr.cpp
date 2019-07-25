@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "txExpr.h"
 
 nsresult
@@ -32,12 +65,12 @@ txLiteralExpr::getReturnType()
 }
 
 Expr*
-txLiteralExpr::getSubExprAt(uint32_t aPos)
+txLiteralExpr::getSubExprAt(PRUint32 aPos)
 {
-    return nullptr;
+    return nsnull;
 }
 void
-txLiteralExpr::setSubExprAt(uint32_t aPos, Expr* aExpr)
+txLiteralExpr::setSubExprAt(PRUint32 aPos, Expr* aExpr)
 {
     NS_NOTREACHED("setting bad subexpression index");
 }
@@ -45,7 +78,7 @@ txLiteralExpr::setSubExprAt(uint32_t aPos, Expr* aExpr)
 bool
 txLiteralExpr::isSensitiveTo(ContextSensitivity aContext)
 {
-    return false;
+    return PR_FALSE;
 }
 
 #ifdef TX_TO_STRING
@@ -70,7 +103,7 @@ txLiteralExpr::toString(nsAString& aStr)
         }
         case txAExprResult::NUMBER:
         {
-            txDouble::toString(mValue->numberValue(), aStr);
+            Double::toString(mValue->numberValue(), aStr);
             return;
         }
         case txAExprResult::STRING:

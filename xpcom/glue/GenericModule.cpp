@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "mozilla/ModuleUtils.h"
 #include "mozilla/GenericFactory.h"
 
@@ -65,7 +98,7 @@ GenericModule::RegisterSelf(nsIComponentManager* aCompMgr,
     if (!catman)
       catman = do_GetService(NS_CATEGORYMANAGER_CONTRACTID);
 
-    nsAutoCString r;
+    nsCAutoString r;
     catman->AddCategoryEntry(e->category, e->entry, e->value, true, true,
                              getter_Copies(r));
   }

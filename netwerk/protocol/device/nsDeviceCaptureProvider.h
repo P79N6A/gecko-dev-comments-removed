@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDeviceCaptureProvider_h_
 #define nsDeviceCaptureProvider_h_
 
@@ -11,13 +45,13 @@
 struct nsCaptureParams {
   bool captureAudio;
   bool captureVideo;
-  uint32_t frameRate;
-  uint32_t frameLimit;
-  uint32_t timeLimit;
-  uint32_t width;
-  uint32_t height;
-  uint32_t bpp;
-  uint32_t camera;
+  PRUint32 frameRate;
+  PRUint32 frameLimit;
+  PRUint32 timeLimit;
+  PRUint32 width;
+  PRUint32 height;
+  PRUint32 bpp;
+  PRUint32 camera;
 };
 
 class nsDeviceCaptureProvider : public nsISupports

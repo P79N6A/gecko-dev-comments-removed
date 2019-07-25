@@ -3,10 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsDOMMessageEvent.h"
 #include "nsContentUtils.h"
 #include "jsapi.h"
-#include "nsDOMClassInfoID.h"
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsDOMMessageEvent)
 
@@ -23,7 +55,10 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsDOMMessageEvent, nsDOMEvent)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(nsDOMMessageEvent)
-  NS_IMPL_CYCLE_COLLECTION_TRACE_JSVAL_MEMBER_CALLBACK(mData)
+  if (JSVAL_IS_GCTHING(tmp->mData)) {
+    void *gcThing = JSVAL_TO_GCTHING(tmp->mData);
+    NS_IMPL_CYCLE_COLLECTION_TRACE_JS_CALLBACK(gcThing, "mData")
+  }
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 DOMCI_DATA(MessageEvent, nsDOMMessageEvent)

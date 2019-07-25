@@ -8,6 +8,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSigHandlers.h"
 
 #ifdef XP_UNIX
@@ -56,7 +90,7 @@ static const int kClientChannelFd = 3;
 
 extern "C" {
 
-static void PrintStackFrame(void *aPC, void *aSP, void *aClosure)
+static void PrintStackFrame(void *aPC, void *aClosure)
 {
   char buf[1024];
   nsCodeAddressDetails details;
@@ -77,7 +111,7 @@ ah_crap_handler(int signum)
          signum);
 
   printf("Stack:\n");
-  NS_StackWalk(PrintStackFrame, 2, nullptr, 0);
+  NS_StackWalk(PrintStackFrame, 2, nsnull);
 
   printf("Sleeping for %d seconds.\n",_gdb_sleep_duration);
   printf("Type 'gdb %s %d' to attach your debugger to this thread.\n",
@@ -101,12 +135,12 @@ child_ah_crap_handler(int signum)
 
 #endif 
 
-#ifdef MOZ_WIDGET_GTK
+#ifdef MOZ_WIDGET_GTK2
 
 #include <glib.h>
 #endif
 
-#if defined(MOZ_WIDGET_GTK) && (GLIB_MAJOR_VERSION > 2 || (GLIB_MAJOR_VERSION == 2 && GLIB_MINOR_VERSION >= 6))
+#if defined(MOZ_WIDGET_GTK2) && (GLIB_MAJOR_VERSION > 2 || (GLIB_MAJOR_VERSION == 2 && GLIB_MINOR_VERSION >= 6))
 
 static GLogFunc orig_log_func = NULL;
 
@@ -137,7 +171,7 @@ static void fpehandler(int signum, siginfo_t *si, void *context)
   
   
   if (si->si_code == FPE_INTDIV || si->si_code == FPE_INTOVF) {
-    NS_DebugBreak(NS_DEBUG_ABORT, "Divide by zero", nullptr, __FILE__, __LINE__);
+    NS_DebugBreak(NS_DEBUG_ABORT, "Divide by zero", nsnull, __FILE__, __LINE__);
   }
 
 #ifdef XP_MACOSX
@@ -282,7 +316,7 @@ void InstallSignalHandlers(const char *ProgramName)
     }
 #endif 
 
-#if defined(MOZ_WIDGET_GTK) && (GLIB_MAJOR_VERSION > 2 || (GLIB_MAJOR_VERSION == 2 && GLIB_MINOR_VERSION >= 6))
+#if defined(MOZ_WIDGET_GTK2) && (GLIB_MAJOR_VERSION > 2 || (GLIB_MAJOR_VERSION == 2 && GLIB_MINOR_VERSION >= 6))
   const char *assertString = PR_GetEnv("XPCOM_DEBUG_BREAK");
   if (assertString &&
       (!strcmp(assertString, "suspend") ||

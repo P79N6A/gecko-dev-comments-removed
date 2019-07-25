@@ -3,17 +3,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_DOMSVGNUMBERLIST_H__
 #define MOZILLA_DOMSVGNUMBERLIST_H__
 
-#include "DOMSVGAnimatedNumberList.h"
-#include "nsAutoPtr.h"
-#include "nsCycleCollectionParticipant.h"
-#include "nsDebug.h"
 #include "nsIDOMSVGNumberList.h"
-#include "nsTArray.h"
 #include "SVGNumberList.h"
-#include "mozilla/Attributes.h"
+#include "DOMSVGAnimatedNumberList.h"
+#include "nsCOMArray.h"
+#include "nsAutoPtr.h"
 
 class nsSVGElement;
 
@@ -38,22 +66,19 @@ class DOMSVGNumber;
 
 
 
-class DOMSVGNumberList MOZ_FINAL : public nsIDOMSVGNumberList,
-                                   public nsWrapperCache
+class DOMSVGNumberList : public nsIDOMSVGNumberList
 {
   friend class DOMSVGNumber;
 
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGNumberList)
+  NS_DECL_CYCLE_COLLECTION_CLASS(DOMSVGNumberList)
   NS_DECL_NSIDOMSVGNUMBERLIST
 
   DOMSVGNumberList(DOMSVGAnimatedNumberList *aAList,
                    const SVGNumberList &aInternalList)
     : mAList(aAList)
   {
-    SetIsDOMBinding();
-
     
     
     
@@ -67,39 +92,34 @@ public:
     
     
     if (mAList) {
-      ( IsAnimValList() ? mAList->mAnimVal : mAList->mBaseVal ) = nullptr;
+      ( IsAnimValList() ? mAList->mAnimVal : mAList->mBaseVal ) = nsnull;
     }
-  }
-
-  virtual JSObject* WrapObject(JSContext *cx, JSObject *scope,
-                               bool *triedToWrap);
-
-  nsISupports* GetParentObject()
-  {
-    return static_cast<nsIContent*>(Element());
   }
 
   
 
 
 
-  uint32_t Length() const {
+  PRUint32 Length() const {
     NS_ABORT_IF_FALSE(mItems.Length() == 0 ||
-                      mItems.Length() == InternalList().Length(),
+                      mItems.Length() ==
+                        const_cast<DOMSVGNumberList*>(this)->InternalList().Length(),
                       "DOM wrapper's list length is out of sync");
     return mItems.Length();
   }
 
+  nsIDOMSVGNumber* GetItemWithoutAddRef(PRUint32 aIndex);
+
   
-  void InternalListLengthWillChange(uint32_t aNewLength);
+  void InternalListLengthWillChange(PRUint32 aNewLength);
 
 private:
 
-  nsSVGElement* Element() const {
+  nsSVGElement* Element() {
     return mAList->mElement;
   }
 
-  uint8_t AttrEnum() const {
+  PRUint8 AttrEnum() const {
     return mAList->mAttrEnum;
   }
 
@@ -118,13 +138,13 @@ private:
 
 
 
-  SVGNumberList& InternalList() const;
+  SVGNumberList& InternalList();
 
   
-  void EnsureItemAt(uint32_t aIndex);
+  void EnsureItemAt(PRUint32 aIndex);
 
-  void MaybeInsertNullInAnimValListAt(uint32_t aIndex);
-  void MaybeRemoveItemFromAnimValListAt(uint32_t aIndex);
+  void MaybeInsertNullInAnimValListAt(PRUint32 aIndex);
+  void MaybeRemoveItemFromAnimValListAt(PRUint32 aIndex);
 
   
   

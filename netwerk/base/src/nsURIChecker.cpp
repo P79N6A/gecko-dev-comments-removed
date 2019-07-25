@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsURIChecker.h"
 #include "nsIServiceManager.h"
 #include "nsIAuthPrompt.h"
@@ -16,7 +50,7 @@
 static bool
 ServerIsNES3x(nsIHttpChannel *httpChannel)
 {
-    nsAutoCString server;
+    nsCAutoString server;
     httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("Server"), server);
     
     
@@ -37,8 +71,8 @@ NS_IMPL_ISUPPORTS6(nsURIChecker,
 
 nsURIChecker::nsURIChecker()
     : mStatus(NS_OK)
-    , mIsPending(false)
-    , mAllowHead(true)
+    , mIsPending(PR_FALSE)
+    , mAllowHead(PR_TRUE)
 {
 }
 
@@ -46,13 +80,13 @@ void
 nsURIChecker::SetStatusAndCallBack(nsresult aStatus)
 {
     mStatus = aStatus;
-    mIsPending = false;
+    mIsPending = PR_FALSE;
 
     if (mObserver) {
         mObserver->OnStartRequest(this, mObserverContext);
         mObserver->OnStopRequest(this, mObserverContext, mStatus);
-        mObserver = nullptr;
-        mObserverContext = nullptr;
+        mObserver = nsnull;
+        mObserverContext = nsnull;
     }
 }
 
@@ -73,7 +107,7 @@ nsURIChecker::CheckStatus()
     if (!httpChannel)
         return NS_BINDING_SUCCEEDED;
 
-    uint32_t responseStatus;
+    PRUint32 responseStatus;
     rv = httpChannel->GetResponseStatus(&responseStatus);
     if (NS_FAILED(rv))
         return NS_BINDING_FAILED;
@@ -88,20 +122,17 @@ nsURIChecker::CheckStatus()
     
     if (responseStatus == 404) {
         if (mAllowHead && ServerIsNES3x(httpChannel)) {
-            mAllowHead = false;
+            mAllowHead = PR_FALSE;
 
             
             
             nsCOMPtr<nsIChannel> lastChannel = mChannel;
 
             nsCOMPtr<nsIURI> uri;
-            uint32_t loadFlags;
+            PRUint32 loadFlags;
 
             rv  = lastChannel->GetOriginalURI(getter_AddRefs(uri));
-            nsresult tmp = lastChannel->GetLoadFlags(&loadFlags);
-            if (NS_FAILED(tmp)) {
-              rv = tmp;
-            }
+            rv |= lastChannel->GetLoadFlags(&loadFlags);
 
             
             
@@ -144,7 +175,7 @@ nsURIChecker::Init(nsIURI *aURI)
     if (NS_FAILED(rv)) return rv;
 
     if (mAllowHead) {
-        mAllowHead = false;
+        mAllowHead = PR_FALSE;
         
         nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(mChannel);
         if (httpChannel) {
@@ -161,7 +192,7 @@ nsURIChecker::Init(nsIURI *aURI)
                 
                 
                 
-                mAllowHead = true;
+                mAllowHead = PR_TRUE;
             }
         }
     }
@@ -179,12 +210,12 @@ nsURIChecker::AsyncCheck(nsIRequestObserver *aObserver,
     mChannel->SetNotificationCallbacks(this);
     
     
-    nsresult rv = mChannel->AsyncOpen(this, nullptr);
+    nsresult rv = mChannel->AsyncOpen(this, nsnull);
     if (NS_FAILED(rv))
-        mChannel = nullptr;
+        mChannel = nsnull;
     else {
         
-        mIsPending = true;
+        mIsPending = PR_TRUE;
         mObserver = aObserver;
         mObserverContext = aObserverContext;
     }
@@ -299,7 +330,7 @@ nsURIChecker::OnStopRequest(nsIRequest *request, nsISupports *ctxt,
     if (mChannel == request) {
         
         
-        mChannel = nullptr;
+        mChannel = nsnull;
     }
     return NS_OK;
 }
@@ -310,8 +341,8 @@ nsURIChecker::OnStopRequest(nsIRequest *request, nsISupports *ctxt,
 
 NS_IMETHODIMP
 nsURIChecker::OnDataAvailable(nsIRequest *aRequest, nsISupports *aCtxt,
-                               nsIInputStream *aInput, uint64_t aOffset,
-                               uint32_t aCount)
+                               nsIInputStream *aInput, PRUint32 aOffset,
+                               PRUint32 aCount)
 {
     NS_NOTREACHED("nsURIChecker::OnDataAvailable");
     return NS_BINDING_ABORTED;
@@ -339,7 +370,7 @@ nsURIChecker::GetInterface(const nsIID & aIID, void **aResult)
 NS_IMETHODIMP
 nsURIChecker::AsyncOnChannelRedirect(nsIChannel *aOldChannel,
                                      nsIChannel *aNewChannel,
-                                     uint32_t aFlags,
+                                     PRUint32 aFlags,
                                      nsIAsyncVerifyRedirectCallback *callback)
 {
     

@@ -46,9 +46,11 @@
 #include "nsIScriptSecurityManager.h"
 #include "nsIXPConnect.h"
 #include "jsapi.h"
+#include "nsContentUtils.h"
 #include "nsJSUtils.h"
 #include "nsMathUtils.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/Telemetry.h"
 
 #include "nsFrameManager.h"
 #include "nsDisplayList.h"
@@ -135,7 +137,7 @@ NS_IMPL_BOOL_ATTR(nsHTMLCanvasElement, MozOpaque, moz_opaque)
 nsresult
 nsHTMLCanvasElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                              nsIAtom* aPrefix, const nsAString& aValue,
-                             PRBool aNotify)
+                             bool aNotify)
 {
   nsresult rv = nsGenericHTMLElement::SetAttr(aNameSpaceID, aName, aPrefix, aValue,
                                               aNotify);
@@ -184,7 +186,7 @@ nsHTMLCanvasElement::GetAttributeChangeHint(const nsIAtom* aAttribute,
   return retval;
 }
 
-PRBool
+bool
 nsHTMLCanvasElement::ParseAttribute(PRInt32 aNamespaceID,
                                     nsIAtom* aAttribute,
                                     const nsAString& aValue,
@@ -227,6 +229,9 @@ nsHTMLCanvasElement::ExtractData(const nsAString& aType,
   nsIntSize size = GetWidthHeight();
   if (!mCurrentContext) {
     emptyCanvas = new gfxImageSurface(gfxIntSize(size.width, size.height), gfxASurface::ImageFormatARGB32);
+    if (emptyCanvas->CairoStatus()) {
+      return NS_ERROR_INVALID_ARG;
+    }
   }
 
   nsresult rv;
@@ -312,9 +317,35 @@ nsHTMLCanvasElement::ToDataURLImpl(const nsAString& aMimeType,
     }
   }
 
+  
+  
+  
+  bool usingCustomParseOptions = false;
+  if (params.Length() == 0) {
+    NS_NAMED_LITERAL_STRING(mozParseOptions, "-moz-parse-options:");
+    nsAutoString paramString;
+    if (NS_SUCCEEDED(aEncoderOptions->GetAsAString(paramString)) && 
+        StringBeginsWith(paramString, mozParseOptions)) {
+      nsDependentSubstring parseOptions = Substring(paramString, 
+                                                    mozParseOptions.Length(), 
+                                                    paramString.Length() - 
+                                                    mozParseOptions.Length());
+      params.Append(parseOptions);
+      usingCustomParseOptions = PR_TRUE;
+    }
+  }
+
   nsCOMPtr<nsIInputStream> stream;
   nsresult rv = ExtractData(type, params, getter_AddRefs(stream),
                             fallbackToPNG);
+
+  
+  
+  if (rv == NS_ERROR_INVALID_ARG && usingCustomParseOptions) {
+    fallbackToPNG = false;
+    rv = ExtractData(type, EmptyString(), getter_AddRefs(stream), fallbackToPNG);
+  }
+
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -380,7 +411,7 @@ nsHTMLCanvasElement::MozGetAsFileImpl(const nsAString& aName,
 
 nsresult
 nsHTMLCanvasElement::GetContextHelper(const nsAString& aContextId,
-                                      PRBool aForceThebes,
+                                      bool aForceThebes,
                                       nsICanvasRenderingContextInternal **aContext)
 {
   NS_ENSURE_ARG(aContext);
@@ -438,7 +469,7 @@ nsHTMLCanvasElement::GetContext(const nsAString& aContextId,
 {
   nsresult rv;
 
-  PRBool forceThebes = PR_FALSE;
+  bool forceThebes = false;
 
   while (mCurrentContextId.IsEmpty()) {
     rv = GetContextHelper(aContextId, forceThebes, getter_AddRefs(mCurrentContext));
@@ -456,19 +487,17 @@ nsHTMLCanvasElement::GetContext(const nsAString& aContextId,
       return NS_ERROR_FAILURE;
     }
 
-    nsCOMPtr<nsIPropertyBag> contextProps;
+    nsCOMPtr<nsIWritablePropertyBag2> contextProps;
     if (!JSVAL_IS_NULL(aContextOptions) &&
         !JSVAL_IS_VOID(aContextOptions))
     {
       JSContext *cx = nsContentUtils::GetCurrentJSContext();
 
-      nsCOMPtr<nsIWritablePropertyBag2> newProps;
-
       
       
       
       if (JSVAL_IS_OBJECT(aContextOptions)) {
-        newProps = do_CreateInstance("@mozilla.org/hash-property-bag;1");
+        contextProps = do_CreateInstance("@mozilla.org/hash-property-bag;1");
 
         JSObject *opts = JSVAL_TO_OBJECT(aContextOptions);
         JSIdArray *props = JS_Enumerate(cx, opts);
@@ -489,11 +518,11 @@ nsHTMLCanvasElement::GetContext(const nsAString& aContextId,
           }
 
           if (JSVAL_IS_BOOLEAN(propval)) {
-            newProps->SetPropertyAsBool(pstr, propval == JSVAL_TRUE ? PR_TRUE : PR_FALSE);
+            contextProps->SetPropertyAsBool(pstr, propval == JSVAL_TRUE ? PR_TRUE : PR_FALSE);
           } else if (JSVAL_IS_INT(propval)) {
-            newProps->SetPropertyAsInt32(pstr, JSVAL_TO_INT(propval));
+            contextProps->SetPropertyAsInt32(pstr, JSVAL_TO_INT(propval));
           } else if (JSVAL_IS_DOUBLE(propval)) {
-            newProps->SetPropertyAsDouble(pstr, JSVAL_TO_DOUBLE(propval));
+            contextProps->SetPropertyAsDouble(pstr, JSVAL_TO_DOUBLE(propval));
           } else if (JSVAL_IS_STRING(propval)) {
             JSString *propvalString = JS_ValueToString(cx, propval);
             nsDependentJSString vstr;
@@ -502,12 +531,10 @@ nsHTMLCanvasElement::GetContext(const nsAString& aContextId,
               return NS_ERROR_FAILURE;
             }
 
-            newProps->SetPropertyAsAString(pstr, vstr);
+            contextProps->SetPropertyAsAString(pstr, vstr);
           }
         }
       }
-
-      contextProps = newProps;
     }
 
     rv = UpdateContext(contextProps);
@@ -614,7 +641,7 @@ nsHTMLCanvasElement::GetSize()
   return GetWidthHeight();
 }
 
-PRBool
+bool
 nsHTMLCanvasElement::IsWriteOnly()
 {
   return mWriteOnly;
@@ -696,7 +723,7 @@ nsHTMLCanvasElement::GetContextAtIndex (PRInt32 index)
   return NULL;
 }
 
-PRBool
+bool
 nsHTMLCanvasElement::GetIsOpaque()
 {
   return HasAttr(kNameSpaceID_None, nsGkAtoms::moz_opaque);
@@ -713,7 +740,7 @@ nsHTMLCanvasElement::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
   return mCurrentContext->GetCanvasLayer(aBuilder, aOldLayer, aManager);
 }
 
-PRBool
+bool
 nsHTMLCanvasElement::ShouldForceInactiveLayer(LayerManager *aManager)
 {
   return !mCurrentContext || mCurrentContext->ShouldForceInactiveLayer(aManager);
@@ -749,7 +776,8 @@ nsresult NS_NewCanvasRenderingContext2DAzure(nsIDOMCanvasRenderingContext2D** aR
 nsresult
 NS_NewCanvasRenderingContext2D(nsIDOMCanvasRenderingContext2D** aResult)
 {
-  if (Preferences::GetBool("gfx.canvas.azure.enabled", PR_FALSE)) {
+  Telemetry::Accumulate(Telemetry::CANVAS_2D_USED, 1);
+  if (Preferences::GetBool("gfx.canvas.azure.enabled", false)) {
     nsresult rv = NS_NewCanvasRenderingContext2DAzure(aResult);
     
     if (NS_SUCCEEDED(rv)) {

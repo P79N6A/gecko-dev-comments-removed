@@ -17,17 +17,47 @@
 
 
 
-let tempScope = {};
-Cc["@mozilla.org/moz/jssubscript-loader;1"].getService(Ci.mozIJSSubScriptLoader)
-                                           .loadSubScript("chrome://browser/content/sanitize.js", tempScope);
-let Sanitizer = tempScope.Sanitizer;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Cc["@mozilla.org/moz/jssubscript-loader;1"].
+  getService(Ci.mozIJSSubScriptLoader).
+  loadSubScript("chrome://browser/content/sanitize.js");
 
 const dm = Cc["@mozilla.org/download-manager;1"].
            getService(Ci.nsIDownloadManager);
 const formhist = Cc["@mozilla.org/satchel/form-history;1"].
                  getService(Ci.nsIFormHistory2);
-
-const kUsecPerMin = 60 * 1000000;
 
 
 var gAllTests = [
@@ -433,119 +463,6 @@ var gAllTests = [
       this.cancelDialog();
     };
     wh.open();
-  },
-  function () {
-    
-
-    
-    var URL = "http://www.example.com";
-
-    var ios = Cc["@mozilla.org/network/io-service;1"]
-              .getService(Ci.nsIIOService);
-    var URI = ios.newURI(URL, null, null);
-
-    var sm = Cc["@mozilla.org/scriptsecuritymanager;1"]
-             .getService(Ci.nsIScriptSecurityManager);
-    var principal = sm.getNoAppCodebasePrincipal(URI);
-
-    
-    var pm = Cc["@mozilla.org/permissionmanager;1"]
-             .getService(Ci.nsIPermissionManager);
-    pm.addFromPrincipal(principal, "offline-app", Ci.nsIPermissionManager.ALLOW_ACTION);
-    pm.addFromPrincipal(principal, "offline-app", Ci.nsIOfflineCacheUpdateService.ALLOW_NO_WARN);
-
-    
-    var dsm = Cc["@mozilla.org/dom/storagemanager;1"]
-             .getService(Ci.nsIDOMStorageManager);
-    var localStorage = dsm.getLocalStorageForPrincipal(principal, URL);
-    localStorage.setItem("test", "value");
-
-    
-    const nsICache = Components.interfaces.nsICache;
-    var cs = Components.classes["@mozilla.org/network/cache-service;1"]
-             .getService(Components.interfaces.nsICacheService);
-    var session = cs.createSession(URL + "/manifest", nsICache.STORE_OFFLINE, nsICache.STREAM_BASED);
-
-    
-    let wh = new WindowHelper();
-    wh.onload = function () {
-      this.selectDuration(Sanitizer.TIMESPAN_EVERYTHING);
-      
-      this.toggleDetails();
-      
-      this.uncheckAllCheckboxes();
-      this.checkPrefCheckbox("offlineApps", true);
-      this.acceptDialog();
-
-      
-      is(localStorage.length, 0, "DOM storage cleared");
-
-      var size = -1;
-      var visitor = {
-        visitDevice: function (deviceID, deviceInfo)
-        {
-          if (deviceID == "offline")
-            size = deviceInfo.totalSize;
-
-          
-          return false;
-        },
-
-        visitEntry: function (deviceID, entryInfo)
-        {
-          
-          return false;
-        }
-      };
-      cs.visitEntries(visitor);
-      is(size, 0, "offline application cache entries evicted");
-    };
-
-    var cacheListener = {
-      onCacheEntryAvailable: function (entry, access, status) {
-        is(status, Cr.NS_OK);
-        var stream = entry.openOutputStream(0);
-        var content = "content";
-        stream.write(content, content.length);
-        stream.close();
-        entry.close();
-        wh.open();
-      }
-    };
-
-    session.asyncOpenCacheEntry(URL, nsICache.ACCESS_READ_WRITE, cacheListener);
-  },
-  function () {
-    
-
-    
-    var URL = "http://www.example.com";
-
-    var ios = Cc["@mozilla.org/network/io-service;1"]
-              .getService(Ci.nsIIOService);
-    var URI = ios.newURI(URL, null, null);
-
-    var sm = Cc["@mozilla.org/scriptsecuritymanager;1"]
-             .getService(Ci.nsIScriptSecurityManager);
-    var principal = sm.getNoAppCodebasePrincipal(URI);
-
-    
-    let wh = new WindowHelper();
-    wh.onload = function () {
-      this.selectDuration(Sanitizer.TIMESPAN_EVERYTHING);
-      
-      this.toggleDetails();
-      
-      this.uncheckAllCheckboxes();
-      this.checkPrefCheckbox("siteSettings", true);
-      this.acceptDialog();
-
-      
-      var pm = Cc["@mozilla.org/permissionmanager;1"]
-               .getService(Ci.nsIPermissionManager);
-      is(pm.testPermissionFromPrincipal(principal, "offline-app"), 0, "offline-app permissions removed");
-    };
-    wh.open();
   }
 ];
 
@@ -640,22 +557,14 @@ WindowHelper.prototype = {
   
 
 
-  _checkAllCheckboxesCustom: function (check) {
+  checkAllCheckboxes: function () {
     var cb = this.win.document.querySelectorAll("#itemList > [preference]");
     ok(cb.length > 1, "found checkboxes for preferences");
     for (var i = 0; i < cb.length; ++i) {
       var pref = this.win.document.getElementById(cb[i].getAttribute("preference"));
-      if (!!pref.value ^ check)
+      if (!pref.value)
         cb[i].click();
     }
-  },
-
-  checkAllCheckboxes: function () {
-    this._checkAllCheckboxesCustom(true);
-  },
-
-  uncheckAllCheckboxes: function () {
-    this._checkAllCheckboxesCustom(false);
   },
 
   
@@ -811,8 +720,8 @@ function addDownloadWithMinutesAgo(aMinutesAgo) {
     name:      name,
     source:   "https://bugzilla.mozilla.org/show_bug.cgi?id=480169",
     target:    name,
-    startTime: now_uSec - (aMinutesAgo * kUsecPerMin),
-    endTime:   now_uSec - ((aMinutesAgo + 1) * kUsecPerMin),
+    startTime: now_uSec - (aMinutesAgo * 60 * 1000000),
+    endTime:   now_uSec - ((aMinutesAgo + 1) *60 * 1000000),
     state:     Ci.nsIDownloadManager.DOWNLOAD_FINISHED,
     currBytes: 0, maxBytes: -1, preferredAction: 0, autoResume: 0
   };
@@ -852,7 +761,7 @@ function addFormEntryWithMinutesAgo(aMinutesAgo) {
 
   
   let db = formhist.DBConnection;
-  let timestamp = now_uSec - (aMinutesAgo * kUsecPerMin);
+  let timestamp = now_uSec - (aMinutesAgo * 60 * 1000000);
   db.executeSimpleSQL("UPDATE moz_formhistory SET firstUsed = " +
                       timestamp +  " WHERE fieldname = '" + name + "'");
 
@@ -869,12 +778,10 @@ function addFormEntryWithMinutesAgo(aMinutesAgo) {
 
 function addHistoryWithMinutesAgo(aMinutesAgo) {
   let pURI = makeURI("http://" + aMinutesAgo + "-minutes-ago.com/");
-  PlacesUtils.history.addVisit(pURI,
-                               now_uSec - aMinutesAgo * kUsecPerMin,
-                               null,
-                               Ci.nsINavHistoryService.TRANSITION_LINK,
-                               false,
-                               0);
+  PlacesUtils.bhistory
+             .addPageWithDetails(pURI,
+                                 aMinutesAgo + " minutes ago",
+                                 now_uSec - (aMinutesAgo * 60 * 1000 * 1000));
   is(PlacesUtils.bhistory.isVisited(pURI), true,
      "Sanity check: history visit " + pURI.spec +
      " should exist after creating it");

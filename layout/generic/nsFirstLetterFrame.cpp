@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsFirstLetterFrame.h"
 #include "nsPresContext.h"
@@ -18,8 +50,6 @@
 #include "nsPlaceholderFrame.h"
 #include "nsCSSFrameConstructor.h"
 
-using namespace::mozilla;
-
 nsIFrame*
 NS_NewFirstLetterFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
@@ -30,9 +60,9 @@ NS_IMPL_FRAMEARENA_HELPERS(nsFirstLetterFrame)
 
 NS_QUERYFRAME_HEAD(nsFirstLetterFrame)
   NS_QUERYFRAME_ENTRY(nsFirstLetterFrame)
-NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
+NS_QUERYFRAME_TAIL_INHERITING(nsFirstLetterFrameSuper)
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
 NS_IMETHODIMP
 nsFirstLetterFrame::GetFrameName(nsAString& aResult) const
 {
@@ -46,18 +76,10 @@ nsFirstLetterFrame::GetType() const
   return nsGkAtoms::letterFrame;
 }
 
-int
+PRIntn
 nsFirstLetterFrame::GetSkipSides() const
 {
   return 0;
-}
-
-NS_IMETHODIMP
-nsFirstLetterFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                     const nsRect&           aDirtyRect,
-                                     const nsDisplayListSet& aLists)
-{
-  return BuildDisplayListForInline(aBuilder, aDirtyRect, aLists);
 }
 
 NS_IMETHODIMP
@@ -79,7 +101,7 @@ nsFirstLetterFrame::Init(nsIContent*      aContent,
     }
   }
 
-  return nsContainerFrame::Init(aContent, aParent, aPrevInFlow);
+  return nsFirstLetterFrameSuper::Init(aContent, aParent, aPrevInFlow);
 }
 
 NS_IMETHODIMP
@@ -98,9 +120,9 @@ nsFirstLetterFrame::SetInitialChildList(ChildListID  aListID,
 }
 
 NS_IMETHODIMP
-nsFirstLetterFrame::GetChildFrameContainingOffset(int32_t inContentOffset,
+nsFirstLetterFrame::GetChildFrameContainingOffset(PRInt32 inContentOffset,
                                                   bool inHint,
-                                                  int32_t* outFrameContentOffset,
+                                                  PRInt32* outFrameContentOffset,
                                                   nsIFrame **outChildFrame)
 {
   nsIFrame *kid = mFrames.FirstChild();
@@ -148,15 +170,15 @@ nsFirstLetterFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
 nsFirstLetterFrame::ComputeSize(nsRenderingContext *aRenderingContext,
                                 nsSize aCBSize, nscoord aAvailableWidth,
                                 nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                                uint32_t aFlags)
+                                bool aShrinkWrap)
 {
   if (GetPrevInFlow()) {
     
     
     return nsSize(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
   }
-  return nsContainerFrame::ComputeSize(aRenderingContext,
-      aCBSize, aAvailableWidth, aMargin, aBorder, aPadding, aFlags);
+  return nsFirstLetterFrameSuper::ComputeSize(aRenderingContext,
+      aCBSize, aAvailableWidth, aMargin, aBorder, aPadding, aShrinkWrap);
 }
 
 NS_IMETHODIMP
@@ -192,32 +214,18 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
     
     
     nsHTMLReflowState rs(aPresContext, aReflowState, kid, availSize);
-    nsLineLayout ll(aPresContext, nullptr, &aReflowState, nullptr);
-
-    
-    
-    
-    
-    uint8_t direction;
-    nsIFrame* containerFrame = ll.GetLineContainerFrame();
-    if (containerFrame->GetStyleTextReset()->mUnicodeBidi &
-        NS_STYLE_UNICODE_BIDI_PLAINTEXT) {
-      FramePropertyTable *propTable = aPresContext->PropertyTable();
-      direction = NS_PTR_TO_INT32(propTable->Get(kid, BaseLevelProperty())) & 1;
-    } else {
-      direction = containerFrame->GetStyleVisibility()->mDirection;
-    }
+    nsLineLayout ll(aPresContext, nsnull, &aReflowState, nsnull);
     ll.BeginLineReflow(bp.left, bp.top, availSize.width, NS_UNCONSTRAINEDSIZE,
-                       false, true, direction);
+                       PR_FALSE, PR_TRUE);
     rs.mLineLayout = &ll;
-    ll.SetInFirstLetter(true);
-    ll.SetFirstLetterStyleOK(true);
+    ll.SetInFirstLetter(PR_TRUE);
+    ll.SetFirstLetterStyleOK(PR_TRUE);
 
     kid->WillReflow(aPresContext);
     kid->Reflow(aPresContext, aMetrics, rs, aReflowStatus);
 
     ll.EndLineReflow();
-    ll.SetInFirstLetter(false);
+    ll.SetInFirstLetter(PR_FALSE);
 
     
     
@@ -233,13 +241,13 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
     ll->BeginSpan(this, &aReflowState, bp.left, availSize.width, &mBaseline);
     ll->ReflowFrame(kid, aReflowStatus, &aMetrics, pushedFrame);
     ll->EndSpan(this);
-    ll->SetInFirstLetter(false);
+    ll->SetInFirstLetter(PR_FALSE);
   }
 
   
   kid->SetRect(nsRect(bp.left, bp.top, aMetrics.width, aMetrics.height));
   kid->FinishAndStoreOverflow(&aMetrics);
-  kid->DidReflow(aPresContext, nullptr, NS_FRAME_REFLOW_FINISHED);
+  kid->DidReflow(aPresContext, nsnull, NS_FRAME_REFLOW_FINISHED);
 
   aMetrics.width += lr;
   aMetrics.height += tb;
@@ -256,19 +264,19 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
     
     if (NS_FRAME_IS_COMPLETE(aReflowStatus)) {
       if (aReflowState.mLineLayout) {
-        aReflowState.mLineLayout->SetFirstLetterStyleOK(false);
+        aReflowState.mLineLayout->SetFirstLetterStyleOK(PR_FALSE);
       }
       nsIFrame* kidNextInFlow = kid->GetNextInFlow();
       if (kidNextInFlow) {
         
         static_cast<nsContainerFrame*>(kidNextInFlow->GetParent())
-          ->DeleteNextInFlowChild(aPresContext, kidNextInFlow, true);
+          ->DeleteNextInFlowChild(aPresContext, kidNextInFlow, PR_TRUE);
       }
     }
     else {
       
       
-      if (!IsFloating()) {
+      if (!GetStyleDisplay()->IsFloating()) {
         nsIFrame* nextInFlow;
         rv = CreateNextInFlow(aPresContext, kid, nextInFlow);
         if (NS_FAILED(rv)) {
@@ -286,7 +294,7 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
         
         nsIFrame* continuation;
         rv = CreateContinuationForFloatingParent(aPresContext, kid,
-                                                 &continuation, true);
+                                                 &continuation, PR_TRUE);
       }
     }
   }
@@ -301,7 +309,7 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
 nsFirstLetterFrame::CanContinueTextRun() const
 {
   
-  return true;
+  return PR_TRUE;
 }
 
 nsresult
@@ -310,11 +318,11 @@ nsFirstLetterFrame::CreateContinuationForFloatingParent(nsPresContext* aPresCont
                                                         nsIFrame** aContinuation,
                                                         bool aIsFluid)
 {
-  NS_ASSERTION(IsFloating(),
+  NS_ASSERTION(GetStyleDisplay()->IsFloating(),
                "can only call this on floating first letter frames");
   NS_PRECONDITION(aContinuation, "bad args");
 
-  *aContinuation = nullptr;
+  *aContinuation = nsnull;
   nsresult rv = NS_OK;
 
   nsIPresShell* presShell = aPresContext->PresShell();
@@ -359,7 +367,7 @@ nsFirstLetterFrame::DrainOverflowFrames(nsPresContext* aPresContext)
 
   
   nsFirstLetterFrame* prevInFlow = (nsFirstLetterFrame*)GetPrevInFlow();
-  if (nullptr != prevInFlow) {
+  if (nsnull != prevInFlow) {
     overflowFrames = prevInFlow->StealOverflowFrames();
     if (overflowFrames) {
       NS_ASSERTION(mFrames.IsEmpty(), "bad overflow list");
@@ -368,7 +376,7 @@ nsFirstLetterFrame::DrainOverflowFrames(nsPresContext* aPresContext)
       
       nsContainerFrame::ReparentFrameViewList(aPresContext, *overflowFrames,
                                               prevInFlow, this);
-      mFrames.InsertFrames(this, nullptr, *overflowFrames);
+      mFrames.InsertFrames(this, nsnull, *overflowFrames);
     }
   }
 
@@ -376,7 +384,7 @@ nsFirstLetterFrame::DrainOverflowFrames(nsPresContext* aPresContext)
   overflowFrames = StealOverflowFrames();
   if (overflowFrames) {
     NS_ASSERTION(mFrames.NotEmpty(), "overflow list w/o frames");
-    mFrames.AppendFrames(nullptr, *overflowFrames);
+    mFrames.AppendFrames(nsnull, *overflowFrames);
   }
 
   

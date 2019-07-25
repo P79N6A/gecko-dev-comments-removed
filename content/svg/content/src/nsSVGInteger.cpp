@@ -3,10 +3,42 @@
 
 
 
-#include "nsError.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSVGInteger.h"
+#ifdef MOZ_SMIL
 #include "nsSMILValue.h"
 #include "SMILIntegerType.h"
+#endif 
 
 using namespace mozilla;
 
@@ -27,7 +59,7 @@ NS_INTERFACE_MAP_END
 
 static nsresult
 GetValueFromString(const nsAString &aValueAsString,
-                   int32_t *aValue)
+                   PRInt32 *aValue)
 {
   NS_ConvertUTF16toUTF8 value(aValueAsString);
   const char *str = value.get();
@@ -48,23 +80,26 @@ GetValueFromString(const nsAString &aValueAsString,
 
 nsresult
 nsSVGInteger::SetBaseValueString(const nsAString &aValueAsString,
-                                 nsSVGElement *aSVGElement)
+                                 nsSVGElement *aSVGElement,
+                                 bool aDoSetAttr)
 {
-  int32_t value;
+  PRInt32 value;
 
   nsresult rv = GetValueFromString(aValueAsString, &value);
   if (NS_FAILED(rv)) {
     return rv;
   }
 
-  mIsBaseSet = true;
+  mIsBaseSet = PR_TRUE;
   mBaseVal = value;
   if (!mIsAnimated) {
     mAnimVal = mBaseVal;
   }
+#ifdef MOZ_SMIL
   else {
     aSVGElement->AnimationNeedsResample();
   }
+#endif
   return NS_OK;
 }
 
@@ -76,35 +111,28 @@ nsSVGInteger::GetBaseValueString(nsAString & aValueAsString)
 }
 
 void
-nsSVGInteger::SetBaseValue(int aValue, nsSVGElement *aSVGElement)
+nsSVGInteger::SetBaseValue(int aValue,
+                           nsSVGElement *aSVGElement,
+                           bool aDoSetAttr)
 {
-  
-  
-  
-  
-  if (aValue == mBaseVal && mIsBaseSet) {
-    return;
-  }
-
   mBaseVal = aValue;
-  mIsBaseSet = true;
+  mIsBaseSet = PR_TRUE;
   if (!mIsAnimated) {
     mAnimVal = mBaseVal;
   }
+#ifdef MOZ_SMIL
   else {
     aSVGElement->AnimationNeedsResample();
   }
-  aSVGElement->DidChangeInteger(mAttrEnum);
+#endif
+  aSVGElement->DidChangeInteger(mAttrEnum, aDoSetAttr);
 }
 
 void
 nsSVGInteger::SetAnimValue(int aValue, nsSVGElement *aSVGElement)
 {
-  if (mIsAnimated && aValue == mAnimVal) {
-    return;
-  }
   mAnimVal = aValue;
-  mIsAnimated = true;
+  mIsAnimated = PR_TRUE;
   aSVGElement->DidAnimateInteger(mAttrEnum);
 }
 
@@ -120,6 +148,7 @@ nsSVGInteger::ToDOMAnimatedInteger(nsIDOMSVGAnimatedInteger **aResult,
   return NS_OK;
 }
 
+#ifdef MOZ_SMIL
 nsISMILAttr*
 nsSVGInteger::ToSMILAttr(nsSVGElement *aSVGElement)
 {
@@ -132,7 +161,7 @@ nsSVGInteger::SMILInteger::ValueFromString(const nsAString& aStr,
                                            nsSMILValue& aValue,
                                            bool& aPreventCachingOfSandwich) const
 {
-  int32_t val;
+  PRInt32 val;
 
   nsresult rv = GetValueFromString(aStr, &val);
   if (NS_FAILED(rv)) {
@@ -142,7 +171,7 @@ nsSVGInteger::SMILInteger::ValueFromString(const nsAString& aStr,
   nsSMILValue smilVal(&SMILIntegerType::sSingleton);
   smilVal.mU.mInt = val;
   aValue = smilVal;
-  aPreventCachingOfSandwich = false;
+  aPreventCachingOfSandwich = PR_FALSE;
   return NS_OK;
 }
 
@@ -158,9 +187,8 @@ void
 nsSVGInteger::SMILInteger::ClearAnimValue()
 {
   if (mVal->mIsAnimated) {
-    mVal->mIsAnimated = false;
-    mVal->mAnimVal = mVal->mBaseVal;
-    mSVGElement->DidAnimateInteger(mVal->mAttrEnum);
+    mVal->SetAnimValue(mVal->mBaseVal, mSVGElement);
+    mVal->mIsAnimated = PR_FALSE;
   }
 }
 
@@ -174,3 +202,4 @@ nsSVGInteger::SMILInteger::SetAnimValue(const nsSMILValue& aValue)
   }
   return NS_OK;
 }
+#endif 

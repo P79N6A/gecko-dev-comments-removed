@@ -3,13 +3,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIAtom.h"
 #include "txIXPathContext.h"
 #include "txNodeSet.h"
 #include "txExpr.h"
 #include "txXPathTreeWalker.h"
 
-txNamedAttributeStep::txNamedAttributeStep(int32_t aNsID,
+txNamedAttributeStep::txNamedAttributeStep(PRInt32 aNsID,
                                            nsIAtom* aPrefix,
                                            nsIAtom* aLocalName)
     : mNamespace(aNsID),
@@ -22,7 +55,7 @@ nsresult
 txNamedAttributeStep::evaluate(txIEvalContext* aContext,
                                txAExprResult** aResult)
 {
-    *aResult = nullptr;
+    *aResult = nsnull;
 
     nsRefPtr<txNodeSet> nodes;
     nsresult rv = aContext->recycler()->getNodeSet(getter_AddRefs(nodes));

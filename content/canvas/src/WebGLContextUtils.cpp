@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <stdarg.h>
 
 #include "WebGLContext.h"
@@ -15,32 +49,37 @@
 #include "nsServiceManagerUtils.h"
 #include "nsIVariant.h"
 
+#include "nsIDOMDocument.h"
 #include "nsIDOMEvent.h"
 #include "nsIDOMEventTarget.h"
+#include "nsIPrivateDOMEvent.h"
 #include "nsIDOMDataContainerEvent.h"
 
+#include "nsContentUtils.h"
 #include "mozilla/Preferences.h"
+
+#if 0
+#include "nsIContentURIGrouper.h"
+#include "nsIContentPrefService.h"
+#endif
 
 using namespace mozilla;
 
 void
-WebGLContext::GenerateWarning(const char *fmt, ...)
+WebGLContext::LogMessage(const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
 
-    GenerateWarning(fmt, ap);
+    LogMessage(fmt, ap);
 
     va_end(ap);
 }
 
 void
-WebGLContext::GenerateWarning(const char *fmt, va_list ap)
+WebGLContext::LogMessage(const char *fmt, va_list ap)
 {
-    if (!ShouldGenerateWarnings())
-        return;
-
-    mAlreadyGeneratedWarnings++;
+    if (!fmt) return;
 
     char buf[1024];
     PR_vsnprintf(buf, 1024, fmt, ap);
@@ -48,22 +87,41 @@ WebGLContext::GenerateWarning(const char *fmt, va_list ap)
     
 
     nsCOMPtr<nsIJSContextStack> stack = do_GetService("@mozilla.org/js/xpc/ContextStack;1");
-    JSContext* ccx = nullptr;
-    if (stack && NS_SUCCEEDED(stack->Peek(&ccx)) && ccx) {
+    JSContext* ccx = nsnull;
+    if (stack && NS_SUCCEEDED(stack->Peek(&ccx)) && ccx)
         JS_ReportWarning(ccx, "WebGL: %s", buf);
-        if (!ShouldGenerateWarnings()) {
-            JS_ReportWarning(ccx,
-                "WebGL: No further warnings will be reported for this WebGL context "
-                "(already reported %d warnings)", mAlreadyGeneratedWarnings);
-        }
-    }
+}
+
+void
+WebGLContext::LogMessageIfVerbose(const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+
+    LogMessageIfVerbose(fmt, ap);
+
+    va_end(ap);
+}
+
+void
+WebGLContext::LogMessageIfVerbose(const char *fmt, va_list ap)
+{
+    static bool firstTime = true;
+
+    if (mVerbose)
+        LogMessage(fmt, ap);
+    else if (firstTime)
+        LogMessage("There are WebGL warnings or messages in this page, but they are hidden. To see them, "
+                   "go to about:config, set the webgl.verbose preference, and reload this page.");
+
+    firstTime = PR_FALSE;
 }
 
 CheckedUint32
 WebGLContext::GetImageSize(WebGLsizei height, 
                            WebGLsizei width, 
-                           uint32_t pixelSize,
-                           uint32_t packOrUnpackAlignment)
+                           PRUint32 pixelSize,
+                           PRUint32 packOrUnpackAlignment)
 {
     CheckedUint32 checked_plainRowSize = CheckedUint32(width) * pixelSize;
 
@@ -77,7 +135,7 @@ WebGLContext::GetImageSize(WebGLsizei height,
     return checked_neededByteLength;
 }
 
-void
+nsresult
 WebGLContext::SynthesizeGLError(WebGLenum err)
 {
     
@@ -91,69 +149,60 @@ WebGLContext::SynthesizeGLError(WebGLenum err)
 
     if (!mWebGLError)
         mWebGLError = err;
+
+    return NS_OK;
 }
 
-void
+nsresult
 WebGLContext::SynthesizeGLError(WebGLenum err, const char *fmt, ...)
 {
     va_list va;
     va_start(va, fmt);
-    GenerateWarning(fmt, va);
+    LogMessageIfVerbose(fmt, va);
     va_end(va);
 
     return SynthesizeGLError(err);
 }
 
-void
+nsresult
 WebGLContext::ErrorInvalidEnum(const char *fmt, ...)
 {
     va_list va;
     va_start(va, fmt);
-    GenerateWarning(fmt, va);
+    LogMessageIfVerbose(fmt, va);
     va_end(va);
 
     return SynthesizeGLError(LOCAL_GL_INVALID_ENUM);
 }
 
-void
+nsresult
 WebGLContext::ErrorInvalidOperation(const char *fmt, ...)
 {
     va_list va;
     va_start(va, fmt);
-    GenerateWarning(fmt, va);
+    LogMessageIfVerbose(fmt, va);
     va_end(va);
 
     return SynthesizeGLError(LOCAL_GL_INVALID_OPERATION);
 }
 
-void
+nsresult
 WebGLContext::ErrorInvalidValue(const char *fmt, ...)
 {
     va_list va;
     va_start(va, fmt);
-    GenerateWarning(fmt, va);
+    LogMessageIfVerbose(fmt, va);
     va_end(va);
 
     return SynthesizeGLError(LOCAL_GL_INVALID_VALUE);
 }
 
-void
-WebGLContext::ErrorInvalidFramebufferOperation(const char *fmt, ...)
-{
-    va_list va;
-    va_start(va, fmt);
-    GenerateWarning(fmt, va);
-    va_end(va);
-
-    return SynthesizeGLError(LOCAL_GL_INVALID_FRAMEBUFFER_OPERATION);
-}
-
-void
+nsresult
 WebGLContext::ErrorOutOfMemory(const char *fmt, ...)
 {
     va_list va;
     va_start(va, fmt);
-    GenerateWarning(fmt, va);
+    LogMessageIfVerbose(fmt, va);
     va_end(va);
 
     return SynthesizeGLError(LOCAL_GL_OUT_OF_MEMORY);
@@ -179,29 +228,4 @@ WebGLContext::ErrorName(GLenum error)
             NS_ABORT();
             return "[unknown WebGL error!]";
     }
-}
-
-bool
-WebGLContext::IsTextureFormatCompressed(GLenum format)
-{
-    switch(format) {
-        case LOCAL_GL_RGB:
-        case LOCAL_GL_RGBA:
-        case LOCAL_GL_ALPHA:
-        case LOCAL_GL_LUMINANCE:
-        case LOCAL_GL_LUMINANCE_ALPHA:
-        case LOCAL_GL_DEPTH_COMPONENT:
-        case LOCAL_GL_DEPTH_STENCIL:
-            return false;
-
-        case LOCAL_GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
-        case LOCAL_GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
-        case LOCAL_GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
-        case LOCAL_GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
-            return true;
-    }
-
-    NS_NOTREACHED("Invalid WebGL texture format?");
-    NS_ABORT();
-    return false;
-}
+};

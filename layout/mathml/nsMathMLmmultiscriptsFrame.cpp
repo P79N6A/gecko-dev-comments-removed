@@ -4,6 +4,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsFrame.h"
 #include "nsPresContext.h"
@@ -45,7 +80,7 @@ nsMathMLmmultiscriptsFrame::TransmitAutomaticData()
   
   
   
-  int32_t count = 0;
+  PRInt32 count = 0;
   bool isSubScript = false;
   nsAutoTArray<nsIFrame*, 8> subScriptFrames;
   nsIFrame* childFrame = mFrames.FirstChild();
@@ -70,7 +105,7 @@ nsMathMLmmultiscriptsFrame::TransmitAutomaticData()
     count++;
     childFrame = childFrame->GetNextSibling();
   }
-  for (int32_t i = subScriptFrames.Length() - 1; i >= 0; i--) {
+  for (PRInt32 i = subScriptFrames.Length() - 1; i >= 0; i--) {
     childFrame = subScriptFrames[i];
     PropagatePresentationDataFor(childFrame,
       NS_MATHML_COMPRESSED, NS_MATHML_COMPRESSED);
@@ -86,41 +121,23 @@ nsMathMLmmultiscriptsFrame::ProcessAttributes()
   mSupScriptShift = 0;
 
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   nsAutoString value;
   GetAttribute(mContent, mPresentationData.mstyle,
                nsGkAtoms::subscriptshift_, value);
   if (!value.IsEmpty()) {
-    ParseNumericValue(value, &mSubScriptShift,
-                      nsMathMLElement::PARSE_ALLOW_NEGATIVE,
-                      PresContext(), mStyleContext);
+    nsCSSValue cssValue;
+    if (ParseNumericValue(value, cssValue) && cssValue.IsLengthUnit()) {
+      mSubScriptShift = CalcLength(PresContext(), mStyleContext, cssValue);
+    }
   }
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   
   GetAttribute(mContent, mPresentationData.mstyle,
                nsGkAtoms::superscriptshift_, value);
   if (!value.IsEmpty()) {
-    ParseNumericValue(value, &mSupScriptShift,
-                      nsMathMLElement::PARSE_ALLOW_NEGATIVE,
-                      PresContext(), mStyleContext);
+    nsCSSValue cssValue;
+    if (ParseNumericValue(value, cssValue) && cssValue.IsLengthUnit()) {
+      mSupScriptShift = CalcLength(PresContext(), mStyleContext, cssValue);
+    }
   }
 }
 
@@ -221,20 +238,20 @@ nsMathMLmmultiscriptsFrame::Place(nsRenderingContext& aRenderingContext,
   
 
   nscoord width = 0, prescriptsWidth = 0, rightBearing = 0;
-  nsIFrame* mprescriptsFrame = nullptr; 
+  nsIFrame* mprescriptsFrame = nsnull; 
   bool isSubScript = false;
   nscoord minSubScriptShift = 0, minSupScriptShift = 0;
   nscoord trySubScriptShift = subScriptShift;
   nscoord trySupScriptShift = supScriptShift;
   nscoord maxSubScriptShift = subScriptShift;
   nscoord maxSupScriptShift = supScriptShift;
-  int32_t count = 0;
+  PRInt32 count = 0;
   nsHTMLReflowMetrics baseSize;
   nsHTMLReflowMetrics subScriptSize;
   nsHTMLReflowMetrics supScriptSize;
-  nsIFrame* baseFrame = nullptr;
-  nsIFrame* subScriptFrame = nullptr;
-  nsIFrame* supScriptFrame = nullptr;
+  nsIFrame* baseFrame = nsnull;
+  nsIFrame* subScriptFrame = nsnull;
+  nsIFrame* supScriptFrame = nsnull;
 
   bool firstPrescriptsPair = false;
   nsBoundingMetrics bmBase, bmSubScript, bmSupScript;
@@ -254,7 +271,7 @@ nsMathMLmmultiscriptsFrame::Place(nsRenderingContext& aRenderingContext,
         return ReflowError(aRenderingContext, aDesiredSize);
       }
       mprescriptsFrame = childFrame;
-      firstPrescriptsPair = true;
+      firstPrescriptsPair = PR_TRUE;
     }
     else {
       if (0 == count) {
@@ -316,7 +333,7 @@ nsMathMLmmultiscriptsFrame::Place(nsRenderingContext& aRenderingContext,
           else {
             prescriptsWidth += width;
             if (firstPrescriptsPair) {
-              firstPrescriptsPair = false;
+              firstPrescriptsPair = PR_FALSE;
               mBoundingMetrics.leftBearing =
                 NS_MIN(bmSubScript.leftBearing, bmSupScript.leftBearing);
             }
@@ -400,11 +417,7 @@ nsMathMLmmultiscriptsFrame::Place(nsRenderingContext& aRenderingContext,
         
         childFrame = baseFrame;
         dy = aDesiredSize.ascent - baseSize.ascent;
-        FinishReflowChild (baseFrame, PresContext(), nullptr, baseSize,
-                           MirrorIfRTL(aDesiredSize.width,
-                                       baseSize.width,
-                                       dx),
-                           dy, 0);
+        FinishReflowChild (baseFrame, PresContext(), nsnull, baseSize, dx, dy, 0);
         dx += bmBase.width + italicCorrection;
       }
       else if (mprescriptsFrame != childFrame) {
@@ -427,21 +440,13 @@ nsMathMLmmultiscriptsFrame::Place(nsRenderingContext& aRenderingContext,
 
           dy = aDesiredSize.ascent - subScriptSize.ascent +
             maxSubScriptShift;
-          FinishReflowChild (subScriptFrame, PresContext(), nullptr,
-                             subScriptSize,
-                             MirrorIfRTL(aDesiredSize.width,
-                                         subScriptSize.width,
-                                         dx + (width-subScriptSize.width)/2),
-                             dy, 0);
+          FinishReflowChild (subScriptFrame, PresContext(), nsnull, subScriptSize,
+                             dx + (width-subScriptSize.width)/2, dy, 0);
 
           dy = aDesiredSize.ascent - supScriptSize.ascent -
             maxSupScriptShift;
-          FinishReflowChild (supScriptFrame, PresContext(), nullptr,
-                             supScriptSize,
-                             MirrorIfRTL(aDesiredSize.width,
-                                         supScriptSize.width,
-                                         dx + (width-supScriptSize.width)/2),
-                             dy, 0);
+          FinishReflowChild (supScriptFrame, PresContext(), nsnull, supScriptSize,
+                             dx + (width-supScriptSize.width)/2, dy, 0);
 
           dx += width + scriptSpace;
         }

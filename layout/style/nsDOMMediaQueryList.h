@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDOMMediaQueryList_h_
 #define nsDOMMediaQueryList_h_
 
@@ -14,13 +46,12 @@
 #include "nsCOMPtr.h"
 #include "nsTArray.h"
 #include "prclist.h"
-#include "mozilla/Attributes.h"
 
 class nsPresContext;
 class nsMediaList;
 
-class nsDOMMediaQueryList MOZ_FINAL : public nsIDOMMediaQueryList,
-                                      public PRCList
+class nsDOMMediaQueryList : public nsIDOMMediaQueryList,
+                            public PRCList
 {
 public:
   
@@ -46,10 +77,6 @@ public:
 
   
   void MediumFeaturesChanged(NotifyList &aListenersToNotify);
-
-  bool HasListeners() const { return !mListeners.IsEmpty(); }
-
-  void RemoveAllListeners();
 
 private:
   void RecomputeMatches();

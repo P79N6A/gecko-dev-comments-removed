@@ -3,12 +3,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSVGPathDataParser.h"
 #include "nsSVGDataParser.h"
 #include "nsSVGPathElement.h"
 #include "prdtoa.h"
 #include "nsSVGUtils.h"
-#include "nsIDOMSVGPathSeg.h"
 #include <stdlib.h>
 #include <math.h>
 
@@ -59,10 +91,10 @@ nsresult nsSVGPathDataParser::MatchFlag(bool* f)
 {
   switch (mTokenVal) {
     case '0':
-      *f = false;
+      *f = PR_FALSE;
       break;
     case '1':
-      *f = true;
+      *f = PR_TRUE;
       break;
     default:
       return NS_ERROR_FAILURE;
@@ -216,13 +248,13 @@ bool nsSVGPathDataParser::IsTokenSubPathElementStarter()
   switch (tolower(mTokenVal)) {
     case 'z': case 'l': case 'h': case 'v': case 'c':
     case 's': case 'q': case 't': case 'a':
-      return true;
+      return PR_TRUE;
       break;
     default:
-      return false;
+      return PR_FALSE;
       break;
   }
-  return false;
+  return PR_FALSE;
 }  
 
 
@@ -233,10 +265,10 @@ nsresult nsSVGPathDataParser::MatchMoveto()
   
   switch (mTokenVal) {
     case 'M':
-      absCoords = true;
+      absCoords = PR_TRUE;
       break;
     case 'm':
-      absCoords = false;
+      absCoords = PR_FALSE;
       break;
     default:
       return NS_ERROR_FAILURE;
@@ -306,10 +338,10 @@ nsresult nsSVGPathDataParser::MatchLineto()
   
   switch (mTokenVal) {
     case 'L':
-      absCoords = true;
+      absCoords = PR_TRUE;
       break;
     case 'l':
-      absCoords = false;
+      absCoords = PR_FALSE;
       break;
     default:
       return NS_ERROR_FAILURE;
@@ -363,10 +395,10 @@ nsresult nsSVGPathDataParser::MatchHorizontalLineto()
   
   switch (mTokenVal) {
     case 'H':
-      absCoords = true;
+      absCoords = PR_TRUE;
       break;
     case 'h':
-      absCoords = false;
+      absCoords = PR_FALSE;
       break;
     default:
       return NS_ERROR_FAILURE;
@@ -415,10 +447,10 @@ nsresult nsSVGPathDataParser::MatchVerticalLineto()
   
   switch (mTokenVal) {
     case 'V':
-      absCoords = true;
+      absCoords = PR_TRUE;
       break;
     case 'v':
-      absCoords = false;
+      absCoords = PR_FALSE;
       break;
     default:
       return NS_ERROR_FAILURE;
@@ -467,10 +499,10 @@ nsresult nsSVGPathDataParser::MatchCurveto()
   
   switch (mTokenVal) {
     case 'C':
-      absCoords = true;
+      absCoords = PR_TRUE;
       break;
     case 'c':
-      absCoords = false;
+      absCoords = PR_FALSE;
       break;
     default:
       return NS_ERROR_FAILURE;
@@ -546,10 +578,10 @@ nsresult nsSVGPathDataParser::MatchSmoothCurveto()
   
   switch (mTokenVal) {
     case 'S':
-      absCoords = true;
+      absCoords = PR_TRUE;
       break;
     case 's':
-      absCoords = false;
+      absCoords = PR_FALSE;
       break;
     default:
       return NS_ERROR_FAILURE;
@@ -616,10 +648,10 @@ nsresult nsSVGPathDataParser::MatchQuadBezierCurveto()
   
   switch (mTokenVal) {
     case 'Q':
-      absCoords = true;
+      absCoords = PR_TRUE;
       break;
     case 'q':
-      absCoords = false;
+      absCoords = PR_FALSE;
       break;
     default:
       return NS_ERROR_FAILURE;
@@ -686,10 +718,10 @@ nsresult nsSVGPathDataParser::MatchSmoothQuadBezierCurveto()
   
   switch (mTokenVal) {
     case 'T':
-      absCoords = true;
+      absCoords = PR_TRUE;
       break;
     case 't':
-      absCoords = false;
+      absCoords = PR_FALSE;
       break;
     default:
       return NS_ERROR_FAILURE;
@@ -738,10 +770,10 @@ nsresult nsSVGPathDataParser::MatchEllipticalArc()
   
   switch (mTokenVal) {
     case 'A':
-      absCoords = true;
+      absCoords = PR_TRUE;
       break;
     case 'a':
-      absCoords = false;
+      absCoords = PR_FALSE;
       break;
     default:
       return NS_ERROR_FAILURE;
@@ -918,7 +950,7 @@ bool
 nsSVGArcConverter::GetNextSegment(gfxPoint *cp1, gfxPoint *cp2, gfxPoint *to)
 {
   if (mSegIndex == mNumSegs) {
-    return false;
+    return PR_FALSE;
   }
   
   double cosTheta1 = cos(mTheta);
@@ -943,7 +975,7 @@ nsSVGArcConverter::GetNextSegment(gfxPoint *cp1, gfxPoint *cp2, gfxPoint *to)
   mFrom = *to;
   ++mSegIndex;
 
-  return true;
+  return PR_TRUE;
 }
 
 
@@ -975,9 +1007,9 @@ nsSVGPathDataParserToInternal::StoreMoveTo(bool absCoords, float x, float y)
   
   
 
-  uint32_t type = absCoords ?
-    uint32_t(nsIDOMSVGPathSeg::PATHSEG_MOVETO_ABS) :
-    uint32_t(nsIDOMSVGPathSeg::PATHSEG_MOVETO_REL);
+  PRUint32 type = absCoords ?
+    PRUint32(nsIDOMSVGPathSeg::PATHSEG_MOVETO_ABS) :
+    PRUint32(nsIDOMSVGPathSeg::PATHSEG_MOVETO_REL);
 
   return mPathSegList->AppendSeg(type, x, y);
 }
@@ -991,9 +1023,9 @@ nsSVGPathDataParserToInternal::StoreClosePath()
 nsresult
 nsSVGPathDataParserToInternal::StoreLineTo(bool absCoords, float x, float y)
 {
-  uint32_t type = absCoords ?
-    uint32_t(nsIDOMSVGPathSeg::PATHSEG_LINETO_ABS) :
-    uint32_t(nsIDOMSVGPathSeg::PATHSEG_LINETO_REL);
+  PRUint32 type = absCoords ?
+    PRUint32(nsIDOMSVGPathSeg::PATHSEG_LINETO_ABS) :
+    PRUint32(nsIDOMSVGPathSeg::PATHSEG_LINETO_REL);
 
   return mPathSegList->AppendSeg(type, x, y);
 }
@@ -1001,9 +1033,9 @@ nsSVGPathDataParserToInternal::StoreLineTo(bool absCoords, float x, float y)
 nsresult
 nsSVGPathDataParserToInternal::StoreHLineTo(bool absCoords, float x)
 {
-  uint32_t type = absCoords ?
-    uint32_t(nsIDOMSVGPathSeg::PATHSEG_LINETO_HORIZONTAL_ABS) :
-    uint32_t(nsIDOMSVGPathSeg::PATHSEG_LINETO_HORIZONTAL_REL);
+  PRUint32 type = absCoords ?
+    PRUint32(nsIDOMSVGPathSeg::PATHSEG_LINETO_HORIZONTAL_ABS) :
+    PRUint32(nsIDOMSVGPathSeg::PATHSEG_LINETO_HORIZONTAL_REL);
 
   return mPathSegList->AppendSeg(type, x);
 }
@@ -1011,9 +1043,9 @@ nsSVGPathDataParserToInternal::StoreHLineTo(bool absCoords, float x)
 nsresult
 nsSVGPathDataParserToInternal::StoreVLineTo(bool absCoords, float y)
 {
-  uint32_t type = absCoords ?
-    uint32_t(nsIDOMSVGPathSeg::PATHSEG_LINETO_VERTICAL_ABS) :
-    uint32_t(nsIDOMSVGPathSeg::PATHSEG_LINETO_VERTICAL_REL);
+  PRUint32 type = absCoords ?
+    PRUint32(nsIDOMSVGPathSeg::PATHSEG_LINETO_VERTICAL_ABS) :
+    PRUint32(nsIDOMSVGPathSeg::PATHSEG_LINETO_VERTICAL_REL);
 
   return mPathSegList->AppendSeg(type, y);
 }
@@ -1024,9 +1056,9 @@ nsSVGPathDataParserToInternal::StoreCurveTo(bool absCoords,
                                             float x1, float y1,
                                             float x2, float y2)
 {
-  uint32_t type = absCoords ?
-    uint32_t(nsIDOMSVGPathSeg::PATHSEG_CURVETO_CUBIC_ABS) :
-    uint32_t(nsIDOMSVGPathSeg::PATHSEG_CURVETO_CUBIC_REL);
+  PRUint32 type = absCoords ?
+    PRUint32(nsIDOMSVGPathSeg::PATHSEG_CURVETO_CUBIC_ABS) :
+    PRUint32(nsIDOMSVGPathSeg::PATHSEG_CURVETO_CUBIC_REL);
 
   return mPathSegList->AppendSeg(type, x1, y1, x2, y2, x, y);
 }
@@ -1036,9 +1068,9 @@ nsSVGPathDataParserToInternal::StoreSmoothCurveTo(bool absCoords,
                                                   float x, float y,
                                                   float x2, float y2)
 {
-  uint32_t type = absCoords ?
-    uint32_t(nsIDOMSVGPathSeg::PATHSEG_CURVETO_CUBIC_SMOOTH_ABS) :
-    uint32_t(nsIDOMSVGPathSeg::PATHSEG_CURVETO_CUBIC_SMOOTH_REL);
+  PRUint32 type = absCoords ?
+    PRUint32(nsIDOMSVGPathSeg::PATHSEG_CURVETO_CUBIC_SMOOTH_ABS) :
+    PRUint32(nsIDOMSVGPathSeg::PATHSEG_CURVETO_CUBIC_SMOOTH_REL);
 
   return mPathSegList->AppendSeg(type, x2, y2, x, y);
 }
@@ -1048,9 +1080,9 @@ nsSVGPathDataParserToInternal::StoreQuadCurveTo(bool absCoords,
                                                 float x, float y,
                                                 float x1, float y1)
 {
-  uint32_t type = absCoords ?
-    uint32_t(nsIDOMSVGPathSeg::PATHSEG_CURVETO_QUADRATIC_ABS) :
-    uint32_t(nsIDOMSVGPathSeg::PATHSEG_CURVETO_QUADRATIC_REL);
+  PRUint32 type = absCoords ?
+    PRUint32(nsIDOMSVGPathSeg::PATHSEG_CURVETO_QUADRATIC_ABS) :
+    PRUint32(nsIDOMSVGPathSeg::PATHSEG_CURVETO_QUADRATIC_REL);
 
   return mPathSegList->AppendSeg(type, x1, y1, x, y);
 }
@@ -1059,9 +1091,9 @@ nsresult
 nsSVGPathDataParserToInternal::StoreSmoothQuadCurveTo(bool absCoords,
                                                       float x, float y)
 {
-  uint32_t type = absCoords ?
-    uint32_t(nsIDOMSVGPathSeg::PATHSEG_CURVETO_QUADRATIC_SMOOTH_ABS) :
-    uint32_t(nsIDOMSVGPathSeg::PATHSEG_CURVETO_QUADRATIC_SMOOTH_REL);
+  PRUint32 type = absCoords ?
+    PRUint32(nsIDOMSVGPathSeg::PATHSEG_CURVETO_QUADRATIC_SMOOTH_ABS) :
+    PRUint32(nsIDOMSVGPathSeg::PATHSEG_CURVETO_QUADRATIC_SMOOTH_REL);
 
   return mPathSegList->AppendSeg(type, x, y);
 }
@@ -1074,9 +1106,9 @@ nsSVGPathDataParserToInternal::StoreEllipticalArc(bool absCoords,
                                                   bool largeArcFlag,
                                                   bool sweepFlag)
 {
-  uint32_t type = absCoords ?
-    uint32_t(nsIDOMSVGPathSeg::PATHSEG_ARC_ABS) :
-    uint32_t(nsIDOMSVGPathSeg::PATHSEG_ARC_REL);
+  PRUint32 type = absCoords ?
+    PRUint32(nsIDOMSVGPathSeg::PATHSEG_ARC_ABS) :
+    PRUint32(nsIDOMSVGPathSeg::PATHSEG_ARC_REL);
 
   
   

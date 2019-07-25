@@ -3,19 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsAccDocManager.h"
 
-#include "ApplicationAccessible.h"
-#include "DocAccessible-inl.h"
 #include "nsAccessibilityService.h"
 #include "nsAccUtils.h"
-#include "nsARIAMap.h"
-#include "RootAccessibleWrap.h"
+#include "nsApplicationAccessible.h"
+#include "nsOuterDocAccessible.h"
+#include "nsRootAccessibleWrap.h"
 #include "States.h"
-
-#ifdef DEBUG
-#include "Logging.h"
-#endif
 
 #include "nsCURILoader.h"
 #include "nsDocShellLoadTypes.h"
@@ -38,23 +66,23 @@ using namespace mozilla::a11y;
 
 
 
-DocAccessible*
+nsDocAccessible*
 nsAccDocManager::GetDocAccessible(nsIDocument *aDocument)
 {
   if (!aDocument)
-    return nullptr;
+    return nsnull;
 
   
   nsAccessNode::GetApplicationAccessible()->EnsureChildren();
 
-  DocAccessible* docAcc = mDocAccessibleCache.GetWeak(aDocument);
+  nsDocAccessible* docAcc = mDocAccessibleCache.GetWeak(aDocument);
   if (docAcc)
     return docAcc;
 
   return CreateDocOrRootAccessible(aDocument);
 }
 
-Accessible*
+nsAccessible*
 nsAccDocManager::FindAccessibleInCache(nsINode* aNode) const
 {
   nsSearchAccessibleInCacheArg arg;
@@ -65,18 +93,6 @@ nsAccDocManager::FindAccessibleInCache(nsINode* aNode) const
 
   return arg.mAccessible;
 }
-
-#ifdef DEBUG
-bool
-nsAccDocManager::IsProcessingRefreshDriverNotification() const
-{
-  bool isDocRefreshing = false;
-  mDocAccessibleCache.EnumerateRead(SearchIfDocIsRefreshing,
-                                    static_cast<void*>(&isDocRefreshing));
-
-  return isDocRefreshing;
-}
-#endif
 
 
 
@@ -91,12 +107,12 @@ nsAccDocManager::Init()
     do_GetService(NS_DOCUMENTLOADER_SERVICE_CONTRACTID);
 
   if (!progress)
-    return false;
+    return PR_FALSE;
 
   progress->AddProgressListener(static_cast<nsIWebProgressListener*>(this),
                                 nsIWebProgress::NOTIFY_STATE_DOCUMENT);
 
-  return true;
+  return PR_TRUE;
 }
 
 void
@@ -124,7 +140,7 @@ NS_IMPL_THREADSAFE_ISUPPORTS3(nsAccDocManager,
 
 NS_IMETHODIMP
 nsAccDocManager::OnStateChange(nsIWebProgress *aWebProgress,
-                               nsIRequest *aRequest, uint32_t aStateFlags,
+                               nsIRequest *aRequest, PRUint32 aStateFlags,
                                nsresult aStatus)
 {
   NS_ASSERTION(aStateFlags & STATE_IS_DOCUMENT, "Other notifications excluded");
@@ -145,13 +161,10 @@ nsAccDocManager::OnStateChange(nsIWebProgress *aWebProgress,
 
   
   if (aStateFlags & STATE_STOP) {
-#ifdef DEBUG
-    if (logging::IsEnabled(logging::eDocLoad))
-      logging::DocLoad("document loaded", aWebProgress, aRequest, aStateFlags);
-#endif
+    NS_LOG_ACCDOCLOAD("document loaded", aWebProgress, aRequest, aStateFlags)
 
     
-    uint32_t eventType = nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_STOPPED;
+    PRUint32 eventType = nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_STOPPED;
 
     
     
@@ -163,7 +176,7 @@ nsAccDocManager::OnStateChange(nsIWebProgress *aWebProgress,
     
     
     if (aRequest) {
-      uint32_t loadFlags = 0;
+      PRUint32 loadFlags = 0;
       aRequest->GetLoadFlags(&loadFlags);
       if (loadFlags & nsIChannel::LOAD_RETARGETED_DOCUMENT_URI)
         eventType = 0;
@@ -174,12 +187,10 @@ nsAccDocManager::OnStateChange(nsIWebProgress *aWebProgress,
   }
 
   
-#ifdef DEBUG
-  if (logging::IsEnabled(logging::eDocLoad))
-    logging::DocLoad("start document loading", aWebProgress, aRequest, aStateFlags);
-#endif
+  NS_LOG_ACCDOCLOAD("start document loading", aWebProgress, aRequest,
+                    aStateFlags)
 
-  DocAccessible* docAcc = mDocAccessibleCache.GetWeak(document);
+  nsDocAccessible* docAcc = mDocAccessibleCache.GetWeak(document);
   if (!docAcc)
     return NS_OK;
 
@@ -188,7 +199,7 @@ nsAccDocManager::OnStateChange(nsIWebProgress *aWebProgress,
   NS_ENSURE_STATE(docShell);
 
   bool isReloading = false;
-  uint32_t loadType;
+  PRUint32 loadType;
   docShell->GetLoadType(&loadType);
   if (loadType == LOAD_RELOAD_NORMAL ||
       loadType == LOAD_RELOAD_BYPASS_CACHE ||
@@ -204,10 +215,10 @@ nsAccDocManager::OnStateChange(nsIWebProgress *aWebProgress,
 NS_IMETHODIMP
 nsAccDocManager::OnProgressChange(nsIWebProgress *aWebProgress,
                                   nsIRequest *aRequest,
-                                  int32_t aCurSelfProgress,
-                                  int32_t aMaxSelfProgress,
-                                  int32_t aCurTotalProgress,
-                                  int32_t aMaxTotalProgress)
+                                  PRInt32 aCurSelfProgress,
+                                  PRInt32 aMaxSelfProgress,
+                                  PRInt32 aCurTotalProgress,
+                                  PRInt32 aMaxTotalProgress)
 {
   NS_NOTREACHED("notification excluded in AddProgressListener(...)");
   return NS_OK;
@@ -215,8 +226,7 @@ nsAccDocManager::OnProgressChange(nsIWebProgress *aWebProgress,
 
 NS_IMETHODIMP
 nsAccDocManager::OnLocationChange(nsIWebProgress *aWebProgress,
-                                  nsIRequest *aRequest, nsIURI *aLocation,
-                                  uint32_t aFlags)
+                                  nsIRequest *aRequest, nsIURI *aLocation)
 {
   NS_NOTREACHED("notification excluded in AddProgressListener(...)");
   return NS_OK;
@@ -234,7 +244,7 @@ nsAccDocManager::OnStatusChange(nsIWebProgress *aWebProgress,
 NS_IMETHODIMP
 nsAccDocManager::OnSecurityChange(nsIWebProgress *aWebProgress,
                                   nsIRequest *aRequest,
-                                  uint32_t aState)
+                                  PRUint32 aState)
 {
   NS_NOTREACHED("notification excluded in AddProgressListener(...)");
   return NS_OK;
@@ -263,10 +273,7 @@ nsAccDocManager::HandleEvent(nsIDOMEvent *aEvent)
     
     
 
-#ifdef DEBUG
-    if (logging::IsEnabled(logging::eDocDestroy))
-      logging::DocDestroy("received 'pagehide' event", document);
-#endif
+    NS_LOG_ACCDOCDESTROY("received 'pagehide' event", document)
 
     
     
@@ -278,7 +285,7 @@ nsAccDocManager::HandleEvent(nsIDOMEvent *aEvent)
     
     
     
-    DocAccessible* docAccessible = mDocAccessibleCache.GetWeak(document);
+    nsDocAccessible* docAccessible = mDocAccessibleCache.GetWeak(document);
     if (docAccessible)
       docAccessible->Shutdown();
 
@@ -289,11 +296,7 @@ nsAccDocManager::HandleEvent(nsIDOMEvent *aEvent)
   
   if (type.EqualsLiteral("DOMContentLoaded") &&
       nsCoreUtils::IsErrorPage(document)) {
-#ifdef DEBUG
-    if (logging::IsEnabled(logging::eDocLoad))
-      logging::DocLoad("handled 'DOMContentLoaded' event", document);
-#endif
-
+    NS_LOG_ACCDOCLOAD2("handled 'DOMContentLoaded' event", document)
     HandleDOMDocumentLoad(document,
                           nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_COMPLETE);
   }
@@ -306,11 +309,11 @@ nsAccDocManager::HandleEvent(nsIDOMEvent *aEvent)
 
 void
 nsAccDocManager::HandleDOMDocumentLoad(nsIDocument *aDocument,
-                                       uint32_t aLoadEventType)
+                                       PRUint32 aLoadEventType)
 {
   
   
-  DocAccessible* docAcc = mDocAccessibleCache.GetWeak(aDocument);
+  nsDocAccessible* docAcc = mDocAccessibleCache.GetWeak(aDocument);
   if (!docAcc) {
     docAcc = CreateDocOrRootAccessible(aDocument);
     if (!docAcc)
@@ -326,77 +329,79 @@ nsAccDocManager::AddListeners(nsIDocument *aDocument,
 {
   nsPIDOMWindow *window = aDocument->GetWindow();
   nsIDOMEventTarget *target = window->GetChromeEventHandler();
-  nsEventListenerManager* elm = target->GetListenerManager(true);
+  nsEventListenerManager* elm = target->GetListenerManager(PR_TRUE);
   elm->AddEventListenerByType(this, NS_LITERAL_STRING("pagehide"),
                               NS_EVENT_FLAG_CAPTURE);
 
-#ifdef DEBUG
-  if (logging::IsEnabled(logging::eDocCreate))
-    logging::Text("added 'pagehide' listener");
-#endif
+  NS_LOG_ACCDOCCREATE_TEXT("  added 'pagehide' listener")
 
   if (aAddDOMContentLoadedListener) {
     elm->AddEventListenerByType(this, NS_LITERAL_STRING("DOMContentLoaded"),
                                 NS_EVENT_FLAG_CAPTURE);
-#ifdef DEBUG
-    if (logging::IsEnabled(logging::eDocCreate))
-      logging::Text("added 'DOMContentLoaded' listener");
-#endif
+    NS_LOG_ACCDOCCREATE_TEXT("  added 'DOMContentLoaded' listener")
   }
 }
 
-DocAccessible*
-nsAccDocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
+nsDocAccessible*
+nsAccDocManager::CreateDocOrRootAccessible(nsIDocument *aDocument)
 {
   
   
   if (aDocument->IsInitialDocument() || !aDocument->IsVisible() ||
       aDocument->IsResourceDoc() || !aDocument->IsActive())
-    return nullptr;
+    return nsnull;
 
   
-  nsIPresShell* presShell = aDocument->GetShell();
-  if (!presShell || !presShell->GetRootFrame() || presShell->IsDestroying())
-    return nullptr;
+  nsIPresShell *presShell = aDocument->GetShell();
+  if (!presShell)
+    return nsnull;
 
   
   
   nsIContent *rootElm = nsCoreUtils::GetRoleContent(aDocument);
   if (!rootElm)
-    return nullptr;
+    return nsnull;
 
   bool isRootDoc = nsCoreUtils::IsRootDocument(aDocument);
 
-  DocAccessible* parentDocAcc = nullptr;
+  nsDocAccessible* parentDocAcc = nsnull;
   if (!isRootDoc) {
+    
+    
+    
     
     
     parentDocAcc = GetDocAccessible(aDocument->GetParentDocument());
     NS_ASSERTION(parentDocAcc,
                  "Can't create an accessible for the document!");
     if (!parentDocAcc)
-      return nullptr;
+      return nsnull;
   }
 
   
   
-  nsRefPtr<DocAccessible> docAcc = isRootDoc ?
-    new RootAccessibleWrap(aDocument, rootElm, presShell) :
-    new DocAccessibleWrap(aDocument, rootElm, presShell);
+  nsCOMPtr<nsIWeakReference> weakShell(do_GetWeakReference(presShell));
+  nsRefPtr<nsDocAccessible> docAcc = isRootDoc ?
+    new nsRootAccessibleWrap(aDocument, rootElm, weakShell) :
+    new nsDocAccessibleWrap(aDocument, rootElm, weakShell);
 
   
-  mDocAccessibleCache.Put(aDocument, docAcc);
+  if (!docAcc || !mDocAccessibleCache.Put(aDocument, docAcc))
+    return nsnull;
 
   
-  docAcc->Init();
-  docAcc->SetRoleMapEntry(aria::GetRoleMap(aDocument));
+  if (!docAcc->Init()) {
+    docAcc->Shutdown();
+    return nsnull;
+  }
+  docAcc->SetRoleMapEntry(nsAccUtils::GetRoleMapEntry(aDocument));
 
   
   if (isRootDoc) {
-    Accessible* appAcc = nsAccessNode::GetApplicationAccessible();
+    nsAccessible* appAcc = nsAccessNode::GetApplicationAccessible();
     if (!appAcc->AppendChild(docAcc)) {
       docAcc->Shutdown();
-      return nullptr;
+      return nsnull;
     }
 
     
@@ -412,12 +417,8 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
     parentDocAcc->BindChildDocument(docAcc);
   }
 
-#ifdef DEBUG
-  if (logging::IsEnabled(logging::eDocCreate)) {
-    logging::DocCreate("document creation finished", aDocument);
-    logging::Stack();
-  }
-#endif
+  NS_LOG_ACCDOCCREATE("document creation finished", aDocument)
+  NS_LOG_ACCDOCCREATE_STACK
 
   AddListeners(aDocument, isRootDoc);
   return docAcc;
@@ -428,12 +429,12 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
 
 PLDHashOperator
 nsAccDocManager::GetFirstEntryInDocCache(const nsIDocument* aKey,
-                                         DocAccessible* aDocAccessible,
+                                         nsDocAccessible* aDocAccessible,
                                          void* aUserArg)
 {
   NS_ASSERTION(aDocAccessible,
                "No doc accessible for the object in doc accessible cache!");
-  *reinterpret_cast<DocAccessible**>(aUserArg) = aDocAccessible;
+  *reinterpret_cast<nsDocAccessible**>(aUserArg) = aDocAccessible;
 
   return PL_DHASH_STOP;
 }
@@ -441,7 +442,7 @@ nsAccDocManager::GetFirstEntryInDocCache(const nsIDocument* aKey,
 void
 nsAccDocManager::ClearDocCache()
 {
-  DocAccessible* docAcc = nullptr;
+  nsDocAccessible* docAcc = nsnull;
   while (mDocAccessibleCache.EnumerateRead(GetFirstEntryInDocCache, static_cast<void*>(&docAcc))) {
     if (docAcc)
       docAcc->Shutdown();
@@ -450,7 +451,7 @@ nsAccDocManager::ClearDocCache()
 
 PLDHashOperator
 nsAccDocManager::SearchAccessibleInDocCache(const nsIDocument* aKey,
-                                            DocAccessible* aDocAccessible,
+                                            nsDocAccessible* aDocAccessible,
                                             void* aUserArg)
 {
   NS_ASSERTION(aDocAccessible,
@@ -466,22 +467,3 @@ nsAccDocManager::SearchAccessibleInDocCache(const nsIDocument* aKey,
 
   return PL_DHASH_NEXT;
 }
-
-#ifdef DEBUG
-PLDHashOperator
-nsAccDocManager::SearchIfDocIsRefreshing(const nsIDocument* aKey,
-                                         DocAccessible* aDocAccessible,
-                                         void* aUserArg)
-{
-  NS_ASSERTION(aDocAccessible,
-               "No doc accessible for the object in doc accessible cache!");
-
-  if (aDocAccessible && aDocAccessible->mNotificationController &&
-      aDocAccessible->mNotificationController->IsUpdating()) {
-    *(static_cast<bool*>(aUserArg)) = true;
-    return PL_DHASH_STOP;
-  }
-
-  return PL_DHASH_NEXT;
-}
-#endif

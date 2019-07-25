@@ -7,18 +7,48 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIScrollFrame_h___
 #define nsIScrollFrame_h___
 
 #include "nsISupports.h"
 #include "nsCoord.h"
 #include "nsPresContext.h"
-
-#define NS_DEFAULT_VERTICAL_SCROLL_DISTANCE 3
+#include "nsIFrame.h" 
 
 class nsBoxLayoutState;
 class nsIScrollPositionListener;
-class nsIFrame;
 
 
 
@@ -50,7 +80,7 @@ public:
 
 
 
-  virtual uint32_t GetScrollbarVisibility() const = 0;
+  virtual PRUint32 GetScrollbarVisibility() const = 0;
   
 
 
@@ -93,11 +123,6 @@ public:
 
 
   virtual nsRect GetScrollRange() const = 0;
-  
-
-
-
-  virtual nsSize GetScrollPositionClampingScrollPortSize() const = 0;
 
   
 
@@ -123,26 +148,7 @@ public:
 
 
 
-
-
-
-
-  virtual void ScrollTo(nsPoint aScrollPosition, ScrollMode aMode,
-                        const nsRect* aRange = nullptr) = 0;
-  
-
-
-
-
-
-
-
-  virtual void ScrollToCSSPixels(nsIntPoint aScrollPosition) = 0;
-  
-
-
-
-  virtual nsIntPoint GetScrollPositionCSSPixels() = 0;
+  virtual void ScrollTo(nsPoint aScrollPosition, ScrollMode aMode) = 0;
   
 
 
@@ -157,7 +163,7 @@ public:
 
 
   virtual void ScrollBy(nsIntPoint aDelta, ScrollUnit aUnit, ScrollMode aMode,
-                        nsIntPoint* aOverflow = nullptr, nsIAtom *aOrigin = nullptr) = 0;
+                        nsIntPoint* aOverflow = nsnull) = 0;
   
 
 
@@ -184,7 +190,7 @@ public:
 
 
 
-  virtual nsIFrame* GetScrollbarBox(bool aVertical) = 0;
+  virtual nsIBox* GetScrollbarBox(bool aVertical) = 0;
 
   
 

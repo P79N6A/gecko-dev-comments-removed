@@ -2,13 +2,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDesktopNotification_h
 #define nsDesktopNotification_h
 
 #include "PCOMContentPermissionRequestChild.h"
 
-#include "nsDOMClassInfoID.h"
-#include "nsIPrincipal.h"
+#include "nsDOMClassInfo.h"
 #include "nsIJSContextStack.h"
 
 #include "nsIAlertsService.h"
@@ -25,7 +56,7 @@
 #include "nsThreadUtils.h"
 
 #include "nsDOMEventTargetHelper.h"
-#include "nsIDOMEvent.h"
+#include "nsIPrivateDOMEvent.h"
 #include "nsIDocument.h"
 
 class AlertServiceObserver;
@@ -40,15 +71,17 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMDESKTOPNOTIFICATIONCENTER
 
-  nsDesktopNotificationCenter(nsPIDOMWindow *aWindow)
+  nsDesktopNotificationCenter(nsPIDOMWindow *aWindow,
+                              nsIScriptContext* aScriptContext)
   {
     mOwner = aWindow;
+    mScriptContext = aScriptContext;
 
     
     nsCOMPtr<nsIDOMDocument> domdoc;
     mOwner->GetDocument(getter_AddRefs(domdoc));
     nsCOMPtr<nsIDocument> doc = do_QueryInterface(domdoc);
-    mPrincipal = doc->NodePrincipal();
+    doc->NodePrincipal()->GetURI(getter_AddRefs(mURI));
   }
 
   virtual ~nsDesktopNotificationCenter()
@@ -56,12 +89,14 @@ public:
   }
 
   void Shutdown() {
-    mOwner = nullptr;
+    mOwner = nsnull;
+    mScriptContext = nsnull;
   }
 
 private:
   nsCOMPtr<nsPIDOMWindow> mOwner;
-  nsCOMPtr<nsIPrincipal> mPrincipal;
+  nsCOMPtr<nsIScriptContext> mScriptContext;
+  nsCOMPtr<nsIURI> mURI;
 };
 
 
@@ -79,7 +114,8 @@ public:
                            const nsAString & description,
                            const nsAString & iconURL,
                            nsPIDOMWindow *aWindow,
-                           nsIPrincipal* principal);
+                           nsIScriptContext* aScriptContext,
+                           nsIURI* uri);
 
   virtual ~nsDOMDesktopNotification();
 
@@ -87,9 +123,9 @@ public:
 
 
 
-  nsresult PostDesktopNotification();
+  void PostDesktopNotification();
 
-  nsresult SetAllow(bool aAllow);
+  void SetAllow(bool aAllow);
 
   
 
@@ -104,8 +140,11 @@ protected:
   nsString mDescription;
   nsString mIconURL;
 
+  nsRefPtr<nsDOMEventListenerWrapper> mOnClickCallback;
+  nsRefPtr<nsDOMEventListenerWrapper> mOnCloseCallback;
+
   nsRefPtr<AlertServiceObserver> mObserver;
-  nsCOMPtr<nsIPrincipal> mPrincipal;
+  nsCOMPtr<nsIURI> mURI;
   bool mAllow;
   bool mShowHasBeenCalled;
 };
@@ -162,7 +201,7 @@ class AlertServiceObserver: public nsIObserver
   
   virtual ~AlertServiceObserver() {}
 
-  void Disconnect() { mNotification = nullptr; }
+  void Disconnect() { mNotification = nsnull; }
 
   NS_IMETHODIMP
   Observe(nsISupports *aSubject,

@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsContentUtils.h"
 #include "nsIDocument.h"
 #include "nsIDocumentObserver.h"
@@ -18,7 +50,7 @@ class NS_STACK_CLASS mozAutoDocUpdate
 public:
   mozAutoDocUpdate(nsIDocument* aDocument, nsUpdateType aUpdateType,
                    bool aNotify) :
-    mDocument(aNotify ? aDocument : nullptr),
+    mDocument(aNotify ? aDocument : nsnull),
     mUpdateType(aUpdateType)
   {
     if (mDocument) {
@@ -65,7 +97,7 @@ class NS_STACK_CLASS mozAutoDocConditionalContentUpdateBatch
 public:
   mozAutoDocConditionalContentUpdateBatch(nsIDocument* aDocument,
                                           bool aNotify) :
-    mDocument(aNotify ? aDocument : nullptr)
+    mDocument(aNotify ? aDocument : nsnull)
   {
     if (mDocument) {
       mDocument->BeginUpdate(UPDATE_CONTENT_MODEL);

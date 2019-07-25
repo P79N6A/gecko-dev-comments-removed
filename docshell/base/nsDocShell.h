@@ -5,6 +5,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDocShell_h__
 #define nsDocShell_h__
 
@@ -45,6 +78,7 @@
 #define REFRESH_REDIRECT_TIMER 15000
 
 
+#include "nsIDocumentCharsetInfo.h"
 #include "nsIDocCharset.h"
 #include "nsIGlobalHistory2.h"
 #include "nsIInterfaceRequestor.h"
@@ -107,17 +141,19 @@ public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSITIMERCALLBACK
 
-    int32_t GetDelay() { return mDelay ;}
+    PRInt32 GetDelay() { return mDelay ;}
 
     nsRefPtr<nsDocShell>  mDocShell;
     nsCOMPtr<nsIURI>      mURI;
-    int32_t               mDelay;
+    PRInt32               mDelay;
     bool                  mRepeat;
     bool                  mMetaRefresh;
     
 protected:
     virtual ~nsRefreshTimer();
 };
+
+#define NS_ERROR_DOCSHELL_REQUEST_REJECTED  NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_GENERAL,1001)
 
 typedef enum {
     eCharsetReloadInit,
@@ -180,6 +216,7 @@ public:
     NS_DECL_NSIWEBPAGEDESCRIPTOR
     NS_DECL_NSIAUTHPROMPTPROVIDER
     NS_DECL_NSIOBSERVER
+    NS_DECL_NSILOADCONTEXT
     NS_DECL_NSICLIPBOARDCOMMANDS
     NS_DECL_NSIWEBSHELLSERVICES
 
@@ -212,21 +249,11 @@ public:
         const PRUnichar* aTargetSpec);
     NS_IMETHOD OnLeaveLink();
 
-    nsDocShellInfoLoadType ConvertLoadTypeToDocShellLoadInfo(uint32_t aLoadType);
-    uint32_t ConvertDocShellLoadInfoToLoadType(nsDocShellInfoLoadType aDocShellLoadType);
+    nsDocShellInfoLoadType ConvertLoadTypeToDocShellLoadInfo(PRUint32 aLoadType);
+    PRUint32 ConvertDocShellLoadInfoToLoadType(nsDocShellInfoLoadType aDocShellLoadType);
 
     
     virtual nsIScriptGlobalObject* GetScriptGlobalObject();
-
-    
-    
-    NS_IMETHOD GetAssociatedWindow(nsIDOMWindow**);
-    NS_IMETHOD GetTopWindow(nsIDOMWindow**);
-    NS_IMETHOD GetTopFrameElement(nsIDOMElement**);
-    NS_IMETHOD IsAppOfType(uint32_t, bool*);
-    NS_IMETHOD GetIsContent(bool*);
-    NS_IMETHOD GetUsePrivateBrowsing(bool*);
-    NS_IMETHOD SetUsePrivateBrowsing(bool);
 
     
     
@@ -237,20 +264,18 @@ public:
     
     
     
-    nsresult ForceRefreshURIFromTimer(nsIURI * aURI, int32_t aDelay,
+    nsresult ForceRefreshURIFromTimer(nsIURI * aURI, PRInt32 aDelay,
                                       bool aMetaRefresh, nsITimer* aTimer);
 
     friend class OnLinkClickEvent;
 
     
-    
     void FireDummyOnLocationChange()
     {
-        FireOnLocationChange(this, nullptr, mCurrentURI,
-                             LOCATION_CHANGE_SAME_DOCUMENT);
+      FireOnLocationChange(this, nsnull, mCurrentURI);
     }
 
-    nsresult HistoryTransactionRemoved(int32_t aIndex);
+    nsresult HistoryTransactionRemoved(PRInt32 aIndex);
 protected:
     
     virtual ~nsDocShell();
@@ -309,7 +334,7 @@ protected:
                                    bool aBypassClassifier);
 
     nsresult ScrollToAnchor(nsACString & curHash, nsACString & newHash,
-                            uint32_t aLoadType);
+                            PRUint32 aLoadType);
 
     
     
@@ -335,7 +360,7 @@ protected:
     
     
     bool OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
-                    uint32_t aLoadType,
+                    PRUint32 aLoadType,
                     bool aFireOnLocationChange,
                     bool aAddToGlobalHistory,
                     bool aCloneSHChildren);
@@ -354,10 +379,10 @@ protected:
                                          nsISupports* aOwner,
                                          bool aCloneChildren,
                                          nsISHEntry ** aNewEntry);
-    nsresult DoAddChildSHEntry(nsISHEntry* aNewEntry, int32_t aChildOffset,
+    nsresult DoAddChildSHEntry(nsISHEntry* aNewEntry, PRInt32 aChildOffset,
                                bool aCloneChildren);
 
-    NS_IMETHOD LoadHistoryEntry(nsISHEntry * aEntry, uint32_t aLoadType);
+    NS_IMETHOD LoadHistoryEntry(nsISHEntry * aEntry, PRUint32 aLoadType);
     NS_IMETHOD PersistLayoutHistoryState();
 
     
@@ -370,7 +395,7 @@ protected:
     
     static nsresult CloneAndReplace(nsISHEntry *aSrcEntry,
                                     nsDocShell *aSrcShell,
-                                    uint32_t aCloneID,
+                                    PRUint32 aCloneID,
                                     nsISHEntry *aReplaceEntry,
                                     bool aCloneChildren,
                                     nsISHEntry **aDestEntry);
@@ -378,7 +403,7 @@ protected:
     
     static nsresult CloneAndReplaceChild(nsISHEntry *aEntry,
                                          nsDocShell *aShell,
-                                         int32_t aChildIndex, void *aData);
+                                         PRInt32 aChildIndex, void *aData);
 
     nsresult GetRootSessionHistory(nsISHistory ** aReturn);
     nsresult GetHttpChannel(nsIChannel * aChannel, nsIHttpChannel ** aReturn);
@@ -402,7 +427,7 @@ protected:
     
     static nsresult SetChildHistoryEntry(nsISHEntry *aEntry,
                                          nsDocShell *aShell,
-                                         int32_t aEntryIndex, void *aData);
+                                         PRInt32 aEntryIndex, void *aData);
 
     
     
@@ -410,7 +435,7 @@ protected:
     
     typedef nsresult (*WalkHistoryEntriesFunc)(nsISHEntry *aEntry,
                                                nsDocShell *aShell,
-                                               int32_t aChildIndex,
+                                               PRInt32 aChildIndex,
                                                void *aData);
 
     
@@ -425,8 +450,8 @@ protected:
     
     virtual void OnRedirectStateChange(nsIChannel* aOldChannel,
                                        nsIChannel* aNewChannel,
-                                       uint32_t aRedirectFlags,
-                                       uint32_t aStateFlags);
+                                       PRUint32 aRedirectFlags,
+                                       PRUint32 aStateFlags);
 
     
 
@@ -455,7 +480,7 @@ protected:
 
     void ExtractLastVisit(nsIChannel* aChannel,
                           nsIURI** aURI,
-                          uint32_t* aChannelRedirectFlags);
+                          PRUint32* aChannelRedirectFlags);
 
     
 
@@ -469,11 +494,9 @@ protected:
 
     void SaveLastVisit(nsIChannel* aChannel,
                        nsIURI* aURI,
-                       uint32_t aChannelRedirectFlags);
+                       PRUint32 aChannelRedirectFlags);
 
     
-
-
 
 
 
@@ -500,15 +523,14 @@ protected:
     void AddURIVisit(nsIURI* aURI,
                      nsIURI* aReferrerURI,
                      nsIURI* aPreviousURI,
-                     uint32_t aChannelRedirectFlags,
-                     uint32_t aResponseStatus=0);
+                     PRUint32 aChannelRedirectFlags);
 
     
     nsresult   ConfirmRepost(bool * aRepost);
     NS_IMETHOD GetPromptAndStringBundle(nsIPrompt ** aPrompt,
         nsIStringBundle ** aStringBundle);
     NS_IMETHOD GetChildOffset(nsIDOMNode * aChild, nsIDOMNode * aParent,
-        int32_t * aOffset);
+        PRInt32 * aOffset);
     nsIScrollableFrame* GetRootScrollFrame();
     NS_IMETHOD EnsureScriptEnvironment();
     NS_IMETHOD EnsureEditorData();
@@ -517,7 +539,7 @@ protected:
     nsresult   RefreshURIFromQueue();
     NS_IMETHOD DisplayLoadError(nsresult aError, nsIURI *aURI,
                                 const PRUnichar *aURL,
-                                nsIChannel* aFailedChannel = nullptr);
+                                nsIChannel* aFailedChannel = nsnull);
     NS_IMETHOD LoadErrorPage(nsIURI *aURI, const PRUnichar *aURL,
                              const char *aErrorPage,
                              const PRUnichar *aErrorType,
@@ -529,11 +551,11 @@ protected:
 
     nsresult SetBaseUrlForWyciwyg(nsIContentViewer * aContentViewer);
 
-    static  inline  uint32_t
+    static  inline  PRUint32
     PRTimeToSeconds(PRTime t_usec)
     {
       PRTime usec_per_sec;
-      uint32_t t_sec;
+      PRUint32 t_sec;
       LL_I2L(usec_per_sec, PR_USEC_PER_SEC);
       LL_DIV(t_usec, t_usec, usec_per_sec);
       LL_L2I(t_sec, t_usec);
@@ -571,8 +593,7 @@ protected:
     
     
     bool SetCurrentURI(nsIURI *aURI, nsIRequest *aRequest,
-                       bool aFireOnLocationChange,
-                       uint32_t aLocationFlags);
+                         bool aFireOnLocationChange);
 
     
     
@@ -608,7 +629,7 @@ protected:
     
     
     
-    bool CanSavePresentation(uint32_t aLoadType,
+    bool CanSavePresentation(PRUint32 aLoadType,
                                nsIRequest *aNewRequest,
                                nsIDocument *aNewDocument);
 
@@ -626,8 +647,8 @@ protected:
     nsresult BeginRestoreChildren();
 
     
-    void DoGetPositionAndSize(int32_t * x, int32_t * y, int32_t * cx,
-                              int32_t * cy);
+    void DoGetPositionAndSize(PRInt32 * x, PRInt32 * y, PRInt32 * cx,
+                              PRInt32 * cy);
     
     
     
@@ -649,8 +670,6 @@ protected:
     nsresult EnsureCommandHandler();
 
     nsIChannel* GetCurrentDocChannel();
-
-    bool ShouldBlockLoadingForBackButton();
 protected:
     
     virtual nsresult SetDocLoaderParent(nsDocLoader * aLoader);
@@ -664,21 +683,10 @@ protected:
     public:
         NS_DECL_NSIRUNNABLE
         RestorePresentationEvent(nsDocShell *ds) : mDocShell(ds) {}
-        void Revoke() { mDocShell = nullptr; }
+        void Revoke() { mDocShell = nsnull; }
     private:
         nsRefPtr<nsDocShell> mDocShell;
     };
-
-    bool JustStartedNetworkLoad();
-
-    enum FrameType {
-        eFrameTypeRegular  = 0x0, 
-        eFrameTypeBrowser  = 0x1, 
-        eFrameTypeApp      = 0x2  
-    };
-
-    FrameType GetInheritedFrameType();
-    FrameType GetFrameType();
 
     
     nsInterfaceHashtable<nsCStringHashKey, nsIDOMStorage> mStorages;
@@ -699,6 +707,7 @@ protected:
     nsCOMPtr<nsISupportsArray> mSavedRefreshURIList;
     nsRefPtr<nsDSURIContentListener> mContentListener;
     nsCOMPtr<nsIContentViewer> mContentViewer;
+    nsCOMPtr<nsIDocumentCharsetInfo> mDocumentCharsetInfo;
     nsCOMPtr<nsIWidget>        mParentWidget;
 
     
@@ -746,7 +755,7 @@ protected:
     
     nsCOMPtr<nsIURI>           mFailedURI;
     nsCOMPtr<nsIChannel>       mFailedChannel;
-    uint32_t                   mFailedLoadType;
+    PRUint32                   mFailedLoadType;
 
     
     
@@ -759,24 +768,22 @@ protected:
 
     
     
-    uint32_t                   mChildOffset;
-    uint32_t                   mBusyFlags;
-    uint32_t                   mAppType;
-    uint32_t                   mLoadType;
+    PRUint32                   mChildOffset;
+    PRUint32                   mBusyFlags;
+    PRUint32                   mAppType;
+    PRUint32                   mLoadType;
 
-    int32_t                    mMarginWidth;
-    int32_t                    mMarginHeight;
-
-    
-    
-    int32_t                    mItemType;
+    PRInt32                    mMarginWidth;
+    PRInt32                    mMarginHeight;
 
     
     
-    int32_t                    mPreviousTransIndex;
-    int32_t                    mLoadedTransIndex;
+    PRInt32                    mItemType;
 
-    uint32_t                   mSandboxFlags;
+    
+    
+    PRInt32                    mPreviousTransIndex;
+    PRInt32                    mLoadedTransIndex;
 
     bool                       mCreated;
     bool                       mAllowSubframes;
@@ -795,8 +802,6 @@ protected:
     bool                       mIsActive;
     bool                       mIsAppTab;
     bool                       mUseGlobalHistory;
-    bool                       mInPrivateBrowsing;
-    bool                       mIsBrowserFrame;
 
     
     
@@ -821,28 +826,20 @@ protected:
     
     
     bool                       mSavingOldViewer;
-    
+
     
     bool                       mDynamicallyCreated;
 #ifdef DEBUG
     bool                       mInEnsureScriptEnv;
 #endif
-    uint64_t                   mHistoryID;
+    PRUint64                   mHistoryID;
 
     static nsIURIFixup *sURIFixup;
 
     nsRefPtr<nsDOMNavigationTiming> mTiming;
 
-    uint32_t mAppId;
-
-private:
-    nsCOMPtr<nsIAtom> mForcedCharset;
-    nsCOMPtr<nsIAtom> mParentCharset;
-    nsTObserverArray<nsWeakPtr> mPrivacyObservers;
-    int32_t           mParentCharsetSource;
-    nsCString         mOriginalUriString;
-
 #ifdef DEBUG
+private:
     
     static unsigned long gNumberOfDocShells;
 #endif 

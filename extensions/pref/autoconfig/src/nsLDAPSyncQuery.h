@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsILDAPConnection.h"
 #include "nsILDAPOperation.h"
@@ -36,10 +70,10 @@ class nsLDAPSyncQuery : public nsILDAPSyncQuery,
     nsCOMPtr<nsILDAPOperation> mOperation;   
     nsCOMPtr<nsILDAPURL> mServerURL;         
     bool mFinished;                        
-    uint32_t mAttrCount;                     
+    PRUint32 mAttrCount;                     
     char **mAttrs;                           
     nsString mResults;                       
-    uint32_t mProtocolVersion;               
+    PRUint32 mProtocolVersion;               
 
     nsresult InitConnection();
     

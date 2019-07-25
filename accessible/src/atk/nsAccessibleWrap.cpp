@@ -38,10 +38,12 @@
 
 
 
+#include "nsAccessible.h"
 #include "nsAccessibleWrap.h"
 
 #include "nsAccUtils.h"
 #include "nsApplicationAccessibleWrap.h"
+#include "nsIAccessibleRelation.h"
 #include "nsRootAccessible.h"
 #include "nsDocAccessibleWrap.h"
 #include "nsIAccessibleValue.h"
@@ -49,8 +51,8 @@
 #include "nsAutoPtr.h"
 #include "prprf.h"
 #include "nsRoleMap.h"
-#include "nsRelUtils.h"
 #include "nsStateMap.h"
+#include "Relation.h"
 #include "States.h"
 
 #include "nsMaiInterfaceComponent.h"
@@ -318,7 +320,7 @@ nsAccessibleWrap::Shutdown()
     nsAccessible::Shutdown();
 }
 
-MaiHyperlink* nsAccessibleWrap::GetMaiHyperlink(PRBool aCreate )
+MaiHyperlink* nsAccessibleWrap::GetMaiHyperlink(bool aCreate )
 {
     
     GetAtkObject();
@@ -548,7 +550,7 @@ GetUniqueMaiAtkTypeName(PRUint16 interfacesBits)
     return name;
 }
 
-PRBool nsAccessibleWrap::IsValidObject()
+bool nsAccessibleWrap::IsValidObject()
 {
     
     return !IsDefunct();
@@ -766,7 +768,7 @@ ConvertToAtkAttributeSet(nsIPersistentProperties* aAttributes)
     nsresult rv = aAttributes->Enumerate(getter_AddRefs(propEnum));
     NS_ENSURE_SUCCESS(rv, nsnull);
 
-    PRBool hasMore;
+    bool hasMore;
     while (NS_SUCCEEDED(propEnum->HasMoreElements(&hasMore)) && hasMore) {
         nsCOMPtr<nsISupports> sup;
         rv = propEnum->GetNext(getter_AddRefs(sup));
@@ -907,7 +909,7 @@ TranslateStates(PRUint64 aState, AtkStateSet* aStateSet)
   PRUint64 bitMask = 1;
   while (gAtkStateMap[stateIndex].stateMapEntryType != kNoSuchState) {
     if (gAtkStateMap[stateIndex].atkState) { 
-      PRBool isStateOn = (aState & bitMask) != 0;
+      bool isStateOn = (aState & bitMask) != 0;
       if (gAtkStateMap[stateIndex].stateMapEntryType == kMapOpposite) {
         isStateOn = !isStateOn;
       }
@@ -941,60 +943,47 @@ refStateSetCB(AtkObject *aAtkObj)
 AtkRelationSet *
 refRelationSetCB(AtkObject *aAtkObj)
 {
-    AtkRelationSet *relation_set = nsnull;
-    relation_set = ATK_OBJECT_CLASS(parent_class)->ref_relation_set(aAtkObj);
+  AtkRelationSet* relation_set =
+    ATK_OBJECT_CLASS(parent_class)->ref_relation_set(aAtkObj);
 
-    nsAccessibleWrap *accWrap = GetAccessibleWrap(aAtkObj);
-    if (!accWrap) {
-        return relation_set;
-    }
-
-    AtkRelation* relation;
-    
-    PRUint32 relationType[] = {nsIAccessibleRelation::RELATION_LABELLED_BY,
-                               nsIAccessibleRelation::RELATION_LABEL_FOR,
-                               nsIAccessibleRelation::RELATION_NODE_CHILD_OF,
-                               nsIAccessibleRelation::RELATION_CONTROLLED_BY,
-                               nsIAccessibleRelation::RELATION_CONTROLLER_FOR,
-                               nsIAccessibleRelation::RELATION_EMBEDS,
-                               nsIAccessibleRelation::RELATION_FLOWS_TO,
-                               nsIAccessibleRelation::RELATION_FLOWS_FROM,
-                               nsIAccessibleRelation::RELATION_DESCRIBED_BY,
-                               nsIAccessibleRelation::RELATION_DESCRIPTION_FOR,
-                               };
-
-    for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(relationType); i++) {
-        relation = atk_relation_set_get_relation_by_type(relation_set, static_cast<AtkRelationType>(relationType[i]));
-        if (relation) {
-            atk_relation_set_remove(relation_set, relation);
-        }
-
-        nsCOMPtr<nsIAccessibleRelation> geckoRelation;
-        nsresult rv = accWrap->GetRelationByType(relationType[i],
-                                                 getter_AddRefs(geckoRelation));
-        if (NS_SUCCEEDED(rv) && geckoRelation) {
-            PRUint32 targetsCount = 0;
-            geckoRelation->GetTargetsCount(&targetsCount);
-            if (targetsCount) {
-                AtkObject** accessible_array = new AtkObject*[targetsCount];
-                for (PRUint32 index = 0; index < targetsCount; index++) {
-                    nsCOMPtr<nsIAccessible> geckoTarget;
-                    geckoRelation->GetTarget(index, getter_AddRefs(geckoTarget));
-                    accessible_array[index] =
-                        nsAccessibleWrap::GetAtkObject(geckoTarget);
-                }
-
-                relation = atk_relation_new(accessible_array, targetsCount,
-                                            static_cast<AtkRelationType>(relationType[i]));
-                atk_relation_set_add(relation_set, relation);
-                g_object_unref(relation);
-
-                delete [] accessible_array;
-            }
-        }
-    }
-
+  nsAccessibleWrap *accWrap = GetAccessibleWrap(aAtkObj);
+  if (!accWrap)
     return relation_set;
+
+  PRUint32 relationTypes[] = {
+    nsIAccessibleRelation::RELATION_LABELLED_BY,
+    nsIAccessibleRelation::RELATION_LABEL_FOR,
+    nsIAccessibleRelation::RELATION_NODE_CHILD_OF,
+    nsIAccessibleRelation::RELATION_CONTROLLED_BY,
+    nsIAccessibleRelation::RELATION_CONTROLLER_FOR,
+    nsIAccessibleRelation::RELATION_EMBEDS,
+    nsIAccessibleRelation::RELATION_FLOWS_TO,
+    nsIAccessibleRelation::RELATION_FLOWS_FROM,
+    nsIAccessibleRelation::RELATION_DESCRIBED_BY,
+    nsIAccessibleRelation::RELATION_DESCRIPTION_FOR,
+  };
+
+  for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(relationTypes); i++) {
+    AtkRelationType atkType = static_cast<AtkRelationType>(relationTypes[i]);
+    AtkRelation* atkRelation =
+      atk_relation_set_get_relation_by_type(relation_set, atkType);
+    if (atkRelation)
+      atk_relation_set_remove(relation_set, atkRelation);
+
+    Relation rel(accWrap->RelationByType(relationTypes[i]));
+    nsTArray<AtkObject*> targets;
+    nsAccessible* tempAcc = nsnull;
+    while ((tempAcc = rel.Next()))
+      targets.AppendElement(nsAccessibleWrap::GetAtkObject(tempAcc));
+
+    if (targets.Length()) {
+      atkRelation = atk_relation_new(targets.Elements(), targets.Length(), atkType);
+      atk_relation_set_add(relation_set, atkRelation);
+      g_object_unref(atkRelation);
+    }
+  }
+
+  return relation_set;
 }
 
 
@@ -1252,7 +1241,7 @@ nsAccessibleWrap::FirePlatformEvent(AccEvent* aEvent)
         g_signal_emit(atkObj, id, 0);
 
         
-        rootAcc->FireCurrentFocusEvent();
+        FocusMgr()->ForceFocusEvent();
       } break;
 
     case nsIAccessibleEvent::EVENT_WINDOW_DEACTIVATE:
@@ -1330,7 +1319,7 @@ nsAccessibleWrap::FireAtkStateChangeEvent(AccEvent* aEvent,
     AccStateChangeEvent* event = downcast_accEvent(aEvent);
     NS_ENSURE_TRUE(event, NS_ERROR_FAILURE);
 
-    PRBool isEnabled = event->IsStateEnabled();
+    bool isEnabled = event->IsStateEnabled();
     PRInt32 stateIndex = AtkStateMap::GetStateIndexFor(event->GetState());
     if (stateIndex >= 0) {
         NS_ASSERTION(gAtkStateMap[stateIndex].stateMapEntryType != kNoSuchState,
@@ -1364,8 +1353,8 @@ nsAccessibleWrap::FireAtkTextChangedEvent(AccEvent* aEvent,
 
     PRInt32 start = event->GetStartOffset();
     PRUint32 length = event->GetLength();
-    PRBool isInserted = event->IsTextInserted();
-    PRBool isFromUserInput = aEvent->IsFromUserInput();
+    bool isInserted = event->IsTextInserted();
+    bool isFromUserInput = aEvent->IsFromUserInput();
     char* signal_name = nsnull;
 
   if (gAvailableAtkSignals == eUnknown)
@@ -1395,7 +1384,7 @@ nsAccessibleWrap::FireAtkTextChangedEvent(AccEvent* aEvent,
 
 nsresult
 nsAccessibleWrap::FireAtkShowHideEvent(AccEvent* aEvent,
-                                       AtkObject *aObject, PRBool aIsAdded)
+                                       AtkObject *aObject, bool aIsAdded)
 {
     if (aIsAdded)
         MAI_LOG_DEBUG(("\n\nReceived: Show event\n"));
@@ -1406,7 +1395,7 @@ nsAccessibleWrap::FireAtkShowHideEvent(AccEvent* aEvent,
     AtkObject *parentObject = getParentCB(aObject);
     NS_ENSURE_STATE(parentObject);
 
-    PRBool isFromUserInput = aEvent->IsFromUserInput();
+    bool isFromUserInput = aEvent->IsFromUserInput();
     char *signal_name = g_strconcat(aIsAdded ? "children_changed::add" :  "children_changed::remove",
                                     isFromUserInput ? "" : kNonUserInputEvent, NULL);
     g_signal_emit_by_name(parentObject, signal_name, indexInParent, aObject, NULL);

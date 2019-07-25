@@ -7,6 +7,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MITRE_XMLUTILS_H
 #define MITRE_XMLUTILS_H
 
@@ -15,12 +48,10 @@
 #include "nsDependentSubstring.h"
 #include "nsIAtom.h"
 #include "txXPathNode.h"
+#include "nsIParserService.h"
 #include "nsContentUtils.h"
 
 #define kExpatSeparatorChar 0xFFFF
-
-extern "C" int MOZ_XMLIsLetter(const char* ptr);
-extern "C" int MOZ_XMLIsNCNameChar(const char* ptr);
 
 class nsIAtom;
 class txNamespaceMap;
@@ -31,7 +62,7 @@ public:
     {
     }
 
-    txExpandedName(int32_t aNsID,
+    txExpandedName(PRInt32 aNsID,
                    nsIAtom* aLocalName) : mNamespaceID(aNsID),
                                           mLocalName(aLocalName)
     {
@@ -44,12 +75,12 @@ public:
     }
 
     nsresult init(const nsAString& aQName, txNamespaceMap* aResolver,
-                  bool aUseDefault);
+                  MBool aUseDefault);
 
     void reset()
     {
         mNamespaceID = kNameSpaceID_None;
-        mLocalName = nullptr;
+        mLocalName = nsnull;
     }
 
     bool isNull()
@@ -64,19 +95,19 @@ public:
         return *this;
     }
 
-    bool operator == (const txExpandedName& rhs) const
+    MBool operator == (const txExpandedName& rhs) const
     {
         return ((mLocalName == rhs.mLocalName) &&
                 (mNamespaceID == rhs.mNamespaceID));
     }
 
-    bool operator != (const txExpandedName& rhs) const
+    MBool operator != (const txExpandedName& rhs) const
     {
         return ((mLocalName != rhs.mLocalName) ||
                 (mNamespaceID != rhs.mNamespaceID));
     }
 
-    int32_t mNamespaceID;
+    PRInt32 mNamespaceID;
     nsCOMPtr<nsIAtom> mLocalName;
 };
 
@@ -85,7 +116,7 @@ class XMLUtils {
 public:
     static nsresult splitExpatName(const PRUnichar *aExpatName,
                                    nsIAtom **aPrefix, nsIAtom **aLocalName,
-                                   int32_t* aNameSpaceID);
+                                   PRInt32* aNameSpaceID);
     static nsresult splitQName(const nsAString& aName, nsIAtom** aPrefix,
                                nsIAtom** aLocalName);
     static const nsDependentSubstring getLocalPart(const nsAString& src);
@@ -93,7 +124,7 @@ public:
     
 
 
-    static bool isWhitespace(const PRUnichar& aChar)
+    static MBool isWhitespace(const PRUnichar& aChar)
     {
         return (aChar <= ' ' &&
                 (aChar == ' ' || aChar == '\r' ||
@@ -116,7 +147,8 @@ public:
     static bool isValidQName(const nsAFlatString& aQName,
                                const PRUnichar** aColon)
     {
-        return NS_SUCCEEDED(nsContentUtils::CheckQName(aQName, true, aColon));
+        nsIParserService* ps = nsContentUtils::GetParserService();
+        return ps && NS_SUCCEEDED(ps->CheckQName(aQName, PR_TRUE, aColon));
     }
 
     
@@ -124,22 +156,24 @@ public:
 
     static bool isLetter(PRUnichar aChar)
     {
-        return !!MOZ_XMLIsLetter(reinterpret_cast<const char*>(&aChar));
-    }   
+        nsIParserService* ps = nsContentUtils::GetParserService();
+        return ps && ps->IsXMLLetter(aChar);
+    }
 
     
 
 
     static bool isNCNameChar(PRUnichar aChar)
     {
-        return !!MOZ_XMLIsNCNameChar(reinterpret_cast<const char*>(&aChar));
+        nsIParserService* ps = nsContentUtils::GetParserService();
+        return ps && ps->IsXMLNCNameChar(aChar);
     }
 
     
 
 
 
-    static bool getXMLSpacePreserve(const txXPathNode& aNode);
+    static MBool getXMLSpacePreserve(const txXPathNode& aNode);
 };
 
 #endif

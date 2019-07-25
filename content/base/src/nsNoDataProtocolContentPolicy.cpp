@@ -9,9 +9,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsNoDataProtocolContentPolicy.h"
+#include "nsIDocument.h"
+#include "nsINode.h"
 #include "nsIDOMWindow.h"
+#include "nsIDOMDocument.h"
 #include "nsString.h"
+#include "nsContentUtils.h"
 #include "nsIProtocolHandler.h"
 #include "nsIIOService.h"
 #include "nsIExternalProtocolHandler.h"
@@ -20,29 +56,25 @@
 NS_IMPL_ISUPPORTS1(nsNoDataProtocolContentPolicy, nsIContentPolicy)
 
 NS_IMETHODIMP
-nsNoDataProtocolContentPolicy::ShouldLoad(uint32_t aContentType,
+nsNoDataProtocolContentPolicy::ShouldLoad(PRUint32 aContentType,
                                           nsIURI *aContentLocation,
                                           nsIURI *aRequestingLocation,
                                           nsISupports *aRequestingContext,
                                           const nsACString &aMimeGuess,
                                           nsISupports *aExtra,
-                                          nsIPrincipal *aRequestPrincipal,
-                                          int16_t *aDecision)
+                                          PRInt16 *aDecision)
 {
   *aDecision = nsIContentPolicy::ACCEPT;
 
   
   
-  
-  
   if (aContentType != TYPE_DOCUMENT &&
       aContentType != TYPE_SUBDOCUMENT &&
-      aContentType != TYPE_OBJECT &&
-      aContentType != TYPE_WEBSOCKET) {
+      aContentType != TYPE_OBJECT) {
 
     
     
-    nsAutoCString scheme;
+    nsCAutoString scheme;
     aContentLocation->GetScheme(scheme);
     if (scheme.EqualsLiteral("http") ||
         scheme.EqualsLiteral("https") ||
@@ -65,16 +97,14 @@ nsNoDataProtocolContentPolicy::ShouldLoad(uint32_t aContentType,
 }
 
 NS_IMETHODIMP
-nsNoDataProtocolContentPolicy::ShouldProcess(uint32_t aContentType,
+nsNoDataProtocolContentPolicy::ShouldProcess(PRUint32 aContentType,
                                              nsIURI *aContentLocation,
                                              nsIURI *aRequestingLocation,
                                              nsISupports *aRequestingContext,
                                              const nsACString &aMimeGuess,
                                              nsISupports *aExtra,
-                                             nsIPrincipal *aRequestPrincipal,
-                                             int16_t *aDecision)
+                                             PRInt16 *aDecision)
 {
   return ShouldLoad(aContentType, aContentLocation, aRequestingLocation,
-                    aRequestingContext, aMimeGuess, aExtra, aRequestPrincipal,
-                    aDecision);
+                    aRequestingContext, aMimeGuess, aExtra, aDecision);
 }

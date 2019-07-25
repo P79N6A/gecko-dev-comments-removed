@@ -3,12 +3,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsAutoWindowStateHelper.h"
 
 #include "nsIDOMWindow.h"
 #include "nsPIDOMWindow.h"
 #include "nsIDOMEventTarget.h"
 #include "nsIDOMEvent.h"
+#include "nsIPrivateDOMEvent.h"
 #include "nsString.h"
 
 
@@ -44,7 +77,7 @@ nsAutoWindowStateHelper::DispatchCustomEvent(const char *aEventName)
 {
   nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(mWindow);
   if (!window) {
-    return true;
+    return PR_TRUE;
   }
 
   return window->DispatchCustomEvent(aEventName);

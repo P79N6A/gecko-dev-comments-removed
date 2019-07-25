@@ -3,11 +3,50 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGPATHDATAPARSER_H__
 #define __NS_SVGPATHDATAPARSER_H__
 
-#include "gfxPoint.h"
 #include "nsSVGDataParser.h"
+#include "nsCOMPtr.h"
+#include "nsCOMArray.h"
+#include "nsIDOMSVGPathSeg.h"
+#include "nsTArray.h"
+#include "gfxPoint.h"
+
+class nsSVGPathList;
 
 namespace mozilla {
 class SVGPathData;
@@ -117,7 +156,7 @@ public:
                     bool sweepFlag);
   bool GetNextSegment(gfxPoint *cp1, gfxPoint *cp2, gfxPoint *to);
 protected:
-  int32_t mNumSegs, mSegIndex;
+  PRInt32 mNumSegs, mSegIndex;
   double mTheta, mDelta, mT;
   double mSinPhi, mCosPhi;
   double mRx, mRy;

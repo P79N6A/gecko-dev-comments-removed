@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsXULLabelFrame.h"
 #include "nsHTMLParts.h"
 #include "nsINameSpaceManager.h"
@@ -50,7 +82,7 @@ nsXULLabelFrame::RegUnregAccessKey(bool aDoReg)
   
   nsEventStateManager *esm = PresContext()->EventStateManager();
 
-  uint32_t key = accessKey.First();
+  PRUint32 key = accessKey.First();
   if (aDoReg)
     esm->RegisterAccessKey(mContent, key);
   else
@@ -72,21 +104,21 @@ nsXULLabelFrame::Init(nsIContent*      aContent,
     return rv;
 
   
-  return RegUnregAccessKey(true);
+  return RegUnregAccessKey(PR_TRUE);
 }
 
 void
 nsXULLabelFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
   
-  RegUnregAccessKey(false);
+  RegUnregAccessKey(PR_FALSE);
   nsBlockFrame::DestroyFrom(aDestructRoot);
 } 
 
 NS_IMETHODIMP
-nsXULLabelFrame::AttributeChanged(int32_t aNameSpaceID,
+nsXULLabelFrame::AttributeChanged(PRInt32 aNameSpaceID,
                                   nsIAtom* aAttribute,
-                                  int32_t aModType)
+                                  PRInt32 aModType)
 {
   nsresult rv = nsBlockFrame::AttributeChanged(aNameSpaceID, 
                                                aAttribute, aModType);
@@ -94,7 +126,7 @@ nsXULLabelFrame::AttributeChanged(int32_t aNameSpaceID,
   
   
   if (aAttribute == nsGkAtoms::accesskey || aAttribute == nsGkAtoms::control)
-    RegUnregAccessKey(true);
+    RegUnregAccessKey(PR_TRUE);
 
   return rv;
 }
@@ -108,7 +140,7 @@ nsXULLabelFrame::GetType() const
 
 
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
 NS_IMETHODIMP
 nsXULLabelFrame::GetFrameName(nsAString& aResult) const
 {

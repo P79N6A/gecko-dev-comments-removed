@@ -7,56 +7,118 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsAccessNode_H_
 #define _nsAccessNode_H_
 
+#include "nsIAccessNode.h"
 #include "nsIAccessibleTypes.h"
-#include "nsINode.h"
+
 #include "a11yGeneric.h"
 
-class nsAccessNode;
-class DocAccessible;
-class nsIAccessibleDocument;
-class nsIContent;
+#include "nsIContent.h"
+#include "nsIDOMNode.h"
+#include "nsINameSpaceManager.h"
+#include "nsIStringBundle.h"
+#include "nsWeakReference.h"
 
-namespace mozilla {
-namespace a11y {
-class ApplicationAccessible;
-class RootAccessible;
-}
-}
+class nsAccessNode;
+class nsApplicationAccessible;
+class nsDocAccessible;
+class nsIAccessibleDocument;
+class nsRootAccessible;
 
 class nsIPresShell;
 class nsPresContext;
 class nsIFrame;
 class nsIDocShellTreeItem;
 
-class nsAccessNode: public nsISupports
+#define ACCESSIBLE_BUNDLE_URL "chrome://global-platform/locale/accessible.properties"
+#define PLATFORM_KEYS_BUNDLE_URL "chrome://global-platform/locale/platformKeys.properties"
+
+#define NS_ACCESSNODE_IMPL_CID                          \
+{  /* 2b07e3d7-00b3-4379-aa0b-ea22e2c8ffda */           \
+  0x2b07e3d7,                                           \
+  0x00b3,                                               \
+  0x4379,                                               \
+  { 0xaa, 0x0b, 0xea, 0x22, 0xe2, 0xc8, 0xff, 0xda }    \
+}
+
+class nsAccessNode: public nsIAccessNode
 {
 public:
 
-  nsAccessNode(nsIContent* aContent, DocAccessible* aDoc);
+  nsAccessNode(nsIContent *aContent, nsIWeakReference *aShell);
   virtual ~nsAccessNode();
 
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS(nsAccessNode)
+    NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+    NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsAccessNode, nsIAccessNode)
 
-  static void ShutdownXPAccessibility();
+    NS_DECL_NSIACCESSNODE
+    NS_DECLARE_STATIC_IID_ACCESSOR(NS_ACCESSNODE_IMPL_CID)
 
-  
-
-
-  static mozilla::a11y::ApplicationAccessible* GetApplicationAccessible();
-
-  
-
-
-  DocAccessible* Document() const { return mDoc; }
+    static void InitXPAccessibility();
+    static void ShutdownXPAccessibility();
 
   
 
 
-  mozilla::a11y::RootAccessible* RootAccessible() const;
+  static nsApplicationAccessible* GetApplicationAccessible();
+
+  
+
+
+  nsDocAccessible *GetDocAccessible() const;
+
+  
+
+
+  nsRootAccessible* RootAccessible() const;
+
+  
+
+
+
+
+
+  already_AddRefed<nsINode> GetCurrentFocus();
+
+  
+
+
+  virtual bool Init();
 
   
 
@@ -66,13 +128,31 @@ public:
   
 
 
-  virtual nsIFrame* GetFrame() const;
+  virtual bool IsDefunct() const;
+
   
 
 
-  virtual nsINode* GetNode() const;
+  virtual nsIFrame* GetFrame() const;
+
+  
+
+
+  already_AddRefed<nsIDOMNode> GetDOMNode() const
+  {
+    nsIDOMNode *DOMNode = nsnull;
+    if (GetNode())
+      CallQueryInterface(GetNode(), &DOMNode);
+    return DOMNode;
+  }
+
+  
+
+
+  virtual nsINode* GetNode() const { return mContent; }
   nsIContent* GetContent() const { return mContent; }
-  virtual nsIDocument* GetDocumentNode() const;
+  virtual nsIDocument* GetDocumentNode() const
+    { return mContent ? mContent->GetOwnerDoc() : nsnull; }
 
   
 
@@ -94,26 +174,51 @@ public:
   
 
 
+  already_AddRefed<nsIPresShell> GetPresShell();
+
+  
+
+
+  nsIWeakReference* GetWeakShell() const { return mWeakShell; }
+
+  
+
+
   void* UniqueID() { return static_cast<void*>(this); }
 
   
 
 
-  void Language(nsAString& aLocale);
+
+
+
+
+  virtual bool IsPrimaryForNode() const;
 
 protected:
-  void LastRelease();
+    nsPresContext* GetPresContext();
+
+    void LastRelease();
 
   nsCOMPtr<nsIContent> mContent;
-  DocAccessible* mDoc;
+  nsCOMPtr<nsIWeakReference> mWeakShell;
+
+    
+
+
+    static void NotifyA11yInitOrShutdown(bool aIsInit);
+
+    
+    static nsIStringBundle *gStringBundle;
+
+    static bool gIsFormFillEnabled;
 
 private:
-  nsAccessNode() MOZ_DELETE;
-  nsAccessNode(const nsAccessNode&) MOZ_DELETE;
-  nsAccessNode& operator =(const nsAccessNode&) MOZ_DELETE;
-  
-  static mozilla::a11y::ApplicationAccessible* gApplicationAccessible;
+  static nsApplicationAccessible *gApplicationAccessible;
 };
+
+NS_DEFINE_STATIC_IID_ACCESSOR(nsAccessNode,
+                              NS_ACCESSNODE_IMPL_CID)
 
 #endif
 

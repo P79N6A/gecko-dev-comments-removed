@@ -3,12 +3,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSMILInterval.h"
 
 nsSMILInterval::nsSMILInterval()
 :
-  mBeginFixed(false),
-  mEndFixed(false)
+  mBeginFixed(PR_FALSE),
+  mEndFixed(PR_FALSE)
 {
 }
 
@@ -16,8 +48,8 @@ nsSMILInterval::nsSMILInterval(const nsSMILInterval& aOther)
 :
   mBegin(aOther.mBegin),
   mEnd(aOther.mEnd),
-  mBeginFixed(false),
-  mEndFixed(false)
+  mBeginFixed(PR_FALSE),
+  mEndFixed(PR_FALSE)
 {
   NS_ABORT_IF_FALSE(aOther.mDependentTimes.IsEmpty(),
       "Attempting to copy-construct an interval with dependent times, "
@@ -41,7 +73,7 @@ nsSMILInterval::~nsSMILInterval()
 void
 nsSMILInterval::Unlink(bool aFiltered)
 {
-  for (int32_t i = mDependentTimes.Length() - 1; i >= 0; --i) {
+  for (PRInt32 i = mDependentTimes.Length() - 1; i >= 0; --i) {
     if (aFiltered) {
       mDependentTimes[i]->HandleFilteredInterval();
     } else {
@@ -52,11 +84,11 @@ nsSMILInterval::Unlink(bool aFiltered)
   if (mBegin && mBeginFixed) {
     mBegin->ReleaseFixedEndpoint();
   }
-  mBegin = nullptr;
+  mBegin = nsnull;
   if (mEnd && mEndFixed) {
     mEnd->ReleaseFixedEndpoint();
   }
-  mEnd = nullptr;
+  mEnd = nsnull;
 }
 
 nsSMILInstanceTime*
@@ -110,7 +142,7 @@ nsSMILInterval::FixBegin()
   NS_ABORT_IF_FALSE(mBegin && mEnd,
       "Fixing begin point on un-initialized interval");
   NS_ABORT_IF_FALSE(!mBeginFixed, "Duplicate calls to FixBegin()");
-  mBeginFixed = true;
+  mBeginFixed = PR_TRUE;
   mBegin->AddRefFixedEndpoint();
 }
 
@@ -122,7 +154,7 @@ nsSMILInterval::FixEnd()
   NS_ABORT_IF_FALSE(mBeginFixed,
       "Fixing the end of an interval without a fixed begin");
   NS_ABORT_IF_FALSE(!mEndFixed, "Duplicate calls to FixEnd()");
-  mEndFixed = true;
+  mEndFixed = PR_TRUE;
   mEnd->AddRefFixedEndpoint();
 }
 
@@ -156,10 +188,10 @@ bool
 nsSMILInterval::IsDependencyChainLink() const
 {
   if (!mBegin || !mEnd)
-    return false; 
+    return PR_FALSE; 
 
   if (mDependentTimes.IsEmpty())
-    return false; 
+    return PR_FALSE; 
 
   
   

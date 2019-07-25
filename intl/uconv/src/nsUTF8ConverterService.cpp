@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsString.h"
 #include "nsIUnicodeEncoder.h"
 #include "nsICharsetConverterManager.h"
@@ -17,8 +49,7 @@
 NS_IMPL_ISUPPORTS1(nsUTF8ConverterService, nsIUTF8ConverterService)
 
 static nsresult 
-ToUTF8(const nsACString &aString, const char *aCharset,
-       bool aAllowSubstitution, nsACString &aResult)
+ToUTF8(const nsACString &aString, const char *aCharset, nsACString &aResult)
 {
   nsresult rv;
   if (!aCharset || !*aCharset)
@@ -34,11 +65,8 @@ ToUTF8(const nsACString &aString, const char *aCharset,
                               getter_AddRefs(unicodeDecoder));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (!aAllowSubstitution)
-    unicodeDecoder->SetInputErrorBehavior(nsIUnicodeDecoder::kOnError_Signal);
-
-  int32_t srcLen = aString.Length();
-  int32_t dstLen;
+  PRInt32 srcLen = aString.Length();
+  PRInt32 dstLen;
   const nsAFlatCString& inStr = PromiseFlatCString(aString);
   rv = unicodeDecoder->GetMaxLength(inStr.get(), srcLen, &dstLen);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -58,12 +86,8 @@ NS_IMETHODIMP
 nsUTF8ConverterService::ConvertStringToUTF8(const nsACString &aString, 
                                             const char *aCharset, 
                                             bool aSkipCheck, 
-                                            bool aAllowSubstitution,
-                                            uint8_t aOptionalArgc,
                                             nsACString &aUTF8String)
 {
-  bool allowSubstitution = (aOptionalArgc == 1) ? aAllowSubstitution : true;
-
   
   
   
@@ -75,7 +99,7 @@ nsUTF8ConverterService::ConvertStringToUTF8(const nsACString &aString,
 
   aUTF8String.Truncate();
 
-  nsresult rv = ToUTF8(aString, aCharset, allowSubstitution, aUTF8String);
+  nsresult rv = ToUTF8(aString, aCharset, aUTF8String);
 
   
   
@@ -103,7 +127,7 @@ nsUTF8ConverterService::ConvertURISpecToUTF8(const nsACString &aSpec,
 
   aUTF8Spec.Truncate();
 
-  nsAutoCString unescapedSpec; 
+  nsCAutoString unescapedSpec; 
   
   
   bool written = NS_UnescapeURL(PromiseFlatCString(aSpec).get(), aSpec.Length(), 
@@ -119,6 +143,6 @@ nsUTF8ConverterService::ConvertURISpecToUTF8(const nsACString &aSpec,
     return NS_OK;
   }
 
-  return ToUTF8(unescapedSpec, aCharset, true, aUTF8Spec);
+  return ToUTF8(unescapedSpec, aCharset, aUTF8Spec);
 }
 

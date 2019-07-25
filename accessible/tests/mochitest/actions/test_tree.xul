@@ -15,8 +15,6 @@
   <script type="application/javascript"
           src="../common.js" />
   <script type="application/javascript"
-          src="../role.js" />
-  <script type="application/javascript"
           src="../states.js" />
   <script type="application/javascript"
           src="../events.js" />
@@ -45,7 +43,7 @@
     // gA11yEventDumpID = "debug";
     //gA11yEventDumpToConsole = true; // debug
 
-    function doTest()
+    function doTestActions()
     {
       var treeNode = getNode("tree");
 
@@ -93,8 +91,15 @@
       testActions(actions); // Will call SimpleTest.finish();
     }
 
+    function doTest()
+    {
+      var treeNode = getNode("tree");
+      waitForEvent(EVENT_REORDER, treeNode, doTestActions);
+      treeNode.view = new nsTreeTreeView();
+    }
+
     SimpleTest.waitForExplicitFinish();
-    addA11yXULTreeLoadEvent(doTest, "tree", new nsTreeTreeView());
+    addA11yLoadEvent(doTest);
   ]]>
   </script>
 

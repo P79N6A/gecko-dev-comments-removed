@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 TestRunner.logEnabled = true;
 TestRunner.logger = LogController;
 
@@ -83,11 +115,7 @@ if (params.repeat) {
 
 
 if (params.closeWhenDone) {
-  TestRunner.onComplete = SpecialPowers.quit;
-}
-
-if (params.failureFile) {
-  TestRunner.setFailureFile(params.failureFile);
+  TestRunner.onComplete = goQuitApplication;
 }
 
 
@@ -109,7 +137,7 @@ var RunSet = {}
 RunSet.runall = function(e) {
   
   
-  gTestList = filterTests(params.testManifest, params.runOnly);
+  gTestList = filterTests(params.runOnlyTests, params.excludeTests);
 
   
   var my_tests = gTestList;
@@ -193,15 +221,18 @@ RunSet.reloadAndRunAll = function(e) {
 
 
 
-function filterTests(filterFile, runOnly) {
+function filterTests(runOnly, exclude) {
   var filteredTests = [];
-  var removedTests = [];
-  var runtests = {};
-  var excludetests = {};
+  var filterFile = null;
 
-  if (filterFile == null) {
-    return gTestList;
+  if (runOnly) {
+    filterFile = runOnly;
+  } else if (exclude) {
+    filterFile = exclude;
   }
+
+  if (filterFile == null)
+    return gTestList;
 
   var datafile = "http://mochi.test:8888/" + filterFile;
   var objXml = new XMLHttpRequest();
@@ -213,66 +244,31 @@ function filterTests(filterFile, runOnly) {
     dump("INFO | setup.js | error loading or parsing '" + datafile + "'\n");
     return gTestList;
   }
-
-  if ('runtests' in filter) {
-    runtests = filter.runtests;
-  }
-  if ('excludetests' in filter)
-    excludetests = filter.excludetests;
-  if (!('runtests' in filter) && !('excludetests' in filter)) {
-    if (runOnly == 'true') {
-      runtests = filter;
-    } else
-      excludetests = filter;
-  }
-
   
-  
-  if (Object.keys(runtests).length) {
-    for (var i = 0; i < gTestList.length; i++) {
-      var test_path = gTestList[i];
-      var tmp_path = test_path.replace(/^\//, '');
-      for (var f in runtests) {
-        
-        file = f.replace(/^\//, '')
-        file = file.replace(/^tests\//, '')
+  for (var i = 0; i < gTestList.length; ++i) {
+    var test_path = gTestList[i];
+    
+    
+    var tmp_path = test_path.replace(/^\//, '');
 
-        
-        if (tmp_path.match("^tests/" + file) != null) {
+    var found = false;
+
+    for (var f in filter) {
+      
+      file = f.replace(/^\//, '')
+      file = file.replace(/^tests\//, '')
+      
+      
+      if (tmp_path.match("^tests/" + file) != null) {
+        if (runOnly)
           filteredTests.push(test_path);
-          break;
-        }
+        found = true;
+        break;
       }
     }
-  }
-  else {
-    filteredTests = gTestList.slice(0);
-  }
 
-  
-  
-  if (Object.keys(excludetests).length) {
-    var refilteredTests = [];
-    for (var i = 0; i < filteredTests.length; i++) {
-      var found = false;
-      var test_path = filteredTests[i];
-      var tmp_path = test_path.replace(/^\//, '');
-      for (var f in excludetests) {
-        
-        file = f.replace(/^\//, '')
-        file = file.replace(/^tests\//, '')
-
-        
-        if (tmp_path.match("^tests/" + file) != null) {
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        refilteredTests.push(test_path);
-      }
-    }
-    filteredTests = refilteredTests;
+    if (exclude && !found)
+      filteredTests.push(test_path);
   }
 
   return filteredTests;

@@ -6,13 +6,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIntervalSet.h"
 #include "nsAlgorithm.h"
 #include NEW_H
 
 nsIntervalSet::nsIntervalSet(IntervalSetAlloc aAlloc, IntervalSetFree aFree,
                              void* aAllocatorClosure)
-    : mList(nullptr),
+    : mList(nsnull),
       mAlloc(aAlloc),
       mFree(aFree),
       mAllocatorClosure(aAllocatorClosure)
@@ -70,10 +102,10 @@ bool nsIntervalSet::Intersects(coord_type aBegin, coord_type aEnd) const
     Interval *current = mList;
     while (current && current->mBegin <= aEnd) {
         if (current->mEnd >= aBegin)
-            return true;
+            return PR_TRUE;
         current = current->mNext;
     }
-    return false;
+    return PR_FALSE;
 }
 
 bool nsIntervalSet::Contains(coord_type aBegin, coord_type aEnd) const
@@ -81,8 +113,8 @@ bool nsIntervalSet::Contains(coord_type aBegin, coord_type aEnd) const
     Interval *current = mList;
     while (current && current->mBegin <= aBegin) {
         if (current->mEnd >= aEnd)
-            return true;
+            return PR_TRUE;
         current = current->mNext;
     }
-    return false;
+    return PR_FALSE;
 }

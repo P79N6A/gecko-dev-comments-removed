@@ -4,7 +4,39 @@
 
 
 
-#include "base/process_util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsDebugImpl.h"
 #include "nsDebug.h"
@@ -43,13 +75,6 @@
 #include "nsString.h"
 #endif
 
-#if defined(XP_MACOSX)
-#include <stdbool.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <sys/sysctl.h>
-#endif
-
 #include "mozilla/mozalloc_abort.h"
 
 static void
@@ -75,12 +100,7 @@ Break(const char *aMsg);
 #include <stdlib.h>
 #endif
 
-using namespace mozilla;
-
-static bool sIsMultiprocess = false;
-static const char *sMultiprocessDescription = NULL;
-
-static int32_t gAssertionCount = 0;
+static PRInt32 gAssertionCount = 0;
 
 NS_IMPL_QUERY_INTERFACE2(nsDebugImpl, nsIDebug, nsIDebug2)
 
@@ -98,30 +118,30 @@ nsDebugImpl::Release()
 
 NS_IMETHODIMP
 nsDebugImpl::Assertion(const char *aStr, const char *aExpr,
-                       const char *aFile, int32_t aLine)
+                       const char *aFile, PRInt32 aLine)
 {
   NS_DebugBreak(NS_DEBUG_ASSERTION, aStr, aExpr, aFile, aLine);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDebugImpl::Warning(const char *aStr, const char *aFile, int32_t aLine)
+nsDebugImpl::Warning(const char *aStr, const char *aFile, PRInt32 aLine)
 {
-  NS_DebugBreak(NS_DEBUG_WARNING, aStr, nullptr, aFile, aLine);
+  NS_DebugBreak(NS_DEBUG_WARNING, aStr, nsnull, aFile, aLine);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDebugImpl::Break(const char *aFile, int32_t aLine)
+nsDebugImpl::Break(const char *aFile, PRInt32 aLine)
 {
-  NS_DebugBreak(NS_DEBUG_BREAK, nullptr, nullptr, aFile, aLine);
+  NS_DebugBreak(NS_DEBUG_BREAK, nsnull, nsnull, aFile, aLine);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDebugImpl::Abort(const char *aFile, int32_t aLine)
+nsDebugImpl::Abort(const char *aFile, PRInt32 aLine)
 {
-  NS_DebugBreak(NS_DEBUG_ABORT, nullptr, nullptr, aFile, aLine);
+  NS_DebugBreak(NS_DEBUG_ABORT, nsnull, nsnull, aFile, aLine);
   return NS_OK;
 }
 
@@ -129,59 +149,18 @@ NS_IMETHODIMP
 nsDebugImpl::GetIsDebugBuild(bool* aResult)
 {
 #ifdef DEBUG
-  *aResult = true;
+  *aResult = PR_TRUE;
 #else
-  *aResult = false;
+  *aResult = PR_FALSE;
 #endif
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDebugImpl::GetAssertionCount(int32_t* aResult)
+nsDebugImpl::GetAssertionCount(PRInt32* aResult)
 {
   *aResult = gAssertionCount;
   return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDebugImpl::GetIsDebuggerAttached(bool* aResult)
-{
-  *aResult = false;
-
-#if defined(XP_WIN)
-  *aResult = ::IsDebuggerPresent();
-#elif defined(XP_MACOSX)
-  
-  int mib[4];
-  mib[0] = CTL_KERN;
-  mib[1] = KERN_PROC;
-  mib[2] = KERN_PROC_PID;
-  mib[3] = getpid();
-  size_t mibSize = sizeof(mib) / sizeof(int);
-
-  struct kinfo_proc info;
-  size_t infoSize = sizeof(info);
-  memset(&info, 0, infoSize);
-
-  if (sysctl(mib, mibSize, &info, &infoSize, NULL, 0)) {
-    
-    *aResult = false;
-    return NS_OK;
-  }
-
-  if (info.kp_proc.p_flag & P_TRACED) {
-    *aResult = true;
-  }
-#endif
-
-  return NS_OK;
-}
-
- void
-nsDebugImpl::SetMultiprocessMode(const char *aDesc)
-{
-  sIsMultiprocess = true;
-  sMultiprocessDescription = aDesc;
 }
 
 
@@ -252,11 +231,11 @@ struct FixedBuffer
   FixedBuffer() : curlen(0) { buffer[0] = '\0'; }
 
   char buffer[1000];
-  uint32_t curlen;
+  PRUint32 curlen;
 };
 
-static int
-StuffFixedBuffer(void *closure, const char *buf, uint32_t len)
+static PRIntn
+StuffFixedBuffer(void *closure, const char *buf, PRUint32 len)
 {
   if (!len)
     return 0;
@@ -280,8 +259,8 @@ StuffFixedBuffer(void *closure, const char *buf, uint32_t len)
 }
 
 EXPORT_XPCOM_API(void)
-NS_DebugBreak(uint32_t aSeverity, const char *aStr, const char *aExpr,
-              const char *aFile, int32_t aLine)
+NS_DebugBreak(PRUint32 aSeverity, const char *aStr, const char *aExpr,
+              const char *aFile, PRInt32 aLine)
 {
    InitLog();
 
@@ -309,33 +288,19 @@ NS_DebugBreak(uint32_t aSeverity, const char *aStr, const char *aExpr,
      aSeverity = NS_DEBUG_WARNING;
    };
 
-#  define PrintToBuffer(...) PR_sxprintf(StuffFixedBuffer, &buf, __VA_ARGS__)
-
-   
-   
-   if (sIsMultiprocess) {
-     PrintToBuffer("[");
-     if (sMultiprocessDescription) {
-       PrintToBuffer("%s ", sMultiprocessDescription);
-     }
-     PrintToBuffer("%d] ", base::GetCurrentProcId());
-   }
-
-   PrintToBuffer("%s: ", sevString);
+   PR_sxprintf(StuffFixedBuffer, &buf, "%s: ", sevString);
 
    if (aStr)
-     PrintToBuffer("%s: ", aStr);
+     PR_sxprintf(StuffFixedBuffer, &buf, "%s: ", aStr);
 
    if (aExpr)
-     PrintToBuffer("'%s', ", aExpr);
+     PR_sxprintf(StuffFixedBuffer, &buf, "'%s', ", aExpr);
 
    if (aFile)
-     PrintToBuffer("file %s, ", aFile);
+     PR_sxprintf(StuffFixedBuffer, &buf, "file %s, ", aFile);
 
    if (aLine != -1)
-     PrintToBuffer("line %d", aLine);
-
-#  undef PrintToBuffer
+     PR_sxprintf(StuffFixedBuffer, &buf, "line %d", aLine);
 
    
    PR_LOG(gDebugLog, ll, ("%s", buf.buffer));
@@ -494,7 +459,7 @@ Break(const char *aMsg)
        NULL != 
        wcscpy((WCHAR*)
        pName+1, L"windbgdlg.exe") &&
-       CreateProcessW((LPCWSTR)executable, (LPWSTR)msgCopy, NULL, NULL, false,
+       CreateProcessW((LPCWSTR)executable, (LPWSTR)msgCopy, NULL, NULL, PR_FALSE,
                      DETACHED_PROCESS | NORMAL_PRIORITY_CLASS,
                      NULL, NULL, &si, &pi)) {
       WaitForSingleObject(pi.hProcess, INFINITE);
@@ -599,6 +564,6 @@ bool sXPCOMHasLoadedNewDLLs = false;
 NS_EXPORT void
 NS_SetHasLoadedNewDLLs()
 {
-  sXPCOMHasLoadedNewDLLs = true;
+  sXPCOMHasLoadedNewDLLs = PR_TRUE;
 }
 #endif

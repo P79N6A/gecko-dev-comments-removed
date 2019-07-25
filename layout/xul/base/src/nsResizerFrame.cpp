@@ -3,11 +3,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsIServiceManager.h"
 #include "nsResizerFrame.h"
 #include "nsIContent.h"
 #include "nsIDocument.h"
+#include "nsIDOMXULDocument.h"
 #include "nsIDOMNodeList.h"
 #include "nsGkAtoms.h"
 #include "nsINameSpaceManager.h"
@@ -27,9 +61,8 @@
 #include "nsMenuPopupFrame.h"
 #include "nsIScreenManager.h"
 #include "mozilla/dom/Element.h"
-#include "nsError.h"
+#include "nsContentErrors.h"
 
-using namespace mozilla;
 
 
 
@@ -63,11 +96,9 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
   bool doDefault = true;
 
   switch (aEvent->message) {
-    case NS_TOUCH_START:
     case NS_MOUSE_BUTTON_DOWN: {
-      if (aEvent->eventStructType == NS_TOUCH_EVENT ||
-          (aEvent->eventStructType == NS_MOUSE_EVENT &&
-        static_cast<nsMouseEvent*>(aEvent)->button == nsMouseEvent::eLeftButton))
+      if (aEvent->eventStructType == NS_MOUSE_EVENT &&
+        static_cast<nsMouseEvent*>(aEvent)->button == nsMouseEvent::eLeftButton)
       {
         nsCOMPtr<nsIBaseWindow> window;
         nsIPresShell* presShell = aPresContext->GetPresShell();
@@ -92,14 +123,14 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
           }
 
           mMouseDownRect = rect.ToNearestPixels(aPresContext->AppUnitsPerDevPixel());
-          doDefault = false;
+          doDefault = PR_FALSE;
         }
         else {
           
           if (!window)
             break;
 
-          doDefault = false;
+          doDefault = PR_FALSE;
             
           
           Direction direction = GetDirection();
@@ -116,37 +147,31 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
         }
 
         
-        nsIntPoint refPoint;
-        if (!GetEventPoint(aEvent, refPoint))
-          return NS_OK;
-        mMouseDownPoint = refPoint + aEvent->widget->WidgetToScreenOffset();
+        mTrackingMouseMove = PR_TRUE;
 
         
-        mTrackingMouseMove = true;
+        mMouseDownPoint = aEvent->refPoint + aEvent->widget->WidgetToScreenOffset();
 
         nsIPresShell::SetCapturingContent(GetContent(), CAPTURE_IGNOREALLOWED);
       }
     }
     break;
 
-  case NS_TOUCH_END:
   case NS_MOUSE_BUTTON_UP: {
 
-      if (aEvent->eventStructType == NS_TOUCH_EVENT ||
-          (aEvent->eventStructType == NS_MOUSE_EVENT &&
-        static_cast<nsMouseEvent*>(aEvent)->button == nsMouseEvent::eLeftButton))
+    if (mTrackingMouseMove && aEvent->eventStructType == NS_MOUSE_EVENT &&
+        static_cast<nsMouseEvent*>(aEvent)->button == nsMouseEvent::eLeftButton)
     {
       
-      mTrackingMouseMove = false;
+      mTrackingMouseMove = PR_FALSE;
 
-      nsIPresShell::SetCapturingContent(nullptr, 0);
+      nsIPresShell::SetCapturingContent(nsnull, 0);
 
-      doDefault = false;
+      doDefault = PR_FALSE;
     }
   }
   break;
 
-  case NS_TOUCH_MOVE:
   case NS_MOUSE_MOVE: {
     if (mTrackingMouseMove)
     {
@@ -156,9 +181,12 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
         GetContentToResize(presShell, getter_AddRefs(window));
 
       
-      nsMenuPopupFrame* menuPopupFrame = nullptr;
+      nsMenuPopupFrame* menuPopupFrame = nsnull;
       if (contentToResize) {
-        menuPopupFrame = do_QueryFrame(contentToResize->GetPrimaryFrame());
+        nsIFrame* frameToResize = contentToResize->GetPrimaryFrame();
+        if (frameToResize && frameToResize->GetType() == nsGkAtoms::menuPopupFrame) {
+          menuPopupFrame = static_cast<nsMenuPopupFrame *>(frameToResize);
+        }
       }
 
       
@@ -166,10 +194,7 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
 
       
       
-      nsIntPoint refPoint;
-      if (!GetEventPoint(aEvent, refPoint))
-        return NS_OK;
-      nsIntPoint screenPoint(refPoint + aEvent->widget->WidgetToScreenOffset());
+      nsIntPoint screenPoint(aEvent->refPoint + aEvent->widget->WidgetToScreenOffset());
       nsIntPoint mouseMove(screenPoint - mMouseDownPoint);
 
       
@@ -187,19 +212,8 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
       }
 
       nsIntRect rect = mMouseDownRect;
-
-      
-      widget::SizeConstraints sizeConstraints;
-      if (window) {
-        nsCOMPtr<nsIWidget> widget;
-        window->GetMainWidget(getter_AddRefs(widget));
-        sizeConstraints = widget->GetSizeConstraints();
-      }
-
-      AdjustDimensions(&rect.x, &rect.width, sizeConstraints.mMinSize.width,
-                       sizeConstraints.mMaxSize.width, mouseMove.x, direction.mHorizontal);
-      AdjustDimensions(&rect.y, &rect.height, sizeConstraints.mMinSize.height,
-                       sizeConstraints.mMaxSize.height, mouseMove.y, direction.mVertical);
+      AdjustDimensions(&rect.x, &rect.width, mouseMove.x, direction.mHorizontal);
+      AdjustDimensions(&rect.y, &rect.height, mouseMove.y, direction.mVertical);
 
       
       
@@ -245,7 +259,8 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
         nsIntRect oldRect;
         nsWeakFrame weakFrame(menuPopupFrame);
         if (menuPopupFrame) {
-          nsCOMPtr<nsIWidget> widget = menuPopupFrame->GetWidget();
+          nsCOMPtr<nsIWidget> widget;
+          menuPopupFrame->GetWidget(getter_AddRefs(widget));
           if (widget)
             widget->GetScreenBounds(oldRect);
 
@@ -261,22 +276,18 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
         ResizeContent(contentToResize, direction, sizeInfo, &originalSizeInfo);
         MaybePersistOriginalSize(contentToResize, originalSizeInfo);
 
-        
-        
-        
-        
         if (weakFrame.IsAlive() &&
             (oldRect.x != rect.x || oldRect.y != rect.y) &&
             (!menuPopupFrame->IsAnchored() ||
              menuPopupFrame->PopupLevel() != ePopupLevelParent)) {
-          menuPopupFrame->MoveTo(rect.x, rect.y, true);
+          menuPopupFrame->MoveTo(rect.x, rect.y, PR_TRUE);
         }
       }
       else {
-        window->SetPositionAndSize(rect.x, rect.y, rect.width, rect.height, true); 
+        window->SetPositionAndSize(rect.x, rect.y, rect.width, rect.height, PR_TRUE); 
       }
 
-      doDefault = false;
+      doDefault = PR_FALSE;
     }
   }
   break;
@@ -297,8 +308,8 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
       nsIContent* contentToResize =
         GetContentToResize(presShell, getter_AddRefs(window));
       if (contentToResize) {
-        nsMenuPopupFrame* menuPopupFrame = do_QueryFrame(contentToResize->GetPrimaryFrame());
-        if (menuPopupFrame)
+        nsIFrame* frameToResize = contentToResize->GetPrimaryFrame();
+        if (frameToResize && frameToResize->GetType() == nsGkAtoms::menuPopupFrame)
           break; 
                  
 
@@ -320,7 +331,7 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
 nsIContent*
 nsResizerFrame::GetContentToResize(nsIPresShell* aPresShell, nsIBaseWindow** aWindow)
 {
-  *aWindow = nullptr;
+  *aWindow = nsnull;
 
   nsAutoString elementid;
   mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::element, elementid);
@@ -329,9 +340,8 @@ nsResizerFrame::GetContentToResize(nsIPresShell* aPresShell, nsIBaseWindow** aWi
     
     nsIFrame* popup = GetParent();
     while (popup) {
-      nsMenuPopupFrame* popupFrame = do_QueryFrame(popup);
-      if (popupFrame) {
-        return popupFrame->GetContent();
+      if (popup->GetType() == nsGkAtoms::menuPopupFrame) {
+        return popup->GetContent();
       }
       popup = popup->GetParent();
     }
@@ -341,7 +351,7 @@ nsResizerFrame::GetContentToResize(nsIPresShell* aPresShell, nsIBaseWindow** aWi
     nsCOMPtr<nsISupports> cont = aPresShell->GetPresContext()->GetContainer();
     nsCOMPtr<nsIDocShellTreeItem> dsti = do_QueryInterface(cont);
     if (dsti) {
-      int32_t type = -1;
+      PRInt32 type = -1;
       isChromeShell = (NS_SUCCEEDED(dsti->GetItemType(&type)) &&
                        type == nsIDocShellTreeItem::typeChrome);
     }
@@ -351,7 +361,7 @@ nsResizerFrame::GetContentToResize(nsIPresShell* aPresShell, nsIBaseWindow** aWi
       
       nsIContent* nonNativeAnon = mContent->FindFirstNonNativeAnonymous();
       if (!nonNativeAnon || nonNativeAnon->GetParent()) {
-        return nullptr;
+        return nsnull;
       }
     }
 
@@ -369,37 +379,37 @@ nsResizerFrame::GetContentToResize(nsIPresShell* aPresShell, nsIBaseWindow** aWi
       }
     }
 
-    return nullptr;
+    return nsnull;
   }
 
   if (elementid.EqualsLiteral("_parent")) {
     
     nsIContent* parent = mContent->GetParent();
-    return parent ? parent->FindFirstNonNativeAnonymous() : nullptr;
+    return parent ? parent->FindFirstNonNativeAnonymous() : nsnull;
   }
 
   return aPresShell->GetDocument()->GetElementById(elementid);
 }
 
+
+
+
 void
-nsResizerFrame::AdjustDimensions(int32_t* aPos, int32_t* aSize,
-                                 int32_t aMinSize, int32_t aMaxSize,
-                                 int32_t aMovement, int8_t aResizerDirection)
+nsResizerFrame::AdjustDimensions(PRInt32* aPos, PRInt32* aSize,
+                                 PRInt32 aMovement, PRInt8 aResizerDirection)
 {
-  int32_t oldSize = *aSize;
-
-  *aSize += aResizerDirection * aMovement;
-  
-  if (*aSize < 1)
-    *aSize = 1;
-
-  
-  *aSize = NS_MAX(aMinSize, NS_MIN(aMaxSize, *aSize));
-
-  
-  
-  if (aResizerDirection == -1)
-    *aPos += oldSize - *aSize;
+  switch(aResizerDirection)
+  {
+    case -1:
+      
+      *aPos+= aMovement;
+      
+    case 1:
+      *aSize+= aResizerDirection*aMovement;
+      
+      if (*aSize < 1)
+        *aSize = 1;
+  }
 }
 
  void
@@ -417,10 +427,10 @@ nsResizerFrame::ResizeContent(nsIContent* aContent, const Direction& aDirection,
     }
     
     if (aDirection.mHorizontal) {
-      aContent->SetAttr(kNameSpaceID_None, nsGkAtoms::width, aSizeInfo.width, true);
+      aContent->SetAttr(kNameSpaceID_None, nsGkAtoms::width, aSizeInfo.width, PR_TRUE);
     }
     if (aDirection.mVertical) {
-      aContent->SetAttr(kNameSpaceID_None, nsGkAtoms::height, aSizeInfo.height, true);
+      aContent->SetAttr(kNameSpaceID_None, nsGkAtoms::height, aSizeInfo.height, PR_TRUE);
     }
   }
   else {
@@ -494,7 +504,7 @@ nsResizerFrame::RestoreOriginalSize(nsIContent* aContent)
 
   NS_ASSERTION(sizeInfo, "We set a null sizeInfo!?");
   Direction direction = {1, 1};
-  ResizeContent(aContent, direction, *sizeInfo, nullptr);
+  ResizeContent(aContent, direction, *sizeInfo, nsnull);
   aContent->DeleteProperty(nsGkAtoms::_moz_original_size);
 }
 
@@ -508,7 +518,7 @@ nsResizerFrame::GetDirection()
      &nsGkAtoms::left,                           &nsGkAtoms::right,
      &nsGkAtoms::bottomleft, &nsGkAtoms::bottom, &nsGkAtoms::bottomright,
      &nsGkAtoms::bottomstart,                    &nsGkAtoms::bottomend,
-     nullptr};
+     nsnull};
 
   static const Direction directions[] =
     {{-1, -1}, {0, -1}, {1, -1},
@@ -520,7 +530,7 @@ nsResizerFrame::GetDirection()
   if (!GetContent())
     return directions[0]; 
 
-  int32_t index = GetContent()->FindAttrValueIn(kNameSpaceID_None,
+  PRInt32 index = GetContent()->FindAttrValueIn(kNameSpaceID_None,
                                                 nsGkAtoms::dir,
                                                 strings, eCaseMatters);
   if(index < 0)
@@ -541,5 +551,5 @@ nsResizerFrame::MouseClicked(nsPresContext* aPresContext, nsGUIEvent *aEvent)
   
   nsContentUtils::DispatchXULCommand(mContent,
                                      aEvent ?
-                                       NS_IS_TRUSTED_EVENT(aEvent) : false);
+                                       NS_IS_TRUSTED_EVENT(aEvent) : PR_FALSE);
 }

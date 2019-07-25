@@ -4,12 +4,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __RECENTBADCERTS_H__
 #define __RECENTBADCERTS_H__
 
-#include "mozilla/Attributes.h"
 #include "mozilla/ReentrantMonitor.h"
-
 #include "nsIRecentBadCertsService.h"
 #include "nsTHashtable.h"
 #include "nsString.h"
@@ -22,10 +53,10 @@ public:
   RecentBadCert()
   {
     mDERCert.len = 0;
-    mDERCert.data = nullptr;
-    isDomainMismatch = false;
-    isNotValidAtThisTime = false;
-    isUntrusted = false;
+    mDERCert.data = nsnull;
+    isDomainMismatch = PR_FALSE;
+    isNotValidAtThisTime = PR_FALSE;
+    isUntrusted = PR_FALSE;
   }
 
   ~RecentBadCert()
@@ -39,7 +70,7 @@ public:
     if (mDERCert.len)
       nsMemory::Free(mDERCert.data);
     mDERCert.len = 0;
-    mDERCert.data = nullptr;
+    mDERCert.data = nsnull;
   }
 
   nsString mHostWithPort;
@@ -49,11 +80,20 @@ public:
   bool isUntrusted;
 
 private:
-  RecentBadCert(const RecentBadCert &other) MOZ_DELETE;
-  RecentBadCert &operator=(const RecentBadCert &other) MOZ_DELETE;
+  RecentBadCert(const RecentBadCert &other)
+  {
+    NS_NOTREACHED("RecentBadCert(const RecentBadCert &other) not implemented");
+    this->operator=(other);
+  }
+
+  RecentBadCert &operator=(const RecentBadCert &other)
+  {
+    NS_NOTREACHED("RecentBadCert &operator=(const RecentBadCert &other) not implemented");
+    return *this;
+  }
 };
 
-class nsRecentBadCertsService MOZ_FINAL : public nsIRecentBadCertsService
+class nsRecentBadCertsService : public nsIRecentBadCertsService
 {
 public:
   NS_DECL_ISUPPORTS
@@ -71,7 +111,7 @@ protected:
     RecentBadCert mCerts[const_recently_seen_list_size];
 
     
-    uint32_t mNextStorePosition;
+    PRUint32 mNextStorePosition;
 };
 
 #define NS_RECENTBADCERTS_CID { /* e7caf8c0-3570-47fe-aa1b-da47539b5d07 */ \

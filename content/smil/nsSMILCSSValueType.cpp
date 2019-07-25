@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSMILCSSValueType.h"
 #include "nsString.h"
 #include "nsStyleAnimation.h"
@@ -58,7 +90,7 @@ GetZeroValueForUnit(nsStyleAnimation::Unit aUnit)
     case nsStyleAnimation::eUnit_Color:
       return &sZeroColor;
     default:
-      return nullptr;
+      return nsnull;
   }
 }
 
@@ -102,7 +134,7 @@ FinalizeStyleAnimationValues(const nsStyleAnimation::Value*& aValue1,
     aValue2 = &sZeroFloat;
   }
 
-  return true;
+  return PR_TRUE;
 }
 
 static void
@@ -143,7 +175,7 @@ nsSMILCSSValueType::Init(nsSMILValue& aValue) const
 {
   NS_ABORT_IF_FALSE(aValue.IsNull(), "Unexpected SMIL value type");
 
-  aValue.mU.mPtr = nullptr;
+  aValue.mU.mPtr = nsnull;
   aValue.mType = this;
 }
 
@@ -174,7 +206,7 @@ nsSMILCSSValueType::Assign(nsSMILValue& aDest, const nsSMILValue& aSrc) const
   } else if (destWrapper) {
     
     delete destWrapper;
-    aDest.mU.mPtr = destWrapper = nullptr;
+    aDest.mU.mPtr = destWrapper = nsnull;
   } 
 
   return NS_OK;
@@ -199,19 +231,19 @@ nsSMILCSSValueType::IsEqual(const nsSMILValue& aLeft,
               leftWrapper->mCSSValue == rightWrapper->mCSSValue);
     }
     
-    return false;
+    return PR_FALSE;
   }
   if (rightWrapper) {
     
-    return false;
+    return PR_FALSE;
   }
   
-  return true;
+  return PR_TRUE;
 }
 
 nsresult
 nsSMILCSSValueType::Add(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
-                        uint32_t aCount) const
+                        PRUint32 aCount) const
 {
   NS_ABORT_IF_FALSE(aValueToAdd.mType == aDest.mType,
                     "Trying to add invalid types");
@@ -232,9 +264,9 @@ nsSMILCSSValueType::Add(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
   }
 
   const nsStyleAnimation::Value* valueToAdd = valueToAddWrapper ?
-    &valueToAddWrapper->mCSSValue : nullptr;
+    &valueToAddWrapper->mCSSValue : nsnull;
   const nsStyleAnimation::Value* destValue = destWrapper ?
-    &destWrapper->mCSSValue : nullptr;
+    &destWrapper->mCSSValue : nsnull;
   if (!FinalizeStyleAnimationValues(valueToAdd, destValue)) {
     return NS_ERROR_FAILURE;
   }
@@ -269,7 +301,7 @@ nsSMILCSSValueType::ComputeDistance(const nsSMILValue& aFrom,
   NS_ABORT_IF_FALSE(toWrapper, "expecting non-null endpoint");
 
   const nsStyleAnimation::Value* fromCSSValue = fromWrapper ?
-    &fromWrapper->mCSSValue : nullptr;
+    &fromWrapper->mCSSValue : nsnull;
   const nsStyleAnimation::Value* toCSSValue = &toWrapper->mCSSValue;
   if (!FinalizeStyleAnimationValues(fromCSSValue, toCSSValue)) {
     return NS_ERROR_FAILURE;
@@ -301,7 +333,7 @@ nsSMILCSSValueType::Interpolate(const nsSMILValue& aStartVal,
   NS_ABORT_IF_FALSE(endWrapper, "expecting non-null endpoint");
 
   const nsStyleAnimation::Value* startCSSValue = startWrapper ?
-    &startWrapper->mCSSValue : nullptr;
+    &startWrapper->mCSSValue : nsnull;
   const nsStyleAnimation::Value* endCSSValue = &endWrapper->mCSSValue;
   if (!FinalizeStyleAnimationValues(startCSSValue, endCSSValue)) {
     return NS_ERROR_FAILURE;
@@ -327,10 +359,10 @@ GetPresContextForElement(Element* aElem)
     
     
     
-    return nullptr;
+    return nsnull;
   }
   nsIPresShell* shell = doc->GetShell();
-  return shell ? shell->GetPresContext() : nullptr;
+  return shell ? shell->GetPresContext() : nsnull;
 }
 
 
@@ -347,23 +379,17 @@ ValueFromStringHelper(nsCSSProperty aPropID,
   
   
   bool isNegative = false;
-  uint32_t subStringBegin = 0;
-
-  
-  
-  
-  if (aPropID != eCSSProperty_stroke_dasharray) {
-    int32_t absValuePos = nsSMILParserUtils::CheckForNegativeNumber(aString);
-    if (absValuePos > 0) {
-      isNegative = true;
-      subStringBegin = (uint32_t)absValuePos; 
-    }
+  PRUint32 subStringBegin = 0;
+  PRInt32 absValuePos = nsSMILParserUtils::CheckForNegativeNumber(aString);
+  if (absValuePos > 0) {
+    isNegative = PR_TRUE;
+    subStringBegin = (PRUint32)absValuePos; 
   }
   nsDependentSubstring subString(aString, subStringBegin);
   if (!nsStyleAnimation::ComputeValue(aPropID, aTargetElement, subString,
-                                      true, aStyleAnimValue,
+                                      PR_TRUE, aStyleAnimValue,
                                       aIsContextSensitive)) {
-    return false;
+    return PR_FALSE;
   }
   if (isNegative) {
     InvertSign(aStyleAnimValue);
@@ -377,7 +403,7 @@ ValueFromStringHelper(nsCSSProperty aPropID,
     aStyleAnimValue.SetCoordValue(aStyleAnimValue.GetCoordValue() /
                                   aPresContext->TextZoom());
   }
-  return true;
+  return PR_TRUE;
 }
 
 

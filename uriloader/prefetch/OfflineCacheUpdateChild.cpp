@@ -3,11 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "OfflineCacheUpdateChild.h"
 #include "nsOfflineCacheUpdate.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/TabChild.h"
-#include "mozilla/ipc/URIUtils.h"
 
 #include "nsIApplicationCacheContainer.h"
 #include "nsIApplicationCacheChannel.h"
@@ -29,8 +61,6 @@
 #include "nsProxyRelease.h"
 #include "prlog.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
-
-using namespace mozilla::ipc;
 
 #if defined(PR_LOGGING)
 
@@ -78,10 +108,9 @@ OfflineCacheUpdateChild::RefcountHitZero()
 
 OfflineCacheUpdateChild::OfflineCacheUpdateChild(nsIDOMWindow* aWindow)
     : mState(STATE_UNINITIALIZED)
-    , mIsUpgrade(false)
-    , mIPCActivated(false)
+    , mIsUpgrade(PR_FALSE)
+    , mIPCActivated(PR_FALSE)
     , mWindow(aWindow)
-    , mByteProgress(0)
 {
 }
 
@@ -90,10 +119,10 @@ OfflineCacheUpdateChild::~OfflineCacheUpdateChild()
     LOG(("OfflineCacheUpdateChild::~OfflineCacheUpdateChild [%p]", this));
 }
 
-void
+nsresult
 OfflineCacheUpdateChild::GatherObservers(nsCOMArray<nsIOfflineCacheUpdateObserver> &aObservers)
 {
-    for (int32_t i = 0; i < mWeakObservers.Count(); i++) {
+    for (PRInt32 i = 0; i < mWeakObservers.Count(); i++) {
         nsCOMPtr<nsIOfflineCacheUpdateObserver> observer =
             do_QueryReferent(mWeakObservers[i]);
         if (observer)
@@ -102,9 +131,11 @@ OfflineCacheUpdateChild::GatherObservers(nsCOMArray<nsIOfflineCacheUpdateObserve
             mWeakObservers.RemoveObjectAt(i--);
     }
 
-    for (int32_t i = 0; i < mObservers.Count(); i++) {
+    for (PRInt32 i = 0; i < mObservers.Count(); i++) {
         aObservers.AppendObject(mObservers[i]);
     }
+
+    return NS_OK;
 }
 
 void
@@ -156,7 +187,7 @@ OfflineCacheUpdateChild::AssociateDocument(nsIDOMDocument *aDocument,
     if (!existingCache) {
 #if defined(PR_LOGGING)
         if (LOG_ENABLED()) {
-            nsAutoCString clientID;
+            nsCAutoString clientID;
             if (aApplicationCache) {
                 aApplicationCache->GetClientID(clientID);
             }
@@ -178,9 +209,8 @@ OfflineCacheUpdateChild::AssociateDocument(nsIDOMDocument *aDocument,
 
 NS_IMETHODIMP
 OfflineCacheUpdateChild::Init(nsIURI *aManifestURI,
-                              nsIURI *aDocumentURI,
-                              nsIDOMDocument *aDocument,
-                              nsIFile *aCustomProfileDir)
+                           nsIURI *aDocumentURI,
+                           nsIDOMDocument *aDocument)
 {
     nsresult rv;
 
@@ -189,11 +219,6 @@ OfflineCacheUpdateChild::Init(nsIURI *aManifestURI,
         nsOfflineCacheUpdateService::EnsureService();
     if (!service)
         return NS_ERROR_FAILURE;
-
-    if (aCustomProfileDir) {
-        NS_ERROR("Custom Offline Cache Update not supported on child process");
-        return NS_ERROR_NOT_IMPLEMENTED;
-    }
 
     LOG(("OfflineCacheUpdateChild::Init [%p]", this));
 
@@ -245,7 +270,7 @@ OfflineCacheUpdateChild::GetUpdateDomain(nsACString &aUpdateDomain)
 }
 
 NS_IMETHODIMP
-OfflineCacheUpdateChild::GetStatus(uint16_t *aStatus)
+OfflineCacheUpdateChild::GetStatus(PRUint16 *aStatus)
 {
     switch (mState) {
     case STATE_CHECKING :
@@ -265,7 +290,7 @@ OfflineCacheUpdateChild::GetStatus(uint16_t *aStatus)
 NS_IMETHODIMP
 OfflineCacheUpdateChild::GetPartial(bool *aPartial)
 {
-    *aPartial = false;
+    *aPartial = PR_FALSE;
     return NS_OK;
 }
 
@@ -329,7 +354,7 @@ OfflineCacheUpdateChild::RemoveObserver(nsIOfflineCacheUpdateObserver *aObserver
 
     NS_ENSURE_TRUE(mState >= STATE_INITIALIZED, NS_ERROR_NOT_INITIALIZED);
 
-    for (int32_t i = 0; i < mWeakObservers.Count(); i++) {
+    for (PRInt32 i = 0; i < mWeakObservers.Count(); i++) {
         nsCOMPtr<nsIOfflineCacheUpdateObserver> observer =
             do_QueryReferent(mWeakObservers[i]);
         if (observer == aObserver) {
@@ -338,22 +363,13 @@ OfflineCacheUpdateChild::RemoveObserver(nsIOfflineCacheUpdateObserver *aObserver
         }
     }
 
-    for (int32_t i = 0; i < mObservers.Count(); i++) {
+    for (PRInt32 i = 0; i < mObservers.Count(); i++) {
         if (mObservers[i] == aObserver) {
             mObservers.RemoveObjectAt(i);
             return NS_OK;
         }
     }
 
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-OfflineCacheUpdateChild::GetByteProgress(uint64_t * _result)
-{
-    NS_ENSURE_ARG(_result);
-
-    *_result = mByteProgress;
     return NS_OK;
 }
 
@@ -366,7 +382,7 @@ OfflineCacheUpdateChild::Schedule()
 
     nsCOMPtr<nsPIDOMWindow> piWindow = 
         do_QueryInterface(mWindow);
-    mWindow = nullptr;
+    mWindow = nsnull;
 
     nsIDocShell *docshell = piWindow->GetDocShell();
 
@@ -378,16 +394,12 @@ OfflineCacheUpdateChild::Schedule()
 
     nsCOMPtr<nsIDocShellTreeOwner> owner;
     item->GetTreeOwner(getter_AddRefs(owner));
-
+    
     nsCOMPtr<nsITabChild> tabchild = do_GetInterface(owner);
     if (!tabchild) {
       NS_WARNING("tab is null");
       return NS_ERROR_FAILURE;
     }
-
-    URIParams manifestURI, documentURI;
-    SerializeURI(mManifestURI, manifestURI);
-    SerializeURI(mDocumentURI, documentURI);
 
     
     
@@ -399,7 +411,7 @@ OfflineCacheUpdateChild::Schedule()
       LOG(("Calling offline-cache-update-added"));
       observerService->NotifyObservers(static_cast<nsIOfflineCacheUpdate*>(this),
                                        "offline-cache-update-added",
-                                       nullptr);
+                                       nsnull);
       LOG(("Done offline-cache-update-added"));
     }
 
@@ -409,15 +421,18 @@ OfflineCacheUpdateChild::Schedule()
     
     
     
-    bool stickDocument = mDocument != nullptr; 
+    bool stickDocument = mDocument != nsnull; 
 
     
     
     
-    child->SendPOfflineCacheUpdateConstructor(this, manifestURI, documentURI,
-                                              mClientID, stickDocument);
+    child->SendPOfflineCacheUpdateConstructor(this,
+                                              IPC::URI(mManifestURI),
+                                              IPC::URI(mDocumentURI),
+                                              mClientID,
+                                              stickDocument);
 
-    mIPCActivated = true;
+    mIPCActivated = PR_TRUE;
     this->AddRef();
 
     return NS_OK;
@@ -443,21 +458,19 @@ OfflineCacheUpdateChild::RecvAssociateDocuments(const nsCString &cacheGroupId,
     }
 
     nsCOMArray<nsIOfflineCacheUpdateObserver> observers;
-    GatherObservers(observers);
+    rv = GatherObservers(observers);
+    NS_ENSURE_SUCCESS(rv, rv);
 
-    for (int32_t i = 0; i < observers.Count(); i++)
+    for (PRInt32 i = 0; i < observers.Count(); i++)
         observers[i]->ApplicationCacheAvailable(cache);
 
     return true;
 }
 
 bool
-OfflineCacheUpdateChild::RecvNotifyStateEvent(const uint32_t &event,
-                                              const uint64_t &byteProgress)
+OfflineCacheUpdateChild::RecvNotifyStateEvent(const PRUint32 &event)
 {
     LOG(("OfflineCacheUpdateChild::RecvNotifyStateEvent [%p]", this));
-
-    mByteProgress = byteProgress;
 
     
     switch (event) {
@@ -474,9 +487,10 @@ OfflineCacheUpdateChild::RecvNotifyStateEvent(const uint32_t &event,
     }
 
     nsCOMArray<nsIOfflineCacheUpdateObserver> observers;
-    GatherObservers(observers);
+    nsresult rv = GatherObservers(observers);
+    NS_ENSURE_SUCCESS(rv, rv);
 
-    for (int32_t i = 0; i < observers.Count(); i++)
+    for (PRInt32 i = 0; i < observers.Count(); i++)
         observers[i]->UpdateStateChanged(this, event);
 
     return true;
@@ -500,7 +514,7 @@ OfflineCacheUpdateChild::RecvFinish(const bool &succeeded,
         LOG(("Calling offline-cache-update-completed"));
         observerService->NotifyObservers(static_cast<nsIOfflineCacheUpdate*>(this),
                                          "offline-cache-update-completed",
-                                         nullptr);
+                                         nsnull);
         LOG(("Done offline-cache-update-completed"));
     }
 

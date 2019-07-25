@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDOMDataTransfer_h__
 #define nsDOMDataTransfer_h__
 
@@ -17,8 +49,8 @@
 
 #include "nsAutoPtr.h"
 #include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "nsDOMFile.h"
-#include "mozilla/Attributes.h"
 
 class nsITransferable;
 
@@ -35,11 +67,13 @@ struct TransferItem {
   nsCOMPtr<nsIVariant> mData;
 };
 
-class nsDOMDataTransfer MOZ_FINAL : public nsIDOMDataTransfer
+class nsDOMDataTransfer : public nsIDOMDataTransfer,
+                          public nsIDOMNSDataTransfer
 {
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_NSIDOMDATATRANSFER
+  NS_DECL_NSIDOMNSDATATRANSFER
 
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsDOMDataTransfer, nsIDOMDataTransfer)
 
@@ -59,27 +93,19 @@ protected:
   
   
   
-  nsDOMDataTransfer(uint32_t aEventType);
+  nsDOMDataTransfer(PRUint32 aEventType);
 
   
   
-  nsDOMDataTransfer(uint32_t aEventType,
-                    const uint32_t aEffectAllowed,
+  nsDOMDataTransfer(PRUint32 aEventType,
+                    const PRUint32 aEffectAllowed,
                     bool aCursorState,
                     bool aIsExternal,
                     bool aUserCancelled,
-                    bool aIsCrossDomainSubFrameDrop,
                     nsTArray<nsTArray<TransferItem> >& aItems,
                     nsIDOMElement* aDragImage,
-                    uint32_t aDragImageX,
-                    uint32_t aDragImageY);
-
-  ~nsDOMDataTransfer()
-  {
-    if (mFiles) {
-      mFiles->Disconnect();
-    }
-  }
+                    PRUint32 aDragImageX,
+                    PRUint32 aDragImageY);
 
   static const char sEffects[8][9];
 
@@ -93,18 +119,17 @@ public:
 
   
   
-  void SetReadOnly() { mReadOnly = true; }
+  void SetReadOnly() { mReadOnly = PR_TRUE; }
 
   
   
-  void GetTransferables(nsISupportsArray** transferables,
-                        nsIDOMNode* aDragTarget);
+  void GetTransferables(nsISupportsArray** transferables);
 
   
   
   bool ConvertFromVariant(nsIVariant* aVariant,
                             nsISupports** aSupports,
-                            uint32_t* aLength);
+                            PRUint32* aLength);
 
   
   void ClearAll();
@@ -113,13 +138,13 @@ public:
   
   nsresult SetDataWithPrincipal(const nsAString& aFormat,
                                 nsIVariant* aData,
-                                uint32_t aIndex,
+                                PRUint32 aIndex,
                                 nsIPrincipal* aPrincipal);
 
 protected:
 
   
-  nsIDOMElement* GetDragImage(int32_t* aX, int32_t* aY)
+  nsIDOMElement* GetDragImage(PRInt32* aX, PRInt32* aY)
   {
     *aX = mDragImageX;
     *aY = mDragImageY;
@@ -139,15 +164,15 @@ protected:
 
   
   
-  void FillInExternalDragData(TransferItem& aItem, uint32_t aIndex);
+  void FillInExternalDragData(TransferItem& aItem, PRUint32 aIndex);
 
   
   
-  uint32_t mEventType;
+  PRUint32 mEventType;
 
   
-  uint32_t mDropEffect;
-  uint32_t mEffectAllowed;
+  PRUint32 mDropEffect;
+  PRUint32 mEffectAllowed;
 
   
   bool mCursorState;
@@ -164,10 +189,6 @@ protected:
   bool mUserCancelled;
 
   
-  
-  bool mIsCrossDomainSubFrameDrop;
-
-  
   nsTArray<nsTArray<TransferItem> > mItems;
 
   
@@ -179,8 +200,8 @@ protected:
   
   
   nsCOMPtr<nsIDOMElement> mDragImage;
-  uint32_t mDragImageX;
-  uint32_t mDragImageY;
+  PRUint32 mDragImageX;
+  PRUint32 mDragImageY;
 };
 
 #endif 

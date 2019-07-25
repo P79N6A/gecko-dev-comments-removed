@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsRegion_h__
 #define nsRegion_h__
 
@@ -34,7 +66,7 @@ class NS_GFX nsRegion
   struct nsRectFast : public nsRect
   {
     nsRectFast () {}      
-    nsRectFast (int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight) : nsRect (aX, aY, aWidth, aHeight) {}
+    nsRectFast (PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight) : nsRect (aX, aY, aWidth, aHeight) {}
     nsRectFast (const nsRect& aRect) : nsRect (aRect) {}
 
     
@@ -51,7 +83,7 @@ class NS_GFX nsRegion
     RgnRect* next;
 
     RgnRect () {}                           
-    RgnRect (int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight) : nsRectFast (aX, aY, aWidth, aHeight) {}
+    RgnRect (PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight) : nsRectFast (aX, aY, aWidth, aHeight) {}
     RgnRect (const nsRectFast& aRect) : nsRectFast (aRect) {}
 
     void* operator new (size_t) CPP_THROW_NEW;
@@ -131,7 +163,7 @@ public:
   bool Contains (const nsRegion& aRgn) const;
   bool Intersects (const nsRect& aRect) const;
 
-  void MoveBy (int32_t aXOffset, int32_t aYOffset)
+  void MoveBy (PRInt32 aXOffset, PRInt32 aYOffset)
   {
     MoveBy (nsPoint (aXOffset, aYOffset));
   }
@@ -145,18 +177,16 @@ public:
   bool IsEmpty () const { return mRectCount == 0; }
   bool IsComplex () const { return mRectCount > 1; }
   bool IsEqual (const nsRegion& aRegion) const;
-  uint32_t GetNumRects () const { return mRectCount; }
+  PRUint32 GetNumRects () const { return mRectCount; }
   const nsRect& GetBounds () const { return mBoundRect; }
   
   
   
-  nsRegion ConvertAppUnitsRoundOut (int32_t aFromAPP, int32_t aToAPP) const;
-  nsRegion ConvertAppUnitsRoundIn (int32_t aFromAPP, int32_t aToAPP) const;
+  nsRegion ConvertAppUnitsRoundOut (PRInt32 aFromAPP, PRInt32 aToAPP) const;
+  nsRegion ConvertAppUnitsRoundIn (PRInt32 aFromAPP, PRInt32 aToAPP) const;
   nsRegion& ScaleRoundOut(float aXScale, float aYScale);
   nsRegion& ScaleInverseRoundOut(float aXScale, float aYScale);
   nsIntRegion ScaleToOutsidePixels (float aXScale, float aYScale, nscoord aAppUnitsPerPixel) const;
-  nsIntRegion ScaleToInsidePixels (float aXScale, float aYScale, nscoord aAppUnitsPerPixel) const;
-  nsIntRegion ScaleToNearestPixels (float aXScale, float aYScale, nscoord aAppUnitsPerPixel) const;
   nsIntRegion ToOutsidePixels (nscoord aAppUnitsPerPixel) const;
   nsIntRegion ToNearestPixels (nscoord aAppUnitsPerPixel) const;
 
@@ -174,13 +204,13 @@ public:
 
 
 
-  void SimplifyOutward (uint32_t aMaxRects);
+  void SimplifyOutward (PRUint32 aMaxRects);
   
 
 
 
 
-  void SimplifyInward (uint32_t aMaxRects);
+  void SimplifyInward (PRUint32 aMaxRects);
   
 
 
@@ -210,7 +240,7 @@ public:
   static void ShutdownStatic();
 
 private:
-  uint32_t    mRectCount;
+  PRUint32    mRectCount;
   RgnRect*    mCurRect;
   RgnRect     mRectListHead;
   nsRectFast  mBoundRect;
@@ -220,7 +250,7 @@ private:
   nsRegion& Copy (const nsRect& aRect);
   void InsertBefore (RgnRect* aNewRect, RgnRect* aRelativeRect);
   void InsertAfter (RgnRect* aNewRect, RgnRect* aRelativeRect);
-  void SetToElements (uint32_t aCount);
+  void SetToElements (PRUint32 aCount);
   RgnRect* Remove (RgnRect* aRect);
   void InsertInPlace (RgnRect* aRect, bool aOptimizeOnFly = false);
   inline void SaveLinkChain ();
@@ -256,13 +286,13 @@ public:
   const nsRect* Next ()
   {
     mCurPtr = mCurPtr->next;
-    return (mCurPtr != &mRegion->mRectListHead) ? mCurPtr : nullptr;
+    return (mCurPtr != &mRegion->mRectListHead) ? mCurPtr : nsnull;
   }
 
   const nsRect* Prev ()
   {
     mCurPtr = mCurPtr->prev;
-    return (mCurPtr != &mRegion->mRectListHead) ? mCurPtr : nullptr;
+    return (mCurPtr != &mRegion->mRectListHead) ? mCurPtr : nsnull;
   }
 
   void Reset ()
@@ -386,7 +416,7 @@ public:
     return mImpl.Intersects (ToRect (aRect));
   }
 
-  void MoveBy (int32_t aXOffset, int32_t aYOffset)
+  void MoveBy (PRInt32 aXOffset, PRInt32 aYOffset)
   {
     MoveBy (nsIntPoint (aXOffset, aYOffset));
   }
@@ -405,7 +435,7 @@ public:
   {
     return mImpl.IsEqual (aRegion.mImpl);
   }
-  uint32_t GetNumRects () const { return mImpl.GetNumRects (); }
+  PRUint32 GetNumRects () const { return mImpl.GetNumRects (); }
   nsIntRect GetBounds () const { return FromRect (mImpl.GetBounds ()); }
   nsRegion ToAppUnits (nscoord aAppUnitsPerPixel) const;
   nsIntRect GetLargestRectangle (const nsIntRect& aContainingRect = nsIntRect()) const
@@ -425,7 +455,7 @@ public:
 
 
 
-  void SimplifyOutward (uint32_t aMaxRects)
+  void SimplifyOutward (PRUint32 aMaxRects)
   {
     mImpl.SimplifyOutward (aMaxRects);
   }
@@ -434,7 +464,7 @@ public:
 
 
 
-  void SimplifyInward (uint32_t aMaxRects)
+  void SimplifyInward (PRUint32 aMaxRects)
   {
     mImpl.SimplifyInward (aMaxRects);
   }
@@ -487,7 +517,7 @@ public:
   {
     const nsRect* r = mImpl.Next();
     if (!r)
-      return nullptr;
+      return nsnull;
     mTmp = nsIntRegion::FromRect (*r);
     return &mTmp;
   }
@@ -496,7 +526,7 @@ public:
   {
     const nsRect* r = mImpl.Prev();
     if (!r)
-      return nullptr;
+      return nsnull;
     mTmp = nsIntRegion::FromRect (*r);
     return &mTmp;
   }

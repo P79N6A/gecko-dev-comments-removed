@@ -5,13 +5,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSHTransaction.h"
 
 
 
 
 
-nsSHTransaction::nsSHTransaction() : mPersist(true), mPrev(nullptr) 
+nsSHTransaction::nsSHTransaction() : mPersist(PR_TRUE), mPrev(nsnull) 
 {
 }
 

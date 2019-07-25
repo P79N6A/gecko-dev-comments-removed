@@ -2,15 +2,48 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCERTValInParamWrapper.h"
 
 NS_IMPL_THREADSAFE_ADDREF(nsCERTValInParamWrapper)
 NS_IMPL_THREADSAFE_RELEASE(nsCERTValInParamWrapper)
 
 nsCERTValInParamWrapper::nsCERTValInParamWrapper()
-:mAlreadyConstructed(false)
-,mCVIN(nullptr)
-,mRev(nullptr)
+:mAlreadyConstructed(PR_FALSE)
+,mCVIN(nsnull)
+,mRev(nsnull)
 {
   MOZ_COUNT_CTOR(nsCERTValInParamWrapper);
 }
@@ -100,7 +133,7 @@ nsresult nsCERTValInParamWrapper::Construct(missing_cert_download_config mcdc,
     | CERT_REV_M_STOP_TESTING_ON_FRESH_INFO
     ;
 
-  bool wantsCrlFirst = (firstNetworkRevocationMethod != nullptr)
+  bool wantsCrlFirst = (firstNetworkRevocationMethod != nsnull)
                           && (strcmp("crl", firstNetworkRevocationMethod) == 0);
     
   rev->leafTests.preferred_methods[0] =
@@ -117,7 +150,7 @@ nsresult nsCERTValInParamWrapper::Construct(missing_cert_download_config mcdc,
         CERT_REV_MI_REQUIRE_SOME_FRESH_INFO_AVAILABLE : CERT_REV_MI_NO_OVERALL_INFO_REQUIREMENT)
     ;
 
-  mAlreadyConstructed = true;
+  mAlreadyConstructed = PR_TRUE;
   mCVIN = p;
   mRev = rev;
   return NS_OK;

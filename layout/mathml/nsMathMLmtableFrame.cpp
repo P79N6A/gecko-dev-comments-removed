@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsFrame.h"
 #include "nsBlockFrame.h"
@@ -48,7 +81,7 @@ SplitString(nsString&             aString,
     }
     end = start;
 
-    while ((kNullCh != *end) && (false == nsCRT::IsAsciiSpace(*end))) { 
+    while ((kNullCh != *end) && (PR_FALSE == nsCRT::IsAsciiSpace(*end))) { 
       end++;
     }
     *end = kNullCh; 
@@ -107,7 +140,7 @@ static PRUnichar*
 GetValueAt(nsIFrame*                      aTableOrRowFrame,
            const FramePropertyDescriptor* aProperty,
            nsIAtom*                       aAttribute,
-           int32_t                        aRowOrColIndex)
+           PRInt32                        aRowOrColIndex)
 {
   FrameProperties props = aTableOrRowFrame->Properties();
   nsValueList* valueList = static_cast<nsValueList*>(props.Get(aProperty));
@@ -119,24 +152,24 @@ GetValueAt(nsIFrame*                      aTableOrRowFrame,
       valueList = new nsValueList(values);
     if (!valueList || !valueList->mArray.Length()) {
       delete valueList; 
-      return nullptr;
+      return nsnull;
     }
     props.Set(aProperty, valueList);
   }
-  int32_t count = valueList->mArray.Length();
+  PRInt32 count = valueList->mArray.Length();
   return (aRowOrColIndex < count)
          ? valueList->mArray[aRowOrColIndex]
          : valueList->mArray[count-1];
 }
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
 static bool
-IsTable(uint8_t aDisplay)
+IsTable(PRUint8 aDisplay)
 {
   if ((aDisplay == NS_STYLE_DISPLAY_TABLE) ||
       (aDisplay == NS_STYLE_DISPLAY_INLINE_TABLE))
-    return true;
-  return false;
+    return PR_TRUE;
+  return PR_FALSE;
 }
 
 #define DEBUG_VERIFY_THAT_FRAME_IS(_frame, _expected) \
@@ -156,7 +189,7 @@ MapRowAttributesIntoCSS(nsIFrame* aTableFrame,
 {
   DEBUG_VERIFY_THAT_FRAME_IS_TABLE(aTableFrame);
   DEBUG_VERIFY_THAT_FRAME_IS(aRowFrame, TABLE_ROW);
-  int32_t rowIndex = ((nsTableRowFrame*)aRowFrame)->GetRowIndex();
+  PRInt32 rowIndex = ((nsTableRowFrame*)aRowFrame)->GetRowIndex();
   nsIContent* rowContent = aRowFrame->GetContent();
   PRUnichar* attr;
 
@@ -169,7 +202,7 @@ MapRowAttributesIntoCSS(nsIFrame* aTableFrame,
     if (attr) {
       
       rowContent->SetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_rowalign_,
-                          nsDependentString(attr), false);
+                          nsDependentString(attr), PR_FALSE);
     }
   }
 
@@ -185,7 +218,7 @@ MapRowAttributesIntoCSS(nsIFrame* aTableFrame,
     if (attr) {
       
       rowContent->SetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_rowline_,
-                          nsDependentString(attr), false);
+                          nsDependentString(attr), PR_FALSE);
     }
   }
 }
@@ -200,7 +233,7 @@ MapColAttributesIntoCSS(nsIFrame* aTableFrame,
   DEBUG_VERIFY_THAT_FRAME_IS_TABLE(aTableFrame);
   DEBUG_VERIFY_THAT_FRAME_IS(aRowFrame, TABLE_ROW);
   DEBUG_VERIFY_THAT_FRAME_IS(aCellFrame, TABLE_CELL);
-  int32_t rowIndex, colIndex;
+  PRInt32 rowIndex, colIndex;
   ((nsTableCellFrame*)aCellFrame)->GetCellIndexes(rowIndex, colIndex);
   nsIContent* cellContent = aCellFrame->GetContent();
   PRUnichar* attr;
@@ -220,7 +253,7 @@ MapColAttributesIntoCSS(nsIFrame* aTableFrame,
     if (attr) {
       
       cellContent->SetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_columnalign_,
-                           nsDependentString(attr), false);
+                           nsDependentString(attr), PR_FALSE);
     }
   }
 
@@ -237,7 +270,7 @@ MapColAttributesIntoCSS(nsIFrame* aTableFrame,
     if (attr) {
       
       cellContent->SetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_columnline_,
-                           nsDependentString(attr), false);
+                           nsDependentString(attr), PR_FALSE);
     }
   }
 }
@@ -274,11 +307,6 @@ MapAllAttributesIntoCSS(nsIFrame* aTableFrame)
 
 
 
-
-
-
-
-
 enum eAlign {
   eAlign_top,
   eAlign_bottom,
@@ -288,17 +316,12 @@ enum eAlign {
 };
 
 static void
-ParseAlignAttribute(nsString& aValue, eAlign& aAlign, int32_t& aRowIndex)
+ParseAlignAttribute(nsString& aValue, eAlign& aAlign, PRInt32& aRowIndex)
 {
   
   aRowIndex = 0;
   aAlign = eAlign_axis;
-  int32_t len = 0;
-
-  
-  
-  aValue.CompressWhitespace(true, false);
-
+  PRInt32 len = 0;
   if (0 == aValue.Find("top")) {
     len = 3; 
     aAlign = eAlign_top;
@@ -320,10 +343,10 @@ ParseAlignAttribute(nsString& aValue, eAlign& aAlign, int32_t& aRowIndex)
     aAlign = eAlign_axis;
   }
   if (len) {
-    nsresult error;
+    PRInt32 error;
     aValue.Cut(0, len); 
     aRowIndex = aValue.ToInteger(&error);
-    if (NS_FAILED(error))
+    if (error)
       aRowIndex = 0;
   }
 }
@@ -383,8 +406,8 @@ nsMathMLmtableOuterFrame::InheritAutomaticData(nsIFrame* aParent)
 
 
 NS_IMETHODIMP
-nsMathMLmtableOuterFrame::UpdatePresentationData(uint32_t aFlagsValues,
-                                                 uint32_t aWhichFlags)
+nsMathMLmtableOuterFrame::UpdatePresentationData(PRUint32 aFlagsValues,
+                                                 PRUint32 aWhichFlags)
 {
   if (NS_MATHML_HAS_EXPLICIT_DISPLAYSTYLE(mPresentationData.flags)) {
     
@@ -396,10 +419,10 @@ nsMathMLmtableOuterFrame::UpdatePresentationData(uint32_t aFlagsValues,
 }
 
 NS_IMETHODIMP
-nsMathMLmtableOuterFrame::UpdatePresentationDataFromChildAt(int32_t  aFirstIndex,
-                                                            int32_t  aLastIndex,
-                                                            uint32_t aFlagsValues,
-                                                            uint32_t aWhichFlags)
+nsMathMLmtableOuterFrame::UpdatePresentationDataFromChildAt(PRInt32  aFirstIndex,
+                                                            PRInt32  aLastIndex,
+                                                            PRUint32 aFlagsValues,
+                                                            PRUint32 aWhichFlags)
 {
   if (NS_MATHML_HAS_EXPLICIT_DISPLAYSTYLE(mPresentationData.flags)) {
     
@@ -414,9 +437,9 @@ nsMathMLmtableOuterFrame::UpdatePresentationDataFromChildAt(int32_t  aFirstIndex
 }
 
 NS_IMETHODIMP
-nsMathMLmtableOuterFrame::AttributeChanged(int32_t  aNameSpaceID,
+nsMathMLmtableOuterFrame::AttributeChanged(PRInt32  aNameSpaceID,
                                            nsIAtom* aAttribute,
-                                           int32_t  aModType)
+                                           PRInt32  aModType)
 {
   
   
@@ -461,8 +484,8 @@ nsMathMLmtableOuterFrame::AttributeChanged(int32_t  aNameSpaceID,
   }
 
   
-  nsIAtom* MOZrowAtom = nullptr;
-  nsIAtom* MOZcolAtom = nullptr;
+  nsIAtom* MOZrowAtom = nsnull;
+  nsIAtom* MOZcolAtom = nsnull;
   if (aAttribute == nsGkAtoms::rowalign_)
     MOZrowAtom = nsGkAtoms::_moz_math_rowalign_;
   else if (aAttribute == nsGkAtoms::rowlines_)
@@ -485,13 +508,13 @@ nsMathMLmtableOuterFrame::AttributeChanged(int32_t  aNameSpaceID,
   for ( ; rowFrame; rowFrame = rowFrame->GetNextSibling()) {
     if (rowFrame->GetType() == nsGkAtoms::tableRowFrame) {
       if (MOZrowAtom) { 
-        rowFrame->GetContent()->UnsetAttr(kNameSpaceID_None, MOZrowAtom, false);
+        rowFrame->GetContent()->UnsetAttr(kNameSpaceID_None, MOZrowAtom, PR_FALSE);
         MapRowAttributesIntoCSS(tableFrame, rowFrame);    
       } else { 
         nsIFrame* cellFrame = rowFrame->GetFirstPrincipalChild();
         for ( ; cellFrame; cellFrame = cellFrame->GetNextSibling()) {
           if (IS_TABLE_CELL(cellFrame->GetType())) {
-            cellFrame->GetContent()->UnsetAttr(kNameSpaceID_None, MOZcolAtom, false);
+            cellFrame->GetContent()->UnsetAttr(kNameSpaceID_None, MOZcolAtom, PR_FALSE);
             MapColAttributesIntoCSS(tableFrame, rowFrame, cellFrame);
           }
         }
@@ -502,16 +525,16 @@ nsMathMLmtableOuterFrame::AttributeChanged(int32_t  aNameSpaceID,
   
   presContext->PresShell()->FrameConstructor()->
     PostRestyleEvent(mContent->AsElement(), eRestyle_Subtree,
-                     nsChangeHint_AllReflowHints);
+                     nsChangeHint_ReflowFrame);
 
   return NS_OK;
 }
 
 nsIFrame*
 nsMathMLmtableOuterFrame::GetRowFrameAt(nsPresContext* aPresContext,
-                                        int32_t         aRowIndex)
+                                        PRInt32         aRowIndex)
 {
-  int32_t rowCount, colCount;
+  PRInt32 rowCount, colCount;
   GetTableSize(rowCount, colCount);
 
   
@@ -529,21 +552,21 @@ nsMathMLmtableOuterFrame::GetRowFrameAt(nsPresContext* aPresContext,
                  "should always have an inner table frame");
     nsIFrame* rgFrame = tableFrame->GetFirstPrincipalChild();
     if (!rgFrame || rgFrame->GetType() != nsGkAtoms::tableRowGroupFrame)
-      return nullptr;
+      return nsnull;
     nsTableIterator rowIter(*rgFrame);
     nsIFrame* rowFrame = rowIter.First();
     for ( ; rowFrame; rowFrame = rowIter.Next()) {
       if (aRowIndex == 0) {
         DEBUG_VERIFY_THAT_FRAME_IS(rowFrame, TABLE_ROW);
         if (rowFrame->GetType() != nsGkAtoms::tableRowFrame)
-          return nullptr;
+          return nsnull;
 
         return rowFrame;
       }
       --aRowIndex;
     }
   }
-  return nullptr;
+  return nsnull;
 }
 
 NS_IMETHODIMP
@@ -563,9 +586,9 @@ nsMathMLmtableOuterFrame::Reflow(nsPresContext*          aPresContext,
 
   
   
-  int32_t rowIndex = 0;
+  PRInt32 rowIndex = 0;
   eAlign tableAlign = eAlign_axis;
-  GetAttribute(mContent, nullptr, nsGkAtoms::align, value);
+  GetAttribute(mContent, nsnull, nsGkAtoms::align, value);
   if (!value.IsEmpty()) {
     ParseAlignAttribute(value, tableAlign, rowIndex);
   }
@@ -576,7 +599,7 @@ nsMathMLmtableOuterFrame::Reflow(nsPresContext*          aPresContext,
   
   nscoord dy = 0;
   nscoord height = aDesiredSize.height;
-  nsIFrame* rowFrame = nullptr;
+  nsIFrame* rowFrame = nsnull;
   if (rowIndex) {
     rowFrame = GetRowFrameAt(aPresContext, rowIndex);
     if (rowFrame) {
@@ -684,7 +707,7 @@ nsMathMLmtableFrame::RestyleTable()
   
   PresContext()->PresShell()->FrameConstructor()->
     PostRestyleEvent(mContent->AsElement(), eRestyle_Subtree,
-                     nsChangeHint_AllReflowHints);
+                     nsChangeHint_ReflowFrame);
 }
 
 
@@ -703,9 +726,9 @@ nsMathMLmtrFrame::~nsMathMLmtrFrame()
 }
 
 NS_IMETHODIMP
-nsMathMLmtrFrame::AttributeChanged(int32_t  aNameSpaceID,
+nsMathMLmtrFrame::AttributeChanged(PRInt32  aNameSpaceID,
                                    nsIAtom* aAttribute,
-                                   int32_t  aModType)
+                                   PRInt32  aModType)
 {
   
   
@@ -716,7 +739,7 @@ nsMathMLmtrFrame::AttributeChanged(int32_t  aNameSpaceID,
   if (aAttribute == nsGkAtoms::rowalign_) {
     
     mContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_rowalign_,
-                        false);
+                        PR_FALSE);
     MapRowAttributesIntoCSS(nsTableFrame::GetTableFrame(this), this);
     
     return NS_OK;
@@ -737,7 +760,7 @@ nsMathMLmtrFrame::AttributeChanged(int32_t  aNameSpaceID,
     if (IS_TABLE_CELL(cellFrame->GetType())) {
       cellFrame->GetContent()->
         UnsetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_columnalign_,
-                  false);
+                  PR_FALSE);
       MapColAttributesIntoCSS(tableFrame, this, cellFrame);
     }
   }
@@ -745,7 +768,7 @@ nsMathMLmtrFrame::AttributeChanged(int32_t  aNameSpaceID,
   
   presContext->PresShell()->FrameConstructor()->
     PostRestyleEvent(mContent->AsElement(), eRestyle_Subtree,
-                     nsChangeHint_AllReflowHints);
+                     nsChangeHint_ReflowFrame);
 
   return NS_OK;
 }
@@ -765,19 +788,19 @@ nsMathMLmtdFrame::~nsMathMLmtdFrame()
 {
 }
 
-int32_t
+PRInt32
 nsMathMLmtdFrame::GetRowSpan()
 {
-  int32_t rowspan = 1;
+  PRInt32 rowspan = 1;
 
   
   if ((mContent->Tag() == nsGkAtoms::mtd_) && !GetStyleContext()->GetPseudo()) {
     nsAutoString value;
     mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::rowspan, value);
     if (!value.IsEmpty()) {
-      nsresult error;
+      PRInt32 error;
       rowspan = value.ToInteger(&error);
-      if (NS_FAILED(error) || rowspan < 0)
+      if (error || rowspan < 0)
         rowspan = 1;
       rowspan = NS_MIN(rowspan, MAX_ROWSPAN);
     }
@@ -785,19 +808,19 @@ nsMathMLmtdFrame::GetRowSpan()
   return rowspan;
 }
 
-int32_t
+PRInt32
 nsMathMLmtdFrame::GetColSpan()
 {
-  int32_t colspan = 1;
+  PRInt32 colspan = 1;
 
   
   if ((mContent->Tag() == nsGkAtoms::mtd_) && !GetStyleContext()->GetPseudo()) {
     nsAutoString value;
     mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::columnspan_, value);
     if (!value.IsEmpty()) {
-      nsresult error;
+      PRInt32 error;
       colspan = value.ToInteger(&error);
-      if (NS_FAILED(error) || colspan < 0 || colspan > MAX_COLSPAN)
+      if (error || colspan < 0 || colspan > MAX_COLSPAN)
         colspan = 1;
     }
   }
@@ -805,9 +828,9 @@ nsMathMLmtdFrame::GetColSpan()
 }
 
 NS_IMETHODIMP
-nsMathMLmtdFrame::AttributeChanged(int32_t  aNameSpaceID,
+nsMathMLmtdFrame::AttributeChanged(PRInt32  aNameSpaceID,
                                    nsIAtom* aAttribute,
-                                   int32_t  aModType)
+                                   PRInt32  aModType)
 {
   
   
@@ -819,7 +842,7 @@ nsMathMLmtdFrame::AttributeChanged(int32_t  aNameSpaceID,
   if (aAttribute == nsGkAtoms::columnalign_) {
     
     mContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_columnalign_,
-                        false);
+                        PR_FALSE);
     MapColAttributesIntoCSS(nsTableFrame::GetTableFrame(this), mParent, this);
     return NS_OK;
   }

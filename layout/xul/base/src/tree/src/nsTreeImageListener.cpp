@@ -3,17 +3,51 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsTreeImageListener.h"
 #include "nsITreeBoxObject.h"
 #include "imgIRequest.h"
 #include "imgIContainer.h"
 
-NS_IMPL_ISUPPORTS2(nsTreeImageListener, imgIDecoderObserver, imgIContainerObserver)
+NS_IMPL_ISUPPORTS3(nsTreeImageListener, imgIDecoderObserver, imgIContainerObserver, nsITreeImageListener)
 
 nsTreeImageListener::nsTreeImageListener(nsTreeBodyFrame* aTreeFrame)
   : mTreeFrame(aTreeFrame),
-    mInvalidationSuppressed(true),
-    mInvalidationArea(nullptr)
+    mInvalidationSuppressed(PR_TRUE),
+    mInvalidationArea(nsnull)
 {
 }
 
@@ -23,13 +57,26 @@ nsTreeImageListener::~nsTreeImageListener()
 }
 
 NS_IMETHODIMP
-nsTreeImageListener::OnImageIsAnimated(imgIRequest *aRequest)
+nsTreeImageListener::OnStartDecode(imgIRequest *aRequest)
 {
   if (!mTreeFrame) {
     return NS_OK;
   }
 
-  return mTreeFrame->OnImageIsAnimated(aRequest);
+  
+  return mTreeFrame->OnStartDecode(aRequest);
+}
+
+NS_IMETHODIMP
+nsTreeImageListener::OnStopDecode(imgIRequest *aRequest,
+                                  nsresult aStatus,
+                                  const PRUnichar *aStatusArg)
+{
+  if (!mTreeFrame) {
+    return NS_OK;
+  }
+
+  return mTreeFrame->OnStopDecode(aRequest, aStatus, aStatusArg);
 }
 
 NS_IMETHODIMP nsTreeImageListener::OnStartContainer(imgIRequest *aRequest,
@@ -50,8 +97,7 @@ NS_IMETHODIMP nsTreeImageListener::OnDataAvailable(imgIRequest *aRequest,
   return NS_OK;
 }
 
-NS_IMETHODIMP nsTreeImageListener::FrameChanged(imgIRequest *aRequest,
-                                                imgIContainer *aContainer,
+NS_IMETHODIMP nsTreeImageListener::FrameChanged(imgIContainer *aContainer,
                                                 const nsIntRect *aDirtyRect)
 {
   Invalidate();
@@ -59,8 +105,8 @@ NS_IMETHODIMP nsTreeImageListener::FrameChanged(imgIRequest *aRequest,
 }
 
 
-void
-nsTreeImageListener::AddCell(int32_t aIndex, nsITreeColumn* aCol)
+NS_IMETHODIMP
+nsTreeImageListener::AddCell(PRInt32 aIndex, nsITreeColumn* aCol)
 {
   if (!mInvalidationArea) {
     mInvalidationArea = new InvalidationArea(aCol);
@@ -81,6 +127,8 @@ nsTreeImageListener::AddCell(int32_t aIndex, nsITreeColumn* aCol)
       mInvalidationArea->AddRow(aIndex);
     }
   }
+
+  return NS_OK;
 }
 
 
@@ -91,7 +139,7 @@ nsTreeImageListener::Invalidate()
     for (InvalidationArea* currArea = mInvalidationArea; currArea;
          currArea = currArea->GetNext()) {
       
-      for (int32_t i = currArea->GetMin(); i <= currArea->GetMax(); ++i) {
+      for (PRInt32 i = currArea->GetMin(); i <= currArea->GetMax(); ++i) {
         if (mTreeFrame) {
           nsITreeBoxObject* tree = mTreeFrame->GetTreeBoxObject();
           if (tree) {
@@ -107,12 +155,12 @@ nsTreeImageListener::InvalidationArea::InvalidationArea(nsITreeColumn* aCol)
   : mCol(aCol),
     mMin(-1), 
     mMax(0),
-    mNext(nullptr)
+    mNext(nsnull)
 {
 }
 
 void
-nsTreeImageListener::InvalidationArea::AddRow(int32_t aIndex)
+nsTreeImageListener::InvalidationArea::AddRow(PRInt32 aIndex)
 {
   if (mMin == -1)
     mMin = mMax = aIndex;
@@ -125,6 +173,6 @@ nsTreeImageListener::InvalidationArea::AddRow(int32_t aIndex)
 NS_IMETHODIMP
 nsTreeImageListener::ClearFrame()
 {
-  mTreeFrame = nullptr;
+  mTreeFrame = nsnull;
   return NS_OK;
 }

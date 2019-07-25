@@ -4,19 +4,49 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_DOMSVGTRANSFORMLIST_H__
 #define MOZILLA_DOMSVGTRANSFORMLIST_H__
 
-#include "DOMSVGAnimatedTransformList.h"
-#include "nsAutoPtr.h"
-#include "nsCycleCollectionParticipant.h"
-#include "nsDebug.h"
 #include "nsIDOMSVGTransformList.h"
-#include "nsTArray.h"
 #include "SVGTransformList.h"
-#include "mozilla/Attributes.h"
+#include "DOMSVGAnimatedTransformList.h"
+#include "nsCOMArray.h"
+#include "nsAutoPtr.h"
 
-class nsIDOMSVGTransform;
 class nsSVGElement;
 
 namespace mozilla {
@@ -31,22 +61,19 @@ class DOMSVGTransform;
 
 
 
-class DOMSVGTransformList MOZ_FINAL : public nsIDOMSVGTransformList,
-                                      public nsWrapperCache
+class DOMSVGTransformList : public nsIDOMSVGTransformList
 {
   friend class DOMSVGTransform;
 
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGTransformList)
+  NS_DECL_CYCLE_COLLECTION_CLASS(DOMSVGTransformList)
   NS_DECL_NSIDOMSVGTRANSFORMLIST
 
   DOMSVGTransformList(DOMSVGAnimatedTransformList *aAList,
                       const SVGTransformList &aInternalList)
     : mAList(aAList)
   {
-    SetIsDOMBinding();
-
     
     
     
@@ -60,35 +87,30 @@ public:
     
     
     if (mAList) {
-      ( IsAnimValList() ? mAList->mAnimVal : mAList->mBaseVal ) = nullptr;
+      ( IsAnimValList() ? mAList->mAnimVal : mAList->mBaseVal ) = nsnull;
     }
-  }
-
-  virtual JSObject* WrapObject(JSContext *cx, JSObject *scope,
-                               bool *triedToWrap);
-
-  nsISupports* GetParentObject()
-  {
-    return static_cast<nsIContent*>(Element());
   }
 
   
 
 
 
-  uint32_t Length() const {
+  PRUint32 Length() const {
     NS_ABORT_IF_FALSE(mItems.IsEmpty() ||
-      mItems.Length() == InternalList().Length(),
+      mItems.Length() ==
+        const_cast<DOMSVGTransformList*>(this)->InternalList().Length(),
       "DOM wrapper's list length is out of sync");
     return mItems.Length();
   }
 
+  nsIDOMSVGTransform* GetItemWithoutAddRef(PRUint32 aIndex);
+
   
-  void InternalListLengthWillChange(uint32_t aNewLength);
+  void InternalListLengthWillChange(PRUint32 aNewLength);
 
 private:
 
-  nsSVGElement* Element() const {
+  nsSVGElement* Element() {
     return mAList->mElement;
   }
 
@@ -107,13 +129,13 @@ private:
 
 
 
-  SVGTransformList& InternalList() const;
+  SVGTransformList& InternalList();
 
   
-  void EnsureItemAt(uint32_t aIndex);
+  void EnsureItemAt(PRUint32 aIndex);
 
-  void MaybeInsertNullInAnimValListAt(uint32_t aIndex);
-  void MaybeRemoveItemFromAnimValListAt(uint32_t aIndex);
+  void MaybeInsertNullInAnimValListAt(PRUint32 aIndex);
+  void MaybeRemoveItemFromAnimValListAt(PRUint32 aIndex);
 
   
   

@@ -4,15 +4,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsIDOMSVGAnimatedRect.h"
+#include "nsIDOMSVGRect.h"
+#include "nsIDocument.h"
 #include "nsSVGMarkerFrame.h"
-
-
-#include "gfxContext.h"
-#include "nsRenderingContext.h"
+#include "nsSVGPathGeometryFrame.h"
 #include "nsSVGEffects.h"
 #include "nsSVGMarkerElement.h"
 #include "nsSVGPathGeometryElement.h"
-#include "nsSVGPathGeometryFrame.h"
+#include "gfxContext.h"
 
 nsIFrame*
 NS_NewSVGMarkerFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
@@ -26,9 +56,9 @@ NS_IMPL_FRAMEARENA_HELPERS(nsSVGMarkerFrame)
 
 
 NS_IMETHODIMP
-nsSVGMarkerFrame::AttributeChanged(int32_t  aNameSpaceID,
+nsSVGMarkerFrame::AttributeChanged(PRInt32  aNameSpaceID,
                                    nsIAtom* aAttribute,
-                                   int32_t  aModType)
+                                   PRInt32  aModType)
 {
   if (aNameSpaceID == kNameSpaceID_None &&
       (aAttribute == nsGkAtoms::markerUnits ||
@@ -39,7 +69,7 @@ nsSVGMarkerFrame::AttributeChanged(int32_t  aNameSpaceID,
        aAttribute == nsGkAtoms::orient ||
        aAttribute == nsGkAtoms::preserveAspectRatio ||
        aAttribute == nsGkAtoms::viewBox)) {
-    nsSVGEffects::InvalidateDirectRenderingObservers(this);
+    nsSVGEffects::InvalidateRenderingObservers(this);
   }
 
   return nsSVGMarkerFrameBase::AttributeChanged(aNameSpaceID,
@@ -69,7 +99,7 @@ nsSVGMarkerFrame::GetType() const
 
 
 gfxMatrix
-nsSVGMarkerFrame::GetCanvasTM(uint32_t aFor)
+nsSVGMarkerFrame::GetCanvasTM()
 {
   NS_ASSERTION(mMarkedFrame, "null nsSVGPathGeometry frame");
 
@@ -80,9 +110,9 @@ nsSVGMarkerFrame::GetCanvasTM(uint32_t aFor)
 
   nsSVGMarkerElement *content = static_cast<nsSVGMarkerElement*>(mContent);
   
-  mInUse2 = true;
-  gfxMatrix markedTM = mMarkedFrame->GetCanvasTM(aFor);
-  mInUse2 = false;
+  mInUse2 = PR_TRUE;
+  gfxMatrix markedTM = mMarkedFrame->GetCanvasTM();
+  mInUse2 = PR_FALSE;
 
   gfxMatrix markerTM = content->GetMarkerTransform(mStrokeWidth, mX, mY, mAutoAngle);
   gfxMatrix viewBoxTM = content->GetViewBoxTransform();
@@ -92,7 +122,7 @@ nsSVGMarkerFrame::GetCanvasTM(uint32_t aFor)
 
 
 nsresult
-nsSVGMarkerFrame::PaintMark(nsRenderingContext *aContext,
+nsSVGMarkerFrame::PaintMark(nsSVGRenderState *aContext,
                             nsSVGPathGeometryFrame *aMarkedFrame,
                             nsSVGMark *aMark, float aStrokeWidth)
 {
@@ -118,15 +148,14 @@ nsSVGMarkerFrame::PaintMark(nsRenderingContext *aContext,
   mY = aMark->y;
   mAutoAngle = aMark->angle;
 
-  gfxContext *gfx = aContext->ThebesContext();
+  gfxContext *gfx = aContext->GetGfxContext();
 
   if (GetStyleDisplay()->IsScrollableOverflow()) {
     gfx->Save();
     gfxRect clipRect =
       nsSVGUtils::GetClipRectForFrame(this, viewBox.x, viewBox.y,
                                       viewBox.width, viewBox.height);
-    nsSVGUtils::SetClipRect(gfx, GetCanvasTM(nsISVGChildFrame::FOR_PAINTING),
-                            clipRect);
+    nsSVGUtils::SetClipRect(gfx, GetCanvasTM(), clipRect);
   }
 
   for (nsIFrame* kid = mFrames.FirstChild(); kid;
@@ -134,8 +163,9 @@ nsSVGMarkerFrame::PaintMark(nsRenderingContext *aContext,
     nsISVGChildFrame* SVGFrame = do_QueryFrame(kid);
     if (SVGFrame) {
       
-      SVGFrame->NotifySVGChanged(nsISVGChildFrame::TRANSFORM_CHANGED);
-      nsSVGUtils::PaintFrameWithEffects(aContext, nullptr, kid);
+      SVGFrame->NotifySVGChanged(nsISVGChildFrame::SUPPRESS_INVALIDATION |
+                                 nsISVGChildFrame::TRANSFORM_CHANGED);
+      nsSVGUtils::PaintFrameWithEffects(aContext, nsnull, kid);
     }
   }
 
@@ -145,35 +175,60 @@ nsSVGMarkerFrame::PaintMark(nsRenderingContext *aContext,
   return NS_OK;
 }
 
-SVGBBox
-nsSVGMarkerFrame::GetMarkBBoxContribution(const gfxMatrix &aToBBoxUserspace,
-                                          uint32_t aFlags,
-                                          nsSVGPathGeometryFrame *aMarkedFrame,
-                                          const nsSVGMark *aMark,
-                                          float aStrokeWidth)
-{
-  SVGBBox bbox;
 
+nsRect
+nsSVGMarkerFrame::RegionMark(nsSVGPathGeometryFrame *aMarkedFrame,
+                             const nsSVGMark *aMark, float aStrokeWidth)
+{
   
   
   
   if (mInUse)
-    return bbox;
+    return nsRect(0,0,0,0);
 
   AutoMarkerReferencer markerRef(this, aMarkedFrame);
-
-  nsSVGMarkerElement *content = static_cast<nsSVGMarkerElement*>(mContent);
-
-  const nsSVGViewBoxRect viewBox = content->GetViewBoxRect();
-
-  if (viewBox.width <= 0.0f || viewBox.height <= 0.0f) {
-    return bbox;
-  }
 
   mStrokeWidth = aStrokeWidth;
   mX = aMark->x;
   mY = aMark->y;
   mAutoAngle = aMark->angle;
+
+  
+  for (nsIFrame* kid = mFrames.FirstChild();
+       kid;
+       kid = kid->GetNextSibling()) {
+    nsISVGChildFrame* child = do_QueryFrame(kid);
+    if (child)
+      child->UpdateCoveredRegion();
+  }
+
+  
+  return nsSVGUtils::GetCoveredRegion(mFrames);
+}
+
+gfxRect
+nsSVGMarkerFrame::GetMarkBBoxContribution(const gfxMatrix &aToBBoxUserspace,
+                                          PRUint32 aFlags,
+                                          nsSVGPathGeometryFrame *aMarkedFrame,
+                                          const nsSVGMark *aMark,
+                                          float aStrokeWidth)
+{
+  
+  
+  
+  if (mInUse)
+    return gfxRect();
+
+  AutoMarkerReferencer markerRef(this, aMarkedFrame);
+
+  mStrokeWidth = aStrokeWidth;
+  mX = aMark->x;
+  mY = aMark->y;
+  mAutoAngle = aMark->angle;
+
+  gfxRect bbox;
+
+  nsSVGMarkerElement *content = static_cast<nsSVGMarkerElement*>(mContent);
 
   gfxMatrix markerTM =
     content->GetMarkerTransform(mStrokeWidth, mX, mY, mAutoAngle);
@@ -189,10 +244,7 @@ nsSVGMarkerFrame::GetMarkBBoxContribution(const gfxMatrix &aToBBoxUserspace,
       
       
       
-
-      
-      
-      bbox.UnionEdges(child->GetBBoxContribution(tm, aFlags));
+      bbox.UnionRect(bbox, child->GetBBoxContribution(tm, aFlags));
     }
   }
 
@@ -214,7 +266,7 @@ nsSVGMarkerFrame::AutoMarkerReferencer::AutoMarkerReferencer(
     nsSVGPathGeometryFrame *aMarkedFrame)
       : mFrame(aFrame)
 {
-  mFrame->mInUse = true;
+  mFrame->mInUse = PR_TRUE;
   mFrame->mMarkedFrame = aMarkedFrame;
 
   nsSVGSVGElement *ctx =
@@ -224,8 +276,8 @@ nsSVGMarkerFrame::AutoMarkerReferencer::AutoMarkerReferencer(
 
 nsSVGMarkerFrame::AutoMarkerReferencer::~AutoMarkerReferencer()
 {
-  mFrame->SetParentCoordCtxProvider(nullptr);
+  mFrame->SetParentCoordCtxProvider(nsnull);
 
-  mFrame->mMarkedFrame = nullptr;
-  mFrame->mInUse = false;
+  mFrame->mMarkedFrame = nsnull;
+  mFrame->mInUse = PR_FALSE;
 }

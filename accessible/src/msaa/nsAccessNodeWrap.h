@@ -7,6 +7,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsAccessNodeWrap_H_
 #define _nsAccessNodeWrap_H_
 
@@ -34,14 +67,8 @@
 
 #include "nsRefPtrHashtable.h"
 
-#define A11Y_TRYBLOCK_BEGIN                                                    \
-  __try {
-
-#define A11Y_TRYBLOCK_END                                                      \
-  } __except(nsAccessNodeWrap::FilterA11yExceptions(::GetExceptionCode(),      \
-                                                    GetExceptionInformation()))\
-  { }                                                                          \
-  return E_FAIL;
+typedef LRESULT (STDAPICALLTYPE *LPFNNOTIFYWINEVENT)(DWORD event,HWND hwnd,LONG idObjectType,LONG idObject);
+typedef LRESULT (STDAPICALLTYPE *LPFNGETGUITHREADINFO)(DWORD idThread, GUITHREADINFO* pgui);
 
 class AccTextChangeEvent;
 
@@ -54,20 +81,18 @@ class nsAccessNodeWrap :  public nsAccessNode,
     NS_DECL_ISUPPORTS_INHERITED
     NS_DECL_NSIWINACCESSNODE
 
+  public: 
+    STDMETHODIMP QueryService(REFGUID guidService, REFIID riid, void** ppv);
+
 public: 
-  nsAccessNodeWrap(nsIContent* aContent, DocAccessible* aDoc);
+  nsAccessNodeWrap(nsIContent *aContent, nsIWeakReference *aShell);
   virtual ~nsAccessNodeWrap();
 
-  
-  virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID aIID,
-                                                   void** aInstancePtr);
+    
+    STDMETHODIMP QueryInterface(REFIID, void**);
 
-  
-  virtual HRESULT STDMETHODCALLTYPE QueryService(REFGUID aGuidService,
-                                                 REFIID aIID,
-                                                 void** aInstancePtr);
+  public:
 
-  
     virtual  HRESULT STDMETHODCALLTYPE get_nodeInfo( 
          BSTR __RPC_FAR *tagName,
          short __RPC_FAR *nameSpaceID,
@@ -124,12 +149,28 @@ public:
     static void InitAccessibility();
     static void ShutdownAccessibility();
 
+    
+    static HINSTANCE gmAccLib;
+    static HINSTANCE gmUserLib;
+    static LPFNACCESSIBLEOBJECTFROMWINDOW gmAccessibleObjectFromWindow;
+    static LPFNLRESULTFROMOBJECT gmLresultFromObject;
+    static LPFNNOTIFYWINEVENT gmNotifyWinEvent;
+    static LPFNGETGUITHREADINFO gmGetGUIThreadInfo;
+
     static int FilterA11yExceptions(unsigned int aCode, EXCEPTION_POINTERS *aExceptionInfo);
+
+    static bool IsOnlyMsaaCompatibleJawsPresent();
+
+    static void TurnOffNewTabSwitchingForJawsAndWE();
+
+    static void DoATSpecificProcessing();
+
+  static STDMETHODIMP_(LRESULT) LresultFromObject(REFIID riid, WPARAM wParam, LPUNKNOWN pAcc);
 
   static LRESULT CALLBACK WindowProc(HWND hWnd, UINT Msg,
                                      WPARAM WParam, LPARAM lParam);
 
-  static nsRefPtrHashtable<nsPtrHashKey<void>, DocAccessible> sHWNDCache;
+  static nsRefPtrHashtable<nsVoidPtrHashKey, nsDocAccessible> sHWNDCache;
 
 protected:
 
@@ -140,6 +181,12 @@ protected:
 
 
   ISimpleDOMNode *MakeAccessNode(nsINode *aNode);
+
+    
+
+
+
+     static bool gIsIA2Disabled;
 
     
 

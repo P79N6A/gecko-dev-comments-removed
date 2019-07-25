@@ -3,6 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef TRANSFRMX_EXPR_H
 #define TRANSFRMX_EXPR_H
 
@@ -73,7 +108,7 @@ public:
     
 
 
-    typedef uint16_t ResultType;
+    typedef PRUint16 ResultType;
     enum {
         NODESET_RESULT = 0x01,
         BOOLEAN_RESULT = 0x02,
@@ -88,7 +123,7 @@ public:
         return (getReturnType() & aType) != 0;
     }
 
-    typedef uint16_t ContextSensitivity;
+    typedef PRUint16 ContextSensitivity;
     enum {
         NO_CONTEXT = 0x00,
         NODE_CONTEXT = 0x01,
@@ -109,13 +144,13 @@ public:
     
 
 
-    virtual Expr* getSubExprAt(uint32_t aPos) = 0;
+    virtual Expr* getSubExprAt(PRUint32 aPos) = 0;
 
     
 
 
 
-    virtual void setSubExprAt(uint32_t aPos, Expr* aExpr) = 0;
+    virtual void setSubExprAt(PRUint32 aPos, Expr* aExpr) = 0;
 
     virtual nsresult evaluateToBool(txIEvalContext* aContext,
                                     bool& aResult);
@@ -154,8 +189,8 @@ public:
 #define TX_DECL_EXPR \
     TX_DECL_EXPR_BASE \
     TX_DECL_TOSTRING \
-    Expr* getSubExprAt(uint32_t aPos); \
-    void setSubExprAt(uint32_t aPos, Expr* aExpr);
+    Expr* getSubExprAt(PRUint32 aPos); \
+    void setSubExprAt(PRUint32 aPos, Expr* aExpr);
 
 #define TX_DECL_OPTIMIZABLE_EXPR \
     TX_DECL_EXPR \
@@ -176,12 +211,12 @@ _class::getReturnType()                                       \
 #define TX_IMPL_EXPR_STUBS_0(_class, _ReturnType)             \
 TX_IMPL_EXPR_STUBS_BASE(_class, _ReturnType)                  \
 Expr*                                                         \
-_class::getSubExprAt(uint32_t aPos)                           \
+_class::getSubExprAt(PRUint32 aPos)                           \
 {                                                             \
-    return nullptr;                                            \
+    return nsnull;                                            \
 }                                                             \
 void                                                          \
-_class::setSubExprAt(uint32_t aPos, Expr* aExpr)              \
+_class::setSubExprAt(PRUint32 aPos, Expr* aExpr)              \
 {                                                             \
     NS_NOTREACHED("setting bad subexpression index");         \
 }
@@ -189,15 +224,15 @@ _class::setSubExprAt(uint32_t aPos, Expr* aExpr)              \
 #define TX_IMPL_EXPR_STUBS_1(_class, _ReturnType, _Expr1)     \
 TX_IMPL_EXPR_STUBS_BASE(_class, _ReturnType)                  \
 Expr*                                                         \
-_class::getSubExprAt(uint32_t aPos)                           \
+_class::getSubExprAt(PRUint32 aPos)                           \
 {                                                             \
     if (aPos == 0) {                                          \
         return _Expr1;                                        \
     }                                                         \
-    return nullptr;                                            \
+    return nsnull;                                            \
 }                                                             \
 void                                                          \
-_class::setSubExprAt(uint32_t aPos, Expr* aExpr)              \
+_class::setSubExprAt(PRUint32 aPos, Expr* aExpr)              \
 {                                                             \
     NS_ASSERTION(aPos < 1, "setting bad subexpression index");\
     _Expr1.forget();                                          \
@@ -207,7 +242,7 @@ _class::setSubExprAt(uint32_t aPos, Expr* aExpr)              \
 #define TX_IMPL_EXPR_STUBS_2(_class, _ReturnType, _Expr1, _Expr2) \
 TX_IMPL_EXPR_STUBS_BASE(_class, _ReturnType)                  \
 Expr*                                                         \
-_class::getSubExprAt(uint32_t aPos)                           \
+_class::getSubExprAt(PRUint32 aPos)                           \
 {                                                             \
     switch(aPos) {                                            \
         case 0:                                               \
@@ -217,10 +252,10 @@ _class::getSubExprAt(uint32_t aPos)                           \
         default:                                              \
             break;                                            \
     }                                                         \
-    return nullptr;                                            \
+    return nsnull;                                            \
 }                                                             \
 void                                                          \
-_class::setSubExprAt(uint32_t aPos, Expr* aExpr)              \
+_class::setSubExprAt(PRUint32 aPos, Expr* aExpr)              \
 {                                                             \
     NS_ASSERTION(aPos < 2, "setting bad subexpression index");\
     if (aPos == 0) {                                          \
@@ -236,12 +271,12 @@ _class::setSubExprAt(uint32_t aPos, Expr* aExpr)              \
 #define TX_IMPL_EXPR_STUBS_LIST(_class, _ReturnType, _ExprList) \
 TX_IMPL_EXPR_STUBS_BASE(_class, _ReturnType)                  \
 Expr*                                                         \
-_class::getSubExprAt(uint32_t aPos)                           \
+_class::getSubExprAt(PRUint32 aPos)                           \
 {                                                             \
     return _ExprList.SafeElementAt(aPos);                     \
 }                                                             \
 void                                                          \
-_class::setSubExprAt(uint32_t aPos, Expr* aExpr)              \
+_class::setSubExprAt(PRUint32 aPos, Expr* aExpr)              \
 {                                                             \
     NS_ASSERTION(aPos < _ExprList.Length(),                   \
                  "setting bad subexpression index");          \
@@ -280,13 +315,13 @@ public:
 
 
 
-    virtual bool requireParams(int32_t aParamCountMin,
-                                 int32_t aParamCountMax,
+    virtual bool requireParams(PRInt32 aParamCountMin,
+                                 PRInt32 aParamCountMax,
                                  txIEvalContext* aContext);
 
     TX_DECL_TOSTRING
-    Expr* getSubExprAt(uint32_t aPos);
-    void setSubExprAt(uint32_t aPos, Expr* aExpr);
+    Expr* getSubExprAt(PRUint32 aPos);
+    void setSubExprAt(PRUint32 aPos, Expr* aExpr);
 
 protected:
 
@@ -439,8 +474,8 @@ public:
 
 
 
-    txNameTest(nsIAtom* aPrefix, nsIAtom* aLocalName, int32_t aNSID,
-               uint16_t aNodeType);
+    txNameTest(nsIAtom* aPrefix, nsIAtom* aLocalName, PRInt32 aNSID,
+               PRUint16 aNodeType);
 
     NodeTestType getType();
 
@@ -448,9 +483,9 @@ public:
 
     nsCOMPtr<nsIAtom> mPrefix;
     nsCOMPtr<nsIAtom> mLocalName;
-    int32_t mNamespace;
+    PRInt32 mNamespace;
 private:
-    uint16_t mNodeType;
+    PRUint16 mNodeType;
 };
 
 
@@ -563,11 +598,11 @@ public:
 
 protected:
     bool isSensitiveTo(Expr::ContextSensitivity aContext);
-    Expr* getSubExprAt(uint32_t aPos)
+    Expr* getSubExprAt(PRUint32 aPos)
     {
         return mPredicates.SafeElementAt(aPos);
     }
-    void setSubExprAt(uint32_t aPos, Expr* aExpr)
+    void setSubExprAt(PRUint32 aPos, Expr* aExpr)
     {
         NS_ASSERTION(aPos < mPredicates.Length(),
                      "setting bad subexpression index");
@@ -665,11 +700,11 @@ private:
 class txLiteralExpr : public Expr {
 public:
     txLiteralExpr(double aDbl)
-        : mValue(new NumberResult(aDbl, nullptr))
+        : mValue(new NumberResult(aDbl, nsnull))
     {
     }
     txLiteralExpr(const nsAString& aStr)
-        : mValue(new StringResult(aStr, nullptr))
+        : mValue(new StringResult(aStr, nsnull))
     {
     }
     txLiteralExpr(txAExprResult* aValue)
@@ -803,14 +838,14 @@ class VariableRefExpr : public Expr {
 
 public:
 
-    VariableRefExpr(nsIAtom* aPrefix, nsIAtom* aLocalName, int32_t aNSID);
+    VariableRefExpr(nsIAtom* aPrefix, nsIAtom* aLocalName, PRInt32 aNSID);
 
     TX_DECL_EXPR
 
 private:
     nsCOMPtr<nsIAtom> mPrefix;
     nsCOMPtr<nsIAtom> mLocalName;
-    int32_t mNamespace;
+    PRInt32 mNamespace;
 };
 
 
@@ -837,7 +872,7 @@ public:
     
 
 
-    void deleteExprAt(uint32_t aPos)
+    void deleteExprAt(PRUint32 aPos)
     {
         NS_ASSERTION(aPos < mItems.Length(),
                      "killing bad expression index");
@@ -846,12 +881,12 @@ public:
 
     TX_DECL_OPTIMIZABLE_EXPR
 
-    PathOperator getPathOpAt(uint32_t aPos)
+    PathOperator getPathOpAt(PRUint32 aPos)
     {
         NS_ASSERTION(aPos < mItems.Length(), "getting bad pathop index");
         return mItems[aPos].pathOp;
     }
-    void setPathOpAt(uint32_t aPos, PathOperator aPathOp)
+    void setPathOpAt(PRUint32 aPos, PathOperator aPathOp)
     {
         NS_ASSERTION(aPos < mItems.Length(), "setting bad pathop index");
         mItems[aPos].pathOp = aPathOp;
@@ -885,7 +920,7 @@ public:
 
     RootExpr()
 #ifdef TX_TO_STRING
-        : mSerialize(true)
+        : mSerialize(PR_TRUE)
 #endif
     {
     }
@@ -926,7 +961,7 @@ public:
     
 
 
-    void deleteExprAt(uint32_t aPos)
+    void deleteExprAt(PRUint32 aPos)
     {
         NS_ASSERTION(aPos < mExpressions.Length(),
                      "killing bad expression index");
@@ -950,13 +985,13 @@ private:
 class txNamedAttributeStep : public Expr
 {
 public:
-    txNamedAttributeStep(int32_t aNsID, nsIAtom* aPrefix,
+    txNamedAttributeStep(PRInt32 aNsID, nsIAtom* aPrefix,
                          nsIAtom* aLocalName);
 
     TX_DECL_EXPR
 
 private:
-    int32_t mNamespace;
+    PRInt32 mNamespace;
     nsCOMPtr<nsIAtom> mPrefix;
     nsCOMPtr<nsIAtom> mLocalName;
 };

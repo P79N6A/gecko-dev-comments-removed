@@ -3,10 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef TRANSFRMX_TXTOPLEVELITEMS_H
 #define TRANSFRMX_TXTOPLEVELITEMS_H
 
-#include "nsError.h"
+#include "txError.h"
 #include "txOutputFormat.h"
 #include "txXMLUtils.h"
 #include "txStylesheet.h"

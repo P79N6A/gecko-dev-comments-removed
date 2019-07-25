@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_ISMILTYPE_H_
 #define NS_ISMILTYPE_H_
 
@@ -140,7 +173,7 @@ protected:
 
   virtual nsresult Add(nsSMILValue& aDest,
                        const nsSMILValue& aValueToAdd,
-                       uint32_t aCount) const = 0;
+                       PRUint32 aCount) const = 0;
 
   
 

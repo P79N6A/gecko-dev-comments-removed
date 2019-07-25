@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NSCERTOVERRIDESERVICE_H__
 #define __NSCERTOVERRIDESERVICE_H__
 
@@ -15,7 +49,6 @@
 #include "nsIFile.h"
 #include "secoidt.h"
 #include "nsWeakReference.h"
-#include "mozilla/Attributes.h"
 
 class nsCertOverride
 {
@@ -49,7 +82,7 @@ public:
   }
 
   nsCString mAsciiHost;
-  int32_t mPort;
+  PRInt32 mPort;
   bool mIsTemporary; 
   nsCString mFingerprint;
   nsCString mFingerprintAlgOID;
@@ -63,7 +96,7 @@ public:
 
 
 
-class nsCertOverrideEntry MOZ_FINAL : public PLDHashEntryHdr
+class nsCertOverrideEntry : public PLDHashEntryHdr
 {
   public:
     
@@ -109,10 +142,10 @@ class nsCertOverrideEntry MOZ_FINAL : public PLDHashEntryHdr
     {
       
       
-      return PL_DHashStringKey(nullptr, aKey);
+      return PL_DHashStringKey(nsnull, aKey);
     }
 
-    enum { ALLOW_MEMMOVE = false };
+    enum { ALLOW_MEMMOVE = PR_FALSE };
 
     
     inline const nsCString &HostWithPort() const { return mHostWithPort; }
@@ -126,9 +159,9 @@ class nsCertOverrideEntry MOZ_FINAL : public PLDHashEntryHdr
     nsCString mHostWithPort;
 };
 
-class nsCertOverrideService MOZ_FINAL : public nsICertOverrideService
-                                      , public nsIObserver
-                                      , public nsSupportsWeakReference
+class nsCertOverrideService : public nsICertOverrideService
+                            , public nsIObserver
+                            , public nsSupportsWeakReference
 {
 public:
   NS_DECL_ISUPPORTS
@@ -154,7 +187,7 @@ public:
     
     
     
-    static void GetHostWithPort(const nsACString & aHostName, int32_t aPort, nsACString& _retval);
+    static void GetHostWithPort(const nsACString & aHostName, PRInt32 aPort, nsACString& _retval);
 
 protected:
     mozilla::ReentrantMonitor monitor;
@@ -167,7 +200,7 @@ protected:
     void RemoveAllFromMemory();
     nsresult Read();
     nsresult Write();
-    nsresult AddEntryToList(const nsACString &host, int32_t port,
+    nsresult AddEntryToList(const nsACString &host, PRInt32 port,
                             nsIX509Cert *aCert,
                             const bool aIsTemporary,
                             const nsACString &algo_oid, 

@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsImageMap_h
 #define nsImageMap_h
 
@@ -18,7 +50,6 @@
 class Area;
 class nsIDOMEvent;
 class nsRenderingContext;
-class nsImageFrame;
 
 class nsImageMap : public nsStubMutationObserver,
                    public nsIDOMEventListener
@@ -26,23 +57,16 @@ class nsImageMap : public nsStubMutationObserver,
 public:
   nsImageMap();
 
-  nsresult Init(nsImageFrame* aImageFrame, nsIContent* aMap);
+  nsresult Init(nsIFrame* aImageFrame, nsIContent* aMap);
 
   
 
 
 
-  nsIContent* GetArea(nscoord aX, nscoord aY) const;
-
-  
 
 
-  uint32_t AreaCount() const { return mAreas.Length(); }
-
-  
-
-
-  nsIContent* GetAreaAt(uint32_t aIndex) const;
+  bool IsInside(nscoord aX, nscoord aY,
+                  nsIContent** aContent) const;
 
   void Draw(nsIFrame* aFrame, nsRenderingContext& aRC);
   
@@ -60,7 +84,6 @@ public:
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
-  NS_DECL_NSIMUTATIONOBSERVER_PARENTCHAINCHANGED  
 
   
   NS_DECL_NSIDOMEVENTLISTENER
@@ -81,7 +104,7 @@ protected:
  
   void MaybeUpdateAreas(nsIContent *aContent);
 
-  nsImageFrame* mImageFrame;  
+  nsIFrame* mImageFrame;  
   nsCOMPtr<nsIContent> mMap;
   nsAutoTArray<Area*, 8> mAreas; 
   bool mContainsBlockContents;

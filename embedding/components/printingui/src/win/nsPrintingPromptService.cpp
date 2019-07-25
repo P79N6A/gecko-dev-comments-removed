@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 
 #include "nsPrintingPromptService.h"
@@ -124,21 +156,21 @@ nsPrintingPromptService::GetHWNDForDOMWindow(nsIDOMWindow *aWindow)
 
     nsCOMPtr<nsIDocShellTreeItem> treeItem =
         do_QueryInterface(window->GetDocShell());
-    if (!treeItem) return nullptr;
+    if (!treeItem) return nsnull;
 
     nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
     treeItem->GetTreeOwner(getter_AddRefs(treeOwner));
-    if (!treeOwner) return nullptr;
+    if (!treeOwner) return nsnull;
 
     nsCOMPtr<nsIWebBrowserChrome> webBrowserChrome(do_GetInterface(treeOwner));
-    if (!webBrowserChrome) return nullptr;
+    if (!webBrowserChrome) return nsnull;
 
     nsCOMPtr<nsIBaseWindow> baseWin(do_QueryInterface(webBrowserChrome));
-    if (!baseWin) return nullptr;
+    if (!baseWin) return nsnull;
 
     nsCOMPtr<nsIWidget> widget;
     baseWin->GetMainWidget(getter_AddRefs(widget));
-    if (!widget) return nullptr;
+    if (!widget) return nsnull;
 
     return (HWND)widget->GetNativeData(NS_NATIVE_TMP_WINDOW);
 
@@ -176,10 +208,10 @@ nsPrintingPromptService::ShowProgress(nsIDOMWindow*            parent,
     NS_ENSURE_ARG(printProgressParams);
     NS_ENSURE_ARG(notifyOnOpen);
 
-    *notifyOnOpen = false;
+    *notifyOnOpen = PR_FALSE;
     if (mPrintProgress) {
-        *webProgressListener = nullptr;
-        *printProgressParams = nullptr;
+        *webProgressListener = nsnull;
+        *printProgressParams = nsnull;
         return NS_ERROR_FAILURE;
     }
 
@@ -225,7 +257,7 @@ nsPrintingPromptService::ShowPageSetup(nsIDOMWindow *parent, nsIPrintSettings *p
     
     if (NS_SUCCEEDED(rv)) 
     {
-      int32_t status;
+      PRInt32 status;
       block->GetInt(0, &status);
       return status == 0?NS_ERROR_ABORT:NS_OK;
     }
@@ -299,24 +331,24 @@ nsPrintingPromptService::DoDialog(nsIDOMWindow *aParent,
 
 
 NS_IMETHODIMP 
-nsPrintingPromptService::OnStateChange(nsIWebProgress *aWebProgress, nsIRequest *aRequest, uint32_t aStateFlags, nsresult aStatus)
+nsPrintingPromptService::OnStateChange(nsIWebProgress *aWebProgress, nsIRequest *aRequest, PRUint32 aStateFlags, nsresult aStatus)
 {
     if ((aStateFlags & STATE_STOP) && mWebProgressListener) 
     {
         mWebProgressListener->OnStateChange(aWebProgress, aRequest, aStateFlags, aStatus);
         if (mPrintProgress) 
         {
-            mPrintProgress->CloseProgressDialog(true);
+            mPrintProgress->CloseProgressDialog(PR_TRUE);
         }
-        mPrintProgress       = nullptr;
-        mWebProgressListener = nullptr;
+        mPrintProgress       = nsnull;
+        mWebProgressListener = nsnull;
     }
     return NS_OK;
 }
 
 
 NS_IMETHODIMP 
-nsPrintingPromptService::OnProgressChange(nsIWebProgress *aWebProgress, nsIRequest *aRequest, int32_t aCurSelfProgress, int32_t aMaxSelfProgress, int32_t aCurTotalProgress, int32_t aMaxTotalProgress)
+nsPrintingPromptService::OnProgressChange(nsIWebProgress *aWebProgress, nsIRequest *aRequest, PRInt32 aCurSelfProgress, PRInt32 aMaxSelfProgress, PRInt32 aCurTotalProgress, PRInt32 aMaxTotalProgress)
 {
   if (mWebProgressListener) 
   {
@@ -327,11 +359,11 @@ nsPrintingPromptService::OnProgressChange(nsIWebProgress *aWebProgress, nsIReque
 
 
 NS_IMETHODIMP 
-nsPrintingPromptService::OnLocationChange(nsIWebProgress *aWebProgress, nsIRequest *aRequest, nsIURI *location, uint32_t aFlags)
+nsPrintingPromptService::OnLocationChange(nsIWebProgress *aWebProgress, nsIRequest *aRequest, nsIURI *location)
 {
   if (mWebProgressListener) 
   {
-      return mWebProgressListener->OnLocationChange(aWebProgress, aRequest, location, aFlags);
+      return mWebProgressListener->OnLocationChange(aWebProgress, aRequest, location);
   }
   return NS_ERROR_FAILURE;
 }
@@ -349,7 +381,7 @@ nsPrintingPromptService::OnStatusChange(nsIWebProgress *aWebProgress, nsIRequest
 
 
 NS_IMETHODIMP 
-nsPrintingPromptService::OnSecurityChange(nsIWebProgress *aWebProgress, nsIRequest *aRequest, uint32_t state)
+nsPrintingPromptService::OnSecurityChange(nsIWebProgress *aWebProgress, nsIRequest *aRequest, PRUint32 state)
 {
   if (mWebProgressListener) 
   {

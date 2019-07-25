@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIViewManager_h___
 #define nsIViewManager_h___
 
@@ -14,11 +46,11 @@ class nsIWidget;
 struct nsRect;
 class nsRegion;
 class nsDeviceContext;
-class nsIPresShell;
+class nsIViewObserver;
 
 #define NS_IVIEWMANAGER_IID \
-{ 0x540610a6, 0x4fdd, 0x4ae3, \
-  { 0x9b, 0xdb, 0xa6, 0x4d, 0x8b, 0xca, 0x02, 0x0f } }
+{ 0x144ef328, 0xbece, 0x43d6, \
+  { 0xac, 0xac, 0x1a, 0x90, 0x4b, 0x5c, 0xc1, 0x11 } }
 
 class nsIViewManager : public nsISupports
 {
@@ -88,9 +120,20 @@ public:
   
 
 
+  
+  
+  
+  
+  
+  NS_IMETHOD  Composite(void) = 0;
+
+  
 
 
-  NS_IMETHOD  InvalidateView(nsIView *aView) = 0;
+
+
+
+  NS_IMETHOD  UpdateView(nsIView *aView, PRUint32 aUpdateFlags) = 0;
 
   
 
@@ -99,12 +142,16 @@ public:
 
 
 
-  NS_IMETHOD  InvalidateViewNoSuppression(nsIView *aView, const nsRect &aRect) = 0;
+
+  NS_IMETHOD  UpdateViewNoSuppression(nsIView *aView, const nsRect &aRect,
+                                      PRUint32 aUpdateFlags) = 0;
 
   
 
 
-  NS_IMETHOD  InvalidateAllViews() = 0;
+
+
+  NS_IMETHOD  UpdateAllViews(PRUint32 aUpdateFlags) = 0;
 
   
 
@@ -199,7 +246,7 @@ public:
 
 
 
-  NS_IMETHOD  SetViewZIndex(nsIView *aView, bool aAutoZIndex, int32_t aZindex, bool aTopMost = false) = 0;
+  NS_IMETHOD  SetViewZIndex(nsIView *aView, bool aAutoZIndex, PRInt32 aZindex, bool aTopMost = false) = 0;
 
   
 
@@ -214,12 +261,12 @@ public:
 
 
 
-  virtual void SetPresShell(nsIPresShell *aPresShell) = 0;
+  virtual void SetViewObserver(nsIViewObserver *aObserver) = 0;
 
   
 
 
-  virtual nsIPresShell* GetPresShell() = 0;
+  virtual nsIViewObserver* GetViewObserver() = 0;
 
   
 
@@ -227,6 +274,35 @@ public:
 
   NS_IMETHOD  GetDeviceContext(nsDeviceContext *&aContext) = 0;
 
+  class UpdateViewBatch {
+  public:
+    UpdateViewBatch() {}
+  
+
+
+
+
+
+
+    UpdateViewBatch(nsIViewManager* aVM) {
+      if (aVM) {
+        mRootVM = aVM->BeginUpdateViewBatch();
+      }
+    }
+    ~UpdateViewBatch() {
+      NS_ASSERTION(!mRootVM, "Someone forgot to call EndUpdateViewBatch!");
+    }
+    
+    
+
+
+    void BeginUpdateViewBatch(nsIViewManager* aVM) {
+      NS_ASSERTION(!mRootVM, "already started a batch!");
+      if (aVM) {
+        mRootVM = aVM->BeginUpdateViewBatch();
+      }
+    }
+
   
 
 
@@ -239,30 +315,35 @@ public:
 
 
 
-  class NS_STACK_CLASS AutoDisableRefresh {
-  public:
-    AutoDisableRefresh(nsIViewManager* aVM) {
-      if (aVM) {
-        mRootVM = aVM->IncrementDisableRefreshCount();
-      }
+
+
+
+
+
+
+
+
+
+
+    void EndUpdateViewBatch(PRUint32 aUpdateFlags) {
+      if (!mRootVM)
+        return;
+      mRootVM->EndUpdateViewBatch(aUpdateFlags);
+      mRootVM = nsnull;
     }
-    ~AutoDisableRefresh() {
-      if (mRootVM) {
-        mRootVM->DecrementDisableRefreshCount();
-      }
-    }
+
   private:
-    AutoDisableRefresh(const AutoDisableRefresh& aOther);
-    const AutoDisableRefresh& operator=(const AutoDisableRefresh& aOther);
+    UpdateViewBatch(const UpdateViewBatch& aOther);
+    const UpdateViewBatch& operator=(const UpdateViewBatch& aOther);
 
     nsCOMPtr<nsIViewManager> mRootVM;
   };
-
+  
 private:
-  friend class AutoDisableRefresh;
+  friend class UpdateViewBatch;
 
-  virtual nsIViewManager* IncrementDisableRefreshCount() = 0;
-  virtual void DecrementDisableRefreshCount() = 0;
+  virtual nsIViewManager* BeginUpdateViewBatch(void) = 0;
+  NS_IMETHOD EndUpdateViewBatch(PRUint32 aUpdateFlags) = 0;
 
 public:
   
@@ -270,6 +351,16 @@ public:
 
 
   NS_IMETHOD GetRootWidget(nsIWidget **aWidget) = 0;
+
+  
+
+
+
+
+  
+  
+  
+  NS_IMETHOD ForceUpdate() = 0;
 
   
 
@@ -286,26 +377,35 @@ public:
 
 
 
-  NS_IMETHOD GetLastUserEventTime(uint32_t& aTime)=0;
+  NS_IMETHOD GetLastUserEventTime(PRUint32& aTime)=0;
 
   
 
 
 
   static nsIView* GetDisplayRootFor(nsIView* aView);
-
-  
-
-
-
-  virtual void ProcessPendingUpdates()=0;
-
-  
-
-
-  virtual void UpdateWidgetGeometry() = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIViewManager, NS_IVIEWMANAGER_IID)
+
+
+
+
+
+
+#define NS_VMREFRESH_NO_SYNC            0
+
+
+
+
+
+#define NS_VMREFRESH_DEFERRED           0x0001
+
+
+
+#define NS_VMREFRESH_IMMEDIATE          0x0002
+
+
+#define NS_VMREFRESH_SMOOTHSCROLL       0x0008
 
 #endif  

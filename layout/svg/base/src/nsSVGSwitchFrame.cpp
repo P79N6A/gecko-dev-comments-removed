@@ -4,14 +4,42 @@
 
 
 
-#include "gfxMatrix.h"
-#include "gfxRect.h"
-#include "nsSVGEffects.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSVGGFrame.h"
 #include "nsSVGSwitchElement.h"
-#include "nsSVGUtils.h"
-
-class nsRenderingContext;
+#include "gfxRect.h"
+#include "gfxMatrix.h"
 
 typedef nsSVGGFrame nsSVGSwitchFrameBase;
 
@@ -46,17 +74,15 @@ public:
   }
 #endif
 
-  NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                              const nsRect&           aDirtyRect,
-                              const nsDisplayListSet& aLists);
-
   
-  NS_IMETHOD PaintSVG(nsRenderingContext* aContext, const nsIntRect *aDirtyRect);
+  NS_IMETHOD PaintSVG(nsSVGRenderState* aContext, const nsIntRect *aDirtyRect);
   NS_IMETHODIMP_(nsIFrame*) GetFrameForPoint(const nsPoint &aPoint);
   NS_IMETHODIMP_(nsRect) GetCoveredRegion();
-  virtual void ReflowSVG();
-  virtual SVGBBox GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
-                                      uint32_t aFlags);
+  NS_IMETHOD UpdateCoveredRegion();
+  NS_IMETHOD InitialUpdate();
+  NS_IMETHOD NotifyRedrawUnsuspended();
+  virtual gfxRect GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
+                                      PRUint32 aFlags);
 
 private:
   nsIFrame *GetActiveChildFrame();
@@ -93,26 +119,9 @@ nsSVGSwitchFrame::GetType() const
 }
 
 NS_IMETHODIMP
-nsSVGSwitchFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                   const nsRect&           aDirtyRect,
-                                   const nsDisplayListSet& aLists)
-{
-  nsIFrame* kid = GetActiveChildFrame();
-  if (kid) {
-    return BuildDisplayListForChild(aBuilder, kid, aDirtyRect, aLists);
-  }
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsSVGSwitchFrame::PaintSVG(nsRenderingContext* aContext,
+nsSVGSwitchFrame::PaintSVG(nsSVGRenderState* aContext,
                            const nsIntRect *aDirtyRect)
 {
-  NS_ASSERTION(!NS_SVGDisplayListPaintingEnabled() ||
-               (mState & NS_STATE_SVG_NONDISPLAY_CHILD),
-               "If display lists are enabled, only painting of non-display "
-               "SVG should take this code path");
-
   const nsStyleDisplay *display = mStyleContext->GetStyleDisplay();
   if (display->mOpacity == 0.0)
     return NS_OK;
@@ -128,11 +137,6 @@ nsSVGSwitchFrame::PaintSVG(nsRenderingContext* aContext,
 NS_IMETHODIMP_(nsIFrame*)
 nsSVGSwitchFrame::GetFrameForPoint(const nsPoint &aPoint)
 {
-  NS_ASSERTION(!NS_SVGDisplayListHitTestingEnabled() ||
-               (mState & NS_STATE_SVG_NONDISPLAY_CHILD),
-               "If display lists are enabled, only hit-testing of non-display "
-               "SVG should take this code path");
-
   nsIFrame *kid = GetActiveChildFrame();
   if (kid) {
     nsISVGChildFrame* svgFrame = do_QueryFrame(kid);
@@ -141,7 +145,7 @@ nsSVGSwitchFrame::GetFrameForPoint(const nsPoint &aPoint)
     }
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 NS_IMETHODIMP_(nsRect)
@@ -159,97 +163,54 @@ nsSVGSwitchFrame::GetCoveredRegion()
   return rect;
 }
 
-void
-nsSVGSwitchFrame::ReflowSVG()
+NS_IMETHODIMP
+nsSVGSwitchFrame::UpdateCoveredRegion()
 {
-  NS_ASSERTION(nsSVGUtils::OuterSVGIsCallingReflowSVG(this),
-               "This call is probably a wasteful mistake");
+  static_cast<nsSVGSwitchElement*>(mContent)->UpdateActiveChild();
 
-  NS_ABORT_IF_FALSE(!(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD),
-                    "ReflowSVG mechanism not designed for this");
-
-  if (!nsSVGUtils::NeedsReflowSVG(this)) {
-    return;
-  }
-
-  
-  
-  
-  
-  
-  
-
-  bool outerSVGHasHadFirstReflow =
-    (GetParent()->GetStateBits() & NS_FRAME_FIRST_REFLOW) == 0;
-
-  if (outerSVGHasHadFirstReflow) {
-    mState &= ~NS_FRAME_FIRST_REFLOW; 
-  }
-
-  nsOverflowAreas overflowRects;
-
-  nsIFrame *child = GetActiveChildFrame();
-  if (child) {
-    nsISVGChildFrame* svgChild = do_QueryFrame(child);
-    if (svgChild) {
-      NS_ABORT_IF_FALSE(!(child->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD),
-                        "Check for this explicitly in the |if|, then");
-      svgChild->ReflowSVG();
-
-      
-      
-      
-      ConsiderChildOverflow(overflowRects, child);
+  nsIFrame *kid = GetActiveChildFrame();
+  if (kid) {
+    nsISVGChildFrame* child = do_QueryFrame(kid);
+    if (child) {
+      child->UpdateCoveredRegion();
     }
   }
-
-  if (mState & NS_FRAME_FIRST_REFLOW) {
-    
-    
-    
-    nsSVGEffects::UpdateEffects(this);
-  }
-
-  
-  
-  
-  
-  
-  bool invalidate = (mState & NS_FRAME_IS_DIRTY) &&
-    !(GetParent()->GetStateBits() &
-       (NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY));
-
-  FinishAndStoreOverflow(overflowRects, mRect.Size());
-
-  
-  
-  mState &= ~(NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY |
-              NS_FRAME_HAS_DIRTY_CHILDREN);
-
-  if (invalidate) {
-    
-    nsSVGUtils::InvalidateBounds(this, true);
-  }
+  return NS_OK;
 }
 
-SVGBBox
+NS_IMETHODIMP
+nsSVGSwitchFrame::InitialUpdate()
+{
+  nsSVGUtils::UpdateGraphic(this);
+
+  return nsSVGSwitchFrameBase::InitialUpdate();
+}
+
+NS_IMETHODIMP
+nsSVGSwitchFrame::NotifyRedrawUnsuspended()
+{
+  if (GetStateBits() & NS_STATE_SVG_DIRTY)
+    nsSVGUtils::UpdateGraphic(this);
+
+  return nsSVGSwitchFrameBase::NotifyRedrawUnsuspended();
+}
+
+gfxRect
 nsSVGSwitchFrame::GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
-                                      uint32_t aFlags)
+                                      PRUint32 aFlags)
 {
   nsIFrame* kid = GetActiveChildFrame();
-  if (kid) {
-    nsISVGChildFrame* svgKid = do_QueryFrame(kid);
-    if (svgKid) {
-      nsIContent *content = kid->GetContent();
-      gfxMatrix transform = aToBBoxUserspace;
-      if (content->IsSVG()) {
-        transform = static_cast<nsSVGElement*>(content)->
-                      PrependLocalTransformsTo(aToBBoxUserspace);
-      }
-      return svgKid->GetBBoxContribution(transform, aFlags);
+  nsISVGChildFrame* svgKid = do_QueryFrame(kid);
+  if (svgKid) {
+    nsIContent *content = kid->GetContent();
+    gfxMatrix transform = aToBBoxUserspace;
+    if (content->IsSVG()) {
+      transform = static_cast<nsSVGElement*>(content)->
+                    PrependLocalTransformTo(aToBBoxUserspace);
     }
+    return svgKid->GetBBoxContribution(transform, aFlags);
   }
-  return SVGBBox();
+  return gfxRect(0.0, 0.0, 0.0, 0.0);
 }
 
 nsIFrame *
@@ -267,5 +228,5 @@ nsSVGSwitchFrame::GetActiveChildFrame()
       }
     }
   }
-  return nullptr;
+  return nsnull;
 }

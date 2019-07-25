@@ -210,8 +210,7 @@ function reflectUnsignedInt(aParameters)
     element[attr] = 0;
   } catch(e) {
     caught = true;
-    is(e.name, "IndexSizeError", "exception should be IndexSizeError");
-    is(e.code, DOMException.INDEX_SIZE_ERR, "exception code should be INDEX_SIZE_ERR");
+    is(e.code, DOMException.INDEX_SIZE_ERR, "exception should be INDEX_SIZE_ERR");
   }
 
   if (nonZero) {
@@ -469,12 +468,22 @@ function reflectInt(aParameters)
   }
 
   function stringToInteger(value, nonNegative, defaultValue) {
-    
-    var result = /^[ \t\n\f\r]*([\+\-]?[0-9]+)/.exec(value);
-    if (result) {
-      if ((nonNegative ? 0:-0x80000000) <= result[1] && result[1] <= 0x7FFFFFFF) {
-        
-        return result[1];
+    if (nonNegative === false) {
+      
+      var result = /^[ \t\n\f\r]*([\+\-]?[0-9]+)/.exec(value);
+      if (result) {
+        if (-0x80000000 <= result[1] && result[1] <= 0x7FFFFFFF) {
+          
+          return result[1];
+        }
+      }
+    } else {
+      var result = /^[ \t\n\f\r]*(\+?[0-9]+)/.exec(value);
+      if (result) {
+        if (0 <= result[1] && result[1] <= 0x7FFFFFFF) {
+          
+          return result[1];
+        }
       }
     }
     return defaultValue;
@@ -542,6 +551,10 @@ function reflectInt(aParameters)
       
       todo_is(element[attr], intValue, "Bug 586761: " + element.localName +
         ".setAttribute(value, " + v + "), " + element.localName + "[" + attr + "] ");
+    } else if ((v === "-0" || v == "-0xABCDEF") && nonNegative) {
+      
+      todo_is(element[attr], intValue, "Bug 688093: " + element.localName +
+        ".setAttribute(" + attr + ", " + v + "), " + element.localName + "[" + attr + "] ");
     } else {
       is(element[attr], intValue, element.localName +
         ".setAttribute(" + attr + ", " + v + "), " + element.localName + "[" + attr + "] ");
@@ -551,12 +564,10 @@ function reflectInt(aParameters)
     if (nonNegative && expectedIdlAttributeResult(v) < 0) {
       try {
         element[attr] = v;
-        ok(false, element.localName + "[" + attr + "] = " + v + " should throw IndexSizeError");
+        ok(false, element.localName + "[" + attr + "] = " + v + " should throw NS_ERROR_DOM_INDEX_SIZE_ERR");
       } catch(e) {
-        is(e.name, "IndexSizeError", element.localName + "[" + attr + "] = " + v +
-          " should throw IndexSizeError");
         is(e.code, DOMException.INDEX_SIZE_ERR, element.localName + "[" + attr + "] = " + v +
-          " should throw INDEX_SIZE_ERR");
+          " should throw NS_ERROR_DOM_INDEX_SIZE_ERR");
       }
     } else {
       element[attr] = v;

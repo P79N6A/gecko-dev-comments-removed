@@ -3,6 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "windows.h"
 #include "windowsx.h"
 
@@ -24,12 +60,10 @@
 #include "nsTWeakRef.h"
 #include "nsCrashOnException.h"
 
-using namespace mozilla;
-
 #define NP_POPUP_API_VERSION 16
 
-#define nsMajorVersion(v)       (((int32_t)(v) >> 16) & 0xffff)
-#define nsMinorVersion(v)       ((int32_t)(v) & 0xffff)
+#define nsMajorVersion(v)       (((PRInt32)(v) >> 16) & 0xffff)
+#define nsMinorVersion(v)       ((PRInt32)(v) & 0xffff)
 #define versionOK(suppliedV, requiredV)                   \
   (nsMajorVersion(suppliedV) == nsMajorVersion(requiredV) \
    && nsMinorVersion(suppliedV) >= nsMinorVersion(requiredV))
@@ -144,14 +178,14 @@ static UINT sLastMsg = 0;
 static bool ProcessFlashMessageDelayed(nsPluginNativeWindowWin * aWin, nsNPAPIPluginInstance * aInst,
                                          HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-  NS_ENSURE_TRUE(aWin, false);
-  NS_ENSURE_TRUE(aInst, false);
+  NS_ENSURE_TRUE(aWin, NS_ERROR_NULL_POINTER);
+  NS_ENSURE_TRUE(aInst, NS_ERROR_NULL_POINTER);
 
   if (msg == sWM_FLASHBOUNCEMSG) {
     
     NS_ASSERTION((sWM_FLASHBOUNCEMSG != 0), "RegisterWindowMessage failed in flash plugin WM_USER message handling!");
     ::CallWindowProc((WNDPROC)aWin->GetWindowProc(), hWnd, WM_USER_FLASH, wParam, lParam);
-    return true;
+    return TRUE;
   }
 
   if (msg != WM_USER_FLASH)
@@ -184,8 +218,6 @@ NS_IMETHODIMP nsDelayedPopupsEnabledEvent::Run()
   mInst->PushPopupsEnabledState(false);
   return NS_OK;	
 }
-
-static LRESULT CALLBACK PluginWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 
 
@@ -307,7 +339,7 @@ static LRESULT CALLBACK PluginWndProcInternal(HWND hWnd, UINT msg, WPARAM wParam
   }
 
   if (enablePopups && inst) {
-    uint16_t apiVersion;
+    PRUint16 apiVersion;
     if (NS_SUCCEEDED(inst->GetPluginAPIVersion(&apiVersion)) &&
         !versionOK(apiVersion, NP_POPUP_API_VERSION)) {
       inst->PushPopupsEnabledState(true);
@@ -315,15 +347,12 @@ static LRESULT CALLBACK PluginWndProcInternal(HWND hWnd, UINT msg, WPARAM wParam
   }
 
   sInMessageDispatch = true;
-  LRESULT res;
-  WNDPROC proc = (WNDPROC)win->GetWindowProc();
-  if (PluginWndProc == proc) {
-    NS_WARNING("Previous plugin window procedure references PluginWndProc! "
-               "Report this bug!");
-    res = CallWindowProc(DefWindowProc, hWnd, msg, wParam, lParam);
-  } else {
-    res = CallWindowProc(proc, hWnd, msg, wParam, lParam);
-  }
+
+  LRESULT res = TRUE;
+  NS_TRY_SAFE_CALL_RETURN(res, 
+                          ::CallWindowProc((WNDPROC)win->GetWindowProc(), hWnd, msg, wParam, lParam),
+                          inst);
+
   sInMessageDispatch = false;
 
   if (inst) {
@@ -426,7 +455,7 @@ SetWindowLongAHook(HWND hWnd,
 
   
   win->SetPrevWindowProc(
-    reinterpret_cast<WNDPROC>(sUser32SetWindowLongWHookStub(hWnd, nIndex,
+    reinterpret_cast<WNDPROC>(sUser32SetWindowLongAHookStub(hWnd, nIndex,
       reinterpret_cast<LONG_PTR>(PluginWndProc))));
   return proc;
 }
@@ -491,7 +520,7 @@ HookSetWindowLongPtr()
 nsPluginNativeWindowWin::nsPluginNativeWindowWin() : nsPluginNativeWindow()
 {
   
-  window = nullptr; 
+  window = nsnull; 
   x = 0; 
   y = 0; 
   width = 0; 
@@ -564,7 +593,7 @@ nsPluginNativeWindowWin::GetPluginWindowEvent(HWND aWnd, UINT aMsg, WPARAM aWPar
   if (!mWeakRef) {
     mWeakRef = this;
     if (!mWeakRef)
-      return nullptr;
+      return nsnull;
   }
 
   PluginWindowEvent *event;
@@ -575,13 +604,13 @@ nsPluginNativeWindowWin::GetPluginWindowEvent(HWND aWnd, UINT aMsg, WPARAM aWPar
   if (!mCachedPluginWindowEvent) 
   {
     event = new PluginWindowEvent();
-    if (!event) return nullptr;
+    if (!event) return nsnull;
     mCachedPluginWindowEvent = event;
   }
   else if (mCachedPluginWindowEvent->InUse())
   {
     event = new PluginWindowEvent();
-    if (!event) return nullptr;
+    if (!event) return nsnull;
   }
   else
   {
@@ -606,7 +635,7 @@ nsresult nsPluginNativeWindowWin::CallSetWindow(nsRefPtr<nsNPAPIPluginInstance> 
 
   
   if (mPluginType == nsPluginType_Unknown) {
-    const char* mimetype = nullptr;
+    const char* mimetype = nsnull;
     aPluginInstance->GetMIMEType(&mimetype);
     if (mimetype) { 
       if (!strcmp(mimetype, "application/x-shockwave-flash"))
@@ -706,7 +735,7 @@ nsresult nsPluginNativeWindowWin::SubclassAndAssociateWindow()
 nsresult nsPluginNativeWindowWin::UndoSubclassAndAssociateWindow()
 {
   
-  SetPluginInstance(nullptr);
+  SetPluginInstance(nsnull);
 
   
   HWND hWnd = (HWND)window;

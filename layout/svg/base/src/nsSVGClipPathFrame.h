@@ -3,15 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGCLIPPATHFRAME_H__
 #define __NS_SVGCLIPPATHFRAME_H__
 
-#include "gfxMatrix.h"
 #include "nsSVGContainerFrame.h"
-#include "nsSVGUtils.h"
-
-class nsRenderingContext;
-class nsISVGChildFrame;
+#include "gfxMatrix.h"
 
 typedef nsSVGContainerFrame nsSVGClipPathFrameBase;
 
@@ -20,25 +47,15 @@ class nsSVGClipPathFrame : public nsSVGClipPathFrameBase
   friend nsIFrame*
   NS_NewSVGClipPathFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 protected:
-  nsSVGClipPathFrame(nsStyleContext* aContext)
-    : nsSVGClipPathFrameBase(aContext)
-    , mInUse(false)
-  {
-    AddStateBits(NS_STATE_SVG_NONDISPLAY_CHILD);
-  }
+  nsSVGClipPathFrame(nsStyleContext* aContext) :
+    nsSVGClipPathFrameBase(aContext),
+    mInUse(PR_FALSE) {}
 
 public:
   NS_DECL_FRAMEARENA_HELPERS
 
   
-  NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                              const nsRect&           aDirtyRect,
-                              const nsDisplayListSet& aLists) {
-    return NS_OK;
-  }
-
-  
-  nsresult ClipPaint(nsRenderingContext* aContext,
+  nsresult ClipPaint(nsSVGRenderState* aContext,
                      nsIFrame* aParent,
                      const gfxMatrix &aMatrix);
 
@@ -49,14 +66,14 @@ public:
   
   
   
-  bool IsTrivial(nsISVGChildFrame **aSingleChild = nullptr);
+  bool IsTrivial();
 
   bool IsValid();
 
   
-  NS_IMETHOD AttributeChanged(int32_t         aNameSpaceID,
+  NS_IMETHOD AttributeChanged(PRInt32         aNameSpaceID,
                               nsIAtom*        aAttribute,
-                              int32_t         aModType);
+                              PRInt32         aModType);
 
   NS_IMETHOD Init(nsIContent*      aContent,
                   nsIFrame*        aParent,
@@ -87,10 +104,10 @@ public:
     AutoClipPathReferencer(nsSVGClipPathFrame *aFrame)
        : mFrame(aFrame) {
       NS_ASSERTION(!mFrame->mInUse, "reference loop!");
-      mFrame->mInUse = true;
+      mFrame->mInUse = PR_TRUE;
     }
     ~AutoClipPathReferencer() {
-      mFrame->mInUse = false;
+      mFrame->mInUse = PR_FALSE;
     }
   private:
     nsSVGClipPathFrame *mFrame;
@@ -102,7 +119,7 @@ public:
   bool mInUse;
 
   
-  virtual gfxMatrix GetCanvasTM(uint32_t aFor);
+  virtual gfxMatrix GetCanvasTM();
 };
 
 #endif

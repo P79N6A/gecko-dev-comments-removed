@@ -3,11 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "prdtoa.h"
 
 #ifdef XPCOM_STRING_CONSTRUCTOR_OUT_OF_LINE
 nsTSubstring_CharT::nsTSubstring_CharT( char_type *data, size_type length,
-                                        uint32_t flags)
+                                        PRUint32 flags)
   : mData(data),
     mLength(length),
     mFlags(flags)
@@ -39,10 +71,10 @@ AsFixedString( const nsTSubstring_CharT* s )
 
 
 bool
-nsTSubstring_CharT::MutatePrep( size_type capacity, char_type** oldData, uint32_t* oldFlags )
+nsTSubstring_CharT::MutatePrep( size_type capacity, char_type** oldData, PRUint32* oldFlags )
   {
     
-    *oldData = nullptr;
+    *oldData = nsnull;
     *oldFlags = 0;
 
     size_type curCapacity = Capacity();
@@ -57,7 +89,7 @@ nsTSubstring_CharT::MutatePrep( size_type capacity, char_type** oldData, uint32_
       
       
       NS_ASSERTION(capacity != size_type(-1), "Bogus capacity");
-      return false;
+      return PR_FALSE;
     }
 
     
@@ -68,7 +100,7 @@ nsTSubstring_CharT::MutatePrep( size_type capacity, char_type** oldData, uint32_
       {
         if (capacity <= curCapacity) {
           mFlags &= ~F_VOIDED;  
-          return true;
+          return PR_TRUE;
         }
 
         
@@ -102,17 +134,17 @@ nsTSubstring_CharT::MutatePrep( size_type capacity, char_type** oldData, uint32_
           {
             nsStringBuffer *newHdr = nsStringBuffer::Realloc(hdr, storageSize);
             if (!newHdr)
-              return false; 
+              return PR_FALSE; 
 
             hdr = newHdr;
             mData = (char_type*) hdr->Data();
             mFlags &= ~F_VOIDED;  
-            return true;
+            return PR_TRUE;
           }
       }
 
     char_type* newData;
-    uint32_t newDataFlags;
+    PRUint32 newDataFlags;
 
       
       
@@ -129,7 +161,7 @@ nsTSubstring_CharT::MutatePrep( size_type capacity, char_type** oldData, uint32_
 
         nsStringBuffer* newHdr = nsStringBuffer::Alloc(storageSize);
         if (!newHdr)
-          return false; 
+          return PR_FALSE; 
 
         newData = (char_type*) newHdr->Data();
         newDataFlags = F_TERMINATED | F_SHARED;
@@ -147,7 +179,7 @@ nsTSubstring_CharT::MutatePrep( size_type capacity, char_type** oldData, uint32_
     
     
 
-    return true;
+    return PR_TRUE;
   }
 
 void
@@ -162,9 +194,9 @@ nsTSubstring_CharT::ReplacePrepInternal(index_type cutStart, size_type cutLen,
                                         size_type fragLen, size_type newLen)
   {
     char_type* oldData;
-    uint32_t oldFlags;
+    PRUint32 oldFlags;
     if (!MutatePrep(newLen, &oldData, &oldFlags))
-      return false; 
+      return PR_FALSE; 
 
     if (oldData)
       {
@@ -182,7 +214,7 @@ nsTSubstring_CharT::ReplacePrepInternal(index_type cutStart, size_type cutLen,
             
             size_type from = cutStart + cutLen;
             size_type fromLen = mLength - from;
-            uint32_t to = cutStart + fragLen;
+            PRUint32 to = cutStart + fragLen;
             char_traits::copy(mData + to, oldData + from, fromLen);
           }
 
@@ -196,9 +228,9 @@ nsTSubstring_CharT::ReplacePrepInternal(index_type cutStart, size_type cutLen,
         
         if (fragLen != cutLen && cutStart + cutLen < mLength)
           {
-            uint32_t from = cutStart + cutLen;
-            uint32_t fromLen = mLength - from;
-            uint32_t to = cutStart + fragLen;
+            PRUint32 from = cutStart + cutLen;
+            PRUint32 fromLen = mLength - from;
+            PRUint32 to = cutStart + fragLen;
             char_traits::move(mData + to, mData + from, fromLen);
           }
       }
@@ -208,7 +240,7 @@ nsTSubstring_CharT::ReplacePrepInternal(index_type cutStart, size_type cutLen,
     mData[newLen] = char_type(0);
     mLength = newLen;
 
-    return true;
+    return PR_TRUE;
   }
 
 nsTSubstring_CharT::size_type
@@ -253,13 +285,20 @@ nsTSubstring_CharT::EnsureMutable( size_type newLen )
     if (newLen == size_type(-1) || newLen == mLength)
       {
         if (mFlags & (F_FIXED | F_OWNED))
-          return true;
+          return PR_TRUE;
         if ((mFlags & F_SHARED) && !nsStringBuffer::FromData(mData)->IsReadonly())
-          return true;
+          return PR_TRUE;
 
-        newLen = mLength;
+        
+        char_type* prevData = mData;
+        Assign(mData, mLength);
+        return mData != prevData;
       }
-    return SetLength(newLen, fallible_t());
+    else
+      {
+        SetLength(newLen);
+        return mLength == newLen;
+      }
   }
 
 
@@ -268,36 +307,19 @@ nsTSubstring_CharT::EnsureMutable( size_type newLen )
 void
 nsTSubstring_CharT::Assign( char_type c )
   {
-    if (!ReplacePrep(0, mLength, 1))
-      NS_RUNTIMEABORT("OOM");
-
-    *mData = c;
+    if (ReplacePrep(0, mLength, 1))
+      *mData = c;
   }
 
-bool
-nsTSubstring_CharT::Assign( char_type c, const fallible_t& )
-  {
-    if (!ReplacePrep(0, mLength, 1))
-      return false;
-
-    *mData = c;
-    return true;
-  }
 
 void
 nsTSubstring_CharT::Assign( const char_type* data, size_type length )
   {
-    if (!Assign(data, length, fallible_t()))
-      NS_RUNTIMEABORT("OOM");
-  }
-
-bool
-nsTSubstring_CharT::Assign( const char_type* data, size_type length, const fallible_t& )
-  {
+      
     if (!data)
       {
         Truncate();
-        return true;
+        return;
       }
 
     if (length == size_type(-1))
@@ -305,66 +327,54 @@ nsTSubstring_CharT::Assign( const char_type* data, size_type length, const falli
 
     if (IsDependentOn(data, data + length))
       {
-        return Assign(string_type(data, length), fallible_t());
+        
+        Assign(string_type(data, length));
+        return;
       }
 
-    if (!ReplacePrep(0, mLength, length))
-      return false;
-
-    char_traits::copy(mData, data, length);
-    return true;
+    if (ReplacePrep(0, mLength, length))
+      char_traits::copy(mData, data, length);
   }
 
 void
 nsTSubstring_CharT::AssignASCII( const char* data, size_type length )
-  {
-    if (!AssignASCII(data, length, fallible_t()))
-      NS_RUNTIMEABORT("OOM");
-  }
-
-bool
-nsTSubstring_CharT::AssignASCII( const char* data, size_type length, const fallible_t& )
   {
     
     
 #ifdef CharT_is_char
     if (IsDependentOn(data, data + length))
       {
-        return Assign(string_type(data, length), fallible_t());
+        
+        Assign(string_type(data, length));
+        return;
       }
 #endif
 
-    if (!ReplacePrep(0, mLength, length))
-      return false;
+    if (ReplacePrep(0, mLength, length))
+      char_traits::copyASCII(mData, data, length);
+  }
 
-    char_traits::copyASCII(mData, data, length);
-    return true;
+void
+nsTSubstring_CharT::AssignASCII( const char* data )
+  {
+    AssignASCII(data, strlen(data));
   }
 
 void
 nsTSubstring_CharT::Assign( const self_type& str )
-{
-  if (!Assign(str, fallible_t()))
-    NS_RUNTIMEABORT("OOM");
-}
-
-bool
-nsTSubstring_CharT::Assign( const self_type& str, const fallible_t& )
   {
     
     
 
     if (&str == this)
-      return true;
+      return;
 
     if (!str.mLength)
       {
         Truncate();
         mFlags |= str.mFlags & F_VOIDED;
-        return true;
       }
-
-    if (str.mFlags & F_SHARED)
+    else if (str.mFlags & F_SHARED)
       {
         
 
@@ -379,44 +389,37 @@ nsTSubstring_CharT::Assign( const self_type& str, const fallible_t& )
 
         
         nsStringBuffer::FromData(mData)->AddRef();
-        return true;
       }
-
-    
-    return Assign(str.Data(), str.Length(), fallible_t());
+    else
+      {
+        
+        Assign(str.Data(), str.Length());
+      }
   }
 
 void
 nsTSubstring_CharT::Assign( const substring_tuple_type& tuple )
   {
-    if (!Assign(tuple, fallible_t()))
-      NS_RUNTIMEABORT("OOM");
-  }
-
-bool
-nsTSubstring_CharT::Assign( const substring_tuple_type& tuple, const fallible_t& )
-  {
     if (tuple.IsDependentOn(mData, mData + mLength))
       {
         
-        return Assign(string_type(tuple), fallible_t());
+        Assign(string_type(tuple));
+        return;
       }
 
     size_type length = tuple.Length();
 
     
     char_type* oldData;
-    uint32_t oldFlags;
-    if (!MutatePrep(length, &oldData, &oldFlags))
-      return false;
+    PRUint32 oldFlags;
+    if (MutatePrep(length, &oldData, &oldFlags)) {
+      if (oldData)
+        ::ReleaseData(oldData, oldFlags);
 
-    if (oldData)
-      ::ReleaseData(oldData, oldFlags);
-
-    tuple.WriteTo(mData, length);
-    mData[length] = 0;
-    mLength = length;
-    return true;
+      tuple.WriteTo(mData, length);
+      mData[length] = 0;
+      mLength = length;
+    }
   }
 
 void
@@ -442,7 +445,7 @@ nsTSubstring_CharT::Adopt( char_type* data, size_type length )
       }
     else
       {
-        SetIsVoid(true);
+        SetIsVoid(PR_TRUE);
       }
   }
 
@@ -526,15 +529,8 @@ nsTSubstring_CharT::Replace( index_type cutStart, size_type cutLength, const sub
       tuple.WriteTo(mData + cutStart, length);
   }
 
-void
-nsTSubstring_CharT::SetCapacity( size_type capacity )
-  {
-    if (!SetCapacity(capacity, fallible_t()))
-      NS_RUNTIMEABORT("OOM");
-  }
-
 bool
-nsTSubstring_CharT::SetCapacity( size_type capacity, const fallible_t& )
+nsTSubstring_CharT::SetCapacity( size_type capacity )
   {
     
 
@@ -545,52 +541,43 @@ nsTSubstring_CharT::SetCapacity( size_type capacity, const fallible_t& )
         mData = char_traits::sEmptyBuffer;
         mLength = 0;
         SetDataFlags(F_TERMINATED);
-        return true;
       }
-
-    char_type* oldData;
-    uint32_t oldFlags;
-    if (!MutatePrep(capacity, &oldData, &oldFlags))
-      return false; 
-
-    
-    size_type newLen = NS_MIN(mLength, capacity);
-
-    if (oldData)
+    else
       {
-        
-        if (mLength > 0)
-          char_traits::copy(mData, oldData, newLen);
+        char_type* oldData;
+        PRUint32 oldFlags;
+        if (!MutatePrep(capacity, &oldData, &oldFlags))
+          return PR_FALSE; 
 
-        ::ReleaseData(oldData, oldFlags);
+        
+        size_type newLen = NS_MIN(mLength, capacity);
+
+        if (oldData)
+          {
+            
+            if (mLength > 0)
+              char_traits::copy(mData, oldData, newLen);
+
+            ::ReleaseData(oldData, oldFlags);
+          }
+
+        
+        if (newLen < mLength)
+          mLength = newLen;
+
+        
+        
+        mData[capacity] = char_type(0);
       }
 
-    
-    if (newLen < mLength)
-      mLength = newLen;
-
-    
-    
-    mData[capacity] = char_type(0);
-
-    return true;
+    return PR_TRUE;
   }
 
 void
 nsTSubstring_CharT::SetLength( size_type length )
   {
-    SetCapacity(length);
-    mLength = length;
-  }
-
-bool
-nsTSubstring_CharT::SetLength( size_type length, const fallible_t& )
-  {
-    if (!SetCapacity(length, fallible_t()))
-      return false;
-
-    mLength = length;
-    return true;
+    if (SetCapacity(length))
+      mLength = length;
   }
 
 void
@@ -682,7 +669,7 @@ nsTSubstring_CharT::CountChar( char_type c ) const
     return NS_COUNT(start, end, c);
   }
 
-int32_t
+PRInt32
 nsTSubstring_CharT::FindChar( char_type c, index_type offset ) const
   {
     if (offset < mLength)
@@ -695,13 +682,12 @@ nsTSubstring_CharT::FindChar( char_type c, index_type offset ) const
   }
 
 void
-nsTSubstring_CharT::StripChar( char_type aChar, int32_t aOffset )
+nsTSubstring_CharT::StripChar( char_type aChar, PRInt32 aOffset )
   {
-    if (mLength == 0 || aOffset >= int32_t(mLength))
+    if (mLength == 0 || aOffset >= PRInt32(mLength))
       return;
 
-    if (!EnsureMutable()) 
-      NS_RUNTIMEABORT("OOM");
+    EnsureMutable(); 
 
     
 
@@ -720,13 +706,12 @@ nsTSubstring_CharT::StripChar( char_type aChar, int32_t aOffset )
   }
 
 void
-nsTSubstring_CharT::StripChars( const char_type* aChars, uint32_t aOffset )
+nsTSubstring_CharT::StripChars( const char_type* aChars, PRUint32 aOffset )
   {
-    if (aOffset >= uint32_t(mLength))
+    if (aOffset >= PRUint32(mLength))
       return;
 
-    if (!EnsureMutable()) 
-      NS_RUNTIMEABORT("OOM");
+    EnsureMutable(); 
 
     
 
@@ -750,37 +735,27 @@ nsTSubstring_CharT::StripChars( const char_type* aChars, uint32_t aOffset )
     mLength = to - mData;
   }
 
-int
-nsTSubstring_CharT::AppendFunc(void* arg, const char* s, uint32_t len)
+void nsTSubstring_CharT::AppendPrintf31( const char* format, ...)
   {
-    self_type* self = static_cast<self_type*>(arg);
-
-    
-    if (len && s[len - 1] == '\0') {
-      --len;
-    }
-
-    self->AppendASCII(s, len);
-
-    return len;
+    char buf[32];
+    va_list ap;
+    va_start(ap, format);
+    PRUint32 len = PR_vsnprintf(buf, sizeof(buf), format, ap);
+    AppendASCII(buf, len);
+    va_end(ap);
   }
 
 void nsTSubstring_CharT::AppendPrintf( const char* format, ...)
   {
+    char *buf;
     va_list ap;
     va_start(ap, format);
-    uint32_t r = PR_vsxprintf(AppendFunc, this, format, ap);
-    if (r == (uint32_t) -1)
-      NS_RUNTIMEABORT("Allocation or other failure in PR_vsxprintf");
+    buf = PR_vsmprintf(format, ap);
+    AppendASCII(buf);
+    PR_smprintf_free(buf);
     va_end(ap);
   }
 
-void nsTSubstring_CharT::AppendPrintf( const char* format, va_list ap )
-  {
-    uint32_t r = PR_vsxprintf(AppendFunc, this, format, ap);
-    if (r == (uint32_t) -1)
-      NS_RUNTIMEABORT("Allocation or other failure in PR_vsxprintf");
-  }
 
 
 #ifdef CharT_is_PRUnichar
@@ -793,7 +768,7 @@ void nsTSubstring_CharT::AppendPrintf( const char* format, va_list ap )
 static void 
 Modified_cnvtf(char *buf, int bufsz, int prcsn, double fval)
 {
-  int decpt, sign, numdigits;
+  PRIntn decpt, sign, numdigits;
   char *num, *nump;
   char *bufp = buf;
   char *endnum;
@@ -886,58 +861,5 @@ nsTSubstring_CharT::DoAppendFloat( double aFloat, int digits )
   
   Modified_cnvtf(buf, sizeof(buf), digits, aFloat);
   AppendASCII(buf);
-}
-
-size_t
-nsTSubstring_CharT::SizeOfExcludingThisMustBeUnshared(
-    nsMallocSizeOfFun mallocSizeOf) const
-{
-  if (mFlags & F_SHARED) {
-    return nsStringBuffer::FromData(mData)->
-             SizeOfIncludingThisMustBeUnshared(mallocSizeOf);
-  } 
-  if (mFlags & F_OWNED) {
-    return mallocSizeOf(mData);
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  return 0;
-}
-
-size_t
-nsTSubstring_CharT::SizeOfExcludingThisIfUnshared(
-    nsMallocSizeOfFun mallocSizeOf) const
-{
-  
-  
-  if (mFlags & F_SHARED) {
-    return nsStringBuffer::FromData(mData)->
-             SizeOfIncludingThisIfUnshared(mallocSizeOf);
-  }
-  if (mFlags & F_OWNED) {
-    return mallocSizeOf(mData);
-  }
-  return 0;
-}
-
-size_t
-nsTSubstring_CharT::SizeOfIncludingThisMustBeUnshared(
-    nsMallocSizeOfFun mallocSizeOf) const
-{
-  return mallocSizeOf(this) + SizeOfExcludingThisMustBeUnshared(mallocSizeOf);
-}
-
-size_t
-nsTSubstring_CharT::SizeOfIncludingThisIfUnshared(
-    nsMallocSizeOfFun mallocSizeOf) const
-{
-  return mallocSizeOf(this) + SizeOfExcludingThisIfUnshared(mallocSizeOf);
 }
 

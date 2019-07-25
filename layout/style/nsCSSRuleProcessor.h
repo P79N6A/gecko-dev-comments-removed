@@ -9,6 +9,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsCSSRuleProcessor_h_
 #define nsCSSRuleProcessor_h_
 
@@ -18,12 +51,10 @@
 #include "nsAutoPtr.h"
 #include "nsCSSRules.h"
 #include "nsRuleWalker.h"
-#include "nsEventStates.h"
 
-struct CascadeEnumData;
-struct nsCSSSelector;
-struct nsCSSSelectorList;
 struct RuleCascadeData;
+struct nsCSSSelectorList;
+struct CascadeEnumData;
 struct TreeMatchContext;
 class nsCSSKeyframesRule;
 
@@ -42,7 +73,7 @@ class nsCSSRuleProcessor: public nsIStyleRuleProcessor {
 public:
   typedef nsTArray<nsRefPtr<nsCSSStyleSheet> > sheet_array_type;
 
-  nsCSSRuleProcessor(const sheet_array_type& aSheets, uint8_t aSheetType);
+  nsCSSRuleProcessor(const sheet_array_type& aSheets, PRUint8 aSheetType);
   virtual ~nsCSSRuleProcessor();
 
   NS_DECL_ISUPPORTS
@@ -70,15 +101,13 @@ public:
 
 
 
-  static nsEventStates GetContentState(mozilla::dom::Element* aElement,
-                                       const TreeMatchContext& aTreeMatchContext);
+  static nsEventStates GetContentState(mozilla::dom::Element* aElement);
 
   
 
 
   static nsEventStates GetContentStateForVisitedHandling(
              mozilla::dom::Element* aElement,
-             const TreeMatchContext& aTreeMatchContext,
              nsRuleWalker::VisitedHandlingType aVisitedHandling,
              bool aIsRelevantLink);
 
@@ -107,18 +136,15 @@ public:
 
   virtual bool MediumFeaturesChanged(nsPresContext* aPresContext);
 
-  virtual NS_MUST_OVERRIDE size_t
-    SizeOfExcludingThis(nsMallocSizeOfFun mallocSizeOf) const MOZ_OVERRIDE;
-  virtual NS_MUST_OVERRIDE size_t
-    SizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf) const MOZ_OVERRIDE;
+  virtual PRInt64 SizeOf() const;
 
   
   
   bool AppendFontFaceRules(nsPresContext* aPresContext,
-                           nsTArray<nsFontFaceRuleContainer>& aArray);
+                             nsTArray<nsFontFaceRuleContainer>& aArray);
 
   bool AppendKeyframesRules(nsPresContext* aPresContext,
-                            nsTArray<nsCSSKeyframesRule*>& aArray);
+                              nsTArray<nsCSSKeyframesRule*>& aArray);
 
 #ifdef DEBUG
   void AssertQuirksChangeOK() {
@@ -129,21 +155,11 @@ public:
 
 #ifdef XP_WIN
   
-  static uint8_t GetWindowsThemeIdentifier();
-  static void SetWindowsThemeIdentifier(uint8_t aId) { 
+  static PRUint8 GetWindowsThemeIdentifier();
+  static void SetWindowsThemeIdentifier(PRUint8 aId) { 
     sWinThemeId = aId;
   }
 #endif
-
-  struct StateSelector {
-    StateSelector(nsEventStates aStates, nsCSSSelector* aSelector)
-      : mStates(aStates),
-        mSelector(aSelector)
-    {}
-
-    nsEventStates mStates;
-    nsCSSSelector* mSelector;
-  };
 
 private:
   static bool CascadeSheet(nsCSSStyleSheet* aSheet, CascadeEnumData* aData);
@@ -161,10 +177,10 @@ private:
   nsPresContext *mLastPresContext;
   
   
-  uint8_t mSheetType;  
+  PRUint8 mSheetType;  
 
 #ifdef XP_WIN
-  static uint8_t sWinThemeId;
+  static PRUint8 sWinThemeId;
 #endif
 };
 

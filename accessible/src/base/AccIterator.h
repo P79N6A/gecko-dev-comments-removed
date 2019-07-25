@@ -4,15 +4,48 @@
 
 
 
-#ifndef mozilla_a11y_AccIterator_h__
-#define mozilla_a11y_AccIterator_h__
 
-#include "DocAccessible.h"
-#include "Filters.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef nsAccIterator_h_
+#define nsAccIterator_h_
+
 #include "nsAccessibilityService.h"
+#include "filters.h"
+#include "nscore.h"
+#include "nsDocAccessible.h"
 
-namespace mozilla {
-namespace a11y {
+#include "nsIDOMDocumentXBL.h"
 
 
 
@@ -21,10 +54,10 @@ class AccIterable
 {
 public:
   virtual ~AccIterable() { }
-  virtual Accessible* Next() = 0;
+  virtual nsAccessible* Next() = 0;
 
 private:
-  friend class mozilla::a11y::Relation;
+  friend class Relation;
   nsAutoPtr<AccIterable> mNextIter;
 };
 
@@ -35,14 +68,31 @@ private:
 class AccIterator : public AccIterable
 {
 public:
-  AccIterator(Accessible* aRoot, filters::FilterFuncPtr aFilterFunc);
+  
+
+
+  enum IterationType {
+    
+
+
+    eFlatNav,
+
+    
+
+
+
+    eTreeNav
+  };
+
+  AccIterator(nsAccessible* aRoot, filters::FilterFuncPtr aFilterFunc,
+              IterationType aIterationType = eFlatNav);
   virtual ~AccIterator();
 
   
 
 
 
-  virtual Accessible* Next();
+  virtual nsAccessible *Next();
 
 private:
   AccIterator();
@@ -51,15 +101,16 @@ private:
 
   struct IteratorState
   {
-    IteratorState(Accessible* aParent, IteratorState* mParentState = nullptr);
+    IteratorState(nsAccessible *aParent, IteratorState *mParentState = nsnull);
 
-    Accessible* mParent;
-    int32_t mIndex;
-    IteratorState* mParentState;
+    nsAccessible *mParent;
+    PRInt32 mIndex;
+    IteratorState *mParentState;
   };
 
   filters::FilterFuncPtr mFilterFunc;
-  IteratorState* mState;
+  bool mIsDeep;
+  IteratorState *mState;
 };
 
 
@@ -80,7 +131,7 @@ public:
 
 
 
-  RelatedAccIterator(DocAccessible* aDocument, nsIContent* aDependentContent,
+  RelatedAccIterator(nsDocAccessible* aDocument, nsIContent* aDependentContent,
                      nsIAtom* aRelAttr);
 
   virtual ~RelatedAccIterator() { }
@@ -88,18 +139,18 @@ public:
   
 
 
-  virtual Accessible* Next();
+  virtual nsAccessible* Next();
 
 private:
   RelatedAccIterator();
   RelatedAccIterator(const RelatedAccIterator&);
   RelatedAccIterator& operator = (const RelatedAccIterator&);
 
-  DocAccessible* mDocument;
+  nsDocAccessible* mDocument;
   nsIAtom* mRelAttr;
-  DocAccessible::AttrRelProviderArray* mProviders;
+  nsDocAccessible::AttrRelProviderArray* mProviders;
   nsIContent* mBindingParent;
-  uint32_t mIndex;
+  PRUint32 mIndex;
 };
 
 
@@ -114,7 +165,7 @@ public:
     eSkipAncestorLabel
   };
 
-  HTMLLabelIterator(DocAccessible* aDocument, const Accessible* aAccessible,
+  HTMLLabelIterator(nsDocAccessible* aDocument, const nsAccessible* aAccessible,
                     LabelFilter aFilter = eAllLabels);
 
   virtual ~HTMLLabelIterator() { }
@@ -122,7 +173,7 @@ public:
   
 
 
-  virtual Accessible* Next();
+  virtual nsAccessible* Next();
 
 private:
   HTMLLabelIterator();
@@ -132,7 +183,7 @@ private:
   RelatedAccIterator mRelIter;
   
   
-  const Accessible* mAcc;
+  const nsAccessible* mAcc;
   LabelFilter mLabelFilter;
 };
 
@@ -143,13 +194,13 @@ private:
 class HTMLOutputIterator : public AccIterable
 {
 public:
-  HTMLOutputIterator(DocAccessible* aDocument, nsIContent* aElement);
+  HTMLOutputIterator(nsDocAccessible* aDocument, nsIContent* aElement);
   virtual ~HTMLOutputIterator() { }
 
   
 
 
-  virtual Accessible* Next();
+  virtual nsAccessible* Next();
 
 private:
   HTMLOutputIterator();
@@ -166,13 +217,13 @@ private:
 class XULLabelIterator : public AccIterable
 {
 public:
-  XULLabelIterator(DocAccessible* aDocument, nsIContent* aElement);
+  XULLabelIterator(nsDocAccessible* aDocument, nsIContent* aElement);
   virtual ~XULLabelIterator() { }
 
   
 
 
-  virtual Accessible* Next();
+  virtual nsAccessible* Next();
 
 private:
   XULLabelIterator();
@@ -189,13 +240,13 @@ private:
 class XULDescriptionIterator : public AccIterable
 {
 public:
-  XULDescriptionIterator(DocAccessible* aDocument, nsIContent* aElement);
+  XULDescriptionIterator(nsDocAccessible* aDocument, nsIContent* aElement);
   virtual ~XULDescriptionIterator() { }
 
   
 
 
-  virtual Accessible* Next();
+  virtual nsAccessible* Next();
 
 private:
   XULDescriptionIterator();
@@ -213,8 +264,7 @@ private:
 class IDRefsIterator : public AccIterable
 {
 public:
-  IDRefsIterator(DocAccessible* aDoc, nsIContent* aContent,
-                 nsIAtom* aIDRefsAttr);
+  IDRefsIterator(nsIContent* aContent, nsIAtom* aIDRefsAttr);
   virtual ~IDRefsIterator() { }
 
   
@@ -233,7 +283,7 @@ public:
   nsIContent* GetElem(const nsDependentSubstring& aID);
 
   
-  virtual Accessible* Next();
+  virtual nsAccessible* Next();
 
 private:
   IDRefsIterator();
@@ -241,9 +291,11 @@ private:
   IDRefsIterator operator = (const IDRefsIterator&);
 
   nsString mIDs;
-  nsIContent* mContent;
-  DocAccessible* mDoc;
   nsAString::index_type mCurrIdx;
+
+  nsIDocument* mDocument;
+  nsCOMPtr<nsIDOMDocumentXBL> mXBLDocument;
+  nsCOMPtr<nsIDOMElement> mBindingParent;
 };
 
 
@@ -253,20 +305,17 @@ private:
 class SingleAccIterator : public AccIterable
 {
 public:
-  SingleAccIterator(Accessible* aTarget): mAcc(aTarget) { }
+  SingleAccIterator(nsAccessible* aTarget): mAcc(aTarget) { }
   virtual ~SingleAccIterator() { }
 
-  virtual Accessible* Next();
+  virtual nsAccessible* Next();
 
 private:
   SingleAccIterator();
   SingleAccIterator(const SingleAccIterator&);
   SingleAccIterator& operator = (const SingleAccIterator&);
 
-  nsRefPtr<Accessible> mAcc;
+  nsRefPtr<nsAccessible> mAcc;
 };
-
-} 
-} 
 
 #endif

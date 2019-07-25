@@ -3,10 +3,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __nsProfileLock_h___
 #define __nsProfileLock_h___
 
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 
 class nsIProfileUnlocker;
 
@@ -47,7 +81,7 @@ public:
 
 
 
-    nsresult                Lock(nsIFile* aProfileDir, nsIProfileUnlocker* *aUnlocker);
+    nsresult                Lock(nsILocalFile* aProfileDir, nsIProfileUnlocker* *aUnlocker);
 
     
 
@@ -55,15 +89,9 @@ public:
 
 
     nsresult                Unlock(bool aFatalSignal = false);
-
-    
-
-
-    nsresult                GetReplacedLockTime(PRTime* aResult);
-
+        
 private:
     bool                    mHaveLock;
-    PRTime                  mReplacedLockTime;
 
 #if defined (XP_WIN)
     HANDLE                  mLockFileHandle;
@@ -74,7 +102,7 @@ private:
     struct RemovePidLockFilesExiting {
         RemovePidLockFilesExiting() {}
         ~RemovePidLockFilesExiting() {
-            RemovePidLockFiles(false);
+            RemovePidLockFiles(PR_FALSE);
         }
     };
 
@@ -86,13 +114,13 @@ private:
                                                );
     static PRCList          mPidLockList;
 
-    nsresult                LockWithFcntl(nsIFile *aLockFile);
+    nsresult                LockWithFcntl(const nsACString& lockFilePath);
 
     
 
 
 
-    nsresult                LockWithSymlink(nsIFile *aLockFile, bool aHaveFcntlLock);
+    nsresult                LockWithSymlink(const nsACString& lockFilePath, bool aHaveFcntlLock);
 
     char*                   mPidLockFileName;
     int                     mLockFileDesc;

@@ -3,7 +3,36 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "SVGLength.h"
 #include "nsSVGElement.h"
@@ -18,8 +47,8 @@
 namespace mozilla {
 
 
-static void GetUnitString(nsAString& unit, uint16_t unitType);
-static uint16_t GetUnitTypeForString(const nsAString& unitStr);
+static void GetUnitString(nsAString& unit, PRUint16 unitType);
+static PRUint16 GetUnitTypeForString(const char* unitStr);
 
 void
 SVGLength::GetValueAsString(nsAString &aValue) const
@@ -39,7 +68,7 @@ bool
 SVGLength::SetValueFromString(const nsAString &aValue)
 {
   float tmpValue;
-  uint16_t tmpUnit;
+  PRUint16 tmpUnit;
 
   NS_ConvertUTF16toUTF8 value(aValue);
   const char *str = value.get();
@@ -51,14 +80,18 @@ SVGLength::SetValueFromString(const nsAString &aValue)
   tmpValue = float(PR_strtod(str, &unit));
   if (unit != str && NS_finite(tmpValue)) {
     char *theRest = unit;
-    while (*theRest != '\0' && !IsSVGWhitespace(*theRest)) {
-      ++theRest;
-    }
-    tmpUnit = GetUnitTypeForString(
-                Substring(aValue, unit - str, theRest - unit));
-    if (tmpUnit == nsIDOMSVGLength::SVG_LENGTHTYPE_UNKNOWN) {
-      
-      return false;
+    if (*unit != '\0' && !IsSVGWhitespace(*unit)) {
+      while (*theRest != '\0' && !IsSVGWhitespace(*theRest)) {
+        ++theRest;
+      }
+      nsCAutoString unitStr(unit, theRest - unit);
+      tmpUnit = GetUnitTypeForString(unitStr.get());
+      if (tmpUnit == nsIDOMSVGLength::SVG_LENGTHTYPE_UNKNOWN) {
+        
+        return PR_FALSE;
+      }
+    } else {
+      tmpUnit = nsIDOMSVGLength::SVG_LENGTHTYPE_NUMBER;
     }
     while (*theRest && IsSVGWhitespace(*theRest)) {
       ++theRest;
@@ -66,14 +99,14 @@ SVGLength::SetValueFromString(const nsAString &aValue)
     if (!*theRest) {
       mValue = tmpValue;
       mUnit = tmpUnit;
-      return true;
+      return PR_TRUE;
     }
   }
-  return false;
+  return PR_FALSE;
 }
 
 inline static bool
-IsAbsoluteUnit(uint8_t aUnit)
+IsAbsoluteUnit(PRUint8 aUnit)
 {
   return aUnit >= nsIDOMSVGLength::SVG_LENGTHTYPE_CM &&
          aUnit <= nsIDOMSVGLength::SVG_LENGTHTYPE_PC;
@@ -90,7 +123,7 @@ IsAbsoluteUnit(uint8_t aUnit)
 
 
 
-inline static float GetAbsUnitsPerAbsUnit(uint8_t aUnits, uint8_t aPerUnit)
+inline static float GetAbsUnitsPerAbsUnit(PRUint8 aUnits, PRUint8 aPerUnit)
 {
   NS_ABORT_IF_FALSE(IsAbsoluteUnit(aUnits), "Not a CSS absolute unit");
   NS_ABORT_IF_FALSE(IsAbsoluteUnit(aPerUnit), "Not a CSS absolute unit");
@@ -113,9 +146,9 @@ inline static float GetAbsUnitsPerAbsUnit(uint8_t aUnits, uint8_t aPerUnit)
 }
 
 float
-SVGLength::GetValueInSpecifiedUnit(uint8_t aUnit,
+SVGLength::GetValueInSpecifiedUnit(PRUint8 aUnit,
                                    const nsSVGElement *aElement,
-                                   uint8_t aAxis) const
+                                   PRUint8 aAxis) const
 {
   if (aUnit == mUnit) {
     return mValue;
@@ -159,7 +192,7 @@ SVGLength::GetValueInSpecifiedUnit(uint8_t aUnit,
 #define INCHES_PER_CM_FLOAT float(0.393700787)
 
 float
-SVGLength::GetUserUnitsPerUnit(const nsSVGElement *aElement, uint8_t aAxis) const
+SVGLength::GetUserUnitsPerUnit(const nsSVGElement *aElement, PRUint8 aAxis) const
 {
   switch (mUnit) {
     case nsIDOMSVGLength::SVG_LENGTHTYPE_NUMBER:
@@ -188,7 +221,7 @@ SVGLength::GetUserUnitsPerUnit(const nsSVGElement *aElement, uint8_t aAxis) cons
 }
 
  float
-SVGLength::GetUserUnitsPerPercent(const nsSVGElement *aElement, uint8_t aAxis)
+SVGLength::GetUserUnitsPerPercent(const nsSVGElement *aElement, PRUint8 aAxis)
 {
   if (aElement) {
     nsSVGSVGElement *viewportElement = const_cast<nsSVGElement*>(aElement)->GetCtx();
@@ -204,8 +237,8 @@ SVGLength::GetUserUnitsPerPercent(const nsSVGElement *aElement, uint8_t aAxis)
 
 static nsIAtom** const unitMap[] =
 {
-  nullptr, 
-  nullptr, 
+  nsnull, 
+  nsnull, 
   &nsGkAtoms::percentage,
   &nsGkAtoms::em,
   &nsGkAtoms::ex,
@@ -218,7 +251,7 @@ static nsIAtom** const unitMap[] =
 };
 
 static void
-GetUnitString(nsAString& unit, uint16_t unitType)
+GetUnitString(nsAString& unit, PRUint16 unitType)
 {
   if (SVGLength::IsValidUnitType(unitType)) {
     if (unitMap[unitType]) {
@@ -230,19 +263,17 @@ GetUnitString(nsAString& unit, uint16_t unitType)
   return;
 }
 
-static uint16_t
-GetUnitTypeForString(const nsAString& unitStr)
+static PRUint16
+GetUnitTypeForString(const char* unitStr)
 {
-  if (unitStr.IsEmpty())
+  if (!unitStr || *unitStr == '\0')
     return nsIDOMSVGLength::SVG_LENGTHTYPE_NUMBER;
 
-  nsIAtom* unitAtom = NS_GetStaticAtom(unitStr);
+  nsCOMPtr<nsIAtom> unitAtom = do_GetAtom(unitStr);
 
-  if (unitAtom) {
-    for (uint32_t i = 1 ; i < ArrayLength(unitMap) ; i++) {
-      if (unitMap[i] && *unitMap[i] == unitAtom) {
-        return i;
-      }
+  for (PRUint32 i = 1 ; i < NS_ARRAY_LENGTH(unitMap) ; i++) {
+    if (unitMap[i] && *unitMap[i] == unitAtom) {
+      return i;
     }
   }
   return nsIDOMSVGLength::SVG_LENGTHTYPE_UNKNOWN;

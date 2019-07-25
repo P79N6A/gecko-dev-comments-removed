@@ -3,12 +3,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_MACFONT_H
 #define GFX_MACFONT_H
 
 #include "gfxFont.h"
 #include "gfxMacPlatformFontList.h"
-#include "mozilla/gfx/2D.h"
 
 #include "cairo.h"
 
@@ -27,7 +61,7 @@ public:
         return mMetrics;
     }
 
-    virtual uint32_t GetSpaceGlyph() {
+    virtual PRUint32 GetSpaceGlyph() {
         return mSpaceGlyph;
     }
 
@@ -35,32 +69,26 @@ public:
 
     
     virtual RunMetrics Measure(gfxTextRun *aTextRun,
-                               uint32_t aStart, uint32_t aEnd,
+                               PRUint32 aStart, PRUint32 aEnd,
                                BoundingBoxType aBoundingBoxType,
                                gfxContext *aContextForTightBoundingBox,
                                Spacing *aSpacing);
 
     
     
-    virtual hb_blob_t *GetFontTable(uint32_t aTag);
-
-    mozilla::RefPtr<mozilla::gfx::ScaledFont> GetScaledFont();
-
-    virtual void SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                     FontCacheSizes*   aSizes) const;
-    virtual void SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                     FontCacheSizes*   aSizes) const;
-
-    virtual FontType GetType() const { return FONT_TYPE_MAC; }
+    virtual hb_blob_t *GetFontTable(PRUint32 aTag);
 
 protected:
     virtual void CreatePlatformShaper();
 
     
-    virtual bool ShapeWord(gfxContext *aContext,
-                           gfxShapedWord *aShapedWord,
-                           const PRUnichar *aText,
-                           bool aPreferPlatformShaping = false);
+    virtual bool InitTextRun(gfxContext *aContext,
+                               gfxTextRun *aTextRun,
+                               const PRUnichar *aString,
+                               PRUint32 aRunStart,
+                               PRUint32 aRunLength,
+                               PRInt32 aRunScript,
+                               bool aPreferPlatformShaping = false);
 
     void InitMetrics();
     void InitMetricsFromPlatform();
@@ -69,7 +97,7 @@ protected:
     
     
     gfxFloat GetCharWidth(CFDataRef aCmap, PRUnichar aUniChar,
-                          uint32_t *aGlyphID, gfxFloat aConvFactor);
+                          PRUint32 *aGlyphID, gfxFloat aConvFactor);
 
     static void DestroyBlobFunc(void* aUserData);
 
@@ -78,11 +106,10 @@ protected:
     CGFontRef             mCGFont;
 
     cairo_font_face_t    *mFontFace;
+    cairo_scaled_font_t  *mScaledFont;
 
     Metrics               mMetrics;
-    uint32_t              mSpaceGlyph;
-
-    mozilla::RefPtr<mozilla::gfx::ScaledFont> mAzureFont;
+    PRUint32              mSpaceGlyph;
 };
 
 #endif 

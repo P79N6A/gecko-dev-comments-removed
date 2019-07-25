@@ -9,17 +9,8 @@
       android:sharedUserId="@MOZ_ANDROID_SHARED_ID@"
 #endif
       >
-
     <uses-sdk android:minSdkVersion="5"
               android:targetSdkVersion="11"/>
-
-    <compatible-screens>
-        <!-- all xlarge size screens -->
-        <screen android:screenSize="xlarge" android:screenDensity="ldpi" />
-        <screen android:screenSize="xlarge" android:screenDensity="mdpi" />
-        <screen android:screenSize="xlarge" android:screenDensity="hdpi" />
-        <screen android:screenSize="xlarge" android:screenDensity="xhdpi" />
-    </compatible-screens>
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
@@ -27,16 +18,10 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT"/>
 
+    <uses-permission android:name="android.permission.READ_LOGS"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
-    <uses-permission android:name="android.permission.VIBRATE"/>
-
-#ifdef MOZ_WEBSMS_BACKEND
-    <!-- WebSMS -->
-    <uses-permission android:name="android.permission.SEND_SMS"/>
-    <uses-permission android:name="android.permission.RECEIVE_SMS"/>
-    <uses-permission android:name="android.permission.WRITE_SMS"/>
-    <uses-permission android:name="android.permission.READ_SMS"/>
-#endif
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE"/> 
 
     <uses-feature android:name="android.hardware.location" android:required="false"/>
     <uses-feature android:name="android.hardware.location.gps" android:required="false"/>
@@ -47,11 +32,11 @@
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
  
     <application android:label="@MOZ_APP_DISPLAYNAME@"
-                 android:icon="@drawable/icon"
+		 android:icon="@drawable/icon"
 #if MOZILLA_OFFICIAL
-                 android:debuggable="false">
+		 android:debuggable="false">
 #else
-                 android:debuggable="true">
+		 android:debuggable="true">
 #endif
 
         <activity android:name="App"
@@ -126,23 +111,15 @@
           <intent-filter>
             <action android:name="org.mozilla.gecko.reportCrash" />
           </intent-filter>
-        </activity>
+	</activity>
 #endif
 
         <activity android:name="LauncherShortcuts"
-                  android:label="@string/launcher_shortcuts_title"
-                  android:theme="@android:style/Theme.Translucent">
+                  android:label="@string/launcher_shortcuts_title">
             <!--  This intent-filter allows your shortcuts to be created in the launcher. -->
             <intent-filter>
                 <action android:name="android.intent.action.CREATE_SHORTCUT" />
                 <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
-        <activity android:name="org.mozilla.gecko.VideoPlayer"
-                  android:configChanges="keyboard|keyboardHidden|mcc|mnc|orientation" 
-                  android:theme="@android:style/Theme.NoTitleBar" >
-            <intent-filter>
-                <action android:name="org.mozilla.gecko.PLAY_VIDEO" />
             </intent-filter>
         </activity>
     </application>

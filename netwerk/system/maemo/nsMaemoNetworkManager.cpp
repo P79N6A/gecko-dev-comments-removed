@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsMaemoNetworkManager.h"
 #include "mozilla/ReentrantMonitor.h"
 
@@ -33,12 +65,12 @@ enum InternalState
 };
 
 static InternalState gInternalState = InternalState_Invalid;
-static ConIcConnection* gConnection = nullptr;
+static ConIcConnection* gConnection = nsnull;
 static bool gConnectionCallbackInvoked = false;
 
 using namespace mozilla;
 
-static ReentrantMonitor* gReentrantMonitor = nullptr;
+static ReentrantMonitor* gReentrantMonitor = nsnull;
 
 static void NotifyNetworkLinkObservers()
 {
@@ -62,7 +94,7 @@ connection_event_callback(ConIcConnection *aConnection,
     gInternalState = (CON_IC_STATUS_CONNECTED == status ?
                      InternalState_Connected : InternalState_Disconnected);
 
-    gConnectionCallbackInvoked = true;
+    gConnectionCallbackInvoked = PR_TRUE;
     mon.Notify();
   }
 
@@ -73,14 +105,14 @@ bool
 nsMaemoNetworkManager::OpenConnectionSync()
 {
   if (NS_IsMainThread() || !gConnection)
-    return false;
+    return PR_FALSE;
 
   
   
   
   ReentrantMonitorAutoEnter mon(*gReentrantMonitor);
 
-  gConnectionCallbackInvoked = false;
+  gConnectionCallbackInvoked = PR_FALSE;
 
   if (!con_ic_connection_connect(gConnection,
                                  CON_IC_CONNECT_FLAG_NONE))
@@ -91,9 +123,9 @@ nsMaemoNetworkManager::OpenConnectionSync()
     mon.Wait();
 
   if (gInternalState == InternalState_Connected)
-    return true;
+    return PR_TRUE;
 
-  return false;
+  return PR_FALSE;
 }
 
 void
@@ -119,11 +151,11 @@ bool
 nsMaemoNetworkManager::Startup()
 {
   if (gConnection)
-    return true;
+    return PR_TRUE;
 
   gReentrantMonitor = new ReentrantMonitor("MaemoAutodialer");
   if (!gReentrantMonitor)
-    return false;
+    return PR_FALSE;
 
   DBusError error;
   dbus_error_init(&error);
@@ -131,33 +163,33 @@ nsMaemoNetworkManager::Startup()
   DBusConnection* dbusConnection = dbus_bus_get(DBUS_BUS_SYSTEM, &error);
   NS_ASSERTION(dbusConnection, "Error when connecting to the session bus");
 
-  dbus_connection_setup_with_g_main(dbusConnection, nullptr);
+  dbus_connection_setup_with_g_main(dbusConnection, nsnull);
 
   
   gConnection = con_ic_connection_new();
   NS_ASSERTION(gConnection, "Error when creating connection");
   if (!gConnection) {
     delete gReentrantMonitor;
-    gReentrantMonitor = nullptr;
-    return false;
+    gReentrantMonitor = nsnull;
+    return PR_FALSE;
   }
 
   g_signal_connect(G_OBJECT(gConnection),
                    "connection-event",
                    G_CALLBACK(connection_event_callback),
-                   nullptr);
+                   nsnull);
   
   g_object_set(G_OBJECT(gConnection),
                "automatic-connection-events",
-               true,
-               nullptr);
-  return true;
+               PR_TRUE,
+               nsnull);
+  return PR_TRUE;
 }
 
 void
 nsMaemoNetworkManager::Shutdown()
 {
-  gConnection = nullptr;
+  gConnection = nsnull;
 
   if (gReentrantMonitor) {
     

@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _NS_DEVICECONTEXT_H_
 #define _NS_DEVICECONTEXT_H_
 
@@ -16,6 +50,29 @@
 class nsIAtom;
 class nsFontCache;
 class gfxUserFontSet;
+
+typedef enum {
+    eSystemFont_Caption,         
+    eSystemFont_Icon,
+    eSystemFont_Menu,
+    eSystemFont_MessageBox,
+    eSystemFont_SmallCaption,
+    eSystemFont_StatusBar,
+
+    eSystemFont_Window,          
+    eSystemFont_Document,
+    eSystemFont_Workspace,
+    eSystemFont_Desktop,
+    eSystemFont_Info,
+    eSystemFont_Dialog,
+    eSystemFont_Button,
+    eSystemFont_PullDownMenu,
+    eSystemFont_List,
+    eSystemFont_Field,
+
+    eSystemFont_Tooltips,        
+    eSystemFont_Widget
+} nsSystemFontID;
 
 class nsDeviceContext
 {
@@ -51,14 +108,14 @@ public:
 
 
 
-    static int32_t AppUnitsPerCSSPixel() { return 60; }
+    static PRInt32 AppUnitsPerCSSPixel() { return 60; }
 
     
 
 
 
 
-    uint32_t AppUnitsPerDevPixel() const { return mAppUnitsPerDevPixel; }
+    PRUint32 AppUnitsPerDevPixel() const { return mAppUnitsPerDevPixel; }
 
     
 
@@ -77,21 +134,37 @@ public:
 
 
 
-    int32_t AppUnitsPerPhysicalInch() const
+    PRInt32 AppUnitsPerPhysicalInch() const
     { return mAppUnitsPerPhysicalInch; }
 
     
 
 
 
-    static int32_t AppUnitsPerCSSInch() { return 96 * AppUnitsPerCSSPixel(); }
+    static PRInt32 AppUnitsPerCSSInch() { return 96 * AppUnitsPerCSSPixel(); }
 
     
 
 
 
-    int32_t UnscaledAppUnitsPerDevPixel() const
+    PRInt32 UnscaledAppUnitsPerDevPixel() const
     { return mAppUnitsPerDevNotScaledPixel; }
+
+    
+
+
+
+
+
+
+
+
+    nsresult GetSystemFont(nsSystemFontID aID, nsFont *aFont) const;
+
+    
+
+
+    static void ClearCachedSystemFonts();
 
     
 
@@ -122,7 +195,7 @@ public:
     
 
 
-    nsresult GetDepth(uint32_t& aDepth);
+    nsresult GetDepth(PRUint32& aDepth);
 
     
 
@@ -173,8 +246,8 @@ public:
 
     nsresult BeginDocument(PRUnichar  *aTitle,
                            PRUnichar  *aPrintToFileName,
-                           int32_t     aStartPage,
-                           int32_t     aEndPage);
+                           PRInt32     aStartPage,
+                           PRInt32     aEndPage);
 
     
 
@@ -237,10 +310,10 @@ protected:
 
     nscoord  mWidth;
     nscoord  mHeight;
-    uint32_t mDepth;
-    uint32_t  mAppUnitsPerDevPixel;
-    int32_t  mAppUnitsPerDevNotScaledPixel;
-    int32_t  mAppUnitsPerPhysicalInch;
+    PRUint32 mDepth;
+    PRUint32  mAppUnitsPerDevPixel;
+    PRInt32  mAppUnitsPerDevNotScaledPixel;
+    PRInt32  mAppUnitsPerPhysicalInch;
     float    mPixelScale;
     float    mPrintingScale;
 

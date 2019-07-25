@@ -8,6 +8,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsLayoutUtils.h"
 #include "nsPlaceholderFrame.h"
 #include "nsLineLayout.h"
@@ -82,14 +115,8 @@ nsPlaceholderFrame::AddInlineMinWidth(nsRenderingContext *aRenderingContext,
   
 
   
-  if (mOutOfFlowFrame->IsFloating()) {
-    nscoord floatWidth =
-      nsLayoutUtils::IntrinsicForContainer(aRenderingContext,
-                                           mOutOfFlowFrame,
-                                           nsLayoutUtils::MIN_WIDTH);
-    aData->floats.AppendElement(
-      InlineIntrinsicWidthData::FloatInfo(mOutOfFlowFrame, floatWidth));
-  }
+  if (mOutOfFlowFrame->GetStyleDisplay()->mFloats != NS_STYLE_FLOAT_NONE)
+    aData->floats.AppendElement(mOutOfFlowFrame);
 }
 
  void
@@ -103,14 +130,8 @@ nsPlaceholderFrame::AddInlinePrefWidth(nsRenderingContext *aRenderingContext,
   
 
   
-  if (mOutOfFlowFrame->IsFloating()) {
-    nscoord floatWidth =
-      nsLayoutUtils::IntrinsicForContainer(aRenderingContext,
-                                           mOutOfFlowFrame,
-                                           nsLayoutUtils::PREF_WIDTH);
-    aData->floats.AppendElement(
-      InlineIntrinsicWidthData::FloatInfo(mOutOfFlowFrame, floatWidth));
-  }
+  if (mOutOfFlowFrame->GetStyleDisplay()->mFloats != NS_STYLE_FLOAT_NONE)
+    aData->floats.AppendElement(mOutOfFlowFrame);
 }
 
 NS_IMETHODIMP
@@ -124,6 +145,15 @@ nsPlaceholderFrame::Reflow(nsPresContext*          aPresContext,
   aDesiredSize.width = 0;
   aDesiredSize.height = 0;
 
+  
+  mCachedLineBox = nsnull;
+  if (aReflowState.mLineLayout) {
+    nsLineList::iterator* line = aReflowState.mLineLayout->GetLine();
+    if (line) {
+      mCachedLineBox = line->get();
+    }
+  }
+
   aStatus = NS_FRAME_COMPLETE;
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
   return NS_OK;
@@ -135,10 +165,9 @@ nsPlaceholderFrame::DestroyFrom(nsIFrame* aDestructRoot)
   nsIPresShell* shell = PresContext()->GetPresShell();
   nsIFrame* oof = mOutOfFlowFrame;
   if (oof) {
-    oof->InvalidateFrameSubtree();
     
     shell->FrameManager()->UnregisterPlaceholderFrame(this);
-    mOutOfFlowFrame = nullptr;
+    mOutOfFlowFrame = nsnull;
     
     
     
@@ -146,7 +175,7 @@ nsPlaceholderFrame::DestroyFrom(nsIFrame* aDestructRoot)
         ((GetStateBits() & PLACEHOLDER_FOR_POPUP) ||
          !nsLayoutUtils::IsProperAncestorFrame(aDestructRoot, oof))) {
       ChildListID listId = nsLayoutUtils::GetChildListNameFor(oof);
-      shell->FrameManager()->RemoveFrame(listId, oof, false);
+      shell->FrameManager()->RemoveFrame(listId, oof);
     }
     
   }
@@ -164,7 +193,7 @@ nsPlaceholderFrame::GetType() const
 nsPlaceholderFrame::CanContinueTextRun() const
 {
   if (!mOutOfFlowFrame) {
-    return false;
+    return PR_FALSE;
   }
   
   
@@ -172,7 +201,7 @@ nsPlaceholderFrame::CanContinueTextRun() const
 }
 
 nsIFrame*
-nsPlaceholderFrame::GetParentStyleContextFrame() const
+nsPlaceholderFrame::GetParentStyleContextFrame()
 {
   NS_PRECONDITION(GetParent(), "How can we not have a parent here?");
 
@@ -228,7 +257,7 @@ nsPlaceholderFrame::GetFrameName(nsAString& aResult) const
 }
 
 NS_IMETHODIMP
-nsPlaceholderFrame::List(FILE* out, int32_t aIndent) const
+nsPlaceholderFrame::List(FILE* out, PRInt32 aIndent) const
 {
   IndentBy(out, aIndent);
   ListTag(out);
@@ -240,20 +269,20 @@ nsPlaceholderFrame::List(FILE* out, int32_t aIndent) const
   }
   fprintf(out, " {%d,%d,%d,%d}", mRect.x, mRect.y, mRect.width, mRect.height);
   if (0 != mState) {
-    fprintf(out, " [state=%016llx]", (unsigned long long)mState);
+    fprintf(out, " [state=%016llx]", mState);
   }
   nsIFrame* prevInFlow = GetPrevInFlow();
   nsIFrame* nextInFlow = GetNextInFlow();
-  if (nullptr != prevInFlow) {
+  if (nsnull != prevInFlow) {
     fprintf(out, " prev-in-flow=%p", static_cast<void*>(prevInFlow));
   }
-  if (nullptr != nextInFlow) {
+  if (nsnull != nextInFlow) {
     fprintf(out, " next-in-flow=%p", static_cast<void*>(nextInFlow));
   }
-  if (nullptr != mContent) {
+  if (nsnull != mContent) {
     fprintf(out, " [content=%p]", static_cast<void*>(mContent));
   }
-  if (nullptr != mStyleContext) {
+  if (nsnull != mStyleContext) {
     fprintf(out, " [sc=%p]", static_cast<void*>(mStyleContext));
   }
   if (mOutOfFlowFrame) {

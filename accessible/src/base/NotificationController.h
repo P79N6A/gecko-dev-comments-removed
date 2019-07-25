@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NotificationController_h_
 #define NotificationController_h_
 
@@ -10,13 +43,17 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsRefreshDriver.h"
 
-#ifdef DEBUG
-#include "Logging.h"
-#endif
-
-class Accessible;
-class DocAccessible;
+class nsAccessible;
+class nsDocAccessible;
 class nsIContent;
+
+
+
+
+#ifdef DEBUG_NOTIFICATIONS
+#define DEBUG_CONTENTMUTATION
+#define DEBUG_TEXTCHANGE
+#endif
 
 
 
@@ -57,15 +94,15 @@ public:
 
   TNotification(Class* aInstance, Callback aCallback, Arg* aArg) :
     mInstance(aInstance), mCallback(aCallback), mArg(aArg) { }
-  virtual ~TNotification() { mInstance = nullptr; }
+  virtual ~TNotification() { mInstance = nsnull; }
 
   virtual void Process()
   {
     (mInstance->*mCallback)(mArg);
 
-    mInstance = nullptr;
-    mCallback = nullptr;
-    mArg = nullptr;
+    mInstance = nsnull;
+    mCallback = nsnull;
+    mArg = nsnull;
   }
 
 private:
@@ -83,7 +120,7 @@ private:
 class NotificationController : public nsARefreshObserver
 {
 public:
-  NotificationController(DocAccessible* aDocument, nsIPresShell* aPresShell);
+  NotificationController(nsDocAccessible* aDocument, nsIPresShell* aPresShell);
   virtual ~NotificationController();
 
   NS_IMETHOD_(nsrefcnt) AddRef(void);
@@ -104,7 +141,7 @@ public:
   
 
 
-  void ScheduleChildDocBinding(DocAccessible* aDocument);
+  void ScheduleChildDocBinding(nsDocAccessible* aDocument);
 
   
 
@@ -118,7 +155,7 @@ public:
   
 
 
-  void ScheduleContentInsertion(Accessible* aContainer,
+  void ScheduleContentInsertion(nsAccessible* aContainer,
                                 nsIContent* aStartChildNode,
                                 nsIContent* aEndChildNode);
 
@@ -136,9 +173,8 @@ public:
                                  Arg* aArg)
   {
     if (!IsUpdatePending()) {
-#ifdef DEBUG
-      if (mozilla::a11y::logging::IsEnabled(mozilla::a11y::logging::eNotifications))
-        mozilla::a11y::logging::Text("sync notification processing");
+#ifdef DEBUG_NOTIFICATIONS
+      printf("\nsync notification processing\n");
 #endif
       (aInstance->*aMethod)(aArg);
       return;
@@ -167,13 +203,8 @@ public:
       ScheduleProcessing();
   }
 
-#ifdef DEBUG
-  bool IsUpdating() const
-    { return mObservingState == eRefreshProcessingForUpdate; }
-#endif
-
 protected:
-  nsCycleCollectingAutoRefCnt mRefCnt;
+  nsAutoRefCnt mRefCnt;
   NS_DECL_OWNINGTHREAD
 
   
@@ -210,16 +241,16 @@ private:
 
 
 
-  void ApplyToSiblings(uint32_t aStart, uint32_t aEnd,
-                       uint32_t aEventType, nsINode* aNode,
+  void ApplyToSiblings(PRUint32 aStart, PRUint32 aEnd,
+                       PRUint32 aEventType, nsINode* aNode,
                        AccEvent::EEventRule aEventRule);
 
   
 
 
-  void CoalesceSelChangeEvents(AccSelChangeEvent* aTailEvent,
-                               AccSelChangeEvent* aThisEvent,
-                               int32_t aThisIndex);
+
+  void CoalesceReorderEventsFromSameTree(AccEvent* aAccEvent,
+                                         AccEvent* aDescendantAccEvent);
 
   
 
@@ -251,7 +282,7 @@ private:
   
 
 
-  nsRefPtr<DocAccessible> mDocument;
+  nsRefPtr<nsDocAccessible> mDocument;
 
   
 
@@ -261,7 +292,7 @@ private:
   
 
 
-  nsTArray<nsRefPtr<DocAccessible> > mHangingChildDocuments;
+  nsTArray<nsRefPtr<nsDocAccessible> > mHangingChildDocuments;
 
   
 
@@ -269,10 +300,10 @@ private:
   class ContentInsertion
   {
   public:
-    ContentInsertion(DocAccessible* aDocument, Accessible* aContainer);
-    virtual ~ContentInsertion() { mDocument = nullptr; }
+    ContentInsertion(nsDocAccessible* aDocument, nsAccessible* aContainer);
+    virtual ~ContentInsertion() { mDocument = nsnull; }
 
-    NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(ContentInsertion)
+    NS_INLINE_DECL_REFCOUNTING(ContentInsertion)
     NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(ContentInsertion)
 
     bool InitChildList(nsIContent* aStartChildNode, nsIContent* aEndChildNode);
@@ -286,10 +317,10 @@ private:
     
     
     
-    DocAccessible* mDocument;
+    nsDocAccessible* mDocument;
 
     
-    nsRefPtr<Accessible> mContainer;
+    nsRefPtr<nsAccessible> mContainer;
 
     
     nsTArray<nsCOMPtr<nsIContent> > mInsertedContent;
@@ -319,7 +350,7 @@ private:
     static PLDHashNumber HashKey(KeyTypePointer aKey)
       { return NS_PTR_TO_INT32(aKey) >> 2; }
 
-    enum { ALLOW_MEMMOVE = true };
+    enum { ALLOW_MEMMOVE = PR_TRUE };
 
    protected:
      nsCOMPtr<T> mKey;

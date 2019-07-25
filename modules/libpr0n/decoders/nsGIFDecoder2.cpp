@@ -1,0 +1,1108 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include <stddef.h>
+#include "prmem.h"
+
+#include "nsGIFDecoder2.h"
+#include "nsIInputStream.h"
+#include "imgIContainerObserver.h"
+#include "RasterImage.h"
+
+#include "gfxColor.h"
+#include "gfxPlatform.h"
+#include "qcms.h"
+
+namespace mozilla {
+namespace imagelib {
+
+
+
+
+
+
+
+
+
+
+#define GETN(n,s)                      \
+  PR_BEGIN_MACRO                       \
+    mGIFStruct.bytes_to_consume = (n); \
+    mGIFStruct.state = (s);            \
+  PR_END_MACRO
+
+
+#define GETINT16(p)   ((p)[1]<<8|(p)[0])
+
+
+
+nsGIFDecoder2::nsGIFDecoder2(RasterImage *aImage, imgIDecoderObserver* aObserver)
+  : Decoder(aImage, aObserver)
+  , mCurrentRow(-1)
+  , mLastFlushedRow(-1)
+  , mImageData(nsnull)
+  , mOldColor(0)
+  , mCurrentFrame(-1)
+  , mCurrentPass(0)
+  , mLastFlushedPass(0)
+  , mGIFOpen(PR_FALSE)
+  , mSawTransparency(PR_FALSE)
+{
+  
+  memset(&mGIFStruct, 0, sizeof(mGIFStruct));
+
+  
+  mGIFStruct.loop_count = 1;
+
+  
+  mGIFStruct.state = gif_type;
+  mGIFStruct.bytes_to_consume = 6;
+}
+
+nsGIFDecoder2::~nsGIFDecoder2()
+{
+  if (mGIFStruct.local_colormap) {
+    moz_free(mGIFStruct.local_colormap);
+  }
+}
+
+void
+nsGIFDecoder2::FinishInternal()
+{
+  NS_ABORT_IF_FALSE(!HasError(), "Shouldn't call FinishInternal after error!");
+
+  
+  if (!IsSizeDecode() && mGIFOpen) {
+    if (mCurrentFrame == mGIFStruct.images_decoded)
+      EndImageFrame();
+    PostDecodeDone();
+    mGIFOpen = PR_FALSE;
+  }
+
+  mImage->SetLoopCount(mGIFStruct.loop_count - 1);
+}
+
+
+
+
+void
+nsGIFDecoder2::FlushImageData(PRUint32 fromRow, PRUint32 rows)
+{
+  nsIntRect r(mGIFStruct.x_offset, mGIFStruct.y_offset + fromRow, mGIFStruct.width, rows);
+  PostInvalidation(r);
+}
+
+void
+nsGIFDecoder2::FlushImageData()
+{
+  switch (mCurrentPass - mLastFlushedPass) {
+    case 0:  
+      if (mCurrentRow - mLastFlushedRow)
+        FlushImageData(mLastFlushedRow + 1, mCurrentRow - mLastFlushedRow);
+      break;
+  
+    case 1:  
+      FlushImageData(0, mCurrentRow + 1);
+      FlushImageData(mLastFlushedRow + 1, mGIFStruct.height - (mLastFlushedRow + 1));
+      break;
+
+    default:   
+      FlushImageData(0, mGIFStruct.height);
+  }
+}
+
+
+
+
+
+
+void nsGIFDecoder2::BeginGIF()
+{
+  if (mGIFOpen)
+    return;
+
+  mGIFOpen = PR_TRUE;
+
+  PostSize(mGIFStruct.screen_width, mGIFStruct.screen_height);
+
+  
+  if (IsSizeDecode())
+    return;
+}
+
+
+nsresult nsGIFDecoder2::BeginImageFrame(PRUint16 aDepth)
+{
+  PRUint32 imageDataLength;
+  nsresult rv;
+  gfxASurface::gfxImageFormat format;
+  if (mGIFStruct.is_transparent)
+    format = gfxASurface::ImageFormatARGB32;
+  else
+    format = gfxASurface::ImageFormatRGB24;
+
+  
+  
+  if (mGIFStruct.images_decoded) {
+    
+    rv = mImage->EnsureFrame(mGIFStruct.images_decoded,
+                             mGIFStruct.x_offset, mGIFStruct.y_offset,
+                             mGIFStruct.width, mGIFStruct.height,
+                             format, aDepth, &mImageData, &imageDataLength,
+                             &mColormap, &mColormapSize);
+  } else {
+    
+    rv = mImage->EnsureFrame(mGIFStruct.images_decoded,
+                             mGIFStruct.x_offset, mGIFStruct.y_offset,
+                             mGIFStruct.width, mGIFStruct.height,
+                             format, &mImageData, &imageDataLength);
+  }
+
+  if (NS_FAILED(rv))
+    return rv;
+
+  mImage->SetFrameDisposalMethod(mGIFStruct.images_decoded,
+                                 mGIFStruct.disposal_method);
+
+  
+  PostFrameStart();
+
+  if (!mGIFStruct.images_decoded) {
+    
+    
+    
+    if (mGIFStruct.y_offset > 0) {
+      PRInt32 imgWidth;
+      mImage->GetWidth(&imgWidth);
+      nsIntRect r(0, 0, imgWidth, mGIFStruct.y_offset);
+      PostInvalidation(r);
+    }
+  }
+
+  mCurrentFrame = mGIFStruct.images_decoded;
+  return NS_OK;
+}
+
+
+
+void nsGIFDecoder2::EndImageFrame()
+{
+  
+  if (!mGIFStruct.images_decoded) {
+    
+    FlushImageData();
+
+    
+    
+    
+    const PRUint32 realFrameHeight = mGIFStruct.height + mGIFStruct.y_offset;
+    if (realFrameHeight < mGIFStruct.screen_height) {
+      nsIntRect r(0, realFrameHeight,
+                  mGIFStruct.screen_width,
+                  mGIFStruct.screen_height - realFrameHeight);
+      PostInvalidation(r);
+    }
+    
+    if (mGIFStruct.is_transparent && !mSawTransparency) {
+      mImage->SetFrameHasNoAlpha(mGIFStruct.images_decoded);
+    }
+  }
+  mCurrentRow = mLastFlushedRow = -1;
+  mCurrentPass = mLastFlushedPass = 0;
+
+  
+  if (mGIFStruct.rows_remaining != mGIFStruct.height) {
+    if (mGIFStruct.rows_remaining && mGIFStruct.images_decoded) {
+      
+      PRUint8 *rowp = mImageData + ((mGIFStruct.height - mGIFStruct.rows_remaining) * mGIFStruct.width);
+      memset(rowp, 0, mGIFStruct.rows_remaining * mGIFStruct.width);
+    }
+
+    
+    
+    
+    
+    mImage->SetFrameTimeout(mGIFStruct.images_decoded, mGIFStruct.delay_time);
+  }
+
+  
+  
+  
+  
+  mGIFStruct.images_decoded++;
+
+  
+  PostFrameStop();
+
+  
+  if (mOldColor) {
+    mColormap[mGIFStruct.tpixel] = mOldColor;
+    mOldColor = 0;
+  }
+
+  mCurrentFrame = -1;
+}
+
+
+
+
+PRUint32 nsGIFDecoder2::OutputRow()
+{
+  int drow_start, drow_end;
+  drow_start = drow_end = mGIFStruct.irow;
+
+  
+  if ((PRUintn)drow_start >= mGIFStruct.height) {
+    NS_WARNING("GIF2.cpp::OutputRow - too much image data");
+    return 0;
+  }
+
+  if (!mGIFStruct.images_decoded) {
+    
+
+
+
+
+
+    if (mGIFStruct.progressive_display && mGIFStruct.interlaced && (mGIFStruct.ipass < 4)) {
+      
+      const PRUint32 row_dup = 15 >> mGIFStruct.ipass;
+      const PRUint32 row_shift = row_dup >> 1;
+  
+      drow_start -= row_shift;
+      drow_end = drow_start + row_dup;
+  
+      
+      if (((mGIFStruct.height - 1) - drow_end) <= row_shift)
+        drow_end = mGIFStruct.height - 1;
+  
+      
+      if (drow_start < 0)
+        drow_start = 0;
+      if ((PRUintn)drow_end >= mGIFStruct.height)
+        drow_end = mGIFStruct.height - 1;
+    }
+
+    
+    const PRUint32 bpr = sizeof(PRUint32) * mGIFStruct.width; 
+    PRUint8 *rowp = mImageData + (mGIFStruct.irow * bpr);
+
+    
+    PRUint8 *from = rowp + mGIFStruct.width;
+    PRUint32 *to = ((PRUint32*)rowp) + mGIFStruct.width;
+    PRUint32 *cmap = mColormap;
+    if (mColorMask == 0xFF) {
+      for (PRUint32 c = mGIFStruct.width; c > 0; c--) {
+        *--to = cmap[*--from];
+      }
+    } else {
+      
+      PRUint8 mask = mColorMask;
+      for (PRUint32 c = mGIFStruct.width; c > 0; c--) {
+        *--to = cmap[(*--from) & mask];
+      }
+    }
+  
+    
+    if (mGIFStruct.is_transparent && !mSawTransparency) {
+      const PRUint32 *rgb = (PRUint32*)rowp;
+      for (PRUint32 i = mGIFStruct.width; i > 0; i--) {
+        if (*rgb++ == 0) {
+          mSawTransparency = PR_TRUE;
+          break;
+        }
+      }
+    }
+
+    
+    if (drow_end > drow_start) {
+      
+      for (int r = drow_start; r <= drow_end; r++) {
+        if (r != int(mGIFStruct.irow)) {
+          memcpy(mImageData + (r * bpr), rowp, bpr);
+        }
+      }
+    }
+  }
+
+  mCurrentRow = drow_end;
+  mCurrentPass = mGIFStruct.ipass;
+  if (mGIFStruct.ipass == 1)
+    mLastFlushedPass = mGIFStruct.ipass;   
+
+  if (!mGIFStruct.interlaced) {
+    mGIFStruct.irow++;
+  } else {
+    static const PRUint8 kjump[5] = { 1, 8, 8, 4, 2 };
+    do {
+      
+      mGIFStruct.irow += kjump[mGIFStruct.ipass];
+      if (mGIFStruct.irow >= mGIFStruct.height) {
+        
+        mGIFStruct.irow = 8 >> mGIFStruct.ipass;
+        mGIFStruct.ipass++;
+      }
+    } while (mGIFStruct.irow >= mGIFStruct.height);
+  }
+
+  return --mGIFStruct.rows_remaining;
+}
+
+
+
+bool
+nsGIFDecoder2::DoLzw(const PRUint8 *q)
+{
+  if (!mGIFStruct.rows_remaining)
+    return PR_TRUE;
+
+  
+
+
+
+  int avail       = mGIFStruct.avail;
+  int bits        = mGIFStruct.bits;
+  int codesize    = mGIFStruct.codesize;
+  int codemask    = mGIFStruct.codemask;
+  int count       = mGIFStruct.count;
+  int oldcode     = mGIFStruct.oldcode;
+  const int clear_code = ClearCode();
+  PRUint8 firstchar = mGIFStruct.firstchar;
+  PRInt32 datum     = mGIFStruct.datum;
+  PRUint16 *prefix  = mGIFStruct.prefix;
+  PRUint8 *stackp   = mGIFStruct.stackp;
+  PRUint8 *suffix   = mGIFStruct.suffix;
+  PRUint8 *stack    = mGIFStruct.stack;
+  PRUint8 *rowp     = mGIFStruct.rowp;
+
+  PRUint32 bpr = mGIFStruct.width;
+  if (!mGIFStruct.images_decoded) 
+    bpr *= sizeof(PRUint32);
+  PRUint8 *rowend   = mImageData + (bpr * mGIFStruct.irow) + mGIFStruct.width;
+
+#define OUTPUT_ROW()                                        \
+  PR_BEGIN_MACRO                                            \
+    if (!OutputRow())                                       \
+      goto END;                                             \
+    rowp = mImageData + mGIFStruct.irow * bpr;              \
+    rowend = rowp + mGIFStruct.width;                       \
+  PR_END_MACRO
+
+  for (const PRUint8* ch = q; count-- > 0; ch++)
+  {
+    
+    datum += ((int32) *ch) << bits;
+    bits += 8;
+
+    
+    while (bits >= codesize)
+    {
+      
+      int code = datum & codemask;
+      datum >>= codesize;
+      bits -= codesize;
+
+      
+      if (code == clear_code) {
+        codesize = mGIFStruct.datasize + 1;
+        codemask = (1 << codesize) - 1;
+        avail = clear_code + 2;
+        oldcode = -1;
+        continue;
+      }
+
+      
+      if (code == (clear_code + 1)) {
+        
+        return (mGIFStruct.rows_remaining == 0);
+      }
+
+      if (oldcode == -1) {
+        if (code >= MAX_BITS)
+          return PR_FALSE;
+        *rowp++ = suffix[code];
+        if (rowp == rowend)
+          OUTPUT_ROW();
+
+        firstchar = oldcode = code;
+        continue;
+      }
+
+      int incode = code;
+      if (code >= avail) {
+        *stackp++ = firstchar;
+        code = oldcode;
+
+        if (stackp >= stack + MAX_BITS)
+          return PR_FALSE;
+      }
+
+      while (code >= clear_code)
+      {
+        if ((code >= MAX_BITS) || (code == prefix[code]))
+          return PR_FALSE;
+
+        *stackp++ = suffix[code];
+        code = prefix[code];
+
+        if (stackp == stack + MAX_BITS)
+          return PR_FALSE;
+      }
+
+      *stackp++ = firstchar = suffix[code];
+
+      
+      if (avail < 4096) {
+        prefix[avail] = oldcode;
+        suffix[avail] = firstchar;
+        avail++;
+
+        
+
+
+
+        if (((avail & codemask) == 0) && (avail < 4096)) {
+          codesize++;
+          codemask += avail;
+        }
+      }
+      oldcode = incode;
+
+      
+      do {
+        *rowp++ = *--stackp;
+        if (rowp == rowend)
+          OUTPUT_ROW();
+      } while (stackp > stack);
+    }
+  }
+
+  END:
+
+  
+  mGIFStruct.avail = avail;
+  mGIFStruct.bits = bits;
+  mGIFStruct.codesize = codesize;
+  mGIFStruct.codemask = codemask;
+  mGIFStruct.count = count;
+  mGIFStruct.oldcode = oldcode;
+  mGIFStruct.firstchar = firstchar;
+  mGIFStruct.datum = datum;
+  mGIFStruct.stackp = stackp;
+  mGIFStruct.rowp = rowp;
+
+  return PR_TRUE;
+}
+
+
+
+
+
+static void ConvertColormap(PRUint32 *aColormap, PRUint32 aColors)
+{
+  
+  if (gfxPlatform::GetCMSMode() == eCMSMode_All) {
+    qcms_transform *transform = gfxPlatform::GetCMSRGBTransform();
+    if (transform)
+      qcms_transform_data(transform, aColormap, aColormap, aColors);
+  }
+  
+  
+  PRUint8 *from = ((PRUint8 *)aColormap) + 3 * aColors;
+  PRUint32 *to = aColormap + aColors;
+
+  
+
+  
+  if (!aColors) return;
+  PRUint32 c = aColors;
+
+  
+  
+  for (; (NS_PTR_TO_UINT32(from) & 0x3) && c; --c) {
+    from -= 3;
+    *--to = GFX_PACKED_PIXEL(0xFF, from[0], from[1], from[2]);
+  }
+
+  
+  while (c >= 4) {
+    from -= 12;
+    to   -=  4;
+    c    -=  4;
+    GFX_BLOCK_RGB_TO_FRGB(from,to);
+  }
+
+  
+  
+  while (c--) {
+    from -= 3;
+    *--to = GFX_PACKED_PIXEL(0xFF, from[0], from[1], from[2]);
+  }
+}
+
+void
+nsGIFDecoder2::WriteInternal(const char *aBuffer, PRUint32 aCount)
+{
+  NS_ABORT_IF_FALSE(!HasError(), "Shouldn't call WriteInternal after error!");
+
+  
+  const PRUint8 *buf = (const PRUint8 *)aBuffer;
+  PRUint32 len = aCount;
+
+  const PRUint8 *q = buf;
+
+  
+  
+  
+  PRUint8* p = (mGIFStruct.state == gif_global_colormap) ? (PRUint8*)mGIFStruct.global_colormap :
+               (mGIFStruct.state == gif_image_colormap) ? (PRUint8*)mColormap :
+               (mGIFStruct.bytes_in_hold) ? mGIFStruct.hold : nsnull;
+  if (p) {
+    
+    PRUint32 l = NS_MIN(len, mGIFStruct.bytes_to_consume);
+    memcpy(p+mGIFStruct.bytes_in_hold, buf, l);
+
+    if (l < mGIFStruct.bytes_to_consume) {
+      
+      mGIFStruct.bytes_in_hold += l;
+      mGIFStruct.bytes_to_consume -= l;
+      return;
+    }
+    
+    mGIFStruct.bytes_in_hold = 0;
+    
+    q = p;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+
+  for (;len >= mGIFStruct.bytes_to_consume; q=buf) {
+    
+    buf += mGIFStruct.bytes_to_consume;
+    len -= mGIFStruct.bytes_to_consume;
+
+    switch (mGIFStruct.state)
+    {
+    case gif_lzw:
+      if (!DoLzw(q)) {
+        mGIFStruct.state = gif_error;
+        break;
+      }
+      GETN(1, gif_sub_block);
+      break;
+
+    case gif_lzw_start:
+    {
+      
+      if (mGIFStruct.is_transparent) {
+        
+        if (mColormap == mGIFStruct.global_colormap)
+            mOldColor = mColormap[mGIFStruct.tpixel];
+        mColormap[mGIFStruct.tpixel] = 0;
+      }
+
+      
+      mGIFStruct.datasize = *q;
+      const int clear_code = ClearCode();
+      if (mGIFStruct.datasize > MAX_LZW_BITS ||
+          clear_code >= MAX_BITS) {
+        mGIFStruct.state = gif_error;
+        break;
+      }
+
+      mGIFStruct.avail = clear_code + 2;
+      mGIFStruct.oldcode = -1;
+      mGIFStruct.codesize = mGIFStruct.datasize + 1;
+      mGIFStruct.codemask = (1 << mGIFStruct.codesize) - 1;
+      mGIFStruct.datum = mGIFStruct.bits = 0;
+
+      
+      for (int i = 0; i < clear_code; i++)
+        mGIFStruct.suffix[i] = i;
+
+      mGIFStruct.stackp = mGIFStruct.stack;
+
+      GETN(1, gif_sub_block);
+    }
+    break;
+
+    
+    case gif_type:
+      if (!strncmp((char*)q, "GIF89a", 6)) {
+        mGIFStruct.version = 89;
+      } else if (!strncmp((char*)q, "GIF87a", 6)) {
+        mGIFStruct.version = 87;
+      } else {
+        mGIFStruct.state = gif_error;
+        break;
+      }
+      GETN(7, gif_global_header);
+      break;
+
+    case gif_global_header:
+      
+
+
+
+
+
+
+      mGIFStruct.screen_width = GETINT16(q);
+      mGIFStruct.screen_height = GETINT16(q + 2);
+      mGIFStruct.global_colormap_depth = (q[4]&0x07) + 1;
+
+      
+      
+      
+      
+      
+
+      if (q[4] & 0x80) { 
+        
+        const PRUint32 size = (3 << mGIFStruct.global_colormap_depth);
+        if (len < size) {
+          
+          GETN(size, gif_global_colormap);
+          break;
+        }
+        
+        memcpy(mGIFStruct.global_colormap, buf, size);
+        buf += size;
+        len -= size;
+        GETN(0, gif_global_colormap);
+        break;
+      }
+
+      GETN(1, gif_image_start);
+      break;
+
+    case gif_global_colormap:
+      
+      
+      ConvertColormap(mGIFStruct.global_colormap, 1<<mGIFStruct.global_colormap_depth);
+      GETN(1, gif_image_start);
+      break;
+
+    case gif_image_start:
+      switch (*q) {
+        case GIF_TRAILER:
+          mGIFStruct.state = gif_done;
+          break;
+
+        case GIF_EXTENSION_INTRODUCER:
+          GETN(2, gif_extension);
+          break;
+
+        case GIF_IMAGE_SEPARATOR:
+          GETN(9, gif_image_header);
+          break;
+
+        default:
+          
+
+
+
+
+          if (mGIFStruct.images_decoded > 0) {
+            
+
+
+
+
+            mGIFStruct.state = gif_done;
+          } else {
+            
+            mGIFStruct.state = gif_error;
+          }
+      }
+      break;
+
+    case gif_extension:
+      mGIFStruct.bytes_to_consume = q[1];
+      if (mGIFStruct.bytes_to_consume) {
+        switch (*q) {
+        case GIF_GRAPHIC_CONTROL_LABEL:
+          mGIFStruct.state = gif_control_extension;
+          break;
+  
+        case GIF_APPLICATION_EXTENSION_LABEL:
+          mGIFStruct.state = gif_application_extension;
+          break;
+  
+        case GIF_COMMENT_LABEL:
+          mGIFStruct.state = gif_consume_comment;
+          break;
+  
+        default:
+          mGIFStruct.state = gif_skip_block;
+        }
+      } else {
+        GETN(1, gif_image_start);
+      }
+      break;
+
+    case gif_consume_block:
+      if (!*q)
+        GETN(1, gif_image_start);
+      else
+        GETN(*q, gif_skip_block);
+      break;
+
+    case gif_skip_block:
+      GETN(1, gif_consume_block);
+      break;
+
+    case gif_control_extension:
+      mGIFStruct.is_transparent = *q & 0x1;
+      mGIFStruct.tpixel = q[3];
+      mGIFStruct.disposal_method = ((*q) >> 2) & 0x7;
+      
+      
+      if (mGIFStruct.disposal_method == 4)
+        mGIFStruct.disposal_method = 3;
+      mGIFStruct.delay_time = GETINT16(q + 1) * 10;
+      GETN(1, gif_consume_block);
+      break;
+
+    case gif_comment_extension:
+      if (*q)
+        GETN(*q, gif_consume_comment);
+      else
+        GETN(1, gif_image_start);
+      break;
+
+    case gif_consume_comment:
+      GETN(1, gif_comment_extension);
+      break;
+
+    case gif_application_extension:
+      
+      if (!strncmp((char*)q, "NETSCAPE2.0", 11) ||
+        !strncmp((char*)q, "ANIMEXTS1.0", 11))
+        GETN(1, gif_netscape_extension_block);
+      else
+        GETN(1, gif_consume_block);
+      break;
+
+    
+    case gif_netscape_extension_block:
+      if (*q)
+        GETN(*q, gif_consume_netscape_extension);
+      else
+        GETN(1, gif_image_start);
+      break;
+
+    
+    case gif_consume_netscape_extension:
+      switch (q[0] & 7) {
+        case 1:
+          
+
+          mGIFStruct.loop_count = GETINT16(q + 1);
+          GETN(1, gif_netscape_extension_block);
+          break;
+        
+        case 2:
+          
+          
+          
+          
+          GETN(1, gif_netscape_extension_block);
+          break;
+  
+        default:
+          
+          mGIFStruct.state = gif_error;
+      }
+      break;
+
+    case gif_image_header:
+    {
+      
+      mGIFStruct.x_offset = GETINT16(q);
+      mGIFStruct.y_offset = GETINT16(q + 2);
+
+      
+      mGIFStruct.width  = GETINT16(q + 4);
+      mGIFStruct.height = GETINT16(q + 6);
+
+      if (!mGIFStruct.images_decoded) {
+        
+
+
+
+        if ((mGIFStruct.screen_height < mGIFStruct.height) ||
+            (mGIFStruct.screen_width < mGIFStruct.width) ||
+            (mGIFStruct.version == 87)) {
+          mGIFStruct.screen_height = mGIFStruct.height;
+          mGIFStruct.screen_width = mGIFStruct.width;
+          mGIFStruct.x_offset = 0;
+          mGIFStruct.y_offset = 0;
+        }    
+        
+        BeginGIF();
+        if (HasError()) {
+          
+          
+          mGIFStruct.state = gif_error;
+          return;
+        }
+
+        
+        if (IsSizeDecode())
+          return;
+      }
+
+      
+
+      if (!mGIFStruct.height || !mGIFStruct.width) {
+        mGIFStruct.height = mGIFStruct.screen_height;
+        mGIFStruct.width = mGIFStruct.screen_width;
+        if (!mGIFStruct.height || !mGIFStruct.width) {
+          mGIFStruct.state = gif_error;
+          break;
+        }
+      }
+
+      
+      
+      
+      PRUint32 depth = mGIFStruct.global_colormap_depth;
+      if (q[8] & 0x80)
+        depth = (q[8]&0x07) + 1;
+      PRUint32 realDepth = depth;
+      while (mGIFStruct.tpixel >= (1 << realDepth) && (realDepth < 8)) {
+        realDepth++;
+      } 
+      
+      mColorMask = 0xFF >> (8 - realDepth);
+      nsresult rv = BeginImageFrame(realDepth);
+      if (NS_FAILED(rv) || !mImageData) {
+        mGIFStruct.state = gif_error;
+        break;
+      }
+
+      if (q[8] & 0x40) {
+        mGIFStruct.interlaced = PR_TRUE;
+        mGIFStruct.ipass = 1;
+      } else {
+        mGIFStruct.interlaced = PR_FALSE;
+        mGIFStruct.ipass = 0;
+      }
+
+      
+      mGIFStruct.progressive_display = (mGIFStruct.images_decoded == 0);
+
+      
+      mGIFStruct.irow = 0;
+      mGIFStruct.rows_remaining = mGIFStruct.height;
+      mGIFStruct.rowp = mImageData;
+
+      
+
+      if (q[8] & 0x80) 
+      {
+        mGIFStruct.local_colormap_size = 1 << depth;
+        if (!mGIFStruct.images_decoded) {
+          
+          
+          mColormapSize = sizeof(PRUint32) << realDepth;
+          if (!mGIFStruct.local_colormap) {
+            mGIFStruct.local_colormap = (PRUint32*)moz_xmalloc(mColormapSize);
+          }
+          mColormap = mGIFStruct.local_colormap;
+        }
+        const PRUint32 size = 3 << depth;
+        if (mColormapSize > size) {
+          
+          memset(((PRUint8*)mColormap) + size, 0, mColormapSize - size);
+        }
+        if (len < size) {
+          
+          GETN(size, gif_image_colormap);
+          break;
+        }
+        
+        memcpy(mColormap, buf, size);
+        buf += size;
+        len -= size;
+        GETN(0, gif_image_colormap);
+        break;
+      } else {
+        
+        if (mGIFStruct.images_decoded) {
+          
+          memcpy(mColormap, mGIFStruct.global_colormap, mColormapSize);
+        } else {
+          mColormap = mGIFStruct.global_colormap;
+        }
+      }
+      GETN(1, gif_lzw_start);
+    }
+    break;
+
+    case gif_image_colormap:
+      
+      
+      ConvertColormap(mColormap, mGIFStruct.local_colormap_size);
+      GETN(1, gif_lzw_start);
+      break;
+
+    case gif_sub_block:
+      mGIFStruct.count = *q;
+      if (mGIFStruct.count) {
+        
+        
+        
+        if (!mGIFStruct.rows_remaining) {
+#ifdef DONT_TOLERATE_BROKEN_GIFS
+          mGIFStruct.state = gif_error;
+          break;
+#else
+          
+          GETN(1, gif_sub_block);
+#endif
+          if (mGIFStruct.count == GIF_TRAILER) {
+            
+            GETN(1, gif_done);
+            break;
+          }
+        }
+        GETN(mGIFStruct.count, gif_lzw);
+      } else {
+        
+        EndImageFrame();
+        GETN(1, gif_image_start);
+      }
+      break;
+
+    case gif_done:
+      PostDecodeDone();
+      mGIFOpen = PR_FALSE;
+      goto done;
+
+    case gif_error:
+      PostDataError();
+      return;
+
+    
+    default:
+      break;
+    }
+  }
+
+  
+  if (mGIFStruct.state == gif_error) {
+      PostDataError();
+      return;
+  }
+  
+  
+  mGIFStruct.bytes_in_hold = len;
+  if (len) {
+    
+    PRUint8* p = (mGIFStruct.state == gif_global_colormap) ? (PRUint8*)mGIFStruct.global_colormap :
+                 (mGIFStruct.state == gif_image_colormap) ? (PRUint8*)mColormap :
+                 mGIFStruct.hold;
+    memcpy(p, buf, len);
+    mGIFStruct.bytes_to_consume -= len;
+  }
+
+
+done:
+  if (!mGIFStruct.images_decoded) {
+    FlushImageData();
+    mLastFlushedRow = mCurrentRow;
+    mLastFlushedPass = mCurrentPass;
+  }
+
+  return;
+}
+
+Telemetry::ID
+nsGIFDecoder2::SpeedHistogram()
+{
+  return Telemetry::IMAGE_DECODE_SPEED_GIF;
+}
+
+
+} 
+} 

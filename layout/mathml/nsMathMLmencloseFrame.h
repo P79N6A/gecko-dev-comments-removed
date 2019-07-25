@@ -4,6 +4,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsMathMLmencloseFrame_h___
 #define nsMathMLmencloseFrame_h___
 
@@ -57,15 +94,15 @@ public:
                   nsHTMLReflowMetrics& aDesiredSize);
   
   NS_IMETHOD
-  AttributeChanged(int32_t         aNameSpaceID,
+  AttributeChanged(PRInt32         aNameSpaceID,
                    nsIAtom*        aAttribute,
-                   int32_t         aModType);
+                   PRInt32         aModType);
   
   virtual void
-  SetAdditionalStyleContext(int32_t          aIndex, 
+  SetAdditionalStyleContext(PRInt32          aIndex, 
                             nsStyleContext*  aStyleContext);
   virtual nsStyleContext*
-  GetAdditionalStyleContext(int32_t aIndex) const;
+  GetAdditionalStyleContext(PRInt32 aIndex) const;
 
   NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                               const nsRect&           aDirtyRect,
@@ -94,7 +131,7 @@ protected:
   void InitNotations();
 
   
-  uint32_t mNotationsToDraw;
+  PRUint32 mNotationsToDraw;
   bool IsToDraw(nsMencloseNotation mask)
   {
     return mask & mNotationsToDraw;
@@ -102,7 +139,7 @@ protected:
 
   nscoord mRuleThickness;
   nsTArray<nsMathMLChar> mMathMLChar;
-  int8_t mLongDivCharIndex, mRadicalCharIndex;
+  PRInt8 mLongDivCharIndex, mRadicalCharIndex;
   nscoord mContentWidth;
   nsresult AllocateMathMLChar(nsMencloseNotation mask);
 

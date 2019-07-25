@@ -3,26 +3,48 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "IMETextTxn.h"
-#include "mozilla/mozalloc.h"           
-#include "nsAString.h"                  
-#include "nsAutoPtr.h"                  
-#include "nsDebug.h"                    
-#include "nsError.h"                    
-#include "nsGUIEvent.h"                 
-#include "nsIDOMCharacterData.h"        
-#include "nsIDOMRange.h"                
-#include "nsIEditor.h"                  
-#include "nsIPresShell.h"               
-#include "nsIPrivateTextRange.h"        
-#include "nsISelection.h"               
-#include "nsISelectionController.h"     
-#include "nsISelectionPrivate.h"        
-#include "nsISupportsImpl.h"            
-#include "nsISupportsUtils.h"           
-#include "nsITransaction.h"             
-#include "nsRange.h"                    
-#include "nsString.h"                   
+#include "nsIDOMCharacterData.h"
+#include "nsIDOMRange.h"
+#include "nsIPrivateTextRange.h"
+#include "nsISelection.h"
+#include "nsISelectionPrivate.h"
+#include "nsISelectionController.h"
+#include "nsComponentManagerUtils.h"
+#include "nsIEditor.h"
 
 
 
@@ -52,8 +74,8 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(IMETextTxn)
 NS_INTERFACE_MAP_END_INHERITING(EditTxn)
 
 NS_IMETHODIMP IMETextTxn::Init(nsIDOMCharacterData     *aElement,
-                               uint32_t                 aOffset,
-                               uint32_t                 aReplaceLength,
+                               PRUint32                 aOffset,
+                               PRUint32                 aReplaceLength,
                                nsIPrivateTextRangeList *aTextRangeList,
                                const nsAString         &aStringToInsert,
                                nsIEditor               *aEditor)
@@ -67,7 +89,7 @@ NS_IMETHODIMP IMETextTxn::Init(nsIDOMCharacterData     *aElement,
   mStringToInsert = aStringToInsert;
   mEditor = aEditor;
   mRangeList = do_QueryInterface(aTextRangeList);
-  mFixed = false;
+  mFixed = PR_FALSE;
   return NS_OK;
 }
 
@@ -133,14 +155,14 @@ NS_IMETHODIMP IMETextTxn::Merge(nsITransaction *aTransaction, bool *aDidMerge)
   
   
   if (mFixed) {
-    *aDidMerge = false;
+    *aDidMerge = PR_FALSE;
     return NS_OK;
   }
 
   
   
   
-  IMETextTxn*  otherTxn = nullptr;
+  IMETextTxn*  otherTxn = nsnull;
   nsresult result = aTransaction->QueryInterface(IMETextTxn::GetCID(),(void**)&otherTxn);
   if (otherTxn && NS_SUCCEEDED(result))
   {
@@ -150,7 +172,7 @@ NS_IMETHODIMP IMETextTxn::Merge(nsITransaction *aTransaction, bool *aDidMerge)
     nsIPrivateTextRangeList* newTextRangeList;
     otherTxn->GetData(mStringToInsert,&newTextRangeList);
     mRangeList = do_QueryInterface(newTextRangeList);
-    *aDidMerge = true;
+    *aDidMerge = PR_TRUE;
 #ifdef DEBUG_IMETXN
     printf("IMETextTxn assimilated IMETextTxn:%p\n", aTransaction);
 #endif
@@ -158,13 +180,13 @@ NS_IMETHODIMP IMETextTxn::Merge(nsITransaction *aTransaction, bool *aDidMerge)
     return NS_OK;
   }
 
-  *aDidMerge = false;
+  *aDidMerge = PR_FALSE;
   return NS_OK;
 }
 
 NS_IMETHODIMP IMETextTxn::MarkFixed(void)
 {
-  mFixed = true;
+  mFixed = PR_TRUE;
   return NS_OK;
 }
 
@@ -214,10 +236,10 @@ static SelectionType sel[4]=
 NS_IMETHODIMP IMETextTxn::CollapseTextSelection(void)
 {
     nsresult      result;
-    uint16_t      i;
+    PRUint16      i;
 
 #ifdef DEBUG_IMETXN
-    uint16_t listlen,start,stop,type;
+    PRUint16 listlen,start,stop,type;
     result = mRangeList->GetLength(&listlen);
     printf("nsIPrivateTextRangeList[%p]\n",mRangeList);
     nsIPrivateTextRange* rangePtr;
@@ -248,7 +270,7 @@ NS_IMETHODIMP IMETextTxn::CollapseTextSelection(void)
     mEditor->GetSelectionController(getter_AddRefs(selCon));
     NS_ENSURE_TRUE(selCon, NS_ERROR_NOT_INITIALIZED);
 
-    uint16_t      textRangeListLength,selectionStart,selectionEnd,
+    PRUint16      textRangeListLength,selectionStart,selectionEnd,
                   textRangeType;
     
     textRangeListLength = mRangeList->GetLength();
@@ -261,7 +283,7 @@ NS_IMETHODIMP IMETextTxn::CollapseTextSelection(void)
       if (NS_SUCCEEDED(result))
       {
         nsCOMPtr<nsISelection> imeSel;
-        for(int8_t selIdx = 0; selIdx < 4;selIdx++)
+        for(PRInt8 selIdx = 0; selIdx < 4;selIdx++)
         {
           result = selCon->GetSelection(sel[selIdx], getter_AddRefs(imeSel));
           if (NS_SUCCEEDED(result))
@@ -304,7 +326,7 @@ NS_IMETHODIMP IMETextTxn::CollapseTextSelection(void)
                       mOffset+selectionStart);
              NS_ASSERTION(NS_SUCCEEDED(result), "Cannot Collapse");
              if(NS_SUCCEEDED(result))
-             setCaret = true;
+             setCaret = PR_TRUE;
           } else {
              
              if(selectionStart == selectionEnd)
@@ -316,7 +338,12 @@ NS_IMETHODIMP IMETextTxn::CollapseTextSelection(void)
              if(NS_FAILED(result))
                 break;
 
-             nsRefPtr<nsRange> newRange = new nsRange();
+             nsCOMPtr<nsIDOMRange> newRange = do_CreateInstance(
+                                      "@mozilla.org/content/range;1", &result);
+             NS_ASSERTION(NS_SUCCEEDED(result), "Cannot create new nsIDOMRange");
+             if(NS_FAILED(result))
+                break;
+
              result = newRange->SetStart(mElement,mOffset+selectionStart);
              NS_ASSERTION(NS_SUCCEEDED(result), "Cannot SetStart");
              if(NS_FAILED(result))

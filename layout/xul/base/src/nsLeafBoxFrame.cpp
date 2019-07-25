@@ -10,6 +10,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsLeafBoxFrame.h"
 #include "nsBoxFrame.h"
 #include "nsCOMPtr.h"
@@ -21,7 +53,7 @@
 #include "nsBoxLayoutState.h"
 #include "nsWidgetsCID.h"
 #include "nsIViewManager.h"
-#include "nsContainerFrame.h"
+#include "nsHTMLContainerFrame.h"
 #include "nsDisplayList.h"
 
 
@@ -63,19 +95,15 @@ nsLeafBoxFrame::Init(
   nsresult  rv = nsLeafFrame::Init(aContent, aParent, aPrevInFlow);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (GetStateBits() & NS_FRAME_FONT_INFLATION_CONTAINER) {
-    AddStateBits(NS_FRAME_FONT_INFLATION_FLOW_ROOT);
-  }
-
   UpdateMouseThrough();
 
   return rv;
 }
 
 NS_IMETHODIMP
-nsLeafBoxFrame::AttributeChanged(int32_t aNameSpaceID,
+nsLeafBoxFrame::AttributeChanged(PRInt32 aNameSpaceID,
                                  nsIAtom* aAttribute,
-                                 int32_t aModType)
+                                 PRInt32 aModType)
 {
   nsresult rv = nsLeafFrame::AttributeChanged(aNameSpaceID, aAttribute,
                                               aModType);
@@ -90,7 +118,7 @@ void nsLeafBoxFrame::UpdateMouseThrough()
 {
   if (mContent) {
     static nsIContent::AttrValuesArray strings[] =
-      {&nsGkAtoms::never, &nsGkAtoms::always, nullptr};
+      {&nsGkAtoms::never, &nsGkAtoms::always, nsnull};
     switch (mContent->FindAttrValueIn(kNameSpaceID_None,
                                       nsGkAtoms::mousethrough,
                                       strings, eCaseMatters)) {
@@ -269,24 +297,18 @@ nsLeafBoxFrame::Reflow(nsPresContext*   aPresContext,
   }
 
   
-  
-  
-  
+
   if (computedSize.width > aReflowState.mComputedMaxWidth)
     computedSize.width = aReflowState.mComputedMaxWidth;
+
+  if (computedSize.height > aReflowState.mComputedMaxHeight)
+    computedSize.height = aReflowState.mComputedMaxHeight;
 
   if (computedSize.width < aReflowState.mComputedMinWidth)
     computedSize.width = aReflowState.mComputedMinWidth;
 
-  
-  
-  
-  
-  computedSize.height = NS_MAX(0, computedSize.height - m.TopBottom());
-  computedSize.height = NS_CSS_MINMAX(computedSize.height,
-                                      aReflowState.mComputedMinHeight,
-                                      aReflowState.mComputedMaxHeight);
-  computedSize.height += m.TopBottom();
+  if (computedSize.height < aReflowState.mComputedMinHeight)
+    computedSize.height = aReflowState.mComputedMinHeight;
 
   nsRect r(mRect.x, mRect.y, computedSize.width, computedSize.height);
 

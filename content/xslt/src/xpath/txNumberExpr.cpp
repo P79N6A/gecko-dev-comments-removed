@@ -3,7 +3,38 @@
 
 
 
-#include "mozilla/FloatingPoint.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "txExpr.h"
 #include <math.h>
@@ -12,7 +43,7 @@
 nsresult
 txNumberExpr::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
 {
-    *aResult = nullptr;
+    *aResult = nsnull;
 
     nsRefPtr<txAExprResult> exprRes;
     nsresult rv = mRightExpr->evaluate(aContext, getter_AddRefs(exprRes));
@@ -39,16 +70,16 @@ txNumberExpr::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
             if (rightDbl == 0) {
 #if defined(XP_WIN)
                 
-                if (MOZ_DOUBLE_IS_NaN(rightDbl))
-                    result = MOZ_DOUBLE_NaN();
+                if (Double::isNaN(rightDbl))
+                    result = Double::NaN;
                 else
 #endif
-                if (leftDbl == 0 || MOZ_DOUBLE_IS_NaN(leftDbl))
-                    result = MOZ_DOUBLE_NaN();
-                else if (MOZ_DOUBLE_IS_NEGATIVE(leftDbl) ^ MOZ_DOUBLE_IS_NEGATIVE(rightDbl))
-                    result = MOZ_DOUBLE_NEGATIVE_INFINITY();
+                if (leftDbl == 0 || Double::isNaN(leftDbl))
+                    result = Double::NaN;
+                else if (Double::isNeg(leftDbl) ^ Double::isNeg(rightDbl))
+                    result = Double::NEGATIVE_INFINITY;
                 else
-                    result = MOZ_DOUBLE_POSITIVE_INFINITY();
+                    result = Double::POSITIVE_INFINITY;
             }
             else
                 result = leftDbl / rightDbl;
@@ -56,12 +87,12 @@ txNumberExpr::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
 
         case MODULUS:
             if (rightDbl == 0) {
-                result = MOZ_DOUBLE_NaN();
+                result = Double::NaN;
             }
             else {
 #if defined(XP_WIN)
                 
-                if (!MOZ_DOUBLE_IS_INFINITE(leftDbl) && MOZ_DOUBLE_IS_INFINITE(rightDbl))
+                if (!Double::isInfinite(leftDbl) && Double::isInfinite(rightDbl))
                     result = leftDbl;
                 else
 #endif

@@ -61,11 +61,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_NAVHTMLDTD__
 #define NS_NAVHTMLDTD__
 
 #include "nsIDTD.h"
 #include "nsISupports.h"
+#include "nsIParser.h"
 #include "nsHTMLTags.h"
 #include "nsDeque.h"
 #include "nsParserCIID.h"
@@ -122,7 +155,7 @@ public:
 
     nsresult OpenContainer(const nsCParserNode *aNode,
                            eHTMLTags aTag,
-                           nsEntryStack* aStyleStack = nullptr);
+                           nsEntryStack* aStyleStack = nsnull);
 
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_NSIDTD
@@ -139,7 +172,7 @@ private:
 
     bool CanPropagate(eHTMLTags aParent,
                         eHTMLTags aChild,
-                        int32_t aParentContains);
+                        PRInt32 aParentContains);
 
     
 
@@ -153,7 +186,7 @@ private:
 
     bool CanOmit(eHTMLTags aParent, 
                    eHTMLTags aChild,
-                   int32_t& aParentContains);
+                   PRInt32& aParentContains);
 
     
 
@@ -206,7 +239,7 @@ private:
 
 
 
-    bool HasOpenContainer(const eHTMLTags aTagSet[], int32_t aCount) const;
+    bool HasOpenContainer(const eHTMLTags aTagSet[], PRInt32 aCount) const;
 
     
 
@@ -222,7 +255,7 @@ private:
 
 
 
-    int32_t LastOf(eHTMLTags aTagSet[], int32_t aCount) const;
+    PRInt32 LastOf(eHTMLTags aTagSet[], PRInt32 aCount) const;
 
     nsresult HandleToken(CToken* aToken);
 
@@ -274,7 +307,7 @@ private:
 
     nsresult CloseContainer(const eHTMLTags aTag, bool aMalformed);
     nsresult CloseContainersTo(eHTMLTags aTag, bool aClosedByStartTag);
-    nsresult CloseContainersTo(int32_t anIndex, eHTMLTags aTag,
+    nsresult CloseContainersTo(PRInt32 anIndex, eHTMLTags aTag,
                                bool aClosedByStartTag);
     nsresult CloseResidualStyleTags(const eHTMLTags aTag,
                                     bool aClosedByStartTag);
@@ -310,7 +343,7 @@ private:
 
 protected:
 
-    nsresult        CollectAttributes(nsIParserNode* aNode,eHTMLTags aTag,int32_t aCount);
+    nsresult        CollectAttributes(nsIParserNode* aNode,eHTMLTags aTag,PRInt32 aCount);
 
     
 
@@ -336,11 +369,11 @@ protected:
 
     void            HandleOmittedTag(CToken* aToken, eHTMLTags aChildTag,
                                      eHTMLTags aParent, nsIParserNode *aNode);
-    nsresult        HandleSavedTokens(int32_t anIndex);
+    nsresult        HandleSavedTokens(PRInt32 anIndex);
     nsresult        HandleKeyGen(nsIParserNode *aNode);
     bool            IsAlternateTag(eHTMLTags aTag);
-    bool            IsBlockElement(int32_t aTagID, int32_t aParentID) const;
-    bool            IsInlineElement(int32_t aTagID, int32_t aParentID) const;
+    bool            IsBlockElement(PRInt32 aTagID, PRInt32 aParentID) const;
+    bool            IsInlineElement(PRInt32 aTagID, PRInt32 aParentID) const;
 
     nsDeque             mMisplacedContent;
     
@@ -360,11 +393,11 @@ protected:
     eParserDocType      mDocType;
     eParserCommands     mParserCommand;   
 
-    int32_t             mLineNumber;
-    int32_t             mOpenMapCount;
-    int32_t             mHeadContainerPosition;
+    PRInt32             mLineNumber;
+    PRInt32             mOpenMapCount;
+    PRInt32             mHeadContainerPosition;
 
-    uint16_t            mFlags;
+    PRUint16            mFlags;
 };
 
 #endif 

@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "txExpr.h"
 #include "txNodeSet.h"
 #include "txIXPathContext.h"
@@ -24,7 +58,7 @@
 nsresult
 FilterExpr::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
 {
-    *aResult = nullptr;
+    *aResult = nsnull;
 
     nsRefPtr<txAExprResult> exprRes;
     nsresult rv = expr->evaluate(aContext, getter_AddRefs(exprRes));
@@ -36,7 +70,7 @@ FilterExpr::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
     nsRefPtr<txNodeSet> nodes =
         static_cast<txNodeSet*>(static_cast<txAExprResult*>(exprRes));
     
-    exprRes = nullptr;
+    exprRes = nsnull;
 
     nsRefPtr<txNodeSet> nonShared;
     rv = aContext->recycler()->getNonSharedNodeSet(nodes,
@@ -55,7 +89,7 @@ FilterExpr::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
 TX_IMPL_EXPR_STUBS_BASE(FilterExpr, NODESET_RESULT)
 
 Expr*
-FilterExpr::getSubExprAt(uint32_t aPos)
+FilterExpr::getSubExprAt(PRUint32 aPos)
 {
     if (aPos == 0) {
       return expr;
@@ -64,7 +98,7 @@ FilterExpr::getSubExprAt(uint32_t aPos)
 }
 
 void
-FilterExpr::setSubExprAt(uint32_t aPos, Expr* aExpr)
+FilterExpr::setSubExprAt(PRUint32 aPos, Expr* aExpr)
 {
     if (aPos == 0) {
       expr.forget();

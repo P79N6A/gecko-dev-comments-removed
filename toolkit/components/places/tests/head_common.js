@@ -3,7 +3,37 @@
 
 
 
-const CURRENT_SCHEMA_VERSION = 21;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const NS_APP_USER_PROFILE_50_DIR = "ProfD";
 const NS_APP_PROFILE_DIR_STARTUP = "ProfDS";
@@ -19,7 +49,9 @@ const TRANSITION_REDIRECT_PERMANENT = Ci.nsINavHistoryService.TRANSITION_REDIREC
 const TRANSITION_REDIRECT_TEMPORARY = Ci.nsINavHistoryService.TRANSITION_REDIRECT_TEMPORARY;
 const TRANSITION_DOWNLOAD = Ci.nsINavHistoryService.TRANSITION_DOWNLOAD;
 
-const TITLE_LENGTH_MAX = 4096;
+
+
+const FAVICON_ERRORPAGE_URL = "chrome://global/skin/icons/warning-16.png";
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
@@ -38,18 +70,18 @@ XPCOMUtils.defineLazyGetter(this, "FileUtils", function() {
   return FileUtils;
 });
 
-Cu.import("resource://gre/modules/PlacesUtils.jsm");
-XPCOMUtils.defineLazyGetter(this, "SMALLPNG_DATA_URI", function() {
-  return NetUtil.newURI(
-         "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAA" +
-         "AAAA6fptVAAAACklEQVQI12NgAAAAAgAB4iG8MwAAAABJRU5ErkJggg==");
+XPCOMUtils.defineLazyGetter(this, "PlacesUtils", function() {
+  Cu.import("resource://gre/modules/PlacesUtils.jsm");
+  return PlacesUtils;
 });
+
 
 function LOG(aMsg) {
   aMsg = ("*** PLACES TESTS: " + aMsg);
   Services.console.logStringMessage(aMsg);
   print(aMsg);
 }
+
 
 let gTestDir = do_get_cwd();
 
@@ -78,30 +110,23 @@ function uri(aSpec) NetUtil.newURI(aSpec);
 
 
 
-
-
-
-
-
 let gDBConn;
-function DBConn(aForceNewConnection) {
-  if (!aForceNewConnection) {
-    let db = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase)
-                                .DBConnection;
-    if (db.connectionReady)
-      return db;
-  }
+function DBConn() {
+  let db = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase)
+                              .DBConnection;
+  if (db.connectionReady)
+    return db;
 
   
-  if (!gDBConn || aForceNewConnection) {
+  if (!gDBConn) {
     let file = Services.dirsvc.get('ProfD', Ci.nsIFile);
     file.append("places.sqlite");
-    let dbConn = gDBConn = Services.storage.openDatabase(file);
+    gDBConn = Services.storage.openDatabase(file);
 
     
-    Services.obs.addObserver(function DBCloseCallback(aSubject, aTopic, aData) {
-      Services.obs.removeObserver(DBCloseCallback, aTopic);
-      dbConn.asyncClose();
+    Services.obs.addObserver(function (aSubject, aTopic, aData) {
+      Services.obs.removeObserver(arguments.callee, aTopic);
+      gDBConn.asyncClose();
     }, "profile-before-change", false);
   }
 
@@ -120,7 +145,7 @@ function readInputStreamData(aStream) {
     bistream.setInputStream(aStream);
     let expectedData = [];
     let avail;
-    while ((avail = bistream.available())) {
+    while (avail = bistream.available()) {
       expectedData = expectedData.concat(bistream.readByteArray(avail));
     }
     return expectedData;
@@ -149,42 +174,6 @@ function readFileData(aFile) {
     throw "Didn't read expected number of bytes";
   }
   return bytes;
-}
-
-
-
-
-
-
-
-
-
-
-
-function readFileOfLength(aFileName, aExpectedLength) {
-  let data = readFileData(do_get_file(aFileName));
-  do_check_eq(data.length, aExpectedLength);
-  return data;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-function base64EncodeString(aString) {
-  var stream = Cc["@mozilla.org/io/string-input-stream;1"]
-               .createInstance(Ci.nsIStringInputStream);
-  stream.setData(aString, aString.length);
-  var encoder = Cc["@mozilla.org/scriptablebase64encoder;1"]
-                .createInstance(Ci.nsIScriptableBase64Encoder);
-  return encoder.encodeToString(stream, aString.length);
 }
 
 
@@ -405,10 +394,6 @@ function shutdownPlaces(aKeepAliveConnection)
   hs.observe(null, "profile-before-change", null);
 }
 
-const FILENAME_BOOKMARKS_HTML = "bookmarks.html";
-let (backup_date = new Date().toLocaleFormat("%Y-%m-%d")) {
-  const FILENAME_BOOKMARKS_JSON = "bookmarks-" + backup_date + ".json";
-}
 
 
 
@@ -654,21 +639,6 @@ function waitForAsyncUpdates(aCallback, aScope, aArguments)
 
 
 
-function waitForConnectionClosed(aCallback)
-{
-  Services.obs.addObserver(function WFCCCallback() {
-    Services.obs.removeObserver(WFCCCallback, "places-connection-closed");
-    aCallback();
-  }, "places-connection-closed", false);
-  shutdownPlaces();
-}
-
-
-
-
-
-
-
 
 
 function do_check_valid_places_guid(aGuid,
@@ -733,53 +703,6 @@ function do_check_guid_for_uri(aURI,
 
 
 
-
-
-
-function do_get_guid_for_bookmark(aId,
-                                  aStack)
-{
-  if (!aStack) {
-    aStack = Components.stack.caller;
-  }
-  let stmt = DBConn().createStatement(
-    "SELECT guid "
-  + "FROM moz_bookmarks "
-  + "WHERE id = :item_id "
-  );
-  stmt.params.item_id = aId;
-  do_check_true(stmt.executeStep(), aStack);
-  let guid = stmt.row.guid;
-  stmt.finalize();
-  do_check_valid_places_guid(guid, aStack);
-  return guid;
-}
-
-
-
-
-
-
-
-
-
-function do_check_guid_for_bookmark(aId,
-                                    aGUID)
-{
-  let caller = Components.stack.caller;
-  let guid = do_get_guid_for_bookmark(aId, caller);
-  if (aGUID) {
-    do_check_valid_places_guid(aGUID, caller);
-    do_check_eq(guid, aGUID, caller);
-  }
-}
-
-
-
-
-
-
-
 function do_log_info(aMessage)
 {
   print("TEST-INFO | " + _TEST_FILE + " | " + aMessage);
@@ -808,117 +731,4 @@ function do_compare_arrays(a1, a2, sorted)
     return a1.filter(function (e) a2.indexOf(e) == -1).length == 0 &&
            a2.filter(function (e) a1.indexOf(e) == -1).length == 0;
   }
-}
-
-
-
-
-
-function NavHistoryObserver() {}
-
-NavHistoryObserver.prototype = {
-  onBeginUpdateBatch: function () {},
-  onEndUpdateBatch: function () {},
-  onVisit: function () {},
-  onTitleChanged: function () {},
-  onBeforeDeleteURI: function () {},
-  onDeleteURI: function () {},
-  onClearHistory: function () {},
-  onPageChanged: function () {},
-  onDeleteVisits: function () {},
-  QueryInterface: XPCOMUtils.generateQI([
-    Ci.nsINavHistoryObserver,
-  ])
-};
-
-
-
-
-
-
-function NavHistoryResultObserver() {}
-
-NavHistoryResultObserver.prototype = {
-  batching: function () {},
-  containerClosed: function () {},
-  containerOpened: function () {},
-  containerStateChanged: function () {},
-  invalidateContainer: function () {},
-  nodeAnnotationChanged: function () {},
-  nodeDateAddedChanged: function () {},
-  nodeHistoryDetailsChanged: function () {},
-  nodeIconChanged: function () {},
-  nodeInserted: function () {},
-  nodeKeywordChanged: function () {},
-  nodeLastModifiedChanged: function () {},
-  nodeMoved: function () {},
-  nodeRemoved: function () {},
-  nodeReplaced: function () {},
-  nodeTagsChanged: function () {},
-  nodeTitleChanged: function () {},
-  nodeURIChanged: function () {},
-  sortingChanged: function () {},
-  QueryInterface: XPCOMUtils.generateQI([
-    Ci.nsINavHistoryResultObserver,
-  ])
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function addVisits(aPlaceInfo, aCallback, aStack)
-{
-  let stack = aStack || Components.stack.caller;
-  let places = [];
-  if (aPlaceInfo instanceof Ci.nsIURI) {
-    places.push({ uri: aPlaceInfo });
-  }
-  else if (Array.isArray(aPlaceInfo)) {
-    places = places.concat(aPlaceInfo);
-  } else {
-    places.push(aPlaceInfo)
-  }
-
-  
-  let now = Date.now();
-  for (let i = 0; i < places.length; i++) {
-    if (!places[i].title) {
-      places[i].title = "test visit for " + places[i].uri.spec;
-    }
-    places[i].visits = [{
-      transitionType: places[i].transition === undefined ? TRANSITION_LINK
-                                                         : places[i].transition,
-      visitDate: places[i].visitDate || (now++) * 1000,
-      referrerURI: places[i].referrer
-    }];
-  }
-
-  PlacesUtils.asyncHistory.updatePlaces(
-    places,
-    {
-      handleError: function AAV_handleError() {
-        do_throw("Unexpected error in adding visit.", stack);
-      },
-      handleResult: function () {},
-      handleCompletion: function UP_handleCompletion() {
-        if (aCallback)
-          aCallback();
-      }
-    }
-  );
 }

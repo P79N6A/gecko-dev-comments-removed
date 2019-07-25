@@ -1,6 +1,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsContentBlocker_h__
 #define nsContentBlocker_h__
 
@@ -8,16 +40,15 @@
 #include "nsIObserver.h"
 #include "nsWeakReference.h"
 #include "nsIPermissionManager.h"
-#include "nsIPrefBranch.h"
-#include "mozilla/Attributes.h"
+#include "nsIPrefBranch2.h"
 
 class nsIPrefBranch;
 
 
 
-class nsContentBlocker MOZ_FINAL : public nsIContentPolicy,
-                                   public nsIObserver,
-                                   public nsSupportsWeakReference
+class nsContentBlocker : public nsIContentPolicy,
+                         public nsIObserver,
+                         public nsSupportsWeakReference
 {
 public:
 
@@ -35,13 +66,13 @@ private:
   void PrefChanged(nsIPrefBranch *, const char *);
   nsresult TestPermission(nsIURI *aCurrentURI,
                           nsIURI *aFirstURI,
-                          int32_t aContentType,
+                          PRInt32 aContentType,
                           bool *aPermission,
                           bool *aFromPrefs);
 
   nsCOMPtr<nsIPermissionManager> mPermissionManager;
-  nsCOMPtr<nsIPrefBranch> mPrefBranchInternal;
-  static uint8_t mBehaviorPref[];
+  nsCOMPtr<nsIPrefBranch2> mPrefBranchInternal;
+  static PRUint8 mBehaviorPref[];
 };
 
 #define NS_CONTENTBLOCKER_CID \

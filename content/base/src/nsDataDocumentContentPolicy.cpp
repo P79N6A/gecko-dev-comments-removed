@@ -9,6 +9,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsDataDocumentContentPolicy.h"
 #include "nsNetUtil.h"
 #include "nsScriptSecurityManager.h"
@@ -19,33 +51,21 @@
 
 NS_IMPL_ISUPPORTS1(nsDataDocumentContentPolicy, nsIContentPolicy)
 
-
-
-
-static bool
-HasFlags(nsIURI* aURI, uint32_t aURIFlags)
-{
-  bool hasFlags;
-  nsresult rv = NS_URIChainHasFlags(aURI, aURIFlags, &hasFlags);
-  return NS_SUCCEEDED(rv) && hasFlags;
-}
-
 NS_IMETHODIMP
-nsDataDocumentContentPolicy::ShouldLoad(uint32_t aContentType,
+nsDataDocumentContentPolicy::ShouldLoad(PRUint32 aContentType,
                                         nsIURI *aContentLocation,
                                         nsIURI *aRequestingLocation,
                                         nsISupports *aRequestingContext,
                                         const nsACString &aMimeGuess,
                                         nsISupports *aExtra,
-                                        nsIPrincipal *aRequestPrincipal,
-                                        int16_t *aDecision)
+                                        PRInt16 *aDecision)
 {
   *aDecision = nsIContentPolicy::ACCEPT;
   
   nsCOMPtr<nsIDocument> doc;
   nsCOMPtr<nsINode> node = do_QueryInterface(aRequestingContext);
   if (node) {
-    doc = node->OwnerDoc();
+    doc = node->GetOwnerDoc();
   } else {
     nsCOMPtr<nsIDOMWindow> window = do_QueryInterface(aRequestingContext);
     if (window) {
@@ -69,27 +89,22 @@ nsDataDocumentContentPolicy::ShouldLoad(uint32_t aContentType,
   if (doc->IsBeingUsedAsImage()) {
     
     
-    
-    
-    
-    
-    if (!HasFlags(aContentLocation,
-                  nsIProtocolHandler::URI_IS_LOCAL_RESOURCE) ||
-        (!HasFlags(aContentLocation,
-                   nsIProtocolHandler::URI_INHERITS_SECURITY_CONTEXT) &&
-         !HasFlags(aContentLocation,
-                   nsIProtocolHandler::URI_LOADABLE_BY_SUBSUMERS))) {
+    bool hasFlags;
+    nsresult rv = NS_URIChainHasFlags(aContentLocation,
+                                      nsIProtocolHandler::URI_IS_LOCAL_RESOURCE,
+                                      &hasFlags);
+    if (NS_FAILED(rv) || !hasFlags) {
+      
       *aDecision = nsIContentPolicy::REJECT_TYPE;
 
       
       if (node) {
         nsIPrincipal* requestingPrincipal = node->NodePrincipal();
         nsRefPtr<nsIURI> principalURI;
-        nsresult rv =
-          requestingPrincipal->GetURI(getter_AddRefs(principalURI));
+        rv = requestingPrincipal->GetURI(getter_AddRefs(principalURI));
         if (NS_SUCCEEDED(rv) && principalURI) {
           nsScriptSecurityManager::ReportError(
-            nullptr, NS_LITERAL_STRING("CheckSameOriginError"), principalURI,
+            nsnull, NS_LITERAL_STRING("CheckSameOriginError"), principalURI,
             aContentLocation);
         }
       }
@@ -97,8 +112,8 @@ nsDataDocumentContentPolicy::ShouldLoad(uint32_t aContentType,
                doc->GetDocumentURI()) {
       
       bool isRecursiveLoad;
-      nsresult rv = aContentLocation->EqualsExceptRef(doc->GetDocumentURI(),
-                                                      &isRecursiveLoad);
+      rv = aContentLocation->EqualsExceptRef(doc->GetDocumentURI(),
+                                             &isRecursiveLoad);
       if (NS_FAILED(rv) || isRecursiveLoad) {
         NS_WARNING("Refusing to recursively load image");
         *aDecision = nsIContentPolicy::REJECT_TYPE;
@@ -108,7 +123,7 @@ nsDataDocumentContentPolicy::ShouldLoad(uint32_t aContentType,
   }
 
   
-  if (!doc->IsResourceDoc()) {
+  if (!doc->GetDisplayDocument()) {
     return NS_OK;
   }
 
@@ -124,16 +139,14 @@ nsDataDocumentContentPolicy::ShouldLoad(uint32_t aContentType,
 }
 
 NS_IMETHODIMP
-nsDataDocumentContentPolicy::ShouldProcess(uint32_t aContentType,
+nsDataDocumentContentPolicy::ShouldProcess(PRUint32 aContentType,
                                            nsIURI *aContentLocation,
                                            nsIURI *aRequestingLocation,
                                            nsISupports *aRequestingContext,
                                            const nsACString &aMimeGuess,
                                            nsISupports *aExtra,
-                                           nsIPrincipal *aRequestPrincipal,
-                                           int16_t *aDecision)
+                                           PRInt16 *aDecision)
 {
   return ShouldLoad(aContentType, aContentLocation, aRequestingLocation,
-                    aRequestingContext, aMimeGuess, aExtra, aRequestPrincipal,
-                    aDecision);
+                    aRequestingContext, aMimeGuess, aExtra, aDecision);
 }

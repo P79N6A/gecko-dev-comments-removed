@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  
 #ifndef nsXMLPrettyPrinter_h__
 #define nsXMLPrettyPrinter_h__
@@ -49,6 +82,7 @@ private:
     void MaybeUnhook(nsIContent* aContent);
 
     nsIDocument* mDocument; 
+    PRUint32 mUpdateDepth;
     bool mUnhookPending;
 };
 

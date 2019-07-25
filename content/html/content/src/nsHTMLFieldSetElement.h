@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsHTMLFieldSetElement_h___
 #define nsHTMLFieldSetElement_h___
 
@@ -25,7 +57,7 @@ public:
   static nsHTMLFieldSetElement* FromContent(nsIContent* aContent)
   {
     if (!aContent || !aContent->IsHTML(nsGkAtoms::fieldset)) {
-      return nullptr;
+      return nsnull;
     }
     return static_cast<nsHTMLFieldSetElement*>(aContent);
   }
@@ -47,20 +79,19 @@ public:
 
   
   virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
-  virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                                const nsAttrValue* aValue, bool aNotify);
+  virtual nsresult AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
+                                const nsAString* aValue, bool aNotify);
 
-  virtual nsresult InsertChildAt(nsIContent* aChild, uint32_t aIndex,
+  virtual nsresult InsertChildAt(nsIContent* aChild, PRUint32 aIndex,
                                      bool aNotify);
-  virtual void RemoveChildAt(uint32_t aIndex, bool aNotify);
+  virtual nsresult RemoveChildAt(PRUint32 aIndex, bool aNotify);
 
   
-  NS_IMETHOD_(uint32_t) GetType() const { return NS_FORM_FIELDSET; }
+  NS_IMETHOD_(PRUint32) GetType() const { return NS_FORM_FIELDSET; }
   NS_IMETHOD Reset();
   NS_IMETHOD SubmitNamesValues(nsFormSubmission* aFormSubmission);
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
   virtual nsXPCClassInfo* GetClassInfo();
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 
   const nsIContent* GetFirstLegend() const { return mFirstLegend; }
 
@@ -83,7 +114,7 @@ private:
   void NotifyElementsForFirstLegendChange(bool aNotify);
 
   
-  static bool MatchListedElements(nsIContent* aContent, int32_t aNamespaceID,
+  static bool MatchListedElements(nsIContent* aContent, PRInt32 aNamespaceID,
                                     nsIAtom* aAtom, void* aData);
 
   

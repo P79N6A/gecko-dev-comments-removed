@@ -3,10 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 let doc;
 let salutation;
 let closing;
-let winId;
 
 function createDocument()
 {
@@ -37,53 +69,26 @@ function runInspectorTests()
 {
   Services.obs.removeObserver(runInspectorTests,
     InspectorUI.INSPECTOR_NOTIFICATIONS.OPENED);
+  Services.obs.addObserver(treePanelTests,
+    InspectorUI.INSPECTOR_NOTIFICATIONS.TREEPANELREADY, false);
 
   ok(InspectorUI.toolbar, "we have the toolbar.");
   ok(!InspectorUI.toolbar.hidden, "toolbar is visible");
   ok(InspectorUI.inspecting, "Inspector is inspecting");
-  ok(!InspectorUI.markupOpen, "Inspector Tree Panel is not open");
-  ok(!InspectorUI.sidebar.visible, "Inspector sidebar should not visible.");
+  ok(!InspectorUI.treePanel.isOpen(), "Inspector Tree Panel is not open");
   ok(InspectorUI.highlighter, "Highlighter is up");
-  InspectorUI.inspectNode(doc.body);
-  InspectorUI.stopInspecting();
 
-  InspectorUI.currentInspector.once("markuploaded", treePanelTests);
-  InspectorUI.currentInspector.openMarkup();
+  InspectorUI.treePanel.open();
 }
 
 function treePanelTests()
 {
-  ok(InspectorUI.currentInspector.markupOpen, "Inspector Tree Panel is open");
-
-  InspectorUI.toggleSidebar();
-  ok(InspectorUI.sidebar.visible, "Inspector Sidebar should be open");
-  InspectorUI.toggleSidebar();
-  ok(!InspectorUI.sidebar.visible, "Inspector Sidebar should be closed");
-  InspectorUI.sidebar.show();
-  InspectorUI.currentInspector.once("sidebaractivated-computedview",
-    stylePanelTests)
-  InspectorUI.sidebar.activatePanel("computedview");
-}
-
-function stylePanelTests()
-{
-  ok(InspectorUI.sidebar.visible, "Inspector Sidebar is open");
-  is(InspectorUI.sidebar.activePanel, "computedview", "Computed View is open");
-  ok(computedViewTree(), "Computed view has a cssHtmlTree");
-
-  InspectorUI.sidebar.activatePanel("ruleview");
-  executeSoon(function() {
-    ruleViewTests();
-  });
-}
-
-function ruleViewTests()
-{
+  Services.obs.removeObserver(treePanelTests,
+    InspectorUI.INSPECTOR_NOTIFICATIONS.TREEPANELREADY);
   Services.obs.addObserver(runContextMenuTest,
-      InspectorUI.INSPECTOR_NOTIFICATIONS.CLOSED, false);
+    InspectorUI.INSPECTOR_NOTIFICATIONS.CLOSED, false);
 
-  is(InspectorUI.sidebar.activePanel, "ruleview", "Rule View is open");
-  ok(ruleView(), "InspectorUI has a cssRuleView");
+  ok(InspectorUI.treePanel.isOpen(), "Inspector Tree Panel is open");
 
   executeSoon(function() {
     InspectorUI.closeInspectorUI();
@@ -116,6 +121,9 @@ function inspectNodesFromContextTest()
   Services.obs.addObserver(openInspectorForContextTest, InspectorUI.INSPECTOR_NOTIFICATIONS.CLOSED, false);
   ok(!InspectorUI.inspecting, "Inspector is not actively highlighting");
   is(InspectorUI.selection, salutation, "Inspector is highlighting salutation");
+  ok(!InspectorUI.isTreePanelOpen, "Inspector Tree Panel is closed");
+  
+  todo(InspectorUI.isStylePanelOpen, "Inspector Style Panel is open");
   executeSoon(function() {
     InspectorUI.closeInspectorUI(true);
   });
@@ -134,7 +142,7 @@ function inspectNodesFromContextTestWhileOpen()
 {
   Services.obs.removeObserver(inspectNodesFromContextTestWhileOpen, InspectorUI.INSPECTOR_NOTIFICATIONS.OPENED);
   Services.obs.addObserver(inspectNodesFromContextTestTrap, InspectorUI.INSPECTOR_NOTIFICATIONS.OPENED, false);
-  InspectorUI.highlighter.addListener("nodeselected", inspectNodesFromContextTestHighlight);
+  Services.obs.addObserver(inspectNodesFromContextTestHighlight, InspectorUI.INSPECTOR_NOTIFICATIONS.HIGHLIGHTING, false);
   is(InspectorUI.selection, salutation, "Inspector is highlighting salutation");
   closing = doc.getElementById("closing");
   ok(closing, "we have the closing statement");
@@ -145,12 +153,11 @@ function inspectNodesFromContextTestWhileOpen()
 
 function inspectNodesFromContextTestHighlight()
 {
-  winId = InspectorUI.winID;
-  InspectorUI.highlighter.removeListener("nodeselected", inspectNodesFromContextTestHighlight);
-  Services.obs.addObserver(finishInspectorTests, InspectorUI.INSPECTOR_NOTIFICATIONS.DESTROYED, false);
+  Services.obs.removeObserver(inspectNodesFromContextTestHighlight, InspectorUI.INSPECTOR_NOTIFICATIONS.HIGHLIGHTING);
+  Services.obs.addObserver(finishInspectorTests, InspectorUI.INSPECTOR_NOTIFICATIONS.CLOSED, false);
   is(InspectorUI.selection, closing, "InspectorUI.selection is header");
   executeSoon(function() {
-    InspectorUI.closeInspectorUI();
+    InspectorUI.closeInspectorUI(true);
   });
 }
 
@@ -160,18 +167,16 @@ function inspectNodesFromContextTestTrap()
   ok(false, "Inspector UI has been opened again. We Should Not Be Here!");
 }
 
-function finishInspectorTests(subject, topic, aWinIdString)
+function finishInspectorTests()
 {
   Services.obs.removeObserver(finishInspectorTests,
-    InspectorUI.INSPECTOR_NOTIFICATIONS.DESTROYED);
+    InspectorUI.INSPECTOR_NOTIFICATIONS.CLOSED);
 
-  is(parseInt(aWinIdString), winId, "winId of destroyed Inspector matches");
   ok(!InspectorUI.highlighter, "Highlighter is gone");
+  ok(!InspectorUI.treePanel, "Inspector Tree Panel is closed");
   ok(!InspectorUI.inspecting, "Inspector is not inspecting");
-  ok(!InspectorUI._sidebar, "Inspector Sidebar is closed");
   ok(!InspectorUI.toolbar, "toolbar is hidden");
 
-  Services.obs.removeObserver(inspectNodesFromContextTestTrap, InspectorUI.INSPECTOR_NOTIFICATIONS.OPENED);
   gBrowser.removeCurrentTab();
   finish();
 }

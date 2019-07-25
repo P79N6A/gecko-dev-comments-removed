@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsRDFResource.h"
 #include "nsIServiceManager.h"
 #include "nsIRDFDelegateFactory.h"
@@ -14,13 +47,13 @@
 
 static NS_DEFINE_CID(kRDFServiceCID, NS_RDFSERVICE_CID);
 
-nsIRDFService* nsRDFResource::gRDFService = nullptr;
+nsIRDFService* nsRDFResource::gRDFService = nsnull;
 nsrefcnt nsRDFResource::gRDFServiceRefCnt = 0;
 
 
 
 nsRDFResource::nsRDFResource(void)
-    : mDelegates(nullptr)
+    : mDelegates(nsnull)
 {
 }
 
@@ -50,7 +83,7 @@ NS_IMPL_THREADSAFE_ISUPPORTS2(nsRDFResource, nsIRDFResource, nsIRDFNode)
 NS_IMETHODIMP
 nsRDFResource::EqualsNode(nsIRDFNode* aNode, bool* aResult)
 {
-    NS_PRECONDITION(aNode != nullptr, "null ptr");
+    NS_PRECONDITION(aNode != nsnull, "null ptr");
     if (! aNode)
         return NS_ERROR_NULL_POINTER;
 
@@ -63,7 +96,7 @@ nsRDFResource::EqualsNode(nsIRDFNode* aNode, bool* aResult)
         return NS_OK;
     }
     else if (rv == NS_NOINTERFACE) {
-        *aResult = false;
+        *aResult = PR_FALSE;
         return NS_OK;
     }
     else {
@@ -77,7 +110,7 @@ nsRDFResource::EqualsNode(nsIRDFNode* aNode, bool* aResult)
 NS_IMETHODIMP
 nsRDFResource::Init(const char* aURI)
 {
-    NS_PRECONDITION(aURI != nullptr, "null ptr");
+    NS_PRECONDITION(aURI != nsnull, "null ptr");
     if (! aURI)
         return NS_ERROR_NULL_POINTER;
 
@@ -89,7 +122,7 @@ nsRDFResource::Init(const char* aURI)
     }
 
     
-    return gRDFService->RegisterResource(this, true);
+    return gRDFService->RegisterResource(this, PR_TRUE);
 }
 
 NS_IMETHODIMP
@@ -122,7 +155,7 @@ nsRDFResource::GetValueConst(const char** aURI)
 NS_IMETHODIMP
 nsRDFResource::EqualsString(const char* aURI, bool* aResult)
 {
-    NS_PRECONDITION(aURI != nullptr, "null ptr");
+    NS_PRECONDITION(aURI != nsnull, "null ptr");
     if (! aURI)
         return NS_ERROR_NULL_POINTER;
 
@@ -135,12 +168,12 @@ nsRDFResource::EqualsString(const char* aURI, bool* aResult)
 NS_IMETHODIMP
 nsRDFResource::GetDelegate(const char* aKey, REFNSIID aIID, void** aResult)
 {
-    NS_PRECONDITION(aKey != nullptr, "null ptr");
+    NS_PRECONDITION(aKey != nsnull, "null ptr");
     if (! aKey)
         return NS_ERROR_NULL_POINTER;
 
     nsresult rv;
-    *aResult = nullptr;
+    *aResult = nsnull;
 
     DelegateEntry* entry = mDelegates;
     while (entry) {
@@ -153,11 +186,11 @@ nsRDFResource::GetDelegate(const char* aKey, REFNSIID aIID, void** aResult)
     }
 
     
-    nsAutoCString contractID(NS_RDF_DELEGATEFACTORY_CONTRACTID_PREFIX);
+    nsCAutoString contractID(NS_RDF_DELEGATEFACTORY_CONTRACTID_PREFIX);
     contractID.Append(aKey);
     contractID.Append("&scheme=");
 
-    int32_t i = mURI.FindChar(':');
+    PRInt32 i = mURI.FindChar(':');
     contractID += StringHead(mURI, i);
 
     nsCOMPtr<nsIRDFDelegateFactory> delegateFactory =
@@ -194,7 +227,7 @@ nsRDFResource::GetDelegate(const char* aKey, REFNSIID aIID, void** aResult)
 NS_IMETHODIMP
 nsRDFResource::ReleaseDelegate(const char* aKey)
 {
-    NS_PRECONDITION(aKey != nullptr, "null ptr");
+    NS_PRECONDITION(aKey != nsnull, "null ptr");
     if (! aKey)
         return NS_ERROR_NULL_POINTER;
 

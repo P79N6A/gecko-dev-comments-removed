@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsAString_h___
 #define nsAString_h___
 
@@ -24,9 +56,6 @@
 #endif 
 
 #include <string.h>
-#include <stdarg.h>
-
-#include "mozilla/fallible.h"
 
 #define kNotFound -1
 
@@ -52,7 +81,7 @@ class nsCaseInsensitiveCStringComparator
       nsCaseInsensitiveCStringComparator() {}
       typedef char char_type;
 
-      virtual int operator()( const char_type*, const char_type*, uint32_t, uint32_t ) const;
+      virtual int operator()( const char_type*, const char_type*, PRUint32, PRUint32 ) const;
   };
 
 class nsCaseInsensitiveCStringArrayComparator

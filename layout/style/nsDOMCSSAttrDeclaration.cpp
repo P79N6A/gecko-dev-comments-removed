@@ -5,6 +5,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsDOMCSSAttrDeclaration.h"
 
 #include "mozilla/css/Declaration.h"
@@ -16,18 +49,19 @@
 #include "nsIPrincipal.h"
 #include "nsIURI.h"
 #include "nsNodeUtils.h"
-#include "nsGenericElement.h"
-#include "nsContentUtils.h"
-#include "xpcpublic.h"
-#include "nsWrapperCacheInlines.h"
 
 namespace css = mozilla::css;
 namespace dom = mozilla::dom;
 
-nsDOMCSSAttributeDeclaration::nsDOMCSSAttributeDeclaration(dom::Element* aElement,
-                                                           bool aIsSMILOverride)
+nsDOMCSSAttributeDeclaration::nsDOMCSSAttributeDeclaration(dom::Element* aElement
+#ifdef MOZ_SMIL
+                                                           , bool aIsSMILOverride
+#endif 
+                                                           )
   : mElement(aElement)
+#ifdef MOZ_SMIL
   , mIsSMILOverride(aIsSMILOverride)
+#endif 
 {
   MOZ_COUNT_CTOR(nsDOMCSSAttributeDeclaration);
 
@@ -39,36 +73,11 @@ nsDOMCSSAttributeDeclaration::~nsDOMCSSAttributeDeclaration()
   MOZ_COUNT_DTOR(nsDOMCSSAttributeDeclaration);
 }
 
-NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_1(nsDOMCSSAttributeDeclaration, mElement)
+NS_IMPL_CYCLE_COLLECTION_1(nsDOMCSSAttributeDeclaration, mElement)
 
-
-
-
-NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(nsDOMCSSAttributeDeclaration)
-  if (tmp->mElement && nsGenericElement::CanSkip(tmp->mElement, true)) {
-    if (tmp->PreservingWrapper()) {
-      
-      
-      JSObject* o = tmp->GetWrapperPreserveColor();
-      xpc_UnmarkGrayObject(o);
-    }
-    return true;
-  }
-  return tmp->IsBlack();
-NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_END
-
-NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_BEGIN(nsDOMCSSAttributeDeclaration)
-  return tmp->IsBlack() ||
-    (tmp->mElement && nsGenericElement::CanSkipInCC(tmp->mElement));
-NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_END
-
-NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_BEGIN(nsDOMCSSAttributeDeclaration)
-  return tmp->IsBlack() ||
-    (tmp->mElement && nsGenericElement::CanSkipThis(tmp->mElement));
-NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_END
-
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsDOMCSSAttributeDeclaration)
+NS_INTERFACE_MAP_BEGIN(nsDOMCSSAttributeDeclaration)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
+  NS_INTERFACE_MAP_ENTRIES_CYCLE_COLLECTION(nsDOMCSSAttributeDeclaration)
 NS_IMPL_QUERY_TAIL_INHERITING(nsDOMCSSDeclaration)
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsDOMCSSAttributeDeclaration)
@@ -79,19 +88,23 @@ nsDOMCSSAttributeDeclaration::SetCSSDeclaration(css::Declaration* aDecl)
 {
   NS_ASSERTION(mElement, "Must have Element to set the declaration!");
   css::StyleRule* oldRule =
+#ifdef MOZ_SMIL
     mIsSMILOverride ? mElement->GetSMILOverrideStyleRule() :
+#endif 
     mElement->GetInlineStyleRule();
   NS_ASSERTION(oldRule, "Element must have rule");
 
   nsRefPtr<css::StyleRule> newRule =
-    oldRule->DeclarationChanged(aDecl, false);
+    oldRule->DeclarationChanged(aDecl, PR_FALSE);
   if (!newRule) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
   return
-    mIsSMILOverride ? mElement->SetSMILOverrideStyleRule(newRule, true) :
-    mElement->SetInlineStyleRule(newRule, nullptr, true);
+#ifdef MOZ_SMIL
+    mIsSMILOverride ? mElement->SetSMILOverrideStyleRule(newRule, PR_TRUE) :
+#endif 
+    mElement->SetInlineStyleRule(newRule, PR_TRUE);
 }
 
 nsIDocument*
@@ -101,7 +114,10 @@ nsDOMCSSAttributeDeclaration::DocToUpdate()
   
   
   
-  if (!mIsSMILOverride) {
+#ifdef MOZ_SMIL
+  if (!mIsSMILOverride)
+#endif
+  {
     nsNodeUtils::AttributeWillChange(mElement, kNameSpaceID_None,
                                      nsGkAtoms::style,
                                      nsIDOMMutationEvent::MODIFICATION);
@@ -109,42 +125,46 @@ nsDOMCSSAttributeDeclaration::DocToUpdate()
  
   
   
-  return mElement->OwnerDoc();
+  return mElement->GetOwnerDoc();
 }
 
 css::Declaration*
 nsDOMCSSAttributeDeclaration::GetCSSDeclaration(bool aAllocate)
 {
   if (!mElement)
-    return nullptr;
+    return nsnull;
 
   css::StyleRule* cssRule;
+#ifdef MOZ_SMIL
   if (mIsSMILOverride)
     cssRule = mElement->GetSMILOverrideStyleRule();
   else
+#endif 
     cssRule = mElement->GetInlineStyleRule();
 
   if (cssRule) {
     return cssRule->GetDeclaration();
   }
   if (!aAllocate) {
-    return nullptr;
+    return nsnull;
   }
 
   
   css::Declaration *decl = new css::Declaration();
   decl->InitializeEmpty();
-  nsRefPtr<css::StyleRule> newRule = new css::StyleRule(nullptr, decl);
+  nsRefPtr<css::StyleRule> newRule = new css::StyleRule(nsnull, decl);
 
   
   nsresult rv;
+#ifdef MOZ_SMIL
   if (mIsSMILOverride)
-    rv = mElement->SetSMILOverrideStyleRule(newRule, false);
+    rv = mElement->SetSMILOverrideStyleRule(newRule, PR_FALSE);
   else
-    rv = mElement->SetInlineStyleRule(newRule, nullptr, false);
+#endif 
+    rv = mElement->SetInlineStyleRule(newRule, PR_FALSE);
 
   if (NS_FAILED(rv)) {
-    return nullptr; 
+    return nsnull; 
   }
 
   return decl;
@@ -155,7 +175,13 @@ nsDOMCSSAttributeDeclaration::GetCSSParsingEnvironment(CSSParsingEnvironment& aC
 {
   NS_ASSERTION(mElement, "Something is severely broken -- there should be an Element here!");
 
-  nsIDocument* doc = mElement->OwnerDoc();
+  nsIDocument* doc = mElement->GetOwnerDoc();
+  if (!doc) {
+    
+    aCSSParseEnv.mPrincipal = nsnull;
+    return;
+  }
+
   aCSSParseEnv.mSheetURI = doc->GetDocumentURI();
   aCSSParseEnv.mBaseURI = mElement->GetBaseURI();
   aCSSParseEnv.mPrincipal = mElement->NodePrincipal();
@@ -167,7 +193,7 @@ nsDOMCSSAttributeDeclaration::GetParentRule(nsIDOMCSSRule **aParent)
 {
   NS_ENSURE_ARG_POINTER(aParent);
 
-  *aParent = nullptr;
+  *aParent = nsnull;
   return NS_OK;
 }
 

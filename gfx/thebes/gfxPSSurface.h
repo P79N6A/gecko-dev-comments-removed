@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_PSSURFACE_H
 #define GFX_PSSURFACE_H
 
@@ -41,7 +73,7 @@ public:
         return mSize;
     }
 
-    virtual int32_t GetDefaultContextFlags() const
+    virtual PRInt32 GetDefaultContextFlags() const
     {
         return gfxContext::FLAG_SIMPLIFY_OPERATORS |
                gfxContext::FLAG_DISABLE_SNAPPING;

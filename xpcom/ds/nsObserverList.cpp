@@ -3,12 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsObserverList.h"
 
 #include "nsAutoPtr.h"
 #include "nsCOMArray.h"
 #include "nsISimpleEnumerator.h"
-#include "xpcpublic.h"
 
 nsresult
 nsObserverList::AddObserver(nsIObserver* anObserver, bool ownsWeak)
@@ -70,7 +101,7 @@ nsObserverList::FillObserverArray(nsCOMArray<nsIObserver> &aArray)
 
     nsTArray<ObserverRef> observers(mObservers);
 
-    for (int32_t i = observers.Length() - 1; i >= 0; --i) {
+    for (PRInt32 i = observers.Length() - 1; i >= 0; --i) {
         if (observers[i].isWeakRef) {
             nsCOMPtr<nsIObserver> o(do_QueryReferent(observers[i].asWeak()));
             if (o) {
@@ -95,18 +126,8 @@ nsObserverList::NotifyObservers(nsISupports *aSubject,
     nsCOMArray<nsIObserver> observers;
     FillObserverArray(observers);
 
-    for (int32_t i = 0; i < observers.Count(); ++i) {
+    for (PRInt32 i = 0; i < observers.Count(); ++i) {
         observers[i]->Observe(aSubject, aTopic, someData);
-    }
-}
-
-void
-nsObserverList::UnmarkGrayStrongObservers()
-{
-    for (uint32_t i = 0; i < mObservers.Length(); ++i) {
-        if (!mObservers[i].isWeakRef) {
-            xpc_TryUnmarkWrappedGrayObject(mObservers[i].asObserver());
-        }
     }
 }
 

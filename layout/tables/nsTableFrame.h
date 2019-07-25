@@ -2,11 +2,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsTableFrame_h__
 #define nsTableFrame_h__
 
 #include "nscore.h"
-#include "nsContainerFrame.h"
+#include "nsHTMLContainerFrame.h"
 #include "nsStyleCoord.h"
 #include "nsStyleConsts.h"
 #include "nsITableLayout.h"
@@ -26,7 +58,6 @@ class nsStyleContext;
 
 struct nsTableReflowState;
 struct nsStylePosition;
-struct BCPropertyData;
 
 static inline bool IS_TABLE_CELL(nsIAtom* frameType) {
   return nsGkAtoms::tableCellFrame == frameType ||
@@ -38,7 +69,7 @@ class nsDisplayTableItem : public nsDisplayItem
 public:
   nsDisplayTableItem(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame) : 
       nsDisplayItem(aBuilder, aFrame),
-      mPartHasFixedBackground(false) {}
+      mPartHasFixedBackground(PR_FALSE) {}
 
   virtual bool IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder,
                                                 nsIFrame* aFrame);
@@ -46,7 +77,7 @@ public:
   
   
   
-  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap);
+  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder);
 
   void UpdateForFrameBackground(nsIFrame* aFrame);
 
@@ -57,7 +88,7 @@ private:
 class nsAutoPushCurrentTableItem
 {
 public:
-  nsAutoPushCurrentTableItem() : mBuilder(nullptr) {}
+  nsAutoPushCurrentTableItem() : mBuilder(nsnull) {}
   
   void Push(nsDisplayListBuilder* aBuilder, nsDisplayTableItem* aPushItem)
   {
@@ -96,7 +127,7 @@ private:
 
 
 
-class nsTableFrame : public nsContainerFrame, public nsITableLayout
+class nsTableFrame : public nsHTMLContainerFrame, public nsITableLayout
 {
 public:
   NS_DECL_QUERYFRAME
@@ -204,7 +235,7 @@ public:
   
 
 
-  bool IsRowGroup(int32_t aDisplayType) const;
+  bool IsRowGroup(PRInt32 aDisplayType) const;
 
   
 
@@ -212,7 +243,7 @@ public:
   NS_IMETHOD SetInitialChildList(ChildListID     aListID,
                                  nsFrameList&    aChildList);
 
-  virtual const nsFrameList& GetChildList(ChildListID aListID) const;
+  virtual nsFrameList GetChildList(ChildListID aListID) const;
   virtual void GetChildLists(nsTArray<ChildList>* aLists) const;
 
   NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
@@ -226,7 +257,7 @@ public:
 
   void PaintTableBorderBackground(nsRenderingContext& aRenderingContext,
                                   const nsRect& aDirtyRect,
-                                  nsPoint aPt, uint32_t aBGPaintFlags);
+                                  nsPoint aPt, PRUint32 aBGPaintFlags);
 
   
 
@@ -260,7 +291,7 @@ public:
 
   friend class nsDelayedCalcBCBorders;
   
-  void AddBCDamageArea(const nsIntRect& aValue);
+  void SetBCDamageArea(const nsRect& aValue);
   bool BCRecalcNeeded(nsStyleContext* aOldStyleContext,
                         nsStyleContext* aNewStyleContext);
   void PaintBCBorders(nsRenderingContext& aRenderingContext,
@@ -277,7 +308,7 @@ public:
   virtual nsSize ComputeSize(nsRenderingContext *aRenderingContext,
                              nsSize aCBSize, nscoord aAvailableWidth,
                              nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                             uint32_t aFlags) MOZ_OVERRIDE;
+                             bool aShrinkWrap);
   virtual nsSize ComputeAutoSize(nsRenderingContext *aRenderingContext,
                                  nsSize aCBSize, nscoord aAvailableWidth,
                                  nsSize aMargin, nsSize aBorder,
@@ -317,7 +348,7 @@ public:
 
   nsFrameList& GetColGroups();
 
-  virtual nsIFrame* GetParentStyleContextFrame() const;
+  virtual nsIFrame* GetParentStyleContextFrame();
 
   
 
@@ -332,7 +363,7 @@ public:
 #endif
 
   
-  virtual int32_t GetColumnWidth(int32_t aColIndex);
+  virtual PRInt32 GetColumnWidth(PRInt32 aColIndex);
 
   
   virtual nscoord GetCellSpacingX();
@@ -352,10 +383,10 @@ public:
 
 
 
-  virtual int32_t  GetEffectiveRowSpan(int32_t                 aStartRowIndex,
+  virtual PRInt32  GetEffectiveRowSpan(PRInt32                 aStartRowIndex,
                                        const nsTableCellFrame& aCell) const;
-  virtual int32_t  GetEffectiveRowSpan(const nsTableCellFrame& aCell,
-                                       nsCellMap*              aCellMap = nullptr);
+  virtual PRInt32  GetEffectiveRowSpan(const nsTableCellFrame& aCell,
+                                       nsCellMap*              aCellMap = nsnull);
 
   
 
@@ -365,19 +396,19 @@ public:
 
 
 
-  virtual int32_t  GetEffectiveColSpan(const nsTableCellFrame& aCell,
-                                       nsCellMap*              aCellMap = nullptr) const;
+  virtual PRInt32  GetEffectiveColSpan(const nsTableCellFrame& aCell,
+                                       nsCellMap*              aCellMap = nsnull) const;
 
   
 
 
-  bool HasMoreThanOneCell(int32_t aRowIndex) const;
+  bool HasMoreThanOneCell(PRInt32 aRowIndex) const;
 
   
 
 
 
-  nsTableColFrame* GetColFrame(int32_t aColIndex) const;
+  nsTableColFrame* GetColFrame(PRInt32 aColIndex) const;
 
   
 
@@ -385,22 +416,22 @@ public:
 
 
   void InsertCol(nsTableColFrame& aColFrame,
-                 int32_t          aColIndex);
+                 PRInt32          aColIndex);
 
   nsTableColGroupFrame* CreateAnonymousColGroupFrame(nsTableColGroupType aType);
 
-  int32_t DestroyAnonymousColFrames(int32_t aNumFrames);
+  PRInt32 DestroyAnonymousColFrames(PRInt32 aNumFrames);
 
   
   
   
-  void AppendAnonymousColFrames(int32_t aNumColsToAdd);
+  void AppendAnonymousColFrames(PRInt32 aNumColsToAdd);
 
   
   
   
   void AppendAnonymousColFrames(nsTableColGroupFrame* aColGroupFrame,
-                                int32_t               aNumColsToAdd,
+                                PRInt32               aNumColsToAdd,
                                 nsTableColType        aColType,
                                 bool                  aAddToTable);
 
@@ -411,26 +442,26 @@ public:
   void DidResizeColumns();
 
   virtual void AppendCell(nsTableCellFrame& aCellFrame,
-                          int32_t           aRowIndex);
+                          PRInt32           aRowIndex);
 
   virtual void InsertCells(nsTArray<nsTableCellFrame*>& aCellFrames,
-                           int32_t                      aRowIndex,
-                           int32_t                      aColIndexBefore);
+                           PRInt32                      aRowIndex,
+                           PRInt32                      aColIndexBefore);
 
   virtual void RemoveCell(nsTableCellFrame* aCellFrame,
-                          int32_t           aRowIndex);
+                          PRInt32           aRowIndex);
 
   void AppendRows(nsTableRowGroupFrame*       aRowGroupFrame,
-                  int32_t                     aRowIndex,
+                  PRInt32                     aRowIndex,
                   nsTArray<nsTableRowFrame*>& aRowFrames);
 
-  int32_t InsertRows(nsTableRowGroupFrame*       aRowGroupFrame,
+  PRInt32 InsertRows(nsTableRowGroupFrame*       aRowGroupFrame,
                      nsTArray<nsTableRowFrame*>& aFrames,
-                     int32_t                     aRowIndex,
+                     PRInt32                     aRowIndex,
                      bool                        aConsiderSpans);
 
   virtual void RemoveRows(nsTableRowFrame& aFirstRowFrame,
-                          int32_t          aNumRowsToRemove,
+                          PRInt32          aNumRowsToRemove,
                           bool             aConsiderSpans);
 
   
@@ -438,18 +469,18 @@ public:
 
   void InsertRowGroups(const nsFrameList::Slice& aRowGroups);
 
-  void InsertColGroups(int32_t                   aStartColIndex,
+  void InsertColGroups(PRInt32                   aStartColIndex,
                        const nsFrameList::Slice& aColgroups);
 
   virtual void RemoveCol(nsTableColGroupFrame* aColGroupFrame,
-                         int32_t               aColIndex,
+                         PRInt32               aColIndex,
                          bool                  aRemoveFromCache,
                          bool                  aRemoveFromCellMap);
 
-  NS_IMETHOD GetIndexByRowAndColumn(int32_t aRow, int32_t aColumn, int32_t *aIndex);
-  NS_IMETHOD GetRowAndColumnByIndex(int32_t aIndex, int32_t *aRow, int32_t *aColumn);
+  NS_IMETHOD GetIndexByRowAndColumn(PRInt32 aRow, PRInt32 aColumn, PRInt32 *aIndex);
+  NS_IMETHOD GetRowAndColumnByIndex(PRInt32 aIndex, PRInt32 *aRow, PRInt32 *aColumn);
 
-  bool ColumnHasCellSpacingBefore(int32_t aColIndex) const;
+  bool ColumnHasCellSpacingBefore(PRInt32 aColIndex) const;
 
   bool HasPctCol() const;
   void SetHasPctCol(bool aValue);
@@ -474,8 +505,6 @@ public:
                               const nsRect& aOrigVisualOverflow,
                               bool aIsFirstReflow);
 
-  virtual bool UpdateOverflow();
-
 protected:
 
   
@@ -489,7 +518,7 @@ protected:
   void InitChildReflowState(nsHTMLReflowState& aReflowState);
 
   
-  virtual int GetSkipSides() const;
+  virtual PRIntn GetSkipSides() const;
 
 public:
   bool IsRowInserted() const;
@@ -534,10 +563,6 @@ protected:
       mTableLayoutStrategy;
   }
 
-  
-  void HomogenousInsertFrames(ChildListID     aListID,
-                              nsIFrame*       aPrevFrame,
-                              nsFrameList&    aFrameList);
 private:
   
 
@@ -581,7 +606,7 @@ public:
 
 
 protected:
-  void PushChildren(const RowGroupArray& aRowGroups, int32_t aPushFrom);
+  void PushChildren(const RowGroupArray& aRowGroups, PRInt32 aPushFrom);
 
 public:
   
@@ -591,8 +616,8 @@ public:
   
 
   void OrderRowGroups(RowGroupArray& aChildren,
-                      nsTableRowGroupFrame** aHead = nullptr,
-                      nsTableRowGroupFrame** aFoot = nullptr) const;
+                      nsTableRowGroupFrame** aHead = nsnull,
+                      nsTableRowGroupFrame** aFoot = nsnull) const;
 
   
   nsTableRowGroupFrame* GetTHead() const;
@@ -603,12 +628,12 @@ public:
   
   
   
-  bool RowIsSpannedInto(int32_t aRowIndex, int32_t aNumEffCols);
+  bool RowIsSpannedInto(PRInt32 aRowIndex, PRInt32 aNumEffCols);
 
   
   
   
-  bool RowHasSpanningCells(int32_t aRowIndex, int32_t aNumEffCols);
+  bool RowHasSpanningCells(PRInt32 aRowIndex, PRInt32 aNumEffCols);
 
 protected:
 
@@ -636,8 +661,8 @@ public:
 
 
 
-  void SetGeometryDirty() { mBits.mGeometryDirty = true; }
-  void ClearGeometryDirty() { mBits.mGeometryDirty = false; }
+  void SetGeometryDirty() { mBits.mGeometryDirty = PR_TRUE; }
+  void ClearGeometryDirty() { mBits.mGeometryDirty = PR_FALSE; }
   bool IsGeometryDirty() const { return mBits.mGeometryDirty; }
 
   
@@ -650,8 +675,8 @@ public:
 
 
 
-  void AdjustRowIndices(int32_t aRowIndex,
-                        int32_t aAdjustment);
+  void AdjustRowIndices(PRInt32 aRowIndex,
+                        PRInt32 aAdjustment);
 
   
 
@@ -663,46 +688,43 @@ public:
 
   nsTArray<nsTableColFrame*>& GetColCache();
 
-
 protected:
 
   void SetBorderCollapse(bool aValue);
 
-  BCPropertyData* GetBCProperty(bool aCreateIfNecessary = false) const;
-  void SetFullBCDamageArea();
   void CalcBCBorders();
 
-  void ExpandBCDamageArea(nsIntRect& aRect) const;
+  void ExpandBCDamageArea(nsRect& aRect) const;
 
   void SetColumnDimensions(nscoord         aHeight,
                            const nsMargin& aReflowState);
 
-  int32_t CollectRows(nsIFrame*                   aFrame,
+  PRInt32 CollectRows(nsIFrame*                   aFrame,
                       nsTArray<nsTableRowFrame*>& aCollection);
 
 public: 
 
-  int32_t GetStartRowIndex(nsTableRowGroupFrame* aRowGroupFrame);
+  PRInt32 GetStartRowIndex(nsTableRowGroupFrame* aRowGroupFrame);
 
   
 
-  int32_t GetRowCount () const
+  PRInt32 GetRowCount () const
   {
     return GetCellMap()->GetRowCount();
   }
 
   
 
-  int32_t GetEffectiveColCount() const;
+  PRInt32 GetEffectiveColCount() const;
 
   
-  int32_t GetColCount () const
+  PRInt32 GetColCount () const
   {
     return GetCellMap()->GetColCount();
   }
 
   
-  int32_t GetIndexOfLastRealCol();
+  PRInt32 GetIndexOfLastRealCol();
 
   
   virtual bool IsAutoLayout();
@@ -710,18 +732,18 @@ public:
   
   
   
-  NS_IMETHOD GetCellDataAt(int32_t aRowIndex, int32_t aColIndex, 
+  NS_IMETHOD GetCellDataAt(PRInt32 aRowIndex, PRInt32 aColIndex, 
                            nsIDOMElement* &aCell,   
-                           int32_t& aStartRowIndex, int32_t& aStartColIndex, 
-                           int32_t& aRowSpan, int32_t& aColSpan,
-                           int32_t& aActualRowSpan, int32_t& aActualColSpan,
+                           PRInt32& aStartRowIndex, PRInt32& aStartColIndex, 
+                           PRInt32& aRowSpan, PRInt32& aColSpan,
+                           PRInt32& aActualRowSpan, PRInt32& aActualColSpan,
                            bool& aIsSelected);
 
   
 
 
 
-  NS_IMETHOD GetTableSize(int32_t& aRowCount, int32_t& aColCount);
+  NS_IMETHOD GetTableSize(PRInt32& aRowCount, PRInt32& aColCount);
 
   
 
@@ -741,18 +763,18 @@ protected:
   nsAutoTArray<nsTableColFrame*, 8> mColFrames;
 
   struct TableBits {
-    uint32_t mHaveReflowedColGroups:1; 
-    uint32_t mHasPctCol:1;             
-    uint32_t mCellSpansPctCol:1;       
-    uint32_t mIsBorderCollapse:1;      
-    uint32_t mRowInserted:1;
-    uint32_t mNeedToCalcBCBorders:1;
-    uint32_t mGeometryDirty:1;
-    uint32_t mLeftContBCBorder:8;
-    uint32_t mNeedToCollapse:1;    
-    uint32_t mHasZeroColSpans:1;
-    uint32_t mNeedColSpanExpansion:1;
-    uint32_t mResizedColumns:1;        
+    PRUint32 mHaveReflowedColGroups:1; 
+    PRUint32 mHasPctCol:1;             
+    PRUint32 mCellSpansPctCol:1;       
+    PRUint32 mIsBorderCollapse:1;      
+    PRUint32 mRowInserted:1;
+    PRUint32 mNeedToCalcBCBorders:1;
+    PRUint32 mGeometryDirty:1;
+    PRUint32 mLeftContBCBorder:8;
+    PRUint32 mNeedToCollapse:1;    
+    PRUint32 mHasZeroColSpans:1;
+    PRUint32 mNeedColSpanExpansion:1;
+    PRUint32 mResizedColumns:1;        
   } mBits;
 
   nsTableCellMap*         mCellMap;            
@@ -761,7 +783,7 @@ protected:
 };
 
 
-inline bool nsTableFrame::IsRowGroup(int32_t aDisplayType) const
+inline bool nsTableFrame::IsRowGroup(PRInt32 aDisplayType) const
 {
   return bool((NS_STYLE_DISPLAY_TABLE_HEADER_GROUP == aDisplayType) ||
                 (NS_STYLE_DISPLAY_TABLE_FOOTER_GROUP == aDisplayType) ||
@@ -872,7 +894,7 @@ inline void nsTableFrame::SetNeedToCalcBCBorders(bool aValue)
 inline nscoord
 nsTableFrame::GetContinuousLeftBCBorderWidth() const
 {
-  int32_t aPixelsToTwips = nsPresContext::AppUnitsPerCSSPixel();
+  PRInt32 aPixelsToTwips = nsPresContext::AppUnitsPerCSSPixel();
   return BC_BORDER_RIGHT_HALF_COORD(aPixelsToTwips, mBits.mLeftContBCBorder);
 }
 
@@ -889,7 +911,7 @@ public:
   nsIFrame* First();
   nsIFrame* Next();
   bool      IsLeftToRight();
-  int32_t   Count();
+  PRInt32   Count();
 
 protected:
   void Init(nsIFrame* aFirstChild);
@@ -897,15 +919,15 @@ protected:
   nsIFrame* mFirstListChild;
   nsIFrame* mFirstChild;
   nsIFrame* mCurrentChild;
-  int32_t   mCount;
+  PRInt32   mCount;
 };
 
 #define ABORT0() \
-{NS_ASSERTION(false, "CellIterator program error"); \
+{NS_ASSERTION(PR_FALSE, "CellIterator program error"); \
 return;}
 
 #define ABORT1(aReturn) \
-{NS_ASSERTION(false, "CellIterator program error"); \
+{NS_ASSERTION(PR_FALSE, "CellIterator program error"); \
 return aReturn;} 
 
 #endif

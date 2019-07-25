@@ -3,7 +3,37 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nscore.h"
 #include "nsString.h"
@@ -14,8 +44,6 @@
 #include "prprf.h"
 #include <windows.h>
 #include "nsCRT.h"
-
-using namespace mozilla;
 
 struct iso_pair 
 {
@@ -30,8 +58,8 @@ struct iso_map
 	iso_pair    sublang_list[20];
 };
 
-nsWin32Locale::LocaleNameToLCIDPtr nsWin32Locale::localeNameToLCID = nullptr;
-nsWin32Locale::LCIDToLocaleNamePtr nsWin32Locale::lcidToLocaleName = nullptr;
+nsWin32Locale::LocaleNameToLCIDPtr nsWin32Locale::localeNameToLCID = NULL;
+nsWin32Locale::LCIDToLocaleNamePtr nsWin32Locale::lcidToLocaleName = NULL;
 
 
 
@@ -488,7 +516,7 @@ iso_map iso_list[] =
 	}
 };
 
-#define LENGTH_MAPPING_LIST		ArrayLength(iso_list)
+#define LENGTH_MAPPING_LIST		NS_ARRAY_LENGTH(iso_list)
 	
 
 
@@ -586,7 +614,7 @@ nsWin32Locale::initFunctionPointers(void)
       localeNameToLCID = (LocaleNameToLCIDPtr) GetProcAddress(kernelDLL, "LocaleNameToLCID");
       lcidToLocaleName = (LCIDToLocaleNamePtr) GetProcAddress(kernelDLL, "LCIDToLocaleName");
     }
-    sInitialized = true;
+    sInitialized = PR_TRUE;
   }
 }
 
@@ -615,7 +643,7 @@ nsWin32Locale::GetPlatformLocale(const nsAString& locale, LCID* winLCID)
   char    locale_string[9] = {'\0','\0','\0','\0','\0','\0','\0','\0','\0'};
   char*   language_code;
   char*   country_code;
-  size_t  i, j;
+  int     i,j;
 
   
   const PRUnichar* data;
@@ -668,7 +696,7 @@ nsWin32Locale::GetXPLocale(LCID winLCID, nsAString& locale)
   }
 
   DWORD    lang_id, sublang_id;
-  size_t   i, j;
+  int      i,j;
 
   lang_id = PRIMARYLANGID(LANGIDFROMLCID(winLCID));
   sublang_id = SUBLANGID(LANGIDFROMLCID(winLCID));
@@ -722,7 +750,7 @@ nsWin32Locale::GetXPLocale(LCID winLCID, nsAString& locale)
 void
 test_internal_tables(void)
 {
-	size_t i;
+	int	i;
 
 	for(i=1;i<LENGTH_MAPPING_LIST;i++) {
 		if (strcmp(dbg_list[i-1].iso_code,dbg_list[i].iso_code)>=0)

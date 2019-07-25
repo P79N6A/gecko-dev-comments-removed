@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsFileChannel_h__
 #define nsFileChannel_h__
 
@@ -20,7 +53,9 @@ public:
   NS_DECL_NSIFILECHANNEL
   NS_DECL_NSIUPLOADCHANNEL
 
-  nsFileChannel(nsIURI *uri);
+  nsFileChannel(nsIURI *uri) {
+    SetURI(uri);
+  }
 
 protected:
   
@@ -35,7 +70,7 @@ protected:
 
 private:
   nsCOMPtr<nsIInputStream> mUploadStream;
-  int64_t mUploadLength;
+  PRInt64 mUploadLength;
 };
 
 #endif 

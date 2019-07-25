@@ -3,13 +3,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "DOMSVGNumber.h"
 #include "DOMSVGNumberList.h"
 #include "DOMSVGAnimatedNumberList.h"
 #include "SVGAnimatedNumberList.h"
 #include "nsSVGElement.h"
 #include "nsIDOMSVGNumber.h"
-#include "nsError.h"
+#include "nsDOMError.h"
 #include "nsContentUtils.h"
 
 
@@ -24,7 +55,7 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(DOMSVGNumber)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(DOMSVGNumber)
   
   if (tmp->mList) {
-    tmp->mList->mItems[tmp->mListIndex] = nullptr;
+    tmp->mList->mItems[tmp->mListIndex] = nsnull;
   }
 NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mList)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
@@ -45,9 +76,9 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DOMSVGNumber)
 NS_INTERFACE_MAP_END
 
 DOMSVGNumber::DOMSVGNumber(DOMSVGNumberList *aList,
-                           uint8_t aAttrEnum,
-                           uint32_t aListIndex,
-                           uint8_t aIsAnimValItem)
+                           PRUint8 aAttrEnum,
+                           PRUint32 aListIndex,
+                           PRUint8 aIsAnimValItem)
   : mList(aList)
   , mListIndex(aListIndex)
   , mAttrEnum(aAttrEnum)
@@ -64,10 +95,10 @@ DOMSVGNumber::DOMSVGNumber(DOMSVGNumberList *aList,
 }
 
 DOMSVGNumber::DOMSVGNumber()
-  : mList(nullptr)
+  : mList(nsnull)
   , mListIndex(0)
   , mAttrEnum(0)
-  , mIsAnimValItem(false)
+  , mIsAnimValItem(PR_FALSE)
   , mValue(0.0f)
 {
 }
@@ -75,9 +106,11 @@ DOMSVGNumber::DOMSVGNumber()
 NS_IMETHODIMP
 DOMSVGNumber::GetValue(float* aValue)
 {
+#ifdef MOZ_SMIL
   if (mIsAnimValItem && HasOwner()) {
     Element()->FlushAnimations(); 
   }
+#endif
   *aValue = HasOwner() ? InternalItem() : mValue;
   return NS_OK;
 }
@@ -92,15 +125,13 @@ DOMSVGNumber::SetValue(float aValue)
   NS_ENSURE_FINITE(aValue, NS_ERROR_ILLEGAL_VALUE);
 
   if (HasOwner()) {
-    if (InternalItem() == aValue) {
-      return NS_OK;
-    }
-    nsAttrValue emptyOrOldValue = Element()->WillChangeNumberList(mAttrEnum);
     InternalItem() = aValue;
-    Element()->DidChangeNumberList(mAttrEnum, emptyOrOldValue);
+    Element()->DidChangeNumberList(mAttrEnum, PR_TRUE);
+#ifdef MOZ_SMIL
     if (mList->mAList->IsAnimating()) {
       Element()->AnimationNeedsResample();
     }
+#endif
     return NS_OK;
   }
   mValue = aValue;
@@ -109,9 +140,9 @@ DOMSVGNumber::SetValue(float aValue)
 
 void
 DOMSVGNumber::InsertingIntoList(DOMSVGNumberList *aList,
-                                uint8_t aAttrEnum,
-                                uint32_t aListIndex,
-                                uint8_t aIsAnimValItem)
+                                PRUint8 aAttrEnum,
+                                PRUint32 aListIndex,
+                                PRUint8 aIsAnimValItem)
 {
   NS_ASSERTION(!HasOwner(), "Inserting item that is already in a list");
 
@@ -127,8 +158,8 @@ void
 DOMSVGNumber::RemovingFromList()
 {
   mValue = InternalItem();
-  mList = nullptr;
-  mIsAnimValItem = false;
+  mList = nsnull;
+  mIsAnimValItem = PR_FALSE;
 }
 
 float

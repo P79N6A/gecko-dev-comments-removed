@@ -3,6 +3,37 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIServiceManager.h"
 #include "nsIDOMNode.h"
 #include "nsIDOMElement.h"
@@ -13,7 +44,7 @@
 #include "nsXULTemplateResultXML.h"
 #include "nsXMLBinding.h"
 
-static uint32_t sTemplateId = 0;
+static PRUint32 sTemplateId = 0;
 
 NS_IMPL_ISUPPORTS1(nsXULTemplateResultXML, nsIXULTemplateResult)
 
@@ -29,7 +60,7 @@ nsXULTemplateResultXML::nsXULTemplateResultXML(nsXMLQuery* aQuery,
     nsCOMPtr<nsIAtom> id = content->GetID();
     if (id) {
       nsCOMPtr<nsIURI> uri = content->GetBaseURI();
-      nsAutoCString spec;
+      nsCAutoString spec;
       uri->GetSpec(spec);
 
       mId = NS_ConvertUTF8toUTF16(spec);
@@ -55,7 +86,7 @@ nsXULTemplateResultXML::GetIsContainer(bool* aIsContainer)
     if (mNode)
         mNode->HasChildNodes(aIsContainer);
     else
-        *aIsContainer = false;
+        *aIsContainer = PR_FALSE;
     return NS_OK;
 }
 
@@ -69,20 +100,20 @@ nsXULTemplateResultXML::GetIsEmpty(bool* aIsEmpty)
              child;
              child = child->GetNextSibling()) {
             if (child->IsElement()) {
-                *aIsEmpty = false;
+                *aIsEmpty = PR_FALSE;
                 return NS_OK;
             }
         }
     }
 
-    *aIsEmpty = true;
+    *aIsEmpty = PR_TRUE;
     return NS_OK;
 }
 
 NS_IMETHODIMP
 nsXULTemplateResultXML::GetMayProcessChildren(bool* aMayProcessChildren)
 {
-    *aMayProcessChildren = true;
+    *aMayProcessChildren = PR_TRUE;
     return NS_OK;
 }
 
@@ -96,7 +127,7 @@ nsXULTemplateResultXML::GetId(nsAString& aId)
 NS_IMETHODIMP
 nsXULTemplateResultXML::GetResource(nsIRDFResource** aResource)
 {
-    *aResource = nullptr;
+    *aResource = nsnull;
     return NS_OK;
 }
 
@@ -115,7 +146,7 @@ nsXULTemplateResultXML::GetBindingFor(nsIAtom* aVar, nsAString& aValue)
     
     nsXMLBinding* binding;
 
-    int32_t idx = mRequiredValues.LookupTargetIndex(aVar, &binding);
+    PRInt32 idx = mRequiredValues.LookupTargetIndex(aVar, &binding);
     if (idx >= 0) {
         mRequiredValues.GetStringAssignmentFor(this, binding, idx, aValue);
         return NS_OK;
@@ -154,7 +185,7 @@ nsXULTemplateResultXML::GetBindingObjectFor(nsIAtom* aVar, nsISupports** aValue)
         node = mNode;
     }
     else {
-        int32_t idx = mRequiredValues.LookupTargetIndex(aVar, &binding);
+        PRInt32 idx = mRequiredValues.LookupTargetIndex(aVar, &binding);
         if (idx > 0) {
             mRequiredValues.GetNodeAssignmentFor(this, binding, idx,
                                                  getter_AddRefs(node));
@@ -179,7 +210,7 @@ nsXULTemplateResultXML::RuleMatched(nsISupports* aQueryNode,
 {
     
     nsXULTemplateQueryProcessorXML* processor = mQuery ? mQuery->Processor() :
-                                                         nullptr;
+                                                         nsnull;
     if (processor) {
         nsXMLBindingSet* bindings =
             processor->GetOptionalBindingsForRule(aRuleNode);

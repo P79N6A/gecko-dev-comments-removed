@@ -3,29 +3,63 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nscore.h"
 #include "nsCOMPtr.h"
 #include "nsIDOMHTMLBodyElement.h"
+#include "nsIDOMEventTarget.h"
 #include "nsGenericHTMLElement.h"
 #include "nsGkAtoms.h"
 #include "nsStyleConsts.h"
 #include "nsPresContext.h"
 #include "nsIPresShell.h"
 #include "nsIDocument.h"
+#include "nsIHTMLDocument.h"
 #include "nsHTMLStyleSheet.h"
+#include "nsIContentViewer.h"
 #include "nsIMarkupDocumentViewer.h"
 #include "nsMappedAttributes.h"
 #include "nsRuleData.h"
+#include "nsIFrame.h"
 #include "nsIDocShell.h"
 #include "nsIEditorDocShell.h"
+#include "nsCOMPtr.h"
 #include "nsRuleWalker.h"
 #include "jsapi.h"
 
 
-
-using namespace mozilla;
 
 class nsHTMLBodyElement;
 
@@ -39,7 +73,7 @@ public:
   
   virtual void MapRuleInfoInto(nsRuleData* aRuleData);
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
+  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
 
   nsHTMLBodyElement*  mPart;  
@@ -82,10 +116,10 @@ public:
 #undef FORWARDED_EVENT
 #undef EVENT
 
-  virtual bool ParseAttribute(int32_t aNamespaceID,
-                              nsIAtom* aAttribute,
-                              const nsAString& aValue,
-                              nsAttrValue& aResult);
+  virtual bool ParseAttribute(PRInt32 aNamespaceID,
+                                nsIAtom* aAttribute,
+                                const nsAString& aValue,
+                                nsAttrValue& aResult);
   virtual void UnbindFromTree(bool aDeep = true,
                               bool aNullParent = true);
   virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction() const;
@@ -94,7 +128,6 @@ public:
   virtual already_AddRefed<nsIEditor> GetAssociatedEditor();
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
   virtual nsXPCClassInfo* GetClassInfo();
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 private:
   nsresult GetColorHelper(nsIAtom* aAtom, nsAString& aColor);
 
@@ -121,12 +154,12 @@ BodyRule::MapRuleInfoInto(nsRuleData* aData)
   if (!(aData->mSIDs & NS_STYLE_INHERIT_BIT(Margin)) || !mPart)
     return; 
 
-  int32_t bodyMarginWidth  = -1;
-  int32_t bodyMarginHeight = -1;
-  int32_t bodyTopMargin = -1;
-  int32_t bodyBottomMargin = -1;
-  int32_t bodyLeftMargin = -1;
-  int32_t bodyRightMargin = -1;
+  PRInt32 bodyMarginWidth  = -1;
+  PRInt32 bodyMarginHeight = -1;
+  PRInt32 bodyTopMargin = -1;
+  PRInt32 bodyBottomMargin = -1;
+  PRInt32 bodyLeftMargin = -1;
+  PRInt32 bodyRightMargin = -1;
 
   
   NS_ASSERTION(aData->mPresContext, "null presContext in ruleNode was unexpected");
@@ -252,7 +285,7 @@ BodyRule::MapRuleInfoInto(nsRuleData* aData)
 
 #ifdef DEBUG
  void
-BodyRule::List(FILE* out, int32_t aIndent) const
+BodyRule::List(FILE* out, PRInt32 aIndent) const
 {
 }
 #endif
@@ -265,14 +298,14 @@ NS_IMPL_NS_NEW_HTML_ELEMENT(Body)
 
 nsHTMLBodyElement::nsHTMLBodyElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo),
-    mContentStyleRule(nullptr)
+    mContentStyleRule(nsnull)
 {
 }
 
 nsHTMLBodyElement::~nsHTMLBodyElement()
 {
   if (mContentStyleRule) {
-    mContentStyleRule->mPart = nullptr;
+    mContentStyleRule->mPart = nsnull;
     NS_RELEASE(mContentStyleRule);
   }
 }
@@ -301,7 +334,7 @@ NS_IMPL_STRING_ATTR(nsHTMLBodyElement, Text, text)
 NS_IMPL_STRING_ATTR(nsHTMLBodyElement, BgColor, bgcolor)
 
 bool
-nsHTMLBodyElement::ParseAttribute(int32_t aNamespaceID,
+nsHTMLBodyElement::ParseAttribute(PRInt32 aNamespaceID,
                                   nsIAtom* aAttribute,
                                   const nsAString& aValue,
                                   nsAttrValue& aResult)
@@ -324,10 +357,7 @@ nsHTMLBodyElement::ParseAttribute(int32_t aNamespaceID,
     }
   }
 
-  return nsGenericHTMLElement::ParseBackgroundAttribute(aNamespaceID,
-                                                        aAttribute, aValue,
-                                                        aResult) ||
-         nsGenericHTMLElement::ParseAttribute(aNamespaceID, aAttribute, aValue,
+  return nsGenericHTMLElement::ParseAttribute(aNamespaceID, aAttribute, aValue,
                                               aResult);
 }
 
@@ -335,7 +365,7 @@ void
 nsHTMLBodyElement::UnbindFromTree(bool aDeep, bool aNullParent)
 {
   if (mContentStyleRule) {
-    mContentStyleRule->mPart = nullptr;
+    mContentStyleRule->mPart = nsnull;
 
     
     NS_RELEASE(mContentStyleRule);
@@ -429,7 +459,7 @@ nsHTMLBodyElement::IsAttributeMapped(const nsIAtom* aAttribute) const
     
     { &nsGkAtoms::marginwidth },
     { &nsGkAtoms::marginheight },
-    { nullptr },
+    { nsnull },
   };
 
   static const MappedAttributeEntry* const map[] = {
@@ -438,32 +468,32 @@ nsHTMLBodyElement::IsAttributeMapped(const nsIAtom* aAttribute) const
     sBackgroundAttributeMap,
   };
 
-  return FindAttributeDependence(aAttribute, map);
+  return FindAttributeDependence(aAttribute, map, NS_ARRAY_LENGTH(map));
 }
 
 already_AddRefed<nsIEditor>
 nsHTMLBodyElement::GetAssociatedEditor()
 {
-  nsIEditor* editor = nullptr;
+  nsIEditor* editor = nsnull;
   if (NS_SUCCEEDED(GetEditorInternal(&editor)) && editor) {
     return editor;
   }
 
   
   if (!IsCurrentBodyElement()) {
-    return nullptr;
+    return nsnull;
   }
 
   
   nsPresContext* presContext = GetPresContext();
   if (!presContext) {
-    return nullptr;
+    return nsnull;
   }
 
   nsCOMPtr<nsISupports> container = presContext->GetContainer();
   nsCOMPtr<nsIEditorDocShell> editorDocShell = do_QueryInterface(container);
   if (!editorDocShell) {
-    return nullptr;
+    return nsnull;
   }
 
   editorDocShell->GetEditor(&editor);
@@ -481,7 +511,7 @@ nsHTMLBodyElement::GetAssociatedEditor()
   NS_IMETHODIMP nsHTMLBodyElement::GetOn##name_(JSContext *cx,      \
                                            jsval *vp) {             \
     /* XXXbz note to self: add tests for this! */                   \
-    nsPIDOMWindow* win = OwnerDoc()->GetInnerWindow();           \
+    nsPIDOMWindow* win = GetOwnerDoc()->GetInnerWindow();           \
     if (win && win->IsInnerWindow()) {                              \
       nsCOMPtr<nsIInlineEventHandlers> ev = do_QueryInterface(win); \
       return ev->GetOn##name_(cx, vp);                              \
@@ -491,7 +521,7 @@ nsHTMLBodyElement::GetAssociatedEditor()
   }                                                                 \
   NS_IMETHODIMP nsHTMLBodyElement::SetOn##name_(JSContext *cx,      \
                                            const jsval &v) {        \
-    nsPIDOMWindow* win = OwnerDoc()->GetInnerWindow();           \
+    nsPIDOMWindow* win = GetOwnerDoc()->GetInnerWindow();           \
     if (win && win->IsInnerWindow()) {                              \
       nsCOMPtr<nsIInlineEventHandlers> ev = do_QueryInterface(win); \
       return ev->SetOn##name_(cx, v);                               \
@@ -501,7 +531,7 @@ nsHTMLBodyElement::GetAssociatedEditor()
 #define WINDOW_EVENT(name_, id_, type_, struct_)                  \
   NS_IMETHODIMP nsHTMLBodyElement::GetOn##name_(JSContext *cx,    \
                                                 jsval *vp) {      \
-    nsPIDOMWindow* win = OwnerDoc()->GetInnerWindow();         \
+    nsPIDOMWindow* win = GetOwnerDoc()->GetInnerWindow();         \
     if (win && win->IsInnerWindow()) {                            \
       return win->GetOn##name_(cx, vp);                           \
     }                                                             \
@@ -510,7 +540,7 @@ nsHTMLBodyElement::GetAssociatedEditor()
   }                                                               \
   NS_IMETHODIMP nsHTMLBodyElement::SetOn##name_(JSContext *cx,    \
                                                 const jsval &v) { \
-    nsPIDOMWindow* win = OwnerDoc()->GetInnerWindow();         \
+    nsPIDOMWindow* win = GetOwnerDoc()->GetInnerWindow();         \
     if (win && win->IsInnerWindow()) {                            \
       return win->SetOn##name_(cx, v);                            \
     }                                                             \

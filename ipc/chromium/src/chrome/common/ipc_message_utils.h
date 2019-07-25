@@ -193,32 +193,9 @@ struct ParamTraits<unsigned long long> {
     l->append(StringPrintf(L"%ull", p));
   }
 };
-
-template <>
-struct ParamTraits<long long> {
-  typedef long long param_type;
-  static void Write(Message* m, const param_type& p) {
-    m->WriteData(reinterpret_cast<const char*>(&p), sizeof(param_type));
- }
-  static bool Read(const Message* m, void** iter, param_type* r) {
-    const char *data;
-    int data_size = 0;
-    bool result = m->ReadData(iter, &data, &data_size);
-    if (result && data_size == sizeof(param_type)) {
-      memcpy(r, data, sizeof(param_type));
-    } else {
-      result = false;
-      NOTREACHED();
-    }
-    return result;
-  }
-  static void Log(const param_type& p, std::wstring* l) {
-    l->append(StringPrintf(L"%ll", p));
-  }
-};
 #endif
 
-#if !(defined(OS_MACOSX) || defined(OS_OPENBSD) || defined(OS_WIN) || ((defined(OS_BSD) || defined(OS_LINUX)) && defined(ARCH_CPU_64_BITS)) || defined(ARCH_CPU_S390))
+#if !(defined(OS_MACOSX) || defined(OS_OPENBSD) || defined(OS_WIN) || (defined(OS_LINUX) && defined(ARCH_CPU_64_BITS)) || defined(ARCH_CPU_S390))
 
 template <>
 struct ParamTraits<size_t> {
@@ -271,7 +248,7 @@ struct ParamTraits<uint32> {
 };
 #endif  
 
-#if !((defined(OS_BSD) || defined(OS_LINUX)) && defined(ARCH_CPU_64_BITS))
+#if !(defined(OS_LINUX) && defined(ARCH_CPU_64_BITS))
 
 template <>
 struct ParamTraits<int64> {
@@ -794,10 +771,10 @@ struct ParamTraits<LogData> {
     WriteParam(m, p.params);
   }
   static bool Read(const Message* m, void** iter, param_type* r) {
-    int type = 0;
+    int type;
     bool result =
       ReadParam(m, iter, &r->channel) &&
-      ReadParam(m, iter, &r->routing_id) &&
+      ReadParam(m, iter, &r->routing_id);
       ReadParam(m, iter, &type) &&
       ReadParam(m, iter, &r->flags) &&
       ReadParam(m, iter, &r->sent) &&

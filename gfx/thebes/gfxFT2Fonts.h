@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_FT2FONTS_H
 #define GFX_FT2FONTS_H
 
@@ -40,20 +73,20 @@ public:
         CachedGlyphData()
             : glyphIndex(0xffffffffU) { }
 
-        CachedGlyphData(uint32_t gid)
+        CachedGlyphData(PRUint32 gid)
             : glyphIndex(gid) { }
 
-        uint32_t glyphIndex;
-        int32_t lsbDelta;
-        int32_t rsbDelta;
-        int32_t xAdvance;
+        PRUint32 glyphIndex;
+        PRInt32 lsbDelta;
+        PRInt32 rsbDelta;
+        PRInt32 xAdvance;
     };
 
-    const CachedGlyphData* GetGlyphDataForChar(uint32_t ch) {
+    const CachedGlyphData* GetGlyphDataForChar(PRUint32 ch) {
         CharGlyphMapEntryType *entry = mCharGlyphCache.PutEntry(ch);
 
         if (!entry)
-            return nullptr;
+            return nsnull;
 
         if (entry->mData.glyphIndex == 0xffffffffU) {
             
@@ -63,20 +96,18 @@ public:
         return &entry->mData;
     }
 
-    virtual void SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                     FontCacheSizes*   aSizes) const;
-    virtual void SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                     FontCacheSizes*   aSizes) const;
-
 protected:
-    virtual bool ShapeWord(gfxContext *aContext,
-                           gfxShapedWord *aShapedWord,
-                           const PRUnichar *aString,
-                           bool aPreferPlatformShaping = false);
+    virtual bool InitTextRun(gfxContext *aContext,
+                               gfxTextRun *aTextRun,
+                               const PRUnichar *aString,
+                               PRUint32 aRunStart,
+                               PRUint32 aRunLength,
+                               PRInt32 aRunScript,
+                               bool aPreferPlatformShaping = false);
 
-    void FillGlyphDataForChar(uint32_t ch, CachedGlyphData *gd);
+    void FillGlyphDataForChar(PRUint32 ch, CachedGlyphData *gd);
 
-    void AddRange(gfxShapedWord *aShapedWord, const PRUnichar *str);
+    void AddRange(gfxTextRun *aTextRun, const PRUnichar *str, PRUint32 offset, PRUint32 len);
 
     typedef nsBaseHashtableET<nsUint32HashKey, CachedGlyphData> CharGlyphMapEntryType;
     typedef nsTHashtable<CharGlyphMapEntryType> CharGlyphMap;
@@ -111,10 +142,9 @@ protected:
                                nsIAtom *aLangGroup,
                                nsTArray<nsRefPtr<gfxFontEntry> > *aFontEntryList);
     already_AddRefed<gfxFT2Font> WhichFontSupportsChar(const nsTArray<nsRefPtr<gfxFontEntry> >& aFontEntryList,
-                                                       uint32_t aCh);
-    already_AddRefed<gfxFont> WhichPrefFontSupportsChar(uint32_t aCh);
-    already_AddRefed<gfxFont>
-        WhichSystemFontSupportsChar(uint32_t aCh, int32_t aRunScript);
+                                                       PRUint32 aCh);
+    already_AddRefed<gfxFont> WhichPrefFontSupportsChar(PRUint32 aCh);
+    already_AddRefed<gfxFont> WhichSystemFontSupportsChar(PRUint32 aCh);
 
     nsTArray<gfxTextRange> mRanges;
     nsString mString;

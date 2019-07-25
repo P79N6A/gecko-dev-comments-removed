@@ -3,18 +3,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef ChangeAttributeTxn_h__
 #define ChangeAttributeTxn_h__
 
 #include "EditTxn.h"
 #include "nsCOMPtr.h"
-#include "nsCycleCollectionParticipant.h"
 #include "nsIDOMElement.h"
-#include "nsISupportsImpl.h"
-#include "nsString.h"
-#include "nscore.h"
-
-class nsIEditor;
+#include "nsIEditor.h"
 
 
 

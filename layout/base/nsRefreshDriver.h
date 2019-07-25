@@ -8,6 +8,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsRefreshDriver_h_
 #define nsRefreshDriver_h_
 
@@ -20,7 +52,6 @@
 #include "nsAutoPtr.h"
 #include "nsTHashtable.h"
 #include "nsHashKeys.h"
-#include "mozilla/Attributes.h"
 
 class nsPresContext;
 class nsIPresShell;
@@ -46,7 +77,7 @@ public:
   virtual void WillRefresh(mozilla::TimeStamp aTime) = 0;
 };
 
-class nsRefreshDriver MOZ_FINAL : public nsITimerCallback {
+class nsRefreshDriver : public nsITimerCallback {
 public:
   nsRefreshDriver(nsPresContext *aPresContext);
   ~nsRefreshDriver();
@@ -63,7 +94,7 @@ public:
 
 
 
-  void AdvanceTimeAndRefresh(int64_t aMilliseconds);
+  void AdvanceTimeAndRefresh(PRInt64 aMilliseconds);
   void RestoreNormalRefresh();
 
   
@@ -77,7 +108,7 @@ public:
   
 
 
-  int64_t MostRecentRefreshEpochTime() const;
+  PRInt64 MostRecentRefreshEpochTime() const;
 
   
 
@@ -124,7 +155,7 @@ public:
   bool AddStyleFlushObserver(nsIPresShell* aShell) {
     NS_ASSERTION(!mStyleFlushObservers.Contains(aShell),
 		 "Double-adding style flush observer");
-    bool appended = mStyleFlushObservers.AppendElement(aShell) != nullptr;
+    bool appended = mStyleFlushObservers.AppendElement(aShell) != nsnull;
     EnsureTimerStarted(false);
     return appended;
   }
@@ -134,7 +165,7 @@ public:
   bool AddLayoutFlushObserver(nsIPresShell* aShell) {
     NS_ASSERTION(!IsLayoutFlushObserver(aShell),
 		 "Double-adding layout flush observer");
-    bool appended = mLayoutFlushObservers.AppendElement(aShell) != nullptr;
+    bool appended = mLayoutFlushObservers.AppendElement(aShell) != nsnull;
     EnsureTimerStarted(false);
     return appended;
   }
@@ -148,23 +179,22 @@ public:
   
 
 
-  void ScheduleViewManagerFlush() {
-    mViewManagerFlushIsPending = true;
-    EnsureTimerStarted(false);
-  }
-  void RevokeViewManagerFlush() {
-    mViewManagerFlushIsPending = false;
-  }
+  bool ScheduleBeforePaintEvent(nsIDocument* aDocument);
 
   
 
 
-  void ScheduleFrameRequestCallbacks(nsIDocument* aDocument);
+  void ScheduleAnimationFrameListeners(nsIDocument* aDocument);
 
   
 
 
-  void RevokeFrameRequestCallbacks(nsIDocument* aDocument);
+  void RevokeBeforePaintEvent(nsIDocument* aDocument);
+
+  
+
+
+  void RevokeAnimationFrameListeners(nsIDocument* aDocument);
 
   
 
@@ -173,7 +203,7 @@ public:
 
   void Disconnect() {
     StopTimer();
-    mPresContext = nullptr;
+    mPresContext = nsnull;
   }
 
   
@@ -207,11 +237,6 @@ public:
 			   mozFlushType aFlushType);
 #endif
 
-  
-
-
-  static int32_t DefaultInterval();
-
 private:
   typedef nsTObserverArray<nsARefreshObserver*> ObserverArray;
   typedef nsTHashtable<nsISupportsHashKey> RequestTable;
@@ -219,8 +244,8 @@ private:
   void EnsureTimerStarted(bool aAdjustingTimer);
   void StopTimer();
 
-  uint32_t ObserverCount() const;
-  uint32_t ImageRequestCount() const;
+  PRUint32 ObserverCount() const;
+  PRUint32 ImageRequestCount() const;
   static PLDHashOperator ImageRequestEnumerator(nsISupportsHashKey* aEntry,
                                           void* aUserArg);
   void UpdateMostRecentRefresh();
@@ -228,16 +253,16 @@ private:
   
   void DoRefresh();
 
-  int32_t GetRefreshTimerInterval() const;
-  int32_t GetRefreshTimerType() const;
+  PRInt32 GetRefreshTimerInterval() const;
+  PRInt32 GetRefreshTimerType() const;
 
-  bool HaveFrameRequestCallbacks() const {
-    return mFrameRequestCallbackDocs.Length() != 0;
+  bool HaveAnimationFrameListeners() const {
+    return mAnimationFrameListenerDocs.Length() != 0;
   }
 
   nsCOMPtr<nsITimer> mTimer;
   mozilla::TimeStamp mMostRecentRefresh; 
-  int64_t mMostRecentRefreshEpochTime;   
+  PRInt64 mMostRecentRefreshEpochTime;   
                                          
 
   nsPresContext *mPresContext; 
@@ -250,7 +275,6 @@ private:
 
 
   bool mTimerIsPrecise;
-  bool mViewManagerFlushIsPending;
 
   
   ObserverArray mObservers[3];
@@ -259,11 +283,13 @@ private:
   nsAutoTArray<nsIPresShell*, 16> mStyleFlushObservers;
   nsAutoTArray<nsIPresShell*, 16> mLayoutFlushObservers;
   
-  nsTArray<nsIDocument*> mFrameRequestCallbackDocs;
+  nsTArray< nsCOMPtr<nsIDocument> > mBeforePaintTargets;
+  
+  nsTArray<nsIDocument*> mAnimationFrameListenerDocs;
 
   
   
-  mutable int32_t mLastTimerInterval;
+  mutable PRInt32 mLastTimerInterval;
 
   
   struct ImageRequestParameters {

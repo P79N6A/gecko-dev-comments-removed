@@ -3,18 +3,51 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGPATTERNFRAME_H__
 #define __NS_SVGPATTERNFRAME_H__
 
-#include "gfxMatrix.h"
 #include "nsSVGPaintServerFrame.h"
+#include "gfxMatrix.h"
+#include "nsIDOMSVGAnimTransformList.h"
 
-class gfxASurface;
-class gfxContext;
 class nsIFrame;
-class nsSVGElement;
 class nsSVGLength2;
-class nsSVGViewBox;
+class nsSVGElement;
+class gfxContext;
+class gfxASurface;
 
 namespace mozilla {
 class SVGAnimatedPreserveAspectRatio;
@@ -40,8 +73,6 @@ public:
   
   virtual already_AddRefed<gfxPattern>
     GetPaintServerPattern(nsIFrame *aSource,
-                          const gfxMatrix& aContextMatrix,
-                          nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
                           float aOpacity,
                           const gfxRect *aOverrideBounds);
 
@@ -49,14 +80,14 @@ public:
   typedef mozilla::SVGAnimatedPreserveAspectRatio SVGAnimatedPreserveAspectRatio;
 
   
-  virtual gfxMatrix GetCanvasTM(uint32_t aFor);
+  virtual gfxMatrix GetCanvasTM();
 
   
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);
 
-  NS_IMETHOD AttributeChanged(int32_t         aNameSpaceID,
+  NS_IMETHOD AttributeChanged(PRInt32         aNameSpaceID,
                               nsIAtom*        aAttribute,
-                              int32_t         aModType);
+                              PRInt32         aModType);
 
 #ifdef DEBUG
   NS_IMETHOD Init(nsIContent*      aContent,
@@ -85,8 +116,8 @@ protected:
   nsSVGPatternFrame* GetReferencedPatternIfNotInUse();
 
   
-  uint16_t GetEnumValue(uint32_t aIndex, nsIContent *aDefault);
-  uint16_t GetEnumValue(uint32_t aIndex)
+  PRUint16 GetEnumValue(PRUint32 aIndex, nsIContent *aDefault);
+  PRUint16 GetEnumValue(PRUint32 aIndex)
   {
     return GetEnumValue(aIndex, mContent);
   }
@@ -101,30 +132,31 @@ protected:
   {
     return GetPreserveAspectRatio(mContent);
   }
-  const nsSVGLength2 *GetLengthValue(uint32_t aIndex, nsIContent *aDefault);
-  const nsSVGLength2 *GetLengthValue(uint32_t aIndex)
+  const nsSVGLength2 *GetLengthValue(PRUint32 aIndex, nsIContent *aDefault);
+  const nsSVGLength2 *GetLengthValue(PRUint32 aIndex)
   {
     return GetLengthValue(aIndex, mContent);
   }
 
   nsresult PaintPattern(gfxASurface **surface,
                         gfxMatrix *patternMatrix,
-                        const gfxMatrix &aContextMatrix,
                         nsIFrame *aSource,
-                        nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
                         float aGraphicOpacity,
                         const gfxRect *aOverrideBounds);
-  nsIFrame*  GetPatternFirstChild();
-  gfxRect    GetPatternRect(uint16_t aPatternUnits,
-                            const gfxRect &bbox,
+  NS_IMETHOD GetPatternFirstChild(nsIFrame **kid);
+  gfxRect    GetPatternRect(const gfxRect &bbox,
                             const gfxMatrix &callerCTM,
                             nsIFrame *aTarget);
-  gfxMatrix  ConstructCTM(const nsSVGViewBox& aViewBox,
-                          uint16_t aPatternContentUnits,
-                          uint16_t aPatternUnits,
-                          const gfxRect &callerBBox,
+  gfxMatrix  GetPatternMatrix(const gfxRect &bbox,
+                              const gfxRect &callerBBox,
+                              const gfxMatrix &callerCTM);
+  gfxMatrix  ConstructCTM(const gfxRect &callerBBox,
                           const gfxMatrix &callerCTM,
                           nsIFrame *aTarget);
+  nsresult   GetTargetGeometry(gfxMatrix *aCTM,
+                               gfxRect *aBBox,
+                               nsIFrame *aTarget,
+                               const gfxRect *aOverrideBounds);
 
 private:
   

@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsUrlClassifierStreamUpdater_h_
 #define nsUrlClassifierStreamUpdater_h_
 
@@ -17,19 +50,18 @@
 #include "nsIBadCertListener2.h"
 #include "nsISSLErrorListener.h"
 #include "nsITimer.h"
-#include "mozilla/Attributes.h"
 
 
 class nsIURI;
 
-class nsUrlClassifierStreamUpdater MOZ_FINAL : public nsIUrlClassifierStreamUpdater,
-                                               public nsIUrlClassifierUpdateObserver,
-                                               public nsIStreamListener,
-                                               public nsIObserver,
-                                               public nsIBadCertListener2,
-                                               public nsISSLErrorListener,
-                                               public nsIInterfaceRequestor,
-                                               public nsITimerCallback
+class nsUrlClassifierStreamUpdater : public nsIUrlClassifierStreamUpdater,
+                                     public nsIUrlClassifierUpdateObserver,
+                                     public nsIStreamListener,
+                                     public nsIObserver,
+                                     public nsIBadCertListener2,
+                                     public nsISSLErrorListener,
+                                     public nsIInterfaceRequestor,
+                                     public nsITimerCallback
 {
 public:
   nsUrlClassifierStreamUpdater();

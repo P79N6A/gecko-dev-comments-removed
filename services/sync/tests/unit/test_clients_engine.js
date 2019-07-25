@@ -1,6 +1,3 @@
-
-
-
 Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/record.js");
 Cu.import("resource://services-sync/identity.js");
@@ -51,14 +48,14 @@ add_test(function test_bad_hmac() {
   function uploadNewKeys() {
     generateNewKeys();
     let serverKeys = CollectionKeys.asWBO("crypto", "keys");
-    serverKeys.encrypt(Weave.Identity.syncKeyBundle);
+    serverKeys.encrypt(Weave.Service.syncKeyBundle);
     do_check_true(serverKeys.upload(Weave.Service.cryptoKeysURL).success);
   }
 
   try {
     let passphrase     = "abcdeabcdeabcdeabcdeabcdea";
-    Service.serverURL  = TEST_SERVER_URL;
-    Service.clusterURL = TEST_CLUSTER_URL;
+    Service.serverURL  = "http://localhost:8080/";
+    Service.clusterURL = "http://localhost:8080/";
     Service.login("foo", "ilovejane", passphrase);
 
     generateNewKeys();
@@ -66,7 +63,7 @@ add_test(function test_bad_hmac() {
     _("First sync, client record is uploaded");
     do_check_eq(Clients.lastRecordUpload, 0);
     check_clients_count(0);
-    Clients._sync();
+    Clients.sync();
     check_clients_count(1);
     do_check_true(Clients.lastRecordUpload > 0);
 
@@ -80,11 +77,11 @@ add_test(function test_bad_hmac() {
     Clients.resetClient();
     generateNewKeys();
     let serverKeys = CollectionKeys.asWBO("crypto", "keys");
-    serverKeys.encrypt(Weave.Identity.syncKeyBundle);
+    serverKeys.encrypt(Weave.Service.syncKeyBundle);
     do_check_true(serverKeys.upload(Weave.Service.cryptoKeysURL).success);
 
     _("Sync.");
-    Clients._sync();
+    Clients.sync();
 
     _("Old record " + oldLocalID + " was deleted, new one uploaded.");
     check_clients_count(1);
@@ -99,7 +96,7 @@ add_test(function test_bad_hmac() {
     deletedCollections = [];
     deletedItems       = [];
     check_clients_count(1);
-    Clients._sync();
+    Clients.sync();
 
     _("Old record was not deleted, new one uploaded.");
     do_check_eq(deletedCollections.length, 0);
@@ -119,7 +116,7 @@ add_test(function test_bad_hmac() {
     uploadNewKeys();
 
     
-    Clients._sync();
+    Clients.sync();
     check_clients_count(1);
 
     
@@ -136,7 +133,7 @@ add_test(function test_bad_hmac() {
 
     do_check_eq(deletedCollections.length, 0);
     do_check_eq(deletedItems.length, 0);
-    Clients._sync();
+    Clients.sync();
     do_check_eq(deletedItems.length, 1);
     check_client_deleted(oldLocalID);
     check_clients_count(1);
@@ -167,8 +164,8 @@ add_test(function test_properties() {
 
 add_test(function test_sync() {
   _("Ensure that Clients engine uploads a new client record once a week.");
-
-  new SyncTestingInfrastructure();
+  Svc.Prefs.set("clusterURL", "http://localhost:8080/");
+  Svc.Prefs.set("username", "foo");
   generateNewKeys();
 
   let contents = {
@@ -189,7 +186,7 @@ add_test(function test_sync() {
     _("First sync. Client record is uploaded.");
     do_check_eq(clientWBO(), undefined);
     do_check_eq(Clients.lastRecordUpload, 0);
-    Clients._sync();
+    Clients.sync();
     do_check_true(!!clientWBO().payload);
     do_check_true(Clients.lastRecordUpload > 0);
 
@@ -197,7 +194,7 @@ add_test(function test_sync() {
     Clients.lastRecordUpload -= MORE_THAN_CLIENTS_TTL_REFRESH;
     let lastweek = Clients.lastRecordUpload;
     clientWBO().payload = undefined;
-    Clients._sync();
+    Clients.sync();
     do_check_true(!!clientWBO().payload);
     do_check_true(Clients.lastRecordUpload > lastweek);
 
@@ -208,7 +205,7 @@ add_test(function test_sync() {
     _("Time travel one day back, no record uploaded.");
     Clients.lastRecordUpload -= LESS_THAN_CLIENTS_TTL_REFRESH;
     let yesterday = Clients.lastRecordUpload;
-    Clients._sync();
+    Clients.sync();
     do_check_eq(clientWBO().payload, undefined);
     do_check_eq(Clients.lastRecordUpload, yesterday);
 
@@ -405,12 +402,9 @@ add_test(function test_process_incoming_commands() {
 
 add_test(function test_command_sync() {
   _("Ensure that commands are synced across clients.");
-
-  new SyncTestingInfrastructure();
-
-  Clients._store.wipe();
+  Svc.Prefs.set("clusterURL", "http://localhost:8080/");
+  Svc.Prefs.set("username", "foo");
   generateNewKeys();
-
   let contents = {
     meta: {global: {engines: {clients: {version: Clients.version,
                                         syncID: Clients.syncID}}}},
@@ -437,7 +431,7 @@ add_test(function test_command_sync() {
 
   try {
     _("Syncing.");
-    Clients._sync();
+    Clients.sync();
     _("Checking record was uploaded.");
     do_check_neq(clientWBO(Clients.localID).payload, undefined);
     do_check_true(Clients.lastRecordUpload > 0);
@@ -447,8 +441,7 @@ add_test(function test_command_sync() {
     Svc.Prefs.set("client.GUID", remoteId);
     Clients._resetClient();
     do_check_eq(Clients.localID, remoteId);
-    _("Performing sync on resetted client.");
-    Clients._sync();
+    Clients.sync();
     do_check_neq(Clients.localCommands, undefined);
     do_check_eq(Clients.localCommands.length, 1);
 
@@ -479,8 +472,7 @@ add_test(function test_send_uri_to_client_for_display() {
   let initialScore = tracker.score;
 
   let uri = "http://www.mozilla.org/";
-  let title = "Title of the Page";
-  Clients.sendURIToClientForDisplay(uri, remoteId, title);
+  Clients.sendURIToClientForDisplay(uri, remoteId);
 
   let newRecord = store._remoteClients[remoteId];
 
@@ -489,10 +481,8 @@ add_test(function test_send_uri_to_client_for_display() {
 
   let command = newRecord.commands[0];
   do_check_eq(command.command, "displayURI");
-  do_check_eq(command.args.length, 3);
+  do_check_eq(command.args.length, 2);
   do_check_eq(command.args[0], uri);
-  do_check_eq(command.args[1], Clients.localID);
-  do_check_eq(command.args[2], title);
 
   do_check_true(tracker.score > initialScore);
   do_check_true(tracker.score - initialScore >= SCORE_INCREMENT_XLARGE);
@@ -520,11 +510,10 @@ add_test(function test_receive_display_uri() {
 
   let uri = "http://www.mozilla.org/";
   let remoteId = Utils.makeGUID();
-  let title = "Page Title!";
 
   let command = {
     command: "displayURI",
-    args: [uri, remoteId, title],
+    args: [uri, remoteId],
   };
 
   Clients.localCommands = [command];
@@ -538,7 +527,6 @@ add_test(function test_receive_display_uri() {
 
     do_check_eq(subject.uri, uri);
     do_check_eq(subject.client, remoteId);
-    do_check_eq(subject.title, title);
     do_check_eq(data, null);
 
     run_next_test();

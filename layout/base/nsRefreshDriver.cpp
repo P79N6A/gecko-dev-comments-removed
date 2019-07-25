@@ -9,7 +9,37 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsRefreshDriver.h"
 #include "nsPresContext.h"
@@ -23,8 +53,6 @@
 #include "jsapi.h"
 #include "nsContentUtils.h"
 #include "mozilla/Preferences.h"
-#include "nsIViewManager.h"
-#include "sampler.h"
 
 using mozilla::TimeStamp;
 using mozilla::TimeDuration;
@@ -41,29 +69,22 @@ nsRefreshDriver::InitializeStatics()
 {
   Preferences::AddBoolVarCache(&sPrecisePref,
                                "layout.frame_rate.precise",
-                               false);
-}
-
- int32_t
-nsRefreshDriver::DefaultInterval()
-{
-  return NSToIntRound(1000.0 / DEFAULT_FRAME_RATE);
+                               PR_FALSE);
 }
 
 
-
-int32_t
+PRInt32
 nsRefreshDriver::GetRefreshTimerInterval() const
 {
   const char* prefName =
     mThrottled ? "layout.throttled_frame_rate" : "layout.frame_rate";
-  int32_t rate = Preferences::GetInt(prefName, -1);
+  PRInt32 rate = Preferences::GetInt(prefName, -1);
   if (rate <= 0) {
     
     rate = mThrottled ? DEFAULT_THROTTLED_FRAME_RATE : DEFAULT_FRAME_RATE;
   }
   NS_ASSERTION(rate > 0, "Must have positive rate here");
-  int32_t interval = NSToIntRound(1000.0/rate);
+  PRInt32 interval = NSToIntRound(1000.0/rate);
   if (mThrottled) {
     interval = NS_MAX(interval, mLastTimerInterval * 2);
   }
@@ -71,13 +92,13 @@ nsRefreshDriver::GetRefreshTimerInterval() const
   return interval;
 }
 
-int32_t
+PRInt32
 nsRefreshDriver::GetRefreshTimerType() const
 {
   if (mThrottled) {
     return nsITimer::TYPE_ONE_SHOT;
   }
-  if (HaveFrameRequestCallbacks() || sPrecisePref) {
+  if (HaveAnimationFrameListeners() || sPrecisePref) {
     return nsITimer::TYPE_REPEATING_PRECISE_CAN_SKIP;
   }
   return nsITimer::TYPE_REPEATING_SLACK;
@@ -89,7 +110,6 @@ nsRefreshDriver::nsRefreshDriver(nsPresContext *aPresContext)
     mThrottled(false),
     mTestControllingRefreshes(false),
     mTimerIsPrecise(false),
-    mViewManagerFlushIsPending(false),
     mLastTimerInterval(0)
 {
   mRequests.Init();
@@ -105,14 +125,14 @@ nsRefreshDriver::~nsRefreshDriver()
 
 
 void
-nsRefreshDriver::AdvanceTimeAndRefresh(int64_t aMilliseconds)
+nsRefreshDriver::AdvanceTimeAndRefresh(PRInt64 aMilliseconds)
 {
   mTestControllingRefreshes = true;
   mMostRecentRefreshEpochTime += aMilliseconds * 1000;
   mMostRecentRefresh += TimeDuration::FromMilliseconds(aMilliseconds);
   nsCxPusher pusher;
   if (pusher.PushNull()) {
-    Notify(nullptr);
+    Notify(nsnull);
     pusher.Pop();
   }
 }
@@ -123,7 +143,7 @@ nsRefreshDriver::RestoreNormalRefresh()
   mTestControllingRefreshes = false;
   nsCxPusher pusher;
   if (pusher.PushNull()) {
-    Notify(nullptr); 
+    Notify(nsnull); 
     pusher.Pop();
   }
 }
@@ -136,7 +156,7 @@ nsRefreshDriver::MostRecentRefresh() const
   return mMostRecentRefresh;
 }
 
-int64_t
+PRInt64
 nsRefreshDriver::MostRecentRefreshEpochTime() const
 {
   const_cast<nsRefreshDriver*>(this)->EnsureTimerStarted(false);
@@ -149,7 +169,7 @@ nsRefreshDriver::AddRefreshObserver(nsARefreshObserver *aObserver,
                                     mozFlushType aFlushType)
 {
   ObserverArray& array = ArrayFor(aFlushType);
-  bool success = array.AppendElement(aObserver) != nullptr;
+  bool success = array.AppendElement(aObserver) != nsnull;
 
   EnsureTimerStarted(false);
 
@@ -211,14 +231,14 @@ nsRefreshDriver::EnsureTimerStarted(bool aAdjustingTimer)
     return;
   }
 
-  int32_t timerType = GetRefreshTimerType();
+  PRInt32 timerType = GetRefreshTimerType();
   mTimerIsPrecise = (timerType == nsITimer::TYPE_REPEATING_PRECISE_CAN_SKIP);
 
   nsresult rv = mTimer->InitWithCallback(this,
                                          GetRefreshTimerInterval(),
                                          timerType);
   if (NS_FAILED(rv)) {
-    mTimer = nullptr;
+    mTimer = nsnull;
   }
 }
 
@@ -230,14 +250,14 @@ nsRefreshDriver::StopTimer()
   }
 
   mTimer->Cancel();
-  mTimer = nullptr;
+  mTimer = nsnull;
 }
 
-uint32_t
+PRUint32
 nsRefreshDriver::ObserverCount() const
 {
-  uint32_t sum = 0;
-  for (uint32_t i = 0; i < ArrayLength(mObservers); ++i) {
+  PRUint32 sum = 0;
+  for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(mObservers); ++i) {
     sum += mObservers[i].Length();
   }
 
@@ -247,12 +267,12 @@ nsRefreshDriver::ObserverCount() const
   
   sum += mStyleFlushObservers.Length();
   sum += mLayoutFlushObservers.Length();
-  sum += mFrameRequestCallbackDocs.Length();
-  sum += mViewManagerFlushIsPending;
+  sum += mBeforePaintTargets.Length();
+  sum += mAnimationFrameListenerDocs.Length();
   return sum;
 }
 
-uint32_t
+PRUint32
 nsRefreshDriver::ImageRequestCount() const
 {
   return mRequests.Count();
@@ -281,8 +301,8 @@ nsRefreshDriver::ArrayFor(mozFlushType aFlushType)
     case Flush_Display:
       return mObservers[2];
     default:
-      NS_ABORT_IF_FALSE(false, "bad flush type");
-      return *static_cast<ObserverArray*>(nullptr);
+      NS_ABORT_IF_FALSE(PR_FALSE, "bad flush type");
+      return *static_cast<ObserverArray*>(nsnull);
   }
 }
 
@@ -299,8 +319,6 @@ NS_IMPL_ISUPPORTS1(nsRefreshDriver, nsITimerCallback)
 NS_IMETHODIMP
 nsRefreshDriver::Notify(nsITimer *aTimer)
 {
-  SAMPLE_LABEL("nsRefreshDriver", "Notify");
-
   NS_PRECONDITION(!mFrozen, "Why are we notified while frozen?");
   NS_PRECONDITION(mPresContext, "Why are we notified after disconnection?");
   NS_PRECONDITION(!nsContentUtils::GetCurrentJSContext(),
@@ -332,7 +350,7 @@ nsRefreshDriver::Notify(nsITimer *aTimer)
 
 
 
-  for (uint32_t i = 0; i < ArrayLength(mObservers); ++i) {
+  for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(mObservers); ++i) {
     ObserverArray::EndLimitedIterator etor(mObservers[i]);
     while (etor.HasMore()) {
       nsRefPtr<nsARefreshObserver> obs = etor.GetNext();
@@ -346,26 +364,40 @@ nsRefreshDriver::Notify(nsITimer *aTimer)
 
     if (i == 0) {
       
-      nsIDocument::FrameRequestCallbackList frameRequestCallbacks;
-      for (uint32_t i = 0; i < mFrameRequestCallbackDocs.Length(); ++i) {
-        mFrameRequestCallbackDocs[i]->
-          TakeFrameRequestCallbacks(frameRequestCallbacks);
+      
+      
+      nsTArray< nsCOMPtr<nsIDocument> > targets;
+      targets.SwapElements(mBeforePaintTargets);
+      for (PRUint32 i = 0; i < targets.Length(); ++i) {
+        targets[i]->BeforePaintEventFiring();
+      }
+
+      
+      nsIDocument::AnimationListenerList animationListeners;
+      for (PRUint32 i = 0; i < mAnimationFrameListenerDocs.Length(); ++i) {
+        mAnimationFrameListenerDocs[i]->
+          TakeAnimationFrameListeners(animationListeners);
       }
       
       
-      mFrameRequestCallbackDocs.Clear();
+      mAnimationFrameListenerDocs.Clear();
 
-      int64_t eventTime = mMostRecentRefreshEpochTime / PR_USEC_PER_MSEC;
-      for (uint32_t i = 0; i < frameRequestCallbacks.Length(); ++i) {
-        nsAutoMicroTask mt;
-        frameRequestCallbacks[i]->Sample(eventTime);
+      PRInt64 eventTime = mMostRecentRefreshEpochTime / PR_USEC_PER_MSEC;
+      for (PRUint32 i = 0; i < targets.Length(); ++i) {
+        nsEvent ev(PR_TRUE, NS_BEFOREPAINT);
+        ev.time = eventTime;
+        nsEventDispatcher::Dispatch(targets[i], nsnull, &ev);
+      }
+
+      for (PRUint32 i = 0; i < animationListeners.Length(); ++i) {
+        animationListeners[i]->OnBeforePaint(eventTime);
       }
 
       
       if (mPresContext && mPresContext->GetPresShell()) {
         nsAutoTArray<nsIPresShell*, 16> observers;
         observers.AppendElements(mStyleFlushObservers);
-        for (uint32_t j = observers.Length();
+        for (PRUint32 j = observers.Length();
              j && mPresContext && mPresContext->GetPresShell(); --j) {
           
           
@@ -374,7 +406,7 @@ nsRefreshDriver::Notify(nsITimer *aTimer)
             continue;
           NS_ADDREF(shell);
           mStyleFlushObservers.RemoveElement(shell);
-          shell->FrameConstructor()->mObservingRefreshDriver = false;
+          shell->FrameConstructor()->mObservingRefreshDriver = PR_FALSE;
           shell->FlushPendingNotifications(Flush_Style);
           NS_RELEASE(shell);
         }
@@ -384,7 +416,7 @@ nsRefreshDriver::Notify(nsITimer *aTimer)
       if (mPresContext && mPresContext->GetPresShell()) {
         nsAutoTArray<nsIPresShell*, 16> observers;
         observers.AppendElements(mLayoutFlushObservers);
-        for (uint32_t j = observers.Length();
+        for (PRUint32 j = observers.Length();
              j && mPresContext && mPresContext->GetPresShell(); --j) {
           
           
@@ -393,8 +425,8 @@ nsRefreshDriver::Notify(nsITimer *aTimer)
             continue;
           NS_ADDREF(shell);
           mLayoutFlushObservers.RemoveElement(shell);
-          shell->mReflowScheduled = false;
-          shell->mSuppressInterruptibleReflows = false;
+          shell->mReflowScheduled = PR_FALSE;
+          shell->mSuppressInterruptibleReflows = PR_FALSE;
           shell->FlushPendingNotifications(Flush_InterruptibleLayout);
           NS_RELEASE(shell);
         }
@@ -411,17 +443,6 @@ nsRefreshDriver::Notify(nsITimer *aTimer)
   if (mRequests.Count()) {
     mRequests.EnumerateEntries(nsRefreshDriver::ImageRequestEnumerator, &parms);
     EnsureTimerStarted(false);
-  }
-
-  if (mViewManagerFlushIsPending) {
-#ifdef DEBUG_INVALIDATIONS
-    printf("Starting ProcessPendingUpdates\n");
-#endif
-    mViewManagerFlushIsPending = false;
-    mPresContext->GetPresShell()->GetViewManager()->ProcessPendingUpdates();
-#ifdef DEBUG_INVALIDATIONS
-    printf("Ending ProcessPendingUpdates\n");
-#endif
   }
 
   if (mThrottled ||
@@ -504,7 +525,7 @@ nsRefreshDriver::DoRefresh()
 {
   
   if (!mFrozen && mPresContext && mTimer) {
-    Notify(nullptr);
+    Notify(nsnull);
   }
 }
 
@@ -518,22 +539,39 @@ nsRefreshDriver::IsRefreshObserver(nsARefreshObserver *aObserver,
 }
 #endif
 
-void
-nsRefreshDriver::ScheduleFrameRequestCallbacks(nsIDocument* aDocument)
+bool
+nsRefreshDriver::ScheduleBeforePaintEvent(nsIDocument* aDocument)
 {
-  NS_ASSERTION(mFrameRequestCallbackDocs.IndexOf(aDocument) ==
-               mFrameRequestCallbackDocs.NoIndex,
+  NS_ASSERTION(mBeforePaintTargets.IndexOf(aDocument) ==
+               mBeforePaintTargets.NoIndex,
+               "Shouldn't have a paint event posted for this document");
+  bool appended = mBeforePaintTargets.AppendElement(aDocument) != nsnull;
+  EnsureTimerStarted(false);
+  return appended;
+}
+
+void
+nsRefreshDriver::ScheduleAnimationFrameListeners(nsIDocument* aDocument)
+{
+  NS_ASSERTION(mAnimationFrameListenerDocs.IndexOf(aDocument) ==
+               mAnimationFrameListenerDocs.NoIndex,
                "Don't schedule the same document multiple times");
-  mFrameRequestCallbackDocs.AppendElement(aDocument);
+  mAnimationFrameListenerDocs.AppendElement(aDocument);
   
   
   EnsureTimerStarted(false);
 }
 
 void
-nsRefreshDriver::RevokeFrameRequestCallbacks(nsIDocument* aDocument)
+nsRefreshDriver::RevokeBeforePaintEvent(nsIDocument* aDocument)
 {
-  mFrameRequestCallbackDocs.RemoveElement(aDocument);
+  mBeforePaintTargets.RemoveElement(aDocument);
+}
+
+void
+nsRefreshDriver::RevokeAnimationFrameListeners(nsIDocument* aDocument)
+{
+  mAnimationFrameListenerDocs.RemoveElement(aDocument);
   
   
 }

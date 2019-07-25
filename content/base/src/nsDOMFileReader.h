@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDOMFileReader_h__
 #define nsDOMFileReader_h__
 
@@ -16,10 +48,13 @@
 #include "nsIJSNativeInitializer.h"
 #include "prtime.h"                
 #include "nsITimer.h"              
+#include "nsICharsetDetector.h"
+#include "nsICharsetDetectionObserver.h"
 
 #include "nsIDOMFile.h"
 #include "nsIDOMFileReader.h"
 #include "nsIDOMFileList.h"
+#include "nsIDOMFileError.h"
 #include "nsIInputStream.h"
 #include "nsCOMPtr.h"
 #include "nsIStreamLoader.h"
@@ -32,7 +67,8 @@ class nsDOMFileReader : public mozilla::dom::FileIOObject,
                         public nsIDOMFileReader,
                         public nsIInterfaceRequestor,
                         public nsSupportsWeakReference,
-                        public nsIJSNativeInitializer
+                        public nsIJSNativeInitializer,
+                        public nsICharsetDetectionObserver
 {
 public:
   nsDOMFileReader();
@@ -47,9 +83,16 @@ public:
   
   NS_DECL_NSIINTERFACEREQUESTOR
 
+  NS_DECL_EVENT_HANDLER(load)
+  NS_DECL_EVENT_HANDLER(loadend)
+  NS_DECL_EVENT_HANDLER(loadstart)
+
   
-  NS_IMETHOD Initialize(nsISupports* aOwner, JSContext* cx, JSObject* obj,
-                        uint32_t argc, jsval* argv);
+  NS_IMETHOD Initialize(nsISupports* aOwner, JSContext* cx, JSObject* obj, 
+                        PRUint32 argc, jsval* argv);
+
+  
+  NS_IMETHOD Notify(const char *aCharset, nsDetectionConfident aConf);
 
   
   NS_IMETHOD DoAbort(nsAString& aEvent);
@@ -57,8 +100,8 @@ public:
                              nsresult aStatus, nsAString& aSuccessEvent,
                              nsAString& aTerminationEvent);
   NS_IMETHOD DoOnDataAvailable(nsIRequest* aRequest, nsISupports* aContext,
-                               nsIInputStream* aInputStream, uint64_t aOffset,
-                               uint32_t aCount);
+                               nsIInputStream* aInputStream, PRUint32 aOffset,
+                               PRUint32 aCount);
 
   nsresult Init();
 
@@ -76,20 +119,21 @@ protected:
 
   nsresult ReadFileContent(JSContext* aCx, nsIDOMBlob *aFile, const nsAString &aCharset, eDataFormat aDataFormat); 
   nsresult GetAsText(const nsACString &aCharset,
-                     const char *aFileData, uint32_t aDataLen, nsAString &aResult);
-  nsresult GetAsDataURL(nsIDOMBlob *aFile, const char *aFileData, uint32_t aDataLen, nsAString &aResult); 
-  nsresult ConvertStream(const char *aFileData, uint32_t aDataLen, const char *aCharset, nsAString &aResult); 
+                     const char *aFileData, PRUint32 aDataLen, nsAString &aResult);
+  nsresult GetAsDataURL(nsIDOMBlob *aFile, const char *aFileData, PRUint32 aDataLen, nsAString &aResult); 
+  nsresult GuessCharset(const char *aFileData, PRUint32 aDataLen, nsACString &aCharset); 
+  nsresult ConvertStream(const char *aFileData, PRUint32 aDataLen, const char *aCharset, nsAString &aResult); 
 
   void FreeFileData() {
     PR_Free(mFileData);
-    mFileData = nullptr;
+    mFileData = nsnull;
     mDataLen = 0;
   }
 
   char *mFileData;
   nsCOMPtr<nsIDOMBlob> mFile;
   nsCString mCharset;
-  uint32_t mDataLen;
+  PRUint32 mDataLen;
 
   eDataFormat mDataFormat;
 

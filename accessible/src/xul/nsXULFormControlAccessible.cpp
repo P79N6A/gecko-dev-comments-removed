@@ -39,17 +39,17 @@
 
 #include "nsXULFormControlAccessible.h"
 
-#include "nsAccessibilityAtoms.h"
 #include "nsAccUtils.h"
 #include "nsAccTreeWalker.h"
 #include "nsCoreUtils.h"
 #include "nsDocAccessible.h"
-#include "nsRelUtils.h"
+#include "Relation.h"
 #include "States.h"
 
 
 #include "nsHTMLFormControlAccessible.h"
 #include "nsXULMenuAccessible.h"
+#include "nsIAccessibleRelation.h"
 #include "nsIDOMHTMLInputElement.h"
 #include "nsIDOMNSEditableElement.h"
 #include "nsIDOMXULButtonElement.h"
@@ -61,6 +61,7 @@
 #include "nsIFrame.h"
 #include "nsINameSpaceManager.h"
 #include "nsITextControlFrame.h"
+#include "nsMenuPopupFrame.h"
 
 using namespace mozilla::a11y;
 
@@ -72,6 +73,8 @@ nsXULButtonAccessible::
   nsXULButtonAccessible(nsIContent *aContent, nsIWeakReference *aShell) :
   nsAccessibleWrap(aContent, aShell)
 {
+  if (ContainsMenu())
+    mFlags |= eMenuButtonAccessible;
 }
 
 
@@ -125,7 +128,7 @@ nsXULButtonAccessible::NativeState()
   
   PRUint64 state = nsAccessible::NativeState();
 
-  PRBool disabled = PR_FALSE;
+  bool disabled = false;
   nsCOMPtr<nsIDOMXULControlElement> xulFormElement(do_QueryInterface(mContent));
   if (xulFormElement) {
     xulFormElement->GetDisabled(&disabled);
@@ -142,7 +145,7 @@ nsXULButtonAccessible::NativeState()
     xulButtonElement->GetType(type);
     if (type.EqualsLiteral("checkbox") || type.EqualsLiteral("radio")) {
       state |= states::CHECKABLE;
-      PRBool checked = PR_FALSE;
+      bool checked = false;
       PRInt32 checkState = 0;
       xulButtonElement->GetChecked(&checked);
       if (checked) {
@@ -158,10 +161,46 @@ nsXULButtonAccessible::NativeState()
   if (ContainsMenu())
     state |= states::HASPOPUP;
 
-  if (mContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::_default))
+  if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::_default))
     state |= states::DEFAULT;
 
   return state;
+}
+
+
+
+
+bool
+nsXULButtonAccessible::IsWidget() const
+{
+  return true;
+}
+
+bool
+nsXULButtonAccessible::IsActiveWidget() const
+{
+  return FocusMgr()->HasDOMFocus(mContent);
+}
+
+bool
+nsXULButtonAccessible::AreItemsOperable() const
+{
+  if (IsMenuButton()) {
+    nsAccessible* menuPopup = mChildren.SafeElementAt(0, nsnull);
+    if (menuPopup) {
+      nsMenuPopupFrame* menuPopupFrame = do_QueryFrame(menuPopup->GetFrame());
+      return menuPopupFrame->IsOpen();
+    }
+  }
+  return false; 
+}
+
+nsAccessible*
+nsXULButtonAccessible::ContainerWidget() const
+{
+  if (IsMenuButton() && mParent && mParent->IsAutoComplete())
+    return mParent;
+  return nsnull;
 }
 
 
@@ -176,15 +215,15 @@ nsXULButtonAccessible::CacheChildren()
 
   
   
-  PRBool isMenu = mContent->AttrValueIs(kNameSpaceID_None,
-                                       nsAccessibilityAtoms::type,
-                                       nsAccessibilityAtoms::menu,
+  bool isMenu = mContent->AttrValueIs(kNameSpaceID_None,
+                                       nsGkAtoms::type,
+                                       nsGkAtoms::menu,
                                        eCaseMatters);
 
-  PRBool isMenuButton = isMenu ?
+  bool isMenuButton = isMenu ?
     PR_FALSE :
-    mContent->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::type,
-                          nsAccessibilityAtoms::menuButton, eCaseMatters);
+    mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
+                          nsGkAtoms::menuButton, eCaseMatters);
 
   if (!isMenu && !isMenuButton)
     return;
@@ -225,14 +264,14 @@ nsXULButtonAccessible::CacheChildren()
 
 
 
-PRBool
+bool
 nsXULButtonAccessible::ContainsMenu()
 {
   static nsIContent::AttrValuesArray strings[] =
-    {&nsAccessibilityAtoms::menu, &nsAccessibilityAtoms::menuButton, nsnull};
+    {&nsGkAtoms::menu, &nsGkAtoms::menuButton, nsnull};
 
   return mContent->FindAttrValueIn(kNameSpaceID_None,
-                                   nsAccessibilityAtoms::type,
+                                   nsGkAtoms::type,
                                    strings, eCaseMatters) >= 0;
 }
 
@@ -252,9 +291,9 @@ nsXULDropmarkerAccessible::ActionCount()
   return 1;
 }
 
-PRBool nsXULDropmarkerAccessible::DropmarkerOpen(PRBool aToggleOpen)
+bool nsXULDropmarkerAccessible::DropmarkerOpen(bool aToggleOpen)
 {
-  PRBool isOpen = PR_FALSE;
+  bool isOpen = false;
 
   nsCOMPtr<nsIDOMXULButtonElement> parentButtonElement =
     do_QueryInterface(mContent->GetParent());
@@ -383,7 +422,7 @@ nsXULCheckboxAccessible::NativeState()
   nsCOMPtr<nsIDOMXULCheckboxElement> xulCheckboxElement =
     do_QueryInterface(mContent);
   if (xulCheckboxElement) {
-    PRBool checked = PR_FALSE;
+    bool checked = false;
     xulCheckboxElement->GetChecked(&checked);
     if (checked) {
       state |= states::CHECKED;
@@ -417,48 +456,41 @@ nsresult
 nsXULGroupboxAccessible::GetNameInternal(nsAString& aName)
 {
   
-  nsCOMPtr<nsIAccessible> label =
-    nsRelUtils::GetRelatedAccessible(this, nsIAccessibleRelation::RELATION_LABELLED_BY);
-
-  if (label) {
+  nsAccessible* label =
+    RelationByType(nsIAccessibleRelation::RELATION_LABELLED_BY).Next();
+  if (label)
     return label->GetName(aName);
-  }
 
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsXULGroupboxAccessible::GetRelationByType(PRUint32 aRelationType,
-                                           nsIAccessibleRelation **aRelation)
+Relation
+nsXULGroupboxAccessible::RelationByType(PRUint32 aType)
 {
-  nsresult rv = nsAccessibleWrap::GetRelationByType(aRelationType, aRelation);
-  NS_ENSURE_SUCCESS(rv, rv);
+  Relation rel = nsAccessibleWrap::RelationByType(aType);
+  if (aType != nsIAccessibleRelation::RELATION_LABELLED_BY)
+    return rel;
 
-  if (aRelationType == nsIAccessibleRelation::RELATION_LABELLED_BY) {
-    
-    
-    
-    PRInt32 childCount = GetChildCount();
-    for (PRInt32 childIdx = 0; childIdx < childCount; childIdx++) {
-      nsAccessible *childAcc = GetChildAt(childIdx);
-      if (childAcc->Role() == nsIAccessibleRole::ROLE_LABEL) {
-        
-        
-        
-        nsCOMPtr<nsIAccessible> testGroupboxAccessible =
-          nsRelUtils::GetRelatedAccessible(childAcc,
-                                           nsIAccessibleRelation::RELATION_LABEL_FOR);
-
-        if (testGroupboxAccessible == this) {
+  
+  
+  
+  PRInt32 childCount = GetChildCount();
+  for (PRInt32 childIdx = 0; childIdx < childCount; childIdx++) {
+    nsAccessible *childAcc = GetChildAt(childIdx);
+    if (childAcc->Role() == nsIAccessibleRole::ROLE_LABEL) {
+      
+      Relation reverseRel =
+        childAcc->RelationByType(nsIAccessibleRelation::RELATION_LABEL_FOR);
+      nsAccessible* testGroupbox = nsnull;
+      while ((testGroupbox = reverseRel.Next()))
+        if (testGroupbox == this) {
           
-          return nsRelUtils::
-            AddTarget(aRelationType, aRelation, childAcc);
+          rel.AppendTarget(childAcc);
         }
-      }
     }
   }
 
-  return NS_OK;
+  return rel;
 }
 
 
@@ -471,19 +503,19 @@ nsXULRadioButtonAccessible::
 {
 }
 
-
 PRUint64
 nsXULRadioButtonAccessible::NativeState()
 {
   PRUint64 state = nsFormControlAccessible::NativeState();
-
   state |= states::CHECKABLE;
-  
-  PRBool selected = PR_FALSE;   
+
+  if (!(state & states::UNAVAILABLE))
+    state |= states::FOCUSABLE;
 
   nsCOMPtr<nsIDOMXULSelectControlItemElement> radioButton =
     do_QueryInterface(mContent);
   if (radioButton) {
+    bool selected = false;   
     radioButton->GetSelected(&selected);
     if (selected) {
       state |= states::CHECKED;
@@ -499,6 +531,15 @@ nsXULRadioButtonAccessible::GetPositionAndSizeInternal(PRInt32 *aPosInSet,
 {
   nsAccUtils::GetPositionAndSizeForXULSelectControlItem(mContent, aPosInSet,
                                                         aSetSize);
+}
+
+
+
+
+nsAccessible*
+nsXULRadioButtonAccessible::ContainerWidget() const
+{
+  return mParent;
 }
 
 
@@ -536,7 +577,28 @@ nsXULRadioGroupAccessible::NativeState()
   return nsAccessible::NativeState() & ~(states::FOCUSABLE | states::FOCUSED);
 }
 
-                      
+
+
+
+bool
+nsXULRadioGroupAccessible::IsWidget() const
+{
+  return true;
+}
+
+bool
+nsXULRadioGroupAccessible::IsActiveWidget() const
+{
+  return FocusMgr()->HasDOMFocus(mContent);
+}
+
+bool
+nsXULRadioGroupAccessible::AreItemsOperable() const
+{
+  return true;
+}
+
+
 
 
 
@@ -596,7 +658,7 @@ nsXULToolbarButtonAccessible::GetPositionAndSizeInternal(PRInt32 *aPosInSet,
   *aSetSize = setSize;
 }
 
-PRBool
+bool
 nsXULToolbarButtonAccessible::IsSeparator(nsAccessible *aAccessible)
 {
   nsCOMPtr<nsIDOMNode> domNode;
@@ -606,9 +668,9 @@ nsXULToolbarButtonAccessible::IsSeparator(nsAccessible *aAccessible)
   if (!contentDomNode)
     return PR_FALSE;
 
-  return (contentDomNode->Tag() == nsAccessibilityAtoms::toolbarseparator) ||
-         (contentDomNode->Tag() == nsAccessibilityAtoms::toolbarspacer) ||
-         (contentDomNode->Tag() == nsAccessibilityAtoms::toolbarspring);
+  return (contentDomNode->Tag() == nsGkAtoms::toolbarseparator) ||
+         (contentDomNode->Tag() == nsGkAtoms::toolbarspacer) ||
+         (contentDomNode->Tag() == nsGkAtoms::toolbarspring);
 }
 
 
@@ -632,8 +694,7 @@ nsresult
 nsXULToolbarAccessible::GetNameInternal(nsAString& aName)
 {
   nsAutoString name;
-  if (mContent->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::toolbarname,
-                        name)) {
+  if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::toolbarname, name)) {
     name.CompressWhitespace();
     aName = name;
   }
@@ -727,15 +788,12 @@ nsXULTextFieldAccessible::NativeState()
 
   state |= tempAccessible->NativeState();
 
-  if (gLastFocusedNode == mContent)
-    state |= states::FOCUSED;
-
   nsCOMPtr<nsIDOMXULMenuListElement> menuList(do_QueryInterface(mContent));
   if (menuList) {
     
     if (!mContent->AttrValueIs(kNameSpaceID_None,
-                               nsAccessibilityAtoms::editable,
-                               nsAccessibilityAtoms::_true, eIgnoreCase)) {
+                               nsGkAtoms::editable,
+                               nsGkAtoms::_true, eIgnoreCase)) {
       state |= states::READONLY;
     }
   }
@@ -746,8 +804,8 @@ nsXULTextFieldAccessible::NativeState()
 PRUint32
 nsXULTextFieldAccessible::NativeRole()
 {
-  if (mContent->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::type,
-                            nsAccessibilityAtoms::password, eIgnoreCase))
+  if (mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
+                            nsGkAtoms::password, eIgnoreCase))
     return nsIAccessibleRole::ROLE_PASSWORD_TEXT;
   return nsIAccessibleRole::ROLE_ENTRY;
 }
@@ -790,7 +848,7 @@ NS_IMETHODIMP nsXULTextFieldAccessible::DoAction(PRUint8 index)
   return NS_ERROR_INVALID_ARG;
 }
 
-PRBool
+bool
 nsXULTextFieldAccessible::GetAllowsAnonChildAccessibles()
 {
   return PR_FALSE;

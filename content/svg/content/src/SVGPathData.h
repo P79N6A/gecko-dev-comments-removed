@@ -3,24 +3,49 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_SVGPATHDATA_H__
 #define MOZILLA_SVGPATHDATA_H__
 
-#include "nsCOMPtr.h"
-#include "nsDebug.h"
-#include "nsIContent.h"
-#include "nsINode.h"
-#include "nsIWeakReferenceUtils.h"
-#include "nsSVGElement.h"
+#include "SVGPathSegUtils.h"
 #include "nsTArray.h"
-
-#include <string.h>
+#include "nsSVGElement.h"
+#include "nsIWeakReferenceUtils.h"
 
 class gfxContext;
-class gfxFlattenedPath;
-class nsSVGPathDataParserToInternal; 
-
 struct gfxMatrix;
+class gfxFlattenedPath;
+class nsSVGPathDataParserToInternal;
 struct nsSVGMark;
 
 namespace mozilla {
@@ -101,18 +126,18 @@ public:
 
 
 
-  uint32_t CountItems() const;
+  PRUint32 CountItems() const;
 #endif
 
   
 
 
 
-  uint32_t Length() const {
+  PRUint32 Length() const {
     return mData.Length();
   }
 
-  const float& operator[](uint32_t aIndex) const {
+  const float& operator[](PRUint32 aIndex) const {
     return mData[aIndex];
   }
 
@@ -125,7 +150,7 @@ public:
                   mData.Length() * sizeof(float)) == 0;
   }
 
-  bool SetCapacity(uint32_t aSize) {
+  bool SetCapacity(PRUint32 aSize) {
     return mData.SetCapacity(aSize);
   }
 
@@ -136,7 +161,7 @@ public:
 
   float GetPathLength() const;
 
-  uint32_t GetPathSegAtLength(float aLength) const;
+  PRUint32 GetPathSegAtLength(float aLength) const;
 
   void GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const;
 
@@ -174,7 +199,7 @@ protected:
 
   nsresult CopyFrom(const SVGPathData& rhs);
 
-  float& operator[](uint32_t aIndex) {
+  float& operator[](PRUint32 aIndex) {
     return mData[aIndex];
   }
 
@@ -182,7 +207,7 @@ protected:
 
 
 
-  bool SetLength(uint32_t aLength) {
+  bool SetLength(PRUint32 aLength) {
     return mData.SetLength(aLength);
   }
 
@@ -200,7 +225,7 @@ protected:
   
   
 
-  nsresult AppendSeg(uint32_t aType, ...); 
+  nsresult AppendSeg(PRUint32 aType, ...); 
 
   iterator begin() { return mData.Elements(); }
   iterator end() { return mData.Elements() + mData.Length(); }
@@ -220,7 +245,7 @@ protected:
 class SVGPathDataAndOwner : public SVGPathData
 {
 public:
-  SVGPathDataAndOwner(nsSVGElement *aElement = nullptr)
+  SVGPathDataAndOwner(nsSVGElement *aElement = nsnull)
     : mElement(do_GetWeakReference(static_cast<nsINode*>(aElement)))
   {}
 
@@ -241,9 +266,9 @@ public:
   bool IsIdentity() const {
     if (!mElement) {
       NS_ABORT_IF_FALSE(IsEmpty(), "target element propagation failure");
-      return true;
+      return PR_TRUE;
     }
-    return false;
+    return PR_FALSE;
   }
 
   

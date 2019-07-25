@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIOService.h"
 #include "nsDataChannel.h"
 #include "nsDataHandler.h"
@@ -26,7 +58,7 @@ nsDataChannel::OpenContentStream(bool async, nsIInputStream **result,
 
     nsresult rv;
 
-    nsAutoCString spec;
+    nsCAutoString spec;
     rv = URI()->GetAsciiSpec(spec);
     if (NS_FAILED(rv)) return rv;
 
@@ -52,14 +84,14 @@ nsDataChannel::OpenContentStream(bool async, nsIInputStream **result,
                     getter_AddRefs(bufOutStream),
                     nsIOService::gDefaultSegmentSize,
                     PR_UINT32_MAX,
-                    async, true);
+                    async, PR_TRUE);
     if (NS_FAILED(rv))
         return rv;
 
-    uint32_t contentLen;
+    PRUint32 contentLen;
     if (lBase64) {
-        const uint32_t dataLen = dataBuffer.Length();
-        int32_t resultLen = 0;
+        const PRUint32 dataLen = dataBuffer.Length();
+        PRInt32 resultLen = 0;
         if (dataLen >= 1 && dataBuffer[dataLen-1] == '=') {
             if (dataLen >= 2 && dataBuffer[dataLen-2] == '=')
                 resultLen = dataLen-2;
@@ -73,7 +105,7 @@ nsDataChannel::OpenContentStream(bool async, nsIInputStream **result,
         
         
         
-        char * decodedData = PL_Base64Decode(dataBuffer.get(), dataLen, nullptr);
+        char * decodedData = PL_Base64Decode(dataBuffer.get(), dataLen, nsnull);
         if (!decodedData) {
             return NS_ERROR_OUT_OF_MEMORY;
         }

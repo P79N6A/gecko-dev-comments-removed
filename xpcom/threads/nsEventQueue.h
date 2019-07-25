@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsEventQueue_h__
 #define nsEventQueue_h__
 
@@ -36,17 +68,17 @@ public:
 
   
   bool HasPendingEvent() {
-    return GetEvent(false, nullptr);
+    return GetEvent(PR_FALSE, nsnull);
   }
 
   
   bool GetPendingEvent(nsIRunnable **runnable) {
-    return GetEvent(false, runnable);
+    return GetEvent(PR_FALSE, runnable);
   }
 
   
   bool WaitPendingEvent(nsIRunnable **runnable) {
-    return GetEvent(true, runnable);
+    return GetEvent(PR_TRUE, runnable);
   }
 
   
@@ -82,8 +114,8 @@ private:
   Page *mHead;
   Page *mTail;
 
-  uint16_t mOffsetHead;  
-  uint16_t mOffsetTail;  
+  PRUint16 mOffsetHead;  
+  PRUint16 mOffsetTail;  
 };
 
 #endif  

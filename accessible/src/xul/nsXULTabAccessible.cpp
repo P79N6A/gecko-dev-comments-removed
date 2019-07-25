@@ -39,10 +39,11 @@
 #include "nsXULTabAccessible.h"
 
 #include "nsAccUtils.h"
-#include "nsRelUtils.h"
+#include "Relation.h"
 #include "States.h"
 
 
+#include "nsIAccessibleRelation.h"
 #include "nsIDocument.h"
 #include "nsIFrame.h"
 #include "nsIDOMDocument.h"
@@ -130,7 +131,7 @@ nsXULTabAccessible::NativeState()
   state &= ~states::SELECTED;
   nsCOMPtr<nsIDOMXULSelectControlItemElement> tab(do_QueryInterface(mContent));
   if (tab) {
-    PRBool selected = PR_FALSE;
+    bool selected = false;
     if (NS_SUCCEEDED(tab->GetSelected(&selected)) && selected)
       state |= states::SELECTED;
   }
@@ -138,32 +139,28 @@ nsXULTabAccessible::NativeState()
 }
 
 
-NS_IMETHODIMP
-nsXULTabAccessible::GetRelationByType(PRUint32 aRelationType,
-                                      nsIAccessibleRelation **aRelation)
+Relation
+nsXULTabAccessible::RelationByType(PRUint32 aType)
 {
-  nsresult rv = nsAccessibleWrap::GetRelationByType(aRelationType,
-                                                    aRelation);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (aRelationType != nsIAccessibleRelation::RELATION_LABEL_FOR)
-    return NS_OK;
+  Relation rel = nsAccessibleWrap::RelationByType(aType);
+  if (aType != nsIAccessibleRelation::RELATION_LABEL_FOR)
+    return rel;
 
   
   nsCOMPtr<nsIDOMXULRelatedElement> tabsElm =
     do_QueryInterface(mContent->GetParent());
   if (!tabsElm)
-    return NS_OK;
+    return rel;
 
   nsCOMPtr<nsIDOMNode> DOMNode(GetDOMNode());
   nsCOMPtr<nsIDOMNode> tabpanelNode;
   tabsElm->GetRelatedElement(DOMNode, getter_AddRefs(tabpanelNode));
   if (!tabpanelNode)
-    return NS_OK;
+    return rel;
 
   nsCOMPtr<nsIContent> tabpanelContent(do_QueryInterface(tabpanelNode));
-  return nsRelUtils::AddTargetFromContent(aRelationType, aRelation,
-                                          tabpanelContent);
+  rel.AppendTarget(tabpanelContent);
+  return rel;
 }
 
 void
@@ -244,29 +241,26 @@ nsXULTabpanelAccessible::NativeRole()
   return nsIAccessibleRole::ROLE_PROPERTYPAGE;
 }
 
-NS_IMETHODIMP
-nsXULTabpanelAccessible::GetRelationByType(PRUint32 aRelationType,
-                                           nsIAccessibleRelation **aRelation)
+Relation
+nsXULTabpanelAccessible::RelationByType(PRUint32 aType)
 {
-  nsresult rv = nsAccessibleWrap::GetRelationByType(aRelationType, aRelation);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (aRelationType != nsIAccessibleRelation::RELATION_LABELLED_BY)
-    return NS_OK;
+  Relation rel = nsAccessibleWrap::RelationByType(aType);
+  if (aType != nsIAccessibleRelation::RELATION_LABELLED_BY)
+    return rel;
 
   
   nsCOMPtr<nsIDOMXULRelatedElement> tabpanelsElm =
     do_QueryInterface(mContent->GetParent());
   if (!tabpanelsElm)
-    return NS_OK;
+    return rel;
 
   nsCOMPtr<nsIDOMNode> DOMNode(GetDOMNode());
   nsCOMPtr<nsIDOMNode> tabNode;
   tabpanelsElm->GetRelatedElement(DOMNode, getter_AddRefs(tabNode));
   if (!tabNode)
-    return NS_OK;
+    return rel;
 
   nsCOMPtr<nsIContent> tabContent(do_QueryInterface(tabNode));
-  return nsRelUtils::AddTargetFromContent(aRelationType, aRelation,
-                                          tabContent);
+  rel.AppendTarget(tabContent);
+  return rel;
 }

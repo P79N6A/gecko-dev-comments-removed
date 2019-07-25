@@ -3,7 +3,36 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsIDOMHTMLHeadingElement.h"
 #include "nsIDOMEventTarget.h"
@@ -13,8 +42,6 @@
 #include "nsMappedAttributes.h"
 #include "nsRuleData.h"
 #include "mozAutoDocUpdate.h"
-
-using namespace mozilla;
 
 class nsHTMLHeadingElement : public nsGenericHTMLElement,
                              public nsIDOMHTMLHeadingElement
@@ -38,7 +65,7 @@ public:
   
   NS_DECL_NSIDOMHTMLHEADINGELEMENT
 
-  virtual bool ParseAttribute(int32_t aNamespaceID,
+  virtual bool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
@@ -46,7 +73,6 @@ public:
   nsMapRuleToAttributesFunc GetAttributeMappingFunction() const;
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
   virtual nsXPCClassInfo* GetClassInfo();
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 };
 
 
@@ -85,7 +111,7 @@ NS_IMPL_STRING_ATTR(nsHTMLHeadingElement, Align, align)
 
 
 bool
-nsHTMLHeadingElement::ParseAttribute(int32_t aNamespaceID,
+nsHTMLHeadingElement::ParseAttribute(PRInt32 aNamespaceID,
                                      nsIAtom* aAttribute,
                                      const nsAString& aValue,
                                      nsAttrValue& aResult)
@@ -113,7 +139,7 @@ nsHTMLHeadingElement::IsAttributeMapped(const nsIAtom* aAttribute) const
     sCommonAttributeMap
   };
 
-  return FindAttributeDependence(aAttribute, map);
+  return FindAttributeDependence(aAttribute, map, NS_ARRAY_LENGTH(map));
 }
 
 

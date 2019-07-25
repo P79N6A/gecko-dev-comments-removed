@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_ISMILANIMATIONELEMENT_H_
 #define NS_ISMILANIMATIONELEMENT_H_
 
@@ -13,8 +46,8 @@
 
 
 #define NS_ISMILANIMATIONELEMENT_IID \
-{ 0x29792cd9, 0x0f96, 0x4ba6,        \
-  { 0xad, 0xea, 0x03, 0x0e, 0x0b, 0xfe, 0x1e, 0xb7 } }
+{ 0xaf92584b, 0x75b0, 0x4584,        \
+  { 0x87, 0xd2, 0xa8, 0x3, 0x34, 0xf0, 0x5, 0xaf } }
 
 class nsISMILAttr;
 class nsSMILAnimationFunction;
@@ -53,11 +86,6 @@ public:
   
 
 
-  virtual bool PassesConditionalProcessingTests() = 0;
-
-  
-
-
 
 
 
@@ -92,7 +120,7 @@ public:
   
 
 
-  virtual bool GetTargetAttributeName(int32_t* aNamespaceID,
+  virtual bool GetTargetAttributeName(PRInt32* aNamespaceID,
                                         nsIAtom** aLocalName) const = 0;
 
   

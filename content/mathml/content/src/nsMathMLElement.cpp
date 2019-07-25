@@ -3,7 +3,40 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsMathMLElement.h"
 #include "nsDOMClassInfoID.h" 
@@ -17,9 +50,8 @@
 #include "nsEventStates.h"
 #include "nsIPresShell.h"
 #include "nsPresContext.h"
+#include "nsDOMClassInfoID.h"
 #include "mozAutoDocUpdate.h"
-
-using namespace mozilla;
 
 
 
@@ -54,23 +86,19 @@ nsMathMLElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                                 aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (aDocument) {
-    aDocument->RegisterPendingLinkUpdate(this);
+  if (aDocument && !aDocument->GetMathMLEnabled()) {
     
-    if (!aDocument->GetMathMLEnabled()) {
-      
-      
-      
-      aDocument->SetMathMLEnabled();
-      aDocument->EnsureCatalogStyleSheet(kMathMLStyleSheetURI);
+    
+    
+    aDocument->SetMathMLEnabled();
+    aDocument->EnsureCatalogStyleSheet(kMathMLStyleSheetURI);
 
-      
-      
-      
-      nsCOMPtr<nsIPresShell> shell = aDocument->GetShell();
-      if (shell) {
-        shell->GetPresContext()->PostRebuildAllStyleDataEvent(nsChangeHint(0));
-      }
+    
+    
+    
+    nsCOMPtr<nsIPresShell> shell = aDocument->GetShell();
+    if (shell) {
+      shell->GetPresContext()->PostRebuildAllStyleDataEvent(nsChangeHint(0));
     }
   }
 
@@ -83,17 +111,12 @@ nsMathMLElement::UnbindFromTree(bool aDeep, bool aNullParent)
   
   
   Link::ResetLinkState(false);
-  
-  nsIDocument* doc = GetCurrentDoc();
-  if (doc) {
-    doc->UnregisterPendingLinkUpdate(this);
-  }
 
   nsMathMLElementBase::UnbindFromTree(aDeep, aNullParent);
 }
 
 bool
-nsMathMLElement::ParseAttribute(int32_t aNamespaceID,
+nsMathMLElement::ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult)
@@ -111,17 +134,12 @@ nsMathMLElement::ParseAttribute(int32_t aNamespaceID,
                                              aValue, aResult);
 }
 
-static nsGenericElement::MappedAttributeEntry sMtableStyles[] = {
-  { &nsGkAtoms::width },
-  { nullptr }
-};
-
 static nsGenericElement::MappedAttributeEntry sTokenStyles[] = {
   { &nsGkAtoms::mathsize_ },
   { &nsGkAtoms::fontsize_ },
   { &nsGkAtoms::color },
   { &nsGkAtoms::fontfamily_ },
-  { nullptr }
+  { nsnull }
 };
 
 static nsGenericElement::MappedAttributeEntry sEnvironmentStyles[] = {
@@ -129,22 +147,18 @@ static nsGenericElement::MappedAttributeEntry sEnvironmentStyles[] = {
   { &nsGkAtoms::scriptminsize_ },
   { &nsGkAtoms::scriptsizemultiplier_ },
   { &nsGkAtoms::background },
-  { nullptr }
+  { nsnull }
 };
 
 static nsGenericElement::MappedAttributeEntry sCommonPresStyles[] = {
   { &nsGkAtoms::mathcolor_ },
   { &nsGkAtoms::mathbackground_ },
-  { nullptr }
+  { nsnull }
 };
 
 bool
 nsMathMLElement::IsAttributeMapped(const nsIAtom* aAttribute) const
 {
-  static const MappedAttributeEntry* const mtableMap[] = {
-    sMtableStyles,
-    sCommonPresStyles
-  };
   static const MappedAttributeEntry* const tokenMap[] = {
     sTokenStyles,
     sCommonPresStyles
@@ -163,13 +177,12 @@ nsMathMLElement::IsAttributeMapped(const nsIAtom* aAttribute) const
   if (tag == nsGkAtoms::ms_ || tag == nsGkAtoms::mi_ ||
       tag == nsGkAtoms::mn_ || tag == nsGkAtoms::mo_ ||
       tag == nsGkAtoms::mtext_ || tag == nsGkAtoms::mspace_)
-    return FindAttributeDependence(aAttribute, tokenMap);
+    return FindAttributeDependence(aAttribute, tokenMap,
+                                   NS_ARRAY_LENGTH(tokenMap));
   if (tag == nsGkAtoms::mstyle_ ||
       tag == nsGkAtoms::math)
-    return FindAttributeDependence(aAttribute, mstyleMap);
-
-  if (tag == nsGkAtoms::mtable_)
-    return FindAttributeDependence(aAttribute, mtableMap);
+    return FindAttributeDependence(aAttribute, mstyleMap,
+                                   NS_ARRAY_LENGTH(mstyleMap));
 
   if (tag == nsGkAtoms::maction_ ||
       tag == nsGkAtoms::maligngroup_ ||
@@ -188,15 +201,17 @@ nsMathMLElement::IsAttributeMapped(const nsIAtom* aAttribute) const
       tag == nsGkAtoms::msub_ ||
       tag == nsGkAtoms::msubsup_ ||
       tag == nsGkAtoms::msup_ ||
+      tag == nsGkAtoms::mtable_ ||
       tag == nsGkAtoms::mtd_ ||
       tag == nsGkAtoms::mtr_ ||
       tag == nsGkAtoms::munder_ ||
       tag == nsGkAtoms::munderover_ ||
       tag == nsGkAtoms::none) {
-    return FindAttributeDependence(aAttribute, commonPresMap);
+    return FindAttributeDependence(aAttribute, commonPresMap,
+                                   NS_ARRAY_LENGTH(commonPresMap));
   }
 
-  return false;
+  return PR_FALSE;
 }
 
 nsMapRuleToAttributesFunc
@@ -207,62 +222,6 @@ nsMathMLElement::GetAttributeMappingFunction() const
   
   return &MapMathMLAttributesInto;
 }
-
- bool
-nsMathMLElement::ParseNamedSpaceValue(const nsString& aString,
-                                      nsCSSValue&     aCSSValue,
-                                      uint32_t        aFlags)
-{
-   int32_t i = 0;
-   
-   if (aString.EqualsLiteral("veryverythinmathspace")) {
-     i = 1;
-   } else if (aString.EqualsLiteral("verythinmathspace")) {
-     i = 2;
-   } else if (aString.EqualsLiteral("thinmathspace")) {
-     i = 3;
-   } else if (aString.EqualsLiteral("mediummathspace")) {
-     i = 4;
-   } else if (aString.EqualsLiteral("thickmathspace")) {
-     i = 5;
-   } else if (aString.EqualsLiteral("verythickmathspace")) {
-     i = 6;
-   } else if (aString.EqualsLiteral("veryverythickmathspace")) {
-     i = 7;
-   } else if (aFlags & PARSE_ALLOW_NEGATIVE) {
-     if (aString.EqualsLiteral("negativeveryverythinmathspace")) {
-       i = -1;
-     } else if (aString.EqualsLiteral("negativeverythinmathspace")) {
-       i = -2;
-     } else if (aString.EqualsLiteral("negativethinmathspace")) {
-       i = -3;
-     } else if (aString.EqualsLiteral("negativemediummathspace")) {
-       i = -4;
-     } else if (aString.EqualsLiteral("negativethickmathspace")) {
-       i = -5;
-     } else if (aString.EqualsLiteral("negativeverythickmathspace")) {
-       i = -6;
-     } else if (aString.EqualsLiteral("negativeveryverythickmathspace")) {
-       i = -7;
-     }
-   }
-   if (0 != i) { 
-     aCSSValue.SetFloatValue(float(i)/float(18), eCSSUnit_EM);
-     return true;
-   }
-   
-   return false;
-}
- 
-
-
-
-
-
-
-
-
-
 
 
 
@@ -293,27 +252,27 @@ nsMathMLElement::ParseNamedSpaceValue(const nsString& aString,
  bool
 nsMathMLElement::ParseNumericValue(const nsString& aString,
                                    nsCSSValue&     aCSSValue,
-                                   uint32_t        aFlags)
+                                   PRUint32        aFlags)
 {
   nsAutoString str(aString);
   str.CompressWhitespace(); 
 
-  int32_t stringLength = str.Length();
+  PRInt32 stringLength = str.Length();
   if (!stringLength)
-    return false;
-
-  if (ParseNamedSpaceValue(aString, aCSSValue, aFlags)) {
-    return true;
-  }
+    return PR_FALSE;
 
   nsAutoString number, unit;
 
   
-  int32_t i = 0;
+  PRInt32 i = 0;
   PRUnichar c = str[0];
   if (c == '-') {
     number.Append(c);
     i++;
+
+    
+    if (i < stringLength && nsCRT::IsAsciiSpace(str[i]))
+      i++;
   }
 
   
@@ -321,9 +280,9 @@ nsMathMLElement::ParseNumericValue(const nsString& aString,
   for ( ; i < stringLength; i++) {
     c = str[i];
     if (gotDot && c == '.')
-      return false;  
+      return PR_FALSE;  
     else if (c == '.')
-      gotDot = true;
+      gotDot = PR_TRUE;
     else if (!nsCRT::IsAsciiDigit(c)) {
       str.Right(unit, stringLength - i);
       
@@ -334,12 +293,12 @@ nsMathMLElement::ParseNumericValue(const nsString& aString,
   }
 
   
-  nsresult errorCode;
+  PRInt32 errorCode;
   float floatValue = number.ToFloat(&errorCode);
   if (NS_FAILED(errorCode))
-    return false;
+    return PR_FALSE;
   if (floatValue < 0 && !(aFlags & PARSE_ALLOW_NEGATIVE))
-    return false;
+    return PR_FALSE;
 
   nsCSSUnit cssUnit;
   if (unit.IsEmpty()) {
@@ -351,13 +310,13 @@ nsMathMLElement::ParseNumericValue(const nsString& aString,
       
       
       if (floatValue != 0.0)
-        return false;
+        return PR_FALSE;
       cssUnit = eCSSUnit_Pixel;
     }
   }
   else if (unit.EqualsLiteral("%")) {
     aCSSValue.SetPercentValue(floatValue / 100.0f);
-    return true;
+    return PR_TRUE;
   }
   else if (unit.EqualsLiteral("em")) cssUnit = eCSSUnit_EM;
   else if (unit.EqualsLiteral("ex")) cssUnit = eCSSUnit_XHeight;
@@ -368,10 +327,10 @@ nsMathMLElement::ParseNumericValue(const nsString& aString,
   else if (unit.EqualsLiteral("pt")) cssUnit = eCSSUnit_Point;
   else if (unit.EqualsLiteral("pc")) cssUnit = eCSSUnit_Pica;
   else 
-    return false;
+    return PR_FALSE;
 
   aCSSValue.SetFloatValue(floatValue, cssUnit);
-  return true;
+  return PR_TRUE;
 }
 
 void
@@ -379,14 +338,6 @@ nsMathMLElement::MapMathMLAttributesInto(const nsMappedAttributes* aAttributes,
                                          nsRuleData* aData)
 {
   if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Font)) {
-    
-    
-    
-    
-    
-    
-    
-    
     const nsAttrValue* value =
       aAttributes->GetAttr(nsGkAtoms::scriptsizemultiplier_);
     nsCSSValue* scriptSizeMultiplier =
@@ -397,7 +348,7 @@ nsMathMLElement::MapMathMLAttributesInto(const nsMappedAttributes* aAttributes,
       str.CompressWhitespace();
       
       if (str.Length() > 0 && str.CharAt(0) != '+') {
-        nsresult errorCode;
+        PRInt32 errorCode;
         float floatValue = str.ToFloat(&errorCode);
         
         if (NS_SUCCEEDED(errorCode) && floatValue >= 0.0f) {
@@ -406,18 +357,6 @@ nsMathMLElement::MapMathMLAttributesInto(const nsMappedAttributes* aAttributes,
       }
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     value = aAttributes->GetAttr(nsGkAtoms::scriptminsize_);
     nsCSSValue* scriptMinSize = aData->ValueForScriptMinSize();
     if (value && value->Type() == nsAttrValue::eString &&
@@ -425,17 +364,6 @@ nsMathMLElement::MapMathMLAttributesInto(const nsMappedAttributes* aAttributes,
       ParseNumericValue(value->GetStringValue(), *scriptMinSize, 0);
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     value = aAttributes->GetAttr(nsGkAtoms::scriptlevel_);
     nsCSSValue* scriptLevel = aData->ValueForScriptLevel();
     if (value && value->Type() == nsAttrValue::eString &&
@@ -443,8 +371,8 @@ nsMathMLElement::MapMathMLAttributesInto(const nsMappedAttributes* aAttributes,
       nsAutoString str(value->GetStringValue());
       str.CompressWhitespace();
       if (str.Length() > 0) {
-        nsresult errorCode;
-        int32_t intValue = str.ToInteger(&errorCode);
+        PRInt32 errorCode;
+        PRInt32 intValue = str.ToInteger(&errorCode);
         if (NS_SUCCEEDED(errorCode)) {
           
           
@@ -460,32 +388,10 @@ nsMathMLElement::MapMathMLAttributesInto(const nsMappedAttributes* aAttributes,
       }
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     bool parseSizeKeywords = true;
     value = aAttributes->GetAttr(nsGkAtoms::mathsize_);
     if (!value) {
-      parseSizeKeywords = false;
+      parseSizeKeywords = PR_FALSE;
       value = aAttributes->GetAttr(nsGkAtoms::fontsize_);
     }
     nsCSSValue* fontSize = aData->ValueForFontSize();
@@ -495,12 +401,12 @@ nsMathMLElement::MapMathMLAttributesInto(const nsMappedAttributes* aAttributes,
       if (!ParseNumericValue(str, *fontSize, 0) &&
           parseSizeKeywords) {
         static const char sizes[3][7] = { "small", "normal", "big" };
-        static const int32_t values[NS_ARRAY_LENGTH(sizes)] = {
+        static const PRInt32 values[NS_ARRAY_LENGTH(sizes)] = {
           NS_STYLE_FONT_SIZE_SMALL, NS_STYLE_FONT_SIZE_MEDIUM,
           NS_STYLE_FONT_SIZE_LARGE
         };
         str.CompressWhitespace();
-        for (uint32_t i = 0; i < ArrayLength(sizes); ++i) {
+        for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(sizes); ++i) {
           if (str.EqualsASCII(sizes[i])) {
             fontSize->SetIntValue(values[i], eCSSUnit_Enumerated);
             break;
@@ -509,14 +415,6 @@ nsMathMLElement::MapMathMLAttributesInto(const nsMappedAttributes* aAttributes,
       }
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
     value = aAttributes->GetAttr(nsGkAtoms::fontfamily_);
     nsCSSValue* fontFamily = aData->ValueForFontFamily();
     if (value && value->Type() == nsAttrValue::eString &&
@@ -525,24 +423,6 @@ nsMathMLElement::MapMathMLAttributesInto(const nsMappedAttributes* aAttributes,
     }
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Background)) {
     const nsAttrValue* value =
       aAttributes->GetAttr(nsGkAtoms::mathbackground_);
@@ -558,23 +438,6 @@ nsMathMLElement::MapMathMLAttributesInto(const nsMappedAttributes* aAttributes,
     }
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Color)) {
     const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::mathcolor_);
     if (!value) {
@@ -587,19 +450,6 @@ nsMathMLElement::MapMathMLAttributesInto(const nsMappedAttributes* aAttributes,
       colorValue->SetColorValue(color);
     }
   }
-
-  if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Position)) {
-    
-    nsCSSValue* width = aData->ValueForWidth();
-    if (width->GetUnit() == eCSSUnit_Null) {
-      const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::width);
-      
-      if (value && value->Type() == nsAttrValue::eString) {
-        ParseNumericValue(value->GetStringValue(), *width, 0);
-      }
-    }
-  }
-
 }
 
 nsresult
@@ -627,7 +477,7 @@ nsMathMLElement::IntrinsicState() const
 }
 
 bool
-nsMathMLElement::IsNodeOfType(uint32_t aFlags) const
+nsMathMLElement::IsNodeOfType(PRUint32 aFlags) const
 {
   return !(aFlags & ~eCONTENT);
 }
@@ -646,21 +496,21 @@ nsMathMLElement::SetIncrementScriptLevel(bool aIncrementScriptLevel,
 }
 
 bool
-nsMathMLElement::IsFocusable(int32_t *aTabIndex, bool aWithMouse)
+nsMathMLElement::IsFocusable(PRInt32 *aTabIndex, bool aWithMouse)
 {
   nsCOMPtr<nsIURI> uri;
   if (IsLink(getter_AddRefs(uri))) {
     if (aTabIndex) {
       *aTabIndex = ((sTabFocusModel & eTabFocus_linksMask) == 0 ? -1 : 0);
     }
-    return true;
+    return PR_TRUE;
   }
 
   if (aTabIndex) {
     *aTabIndex = -1;
   }
 
-  return false;
+  return PR_FALSE;
 }
 
 bool
@@ -673,8 +523,8 @@ nsMathMLElement::IsLink(nsIURI** aURI) const
       tag == nsGkAtoms::none         ||
       tag == nsGkAtoms::malignmark_  ||
       tag == nsGkAtoms::maligngroup_) {
-    *aURI = nullptr;
-    return false;
+    *aURI = nsnull;
+    return PR_FALSE;
   }
 
   bool hasHref = false;
@@ -684,7 +534,7 @@ nsMathMLElement::IsLink(nsIURI** aURI) const
     
     
     
-    hasHref = true;
+    hasHref = PR_TRUE;
   } else {
     
     
@@ -697,13 +547,13 @@ nsMathMLElement::IsLink(nsIURI** aURI) const
     
     
     static nsIContent::AttrValuesArray sTypeVals[] =
-      { &nsGkAtoms::_empty, &nsGkAtoms::simple, nullptr };
+      { &nsGkAtoms::_empty, &nsGkAtoms::simple, nsnull };
     
     static nsIContent::AttrValuesArray sShowVals[] =
-      { &nsGkAtoms::_empty, &nsGkAtoms::_new, &nsGkAtoms::replace, nullptr };
+      { &nsGkAtoms::_empty, &nsGkAtoms::_new, &nsGkAtoms::replace, nsnull };
     
     static nsIContent::AttrValuesArray sActuateVals[] =
-      { &nsGkAtoms::_empty, &nsGkAtoms::onRequest, nullptr };
+      { &nsGkAtoms::_empty, &nsGkAtoms::onRequest, nsnull };
     
     
     href = mAttrsAndChildren.GetAttr(nsGkAtoms::href,
@@ -718,7 +568,7 @@ nsMathMLElement::IsLink(nsIURI** aURI) const
         FindAttrValueIn(kNameSpaceID_XLink, nsGkAtoms::actuate,
                         sActuateVals, eCaseMatters) !=
         nsIContent::ATTR_VALUE_NO_MATCH) {
-      hasHref = true;
+      hasHref = PR_TRUE;
     }
   }
 
@@ -728,13 +578,13 @@ nsMathMLElement::IsLink(nsIURI** aURI) const
     nsAutoString hrefStr;
     href->ToString(hrefStr); 
     nsContentUtils::NewURIWithDocumentCharset(aURI, hrefStr,
-                                              OwnerDoc(), baseURI);
+                                              GetOwnerDoc(), baseURI);
     
     return !!*aURI;
   }
 
-  *aURI = nullptr;
-  return false;
+  *aURI = nsnull;
+  return PR_FALSE;
 }
 
 void
@@ -749,7 +599,7 @@ nsMathMLElement::GetLinkTarget(nsAString& aTarget)
   if (aTarget.IsEmpty()) {
 
     static nsIContent::AttrValuesArray sShowVals[] =
-      { &nsGkAtoms::_new, &nsGkAtoms::replace, nullptr };
+      { &nsGkAtoms::_new, &nsGkAtoms::replace, nsnull };
     
     switch (FindAttrValueIn(kNameSpaceID_XLink, nsGkAtoms::show,
                             sShowVals, eCaseMatters)) {
@@ -759,7 +609,10 @@ nsMathMLElement::GetLinkTarget(nsAString& aTarget)
     case 1:
       return;
     }
-    OwnerDoc()->GetBaseTarget(aTarget);
+    nsIDocument* ownerDoc = GetOwnerDoc();
+    if (ownerDoc) {
+      ownerDoc->GetBaseTarget(aTarget);
+    }
   }
 }
 
@@ -769,15 +622,21 @@ nsMathMLElement::GetLinkState() const
   return Link::GetLinkState();
 }
 
+void
+nsMathMLElement::RequestLinkStateUpdate()
+{
+  UpdateLinkState(Link::LinkState());
+}
+
 already_AddRefed<nsIURI>
 nsMathMLElement::GetHrefURI() const
 {
   nsCOMPtr<nsIURI> hrefURI;
-  return IsLink(getter_AddRefs(hrefURI)) ? hrefURI.forget() : nullptr;
+  return IsLink(getter_AddRefs(hrefURI)) ? hrefURI.forget() : nsnull;
 }
 
 nsresult
-nsMathMLElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+nsMathMLElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                          nsIAtom* aPrefix, const nsAString& aValue,
                          bool aNotify)
 {
@@ -799,7 +658,7 @@ nsMathMLElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
 }
 
 nsresult
-nsMathMLElement::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttr,
+nsMathMLElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttr,
                            bool aNotify)
 {
   nsresult rv = nsMathMLElementBase::UnsetAttr(aNameSpaceID, aAttr, aNotify);

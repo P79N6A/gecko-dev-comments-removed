@@ -9,6 +9,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsNavHistoryQuery_h_
 #define nsNavHistoryQuery_h_
 
@@ -17,12 +50,10 @@
 
 
 
-#include "mozilla/Attributes.h"
-
 #define NS_NAVHISTORYQUERY_IID \
 { 0xb10185e0, 0x86eb, 0x4612, { 0x95, 0x7c, 0x09, 0x34, 0xf2, 0xb1, 0xce, 0xd7 } }
 
-class nsNavHistoryQuery MOZ_FINAL : public nsINavHistoryQuery
+class nsNavHistoryQuery : public nsINavHistoryQuery
 {
 public:
   nsNavHistoryQuery();
@@ -32,12 +63,12 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSINAVHISTORYQUERY
 
-  int32_t MinVisits() { return mMinVisits; }
-  int32_t MaxVisits() { return mMaxVisits; }
+  PRInt32 MinVisits() { return mMinVisits; }
+  PRInt32 MaxVisits() { return mMaxVisits; }
   PRTime BeginTime() { return mBeginTime; }
-  uint32_t BeginTimeReference() { return mBeginTimeReference; }
+  PRUint32 BeginTimeReference() { return mBeginTimeReference; }
   PRTime EndTime() { return mEndTime; }
-  uint32_t EndTimeReference() { return mEndTimeReference; }
+  PRUint32 EndTimeReference() { return mEndTimeReference; }
   const nsString& SearchTerms() { return mSearchTerms; }
   bool OnlyBookmarked() { return mOnlyBookmarked; }
   bool DomainIsHost() { return mDomainIsHost; }
@@ -46,7 +77,7 @@ public:
   nsIURI* Uri() { return mUri; } 
   bool AnnotationIsNot() { return mAnnotationIsNot; }
   const nsCString& Annotation() { return mAnnotation; }
-  const nsTArray<int64_t>& Folders() const { return mFolders; }
+  const nsTArray<PRInt64>& Folders() const { return mFolders; }
   const nsTArray<nsString>& Tags() const { return mTags; }
   nsresult SetTags(const nsTArray<nsString>& aTags)
   {
@@ -57,8 +88,8 @@ public:
   }
   bool TagsAreNot() { return mTagsAreNot; }
 
-  const nsTArray<uint32_t>& Transitions() const { return mTransitions; }
-  nsresult SetTransitions(const nsTArray<uint32_t>& aTransitions)
+  const nsTArray<PRUint32>& Transitions() const { return mTransitions; }
+  nsresult SetTransitions(const nsTArray<PRUint32>& aTransitions)
   {
     if (!mTransitions.ReplaceElementsAt(0, mTransitions.Length(),
                                         aTransitions))
@@ -72,12 +103,12 @@ private:
 
 protected:
 
-  int32_t mMinVisits;
-  int32_t mMaxVisits;
+  PRInt32 mMinVisits;
+  PRInt32 mMaxVisits;
   PRTime mBeginTime;
-  uint32_t mBeginTimeReference;
+  PRUint32 mBeginTimeReference;
   PRTime mEndTime;
-  uint32_t mEndTimeReference;
+  PRUint32 mEndTimeReference;
   nsString mSearchTerms;
   bool mOnlyBookmarked;
   bool mDomainIsHost;
@@ -86,10 +117,10 @@ protected:
   nsCOMPtr<nsIURI> mUri;
   bool mAnnotationIsNot;
   nsCString mAnnotation;
-  nsTArray<int64_t> mFolders;
+  nsTArray<PRInt64> mFolders;
   nsTArray<nsString> mTags;
   bool mTagsAreNot;
-  nsTArray<uint32_t> mTransitions;
+  nsTArray<PRUint32> mTransitions;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsNavHistoryQuery, NS_NAVHISTORYQUERY_IID)
@@ -99,20 +130,21 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsNavHistoryQuery, NS_NAVHISTORYQUERY_IID)
 #define NS_NAVHISTORYQUERYOPTIONS_IID \
 {0x95f8ba3b, 0xd681, 0x4d89, {0xab, 0xd1, 0xfd, 0xae, 0xf2, 0xa3, 0xde, 0x18}}
 
-class nsNavHistoryQueryOptions MOZ_FINAL : public nsINavHistoryQueryOptions
+class nsNavHistoryQueryOptions : public nsINavHistoryQueryOptions
 {
 public:
   nsNavHistoryQueryOptions()
   : mSort(0)
   , mResultType(0)
-  , mExcludeItems(false)
-  , mExcludeQueries(false)
-  , mExcludeReadOnlyFolders(false)
-  , mExpandQueries(true)
-  , mIncludeHidden(false)
+  , mExcludeItems(PR_FALSE)
+  , mExcludeQueries(PR_FALSE)
+  , mExcludeReadOnlyFolders(PR_FALSE)
+  , mExpandQueries(PR_TRUE)
+  , mIncludeHidden(PR_FALSE)
+  , mRedirectsMode(nsINavHistoryQueryOptions::REDIRECTS_MODE_ALL)
   , mMaxResults(0)
   , mQueryType(nsINavHistoryQueryOptions::QUERY_TYPE_HISTORY)
-  , mAsyncEnabled(false)
+  , mAsyncEnabled(PR_FALSE)
   { }
 
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_NAVHISTORYQUERYOPTIONS_IID)
@@ -120,15 +152,16 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSINAVHISTORYQUERYOPTIONS
 
-  uint16_t SortingMode() const { return mSort; }
-  uint16_t ResultType() const { return mResultType; }
+  PRUint16 SortingMode() const { return mSort; }
+  PRUint16 ResultType() const { return mResultType; }
   bool ExcludeItems() const { return mExcludeItems; }
   bool ExcludeQueries() const { return mExcludeQueries; }
   bool ExcludeReadOnlyFolders() const { return mExcludeReadOnlyFolders; }
   bool ExpandQueries() const { return mExpandQueries; }
   bool IncludeHidden() const { return mIncludeHidden; }
-  uint32_t MaxResults() const { return mMaxResults; }
-  uint16_t QueryType() const { return mQueryType; }
+  PRUint16 RedirectsMode() const { return mRedirectsMode; }
+  PRUint32 MaxResults() const { return mMaxResults; }
+  PRUint16 QueryType() const { return mQueryType; }
   bool AsyncEnabled() const { return mAsyncEnabled; }
 
   nsresult Clone(nsNavHistoryQueryOptions **aResult);
@@ -142,17 +175,18 @@ private:
   
   
   
-  uint16_t mSort;
+  PRUint16 mSort;
   nsCString mSortingAnnotation;
   nsCString mParentAnnotationToExclude;
-  uint16_t mResultType;
+  PRUint16 mResultType;
   bool mExcludeItems;
   bool mExcludeQueries;
   bool mExcludeReadOnlyFolders;
   bool mExpandQueries;
   bool mIncludeHidden;
-  uint32_t mMaxResults;
-  uint16_t mQueryType;
+  PRUint16 mRedirectsMode;
+  PRUint32 mMaxResults;
+  PRUint16 mQueryType;
   bool mAsyncEnabled;
 };
 

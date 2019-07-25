@@ -9,6 +9,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef BasicTableLayoutStrategy_h_
 #define BasicTableLayoutStrategy_h_
 
@@ -41,8 +73,8 @@ private:
 
     
     void DistributePctWidthToColumns(float aSpanPrefPct,
-                                     int32_t aFirstCol,
-                                     int32_t aColCount);
+                                     PRInt32 aFirstCol,
+                                     PRInt32 aColCount);
 
     
     
@@ -60,8 +92,8 @@ private:
     
     
     void DistributeWidthToColumns(nscoord aWidth, 
-                                  int32_t aFirstCol, 
-                                  int32_t aColCount,
+                                  PRInt32 aFirstCol, 
+                                  PRInt32 aColCount,
                                   BtlsWidthType aWidthType,
                                   bool aSpanHasSpecifiedWidth);
  

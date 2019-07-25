@@ -3,6 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsPopupSetFrame.h"
 #include "nsGkAtoms.h"
 #include "nsCOMPtr.h"
@@ -104,7 +140,7 @@ nsPopupSetFrame::DestroyFrom(nsIFrame* aDestructRoot)
   
   nsIRootBox *rootBox = nsIRootBox::GetRootBox(PresContext()->GetPresShell());
   if (rootBox) {
-    rootBox->SetPopupSetFrame(nullptr);
+    rootBox->SetPopupSetFrame(nsnull);
   }
 
   nsBoxFrame::DestroyFrom(aDestructRoot);
@@ -119,7 +155,7 @@ nsPopupSetFrame::DoLayout(nsBoxLayoutState& aState)
   
   for (nsFrameList::Enumerator e(mPopupList); !e.AtEnd(); e.Next()) {
     nsMenuPopupFrame* popupChild = static_cast<nsMenuPopupFrame*>(e.get());
-    popupChild->LayoutPopup(aState, nullptr, false);
+    popupChild->LayoutPopup(aState, nsnull, PR_FALSE);
   }
 
   return rv;
@@ -145,12 +181,12 @@ nsPopupSetFrame::AddPopupFrameList(nsFrameList& aPopupFrameList)
                  "adding wrong type of frame in popupset's ::popupList");
   }
 #endif
-  mPopupList.InsertFrames(nullptr, nullptr, aPopupFrameList);
+  mPopupList.InsertFrames(nsnull, nsnull, aPopupFrameList);
 }
 
 #ifdef DEBUG
 NS_IMETHODIMP
-nsPopupSetFrame::List(FILE* out, int32_t aIndent) const
+nsPopupSetFrame::List(FILE* out, PRInt32 aIndent) const
 {
   IndentBy(out, aIndent);
   ListTag(out);
@@ -163,15 +199,15 @@ nsPopupSetFrame::List(FILE* out, int32_t aIndent) const
   if (GetNextSibling()) {
     fprintf(out, " next=%p", static_cast<void*>(GetNextSibling()));
   }
-  if (nullptr != GetPrevContinuation()) {
+  if (nsnull != GetPrevContinuation()) {
     fprintf(out, " prev-continuation=%p", static_cast<void*>(GetPrevContinuation()));
   }
-  if (nullptr != GetNextContinuation()) {
+  if (nsnull != GetNextContinuation()) {
     fprintf(out, " next-continuation=%p", static_cast<void*>(GetNextContinuation()));
   }
   fprintf(out, " {%d,%d,%d,%d}", mRect.x, mRect.y, mRect.width, mRect.height);
   if (0 != mState) {
-    fprintf(out, " [state=%016llx]", (unsigned long long)mState);
+    fprintf(out, " [state=%016llx]", mState);
   }
   fprintf(out, " [content=%p]", static_cast<void*>(mContent));
   nsPopupSetFrame* f = const_cast<nsPopupSetFrame*>(this);
@@ -201,7 +237,7 @@ nsPopupSetFrame::List(FILE* out, int32_t aIndent) const
     if (outputOneList) {
       IndentBy(out, aIndent);
     }
-    outputOneList = true;
+    outputOneList = PR_TRUE;
     fprintf(out, "%s<\n", mozilla::layout::ChildListName(lists.CurrentID()));
     nsFrameList::Enumerator childFrames(lists.CurrentList());
     for (; !childFrames.AtEnd(); childFrames.Next()) {
@@ -237,7 +273,7 @@ nsPopupSetFrame::List(FILE* out, int32_t aIndent) const
     --aIndent;
     IndentBy(out, aIndent);
     fputs(">\n", out);
-    outputOneList = true;
+    outputOneList = PR_TRUE;
   }
 
   if (!outputOneList) {

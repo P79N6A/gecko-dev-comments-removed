@@ -4,11 +4,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSHEntry.h"
 #include "nsXPIDLString.h"
 #include "nsReadableUtils.h"
 #include "nsIDocShellLoadInfo.h"
 #include "nsIDocShellTreeItem.h"
+#include "nsIDocument.h"
+#include "nsIDOMDocument.h"
 #include "nsISHistory.h"
 #include "nsISHistoryInternal.h"
 #include "nsDocShellEditorData.h"
@@ -16,11 +51,10 @@
 #include "nsILayoutHistoryState.h"
 #include "nsIContentViewer.h"
 #include "nsISupportsArray.h"
-#include "nsIStructuredCloneContainer.h"
 
 namespace dom = mozilla::dom;
 
-static uint32_t gEntryID = 0;
+static PRUint32 gEntryID = 0;
 
 
 
@@ -32,8 +66,7 @@ nsSHEntry::nsSHEntry()
   , mID(gEntryID++)
   , mScrollPositionX(0)
   , mScrollPositionY(0)
-  , mParent(nullptr)
-  , mURIWasModified(false)
+  , mURIWasModified(PR_FALSE)
 {
   mShared = new nsSHEntryShared();
 }
@@ -48,7 +81,6 @@ nsSHEntry::nsSHEntry(const nsSHEntry &other)
   , mID(other.mID)
   , mScrollPositionX(0)  
   , mScrollPositionY(0)  
-  , mParent(other.mParent)
   , mURIWasModified(other.mURIWasModified)
   , mStateData(other.mStateData)
 {
@@ -58,15 +90,15 @@ static bool
 ClearParentPtr(nsISHEntry* aEntry, void* )
 {
   if (aEntry) {
-    aEntry->SetParent(nullptr);
+    aEntry->SetParent(nsnull);
   }
-  return true;
+  return PR_TRUE;
 }
 
 nsSHEntry::~nsSHEntry()
 {
   
-  mChildren.EnumerateForwards(ClearParentPtr, nullptr);
+  mChildren.EnumerateForwards(ClearParentPtr, nsnull);
 }
 
 
@@ -80,14 +112,14 @@ NS_IMPL_ISUPPORTS4(nsSHEntry, nsISHContainer, nsISHEntry, nsIHistoryEntry,
 
 
 
-NS_IMETHODIMP nsSHEntry::SetScrollPosition(int32_t x, int32_t y)
+NS_IMETHODIMP nsSHEntry::SetScrollPosition(PRInt32 x, PRInt32 y)
 {
   mScrollPositionX = x;
   mScrollPositionY = y;
   return NS_OK;
 }
 
-NS_IMETHODIMP nsSHEntry::GetScrollPosition(int32_t *x, int32_t *y)
+NS_IMETHODIMP nsSHEntry::GetScrollPosition(PRInt32 *x, PRInt32 *y)
 {
   *x = mScrollPositionX;
   *y = mScrollPositionY;
@@ -163,7 +195,7 @@ nsSHEntry::GetAnyContentViewer(nsISHEntry **aOwnerEntry,
     return NS_OK;
   }
   
-  for (int32_t i = 0; i < mChildren.Count(); i++) {
+  for (PRInt32 i = 0; i < mChildren.Count(); i++) {
     nsISHEntry* child = mChildren[i];
     if (child) {
 #ifdef DEBUG_PAGE_CACHE
@@ -197,7 +229,7 @@ NS_IMETHODIMP nsSHEntry::GetTitle(PRUnichar** aTitle)
   
   if (mTitle.IsEmpty() && mURI) {
     
-    nsAutoCString spec;
+    nsCAutoString spec;
     if (NS_SUCCEEDED(mURI->GetSpec(spec)))
       AppendUTF8toUTF16(spec, mTitle);
   }
@@ -243,25 +275,25 @@ NS_IMETHODIMP nsSHEntry::SetLayoutHistoryState(nsILayoutHistoryState* aState)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsSHEntry::GetLoadType(uint32_t * aResult)
+NS_IMETHODIMP nsSHEntry::GetLoadType(PRUint32 * aResult)
 {
   *aResult = mLoadType;
   return NS_OK;
 }
 
-NS_IMETHODIMP nsSHEntry::SetLoadType(uint32_t  aLoadType)
+NS_IMETHODIMP nsSHEntry::SetLoadType(PRUint32  aLoadType)
 {
   mLoadType = aLoadType;
   return NS_OK;
 }
 
-NS_IMETHODIMP nsSHEntry::GetID(uint32_t * aResult)
+NS_IMETHODIMP nsSHEntry::GetID(PRUint32 * aResult)
 {
   *aResult = mID;
   return NS_OK;
 }
 
-NS_IMETHODIMP nsSHEntry::SetID(uint32_t  aID)
+NS_IMETHODIMP nsSHEntry::SetID(PRUint32  aID)
 {
   mID = aID;
   return NS_OK;
@@ -343,14 +375,14 @@ nsSHEntry::Create(nsIURI * aURI, const nsAString &aTitle,
                   nsILayoutHistoryState * aLayoutHistoryState,
                   nsISupports * aCacheKey, const nsACString& aContentType,
                   nsISupports* aOwner,
-                  uint64_t aDocShellID, bool aDynamicCreation)
+                  PRUint64 aDocShellID, bool aDynamicCreation)
 {
   mURI = aURI;
   mTitle = aTitle;
   mPostData = aInputStream;
 
   
-  mLoadType = (uint32_t) nsIDocShellLoadInfo::loadHistory;
+  mLoadType = (PRUint32) nsIDocShellLoadInfo::loadHistory;
 
   mShared->mCacheKey = aCacheKey;
   mShared->mContentType = aContentType;
@@ -361,14 +393,14 @@ nsSHEntry::Create(nsIURI * aURI, const nsAString &aTitle,
   
   
   
-  mShared->mIsFrameNavigation = false;
+  mShared->mIsFrameNavigation = PR_FALSE;
 
   
-  mShared->mSaveLayoutState = true;
+  mShared->mSaveLayoutState = PR_TRUE;
   mShared->mLayoutHistoryState = aLayoutHistoryState;
 
   
-  mShared->mExpired = false;
+  mShared->mExpired = PR_FALSE;
 
   return NS_OK;
 }
@@ -385,7 +417,7 @@ NS_IMETHODIMP
 nsSHEntry::GetParent(nsISHEntry ** aResult)
 {
   NS_ENSURE_ARG_POINTER(aResult);
-  *aResult = mParent;
+  *aResult = mShared->mParent;
   NS_IF_ADDREF(*aResult);
   return NS_OK;
 }
@@ -398,7 +430,7 @@ nsSHEntry::SetParent(nsISHEntry * aParent)
 
 
 
-  mParent = aParent;
+  mShared->mParent = aParent;
   return NS_OK;
 }
 
@@ -495,14 +527,14 @@ nsSHEntry::AbandonBFCacheEntry()
 
 
 NS_IMETHODIMP 
-nsSHEntry::GetChildCount(int32_t * aCount)
+nsSHEntry::GetChildCount(PRInt32 * aCount)
 {
   *aCount = mChildren.Count();
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsSHEntry::AddChild(nsISHEntry * aChild, int32_t aOffset)
+nsSHEntry::AddChild(nsISHEntry * aChild, PRInt32 aOffset)
 {
   if (aChild) {
     NS_ENSURE_SUCCESS(aChild->SetParent(this), NS_ERROR_FAILURE);
@@ -532,8 +564,8 @@ nsSHEntry::AddChild(nsISHEntry * aChild, int32_t aOffset)
   
   
   if (newChildIsDyn) {
-    int32_t lastNonDyn = aOffset - 1;
-    for (int32_t i = aOffset; i < mChildren.Count(); ++i) {
+    PRInt32 lastNonDyn = aOffset - 1;
+    for (PRInt32 i = aOffset; i < mChildren.Count(); ++i) {
       nsISHEntry* entry = mChildren[i];
       if (entry) {
         bool dyn = false;
@@ -553,7 +585,7 @@ nsSHEntry::AddChild(nsISHEntry * aChild, int32_t aOffset)
     }
     if (!mChildren.InsertObjectAt(aChild, lastNonDyn + 1)) {
       NS_WARNING("Adding a child failed!");
-      aChild->SetParent(nullptr);
+      aChild->SetParent(nsnull);
       return NS_ERROR_FAILURE;
     }
   } else {
@@ -561,10 +593,10 @@ nsSHEntry::AddChild(nsISHEntry * aChild, int32_t aOffset)
     
     
     if (mChildren.Count() > 0) {
-      int32_t start = NS_MIN(mChildren.Count() - 1, aOffset);
-      int32_t dynEntryIndex = -1;
-      nsISHEntry* dynEntry = nullptr;
-      for (int32_t i = start; i >= 0; --i) {
+      PRInt32 start = NS_MIN(mChildren.Count() - 1, aOffset);
+      PRInt32 dynEntryIndex = -1;
+      nsISHEntry* dynEntry = nsnull;
+      for (PRInt32 i = start; i >= 0; --i) {
         nsISHEntry* entry = mChildren[i];
         if (entry) {
           bool dyn = false;
@@ -592,13 +624,13 @@ nsSHEntry::AddChild(nsISHEntry * aChild, int32_t aOffset)
       nsISHEntry* oldChild = mChildren[aOffset];
       if (oldChild && oldChild != aChild) {
         NS_ERROR("Adding a child where we already have a child? This may misbehave");
-        oldChild->SetParent(nullptr);
+        oldChild->SetParent(nsnull);
       }
     }
 
     if (!mChildren.ReplaceObjectAt(aChild, aOffset)) {
       NS_WARNING("Adding a child failed!");
-      aChild->SetParent(nullptr);
+      aChild->SetParent(nsnull);
       return NS_ERROR_FAILURE;
     }
   }
@@ -616,26 +648,18 @@ nsSHEntry::RemoveChild(nsISHEntry * aChild)
   if (dynamic) {
     childRemoved = mChildren.RemoveObject(aChild);
   } else {
-    int32_t index = mChildren.IndexOfObject(aChild);
+    PRInt32 index = mChildren.IndexOfObject(aChild);
     if (index >= 0) {
-      childRemoved = mChildren.ReplaceObjectAt(nullptr, index);
+      childRemoved = mChildren.ReplaceObjectAt(nsnull, index);
     }
   }
-  if (childRemoved) {
-    aChild->SetParent(nullptr);
-
-    
-    for (int32_t i = mChildren.Count() - 1; i >= 0 && !mChildren[i]; --i) {
-      if (!mChildren.RemoveObjectAt(i)) {
-        break;
-      }
-    }
-  }
+  if (childRemoved)
+    aChild->SetParent(nsnull);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsSHEntry::GetChildAt(int32_t aIndex, nsISHEntry ** aResult)
+nsSHEntry::GetChildAt(PRInt32 aIndex, nsISHEntry ** aResult)
 {
   if (aIndex >= 0 && aIndex < mChildren.Count()) {
     *aResult = mChildren[aIndex];
@@ -643,7 +667,7 @@ nsSHEntry::GetChildAt(int32_t aIndex, nsISHEntry ** aResult)
     
     NS_IF_ADDREF(*aResult);
   } else {
-    *aResult = nullptr;
+    *aResult = nsnull;
   }
   return NS_OK;
 }
@@ -657,7 +681,7 @@ nsSHEntry::AddChildShell(nsIDocShellTreeItem *aShell)
 }
 
 NS_IMETHODIMP
-nsSHEntry::ChildShellAt(int32_t aIndex, nsIDocShellTreeItem **aShell)
+nsSHEntry::ChildShellAt(PRInt32 aIndex, nsIDocShellTreeItem **aShell)
 {
   NS_IF_ADDREF(*aShell = mShared->mChildShells.SafeObjectAt(aIndex));
   return NS_OK;
@@ -722,7 +746,7 @@ nsSHEntry::SetEditorData(nsDocShellEditorData* aData)
 bool
 nsSHEntry::HasDetachedEditor()
 {
-  return mShared->mEditorData != nullptr;
+  return mShared->mEditorData != nsnull;
 }
 
 NS_IMETHODIMP
@@ -750,8 +774,8 @@ nsSHEntry::IsDynamicallyAdded(bool* aAdded)
 NS_IMETHODIMP
 nsSHEntry::HasDynamicallyAddedChild(bool* aAdded)
 {
-  *aAdded = false;
-  for (int32_t i = 0; i < mChildren.Count(); ++i) {
+  *aAdded = PR_FALSE;
+  for (PRInt32 i = 0; i < mChildren.Count(); ++i) {
     nsISHEntry* entry = mChildren[i];
     if (entry) {
       entry->IsDynamicallyAdded(aAdded);
@@ -764,14 +788,14 @@ nsSHEntry::HasDynamicallyAddedChild(bool* aAdded)
 }
 
 NS_IMETHODIMP
-nsSHEntry::GetDocshellID(uint64_t* aID)
+nsSHEntry::GetDocshellID(PRUint64* aID)
 {
   *aID = mShared->mDocShellID;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsSHEntry::SetDocshellID(uint64_t aID)
+nsSHEntry::SetDocshellID(PRUint64 aID)
 {
   mShared->mDocShellID = aID;
   return NS_OK;
@@ -779,14 +803,14 @@ nsSHEntry::SetDocshellID(uint64_t aID)
 
 
 NS_IMETHODIMP
-nsSHEntry::GetLastTouched(uint32_t *aLastTouched)
+nsSHEntry::GetLastTouched(PRUint32 *aLastTouched)
 {
   *aLastTouched = mShared->mLastTouched;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsSHEntry::SetLastTouched(uint32_t aLastTouched)
+nsSHEntry::SetLastTouched(PRUint32 aLastTouched)
 {
   mShared->mLastTouched = aLastTouched;
   return NS_OK;

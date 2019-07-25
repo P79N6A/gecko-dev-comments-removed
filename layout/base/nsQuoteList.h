@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsQuoteList_h___
 #define nsQuoteList_h___
 
@@ -15,9 +47,9 @@ struct nsQuoteNode : public nsGenConNode {
   const nsStyleContentType mType;
 
   
-  int32_t mDepthBefore;
+  PRInt32 mDepthBefore;
 
-  nsQuoteNode(nsStyleContentType& aType, uint32_t aContentIndex)
+  nsQuoteNode(nsStyleContentType& aType, PRUint32 aContentIndex)
     : nsGenConNode(aContentIndex)
     , mType(aType)
     , mDepthBefore(0)
@@ -53,12 +85,12 @@ struct nsQuoteNode : public nsGenConNode {
   
   
   
-  int32_t Depth() {
+  PRInt32 Depth() {
     return IsOpenQuote() ? mDepthBefore : mDepthBefore - 1;
   }
 
   
-  int32_t DepthAfter() {
+  PRInt32 DepthAfter() {
     return IsOpenQuote() ? mDepthBefore + 1
                          : (mDepthBefore == 0 ? 0 : mDepthBefore - 1);
   }

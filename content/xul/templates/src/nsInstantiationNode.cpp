@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsInstantiationNode.h"
 #include "nsTemplateRule.h"
 #include "nsXULTemplateQueryProcessorRDF.h"
@@ -42,7 +76,7 @@ nsInstantiationNode::Propagate(InstantiationSet& aInstantiations,
     
     nsresult rv = NS_OK;
 
-    aTakenInstantiations = false;
+    aTakenInstantiations = PR_FALSE;
 
     if (aIsUpdate) {
         
@@ -80,7 +114,7 @@ nsInstantiationNode::Propagate(InstantiationSet& aInstantiations,
     else {
         nsresult rv = mQuery->SetCachedResults(mProcessor, aInstantiations);
         if (NS_SUCCEEDED(rv))
-            aTakenInstantiations = true;
+            aTakenInstantiations = PR_TRUE;
     }
 
     return rv;

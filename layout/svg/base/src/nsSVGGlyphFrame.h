@@ -3,30 +3,56 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGGLYPHFRAME_H__
 #define __NS_SVGGLYPHFRAME_H__
 
-#include "gfxFont.h"
+#include "nsSVGGeometryFrame.h"
 #include "nsISVGGlyphFragmentNode.h"
 #include "nsISVGChildFrame.h"
-#include "nsSVGGeometryFrame.h"
-#include "nsSVGUtils.h"
+#include "gfxContext.h"
+#include "gfxFont.h"
+#include "gfxRect.h"
+#include "gfxMatrix.h"
 #include "nsTextFragment.h"
-#include "gfxSVGGlyphs.h"
 
-class CharacterIterator;
-class gfxContext;
-class nsDisplaySVGGlyphs;
-class nsIDOMSVGRect;
-class nsRenderingContext;
-class nsSVGGlyphFrame;
 class nsSVGTextFrame;
 class nsSVGTextPathFrame;
-class gfxTextObjectPaint;
-
+class nsSVGGlyphFrame;
+class CharacterIterator;
 struct CharacterPosition;
-
-typedef gfxFont::DrawMode DrawMode;
 
 typedef nsSVGGeometryFrame nsSVGGlyphFrameBase;
 
@@ -34,20 +60,17 @@ class nsSVGGlyphFrame : public nsSVGGlyphFrameBase,
                         public nsISVGGlyphFragmentNode,
                         public nsISVGChildFrame
 {
-  class AutoCanvasTMForMarker;
-  friend class AutoCanvasTMForMarker;
-  friend class CharacterIterator;
   friend nsIFrame*
   NS_NewSVGGlyphFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 protected:
   nsSVGGlyphFrame(nsStyleContext* aContext)
     : nsSVGGlyphFrameBase(aContext),
-      mTextRun(nullptr),
+      mTextRun(nsnull),
       mStartIndex(0),
-      mGetCanvasTMForFlag(nsISVGChildFrame::FOR_OUTERSVG_TM),
-      mCompressWhitespace(true),
-      mTrimLeadingWhitespace(false),
-      mTrimTrailingWhitespace(false)
+      mCompressWhitespace(PR_TRUE),
+      mTrimLeadingWhitespace(PR_FALSE),
+      mTrimTrailingWhitespace(PR_FALSE),
+      mPropagateTransform(PR_TRUE)
       {}
   ~nsSVGGlyphFrame()
   {
@@ -59,10 +82,10 @@ public:
   NS_DECL_FRAMEARENA_HELPERS
 
   
-  nsresult GetStartPositionOfChar(uint32_t charnum, nsIDOMSVGPoint **_retval);
-  nsresult GetEndPositionOfChar(uint32_t charnum, nsIDOMSVGPoint **_retval);
-  nsresult GetExtentOfChar(uint32_t charnum, nsIDOMSVGRect **_retval);
-  nsresult GetRotationOfChar(uint32_t charnum, float *_retval);
+  nsresult GetStartPositionOfChar(PRUint32 charnum, nsIDOMSVGPoint **_retval);
+  nsresult GetEndPositionOfChar(PRUint32 charnum, nsIDOMSVGPoint **_retval);
+  nsresult GetExtentOfChar(PRUint32 charnum, nsIDOMSVGRect **_retval);
+  nsresult GetRotationOfChar(PRUint32 charnum, float *_retval);
   
 
 
@@ -74,42 +97,36 @@ public:
   bool IsStartOfChunk(); 
 
   void GetXY(mozilla::SVGUserUnitList *aX, mozilla::SVGUserUnitList *aY);
-  void SetStartIndex(uint32_t aStartIndex);
+  void SetStartIndex(PRUint32 aStartIndex);
   
 
 
 
-  void GetEffectiveXY(int32_t strLength,
+  void GetEffectiveXY(PRInt32 strLength,
                       nsTArray<float> &aX, nsTArray<float> &aY);
   
 
 
 
-  void GetEffectiveDxDy(int32_t strLength, 
+  void GetEffectiveDxDy(PRInt32 strLength, 
                         nsTArray<float> &aDx,
                         nsTArray<float> &aDy);
   
 
 
 
-  void GetEffectiveRotate(int32_t strLength,
+  void GetEffectiveRotate(PRInt32 strLength,
                           nsTArray<float> &aRotate);
-  uint16_t GetTextAnchor();
+  PRUint16 GetTextAnchor();
   bool IsAbsolutelyPositioned();
   bool IsTextEmpty() const {
     return mContent->GetText()->GetLength() == 0;
   }
   void SetTrimLeadingWhitespace(bool aTrimLeadingWhitespace) {
-    if (mTrimLeadingWhitespace != aTrimLeadingWhitespace) {
-      mTrimLeadingWhitespace = aTrimLeadingWhitespace;
-      ClearTextRun();
-    }
+    mTrimLeadingWhitespace = aTrimLeadingWhitespace;
   }
   void SetTrimTrailingWhitespace(bool aTrimTrailingWhitespace) {
-    if (mTrimTrailingWhitespace != aTrimTrailingWhitespace) {
-      mTrimTrailingWhitespace = aTrimTrailingWhitespace;
-      ClearTextRun();
-    }
+    mTrimTrailingWhitespace = aTrimTrailingWhitespace;
   }
   bool EndsWithWhitespace() const;
   bool IsAllWhitespace() const;
@@ -119,7 +136,10 @@ public:
 
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);
 
-  NS_IMETHOD  IsSelectable(bool* aIsSelectable, uint8_t* aSelectStyle) const;
+  virtual void SetSelected(bool          aSelected,
+                           SelectionType aType);
+  NS_IMETHOD  GetSelected(bool *aSelected) const;
+  NS_IMETHOD  IsSelectable(bool* aIsSelectable, PRUint8* aSelectStyle) const;
 
   NS_IMETHOD Init(nsIContent*      aContent,
                   nsIFrame*        aParent,
@@ -132,7 +152,7 @@ public:
 
   virtual nsIAtom* GetType() const;
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     
     
@@ -147,71 +167,46 @@ public:
   }
 #endif
 
-  NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                              const nsRect&           aDirtyRect,
-                              const nsDisplayListSet& aLists);
-
   
   
-  NS_IMETHOD PaintSVG(nsRenderingContext *aContext,
+  NS_IMETHOD PaintSVG(nsSVGRenderState *aContext,
                       const nsIntRect *aDirtyRect);
   NS_IMETHOD_(nsIFrame*) GetFrameForPoint(const nsPoint &aPoint);
-  virtual SVGBBox GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
-                                      uint32_t aFlags);
+  NS_IMETHOD UpdateCoveredRegion();
+  virtual gfxRect GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
+                                      PRUint32 aFlags);
 
   NS_IMETHOD_(nsRect) GetCoveredRegion();
-  virtual void ReflowSVG();
-  virtual void NotifySVGChanged(uint32_t aFlags);
+  NS_IMETHOD InitialUpdate();
+  virtual void NotifySVGChanged(PRUint32 aFlags);
+  NS_IMETHOD NotifyRedrawSuspended();
+  NS_IMETHOD NotifyRedrawUnsuspended();
   NS_IMETHOD_(bool) IsDisplayContainer() { return false; }
+  NS_IMETHOD_(bool) HasValidCoveredRect() { return true; }
 
   
-  gfxMatrix GetCanvasTM(uint32_t aFor);
+  gfxMatrix GetCanvasTM();
 
   
   
-  virtual uint32_t GetNumberOfChars();
+  virtual PRUint32 GetNumberOfChars();
   virtual float GetComputedTextLength();
-  virtual float GetSubStringLength(uint32_t charnum, uint32_t fragmentChars);
-  virtual int32_t GetCharNumAtPosition(nsIDOMSVGPoint *point);
+  virtual float GetSubStringLength(PRUint32 charnum, PRUint32 fragmentChars);
+  virtual PRInt32 GetCharNumAtPosition(nsIDOMSVGPoint *point);
   NS_IMETHOD_(nsSVGGlyphFrame *) GetFirstGlyphFrame();
   NS_IMETHOD_(nsSVGGlyphFrame *) GetNextGlyphFrame();
   NS_IMETHOD_(void) SetWhitespaceCompression(bool aCompressWhitespace) {
-    if (mCompressWhitespace != aCompressWhitespace) {
-      mCompressWhitespace = aCompressWhitespace;
-      ClearTextRun();
-    }
+    mCompressWhitespace = aCompressWhitespace;
   }
 
-private:
-
-  
-
-
-
-
-  class AutoCanvasTMForMarker {
-  public:
-    AutoCanvasTMForMarker(nsSVGGlyphFrame *aFrame, uint32_t aFor)
-      : mFrame(aFrame)
-    {
-      mOldFor = mFrame->mGetCanvasTMForFlag;
-      mFrame->mGetCanvasTMForFlag = aFor;
-    }
-    ~AutoCanvasTMForMarker()
-    {
-      
-      mFrame->mGetCanvasTMForFlag = mOldFor;
-    }
-  private:
-    nsSVGGlyphFrame *mFrame;
-    uint32_t mOldFor;
-  };
+protected:
+  friend class CharacterIterator;
 
   
   
   
   
-  static uint32_t GetTextRunUnitsFactor() { return 64; }
+  static PRUint32 GetTextRunUnitsFactor() { return 64; }
   
   
 
@@ -229,22 +224,21 @@ private:
   bool GetCharacterData(nsAString & aCharacterData);
   bool GetCharacterPositions(nsTArray<CharacterPosition>* aCharacterPositions,
                                float aMetricsScale);
-  uint32_t GetTextRunFlags(uint32_t strLength);
+  PRUint32 GetTextRunFlags(PRUint32 strLength);
 
   void AddCharactersToPath(CharacterIterator *aIter,
                            gfxContext *aContext);
   void AddBoundingBoxesToPath(CharacterIterator *aIter,
                               gfxContext *aContext);
-  void DrawCharacters(CharacterIterator *aIter,
-                      gfxContext *aContext,
-                      DrawMode aDrawMode,
-                      gfxTextObjectPaint *aObjectPaint = nullptr);
+  void FillCharacters(CharacterIterator *aIter,
+                      gfxContext *aContext);
 
   void NotifyGlyphMetricsChange();
-  void SetupGlobalTransform(gfxContext *aContext, uint32_t aFor);
-  nsresult GetHighlight(uint32_t *charnum, uint32_t *nchars,
+  bool GetGlobalTransform(gfxMatrix *aMatrix);
+  void SetupGlobalTransform(gfxContext *aContext);
+  nsresult GetHighlight(PRUint32 *charnum, PRUint32 *nchars,
                         nscolor *foreground, nscolor *background);
-  float GetSubStringAdvance(uint32_t charnum, uint32_t fragmentChars,
+  float GetSubStringAdvance(PRUint32 charnum, PRUint32 fragmentChars,
                             float aMetricsScale);
   gfxFloat GetBaselineOffset(float aMetricsScale);
 
@@ -259,122 +253,11 @@ private:
   gfxTextRun *mTextRun;
   gfxPoint mPosition;
   
-  uint32_t mStartIndex;
-  uint32_t mGetCanvasTMForFlag;
+  PRUint32 mStartIndex;
   bool mCompressWhitespace;
   bool mTrimLeadingWhitespace;
   bool mTrimTrailingWhitespace;
-
-private:
-  DrawMode SetupCairoState(gfxContext *aContext,
-                           gfxTextObjectPaint *aOuterObjectPaint,
-                           gfxTextObjectPaint **aThisObjectPaint);
-
-  
-  struct SVGTextObjectPaint : public gfxTextObjectPaint {
-    already_AddRefed<gfxPattern> GetFillPattern(float opacity);
-    already_AddRefed<gfxPattern> GetStrokePattern(float opacity);
-
-    void SetFillOpacity(float aOpacity) { mFillOpacity = aOpacity; }
-    float GetFillOpacity() { return mFillOpacity; }
-
-    void SetStrokeOpacity(float aOpacity) { mStrokeOpacity = aOpacity; }
-    float GetStrokeOpacity() { return mStrokeOpacity; }
-
-    struct Paint {
-      Paint() {
-        mPatternCache.Init();
-      }
-
-      void SetPaintServer(nsIFrame *aFrame, const gfxMatrix& aContextMatrix,
-                          nsSVGPaintServerFrame *aPaintServerFrame) {
-        mPaintType = eStyleSVGPaintType_Server;
-        mPaintDefinition.mPaintServerFrame = aPaintServerFrame;
-        mFrame = aFrame;
-        mContextMatrix = aContextMatrix;
-      }
-
-      void SetColor(const nscolor &aColor) {
-        mPaintType = eStyleSVGPaintType_Color;
-        mPaintDefinition.mColor = aColor;
-      }
-
-      void SetObjectPaint(gfxTextObjectPaint *aObjectPaint,
-                          nsStyleSVGPaintType aPaintType) {
-        NS_ASSERTION(aPaintType == eStyleSVGPaintType_ObjectFill ||
-                     aPaintType == eStyleSVGPaintType_ObjectStroke,
-                     "Invalid object paint type");
-        mPaintType = aPaintType;
-        mPaintDefinition.mObjectPaint = aObjectPaint;
-      }
-
-      union {
-        nsSVGPaintServerFrame *mPaintServerFrame;
-        gfxTextObjectPaint *mObjectPaint;
-        nscolor mColor;
-      } mPaintDefinition;
-
-      nsIFrame *mFrame;
-      gfxMatrix mContextMatrix;
-      nsStyleSVGPaintType mPaintType;
-
-      gfxMatrix mPatternMatrix;
-      nsRefPtrHashtable<nsFloatHashKey, gfxPattern> mPatternCache;
-
-      already_AddRefed<gfxPattern> GetPattern(float aOpacity,
-                                              nsStyleSVGPaint nsStyleSVG::*aFillOrStroke);
-    };
-
-    Paint mFillPaint;
-    Paint mStrokePaint;
-
-    float mFillOpacity;
-    float mStrokeOpacity;
-  };
-
-  
-
-
-
-  bool SetupCairoStroke(gfxContext *aContext,
-                        gfxTextObjectPaint *aOuterObjectPaint,
-                        SVGTextObjectPaint *aThisObjectPaint);
-
-  
-
-
-
-  bool SetupCairoFill(gfxContext *aContext,
-                      gfxTextObjectPaint *aOuterObjectPaint,
-                      SVGTextObjectPaint *aThisObjectPaint);
-
-  
-
-
-
-
-  bool SetupObjectPaint(gfxContext *aContext,
-                        nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
-                        float& aOpacity,
-                        gfxTextObjectPaint *aObjectPaint);
-
-  
-
-
-
-
-
-
-
-
-
-  void SetupInheritablePaint(gfxContext *aContext,
-                             float& aOpacity,
-                             gfxTextObjectPaint *aOuterObjectPaint,
-                             SVGTextObjectPaint::Paint& aTargetPaint,
-                             nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
-                             const FramePropertyDescriptor *aProperty);
-
+  bool mPropagateTransform;
 };
 
 #endif

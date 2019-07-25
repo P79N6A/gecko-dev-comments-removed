@@ -3,7 +3,37 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsSVGStylableElement.h"
 #include "nsGkAtoms.h"
@@ -11,10 +41,8 @@
 #include "nsIDOMSVGURIReference.h"
 #include "nsIFrame.h"
 #include "nsSVGTextPathElement.h"
-#include "nsError.h"
+#include "nsDOMError.h"
 #include "nsContentUtils.h"
-
-using namespace mozilla;
 
 nsSVGElement::LengthInfo nsSVGTextPathElement::sLengthInfo[1] =
 {
@@ -24,13 +52,13 @@ nsSVGElement::LengthInfo nsSVGTextPathElement::sLengthInfo[1] =
 nsSVGEnumMapping nsSVGTextPathElement::sMethodMap[] = {
   {&nsGkAtoms::align, nsIDOMSVGTextPathElement::TEXTPATH_METHODTYPE_ALIGN},
   {&nsGkAtoms::stretch, nsIDOMSVGTextPathElement::TEXTPATH_METHODTYPE_STRETCH},
-  {nullptr, 0}
+  {nsnull, 0}
 };
 
 nsSVGEnumMapping nsSVGTextPathElement::sSpacingMap[] = {
   {&nsGkAtoms::_auto, nsIDOMSVGTextPathElement::TEXTPATH_SPACINGTYPE_AUTO},
   {&nsGkAtoms::exact, nsIDOMSVGTextPathElement::TEXTPATH_SPACINGTYPE_EXACT},
-  {nullptr, 0}
+  {nsnull, 0}
 };
 
 nsSVGElement::EnumInfo nsSVGTextPathElement::sEnumInfo[2] =
@@ -47,7 +75,7 @@ nsSVGElement::EnumInfo nsSVGTextPathElement::sEnumInfo[2] =
 
 nsSVGElement::StringInfo nsSVGTextPathElement::sStringInfo[1] =
 {
-  { &nsGkAtoms::href, kNameSpaceID_XLink, true }
+  { &nsGkAtoms::href, kNameSpaceID_XLink, PR_TRUE }
 };
 
 NS_IMPL_NS_NEW_SVG_ELEMENT(TextPath)
@@ -61,10 +89,9 @@ NS_IMPL_RELEASE_INHERITED(nsSVGTextPathElement,nsSVGTextPathElementBase)
 DOMCI_NODE_DATA(SVGTextPathElement, nsSVGTextPathElement)
 
 NS_INTERFACE_TABLE_HEAD(nsSVGTextPathElement)
-  NS_NODE_INTERFACE_TABLE7(nsSVGTextPathElement, nsIDOMNode, nsIDOMElement,
+  NS_NODE_INTERFACE_TABLE6(nsSVGTextPathElement, nsIDOMNode, nsIDOMElement,
                            nsIDOMSVGElement, nsIDOMSVGTextPathElement,
-                           nsIDOMSVGTextContentElement, nsIDOMSVGTests,
-                           nsIDOMSVGURIReference)
+                           nsIDOMSVGTextContentElement, nsIDOMSVGURIReference)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(SVGTextPathElement)
 NS_INTERFACE_MAP_END_INHERITING(nsSVGTextPathElementBase)
 
@@ -124,7 +151,7 @@ nsSVGTextPathElement::IsAttributeMapped(const nsIAtom* name) const
     sTextContentElementsMap
   };
   
-  return FindAttributeDependence(name, map) ||
+  return FindAttributeDependence(name, map, NS_ARRAY_LENGTH(map)) ||
     nsSVGTextPathElementBase::IsAttributeMapped(name);
 }
 
@@ -141,19 +168,19 @@ nsSVGElement::LengthAttributesInfo
 nsSVGTextPathElement::GetLengthInfo()
 {
   return LengthAttributesInfo(mLengthAttributes, sLengthInfo,
-                              ArrayLength(sLengthInfo));
+                              NS_ARRAY_LENGTH(sLengthInfo));
 }
 
 nsSVGElement::EnumAttributesInfo
 nsSVGTextPathElement::GetEnumInfo()
 {
   return EnumAttributesInfo(mEnumAttributes, sEnumInfo,
-                            ArrayLength(sEnumInfo));
+                            NS_ARRAY_LENGTH(sEnumInfo));
 }
 
 nsSVGElement::StringAttributesInfo
 nsSVGTextPathElement::GetStringInfo()
 {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              ArrayLength(sStringInfo));
+                              NS_ARRAY_LENGTH(sStringInfo));
 }

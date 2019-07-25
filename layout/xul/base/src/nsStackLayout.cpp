@@ -10,6 +10,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsStackLayout.h"
 #include "nsCOMPtr.h"
 #include "nsBoxLayoutState.h"
@@ -19,9 +52,7 @@
 #include "nsIContent.h"
 #include "nsINameSpaceManager.h"
 
-using namespace mozilla;
-
-nsBoxLayout* nsStackLayout::gInstance = nullptr;
+nsBoxLayout* nsStackLayout::gInstance = nsnull;
 
 #define SPECIFIED_LEFT (1 << NS_SIDE_LEFT)
 #define SPECIFIED_RIGHT (1 << NS_SIDE_RIGHT)
@@ -59,11 +90,11 @@ nsStackLayout::nsStackLayout()
 
 
 nsSize
-nsStackLayout::GetPrefSize(nsIFrame* aBox, nsBoxLayoutState& aState)
+nsStackLayout::GetPrefSize(nsIBox* aBox, nsBoxLayoutState& aState)
 {
   nsSize prefSize (0, 0);
 
-  nsIFrame* child = aBox->GetChildBox();
+  nsIBox* child = aBox->GetChildBox();
   while (child) {
     if (child->GetStyleXUL()->mStretchStack) {
       nsSize pref = child->GetPrefSize(aState);
@@ -85,11 +116,11 @@ nsStackLayout::GetPrefSize(nsIFrame* aBox, nsBoxLayoutState& aState)
 }
 
 nsSize
-nsStackLayout::GetMinSize(nsIFrame* aBox, nsBoxLayoutState& aState)
+nsStackLayout::GetMinSize(nsIBox* aBox, nsBoxLayoutState& aState)
 {
   nsSize minSize (0, 0);
 
-  nsIFrame* child = aBox->GetChildBox();
+  nsIBox* child = aBox->GetChildBox();
   while (child) {
     if (child->GetStyleXUL()->mStretchStack) {
       nsSize min = child->GetMinSize(aState);
@@ -111,11 +142,11 @@ nsStackLayout::GetMinSize(nsIFrame* aBox, nsBoxLayoutState& aState)
 }
 
 nsSize
-nsStackLayout::GetMaxSize(nsIFrame* aBox, nsBoxLayoutState& aState)
+nsStackLayout::GetMaxSize(nsIBox* aBox, nsBoxLayoutState& aState)
 {
   nsSize maxSize (NS_INTRINSICSIZE, NS_INTRINSICSIZE);
 
-  nsIFrame* child = aBox->GetChildBox();
+  nsIBox* child = aBox->GetChildBox();
   while (child) {
     if (child->GetStyleXUL()->mStretchStack) {
       nsSize min = child->GetMinSize(aState);
@@ -141,11 +172,11 @@ nsStackLayout::GetMaxSize(nsIFrame* aBox, nsBoxLayoutState& aState)
 
 
 nscoord
-nsStackLayout::GetAscent(nsIFrame* aBox, nsBoxLayoutState& aState)
+nsStackLayout::GetAscent(nsIBox* aBox, nsBoxLayoutState& aState)
 {
   nscoord vAscent = 0;
 
-  nsIFrame* child = aBox->GetChildBox();
+  nsIBox* child = aBox->GetChildBox();
   while (child) {  
     nscoord ascent = child->GetBoxAscent(aState);
     nsMargin margin;
@@ -160,8 +191,8 @@ nsStackLayout::GetAscent(nsIFrame* aBox, nsBoxLayoutState& aState)
   return vAscent;
 }
 
-uint8_t
-nsStackLayout::GetOffset(nsBoxLayoutState& aState, nsIFrame* aChild, nsMargin& aOffset)
+PRUint8
+nsStackLayout::GetOffset(nsBoxLayoutState& aState, nsIBox* aChild, nsMargin& aOffset)
 {
   aOffset = nsMargin(0, 0, 0, 0);
 
@@ -173,12 +204,12 @@ nsStackLayout::GetOffset(nsBoxLayoutState& aState, nsIFrame* aChild, nsMargin& a
       (aChild->GetStateBits() & NS_STATE_STACK_NOT_POSITIONED))
     return 0;
 
-  uint8_t offsetSpecified = 0;
+  PRUint8 offsetSpecified = 0;
   nsIContent* content = aChild->GetContent();
   if (content) {
     bool ltr = aChild->GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_LTR;
     nsAutoString value;
-    nsresult error;
+    PRInt32 error;
 
     content->GetAttr(kNameSpaceID_None, nsGkAtoms::start, value);
     if (!value.IsEmpty()) {
@@ -252,7 +283,7 @@ nsStackLayout::GetOffset(nsBoxLayoutState& aState, nsIFrame* aChild, nsMargin& a
 
 
 NS_IMETHODIMP
-nsStackLayout::Layout(nsIFrame* aBox, nsBoxLayoutState& aState)
+nsStackLayout::Layout(nsIBox* aBox, nsBoxLayoutState& aState)
 {
   nsRect clientRect;
   aBox->GetClientRect(clientRect);
@@ -260,8 +291,8 @@ nsStackLayout::Layout(nsIFrame* aBox, nsBoxLayoutState& aState)
   bool grow;
 
   do {
-    nsIFrame* child = aBox->GetChildBox();
-    grow = false;
+    nsIBox* child = aBox->GetChildBox();
+    grow = PR_FALSE;
 
     while (child) 
     {  
@@ -287,7 +318,7 @@ nsStackLayout::Layout(nsIFrame* aBox, nsBoxLayoutState& aState)
 
           
           nsMargin offset;
-          uint8_t offsetSpecified = GetOffset(aState, child, offset);
+          PRUint8 offsetSpecified = GetOffset(aState, child, offset);
 
           
           
@@ -304,7 +335,7 @@ nsStackLayout::Layout(nsIFrame* aBox, nsBoxLayoutState& aState)
                 nsSize min = child->GetMinSize(aState);
                 nsSize max = child->GetMaxSize(aState);
                 nscoord width = clientRect.width - offset.LeftRight() - margin.LeftRight();
-                childRect.width = clamped(width, min.width, max.width);
+                childRect.width = NS_MAX(min.width, NS_MIN(max.width, width));
               }
               else {
                 childRect.width = child->GetPrefSize(aState).width;
@@ -321,7 +352,7 @@ nsStackLayout::Layout(nsIFrame* aBox, nsBoxLayoutState& aState)
                 nsSize min = child->GetMinSize(aState);
                 nsSize max = child->GetMaxSize(aState);
                 nscoord height = clientRect.height - offset.TopBottom() - margin.TopBottom();
-                childRect.height = clamped(height, min.height, max.height);
+                childRect.height = NS_MAX(min.height, NS_MIN(max.height, height));
               }
               else {
                 childRect.height = child->GetPrefSize(aState).height;
@@ -348,12 +379,12 @@ nsStackLayout::Layout(nsIFrame* aBox, nsBoxLayoutState& aState)
             
             if (offset.LeftRight() + childRect.width > clientRect.width) {
               clientRect.width = childRect.width + offset.LeftRight();
-              grow = true;
+              grow = PR_TRUE;
             }
 
             if (offset.TopBottom() + childRect.height > clientRect.height) {
               clientRect.height = childRect.height + offset.TopBottom();
-              grow = true;
+              grow = PR_TRUE;
             }
           }
 

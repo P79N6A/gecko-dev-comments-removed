@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsOfflineCacheUpdateChild_h
 #define nsOfflineCacheUpdateChild_h
 
@@ -23,15 +56,14 @@ namespace mozilla {
 namespace docshell {
 
 class OfflineCacheUpdateChild : public nsIOfflineCacheUpdate
-                              , public POfflineCacheUpdateChild
+                                , public POfflineCacheUpdateChild
 {
 public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIOFFLINECACHEUPDATE
 
     virtual bool
-    RecvNotifyStateEvent(const uint32_t& stateEvent,
-                         const uint64_t& byteProgress);
+    RecvNotifyStateEvent(const PRUint32& stateEvent);
 
     virtual bool
     RecvAssociateDocuments(
@@ -50,7 +82,7 @@ public:
 private:
     nsresult AssociateDocument(nsIDOMDocument *aDocument,
                                nsIApplicationCache *aApplicationCache);
-    void GatherObservers(nsCOMArray<nsIOfflineCacheUpdateObserver> &aObservers);
+    nsresult GatherObservers(nsCOMArray<nsIOfflineCacheUpdateObserver> &aObservers);
     nsresult Finish();
 
     void RefcountHitZero();
@@ -86,8 +118,6 @@ private:
     
 
     nsCOMPtr<nsIDOMWindow> mWindow;
-
-    uint64_t mByteProgress;
 };
 
 }

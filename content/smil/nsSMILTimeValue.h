@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_SMILTIMEVALUE_H_
 #define NS_SMILTIMEVALUE_H_
 
@@ -102,7 +134,7 @@ public:
     mMilliseconds = aMillis;
   }
 
-  int8_t CompareTo(const nsSMILTimeValue& aOther) const;
+  PRInt8 CompareTo(const nsSMILTimeValue& aOther) const;
 
   bool operator==(const nsSMILTimeValue& aOther) const
   { return CompareTo(aOther) == 0; }

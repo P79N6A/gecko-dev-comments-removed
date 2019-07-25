@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <stdlib.h>
 #include <stdio.h>
 #include "nsIPipe.h"
@@ -24,22 +56,22 @@ static bool test_consume_stream() {
              getter_AddRefs(output),
              10, PR_UINT32_MAX);
   if (!input || !output)
-    return false;
+    return PR_FALSE;
 
-  uint32_t n = 0;
+  PRUint32 n = 0;
   output->Write(kData, sizeof(kData) - 1, &n);
   if (n != (sizeof(kData) - 1))
-    return false;
-  output = nullptr;  
+    return PR_FALSE;
+  output = nsnull;  
 
   nsCString buf;
   if (NS_FAILED(NS_ConsumeStream(input, PR_UINT32_MAX, buf)))
-    return false;
+    return PR_FALSE;
 
   if (!buf.Equals(kData))
-    return false;
+    return PR_FALSE;
 
-  return true; 
+  return PR_TRUE; 
 }
 
 
@@ -52,7 +84,7 @@ static const struct Test {
   TestFunc    func;
 } tests[] = {
   DECL_TEST(test_consume_stream),
-  { nullptr, nullptr }
+  { nsnull, nsnull }
 };
 
 int main(int argc, char **argv) {
@@ -60,15 +92,15 @@ int main(int argc, char **argv) {
   if (argc > 1)
     count = atoi(argv[1]);
 
-  if (NS_FAILED(NS_InitXPCOM2(nullptr, nullptr, nullptr)))
+  if (NS_FAILED(NS_InitXPCOM2(nsnull, nsnull, nsnull)))
     return -1;
 
   while (count--) {
-    for (const Test* t = tests; t->name != nullptr; ++t) {
+    for (const Test* t = tests; t->name != nsnull; ++t) {
       printf("%25s : %s\n", t->name, t->func() ? "SUCCESS" : "FAILURE");
     }
   }
   
-  NS_ShutdownXPCOM(nullptr);
+  NS_ShutdownXPCOM(nsnull);
   return 0;
 }

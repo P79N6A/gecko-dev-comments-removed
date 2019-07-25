@@ -4,15 +4,47 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "SVGTransformListParser.h"
 #include "SVGTransform.h"
 #include "prdtoa.h"
-#include "nsError.h"
+#include "nsDOMError.h"
 #include "nsGkAtoms.h"
+#include "nsReadableUtils.h"
 #include "nsCRT.h"
-#include "nsDOMClassInfoID.h"
+#include "nsContentUtils.h"
+#include "nsIDOMClassInfo.h"
 #include "nsIAtom.h"
 
 using namespace mozilla;
@@ -85,8 +117,8 @@ SVGTransformListParser::GetTransformToken(nsIAtom** aKeyAtom,
     char holdingChar = *delimiterStart;
     *delimiterStart = '\0';
 
-    uint32_t len;
-    if ((len = strlen(mTokenPos)) > 0) {
+    PRUint32 len;
+    if ((len = nsCRT::strlen(mTokenPos)) > 0) {
       *aKeyAtom = NS_NewAtom(Substring(mTokenPos, mTokenPos + len));
 
       if (aAdvancePos) {
@@ -111,7 +143,7 @@ SVGTransformListParser::MatchTransform()
 {
   nsCOMPtr<nsIAtom> keyatom;
 
-  nsresult rv = GetTransformToken(getter_AddRefs(keyatom), true);
+  nsresult rv = GetTransformToken(getter_AddRefs(keyatom), PR_TRUE);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -141,9 +173,9 @@ SVGTransformListParser::IsTokenTransformStarter()
 {
   nsCOMPtr<nsIAtom> keyatom;
 
-  nsresult rv = GetTransformToken(getter_AddRefs(keyatom), false);
+  nsresult rv = GetTransformToken(getter_AddRefs(keyatom), PR_FALSE);
   if (NS_FAILED(rv)) {
-    return false;
+    return PR_FALSE;
   }
 
   if (keyatom == nsGkAtoms::translate ||
@@ -152,16 +184,16 @@ SVGTransformListParser::IsTokenTransformStarter()
       keyatom == nsGkAtoms::skewX     ||
       keyatom == nsGkAtoms::skewY     ||
       keyatom == nsGkAtoms::matrix) {
-    return true;
+    return PR_TRUE;
   }
 
-  return false;
+  return PR_FALSE;
 }
 
 nsresult
 SVGTransformListParser::MatchNumberArguments(float *aResult,
-                                             uint32_t aMaxNum,
-                                             uint32_t *aParsedNum)
+                                             PRUint32 aMaxNum,
+                                             PRUint32 *aParsedNum)
 {
   *aParsedNum = 0;
 
@@ -201,9 +233,9 @@ SVGTransformListParser::MatchTranslate()
   GetNextToken();
 
   float t[2];
-  uint32_t count;
+  PRUint32 count;
 
-  ENSURE_MATCHED(MatchNumberArguments(t, ArrayLength(t), &count));
+  ENSURE_MATCHED(MatchNumberArguments(t, NS_ARRAY_LENGTH(t), &count));
 
   switch (count) {
     case 1:
@@ -230,9 +262,9 @@ SVGTransformListParser::MatchScale()
   GetNextToken();
 
   float s[2];
-  uint32_t count;
+  PRUint32 count;
 
-  ENSURE_MATCHED(MatchNumberArguments(s, ArrayLength(s), &count));
+  ENSURE_MATCHED(MatchNumberArguments(s, NS_ARRAY_LENGTH(s), &count));
 
   switch (count) {
     case 1:
@@ -259,9 +291,9 @@ SVGTransformListParser::MatchRotate()
   GetNextToken();
 
   float r[3];
-  uint32_t count;
+  PRUint32 count;
 
-  ENSURE_MATCHED(MatchNumberArguments(r, ArrayLength(r), &count));
+  ENSURE_MATCHED(MatchNumberArguments(r, NS_ARRAY_LENGTH(r), &count));
 
   switch (count) {
     case 1:
@@ -288,7 +320,7 @@ SVGTransformListParser::MatchSkewX()
   GetNextToken();
 
   float skew;
-  uint32_t count;
+  PRUint32 count;
 
   ENSURE_MATCHED(MatchNumberArguments(&skew, 1, &count));
 
@@ -310,7 +342,7 @@ SVGTransformListParser::MatchSkewY()
   GetNextToken();
 
   float skew;
-  uint32_t count;
+  PRUint32 count;
 
   ENSURE_MATCHED(MatchNumberArguments(&skew, 1, &count));
 
@@ -332,9 +364,9 @@ SVGTransformListParser::MatchMatrix()
   GetNextToken();
 
   float m[6];
-  uint32_t count;
+  PRUint32 count;
 
-  ENSURE_MATCHED(MatchNumberArguments(m, ArrayLength(m), &count));
+  ENSURE_MATCHED(MatchNumberArguments(m, NS_ARRAY_LENGTH(m), &count));
 
   if (count != 6) {
     return NS_ERROR_FAILURE;

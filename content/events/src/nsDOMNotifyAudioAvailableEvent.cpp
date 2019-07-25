@@ -4,24 +4,56 @@
 
 
 
-#include "nsError.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsDOMNotifyAudioAvailableEvent.h"
 #include "nsDOMClassInfoID.h" 
 #include "nsContentUtils.h" 
-#include "jsfriendapi.h"
+#include "jstypedarray.h"
 
 nsDOMNotifyAudioAvailableEvent::nsDOMNotifyAudioAvailableEvent(nsPresContext* aPresContext,
                                                                nsEvent* aEvent,
-                                                               uint32_t aEventType,
+                                                               PRUint32 aEventType,
                                                                float* aFrameBuffer,
-                                                               uint32_t aFrameBufferLength,
+                                                               PRUint32 aFrameBufferLength,
                                                                float aTime)
   : nsDOMEvent(aPresContext, aEvent),
     mFrameBuffer(aFrameBuffer),
     mFrameBufferLength(aFrameBufferLength),
     mTime(aTime),
-    mCachedArray(nullptr),
-    mAllowAudioData(false)
+    mCachedArray(nsnull),
+    mAllowAudioData(PR_FALSE)
 {
   MOZ_COUNT_CTOR(nsDOMNotifyAudioAvailableEvent);
   if (mEvent) {
@@ -39,7 +71,7 @@ NS_IMPL_RELEASE_INHERITED(nsDOMNotifyAudioAvailableEvent, nsDOMEvent)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsDOMNotifyAudioAvailableEvent, nsDOMEvent)
   if (tmp->mCachedArray) {
     NS_DROP_JS_OBJECTS(tmp, nsDOMNotifyAudioAvailableEvent);
-    tmp->mCachedArray = nullptr;
+    tmp->mCachedArray = nsnull;
   }
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
@@ -61,7 +93,7 @@ nsDOMNotifyAudioAvailableEvent::~nsDOMNotifyAudioAvailableEvent()
   MOZ_COUNT_DTOR(nsDOMNotifyAudioAvailableEvent);
   if (mCachedArray) {
     NS_DROP_JS_OBJECTS(this, nsDOMNotifyAudioAvailableEvent);
-    mCachedArray = nullptr;
+    mCachedArray = nsnull;
   }
 }
 
@@ -81,12 +113,15 @@ nsDOMNotifyAudioAvailableEvent::GetFrameBuffer(JSContext* aCx, jsval* aResult)
   
   NS_HOLD_JS_OBJECTS(this, nsDOMNotifyAudioAvailableEvent);
 
-  mCachedArray = JS_NewFloat32Array(aCx, mFrameBufferLength);
+  mCachedArray = js_CreateTypedArray(aCx, js::TypedArray::TYPE_FLOAT32, mFrameBufferLength);
   if (!mCachedArray) {
     NS_DROP_JS_OBJECTS(this, nsDOMNotifyAudioAvailableEvent);
+    NS_ERROR("Failed to get audio signal!");
     return NS_ERROR_FAILURE;
   }
-  memcpy(JS_GetFloat32ArrayData(mCachedArray, aCx), mFrameBuffer.get(), mFrameBufferLength * sizeof(float));
+
+  JSObject *tdest = js::TypedArray::getTypedArray(mCachedArray);
+  memcpy(JS_GetTypedArrayData(tdest), mFrameBuffer.get(), mFrameBufferLength * sizeof(float));
 
   *aResult = OBJECT_TO_JSVAL(mCachedArray);
   return NS_OK;
@@ -104,7 +139,7 @@ nsDOMNotifyAudioAvailableEvent::InitAudioAvailableEvent(const nsAString& aType,
                                                         bool aCanBubble,
                                                         bool aCancelable,
                                                         float* aFrameBuffer,
-                                                        uint32_t aFrameBufferLength,
+                                                        PRUint32 aFrameBufferLength,
                                                         float aTime,
                                                         bool aAllowAudioData)
 {
@@ -125,9 +160,9 @@ nsDOMNotifyAudioAvailableEvent::InitAudioAvailableEvent(const nsAString& aType,
 nsresult NS_NewDOMAudioAvailableEvent(nsIDOMEvent** aInstancePtrResult,
                                       nsPresContext* aPresContext,
                                       nsEvent *aEvent,
-                                      uint32_t aEventType,
+                                      PRUint32 aEventType,
                                       float* aFrameBuffer,
-                                      uint32_t aFrameBufferLength,
+                                      PRUint32 aFrameBufferLength,
                                       float aTime)
 {
   nsDOMNotifyAudioAvailableEvent* it =

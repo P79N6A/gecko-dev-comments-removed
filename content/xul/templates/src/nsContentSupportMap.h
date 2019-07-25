@@ -3,10 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsContentSupportMap_h__
 #define nsContentSupportMap_h__
 
-#include "prtypes.h"
 #include "pldhash.h"
 #include "nsFixedSizeAllocator.h"
 #include "nsTemplateMatch.h"
@@ -35,22 +67,22 @@ public:
             return NS_ERROR_OUT_OF_MEMORY;
 
         Entry* entry = reinterpret_cast<Entry*>(hdr);
-        NS_ASSERTION(entry->mMatch == nullptr, "over-writing entry");
+        NS_ASSERTION(entry->mMatch == nsnull, "over-writing entry");
         entry->mContent = aElement;
         entry->mMatch   = aMatch;
         return NS_OK; }
 
     bool Get(nsIContent* aElement, nsTemplateMatch** aMatch) {
         if (!mMap.ops)
-            return false;
+            return PR_FALSE;
 
         PLDHashEntryHdr* hdr = PL_DHashTableOperate(&mMap, aElement, PL_DHASH_LOOKUP);
         if (PL_DHASH_ENTRY_IS_FREE(hdr))
-            return false;
+            return PR_FALSE;
 
         Entry* entry = reinterpret_cast<Entry*>(hdr);
         *aMatch = entry->mMatch;
-        return true; }
+        return PR_TRUE; }
 
     nsresult Remove(nsIContent* aElement);
 

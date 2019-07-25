@@ -3,22 +3,51 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsEditorSpellCheck_h___
 #define nsEditorSpellCheck_h___
 
 
-#include "nsCOMPtr.h"                   
+#include "nsIEditorSpellCheck.h"
+#include "nsISpellChecker.h"
+#include "nsIURI.h"
+#include "nsWeakReference.h"
+#include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsIEditorSpellCheck.h"        
-#include "nsISupportsImpl.h"
-#include "nsString.h"                   
-#include "nsTArray.h"                   
-#include "nscore.h"                     
-#include "prtypes.h"                    
-
-class nsIEditor;
-class nsISpellChecker;
-class nsITextServicesFilter;
+#include "nsDataHashtable.h"
 
 #define NS_EDITORSPELLCHECK_CID                     \
 { /* {75656ad9-bd13-4c5d-939a-ec6351eea0cc} */        \
@@ -48,12 +77,12 @@ protected:
   nsCOMPtr<nsISpellChecker> mSpellChecker;
 
   nsTArray<nsString>  mSuggestedWordList;
-  int32_t        mSuggestedWordIndex;
+  PRInt32        mSuggestedWordIndex;
 
   
   
   nsTArray<nsString>  mDictionaryList;
-  int32_t        mDictionaryIndex;
+  PRInt32        mDictionaryIndex;
 
   nsresult       DeleteSuggestedWordList();
 
@@ -65,8 +94,8 @@ protected:
   bool mUpdateDictionaryRunning;
 
 public:
-  void BeginUpdateDictionary() { mUpdateDictionaryRunning = true ;}
-  void EndUpdateDictionary() { mUpdateDictionaryRunning = false ;}
+  void BeginUpdateDictionary() { mUpdateDictionaryRunning = PR_TRUE ;}
+  void EndUpdateDictionary() { mUpdateDictionaryRunning = PR_FALSE ;}
 };
 
 #endif 

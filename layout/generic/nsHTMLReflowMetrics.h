@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsHTMLReflowMetrics_h___
 #define nsHTMLReflowMetrics_h___
 
@@ -39,11 +71,11 @@ private:
   nsRect mRects[2];
 public:
   nsRect& Overflow(size_t aIndex) {
-    NS_ASSERTION(aIndex < 2, "index out of range");
+    NS_ASSERTION(0 <= aIndex && aIndex < 2, "index out of range");
     return mRects[aIndex];
   }
   const nsRect& Overflow(size_t aIndex) const {
-    NS_ASSERTION(aIndex < 2, "index out of range");
+    NS_ASSERTION(0 <= aIndex && aIndex < 2, "index out of range");
     return mRects[aIndex];
   }
 
@@ -200,7 +232,7 @@ struct nsHTMLReflowMetrics {
   nscoord width, height;    
   nscoord ascent;           
 
-  uint32_t mFlags;
+  PRUint32 mFlags;
 
   enum { ASK_FOR_BASELINE = nscoord_MAX };
 
@@ -247,7 +279,7 @@ struct nsHTMLReflowMetrics {
   
   
   
-  nsHTMLReflowMetrics(uint32_t aFlags = 0)
+  nsHTMLReflowMetrics(PRUint32 aFlags = 0)
     : width(0), height(0), ascent(ASK_FOR_BASELINE), mFlags(aFlags)
   {}
 };

@@ -11,6 +11,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsLocalFileOS2_H_
 #define _nsLocalFileOS2_H_
 
@@ -74,14 +108,14 @@ private:
 
     PRFileInfo64  mFileInfo64;
 
-    void MakeDirty() { mDirty = true; }
+    void MakeDirty() { mDirty = PR_TRUE; }
 
     nsresult Stat();
 
     nsresult CopyMove(nsIFile *newParentDir, const nsACString &newName, bool move);
     nsresult CopySingleFile(nsIFile *source, nsIFile* dest, const nsACString &newName, bool move);
 
-    nsresult SetModDate(int64_t aLastModifiedTime);
+    nsresult SetModDate(PRInt64 aLastModifiedTime);
     nsresult AppendNativeInternal(const nsAFlatCString &node, bool multipleComponents);
 
     nsresult GetEA(const char *eaName, PFEA2LIST pfea2list);

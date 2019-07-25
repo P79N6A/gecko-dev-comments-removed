@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsUrlClassifierDBService_h_
 #define nsUrlClassifierDBService_h_
 
@@ -18,9 +52,6 @@
 #include "nsToolkitCompsCID.h"
 #include "nsICryptoHash.h"
 #include "nsICryptoHMAC.h"
-#include "mozilla/Attributes.h"
-
-#include "LookupCache.h"
 
 
 #define DOMAIN_LENGTH 4
@@ -33,13 +64,12 @@
 
 class nsUrlClassifierDBServiceWorker;
 class nsIThread;
-class nsIURI;
 
 
 
-class nsUrlClassifierDBService MOZ_FINAL : public nsIUrlClassifierDBService,
-                                           public nsIURIClassifier,
-                                           public nsIObserver
+class nsUrlClassifierDBService : public nsIUrlClassifierDBService,
+                                 public nsIURIClassifier,
+                                 public nsIObserver
 {
 public:
   
@@ -58,8 +88,7 @@ public:
 
   bool GetCompleter(const nsACString& tableName,
                       nsIUrlClassifierHashCompleter** completer);
-  nsresult CacheCompletions(mozilla::safebrowsing::CacheResultArray *results);
-  nsresult CacheMisses(mozilla::safebrowsing::PrefixArray *results);
+  nsresult CacheCompletions(nsTArray<nsUrlClassifierLookupResult> *results);
 
   static nsIThread* BackgroundThread();
 
@@ -70,7 +99,7 @@ private:
   
   nsUrlClassifierDBService(nsUrlClassifierDBService&);
 
-  nsresult LookupURI(nsIPrincipal* aPrincipal, nsIUrlClassifierCallback* c,
+  nsresult LookupURI(nsIURI* uri, nsIUrlClassifierCallback* c,
                      bool forceCheck, bool *didCheck);
 
   
@@ -95,16 +124,16 @@ private:
 
   
   
-  bool mPerClientRandomize;
-
-  
-  
   
   
   bool mInUpdate;
 
   
   nsTArray<nsCString> mGethashWhitelist;
+
+  
+  nsRefPtr<nsUrlClassifierPrefixSet> mPrefixSet;
+  nsCOMPtr<nsICryptoHash> mHash;
 
   
   static nsIThread* gDbBackgroundThread;

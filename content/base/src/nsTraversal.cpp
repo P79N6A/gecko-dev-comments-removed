@@ -4,22 +4,58 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsTraversal.h"
 
 #include "nsIDOMNode.h"
 #include "nsIDOMNodeFilter.h"
-#include "nsError.h"
-#include "nsINode.h"
+#include "nsDOMError.h"
+
+#include "nsIContent.h"
 
 #include "nsGkAtoms.h"
 
 nsTraversal::nsTraversal(nsINode *aRoot,
-                         uint32_t aWhatToShow,
-                         nsIDOMNodeFilter *aFilter) :
+                         PRUint32 aWhatToShow,
+                         nsIDOMNodeFilter *aFilter,
+                         bool aExpandEntityReferences) :
     mRoot(aRoot),
     mWhatToShow(aWhatToShow),
     mFilter(aFilter),
-    mInAcceptNode(false)
+    mExpandEntityReferences(aExpandEntityReferences),
+    mInAcceptNode(PR_FALSE)
 {
     NS_ASSERTION(aRoot, "invalid root in call to nsTraversal constructor");
 }
@@ -36,7 +72,7 @@ nsTraversal::~nsTraversal()
 
 
 
-nsresult nsTraversal::TestNode(nsINode* aNode, int16_t* _filtered)
+nsresult nsTraversal::TestNode(nsINode* aNode, PRInt16* _filtered)
 {
     NS_ENSURE_TRUE(!mInAcceptNode, NS_ERROR_DOM_INVALID_STATE_ERR);
 
@@ -44,7 +80,7 @@ nsresult nsTraversal::TestNode(nsINode* aNode, int16_t* _filtered)
 
     *_filtered = nsIDOMNodeFilter::FILTER_SKIP;
 
-    uint16_t nodeType = aNode->NodeType();
+    PRUint16 nodeType = aNode->NodeType();
 
     if (nodeType <= 12 && !((1 << (nodeType-1)) & mWhatToShow)) {
         return NS_OK;
@@ -52,9 +88,9 @@ nsresult nsTraversal::TestNode(nsINode* aNode, int16_t* _filtered)
 
     if (mFilter) {
         nsCOMPtr<nsIDOMNode> domNode = do_QueryInterface(aNode);
-        mInAcceptNode = true;
+        mInAcceptNode = PR_TRUE;
         rv = mFilter->AcceptNode(domNode, _filtered);
-        mInAcceptNode = false;
+        mInAcceptNode = PR_FALSE;
         return rv;
     }
 

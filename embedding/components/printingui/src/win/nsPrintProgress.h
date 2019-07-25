@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __nsPrintProgress_h
 #define __nsPrintProgress_h
 
@@ -33,8 +67,8 @@ private:
   bool                              m_closeProgress;
   bool                              m_processCanceled;
   nsString                          m_pendingStatus;
-  int32_t                           m_pendingStateFlags;
-  nsresult                          m_pendingStateValue;
+  PRInt32                           m_pendingStateFlags;
+  PRInt32                           m_pendingStateValue;
   nsCOMPtr<nsIDOMWindow>            m_dialog;
   nsCOMPtr<nsISupportsArray>        m_listenerList;
   nsCOMPtr<nsIObserver>             m_observer;

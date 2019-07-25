@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsRenderingContext.h"
 #include "nsBoundingMetrics.h"
 #include "nsRegion.h"
@@ -17,13 +51,13 @@
 
 #define MAX_GFX_TEXT_BUF_SIZE 8000
 
-static int32_t FindSafeLength(const PRUnichar *aString, uint32_t aLength,
-                              uint32_t aMaxChunkLength)
+static PRInt32 FindSafeLength(const PRUnichar *aString, PRUint32 aLength,
+                              PRUint32 aMaxChunkLength)
 {
     if (aLength <= aMaxChunkLength)
         return aLength;
 
-    int32_t len = aMaxChunkLength;
+    PRInt32 len = aMaxChunkLength;
 
     
     while (len > 0 && NS_IS_LOW_SURROGATE(aString[len])) {
@@ -40,8 +74,8 @@ static int32_t FindSafeLength(const PRUnichar *aString, uint32_t aLength,
     return len;
 }
 
-static int32_t FindSafeLength(const char *aString, uint32_t aLength,
-                              uint32_t aMaxChunkLength)
+static PRInt32 FindSafeLength(const char *aString, PRUint32 aLength,
+                              PRUint32 aMaxChunkLength)
 {
     
     return NS_MIN(aLength, aMaxChunkLength);
@@ -89,11 +123,11 @@ nsRenderingContext::IntersectClip(const nsRect& aRect)
 {
     mThebes->NewPath();
     gfxRect clipRect(GFX_RECT_FROM_TWIPS_RECT(aRect));
-    if (mThebes->UserToDevicePixelSnapped(clipRect, true)) {
+    if (mThebes->UserToDevicePixelSnapped(clipRect, PR_TRUE)) {
         gfxMatrix mat(mThebes->CurrentMatrix());
-        mat.Invert();
-        clipRect = mat.Transform(clipRect);
+        mThebes->IdentityMatrix();
         mThebes->Rectangle(clipRect);
+        mThebes->SetMatrix(mat);
     } else {
         mThebes->Rectangle(clipRect);
     }
@@ -120,7 +154,7 @@ nsRenderingContext::SetClip(const nsIntRegion& aRegion)
     const nsIntRect* rect;
     while ((rect = iter.Next())) {
         mThebes->Rectangle(gfxRect(rect->x, rect->y, rect->width, rect->height),
-                           true);
+                           PR_TRUE);
     }
     mThebes->Clip();
     mThebes->SetMatrix(mat);
@@ -225,7 +259,7 @@ void
 nsRenderingContext::DrawRect(const nsRect& aRect)
 {
     mThebes->NewPath();
-    mThebes->Rectangle(GFX_RECT_FROM_TWIPS_RECT(aRect), true);
+    mThebes->Rectangle(GFX_RECT_FROM_TWIPS_RECT(aRect), PR_TRUE);
     mThebes->Stroke();
 }
 
@@ -271,12 +305,12 @@ ConditionRect(gfxRect& r) {
     
     
     if (r.X() > CAIRO_COORD_MAX || r.Y() > CAIRO_COORD_MAX)
-        return false;
+        return PR_FALSE;
 
     if (r.X() < 0.0) {
         r.width += r.X();
         if (r.width < 0.0)
-            return false;
+            return PR_FALSE;
         r.x = 0.0;
     }
 
@@ -287,7 +321,7 @@ ConditionRect(gfxRect& r) {
     if (r.Y() < 0.0) {
         r.height += r.Y();
         if (r.Height() < 0.0)
-            return false;
+            return PR_FALSE;
 
         r.y = 0.0;
     }
@@ -295,7 +329,7 @@ ConditionRect(gfxRect& r) {
     if (r.YMost() > CAIRO_COORD_MAX) {
         r.height = CAIRO_COORD_MAX - r.Y();
     }
-    return true;
+    return PR_TRUE;
 }
 
 void
@@ -322,13 +356,13 @@ nsRenderingContext::FillRect(const nsRect& aRect)
         mThebes->IdentityMatrix();
         mThebes->NewPath();
 
-        mThebes->Rectangle(r, true);
+        mThebes->Rectangle(r, PR_TRUE);
         mThebes->Fill();
         mThebes->SetMatrix(mat);
     }
 
     mThebes->NewPath();
-    mThebes->Rectangle(r, true);
+    mThebes->Rectangle(r, PR_TRUE);
     mThebes->Fill();
 }
 
@@ -347,6 +381,19 @@ nsRenderingContext::InvertRect(const nsRect& aRect)
     mThebes->SetOperator(gfxContext::OPERATOR_XOR);
     FillRect(aRect);
     mThebes->SetOperator(lastOp);
+}
+
+void
+nsRenderingContext::InvertRect(nscoord aX, nscoord aY,
+                               nscoord aWidth, nscoord aHeight)
+{
+    InvertRect(nsRect(aX, aY, aWidth, aHeight));
+}
+
+void
+nsRenderingContext::DrawEllipse(const nsRect& aRect)
+{
+    DrawEllipse(aRect.x, aRect.y, aRect.width, aRect.height);
 }
 
 void
@@ -380,7 +427,7 @@ nsRenderingContext::FillEllipse(nscoord aX, nscoord aY,
 }
 
 void
-nsRenderingContext::FillPolygon(const nsPoint twPoints[], int32_t aNumPoints)
+nsRenderingContext::FillPolygon(const nsPoint twPoints[], PRInt32 aNumPoints)
 {
     if (aNumPoints == 0)
         return;
@@ -413,7 +460,7 @@ nsRenderingContext::SetFont(nsFontMetrics *aFontMetrics)
     mFontMetrics = aFontMetrics;
 }
 
-int32_t
+PRInt32
 nsRenderingContext::GetMaxChunkLength()
 {
     if (!mFontMetrics)
@@ -450,12 +497,12 @@ nsRenderingContext::GetWidth(const char* aString)
 }
 
 nscoord
-nsRenderingContext::GetWidth(const char* aString, uint32_t aLength)
+nsRenderingContext::GetWidth(const char* aString, PRUint32 aLength)
 {
-    uint32_t maxChunkLength = GetMaxChunkLength();
+    PRUint32 maxChunkLength = GetMaxChunkLength();
     nscoord width = 0;
     while (aLength > 0) {
-        int32_t len = FindSafeLength(aString, aLength, maxChunkLength);
+        PRInt32 len = FindSafeLength(aString, aLength, maxChunkLength);
         width += mFontMetrics->GetWidth(aString, len, this);
         aLength -= len;
         aString += len;
@@ -464,12 +511,12 @@ nsRenderingContext::GetWidth(const char* aString, uint32_t aLength)
 }
 
 nscoord
-nsRenderingContext::GetWidth(const PRUnichar *aString, uint32_t aLength)
+nsRenderingContext::GetWidth(const PRUnichar *aString, PRUint32 aLength)
 {
-    uint32_t maxChunkLength = GetMaxChunkLength();
+    PRUint32 maxChunkLength = GetMaxChunkLength();
     nscoord width = 0;
     while (aLength > 0) {
-        int32_t len = FindSafeLength(aString, aLength, maxChunkLength);
+        PRInt32 len = FindSafeLength(aString, aLength, maxChunkLength);
         width += mFontMetrics->GetWidth(aString, len, this);
         aLength -= len;
         aString += len;
@@ -479,10 +526,10 @@ nsRenderingContext::GetWidth(const PRUnichar *aString, uint32_t aLength)
 
 nsBoundingMetrics
 nsRenderingContext::GetBoundingMetrics(const PRUnichar* aString,
-                                       uint32_t aLength)
+                                       PRUint32 aLength)
 {
-    uint32_t maxChunkLength = GetMaxChunkLength();
-    int32_t len = FindSafeLength(aString, aLength, maxChunkLength);
+    PRUint32 maxChunkLength = GetMaxChunkLength();
+    PRInt32 len = FindSafeLength(aString, aLength, maxChunkLength);
     
     
     
@@ -503,12 +550,12 @@ nsRenderingContext::GetBoundingMetrics(const PRUnichar* aString,
 }
 
 void
-nsRenderingContext::DrawString(const char *aString, uint32_t aLength,
+nsRenderingContext::DrawString(const char *aString, PRUint32 aLength,
                                nscoord aX, nscoord aY)
 {
-    uint32_t maxChunkLength = GetMaxChunkLength();
+    PRUint32 maxChunkLength = GetMaxChunkLength();
     while (aLength > 0) {
-        int32_t len = FindSafeLength(aString, aLength, maxChunkLength);
+        PRInt32 len = FindSafeLength(aString, aLength, maxChunkLength);
         mFontMetrics->DrawString(aString, len, aX, aY, this);
         aLength -= len;
 
@@ -527,10 +574,10 @@ nsRenderingContext::DrawString(const nsString& aString, nscoord aX, nscoord aY)
 }
 
 void
-nsRenderingContext::DrawString(const PRUnichar *aString, uint32_t aLength,
+nsRenderingContext::DrawString(const PRUnichar *aString, PRUint32 aLength,
                                nscoord aX, nscoord aY)
 {
-    uint32_t maxChunkLength = GetMaxChunkLength();
+    PRUint32 maxChunkLength = GetMaxChunkLength();
     if (aLength <= maxChunkLength) {
         mFontMetrics->DrawString(aString, aLength, aX, aY, this, this);
         return;
@@ -544,7 +591,7 @@ nsRenderingContext::DrawString(const PRUnichar *aString, uint32_t aLength,
     }
 
     while (aLength > 0) {
-        int32_t len = FindSafeLength(aString, aLength, maxChunkLength);
+        PRInt32 len = FindSafeLength(aString, aLength, maxChunkLength);
         nscoord width = mFontMetrics->GetWidth(aString, len, this);
         if (isRTL) {
             aX -= width;

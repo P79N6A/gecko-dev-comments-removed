@@ -47,56 +47,84 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_SCRIPTITEMIZER_H
 #define GFX_SCRIPTITEMIZER_H
 
-#include "mozilla/StandardInteger.h"
 #include "prtypes.h"
 #include "harfbuzz/hb.h"
-#include "nsUnicodeScriptCodes.h"
 
 #define PAREN_STACK_DEPTH 32
 
 class gfxScriptItemizer
 {
 public:
-    gfxScriptItemizer(const PRUnichar *src, uint32_t length);
+    gfxScriptItemizer(const PRUnichar *src, PRUint32 length);
 
-    void SetText(const PRUnichar *src, uint32_t length);
+    void SetText(const PRUnichar *src, PRUint32 length);
 
-    bool Next(uint32_t& aRunStart, uint32_t& aRunLimit,
-              int32_t& aRunScript);
+    bool Next(PRUint32& aRunStart, PRUint32& aRunLimit,
+                PRInt32& aRunScript);
 
 protected:
     void reset() {
         scriptStart = 0;
         scriptLimit = 0;
-        scriptCode  = MOZ_SCRIPT_INVALID;
+        scriptCode  = PRInt32(HB_SCRIPT_INVALID_CODE);
         parenSP     = -1;
         pushCount   =  0;
         fixupCount  =  0;
     }
 
-    void push(uint32_t endPairChar, int32_t scriptCode);
+    void push(PRInt32 pairIndex, PRInt32 scriptCode);
     void pop();
-    void fixup(int32_t scriptCode);
+    void fixup(PRInt32 scriptCode);
 
     struct ParenStackEntry {
-        uint32_t endPairChar;
-        int32_t  scriptCode;
+        PRInt32 pairIndex;
+        PRInt32 scriptCode;
     };
 
     const PRUnichar *textPtr;
-    uint32_t textLength;
+    PRUint32 textLength;
 
-    uint32_t scriptStart;
-    uint32_t scriptLimit;
-    int32_t  scriptCode;
+    PRUint32 scriptStart;
+    PRUint32 scriptLimit;
+    PRInt32  scriptCode;
 
     struct ParenStackEntry parenStack[PAREN_STACK_DEPTH];
-    uint32_t parenSP;
-    uint32_t pushCount;
-    uint32_t fixupCount;
+    PRUint32 parenSP;
+    PRUint32 pushCount;
+    PRUint32 fixupCount;
 };
 
 #endif 

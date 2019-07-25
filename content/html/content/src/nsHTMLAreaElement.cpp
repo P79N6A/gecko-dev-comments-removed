@@ -3,11 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIDOMHTMLAreaElement.h"
+#include "nsIDOMEventTarget.h"
 #include "nsGenericHTMLElement.h"
 #include "nsILink.h"
 #include "nsGkAtoms.h"
+#include "nsStyleConsts.h"
 #include "nsIURL.h"
+#include "nsNetUtil.h"
+#include "nsReadableUtils.h"
 #include "nsIDocument.h"
 
 #include "Link.h"
@@ -26,33 +62,13 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_DECL_SIZEOF_EXCLUDING_THIS
-
-  
   NS_FORWARD_NSIDOMNODE(nsGenericHTMLElement::)
 
   
   NS_FORWARD_NSIDOMELEMENT(nsGenericHTMLElement::)
 
   
-  NS_FORWARD_NSIDOMHTMLELEMENT_BASIC(nsGenericHTMLElement::)
-  NS_IMETHOD Click() {
-    return nsGenericHTMLElement::Click();
-  }
-  NS_IMETHOD GetTabIndex(int32_t* aTabIndex);
-  NS_IMETHOD SetTabIndex(int32_t aTabIndex);
-  NS_IMETHOD Focus() {
-    return nsGenericHTMLElement::Focus();
-  }
-  NS_IMETHOD GetDraggable(bool* aDraggable) {
-    return nsGenericHTMLElement::GetDraggable(aDraggable);
-  }
-  NS_IMETHOD GetInnerHTML(nsAString& aInnerHTML) {
-    return nsGenericHTMLElement::GetInnerHTML(aInnerHTML);
-  }
-  NS_IMETHOD SetInnerHTML(const nsAString& aInnerHTML) {
-    return nsGenericHTMLElement::SetInnerHTML(aInnerHTML);
-  }
+  NS_FORWARD_NSIDOMHTMLELEMENT(nsGenericHTMLElement::)
 
   
   NS_DECL_NSIDOMHTMLAREAELEMENT
@@ -66,6 +82,7 @@ public:
   virtual bool IsLink(nsIURI** aURI) const;
   virtual void GetLinkTarget(nsAString& aTarget);
   virtual nsLinkState GetLinkState() const;
+  virtual void RequestLinkStateUpdate();
   virtual already_AddRefed<nsIURI> GetHrefURI() const;
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
@@ -73,15 +90,15 @@ public:
                               bool aCompileEventHandlers);
   virtual void UnbindFromTree(bool aDeep = true,
                               bool aNullParent = true);
-  nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+  nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                    const nsAString& aValue, bool aNotify)
   {
-    return SetAttr(aNameSpaceID, aName, nullptr, aValue, aNotify);
+    return SetAttr(aNameSpaceID, aName, nsnull, aValue, aNotify);
   }
-  virtual nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+  virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                            nsIAtom* aPrefix, const nsAString& aValue,
                            bool aNotify);
-  virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
+  virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
                              bool aNotify);
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
@@ -89,12 +106,6 @@ public:
   virtual nsEventStates IntrinsicState() const;
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
-
-protected:
-  virtual void GetItemValueText(nsAString& text);
-  virtual void SetItemValueText(const nsAString& text);
 };
 
 
@@ -137,18 +148,6 @@ NS_IMPL_BOOL_ATTR(nsHTMLAreaElement, NoHref, nohref)
 NS_IMPL_STRING_ATTR(nsHTMLAreaElement, Shape, shape)
 NS_IMPL_INT_ATTR(nsHTMLAreaElement, TabIndex, tabindex)
 
-void
-nsHTMLAreaElement::GetItemValueText(nsAString& aValue)
-{
-  GetHref(aValue);
-}
-
-void
-nsHTMLAreaElement::SetItemValueText(const nsAString& aValue)
-{
-  SetHref(aValue);
-}
-
 NS_IMETHODIMP
 nsHTMLAreaElement::GetTarget(nsAString& aValue)
 {
@@ -161,7 +160,7 @@ nsHTMLAreaElement::GetTarget(nsAString& aValue)
 NS_IMETHODIMP
 nsHTMLAreaElement::SetTarget(const nsAString& aValue)
 {
-  return SetAttr(kNameSpaceID_None, nsGkAtoms::target, aValue, true);
+  return SetAttr(kNameSpaceID_None, nsGkAtoms::target, aValue, PR_TRUE);
 }
 
 nsresult
@@ -197,10 +196,7 @@ nsHTMLAreaElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               bool aCompileEventHandlers)
 {
   Link::ResetLinkState(false);
-  if (aDocument) {
-    aDocument->RegisterPendingLinkUpdate(this);
-  }
-  
+
   return nsGenericHTMLElement::BindToTree(aDocument, aParent,
                                                  aBindingParent,
                                                  aCompileEventHandlers);
@@ -212,17 +208,12 @@ nsHTMLAreaElement::UnbindFromTree(bool aDeep, bool aNullParent)
   
   
   Link::ResetLinkState(false);
-  
-  nsIDocument* doc = GetCurrentDoc();
-  if (doc) {
-    doc->UnregisterPendingLinkUpdate(this);
-  }
 
   nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
 }
 
 nsresult
-nsHTMLAreaElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+nsHTMLAreaElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                            nsIAtom* aPrefix, const nsAString& aValue,
                            bool aNotify)
 {
@@ -242,7 +233,7 @@ nsHTMLAreaElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
 }
 
 nsresult
-nsHTMLAreaElement::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
+nsHTMLAreaElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
                              bool aNotify)
 {
   nsresult rv = nsGenericHTMLElement::UnsetAttr(aNameSpaceID, aAttribute,
@@ -297,13 +288,19 @@ nsHTMLAreaElement::GetPing(nsAString& aValue)
 NS_IMETHODIMP
 nsHTMLAreaElement::SetPing(const nsAString& aValue)
 {
-  return SetAttr(kNameSpaceID_None, nsGkAtoms::ping, aValue, true);
+  return SetAttr(kNameSpaceID_None, nsGkAtoms::ping, aValue, PR_TRUE);
 }
 
 nsLinkState
 nsHTMLAreaElement::GetLinkState() const
 {
   return Link::GetLinkState();
+}
+
+void
+nsHTMLAreaElement::RequestLinkStateUpdate()
+{
+  UpdateLinkState(Link::LinkState());
 }
 
 already_AddRefed<nsIURI>
@@ -317,11 +314,3 @@ nsHTMLAreaElement::IntrinsicState() const
 {
   return Link::LinkState() | nsGenericHTMLElement::IntrinsicState();
 }
-
-size_t
-nsHTMLAreaElement::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
-{
-  return nsGenericHTMLElement::SizeOfExcludingThis(aMallocSizeOf) +
-         Link::SizeOfExcludingThis(aMallocSizeOf);
-}
-

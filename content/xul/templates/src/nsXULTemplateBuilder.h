@@ -3,6 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsXULTemplateBuilder_h__
 #define nsXULTemplateBuilder_h__
 
@@ -44,8 +81,6 @@ class nsXULTemplateBuilder : public nsIXULTemplateBuilder,
                              public nsIObserver,
                              public nsStubDocumentObserver
 {
-    void CleanUp(bool aIsFinal);
-
 public:
     nsXULTemplateBuilder();
     virtual ~nsXULTemplateBuilder();
@@ -118,9 +153,9 @@ public:
 
     void RunnableRebuild() { Rebuild(); }
     void RunnableLoadAndRebuild() {
-      Uninit(false);  
+      Uninit(PR_FALSE);  
 
-      nsCOMPtr<nsIDocument> doc = mRoot ? mRoot->GetDocument() : nullptr;
+      nsCOMPtr<nsIDocument> doc = mRoot ? mRoot->GetDocument() : nsnull;
       if (doc) {
         bool shouldDelay;
         LoadDataSources(doc, &shouldDelay);
@@ -132,8 +167,8 @@ public:
 
     
     
-    void UninitFalse() { Uninit(false); mRoot = nullptr; }
-    void UninitTrue() { Uninit(true); mRoot = nullptr; }
+    void UninitFalse() { Uninit(PR_FALSE); mRoot = nsnull; }
+    void UninitTrue() { Uninit(PR_TRUE); mRoot = nsnull; }
 
     
 
@@ -167,7 +202,7 @@ public:
     CompileTemplate(nsIContent* aTemplate,
                     nsTemplateQuerySet* aQuerySet,
                     bool aIsQuerySet,
-                    int32_t* aPriority,
+                    PRInt32* aPriority,
                     bool* aCanUseTemplate);
 
     
@@ -302,7 +337,7 @@ public:
                          nsIXULTemplateResult* aResult,
                          nsTemplateQuerySet* aQuerySet,
                          nsTemplateRule** aMatchedRule,
-                         int16_t *aRuleIndex);
+                         PRInt16 *aRuleIndex);
 
     
     
@@ -406,7 +441,7 @@ protected:
         eLoggingEnabled = (1 << 2)
     };
 
-    int32_t mFlags;
+    PRInt32 mFlags;
 
     
 

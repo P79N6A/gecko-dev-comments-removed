@@ -8,6 +8,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nscore.h"
 #include "nsINameSpaceManager.h"
 #include "nsAutoPtr.h"
@@ -25,7 +57,6 @@
 static NS_DEFINE_CID(kXTFServiceCID, NS_XTFSERVICE_CID);
 #endif
 
-using namespace mozilla;
 using namespace mozilla::dom;
 
 #define kXMLNSNameSpaceURI "http://www.w3.org/2000/xmlns/"
@@ -71,7 +102,7 @@ public:
   }
 
   enum { 
-    ALLOW_MEMMOVE = true
+    ALLOW_MEMMOVE = PR_TRUE
   };
 
 private:
@@ -88,29 +119,29 @@ public:
 
   nsresult Init();
 
-  nsresult RegisterNameSpace(const nsAString& aURI,  int32_t& aNameSpaceID);
+  nsresult RegisterNameSpace(const nsAString& aURI,  PRInt32& aNameSpaceID);
 
-  nsresult GetNameSpaceURI(int32_t aNameSpaceID, nsAString& aURI);
-  int32_t GetNameSpaceID(const nsAString& aURI);
+  nsresult GetNameSpaceURI(PRInt32 aNameSpaceID, nsAString& aURI);
+  PRInt32 GetNameSpaceID(const nsAString& aURI);
 
-  bool HasElementCreator(int32_t aNameSpaceID);
+  bool HasElementCreator(PRInt32 aNameSpaceID);
 
 private:
-  nsresult AddNameSpace(const nsAString& aURI, const int32_t aNameSpaceID);
+  nsresult AddNameSpace(const nsAString& aURI, const PRInt32 aNameSpaceID);
 
-  nsDataHashtable<nsNameSpaceKey,int32_t> mURIToIDTable;
+  nsDataHashtable<nsNameSpaceKey,PRInt32> mURIToIDTable;
   nsTArray< nsAutoPtr<nsString> > mURIArray;
 };
 
-static NameSpaceManagerImpl* sNameSpaceManager = nullptr;
+static NameSpaceManagerImpl* sNameSpaceManager = nsnull;
 
 NS_IMPL_ISUPPORTS1(NameSpaceManagerImpl, nsINameSpaceManager)
 
 nsresult NameSpaceManagerImpl::Init()
 {
-  mURIToIDTable.Init(32);
+  nsresult rv = mURIToIDTable.Init(32);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  nsresult rv;
 #define REGISTER_NAMESPACE(uri, id) \
   rv = AddNameSpace(NS_LITERAL_STRING(uri), id); \
   NS_ENSURE_SUCCESS(rv, rv)
@@ -135,7 +166,7 @@ nsresult NameSpaceManagerImpl::Init()
 
 nsresult
 NameSpaceManagerImpl::RegisterNameSpace(const nsAString& aURI, 
-                                        int32_t& aNameSpaceID)
+                                        PRInt32& aNameSpaceID)
 {
   if (aURI.IsEmpty()) {
     aNameSpaceID = kNameSpaceID_None; 
@@ -159,12 +190,12 @@ NameSpaceManagerImpl::RegisterNameSpace(const nsAString& aURI,
 }
 
 nsresult
-NameSpaceManagerImpl::GetNameSpaceURI(int32_t aNameSpaceID, nsAString& aURI)
+NameSpaceManagerImpl::GetNameSpaceURI(PRInt32 aNameSpaceID, nsAString& aURI)
 {
   NS_PRECONDITION(aNameSpaceID >= 0, "Bogus namespace ID");
   
-  int32_t index = aNameSpaceID - 1; 
-  if (index < 0 || index >= int32_t(mURIArray.Length())) {
+  PRInt32 index = aNameSpaceID - 1; 
+  if (index < 0 || index >= PRInt32(mURIArray.Length())) {
     aURI.Truncate();
 
     return NS_ERROR_ILLEGAL_VALUE;
@@ -175,14 +206,14 @@ NameSpaceManagerImpl::GetNameSpaceURI(int32_t aNameSpaceID, nsAString& aURI)
   return NS_OK;
 }
 
-int32_t
+PRInt32
 NameSpaceManagerImpl::GetNameSpaceID(const nsAString& aURI)
 {
   if (aURI.IsEmpty()) {
     return kNameSpaceID_None; 
   }
 
-  int32_t nameSpaceID;
+  PRInt32 nameSpaceID;
 
   if (mURIToIDTable.Get(&aURI, &nameSpaceID)) {
     NS_POSTCONDITION(nameSpaceID >= 0, "Bogus namespace ID");
@@ -193,29 +224,28 @@ NameSpaceManagerImpl::GetNameSpaceID(const nsAString& aURI)
 }
 
 nsresult
-NS_NewElement(nsIContent** aResult,
+NS_NewElement(nsIContent** aResult, PRInt32 aElementType,
               already_AddRefed<nsINodeInfo> aNodeInfo, FromParser aFromParser)
 {
-  int32_t ns = aNodeInfo.get()->NamespaceID();
-  if (ns == kNameSpaceID_XHTML) {
+  if (aElementType == kNameSpaceID_XHTML) {
     return NS_NewHTMLElement(aResult, aNodeInfo, aFromParser);
   }
 #ifdef MOZ_XUL
-  if (ns == kNameSpaceID_XUL) {
+  if (aElementType == kNameSpaceID_XUL) {
     return NS_NewXULElement(aResult, aNodeInfo);
   }
 #endif
-  if (ns == kNameSpaceID_MathML) {
+  if (aElementType == kNameSpaceID_MathML) {
     return NS_NewMathMLElement(aResult, aNodeInfo);
   }
-  if (ns == kNameSpaceID_SVG) {
+  if (aElementType == kNameSpaceID_SVG) {
     return NS_NewSVGElement(aResult, aNodeInfo, aFromParser);
   }
-  if (ns == kNameSpaceID_XMLEvents) {
+  if (aElementType == kNameSpaceID_XMLEvents) {
     return NS_NewXMLEventsElement(aResult, aNodeInfo);
   }
 #ifdef MOZ_XTF
-  if (ns > kNameSpaceID_LastBuiltin) {
+  if (aElementType > kNameSpaceID_LastBuiltin) {
     nsIXTFService* xtfService = nsContentUtils::GetXTFService();
     NS_ASSERTION(xtfService, "could not get xtf service");
     if (xtfService &&
@@ -227,7 +257,7 @@ NS_NewElement(nsIContent** aResult,
 }
 
 bool
-NameSpaceManagerImpl::HasElementCreator(int32_t aNameSpaceID)
+NameSpaceManagerImpl::HasElementCreator(PRInt32 aNameSpaceID)
 {
   return aNameSpaceID == kNameSpaceID_XHTML ||
 #ifdef MOZ_XUL
@@ -236,18 +266,18 @@ NameSpaceManagerImpl::HasElementCreator(int32_t aNameSpaceID)
          aNameSpaceID == kNameSpaceID_MathML ||
          aNameSpaceID == kNameSpaceID_SVG ||
          aNameSpaceID == kNameSpaceID_XMLEvents ||
-         false;
+         PR_FALSE;
 }
 
 nsresult NameSpaceManagerImpl::AddNameSpace(const nsAString& aURI,
-                                            const int32_t aNameSpaceID)
+                                            const PRInt32 aNameSpaceID)
 {
   if (aNameSpaceID < 0) {
     
     return NS_ERROR_OUT_OF_MEMORY;
   }
   
-  NS_ASSERTION(aNameSpaceID - 1 == (int32_t) mURIArray.Length(),
+  NS_ASSERTION(aNameSpaceID - 1 == (PRInt32) mURIArray.Length(),
                "BAD! AddNameSpace not called in right order!");
 
   nsString* uri = new nsString(aURI);
@@ -256,7 +286,11 @@ nsresult NameSpaceManagerImpl::AddNameSpace(const nsAString& aURI,
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  mURIToIDTable.Put(uri, aNameSpaceID);
+  if (!mURIToIDTable.Put(uri, aNameSpaceID)) {
+    mURIArray.RemoveElementAt(aNameSpaceID - 1);
+
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
 
   return NS_OK;
 }

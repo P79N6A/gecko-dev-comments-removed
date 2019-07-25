@@ -3,6 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCopySupport.h"
 #include "nsIDocumentEncoder.h"
 #include "nsISupports.h"
@@ -46,15 +81,15 @@
 
 #include "mozilla/dom/Element.h"
 
-#include "mozilla/Preferences.h"
-
-using namespace mozilla;
-
 nsresult NS_NewDomSelection(nsISelection **aDomSelection);
 
 static NS_DEFINE_CID(kCClipboardCID,           NS_CLIPBOARD_CID);
 static NS_DEFINE_CID(kCTransferableCID,        NS_TRANSFERABLE_CID);
 static NS_DEFINE_CID(kHTMLConverterCID,        NS_HTMLFORMATCONVERTER_CID);
+
+
+#define kHTMLContext   "text/_moz_htmlcontext"
+#define kHTMLInfo      "text/_moz_htmlinfo"
 
 
 static nsresult AppendString(nsITransferable *aTransferable,
@@ -69,12 +104,12 @@ static nsresult AppendDOMNode(nsITransferable *aTransferable,
 
 static nsresult
 SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
-                    bool doPutOnClipboard, int16_t aClipboardID,
-                    uint32_t aFlags, nsITransferable ** aTransferable)
+                    bool doPutOnClipboard, PRInt16 aClipboardID,
+                    PRUint32 aFlags, nsITransferable ** aTransferable)
 {
   
   if (aTransferable) {
-    *aTransferable = nullptr;
+    *aTransferable = nsnull;
   }
 
   nsresult rv = NS_OK;
@@ -105,7 +140,7 @@ SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
   
   
   
-  uint32_t flags = aFlags | nsIDocumentEncoder::OutputPreformatted
+  PRUint32 flags = aFlags | nsIDocumentEncoder::OutputPreformatted
                           | nsIDocumentEncoder::OutputRaw;
 
   nsCOMPtr<nsIDOMDocument> domDoc = do_QueryInterface(aDoc);
@@ -125,35 +160,25 @@ SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
   if (NS_FAILED(rv)) 
     return rv;
 
-  
-  
-  
+  nsCOMPtr<nsIFormatConverter> htmlConverter;
+
   
   if (bIsHTMLCopy) {
 
     
-    mimeType.AssignLiteral("text/plain");
+    htmlConverter = do_CreateInstance(kHTMLConverterCID);
+    NS_ENSURE_TRUE(htmlConverter, NS_ERROR_FAILURE);
 
-    flags =
-      nsIDocumentEncoder::OutputSelectionOnly |
-      nsIDocumentEncoder::OutputAbsoluteLinks |
-      nsIDocumentEncoder::SkipInvisibleContent |
-      nsIDocumentEncoder::OutputDropInvisibleBreak |
-      (aFlags & nsIDocumentEncoder::OutputNoScriptContent);
+    nsCOMPtr<nsISupportsString> plainHTML = do_CreateInstance(NS_SUPPORTS_STRING_CONTRACTID);
+    NS_ENSURE_TRUE(plainHTML, NS_ERROR_FAILURE);
+    plainHTML->SetData(textBuffer);
 
-    rv = docEncoder->Init(domDoc, mimeType, flags);
-    if (NS_FAILED(rv))
-      return rv;
+    nsCOMPtr<nsISupportsString> ConvertedData;
+    PRUint32 ConvertedLen;
+    rv = htmlConverter->Convert(kHTMLMime, plainHTML, textBuffer.Length() * 2, kUnicodeMime, getter_AddRefs(ConvertedData), &ConvertedLen);
+    NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = docEncoder->SetSelection(aSel);
-    if (NS_FAILED(rv))
-      return rv;
-
-    rv = docEncoder->EncodeToString(plaintextBuffer);
-    if (NS_FAILED(rv))
-      return rv;
-
-    
+    ConvertedData->GetData(plaintextBuffer);
 
     mimeType.AssignLiteral(kHTMLMime);
 
@@ -178,16 +203,12 @@ SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
       return rv;
   }
 
-  if ((doPutOnClipboard && clipboard) || aTransferable != nullptr) {
+  if ((doPutOnClipboard && clipboard) || aTransferable != nsnull) {
     
     nsCOMPtr<nsITransferable> trans = do_CreateInstance(kCTransferableCID);
     if (trans) {
-      trans->Init(aDoc->GetLoadContext());
       if (bIsHTMLCopy) {
         
-        
-        nsCOMPtr<nsIFormatConverter> htmlConverter =
-          do_CreateInstance(kHTMLConverterCID);
         trans->SetConverter(htmlConverter);
 
         if (!buffer.IsEmpty()) {
@@ -220,7 +241,7 @@ SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
         
         nsIURI *uri = aDoc->GetDocumentURI();
         if (uri) {
-          nsAutoCString spec;
+          nsCAutoString spec;
           uri->GetSpec(spec);
           if (!spec.IsEmpty()) {
             nsAutoString shortcut;
@@ -250,11 +271,11 @@ SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
 
         
         if (actuallyPutOnClipboard)
-          clipboard->SetData(trans, nullptr, aClipboardID);
+          clipboard->SetData(trans, nsnull, aClipboardID);
       }
 
       
-      if (aTransferable != nullptr) {
+      if (aTransferable != nsnull) {
         trans.swap(*aTransferable);
       }
     }
@@ -264,11 +285,11 @@ SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
 
 nsresult
 nsCopySupport::HTMLCopy(nsISelection* aSel, nsIDocument* aDoc,
-                        int16_t aClipboardID)
+                        PRInt16 aClipboardID)
 {
-  return SelectionCopyHelper(aSel, aDoc, true, aClipboardID,
+  return SelectionCopyHelper(aSel, aDoc, PR_TRUE, aClipboardID,
                              nsIDocumentEncoder::SkipInvisibleContent,
-                             nullptr);
+                             nsnull);
 }
 
 nsresult
@@ -276,7 +297,7 @@ nsCopySupport::GetTransferableForSelection(nsISelection* aSel,
                                            nsIDocument* aDoc,
                                            nsITransferable** aTransferable)
 {
-  return SelectionCopyHelper(aSel, aDoc, false, 0,
+  return SelectionCopyHelper(aSel, aDoc, PR_FALSE, 0,
                              nsIDocumentEncoder::SkipInvisibleContent,
                              aTransferable);
 }
@@ -290,16 +311,18 @@ nsCopySupport::GetTransferableForNode(nsINode* aNode,
   
   nsresult rv = NS_NewDomSelection(getter_AddRefs(selection));
   NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsIDOMRange> range;
+  rv = NS_NewRange(getter_AddRefs(range));
+  NS_ENSURE_SUCCESS(rv, rv);
   nsCOMPtr<nsIDOMNode> node = do_QueryInterface(aNode);
   NS_ENSURE_TRUE(node, NS_ERROR_FAILURE);
-  nsRefPtr<nsRange> range = new nsRange();
   rv = range->SelectNode(node);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = selection->AddRange(range);
   NS_ENSURE_SUCCESS(rv, rv);
   
-  uint32_t flags = 0;
-  return SelectionCopyHelper(selection, aDoc, false, 0, flags,
+  PRUint32 flags = 0;
+  return SelectionCopyHelper(selection, aDoc, PR_FALSE, 0, flags,
                              aTransferable);
 }
 
@@ -308,7 +331,7 @@ nsresult nsCopySupport::DoHooks(nsIDocument *aDoc, nsITransferable *aTrans,
 {
   NS_ENSURE_ARG(aDoc);
 
-  *aDoPutOnClipboard = true;
+  *aDoPutOnClipboard = PR_TRUE;
 
   nsCOMPtr<nsISupports> container = aDoc->GetContainer();
   nsCOMPtr<nsIClipboardDragDropHookList> hookObj = do_GetInterface(container);
@@ -336,7 +359,7 @@ nsresult nsCopySupport::DoHooks(nsIDocument *aDoc, nsITransferable *aTrans,
 #ifdef DEBUG
       nsresult hookResult =
 #endif
-      override->OnCopyOrDrag(nullptr, aTrans, aDoPutOnClipboard);
+      override->OnCopyOrDrag(nsnull, aTrans, aDoPutOnClipboard);
       NS_ASSERTION(NS_SUCCEEDED(hookResult), "OnCopyOrDrag hook failed");
       if (!*aDoPutOnClipboard)
         break;
@@ -353,11 +376,11 @@ nsresult nsCopySupport::IsPlainTextContext(nsISelection *aSel, nsIDocument *aDoc
   if (!aSel || !aIsPlainTextContext)
     return NS_ERROR_NULL_POINTER;
 
-  *aIsPlainTextContext = false;
+  *aIsPlainTextContext = PR_FALSE;
   
   nsCOMPtr<nsIDOMRange> range;
   nsCOMPtr<nsIDOMNode> commonParent;
-  int32_t count = 0;
+  PRInt32 count = 0;
 
   rv = aSel->GetRangeCount(&count);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -390,7 +413,7 @@ nsresult nsCopySupport::IsPlainTextContext(nsISelection *aSel, nsIDocument *aDoc
     if (atom == nsGkAtoms::input ||
         atom == nsGkAtoms::textarea)
     {
-      *aIsPlainTextContext = true;
+      *aIsPlainTextContext = PR_TRUE;
       break;
     }
 
@@ -404,7 +427,7 @@ nsresult nsCopySupport::IsPlainTextContext(nsISelection *aSel, nsIDocument *aDoc
       rv = bodyElem->GetAttribute(NS_LITERAL_STRING("style"), wsVal);
       if (NS_SUCCEEDED(rv) && (kNotFound != wsVal.Find(NS_LITERAL_STRING("pre-wrap"))))
       {
-        *aIsPlainTextContext = true;
+        *aIsPlainTextContext = PR_TRUE;
         break;
       }
     }
@@ -416,25 +439,25 @@ nsresult nsCopySupport::IsPlainTextContext(nsISelection *aSel, nsIDocument *aDoc
   
   nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(aDoc);
   if (!(htmlDoc && aDoc->IsHTML()))
-    *aIsPlainTextContext = true;
+    *aIsPlainTextContext = PR_TRUE;
 
   return NS_OK;
 }
 
 nsresult
-nsCopySupport::GetContents(const nsACString& aMimeType, uint32_t aFlags, nsISelection *aSel, nsIDocument *aDoc, nsAString& outdata)
+nsCopySupport::GetContents(const nsACString& aMimeType, PRUint32 aFlags, nsISelection *aSel, nsIDocument *aDoc, nsAString& outdata)
 {
   nsresult rv = NS_OK;
   
   nsCOMPtr<nsIDocumentEncoder> docEncoder;
 
-  nsAutoCString encoderContractID(NS_DOC_ENCODER_CONTRACTID_BASE);
+  nsCAutoString encoderContractID(NS_DOC_ENCODER_CONTRACTID_BASE);
   encoderContractID.Append(aMimeType);
     
   docEncoder = do_CreateInstance(encoderContractID.get());
   NS_ENSURE_TRUE(docEncoder, NS_ERROR_FAILURE);
 
-  uint32_t flags = aFlags | nsIDocumentEncoder::SkipInvisibleContent;
+  PRUint32 flags = aFlags | nsIDocumentEncoder::SkipInvisibleContent;
   
   if (aMimeType.Equals("text/plain"))
     flags |= nsIDocumentEncoder::OutputPreformatted;
@@ -460,15 +483,13 @@ nsCopySupport::GetContents(const nsACString& aMimeType, uint32_t aFlags, nsISele
 
 nsresult
 nsCopySupport::ImageCopy(nsIImageLoadingContent* aImageElement,
-                         nsILoadContext* aLoadContext,
-                         int32_t aCopyFlags)
+                         PRInt32 aCopyFlags)
 {
   nsresult rv;
 
   
   nsCOMPtr<nsITransferable> trans(do_CreateInstance(kCTransferableCID, &rv));
   NS_ENSURE_SUCCESS(rv, rv);
-  trans->Init(aLoadContext);
 
   if (aCopyFlags & nsIContentViewerEdit::COPY_IMAGE_TEXT) {
     
@@ -477,7 +498,7 @@ nsCopySupport::ImageCopy(nsIImageLoadingContent* aImageElement,
     NS_ENSURE_SUCCESS(rv, rv);
     NS_ENSURE_TRUE(uri, NS_ERROR_FAILURE);
 
-    nsAutoCString location;
+    nsCAutoString location;
     rv = uri->GetSpec(location);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -525,11 +546,11 @@ nsCopySupport::ImageCopy(nsIImageLoadingContent* aImageElement,
 
   
   if (selectionSupported) {
-    rv = clipboard->SetData(trans, nullptr, nsIClipboard::kSelectionClipboard);
+    rv = clipboard->SetData(trans, nsnull, nsIClipboard::kSelectionClipboard);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  return clipboard->SetData(trans, nullptr, nsIClipboard::kGlobalClipboard);
+  return clipboard->SetData(trans, nsnull, nsIClipboard::kGlobalClipboard);
 }
 
 static nsresult AppendString(nsITransferable *aTransferable,
@@ -609,16 +630,16 @@ static nsresult AppendDOMNode(nsITransferable *aTransferable,
 nsIContent*
 nsCopySupport::GetSelectionForCopy(nsIDocument* aDocument, nsISelection** aSelection)
 {
-  *aSelection = nullptr;
+  *aSelection = nsnull;
 
   nsIPresShell* presShell = aDocument->GetShell();
   if (!presShell)
-    return nullptr;
+    return nsnull;
 
   
   nsCOMPtr<nsPIDOMWindow> focusedWindow;
   nsIContent* content =
-    nsFocusManager::GetFocusedDescendant(aDocument->GetWindow(), false,
+    nsFocusManager::GetFocusedDescendant(aDocument->GetWindow(), PR_FALSE,
                                          getter_AddRefs(focusedWindow));
   if (content) {
     nsIFrame* frame = content->GetPrimaryFrame();
@@ -634,18 +655,18 @@ nsCopySupport::GetSelectionForCopy(nsIDocument* aDocument, nsISelection** aSelec
 
   
   NS_IF_ADDREF(*aSelection = presShell->GetCurrentSelection(nsISelectionController::SELECTION_NORMAL));
-  return nullptr;
+  return nsnull;
 }
 
 bool
 nsCopySupport::CanCopy(nsIDocument* aDocument)
 {
   if (!aDocument)
-    return false;
+    return PR_FALSE;
 
   nsCOMPtr<nsISelection> sel;
   GetSelectionForCopy(aDocument, getter_AddRefs(sel));
-  NS_ENSURE_TRUE(sel, false);
+  NS_ENSURE_TRUE(sel, PR_FALSE);
 
   bool isCollapsed;
   sel->GetIsCollapsed(&isCollapsed);
@@ -653,22 +674,22 @@ nsCopySupport::CanCopy(nsIDocument* aDocument)
 }
 
 bool
-nsCopySupport::FireClipboardEvent(int32_t aType, nsIPresShell* aPresShell, nsISelection* aSelection)
+nsCopySupport::FireClipboardEvent(PRInt32 aType, nsIPresShell* aPresShell, nsISelection* aSelection)
 {
   NS_ASSERTION(aType == NS_CUT || aType == NS_COPY || aType == NS_PASTE,
                "Invalid clipboard event type");
 
   nsCOMPtr<nsIPresShell> presShell = aPresShell;
   if (!presShell)
-    return false;
+    return PR_FALSE;
 
   nsCOMPtr<nsIDocument> doc = presShell->GetDocument();
   if (!doc)
-    return false;
+    return PR_FALSE;
 
   nsCOMPtr<nsPIDOMWindow> piWindow = doc->GetWindow();
   if (!piWindow)
-    return false;
+    return PR_FALSE;
 
   
   nsCOMPtr<nsIContent> content;
@@ -683,7 +704,7 @@ nsCopySupport::FireClipboardEvent(int32_t aType, nsIPresShell* aPresShell, nsISe
       bool isCollapsed;
       sel->GetIsCollapsed(&isCollapsed);
       if (isCollapsed)
-        return false;
+        return PR_FALSE;
     }
 
     nsCOMPtr<nsIDOMRange> range;
@@ -700,46 +721,44 @@ nsCopySupport::FireClipboardEvent(int32_t aType, nsIPresShell* aPresShell, nsISe
   if (!content) {
     content = doc->GetRootElement();
     if (!content)
-      return false;
+      return PR_FALSE;
   }
 
   
   if (!nsContentUtils::IsSafeToRunScript())
-    return false;
+    return PR_FALSE;
 
   
-  if (Preferences::GetBool("dom.event.clipboardevents.enabled", true)) {
-    nsEventStatus status = nsEventStatus_eIgnore;
-    nsEvent evt(true, aType);
-    nsEventDispatcher::Dispatch(content, presShell->GetPresContext(), &evt, nullptr,
-                                &status);
-    
-    if (status == nsEventStatus_eConsumeNoDefault)
-      return false;
-  }
+  nsEventStatus status = nsEventStatus_eIgnore;
+  nsEvent evt(PR_TRUE, aType);
+  nsEventDispatcher::Dispatch(content, presShell->GetPresContext(), &evt, nsnull,
+                              &status);
   
+  if (status == nsEventStatus_eConsumeNoDefault)
+    return PR_FALSE;
+
   if (presShell->IsDestroying())
-    return false;
+    return PR_FALSE;
 
   
   
   
   if (aType == NS_PASTE)
-    return true;
+    return PR_TRUE;
 
   
   
   presShell->FlushPendingNotifications(Flush_Frames);
   if (presShell->IsDestroying())
-    return false;
+    return PR_FALSE;
 
   
   if (NS_FAILED(nsCopySupport::HTMLCopy(sel, doc, nsIClipboard::kGlobalClipboard)))
-    return false;
+    return PR_FALSE;
 
   
   
   piWindow->UpdateCommands(NS_LITERAL_STRING("clipboard"));
 
-  return true;
+  return PR_TRUE;
 }

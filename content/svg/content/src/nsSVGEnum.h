@@ -3,22 +3,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGENUM_H__
 #define __NS_SVGENUM_H__
 
-#include "nsAutoPtr.h"
-#include "nsCycleCollectionParticipant.h"
-#include "nsError.h"
 #include "nsIDOMSVGAnimatedEnum.h"
-#include "nsISMILAttr.h"
 #include "nsSVGElement.h"
-#include "mozilla/Attributes.h"
+#include "nsDOMError.h"
 
-class nsIAtom;
-class nsISMILAnimationElement;
-class nsSMILValue;
-
-typedef uint8_t nsSVGEnumValue;
+typedef PRUint8 nsSVGEnumValue;
 
 struct nsSVGEnumMapping {
   nsIAtom **mKey;
@@ -28,42 +51,49 @@ struct nsSVGEnumMapping {
 class nsSVGEnum
 {
 public:
-  void Init(uint8_t aAttrEnum, uint16_t aValue) {
-    mAnimVal = mBaseVal = uint8_t(aValue);
+  void Init(PRUint8 aAttrEnum, PRUint16 aValue) {
+    mAnimVal = mBaseVal = PRUint8(aValue);
     mAttrEnum = aAttrEnum;
-    mIsAnimated = false;
-    mIsBaseSet = false;
+    mIsAnimated = PR_FALSE;
+    mIsBaseSet = PR_FALSE;
   }
 
-  nsresult SetBaseValueAtom(const nsIAtom* aValue, nsSVGElement *aSVGElement);
-  nsIAtom* GetBaseValueAtom(nsSVGElement *aSVGElement);
-  nsresult SetBaseValue(uint16_t aValue,
-                        nsSVGElement *aSVGElement);
-  uint16_t GetBaseValue() const
+  nsresult SetBaseValueString(const nsAString& aValue,
+                              nsSVGElement *aSVGElement,
+                              bool aDoSetAttr);
+  void GetBaseValueString(nsAString& aValue,
+                          nsSVGElement *aSVGElement);
+
+  nsresult SetBaseValue(PRUint16 aValue,
+                        nsSVGElement *aSVGElement,
+                        bool aDoSetAttr);
+  PRUint16 GetBaseValue() const
     { return mBaseVal; }
 
-  void SetAnimValue(uint16_t aValue, nsSVGElement *aSVGElement);
-  uint16_t GetAnimValue() const
+  void SetAnimValue(PRUint16 aValue, nsSVGElement *aSVGElement);
+  PRUint16 GetAnimValue() const
     { return mAnimVal; }
   bool IsExplicitlySet() const
     { return mIsAnimated || mIsBaseSet; }
 
   nsresult ToDOMAnimatedEnum(nsIDOMSVGAnimatedEnumeration **aResult,
                              nsSVGElement* aSVGElement);
+#ifdef MOZ_SMIL
   
   nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement);
+#endif 
 
 private:
   nsSVGEnumValue mAnimVal;
   nsSVGEnumValue mBaseVal;
-  uint8_t mAttrEnum; 
+  PRUint8 mAttrEnum; 
   bool mIsAnimated;
   bool mIsBaseSet;
 
   nsSVGEnumMapping *GetMapping(nsSVGElement *aSVGElement);
 
 public:
-  struct DOMAnimatedEnum MOZ_FINAL : public nsIDOMSVGAnimatedEnumeration
+  struct DOMAnimatedEnum : public nsIDOMSVGAnimatedEnumeration
   {
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS(DOMAnimatedEnum)
@@ -74,21 +104,24 @@ public:
     nsSVGEnum *mVal; 
     nsRefPtr<nsSVGElement> mSVGElement;
 
-    NS_IMETHOD GetBaseVal(uint16_t* aResult)
+    NS_IMETHOD GetBaseVal(PRUint16* aResult)
       { *aResult = mVal->GetBaseValue(); return NS_OK; }
-    NS_IMETHOD SetBaseVal(uint16_t aValue)
-      { return mVal->SetBaseValue(aValue, mSVGElement); }
+    NS_IMETHOD SetBaseVal(PRUint16 aValue)
+      { return mVal->SetBaseValue(aValue, mSVGElement, PR_TRUE); }
 
     
     
-    NS_IMETHOD GetAnimVal(uint16_t* aResult)
+    NS_IMETHOD GetAnimVal(PRUint16* aResult)
     {
+#ifdef MOZ_SMIL
       mSVGElement->FlushAnimations();
+#endif
       *aResult = mVal->GetAnimValue();
       return NS_OK;
     }
   };
 
+#ifdef MOZ_SMIL
   struct SMILEnum : public nsISMILAttr
   {
   public:
@@ -110,6 +143,7 @@ public:
     virtual void ClearAnimValue();
     virtual nsresult SetAnimValue(const nsSMILValue& aValue);
   };
+#endif 
 };
 
 #endif 

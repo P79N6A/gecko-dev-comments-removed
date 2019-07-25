@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsParentalControlsServiceWin.h"
 #include "nsString.h"
 #include "nsIArray.h"
@@ -41,9 +74,9 @@ MyEventRegister gEventRegister = NULL;
 MyEventUnregister gEventUnregister = NULL;
 
 nsParentalControlsServiceWin::nsParentalControlsServiceWin() :
-  mPC(nullptr)
-, mEnabled(false)
-, mProvider(NULL)
+  mPC(nsnull)
+, mEnabled(PR_FALSE)
+, mProvider(nsnull)
 {
   HRESULT hr;
   CoInitialize(NULL);
@@ -56,7 +89,7 @@ nsParentalControlsServiceWin::nsParentalControlsServiceWin() :
   if (FAILED(mPC->GetUserSettings(NULL, getter_AddRefs(wpcs)))) {
     
     mPC->Release();
-    mPC = nullptr;
+    mPC = nsnull;
     return;
   }
 
@@ -71,7 +104,7 @@ nsParentalControlsServiceWin::nsParentalControlsServiceWin() :
       gEventRegister = (MyEventRegister) GetProcAddress(gAdvAPIDLLInst, "EventRegister");
       gEventUnregister = (MyEventUnregister) GetProcAddress(gAdvAPIDLLInst, "EventUnregister");
     }
-    mEnabled = true;
+    mEnabled = PR_TRUE;
   }
 }
 
@@ -92,10 +125,10 @@ nsParentalControlsServiceWin::~nsParentalControlsServiceWin()
 NS_IMETHODIMP
 nsParentalControlsServiceWin::GetParentalControlsEnabled(bool *aResult)
 {
-  *aResult = false;
+  *aResult = PR_FALSE;
 
   if (mEnabled)
-    *aResult = true;
+    *aResult = PR_TRUE;
 
   return NS_OK;
 }
@@ -103,7 +136,7 @@ nsParentalControlsServiceWin::GetParentalControlsEnabled(bool *aResult)
 NS_IMETHODIMP
 nsParentalControlsServiceWin::GetBlockFileDownloadsEnabled(bool *aResult)
 {
-  *aResult = false;
+  *aResult = PR_FALSE;
 
   if (!mEnabled)
     return NS_ERROR_NOT_AVAILABLE;
@@ -113,7 +146,7 @@ nsParentalControlsServiceWin::GetBlockFileDownloadsEnabled(bool *aResult)
     DWORD settings = 0;
     wpcws->GetSettings(&settings);
     if (settings == WPCFLAG_WEB_SETTING_DOWNLOADSBLOCKED)
-      *aResult = true;
+      *aResult = PR_TRUE;
   }
 
   return NS_OK;
@@ -122,7 +155,7 @@ nsParentalControlsServiceWin::GetBlockFileDownloadsEnabled(bool *aResult)
 NS_IMETHODIMP
 nsParentalControlsServiceWin::GetLoggingEnabled(bool *aResult)
 {
-  *aResult = false;
+  *aResult = PR_FALSE;
 
   if (!mEnabled)
     return NS_ERROR_NOT_AVAILABLE;
@@ -133,7 +166,7 @@ nsParentalControlsServiceWin::GetLoggingEnabled(bool *aResult)
     BOOL enabled = FALSE;
     wpcs->IsLoggingRequired(&enabled);
     if (enabled)
-      *aResult = true;
+      *aResult = PR_TRUE;
   }
 
   return NS_OK;
@@ -141,7 +174,7 @@ nsParentalControlsServiceWin::GetLoggingEnabled(bool *aResult)
 
 
 NS_IMETHODIMP
-nsParentalControlsServiceWin::Log(int16_t aEntryType, bool blocked, nsIURI *aSource, nsIFile *aTarget)
+nsParentalControlsServiceWin::Log(PRInt16 aEntryType, bool blocked, nsIURI *aSource, nsIFile *aTarget)
 {
   if (!mEnabled)
     return NS_ERROR_NOT_AVAILABLE;
@@ -180,24 +213,24 @@ nsParentalControlsServiceWin::Log(int16_t aEntryType, bool blocked, nsIURI *aSou
 NS_IMETHODIMP
 nsParentalControlsServiceWin::RequestURIOverride(nsIURI *aTarget, nsIInterfaceRequestor *aWindowContext, bool *_retval)
 {
-  *_retval = false;
+  *_retval = PR_FALSE;
 
   if (!mEnabled)
     return NS_ERROR_NOT_AVAILABLE;
 
   NS_ENSURE_ARG_POINTER(aTarget);
 
-  nsAutoCString spec;
+  nsCAutoString spec;
   aTarget->GetSpec(spec);
   if (spec.IsEmpty())
     return NS_ERROR_INVALID_ARG;
 
-  HWND hWnd = nullptr;
+  HWND hWnd = nsnull;
   
   nsCOMPtr<nsIWidget> widget(do_GetInterface(aWindowContext));
   if (widget)
     hWnd = (HWND)widget->GetNativeData(NS_NATIVE_WINDOW);
-  if (hWnd == nullptr)
+  if (hWnd == nsnull)
     hWnd = GetDesktopWindow();
 
   BOOL ret;
@@ -216,14 +249,14 @@ nsParentalControlsServiceWin::RequestURIOverride(nsIURI *aTarget, nsIInterfaceRe
 NS_IMETHODIMP
 nsParentalControlsServiceWin::RequestURIOverrides(nsIArray *aTargets, nsIInterfaceRequestor *aWindowContext, bool *_retval)
 {
-  *_retval = false;
+  *_retval = PR_FALSE;
 
   if (!mEnabled)
     return NS_ERROR_NOT_AVAILABLE;
 
   NS_ENSURE_ARG_POINTER(aTargets);
 
-  uint32_t arrayLength = 0;
+  PRUint32 arrayLength = 0;
   aTargets->GetLength(&arrayLength);
   if (!arrayLength)
     return NS_ERROR_INVALID_ARG;
@@ -235,16 +268,16 @@ nsParentalControlsServiceWin::RequestURIOverrides(nsIArray *aTargets, nsIInterfa
     return RequestURIOverride(uri, aWindowContext, _retval);
   }
 
-  HWND hWnd = nullptr;
+  HWND hWnd = nsnull;
   
   nsCOMPtr<nsIWidget> widget(do_GetInterface(aWindowContext));
   if (widget)
     hWnd = (HWND)widget->GetNativeData(NS_NATIVE_WINDOW);
-  if (hWnd == nullptr)
+  if (hWnd == nsnull)
     hWnd = GetDesktopWindow();
 
   
-  nsAutoCString rootSpec;
+  nsCAutoString rootSpec;
   nsCOMPtr<nsIURI> rootURI = do_QueryElementAt(aTargets, 0);
   if (!rootURI)
     return NS_ERROR_INVALID_ARG;
@@ -254,19 +287,19 @@ nsParentalControlsServiceWin::RequestURIOverrides(nsIArray *aTargets, nsIInterfa
     return NS_ERROR_INVALID_ARG;
 
   
-  int32_t count = arrayLength - 1;
+  PRInt32 count = arrayLength - 1;
   nsAutoArrayPtr<LPCWSTR> arrUrls(new LPCWSTR[count]);
   if (!arrUrls)
     return NS_ERROR_OUT_OF_MEMORY;
 
-  uint32_t uriIdx = 0, idx;
+  PRUint32 uriIdx = 0, idx;
   for (idx = 1; idx < arrayLength; idx++)
   {
     nsCOMPtr<nsIURI> uri = do_QueryElementAt(aTargets, idx);
     if (!uri)
       continue;
 
-    nsAutoCString subURI;
+    nsCAutoString subURI;
     if (NS_FAILED(uri->GetSpec(subURI)))
       continue;
 
@@ -301,7 +334,7 @@ nsParentalControlsServiceWin::RequestURIOverrides(nsIArray *aTargets, nsIInterfa
 void
 nsParentalControlsServiceWin::LogFileDownload(bool blocked, nsIURI *aSource, nsIFile *aTarget)
 {
-  nsAutoCString curi;
+  nsCAutoString curi;
 
   if (!gEventWrite)
     return;
@@ -313,7 +346,7 @@ nsParentalControlsServiceWin::LogFileDownload(bool blocked, nsIURI *aSource, nsI
 
   
   nsCOMPtr<nsIXULAppInfo> appInfo = do_GetService("@mozilla.org/xre/app-info;1");
-  nsAutoCString asciiAppName;
+  nsCAutoString asciiAppName;
   if (appInfo)
     appInfo->GetName(asciiAppName);
   nsAutoString appName = NS_ConvertUTF8toUTF16(asciiAppName);

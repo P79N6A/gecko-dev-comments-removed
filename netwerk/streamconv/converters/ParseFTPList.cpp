@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -31,6 +64,11 @@ int ParseFTPList(const char *line, struct list_state *state,
     return 0;
 
   memset( result, 0, sizeof(*result) );
+  if (state->magic != ((void *)ParseFTPList))
+  {
+    memset( state, 0, sizeof(*state) );
+    state->magic = ((void *)ParseFTPList);
+  }
   state->numlines++;
 
   
@@ -486,7 +524,7 @@ int ParseFTPList(const char *line, struct list_state *state,
 
 
 
-              uint64_t fsz, factor;
+              PRUint64 fsz, factor;
               LL_UI2L(fsz, strtoul(tokens[1], (char **)0, 10));
               LL_UI2L(factor, 512);
               LL_MUL(fsz, fsz, factor);
@@ -1012,7 +1050,7 @@ int ParseFTPList(const char *line, struct list_state *state,
               
               lstyle = 'U'; 
               if (toklen[0] == 10)
-                is_old_Hellsoft = true;
+                is_old_Hellsoft = PR_TRUE;
             }
           }
         }
@@ -1184,7 +1222,7 @@ int ParseFTPList(const char *line, struct list_state *state,
         {
           
 
-          uint32_t fe_size = atoi(result->fe_size);
+          PRUint32 fe_size = atoi(result->fe_size);
 
           if (result->fe_fnlen > (fe_size + 4) &&
               PL_strncmp(result->fe_fname + result->fe_fnlen - fe_size - 4 , " -> ", 4) == 0)

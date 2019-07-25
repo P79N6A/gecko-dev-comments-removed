@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsGBKConvUtil.h"
 #include "gbku.h"
 #include "nsCRT.h"
@@ -15,7 +47,7 @@ static bool gInitToGBKTable = false;
 static const PRUnichar gGBKToUnicodeTable[MAX_GBK_LENGTH] = {
 #include "cp936map.h"
 };
-static uint16_t gUnicodeToGBKTable[0xA000-0x4e00];
+static PRUint16 gUnicodeToGBKTable[0xA000-0x4e00];
 
 bool nsGBKConvUtil::UnicodeToGBKChar(
   PRUnichar aChar, bool aToGL, char* 
@@ -27,34 +59,34 @@ bool nsGBKConvUtil::UnicodeToGBKChar(
   if(UNICHAR_IN_RANGE(0xd800, aChar, 0xdfff))
   {
     
-    return false;
+    return PR_FALSE;
   }
   if(UNICHAR_IN_RANGE(0x4e00, aChar, 0x9FFF))
   {
-    uint16_t item = gUnicodeToGBKTable[aChar - 0x4e00];
+    PRUint16 item = gUnicodeToGBKTable[aChar - 0x4e00];
     if(item != 0) 
     {
       *aOutByte1 = item >> 8;
       *aOutByte2 = item & 0x00FF;
-      found = true;
+      found = PR_TRUE;
     } else {
-      return false;
+      return PR_FALSE;
     }
   } else {
     
-    for( int32_t i = 0; i < MAX_GBK_LENGTH; i++ )
+    for( PRInt32 i = 0; i < MAX_GBK_LENGTH; i++ )
     {
       if( aChar == gGBKToUnicodeTable[i])
       {
         *aOutByte1 = (i /  0x00BF + 0x0081) ;
         *aOutByte2 = (i %  0x00BF + 0x0040) ;
-        found = true;
+        found = PR_TRUE;
         break;
       }
     }
   }
   if(! found)
-    return false;
+    return PR_FALSE;
 
   if(aToGL) {
     
@@ -69,19 +101,19 @@ bool nsGBKConvUtil::UnicodeToGBKChar(
       
       *aOutByte1 = 0x00;
       *aOutByte2 = 0x00;
-      return false;
+      return PR_FALSE;
     }
   }
-  return true;
+  return PR_TRUE;
 }
 PRUnichar nsGBKConvUtil::GBKCharToUnicode(char aByte1, char aByte2)
 {
   NS_ASSERTION(UINT8_IN_RANGE(0x81,aByte1, 0xFE), "first byte out of range");
   NS_ASSERTION(UINT8_IN_RANGE(0x40,aByte2, 0xFE), "second byte out of range");
 
-  uint8_t i1 = (uint8_t)aByte1;
-  uint8_t i2 = (uint8_t)aByte2;
-  uint16_t idx = (i1 - 0x0081) * 0x00bf + i2 - 0x0040 ;
+  PRUint8 i1 = (PRUint8)aByte1;
+  PRUint8 i2 = (PRUint8)aByte2;
+  PRUint16 idx = (i1 - 0x0081) * 0x00bf + i2 - 0x0040 ;
 
   NS_ASSERTION(idx < MAX_GBK_LENGTH, "ARB");
   
@@ -114,5 +146,5 @@ void nsGBKConvUtil::InitToGBKTable()
                                     ( i % 0x00BF+ 0x0040);
     }
   }
-  gInitToGBKTable = true;
+  gInitToGBKTable = PR_TRUE;
 }

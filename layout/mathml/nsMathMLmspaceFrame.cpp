@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsFrame.h"
 #include "nsPresContext.h"
@@ -32,69 +65,57 @@ nsMathMLmspaceFrame::~nsMathMLmspaceFrame()
 bool
 nsMathMLmspaceFrame::IsLeaf() const
 {
-  return true;
+  return PR_TRUE;
 }
 
 void
 nsMathMLmspaceFrame::ProcessAttributes(nsPresContext* aPresContext)
 {
-  nsAutoString value;
+  
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
+  nsAutoString value;
+  nsCSSValue cssValue;
+
   
   mWidth = 0;
   GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::width,
                value);
   if (!value.IsEmpty()) {
-    ParseNumericValue(value, &mWidth,
-                      nsMathMLElement::PARSE_ALLOW_NEGATIVE,
-                      aPresContext, mStyleContext);
+    if ((ParseNumericValue(value, cssValue) ||
+         ParseNamedSpaceValue(mPresentationData.mstyle, value, cssValue)) &&
+         cssValue.IsLengthUnit()) {
+      mWidth = CalcLength(aPresContext, mStyleContext, cssValue);
+    }
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
   
   mHeight = 0;
   GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::height,
                value);
   if (!value.IsEmpty()) {
-    ParseNumericValue(value, &mHeight, 0,
-                      aPresContext, mStyleContext);
+    if ((ParseNumericValue(value, cssValue) ||
+         ParseNamedSpaceValue(mPresentationData.mstyle, value, cssValue)) &&
+         cssValue.IsLengthUnit()) {
+      mHeight = CalcLength(aPresContext, mStyleContext, cssValue);
+    }
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
   
   mDepth = 0;
   GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::depth_,
                value);
   if (!value.IsEmpty()) {
-    ParseNumericValue(value, &mDepth, 0,
-                      aPresContext, mStyleContext);
+    if ((ParseNumericValue(value, cssValue) ||
+         ParseNamedSpaceValue(mPresentationData.mstyle, value, cssValue)) &&
+         cssValue.IsLengthUnit()) {
+      mDepth = CalcLength(aPresContext, mStyleContext, cssValue);
+    }
   }
 }
 
@@ -105,18 +126,16 @@ nsMathMLmspaceFrame::Reflow(nsPresContext*          aPresContext,
                             nsReflowStatus&          aStatus)
 {
   ProcessAttributes(aPresContext);
-  
-  
 
   mBoundingMetrics = nsBoundingMetrics();
-  mBoundingMetrics.width = NS_MAX(0, mWidth);
+  mBoundingMetrics.width = mWidth;
   mBoundingMetrics.ascent = mHeight;
   mBoundingMetrics.descent = mDepth;
   mBoundingMetrics.leftBearing = 0;
-  mBoundingMetrics.rightBearing = mBoundingMetrics.width;
+  mBoundingMetrics.rightBearing = mWidth;
 
   aDesiredSize.ascent = mHeight;
-  aDesiredSize.width = mBoundingMetrics.width;
+  aDesiredSize.width = mWidth;
   aDesiredSize.height = aDesiredSize.ascent + mDepth;
   
   aDesiredSize.mBoundingMetrics = mBoundingMetrics;

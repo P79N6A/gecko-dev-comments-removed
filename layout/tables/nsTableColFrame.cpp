@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsTableColFrame.h"
 #include "nsTableFrame.h"
@@ -47,27 +79,27 @@ nsTableColFrame::SetColType(nsTableColType aType)
                 GetPrevContinuation()->GetNextContinuation() == this &&
                 GetPrevContinuation()->GetNextSibling() == this),
                "spanned content cols must be continuations");
-  uint32_t type = aType - eColContent;
+  PRUint32 type = aType - eColContent;
   mState |= (type << COL_TYPE_OFFSET);
 }
 
  void
 nsTableColFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 {
-  nsSplittableFrame::DidSetStyleContext(aOldStyleContext);
-
   if (!aOldStyleContext) 
     return;
      
   nsTableFrame* tableFrame = nsTableFrame::GetTableFrame(this);
+    
   if (tableFrame->IsBorderCollapse() &&
       tableFrame->BCRecalcNeeded(aOldStyleContext, GetStyleContext())) {
-    nsIntRect damageArea(GetColIndex(), 0, 1, tableFrame->GetRowCount());
-    tableFrame->AddBCDamageArea(damageArea);
+    nsRect damageArea = nsRect(GetColIndex(), 0, 1, tableFrame->GetRowCount());
+    tableFrame->SetBCDamageArea(damageArea);
   }
+  return;
 }
 
-void nsTableColFrame::SetContinuousBCBorderWidth(uint8_t     aForSide,
+void nsTableColFrame::SetContinuousBCBorderWidth(PRUint8     aForSide,
                                                  BCPixelSize aPixelValue)
 {
   switch (aForSide) {
@@ -98,24 +130,26 @@ NS_METHOD nsTableColFrame::Reflow(nsPresContext*          aPresContext,
   bool collapseCol = (NS_STYLE_VISIBILITY_COLLAPSE == colVis->mVisible);
   if (collapseCol) {
     nsTableFrame* tableFrame = nsTableFrame::GetTableFrame(this);
-    tableFrame->SetNeedToCollapse(true);
+    if (tableFrame)  {
+      tableFrame->SetNeedToCollapse(PR_TRUE);
+    }    
   }
   aStatus = NS_FRAME_COMPLETE;
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
   return NS_OK;
 }
 
-int32_t nsTableColFrame::GetSpan()
+PRInt32 nsTableColFrame::GetSpan()
 {
   return GetStyleTable()->mSpan;
 }
 
 #ifdef DEBUG
-void nsTableColFrame::Dump(int32_t aIndent)
+void nsTableColFrame::Dump(PRInt32 aIndent)
 {
   char* indent = new char[aIndent + 1];
   if (!indent) return;
-  for (int32_t i = 0; i < aIndent + 1; i++) {
+  for (PRInt32 i = 0; i < aIndent + 1; i++) {
     indent[i] = ' ';
   }
   indent[aIndent] = 0;
@@ -138,11 +172,10 @@ void nsTableColFrame::Dump(int32_t aIndent)
     break;
   }
   printf("\nm:%d c:%d(%c) p:%f sm:%d sc:%d sp:%f f:%d",
-         int32_t(mMinCoord), int32_t(mPrefCoord),
-         mHasSpecifiedCoord ? 's' : 'u', mPrefPercent,
-         int32_t(mSpanMinCoord), int32_t(mSpanPrefCoord),
+         mMinCoord, mPrefCoord, mHasSpecifiedCoord ? 's' : 'u', mPrefPercent,
+         mSpanMinCoord, mSpanPrefCoord,
          mSpanPrefPercent,
-         int32_t(GetFinalWidth()));
+         GetFinalWidth());
   printf("\n%s**END COL DUMP** ", indent);
   delete [] indent;
 }
@@ -167,7 +200,7 @@ nsTableColFrame::GetNextCol() const
     }
     childFrame = childFrame->GetNextSibling();
   }
-  return nullptr;
+  return nsnull;
 }
 
 nsIAtom*

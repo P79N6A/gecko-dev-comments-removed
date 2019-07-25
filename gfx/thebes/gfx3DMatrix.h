@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_3DMATRIX_H
 #define GFX_3DMATRIX_H
 
@@ -10,7 +43,6 @@
 #include <gfxPoint3D.h>
 #include <gfxPointH3D.h>
 #include <gfxMatrix.h>
-#include <gfxQuad.h>
 
 
 
@@ -86,16 +118,7 @@ public:
 
 
 
-
-
-
-  bool CanDraw2D(gfxMatrix* aMatrix = nullptr) const;
-
-  
-
-
-
-  gfx3DMatrix& ProjectTo2D();
+  bool CanDraw2D(gfxMatrix* aMatrix = nsnull) const;
 
   
 
@@ -147,13 +170,6 @@ public:
 
 
   void Scale(float aX, float aY, float aZ);
-
-  
-
-
-  float GetXScale() const { return _11; }
-  float GetYScale() const { return _22; }
-  float GetZScale() const { return _33; }
 
   
 
@@ -213,15 +229,13 @@ public:
 
 
 
-
+  
   
 
 
 
 
   void TranslatePost(const gfxPoint3D& aPoint);
-
-  void ScalePost(float aX, float aY, float aZ);
 
   
 
@@ -232,9 +246,6 @@ public:
 
 
   gfxRect TransformBounds(const gfxRect& rect) const;
-
-
-  gfxQuad TransformRect(const gfxRect& aRect) const;
 
   
 
@@ -284,12 +295,6 @@ public:
 
 
   gfxPoint3D GetNormalVector() const;
-
-  
-
-
-
-  bool IsBackfaceVisible() const;
 
   
 

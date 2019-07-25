@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsMIMEInfoWin_h_
 #define nsMIMEInfoWin_h_
 
@@ -57,7 +89,7 @@ class nsMIMEInfoWin : public nsMIMEInfoBase, public nsIPropertyBag {
     
     
     bool GetDllLaunchInfo(nsIFile * aDll,
-                            nsIFile * aFile,
+                            nsILocalFile * aFile,
                             nsAString& args, bool bEdit);
 
     

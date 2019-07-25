@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_PARSERSERVICE_H__
 #define NS_PARSERSERVICE_H__
 
@@ -21,22 +53,61 @@ public:
 
   NS_DECL_ISUPPORTS
 
-  int32_t HTMLAtomTagToId(nsIAtom* aAtom) const;
+  PRInt32 HTMLAtomTagToId(nsIAtom* aAtom) const;
 
-  int32_t HTMLCaseSensitiveAtomTagToId(nsIAtom* aAtom) const;
+  PRInt32 HTMLCaseSensitiveAtomTagToId(nsIAtom* aAtom) const;
 
-  int32_t HTMLStringTagToId(const nsAString& aTag) const;
+  PRInt32 HTMLStringTagToId(const nsAString& aTag) const;
 
-  const PRUnichar *HTMLIdToStringTag(int32_t aId) const;
+  const PRUnichar *HTMLIdToStringTag(PRInt32 aId) const;
   
-  nsIAtom *HTMLIdToAtomTag(int32_t aId) const;
+  nsIAtom *HTMLIdToAtomTag(PRInt32 aId) const;
 
   NS_IMETHOD HTMLConvertEntityToUnicode(const nsAString& aEntity, 
-                                        int32_t* aUnicode) const;
-  NS_IMETHOD HTMLConvertUnicodeToEntity(int32_t aUnicode,
+                                        PRInt32* aUnicode) const;
+  NS_IMETHOD HTMLConvertUnicodeToEntity(PRInt32 aUnicode,
                                         nsCString& aEntity) const;
-  NS_IMETHOD IsContainer(int32_t aId, bool& aIsContainer) const;
-  NS_IMETHOD IsBlock(int32_t aId, bool& aIsBlock) const;
+  NS_IMETHOD IsContainer(PRInt32 aId, bool& aIsContainer) const;
+  NS_IMETHOD IsBlock(PRInt32 aId, bool& aIsBlock) const;
+
+   
+  NS_IMETHOD RegisterObserver(nsIElementObserver* aObserver,
+                              const nsAString& aTopic,
+                              const eHTMLTags* aTags = nsnull);
+
+  NS_IMETHOD UnregisterObserver(nsIElementObserver* aObserver,
+                                const nsAString& aTopic);
+  NS_IMETHOD GetTopicObservers(const nsAString& aTopic,
+                               nsIObserverEntry** aEntry);
+
+  nsresult CheckQName(const nsAString& aQName,
+                      bool aNamespaceAware, const PRUnichar** aColon);
+
+  bool IsXMLLetter(PRUnichar aChar)
+  {
+    return !!MOZ_XMLIsLetter(reinterpret_cast<const char*>(&aChar));
+  }
+  bool IsXMLNCNameChar(PRUnichar aChar)
+  {
+    return !!MOZ_XMLIsNCNameChar(reinterpret_cast<const char*>(&aChar));
+  }
+  PRUint32 DecodeEntity(const PRUnichar* aStart, const PRUnichar* aEnd,
+                        const PRUnichar** aNext, PRUnichar* aResult)
+  {
+    *aNext = nsnull;
+    return MOZ_XMLTranslateEntity(reinterpret_cast<const char*>(aStart),
+                                  reinterpret_cast<const char*>(aEnd),
+                                  reinterpret_cast<const char**>(aNext),
+                                  aResult);
+  }
+
+protected:
+  nsObserverEntry* GetEntry(const nsAString& aTopic);
+  nsresult CreateEntry(const nsAString& aTopic,
+                       nsObserverEntry** aEntry);
+
+  nsDeque  mEntries;  
+  bool     mHaveNotifiedCategoryObservers;
 };
 
 #endif

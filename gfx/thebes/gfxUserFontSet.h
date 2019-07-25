@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_USER_FONT_SET_H
 #define GFX_USER_FONT_SET_H
 
@@ -19,7 +51,6 @@
 
 class nsIURI;
 class gfxMixedFontFamily;
-class nsFontFaceLoader;
 
 
 
@@ -32,7 +63,7 @@ struct gfxFontFaceSrc {
     
     
     
-    uint32_t               mFormatFlags;
+    PRUint32               mFormatFlags;
 
     nsString               mLocalName;     
     nsCOMPtr<nsIURI>       mURI;           
@@ -54,13 +85,13 @@ public:
     { }
     virtual ~gfxUserFontData() { }
 
-    nsTArray<uint8_t> mMetadata;  
+    nsTArray<PRUint8> mMetadata;  
     nsCOMPtr<nsIURI>  mURI;       
     nsString          mLocalName; 
     nsString          mRealName;  
-    uint32_t          mSrcIndex;  
-    uint32_t          mFormat;    
-    uint32_t          mMetaOrigLen; 
+    PRUint32          mSrcIndex;  
+    PRUint32          mFormat;    
+    PRUint32          mMetaOrigLen; 
 };
 
 
@@ -79,63 +110,47 @@ public:
         nsRefPtr<gfxFontEntry> fe = aFontEntry;
         mAvailableFonts.AppendElement(fe);
         aFontEntry->SetFamily(this);
-        ResetCharacterMap();
     }
 
-    void ReplaceFontEntry(gfxFontEntry *aOldFontEntry,
-                          gfxFontEntry *aNewFontEntry) {
-        uint32_t numFonts = mAvailableFonts.Length();
-        for (uint32_t i = 0; i < numFonts; i++) {
+    void ReplaceFontEntry(gfxFontEntry *aOldFontEntry, gfxFontEntry *aNewFontEntry) 
+    {
+        PRUint32 numFonts = mAvailableFonts.Length();
+        for (PRUint32 i = 0; i < numFonts; i++) {
             gfxFontEntry *fe = mAvailableFonts[i];
             if (fe == aOldFontEntry) {
-                aOldFontEntry->SetFamily(nullptr);
+                aOldFontEntry->SetFamily(nsnull);
                 
                 
                 mAvailableFonts[i] = aNewFontEntry;
                 aNewFontEntry->SetFamily(this);
-                break;
+                return;
             }
         }
-        ResetCharacterMap();
     }
 
-    void RemoveFontEntry(gfxFontEntry *aFontEntry) {
-        uint32_t numFonts = mAvailableFonts.Length();
-        for (uint32_t i = 0; i < numFonts; i++) {
+    void RemoveFontEntry(gfxFontEntry *aFontEntry) 
+    {
+        PRUint32 numFonts = mAvailableFonts.Length();
+        for (PRUint32 i = 0; i < numFonts; i++) {
             gfxFontEntry *fe = mAvailableFonts[i];
             if (fe == aFontEntry) {
-                aFontEntry->SetFamily(nullptr);
+                aFontEntry->SetFamily(nsnull);
                 mAvailableFonts.RemoveElementAt(i);
-                break;
+                return;
             }
         }
-        ResetCharacterMap();
-    }
-
-    
-    
-    
-    void DetachFontEntries() {
-        uint32_t i = mAvailableFonts.Length();
-        while (i--) {
-            gfxFontEntry *fe = mAvailableFonts[i];
-            if (fe) {
-                fe->SetFamily(nullptr);
-            }
-        }
-        mAvailableFonts.Clear();
     }
 
     
     bool AllLoaded() 
     {
-        uint32_t numFonts = mAvailableFonts.Length();
-        for (uint32_t i = 0; i < numFonts; i++) {
+        PRUint32 numFonts = mAvailableFonts.Length();
+        for (PRUint32 i = 0; i < numFonts; i++) {
             gfxFontEntry *fe = mAvailableFonts[i];
             if (fe->mIsProxy)
-                return false;
+                return PR_FALSE;
         }
-        return true;
+        return PR_TRUE;
     }
 };
 
@@ -180,12 +195,12 @@ public:
     
     gfxFontEntry *AddFontFace(const nsAString& aFamilyName,
                               const nsTArray<gfxFontFaceSrc>& aFontFaceSrcList,
-                              uint32_t aWeight,
-                              uint32_t aStretch,
-                              uint32_t aItalicStyle,
-                              const nsTArray<gfxFontFeature>& aFeatureSettings,
+                              PRUint32 aWeight,
+                              PRUint32 aStretch,
+                              PRUint32 aItalicStyle,
+                              const nsString& aFeatureSettings,
                               const nsString& aLanguageOverride,
-                              gfxSparseBitSet *aUnicodeRanges = nullptr);
+                              gfxSparseBitSet *aUnicodeRanges = nsnull);
 
     
     void AddFontFace(const nsAString& aFamilyName, gfxFontEntry* aFontEntry);
@@ -193,7 +208,7 @@ public:
     
     bool HasFamily(const nsAString& aFamilyName) const
     {
-        return GetFamily(aFamilyName) != nullptr;
+        return GetFamily(aFamilyName) != nsnull;
     }
 
     
@@ -215,7 +230,7 @@ public:
     
     
     bool OnLoadComplete(gfxProxyFontEntry *aProxy,
-                          const uint8_t *aFontData, uint32_t aLength,
+                          const PRUint8 *aFontData, PRUint32 aLength,
                           nsresult aDownloadStatus);
 
     
@@ -226,7 +241,7 @@ public:
 
     
     
-    uint64_t GetGeneration() { return mGeneration; }
+    PRUint64 GetGeneration() { return mGeneration; }
 
     
     void IncrementGeneration();
@@ -236,53 +251,20 @@ protected:
     
     LoadStatus LoadNext(gfxProxyFontEntry *aProxyEntry);
 
-    
-    
-    
-    
-    gfxFontEntry* LoadFont(gfxProxyFontEntry *aProxy,
-                           const uint8_t *aFontData, uint32_t &aLength);
-
-    
-    virtual nsresult SyncLoadFontData(gfxProxyFontEntry *aFontToLoad,
-                                      const gfxFontFaceSrc *aFontFaceSrc,
-                                      uint8_t* &aBuffer,
-                                      uint32_t &aBufferLength)
-    {
-        
-        return NS_ERROR_NOT_IMPLEMENTED;
-    }
-
     gfxMixedFontFamily *GetFamily(const nsAString& aName) const;
 
     
     virtual nsresult LogMessage(gfxProxyFontEntry *aProxy,
                                 const char *aMessage,
-                                uint32_t aFlags = nsIScriptError::errorFlag,
-                                nsresult aStatus = NS_OK) = 0;
-
-    const uint8_t* SanitizeOpenTypeData(gfxProxyFontEntry *aProxy,
-                                        const uint8_t* aData,
-                                        uint32_t aLength,
-                                        uint32_t& aSaneLength,
-                                        bool aIsCompressed);
-
-#ifdef MOZ_OTS_REPORT_ERRORS
-    static bool OTSMessage(void *aUserData, const char *format, ...);
-#endif
+                                PRUint32 aFlags = nsIScriptError::errorFlag,
+                                nsresult aStatus = 0) = 0;
 
     
     nsRefPtrHashtable<nsStringHashKey, gfxMixedFontFamily> mFontFamilies;
 
-    uint64_t        mGeneration;
+    PRUint64        mGeneration;
 
     static PRLogModuleInfo *sUserFontsLog;
-
-private:
-    static void CopyWOFFMetadata(const uint8_t* aFontData,
-                                 uint32_t aLength,
-                                 nsTArray<uint8_t>* aMetadata,
-                                 uint32_t* aMetaOrigLen);
 };
 
 
@@ -293,11 +275,11 @@ class gfxProxyFontEntry : public gfxFontEntry {
 public:
     gfxProxyFontEntry(const nsTArray<gfxFontFaceSrc>& aFontFaceSrcList,
                       gfxMixedFontFamily *aFamily,
-                      uint32_t aWeight,
-                      uint32_t aStretch,
-                      uint32_t aItalicStyle,
+                      PRUint32 aWeight,
+                      PRUint32 aStretch,
+                      PRUint32 aItalicStyle,
                       const nsTArray<gfxFontFeature>& aFeatureSettings,
-                      uint32_t aLanguageOverride,
+                      PRUint32 aLanguageOverride,
                       gfxSparseBitSet *aUnicodeRanges);
 
     virtual ~gfxProxyFontEntry();
@@ -315,11 +297,9 @@ public:
         LOADING_FAILED       
     };
     LoadingState             mLoadingState;
-    bool                     mUnsupportedFormat;
 
     nsTArray<gfxFontFaceSrc> mSrcList;
-    uint32_t                 mSrcIndex; 
-    nsFontFaceLoader        *mLoader; 
+    PRUint32                 mSrcIndex; 
 };
 
 

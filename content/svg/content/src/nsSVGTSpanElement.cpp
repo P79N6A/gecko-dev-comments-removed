@@ -3,15 +3,44 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsGkAtoms.h"
 #include "nsIDOMSVGTSpanElement.h"
 #include "nsSVGSVGElement.h"
 #include "nsSVGTextPositioningElement.h"
 #include "nsContentUtils.h"
-
-using namespace mozilla;
 
 typedef nsSVGTextPositioningElement nsSVGTSpanElementBase;
 
@@ -43,8 +72,6 @@ public:
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 protected:
 
   
@@ -64,11 +91,10 @@ NS_IMPL_RELEASE_INHERITED(nsSVGTSpanElement,nsSVGTSpanElementBase)
 DOMCI_NODE_DATA(SVGTSpanElement, nsSVGTSpanElement)
 
 NS_INTERFACE_TABLE_HEAD(nsSVGTSpanElement)
-  NS_NODE_INTERFACE_TABLE7(nsSVGTSpanElement, nsIDOMNode, nsIDOMElement,
+  NS_NODE_INTERFACE_TABLE6(nsSVGTSpanElement, nsIDOMNode, nsIDOMElement,
                            nsIDOMSVGElement, nsIDOMSVGTSpanElement,
                            nsIDOMSVGTextPositioningElement,
-                           nsIDOMSVGTextContentElement,
-                           nsIDOMSVGTests)
+                           nsIDOMSVGTextContentElement)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(SVGTSpanElement)
 NS_INTERFACE_MAP_END_INHERITING(nsSVGTSpanElementBase)
 
@@ -108,7 +134,7 @@ nsSVGTSpanElement::IsAttributeMapped(const nsIAtom* name) const
     sTextContentElementsMap
   };
   
-  return FindAttributeDependence(name, map) ||
+  return FindAttributeDependence(name, map, NS_ARRAY_LENGTH(map)) ||
     nsSVGTSpanElementBase::IsAttributeMapped(name);
 }
 

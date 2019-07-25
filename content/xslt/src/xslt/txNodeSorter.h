@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef TRANSFRMX_NODESORTER_H
 #define TRANSFRMX_NODESORTER_H
 
@@ -12,7 +46,7 @@
 class Expr;
 class txExecutionState;
 class txNodeSet;
-class txObject;
+class TxObject;
 class txXPathResultComparator;
 class txIEvalContext;
 class txNodeSetContext;
@@ -38,7 +72,7 @@ private:
     {
         txNodeSorter* mNodeSorter;
         txNodeSetContext* mContext;
-        txObject** mSortValues;
+        TxObject** mSortValues;
         nsresult mRv;
     };
     struct SortKey
@@ -49,8 +83,8 @@ private:
 
     static int compareNodes(const void* aIndexA, const void* aIndexB,
                             void* aSortData);
-    static bool calcSortValue(txObject*& aSortValue, SortKey* aKey,
-                              SortData* aSortData, uint32_t aNodeIndex);
+    static bool calcSortValue(TxObject*& aSortValue, SortKey* aKey,
+                                SortData* aSortData, PRUint32 aNodeIndex);
     txList mSortKeys;
     unsigned int mNKeys;
 };

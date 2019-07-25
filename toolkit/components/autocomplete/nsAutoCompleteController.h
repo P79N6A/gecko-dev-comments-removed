@@ -2,6 +2,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __nsAutoCompleteController__
 #define __nsAutoCompleteController__
 
@@ -40,79 +74,36 @@ protected:
   nsresult OpenPopup();
   nsresult ClosePopup();
 
-  nsresult StartSearch(uint16_t aSearchType);
-
-  nsresult BeforeSearches();
-  nsresult StartSearches();
-  void AfterSearches();
+  nsresult StartSearch();
+  
+  nsresult StartSearchTimer();
   nsresult ClearSearchTimer();
 
-  nsresult ProcessResult(int32_t aSearchIndex, nsIAutoCompleteResult *aResult);
+  nsresult ProcessResult(PRInt32 aSearchIndex, nsIAutoCompleteResult *aResult);
   nsresult PostSearchCleanup();
 
   nsresult EnterMatch(bool aIsPopupSelection);
   nsresult RevertTextValue();
 
-  nsresult CompleteDefaultIndex(int32_t aResultIndex);
+  nsresult CompleteDefaultIndex(PRInt32 aSearchIndex);
   nsresult CompleteValue(nsString &aValue);
 
-  nsresult GetResultAt(int32_t aIndex, nsIAutoCompleteResult** aResult,
-                       int32_t* aRowIndex);
-  nsresult GetResultValueAt(int32_t aIndex, bool aValueOnly,
+  nsresult GetResultAt(PRInt32 aIndex, nsIAutoCompleteResult** aResult,
+                       PRInt32* aRowIndex);
+  nsresult GetResultValueAt(PRInt32 aIndex, bool aValueOnly,
                             nsAString & _retval);
-  nsresult GetResultLabelAt(int32_t aIndex, bool aValueOnly,
+  nsresult GetResultLabelAt(PRInt32 aIndex, bool aValueOnly,
                             nsAString & _retval);
 private:
-  nsresult GetResultValueLabelAt(int32_t aIndex, bool aValueOnly,
+  nsresult GetResultValueLabelAt(PRInt32 aIndex, bool aValueOnly,
                                  bool aGetValue, nsAString & _retval);
 protected:
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  nsresult GetDefaultCompleteResult(int32_t aResultIndex,
-                                    nsIAutoCompleteResult** _result,
-                                    int32_t* _defaultIndex);
-
-  
-
-
-
-
-
-
-
-
-
-  nsresult GetDefaultCompleteValue(int32_t aResultIndex, bool aPreserveCasing,
+  nsresult GetDefaultCompleteValue(PRInt32 aSearchIndex, bool aPreserveCasing,
                                    nsAString &_retval);
-
-  
-
-
-
-
-
-
-
-
-
-
-  nsresult GetFinalDefaultCompleteValue(nsAString &_retval);
-
   nsresult ClearResults();
   
-  nsresult RowIndexToSearch(int32_t aRowIndex,
-                            int32_t *aSearchIndex, int32_t *aItemIndex);
+  nsresult RowIndexToSearch(PRInt32 aRowIndex,
+                            PRInt32 *aSearchIndex, PRInt32 *aItemIndex);
 
   
   
@@ -120,14 +111,8 @@ protected:
 
   nsCOMArray<nsIAutoCompleteSearch> mSearches;
   nsCOMArray<nsIAutoCompleteResult> mResults;
+  nsTArray<PRUint32> mMatchCounts;
   
-  
-  nsTArray<uint32_t> mMatchCounts;
-  
-  
-  
-  nsCOMArray<nsIAutoCompleteResult> mResultCache;
-
   nsCOMPtr<nsITimer> mTimer;
   nsCOMPtr<nsITreeSelection> mSelection;
   nsCOMPtr<nsITreeBoxObject> mTree;
@@ -136,18 +121,13 @@ protected:
   bool mDefaultIndexCompleted;
   bool mBackspaced;
   bool mPopupClosedByCompositionStart;
-  enum CompositionState {
-    eCompositionState_None,
-    eCompositionState_Composing,
-    eCompositionState_Committing
-  };
-  CompositionState mCompositionState;
-  uint16_t mSearchStatus;
-  uint32_t mRowCount;
-  uint32_t mSearchesOngoing;
-  uint32_t mSearchesFailed;
+  bool mIsIMEComposing;
+  bool mIgnoreHandleText;
+  bool mIsOpen;
+  PRUint16 mSearchStatus;
+  PRUint32 mRowCount;
+  PRUint32 mSearchesOngoing;
   bool mFirstSearchResult;
-  uint32_t mImmediateSearchesCount;
 };
 
 #endif 

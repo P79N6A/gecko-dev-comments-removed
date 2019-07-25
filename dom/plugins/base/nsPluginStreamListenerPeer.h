@@ -3,6 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsPluginStreamListenerPeer_h_
 #define nsPluginStreamListenerPeer_h_
 
@@ -17,10 +52,8 @@
 #include "nsNPAPIPluginInstance.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIChannelEventSink.h"
-#include "nsIObjectLoadingContent.h"
 
 class nsIChannel;
-class nsObjectLoadingContent;
 
 
 
@@ -48,6 +81,7 @@ class nsPluginStreamListenerPeer : public nsIStreamListener,
 public nsIProgressEventSink,
 public nsIHttpHeaderVisitor,
 public nsSupportsWeakReference,
+public nsINPAPIPluginStreamInfo,
 public nsIInterfaceRequestor,
 public nsIChannelEventSink
 {
@@ -64,19 +98,22 @@ public:
   NS_DECL_NSICHANNELEVENTSINK
 
   
+  NS_DECL_NSIPLUGINSTREAMINFO
+  
+  
   void
-  MakeByteRangeString(NPByteRange* aRangeList, nsACString &string, int32_t *numRequests);
+  MakeByteRangeString(NPByteRange* aRangeList, nsACString &string, PRInt32 *numRequests);
   
   bool UseExistingPluginCacheFile(nsPluginStreamListenerPeer* psi);
   
   
   nsresult Initialize(nsIURI *aURL,
                       nsNPAPIPluginInstance *aInstance,
-                      nsNPAPIPluginStreamListener *aListener);
+                      nsIPluginStreamListener *aListener);
   
   nsresult InitializeEmbedded(nsIURI *aURL,
                               nsNPAPIPluginInstance* aInstance,
-                              nsObjectLoadingContent *aContent);
+                              nsIPluginInstanceOwner *aOwner = nsnull);
   
   nsresult InitializeFullPage(nsIURI* aURL, nsNPAPIPluginInstance *aInstance);
 
@@ -86,53 +123,6 @@ public:
   
   nsNPAPIPluginInstance *GetPluginInstance() { return mPluginInstance; }
   
-  nsresult RequestRead(NPByteRange* rangeList);
-  nsresult GetLength(uint32_t* result);
-  nsresult GetURL(const char** result);
-  nsresult GetLastModified(uint32_t* result);
-  nsresult IsSeekable(bool* result);
-  nsresult GetContentType(char** result);
-  nsresult GetStreamOffset(int32_t* result);
-  nsresult SetStreamOffset(int32_t value);
-
-  void TrackRequest(nsIRequest* request)
-  {
-    mRequests.AppendObject(request);
-  }
-
-  void ReplaceRequest(nsIRequest* oldRequest, nsIRequest* newRequest)
-  {
-    int32_t i = mRequests.IndexOfObject(oldRequest);
-    if (i == -1) {
-      NS_ASSERTION(mRequests.Count() == 0,
-                   "Only our initial stream should be unknown!");
-      mRequests.AppendObject(oldRequest);
-    }
-    else {
-      mRequests.ReplaceObjectAt(newRequest, i);
-    }
-  }
-  
-  void CancelRequests(nsresult status)
-  {
-    
-    nsCOMArray<nsIRequest> requestsCopy(mRequests);
-    for (int32_t i = 0; i < requestsCopy.Count(); ++i)
-      requestsCopy[i]->Cancel(status);
-  }
-
-  void SuspendRequests() {
-    nsCOMArray<nsIRequest> requestsCopy(mRequests);
-    for (int32_t i = 0; i < requestsCopy.Count(); ++i)
-      requestsCopy[i]->Suspend();
-  }
-
-  void ResumeRequests() {
-    nsCOMArray<nsIRequest> requestsCopy(mRequests);
-    for (int32_t i = 0; i < requestsCopy.Count(); ++i)
-      requestsCopy[i]->Resume();
-  }
-
 private:
   nsresult SetUpStreamListener(nsIRequest* request, nsIURI* aURL);
   nsresult SetupPluginCacheFile(nsIChannel* channel);
@@ -140,7 +130,7 @@ private:
 
   nsCOMPtr<nsIURI> mURL;
   nsCString mURLSpec; 
-  nsCOMPtr<nsIObjectLoadingContent> mContent;
+  nsCOMPtr<nsIPluginInstanceOwner> mOwner;
   nsRefPtr<nsNPAPIPluginStreamListener> mPStreamListener;
 
   
@@ -155,8 +145,8 @@ private:
   bool              mStartBinding;
   bool              mHaveFiredOnStartRequest;
   
-  uint32_t                mLength;
-  int32_t                 mStreamType;
+  PRUint32                mLength;
+  PRInt32                 mStreamType;
   
   
   
@@ -166,17 +156,16 @@ private:
   
   nsCString mContentType;
   bool mSeekable;
-  uint32_t mModified;
+  PRUint32 mModified;
   nsRefPtr<nsNPAPIPluginInstance> mPluginInstance;
-  int32_t mStreamOffset;
+  PRInt32 mStreamOffset;
   bool mStreamComplete;
   
 public:
   bool                    mAbort;
-  int32_t                 mPendingRequests;
+  PRInt32                 mPendingRequests;
   nsWeakPtr               mWeakPtrChannelCallbacks;
   nsWeakPtr               mWeakPtrChannelLoadGroup;
-  nsCOMArray<nsIRequest> mRequests;
 };
 
 #endif 

@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nscore.h"
 #include "nsSystemPrincipal.h"
 #include "nsIComponentManager.h"
@@ -16,7 +48,6 @@
 #include "nsCRT.h"
 #include "nsString.h"
 #include "nsIClassInfoImpl.h"
-#include "nsIScriptSecurityManager.h"
 
 NS_IMPL_CLASSINFO(nsSystemPrincipal, NULL,
                   nsIClassInfo::SINGLETON | nsIClassInfo::MAIN_THREAD_ONLY,
@@ -31,8 +62,8 @@ NS_IMPL_CI_INTERFACE_GETTER2(nsSystemPrincipal,
 NS_IMETHODIMP_(nsrefcnt) 
 nsSystemPrincipal::AddRef()
 {
-  NS_PRECONDITION(int32_t(refcount) >= 0, "illegal refcnt");
-  nsrefcnt count = PR_ATOMIC_INCREMENT(&refcount);
+  NS_PRECONDITION(PRInt32(mJSPrincipals.refcount) >= 0, "illegal refcnt");
+  nsrefcnt count = PR_ATOMIC_INCREMENT(&mJSPrincipals.refcount);
   NS_LOG_ADDREF(this, count, "nsSystemPrincipal", sizeof(*this));
   return count;
 }
@@ -40,8 +71,8 @@ nsSystemPrincipal::AddRef()
 NS_IMETHODIMP_(nsrefcnt)
 nsSystemPrincipal::Release()
 {
-  NS_PRECONDITION(0 != refcount, "dup release");
-  nsrefcnt count = PR_ATOMIC_DECREMENT(&refcount);
+  NS_PRECONDITION(0 != mJSPrincipals.refcount, "dup release");
+  nsrefcnt count = PR_ATOMIC_DECREMENT(&mJSPrincipals.refcount);
   NS_LOG_RELEASE(this, count, "nsSystemPrincipal");
   if (count == 0) {
     delete this;
@@ -50,25 +81,12 @@ nsSystemPrincipal::Release()
   return count;
 }
 
-static const char SYSTEM_PRINCIPAL_SPEC[] = "[System Principal]";
-
-void
-nsSystemPrincipal::GetScriptLocation(nsACString &aStr)
-{
-    aStr.Assign(SYSTEM_PRINCIPAL_SPEC);
-}
-
-#ifdef DEBUG
-void nsSystemPrincipal::dumpImpl()
-{
-  fprintf(stderr, "nsSystemPrincipal (%p)\n", this);
-}
-#endif 
 
 
 
 
 
+#define SYSTEM_PRINCIPAL_SPEC "[System Principal]"
 
 NS_IMETHODIMP
 nsSystemPrincipal::GetPreferences(char** aPrefName, char** aID,
@@ -77,12 +95,12 @@ nsSystemPrincipal::GetPreferences(char** aPrefName, char** aID,
                                   bool* aIsTrusted)
 {
     
-    *aPrefName = nullptr;
-    *aID = nullptr;
-    *aSubjectName = nullptr;
-    *aGrantedList = nullptr;
-    *aDeniedList = nullptr;
-    *aIsTrusted = false;
+    *aPrefName = nsnull;
+    *aID = nsnull;
+    *aSubjectName = nsnull;
+    *aGrantedList = nsnull;
+    *aDeniedList = nsnull;
+    *aIsTrusted = PR_FALSE;
 
     return NS_ERROR_FAILURE; 
 }
@@ -103,25 +121,18 @@ nsSystemPrincipal::EqualsIgnoringDomain(nsIPrincipal *other, bool *result)
 NS_IMETHODIMP
 nsSystemPrincipal::Subsumes(nsIPrincipal *other, bool *result)
 {
-    *result = true;
+    *result = PR_TRUE;
     return NS_OK;
 }
 
 NS_IMETHODIMP
-nsSystemPrincipal::SubsumesIgnoringDomain(nsIPrincipal *other, bool *result)
-{
-    *result = true;
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsSystemPrincipal::CheckMayLoad(nsIURI* uri, bool aReport, bool aAllowIfInheritsPrincipal)
+nsSystemPrincipal::CheckMayLoad(nsIURI* uri, bool aReport)
 {
     return NS_OK;
 }
 
 NS_IMETHODIMP
-nsSystemPrincipal::GetHashValue(uint32_t *result)
+nsSystemPrincipal::GetHashValue(PRUint32 *result)
 {
     *result = NS_PTR_TO_INT32(this);
     return NS_OK;
@@ -129,7 +140,7 @@ nsSystemPrincipal::GetHashValue(uint32_t *result)
 
 NS_IMETHODIMP 
 nsSystemPrincipal::CanEnableCapability(const char *capability, 
-                                       int16_t *result)
+                                       PRInt16 *result)
 {
     
     *result = nsIPrincipal::ENABLE_GRANTED;
@@ -137,25 +148,49 @@ nsSystemPrincipal::CanEnableCapability(const char *capability,
 }
 
 NS_IMETHODIMP 
+nsSystemPrincipal::SetCanEnableCapability(const char *capability, 
+                                          PRInt16 canEnable)
+{
+    return NS_ERROR_FAILURE;
+}
+
+
+NS_IMETHODIMP 
 nsSystemPrincipal::IsCapabilityEnabled(const char *capability, 
                                        void *annotation, 
                                        bool *result)
 {
-    *result = true;
+    *result = PR_TRUE;
     return NS_OK;
 }
 
 NS_IMETHODIMP 
 nsSystemPrincipal::EnableCapability(const char *capability, void **annotation)
 {
-    *annotation = nullptr;
+    *annotation = nsnull;
     return NS_OK;
+}
+
+NS_IMETHODIMP 
+nsSystemPrincipal::RevertCapability(const char *capability, void **annotation)
+{
+    *annotation = nsnull;
+    return NS_OK;
+}
+
+NS_IMETHODIMP 
+nsSystemPrincipal::DisableCapability(const char *capability, void **annotation) 
+{
+    
+    
+    *annotation = nsnull;
+    return NS_ERROR_FAILURE;
 }
 
 NS_IMETHODIMP 
 nsSystemPrincipal::GetURI(nsIURI** aURI)
 {
-    *aURI = nullptr;
+    *aURI = nsnull;
     return NS_OK;
 }
 
@@ -187,21 +222,21 @@ nsSystemPrincipal::GetSubjectName(nsACString& aName)
 NS_IMETHODIMP
 nsSystemPrincipal::GetCertificate(nsISupports** aCertificate)
 {
-    *aCertificate = nullptr;
+    *aCertificate = nsnull;
     return NS_OK;
 }
 
 NS_IMETHODIMP 
 nsSystemPrincipal::GetHasCertificate(bool* aResult)
 {
-    *aResult = false;
+    *aResult = PR_FALSE;
     return NS_OK;
 }
 
 NS_IMETHODIMP
 nsSystemPrincipal::GetCsp(nsIContentSecurityPolicy** aCsp)
 {
-  *aCsp = nullptr;
+  *aCsp = nsnull;
   return NS_OK;
 }
 
@@ -215,7 +250,7 @@ nsSystemPrincipal::SetCsp(nsIContentSecurityPolicy* aCsp)
 NS_IMETHODIMP
 nsSystemPrincipal::GetDomain(nsIURI** aDomain)
 {
-    *aDomain = nullptr;
+    *aDomain = nsnull;
     return NS_OK;
 }
 
@@ -228,7 +263,7 @@ nsSystemPrincipal::SetDomain(nsIURI* aDomain)
 NS_IMETHODIMP
 nsSystemPrincipal::GetSecurityPolicy(void** aSecurityPolicy)
 {
-    *aSecurityPolicy = nullptr;
+    *aSecurityPolicy = nsnull;
     return NS_OK;
 }
 
@@ -239,31 +274,15 @@ nsSystemPrincipal::SetSecurityPolicy(void* aSecurityPolicy)
 }
 
 NS_IMETHODIMP
-nsSystemPrincipal::GetExtendedOrigin(nsACString& aExtendedOrigin)
+nsSystemPrincipal::GetJSPrincipals(JSContext *cx, JSPrincipals **jsprin)
 {
-  return GetOrigin(getter_Copies(aExtendedOrigin));
+    NS_PRECONDITION(mJSPrincipals.nsIPrincipalPtr, "mJSPrincipals is uninitialized!");
+
+    JSPRINCIPALS_HOLD(cx, &mJSPrincipals);
+    *jsprin = &mJSPrincipals;
+    return NS_OK;
 }
 
-NS_IMETHODIMP
-nsSystemPrincipal::GetAppStatus(uint16_t* aAppStatus)
-{
-  *aAppStatus = nsIPrincipal::APP_STATUS_NOT_INSTALLED;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsSystemPrincipal::GetAppId(uint32_t* aAppId)
-{
-  *aAppId = nsIScriptSecurityManager::NO_APP_ID;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsSystemPrincipal::GetIsInBrowserElement(bool* aIsInBrowserElement)
-{
-  *aIsInBrowserElement = false;
-  return NS_OK;
-}
 
 
 
@@ -291,6 +310,24 @@ nsSystemPrincipal::nsSystemPrincipal()
 {
 }
 
-nsSystemPrincipal::~nsSystemPrincipal()
+nsresult
+nsSystemPrincipal::Init(JSPrincipals **jsprin)
+{
+    
+    
+    nsCString str(SYSTEM_PRINCIPAL_SPEC);
+    if (!str.EqualsLiteral(SYSTEM_PRINCIPAL_SPEC)) {
+        NS_WARNING("Out of memory initializing system principal");
+        return NS_ERROR_OUT_OF_MEMORY;
+    }
+
+    nsresult rv = mJSPrincipals.Init(this, str);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    *jsprin = &mJSPrincipals;
+    return NS_OK;
+}
+
+nsSystemPrincipal::~nsSystemPrincipal(void)
 {
 }

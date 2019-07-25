@@ -3,7 +3,37 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsGenericHTMLElement.h"
 #include "nsIDOMHTMLHRElement.h"
@@ -15,8 +45,6 @@
 #include "nsMappedAttributes.h"
 #include "nsRuleData.h"
 #include "nsCSSProps.h"
-
-using namespace mozilla;
 
 class nsHTMLHRElement : public nsGenericHTMLElement,
                         public nsIDOMHTMLHRElement
@@ -40,7 +68,7 @@ public:
   
   NS_DECL_NSIDOMHTMLHRELEMENT
 
-  virtual bool ParseAttribute(int32_t aNamespaceID,
+  virtual bool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
@@ -48,7 +76,6 @@ public:
   virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction() const;
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
   virtual nsXPCClassInfo* GetClassInfo();
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 };
 
 
@@ -97,7 +124,7 @@ static const nsAttrValue::EnumTable kAlignTable[] = {
 };
 
 bool
-nsHTMLHRElement::ParseAttribute(int32_t aNamespaceID,
+nsHTMLHRElement::ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult)
@@ -110,7 +137,7 @@ nsHTMLHRElement::ParseAttribute(int32_t aNamespaceID,
       return aResult.ParseIntWithBounds(aValue, 1, 1000);
     }
     if (aAttribute == nsGkAtoms::align) {
-      return aResult.ParseEnumValue(aValue, kAlignTable, false);
+      return aResult.ParseEnumValue(aValue, kAlignTable, PR_FALSE);
     }
     if (aAttribute == nsGkAtoms::color) {
       return aResult.ParseColor(aValue);
@@ -134,7 +161,7 @@ MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
   if (aData->mSIDs & (NS_STYLE_INHERIT_BIT(Position) |
                       NS_STYLE_INHERIT_BIT(Border))) {
     if (colorIsSet) {
-      noshade = true;
+      noshade = PR_TRUE;
     } else {
       noshade = !!aAttributes->GetAttr(nsGkAtoms::noshade);
     }
@@ -212,7 +239,7 @@ MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
         
         
         sizePerSide = 1.0f;
-        allSides = false;
+        allSides = PR_FALSE;
       }
     } else {
       sizePerSide = 1.0f; 
@@ -295,7 +322,7 @@ nsHTMLHRElement::IsAttributeMapped(const nsIAtom* aAttribute) const
     { &nsGkAtoms::size },
     { &nsGkAtoms::color },
     { &nsGkAtoms::noshade },
-    { nullptr },
+    { nsnull },
   };
   
   static const MappedAttributeEntry* const map[] = {
@@ -303,7 +330,7 @@ nsHTMLHRElement::IsAttributeMapped(const nsIAtom* aAttribute) const
     sCommonAttributeMap,
   };
 
-  return FindAttributeDependence(aAttribute, map);
+  return FindAttributeDependence(aAttribute, map, NS_ARRAY_LENGTH(map));
 }
 
 

@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
 
@@ -24,7 +56,7 @@ nsConverterOutputStream::~nsConverterOutputStream()
 NS_IMETHODIMP
 nsConverterOutputStream::Init(nsIOutputStream* aOutStream,
                               const char*      aCharset,
-                              uint32_t         aBufferSize ,
+                              PRUint32         aBufferSize ,
                               PRUnichar        aReplacementChar)
 {
     NS_PRECONDITION(aOutStream, "Null output stream!");
@@ -43,16 +75,16 @@ nsConverterOutputStream::Init(nsIOutputStream* aOutStream,
 
     mOutStream = aOutStream;
 
-    int32_t behaviour = aReplacementChar ? nsIUnicodeEncoder::kOnError_Replace
+    PRInt32 behaviour = aReplacementChar ? nsIUnicodeEncoder::kOnError_Replace
                                          : nsIUnicodeEncoder::kOnError_Signal;
     return mConverter->
         SetOutputErrorBehavior(behaviour,
-                               nullptr,
+                               nsnull,
                                aReplacementChar);
 }
 
 NS_IMETHODIMP
-nsConverterOutputStream::Write(uint32_t aCount, const PRUnichar* aChars,
+nsConverterOutputStream::Write(PRUint32 aCount, const PRUnichar* aChars,
                                bool* aSuccess)
 {
     if (!mOutStream) {
@@ -61,18 +93,18 @@ nsConverterOutputStream::Write(uint32_t aCount, const PRUnichar* aChars,
     }
     NS_ASSERTION(mConverter, "Must have a converter when not closed");
 
-    int32_t inLen = aCount;
+    PRInt32 inLen = aCount;
 
-    int32_t maxLen;
+    PRInt32 maxLen;
     nsresult rv = mConverter->GetMaxLength(aChars, inLen, &maxLen);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    nsAutoCString buf;
+    nsCAutoString buf;
     buf.SetLength(maxLen);
-    if (buf.Length() != (uint32_t) maxLen)
+    if (buf.Length() != (PRUint32) maxLen)
         return NS_ERROR_OUT_OF_MEMORY;
 
-    int32_t outLen = maxLen;
+    PRInt32 outLen = maxLen;
     rv = mConverter->Convert(aChars, &inLen, buf.BeginWriting(), &outLen);
     if (NS_FAILED(rv))
         return rv;
@@ -80,12 +112,12 @@ nsConverterOutputStream::Write(uint32_t aCount, const PRUnichar* aChars,
         
         return NS_ERROR_LOSS_OF_SIGNIFICANT_DATA;
     }
-    NS_ASSERTION((uint32_t) inLen == aCount,
+    NS_ASSERTION((PRUint32) inLen == aCount,
                  "Converter didn't consume all the data!");
 
-    uint32_t written;
+    PRUint32 written;
     rv = mOutStream->Write(buf.get(), outLen, &written);
-    *aSuccess = NS_SUCCEEDED(rv) && written == uint32_t(outLen);
+    *aSuccess = NS_SUCCEEDED(rv) && written == PRUint32(outLen);
     return rv;
 
 }
@@ -93,7 +125,7 @@ nsConverterOutputStream::Write(uint32_t aCount, const PRUnichar* aChars,
 NS_IMETHODIMP
 nsConverterOutputStream::WriteString(const nsAString& aString, bool* aSuccess)
 {
-    int32_t inLen = aString.Length();
+    PRInt32 inLen = aString.Length();
     nsAString::const_iterator i;
     aString.BeginReading(i);
     return Write(inLen, i.get(), aSuccess);
@@ -106,22 +138,19 @@ nsConverterOutputStream::Flush()
         return NS_OK; 
 
     char buf[1024];
-    int32_t size = sizeof(buf);
+    PRInt32 size = sizeof(buf);
     nsresult rv = mConverter->Finish(buf, &size);
     NS_ASSERTION(rv != NS_OK_UENC_MOREOUTPUT,
                  "1024 bytes ought to be enough for everyone");
     if (NS_FAILED(rv))
         return rv;
-    if (size == 0)
-        return NS_OK;
-
-    uint32_t written;
+    PRUint32 written;
     rv = mOutStream->Write(buf, size, &written);
     if (NS_FAILED(rv)) {
         NS_WARNING("Flush() lost data!");
         return rv;
     }
-    if (written != uint32_t(size)) {
+    if (written != PRUint32(size)) {
         NS_WARNING("Flush() lost data!");
         return NS_ERROR_LOSS_OF_SIGNIFICANT_DATA;
     }
@@ -137,8 +166,8 @@ nsConverterOutputStream::Close()
     nsresult rv1 = Flush();
 
     nsresult rv2 = mOutStream->Close();
-    mOutStream = nullptr;
-    mConverter = nullptr;
+    mOutStream = nsnull;
+    mConverter = nsnull;
     return NS_FAILED(rv1) ? rv1 : rv2;
 }
 

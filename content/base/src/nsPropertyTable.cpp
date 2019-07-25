@@ -20,9 +20,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsPropertyTable.h"
 #include "pldhash.h"
-#include "nsError.h"
+#include "nsContentErrors.h"
 #include "nsIAtom.h"
 
 struct PropertyListMapEntry : public PLDHashEntryHdr {
@@ -51,8 +83,6 @@ public:
   {
     return mName == aPropertyName;
   }
-
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf);
 
   nsCOMPtr<nsIAtom>  mName;           
   PLDHashTable       mObjectValueMap; 
@@ -131,33 +161,6 @@ nsPropertyTable::Enumerate(nsPropertyOwner aObject,
   }
 }
 
-struct PropertyEnumeratorData
-{
-  nsIAtom* mName;
-  NSPropertyFunc mCallBack;
-  void* mData;
-};
-
-static PLDHashOperator
-PropertyEnumerator(PLDHashTable* aTable, PLDHashEntryHdr* aHdr,
-                   uint32_t aNumber, void* aArg)
-{
-  PropertyListMapEntry* entry = static_cast<PropertyListMapEntry*>(aHdr);
-  PropertyEnumeratorData* data = static_cast<PropertyEnumeratorData*>(aArg);
-  data->mCallBack(const_cast<void*>(entry->key), data->mName, entry->value,
-                  data->mData);
-  return PL_DHASH_NEXT;
-}
-
-void
-nsPropertyTable::EnumerateAll(NSPropertyFunc aCallBack, void* aData)
-{
-  for (PropertyList* prop = mPropertyList; prop; prop = prop->mNext) {
-    PropertyEnumeratorData data = { prop->mName, aCallBack, aData };
-    PL_DHashTableEnumerate(&prop->mObjectValueMap, PropertyEnumerator, &data);
-  }
-}
-
 void*
 nsPropertyTable::GetPropertyInternal(nsPropertyOwner aObject,
                                      nsIAtom    *aPropertyName,
@@ -166,7 +169,7 @@ nsPropertyTable::GetPropertyInternal(nsPropertyOwner aObject,
 {
   NS_PRECONDITION(aPropertyName && aObject, "unexpected null param");
   nsresult rv = NS_PROPTABLE_PROP_NOT_THERE;
-  void *propValue = nullptr;
+  void *propValue = nsnull;
 
   PropertyList* propertyList = GetPropertyListFor(aPropertyName);
   if (propertyList) {
@@ -241,7 +244,7 @@ nsPropertyTable::SetPropertyInternal(nsPropertyOwner     aObject,
     result = NS_PROPTABLE_PROP_OVERWRITTEN;
   }
   else if (aOldValue) {
-    *aOldValue = nullptr;
+    *aOldValue = nsnull;
   }
   entry->key = aObject;
   entry->value = aPropertyValue;
@@ -288,7 +291,7 @@ nsPropertyTable::PropertyList::PropertyList(nsIAtom            *aName,
     mDtorFunc(aDtorFunc),
     mDtorData(aDtorData),
     mTransfer(aTransfer),
-    mNext(nullptr)
+    mNext(nsnull)
 {
   PL_DHashTableInit(&mObjectValueMap, PL_DHashGetStubOps(), this,
                     sizeof(PropertyListMapEntry), 16);
@@ -302,7 +305,7 @@ nsPropertyTable::PropertyList::~PropertyList()
 
 static PLDHashOperator
 DestroyPropertyEnumerator(PLDHashTable *table, PLDHashEntryHdr *hdr,
-                          uint32_t number, void *arg)
+                          PRUint32 number, void *arg)
 {
   nsPropertyTable::PropertyList *propList =
       static_cast<nsPropertyTable::PropertyList*>(table->data);
@@ -319,7 +322,7 @@ nsPropertyTable::PropertyList::Destroy()
   
   if (mDtorFunc)
     PL_DHashTableEnumerate(&mObjectValueMap, DestroyPropertyEnumerator,
-                           nullptr);
+                           nsnull);
 }
 
 bool
@@ -328,7 +331,7 @@ nsPropertyTable::PropertyList::DeletePropertyFor(nsPropertyOwner aObject)
   PropertyListMapEntry *entry = static_cast<PropertyListMapEntry*>
                                            (PL_DHashTableOperate(&mObjectValueMap, aObject, PL_DHASH_LOOKUP));
   if (!PL_DHASH_ENTRY_IS_BUSY(entry))
-    return false;
+    return PR_FALSE;
 
   void* value = entry->value;
   PL_DHashTableRawRemove(&mObjectValueMap, entry);
@@ -336,27 +339,7 @@ nsPropertyTable::PropertyList::DeletePropertyFor(nsPropertyOwner aObject)
   if (mDtorFunc)
     mDtorFunc(const_cast<void*>(aObject.get()), mName, value, mDtorData);
 
-  return true;
-}
-
-size_t
-nsPropertyTable::PropertyList::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf)
-{
-  size_t n = aMallocSizeOf(this);
-  n += PL_DHashTableSizeOfExcludingThis(&mObjectValueMap, NULL, aMallocSizeOf);
-  return n;
-}
-
-size_t
-nsPropertyTable::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
-{
-  size_t n = 0;
-
-  for (PropertyList *prop = mPropertyList; prop; prop = prop->mNext) {
-    n += prop->SizeOfIncludingThis(aMallocSizeOf);
-  }
-
-  return n;
+  return PR_TRUE;
 }
 
 

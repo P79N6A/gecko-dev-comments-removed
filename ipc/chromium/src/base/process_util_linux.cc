@@ -7,7 +7,6 @@
 #include <ctype.h>
 #include <dirent.h>
 #include <fcntl.h>
-#include <memory>
 #include <unistd.h>
 #include <string>
 #include <sys/types.h>
@@ -20,38 +19,8 @@
 #include "base/string_tokenizer.h"
 #include "base/string_util.h"
 
-#ifdef MOZ_WIDGET_GONK
-
-
-
-
-
-# include <private/android_filesystem_config.h>
-# define CHILD_UNPRIVILEGED_UID AID_APP
-# define CHILD_UNPRIVILEGED_GID AID_APP
-#else
-
-
-
-
-
-# define CHILD_UNPRIVILEGED_UID 65534
-# define CHILD_UNPRIVILEGED_GID 65534
-#endif
-
-#ifdef ANDROID
-#include <pthread.h>
-
-
-
-
-#define HAVE_PR_DUPLICATE_ENVIRONMENT
-
-#include "plstr.h"
-#include "prenv.h"
-#include "prmem.h"
-
-extern "C" { NSPR_API(pthread_mutex_t *)PR_GetEnvLock(void); }
+#ifdef MOZ_MEMORY_ANDROID
+#include "jemalloc.h"
 #endif
 
 namespace {
@@ -67,111 +36,6 @@ static mozilla::EnvironmentLog gProcessLog("MOZ_PROCESS_LOG");
 
 namespace base {
 
-#ifdef HAVE_PR_DUPLICATE_ENVIRONMENT
-
-
-
-
-
-static char **
-PR_DuplicateEnvironment(void)
-{
-    char **result = NULL;
-    char **s;
-    char **d;
-    pthread_mutex_lock(PR_GetEnvLock());
-    for (s = environ; *s != NULL; s++)
-      ;
-    if ((result = (char **)PR_Malloc(sizeof(char *) * (s - environ + 1))) != NULL) {
-      for (s = environ, d = result; *s != NULL; s++, d++) {
-        *d = PL_strdup(*s);
-      }
-      *d = NULL;
-    }
-    pthread_mutex_unlock(PR_GetEnvLock());
-    return result;
-}
-
-class EnvironmentEnvp
-{
-public:
-  EnvironmentEnvp()
-    : mEnvp(PR_DuplicateEnvironment()) {}
-
-  EnvironmentEnvp(const environment_map &em)
-  {
-    mEnvp = (char **)PR_Malloc(sizeof(char *) * (em.size() + 1));
-    if (!mEnvp) {
-      return;
-    }
-    char **e = mEnvp;
-    for (environment_map::const_iterator it = em.begin();
-         it != em.end(); ++it, ++e) {
-      std::string str = it->first;
-      str += "=";
-      str += it->second;
-      *e = PL_strdup(str.c_str());
-    }
-    *e = NULL;
-  }
-
-  ~EnvironmentEnvp()
-  {
-    if (!mEnvp) {
-      return;
-    }
-    for (char **e = mEnvp; *e; ++e) {
-      PL_strfree(*e);
-    }
-    PR_Free(mEnvp);
-  }
-
-  char * const *AsEnvp() { return mEnvp; }
-
-  void ToMap(environment_map &em)
-  {
-    if (!mEnvp) {
-      return;
-    }
-    em.clear();
-    for (char **e = mEnvp; *e; ++e) {
-      const char *eq;
-      if ((eq = strchr(*e, '=')) != NULL) {
-        std::string varname(*e, eq - *e);
-        em[varname.c_str()] = &eq[1];
-      }
-    }
-  }
-
-private:
-  char **mEnvp;
-};
-
-class Environment : public environment_map
-{
-public:
-  Environment()
-  {
-    EnvironmentEnvp envp;
-    envp.ToMap(*this);
-  }
-
-  char * const *AsEnvp() {
-    mEnvp.reset(new EnvironmentEnvp(*this));
-    return mEnvp->AsEnvp();
-  }
-
-  void Merge(const environment_map &em)
-  {
-    for (const_iterator it = em.begin(); it != em.end(); ++it) {
-      (*this)[it->first] = it->second;
-    }
-  }
-private:
-  std::auto_ptr<EnvironmentEnvp> mEnvp;
-};
-#endif 
-
 bool LaunchApp(const std::vector<std::string>& argv,
                const file_handle_mapping_vector& fds_to_remap,
                bool wait, ProcessHandle* process_handle) {
@@ -184,79 +48,46 @@ bool LaunchApp(const std::vector<std::string>& argv,
                const environment_map& env_vars_to_set,
                bool wait, ProcessHandle* process_handle,
                ProcessArchitecture arch) {
-  return LaunchApp(argv, fds_to_remap, env_vars_to_set,
-                   PRIVILEGES_INHERIT,
-                   wait, process_handle);
-}
-
-bool LaunchApp(const std::vector<std::string>& argv,
-               const file_handle_mapping_vector& fds_to_remap,
-               const environment_map& env_vars_to_set,
-               ChildPrivileges privs,
-               bool wait, ProcessHandle* process_handle,
-               ProcessArchitecture arch) {
-  scoped_array<char*> argv_cstr(new char*[argv.size() + 1]);
+#ifdef MOZ_MEMORY_ANDROID
   
-  InjectiveMultimap fd_shuffle1, fd_shuffle2;
-  fd_shuffle1.reserve(fds_to_remap.size());
-  fd_shuffle2.reserve(fds_to_remap.size());
 
-#ifdef HAVE_PR_DUPLICATE_ENVIRONMENT
-  Environment env;
-  env.Merge(env_vars_to_set);
-  char * const *envp = env.AsEnvp();
-  if (!envp) {
-    DLOG(ERROR) << "FAILED to duplicate environment for: " << argv_cstr[0];
-    return false;
-  }
+
+
+  ::_malloc_prefork();
 #endif
-
   pid_t pid = fork();
+#ifdef MOZ_MEMORY_ANDROID
+  ::_malloc_postfork();
+#endif
   if (pid < 0)
     return false;
 
   if (pid == 0) {
+    InjectiveMultimap fd_shuffle;
     for (file_handle_mapping_vector::const_iterator
         it = fds_to_remap.begin(); it != fds_to_remap.end(); ++it) {
-      fd_shuffle1.push_back(InjectionArc(it->first, it->second, false));
-      fd_shuffle2.push_back(InjectionArc(it->first, it->second, false));
+      fd_shuffle.push_back(InjectionArc(it->first, it->second, false));
     }
 
-    if (!ShuffleFileDescriptors(&fd_shuffle1))
-      _exit(127);
+    if (!ShuffleFileDescriptors(fd_shuffle))
+      exit(127);
 
-    CloseSuperfluousFds(fd_shuffle2);
+    CloseSuperfluousFds(fd_shuffle);
 
-    for (size_t i = 0; i < argv.size(); i++)
-      argv_cstr[i] = const_cast<char*>(argv[i].c_str());
-    argv_cstr[argv.size()] = NULL;
-
-    if (privs == PRIVILEGES_UNPRIVILEGED) {
-      if (setgid(CHILD_UNPRIVILEGED_GID) != 0) {
-        DLOG(ERROR) << "FAILED TO setgid() CHILD PROCESS, path: " << argv_cstr[0];
-        _exit(127);
-      }
-      if (setuid(CHILD_UNPRIVILEGED_UID) != 0) {
-        DLOG(ERROR) << "FAILED TO setuid() CHILD PROCESS, path: " << argv_cstr[0];
-        _exit(127);
-      }
-      if (chdir("/") != 0)
-        gProcessLog.print("==> could not chdir()\n");
-    }
-
-#ifdef HAVE_PR_DUPLICATE_ENVIRONMENT
-    execve(argv_cstr[0], argv_cstr.get(), envp);
-#else
     for (environment_map::const_iterator it = env_vars_to_set.begin();
          it != env_vars_to_set.end(); ++it) {
       if (setenv(it->first.c_str(), it->second.c_str(), 1))
-        _exit(127);
+        exit(127);
     }
-    execv(argv_cstr[0], argv_cstr.get());
-#endif
+
+    scoped_array<char*> argv_cstr(new char*[argv.size() + 1]);
+    for (size_t i = 0; i < argv.size(); i++)
+      argv_cstr[i] = const_cast<char*>(argv[i].c_str());
+    argv_cstr[argv.size()] = NULL;
+    execvp(argv_cstr[0], argv_cstr.get());
     
     DLOG(ERROR) << "FAILED TO exec() CHILD PROCESS, path: " << argv_cstr[0];
-    _exit(127);
+    exit(127);
   } else {
     gProcessLog.print("==> process %d launched child process %d\n",
                       GetCurrentProcId(), pid);

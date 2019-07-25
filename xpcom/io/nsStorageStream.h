@@ -11,13 +11,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsStorageStream_h_
 #define _nsStorageStream_h_
 
 #include "nsIStorageStream.h"
 #include "nsIOutputStream.h"
 #include "nsMemory.h"
-#include "mozilla/Attributes.h"
 
 #define NS_STORAGESTREAM_CID                       \
 { /* 669a9795-6ff7-4ed4-9150-c34ce2971b63 */       \
@@ -32,8 +64,8 @@
 
 class nsSegmentedBuffer;
 
-class nsStorageStream MOZ_FINAL : public nsIStorageStream,
-                                  public nsIOutputStream
+class nsStorageStream : public nsIStorageStream,
+                        public nsIOutputStream
 {
 public:
     nsStorageStream();
@@ -48,19 +80,19 @@ private:
     ~nsStorageStream();
 
     nsSegmentedBuffer* mSegmentedBuffer;
-    uint32_t           mSegmentSize;       
+    PRUint32           mSegmentSize;       
                                            
-    uint32_t           mSegmentSizeLog2;   
+    PRUint32           mSegmentSizeLog2;   
     bool               mWriteInProgress;   
-    int32_t            mLastSegmentNum;    
+    PRInt32            mLastSegmentNum;    
     char*              mWriteCursor;       
     char*              mSegmentEnd;        
                                            
-    uint32_t           mLogicalLength;     
+    PRUint32           mLogicalLength;     
 
-    NS_METHOD Seek(int32_t aPosition);
-    uint32_t SegNum(uint32_t aPosition)    {return aPosition >> mSegmentSizeLog2;}
-    uint32_t SegOffset(uint32_t aPosition) {return aPosition & (mSegmentSize - 1);}
+    NS_METHOD Seek(PRInt32 aPosition);
+    PRUint32 SegNum(PRUint32 aPosition)    {return aPosition >> mSegmentSizeLog2;}
+    PRUint32 SegOffset(PRUint32 aPosition) {return aPosition & (mSegmentSize - 1);}
 };
 
 #endif 

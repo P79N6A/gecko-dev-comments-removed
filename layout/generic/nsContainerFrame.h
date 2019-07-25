@@ -5,6 +5,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsContainerFrame_h___
 #define nsContainerFrame_h___
 
@@ -24,19 +57,6 @@
 #define NS_FRAME_INVALIDATE_ON_MOVE   0x0010 
 
 class nsOverflowContinuationTracker;
-
-
-
-
-
-
-#ifdef DEBUG
-#define CRAZY_W (1000000*60)
-#define CRAZY_H CRAZY_W
-
-#define CRAZY_WIDTH(_x) (((_x) < -CRAZY_W) || ((_x) > CRAZY_W))
-#define CRAZY_HEIGHT(_y) (((_y) < -CRAZY_H) || ((_y) > CRAZY_H))
-#endif
 
 
 
@@ -62,38 +82,21 @@ public:
   NS_IMETHOD RemoveFrame(ChildListID aListID,
                          nsIFrame* aOldFrame);
 
-  virtual const nsFrameList& GetChildList(ChildListID aList) const;
+  virtual nsFrameList GetChildList(ChildListID aList) const;
   virtual void GetChildLists(nsTArray<ChildList>* aLists) const;
   virtual void DestroyFrom(nsIFrame* aDestructRoot);
   virtual void ChildIsDirty(nsIFrame* aChild);
 
   virtual bool IsLeaf() const;
-  virtual bool PeekOffsetNoAmount(bool aForward, int32_t* aOffset);
-  virtual bool PeekOffsetCharacter(bool aForward, int32_t* aOffset,
+  virtual bool PeekOffsetNoAmount(bool aForward, PRInt32* aOffset);
+  virtual bool PeekOffsetCharacter(bool aForward, PRInt32* aOffset,
                                      bool aRespectClusters = true);
   
 #ifdef DEBUG
-  NS_IMETHOD List(FILE* out, int32_t aIndent) const;
+  NS_IMETHOD List(FILE* out, PRInt32 aIndent) const;
 #endif  
 
   
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  nsresult CreateNextInFlow(nsPresContext* aPresContext,
-                            nsIFrame*       aFrame,
-                            nsIFrame*&      aNextInFlowResult);
 
   
 
@@ -135,14 +138,13 @@ public:
                                        nsIFrame*       aFrame,
                                        nsIView*        aView,
                                        const nsRect&   aVisualOverflowArea,
-                                       uint32_t        aFlags = 0);
+                                       PRUint32        aFlags = 0);
 
   
   
   static void SyncWindowProperties(nsPresContext*       aPresContext,
                                    nsIFrame*            aFrame,
-                                   nsIView*             aView,
-                                   nsRenderingContext*  aRC = nullptr);
+                                   nsIView*             aView);
 
   
   
@@ -154,21 +156,7 @@ public:
                                       nsIFrame*        aFrame,
                                       nsStyleContext*  aStyleContext,
                                       nsIView*         aView,
-                                      uint32_t         aFlags = 0);
-
-  
-
-
-
-
-
-
-
-
-  static void SetSizeConstraints(nsPresContext* aPresContext,
-                                 nsIWidget* aWidget,
-                                 const nsSize& aMinSize,
-                                 const nsSize& aMaxSize);
+                                      PRUint32         aFlags = 0);
 
   
   void DoInlineIntrinsicWidth(nsRenderingContext *aRenderingContext,
@@ -201,9 +189,9 @@ public:
                        const nsHTMLReflowState&       aReflowState,
                        nscoord                        aX,
                        nscoord                        aY,
-                       uint32_t                       aFlags,
+                       PRUint32                       aFlags,
                        nsReflowStatus&                aStatus,
-                       nsOverflowContinuationTracker* aTracker = nullptr);
+                       nsOverflowContinuationTracker* aTracker = nsnull);
 
   
 
@@ -228,7 +216,7 @@ public:
                                     const nsHTMLReflowMetrics& aDesiredSize,
                                     nscoord                    aX,
                                     nscoord                    aY,
-                                    uint32_t                   aFlags);
+                                    PRUint32                   aFlags);
 
   
   static void PositionChildViews(nsIFrame* aFrame);
@@ -299,7 +287,7 @@ public:
   nsresult ReflowOverflowContainerChildren(nsPresContext*           aPresContext,
                                            const nsHTMLReflowState& aReflowState,
                                            nsOverflowAreas&         aOverflowRects,
-                                           uint32_t                 aFlags,
+                                           PRUint32                 aFlags,
                                            nsReflowStatus&          aStatus);
 
   
@@ -376,22 +364,7 @@ protected:
   nsresult BuildDisplayListForNonBlockChildren(nsDisplayListBuilder*   aBuilder,
                                                const nsRect&           aDirtyRect,
                                                const nsDisplayListSet& aLists,
-                                               uint32_t                aFlags = 0);
-
-  
-
-
-
-  nsresult BuildDisplayListForInline(nsDisplayListBuilder*   aBuilder,
-                                     const nsRect&           aDirtyRect,
-                                     const nsDisplayListSet& aLists) {
-    nsresult rv = DisplayBorderBackgroundOutline(aBuilder, aLists);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = BuildDisplayListForNonBlockChildren(aBuilder, aDirtyRect, aLists,
-                                             DISPLAY_CHILD_INLINE);
-    NS_ENSURE_SUCCESS(rv, rv);
-    return rv;
-  }
+                                               PRUint32                aFlags = 0);
 
 
   
@@ -515,7 +488,7 @@ protected:
 #define IS_TRUE_OVERFLOW_CONTAINER(frame)                      \
   (  (frame->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER)  \
   && !( (frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&      \
-        frame->IsAbsolutelyPositioned()  )  )
+        frame->GetStyleDisplay()->IsAbsolutelyPositioned()  )  )
 
 
 

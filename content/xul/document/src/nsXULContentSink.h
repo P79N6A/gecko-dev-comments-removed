@@ -3,6 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsXULContentSink_h__
 #define nsXULContentSink_h__
 
@@ -38,7 +74,7 @@ public:
     NS_IMETHOD DidBuildModel(bool aTerminated);
     NS_IMETHOD WillInterrupt(void);
     NS_IMETHOD WillResume(void);
-    NS_IMETHOD SetParser(nsParserBase* aParser);
+    NS_IMETHOD SetParser(nsIParser* aParser);
     virtual void FlushPendingNotifications(mozFlushType aType) { }
     NS_IMETHOD SetDocumentCharset(nsACString& aCharset);
     virtual nsISupports *GetTarget();
@@ -53,21 +89,21 @@ public:
 protected:
     
     PRUnichar* mText;
-    int32_t mTextLength;
-    int32_t mTextSize;
+    PRInt32 mTextLength;
+    PRInt32 mTextSize;
     bool mConstrainSize;
 
     nsresult AddAttributes(const PRUnichar** aAttributes,
-                           const uint32_t aAttrLen,
+                           const PRUint32 aAttrLen,
                            nsXULPrototypeElement* aElement);
 
     nsresult OpenRoot(const PRUnichar** aAttributes,
-                      const uint32_t aAttrLen,
+                      const PRUint32 aAttrLen,
                       nsINodeInfo *aNodeInfo);
 
     nsresult OpenTag(const PRUnichar** aAttributes,
-                     const uint32_t aAttrLen,
-                     const uint32_t aLineNumber,
+                     const PRUint32 aAttrLen,
+                     const PRUint32 aLineNumber,
                      nsINodeInfo *aNodeInfo);
 
     
@@ -77,13 +113,17 @@ protected:
     
     
     nsresult OpenScript(const PRUnichar** aAttributes,
-                        const uint32_t aLineNumber);
+                        const PRUint32 aLineNumber);
 
-    static bool IsDataInBuffer(PRUnichar* aBuffer, int32_t aLength);
+    static bool IsDataInBuffer(PRUnichar* aBuffer, PRInt32 aLength);
+
+    nsresult SetElementScriptType(nsXULPrototypeElement* element,
+                                  const PRUnichar** aAttributes,
+                                  const PRUint32 aAttrLen);
 
     
     nsresult FlushText(bool aCreateTextNode = true);
-    nsresult AddText(const PRUnichar* aText, int32_t aLength);
+    nsresult AddText(const PRUnichar* aText, PRInt32 aLength);
 
 
     nsRefPtr<nsNodeInfoManager> mNodeInfoManager;
@@ -113,19 +153,20 @@ protected:
         };
 
         Entry* mTop;
-        int32_t mDepth;
+        PRInt32 mDepth;
 
     public:
         ContextStack();
         ~ContextStack();
 
-        int32_t Depth() { return mDepth; }
+        PRInt32 Depth() { return mDepth; }
 
         nsresult Push(nsXULPrototypeNode* aNode, State aState);
         nsresult Pop(State* aState);
 
         nsresult GetTopNode(nsRefPtr<nsXULPrototypeNode>& aNode);
         nsresult GetTopChildren(nsPrototypeArray** aChildren);
+        nsresult GetTopNodeScriptType(PRUint32 *aScriptType);
 
         void Clear();
     };
@@ -139,7 +180,7 @@ protected:
     nsRefPtr<nsXULPrototypeDocument> mPrototype;  
 
     
-    nsParserBase*         mParser;               
+    nsIParser*             mParser;               
     nsCOMPtr<nsIScriptSecurityManager> mSecMan;
 };
 

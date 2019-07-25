@@ -5,6 +5,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsBlockReflowState_h__
 #define nsBlockReflowState_h__
 
@@ -52,7 +87,7 @@ public:
   nsFlowAreaRect GetFloatAvailableSpace() const
     { return GetFloatAvailableSpace(mY); }
   nsFlowAreaRect GetFloatAvailableSpace(nscoord aY) const
-    { return GetFloatAvailableSpaceWithState(aY, nullptr); }
+    { return GetFloatAvailableSpaceWithState(aY, nsnull); }
   nsFlowAreaRect
     GetFloatAvailableSpaceWithState(nscoord aY,
                                     nsFloatManager::SavedState *aState) const;
@@ -84,9 +119,9 @@ public:
   
   
   
-  nscoord ClearFloats(nscoord aY, uint8_t aBreakType,
-                      nsIFrame *aReplacedBlock = nullptr,
-                      uint32_t aFlags = 0);
+  nscoord ClearFloats(nscoord aY, PRUint8 aBreakType,
+                      nsIFrame *aReplacedBlock = nsnull,
+                      PRUint32 aFlags = 0);
 
   bool IsAdjacentWithTop() const {
     return mY ==
@@ -138,11 +173,15 @@ public:
 
   void AdvanceToNextLine() {
     if (GetFlag(BRS_LINE_LAYOUT_EMPTY)) {
-      SetFlag(BRS_LINE_LAYOUT_EMPTY, false);
+      SetFlag(BRS_LINE_LAYOUT_EMPTY, PR_FALSE);
     } else {
       mLineNumber++;
     }
   }
+
+  nsLineBox* NewLineBox(nsIFrame* aFrame, PRInt32 aCount, bool aIsBlock);
+
+  void FreeLineBox(nsLineBox* aLine);
 
   
 
@@ -258,16 +297,16 @@ public:
 
   nscoord mMinLineHeight;
 
-  int32_t mLineNumber;
+  PRInt32 mLineNumber;
 
-  int16_t mFlags;
+  PRInt16 mFlags;
  
-  uint8_t mFloatBreakType;
+  PRUint8 mFloatBreakType;
 
-  void SetFlag(uint32_t aFlag, bool aValue)
+  void SetFlag(PRUint32 aFlag, bool aValue)
   {
     NS_ASSERTION(aFlag<=BRS_LASTFLAG, "bad flag");
-    NS_ASSERTION(aValue==false || aValue==true, "bad value");
+    NS_ASSERTION(aValue==PR_FALSE || aValue==PR_TRUE, "bad value");
     if (aValue) { 
       mFlags |= aFlag;
     }
@@ -276,7 +315,7 @@ public:
     }
   }
 
-  bool GetFlag(uint32_t aFlag) const
+  bool GetFlag(PRUint32 aFlag) const
   {
     NS_ASSERTION(aFlag<=BRS_LASTFLAG, "bad flag");
     return !!(mFlags & aFlag);

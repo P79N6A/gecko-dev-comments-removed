@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <stdio.h>
 #include "nsCOMPtr.h"
 #include "nsIEventQueueService.h"
@@ -84,7 +117,7 @@ private:
 int TestListener::threadCount = 0;
 
 TestListener::TestListener()
-    : mDone( false ), mThreadNo( ++threadCount ) {
+    : mDone( PR_FALSE ), mThreadNo( ++threadCount ) {
     printf( "TestListener ctor called on thread %d\n", mThreadNo );
 }
 
@@ -119,7 +152,7 @@ TestListener::OnStopRequest( nsIChannel *aChannel,
     printf( "TestListener::OnStopRequest called on thread %d\n", mThreadNo );
 
     fclose( mFile );
-    mDone = true;
+    mDone = PR_TRUE;
 
     return rv;
 }
@@ -128,8 +161,8 @@ NS_IMETHODIMP
 TestListener::OnDataAvailable( nsIChannel *aChannel,
                                nsISupports *aContext,
                                nsIInputStream *aStream,
-                               uint64_t offset,
-                               uint32_t aLength ) {
+                               PRUint32 offset,
+                               PRUint32 aLength ) {
     nsresult rv = NS_OK;
 
     printf( "TestListener::OnDataAvailable called on thread %d\n", mThreadNo );
@@ -226,7 +259,7 @@ main( int argc, char* argv[] ) {
 
     
     printf( "Initializing XPCOM...\n" );
-    rv = NS_InitXPCOM2(nullptr, nullptr, nullptr);
+    rv = NS_InitXPCOM2(nsnull, nsnull, nsnull);
     if ( NS_FAILED( rv ) ) {
         printf( "%s %d: NS_InitXPCOM failed, rv=0x%08X\n",
                 (char*)__FILE__, (int)__LINE__, (int)rv );

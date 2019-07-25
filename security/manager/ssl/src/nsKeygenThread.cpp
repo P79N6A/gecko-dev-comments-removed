@@ -4,84 +4,105 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "pk11func.h"
 #include "nsCOMPtr.h"
+#include "nsProxiedService.h"
 #include "nsThreadUtils.h"
 #include "nsKeygenThread.h"
 #include "nsIObserver.h"
 #include "nsNSSShutDown.h"
-#include "PSMRunnable.h"
 
 using namespace mozilla;
-using namespace mozilla::psm;
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(nsKeygenThread, nsIKeygenThread)
 
 
 nsKeygenThread::nsKeygenThread()
 :mutex("nsKeygenThread.mutex"),
- iAmRunning(false),
- keygenReady(false),
- statusDialogClosed(false),
- alreadyReceivedParams(false),
- privateKey(nullptr),
- publicKey(nullptr),
- slot(nullptr),
- flags(0),
- altSlot(nullptr),
- altFlags(0),
- usedSlot(nullptr),
+ iAmRunning(PR_FALSE),
+ keygenReady(PR_FALSE),
+ statusDialogClosed(PR_FALSE),
+ alreadyReceivedParams(PR_FALSE),
+ privateKey(nsnull),
+ publicKey(nsnull),
+ slot(nsnull),
  keyGenMechanism(0),
- params(nullptr),
- wincx(nullptr),
- threadHandle(nullptr)
+ params(nsnull),
+ isPerm(PR_FALSE),
+ isSensitive(PR_FALSE),
+ wincx(nsnull),
+ threadHandle(nsnull)
 {
 }
 
 nsKeygenThread::~nsKeygenThread()
 {
-  
-  
-  if (privateKey)
-    SECKEY_DestroyPrivateKey(privateKey);
-    
-  if (publicKey)
-    SECKEY_DestroyPublicKey(publicKey);
-    
-  if (usedSlot)
-    PK11_FreeSlot(usedSlot);
 }
 
 void nsKeygenThread::SetParams(
     PK11SlotInfo *a_slot,
-    PK11AttrFlags a_flags,
-    PK11SlotInfo *a_alternative_slot,
-    PK11AttrFlags a_alternative_flags,
-    uint32_t a_keyGenMechanism,
+    PRUint32 a_keyGenMechanism,
     void *a_params,
+    bool a_isPerm,
+    bool a_isSensitive,
     void *a_wincx )
 {
   nsNSSShutDownPreventionLock locker;
   MutexAutoLock lock(mutex);
  
     if (!alreadyReceivedParams) {
-      alreadyReceivedParams = true;
-      slot = (a_slot) ? PK11_ReferenceSlot(a_slot) : nullptr;
-      flags = a_flags;
-      altSlot = (a_alternative_slot) ? PK11_ReferenceSlot(a_alternative_slot) : nullptr;
-      altFlags = a_alternative_flags;
+      alreadyReceivedParams = PR_TRUE;
+      if (a_slot) {
+        slot = PK11_ReferenceSlot(a_slot);
+      }
+      else {
+        slot = nsnull;
+      }
       keyGenMechanism = a_keyGenMechanism;
       params = a_params;
+      isPerm = a_isPerm;
+      isSensitive = a_isSensitive;
       wincx = a_wincx;
     }
 }
 
-nsresult nsKeygenThread::ConsumeResult(
-    PK11SlotInfo **a_used_slot,
+nsresult nsKeygenThread::GetParams(
     SECKEYPrivateKey **a_privateKey,
     SECKEYPublicKey **a_publicKey)
 {
-  if (!a_used_slot || !a_privateKey || !a_publicKey) {
+  if (!a_privateKey || !a_publicKey) {
     return NS_ERROR_FAILURE;
   }
 
@@ -96,11 +117,9 @@ nsresult nsKeygenThread::ConsumeResult(
     if (keygenReady) {
       *a_privateKey = privateKey;
       *a_publicKey = publicKey;
-      *a_used_slot = usedSlot;
 
       privateKey = 0;
       publicKey = 0;
-      usedSlot = 0;
       
       rv = NS_OK;
     }
@@ -113,20 +132,21 @@ nsresult nsKeygenThread::ConsumeResult(
 
 static void PR_CALLBACK nsKeygenThreadRunner(void *arg)
 {
-  PR_SetCurrentThreadName("Keygen");
   nsKeygenThread *self = static_cast<nsKeygenThread *>(arg);
   self->Run();
 }
 
 nsresult nsKeygenThread::StartKeyGeneration(nsIObserver* aObserver)
 {
-  if (!NS_IsMainThread()) {
-    NS_ERROR("nsKeygenThread::StartKeyGeneration called off the main thread");
-    return NS_ERROR_NOT_SAME_THREAD;
-  }
-  
   if (!aObserver)
     return NS_OK;
+
+  nsCOMPtr<nsIObserver> obs;
+  NS_GetProxyForObject( NS_PROXY_TO_MAIN_THREAD,
+                        NS_GET_IID(nsIObserver),
+                        aObserver,
+                        NS_PROXY_SYNC | NS_PROXY_ALWAYS,
+                        getter_AddRefs(obs));
 
   MutexAutoLock lock(mutex);
 
@@ -134,11 +154,9 @@ nsresult nsKeygenThread::StartKeyGeneration(nsIObserver* aObserver)
       return NS_OK;
     }
 
-    
-    
-    mNotifyObserver = new NotifyObserverRunnable(aObserver, "keygen-finished");
+    observer.swap(obs);
 
-    iAmRunning = true;
+    iAmRunning = PR_TRUE;
 
     threadHandle = PR_CreateThread(PR_USER_THREAD, nsKeygenThreadRunner, static_cast<void*>(this), 
       PR_PRIORITY_NORMAL, PR_LOCAL_THREAD, PR_JOINABLE_THREAD, 0);
@@ -155,7 +173,7 @@ nsresult nsKeygenThread::UserCanceled(bool *threadAlreadyClosedDialog)
   if (!threadAlreadyClosedDialog)
     return NS_OK;
 
-  *threadAlreadyClosedDialog = false;
+  *threadAlreadyClosedDialog = PR_FALSE;
 
   MutexAutoLock lock(mutex);
   
@@ -166,7 +184,7 @@ nsresult nsKeygenThread::UserCanceled(bool *threadAlreadyClosedDialog)
     
     
     
-    statusDialogClosed = true;
+    statusDialogClosed = PR_TRUE;
 
   return NS_OK;
 }
@@ -179,28 +197,15 @@ void nsKeygenThread::Run(void)
   {
     MutexAutoLock lock(mutex);
     if (alreadyReceivedParams) {
-      canGenerate = true;
-      keygenReady = false;
+      canGenerate = PR_TRUE;
+      keygenReady = PR_FALSE;
     }
   }
 
-  if (canGenerate) {
-    privateKey = PK11_GenerateKeyPairWithFlags(slot, keyGenMechanism,
-                                               params, &publicKey,
-                                               flags, wincx);
-
-    if (privateKey) {
-      usedSlot = PK11_ReferenceSlot(slot);
-    }
-    else if (altSlot) {
-      privateKey = PK11_GenerateKeyPairWithFlags(altSlot, keyGenMechanism,
-                                                 params, &publicKey,
-                                                 altFlags, wincx);
-      if (privateKey) {
-        usedSlot = PK11_ReferenceSlot(altSlot);
-      }
-    }
-  }
+  if (canGenerate)
+    privateKey = PK11_GenerateKeyPair(slot, keyGenMechanism,
+                                         params, &publicKey,
+                                         isPerm, isSensitive, wincx);
   
   
   
@@ -208,37 +213,30 @@ void nsKeygenThread::Run(void)
   
   
 
-  nsCOMPtr<nsIRunnable> notifyObserver;
+  nsCOMPtr<nsIObserver> obs;
   {
     MutexAutoLock lock(mutex);
 
-    keygenReady = true;
-    iAmRunning = false;
+    keygenReady = PR_TRUE;
+    iAmRunning = PR_FALSE;
 
     
     if (slot) {
       PK11_FreeSlot(slot);
       slot = 0;
     }
-    if (altSlot) {
-      PK11_FreeSlot(altSlot);
-      altSlot = 0;
-    }
     keyGenMechanism = 0;
     params = 0;
     wincx = 0;
 
-    if (!statusDialogClosed && mNotifyObserver)
-      notifyObserver = mNotifyObserver;
+    if (!statusDialogClosed)
+      obs = observer;
 
-    mNotifyObserver = nullptr;
+    observer = nsnull;
   }
 
-  if (notifyObserver) {
-    nsresult rv = NS_DispatchToMainThread(notifyObserver);
-    NS_ASSERTION(NS_SUCCEEDED(rv),
-		 "failed to dispatch keygen thread observer to main thread");
-  }
+  if (obs)
+    obs->Observe(nsnull, "keygen-finished", nsnull);
 }
 
 void nsKeygenThread::Join()
@@ -247,7 +245,7 @@ void nsKeygenThread::Join()
     return;
   
   PR_JoinThread(threadHandle);
-  threadHandle = nullptr;
+  threadHandle = nsnull;
 
   return;
 }

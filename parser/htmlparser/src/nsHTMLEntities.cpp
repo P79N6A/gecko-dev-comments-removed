@@ -3,7 +3,37 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsHTMLEntities.h"
 
@@ -14,11 +44,9 @@
 #include "prtypes.h"
 #include "pldhash.h"
 
-using namespace mozilla;
-
 struct EntityNode {
   const char* mStr; 
-  int32_t       mUnicode;
+  PRInt32       mUnicode;
 };
 
 struct EntityNodeEntry : public PLDHashEntryHdr
@@ -40,7 +68,7 @@ static bool
                    const void* key)
 {
   const EntityNodeEntry* entry = static_cast<const EntityNodeEntry*>(aHdr);
-  const int32_t ucode = NS_PTR_TO_INT32(key);
+  const PRInt32 ucode = NS_PTR_TO_INT32(key);
   return (entry->node->mUnicode == ucode);
 }
 
@@ -60,7 +88,7 @@ static const PLDHashTableOps EntityToUnicodeOps = {
   PL_DHashMoveEntryStub,
   PL_DHashClearEntryStub,
   PL_DHashFinalizeStub,
-  nullptr,
+  nsnull,
 }; 
 
 static const PLDHashTableOps UnicodeToEntityOps = {
@@ -71,7 +99,7 @@ static const PLDHashTableOps UnicodeToEntityOps = {
   PL_DHashMoveEntryStub,
   PL_DHashClearEntryStub,
   PL_DHashFinalizeStub,
-  nullptr,
+  nsnull,
 };
 
 static PLDHashTable gEntityToUnicode = { 0 };
@@ -84,27 +112,27 @@ static const EntityNode gEntityArray[] = {
 };
 #undef HTML_ENTITY
 
-#define NS_HTML_ENTITY_COUNT ((int32_t)ArrayLength(gEntityArray))
+#define NS_HTML_ENTITY_COUNT ((PRInt32)NS_ARRAY_LENGTH(gEntityArray))
 
 nsresult
 nsHTMLEntities::AddRefTable(void) 
 {
   if (!gTableRefCnt) {
     if (!PL_DHashTableInit(&gEntityToUnicode, &EntityToUnicodeOps,
-                           nullptr, sizeof(EntityNodeEntry),
-                           uint32_t(NS_HTML_ENTITY_COUNT / 0.75))) {
-      gEntityToUnicode.ops = nullptr;
+                           nsnull, sizeof(EntityNodeEntry),
+                           PRUint32(NS_HTML_ENTITY_COUNT / 0.75))) {
+      gEntityToUnicode.ops = nsnull;
       return NS_ERROR_OUT_OF_MEMORY;
     }
     if (!PL_DHashTableInit(&gUnicodeToEntity, &UnicodeToEntityOps,
-                           nullptr, sizeof(EntityNodeEntry),
-                           uint32_t(NS_HTML_ENTITY_COUNT / 0.75))) {
+                           nsnull, sizeof(EntityNodeEntry),
+                           PRUint32(NS_HTML_ENTITY_COUNT / 0.75))) {
       PL_DHashTableFinish(&gEntityToUnicode);
-      gEntityToUnicode.ops = gUnicodeToEntity.ops = nullptr;
+      gEntityToUnicode.ops = gUnicodeToEntity.ops = nsnull;
       return NS_ERROR_OUT_OF_MEMORY;
     }
     for (const EntityNode *node = gEntityArray,
-                 *node_end = ArrayEnd(gEntityArray);
+                 *node_end = gEntityArray + NS_ARRAY_LENGTH(gEntityArray);
          node < node_end; ++node) {
 
       
@@ -145,16 +173,16 @@ nsHTMLEntities::ReleaseTable(void)
 
   if (gEntityToUnicode.ops) {
     PL_DHashTableFinish(&gEntityToUnicode);
-    gEntityToUnicode.ops = nullptr;
+    gEntityToUnicode.ops = nsnull;
   }
   if (gUnicodeToEntity.ops) {
     PL_DHashTableFinish(&gUnicodeToEntity);
-    gUnicodeToEntity.ops = nullptr;
+    gUnicodeToEntity.ops = nsnull;
   }
 
 }
 
-int32_t 
+PRInt32 
 nsHTMLEntities::EntityToUnicode(const nsCString& aEntity)
 {
   NS_ASSERTION(gEntityToUnicode.ops, "no lookup table, needs addref");
@@ -165,7 +193,7 @@ nsHTMLEntities::EntityToUnicode(const nsCString& aEntity)
     
 
     if(';'==aEntity.Last()) {
-      nsAutoCString temp(aEntity);
+      nsCAutoString temp(aEntity);
       temp.Truncate(aEntity.Length()-1);
       return EntityToUnicode(temp);
     }
@@ -181,9 +209,9 @@ nsHTMLEntities::EntityToUnicode(const nsCString& aEntity)
 }
 
 
-int32_t 
+PRInt32 
 nsHTMLEntities::EntityToUnicode(const nsAString& aEntity) {
-  nsAutoCString theEntity; theEntity.AssignWithConversion(aEntity);
+  nsCAutoString theEntity; theEntity.AssignWithConversion(aEntity);
   if(';'==theEntity.Last()) {
     theEntity.Truncate(theEntity.Length()-1);
   }
@@ -193,7 +221,7 @@ nsHTMLEntities::EntityToUnicode(const nsAString& aEntity) {
 
 
 const char*
-nsHTMLEntities::UnicodeToEntity(int32_t aUnicode)
+nsHTMLEntities::UnicodeToEntity(PRInt32 aUnicode)
 {
   NS_ASSERTION(gUnicodeToEntity.ops, "no lookup table, needs addref");
   EntityNodeEntry* entry =
@@ -201,18 +229,18 @@ nsHTMLEntities::UnicodeToEntity(int32_t aUnicode)
                (PL_DHashTableOperate(&gUnicodeToEntity, NS_INT32_TO_PTR(aUnicode), PL_DHASH_LOOKUP));
                    
   if (!entry || PL_DHASH_ENTRY_IS_FREE(entry))
-  return nullptr;
+  return nsnull;
     
   return entry->node->mStr;
 }
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
 #include <stdio.h>
 
 class nsTestEntityTable {
 public:
    nsTestEntityTable() {
-     int32_t value;
+     PRInt32 value;
      nsHTMLEntities::AddRefTable();
 
      
@@ -228,9 +256,9 @@ public:
      }
 
      
-     value = nsHTMLEntities::EntityToUnicode(nsAutoCString("@"));
+     value = nsHTMLEntities::EntityToUnicode(nsCAutoString("@"));
      NS_ASSERTION(value == -1, "found @");
-     value = nsHTMLEntities::EntityToUnicode(nsAutoCString("zzzzz"));
+     value = nsHTMLEntities::EntityToUnicode(nsCAutoString("zzzzz"));
      NS_ASSERTION(value == -1, "found zzzzz");
      nsHTMLEntities::ReleaseTable();
    }

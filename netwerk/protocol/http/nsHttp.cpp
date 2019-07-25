@@ -4,17 +4,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsHttp.h"
 #include "pldhash.h"
 #include "mozilla/Mutex.h"
-#include "mozilla/HashFunctions.h"
 #include "nsCRT.h"
 #include "prbit.h"
 
-using namespace mozilla;
-
 #if defined(PR_LOGGING)
-PRLogModuleInfo *gHttpLog = nullptr;
+PRLogModuleInfo *gHttpLog = nsnull;
 #endif
 
 
@@ -42,8 +72,8 @@ struct HttpHeapAtom {
 };
 
 static struct PLDHashTable  sAtomTable = {0};
-static struct HttpHeapAtom *sHeapAtoms = nullptr;
-static Mutex               *sLock = nullptr;
+static struct HttpHeapAtom *sHeapAtoms = nsnull;
+static Mutex               *sLock = nsnull;
 
 HttpHeapAtom *
 NewHeapAtom(const char *value) {
@@ -52,7 +82,7 @@ NewHeapAtom(const char *value) {
     HttpHeapAtom *a =
         reinterpret_cast<HttpHeapAtom *>(malloc(sizeof(*a) + len));
     if (!a)
-        return nullptr;
+        return nsnull;
     memcpy(a->value, value, len + 1);
 
     
@@ -68,7 +98,7 @@ StringHash(PLDHashTable *table, const void *key)
 {
     PLDHashNumber h = 0;
     for (const char *s = reinterpret_cast<const char*>(key); *s; ++s)
-        h = AddToHash(h, nsCRT::ToLower(*s));
+        h = PR_ROTATE_LEFT32(h, 4) ^ nsCRT::ToLower(*s);
     return h;
 }
 
@@ -91,7 +121,7 @@ static const PLDHashTableOps ops = {
     PL_DHashMoveEntryStub,
     PL_DHashClearEntryStub,
     PL_DHashFinalizeStub,
-    nullptr
+    nsnull
 };
 
 
@@ -107,9 +137,9 @@ nsHttp::CreateAtomTable()
     
     
     
-    if (!PL_DHashTableInit(&sAtomTable, &ops, nullptr, sizeof(PLDHashEntryStub),
+    if (!PL_DHashTableInit(&sAtomTable, &ops, nsnull, sizeof(PLDHashEntryStub),
                            NUM_HTTP_ATOMS + 10)) {
-        sAtomTable.ops = nullptr;
+        sAtomTable.ops = nsnull;
         return NS_ERROR_OUT_OF_MEMORY;
     }
 
@@ -118,7 +148,7 @@ nsHttp::CreateAtomTable()
 #define HTTP_ATOM(_name, _value) nsHttp::_name._val,
 #include "nsHttpAtomList.h"
 #undef HTTP_ATOM
-        nullptr
+        nsnull
     };
 
     for (int i = 0; atoms[i]; ++i) {
@@ -139,7 +169,7 @@ nsHttp::DestroyAtomTable()
 {
     if (sAtomTable.ops) {
         PL_DHashTableFinish(&sAtomTable);
-        sAtomTable.ops = nullptr;
+        sAtomTable.ops = nsnull;
     }
 
     while (sHeapAtoms) {
@@ -150,21 +180,15 @@ nsHttp::DestroyAtomTable()
 
     if (sLock) {
         delete sLock;
-        sLock = nullptr;
+        sLock = nsnull;
     }
-}
-
-Mutex *
-nsHttp::GetLock()
-{
-    return sLock;
 }
 
 
 nsHttpAtom
 nsHttp::ResolveAtom(const char *str)
 {
-    nsHttpAtom atom = { nullptr };
+    nsHttpAtom atom = { nsnull };
 
     if (!str || !sAtomTable.ops)
         return atom;
@@ -230,28 +254,28 @@ bool
 nsHttp::IsValidToken(const char *start, const char *end)
 {
     if (start == end)
-        return false;
+        return PR_FALSE;
 
     for (; start != end; ++start) {
         const unsigned char idx = *start;
         if (idx > 127 || !kValidTokenMap[idx])
-            return false;
+            return PR_FALSE;
     }
 
-    return true;
+    return PR_TRUE;
 }
 
 const char *
 nsHttp::FindToken(const char *input, const char *token, const char *seps)
 {
     if (!input)
-        return nullptr;
+        return nsnull;
 
     int inputLen = strlen(input);
     int tokenLen = strlen(token);
 
     if (inputLen < tokenLen)
-        return nullptr;
+        return nsnull;
 
     const char *inputTop = input;
     const char *inputEnd = input + inputLen - tokenLen;
@@ -265,24 +289,24 @@ nsHttp::FindToken(const char *input, const char *token, const char *seps)
         }
     }
 
-    return nullptr;
+    return nsnull;
 }
 
 bool
-nsHttp::ParseInt64(const char *input, const char **next, int64_t *r)
+nsHttp::ParseInt64(const char *input, const char **next, PRInt64 *r)
 {
     const char *start = input;
     *r = 0;
     while (*input >= '0' && *input <= '9') {
-        int64_t next = 10 * (*r) + (*input - '0');
+        PRInt64 next = 10 * (*r) + (*input - '0');
         if (next < *r) 
-            return false;
+            return PR_FALSE;
         *r = next;
         ++input;
     }
     if (input == start) 
-        return false;
+        return PR_FALSE;
     if (next)
         *next = input;
-    return true;
+    return PR_TRUE;
 }

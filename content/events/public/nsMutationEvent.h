@@ -3,17 +3,51 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsMutationEvent_h__
 #define nsMutationEvent_h__
 
 #include "nsGUIEvent.h"
 #include "nsIDOMNode.h"
 #include "nsIAtom.h"
+#include "nsIDOMEventTarget.h"
+#include "nsIContent.h"
 
 class nsMutationEvent : public nsEvent
 {
 public:
-  nsMutationEvent(bool isTrusted, uint32_t msg)
+  nsMutationEvent(bool isTrusted, PRUint32 msg)
     : nsEvent(isTrusted, msg, NS_MUTATION_EVENT),
       mAttrChange(0)
   {

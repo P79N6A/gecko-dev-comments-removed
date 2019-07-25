@@ -3,19 +3,48 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsEditorEventListener_h__
 #define nsEditorEventListener_h__
 
-#include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
-#include "nsError.h"
-#include "nsIDOMEventListener.h"
-#include "nsISupportsImpl.h"
-#include "nscore.h"
 
-class nsCaret;
-class nsIDOMEvent;
-class nsIPresShell;
+#include "nsIDOMEvent.h"
+#include "nsIDOMEventListener.h"
+
+#include "nsCaret.h"
 
 
 #ifdef KeyPress
@@ -50,14 +79,12 @@ public:
   NS_IMETHOD KeyPress(nsIDOMEvent* aKeyEvent);
   NS_IMETHOD HandleText(nsIDOMEvent* aTextEvent);
   NS_IMETHOD HandleStartComposition(nsIDOMEvent* aCompositionEvent);
-  void       HandleEndComposition(nsIDOMEvent* aCompositionEvent);
+  NS_IMETHOD HandleEndComposition(nsIDOMEvent* aCompositionEvent);
   NS_IMETHOD MouseDown(nsIDOMEvent* aMouseEvent);
   NS_IMETHOD MouseUp(nsIDOMEvent* aMouseEvent) { return NS_OK; }
   NS_IMETHOD MouseClick(nsIDOMEvent* aMouseEvent);
   NS_IMETHOD Focus(nsIDOMEvent* aEvent);
   NS_IMETHOD Blur(nsIDOMEvent* aEvent);
-
-  void SpellCheckIfNeeded();
 
 protected:
   nsresult InstallToEditor();
@@ -71,7 +98,6 @@ protected:
   nsresult DragGesture(nsIDOMDragEvent* aDragEvent);
   void CleanupDragDropCaret();
   already_AddRefed<nsIPresShell> GetPresShell();
-  bool IsFileControlTextBox();
 
 protected:
   nsEditor* mEditor; 

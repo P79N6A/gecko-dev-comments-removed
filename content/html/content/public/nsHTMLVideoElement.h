@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #if !defined(nsHTMLVideoElement_h__)
 #define nsHTMLVideoElement_h__
 
@@ -15,14 +47,6 @@ class nsHTMLVideoElement : public nsHTMLMediaElement,
 public:
   nsHTMLVideoElement(already_AddRefed<nsINodeInfo> aNodeInfo);
   virtual ~nsHTMLVideoElement();
-
-  static nsHTMLVideoElement* FromContent(nsIContent* aPossibleVideo)
-  {
-    if (!aPossibleVideo || !aPossibleVideo->IsHTML(nsGkAtoms::video)) {
-      return NULL;
-    }
-    return static_cast<nsHTMLVideoElement*>(aPossibleVideo);
-  }
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -42,7 +66,7 @@ public:
   
   NS_DECL_NSIDOMHTMLVIDEOELEMENT
 
-  virtual bool ParseAttribute(int32_t aNamespaceID,
+  virtual bool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
@@ -53,17 +77,11 @@ public:
 
   
   
-  nsresult GetVideoSize(nsIntSize* size);
+  nsIntSize GetVideoSize(nsIntSize defaultSize);
 
   virtual nsresult SetAcceptHeader(nsIHttpChannel* aChannel);
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
-
-protected:
-  virtual void GetItemValueText(nsAString& text);
-  virtual void SetItemValueText(const nsAString& text);
 };
 
 #endif

@@ -4,13 +4,43 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsAutoPtr.h"
 #include "nsGenericHTMLElement.h"
 #include "nsObjectLoadingContent.h"
 #include "nsGkAtoms.h"
-#include "nsError.h"
+#include "nsDOMError.h"
 #include "nsIDocument.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMSVGDocument.h"
@@ -20,9 +50,7 @@
 #include "nsIObjectFrame.h"
 #include "nsNPAPIPluginInstance.h"
 #include "nsIConstraintValidation.h"
-#include "nsIWidget.h"
 
-using namespace mozilla;
 using namespace mozilla::dom;
 
 class nsHTMLObjectElement : public nsGenericHTMLFormElement
@@ -48,24 +76,7 @@ public:
   NS_FORWARD_NSIDOMELEMENT(nsGenericHTMLFormElement::)
 
   
-  NS_FORWARD_NSIDOMHTMLELEMENT_BASIC(nsGenericHTMLFormElement::)
-  NS_IMETHOD Click() {
-    return nsGenericHTMLFormElement::Click();
-  }
-  NS_IMETHOD GetTabIndex(int32_t* aTabIndex);
-  NS_IMETHOD SetTabIndex(int32_t aTabIndex);
-  NS_IMETHOD Focus() {
-    return nsGenericHTMLFormElement::Focus();
-  }
-  NS_IMETHOD GetDraggable(bool* aDraggable) {
-    return nsGenericHTMLFormElement::GetDraggable(aDraggable);
-  }
-  NS_IMETHOD GetInnerHTML(nsAString& aInnerHTML) {
-    return nsGenericHTMLFormElement::GetInnerHTML(aInnerHTML);
-  }
-  NS_IMETHOD SetInnerHTML(const nsAString& aInnerHTML) {
-    return nsGenericHTMLFormElement::SetInnerHTML(aInnerHTML);
-  }
+  NS_FORWARD_NSIDOMHTMLELEMENT(nsGenericHTMLFormElement::)
 
   
   NS_DECL_NSIDOMHTMLOBJECTELEMENT
@@ -78,17 +89,17 @@ public:
                               bool aCompileEventHandlers);
   virtual void UnbindFromTree(bool aDeep = true,
                               bool aNullParent = true);
-  virtual nsresult SetAttr(int32_t aNameSpaceID, nsIAtom *aName,
+  virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom *aName,
                            nsIAtom *aPrefix, const nsAString &aValue,
                            bool aNotify);
-  virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
+  virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
                              bool aNotify);
 
-  virtual bool IsHTMLFocusable(bool aWithMouse, bool *aIsFocusable, int32_t *aTabIndex);
-  virtual IMEState GetDesiredIMEState();
+  virtual bool IsHTMLFocusable(bool aWithMouse, bool *aIsFocusable, PRInt32 *aTabIndex);
+  virtual PRUint32 GetDesiredIMEState();
 
   
-  NS_IMETHOD_(uint32_t) GetType() const
+  NS_IMETHOD_(PRUint32) GetType() const
   {
     return NS_FORM_OBJECT;
   }
@@ -96,12 +107,12 @@ public:
   NS_IMETHOD Reset();
   NS_IMETHOD SubmitNamesValues(nsFormSubmission *aFormSubmission);
 
-  virtual bool IsDisabled() const { return false; }
+  virtual bool IsDisabled() const { return PR_FALSE; }
 
-  virtual void DoneAddingChildren(bool aHaveNotified);
+  virtual nsresult DoneAddingChildren(bool aHaveNotified);
   virtual bool IsDoneAddingChildren();
 
-  virtual bool ParseAttribute(int32_t aNamespaceID,
+  virtual bool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom *aAttribute,
                                 const nsAString &aValue,
                                 nsAttrValue &aResult);
@@ -111,20 +122,18 @@ public:
   virtual void DestroyContent();
 
   
-  virtual uint32_t GetCapabilities() const;
+  virtual PRUint32 GetCapabilities() const;
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
-  nsresult CopyInnerTo(nsGenericElement* aDest);
+  nsresult CopyInnerTo(nsGenericElement* aDest) const;
 
-  void StartObjectLoad() { StartObjectLoad(true); }
+  void StartObjectLoad() { StartObjectLoad(PR_TRUE); }
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED_NO_UNLINK(nsHTMLObjectElement,
                                                      nsGenericHTMLFormElement)
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 private:
   
 
@@ -136,9 +145,6 @@ private:
 
 
   bool IsFocusableForTabIndex();
-  
-  virtual void GetItemValueText(nsAString& text);
-  virtual void SetItemValueText(const nsAString& text);
 
   bool mIsDoneAddingChildren;
 };
@@ -156,7 +162,7 @@ nsHTMLObjectElement::nsHTMLObjectElement(already_AddRefed<nsINodeInfo> aNodeInfo
   SetIsNetworkCreated(aFromParser == FROM_PARSER_NETWORK);
 
   
-  SetBarredFromConstraintValidation(true);
+  SetBarredFromConstraintValidation(PR_TRUE);
 
   
   AddStatesSilently(NS_EVENT_STATE_LOADING);
@@ -174,16 +180,17 @@ nsHTMLObjectElement::IsDoneAddingChildren()
   return mIsDoneAddingChildren;
 }
 
-void
+nsresult
 nsHTMLObjectElement::DoneAddingChildren(bool aHaveNotified)
 {
-  mIsDoneAddingChildren = true;
+  mIsDoneAddingChildren = PR_TRUE;
 
   
   
   if (IsInDoc()) {
     StartObjectLoad(aHaveNotified);
   }
+  return NS_OK;
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsHTMLObjectElement)
@@ -206,7 +213,6 @@ NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(nsHTMLObjectElement)
     NS_INTERFACE_TABLE_ENTRY(nsHTMLObjectElement, nsIFrameLoaderOwner)
     NS_INTERFACE_TABLE_ENTRY(nsHTMLObjectElement, nsIObjectLoadingContent)
     NS_INTERFACE_TABLE_ENTRY(nsHTMLObjectElement, nsIImageLoadingContent)
-    NS_INTERFACE_TABLE_ENTRY(nsHTMLObjectElement, imgIOnloadBlocker)
     NS_INTERFACE_TABLE_ENTRY(nsHTMLObjectElement, imgIContainerObserver)
     NS_INTERFACE_TABLE_ENTRY(nsHTMLObjectElement, nsIInterfaceRequestor)
     NS_INTERFACE_TABLE_ENTRY(nsHTMLObjectElement, nsIChannelEventSink)
@@ -228,18 +234,6 @@ nsHTMLObjectElement::GetForm(nsIDOMHTMLFormElement **aForm)
   return nsGenericHTMLFormElement::GetForm(aForm);
 }
 
-void
-nsHTMLObjectElement::GetItemValueText(nsAString& aValue)
-{
-  GetData(aValue);
-}
-
-void
-nsHTMLObjectElement::SetItemValueText(const nsAString& aValue)
-{
-  SetData(aValue);
-}
-
 nsresult
 nsHTMLObjectElement::BindToTree(nsIDocument *aDocument,
                                 nsIContent *aParent,
@@ -249,11 +243,6 @@ nsHTMLObjectElement::BindToTree(nsIDocument *aDocument,
   nsresult rv = nsGenericHTMLFormElement::BindToTree(aDocument, aParent,
                                                      aBindingParent,
                                                      aCompileEventHandlers);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = nsObjectLoadingContent::BindToTree(aDocument, aParent,
-                                          aBindingParent,
-                                          aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -269,21 +258,19 @@ void
 nsHTMLObjectElement::UnbindFromTree(bool aDeep,
                                     bool aNullParent)
 {
-  nsObjectLoadingContent::UnbindFromTree(aDeep, aNullParent);
+  RemovedFromDocument();
   nsGenericHTMLFormElement::UnbindFromTree(aDeep, aNullParent);
 }
 
 
 
 nsresult
-nsHTMLObjectElement::SetAttr(int32_t aNameSpaceID, nsIAtom *aName,
+nsHTMLObjectElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom *aName,
                              nsIAtom *aPrefix, const nsAString &aValue,
                              bool aNotify)
 {
-  nsresult rv = nsGenericHTMLFormElement::SetAttr(aNameSpaceID, aName, aPrefix,
-                                                  aValue, aNotify);
-  NS_ENSURE_SUCCESS(rv, rv);
-
+  
+  
   
   
   
@@ -293,27 +280,24 @@ nsHTMLObjectElement::SetAttr(int32_t aNameSpaceID, nsIAtom *aName,
   
   if (aNotify && IsInDoc() && mIsDoneAddingChildren &&
       aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::data) {
-    return LoadObject(aNotify, true);
+    nsAutoString type;
+    GetAttr(kNameSpaceID_None, nsGkAtoms::type, type);
+    LoadObject(aValue, aNotify, NS_ConvertUTF16toUTF8(type), PR_TRUE);
   }
 
-  return NS_OK;
+  return nsGenericHTMLFormElement::SetAttr(aNameSpaceID, aName, aPrefix,
+                                           aValue, aNotify);
 }
 
 nsresult
-nsHTMLObjectElement::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
+nsHTMLObjectElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
                                bool aNotify)
 {
-  nsresult rv = nsGenericHTMLFormElement::UnsetAttr(aNameSpaceID,
-                                                    aAttribute, aNotify);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  if (aNotify && IsInDoc() && mIsDoneAddingChildren &&
-      aNameSpaceID == kNameSpaceID_None && aAttribute == nsGkAtoms::data) {
-    return LoadObject(aNotify, true);
+  if (aNameSpaceID == kNameSpaceID_None && aAttribute == nsGkAtoms::data) {
+    Fallback(aNotify);
   }
 
-  return NS_OK;
+  return nsGenericHTMLFormElement::UnsetAttr(aNameSpaceID, aAttribute, aNotify);
 }
 
 bool
@@ -324,25 +308,25 @@ nsHTMLObjectElement::IsFocusableForTabIndex()
     return false;
   }
 
-  return IsEditableRoot() || (Type() == eType_Document &&
-                              nsContentUtils::IsSubDocumentTabbable(this));
+  return Type() == eType_Plugin || IsEditableRoot() ||
+         (Type() == eType_Document && nsContentUtils::IsSubDocumentTabbable(this));
 }
 
 bool
 nsHTMLObjectElement::IsHTMLFocusable(bool aWithMouse,
-                                     bool *aIsFocusable, int32_t *aTabIndex)
+                                     bool *aIsFocusable, PRInt32 *aTabIndex)
 {
   
   
   nsIDocument *doc = GetCurrentDoc();
   if (!doc || doc->HasFlag(NODE_IS_EDITABLE)) {
     if (aTabIndex) {
-      GetTabIndex(aTabIndex);
+      GetIntAttr(nsGkAtoms::tabindex, -1, aTabIndex);
     }
 
-    *aIsFocusable = false;
+    *aIsFocusable = PR_FALSE;
 
-    return false;
+    return PR_FALSE;
   }
 
   
@@ -352,12 +336,12 @@ nsHTMLObjectElement::IsHTMLFocusable(bool aWithMouse,
     
     
     if (aTabIndex) {
-      GetTabIndex(aTabIndex);
+      GetIntAttr(nsGkAtoms::tabindex, 0, aTabIndex);
     }
 
-    *aIsFocusable = true;
+    *aIsFocusable = PR_TRUE;
 
-    return false;
+    return PR_FALSE;
   }
 
   
@@ -370,14 +354,14 @@ nsHTMLObjectElement::IsHTMLFocusable(bool aWithMouse,
     *aTabIndex = attrVal->GetIntegerValue();
   }
 
-  return false;
+  return PR_FALSE;
 }
 
-nsIContent::IMEState
+PRUint32
 nsHTMLObjectElement::GetDesiredIMEState()
 {
   if (Type() == eType_Plugin) {
-    return IMEState(IMEState::PLUGIN);
+    return nsIContent::IME_STATUS_PLUGIN;
   }
    
   return nsGenericHTMLFormElement::GetDesiredIMEState();
@@ -444,14 +428,14 @@ nsHTMLObjectElement::GetContentDocument(nsIDOMDocument **aContentDocument)
 {
   NS_ENSURE_ARG_POINTER(aContentDocument);
 
-  *aContentDocument = nullptr;
+  *aContentDocument = nsnull;
 
   if (!IsInDoc()) {
     return NS_OK;
   }
 
   
-  nsIDocument *sub_doc = OwnerDoc()->GetSubDocumentFor(this);
+  nsIDocument *sub_doc = GetOwnerDoc()->GetSubDocumentFor(this);
   if (!sub_doc) {
     return NS_OK;
   }
@@ -466,7 +450,7 @@ nsHTMLObjectElement::GetSVGDocument(nsIDOMDocument **aResult)
 }
 
 bool
-nsHTMLObjectElement::ParseAttribute(int32_t aNamespaceID,
+nsHTMLObjectElement::ParseAttribute(PRInt32 aNamespaceID,
                                     nsIAtom *aAttribute,
                                     const nsAString &aValue,
                                     nsAttrValue &aResult)
@@ -476,7 +460,7 @@ nsHTMLObjectElement::ParseAttribute(int32_t aNamespaceID,
       return ParseAlignValue(aValue, aResult);
     }
     if (ParseImageAttribute(aAttribute, aValue, aResult)) {
-      return true;
+      return PR_TRUE;
     }
   }
 
@@ -505,7 +489,7 @@ nsHTMLObjectElement::IsAttributeMapped(const nsIAtom *aAttribute) const
     sImageAlignAttributeMap,
   };
 
-  return FindAttributeDependence(aAttribute, map);
+  return FindAttributeDependence(aAttribute, map, NS_ARRAY_LENGTH(map));
 }
 
 
@@ -518,14 +502,21 @@ nsHTMLObjectElement::GetAttributeMappingFunction() const
 void
 nsHTMLObjectElement::StartObjectLoad(bool aNotify)
 {
-  
-  
-  if (!IsInDoc() || !OwnerDoc()->IsActive()) {
-    return;
-  }
+  nsAutoString type;
+  GetAttr(kNameSpaceID_None, nsGkAtoms::type, type);
+  NS_ConvertUTF16toUTF8 ctype(type);
 
-  LoadObject(aNotify);
-  SetIsNetworkCreated(false);
+  nsAutoString uri;
+  if (GetAttr(kNameSpaceID_None, nsGkAtoms::data, uri)) {
+    LoadObject(uri, aNotify, ctype);
+  }
+  else {
+    
+    
+    
+    LoadObject(nsnull, aNotify, ctype);
+  }
+  SetIsNetworkCreated(PR_FALSE);
 }
 
 nsEventStates
@@ -534,7 +525,7 @@ nsHTMLObjectElement::IntrinsicState() const
   return nsGenericHTMLFormElement::IntrinsicState() | ObjectState();
 }
 
-uint32_t
+PRUint32
 nsHTMLObjectElement::GetCapabilities() const
 {
   return nsObjectLoadingContent::GetCapabilities() | eSupportClassID;
@@ -543,17 +534,17 @@ nsHTMLObjectElement::GetCapabilities() const
 void
 nsHTMLObjectElement::DestroyContent()
 {
-  nsObjectLoadingContent::DestroyContent();
+  RemovedFromDocument();
   nsGenericHTMLFormElement::DestroyContent();
 }
 
 nsresult
-nsHTMLObjectElement::CopyInnerTo(nsGenericElement* aDest)
+nsHTMLObjectElement::CopyInnerTo(nsGenericElement* aDest) const
 {
   nsresult rv = nsGenericHTMLFormElement::CopyInnerTo(aDest);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (aDest->OwnerDoc()->IsStaticDocument()) {
+  if (aDest->GetOwnerDoc()->IsStaticDocument()) {
     CreateStaticClone(static_cast<nsHTMLObjectElement*>(aDest));
   }
 

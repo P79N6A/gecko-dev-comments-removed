@@ -3,27 +3,48 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsTextEditRules_h__
 #define nsTextEditRules_h__
 
 #include "nsCOMPtr.h"
-#include "nsCycleCollectionParticipant.h"
-#include "nsEditRules.h"
-#include "nsEditor.h"
-#include "nsIEditor.h"
-#include "nsISupportsImpl.h"
-#include "nsITimer.h"
-#include "nsPlaintextEditor.h"
-#include "nsString.h"
-#include "nscore.h"
-#include "prtypes.h"
 
-class nsIDOMElement;
-class nsIDOMNode;
-class nsISelection;
-namespace mozilla {
-class Selection;
-}  
+#include "nsPlaintextEditor.h"
+#include "nsIDOMNode.h"
+
+#include "nsEditRules.h"
+#include "nsITimer.h"
 
 
 
@@ -49,18 +70,47 @@ public:
   
   NS_IMETHOD Init(nsPlaintextEditor *aEditor);
   NS_IMETHOD DetachEditor();
-  NS_IMETHOD BeforeEdit(EditAction action,
-                        nsIEditor::EDirection aDirection);
-  NS_IMETHOD AfterEdit(EditAction action,
-                       nsIEditor::EDirection aDirection);
-  NS_IMETHOD WillDoAction(mozilla::Selection* aSelection, nsRulesInfo* aInfo,
-                          bool* aCancel, bool* aHandled);
+  NS_IMETHOD BeforeEdit(PRInt32 action, nsIEditor::EDirection aDirection);
+  NS_IMETHOD AfterEdit(PRInt32 action, nsIEditor::EDirection aDirection);
+  NS_IMETHOD WillDoAction(nsISelection *aSelection, nsRulesInfo *aInfo, bool *aCancel, bool *aHandled);
   NS_IMETHOD DidDoAction(nsISelection *aSelection, nsRulesInfo *aInfo, nsresult aResult);
   NS_IMETHOD DocumentIsEmpty(bool *aDocumentIsEmpty);
   NS_IMETHOD DocumentModified();
 
+  
+  enum 
+  {
+    kDefault             = 0,
+    
+    kUndo                = 1000,
+    kRedo                = 1001,
+    
+    kInsertText          = 2000,
+    kInsertTextIME       = 2001,
+    kDeleteSelection     = 2002,
+    kSetTextProperty     = 2003,
+    kRemoveTextProperty  = 2004,
+    kOutputText          = 2005,
+    
+    kInsertBreak         = 3000,
+    kMakeList            = 3001,
+    kIndent              = 3002,
+    kOutdent             = 3003,
+    kAlign               = 3004,
+    kMakeBasicBlock      = 3005,
+    kRemoveList          = 3006,
+    kMakeDefListItem     = 3007,
+    kInsertElement       = 3008,
+    kLoadHTML            = 3013,
+    kSetAbsolutePosition = 3015,
+    kRemoveAbsolutePosition = 3016,
+    kDecreaseZIndex      = 3017,
+    kIncreaseZIndex      = 3018
+
+  };
+  
 public:
-  void ResetIMETextPWBuf();
+  nsresult ResetIMETextPWBuf();
 
   
 
@@ -84,7 +134,7 @@ public:
 
 
 
-  static void HandleNewLines(nsString &aString, int32_t aNewLineHandling);
+  static void HandleNewLines(nsString &aString, PRInt32 aNewLineHandling);
 
   
 
@@ -96,29 +146,29 @@ public:
 
 
 
-  static void FillBufWithPWChars(nsAString *aOutString, int32_t aLength);
+  static nsresult FillBufWithPWChars(nsAString *aOutString, PRInt32 aLength);
 
 protected:
 
   
-  nsresult WillInsertText(  EditAction aAction,
-                            mozilla::Selection* aSelection,
+  nsresult WillInsertText(  PRInt32          aAction,
+                            nsISelection *aSelection, 
                             bool            *aCancel,
                             bool            *aHandled,
                             const nsAString *inString,
                             nsAString       *outString,
-                            int32_t          aMaxLength);
+                            PRInt32          aMaxLength);
   nsresult DidInsertText(nsISelection *aSelection, nsresult aResult);
   nsresult GetTopEnclosingPre(nsIDOMNode *aNode, nsIDOMNode** aOutPreNode);
 
-  nsresult WillInsertBreak(mozilla::Selection* aSelection, bool* aCancel,
-                           bool *aHandled, int32_t aMaxLength);
+  nsresult WillInsertBreak(nsISelection *aSelection, bool *aCancel,
+                           bool *aHandled, PRInt32 aMaxLength);
   nsresult DidInsertBreak(nsISelection *aSelection, nsresult aResult);
 
   nsresult WillInsert(nsISelection *aSelection, bool *aCancel);
   nsresult DidInsert(nsISelection *aSelection, nsresult aResult);
 
-  nsresult WillDeleteSelection(mozilla::Selection* aSelection,
+  nsresult WillDeleteSelection(nsISelection *aSelection, 
                                nsIEditor::EDirection aCollapsedAction, 
                                bool *aCancel,
                                bool *aHandled);
@@ -167,21 +217,20 @@ protected:
 
   
 
-  nsresult TruncateInsertionIfNeeded(mozilla::Selection*       aSelection,
+  nsresult TruncateInsertionIfNeeded(nsISelection             *aSelection, 
                                      const nsAString          *aInString,
                                      nsAString                *aOutString,
-                                     int32_t                   aMaxLength,
+                                     PRInt32                   aMaxLength,
                                      bool                     *aTruncated);
 
   
-  void RemoveIMETextFromPWBuf(int32_t &aStart, nsAString *aIMEString);
+  nsresult RemoveIMETextFromPWBuf(PRUint32 &aStart, nsAString *aIMEString);
 
-  nsresult CreateMozBR(nsIDOMNode* inParent, int32_t inOffset,
-                       nsIDOMNode** outBRNode = nullptr);
+  nsresult CreateMozBR(nsIDOMNode *inParent, PRInt32 inOffset, nsCOMPtr<nsIDOMNode> *outBRNode);
 
   nsresult CheckBidiLevelForDeletion(nsISelection         *aSelection,
                                      nsIDOMNode           *aSelNode, 
-                                     int32_t               aSelOffset, 
+                                     PRInt32               aSelOffset, 
                                      nsIEditor::EDirection aAction,
                                      bool                 *aCancel);
 
@@ -191,51 +240,51 @@ protected:
 
   bool IsPasswordEditor() const
   {
-    return mEditor ? mEditor->IsPasswordEditor() : false;
+    return mEditor ? mEditor->IsPasswordEditor() : PR_FALSE;
   }
   bool IsSingleLineEditor() const
   {
-    return mEditor ? mEditor->IsSingleLineEditor() : false;
+    return mEditor ? mEditor->IsSingleLineEditor() : PR_FALSE;
   }
   bool IsPlaintextEditor() const
   {
-    return mEditor ? mEditor->IsPlaintextEditor() : false;
+    return mEditor ? mEditor->IsPlaintextEditor() : PR_FALSE;
   }
   bool IsReadonly() const
   {
-    return mEditor ? mEditor->IsReadonly() : false;
+    return mEditor ? mEditor->IsReadonly() : PR_FALSE;
   }
   bool IsDisabled() const
   {
-    return mEditor ? mEditor->IsDisabled() : false;
+    return mEditor ? mEditor->IsDisabled() : PR_FALSE;
   }
   bool IsMailEditor() const
   {
-    return mEditor ? mEditor->IsMailEditor() : false;
+    return mEditor ? mEditor->IsMailEditor() : PR_FALSE;
   }
   bool DontEchoPassword() const
   {
-    return mEditor ? mEditor->DontEchoPassword() : false;
+    return mEditor ? mEditor->DontEchoPassword() : PR_FALSE;
   }
 
   
   nsPlaintextEditor   *mEditor;        
   nsString             mPasswordText;  
   nsString             mPasswordIMEText;  
-  uint32_t             mPasswordIMEIndex;
+  PRUint32             mPasswordIMEIndex;
   nsCOMPtr<nsIDOMNode> mBogusNode;     
   nsCOMPtr<nsIDOMNode> mCachedSelectionNode;    
-  int32_t              mCachedSelectionOffset;  
-  uint32_t             mActionNesting;
+  PRInt32              mCachedSelectionOffset;  
+  PRUint32             mActionNesting;
   bool                 mLockRulesSniffing;
   bool                 mDidExplicitlySetInterline;
   bool                 mDeleteBidiImmediately; 
                                                
                                                
                                                
-  EditAction mTheAction;     
+  PRInt32              mTheAction;     
   nsCOMPtr<nsITimer>   mTimer;
-  uint32_t             mLastStart, mLastLength;
+  PRUint32             mLastStart, mLastLength;
 
   
   friend class nsAutoLockRulesSniffing;
@@ -248,16 +297,15 @@ class nsTextRulesInfo : public nsRulesInfo
 {
  public:
  
-  nsTextRulesInfo(EditAction aAction) :
+  nsTextRulesInfo(int aAction) : 
     nsRulesInfo(aAction),
     inString(0),
     outString(0),
     outputFormat(0),
     maxLength(-1),
     collapsedAction(nsIEditor::eNext),
-    stripWrappers(nsIEditor::eStrip),
-    bOrdered(false),
-    entireList(false),
+    bOrdered(PR_FALSE),
+    entireList(PR_FALSE),
     bulletType(0),
     alignType(0),
     blockType(0),
@@ -270,11 +318,10 @@ class nsTextRulesInfo : public nsRulesInfo
   const nsAString *inString;
   nsAString *outString;
   const nsAString *outputFormat;
-  int32_t maxLength;
+  PRInt32 maxLength;
   
   
   nsIEditor::EDirection collapsedAction;
-  nsIEditor::EStripWrappers stripWrappers;
   
   
   bool bOrdered;
@@ -302,9 +349,9 @@ class nsAutoLockRulesSniffing
   public:
   
   nsAutoLockRulesSniffing(nsTextEditRules *rules) : mRules(rules) 
-                 {if (mRules) mRules->mLockRulesSniffing = true;}
+                 {if (mRules) mRules->mLockRulesSniffing = PR_TRUE;}
   ~nsAutoLockRulesSniffing() 
-                 {if (mRules) mRules->mLockRulesSniffing = false;}
+                 {if (mRules) mRules->mLockRulesSniffing = PR_FALSE;}
   
   protected:
   nsTextEditRules *mRules;
@@ -320,7 +367,7 @@ class nsAutoLockListener
   public:
   
   nsAutoLockListener(bool *enabled) : mEnabled(enabled)
-                 {if (mEnabled) { mOldState=*mEnabled; *mEnabled = false;}}
+                 {if (mEnabled) { mOldState=*mEnabled; *mEnabled = PR_FALSE;}}
   ~nsAutoLockListener() 
                  {if (mEnabled) *mEnabled = mOldState;}
   

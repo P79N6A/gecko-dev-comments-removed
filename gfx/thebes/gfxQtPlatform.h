@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_PLATFORM_QT_H
 #define GFX_PLATFORM_QT_H
 
@@ -10,12 +43,8 @@
 #include "nsAutoRef.h"
 #include "nsDataHashtable.h"
 #include "nsTArray.h"
-#ifdef MOZ_X11
-#include "X11/Xlib.h"
-#endif
 
 class gfxFontconfigUtils;
-class QWidget;
 #ifndef MOZ_PANGO
 typedef struct FT_LibraryRec_ *FT_Library;
 
@@ -76,21 +105,21 @@ public:
 
 
     virtual gfxFontEntry* MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
-                                           const uint8_t *aFontData,
-                                           uint32_t aLength);
+                                           const PRUint8 *aFontData,
+                                           PRUint32 aLength);
 
     
 
 
 
     virtual bool IsFontFormatSupported(nsIURI *aFontURI,
-                                         uint32_t aFormatFlags);
+                                         PRUint32 aFormatFlags);
 #endif
 
 #ifndef MOZ_PANGO
     FontFamily *FindFontFamily(const nsAString& aName);
     FontEntry *FindFontEntry(const nsAString& aFamilyName, const gfxFontStyle& aFontStyle);
-    already_AddRefed<gfxFont> FindFontForChar(uint32_t aCh, gfxFont *aFont);
+    already_AddRefed<gfxFont> FindFontForChar(PRUint32 aCh, gfxFont *aFont);
     bool GetPrefFontEntries(const nsCString& aLangGroup, nsTArray<nsRefPtr<gfxFontEntry> > *aFontEntryList);
     void SetPrefFontEntries(const nsCString& aLangGroup, nsTArray<nsRefPtr<gfxFontEntry> >& aFontEntryList);
 #endif
@@ -104,15 +133,9 @@ public:
     RenderMode GetRenderMode() { return mRenderMode; }
     void SetRenderMode(RenderMode rmode) { mRenderMode = rmode; }
 
-    static int32_t GetDPI();
+    static PRInt32 GetDPI();
 
     virtual gfxImageFormat GetOffscreenFormat();
-#ifdef MOZ_X11
-    static Display* GetXDisplay(QWidget* aWindow = 0);
-    static Screen* GetXScreen(QWidget* aWindow = 0);
-#endif
-
-    virtual int GetScreenDepth() const;
 
 protected:
     static gfxFontconfigUtils *sFontconfigUtils;
@@ -124,7 +147,6 @@ private:
     nsDataHashtable<nsCStringHashKey, nsTArray<nsRefPtr<gfxFontEntry> > > mPrefFonts;
 
     RenderMode mRenderMode;
-    int mScreenDepth;
 };
 
 #endif

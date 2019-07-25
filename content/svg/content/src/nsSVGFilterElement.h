@@ -3,24 +3,53 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGFILTERELEMENT_H__
 #define __NS_SVGFILTERELEMENT_H__
 
-#include "DOMSVGTests.h"
-#include "nsIDOMSVGFilterElement.h"
-#include "nsIDOMSVGUnitTypes.h"
-#include "nsIDOMSVGURIReference.h"
-#include "nsSVGEnum.h"
 #include "nsSVGGraphicElement.h"
-#include "nsSVGIntegerPair.h"
+#include "nsIDOMSVGFilterElement.h"
+#include "nsIDOMSVGURIReference.h"
+#include "nsIDOMSVGUnitTypes.h"
 #include "nsSVGLength2.h"
+#include "nsSVGIntegerPair.h"
+#include "nsSVGEnum.h"
 #include "nsSVGString.h"
 
 typedef nsSVGGraphicElement nsSVGFilterElementBase;
 
 class nsSVGFilterElement : public nsSVGFilterElementBase,
                            public nsIDOMSVGFilterElement,
-                           public DOMSVGTests,
                            public nsIDOMSVGURIReference,
                            public nsIDOMSVGUnitTypes
 {
@@ -52,17 +81,17 @@ public:
   void Invalidate();
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
-
-  
-  virtual bool HasValidDimensions() const;
 protected:
 
   virtual LengthAttributesInfo GetLengthInfo();
   virtual IntegerPairAttributesInfo GetIntegerPairInfo();
   virtual EnumAttributesInfo GetEnumInfo();
   virtual StringAttributesInfo GetStringInfo();
+
+  virtual void DidAnimateLength(PRUint8 aAttrEnum);
+  virtual void DidAnimateIntegerPair(PRUint8 aAttrEnum);
+  virtual void DidAnimateEnum(PRUint8 aAttrEnum);
+  virtual void DidAnimateString(PRUint8 aAttrEnum);
 
   enum { X, Y, WIDTH, HEIGHT };
   nsSVGLength2 mLengthAttributes[4];

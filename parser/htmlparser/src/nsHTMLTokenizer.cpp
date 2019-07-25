@@ -14,6 +14,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIAtom.h"
 #include "nsHTMLTokenizer.h"
 #include "nsScanner.h"
@@ -41,7 +74,7 @@ NS_IMPL_ISUPPORTS1(nsHTMLTokenizer, nsITokenizer)
 nsHTMLTokenizer::nsHTMLTokenizer(nsDTDMode aParseMode,
                                  eParserDocType aDocType,
                                  eParserCommands aCommand,
-                                 uint32_t aFlags)
+                                 PRUint32 aFlags)
   : mTokenDeque(0), mFlags(aFlags)
 {
   if (aParseMode == eDTDMode_full_standards ||
@@ -72,7 +105,7 @@ nsHTMLTokenizer::nsHTMLTokenizer(nsDTDMode aParseMode,
                 (mFlags & NS_IPARSER_FLAG_VIEW_SOURCE),
               "Why isn't this XML document going through our XML parser?");
 
-  mTokenAllocator = nullptr;
+  mTokenAllocator = nsnull;
   mTokenScanPos = 0;
 }
 
@@ -87,10 +120,10 @@ nsHTMLTokenizer::~nsHTMLTokenizer()
   }
 }
 
- uint32_t
+ PRUint32
 nsHTMLTokenizer::GetFlags(const nsIContentSink* aSink)
 {
-  uint32_t flags = 0;
+  PRUint32 flags = 0;
   nsCOMPtr<nsIHTMLContentSink> sink =
     do_QueryInterface(const_cast<nsIContentSink*>(aSink));
   if (sink) {
@@ -206,7 +239,7 @@ nsHTMLTokenizer::PushToken(CToken* theToken)
 
 
 
-int32_t
+PRInt32
 nsHTMLTokenizer::GetCount()
 {
   return mTokenDeque.GetSize();
@@ -221,7 +254,7 @@ nsHTMLTokenizer::GetCount()
 
 
 CToken*
-nsHTMLTokenizer::GetTokenAt(int32_t anIndex)
+nsHTMLTokenizer::GetTokenAt(PRInt32 anIndex)
 {
   return (CToken*)mTokenDeque.ObjectAt(anIndex);
 }
@@ -256,9 +289,9 @@ nsHTMLTokenizer::WillTokenize(bool aIsFinalChunk,
 void
 nsHTMLTokenizer::PrependTokens(nsDeque& aDeque)
 {
-  int32_t aCount = aDeque.GetSize();
+  PRInt32 aCount = aDeque.GetSize();
   
-  for (int32_t anIndex = 0; anIndex < aCount; ++anIndex) {
+  for (PRInt32 anIndex = 0; anIndex < aCount; ++anIndex) {
     CToken* theToken = (CToken*)aDeque.Pop();
     PushTokenFront(theToken);
   }
@@ -291,10 +324,10 @@ nsHTMLTokenizer::CopyState(nsITokenizer* aTokenizer)
 
 
 
-static int32_t
+static PRInt32
 FindLastIndexOfTag(eHTMLTags aTag, nsDeque &aTagStack)
 {
-  int32_t theCount = aTagStack.GetSize();
+  PRInt32 theCount = aTagStack.GetSize();
   
   while (0 < theCount) {
     CHTMLToken* theToken = (CHTMLToken*)aTagStack.ObjectAt(--theCount);  
@@ -345,9 +378,9 @@ nsresult nsHTMLTokenizer::ScanDocStructure(bool aFinalChunk)
 
   nsDeque       theStack(0);
   nsDeque       tempStack(0);
-  int32_t       theStackDepth = 0;
+  PRInt32       theStackDepth = 0;
   
-  static  const int32_t theMaxStackDepth = 200;
+  static  const PRInt32 theMaxStackDepth = 200;
 
   while (theToken && theStackDepth < theMaxStackDepth) {
     eHTMLTokenTypes theType = eHTMLTokenTypes(theToken->GetTokenType());
@@ -356,7 +389,7 @@ nsresult nsHTMLTokenizer::ScanDocStructure(bool aFinalChunk)
     if (nsHTMLElement::IsContainer(theTag)) { 
       bool theTagIsBlock  = gHTMLElements[theTag].IsMemberOf(kBlockEntity);
       bool theTagIsInline = theTagIsBlock
-                              ? false
+                              ? PR_FALSE
                               : gHTMLElements[theTag].IsMemberOf(kInlineEntity);
 
       if (theTagIsBlock || theTagIsInline || eHTMLTag_table == theTag) {
@@ -364,7 +397,7 @@ nsresult nsHTMLTokenizer::ScanDocStructure(bool aFinalChunk)
           case eToken_start:
             {
               if (gHTMLElements[theTag].ShouldVerifyHierarchy()) {
-                int32_t earlyPos = FindLastIndexOfTag(theTag, theStack);
+                PRInt32 earlyPos = FindLastIndexOfTag(theTag, theStack);
                 if (earlyPos != kNotFound) {
                   
                   
@@ -474,7 +507,7 @@ nsresult
 nsHTMLTokenizer::ConsumeToken(nsScanner& aScanner, bool& aFlushTokens)
 {
   PRUnichar theChar;
-  CToken* theToken = nullptr;
+  CToken* theToken = nsnull;
 
   nsresult result = aScanner.Peek(theChar);
 
@@ -622,7 +655,7 @@ nsHTMLTokenizer::ConsumeAttributes(PRUnichar aChar,
 {
   bool done = false;
   nsresult result = NS_OK;
-  int16_t theAttrCount = 0;
+  PRInt16 theAttrCount = 0;
 
   nsTokenAllocator* theAllocator = this->GetTokenAllocator();
 
@@ -631,7 +664,7 @@ nsHTMLTokenizer::ConsumeAttributes(PRUnichar aChar,
       static_cast<CAttributeToken*>
                  (theAllocator->CreateTokenOfType(eToken_attribute,
                                                      eHTMLTag_unknown));
-    if (NS_LIKELY(theToken != nullptr)) {
+    if (NS_LIKELY(theToken != nsnull)) {
       
       result = theToken->Consume(aChar, aScanner, mFlags);
 
@@ -652,7 +685,7 @@ nsHTMLTokenizer::ConsumeAttributes(PRUnichar aChar,
 
 #ifdef DEBUG
     if (NS_SUCCEEDED(result)) {
-      int32_t newline = 0;
+      PRInt32 newline = 0;
       aScanner.SkipWhitespace(newline);
       NS_ASSERTION(newline == 0,
           "CAttribute::Consume() failed to collect all the newlines!");
@@ -663,17 +696,17 @@ nsHTMLTokenizer::ConsumeAttributes(PRUnichar aChar,
       if (NS_SUCCEEDED(result)) {
         if (aChar == kGreaterThan) { 
           aScanner.GetChar(aChar); 
-          done = true;
+          done = PR_TRUE;
         } else if (aChar == kLessThan) {
-          aToken->SetInError(true);
-          done = true;
+          aToken->SetInError(PR_TRUE);
+          done = PR_TRUE;
         }
       }
     }
   }
 
   if (NS_FAILED(result)) {
-    aToken->SetInError(true);
+    aToken->SetInError(PR_TRUE);
 
     if (!aScanner.IsIncremental()) {
       result = NS_OK;
@@ -702,7 +735,7 @@ nsHTMLTokenizer::ConsumeStartTag(PRUnichar aChar,
                                  bool& aFlushTokens)
 {
   
-  int32_t theDequeSize = mTokenDeque.GetSize();
+  PRInt32 theDequeSize = mTokenDeque.GetSize();
   nsresult result = NS_OK;
 
   nsTokenAllocator* theAllocator = this->GetTokenAllocator();
@@ -721,7 +754,7 @@ nsHTMLTokenizer::ConsumeStartTag(PRUnichar aChar,
     
     result = aScanner.Peek(aChar);
     if (NS_FAILED(result)) {
-      aToken->SetInError(true);
+      aToken->SetInError(PR_TRUE);
 
       
       
@@ -754,13 +787,13 @@ nsHTMLTokenizer::ConsumeStartTag(PRUnichar aChar,
           (eHTMLTag_noscript == theTag &&
             (mFlags & NS_IPARSER_FLAG_SCRIPT_ENABLED)) ||
           (eHTMLTag_noembed == theTag)) {
-        isCDATA = true;
+        isCDATA = PR_TRUE;
       }
 
       
       
       if (eHTMLTag_plaintext == theTag) {
-        isCDATA = false;
+        isCDATA = PR_FALSE;
 
         
         
@@ -806,7 +839,7 @@ nsHTMLTokenizer::ConsumeStartTag(PRUnichar aChar,
         
         if (kEOF != result) {
           AddToken(text, NS_OK, &mTokenDeque, theAllocator);
-          CToken* endToken = nullptr;
+          CToken* endToken = nsnull;
 
           if (NS_SUCCEEDED(result) && done) {
             PRUnichar theChar;
@@ -829,7 +862,7 @@ nsHTMLTokenizer::ConsumeStartTag(PRUnichar aChar,
               
               
               
-              endToken->SetInError(false);
+              endToken->SetInError(PR_FALSE);
             }
           } else if (result == kFakeEndTag &&
                     !(mFlags & NS_IPARSER_FLAG_VIEW_SOURCE)) {
@@ -837,8 +870,8 @@ nsHTMLTokenizer::ConsumeStartTag(PRUnichar aChar,
             endToken = theAllocator->CreateTokenOfType(eToken_end, theTag,
                                                        endTagName);
             AddToken(endToken, result, &mTokenDeque, theAllocator);
-            if (NS_LIKELY(endToken != nullptr)) {
-              endToken->SetInError(true);
+            if (NS_LIKELY(endToken != nsnull)) {
+              endToken->SetInError(PR_TRUE);
             }
             else {
               result = NS_ERROR_OUT_OF_MEMORY;
@@ -894,7 +927,7 @@ nsHTMLTokenizer::ConsumeEndTag(PRUnichar aChar,
   NS_ENSURE_TRUE(aToken, NS_ERROR_OUT_OF_MEMORY);
 
   
-  int32_t theDequeSize = mTokenDeque.GetSize();
+  PRInt32 theDequeSize = mTokenDeque.GetSize();
   nsresult result = NS_OK;
 
   
@@ -909,7 +942,7 @@ nsHTMLTokenizer::ConsumeEndTag(PRUnichar aChar,
 
   result = aScanner.Peek(aChar);
   if (NS_FAILED(result)) {
-    aToken->SetInError(true);
+    aToken->SetInError(PR_TRUE);
 
     
     
@@ -978,7 +1011,7 @@ nsHTMLTokenizer::ConsumeEntity(PRUnichar aChar,
     
     result = ConsumeText(aToken, aScanner);
     if (aToken) {
-      aToken->SetInError(true);
+      aToken->SetInError(PR_TRUE);
     }
   }
 
@@ -1071,7 +1104,7 @@ nsHTMLTokenizer::ConsumeText(CToken*& aToken, nsScanner& aScanner)
     if (NS_FAILED(result)) {
       if (0 == theToken->GetTextLength()) {
         IF_FREE(aToken, mTokenAllocator);
-        aToken = nullptr;
+        aToken = nsnull;
       } else {
         result = NS_OK;
       }
@@ -1105,7 +1138,7 @@ nsHTMLTokenizer::ConsumeSpecialMarkup(PRUnichar aChar,
   nsAutoString theBufCopy;
   aScanner.Peek(theBufCopy, 20);
   ToUpperCase(theBufCopy);
-  int32_t theIndex = theBufCopy.Find("DOCTYPE", false, 0, 0);
+  PRInt32 theIndex = theBufCopy.Find("DOCTYPE", PR_FALSE, 0, 0);
   nsTokenAllocator* theAllocator = this->GetTokenAllocator();
 
   if (theIndex == kNotFound) {

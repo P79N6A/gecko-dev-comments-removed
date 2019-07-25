@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "StorageParent.h"
 #include "mozilla/dom/PContentParent.h"
 #include "mozilla/unused.h"
@@ -17,11 +50,11 @@ namespace dom {
 StorageParent::StorageParent(const StorageConstructData& aData)
 {
   if (aData.type() == StorageConstructData::Tnull_t) {
-    mStorage = new DOMStorageImpl(nullptr);
+    mStorage = new DOMStorageImpl(nsnull);
   } else {
     const StorageClone& clone = aData.get_StorageClone();
     StorageParent* other = static_cast<StorageParent*>(clone.actorParent());
-    mStorage = new DOMStorageImpl(nullptr, *other->mStorage.get());
+    mStorage = new DOMStorageImpl(nsnull, *other->mStorage.get());
     mStorage->CloneFrom(clone.callerSecure(), other->mStorage);
   }
 }
@@ -30,23 +63,15 @@ bool
 StorageParent::RecvInit(const bool& aUseDB,
                         const bool& aCanUseChromePersist,
                         const bool& aSessionOnly,
-                        const bool& aPrivate,
                         const nsCString& aDomain,
                         const nsCString& aScopeDBKey,
                         const nsCString& aQuotaDomainDBKey,
                         const nsCString& aQuotaETLDplus1DomainDBKey,
-                        const uint32_t& aStorageType)
+                        const PRUint32& aStorageType)
 {
-  mStorage->InitFromChild(aUseDB, aCanUseChromePersist, aSessionOnly, aPrivate, aDomain,
+  mStorage->InitFromChild(aUseDB, aCanUseChromePersist, aSessionOnly, aDomain,
                           aScopeDBKey, aQuotaDomainDBKey, aQuotaETLDplus1DomainDBKey,
                           aStorageType);
-  return true;
-}
-
-bool
-StorageParent::RecvUpdatePrivateState(const bool& aEnabled)
-{
-  mStorage->PrivateModeChanged(aEnabled);
   return true;
 }
 
@@ -61,7 +86,7 @@ StorageParent::RecvGetKeys(const bool& aCallerSecure, InfallibleTArray<nsString>
 
 bool
 StorageParent::RecvGetLength(const bool& aCallerSecure, const bool& aSessionOnly,
-                             uint32_t* aLength, nsresult* rv)
+                             PRUint32* aLength, nsresult* rv)
 {
   mStorage->SetSessionOnly(aSessionOnly);
   *rv = mStorage->GetLength(aCallerSecure, aLength);
@@ -70,7 +95,7 @@ StorageParent::RecvGetLength(const bool& aCallerSecure, const bool& aSessionOnly
 
 bool
 StorageParent::RecvGetKey(const bool& aCallerSecure, const bool& aSessionOnly,
-                          const uint32_t& aIndex, nsString* aKey, nsresult* rv)
+                          const PRUint32& aIndex, nsString* aKey, nsresult* rv)
 {
   mStorage->SetSessionOnly(aSessionOnly);
   *rv = mStorage->GetKey(aCallerSecure, aIndex, *aKey);
@@ -125,7 +150,7 @@ StorageParent::RecvRemoveValue(const bool& aCallerSecure, const bool& aSessionOn
 
 bool
 StorageParent::RecvClear(const bool& aCallerSecure, const bool& aSessionOnly,
-                         int32_t* aOldCount, nsresult* rv)
+                         PRInt32* aOldCount, nsresult* rv)
 {
   mStorage->SetSessionOnly(aSessionOnly);
   *rv = mStorage->Clear(aCallerSecure, aOldCount);

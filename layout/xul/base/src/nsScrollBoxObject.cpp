@@ -3,11 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsIScrollBoxObject.h"
 #include "nsBoxObject.h"
 #include "nsIPresShell.h"
 #include "nsIContent.h"
+#include "nsIDocument.h"
+#include "nsIDOMDocument.h"
 #include "nsIDOMElement.h"
 #include "nsPresContext.h"
 #include "nsIFrame.h"
@@ -23,7 +59,7 @@ public:
   virtual ~nsScrollBoxObject();
 
   virtual nsIScrollableFrame* GetScrollFrame() {
-    return do_QueryFrame(GetFrame(false));
+    return do_QueryFrame(GetFrame(PR_FALSE));
   }
 
   
@@ -49,19 +85,22 @@ nsScrollBoxObject::~nsScrollBoxObject()
 }
 
 
-NS_IMETHODIMP nsScrollBoxObject::ScrollTo(int32_t x, int32_t y)
+NS_IMETHODIMP nsScrollBoxObject::ScrollTo(PRInt32 x, PRInt32 y)
 {
   nsIScrollableFrame* sf = GetScrollFrame();
   if (!sf)
     return NS_ERROR_FAILURE;
-  sf->ScrollToCSSPixels(nsIntPoint(x, y));
+
+  sf->ScrollTo(nsPoint(nsPresContext::CSSPixelsToAppUnits(x),
+                       nsPresContext::CSSPixelsToAppUnits(y)),
+               nsIScrollableFrame::INSTANT);
   return NS_OK;
 }
 
 
-NS_IMETHODIMP nsScrollBoxObject::ScrollBy(int32_t dx, int32_t dy)
+NS_IMETHODIMP nsScrollBoxObject::ScrollBy(PRInt32 dx, PRInt32 dy)
 {
-  int32_t x, y;
+  PRInt32 x, y;
   nsresult rv = GetPosition(&x, &y);
   if (NS_FAILED(rv))
     return rv;
@@ -70,7 +109,7 @@ NS_IMETHODIMP nsScrollBoxObject::ScrollBy(int32_t dx, int32_t dy)
 }
 
 
-NS_IMETHODIMP nsScrollBoxObject::ScrollByLine(int32_t dlines)
+NS_IMETHODIMP nsScrollBoxObject::ScrollByLine(PRInt32 dlines)
 {
   nsIScrollableFrame* sf = GetScrollFrame();
   if (!sf)
@@ -88,22 +127,22 @@ NS_IMETHODIMP nsScrollBoxObject::ScrollByLine(int32_t dlines)
 
 
 static nsIFrame* GetScrolledBox(nsBoxObject* aScrollBox) {
-  nsIFrame* frame = aScrollBox->GetFrame(false);
+  nsIFrame* frame = aScrollBox->GetFrame(PR_FALSE);
   if (!frame) 
-    return nullptr;
+    return nsnull;
   nsIScrollableFrame* scrollFrame = do_QueryFrame(frame);
   if (!scrollFrame) {
     NS_WARNING("nsIScrollBoxObject attached to something that's not a scroll frame!");
-    return nullptr;
+    return nsnull;
   }
   nsIFrame* scrolledFrame = scrollFrame->GetScrolledFrame();
   if (!scrolledFrame)
-    return nullptr;
+    return nsnull;
   return scrolledFrame->GetChildBox();
 }
 
 
-NS_IMETHODIMP nsScrollBoxObject::ScrollByIndex(int32_t dindexes)
+NS_IMETHODIMP nsScrollBoxObject::ScrollByIndex(PRInt32 dindexes)
 {
     nsIScrollableFrame* sf = GetScrollFrame();
     if (!sf)
@@ -120,13 +159,13 @@ NS_IMETHODIMP nsScrollBoxObject::ScrollByIndex(int32_t dindexes)
     bool horiz = scrolledBox->IsHorizontal();
     nsPoint cp = sf->GetScrollPosition();
     nscoord diff = 0;
-    int32_t curIndex = 0;
+    PRInt32 curIndex = 0;
     bool isLTR = scrolledBox->IsNormalDirection();
 
-    int32_t frameWidth = 0;
+    PRInt32 frameWidth = 0;
     if (!isLTR && horiz) {
       GetWidth(&frameWidth);
-      nsCOMPtr<nsIPresShell> shell = GetPresShell(false);
+      nsCOMPtr<nsIPresShell> shell = GetPresShell(PR_FALSE);
       if (!shell) {
         return NS_ERROR_UNEXPECTED;
       }
@@ -158,7 +197,7 @@ NS_IMETHODIMP nsScrollBoxObject::ScrollByIndex(int32_t dindexes)
       curIndex++;
     }
 
-    int32_t count = 0;
+    PRInt32 count = 0;
 
     if (dindexes == 0)
        return NS_OK;
@@ -186,44 +225,29 @@ NS_IMETHODIMP nsScrollBoxObject::ScrollByIndex(int32_t dindexes)
       }
    }
 
-   nscoord csspixel = nsPresContext::CSSPixelsToAppUnits(1);
-   if (horiz) {
+   if (horiz)
        
        
        
        
-
-       nsPoint pt(isLTR ? rect.x : rect.x + rect.width - frameWidth,
-                  cp.y);
-
-       
-       
-       
-       nsRect range(pt.x, pt.y, csspixel, 0);
-       if (isLTR) {
-         range.x -= csspixel;
-       }
-       sf->ScrollTo(pt, nsIScrollableFrame::INSTANT, &range);
-   } else {
-       
-       nsRect range(cp.x, rect.y - csspixel, 0, csspixel);
-       sf->ScrollTo(nsPoint(cp.x, rect.y), nsIScrollableFrame::INSTANT, &range);
-   }
+       sf->ScrollTo(nsPoint(isLTR ? rect.x : rect.x + rect.width - frameWidth,
+                            cp.y),
+                    nsIScrollableFrame::INSTANT);
+   else
+       sf->ScrollTo(nsPoint(cp.x, rect.y), nsIScrollableFrame::INSTANT);
 
    return NS_OK;
 }
 
 
-NS_IMETHODIMP nsScrollBoxObject::ScrollToLine(int32_t line)
+NS_IMETHODIMP nsScrollBoxObject::ScrollToLine(PRInt32 line)
 {
   nsIScrollableFrame* sf = GetScrollFrame();
   if (!sf)
      return NS_ERROR_FAILURE;
   
   nscoord y = sf->GetLineScrollAmount().height * line;
-  nsRect range(0, y - nsPresContext::CSSPixelsToAppUnits(1),
-               0, nsPresContext::CSSPixelsToAppUnits(1));
-  sf->ScrollTo(nsPoint(0, y), nsIScrollableFrame::INSTANT, &range);
+  sf->ScrollTo(nsPoint(0, y), nsIScrollableFrame::INSTANT);
   return NS_OK;
 }
 
@@ -232,46 +256,42 @@ NS_IMETHODIMP nsScrollBoxObject::ScrollToElement(nsIDOMElement *child)
 {
     NS_ENSURE_ARG_POINTER(child);
 
-    nsCOMPtr<nsIPresShell> shell = GetPresShell(false);
+    nsCOMPtr<nsIPresShell> shell = GetPresShell(PR_FALSE);
     if (!shell) {
       return NS_ERROR_UNEXPECTED;
     }
 
     nsCOMPtr<nsIContent> content = do_QueryInterface(child);
     shell->ScrollContentIntoView(content,
-                                 nsIPresShell::ScrollAxis(
-                                   nsIPresShell::SCROLL_TOP,
-                                   nsIPresShell::SCROLL_ALWAYS),
-                                 nsIPresShell::ScrollAxis(
-                                   nsIPresShell::SCROLL_LEFT,
-                                   nsIPresShell::SCROLL_ALWAYS),
+                                 NS_PRESSHELL_SCROLL_TOP,
+                                 NS_PRESSHELL_SCROLL_LEFT,
                                  nsIPresShell::SCROLL_FIRST_ANCESTOR_ONLY |
                                  nsIPresShell::SCROLL_OVERFLOW_HIDDEN);
     return NS_OK;
 }
 
 
-NS_IMETHODIMP nsScrollBoxObject::ScrollToIndex(int32_t index)
+NS_IMETHODIMP nsScrollBoxObject::ScrollToIndex(PRInt32 index)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 
-NS_IMETHODIMP nsScrollBoxObject::GetPosition(int32_t *x, int32_t *y)
+NS_IMETHODIMP nsScrollBoxObject::GetPosition(PRInt32 *x, PRInt32 *y)
 {
   nsIScrollableFrame* sf = GetScrollFrame();
   if (!sf)
      return NS_ERROR_FAILURE;
 
-  nsIntPoint pt = sf->GetScrollPositionCSSPixels();
-  *x = pt.x;
-  *y = pt.y;
+  nsPoint pt = sf->GetScrollPosition();
+  *x = nsPresContext::AppUnitsToIntCSSPixels(pt.x);
+  *y = nsPresContext::AppUnitsToIntCSSPixels(pt.y);
 
   return NS_OK;  
 }
 
 
-NS_IMETHODIMP nsScrollBoxObject::GetScrolledSize(int32_t *width, int32_t *height)
+NS_IMETHODIMP nsScrollBoxObject::GetScrolledSize(PRInt32 *width, PRInt32 *height)
 {
     nsIFrame* scrolledBox = GetScrolledBox(this);
     if (!scrolledBox)
@@ -290,28 +310,28 @@ NS_IMETHODIMP nsScrollBoxObject::EnsureElementIsVisible(nsIDOMElement *child)
 {
     NS_ENSURE_ARG_POINTER(child);
 
-    nsCOMPtr<nsIPresShell> shell = GetPresShell(false);
+    nsCOMPtr<nsIPresShell> shell = GetPresShell(PR_FALSE);
     if (!shell) {
       return NS_ERROR_UNEXPECTED;
     }
 
     nsCOMPtr<nsIContent> content = do_QueryInterface(child);
     shell->ScrollContentIntoView(content,
-                                 nsIPresShell::ScrollAxis(),
-                                 nsIPresShell::ScrollAxis(),
+                                 NS_PRESSHELL_SCROLL_ANYWHERE,
+                                 NS_PRESSHELL_SCROLL_ANYWHERE,
                                  nsIPresShell::SCROLL_FIRST_ANCESTOR_ONLY |
                                  nsIPresShell::SCROLL_OVERFLOW_HIDDEN);
     return NS_OK;
 }
 
 
-NS_IMETHODIMP nsScrollBoxObject::EnsureIndexIsVisible(int32_t index)
+NS_IMETHODIMP nsScrollBoxObject::EnsureIndexIsVisible(PRInt32 index)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 
-NS_IMETHODIMP nsScrollBoxObject::EnsureLineIsVisible(int32_t line)
+NS_IMETHODIMP nsScrollBoxObject::EnsureLineIsVisible(PRInt32 line)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }

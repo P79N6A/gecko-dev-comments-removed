@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "txExecutionState.h"
 #include "txSingleNodeContext.h"
 #include "txInstructions.h"
@@ -14,11 +47,12 @@
 #include "txURIUtils.h"
 #include "txXMLParser.h"
 
-const int32_t txExecutionState::kMaxRecursionDepth = 20000;
+const PRInt32 txExecutionState::kMaxRecursionDepth = 20000;
 
 nsresult txLoadedDocumentsHash::init(txXPathNode* aSourceDocument)
 {
-    Init(8);
+    nsresult rv = Init(8);
+    NS_ENSURE_SUCCESS(rv, rv);
 
     mSourceDocument = aSourceDocument;
     
@@ -52,15 +86,15 @@ txLoadedDocumentsHash::~txLoadedDocumentsHash()
 
 txExecutionState::txExecutionState(txStylesheet* aStylesheet,
                                    bool aDisableLoads)
-    : mOutputHandler(nullptr),
-      mResultHandler(nullptr),
+    : mOutputHandler(nsnull),
+      mResultHandler(nsnull),
       mStylesheet(aStylesheet),
-      mNextInstruction(nullptr),
-      mLocalVariables(nullptr),
+      mNextInstruction(nsnull),
+      mLocalVariables(nsnull),
       mRecursionDepth(0),
-      mEvalContext(nullptr),
-      mInitialEvalContext(nullptr),
-      mGlobalParams(nullptr),
+      mEvalContext(nsnull),
+      mInitialEvalContext(nsnull),
+      mGlobalParams(nsnull),
       mKeyHash(aStylesheet->getKeyMap()),
       mDisableLoads(aDisableLoads)
 {
@@ -145,7 +179,7 @@ txExecutionState::init(const txXPathNode& aNode,
     
     
     
-    mGlobalVarPlaceholderValue = new StringResult(NS_LITERAL_STRING("Error"), nullptr);
+    mGlobalVarPlaceholderValue = new StringResult(NS_LITERAL_STRING("Error"), nsnull);
     NS_ENSURE_TRUE(mGlobalVarPlaceholderValue, NS_ERROR_OUT_OF_MEMORY);
 
     
@@ -153,8 +187,8 @@ txExecutionState::init(const txXPathNode& aNode,
     txStylesheet::ImportFrame* frame = 0;
     txExpandedName nullName;
     txInstruction* templ = mStylesheet->findTemplate(aNode, nullName,
-                                                     this, nullptr, &frame);
-    pushTemplateRule(frame, nullName, nullptr);
+                                                     this, nsnull, &frame);
+    pushTemplateRule(frame, nullName, nsnull);
 
     return runTemplate(templ);
 }
@@ -176,7 +210,7 @@ txExecutionState::end(nsresult aResult)
 
 
 nsresult
-txExecutionState::getVariable(int32_t aNamespace, nsIAtom* aLName,
+txExecutionState::getVariable(PRInt32 aNamespace, nsIAtom* aLName,
                               txAExprResult*& aResult)
 {
     nsresult rv = NS_OK;
@@ -237,7 +271,7 @@ txExecutionState::getVariable(int32_t aNamespace, nsIAtom* aLName,
     pushEvalContext(mInitialEvalContext);
     if (var->mExpr) {
         txVariableMap* oldVars = mLocalVariables;
-        mLocalVariables = nullptr;
+        mLocalVariables = nsnull;
         rv = var->mExpr->evaluate(getEvalContext(), &aResult);
         mLocalVariables = oldVars;
 
@@ -254,11 +288,11 @@ txExecutionState::getVariable(int32_t aNamespace, nsIAtom* aLName,
 
         txInstruction* prevInstr = mNextInstruction;
         
-        mNextInstruction = nullptr;
+        mNextInstruction = nsnull;
         rv = runTemplate(var->mFirstInstruction);
         NS_ENSURE_SUCCESS(rv, rv);
 
-        pushTemplateRule(nullptr, txExpandedName(), nullptr);
+        pushTemplateRule(nsnull, txExpandedName(), nsnull);
         rv = txXSLTProcessor::execute(*this);
         NS_ENSURE_SUCCESS(rv, rv);
 
@@ -337,8 +371,8 @@ bool
 txExecutionState::popBool()
 {
     NS_ASSERTION(mBoolStack.Length(), "popping from empty stack");
-    uint32_t last = mBoolStack.Length() - 1;
-    NS_ENSURE_TRUE(last != (uint32_t)-1, false);
+    PRUint32 last = mBoolStack.Length() - 1;
+    NS_ENSURE_TRUE(last != (PRUint32)-1, PR_FALSE);
 
     bool res = mBoolStack.ElementAt(last);
     mBoolStack.RemoveElementAt(last);
@@ -398,7 +432,7 @@ txExecutionState::retrieveDocument(const nsAString& aUri)
                  "Remove the fragment.");
 
     if (mDisableLoads) {
-        return nullptr;
+        return nsnull;
     }
 
     PR_LOG(txLog::xslt, PR_LOG_DEBUG,
@@ -407,7 +441,7 @@ txExecutionState::retrieveDocument(const nsAString& aUri)
     
     txLoadedDocumentEntry *entry = mLoadedDocuments.PutEntry(aUri);
     if (!entry) {
-        return nullptr;
+        return nsnull;
     }
 
     if (!entry->mDocument && !entry->LoadingFailed()) {
@@ -470,7 +504,7 @@ txExecutionState::runTemplate(txInstruction* aTemplate)
     rv = mReturnStack.push(mNextInstruction);
     NS_ENSURE_SUCCESS(rv, rv);
     
-    mLocalVariables = nullptr;
+    mLocalVariables = nsnull;
     mNextInstruction = aTemplate;
     
     return NS_OK;

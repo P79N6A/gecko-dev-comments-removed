@@ -3,6 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "IPCMessageUtils.h"
 
 #include "nsSimpleURI.h"
@@ -17,13 +52,9 @@
 #include "nsIObjectInputStream.h"
 #include "nsIObjectOutputStream.h"
 #include "nsEscape.h"
-#include "nsError.h"
+#include "nsNetError.h"
 #include "nsIProgrammingLanguage.h"
 #include "mozilla/Util.h" 
-#include "nsIIPCSerializableURI.h"
-#include "mozilla/ipc/URIUtils.h"
-
-using namespace mozilla::ipc;
 
 static NS_DEFINE_CID(kThisSimpleURIImplementationCID,
                      NS_THIS_SIMPLEURI_IMPLEMENTATION_CID);
@@ -33,8 +64,8 @@ static NS_DEFINE_CID(kSimpleURICID, NS_SIMPLEURI_CID);
 
 
 nsSimpleURI::nsSimpleURI()
-    : mMutable(true),
-      mIsRefValid(false)
+    : mMutable(PR_TRUE),
+      mIsRefValid(PR_FALSE)
 {
 }
 
@@ -45,13 +76,11 @@ nsSimpleURI::~nsSimpleURI()
 NS_IMPL_ADDREF(nsSimpleURI)
 NS_IMPL_RELEASE(nsSimpleURI)
 NS_INTERFACE_TABLE_HEAD(nsSimpleURI)
-NS_INTERFACE_TABLE5(nsSimpleURI, nsIURI, nsISerializable, nsIClassInfo,
-                    nsIMutable, nsIIPCSerializableURI)
+NS_INTERFACE_TABLE5(nsSimpleURI, nsIURI, nsISerializable, nsIIPCSerializable, nsIClassInfo, nsIMutable)
 NS_INTERFACE_TABLE_TO_MAP_SEGUE
   if (aIID.Equals(kThisSimpleURIImplementationCID))
     foundInterface = static_cast<nsIURI*>(this);
   else
-  NS_INTERFACE_MAP_ENTRY(nsISizeOf)
 NS_INTERFACE_MAP_END
 
 
@@ -65,7 +94,7 @@ nsSimpleURI::Read(nsIObjectInputStream* aStream)
     bool isMutable; 
     rv = aStream->ReadBoolean(&isMutable);
     if (NS_FAILED(rv)) return rv;
-    if (isMutable != true && isMutable != false) {
+    if (isMutable != PR_TRUE && isMutable != PR_FALSE) {
         NS_WARNING("Unexpected boolean value");
         return NS_ERROR_UNEXPECTED;
     }
@@ -80,7 +109,7 @@ nsSimpleURI::Read(nsIObjectInputStream* aStream)
     bool isRefValid;
     rv = aStream->ReadBoolean(&isRefValid);
     if (NS_FAILED(rv)) return rv;
-    if (isRefValid != true && isRefValid != false) {
+    if (isRefValid != PR_TRUE && isRefValid != PR_FALSE) {
         NS_WARNING("Unexpected boolean value");
         return NS_ERROR_UNEXPECTED;
     }
@@ -124,47 +153,37 @@ nsSimpleURI::Write(nsIObjectOutputStream* aStream)
 
 
 
-void
-nsSimpleURI::Serialize(URIParams& aParams)
+bool
+nsSimpleURI::Read(const IPC::Message *aMsg, void **aIter)
 {
-    SimpleURIParams params;
+    bool isMutable, isRefValid;
+    if (!ReadParam(aMsg, aIter, &isMutable) ||
+        !ReadParam(aMsg, aIter, &mScheme) ||
+        !ReadParam(aMsg, aIter, &mPath) ||
+        !ReadParam(aMsg, aIter, &isRefValid))
+        return PR_FALSE;
 
-    params.scheme() = mScheme;
-    params.path() = mPath;
+    mMutable = isMutable;
+    mIsRefValid = isRefValid;
+
     if (mIsRefValid) {
-      params.ref() = mRef;
+        return ReadParam(aMsg, aIter, &mRef);
     }
-    else {
-      params.ref().SetIsVoid(true);
-    }
-    params.isMutable() = mMutable;
+    mRef.Truncate(); 
 
-    aParams = params;
+    return PR_TRUE;
 }
 
-bool
-nsSimpleURI::Deserialize(const URIParams& aParams)
+void
+nsSimpleURI::Write(IPC::Message *aMsg)
 {
-    if (aParams.type() != URIParams::TSimpleURIParams) {
-        NS_ERROR("Received unknown parameters from the other process!");
-        return false;
+    WriteParam(aMsg, bool(mMutable));
+    WriteParam(aMsg, mScheme);
+    WriteParam(aMsg, mPath);
+    WriteParam(aMsg, mIsRefValid);
+    if (mIsRefValid) {
+        WriteParam(aMsg, mRef);
     }
-
-    const SimpleURIParams& params = aParams.get_SimpleURIParams();
-
-    mScheme = params.scheme();
-    mPath = params.path();
-    if (params.ref().IsVoid()) {
-        mRef.Truncate();
-        mIsRefValid = false;
-    }
-    else {
-        mRef = params.ref();
-        mIsRefValid = true;
-    }
-    mMutable = params.isMutable();
-
-    return true;
 }
 
 
@@ -206,8 +225,8 @@ nsSimpleURI::SetSpec(const nsACString &aSpec)
     const char* specPtr = flat.get();
 
     
-    nsAutoCString filteredSpec;
-    int32_t specLen;
+    nsCAutoString filteredSpec;
+    PRInt32 specLen;
     if (net_FilterURIString(specPtr, filteredSpec)) {
         specPtr = filteredSpec.get();
         specLen = filteredSpec.Length();
@@ -215,15 +234,15 @@ nsSimpleURI::SetSpec(const nsACString &aSpec)
         specLen = flat.Length();
 
     
-    nsAutoCString spec;
+    nsCAutoString spec;
     NS_EscapeURL(specPtr, specLen, esc_OnlyNonASCII|esc_AlwaysCopy, spec);
 
-    int32_t colonPos = spec.FindChar(':');
+    PRInt32 colonPos = spec.FindChar(':');
     if (colonPos < 0 || !net_IsValidScheme(spec.get(), colonPos))
         return NS_ERROR_MALFORMED_URI;
 
     mScheme.Truncate();
-    mozilla::DebugOnly<int32_t> n = spec.Left(mScheme, colonPos);
+    mozilla::DebugOnly<PRInt32> n = spec.Left(mScheme, colonPos);
     NS_ASSERTION(n == colonPos, "Left failed");
     ToLowerCase(mScheme);
 
@@ -336,7 +355,7 @@ nsSimpleURI::SetHost(const nsACString &host)
 }
 
 NS_IMETHODIMP
-nsSimpleURI::GetPort(int32_t *result)
+nsSimpleURI::GetPort(PRInt32 *result)
 {
     
     
@@ -344,7 +363,7 @@ nsSimpleURI::GetPort(int32_t *result)
 }
 
 NS_IMETHODIMP
-nsSimpleURI::SetPort(int32_t port)
+nsSimpleURI::SetPort(PRInt32 port)
 {
     NS_ENSURE_STATE(mMutable);
     
@@ -367,16 +386,16 @@ nsSimpleURI::SetPath(const nsACString &path)
 {
     NS_ENSURE_STATE(mMutable);
     
-    int32_t hashPos = path.FindChar('#');
+    PRInt32 hashPos = path.FindChar('#');
     if (hashPos < 0) {
-        mIsRefValid = false;
+        mIsRefValid = PR_FALSE;
         mRef.Truncate(); 
         mPath = path;
         return NS_OK;
     }
 
     mPath = StringHead(path, hashPos);
-    return SetRef(Substring(path, uint32_t(hashPos)));
+    return SetRef(Substring(path, PRUint32(hashPos)));
 }
 
 NS_IMETHODIMP
@@ -401,12 +420,12 @@ nsSimpleURI::SetRef(const nsACString &aRef)
 
     if (aRef.IsEmpty()) {
       
-      mIsRefValid = false;
+      mIsRefValid = PR_FALSE;
       mRef.Truncate(); 
       return NS_OK;
     }
 
-    mIsRefValid = true;
+    mIsRefValid = PR_TRUE;
 
     
     if (aRef[0] == '#') {
@@ -442,7 +461,7 @@ nsSimpleURI::EqualsInternal(nsIURI* other,
     nsresult rv = other->QueryInterface(kThisSimpleURIImplementationCID,
                                         getter_AddRefs(otherUri));
     if (NS_FAILED(rv)) {
-        *result = false;
+        *result = PR_FALSE;
         return NS_OK;
     }
 
@@ -474,9 +493,9 @@ nsSimpleURI::SchemeIs(const char *i_Scheme, bool *o_Equals)
 
     
     if (*i_Scheme == *this_scheme || *i_Scheme == (*this_scheme - ('a' - 'A')) ) {
-        *o_Equals = PL_strcasecmp(this_scheme, i_Scheme) ? false : true;
+        *o_Equals = PL_strcasecmp(this_scheme, i_Scheme) ? PR_FALSE : PR_TRUE;
     } else {
-        *o_Equals = false;
+        *o_Equals = PR_FALSE;
     }
 
     return NS_OK;
@@ -531,7 +550,7 @@ nsSimpleURI::Resolve(const nsACString &relativePath, nsACString &result)
 NS_IMETHODIMP
 nsSimpleURI::GetAsciiSpec(nsACString &result)
 {
-    nsAutoCString buf;
+    nsCAutoString buf;
     nsresult rv = GetSpec(buf);
     if (NS_FAILED(rv)) return rv;
     NS_EscapeURL(buf, esc_OnlyNonASCII|esc_AlwaysCopy, result);
@@ -557,17 +576,17 @@ nsSimpleURI::GetOriginCharset(nsACString &result)
 
 
 NS_IMETHODIMP 
-nsSimpleURI::GetInterfaces(uint32_t *count, nsIID * **array)
+nsSimpleURI::GetInterfaces(PRUint32 *count, nsIID * **array)
 {
     *count = 0;
-    *array = nullptr;
+    *array = nsnull;
     return NS_OK;
 }
 
 NS_IMETHODIMP 
-nsSimpleURI::GetHelperForLanguage(uint32_t language, nsISupports **_retval)
+nsSimpleURI::GetHelperForLanguage(PRUint32 language, nsISupports **_retval)
 {
-    *_retval = nullptr;
+    *_retval = nsnull;
     return NS_OK;
 }
 
@@ -576,14 +595,14 @@ nsSimpleURI::GetContractID(char * *aContractID)
 {
     
     
-    *aContractID = nullptr;
+    *aContractID = nsnull;
     return NS_OK;
 }
 
 NS_IMETHODIMP 
 nsSimpleURI::GetClassDescription(char * *aClassDescription)
 {
-    *aClassDescription = nullptr;
+    *aClassDescription = nsnull;
     return NS_OK;
 }
 
@@ -599,14 +618,14 @@ nsSimpleURI::GetClassID(nsCID * *aClassID)
 }
 
 NS_IMETHODIMP 
-nsSimpleURI::GetImplementationLanguage(uint32_t *aImplementationLanguage)
+nsSimpleURI::GetImplementationLanguage(PRUint32 *aImplementationLanguage)
 {
     *aImplementationLanguage = nsIProgrammingLanguage::CPLUSPLUS;
     return NS_OK;
 }
 
 NS_IMETHODIMP 
-nsSimpleURI::GetFlags(uint32_t *aFlags)
+nsSimpleURI::GetFlags(PRUint32 *aFlags)
 {
     *aFlags = nsIClassInfo::MAIN_THREAD_ONLY;
     return NS_OK;
@@ -637,21 +656,3 @@ nsSimpleURI::SetMutable(bool value)
     mMutable = value;
     return NS_OK;
 }
-
-
-
-
-
-size_t 
-nsSimpleURI::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
-{
-  return mScheme.SizeOfExcludingThisIfUnshared(aMallocSizeOf) +
-         mPath.SizeOfExcludingThisIfUnshared(aMallocSizeOf) +
-         mRef.SizeOfExcludingThisIfUnshared(aMallocSizeOf);
-}
-
-size_t
-nsSimpleURI::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const {
-  return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
-}
-

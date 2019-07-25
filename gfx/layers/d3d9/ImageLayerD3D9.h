@@ -1,20 +1,81 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifndef GFX_IMAGELAYERD3D9_H
 #define GFX_IMAGELAYERD3D9_H
 
 #include "LayerManagerD3D9.h"
 #include "ImageLayers.h"
-#include "ImageContainer.h"
 #include "yuv_convert.h"
 
 namespace mozilla {
 namespace layers {
 
 class ShadowBufferD3D9;
+
+class THEBES_API ImageContainerD3D9 : public ImageContainer
+{
+public:
+  ImageContainerD3D9(IDirect3DDevice9 *aDevice);
+  virtual ~ImageContainerD3D9() {}
+
+  virtual already_AddRefed<Image> CreateImage(const Image::Format* aFormats,
+                                              PRUint32 aNumFormats);
+
+  virtual void SetCurrentImage(Image* aImage);
+
+  virtual already_AddRefed<Image> GetCurrentImage();
+
+  virtual already_AddRefed<gfxASurface> GetCurrentAsSurface(gfxIntSize* aSize);
+
+  virtual gfxIntSize GetCurrentSize();
+
+  virtual bool SetLayerManager(LayerManager *aManager);
+
+  virtual LayerManager::LayersBackend GetBackendType() { return LayerManager::LAYERS_D3D9; }
+
+  IDirect3DDevice9 *device() { return mDevice; }
+  void SetDevice(IDirect3DDevice9 *aDevice) { mDevice = aDevice; }
+
+private:
+  nsRefPtr<Image> mActiveImage;
+
+  nsRefPtr<IDirect3DDevice9> mDevice;
+};
 
 class THEBES_API ImageLayerD3D9 : public ImageLayer,
                                   public LayerD3D9
@@ -27,15 +88,10 @@ public:
     mImplData = static_cast<LayerD3D9*>(this);
   }
 
-  // LayerD3D9 Implementation
+  
   virtual Layer* GetLayer();
 
   virtual void RenderLayer();
-
-  virtual already_AddRefed<IDirect3DTexture9> GetAsTexture(gfxIntSize* aSize);
-
-private:
-  IDirect3DTexture9* GetTexture(Image *aImage, bool& aHasAlpha);
 };
 
 class THEBES_API ImageD3D9
@@ -44,17 +100,81 @@ public:
   virtual already_AddRefed<gfxASurface> GetAsSurface() = 0;
 };
 
-
-struct TextureD3D9BackendData : public ImageBackendData
+class THEBES_API PlanarYCbCrImageD3D9 : public PlanarYCbCrImage,
+                                        public ImageD3D9
 {
-  nsRefPtr<IDirect3DTexture9> mTexture;
-};
+public:
+  PlanarYCbCrImageD3D9();
+  ~PlanarYCbCrImageD3D9() {}
 
-struct PlanarYCbCrD3D9BackendData : public ImageBackendData
-{
+  virtual void SetData(const Data &aData);
+
+  
+
+
+
+  void AllocateTextures(IDirect3DDevice9 *aDevice);
+  
+
+
+
+
+
+
+  void FreeTextures();
+  bool HasData() { return mHasData; }
+
+  PRUint32 GetDataSize() { return mBuffer ? mBufferSize : 0; }
+
+  virtual already_AddRefed<gfxASurface> GetAsSurface();
+
+  nsAutoArrayPtr<PRUint8> mBuffer;
+  PRUint32 mBufferSize;
+  LayerManagerD3D9 *mManager;
+  Data mData;
+  gfxIntSize mSize;
   nsRefPtr<IDirect3DTexture9> mYTexture;
   nsRefPtr<IDirect3DTexture9> mCrTexture;
   nsRefPtr<IDirect3DTexture9> mCbTexture;
+  bool mHasData;
+};
+
+
+class THEBES_API CairoImageD3D9 : public CairoImage,
+                                  public ImageD3D9
+{
+public:
+  CairoImageD3D9(IDirect3DDevice9 *aDevice)
+    : CairoImage(static_cast<ImageD3D9*>(this))
+    , mDevice(aDevice)
+  { }
+  ~CairoImageD3D9();
+
+  virtual void SetData(const Data &aData);
+
+  virtual already_AddRefed<gfxASurface> GetAsSurface();
+
+  IDirect3DDevice9 *device() { return mDevice; }
+  void SetDevice(IDirect3DDevice9 *aDevice);
+
+  
+
+
+
+  virtual IDirect3DTexture9* GetOrCreateTexture();
+  const gfxIntSize& GetSize() { return mSize; }
+
+  bool HasAlpha() {
+    return mCachedSurface->GetContentType() ==
+      gfxASurface::CONTENT_COLOR_ALPHA;
+  }
+
+private:
+  gfxIntSize mSize;
+  nsRefPtr<gfxASurface> mCachedSurface;
+  nsRefPtr<IDirect3DDevice9> mDevice;
+  nsRefPtr<IDirect3DTexture9> mTexture;
+  LayerManagerD3D9 *mManager;
 };
 
 class ShadowImageLayerD3D9 : public ShadowImageLayer,
@@ -64,26 +184,24 @@ public:
   ShadowImageLayerD3D9(LayerManagerD3D9* aManager);
   virtual ~ShadowImageLayerD3D9();
 
-  // ShadowImageLayer impl
+  
   virtual void Swap(const SharedImage& aFront,
                     SharedImage* aNewBack);
 
   virtual void Disconnect();
 
-  // LayerD3D9 impl
+  
   virtual void Destroy();
 
   virtual Layer* GetLayer();
 
   virtual void RenderLayer();
 
-  virtual already_AddRefed<IDirect3DTexture9> GetAsTexture(gfxIntSize* aSize);
-
 private:
   nsRefPtr<ShadowBufferD3D9> mBuffer;
-  nsRefPtr<PlanarYCbCrImage> mYCbCrImage;
+  nsRefPtr<PlanarYCbCrImageD3D9> mYCbCrImage;
 };
 
-} /* layers */
-} /* mozilla */
-#endif /* GFX_IMAGELAYERD3D9_H */
+} 
+} 
+#endif 

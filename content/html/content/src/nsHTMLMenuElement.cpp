@@ -3,15 +3,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsHTMLMenuElement.h"
 
+#include "nsIDOMNSHTMLElement.h"
 #include "nsIDOMHTMLMenuItemElement.h"
 #include "nsXULContextMenuBuilder.h"
 #include "nsGUIEvent.h"
 #include "nsEventDispatcher.h"
 #include "nsHTMLMenuItemElement.h"
 #include "nsContentUtils.h"
-#include "nsError.h"
 
 enum MenuType
 {
@@ -83,7 +114,7 @@ nsHTMLMenuElement::SendShowEvent()
     return NS_ERROR_FAILURE;
   }
 
-  nsEvent event(true, NS_SHOW_EVENT);
+  nsEvent event(PR_TRUE, NS_SHOW_EVENT);
   event.flags |= NS_EVENT_FLAG_CANT_CANCEL | NS_EVENT_FLAG_CANT_BUBBLE;
 
   nsCOMPtr<nsIPresShell> shell = document->GetShell();
@@ -94,7 +125,7 @@ nsHTMLMenuElement::SendShowEvent()
   nsRefPtr<nsPresContext> presContext = shell->GetPresContext();
   nsEventStatus status = nsEventStatus_eIgnore;
   nsEventDispatcher::Dispatch(static_cast<nsIContent*>(this), presContext,
-                              &event, nullptr, &status);
+                              &event, nsnull, &status);
 
   return NS_OK;
 }
@@ -104,7 +135,7 @@ nsHTMLMenuElement::CreateBuilder(nsIMenuBuilder** _retval)
 {
   NS_ENSURE_TRUE(nsContentUtils::IsCallerChrome(), NS_ERROR_DOM_SECURITY_ERR);
 
-  *_retval = nullptr;
+  *_retval = nsnull;
 
   if (mType == MENU_TYPE_CONTEXT) {
     NS_ADDREF(*_retval = new nsXULContextMenuBuilder());
@@ -130,14 +161,14 @@ nsHTMLMenuElement::Build(nsIMenuBuilder* aBuilder)
 
 
 bool
-nsHTMLMenuElement::ParseAttribute(int32_t aNamespaceID,
+nsHTMLMenuElement::ParseAttribute(PRInt32 aNamespaceID,
                                   nsIAtom* aAttribute,
                                   const nsAString& aValue,
                                   nsAttrValue& aResult)
 {
   if (aNamespaceID == kNameSpaceID_None && aAttribute == nsGkAtoms::type) {
     bool success = aResult.ParseEnumValue(aValue, kMenuTypeTable,
-                                            false);
+                                            PR_FALSE);
     if (success) {
       mType = aResult.GetEnumValue();
     } else {
@@ -158,7 +189,7 @@ nsHTMLMenuElement::BuildSubmenu(const nsAString& aLabel,
 {
   aBuilder->OpenContainer(aLabel);
 
-  int8_t separator = ST_TRUE_INIT;
+  PRInt8 separator = ST_TRUE_INIT;
   TraverseContent(aContent, aBuilder, separator);
 
   if (separator == ST_TRUE) {
@@ -173,10 +204,13 @@ bool
 nsHTMLMenuElement::CanLoadIcon(nsIContent* aContent, const nsAString& aIcon)
 {
   if (aIcon.IsEmpty()) {
-    return false;
+    return PR_FALSE;
   }
 
-  nsIDocument* doc = aContent->OwnerDoc();
+  nsIDocument* doc = aContent->GetOwnerDoc();
+  if (!doc) {
+    return PR_FALSE;
+  }
 
   nsCOMPtr<nsIURI> baseURI = aContent->GetBaseURI();
   nsCOMPtr<nsIURI> uri;
@@ -184,7 +218,7 @@ nsHTMLMenuElement::CanLoadIcon(nsIContent* aContent, const nsAString& aIcon)
                                             baseURI);
 
   if (!uri) {
-    return false;
+    return PR_FALSE;
   }
 
   return nsContentUtils::CanLoadImage(uri, aContent, doc,
@@ -194,7 +228,7 @@ nsHTMLMenuElement::CanLoadIcon(nsIContent* aContent, const nsAString& aIcon)
 void
 nsHTMLMenuElement::TraverseContent(nsIContent* aContent,
                                    nsIMenuBuilder* aBuilder,
-                                   int8_t& aSeparator)
+                                   PRInt8& aSeparator)
 {
   nsCOMPtr<nsIContent> child;
   for (child = aContent->GetFirstChild(); child;
@@ -246,7 +280,7 @@ nsHTMLMenuElement::TraverseContent(nsIContent* aContent,
 }
 
 inline void
-nsHTMLMenuElement::AddSeparator(nsIMenuBuilder* aBuilder, int8_t& aSeparator)
+nsHTMLMenuElement::AddSeparator(nsIMenuBuilder* aBuilder, PRInt8& aSeparator)
 {
   if (aSeparator) {
     return;

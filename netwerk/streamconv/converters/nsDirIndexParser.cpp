@@ -5,7 +5,41 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "prprf.h"
 
@@ -22,8 +56,6 @@
 #include "nsIPrefBranch.h"
 #include "nsIPrefLocalizedString.h"
 
-using namespace mozilla;
-
 NS_IMPL_ISUPPORTS3(nsDirIndexParser,
                    nsIRequestObserver,
                    nsIStreamListener,
@@ -35,8 +67,8 @@ nsDirIndexParser::nsDirIndexParser() {
 nsresult
 nsDirIndexParser::Init() {
   mLineStart = 0;
-  mHasDescription = false;
-  mFormat = nullptr;
+  mHasDescription = PR_FALSE;
+  mFormat = nsnull;
 
   
   
@@ -121,7 +153,7 @@ NS_IMETHODIMP
 nsDirIndexParser::OnStopRequest(nsIRequest *aRequest, nsISupports *aCtxt,
                                 nsresult aStatusCode) {
   
-  if (mBuf.Length() > (uint32_t) mLineStart) {
+  if (mBuf.Length() > (PRUint32) mLineStart) {
     ProcessData(aRequest, aCtxt);
   }
 
@@ -136,7 +168,7 @@ nsDirIndexParser::gFieldTable[] = {
   { "Last-Modified", FIELD_LASTMODIFIED },
   { "Content-Type", FIELD_CONTENTTYPE },
   { "File-Type", FIELD_FILETYPE },
-  { nullptr, FIELD_UNKNOWN }
+  { nsnull, FIELD_UNKNOWN }
 };
 
 nsrefcnt nsDirIndexParser::gRefCntParser = 0;
@@ -158,7 +190,7 @@ nsDirIndexParser::ParseFormat(const char* aFormatStr) {
     ++num;
     
     
-    if (num > (2 * ArrayLength(gFieldTable)))
+    if (num > (2 * NS_ARRAY_LENGTH(gFieldTable)))
       return NS_ERROR_UNEXPECTED;
 
     if (! *pos)
@@ -172,7 +204,7 @@ nsDirIndexParser::ParseFormat(const char* aFormatStr) {
   delete[] mFormat;
   mFormat = new int[num+1];
   
-  if (mFormat == nullptr)
+  if (mFormat == nsnull)
     return NS_ERROR_OUT_OF_MEMORY;
   mFormat[num] = -1;
   
@@ -184,8 +216,8 @@ nsDirIndexParser::ParseFormat(const char* aFormatStr) {
     if (! *aFormatStr)
       break;
 
-    nsAutoCString name;
-    int32_t     len = 0;
+    nsCAutoString name;
+    PRInt32     len = 0;
     while (aFormatStr[len] && !nsCRT::IsAsciiSpace(PRUnichar(aFormatStr[len])))
       ++len;
     name.SetCapacity(len + 1);
@@ -197,7 +229,7 @@ nsDirIndexParser::ParseFormat(const char* aFormatStr) {
 
     
     if (name.LowerCaseEqualsLiteral("description"))
-      mHasDescription = true;
+      mHasDescription = PR_TRUE;
     
     for (Field* i = gFieldTable; i->mName; ++i) {
       if (name.EqualsIgnoreCase(i->mName)) {
@@ -224,9 +256,9 @@ nsDirIndexParser::ParseData(nsIDirIndex *aIdx, char* aDataStr) {
 
   nsresult rv = NS_OK;
 
-  nsAutoCString filename;
+  nsCAutoString filename;
 
-  for (int32_t i = 0; mFormat[i] != -1; ++i) {
+  for (PRInt32 i = 0; mFormat[i] != -1; ++i) {
     
     
     if (! *aDataStr)
@@ -267,14 +299,14 @@ nsDirIndexParser::ParseData(nsIDirIndex *aIdx, char* aDataStr) {
       nsAutoString entryuri;
       
       if (gTextToSubURI) {
-        PRUnichar   *result = nullptr;
+        PRUnichar   *result = nsnull;
         if (NS_SUCCEEDED(rv = gTextToSubURI->UnEscapeAndConvert(mEncoding.get(), filename.get(),
                                                                 &result)) && (result)) {
           if (*result) {
             aIdx->SetLocation(filename.get());
             if (!mHasDescription)
               aIdx->SetDescription(result);
-            success = true;
+            success = PR_TRUE;
           }
           NS_Free(result);
         } else {
@@ -300,8 +332,8 @@ nsDirIndexParser::ParseData(nsIDirIndex *aIdx, char* aDataStr) {
       break;
     case FIELD_CONTENTLENGTH:
       {
-        int64_t len;
-        int32_t status = PR_sscanf(value, "%lld", &len);
+        PRInt64 len;
+        PRInt32 status = PR_sscanf(value, "%lld", &len);
         if (status == 1)
           aIdx->SetSize(len);
         else
@@ -312,7 +344,7 @@ nsDirIndexParser::ParseData(nsIDirIndex *aIdx, char* aDataStr) {
       {
         PRTime tm;
         nsUnescape(value);
-        if (PR_ParseTimeString(value, false, &tm) == PR_SUCCESS) {
+        if (PR_ParseTimeString(value, PR_FALSE, &tm) == PR_SUCCESS) {
           aIdx->SetLastModified(tm);
         }
       }
@@ -345,12 +377,12 @@ nsDirIndexParser::ParseData(nsIDirIndex *aIdx, char* aDataStr) {
 NS_IMETHODIMP
 nsDirIndexParser::OnDataAvailable(nsIRequest *aRequest, nsISupports *aCtxt,
                                   nsIInputStream *aStream,
-                                  uint64_t aSourceOffset,
-                                  uint32_t aCount) {
+                                  PRUint32 aSourceOffset,
+                                  PRUint32 aCount) {
   if (aCount < 1)
     return NS_OK;
   
-  int32_t len = mBuf.Length();
+  PRInt32 len = mBuf.Length();
   
   
   
@@ -359,7 +391,7 @@ nsDirIndexParser::OnDataAvailable(nsIRequest *aRequest, nsISupports *aCtxt,
 
   
   nsresult rv;
-  uint32_t count;
+  PRUint32 count;
   rv = aStream->Read(mBuf.BeginWriting() + len, aCount, &count);
   if (NS_FAILED(rv)) return rv;
 
@@ -376,18 +408,18 @@ nsDirIndexParser::ProcessData(nsIRequest *aRequest, nsISupports *aCtxt) {
   if (!mListener)
     return NS_ERROR_FAILURE;
   
-  int32_t     numItems = 0;
+  PRInt32     numItems = 0;
   
-  while(true) {
+  while(PR_TRUE) {
     ++numItems;
     
-    int32_t             eol = mBuf.FindCharInSet("\n\r", mLineStart);
+    PRInt32             eol = mBuf.FindCharInSet("\n\r", mLineStart);
     if (eol < 0)        break;
     mBuf.SetCharAt(PRUnichar('\0'), eol);
     
     const char  *line = mBuf.get() + mLineStart;
     
-    int32_t lineLen = eol - mLineStart;
+    PRInt32 lineLen = eol - mLineStart;
     mLineStart = eol + 1;
     
     if (lineLen >= 4) {

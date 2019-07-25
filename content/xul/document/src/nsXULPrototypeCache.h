@@ -3,6 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsXULPrototypeCache_h__
 #define nsXULPrototypeCache_h__
 
@@ -16,9 +53,6 @@
 #include "nsXULPrototypeDocument.h"
 #include "nsIInputStream.h"
 #include "nsIStorageStream.h"
-
-#include "jspubtd.h"
-
 #include "mozilla/scache/StartupCache.h"
 
 using namespace mozilla::scache;
@@ -27,7 +61,8 @@ class nsCSSStyleSheet;
 
 struct CacheScriptEntry
 {
-    JSScript*   mScriptObject; 
+    PRUint32    mScriptTypeID; 
+    void*       mScriptObject; 
 };
 
 
@@ -46,7 +81,7 @@ public:
     NS_DECL_NSIOBSERVER
 
     bool IsCached(nsIURI* aURI) {
-        return GetPrototype(aURI) != nullptr;
+        return GetPrototype(aURI) != nsnull;
     }
     void AbortCaching();
 
@@ -69,8 +104,8 @@ public:
     nsXULPrototypeDocument* GetPrototype(nsIURI* aURI);
     nsresult PutPrototype(nsXULPrototypeDocument* aDocument);
 
-    JSScript* GetScript(nsIURI* aURI);
-    nsresult PutScript(nsIURI* aURI, JSScript* aScriptObject);
+    void* GetScript(nsIURI* aURI, PRUint32* langID);
+    nsresult PutScript(nsIURI* aURI, PRUint32 langID, void* aScriptObject);
 
     nsXBLDocumentInfo* GetXBLDocumentInfo(nsIURI* aURL) {
         return mXBLDocTable.GetWeak(aURL);
@@ -121,7 +156,6 @@ public:
         NS_IF_RELEASE(sInstance);
     }
 
-    void MarkInCCGeneration(uint32_t aGeneration);
 protected:
     friend nsresult
     NS_NewXULPrototypeCache(nsISupports* aOuter, REFNSIID aIID, void** aResult);
@@ -142,7 +176,7 @@ protected:
     
     
     
-    nsDataHashtable<nsURIHashKey,uint32_t> mCacheURITable;
+    nsDataHashtable<nsURIHashKey,PRUint32> mCacheURITable;
 
     static StartupCache* gStartupCache;
     nsInterfaceHashtable<nsURIHashKey, nsIStorageStream> mOutputStreamTable;

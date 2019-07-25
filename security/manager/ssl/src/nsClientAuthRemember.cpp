@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsClientAuthRemember.h"
 
 #include "nsIX509Cert.h"
@@ -13,12 +46,13 @@
 #include "nsNetUtil.h"
 #include "nsISupportsPrimitives.h"
 #include "nsPromiseFlatString.h"
-#include "nsThreadUtils.h"
+#include "nsProxiedService.h"
 #include "nsStringBuffer.h"
 #include "nspr.h"
 #include "pk11pub.h"
 #include "certdb.h"
 #include "sechash.h"
+#include "ssl.h" 
 
 #include "nsNSSCleaner.h"
 
@@ -43,17 +77,24 @@ nsClientAuthRememberService::~nsClientAuthRememberService()
 nsresult
 nsClientAuthRememberService::Init()
 {
-  if (!NS_IsMainThread()) {
-    NS_ERROR("nsClientAuthRememberService::Init called off the main thread");
-    return NS_ERROR_NOT_SAME_THREAD;
-  }
+  if (!mSettingsTable.Init())
+    return NS_ERROR_OUT_OF_MEMORY;
 
-  mSettingsTable.Init();
+  nsCOMPtr<nsIProxyObjectManager> proxyman(do_GetService(NS_XPCOMPROXY_CONTRACTID));
+  if (!proxyman)
+    return NS_ERROR_FAILURE;
 
-  nsCOMPtr<nsIObserverService> observerService =
-      mozilla::services::GetObserverService();
-  if (observerService) {
-    observerService->AddObserver(this, "profile-before-change", true);
+  nsCOMPtr<nsIObserverService> observerService(do_GetService("@mozilla.org/observer-service;1"));
+  nsCOMPtr<nsIObserverService> proxiedObserver;
+
+  NS_GetProxyForObject(NS_PROXY_TO_MAIN_THREAD,
+                       NS_GET_IID(nsIObserverService),
+                       observerService,
+                       NS_PROXY_SYNC,
+                       getter_AddRefs(proxiedObserver));
+
+  if (proxiedObserver) {
+    proxiedObserver->AddObserver(this, "profile-before-change", PR_TRUE);
   }
 
   return NS_OK;
@@ -118,7 +159,7 @@ nsClientAuthRememberService::RememberDecision(const nsACString & aHostName,
   if (aHostName.IsEmpty())
     return NS_ERROR_INVALID_ARG;
 
-  nsAutoCString fpStr;
+  nsCAutoString fpStr;
   nsresult rv = GetCertFingerprintByOidTag(aServerCert, SEC_OID_SHA256, fpStr);
   if (NS_FAILED(rv))
     return rv;
@@ -157,15 +198,15 @@ nsClientAuthRememberService::HasRememberedDecision(const nsACString & aHostName,
 
   NS_ENSURE_ARG_POINTER(aCert);
   NS_ENSURE_ARG_POINTER(_retval);
-  *_retval = false;
+  *_retval = PR_FALSE;
 
   nsresult rv;
-  nsAutoCString fpStr;
+  nsCAutoString fpStr;
   rv = GetCertFingerprintByOidTag(aCert, SEC_OID_SHA256, fpStr);
   if (NS_FAILED(rv))
     return rv;
 
-  nsAutoCString hostCert;
+  nsCAutoString hostCert;
   GetHostWithCert(aHostName, fpStr, hostCert);
   nsClientAuthRemember settings;
 
@@ -178,7 +219,7 @@ nsClientAuthRememberService::HasRememberedDecision(const nsACString & aHostName,
   }
 
   aCertDBKey = settings.mDBKey;
-  *_retval = true;
+  *_retval = PR_TRUE;
   return NS_OK;
 }
 
@@ -188,7 +229,7 @@ nsClientAuthRememberService::AddEntryToList(const nsACString &aHostName,
                                       const nsACString &db_key)
 
 {
-  nsAutoCString hostCert;
+  nsCAutoString hostCert;
   GetHostWithCert(aHostName, fingerprint, hostCert);
 
   {
@@ -216,7 +257,7 @@ nsClientAuthRememberService::GetHostWithCert(const nsACString & aHostName,
                                              const nsACString & fingerprint, 
                                              nsACString& _retval)
 {
-  nsAutoCString hostCert(aHostName);
+  nsCAutoString hostCert(aHostName);
   hostCert.AppendLiteral(":");
   hostCert.Append(fingerprint);
   

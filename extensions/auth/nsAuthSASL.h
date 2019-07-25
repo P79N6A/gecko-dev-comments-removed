@@ -3,20 +3,51 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsAuthSASL_h__
 #define nsAuthSASL_h__
 
 #include "nsIAuthModule.h"
 #include "nsString.h"
 #include "nsCOMPtr.h"
-#include "mozilla/Attributes.h"
 
 
 
 
 
 
-class nsAuthSASL MOZ_FINAL : public nsIAuthModule
+class nsAuthSASL : public nsIAuthModule
 {
 public:
     NS_DECL_ISUPPORTS

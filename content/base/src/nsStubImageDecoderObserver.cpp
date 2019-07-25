@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsStubImageDecoderObserver.h"
 
 NS_IMETHODIMP
@@ -26,7 +58,7 @@ nsStubImageDecoderObserver::OnStartContainer(imgIRequest *aRequest,
 
 NS_IMETHODIMP
 nsStubImageDecoderObserver::OnStartFrame(imgIRequest *aRequest,
-                                         uint32_t aFrame)
+                                         PRUint32 aFrame)
 {
     return NS_OK;
 }
@@ -41,7 +73,7 @@ nsStubImageDecoderObserver::OnDataAvailable(imgIRequest *aRequest,
 
 NS_IMETHODIMP
 nsStubImageDecoderObserver::OnStopFrame(imgIRequest *aRequest,
-                                        uint32_t aFrame)
+                                        PRUint32 aFrame)
 {
     return NS_OK;
 }
@@ -75,14 +107,7 @@ nsStubImageDecoderObserver::OnDiscard(imgIRequest *aRequest)
 }
 
 NS_IMETHODIMP
-nsStubImageDecoderObserver::OnImageIsAnimated(imgIRequest *aRequest)
-{
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsStubImageDecoderObserver::FrameChanged(imgIRequest* aRequest,
-                                         imgIContainer *aContainer,
+nsStubImageDecoderObserver::FrameChanged(imgIContainer *aContainer,
                                          const nsIntRect *aDirtyRect)
 {
     return NS_OK;

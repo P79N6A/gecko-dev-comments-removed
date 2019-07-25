@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsHttp_h__
 #define nsHttp_h__
 
@@ -69,7 +102,7 @@ extern PRLogModuleInfo *gHttpLog;
 #define NS_HTTP_VERSION_1_0     10
 #define NS_HTTP_VERSION_1_1     11
 
-typedef uint8_t nsHttpVersion;
+typedef PRUint8 nsHttpVersion;
 
 
 
@@ -101,11 +134,9 @@ typedef uint8_t nsHttpVersion;
 
 
 
-#define NS_HTTP_DISALLOW_SPDY        (1<<7)
 
 
-
-
+#define NS_HTTP_MAX_PIPELINED_REQUESTS 8 
 
 #define NS_HTTP_DEFAULT_PORT  80
 #define NS_HTTPS_DEFAULT_PORT 443
@@ -132,11 +163,6 @@ struct nsHttp
 {
     static nsresult CreateAtomTable();
     static void DestroyAtomTable();
-
-    
-    
-    
-    static mozilla::Mutex *GetLock();
 
     
     static nsHttpAtom ResolveAtom(const char *);
@@ -171,11 +197,11 @@ struct nsHttp
     
     
     static bool ParseInt64(const char *input, const char **next,
-                             int64_t *result);
+                             PRInt64 *result);
 
     
     
-    static inline bool ParseInt64(const char *input, int64_t *result) {
+    static inline bool ParseInt64(const char *input, PRInt64 *result) {
         const char *next;
         return ParseInt64(input, &next, result) && *next == '\0';
     }
@@ -195,16 +221,20 @@ struct nsHttp
 
 
 
-static inline uint32_t
+static inline PRUint32
 PRTimeToSeconds(PRTime t_usec)
 {
-    return uint32_t( t_usec / PR_USEC_PER_SEC );
+    return PRUint32( t_usec / PR_USEC_PER_SEC );
 }
 
 #define NowInSeconds() PRTimeToSeconds(PR_Now())
 
 
-#define QVAL_TO_UINT(q) ((unsigned int) ((q + 0.005) * 100.0))
+#undef  CLAMP
+#define CLAMP(x, low, high)  (((x) > (high)) ? (high) : (((x) < (low)) ? (low) : (x)))
+
+
+#define QVAL_TO_UINT(q) ((unsigned int) ((q + 0.05) * 10.0))
 
 #define HTTP_LWS " \t"
 #define HTTP_HEADER_VALUE_SEPS HTTP_LWS ","

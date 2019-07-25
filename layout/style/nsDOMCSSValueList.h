@@ -4,13 +4,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDOMCSSValueList_h___
 #define nsDOMCSSValueList_h___
 
 #include "nsIDOMCSSValue.h"
 #include "nsIDOMCSSValueList.h"
-#include "nsTArray.h"
-
+#include "nsCOMArray.h"
 
 #include "nsCOMPtr.h"
 
@@ -34,9 +66,9 @@ public:
 
   void AppendCSSValue(nsIDOMCSSValue* aValue);
 
-  nsIDOMCSSValue* GetItemAt(uint32_t aIndex)
+  nsIDOMCSSValue* GetItemAt(PRUint32 aIndex)
   {
-    return mCSSValues.SafeElementAt(aIndex, nullptr);
+    return mCSSValues.SafeElementAt(aIndex, nsnull);
   }
 
   static nsDOMCSSValueList* FromSupports(nsISupports* aSupports)

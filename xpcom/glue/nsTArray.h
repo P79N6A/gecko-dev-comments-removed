@@ -4,11 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsTArray_h__
 #define nsTArray_h__
-
-#include "mozilla/Assertions.h"
-#include "mozilla/Util.h"
 
 #include <string.h>
 
@@ -34,22 +63,22 @@
 
 
 
-#if defined(MOZALLOC_HAVE_XMALLOC)
 struct nsTArrayFallibleAllocator
 {
   static void* Malloc(size_t size) {
-    return moz_malloc(size);
+    return NS_Alloc(size);
   }
 
   static void* Realloc(void* ptr, size_t size) {
-    return moz_realloc(ptr, size);
+    return NS_Realloc(ptr, size);
   }
 
   static void Free(void* ptr) {
-    moz_free(ptr);
+    NS_Free(ptr);
   }
 };
 
+#if defined(MOZALLOC_HAVE_XMALLOC)
 struct nsTArrayInfallibleAllocator
 {
   static void* Malloc(size_t size) {
@@ -64,25 +93,6 @@ struct nsTArrayInfallibleAllocator
     moz_free(ptr);
   }
 };
-
-#else
-
-#include <stdlib.h>
-struct nsTArrayFallibleAllocator
-{
-  static void* Malloc(size_t size) {
-    return malloc(size);
-  }
-
-  static void* Realloc(void* ptr, size_t size) {
-    return realloc(ptr, size);
-  }
-
-  static void Free(void* ptr) {
-    free(ptr);
-  }
-};
-
 #endif
 
 #if defined(MOZALLOC_HAVE_XMALLOC)
@@ -98,9 +108,9 @@ struct NS_COM_GLUE nsTArrayHeader
 {
   static nsTArrayHeader sEmptyHdr;
 
-  uint32_t mLength;
-  uint32_t mCapacity : 31;
-  uint32_t mIsAutoArray : 1;
+  PRUint32 mLength;
+  PRUint32 mCapacity : 31;
+  PRUint32 mIsAutoArray : 1;
 };
 
 
@@ -109,7 +119,7 @@ template <class E, class Derived>
 struct nsTArray_SafeElementAtHelper
 {
   typedef E*       elem_type;
-  typedef uint32_t index_type;
+  typedef PRUint32 index_type;
 
   
   
@@ -122,48 +132,15 @@ template <class E, class Derived>
 struct nsTArray_SafeElementAtHelper<E*, Derived>
 {
   typedef E*       elem_type;
-  typedef uint32_t index_type;
+  typedef PRUint32 index_type;
 
   elem_type SafeElementAt(index_type i) {
-    return static_cast<Derived*> (this)->SafeElementAt(i, nullptr);
+    return static_cast<Derived*> (this)->SafeElementAt(i, nsnull);
   }
 
   const elem_type SafeElementAt(index_type i) const {
-    return static_cast<const Derived*> (this)->SafeElementAt(i, nullptr);
+    return static_cast<const Derived*> (this)->SafeElementAt(i, nsnull);
   }
-};
-
-
-
-template <class E, class Derived>
-struct nsTArray_SafeElementAtSmartPtrHelper
-{
-  typedef E*       elem_type;
-  typedef uint32_t index_type;
-
-  elem_type SafeElementAt(index_type i) {
-    return static_cast<Derived*> (this)->SafeElementAt(i, nullptr);
-  }
-
-  const elem_type SafeElementAt(index_type i) const {
-    return static_cast<const Derived*> (this)->SafeElementAt(i, nullptr);
-  }
-};
-
-template <class T> class nsCOMPtr;
-
-template <class E, class Derived>
-struct nsTArray_SafeElementAtHelper<nsCOMPtr<E>, Derived> :
-  public nsTArray_SafeElementAtSmartPtrHelper<E, Derived>
-{
-};
-
-template <class T> class nsRefPtr;
-
-template <class E, class Derived>
-struct nsTArray_SafeElementAtHelper<nsRefPtr<E>, Derived> :
-  public nsTArray_SafeElementAtSmartPtrHelper<E, Derived>
-{
 };
 
 
@@ -184,8 +161,8 @@ protected:
   typedef nsTArrayHeader Header;
 
 public:
-  typedef uint32_t size_type;
-  typedef uint32_t index_type;
+  typedef PRUint32 size_type;
+  typedef PRUint32 index_type;
 
   
   size_type Length() const {
@@ -223,8 +200,7 @@ protected:
 
   
   
-  
-  void ShrinkCapacity(size_type elemSize, size_t elemAlign);
+  void ShrinkCapacity(size_type elemSize);
     
   
   
@@ -233,16 +209,15 @@ protected:
   
   
   
-  
   void ShiftData(index_type start, size_type oldLen, size_type newLen,
-                 size_type elemSize, size_t elemAlign);
+                 size_type elemSize);
 
   
   
   
   
-  void IncrementLength(uint32_t n) {
-    MOZ_ASSERT(mHdr != EmptyHdr() || n == 0, "bad data pointer");
+  void IncrementLength(PRUint32 n) {
+    NS_ASSERTION(mHdr != EmptyHdr() || n == 0, "bad data pointer");
     mHdr->mLength += n;
   }
 
@@ -251,25 +226,22 @@ protected:
   
   
   
-  
   bool InsertSlotsAt(index_type index, size_type count,
-                       size_type elementSize, size_t elemAlign);
+                       size_type elementSize);
 
 protected:
   template<class Allocator>
   bool SwapArrayElements(nsTArray_base<Allocator>& other,
-                           size_type elemSize,
-                           size_t elemAlign);
+                           size_type elemSize);
 
   
   class IsAutoArrayRestorer {
     public:
-      IsAutoArrayRestorer(nsTArray_base<Alloc> &array, size_t elemAlign);
+      IsAutoArrayRestorer(nsTArray_base<Alloc> &array);
       ~IsAutoArrayRestorer();
 
     private:
       nsTArray_base<Alloc> &mArray;
-      size_t mElemAlign;
       bool mIsAuto;
   };
 
@@ -278,31 +250,34 @@ protected:
   bool EnsureNotUsingAutoArrayBuffer(size_type elemSize);
 
   
-  bool IsAutoArray() const {
+  bool IsAutoArray() {
     return mHdr->mIsAutoArray;
   }
 
   
-  Header* GetAutoArrayBuffer(size_t elemAlign) {
-    MOZ_ASSERT(IsAutoArray(), "Should be an auto array to call this");
-    return GetAutoArrayBufferUnsafe(elemAlign);
-  }
-  const Header* GetAutoArrayBuffer(size_t elemAlign) const {
-    MOZ_ASSERT(IsAutoArray(), "Should be an auto array to call this");
-    return GetAutoArrayBufferUnsafe(elemAlign);
+  
+  struct AutoArray {
+    Header *mHdr;
+    PRUint64 aligned;
+  };
+
+  
+  Header* GetAutoArrayBuffer() {
+    NS_ASSERTION(IsAutoArray(), "Should be an auto array to call this");
+    return GetAutoArrayBufferUnsafe();
   }
 
   
   
-  Header* GetAutoArrayBufferUnsafe(size_t elemAlign) {
-    return const_cast<Header*>(static_cast<const nsTArray_base<Alloc>*>(this)->
-                               GetAutoArrayBufferUnsafe(elemAlign));
+  Header* GetAutoArrayBufferUnsafe() {
+    return reinterpret_cast<Header*>(&(reinterpret_cast<AutoArray*>(&mHdr))->aligned);
   }
-  const Header* GetAutoArrayBufferUnsafe(size_t elemAlign) const;
 
   
   
-  bool UsesAutoArrayBuffer() const;
+  bool UsesAutoArrayBuffer() {
+    return mHdr->mIsAutoArray && mHdr == GetAutoArrayBuffer();
+  }
 
   
   
@@ -346,6 +321,24 @@ public:
   
   static inline void Destruct(E *e) {
     e->~E();
+  }
+};
+
+
+
+template <class E, class Comparator>
+class nsQuickSortComparator
+{
+public:
+  typedef E elem_type;
+  
+  
+  
+  static int Compare(const void* e1, const void* e2, void *data) {
+    const Comparator* c = reinterpret_cast<const Comparator*>(data);
+    const elem_type* a = static_cast<const elem_type*>(e1);
+    const elem_type* b = static_cast<const elem_type*>(e2);
+    return c->LessThan(*a, *b) ? -1 : (c->Equals(*a, *b) ? 0 : 1);
   }
 };
 
@@ -398,7 +391,6 @@ public:
 
 
 
-
 template<class E, class Alloc=nsTArrayDefaultAllocator>
 class nsTArray : public nsTArray_base<Alloc>,
                  public nsTArray_SafeElementAtHelper<E, nsTArray<E, Alloc> >
@@ -413,7 +405,6 @@ public:
   typedef nsTArray_SafeElementAtHelper<E, self_type> safeelementat_helper_type;
 
   using safeelementat_helper_type::SafeElementAt;
-  using base_type::EmptyHdr;
 
   
   
@@ -488,16 +479,8 @@ public:
 
   
   
-  size_t SizeOfExcludingThis(nsMallocSizeOfFun mallocSizeOf) const {
-    if (this->UsesAutoArrayBuffer() || Hdr() == EmptyHdr())
-      return 0;
-    return mallocSizeOf(this->Hdr());
-  }
-
-  
-  
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf) const {
-    return mallocSizeOf(this) + SizeOfExcludingThis(mallocSizeOf);
+  size_t SizeOf() const {
+    return this->Capacity() * sizeof(elem_type) + sizeof(*this->Hdr());
   }
 
   
@@ -523,7 +506,7 @@ public:
   
   
   elem_type& ElementAt(index_type i) {
-    MOZ_ASSERT(i < Length(), "invalid array index");
+    NS_ASSERTION(i < Length(), "invalid array index");
     return Elements()[i];
   }
 
@@ -532,7 +515,7 @@ public:
   
   
   const elem_type& ElementAt(index_type i) const {
-    MOZ_ASSERT(i < Length(), "invalid array index");
+    NS_ASSERTION(i < Length(), "invalid array index");
     return Elements()[i];
   }
 
@@ -562,26 +545,6 @@ public:
   
   const elem_type& operator[](index_type i) const {
     return ElementAt(i);
-  }
-
-  
-  elem_type& LastElement() {
-    return ElementAt(Length() - 1);
-  }
-
-  
-  const elem_type& LastElement() const {
-    return ElementAt(Length() - 1);
-  }
-
-  
-  elem_type& SafeLastElement(elem_type& def) {
-    return SafeElementAt(Length() - 1, def);
-  }
-
-  
-  const elem_type& SafeLastElement(const elem_type& def) const {
-    return SafeElementAt(Length() - 1, def);
   }
 
   
@@ -718,9 +681,9 @@ public:
                                const Item* array, size_type arrayLen) {
     
     if (!this->EnsureCapacity(Length() + arrayLen - count, sizeof(elem_type)))
-      return nullptr;
+      return nsnull;
     DestructRange(start, count);
-    this->ShiftData(start, count, arrayLen, sizeof(elem_type), MOZ_ALIGNOF(elem_type));
+    this->ShiftData(start, count, arrayLen, sizeof(elem_type));
     AssignRange(start, arrayLen, array);
     return Elements() + start;
   }
@@ -742,7 +705,7 @@ public:
   
   template<class Item>
   elem_type *ReplaceElementAt(index_type index, const Item& item) {
-    return ReplaceElementsAt(index, 1, &item, 1);
+    return ReplaceElementsAt(index, 1, item, 1);
   }
 
   
@@ -769,8 +732,8 @@ public:
   
   elem_type* InsertElementAt(index_type index) {
     if (!this->EnsureCapacity(Length() + 1, sizeof(elem_type)))
-      return nullptr;
-    this->ShiftData(index, 0, 1, sizeof(elem_type), MOZ_ALIGNOF(elem_type));
+      return nsnull;
+    this->ShiftData(index, 0, 1, sizeof(elem_type));
     elem_type *elem = Elements() + index;
     elem_traits::Construct(elem);
     return elem;
@@ -790,7 +753,7 @@ public:
   bool
   GreatestIndexLtEq(const Item& item,
                     const Comparator& comp,
-                    index_type* idx) const {
+                    index_type* idx NS_OUTPARAM) const {
     
     
     
@@ -808,7 +771,7 @@ public:
           --mid;
         } while (NoIndex != mid && comp.Equals(ElementAt(mid), item));
         *idx = ++mid;
-        return true;
+        return PR_TRUE;
       }
       if (comp.LessThan(ElementAt(mid), item))
         
@@ -821,7 +784,7 @@ public:
     
     
     *idx = high;
-    return false;
+    return PR_FALSE;
   }
 
   
@@ -865,7 +828,7 @@ public:
   template<class Item>
   elem_type *AppendElements(const Item* array, size_type arrayLen) {
     if (!this->EnsureCapacity(Length() + arrayLen, sizeof(elem_type)))
-      return nullptr;
+      return nsnull;
     index_type len = Length();
     AssignRange(len, arrayLen, array);
     this->IncrementLength(arrayLen);
@@ -889,7 +852,7 @@ public:
   
   elem_type *AppendElements(size_type count) {
     if (!this->EnsureCapacity(Length() + count, sizeof(elem_type)))
-      return nullptr;
+      return nsnull;
     elem_type *elems = Elements() + Length();
     size_type i;
     for (i = 0; i < count; ++i) {
@@ -911,14 +874,14 @@ public:
   
   template<class Item, class Allocator>
   elem_type *MoveElementsFrom(nsTArray<Item, Allocator>& array) {
-    MOZ_ASSERT(&array != this, "argument must be different array");
+    NS_PRECONDITION(&array != this, "argument must be different array");
     index_type len = Length();
     index_type otherLen = array.Length();
     if (!this->EnsureCapacity(len + otherLen, sizeof(elem_type)))
-      return nullptr;
+      return nsnull;
     memcpy(Elements() + len, array.Elements(), otherLen * sizeof(elem_type));
     this->IncrementLength(otherLen);      
-    array.ShiftData(0, otherLen, 0, sizeof(elem_type), MOZ_ALIGNOF(elem_type));
+    array.ShiftData(0, otherLen, 0, sizeof(elem_type));
     return Elements() + len;
   }
 
@@ -926,12 +889,10 @@ public:
   
   
   void RemoveElementsAt(index_type start, size_type count) {
-    MOZ_ASSERT(count == 0 || start < Length(), "Invalid start index");
-    MOZ_ASSERT(start + count <= Length(), "Invalid length");
-    
-    MOZ_ASSERT(start <= start + count, "Start index plus length overflows");
+    NS_ASSERTION(count == 0 || start < Length(), "Invalid start index");
+    NS_ASSERTION(start + count <= Length(), "Invalid length");
     DestructRange(start, count);
-    this->ShiftData(start, count, 0, sizeof(elem_type), MOZ_ALIGNOF(elem_type));
+    this->ShiftData(start, count, 0, sizeof(elem_type));
   }
 
   
@@ -953,10 +914,10 @@ public:
   bool RemoveElement(const Item& item, const Comparator& comp) {
     index_type i = IndexOf(item, 0, comp);
     if (i == NoIndex)
-      return false;
+      return PR_FALSE;
 
     RemoveElementAt(i);
-    return true;
+    return PR_TRUE;
   }
 
   
@@ -991,7 +952,7 @@ public:
   
   template<class Allocator>
   bool SwapElements(nsTArray<E, Allocator>& other) {
-    return this->SwapArrayElements(other, sizeof(elem_type), MOZ_ALIGNOF(elem_type));
+    return this->SwapArrayElements(other, sizeof(elem_type));
   }
 
   
@@ -1019,11 +980,11 @@ public:
   bool SetLength(size_type newLen) {
     size_type oldLen = Length();
     if (newLen > oldLen) {
-      return InsertElementsAt(oldLen, newLen - oldLen) != nullptr;
+      return InsertElementsAt(oldLen, newLen - oldLen) != nsnull;
     }
       
     TruncateLength(newLen);
-    return true;
+    return PR_TRUE;
   }
 
   
@@ -1048,9 +1009,9 @@ public:
   bool EnsureLengthAtLeast(size_type minLen) {
     size_type oldLen = Length();
     if (minLen > oldLen) {
-      return InsertElementsAt(oldLen, minLen - oldLen) != nullptr;
+      return InsertElementsAt(oldLen, minLen - oldLen) != nsnull;
     }
-    return true;
+    return PR_TRUE;
   }
 
   
@@ -1059,8 +1020,8 @@ public:
   
   
   elem_type *InsertElementsAt(index_type index, size_type count) {
-    if (!base_type::InsertSlotsAt(index, count, sizeof(elem_type), MOZ_ALIGNOF(elem_type))) {
-      return nullptr;
+    if (!base_type::InsertSlotsAt(index, count, sizeof(elem_type))) {
+      return nsnull;
     }
 
     
@@ -1082,8 +1043,8 @@ public:
   template<class Item>
   elem_type *InsertElementsAt(index_type index, size_type count,
                               const Item& item) {
-    if (!base_type::InsertSlotsAt(index, count, sizeof(elem_type), MOZ_ALIGNOF(elem_type))) {
-      return nullptr;
+    if (!base_type::InsertSlotsAt(index, count, sizeof(elem_type))) {
+      return nsnull;
     }
 
     
@@ -1097,23 +1058,12 @@ public:
 
   
   void Compact() {
-    ShrinkCapacity(sizeof(elem_type), MOZ_ALIGNOF(elem_type));
+    ShrinkCapacity(sizeof(elem_type));
   }
 
   
   
   
- 
-  
-  
-  
-  template<class Comparator>
-  static int Compare(const void* e1, const void* e2, void *data) {
-    const Comparator* c = reinterpret_cast<const Comparator*>(data);
-    const elem_type* a = static_cast<const elem_type*>(e1);
-    const elem_type* b = static_cast<const elem_type*>(e2);
-    return c->LessThan(*a, *b) ? -1 : (c->Equals(*a, *b) ? 0 : 1);
-  }
 
   
   
@@ -1121,7 +1071,8 @@ public:
   template<class Comparator>
   void Sort(const Comparator& comp) {
     NS_QuickSort(Elements(), Length(), sizeof(elem_type),
-                 Compare<Comparator>, const_cast<Comparator*>(&comp));
+                 nsQuickSortComparator<elem_type, Comparator>::Compare,
+                 const_cast<Comparator*>(&comp));
   }
 
   
@@ -1157,8 +1108,8 @@ public:
   
   template<class Item, class Comparator>
   elem_type *PushHeap(const Item& item, const Comparator& comp) {
-    if (!base_type::InsertSlotsAt(Length(), 1, sizeof(elem_type), MOZ_ALIGNOF(elem_type))) {
-      return nullptr;
+    if (!base_type::InsertSlotsAt(Length(), 1, sizeof(elem_type))) {
+      return nsnull;
     }
     
     elem_type *elem = Elements();
@@ -1287,7 +1238,8 @@ public:
 };
 #endif
 
-template<class TArrayBase, uint32_t N>
+
+template<class TArrayBase, PRUint32 N>
 class nsAutoArrayBase : public TArrayBase
 {
 public:
@@ -1310,96 +1262,43 @@ protected:
   }
 
 private:
-  
-  
-  template<class Allocator>
-  friend class nsTArray_base;
-
   void Init() {
-    MOZ_STATIC_ASSERT(MOZ_ALIGNOF(elem_type) <= 8,
-                      "can't handle alignments greater than 8, "
-                      "see nsTArray_base::UsesAutoArrayBuffer()");
-    
-    Header** phdr = base_type::PtrToHdr();
-    *phdr = reinterpret_cast<Header*>(&mAutoBuf);
-    (*phdr)->mLength = 0;
-    (*phdr)->mCapacity = N;
-    (*phdr)->mIsAutoArray = 1;
+    *base_type::PtrToHdr() = reinterpret_cast<Header*>(&mAutoBuf);
+    base_type::Hdr()->mLength = 0;
+    base_type::Hdr()->mCapacity = N;
+    base_type::Hdr()->mIsAutoArray = 1;
 
-    MOZ_ASSERT(base_type::GetAutoArrayBuffer(MOZ_ALIGNOF(elem_type)) ==
-               reinterpret_cast<Header*>(&mAutoBuf),
-               "GetAutoArrayBuffer needs to be fixed");
+    NS_ASSERTION(base_type::GetAutoArrayBuffer() ==
+                 reinterpret_cast<Header*>(&mAutoBuf),
+                 "GetAutoArrayBuffer needs to be fixed");
   }
 
-  
-  
-  
-  
   union {
-    char mAutoBuf[sizeof(nsTArrayHeader) + N * sizeof(elem_type)];
-    mozilla::AlignedElem<PR_MAX(MOZ_ALIGNOF(Header), MOZ_ALIGNOF(elem_type))> mAlign;
+    char mAutoBuf[sizeof(Header) + N * sizeof(elem_type)];
+    PRUint64 dummy;
   };
 };
 
-template<class E, uint32_t N, class Alloc=nsTArrayDefaultAllocator>
+template<class E, PRUint32 N, class Alloc=nsTArrayDefaultAllocator>
 class nsAutoTArray : public nsAutoArrayBase<nsTArray<E, Alloc>, N>
 {
-  typedef nsAutoArrayBase<nsTArray<E, Alloc>, N> Base;
-
 public:
   nsAutoTArray() {}
-
-  template<typename Allocator>
-  nsAutoTArray(const nsTArray<E, Allocator>& other) {
-    Base::AppendElements(other);
-  }
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-MOZ_STATIC_ASSERT(sizeof(nsAutoTArray<uint32_t, 2>) ==
-                  sizeof(void*) + sizeof(nsTArrayHeader) + sizeof(uint32_t) * 2,
-                  "nsAutoTArray shouldn't contain any extra padding, "
-                  "see the comment");
-
-template<class E, uint32_t N>
+template<class E, PRUint32 N>
 class AutoFallibleTArray : public nsAutoArrayBase<FallibleTArray<E>, N>
 {
-  typedef nsAutoArrayBase<FallibleTArray<E>, N> Base;
-
 public:
   AutoFallibleTArray() {}
-
-  template<typename Allocator>
-  AutoFallibleTArray(const nsTArray<E, Allocator>& other) {
-    Base::AppendElements(other);
-  }
 };
 
 #if defined(MOZALLOC_HAVE_XMALLOC)
-template<class E, uint32_t N>
+template<class E, PRUint32 N>
 class AutoInfallibleTArray : public nsAutoArrayBase<InfallibleTArray<E>, N>
 {
-  typedef nsAutoArrayBase<InfallibleTArray<E>, N> Base;
-
 public:
   AutoInfallibleTArray() {}
-
-  template<typename Allocator>
-  AutoInfallibleTArray(const nsTArray<E, Allocator>& other) {
-    Base::AppendElements(other);
-  }
 };
 #endif
 

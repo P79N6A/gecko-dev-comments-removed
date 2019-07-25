@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsMaemoNetworkLinkService.h"
 #include "nsCOMPtr.h"
 #include "nsIObserverService.h"
@@ -40,7 +72,7 @@ nsMaemoNetworkLinkService::GetLinkStatusKnown(bool *aIsKnown)
 }
 
 NS_IMETHODIMP
-nsMaemoNetworkLinkService::GetLinkType(uint32_t *aLinkType)
+nsMaemoNetworkLinkService::GetLinkType(PRUint32 *aLinkType)
 {
   NS_ENSURE_ARG_POINTER(aLinkType);
 
@@ -68,7 +100,7 @@ nsMaemoNetworkLinkService::Init(void)
   if (!observerService)
     return NS_ERROR_FAILURE;
 
-  nsresult rv = observerService->AddObserver(this, "xpcom-shutdown", false);
+  nsresult rv = observerService->AddObserver(this, "xpcom-shutdown", PR_FALSE);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (!nsMaemoNetworkManager::Startup())

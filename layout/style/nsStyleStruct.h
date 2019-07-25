@@ -8,10 +8,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsStyleStruct_h___
 #define nsStyleStruct_h___
-
-#include "mozilla/Attributes.h"
 
 #include "nsColor.h"
 #include "nsCoord.h"
@@ -66,21 +101,25 @@ struct nsCSSValueList;
 
 
 
+
+
+
+
+
+
 struct nsStyleFont {
   nsStyleFont(const nsFont& aFont, nsPresContext *aPresContext);
   nsStyleFont(const nsStyleFont& aStyleFont);
   nsStyleFont(nsPresContext *aPresContext);
-private:
-  void Init(nsPresContext *aPresContext);
-public:
   ~nsStyleFont(void) {
     MOZ_COUNT_DTOR(nsStyleFont);
   }
 
   nsChangeHint CalcDifference(const nsStyleFont& aOther) const;
-  static nsChangeHint MaxDifference() {
-    return NS_STYLE_HINT_REFLOW;
-  }
+#ifdef DEBUG
+  static nsChangeHint MaxDifference();
+#endif
+  static bool ForceCompare() { return false; }
   static nsChangeHint CalcFontDifference(const nsFont& aFont1, const nsFont& aFont2);
 
   static nscoord ZoomText(nsPresContext* aPresContext, nscoord aSize);
@@ -96,20 +135,15 @@ public:
                         
                         
                         
-  uint8_t mGenericID;   
+  PRUint8 mGenericID;   
                         
 
   
-  int8_t  mScriptLevel;          
-
-  
-  bool mExplicitLanguage;        
-
+  PRInt8  mScriptLevel;          
   
   nscoord mScriptUnconstrainedSize;
   nscoord mScriptMinSize;        
   float   mScriptSizeMultiplier; 
-  nsCOMPtr<nsIAtom> mLanguage;   
 };
 
 struct nsStyleGradientStop {
@@ -120,18 +154,14 @@ struct nsStyleGradientStop {
 class nsStyleGradient {
 public:
   nsStyleGradient();
-  uint8_t mShape;  
-  uint8_t mSize;   
+  PRUint8 mShape;  
+  PRUint8 mSize;   
                    
   bool mRepeating;
-  bool mLegacySyntax;
 
   nsStyleCoord mBgPosX; 
   nsStyleCoord mBgPosY; 
   nsStyleCoord mAngle;  
-
-  nsStyleCoord mRadiusX; 
-  nsStyleCoord mRadiusY; 
 
   
   nsTArray<nsStyleGradientStop> mStops;
@@ -139,19 +169,18 @@ public:
   bool operator==(const nsStyleGradient& aOther) const;
   bool operator!=(const nsStyleGradient& aOther) const {
     return !(*this == aOther);
-  }
+  };
 
   bool IsOpaque();
-  bool HasCalc();
-  uint32_t Hash(PLDHashNumber aHash);
 
   NS_INLINE_DECL_REFCOUNTING(nsStyleGradient)
 
 private:
   ~nsStyleGradient() {}
 
-  nsStyleGradient(const nsStyleGradient& aOther) MOZ_DELETE;
-  nsStyleGradient& operator=(const nsStyleGradient& aOther) MOZ_DELETE;
+  
+  nsStyleGradient(const nsStyleGradient& aOther);
+  nsStyleGradient& operator=(const nsStyleGradient& aOther);
 };
 
 enum nsStyleImageType {
@@ -222,7 +251,7 @@ struct nsStyleImage {
 
 
   bool ComputeActualCropRect(nsIntRect& aActualCropRect,
-                               bool* aIsEntireImage = nullptr) const;
+                               bool* aIsEntireImage = nsnull) const;
 
   
 
@@ -283,9 +312,10 @@ struct nsStyleColor {
   }
 
   nsChangeHint CalcDifference(const nsStyleColor& aOther) const;
-  static nsChangeHint MaxDifference() {
-    return NS_STYLE_HINT_VISUAL;
-  }
+#ifdef DEBUG
+  static nsChangeHint MaxDifference();
+#endif
+  static bool ForceCompare() { return false; }
 
   void* operator new(size_t sz, nsPresContext* aContext) CPP_THROW_NEW {
     return aContext->AllocateFromShell(sz);
@@ -311,9 +341,10 @@ struct nsStyleBackground {
   void Destroy(nsPresContext* aContext);
 
   nsChangeHint CalcDifference(const nsStyleBackground& aOther) const;
-  static nsChangeHint MaxDifference() {
-    return NS_CombineHint(nsChangeHint_UpdateEffects, NS_STYLE_HINT_VISUAL);
-  }
+#ifdef DEBUG
+  static nsChangeHint MaxDifference();
+#endif
+  static bool ForceCompare() { return false; }
 
   struct Position;
   friend struct Position;
@@ -381,7 +412,7 @@ struct nsStyleBackground {
       eLengthPercentage,
       eDimensionType_COUNT
     };
-    uint8_t mWidthType, mHeightType;
+    PRUint8 mWidthType, mHeightType;
 
     
     
@@ -399,34 +430,14 @@ struct nsStyleBackground {
       return !(*this == aOther);
     }
   };
-  
-  struct Repeat;
-  friend struct Repeat;
-  struct Repeat {
-    uint8_t mXRepeat, mYRepeat;
-    
-    
-    Repeat() {}
-
-    
-    void SetInitialValues();
-
-    bool operator==(const Repeat& aOther) const {
-      return mXRepeat == aOther.mXRepeat &&
-             mYRepeat == aOther.mYRepeat;
-    }
-    bool operator!=(const Repeat& aOther) const {
-      return !(*this == aOther);
-    }
-  };
 
   struct Layer;
   friend struct Layer;
   struct Layer {
-    uint8_t mAttachment;                
-    uint8_t mClip;                      
-    uint8_t mOrigin;                    
-    Repeat mRepeat;                     
+    PRUint8 mAttachment;                
+    PRUint8 mClip;                      
+    PRUint8 mOrigin;                    
+    PRUint8 mRepeat;                    
     Position mPosition;                 
     nsStyleImage mImage;                
     Size mSize;                         
@@ -465,7 +476,7 @@ struct nsStyleBackground {
 
   
   
-  uint32_t mAttachmentCount,
+  PRUint32 mAttachmentCount,
            mClipCount,
            mOriginCount,
            mRepeatCount,
@@ -487,14 +498,14 @@ struct nsStyleBackground {
   const Layer& BottomLayer() const { return mLayers[mImageCount - 1]; }
 
   #define NS_FOR_VISIBLE_BACKGROUND_LAYERS_BACK_TO_FRONT(var_, stylebg_) \
-    for (uint32_t var_ = (stylebg_)->mImageCount; var_-- != 0; )
+    for (PRUint32 var_ = (stylebg_)->mImageCount; var_-- != 0; )
 
   nscolor mBackgroundColor;       
 
   
   
   
-  uint8_t mBackgroundInlinePolicy; 
+  PRUint8 mBackgroundInlinePolicy; 
 
   
   bool IsTransparent() const;
@@ -531,11 +542,10 @@ struct nsStyleMargin {
 
   void RecalcData();
   nsChangeHint CalcDifference(const nsStyleMargin& aOther) const;
-  static nsChangeHint MaxDifference() {
-    return NS_SubtractHint(NS_STYLE_HINT_REFLOW,
-                           NS_CombineHint(nsChangeHint_ClearDescendantIntrinsics,
-                                          nsChangeHint_NeedDirtyReflow));
-  }
+#ifdef DEBUG
+  static nsChangeHint MaxDifference();
+#endif
+  static bool ForceCompare() { return true; }
 
   nsStyleSides  mMargin;          
 
@@ -544,9 +554,9 @@ struct nsStyleMargin {
   {
     if (mHasCachedMargin) {
       aMargin = mCachedMargin;
-      return true;
+      return PR_TRUE;
     }
-    return false;
+    return PR_FALSE;
   }
 
 protected:
@@ -567,10 +577,10 @@ struct nsStylePadding {
 
   void RecalcData();
   nsChangeHint CalcDifference(const nsStylePadding& aOther) const;
-  static nsChangeHint MaxDifference() {
-    return NS_SubtractHint(NS_STYLE_HINT_REFLOW,
-                           nsChangeHint_ClearDescendantIntrinsics);
-  }
+#ifdef DEBUG
+  static nsChangeHint MaxDifference();
+#endif
+  static bool ForceCompare() { return true; }
 
   nsStyleSides  mPadding;         
 
@@ -579,9 +589,9 @@ struct nsStylePadding {
   {
     if (mHasCachedPadding) {
       aPadding = mCachedPadding;
-      return true;
+      return PR_TRUE;
     }
-    return false;
+    return PR_FALSE;
   }
 
 protected:
@@ -593,19 +603,19 @@ struct nsBorderColors {
   nsBorderColors* mNext;
   nscolor mColor;
 
-  nsBorderColors() : mNext(nullptr), mColor(NS_RGB(0,0,0)) {}
-  nsBorderColors(const nscolor& aColor) : mNext(nullptr), mColor(aColor) {}
+  nsBorderColors() : mNext(nsnull), mColor(NS_RGB(0,0,0)) {}
+  nsBorderColors(const nscolor& aColor) : mNext(nsnull), mColor(aColor) {}
   ~nsBorderColors();
 
-  nsBorderColors* Clone() const { return Clone(true); }
+  nsBorderColors* Clone() const { return Clone(PR_TRUE); }
 
   static bool Equal(const nsBorderColors* c1,
                       const nsBorderColors* c2) {
     if (c1 == c2)
-      return true;
+      return PR_TRUE;
     while (c1 && c2) {
       if (c1->mColor != c2->mColor)
-        return false;
+        return PR_FALSE;
       c1 = c1->mNext;
       c2 = c2->mNext;
     }
@@ -628,7 +638,7 @@ struct nsCSSShadowItem {
   bool mHasColor; 
   bool mInset;
 
-  nsCSSShadowItem() : mHasColor(false) {
+  nsCSSShadowItem() : mHasColor(PR_FALSE) {
     MOZ_COUNT_CTOR(nsCSSShadowItem);
   }
   ~nsCSSShadowItem() {
@@ -651,7 +661,7 @@ struct nsCSSShadowItem {
 
 class nsCSSShadowArray {
   public:
-    void* operator new(size_t aBaseSize, uint32_t aArrayLen) {
+    void* operator new(size_t aBaseSize, PRUint32 aArrayLen) {
       
       
       
@@ -661,11 +671,11 @@ class nsCSSShadowArray {
                             (aArrayLen - 1) * sizeof(nsCSSShadowItem));
     }
 
-    nsCSSShadowArray(uint32_t aArrayLen) :
+    nsCSSShadowArray(PRUint32 aArrayLen) :
       mLength(aArrayLen)
     {
       MOZ_COUNT_CTOR(nsCSSShadowArray);
-      for (uint32_t i = 1; i < mLength; ++i) {
+      for (PRUint32 i = 1; i < mLength; ++i) {
         
         
         new (&mArray[i]) nsCSSShadowItem();
@@ -673,33 +683,25 @@ class nsCSSShadowArray {
     }
     ~nsCSSShadowArray() {
       MOZ_COUNT_DTOR(nsCSSShadowArray);
-      for (uint32_t i = 1; i < mLength; ++i) {
+      for (PRUint32 i = 1; i < mLength; ++i) {
         mArray[i].~nsCSSShadowItem();
       }
     }
 
-    uint32_t Length() const { return mLength; }
-    nsCSSShadowItem* ShadowAt(uint32_t i) {
+    PRUint32 Length() const { return mLength; }
+    nsCSSShadowItem* ShadowAt(PRUint32 i) {
       NS_ABORT_IF_FALSE(i < mLength, "Accessing too high an index in the text shadow array!");
       return &mArray[i];
     }
-    const nsCSSShadowItem* ShadowAt(uint32_t i) const {
+    const nsCSSShadowItem* ShadowAt(PRUint32 i) const {
       NS_ABORT_IF_FALSE(i < mLength, "Accessing too high an index in the text shadow array!");
       return &mArray[i];
-    }
-
-    bool HasShadowWithInset(bool aInset) {
-      for (uint32_t i = 0; i < mLength; ++i) {
-        if (mArray[i].mInset == aInset)
-          return true;
-      }
-      return false;
     }
 
     NS_INLINE_DECL_REFCOUNTING(nsCSSShadowArray)
 
   private:
-    uint32_t mLength;
+    PRUint32 mLength;
     nsCSSShadowItem mArray[1]; 
 };
 
@@ -717,7 +719,7 @@ class nsCSSShadowArray {
                 NS_MIN(-(tpp), ((l) - ((tpp) / 2)) / (tpp) * (tpp)))
 
 
-static bool IsVisibleBorderStyle(uint8_t aStyle)
+static bool IsVisibleBorderStyle(PRUint8 aStyle)
 {
   return (aStyle != NS_STYLE_BORDER_STYLE_NONE &&
           aStyle != NS_STYLE_BORDER_STYLE_HIDDEN);
@@ -732,24 +734,35 @@ struct nsStyleBorder {
   void Destroy(nsPresContext* aContext);
 
   nsChangeHint CalcDifference(const nsStyleBorder& aOther) const;
-  static nsChangeHint MaxDifference() {
-    return NS_CombineHint(NS_STYLE_HINT_REFLOW,
-                          nsChangeHint_BorderStyleNoneChange);
-  }
+#ifdef DEBUG
+  static nsChangeHint MaxDifference();
+#endif
+  static bool ForceCompare() { return false; }
+  bool ImageBorderDiffers() const;
+
+  nsStyleCorners mBorderRadius;    
+  nsStyleSides  mBorderImageSplit; 
+  PRUint8       mFloatEdge;       
+  PRUint8       mBorderImageHFill; 
+  PRUint8       mBorderImageVFill; 
+  nsBorderColors** mBorderColors; 
+  nsRefPtr<nsCSSShadowArray> mBoxShadow; 
+  bool          mHaveBorderImageWidth; 
+  nsMargin      mBorderImageWidth; 
 
   void EnsureBorderColors() {
     if (!mBorderColors) {
       mBorderColors = new nsBorderColors*[4];
       if (mBorderColors)
-        for (int32_t i = 0; i < 4; i++)
-          mBorderColors[i] = nullptr;
+        for (PRInt32 i = 0; i < 4; i++)
+          mBorderColors[i] = nsnull;
     }
   }
 
   void ClearBorderColors(mozilla::css::Side aSide) {
     if (mBorderColors && mBorderColors[aSide]) {
       delete mBorderColors[aSide];
-      mBorderColors[aSide] = nullptr;
+      mBorderColors[aSide] = nsnull;
     }
   }
 
@@ -758,7 +771,7 @@ struct nsStyleBorder {
   
   
   
-  bool HasVisibleStyle(mozilla::css::Side aSide) const
+  bool HasVisibleStyle(mozilla::css::Side aSide)
   {
     return IsVisibleBorderStyle(GetBorderStyle(aSide));
   }
@@ -773,6 +786,19 @@ struct nsStyleBorder {
       mComputedBorder.Side(aSide) = roundedWidth;
   }
 
+  void SetBorderImageWidthOverride(mozilla::css::Side aSide, nscoord aBorderWidth)
+  {
+    mBorderImageWidth.Side(aSide) =
+      NS_ROUND_BORDER_TO_PIXELS(aBorderWidth, mTwipsPerPixel);
+  }
+
+  
+  
+  
+  
+  
+  const nsMargin& GetActualBorder() const;
+
   
   
   
@@ -781,27 +807,22 @@ struct nsStyleBorder {
     return mComputedBorder;
   }
 
-  bool HasBorder() const
+  
+  
+  
+  
+  nscoord GetActualBorderWidth(mozilla::css::Side aSide) const
   {
-    return mComputedBorder != nsMargin(0,0,0,0) || mBorderImageSource;
+    return GetActualBorder().Side(aSide);
   }
 
-  
-  
-  
-  
-  nscoord GetComputedBorderWidth(mozilla::css::Side aSide) const
-  {
-    return GetComputedBorder().Side(aSide);
-  }
-
-  uint8_t GetBorderStyle(mozilla::css::Side aSide) const
+  PRUint8 GetBorderStyle(mozilla::css::Side aSide) const
   {
     NS_ASSERTION(aSide <= NS_SIDE_LEFT, "bad side");
     return (mBorderStyle[aSide] & BORDER_STYLE_MASK);
   }
 
-  void SetBorderStyle(mozilla::css::Side aSide, uint8_t aStyle)
+  void SetBorderStyle(mozilla::css::Side aSide, PRUint8 aStyle)
   {
     NS_ASSERTION(aSide <= NS_SIDE_LEFT, "bad side");
     mBorderStyle[aSide] &= ~BORDER_STYLE_MASK;
@@ -817,12 +838,12 @@ struct nsStyleBorder {
   void GetBorderColor(mozilla::css::Side aSide, nscolor& aColor,
                       bool& aForeground) const
   {
-    aForeground = false;
+    aForeground = PR_FALSE;
     NS_ASSERTION(aSide <= NS_SIDE_LEFT, "bad side");
     if ((mBorderStyle[aSide] & BORDER_COLOR_SPECIAL) == 0)
       aColor = mBorderColor[aSide];
     else if (mBorderStyle[aSide] & BORDER_COLOR_FOREGROUND)
-      aForeground = true;
+      aForeground = PR_TRUE;
     else
       NS_NOTREACHED("OUTLINE_COLOR_INITIAL should not be set here");
   }
@@ -838,27 +859,25 @@ struct nsStyleBorder {
   inline void SetBorderImage(imgIRequest* aImage);
   inline imgIRequest* GetBorderImage() const;
 
-  bool HasBorderImage() {return !!mBorderImageSource;}
+  bool HasBorderImage() {return !!mBorderImage;}
 
   void TrackImage(nsPresContext* aContext);
   void UntrackImage(nsPresContext* aContext);
 
-  nsMargin GetImageOutset() const;
-
   
   
-  inline void SetSubImage(uint8_t aIndex, imgIContainer* aSubImage) const;
-  inline imgIContainer* GetSubImage(uint8_t aIndex) const;
+  inline void SetSubImage(PRUint8 aIndex, imgIContainer* aSubImage) const;
+  inline imgIContainer* GetSubImage(PRUint8 aIndex) const;
 
-  void GetCompositeColors(int32_t aIndex, nsBorderColors** aColors) const
+  void GetCompositeColors(PRInt32 aIndex, nsBorderColors** aColors) const
   {
     if (!mBorderColors)
-      *aColors = nullptr;
+      *aColors = nsnull;
     else
       *aColors = mBorderColors[aIndex];
   }
 
-  void AppendBorderColor(int32_t aIndex, nscolor aColor)
+  void AppendBorderColor(PRInt32 aIndex, nscolor aColor)
   {
     NS_ASSERTION(aIndex >= 0 && aIndex <= 3, "bad side for composite border color");
     nsBorderColors* colorEntry = new nsBorderColors(aColor);
@@ -880,29 +899,12 @@ struct nsStyleBorder {
     mBorderStyle[aSide] |= BORDER_COLOR_FOREGROUND;
   }
 
-public:
-  nsBorderColors** mBorderColors;        
-  nsRefPtr<nsCSSShadowArray> mBoxShadow; 
-
 #ifdef DEBUG
   bool mImageTracked;
 #endif
 
 protected:
-  nsCOMPtr<imgIRequest> mBorderImageSource; 
-
-public:
-  nsStyleCorners mBorderRadius;       
-  nsStyleSides   mBorderImageSlice;   
-  nsStyleSides   mBorderImageWidth;   
-  nsStyleSides   mBorderImageOutset;  
-
-  uint8_t        mBorderImageFill;    
-  uint8_t        mBorderImageRepeatH; 
-  uint8_t        mBorderImageRepeatV; 
-  uint8_t        mFloatEdge;          
-
-protected:
+  
   
   
   
@@ -924,16 +926,18 @@ protected:
   
   nsMargin      mBorder;
 
-  uint8_t       mBorderStyle[4];  
+  PRUint8       mBorderStyle[4];  
   nscolor       mBorderColor[4];  
                                   
 private:
+  nsCOMPtr<imgIRequest> mBorderImage; 
+
   
   nsCOMArray<imgIContainer> mSubImages;
 
   nscoord       mTwipsPerPixel;
 
-  nsStyleBorder& operator=(const nsStyleBorder& aOther) MOZ_DELETE;
+  nsStyleBorder& operator=(const nsStyleBorder& aOther); 
 };
 
 
@@ -954,10 +958,10 @@ struct nsStyleOutline {
 
   void RecalcData(nsPresContext* aContext);
   nsChangeHint CalcDifference(const nsStyleOutline& aOther) const;
-  static nsChangeHint MaxDifference() {
-    return NS_CombineHint(nsChangeHint_AllReflowHints,
-                          nsChangeHint_RepaintFrame);
-  }
+#ifdef DEBUG
+  static nsChangeHint MaxDifference();
+#endif
+  static bool ForceCompare() { return false; }
 
   nsStyleCorners  mOutlineRadius; 
 
@@ -970,17 +974,17 @@ struct nsStyleOutline {
   {
     if (mHasCachedOutline) {
       aWidth = mCachedOutlineWidth;
-      return true;
+      return PR_TRUE;
     }
-    return false;
+    return PR_FALSE;
   }
 
-  uint8_t GetOutlineStyle(void) const
+  PRUint8 GetOutlineStyle(void) const
   {
     return (mOutlineStyle & BORDER_STYLE_MASK);
   }
 
-  void SetOutlineStyle(uint8_t aStyle)
+  void SetOutlineStyle(PRUint8 aStyle)
   {
     mOutlineStyle &= ~BORDER_STYLE_MASK;
     mOutlineStyle |= (aStyle & BORDER_STYLE_MASK);
@@ -991,9 +995,9 @@ struct nsStyleOutline {
   {
     if ((mOutlineStyle & BORDER_COLOR_SPECIAL) == 0) {
       aColor = mOutlineColor;
-      return true;
+      return PR_TRUE;
     }
-    return false;
+    return PR_FALSE;
   }
 
   void SetOutlineColor(nscolor aColor)
@@ -1020,7 +1024,7 @@ protected:
   nscolor       mOutlineColor;    
 
   bool          mHasCachedOutline;
-  uint8_t       mOutlineStyle;    
+  PRUint8       mOutlineStyle;    
 
   nscoord       mTwipsPerPixel;
 };
@@ -1040,9 +1044,10 @@ struct nsStyleList {
   }
 
   nsChangeHint CalcDifference(const nsStyleList& aOther) const;
-  static nsChangeHint MaxDifference() {
-    return NS_STYLE_HINT_FRAMECHANGE;
-  }
+#ifdef DEBUG
+  static nsChangeHint MaxDifference();
+#endif
+  static bool ForceCompare() { return false; }
 
   imgIRequest* GetListStyleImage() const { return mListStyleImage; }
   void SetListStyleImage(imgIRequest* aReq)
@@ -1054,11 +1059,11 @@ struct nsStyleList {
       mListStyleImage->LockImage();
   }
 
-  uint8_t   mListStyleType;             
-  uint8_t   mListStylePosition;         
+  PRUint8   mListStyleType;             
+  PRUint8   mListStylePosition;         
 private:
   nsCOMPtr<imgIRequest> mListStyleImage; 
-  nsStyleList& operator=(const nsStyleList& aOther) MOZ_DELETE;
+  nsStyleList& operator=(const nsStyleList& aOther); 
 public:
   nsRect        mImageRegion;           
 };
@@ -1077,11 +1082,10 @@ struct nsStylePosition {
   }
 
   nsChangeHint CalcDifference(const nsStylePosition& aOther) const;
-  static nsChangeHint MaxDifference() {
-    return NS_CombineHint(NS_STYLE_HINT_REFLOW,
-                          nsChangeHint(nsChangeHint_RecomputePosition |
-                                       nsChangeHint_UpdateOverflow));
-  }
+#ifdef DEBUG
+  static nsChangeHint MaxDifference();
+#endif
+  static bool ForceCompare() { return true; }
 
   nsStyleSides  mOffset;                
   nsStyleCoord  mWidth;                 
@@ -1090,35 +1094,11 @@ struct nsStylePosition {
   nsStyleCoord  mHeight;                
   nsStyleCoord  mMinHeight;             
   nsStyleCoord  mMaxHeight;             
-#ifdef MOZ_FLEXBOX
-  nsStyleCoord  mFlexBasis;             
-#endif 
-  uint8_t       mBoxSizing;             
-#ifdef MOZ_FLEXBOX
-  uint8_t       mAlignItems;            
-  uint8_t       mAlignSelf;             
-  uint8_t       mFlexDirection;         
-  uint8_t       mJustifyContent;        
-  int32_t       mOrder;                 
-  float         mFlexGrow;              
-  float         mFlexShrink;            
-#endif 
+  PRUint8       mBoxSizing;             
   nsStyleCoord  mZIndex;                
 
   bool WidthDependsOnContainer() const
-    {
-      return mWidth.GetUnit() == eStyleUnit_Auto ||
-        WidthCoordDependsOnContainer(mWidth);
-    }
-
-  
-  
-  
-  
-  
-  
-  
-  
+    { return WidthCoordDependsOnContainer(mWidth); }
   bool MinWidthDependsOnContainer() const
     { return WidthCoordDependsOnContainer(mMinWidth); }
   bool MaxWidthDependsOnContainer() const
@@ -1131,13 +1111,7 @@ struct nsStylePosition {
   
   
   bool HeightDependsOnContainer() const
-    {
-      return mHeight.GetUnit() == eStyleUnit_Auto || 
-        HeightCoordDependsOnContainer(mHeight);
-    }
-
-  
-  
+    { return HeightCoordDependsOnContainer(mHeight); }
   bool MinHeightDependsOnContainer() const
     { return HeightCoordDependsOnContainer(mMinHeight); }
   bool MaxHeightDependsOnContainer() const
@@ -1151,7 +1125,10 @@ struct nsStylePosition {
 private:
   static bool WidthCoordDependsOnContainer(const nsStyleCoord &aCoord);
   static bool HeightCoordDependsOnContainer(const nsStyleCoord &aCoord)
-    { return aCoord.HasPercent(); }
+  {
+    return aCoord.GetUnit() == eStyleUnit_Auto || 
+           aCoord.HasPercent();
+  }
 };
 
 struct nsStyleTextOverflowSide {
@@ -1167,11 +1144,10 @@ struct nsStyleTextOverflowSide {
   }
 
   nsString mString;
-  uint8_t  mType;
+  PRUint8  mType;
 };
 
 struct nsStyleTextOverflow {
-  nsStyleTextOverflow() : mLogicalDirections(true) {}
   bool operator==(const nsStyleTextOverflow& aOther) const {
     return mLeft == aOther.mLeft && mRight == aOther.mRight;
   }
@@ -1179,35 +1155,8 @@ struct nsStyleTextOverflow {
     return !(*this == aOther);
   }
 
-  
-  const nsStyleTextOverflowSide& GetLeft(uint8_t aDirection) const {
-    NS_ASSERTION(aDirection == NS_STYLE_DIRECTION_LTR ||
-                 aDirection == NS_STYLE_DIRECTION_RTL, "bad direction");
-    return !mLogicalDirections || aDirection == NS_STYLE_DIRECTION_LTR ?
-             mLeft : mRight;
-  }
-
-  
-  const nsStyleTextOverflowSide& GetRight(uint8_t aDirection) const {
-    NS_ASSERTION(aDirection == NS_STYLE_DIRECTION_LTR ||
-                 aDirection == NS_STYLE_DIRECTION_RTL, "bad direction");
-    return !mLogicalDirections || aDirection == NS_STYLE_DIRECTION_LTR ?
-             mRight : mLeft;
-  }
-
-  
-  const nsStyleTextOverflowSide* GetFirstValue() const {
-    return mLogicalDirections ? &mRight : &mLeft;
-  }
-
-  
-  const nsStyleTextOverflowSide* GetSecondValue() const {
-    return mLogicalDirections ? nullptr : &mRight;
-  }
-
-  nsStyleTextOverflowSide mLeft;  
-  nsStyleTextOverflowSide mRight; 
-  bool mLogicalDirections;  
+  nsStyleTextOverflowSide mLeft;
+  nsStyleTextOverflowSide mRight;
 };
 
 struct nsStyleTextReset {
@@ -1223,12 +1172,12 @@ struct nsStyleTextReset {
     aContext->FreeToShell(sizeof(nsStyleTextReset), this);
   }
 
-  uint8_t GetDecorationStyle() const
+  PRUint8 GetDecorationStyle() const
   {
     return (mTextDecorationStyle & BORDER_STYLE_MASK);
   }
 
-  void SetDecorationStyle(uint8_t aStyle)
+  void SetDecorationStyle(PRUint8 aStyle)
   {
     NS_ABORT_IF_FALSE((aStyle & BORDER_STYLE_MASK) == aStyle,
                       "style doesn't fit");
@@ -1238,11 +1187,11 @@ struct nsStyleTextReset {
 
   void GetDecorationColor(nscolor& aColor, bool& aForeground) const
   {
-    aForeground = false;
+    aForeground = PR_FALSE;
     if ((mTextDecorationStyle & BORDER_COLOR_SPECIAL) == 0) {
       aColor = mTextDecorationColor;
     } else if (mTextDecorationStyle & BORDER_COLOR_FOREGROUND) {
-      aForeground = true;
+      aForeground = PR_TRUE;
     } else {
       NS_NOTREACHED("OUTLINE_COLOR_INITIAL should not be set here");
     }
@@ -1261,18 +1210,19 @@ struct nsStyleTextReset {
   }
 
   nsChangeHint CalcDifference(const nsStyleTextReset& aOther) const;
-  static nsChangeHint MaxDifference() {
-    return NS_STYLE_HINT_REFLOW;
-  }
+#ifdef DEBUG
+  static nsChangeHint MaxDifference();
+#endif
+  static bool ForceCompare() { return false; }
 
   nsStyleCoord  mVerticalAlign;         
   nsStyleTextOverflow mTextOverflow;    
 
-  uint8_t mTextBlink;                   
-  uint8_t mTextDecorationLine;          
-  uint8_t mUnicodeBidi;                 
+  PRUint8 mTextBlink;                   
+  PRUint8 mTextDecorationLine;          
+  PRUint8 mUnicodeBidi;                 
 protected:
-  uint8_t mTextDecorationStyle;         
+  PRUint8 mTextDecorationStyle;         
 
   nscolor mTextDecorationColor;         
 };
@@ -1291,48 +1241,34 @@ struct nsStyleText {
   }
 
   nsChangeHint CalcDifference(const nsStyleText& aOther) const;
-  static nsChangeHint MaxDifference() {
-    return NS_STYLE_HINT_FRAMECHANGE;
-  }
+#ifdef DEBUG
+  static nsChangeHint MaxDifference();
+#endif
+  static bool ForceCompare() { return false; }
 
-  uint8_t mTextAlign;                   
-  uint8_t mTextAlignLast;               
-  uint8_t mTextTransform;               
-  uint8_t mWhiteSpace;                  
-  uint8_t mWordBreak;                   
-  uint8_t mWordWrap;                    
-  uint8_t mHyphens;                     
-  uint8_t mTextSizeAdjust;              
-  int32_t mTabSize;                     
+  PRUint8 mTextAlign;                   
+  PRUint8 mTextTransform;               
+  PRUint8 mWhiteSpace;                  
+  PRUint8 mWordWrap;                    
+  PRUint8 mHyphens;                     
+  PRInt32 mTabSize;                     
 
-  nscoord mWordSpacing;                 
   nsStyleCoord  mLetterSpacing;         
   nsStyleCoord  mLineHeight;            
   nsStyleCoord  mTextIndent;            
+  nscoord mWordSpacing;                 
 
   nsRefPtr<nsCSSShadowArray> mTextShadow; 
 
   bool WhiteSpaceIsSignificant() const {
     return mWhiteSpace == NS_STYLE_WHITESPACE_PRE ||
-           mWhiteSpace == NS_STYLE_WHITESPACE_PRE_WRAP ||
-           mWhiteSpace == NS_STYLE_WHITESPACE_PRE_DISCARD_NEWLINES;
+           mWhiteSpace == NS_STYLE_WHITESPACE_PRE_WRAP;
   }
 
   bool NewlineIsSignificant() const {
     return mWhiteSpace == NS_STYLE_WHITESPACE_PRE ||
            mWhiteSpace == NS_STYLE_WHITESPACE_PRE_WRAP ||
            mWhiteSpace == NS_STYLE_WHITESPACE_PRE_LINE;
-  }
-
-  bool NewlineIsDiscarded() const {
-    return mWhiteSpace == NS_STYLE_WHITESPACE_PRE_DISCARD_NEWLINES;
-  }
-
-  bool WhiteSpaceOrNewlineIsSignificant() const {
-    return mWhiteSpace == NS_STYLE_WHITESPACE_PRE ||
-           mWhiteSpace == NS_STYLE_WHITESPACE_PRE_WRAP ||
-           mWhiteSpace == NS_STYLE_WHITESPACE_PRE_LINE ||
-           mWhiteSpace == NS_STYLE_WHITESPACE_PRE_DISCARD_NEWLINES;
   }
 
   bool WhiteSpaceCanWrap() const {
@@ -1344,10 +1280,6 @@ struct nsStyleText {
   bool WordCanWrap() const {
     return WhiteSpaceCanWrap() && mWordWrap == NS_STYLE_WORDWRAP_BREAK_WORD;
   }
-
-  
-  inline bool HasTextShadow(const nsIFrame* aFrame) const;
-  inline nsCSSShadowArray* GetTextShadow(const nsIFrame* aFrame) const;
 };
 
 struct nsStyleVisibility {
@@ -1366,13 +1298,15 @@ struct nsStyleVisibility {
   }
 
   nsChangeHint CalcDifference(const nsStyleVisibility& aOther) const;
-  static nsChangeHint MaxDifference() {
-    return NS_STYLE_HINT_FRAMECHANGE;
-  }
+#ifdef DEBUG
+  static nsChangeHint MaxDifference();
+#endif
+  static bool ForceCompare() { return false; }
 
-  uint8_t mDirection;                  
-  uint8_t   mVisible;                  
-  uint8_t mPointerEvents;              
+  PRUint8 mDirection;                  
+  PRUint8   mVisible;                  
+  nsCOMPtr<nsIAtom> mLanguage;         
+  PRUint8 mPointerEvents;              
 
   bool IsVisible() const {
     return (mVisible == NS_STYLE_VISIBILITY_VISIBLE);
@@ -1387,7 +1321,7 @@ struct nsStyleVisibility {
 struct nsTimingFunction {
   enum Type { Function, StepStart, StepEnd };
 
-  explicit nsTimingFunction(int32_t aTimingFunctionType
+  explicit nsTimingFunction(PRInt32 aTimingFunctionType
                               = NS_STYLE_TRANSITION_TIMING_FUNCTION_EASE)
   {
     AssignFromKeyword(aTimingFunctionType);
@@ -1402,7 +1336,7 @@ struct nsTimingFunction {
     mFunc.mY2 = y2;
   }
 
-  nsTimingFunction(Type aType, uint32_t aSteps)
+  nsTimingFunction(Type aType, PRUint32 aSteps)
     : mType(aType)
   {
     NS_ABORT_IF_FALSE(mType == StepStart || mType == StepEnd, "wrong type");
@@ -1422,7 +1356,7 @@ struct nsTimingFunction {
       float mX2;
       float mY2;
     } mFunc;
-    uint32_t mSteps;
+    PRUint32 mSteps;
   };
 
   nsTimingFunction&
@@ -1463,7 +1397,7 @@ struct nsTimingFunction {
   }
 
 private:
-  void AssignFromKeyword(int32_t aTimingFunctionType);
+  void AssignFromKeyword(PRInt32 aTimingFunctionType);
 };
 
 struct nsTransition {
@@ -1519,9 +1453,9 @@ struct nsAnimation {
   float GetDelay() const { return mDelay; }
   float GetDuration() const { return mDuration; }
   const nsString& GetName() const { return mName; }
-  uint8_t GetDirection() const { return mDirection; }
-  uint8_t GetFillMode() const { return mFillMode; }
-  uint8_t GetPlayState() const { return mPlayState; }
+  PRUint8 GetDirection() const { return mDirection; }
+  PRUint8 GetFillMode() const { return mFillMode; }
+  PRUint8 GetPlayState() const { return mPlayState; }
   float GetIterationCount() const { return mIterationCount; }
 
   void SetTimingFunction(const nsTimingFunction& aTimingFunction)
@@ -1529,9 +1463,9 @@ struct nsAnimation {
   void SetDelay(float aDelay) { mDelay = aDelay; }
   void SetDuration(float aDuration) { mDuration = aDuration; }
   void SetName(const nsSubstring& aName) { mName = aName; }
-  void SetDirection(uint8_t aDirection) { mDirection = aDirection; }
-  void SetFillMode(uint8_t aFillMode) { mFillMode = aFillMode; }
-  void SetPlayState(uint8_t aPlayState) { mPlayState = aPlayState; }
+  void SetDirection(PRUint8 aDirection) { mDirection = aDirection; }
+  void SetFillMode(PRUint8 aFillMode) { mFillMode = aFillMode; }
+  void SetPlayState(PRUint8 aPlayState) { mPlayState = aPlayState; }
   void SetIterationCount(float aIterationCount)
     { mIterationCount = aIterationCount; }
 
@@ -1542,9 +1476,9 @@ private:
   float mDuration;
   float mDelay;
   nsString mName; 
-  uint8_t mDirection;
-  uint8_t mFillMode;
-  uint8_t mPlayState;
+  PRUint8 mDirection;
+  PRUint8 mFillMode;
+  PRUint8 mPlayState;
   float mIterationCount; 
 };
 
@@ -1564,53 +1498,45 @@ struct nsStyleDisplay {
   }
 
   nsChangeHint CalcDifference(const nsStyleDisplay& aOther) const;
-  static nsChangeHint MaxDifference() {
-    
-    return nsChangeHint(NS_STYLE_HINT_FRAMECHANGE |
-                        nsChangeHint_UpdateOpacityLayer |
-                        nsChangeHint_UpdateTransformLayer |
-                        nsChangeHint_UpdateOverflow |
-                        nsChangeHint_AddOrRemoveTransform);
-  }
+#ifdef DEBUG
+  static nsChangeHint MaxDifference();
+#endif
+  static bool ForceCompare() { return true; }
 
   
   
-  nsRefPtr<mozilla::css::URLValue> mBinding;    
-  nsRect  mClip;                
+  nsRefPtr<nsCSSValue::URL> mBinding;    
+  nsRect    mClip;              
   float   mOpacity;             
-  uint8_t mDisplay;             
-  uint8_t mOriginalDisplay;     
-                                
-                                
-  uint8_t mAppearance;          
-  uint8_t mPosition;            
-  uint8_t mFloats;              
-  uint8_t mOriginalFloats;      
-                                
-  uint8_t mBreakType;           
+  PRUint8 mDisplay;             
+  PRUint8 mOriginalDisplay;     
+  PRUint8 mAppearance;          
+  PRUint8 mPosition;            
+  PRUint8 mFloats;              
+  PRUint8 mBreakType;           
   bool mBreakBefore;    
   bool mBreakAfter;     
-  uint8_t mOverflowX;           
-  uint8_t mOverflowY;           
-  uint8_t mResize;              
-  uint8_t mClipFlags;           
-  uint8_t mOrient;              
+  PRUint8 mOverflowX;           
+  PRUint8 mOverflowY;           
+  PRUint8 mResize;              
+  PRUint8   mClipFlags;         
+  PRUint8 mOrient;              
 
   
   
   
   
-  uint8_t mBackfaceVisibility;
-  uint8_t mTransformStyle;
   const nsCSSValueList *mSpecifiedTransform; 
   nsStyleCoord mTransformOrigin[3]; 
   nsStyleCoord mChildPerspective; 
   nsStyleCoord mPerspectiveOrigin[2]; 
+  PRUint8 mBackfaceVisibility;
+  PRUint8 mTransformStyle;
 
   nsAutoTArray<nsTransition, 1> mTransitions; 
   
   
-  uint32_t mTransitionTimingFunctionCount,
+  PRUint32 mTransitionTimingFunctionCount,
            mTransitionDurationCount,
            mTransitionDelayCount,
            mTransitionPropertyCount;
@@ -1618,7 +1544,7 @@ struct nsStyleDisplay {
   nsAutoTArray<nsAnimation, 1> mAnimations; 
   
   
-  uint32_t mAnimationTimingFunctionCount,
+  PRUint32 mAnimationTimingFunctionCount,
            mAnimationDurationCount,
            mAnimationDelayCount,
            mAnimationNameCount,
@@ -1627,7 +1553,7 @@ struct nsStyleDisplay {
            mAnimationPlayStateCount,
            mAnimationIterationCountCount;
 
-  bool IsBlockInsideStyle() const {
+  bool IsBlockInside() const {
     return NS_STYLE_DISPLAY_BLOCK == mDisplay ||
            NS_STYLE_DISPLAY_LIST_ITEM == mDisplay ||
            NS_STYLE_DISPLAY_INLINE_BLOCK == mDisplay;
@@ -1636,53 +1562,40 @@ struct nsStyleDisplay {
     
   }
 
-  bool IsBlockOutsideStyle() const {
+  bool IsBlockOutside() const {
     return NS_STYLE_DISPLAY_BLOCK == mDisplay ||
-#ifdef MOZ_FLEXBOX
-           NS_STYLE_DISPLAY_FLEX == mDisplay ||
-#endif 
            NS_STYLE_DISPLAY_LIST_ITEM == mDisplay ||
            NS_STYLE_DISPLAY_TABLE == mDisplay;
   }
 
-  static bool IsDisplayTypeInlineOutside(uint8_t aDisplay) {
+  static bool IsDisplayTypeInlineOutside(PRUint8 aDisplay) {
     return NS_STYLE_DISPLAY_INLINE == aDisplay ||
            NS_STYLE_DISPLAY_INLINE_BLOCK == aDisplay ||
            NS_STYLE_DISPLAY_INLINE_TABLE == aDisplay ||
            NS_STYLE_DISPLAY_INLINE_BOX == aDisplay ||
-#ifdef MOZ_FLEXBOX
-           NS_STYLE_DISPLAY_INLINE_FLEX == aDisplay ||
-#endif 
            NS_STYLE_DISPLAY_INLINE_GRID == aDisplay ||
            NS_STYLE_DISPLAY_INLINE_STACK == aDisplay;
   }
 
-  bool IsInlineOutsideStyle() const {
+  bool IsInlineOutside() const {
     return IsDisplayTypeInlineOutside(mDisplay);
   }
 
-  bool IsOriginalDisplayInlineOutsideStyle() const {
+  bool IsOriginalDisplayInlineOutside() const {
     return IsDisplayTypeInlineOutside(mOriginalDisplay);
   }
 
-  bool IsFloatingStyle() const {
+  bool IsFloating() const {
     return NS_STYLE_FLOAT_NONE != mFloats;
   }
 
-  bool IsAbsolutelyPositionedStyle() const {
-    return NS_STYLE_POSITION_ABSOLUTE == mPosition ||
-           NS_STYLE_POSITION_FIXED == mPosition;
-  }
+  bool IsAbsolutelyPositioned() const {return (NS_STYLE_POSITION_ABSOLUTE == mPosition) ||
+                                                (NS_STYLE_POSITION_FIXED == mPosition);}
 
   
-  bool IsPositionedStyle() const {
-    return IsAbsolutelyPositionedStyle() ||
-           IsRelativelyPositionedStyle() ||
-           HasTransform();
-  }
-
-  bool IsRelativelyPositionedStyle() const {
-    return mPosition == NS_STYLE_POSITION_RELATIVE;
+  bool IsPositioned() const {
+    return IsAbsolutelyPositioned() ||
+      NS_STYLE_POSITION_RELATIVE == mPosition || HasTransform();
   }
 
   bool IsScrollableOverflow() const {
@@ -1693,22 +1606,17 @@ struct nsStyleDisplay {
   }
 
   
-  bool HasTransform() const {
-    return mSpecifiedTransform != nullptr || 
-           mTransformStyle == NS_STYLE_TRANSFORM_STYLE_PRESERVE_3D ||
-           mBackfaceVisibility == NS_STYLE_BACKFACE_VISIBILITY_HIDDEN;
+  
+  bool IsTableClip() const {
+    return mOverflowX == NS_STYLE_OVERFLOW_CLIP ||
+           (mOverflowX == NS_STYLE_OVERFLOW_HIDDEN &&
+            mOverflowY == NS_STYLE_OVERFLOW_HIDDEN);
   }
 
   
-  inline bool IsBlockInside(const nsIFrame* aFrame) const;
-  inline bool IsBlockOutside(const nsIFrame* aFrame) const;
-  inline bool IsInlineOutside(const nsIFrame* aFrame) const;
-  inline bool IsOriginalDisplayInlineOutside(const nsIFrame* aFrame) const;
-  inline uint8_t GetDisplay(const nsIFrame* aFrame) const;
-  inline bool IsFloating(const nsIFrame* aFrame) const;
-  inline bool IsPositioned(const nsIFrame* aFrame) const;
-  inline bool IsRelativelyPositioned(const nsIFrame* aFrame) const;
-  inline bool IsAbsolutelyPositioned(const nsIFrame* aFrame) const;
+  bool HasTransform() const {
+    return mSpecifiedTransform != nsnull || mTransformStyle == NS_STYLE_TRANSFORM_STYLE_PRESERVE_3D;
+  }
 };
 
 struct nsStyleTable {
@@ -1725,15 +1633,16 @@ struct nsStyleTable {
   }
 
   nsChangeHint CalcDifference(const nsStyleTable& aOther) const;
-  static nsChangeHint MaxDifference() {
-    return NS_STYLE_HINT_FRAMECHANGE;
-  }
+#ifdef DEBUG
+  static nsChangeHint MaxDifference();
+#endif
+  static bool ForceCompare() { return false; }
 
-  uint8_t       mLayoutStrategy;
-  uint8_t       mFrame;         
-  uint8_t       mRules;         
-  int32_t       mCols;          
-  int32_t       mSpan;          
+  PRUint8       mLayoutStrategy;
+  PRUint8       mFrame;         
+  PRUint8       mRules;         
+  PRInt32       mCols;          
+  PRInt32       mSpan;          
 };
 
 struct nsStyleTableBorder {
@@ -1750,15 +1659,16 @@ struct nsStyleTableBorder {
   }
 
   nsChangeHint CalcDifference(const nsStyleTableBorder& aOther) const;
-  static nsChangeHint MaxDifference() {
-    return NS_STYLE_HINT_FRAMECHANGE;
-  }
+#ifdef DEBUG
+  static nsChangeHint MaxDifference();
+#endif
+  static bool ForceCompare() { return false; }
 
   nscoord       mBorderSpacingX;
   nscoord       mBorderSpacingY;
-  uint8_t       mBorderCollapse;
-  uint8_t       mCaptionSide;   
-  uint8_t       mEmptyCells;    
+  PRUint8       mBorderCollapse;
+  PRUint8       mCaptionSide;   
+  PRUint8       mEmptyCells;    
 };
 
 enum nsStyleContentType {
@@ -1790,7 +1700,7 @@ struct nsStyleContentData {
 #ifdef DEBUG
     , mImageTracked(false)
 #endif
-  { mContent.mString = nullptr; }
+  { mContent.mString = nsnull; }
 
   ~nsStyleContentData();
   nsStyleContentData& operator=(const nsStyleContentData& aOther);
@@ -1816,11 +1726,11 @@ private:
 
 struct nsStyleCounterData {
   nsString  mCounter;
-  int32_t   mValue;
+  PRInt32   mValue;
 };
 
 
-#define DELETE_ARRAY_IF(array)  if (array) { delete[] array; array = nullptr; }
+#define DELETE_ARRAY_IF(array)  if (array) { delete[] array; array = nsnull; }
 
 struct nsStyleQuotes {
   nsStyleQuotes();
@@ -1839,23 +1749,24 @@ struct nsStyleQuotes {
   void CopyFrom(const nsStyleQuotes& aSource);
 
   nsChangeHint CalcDifference(const nsStyleQuotes& aOther) const;
-  static nsChangeHint MaxDifference() {
-    return NS_STYLE_HINT_FRAMECHANGE;
-  }
+#ifdef DEBUG
+  static nsChangeHint MaxDifference();
+#endif
+  static bool ForceCompare() { return false; }
 
-  uint32_t  QuotesCount(void) const { return mQuotesCount; } 
+  PRUint32  QuotesCount(void) const { return mQuotesCount; } 
 
-  const nsString* OpenQuoteAt(uint32_t aIndex) const
+  const nsString* OpenQuoteAt(PRUint32 aIndex) const
   {
     NS_ASSERTION(aIndex < mQuotesCount, "out of range");
     return mQuotes + (aIndex * 2);
   }
-  const nsString* CloseQuoteAt(uint32_t aIndex) const
+  const nsString* CloseQuoteAt(PRUint32 aIndex) const
   {
     NS_ASSERTION(aIndex < mQuotesCount, "out of range");
     return mQuotes + (aIndex * 2 + 1);
   }
-  nsresult  GetQuotesAt(uint32_t aIndex, nsString& aOpen, nsString& aClose) const {
+  nsresult  GetQuotesAt(PRUint32 aIndex, nsString& aOpen, nsString& aClose) const {
     if (aIndex < mQuotesCount) {
       aIndex *= 2;
       aOpen = mQuotes[aIndex];
@@ -1865,7 +1776,7 @@ struct nsStyleQuotes {
     return NS_ERROR_ILLEGAL_VALUE;
   }
 
-  nsresult  AllocateQuotes(uint32_t aCount) {
+  nsresult  AllocateQuotes(PRUint32 aCount) {
     if (aCount != mQuotesCount) {
       DELETE_ARRAY_IF(mQuotes);
       if (aCount) {
@@ -1880,7 +1791,7 @@ struct nsStyleQuotes {
     return NS_OK;
   }
 
-  nsresult  SetQuotesAt(uint32_t aIndex, const nsString& aOpen, const nsString& aClose) {
+  nsresult  SetQuotesAt(PRUint32 aIndex, const nsString& aOpen, const nsString& aClose) {
     if (aIndex < mQuotesCount) {
       aIndex *= 2;
       mQuotes[aIndex] = aOpen;
@@ -1891,7 +1802,7 @@ struct nsStyleQuotes {
   }
 
 protected:
-  uint32_t            mQuotesCount;
+  PRUint32            mQuotesCount;
   nsString*           mQuotes;
 };
 
@@ -1906,31 +1817,32 @@ struct nsStyleContent {
   void Destroy(nsPresContext* aContext);
 
   nsChangeHint CalcDifference(const nsStyleContent& aOther) const;
-  static nsChangeHint MaxDifference() {
-    return NS_STYLE_HINT_FRAMECHANGE;
-  }
+#ifdef DEBUG
+  static nsChangeHint MaxDifference();
+#endif
+  static bool ForceCompare() { return false; }
 
-  uint32_t  ContentCount(void) const  { return mContentCount; } 
+  PRUint32  ContentCount(void) const  { return mContentCount; } 
 
-  const nsStyleContentData& ContentAt(uint32_t aIndex) const {
+  const nsStyleContentData& ContentAt(PRUint32 aIndex) const {
     NS_ASSERTION(aIndex < mContentCount, "out of range");
     return mContents[aIndex];
   }
 
-  nsStyleContentData& ContentAt(uint32_t aIndex) {
+  nsStyleContentData& ContentAt(PRUint32 aIndex) {
     NS_ASSERTION(aIndex < mContentCount, "out of range");
     return mContents[aIndex];
   }
 
-  nsresult AllocateContents(uint32_t aCount);
+  nsresult AllocateContents(PRUint32 aCount);
 
-  uint32_t  CounterIncrementCount(void) const { return mIncrementCount; }  
-  const nsStyleCounterData* GetCounterIncrementAt(uint32_t aIndex) const {
+  PRUint32  CounterIncrementCount(void) const { return mIncrementCount; }  
+  const nsStyleCounterData* GetCounterIncrementAt(PRUint32 aIndex) const {
     NS_ASSERTION(aIndex < mIncrementCount, "out of range");
     return &mIncrements[aIndex];
   }
 
-  nsresult  AllocateCounterIncrements(uint32_t aCount) {
+  nsresult  AllocateCounterIncrements(PRUint32 aCount) {
     if (aCount != mIncrementCount) {
       DELETE_ARRAY_IF(mIncrements);
       if (aCount) {
@@ -1945,7 +1857,7 @@ struct nsStyleContent {
     return NS_OK;
   }
 
-  nsresult  SetCounterIncrementAt(uint32_t aIndex, const nsString& aCounter, int32_t aIncrement) {
+  nsresult  SetCounterIncrementAt(PRUint32 aIndex, const nsString& aCounter, PRInt32 aIncrement) {
     if (aIndex < mIncrementCount) {
       mIncrements[aIndex].mCounter = aCounter;
       mIncrements[aIndex].mValue = aIncrement;
@@ -1954,13 +1866,13 @@ struct nsStyleContent {
     return NS_ERROR_ILLEGAL_VALUE;
   }
 
-  uint32_t  CounterResetCount(void) const { return mResetCount; }  
-  const nsStyleCounterData* GetCounterResetAt(uint32_t aIndex) const {
+  PRUint32  CounterResetCount(void) const { return mResetCount; }  
+  const nsStyleCounterData* GetCounterResetAt(PRUint32 aIndex) const {
     NS_ASSERTION(aIndex < mResetCount, "out of range");
     return &mResets[aIndex];
   }
 
-  nsresult  AllocateCounterResets(uint32_t aCount) {
+  nsresult  AllocateCounterResets(PRUint32 aCount) {
     if (aCount != mResetCount) {
       DELETE_ARRAY_IF(mResets);
       if (aCount) {
@@ -1975,7 +1887,7 @@ struct nsStyleContent {
     return NS_OK;
   }
 
-  nsresult  SetCounterResetAt(uint32_t aIndex, const nsString& aCounter, int32_t aValue) {
+  nsresult  SetCounterResetAt(PRUint32 aIndex, const nsString& aCounter, PRInt32 aValue) {
     if (aIndex < mResetCount) {
       mResets[aIndex].mCounter = aCounter;
       mResets[aIndex].mValue = aValue;
@@ -1991,9 +1903,9 @@ protected:
   nsStyleCounterData* mIncrements;
   nsStyleCounterData* mResets;
 
-  uint32_t            mContentCount;
-  uint32_t            mIncrementCount;
-  uint32_t            mResetCount;
+  PRUint32            mContentCount;
+  PRUint32            mIncrementCount;
+  PRUint32            mResetCount;
 };
 
 struct nsStyleUIReset {
@@ -2010,14 +1922,15 @@ struct nsStyleUIReset {
   }
 
   nsChangeHint CalcDifference(const nsStyleUIReset& aOther) const;
-  static nsChangeHint MaxDifference() {
-    return NS_STYLE_HINT_FRAMECHANGE;
-  }
+#ifdef DEBUG
+  static nsChangeHint MaxDifference();
+#endif
+  static bool ForceCompare() { return false; }
 
-  uint8_t   mUserSelect;      
-  uint8_t   mForceBrokenImageIcon; 
-  uint8_t   mIMEMode;         
-  uint8_t   mWindowShadow;    
+  PRUint8   mUserSelect;      
+  PRUint8   mForceBrokenImageIcon; 
+  PRUint8   mIMEMode;         
+  PRUint8   mWindowShadow;    
 };
 
 struct nsCursorImage {
@@ -2063,17 +1976,18 @@ struct nsStyleUserInterface {
   }
 
   nsChangeHint CalcDifference(const nsStyleUserInterface& aOther) const;
-  static nsChangeHint MaxDifference() {
-    return nsChangeHint(nsChangeHint_UpdateCursor | NS_STYLE_HINT_FRAMECHANGE);
-  }
+#ifdef DEBUG
+  static nsChangeHint MaxDifference();
+#endif
+  static bool ForceCompare() { return false; }
 
-  uint8_t   mUserInput;       
-  uint8_t   mUserModify;      
-  uint8_t   mUserFocus;       
+  PRUint8   mUserInput;       
+  PRUint8   mUserModify;      
+  PRUint8   mUserFocus;       
 
-  uint8_t   mCursor;          
+  PRUint8   mCursor;          
 
-  uint32_t mCursorArrayLength;
+  PRUint32 mCursorArrayLength;
   nsCursorImage *mCursorArray;
                               
                               
@@ -2098,16 +2012,17 @@ struct nsStyleXUL {
   }
 
   nsChangeHint CalcDifference(const nsStyleXUL& aOther) const;
-  static nsChangeHint MaxDifference() {
-    return NS_STYLE_HINT_FRAMECHANGE;
-  }
+#ifdef DEBUG
+  static nsChangeHint MaxDifference();
+#endif
+  static bool ForceCompare() { return false; }
 
   float         mBoxFlex;               
-  uint32_t      mBoxOrdinal;            
-  uint8_t       mBoxAlign;              
-  uint8_t       mBoxDirection;          
-  uint8_t       mBoxOrient;             
-  uint8_t       mBoxPack;               
+  PRUint32      mBoxOrdinal;            
+  PRUint8       mBoxAlign;              
+  PRUint8       mBoxDirection;          
+  PRUint8       mBoxOrient;             
+  PRUint8       mBoxPack;               
   bool          mStretchStack;          
 };
 
@@ -2125,18 +2040,17 @@ struct nsStyleColumn {
   }
 
   nsChangeHint CalcDifference(const nsStyleColumn& aOther) const;
-  static nsChangeHint MaxDifference() {
-    return NS_STYLE_HINT_FRAMECHANGE;
-  }
+#ifdef DEBUG
+  static nsChangeHint MaxDifference();
+#endif
+  static bool ForceCompare() { return false; }
 
-  uint32_t     mColumnCount; 
+  PRUint32     mColumnCount; 
   nsStyleCoord mColumnWidth; 
   nsStyleCoord mColumnGap;   
 
   nscolor      mColumnRuleColor;  
-  uint8_t      mColumnRuleStyle;  
-  uint8_t      mColumnFill;  
-
+  PRUint8      mColumnRuleStyle;  
   
   
   bool mColumnRuleColorIsForeground;
@@ -2157,15 +2071,7 @@ protected:
 enum nsStyleSVGPaintType {
   eStyleSVGPaintType_None = 1,
   eStyleSVGPaintType_Color,
-  eStyleSVGPaintType_Server,
-  eStyleSVGPaintType_ObjectFill,
-  eStyleSVGPaintType_ObjectStroke
-};
-
-enum nsStyleSVGOpacitySource {
-  eStyleSVGOpacitySource_Normal,
-  eStyleSVGOpacitySource_ObjectFillOpacity,
-  eStyleSVGOpacitySource_ObjectStrokeOpacity
+  eStyleSVGPaintType_Server
 };
 
 struct nsStyleSVGPaint
@@ -2177,7 +2083,7 @@ struct nsStyleSVGPaint
   nsStyleSVGPaintType mType;
   nscolor mFallbackColor;
 
-  nsStyleSVGPaint() : mType(nsStyleSVGPaintType(0)) { mPaint.mPaintServer = nullptr; }
+  nsStyleSVGPaint() : mType(nsStyleSVGPaintType(0)) { mPaint.mPaintServer = nsnull; }
   ~nsStyleSVGPaint();
   void SetType(nsStyleSVGPaintType aType);
   nsStyleSVGPaint& operator=(const nsStyleSVGPaint& aOther);
@@ -2202,11 +2108,10 @@ struct nsStyleSVG {
   }
 
   nsChangeHint CalcDifference(const nsStyleSVG& aOther) const;
-  static nsChangeHint MaxDifference() {
-    return NS_CombineHint(NS_CombineHint(nsChangeHint_UpdateEffects,
-                                         nsChangeHint_AllReflowHints),
-                                         nsChangeHint_RepaintFrame);
-  }
+#ifdef DEBUG
+  static nsChangeHint MaxDifference();
+#endif
+  static bool ForceCompare() { return false; }
 
   nsStyleSVGPaint  mFill;             
   nsStyleSVGPaint  mStroke;           
@@ -2222,27 +2127,17 @@ struct nsStyleSVG {
   float            mStrokeMiterlimit; 
   float            mStrokeOpacity;    
 
-  uint32_t         mStrokeDasharrayLength;
-  uint8_t          mClipRule;         
-  uint8_t          mColorInterpolation; 
-  uint8_t          mColorInterpolationFilters; 
-  uint8_t          mFillRule;         
-  uint8_t          mImageRendering;   
-  uint8_t          mShapeRendering;   
-  uint8_t          mStrokeLinecap;    
-  uint8_t          mStrokeLinejoin;   
-  uint8_t          mTextAnchor;       
-  uint8_t          mTextRendering;    
-
-  
-  
-  nsStyleSVGOpacitySource mFillOpacitySource    : 2;
-  nsStyleSVGOpacitySource mStrokeOpacitySource  : 2;
-
-  
-  bool mStrokeDasharrayFromObject   : 1;
-  bool mStrokeDashoffsetFromObject  : 1;
-  bool mStrokeWidthFromObject       : 1;
+  PRUint32         mStrokeDasharrayLength;
+  PRUint8          mClipRule;         
+  PRUint8          mColorInterpolation; 
+  PRUint8          mColorInterpolationFilters; 
+  PRUint8          mFillRule;         
+  PRUint8          mImageRendering;   
+  PRUint8          mShapeRendering;   
+  PRUint8          mStrokeLinecap;    
+  PRUint8          mStrokeLinejoin;   
+  PRUint8          mTextAnchor;       
+  PRUint8          mTextRendering;    
 };
 
 struct nsStyleSVGReset {
@@ -2259,11 +2154,10 @@ struct nsStyleSVGReset {
   }
 
   nsChangeHint CalcDifference(const nsStyleSVGReset& aOther) const;
-  static nsChangeHint MaxDifference() {
-    return NS_CombineHint(NS_CombineHint(nsChangeHint_UpdateEffects,
-                                         nsChangeHint_AllReflowHints),
-                                         nsChangeHint_RepaintFrame);
-  }
+#ifdef DEBUG
+  static nsChangeHint MaxDifference();
+#endif
+  static bool ForceCompare() { return false; }
 
   nsCOMPtr<nsIURI> mClipPath;         
   nsCOMPtr<nsIURI> mFilter;           
@@ -2275,8 +2169,7 @@ struct nsStyleSVGReset {
   float            mStopOpacity;      
   float            mFloodOpacity;     
 
-  uint8_t          mDominantBaseline; 
-  uint8_t          mVectorEffect;     
+  PRUint8          mDominantBaseline; 
 };
 
 #endif 

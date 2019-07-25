@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSMILInstanceTime.h"
 #include "nsSMILInterval.h"
 #include "nsSMILTimeValueSpec.h"
@@ -17,11 +49,11 @@ nsSMILInstanceTime::nsSMILInstanceTime(const nsSMILTimeValue& aTime,
                                        nsSMILInterval* aBaseInterval)
   : mTime(aTime),
     mFlags(0),
-    mVisited(false),
+    mVisited(PR_FALSE),
     mFixedEndpointRefCnt(0),
     mSerial(0),
     mCreator(aCreator),
-    mBaseInterval(nullptr) 
+    mBaseInterval(nsnull) 
                           
 {
   switch (aSource) {
@@ -60,9 +92,9 @@ nsSMILInstanceTime::Unlink()
   nsRefPtr<nsSMILInstanceTime> deathGrip(this);
   if (mBaseInterval) {
     mBaseInterval->RemoveDependentTime(*this);
-    mBaseInterval = nullptr;
+    mBaseInterval = nsnull;
   }
-  mCreator = nullptr;
+  mCreator = nsnull;
 }
 
 void
@@ -90,7 +122,7 @@ nsSMILInstanceTime::HandleChangedInterval(
                                                       aEndObjectChanged;
 
   mozilla::AutoRestore<bool> setVisited(mVisited);
-  mVisited = true;
+  mVisited = PR_TRUE;
 
   nsRefPtr<nsSMILInstanceTime> deathGrip(this);
   mCreator->HandleChangedInstanceTime(*GetBaseTime(), aSrcContainer, *this,
@@ -104,12 +136,12 @@ nsSMILInstanceTime::HandleDeletedInterval()
       "Got call to HandleDeletedInterval on an independent instance time");
   NS_ABORT_IF_FALSE(mCreator, "Base interval is set but creator is not");
 
-  mBaseInterval = nullptr;
+  mBaseInterval = nsnull;
   mFlags &= ~kMayUpdate; 
 
   nsRefPtr<nsSMILInstanceTime> deathGrip(this);
   mCreator->HandleDeletedInstanceTime(*this);
-  mCreator = nullptr;
+  mCreator = nsnull;
 }
 
 void
@@ -118,9 +150,9 @@ nsSMILInstanceTime::HandleFilteredInterval()
   NS_ABORT_IF_FALSE(mBaseInterval,
       "Got call to HandleFilteredInterval on an independent instance time");
 
-  mBaseInterval = nullptr;
+  mBaseInterval = nsnull;
   mFlags &= ~kMayUpdate; 
-  mCreator = nullptr;
+  mCreator = nsnull;
 }
 
 bool
@@ -158,17 +190,18 @@ bool
 nsSMILInstanceTime::IsDependentOn(const nsSMILInstanceTime& aOther) const
 {
   if (mVisited)
-    return false;
+    return PR_FALSE;
 
   const nsSMILInstanceTime* myBaseTime = GetBaseTime();
   if (!myBaseTime)
-    return false;
+    return PR_FALSE;
 
   if (myBaseTime == &aOther)
-    return true;
+    return PR_TRUE;
 
-  mozilla::AutoRestore<bool> setVisited(mVisited);
-  mVisited = true;
+  
+  mozilla::AutoRestore<bool> setVisited(const_cast<nsSMILInstanceTime*>(this)->mVisited);
+  const_cast<nsSMILInstanceTime*>(this)->mVisited = PR_TRUE;
   return myBaseTime->IsDependentOn(aOther);
 }
 
@@ -176,12 +209,12 @@ const nsSMILInstanceTime*
 nsSMILInstanceTime::GetBaseTime() const
 {
   if (!mBaseInterval) {
-    return nullptr;
+    return nsnull;
   }
 
   NS_ABORT_IF_FALSE(mCreator, "Base interval is set but there is no creator.");
   if (!mCreator) {
-    return nullptr;
+    return nsnull;
   }
 
   return mCreator->DependsOnBegin() ? mBaseInterval->Begin() :

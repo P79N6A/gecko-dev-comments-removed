@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsContentTestNode.h"
 #include "nsIRDFResource.h"
 #include "nsIAtom.h"
@@ -19,11 +52,11 @@ extern PRLogModuleInfo* gXULTemplateLog;
 
 nsContentTestNode::nsContentTestNode(nsXULTemplateQueryProcessorRDF* aProcessor,
                                      nsIAtom* aRefVariable)
-    : TestNode(nullptr),
+    : TestNode(nsnull),
       mProcessor(aProcessor),
-      mDocument(nullptr),
+      mDocument(nsnull),
       mRefVariable(aRefVariable),
-      mTag(nullptr)
+      mTag(nsnull)
 {
 #ifdef PR_LOGGING
     if (PR_LOG_TEST(gXULTemplateLog, PR_LOG_DEBUG)) {
@@ -49,7 +82,7 @@ nsContentTestNode::FilterInstantiations(InstantiationSet& aInstantiations,
 
 {
     if (aCantHandleYet)
-        *aCantHandleYet = false;
+        *aCantHandleYet = PR_FALSE;
     return NS_OK;
 }
 

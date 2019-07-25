@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsICSSLoaderObserver.h"
 #include "nsCOMArray.h"
@@ -11,6 +44,7 @@
 
 class nsIContent;
 class nsIAtom;
+class nsIDocument;
 class nsIScriptContext;
 class nsSupportsHashtable;
 class nsXBLPrototypeResources;
@@ -26,7 +60,7 @@ struct nsXBLResource {
 
   nsXBLResource(nsIAtom* aType, const nsAString& aSrc) {
     MOZ_COUNT_CTOR(nsXBLResource);
-    mNext = nullptr;
+    mNext = nsnull;
     mType = aType;
     mSrc = aSrc;
   }
@@ -57,8 +91,6 @@ public:
 
   void NotifyBoundElements();
 
-  nsresult Write(nsIObjectOutputStream* aStream);
-
 
   nsXBLPrototypeBinding* mBinding; 
   nsXBLPrototypeResources* mResources; 
@@ -73,7 +105,7 @@ public:
   
   
   bool mInLoadResourcesFunc;
-  int16_t mPendingSheets; 
+  PRInt16 mPendingSheets; 
 
   
   nsCOMArray<nsIContent> mBoundElements;

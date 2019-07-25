@@ -3,24 +3,61 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #if !defined(nsBuiltinDecoderReader_h_)
 #define nsBuiltinDecoderReader_h_
 
 #include <nsDeque.h>
-#include "nsSize.h"
-#include "mozilla/ReentrantMonitor.h"
-#include "MediaStreamGraph.h"
-#include "SharedBuffer.h"
+#include "Layers.h"
 #include "ImageLayers.h"
+#include "nsClassHashtable.h"
+#include "mozilla/TimeStamp.h"
+#include "nsSize.h"
+#include "nsRect.h"
+#include "mozilla/ReentrantMonitor.h"
+
+class nsBuiltinDecoderStateMachine;
 
 
 class nsVideoInfo {
 public:
   nsVideoInfo()
-    : mAudioRate(44100),
-      mAudioChannels(2),
+    : mAudioRate(0),
+      mAudioChannels(0),
       mDisplay(0,0),
-      mStereoMode(mozilla::STEREO_MODE_MONO),
+      mStereoMode(mozilla::layers::STEREO_MODE_MONO),
       mHasAudio(false),
       mHasVideo(false)
   {}
@@ -34,17 +71,17 @@ public:
                                     const nsIntSize& aDisplay);
 
   
-  uint32_t mAudioRate;
+  PRUint32 mAudioRate;
 
   
-  uint32_t mAudioChannels;
+  PRUint32 mAudioChannels;
 
   
   
   nsIntSize mDisplay;
 
   
-  mozilla::StereoMode mStereoMode;
+  mozilla::layers::StereoMode mStereoMode;
 
   
   bool mHasAudio;
@@ -53,39 +90,41 @@ public:
   bool mHasVideo;
 };
 
-#ifdef MOZ_SAMPLE_TYPE_S16
+#ifdef MOZ_TREMOR
 #include <ogg/os_types.h>
 typedef ogg_int32_t VorbisPCMValue;
 typedef short AudioDataValue;
 
+#define MOZ_AUDIO_DATA_FORMAT (nsAudioStream::FORMAT_S16_LE)
 #define MOZ_CLIP_TO_15(x) ((x)<-32768?-32768:(x)<=32767?(x):32767)
 
 #define MOZ_CONVERT_VORBIS_SAMPLE(x) \
  (static_cast<AudioDataValue>(MOZ_CLIP_TO_15((x)>>9)))
 
 #define MOZ_CONVERT_AUDIO_SAMPLE(x) ((x)*(1.F/32768))
+#define MOZ_SAMPLE_TYPE_S16LE 1
 
 #else 
 
 typedef float VorbisPCMValue;
 typedef float AudioDataValue;
 
+#define MOZ_AUDIO_DATA_FORMAT (nsAudioStream::FORMAT_FLOAT32)
 #define MOZ_CONVERT_VORBIS_SAMPLE(x) (x)
 #define MOZ_CONVERT_AUDIO_SAMPLE(x) (x)
+#define MOZ_SAMPLE_TYPE_FLOAT32 1
 
 #endif
 
 
 class AudioData {
 public:
-  typedef mozilla::SharedBuffer SharedBuffer;
-
-  AudioData(int64_t aOffset,
-            int64_t aTime,
-            int64_t aDuration,
-            uint32_t aFrames,
+  AudioData(PRInt64 aOffset,
+            PRInt64 aTime,
+            PRInt64 aDuration,
+            PRUint32 aFrames,
             AudioDataValue* aData,
-            uint32_t aChannels)
+            PRUint32 aChannels)
   : mOffset(aOffset),
     mTime(aTime),
     mDuration(aDuration),
@@ -102,22 +141,13 @@ public:
   }
 
   
-  void EnsureAudioBuffer();
+  
+  const PRInt64 mOffset;
 
-  int64_t GetEnd() { return mTime + mDuration; }
-
-  
-  
-  const int64_t mOffset;
-
-  int64_t mTime; 
-  const int64_t mDuration; 
-  const uint32_t mFrames;
-  const uint32_t mChannels;
-  
-  
-  nsRefPtr<SharedBuffer> mAudioBuffer;
-  
+  PRInt64 mTime; 
+  const PRInt64 mDuration; 
+  const PRUint32 mFrames;
+  const PRUint32 mChannels;
   nsAutoArrayPtr<AudioDataValue> mAudioData;
 };
 
@@ -133,12 +163,10 @@ public:
   
   struct YCbCrBuffer {
     struct Plane {
-      uint8_t* mData;
-      uint32_t mWidth;
-      uint32_t mHeight;
-      uint32_t mStride;
-      uint32_t mOffset;
-      uint32_t mSkip;
+      PRUint8* mData;
+      PRUint32 mWidth;
+      PRUint32 mHeight;
+      PRUint32 mStride;
     };
 
     Plane mPlanes[3];
@@ -152,28 +180,29 @@ public:
   
   static VideoData* Create(nsVideoInfo& aInfo,
                            ImageContainer* aContainer,
-                           int64_t aOffset,
-                           int64_t aTime,
-                           int64_t aEndTime,
+                           PRInt64 aOffset,
+                           PRInt64 aTime,
+                           PRInt64 aEndTime,
                            const YCbCrBuffer &aBuffer,
                            bool aKeyframe,
-                           int64_t aTimecode,
+                           PRInt64 aTimecode,
                            nsIntRect aPicture);
 
   
   
   
-  static VideoData* CreateDuplicate(int64_t aOffset,
-                                    int64_t aTime,
-                                    int64_t aEndTime,
-                                    int64_t aTimecode)
+  static VideoData* CreateDuplicate(PRInt64 aOffset,
+                                    PRInt64 aTime,
+                                    PRInt64 aEndTime,
+                                    PRInt64 aTimecode)
   {
     return new VideoData(aOffset, aTime, aEndTime, aTimecode);
   }
 
-  ~VideoData();
-
-  int64_t GetEnd() { return mEndTime; }
+  ~VideoData()
+  {
+    MOZ_COUNT_DTOR(VideoData);
+  }
 
   
   
@@ -181,17 +210,17 @@ public:
   nsIntSize mDisplay;
 
   
-  int64_t mOffset;
+  PRInt64 mOffset;
 
   
-  int64_t mTime;
+  PRInt64 mTime;
 
   
-  int64_t mEndTime;
+  PRInt64 mEndTime;
 
   
   
-  int64_t mTimecode;
+  PRInt64 mTimecode;
 
   
   nsRefPtr<Image> mImage;
@@ -202,14 +231,35 @@ public:
   bool mKeyframe;
 
 public:
-  VideoData(int64_t aOffset, int64_t aTime, int64_t aEndTime, int64_t aTimecode);
+  VideoData(PRInt64 aOffset, PRInt64 aTime, PRInt64 aEndTime, PRInt64 aTimecode)
+    : mOffset(aOffset),
+      mTime(aTime),
+      mEndTime(aEndTime),
+      mTimecode(aTimecode),
+      mDuplicate(true),
+      mKeyframe(false)
+  {
+    MOZ_COUNT_CTOR(VideoData);
+    NS_ASSERTION(aEndTime >= aTime, "Frame must start before it ends.");
+  }
 
-  VideoData(int64_t aOffset,
-            int64_t aTime,
-            int64_t aEndTime,
+  VideoData(PRInt64 aOffset,
+            PRInt64 aTime,
+            PRInt64 aEndTime,
             bool aKeyframe,
-            int64_t aTimecode,
-            nsIntSize aDisplay);
+            PRInt64 aTimecode,
+            nsIntSize aDisplay)
+    : mDisplay(aDisplay),
+      mOffset(aOffset),
+      mTime(aTime),
+      mEndTime(aEndTime),
+      mTimecode(aTimecode),
+      mDuplicate(false),
+      mKeyframe(aKeyframe)
+  {
+    MOZ_COUNT_CTOR(VideoData);
+    NS_ASSERTION(aEndTime >= aTime, "Frame must start before it ends.");
+  }
 
 };
 
@@ -218,7 +268,7 @@ template <class T>
 class MediaQueueDeallocator : public nsDequeFunctor {
   virtual void* operator() (void* anObject) {
     delete static_cast<T*>(anObject);
-    return nullptr;
+    return nsnull;
   }
 };
 
@@ -237,21 +287,21 @@ template <class T> class MediaQueue : private nsDeque {
     Reset();
   }
 
-  inline int32_t GetSize() { 
+  inline PRInt32 GetSize() { 
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
     return nsDeque::GetSize();
   }
-
+  
   inline void Push(T* aItem) {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
     nsDeque::Push(aItem);
   }
-
+  
   inline void PushFront(T* aItem) {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
     nsDeque::PushFront(aItem);
   }
-
+  
   inline T* Pop() {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
     return static_cast<T*>(nsDeque::Pop());
@@ -311,7 +361,7 @@ template <class T> class MediaQueue : private nsDeque {
   }
 
   
-  int64_t Duration() {
+  PRInt64 Duration() {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
     if (GetSize() < 2) {
       return 0;
@@ -324,25 +374,6 @@ template <class T> class MediaQueue : private nsDeque {
   void LockedForEach(nsDequeFunctor& aFunctor) const {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
     ForEach(aFunctor);
-  }
-
-  
-  
-  void GetElementsAfter(int64_t aTime, nsTArray<T*>* aResult) {
-    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
-    if (!GetSize())
-      return;
-    int32_t i;
-    for (i = GetSize() - 1; i > 0; --i) {
-      T* v = static_cast<T*>(ObjectAt(i));
-      if (v->GetEnd() < aTime)
-        break;
-    }
-    
-    
-    for (; i < GetSize(); ++i) {
-      aResult->AppendElement(static_cast<T*>(ObjectAt(i)));
-    }
   }
 
 private:
@@ -361,10 +392,9 @@ class nsBuiltinDecoderReader : public nsRunnable {
 public:
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
   typedef mozilla::ReentrantMonitorAutoEnter ReentrantMonitorAutoEnter;
-  typedef mozilla::VideoFrameContainer VideoFrameContainer;
 
   nsBuiltinDecoderReader(nsBuiltinDecoder* aDecoder);
-  virtual ~nsBuiltinDecoderReader();
+  ~nsBuiltinDecoderReader();
 
   
   
@@ -383,7 +413,7 @@ public:
   
   
   virtual bool DecodeVideoFrame(bool &aKeyframeSkip,
-                                int64_t aTimeThreshold) = 0;
+                                  PRInt64 aTimeThreshold) = 0;
 
   virtual bool HasAudio() = 0;
   virtual bool HasVideo() = 0;
@@ -391,22 +421,20 @@ public:
   
   
   
-  
-  virtual nsresult ReadMetadata(nsVideoInfo* aInfo,
-                                nsHTMLMediaElement::MetadataTags** aTags) = 0;
+  virtual nsresult ReadMetadata(nsVideoInfo* aInfo) = 0;
 
   
   
   
-  VideoData* FindStartTime(int64_t& aOutStartTime);
+  VideoData* FindStartTime(PRInt64& aOutStartTime);
 
   
   
   
-  virtual nsresult Seek(int64_t aTime,
-                        int64_t aStartTime,
-                        int64_t aEndTime,
-                        int64_t aCurrentTime) = 0;
+  virtual nsresult Seek(PRInt64 aTime,
+                        PRInt64 aStartTime,
+                        PRInt64 aEndTime,
+                        PRInt64 aCurrentTime) = 0;
 
   
   
@@ -421,21 +449,29 @@ public:
   
   
   virtual nsresult GetBuffered(nsTimeRanges* aBuffered,
-                               int64_t aStartTime) = 0;
-
-  
-  virtual bool IsSeekableInBufferedRanges() = 0;
+                               PRInt64 aStartTime) = 0;
 
   class VideoQueueMemoryFunctor : public nsDequeFunctor {
   public:
     VideoQueueMemoryFunctor() : mResult(0) {}
 
-    virtual void* operator()(void* anObject);
+    virtual void* operator()(void* anObject) {
+      const VideoData* v = static_cast<const VideoData*>(anObject);
+      if (!v->mImage) {
+        return nsnull;
+      }
+      NS_ASSERTION(v->mImage->GetFormat() == mozilla::layers::Image::PLANAR_YCBCR,
+                   "Wrong format?");
+      mozilla::layers::PlanarYCbCrImage* vi = static_cast<mozilla::layers::PlanarYCbCrImage*>(v->mImage.get());
 
-    int64_t mResult;
+      mResult += vi->GetDataSize();
+      return nsnull;
+    }
+
+    PRInt64 mResult;
   };
 
-  int64_t VideoQueueMemoryInUse() {
+  PRInt64 VideoQueueMemoryInUse() {
     VideoQueueMemoryFunctor functor;
     mVideoQueue.LockedForEach(functor);
     return functor.mResult;
@@ -448,13 +484,13 @@ public:
     virtual void* operator()(void* anObject) {
       const AudioData* audioData = static_cast<const AudioData*>(anObject);
       mResult += audioData->mFrames * audioData->mChannels * sizeof(AudioDataValue);
-      return nullptr;
+      return nsnull;
     }
 
-    int64_t mResult;
+    PRInt64 mResult;
   };
 
-  int64_t AudioQueueMemoryInUse() {
+  PRInt64 AudioQueueMemoryInUse() {
     AudioQueueMemoryFunctor functor;
     mAudioQueue.LockedForEach(functor);
     return functor.mResult;
@@ -462,13 +498,13 @@ public:
 
   
   
-  virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset) {}
+  virtual void NotifyDataArrived(const char* aBuffer, PRUint32 aLength, PRUint32 aOffset) {}
 
 protected:
 
   
   
-  nsresult DecodeToTarget(int64_t aTarget);
+  nsresult DecodeToTarget(PRInt64 aTarget);
 
   
   

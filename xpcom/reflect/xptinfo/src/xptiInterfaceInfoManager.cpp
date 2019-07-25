@@ -5,6 +5,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "xptiprivate.h"
 #include "nsDependentString.h"
 #include "nsString.h"
@@ -12,8 +46,6 @@
 #include "nsArrayEnumerator.h"
 #include "mozilla/FunctionTimer.h"
 #include "nsDirectoryService.h"
-#include "mozilla/FileUtils.h"
-#include "nsIMemoryReporter.h"
 
 using namespace mozilla;
 
@@ -21,45 +53,10 @@ NS_IMPL_THREADSAFE_ISUPPORTS2(xptiInterfaceInfoManager,
                               nsIInterfaceInfoManager,
                               nsIInterfaceInfoSuperManager)
 
-static xptiInterfaceInfoManager* gInterfaceInfoManager = nullptr;
+static xptiInterfaceInfoManager* gInterfaceInfoManager = nsnull;
 #ifdef DEBUG
 static int gCallCount = 0;
 #endif
-
-
-NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(XPTMallocSizeOf, "xpti-working-set")
-
-size_t
-xptiInterfaceInfoManager::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf)
-{
-    size_t n = aMallocSizeOf(this);
-    ReentrantMonitorAutoEnter monitor(mWorkingSet.mTableReentrantMonitor);
-    
-    
-    n += mWorkingSet.mIIDTable.SizeOfExcludingThis(NULL, XPTMallocSizeOf);
-    n += mWorkingSet.mNameTable.SizeOfExcludingThis(NULL, XPTMallocSizeOf);
-    return n;
-}
-
-
-int64_t
-xptiInterfaceInfoManager::GetXPTIWorkingSetSize()
-{
-    size_t n = XPT_SizeOfArena(gXPTIStructArena, XPTMallocSizeOf);
-
-    if (gInterfaceInfoManager) {
-        n += gInterfaceInfoManager->SizeOfIncludingThis(XPTMallocSizeOf);
-    }
-
-    return n;
-}
-
-NS_MEMORY_REPORTER_IMPLEMENT(xptiWorkingSet,
-                             "explicit/xpti-working-set",
-                             KIND_HEAP,
-                             UNITS_BYTES,
-                             xptiInterfaceInfoManager::GetXPTIWorkingSetSize,
-                             "Memory used by the XPCOM typelib system.")
 
 
 xptiInterfaceInfoManager*
@@ -86,7 +83,6 @@ xptiInterfaceInfoManager::xptiInterfaceInfoManager()
         mAdditionalManagersLock(
             "xptiInterfaceInfoManager.mAdditionalManagersLock")
 {
-    NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(xptiWorkingSet));
 }
 
 xptiInterfaceInfoManager::~xptiInterfaceInfoManager()
@@ -94,31 +90,137 @@ xptiInterfaceInfoManager::~xptiInterfaceInfoManager()
     
     mWorkingSet.InvalidateInterfaceInfos();
 
-    gInterfaceInfoManager = nullptr;
+    gInterfaceInfoManager = nsnull;
 #ifdef DEBUG
     gCallCount = 0;
 #endif
 }
 
-void
-xptiInterfaceInfoManager::RegisterBuffer(char *buf, uint32_t length)
+namespace {
+
+struct AutoCloseFD
 {
-    XPTState *state = XPT_NewXDRState(XPT_DECODE, buf, length);
-    if (!state)
-        return;
+    AutoCloseFD()
+        : mFD(NULL)
+    { }
+    ~AutoCloseFD() {
+        if (mFD)
+            PR_Close(mFD);
+    }
+    operator PRFileDesc*() {
+        return mFD;
+    }
+
+    PRFileDesc** operator&() {
+        NS_ASSERTION(!mFD, "Re-opening a file");
+        return &mFD;
+    }
+
+    PRFileDesc* mFD;
+};
+
+} 
+
+XPTHeader* 
+xptiInterfaceInfoManager::ReadXPTFile(nsILocalFile* aFile)
+{
+    AutoCloseFD fd;
+    if (NS_FAILED(aFile->OpenNSPRFileDesc(PR_RDONLY, 0444, &fd)) || !fd)
+        return NULL;
+
+    PRFileInfo64 fileInfo;
+    if (PR_SUCCESS != PR_GetOpenFileInfo64(fd, &fileInfo))
+        return NULL;
+
+    if (fileInfo.size > PRInt64(PR_INT32_MAX))
+        return NULL;
+
+    nsAutoArrayPtr<char> whole(new char[PRInt32(fileInfo.size)]);
+    if (!whole)
+        return nsnull;
+
+    for (PRInt32 totalRead = 0; totalRead < fileInfo.size; ) {
+        PRInt32 read = PR_Read(fd, whole + totalRead, PRInt32(fileInfo.size));
+        if (read < 0)
+            return NULL;
+        totalRead += read;
+    }
+
+    XPTState* state = XPT_NewXDRState(XPT_DECODE, whole,
+                                      PRInt32(fileInfo.size));
 
     XPTCursor cursor;
     if (!XPT_MakeCursor(state, XPT_HEADER, 0, &cursor)) {
         XPT_DestroyXDRState(state);
-        return;
+        return NULL;
     }
-
-    XPTHeader *header = nullptr;
-    if (XPT_DoHeader(gXPTIStructArena, &cursor, &header)) {
-        RegisterXPTHeader(header);
+    
+    XPTHeader *header = nsnull;
+    if (!XPT_DoHeader(gXPTIStructArena, &cursor, &header)) {
+        XPT_DestroyXDRState(state);
+        return NULL;
     }
 
     XPT_DestroyXDRState(state);
+
+    return header;
+}
+
+XPTHeader*
+xptiInterfaceInfoManager::ReadXPTFileFromInputStream(nsIInputStream *stream)
+{
+    PRUint32 flen;
+    stream->Available(&flen);
+    
+    nsAutoArrayPtr<char> whole(new char[flen]);
+    if (!whole)
+        return nsnull;
+
+    for (PRUint32 totalRead = 0; totalRead < flen; ) {
+        PRUint32 avail;
+        PRUint32 read;
+
+        if (NS_FAILED(stream->Available(&avail)))
+            return NULL;
+
+        if (avail > flen)
+            return NULL;
+
+        if (NS_FAILED(stream->Read(whole+totalRead, avail, &read)))
+            return NULL;
+
+        totalRead += read;
+    }
+    
+    XPTState *state = XPT_NewXDRState(XPT_DECODE, whole, flen);
+    if (!state)
+        return NULL;
+    
+    XPTCursor cursor;
+    if (!XPT_MakeCursor(state, XPT_HEADER, 0, &cursor)) {
+        XPT_DestroyXDRState(state);
+        return NULL;
+    }
+    
+    XPTHeader *header = nsnull;
+    if (!XPT_DoHeader(gXPTIStructArena, &cursor, &header)) {
+        XPT_DestroyXDRState(state);
+        return NULL;
+    }
+
+    XPT_DestroyXDRState(state);
+
+    return header;
+}
+
+void
+xptiInterfaceInfoManager::RegisterFile(nsILocalFile* aFile)
+{
+    XPTHeader* header = ReadXPTFile(aFile);
+    if (!header)
+        return;
+
+    RegisterXPTHeader(header);
 }
 
 void
@@ -132,13 +234,21 @@ xptiInterfaceInfoManager::RegisterXPTHeader(XPTHeader* aHeader)
     xptiTypelibGuts* typelib = xptiTypelibGuts::Create(aHeader);
 
     ReentrantMonitorAutoEnter monitor(mWorkingSet.mTableReentrantMonitor);
-    for(uint16_t k = 0; k < aHeader->num_interfaces; k++)
+    for(PRUint16 k = 0; k < aHeader->num_interfaces; k++)
         VerifyAndAddEntryIfNew(aHeader->interface_directory + k, k, typelib);
 }
 
 void
+xptiInterfaceInfoManager::RegisterInputStream(nsIInputStream* aStream)
+{
+    XPTHeader* header = ReadXPTFileFromInputStream(aStream);
+    if (header)
+        RegisterXPTHeader(header);
+}
+
+void
 xptiInterfaceInfoManager::VerifyAndAddEntryIfNew(XPTInterfaceDirectoryEntry* iface,
-                                                 uint16_t idx,
+                                                 PRUint16 idx,
                                                  xptiTypelibGuts* typelib)
 {
     if (!iface->interface_descriptor)
@@ -191,7 +301,7 @@ EntryToInfo(xptiInterfaceEntry* entry, nsIInterfaceInfo **_retval)
     nsresult rv;
 
     if (!entry) {
-        *_retval = nullptr;
+        *_retval = nsnull;
         return NS_ERROR_FAILURE;    
     }
 
@@ -242,7 +352,7 @@ NS_IMETHODIMP xptiInterfaceInfoManager::GetIIDForName(const char *name, nsIID * 
     ReentrantMonitorAutoEnter monitor(mWorkingSet.mTableReentrantMonitor);
     xptiInterfaceEntry* entry = mWorkingSet.mNameTable.Get(name);
     if (!entry) {
-        *_retval = nullptr;
+        *_retval = nsnull;
         return NS_ERROR_FAILURE;    
     }
 
@@ -258,7 +368,7 @@ NS_IMETHODIMP xptiInterfaceInfoManager::GetNameForIID(const nsIID * iid, char **
     ReentrantMonitorAutoEnter monitor(mWorkingSet.mTableReentrantMonitor);
     xptiInterfaceEntry* entry = mWorkingSet.mIIDTable.Get(*iid);
     if (!entry) {
-        *_retval = nullptr;
+        *_retval = nsnull;
         return NS_ERROR_FAILURE;    
     }
 
@@ -299,7 +409,7 @@ struct ArrayAndPrefix
 {
     nsISupportsArray* array;
     const char*       prefix;
-    uint32_t          length;
+    PRUint32          length;
 };
 
 static PLDHashOperator
@@ -388,7 +498,7 @@ NS_IMETHODIMP xptiInterfaceInfoManager::EnumerateAdditionalManagers(nsISimpleEnu
 
     nsCOMArray<nsISupports> managerArray(mAdditionalManagers);
     
-    for(int32_t i = managerArray.Count(); i--; ) {
+    for(PRInt32 i = managerArray.Count(); i--; ) {
         nsISupports *raw = managerArray.ObjectAt(i);
         if (!raw)
             return NS_ERROR_FAILURE;

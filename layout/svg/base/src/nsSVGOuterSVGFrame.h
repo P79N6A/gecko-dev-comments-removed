@@ -3,12 +3,48 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGOUTERSVGFRAME_H__
 #define __NS_SVGOUTERSVGFRAME_H__
 
-#include "gfxMatrix.h"
-#include "nsISVGSVGFrame.h"
 #include "nsSVGContainerFrame.h"
+#include "nsISVGSVGFrame.h"
+#include "nsIDOMSVGPoint.h"
+#include "nsIDOMSVGNumber.h"
+#include "nsSVGFeatures.h"
+#include "gfxMatrix.h"
 
 class nsSVGForeignObjectFrame;
 
@@ -46,7 +82,7 @@ public:
   virtual nsSize ComputeSize(nsRenderingContext *aRenderingContext,
                              nsSize aCBSize, nscoord aAvailableWidth,
                              nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                             uint32_t aFlags) MOZ_OVERRIDE;
+                             bool aShrinkWrap);
 
   NS_IMETHOD Reflow(nsPresContext*          aPresContext,
                     nsHTMLReflowMetrics&     aDesiredSize,
@@ -74,6 +110,10 @@ public:
 
   virtual nsIAtom* GetType() const;
 
+  void Paint(const nsDisplayListBuilder* aBuilder,
+             nsRenderingContext& aRenderingContext,
+             const nsRect& aDirtyRect, nsPoint aPt);
+
 #ifdef DEBUG
   NS_IMETHOD GetFrameName(nsAString& aResult) const
   {
@@ -81,44 +121,30 @@ public:
   }
 #endif
 
-  NS_IMETHOD  AttributeChanged(int32_t         aNameSpaceID,
+  NS_IMETHOD  AttributeChanged(PRInt32         aNameSpaceID,
                                nsIAtom*        aAttribute,
-                               int32_t         aModType);
-
-  virtual nsIFrame* GetContentInsertionFrame() {
-    
-    NS_ABORT_IF_FALSE(GetFirstPrincipalChild() &&
-                      GetFirstPrincipalChild()->GetType() ==
-                        nsGkAtoms::svgOuterSVGAnonChildFrame,
-                      "Where is our anonymous child?");
-    return GetFirstPrincipalChild()->GetContentInsertionFrame();
-  }
-
-  virtual bool IsSVGTransformed(gfxMatrix *aOwnTransform,
-                                gfxMatrix *aFromParentTransform) const {
-    
-    
-    return false;
-  }
-
-  
-  virtual void NotifyViewportOrTransformChanged(uint32_t aFlags);
-
-  
-  NS_IMETHOD PaintSVG(nsRenderingContext* aContext,
-                      const nsIntRect *aDirtyRect);
-
-  virtual SVGBBox GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
-                                      uint32_t aFlags);
-
-  
-  virtual gfxMatrix GetCanvasTM(uint32_t aFor);
+                               PRInt32         aModType);
 
   
 
+  void InvalidateCoveredRegion(nsIFrame *aFrame);
+  
+  
+  
+  
+  bool UpdateAndInvalidateCoveredRegion(nsIFrame *aFrame);
 
+  bool IsRedrawSuspended();
 
+  
+  NS_IMETHOD SuspendRedraw();
+  NS_IMETHOD UnsuspendRedraw();
+  NS_IMETHOD NotifyViewportChange();
 
+  
+  virtual gfxMatrix GetCanvasTM();
+
+  
 
 
 
@@ -126,33 +152,13 @@ public:
   void RegisterForeignObject(nsSVGForeignObjectFrame* aFrame);
   void UnregisterForeignObject(nsSVGForeignObjectFrame* aFrame);
 
-  virtual bool HasChildrenOnlyTransform(gfxMatrix *aTransform) const {
-    
-    
-    
-    
-    return false;
-  }
-
-  
-
-
-
-  bool VerticalScrollbarNotNeeded() const;
-
-  bool IsCallingReflowSVG() const {
-    return mCallingReflowSVG;
-  }
-
 protected:
 
-  bool mCallingReflowSVG;
-
   
 
 
 
-  bool IsRootOfReplacedElementSubDoc(nsIFrame **aEmbeddingFrame = nullptr);
+  bool IsRootOfReplacedElementSubDoc(nsIFrame **aEmbeddingFrame = nsnull);
 
   
 
@@ -162,93 +168,18 @@ protected:
   
   
   
-  
-  
   nsTHashtable<nsVoidPtrHashKey> mForeignObjectHash;
 
+  PRUint32 mRedrawSuspendCount;
   nsAutoPtr<gfxMatrix> mCanvasTM;
 
   float mFullZoom;
 
   bool mViewportInitialized;
-  bool mIsRootContent;
-};
-
-
-
-
-typedef nsSVGDisplayContainerFrame nsSVGOuterSVGAnonChildFrameBase;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class nsSVGOuterSVGAnonChildFrame
-  : public nsSVGOuterSVGAnonChildFrameBase
-{
-  friend nsIFrame*
-  NS_NewSVGOuterSVGAnonChildFrame(nsIPresShell* aPresShell,
-                                  nsStyleContext* aContext);
-
-  nsSVGOuterSVGAnonChildFrame(nsStyleContext* aContext)
-    : nsSVGOuterSVGAnonChildFrameBase(aContext)
-  {}
-
-public:
-  NS_DECL_FRAMEARENA_HELPERS
-
-#ifdef DEBUG
-  NS_IMETHOD Init(nsIContent* aContent,
-                  nsIFrame* aParent,
-                  nsIFrame* aPrevInFlow);
-
-  NS_IMETHOD GetFrameName(nsAString& aResult) const {
-    return MakeFrameName(NS_LITERAL_STRING("SVGOuterSVGAnonChild"), aResult);
-  }
+#ifdef XP_MACOSX
+  bool mEnableBitmapFallback;
 #endif
-
-  
-
-
-
-
-  virtual nsIAtom* GetType() const;
-
-  virtual bool IsSVGTransformed(gfxMatrix *aOwnTransform,
-                                gfxMatrix *aFromParentTransform) const {
-    
-    
-    return false;
-  }
-
-  
-  virtual gfxMatrix GetCanvasTM(uint32_t aFor) {
-    
-    
-    
-    return static_cast<nsSVGOuterSVGFrame*>(mParent)->GetCanvasTM(aFor);
-  }
-
-  virtual bool HasChildrenOnlyTransform(gfxMatrix *aTransform) const;
+  bool mIsRootContent;
 };
 
 #endif

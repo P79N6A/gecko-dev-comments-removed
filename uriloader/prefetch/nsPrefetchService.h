@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsPrefetchService_h__
 #define nsPrefetchService_h__
 
@@ -9,16 +42,15 @@
 #include "nsIObserver.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIChannelEventSink.h"
-#include "nsIRedirectResultListener.h"
 #include "nsIWebProgressListener.h"
 #include "nsIStreamListener.h"
 #include "nsIChannel.h"
 #include "nsIURI.h"
+#include "nsIDOMDocument.h"
 #include "nsIDOMLoadStatus.h"
 #include "nsWeakReference.h"
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
-#include "mozilla/Attributes.h"
 
 class nsPrefetchService;
 class nsPrefetchListener;
@@ -28,10 +60,10 @@ class nsPrefetchNode;
 
 
 
-class nsPrefetchService MOZ_FINAL : public nsIPrefetchService
-                                  , public nsIWebProgressListener
-                                  , public nsIObserver
-                                  , public nsSupportsWeakReference
+class nsPrefetchService : public nsIPrefetchService
+                        , public nsIWebProgressListener
+                        , public nsIObserver
+                        , public nsSupportsWeakReference
 {
 public:
     NS_DECL_ISUPPORTS
@@ -72,9 +104,9 @@ private:
     nsPrefetchNode                   *mQueueHead;
     nsPrefetchNode                   *mQueueTail;
     nsRefPtr<nsPrefetchNode>          mCurrentNode;
-    int32_t                           mStopCount;
+    PRInt32                           mStopCount;
     
-    int32_t                           mHaveProcessed;
+    PRInt32                           mHaveProcessed;
     bool                              mDisabled;
 };
 
@@ -82,11 +114,10 @@ private:
 
 
 
-class nsPrefetchNode MOZ_FINAL : public nsIDOMLoadStatus
-                               , public nsIStreamListener
-                               , public nsIInterfaceRequestor
-                               , public nsIChannelEventSink
-                               , public nsIRedirectResultListener
+class nsPrefetchNode : public nsIDOMLoadStatus
+                     , public nsIStreamListener
+                     , public nsIInterfaceRequestor
+                     , public nsIChannelEventSink
 {
 public:
     NS_DECL_ISUPPORTS
@@ -95,7 +126,6 @@ public:
     NS_DECL_NSISTREAMLISTENER
     NS_DECL_NSIINTERFACEREQUESTOR
     NS_DECL_NSICHANNELEVENTSINK
-    NS_DECL_NSIREDIRECTRESULTLISTENER
 
     nsPrefetchNode(nsPrefetchService *aPrefetchService,
                    nsIURI *aURI,
@@ -115,9 +145,8 @@ public:
 private:
     nsRefPtr<nsPrefetchService> mService;
     nsCOMPtr<nsIChannel>        mChannel;
-    nsCOMPtr<nsIChannel>        mRedirectChannel;
-    uint16_t                    mState;
-    int32_t                     mBytesRead;
+    PRUint16                    mState;
+    PRInt32                     mBytesRead;
 };
 
 #endif 

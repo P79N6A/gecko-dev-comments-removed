@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsTransitionManager_h_
 #define nsTransitionManager_h_
 
@@ -15,75 +47,7 @@ class nsStyleContext;
 class nsPresContext;
 class nsCSSPropertySet;
 struct nsTransition;
-
-
-
-
-
-struct ElementPropertyTransition
-{
-  ElementPropertyTransition() {}
-
-  nsCSSProperty mProperty;
-  nsStyleAnimation::Value mStartValue, mEndValue;
-  mozilla::TimeStamp mStartTime; 
-
-  
-  mozilla::TimeDuration mDuration;
-  mozilla::css::ComputedTimingFunction mTimingFunction;
-
-  
-  
-  
-  
-  
-  nsStyleAnimation::Value mStartForReversingTest;
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  double mReversePortion;
-
-  
-  
-  
-  double ValuePortionFor(mozilla::TimeStamp aRefreshTime) const;
-
-  bool IsRemovedSentinel() const
-  {
-    return mStartTime.IsNull();
-  }
-
-  void SetRemovedSentinel()
-  {
-    
-    mStartTime = mozilla::TimeStamp();
-  }
-
-  bool IsRunningAt(mozilla::TimeStamp aTime) const;
-};
-
-struct ElementTransitions : public mozilla::css::CommonElementAnimationData
-{
-  ElementTransitions(mozilla::dom::Element *aElement, nsIAtom *aElementProperty,
-                     nsTransitionManager *aTransitionManager);
-
-  void EnsureStyleRuleFor(mozilla::TimeStamp aRefreshTime);
-
-
-  bool HasTransitionOfProperty(nsCSSProperty aProperty) const;
-  
-  bool CanPerformOnCompositorThread() const;
-  
-  nsTArray<ElementPropertyTransition> mPropertyTransitions;
-};
-
-
+struct ElementTransitions;
 
 class nsTransitionManager : public mozilla::css::CommonAnimationManager
 {
@@ -91,26 +55,6 @@ public:
   nsTransitionManager(nsPresContext *aPresContext)
     : mozilla::css::CommonAnimationManager(aPresContext)
   {
-  }
-
-  static ElementTransitions* GetTransitions(nsIContent* aContent) {
-    return static_cast<ElementTransitions*>
-      (aContent->GetProperty(nsGkAtoms::transitionsProperty));
-  }
-
-  static ElementTransitions*
-    GetTransitionsForCompositor(nsIContent* aContent,
-                                nsCSSProperty aProperty)
-  {
-    if (!aContent->MayHaveAnimations())
-      return nullptr;
-    ElementTransitions* transitions = GetTransitions(aContent);
-    if (!transitions ||
-        !transitions->HasTransitionOfProperty(aProperty) ||
-        !transitions->CanPerformOnCompositorThread()) {
-      return nullptr;
-    }
-    return transitions;
   }
 
   
@@ -141,10 +85,6 @@ public:
 #ifdef MOZ_XUL
   virtual void RulesMatching(XULTreeRuleProcessorData* aData);
 #endif
-  virtual NS_MUST_OVERRIDE size_t
-    SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const MOZ_OVERRIDE;
-  virtual NS_MUST_OVERRIDE size_t
-    SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const MOZ_OVERRIDE;
 
   
   virtual void WillRefresh(mozilla::TimeStamp aTime);

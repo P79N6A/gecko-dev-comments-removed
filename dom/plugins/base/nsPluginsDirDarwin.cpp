@@ -11,6 +11,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "GeckoChildProcessHost.h"
 #include "base/process_util.h"
 
@@ -98,13 +132,13 @@ static char* CFStringRefToUTF8Buffer(CFStringRef cfString)
                                         kCFStringEncodingUTF8) + 1;
   char* newBuffer = static_cast<char*>(NS_Alloc(bufferLength));
   if (!newBuffer) {
-    return nullptr;
+    return nsnull;
   }
 
   if (!::CFStringGetCString(cfString, newBuffer, bufferLength,
                             kCFStringEncodingUTF8)) {
     NS_Free(newBuffer);
-    return nullptr;
+    return nsnull;
   }
 
   newBuffer = static_cast<char*>(NS_Realloc(newBuffer,
@@ -299,7 +333,7 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary **outLibrary)
 #ifdef __LP64__
   char executablePath[PATH_MAX];
   executablePath[0] = '\0';
-  nsAutoCString bundlePath;
+  nsCAutoString bundlePath;
   mPlugin->GetNativePath(bundlePath);
   CFStringRef pathRef = ::CFStringCreateWithCString(NULL, bundlePath.get(), kCFStringEncodingUTF8);
   if (pathRef) {
@@ -320,7 +354,7 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary **outLibrary)
     ::CFRelease(pathRef); 
   }
 #else
-  nsAutoCString bundlePath;
+  nsCAutoString bundlePath;
   mPlugin->GetNativePath(bundlePath);
   const char *executablePath = bundlePath.get();
 #endif
@@ -397,7 +431,7 @@ static bool IsCompatibleArch(nsIFile *file)
 
 nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info, PRLibrary **outLibrary)
 {
-  *outLibrary = nullptr;
+  *outLibrary = nsnull;
 
   nsresult rv = NS_OK;
 
@@ -409,7 +443,7 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info, PRLibrary **outLibrary)
   memset(&info, 0, sizeof(info));
 
   
-  nsAutoCString path;
+  nsCAutoString path;
   if (NS_FAILED(rv = mPlugin->GetNativePath(path)))
     return rv;
   CFBundleRef bundle = getPluginBundle(path.get());
@@ -418,7 +452,7 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info, PRLibrary **outLibrary)
   info.fFullPath = PL_strdup(path.get());
 
   
-  nsAutoCString fileName;
+  nsCAutoString fileName;
   if (NS_FAILED(rv = mPlugin->GetNativeLeafName(fileName)))
     return rv;
   info.fFileName = PL_strdup(fileName.get());

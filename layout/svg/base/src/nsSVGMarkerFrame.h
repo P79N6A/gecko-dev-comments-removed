@@ -3,26 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGMARKERFRAME_H__
 #define __NS_SVGMARKERFRAME_H__
 
-#include "gfxMatrix.h"
-#include "gfxRect.h"
-#include "nsFrame.h"
-#include "nsLiteralString.h"
-#include "nsQueryFrame.h"
 #include "nsSVGContainerFrame.h"
-#include "nsSVGUtils.h"
+#include "gfxMatrix.h"
 
-class nsIAtom;
-class nsIContent;
-class nsIFrame;
-class nsIPresShell;
-class nsRenderingContext;
-class nsStyleContext;
+class gfxContext;
 class nsSVGPathGeometryFrame;
-class nsSVGSVGElement;
-
+class nsIURI;
+class nsIContent;
 struct nsSVGMark;
 
 typedef nsSVGContainerFrame nsSVGMarkerFrameBase;
@@ -32,14 +53,11 @@ class nsSVGMarkerFrame : public nsSVGMarkerFrameBase
   friend nsIFrame*
   NS_NewSVGMarkerFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 protected:
-  nsSVGMarkerFrame(nsStyleContext* aContext)
-    : nsSVGMarkerFrameBase(aContext)
-    , mMarkedFrame(nullptr)
-    , mInUse(false)
-    , mInUse2(false)
-  {
-    AddStateBits(NS_STATE_SVG_NONDISPLAY_CHILD);
-  }
+  nsSVGMarkerFrame(nsStyleContext* aContext) :
+    nsSVGMarkerFrameBase(aContext),
+    mMarkedFrame(nsnull),
+    mInUse(PR_FALSE),
+    mInUse2(PR_FALSE) {}
 
 public:
   NS_DECL_FRAMEARENA_HELPERS
@@ -51,15 +69,9 @@ public:
                   nsIFrame*        aPrevInFlow);
 #endif
 
-  NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                              const nsRect&           aDirtyRect,
-                              const nsDisplayListSet& aLists) {
-    return NS_OK;
-  }
-
-  NS_IMETHOD AttributeChanged(int32_t         aNameSpaceID,
+  NS_IMETHOD AttributeChanged(PRInt32         aNameSpaceID,
                               nsIAtom*        aAttribute,
-                              int32_t         aModType);
+                              PRInt32         aModType);
   
 
 
@@ -75,13 +87,16 @@ public:
 #endif
 
   
-  nsresult PaintMark(nsRenderingContext *aContext,
+  nsresult PaintMark(nsSVGRenderState *aContext,
                      nsSVGPathGeometryFrame *aMarkedFrame,
                      nsSVGMark *aMark,
                      float aStrokeWidth);
 
-  SVGBBox GetMarkBBoxContribution(const gfxMatrix &aToBBoxUserspace,
-                                  uint32_t aFlags,
+  nsRect RegionMark(nsSVGPathGeometryFrame *aMarkedFrame,
+                    const nsSVGMark *aMark, float aStrokeWidth);
+
+  gfxRect GetMarkBBoxContribution(const gfxMatrix &aToBBoxUserspace,
+                                  PRUint32 aFlags,
                                   nsSVGPathGeometryFrame *aMarkedFrame,
                                   const nsSVGMark *aMark,
                                   float aStrokeWidth);
@@ -92,7 +107,7 @@ private:
   float mStrokeWidth, mX, mY, mAutoAngle;
 
   
-  virtual gfxMatrix GetCanvasTM(uint32_t aFor);
+  virtual gfxMatrix GetCanvasTM();
 
   
   

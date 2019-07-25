@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsResourceSet_h__
 #define nsResourceSet_h__
 
@@ -11,7 +44,7 @@ class nsResourceSet
 {
 public:
     nsResourceSet()
-        : mResources(nullptr),
+        : mResources(nsnull),
           mCount(0),
           mCapacity(0) {
         MOZ_COUNT_CTOR(nsResourceSet); }
@@ -30,8 +63,8 @@ public:
 
 protected:
     nsIRDFResource** mResources;
-    int32_t mCount;
-    int32_t mCapacity;
+    PRInt32 mCount;
+    PRInt32 mCapacity;
 
 public:
     class ConstIterator {
@@ -39,7 +72,7 @@ public:
         nsIRDFResource** mCurrent;
 
     public:
-        ConstIterator() : mCurrent(nullptr) {}
+        ConstIterator() : mCurrent(nsnull) {}
 
         ConstIterator(const ConstIterator& aConstIterator)
             : mCurrent(aConstIterator.mCurrent) {}

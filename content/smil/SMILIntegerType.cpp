@@ -3,6 +3,37 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "SMILIntegerType.h"
 #include "nsSMILValue.h"
 #include "nsDebug.h"
@@ -49,7 +80,7 @@ SMILIntegerType::IsEqual(const nsSMILValue& aLeft,
 
 nsresult
 SMILIntegerType::Add(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
-                     uint32_t aCount) const
+                     PRUint32 aCount) const
 {
   NS_PRECONDITION(aValueToAdd.mType == aDest.mType,
                   "Trying to add invalid types");
@@ -90,9 +121,9 @@ SMILIntegerType::Interpolate(const nsSMILValue& aStartVal,
   
 
   if (startVal < endVal) {
-    aResult.mU.mInt = int64_t(floor(currentVal + 0.5)); 
+    aResult.mU.mInt = PRInt64(floor(currentVal + 0.5)); 
   } else {
-    aResult.mU.mInt = int64_t(ceil(currentVal - 0.5)); 
+    aResult.mU.mInt = PRInt64(ceil(currentVal - 0.5)); 
   }
 
   return NS_OK;

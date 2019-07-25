@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsSHEntry_h
 #define nsSHEntry_h
 
@@ -12,7 +45,6 @@
 #include "nsAutoPtr.h"
 #include "nsCOMArray.h"
 #include "nsString.h"
-#include "mozilla/Attributes.h"
 
 
 #include "nsIInputStream.h"
@@ -23,9 +55,9 @@
 
 class nsSHEntryShared;
 
-class nsSHEntry MOZ_FINAL : public nsISHEntry,
-                            public nsISHContainer,
-                            public nsISHEntryInternal
+class nsSHEntry : public nsISHEntry,
+                  public nsISHContainer,
+                  public nsISHEntryInternal
 {
 public: 
   nsSHEntry();
@@ -54,11 +86,10 @@ private:
   nsCOMPtr<nsIURI>         mReferrerURI;
   nsString                 mTitle;
   nsCOMPtr<nsIInputStream> mPostData;
-  uint32_t                 mLoadType;
-  uint32_t                 mID;
-  int32_t                  mScrollPositionX;
-  int32_t                  mScrollPositionY;
-  nsISHEntry*              mParent;
+  PRUint32                 mLoadType;
+  PRUint32                 mID;
+  PRInt32                  mScrollPositionX;
+  PRInt32                  mScrollPositionY;
   nsCOMArray<nsISHEntry>   mChildren;
   bool                     mURIWasModified;
   nsCOMPtr<nsIStructuredCloneContainer> mStateData;

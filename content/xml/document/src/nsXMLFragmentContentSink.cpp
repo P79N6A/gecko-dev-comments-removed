@@ -2,6 +2,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsXMLContentSink.h"
 #include "nsIFragmentContentSink.h"
@@ -9,15 +43,21 @@
 #include "nsContentSink.h"
 #include "nsIExpatSink.h"
 #include "nsIDTD.h"
+#include "nsIParser.h"
 #include "nsIDocument.h"
 #include "nsIDOMDocumentFragment.h"
 #include "nsIContent.h"
 #include "nsGkAtoms.h"
 #include "nsINodeInfo.h"
+#include "nsNodeInfoManager.h"
+#include "nsNullPrincipal.h"
 #include "nsContentCreatorFunctions.h"
-#include "nsError.h"
+#include "nsDOMError.h"
 #include "nsIConsoleService.h"
 #include "nsIScriptError.h"
+#include "nsServiceManagerUtils.h"
+#include "nsContentUtils.h"
+#include "nsIScriptSecurityManager.h"
 #include "nsNetUtil.h"
 #include "nsTHashtable.h"
 #include "nsHashKeys.h"
@@ -53,7 +93,7 @@ public:
                                          const PRUnichar *aData);
   NS_IMETHOD HandleXMLDeclaration(const PRUnichar *aVersion,
                                   const PRUnichar *aEncoding,
-                                  int32_t aStandalone);
+                                  PRInt32 aStandalone);
   NS_IMETHOD ReportError(const PRUnichar* aErrorText, 
                          const PRUnichar* aSourceText,
                          nsIScriptError *aError,
@@ -77,11 +117,11 @@ public:
   NS_IMETHOD SetPreventScriptExecution(bool aPreventScriptExecution);
 
 protected:
-  virtual bool SetDocElement(int32_t aNameSpaceID, 
+  virtual bool SetDocElement(PRInt32 aNameSpaceID, 
                                nsIAtom *aTagName,
                                nsIContent *aContent);
-  virtual nsresult CreateElement(const PRUnichar** aAtts, uint32_t aAttsCount,
-                                 nsINodeInfo* aNodeInfo, uint32_t aLineNumber,
+  virtual nsresult CreateElement(const PRUnichar** aAtts, PRUint32 aAttsCount,
+                                 nsINodeInfo* aNodeInfo, PRUint32 aLineNumber,
                                  nsIContent** aResult, bool* aAppendContent,
                                  mozilla::dom::FromParser aFromParser);
   virtual nsresult CloseElement(nsIContent* aContent);
@@ -124,9 +164,9 @@ NS_NewXMLFragmentContentSink(nsIFragmentContentSink** aResult)
 }
 
 nsXMLFragmentContentSink::nsXMLFragmentContentSink()
- : mParseError(false)
+ : mParseError(PR_FALSE)
 {
-  mRunsToCompletion = true;
+  mFragmentMode = PR_TRUE;
 }
 
 nsXMLFragmentContentSink::~nsXMLFragmentContentSink()
@@ -171,11 +211,11 @@ nsXMLFragmentContentSink::WillBuildModel(nsDTDMode aDTDMode)
 NS_IMETHODIMP 
 nsXMLFragmentContentSink::DidBuildModel(bool aTerminated)
 {
-  nsRefPtr<nsParserBase> kungFuDeathGrip(mParser);
+  nsCOMPtr<nsIParser> kungFuDeathGrip(mParser);
 
   
   
-  mParser = nullptr;
+  mParser = nsnull;
 
   return NS_OK;
 }
@@ -196,17 +236,17 @@ nsXMLFragmentContentSink::GetTarget()
 
 
 bool
-nsXMLFragmentContentSink::SetDocElement(int32_t aNameSpaceID,
+nsXMLFragmentContentSink::SetDocElement(PRInt32 aNameSpaceID,
                                         nsIAtom* aTagName,
                                         nsIContent *aContent)
 {
   
-  return false;
+  return PR_FALSE;
 }
 
 nsresult
-nsXMLFragmentContentSink::CreateElement(const PRUnichar** aAtts, uint32_t aAttsCount,
-                                        nsINodeInfo* aNodeInfo, uint32_t aLineNumber,
+nsXMLFragmentContentSink::CreateElement(const PRUnichar** aAtts, PRUint32 aAttsCount,
+                                        nsINodeInfo* aNodeInfo, PRUint32 aLineNumber,
                                         nsIContent** aResult, bool* aAppendContent,
                                         FromParser )
 {
@@ -221,7 +261,7 @@ nsXMLFragmentContentSink::CreateElement(const PRUnichar** aAtts, uint32_t aAttsC
   
   
   if (mContentStack.Length() == 0) {
-    *aAppendContent = false;
+    *aAppendContent = PR_FALSE;
   }
 
   return rv;
@@ -232,7 +272,8 @@ nsXMLFragmentContentSink::CloseElement(nsIContent* aContent)
 {
   
   if (mPreventScriptExecution && aContent->Tag() == nsGkAtoms::script &&
-      (aContent->IsHTML() || aContent->IsSVG())) {
+      (aContent->GetNameSpaceID() == kNameSpaceID_XHTML ||
+       aContent->GetNameSpaceID() == kNameSpaceID_SVG)) {
     nsCOMPtr<nsIScriptElement> sele = do_QueryInterface(aContent);
     NS_ASSERTION(sele, "script did QI correctly!");
     sele->PreventExecution();
@@ -284,7 +325,7 @@ nsXMLFragmentContentSink::HandleProcessingInstruction(const PRUnichar *aTarget,
 NS_IMETHODIMP
 nsXMLFragmentContentSink::HandleXMLDeclaration(const PRUnichar *aVersion,
                                                const PRUnichar *aEncoding,
-                                               int32_t aStandalone)
+                                               PRInt32 aStandalone)
 {
   NS_NOTREACHED("fragments shouldn't have XML declarations");
   return NS_OK;
@@ -299,9 +340,9 @@ nsXMLFragmentContentSink::ReportError(const PRUnichar* aErrorText,
   NS_PRECONDITION(aError && aSourceText && aErrorText, "Check arguments!!!");
 
   
-  *_retval = true;
+  *_retval = PR_TRUE;
 
-  mParseError = true;
+  mParseError = PR_TRUE;
 
 #ifdef DEBUG
   
@@ -364,22 +405,22 @@ nsXMLFragmentContentSink::StartLayout()
 NS_IMETHODIMP 
 nsXMLFragmentContentSink::FinishFragmentParsing(nsIDOMDocumentFragment** aFragment)
 {
-  *aFragment = nullptr;
-  mTargetDocument = nullptr;
-  mNodeInfoManager = nullptr;
-  mScriptLoader = nullptr;
-  mCSSLoader = nullptr;
+  *aFragment = nsnull;
+  mTargetDocument = nsnull;
+  mNodeInfoManager = nsnull;
+  mScriptLoader = nsnull;
+  mCSSLoader = nsnull;
   mContentStack.Clear();
-  mDocumentURI = nullptr;
-  mDocShell = nullptr;
+  mDocumentURI = nsnull;
+  mDocShell = nsnull;
   if (mParseError) {
     
-    mRoot = nullptr;
-    mParseError = false;
+    mRoot = nsnull;
+    mParseError = PR_FALSE;
     return NS_ERROR_DOM_SYNTAX_ERR;
   } else if (mRoot) {
     nsresult rv = CallQueryInterface(mRoot, aFragment);
-    mRoot = nullptr;
+    mRoot = nsnull;
     return rv;
   } else {
     return NS_OK;

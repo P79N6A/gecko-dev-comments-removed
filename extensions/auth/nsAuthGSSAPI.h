@@ -3,13 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsAuthGSSAPI_h__
 #define nsAuthGSSAPI_h__
 
 #include "nsAuth.h"
 #include "nsIAuthModule.h"
 #include "nsString.h"
-#include "mozilla/Attributes.h"
 
 #define GSS_USE_FUNCTION_POINTERS 1
 
@@ -35,7 +69,7 @@
 
 
 
-class nsAuthGSSAPI MOZ_FINAL : public nsIAuthModule
+class nsAuthGSSAPI : public nsIAuthModule
 {
 public:
     NS_DECL_ISUPPORTS
@@ -55,7 +89,7 @@ private:
     gss_ctx_id_t mCtx;
     gss_OID      mMechOID;
     nsCString    mServiceName;
-    uint32_t     mServiceFlags;
+    PRUint32     mServiceFlags;
     nsString     mUsername;
     bool         mComplete;
 };

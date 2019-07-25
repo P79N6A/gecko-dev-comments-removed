@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsILayoutDebugger_h___
 #define nsILayoutDebugger_h___
 
@@ -33,13 +65,13 @@ public:
   NS_IMETHOD GetShowEventTargetFrameBorder(bool* aResult) = 0;
 
   NS_IMETHOD GetContentSize(nsIDocument* aDocument,
-                            int32_t* aSizeInBytesResult) = 0;
+                            PRInt32* aSizeInBytesResult) = 0;
 
   NS_IMETHOD GetFrameSize(nsIPresShell* aPresentation,
-                          int32_t* aSizeInBytesResult) = 0;
+                          PRInt32* aSizeInBytesResult) = 0;
 
   NS_IMETHOD GetStyleSize(nsIPresShell* aPresentation,
-                          int32_t* aSizeInBytesResult) = 0;
+                          PRInt32* aSizeInBytesResult) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsILayoutDebugger, NS_ILAYOUT_DEBUGGER_IID)

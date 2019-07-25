@@ -8,10 +8,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "RestyleTracker.h"
 #include "nsCSSFrameConstructor.h"
 #include "nsStyleChangeList.h"
-#include "sampler.h"
 
 namespace mozilla {
 namespace css {
@@ -133,14 +165,13 @@ RestyleTracker::ProcessOneRestyle(Element* aElement,
 }
 
 void
-RestyleTracker::DoProcessRestyles()
+RestyleTracker::ProcessRestyles()
 {
-  SAMPLE_LABEL("CSS", "ProcessRestyles");
   
   
   mFrameConstructor->BeginUpdate();
 
-  mFrameConstructor->mInStyleRefresh = true;
+  mFrameConstructor->mInStyleRefresh = PR_TRUE;
 
   
   while (mPendingRestyles.Count()) {
@@ -149,7 +180,7 @@ RestyleTracker::DoProcessRestyles()
       nsAutoTArray<nsRefPtr<Element>, RESTYLE_ARRAY_STACKSIZE> laterSiblingArr;
       LaterSiblingCollector siblingCollector = { this, &laterSiblingArr };
       mPendingRestyles.Enumerate(CollectLaterSiblings, &siblingCollector);
-      for (uint32_t i = 0; i < laterSiblingArr.Length(); ++i) {
+      for (PRUint32 i = 0; i < laterSiblingArr.Length(); ++i) {
         Element* element = laterSiblingArr[i];
         for (nsIContent* sibling = element->GetNextSibling();
              sibling;
@@ -165,7 +196,7 @@ RestyleTracker::DoProcessRestyles()
       }
 
       
-      for (uint32_t i = 0; i < laterSiblingArr.Length(); ++i) {
+      for (PRUint32 i = 0; i < laterSiblingArr.Length(); ++i) {
         Element* element = laterSiblingArr[i];
         NS_ASSERTION(element->HasFlag(RestyleBit()), "How did that happen?");
         RestyleData data;
@@ -180,10 +211,10 @@ RestyleTracker::DoProcessRestyles()
         mPendingRestyles.Put(element, data);
       }
 
-      mHaveLaterSiblingRestyles = false;
+      mHaveLaterSiblingRestyles = PR_FALSE;
     }
 
-    uint32_t rootCount;
+    PRUint32 rootCount;
     while ((rootCount = mRestyleRoots.Length())) {
       
       
@@ -242,7 +273,7 @@ RestyleTracker::DoProcessRestyles()
 
   
   
-  mFrameConstructor->mInStyleRefresh = false;
+  mFrameConstructor->mInStyleRefresh = PR_FALSE;
 
   mFrameConstructor->EndUpdate();
 
@@ -259,7 +290,7 @@ RestyleTracker::GetRestyleData(Element* aElement, RestyleData* aData)
 
   if (!aElement->HasFlag(RestyleBit())) {
     NS_ASSERTION(!aElement->HasFlag(RootBit()), "Bogus root bit?");
-    return false;
+    return PR_FALSE;
   }
 
 #ifdef DEBUG
@@ -285,7 +316,7 @@ RestyleTracker::GetRestyleData(Element* aElement, RestyleData* aData)
     aElement->UnsetFlags(mRestyleBits);
   }
 
-  return true;
+  return PR_TRUE;
 }
 
 } 

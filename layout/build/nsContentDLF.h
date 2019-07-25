@@ -3,15 +3,49 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsContentDLF_h__
 #define nsContentDLF_h__
 
 #include "nsIDocumentLoaderFactory.h"
+#include "nsIDocumentViewer.h"
 #include "nsIDocument.h"
 #include "nsMimeTypes.h"
 
 class nsIChannel;
 class nsIContentViewer;
+class nsIDocumentViewer;
 class nsIFile;
 class nsIInputStream;
 class nsILoadGroup;
@@ -37,7 +71,7 @@ public:
                           nsISupports* aContainer,
                           const nsCID& aDocumentCID,
                           nsIStreamListener** aDocListener,
-                          nsIContentViewer** aContentViewer);
+                          nsIContentViewer** aDocViewer);
 
   nsresult CreateXULDocument(const char* aCommand,
                              nsIChannel* aChannel,
@@ -46,7 +80,7 @@ public:
                              nsISupports* aContainer,
                              nsISupports* aExtraInfo,
                              nsIStreamListener** aDocListener,
-                             nsIContentViewer** aContentViewer);
+                             nsIContentViewer** aDocViewer);
 
 private:
   static nsresult EnsureUAStyleSheet();
@@ -67,7 +101,6 @@ NS_NewContentDocumentLoaderFactory(nsIDocumentLoaderFactory** aResult);
 #define CONTENTDLF_CATEGORIES \
     { "Gecko-Content-Viewers", TEXT_HTML, "@mozilla.org/content/document-loader-factory;1" }, \
     { "Gecko-Content-Viewers", TEXT_PLAIN, "@mozilla.org/content/document-loader-factory;1" }, \
-    { "Gecko-Content-Viewers", TEXT_CACHE_MANIFEST, "@mozilla.org/content/document-loader-factory;1" }, \
     { "Gecko-Content-Viewers", TEXT_CSS, "@mozilla.org/content/document-loader-factory;1" }, \
     { "Gecko-Content-Viewers", TEXT_JAVASCRIPT, "@mozilla.org/content/document-loader-factory;1" }, \
     { "Gecko-Content-Viewers", TEXT_ECMASCRIPT, "@mozilla.org/content/document-loader-factory;1" }, \

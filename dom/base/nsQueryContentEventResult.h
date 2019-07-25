@@ -3,15 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIQueryContentEventResult.h"
 #include "nsString.h"
 #include "nsRect.h"
-#include "mozilla/Attributes.h"
 
 class nsQueryContentEvent;
 class nsIWidget;
 
-class nsQueryContentEventResult MOZ_FINAL : public nsIQueryContentEventResult
+class nsQueryContentEventResult : public nsIQueryContentEventResult
 {
 public:
   nsQueryContentEventResult();
@@ -22,9 +54,9 @@ public:
   void SetEventResult(nsIWidget* aWidget, const nsQueryContentEvent &aEvent);
 
 protected:
-  uint32_t mEventID;
+  PRUint32 mEventID;
 
-  uint32_t mOffset;
+  PRUint32 mOffset;
   nsString mString;
   nsIntRect mRect;
 

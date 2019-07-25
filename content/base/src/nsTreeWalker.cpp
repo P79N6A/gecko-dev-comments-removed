@@ -8,13 +8,48 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsTreeWalker.h"
 
 #include "nsIDOMNode.h"
 #include "nsIDOMNodeFilter.h"
-#include "nsError.h"
+#include "nsDOMError.h"
 #include "nsINode.h"
-#include "nsDOMClassInfoID.h"
+#include "nsIContent.h"
+
 #include "nsContentUtils.h"
 
 
@@ -22,9 +57,10 @@
 
 
 nsTreeWalker::nsTreeWalker(nsINode *aRoot,
-                           uint32_t aWhatToShow,
-                           nsIDOMNodeFilter *aFilter) :
-    nsTraversal(aRoot, aWhatToShow, aFilter),
+                           PRUint32 aWhatToShow,
+                           nsIDOMNodeFilter *aFilter,
+                           bool aExpandEntityReferences) :
+    nsTraversal(aRoot, aWhatToShow, aFilter, aExpandEntityReferences),
     mCurrentNode(aRoot)
 {
 }
@@ -65,13 +101,13 @@ NS_IMETHODIMP nsTreeWalker::GetRoot(nsIDOMNode * *aRoot)
         return CallQueryInterface(mRoot, aRoot);
     }
 
-    *aRoot = nullptr;
+    *aRoot = nsnull;
 
     return NS_OK;
 }
 
 
-NS_IMETHODIMP nsTreeWalker::GetWhatToShow(uint32_t *aWhatToShow)
+NS_IMETHODIMP nsTreeWalker::GetWhatToShow(PRUint32 *aWhatToShow)
 {
     *aWhatToShow = mWhatToShow;
     return NS_OK;
@@ -91,7 +127,7 @@ NS_IMETHODIMP nsTreeWalker::GetFilter(nsIDOMNodeFilter * *aFilter)
 NS_IMETHODIMP
 nsTreeWalker::GetExpandEntityReferences(bool *aExpandEntityReferences)
 {
-    *aExpandEntityReferences = false;
+    *aExpandEntityReferences = mExpandEntityReferences;
     return NS_OK;
 }
 
@@ -102,20 +138,19 @@ NS_IMETHODIMP nsTreeWalker::GetCurrentNode(nsIDOMNode * *aCurrentNode)
         return CallQueryInterface(mCurrentNode, aCurrentNode);
     }
 
-    *aCurrentNode = nullptr;
+    *aCurrentNode = nsnull;
 
     return NS_OK;
 }
 NS_IMETHODIMP nsTreeWalker::SetCurrentNode(nsIDOMNode * aCurrentNode)
 {
     NS_ENSURE_TRUE(aCurrentNode, NS_ERROR_DOM_NOT_SUPPORTED_ERR);
-    NS_ENSURE_TRUE(mRoot, NS_ERROR_UNEXPECTED);
+
+    nsresult rv = nsContentUtils::CheckSameOrigin(mRoot, aCurrentNode);
+    NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<nsINode> node = do_QueryInterface(aCurrentNode);
-    NS_ENSURE_TRUE(node, NS_ERROR_UNEXPECTED);
-
-    nsresult rv = nsContentUtils::CheckSameOrigin(mRoot, node);
-    NS_ENSURE_SUCCESS(rv, rv);
+    NS_ENSURE_TRUE(node, NS_ERROR_DOM_NOT_SUPPORTED_ERR);
 
     mCurrentNode.swap(node);
     return NS_OK;
@@ -128,7 +163,7 @@ NS_IMETHODIMP nsTreeWalker::SetCurrentNode(nsIDOMNode * aCurrentNode)
 
 NS_IMETHODIMP nsTreeWalker::ParentNode(nsIDOMNode **_retval)
 {
-    *_retval = nullptr;
+    *_retval = nsnull;
 
     nsresult rv;
 
@@ -138,7 +173,7 @@ NS_IMETHODIMP nsTreeWalker::ParentNode(nsIDOMNode **_retval)
         node = node->GetNodeParent();
 
         if (node) {
-            int16_t filtered;
+            PRInt16 filtered;
             rv = TestNode(node, &filtered);
             NS_ENSURE_SUCCESS(rv, rv);
             if (filtered == nsIDOMNodeFilter::FILTER_ACCEPT) {
@@ -154,34 +189,34 @@ NS_IMETHODIMP nsTreeWalker::ParentNode(nsIDOMNode **_retval)
 
 NS_IMETHODIMP nsTreeWalker::FirstChild(nsIDOMNode **_retval)
 {
-    return FirstChildInternal(false, _retval);
+    return FirstChildInternal(PR_FALSE, _retval);
 }
 
 
 NS_IMETHODIMP nsTreeWalker::LastChild(nsIDOMNode **_retval)
 {
-    return FirstChildInternal(true, _retval);
+    return FirstChildInternal(PR_TRUE, _retval);
 }
 
 
 NS_IMETHODIMP nsTreeWalker::PreviousSibling(nsIDOMNode **_retval)
 {
-    return NextSiblingInternal(true, _retval);
+    return NextSiblingInternal(PR_TRUE, _retval);
 }
 
 
 NS_IMETHODIMP nsTreeWalker::NextSibling(nsIDOMNode **_retval)
 {
-    return NextSiblingInternal(false, _retval);
+    return NextSiblingInternal(PR_FALSE, _retval);
 }
 
 
 NS_IMETHODIMP nsTreeWalker::PreviousNode(nsIDOMNode **_retval)
 {
     nsresult rv;
-    int16_t filtered;
+    PRInt16 filtered;
 
-    *_retval = nullptr;
+    *_retval = nsnull;
 
     nsCOMPtr<nsINode> node = mCurrentNode;
 
@@ -229,9 +264,9 @@ NS_IMETHODIMP nsTreeWalker::PreviousNode(nsIDOMNode **_retval)
 NS_IMETHODIMP nsTreeWalker::NextNode(nsIDOMNode **_retval)
 {
     nsresult rv;
-    int16_t filtered = nsIDOMNodeFilter::FILTER_ACCEPT; 
+    PRInt16 filtered = nsIDOMNodeFilter::FILTER_ACCEPT; 
 
-    *_retval = nullptr;
+    *_retval = nsnull;
 
     nsCOMPtr<nsINode> node = mCurrentNode;
 
@@ -252,7 +287,7 @@ NS_IMETHODIMP nsTreeWalker::NextNode(nsIDOMNode **_retval)
             }
         }
 
-        nsINode *sibling = nullptr;
+        nsINode *sibling = nsnull;
         nsINode *temp = node;
         do {
             if (temp == mRoot)
@@ -298,9 +333,9 @@ NS_IMETHODIMP nsTreeWalker::NextNode(nsIDOMNode **_retval)
 nsresult nsTreeWalker::FirstChildInternal(bool aReversed, nsIDOMNode **_retval)
 {
     nsresult rv;
-    int16_t filtered;
+    PRInt16 filtered;
 
-    *_retval = nullptr;
+    *_retval = nsnull;
 
     nsCOMPtr<nsINode> node = aReversed ? mCurrentNode->GetLastChild()
                                        : mCurrentNode->GetFirstChild();
@@ -360,9 +395,9 @@ nsresult nsTreeWalker::FirstChildInternal(bool aReversed, nsIDOMNode **_retval)
 nsresult nsTreeWalker::NextSiblingInternal(bool aReversed, nsIDOMNode **_retval)
 {
     nsresult rv;
-    int16_t filtered;
+    PRInt16 filtered;
 
-    *_retval = nullptr;
+    *_retval = nsnull;
 
     nsCOMPtr<nsINode> node = mCurrentNode;
 

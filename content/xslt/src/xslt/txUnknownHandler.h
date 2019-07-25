@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef txUnknownHandler_h___
 #define txUnknownHandler_h___
 
@@ -22,7 +55,7 @@ public:
 private:
     nsresult createHandlerAndFlush(bool aHTMLRoot,
                                    const nsSubstring& aName,
-                                   const int32_t aNsID);
+                                   const PRInt32 aNsID);
 
     
 

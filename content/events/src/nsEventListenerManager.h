@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsEventListenerManager_h__
 #define nsEventListenerManager_h__
 
@@ -29,36 +61,20 @@ class nsEventTargetChainItem;
 class nsPIDOMWindow;
 class nsCxPusher;
 class nsIEventListenerInfo;
+class nsIDocument;
 
-typedef enum
-{
-    eNativeListener = 0,
-    eJSEventListener,
-    eWrappedJSListener
-} nsListenerType;
-
-struct nsListenerStruct
-{
+typedef struct {
   nsRefPtr<nsIDOMEventListener> mListener;
-  uint32_t                      mEventType;
+  PRUint32                      mEventType;
   nsCOMPtr<nsIAtom>             mTypeAtom;
-  uint16_t                      mFlags;
-  uint8_t                       mListenerType;
-  bool                          mListenerIsHandler : 1;
-  bool                          mHandlerIsString : 1;
+  PRUint16                      mFlags;
+  bool                          mHandlerIsString;
 
   nsIJSEventListener* GetJSListener() const {
-    return (mListenerType == eJSEventListener) ?
-      static_cast<nsIJSEventListener *>(mListener.get()) : nullptr;
+    return (mFlags & NS_PRIV_EVENT_FLAG_SCRIPT) ?
+      static_cast<nsIJSEventListener *>(mListener.get()) : nsnull;
   }
-
-  ~nsListenerStruct()
-  {
-    if ((mListenerType == eJSEventListener) && mListener) {
-      static_cast<nsIJSEventListener*>(mListener.get())->Disconnect();
-    }
-  }
-};
+} nsListenerStruct;
 
 
 
@@ -71,7 +87,7 @@ public:
   nsEventListenerManager(nsISupports* aTarget);
   virtual ~nsEventListenerManager();
 
-  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(nsEventListenerManager)
+  NS_INLINE_DECL_REFCOUNTING(nsEventListenerManager)
 
   NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(nsEventListenerManager)
 
@@ -89,10 +105,10 @@ public:
 
   void AddEventListenerByType(nsIDOMEventListener *aListener,
                               const nsAString& type,
-                              int32_t aFlags);
+                              PRInt32 aFlags);
   void RemoveEventListenerByType(nsIDOMEventListener *aListener,
                                  const nsAString& type,
-                                 int32_t aFlags);
+                                 PRInt32 aFlags);
 
   
 
@@ -102,21 +118,21 @@ public:
 
   
   
-  nsresult SetEventHandler(nsIAtom *aName,
-                           const nsAString& aFunc,
-                           uint32_t aLanguage,
-                           bool aDeferCompilation,
-                           bool aPermitUntrustedEvents);
+  nsresult AddScriptEventListener(nsIAtom *aName,
+                                  const nsAString& aFunc,
+                                  PRUint32 aLanguage,
+                                  bool aDeferCompilation,
+                                  bool aPermitUntrustedEvents);
   
 
 
-  void RemoveEventHandler(nsIAtom *aName);
+  void RemoveScriptEventListener(nsIAtom *aName);
 
   void HandleEvent(nsPresContext* aPresContext,
                    nsEvent* aEvent, 
                    nsIDOMEvent** aDOMEvent,
                    nsIDOMEventTarget* aCurrentTarget,
-                   uint32_t aFlags,
+                   PRUint32 aFlags,
                    nsEventStatus* aEventStatus,
                    nsCxPusher* aPusher)
   {
@@ -148,7 +164,7 @@ public:
                            nsEvent* aEvent, 
                            nsIDOMEvent** aDOMEvent,
                            nsIDOMEventTarget* aCurrentTarget,
-                           uint32_t aFlags,
+                           PRUint32 aFlags,
                            nsEventStatus* aEventStatus,
                            nsCxPusher* aPusher);
 
@@ -176,18 +192,12 @@ public:
 
 
 
-  uint32_t MutationListenerBits();
+  PRUint32 MutationListenerBits();
 
   
 
 
   bool HasListenersFor(const nsAString& aEventName);
-
-  
-
-
-
-  bool HasListenersFor(nsIAtom* aEventNameWithOn);
 
   
 
@@ -200,7 +210,7 @@ public:
 
   nsresult GetListenerInfo(nsCOMArray<nsIEventListenerInfo>* aList);
 
-  uint32_t GetIdentifierForEvent(nsIAtom* aEvent);
+  PRUint32 GetIdentifierForEvent(nsIAtom* aEvent);
 
   static void Shutdown();
 
@@ -224,17 +234,13 @@ public:
 
   bool MayHaveMouseEnterLeaveEventListener() { return mMayHaveMouseEnterLeaveEventListener; }
 
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
-
-  void UnmarkGrayJSListeners();
-
-  nsISupports* GetTarget() { return mTarget; }
+  PRInt64 SizeOf() const;
 protected:
   nsresult HandleEventSubType(nsListenerStruct* aListenerStruct,
                               nsIDOMEventListener* aListener,
                               nsIDOMEvent* aDOMEvent,
                               nsIDOMEventTarget* aCurrentTarget,
-                              uint32_t aPhaseFlags,
+                              PRUint32 aPhaseFlags,
                               nsCxPusher* aPusher);
 
   
@@ -249,7 +255,7 @@ protected:
   
 
 
-  nsListenerStruct* FindEventHandler(uint32_t aEventType, nsIAtom* aTypeAtom);
+  nsListenerStruct* FindJSEventListener(PRUint32 aEventType, nsIAtom* aTypeAtom);
 
   
 
@@ -257,17 +263,12 @@ protected:
 
 
 
-  nsresult SetEventHandlerInternal(nsIScriptContext *aContext,
-                                   JSContext* aCx,
-                                   JSObject* aScopeGlobal,
-                                   nsIAtom* aName,
-                                   JSObject *aHandler,
-                                   bool aPermitUntrustedEvents,
-                                   nsListenerStruct **aListenerStruct);
-
-  bool IsDeviceType(uint32_t aType);
-  void EnableDevice(uint32_t aType);
-  void DisableDevice(uint32_t aType);
+  nsresult SetJSEventListener(nsIScriptContext *aContext,
+                              void *aScopeGlobal,
+                              nsIAtom* aName,
+                              JSObject *aHandler,
+                              bool aPermitUntrustedEvents,
+                              nsListenerStruct **aListenerStruct);
 
 public:
   
@@ -275,73 +276,46 @@ public:
 
 
 
-
-
-
-  nsresult SetEventHandlerToJsval(nsIAtom* aEventName, JSContext* cx,
-                                  JSObject* aScope, const jsval& v,
-                                  bool aExpectScriptContext);
+  nsresult SetJSEventListenerToJsval(nsIAtom *aEventName, JSContext *cx,
+                                     JSObject *aScope, const jsval &v);
   
 
 
 
-  void GetEventHandler(nsIAtom *aEventName, jsval *vp);
+  void GetJSEventListener(nsIAtom *aEventName, jsval *vp);
 
 protected:
   void AddEventListener(nsIDOMEventListener *aListener, 
-                        uint32_t aType,
+                        PRUint32 aType,
                         nsIAtom* aTypeAtom,
-                        int32_t aFlags,
-                        bool aHandler = false);
+                        PRInt32 aFlags);
   void RemoveEventListener(nsIDOMEventListener *aListener,
-                           uint32_t aType,
+                           PRUint32 aType,
                            nsIAtom* aUserType,
-                           int32_t aFlags);
+                           PRInt32 aFlags);
   void RemoveAllListeners();
   const EventTypeData* GetTypeDataForIID(const nsIID& aIID);
   const EventTypeData* GetTypeDataForEventName(nsIAtom* aName);
   nsPIDOMWindow* GetInnerWindowForTarget();
 
-  uint32_t mMayHavePaintEventListener : 1;
-  uint32_t mMayHaveMutationListeners : 1;
-  uint32_t mMayHaveCapturingListeners : 1;
-  uint32_t mMayHaveSystemGroupListeners : 1;
-  uint32_t mMayHaveAudioAvailableEventListener : 1;
-  uint32_t mMayHaveTouchEventListener : 1;
-  uint32_t mMayHaveMouseEnterLeaveEventListener : 1;
-  uint32_t mNoListenerForEvent : 25;
+  PRUint32 mMayHavePaintEventListener : 1;
+  PRUint32 mMayHaveMutationListeners : 1;
+  PRUint32 mMayHaveCapturingListeners : 1;
+  PRUint32 mMayHaveSystemGroupListeners : 1;
+  PRUint32 mMayHaveAudioAvailableEventListener : 1;
+  PRUint32 mMayHaveTouchEventListener : 1;
+  PRUint32 mMayHaveMouseEnterLeaveEventListener : 1;
+  PRUint32 mNoListenerForEvent : 25;
 
   nsAutoTObserverArray<nsListenerStruct, 2> mListeners;
   nsISupports*                              mTarget;  
   nsCOMPtr<nsIAtom>                         mNoListenerForEventAtom;
 
-  static uint32_t                           mInstanceCount;
+  static PRUint32                           mInstanceCount;
   static jsid                               sAddListenerID;
 
   friend class nsEventTargetChainItem;
-  static uint32_t                           sCreatedCount;
+  static PRUint32                           sCreatedCount;
 };
-
-
-
-
-
-inline nsresult
-NS_AddSystemEventListener(nsIDOMEventTarget* aTarget,
-                          const nsAString& aType,
-                          nsIDOMEventListener *aListener,
-                          bool aUseCapture,
-                          bool aWantsUntrusted)
-{
-  nsEventListenerManager* listenerManager = aTarget->GetListenerManager(true);
-  NS_ENSURE_STATE(listenerManager);
-  uint32_t flags = NS_EVENT_FLAG_SYSTEM_EVENT;
-  flags |= aUseCapture ? NS_EVENT_FLAG_CAPTURE : NS_EVENT_FLAG_BUBBLE;
-  if (aWantsUntrusted) {
-    flags |= NS_PRIV_EVENT_UNTRUSTED_PERMITTED;
-  }
-  listenerManager->AddEventListenerByType(aListener, aType, flags);
-  return NS_OK;
-}
 
 #endif 

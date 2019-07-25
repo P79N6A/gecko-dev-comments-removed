@@ -5,6 +5,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsImageFrame_h___
 #define nsImageFrame_h___
 
@@ -17,7 +50,6 @@
 
 #include "nsDisplayList.h"
 #include "imgIContainer.h"
-#include "mozilla/Attributes.h"
 
 class nsIFrame;
 class nsImageMap;
@@ -30,7 +62,6 @@ class nsDisplayImage;
 class nsPresContext;
 class nsImageFrame;
 class nsTransform2D;
-class nsImageLoadingContent;
 
 namespace mozilla {
 namespace layers {
@@ -54,8 +85,7 @@ public:
   NS_IMETHOD OnStopDecode(imgIRequest *aRequest, nsresult status,
                           const PRUnichar *statusArg);
   
-  NS_IMETHOD FrameChanged(imgIRequest *aRequest,
-                          imgIContainer *aContainer,
+  NS_IMETHOD FrameChanged(imgIContainer *aContainer,
                           const nsIntRect *dirtyRect);
 
   void SetFrame(nsImageFrame *frame) { mFrame = frame; }
@@ -105,27 +135,27 @@ public:
                         nsEventStatus* aEventStatus);
   NS_IMETHOD GetCursor(const nsPoint& aPoint,
                        nsIFrame::Cursor& aCursor);
-  NS_IMETHOD AttributeChanged(int32_t aNameSpaceID,
+  NS_IMETHOD AttributeChanged(PRInt32 aNameSpaceID,
                               nsIAtom* aAttribute,
-                              int32_t aModType);
+                              PRInt32 aModType);
 
 #ifdef ACCESSIBILITY
-  virtual already_AddRefed<Accessible> CreateAccessible();
+  virtual already_AddRefed<nsAccessible> CreateAccessible();
 #endif
 
   virtual nsIAtom* GetType() const;
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     return ImageFrameSuper::IsFrameOfType(aFlags & ~(nsIFrame::eReplaced));
   }
 
 #ifdef DEBUG
   NS_IMETHOD GetFrameName(nsAString& aResult) const;
-  NS_IMETHOD List(FILE* out, int32_t aIndent) const;
+  NS_IMETHOD List(FILE* out, PRInt32 aIndent) const;
 #endif
 
-  virtual int GetSkipSides() const;
+  virtual PRIntn GetSkipSides() const;
 
   nsresult GetIntrinsicImageSize(nsSize& aSize);
 
@@ -152,30 +182,14 @@ public:
 
   nsRect GetInnerArea() const;
 
-  
-
-
-  mozilla::dom::Element* GetMapElement() const
-  {
-    nsAutoString usemap;
-    if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::usemap, usemap)) {
-      return mContent->OwnerDoc()->FindImageMap(usemap);
-    }
-    return nullptr;
-  }
-
-  
-
-
-  bool HasImageMap() const { return mImageMap || GetMapElement(); }
-
   nsImageMap* GetImageMap();
-  nsImageMap* GetExistingImageMap() const { return mImageMap; }
 
   virtual void AddInlineMinWidth(nsRenderingContext *aRenderingContext,
                                  InlineMinWidthData *aData);
 
-  void DisconnectMap();
+  nsRefPtr<ImageContainer> GetContainer(LayerManager* aManager,
+                                        imgIContainer* aImage);
+
 protected:
   virtual ~nsImageFrame();
 
@@ -184,7 +198,7 @@ protected:
   virtual nsSize ComputeSize(nsRenderingContext *aRenderingContext,
                              nsSize aCBSize, nscoord aAvailableWidth,
                              nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                             uint32_t aFlags) MOZ_OVERRIDE;
+                             bool aShrinkWrap);
 
   bool IsServerImageMap();
 
@@ -203,9 +217,9 @@ protected:
 
 
   nscoord MeasureString(const PRUnichar*     aString,
-                        int32_t              aLength,
+                        PRInt32              aLength,
                         nscoord              aMaxWidth,
-                        uint32_t&            aMaxFit,
+                        PRUint32&            aMaxFit,
                         nsRenderingContext& aContext);
 
   void DisplayAltText(nsPresContext*      aPresContext,
@@ -215,24 +229,18 @@ protected:
 
   void PaintImage(nsRenderingContext& aRenderingContext, nsPoint aPt,
                   const nsRect& aDirtyRect, imgIContainer* aImage,
-                  uint32_t aFlags);
+                  PRUint32 aFlags);
 
 protected:
   friend class nsImageListener;
-  friend class nsImageLoadingContent;
   nsresult OnStartContainer(imgIRequest *aRequest, imgIContainer *aImage);
   nsresult OnDataAvailable(imgIRequest *aRequest, bool aCurrentFrame,
                            const nsIntRect *rect);
   nsresult OnStopDecode(imgIRequest *aRequest,
                         nsresult aStatus,
                         const PRUnichar *aStatusArg);
-  nsresult FrameChanged(imgIRequest *aRequest,
-                        imgIContainer *aContainer,
+  nsresult FrameChanged(imgIContainer *aContainer,
                         const nsIntRect *aDirtyRect);
-  
-
-
-  void NotifyNewCurrentRequest(imgIRequest *aRequest, nsresult aStatus);
 
 private:
   
@@ -298,6 +306,8 @@ private:
 
   static nsIIOService* sIOService;
   
+  nsRefPtr<ImageContainer> mImageContainer; 
+
   
 
   
@@ -310,8 +320,8 @@ private:
   nsresult LoadIcon(const nsAString& aSpec, nsPresContext *aPresContext,
                     imgIRequest **aRequest);
 
-  class IconLoad MOZ_FINAL : public nsIObserver,
-                             public imgIDecoderObserver {
+  class IconLoad : public nsIObserver,
+                   public imgIDecoderObserver {
     
     
   public:
@@ -378,23 +388,14 @@ public:
   }
   virtual void Paint(nsDisplayListBuilder* aBuilder,
                      nsRenderingContext* aCtx);
-
+  nsCOMPtr<imgIContainer> GetImage();
+ 
   
 
 
 
-  already_AddRefed<ImageContainer> GetContainer();
-
-  gfxRect GetDestRect();
-
-  virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
-                                   LayerManager* aManager,
-                                   const ContainerParameters& aParameters);
-
-  virtual already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
-                                             LayerManager* aManager,
-                                             const ContainerParameters& aContainerParameters);
-
+  nsRefPtr<ImageContainer> GetContainer(LayerManager* aManager);
+  
   
 
 

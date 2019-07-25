@@ -8,14 +8,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_css_StyleRule_h__
 #define mozilla_css_StyleRule_h__
 
-#include "mozilla/Attributes.h"
 
-#include "mozilla/Attributes.h"
 #include "mozilla/css/Rule.h"
-
 #include "nsString.h"
 #include "nsCOMPtr.h"
 #include "nsCSSPseudoElements.h"
@@ -34,32 +65,29 @@ public:
   ~nsAtomList(void);
 
   
-  nsAtomList* Clone() const { return Clone(true); }
-
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  nsAtomList* Clone() const { return Clone(PR_TRUE); }
 
   nsCOMPtr<nsIAtom> mAtom;
   nsAtomList*       mNext;
 private: 
   nsAtomList* Clone(bool aDeep) const;
 
-  nsAtomList(const nsAtomList& aCopy) MOZ_DELETE;
-  nsAtomList& operator=(const nsAtomList& aCopy) MOZ_DELETE;
+  
+  nsAtomList(const nsAtomList& aCopy);
+  nsAtomList& operator=(const nsAtomList& aCopy); 
 };
 
 struct nsPseudoClassList {
 public:
   nsPseudoClassList(nsCSSPseudoClasses::Type aType);
   nsPseudoClassList(nsCSSPseudoClasses::Type aType, const PRUnichar *aString);
-  nsPseudoClassList(nsCSSPseudoClasses::Type aType, const int32_t *aIntPair);
+  nsPseudoClassList(nsCSSPseudoClasses::Type aType, const PRInt32 *aIntPair);
   nsPseudoClassList(nsCSSPseudoClasses::Type aType,
                     nsCSSSelectorList *aSelectorList );
   ~nsPseudoClassList(void);
 
   
-  nsPseudoClassList* Clone() const { return Clone(true); }
-
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  nsPseudoClassList* Clone() const { return Clone(PR_TRUE); }
 
   union {
     
@@ -73,7 +101,7 @@ public:
     
     void*           mMemory; 
     PRUnichar*      mString;
-    int32_t*        mNumbers;
+    PRInt32*        mNumbers;
     nsCSSSelectorList* mSelectors;
   } u;
   nsCSSPseudoClasses::Type mType;
@@ -81,8 +109,9 @@ public:
 private: 
   nsPseudoClassList* Clone(bool aDeep) const;
 
-  nsPseudoClassList(const nsPseudoClassList& aCopy) MOZ_DELETE;
-  nsPseudoClassList& operator=(const nsPseudoClassList& aCopy) MOZ_DELETE;
+  
+  nsPseudoClassList(const nsPseudoClassList& aCopy);
+  nsPseudoClassList& operator=(const nsPseudoClassList& aCopy); 
 };
 
 #define NS_ATTR_FUNC_SET        0     // [attr]
@@ -95,30 +124,31 @@ private:
 
 struct nsAttrSelector {
 public:
-  nsAttrSelector(int32_t aNameSpace, const nsString& aAttr);
-  nsAttrSelector(int32_t aNameSpace, const nsString& aAttr, uint8_t aFunction, 
+  nsAttrSelector(PRInt32 aNameSpace, const nsString& aAttr);
+  nsAttrSelector(PRInt32 aNameSpace, const nsString& aAttr, PRUint8 aFunction, 
                  const nsString& aValue, bool aCaseSensitive);
-  nsAttrSelector(int32_t aNameSpace, nsIAtom* aLowercaseAttr, 
-                 nsIAtom* aCasedAttr, uint8_t aFunction, 
+  nsAttrSelector(PRInt32 aNameSpace, nsIAtom* aLowercaseAttr, 
+                 nsIAtom* aCasedAttr, PRUint8 aFunction, 
                  const nsString& aValue, bool aCaseSensitive);
   ~nsAttrSelector(void);
 
   
-  nsAttrSelector* Clone() const { return Clone(true); }
+  nsAttrSelector* Clone() const { return Clone(PR_TRUE); }
 
   nsString        mValue;
   nsAttrSelector* mNext;
   nsCOMPtr<nsIAtom> mLowercaseAttr;
   nsCOMPtr<nsIAtom> mCasedAttr;
-  int32_t         mNameSpace;
-  uint8_t         mFunction;
+  PRInt32         mNameSpace;
+  PRUint8         mFunction;
   bool            mCaseSensitive; 
                                   
 private: 
   nsAttrSelector* Clone(bool aDeep) const;
 
-  nsAttrSelector(const nsAttrSelector& aCopy) MOZ_DELETE;
-  nsAttrSelector& operator=(const nsAttrSelector& aCopy) MOZ_DELETE;
+  
+  nsAttrSelector(const nsAttrSelector& aCopy);
+  nsAttrSelector& operator=(const nsAttrSelector& aCopy); 
 };
 
 struct nsCSSSelector {
@@ -127,21 +157,21 @@ public:
   ~nsCSSSelector(void);
 
   
-  nsCSSSelector* Clone() const { return Clone(true, true); }
+  nsCSSSelector* Clone() const { return Clone(PR_TRUE, PR_TRUE); }
 
   void Reset(void);
-  void SetNameSpace(int32_t aNameSpace);
+  void SetNameSpace(PRInt32 aNameSpace);
   void SetTag(const nsString& aTag);
   void AddID(const nsString& aID);
   void AddClass(const nsString& aClass);
   void AddPseudoClass(nsCSSPseudoClasses::Type aType);
   void AddPseudoClass(nsCSSPseudoClasses::Type aType, const PRUnichar* aString);
-  void AddPseudoClass(nsCSSPseudoClasses::Type aType, const int32_t* aIntPair);
+  void AddPseudoClass(nsCSSPseudoClasses::Type aType, const PRInt32* aIntPair);
   
   void AddPseudoClass(nsCSSPseudoClasses::Type aType,
                       nsCSSSelectorList* aSelectorList);
-  void AddAttribute(int32_t aNameSpace, const nsString& aAttr);
-  void AddAttribute(int32_t aNameSpace, const nsString& aAttr, uint8_t aFunc, 
+  void AddAttribute(PRInt32 aNameSpace, const nsString& aAttr);
+  void AddAttribute(PRInt32 aNameSpace, const nsString& aAttr, PRUint8 aFunc, 
                     const nsString& aValue, bool aCaseSensitive);
   void SetOperator(PRUnichar aOperator);
 
@@ -154,7 +184,7 @@ public:
   }
 
   
-  int32_t CalcWeight() const;
+  PRInt32 CalcWeight() const;
 
   void ToString(nsAString& aString, nsCSSStyleSheet* aSheet,
                 bool aAppend = false) const;
@@ -175,7 +205,7 @@ private:
   bool CanBeNamespaced(bool aIsNegated) const;
   
   
-  int32_t CalcWeightWithoutNegations() const;
+  PRInt32 CalcWeightWithoutNegations() const;
 
 public:
   
@@ -184,10 +214,8 @@ public:
   }
   void SetPseudoType(nsCSSPseudoElements::Type aType) {
     NS_ASSERTION(aType > PR_INT16_MIN && aType < PR_INT16_MAX, "Out of bounds");
-    mPseudoType = static_cast<int16_t>(aType);
+    mPseudoType = static_cast<PRInt16>(aType);
   }
-
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
 
   
   
@@ -202,14 +230,14 @@ public:
   nsAttrSelector* mAttrList;
   nsCSSSelector*  mNegations;
   nsCSSSelector*  mNext;
-  int32_t         mNameSpace;
+  PRInt32         mNameSpace;
   PRUnichar       mOperator;
 private:
   
-  int16_t        mPseudoType;
-
-  nsCSSSelector(const nsCSSSelector& aCopy) MOZ_DELETE;
-  nsCSSSelector& operator=(const nsCSSSelector& aCopy) MOZ_DELETE;
+  PRInt16        mPseudoType;
+  
+  nsCSSSelector(const nsCSSSelector& aCopy);
+  nsCSSSelector& operator=(const nsCSSSelector& aCopy); 
 };
 
 
@@ -241,18 +269,17 @@ struct nsCSSSelectorList {
   
 
 
-  nsCSSSelectorList* Clone() const { return Clone(true); }
-
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  nsCSSSelectorList* Clone() const { return Clone(PR_TRUE); }
 
   nsCSSSelector*     mSelectors;
-  int32_t            mWeight;
+  PRInt32            mWeight;
   nsCSSSelectorList* mNext;
 private: 
   nsCSSSelectorList* Clone(bool aDeep) const;
 
-  nsCSSSelectorList(const nsCSSSelectorList& aCopy) MOZ_DELETE;
-  nsCSSSelectorList& operator=(const nsCSSSelectorList& aCopy) MOZ_DELETE;
+  
+  nsCSSSelectorList(const nsCSSSelectorList& aCopy);
+  nsCSSSelectorList& operator=(const nsCSSSelectorList& aCopy); 
 };
 
 
@@ -277,7 +304,7 @@ public:
   
   virtual void MapRuleInfoInto(nsRuleData* aRuleData);
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
+  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
 
 protected:
@@ -291,7 +318,7 @@ protected:
   friend class StyleRule;
 };
 
-class StyleRule MOZ_FINAL : public Rule
+class NS_FINAL_CLASS StyleRule : public Rule
 {
  public:
   StyleRule(nsCSSSelectorList* aSelector,
@@ -310,8 +337,8 @@ public:
   
   nsCSSSelectorList* Selector() { return mSelector; }
 
-  uint32_t GetLineNumber() const { return mLineNumber; }
-  void SetLineNumber(uint32_t aLineNumber) { mLineNumber = aLineNumber; }
+  PRUint32 GetLineNumber() const { return mLineNumber; }
+  void SetLineNumber(PRUint32 aLineNumber) { mLineNumber = aLineNumber; }
 
   Declaration* GetDeclaration() const { return mDeclaration; }
 
@@ -341,7 +368,7 @@ public:
   void GetSelectorText(nsAString& aSelectorText);
   void SetSelectorText(const nsAString& aSelectorText);
 
-  virtual int32_t GetType() const;
+  virtual PRInt32 GetType() const;
 
   virtual already_AddRefed<Rule> Clone() const;
 
@@ -351,10 +378,12 @@ public:
   virtual void MapRuleInfoInto(nsRuleData* aRuleData);
 
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
+  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
 
-  virtual size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+private:
+  
+  StyleRule& operator=(const StyleRule& aCopy);
 
 private:
   ~StyleRule();
@@ -365,11 +394,8 @@ private:
   ImportantRule*          mImportantRule; 
   DOMCSSStyleRule*        mDOMRule;
   
-  uint32_t                mLineNumber : 31;
-  uint32_t                mWasMatched : 1;
-
-private:
-  StyleRule& operator=(const StyleRule& aCopy) MOZ_DELETE;
+  PRUint32                mLineNumber : 31;
+  PRUint32                mWasMatched : 1;
 };
 
 } 

@@ -3,23 +3,52 @@
 
 
 
-#include "mozilla/net/CookieServiceChild.h"
 
-#include "mozilla/ipc/URIUtils.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "mozilla/net/CookieServiceChild.h"
 #include "mozilla/net/NeckoChild.h"
 #include "nsIURI.h"
 #include "nsIPrefService.h"
-#include "nsIPrefBranch.h"
-
-using namespace mozilla::ipc;
+#include "nsIPrefBranch2.h"
 
 namespace mozilla {
 namespace net {
 
 
-static const int32_t BEHAVIOR_ACCEPT = 0;
-static const int32_t BEHAVIOR_REJECTFOREIGN = 1;
-static const int32_t BEHAVIOR_REJECT = 2;
+static const PRInt32 BEHAVIOR_ACCEPT = 0;
+static const PRInt32 BEHAVIOR_REJECTFOREIGN = 1;
+static const PRInt32 BEHAVIOR_REJECT = 2;
 
 
 static const char kPrefCookieBehavior[] = "network.cookie.cookieBehavior";
@@ -57,25 +86,25 @@ CookieServiceChild::CookieServiceChild()
   gNeckoChild->SendPCookieServiceConstructor(this);
 
   
-  nsCOMPtr<nsIPrefBranch> prefBranch =
+  nsCOMPtr<nsIPrefBranch2> prefBranch =
     do_GetService(NS_PREFSERVICE_CONTRACTID);
   NS_WARN_IF_FALSE(prefBranch, "no prefservice");
   if (prefBranch) {
-    prefBranch->AddObserver(kPrefCookieBehavior, this, true);
-    prefBranch->AddObserver(kPrefThirdPartySession, this, true);
+    prefBranch->AddObserver(kPrefCookieBehavior, this, PR_TRUE);
+    prefBranch->AddObserver(kPrefThirdPartySession, this, PR_TRUE);
     PrefChanged(prefBranch);
   }
 }
 
 CookieServiceChild::~CookieServiceChild()
 {
-  gCookieService = nullptr;
+  gCookieService = nsnull;
 }
 
 void
 CookieServiceChild::PrefChanged(nsIPrefBranch *aPrefBranch)
 {
-  int32_t val;
+  PRInt32 val;
   if (NS_SUCCEEDED(aPrefBranch->GetIntPref(kPrefCookieBehavior, &val)))
     mCookieBehavior =
       val >= BEHAVIOR_ACCEPT && val <= BEHAVIOR_REJECT ? val : BEHAVIOR_ACCEPT;
@@ -112,12 +141,9 @@ CookieServiceChild::GetCookieStringInternal(nsIURI *aHostURI,
   if (RequireThirdPartyCheck())
     mThirdPartyUtil->IsThirdPartyChannel(aChannel, aHostURI, &isForeign);
 
-  URIParams uriParams;
-  SerializeURI(aHostURI, uriParams);
-
   
-  nsAutoCString result;
-  SendGetCookieString(uriParams, !!isForeign, aFromHttp, &result);
+  nsCAutoString result;
+  SendGetCookieString(IPC::URI(aHostURI), !!isForeign, aFromHttp, &result);
   if (!result.IsEmpty())
     *aCookieString = ToNewCString(result);
 
@@ -144,12 +170,9 @@ CookieServiceChild::SetCookieStringInternal(nsIURI *aHostURI,
   if (aServerTime)
     serverTime.Rebind(aServerTime);
 
-  URIParams uriParams;
-  SerializeURI(aHostURI, uriParams);
-
   
-  SendSetCookieString(uriParams, !!isForeign, cookieString, serverTime,
-                      aFromHttp);
+  SendSetCookieString(IPC::URI(aHostURI), !!isForeign,
+                      cookieString, serverTime, aFromHttp);
   return NS_OK;
 }
 
@@ -191,7 +214,7 @@ CookieServiceChild::SetCookieString(nsIURI *aHostURI,
                                     nsIChannel *aChannel)
 {
   return SetCookieStringInternal(aHostURI, aChannel, aCookieString,
-                                 nullptr, false);
+                                 nsnull, false);
 }
 
 NS_IMETHODIMP

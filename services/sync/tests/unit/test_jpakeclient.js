@@ -1,4 +1,4 @@
-Cu.import("resource://services-common/log4moz.js");
+Cu.import("resource://services-sync/log4moz.js");
 Cu.import("resource://services-sync/identity.js");
 Cu.import("resource://services-sync/jpakeclient.js");
 Cu.import("resource://services-sync/constants.js");
@@ -66,13 +66,6 @@ function server_report(request, response) {
   response.setStatusLine(request.httpVersion, 200, "OK");
 }
 
-
-let hooks = {};
-function initHooks() {
-  hooks.onGET = function onGET(request) {};
-}
-initHooks();
-
 function ServerChannel() {
   this.data = "";
   this.etag = "";
@@ -90,7 +83,6 @@ ServerChannel.prototype = {
       let etag = request.getHeader("If-None-Match");
       if (etag == this.etag) {
         response.setStatusLine(request.httpVersion, 304, "Not Modified");
-        hooks.onGET(request);
         return;
       }
     }
@@ -103,7 +95,6 @@ ServerChannel.prototype = {
     if (this.getCount == SERVER_MAX_GETS) {
       this.clear();
     }
-    hooks.onGET(request);
   },
 
   PUT: function PUT(request, response) {
@@ -168,7 +159,7 @@ const DATA = {"msg": "eggstreamly sekrit"};
 const POLLINTERVAL = 50;
 
 function run_test() {
-  Svc.Prefs.set("jpake.serverURL", TEST_SERVER_URL);
+  Svc.Prefs.set("jpake.serverURL", "http://localhost:8080/");
   Svc.Prefs.set("jpake.pollInterval", POLLINTERVAL);
   Svc.Prefs.set("jpake.maxTries", 2);
   Svc.Prefs.set("jpake.firstMsgMaxTries", 5);
@@ -183,15 +174,16 @@ function run_test() {
 
   
   
-  setBasicCredentials("johndoe", "ilovejane");
+  let id = new Identity(PWDMGR_PASSWORD_REALM, "johndoe");
+  id.password = "ilovejane";
+  ID.set("WeaveID", id);
 
   server = httpd_setup({"/new_channel": server_new_channel,
                         "/report":      server_report});
 
   initTestLogging("Trace");
   Log4Moz.repository.getLogger("Sync.JPAKEClient").level = Log4Moz.Level.Trace;
-  Log4Moz.repository.getLogger("Common.RESTRequest").level =
-    Log4Moz.Level.Trace;
+  Log4Moz.repository.getLogger("Sync.RESTRequest").level = Log4Moz.Level.Trace;
   run_next_test();
 }
 
@@ -273,18 +265,10 @@ add_test(function test_firstMsgMaxTries() {
       
       
       
-      
-      
-      
-      _("Received PIN " + pin + ". Waiting for three polls before entering it into sender...");
+      _("Received PIN " + pin + ". Waiting 150ms before entering it into sender...");
       this.cid = pin.slice(JPAKE_LENGTH_SECRET);
-      let count = 0;
-      hooks.onGET = function onGET(request) {
-        if (++count == 3) {
-          _("Third GET. Triggering pair.");
-          Utils.nextTick(function() { snd.pairWithPIN(pin, false); });
-        }
-      };
+      Utils.namedTimer(function() { snd.pairWithPIN(pin, false); },
+                       150, this, "_sendTimer");
     },
     onPairingStart: function onPairingStart(pin) {},
     onComplete: function onComplete(data) {
@@ -292,15 +276,12 @@ add_test(function test_firstMsgMaxTries() {
       
       do_check_eq(channels[this.cid].data, undefined);
       do_check_eq(error_report, undefined);
-
-      
-      initHooks();
       run_next_test();
     }
   });
   rec.receiveNoPIN();
 });
-  
+
 
 add_test(function test_lastMsgMaxTries() {
   _("Test that receiver can wait longer for the last message.");
@@ -313,15 +294,9 @@ add_test(function test_lastMsgMaxTries() {
       
       
       
-      
-      
-      let count = 0;
-      hooks.onGET = function onGET(request) {
-        if (++count == 3) {
-          _("Third GET. Triggering send.");
-          Utils.nextTick(function() { snd.sendAndComplete(DATA); });
-        }
-      };
+      _("Pairing successful, waiting 150ms to send final payload.");
+      Utils.namedTimer(function() { snd.sendAndComplete(DATA); },
+                       150, this, "_sendTimer");
     },
     onComplete: function onComplete() {}
   });
@@ -339,9 +314,6 @@ add_test(function test_lastMsgMaxTries() {
       
       do_check_eq(channels[this.cid].data, undefined);
       do_check_eq(error_report, undefined);
-
-      
-      initHooks();
       run_next_test();
     }
   });
@@ -432,22 +404,14 @@ add_test(function test_abort_sender() {
       
       do_check_eq(channels[this.cid].data, undefined);
       do_check_eq(error_report, undefined);
-      initHooks();
       run_next_test();
     },
     displayPIN: function displayPIN(pin) {
       _("Received PIN " + pin + ". Entering it in the other computer...");
       this.cid = pin.slice(JPAKE_LENGTH_SECRET);
       Utils.nextTick(function() { snd.pairWithPIN(pin, false); });
-
-      
-      let count = 0;
-      hooks.onGET = function onGET(request) {
-        if (++count >= 1) {
-          _("First GET. Aborting.");
-          Utils.nextTick(function() { snd.abort(); });
-        }
-      };
+      Utils.namedTimer(function() { snd.abort(); },
+                       POLLINTERVAL, this, "_abortTimer");
     },
     onPairingStart: function onPairingStart(pin) {}
   });

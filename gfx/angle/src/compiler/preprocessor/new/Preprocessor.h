@@ -7,41 +7,34 @@
 #ifndef COMPILER_PREPROCESSOR_PREPROCESSOR_H_
 #define COMPILER_PREPROCESSOR_PREPROCESSOR_H_
 
-#include "pp_utils.h"
+#include "common/angleutils.h"
+#include "Token.h"
 
 namespace pp
 {
 
-class Diagnostics;
-class DirectiveHandler;
-struct PreprocessorImpl;
-struct Token;
+class Context;
 
 class Preprocessor
 {
   public:
-    Preprocessor(Diagnostics* diagnostics, DirectiveHandler* directiveHandler);
+    Preprocessor();
     ~Preprocessor();
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    bool init(int count, const char* const string[], const int length[]);
-    
-    void predefineMacro(const char* name, int value);
+    bool init();
 
-    void lex(Token* token);
+    bool process(int count, const char* const string[], const int length[]);
+    TokenIterator begin() const { return mTokens.begin(); }
+    TokenIterator end() const { return mTokens.end(); }
 
   private:
-    PP_DISALLOW_COPY_AND_ASSIGN(Preprocessor);
+    DISALLOW_COPY_AND_ASSIGN(Preprocessor);
 
-    PreprocessorImpl* mImpl;
+    
+    void reset();
+
+    Context* mContext;
+    TokenVector mTokens;  
 };
 
 }  

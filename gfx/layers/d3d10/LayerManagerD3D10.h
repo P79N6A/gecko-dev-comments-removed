@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_LAYERMANAGERD3D10_H
 #define GFX_LAYERMANAGERD3D10_H
 
@@ -55,6 +87,8 @@ extern cairo_user_data_key_t gKeyD3D10Texture;
 class THEBES_API LayerManagerD3D10 : public ShadowLayerManager,
                                      public ShadowLayerForwarder {
 public:
+  typedef LayerManager::LayersBackend LayersBackend;
+
   LayerManagerD3D10(nsIWidget *aWidget);
   virtual ~LayerManagerD3D10();
 
@@ -66,7 +100,7 @@ public:
 
 
 
-  bool Initialize(bool force = false);
+  bool Initialize();
 
   
 
@@ -85,7 +119,7 @@ public:
 
   virtual void BeginTransactionWithTarget(gfxContext* aTarget);
 
-  virtual bool EndEmptyTransaction(EndTransactionFlags aFlags = END_DEFAULT);
+  virtual bool EndEmptyTransaction();
 
   struct CallbackInfo {
     DrawThebesLayerCallback Callback;
@@ -107,11 +141,6 @@ public:
     return aSize <= gfxIntSize(MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE);
   }
 
-  virtual int32_t GetMaxTextureSize() const
-  {
-    return MAX_TEXTURE_SIZE;
-  }
-
   virtual already_AddRefed<ThebesLayer> CreateThebesLayer();
   virtual already_AddRefed<ShadowThebesLayer> CreateShadowThebesLayer();
 
@@ -120,24 +149,23 @@ public:
 
   virtual already_AddRefed<ImageLayer> CreateImageLayer();
   virtual already_AddRefed<ShadowImageLayer> CreateShadowImageLayer()
-  { return nullptr; }
+  { return nsnull; }
 
   virtual already_AddRefed<ColorLayer> CreateColorLayer();
   virtual already_AddRefed<ShadowColorLayer> CreateShadowColorLayer()
-  { return nullptr; }
+  { return nsnull; }
 
   virtual already_AddRefed<CanvasLayer> CreateCanvasLayer();
   virtual already_AddRefed<ShadowCanvasLayer> CreateShadowCanvasLayer()
-  { return nullptr; }
+  { return nsnull; }
 
   virtual already_AddRefed<ReadbackLayer> CreateReadbackLayer();
+
+  virtual already_AddRefed<ImageContainer> CreateImageContainer();
 
   virtual already_AddRefed<gfxASurface>
     CreateOptimalSurface(const gfxIntSize &aSize,
                          gfxASurface::gfxImageFormat imageFormat);
-
-  virtual already_AddRefed<gfxASurface>
-    CreateOptimalMaskSurface(const gfxIntSize &aSize);
 
   virtual TemporaryRef<mozilla::gfx::DrawTarget>
     CreateDrawTarget(const mozilla::gfx::IntSize &aSize,
@@ -155,13 +183,9 @@ public:
   ID3D10Device1 *device() const { return mDevice; }
 
   ID3D10Effect *effect() const { return mEffect; }
-  IDXGISwapChain *SwapChain() const
-  {
-    return mSwapChain;
-  }
+
   ReadbackManagerD3D10 *readbackManager();
 
-  void SetupInputAssembler();
   void SetViewport(const nsIntSize &aViewport);
   const nsIntSize &GetViewport() { return mViewport; }
 
@@ -178,7 +202,7 @@ private:
   void VerifyBufferSize();
   void EnsureReadbackManager();
 
-  void Render(EndTransactionFlags aFlags);
+  void Render();
 
   nsRefPtr<ID3D10Device1> mDevice;
 
@@ -241,7 +265,7 @@ class LayerD3D10
 public:
   LayerD3D10(LayerManagerD3D10 *aManager);
 
-  virtual LayerD3D10 *GetFirstChildD3D10() { return nullptr; }
+  virtual LayerD3D10 *GetFirstChildD3D10() { return nsnull; }
 
   void SetFirstChild(LayerD3D10 *aParent);
 
@@ -265,20 +289,6 @@ public:
 
   Nv3DVUtils *GetNv3DVUtils()  { return mD3DManager->GetNv3DVUtils(); }
 
-  
-
-
-
-
-
-
-
-
-
-  virtual already_AddRefed<ID3D10ShaderResourceView> GetAsTexture(gfxIntSize* aSize)
-  {
-    return nullptr;
-  }
 
   void SetEffectTransformAndOpacity()
   {
@@ -290,37 +300,6 @@ public:
   }
 
 protected:
-  
-
-
-
-
-
-  uint8_t LoadMaskTexture();
-
-  
-
-
-
-
-
-
-  ID3D10EffectTechnique* SelectShader(uint8_t aFlags);
-  const static uint8_t SHADER_NO_MASK = 0;
-  const static uint8_t SHADER_MASK = 0x1;
-  const static uint8_t SHADER_MASK_3D = 0x2;
-  
-  const static uint8_t SHADER_RGB = 0;
-  const static uint8_t SHADER_RGBA = 0x4;
-  const static uint8_t SHADER_NON_PREMUL = 0;
-  const static uint8_t SHADER_PREMUL = 0x8;
-  const static uint8_t SHADER_LINEAR = 0;
-  const static uint8_t SHADER_POINT = 0x10;
-  
-  const static uint8_t SHADER_YCBCR = 0x20;
-  const static uint8_t SHADER_COMPONENT_ALPHA = 0x24;
-  const static uint8_t SHADER_SOLID = 0x28;
-
   LayerManagerD3D10 *mD3DManager;
 };
 
@@ -357,7 +336,6 @@ public:
   void ComputeEffectiveTransforms(const gfx3DMatrix&) {}
   void InsertAfter(Layer*, Layer*);
   void RemoveChild(Layer*);
-  void RepositionChild(Layer*, Layer*);
   Layer* AsLayer() { return this; }
 
   void SetShadow(PLayerChild* aChild) { mShadow = aChild; }

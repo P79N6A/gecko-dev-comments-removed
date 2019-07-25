@@ -6,10 +6,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsCSSStyleSheet_h_
 #define nsCSSStyleSheet_h_
-
-#include "mozilla/Attributes.h"
 
 #include "nscore.h"
 #include "nsCOMPtr.h"
@@ -18,9 +51,6 @@
 #include "nsIDOMCSSStyleSheet.h"
 #include "nsICSSLoaderObserver.h"
 #include "nsCOMArray.h"
-#include "nsTArray.h"
-#include "nsString.h"
-#include "mozilla/CORSMode.h"
 
 class nsXMLNameSpaceMap;
 class nsCSSRuleProcessor;
@@ -49,9 +79,9 @@ class nsCSSStyleSheetInner {
 public:
   friend class nsCSSStyleSheet;
   friend class nsCSSRuleProcessor;
+  friend nsresult NS_NewCSSStyleSheet(nsCSSStyleSheet** aInstancePtrResult);
 private:
-  nsCSSStyleSheetInner(nsCSSStyleSheet* aPrimarySheet,
-                       mozilla::CORSMode aCORSMode);
+  nsCSSStyleSheetInner(nsCSSStyleSheet* aPrimarySheet);
   nsCSSStyleSheetInner(nsCSSStyleSheetInner& aCopy,
                        nsCSSStyleSheet* aPrimarySheet);
   ~nsCSSStyleSheetInner();
@@ -64,8 +94,6 @@ private:
 
   
   nsresult CreateNamespaceMap();
-
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
 
   nsAutoTArray<nsCSSStyleSheet*, 8> mSheets;
   nsCOMPtr<nsIURI>       mSheetURI; 
@@ -80,7 +108,6 @@ private:
   
   
   nsRefPtr<nsCSSStyleSheet> mFirstChild;
-  mozilla::CORSMode      mCORSMode;
   bool                   mComplete;
 
 #ifdef DEBUG
@@ -103,12 +130,12 @@ struct ChildSheetListBuilder;
  { 0x84, 0x67, 0x80, 0x3f, 0xb3, 0x2a, 0xf2, 0x0a } }
 
 
-class nsCSSStyleSheet MOZ_FINAL : public nsIStyleSheet,
-                                  public nsIDOMCSSStyleSheet,
-                                  public nsICSSLoaderObserver
+class NS_FINAL_CLASS nsCSSStyleSheet : public nsIStyleSheet,
+                                       public nsIDOMCSSStyleSheet,
+                                       public nsICSSLoaderObserver
 {
 public:
-  nsCSSStyleSheet(mozilla::CORSMode aCORSMode);
+  nsCSSStyleSheet();
 
   NS_DECL_ISUPPORTS
 
@@ -129,27 +156,27 @@ public:
   virtual void SetOwningDocument(nsIDocument* aDocument);
 
   
-  uint64_t FindOwningWindowInnerID() const;
+  PRUint64 FindOwningWindowInnerID() const;
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
+  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
 
   void AppendStyleSheet(nsCSSStyleSheet* aSheet);
-  void InsertStyleSheetAt(nsCSSStyleSheet* aSheet, int32_t aIndex);
+  void InsertStyleSheetAt(nsCSSStyleSheet* aSheet, PRInt32 aIndex);
 
   
   void PrependStyleRule(mozilla::css::Rule* aRule);
   void AppendStyleRule(mozilla::css::Rule* aRule);
   void ReplaceStyleRule(mozilla::css::Rule* aOld, mozilla::css::Rule* aNew);
 
-  int32_t StyleRuleCount() const;
-  nsresult GetStyleRuleAt(int32_t aIndex, mozilla::css::Rule*& aRule) const;
+  PRInt32 StyleRuleCount() const;
+  nsresult GetStyleRuleAt(PRInt32 aIndex, mozilla::css::Rule*& aRule) const;
 
-  nsresult DeleteRuleFromGroup(mozilla::css::GroupRule* aGroup, uint32_t aIndex);
-  nsresult InsertRuleIntoGroup(const nsAString& aRule, mozilla::css::GroupRule* aGroup, uint32_t aIndex, uint32_t* _retval);
+  nsresult DeleteRuleFromGroup(mozilla::css::GroupRule* aGroup, PRUint32 aIndex);
+  nsresult InsertRuleIntoGroup(const nsAString& aRule, mozilla::css::GroupRule* aGroup, PRUint32 aIndex, PRUint32* _retval);
   nsresult ReplaceRuleInGroup(mozilla::css::GroupRule* aGroup, mozilla::css::Rule* aOld, mozilla::css::Rule* aNew);
 
-  int32_t StyleSheetCount() const;
+  PRInt32 StyleSheetCount() const;
 
   
 
@@ -167,9 +194,6 @@ public:
 
   
   nsIPrincipal* Principal() const { return mInner->mPrincipal; }
-
-  
-  nsIDocument* GetDocument() const { return mDocument; }
 
   void SetTitle(const nsAString& aTitle) { mTitle = aTitle; }
   void SetMedia(nsMediaList* aMedia);
@@ -200,7 +224,7 @@ public:
 
 
   nsresult InsertRuleInternal(const nsAString& aRule,
-                              uint32_t aIndex, uint32_t* aReturn);
+                              PRUint32 aIndex, PRUint32* aReturn);
 
   
 
@@ -228,8 +252,6 @@ public:
   bool UseForPresentation(nsPresContext* aPresContext,
                             nsMediaQueryResultCacheKey& aKey) const;
 
-  nsresult ParseSheet(const nsAString& aInput);
-
   
   NS_DECL_NSIDOMSTYLESHEET
 
@@ -240,11 +262,6 @@ public:
   
   static bool RebuildChildList(mozilla::css::Rule* aRule, void* aBuilder);
 
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
-
-  
-  mozilla::CORSMode GetCORSMode() const { return mInner->mCORSMode; }
-
 private:
   nsCSSStyleSheet(const nsCSSStyleSheet& aCopy,
                   nsCSSStyleSheet* aParentToUse,
@@ -252,8 +269,9 @@ private:
                   nsIDocument* aDocumentToUse,
                   nsIDOMNode* aOwningNodeToUse);
 
-  nsCSSStyleSheet(const nsCSSStyleSheet& aCopy) MOZ_DELETE;
-  nsCSSStyleSheet& operator=(const nsCSSStyleSheet& aCopy) MOZ_DELETE;
+  
+  nsCSSStyleSheet(const nsCSSStyleSheet& aCopy); 
+  nsCSSStyleSheet& operator=(const nsCSSStyleSheet& aCopy); 
 
 protected:
   virtual ~nsCSSStyleSheet();
@@ -266,8 +284,7 @@ protected:
   
   
   
-  
-  nsresult SubjectSubsumesInnerPrincipal();
+  nsresult SubjectSubsumesInnerPrincipal() const;
 
   
   nsresult RegisterNamespaceRule(mozilla::css::Rule* aRule);
@@ -291,9 +308,12 @@ protected:
 
   friend class nsMediaList;
   friend class nsCSSRuleProcessor;
+  friend nsresult NS_NewCSSStyleSheet(nsCSSStyleSheet** aInstancePtrResult);
   friend struct ChildSheetListBuilder;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsCSSStyleSheet, NS_CSS_STYLE_SHEET_IMPL_CID)
+
+nsresult NS_NewCSSStyleSheet(nsCSSStyleSheet** aInstancePtrResult);
 
 #endif 

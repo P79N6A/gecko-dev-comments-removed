@@ -2,10 +2,6 @@
 
 
 
-
-
-
-
 #include "tests.h"
 
 #include "jscompartment.h"

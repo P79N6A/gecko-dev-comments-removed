@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsHTMLLegendElement.h"
 #include "nsIDOMHTMLFormElement.h"
 #include "nsIDOMEventTarget.h"
@@ -50,7 +83,7 @@ NS_IMPL_ELEMENT_CLONE(nsHTMLLegendElement)
 NS_IMETHODIMP
 nsHTMLLegendElement::GetForm(nsIDOMHTMLFormElement** aForm)
 {
-  Element* form = GetFormElement();
+  Element *form = GetFormElement();
 
   return form ? CallQueryInterface(form, aForm) : NS_OK;
 }
@@ -73,21 +106,21 @@ nsHTMLLegendElement::GetFieldSet()
 {
   nsIContent* parent = GetParent();
 
-  if (parent && parent->IsHTML(nsGkAtoms::fieldset)) {
+  if (parent && parent->IsHTML() && parent->Tag() == nsGkAtoms::fieldset) {
     return parent;
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 bool
-nsHTMLLegendElement::ParseAttribute(int32_t aNamespaceID,
+nsHTMLLegendElement::ParseAttribute(PRInt32 aNamespaceID,
                                     nsIAtom* aAttribute,
                                     const nsAString& aValue,
                                     nsAttrValue& aResult)
 {
   if (aAttribute == nsGkAtoms::align && aNamespaceID == kNameSpaceID_None) {
-    return aResult.ParseEnumValue(aValue, kAlignTable, false);
+    return aResult.ParseEnumValue(aValue, kAlignTable, PR_FALSE);
   }
 
   return nsGenericHTMLElement::ParseAttribute(aNamespaceID, aAttribute, aValue,
@@ -96,7 +129,7 @@ nsHTMLLegendElement::ParseAttribute(int32_t aNamespaceID,
 
 nsChangeHint
 nsHTMLLegendElement::GetAttributeChangeHint(const nsIAtom* aAttribute,
-                                            int32_t aModType) const
+                                            PRInt32 aModType) const
 {
   nsChangeHint retval =
       nsGenericHTMLElement::GetAttributeChangeHint(aAttribute, aModType);
@@ -107,7 +140,7 @@ nsHTMLLegendElement::GetAttributeChangeHint(const nsIAtom* aAttribute,
 }
 
 nsresult
-nsHTMLLegendElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
+nsHTMLLegendElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
                              nsIAtom* aPrefix, const nsAString& aValue,
                              bool aNotify)
 {
@@ -115,7 +148,7 @@ nsHTMLLegendElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
                                        aPrefix, aValue, aNotify);
 }
 nsresult
-nsHTMLLegendElement::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
+nsHTMLLegendElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
                                bool aNotify)
 {
   return nsGenericHTMLElement::UnsetAttr(aNameSpaceID, aAttribute, aNotify);
@@ -144,8 +177,8 @@ nsHTMLLegendElement::Focus()
   if (!frame)
     return NS_OK;
 
-  int32_t tabIndex;
-  if (frame->IsFocusable(&tabIndex, false))
+  PRInt32 tabIndex;
+  if (frame->IsFocusable(&tabIndex, PR_FALSE))
     return nsGenericHTMLElement::Focus();
 
   
@@ -155,8 +188,7 @@ nsHTMLLegendElement::Focus()
     return NS_OK;
 
   nsCOMPtr<nsIDOMElement> result;
-  return fm->MoveFocus(nullptr, this, nsIFocusManager::MOVEFOCUS_FORWARD,
-                       nsIFocusManager::FLAG_NOPARENTFRAME,
+  return fm->MoveFocus(nsnull, this, nsIFocusManager::MOVEFOCUS_FORWARD, 0,
                        getter_AddRefs(result));
 }
 

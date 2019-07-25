@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsScriptElement.h"
 #include "mozilla/dom/Element.h"
 #include "nsContentUtils.h"
@@ -22,17 +55,30 @@ nsScriptElement::ScriptAvailable(nsresult aResult,
                                  nsIScriptElement *aElement,
                                  bool aIsInline,
                                  nsIURI *aURI,
-                                 int32_t aLineNo)
+                                 PRInt32 aLineNo)
 {
   if (!aIsInline && NS_FAILED(aResult)) {
     nsCOMPtr<nsIContent> cont =
       do_QueryInterface((nsIScriptElement*) this);
 
-    return nsContentUtils::DispatchTrustedEvent(cont->OwnerDoc(),
-                                                cont,
-                                                NS_LITERAL_STRING("error"),
-                                                false ,
-                                                false );
+    nsRefPtr<nsPresContext> presContext =
+      nsContentUtils::GetContextForContent(cont);
+
+    nsEventStatus status = nsEventStatus_eIgnore;
+    nsScriptErrorEvent event(PR_TRUE, NS_LOAD_ERROR);
+
+    event.lineNr = aLineNo;
+
+    NS_NAMED_LITERAL_STRING(errorString, "Error loading script");
+    event.errorMsg = errorString.get();
+
+    nsCAutoString spec;
+    aURI->GetSpec(spec);
+
+    NS_ConvertUTF8toUTF16 fileName(spec);
+    event.fileName = fileName.get();
+
+    nsEventDispatcher::Dispatch(cont, presContext, &event, nsnull, &status);
   }
 
   return NS_OK;
@@ -52,14 +98,14 @@ nsScriptElement::ScriptEvaluated(nsresult aResult,
       nsContentUtils::GetContextForContent(cont);
 
     nsEventStatus status = nsEventStatus_eIgnore;
-    uint32_t type = NS_SUCCEEDED(aResult) ? NS_LOAD : NS_LOAD_ERROR;
-    nsEvent event(true, type);
+    PRUint32 type = NS_SUCCEEDED(aResult) ? NS_LOAD : NS_LOAD_ERROR;
+    nsEvent event(PR_TRUE, type);
     if (type == NS_LOAD) {
       
       event.flags |= NS_EVENT_FLAG_CANT_BUBBLE;
     }
 
-    nsEventDispatcher::Dispatch(cont, presContext, &event, nullptr, &status);
+    nsEventDispatcher::Dispatch(cont, presContext, &event, nsnull, &status);
   }
 
   return rv;
@@ -76,9 +122,9 @@ nsScriptElement::CharacterDataChanged(nsIDocument *aDocument,
 void
 nsScriptElement::AttributeChanged(nsIDocument* aDocument,
                                   Element* aElement,
-                                  int32_t aNameSpaceID,
+                                  PRInt32 aNameSpaceID,
                                   nsIAtom* aAttribute,
-                                  int32_t aModType)
+                                  PRInt32 aModType)
 {
   MaybeProcessScript();
 }
@@ -87,7 +133,7 @@ void
 nsScriptElement::ContentAppended(nsIDocument* aDocument,
                                  nsIContent* aContainer,
                                  nsIContent* aFirstNewContent,
-                                 int32_t aNewIndexInContainer)
+                                 PRInt32 aNewIndexInContainer)
 {
   MaybeProcessScript();
 }
@@ -96,12 +142,12 @@ void
 nsScriptElement::ContentInserted(nsIDocument *aDocument,
                                  nsIContent* aContainer,
                                  nsIContent* aChild,
-                                 int32_t aIndexInContainer)
+                                 PRInt32 aIndexInContainer)
 {
   MaybeProcessScript();
 }
 
-bool
+nsresult
 nsScriptElement::MaybeProcessScript()
 {
   nsCOMPtr<nsIContent> cont =
@@ -112,14 +158,14 @@ nsScriptElement::MaybeProcessScript()
 
   if (mAlreadyStarted || !mDoneAddingChildren || !cont->IsInDoc() ||
       mMalformed || !HasScriptContent()) {
-    return false;
+    return NS_OK;
   }
 
   FreezeUriAsyncDefer();
 
-  mAlreadyStarted = true;
+  mAlreadyStarted = PR_TRUE;
 
-  nsIDocument* ownerDoc = cont->OwnerDoc();
+  nsIDocument* ownerDoc = cont->GetOwnerDoc();
   nsCOMPtr<nsIParser> parser = ((nsIScriptElement*) this)->GetCreatorParser();
   if (parser) {
     nsCOMPtr<nsIContentSink> sink = parser->GetContentSink();
@@ -127,11 +173,21 @@ nsScriptElement::MaybeProcessScript()
       nsCOMPtr<nsIDocument> parserDoc = do_QueryInterface(sink->GetTarget());
       if (ownerDoc != parserDoc) {
         
-        return false;
+        return NS_OK;
       }
     }
   }
 
   nsRefPtr<nsScriptLoader> loader = ownerDoc->ScriptLoader();
-  return loader->ProcessScriptElement(this);
+  nsresult scriptresult = loader->ProcessScriptElement(this);
+
+  
+  
+  
+  if (NS_FAILED(scriptresult) &&
+      scriptresult != NS_ERROR_HTMLPARSER_BLOCK) {
+    scriptresult = NS_OK;
+  }
+
+  return scriptresult;
 }

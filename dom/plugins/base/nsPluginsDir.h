@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsPluginsDir_h_
 #define nsPluginsDir_h_
 
@@ -27,7 +59,7 @@ struct PRLibrary;
 struct nsPluginInfo {
 	char* fName;				
 	char* fDescription;			
-	uint32_t fVariantCount;
+	PRUint32 fVariantCount;
 	char** fMimeTypeArray;
 	char** fMimeDescriptionArray;
 	char** fExtensionArray;

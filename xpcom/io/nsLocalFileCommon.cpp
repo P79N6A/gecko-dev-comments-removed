@@ -2,9 +2,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIServiceManager.h"
 
 #include "nsLocalFile.h" 
+#include "nsLocalFileUnicode.h"
 
 #include "nsString.h"
 #include "nsCOMPtr.h"
@@ -31,11 +65,11 @@ void NS_ShutdownLocalFile()
 
 #if !defined(MOZ_WIDGET_COCOA) && !defined(XP_WIN)
 NS_IMETHODIMP
-nsLocalFile::InitWithFile(nsIFile *aFile)
+nsLocalFile::InitWithFile(nsILocalFile *aFile)
 {
     NS_ENSURE_ARG(aFile);
     
-    nsAutoCString path;
+    nsCAutoString path;
     aFile->GetNativePath(path);
     if (path.IsEmpty())
         return NS_ERROR_INVALID_ARG;
@@ -49,7 +83,7 @@ nsLocalFile::InitWithFile(nsIFile *aFile)
 
 
 NS_IMETHODIMP
-nsLocalFile::CreateUnique(uint32_t type, uint32_t attributes)
+nsLocalFile::CreateUnique(PRUint32 type, PRUint32 attributes)
 {
     nsresult rv;
     bool longName;
@@ -58,7 +92,7 @@ nsLocalFile::CreateUnique(uint32_t type, uint32_t attributes)
     nsAutoString pathName, leafName, rootName, suffix;
     rv = GetPath(pathName);
 #else
-    nsAutoCString pathName, leafName, rootName, suffix; 
+    nsCAutoString pathName, leafName, rootName, suffix; 
     rv = GetNativePath(pathName);
 #endif
     if (NS_FAILED(rv))
@@ -78,13 +112,13 @@ nsLocalFile::CreateUnique(uint32_t type, uint32_t attributes)
     if (NS_FAILED(rv))
         return rv;
 
-    const int32_t lastDot = leafName.RFindChar(PRUnichar('.'));
+    const PRInt32 lastDot = leafName.RFindChar(PRUnichar('.'));
 #else
     rv = GetNativeLeafName(leafName);
     if (NS_FAILED(rv))
         return rv;
 
-    const int32_t lastDot = leafName.RFindChar('.');
+    const PRInt32 lastDot = leafName.RFindChar('.');
 #endif
 
     if (lastDot == kNotFound)
@@ -99,7 +133,7 @@ nsLocalFile::CreateUnique(uint32_t type, uint32_t attributes)
 
     if (longName)
     {
-        int32_t maxRootLength = (kMaxFilenameLength -
+        PRInt32 maxRootLength = (kMaxFilenameLength -
                                  (pathName.Length() - leafName.Length()) -
                                  suffix.Length() - kMaxSequenceNumberLength);
 
@@ -162,7 +196,7 @@ static const PRUnichar kPathSeparatorChar       = '/';
 #error Need to define file path separator for your platform
 #endif
 
-static int32_t SplitPath(PRUnichar *path, PRUnichar **nodeArray, int32_t arrayLen)
+static PRInt32 SplitPath(PRUnichar *path, PRUnichar **nodeArray, PRInt32 arrayLen)
 {
     if (*path == 0)
       return 0;
@@ -187,10 +221,10 @@ static int32_t SplitPath(PRUnichar *path, PRUnichar **nodeArray, int32_t arrayLe
 
  
 NS_IMETHODIMP
-nsLocalFile::GetRelativeDescriptor(nsIFile *fromFile, nsACString& _retval)
+nsLocalFile::GetRelativeDescriptor(nsILocalFile *fromFile, nsACString& _retval)
 {
     NS_ENSURE_ARG_POINTER(fromFile);
-    const int32_t kMaxNodesInPath = 32;
+    const PRInt32 kMaxNodesInPath = 32;
 
     
     
@@ -201,7 +235,7 @@ nsLocalFile::GetRelativeDescriptor(nsIFile *fromFile, nsACString& _retval)
 
     nsAutoString thisPath, fromPath;
     PRUnichar *thisNodes[kMaxNodesInPath], *fromNodes[kMaxNodesInPath];
-    int32_t  thisNodeCnt, fromNodeCnt, nodeIndex;
+    PRInt32  thisNodeCnt, fromNodeCnt, nodeIndex;
     
     rv = GetPath(thisPath);
     if (NS_FAILED(rv))
@@ -229,7 +263,7 @@ nsLocalFile::GetRelativeDescriptor(nsIFile *fromFile, nsACString& _retval)
 #endif
     }
     
-    int32_t branchIndex = nodeIndex;
+    PRInt32 branchIndex = nodeIndex;
     for (nodeIndex = branchIndex; nodeIndex < fromNodeCnt; nodeIndex++) 
       _retval.AppendLiteral("../");
     for (nodeIndex = branchIndex; nodeIndex < thisNodeCnt; nodeIndex++) {
@@ -243,7 +277,7 @@ nsLocalFile::GetRelativeDescriptor(nsIFile *fromFile, nsACString& _retval)
 }
 
 NS_IMETHODIMP
-nsLocalFile::SetRelativeDescriptor(nsIFile *fromFile, const nsACString& relativeDesc)
+nsLocalFile::SetRelativeDescriptor(nsILocalFile *fromFile, const nsACString& relativeDesc)
 {
     NS_NAMED_LITERAL_CSTRING(kParentDirStr, "../");
  
@@ -286,5 +320,6 @@ nsLocalFile::SetRelativeDescriptor(nsIFile *fromFile, const nsACString& relative
       nodeBegin = nodeEnd;
     }
 
-    return InitWithFile(targetFile);
+    nsCOMPtr<nsILocalFile> targetLocalFile(do_QueryInterface(targetFile));
+    return InitWithFile(targetLocalFile);
 }

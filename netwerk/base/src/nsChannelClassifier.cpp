@@ -2,6 +2,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsChannelClassifier.h"
 
 #include "nsNetUtil.h"
@@ -10,7 +44,6 @@
 #include "nsICachingChannel.h"
 #include "nsICacheEntryDescriptor.h"
 #include "prlog.h"
-#include "nsIScriptSecurityManager.h"
 
 #if defined(PR_LOGGING)
 
@@ -36,7 +69,7 @@ nsChannelClassifier::Start(nsIChannel *aChannel)
 {
     
     
-    nsresult status;
+    PRUint32 status;
     aChannel->GetStatus(&status);
     if (NS_FAILED(status))
         return NS_OK;
@@ -86,17 +119,8 @@ nsChannelClassifier::Start(nsIChannel *aChannel)
     }
     NS_ENSURE_SUCCESS(rv, rv);
 
-    nsCOMPtr<nsIScriptSecurityManager> securityManager =
-        do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    nsCOMPtr<nsIPrincipal> principal;
-    rv = securityManager->GetChannelPrincipal(aChannel,
-                                              getter_AddRefs(principal));
-    NS_ENSURE_SUCCESS(rv, rv);
-
     bool expectCallback;
-    rv = uriClassifier->Classify(principal, this, &expectCallback);
+    rv = uriClassifier->Classify(uri, this, &expectCallback);
     if (NS_FAILED(rv)) return rv;
 
     if (expectCallback) {
@@ -144,7 +168,7 @@ nsChannelClassifier::MarkEntryClassified(nsresult status)
     }
 
     cacheEntry->SetMetaDataElement("necko:classified",
-                                   NS_SUCCEEDED(status) ? "1" : nullptr);
+                                   NS_SUCCEEDED(status) ? "1" : nsnull);
 }
 
 bool
@@ -153,26 +177,26 @@ nsChannelClassifier::HasBeenClassified(nsIChannel *aChannel)
     nsCOMPtr<nsICachingChannel> cachingChannel =
         do_QueryInterface(aChannel);
     if (!cachingChannel) {
-        return false;
+        return PR_FALSE;
     }
 
     
     
     bool fromCache;
     if (NS_FAILED(cachingChannel->IsFromCache(&fromCache)) || !fromCache) {
-        return false;
+        return PR_FALSE;
     }
 
     nsCOMPtr<nsISupports> cacheToken;
     cachingChannel->GetCacheToken(getter_AddRefs(cacheToken));
     if (!cacheToken) {
-        return false;
+        return PR_FALSE;
     }
 
     nsCOMPtr<nsICacheEntryDescriptor> cacheEntry =
         do_QueryInterface(cacheToken);
     if (!cacheEntry) {
-        return false;
+        return PR_FALSE;
     }
 
     nsXPIDLCString tag;
@@ -198,7 +222,7 @@ nsChannelClassifier::OnClassifyComplete(nsresult aErrorCode)
              "OnClassifyComplete", this, mSuspendedChannel.get()));
 #endif
         mSuspendedChannel->Resume();
-        mSuspendedChannel = nullptr;
+        mSuspendedChannel = nsnull;
     }
 
     return NS_OK;

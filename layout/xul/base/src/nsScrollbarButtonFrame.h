@@ -10,6 +10,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsScrollbarButtonFrame_h___
 #define nsScrollbarButtonFrame_h___
 
@@ -25,7 +57,7 @@ public:
   NS_DECL_FRAMEARENA_HELPERS
 
   nsScrollbarButtonFrame(nsIPresShell* aPresShell, nsStyleContext* aContext):
-    nsButtonBoxFrame(aPresShell, aContext), mCursorOnThis(false) {}
+    nsButtonBoxFrame(aPresShell, aContext) {}
 
   
   virtual void DestroyFrom(nsIFrame* aDestructRoot);
@@ -72,8 +104,7 @@ protected:
     static_cast<nsScrollbarButtonFrame*>(aData)->Notify();
   }
   
-  int32_t mIncrement;  
-  bool mCursorOnThis;
+  PRInt32 mIncrement;  
 };
 
 #endif

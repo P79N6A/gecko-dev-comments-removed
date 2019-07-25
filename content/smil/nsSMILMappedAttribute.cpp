@@ -4,11 +4,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSMILMappedAttribute.h"
-#include "nsAttrValue.h"
-#include "nsError.h" 
+#include "nsPropertyTable.h"
+#include "nsContentErrors.h" 
 #include "nsSMILValue.h"
 #include "nsSMILCSSValueType.h"
+#include "nsIContent.h"
 #include "nsIDocument.h"
 #include "nsIPresShell.h"
 #include "nsCSSProps.h"
@@ -53,13 +86,13 @@ nsSMILMappedAttribute::GetBaseValue() const
     
     
     nsSMILCSSValueType::ValueFromString(mPropID, mElement,
-                                        baseStringValue, baseValue, nullptr);
+                                        baseStringValue, baseValue, nsnull);
   } else {
     
     
     
     void* buf = mElement->UnsetProperty(SMIL_MAPPED_ATTR_ANIMVAL,
-                                        attrName, nullptr);
+                                        attrName, nsnull);
     FlushChangesToTargetAttr();
 
     
@@ -91,16 +124,10 @@ nsSMILMappedAttribute::SetAnimValue(const nsSMILValue& aValue)
     return NS_ERROR_FAILURE;
   }
 
-  nsRefPtr<nsIAtom> attrName = GetAttrNameAtom();
-  nsStringBuffer* oldValStrBuf = static_cast<nsStringBuffer*>
-    (mElement->GetProperty(SMIL_MAPPED_ATTR_ANIMVAL, attrName));
-  if (oldValStrBuf && valStr.Equals(nsCheapString(oldValStrBuf))) {
-    return NS_OK;
-  }
-
   
   nsStringBuffer* valStrBuf =
     nsCSSValue::BufferFromString(nsString(valStr)).get();
+  nsRefPtr<nsIAtom> attrName = GetAttrNameAtom();
   nsresult rv = mElement->SetProperty(SMIL_MAPPED_ATTR_ANIMVAL,
                                       attrName, valStrBuf,
                                       ReleaseStringBufferPropertyValue);

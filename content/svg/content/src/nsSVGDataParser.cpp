@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  
 
 
@@ -20,8 +52,6 @@
 #include "prdtoa.h"
 #include "nsSVGUtils.h"
 #include "nsMathUtils.h"
-#include "nsMemory.h"
-#include "nsReadableUtils.h"
 #include <stdlib.h>
 #include <math.h>
 
@@ -42,7 +72,7 @@ nsSVGDataParser::Parse(const nsAString &aValue)
   if (mTokenType != END)
     rv = NS_ERROR_FAILURE; 
 
-  mInputPos = nullptr;
+  mInputPos = nsnull;
   nsMemory::Free(str);
 
   return rv;

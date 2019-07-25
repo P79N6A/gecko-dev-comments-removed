@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_dom_StorageChild_h
 #define mozilla_dom_StorageChild_h
 
@@ -16,31 +49,30 @@ namespace dom {
 
 class StorageChild : public PStorageChild
                    , public DOMStorageBase
-                   , public nsSupportsWeakReference
 {
 public:
-  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(StorageChild, nsIPrivacyTransitionObserver)
+  NS_DECL_CYCLE_COLLECTION_CLASS(StorageChild)
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_NSIPRIVACYTRANSITIONOBSERVER
   
   StorageChild(nsDOMStorage* aOwner);
   StorageChild(nsDOMStorage* aOwner, StorageChild& aOther);
 
-  virtual void InitAsSessionStorage(nsIURI* aDomainURI, bool aPrivate);
-  virtual void InitAsLocalStorage(nsIURI* aDomainURI, bool aCanUseChromePersist, bool aPrivate);
+  virtual void InitAsSessionStorage(nsIURI* aDomainURI);
+  virtual void InitAsLocalStorage(nsIURI* aDomainURI, bool aCanUseChromePersist);
+  virtual void InitAsGlobalStorage(const nsACString& aDomainDemanded);
 
   virtual bool CacheStoragePermissions();
   
   virtual nsTArray<nsString>* GetKeys(bool aCallerSecure);
-  virtual nsresult GetLength(bool aCallerSecure, uint32_t* aLength);
-  virtual nsresult GetKey(bool aCallerSecure, uint32_t aIndex, nsAString& aKey);
+  virtual nsresult GetLength(bool aCallerSecure, PRUint32* aLength);
+  virtual nsresult GetKey(bool aCallerSecure, PRUint32 aIndex, nsAString& aKey);
   virtual nsIDOMStorageItem* GetValue(bool aCallerSecure, const nsAString& aKey,
                                       nsresult* rv);
   virtual nsresult SetValue(bool aCallerSecure, const nsAString& aKey,
                             const nsAString& aData, nsAString& aOldValue);
   virtual nsresult RemoveValue(bool aCallerSecure, const nsAString& aKey,
                                nsAString& aOldValue);
-  virtual nsresult Clear(bool aCallerSecure, int32_t* aOldCount);
+  virtual nsresult Clear(bool aCallerSecure, PRInt32* aOldCount);
 
   virtual bool CanUseChromePersist();
 

@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_storage_Connection_h
 #define mozilla_storage_Connection_h
 
@@ -19,7 +53,6 @@
 #include "mozStorageService.h"
 
 #include "nsIMutableArray.h"
-#include "mozilla/Attributes.h"
 
 #include "sqlite3.h"
 
@@ -27,12 +60,15 @@ struct PRLock;
 class nsIFile;
 class nsIEventTarget;
 class nsIThread;
+class nsIMemoryReporter;
 
 namespace mozilla {
 namespace storage {
 
-class Connection MOZ_FINAL : public mozIStorageConnection
-                           , public nsIInterfaceRequestor
+class StorageMemoryReporter;
+
+class Connection : public mozIStorageConnection
+                 , public nsIInterfaceRequestor
 {
 public:
   NS_DECL_ISUPPORTS
@@ -50,7 +86,7 @@ public:
 
     nsCOMPtr<nsISupports> function;
     FunctionType type;
-    int32_t numArgs;
+    PRInt32 numArgs;
   };
 
   
@@ -121,37 +157,6 @@ public:
 
   nsCString getFilename();
 
-  
-
-
-
-
-
-
-
-
-  int prepareStatement(const nsCString &aSQL, sqlite3_stmt **_stmt);
-
-  
-
-
-
-
-
-
-
-  int stepStatement(sqlite3_stmt* aStatement);
-
-  bool ConnectionReady() {
-    return mDBConn != nullptr;
-  }
-
-  
-
-
-
-  bool isAsyncClosing();
-
 private:
   ~Connection();
 
@@ -162,15 +167,6 @@ private:
 
 
   nsresult setClosedState();
-
-  
-
-
-
-
-
-
-  int executeSql(const char *aSqlString);
 
   
 
@@ -207,6 +203,8 @@ private:
 
   sqlite3 *mDBConn;
   nsCOMPtr<nsIFile> mDatabaseFile;
+
+  nsTArray<nsRefPtr<StorageMemoryReporter> > mMemoryReporters;
 
   
 

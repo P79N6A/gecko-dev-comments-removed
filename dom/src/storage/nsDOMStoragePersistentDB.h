@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDOMStoragePersistentDB_h___
 #define nsDOMStoragePersistentDB_h___
 
@@ -13,7 +46,6 @@
 #include "nsTHashtable.h"
 #include "nsDataHashtable.h"
 #include "mozilla/TimeStamp.h"
-#include "mozilla/storage/StatementCache.h"
 
 class DOMStorageImpl;
 class nsSessionStorageEntry;
@@ -23,20 +55,12 @@ using mozilla::TimeDuration;
 
 class nsDOMStoragePersistentDB : public nsDOMStorageBaseDB
 {
-  typedef mozilla::storage::StatementCache<mozIStorageStatement> StatementCache;
-
 public:
   nsDOMStoragePersistentDB();
   ~nsDOMStoragePersistentDB() {}
 
   nsresult
   Init(const nsString& aDatabaseName);
-
-  
-
-
-  void
-  Close();
 
   
 
@@ -64,9 +88,9 @@ public:
          const nsAString& aKey,
          const nsAString& aValue,
          bool aSecure,
-         int32_t aQuota,
+         PRInt32 aQuota,
          bool aExcludeOfflineFromUsage,
-         int32_t* aNewUsage);
+         PRInt32* aNewUsage);
 
   
 
@@ -84,7 +108,7 @@ public:
   RemoveKey(DOMStorageImpl* aStorage,
             const nsAString& aKey,
             bool aExcludeOfflineFromUsage,
-            int32_t aKeyUsage);
+            PRInt32 aKeyUsage);
 
   
 
@@ -115,13 +139,13 @@ public:
 
 
   nsresult
-  GetUsage(DOMStorageImpl* aStorage, bool aExcludeOfflineFromUsage, int32_t *aUsage);
+  GetUsage(DOMStorageImpl* aStorage, bool aExcludeOfflineFromUsage, PRInt32 *aUsage);
 
   
 
 
   nsresult
-  GetUsage(const nsACString& aDomain, bool aIncludeSubDomains, int32_t *aUsage);
+  GetUsage(const nsACString& aDomain, bool aIncludeSubDomains, PRInt32 *aUsage);
 
   
 
@@ -161,10 +185,23 @@ protected:
                                              void* aUserArg);       
 
   nsCOMPtr<mozIStorageConnection> mConnection;
-  StatementCache mStatements;
+
+  nsCOMPtr<mozIStorageStatement> mCopyToTempTableStatement;
+  nsCOMPtr<mozIStorageStatement> mCopyBackToDiskStatement;
+  nsCOMPtr<mozIStorageStatement> mDeleteTemporaryTableStatement;
+  nsCOMPtr<mozIStorageStatement> mGetAllKeysStatement;
+  nsCOMPtr<mozIStorageStatement> mGetKeyValueStatement;
+  nsCOMPtr<mozIStorageStatement> mInsertKeyStatement;
+  nsCOMPtr<mozIStorageStatement> mSetSecureStatement;
+  nsCOMPtr<mozIStorageStatement> mRemoveKeyStatement;
+  nsCOMPtr<mozIStorageStatement> mRemoveOwnerStatement;
+  nsCOMPtr<mozIStorageStatement> mRemoveStorageStatement;
+  nsCOMPtr<mozIStorageStatement> mRemoveAllStatement;
+  nsCOMPtr<mozIStorageStatement> mGetOfflineExcludedUsageStatement;
+  nsCOMPtr<mozIStorageStatement> mGetFullUsageStatement;
 
   nsCString mCachedOwner;
-  int32_t mCachedUsage;
+  PRInt32 mCachedUsage;
 
   
   
@@ -174,12 +211,7 @@ protected:
   friend class nsDOMStorageDBWrapper;
   friend class nsDOMStorageMemoryDB;
   nsresult
-  GetUsageInternal(const nsACString& aQuotaDomainDBKey, bool aExcludeOfflineFromUsage, int32_t *aUsage);
-
-  
-  
-  bool DomainMaybeCached(const nsACString& aDomain);
-
+  GetUsageInternal(const nsACString& aQuotaDomainDBKey, bool aExcludeOfflineFromUsage, PRInt32 *aUsage);
 };
 
 #endif 

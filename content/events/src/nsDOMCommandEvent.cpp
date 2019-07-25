@@ -3,19 +3,51 @@
 
 
 
-#include "nsDOMClassInfoID.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsDOMCommandEvent.h"
+#include "nsContentUtils.h"
 
 nsDOMCommandEvent::nsDOMCommandEvent(nsPresContext* aPresContext,
                                      nsCommandEvent* aEvent)
   : nsDOMEvent(aPresContext, aEvent ? aEvent :
-               new nsCommandEvent(false, nullptr, nullptr, nullptr))
+               new nsCommandEvent(PR_FALSE, nsnull, nsnull, nsnull))
 {
   mEvent->time = PR_Now();
   if (aEvent) {
-    mEventIsInternal = false;
+    mEventIsInternal = PR_FALSE;
   } else {
-    mEventIsInternal = true;
+    mEventIsInternal = PR_TRUE;
   }
 }
 
@@ -23,7 +55,7 @@ nsDOMCommandEvent::~nsDOMCommandEvent()
 {
   if (mEventIsInternal && mEvent->eventStructType == NS_COMMAND_EVENT) {
     delete static_cast<nsCommandEvent*>(mEvent);
-    mEvent = nullptr;
+    mEvent = nsnull;
   }
 }
 
@@ -67,7 +99,7 @@ nsresult NS_NewDOMCommandEvent(nsIDOMEvent** aInstancePtrResult,
                                nsCommandEvent* aEvent)
 {
   nsDOMCommandEvent* it = new nsDOMCommandEvent(aPresContext, aEvent);
-  if (nullptr == it) {
+  if (nsnull == it) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 

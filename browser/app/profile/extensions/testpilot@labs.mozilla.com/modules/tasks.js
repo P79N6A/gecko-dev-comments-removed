@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 EXPORTED_SYMBOLS = ["TaskConstants", "TestPilotBuiltinSurvey",
                     "TestPilotExperiment", "TestPilotStudyResults",
                     "TestPilotLegacyStudy", "TestPilotWebSurvey"];

@@ -7,15 +7,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsTextNode.h"
 #include "nsContentUtils.h"
 #include "nsIDOMEventListener.h"
 #include "nsIDOMMutationEvent.h"
+#include "nsIAttribute.h"
 #include "nsIDocument.h"
 #include "nsThreadUtils.h"
-#ifdef DEBUG
-#include "nsRange.h"
-#endif
 
 using namespace mozilla::dom;
 
@@ -29,10 +59,10 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
   
   nsAttributeTextNode(already_AddRefed<nsINodeInfo> aNodeInfo,
-                      int32_t aNameSpaceID,
+                      PRInt32 aNameSpaceID,
                       nsIAtom* aAttrName) :
     nsTextNode(aNodeInfo),
-    mGrandparent(nullptr),
+    mGrandparent(nsnull),
     mNameSpaceID(aNameSpaceID),
     mAttrName(aAttrName)
   {
@@ -69,7 +99,7 @@ public:
 
   
   void UpdateText() {
-    UpdateText(true);
+    UpdateText(PR_TRUE);
   }
 
 private:
@@ -82,7 +112,7 @@ private:
   
   nsIContent* mGrandparent;
   
-  int32_t mNameSpaceID;
+  PRInt32 mNameSpaceID;
   nsCOMPtr<nsIAtom> mAttrName;
 };
 
@@ -92,7 +122,7 @@ NS_NewTextNode(nsIContent** aInstancePtrResult,
 {
   NS_PRECONDITION(aNodeInfoManager, "Missing nodeInfoManager");
 
-  *aInstancePtrResult = nullptr;
+  *aInstancePtrResult = nsnull;
 
   nsCOMPtr<nsINodeInfo> ni = aNodeInfoManager->GetTextNodeInfo();
   if (!ni) {
@@ -134,7 +164,7 @@ NS_INTERFACE_TABLE_HEAD(nsTextNode)
 NS_INTERFACE_MAP_END_INHERITING(nsGenericDOMDataNode)
 
 bool
-nsTextNode::IsNodeOfType(uint32_t aFlags) const
+nsTextNode::IsNodeOfType(PRUint32 aFlags) const
 {
   return !(aFlags & ~(eCONTENT | eTEXT | eDATA_NODE));
 }
@@ -152,7 +182,31 @@ nsTextNode::CloneDataNode(nsINodeInfo *aNodeInfo, bool aCloneText) const
 }
 
 nsresult
-nsTextNode::AppendTextForNormalize(const PRUnichar* aBuffer, uint32_t aLength,
+nsTextNode::BindToAttribute(nsIAttribute* aAttr)
+{
+  NS_ASSERTION(!IsInDoc(), "Unbind before binding!");
+  NS_ASSERTION(!GetNodeParent(), "Unbind before binding!");
+  NS_ASSERTION(HasSameOwnerDoc(aAttr), "Wrong owner document!");
+
+  mParent = aAttr;
+  SetParentIsContent(false);
+  ClearInDocument();
+  return NS_OK;
+}
+
+nsresult
+nsTextNode::UnbindFromAttribute()
+{
+  NS_ASSERTION(GetNodeParent(), "Bind before unbinding!");
+  NS_ASSERTION(GetNodeParent() &&
+               GetNodeParent()->IsNodeOfType(nsINode::eATTRIBUTE),
+               "Use this method only to unbind from an attribute!");
+  mParent = nsnull;
+  return NS_OK;
+}
+
+nsresult
+nsTextNode::AppendTextForNormalize(const PRUnichar* aBuffer, PRUint32 aLength,
                                    bool aNotify, nsIContent* aNextSibling)
 {
   CharacterDataChangeInfo::Details details = {
@@ -163,19 +217,13 @@ nsTextNode::AppendTextForNormalize(const PRUnichar* aBuffer, uint32_t aLength,
 
 #ifdef DEBUG
 void
-nsTextNode::List(FILE* out, int32_t aIndent) const
+nsTextNode::List(FILE* out, PRInt32 aIndent) const
 {
-  int32_t index;
+  PRInt32 index;
   for (index = aIndent; --index >= 0; ) fputs("  ", out);
 
   fprintf(out, "Text@%p", static_cast<const void*>(this));
   fprintf(out, " flags=[%08x]", static_cast<unsigned int>(GetFlags()));
-  if (IsCommonAncestorForRangeInSelection()) {
-    typedef nsTHashtable<nsPtrHashKey<nsRange> > RangeHashTable;
-    RangeHashTable* ranges =
-      static_cast<RangeHashTable*>(GetProperty(nsGkAtoms::range));
-    fprintf(out, " ranges:%d", ranges ? ranges->Count() : 0);
-  }
   fprintf(out, " primaryframe=%p", static_cast<void*>(GetPrimaryFrame()));
   fprintf(out, " refcount=%d<", mRefCnt.get());
 
@@ -187,10 +235,10 @@ nsTextNode::List(FILE* out, int32_t aIndent) const
 }
 
 void
-nsTextNode::DumpContent(FILE* out, int32_t aIndent, bool aDumpAll) const
+nsTextNode::DumpContent(FILE* out, PRInt32 aIndent, bool aDumpAll) const
 {
   if(aDumpAll) {
-    int32_t index;
+    PRInt32 index;
     for (index = aIndent; --index >= 0; ) fputs("  ", out);
 
     nsAutoString tmp;
@@ -206,14 +254,14 @@ nsTextNode::DumpContent(FILE* out, int32_t aIndent, bool aDumpAll) const
 
 nsresult
 NS_NewAttributeContent(nsNodeInfoManager *aNodeInfoManager,
-                       int32_t aNameSpaceID, nsIAtom* aAttrName,
+                       PRInt32 aNameSpaceID, nsIAtom* aAttrName,
                        nsIContent** aResult)
 {
   NS_PRECONDITION(aNodeInfoManager, "Missing nodeInfoManager");
   NS_PRECONDITION(aAttrName, "Must have an attr name");
   NS_PRECONDITION(aNameSpaceID != kNameSpaceID_Unknown, "Must know namespace");
   
-  *aResult = nullptr;
+  *aResult = nsnull;
 
   nsCOMPtr<nsINodeInfo> ni = aNodeInfoManager->GetTextNodeInfo();
   if (!ni) {
@@ -253,7 +301,7 @@ nsAttributeTextNode::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 
   
   
-  UpdateText(false);
+  UpdateText(PR_FALSE);
 
   return NS_OK;
 }
@@ -267,7 +315,7 @@ nsAttributeTextNode::UnbindFromTree(bool aDeep, bool aNullParent)
     
     
     mGrandparent->RemoveMutationObserver(this);
-    mGrandparent = nullptr;
+    mGrandparent = nsnull;
   }
   nsTextNode::UnbindFromTree(aDeep, aNullParent);
 }
@@ -275,9 +323,9 @@ nsAttributeTextNode::UnbindFromTree(bool aDeep, bool aNullParent)
 void
 nsAttributeTextNode::AttributeChanged(nsIDocument* aDocument,
                                       Element* aElement,
-                                      int32_t aNameSpaceID,
+                                      PRInt32 aNameSpaceID,
                                       nsIAtom* aAttribute,
-                                      int32_t aModType)
+                                      PRInt32 aModType)
 {
   if (aNameSpaceID == mNameSpaceID && aAttribute == mAttrName &&
       aElement == mGrandparent) {
@@ -294,7 +342,7 @@ void
 nsAttributeTextNode::NodeWillBeDestroyed(const nsINode* aNode)
 {
   NS_ASSERTION(aNode == static_cast<nsINode*>(mGrandparent), "Wrong node!");
-  mGrandparent = nullptr;
+  mGrandparent = nsnull;
 }
 
 void

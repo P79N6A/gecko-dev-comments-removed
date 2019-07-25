@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  
 
 
@@ -28,8 +62,9 @@ public:
     NS_DECL_NSIDOMTREEWALKER
 
     nsTreeWalker(nsINode *aRoot,
-                 uint32_t aWhatToShow,
-                 nsIDOMNodeFilter *aFilter);
+                 PRUint32 aWhatToShow,
+                 nsIDOMNodeFilter *aFilter,
+                 bool aExpandEntityReferences);
     virtual ~nsTreeWalker();
 
     NS_DECL_CYCLE_COLLECTION_CLASS(nsTreeWalker)

@@ -3,30 +3,60 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDOMScriptObjectHolder_h__
 #define nsDOMScriptObjectHolder_h__
 
 #include "nsIScriptContext.h"
 #include "nsIDOMScriptObjectFactory.h"
 
-#include "jspubtd.h"
 
 
 
 
-
-template<class T>
 class NS_STACK_CLASS nsScriptObjectHolder {
 public:
   
   
-  nsScriptObjectHolder<T>(nsIScriptContext *ctx, T* aObject = nullptr) :
+  nsScriptObjectHolder(nsIScriptContext *ctx, void *aObject = nsnull) :
       mObject(aObject), mContext(ctx) {
     NS_ASSERTION(ctx, "Must provide a valid context");
   }
 
   
-  nsScriptObjectHolder<T>(const nsScriptObjectHolder<T>& other) :
+  nsScriptObjectHolder(const nsScriptObjectHolder& other) :
       mObject(other.mObject),
       mContext(other.mContext)
   {
@@ -35,23 +65,20 @@ public:
       mContext->HoldScriptObject(mObject);
   }
 
-  ~nsScriptObjectHolder<T>() {
+  ~nsScriptObjectHolder() {
     if (mObject)
       mContext->DropScriptObject(mObject);
   }
 
   
-  nsScriptObjectHolder<T> &operator=(const nsScriptObjectHolder<T> &other) {
+  nsScriptObjectHolder &operator=(const nsScriptObjectHolder &other) {
     set(other);
     return *this;
   }
   bool operator!() const {
     return !mObject;
   }
-  operator bool() const {
-    return !!mObject;
-  }
-  T* get() const {
+  operator void *() const {
     return mObject;
   }
 
@@ -60,12 +87,13 @@ public:
     nsresult rv = NS_OK;
     if (mObject) {
       rv = mContext->DropScriptObject(mObject);
-      mObject = nullptr;
+      mObject = nsnull;
     }
     return rv;
   }
-
-  nsresult set(T* object) {
+  nsresult set(void *object) {
+    NS_ASSERTION(getScriptTypeID() != nsIProgrammingLanguage::UNKNOWN,
+                 "Must know the language!");
     nsresult rv = drop();
     if (NS_FAILED(rv))
       return rv;
@@ -78,15 +106,20 @@ public:
     }
     return rv;
   }
-  nsresult set(const nsScriptObjectHolder<T> &other) {
+  nsresult set(const nsScriptObjectHolder &other) {
+    NS_ASSERTION(getScriptTypeID() == other.getScriptTypeID(),
+                 "Must have identical languages!");
     nsresult rv = drop();
     if (NS_FAILED(rv))
       return rv;
     return set(other.mObject);
   }
-
+  
+  PRUint32 getScriptTypeID() const {
+    return mContext->GetScriptTypeID();
+  }
 protected:
-  T* mObject;
+  void *mObject;
   nsCOMPtr<nsIScriptContext> mContext;
 };
 

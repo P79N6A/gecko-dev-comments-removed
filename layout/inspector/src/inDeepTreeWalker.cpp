@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "inDeepTreeWalker.h"
 #include "inLayoutUtils.h"
 
@@ -25,8 +58,8 @@
 
 
 inDeepTreeWalker::inDeepTreeWalker() 
-  : mShowAnonymousContent(false),
-    mShowSubDocuments(false),
+  : mShowAnonymousContent(PR_FALSE),
+    mShowSubDocuments(PR_FALSE),
     mWhatToShow(nsIDOMNodeFilter::SHOW_ALL)
 {
 }
@@ -71,7 +104,7 @@ inDeepTreeWalker::SetShowSubDocuments(bool aShowSubDocuments)
 }
 
 NS_IMETHODIMP
-inDeepTreeWalker::Init(nsIDOMNode* aRoot, uint32_t aWhatToShow)
+inDeepTreeWalker::Init(nsIDOMNode* aRoot, PRUint32 aWhatToShow)
 {
   mRoot = aRoot;
   mWhatToShow = aWhatToShow;
@@ -94,7 +127,7 @@ inDeepTreeWalker::GetRoot(nsIDOMNode** aRoot)
 }
 
 NS_IMETHODIMP 
-inDeepTreeWalker::GetWhatToShow(uint32_t* aWhatToShow)
+inDeepTreeWalker::GetWhatToShow(PRUint32* aWhatToShow)
 {
   *aWhatToShow = mWhatToShow;
   return NS_OK;
@@ -130,7 +163,7 @@ inDeepTreeWalker::SetCurrentNode(nsIDOMNode* aCurrentNode)
 NS_IMETHODIMP
 inDeepTreeWalker::ParentNode(nsIDOMNode** _retval)
 {
-  *_retval = nullptr;
+  *_retval = nsnull;
   if (!mCurrentNode) return NS_OK;
 
   if (mStack.Length() == 1) {
@@ -150,7 +183,7 @@ inDeepTreeWalker::ParentNode(nsIDOMNode** _retval)
 NS_IMETHODIMP
 inDeepTreeWalker::FirstChild(nsIDOMNode **_retval)
 {
-  *_retval = nullptr;
+  *_retval = nsnull;
   if (!mCurrentNode) {
     return NS_OK;
   }
@@ -170,14 +203,14 @@ inDeepTreeWalker::FirstChild(nsIDOMNode **_retval)
 NS_IMETHODIMP
 inDeepTreeWalker::LastChild(nsIDOMNode **_retval)
 {
-  *_retval = nullptr;
+  *_retval = nsnull;
   if (!mCurrentNode) {
     return NS_OK;
   }
 
   DeepTreeStackItem& top = mStack.ElementAt(mStack.Length() - 1);
   nsCOMPtr<nsIDOMNode> kid;
-  uint32_t length;
+  PRUint32 length;
   top.kids->GetLength(&length);
   top.kids->Item(length - 1, getter_AddRefs(kid));
   if (!kid) {
@@ -192,7 +225,7 @@ inDeepTreeWalker::LastChild(nsIDOMNode **_retval)
 NS_IMETHODIMP
 inDeepTreeWalker::PreviousSibling(nsIDOMNode **_retval)
 {
-  *_retval = nullptr;
+  *_retval = nsnull;
   if (!mCurrentNode) {
     return NS_OK;
   }
@@ -224,7 +257,7 @@ inDeepTreeWalker::PreviousSibling(nsIDOMNode **_retval)
 NS_IMETHODIMP
 inDeepTreeWalker::NextSibling(nsIDOMNode **_retval)
 {
-  *_retval = nullptr;
+  *_retval = nsnull;
   if (!mCurrentNode) {
     return NS_OK;
   }
@@ -258,7 +291,7 @@ inDeepTreeWalker::PreviousNode(nsIDOMNode **_retval)
 {
   if (!mCurrentNode || mStack.Length() == 1) {
     
-    *_retval = nullptr;
+    *_retval = nsnull;
     return NS_OK;
   }
 
@@ -297,7 +330,7 @@ inDeepTreeWalker::NextNode(nsIDOMNode **_retval)
 #ifdef DEBUG
   nsIDOMNode* origCurrentNode = mCurrentNode;
 #endif
-  uint32_t lastChildCallsToMake = 0;
+  PRUint32 lastChildCallsToMake = 0;
   while (1) {
     NextSibling(_retval);
 
@@ -315,7 +348,7 @@ inDeepTreeWalker::NextNode(nsIDOMNode **_retval)
       }
       NS_ASSERTION(mCurrentNode == origCurrentNode,
                    "Didn't go back to the right node?");
-      *_retval = nullptr;
+      *_retval = nsnull;
       return NS_OK;
     }
     ++lastChildCallsToMake;

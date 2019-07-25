@@ -17,12 +17,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsHTMLStyleSheet.h"
 #include "nsINameSpaceManager.h"
 #include "nsIAtom.h"
 #include "nsIURL.h"
 #include "nsMappedAttributes.h"
 #include "nsILink.h"
+#include "nsIFrame.h"
 #include "nsStyleContext.h"
 #include "nsGkAtoms.h"
 #include "nsPresContext.h"
@@ -33,7 +66,7 @@
 #include "nsCSSAnonBoxes.h"
 #include "nsRuleWalker.h"
 #include "nsRuleData.h"
-#include "nsError.h"
+#include "nsContentErrors.h"
 #include "nsRuleProcessorData.h"
 #include "nsCSSRuleProcessor.h"
 #include "mozilla/dom/Element.h"
@@ -56,7 +89,7 @@ nsHTMLStyleSheet::HTMLColorRule::MapRuleInfoInto(nsRuleData* aRuleData)
 
 #ifdef DEBUG
  void
-nsHTMLStyleSheet::HTMLColorRule::List(FILE* out, int32_t aIndent) const
+nsHTMLStyleSheet::HTMLColorRule::List(FILE* out, PRInt32 aIndent) const
 {
 }
 #endif
@@ -66,7 +99,7 @@ NS_IMPL_ISUPPORTS1(nsHTMLStyleSheet::GenericTableRule, nsIStyleRule)
 
 #ifdef DEBUG
  void
-nsHTMLStyleSheet::GenericTableRule::List(FILE* out, int32_t aIndent) const
+nsHTMLStyleSheet::GenericTableRule::List(FILE* out, PRInt32 aIndent) const
 {
 }
 #endif
@@ -145,15 +178,18 @@ static PLDHashTableOps MappedAttrTable_Ops = {
 
 
 
-nsHTMLStyleSheet::nsHTMLStyleSheet(nsIURI* aURL, nsIDocument* aDocument)
-  : mURL(aURL)
-  , mDocument(aDocument)
-  , mTableQuirkColorRule(new TableQuirkColorRule())
-  , mTableTHRule(new TableTHRule())
+nsHTMLStyleSheet::nsHTMLStyleSheet(void)
+  : mDocument(nsnull)
 {
-  MOZ_ASSERT(aURL);
-  MOZ_ASSERT(aDocument);
-  mMappedAttrTable.ops = nullptr;
+  mMappedAttrTable.ops = nsnull;
+}
+
+nsresult
+nsHTMLStyleSheet::Init()
+{
+  mTableTHRule = new TableTHRule();
+  mTableQuirkColorRule = new TableQuirkColorRule();
+  return NS_OK;
 }
 
 nsHTMLStyleSheet::~nsHTMLStyleSheet()
@@ -176,7 +212,6 @@ nsHTMLStyleSheet::RulesMatching(ElementRuleProcessorData* aData)
       if (mLinkRule || mVisitedRule || mActiveRule) {
         nsEventStates state = nsCSSRuleProcessor::GetContentStateForVisitedHandling(
                                   aData->mElement,
-                                  aData->mTreeMatchContext,
                                   aData->mTreeMatchContext.VisitedHandling(),
                                   
                                   
@@ -230,7 +265,7 @@ nsHTMLStyleSheet::HasStateDependentStyle(StateRuleProcessorData* aData)
  bool
 nsHTMLStyleSheet::HasDocumentStateDependentStyle(StateRuleProcessorData* aData)
 {
-  return false;
+  return PR_FALSE;
 }
 
  nsRestyleHint
@@ -273,17 +308,11 @@ nsHTMLStyleSheet::HasAttributeDependentStyle(AttributeRuleProcessorData* aData)
  bool
 nsHTMLStyleSheet::MediumFeaturesChanged(nsPresContext* aPresContext)
 {
-  return false;
+  return PR_FALSE;
 }
 
- size_t
-nsHTMLStyleSheet::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
-{
-  return 0; 
-}
-
- size_t
-nsHTMLStyleSheet::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+ PRInt64
+nsHTMLStyleSheet::SizeOf() const
 {
   return 0; 
 }
@@ -333,13 +362,13 @@ nsHTMLStyleSheet::GetType(nsString& aType) const
  bool
 nsHTMLStyleSheet::HasRules() const
 {
-  return true; 
+  return PR_TRUE; 
 }
 
  bool
 nsHTMLStyleSheet::IsApplicable() const
 {
-  return true;
+  return PR_TRUE;
 }
 
  void
@@ -350,7 +379,7 @@ nsHTMLStyleSheet::SetEnabled(bool aEnabled)
  bool
 nsHTMLStyleSheet::IsComplete() const
 {
-  return true;
+  return PR_TRUE;
 }
 
  void
@@ -361,7 +390,7 @@ nsHTMLStyleSheet::SetComplete()
  nsIStyleSheet*
 nsHTMLStyleSheet::GetParentSheet() const
 {
-  return nullptr;
+  return nsnull;
 }
 
  nsIDocument*
@@ -376,18 +405,33 @@ nsHTMLStyleSheet::SetOwningDocument(nsIDocument* aDocument)
   mDocument = aDocument; 
 }
 
+nsresult
+nsHTMLStyleSheet::Init(nsIURI* aURL, nsIDocument* aDocument)
+{
+  NS_PRECONDITION(aURL && aDocument, "null ptr");
+  if (! aURL || ! aDocument)
+    return NS_ERROR_NULL_POINTER;
+
+  if (mURL || mDocument)
+    return NS_ERROR_ALREADY_INITIALIZED;
+
+  mDocument = aDocument; 
+  mURL = aURL;
+  return NS_OK;
+}
+
 void
 nsHTMLStyleSheet::Reset(nsIURI* aURL)
 {
   mURL = aURL;
 
-  mLinkRule          = nullptr;
-  mVisitedRule       = nullptr;
-  mActiveRule        = nullptr;
+  mLinkRule          = nsnull;
+  mVisitedRule       = nsnull;
+  mActiveRule        = nsnull;
 
   if (mMappedAttrTable.ops) {
     PL_DHashTableFinish(&mMappedAttrTable);
-    mMappedAttrTable.ops = nullptr;
+    mMappedAttrTable.ops = nsnull;
   }
 }
 
@@ -439,16 +483,16 @@ nsHTMLStyleSheet::UniqueMappedAttributes(nsMappedAttributes* aMapped)
 {
   if (!mMappedAttrTable.ops) {
     bool res = PL_DHashTableInit(&mMappedAttrTable, &MappedAttrTable_Ops,
-                                   nullptr, sizeof(MappedAttrTableEntry), 16);
+                                   nsnull, sizeof(MappedAttrTableEntry), 16);
     if (!res) {
-      mMappedAttrTable.ops = nullptr;
-      return nullptr;
+      mMappedAttrTable.ops = nsnull;
+      return nsnull;
     }
   }
   MappedAttrTableEntry *entry = static_cast<MappedAttrTableEntry*>
                                            (PL_DHashTableOperate(&mMappedAttrTable, aMapped, PL_DHASH_ADD));
   if (!entry)
-    return nullptr;
+    return nsnull;
   if (!entry->mAttributes) {
     
     entry->mAttributes = aMapped;
@@ -464,7 +508,7 @@ nsHTMLStyleSheet::DropMappedAttributes(nsMappedAttributes* aMapped)
 
   NS_ASSERTION(mMappedAttrTable.ops, "table uninitialized");
 #ifdef DEBUG
-  uint32_t entryCount = mMappedAttrTable.entryCount - 1;
+  PRUint32 entryCount = mMappedAttrTable.entryCount - 1;
 #endif
 
   PL_DHashTableOperate(&mMappedAttrTable, aMapped, PL_DHASH_REMOVE);
@@ -474,13 +518,13 @@ nsHTMLStyleSheet::DropMappedAttributes(nsMappedAttributes* aMapped)
 
 #ifdef DEBUG
  void
-nsHTMLStyleSheet::List(FILE* out, int32_t aIndent) const
+nsHTMLStyleSheet::List(FILE* out, PRInt32 aIndent) const
 {
   
-  for (int32_t index = aIndent; --index >= 0; ) fputs("  ", out);
+  for (PRInt32 index = aIndent; --index >= 0; ) fputs("  ", out);
 
   fputs("HTML Style Sheet: ", out);
-  nsAutoCString urlSpec;
+  nsCAutoString urlSpec;
   mURL->GetSpec(urlSpec);
   if (!urlSpec.IsEmpty()) {
     fputs(urlSpec.get(), out);
@@ -489,40 +533,80 @@ nsHTMLStyleSheet::List(FILE* out, int32_t aIndent) const
 }
 #endif
 
-static size_t
-SizeOfAttributesEntryExcludingThis(PLDHashEntryHdr* aEntry,
-                                   nsMallocSizeOfFun aMallocSizeOf,
-                                   void* aArg)
+static
+PLDHashOperator
+GetHashEntryAttributesSize(PLDHashTable* aTable, PLDHashEntryHdr* aEntry,
+                           PRUint32 number, void* aArg)
 {
   NS_PRECONDITION(aEntry, "The entry should not be null!");
+  NS_PRECONDITION(aArg, "The passed argument should not be null!");
 
   MappedAttrTableEntry* entry = static_cast<MappedAttrTableEntry*>(aEntry);
+  PRInt64 size = *static_cast<PRInt64*>(aArg);
+
   NS_ASSERTION(entry->mAttributes, "entry->mAttributes should not be null!");
-  return entry->mAttributes->SizeOfIncludingThis(aMallocSizeOf);
+  size += entry->mAttributes->SizeOf();
+
+  return PL_DHASH_NEXT;
 }
 
-size_t
-nsHTMLStyleSheet::DOMSizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+PRInt64
+nsHTMLStyleSheet::DOMSizeOf() const
 {
-  size_t n = aMallocSizeOf(this);
+  PRInt64 size = sizeof(*this);
+
+  size += mLinkRule ? sizeof(*mLinkRule.get()) : 0;
+  size += mVisitedRule ? sizeof(*mVisitedRule.get()) : 0;
+  size += mActiveRule ? sizeof(*mActiveRule.get()) : 0;
+  size += mTableQuirkColorRule ? sizeof(*mTableQuirkColorRule.get()) : 0;
+  size += mTableTHRule ? sizeof(*mTableTHRule.get()) : 0;
 
   if (mMappedAttrTable.ops) {
-    n += PL_DHashTableSizeOfExcludingThis(&mMappedAttrTable,
-                                          SizeOfAttributesEntryExcludingThis,
-                                          aMallocSizeOf);
+    size += PL_DHASH_TABLE_SIZE(&mMappedAttrTable) * sizeof(MappedAttrTableEntry);
+    PL_DHashTableEnumerate(const_cast<PLDHashTable*>(&mMappedAttrTable),
+                           GetHashEntryAttributesSize, &size);
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  return n;
+  return size;
 }
+
+
+nsresult
+NS_NewHTMLStyleSheet(nsHTMLStyleSheet** aInstancePtrResult, nsIURI* aURL, 
+                     nsIDocument* aDocument)
+{
+  nsresult rv;
+  nsHTMLStyleSheet* sheet;
+  if (NS_FAILED(rv = NS_NewHTMLStyleSheet(&sheet)))
+    return rv;
+
+  if (NS_FAILED(rv = sheet->Init(aURL, aDocument))) {
+    NS_RELEASE(sheet);
+    return rv;
+  }
+
+  *aInstancePtrResult = sheet;
+  return NS_OK;
+}
+
+
+nsresult
+NS_NewHTMLStyleSheet(nsHTMLStyleSheet** aInstancePtrResult)
+{
+  NS_ASSERTION(aInstancePtrResult, "null out param");
+
+  nsHTMLStyleSheet *it = new nsHTMLStyleSheet();
+  if (!it) {
+    *aInstancePtrResult = nsnull;
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  NS_ADDREF(it);
+  nsresult rv = it->Init();
+  if (NS_FAILED(rv))
+    NS_RELEASE(it);
+
+  *aInstancePtrResult = it; 
+  return rv;
+}
+

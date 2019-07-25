@@ -6,6 +6,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsVariant.h"
 #include "nsString.h"
 #include "prprf.h"
@@ -163,7 +196,7 @@ static void FreeArray(nsDiscriminatedUnion* data)
         case nsIDataType:: type_ :                                            \
         {                                                                     \
             ctype_ ** p = (ctype_ **) data->u.array.mArrayValue;              \
-            for(uint32_t i = data->u.array.mArrayCount; i > 0; p++, i--)      \
+            for(PRUint32 i = data->u.array.mArrayCount; i > 0; p++, i--)      \
                 if(*p)                                                        \
                     nsMemory::Free((char*)*p);                                \
             break;                                                            \
@@ -173,7 +206,7 @@ static void FreeArray(nsDiscriminatedUnion* data)
         case nsIDataType:: type_ :                                            \
         {                                                                     \
             ctype_ ** p = (ctype_ **) data->u.array.mArrayValue;              \
-            for(uint32_t i = data->u.array.mArrayCount; i > 0; p++, i--)      \
+            for(PRUint32 i = data->u.array.mArrayCount; i > 0; p++, i--)      \
                 if(*p)                                                        \
                     (*p)->Release();                                          \
             break;                                                            \
@@ -226,11 +259,11 @@ static void FreeArray(nsDiscriminatedUnion* data)
 #undef CASE__FREE_ARRAY_IFACE
 }
 
-static nsresult CloneArray(uint16_t inType, const nsIID* inIID,
-                           uint32_t inCount, void* inValue,
-                           uint16_t* outType,
-                           nsIID* outIID,
-                           uint32_t* outCount,
+static nsresult CloneArray(PRUint16 inType, const nsIID* inIID,
+                           PRUint32 inCount, void* inValue,
+                           PRUint16* outType NS_OUTPARAM,
+                           nsIID* outIID NS_OUTPARAM,
+                           PRUint32* outCount NS_OUTPARAM,
                            void** outValue)
 {
     NS_ASSERTION(inCount, "bad param");
@@ -239,9 +272,9 @@ static nsresult CloneArray(uint16_t inType, const nsIID* inIID,
     NS_ASSERTION(outCount, "bad param");
     NS_ASSERTION(outValue, "bad param");
 
-    uint32_t allocatedValueCount = 0;
+    PRUint32 allocatedValueCount = 0;
     nsresult rv = NS_OK;
-    uint32_t i;
+    PRUint32 i;
 
     
 
@@ -251,28 +284,28 @@ static nsresult CloneArray(uint16_t inType, const nsIID* inIID,
     switch(inType)
     {
         case nsIDataType::VTYPE_INT8:
-            elementSize = sizeof(int8_t);
+            elementSize = sizeof(PRInt8);
             break;
         case nsIDataType::VTYPE_INT16:
-            elementSize = sizeof(int16_t);
+            elementSize = sizeof(PRInt16);
             break;
         case nsIDataType::VTYPE_INT32:
-            elementSize = sizeof(int32_t);
+            elementSize = sizeof(PRInt32);
             break;
         case nsIDataType::VTYPE_INT64:
-            elementSize = sizeof(int64_t);
+            elementSize = sizeof(PRInt64);
             break;
         case nsIDataType::VTYPE_UINT8:
-            elementSize = sizeof(uint8_t);
+            elementSize = sizeof(PRUint8);
             break;
         case nsIDataType::VTYPE_UINT16:
-            elementSize = sizeof(uint16_t);
+            elementSize = sizeof(PRUint16);
             break;
         case nsIDataType::VTYPE_UINT32:
-            elementSize = sizeof(uint32_t);
+            elementSize = sizeof(PRUint32);
             break;
         case nsIDataType::VTYPE_UINT64:
-            elementSize = sizeof(uint64_t);
+            elementSize = sizeof(PRUint64);
             break;
         case nsIDataType::VTYPE_FLOAT:
             elementSize = sizeof(float);
@@ -368,12 +401,12 @@ static nsresult CloneArray(uint16_t inType, const nsIID* inIID,
                 nsID* idp = *(inp++);
                 if(idp)
                 {
-                    if(nullptr == (*(outp++) = (nsID*)
+                    if(nsnull == (*(outp++) = (nsID*)
                        nsMemory::Clone((char*)idp, sizeof(nsID))))
                         goto bad;
                 }
                 else
-                    *(outp++) = nullptr;
+                    *(outp++) = nsnull;
                 allocatedValueCount++;
             }
             break;
@@ -388,12 +421,12 @@ static nsresult CloneArray(uint16_t inType, const nsIID* inIID,
                 char* str = *(inp++);
                 if(str)
                 {
-                    if(nullptr == (*(outp++) = (char*)
+                    if(nsnull == (*(outp++) = (char*)
                        nsMemory::Clone(str, (strlen(str)+1)*sizeof(char))))
                         goto bad;
                 }
                 else
-                    *(outp++) = nullptr;
+                    *(outp++) = nsnull;
                 allocatedValueCount++;
             }
             break;
@@ -408,13 +441,13 @@ static nsresult CloneArray(uint16_t inType, const nsIID* inIID,
                 PRUnichar* str = *(inp++);
                 if(str)
                 {
-                    if(nullptr == (*(outp++) = (PRUnichar*)
+                    if(nsnull == (*(outp++) = (PRUnichar*)
                        nsMemory::Clone(str,
-                        (NS_strlen(str) + 1) * sizeof(PRUnichar))))
+                        (nsCRT::strlen(str)+1)*sizeof(PRUnichar))))
                         goto bad;
                 }
                 else
-                    *(outp++) = nullptr;
+                    *(outp++) = nsnull;
                 allocatedValueCount++;
             }
             break;
@@ -448,7 +481,7 @@ bad:
             if(*p)
                 nsMemory::Free(*p);
         nsMemory::Free((char*)*outValue);
-        *outValue = nullptr;
+        *outValue = nsnull;
     }
     return rv;
 }
@@ -488,7 +521,7 @@ nsVariant::ConvertTo##name_ (const nsDiscriminatedUnion& data,                \
 #define CASE__NUMERIC_CONVERSION_INT32_MIN_MAX(Ctype_, min_, max_)            \
     case nsIDataType::VTYPE_INT32:                                            \
     {                                                                         \
-        int32_t value = tempData.u.mInt32Value;                               \
+        PRInt32 value = tempData.u.mInt32Value;                               \
         if(value < min_ || value > max_)                                      \
             return NS_ERROR_LOSS_OF_SIGNIFICANT_DATA;                         \
         *_retval = ( Ctype_ ) value;                                          \
@@ -503,7 +536,7 @@ nsVariant::ConvertTo##name_ (const nsDiscriminatedUnion& data,                \
 #define CASE__NUMERIC_CONVERSION_UINT32_MAX(Ctype_, max_)                     \
     case nsIDataType::VTYPE_UINT32:                                           \
     {                                                                         \
-        uint32_t value = tempData.u.mUint32Value;                             \
+        PRUint32 value = tempData.u.mUint32Value;                             \
         if(value > max_)                                                      \
             return NS_ERROR_LOSS_OF_SIGNIFICANT_DATA;                         \
         *_retval = ( Ctype_ ) value;                                          \
@@ -556,22 +589,22 @@ nsVariant::ConvertTo##name_ (const nsDiscriminatedUnion& data,                \
 
 
 
-NUMERIC_CONVERSION_METHOD_NORMAL(VTYPE_INT8, uint8_t, Int8, (-127-1), 127)
-NUMERIC_CONVERSION_METHOD_NORMAL(VTYPE_INT16, int16_t, Int16, (-32767-1), 32767)
+NUMERIC_CONVERSION_METHOD_NORMAL(VTYPE_INT8, PRUint8, Int8, (-127-1), 127)
+NUMERIC_CONVERSION_METHOD_NORMAL(VTYPE_INT16, PRInt16, Int16, (-32767-1), 32767)
 
-NUMERIC_CONVERSION_METHOD_BEGIN(VTYPE_INT32, int32_t, Int32)
-    CASE__NUMERIC_CONVERSION_INT32_JUST_CAST(int32_t)
-    CASE__NUMERIC_CONVERSION_UINT32_MAX(int32_t, 2147483647)
-    CASE__NUMERIC_CONVERSION_DOUBLE_MIN_MAX_INT(int32_t, (-2147483647-1), 2147483647)
+NUMERIC_CONVERSION_METHOD_BEGIN(VTYPE_INT32, PRInt32, Int32)
+    CASE__NUMERIC_CONVERSION_INT32_JUST_CAST(PRInt32)
+    CASE__NUMERIC_CONVERSION_UINT32_MAX(PRInt32, 2147483647)
+    CASE__NUMERIC_CONVERSION_DOUBLE_MIN_MAX_INT(PRInt32, (-2147483647-1), 2147483647)
 NUMERIC_CONVERSION_METHOD_END
 
-NUMERIC_CONVERSION_METHOD_NORMAL(VTYPE_UINT8, uint8_t, Uint8, 0, 255)
-NUMERIC_CONVERSION_METHOD_NORMAL(VTYPE_UINT16, uint16_t, Uint16, 0, 65535)
+NUMERIC_CONVERSION_METHOD_NORMAL(VTYPE_UINT8, PRUint8, Uint8, 0, 255)
+NUMERIC_CONVERSION_METHOD_NORMAL(VTYPE_UINT16, PRUint16, Uint16, 0, 65535)
 
-NUMERIC_CONVERSION_METHOD_BEGIN(VTYPE_UINT32, uint32_t, Uint32)
-    CASE__NUMERIC_CONVERSION_INT32_MIN_MAX(uint32_t, 0, 2147483647)
-    CASE__NUMERIC_CONVERSION_UINT32_JUST_CAST(uint32_t)
-    CASE__NUMERIC_CONVERSION_DOUBLE_MIN_MAX_INT(uint32_t, 0, 4294967295U)
+NUMERIC_CONVERSION_METHOD_BEGIN(VTYPE_UINT32, PRUint32, Uint32)
+    CASE__NUMERIC_CONVERSION_INT32_MIN_MAX(PRUint32, 0, 2147483647)
+    CASE__NUMERIC_CONVERSION_UINT32_JUST_CAST(PRUint32)
+    CASE__NUMERIC_CONVERSION_DOUBLE_MIN_MAX_INT(PRUint32, 0, 4294967295U)
 NUMERIC_CONVERSION_METHOD_END
 
 
@@ -634,7 +667,7 @@ nsVariant::ConvertToBool(const nsDiscriminatedUnion& data, bool *_retval)
 
 
  nsresult
-nsVariant::ConvertToInt64(const nsDiscriminatedUnion& data, int64_t *_retval)
+nsVariant::ConvertToInt64(const nsDiscriminatedUnion& data, PRInt64 *_retval)
 {
     TRIVIAL_DATA_CONVERTER(VTYPE_INT64, data, mInt64Value, _retval)
     TRIVIAL_DATA_CONVERTER(VTYPE_UINT64, data, mUint64Value, _retval)
@@ -663,9 +696,9 @@ nsVariant::ConvertToInt64(const nsDiscriminatedUnion& data, int64_t *_retval)
 }
 
  nsresult
-nsVariant::ConvertToUint64(const nsDiscriminatedUnion& data, uint64_t *_retval)
+nsVariant::ConvertToUint64(const nsDiscriminatedUnion& data, PRUint64 *_retval)
 {
-    return nsVariant::ConvertToInt64(data, (int64_t *)_retval);
+    return nsVariant::ConvertToInt64(data, (PRInt64 *)_retval);
 }
 
 
@@ -695,12 +728,12 @@ static bool String2ID(const nsDiscriminatedUnion& data, nsID* pid)
             break;
         default:
             NS_ERROR("bad type in call to String2ID");
-            return false;
+            return PR_FALSE;
     }
 
     char* pChars = ToNewCString(*pString);
     if(!pChars)
-        return false;
+        return PR_FALSE;
     bool result = pid->Parse(pChars);
     nsMemory::Free(pChars);
     return result;
@@ -790,7 +823,7 @@ static nsresult ToString(const nsDiscriminatedUnion& data,
 #define CASE__APPENDFLOAT_NUMBER(type_, member_)                        \
     case nsIDataType :: type_ :                                         \
     {                                                                   \
-        nsAutoCString str;                                              \
+        nsCAutoString str;                                              \
         str.AppendFloat(data.u. member_);                               \
         outString.Assign(str);                                          \
         return NS_OK;                                                   \
@@ -811,12 +844,12 @@ static nsresult ToString(const nsDiscriminatedUnion& data,
     CASE__SMPRINTF_NUMBER(VTYPE_INT8,   "%d",   int,      mInt8Value)
     CASE__SMPRINTF_NUMBER(VTYPE_INT16,  "%d",   int,      mInt16Value)
     CASE__SMPRINTF_NUMBER(VTYPE_INT32,  "%d",   int,      mInt32Value)
-    CASE__SMPRINTF_NUMBER(VTYPE_INT64,  "%lld", int64_t,  mInt64Value)
+    CASE__SMPRINTF_NUMBER(VTYPE_INT64,  "%lld", PRInt64,  mInt64Value)
 
     CASE__SMPRINTF_NUMBER(VTYPE_UINT8,  "%u",   unsigned, mUint8Value)
     CASE__SMPRINTF_NUMBER(VTYPE_UINT16, "%u",   unsigned, mUint16Value)
     CASE__SMPRINTF_NUMBER(VTYPE_UINT32, "%u",   unsigned, mUint32Value)
-    CASE__SMPRINTF_NUMBER(VTYPE_UINT64, "%llu", int64_t,  mUint64Value)
+    CASE__SMPRINTF_NUMBER(VTYPE_UINT64, "%llu", PRInt64,  mUint64Value)
 
     
     CASE__SMPRINTF_NUMBER(VTYPE_BOOL,   "%d",   int,      mBoolValue)
@@ -868,7 +901,7 @@ nsVariant::ConvertToAString(const nsDiscriminatedUnion& data,
         return NS_OK;
     default:
     {
-        nsAutoCString tempCString;
+        nsCAutoString tempCString;
         nsresult rv = ToString(data, tempCString);
         if(NS_FAILED(rv))
             return rv;
@@ -915,7 +948,7 @@ nsVariant::ConvertToACString(const nsDiscriminatedUnion& data,
     case nsIDataType::VTYPE_WCHAR:
     {
         const PRUnichar* str = &data.u.mWCharValue;
-        LossyCopyUTF16toASCII(Substring(str, 1), _retval);
+        LossyCopyUTF16toASCII(Substring(str, str + 1), _retval);
         return NS_OK;
     }
     default:
@@ -966,12 +999,12 @@ nsVariant::ConvertToAUTF8String(const nsDiscriminatedUnion& data,
     case nsIDataType::VTYPE_WCHAR:
     {
         const PRUnichar* str = &data.u.mWCharValue;
-        CopyUTF16toUTF8(Substring(str, 1), _retval);
+        CopyUTF16toUTF8(Substring(str, str + 1), _retval);
         return NS_OK;
     }
     default:
     {
-        nsAutoCString tempCString;
+        nsCAutoString tempCString;
         nsresult rv = ToString(data, tempCString);
         if(NS_FAILED(rv))
             return rv;
@@ -986,23 +1019,23 @@ nsVariant::ConvertToAUTF8String(const nsDiscriminatedUnion& data,
  nsresult
 nsVariant::ConvertToString(const nsDiscriminatedUnion& data, char **_retval)
 {
-    uint32_t ignored;
+    PRUint32 ignored;
     return nsVariant::ConvertToStringWithSize(data, &ignored, _retval);
 }
 
  nsresult
 nsVariant::ConvertToWString(const nsDiscriminatedUnion& data, PRUnichar **_retval)
 {
-    uint32_t ignored;
+    PRUint32 ignored;
     return nsVariant::ConvertToWStringWithSize(data, &ignored, _retval);
 }
 
  nsresult
 nsVariant::ConvertToStringWithSize(const nsDiscriminatedUnion& data,
-                                   uint32_t *size, char **str)
+                                   PRUint32 *size, char **str)
 {
     nsAutoString  tempString;
-    nsAutoCString tempCString;
+    nsCAutoString tempCString;
     nsresult rv;
 
     switch(data.mType)
@@ -1077,10 +1110,10 @@ nsVariant::ConvertToStringWithSize(const nsDiscriminatedUnion& data,
 }
  nsresult
 nsVariant::ConvertToWStringWithSize(const nsDiscriminatedUnion& data,
-                                    uint32_t *size, PRUnichar **str)
+                                    PRUint32 *size, PRUnichar **str)
 {
     nsAutoString  tempString;
-    nsAutoCString tempCString;
+    nsCAutoString tempCString;
     nsresult rv;
 
     switch(data.mType)
@@ -1158,7 +1191,7 @@ nsVariant::ConvertToISupports(const nsDiscriminatedUnion& data,
             return data.u.iface.mInterfaceValue->
                 QueryInterface(NS_GET_IID(nsISupports), (void**)_retval);
         } else {
-            *_retval = nullptr;
+            *_retval = nsnull;
             return NS_OK;
         }
     default:
@@ -1192,13 +1225,13 @@ nsVariant::ConvertToInterface(const nsDiscriminatedUnion& data, nsIID * *iid,
         return data.u.iface.mInterfaceValue->QueryInterface(*piid, iface);
     }
 
-    *iface = nullptr;
+    *iface = nsnull;
     return NS_OK;
 }
 
  nsresult
-nsVariant::ConvertToArray(const nsDiscriminatedUnion& data, uint16_t *type,
-                          nsIID* iid, uint32_t *count, void * *ptr)
+nsVariant::ConvertToArray(const nsDiscriminatedUnion& data, PRUint16 *type,
+                          nsIID* iid, PRUint32 *count, void * *ptr)
 {
     
     
@@ -1267,7 +1300,7 @@ nsVariant::ConvertToArray(const nsDiscriminatedUnion& data, uint16_t *type,
  nsresult
 nsVariant::SetFromVariant(nsDiscriminatedUnion* data, nsIVariant* aValue)
 {
-    uint16_t type;
+    PRUint16 type;
     nsresult rv;
 
     nsVariant::Cleanup(data);
@@ -1278,7 +1311,7 @@ nsVariant::SetFromVariant(nsDiscriminatedUnion* data, nsIVariant* aValue)
 
     switch(type)
     {
-        CASE__SET_FROM_VARIANT_VTYPE_CAST(VTYPE_INT8, (uint8_t*), mInt8Value,
+        CASE__SET_FROM_VARIANT_VTYPE_CAST(VTYPE_INT8, (PRUint8*), mInt8Value,
                                           Int8)
         CASE__SET_FROM_VARIANT_TYPE(VTYPE_INT16,  mInt16Value,  Int16)
         CASE__SET_FROM_VARIANT_TYPE(VTYPE_INT32,  mInt32Value,  Int32)
@@ -1371,42 +1404,42 @@ nsVariant::SetFromVariant(nsDiscriminatedUnion* data, nsIVariant* aValue)
 }
 
  nsresult
-nsVariant::SetFromInt8(nsDiscriminatedUnion* data, uint8_t aValue)
+nsVariant::SetFromInt8(nsDiscriminatedUnion* data, PRUint8 aValue)
 {
-    DATA_SETTER_WITH_CAST(data, VTYPE_INT8, mInt8Value, (uint8_t), aValue)
+    DATA_SETTER_WITH_CAST(data, VTYPE_INT8, mInt8Value, (PRUint8), aValue)
 }
  nsresult
-nsVariant::SetFromInt16(nsDiscriminatedUnion* data, int16_t aValue)
+nsVariant::SetFromInt16(nsDiscriminatedUnion* data, PRInt16 aValue)
 {
     DATA_SETTER(data, VTYPE_INT16, mInt16Value, aValue)
 }
  nsresult
-nsVariant::SetFromInt32(nsDiscriminatedUnion* data, int32_t aValue)
+nsVariant::SetFromInt32(nsDiscriminatedUnion* data, PRInt32 aValue)
 {
     DATA_SETTER(data, VTYPE_INT32, mInt32Value, aValue)
 }
  nsresult
-nsVariant::SetFromInt64(nsDiscriminatedUnion* data, int64_t aValue)
+nsVariant::SetFromInt64(nsDiscriminatedUnion* data, PRInt64 aValue)
 {
     DATA_SETTER(data, VTYPE_INT64, mInt64Value, aValue)
 }
  nsresult
-nsVariant::SetFromUint8(nsDiscriminatedUnion* data, uint8_t aValue)
+nsVariant::SetFromUint8(nsDiscriminatedUnion* data, PRUint8 aValue)
 {
     DATA_SETTER(data, VTYPE_UINT8, mUint8Value, aValue)
 }
  nsresult
-nsVariant::SetFromUint16(nsDiscriminatedUnion* data, uint16_t aValue)
+nsVariant::SetFromUint16(nsDiscriminatedUnion* data, PRUint16 aValue)
 {
     DATA_SETTER(data, VTYPE_UINT16, mUint16Value, aValue)
 }
  nsresult
-nsVariant::SetFromUint32(nsDiscriminatedUnion* data, uint32_t aValue)
+nsVariant::SetFromUint32(nsDiscriminatedUnion* data, PRUint32 aValue)
 {
     DATA_SETTER(data, VTYPE_UINT32, mUint32Value, aValue)
 }
  nsresult
-nsVariant::SetFromUint64(nsDiscriminatedUnion* data, uint64_t aValue)
+nsVariant::SetFromUint64(nsDiscriminatedUnion* data, PRUint64 aValue)
 {
     DATA_SETTER(data, VTYPE_UINT64, mUint64Value, aValue)
 }
@@ -1483,7 +1516,7 @@ nsVariant::SetFromWString(nsDiscriminatedUnion* data, const PRUnichar *aValue)
     DATA_SETTER_PROLOGUE(data);
     if(!aValue)
         return NS_ERROR_NULL_POINTER;
-    return SetFromWStringWithSize(data, NS_strlen(aValue), aValue);
+    return SetFromWStringWithSize(data, nsCRT::strlen(aValue), aValue);
 }
  nsresult
 nsVariant::SetFromISupports(nsDiscriminatedUnion* data, nsISupports *aValue)
@@ -1501,8 +1534,8 @@ nsVariant::SetFromInterface(nsDiscriminatedUnion* data, const nsIID& iid,
     DATA_SETTER_EPILOGUE(data, VTYPE_INTERFACE_IS);
 }
  nsresult
-nsVariant::SetFromArray(nsDiscriminatedUnion* data, uint16_t type,
-                        const nsIID* iid, uint32_t count, void * aValue)
+nsVariant::SetFromArray(nsDiscriminatedUnion* data, PRUint16 type,
+                        const nsIID* iid, PRUint32 count, void * aValue)
 {
     DATA_SETTER_PROLOGUE(data);
     if(!aValue || !count)
@@ -1518,7 +1551,7 @@ nsVariant::SetFromArray(nsDiscriminatedUnion* data, uint16_t type,
     DATA_SETTER_EPILOGUE(data, VTYPE_ARRAY);
 }
  nsresult
-nsVariant::SetFromStringWithSize(nsDiscriminatedUnion* data, uint32_t size, const char *aValue)
+nsVariant::SetFromStringWithSize(nsDiscriminatedUnion* data, PRUint32 size, const char *aValue)
 {
     DATA_SETTER_PROLOGUE(data);
     if(!aValue)
@@ -1530,7 +1563,7 @@ nsVariant::SetFromStringWithSize(nsDiscriminatedUnion* data, uint32_t size, cons
     DATA_SETTER_EPILOGUE(data, VTYPE_STRING_SIZE_IS);
 }
  nsresult
-nsVariant::SetFromWStringWithSize(nsDiscriminatedUnion* data, uint32_t size, const PRUnichar *aValue)
+nsVariant::SetFromWStringWithSize(nsDiscriminatedUnion* data, PRUint32 size, const PRUnichar *aValue)
 {
     DATA_SETTER_PROLOGUE(data);
     if(!aValue)
@@ -1635,7 +1668,6 @@ nsVariant::Traverse(const nsDiscriminatedUnion& data,
     {
         case nsIDataType::VTYPE_INTERFACE:
         case nsIDataType::VTYPE_INTERFACE_IS:
-            NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mData");
             cb.NoteXPCOMChild(data.u.iface.mInterfaceValue);
             break;
         case nsIDataType::VTYPE_ARRAY:
@@ -1644,10 +1676,8 @@ nsVariant::Traverse(const nsDiscriminatedUnion& data,
                 case nsIDataType::VTYPE_INTERFACE_IS:
                 {
                     nsISupports** p = (nsISupports**) data.u.array.mArrayValue;
-                    for(uint32_t i = data.u.array.mArrayCount; i > 0; p++, i--) {
-                        NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mData[i]");
+                    for(PRUint32 i = data.u.array.mArrayCount; i > 0; p++, i--)
                         cb.NoteXPCOMChild(*p);
-                    }
                 }
                 default:
                     break;
@@ -1664,7 +1694,7 @@ nsVariant::Traverse(const nsDiscriminatedUnion& data,
 NS_IMPL_ISUPPORTS2(nsVariant, nsIVariant, nsIWritableVariant)
 
 nsVariant::nsVariant()
-    : mWritable(true)
+    : mWritable(PR_TRUE)
 {
     nsVariant::Initialize(&mData);
 
@@ -1672,7 +1702,7 @@ nsVariant::nsVariant()
     {
         
         
-        struct THE_TYPES {uint16_t a; uint16_t b;};
+        struct THE_TYPES {PRUint16 a; PRUint16 b;};
         static const THE_TYPES array[] = {
             {nsIDataType::VTYPE_INT8              , TD_INT8             },
             {nsIDataType::VTYPE_INT16             , TD_INT16            },
@@ -1707,7 +1737,7 @@ nsVariant::nsVariant()
         {
             for(int i = 0; i < length; i++)
                 NS_ASSERTION(array[i].a == array[i].b, "bad const declaration");
-            inited = true;
+            inited = PR_TRUE;
         }
     }
 #endif
@@ -1722,56 +1752,56 @@ nsVariant::~nsVariant()
 
 
 
-NS_IMETHODIMP nsVariant::GetDataType(uint16_t *aDataType)
+NS_IMETHODIMP nsVariant::GetDataType(PRUint16 *aDataType)
 {
     *aDataType = mData.mType;
     return NS_OK;
 }
 
 
-NS_IMETHODIMP nsVariant::GetAsInt8(uint8_t *_retval)
+NS_IMETHODIMP nsVariant::GetAsInt8(PRUint8 *_retval)
 {
     return nsVariant::ConvertToInt8(mData, _retval);
 }
 
 
-NS_IMETHODIMP nsVariant::GetAsInt16(int16_t *_retval)
+NS_IMETHODIMP nsVariant::GetAsInt16(PRInt16 *_retval)
 {
     return nsVariant::ConvertToInt16(mData, _retval);
 }
 
 
-NS_IMETHODIMP nsVariant::GetAsInt32(int32_t *_retval)
+NS_IMETHODIMP nsVariant::GetAsInt32(PRInt32 *_retval)
 {
     return nsVariant::ConvertToInt32(mData, _retval);
 }
 
 
-NS_IMETHODIMP nsVariant::GetAsInt64(int64_t *_retval)
+NS_IMETHODIMP nsVariant::GetAsInt64(PRInt64 *_retval)
 {
     return nsVariant::ConvertToInt64(mData, _retval);
 }
 
 
-NS_IMETHODIMP nsVariant::GetAsUint8(uint8_t *_retval)
+NS_IMETHODIMP nsVariant::GetAsUint8(PRUint8 *_retval)
 {
     return nsVariant::ConvertToUint8(mData, _retval);
 }
 
 
-NS_IMETHODIMP nsVariant::GetAsUint16(uint16_t *_retval)
+NS_IMETHODIMP nsVariant::GetAsUint16(PRUint16 *_retval)
 {
     return nsVariant::ConvertToUint16(mData, _retval);
 }
 
 
-NS_IMETHODIMP nsVariant::GetAsUint32(uint32_t *_retval)
+NS_IMETHODIMP nsVariant::GetAsUint32(PRUint32 *_retval)
 {
     return nsVariant::ConvertToUint32(mData, _retval);
 }
 
 
-NS_IMETHODIMP nsVariant::GetAsUint64(uint64_t *_retval)
+NS_IMETHODIMP nsVariant::GetAsUint64(PRUint64 *_retval)
 {
     return nsVariant::ConvertToUint64(mData, _retval);
 }
@@ -1870,19 +1900,19 @@ NS_IMETHODIMP nsVariant::GetAsInterface(nsIID * *iid, void * *iface)
 }
 
 
-NS_IMETHODIMP_(nsresult) nsVariant::GetAsArray(uint16_t *type, nsIID *iid, uint32_t *count, void * *ptr)
+NS_IMETHODIMP_(nsresult) nsVariant::GetAsArray(PRUint16 *type, nsIID *iid, PRUint32 *count, void * *ptr)
 {
     return nsVariant::ConvertToArray(mData, type, iid, count, ptr);
 }
 
 
-NS_IMETHODIMP nsVariant::GetAsStringWithSize(uint32_t *size, char **str)
+NS_IMETHODIMP nsVariant::GetAsStringWithSize(PRUint32 *size, char **str)
 {
     return nsVariant::ConvertToStringWithSize(mData, size, str);
 }
 
 
-NS_IMETHODIMP nsVariant::GetAsWStringWithSize(uint32_t *size, PRUnichar **str)
+NS_IMETHODIMP nsVariant::GetAsWStringWithSize(PRUint32 *size, PRUnichar **str)
 {
     return nsVariant::ConvertToWStringWithSize(mData, size, str);
 }
@@ -1909,56 +1939,56 @@ NS_IMETHODIMP nsVariant::SetWritable(bool aWritable)
 
 
 
-NS_IMETHODIMP nsVariant::SetAsInt8(uint8_t aValue)
+NS_IMETHODIMP nsVariant::SetAsInt8(PRUint8 aValue)
 {
     if(!mWritable) return NS_ERROR_OBJECT_IS_IMMUTABLE;
     return nsVariant::SetFromInt8(&mData, aValue);
 }
 
 
-NS_IMETHODIMP nsVariant::SetAsInt16(int16_t aValue)
+NS_IMETHODIMP nsVariant::SetAsInt16(PRInt16 aValue)
 {
     if(!mWritable) return NS_ERROR_OBJECT_IS_IMMUTABLE;
     return nsVariant::SetFromInt16(&mData, aValue);
 }
 
 
-NS_IMETHODIMP nsVariant::SetAsInt32(int32_t aValue)
+NS_IMETHODIMP nsVariant::SetAsInt32(PRInt32 aValue)
 {
     if(!mWritable) return NS_ERROR_OBJECT_IS_IMMUTABLE;
     return nsVariant::SetFromInt32(&mData, aValue);
 }
 
 
-NS_IMETHODIMP nsVariant::SetAsInt64(int64_t aValue)
+NS_IMETHODIMP nsVariant::SetAsInt64(PRInt64 aValue)
 {
     if(!mWritable) return NS_ERROR_OBJECT_IS_IMMUTABLE;
     return nsVariant::SetFromInt64(&mData, aValue);
 }
 
 
-NS_IMETHODIMP nsVariant::SetAsUint8(uint8_t aValue)
+NS_IMETHODIMP nsVariant::SetAsUint8(PRUint8 aValue)
 {
     if(!mWritable) return NS_ERROR_OBJECT_IS_IMMUTABLE;
     return nsVariant::SetFromUint8(&mData, aValue);
 }
 
 
-NS_IMETHODIMP nsVariant::SetAsUint16(uint16_t aValue)
+NS_IMETHODIMP nsVariant::SetAsUint16(PRUint16 aValue)
 {
     if(!mWritable) return NS_ERROR_OBJECT_IS_IMMUTABLE;
     return nsVariant::SetFromUint16(&mData, aValue);
 }
 
 
-NS_IMETHODIMP nsVariant::SetAsUint32(uint32_t aValue)
+NS_IMETHODIMP nsVariant::SetAsUint32(PRUint32 aValue)
 {
     if(!mWritable) return NS_ERROR_OBJECT_IS_IMMUTABLE;
     return nsVariant::SetFromUint32(&mData, aValue);
 }
 
 
-NS_IMETHODIMP nsVariant::SetAsUint64(uint64_t aValue)
+NS_IMETHODIMP nsVariant::SetAsUint64(PRUint64 aValue)
 {
     if(!mWritable) return NS_ERROR_OBJECT_IS_IMMUTABLE;
     return nsVariant::SetFromUint64(&mData, aValue);
@@ -2067,21 +2097,21 @@ NS_IMETHODIMP nsVariant::SetAsInterface(const nsIID & iid, void * iface)
 }
 
 
-NS_IMETHODIMP nsVariant::SetAsArray(uint16_t type, const nsIID * iid, uint32_t count, void * ptr)
+NS_IMETHODIMP nsVariant::SetAsArray(PRUint16 type, const nsIID * iid, PRUint32 count, void * ptr)
 {
     if(!mWritable) return NS_ERROR_OBJECT_IS_IMMUTABLE;
     return nsVariant::SetFromArray(&mData, type, iid, count, ptr);
 }
 
 
-NS_IMETHODIMP nsVariant::SetAsStringWithSize(uint32_t size, const char *str)
+NS_IMETHODIMP nsVariant::SetAsStringWithSize(PRUint32 size, const char *str)
 {
     if(!mWritable) return NS_ERROR_OBJECT_IS_IMMUTABLE;
     return nsVariant::SetFromStringWithSize(&mData, size, str);
 }
 
 
-NS_IMETHODIMP nsVariant::SetAsWStringWithSize(uint32_t size, const PRUnichar *str)
+NS_IMETHODIMP nsVariant::SetAsWStringWithSize(PRUint32 size, const PRUnichar *str)
 {
     if(!mWritable) return NS_ERROR_OBJECT_IS_IMMUTABLE;
     return nsVariant::SetFromWStringWithSize(&mData, size, str);

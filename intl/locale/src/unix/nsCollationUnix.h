@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsCollationUnix_h__
 #define nsCollationUnix_h__
 
@@ -11,11 +43,10 @@
 #include "nsICollation.h"
 #include "nsCollation.h"  
 #include "plstr.h"
-#include "mozilla/Attributes.h"
 
 
 
-class nsCollationUnix MOZ_FINAL : public nsICollation {
+class nsCollationUnix : public nsICollation {
 
 protected:
   nsCollation   *mCollation;

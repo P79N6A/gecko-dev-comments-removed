@@ -3,6 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsTimerImpl_h___
 #define nsTimerImpl_h___
 
@@ -16,7 +51,6 @@
 
 #include "prlog.h"
 #include "mozilla/TimeStamp.h"
-#include "mozilla/Attributes.h"
 
 #if defined(PR_LOGGING)
 static PRLogModuleInfo *gTimerLog = PR_NewLogModule("nsTimerImpl");
@@ -41,7 +75,7 @@ enum {
   CALLBACK_TYPE_OBSERVER  = 3
 };
 
-class nsTimerImpl MOZ_FINAL : public nsITimer
+class nsTimerImpl : public nsITimer
 {
 public:
   typedef mozilla::TimeStamp TimeStamp;
@@ -55,23 +89,23 @@ public:
 
   void Fire();
   nsresult PostTimerEvent();
-  void SetDelayInternal(uint32_t aDelay);
+  void SetDelayInternal(PRUint32 aDelay);
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSITIMER
 
-  int32_t GetGeneration() { return mGeneration; }
+  PRInt32 GetGeneration() { return mGeneration; }
 
 private:
   ~nsTimerImpl();
-  nsresult InitCommon(uint32_t aType, uint32_t aDelay);
+  nsresult InitCommon(PRUint32 aType, PRUint32 aDelay);
 
   void ReleaseCallback()
   {
     
     
     
-    uint8_t cbType = mCallbackType;
+    PRUint8 cbType = mCallbackType;
     mCallbackType = CALLBACK_TYPE_UNKNOWN; 
 
     if (cbType == CALLBACK_TYPE_INTERFACE)
@@ -106,11 +140,11 @@ private:
   nsCOMPtr<nsITimerCallback> mTimerCallbackWhileFiring;
 
   
-  uint8_t               mCallbackType;
+  PRUint8               mCallbackType;
 
   
   
-  uint8_t               mType;
+  PRUint8               mType;
   bool                  mFiring;
 
 
@@ -124,9 +158,9 @@ private:
   
   
   
-  int32_t               mGeneration;
+  PRInt32               mGeneration;
 
-  uint32_t              mDelay;
+  PRUint32              mDelay;
   TimeStamp             mTimeout;
 
 #ifdef DEBUG_TIMERS

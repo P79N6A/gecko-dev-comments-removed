@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsContentEventHandler_h__
 #define nsContentEventHandler_h__
 
@@ -10,7 +44,7 @@
 #include "nsCOMPtr.h"
 
 #include "nsISelection.h"
-#include "nsRange.h"
+#include "nsIRange.h"
 #include "nsIContent.h"
 #include "nsIDOMTreeWalker.h"
 
@@ -59,7 +93,7 @@ protected:
   nsPresContext* mPresContext;
   nsCOMPtr<nsIPresShell> mPresShell;
   nsCOMPtr<nsISelection> mSelection;
-  nsRefPtr<nsRange> mFirstSelectedRange;
+  nsCOMPtr<nsIRange> mFirstSelectedRange;
   nsCOMPtr<nsIContent> mRootContent;
 
   nsresult Init(nsQueryContentEvent* aEvent);
@@ -75,31 +109,31 @@ public:
   
   static nsresult GetFlatTextOffsetOfRange(nsIContent* aRootContent,
                                            nsINode* aNode,
-                                           int32_t aNodeOffset,
-                                           uint32_t* aOffset);
+                                           PRInt32 aNodeOffset,
+                                           PRUint32* aOffset);
   static nsresult GetFlatTextOffsetOfRange(nsIContent* aRootContent,
-                                           nsRange* aRange,
-                                           uint32_t* aOffset);
+                                           nsIRange* aRange,
+                                           PRUint32* aOffset);
 protected:
   
   
   
-  nsresult SetRangeFromFlatTextOffset(nsRange* aRange,
-                                      uint32_t aNativeOffset,
-                                      uint32_t aNativeLength,
+  nsresult SetRangeFromFlatTextOffset(nsIRange* aRange,
+                                      PRUint32 aNativeOffset,
+                                      PRUint32 aNativeLength,
                                       bool aExpandToClusterBoundaries);
   
   
-  nsresult GetStartFrameAndOffset(nsRange* aRange,
+  nsresult GetStartFrameAndOffset(nsIRange* aRange,
                                   nsIFrame** aFrame,
-                                  int32_t* aOffsetInFrame);
+                                  PRInt32* aOffsetInFrame);
   
   nsresult ConvertToRootViewRelativeOffset(nsIFrame* aFrame,
                                            nsRect& aRect);
   
   
   nsresult ExpandToClusterBoundary(nsIContent* aContent, bool aForward,
-                                   uint32_t* aXPOffset);
+                                   PRUint32* aXPOffset);
 };
 
 #endif 

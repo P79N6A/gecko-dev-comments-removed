@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsSHistory_h
 #define nsSHistory_h
 
@@ -49,7 +82,7 @@ public:
   
   
   
-  static uint32_t GetMaxTotalViewers() { return sHistoryMaxTotalViewers; }
+  static PRUint32 GetMaxTotalViewers() { return sHistoryMaxTotalViewers; }
 
 protected:
   virtual ~nsSHistory();
@@ -57,12 +90,12 @@ protected:
   friend class nsSHistoryObserver;
 
    
-   NS_IMETHOD GetEntryAtIndex(int32_t aIndex, bool aModifyIndex, nsISHEntry** aResult);
-   NS_IMETHOD GetTransactionAtIndex(int32_t aIndex, nsISHTransaction ** aResult);
+   NS_IMETHOD GetEntryAtIndex(PRInt32 aIndex, bool aModifyIndex, nsISHEntry** aResult);
+   NS_IMETHOD GetTransactionAtIndex(PRInt32 aIndex, nsISHTransaction ** aResult);
    nsresult CompareFrames(nsISHEntry * prevEntry, nsISHEntry * nextEntry, nsIDocShell * rootDocShell, long aLoadType, bool * aIsFrameFound);
    nsresult InitiateLoad(nsISHEntry * aFrameEntry, nsIDocShell * aFrameDS, long aLoadType);
 
-   NS_IMETHOD LoadEntry(int32_t aIndex, long aLoadType, uint32_t histCmd);
+   NS_IMETHOD LoadEntry(PRInt32 aIndex, long aLoadType, PRUint32 histCmd);
 
 #ifdef DEBUG
    nsresult PrintHistory();
@@ -70,34 +103,34 @@ protected:
 
   
   
-  void EvictOutOfRangeWindowContentViewers(int32_t aIndex);
+  void EvictOutOfRangeWindowContentViewers(PRInt32 aIndex);
   static void GloballyEvictContentViewers();
   static void GloballyEvictAllContentViewers();
 
   
   
-  static uint32_t CalcMaxTotalViewers();
+  static PRUint32 CalcMaxTotalViewers();
 
-  void RemoveDynEntries(int32_t aOldIndex, int32_t aNewIndex);
+  void RemoveDynEntries(PRInt32 aOldIndex, PRInt32 aNewIndex);
 
-  nsresult LoadNextPossibleEntry(int32_t aNewIndex, long aLoadType, uint32_t aHistCmd);
+  nsresult LoadNextPossibleEntry(PRInt32 aNewIndex, long aLoadType, PRUint32 aHistCmd);
 protected:
   
   
   
-  bool RemoveDuplicate(int32_t aIndex, bool aKeepNext);
+  bool RemoveDuplicate(PRInt32 aIndex, bool aKeepNext);
 
   nsCOMPtr<nsISHTransaction> mListRoot;
-  int32_t mIndex;
-  int32_t mLength;
-  int32_t mRequestedIndex;
+  PRInt32 mIndex;
+  PRInt32 mLength;
+  PRInt32 mRequestedIndex;
   
   nsWeakPtr mListener;
   
   nsIDocShell *  mRootDocShell;
 
   
-  static int32_t  sHistoryMaxTotalViewers;
+  static PRInt32  sHistoryMaxTotalViewers;
 };
 
 
@@ -115,7 +148,7 @@ protected:
   friend class nsSHistory;
   virtual ~nsSHEnumerator();
 private:
-  int32_t     mIndex;
+  PRInt32     mIndex;
   nsSHistory *  mSHistory;  
 };
 

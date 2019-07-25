@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "mozilla/ipc/DocumentRendererChild.h"
 
 #include "base/basictypes.h"
@@ -10,9 +42,10 @@
 #include "gfxPattern.h"
 #include "nsPIDOMWindow.h"
 #include "nsIDOMWindow.h"
-#include "nsIDocShell.h"
+#include "nsIDOMDocument.h"
 #include "nsIDocShellTreeNode.h"
 #include "nsIDocShellTreeItem.h"
+#include "nsIDocument.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsComponentManagerUtils.h"
 #include "nsCSSParser.h"
@@ -20,6 +53,7 @@
 #include "nsCOMPtr.h"
 #include "nsColor.h"
 #include "gfxContext.h"
+#include "gfxImageSurface.h"
 #include "nsLayoutUtils.h"
 #include "nsContentUtils.h"
 
@@ -35,8 +69,8 @@ bool
 DocumentRendererChild::RenderDocument(nsIDOMWindow *window,
                                       const nsRect& documentRect,
                                       const gfxMatrix& transform,
-                                      const nsString& aBGColor,
-                                      uint32_t renderFlags,
+                                      const nsString& bgcolor,
+                                      PRUint32 renderFlags,
                                       bool flushLayout, 
                                       const nsIntSize& renderSize,
                                       nsCString& data)
@@ -55,30 +89,26 @@ DocumentRendererChild::RenderDocument(nsIDOMWindow *window,
     if (!presContext)
         return false;
 
-    nsCSSParser parser;
-    nsCSSValue bgColorValue;
-    if (!parser.ParseColorString(aBGColor, nullptr, 0, bgColorValue)) {
-        return false;
-    }
-
     nscolor bgColor;
-    if (!nsRuleNode::ComputeColor(bgColorValue, presContext, nullptr, bgColor)) {
+    nsCSSParser parser;
+    nsresult rv = parser.ParseColorString(bgcolor, nsnull, 0, &bgColor);
+    if (NS_FAILED(rv))
         return false;
-    }
+
+    nsIPresShell* presShell = presContext->PresShell();
 
     
     data.SetLength(renderSize.width * renderSize.height * 4);
 
     nsRefPtr<gfxImageSurface> surf =
-        new gfxImageSurface(reinterpret_cast<uint8_t*>(data.BeginWriting()),
+        new gfxImageSurface(reinterpret_cast<uint8*>(data.BeginWriting()),
                             gfxIntSize(renderSize.width, renderSize.height),
                             4 * renderSize.width,
                             gfxASurface::ImageFormatARGB32);
     nsRefPtr<gfxContext> ctx = new gfxContext(surf);
     ctx->SetMatrix(transform);
 
-    presContext->PresShell()->
-      RenderDocument(documentRect, renderFlags, bgColor, ctx);
+    presShell->RenderDocument(documentRect, renderFlags, bgColor, ctx);
 
     return true;
 }

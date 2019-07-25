@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "mozilla/PluginPRLibrary.h"
 
 
@@ -19,50 +51,41 @@ static int gNotOptimized;
 #define CALLING_CONVENTION_HACK
 #endif
 
-#ifdef MOZ_WIDGET_ANDROID
+#ifdef ANDROID
 #include "AndroidBridge.h"
 #include "android_npapi.h"
 #include <android/log.h>
-#undef ALOG
 #define ALOG(args...) __android_log_print(ANDROID_LOG_INFO, "GeckoJavaEnv", ## args)
 #endif
 
 namespace mozilla {
-#ifdef MOZ_WIDGET_ANDROID
+#ifdef ANDROID
 nsresult
 PluginPRLibrary::NP_Initialize(NPNetscapeFuncs* bFuncs,
 			       NPPluginFuncs* pFuncs, NPError* error)
 {
-  JNIEnv* env = GetJNIForThread();
-  if (!env)
-    return NS_ERROR_FAILURE;
-
   if (mNP_Initialize) {
-    *error = mNP_Initialize(bFuncs, pFuncs, env);
+    *error = mNP_Initialize(bFuncs, pFuncs, GetJNIForThread());
   } else {
     NP_InitializeFunc pfNP_Initialize = (NP_InitializeFunc)
       PR_FindFunctionSymbol(mLibrary, "NP_Initialize");
     if (!pfNP_Initialize)
       return NS_ERROR_FAILURE;
-    *error = pfNP_Initialize(bFuncs, pFuncs, env);
+    *error = pfNP_Initialize(bFuncs, pFuncs, GetJNIForThread());
   }
+
 
   
   mNPP_New = pFuncs->newp;
+  mNPP_GetValue = pFuncs->getvalue;
   mNPP_ClearSiteData = pFuncs->clearsitedata;
   mNPP_GetSitesWithData = pFuncs->getsiteswithdata;
-  return NS_OK;
-}
-#elif defined(MOZ_WIDGET_GONK)
-nsresult
-PluginPRLibrary::NP_Initialize(NPNetscapeFuncs* bFuncs, NPError* error)
-{
   return NS_OK;
 }
 #elif defined(XP_UNIX) && !defined(XP_MACOSX)
 nsresult
 PluginPRLibrary::NP_Initialize(NPNetscapeFuncs* bFuncs,
-                               NPPluginFuncs* pFuncs, NPError* error)
+			       NPPluginFuncs* pFuncs, NPError* error)
 {
   if (mNP_Initialize) {
     *error = mNP_Initialize(bFuncs, pFuncs);
@@ -263,7 +286,7 @@ PluginPRLibrary::HandleGUIEvent(NPP instance, const nsGUIEvent& anEvent,
 #endif
 
 nsresult
-PluginPRLibrary::GetImageContainer(NPP instance, ImageContainer** aContainer)
+PluginPRLibrary::GetImage(NPP instance, ImageContainer* aContainer, Image** aImage)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -301,7 +324,7 @@ PluginPRLibrary::BeginUpdateBackground(NPP instance,
   nsNPAPIPluginInstance* inst = (nsNPAPIPluginInstance*)instance->ndata;
   NS_ENSURE_TRUE(inst, NS_ERROR_NULL_POINTER);
   NS_ERROR("Unexpected use of async APIs for in-process plugin.");
-  *aCtx = nullptr;
+  *aCtx = nsnull;
   return NS_OK;
 }
 

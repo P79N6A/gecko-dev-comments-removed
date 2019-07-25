@@ -10,6 +10,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsNetUtil.h"
 #include "nsIURI.h"
 #include "nsIIOService.h"
@@ -208,11 +241,11 @@ LocalStoreImpl::~LocalStoreImpl(void)
 nsresult
 NS_NewLocalStore(nsISupports* aOuter, REFNSIID aIID, void** aResult)
 {
-    NS_PRECONDITION(aOuter == nullptr, "no aggregation");
+    NS_PRECONDITION(aOuter == nsnull, "no aggregation");
     if (aOuter)
         return NS_ERROR_NO_AGGREGATION;
 
-    NS_PRECONDITION(aResult != nullptr, "null ptr");
+    NS_PRECONDITION(aResult != nsnull, "null ptr");
     if (! aResult)
         return NS_ERROR_NULL_POINTER;
 
@@ -254,7 +287,7 @@ NS_IMETHODIMP
 LocalStoreImpl::GetLoaded(bool* _result)
 {
 	nsCOMPtr<nsIRDFRemoteDataSource> remote = do_QueryInterface(mInner);
-    NS_ASSERTION(remote != nullptr, "not an nsIRDFRemoteDataSource");
+    NS_ASSERTION(remote != nsnull, "not an nsIRDFRemoteDataSource");
 	if (! remote)
         return NS_ERROR_UNEXPECTED;
 
@@ -276,7 +309,7 @@ LocalStoreImpl::Flush()
     
     
     
-    NS_WARN_IF_FALSE(remote != nullptr, "not an nsIRDFRemoteDataSource");
+    NS_WARN_IF_FALSE(remote != nsnull, "not an nsIRDFRemoteDataSource");
 	if (! remote)
         return NS_ERROR_UNEXPECTED;
 
@@ -294,7 +327,7 @@ NS_IMETHODIMP
 LocalStoreImpl::Refresh(bool sync)
 {
 	nsCOMPtr<nsIRDFRemoteDataSource> remote = do_QueryInterface(mInner);
-    NS_ASSERTION(remote != nullptr, "not an nsIRDFRemoteDataSource");
+    NS_ASSERTION(remote != nsnull, "not an nsIRDFRemoteDataSource");
 	if (! remote)
         return NS_ERROR_UNEXPECTED;
 
@@ -313,15 +346,15 @@ LocalStoreImpl::Init()
     mRDFService = do_GetService(NS_RDF_CONTRACTID "/rdf-service;1", &rv);
     if (NS_FAILED(rv)) return rv;
 
-    mRDFService->RegisterDataSource(this, false);
+    mRDFService->RegisterDataSource(this, PR_FALSE);
 
     
     nsCOMPtr<nsIObserverService> obs =
         do_GetService("@mozilla.org/observer-service;1");
 
     if (obs) {
-        obs->AddObserver(this, "profile-before-change", true);
-        obs->AddObserver(this, "profile-do-change", true);
+        obs->AddObserver(this, "profile-before-change", PR_TRUE);
+        obs->AddObserver(this, "profile-do-change", PR_TRUE);
     }
 
     return NS_OK;
@@ -346,7 +379,7 @@ LocalStoreImpl::CreateLocalStore(nsIFile* aFile)
         "  <!-- Empty -->\n" \
         "</RDF:RDF>\n";
 
-    uint32_t count;
+    PRUint32 count;
     rv = outStream->Write(defaultRDF, sizeof(defaultRDF)-1, &count);
     if (NS_FAILED(rv)) return rv;
 
@@ -394,7 +427,7 @@ LocalStoreImpl::LoadData()
     rv = NS_NewFileURI(getter_AddRefs(aURI), aFile);
     if (NS_FAILED(rv)) return rv;
 
-    nsAutoCString spec;
+    nsCAutoString spec;
     rv = aURI->GetSpec(spec);
     if (NS_FAILED(rv)) return rv;
 
@@ -402,15 +435,15 @@ LocalStoreImpl::LoadData()
     if (NS_FAILED(rv)) return rv;
 
     
-    rv = remote->Refresh(true);
+    rv = remote->Refresh(PR_TRUE);
     
     if (NS_FAILED(rv)) {
         
-        aFile->Remove(true);
+        aFile->Remove(PR_TRUE);
         rv = CreateLocalStore(aFile);
         if (NS_FAILED(rv)) return rv;
         
-        rv = remote->Refresh(true);
+        rv = remote->Refresh(PR_TRUE);
     }
 
     return rv;
@@ -420,7 +453,7 @@ LocalStoreImpl::LoadData()
 NS_IMETHODIMP
 LocalStoreImpl::GetURI(char* *aURI)
 {
-    NS_PRECONDITION(aURI != nullptr, "null ptr");
+    NS_PRECONDITION(aURI != nsnull, "null ptr");
     if (! aURI)
         return NS_ERROR_NULL_POINTER;
 
@@ -445,7 +478,7 @@ LocalStoreImpl::IsCommandEnabled(nsISupportsArray* aSources,
                                  nsISupportsArray* aArguments,
                                  bool* aResult)
 {
-    *aResult = true;
+    *aResult = PR_TRUE;
     return NS_OK;
 }
 
@@ -479,7 +512,7 @@ LocalStoreImpl::Observe(nsISupports *aSubject, const char *aTopic, const PRUnich
             nsCOMPtr<nsIFile> aFile;
             rv = NS_GetSpecialDirectory(NS_APP_LOCALSTORE_50_FILE, getter_AddRefs(aFile));
             if (NS_SUCCEEDED(rv))
-                rv = aFile->Remove(false);
+                rv = aFile->Remove(PR_FALSE);
         }
     }
     else if (!nsCRT::strcmp(aTopic, "profile-do-change")) {

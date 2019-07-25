@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCertPicker.h"
 #include "nsMemory.h"
 #include "nsCOMPtr.h"
@@ -33,23 +65,23 @@ nsCertPicker::~nsCertPicker()
 
 NS_IMETHODIMP nsCertPicker::PickByUsage(nsIInterfaceRequestor *ctx, 
                                         const PRUnichar *selectedNickname, 
-                                        int32_t certUsage, 
+                                        PRInt32 certUsage, 
                                         bool allowInvalid, 
                                         bool allowDuplicateNicknames, 
                                         bool *canceled, 
                                         nsIX509Cert **_retval)
 {
   nsNSSShutDownPreventionLock locker;
-  int32_t selectedIndex = -1;
+  PRInt32 selectedIndex = -1;
   bool selectionFound = false;
-  PRUnichar **certNicknameList = nullptr;
-  PRUnichar **certDetailsList = nullptr;
-  CERTCertListNode* node = nullptr;
+  PRUnichar **certNicknameList = nsnull;
+  PRUnichar **certDetailsList = nsnull;
+  CERTCertListNode* node = nsnull;
   nsresult rv = NS_OK;
 
   {
     
-    CERTCertList *allcerts = nullptr;
+    CERTCertList *allcerts = nsnull;
     nsCOMPtr<nsIInterfaceRequestor> ctx = new PipUIContext();
     allcerts = PK11_ListCerts(PK11CertListUnique, ctx);
     CERT_DestroyCertList(allcerts);
@@ -87,7 +119,7 @@ NS_IMETHODIMP nsCertPicker::PickByUsage(nsIInterfaceRequestor *ctx,
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  int32_t CertsToUse;
+  PRInt32 CertsToUse;
 
   for (CertsToUse = 0, node = CERT_LIST_HEAD(certList);
        !CERT_LIST_END(node, certList) && CertsToUse < nicknames->numnicknames;
@@ -110,7 +142,7 @@ NS_IMETHODIMP nsCertPicker::PickByUsage(nsIInterfaceRequestor *ctx,
       if (!selectionFound) {
         if (i_nickname == nsDependentString(selectedNickname)) {
           selectedIndex = CertsToUse;
-          selectionFound = true;
+          selectionFound = PR_TRUE;
         }
       }
 
@@ -119,8 +151,8 @@ NS_IMETHODIMP nsCertPicker::PickByUsage(nsIInterfaceRequestor *ctx,
         certDetailsList[CertsToUse] = ToNewUnicode(details);
       }
       else {
-        certNicknameList[CertsToUse] = nullptr;
-        certDetailsList[CertsToUse] = nullptr;
+        certNicknameList[CertsToUse] = nsnull;
+        certDetailsList[CertsToUse] = nsnull;
       }
 
       NS_RELEASE(tempCert);
@@ -130,7 +162,7 @@ NS_IMETHODIMP nsCertPicker::PickByUsage(nsIInterfaceRequestor *ctx,
   }
 
   if (CertsToUse) {
-    nsICertPickDialogs *dialogs = nullptr;
+    nsICertPickDialogs *dialogs = nsnull;
     rv = getNSSDialogs((void**)&dialogs, 
       NS_GET_IID(nsICertPickDialogs), 
       NS_CERTPICKDIALOGS_CONTRACTID);
@@ -151,7 +183,7 @@ NS_IMETHODIMP nsCertPicker::PickByUsage(nsIInterfaceRequestor *ctx,
     }
   }
 
-  int32_t i;
+  PRInt32 i;
   for (i = 0; i < CertsToUse; ++i) {
     nsMemory::Free(certNicknameList[i]);
     nsMemory::Free(certDetailsList[i]);

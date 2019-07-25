@@ -3,6 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsProfileStringTypes.h"
 #include "nsProfileLock.h"
 #include "nsCOMPtr.h"
@@ -39,20 +76,19 @@ static bool sDisableSignalHandling = false;
 #endif
 
 nsProfileLock::nsProfileLock() :
-    mHaveLock(false),
-    mReplacedLockTime(0)
+    mHaveLock(PR_FALSE)
 #if defined (XP_WIN)
     ,mLockFileHandle(INVALID_HANDLE_VALUE)
 #elif defined (XP_OS2)
     ,mLockFileHandle(-1)
 #elif defined (XP_UNIX)
-    ,mPidLockFileName(nullptr)
+    ,mPidLockFileName(nsnull)
     ,mLockFileDesc(-1)
 #endif
 {
 #if defined (XP_UNIX)
     next = prev = this;
-    sDisableSignalHandling = PR_GetEnv("MOZ_DISABLE_SIG_HANDLER") ? true : false;
+    sDisableSignalHandling = PR_GetEnv("MOZ_DISABLE_SIG_HANDLER") ? PR_TRUE : PR_FALSE;
 #endif
 }
 
@@ -68,7 +104,7 @@ nsProfileLock& nsProfileLock::operator=(nsProfileLock& rhs)
     Unlock();
 
     mHaveLock = rhs.mHaveLock;
-    rhs.mHaveLock = false;
+    rhs.mHaveLock = PR_FALSE;
 
 #if defined (XP_WIN)
     mLockFileHandle = rhs.mLockFileHandle;
@@ -80,7 +116,7 @@ nsProfileLock& nsProfileLock::operator=(nsProfileLock& rhs)
     mLockFileDesc = rhs.mLockFileDesc;
     rhs.mLockFileDesc = -1;
     mPidLockFileName = rhs.mPidLockFileName;
-    rhs.mPidLockFileName = nullptr;
+    rhs.mPidLockFileName = nsnull;
     if (mPidLockFileName)
     {
         
@@ -130,10 +166,10 @@ void nsProfileLock::FatalSignalHandler(int signo
                                        )
 {
     
-    RemovePidLockFiles(true);
+    RemovePidLockFiles(PR_TRUE);
 
     
-    struct sigaction *oldact = nullptr;
+    struct sigaction *oldact = nsnull;
 
     switch (signo) {
       case SIGHUP:
@@ -195,18 +231,9 @@ void nsProfileLock::FatalSignalHandler(int signo
     _exit(signo);
 }
 
-nsresult nsProfileLock::LockWithFcntl(nsIFile *aLockFile)
+nsresult nsProfileLock::LockWithFcntl(const nsACString& lockFilePath)
 {
     nsresult rv = NS_OK;
-
-    nsAutoCString lockFilePath;
-    rv = aLockFile->GetNativePath(lockFilePath);
-    if (NS_FAILED(rv)) {
-        NS_ERROR("Could not get native path");
-        return rv;
-    }
-
-    aLockFile->GetLastModifiedTime(&mReplacedLockTime);
 
     mLockFileDesc = open(PromiseFlatCString(lockFilePath).get(),
                           O_WRONLY | O_CREAT | O_TRUNC, 0666);
@@ -244,7 +271,7 @@ nsresult nsProfileLock::LockWithFcntl(nsIFile *aLockFile)
                 rv = NS_ERROR_FAILURE;
         }
         else
-            mHaveLock = true;
+            mHaveLock = PR_TRUE;
     }
     else
     {
@@ -275,17 +302,17 @@ static bool IsSymlinkStaleLock(struct in_addr* aAddr, const char* aFileName,
                     
                     
                     
-                    return true;
+                    return PR_TRUE;
                 }
                     
-                char *after = nullptr;
+                char *after = nsnull;
                 pid_t pid = strtol(colon, &after, 0);
                 if (pid != 0 && *after == '\0')
                 {
                     if (addr != aAddr->s_addr)
                     {
                         
-                        return false;
+                        return PR_FALSE;
                     }
     
                     
@@ -296,28 +323,18 @@ static bool IsSymlinkStaleLock(struct in_addr* aAddr, const char* aFileName,
                         
                         
                         
-                        return false;
+                        return PR_FALSE;
                     }
                 }
             }
         }
     }
-    return true;
+    return PR_TRUE;
 }
 
-nsresult nsProfileLock::LockWithSymlink(nsIFile *aLockFile, bool aHaveFcntlLock)
+nsresult nsProfileLock::LockWithSymlink(const nsACString& lockFilePath, bool aHaveFcntlLock)
 {
     nsresult rv;
-    nsAutoCString lockFilePath;
-    rv = aLockFile->GetNativePath(lockFilePath);
-    if (NS_FAILED(rv)) {
-        NS_ERROR("Could not get native path");
-        return rv;
-    }
-
-    
-    if (!mReplacedLockTime)
-        aLockFile->GetLastModifiedTimeOfLink(&mReplacedLockTime);
 
     struct in_addr inaddr;
     inaddr.s_addr = htonl(INADDR_LOOPBACK);
@@ -358,14 +375,14 @@ nsresult nsProfileLock::LockWithSymlink(nsIFile *aLockFile, bool aHaveFcntlLock)
     }
 
     PR_smprintf_free(signature);
-    signature = nullptr;
+    signature = nsnull;
 
     if (symlink_rv == 0)
     {
         
         
         rv = NS_OK;
-        mHaveLock = true;
+        mHaveLock = PR_TRUE;
         mPidLockFileName = strdup(fileName);
         if (mPidLockFileName)
         {
@@ -426,12 +443,7 @@ PR_BEGIN_MACRO                                                          \
 }
 #endif 
 
-nsresult nsProfileLock::GetReplacedLockTime(PRTime *aResult) {
-    *aResult = mReplacedLockTime;
-    return NS_OK;
-}
-
-nsresult nsProfileLock::Lock(nsIFile* aProfileDir,
+nsresult nsProfileLock::Lock(nsILocalFile* aProfileDir,
                              nsIProfileUnlocker* *aUnlocker)
 {
 #if defined (XP_MACOSX)
@@ -446,7 +458,7 @@ nsresult nsProfileLock::Lock(nsIFile* aProfileDir,
 
     nsresult rv;
     if (aUnlocker)
-        *aUnlocker = nullptr;
+        *aUnlocker = nsnull;
 
     NS_ENSURE_STATE(!mHaveLock);
 
@@ -457,8 +469,8 @@ nsresult nsProfileLock::Lock(nsIFile* aProfileDir,
     if (!isDir)
         return NS_ERROR_FILE_NOT_DIRECTORY;
 
-    nsCOMPtr<nsIFile> lockFile;
-    rv = aProfileDir->Clone(getter_AddRefs(lockFile));
+    nsCOMPtr<nsILocalFile> lockFile;
+    rv = aProfileDir->Clone((nsIFile **)((void **)getter_AddRefs(lockFile)));
     if (NS_FAILED(rv))
         return rv;
 
@@ -469,13 +481,17 @@ nsresult nsProfileLock::Lock(nsIFile* aProfileDir,
 #if defined(XP_MACOSX)
     
     
+    nsCAutoString filePath;
+    rv = lockFile->GetNativePath(filePath);
+    if (NS_FAILED(rv))
+        return rv;
 
-    rv = LockWithFcntl(lockFile);
+    rv = LockWithFcntl(filePath);
     if (NS_FAILED(rv) && (rv != NS_ERROR_FILE_ACCESS_DENIED))
     {
         
         
-        rv = LockWithSymlink(lockFile, false);
+        rv = LockWithSymlink(filePath, PR_FALSE);
     }
     
     if (NS_SUCCEEDED(rv))
@@ -490,8 +506,8 @@ nsresult nsProfileLock::Lock(nsIFile* aProfileDir,
             unsigned long launchDate;
         };
 
-        PRFileDesc *fd = nullptr;
-        int32_t ioBytes;
+        PRFileDesc *fd = nsnull;
+        PRInt32 ioBytes;
         ProcessInfoRec processInfo;
         LockProcessInfo lockProcessInfo;
 
@@ -527,6 +543,11 @@ nsresult nsProfileLock::Lock(nsIFile* aProfileDir,
         rv = NS_OK; 
     }
 #elif defined(XP_UNIX)
+    nsCAutoString filePath;
+    rv = lockFile->GetNativePath(filePath);
+    if (NS_FAILED(rv))
+        return rv;
+
     
     nsCOMPtr<nsIFile> oldLockFile;
     rv = aProfileDir->Clone(getter_AddRefs(oldLockFile));
@@ -535,16 +556,20 @@ nsresult nsProfileLock::Lock(nsIFile* aProfileDir,
     rv = oldLockFile->Append(OLD_LOCKFILE_NAME);
     if (NS_FAILED(rv))
         return rv;
+    nsCAutoString oldFilePath;
+    rv = oldLockFile->GetNativePath(oldFilePath);
+    if (NS_FAILED(rv))
+        return rv;
 
     
     
-    rv = LockWithFcntl(lockFile);
+    rv = LockWithFcntl(filePath);
     if (NS_SUCCEEDED(rv)) {
         
         
         
         
-        rv = LockWithSymlink(oldLockFile, true);
+        rv = LockWithSymlink(oldFilePath, PR_TRUE);
 
         
         
@@ -561,7 +586,7 @@ nsresult nsProfileLock::Lock(nsIFile* aProfileDir,
         
         
         
-        rv = LockWithSymlink(oldLockFile, false);
+        rv = LockWithSymlink(oldFilePath, PR_FALSE);
     }
 
 #elif defined(XP_WIN)
@@ -570,28 +595,22 @@ nsresult nsProfileLock::Lock(nsIFile* aProfileDir,
     if (NS_FAILED(rv))
         return rv;
 
-    lockFile->GetLastModifiedTime(&mReplacedLockTime);
-
-    
-    
     mLockFileHandle = CreateFileW(filePath.get(),
                                   GENERIC_READ | GENERIC_WRITE,
                                   0, 
-                                  nullptr,
-                                  CREATE_ALWAYS,
-                                  0,
-                                  nullptr);
+                                  nsnull,
+                                  OPEN_ALWAYS,
+                                  FILE_FLAG_DELETE_ON_CLOSE,
+                                  nsnull);
     if (mLockFileHandle == INVALID_HANDLE_VALUE) {
         
         return NS_ERROR_FILE_ACCESS_DENIED;
     }
 #elif defined(XP_OS2)
-    nsAutoCString filePath;
+    nsCAutoString filePath;
     rv = lockFile->GetNativePath(filePath);
     if (NS_FAILED(rv))
         return rv;
-
-    lockFile->GetLastModifiedTime(&mReplacedLockTime);
 
     ULONG   ulAction = 0;
     APIRET  rc;
@@ -609,12 +628,10 @@ nsresult nsProfileLock::Lock(nsIFile* aProfileDir,
         return NS_ERROR_FILE_ACCESS_DENIED;
     }
 #elif defined(VMS)
-    nsAutoCString filePath;
+    nsCAutoString filePath;
     rv = lockFile->GetNativePath(filePath);
     if (NS_FAILED(rv))
         return rv;
-
-    lockFile->GetLastModifiedTime(&mReplacedLockTime);
 
     mLockFileDesc = open_noshr(filePath.get(), O_CREAT, 0666);
     if (mLockFileDesc == -1)
@@ -631,7 +648,7 @@ nsresult nsProfileLock::Lock(nsIFile* aProfileDir,
     }
 #endif
 
-    mHaveLock = true;
+    mHaveLock = PR_TRUE;
 
     return rv;
 }
@@ -668,7 +685,7 @@ nsresult nsProfileLock::Unlock(bool aFatalSignal)
             
             if (!aFatalSignal)
                 free(mPidLockFileName);
-            mPidLockFileName = nullptr;
+            mPidLockFileName = nsnull;
         }
         else if (mLockFileDesc != -1)
         {
@@ -678,7 +695,7 @@ nsresult nsProfileLock::Unlock(bool aFatalSignal)
         }
 #endif
 
-        mHaveLock = false;
+        mHaveLock = PR_FALSE;
     }
 
     return rv;

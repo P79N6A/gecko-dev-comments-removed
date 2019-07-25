@@ -6,10 +6,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsLineBox_h___
 #define nsLineBox_h___
-
-#include "mozilla/Attributes.h"
 
 #include "nsILineIterator.h"
 #include "nsIFrame.h"
@@ -48,16 +80,16 @@ public:
 #ifdef NS_BUILD_REFCNT_LOGGING
   nsFloatCacheList();
 #else
-  nsFloatCacheList() : mHead(nullptr) { }
+  nsFloatCacheList() : mHead(nsnull) { }
 #endif
   ~nsFloatCacheList();
 
   bool IsEmpty() const {
-    return nullptr == mHead;
+    return nsnull == mHead;
   }
 
   bool NotEmpty() const {
-    return nullptr != mHead;
+    return nsnull != mHead;
   }
 
   nsFloatCache* Head() const {
@@ -98,13 +130,13 @@ public:
   nsFloatCacheFreeList();
   ~nsFloatCacheFreeList();
 #else
-  nsFloatCacheFreeList() : mTail(nullptr) { }
+  nsFloatCacheFreeList() : mTail(nsnull) { }
   ~nsFloatCacheFreeList() { }
 #endif
 
   
   bool IsEmpty() const {
-    return nullptr == mHead;
+    return nsnull == mHead;
   }
 
   nsFloatCache* Head() const {
@@ -116,7 +148,7 @@ public:
   }
   
   bool NotEmpty() const {
-    return nullptr != mHead;
+    return nsnull != mHead;
   }
 
   void DeleteAll();
@@ -149,20 +181,8 @@ need to rearrange the mBits bitfield;
 #endif
 
 
-
-
-
-
-
-
 nsLineBox* NS_NewLineBox(nsIPresShell* aPresShell, nsIFrame* aFrame,
-                         bool aIsBlock);
-
-
-
-
-nsLineBox* NS_NewLineBox(nsIPresShell* aPresShell, nsLineBox* aFromLine,
-                         nsIFrame* aFrame, int32_t aCount);
+                         PRInt32 aCount, bool aIsBlock);
 
 class nsLineList;
 
@@ -202,22 +222,21 @@ class nsLineLink {
 
 
 
-class nsLineBox MOZ_FINAL : public nsLineLink {
+class nsLineBox : public nsLineLink {
 private:
-  nsLineBox(nsIFrame* aFrame, int32_t aCount, bool aIsBlock);
+  nsLineBox(nsIFrame* aFrame, PRInt32 aCount, bool aIsBlock);
   ~nsLineBox();
   
   
   
   void* operator new(size_t sz, nsIPresShell* aPresShell) CPP_THROW_NEW;
-  void operator delete(void* aPtr, size_t sz) MOZ_DELETE;
+  void operator delete(void* aPtr, size_t sz);
 
 public:
   
   friend nsLineBox* NS_NewLineBox(nsIPresShell* aPresShell, nsIFrame* aFrame,
-                                  bool aIsBlock);
-  friend nsLineBox* NS_NewLineBox(nsIPresShell* aPresShell, nsLineBox* aFromLine,
-                                  nsIFrame* aFrame, int32_t aCount);
+                                  PRInt32 aCount, bool aIsBlock);
+
   void Destroy(nsIPresShell* aPresShell);
 
   
@@ -263,6 +282,7 @@ public:
 
   
   void SetLineIsImpactedByFloat(bool aValue) {
+    NS_ASSERTION((PR_FALSE==aValue || PR_TRUE==aValue), "somebody is playing fast and loose with bools and bits!");
     mFlags.mImpactedByFloat = aValue;
   }
   bool IsImpactedByFloat() const {
@@ -271,6 +291,7 @@ public:
 
   
   void SetLineWrapped(bool aOn) {
+    NS_ASSERTION((PR_FALSE==aOn || PR_TRUE==aOn), "somebody is playing fast and loose with bools and bits!");
     mFlags.mLineWrapped = aOn;
   }
   bool IsLineWrapped() const {
@@ -279,6 +300,7 @@ public:
 
   
   void SetInvalidateTextRuns(bool aOn) {
+    NS_ASSERTION((PR_FALSE==aOn || PR_TRUE==aOn), "somebody is playing fast and loose with bools and bits!");
     mFlags.mInvalidateTextRuns = aOn;
   }
   bool GetInvalidateTextRuns() const {
@@ -287,10 +309,10 @@ public:
 
   
   void DisableResizeReflowOptimization() {
-    mFlags.mResizeReflowOptimizationDisabled = true;
+    mFlags.mResizeReflowOptimizationDisabled = PR_TRUE;
   }
   void EnableResizeReflowOptimization() {
-    mFlags.mResizeReflowOptimizationDisabled = false;
+    mFlags.mResizeReflowOptimizationDisabled = PR_FALSE;
   }
   bool ResizeReflowOptimizationDisabled() const {
     return mFlags.mResizeReflowOptimizationDisabled;
@@ -298,11 +320,11 @@ public:
 
   
   void SetHasBullet() {
-    mFlags.mHasBullet = true;
+    mFlags.mHasBullet = PR_TRUE;
     InvalidateCachedIsEmpty();
   }
   void ClearHasBullet() {
-    mFlags.mHasBullet = false;
+    mFlags.mHasBullet = PR_FALSE;
     InvalidateCachedIsEmpty();
   }
   bool HasBullet() const {
@@ -311,85 +333,29 @@ public:
 
   
   void SetHadFloatPushed() {
-    mFlags.mHadFloatPushed = true;
+    mFlags.mHadFloatPushed = PR_TRUE;
   }
   void ClearHadFloatPushed() {
-    mFlags.mHadFloatPushed = false;
+    mFlags.mHadFloatPushed = PR_FALSE;
   }
   bool HadFloatPushed() const {
     return mFlags.mHadFloatPushed;
   }
 
-private:
-  
-  static const uint32_t kMinChildCountForHashtable = 200;
 
   
-
-
-
-
-
-  void StealHashTableFrom(nsLineBox* aFromLine, uint32_t aFromLineNewCount);
-
-  
-
-
-
-  void NoteFramesMovedFrom(nsLineBox* aFromLine);
-
-  void SwitchToHashtable()
-  {
-    MOZ_ASSERT(!mFlags.mHasHashedFrames);
-    uint32_t count = GetChildCount();
-    mFrames = new nsTHashtable< nsPtrHashKey<nsIFrame> >();
-    mFlags.mHasHashedFrames = 1;
-    uint32_t minSize =
-      NS_MAX(kMinChildCountForHashtable, uint32_t(PL_DHASH_MIN_SIZE));
-    mFrames->Init(NS_MAX(count, minSize));
-    for (nsIFrame* f = mFirstChild; count-- > 0; f = f->GetNextSibling()) {
-      mFrames->PutEntry(f);
+  PRInt32 GetChildCount() const {
+    return (PRInt32) mFlags.mChildCount;
+  }
+  void SetChildCount(PRInt32 aNewCount) {
+    if (aNewCount < 0) {
+      NS_WARNING("negative child count");
+      aNewCount = 0;
     }
-  }
-  void SwitchToCounter() {
-    MOZ_ASSERT(mFlags.mHasHashedFrames);
-    uint32_t count = GetChildCount();
-    delete mFrames;
-    mFlags.mHasHashedFrames = 0;
-    mChildCount = count;
-  }
-
-public:
-  int32_t GetChildCount() const {
-    return NS_UNLIKELY(mFlags.mHasHashedFrames) ? mFrames->Count() : mChildCount;
-  }
-
-  
-
-
-  void NoteFrameAdded(nsIFrame* aFrame) {
-    if (NS_UNLIKELY(mFlags.mHasHashedFrames)) {
-      mFrames->PutEntry(aFrame);
-    } else {
-      if (++mChildCount >= kMinChildCountForHashtable) {
-        SwitchToHashtable();
-      }
+    if (aNewCount > LINE_MAX_CHILD_COUNT) {
+      aNewCount = LINE_MAX_CHILD_COUNT;
     }
-  }
-
-  
-
-
-  void NoteFrameRemoved(nsIFrame* aFrame) {
-    MOZ_ASSERT(GetChildCount() > 0);
-    if (NS_UNLIKELY(mFlags.mHasHashedFrames)) {
-      mFrames->RemoveEntry(aFrame);
-      if (mFrames->Count() < kMinChildCountForHashtable) {
-        SwitchToCounter();
-      }
-    } else {
-      --mChildCount;
-    }
+    mFlags.mChildCount = aNewCount;
   }
 
   
@@ -399,20 +365,20 @@ public:
   bool HasBreakBefore() const {
     return IsBlock() && NS_STYLE_CLEAR_NONE != mFlags.mBreakType;
   }
-  void SetBreakTypeBefore(uint8_t aBreakType) {
+  void SetBreakTypeBefore(PRUint8 aBreakType) {
     NS_ASSERTION(IsBlock(), "Only blocks have break-before");
     NS_ASSERTION(aBreakType <= NS_STYLE_CLEAR_LEFT_AND_RIGHT,
                  "Only float break types are allowed before a line");
     mFlags.mBreakType = aBreakType;
   }
-  uint8_t GetBreakTypeBefore() const {
+  PRUint8 GetBreakTypeBefore() const {
     return IsBlock() ? mFlags.mBreakType : NS_STYLE_CLEAR_NONE;
   }
 
   bool HasBreakAfter() const {
     return !IsBlock() && NS_STYLE_CLEAR_NONE != mFlags.mBreakType;
   }
-  void SetBreakTypeAfter(uint8_t aBreakType) {
+  void SetBreakTypeAfter(PRUint8 aBreakType) {
     NS_ASSERTION(!IsBlock(), "Only inlines have break-after");
     NS_ASSERTION(aBreakType <= LINE_MAX_BREAK_TYPE, "bad break type");
     mFlags.mBreakType = aBreakType;
@@ -422,7 +388,7 @@ public:
                           NS_STYLE_CLEAR_RIGHT == mFlags.mBreakType ||
                           NS_STYLE_CLEAR_LEFT_AND_RIGHT == mFlags.mBreakType);
   }
-  uint8_t GetBreakTypeAfter() const {
+  PRUint8 GetBreakTypeAfter() const {
     return !IsBlock() ? mFlags.mBreakType : NS_STYLE_CLEAR_NONE;
   }
 
@@ -496,22 +462,22 @@ public:
                                     const nsLineList_iterator& aBegin,
                                     nsLineList_iterator& aEnd,
                                     nsIFrame* aLastFrameBeforeEnd,
-                                    int32_t* aFrameIndexInLine);
+                                    PRInt32* aFrameIndexInLine);
 
 #ifdef DEBUG
-  char* StateToString(char* aBuf, int32_t aBufSize) const;
+  char* StateToString(char* aBuf, PRInt32 aBufSize) const;
 
-  void List(FILE* out, int32_t aIndent) const;
-  nsIFrame* LastChild() const;
+  void List(FILE* out, PRInt32 aIndent) const;
 #endif
 
-private:
-  int32_t IndexOf(nsIFrame* aFrame) const;
-public:
+  nsIFrame* LastChild() const;
+
+  bool IsLastChild(nsIFrame* aFrame) const;
+
+  PRInt32 IndexOf(nsIFrame* aFrame) const;
 
   bool Contains(nsIFrame* aFrame) const {
-    return NS_UNLIKELY(mFlags.mHasHashedFrames) ? mFrames->Contains(aFrame)
-                                                : IndexOf(aFrame) >= 0;
+    return IndexOf(aFrame) >= 0;
   }
 
   
@@ -520,50 +486,46 @@ public:
   
   
   
-  bool CachedIsEmpty();
+  bool CachedIsEmpty() const;
 
   void InvalidateCachedIsEmpty() {
-    mFlags.mEmptyCacheValid = false;
+    mFlags.mEmptyCacheValid = PR_FALSE;
   }
 
   
-  bool IsValidCachedIsEmpty() {
+  bool IsValidCachedIsEmpty() const {
     return mFlags.mEmptyCacheValid;
   }
 
 #ifdef DEBUG
-  static int32_t GetCtorCount();
+  static PRInt32 GetCtorCount();
 #endif
 
   nsIFrame* mFirstChild;
 
   nsRect mBounds;
 
-  
-  union {
-    nsTHashtable< nsPtrHashKey<nsIFrame> >* mFrames;
-    uint32_t mChildCount;
-  };
-
   struct FlagBits {
-    uint32_t mDirty : 1;
-    uint32_t mPreviousMarginDirty : 1;
-    uint32_t mHasClearance : 1;
-    uint32_t mBlock : 1;
-    uint32_t mImpactedByFloat : 1;
-    uint32_t mLineWrapped: 1;
-    uint32_t mInvalidateTextRuns : 1;
-    uint32_t mResizeReflowOptimizationDisabled: 1;  
-    uint32_t mEmptyCacheValid: 1;
-    uint32_t mEmptyCacheState: 1;
+    PRUint32 mDirty : 1;
+    PRUint32 mPreviousMarginDirty : 1;
+    PRUint32 mHasClearance : 1;
+    PRUint32 mBlock : 1;
+    PRUint32 mImpactedByFloat : 1;
+    PRUint32 mLineWrapped: 1;
+    PRUint32 mInvalidateTextRuns : 1;
+    PRUint32 mResizeReflowOptimizationDisabled: 1;  
+    mutable PRUint32 mEmptyCacheValid: 1;
+    mutable PRUint32 mEmptyCacheState: 1;
     
     
-    uint32_t mHasBullet : 1;
+    PRUint32 mHasBullet : 1;
     
     
-    uint32_t mHadFloatPushed : 1;
-    uint32_t mHasHashedFrames: 1;
-    uint32_t mBreakType : 4;
+    PRUint32 mHadFloatPushed : 1;
+    PRUint32 mBreakType : 4;
+
+    
+    PRUint32 mChildCount;
   };
 
   struct ExtraData {
@@ -590,7 +552,7 @@ public:
 protected:
   nscoord mAscent;           
   union {
-    uint32_t mAllFlags;
+    PRUint32 mAllFlags;
     FlagBits mFlags;
   };
 
@@ -627,12 +589,12 @@ class nsLineList_iterator {
     typedef nsLineBox*                  pointer;
     typedef const nsLineBox*            const_pointer;
 
-    typedef uint32_t                    size_type;
-    typedef int32_t                     difference_type;
+    typedef PRUint32                    size_type;
+    typedef PRInt32                     difference_type;
 
     typedef nsLineLink                  link_type;
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
     nsLineList_iterator() { memset(&mCurrent, 0xcd, sizeof(mCurrent)); }
 #else
     
@@ -786,12 +748,12 @@ class nsLineList_reverse_iterator {
     typedef nsLineBox*                  pointer;
     typedef const nsLineBox*            const_pointer;
 
-    typedef uint32_t                    size_type;
-    typedef int32_t                     difference_type;
+    typedef PRUint32                    size_type;
+    typedef PRInt32                     difference_type;
 
     typedef nsLineLink                  link_type;
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
     nsLineList_reverse_iterator() { memset(&mCurrent, 0xcd, sizeof(mCurrent)); }
 #else
     
@@ -922,8 +884,8 @@ class nsLineList_const_iterator {
     typedef nsLineBox*                  pointer;
     typedef const nsLineBox*            const_pointer;
 
-    typedef uint32_t                    size_type;
-    typedef int32_t                     difference_type;
+    typedef PRUint32                    size_type;
+    typedef PRInt32                     difference_type;
 
     typedef nsLineLink                  link_type;
 
@@ -1056,8 +1018,8 @@ class nsLineList_const_reverse_iterator {
     typedef nsLineBox*                  pointer;
     typedef const nsLineBox*            const_pointer;
 
-    typedef uint32_t                    size_type;
-    typedef int32_t                     difference_type;
+    typedef PRUint32                    size_type;
+    typedef PRInt32                     difference_type;
 
     typedef nsLineLink                  link_type;
 
@@ -1168,8 +1130,8 @@ class nsLineList {
   friend class nsLineList_const_iterator;
   friend class nsLineList_const_reverse_iterator;
 
-  typedef uint32_t                    size_type;
-  typedef int32_t                     difference_type;
+  typedef PRUint32                    size_type;
+  typedef PRInt32                     difference_type;
 
   typedef nsLineLink                  link_type;
 
@@ -1604,7 +1566,7 @@ nsLineList_const_reverse_iterator::operator=(const nsLineList_const_reverse_iter
 
 
 
-class nsLineIterator MOZ_FINAL : public nsILineIterator
+class NS_FINAL_CLASS nsLineIterator : public nsILineIterator
 {
 public:
   nsLineIterator();
@@ -1612,23 +1574,23 @@ public:
 
   virtual void DisposeLineIterator();
 
-  virtual int32_t GetNumLines();
+  virtual PRInt32 GetNumLines();
   virtual bool GetDirection();
-  NS_IMETHOD GetLine(int32_t aLineNumber,
+  NS_IMETHOD GetLine(PRInt32 aLineNumber,
                      nsIFrame** aFirstFrameOnLine,
-                     int32_t* aNumFramesOnLine,
+                     PRInt32* aNumFramesOnLine,
                      nsRect& aLineBounds,
-                     uint32_t* aLineFlags);
-  virtual int32_t FindLineContaining(nsIFrame* aFrame, int32_t aStartLine = 0);
-  NS_IMETHOD FindFrameAt(int32_t aLineNumber,
+                     PRUint32* aLineFlags);
+  virtual PRInt32 FindLineContaining(nsIFrame* aFrame, PRInt32 aStartLine = 0);
+  NS_IMETHOD FindFrameAt(PRInt32 aLineNumber,
                          nscoord aX,
                          nsIFrame** aFrameFound,
                          bool* aXIsBeforeFirstFrame,
                          bool* aXIsAfterLastFrame);
 
-  NS_IMETHOD GetNextSiblingOnLine(nsIFrame*& aFrame, int32_t aLineNumber);
+  NS_IMETHOD GetNextSiblingOnLine(nsIFrame*& aFrame, PRInt32 aLineNumber);
 #ifdef IBMBIDI
-  NS_IMETHOD CheckLineOrder(int32_t                  aLine,
+  NS_IMETHOD CheckLineOrder(PRInt32                  aLine,
                             bool                     *aIsReordered,
                             nsIFrame                 **aFirstVisual,
                             nsIFrame                 **aLastVisual);
@@ -1638,28 +1600,28 @@ public:
 private:
   nsLineBox* PrevLine() {
     if (0 == mIndex) {
-      return nullptr;
+      return nsnull;
     }
     return mLines[--mIndex];
   }
 
   nsLineBox* NextLine() {
     if (mIndex >= mNumLines - 1) {
-      return nullptr;
+      return nsnull;
     }
     return mLines[++mIndex];
   }
 
-  nsLineBox* LineAt(int32_t aIndex) {
+  nsLineBox* LineAt(PRInt32 aIndex) {
     if ((aIndex < 0) || (aIndex >= mNumLines)) {
-      return nullptr;
+      return nsnull;
     }
     return mLines[aIndex];
   }
 
   nsLineBox** mLines;
-  int32_t mIndex;
-  int32_t mNumLines;
+  PRInt32 mIndex;
+  PRInt32 mNumLines;
   bool mRightToLeft;
 };
 

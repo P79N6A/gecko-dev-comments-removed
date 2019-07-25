@@ -3,11 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSVGContainerFrame.h"
 #include "nsISVGSVGFrame.h"
 #include "gfxMatrix.h"
-
-class nsRenderingContext;
 
 typedef nsSVGDisplayContainerFrame nsSVGInnerSVGFrameBase;
 
@@ -45,23 +76,22 @@ public:
   }
 #endif
 
-  NS_IMETHOD  AttributeChanged(int32_t         aNameSpaceID,
+  NS_IMETHOD  AttributeChanged(PRInt32         aNameSpaceID,
                                nsIAtom*        aAttribute,
-                               int32_t         aModType);
+                               PRInt32         aModType);
 
   
-  NS_IMETHOD PaintSVG(nsRenderingContext *aContext, const nsIntRect *aDirtyRect);
-  virtual void ReflowSVG();
-  virtual void NotifySVGChanged(uint32_t aFlags);
+  NS_IMETHOD PaintSVG(nsSVGRenderState *aContext, const nsIntRect *aDirtyRect);
+  virtual void NotifySVGChanged(PRUint32 aFlags);
   NS_IMETHOD_(nsIFrame*) GetFrameForPoint(const nsPoint &aPoint);
 
   
-  virtual gfxMatrix GetCanvasTM(uint32_t aFor);
-
-  virtual bool HasChildrenOnlyTransform(gfxMatrix *aTransform) const;
+  virtual gfxMatrix GetCanvasTM();
 
   
-  virtual void NotifyViewportOrTransformChanged(uint32_t aFlags);
+  NS_IMETHOD SuspendRedraw();
+  NS_IMETHOD UnsuspendRedraw();
+  NS_IMETHOD NotifyViewportChange();
 
 protected:
 

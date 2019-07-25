@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsAndroidNetworkLinkService.h"
 #include "nsServiceManagerUtils.h"
 #include "mozilla/Services.h"
@@ -27,7 +59,7 @@ nsAndroidNetworkLinkService::GetIsLinkUp(bool *aIsUp)
   if (!mozilla::AndroidBridge::Bridge()) {
     
     NS_WARNING("GetIsLinkUp is not supported without a bridge connection");
-    *aIsUp = true;
+    *aIsUp = PR_TRUE;
     return NS_OK;
   }
 
@@ -45,7 +77,7 @@ nsAndroidNetworkLinkService::GetLinkStatusKnown(bool *aIsKnown)
 }
 
 NS_IMETHODIMP
-nsAndroidNetworkLinkService::GetLinkType(uint32_t *aLinkType)
+nsAndroidNetworkLinkService::GetLinkType(PRUint32 *aLinkType)
 {
   NS_ENSURE_ARG_POINTER(aLinkType);
 

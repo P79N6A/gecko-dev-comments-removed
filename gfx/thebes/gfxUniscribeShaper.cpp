@@ -3,12 +3,49 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "prtypes.h"
 #include "gfxTypes.h"
 
 #include "gfxContext.h"
 #include "gfxUniscribeShaper.h"
 #include "gfxWindowsPlatform.h"
+#include "gfxAtoms.h"
 
 #include "gfxFontTest.h"
 
@@ -34,15 +71,15 @@ class UniscribeItem
 public:
     UniscribeItem(gfxContext *aContext, HDC aDC,
                   gfxUniscribeShaper *aShaper,
-                  const PRUnichar *aString, uint32_t aLength,
-                  SCRIPT_ITEM *aItem, uint32_t aIVS) :
+                  const PRUnichar *aString, PRUint32 aLength,
+                  SCRIPT_ITEM *aItem, PRUint32 aIVS) :
         mContext(aContext), mDC(aDC),
         mShaper(aShaper),
         mItemString(aString), mItemLength(aLength), 
-        mAlternativeString(nullptr), mScriptItem(aItem),
+        mAlternativeString(nsnull), mScriptItem(aItem),
         mScript(aItem->a.eScript),
         mNumGlyphs(0), mMaxGlyphs(ESTIMATE_MAX_GLYPHS(aLength)),
-        mFontSelected(false), mIVS(aIVS)
+        mFontSelected(PR_FALSE), mIVS(aIVS)
     {
         
         NS_ASSERTION(mMaxGlyphs < 65535,
@@ -66,14 +103,14 @@ public:
 
     HRESULT Shape() {
         HRESULT rv;
-        HDC shapeDC = nullptr;
+        HDC shapeDC = nsnull;
 
         const PRUnichar *str = mAlternativeString ? mAlternativeString : mItemString;
 
-        mScriptItem->a.fLogicalOrder = true; 
+        mScriptItem->a.fLogicalOrder = PR_TRUE; 
         SCRIPT_ANALYSIS sa = mScriptItem->a;
 
-        while (true) {
+        while (PR_TRUE) {
 
             rv = ScriptShape(shapeDC, mShaper->ScriptCache(),
                              str, mItemLength,
@@ -130,12 +167,12 @@ public:
             
             
             if (mIVS) {
-                uint32_t lastChar = str[mItemLength - 1];
+                PRUint32 lastChar = str[mItemLength - 1];
                 if (NS_IS_LOW_SURROGATE(lastChar)
                     && NS_IS_HIGH_SURROGATE(str[mItemLength - 2])) {
                     lastChar = SURROGATE_TO_UCS4(str[mItemLength - 2], lastChar);
                 }
-                uint16_t glyphId = mShaper->GetFont()->GetUVSGlyph(lastChar, mIVS);
+                PRUint16 glyphId = mShaper->GetFont()->GetUVSGlyph(lastChar, mIVS);
                 if (glyphId) {
                     mGlyphs[mNumGlyphs - 1] = glyphId;
                 }
@@ -160,18 +197,18 @@ public:
         mScriptItem->a.eScript = mScript;
         if (mAlternativeString) {
             free(mAlternativeString);
-            mAlternativeString = nullptr;
+            mAlternativeString = nsnull;
         }
     }
 
-    bool IsGlyphMissing(SCRIPT_FONTPROPERTIES *aSFP, uint32_t aGlyphIndex) {
+    bool IsGlyphMissing(SCRIPT_FONTPROPERTIES *aSFP, PRUint32 aGlyphIndex) {
         return (mGlyphs[aGlyphIndex] == aSFP->wgDefault);
     }
 
 
     HRESULT Place() {
         HRESULT rv;
-        HDC placeDC = nullptr;
+        HDC placeDC = nsnull;
 
         if (!mOffsets.SetLength(mNumGlyphs) ||
             !mAdvances.SetLength(mNumGlyphs)) {
@@ -180,7 +217,7 @@ public:
 
         SCRIPT_ANALYSIS sa = mScriptItem->a;
 
-        while (true) {
+        while (PR_TRUE) {
             rv = ScriptPlace(placeDC, mShaper->ScriptCache(),
                              mGlyphs.Elements(), mNumGlyphs,
                              mAttr.Elements(), &sa,
@@ -217,28 +254,28 @@ public:
         }
     }
 
-    void SaveGlyphs(gfxShapedWord *aShapedWord) {
-        uint32_t offsetInRun = mScriptItem->iCharPos;
+    void SaveGlyphs(gfxTextRun *aRun, PRUint32 aRunStart) {
+        PRUint32 offsetInRun = aRunStart + mScriptItem->iCharPos;
 
         
         SCRIPT_FONTPROPERTIES sfp;
         ScriptFontProperties(&sfp);
 
-        uint32_t offset = 0;
-        nsAutoTArray<gfxShapedWord::DetailedGlyph,1> detailedGlyphs;
-        gfxShapedWord::CompressedGlyph g;
-        const uint32_t appUnitsPerDevUnit = aShapedWord->AppUnitsPerDevUnit();
+        PRUint32 offset = 0;
+        nsAutoTArray<gfxTextRun::DetailedGlyph,1> detailedGlyphs;
+        gfxTextRun::CompressedGlyph g;
+        const PRUint32 appUnitsPerDevUnit = aRun->GetAppUnitsPerDevUnit();
         while (offset < mItemLength) {
-            uint32_t runOffset = offsetInRun + offset;
-            bool atClusterStart = aShapedWord->IsClusterStart(runOffset);
+            PRUint32 runOffset = offsetInRun + offset;
+            bool atClusterStart = aRun->IsClusterStart(runOffset);
             if (offset > 0 && mClusters[offset] == mClusters[offset - 1]) {
-                g.SetComplex(atClusterStart, false, 0);
-                aShapedWord->SetGlyphs(runOffset, g, nullptr);
+                g.SetComplex(atClusterStart, PR_FALSE, 0);
+                aRun->SetGlyphs(runOffset, g, nsnull);
             } else {
                 
-                uint32_t k = mClusters[offset];
-                uint32_t glyphCount = mNumGlyphs - k;
-                uint32_t nextClusterOffset;
+                PRUint32 k = mClusters[offset];
+                PRUint32 glyphCount = mNumGlyphs - k;
+                PRUint32 nextClusterOffset;
                 bool missing = IsGlyphMissing(&sfp, k);
                 for (nextClusterOffset = offset + 1; nextClusterOffset < mItemLength; ++nextClusterOffset) {
                     if (mClusters[nextClusterOffset] > k) {
@@ -246,13 +283,13 @@ public:
                         break;
                     }
                 }
-                uint32_t j;
+                PRUint32 j;
                 for (j = 1; j < glyphCount; ++j) {
                     if (IsGlyphMissing(&sfp, k + j)) {
-                        missing = true;
+                        missing = PR_TRUE;
                     }
                 }
-                int32_t advance = mAdvances[k]*appUnitsPerDevUnit;
+                PRInt32 advance = mAdvances[k]*appUnitsPerDevUnit;
                 WORD glyph = mGlyphs[k];
                 NS_ASSERTION(!gfxFontGroup::IsInvalidChar(mItemString[offset]),
                              "invalid character detected");
@@ -260,39 +297,36 @@ public:
                     if (NS_IS_HIGH_SURROGATE(mItemString[offset]) &&
                         offset + 1 < mItemLength &&
                         NS_IS_LOW_SURROGATE(mItemString[offset + 1])) {
-                        aShapedWord->SetMissingGlyph(runOffset,
-                                                     SURROGATE_TO_UCS4(mItemString[offset],
-                                                                       mItemString[offset + 1]),
-                                                     mShaper->GetFont());
+                        aRun->SetMissingGlyph(runOffset,
+                                              SURROGATE_TO_UCS4(mItemString[offset],
+                                                                mItemString[offset + 1]));
                     } else {
-                        aShapedWord->SetMissingGlyph(runOffset, mItemString[offset],
-                                                     mShaper->GetFont());
+                        aRun->SetMissingGlyph(runOffset, mItemString[offset]);
                     }
                 } else if (glyphCount == 1 && advance >= 0 &&
                     mOffsets[k].dv == 0 && mOffsets[k].du == 0 &&
-                    gfxShapedWord::CompressedGlyph::IsSimpleAdvance(advance) &&
-                    gfxShapedWord::CompressedGlyph::IsSimpleGlyphID(glyph) &&
+                    gfxTextRun::CompressedGlyph::IsSimpleAdvance(advance) &&
+                    gfxTextRun::CompressedGlyph::IsSimpleGlyphID(glyph) &&
                     atClusterStart)
                 {
-                    aShapedWord->SetSimpleGlyph(runOffset, g.SetSimpleGlyph(advance, glyph));
+                    aRun->SetSimpleGlyph(runOffset, g.SetSimpleGlyph(advance, glyph));
                 } else {
                     if (detailedGlyphs.Length() < glyphCount) {
                         if (!detailedGlyphs.AppendElements(glyphCount - detailedGlyphs.Length()))
                             return;
                     }
-                    uint32_t i;
+                    PRUint32 i;
                     for (i = 0; i < glyphCount; ++i) {
                         gfxTextRun::DetailedGlyph *details = &detailedGlyphs[i];
                         details->mGlyphID = mGlyphs[k + i];
-                        details->mAdvance = mAdvances[k + i] * appUnitsPerDevUnit;
-                        details->mXOffset = float(mOffsets[k + i].du) * appUnitsPerDevUnit *
-                            aShapedWord->GetDirection();
-                        details->mYOffset = - float(mOffsets[k + i].dv) * appUnitsPerDevUnit;
+                        details->mAdvance = mAdvances[k + i]*appUnitsPerDevUnit;
+                        details->mXOffset = float(mOffsets[k + i].du)*appUnitsPerDevUnit*aRun->GetDirection();
+                        details->mYOffset = - float(mOffsets[k + i].dv)*appUnitsPerDevUnit;
                     }
-                    aShapedWord->SetGlyphs(runOffset,
-                                           g.SetComplex(atClusterStart, true,
-                                                        glyphCount),
-                                           detailedGlyphs.Elements());
+                    aRun->SetGlyphs(runOffset,
+                                    g.SetComplex(atClusterStart, PR_TRUE,
+                                                 glyphCount),
+                                    detailedGlyphs.Elements());
                 }
             }
             ++offset;
@@ -310,7 +344,7 @@ public:
         cairo_scaled_font_t *scaledFont = mShaper->GetFont()->CairoScaledFont();
         cairo_win32_scaled_font_select_font(scaledFont, mDC);
 
-        mFontSelected = true;
+        mFontSelected = PR_TRUE;
     }
 
 private:
@@ -323,7 +357,7 @@ private:
             return;
         memcpy((void *)mAlternativeString, (const void *)mItemString,
                mItemLength * sizeof(PRUnichar));
-        for (uint32_t i = 0; i < mItemLength; i++) {
+        for (PRUint32 i = 0; i < mItemLength; i++) {
             if (NS_IS_HIGH_SURROGATE(mItemString[i]) || NS_IS_LOW_SURROGATE(mItemString[i]))
                 mAlternativeString[i] = PRUnichar(0xFFFD);
         }
@@ -340,16 +374,16 @@ private:
 public:
     
     const PRUnichar *mItemString;
-    const uint32_t mItemLength;
+    const PRUint32 mItemLength;
 
 private:
     PRUnichar *mAlternativeString;
 
 #define AVERAGE_ITEM_LENGTH 40
 
-    nsAutoTArray<WORD, uint32_t(ESTIMATE_MAX_GLYPHS(AVERAGE_ITEM_LENGTH))> mGlyphs;
+    nsAutoTArray<WORD, PRUint32(ESTIMATE_MAX_GLYPHS(AVERAGE_ITEM_LENGTH))> mGlyphs;
     nsAutoTArray<WORD, AVERAGE_ITEM_LENGTH + 1> mClusters;
-    nsAutoTArray<SCRIPT_VISATTR, uint32_t(ESTIMATE_MAX_GLYPHS(AVERAGE_ITEM_LENGTH))> mAttr;
+    nsAutoTArray<SCRIPT_VISATTR, PRUint32(ESTIMATE_MAX_GLYPHS(AVERAGE_ITEM_LENGTH))> mAttr;
  
     nsAutoTArray<GOFFSET, 2 * AVERAGE_ITEM_LENGTH> mOffsets;
     nsAutoTArray<int, 2 * AVERAGE_ITEM_LENGTH> mAdvances;
@@ -358,7 +392,7 @@ private:
 
     int mMaxGlyphs;
     int mNumGlyphs;
-    uint32_t mIVS;
+    PRUint32 mIVS;
 
     bool mFontSelected;
 };
@@ -367,8 +401,9 @@ class Uniscribe
 {
 public:
     Uniscribe(const PRUnichar *aString,
-              gfxShapedWord *aShapedWord):
-        mString(aString), mShapedWord(aShapedWord)
+              PRUint32 aLength,
+              gfxTextRun *aTextRun):
+        mString(aString), mLength(aLength), mTextRun(aTextRun)
     {
     }
 
@@ -377,8 +412,8 @@ public:
         memset(&mState, 0, sizeof(SCRIPT_STATE));
         
         
-        mState.uBidiLevel = mShapedWord->IsRightToLeft() ? 1 : 0;
-        mState.fOverrideDirection = true;
+        mState.uBidiLevel = mTextRun->IsRightToLeft() ? 1 : 0;
+        mState.fOverrideDirection = PR_TRUE;
     }
 
 public:
@@ -394,8 +429,7 @@ public:
         if (!mItems.SetLength(maxItems + 1)) {
             return 0;
         }
-        while ((rv = ScriptItemize(mString, mShapedWord->Length(),
-                                   maxItems, &mControl, &mState,
+        while ((rv = ScriptItemize(mString, mLength, maxItems, &mControl, &mState,
                                    mItems.Elements(), &mNumItems)) == E_OUTOFMEMORY) {
             maxItems *= 2;
             if (!mItems.SetLength(maxItems + 1)) {
@@ -407,14 +441,15 @@ public:
         return mNumItems;
     }
 
-    SCRIPT_ITEM *ScriptItem(uint32_t i) {
-        NS_ASSERTION(i <= (uint32_t)mNumItems, "Trying to get out of bounds item");
+    SCRIPT_ITEM *ScriptItem(PRUint32 i) {
+        NS_ASSERTION(i <= (PRUint32)mNumItems, "Trying to get out of bounds item");
         return &mItems[i];
     }
 
 private:
     const PRUnichar *mString;
-    gfxShapedWord   *mShapedWord;
+    const PRUint32 mLength;
+    gfxTextRun *mTextRun;
 
     SCRIPT_CONTROL mControl;
     SCRIPT_STATE   mState;
@@ -424,23 +459,25 @@ private:
 
 
 bool
-gfxUniscribeShaper::ShapeWord(gfxContext *aContext,
-                              gfxShapedWord *aShapedWord,
-                              const PRUnichar *aString)
+gfxUniscribeShaper::InitTextRun(gfxContext *aContext,
+                                gfxTextRun *aTextRun,
+                                const PRUnichar *aString,
+                                PRUint32 aRunStart,
+                                PRUint32 aRunLength,
+                                PRInt32 aRunScript)
 {
     DCFromContext aDC(aContext);
  
     bool result = true;
     HRESULT rv;
 
-    Uniscribe us(aString, aShapedWord);
+    Uniscribe us(aString + aRunStart, aRunLength, aTextRun);
 
     
     int numItems = us.Itemize();
 
-    uint32_t length = aShapedWord->Length();
     SaveDC(aDC);
-    uint32_t ivs = 0;
+    PRUint32 ivs = 0;
     for (int i = 0; i < numItems; ++i) {
         int iCharPos = us.ScriptItem(i)->iCharPos;
         int iCharPosNext = us.ScriptItem(i+1)->iCharPos;
@@ -453,23 +490,23 @@ gfxUniscribeShaper::ShapeWord(gfxContext *aContext,
             }
         }
 
-        if (i+1 < numItems && iCharPosNext <= length - 2
-            && aString[iCharPosNext] == H_SURROGATE(kUnicodeVS17)
-            && uint32_t(aString[iCharPosNext + 1]) - L_SURROGATE(kUnicodeVS17)
+        if (i+1 < numItems && aRunStart + iCharPosNext <= aRunLength - 2
+            && aString[aRunStart + iCharPosNext] == H_SURROGATE(kUnicodeVS17)
+            && PRUint32(aString[aRunStart + iCharPosNext + 1]) - L_SURROGATE(kUnicodeVS17)
             <= L_SURROGATE(kUnicodeVS256) - L_SURROGATE(kUnicodeVS17)) {
 
-            ivs = SURROGATE_TO_UCS4(aString[iCharPosNext],
-                                    aString[iCharPosNext + 1]);
+            ivs = SURROGATE_TO_UCS4(aString[aRunStart + iCharPosNext],
+                                    aString[aRunStart + iCharPosNext + 1]);
         } else {
             ivs = 0;
         }
 
         UniscribeItem item(aContext, aDC, this,
-                           aString + iCharPos,
+                           aString + aRunStart + iCharPos,
                            iCharPosNext - iCharPos,
                            us.ScriptItem(i), ivs);
         if (!item.AllocateBuffers()) {
-            result = false;
+            result = PR_FALSE;
             break;
         }
 
@@ -505,11 +542,11 @@ gfxUniscribeShaper::ShapeWord(gfxContext *aContext,
             
             
             
-            result = false;
+            result = PR_FALSE;
             break;
         }
 
-        item.SaveGlyphs(aShapedWord);
+        item.SaveGlyphs(aTextRun, aRunStart);
     }
 
     RestoreDC(aDC, -1);

@@ -9,6 +9,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "txExpr.h"
 #include "txIXPathContext.h"
 
@@ -22,7 +55,7 @@
 nsresult
 BooleanExpr::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
 {
-    *aResult = nullptr;
+    *aResult = nsnull;
 
     bool lval;
     nsresult rv = leftExpr->evaluateToBool(aContext, lval);
@@ -30,12 +63,12 @@ BooleanExpr::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
     
     
     if (op == OR && lval) {
-        aContext->recycler()->getBoolResult(true, aResult);
+        aContext->recycler()->getBoolResult(PR_TRUE, aResult);
         
         return NS_OK;
     }
     if (op == AND && !lval) {
-        aContext->recycler()->getBoolResult(false, aResult);
+        aContext->recycler()->getBoolResult(PR_FALSE, aResult);
 
         return NS_OK;
     }

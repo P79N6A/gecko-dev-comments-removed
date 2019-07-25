@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsIAccessibilityService_h_
 #define _nsIAccessibilityService_h_
 
@@ -12,17 +46,18 @@
 
 #include "nsAutoPtr.h"
 
-class Accessible;
+class nsAccessible;
 class nsINode;
 class nsIContent;
+class nsIDocument;
 class nsIFrame;
 class nsIPresShell;
 class nsObjectFrame;
 
 
 #define NS_IACCESSIBILITYSERVICE_IID \
-{ 0x84dd9182, 0x6639, 0x4377, \
- { 0xa4, 0x13, 0xad, 0xe1, 0xae, 0x4e, 0x52, 0xdd } }
+{ 0x10ff6dca, 0xb219, 0x4b64, \
+ { 0x9a, 0x4c, 0x67, 0xa6, 0x2b, 0x86, 0xed, 0xce } }
 
 class nsIAccessibilityService : public nsIAccessibleRetrieval
 {
@@ -36,16 +71,8 @@ public:
 
 
 
-
-  virtual Accessible* GetRootDocumentAccessible(nsIPresShell* aPresShell,
-                                                bool aCanCreate) = 0;
-
-   
-
-
-
-  virtual Accessible* AddNativeRootAccessible(void* aAtkAccessible) = 0;
-  virtual void RemoveNativeRootAccessible(Accessible* aRootAccessible) = 0;
+  virtual nsAccessible* GetAccessibleInShell(nsINode* aNode,
+                                             nsIPresShell* aPresShell) = 0;
 
   
 
@@ -53,7 +80,105 @@ public:
 
 
 
-  virtual void FireAccessibleEvent(uint32_t aEvent, Accessible* aTarget) = 0;
+
+
+  virtual nsAccessible* GetRootDocumentAccessible(nsIPresShell* aPresShell,
+                                                  bool aCanCreate) = 0;
+
+  
+
+
+  virtual already_AddRefed<nsAccessible>
+    CreateHTMLBRAccessible(nsIContent* aContent, nsIPresShell* aPresShell) = 0;
+  virtual already_AddRefed<nsAccessible>
+    CreateHTML4ButtonAccessible(nsIContent* aContent, nsIPresShell* aPresShell) = 0;
+  virtual already_AddRefed<nsAccessible>
+    CreateHTMLButtonAccessible(nsIContent* aContent, nsIPresShell* aPresShell) = 0;
+  virtual already_AddRefed<nsAccessible>
+    CreateHTMLCaptionAccessible(nsIContent* aContent, nsIPresShell* aPresShell) = 0;
+  virtual already_AddRefed<nsAccessible>
+    CreateHTMLCheckboxAccessible(nsIContent* aContent, nsIPresShell* aPresShell) = 0;
+  virtual already_AddRefed<nsAccessible>
+    CreateHTMLComboboxAccessible(nsIContent* aContent, nsIPresShell* aPresShell) = 0;
+  virtual already_AddRefed<nsAccessible>
+    CreateHTMLGroupboxAccessible(nsIContent* aContent, nsIPresShell* aPresShell) = 0;
+  virtual already_AddRefed<nsAccessible>
+    CreateHTMLHRAccessible(nsIContent* aContent, nsIPresShell* aPresShell) = 0;
+  virtual already_AddRefed<nsAccessible>
+    CreateHTMLImageAccessible(nsIContent* aContent, nsIPresShell* aPresShell) = 0;
+  virtual already_AddRefed<nsAccessible>
+    CreateHTMLLabelAccessible(nsIContent* aContent, nsIPresShell* aPresShell) = 0;
+  virtual already_AddRefed<nsAccessible>
+    CreateHTMLLIAccessible(nsIContent* aContent, nsIPresShell* aPresShell) = 0;
+  virtual already_AddRefed<nsAccessible>
+    CreateHTMLListboxAccessible(nsIContent* aContent, nsIPresShell* aPresShell) = 0;
+  virtual already_AddRefed<nsAccessible>
+    CreateHTMLMediaAccessible(nsIContent* aContent, nsIPresShell* aPresShell) = 0;
+  virtual already_AddRefed<nsAccessible>
+    CreateHTMLObjectFrameAccessible(nsObjectFrame* aFrame, nsIContent* aContent,
+                                    nsIPresShell* aPresShell) = 0;
+  virtual already_AddRefed<nsAccessible>
+    CreateHTMLRadioButtonAccessible(nsIContent* aContent, nsIPresShell* aPresShell) = 0;
+  virtual already_AddRefed<nsAccessible>
+    CreateHTMLTableAccessible(nsIContent* aContent, nsIPresShell* aPresShell) = 0;
+  virtual already_AddRefed<nsAccessible>
+    CreateHTMLTableCellAccessible(nsIContent* aContent, nsIPresShell* aPresShell) = 0;
+  virtual already_AddRefed<nsAccessible>
+    CreateHTMLTextAccessible(nsIContent* aContent, nsIPresShell* aPresShell) = 0;
+  virtual already_AddRefed<nsAccessible>
+    CreateHTMLTextFieldAccessible(nsIContent* aContent, nsIPresShell* aPresShell) = 0;
+  virtual already_AddRefed<nsAccessible>
+    CreateHyperTextAccessible(nsIContent* aContent, nsIPresShell* aPresShell) = 0;
+  virtual already_AddRefed<nsAccessible>
+    CreateOuterDocAccessible(nsIContent* aContent, nsIPresShell* aPresShell) = 0;
+
+  
+
+
+
+  virtual nsAccessible* AddNativeRootAccessible(void* aAtkAccessible) = 0;
+  virtual void RemoveNativeRootAccessible(nsAccessible* aRootAccessible) = 0;
+
+  
+
+
+
+  virtual void ContentRangeInserted(nsIPresShell* aPresShell,
+                                    nsIContent* aContainer,
+                                    nsIContent* aStartChild,
+                                    nsIContent* aEndChild) = 0;
+
+  
+
+
+  virtual void ContentRemoved(nsIPresShell* aPresShell, nsIContent* aContainer,
+                              nsIContent* aChild) = 0;
+
+  
+
+
+
+  virtual void NotifyOfAnchorJumpTo(nsIContent *aTarget) = 0;
+
+  
+
+
+
+  virtual void PresShellDestroyed(nsIPresShell *aPresShell) = 0;
+
+  
+
+
+  virtual void RecreateAccessible(nsIPresShell* aPresShell,
+                                  nsIContent* aContent) = 0;
+
+  
+
+
+
+
+
+  virtual void FireAccessibleEvent(PRUint32 aEvent, nsAccessible* aTarget) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIAccessibilityService,

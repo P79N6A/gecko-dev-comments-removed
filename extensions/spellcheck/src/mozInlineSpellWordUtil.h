@@ -3,16 +3,49 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsIDOMDocument.h"
 #include "nsIDocument.h"
 #include "nsString.h"
 #include "nsTArray.h"
+#include "nsIUGenCategory.h"
 
 
 
-class nsRange;
-class nsINode;
+class nsIDOMRange;
+class nsIDOMNode;
 
 
 
@@ -38,43 +71,43 @@ class mozInlineSpellWordUtil
 {
 public:
   struct NodeOffset {
-    nsINode* mNode;
-    int32_t  mOffset;
+    nsIDOMNode* mNode;
+    PRInt32     mOffset;
     
-    NodeOffset(nsINode* aNode, int32_t aOffset) :
+    NodeOffset(nsIDOMNode* aNode, PRInt32 aOffset) :
       mNode(aNode), mOffset(aOffset) {}
   };
 
   mozInlineSpellWordUtil()
-    : mRootNode(nullptr),
-      mSoftBegin(nullptr, 0), mSoftEnd(nullptr, 0),
-      mNextWordIndex(-1), mSoftTextValid(false) {}
+    : mRootNode(nsnull),
+      mSoftBegin(nsnull, 0), mSoftEnd(nsnull, 0),
+      mNextWordIndex(-1), mSoftTextValid(PR_FALSE) {}
 
   nsresult Init(nsWeakPtr aWeakEditor);
 
-  nsresult SetEnd(nsINode* aEndNode, int32_t aEndOffset);
+  nsresult SetEnd(nsIDOMNode* aEndNode, PRInt32 aEndOffset);
 
   
   
-  nsresult SetPosition(nsINode* aNode, int32_t aOffset);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  nsresult GetRangeForWord(nsIDOMNode* aWordNode, int32_t aWordOffset,
-                           nsRange** aRange);
+  nsresult SetPosition(nsIDOMNode* aNode, PRInt32 aOffset);
 
   
   
   
   
-  nsresult GetNextWord(nsAString& aText, nsRange** aRange,
+  
+  
+  
+  
+  
+  nsresult GetRangeForWord(nsIDOMNode* aWordNode, PRInt32 aWordOffset,
+                           nsIDOMRange** aRange);
+
+  
+  
+  
+  
+  nsresult GetNextWord(nsAString& aText, nsIDOMRange** aRange,
                        bool* aSkipChecking);
 
   
@@ -83,16 +116,19 @@ public:
 
   nsIDOMDocument* GetDOMDocument() const { return mDOMDocument; }
   nsIDocument* GetDocument() const { return mDocument; }
-  nsINode* GetRootNode() { return mRootNode; }
+  nsIDOMNode* GetRootNode() { return mRootNode; }
+  nsIUGenCategory* GetCategories() { return mCategories; }
   
 private:
 
   
   nsCOMPtr<nsIDOMDocument> mDOMDocument;
   nsCOMPtr<nsIDocument>         mDocument;
+  nsCOMPtr<nsIDOMWindow>        mCSSView;
+  nsCOMPtr<nsIUGenCategory>     mCategories;
 
   
-  nsINode*    mRootNode;
+  nsIDOMNode* mRootNode;
   NodeOffset  mSoftBegin;
   NodeOffset  mSoftEnd;
 
@@ -102,10 +138,10 @@ private:
   
   struct DOMTextMapping {
     NodeOffset mNodeOffset;
-    int32_t    mSoftTextOffset;
-    int32_t    mLength;
+    PRInt32    mSoftTextOffset;
+    PRInt32    mLength;
     
-    DOMTextMapping(NodeOffset aNodeOffset, int32_t aSoftTextOffset, int32_t aLength)
+    DOMTextMapping(NodeOffset aNodeOffset, PRInt32 aSoftTextOffset, PRInt32 aLength)
       : mNodeOffset(aNodeOffset), mSoftTextOffset(aSoftTextOffset),
         mLength(aLength) {}
   };
@@ -113,23 +149,23 @@ private:
   
   
   struct RealWord {
-    int32_t      mSoftTextOffset;
-    int32_t      mLength;
+    PRInt32      mSoftTextOffset;
+    PRInt32      mLength;
     bool mCheckableWord;
     
-    RealWord(int32_t aOffset, int32_t aLength, bool aCheckable)
+    RealWord(PRInt32 aOffset, PRInt32 aLength, bool aCheckable)
       : mSoftTextOffset(aOffset), mLength(aLength), mCheckableWord(aCheckable) {}
-    int32_t EndOffset() const { return mSoftTextOffset + mLength; }
+    PRInt32 EndOffset() const { return mSoftTextOffset + mLength; }
   };
   nsTArray<RealWord> mRealWords;
-  int32_t            mNextWordIndex;
+  PRInt32            mNextWordIndex;
 
   bool mSoftTextValid;
 
-  void InvalidateWords() { mSoftTextValid = false; }
+  void InvalidateWords() { mSoftTextValid = PR_FALSE; }
   void EnsureWords();
   
-  int32_t MapDOMPositionToSoftTextOffset(NodeOffset aNodeOffset);
+  PRInt32 MapDOMPositionToSoftTextOffset(NodeOffset aNodeOffset);
   
   
   
@@ -137,7 +173,7 @@ private:
   
   
   enum DOMMapHint { HINT_BEGIN, HINT_END };
-  NodeOffset MapSoftTextOffsetToDOMPosition(int32_t aSoftTextOffset,
+  NodeOffset MapSoftTextOffsetToDOMPosition(PRInt32 aSoftTextOffset,
                                             DOMMapHint aHint);
   
   
@@ -145,7 +181,7 @@ private:
   
   
   
-  int32_t FindRealWordContaining(int32_t aSoftTextOffset, DOMMapHint aHint,
+  PRInt32 FindRealWordContaining(PRInt32 aSoftTextOffset, DOMMapHint aHint,
                                  bool aSearchForward);
     
   
@@ -153,9 +189,9 @@ private:
   
   void BuildRealWords();
 
-  void SplitDOMWord(int32_t aStart, int32_t aEnd);
+  void SplitDOMWord(PRInt32 aStart, PRInt32 aEnd);
 
   
-  nsresult MakeRange(NodeOffset aBegin, NodeOffset aEnd, nsRange** aRange);
-  nsresult MakeRangeForWord(const RealWord& aWord, nsRange** aRange);
+  nsresult MakeRange(NodeOffset aBegin, NodeOffset aEnd, nsIDOMRange** aRange);
+  nsresult MakeRangeForWord(const RealWord& aWord, nsIDOMRange** aRange);
 };

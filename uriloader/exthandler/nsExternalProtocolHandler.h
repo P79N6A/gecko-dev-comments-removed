@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsExternalProtocolHandler_h___
 #define nsExternalProtocolHandler_h___
 
@@ -12,12 +46,11 @@
 #include "nsString.h"
 #include "nsWeakReference.h"
 #include "nsIExternalProtocolService.h"
-#include "mozilla/Attributes.h"
 
 class nsIURI;
 
 
-class nsExternalProtocolHandler MOZ_FINAL : public nsIExternalProtocolHandler, public nsSupportsWeakReference
+class nsExternalProtocolHandler : public nsIExternalProtocolHandler, public nsSupportsWeakReference
 {
 public:
 	NS_DECL_ISUPPORTS
@@ -31,6 +64,7 @@ protected:
   
   bool HaveExternalProtocolHandler(nsIURI * aURI);
 	nsCString	m_schemeName;
+  nsCOMPtr<nsIExternalProtocolService> m_extProtService;
 };
 
 #endif 

@@ -5,6 +5,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCookiePermission.h"
 #include "nsICookie2.h"
 #include "nsIServiceManager.h"
@@ -14,9 +51,11 @@
 #include "nsIURI.h"
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
+#include "nsIPrefBranch2.h"
 #include "nsIChannel.h"
 #include "nsIHttpChannelInternal.h"
 #include "nsIDOMWindow.h"
+#include "nsIDOMDocument.h"
 #include "nsIPrincipal.h"
 #include "nsString.h"
 #include "nsCRT.h"
@@ -33,10 +72,10 @@
 
 
 
-static const uint32_t ACCEPT_NORMALLY = 0;
-static const uint32_t ASK_BEFORE_ACCEPT = 1;
-static const uint32_t ACCEPT_SESSION = 2;
-static const uint32_t ACCEPT_FOR_N_DAYS = 3;
+static const PRUint32 ACCEPT_NORMALLY = 0;
+static const PRUint32 ASK_BEFORE_ACCEPT = 1;
+static const PRUint32 ACCEPT_SESSION = 2;
+static const PRUint32 ACCEPT_FOR_N_DAYS = 3;
 
 static const bool kDefaultPolicy = true;
 static const char kCookiesLifetimePolicy[] = "network.cookie.lifetimePolicy";
@@ -50,6 +89,23 @@ static const char kCookiesLifetimeBehavior[] = "network.cookie.lifetime.behavior
 static const char kCookiesAskPermission[] = "network.cookie.warnAboutCookies";
 
 static const char kPermissionType[] = "cookie";
+
+#ifdef MOZ_MAIL_NEWS
+
+
+static bool
+IsFromMailNews(nsIURI *aURI)
+{
+  static const char *kMailNewsProtocols[] =
+      { "imap", "news", "snews", "mailbox", nsnull };
+  bool result;
+  for (const char **p = kMailNewsProtocols; *p; ++p) {
+    if (NS_SUCCEEDED(aURI->SchemeIs(*p, &result)) && result)
+      return PR_TRUE;
+  }
+  return PR_FALSE;
+}
+#endif
 
 NS_IMPL_ISUPPORTS2(nsCookiePermission,
                    nsICookiePermission,
@@ -66,13 +122,13 @@ nsCookiePermission::Init()
   if (NS_FAILED(rv)) return false;
 
   
-  nsCOMPtr<nsIPrefBranch> prefBranch =
+  nsCOMPtr<nsIPrefBranch2> prefBranch =
       do_GetService(NS_PREFSERVICE_CONTRACTID);
   if (prefBranch) {
-    prefBranch->AddObserver(kCookiesLifetimePolicy, this, false);
-    prefBranch->AddObserver(kCookiesLifetimeDays, this, false);
-    prefBranch->AddObserver(kCookiesAlwaysAcceptSession, this, false);
-    PrefChanged(prefBranch, nullptr);
+    prefBranch->AddObserver(kCookiesLifetimePolicy, this, PR_FALSE);
+    prefBranch->AddObserver(kCookiesLifetimeDays, this, PR_FALSE);
+    prefBranch->AddObserver(kCookiesAlwaysAcceptSession, this, PR_FALSE);
+    PrefChanged(prefBranch, nsnull);
 
     
     bool migrated;
@@ -91,14 +147,14 @@ nsCookiePermission::Init()
       
       
       if (lifetimeEnabled && !warnAboutCookies) {
-        int32_t lifetimeBehavior;
+        PRInt32 lifetimeBehavior;
         prefBranch->GetIntPref(kCookiesLifetimeBehavior, &lifetimeBehavior);
         if (lifetimeBehavior)
           prefBranch->SetIntPref(kCookiesLifetimePolicy, ACCEPT_FOR_N_DAYS);
         else
           prefBranch->SetIntPref(kCookiesLifetimePolicy, ACCEPT_SESSION);
       }
-      prefBranch->SetBoolPref(kCookiesPrefsMigrated, true);
+      prefBranch->SetBoolPref(kCookiesPrefsMigrated, PR_TRUE);
     }
   }
 
@@ -109,7 +165,7 @@ void
 nsCookiePermission::PrefChanged(nsIPrefBranch *aPrefBranch,
                                 const char    *aPref)
 {
-  int32_t val;
+  PRInt32 val;
 
 #define PREF_CHANGED(_P) (!aPref || !strcmp(aPref, _P))
 
@@ -150,22 +206,21 @@ nsCookiePermission::CanAccess(nsIURI         *aURI,
                               nsIChannel     *aChannel,
                               nsCookieAccess *aResult)
 {
+#ifdef MOZ_MAIL_NEWS
   
-  bool hasFlags;
-  nsresult rv =
-    NS_URIChainHasFlags(aURI, nsIProtocolHandler::URI_FORBIDS_COOKIE_ACCESS,
-                        &hasFlags);
-  if (NS_FAILED(rv) || hasFlags) {
+  
+  if (IsFromMailNews(aURI)) {
     *aResult = ACCESS_DENY;
     return NS_OK;
   }
+#endif 
 
   
   if (!EnsureInitialized())
     return NS_ERROR_UNEXPECTED;
 
   
-  rv = mPermMgr->TestPermission(aURI, kPermissionType, (uint32_t *) aResult);
+  nsresult rv = mPermMgr->TestPermission(aURI, kPermissionType, (PRUint32 *) aResult);
   if (NS_SUCCEEDED(rv)) {
     switch (*aResult) {
     
@@ -194,7 +249,7 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
                                  nsIChannel *aChannel,
                                  nsICookie2 *aCookie,
                                  bool       *aIsSession,
-                                 int64_t    *aExpiry,
+                                 PRInt64    *aExpiry,
                                  bool       *aResult)
 {
   NS_ASSERTION(aURI, "null uri");
@@ -205,18 +260,18 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
   if (!EnsureInitialized())
     return NS_ERROR_UNEXPECTED;
 
-  uint32_t perm;
+  PRUint32 perm;
   mPermMgr->TestPermission(aURI, kPermissionType, &perm);
   switch (perm) {
   case nsICookiePermission::ACCESS_SESSION:
-    *aIsSession = true;
+    *aIsSession = PR_TRUE;
 
   case nsIPermissionManager::ALLOW_ACTION: 
-    *aResult = true;
+    *aResult = PR_TRUE;
     break;
 
   case nsIPermissionManager::DENY_ACTION:  
-    *aResult = false;
+    *aResult = PR_FALSE;
     break;
 
   default:
@@ -227,13 +282,13 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
     
     
     if (mCookiesLifetimePolicy == ACCEPT_NORMALLY) {
-      *aResult = true;
+      *aResult = PR_TRUE;
       return NS_OK;
     }
     
     
-    int64_t currentTime = PR_Now() / PR_USEC_PER_SEC;
-    int64_t delta = *aExpiry - currentTime;
+    PRInt64 currentTime = PR_Now() / PR_USEC_PER_SEC;
+    PRInt64 delta = *aExpiry - currentTime;
     
     
     if (mCookiesLifetimePolicy == ASK_BEFORE_ACCEPT) {
@@ -242,14 +297,14 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
       
       if ((*aIsSession && mCookiesAlwaysAcceptSession) ||
           InPrivateBrowsing()) {
-        *aResult = true;
+        *aResult = PR_TRUE;
         return NS_OK;
       }
       
       
-      *aResult = false;
+      *aResult = PR_FALSE;
 
-      nsAutoCString hostPort;
+      nsCAutoString hostPort;
       aURI->GetHostPort(hostPort);
 
       if (!aCookie) {
@@ -289,10 +344,10 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
       
       
       bool foundCookie = false;
-      uint32_t countFromHost;
+      PRUint32 countFromHost;
       nsCOMPtr<nsICookieManager2> cookieManager = do_GetService(NS_COOKIEMANAGER_CONTRACTID, &rv);
       if (NS_SUCCEEDED(rv)) {
-        nsAutoCString rawHost;
+        nsCAutoString rawHost;
         aCookie->GetRawHost(rawHost);
         rv = cookieManager->CountCookiesFromHost(rawHost, &countFromHost);
 
@@ -307,12 +362,12 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
       if (!foundCookie && !*aIsSession && delta <= 0) {
         
         
-        *aResult = true;
+        *aResult = PR_TRUE;
         return rv;
       }
 
       bool rememberDecision = false;
-      int32_t dialogRes = nsICookiePromptService::DENY_COOKIE;
+      PRInt32 dialogRes = nsICookiePromptService::DENY_COOKIE;
       rv = cookiePromptService->CookieDialog(parent, aCookie, hostPort, 
                                              countFromHost, foundCookie,
                                              &rememberDecision, &dialogRes);
@@ -320,16 +375,16 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
 
       *aResult = !!dialogRes;
       if (dialogRes == nsICookiePromptService::ACCEPT_SESSION_COOKIE)
-        *aIsSession = true;
+        *aIsSession = PR_TRUE;
 
       if (rememberDecision) {
         switch (dialogRes) {
           case nsICookiePromptService::DENY_COOKIE:
-            mPermMgr->Add(aURI, kPermissionType, (uint32_t) nsIPermissionManager::DENY_ACTION,
+            mPermMgr->Add(aURI, kPermissionType, (PRUint32) nsIPermissionManager::DENY_ACTION,
                           nsIPermissionManager::EXPIRE_NEVER, 0);
             break;
           case nsICookiePromptService::ACCEPT_COOKIE:
-            mPermMgr->Add(aURI, kPermissionType, (uint32_t) nsIPermissionManager::ALLOW_ACTION,
+            mPermMgr->Add(aURI, kPermissionType, (PRUint32) nsIPermissionManager::ALLOW_ACTION,
                           nsIPermissionManager::EXPIRE_NEVER, 0);
             break;
           case nsICookiePromptService::ACCEPT_SESSION_COOKIE:
@@ -346,7 +401,7 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
       if (!*aIsSession && delta > 0) {
         if (mCookiesLifetimePolicy == ACCEPT_SESSION) {
           
-          *aIsSession = true;
+          *aIsSession = PR_TRUE;
         } else if (delta > mCookiesLifetimeSec) {
           
           *aExpiry = currentTime + mCookiesLifetimeSec;
@@ -355,6 +410,104 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
     }
   }
 
+  return NS_OK;
+}
+
+NS_IMETHODIMP 
+nsCookiePermission::GetOriginatingURI(nsIChannel  *aChannel,
+                                      nsIURI     **aURI)
+{
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  *aURI = nsnull;
+
+  
+  if (!aChannel)
+    return NS_ERROR_NULL_POINTER;
+
+  
+  nsCOMPtr<nsIHttpChannelInternal> httpChannelInternal = do_QueryInterface(aChannel);
+  if (httpChannelInternal)
+  {
+    bool doForce = false;
+    if (NS_SUCCEEDED(httpChannelInternal->GetForceAllowThirdPartyCookie(&doForce)) && doForce)
+    {
+      
+      aChannel->GetURI(aURI);
+      if (!*aURI)
+        return NS_ERROR_NULL_POINTER;
+
+      return NS_OK;
+    }
+  }
+
+  
+  nsCOMPtr<nsILoadContext> ctx;
+  NS_QueryNotificationCallbacks(aChannel, ctx);
+  nsCOMPtr<nsIDOMWindow> topWin, ourWin;
+  if (ctx) {
+    ctx->GetTopWindow(getter_AddRefs(topWin));
+    ctx->GetAssociatedWindow(getter_AddRefs(ourWin));
+  }
+
+  
+  if (!topWin)
+    return NS_ERROR_INVALID_ARG;
+
+  
+  if (ourWin == topWin) {
+    
+    
+    
+    nsLoadFlags flags;
+    aChannel->GetLoadFlags(&flags);
+
+    if (flags & nsIChannel::LOAD_DOCUMENT_URI) {
+      
+      aChannel->GetURI(aURI);
+      if (!*aURI)
+        return NS_ERROR_NULL_POINTER;
+
+      return NS_OK;
+    }
+  }
+
+  
+  nsCOMPtr<nsIScriptObjectPrincipal> scriptObjPrin = do_QueryInterface(topWin);
+  NS_ENSURE_TRUE(scriptObjPrin, NS_ERROR_UNEXPECTED);
+
+  nsIPrincipal* prin = scriptObjPrin->GetPrincipal();
+  NS_ENSURE_TRUE(prin, NS_ERROR_UNEXPECTED);
+  
+  prin->GetURI(aURI);
+
+  if (!*aURI)
+    return NS_ERROR_NULL_POINTER;
+
+  
   return NS_OK;
 }
 

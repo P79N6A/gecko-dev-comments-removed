@@ -17,6 +17,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsRDFService_h__
 #define nsRDFService_h__
 
@@ -44,7 +77,7 @@ protected:
     PLDHashTable mDates;
     PLDHashTable mBlobs;
 
-    nsAutoCString mLastURIPrefix;
+    nsCAutoString mLastURIPrefix;
     nsCOMPtr<nsIFactory> mLastFactory;
     nsCOMPtr<nsIFactory> mDefaultResourceFactory;
 

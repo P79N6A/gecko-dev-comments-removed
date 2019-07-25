@@ -2,11 +2,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsTableOuterFrame_h__
 #define nsTableOuterFrame_h__
 
 #include "nscore.h"
-#include "nsContainerFrame.h"
+#include "nsHTMLContainerFrame.h"
 #include "nsBlockFrame.h"
 #include "nsITableLayout.h"
 #include "nsTableFrame.h"
@@ -25,13 +57,13 @@ public:
                                  nsSize aMargin, nsSize aBorder,
                                  nsSize aPadding, bool aShrinkWrap);
 
-  virtual nsIFrame* GetParentStyleContextFrame() const;
+  virtual nsIFrame* GetParentStyleContextFrame();
 
 #ifdef ACCESSIBILITY
-  virtual already_AddRefed<Accessible> CreateAccessible();
+  virtual already_AddRefed<nsAccessible> CreateAccessible();
 #endif
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
   NS_IMETHOD GetFrameName(nsAString& aResult) const;
 #endif
 
@@ -50,7 +82,7 @@ protected:
 
 
 
-class nsTableOuterFrame : public nsContainerFrame, public nsITableLayout
+class nsTableOuterFrame : public nsHTMLContainerFrame, public nsITableLayout
 {
 public:
   NS_DECL_QUERYFRAME
@@ -70,7 +102,7 @@ public:
   NS_IMETHOD SetInitialChildList(ChildListID     aListID,
                                  nsFrameList&    aChildList);
  
-  virtual const nsFrameList& GetChildList(ChildListID aListID) const;
+  virtual nsFrameList GetChildList(ChildListID aListID) const;
   virtual void GetChildLists(nsTArray<ChildList>* aLists) const;
 
   NS_IMETHOD AppendFrames(ChildListID     aListID,
@@ -88,7 +120,7 @@ public:
   }
 
 #ifdef ACCESSIBILITY
-  virtual already_AddRefed<Accessible> CreateAccessible();
+  virtual already_AddRefed<nsAccessible> CreateAccessible();
 #endif
 
   NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
@@ -127,23 +159,28 @@ public:
   NS_IMETHOD GetFrameName(nsAString& aResult) const;
 #endif
 
-  virtual nsIFrame* GetParentStyleContextFrame() const;
+  
+
+  void SetSelected(bool aSelected,
+                   SelectionType aType);
+
+  virtual nsIFrame* GetParentStyleContextFrame();
 
   
 
   
-  NS_IMETHOD GetCellDataAt(int32_t aRowIndex, int32_t aColIndex, 
+  NS_IMETHOD GetCellDataAt(PRInt32 aRowIndex, PRInt32 aColIndex, 
                            nsIDOMElement* &aCell,   
-                           int32_t& aStartRowIndex, int32_t& aStartColIndex, 
-                           int32_t& aRowSpan, int32_t& aColSpan,
-                           int32_t& aActualRowSpan, int32_t& aActualColSpan,
+                           PRInt32& aStartRowIndex, PRInt32& aStartColIndex, 
+                           PRInt32& aRowSpan, PRInt32& aColSpan,
+                           PRInt32& aActualRowSpan, PRInt32& aActualColSpan,
                            bool& aIsSelected);
 
   
-  NS_IMETHOD GetTableSize(int32_t& aRowCount, int32_t& aColCount);
+  NS_IMETHOD GetTableSize(PRInt32& aRowCount, PRInt32& aColCount);
 
-  NS_IMETHOD GetIndexByRowAndColumn(int32_t aRow, int32_t aColumn, int32_t *aIndex);
-  NS_IMETHOD GetRowAndColumnByIndex(int32_t aIndex, int32_t *aRow, int32_t *aColumn);
+  NS_IMETHOD GetIndexByRowAndColumn(PRInt32 aRow, PRInt32 aColumn, PRInt32 *aIndex);
+  NS_IMETHOD GetRowAndColumnByIndex(PRInt32 aIndex, PRInt32 *aRow, PRInt32 *aColumn);
 
 protected:
 
@@ -157,25 +194,25 @@ protected:
   
 
 
-  virtual int GetSkipSides() const;
+  virtual PRIntn GetSkipSides() const;
 
-  uint8_t GetCaptionSide(); 
+  PRUint8 GetCaptionSide(); 
 
   bool HasSideCaption() {
-    uint8_t captionSide = GetCaptionSide();
+    PRUint8 captionSide = GetCaptionSide();
     return captionSide == NS_STYLE_CAPTION_SIDE_LEFT ||
            captionSide == NS_STYLE_CAPTION_SIDE_RIGHT;
   }
   
-  uint8_t GetCaptionVerticalAlign();
+  PRUint8 GetCaptionVerticalAlign();
 
-  void SetDesiredSize(uint8_t         aCaptionSide,
+  void SetDesiredSize(PRUint8         aCaptionSide,
                       const nsMargin& aInnerMargin,
                       const nsMargin& aCaptionMargin,
                       nscoord&        aWidth,
                       nscoord&        aHeight);
 
-  nsresult   GetCaptionOrigin(uint32_t         aCaptionSide,
+  nsresult   GetCaptionOrigin(PRUint32         aCaptionSide,
                               const nsSize&    aContainBlockSize,
                               const nsSize&    aInnerSize, 
                               const nsMargin&  aInnerMargin,
@@ -183,7 +220,7 @@ protected:
                               nsMargin&        aCaptionMargin,
                               nsPoint&         aOrigin);
 
-  nsresult   GetInnerOrigin(uint32_t         aCaptionSide,
+  nsresult   GetInnerOrigin(PRUint32         aCaptionSide,
                             const nsSize&    aContainBlockSize,
                             const nsSize&    aCaptionSize, 
                             const nsMargin&  aCaptionMargin,
@@ -205,7 +242,7 @@ protected:
                               nsReflowStatus&          aStatus);
 
   
-  void UpdateReflowMetrics(uint8_t              aCaptionSide,
+  void UpdateReflowMetrics(PRUint8              aCaptionSide,
                            nsHTMLReflowMetrics& aMet,
                            const nsMargin&      aInnerMargin,
                            const nsMargin&      aCaptionMargin);
@@ -218,7 +255,7 @@ protected:
                       nscoord                  aAvailableWidth,
                       nsMargin&                aMargin);
 
-  nsTableFrame* InnerTableFrame() const {
+  nsTableFrame* InnerTableFrame() {
     return static_cast<nsTableFrame*>(mFrames.FirstChild());
   }
   
@@ -226,7 +263,7 @@ private:
   nsFrameList   mCaptionFrames;
 };
 
-inline int nsTableOuterFrame::GetSkipSides() const
+inline PRIntn nsTableOuterFrame::GetSkipSides() const
 { return 0; }
 
 #endif

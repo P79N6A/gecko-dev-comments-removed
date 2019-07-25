@@ -3,7 +3,38 @@
 
 
 
-#include "mozilla/Attributes.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsISupports.h"
 #include "nsExceptionService.h"
@@ -14,7 +45,7 @@
 
 using namespace mozilla;
 
-static const unsigned BAD_TLS_INDEX = (unsigned) -1;
+static const PRUintn BAD_TLS_INDEX = (PRUintn) -1;
 
 #define CHECK_SERVICE_USE_OK() if (!sLock) return NS_ERROR_NOT_INITIALIZED
 #define CHECK_MANAGER_USE_OK() if (!mService || !nsExceptionService::sLock) return NS_ERROR_NOT_INITIALIZED
@@ -22,10 +53,10 @@ static const unsigned BAD_TLS_INDEX = (unsigned) -1;
 
 class nsProviderKey : public nsHashKey {
 protected:
-  uint32_t mKey;
+  PRUint32 mKey;
 public:
-  nsProviderKey(uint32_t key) : mKey(key) {}
-  uint32_t HashCode(void) const {
+  nsProviderKey(PRUint32 key) : mKey(key) {}
+  PRUint32 HashCode(void) const {
     return mKey;
   }
   bool Equals(const nsHashKey *aKey) const {
@@ -34,11 +65,11 @@ public:
   nsHashKey *Clone() const {
     return new nsProviderKey(mKey);
   }
-  uint32_t GetValue() { return mKey; }
+  PRUint32 GetValue() { return mKey; }
 };
 
 
-class nsExceptionManager MOZ_FINAL : public nsIExceptionManager
+class nsExceptionManager : public nsIExceptionManager
 {
 public:
   NS_DECL_ISUPPORTS
@@ -49,8 +80,8 @@ public:
   nsCOMPtr<nsIException> mCurrentException;
   nsExceptionManager *mNextThread; 
   nsExceptionService *mService; 
-#ifdef DEBUG
-  static int32_t totalInstances;
+#ifdef NS_DEBUG
+  static PRInt32 totalInstances;
 #endif
 
 private:
@@ -58,8 +89,8 @@ private:
 };
 
 
-#ifdef DEBUG
-int32_t nsExceptionManager::totalInstances = 0;
+#ifdef NS_DEBUG
+PRInt32 nsExceptionManager::totalInstances = 0;
 #endif
 
 
@@ -69,11 +100,11 @@ int32_t nsExceptionManager::totalInstances = 0;
 NS_IMPL_THREADSAFE_ISUPPORTS1(nsExceptionManager, nsIExceptionManager)
 
 nsExceptionManager::nsExceptionManager(nsExceptionService *svc) :
-  mNextThread(nullptr),
+  mNextThread(nsnull),
   mService(svc)
 {
   
-#ifdef DEBUG
+#ifdef NS_DEBUG
   PR_ATOMIC_INCREMENT(&totalInstances);
 #endif
 }
@@ -81,7 +112,7 @@ nsExceptionManager::nsExceptionManager(nsExceptionService *svc) :
 nsExceptionManager::~nsExceptionManager()
 {
   
-#ifdef DEBUG
+#ifdef NS_DEBUG
   PR_ATOMIC_DECREMENT(&totalInstances);
 #endif 
 }
@@ -113,12 +144,12 @@ NS_IMETHODIMP nsExceptionManager::GetExceptionFromProvider(nsresult rc, nsIExcep
 
 
 
-unsigned nsExceptionService::tlsIndex = BAD_TLS_INDEX;
-Mutex *nsExceptionService::sLock = nullptr;
-nsExceptionManager *nsExceptionService::firstThread = nullptr;
+PRUintn nsExceptionService::tlsIndex = BAD_TLS_INDEX;
+Mutex *nsExceptionService::sLock = nsnull;
+nsExceptionManager *nsExceptionService::firstThread = nsnull;
 
-#ifdef DEBUG
-int32_t nsExceptionService::totalInstances = 0;
+#ifdef NS_DEBUG
+PRInt32 nsExceptionService::totalInstances = 0;
 #endif
 
 NS_IMPL_THREADSAFE_ISUPPORTS3(nsExceptionService,
@@ -127,9 +158,9 @@ NS_IMPL_THREADSAFE_ISUPPORTS3(nsExceptionService,
                               nsIObserver)
 
 nsExceptionService::nsExceptionService()
-  : mProviders(4, true) 
+  : mProviders(4, PR_TRUE) 
 {
-#ifdef DEBUG
+#ifdef NS_DEBUG
   if (PR_ATOMIC_INCREMENT(&totalInstances)!=1) {
     NS_ERROR("The nsExceptionService is a singleton!");
   }
@@ -147,14 +178,14 @@ nsExceptionService::nsExceptionService()
     mozilla::services::GetObserverService();
   NS_ASSERTION(observerService, "Could not get observer service!");
   if (observerService)
-    observerService->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false);
+    observerService->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, PR_FALSE);
 }
 
 nsExceptionService::~nsExceptionService()
 {
   Shutdown();
   
-#ifdef DEBUG
+#ifdef NS_DEBUG
   PR_ATOMIC_DECREMENT(&totalInstances);
 #endif
 }
@@ -176,9 +207,9 @@ void nsExceptionService::Shutdown()
   if (sLock) {
     DropAllThreads();
     delete sLock;
-    sLock = nullptr;
+    sLock = nsnull;
   }
-  PR_SetThreadPrivate(tlsIndex, nullptr);
+  PR_SetThreadPrivate(tlsIndex, nsnull);
 }
 
 
@@ -216,7 +247,7 @@ NS_IMETHODIMP nsExceptionService::GetCurrentExceptionManager(nsIExceptionManager
 {
     CHECK_SERVICE_USE_OK();
     nsExceptionManager *mgr = (nsExceptionManager *)PR_GetThreadPrivate(tlsIndex);
-    if (mgr == nullptr) {
+    if (mgr == nsnull) {
         
         mgr = new nsExceptionManager(this);
         PR_SetThreadPrivate(tlsIndex, mgr);
@@ -229,7 +260,7 @@ NS_IMETHODIMP nsExceptionService::GetCurrentExceptionManager(nsIExceptionManager
 }
 
 
-NS_IMETHODIMP nsExceptionService::RegisterExceptionProvider(nsIExceptionProvider *provider, uint32_t errorModule)
+NS_IMETHODIMP nsExceptionService::RegisterExceptionProvider(nsIExceptionProvider *provider, PRUint32 errorModule)
 {
     CHECK_SERVICE_USE_OK();
 
@@ -241,7 +272,7 @@ NS_IMETHODIMP nsExceptionService::RegisterExceptionProvider(nsIExceptionProvider
 }
 
 
-NS_IMETHODIMP nsExceptionService::UnregisterExceptionProvider(nsIExceptionProvider *provider, uint32_t errorModule)
+NS_IMETHODIMP nsExceptionService::UnregisterExceptionProvider(nsIExceptionProvider *provider, PRUint32 errorModule)
 {
     CHECK_SERVICE_USE_OK();
     nsProviderKey key(errorModule);

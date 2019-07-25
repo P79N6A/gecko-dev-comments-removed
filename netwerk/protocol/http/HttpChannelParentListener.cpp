@@ -4,6 +4,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "HttpChannelParentListener.h"
 #include "mozilla/net/HttpChannelParent.h"
 #include "mozilla/dom/TabParent.h"
@@ -77,7 +112,7 @@ HttpChannelParentListener::OnStopRequest(nsIRequest *aRequest,
        this, aStatusCode));
   nsresult rv = mActiveChannel->OnStopRequest(aRequest, aContext, aStatusCode);
 
-  mActiveChannel = nullptr;
+  mActiveChannel = nsnull;
   return rv;
 }
 
@@ -89,8 +124,8 @@ NS_IMETHODIMP
 HttpChannelParentListener::OnDataAvailable(nsIRequest *aRequest, 
                                             nsISupports *aContext, 
                                             nsIInputStream *aInputStream, 
-                                            uint64_t aOffset, 
-                                            uint32_t aCount)
+                                            PRUint32 aOffset, 
+                                            PRUint32 aCount)
 {
   if (!mActiveChannel)
     return NS_ERROR_UNEXPECTED;
@@ -132,7 +167,7 @@ NS_IMETHODIMP
 HttpChannelParentListener::AsyncOnChannelRedirect(
                                     nsIChannel *oldChannel,
                                     nsIChannel *newChannel,
-                                    uint32_t redirectFlags,
+                                    PRUint32 redirectFlags,
                                     nsIAsyncVerifyRedirectCallback* callback)
 {
   nsresult rv;

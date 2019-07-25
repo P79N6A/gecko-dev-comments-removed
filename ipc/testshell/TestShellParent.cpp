@@ -2,17 +2,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "TestShellParent.h"
-
-
-#include "mozilla/Util.h"
-
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/jsipc/ContextWrapperParent.h"
 
 #include "nsAutoPtr.h"
 
-using namespace mozilla;
 using mozilla::ipc::TestShellParent;
 using mozilla::ipc::TestShellCommandParent;
 using mozilla::ipc::PTestShellCommandParent;
@@ -95,13 +122,17 @@ TestShellCommandParent::RunCallback(const nsString& aResponse)
   JSObject* global = JS_GetGlobalObject(mCx);
   NS_ENSURE_TRUE(global, JS_FALSE);
 
-  JSAutoCompartment ac(mCx, global);
+  JSAutoEnterCompartment ac;
+  if (!ac.enter(mCx, global)) {
+    NS_ERROR("Failed to enter compartment!");
+    return false;
+  }
 
   JSString* str = JS_NewUCStringCopyN(mCx, aResponse.get(), aResponse.Length());
   NS_ENSURE_TRUE(str, JS_FALSE);
 
   jsval argv[] = { STRING_TO_JSVAL(str) };
-  unsigned argc = ArrayLength(argv);
+  int argc = NS_ARRAY_LENGTH(argv);
 
   jsval rval;
   JSBool ok = JS_CallFunctionValue(mCx, global, mCallback, argc, argv, &rval);

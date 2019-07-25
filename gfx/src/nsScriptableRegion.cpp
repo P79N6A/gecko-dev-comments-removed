@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsScriptableRegion.h"
 #include "nsCOMPtr.h"
 #include "nsIXPConnect.h"
@@ -27,7 +61,7 @@ NS_IMETHODIMP nsScriptableRegion::SetToRegion(nsIScriptableRegion *aRegion)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsScriptableRegion::SetToRect(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight)
+NS_IMETHODIMP nsScriptableRegion::SetToRect(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight)
 {
   mRegion = nsIntRect(aX, aY, aWidth, aHeight);
   return NS_OK;
@@ -41,7 +75,7 @@ NS_IMETHODIMP nsScriptableRegion::IntersectRegion(nsIScriptableRegion *aRegion)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsScriptableRegion::IntersectRect(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight)
+NS_IMETHODIMP nsScriptableRegion::IntersectRect(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight)
 {
   mRegion.And(mRegion, nsIntRect(aX, aY, aWidth, aHeight));
   return NS_OK;
@@ -55,7 +89,7 @@ NS_IMETHODIMP nsScriptableRegion::UnionRegion(nsIScriptableRegion *aRegion)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsScriptableRegion::UnionRect(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight)
+NS_IMETHODIMP nsScriptableRegion::UnionRect(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight)
 {
   mRegion.Or(mRegion, nsIntRect(aX, aY, aWidth, aHeight));
   return NS_OK;
@@ -69,7 +103,7 @@ NS_IMETHODIMP nsScriptableRegion::SubtractRegion(nsIScriptableRegion *aRegion)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsScriptableRegion::SubtractRect(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight)
+NS_IMETHODIMP nsScriptableRegion::SubtractRect(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight)
 {
   mRegion.Sub(mRegion, nsIntRect(aX, aY, aWidth, aHeight));
   return NS_OK;
@@ -89,7 +123,7 @@ NS_IMETHODIMP nsScriptableRegion::IsEqualRegion(nsIScriptableRegion *aRegion, bo
   return NS_OK;
 }
 
-NS_IMETHODIMP nsScriptableRegion::GetBoundingBox(int32_t *aX, int32_t *aY, int32_t *aWidth, int32_t *aHeight)
+NS_IMETHODIMP nsScriptableRegion::GetBoundingBox(PRInt32 *aX, PRInt32 *aY, PRInt32 *aWidth, PRInt32 *aHeight)
 {
   nsIntRect boundRect = mRegion.GetBounds();
   *aX = boundRect.x;
@@ -99,13 +133,13 @@ NS_IMETHODIMP nsScriptableRegion::GetBoundingBox(int32_t *aX, int32_t *aY, int32
   return NS_OK;
 }
 
-NS_IMETHODIMP nsScriptableRegion::Offset(int32_t aXOffset, int32_t aYOffset)
+NS_IMETHODIMP nsScriptableRegion::Offset(PRInt32 aXOffset, PRInt32 aYOffset)
 {
   mRegion.MoveBy(aXOffset, aYOffset);
   return NS_OK;
 }
 
-NS_IMETHODIMP nsScriptableRegion::ContainsRect(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight, bool *containsRect)
+NS_IMETHODIMP nsScriptableRegion::ContainsRect(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight, bool *containsRect)
 {
   *containsRect = mRegion.Contains(nsIntRect(aX, aY, aWidth, aHeight));
   return NS_OK;
@@ -118,35 +152,52 @@ NS_IMETHODIMP nsScriptableRegion::GetRegion(nsIntRegion* outRgn)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsScriptableRegion::GetRects(JSContext* aCx, JS::Value* aRects)
-{
-  uint32_t numRects = mRegion.GetNumRects();
+NS_IMETHODIMP nsScriptableRegion::GetRects() {
+  nsAXPCNativeCallContext *ncc = nsnull;
+  nsresult rv;
+  nsCOMPtr<nsIXPConnect> xpConnect = do_GetService(nsIXPConnect::GetCID(), &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = xpConnect->GetCurrentNativeCallContext(&ncc);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (!ncc)
+    return NS_ERROR_FAILURE;
+  
+  jsval *retvalPtr;
+  ncc->GetRetValPtr(&retvalPtr);
+
+  PRUint32 numRects = mRegion.GetNumRects();
 
   if (!numRects) {
-    *aRects = JSVAL_NULL;
+    *retvalPtr = JSVAL_NULL;
+    ncc->SetReturnValueWasSet(PR_TRUE);
     return NS_OK;
   }
 
-  JSObject* destArray = JS_NewArrayObject(aCx, numRects * 4, NULL);
-  if (!destArray) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
+  JSContext *cx = nsnull;
 
-  *aRects = OBJECT_TO_JSVAL(destArray);
+  rv = ncc->GetJSContext(&cx);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  JSObject *destArray = JS_NewArrayObject(cx, numRects*4, NULL);
+  *retvalPtr = OBJECT_TO_JSVAL(destArray);
+  ncc->SetReturnValueWasSet(PR_TRUE);
 
   uint32 n = 0;
   nsIntRegionRectIterator iter(mRegion);
   const nsIntRect *rect;
 
   while ((rect = iter.Next())) {
-    if (!JS_DefineElement(aCx, destArray, n, INT_TO_JSVAL(rect->x), NULL, NULL, JSPROP_ENUMERATE) ||
-        !JS_DefineElement(aCx, destArray, n + 1, INT_TO_JSVAL(rect->y), NULL, NULL, JSPROP_ENUMERATE) ||
-        !JS_DefineElement(aCx, destArray, n + 2, INT_TO_JSVAL(rect->width), NULL, NULL, JSPROP_ENUMERATE) ||
-        !JS_DefineElement(aCx, destArray, n + 3, INT_TO_JSVAL(rect->height), NULL, NULL, JSPROP_ENUMERATE)) {
-      return NS_ERROR_FAILURE;
-    }
+    
+    JS_DefineElement(cx, destArray, n, INT_TO_JSVAL(rect->x), NULL, NULL, JSPROP_ENUMERATE);
+    JS_DefineElement(cx, destArray, n+1, INT_TO_JSVAL(rect->y), NULL, NULL, JSPROP_ENUMERATE);
+    JS_DefineElement(cx, destArray, n+2, INT_TO_JSVAL(rect->width), NULL, NULL, JSPROP_ENUMERATE);
+    JS_DefineElement(cx, destArray, n+3, INT_TO_JSVAL(rect->height), NULL, NULL, JSPROP_ENUMERATE);
+
     n += 4;
   }
 
+  NS_ENSURE_SUCCESS(rv, rv);
   return NS_OK;
 }

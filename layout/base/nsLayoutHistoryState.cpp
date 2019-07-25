@@ -8,14 +8,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsILayoutHistoryState.h"
 #include "nsWeakReference.h"
 #include "nsClassHashtable.h"
 #include "nsPresState.h"
-#include "mozilla/Attributes.h"
 
-class nsLayoutHistoryState MOZ_FINAL : public nsILayoutHistoryState,
-                                       public nsSupportsWeakReference
+class nsLayoutHistoryState : public nsILayoutHistoryState,
+                             public nsSupportsWeakReference
 {
 public:
   NS_HIDDEN_(nsresult) Init();
@@ -43,7 +75,7 @@ NS_NewLayoutHistoryState(nsILayoutHistoryState** aState)
 {
   nsLayoutHistoryState *state;
 
-  *aState = nullptr;
+  *aState = nsnull;
   state = new nsLayoutHistoryState();
 
   NS_ADDREF(state);
@@ -63,16 +95,14 @@ NS_IMPL_ISUPPORTS2(nsLayoutHistoryState,
 nsresult
 nsLayoutHistoryState::Init()
 {
-  mScrollPositionOnly = false;
-  mStates.Init();
-  return NS_OK;
+  mScrollPositionOnly = PR_FALSE;
+  return mStates.Init() ? NS_OK : NS_ERROR_FAILURE;
 }
 
 NS_IMETHODIMP
 nsLayoutHistoryState::AddState(const nsCString& aStateKey, nsPresState* aState)
 {
-  mStates.Put(aStateKey, aState);
-  return NS_OK;
+  return mStates.Put(aStateKey, aState) ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
 }
 
 NS_IMETHODIMP

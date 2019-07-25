@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIDOMLinkStyle.h"
 #include "nsIDOMStyleSheet.h"
 #include "nsIDocument.h"
@@ -12,6 +45,7 @@
 #include "nsNetUtil.h"
 #include "nsXMLProcessingInstruction.h"
 #include "nsUnicharUtils.h"
+#include "nsParserUtils.h"
 #include "nsGkAtoms.h"
 #include "nsThreadUtils.h"
 #include "nsContentUtils.h"
@@ -114,7 +148,7 @@ nsXMLStylesheetPI::SetNodeValue(const nsAString& aNodeValue)
 {
   nsresult rv = nsGenericDOMDataNode::SetNodeValue(aNodeValue);
   if (NS_SUCCEEDED(rv)) {
-    UpdateStyleSheetInternal(nullptr, true);
+    UpdateStyleSheetInternal(nsnull, PR_TRUE);
   }
   return rv;
 }
@@ -136,20 +170,24 @@ nsXMLStylesheetPI::OverrideBaseURI(nsIURI* aNewBaseURI)
 already_AddRefed<nsIURI>
 nsXMLStylesheetPI::GetStyleSheetURL(bool* aIsInline)
 {
-  *aIsInline = false;
+  *aIsInline = PR_FALSE;
 
   nsAutoString href;
   if (!GetAttrValue(nsGkAtoms::href, href)) {
-    return nullptr;
+    return nsnull;
   }
 
   nsIURI *baseURL;
-  nsAutoCString charset;
-  nsIDocument *document = OwnerDoc();
-  baseURL = mOverriddenBaseURI ?
-            mOverriddenBaseURI.get() :
-            document->GetDocBaseURI();
-  charset = document->GetDocumentCharacterSet();
+  nsCAutoString charset;
+  nsIDocument *document = GetOwnerDoc();
+  if (document) {
+    baseURL = mOverriddenBaseURI ?
+              mOverriddenBaseURI.get() :
+              document->GetDocBaseURI();
+    charset = document->GetDocumentCharacterSet();
+  } else {
+    baseURL = mOverriddenBaseURI;
+  }
 
   nsCOMPtr<nsIURI> aURI;
   NS_NewURI(getter_AddRefs(aURI), href, charset.get(), baseURL);
@@ -165,7 +203,7 @@ nsXMLStylesheetPI::GetStyleSheetInfo(nsAString& aTitle,
   aTitle.Truncate();
   aType.Truncate();
   aMedia.Truncate();
-  *aIsAlternate = false;
+  *aIsAlternate = PR_FALSE;
 
   
   if (!nsContentUtils::InProlog(this)) {
@@ -175,12 +213,10 @@ nsXMLStylesheetPI::GetStyleSheetInfo(nsAString& aTitle,
   nsAutoString data;
   GetData(data);
 
-  nsContentUtils::GetPseudoAttributeValue(data, nsGkAtoms::title, aTitle);
+  nsParserUtils::GetQuotedAttributeValue(data, nsGkAtoms::title, aTitle);
 
   nsAutoString alternate;
-  nsContentUtils::GetPseudoAttributeValue(data,
-                                          nsGkAtoms::alternate,
-                                          alternate);
+  nsParserUtils::GetQuotedAttributeValue(data, nsGkAtoms::alternate, alternate);
 
   
   if (alternate.EqualsLiteral("yes")) {
@@ -188,16 +224,16 @@ nsXMLStylesheetPI::GetStyleSheetInfo(nsAString& aTitle,
       return;
     }
 
-    *aIsAlternate = true;
+    *aIsAlternate = PR_TRUE;
   }
 
-  nsContentUtils::GetPseudoAttributeValue(data, nsGkAtoms::media, aMedia);
+  nsParserUtils::GetQuotedAttributeValue(data, nsGkAtoms::media, aMedia);
 
   nsAutoString type;
-  nsContentUtils::GetPseudoAttributeValue(data, nsGkAtoms::type, type);
+  nsParserUtils::GetQuotedAttributeValue(data, nsGkAtoms::type, type);
 
   nsAutoString mimeType, notUsed;
-  nsContentUtils::SplitMimeType(type, mimeType, notUsed);
+  nsParserUtils::SplitMimeType(type, mimeType, notUsed);
   if (!mimeType.IsEmpty() && !mimeType.LowerCaseEqualsLiteral("text/css")) {
     aType.Assign(type);
     return;
@@ -226,11 +262,11 @@ NS_NewXMLStylesheetProcessingInstruction(nsIContent** aInstancePtrResult,
 {
   NS_PRECONDITION(aNodeInfoManager, "Missing nodeinfo manager");
 
-  *aInstancePtrResult = nullptr;
+  *aInstancePtrResult = nsnull;
   
   nsCOMPtr<nsINodeInfo> ni;
   ni = aNodeInfoManager->GetNodeInfo(nsGkAtoms::processingInstructionTagName,
-                                     nullptr, kNameSpaceID_None,
+                                     nsnull, kNameSpaceID_None,
                                      nsIDOMNode::PROCESSING_INSTRUCTION_NODE,
                                      nsGkAtoms::xml_stylesheet);
   NS_ENSURE_TRUE(ni, NS_ERROR_OUT_OF_MEMORY);

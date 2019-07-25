@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsUnicodeToUTF7.h"
 #include <string.h>
 
@@ -23,9 +55,9 @@ nsBasicUTF7Encoder::nsBasicUTF7Encoder(char aLastChar, char aEscChar)
   Reset();
 }
 
-nsresult nsBasicUTF7Encoder::ShiftEncoding(int32_t aEncoding,
+nsresult nsBasicUTF7Encoder::ShiftEncoding(PRInt32 aEncoding,
                                           char * aDest, 
-                                          int32_t * aDestLength)
+                                          PRInt32 * aDestLength)
 {
   if (aEncoding == mEncoding) {
     *aDestLength = 0;
@@ -65,9 +97,9 @@ nsresult nsBasicUTF7Encoder::ShiftEncoding(int32_t aEncoding,
 
 nsresult nsBasicUTF7Encoder::EncodeDirect(
                             const PRUnichar * aSrc, 
-                            int32_t * aSrcLength, 
+                            PRInt32 * aSrcLength, 
                             char * aDest, 
-                            int32_t * aDestLength)
+                            PRInt32 * aDestLength)
 {
   nsresult res = NS_OK;
   const PRUnichar * src = aSrc;
@@ -111,9 +143,9 @@ nsresult nsBasicUTF7Encoder::EncodeDirect(
 
 nsresult nsBasicUTF7Encoder::EncodeBase64(
                              const PRUnichar * aSrc, 
-                             int32_t * aSrcLength, 
+                             PRInt32 * aSrcLength, 
                              char * aDest, 
-                             int32_t * aDestLength)
+                             PRInt32 * aDestLength)
 {
   nsresult res = NS_OK;
   const PRUnichar * src = aSrc;
@@ -121,7 +153,7 @@ nsresult nsBasicUTF7Encoder::EncodeBase64(
   char * dest = aDest;
   char * destEnd = aDest + *aDestLength;
   PRUnichar ch;
-  uint32_t value;
+  PRUint32 value;
 
   while (src < srcEnd) {
     ch = *src;
@@ -180,7 +212,7 @@ nsresult nsBasicUTF7Encoder::EncodeBase64(
   return res;
 }
 
-char nsBasicUTF7Encoder::ValueToChar(uint32_t aValue) { 
+char nsBasicUTF7Encoder::ValueToChar(PRUint32 aValue) { 
   if (aValue < 26) 
     return (char)('A'+aValue);
   else if (aValue < 26 + 26) 
@@ -197,8 +229,8 @@ char nsBasicUTF7Encoder::ValueToChar(uint32_t aValue) {
 
 bool nsBasicUTF7Encoder::DirectEncodable(PRUnichar aChar) {
   
-  if ((aChar >= 0x20) && (aChar <= 0x7e)) return true;
-  else return false;
+  if ((aChar >= 0x20) && (aChar <= 0x7e)) return PR_TRUE;
+  else return PR_FALSE;
 }
 
 
@@ -206,18 +238,18 @@ bool nsBasicUTF7Encoder::DirectEncodable(PRUnichar aChar) {
 
 NS_IMETHODIMP nsBasicUTF7Encoder::ConvertNoBuffNoErr(
                                   const PRUnichar * aSrc, 
-                                  int32_t * aSrcLength, 
+                                  PRInt32 * aSrcLength, 
                                   char * aDest, 
-                                  int32_t * aDestLength)
+                                  PRInt32 * aDestLength)
 {
   nsresult res = NS_OK;
   const PRUnichar * src = aSrc;
   const PRUnichar * srcEnd = aSrc + *aSrcLength;
   char * dest = aDest;
   char * destEnd = aDest + *aDestLength;
-  int32_t bcr,bcw;
+  PRInt32 bcr,bcw;
   PRUnichar ch;
-  int32_t enc;
+  PRInt32 enc;
 
   while (src < srcEnd) {
     
@@ -252,7 +284,7 @@ NS_IMETHODIMP nsBasicUTF7Encoder::ConvertNoBuffNoErr(
 }
 
 NS_IMETHODIMP nsBasicUTF7Encoder::FinishNoBuff(char * aDest, 
-                                               int32_t * aDestLength)
+                                               PRInt32 * aDestLength)
 {
   return ShiftEncoding(ENC_DIRECT, aDest, aDestLength);
 }
@@ -275,24 +307,24 @@ nsUnicodeToUTF7::nsUnicodeToUTF7()
 
 
 bool nsUnicodeToUTF7::DirectEncodable(PRUnichar aChar) {
-  if ((aChar >= 'A') && (aChar <= 'Z')) return true;
-  else if ((aChar >= 'a') && (aChar <= 'z')) return true;
-  else if ((aChar >= '0') && (aChar <= '9')) return true;
-  else if ((aChar >= 39) && (aChar <= 41)) return true;
-  else if ((aChar >= 44) && (aChar <= 47)) return true;
-  else if (aChar == 58) return true;
-  else if (aChar == 63) return true;
-  else if (aChar == ' ') return true;
-  else if (aChar == 9) return true;
-  else if (aChar == 13) return true;
-  else if (aChar == 10) return true;
-  else if (aChar == 60) return true;  
-  else if (aChar == 33) return true;  
-  else if (aChar == 34) return true;  
-  else if (aChar == 62) return true;  
-  else if (aChar == 61) return true;  
-  else if (aChar == 59) return true;  
-  else if (aChar == 91) return true;  
-  else if (aChar == 93) return true;  
-  else return false;
+  if ((aChar >= 'A') && (aChar <= 'Z')) return PR_TRUE;
+  else if ((aChar >= 'a') && (aChar <= 'z')) return PR_TRUE;
+  else if ((aChar >= '0') && (aChar <= '9')) return PR_TRUE;
+  else if ((aChar >= 39) && (aChar <= 41)) return PR_TRUE;
+  else if ((aChar >= 44) && (aChar <= 47)) return PR_TRUE;
+  else if (aChar == 58) return PR_TRUE;
+  else if (aChar == 63) return PR_TRUE;
+  else if (aChar == ' ') return PR_TRUE;
+  else if (aChar == 9) return PR_TRUE;
+  else if (aChar == 13) return PR_TRUE;
+  else if (aChar == 10) return PR_TRUE;
+  else if (aChar == 60) return PR_TRUE;  
+  else if (aChar == 33) return PR_TRUE;  
+  else if (aChar == 34) return PR_TRUE;  
+  else if (aChar == 62) return PR_TRUE;  
+  else if (aChar == 61) return PR_TRUE;  
+  else if (aChar == 59) return PR_TRUE;  
+  else if (aChar == 91) return PR_TRUE;  
+  else if (aChar == 93) return PR_TRUE;  
+  else return PR_FALSE;
 }

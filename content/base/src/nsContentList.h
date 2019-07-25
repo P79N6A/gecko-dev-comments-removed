@@ -9,12 +9,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsContentList_h___
 #define nsContentList_h___
 
 #include "nsISupports.h"
-#include "nsTArray.h"
-#include "nsStringGlue.h"
+#include "nsCOMArray.h"
+#include "nsString.h"
 #include "nsIHTMLCollection.h"
 #include "nsIDOMNodeList.h"
 #include "nsINodeList.h"
@@ -23,8 +55,8 @@
 #include "nsINameSpaceManager.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsWrapperCache.h"
+#include "nsCRT.h"
 #include "nsHashKeys.h"
-#include "mozilla/HashFunctions.h"
 
 
 
@@ -35,12 +67,13 @@
 
 
 typedef bool (*nsContentListMatchFunc)(nsIContent* aContent,
-                                         int32_t aNamespaceID,
+                                         PRInt32 aNamespaceID,
                                          nsIAtom* aAtom,
                                          void* aData);
 
 typedef void (*nsContentListDestroyFunc)(void* aData);
 
+class nsIDocument;
 namespace mozilla {
 namespace dom {
 class Element;
@@ -51,10 +84,6 @@ class Element;
 class nsBaseContentList : public nsINodeList
 {
 public:
-  nsBaseContentList()
-  {
-    SetIsDOMBinding();
-  }
   virtual ~nsBaseContentList();
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -63,18 +92,16 @@ public:
   NS_DECL_NSIDOMNODELIST
 
   
-  virtual int32_t IndexOf(nsIContent* aContent);
+  virtual nsIContent* GetNodeAt(PRUint32 aIndex);
+  virtual PRInt32 IndexOf(nsIContent* aContent);
   
-  uint32_t Length() const { 
-    return mElements.Length();
+  PRUint32 Length() const { 
+    return mElements.Count();
   }
 
-  NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS(nsBaseContentList)
+  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsBaseContentList, nsINodeList)
 
-  void AppendElement(nsIContent *aContent)
-  {
-    mElements.AppendElement(aContent);
-  }
+  void AppendElement(nsIContent *aContent);
   void MaybeAppendElement(nsIContent* aContent)
   {
     if (aContent)
@@ -87,28 +114,19 @@ public:
 
 
 
-  void InsertElementAt(nsIContent* aContent, int32_t aIndex)
-  {
-    NS_ASSERTION(aContent, "Element to insert must not be null");
-    mElements.InsertElementAt(aIndex, aContent);
-  }
+  void InsertElementAt(nsIContent* aContent, PRInt32 aIndex);
 
-  void RemoveElement(nsIContent *aContent)
-  {
-    mElements.RemoveElement(aContent);
-  }
+  void RemoveElement(nsIContent *aContent); 
 
   void Reset() {
     mElements.Clear();
   }
 
-  virtual int32_t IndexOf(nsIContent *aContent, bool aDoFlush);
 
-  virtual JSObject* WrapObject(JSContext *cx, JSObject *scope,
-                               bool *triedToWrap) = 0;
+  virtual PRInt32 IndexOf(nsIContent *aContent, bool aDoFlush);
 
 protected:
-  nsTArray< nsCOMPtr<nsIContent> > mElements;
+  nsCOMArray<nsIContent> mElements;
 };
 
 
@@ -128,8 +146,6 @@ public:
   {
     return mRoot;
   }
-  virtual JSObject* WrapObject(JSContext *cx, JSObject *scope,
-                               bool *triedToWrap);
 
 private:
   
@@ -153,7 +169,7 @@ public:
 struct nsContentListKey
 {
   nsContentListKey(nsINode* aRootNode,
-                   int32_t aMatchNameSpaceId,
+                   PRInt32 aMatchNameSpaceId,
                    const nsAString& aTagname)
     : mRootNode(aRootNode),
       mMatchNameSpaceId(aMatchNameSpaceId),
@@ -168,14 +184,16 @@ struct nsContentListKey
   {
   }
 
-  inline uint32_t GetHash(void) const
+  inline PRUint32 GetHash(void) const
   {
-    uint32_t hash = mozilla::HashString(mTagname);
-    return mozilla::AddToHash(hash, mRootNode, mMatchNameSpaceId);
+    return
+      HashString(mTagname) ^
+      (NS_PTR_TO_INT32(mRootNode) << 12) ^
+      (mMatchNameSpaceId << 24);
   }
   
   nsINode* const mRootNode; 
-  const int32_t mMatchNameSpaceId;
+  const PRInt32 mMatchNameSpaceId;
   const nsAString& mTagname;
 };
 
@@ -227,7 +245,7 @@ public:
 
   
   nsContentList(nsINode* aRootNode,
-                int32_t aMatchNameSpaceId,
+                PRInt32 aMatchNameSpaceId,
                 nsIAtom* aHTMLMatchAtom,
                 nsIAtom* aXMLMatchAtom,
                 bool aDeep = true);
@@ -253,29 +271,31 @@ public:
                 nsContentListDestroyFunc aDestroyFunc,
                 void* aData,
                 bool aDeep = true,
-                nsIAtom* aMatchAtom = nullptr,
-                int32_t aMatchNameSpaceId = kNameSpaceID_None,
+                nsIAtom* aMatchAtom = nsnull,
+                PRInt32 aMatchNameSpaceId = kNameSpaceID_None,
                 bool aFuncMayDependOnAttr = true);
   virtual ~nsContentList();
-
-  
-  virtual JSObject* WrapObject(JSContext *cx, JSObject *scope,
-                               bool *triedToWrap);
 
   
   NS_DECL_NSIDOMHTMLCOLLECTION
 
   
-  virtual int32_t IndexOf(nsIContent *aContent, bool aDoFlush);
-  virtual int32_t IndexOf(nsIContent* aContent);
+  virtual PRInt32 IndexOf(nsIContent *aContent, bool aDoFlush);
+  virtual nsIContent* GetNodeAt(PRUint32 aIndex);
+  virtual PRInt32 IndexOf(nsIContent* aContent);
   virtual nsINode* GetParentObject()
   {
     return mRootNode;
   }
 
   
-  NS_HIDDEN_(uint32_t) Length(bool aDoFlush);
-  NS_HIDDEN_(nsIContent*) Item(uint32_t aIndex, bool aDoFlush);
+  
+  virtual nsISupports* GetNamedItem(const nsAString& aName,
+                                    nsWrapperCache** aCache);
+
+  
+  NS_HIDDEN_(PRUint32) Length(bool aDoFlush);
+  NS_HIDDEN_(nsIContent*) Item(PRUint32 aIndex, bool aDoFlush);
   NS_HIDDEN_(nsIContent*) NamedItem(const nsAString& aName, bool aDoFlush);
 
   
@@ -340,7 +360,7 @@ protected:
 
 
 
-  void PopulateSelf(uint32_t aNeededLength);
+  void PopulateSelf(PRUint32 aNeededLength);
 
   
 
@@ -385,7 +405,7 @@ protected:
   }
 
   nsINode* mRootNode; 
-  int32_t mMatchNameSpaceId;
+  PRInt32 mMatchNameSpaceId;
   nsCOMPtr<nsIAtom> mHTMLMatchAtom;
   nsCOMPtr<nsIAtom> mXMLMatchAtom;
 
@@ -406,7 +426,7 @@ protected:
 
 
 
-  uint8_t mState;
+  PRUint8 mState;
 
   
   
@@ -416,21 +436,21 @@ protected:
   
 
 
-  uint8_t mMatchAll : 1;
+  PRUint8 mMatchAll : 1;
   
 
 
 
-  uint8_t mDeep : 1;
+  PRUint8 mDeep : 1;
   
 
 
 
-  uint8_t mFuncMayDependOnAttr : 1;
+  PRUint8 mFuncMayDependOnAttr : 1;
   
 
 
-  uint8_t mFlushesNeeded : 1;
+  PRUint8 mFlushesNeeded : 1;
 
 #ifdef DEBUG_CONTENT_LIST
   void AssertInSync();
@@ -452,10 +472,10 @@ public:
     mString(aString)
     {}
 
-  uint32_t GetHash(void) const
+  PRUint32 GetHash(void) const
   {
-    uint32_t hash = mozilla::HashString(mString);
-    return mozilla::AddToHash(hash, mRootNode, mFunc);
+    return NS_PTR_TO_INT32(mRootNode) ^ (NS_PTR_TO_INT32(mFunc) << 12) ^
+      nsCRT::HashCode(mString.BeginReading(), mString.Length());
   }
 
 private:
@@ -482,7 +502,7 @@ public:
                                    nsContentListDestroyFunc aDestroyFunc,
                                    nsFuncStringContentListDataAllocator aDataAllocator,
                                    const nsAString& aString) :
-    nsContentList(aRootNode, aFunc, aDestroyFunc, nullptr),
+    nsContentList(aRootNode, aFunc, aDestroyFunc, nsnull),
     mString(aString)
   {
     mData = (*aDataAllocator)(aRootNode, &mString);
@@ -512,7 +532,7 @@ protected:
 
 already_AddRefed<nsContentList>
 NS_GetContentList(nsINode* aRootNode,
-                  int32_t aMatchNameSpaceId,
+                  PRInt32 aMatchNameSpaceId,
                   const nsAString& aTagname);
 
 already_AddRefed<nsContentList>

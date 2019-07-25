@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDocShellTreeOwner_h__
 #define nsDocShellTreeOwner_h__
 
@@ -18,6 +51,7 @@
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIWebBrowserChrome.h"
 #include "nsIDOMEventListener.h"
+#include "nsIDOMDocument.h"
 #include "nsIEmbeddingSiteWindow.h"
 #include "nsIWebProgressListener.h"
 #include "nsWeakReference.h"
@@ -159,13 +193,14 @@ private:
 
     
   enum {
-    kTooltipAutoHideTime = 5000        
+    kTooltipAutoHideTime = 5000,       
+    kTooltipShowTime = 500             
   };
 
   NS_IMETHOD AddTooltipListener();
   NS_IMETHOD RemoveTooltipListener();
 
-  NS_IMETHOD ShowTooltip ( int32_t inXCoords, int32_t inYCoords, const nsAString & inTipText ) ;
+  NS_IMETHOD ShowTooltip ( PRInt32 inXCoords, PRInt32 inYCoords, const nsAString & inTipText ) ;
   NS_IMETHOD HideTooltip ( ) ;
 
   nsWebBrowser* mWebBrowser;
@@ -182,8 +217,8 @@ private:
 
   nsCOMPtr<nsITimer> mTooltipTimer;
   static void sTooltipCallback ( nsITimer* aTimer, void* aListener ) ;
-  int32_t mMouseClientX, mMouseClientY;       
-  int32_t mMouseScreenX, mMouseScreenY;       
+  PRInt32 mMouseClientX, mMouseClientY;       
+  PRInt32 mMouseScreenX, mMouseScreenY;       
   bool mShowingTooltip;
 
     

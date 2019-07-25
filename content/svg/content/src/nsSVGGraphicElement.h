@@ -3,14 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGGRAPHICELEMENT_H__
 #define __NS_SVGGRAPHICELEMENT_H__
 
-#include "gfxMatrix.h"
+#include "nsSVGStylableElement.h"
 #include "nsIDOMSVGLocatable.h"
 #include "nsIDOMSVGTransformable.h"
-#include "nsSVGStylableElement.h"
 #include "SVGAnimatedTransformList.h"
+#include "gfxMatrix.h"
 
 typedef nsSVGStylableElement nsSVGGraphicElementBase;
 
@@ -29,16 +62,10 @@ public:
   
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;
 
-  nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute,
-                                      int32_t aModType) const;
-
-  virtual gfxMatrix PrependLocalTransformsTo(const gfxMatrix &aMatrix,
-                      TransformTypes aWhich = eAllTransforms) const;
-  virtual const gfxMatrix* GetAnimateMotionTransform() const;
+  virtual gfxMatrix PrependLocalTransformTo(const gfxMatrix &aMatrix) const;
   virtual void SetAnimateMotionTransform(const gfxMatrix* aMatrix);
 
-  virtual mozilla::SVGAnimatedTransformList*
-    GetAnimatedTransformList(uint32_t aFlags = 0);
+  virtual mozilla::SVGAnimatedTransformList* GetAnimatedTransformList();
   virtual nsIAtom* GetTransformListAttrName() const {
     return nsGkAtoms::transform;
   }

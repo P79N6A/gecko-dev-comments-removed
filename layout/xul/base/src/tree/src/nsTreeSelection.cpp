@@ -3,6 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsTreeSelection.h"
 #include "nsIBoxObject.h"
@@ -10,12 +45,13 @@
 #include "nsITreeView.h"
 #include "nsString.h"
 #include "nsIDOMElement.h"
-#include "nsDOMClassInfoID.h"
+#include "nsIDOMClassInfo.h"
 #include "nsIContent.h"
+#include "nsIDocument.h"
 #include "nsGUIEvent.h"
 #include "nsINameSpaceManager.h"
 #include "nsGkAtoms.h"
-#include "nsAsyncDOMEvent.h"
+#include "nsPLDOMEvent.h"
 #include "nsEventDispatcher.h"
 #include "nsAutoPtr.h"
 
@@ -27,17 +63,17 @@ struct nsTreeRange
   nsTreeRange* mPrev;
   nsTreeRange* mNext;
 
-  int32_t mMin;
-  int32_t mMax;
+  PRInt32 mMin;
+  PRInt32 mMax;
 
-  nsTreeRange(nsTreeSelection* aSel, int32_t aSingleVal)
-    :mSelection(aSel), mPrev(nullptr), mNext(nullptr), mMin(aSingleVal), mMax(aSingleVal) {}
-  nsTreeRange(nsTreeSelection* aSel, int32_t aMin, int32_t aMax) 
-    :mSelection(aSel), mPrev(nullptr), mNext(nullptr), mMin(aMin), mMax(aMax) {}
+  nsTreeRange(nsTreeSelection* aSel, PRInt32 aSingleVal)
+    :mSelection(aSel), mPrev(nsnull), mNext(nsnull), mMin(aSingleVal), mMax(aSingleVal) {}
+  nsTreeRange(nsTreeSelection* aSel, PRInt32 aMin, PRInt32 aMax) 
+    :mSelection(aSel), mPrev(nsnull), mNext(nsnull), mMin(aMin), mMax(aMax) {}
 
   ~nsTreeRange() { delete mNext; }
 
-  void Connect(nsTreeRange* aPrev = nullptr, nsTreeRange* aNext = nullptr) {
+  void Connect(nsTreeRange* aPrev = nsnull, nsTreeRange* aNext = nsnull) {
     if (aPrev)
       aPrev->mNext = this;
     else
@@ -50,7 +86,7 @@ struct nsTreeRange
     mNext = aNext;
   }
 
-  nsresult RemoveRange(int32_t aStart, int32_t aEnd) {
+  nsresult RemoveRange(PRInt32 aStart, PRInt32 aEnd) {
     
     
     if (aEnd < mMin)
@@ -81,7 +117,7 @@ struct nsTreeRange
 
       if (next)
         next->mPrev = mPrev;
-      mPrev = mNext = nullptr;
+      mPrev = mNext = nsnull;
       delete this;
     } else if (aStart <= mMax) {
       
@@ -90,7 +126,7 @@ struct nsTreeRange
     return next ? next->RemoveRange(aStart, aEnd) : NS_OK;
   }
 
-  nsresult Remove(int32_t aIndex) {
+  nsresult Remove(PRInt32 aIndex) {
     if (aIndex >= mMin && aIndex <= mMax) {
       
       if (mMin == mMax) {
@@ -102,7 +138,7 @@ struct nsTreeRange
         nsTreeRange* first = mSelection->mFirstRange;
         if (first == this)
           mSelection->mFirstRange = mNext;
-        mNext = mPrev = nullptr;
+        mNext = mPrev = nsnull;
         delete this;
       }
       else if (aIndex == mMin)
@@ -125,7 +161,7 @@ struct nsTreeRange
     return NS_OK;
   }
 
-  nsresult Add(int32_t aIndex) {
+  nsresult Add(PRInt32 aIndex) {
     if (aIndex < mMin) {
       
       if (aIndex + 1 == mMin)
@@ -153,30 +189,30 @@ struct nsTreeRange
         if (!newRange)
           return NS_ERROR_OUT_OF_MEMORY;
 
-        newRange->Connect(this, nullptr);
+        newRange->Connect(this, nsnull);
       }
     }
     return NS_OK;
   }
 
-  bool Contains(int32_t aIndex) {
+  bool Contains(PRInt32 aIndex) {
     if (aIndex >= mMin && aIndex <= mMax)
-      return true;
+      return PR_TRUE;
 
     if (mNext)
       return mNext->Contains(aIndex);
 
-    return false;
+    return PR_FALSE;
   }
 
-  int32_t Count() {
-    int32_t total = mMax - mMin + 1;
+  PRInt32 Count() {
+    PRInt32 total = mMax - mMin + 1;
     if (mNext)
       total += mNext->Count();
     return total;
   }
 
-  static void CollectRanges(nsTreeRange* aRange, nsTArray<int32_t>& aRanges)
+  static void CollectRanges(nsTreeRange* aRange, nsTArray<PRInt32>& aRanges)
   {
     nsTreeRange* cur = aRange;
     while (cur) {
@@ -187,28 +223,28 @@ struct nsTreeRange
   }
   
   static void InvalidateRanges(nsITreeBoxObject* aTree,
-                               nsTArray<int32_t>& aRanges)
+                               nsTArray<PRInt32>& aRanges)
   {
     if (aTree) {
       nsCOMPtr<nsITreeBoxObject> tree = aTree;
-      for (uint32_t i = 0; i < aRanges.Length(); i += 2) {
+      for (PRUint32 i = 0; i < aRanges.Length(); i += 2) {
         aTree->InvalidateRange(aRanges[i], aRanges[i + 1]);
       }
     }
   }
 
   void Invalidate() {
-    nsTArray<int32_t> ranges;
+    nsTArray<PRInt32> ranges;
     CollectRanges(this, ranges);
     InvalidateRanges(mSelection->mTree, ranges);
     
   }
 
-  void RemoveAllBut(int32_t aIndex) {
+  void RemoveAllBut(PRInt32 aIndex) {
     if (aIndex >= mMin && aIndex <= mMax) {
 
       
-      nsTArray<int32_t> ranges;
+      nsTArray<PRInt32> ranges;
       CollectRanges(mSelection->mFirstRange, ranges);
 
       mMin = aIndex;
@@ -219,7 +255,7 @@ struct nsTreeRange
         mPrev->mNext = mNext;
       if (mNext)
         mNext->mPrev = mPrev;
-      mNext = mPrev = nullptr;
+      mNext = mPrev = nsnull;
       
       if (first != this) {
         delete mSelection->mFirstRange;
@@ -237,16 +273,16 @@ struct nsTreeRange
     else if (mNext)
       mNext->Insert(aRange);
     else 
-      aRange->Connect(this, nullptr);
+      aRange->Connect(this, nsnull);
   }
 };
 
 nsTreeSelection::nsTreeSelection(nsITreeBoxObject* aTree)
   : mTree(aTree),
-    mSuppressed(false),
+    mSuppressed(PR_FALSE),
     mCurrentIndex(-1),
     mShiftSelectPivot(-1),
-    mFirstRange(nullptr)
+    mFirstRange(nsnull)
 {
 }
 
@@ -282,7 +318,7 @@ NS_IMETHODIMP nsTreeSelection::SetTree(nsITreeBoxObject * aTree)
 {
   if (mSelectTimer) {
     mSelectTimer->Cancel();
-    mSelectTimer = nullptr;
+    mSelectTimer = nsnull;
   }
 
   
@@ -305,7 +341,7 @@ NS_IMETHODIMP nsTreeSelection::GetSingle(bool* aSingle)
   nsCOMPtr<nsIContent> content = do_QueryInterface(element);
 
   static nsIContent::AttrValuesArray strings[] =
-    {&nsGkAtoms::single, &nsGkAtoms::cell, &nsGkAtoms::text, nullptr};
+    {&nsGkAtoms::single, &nsGkAtoms::cell, &nsGkAtoms::text, nsnull};
 
   *aSingle = content->FindAttrValueIn(kNameSpaceID_None,
                                       nsGkAtoms::seltype,
@@ -314,21 +350,21 @@ NS_IMETHODIMP nsTreeSelection::GetSingle(bool* aSingle)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsTreeSelection::IsSelected(int32_t aIndex, bool* aResult)
+NS_IMETHODIMP nsTreeSelection::IsSelected(PRInt32 aIndex, bool* aResult)
 {
   if (mFirstRange)
     *aResult = mFirstRange->Contains(aIndex);
   else
-    *aResult = false;
+    *aResult = PR_FALSE;
   return NS_OK;
 }
 
-NS_IMETHODIMP nsTreeSelection::TimedSelect(int32_t aIndex, int32_t aMsec)
+NS_IMETHODIMP nsTreeSelection::TimedSelect(PRInt32 aIndex, PRInt32 aMsec)
 {
   bool suppressSelect = mSuppressed;
 
   if (aMsec != -1)
-    mSuppressed = true;
+    mSuppressed = PR_TRUE;
 
   nsresult rv = Select(aIndex);
   if (NS_FAILED(rv))
@@ -349,7 +385,7 @@ NS_IMETHODIMP nsTreeSelection::TimedSelect(int32_t aIndex, int32_t aMsec)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsTreeSelection::Select(int32_t aIndex)
+NS_IMETHODIMP nsTreeSelection::Select(PRInt32 aIndex)
 {
   mShiftSelectPivot = -1;
 
@@ -361,7 +397,7 @@ NS_IMETHODIMP nsTreeSelection::Select(int32_t aIndex)
     bool alreadySelected = mFirstRange->Contains(aIndex);
 
     if (alreadySelected) {
-      int32_t count = mFirstRange->Count();
+      PRInt32 count = mFirstRange->Count();
       if (count > 1) {
         
         mFirstRange->RemoveAllBut(aIndex);
@@ -388,7 +424,7 @@ NS_IMETHODIMP nsTreeSelection::Select(int32_t aIndex)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsTreeSelection::ToggleSelect(int32_t aIndex)
+NS_IMETHODIMP nsTreeSelection::ToggleSelect(PRInt32 aIndex)
 {
   
   
@@ -425,7 +461,7 @@ NS_IMETHODIMP nsTreeSelection::ToggleSelect(int32_t aIndex)
   return rv;
 }
 
-NS_IMETHODIMP nsTreeSelection::RangedSelect(int32_t aStartIndex, int32_t aEndIndex, bool aAugment)
+NS_IMETHODIMP nsTreeSelection::RangedSelect(PRInt32 aStartIndex, PRInt32 aEndIndex, bool aAugment)
 {
   bool single;
   nsresult rv = GetSingle(&single);
@@ -440,7 +476,7 @@ NS_IMETHODIMP nsTreeSelection::RangedSelect(int32_t aStartIndex, int32_t aEndInd
     if (mFirstRange) {
         mFirstRange->Invalidate();
         delete mFirstRange;
-        mFirstRange = nullptr;
+        mFirstRange = nsnull;
     }
   }
 
@@ -458,8 +494,8 @@ NS_IMETHODIMP nsTreeSelection::RangedSelect(int32_t aStartIndex, int32_t aEndInd
   if (NS_FAILED(rv))
     return rv;
   
-  int32_t start = aStartIndex < aEndIndex ? aStartIndex : aEndIndex;
-  int32_t end = aStartIndex < aEndIndex ? aEndIndex : aStartIndex;
+  PRInt32 start = aStartIndex < aEndIndex ? aStartIndex : aEndIndex;
+  PRInt32 end = aStartIndex < aEndIndex ? aEndIndex : aStartIndex;
 
   if (aAugment && mFirstRange) {
     
@@ -485,15 +521,15 @@ NS_IMETHODIMP nsTreeSelection::RangedSelect(int32_t aStartIndex, int32_t aEndInd
   return NS_OK;
 }
 
-NS_IMETHODIMP nsTreeSelection::ClearRange(int32_t aStartIndex, int32_t aEndIndex)
+NS_IMETHODIMP nsTreeSelection::ClearRange(PRInt32 aStartIndex, PRInt32 aEndIndex)
 {
   nsresult rv = SetCurrentIndex(aEndIndex);
   if (NS_FAILED(rv))
     return rv;
 
   if (mFirstRange) {
-    int32_t start = aStartIndex < aEndIndex ? aStartIndex : aEndIndex;
-    int32_t end = aStartIndex < aEndIndex ? aEndIndex : aStartIndex;
+    PRInt32 start = aStartIndex < aEndIndex ? aStartIndex : aEndIndex;
+    PRInt32 end = aStartIndex < aEndIndex ? aEndIndex : aStartIndex;
 
     mFirstRange->RemoveRange(start, end);
 
@@ -509,7 +545,7 @@ NS_IMETHODIMP nsTreeSelection::ClearSelection()
   if (mFirstRange) {
     mFirstRange->Invalidate();
     delete mFirstRange;
-    mFirstRange = nullptr;
+    mFirstRange = nsnull;
   }
   mShiftSelectPivot = -1;
 
@@ -533,7 +569,7 @@ NS_IMETHODIMP nsTreeSelection::SelectAll()
   if (!view)
     return NS_OK;
 
-  int32_t rowCount;
+  PRInt32 rowCount;
   view->GetRowCount(&rowCount);
   bool single;
   nsresult rv = GetSingle(&single);
@@ -557,9 +593,9 @@ NS_IMETHODIMP nsTreeSelection::SelectAll()
   return NS_OK;
 }
 
-NS_IMETHODIMP nsTreeSelection::GetRangeCount(int32_t* aResult)
+NS_IMETHODIMP nsTreeSelection::GetRangeCount(PRInt32* aResult)
 {
-  int32_t count = 0;
+  PRInt32 count = 0;
   nsTreeRange* curr = mFirstRange;
   while (curr) {
     count++;
@@ -570,10 +606,10 @@ NS_IMETHODIMP nsTreeSelection::GetRangeCount(int32_t* aResult)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsTreeSelection::GetRangeAt(int32_t aIndex, int32_t* aMin, int32_t* aMax)
+NS_IMETHODIMP nsTreeSelection::GetRangeAt(PRInt32 aIndex, PRInt32* aMin, PRInt32* aMax)
 {
   *aMin = *aMax = -1;
-  int32_t i = -1;
+  PRInt32 i = -1;
   nsTreeRange* curr = mFirstRange;
   while (curr) {
     i++;
@@ -588,7 +624,7 @@ NS_IMETHODIMP nsTreeSelection::GetRangeAt(int32_t aIndex, int32_t* aMin, int32_t
   return NS_OK;
 }
 
-NS_IMETHODIMP nsTreeSelection::GetCount(int32_t *count)
+NS_IMETHODIMP nsTreeSelection::GetCount(PRInt32 *count)
 {
   if (mFirstRange)
     *count = mFirstRange->Count();
@@ -612,13 +648,13 @@ NS_IMETHODIMP nsTreeSelection::SetSelectEventsSuppressed(bool aSelectEventsSuppr
   return NS_OK;
 }
 
-NS_IMETHODIMP nsTreeSelection::GetCurrentIndex(int32_t *aCurrentIndex)
+NS_IMETHODIMP nsTreeSelection::GetCurrentIndex(PRInt32 *aCurrentIndex)
 {
   *aCurrentIndex = mCurrentIndex;
   return NS_OK;
 }
 
-NS_IMETHODIMP nsTreeSelection::SetCurrentIndex(int32_t aIndex)
+NS_IMETHODIMP nsTreeSelection::SetCurrentIndex(PRInt32 aIndex)
 {
   if (!mTree) {
     return NS_ERROR_UNEXPECTED;
@@ -650,10 +686,10 @@ NS_IMETHODIMP nsTreeSelection::SetCurrentIndex(int32_t aIndex)
   NS_NAMED_LITERAL_STRING(DOMMenuItemActive, "DOMMenuItemActive");
   NS_NAMED_LITERAL_STRING(DOMMenuItemInactive, "DOMMenuItemInactive");
 
-  nsRefPtr<nsAsyncDOMEvent> event =
-    new nsAsyncDOMEvent(treeDOMNode,
+  nsRefPtr<nsPLDOMEvent> event =
+    new nsPLDOMEvent(treeDOMNode,
                      (aIndex != -1 ? DOMMenuItemActive : DOMMenuItemInactive),
-                      true, false);
+                     PR_TRUE, PR_FALSE);
   return event->PostDOMEvent();
 }
 
@@ -693,8 +729,8 @@ NS_IMETHODIMP nsTreeSelection::SetCurrentColumn(nsITreeColumn* aCurrentColumn)
 
 #define ADD_NEW_RANGE(macro_range, macro_selection, macro_start, macro_end) \
   { \
-    int32_t start = macro_start; \
-    int32_t end = macro_end; \
+    PRInt32 start = macro_start; \
+    PRInt32 end = macro_end; \
     if (start > end) { \
       end = start; \
     } \
@@ -706,7 +742,7 @@ NS_IMETHODIMP nsTreeSelection::SetCurrentColumn(nsITreeColumn* aCurrentColumn)
   }
 
 NS_IMETHODIMP
-nsTreeSelection::AdjustSelection(int32_t aIndex, int32_t aCount)
+nsTreeSelection::AdjustSelection(PRInt32 aIndex, PRInt32 aCount)
 {
   NS_ASSERTION(aCount != 0, "adjusting by zero");
   if (!aCount) return NS_OK;
@@ -739,7 +775,7 @@ nsTreeSelection::AdjustSelection(int32_t aIndex, int32_t aCount)
   bool selChanged = false;
   nsTreeRange* oldFirstRange = mFirstRange;
   nsTreeRange* curr = mFirstRange;
-  mFirstRange = nullptr;
+  mFirstRange = nsnull;
   while (curr) {
     if (aCount > 0) {
       
@@ -750,14 +786,14 @@ nsTreeSelection::AdjustSelection(int32_t aIndex, int32_t aCount)
       else if (aIndex <= curr->mMin) {  
         
         ADD_NEW_RANGE(mFirstRange, this, curr->mMin + aCount, curr->mMax + aCount);
-        selChanged = true;
+        selChanged = PR_TRUE;
       }
       else {
         
         
         ADD_NEW_RANGE(mFirstRange, this, curr->mMin, aIndex - 1);
         ADD_NEW_RANGE(mFirstRange, this, aIndex + aCount, curr->mMax + aCount);
-        selChanged = true;
+        selChanged = PR_TRUE;
       }
     }
     else {
@@ -768,8 +804,8 @@ nsTreeSelection::AdjustSelection(int32_t aIndex, int32_t aCount)
       }
       else {
         
-        selChanged = true;
-        int32_t lastIndexOfAdjustment = aIndex - aCount - 1;
+        selChanged = PR_TRUE;
+        PRInt32 lastIndexOfAdjustment = aIndex - aCount - 1;
         if (aIndex <= curr->mMin) {
           if (lastIndexOfAdjustment < curr->mMin) {
             
@@ -814,7 +850,7 @@ nsTreeSelection::InvalidateSelection()
 }
 
 NS_IMETHODIMP
-nsTreeSelection::GetShiftSelectPivot(int32_t* aIndex)
+nsTreeSelection::GetShiftSelectPivot(PRInt32* aIndex)
 {
   *aIndex = mShiftSelectPivot;
   return NS_OK;
@@ -838,8 +874,8 @@ nsTreeSelection::FireOnSelectHandler()
   nsCOMPtr<nsINode> node(do_QueryInterface(elt));
   NS_ENSURE_STATE(node);
 
-  nsRefPtr<nsAsyncDOMEvent> event =
-    new nsAsyncDOMEvent(node, NS_LITERAL_STRING("select"), true, false);
+  nsRefPtr<nsPLDOMEvent> event =
+    new nsPLDOMEvent(node, NS_LITERAL_STRING("select"), PR_TRUE, PR_FALSE);
   event->RunDOMEventWhenSafe();
   return NS_OK;
 }
@@ -851,7 +887,7 @@ nsTreeSelection::SelectCallback(nsITimer *aTimer, void *aClosure)
   if (self) {
     self->FireOnSelectHandler();
     aTimer->Cancel();
-    self->mSelectTimer = nullptr;
+    self->mSelectTimer = nsnull;
   }
 }
 

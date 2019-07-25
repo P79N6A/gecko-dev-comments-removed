@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_SHARED_IMAGESURFACE_H
 #define GFX_SHARED_IMAGESURFACE_H
 
@@ -77,24 +109,24 @@ private:
            SharedMemory::SharedMemoryType aShmType)
     {
         if (!CheckSurfaceSize(aSize))
-            return nullptr;
+            return nsnull;
 
         Shmem shmem;
         long stride = ComputeStride(aSize, aFormat);
         size_t size = GetAlignedSize(aSize, stride);
         if (!Unsafe) {
             if (!aAllocator->AllocShmem(size, aShmType, &shmem))
-                return nullptr;
+                return nsnull;
         } else {
             if (!aAllocator->AllocUnsafeShmem(size, aShmType, &shmem))
-                return nullptr;
+                return nsnull;
         }
 
         nsRefPtr<gfxSharedImageSurface> s =
             new gfxSharedImageSurface(aSize, aFormat, shmem);
         if (s->CairoStatus() != 0) {
             aAllocator->DeallocShmem(shmem);
-            return nullptr;
+            return nsnull;
         }
         s->WriteShmemInfo();
         return s.forget();

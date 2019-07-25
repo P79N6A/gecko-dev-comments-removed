@@ -4,6 +4,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsTreeSelection_h__
 #define nsTreeSelection_h__
 
@@ -11,12 +46,11 @@
 #include "nsITreeColumns.h"
 #include "nsITimer.h"
 #include "nsCycleCollectionParticipant.h"
-#include "mozilla/Attributes.h"
 
 class nsITreeBoxObject;
 struct nsTreeRange;
 
-class nsTreeSelection MOZ_FINAL : public nsINativeTreeSelection
+class nsTreeSelection : public nsINativeTreeSelection
 {
 public:
   nsTreeSelection(nsITreeBoxObject* aTree);
@@ -40,9 +74,9 @@ protected:
   nsCOMPtr<nsITreeBoxObject> mTree; 
 
   bool mSuppressed; 
-  int32_t mCurrentIndex; 
+  PRInt32 mCurrentIndex; 
   nsCOMPtr<nsITreeColumn> mCurrentColumn;
-  int32_t mShiftSelectPivot; 
+  PRInt32 mShiftSelectPivot; 
 
   nsTreeRange* mFirstRange; 
 

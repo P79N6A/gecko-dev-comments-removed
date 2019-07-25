@@ -3,7 +3,37 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsCOMPtr.h"
 #include "nsTArray.h"
@@ -22,11 +52,9 @@
 #include "gfxTestCocoaHelper.h"
 #endif
 
-#ifdef MOZ_WIDGET_GTK
+#ifdef MOZ_WIDGET_GTK2
 #include "gtk/gtk.h"
 #endif
-
-using namespace mozilla;
 
 struct TestEntry {
   const char* mFamilies;
@@ -35,7 +63,7 @@ struct TestEntry {
 
 TestEntry testList[] = {
 #include "per-word-runs.h"
-{ nullptr, nullptr } 
+{ nsnull, nsnull } 
 };
 
 already_AddRefed<gfxContext>
@@ -54,7 +82,7 @@ MakeContext ()
 }
 
 nsRefPtr<gfxFontGroup> fontGroup;
-const char* lastFamilies = nullptr;
+const char* lastFamilies = nsnull;
 
 void
 RunTest (TestEntry *test, gfxContext *ctx) {
@@ -65,31 +93,31 @@ RunTest (TestEntry *test, gfxContext *ctx) {
                                               16.0,
                                               NS_NewPermanentAtom(NS_LITERAL_STRING("en")),
                                               0.0,
-                                              false, false, false,
+                                              PR_FALSE, PR_FALSE, PR_FALSE,
                                               NS_LITERAL_STRING(""),
                                               NS_LITERAL_STRING(""));
 
-        fontGroup = gfxPlatform::GetPlatform()->CreateFontGroup(NS_ConvertUTF8toUTF16(test->mFamilies), &style_western_normal_16, nullptr);
+        fontGroup = gfxPlatform::GetPlatform()->CreateFontGroup(NS_ConvertUTF8toUTF16(test->mFamilies), &style_western_normal_16, nsnull);
     }
 
     nsAutoPtr<gfxTextRun> textRun;
-    uint32_t i;
+    PRUint32 i;
     bool isASCII = true;
     for (i = 0; test->mString[i]; ++i) {
         if (test->mString[i] & 0x80) {
-            isASCII = false;
+            isASCII = PR_FALSE;
         }
     }
     gfxTextRunFactory::Parameters params = {
-      ctx, nullptr, nullptr, nullptr, 0, 60
+      ctx, nsnull, nsnull, nsnull, 0, 60
     };
-    uint32_t flags = gfxTextRunFactory::TEXT_IS_PERSISTENT;
-    uint32_t length;
+    PRUint32 flags = gfxTextRunFactory::TEXT_IS_PERSISTENT;
+    PRUint32 length;
     if (isASCII) {
         flags |= gfxTextRunFactory::TEXT_IS_ASCII |
                  gfxTextRunFactory::TEXT_IS_8BIT;
         length = strlen(test->mString);
-        textRun = fontGroup->MakeTextRun(reinterpret_cast<const uint8_t*>(test->mString), length, &params, flags);
+        textRun = fontGroup->MakeTextRun(reinterpret_cast<const PRUint8*>(test->mString), length, &params, flags);
     } else {
         NS_ConvertUTF8toUTF16 str(nsDependentCString(test->mString));
         length = str.Length();
@@ -99,14 +127,14 @@ RunTest (TestEntry *test, gfxContext *ctx) {
     
     
     
-    textRun->GetAdvanceWidth(0, length, nullptr);
+    textRun->GetAdvanceWidth(0, length, nsnull);
 }
 
-uint32_t iterations = 20;
+PRUint32 iterations = 20;
 
 int
 main (int argc, char **argv) {
-#ifdef MOZ_WIDGET_GTK
+#ifdef MOZ_WIDGET_GTK2
     gtk_init(&argc, &argv); 
 #endif
 #ifdef XP_MACOSX
@@ -114,11 +142,12 @@ main (int argc, char **argv) {
 #endif
 
     
-    nsresult rv = NS_InitXPCOM2(nullptr, nullptr, nullptr);
+    nsresult rv = NS_InitXPCOM2(nsnull, nsnull, nsnull);
     if (NS_FAILED(rv))
         return -1; 
 
-    if (!gfxPlatform::GetPlatform())
+    rv = gfxPlatform::Init();
+    if (NS_FAILED(rv))
         return -1;
 
     
@@ -130,9 +159,9 @@ main (int argc, char **argv) {
     
     PRIntervalTime start = PR_IntervalNow();
 
-    for (uint32_t i = 0; i < iterations; ++i) {
+    for (PRUint32 i = 0; i < iterations; ++i) {
         for (uint test = 0;
-             test < ArrayLength(testList) - 1;
+             test < NS_ARRAY_LENGTH(testList) - 1;
              test++)
         {
             RunTest(&testList[test], context);

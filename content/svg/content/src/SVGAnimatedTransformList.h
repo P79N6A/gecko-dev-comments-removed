@@ -4,17 +4,48 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_SVGANIMATEDTRANSFORMLIST_H__
 #define MOZILLA_SVGANIMATEDTRANSFORMLIST_H__
 
-#include "nsAutoPtr.h"
-#include "nsISMILAttr.h"
 #include "SVGTransformList.h"
 
-class nsIAtom;
-class nsISMILAnimationElement;
-class nsSMILValue;
 class nsSVGElement;
+
+#ifdef MOZ_SMIL
+#include "nsISMILAttr.h"
+#endif 
 
 namespace mozilla {
 
@@ -39,7 +70,7 @@ class SVGAnimatedTransformList
   friend class DOMSVGTransformList;
 
 public:
-  SVGAnimatedTransformList() : mIsAttrSet(false) { }
+  SVGAnimatedTransformList() : mIsAttrSet(PR_FALSE) { }
 
   
 
@@ -71,8 +102,10 @@ public:
     return !!mAnimVal;
   }
 
+#ifdef MOZ_SMIL
   
   nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement);
+#endif 
 
 private:
 
@@ -85,6 +118,7 @@ private:
   nsAutoPtr<SVGTransformList> mAnimVal;
   bool mIsAttrSet;
 
+#ifdef MOZ_SMIL
   struct SMILAnimatedTransformList : public nsISMILAttr
   {
   public:
@@ -107,8 +141,8 @@ private:
     static void ParseValue(const nsAString& aSpec,
                            const nsIAtom* aTransformType,
                            nsSMILValue& aResult);
-    static int32_t ParseParameterList(const nsAString& aSpec, float* aVars,
-                                      int32_t aNVars);
+    static PRInt32 ParseParameterList(const nsAString& aSpec, float* aVars,
+                                      PRInt32 aNVars);
 
     
     
@@ -116,6 +150,7 @@ private:
     SVGAnimatedTransformList* mVal;
     nsSVGElement* mElement;
   };
+#endif 
 };
 
 } 

@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef jsbool_h___
 #define jsbool_h___
 
@@ -21,9 +54,24 @@ js_BooleanToString(JSContext *cx, JSBool b);
 
 namespace js {
 
+extern bool
+BooleanToStringBuffer(JSContext *cx, JSBool b, StringBuffer &sb);
+
 inline bool
-BooleanGetPrimitiveValue(JSContext *cx, JSObject &obj, Value *vp);
+BooleanGetPrimitiveValue(JSContext *cx, JSObject &obj, Value *vp)
+{
+    if (obj.isBoolean()) {
+        *vp = obj.getPrimitiveThis();
+        return true;
+    }
+
+    extern bool BooleanGetPrimitiveValueSlow(JSContext *, JSObject &, Value *);
+    return BooleanGetPrimitiveValueSlow(cx, obj, vp);
+}
 
 } 
+
+extern JSBool
+js_ValueToBoolean(const js::Value &v);
 
 #endif 

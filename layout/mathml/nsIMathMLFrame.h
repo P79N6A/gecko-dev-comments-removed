@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIMathMLFrame_h___
 #define nsIMathMLFrame_h___
 
@@ -167,8 +201,8 @@ public:
 
 
   NS_IMETHOD
-  UpdatePresentationData(uint32_t        aFlagsValues,
-                         uint32_t        aWhichFlags) = 0;
+  UpdatePresentationData(PRUint32        aFlagsValues,
+                         PRUint32        aWhichFlags) = 0;
 
  
 
@@ -196,10 +230,10 @@ public:
 
 
   NS_IMETHOD
-  UpdatePresentationDataFromChildAt(int32_t         aFirstIndex,
-                                    int32_t         aLastIndex,
-                                    uint32_t        aFlagsValues,
-                                    uint32_t        aWhichFlags) = 0;
+  UpdatePresentationDataFromChildAt(PRInt32         aFirstIndex,
+                                    PRInt32         aLastIndex,
+                                    PRUint32        aFlagsValues,
+                                    PRUint32        aWhichFlags) = 0;
 };
 
 
@@ -209,7 +243,7 @@ public:
 
 struct nsEmbellishData {
   
-  uint32_t flags;
+  PRUint32 flags;
 
   
   nsIFrame* coreFrame;
@@ -221,15 +255,15 @@ struct nsEmbellishData {
   
   
   
-  nscoord leadingSpace;
-  nscoord trailingSpace;
+  nscoord leftSpace;
+  nscoord rightSpace;
 
   nsEmbellishData() {
     flags = 0;
-    coreFrame = nullptr;
+    coreFrame = nsnull;
     direction = NS_STRETCH_DIRECTION_UNSUPPORTED;
-    leadingSpace = 0;
-    trailingSpace = 0;
+    leftSpace = 0;
+    rightSpace = 0;
   }
 };
 
@@ -243,7 +277,7 @@ struct nsEmbellishData {
 
 struct nsPresentationData {
   
-  uint32_t flags;
+  PRUint32 flags;
 
   
   
@@ -255,8 +289,8 @@ struct nsPresentationData {
 
   nsPresentationData() {
     flags = 0;
-    baseFrame = nullptr;
-    mstyle = nullptr;
+    baseFrame = nsnull;
+    mstyle = nsnull;
   }
 };
 
@@ -297,9 +331,6 @@ struct nsPresentationData {
 #define NS_MATHML_SPACE_LIKE                          0x00000040U
 
 
-#define NS_MATHML_RTL                                 0x00000080U
-
-
 
 
 #define NS_MATHML_ERROR                               0x80000000U
@@ -332,9 +363,6 @@ struct nsPresentationData {
 
 #define NS_MATHML_IS_SPACE_LIKE(_flags) \
   (NS_MATHML_SPACE_LIKE == ((_flags) & NS_MATHML_SPACE_LIKE))
-
-#define NS_MATHML_IS_RTL(_flags) \
-  (NS_MATHML_RTL == ((_flags) & NS_MATHML_RTL))
 
 #define NS_MATHML_HAS_ERROR(_flags) \
   (NS_MATHML_ERROR == ((_flags) & NS_MATHML_ERROR))

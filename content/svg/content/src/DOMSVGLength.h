@@ -3,17 +3,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_DOMSVGLENGTH_H__
 #define MOZILLA_DOMSVGLENGTH_H__
 
-#include "DOMSVGLengthList.h"
-#include "nsAutoPtr.h"
-#include "nsCycleCollectionParticipant.h"
-#include "nsDebug.h"
 #include "nsIDOMSVGLength.h"
-#include "nsTArray.h"
+#include "DOMSVGLengthList.h"
 #include "SVGLength.h"
-#include "mozilla/Attributes.h"
+#include "nsCycleCollectionParticipant.h"
+#include "nsAutoPtr.h"
 
 class nsSVGElement;
 
@@ -66,7 +94,7 @@ namespace mozilla {
 
 
 
-class DOMSVGLength MOZ_FINAL : public nsIDOMSVGLength
+class DOMSVGLength : public nsIDOMSVGLength
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_DOMSVGLENGTH_IID)
@@ -78,9 +106,9 @@ public:
 
 
   DOMSVGLength(DOMSVGLengthList *aList,
-               uint8_t aAttrEnum,
-               uint32_t aListIndex,
-               uint8_t aIsAnimValItem);
+               PRUint8 aAttrEnum,
+               PRUint32 aListIndex,
+               PRUint8 aIsAnimValItem);
 
   
 
@@ -93,7 +121,7 @@ public:
     
     
     if (mList) {
-      mList->mItems[mListIndex] = nullptr;
+      mList->mItems[mListIndex] = nsnull;
     }
   };
 
@@ -131,16 +159,16 @@ public:
 
 
   void InsertingIntoList(DOMSVGLengthList *aList,
-                         uint8_t aAttrEnum,
-                         uint32_t aListIndex,
-                         uint8_t aIsAnimValItem);
+                         PRUint8 aAttrEnum,
+                         PRUint32 aListIndex,
+                         PRUint8 aIsAnimValItem);
 
-  static uint32_t MaxListIndex() {
+  static PRUint32 MaxListIndex() {
     return (1U << MOZ_SVG_LIST_INDEX_BIT_COUNT) - 1;
   }
 
   
-  void UpdateListIndex(uint32_t aListIndex) {
+  void UpdateListIndex(PRUint32 aListIndex) {
     mListIndex = aListIndex;
   }
 
@@ -160,7 +188,7 @@ private:
     return mList->Element();
   }
 
-  uint8_t AttrEnum() const {
+  PRUint8 AttrEnum() const {
     return mAttrEnum;
   }
 
@@ -168,7 +196,7 @@ private:
 
 
 
-  uint8_t Axis() const {
+  PRUint8 Axis() const {
     return mList->Axis();
   }
 
@@ -192,12 +220,12 @@ private:
   
   
 
-  uint32_t mListIndex:MOZ_SVG_LIST_INDEX_BIT_COUNT;
-  uint32_t mAttrEnum:4; 
-  uint32_t mIsAnimValItem:1;
+  PRUint32 mListIndex:MOZ_SVG_LIST_INDEX_BIT_COUNT;
+  PRUint32 mAttrEnum:4; 
+  PRUint32 mIsAnimValItem:1;
 
   
-  uint32_t mUnit:5; 
+  PRUint32 mUnit:5; 
   float mValue;
 };
 

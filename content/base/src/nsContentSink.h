@@ -8,21 +8,60 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsContentSink_h_
 #define _nsContentSink_h_
 
 
 
 #include "nsICSSLoaderObserver.h"
+#include "nsIScriptLoaderObserver.h"
 #include "nsWeakReference.h"
 #include "nsCOMPtr.h"
+#include "nsCOMArray.h"
 #include "nsString.h"
 #include "nsAutoPtr.h"
 #include "nsGkAtoms.h"
+#include "nsTHashtable.h"
+#include "nsHashKeys.h"
+#include "nsTArray.h"
 #include "nsITimer.h"
 #include "nsStubDocumentObserver.h"
+#include "nsIParserService.h"
 #include "nsIContentSink.h"
 #include "prlog.h"
+#include "nsIRequest.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsThreadUtils.h"
 
@@ -45,7 +84,7 @@ class Loader;
 }
 }
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
 
 extern PRLogModuleInfo* gContentSinkLogModuleInfo;
 
@@ -53,7 +92,7 @@ extern PRLogModuleInfo* gContentSinkLogModuleInfo;
 #define SINK_TRACE_REFLOW             0x2
 #define SINK_ALWAYS_REFLOW            0x4
 
-#define SINK_LOG_TEST(_lm, _bit) (int((_lm)->level) & (_bit))
+#define SINK_LOG_TEST(_lm, _bit) (PRIntn((_lm)->level) & (_bit))
 
 #define SINK_TRACE(_lm, _bit, _args) \
   PR_BEGIN_MACRO                     \
@@ -74,13 +113,16 @@ extern PRLogModuleInfo* gContentSinkLogModuleInfo;
 #define NS_DELAY_FOR_WINDOW_CREATION  500000
 
 class nsContentSink : public nsICSSLoaderObserver,
+                      public nsIScriptLoaderObserver,
                       public nsSupportsWeakReference,
                       public nsStubDocumentObserver,
                       public nsITimerCallback
 {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsContentSink,
-                                           nsICSSLoaderObserver)
+                                           nsIScriptLoaderObserver)
+  NS_DECL_NSISCRIPTLOADEROBSERVER
+
     
   NS_DECL_NSITIMERCALLBACK
 
@@ -100,7 +142,7 @@ class nsContentSink : public nsICSSLoaderObserver,
   NS_HIDDEN_(void) DropParserAndPerfHint(void);
   bool IsScriptExecutingImpl();
 
-  void NotifyAppend(nsIContent* aContent, uint32_t aStartIndex);
+  void NotifyAppend(nsIContent* aContent, PRUint32 aStartIndex);
 
   
   NS_DECL_NSIDOCUMENTOBSERVER_BEGINUPDATE
@@ -110,7 +152,6 @@ class nsContentSink : public nsICSSLoaderObserver,
 
   bool IsTimeToNotify();
   bool LinkContextIsOurDocument(const nsSubstring& aAnchor);
-  bool Decode5987Format(nsAString& aEncoded);
 
   static void InitializeStatics();
 
@@ -145,9 +186,10 @@ protected:
 
   nsresult ProcessHTTPHeaders(nsIChannel* aChannel);
   nsresult ProcessHeaderData(nsIAtom* aHeader, const nsAString& aValue,
-                             nsIContent* aContent = nullptr);
-  nsresult ProcessLinkHeader(const nsAString& aLinkData);
-  nsresult ProcessLink(const nsSubstring& aAnchor,
+                             nsIContent* aContent = nsnull);
+  nsresult ProcessLinkHeader(nsIContent* aElement,
+                             const nsAString& aLinkData);
+  nsresult ProcessLink(nsIContent* aElement, const nsSubstring& aAnchor,
                        const nsSubstring& aHref, const nsSubstring& aRel,
                        const nsSubstring& aTitle, const nsSubstring& aType,
                        const nsSubstring& aMedia);
@@ -159,7 +201,7 @@ protected:
                                     const nsSubstring& aType,
                                     const nsSubstring& aMedia);
 
-  void PrefetchHref(const nsAString &aHref, nsINode *aSource,
+  void PrefetchHref(const nsAString &aHref, nsIContent *aSource,
                     bool aExplicit);
 
   
@@ -237,9 +279,9 @@ public:
 
 protected:
   void
-  FavorPerformanceHint(bool perfOverStarvation, uint32_t starvationDelay);
+  FavorPerformanceHint(bool perfOverStarvation, PRUint32 starvationDelay);
 
-  inline int32_t GetNotificationInterval()
+  inline PRInt32 GetNotificationInterval()
   {
     if (mDynamicLowerValue) {
       return 1000;
@@ -247,6 +289,10 @@ protected:
 
     return sNotificationInterval;
   }
+
+  
+  virtual void PreEvaluateScript()                            {return;}
+  virtual void PostEvaluateScript(nsIScriptElement *aElement) {return;}
 
   virtual nsresult FlushTags() = 0;
 
@@ -256,10 +302,6 @@ protected:
 
   void DoProcessLinkHeader();
 
-  void StopDeflecting() {
-    mDeflectedCount = sPerfDeflectCount;
-  }
-
 private:
   
   
@@ -267,16 +309,21 @@ private:
 
 protected:
 
+  virtual void ContinueInterruptedParsingAsync();
+  void ContinueInterruptedParsingIfEnabled();
+
   nsCOMPtr<nsIDocument>         mDocument;
-  nsRefPtr<nsParserBase>        mParser;
+  nsCOMPtr<nsIParser>           mParser;
   nsCOMPtr<nsIURI>              mDocumentURI;
   nsCOMPtr<nsIDocShell>         mDocShell;
   nsRefPtr<mozilla::css::Loader> mCSSLoader;
   nsRefPtr<nsNodeInfoManager>   mNodeInfoManager;
   nsRefPtr<nsScriptLoader>      mScriptLoader;
 
+  nsCOMArray<nsIScriptElement> mScriptElements;
+
   
-  int32_t mBackoffCount;
+  PRInt32 mBackoffCount;
 
   
   
@@ -286,22 +333,24 @@ protected:
   nsCOMPtr<nsITimer> mNotificationTimer;
 
   
-  uint8_t mBeganUpdate : 1;
-  uint8_t mLayoutStarted : 1;
-  uint8_t mDynamicLowerValue : 1;
-  uint8_t mParsing : 1;
-  uint8_t mDroppedTimer : 1;
+  PRUint8 mBeganUpdate : 1;
+  PRUint8 mLayoutStarted : 1;
+  PRUint8 mCanInterruptParser : 1;
+  PRUint8 mDynamicLowerValue : 1;
+  PRUint8 mParsing : 1;
+  PRUint8 mDroppedTimer : 1;
   
-  uint8_t mDeferredLayoutStart : 1;
+  PRUint8 mDeferredLayoutStart : 1;
   
-  uint8_t mDeferredFlushTags : 1;
-  
-  
-  
-  uint8_t mIsDocumentObserver : 1;
+  PRUint8 mDeferredFlushTags : 1;
   
   
-  uint8_t mRunsToCompletion : 1;
+  
+  PRUint8 mIsDocumentObserver : 1;
+  
+  PRUint8 mFragmentMode : 1;
+  
+  PRUint8 mPreventScriptExecution : 1;
   
   
   
@@ -309,26 +358,26 @@ protected:
 
   
   
-  uint32_t mDeflectedCount;
+  PRUint32 mDeflectedCount;
 
   
   bool mHasPendingEvent;
 
   
-  uint32_t mCurrentParseEndTime;
+  PRUint32 mCurrentParseEndTime;
 
-  int32_t mBeginLoadTime;
+  PRInt32 mBeginLoadTime;
 
   
   
-  uint32_t mLastSampledUserEventTime;
+  PRUint32 mLastSampledUserEventTime;
 
-  int32_t mInMonolithicContainer;
+  PRInt32 mInMonolithicContainer;
 
-  int32_t mInNotification;
-  uint32_t mUpdatesInNotification;
+  PRInt32 mInNotification;
+  PRUint32 mUpdatesInNotification;
 
-  uint32_t mPendingSheetCount;
+  PRUint32 mPendingSheetCount;
 
   nsRevocableEventPtr<nsRunnableMethod<nsContentSink, void, false> >
     mProcessLinkHeaderEvent;
@@ -336,27 +385,28 @@ protected:
   
   static bool sNotifyOnTimer;
   
-  static int32_t sBackoffCount;
+  static PRInt32 sBackoffCount;
   
-  static int32_t sNotificationInterval;
+  static PRInt32 sNotificationInterval;
   
-  static int32_t sInteractiveDeflectCount;
-  static int32_t sPerfDeflectCount;
+  static PRInt32 sInteractiveDeflectCount;
+  static PRInt32 sPerfDeflectCount;
   
   
   
-  static int32_t sPendingEventMode;
+  static PRInt32 sPendingEventMode;
   
-  static int32_t sEventProbeRate;
+  static PRInt32 sEventProbeRate;
   
-  static int32_t sInteractiveParseTime;
-  static int32_t sPerfParseTime;
+  static PRInt32 sInteractiveParseTime;
+  static PRInt32 sPerfParseTime;
   
-  static int32_t sInteractiveTime;
+  static PRInt32 sInteractiveTime;
   
-  static int32_t sInitialPerfTime;
+  static PRInt32 sInitialPerfTime;
   
-  static int32_t sEnablePerfMode;
+  static PRInt32 sEnablePerfMode;
+  static bool sCanInterruptParser;
 };
 
 #endif 

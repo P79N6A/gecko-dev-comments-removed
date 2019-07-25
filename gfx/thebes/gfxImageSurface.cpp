@@ -3,20 +3,48 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "prmem.h"
 
 #include "gfxAlphaRecovery.h"
 #include "gfxImageSurface.h"
 
 #include "cairo.h"
-#include "mozilla/gfx/2D.h"
-#include "gfx2DGlue.h"
-
-using namespace mozilla::gfx;
 
 gfxImageSurface::gfxImageSurface()
   : mSize(0, 0),
-    mOwnsData(false),
+    mOwnsData(PR_FALSE),
     mFormat(ImageFormatUnknown),
     mStride(0)
 {
@@ -29,10 +57,10 @@ gfxImageSurface::InitFromSurface(cairo_surface_t *csurf)
     mSize.height = cairo_image_surface_get_height(csurf);
     mData = cairo_image_surface_get_data(csurf);
     mFormat = (gfxImageFormat) cairo_image_surface_get_format(csurf);
-    mOwnsData = false;
+    mOwnsData = PR_FALSE;
     mStride = cairo_image_surface_get_stride(csurf);
 
-    Init(csurf, true);
+    Init(csurf, PR_TRUE);
 }
 
 gfxImageSurface::gfxImageSurface(unsigned char *aData, const gfxIntSize& aSize,
@@ -54,7 +82,7 @@ gfxImageSurface::InitWithData(unsigned char *aData, const gfxIntSize& aSize,
                               long aStride, gfxImageFormat aFormat)
 {
     mSize = aSize;
-    mOwnsData = false;
+    mOwnsData = PR_FALSE;
     mData = aData;
     mFormat = aFormat;
     mStride = aStride;
@@ -81,22 +109,22 @@ static void*
 TryAllocAlignedBytes(size_t aSize)
 {
     
-#if defined(HAVE_POSIX_MEMALIGN)
+#if defined(HAVE_POSIX_MEMALIGN) || defined(HAVE_JEMALLOC_POSIX_MEMALIGN)
     void* ptr;
     
     
     return moz_posix_memalign(&ptr,
                               1 << gfxAlphaRecovery::GoodAlignmentLog2(),
                               aSize) ?
-             nullptr : ptr;
+             nsnull : ptr;
 #else
     
     return moz_malloc(aSize);
 #endif
 }
 
-gfxImageSurface::gfxImageSurface(const gfxIntSize& size, gfxImageFormat format, bool aClear) :
-    mSize(size), mOwnsData(false), mData(nullptr), mFormat(format)
+gfxImageSurface::gfxImageSurface(const gfxIntSize& size, gfxImageFormat format) :
+    mSize(size), mOwnsData(PR_FALSE), mData(nsnull), mFormat(format)
 {
     mStride = ComputeStride();
 
@@ -111,11 +139,10 @@ gfxImageSurface::gfxImageSurface(const gfxIntSize& size, gfxImageFormat format, 
         mData = (unsigned char *) TryAllocAlignedBytes(mSize.height * mStride);
         if (!mData)
             return;
-        if (aClear)
-            memset(mData, 0, mSize.height * mStride);
+        memset(mData, 0, mSize.height * mStride);
     }
 
-    mOwnsData = true;
+    mOwnsData = PR_TRUE;
 
     cairo_surface_t *surface =
         cairo_image_surface_create_for_data((unsigned char*)mData,
@@ -138,10 +165,10 @@ gfxImageSurface::gfxImageSurface(cairo_surface_t *csurf)
     mSize.height = cairo_image_surface_get_height(csurf);
     mData = cairo_image_surface_get_data(csurf);
     mFormat = (gfxImageFormat) cairo_image_surface_get_format(csurf);
-    mOwnsData = false;
+    mOwnsData = PR_FALSE;
     mStride = cairo_image_surface_get_stride(csurf);
 
-    Init(csurf, true);
+    Init(csurf, PR_TRUE);
 }
 
 gfxImageSurface::~gfxImageSurface()
@@ -175,77 +202,34 @@ gfxImageSurface::ComputeStride(const gfxIntSize& aSize, gfxImageFormat aFormat)
     return stride;
 }
 
-
-static void
-CopyForStride(unsigned char* aDest, unsigned char* aSrc, const gfxIntSize& aSize, long aDestStride, long aSrcStride)
+bool
+gfxImageSurface::CopyFrom(gfxImageSurface *other)
 {
-    if (aDestStride == aSrcStride) {
-        memcpy (aDest, aSrc, aSrcStride * aSize.height);
+    if (other->mSize != mSize)
+    {
+        return PR_FALSE;
+    }
+
+    if (other->mFormat != mFormat &&
+        !(other->mFormat == ImageFormatARGB32 && mFormat == ImageFormatRGB24) &&
+        !(other->mFormat == ImageFormatRGB24 && mFormat == ImageFormatARGB32))
+    {
+        return PR_FALSE;
+    }
+
+    if (other->mStride == mStride) {
+        memcpy (mData, other->mData, mStride * mSize.height);
     } else {
-        int lineSize = NS_MIN(aDestStride, aSrcStride);
-        for (int i = 0; i < aSize.height; i++) {
-            unsigned char* src = aSrc + aSrcStride * i;
-            unsigned char* dst = aDest + aDestStride * i;
+        int lineSize = NS_MIN(other->mStride, mStride);
+        for (int i = 0; i < mSize.height; i++) {
+            unsigned char *src = other->mData + other->mStride * i;
+            unsigned char *dst = mData + mStride * i;
 
             memcpy (dst, src, lineSize);
         }
     }
-}
 
-
-static bool
-FormatsAreCompatible(gfxASurface::gfxImageFormat a1, gfxASurface::gfxImageFormat a2)
-{
-    if (a1 != a2 &&
-        !(a1 == gfxASurface::ImageFormatARGB32 &&
-          a2 == gfxASurface::ImageFormatRGB24) &&
-        !(a1 == gfxASurface::ImageFormatRGB24 &&
-          a2 == gfxASurface::ImageFormatARGB32)) {
-        return false;
-    }
-
-    return true;
-}
-
-bool
-gfxImageSurface::CopyFrom (SourceSurface *aSurface)
-{
-    mozilla::RefPtr<DataSourceSurface> data = aSurface->GetDataSurface();
-
-    if (!data) {
-        return false;
-    }
-
-    gfxIntSize size(data->GetSize().width, data->GetSize().height);
-    if (size != mSize) {
-        return false;
-    }
-
-    if (!FormatsAreCompatible(SurfaceFormatToImageFormat(aSurface->GetFormat()),
-                              mFormat)) {
-        return false;
-    }
-
-    CopyForStride(mData, data->GetData(), size, mStride, data->Stride());
-
-    return true;
-}
-
-
-bool
-gfxImageSurface::CopyFrom(gfxImageSurface *other)
-{
-    if (other->mSize != mSize) {
-        return false;
-    }
-
-    if (!FormatsAreCompatible(other->mFormat, mFormat)) {
-        return false;
-    }
-
-    CopyForStride(mData, other->mData, mSize, mStride, other->mStride);
-
-    return true;
+    return PR_TRUE;
 }
 
 already_AddRefed<gfxSubimageSurface>
@@ -316,7 +300,7 @@ gfxImageSurface::MovePixels(const nsIntRect& aSourceRect,
     }
 
     
-    const int32_t bpp = BytePerPixelFromFormat(mFormat);
+    const PRInt32 bpp = BytePerPixelFromFormat(mFormat);
     const size_t nRowBytes = dest.width * bpp;
     
     

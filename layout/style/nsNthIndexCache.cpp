@@ -8,6 +8,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsNthIndexCache.h"
 #include "nsIContent.h"
 
@@ -22,10 +56,7 @@ nsNthIndexCache::~nsNthIndexCache()
 void
 nsNthIndexCache::Reset()
 {
-  mCaches[0][0].clear();
-  mCaches[0][1].clear();
-  mCaches[1][0].clear();
-  mCaches[1][1].clear();
+  mCache.clear();
 }
 
 inline bool
@@ -38,17 +69,21 @@ nsNthIndexCache::SiblingMatchesElement(nsIContent* aSibling, Element* aElement,
 }
 
 inline bool
-nsNthIndexCache::IndexDeterminedFromPreviousSibling(nsIContent* aSibling,
-                                                    Element* aChild,
-                                                    bool aIsOfType,
-                                                    bool aIsFromEnd,
-                                                    const Cache& aCache,
-                                                    int32_t& aResult)
+nsNthIndexCache::IndexDetermined(nsIContent* aSibling, Element* aChild,
+                                 bool aIsOfType, bool aIsFromEnd,
+                                 bool aCheckEdgeOnly, PRInt32& aResult)
 {
   if (SiblingMatchesElement(aSibling, aChild, aIsOfType)) {
-    Cache::Ptr siblingEntry = aCache.lookup(aSibling);
+    if (aCheckEdgeOnly) {
+      
+      
+      aResult = -1;
+      return true;
+    }
+
+    Cache::Ptr siblingEntry = mCache.lookup(aSibling);
     if (siblingEntry) {
-      int32_t siblingIndex = siblingEntry->value;
+      PRInt32 siblingIndex = siblingEntry->value.mNthIndices[aIsOfType][aIsFromEnd];
       NS_ASSERTION(siblingIndex != 0,
                    "How can a non-anonymous node have an anonymous sibling?");
       if (siblingIndex > 0) {
@@ -56,10 +91,7 @@ nsNthIndexCache::IndexDeterminedFromPreviousSibling(nsIContent* aSibling,
         
         
         
-        
-        NS_ABORT_IF_FALSE(aIsFromEnd == 0 || aIsFromEnd == 1,
-                          "Bogus bool value");
-        aResult = siblingIndex + aResult * (1 - 2 * aIsFromEnd);
+        aResult = siblingIndex + aResult;
         return true;
       }
     }
@@ -70,7 +102,7 @@ nsNthIndexCache::IndexDeterminedFromPreviousSibling(nsIContent* aSibling,
   return false;
 }
 
-int32_t
+PRInt32
 nsNthIndexCache::GetNthIndex(Element* aChild, bool aIsOfType,
                              bool aIsFromEnd, bool aCheckEdgeOnly)
 {
@@ -80,75 +112,48 @@ nsNthIndexCache::GetNthIndex(Element* aChild, bool aIsOfType,
     return 0;
   }
 
-  Cache &cache = mCaches[aIsOfType][aIsFromEnd];
-
-  if (!cache.initialized() && !cache.init()) {
+  if (!mCache.initialized() && !mCache.init()) {
     
     return 0;
   }
 
-  Cache::AddPtr entry = cache.lookupForAdd(aChild);
-
+  Cache::AddPtr entry = mCache.lookupForAdd(aChild);
   
-  if (!entry && !cache.add(entry, aChild, -2)) {
+  if (!entry && !mCache.add(entry, aChild)) {
     
     return 0;
   }
 
-  int32_t &slot = entry->value;
+  PRInt32 &slot = entry->value.mNthIndices[aIsOfType][aIsFromEnd];
   if (slot != -2 && (slot != -1 || aCheckEdgeOnly)) {
     return slot;
   }
   
-  int32_t result = 1;
-  if (aCheckEdgeOnly) {
-    
-    
-    if (aIsFromEnd) {
-      for (nsIContent *cur = aChild->GetNextSibling();
-           cur;
-           cur = cur->GetNextSibling()) {
-        if (SiblingMatchesElement(cur, aChild, aIsOfType)) {
+  PRInt32 result = 1;
+  if (aIsFromEnd) {
+    for (nsIContent *cur = aChild->GetNextSibling();
+         cur;
+         cur = cur->GetNextSibling()) {
+      
+      
+      
+      if (SiblingMatchesElement(cur, aChild, aIsOfType)) {
+        if (aCheckEdgeOnly) {
+          
+          
           result = -1;
           break;
         }
-      }
-    } else {
-      for (nsIContent *cur = aChild->GetPreviousSibling();
-           cur;
-           cur = cur->GetPreviousSibling()) {
-        if (SiblingMatchesElement(cur, aChild, aIsOfType)) {
-          result = -1;
-          break;
-        }
+        ++result;
       }
     }
   } else {
-    
-    
     for (nsIContent *cur = aChild->GetPreviousSibling();
          cur;
          cur = cur->GetPreviousSibling()) {
-      if (IndexDeterminedFromPreviousSibling(cur, aChild, aIsOfType,
-                                             aIsFromEnd, cache, result)) {
-        slot = result;
-        return result;
-      }
-    }
-
-    
-    
-    
-    
-    
-    if (aIsFromEnd) {
-      result = 1;
-      for (nsIContent *cur = aChild->GetNextSibling();
-           cur;
-           cur = cur->GetNextSibling()) {
-        if (SiblingMatchesElement(cur, aChild, aIsOfType)) {
-          ++result;
-        }
+      if (IndexDetermined(cur, aChild, aIsOfType, aIsFromEnd, aCheckEdgeOnly,
+                          result)) {
+        break;
       }
     }
   }

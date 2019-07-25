@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIOutputStream.h"
 #include "nsReadableUtils.h"
 #include "nsCRT.h"
@@ -19,9 +52,8 @@
 
 #include "nsIRDFResource.h"
 #include "nsIRDFLiteral.h"
-#include "mozilla/Attributes.h"
 
-class TriplesVisitor MOZ_FINAL : public rdfITripleVisitor
+class TriplesVisitor : public rdfITripleVisitor
 {
 public:
     TriplesVisitor(nsIOutputStream* aOut) : mOut(aOut) {}
@@ -38,7 +70,7 @@ nsresult
 TriplesVisitor::writeResource(nsIRDFResource *aResource)
 {
     nsCString res;
-    uint32_t writeCount, wroteCount;
+    PRUint32 writeCount, wroteCount;
     mOut->Write("<", 1, &wroteCount);
     NS_ENSURE_TRUE(wroteCount == 1, NS_ERROR_FAILURE);
     nsresult rv = aResource->GetValueUTF8(res);
@@ -70,26 +102,27 @@ TriplesVisitor::Visit(nsIRDFNode *aSubject, nsIRDFResource *aPredicate,
     nsCOMPtr<nsIRDFResource> res = do_QueryInterface(aObject);
     nsCOMPtr<nsIRDFLiteral> lit;
     nsCOMPtr<nsIRDFInt> intLit;
-    uint32_t wroteCount;
+    PRUint32 wroteCount;
     if (res) {
         rv = writeResource(res);
-    } else if ((lit = do_QueryInterface(aObject)) != nullptr) {
+    } else if ((lit = do_QueryInterface(aObject)) != nsnull) {
         const PRUnichar *value;
         lit->GetValueConst(&value);
-        nsAutoCString object;
+        nsCAutoString object;
         object.AppendLiteral("\"");
         AppendUTF16toUTF8(value, object);
         object.AppendLiteral("\" ");
-        uint32_t writeCount = object.Length();
+        PRUint32 writeCount = object.Length();
         rv = mOut->Write(object.get(), writeCount, &wroteCount);
         NS_ENSURE_TRUE(writeCount == wroteCount, NS_ERROR_FAILURE);
-    } else if ((intLit = do_QueryInterface(aObject)) != nullptr) {
-        int32_t value;
+    } else if ((intLit = do_QueryInterface(aObject)) != nsnull) {
+        PRInt32 value;
         intLit->GetValue(&value);
         nsPrintfCString
-            object("\"%i\"^^<http://www.w3.org/2001/XMLSchema#integer> ",
+            object(128,
+                   "\"%i\"^^<http://www.w3.org/2001/XMLSchema#integer> ",
                    value);
-        uint32_t writeCount = object.Length();
+        PRUint32 writeCount = object.Length();
         rv = mOut->Write(object.get(), writeCount, &wroteCount);
         NS_ENSURE_TRUE(writeCount == wroteCount, NS_ERROR_FAILURE);
     }
@@ -97,7 +130,7 @@ TriplesVisitor::Visit(nsIRDFNode *aSubject, nsIRDFResource *aPredicate,
     return mOut->Write(".\n", 2, &wroteCount);
 }
 
-class rdfTriplesSerializer MOZ_FINAL : public rdfISerializer
+class rdfTriplesSerializer : public rdfISerializer
 {
 public:
   NS_DECL_ISUPPORTS
@@ -113,7 +146,7 @@ private:
 nsresult
 NS_NewTriplesSerializer(rdfISerializer** aResult)
 {
-    NS_PRECONDITION(aResult != nullptr, "null ptr");
+    NS_PRECONDITION(aResult != nsnull, "null ptr");
     if (! aResult)
         return NS_ERROR_NULL_POINTER;
 

@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #if !defined(nsHTMLMediaElement_h__)
 #define nsHTMLMediaElement_h__
 
@@ -16,45 +48,30 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsILoadGroup.h"
 #include "nsIObserver.h"
-#include "nsDataHashtable.h"
+#include "ImageLayers.h"
 #include "nsAudioStream.h"
-#include "VideoFrameContainer.h"
-#include "mozilla/CORSMode.h"
-#include "nsDOMMediaStream.h"
-#include "mozilla/Mutex.h"
-#include "nsTimeRanges.h"
 
 
 
 
-typedef uint16_t nsMediaNetworkState;
-typedef uint16_t nsMediaReadyState;
-
-namespace mozilla {
-class MediaResource;
-}
+typedef PRUint16 nsMediaNetworkState;
+typedef PRUint16 nsMediaReadyState;
 
 class nsHTMLMediaElement : public nsGenericHTMLElement,
                            public nsIObserver
 {
-public:
-  typedef mozilla::TimeStamp TimeStamp;
   typedef mozilla::layers::ImageContainer ImageContainer;
-  typedef mozilla::VideoFrameContainer VideoFrameContainer;
-  typedef mozilla::MediaStream MediaStream;
-  typedef mozilla::MediaResource MediaResource;
 
-  typedef nsDataHashtable<nsCStringHashKey, nsCString> MetadataTags;
+public:
+
+  typedef mozilla::TimeStamp TimeStamp;
+  typedef mozilla::TimeDuration TimeDuration;
 
   enum CanPlayStatus {
     CANPLAY_NO,
     CANPLAY_MAYBE,
     CANPLAY_YES
   };
-
-  mozilla::CORSMode GetCORSMode() {
-    return mCORSMode;
-  }
 
   nsHTMLMediaElement(already_AddRefed<nsINodeInfo> aNodeInfo);
   virtual ~nsHTMLMediaElement();
@@ -79,21 +96,21 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsHTMLMediaElement,
                                            nsGenericHTMLElement)
 
-  virtual bool ParseAttribute(int32_t aNamespaceID,
+  virtual bool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
   
   
-  nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+  nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                    const nsAString& aValue, bool aNotify)
   {
-    return SetAttr(aNameSpaceID, aName, nullptr, aValue, aNotify);
+    return SetAttr(aNameSpaceID, aName, nsnull, aValue, aNotify);
   }
-  virtual nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+  virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                            nsIAtom* aPrefix, const nsAString& aValue,
                            bool aNotify);
-  virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttr,
+  virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttr,
                              bool aNotify);
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
@@ -101,7 +118,6 @@ public:
                               bool aCompileEventHandlers);
   virtual void UnbindFromTree(bool aDeep = true,
                               bool aNullParent = true);
-  virtual void DoneCreatingElement();
 
   
 
@@ -112,10 +128,7 @@ public:
   
   
   
-  void MetadataLoaded(uint32_t aChannels,
-                      uint32_t aRate,
-                      bool aHasAudio,
-                      const MetadataTags* aTags);
+  void MetadataLoaded(PRUint32 aChannels, PRUint32 aRate);
 
   
   
@@ -159,11 +172,7 @@ public:
   
   
   
-  
-  
-  
-  
-  void DownloadResumed(bool aForceNetworkLoading = false);
+  void DownloadResumed();
 
   
   
@@ -171,23 +180,7 @@ public:
 
   
   
-  void NotifySuspendedByCache(bool aIsSuspended);
-
-  
-  
-  
-  
-  
-  void NotifyAudioAvailableListener();
-
-  
-  
-  VideoFrameContainer* GetVideoFrameContainer();
-  ImageContainer* GetImageContainer()
-  {
-    VideoFrameContainer* container = GetVideoFrameContainer();
-    return container ? container->GetImageContainer() : nullptr;
-  }
+  ImageContainer* GetImageContainer();
 
   
   
@@ -198,7 +191,7 @@ public:
   nsresult DispatchEvent(const nsAString& aName);
   nsresult DispatchAsyncEvent(const nsAString& aName);
   nsresult DispatchAudioAvailableEvent(float* aFrameBuffer,
-                                       uint32_t aFrameBufferLength,
+                                       PRUint32 aFrameBufferLength,
                                        float aTime);
 
   
@@ -233,6 +226,7 @@ public:
   void NotifyAutoplayDataReady();
 
   
+  
   bool ShouldCheckAllowOrigin();
 
   
@@ -244,12 +238,7 @@ public:
   bool IsPlaybackEnded() const;
 
   
-  
-  
   already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
-
-  
-  void NotifyDecoderPrincipalChanged();
 
   
   
@@ -273,49 +262,26 @@ public:
   
   static bool ShouldHandleMediaType(const char* aMIMEType);
 
-#ifdef MOZ_RAW
-  static bool IsRawEnabled();
-#endif
-
 #ifdef MOZ_OGG
   static bool IsOggEnabled();
   static bool IsOggType(const nsACString& aType);
   static const char gOggTypes[3][16];
   static char const *const gOggCodecs[3];
-  static bool IsOpusEnabled();
-  static char const *const gOggCodecsWithOpus[4];
 #endif
 
 #ifdef MOZ_WAVE
   static bool IsWaveEnabled();
   static bool IsWaveType(const nsACString& aType);
-  static const char gWaveTypes[4][15];
+  static const char gWaveTypes[4][16];
   static char const *const gWaveCodecs[2];
 #endif
 
 #ifdef MOZ_WEBM
   static bool IsWebMEnabled();
   static bool IsWebMType(const nsACString& aType);
-  static const char gWebMTypes[2][11];
+  static const char gWebMTypes[2][17];
   static char const *const gWebMCodecs[4];
 #endif
-
-#ifdef MOZ_GSTREAMER
-  static bool IsH264Enabled();
-  static bool IsH264Type(const nsACString& aType);
-  static const char gH264Types[3][16];
-  static char const *const gH264Codecs[7];
-#endif
-
-#ifdef MOZ_MEDIA_PLUGINS
-  static bool IsMediaPluginsEnabled();
-  static bool IsMediaPluginsType(const nsACString& aType);
-#endif
-
-  
-
-
-  void GetMimeType(nsCString& aMimeType);
 
   
 
@@ -332,17 +298,23 @@ public:
   
 
 
-  void NotifyAudioAvailable(float* aFrameBuffer, uint32_t aFrameBufferLength,
+  void NotifyAudioAvailable(float* aFrameBuffer, PRUint32 aFrameBufferLength,
                             float aTime);
 
-  virtual bool IsNodeOfType(uint32_t aFlags) const;
+  
+
+
+
+  bool MayHaveAudioAvailableEventListener();
+
+  virtual bool IsNodeOfType(PRUint32 aFlags) const;
 
   
 
 
 
 
-  uint32_t GetCurrentLoadID() { return mCurrentLoadID; }
+  PRUint32 GetCurrentLoadID() { return mCurrentLoadID; }
 
   
 
@@ -356,7 +328,7 @@ public:
 
   bool GetPlayedOrSeeked() const { return mHasPlayedOrSeeked; }
 
-  nsresult CopyInnerTo(nsGenericElement* aDest);
+  nsresult CopyInnerTo(nsGenericElement* aDest) const;
 
   
 
@@ -378,25 +350,8 @@ public:
 
   void FireTimeUpdate(bool aPeriodic);
 
-  MediaStream* GetSrcMediaStream()
-  {
-    NS_ASSERTION(mSrcStream, "Don't call this when not playing a stream");
-    return mSrcStream->GetStream();
-  }
-
 protected:
   class MediaLoadListener;
-  class StreamListener;
-
-  
-
-
-
-
-
-  void ReportLoadError(const char* aMsg,
-                       const PRUnichar** aParams = nullptr,
-                       uint32_t aParamCount = 0);
 
   
 
@@ -408,29 +363,10 @@ protected:
   
 
 
-  void SetupSrcMediaStreamPlayback();
-  
-
-
-  void EndSrcMediaStreamPlayback();
-
-  
-
-
-
-
-
-
-  already_AddRefed<nsDOMMediaStream> CaptureStreamInternal(bool aFinishWhenEnded);
-
-  
-
-
 
   already_AddRefed<nsMediaDecoder> CreateDecoder(const nsACString& aMIMEType);
 
   
-
 
 
 
@@ -440,37 +376,14 @@ protected:
 
 
 
-
   nsresult InitializeDecoderForChannel(nsIChannel *aChannel,
                                        nsIStreamListener **aListener);
 
   
 
 
+  nsresult FinishDecoderSetup(nsMediaDecoder* aDecoder);
 
-  nsresult FinishDecoderSetup(nsMediaDecoder* aDecoder,
-                              MediaResource* aStream,
-                              nsIStreamListener **aListener,
-                              nsMediaDecoder* aCloneDonor);
-
-  
-
-
-  void AddMediaElementToURITable();
-  
-
-
-  void RemoveMediaElementFromURITable();
-  
-
-
-
-  nsHTMLMediaElement* LookupMediaElementURITable(nsIURI* aURI);
-
-  
-
-
-  void ShutdownDecoder();
   
 
 
@@ -512,18 +425,12 @@ protected:
 
 
 
-  void SelectResourceWrapper();
-
-  
-
-
-
   void QueueSelectResourceTask();
 
   
 
 
-  nsresult LoadResource();
+  nsresult LoadResource(nsIURI* aURI);
 
   
 
@@ -549,7 +456,7 @@ protected:
 
   nsresult OnChannelRedirect(nsIChannel *aChannel,
                              nsIChannel *aNewChannel,
-                             uint32_t aFlags);
+                             PRUint32 aFlags);
 
   
 
@@ -588,7 +495,7 @@ protected:
 
 
 
-  void SuspendLoad();
+  void SuspendLoad(nsIURI* aURI);
 
   
 
@@ -615,7 +522,7 @@ protected:
 
 
 
-  void Error(uint16_t aErrorCode);
+  void Error(PRUint16 aErrorCode);
 
   
 
@@ -627,33 +534,11 @@ protected:
 
   void ProcessMediaFragmentURI();
 
-  
-  
   nsRefPtr<nsMediaDecoder> mDecoder;
 
   
   
-  nsRefPtr<VideoFrameContainer> mVideoFrameContainer;
-
-  
-  
-  nsRefPtr<nsDOMMediaStream> mSrcAttrStream;
-
-  
-  
-  
-  nsRefPtr<nsDOMMediaStream> mSrcStream;
-
-  
-  
-  struct OutputMediaStream {
-    nsRefPtr<nsDOMMediaStream> mStream;
-    bool mFinishWhenEnded;
-  };
-  nsTArray<OutputMediaStream> mOutputStreams;
-
-  
-  nsRefPtr<StreamListener> mSrcStreamListener;
+  nsRefPtr<ImageContainer> mImageContainer;
 
   
   
@@ -667,7 +552,7 @@ protected:
   
   
   
-  uint32_t mCurrentLoadID;
+  PRUint32 mCurrentLoadID;
 
   
   
@@ -706,17 +591,10 @@ protected:
   double mVolume;
 
   
-  uint32_t mChannels;
+  PRUint32 mChannels;
 
   
-  uint32_t mRate;
-
-  
-  
-  static PLDHashOperator BuildObjectFromTags(nsCStringHashKey::KeyType aKey,
-                                             nsCString aValue,
-                                             void* aUserArg);
-  nsAutoPtr<const MetadataTags> mTags;
+  PRUint32 mRate;
 
   
   
@@ -730,9 +608,6 @@ protected:
   
   PreloadAction mPreloadAction;
 
-  
-  
-  
   
   
   nsIntSize mMediaSize;
@@ -763,12 +638,6 @@ protected:
 
   
   nsRefPtr<nsAudioStream> mAudioStream;
-
-  
-  nsTimeRanges mPlayed;
-
-  
-  double mCurrentPlayRangeStart;
 
   
   
@@ -805,9 +674,6 @@ protected:
   bool mMuted;
 
   
-  bool mAudioCaptured;
-
-  
   
   
   
@@ -833,9 +699,6 @@ protected:
   
   
   bool mIsRunningSelectResource;
-
-  
-  bool mHaveQueuedSelectResource;
 
   
   
@@ -864,26 +727,10 @@ protected:
   
   
   
-  bool mSuspendedForPreloadNone;
+  bool mLoadIsSuspended;
 
   
   bool mMediaSecurityVerified;
-
-  
-  mozilla::CORSMode mCORSMode;
-
-  
-  bool mHasAudio;
-
-  
-  bool mDownloadSuspendedByCache;
-
-  
-  
-  
-  
-  
-  nsCString mMimeType;
 };
 
 #endif

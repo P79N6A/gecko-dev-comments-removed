@@ -3,6 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsMathMLChar_h___
 #define nsMathMLChar_h___
 
@@ -34,12 +70,11 @@ enum {
 
 
 
-
 struct nsGlyphCode {
   PRUnichar code[2]; 
-  int32_t   font;
+  PRInt32   font;
 
-  int32_t Length() { return (code[1] == PRUnichar('\0') ? 1 : 2); }
+  PRInt32 Length() { return (code[1] == PRUnichar('\0') ? 1 : 2); }
   bool Exists() const
   {
     return (code[0] != 0);
@@ -57,31 +92,45 @@ struct nsGlyphCode {
 
 
 
+
+
+
+
+
+
+
+
 class nsMathMLChar
 {
 public:
   
-  nsMathMLChar() {
+  nsMathMLChar(nsMathMLChar* aParent = nsnull) {
     MOZ_COUNT_CTOR(nsMathMLChar);
-    mStyleContext = nullptr;
+    mStyleContext = nsnull;
+    mSibling = nsnull;
+    mParent = aParent;
     mUnscaledAscent = 0;
     mScaleX = mScaleY = 1.0;
-    mDrawNormal = true;
-    mMirrored = false;
+    mDrawNormal = PR_TRUE;
   }
 
-  
-  ~nsMathMLChar() {
+  ~nsMathMLChar() { 
     MOZ_COUNT_DTOR(nsMathMLChar);
-    mStyleContext->Release();
+    
+    
+    if (!mParent && mStyleContext) { 
+      mStyleContext->Release();
+    }
+    if (mSibling) {
+      delete mSibling;
+    }
   }
 
   nsresult
   Display(nsDisplayListBuilder*   aBuilder,
           nsIFrame*               aForFrame,
           const nsDisplayListSet& aLists,
-          uint32_t                aIndex,
-          const nsRect*           aSelectedRect = nullptr);
+          const nsRect*           aSelectedRect = nsnull);
           
   void PaintForeground(nsPresContext* aPresContext,
                        nsRenderingContext& aRenderingContext,
@@ -97,8 +146,7 @@ public:
           nsStretchDirection       aStretchDirection,
           const nsBoundingMetrics& aContainerSize,
           nsBoundingMetrics&       aDesiredStretchSize,
-          uint32_t                 aStretchHint,
-          bool                     aRTL);
+          PRUint32                 aStretchHint = NS_STRETCH_NORMAL);
 
   void
   SetData(nsPresContext* aPresContext,
@@ -109,7 +157,7 @@ public:
     aData = mData;
   }
 
-  int32_t
+  PRInt32
   Length() {
     return mData.Length();
   }
@@ -134,6 +182,15 @@ public:
   void
   SetRect(const nsRect& aRect) {
     mRect = aRect;
+    
+    if (!mParent && mSibling) { 
+      for (nsMathMLChar* child = mSibling; child; child = child->mSibling) {
+        nsRect rect; 
+        child->GetRect(rect);
+        rect.MoveBy(mRect.x, mRect.y);
+        child->SetRect(rect);
+      }
+    }
   }
 
   
@@ -147,7 +204,7 @@ public:
   nscoord
   GetMaxWidth(nsPresContext* aPresContext,
               nsRenderingContext& aRenderingContext,
-              uint32_t aStretchHint = NS_STRETCH_NORMAL,
+              PRUint32 aStretchHint = NS_STRETCH_NORMAL,
               float aMaxSize = NS_MATHML_OPERATOR_SIZE_INFINITY,
               
               
@@ -181,6 +238,10 @@ protected:
   friend class nsGlyphTable;
   nsString           mData;
 
+  
+  nsMathMLChar*      mSibling;
+  nsMathMLChar*      mParent;
+
 private:
   nsRect             mRect;
   nsStretchDirection mDirection;
@@ -197,8 +258,6 @@ private:
   float              mScaleX, mScaleY;
   
   bool               mDrawNormal;
-  
-  bool               mMirrored;
 
   class StretchEnumContext;
   friend class StretchEnumContext;
@@ -210,9 +269,17 @@ private:
                   nsStretchDirection&      aStretchDirection,
                   const nsBoundingMetrics& aContainerSize,
                   nsBoundingMetrics&       aDesiredStretchSize,
-                  uint32_t                 aStretchHint,
+                  PRUint32                 aStretchHint,
                   float           aMaxSize = NS_MATHML_OPERATOR_SIZE_INFINITY,
                   bool            aMaxSizeIsAbsolute = false);
+
+  nsresult
+  ComposeChildren(nsPresContext*       aPresContext,
+                  nsRenderingContext& aRenderingContext,
+                  nsGlyphTable*        aGlyphTable,
+                  nscoord              aTargetSize,
+                  nsBoundingMetrics&   aCompositeSize,
+                  PRUint32             aStretchHint);
 
   nsresult
   PaintVertically(nsPresContext*       aPresContext,

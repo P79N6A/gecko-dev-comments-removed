@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsWyciwyg.h"
 #include "nsWyciwygChannel.h"
 #include "nsWyciwygProtocolHandler.h"
@@ -50,16 +83,16 @@ nsWyciwygProtocolHandler::GetScheme(nsACString &result)
 }
 
 NS_IMETHODIMP
-nsWyciwygProtocolHandler::GetDefaultPort(int32_t *result) 
+nsWyciwygProtocolHandler::GetDefaultPort(PRInt32 *result) 
 {
   return NS_ERROR_NOT_AVAILABLE;
 }
 
 NS_IMETHODIMP 
-nsWyciwygProtocolHandler::AllowPort(int32_t port, const char *scheme, bool *_retval)
+nsWyciwygProtocolHandler::AllowPort(PRInt32 port, const char *scheme, bool *_retval)
 {
   
-  *_retval = false;
+  *_retval = PR_FALSE;
   return NS_OK;
 }
 
@@ -94,7 +127,7 @@ nsWyciwygProtocolHandler::NewChannel(nsIURI* url, nsIChannel* *result)
 
   nsCOMPtr<nsIWyciwygChannel> channel;
   if (IsNeckoChild()) {
-    NS_ENSURE_TRUE(gNeckoChild != nullptr, NS_ERROR_FAILURE);
+    NS_ENSURE_TRUE(gNeckoChild != nsnull, NS_ERROR_FAILURE);
 
     WyciwygChannelChild *wcc = static_cast<WyciwygChannelChild *>(
                                  gNeckoChild->SendPWyciwygChannelConstructor());
@@ -109,13 +142,13 @@ nsWyciwygProtocolHandler::NewChannel(nsIURI* url, nsIChannel* *result)
   {
     
     
-    nsAutoCString path;
+    nsCAutoString path;
     rv = url->GetPath(path);
     NS_ENSURE_SUCCESS(rv, rv);
-    int32_t slashIndex = path.FindChar('/', 2);
+    PRInt32 slashIndex = path.FindChar('/', 2);
     if (slashIndex == kNotFound)
       return NS_ERROR_FAILURE;
-    if (path.Length() < (uint32_t)slashIndex + 1 + 5)
+    if (path.Length() < (PRUint32)slashIndex + 1 + 5)
       return NS_ERROR_FAILURE;
     if (!PL_strncasecmp(path.get() + slashIndex + 1, "https", 5))
       net_EnsurePSMInit();
@@ -133,7 +166,7 @@ nsWyciwygProtocolHandler::NewChannel(nsIURI* url, nsIChannel* *result)
 }
 
 NS_IMETHODIMP
-nsWyciwygProtocolHandler::GetProtocolFlags(uint32_t *result) 
+nsWyciwygProtocolHandler::GetProtocolFlags(PRUint32 *result) 
 {
   
   

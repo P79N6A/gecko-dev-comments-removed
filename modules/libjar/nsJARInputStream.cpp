@@ -5,6 +5,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsJARInputStream.h"
 #include "zipstruct.h"         
 #include "nsZipArchive.h"
@@ -92,7 +126,7 @@ nsJARInputStream::InitDirectory(nsJAR* aJar,
     
     
     
-    nsAutoCString escDirName;
+    nsCAutoString escDirName;
     const char* curr = dirName.BeginReading();
     const char* end  = dirName.EndReading();
     while (curr != end) {
@@ -114,13 +148,13 @@ nsJARInputStream::InitDirectory(nsJAR* aJar,
         }
         ++curr;
     }
-    nsAutoCString pattern = escDirName + NS_LITERAL_CSTRING("?*~") +
+    nsCAutoString pattern = escDirName + NS_LITERAL_CSTRING("?*~") +
                             escDirName + NS_LITERAL_CSTRING("?*/?*");
     rv = mJar->mZip->FindInit(pattern.get(), &find);
     if (NS_FAILED(rv)) return rv;
 
     const char *name;
-    uint16_t nameLen;
+    PRUint16 nameLen;
     while ((rv = find->FindNext( &name, &nameLen )) == NS_OK) {
         
         mArray.AppendElement(nsCString(name,nameLen));
@@ -146,7 +180,7 @@ nsJARInputStream::InitDirectory(nsJAR* aJar,
 }
 
 NS_IMETHODIMP 
-nsJARInputStream::Available(uint64_t *_retval)
+nsJARInputStream::Available(PRUint32 *_retval)
 {
     
     
@@ -173,7 +207,7 @@ nsJARInputStream::Available(uint64_t *_retval)
 }
 
 NS_IMETHODIMP
-nsJARInputStream::Read(char* aBuffer, uint32_t aCount, uint32_t *aBytesRead)
+nsJARInputStream::Read(char* aBuffer, PRUint32 aCount, PRUint32 *aBytesRead)
 {
     NS_ENSURE_ARG_POINTER(aBuffer);
     NS_ENSURE_ARG_POINTER(aBytesRead);
@@ -200,13 +234,13 @@ MOZ_WIN_MEM_TRY_BEGIN
         
         
         if (mZs.avail_in == 0) {
-            mFd = nullptr;
+            mFd = nsnull;
         }
         break;
 
       case MODE_COPY:
         if (mFd) {
-          uint32_t count = NS_MIN(aCount, mOutSize - uint32_t(mZs.total_out));
+          PRUint32 count = NS_MIN(aCount, mOutSize - PRUint32(mZs.total_out));
           if (count) {
               memcpy(aBuffer, mZs.next_in + mZs.total_out, count);
               mZs.total_out += count;
@@ -216,7 +250,7 @@ MOZ_WIN_MEM_TRY_BEGIN
         
         
         if (mZs.total_out >= mOutSize) {
-            mFd = nullptr;
+            mFd = nsnull;
         }
         break;
     }
@@ -225,7 +259,7 @@ MOZ_WIN_MEM_TRY_CATCH(rv = NS_ERROR_FAILURE)
 }
 
 NS_IMETHODIMP
-nsJARInputStream::ReadSegments(nsWriteSegmentFun writer, void * closure, uint32_t count, uint32_t *_retval)
+nsJARInputStream::ReadSegments(nsWriteSegmentFun writer, void * closure, PRUint32 count, PRUint32 *_retval)
 {
     
     NS_NOTREACHED("Consumers should be using Read()!");
@@ -235,31 +269,28 @@ nsJARInputStream::ReadSegments(nsWriteSegmentFun writer, void * closure, uint32_
 NS_IMETHODIMP
 nsJARInputStream::IsNonBlocking(bool *aNonBlocking)
 {
-    *aNonBlocking = false;
+    *aNonBlocking = PR_FALSE;
     return NS_OK;
 }
 
 NS_IMETHODIMP
 nsJARInputStream::Close()
 {
-    if (mMode == MODE_INFLATE) {
-        inflateEnd(&mZs);
-    }
     mMode = MODE_CLOSED;
-    mFd = nullptr;
+    mFd = nsnull;
     return NS_OK;
 }
 
 nsresult 
-nsJARInputStream::ContinueInflate(char* aBuffer, uint32_t aCount,
-                                  uint32_t* aBytesRead)
+nsJARInputStream::ContinueInflate(char* aBuffer, PRUint32 aCount,
+                                  PRUint32* aBytesRead)
 {
     
     NS_ASSERTION(aBuffer,"aBuffer parameter must not be null");
     NS_ASSERTION(aBytesRead,"aBytesRead parameter must not be null");
 
     
-    const uint32_t oldTotalOut = mZs.total_out;
+    const PRUint32 oldTotalOut = mZs.total_out;
     
     
     mZs.avail_out = NS_MIN(aCount, (mOutSize-oldTotalOut));
@@ -293,20 +324,20 @@ nsJARInputStream::ContinueInflate(char* aBuffer, uint32_t aCount,
 }
 
 nsresult
-nsJARInputStream::ReadDirectory(char* aBuffer, uint32_t aCount, uint32_t *aBytesRead)
+nsJARInputStream::ReadDirectory(char* aBuffer, PRUint32 aCount, PRUint32 *aBytesRead)
 {
     
     NS_ASSERTION(aBuffer,"aBuffer parameter must not be null");
     NS_ASSERTION(aBytesRead,"aBytesRead parameter must not be null");
 
     
-    uint32_t numRead = CopyDataToBuffer(aBuffer, aCount);
+    PRUint32 numRead = CopyDataToBuffer(aBuffer, aCount);
 
     if (aCount > 0) {
         
         mBuffer.Truncate();
         mCurPos = 0;
-        const uint32_t arrayLen = mArray.Length();
+        const PRUint32 arrayLen = mArray.Length();
 
         for ( ;aCount > mBuffer.Length(); mArrPos++) {
             
@@ -314,7 +345,7 @@ nsJARInputStream::ReadDirectory(char* aBuffer, uint32_t aCount, uint32_t *aBytes
                 break;
 
             const char * entryName = mArray[mArrPos].get();
-            uint32_t entryNameLen = mArray[mArrPos].Length();
+            PRUint32 entryNameLen = mArray[mArrPos].Length();
             nsZipItem* ze = mJar->mZip->GetItem(entryName);
             NS_ENSURE_TRUE(ze, NS_ERROR_FILE_TARGET_DOES_NOT_EXIST);
 
@@ -356,10 +387,10 @@ nsJARInputStream::ReadDirectory(char* aBuffer, uint32_t aCount, uint32_t *aBytes
     return NS_OK;
 }
 
-uint32_t
-nsJARInputStream::CopyDataToBuffer(char* &aBuffer, uint32_t &aCount)
+PRUint32
+nsJARInputStream::CopyDataToBuffer(char* &aBuffer, PRUint32 &aCount)
 {
-    const uint32_t writeLength = NS_MIN(aCount, mBuffer.Length() - mCurPos);
+    const PRUint32 writeLength = NS_MIN(aCount, mBuffer.Length() - mCurPos);
 
     if (writeLength > 0) {
         memcpy(aBuffer, mBuffer.get() + mCurPos, writeLength);

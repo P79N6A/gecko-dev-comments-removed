@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsXMLDocument_h___
 #define nsXMLDocument_h___
 
@@ -32,7 +64,7 @@ public:
                                      nsISupports* aContainer,
                                      nsIStreamListener **aDocListener,
                                      bool aReset = true,
-                                     nsIContentSink* aSink = nullptr);
+                                     nsIContentSink* aSink = nsnull);
 
   virtual void EndLoad();
 
@@ -44,10 +76,6 @@ public:
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual void DocSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const;
-  
-
 protected:
   
   

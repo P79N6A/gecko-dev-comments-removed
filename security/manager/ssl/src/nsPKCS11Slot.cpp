@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsPKCS11Slot.h"
 #include "nsPK11TokenDB.h"
 
@@ -42,14 +75,14 @@ nsPKCS11Slot::refreshSlotInfo()
       ccDesc, 
       ccDesc+PL_strnlen(ccDesc, sizeof(slot_info.slotDescription)));
     mSlotDesc = NS_ConvertUTF8toUTF16(cDesc);
-    mSlotDesc.Trim(" ", false, true);
+    mSlotDesc.Trim(" ", PR_FALSE, PR_TRUE);
     
     const char *ccManID = (const char*)slot_info.manufacturerID;
     const nsACString &cManID = Substring(
       ccManID, 
       ccManID+PL_strnlen(ccManID, sizeof(slot_info.manufacturerID)));
     mSlotManID = NS_ConvertUTF8toUTF16(cManID);
-    mSlotManID.Trim(" ", false, true);
+    mSlotManID.Trim(" ", PR_FALSE, PR_TRUE);
     
     mSlotHWVersion = EmptyString();
     mSlotHWVersion.AppendInt(slot_info.hardwareVersion.major);
@@ -86,7 +119,7 @@ void nsPKCS11Slot::destructorSafeDestroyNSSReference()
 
   if (mSlot) {
     PK11_FreeSlot(mSlot);
-    mSlot = nullptr;
+    mSlot = nsnull;
   }
 }
 
@@ -192,7 +225,7 @@ nsPKCS11Slot::GetTokenName(PRUnichar **aName)
     return NS_ERROR_NOT_AVAILABLE;
 
   if (!PK11_IsPresent(mSlot)) {
-    *aName = nullptr;
+    *aName = nsnull;
     return NS_OK;
   }
 
@@ -207,7 +240,7 @@ nsPKCS11Slot::GetTokenName(PRUnichar **aName)
 }
 
 NS_IMETHODIMP
-nsPKCS11Slot::GetStatus(uint32_t *_retval)
+nsPKCS11Slot::GetStatus(PRUint32 *_retval)
 {
   nsNSSShutDownPreventionLock locker;
   if (isAlreadyShutDown())
@@ -262,7 +295,7 @@ void nsPKCS11Module::destructorSafeDestroyNSSReference()
 
   if (mModule) {
     SECMOD_DestroyModule(mModule);
-    mModule = nullptr;
+    mModule = nsnull;
   }
 }
 
@@ -307,11 +340,11 @@ nsPKCS11Module::FindSlotByName(const PRUnichar *aName,
   PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("Getting \"%s\"\n", asciiname));
   PK11SlotInfo *slotinfo = NULL;
   PK11SlotList *slotList = PK11_FindSlotsByNames(mModule->dllName, 
-        asciiname , NULL , false);
+        asciiname , NULL , PR_FALSE);
   if (!slotList) {
     
     slotList = PK11_FindSlotsByNames(mModule->dllName, 
-        NULL , asciiname , false);
+        NULL , asciiname , PR_FALSE);
   }
   if (slotList) {
     
@@ -322,7 +355,7 @@ nsPKCS11Module::FindSlotByName(const PRUnichar *aName,
   }
   if (!slotinfo) {
     
-    if (asciiname == nullptr) {
+    if (asciiname == nsnull) {
       return NS_ERROR_FAILURE;
     } else if (nsCRT::strcmp(asciiname, "Root Certificates") == 0) {
       slotinfo = PK11_ReferenceSlot(mModule->slots[0]);

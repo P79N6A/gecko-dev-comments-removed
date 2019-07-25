@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_Module_h
 #define mozilla_Module_h
 
@@ -21,7 +53,7 @@ namespace mozilla {
 
 struct Module
 {
-  static const unsigned int kVersion = 18;
+  static const unsigned int kVersion = 10;
 
   struct CIDEntry;
 

@@ -5,20 +5,51 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsHTMLReflowState_h___
 #define nsHTMLReflowState_h___
 
 #include "nsMargin.h"
 #include "nsStyleCoord.h"
-#include "nsStyleStructInlines.h"
 #include "nsIFrame.h"
-#include "mozilla/AutoRestore.h"
 
 class nsPresContext;
 class nsRenderingContext;
 class nsFloatManager;
 class nsLineLayout;
 class nsIPercentHeightObserver;
+class nsPlaceholderFrame;
 
 struct nsStyleDisplay;
 struct nsStyleVisibility;
@@ -51,7 +82,7 @@ NS_CSS_MINMAX(NumericType aValue, NumericType aMinValue, NumericType aMaxValue)
 
 
 
-typedef uint32_t  nsCSSFrameType;
+typedef PRUint32  nsCSSFrameType;
 
 #define NS_CSS_FRAME_TYPE_UNKNOWN         0
 #define NS_CSS_FRAME_TYPE_INLINE          1
@@ -175,8 +206,8 @@ protected:
 
   void InitOffsets(nscoord aContainingBlockWidth,
                    nsIAtom* aFrameType,
-                   const nsMargin *aBorder = nullptr,
-                   const nsMargin *aPadding = nullptr);
+                   const nsMargin *aBorder = nsnull,
+                   const nsMargin *aPadding = nsnull);
 
   
 
@@ -190,12 +221,8 @@ protected:
   
   
   nscoord ComputeWidthValue(nscoord aContainingBlockWidth,
-                            uint8_t aBoxSizing,
+                            PRUint8 aBoxSizing,
                             const nsStyleCoord& aCoord);
-
-  nscoord ComputeHeightValue(nscoord aContainingBlockHeight,
-                             uint8_t aBoxSizing,
-                             const nsStyleCoord& aCoord);
 };
 
 
@@ -297,14 +324,6 @@ public:
   const nsStylePadding*    mStylePadding;
   const nsStyleText*       mStyleText;
 
-  bool IsFloating() const {
-    return mStyleDisplay->IsFloating(frame);
-  }
-
-  uint8_t GetDisplay() const {
-    return mStyleDisplay->GetDisplay(frame);
-  }
-
   
   
   nsIPercentHeightObserver* mPercentHeightObserver;
@@ -318,40 +337,37 @@ public:
 
   
   
-  int16_t mReflowDepth;
+  PRInt16 mReflowDepth;
 
   struct ReflowStateFlags {
-    uint16_t mSpecialHeightReflow:1; 
+    PRUint16 mSpecialHeightReflow:1; 
                                      
-    uint16_t mNextInFlowUntouched:1; 
+    PRUint16 mNextInFlowUntouched:1; 
                                      
-    uint16_t mIsTopOfPage:1;         
+    PRUint16 mIsTopOfPage:1;         
                                      
                                      
                                      
-    uint16_t mBlinks:1;              
-    uint16_t mHasClearance:1;        
-    uint16_t mAssumingHScrollbar:1;  
+    PRUint16 mBlinks:1;              
+    PRUint16 mHasClearance:1;        
+    PRUint16 mAssumingHScrollbar:1;  
                                      
-    uint16_t mAssumingVScrollbar:1;  
-                                     
-
-    uint16_t mHResize:1;             
+    PRUint16 mAssumingVScrollbar:1;  
                                      
 
-    uint16_t mVResize:1;             
+    PRUint16 mHResize:1;             
+                                     
+
+    PRUint16 mVResize:1;             
                                      
                                      
                                      
                                      
-    uint16_t mTableIsSplittable:1;   
+    PRUint16 mTableIsSplittable:1;   
                                      
-    uint16_t mHeightDependsOnAncestorCell:1;   
+    PRUint16 mHeightDependsOnAncestorCell:1;   
                                                
-    uint16_t mIsColumnBalancing:1;   
-    uint16_t mDummyParentReflowState:1; 
-                                        
-                                        
+    
   } mFlags;
 
   
@@ -363,8 +379,7 @@ public:
   nsHTMLReflowState(nsPresContext*           aPresContext,
                     nsIFrame*                aFrame,
                     nsRenderingContext*     aRenderingContext,
-                    const nsSize&            aAvailableSpace,
-                    uint32_t                 aFlags = 0);
+                    const nsSize&            aAvailableSpace);
 
   
   
@@ -380,17 +395,12 @@ public:
                     bool                     aInit = true);
 
   
-  enum {
-    DUMMY_PARENT_REFLOW_STATE = (1<<0)
-  };
-
-  
   
   void Init(nsPresContext* aPresContext,
             nscoord         aContainingBlockWidth = -1,
             nscoord         aContainingBlockHeight = -1,
-            const nsMargin* aBorder = nullptr,
-            const nsMargin* aPadding = nullptr);
+            const nsMargin* aBorder = nsnull,
+            const nsMargin* aPadding = nsnull);
   
 
 
@@ -411,13 +421,8 @@ public:
 
 
 
-
-
-
-
   static nscoord CalcLineHeight(nsStyleContext* aStyleContext,
-                                nscoord aBlockHeight,
-                                float aFontSizeInflation);
+                                nscoord aBlockHeight);
 
 
   void ComputeContainingBlockRectangle(nsPresContext*          aPresContext,
@@ -429,22 +434,8 @@ public:
 
 
 
-  nscoord ApplyMinMaxWidth(nscoord aWidth) const {
-    if (NS_UNCONSTRAINEDSIZE != mComputedMaxWidth) {
-      aWidth = NS_MIN(aWidth, mComputedMaxWidth);
-    }
-    return NS_MAX(aWidth, mComputedMinWidth);
-  }
-  
 
-
-
-  nscoord ApplyMinMaxHeight(nscoord aHeight) const {
-    if (NS_UNCONSTRAINEDSIZE != mComputedMaxHeight) {
-      aHeight = NS_MIN(aHeight, mComputedMaxHeight);
-    }
-    return NS_MAX(aHeight, mComputedMinHeight);
-  }
+  void ApplyMinMaxConstraints(nscoord* aContentWidth, nscoord* aContentHeight) const;
 
   bool ShouldReflowAllKids() const {
     
@@ -480,13 +471,6 @@ public:
   bool WillReflowAgainForClearance() const {
     return mDiscoveredClearance && *mDiscoveredClearance;
   }
-
-  
-  static void ComputeRelativeOffsets(uint8_t aCBDirection,
-                                     nsIFrame* aFrame,
-                                     nscoord aContainingBlockWidth,
-                                     nscoord aContainingBlockHeight,
-                                     nsMargin& aComputedOffsets);
 
 #ifdef DEBUG
   
@@ -528,7 +512,7 @@ protected:
                                         nscoord& aCBWidth);
 
   void CalculateHypotheticalBox(nsPresContext*    aPresContext,
-                                nsIFrame*         aPlaceholderFrame,
+                                nsPlaceholderFrame* aPlaceholderFrame,
                                 nsIFrame*         aContainingBlock,
                                 nscoord           aBlockLeftContentEdge,
                                 nscoord           aBlockContentWidth,
@@ -541,6 +525,11 @@ protected:
                                nscoord aContainingBlockWidth,
                                nscoord aContainingBlockHeight,
                                nsIAtom* aFrameType);
+
+  void ComputeRelativeOffsets(const nsHTMLReflowState* cbrs,
+                              nscoord aContainingBlockWidth,
+                              nscoord aContainingBlockHeight,
+                              nsPresContext* aPresContext);
 
   
   

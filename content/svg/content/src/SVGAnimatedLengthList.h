@@ -3,16 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_SVGANIMATEDLENGTHLIST_H__
 #define MOZILLA_SVGANIMATEDLENGTHLIST_H__
 
-#include "nsAutoPtr.h"
-#include "nsISMILAttr.h"
 #include "SVGLengthList.h"
 
-class nsISMILAnimationElement;
-class nsSMILValue;
 class nsSVGElement;
+
+#ifdef MOZ_SMIL
+#include "nsISMILAttr.h"
+#endif 
 
 namespace mozilla {
 
@@ -52,7 +83,7 @@ public:
 
   nsresult SetBaseValueString(const nsAString& aValue);
 
-  void ClearBaseValue(uint32_t aAttrEnum);
+  void ClearBaseValue(PRUint32 aAttrEnum);
 
   const SVGLengthList& GetAnimValue() const {
     return mAnimVal ? *mAnimVal : mBaseVal;
@@ -60,18 +91,20 @@ public:
 
   nsresult SetAnimValue(const SVGLengthList& aValue,
                         nsSVGElement *aElement,
-                        uint32_t aAttrEnum);
+                        PRUint32 aAttrEnum);
 
   void ClearAnimValue(nsSVGElement *aElement,
-                      uint32_t aAttrEnum);
+                      PRUint32 aAttrEnum);
 
   bool IsAnimating() const {
     return !!mAnimVal;
   }
 
+#ifdef MOZ_SMIL
   
-  nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement, uint8_t aAttrEnum,
-                          uint8_t aAxis, bool aCanZeroPadList);
+  nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement, PRUint8 aAttrEnum,
+                          PRUint8 aAxis, bool aCanZeroPadList);
+#endif 
 
 private:
 
@@ -83,13 +116,14 @@ private:
   SVGLengthList mBaseVal;
   nsAutoPtr<SVGLengthList> mAnimVal;
 
+#ifdef MOZ_SMIL
   struct SMILAnimatedLengthList : public nsISMILAttr
   {
   public:
     SMILAnimatedLengthList(SVGAnimatedLengthList* aVal,
                            nsSVGElement* aSVGElement,
-                           uint8_t aAttrEnum,
-                           uint8_t aAxis,
+                           PRUint8 aAttrEnum,
+                           PRUint8 aAxis,
                            bool aCanZeroPadList)
       : mVal(aVal)
       , mElement(aSVGElement)
@@ -103,8 +137,8 @@ private:
     
     SVGAnimatedLengthList* mVal;
     nsSVGElement* mElement;
-    uint8_t mAttrEnum;
-    uint8_t mAxis;
+    PRUint8 mAttrEnum;
+    PRUint8 mAxis;
     bool mCanZeroPadList; 
 
     
@@ -116,6 +150,7 @@ private:
     virtual void ClearAnimValue();
     virtual nsresult SetAnimValue(const nsSMILValue& aValue);
   };
+#endif 
 };
 
 } 

@@ -3,9 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIDirectoryService.h"
-#include "nsIFile.h"
-#include "mozilla/Attributes.h"
+#include "nsILocalFile.h"
 
 class nsIFile;
 
@@ -13,7 +46,7 @@ class nsIFile;
 
 
 
-class nsAppFileLocationProvider MOZ_FINAL : public nsIDirectoryServiceProvider2
+class nsAppFileLocationProvider : public nsIDirectoryServiceProvider2
 {
 public:
                         nsAppFileLocationProvider();
@@ -26,7 +59,7 @@ private:
                         ~nsAppFileLocationProvider() {}
 
 protected:
-   NS_METHOD            CloneMozBinDirectory(nsIFile **aLocalFile);
+   NS_METHOD            CloneMozBinDirectory(nsILocalFile **aLocalFile);
    
 
 
@@ -34,14 +67,14 @@ protected:
 
 
 
-   NS_METHOD            GetProductDirectory(nsIFile **aLocalFile,
+   NS_METHOD            GetProductDirectory(nsILocalFile **aLocalFile,
                                             bool aLocal = false);
-   NS_METHOD            GetDefaultUserProfileRoot(nsIFile **aLocalFile,
+   NS_METHOD            GetDefaultUserProfileRoot(nsILocalFile **aLocalFile,
                                                   bool aLocal = false);
 
-#if defined(MOZ_WIDGET_COCOA)
+#if defined(XP_MACOSX)
    static bool          IsOSXLeopard();
 #endif
 
-   nsCOMPtr<nsIFile> mMozBinDirectory;
+   nsCOMPtr<nsILocalFile> mMozBinDirectory;
 };

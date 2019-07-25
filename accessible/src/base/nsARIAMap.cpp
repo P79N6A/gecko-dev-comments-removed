@@ -5,19 +5,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsARIAMap.h"
 
-#include "nsAccUtils.h"
-#include "nsCoreUtils.h"
-#include "Role.h"
+#include "nsIAccessibleRole.h"
 #include "States.h"
 
-#include "nsAttrName.h"
-#include "nsWhitespaceTokenizer.h"
+#include "nsIContent.h"
 
-using namespace mozilla;
 using namespace mozilla::a11y;
-using namespace mozilla::a11y::aria;
 
 
 
@@ -34,58 +61,57 @@ using namespace mozilla::a11y::aria;
 
 
 
-static nsRoleMapEntry sWAIRoleMaps[] =
+nsRoleMapEntry nsARIAMap::gWAIRoleMap[] = 
 {
-  { 
-    &nsGkAtoms::alert,
-    roles::ALERT,
+  {
+    "alert",
+    nsIAccessibleRole::ROLE_ALERT,
     kUseMapRole,
     eNoValue,
     eNoAction,
     eNoLiveAttr,
     kNoReqStates
   },
-  { 
-    &nsGkAtoms::alertdialog,
-    roles::DIALOG,
+  {
+    "alertdialog",
+    nsIAccessibleRole::ROLE_DIALOG,
     kUseMapRole,
     eNoValue,
     eNoAction,
     eNoLiveAttr,
     kNoReqStates
   },
-  { 
-    &nsGkAtoms::application,
-    roles::APPLICATION,
+  {
+    "application",
+    nsIAccessibleRole::ROLE_APPLICATION,
     kUseMapRole,
     eNoValue,
     eNoAction,
     eNoLiveAttr,
     kNoReqStates
   },
-  { 
-    &nsGkAtoms::article,
-    roles::DOCUMENT,
+  {
+    "article",
+    nsIAccessibleRole::ROLE_DOCUMENT,
     kUseMapRole,
     eNoValue,
     eNoAction,
     eNoLiveAttr,
-    kNoReqStates,
-    eReadonlyUntilEditable
+    states::READONLY
   },
-  { 
-    &nsGkAtoms::button,
-    roles::PUSHBUTTON,
+  {
+    "button",
+    nsIAccessibleRole::ROLE_PUSHBUTTON,
     kUseMapRole,
     eNoValue,
-    ePressAction,
+    eClickAction,
     eNoLiveAttr,
     kNoReqStates,
     eARIAPressed
   },
-  { 
-    &nsGkAtoms::checkbox,
-    roles::CHECKBUTTON,
+  {
+    "checkbox",
+    nsIAccessibleRole::ROLE_CHECKBUTTON,
     kUseMapRole,
     eNoValue,
     eCheckUncheckAction,
@@ -94,9 +120,9 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eARIACheckableMixed,
     eARIAReadonly
   },
-  { 
-    &nsGkAtoms::columnheader,
-    roles::COLUMNHEADER,
+  {
+    "columnheader",
+    nsIAccessibleRole::ROLE_COLUMNHEADER,
     kUseMapRole,
     eNoValue,
     eSortAction,
@@ -105,57 +131,47 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eARIASelectable,
     eARIAReadonly
   },
-  { 
-    &nsGkAtoms::combobox,
-    roles::COMBOBOX,
+  {
+    "combobox",
+    nsIAccessibleRole::ROLE_COMBOBOX,
     kUseMapRole,
-    eNoValue,
+    eHasValueMinMax,
     eOpenCloseAction,
     eNoLiveAttr,
     states::COLLAPSED | states::HASPOPUP,
     eARIAAutoComplete,
     eARIAReadonly
   },
-  { 
-    &nsGkAtoms::dialog,
-    roles::DIALOG,
+  {
+    "dialog",
+    nsIAccessibleRole::ROLE_DIALOG,
     kUseMapRole,
     eNoValue,
     eNoAction,
     eNoLiveAttr,
     kNoReqStates
   },
-  { 
-    &nsGkAtoms::directory,
-    roles::LIST,
+  {
+    "directory",
+    nsIAccessibleRole::ROLE_LIST,
     kUseMapRole,
     eNoValue,
     eNoAction,
     eNoLiveAttr,
     kNoReqStates
   },
-  { 
-    &nsGkAtoms::document,
-    roles::DOCUMENT,
+  {
+    "document",
+    nsIAccessibleRole::ROLE_DOCUMENT,
     kUseMapRole,
     eNoValue,
     eNoAction,
     eNoLiveAttr,
-    kNoReqStates,
-    eReadonlyUntilEditable
+    states::READONLY
   },
-  { 
-    &nsGkAtoms::form,
-    roles::FORM,
-    kUseMapRole,
-    eNoValue,
-    eNoAction,
-    eNoLiveAttr,
-    kNoReqStates
-  },
-  { 
-    &nsGkAtoms::grid,
-    roles::TABLE,
+  {
+    "grid",
+    nsIAccessibleRole::ROLE_TABLE,
     kUseMapRole,
     eNoValue,
     eNoAction,
@@ -164,9 +180,9 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eARIAMultiSelectable,
     eARIAReadonly
   },
-  { 
-    &nsGkAtoms::gridcell,
-    roles::GRID_CELL,
+  {
+    "gridcell",
+    nsIAccessibleRole::ROLE_GRID_CELL,
     kUseMapRole,
     eNoValue,
     eNoAction,
@@ -175,54 +191,64 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eARIASelectable,
     eARIAReadonly
   },
-  { 
-    &nsGkAtoms::group,
-    roles::GROUPING,
+  {
+    "group",
+    nsIAccessibleRole::ROLE_GROUPING,
     kUseMapRole,
     eNoValue,
     eNoAction,
     eNoLiveAttr,
     kNoReqStates
   },
-  { 
-    &nsGkAtoms::heading,
-    roles::HEADING,
+  {
+    "heading",
+    nsIAccessibleRole::ROLE_HEADING,
     kUseMapRole,
     eNoValue,
     eNoAction,
     eNoLiveAttr,
     kNoReqStates
   },
-  { 
-    &nsGkAtoms::img,
-    roles::GRAPHIC,
+  {
+    "img",
+    nsIAccessibleRole::ROLE_GRAPHIC,
     kUseMapRole,
     eNoValue,
     eNoAction,
     eNoLiveAttr,
     kNoReqStates
   },
-  { 
-    &nsGkAtoms::link,
-    roles::LINK,
+  {
+    "label",
+    nsIAccessibleRole::ROLE_LABEL,
+    kUseMapRole,
+    eNoValue,
+    eNoAction,
+    eNoLiveAttr,
+    kNoReqStates
+  },
+  {
+    "link",
+    nsIAccessibleRole::ROLE_LINK,
     kUseMapRole,
     eNoValue,
     eJumpAction,
     eNoLiveAttr,
     states::LINKED
   },
-  { 
-    &nsGkAtoms::list,
-    roles::LIST,
+  {
+    "list",
+    nsIAccessibleRole::ROLE_LIST,
     kUseMapRole,
     eNoValue,
     eNoAction,
     eNoLiveAttr,
-    states::READONLY
+    states::READONLY,
+    eARIAMultiSelectable
   },
-  { 
-    &nsGkAtoms::listbox,
-    roles::LISTBOX,
+  {
+    "listbox",
+    nsIAccessibleRole::ROLE_LISTBOX,
     kUseMapRole,
     eNoValue,
     eNoAction,
@@ -231,45 +257,47 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eARIAMultiSelectable,
     eARIAReadonly
   },
-  { 
-    &nsGkAtoms::listitem,
-    roles::LISTITEM,
+  {
+    "listitem",
+    nsIAccessibleRole::ROLE_LISTITEM,
     kUseMapRole,
     eNoValue,
     eNoAction, 
     eNoLiveAttr,
-    states::READONLY
+    states::READONLY,
+    eARIASelectable,
+    eARIACheckedMixed
   },
-  { 
-    &nsGkAtoms::log_,
-    roles::NOTHING,
+  {
+    "log",
+    nsIAccessibleRole::ROLE_NOTHING,
     kUseNativeRole,
     eNoValue,
     eNoAction,
     ePoliteLiveAttr,
     kNoReqStates
   },
-  { 
-    &nsGkAtoms::marquee,
-    roles::ANIMATION,
+  {
+    "marquee",
+    nsIAccessibleRole::ROLE_ANIMATION,
     kUseMapRole,
     eNoValue,
     eNoAction,
     eOffLiveAttr,
     kNoReqStates
   },
-  { 
-    &nsGkAtoms::math,
-    roles::FLAT_EQUATION,
+  {
+    "math",
+    nsIAccessibleRole::ROLE_FLAT_EQUATION,
     kUseMapRole,
     eNoValue,
     eNoAction,
     eNoLiveAttr,
     kNoReqStates
   },
-  { 
-    &nsGkAtoms::menu,
-    roles::MENUPOPUP,
+  {
+    "menu",
+    nsIAccessibleRole::ROLE_MENUPOPUP,
     kUseMapRole,
     eNoValue,
     eNoAction, 
@@ -277,18 +305,18 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eNoLiveAttr,
     kNoReqStates
   },
-  { 
-    &nsGkAtoms::menubar,
-    roles::MENUBAR,
+  {
+    "menubar",
+    nsIAccessibleRole::ROLE_MENUBAR,
     kUseMapRole,
     eNoValue,
     eNoAction,
     eNoLiveAttr,
     kNoReqStates
   },
-  { 
-    &nsGkAtoms::menuitem,
-    roles::MENUITEM,
+  {
+    "menuitem",
+    nsIAccessibleRole::ROLE_MENUITEM,
     kUseMapRole,
     eNoValue,
     eClickAction,
@@ -296,9 +324,9 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     kNoReqStates,
     eARIACheckedMixed
   },
-  { 
-    &nsGkAtoms::menuitemcheckbox,
-    roles::CHECK_MENU_ITEM,
+  {
+    "menuitemcheckbox",
+    nsIAccessibleRole::ROLE_CHECK_MENU_ITEM,
     kUseMapRole,
     eNoValue,
     eClickAction,
@@ -306,9 +334,9 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     kNoReqStates,
     eARIACheckableMixed
   },
-  { 
-    &nsGkAtoms::menuitemradio,
-    roles::RADIO_MENU_ITEM,
+  {
+    "menuitemradio",
+    nsIAccessibleRole::ROLE_RADIO_MENU_ITEM,
     kUseMapRole,
     eNoValue,
     eClickAction,
@@ -316,18 +344,9 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     kNoReqStates,
     eARIACheckableBool
   },
-  { 
-    &nsGkAtoms::note_,
-    roles::NOTE,
-    kUseMapRole,
-    eNoValue,
-    eNoAction,
-    eNoLiveAttr,
-    kNoReqStates
-  },
-  { 
-    &nsGkAtoms::option,
-    roles::OPTION,
+  {
+    "option",
+    nsIAccessibleRole::ROLE_OPTION,
     kUseMapRole,
     eNoValue,
     eSelectAction,
@@ -336,28 +355,27 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eARIASelectable,
     eARIACheckedMixed
   },
-  { 
-    &nsGkAtoms::presentation,
-    roles::NOTHING,
+  {
+    "presentation",
+    nsIAccessibleRole::ROLE_NOTHING,
     kUseMapRole,
     eNoValue,
     eNoAction,
     eNoLiveAttr,
     kNoReqStates
   },
-  { 
-    &nsGkAtoms::progressbar,
-    roles::PROGRESSBAR,
+  {
+    "progressbar",
+    nsIAccessibleRole::ROLE_PROGRESSBAR,
     kUseMapRole,
     eHasValueMinMax,
     eNoAction,
     eNoLiveAttr,
-    states::READONLY,
-    eIndeterminateIfNoValue
+    states::READONLY
   },
-  { 
-    &nsGkAtoms::radio,
-    roles::RADIOBUTTON,
+  {
+    "radio",
+    nsIAccessibleRole::ROLE_RADIOBUTTON,
     kUseMapRole,
     eNoValue,
     eSelectAction,
@@ -365,27 +383,27 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     kNoReqStates,
     eARIACheckableBool
   },
-  { 
-    &nsGkAtoms::radiogroup,
-    roles::GROUPING,
+  {
+    "radiogroup",
+    nsIAccessibleRole::ROLE_GROUPING,
     kUseMapRole,
     eNoValue,
     eNoAction,
     eNoLiveAttr,
     kNoReqStates
   },
-  { 
-    &nsGkAtoms::region,
-    roles::PANE,
+  {
+    "region",
+    nsIAccessibleRole::ROLE_PANE,
     kUseMapRole,
     eNoValue,
     eNoAction,
     eNoLiveAttr,
     kNoReqStates
   },
-  { 
-    &nsGkAtoms::row,
-    roles::ROW,
+  {
+    "row",
+    nsIAccessibleRole::ROLE_ROW,
     kUseMapRole,
     eNoValue,
     eNoAction,
@@ -393,9 +411,9 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     kNoReqStates,
     eARIASelectable
   },
-  { 
-    &nsGkAtoms::rowheader,
-    roles::ROWHEADER,
+  {
+    "rowheader",
+    nsIAccessibleRole::ROLE_ROWHEADER,
     kUseMapRole,
     eNoValue,
     eSortAction,
@@ -404,9 +422,9 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eARIASelectable,
     eARIAReadonly
   },
-  { 
-    &nsGkAtoms::scrollbar,
-    roles::SCROLLBAR,
+  {
+    "scrollbar",
+    nsIAccessibleRole::ROLE_SCROLLBAR,
     kUseMapRole,
     eHasValueMinMax,
     eNoAction,
@@ -415,30 +433,18 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eARIAOrientation,
     eARIAReadonly
   },
-  { 
-    &nsGkAtoms::separator_,
-    roles::SEPARATOR,
+  {
+    "separator",
+    nsIAccessibleRole::ROLE_SEPARATOR,
     kUseMapRole,
     eNoValue,
     eNoAction,
     eNoLiveAttr,
-    kNoReqStates,
-    eARIAOrientation
+    kNoReqStates
   },
-  { 
-    &nsGkAtoms::slider,
-    roles::SLIDER,
-    kUseMapRole,
-    eHasValueMinMax,
-    eNoAction,
-    eNoLiveAttr,
-    kNoReqStates,
-    eARIAOrientation,
-    eARIAReadonly
-  },
-  { 
-    &nsGkAtoms::spinbutton,
-    roles::SPINBUTTON,
+  {
+    "slider",
+    nsIAccessibleRole::ROLE_SLIDER,
     kUseMapRole,
     eHasValueMinMax,
     eNoAction,
@@ -446,18 +452,28 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     kNoReqStates,
     eARIAReadonly
   },
-  { 
-    &nsGkAtoms::status,
-    roles::STATUSBAR,
+  {
+    "spinbutton",
+    nsIAccessibleRole::ROLE_SPINBUTTON,
+    kUseMapRole,
+    eHasValueMinMax,
+    eNoAction,
+    eNoLiveAttr,
+    kNoReqStates,
+    eARIAReadonly
+  },
+  {
+    "status",
+    nsIAccessibleRole::ROLE_STATUSBAR,
     kUseMapRole,
     eNoValue,
     eNoAction,
     ePoliteLiveAttr,
     kNoReqStates
   },
-  { 
-    &nsGkAtoms::tab,
-    roles::PAGETAB,
+  {
+    "tab",
+    nsIAccessibleRole::ROLE_PAGETAB,
     kUseMapRole,
     eNoValue,
     eSwitchAction,
@@ -465,27 +481,27 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     kNoReqStates,
     eARIASelectable
   },
-  { 
-    &nsGkAtoms::tablist,
-    roles::PAGETABLIST,
+  {
+    "tablist",
+    nsIAccessibleRole::ROLE_PAGETABLIST,
     kUseMapRole,
     eNoValue,
     eNoAction,
     ePoliteLiveAttr,
     kNoReqStates
   },
-  { 
-    &nsGkAtoms::tabpanel,
-    roles::PROPERTYPAGE,
+  {
+    "tabpanel",
+    nsIAccessibleRole::ROLE_PROPERTYPAGE,
     kUseMapRole,
     eNoValue,
     eNoAction,
     eNoLiveAttr,
     kNoReqStates
   },
-  { 
-    &nsGkAtoms::textbox,
-    roles::ENTRY,
+  {
+    "textbox",
+    nsIAccessibleRole::ROLE_ENTRY,
     kUseMapRole,
     eNoValue,
     eActivateAction,
@@ -495,36 +511,36 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eARIAMultiline,
     eARIAReadonlyOrEditable
   },
-  { 
-    &nsGkAtoms::timer,
-    roles::NOTHING,
+  {
+    "timer",
+    nsIAccessibleRole::ROLE_NOTHING,
     kUseNativeRole,
     eNoValue,
     eNoAction,
     eOffLiveAttr,
     kNoReqStates
   },
-  { 
-    &nsGkAtoms::toolbar,
-    roles::TOOLBAR,
+  {
+    "toolbar",
+    nsIAccessibleRole::ROLE_TOOLBAR,
     kUseMapRole,
     eNoValue,
     eNoAction,
     eNoLiveAttr,
     kNoReqStates
   },
-  { 
-    &nsGkAtoms::tooltip,
-    roles::TOOLTIP,
+  {
+    "tooltip",
+    nsIAccessibleRole::ROLE_TOOLTIP,
     kUseMapRole,
     eNoValue,
     eNoAction,
     eNoLiveAttr,
     kNoReqStates
   },
-  { 
-    &nsGkAtoms::tree,
-    roles::OUTLINE,
+  {
+    "tree",
+    nsIAccessibleRole::ROLE_OUTLINE,
     kUseMapRole,
     eNoValue,
     eNoAction,
@@ -533,9 +549,9 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eARIAReadonly,
     eARIAMultiSelectable
   },
-  { 
-    &nsGkAtoms::treegrid,
-    roles::TREE_TABLE,
+  {
+    "treegrid",
+    nsIAccessibleRole::ROLE_TREE_TABLE,
     kUseMapRole,
     eNoValue,
     eNoAction,
@@ -544,9 +560,9 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eARIAReadonly,
     eARIAMultiSelectable
   },
-  { 
-    &nsGkAtoms::treeitem,
-    roles::OUTLINEITEM,
+  {
+    "treeitem",
+    nsIAccessibleRole::ROLE_OUTLINEITEM,
     kUseMapRole,
     eNoValue,
     eActivateAction, 
@@ -558,9 +574,11 @@ static nsRoleMapEntry sWAIRoleMaps[] =
   }
 };
 
-static nsRoleMapEntry sLandmarkRoleMap = {
-  &nsGkAtoms::_empty,
-  roles::NOTHING,
+PRUint32 nsARIAMap::gWAIRoleMapLength = NS_ARRAY_LENGTH(nsARIAMap::gWAIRoleMap);
+
+nsRoleMapEntry nsARIAMap::gLandmarkRoleMap = {
+  "",
+  nsIAccessibleRole::ROLE_NOTHING,
   kUseNativeRole,
   eNoValue,
   eNoAction,
@@ -569,8 +587,8 @@ static nsRoleMapEntry sLandmarkRoleMap = {
 };
 
 nsRoleMapEntry nsARIAMap::gEmptyRoleMap = {
-  &nsGkAtoms::_empty,
-  roles::NOTHING,
+  "",
+  nsIAccessibleRole::ROLE_NOTHING,
   kUseMapRole,
   eNoValue,
   eNoAction,
@@ -578,12 +596,89 @@ nsRoleMapEntry nsARIAMap::gEmptyRoleMap = {
   kNoReqStates
 };
 
+nsStateMapEntry nsARIAMap::gWAIStateMap[] = {
+  
+  nsStateMapEntry(),
+
+  
+  nsStateMapEntry(&nsGkAtoms::aria_autocomplete,
+                  "inline", states::SUPPORTS_AUTOCOMPLETION,
+                  "list", states::HASPOPUP | states::SUPPORTS_AUTOCOMPLETION,
+                  "both", states::HASPOPUP | states::SUPPORTS_AUTOCOMPLETION),
+
+  
+  nsStateMapEntry(&nsGkAtoms::aria_busy,
+                  "true", states::BUSY,
+                  "error", states::INVALID),
+
+  
+  nsStateMapEntry(&nsGkAtoms::aria_checked, kBoolType,
+                  states::CHECKABLE, states::CHECKED, 0, PR_TRUE),
+
+  
+  nsStateMapEntry(&nsGkAtoms::aria_checked, kMixedType,
+                  states::CHECKABLE, states::CHECKED, 0, PR_TRUE),
+
+  
+  nsStateMapEntry(&nsGkAtoms::aria_checked, kMixedType,
+                  states::CHECKABLE, states::CHECKED, 0),
+
+  
+  nsStateMapEntry(&nsGkAtoms::aria_disabled, kBoolType,
+                  0, states::UNAVAILABLE),
+
+  
+  nsStateMapEntry(&nsGkAtoms::aria_expanded, kBoolType,
+                  0, states::EXPANDED, states::COLLAPSED),
+
+  
+  nsStateMapEntry(&nsGkAtoms::aria_haspopup, kBoolType,
+                  0, states::HASPOPUP),
+
+  
+  nsStateMapEntry(&nsGkAtoms::aria_invalid, kBoolType,
+                  0, states::INVALID),
+
+  
+  nsStateMapEntry(&nsGkAtoms::aria_multiline, kBoolType,
+                  0, states::MULTI_LINE, states::SINGLE_LINE, PR_TRUE),
+
+  
+  nsStateMapEntry(&nsGkAtoms::aria_multiselectable, kBoolType,
+                  0, states::MULTISELECTABLE | states::EXTSELECTABLE),
+
+  
+  nsStateMapEntry(&nsGkAtoms::aria_orientation, eUseFirstState,
+                  "vertical", states::VERTICAL,
+                  "horizontal", states::HORIZONTAL),
+
+  
+  nsStateMapEntry(&nsGkAtoms::aria_pressed, kMixedType,
+                  states::CHECKABLE, states::PRESSED),
+
+  
+  nsStateMapEntry(&nsGkAtoms::aria_readonly, kBoolType,
+                  0, states::READONLY),
+
+  
+  nsStateMapEntry(&nsGkAtoms::aria_readonly, kBoolType,
+                  0, states::READONLY, states::EDITABLE, PR_TRUE),
+
+  
+  nsStateMapEntry(&nsGkAtoms::aria_required, kBoolType,
+                  0, states::REQUIRED),
+
+  
+  nsStateMapEntry(&nsGkAtoms::aria_selected, kBoolType,
+                  states::SELECTABLE, states::SELECTED, 0, PR_TRUE)
+};
 
 
 
 
 
-static const EStateRule sWAIUnivStateMap[] = {
+
+eStateMapEntryID nsARIAMap::gWAIUnivStateMap[] = {
   eARIABusy,
   eARIADisabled,
   eARIAExpanded,  
@@ -636,88 +731,156 @@ nsAttributeCharacteristics nsARIAMap::gWAIUnivAttrMap[] = {
   {&nsGkAtoms::aria_valuetext,         ATTR_BYPASSOBJ                 }
 };
 
-uint32_t
-nsARIAMap::gWAIUnivAttrMapLength = NS_ARRAY_LENGTH(nsARIAMap::gWAIUnivAttrMap);
+PRUint32 nsARIAMap::gWAIUnivAttrMapLength = NS_ARRAY_LENGTH(nsARIAMap::gWAIUnivAttrMap);
 
-nsRoleMapEntry*
-aria::GetRoleMap(nsINode* aNode)
+
+
+
+
+nsStateMapEntry::nsStateMapEntry() :
+  mAttributeName(nsnull),
+  mIsToken(PR_FALSE),
+  mPermanentState(0),
+  mValue1(nsnull),
+  mState1(0),
+  mValue2(nsnull),
+  mState2(0),
+  mValue3(nsnull),
+  mState3(0),
+  mDefaultState(0),
+  mDefinedIfAbsent(PR_FALSE)
+{}
+
+nsStateMapEntry::nsStateMapEntry(nsIAtom** aAttrName, eStateValueType aType,
+                                 PRUint64 aPermanentState,
+                                 PRUint64 aTrueState,
+                                 PRUint64 aFalseState,
+                                 bool aDefinedIfAbsent) :
+  mAttributeName(aAttrName),
+  mIsToken(PR_TRUE),
+  mPermanentState(aPermanentState),
+  mValue1("false"),
+  mState1(aFalseState),
+  mValue2(nsnull),
+  mState2(0),
+  mValue3(nsnull),
+  mState3(0),
+  mDefaultState(aTrueState),
+  mDefinedIfAbsent(aDefinedIfAbsent)
 {
-  nsIContent* content = nsCoreUtils::GetRoleContent(aNode);
-  nsAutoString roles;
-  if (!content ||
-      !content->GetAttr(kNameSpaceID_None, nsGkAtoms::role, roles) ||
-      roles.IsEmpty()) {
-    
-    return nullptr;
+  if (aType == kMixedType) {
+    mValue2 = "mixed";
+    mState2 = states::MIXED;
   }
-
-  nsWhitespaceTokenizer tokenizer(roles);
-  while (tokenizer.hasMoreTokens()) {
-    
-    const nsDependentSubstring role = tokenizer.nextToken();
-    uint32_t low = 0;
-    uint32_t high = ArrayLength(sWAIRoleMaps);
-    while (low < high) {
-      uint32_t idx = (low + high) / 2;
-      int32_t compare = Compare(role, sWAIRoleMaps[idx].ARIARoleString());
-      if (compare == 0)
-        return sWAIRoleMaps + idx;
-
-      if (compare < 0)
-        high = idx;
-      else
-        low = idx + 1;
-    }
-  }
-
-  
-  
-  return &sLandmarkRoleMap;
 }
 
-uint64_t
-aria::UniversalStatesFor(mozilla::dom::Element* aElement)
+nsStateMapEntry::nsStateMapEntry(nsIAtom** aAttrName,
+                                 const char* aValue1, PRUint64 aState1,
+                                 const char* aValue2, PRUint64 aState2,
+                                 const char* aValue3, PRUint64 aState3) :
+  mAttributeName(aAttrName), mIsToken(PR_FALSE), mPermanentState(0),
+  mValue1(aValue1), mState1(aState1),
+  mValue2(aValue2), mState2(aState2),
+  mValue3(aValue3), mState3(aState3),
+  mDefaultState(0), mDefinedIfAbsent(PR_FALSE)
 {
-  uint64_t state = 0;
-  uint32_t index = 0;
-  while (MapToState(sWAIUnivStateMap[index], aElement, &state))
-    index++;
-
-  return state;
 }
 
-
-
+nsStateMapEntry::nsStateMapEntry(nsIAtom** aAttrName,
+                                 EDefaultStateRule aDefaultStateRule,
+                                 const char* aValue1, PRUint64 aState1,
+                                 const char* aValue2, PRUint64 aState2,
+                                 const char* aValue3, PRUint64 aState3) :
+  mAttributeName(aAttrName), mIsToken(PR_TRUE), mPermanentState(0),
+  mValue1(aValue1), mState1(aState1),
+  mValue2(aValue2), mState2(aState2),
+  mValue3(aValue3), mState3(aState3),
+  mDefaultState(0), mDefinedIfAbsent(PR_TRUE)
+{
+  if (aDefaultStateRule == eUseFirstState)
+    mDefaultState = aState1;
+}
 
 bool
-AttrIterator::Next(nsAString& aAttrName, nsAString& aAttrValue)
+nsStateMapEntry::MapToStates(nsIContent* aContent, PRUint64* aState,
+                             eStateMapEntryID aStateMapEntryID)
 {
-  while (mAttrIdx < mAttrCount) {
-    const nsAttrName* attr = mContent->GetAttrNameAt(mAttrIdx);
-    mAttrIdx++;
-    if (attr->NamespaceEquals(kNameSpaceID_None)) {
-      nsIAtom* attrAtom = attr->Atom();
-      nsDependentAtomString attrStr(attrAtom);
-      if (!StringBeginsWith(attrStr, NS_LITERAL_STRING("aria-")))
-        continue; 
+  
+  if (aStateMapEntryID == eARIANone)
+    return PR_FALSE;
 
-      uint8_t attrFlags = nsAccUtils::GetAttributeCharacteristics(attrAtom);
-      if (attrFlags & ATTR_BYPASSOBJ)
-        continue; 
+  const nsStateMapEntry& entry = nsARIAMap::gWAIStateMap[aStateMapEntryID];
 
-      if ((attrFlags & ATTR_VALTOKEN) &&
-           !nsAccUtils::HasDefinedARIAToken(mContent, attrAtom))
-        continue; 
+  if (entry.mIsToken) {
+    
+    
+    bool hasAttr = aContent->HasAttr(kNameSpaceID_None, *entry.mAttributeName);
+    if (entry.mDefinedIfAbsent && !hasAttr) {
+      if (entry.mPermanentState)
+        *aState |= entry.mPermanentState;
+      if (entry.mState1)
+        *aState |= entry.mState1;
+      return PR_TRUE;
+    }
 
-      nsAutoString value;
-      if (mContent->GetAttr(kNameSpaceID_None, attrAtom, value)) {
-        aAttrName.Assign(Substring(attrStr, 5));
-        aAttrValue.Assign(value);
-        return true;
+    
+    
+    
+    
+    
+    
+    
+    if (!hasAttr ||
+        aContent->AttrValueIs(kNameSpaceID_None, *entry.mAttributeName,
+                              nsGkAtoms::_empty, eCaseMatters) ||
+        aContent->AttrValueIs(kNameSpaceID_None, *entry.mAttributeName,
+                              nsGkAtoms::_undefined, eCaseMatters)) {
+
+      if (entry.mPermanentState)
+        *aState &= ~entry.mPermanentState;
+      return PR_TRUE;
+    }
+
+    if (entry.mPermanentState)
+      *aState |= entry.mPermanentState;
+  }
+
+  nsAutoString attrValue;
+  if (!aContent->GetAttr(kNameSpaceID_None, *entry.mAttributeName, attrValue))
+    return PR_TRUE;
+
+  
+  
+  bool applyDefaultStates = true;
+  if (entry.mValue1) {
+    if (attrValue.EqualsASCII(entry.mValue1)) {
+      applyDefaultStates = PR_FALSE;
+
+      if (entry.mState1)
+        *aState |= entry.mState1;
+    } else if (entry.mValue2) {
+      if (attrValue.EqualsASCII(entry.mValue2)) {
+        applyDefaultStates = PR_FALSE;
+
+        if (entry.mState2)
+          *aState |= entry.mState2;
+
+      } else if (entry.mValue3) {
+        if (attrValue.EqualsASCII(entry.mValue3)) {
+          applyDefaultStates = PR_FALSE;
+
+          if (entry.mState3)
+            *aState |= entry.mState3;
+
+        }
       }
     }
   }
 
-  return false;
-}
+  if (applyDefaultStates) {
+    if (entry.mDefaultState)
+      *aState |= entry.mDefaultState;
+  }
 
+  return PR_TRUE;
+}

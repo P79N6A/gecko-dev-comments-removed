@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsHTMLParts_h___
 #define nsHTMLParts_h___
 
@@ -42,47 +74,32 @@ class nsTableColFrame;
 
 
 
-
-
-
-
 #define NS_BLOCK_MARGIN_ROOT              NS_FRAME_STATE_BIT(22)
 #define NS_BLOCK_FLOAT_MGR                NS_FRAME_STATE_BIT(23)
 #define NS_BLOCK_CLIP_PAGINATED_OVERFLOW  NS_FRAME_STATE_BIT(28)
 #define NS_BLOCK_HAS_FIRST_LETTER_STYLE   NS_FRAME_STATE_BIT(29)
 #define NS_BLOCK_FRAME_HAS_OUTSIDE_BULLET NS_FRAME_STATE_BIT(30)
 #define NS_BLOCK_HAS_FIRST_LETTER_CHILD   NS_FRAME_STATE_BIT(31)
-#define NS_BLOCK_FRAME_HAS_INSIDE_BULLET  NS_FRAME_STATE_BIT(63)
 
 
-
-#define NS_BLOCK_FLAGS_MASK (NS_BLOCK_MARGIN_ROOT              | \
-                             NS_BLOCK_FLOAT_MGR                | \
-                             NS_BLOCK_CLIP_PAGINATED_OVERFLOW  | \
-                             NS_BLOCK_HAS_FIRST_LETTER_STYLE   | \
-                             NS_BLOCK_FRAME_HAS_OUTSIDE_BULLET | \
-                             NS_BLOCK_HAS_FIRST_LETTER_CHILD   | \
-                             NS_BLOCK_FRAME_HAS_INSIDE_BULLET)
-
-
-
-
-#define NS_BLOCK_FLAGS_NON_INHERITED_MASK                        \
-                            (NS_BLOCK_FRAME_HAS_OUTSIDE_BULLET | \
-                             NS_BLOCK_HAS_FIRST_LETTER_CHILD   | \
-                             NS_BLOCK_FRAME_HAS_INSIDE_BULLET)
+#define NS_BLOCK_FLAGS_MASK               (NS_BLOCK_MARGIN_ROOT | \
+                                           NS_BLOCK_FLOAT_MGR | \
+                                           NS_BLOCK_CLIP_PAGINATED_OVERFLOW | \
+                                           NS_BLOCK_HAS_FIRST_LETTER_STYLE | \
+                                           NS_BLOCK_FRAME_HAS_OUTSIDE_BULLET | \
+                                           NS_BLOCK_HAS_FIRST_LETTER_CHILD)
 
 
 
 
 nsIFrame*
-NS_NewBlockFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, uint32_t aFlags = 0);
+NS_NewBlockFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, PRUint32 aFlags = 0);
 
 
 
 nsresult
 NS_NewAttributeContent(nsNodeInfoManager *aNodeInfoManager,
-                       int32_t aNameSpaceID, nsIAtom* aAttrName,
+                       PRInt32 aNameSpaceID, nsIAtom* aAttrName,
                        nsIContent** aResult);
 
 
@@ -90,7 +107,7 @@ NS_NewAttributeContent(nsNodeInfoManager *aNodeInfoManager,
 
 
 nsIFrame*
-NS_NewSelectsAreaFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, uint32_t aFlags);
+NS_NewSelectsAreaFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, PRUint32 aFlags);
 
 
 inline nsIFrame* NS_NewBlockFormattingContext(nsIPresShell* aPresShell,
@@ -135,7 +152,7 @@ NS_NewWBRFrame(nsIPresShell* aPresShell, nsStyleContext* aContext) {
 }
 
 nsIFrame*
-NS_NewColumnSetFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, uint32_t aStateFlags);
+NS_NewColumnSetFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, PRUint32 aStateFlags);
 
 nsIFrame*
 NS_NewSimplePageSequenceFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
@@ -184,11 +201,9 @@ NS_NewNativeSelectControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContex
 nsIFrame*
 NS_NewListControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsIFrame*
-NS_NewComboboxControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, uint32_t aFlags);
+NS_NewComboboxControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, PRUint32 aFlags);
 nsIFrame*
 NS_NewProgressFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
-nsIFrame*
-NS_NewMeterFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
 
 nsIFrame*

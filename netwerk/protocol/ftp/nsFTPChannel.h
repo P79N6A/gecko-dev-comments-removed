@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsFTPChannel_h___
 #define nsFTPChannel_h___
 
@@ -28,7 +62,6 @@
 #include "nsIResumableChannel.h"
 #include "nsHashPropertyBag.h"
 #include "nsFtpProtocolHandler.h"
-#include "nsNetUtil.h"
 
 class nsFtpChannel : public nsBaseChannel,
                      public nsIFTPChannel,
@@ -45,7 +78,7 @@ public:
     nsFtpChannel(nsIURI *uri, nsIProxyInfo *pi)
         : mProxyInfo(pi)
         , mStartPos(0)
-        , mResumeRequested(false)
+        , mResumeRequested(PR_FALSE)
         , mLastModifiedTime(0)
     {
         SetURI(uri);
@@ -59,7 +92,7 @@ public:
     bool ResumeRequested() { return mResumeRequested; }
 
     
-    uint64_t StartPos() { return mStartPos; }
+    PRUint64 StartPos() { return mStartPos; }
 
     
     const nsCString &EntityID() {
@@ -98,7 +131,7 @@ private:
     nsCOMPtr<nsIProxyInfo>    mProxyInfo; 
     nsCOMPtr<nsIFTPEventSink> mFTPEventSink;
     nsCOMPtr<nsIInputStream>  mUploadStream;
-    uint64_t                  mStartPos;
+    PRUint64                  mStartPos;
     nsCString                 mEntityID;
     bool                      mResumeRequested;
     PRTime                    mLastModifiedTime;

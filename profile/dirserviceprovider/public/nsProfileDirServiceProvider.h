@@ -4,8 +4,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIDirectoryService.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 
 #include "nsCOMPtr.h"
 #include "nsDirectoryServiceUtils.h"
@@ -48,7 +81,7 @@ public:
 
 
    virtual nsresult        SetProfileDir(nsIFile* aProfileDir,
-                                         nsIFile* aLocalProfileDir = nullptr);
+                                         nsIFile* aLocalProfileDir = nsnull);
 
   
 

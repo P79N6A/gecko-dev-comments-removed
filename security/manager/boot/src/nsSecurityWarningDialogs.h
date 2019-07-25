@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsSecurityWarningDialogs_h
 #define nsSecurityWarningDialogs_h
 
@@ -27,11 +60,10 @@ protected:
   nsresult AlertDialog(nsIInterfaceRequestor *ctx, const char *prefName,
                    const PRUnichar *messageName,
                    const PRUnichar *showAgainName,
-                   bool aAsync, const uint32_t aBucket);
+                   bool aAsync);
   nsresult ConfirmDialog(nsIInterfaceRequestor *ctx, const char *prefName,
                    const PRUnichar *messageName, 
-                   const PRUnichar *showAgainName, const uint32_t aBucket,
-                   bool* _result);
+                   const PRUnichar *showAgainName, bool* _result);
   nsCOMPtr<nsIStringBundle> mStringBundle;
   nsCOMPtr<nsIPrefBranch> mPrefBranch;
 };

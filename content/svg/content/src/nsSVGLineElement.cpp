@@ -3,15 +3,45 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsSVGPathGeometryElement.h"
 #include "nsIDOMSVGLineElement.h"
 #include "nsSVGLength2.h"
 #include "nsGkAtoms.h"
 #include "gfxContext.h"
-
-using namespace mozilla;
 
 typedef nsSVGPathGeometryElement nsSVGLineElementBase;
 
@@ -44,8 +74,6 @@ public:
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 protected:
 
   virtual LengthAttributesInfo GetLengthInfo();
@@ -74,9 +102,8 @@ NS_IMPL_RELEASE_INHERITED(nsSVGLineElement,nsSVGLineElementBase)
 DOMCI_NODE_DATA(SVGLineElement, nsSVGLineElement)
 
 NS_INTERFACE_TABLE_HEAD(nsSVGLineElement)
-  NS_NODE_INTERFACE_TABLE5(nsSVGLineElement, nsIDOMNode, nsIDOMElement,
-                           nsIDOMSVGElement, nsIDOMSVGTests,
-                           nsIDOMSVGLineElement)
+  NS_NODE_INTERFACE_TABLE4(nsSVGLineElement, nsIDOMNode, nsIDOMElement,
+                           nsIDOMSVGElement, nsIDOMSVGLineElement)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(SVGLineElement)
 NS_INTERFACE_MAP_END_INHERITING(nsSVGLineElementBase)
 
@@ -130,7 +157,7 @@ nsSVGLineElement::IsAttributeMapped(const nsIAtom* name) const
     sMarkersMap
   };
   
-  return FindAttributeDependence(name, map) ||
+  return FindAttributeDependence(name, map, NS_ARRAY_LENGTH(map)) ||
     nsSVGLineElementBase::IsAttributeMapped(name);
 }
 
@@ -141,7 +168,7 @@ nsSVGElement::LengthAttributesInfo
 nsSVGLineElement::GetLengthInfo()
 {
   return LengthAttributesInfo(mLengthAttributes, sLengthInfo,
-                              ArrayLength(sLengthInfo));
+                              NS_ARRAY_LENGTH(sLengthInfo));
 }
 
 
@@ -151,7 +178,7 @@ void
 nsSVGLineElement::GetMarkPoints(nsTArray<nsSVGMark> *aMarks) {
   float x1, y1, x2, y2;
 
-  GetAnimatedLengthValues(&x1, &y1, &x2, &y2, nullptr);
+  GetAnimatedLengthValues(&x1, &y1, &x2, &y2, nsnull);
 
   float angle = atan2(y2 - y1, x2 - x1);
 
@@ -164,7 +191,7 @@ nsSVGLineElement::ConstructPath(gfxContext *aCtx)
 {
   float x1, y1, x2, y2;
 
-  GetAnimatedLengthValues(&x1, &y1, &x2, &y2, nullptr);
+  GetAnimatedLengthValues(&x1, &y1, &x2, &y2, nsnull);
 
   aCtx->MoveTo(gfxPoint(x1, y1));
   aCtx->LineTo(gfxPoint(x2, y2));

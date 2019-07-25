@@ -3,29 +3,422 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_IMAGELAYER_H
 #define GFX_IMAGELAYER_H
 
 #include "Layers.h"
 
-#include "ImageTypes.h"
-#include "nsISupportsImpl.h"
 #include "gfxPattern.h"
+#include "nsThreadUtils.h"
+#include "mozilla/ReentrantMonitor.h"
+#include "mozilla/TimeStamp.h"
+#include "mozilla/mozalloc.h"
+
+class nsIOSurface;
 
 namespace mozilla {
 namespace layers {
 
-class ImageContainer;
+enum StereoMode {
+  STEREO_MODE_MONO,
+  STEREO_MODE_LEFT_RIGHT,
+  STEREO_MODE_RIGHT_LEFT,
+  STEREO_MODE_BOTTOM_TOP,
+  STEREO_MODE_TOP_BOTTOM
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class THEBES_API Image {
+  THEBES_INLINE_DECL_THREADSAFE_REFCOUNTING(Image)
+
+public:
+  virtual ~Image() {}
+
+  enum Format {
+    
+
+
+
+
+    PLANAR_YCBCR,
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    CAIRO_SURFACE,
+
+    
+
+
+
+
+
+    MAC_IO_SURFACE
+  };
+
+  Format GetFormat() { return mFormat; }
+  void* GetImplData() { return mImplData; }
+
+protected:
+  Image(void* aImplData, Format aFormat) :
+    mImplData(aImplData),
+    mFormat(aFormat)
+  {}
+
+  void* mImplData;
+  Format mFormat;
+};
+
+
+
+
+
+
+
+
+class THEBES_API ImageContainer {
+  THEBES_INLINE_DECL_THREADSAFE_REFCOUNTING(ImageContainer)
+
+public:
+  ImageContainer() :
+    mReentrantMonitor("ImageContainer.mReentrantMonitor"),
+    mPaintCount(0),
+    mPreviousImagePainted(PR_FALSE)
+  {}
+
+  virtual ~ImageContainer() {}
+
+  
+
+
+
+
+
+
+
+  virtual already_AddRefed<Image> CreateImage(const Image::Format* aFormats,
+                                              PRUint32 aNumFormats) = 0;
+
+  
+
+
+
+
+
+
+
+  virtual void SetCurrentImage(Image* aImage) = 0;
+
+  
+
+
+
+  virtual void SetDelayedConversion(bool aDelayed) {}
+
+  
+
+
+
+
+
+
+
+
+
+  virtual already_AddRefed<Image> GetCurrentImage() = 0;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual already_AddRefed<gfxASurface> GetCurrentAsSurface(gfxIntSize* aSizeResult) = 0;
+
+  
+
+
+
+
+  LayerManager* Manager()
+  {
+    NS_PRECONDITION(NS_IsMainThread(), "Must be called on main thread");
+    return mManager;
+  }
+
+  
+
+
+
+
+  virtual gfxIntSize GetCurrentSize() = 0;
+
+  
+
+
+
+
+  virtual bool SetLayerManager(LayerManager *aManager) = 0;
+
+  
+
+
+
+
+
+
+  virtual void SetScaleHint(const gfxIntSize& ) { }
+
+  
+
+
+
+
+  virtual LayerManager::LayersBackend GetBackendType() = 0;
+
+  
+
+
+
+
+
+  TimeStamp GetPaintTime() {
+    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+    return mPaintTime;
+  }
+
+  
+
+
+
+  PRUint32 GetPaintCount() {
+    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+    return mPaintCount;
+  }
+
+  
+
+
+
+
+  void NotifyPaintedImage(Image* aPainted) {
+    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+    nsRefPtr<Image> current = GetCurrentImage();
+    if (aPainted == current) {
+      if (mPaintTime.IsNull()) {
+        mPaintTime = TimeStamp::Now();
+        mPaintCount++;
+      }
+    } else if (!mPreviousImagePainted) {
+      
+      
+      
+      mPaintCount++;
+      mPreviousImagePainted = PR_TRUE;
+    }
+  }
+
+protected:
+  typedef mozilla::ReentrantMonitor ReentrantMonitor;
+  LayerManager* mManager;
+
+  
+  
+  ReentrantMonitor mReentrantMonitor;
+
+  ImageContainer(LayerManager* aManager) :
+    mManager(aManager),
+    mReentrantMonitor("ImageContainer.mReentrantMonitor"),
+    mPaintCount(0),
+    mPreviousImagePainted(PR_FALSE)
+  {}
+
+  
+  
+  
+  void CurrentImageChanged() {
+    mReentrantMonitor.AssertCurrentThreadIn();
+    mPreviousImagePainted = !mPaintTime.IsNull();
+    mPaintTime = TimeStamp();
+  }
+
+  
+  
+  
+  PRUint32 mPaintCount;
+
+  
+  
+  TimeStamp mPaintTime;
+
+  
+  bool mPreviousImagePainted;
+};
 
 
 
 
 class THEBES_API ImageLayer : public Layer {
 public:
-  enum ScaleMode {
-    SCALE_NONE,
-    SCALE_STRETCH 
   
+
+
+
+
+  void SetContainer(ImageContainer* aContainer) 
+  {
+    NS_ASSERTION(!aContainer->Manager() || aContainer->Manager() == Manager(), 
+                 "ImageContainer must have the same manager as the ImageLayer");
+    mContainer = aContainer;  
+  }
+  
+
+
+
+  void SetFilter(gfxPattern::GraphicsFilter aFilter) { mFilter = aFilter; }
+
+  ImageContainer* GetContainer() { return mContainer; }
+  gfxPattern::GraphicsFilter GetFilter() { return mFilter; }
+
+  MOZ_LAYER_DECL_NAME("ImageLayer", TYPE_IMAGE)
+
+  virtual void ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface)
+  {
+    
+    gfxRect snap(0, 0, 0, 0);
+    if (mContainer) {
+      gfxIntSize size = mContainer->GetCurrentSize();
+      snap.SizeTo(gfxSize(size.width, size.height));
+    }
+    
+    
+    
+    
+    mEffectiveTransform =
+        SnapTransform(GetLocalTransform(), snap, nsnull)*
+        SnapTransform(aTransformToSurface, gfxRect(0, 0, 0, 0), nsnull);
+  }
+
+protected:
+  ImageLayer(LayerManager* aManager, void* aImplData)
+    : Layer(aManager, aImplData), mFilter(gfxPattern::FILTER_GOOD) {}
+
+  virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
+
+  nsRefPtr<ImageContainer> mContainer;
+  gfxPattern::GraphicsFilter mFilter;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class THEBES_API PlanarYCbCrImage : public Image {
+public:
+  struct Data {
+    
+    PRUint8* mYChannel;
+    PRInt32 mYStride;
+    gfxIntSize mYSize;
+    
+    PRUint8* mCbChannel;
+    PRUint8* mCrChannel;
+    PRInt32 mCbCrStride;
+    gfxIntSize mCbCrSize;
+    
+    PRUint32 mPicX;
+    PRUint32 mPicY;
+    gfxIntSize mPicSize;
+    StereoMode mStereoMode;
+
+    nsIntRect GetPictureRect() const {
+      return nsIntRect(mPicX, mPicY,
+                       mPicSize.width,
+                       mPicSize.height);
+    }
+  };
+
+  enum {
+    MAX_DIMENSION = 16384
   };
 
   
@@ -33,55 +426,101 @@ public:
 
 
 
-  void SetContainer(ImageContainer* aContainer);
+
+  virtual void SetData(const Data& aData) = 0;
 
   
 
 
 
-  void SetFilter(gfxPattern::GraphicsFilter aFilter) { mFilter = aFilter; }
+
+  virtual void SetDelayedConversion(bool aDelayed) { }
+
+  
+
+
+  virtual const Data* GetData() { return nsnull; }
 
   
 
 
 
-  void SetScaleToSize(const gfxIntSize &aSize, ScaleMode aMode)
-  {
-    mScaleToSize = aSize;
-    mScaleMode = aMode;
-  }
 
 
-  ImageContainer* GetContainer() { return mContainer; }
-  gfxPattern::GraphicsFilter GetFilter() { return mFilter; }
 
-  MOZ_LAYER_DECL_NAME("ImageLayer", TYPE_IMAGE)
 
-  virtual void ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface);
+
+  PRUint8 *CopyData(Data& aDest, gfxIntSize& aDestSize,
+                    PRUint32& aDestBufferSize, const Data& aData);
 
   
 
 
-  void SetForceSingleTile(bool aForceSingleTile)
-  {
-    mForceSingleTile = aForceSingleTile;
-    Mutated();
-  }
+
+
+  virtual PRUint8* AllocateBuffer(PRUint32 aSize);
+
+  
+
+
+  virtual PRUint32 GetDataSize() = 0;
 
 protected:
-  ImageLayer(LayerManager* aManager, void* aImplData);
-  ~ImageLayer();
-  virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
-
-
-  nsRefPtr<ImageContainer> mContainer;
-  gfxPattern::GraphicsFilter mFilter;
-  gfxIntSize mScaleToSize;
-  ScaleMode mScaleMode;
-  bool mForceSingleTile;
+  PlanarYCbCrImage(void* aImplData) : Image(aImplData, PLANAR_YCBCR) {}
 };
 
+
+
+
+
+class THEBES_API CairoImage : public Image {
+public:
+  struct Data {
+    gfxASurface* mSurface;
+    gfxIntSize mSize;
+  };
+
+  
+
+
+
+
+  virtual void SetData(const Data& aData) = 0;
+
+protected:
+  CairoImage(void* aImplData) : Image(aImplData, CAIRO_SURFACE) {}
+};
+
+#ifdef XP_MACOSX
+class THEBES_API MacIOSurfaceImage : public Image {
+public:
+  struct Data {
+    nsIOSurface* mIOSurface;
+  };
+
+ 
+
+
+
+
+  virtual void SetData(const Data& aData) = 0;
+
+  
+
+
+
+
+  typedef void (*UpdateSurfaceCallback)(ImageContainer* aContainer, void* aInstanceOwner);
+  virtual void SetUpdateCallback(UpdateSurfaceCallback aCallback, void* aInstanceOwner) = 0;
+  typedef void (*DestroyCallback)(void* aInstanceOwner);
+  virtual void SetDestroyCallback(DestroyCallback aCallback) = 0;
+
+protected:
+  MacIOSurfaceImage(void* aImplData) : Image(aImplData, MAC_IO_SURFACE) {}
+};
+#endif
+
 }
 }
 
-#endif
+#endif 

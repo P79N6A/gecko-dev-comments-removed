@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsUnicharUtils_h__
 #define nsUnicharUtils_h__
 
@@ -22,18 +56,18 @@ void ToUpperCase(nsAString&);
 void ToLowerCase(const nsAString& aSource, nsAString& aDest);
 void ToUpperCase(const nsAString& aSource, nsAString& aDest);
 
-uint32_t ToLowerCase(uint32_t);
-uint32_t ToUpperCase(uint32_t);
-uint32_t ToTitleCase(uint32_t);
+PRUnichar ToLowerCase(PRUnichar);
+PRUnichar ToUpperCase(PRUnichar);
+PRUnichar ToTitleCase(PRUnichar);
 
-void ToLowerCase(const PRUnichar*, PRUnichar*, uint32_t);
-void ToUpperCase(const PRUnichar*, PRUnichar*, uint32_t);
+void ToLowerCase(const PRUnichar*, PRUnichar*, PRUint32);
+void ToUpperCase(const PRUnichar*, PRUnichar*, PRUint32);
 
-inline bool IsUpperCase(uint32_t c) {
+inline bool IsUpperCase(PRUnichar c) {
   return ToLowerCase(c) != c;
 }
 
-inline bool IsLowerCase(uint32_t c) {
+inline bool IsLowerCase(PRUnichar c) {
   return ToUpperCase(c) != c;
 }
 
@@ -42,19 +76,19 @@ inline bool IsLowerCase(uint32_t c) {
 class nsCaseInsensitiveStringComparator : public nsStringComparator
 {
 public:
-  virtual int32_t operator() (const PRUnichar*,
+  virtual PRInt32 operator() (const PRUnichar*,
                               const PRUnichar*,
-                              uint32_t,
-                              uint32_t) const;
+                              PRUint32,
+                              PRUint32) const;
 };
 
 class nsCaseInsensitiveUTF8StringComparator : public nsCStringComparator
 {
 public:
-  virtual int32_t operator() (const char*,
+  virtual PRInt32 operator() (const char*,
                               const char*,
-                              uint32_t,
-                              uint32_t) const;
+                              PRUint32,
+                              PRUint32) const;
 };
 
 class nsCaseInsensitiveStringArrayComparator
@@ -72,8 +106,8 @@ public:
   nsASCIICaseInsensitiveStringComparator() {}
   virtual int operator() (const PRUnichar*,
                           const PRUnichar*,
-                          uint32_t,
-                          uint32_t) const;
+                          PRUint32,
+                          PRUint32) const;
 };
 
 inline bool
@@ -97,12 +131,12 @@ CaseInsensitiveFindInReadable(const nsAString& aPattern,
 
 #endif 
 
-int32_t
-CaseInsensitiveCompare(const PRUnichar *a, const PRUnichar *b, uint32_t len);
+PRInt32
+CaseInsensitiveCompare(const PRUnichar *a, const PRUnichar *b, PRUint32 len);
 
-int32_t
+PRInt32
 CaseInsensitiveCompare(const char* aLeft, const char* aRight,
-                       uint32_t aLeftBytes, uint32_t aRightBytes);
+                       PRUint32 aLeftBytes, PRUint32 aRightBytes);
 
 
 
@@ -128,20 +162,5 @@ CaseInsensitiveUTF8CharsEqual(const char* aLeft, const char* aRight,
                               const char* aLeftEnd, const char* aRightEnd,
                               const char** aLeftNext, const char** aRightNext,
                               bool* aErr);
-
-namespace mozilla {
-
-
-
-
-
-
-
-
-
-uint32_t
-HashUTF8AsUTF16(const char* aUTF8, uint32_t aLength, bool* aErr);
-
-} 
 
 #endif  

@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIAtom.h"
 #include "CParserContext.h"
 #include "nsToken.h"
@@ -29,7 +61,7 @@ CParserContext::CParserContext(CParserContext* aPrevContext,
     mContextType(eCTNone),
     mAutoDetectStatus(aStatus),
     mParserCommand(aCommand),
-    mMultipart(true),
+    mMultipart(PR_TRUE),
     mCopyUnused(aCopyUnused),
     mNumConsumed(0)
 { 
@@ -68,7 +100,7 @@ CParserContext::GetTokenizer(nsIDTD* aDTD,
                              nsITokenizer*& aTokenizer)
 {
   nsresult result = NS_OK;
-  int32_t type = aDTD ? aDTD->GetType() : NS_IPARSER_FLAG_HTML;
+  PRInt32 type = aDTD ? aDTD->GetType() : NS_IPARSER_FLAG_HTML;
 
   if (!mTokenizer) {
     if (type == NS_IPARSER_FLAG_HTML || mParserCommand == eViewSource) {

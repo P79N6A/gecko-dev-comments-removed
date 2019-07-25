@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifdef MOZ_LOGGING
 
 #define FORCE_PR_LOG
@@ -44,7 +77,7 @@ nsresult nsAutoConfig::Init()
     
 
     nsresult rv;
-    mLoaded = false;
+    mLoaded = PR_FALSE;
     
     
     nsCOMPtr<nsIObserverService> observerService =
@@ -52,7 +85,7 @@ nsresult nsAutoConfig::Init()
     if (NS_FAILED(rv)) 
         return rv;
 
-    rv = observerService->AddObserver(this,"profile-after-change", true);
+    rv = observerService->AddObserver(this,"profile-after-change", PR_TRUE);
     
     return rv;
 }
@@ -68,7 +101,7 @@ NS_IMETHODIMP nsAutoConfig::GetConfigURL(char **aConfigURL)
         return NS_ERROR_NULL_POINTER;
 
     if (mConfigURL.IsEmpty()) {
-        *aConfigURL = nullptr;
+        *aConfigURL = nsnull;
         return NS_OK;
     }
     
@@ -96,10 +129,10 @@ NS_IMETHODIMP
 nsAutoConfig::OnDataAvailable(nsIRequest *request, 
                               nsISupports *context,
                               nsIInputStream *aIStream, 
-                              uint64_t aSourceOffset,
-                              uint32_t aLength)
+                              PRUint32 aSourceOffset,
+                              PRUint32 aLength)
 {    
-    uint32_t amt, size;
+    PRUint32 amt, size;
     nsresult rv;
     char buf[1024];
     
@@ -130,7 +163,7 @@ nsAutoConfig::OnStopRequest(nsIRequest *request, nsISupports *context,
     
     nsCOMPtr<nsIHttpChannel> pHTTPCon(do_QueryInterface(request));
     if (pHTTPCon) {
-        uint32_t httpStatus;
+        PRUint32 httpStatus;
         pHTTPCon->GetResponseStatus(&httpStatus);
         if (httpStatus != 200) 
         {
@@ -142,7 +175,7 @@ nsAutoConfig::OnStopRequest(nsIRequest *request, nsISupports *context,
     
     
     rv = EvaluateAdminConfigScript(mBuf.get(), mBuf.Length(),
-                              nullptr, false,true, false);
+                              nsnull, PR_FALSE,PR_TRUE, PR_FALSE);
     if (NS_SUCCEEDED(rv)) {
 
         
@@ -152,7 +185,7 @@ nsAutoConfig::OnStopRequest(nsIRequest *request, nsISupports *context,
             NS_WARNING("Error writing failover.jsc file");
 
         
-        mLoaded = true;  
+        mLoaded = PR_TRUE;  
 
         return NS_OK;
     }
@@ -209,7 +242,7 @@ NS_IMETHODIMP nsAutoConfig::Observe(nsISupports *aSubject,
 nsresult nsAutoConfig::downloadAutoConfig()
 {
     nsresult rv;
-    nsAutoCString emailAddr;
+    nsCAutoString emailAddr;
     nsXPIDLCString urlName;
     static bool firstTime = true;
     
@@ -223,7 +256,7 @@ nsresult nsAutoConfig::downloadAutoConfig()
     
     
     
-    int32_t index = mConfigURL.RFindChar((PRUnichar)'?');
+    PRInt32 index = mConfigURL.RFindChar((PRUnichar)'?');
     if (index != -1)
         mConfigURL.Truncate(index);
 
@@ -238,7 +271,7 @@ nsresult nsAutoConfig::downloadAutoConfig()
         if (NS_FAILED(rv)) 
             return rv;
     
-        rv = prefs->GetBranch(nullptr,getter_AddRefs(mPrefBranch));
+        rv = prefs->GetBranch(nsnull,getter_AddRefs(mPrefBranch));
         if (NS_FAILED(rv))
             return rv;
     }
@@ -285,7 +318,7 @@ nsresult nsAutoConfig::downloadAutoConfig()
     nsCOMPtr<nsIURI> url;
     nsCOMPtr<nsIChannel> channel;
     
-    rv = NS_NewURI(getter_AddRefs(url), mConfigURL.get(), nullptr, nullptr);
+    rv = NS_NewURI(getter_AddRefs(url), mConfigURL.get(), nsnull, nsnull);
     if (NS_FAILED(rv))
     {
         PR_LOG(MCD, PR_LOG_DEBUG, ("failed to create URL - is autoadmin.global_config_url valid? - %s\n", mConfigURL.get()));
@@ -294,11 +327,11 @@ nsresult nsAutoConfig::downloadAutoConfig()
 
     PR_LOG(MCD, PR_LOG_DEBUG, ("running MCD url %s\n", mConfigURL.get()));
     
-    rv = NS_NewChannel(getter_AddRefs(channel),url, nullptr, nullptr, nullptr, nsIRequest::INHIBIT_PERSISTENT_CACHING | nsIRequest::LOAD_BYPASS_CACHE);
+    rv = NS_NewChannel(getter_AddRefs(channel),url, nsnull, nsnull, nsnull, nsIRequest::INHIBIT_PERSISTENT_CACHING | nsIRequest::LOAD_BYPASS_CACHE);
     if (NS_FAILED(rv)) 
         return rv;
 
-    rv = channel->AsyncOpen(this, nullptr); 
+    rv = channel->AsyncOpen(this, nsnull); 
     if (NS_FAILED(rv)) {
         readOfflineFile();
         return rv;
@@ -309,7 +342,7 @@ nsresult nsAutoConfig::downloadAutoConfig()
     
     
     if (firstTime) {
-        firstTime = false;
+        firstTime = PR_FALSE;
     
         
         
@@ -328,7 +361,7 @@ nsresult nsAutoConfig::downloadAutoConfig()
         while (!mLoaded)
             NS_ENSURE_STATE(NS_ProcessNextEvent(thread));
         
-        int32_t minutes;
+        PRInt32 minutes;
         rv = mPrefBranch->GetIntPref("autoadmin.refresh_interval", 
                                      &minutes);
         if (NS_SUCCEEDED(rv) && minutes > 0) {
@@ -357,7 +390,7 @@ nsresult nsAutoConfig::readOfflineFile()
 
 
 
-    mLoaded = true; 
+    mLoaded = PR_TRUE; 
 
     bool failCache;
     rv = mPrefBranch->GetBoolPref("autoadmin.failover_to_cached", &failCache);
@@ -375,14 +408,14 @@ nsresult nsAutoConfig::readOfflineFile()
             return rv;
 
         if (!offline) {
-            rv = ios->SetOffline(true);
+            rv = ios->SetOffline(PR_TRUE);
             if (NS_FAILED(rv)) 
                 return rv;
         }
         
         
         
-        rv = mPrefBranch->SetBoolPref("network.online", false);
+        rv = mPrefBranch->SetBoolPref("network.online", PR_FALSE);
         if (NS_FAILED(rv)) 
             return rv;
 
@@ -417,8 +450,8 @@ nsresult nsAutoConfig::evaluateLocalFile(nsIFile *file)
     if (NS_FAILED(rv)) 
         return rv;
         
-    int64_t fileSize;
-    uint32_t fs, amt=0;
+    PRInt64 fileSize;
+    PRUint32 fs, amt=0;
     file->GetFileSize(&fileSize);
     LL_L2UI(fs, fileSize); 
     char *buf = (char *)PR_Malloc(fs * sizeof(char));
@@ -427,8 +460,8 @@ nsresult nsAutoConfig::evaluateLocalFile(nsIFile *file)
     
     rv = inStr->Read(buf, fs, &amt);
     if (NS_SUCCEEDED(rv)) {
-      EvaluateAdminConfigScript(buf, fs, nullptr, false, 
-                                true, false);
+      EvaluateAdminConfigScript(buf, fs, nsnull, PR_FALSE, 
+                                PR_TRUE, PR_FALSE);
     }
     inStr->Close();
     PR_Free(buf);
@@ -440,7 +473,7 @@ nsresult nsAutoConfig::writeFailoverFile()
     nsresult rv;
     nsCOMPtr<nsIFile> failoverFile; 
     nsCOMPtr<nsIOutputStream> outStr;
-    uint32_t amt;
+    PRUint32 amt;
     
     rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR,
                                 getter_AddRefs(failoverFile));
@@ -479,7 +512,7 @@ nsresult nsAutoConfig::getEmailAddr(nsACString & emailAddr)
                                       getter_Copies(prefValue));
         if (NS_FAILED(rv) || prefValue.IsEmpty())
             return PromptForEMailAddress(emailAddr);
-        int32_t commandIndex = prefValue.FindChar(',');
+        PRInt32 commandIndex = prefValue.FindChar(',');
         if (commandIndex != kNotFound)
           prefValue.Truncate(commandIndex);
         emailAddr = NS_LITERAL_CSTRING("mail.identity.") +
@@ -526,7 +559,7 @@ nsresult nsAutoConfig::PromptForEMailAddress(nsACString &emailAddress)
     bool check = false;
     nsXPIDLString emailResult;
     bool success;
-    rv = promptService->Prompt(nullptr, title.get(), err.get(), getter_Copies(emailResult), nullptr, &check, &success);
+    rv = promptService->Prompt(nsnull, title.get(), err.get(), getter_Copies(emailResult), nsnull, &check, &success);
     if (!success)
       return NS_ERROR_FAILURE;
     NS_ENSURE_SUCCESS(rv, rv);

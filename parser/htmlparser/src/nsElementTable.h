@@ -12,6 +12,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _NSELEMENTABLE
 #define _NSELEMENTABLE
 
@@ -60,7 +92,7 @@ static const int kAllTags       = 0xffffff;
 
 
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
 extern void CheckElementTable();
 #endif
 
@@ -74,10 +106,10 @@ extern void CheckElementTable();
 
 inline bool TestBits(int aBitset,int aTest) {
   if(aTest) {
-    int32_t result=(aBitset & aTest);
+    PRInt32 result=(aBitset & aTest);
     return bool(result==aTest);
   }
-  return false;
+  return PR_FALSE;
 }
 
 
@@ -103,35 +135,35 @@ struct nsHTMLElement {
                     if((mTagID>=eHTMLTag_unknown) & (mTagID<=eHTMLTag_xmp)){
                       return TestBits(mParentBits,kBlock);
                     } 
-                    return false;
+                    return PR_FALSE;
                   }
 
   inline  bool    IsBlockEntity(void) const { 
                     if((mTagID>=eHTMLTag_unknown) & (mTagID<=eHTMLTag_xmp)){
                       return TestBits(mParentBits,kBlockEntity);
                     } 
-                    return false;
+                    return PR_FALSE;
                   }
 
   inline  bool    IsSpecialEntity(void) const { 
                     if((mTagID>=eHTMLTag_unknown) & (mTagID<=eHTMLTag_xmp)){
                       return TestBits(mParentBits,kSpecial);
                     } 
-                    return false;
+                    return PR_FALSE;
                   }
 
   inline  bool    IsPhraseEntity(void) const { 
                     if((mTagID>=eHTMLTag_unknown) & (mTagID<=eHTMLTag_xmp)){
                       return TestBits(mParentBits,kPhrase);
                     } 
-                    return false;
+                    return PR_FALSE;
                   }
 
   inline  bool    IsFontStyleEntity(void) const { 
                     if((mTagID>=eHTMLTag_unknown) & (mTagID<=eHTMLTag_xmp)){
                       return TestBits(mParentBits,kFontStyle);
                     } 
-                    return false;
+                    return PR_FALSE;
                   }
   
   inline  bool    IsTableElement(void) const {  
@@ -148,37 +180,37 @@ struct nsHTMLElement {
                       case eHTMLTag_th:
                       case eHTMLTag_col:
                       case eHTMLTag_colgroup:
-                        result=true;
+                        result=PR_TRUE;
                         break;
                       default:
-                        result=false;
+                        result=PR_FALSE;
                     }
                     return result;
                   }
 
 
-  static  int32_t GetIndexOfChildOrSynonym(nsDTDContext& aContext,eHTMLTags aChildTag);
+  static  PRInt32 GetIndexOfChildOrSynonym(nsDTDContext& aContext,eHTMLTags aChildTag);
 
   const TagList*  GetSynonymousTags(void) const {return mSynonymousTags;}
   const TagList*  GetRootTags(void) const {return mRootNodes;}
   const TagList*  GetEndRootTags(void) const {return mEndRootNodes;}
   const TagList*  GetAutoCloseStartTags(void) const {return mAutocloseStart;}
   const TagList*  GetAutoCloseEndTags(void) const {return mAutocloseEnd;}
-  eHTMLTags       GetCloseTargetForEndTag(nsDTDContext& aContext,int32_t anIndex,nsDTDMode aMode) const;
+  eHTMLTags       GetCloseTargetForEndTag(nsDTDContext& aContext,PRInt32 anIndex,nsDTDMode aMode) const;
 
   const TagList*        GetSpecialChildren(void) const {return mSpecialKids;}
   const TagList*        GetSpecialParents(void) const {return mSpecialParents;}
 
-  bool            IsMemberOf(int32_t aType) const;
-  bool            ContainsSet(int32_t aType) const;
-  bool            CanContainType(int32_t aType) const;
+  bool            IsMemberOf(PRInt32 aType) const;
+  bool            ContainsSet(PRInt32 aType) const;
+  bool            CanContainType(PRInt32 aType) const;
 
   bool            CanContain(eHTMLTags aChild,nsDTDMode aMode) const;
   bool            CanExclude(eHTMLTags aChild) const;
   bool            CanOmitEndTag(void) const;
   bool            CanContainSelf(void) const;
-  bool            CanAutoCloseTag(nsDTDContext& aContext,int32_t aIndex,eHTMLTags aTag) const;
-  bool            HasSpecialProperty(int32_t aProperty) const;
+  bool            CanAutoCloseTag(nsDTDContext& aContext,PRInt32 aIndex,eHTMLTags aTag) const;
+  bool            HasSpecialProperty(PRInt32 aProperty) const;
   bool            IsSpecialParent(eHTMLTags aTag) const;
   bool            IsExcludableParent(eHTMLTags aParent) const;
   bool            SectionContains(eHTMLTags aTag,bool allowDepthSearch) const;
@@ -209,7 +241,7 @@ struct nsHTMLElement {
   int             mInclusionBits;     
   int             mExclusionBits;     
   int             mSpecialProperties; 
-  uint32_t        mPropagateRange;    
+  PRUint32        mPropagateRange;    
   const TagList*  mSpecialParents;    
   const TagList*  mSpecialKids;       
 }; 

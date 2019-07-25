@@ -2,6 +2,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSyncJPAKE.h"
 #include "mozilla/ModuleUtils.h"
 #include <pk11pub.h>
@@ -15,8 +49,6 @@
 #include <nsError.h>
 #include <base64.h>
 #include <nsString.h>
-
-using mozilla::fallible_t;
 
 static bool
 hex_from_2char(const unsigned char *c2, unsigned char *byteval)
@@ -35,10 +67,10 @@ hex_from_2char(const unsigned char *c2, unsigned char *byteval)
       offset = c2[i] - 'A';
       *byteval |= (offset + 10) << 4*(1-i);
     } else {
-      return false;
+      return PR_FALSE;
     }
   }
-  return true;
+  return PR_TRUE;
 }
 
 static bool
@@ -46,15 +78,15 @@ fromHex(const char * str, unsigned char * p, size_t sLen)
 {
   size_t i;
   if (sLen & 1)
-    return false;
+    return PR_FALSE;
 
   for (i = 0; i < sLen / 2; ++i) {
     if (!hex_from_2char((const unsigned char *) str + (2*i),
                         (unsigned char *) p + i)) {
-      return false;
+      return PR_FALSE;
     }
   }
-  return true;
+  return PR_TRUE;
 }
 
 static nsresult
@@ -73,14 +105,14 @@ static bool
 toHexString(const unsigned char * str, unsigned len, nsACString & out)
 {
   static const char digits[] = "0123456789ABCDEF";
-  if (!out.SetCapacity(2 * len, fallible_t()))
-    return false;
+  if (!out.SetCapacity(2 * len))
+    return PR_FALSE;
   out.SetLength(0);
   for (unsigned i = 0; i < len; ++i) {
     out.Append(digits[str[i] >> 4]);
     out.Append(digits[str[i] & 0x0f]);
   }
-  return true;
+  return PR_TRUE;
 }
 
 static nsresult
@@ -125,12 +157,12 @@ static const char g[] =
   "787F7DED3B30E1A22D09F1FBDA1ABBBFBF25CAE05A13F812E34563F99410E73B";
 
 NS_IMETHODIMP nsSyncJPAKE::Round1(const nsACString & aSignerID,
-                                  nsACString & aGX1,
-                                  nsACString & aGV1,
-                                  nsACString & aR1,
-                                  nsACString & aGX2,
-                                  nsACString & aGV2,
-                                  nsACString & aR2)
+                                  nsACString & aGX1 NS_OUTPARAM,
+                                  nsACString & aGV1 NS_OUTPARAM,
+                                  nsACString & aR1 NS_OUTPARAM,
+                                  nsACString & aGX2 NS_OUTPARAM,
+                                  nsACString & aGV2 NS_OUTPARAM,
+                                  nsACString & aR2 NS_OUTPARAM)
 {
   NS_ENSURE_STATE(round == JPAKENotStarted);
   NS_ENSURE_STATE(key == NULL);
@@ -203,9 +235,9 @@ NS_IMETHODIMP nsSyncJPAKE::Round2(const nsACString & aPeerID,
                                   const nsACString & aGX4,
                                   const nsACString & aGV4,
                                   const nsACString & aR4,
-                                  nsACString & aA,
-                                  nsACString & aGVA,
-                                  nsACString & aRA)
+                                  nsACString & aA NS_OUTPARAM,
+                                  nsACString & aGVA NS_OUTPARAM,
+                                  nsACString & aRA NS_OUTPARAM)
 {
   NS_ENSURE_STATE(round == JPAKEBeforeRound2);
   NS_ENSURE_STATE(key != NULL);
@@ -217,7 +249,7 @@ NS_IMETHODIMP nsSyncJPAKE::Round2(const nsACString & aPeerID,
   bool foundNonZero = false;
   for (size_t i = 0; i < aPIN.Length(); ++i) {
     if (aPIN[i] != 0) {
-      foundNonZero = true;
+      foundNonZero = PR_TRUE;
       break;
     }
   }
@@ -252,7 +284,7 @@ NS_IMETHODIMP nsSyncJPAKE::Round2(const nsACString & aPeerID,
   bool gx4Good = false;
   for (unsigned i = 0; i < rp.gx4.ulGXLen; ++i) {
     if (rp.gx4.pGX[i] > 1 || (rp.gx4.pGX[i] != 0 && i < rp.gx4.ulGXLen - 1)) {
-      gx4Good = true;
+      gx4Good = PR_TRUE;
       break;
     }
   }
@@ -273,7 +305,7 @@ NS_IMETHODIMP nsSyncJPAKE::Round2(const nsACString & aPeerID,
                                                 CKA_DERIVE, 0,
                                                 keyTemplate,
                                                 NUM_ELEM(keyTemplate),
-                                                false);
+                                                PR_FALSE);
   if (newKey != NULL) {
     if (toHexString(rp.A.pGX, rp.A.ulGXLen, aA) &&
         toHexString(rp.A.pGV, rp.A.ulGVLen, aGVA) &&
@@ -300,7 +332,7 @@ setBase64(const unsigned char * data, unsigned len, nsACString & out)
   
   if (base64 != NULL) {
     size_t len = PORT_Strlen(base64);
-    if (out.SetCapacity(len, fallible_t())) {
+    if (out.SetCapacity(len)) {
       out.SetLength(0);
       out.Append(base64, len);
       PORT_Free((void*) base64);
@@ -351,8 +383,8 @@ NS_IMETHODIMP nsSyncJPAKE::Final(const nsACString & aB,
                                  const nsACString & aGVB,
                                  const nsACString & aRB,
                                  const nsACString & aHKDFInfo,
-                                 nsACString & aAES256Key,
-                                 nsACString & aHMAC256Key)
+                                 nsACString & aAES256Key NS_OUTPARAM,
+                                 nsACString & aHMAC256Key NS_OUTPARAM)
 {
   static const unsigned AES256_KEY_SIZE = 256 / 8;
   static const unsigned HMAC_SHA256_KEY_SIZE = 256 / 8;

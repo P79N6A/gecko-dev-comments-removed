@@ -8,10 +8,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_css_Declaration_h
 #define mozilla_css_Declaration_h
-
-#include "mozilla/Attributes.h"
 
 
 
@@ -63,16 +94,14 @@ public:
 
   void GetValue(nsCSSProperty aProperty, nsAString& aValue) const;
 
-  bool HasImportantData() const { return mImportantData != nullptr; }
+  bool HasImportantData() const { return mImportantData != nsnull; }
   bool GetValueIsImportant(nsCSSProperty aProperty) const;
   bool GetValueIsImportant(const nsAString& aProperty) const;
 
-  uint32_t Count() const {
+  PRUint32 Count() const {
     return mOrder.Length();
   }
-
-  
-  bool GetNthProperty(uint32_t aIndex, nsAString& aReturn) const;
+  void GetNthProperty(PRUint32 aIndex, nsAString& aReturn) const;
 
   void ToString(nsAString& aString) const;
 
@@ -85,7 +114,6 @@ public:
   void InitializeEmpty();
 
   
-
 
 
 
@@ -144,14 +172,14 @@ public:
     NS_ABORT_IF_FALSE(mData, "called while expanded");
 
     if (nsCSSProps::IsShorthand(aProperty)) {
-      *aChanged = false;
-      return false;
+      *aChanged = PR_FALSE;
+      return PR_FALSE;
     }
     nsCSSCompressedDataBlock *block = aIsImportant ? mImportantData : mData;
     
     if (!block) {
-      *aChanged = false;
-      return false;
+      *aChanged = PR_FALSE;
+      return PR_FALSE;
     }
 
 #ifdef DEBUG
@@ -193,7 +221,7 @@ public:
 
 
 
-  void SetImmutable() const { mImmutable = true; }
+  void SetImmutable() const { mImmutable = PR_TRUE; }
 
   
 
@@ -201,18 +229,19 @@ public:
 
   void ClearData() {
     AssertMutable();
-    mData = nullptr;
-    mImportantData = nullptr;
+    mData = nsnull;
+    mImportantData = nsnull;
     mOrder.Clear();
   }
 
 #ifdef DEBUG
-  void List(FILE* out = stdout, int32_t aIndent = 0) const;
+  void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
 
 private:
-  Declaration& operator=(const Declaration& aCopy) MOZ_DELETE;
-  bool operator==(const Declaration& aCopy) const MOZ_DELETE;
+  
+  Declaration& operator=(const Declaration& aCopy);
+  bool operator==(const Declaration& aCopy) const;
 
   static void AppendImportanceToString(bool aIsImportant, nsAString& aString);
   
@@ -223,14 +252,12 @@ private:
                                       nsAString& aResult) const;
 
 public:
-  nsCSSProperty OrderValueAt(uint32_t aValue) const {
+  nsCSSProperty OrderValueAt(PRUint32 aValue) const {
     return nsCSSProperty(mOrder.ElementAt(aValue));
   }
 
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
-
 private:
-  nsAutoTArray<uint8_t, 8> mOrder;
+  nsAutoTArray<PRUint8, 8> mOrder;
 
   
   

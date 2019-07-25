@@ -2,12 +2,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsTableCellFrame_h__
 #define nsTableCellFrame_h__
 
 #include "nsITableCellLayout.h"
 #include "nscore.h"
-#include "nsContainerFrame.h"
+#include "nsHTMLContainerFrame.h"
 #include "nsTableRowFrame.h"  
 #include "nsStyleContext.h"
 #include "nsIPercentHeightObserver.h"
@@ -35,7 +67,7 @@ class nsTableFrame;
 
 
 
-class nsTableCellFrame : public nsContainerFrame,
+class nsTableCellFrame : public nsHTMLContainerFrame,
                          public nsITableCellLayout,
                          public nsIPercentHeightObserver
 {
@@ -54,12 +86,12 @@ public:
                   nsIFrame*        aPrevInFlow);
 
 #ifdef ACCESSIBILITY
-  virtual already_AddRefed<Accessible> CreateAccessible();
+  virtual already_AddRefed<nsAccessible> CreateAccessible();
 #endif
 
-  NS_IMETHOD  AttributeChanged(int32_t         aNameSpaceID,
+  NS_IMETHOD  AttributeChanged(PRInt32         aNameSpaceID,
                                nsIAtom*        aAttribute,
-                               int32_t         aModType);
+                               PRInt32         aModType);
 
   
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);
@@ -98,7 +130,7 @@ public:
 
   void PaintCellBackground(nsRenderingContext& aRenderingContext,
                            const nsRect& aDirtyRect, nsPoint aPt,
-                           uint32_t aFlags);
+                           PRUint32 aFlags);
 
   virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext);
   virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext);
@@ -128,7 +160,7 @@ public:
 
 
 
-  uint8_t GetVerticalAlign() const;
+  PRUint8 GetVerticalAlign() const;
 
   bool HasVerticalAlignBaseline() const {
     return GetVerticalAlign() == NS_STYLE_VERTICAL_ALIGN_BASELINE;
@@ -150,7 +182,7 @@ public:
 
 
 
-  virtual int32_t GetRowSpan();
+  virtual PRInt32 GetRowSpan();
 
   
 
@@ -161,10 +193,10 @@ public:
 
 
 
-  NS_IMETHOD GetCellIndexes(int32_t &aRowIndex, int32_t &aColIndex);
+  NS_IMETHOD GetCellIndexes(PRInt32 &aRowIndex, PRInt32 &aColIndex);
 
   
-  virtual nsresult GetRowIndex(int32_t &aRowIndex) const;
+  virtual nsresult GetRowIndex(PRInt32 &aRowIndex) const;
 
   
 
@@ -172,11 +204,11 @@ public:
 
 
 
-  virtual int32_t GetColSpan();
+  virtual PRInt32 GetColSpan();
 
   
-  virtual nsresult GetColIndex(int32_t &aColIndex) const;
-  void SetColIndex(int32_t aColIndex);
+  virtual nsresult GetColIndex(PRInt32 &aColIndex) const;
+  void SetColIndex(PRInt32 aColIndex);
 
   
   inline nscoord GetPriorAvailWidth();
@@ -203,16 +235,14 @@ public:
   virtual void PaintBackground(nsRenderingContext& aRenderingContext,
                                const nsRect&        aDirtyRect,
                                nsPoint              aPt,
-                               uint32_t             aFlags);
+                               PRUint32             aFlags);
 
   void DecorateForSelection(nsRenderingContext& aRenderingContext,
                             nsPoint              aPt);
 
-  virtual bool UpdateOverflow();
-
 protected:
   
-  virtual int GetSkipSides() const;
+  virtual PRIntn GetSkipSides() const;
 
   
 
@@ -225,7 +255,7 @@ protected:
 
   friend class nsTableRowFrame;
 
-  uint32_t     mColIndex;             
+  PRUint32     mColIndex;             
 
   nscoord      mPriorAvailWidth;      
   nsSize       mDesiredSize;          
@@ -309,7 +339,7 @@ public:
   virtual void PaintBackground(nsRenderingContext& aRenderingContext,
                                const nsRect&        aDirtyRect,
                                nsPoint              aPt,
-                               uint32_t             aFlags);
+                               PRUint32             aFlags);
 
 private:
 

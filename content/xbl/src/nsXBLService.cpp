@@ -3,7 +3,41 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsCOMPtr.h"
 #include "nsNetUtil.h"
@@ -17,8 +51,12 @@
 #include "nsIURL.h"
 #include "nsIChannel.h"
 #include "nsXPIDLString.h"
+#include "nsIParser.h"
+#include "nsParserCIID.h"
+#include "nsNetUtil.h"
 #include "plstr.h"
 #include "nsIContent.h"
+#include "nsIDOMElement.h"
 #include "nsIDocument.h"
 #include "nsIXMLContentSink.h"
 #include "nsContentCID.h"
@@ -37,7 +75,7 @@
 #include "nsSyncLoadService.h"
 #include "nsContentPolicyUtils.h"
 #include "nsTArray.h"
-#include "nsError.h"
+#include "nsContentErrors.h"
 
 #include "nsIPresShell.h"
 #include "nsIDocumentObserver.h"
@@ -45,7 +83,6 @@
 #include "nsStyleContext.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsIScriptError.h"
-#include "nsXBLSerialize.h"
 
 #ifdef MOZ_XUL
 #include "nsXULPrototypeCache.h"
@@ -53,13 +90,20 @@
 #include "nsIDOMEventListener.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/dom/Element.h"
-#include "mozilla/Attributes.h"
 
 using namespace mozilla;
 
 #define NS_MAX_XBL_BINDING_RECURSION 20
 
-nsXBLService* nsXBLService::gInstance = nullptr;
+static bool IsChromeOrResourceURI(nsIURI* aURI)
+{
+  bool isChrome = false;
+  bool isResource = false;
+  if (NS_SUCCEEDED(aURI->SchemeIs("chrome", &isChrome)) && 
+      NS_SUCCEEDED(aURI->SchemeIs("resource", &isResource)))
+      return (isChrome || isResource);
+  return PR_FALSE;
+}
 
 static bool
 IsAncestorBinding(nsIDocument* aDocument,
@@ -70,7 +114,7 @@ IsAncestorBinding(nsIDocument* aDocument,
   NS_ASSERTION(aChildBindingURI, "expected a binding URI");
   NS_ASSERTION(aChild, "expected a child content");
 
-  uint32_t bindingRecursion = 0;
+  PRUint32 bindingRecursion = 0;
   nsBindingManager* bindingManager = aDocument->BindingManager();
   for (nsIContent *bindingParent = aChild->GetBindingParent();
        bindingParent;
@@ -85,20 +129,47 @@ IsAncestorBinding(nsIDocument* aDocument,
       if (bindingRecursion < NS_MAX_XBL_BINDING_RECURSION) {
         continue;
       }
-      nsAutoCString spec;
+      nsCAutoString spec;
       aChildBindingURI->GetSpec(spec);
       NS_ConvertUTF8toUTF16 bindingURI(spec);
       const PRUnichar* params[] = { bindingURI.get() };
-      nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
-                                      "XBL", aDocument,
-                                      nsContentUtils::eXBL_PROPERTIES,
+      nsContentUtils::ReportToConsole(nsContentUtils::eXBL_PROPERTIES,
                                       "TooDeepBindingRecursion",
-                                      params, ArrayLength(params));
-      return true;
+                                      params, NS_ARRAY_LENGTH(params),
+                                      nsnull,
+                                      EmptyString(), 0, 0,
+                                      nsIScriptError::warningFlag,
+                                      "XBL", aDocument);
+      return PR_TRUE;
     }
   }
 
-  return false;
+  return PR_FALSE;
+}
+
+bool CheckTagNameWhiteList(PRInt32 aNameSpaceID, nsIAtom *aTagName)
+{
+  static nsIContent::AttrValuesArray kValidXULTagNames[] =  {
+    &nsGkAtoms::autorepeatbutton, &nsGkAtoms::box, &nsGkAtoms::browser,
+    &nsGkAtoms::button, &nsGkAtoms::hbox, &nsGkAtoms::image, &nsGkAtoms::menu,
+    &nsGkAtoms::menubar, &nsGkAtoms::menuitem, &nsGkAtoms::menupopup,
+    &nsGkAtoms::row, &nsGkAtoms::slider, &nsGkAtoms::spacer,
+    &nsGkAtoms::splitter, &nsGkAtoms::text, &nsGkAtoms::tree, nsnull};
+
+  PRUint32 i;
+  if (aNameSpaceID == kNameSpaceID_XUL) {
+    for (i = 0; kValidXULTagNames[i]; ++i) {
+      if (aTagName == *(kValidXULTagNames[i])) {
+        return PR_TRUE;
+      }
+    }
+  }
+  else if (aNameSpaceID == kNameSpaceID_SVG &&
+           aTagName == nsGkAtoms::generic) {
+    return PR_TRUE;
+  }
+
+  return PR_FALSE;
 }
 
 
@@ -111,7 +182,7 @@ public:
   static nsXBLBindingRequest*
   Create(nsFixedSizeAllocator& aPool, nsIURI* aURI, nsIContent* aBoundElement) {
     void* place = aPool.Alloc(sizeof(nsXBLBindingRequest));
-    return place ? ::new (place) nsXBLBindingRequest(aURI, aBoundElement) : nullptr;
+    return place ? ::new (place) nsXBLBindingRequest(aURI, aBoundElement) : nsnull;
   }
 
   static void
@@ -130,7 +201,8 @@ public:
 
     
     bool ready = false;
-    nsXBLService::GetInstance()->BindingReady(mBoundElement, mBindingURI, &ready);
+    gXBLService->BindingReady(mBoundElement, mBindingURI, &ready);
+
     if (!ready)
       return;
 
@@ -158,11 +230,26 @@ public:
     }
   }
 
+  static nsIXBLService* gXBLService;
+  static int gRefCnt;
+
 protected:
   nsXBLBindingRequest(nsIURI* aURI, nsIContent* aBoundElement)
     : mBindingURI(aURI),
       mBoundElement(aBoundElement)
   {
+    gRefCnt++;
+    if (gRefCnt == 1) {
+      CallGetService("@mozilla.org/xbl;1", &gXBLService);
+    }
+  }
+
+  ~nsXBLBindingRequest()
+  {
+    gRefCnt--;
+    if (gRefCnt == 0) {
+      NS_IF_RELEASE(gXBLService);
+    }
   }
 
 private:
@@ -176,15 +263,17 @@ static const size_t kBucketSizes[] = {
   sizeof(nsXBLBindingRequest)
 };
 
-static const int32_t kNumBuckets = sizeof(kBucketSizes)/sizeof(size_t);
-static const int32_t kNumElements = 64;
-static const int32_t kInitialSize = sizeof(nsXBLBindingRequest) * kNumElements;
+static const PRInt32 kNumBuckets = sizeof(kBucketSizes)/sizeof(size_t);
+static const PRInt32 kNumElements = 64;
+static const PRInt32 kInitialSize = (NS_SIZE_IN_HEAP(sizeof(nsXBLBindingRequest))) * kNumElements;
+
+nsIXBLService* nsXBLBindingRequest::gXBLService = nsnull;
+int nsXBLBindingRequest::gRefCnt = 0;
 
 
 
 
-class nsXBLStreamListener MOZ_FINAL : public nsIStreamListener,
-                                      public nsIDOMEventListener
+class nsXBLStreamListener : public nsIStreamListener, public nsIDOMEventListener
 {
 public:
   NS_DECL_ISUPPORTS
@@ -192,7 +281,8 @@ public:
   NS_DECL_NSIREQUESTOBSERVER
   NS_DECL_NSIDOMEVENTLISTENER
 
-  nsXBLStreamListener(nsIDocument* aBoundDocument,
+  nsXBLStreamListener(nsXBLService* aXBLService,
+                      nsIDocument* aBoundDocument,
                       nsIXMLContentSink* aSink,
                       nsIDocument* aBindingDocument);
   ~nsXBLStreamListener();
@@ -201,6 +291,8 @@ public:
   bool HasRequest(nsIURI* aURI, nsIContent* aBoundElement);
 
 private:
+  nsXBLService* mXBLService; 
+
   nsCOMPtr<nsIStreamListener> mInner;
   nsAutoTArray<nsXBLBindingRequest*, 8> mBindingRequests;
   
@@ -215,27 +307,28 @@ NS_IMPL_ISUPPORTS3(nsXBLStreamListener,
                    nsIRequestObserver,
                    nsIDOMEventListener)
 
-nsXBLStreamListener::nsXBLStreamListener(nsIDocument* aBoundDocument,
+nsXBLStreamListener::nsXBLStreamListener(nsXBLService* aXBLService,
+                                         nsIDocument* aBoundDocument,
                                          nsIXMLContentSink* aSink,
                                          nsIDocument* aBindingDocument)
 : mSink(aSink), mBindingDocument(aBindingDocument)
 {
   
+  mXBLService = aXBLService;
   mBoundDocument = do_GetWeakReference(aBoundDocument);
 }
 
 nsXBLStreamListener::~nsXBLStreamListener()
 {
-  for (uint32_t i = 0; i < mBindingRequests.Length(); i++) {
+  for (PRUint32 i = 0; i < mBindingRequests.Length(); i++) {
     nsXBLBindingRequest* req = mBindingRequests.ElementAt(i);
-    nsXBLBindingRequest::Destroy(nsXBLService::GetInstance()->mPool, req);
+    nsXBLBindingRequest::Destroy(mXBLService->mPool, req);
   }
 }
 
 NS_IMETHODIMP
-nsXBLStreamListener::OnDataAvailable(nsIRequest *request, nsISupports* aCtxt,
-                                     nsIInputStream* aInStr, 
-                                     uint64_t aSourceOffset, uint32_t aCount)
+nsXBLStreamListener::OnDataAvailable(nsIRequest *request, nsISupports* aCtxt, nsIInputStream* aInStr, 
+                                     PRUint32 aSourceOffset, PRUint32 aCount)
 {
   if (mInner)
     return mInner->OnDataAvailable(request, aCtxt, aInStr, aSourceOffset, aCount);
@@ -260,16 +353,16 @@ nsXBLStreamListener::OnStartRequest(nsIRequest* request, nsISupports* aCtxt)
   nsresult rv = doc->StartDocumentLoad("loadAsInteractiveData",
                                        channel,
                                        group,
-                                       nullptr,
+                                       nsnull,
                                        getter_AddRefs(mInner),
-                                       true,
+                                       PR_TRUE,
                                        sink);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   
   nsCOMPtr<nsIDOMEventTarget> target(do_QueryInterface(doc));
-  target->AddEventListener(NS_LITERAL_STRING("load"), this, false);
+  target->AddEventListener(NS_LITERAL_STRING("load"), this, PR_FALSE);
   
   return mInner->OnStartRequest(request, aCtxt);
 }
@@ -284,7 +377,7 @@ nsXBLStreamListener::OnStopRequest(nsIRequest* request, nsISupports* aCtxt, nsre
 
   
   
-  mInner = nullptr;
+  mInner = nsnull;
 
   return rv;
 }
@@ -293,24 +386,24 @@ bool
 nsXBLStreamListener::HasRequest(nsIURI* aURI, nsIContent* aElt)
 {
   
-  uint32_t count = mBindingRequests.Length();
-  for (uint32_t i = 0; i < count; i++) {
+  PRUint32 count = mBindingRequests.Length();
+  for (PRUint32 i = 0; i < count; i++) {
     nsXBLBindingRequest* req = mBindingRequests.ElementAt(i);
     bool eq;
     if (req->mBoundElement == aElt &&
         NS_SUCCEEDED(req->mBindingURI->Equals(aURI, &eq)) && eq)
-      return true;
+      return PR_TRUE;
   }
 
-  return false;
+  return PR_FALSE;
 }
 
 nsresult
 nsXBLStreamListener::HandleEvent(nsIDOMEvent* aEvent)
 {
   nsresult rv = NS_OK;
-  uint32_t i;
-  uint32_t count = mBindingRequests.Length();
+  PRUint32 i;
+  PRUint32 count = mBindingRequests.Length();
 
   
   
@@ -345,7 +438,7 @@ nsXBLStreamListener::HandleEvent(nsIDOMEvent* aEvent)
 
     if (!bindingDocument->GetRootElement()) {
       
-      NS_WARNING("XBL doc with no root element - this usually shouldn't happen");
+      NS_WARNING("*** XBL doc with no root element! Something went horribly wrong! ***");
       return NS_ERROR_FAILURE;
     }
 
@@ -355,20 +448,21 @@ nsXBLStreamListener::HandleEvent(nsIDOMEvent* aEvent)
       xblDocBindingManager->GetXBLDocumentInfo(documentURI);
     xblDocBindingManager->RemoveXBLDocumentInfo(info); 
     if (!info) {
-      if (nsXBLService::IsChromeOrResourceURI(documentURI)) {
+      if (IsChromeOrResourceURI(documentURI)) {
         NS_WARNING("An XBL file is malformed. Did you forget the XBL namespace on the bindings tag?");
       }
-      nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
-                                      "XBL", nullptr,
-                                      nsContentUtils::eXBL_PROPERTIES,
+      nsContentUtils::ReportToConsole(nsContentUtils::eXBL_PROPERTIES,
                                       "MalformedXBL",
-                                      nullptr, 0, documentURI);
+                                      nsnull, 0, documentURI,
+                                      EmptyString(), 0, 0,
+                                      nsIScriptError::warningFlag,
+                                      "XBL");
       return NS_ERROR_FAILURE;
     }
 
     
 #ifdef MOZ_XUL
-    if (nsXBLService::IsChromeOrResourceURI(documentURI)) {
+    if (IsChromeOrResourceURI(documentURI)) {
       nsXULPrototypeCache* cache = nsXULPrototypeCache::GetInstance();
       if (cache && cache->IsEnabled())
         cache->PutXBLDocumentInfo(info);
@@ -385,7 +479,7 @@ nsXBLStreamListener::HandleEvent(nsIDOMEvent* aEvent)
     }
   }
 
-  target->RemoveEventListener(NS_LITERAL_STRING("load"), this, false);
+  target->RemoveEventListener(NS_LITERAL_STRING("load"), this, PR_FALSE);
 
   return rv;
 }
@@ -393,86 +487,71 @@ nsXBLStreamListener::HandleEvent(nsIDOMEvent* aEvent)
 
 
 
+PRUint32 nsXBLService::gRefCnt = 0;
 bool nsXBLService::gAllowDataURIs = false;
 
-nsHashtable* nsXBLService::gClassTable = nullptr;
+nsHashtable* nsXBLService::gClassTable = nsnull;
 
 JSCList  nsXBLService::gClassLRUList = JS_INIT_STATIC_CLIST(&nsXBLService::gClassLRUList);
-uint32_t nsXBLService::gClassLRUListLength = 0;
-uint32_t nsXBLService::gClassLRUListQuota = 64;
+PRUint32 nsXBLService::gClassLRUListLength = 0;
+PRUint32 nsXBLService::gClassLRUListQuota = 64;
 
 
-NS_IMPL_ISUPPORTS2(nsXBLService, nsIObserver, nsISupportsWeakReference)
-
-void
-nsXBLService::Init()
-{
-  gInstance = new nsXBLService();
-  NS_ADDREF(gInstance);
-
-  
-  
-  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-  if (os)
-    os->AddObserver(gInstance, "memory-pressure", true);
-}
+NS_IMPL_ISUPPORTS3(nsXBLService, nsIXBLService, nsIObserver, nsISupportsWeakReference)
 
 
 nsXBLService::nsXBLService(void)
 {
   mPool.Init("XBL Binding Requests", kBucketSizes, kNumBuckets, kInitialSize);
 
-  gClassTable = new nsHashtable();
+  gRefCnt++;
+  if (gRefCnt == 1) {
+    gClassTable = new nsHashtable();
+  }
 
   Preferences::AddBoolVarCache(&gAllowDataURIs, "layout.debug.enable_data_xbl");
 }
 
 nsXBLService::~nsXBLService(void)
 {
-  
-  FlushMemory();
+  gRefCnt--;
+  if (gRefCnt == 0) {
+    
+    FlushMemory();
 
-  
-  
-  
-  gClassLRUListLength = gClassLRUListQuota = 0;
+    
+    
+    
+    gClassLRUListLength = gClassLRUListQuota = 0;
 
-  
-  
-  delete gClassTable;
-  gClassTable = nullptr;
-}
-
-
-bool
-nsXBLService::IsChromeOrResourceURI(nsIURI* aURI)
-{
-  bool isChrome = false;
-  bool isResource = false;
-  if (NS_SUCCEEDED(aURI->SchemeIs("chrome", &isChrome)) && 
-      NS_SUCCEEDED(aURI->SchemeIs("resource", &isResource)))
-      return (isChrome || isResource);
-  return false;
+    
+    
+    delete gClassTable;
+    gClassTable = nsnull;
+  }
 }
 
 
 
-
-nsresult
+NS_IMETHODIMP
 nsXBLService::LoadBindings(nsIContent* aContent, nsIURI* aURL,
                            nsIPrincipal* aOriginPrincipal, bool aAugmentFlag,
                            nsXBLBinding** aBinding, bool* aResolveStyle) 
 {
   NS_PRECONDITION(aOriginPrincipal, "Must have an origin principal");
   
-  *aBinding = nullptr;
-  *aResolveStyle = false;
+  *aBinding = nsnull;
+  *aResolveStyle = PR_FALSE;
 
   nsresult rv;
 
-  nsCOMPtr<nsIDocument> document = aContent->OwnerDoc();
+  nsCOMPtr<nsIDocument> document = aContent->GetOwnerDoc();
 
-  nsAutoCString urlspec;
+  
+  if (!document)
+    return NS_OK;
+
+  nsCAutoString urlspec;
   if (nsContentUtils::GetWrapperSafeScriptFilename(document, aURL, urlspec)) {
     
     
@@ -488,30 +567,30 @@ nsXBLService::LoadBindings(nsIContent* aContent, nsIURI* aURL,
     if (styleBinding) {
       if (binding->MarkedForDeath()) {
         FlushStyleBindings(aContent);
-        binding = nullptr;
+        binding = nsnull;
       }
       else {
         
         if (styleBinding->PrototypeBinding()->CompareBindingURI(aURL))
           return NS_OK;
         FlushStyleBindings(aContent);
-        binding = nullptr;
+        binding = nsnull;
       }
     }
   }
 
   bool ready;
   nsRefPtr<nsXBLBinding> newBinding;
-  if (NS_FAILED(rv = GetBinding(aContent, aURL, false, aOriginPrincipal,
+  if (NS_FAILED(rv = GetBinding(aContent, aURL, PR_FALSE, aOriginPrincipal,
                                 &ready, getter_AddRefs(newBinding)))) {
     return rv;
   }
 
   if (!newBinding) {
 #ifdef DEBUG
-    nsAutoCString spec;
+    nsCAutoString spec;
     aURL->GetSpec(spec);
-    nsAutoCString str(NS_LITERAL_CSTRING("Failed to locate XBL binding. XBL is now using id instead of name to reference bindings. Make sure you have switched over.  The invalid binding name is: ") + spec);
+    nsCAutoString str(NS_LITERAL_CSTRING("Failed to locate XBL binding. XBL is now using id instead of name to reference bindings. Make sure you have switched over.  The invalid binding name is: ") + spec);
     NS_ERROR(str.get());
 #endif
     return NS_OK;
@@ -527,7 +606,7 @@ nsXBLService::LoadBindings(nsIContent* aContent, nsIURI* aURL,
     do {
       baseBinding = nextBinding;
       nextBinding = baseBinding->GetBaseBinding();
-      baseBinding->SetIsStyleBinding(false);
+      baseBinding->SetIsStyleBinding(PR_FALSE);
     } while (nextBinding);
 
     
@@ -576,7 +655,11 @@ nsXBLService::LoadBindings(nsIContent* aContent, nsIURI* aURL,
 nsresult
 nsXBLService::FlushStyleBindings(nsIContent* aContent)
 {
-  nsCOMPtr<nsIDocument> document = aContent->OwnerDoc();
+  nsCOMPtr<nsIDocument> document = aContent->GetOwnerDoc();
+
+  
+  if (! document)
+    return NS_OK;
 
   nsBindingManager *bindingManager = document->BindingManager();
   
@@ -587,13 +670,30 @@ nsXBLService::FlushStyleBindings(nsIContent* aContent)
 
     if (styleBinding) {
       
-      styleBinding->ChangeDocument(document, nullptr);
+      styleBinding->ChangeDocument(document, nsnull);
     }
 
     if (styleBinding == binding) 
-      bindingManager->SetBinding(aContent, nullptr); 
+      bindingManager->SetBinding(aContent, nsnull); 
   }
    
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXBLService::ResolveTag(nsIContent* aContent, PRInt32* aNameSpaceID,
+                         nsIAtom** aResult)
+{
+  nsIDocument* document = aContent->GetOwnerDoc();
+  if (document) {
+    *aResult = document->BindingManager()->ResolveTag(aContent, aNameSpaceID);
+    NS_IF_ADDREF(*aResult);
+  }
+  else {
+    *aNameSpaceID = aContent->GetNameSpaceID();
+    NS_ADDREF(*aResult = aContent->Tag());
+  }
+
   return NS_OK;
 }
 
@@ -604,7 +704,8 @@ nsXBLService::FlushStyleBindings(nsIContent* aContent)
 
 
 
-nsresult
+
+NS_IMETHODIMP
 nsXBLService::AttachGlobalKeyHandler(nsIDOMEventTarget* aTarget)
 {
   
@@ -618,7 +719,7 @@ nsXBLService::AttachGlobalKeyHandler(nsIDOMEventTarget* aTarget)
       piTarget = doc; 
   }
 
-  nsEventListenerManager* manager = piTarget->GetListenerManager(true);
+  nsEventListenerManager* manager = piTarget->GetListenerManager(PR_TRUE);
     
   if (!piTarget || !manager)
     return NS_ERROR_FAILURE;
@@ -648,7 +749,7 @@ nsXBLService::AttachGlobalKeyHandler(nsIDOMEventTarget* aTarget)
 
   if (contentNode)
     return contentNode->SetProperty(nsGkAtoms::listener, handler,
-                                    nsPropertyTable::SupportsDtorFunc, true);
+                                    nsPropertyTable::SupportsDtorFunc, PR_TRUE);
 
   
   
@@ -661,7 +762,7 @@ nsXBLService::AttachGlobalKeyHandler(nsIDOMEventTarget* aTarget)
 
 
 
-nsresult
+NS_IMETHODIMP
 nsXBLService::DetachGlobalKeyHandler(nsIDOMEventTarget* aTarget)
 {
   nsCOMPtr<nsIDOMEventTarget> piTarget = aTarget;
@@ -674,7 +775,7 @@ nsXBLService::DetachGlobalKeyHandler(nsIDOMEventTarget* aTarget)
   if (doc)
     piTarget = do_QueryInterface(doc);
 
-  nsEventListenerManager* manager = piTarget->GetListenerManager(true);
+  nsEventListenerManager* manager = piTarget->GetListenerManager(PR_TRUE);
     
   if (!piTarget || !manager)
     return NS_ERROR_FAILURE;
@@ -724,13 +825,12 @@ nsXBLService::FlushMemory()
 
 
 
-nsresult
-nsXBLService::BindingReady(nsIContent* aBoundElement,
-                           nsIURI* aURI, 
-                           bool* aIsReady)
+NS_IMETHODIMP nsXBLService::BindingReady(nsIContent* aBoundElement, 
+                                         nsIURI* aURI, 
+                                         bool* aIsReady)
 {
   
-  return GetBinding(aBoundElement, aURI, true, nullptr, aIsReady, nullptr);
+  return GetBinding(aBoundElement, aURI, PR_TRUE, nsnull, aIsReady, nsnull);
 }
 
 nsresult
@@ -755,41 +855,33 @@ nsXBLService::GetBinding(nsIContent* aBoundElement, nsIURI* aURI,
                "whether the binding is ready");
   
   if (aResult)
-    *aResult = nullptr;
+    *aResult = nsnull;
 
   if (!aURI)
     return NS_ERROR_FAILURE;
 
-  nsAutoCString ref;
+  nsCAutoString ref;
   aURI->GetRef(ref);
 
-  nsCOMPtr<nsIDocument> boundDocument = aBoundElement->OwnerDoc();
+  nsCOMPtr<nsIDocument> boundDocument = aBoundElement->GetOwnerDoc();
 
   nsRefPtr<nsXBLDocumentInfo> docInfo;
   nsresult rv = LoadBindingDocumentInfo(aBoundElement, boundDocument, aURI,
                                         aOriginPrincipal,
-                                        false, getter_AddRefs(docInfo));
+                                        PR_FALSE, getter_AddRefs(docInfo));
   NS_ENSURE_SUCCESS(rv, rv);
   
   if (!docInfo)
     return NS_ERROR_FAILURE;
 
+  
+  nsCOMPtr<nsIDocument> doc = docInfo->GetDocument();
+
   nsXBLPrototypeBinding* protoBinding = docInfo->GetPrototypeBinding(ref);
 
-  if (!protoBinding) {
-#ifdef DEBUG
-    nsAutoCString uriSpec;
-    aURI->GetSpec(uriSpec);
-    nsAutoCString doc;
-    boundDocument->GetDocumentURI()->GetSpec(doc);
-    nsAutoCString message("Unable to locate an XBL binding for URI ");
-    message += uriSpec;
-    message += " in document ";
-    message += doc;
-    NS_WARNING(message.get());
-#endif
+  NS_WARN_IF_FALSE(protoBinding, "Unable to locate an XBL binding");
+  if (!protoBinding)
     return NS_ERROR_FAILURE;
-  }
 
   NS_ENSURE_TRUE(aDontExtendURIs.AppendElement(protoBinding->BindingURI()),
                  NS_ERROR_OUT_OF_MEMORY);
@@ -798,6 +890,8 @@ nsXBLService::GetBinding(nsIContent* aBoundElement, nsIURI* aURI,
     NS_ENSURE_TRUE(aDontExtendURIs.AppendElement(altBindingURI),
                    NS_ERROR_OUT_OF_MEMORY);
   }
+
+  nsCOMPtr<nsIContent> child = protoBinding->GetBindingElement();
 
   
   bool ready = protoBinding->LoadResources();
@@ -808,64 +902,143 @@ nsXBLService::GetBinding(nsIContent* aBoundElement, nsIURI* aURI,
     return NS_ERROR_FAILURE; 
   }
 
-  rv = protoBinding->ResolveBaseBinding();
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsIURI* baseBindingURI;
+  
+  nsRefPtr<nsXBLBinding> baseBinding;
+  bool hasBase = protoBinding->HasBasePrototype();
   nsXBLPrototypeBinding* baseProto = protoBinding->GetBasePrototype();
   if (baseProto) {
-    baseBindingURI = baseProto->BindingURI();
-  }
-  else {
-    baseBindingURI = protoBinding->GetBaseBindingURI();
-    if (baseBindingURI) {
-      uint32_t count = aDontExtendURIs.Length();
-      for (uint32_t index = 0; index < count; ++index) {
-        bool equal;
-        rv = aDontExtendURIs[index]->Equals(baseBindingURI, &equal);
-        NS_ENSURE_SUCCESS(rv, rv);
-        if (equal) {
-          nsAutoCString spec, basespec;
-          protoBinding->BindingURI()->GetSpec(spec);
-          NS_ConvertUTF8toUTF16 protoSpec(spec);
-          baseBindingURI->GetSpec(basespec);
-          NS_ConvertUTF8toUTF16 baseSpecUTF16(basespec);
-          const PRUnichar* params[] = { protoSpec.get(), baseSpecUTF16.get() };
-          nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
-                                          "XBL", nullptr,
-                                          nsContentUtils::eXBL_PROPERTIES,
-                                          "CircularExtendsBinding",
-                                          params, ArrayLength(params),
-                                          boundDocument->GetDocumentURI());
-          return NS_ERROR_ILLEGAL_VALUE;
-        }
-      }
-    }
-  }
-
-  nsRefPtr<nsXBLBinding> baseBinding;
-  if (baseBindingURI) {
-    nsCOMPtr<nsIContent> child = protoBinding->GetBindingElement();
-    rv = GetBinding(aBoundElement, baseBindingURI, aPeekOnly,
+    
+    
+    rv = GetBinding(aBoundElement, baseProto->BindingURI(), aPeekOnly,
                     child->NodePrincipal(), aIsReady,
                     getter_AddRefs(baseBinding), aDontExtendURIs);
     if (NS_FAILED(rv))
       return rv; 
   }
+  else if (hasBase) {
+    
+    nsAutoString display, extends;
+    child->GetAttr(kNameSpaceID_None, nsGkAtoms::display, display);
+    child->GetAttr(kNameSpaceID_None, nsGkAtoms::extends, extends);
+    bool hasDisplay = !display.IsEmpty();
+    bool hasExtends = !extends.IsEmpty();
+    
+    nsAutoString value(extends);
+         
+    if (!hasExtends) 
+      protoBinding->SetHasBasePrototype(PR_FALSE);
+    else {
+      
+      nsAutoString prefix;
+      PRInt32 offset;
+      if (hasDisplay) {
+        offset = display.FindChar(':');
+        if (-1 != offset) {
+          display.Left(prefix, offset);
+          display.Cut(0, offset+1);
+        }
+      }
+      else if (hasExtends) {
+        offset = extends.FindChar(':');
+        if (-1 != offset) {
+          extends.Left(prefix, offset);
+          extends.Cut(0, offset+1);
+          display = extends;
+        }
+      }
 
-  *aIsReady = true;
+      nsAutoString nameSpace;
 
+      if (!prefix.IsEmpty()) {
+        child->LookupNamespaceURI(prefix, nameSpace);
+
+        if (!nameSpace.IsEmpty()) {
+          if (!hasDisplay) {
+            
+            
+            protoBinding->SetHasBasePrototype(PR_FALSE);
+            
+          }
+
+          PRInt32 nameSpaceID =
+            nsContentUtils::NameSpaceManager()->GetNameSpaceID(nameSpace);
+
+          nsCOMPtr<nsIAtom> tagName = do_GetAtom(display);
+          
+          if (!CheckTagNameWhiteList(nameSpaceID, tagName)) {
+            const PRUnichar* params[] = { display.get() };
+            nsContentUtils::ReportToConsole(nsContentUtils::eXBL_PROPERTIES,
+                                            "InvalidExtendsBinding",
+                                            params, NS_ARRAY_LENGTH(params),
+                                            nsnull,
+                                            EmptyString(), 0, 0,
+                                            nsIScriptError::errorFlag,
+                                            "XBL", doc);
+            NS_ASSERTION(!IsChromeOrResourceURI(aURI),
+                         "Invalid extends value");
+            return NS_ERROR_ILLEGAL_VALUE;
+          }
+
+          protoBinding->SetBaseTag(nameSpaceID, tagName);
+        }
+      }
+
+      if (hasExtends && (hasDisplay || nameSpace.IsEmpty())) {
+        
+        
+        nsCOMPtr<nsIURI> bindingURI;
+        rv = NS_NewURI(getter_AddRefs(bindingURI), value,
+                       doc->GetDocumentCharacterSet().get(),
+                       doc->GetDocBaseURI());
+        NS_ENSURE_SUCCESS(rv, rv);
+        
+        PRUint32 count = aDontExtendURIs.Length();
+        for (PRUint32 index = 0; index < count; ++index) {
+          bool equal;
+          rv = aDontExtendURIs[index]->Equals(bindingURI, &equal);
+          NS_ENSURE_SUCCESS(rv, rv);
+          if (equal) {
+            nsCAutoString spec;
+            protoBinding->BindingURI()->GetSpec(spec);
+            NS_ConvertUTF8toUTF16 protoSpec(spec);
+            const PRUnichar* params[] = { protoSpec.get(), value.get() };
+            nsContentUtils::ReportToConsole(nsContentUtils::eXBL_PROPERTIES,
+                                            "CircularExtendsBinding",
+                                            params, NS_ARRAY_LENGTH(params),
+                                            nsnull,
+                                            EmptyString(), 0, 0,
+                                            nsIScriptError::warningFlag,
+                                            "XBL", boundDocument);
+            return NS_ERROR_ILLEGAL_VALUE;
+          }
+        }
+
+        
+        
+        rv = GetBinding(aBoundElement, bindingURI, aPeekOnly,
+                        child->NodePrincipal(), aIsReady,
+                        getter_AddRefs(baseBinding), aDontExtendURIs);
+        if (NS_FAILED(rv))
+          return rv; 
+        if (!aPeekOnly) {
+          
+          baseProto = baseBinding->PrototypeBinding();
+          protoBinding->SetBasePrototype(baseProto);
+          child->UnsetAttr(kNameSpaceID_None, nsGkAtoms::extends, PR_FALSE);
+          child->UnsetAttr(kNameSpaceID_None, nsGkAtoms::display, PR_FALSE);
+        }
+      }
+    }
+  }
+
+  *aIsReady = PR_TRUE;
   if (!aPeekOnly) {
     
     nsXBLBinding *newBinding = new nsXBLBinding(protoBinding);
     NS_ENSURE_TRUE(newBinding, NS_ERROR_OUT_OF_MEMORY);
 
-    if (baseBinding) {
-      if (!baseProto) {
-        protoBinding->SetBasePrototype(baseBinding->PrototypeBinding());
-      }
-       newBinding->SetBaseBinding(baseBinding);
-    }
+    if (baseBinding)
+      newBinding->SetBaseBinding(baseBinding);
 
     NS_ADDREF(*aResult = newBinding);
   }
@@ -876,7 +1049,7 @@ nsXBLService::GetBinding(nsIContent* aBoundElement, nsIURI* aURI,
 static bool SchemeIs(nsIURI* aURI, const char* aScheme)
 {
   nsCOMPtr<nsIURI> baseURI = NS_GetInnermostURI(aURI);
-  NS_ENSURE_TRUE(baseURI, false);
+  NS_ENSURE_TRUE(baseURI, PR_FALSE);
 
   bool isScheme = false;
   return NS_SUCCEEDED(baseURI->SchemeIs(aScheme, &isScheme)) && isScheme;
@@ -886,18 +1059,18 @@ static bool
 IsSystemOrChromeURLPrincipal(nsIPrincipal* aPrincipal)
 {
   if (nsContentUtils::IsSystemPrincipal(aPrincipal)) {
-    return true;
+    return PR_TRUE;
   }
   
   nsCOMPtr<nsIURI> uri;
   aPrincipal->GetURI(getter_AddRefs(uri));
-  NS_ENSURE_TRUE(uri, false);
+  NS_ENSURE_TRUE(uri, PR_FALSE);
   
   bool isChrome = false;
   return NS_SUCCEEDED(uri->SchemeIs("chrome", &isChrome)) && isChrome;
 }
 
-nsresult
+NS_IMETHODIMP
 nsXBLService::LoadBindingDocumentInfo(nsIContent* aBoundElement,
                                       nsIDocument* aBoundDocument,
                                       nsIURI* aBindingURI,
@@ -933,7 +1106,7 @@ nsXBLService::LoadBindingDocumentInfo(nsIContent* aBoundElement,
       if (!(gAllowDataURIs && SchemeIs(aBindingURI, "data")) &&
           !SchemeIs(aBindingURI, "chrome")) {
         rv = aBoundDocument->NodePrincipal()->CheckMayLoad(aBindingURI,
-                                                           true, false);
+                                                           PR_TRUE);
         NS_ENSURE_SUCCESS(rv, NS_ERROR_XBL_BLOCKED);
       }
 
@@ -943,7 +1116,7 @@ nsXBLService::LoadBindingDocumentInfo(nsIContent* aBoundElement,
     }
   }
 
-  *aResult = nullptr;
+  *aResult = nsnull;
   nsRefPtr<nsXBLDocumentInfo> info;
 
   nsCOMPtr<nsIURI> documentURI;
@@ -965,14 +1138,14 @@ nsXBLService::LoadBindingDocumentInfo(nsIContent* aBoundElement,
 
   if (!info) {
     
-    nsBindingManager *bindingManager = nullptr;
+    nsBindingManager *bindingManager = nsnull;
 
     if (aBoundDocument) {
       bindingManager = aBoundDocument->BindingManager();
       info = bindingManager->GetXBLDocumentInfo(documentURI);
     }
 
-    nsINodeInfo *ni = nullptr;
+    nsINodeInfo *ni = nsnull;
     if (aBoundElement)
       ni = aBoundElement->NodeInfo();
 
@@ -1000,23 +1173,7 @@ nsXBLService::LoadBindingDocumentInfo(nsIContent* aBoundElement,
         return NS_OK;
       }
     }
-
-#ifdef MOZ_XUL
-    
-    bool useStartupCache = useXULCache && IsChromeOrResourceURI(documentURI);
-    if (!info && useStartupCache) {
-      rv = nsXBLDocumentInfo::ReadPrototypeBindings(documentURI, getter_AddRefs(info));
-      if (NS_SUCCEEDED(rv)) {
-        cache->PutXBLDocumentInfo(info);
-
-        if (bindingManager) {
-          
-          bindingManager->PutXBLDocumentInfo(info);
-        }
-      }
-    }
-#endif
-
+     
     if (!info) {
       
       
@@ -1024,12 +1181,12 @@ nsXBLService::LoadBindingDocumentInfo(nsIContent* aBoundElement,
       
       bool chrome;
       if (NS_SUCCEEDED(documentURI->SchemeIs("chrome", &chrome)) && chrome)
-        aForceSyncLoad = true;
+        aForceSyncLoad = PR_TRUE;
 
       nsCOMPtr<nsIDocument> document;
       FetchBindingDocument(aBoundElement, aBoundDocument, documentURI,
                            aBindingURI, aForceSyncLoad, getter_AddRefs(document));
-
+   
       if (document) {
         nsBindingManager *xblDocBindingManager = document->BindingManager();
         info = xblDocBindingManager->GetXBLDocumentInfo(documentURI);
@@ -1041,11 +1198,8 @@ nsXBLService::LoadBindingDocumentInfo(nsIContent* aBoundElement,
 
         
 #ifdef MOZ_XUL
-        if (useStartupCache) {
+        if (useXULCache && IsChromeOrResourceURI(documentURI)) {
           cache->PutXBLDocumentInfo(info);
-
-          
-          info->WritePrototypeBindings();
         }
 #endif
         
@@ -1057,7 +1211,11 @@ nsXBLService::LoadBindingDocumentInfo(nsIContent* aBoundElement,
     }
   }
 
-  info.forget(aResult);
+  if (!info)
+    return NS_OK;
+ 
+  *aResult = info;
+  NS_IF_ADDREF(*aResult);
 
   return NS_OK;
 }
@@ -1071,7 +1229,7 @@ nsXBLService::FetchBindingDocument(nsIContent* aBoundElement, nsIDocument* aBoun
 
   nsresult rv = NS_OK;
   
-  *aResult = nullptr;
+  *aResult = nsnull;
 
   
   
@@ -1082,7 +1240,7 @@ nsXBLService::FetchBindingDocument(nsIContent* aBoundElement, nsIDocument* aBoun
   
   
   if (IsChromeOrResourceURI(aDocumentURI))
-    aForceSyncLoad = true;
+    aForceSyncLoad = PR_TRUE;
 
   
   nsCOMPtr<nsIDocument> doc;
@@ -1090,12 +1248,12 @@ nsXBLService::FetchBindingDocument(nsIContent* aBoundElement, nsIDocument* aBoun
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIXMLContentSink> xblSink;
-  rv = NS_NewXBLContentSink(getter_AddRefs(xblSink), doc, aDocumentURI, nullptr);
+  rv = NS_NewXBLContentSink(getter_AddRefs(xblSink), doc, aDocumentURI, nsnull);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   nsCOMPtr<nsIChannel> channel;
-  rv = NS_NewChannel(getter_AddRefs(channel), aDocumentURI, nullptr, loadGroup);
+  rv = NS_NewChannel(getter_AddRefs(channel), aDocumentURI, nsnull, loadGroup);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIInterfaceRequestor> sameOriginChecker = nsContentUtils::GetSameOriginChecker();
@@ -1106,7 +1264,7 @@ nsXBLService::FetchBindingDocument(nsIContent* aBoundElement, nsIDocument* aBoun
   if (!aForceSyncLoad) {
     
     nsXBLStreamListener* xblListener =
-      new nsXBLStreamListener(aBoundDocument, xblSink, doc);
+      new nsXBLStreamListener(this, aBoundDocument, xblSink, doc);
     NS_ENSURE_TRUE(xblListener,NS_ERROR_OUT_OF_MEMORY);
 
     
@@ -1114,7 +1272,7 @@ nsXBLService::FetchBindingDocument(nsIContent* aBoundElement, nsIDocument* aBoun
     if (aBoundDocument)
       bindingManager = aBoundDocument->BindingManager();
     else
-      bindingManager = nullptr;
+      bindingManager = nsnull;
 
     if (bindingManager)
       bindingManager->PutLoadingDocListener(aDocumentURI, xblListener);
@@ -1126,7 +1284,7 @@ nsXBLService::FetchBindingDocument(nsIContent* aBoundElement, nsIDocument* aBoun
     xblListener->AddRequest(req);
 
     
-    rv = channel->AsyncOpen(xblListener, nullptr);
+    rv = channel->AsyncOpen(xblListener, nsnull);
     if (NS_FAILED(rv)) {
       
       if (bindingManager) {
@@ -1140,9 +1298,9 @@ nsXBLService::FetchBindingDocument(nsIContent* aBoundElement, nsIDocument* aBoun
   rv = doc->StartDocumentLoad("loadAsInteractiveData",
                               channel,
                               loadGroup,
-                              nullptr,
+                              nsnull,
                               getter_AddRefs(listener),
-                              true,
+                              PR_TRUE,
                               xblSink);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1155,6 +1313,28 @@ nsXBLService::FetchBindingDocument(nsIContent* aBoundElement, nsIDocument* aBoun
   NS_ENSURE_SUCCESS(rv, rv);
 
   doc.swap(*aResult);
+
+  return NS_OK;
+}
+
+
+
+nsresult NS_NewXBLService(nsIXBLService** aResult);
+
+nsresult
+NS_NewXBLService(nsIXBLService** aResult)
+{
+  nsXBLService* result = new nsXBLService;
+  if (! result)
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  NS_ADDREF(*aResult = result);
+
+  
+  
+  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+  if (os)
+    os->AddObserver(result, "memory-pressure", PR_TRUE);
 
   return NS_OK;
 }

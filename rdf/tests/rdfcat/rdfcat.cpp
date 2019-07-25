@@ -13,6 +13,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <stdio.h>
 #include "nsXPCOM.h"
 #include "nsCOMPtr.h"
@@ -48,7 +82,7 @@ static NS_DEFINE_CID(kRDFXMLDataSourceCID,  NS_RDFXMLDATASOURCE_CID);
     PR_BEGIN_MACRO \
     if (NS_FAILED(rv)) { \
         printf(">>> %s failed: rv=%x\n", step, rv); \
-        return 1;\
+        return rv;\
     } \
     PR_END_MACRO
 
@@ -68,20 +102,20 @@ public:
         return NS_OK;
     }
 
-    NS_IMETHOD Write(const char* aBuf, uint32_t aCount, uint32_t *aWriteCount) {
+    NS_IMETHOD Write(const char* aBuf, PRUint32 aCount, PRUint32 *aWriteCount) {
         PR_Write(PR_GetSpecialFD(PR_StandardOutput), aBuf, aCount);
         *aWriteCount = aCount;
         return NS_OK;
     }
 
     NS_IMETHOD
-    WriteFrom(nsIInputStream *inStr, uint32_t count, uint32_t *_retval) {
+    WriteFrom(nsIInputStream *inStr, PRUint32 count, PRUint32 *_retval) {
         NS_NOTREACHED("WriteFrom");
         return NS_ERROR_NOT_IMPLEMENTED;
     }
 
     NS_IMETHOD
-    WriteSegments(nsReadSegmentFun reader, void * closure, uint32_t count, uint32_t *_retval) {
+    WriteSegments(nsReadSegmentFun reader, void * closure, PRUint32 count, PRUint32 *_retval) {
         NS_NOTREACHED("WriteSegments");
         return NS_ERROR_NOT_IMPLEMENTED;
     }
@@ -112,7 +146,7 @@ main(int argc, char** argv)
         return 1;
     }
 
-    NS_InitXPCOM2(nullptr, nullptr, nullptr);
+    NS_InitXPCOM2(nsnull, nsnull, nsnull);
 
     
     
@@ -127,14 +161,14 @@ main(int argc, char** argv)
     RETURN_IF_FAILED(rv, "datasource initialization");
 
     
-    rv = remote->Refresh(false);
+    rv = remote->Refresh(PR_FALSE);
     RETURN_IF_FAILED(rv, "datasource refresh");
 
     
     nsCOMPtr<nsIThread> thread = do_GetCurrentThread();
     bool done = false;
     while (!done) {
-        NS_ENSURE_TRUE(NS_ProcessNextEvent(thread), 1);
+        NS_ENSURE_STATE(NS_ProcessNextEvent(thread));
         remote->GetLoaded(&done);
     }
 
@@ -150,5 +184,5 @@ main(int argc, char** argv)
     rv = source->Serialize(out);
     RETURN_IF_FAILED(rv, "datasoure serialization");
 
-    return 0;
+    return NS_OK;
 }

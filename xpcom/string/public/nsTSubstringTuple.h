@@ -6,6 +6,37 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   
 
 
@@ -25,18 +56,18 @@ class nsTSubstringTuple_CharT
       typedef nsTSubstringTuple_CharT    self_type;
       typedef nsTSubstring_CharT         substring_type;
       typedef nsTSubstring_CharT         base_string_type;
-      typedef uint32_t                   size_type;
+      typedef PRUint32                   size_type;
 
     public:
 
       nsTSubstringTuple_CharT(const base_string_type* a, const base_string_type* b)
-        : mHead(nullptr)
+        : mHead(nsnull)
         , mFragA(a)
         , mFragB(b) {}
 
       nsTSubstringTuple_CharT(const self_type& head, const base_string_type* b)
         : mHead(&head)
-        , mFragA(nullptr) 
+        , mFragA(nsnull) 
         , mFragB(b) {}
 
         
@@ -49,7 +80,7 @@ class nsTSubstringTuple_CharT
 
 
 
-      void WriteTo(char_type *buf, uint32_t bufLen) const;
+      void WriteTo(char_type *buf, PRUint32 bufLen) const;
 
         
 

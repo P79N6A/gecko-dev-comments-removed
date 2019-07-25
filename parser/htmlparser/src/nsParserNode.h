@@ -20,6 +20,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_PARSERNODE__
 #define NS_PARSERNODE__
 
@@ -36,7 +68,7 @@ class nsCParserNode :  public nsIParserNode {
 
   protected:
 
-    int32_t mRefCnt;
+    PRInt32 mRefCnt;
 
   public:
 
@@ -76,7 +108,7 @@ class nsCParserNode :  public nsIParserNode {
 #else
       nsFixedSizeAllocator& pool = aNodeAllocator->GetArenaPool();
       void* place = pool.Alloc(sizeof(nsCParserNode));
-      NS_ENSURE_TRUE(place, nullptr);
+      NS_ENSURE_TRUE(place, nsnull);
       return ::new (place)
 #endif
         nsCParserNode(aToken, aTokenAllocator, aNodeAllocator);
@@ -139,14 +171,14 @@ class nsCParserNode :  public nsIParserNode {
 
 
 
-    virtual int32_t GetNodeType()  const;
+    virtual PRInt32 GetNodeType()  const;
 
     
 
 
 
 
-    virtual int32_t GetTokenType()  const;
+    virtual PRInt32 GetTokenType()  const;
 
 
     
@@ -158,15 +190,7 @@ class nsCParserNode :  public nsIParserNode {
 
 
 
-    virtual int32_t GetAttributeCount(bool askToken=false) const;
-
-    
-
-
-
-
-
-    virtual const nsAString& GetKeyAt(uint32_t anIndex) const;
+    virtual PRInt32 GetAttributeCount(bool askToken=false) const;
 
     
 
@@ -174,7 +198,15 @@ class nsCParserNode :  public nsIParserNode {
 
 
 
-    virtual const nsAString& GetValueAt(uint32_t anIndex) const;
+    virtual const nsAString& GetKeyAt(PRUint32 anIndex) const;
+
+    
+
+
+
+
+
+    virtual const nsAString& GetValueAt(PRUint32 anIndex) const;
 
     
 
@@ -183,7 +215,7 @@ class nsCParserNode :  public nsIParserNode {
 
 
 
-    virtual int32_t TranslateToUnicodeStr(nsString& aString) const;
+    virtual PRInt32 TranslateToUnicodeStr(nsString& aString) const;
 
     
 
@@ -199,7 +231,7 @@ class nsCParserNode :  public nsIParserNode {
 
 
 
-    virtual int32_t GetSourceLineNumber(void) const;
+    virtual PRInt32 GetSourceLineNumber(void) const;
 
     
 
@@ -231,7 +263,7 @@ class nsCParserNode :  public nsIParserNode {
     virtual nsresult ReleaseAll();
 
     bool mGenericState;  
-    int32_t      mUseCount;
+    PRInt32      mUseCount;
     CToken*      mToken;
    
     nsTokenAllocator* mTokenAllocator;
@@ -253,7 +285,7 @@ public:
 #else
       nsFixedSizeAllocator& pool = aNodeAllocator->GetArenaPool();
       void* place = pool.Alloc(sizeof(nsCParserStartNode));
-      NS_ENSURE_TRUE(place, nullptr);
+      NS_ENSURE_TRUE(place, nsnull);
       return ::new (place)
 #endif
         nsCParserStartNode(aToken, aTokenAllocator, aNodeAllocator);
@@ -281,9 +313,9 @@ public:
                           nsTokenAllocator* aTokenAllocator,
                           nsNodeAllocator* aNodeAllocator = 0);
     virtual void     AddAttribute(CToken* aToken);
-    virtual int32_t  GetAttributeCount(bool askToken = false) const;
-    virtual const    nsAString& GetKeyAt(uint32_t anIndex) const;
-    virtual const    nsAString& GetValueAt(uint32_t anIndex) const;
+    virtual PRInt32  GetAttributeCount(bool askToken = false) const;
+    virtual const    nsAString& GetKeyAt(PRUint32 anIndex) const;
+    virtual const    nsAString& GetValueAt(PRUint32 anIndex) const;
     virtual CToken*  PopAttributeToken();
     virtual CToken*  PopAttributeTokenFront();
     virtual void     GetSource(nsString& aString) const;

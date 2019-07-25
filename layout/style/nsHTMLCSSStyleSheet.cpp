@@ -7,12 +7,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsHTMLCSSStyleSheet.h"
 #include "nsCRT.h"
 #include "nsIAtom.h"
 #include "nsIURL.h"
 #include "nsCSSPseudoElements.h"
 #include "nsIStyleRule.h"
+#include "nsIFrame.h"
 #include "mozilla/css/StyleRule.h"
 #include "nsIStyleRuleProcessor.h"
 #include "nsPresContext.h"
@@ -27,7 +61,7 @@ using namespace mozilla::dom;
 namespace css = mozilla::css;
 
 nsHTMLCSSStyleSheet::nsHTMLCSSStyleSheet()
-  : mDocument(nullptr)
+  : mDocument(nsnull)
 {
 }
 
@@ -47,6 +81,7 @@ nsHTMLCSSStyleSheet::RulesMatching(ElementRuleProcessorData* aData)
     aData->mRuleWalker->Forward(rule);
   }
 
+#ifdef MOZ_SMIL
   rule = element->GetSMILOverrideStyleRule();
   if (rule) {
     if (aData->mPresContext->IsProcessingRestyles() &&
@@ -63,6 +98,7 @@ nsHTMLCSSStyleSheet::RulesMatching(ElementRuleProcessorData* aData)
       aData->mRuleWalker->Forward(rule);
     }
   }
+#endif 
 }
 
  void
@@ -107,7 +143,7 @@ nsHTMLCSSStyleSheet::HasStateDependentStyle(StateRuleProcessorData* aData)
  bool
 nsHTMLCSSStyleSheet::HasDocumentStateDependentStyle(StateRuleProcessorData* aData)
 {
-  return false;
+  return PR_FALSE;
 }
 
 
@@ -126,20 +162,9 @@ nsHTMLCSSStyleSheet::HasAttributeDependentStyle(AttributeRuleProcessorData* aDat
  bool
 nsHTMLCSSStyleSheet::MediumFeaturesChanged(nsPresContext* aPresContext)
 {
-  return false;
+  return PR_FALSE;
 }
 
- size_t
-nsHTMLCSSStyleSheet::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
-{
-  return 0;
-}
-
- size_t
-nsHTMLCSSStyleSheet::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
-{
-  return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
-}
 
 void
 nsHTMLCSSStyleSheet::Reset(nsIURI* aURL)
@@ -175,13 +200,13 @@ nsHTMLCSSStyleSheet::GetType(nsString& aType) const
 nsHTMLCSSStyleSheet::HasRules() const
 {
   
-  return true;
+  return PR_TRUE;
 }
 
  bool
 nsHTMLCSSStyleSheet::IsApplicable() const
 {
-  return true;
+  return PR_TRUE;
 }
 
  void
@@ -192,7 +217,7 @@ nsHTMLCSSStyleSheet::SetEnabled(bool aEnabled)
  bool
 nsHTMLCSSStyleSheet::IsComplete() const
 {
-  return true;
+  return PR_TRUE;
 }
 
  void
@@ -204,7 +229,7 @@ nsHTMLCSSStyleSheet::SetComplete()
  nsIStyleSheet*
 nsHTMLCSSStyleSheet::GetParentSheet() const
 {
-  return nullptr;
+  return nsnull;
 }
 
  nsIDocument*
@@ -221,13 +246,13 @@ nsHTMLCSSStyleSheet::SetOwningDocument(nsIDocument* aDocument)
 
 #ifdef DEBUG
  void
-nsHTMLCSSStyleSheet::List(FILE* out, int32_t aIndent) const
+nsHTMLCSSStyleSheet::List(FILE* out, PRInt32 aIndent) const
 {
   
-  for (int32_t index = aIndent; --index >= 0; ) fputs("  ", out);
+  for (PRInt32 index = aIndent; --index >= 0; ) fputs("  ", out);
 
   fputs("HTML CSS Style Sheet: ", out);
-  nsAutoCString urlSpec;
+  nsCAutoString urlSpec;
   mURL->GetSpec(urlSpec);
   if (!urlSpec.IsEmpty()) {
     fputs(urlSpec.get(), out);

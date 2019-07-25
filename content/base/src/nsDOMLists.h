@@ -7,6 +7,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDOMLists_h___
 #define nsDOMLists_h___
 
@@ -25,12 +59,7 @@ public:
 
   bool Add(const nsAString& aName)
   {
-    return mNames.AppendElement(aName) != nullptr;
-  }
-
-  void Clear()
-  {
-    mNames.Clear();
+    return mNames.AppendElement(aName) != nsnull;
   }
 
 private:

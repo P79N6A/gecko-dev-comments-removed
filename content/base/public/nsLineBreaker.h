@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NSLINEBREAKER_H_
 #define NSLINEBREAKER_H_
 
@@ -29,13 +61,13 @@ public:
 
 
 
-  virtual void SetBreaks(uint32_t aStart, uint32_t aLength, uint8_t* aBreakBefore) = 0;
+  virtual void SetBreaks(PRUint32 aStart, PRUint32 aLength, PRUint8* aBreakBefore) = 0;
   
   
 
 
 
-  virtual void SetCapitalization(uint32_t aStart, uint32_t aLength, bool* aCapitalize) = 0;
+  virtual void SetCapitalization(PRUint32 aStart, PRUint32 aLength, bool* aCapitalize) = 0;
 };
 
 
@@ -139,7 +171,7 @@ public:
 
 
 
-  nsresult AppendInvisibleWhitespace(uint32_t aFlags);
+  nsresult AppendInvisibleWhitespace(PRUint32 aFlags);
 
   
 
@@ -147,15 +179,15 @@ public:
 
 
 
-  nsresult AppendText(nsIAtom* aHyphenationLanguage, const PRUnichar* aText, uint32_t aLength,
-                      uint32_t aFlags, nsILineBreakSink* aSink);
+  nsresult AppendText(nsIAtom* aLangGroup, const PRUnichar* aText, PRUint32 aLength,
+                      PRUint32 aFlags, nsILineBreakSink* aSink);
   
 
 
 
 
-  nsresult AppendText(nsIAtom* aHyphenationLanguage, const uint8_t* aText, uint32_t aLength,
-                      uint32_t aFlags, nsILineBreakSink* aSink);
+  nsresult AppendText(nsIAtom* aLangGroup, const PRUint8* aText, PRUint32 aLength,
+                      PRUint32 aFlags, nsILineBreakSink* aSink);
   
 
 
@@ -169,25 +201,19 @@ public:
 
   nsresult Reset(bool* aTrailingBreak);
 
-  
-
-
-
-  void SetWordBreak(uint8_t aMode) { mWordBreak = aMode; }
-
 private:
   
   
   
   struct TextItem {
-    TextItem(nsILineBreakSink* aSink, uint32_t aSinkOffset, uint32_t aLength,
-             uint32_t aFlags)
+    TextItem(nsILineBreakSink* aSink, PRUint32 aSinkOffset, PRUint32 aLength,
+             PRUint32 aFlags)
       : mSink(aSink), mSinkOffset(aSinkOffset), mLength(aLength), mFlags(aFlags) {}
 
     nsILineBreakSink* mSink;
-    uint32_t          mSinkOffset;
-    uint32_t          mLength;
-    uint32_t          mFlags;
+    PRUint32          mSinkOffset;
+    PRUint32          mLength;
+    PRUint32          mFlags;
   };
 
   
@@ -198,17 +224,17 @@ private:
   
   nsresult FlushCurrentWord();
 
-  void UpdateCurrentWordLanguage(nsIAtom *aHyphenationLanguage);
+  void UpdateCurrentWordLangGroup(nsIAtom *aLangGroup);
 
   void FindHyphenationPoints(nsHyphenator *aHyphenator,
                              const PRUnichar *aTextStart,
                              const PRUnichar *aTextLimit,
-                             uint8_t *aBreakState);
+                             PRUint8 *aBreakState);
 
   nsAutoTArray<PRUnichar,100> mCurrentWord;
   
   nsAutoTArray<TextItem,2>    mTextItems;
-  nsIAtom*                    mCurrentWordLanguage;
+  nsIAtom*                    mCurrentWordLangGroup;
   bool                        mCurrentWordContainsMixedLang;
   bool                        mCurrentWordContainsComplexChar;
 
@@ -217,8 +243,6 @@ private:
   
   
   bool                        mBreakHere;
-  
-  uint8_t                     mWordBreak;
 };
 
 #endif 

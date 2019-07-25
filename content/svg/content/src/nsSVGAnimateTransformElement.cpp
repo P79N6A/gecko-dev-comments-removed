@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSVGAnimationElement.h"
 #include "nsIDOMSVGAnimateTransformElement.h"
 #include "nsSVGEnum.h"
@@ -36,7 +70,7 @@ public:
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   
-  bool ParseAttribute(int32_t aNamespaceID,
+  bool ParseAttribute(PRInt32 aNamespaceID,
                         nsIAtom* aAttribute,
                         const nsAString& aValue,
                         nsAttrValue& aResult);
@@ -45,8 +79,6 @@ public:
   virtual nsSMILAnimationFunction& AnimationFunction();
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 };
 
 NS_IMPL_NS_NEW_SVG_ELEMENT(AnimateTransform)
@@ -60,10 +92,9 @@ NS_IMPL_RELEASE_INHERITED(nsSVGAnimateTransformElement,nsSVGAnimateTransformElem
 DOMCI_NODE_DATA(SVGAnimateTransformElement, nsSVGAnimateTransformElement)
 
 NS_INTERFACE_TABLE_HEAD(nsSVGAnimateTransformElement)
-  NS_NODE_INTERFACE_TABLE6(nsSVGAnimateTransformElement, nsIDOMNode,
+  NS_NODE_INTERFACE_TABLE5(nsSVGAnimateTransformElement, nsIDOMNode,
                            nsIDOMElement, nsIDOMSVGElement,
                            nsIDOMSVGAnimationElement,
-                           nsIDOMSVGTests,
                            nsIDOMSVGAnimateTransformElement)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(SVGAnimateTransformElement)
 NS_INTERFACE_MAP_END_INHERITING(nsSVGAnimateTransformElementBase)
@@ -77,7 +108,7 @@ nsSVGAnimateTransformElement::nsSVGAnimateTransformElement(already_AddRefed<nsIN
 }
 
 bool
-nsSVGAnimateTransformElement::ParseAttribute(int32_t aNamespaceID,
+nsSVGAnimateTransformElement::ParseAttribute(PRInt32 aNamespaceID,
                                              nsIAtom* aAttribute,
                                              const nsAString& aValue,
                                              nsAttrValue& aResult)
@@ -92,9 +123,9 @@ nsSVGAnimateTransformElement::ParseAttribute(int32_t aNamespaceID,
         atom != nsGkAtoms::rotate &&
         atom != nsGkAtoms::skewX &&
         atom != nsGkAtoms::skewY) {
-      ReportAttributeParseFailure(OwnerDoc(), aAttribute, aValue);
+      ReportAttributeParseFailure(GetOwnerDoc(), aAttribute, aValue);
     }
-    return true;
+    return PR_TRUE;
   }
 
   return nsSVGAnimateTransformElementBase::ParseAttribute(aNamespaceID, 

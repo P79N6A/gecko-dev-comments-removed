@@ -3,334 +3,77 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsTextRunTransformations.h"
 
 #include "nsTextFrameUtils.h"
 #include "gfxSkipChars.h"
-#include "nsGkAtoms.h"
 
 #include "nsStyleConsts.h"
 #include "nsStyleContext.h"
 #include "gfxContext.h"
-#include "nsUnicodeProperties.h"
-#include "nsSpecialCasingData.h"
+#include "nsContentUtils.h"
+#include "nsUnicharUtils.h"
 
-
-#define LATIN_CAPITAL_LETTER_I_WITH_DOT_ABOVE  0x0130
-#define LATIN_SMALL_LETTER_DOTLESS_I           0x0131
-
-
-
-
-#define GREEK_CAPITAL_LETTER_SIGMA             0x03A3
-#define GREEK_SMALL_LETTER_FINAL_SIGMA         0x03C2
-#define GREEK_SMALL_LETTER_SIGMA               0x03C3
-
-
-#define GREEK_LOWER_ALPHA                      0x03B1
-#define GREEK_LOWER_ALPHA_TONOS                0x03AC
-#define GREEK_LOWER_ALPHA_OXIA                 0x1F71
-#define GREEK_LOWER_EPSILON                    0x03B5
-#define GREEK_LOWER_EPSILON_TONOS              0x03AD
-#define GREEK_LOWER_EPSILON_OXIA               0x1F73
-#define GREEK_LOWER_ETA                        0x03B7
-#define GREEK_LOWER_ETA_TONOS                  0x03AE
-#define GREEK_LOWER_ETA_OXIA                   0x1F75
-#define GREEK_LOWER_IOTA                       0x03B9
-#define GREEK_LOWER_IOTA_TONOS                 0x03AF
-#define GREEK_LOWER_IOTA_OXIA                  0x1F77
-#define GREEK_LOWER_IOTA_DIALYTIKA             0x03CA
-#define GREEK_LOWER_IOTA_DIALYTIKA_TONOS       0x0390
-#define GREEK_LOWER_IOTA_DIALYTIKA_OXIA        0x1FD3
-#define GREEK_LOWER_OMICRON                    0x03BF
-#define GREEK_LOWER_OMICRON_TONOS              0x03CC
-#define GREEK_LOWER_OMICRON_OXIA               0x1F79
-#define GREEK_LOWER_UPSILON                    0x03C5
-#define GREEK_LOWER_UPSILON_TONOS              0x03CD
-#define GREEK_LOWER_UPSILON_OXIA               0x1F7B
-#define GREEK_LOWER_UPSILON_DIALYTIKA          0x03CB
-#define GREEK_LOWER_UPSILON_DIALYTIKA_TONOS    0x03B0
-#define GREEK_LOWER_UPSILON_DIALYTIKA_OXIA     0x1FE3
-#define GREEK_LOWER_OMEGA                      0x03C9
-#define GREEK_LOWER_OMEGA_TONOS                0x03CE
-#define GREEK_LOWER_OMEGA_OXIA                 0x1F7D
-#define GREEK_UPPER_ALPHA                      0x0391
-#define GREEK_UPPER_EPSILON                    0x0395
-#define GREEK_UPPER_ETA                        0x0397
-#define GREEK_UPPER_IOTA                       0x0399
-#define GREEK_UPPER_IOTA_DIALYTIKA             0x03AA
-#define GREEK_UPPER_OMICRON                    0x039F
-#define GREEK_UPPER_UPSILON                    0x03A5
-#define GREEK_UPPER_UPSILON_DIALYTIKA          0x03AB
-#define GREEK_UPPER_OMEGA                      0x03A9
-#define GREEK_UPPER_ALPHA_TONOS                0x0386
-#define GREEK_UPPER_ALPHA_OXIA                 0x1FBB
-#define GREEK_UPPER_EPSILON_TONOS              0x0388
-#define GREEK_UPPER_EPSILON_OXIA               0x1FC9
-#define GREEK_UPPER_ETA_TONOS                  0x0389
-#define GREEK_UPPER_ETA_OXIA                   0x1FCB
-#define GREEK_UPPER_IOTA_TONOS                 0x038A
-#define GREEK_UPPER_IOTA_OXIA                  0x1FDB
-#define GREEK_UPPER_OMICRON_TONOS              0x038C
-#define GREEK_UPPER_OMICRON_OXIA               0x1FF9
-#define GREEK_UPPER_UPSILON_TONOS              0x038E
-#define GREEK_UPPER_UPSILON_OXIA               0x1FEB
-#define GREEK_UPPER_OMEGA_TONOS                0x038F
-#define GREEK_UPPER_OMEGA_OXIA                 0x1FFB
-#define COMBINING_ACUTE_ACCENT                 0x0301
-#define COMBINING_DIAERESIS                    0x0308
-#define COMBINING_ACUTE_TONE_MARK              0x0341
-#define COMBINING_GREEK_DIALYTIKA_TONOS        0x0344
-
-
-
-
-
-
-enum GreekCasingState {
-  kStart,
-  kAlpha,
-  kEpsilon,
-  kEta,
-  kIota,
-  kOmicron,
-  kUpsilon,
-  kOmega,
-  kAlphaAcc,
-  kEpsilonAcc,
-  kEtaAcc,
-  kIotaAcc,
-  kOmicronAcc,
-  kUpsilonAcc,
-  kOmegaAcc,
-  kOmicronUpsilon,
-  kDiaeresis
-};
-
-static uint32_t
-GreekUpperCase(uint32_t aCh, GreekCasingState* aState)
-{
-  switch (aCh) {
-  case GREEK_UPPER_ALPHA:
-  case GREEK_LOWER_ALPHA:
-    *aState = kAlpha;
-    return GREEK_UPPER_ALPHA;
-
-  case GREEK_UPPER_EPSILON:
-  case GREEK_LOWER_EPSILON:
-    *aState = kEpsilon;
-    return GREEK_UPPER_EPSILON;
-
-  case GREEK_UPPER_ETA:
-  case GREEK_LOWER_ETA:
-    *aState = kEta;
-    return GREEK_UPPER_ETA;
-
-  case GREEK_UPPER_IOTA:
-    *aState = kIota;
-    return GREEK_UPPER_IOTA;
-
-  case GREEK_UPPER_OMICRON:
-  case GREEK_LOWER_OMICRON:
-    *aState = kOmicron;
-    return GREEK_UPPER_OMICRON;
-
-  case GREEK_UPPER_UPSILON:
-    switch (*aState) {
-    case kOmicron:
-      *aState = kOmicronUpsilon;
-      break;
-    default:
-      *aState = kUpsilon;
-      break;
-    }
-    return GREEK_UPPER_UPSILON;
-
-  case GREEK_UPPER_OMEGA:
-  case GREEK_LOWER_OMEGA:
-    *aState = kOmega;
-    return GREEK_UPPER_OMEGA;
-
-  
-  case GREEK_LOWER_IOTA:
-    switch (*aState) {
-    case kAlphaAcc:
-    case kEpsilonAcc:
-    case kOmicronAcc:
-    case kUpsilonAcc:
-      *aState = kStart;
-      return GREEK_UPPER_IOTA_DIALYTIKA;
-    default:
-      break;
-    }
-    *aState = kIota;
-    return GREEK_UPPER_IOTA;
-
-  case GREEK_LOWER_UPSILON:
-    switch (*aState) {
-    case kAlphaAcc:
-    case kEpsilonAcc:
-    case kEtaAcc:
-    case kOmicronAcc:
-      *aState = kStart;
-      return GREEK_UPPER_UPSILON_DIALYTIKA;
-    case kOmicron:
-      *aState = kOmicronUpsilon;
-      break;
-    default:
-      *aState = kUpsilon;
-      break;
-    }
-    return GREEK_UPPER_UPSILON;
-
-  case GREEK_UPPER_IOTA_DIALYTIKA:
-  case GREEK_LOWER_IOTA_DIALYTIKA:
-  case GREEK_UPPER_UPSILON_DIALYTIKA:
-  case GREEK_LOWER_UPSILON_DIALYTIKA:
-  case COMBINING_DIAERESIS:
-    *aState = kDiaeresis;
-    return ToUpperCase(aCh);
-
-  
-  
-  case COMBINING_ACUTE_ACCENT:
-  case COMBINING_ACUTE_TONE_MARK:
-    switch (*aState) {
-    case kAlpha:
-      *aState = kAlphaAcc;
-      return uint32_t(-1); 
-    case kEpsilon:
-      *aState = kEpsilonAcc;
-      return uint32_t(-1);
-    case kEta:
-      *aState = kEtaAcc;
-      return uint32_t(-1);
-    case kIota:
-      *aState = kIotaAcc;
-      return uint32_t(-1);
-    case kOmicron:
-      *aState = kOmicronAcc;
-      return uint32_t(-1);
-    case kUpsilon:
-      *aState = kUpsilonAcc;
-      return uint32_t(-1);
-    case kOmicronUpsilon:
-      *aState = kStart; 
-      return uint32_t(-1);
-    case kOmega:
-      *aState = kOmegaAcc;
-      return uint32_t(-1);
-    case kDiaeresis:
-      *aState = kStart;
-      return uint32_t(-1);
-    default:
-      break;
-    }
-    break;
-
-  
-  
-  case GREEK_LOWER_IOTA_DIALYTIKA_TONOS:
-  case GREEK_LOWER_IOTA_DIALYTIKA_OXIA:
-    *aState = kStart;
-    return GREEK_UPPER_IOTA_DIALYTIKA;
-
-  case GREEK_LOWER_UPSILON_DIALYTIKA_TONOS:
-  case GREEK_LOWER_UPSILON_DIALYTIKA_OXIA:
-    *aState = kStart;
-    return GREEK_UPPER_UPSILON_DIALYTIKA;
-
-  case COMBINING_GREEK_DIALYTIKA_TONOS:
-    *aState = kStart;
-    return COMBINING_DIAERESIS;
-
-  
-  
-  case GREEK_LOWER_ALPHA_TONOS:
-  case GREEK_LOWER_ALPHA_OXIA:
-  case GREEK_UPPER_ALPHA_TONOS:
-  case GREEK_UPPER_ALPHA_OXIA:
-    *aState = kAlphaAcc;
-    return GREEK_UPPER_ALPHA;
-
-  case GREEK_LOWER_EPSILON_TONOS:
-  case GREEK_LOWER_EPSILON_OXIA:
-  case GREEK_UPPER_EPSILON_TONOS:
-  case GREEK_UPPER_EPSILON_OXIA:
-    *aState = kEpsilonAcc;
-    return GREEK_UPPER_EPSILON;
-
-  case GREEK_LOWER_ETA_TONOS:
-  case GREEK_LOWER_ETA_OXIA:
-  case GREEK_UPPER_ETA_TONOS:
-  case GREEK_UPPER_ETA_OXIA:
-    *aState = kEtaAcc;
-    return GREEK_UPPER_ETA;
-
-  case GREEK_LOWER_IOTA_TONOS:
-  case GREEK_LOWER_IOTA_OXIA:
-  case GREEK_UPPER_IOTA_TONOS:
-  case GREEK_UPPER_IOTA_OXIA:
-    *aState = kIotaAcc;
-    return GREEK_UPPER_IOTA;
-
-  case GREEK_LOWER_OMICRON_TONOS:
-  case GREEK_LOWER_OMICRON_OXIA:
-  case GREEK_UPPER_OMICRON_TONOS:
-  case GREEK_UPPER_OMICRON_OXIA:
-    *aState = kOmicronAcc;
-    return GREEK_UPPER_OMICRON;
-
-  case GREEK_LOWER_UPSILON_TONOS:
-  case GREEK_LOWER_UPSILON_OXIA:
-  case GREEK_UPPER_UPSILON_TONOS:
-  case GREEK_UPPER_UPSILON_OXIA:
-    switch (*aState) {
-    case kOmicron:
-      *aState = kStart; 
-      break;
-    default:
-      *aState = kUpsilonAcc;
-      break;
-    }
-    return GREEK_UPPER_UPSILON;
-
-  case GREEK_LOWER_OMEGA_TONOS:
-  case GREEK_LOWER_OMEGA_OXIA:
-  case GREEK_UPPER_OMEGA_TONOS:
-  case GREEK_UPPER_OMEGA_OXIA:
-    *aState = kOmegaAcc;
-    return GREEK_UPPER_OMEGA;
-  }
-
-  
-  *aState = kStart;
-  return ToUpperCase(aCh);
-}
+#define SZLIG 0x00DF
 
 nsTransformedTextRun *
 nsTransformedTextRun::Create(const gfxTextRunFactory::Parameters* aParams,
                              nsTransformingTextRunFactory* aFactory,
                              gfxFontGroup* aFontGroup,
-                             const PRUnichar* aString, uint32_t aLength,
-                             const uint32_t aFlags, nsStyleContext** aStyles,
+                             const PRUnichar* aString, PRUint32 aLength,
+                             const PRUint32 aFlags, nsStyleContext** aStyles,
                              bool aOwnsFactory)
 {
   NS_ASSERTION(!(aFlags & gfxTextRunFactory::TEXT_IS_8BIT),
                "didn't expect text to be marked as 8-bit here");
 
-  void *storage = AllocateStorageForTextRun(sizeof(nsTransformedTextRun), aLength);
-  if (!storage) {
-    return nullptr;
+  
+  
+  const void *textPtr = aString;
+  CompressedGlyph *glyphStorage = AllocateStorage(textPtr, aLength, aFlags);
+  if (!glyphStorage) {
+    return nsnull;
   }
 
-  return new (storage) nsTransformedTextRun(aParams, aFactory, aFontGroup,
-                                            aString, aLength,
-                                            aFlags, aStyles, aOwnsFactory);
+  return new nsTransformedTextRun(aParams, aFactory, aFontGroup,
+                                  static_cast<const PRUnichar*>(textPtr), aLength,
+                                  aFlags, aStyles, aOwnsFactory, glyphStorage);
 }
 
 void
-nsTransformedTextRun::SetCapitalization(uint32_t aStart, uint32_t aLength,
+nsTransformedTextRun::SetCapitalization(PRUint32 aStart, PRUint32 aLength,
                                         bool* aCapitalization,
                                         gfxContext* aRefContext)
 {
@@ -340,44 +83,26 @@ nsTransformedTextRun::SetCapitalization(uint32_t aStart, uint32_t aLength,
     memset(mCapitalize.Elements(), 0, GetLength()*sizeof(bool));
   }
   memcpy(mCapitalize.Elements() + aStart, aCapitalization, aLength*sizeof(bool));
-  mNeedsRebuild = true;
+  mNeedsRebuild = PR_TRUE;
 }
 
 bool
-nsTransformedTextRun::SetPotentialLineBreaks(uint32_t aStart, uint32_t aLength,
-                                             uint8_t* aBreakBefore,
+nsTransformedTextRun::SetPotentialLineBreaks(PRUint32 aStart, PRUint32 aLength,
+                                             PRUint8* aBreakBefore,
                                              gfxContext* aRefContext)
 {
   bool changed = gfxTextRun::SetPotentialLineBreaks(aStart, aLength,
       aBreakBefore, aRefContext);
   if (changed) {
-    mNeedsRebuild = true;
+    mNeedsRebuild = PR_TRUE;
   }
   return changed;
 }
 
-size_t
-nsTransformedTextRun::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf)
-{
-  size_t total = gfxTextRun::SizeOfExcludingThis(aMallocSizeOf);
-  total += mStyles.SizeOfExcludingThis(aMallocSizeOf);
-  total += mCapitalize.SizeOfExcludingThis(aMallocSizeOf);
-  if (mOwnsFactory) {
-    total += aMallocSizeOf(mFactory);
-  }
-  return total;
-}
-
-size_t
-nsTransformedTextRun::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf)
-{
-  return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
-}
-
 nsTransformedTextRun*
-nsTransformingTextRunFactory::MakeTextRun(const PRUnichar* aString, uint32_t aLength,
+nsTransformingTextRunFactory::MakeTextRun(const PRUnichar* aString, PRUint32 aLength,
                                           const gfxTextRunFactory::Parameters* aParams,
-                                          gfxFontGroup* aFontGroup, uint32_t aFlags,
+                                          gfxFontGroup* aFontGroup, PRUint32 aFlags,
                                           nsStyleContext** aStyles, bool aOwnsFactory)
 {
   return nsTransformedTextRun::Create(aParams, this, aFontGroup,
@@ -385,9 +110,9 @@ nsTransformingTextRunFactory::MakeTextRun(const PRUnichar* aString, uint32_t aLe
 }
 
 nsTransformedTextRun*
-nsTransformingTextRunFactory::MakeTextRun(const uint8_t* aString, uint32_t aLength,
+nsTransformingTextRunFactory::MakeTextRun(const PRUint8* aString, PRUint32 aLength,
                                           const gfxTextRunFactory::Parameters* aParams,
-                                          gfxFontGroup* aFontGroup, uint32_t aFlags,
+                                          gfxFontGroup* aFontGroup, PRUint32 aFlags,
                                           nsStyleContext** aStyles, bool aOwnsFactory)
 {
   
@@ -417,40 +142,27 @@ nsTransformingTextRunFactory::MakeTextRun(const uint8_t* aString, uint32_t aLeng
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 static void
 MergeCharactersInTextRun(gfxTextRun* aDest, gfxTextRun* aSrc,
-                         const bool* aCharsToMerge, const bool* aDeletedChars)
+                         bool* aCharsToMerge)
 {
   aDest->ResetGlyphRuns();
 
   gfxTextRun::GlyphRunIterator iter(aSrc, 0, aSrc->GetLength());
-  uint32_t offset = 0;
+  PRUint32 offset = 0;
   nsAutoTArray<gfxTextRun::DetailedGlyph,2> glyphs;
   while (iter.NextRun()) {
     gfxTextRun::GlyphRun* run = iter.GetGlyphRun();
     nsresult rv = aDest->AddGlyphRun(run->mFont, run->mMatchType,
-                                     offset, false);
+                                     offset, PR_FALSE);
     if (NS_FAILED(rv))
       return;
 
     bool anyMissing = false;
-    uint32_t mergeRunStart = iter.GetStringStart();
-    const gfxTextRun::CompressedGlyph *srcGlyphs = aSrc->GetCharacterGlyphs();
-    gfxTextRun::CompressedGlyph mergedGlyph = srcGlyphs[mergeRunStart];
-    uint32_t stringEnd = iter.GetStringEnd();
-    for (uint32_t k = iter.GetStringStart(); k < stringEnd; ++k) {
-      const gfxTextRun::CompressedGlyph g = srcGlyphs[k];
+    PRUint32 mergeRunStart = iter.GetStringStart();
+    PRUint32 k;
+    for (k = iter.GetStringStart(); k < iter.GetStringEnd(); ++k) {
+      gfxTextRun::CompressedGlyph g = aSrc->GetCharacterGlyphs()[k];
       if (g.IsSimpleGlyph()) {
         if (!anyMissing) {
           gfxTextRun::DetailedGlyph details;
@@ -462,7 +174,7 @@ MergeCharactersInTextRun(gfxTextRun* aDest, gfxTextRun* aSrc,
         }
       } else {
         if (g.IsMissing()) {
-          anyMissing = true;
+          anyMissing = PR_TRUE;
           glyphs.Clear();
         }
         if (g.GetGlyphCount() > 0) {
@@ -470,43 +182,38 @@ MergeCharactersInTextRun(gfxTextRun* aDest, gfxTextRun* aSrc,
         }
       }
 
+      
+      
+      
+
       if (k + 1 < iter.GetStringEnd() && aCharsToMerge[k + 1]) {
-        
-        
+        NS_ASSERTION(g.IsClusterStart() && g.IsLigatureGroupStart(),
+                     "Don't know how to merge this stuff");
         continue;
       }
 
+      NS_ASSERTION(mergeRunStart == k ||
+                   (g.IsClusterStart() && g.IsLigatureGroupStart()),
+                   "Don't know how to merge this stuff");
+
       
       
       
       
       
-      
-      NS_WARN_IF_FALSE(!aCharsToMerge[mergeRunStart],
-                       "unable to merge across a glyph run boundary, "
-                       "glyph(s) discarded");
       if (!aCharsToMerge[mergeRunStart]) {
         if (anyMissing) {
-          mergedGlyph.SetMissing(glyphs.Length());
+          g.SetMissing(glyphs.Length());
         } else {
-          mergedGlyph.SetComplex(mergedGlyph.IsClusterStart(),
-                                 mergedGlyph.IsLigatureGroupStart(),
-                                 glyphs.Length());
+          g.SetComplex(PR_TRUE, PR_TRUE, glyphs.Length());
         }
-        aDest->SetGlyphs(offset, mergedGlyph, glyphs.Elements());
+        aDest->SetGlyphs(offset, g, glyphs.Elements());
         ++offset;
-
-        while (offset < aDest->GetLength() && aDeletedChars[offset]) {
-          aDest->SetGlyphs(offset++, gfxTextRun::CompressedGlyph(), nullptr);
-        }
       }
 
       glyphs.Clear();
-      anyMissing = false;
+      anyMissing = PR_FALSE;
       mergeRunStart = k + 1;
-      if (mergeRunStart < stringEnd) {
-        mergedGlyph = srcGlyphs[mergeRunStart];
-      }
     }
     NS_ASSERTION(glyphs.Length() == 0,
                  "Leftover glyphs, don't request merging of the last character with its next!");  
@@ -515,12 +222,12 @@ MergeCharactersInTextRun(gfxTextRun* aDest, gfxTextRun* aSrc,
 }
 
 static gfxTextRunFactory::Parameters
-GetParametersForInner(nsTransformedTextRun* aTextRun, uint32_t* aFlags,
+GetParametersForInner(nsTransformedTextRun* aTextRun, PRUint32* aFlags,
     gfxContext* aRefContext)
 {
   gfxTextRunFactory::Parameters params =
-    { aRefContext, nullptr, nullptr,
-      nullptr, 0, aTextRun->GetAppUnitsPerDevUnit()
+    { aRefContext, nsnull, nsnull,
+      nsnull, 0, aTextRun->GetAppUnitsPerDevUnit()
     };
   *aFlags = aTextRun->GetFlags() & ~gfxFontGroup::TEXT_IS_PERSISTENT;
   return params;
@@ -537,106 +244,62 @@ nsFontVariantTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
   if (!smallFont)
     return;
 
-  uint32_t flags;
+  PRUint32 flags;
   gfxTextRunFactory::Parameters innerParams =
       GetParametersForInner(aTextRun, &flags, aRefContext);
 
-  uint32_t length = aTextRun->GetLength();
-  const PRUnichar* str = aTextRun->mString.BeginReading();
+  PRUint32 length = aTextRun->GetLength();
+  const PRUnichar* str = aTextRun->GetTextUnicode();
   nsRefPtr<nsStyleContext>* styles = aTextRun->mStyles.Elements();
   
-  nsAutoPtr<gfxTextRun> inner(fontGroup->MakeTextRun(str, length, &innerParams, flags));
+  gfxTextRunCache::AutoTextRun inner(
+      gfxTextRunCache::MakeTextRun(str, length, fontGroup, &innerParams, flags));
   if (!inner.get())
     return;
 
-  nsCaseTransformTextRunFactory uppercaseFactory(nullptr, true);
+  nsCaseTransformTextRunFactory uppercaseFactory(nsnull, PR_TRUE);
 
   aTextRun->ResetGlyphRuns();
 
-  uint32_t runStart = 0;
+  PRUint32 runStart = 0;
+  bool runIsLowercase = false;
   nsAutoTArray<nsStyleContext*,50> styleArray;
-  nsAutoTArray<uint8_t,50> canBreakBeforeArray;
+  nsAutoTArray<PRUint8,50> canBreakBeforeArray;
 
-  enum RunCaseState {
-    kUpperOrCaseless, 
-    kLowercase,       
-    kSpecialUpper     
-  };
-  RunCaseState runCase = kUpperOrCaseless;
-
-  
-  
-  
-  
-  
-  
-  for (uint32_t i = 0; i <= length; ++i) {
-    RunCaseState chCase = kUpperOrCaseless;
-    
-    
+  PRUint32 i;
+  for (i = 0; i <= length; ++i) {
+    bool isLowercase = false;
     if (i < length) {
-      nsStyleContext* styleContext = styles[i];
       
       
       if (!inner->IsClusterStart(i)) {
-        chCase = runCase;
+        isLowercase = runIsLowercase;
       } else {
-        if (styleContext->GetStyleFont()->mFont.variant == NS_STYLE_FONT_VARIANT_SMALL_CAPS) {
-          uint32_t ch = str[i];
-          if (NS_IS_HIGH_SURROGATE(ch) && i < length - 1 && NS_IS_LOW_SURROGATE(str[i + 1])) {
-            ch = SURROGATE_TO_UCS4(ch, str[i + 1]);
-          }
-          uint32_t ch2 = ToUpperCase(ch);
-          if (ch != ch2 || mozilla::unicode::SpecialUpper(ch)) {
-            chCase = kLowercase;
-          } else if (styleContext->GetStyleFont()->mLanguage == nsGkAtoms::el) {
-            
-            
-            
-            
-            GreekCasingState state = kStart; 
-            ch2 = GreekUpperCase(ch, &state);
-            if (ch != ch2) {
-              chCase = kSpecialUpper;
-            }
-          }
+        if (styles[i]->GetStyleFont()->mFont.variant == NS_STYLE_FONT_VARIANT_SMALL_CAPS) {
+          PRUnichar ch = str[i];
+          PRUnichar ch2;
+          ch2 = ToUpperCase(ch);
+          isLowercase = ch != ch2 || ch == SZLIG;
         } else {
           
         }
       }
     }
 
-    
-    
-    
-    
-    
-    if ((i == length || runCase != chCase) && runStart < i) {
+    if ((i == length || runIsLowercase != isLowercase) && runStart < i) {
       nsAutoPtr<nsTransformedTextRun> transformedChild;
-      nsAutoPtr<gfxTextRun> cachedChild;
+      gfxTextRunCache::AutoTextRun cachedChild;
       gfxTextRun* child;
 
-      switch (runCase) {
-      case kUpperOrCaseless:
+      if (runIsLowercase) {
+        transformedChild = uppercaseFactory.MakeTextRun(str + runStart, i - runStart,
+            &innerParams, smallFont, flags, styleArray.Elements(), PR_FALSE);
+        child = transformedChild;
+      } else {
         cachedChild =
-          fontGroup->MakeTextRun(str + runStart, i - runStart, &innerParams,
-                                 flags);
+          gfxTextRunCache::MakeTextRun(str + runStart, i - runStart, fontGroup,
+              &innerParams, flags);
         child = cachedChild.get();
-        break;
-      case kLowercase:
-        transformedChild =
-          uppercaseFactory.MakeTextRun(str + runStart, i - runStart,
-                                       &innerParams, smallFont, flags,
-                                       styleArray.Elements(), false);
-        child = transformedChild;
-        break;
-      case kSpecialUpper:
-        transformedChild =
-          uppercaseFactory.MakeTextRun(str + runStart, i - runStart,
-                                       &innerParams, fontGroup, flags,
-                                       styleArray.Elements(), false);
-        child = transformedChild;
-        break;
       }
       if (!child)
         return;
@@ -657,7 +320,7 @@ nsFontVariantTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
     }
 
     if (i < length) {
-      runCase = chCase;
+      runIsLowercase = isLowercase;
       styleArray.AppendElement(styles[i]);
       canBreakBeforeArray.AppendElement(aTextRun->CanBreakLineBefore(i));
     }
@@ -668,261 +331,82 @@ void
 nsCaseTransformTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
     gfxContext* aRefContext)
 {
-  uint32_t length = aTextRun->GetLength();
-  const PRUnichar* str = aTextRun->mString.BeginReading();
+  PRUint32 length = aTextRun->GetLength();
+  const PRUnichar* str = aTextRun->GetTextUnicode();
   nsRefPtr<nsStyleContext>* styles = aTextRun->mStyles.Elements();
 
   nsAutoString convertedString;
   nsAutoTArray<bool,50> charsToMergeArray;
-  nsAutoTArray<bool,50> deletedCharsArray;
   nsAutoTArray<nsStyleContext*,50> styleArray;
-  nsAutoTArray<uint8_t,50> canBreakBeforeArray;
-  bool mergeNeeded = false;
+  nsAutoTArray<PRUint8,50> canBreakBeforeArray;
+  PRUint32 extraCharsCount = 0;
 
-  
-  
-  
-  
-  
-  enum {
-    eNone,    
-    eTurkish, 
-    eDutch,   
-    eGreek    
-  } languageSpecificCasing = eNone;
-
-  const nsIAtom* lang = nullptr;
-  bool capitalizeDutchIJ = false;
-  bool prevIsLetter = false;
-  uint32_t sigmaIndex = uint32_t(-1);
-  nsIUGenCategory::nsUGenCategory cat;
-  GreekCasingState greekState = kStart;
-  uint32_t i;
+  PRUint32 i;
   for (i = 0; i < length; ++i) {
-    uint32_t ch = str[i];
-    nsStyleContext* styleContext = styles[i];
+    PRUnichar ch = str[i];
 
-    uint8_t style = mAllUppercase ? NS_STYLE_TEXT_TRANSFORM_UPPERCASE
-      : styleContext->GetStyleText()->mTextTransform;
-    int extraChars = 0;
-    const mozilla::unicode::MultiCharMapping *mcm;
+    charsToMergeArray.AppendElement(PR_FALSE);
+    styleArray.AppendElement(styles[i]);
+    canBreakBeforeArray.AppendElement(aTextRun->CanBreakLineBefore(i));
 
-    if (NS_IS_HIGH_SURROGATE(ch) && i < length - 1 && NS_IS_LOW_SURROGATE(str[i + 1])) {
-      ch = SURROGATE_TO_UCS4(ch, str[i + 1]);
-    }
-
-    if (lang != styleContext->GetStyleFont()->mLanguage) {
-      lang = styleContext->GetStyleFont()->mLanguage;
-      if (lang == nsGkAtoms::tr || lang == nsGkAtoms::az ||
-          lang == nsGkAtoms::ba || lang == nsGkAtoms::crh ||
-          lang == nsGkAtoms::tt) {
-        languageSpecificCasing = eTurkish;
-      } else if (lang == nsGkAtoms::nl) {
-        languageSpecificCasing = eDutch;
-      } else if (lang == nsGkAtoms::el) {
-        languageSpecificCasing = eGreek;
-        greekState = kStart;
-      } else {
-        languageSpecificCasing = eNone;
-      }
-    }
+    PRUint8 style = mAllUppercase ? NS_STYLE_TEXT_TRANSFORM_UPPERCASE
+      : styles[i]->GetStyleText()->mTextTransform;
+    bool extraChar = false;
 
     switch (style) {
     case NS_STYLE_TEXT_TRANSFORM_LOWERCASE:
-      if (languageSpecificCasing == eTurkish) {
-        if (ch == 'I') {
-          ch = LATIN_SMALL_LETTER_DOTLESS_I;
-          prevIsLetter = true;
-          sigmaIndex = uint32_t(-1);
-          break;
-        }
-        if (ch == LATIN_CAPITAL_LETTER_I_WITH_DOT_ABOVE) {
-          ch = 'i';
-          prevIsLetter = true;
-          sigmaIndex = uint32_t(-1);
-          break;
-        }
-      }
-
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-
-      cat = mozilla::unicode::GetGenCategory(ch);
-
-      
-      
-      
-      if (sigmaIndex != uint32_t(-1)) {
-        if (cat == nsIUGenCategory::kLetter) {
-          convertedString.SetCharAt(GREEK_SMALL_LETTER_SIGMA, sigmaIndex);
-        }
-      }
-
-      if (ch == GREEK_CAPITAL_LETTER_SIGMA) {
-        
-        
-        
-        if (prevIsLetter) {
-          ch = GREEK_SMALL_LETTER_FINAL_SIGMA;
-          sigmaIndex = convertedString.Length();
-        } else {
-          
-          
-          ch = GREEK_SMALL_LETTER_SIGMA;
-          sigmaIndex = uint32_t(-1);
-        }
-        prevIsLetter = true;
-        break;
-      }
-
-      
-      
-      
-      if (cat != nsIUGenCategory::kMark) {
-        prevIsLetter = (cat == nsIUGenCategory::kLetter);
-        sigmaIndex = uint32_t(-1);
-      }
-
-      mcm = mozilla::unicode::SpecialLower(ch);
-      if (mcm) {
-        int j = 0;
-        while (j < 2 && mcm->mMappedChars[j + 1]) {
-          convertedString.Append(mcm->mMappedChars[j]);
-          ++extraChars;
-          ++j;
-        }
-        ch = mcm->mMappedChars[j];
-        break;
-      }
-
       ch = ToLowerCase(ch);
       break;
-
     case NS_STYLE_TEXT_TRANSFORM_UPPERCASE:
-      if (languageSpecificCasing == eTurkish && ch == 'i') {
-        ch = LATIN_CAPITAL_LETTER_I_WITH_DOT_ABOVE;
-        break;
+      if (ch == SZLIG) {
+        convertedString.Append('S');
+        extraChar = PR_TRUE;
+        ch = 'S';
+      } else {
+        ch = ToUpperCase(ch);
       }
-
-      if (languageSpecificCasing == eGreek) {
-        ch = GreekUpperCase(ch, &greekState);
-        break;
-      }
-
-      mcm = mozilla::unicode::SpecialUpper(ch);
-      if (mcm) {
-        int j = 0;
-        while (j < 2 && mcm->mMappedChars[j + 1]) {
-          convertedString.Append(mcm->mMappedChars[j]);
-          ++extraChars;
-          ++j;
-        }
-        ch = mcm->mMappedChars[j];
-        break;
-      }
-
-      ch = ToUpperCase(ch);
       break;
-
     case NS_STYLE_TEXT_TRANSFORM_CAPITALIZE:
-      if (capitalizeDutchIJ && ch == 'j') {
-        ch = 'J';
-        capitalizeDutchIJ = false;
-        break;
-      }
-      capitalizeDutchIJ = false;
       if (i < aTextRun->mCapitalize.Length() && aTextRun->mCapitalize[i]) {
-        if (languageSpecificCasing == eTurkish && ch == 'i') {
-          ch = LATIN_CAPITAL_LETTER_I_WITH_DOT_ABOVE;
-          break;
+        if (ch == SZLIG) {
+          convertedString.Append('S');
+          extraChar = PR_TRUE;
+          ch = 'S';
+        } else {
+          ch = ToTitleCase(ch);
         }
-        if (languageSpecificCasing == eDutch && ch == 'i') {
-          ch = 'I';
-          capitalizeDutchIJ = true;
-          break;
-        }
-
-        mcm = mozilla::unicode::SpecialTitle(ch);
-        if (mcm) {
-          int j = 0;
-          while (j < 2 && mcm->mMappedChars[j + 1]) {
-            convertedString.Append(mcm->mMappedChars[j]);
-            ++extraChars;
-            ++j;
-          }
-          ch = mcm->mMappedChars[j];
-          break;
-        }
-
-        ch = ToTitleCase(ch);
       }
       break;
-
     default:
       break;
     }
 
-    if (ch == uint32_t(-1)) {
-      deletedCharsArray.AppendElement(true);
-      mergeNeeded = true;
-    } else {
-      deletedCharsArray.AppendElement(false);
-      charsToMergeArray.AppendElement(false);
-      styleArray.AppendElement(styleContext);
-      canBreakBeforeArray.AppendElement(aTextRun->CanBreakLineBefore(i));
-
-      if (IS_IN_BMP(ch)) {
-        convertedString.Append(ch);
-      } else {
-        convertedString.Append(H_SURROGATE(ch));
-        convertedString.Append(L_SURROGATE(ch));
-        ++i;
-        deletedCharsArray.AppendElement(true); 
-                                               
-        ++extraChars;
-      }
-
-      while (extraChars-- > 0) {
-        mergeNeeded = true;
-        charsToMergeArray.AppendElement(true);
-        styleArray.AppendElement(styleContext);
-        canBreakBeforeArray.AppendElement(false);
-      }
+    convertedString.Append(ch);
+    if (extraChar) {
+      ++extraCharsCount;
+      charsToMergeArray.AppendElement(PR_TRUE);
+      styleArray.AppendElement(styles[i]);
+      canBreakBeforeArray.AppendElement(PR_FALSE);
     }
   }
 
-  uint32_t flags;
+  PRUint32 flags;
   gfxTextRunFactory::Parameters innerParams =
       GetParametersForInner(aTextRun, &flags, aRefContext);
   gfxFontGroup* fontGroup = aTextRun->GetFontGroup();
 
   nsAutoPtr<nsTransformedTextRun> transformedChild;
-  nsAutoPtr<gfxTextRun> cachedChild;
+  gfxTextRunCache::AutoTextRun cachedChild;
   gfxTextRun* child;
 
   if (mInnerTransformingTextRunFactory) {
     transformedChild = mInnerTransformingTextRunFactory->MakeTextRun(
         convertedString.BeginReading(), convertedString.Length(),
-        &innerParams, fontGroup, flags, styleArray.Elements(), false);
+        &innerParams, fontGroup, flags, styleArray.Elements(), PR_FALSE);
     child = transformedChild.get();
   } else {
-    cachedChild = fontGroup->MakeTextRun(
-        convertedString.BeginReading(), convertedString.Length(),
+    cachedChild = gfxTextRunCache::MakeTextRun(
+        convertedString.BeginReading(), convertedString.Length(), fontGroup,
         &innerParams, flags);
     child = cachedChild.get();
   }
@@ -938,15 +422,9 @@ nsCaseTransformTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
     transformedChild->FinishSettingProperties(aRefContext);
   }
 
-  if (mergeNeeded) {
+  if (extraCharsCount > 0) {
     
-    
-    NS_ASSERTION(charsToMergeArray.Length() == child->GetLength(),
-                 "source length mismatch");
-    NS_ASSERTION(deletedCharsArray.Length() == aTextRun->GetLength(),
-                 "destination length mismatch");
-    MergeCharactersInTextRun(aTextRun, child, charsToMergeArray.Elements(),
-                             deletedCharsArray.Elements());
+    MergeCharactersInTextRun(aTextRun, child, charsToMergeArray.Elements());
   } else {
     
     

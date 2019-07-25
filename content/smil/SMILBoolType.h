@@ -3,6 +3,37 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_SMILBOOLTYPE_H_
 #define MOZILLA_SMILBOOLTYPE_H_
 
@@ -23,7 +54,7 @@ protected:
   virtual void     Destroy(nsSMILValue&) const;
   virtual nsresult Assign(nsSMILValue& aDest, const nsSMILValue& aSrc) const;
   virtual nsresult Add(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
-                       uint32_t aCount) const;
+                       PRUint32 aCount) const;
   virtual bool IsEqual(const nsSMILValue& aLeft,
                          const nsSMILValue& aRight) const;
   virtual nsresult ComputeDistance(const nsSMILValue& aFrom,

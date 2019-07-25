@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsUnicharBuffer.h"
 #include "nsCRT.h"
 
@@ -20,7 +53,7 @@ UnicharBufferImpl::Create(nsISupports *aOuter, REFNSIID aIID, void **aResult)
     return NS_ERROR_NO_AGGREGATION;
 
   UnicharBufferImpl* it = new UnicharBufferImpl();
-  if (it == nullptr) 
+  if (it == nsnull) 
     return NS_ERROR_OUT_OF_MEMORY;
 
   NS_ADDREF(it);
@@ -30,7 +63,7 @@ UnicharBufferImpl::Create(nsISupports *aOuter, REFNSIID aIID, void **aResult)
 }
 
 NS_IMETHODIMP
-UnicharBufferImpl::Init(uint32_t aBufferSize)
+UnicharBufferImpl::Init(PRUint32 aBufferSize)
 {
   if (aBufferSize < MIN_BUFFER_SIZE) {
     aBufferSize = MIN_BUFFER_SIZE;
@@ -45,20 +78,20 @@ NS_IMPL_ISUPPORTS1(UnicharBufferImpl, nsIUnicharBuffer)
 
 UnicharBufferImpl::~UnicharBufferImpl()
 {
-  if (nullptr != mBuffer) {
+  if (nsnull != mBuffer) {
     delete[] mBuffer;
-    mBuffer = nullptr;
+    mBuffer = nsnull;
   }
   mLength = 0;
 }
 
-NS_IMETHODIMP_(int32_t)
+NS_IMETHODIMP_(PRInt32)
 UnicharBufferImpl::GetLength() const
 {
   return mLength;
 }
 
-NS_IMETHODIMP_(int32_t)
+NS_IMETHODIMP_(PRInt32)
 UnicharBufferImpl::GetBufferSize() const
 {
   return mSpace;
@@ -71,27 +104,27 @@ UnicharBufferImpl::GetBuffer() const
 }
 
 NS_IMETHODIMP_(bool)
-UnicharBufferImpl::Grow(int32_t aNewSize)
+UnicharBufferImpl::Grow(PRInt32 aNewSize)
 {
-  if (uint32_t(aNewSize) < MIN_BUFFER_SIZE) {
+  if (PRUint32(aNewSize) < MIN_BUFFER_SIZE) {
     aNewSize = MIN_BUFFER_SIZE;
   }
   PRUnichar* newbuf = new PRUnichar[aNewSize];
-  if (nullptr != newbuf) {
+  if (nsnull != newbuf) {
     if (0 != mLength) {
       memcpy(newbuf, mBuffer, mLength * sizeof(PRUnichar));
     }
     delete[] mBuffer;
     mBuffer = newbuf;
-    return true;
+    return PR_TRUE;
   }
-  return false;
+  return PR_FALSE;
 }
 
 nsresult
 NS_NewUnicharBuffer(nsIUnicharBuffer** aInstancePtrResult,
                     nsISupports* aOuter,
-                    uint32_t aBufferSize)
+                    PRUint32 aBufferSize)
 {
   nsresult rv;
   nsIUnicharBuffer* buf;

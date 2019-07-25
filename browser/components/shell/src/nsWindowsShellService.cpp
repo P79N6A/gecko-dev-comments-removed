@@ -3,8 +3,49 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "imgIContainer.h"
 #include "imgIRequest.h"
+#include "nsIDOMDocument.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMHTMLImageElement.h"
 #include "nsIImageLoadingContent.h"
@@ -25,7 +66,6 @@
 #include "nsUnicharUtils.h"
 #include "nsIWinTaskbar.h"
 #include "nsISupportsPrimitives.h"
-#include "nsThreadUtils.h"
 
 #include "windows.h"
 #include "shellapi.h"
@@ -38,7 +78,6 @@
 #include <shlobj.h>
 
 #include <mbstring.h>
-#include <shlwapi.h>
 
 #ifndef MAX_BUF
 #define MAX_BUF 4096
@@ -133,21 +172,28 @@ OpenKeyForReading(HKEY aKeyRoot, const nsAString& aKeyName, HKEY* aKey)
 
 
 
+
+
+
+
+
+
+
+
 typedef struct {
   char* keyName;
+  char* valueName;
   char* valueData;
-  char* oldValueData;
 } SETTING;
 
 #define APP_REG_NAME L"Firefox"
+#define CLS_HTML "FirefoxHTML"
+#define CLS_URL "FirefoxURL"
+#define CPL_DESKTOP L"Control Panel\\Desktop"
+#define VAL_OPEN "\"%APPPATH%\" -requestPending -osint -url \"%1\""
 #define VAL_FILE_ICON "%APPPATH%,1"
-#define VAL_OPEN "\"%APPPATH%\" -osint -url \"%1\""
-#define OLD_VAL_OPEN "\"%APPPATH%\" -requestPending -osint -url \"%1\""
 #define DI "\\DefaultIcon"
-#define SOC "\\shell\\open\\command"
-#define SOD "\\shell\\open\\ddeexec"
-
-#define FTP_SOC L"Software\\Classes\\ftp\\shell\\open\\command"
+#define SOP "\\shell\\open\\command"
 
 #define MAKE_KEY_NAME1(PREFIX, MID) \
   PREFIX MID
@@ -157,36 +203,18 @@ typedef struct {
 
 
 
-
-
 static SETTING gSettings[] = {
   
-  { MAKE_KEY_NAME1("FirefoxHTML", SOC), VAL_OPEN, OLD_VAL_OPEN },
+  { MAKE_KEY_NAME1(CLS_HTML, SOP), "", VAL_OPEN },
 
   
-  { MAKE_KEY_NAME1("FirefoxURL", SOC), VAL_OPEN, OLD_VAL_OPEN },
+  { MAKE_KEY_NAME1(CLS_URL, SOP), "", VAL_OPEN },
 
   
-  { MAKE_KEY_NAME1("HTTP", DI), VAL_FILE_ICON },
-  { MAKE_KEY_NAME1("HTTP", SOC), VAL_OPEN, OLD_VAL_OPEN },
-  { MAKE_KEY_NAME1("HTTPS", DI), VAL_FILE_ICON },
-  { MAKE_KEY_NAME1("HTTPS", SOC), VAL_OPEN, OLD_VAL_OPEN }
-};
-
-
-
-
-static SETTING gDDESettings[] = {
-  
-  { MAKE_KEY_NAME1("Software\\Classes\\FirefoxHTML", SOD) },
-
-  
-  { MAKE_KEY_NAME1("Software\\Classes\\FirefoxURL", SOD) },
-
-  
-  { MAKE_KEY_NAME1("Software\\Classes\\FTP", SOD) },
-  { MAKE_KEY_NAME1("Software\\Classes\\HTTP", SOD) },
-  { MAKE_KEY_NAME1("Software\\Classes\\HTTPS", SOD) }
+  { MAKE_KEY_NAME1("HTTP", DI),    "", VAL_FILE_ICON },
+  { MAKE_KEY_NAME1("HTTP", SOP),   "", VAL_OPEN },
+  { MAKE_KEY_NAME1("HTTPS", DI),   "", VAL_FILE_ICON },
+  { MAKE_KEY_NAME1("HTTPS", SOP),  "", VAL_OPEN }
 };
 
 nsresult
@@ -197,9 +225,9 @@ GetHelperPath(nsAutoString& aPath)
     do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIFile> appHelper;
+  nsCOMPtr<nsILocalFile> appHelper;
   rv = directoryService->Get(NS_XPCOM_CURRENT_PROCESS_DIR,
-                             NS_GET_IID(nsIFile),
+                             NS_GET_IID(nsILocalFile),
                              getter_AddRefs(appHelper));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -209,11 +237,7 @@ GetHelperPath(nsAutoString& aPath)
   rv = appHelper->AppendNative(NS_LITERAL_CSTRING("helper.exe"));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = appHelper->GetPath(aPath);
-
-  aPath.Insert(L'"', 0);
-  aPath.Append(L'"');
-  return rv;
+  return appHelper->GetPath(aPath);
 }
 
 nsresult
@@ -222,10 +246,11 @@ LaunchHelper(nsAutoString& aPath)
   STARTUPINFOW si = {sizeof(si), 0};
   PROCESS_INFORMATION pi = {0};
 
-  if (!CreateProcessW(NULL, (LPWSTR)aPath.get(), NULL, NULL, FALSE, 0, NULL,
-                      NULL, &si, &pi)) {
+  BOOL ok = CreateProcessW(NULL, (LPWSTR)aPath.get(), NULL, NULL,
+                           FALSE, 0, NULL, NULL, &si, &pi);
+
+  if (!ok)
     return NS_ERROR_FAILURE;
-  }
 
   CloseHandle(pi.hProcess);
   CloseHandle(pi.hThread);
@@ -236,9 +261,6 @@ NS_IMETHODIMP
 nsWindowsShellService::ShortcutMaintenance()
 {
   nsresult rv;
-
-  
-  
 
   
   
@@ -269,7 +291,7 @@ nsWindowsShellService::ShortcutMaintenance()
     return NS_ERROR_UNEXPECTED;
 
   nsCOMPtr<nsIPrefBranch> prefBranch;
-  prefs->GetBranch(nullptr, getter_AddRefs(prefBranch));
+  prefs->GetBranch(nsnull, getter_AddRefs(prefBranch));
   if (!prefBranch)
     return NS_ERROR_UNEXPECTED;
 
@@ -309,20 +331,12 @@ nsWindowsShellService::ShortcutMaintenance()
   return LaunchHelper(appHelperPath);
 }
 
-static bool
-IsWin8OrLater()
-{
-  OSVERSIONINFOW osInfo;
-  osInfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFOW);
-  GetVersionExW(&osInfo);
-  return osInfo.dwMajorVersion > 6 || 
-         osInfo.dwMajorVersion >= 6 && osInfo.dwMinorVersion >= 2;
-}
-
 bool
 nsWindowsShellService::IsDefaultBrowserVista(bool* aIsDefaultBrowser)
 {
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
   IApplicationAssociationRegistration* pAAR;
+  
   HRESULT hr = CoCreateInstance(CLSID_ApplicationAssociationRegistration,
                                 NULL,
                                 CLSCTX_INPROC,
@@ -336,24 +350,11 @@ nsWindowsShellService::IsDefaultBrowserVista(bool* aIsDefaultBrowser)
                                     &res);
     *aIsDefaultBrowser = res;
 
-    if (*aIsDefaultBrowser && IsWin8OrLater()) {
-      
-      LPWSTR registeredApp;
-      hr = pAAR->QueryCurrentDefault(L"http", AT_URLPROTOCOL, AL_EFFECTIVE,
-                                     &registeredApp);
-      if (SUCCEEDED(hr)) {
-        LPCWSTR firefoxHTTPProgID = L"FirefoxURL";
-        *aIsDefaultBrowser = !wcsicmp(registeredApp, firefoxHTTPProgID);
-        CoTaskMemFree(registeredApp);
-      } else {
-        *aIsDefaultBrowser = false;
-      }
-    }
-
     pAAR->Release();
-    return true;
+    return PR_TRUE;
   }
-  return false;
+#endif  
+  return PR_FALSE;
 }
 
 NS_IMETHODIMP
@@ -364,14 +365,12 @@ nsWindowsShellService::IsDefaultBrowser(bool aStartupCheck,
   
   
   if (aStartupCheck)
-    mCheckedThisSession = true;
-  return IsDefaultBrowser(aIsDefaultBrowser);
-}
+    mCheckedThisSession = PR_TRUE;
 
-nsresult
-nsWindowsShellService::IsDefaultBrowser(bool* aIsDefaultBrowser)
-{
-  *aIsDefaultBrowser = true;
+  SETTING* settings;
+  SETTING* end = gSettings + sizeof(gSettings)/sizeof(SETTING);
+
+  *aIsDefaultBrowser = PR_TRUE;
 
   PRUnichar exePath[MAX_BUF];
   if (!::GetModuleFileNameW(0, exePath, MAX_BUF))
@@ -384,208 +383,42 @@ nsWindowsShellService::IsDefaultBrowser(bool* aIsDefaultBrowser)
 
   nsAutoString appLongPath(exePath);
 
-  HKEY theKey;
-  DWORD res;
   nsresult rv;
   PRUnichar currValue[MAX_BUF];
-
-  SETTING* settings;
-  SETTING* end = gSettings + sizeof(gSettings) / sizeof(SETTING);
-
   for (settings = gSettings; settings < end; ++settings) {
-    NS_ConvertUTF8toUTF16 keyName(settings->keyName);
-    NS_ConvertUTF8toUTF16 valueData(settings->valueData);
-    int32_t offset = valueData.Find("%APPPATH%");
-    valueData.Replace(offset, 9, appLongPath);
+    NS_ConvertUTF8toUTF16 dataLongPath(settings->valueData);
+    NS_ConvertUTF8toUTF16 key(settings->keyName);
+    NS_ConvertUTF8toUTF16 value(settings->valueName);
+    PRInt32 offset = dataLongPath.Find("%APPPATH%");
+    dataLongPath.Replace(offset, 9, appLongPath);
 
-    rv = OpenKeyForReading(HKEY_CLASSES_ROOT, keyName, &theKey);
+    ::ZeroMemory(currValue, sizeof(currValue));
+    HKEY theKey;
+    rv = OpenKeyForReading(HKEY_CLASSES_ROOT, key, &theKey);
     if (NS_FAILED(rv)) {
-      *aIsDefaultBrowser = false;
+      *aIsDefaultBrowser = PR_FALSE;
       return NS_OK;
     }
 
-    ::ZeroMemory(currValue, sizeof(currValue));
     DWORD len = sizeof currValue;
-    res = ::RegQueryValueExW(theKey, L"", NULL, NULL, (LPBYTE)currValue, &len);
+    DWORD res = ::RegQueryValueExW(theKey, PromiseFlatString(value).get(),
+                                   NULL, NULL, (LPBYTE)currValue, &len);
     
     ::RegCloseKey(theKey);
     if (REG_FAILED(res) ||
-        !valueData.Equals(currValue, CaseInsensitiveCompare)) {
+        !dataLongPath.Equals(currValue, CaseInsensitiveCompare)) {
       
-      NS_ConvertUTF8toUTF16 oldValueData(settings->oldValueData);
-      offset = oldValueData.Find("%APPPATH%");
-      oldValueData.Replace(offset, 9, appLongPath);
-      
-      if (!oldValueData.Equals(currValue, CaseInsensitiveCompare)) {
-        *aIsDefaultBrowser = false;
-        return NS_OK;
-      }
-
-      res = ::RegOpenKeyExW(HKEY_CLASSES_ROOT, PromiseFlatString(keyName).get(),
-                            0, KEY_SET_VALUE, &theKey);
-      if (REG_FAILED(res)) {
-        
-        
-        *aIsDefaultBrowser = false;
-        return NS_OK;
-      }
-
-      const nsString &flatValue = PromiseFlatString(valueData);
-      res = ::RegSetValueExW(theKey, L"", 0, REG_SZ,
-                             (const BYTE *) flatValue.get(),
-                             (flatValue.Length() + 1) * sizeof(PRUnichar));
-      
-      ::RegCloseKey(theKey);
-      if (REG_FAILED(res)) {
-        
-        
-        *aIsDefaultBrowser = false;
-        return NS_OK;
-      }
+      *aIsDefaultBrowser = PR_FALSE;
+      return NS_OK;
     }
   }
 
   
   
-  if (*aIsDefaultBrowser) {
+  if (*aIsDefaultBrowser)
     IsDefaultBrowserVista(aIsDefaultBrowser);
-  }
-
-  
-  
-  
-  
-  
-  if (*aIsDefaultBrowser) {
-    
-
-    end = gDDESettings + sizeof(gDDESettings) / sizeof(SETTING);
-
-    for (settings = gDDESettings; settings < end; ++settings) {
-      NS_ConvertUTF8toUTF16 keyName(settings->keyName);
-
-      rv = OpenKeyForReading(HKEY_CURRENT_USER, keyName, &theKey);
-      if (NS_FAILED(rv)) {
-        ::RegCloseKey(theKey);
-        
-        
-        *aIsDefaultBrowser = false;
-        return NS_OK;
-      }
-
-      ::ZeroMemory(currValue, sizeof(currValue));
-      DWORD len = sizeof currValue;
-      res = ::RegQueryValueExW(theKey, L"", NULL, NULL, (LPBYTE)currValue,
-                               &len);
-      
-      ::RegCloseKey(theKey);
-      if (REG_FAILED(res) || PRUnichar('\0') != *currValue) {
-        
-        
-        const nsString &flatName = PromiseFlatString(keyName);
-        ::SHDeleteKeyW(HKEY_CURRENT_USER, flatName.get());
-        res = ::RegCreateKeyExW(HKEY_CURRENT_USER, flatName.get(), 0, NULL,
-                                REG_OPTION_NON_VOLATILE, KEY_SET_VALUE, NULL,
-                                &theKey, NULL);
-        if (REG_FAILED(res)) {
-          
-          
-          *aIsDefaultBrowser = false;
-          return NS_OK;
-        }
-
-        res = ::RegSetValueExW(theKey, L"", 0, REG_SZ, (const BYTE *) L"",
-                               sizeof(PRUnichar));
-        
-        ::RegCloseKey(theKey);
-        if (REG_FAILED(res)) {
-          
-          
-          *aIsDefaultBrowser = false;
-          return NS_OK;
-        }
-      }
-    }
-
-    
-    
-    res = ::RegOpenKeyExW(HKEY_CURRENT_USER, FTP_SOC, 0, KEY_ALL_ACCESS,
-                          &theKey);
-    
-    
-    if (NS_FAILED(rv)) {
-      return NS_OK;
-    }
-
-    NS_ConvertUTF8toUTF16 oldValueOpen(OLD_VAL_OPEN);
-    int32_t offset = oldValueOpen.Find("%APPPATH%");
-    oldValueOpen.Replace(offset, 9, appLongPath);
-
-    ::ZeroMemory(currValue, sizeof(currValue));
-    DWORD len = sizeof currValue;
-    res = ::RegQueryValueExW(theKey, L"", NULL, NULL, (LPBYTE)currValue,
-                             &len);
-
-    
-    
-    if (REG_FAILED(res) ||
-        !oldValueOpen.Equals(currValue, CaseInsensitiveCompare)) {
-      ::RegCloseKey(theKey);
-      return NS_OK;
-    }
-
-    NS_ConvertUTF8toUTF16 valueData(VAL_OPEN);
-    valueData.Replace(offset, 9, appLongPath);
-    const nsString &flatValue = PromiseFlatString(valueData);
-    res = ::RegSetValueExW(theKey, L"", 0, REG_SZ,
-                           (const BYTE *) flatValue.get(),
-                           (flatValue.Length() + 1) * sizeof(PRUnichar));
-    
-    ::RegCloseKey(theKey);
-    
-    
-    
-    if (REG_FAILED(res)) {
-      *aIsDefaultBrowser = false;
-    }
-  }
 
   return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWindowsShellService::GetCanSetDesktopBackground(bool* aResult)
-{
-  *aResult = true;
-  return NS_OK;
-}
-
-static nsresult
-DynSHOpenWithDialog(HWND hwndParent, const OPENASINFO *poainfo)
-{
-  typedef HRESULT (WINAPI * SHOpenWithDialogPtr)(HWND hwndParent,
-                                                 const OPENASINFO *poainfo);
-  static SHOpenWithDialogPtr SHOpenWithDialogFn = NULL;
-  if (!SHOpenWithDialogFn) {
-    
-    
-    static const PRUnichar kSehllLibraryName[] =  L"shell32.dll";
-    HMODULE shellDLL = ::LoadLibraryW(kSehllLibraryName);
-    if (!shellDLL) {
-      return NS_ERROR_FAILURE;
-    }
-
-    SHOpenWithDialogFn =
-      (SHOpenWithDialogPtr)GetProcAddress(shellDLL, "SHOpenWithDialog");
-    FreeLibrary(shellDLL);
-
-    if (!SHOpenWithDialogFn) {
-      return NS_ERROR_FAILURE;
-    }
-  }
-
-  return SUCCEEDED(SHOpenWithDialogFn(hwndParent, poainfo)) ? NS_OK :
-                                                              NS_ERROR_FAILURE;
 }
 
 NS_IMETHODIMP
@@ -601,59 +434,40 @@ nsWindowsShellService::SetDefaultBrowser(bool aClaimAllTypes, bool aForAllUsers)
     appHelperPath.AppendLiteral(" /SetAsDefaultAppUser");
   }
 
-  nsresult rv = LaunchHelper(appHelperPath);
-  if (NS_SUCCEEDED(rv) && IsWin8OrLater()) {
-    OPENASINFO info;
-    info.pcszFile = L"http";
-    info.pcszClass = NULL;
-    info.oaifInFlags = OAIF_FORCE_REGISTRATION | 
-                       OAIF_URL_PROTOCOL |
-                       OAIF_REGISTER_EXT;
-    nsresult rv = DynSHOpenWithDialog(NULL, &info);
-    NS_ENSURE_SUCCESS(rv, rv);
-    bool isDefaultBrowser = false;
-    rv = NS_SUCCEEDED(IsDefaultBrowser(&isDefaultBrowser)) &&
-         isDefaultBrowser ? NS_OK : NS_ERROR_FAILURE;
-  }
-  return rv;
+  return LaunchHelper(appHelperPath);
 }
 
 NS_IMETHODIMP
 nsWindowsShellService::GetShouldCheckDefaultBrowser(bool* aResult)
 {
-  NS_ENSURE_ARG_POINTER(aResult);
-
   
   
   if (mCheckedThisSession) {
-    *aResult = false;
+    *aResult = PR_FALSE;
     return NS_OK;
   }
 
   nsCOMPtr<nsIPrefBranch> prefs;
-  nsresult rv;
-  nsCOMPtr<nsIPrefService> pserve(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsIPrefService> pserve(do_GetService(NS_PREFSERVICE_CONTRACTID));
+  if (pserve)
+    pserve->GetBranch("", getter_AddRefs(prefs));
 
-  rv = pserve->GetBranch("", getter_AddRefs(prefs));
-  NS_ENSURE_SUCCESS(rv, rv);
+  prefs->GetBoolPref(PREF_CHECKDEFAULTBROWSER, aResult);
 
-  return prefs->GetBoolPref(PREF_CHECKDEFAULTBROWSER, aResult);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 nsWindowsShellService::SetShouldCheckDefaultBrowser(bool aShouldCheck)
 {
   nsCOMPtr<nsIPrefBranch> prefs;
-  nsresult rv;
+  nsCOMPtr<nsIPrefService> pserve(do_GetService(NS_PREFSERVICE_CONTRACTID));
+  if (pserve)
+    pserve->GetBranch("", getter_AddRefs(prefs));
 
-  nsCOMPtr<nsIPrefService> pserve(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
-  NS_ENSURE_SUCCESS(rv, rv);
-  
-  rv = pserve->GetBranch("", getter_AddRefs(prefs));
-  NS_ENSURE_SUCCESS(rv, rv);
+  prefs->SetBoolPref(PREF_CHECKDEFAULTBROWSER, aShouldCheck);
 
-  return prefs->SetBoolPref(PREF_CHECKDEFAULTBROWSER, aShouldCheck);
+  return NS_OK;
 }
 
 static nsresult
@@ -665,13 +479,13 @@ WriteBitmap(nsIFile* aFile, imgIContainer* aImage)
                                   getter_AddRefs(image));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  int32_t width = image->Width();
-  int32_t height = image->Height();
+  PRInt32 width = image->Width();
+  PRInt32 height = image->Height();
 
-  uint8_t* bits = image->Data();
-  uint32_t length = image->GetDataSize();
-  uint32_t bpr = uint32_t(image->Stride());
-  int32_t bitCount = bpr/width;
+  PRUint8* bits = image->Data();
+  PRUint32 length = image->GetDataSize();
+  PRUint32 bpr = PRUint32(image->Stride());
+  PRInt32 bitCount = bpr/width;
 
   
   
@@ -703,14 +517,14 @@ WriteBitmap(nsIFile* aFile, imgIContainer* aImage)
   
   rv = NS_ERROR_FAILURE;
   if (stream) {
-    uint32_t written;
+    PRUint32 written;
     stream->Write((const char*)&bf, sizeof(BITMAPFILEHEADER), &written);
     if (written == sizeof(BITMAPFILEHEADER)) {
       stream->Write((const char*)&bmi, sizeof(BITMAPINFOHEADER), &written);
       if (written == sizeof(BITMAPINFOHEADER)) {
         
         
-        uint32_t i = length;
+        PRUint32 i = length;
         do {
           i -= bpr;
           stream->Write(((const char*)bits) + i, bpr, &written);
@@ -732,7 +546,7 @@ WriteBitmap(nsIFile* aFile, imgIContainer* aImage)
 
 NS_IMETHODIMP
 nsWindowsShellService::SetDesktopBackground(nsIDOMElement* aElement, 
-                                            int32_t aPosition)
+                                            PRInt32 aPosition)
 {
   nsresult rv;
 
@@ -795,55 +609,50 @@ nsWindowsShellService::SetDesktopBackground(nsIDOMElement* aElement,
 
   
   if (NS_SUCCEEDED(rv)) {
-    nsCOMPtr<nsIWindowsRegKey> regKey =
-      do_CreateInstance("@mozilla.org/windows-registry-key;1", &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
+     bool result = false;
+     DWORD  dwDisp = 0;
+     HKEY   key;
+     
+     DWORD res = ::RegCreateKeyExW(HKEY_CURRENT_USER, CPL_DESKTOP,
+                                   0, NULL, REG_OPTION_NON_VOLATILE,
+                                   KEY_WRITE, NULL, &key, &dwDisp);
+    if (REG_SUCCEEDED(res)) {
+      PRUnichar tile[2], style[2];
+      switch (aPosition) {
+        case BACKGROUND_TILE:
+          tile[0] = '1';
+          style[0] = '1';
+          break;
+        case BACKGROUND_CENTER:
+          tile[0] = '0';
+          style[0] = '0';
+          break;
+        case BACKGROUND_STRETCH:
+          tile[0] = '0';
+          style[0] = '2';
+          break;
+      }
+      tile[1] = '\0';
+      style[1] = '\0';
 
-    rv = regKey->Create(nsIWindowsRegKey::ROOT_KEY_CURRENT_USER,
-                        NS_LITERAL_STRING("Control Panel\\Desktop"),
-                        nsIWindowsRegKey::ACCESS_SET_VALUE);
-    NS_ENSURE_SUCCESS(rv, rv);
+      
+      PRInt32 size = 3 * sizeof(PRUnichar);
+      ::RegSetValueExW(key, L"TileWallpaper",
+                       0, REG_SZ, (const BYTE *)tile, size);
+      ::RegSetValueExW(key, L"WallpaperStyle",
+                       0, REG_SZ, (const BYTE *)style, size);
+      ::SystemParametersInfoW(SPI_SETDESKWALLPAPER, 0, (PVOID)path.get(),
+                              SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
 
-    nsAutoString tile;
-    nsAutoString style;
-    switch (aPosition) {
-      case BACKGROUND_TILE:
-        style.AssignLiteral("0");
-        tile.AssignLiteral("1");
-        break;
-      case BACKGROUND_CENTER:
-        style.AssignLiteral("0");
-        tile.AssignLiteral("0");
-        break;
-      case BACKGROUND_STRETCH:
-        style.AssignLiteral("2");
-        tile.AssignLiteral("0");
-        break;
-      case BACKGROUND_FILL:
-        style.AssignLiteral("10");
-        tile.AssignLiteral("0");
-        break;
-      case BACKGROUND_FIT:
-        style.AssignLiteral("6");
-        tile.AssignLiteral("0");
-        break;
+      
+      ::RegCloseKey(key);
     }
-
-    rv = regKey->WriteStringValue(NS_LITERAL_STRING("TileWallpaper"), tile);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = regKey->WriteStringValue(NS_LITERAL_STRING("WallpaperStyle"), style);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = regKey->Close();
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    ::SystemParametersInfoW(SPI_SETDESKWALLPAPER, 0, (PVOID)path.get(),
-                            SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
   }
   return rv;
 }
 
 NS_IMETHODIMP
-nsWindowsShellService::OpenApplication(int32_t aApplication)
+nsWindowsShellService::OpenApplication(PRInt32 aApplication)
 {
   nsAutoString application;
   switch (aApplication) {
@@ -904,8 +713,8 @@ nsWindowsShellService::OpenApplication(int32_t aApplication)
   
   
   nsAutoString path(buf);
-  int32_t end = path.Length();
-  int32_t cursor = 0, temp = 0;
+  PRInt32 end = path.Length();
+  PRInt32 cursor = 0, temp = 0;
   ::ZeroMemory(buf, sizeof(buf));
   do {
     cursor = path.FindChar('%', cursor);
@@ -944,15 +753,15 @@ nsWindowsShellService::OpenApplication(int32_t aApplication)
 }
 
 NS_IMETHODIMP
-nsWindowsShellService::GetDesktopBackgroundColor(uint32_t* aColor)
+nsWindowsShellService::GetDesktopBackgroundColor(PRUint32* aColor)
 {
-  uint32_t color = ::GetSysColor(COLOR_DESKTOP);
+  PRUint32 color = ::GetSysColor(COLOR_DESKTOP);
   *aColor = (GetRValue(color) << 16) | (GetGValue(color) << 8) | GetBValue(color);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsWindowsShellService::SetDesktopBackgroundColor(uint32_t aColor)
+nsWindowsShellService::SetDesktopBackgroundColor(PRUint32 aColor)
 {
   int aParameters[2] = { COLOR_BACKGROUND, COLOR_DESKTOP };
   BYTE r = (aColor >> 16);
@@ -962,37 +771,92 @@ nsWindowsShellService::SetDesktopBackgroundColor(uint32_t aColor)
 
   ::SetSysColors(sizeof(aParameters) / sizeof(int), aParameters, colors);
 
-  nsresult rv;
-  nsCOMPtr<nsIWindowsRegKey> regKey =
-    do_CreateInstance("@mozilla.org/windows-registry-key;1", &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
+  bool result = false;
+  DWORD  dwDisp = 0;
+  HKEY   key;
+  
+  DWORD rv = ::RegCreateKeyExW(HKEY_CURRENT_USER,
+                               L"Control Panel\\Colors", 0, NULL,
+                               REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL,
+                               &key, &dwDisp);
 
-  rv = regKey->Create(nsIWindowsRegKey::ROOT_KEY_CURRENT_USER,
-                      NS_LITERAL_STRING("Control Panel\\Colors"),
-                      nsIWindowsRegKey::ACCESS_SET_VALUE);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (REG_SUCCEEDED(rv)) {
+    char rgb[12];
+    sprintf((char*)rgb, "%u %u %u\0", r, g, b);
+    NS_ConvertUTF8toUTF16 backColor(rgb);
 
-  PRUnichar rgb[12];
-  _snwprintf(rgb, 12, L"%u %u %u", r, g, b);
-
-  rv = regKey->WriteStringValue(NS_LITERAL_STRING("Background"),
-                                nsDependentString(rgb));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return regKey->Close();
-}
-
-nsWindowsShellService::nsWindowsShellService() : 
-  mCheckedThisSession(false) 
-{
-}
-
-nsWindowsShellService::~nsWindowsShellService()
-{
+    ::RegSetValueExW(key, L"Background",
+                     0, REG_SZ, (const BYTE *)backColor.get(),
+                     (backColor.Length() + 1) * sizeof(PRUnichar));
+  }
+  
+  
+  ::RegCloseKey(key);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
-nsWindowsShellService::OpenApplicationWithURI(nsIFile* aApplication,
+nsWindowsShellService::GetUnreadMailCount(PRUint32* aCount)
+{
+  *aCount = 0;
+
+  HKEY accountKey;
+  if (GetMailAccountKey(&accountKey)) {
+    DWORD type, unreadCount;
+    DWORD len = sizeof unreadCount;
+    DWORD res = ::RegQueryValueExW(accountKey, L"MessageCount", 0,
+                                   &type, (LPBYTE)&unreadCount, &len);
+    if (REG_SUCCEEDED(res))
+      *aCount = unreadCount;
+
+    
+    ::RegCloseKey(accountKey);
+  }
+
+  return NS_OK;
+}
+
+bool
+nsWindowsShellService::GetMailAccountKey(HKEY* aResult)
+{
+  NS_NAMED_LITERAL_STRING(unread,
+    "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\UnreadMail\\");
+
+  HKEY mailKey;
+  DWORD res = ::RegOpenKeyExW(HKEY_CURRENT_USER, unread.get(), 0,
+                              KEY_ENUMERATE_SUB_KEYS, &mailKey);
+
+  PRInt32 i = 0;
+  do {
+    PRUnichar subkeyName[MAX_BUF];
+    DWORD len = sizeof subkeyName;
+    res = ::RegEnumKeyExW(mailKey, i++, subkeyName, &len, NULL, NULL,
+                          NULL, NULL);
+    if (REG_SUCCEEDED(res)) {
+      HKEY accountKey;
+      res = ::RegOpenKeyExW(mailKey, PromiseFlatString(subkeyName).get(),
+                            0, KEY_READ, &accountKey);
+      if (REG_SUCCEEDED(res)) {
+        *aResult = accountKey;
+    
+        
+        ::RegCloseKey(mailKey);
+	 
+        return PR_TRUE;
+      }
+    }
+    else
+      break;
+  }
+  while (1);
+
+  
+  ::RegCloseKey(mailKey);
+  return PR_FALSE;
+}
+
+NS_IMETHODIMP
+nsWindowsShellService::OpenApplicationWithURI(nsILocalFile* aApplication,
                                               const nsACString& aURI)
 {
   nsresult rv;
@@ -1007,13 +871,13 @@ nsWindowsShellService::OpenApplicationWithURI(nsIFile* aApplication,
   
   const nsCString spec(aURI);
   const char* specStr = spec.get();
-  return process->Run(false, &specStr, 1);
+  return process->Run(PR_FALSE, &specStr, 1);
 }
 
 NS_IMETHODIMP
-nsWindowsShellService::GetDefaultFeedReader(nsIFile** _retval)
+nsWindowsShellService::GetDefaultFeedReader(nsILocalFile** _retval)
 {
-  *_retval = nullptr;
+  *_retval = nsnull;
 
   nsresult rv;
   nsCOMPtr<nsIWindowsRegKey> regKey =
@@ -1040,7 +904,7 @@ nsWindowsShellService::GetDefaultFeedReader(nsIFile** _retval)
     path = Substring(path, 0, path.FindChar(' '));
   }
 
-  nsCOMPtr<nsIFile> defaultReader =
+  nsCOMPtr<nsILocalFile> defaultReader =
     do_CreateInstance("@mozilla.org/file/local;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 

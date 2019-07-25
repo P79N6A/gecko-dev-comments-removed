@@ -4,6 +4,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsFrame.h"
 #include "nsPresContext.h"
@@ -55,24 +90,15 @@ nsMathMLmsubFrame::Place (nsRenderingContext& aRenderingContext,
   nscoord scriptSpace = nsPresContext::CSSPointsToAppUnits(0.5f); 
 
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   nscoord subScriptShift = 0;
   nsAutoString value;
   GetAttribute(mContent, mPresentationData.mstyle,
                nsGkAtoms::subscriptshift_, value);
   if (!value.IsEmpty()) {
-    ParseNumericValue(value, &subScriptShift,
-                      nsMathMLElement::PARSE_ALLOW_NEGATIVE,
-                      PresContext(), mStyleContext);
+    nsCSSValue cssValue;
+    if (ParseNumericValue(value, cssValue) && cssValue.IsLengthUnit()) {
+      subScriptShift = CalcLength(PresContext(), mStyleContext, cssValue);
+    }
   }
 
   return nsMathMLmsubFrame::PlaceSubScript(PresContext(), 
@@ -105,7 +131,7 @@ nsMathMLmsubFrame::PlaceSubScript (nsPresContext*      aPresContext,
   nsHTMLReflowMetrics baseSize;
   nsHTMLReflowMetrics subScriptSize;
   nsIFrame* baseFrame = aFrame->GetFirstPrincipalChild();
-  nsIFrame* subScriptFrame = nullptr;
+  nsIFrame* subScriptFrame = nsnull;
   if (baseFrame)
     subScriptFrame = baseFrame->GetNextSibling();
   if (!baseFrame || !subScriptFrame || subScriptFrame->GetNextSibling()) {
@@ -177,14 +203,12 @@ nsMathMLmsubFrame::PlaceSubScript (nsPresContext*      aPresContext,
   if (aPlaceOrigin) {
     nscoord dx, dy;
     
-    dx = aFrame->MirrorIfRTL(aDesiredSize.width, baseSize.width, 0);
-    dy = aDesiredSize.ascent - baseSize.ascent;
-    FinishReflowChild (baseFrame, aPresContext, nullptr, baseSize, dx, dy, 0);
+    dx = 0; dy = aDesiredSize.ascent - baseSize.ascent;
+    FinishReflowChild (baseFrame, aPresContext, nsnull, baseSize, dx, dy, 0);
     
-    dx = aFrame->MirrorIfRTL(aDesiredSize.width, subScriptSize.width,
-                             bmBase.width);
+    dx = bmBase.width; 
     dy = aDesiredSize.ascent - (subScriptSize.ascent - actualSubScriptShift);
-    FinishReflowChild (subScriptFrame, aPresContext, nullptr, subScriptSize, dx, dy, 0);
+    FinishReflowChild (subScriptFrame, aPresContext, nsnull, subScriptSize, dx, dy, 0);
   }
 
   return NS_OK;

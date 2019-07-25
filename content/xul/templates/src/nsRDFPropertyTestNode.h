@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsRDFPropertyTestNode_h__
 #define nsRDFPropertyTestNode_h__
 
@@ -80,7 +113,7 @@ public:
                nsIRDFResource* aProperty,
                nsIRDFNode* aTarget) {
             void* place = MemoryElement::gPool.Alloc(sizeof(Element));
-            return place ? ::new (place) Element(aSource, aProperty, aTarget) : nullptr; }
+            return place ? ::new (place) Element(aSource, aProperty, aTarget) : nsnull; }
 
         void Destroy() {
             this->~Element();
@@ -91,8 +124,9 @@ public:
             return "nsRDFPropertyTestNode::Element"; }
 
         virtual PLHashNumber Hash() const {
-            return mozilla::HashGeneric(mSource.get(), mProperty.get(), mTarget.get());
-        }
+            return PLHashNumber(NS_PTR_TO_INT32(mSource.get())) ^
+                (PLHashNumber(NS_PTR_TO_INT32(mProperty.get())) >> 4) ^
+                (PLHashNumber(NS_PTR_TO_INT32(mTarget.get())) >> 12); }
 
         virtual bool Equals(const MemoryElement& aElement) const {
             if (aElement.Type() == Type()) {
@@ -101,7 +135,7 @@ public:
                     && mProperty == element.mProperty
                     && mTarget == element.mTarget;
             }
-            return false; }
+            return PR_FALSE; }
 
     protected:
         nsCOMPtr<nsIRDFResource> mSource;

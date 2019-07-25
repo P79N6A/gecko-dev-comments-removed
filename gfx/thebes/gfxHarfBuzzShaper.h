@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_HARFBUZZSHAPER_H
 #define GFX_HARFBUZZSHAPER_H
 
@@ -18,9 +50,12 @@ public:
     gfxHarfBuzzShaper(gfxFont *aFont);
     virtual ~gfxHarfBuzzShaper();
 
-    virtual bool ShapeWord(gfxContext *aContext,
-                           gfxShapedWord *aShapedWord,
-                           const PRUnichar *aText);
+    virtual bool InitTextRun(gfxContext *aContext,
+                               gfxTextRun *aTextRun,
+                               const PRUnichar *aString,
+                               PRUint32 aRunStart,
+                               PRUint32 aRunLength,
+                               PRInt32 aRunScript);
 
     
     hb_blob_t * GetFontTable(hb_tag_t aTag) const;
@@ -30,23 +65,28 @@ public:
                             hb_codepoint_t variation_selector) const;
 
     
-    hb_position_t GetGlyphHAdvance(gfxContext *aContext,
-                                   hb_codepoint_t glyph) const;
+    void GetGlyphAdvance(gfxContext *aContext,
+                         hb_codepoint_t glyph,
+                         hb_position_t *x_advance,
+                         hb_position_t *y_advance) const;
 
-    hb_position_t GetHKerning(uint16_t aFirstGlyph,
-                              uint16_t aSecondGlyph) const;
+    hb_position_t GetKerning(PRUint16 aFirstGlyph,
+                             PRUint16 aSecondGlyph) const;
 
 protected:
+    
     nsresult SetGlyphsFromRun(gfxContext *aContext,
-                              gfxShapedWord *aShapedWord,
-                              hb_buffer_t *aBuffer);
+                              gfxTextRun *aTextRun,
+                              hb_buffer_t *aBuffer,
+                              PRUint32 aTextRunOffset,
+                              PRUint32 aRunLength);
 
     
     
     nscoord GetGlyphPositions(gfxContext *aContext,
                               hb_buffer_t *aBuffer,
                               nsTArray<nsPoint>& aPositions,
-                              uint32_t aAppUnitsPerDevUnit);
+                              PRUint32 aAppUnitsPerDevUnit);
 
     
     hb_face_t         *mHBFace;
@@ -65,15 +105,15 @@ protected:
     
     
     mutable hb_blob_t *mHmtxTable;
-    mutable int32_t    mNumLongMetrics;
+    mutable PRInt32    mNumLongMetrics;
 
     
     
     
     mutable hb_blob_t *mCmapTable;
-    mutable int32_t    mCmapFormat;
-    mutable uint32_t   mSubtableOffset;
-    mutable uint32_t   mUVSTableOffset;
+    mutable PRInt32    mCmapFormat;
+    mutable PRUint32   mSubtableOffset;
+    mutable PRUint32   mUVSTableOffset;
 
     
     

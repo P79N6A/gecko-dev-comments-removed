@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIOService.h"
 #include "nsAsyncStreamCopier.h"
 #include "nsIEventTarget.h"
@@ -16,7 +49,7 @@ using namespace mozilla;
 
 
 
-static PRLogModuleInfo *gStreamCopierLog = nullptr;
+static PRLogModuleInfo *gStreamCopierLog = nsnull;
 #endif
 #define LOG(args) PR_LOG(gStreamCopierLog, PR_LOG_DEBUG, args)
 
@@ -27,7 +60,7 @@ nsAsyncStreamCopier::nsAsyncStreamCopier()
     , mMode(NS_ASYNCCOPY_VIA_READSEGMENTS)
     , mChunkSize(nsIOService::gDefaultSegmentSize)
     , mStatus(NS_OK)
-    , mIsPending(false)
+    , mIsPending(PR_FALSE)
 {
 #if defined(PR_LOGGING)
     if (!gStreamCopierLog)
@@ -59,17 +92,17 @@ nsAsyncStreamCopier::Complete(nsresult status)
     nsCOMPtr<nsISupports> ctx;
     {
         MutexAutoLock lock(mLock);
-        mCopierCtx = nullptr;
+        mCopierCtx = nsnull;
 
         if (mIsPending) {
-            mIsPending = false;
+            mIsPending = PR_FALSE;
             mStatus = status;
 
             
             observer = mObserver;
             ctx = mObserverContext;
-            mObserver = nullptr;
-            mObserverContext = nullptr;
+            mObserver = nsnull;
+            mObserverContext = nsnull;
         }
     }
 
@@ -170,7 +203,7 @@ nsAsyncStreamCopier::SetLoadFlags(nsLoadFlags aLoadFlags)
 NS_IMETHODIMP
 nsAsyncStreamCopier::GetLoadGroup(nsILoadGroup **aLoadGroup)
 {
-    *aLoadGroup = nullptr;
+    *aLoadGroup = nsnull;
     return NS_OK;
 }
 
@@ -189,7 +222,7 @@ nsAsyncStreamCopier::Init(nsIInputStream *source,
                           nsIEventTarget *target,
                           bool sourceBuffered,
                           bool sinkBuffered,
-                          uint32_t chunkSize,
+                          PRUint32 chunkSize,
                           bool closeSource,
                           bool closeSink)
 {
@@ -232,7 +265,7 @@ nsAsyncStreamCopier::AsyncCopy(nsIRequestObserver *observer, nsISupports *ctx)
 
     
     
-    mIsPending = true;
+    mIsPending = PR_TRUE;
 
     mObserverContext = ctx;
     if (mObserver) {
@@ -240,16 +273,13 @@ nsAsyncStreamCopier::AsyncCopy(nsIRequestObserver *observer, nsISupports *ctx)
         if (NS_FAILED(rv))
             Cancel(rv);
     }
-
+    
     
     
     NS_ADDREF_THIS();
-    {
-      MutexAutoLock lock(mLock);
-      rv = NS_AsyncCopy(mSource, mSink, mTarget, mMode, mChunkSize,
-                        OnAsyncCopyComplete, this, mCloseSource, mCloseSink,
-                        getter_AddRefs(mCopierCtx));
-    }
+    rv = NS_AsyncCopy(mSource, mSink, mTarget, mMode, mChunkSize,
+                      OnAsyncCopyComplete, this, mCloseSource, mCloseSink,
+                      getter_AddRefs(mCopierCtx));
     if (NS_FAILED(rv)) {
         NS_RELEASE_THIS();
         Cancel(rv);

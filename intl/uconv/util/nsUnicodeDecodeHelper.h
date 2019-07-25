@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsUnicodeDecodeHelper_h__
 #define nsUnicodeDecodeHelper_h__
 
@@ -21,8 +53,8 @@ public:
   
 
 
-  static nsresult ConvertByTable(const char * aSrc, int32_t * aSrcLength, 
-                                 PRUnichar * aDest, int32_t * aDestLength,
+  static nsresult ConvertByTable(const char * aSrc, PRInt32 * aSrcLength, 
+                                 PRUnichar * aDest, PRInt32 * aDestLength,
                                  uScanClassID aScanClass,
                                  uShiftInTable * aShiftInTable,
                                  uMappingTable  * aMappingTable,
@@ -31,23 +63,23 @@ public:
   
 
 
-  static nsresult ConvertByMultiTable(const char * aSrc, int32_t * aSrcLength,
-      PRUnichar * aDest, int32_t * aDestLength, int32_t aTableCount, 
+  static nsresult ConvertByMultiTable(const char * aSrc, PRInt32 * aSrcLength,
+      PRUnichar * aDest, PRInt32 * aDestLength, PRInt32 aTableCount, 
       const uRange * aRangeArray, uScanClassID * aScanClassArray,
       uMappingTable ** aMappingTable, bool aErrorSignal = false);
 
   
 
 
-  static nsresult ConvertByFastTable(const char * aSrc, int32_t * aSrcLength, 
-      PRUnichar * aDest, int32_t * aDestLength, const PRUnichar * aFastTable, 
-      int32_t aTableSize, bool aErrorSignal);
+  static nsresult ConvertByFastTable(const char * aSrc, PRInt32 * aSrcLength, 
+      PRUnichar * aDest, PRInt32 * aDestLength, const PRUnichar * aFastTable, 
+      PRInt32 aTableSize, bool aErrorSignal);
 
   
 
 
   static nsresult CreateFastTable(uMappingTable * aMappingTable,
-      PRUnichar * aFastTable,  int32_t aTableSize);
+      PRUnichar * aFastTable,  PRInt32 aTableSize);
 };
 
 #endif 

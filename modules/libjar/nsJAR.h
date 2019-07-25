@@ -4,6 +4,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsJAR_h__
 #define nsJAR_h__
 
@@ -30,7 +66,6 @@
 #include "nsIObserverService.h"
 #include "nsWeakReference.h"
 #include "nsIObserver.h"
-#include "mozilla/Attributes.h"
 
 class nsIInputStream;
 class nsJARManifestItem;
@@ -98,29 +133,32 @@ class nsJAR : public nsIZipReader
     
     nsCOMPtr<nsIFile>        mZipFile;        
     nsCString                mOuterZipEntry;  
-    nsRefPtr<nsZipArchive>   mZip;            
+    nsAutoPtr<nsZipArchive>  mZip;            
     nsObjectHashtable        mManifestData;   
     bool                     mParsedManifest; 
     nsCOMPtr<nsIPrincipal>   mPrincipal;      
-    int16_t                  mGlobalStatus;   
+    PRInt16                  mGlobalStatus;   
     PRIntervalTime           mReleaseTime;    
     nsZipReaderCache*        mCache;          
     mozilla::Mutex           mLock;	
-    int64_t                  mMtime;
-    int32_t                  mTotalItemsInManifest;
+    PRInt64                  mMtime;
+    PRInt32                  mTotalItemsInManifest;
     bool                     mOpened;
 
     nsresult ParseManifest();
-    void     ReportError(const nsACString &aFilename, int16_t errorCode);
+    void     ReportError(const char* aFilename, PRInt16 errorCode);
     nsresult LoadEntry(const nsACString &aFilename, char** aBuf, 
-                       uint32_t* aBufLen = nullptr);
-    int32_t  ReadLine(const char** src); 
-    nsresult ParseOneFile(const char* filebuf, int16_t aFileType);
+                       PRUint32* aBufLen = nsnull);
+    PRInt32  ReadLine(const char** src); 
+    nsresult ParseOneFile(const char* filebuf, PRInt16 aFileType);
     nsresult VerifyEntry(nsJARManifestItem* aEntry, const char* aEntryData, 
-                         uint32_t aLen);
+                         PRUint32 aLen);
 
-    nsresult CalculateDigest(const char* aInBuf, uint32_t aInBufLen,
+    nsresult CalculateDigest(const char* aInBuf, PRUint32 aInBufLen,
                              nsCString& digest);
+
+    
+    void DumpMetadata(const char* aMessage);
 };
 
 
@@ -139,11 +177,11 @@ public:
     virtual ~nsJARItem() {}
 
 private:
-    uint32_t     mSize;             
-    uint32_t     mRealsize;         
-    uint32_t     mCrc32;
+    PRUint32     mSize;             
+    PRUint32     mRealsize;         
+    PRUint32     mCrc32;
     PRTime       mLastModTime;
-    uint16_t     mCompression;
+    PRUint16     mCompression;
     bool mIsDirectory; 
     bool mIsSynthetic;
 };
@@ -154,20 +192,20 @@ private:
 
 
 
-class nsJAREnumerator MOZ_FINAL : public nsIUTF8StringEnumerator
+class nsJAREnumerator : public nsIUTF8StringEnumerator
 {
 public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIUTF8STRINGENUMERATOR
 
-    nsJAREnumerator(nsZipFind *aFind) : mFind(aFind), mName(nullptr) { 
+    nsJAREnumerator(nsZipFind *aFind) : mFind(aFind), mName(nsnull) { 
       NS_ASSERTION(mFind, "nsJAREnumerator: Missing zipFind.");
     }
 
 private:
     nsZipFind    *mFind;
     const char*   mName;    
-    uint16_t      mNameLen;
+    PRUint16      mNameLen;
 
     ~nsJAREnumerator() { delete mFind; }
 };
@@ -193,14 +231,14 @@ public:
 
 protected:
   mozilla::Mutex        mLock;
-  int32_t               mCacheSize;
+  PRInt32               mCacheSize;
   nsSupportsHashtable   mZips;
 
 #ifdef ZIP_CACHE_HIT_RATE
-  uint32_t              mZipCacheLookups;
-  uint32_t              mZipCacheHits;
-  uint32_t              mZipCacheFlushes;
-  uint32_t              mZipSyncMisses;
+  PRUint32              mZipCacheLookups;
+  PRUint32              mZipCacheHits;
+  PRUint32              mZipCacheFlushes;
+  PRUint32              mZipSyncMisses;
 #endif
 
 };

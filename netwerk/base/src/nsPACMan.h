@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsPACMan_h__
 #define nsPACMan_h__
 
@@ -15,7 +47,6 @@
 #include "nsCOMPtr.h"
 #include "nsString.h"
 #include "prclist.h"
-#include "mozilla/Attributes.h"
 
 
 
@@ -39,9 +70,9 @@ public:
 
 
 
-class nsPACMan MOZ_FINAL : public nsIStreamLoaderObserver
-                         , public nsIInterfaceRequestor
-                         , public nsIChannelEventSink
+class nsPACMan : public nsIStreamLoaderObserver
+               , public nsIInterfaceRequestor
+               , public nsIChannelEventSink
 {
 public:
   NS_DECL_ISUPPORTS
@@ -95,7 +126,7 @@ public:
   
 
 
-  bool IsLoading() { return mLoader != nullptr; }
+  bool IsLoading() { return mLoader != nsnull; }
 
   
 
@@ -147,7 +178,7 @@ private:
   bool                         mLoadPending;
   bool                         mShutdown;
   PRTime                       mScheduledReload;
-  uint32_t                     mLoadFailureCount;
+  PRUint32                     mLoadFailureCount;
 };
 
 #endif  

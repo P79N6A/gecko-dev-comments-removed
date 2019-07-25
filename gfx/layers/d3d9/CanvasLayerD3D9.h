@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_CANVASLAYERD3D9_H
 #define GFX_CANVASLAYERD3D9_H
 
@@ -23,9 +56,9 @@ public:
   CanvasLayerD3D9(LayerManagerD3D9 *aManager)
     : CanvasLayer(aManager, NULL)
     , LayerD3D9(aManager)
-    , mDataIsPremultiplied(false)
-    , mNeedsYFlip(false)
-    , mHasAlpha(true)
+    , mDataIsPremultiplied(PR_FALSE)
+    , mNeedsYFlip(PR_FALSE)
+    , mHasAlpha(PR_TRUE)
   {
       mImplData = static_cast<LayerD3D9*>(this);
       aManager->deviceManager()->mLayersWithResources.AppendElement(this);
@@ -52,29 +85,12 @@ protected:
   nsRefPtr<gfxASurface> mSurface;
   nsRefPtr<GLContext> mGLContext;
   nsRefPtr<IDirect3DTexture9> mTexture;
-  RefPtr<gfx::DrawTarget> mDrawTarget;
+
+  PRUint32 mCanvasFramebuffer;
 
   bool mDataIsPremultiplied;
   bool mNeedsYFlip;
   bool mHasAlpha;
-
-  nsAutoArrayPtr<uint8_t> mCachedTempBlob;
-  uint32_t mCachedTempBlob_Size;
-
-  uint8_t* GetTempBlob(const uint32_t aSize)
-  {
-      if (!mCachedTempBlob || aSize != mCachedTempBlob_Size) {
-          mCachedTempBlob = new uint8_t[aSize];
-          mCachedTempBlob_Size = aSize;
-      }
-
-      return mCachedTempBlob;
-  }
-
-  void DiscardTempBlob()
-  {
-      mCachedTempBlob = nullptr;
-  }
 };
 
 

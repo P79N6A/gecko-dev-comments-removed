@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsTemplateMatch_h__
 #define nsTemplateMatch_h__
 
@@ -41,14 +74,14 @@ private:
     void operator delete(void*, size_t) {}
 
 public:
-    nsTemplateMatch(uint16_t aQuerySetPriority,
+    nsTemplateMatch(PRUint16 aQuerySetPriority,
                     nsIXULTemplateResult* aResult,
                     nsIContent* aContainer)
         : mRuleIndex(-1),
           mQuerySetPriority(aQuerySetPriority),
           mContainer(aContainer),
           mResult(aResult),
-          mNext(nullptr)
+          mNext(nsnull)
     {
       MOZ_COUNT_CTOR(nsTemplateMatch);
     }
@@ -60,13 +93,13 @@ public:
 
     static nsTemplateMatch*
     Create(nsFixedSizeAllocator& aPool,
-           uint16_t aQuerySetPriority,
+           PRUint16 aQuerySetPriority,
            nsIXULTemplateResult* aResult,
            nsIContent* aContainer) {
         void* place = aPool.Alloc(sizeof(nsTemplateMatch));
         return place ? ::new (place) nsTemplateMatch(aQuerySetPriority,
                                                      aResult, aContainer)
-                     : nullptr; }
+                     : nsnull; }
 
     static void Destroy(nsFixedSizeAllocator& aPool,
                         nsTemplateMatch*& aMatch,
@@ -84,12 +117,12 @@ public:
     }
 
     
-    int16_t RuleIndex() {
+    PRInt16 RuleIndex() {
         return mRuleIndex;
     }
 
     
-    uint16_t QuerySetPriority() {
+    PRUint16 QuerySetPriority() {
         return mQuerySetPriority;
     }
 
@@ -100,7 +133,7 @@ public:
 
     nsresult RuleMatched(nsTemplateQuerySet* aQuerySet,
                          nsTemplateRule* aRule,
-                         int16_t aRuleIndex,
+                         PRInt16 aRuleIndex,
                          nsIXULTemplateResult* aResult);
 
 private:
@@ -108,12 +141,12 @@ private:
     
 
 
-    int16_t mRuleIndex;
+    PRInt16 mRuleIndex;
 
     
 
 
-    uint16_t mQuerySetPriority;
+    PRUint16 mQuerySetPriority;
 
     
 

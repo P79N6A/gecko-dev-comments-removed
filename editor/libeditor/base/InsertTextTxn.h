@@ -3,22 +3,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef InsertTextTxn_h__
 #define InsertTextTxn_h__
 
-#include "EditTxn.h"                    
-#include "nsCOMPtr.h"                   
-#include "nsCycleCollectionParticipant.h"
-#include "nsID.h"                       
-#include "nsIDOMCharacterData.h"        
-#include "nsISupportsImpl.h"            
-#include "nsString.h"                   
-#include "nscore.h"                     
-#include "prtypes.h"                    
-
-class nsIEditor;
-class nsITransaction;
-
+#include "EditTxn.h"
+#include "nsIDOMCharacterData.h"
+#include "nsIEditor.h"
+#include "nsCOMPtr.h"
 
 #define INSERT_TEXT_TXN_CID \
 {/* 93276f00-ab2c-11d2-8f4b-006008159b0c*/ \
@@ -41,7 +64,7 @@ public:
 
 
   NS_IMETHOD Init(nsIDOMCharacterData *aElement,
-                  uint32_t aOffset,
+                  PRUint32 aOffset,
                   const nsAString& aString,
                   nsIEditor *aEditor);
 
@@ -66,7 +89,7 @@ protected:
   nsCOMPtr<nsIDOMCharacterData> mElement;
   
   
-  uint32_t mOffset;
+  PRUint32 mOffset;
 
   
   nsString mStringToInsert;

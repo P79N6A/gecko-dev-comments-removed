@@ -9,10 +9,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsHTMLStyleSheet_h_
 #define nsHTMLStyleSheet_h_
-
-#include "mozilla/Attributes.h"
 
 #include "nsIStyleSheet.h"
 #include "nsIStyleRuleProcessor.h"
@@ -20,15 +51,12 @@
 #include "pldhash.h"
 #include "nsCOMPtr.h"
 #include "nsColor.h"
-#include "mozilla/Attributes.h"
-
 class nsMappedAttributes;
 
-class nsHTMLStyleSheet MOZ_FINAL : public nsIStyleSheet,
-                                   public nsIStyleRuleProcessor
-{
+class nsHTMLStyleSheet : public nsIStyleSheet, public nsIStyleRuleProcessor {
 public:
-  nsHTMLStyleSheet(nsIURI* aURL, nsIDocument* aDocument);
+  nsHTMLStyleSheet(void);
+  nsresult Init();
 
   NS_DECL_ISUPPORTS
 
@@ -46,7 +74,7 @@ public:
   virtual nsIDocument* GetOwningDocument() const;
   virtual void SetOwningDocument(nsIDocument* aDocumemt);
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
+  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
 
   
@@ -61,12 +89,9 @@ public:
   virtual nsRestyleHint
     HasAttributeDependentStyle(AttributeRuleProcessorData* aData);
   virtual bool MediumFeaturesChanged(nsPresContext* aPresContext);
-  virtual NS_MUST_OVERRIDE size_t
-    SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const MOZ_OVERRIDE;
-  virtual NS_MUST_OVERRIDE size_t
-    SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const MOZ_OVERRIDE;
-  size_t DOMSizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  virtual PRInt64 SizeOf() const;
 
+  nsresult Init(nsIURI* aURL, nsIDocument* aDocument);
   void Reset(nsIURI* aURL);
   nsresult SetLinkColor(nscolor aColor);
   nsresult SetActiveLinkColor(nscolor aColor);
@@ -77,15 +102,17 @@ public:
     UniqueMappedAttributes(nsMappedAttributes* aMapped);
   void DropMappedAttributes(nsMappedAttributes* aMapped);
 
+  PRInt64 DOMSizeOf() const;
 private: 
-  nsHTMLStyleSheet(const nsHTMLStyleSheet& aCopy) MOZ_DELETE;
-  nsHTMLStyleSheet& operator=(const nsHTMLStyleSheet& aCopy) MOZ_DELETE;
+  
+  nsHTMLStyleSheet(const nsHTMLStyleSheet& aCopy); 
+  nsHTMLStyleSheet& operator=(const nsHTMLStyleSheet& aCopy); 
 
   ~nsHTMLStyleSheet();
 
   class HTMLColorRule;
   friend class HTMLColorRule;
-  class HTMLColorRule MOZ_FINAL : public nsIStyleRule {
+  class HTMLColorRule : public nsIStyleRule {
   public:
     HTMLColorRule() {}
 
@@ -94,7 +121,7 @@ private:
     
     virtual void MapRuleInfoInto(nsRuleData* aRuleData);
   #ifdef DEBUG
-    virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
+    virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
   #endif
 
     nscolor             mColor;
@@ -105,24 +132,23 @@ private:
 
   class GenericTableRule;
   friend class GenericTableRule;
-  class GenericTableRule : public nsIStyleRule {
+  class GenericTableRule: public nsIStyleRule {
   public:
     GenericTableRule() {}
-    virtual ~GenericTableRule() {}
 
     NS_DECL_ISUPPORTS
 
     
     virtual void MapRuleInfoInto(nsRuleData* aRuleData) = 0;
   #ifdef DEBUG
-    virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
+    virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
   #endif
   };
 
   
   class TableTHRule;
   friend class TableTHRule;
-  class TableTHRule MOZ_FINAL : public GenericTableRule {
+  class TableTHRule: public GenericTableRule {
   public:
     TableTHRule() {}
 
@@ -130,7 +156,7 @@ private:
   };
 
   
-  class TableQuirkColorRule MOZ_FINAL : public GenericTableRule {
+  class TableQuirkColorRule : public GenericTableRule {
   public:
     TableQuirkColorRule() {}
 
@@ -147,5 +173,13 @@ private:
 
   PLDHashTable            mMappedAttrTable;
 };
+
+
+nsresult
+NS_NewHTMLStyleSheet(nsHTMLStyleSheet** aInstancePtrResult, nsIURI* aURL, 
+                     nsIDocument* aDocument);
+
+nsresult
+NS_NewHTMLStyleSheet(nsHTMLStyleSheet** aInstancePtrResult);
 
 #endif 

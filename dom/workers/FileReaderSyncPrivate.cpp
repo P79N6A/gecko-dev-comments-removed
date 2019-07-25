@@ -4,15 +4,48 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "FileReaderSyncPrivate.h"
 
 #include "nsCExternalHandlerService.h"
 #include "nsComponentManagerUtils.h"
 #include "nsCOMPtr.h"
-#include "nsDOMClassInfoID.h"
-#include "nsError.h"
+#include "nsDOMClassInfo.h"
+#include "nsDOMError.h"
 #include "nsIDOMFile.h"
-#include "nsCharsetAlias.h"
+#include "nsICharsetAlias.h"
 #include "nsICharsetDetector.h"
 #include "nsIConverterInputStream.h"
 #include "nsIInputStream.h"
@@ -41,14 +74,14 @@ FileReaderSyncPrivate::~FileReaderSyncPrivate()
 }
 
 nsresult
-FileReaderSyncPrivate::ReadAsArrayBuffer(nsIDOMBlob* aBlob, uint32_t aLength,
+FileReaderSyncPrivate::ReadAsArrayBuffer(nsIDOMBlob* aBlob, PRUint32 aLength,
                                          uint8* aBuffer)
 {
   nsCOMPtr<nsIInputStream> stream;
   nsresult rv = aBlob->GetInternalStream(getter_AddRefs(stream));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  uint32_t numRead;
+  PRUint32 numRead;
   rv = stream->Read((char*)aBuffer, aLength, &numRead);
   NS_ENSURE_SUCCESS(rv, rv);
   NS_ASSERTION(numRead == aLength, "failed to read data");
@@ -63,13 +96,13 @@ FileReaderSyncPrivate::ReadAsBinaryString(nsIDOMBlob* aBlob, nsAString& aResult)
   nsresult rv = aBlob->GetInternalStream(getter_AddRefs(stream));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  uint32_t numRead;
+  PRUint32 numRead;
   do {
     char readBuf[4096];
     rv = stream->Read(readBuf, sizeof(readBuf), &numRead);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    uint32_t oldLength = aResult.Length();
+    PRUint32 oldLength = aResult.Length();
     AppendASCIItoUTF16(Substring(readBuf, readBuf + numRead), aResult);
     if (aResult.Length() - oldLength != numRead) {
       return NS_ERROR_OUT_OF_MEMORY;
@@ -102,8 +135,12 @@ FileReaderSyncPrivate::ReadAsText(nsIDOMBlob* aBlob,
     CopyUTF16toUTF8(aEncoding, charsetGuess);
   }
 
+  nsCOMPtr<nsICharsetAlias> alias =
+    do_GetService(NS_CHARSETALIAS_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   nsCString charset;
-  rv = nsCharsetAlias::GetPreferred(charsetGuess, charset);
+  rv = alias->GetPreferred(charsetGuess, charset);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return ConvertStream(stream, charset.get(), aResult);
@@ -129,7 +166,7 @@ FileReaderSyncPrivate::ReadAsDataURL(nsIDOMBlob* aBlob, nsAString& aResult)
   nsresult rv = aBlob->GetInternalStream(getter_AddRefs(stream));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  uint64_t size;
+  PRUint64 size;
   rv = aBlob->GetSize(&size);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -164,11 +201,11 @@ FileReaderSyncPrivate::ConvertStream(nsIInputStream *aStream,
     do_QueryInterface(converterStream);
   NS_ENSURE_TRUE(unicharStream, NS_ERROR_FAILURE);
 
-  uint32_t numChars;
+  PRUint32 numChars;
   nsString result;
   while (NS_SUCCEEDED(unicharStream->ReadString(8192, result, &numChars)) &&
          numChars > 0) {
-    uint32_t oldLength = aResult.Length();
+    PRUint32 oldLength = aResult.Length();
     aResult.Append(result);
     if (aResult.Length() - oldLength != result.Length()) {
       return NS_ERROR_OUT_OF_MEMORY;
@@ -194,7 +231,7 @@ FileReaderSyncPrivate::GuessCharset(nsIInputStream *aStream,
     const nsACString& detectorName = runtime->GetDetectorName();
 
     if (!detectorName.IsEmpty()) {
-      nsAutoCString detectorContractID;
+      nsCAutoString detectorContractID;
       detectorContractID.AssignLiteral(NS_CHARSET_DETECTOR_CONTRACTID_BASE);
       detectorContractID += detectorName;
       detector = do_CreateInstance(detectorContractID.get());
@@ -206,7 +243,7 @@ FileReaderSyncPrivate::GuessCharset(nsIInputStream *aStream,
     detector->Init(this);
 
     bool done;
-    uint32_t numRead;
+    PRUint32 numRead;
     do {
       char readBuf[4096];
       rv = aStream->Read(readBuf, sizeof(readBuf), &numRead);
@@ -223,7 +260,7 @@ FileReaderSyncPrivate::GuessCharset(nsIInputStream *aStream,
   } else {
     
     unsigned char sniffBuf[4];
-    uint32_t numRead;
+    PRUint32 numRead;
     rv = aStream->Read(reinterpret_cast<char*>(sniffBuf),
                        sizeof(sniffBuf), &numRead);
     NS_ENSURE_SUCCESS(rv, rv);

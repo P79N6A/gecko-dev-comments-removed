@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSelectsAreaFrame.h"
 #include "nsCOMPtr.h"
 #include "nsIDOMHTMLOptionElement.h"
@@ -10,7 +43,7 @@
 #include "nsDisplayList.h"
 
 nsIFrame*
-NS_NewSelectsAreaFrame(nsIPresShell* aShell, nsStyleContext* aContext, uint32_t aFlags)
+NS_NewSelectsAreaFrame(nsIPresShell* aShell, nsStyleContext* aContext, PRUint32 aFlags)
 {
   nsSelectsAreaFrame* it = new (aShell) nsSelectsAreaFrame(aContext);
 
@@ -53,7 +86,7 @@ void nsDisplayOptionEventGrabber::HitTest(nsDisplayListBuilder* aBuilder,
   nsTArray<nsIFrame*> outFrames;
   mList.HitTest(aBuilder, aRect, aState, &outFrames);
 
-  for (uint32_t i = 0; i < outFrames.Length(); i++) {
+  for (PRUint32 i = 0; i < outFrames.Length(); i++) {
     nsIFrame* selectedFrame = outFrames.ElementAt(i);
     while (selectedFrame &&
            !(selectedFrame->GetContent() &&
@@ -84,7 +117,7 @@ public:
                                   nsIFrame* aFrame, nsDisplayList* aList) {
     
     
-    return new (aBuilder) nsDisplayOptionEventGrabber(aBuilder, nullptr, aList);
+    return new (aBuilder) nsDisplayOptionEventGrabber(aBuilder, nsnull, aList);
   }
   virtual nsDisplayItem* WrapItem(nsDisplayListBuilder* aBuilder,
                                   nsDisplayItem* aItem) {
@@ -100,7 +133,7 @@ static nsListControlFrame* GetEnclosingListFrame(nsIFrame* aSelectsAreaFrame)
       return static_cast<nsListControlFrame*>(frame);
     frame = frame->GetParent();
   }
-  return nullptr;
+  return nsnull;
 }
 
 class nsDisplayListFocus : public nsDisplayItem {
@@ -116,12 +149,11 @@ public:
   }
 #endif
 
-  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) {
-    *aSnap = false;
+  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder) {
     
     
     nsListControlFrame* listFrame = GetEnclosingListFrame(GetUnderlyingFrame());
-    return listFrame->GetVisualOverflowRectRelativeToSelf() +
+    return listFrame->GetVisualOverflowRect() +
            aBuilder->ToReferenceFrame(listFrame);
   }
   virtual void Paint(nsDisplayListBuilder* aBuilder,
@@ -210,7 +242,7 @@ nsSelectsAreaFrame::Reflow(nsPresContext*           aPresContext,
         (isInDropdownMode && (oldHeight != aDesiredSize.height ||
                               oldHeight != GetSize().height))) {
       mHeightOfARow = newHeightOfARow;
-      list->SetSuppressScrollbarUpdate(true);
+      list->SetSuppressScrollbarUpdate(PR_TRUE);
     }
   }
 

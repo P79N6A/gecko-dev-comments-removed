@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_dom_AudioParent_h
 #define mozilla_dom_AudioParent_h
 
@@ -21,7 +54,7 @@ class AudioParent : public PAudioParent, public nsITimerCallback
     NS_DECL_NSITIMERCALLBACK
 
     virtual bool
-    RecvWrite(const nsCString& data, const uint32_t& count);
+    RecvWrite(const nsCString& data, const PRUint32& count);
 
     virtual bool
     RecvSetVolume(const float& aVolume);
@@ -42,15 +75,12 @@ class AudioParent : public PAudioParent, public nsITimerCallback
     RecvShutdown();
 
     virtual bool
-    SendMinWriteSizeDone(int32_t minFrames);
+    SendMinWriteSizeDone(PRInt32 minFrames);
 
     virtual bool
     SendDrainDone();
 
-    virtual bool
-    SendWriteDone();
-
-    AudioParent(int32_t aNumChannels, int32_t aRate, int32_t aFormat);
+    AudioParent(PRInt32 aNumChannels, PRInt32 aRate, PRInt32 aFormat);
     virtual ~AudioParent();
     virtual void ActorDestroy(ActorDestroyReason);
 

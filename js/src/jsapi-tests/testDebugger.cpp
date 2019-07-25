@@ -2,10 +2,6 @@
 
 
 
-
-
-
-
 #include "tests.h"
 #include "jsdbgapi.h"
 #include "jscntxt.h"
@@ -114,10 +110,9 @@ bool called = false;
 static JSTrapStatus
 ThrowHook(JSContext *cx, JSScript *, jsbytecode *, jsval *rval, void *closure)
 {
-    JS_ASSERT(!closure);
     called = true;
 
-    JS::RootedObject global(cx, JS_GetGlobalForScopeChain(cx));
+    JSObject *global = JS_GetGlobalForScopeChain(cx);
 
     char text[] = "new Error()";
     jsval _;
@@ -128,11 +123,12 @@ ThrowHook(JSContext *cx, JSScript *, jsbytecode *, jsval *rval, void *closure)
 
 BEGIN_TEST(testDebugger_throwHook)
 {
-    uint32_t newopts =
-        JS_GetOptions(cx) | JSOPTION_METHODJIT | JSOPTION_METHODJIT_ALWAYS | JSOPTION_ALLOW_XML;
-    uint32_t oldopts = JS_SetOptions(cx, newopts);
+    uint32 newopts = JS_GetOptions(cx) | JSOPTION_METHODJIT | JSOPTION_METHODJIT_ALWAYS;
+    uint32 oldopts = JS_SetOptions(cx, newopts);
 
-    CHECK(JS_SetThrowHook(rt, ThrowHook, NULL));
+    JSDebugHooks hooks = { 0 };
+    hooks.throwHook = ThrowHook;
+    JSDebugHooks *old = JS_SetContextDebugHooks(cx, &hooks);
     EXEC("function foo() { throw 3 };\n"
          "for (var i = 0; i < 10; ++i) { \n"
          "  var x = <tag></tag>;\n"
@@ -141,7 +137,8 @@ BEGIN_TEST(testDebugger_throwHook)
          "  } catch(e) {}\n"
          "}\n");
     CHECK(called);
-    CHECK(JS_SetThrowHook(rt, NULL, NULL));
+
+    JS_SetContextDebugHooks(cx, old);
     JS_SetOptions(cx, oldopts);
     return true;
 }
@@ -150,17 +147,18 @@ END_TEST(testDebugger_throwHook)
 BEGIN_TEST(testDebugger_debuggerObjectVsDebugMode)
 {
     CHECK(JS_DefineDebuggerObject(cx, global));
-    JS::RootedObject debuggee(cx, JS_NewGlobalObject(cx, getGlobalClass(), NULL));
+    JSObject *debuggee = JS_NewCompartmentAndGlobalObject(cx, getGlobalClass(), NULL);
     CHECK(debuggee);
 
     {
-        JSAutoCompartment ae(cx, debuggee);
+        JSAutoEnterCompartment ae;
+        CHECK(ae.enter(cx, debuggee));
         CHECK(JS_SetDebugMode(cx, true));
         CHECK(JS_InitStandardClasses(cx, debuggee));
     }
 
-    JS::RootedObject debuggeeWrapper(cx, debuggee);
-    CHECK(JS_WrapObject(cx, debuggeeWrapper.address()));
+    JSObject *debuggeeWrapper = debuggee;
+    CHECK(JS_WrapObject(cx, &debuggeeWrapper));
     jsval v = OBJECT_TO_JSVAL(debuggeeWrapper);
     CHECK(JS_SetProperty(cx, global, "debuggee", &v));
 
@@ -173,7 +171,8 @@ BEGIN_TEST(testDebugger_debuggerObjectVsDebugMode)
     CHECK_SAME(v, JSVAL_ONE);
 
     {
-        JSAutoCompartment ae(cx, debuggee);
+        JSAutoEnterCompartment ae;
+        CHECK(ae.enter(cx, debuggee));
         CHECK(JS_SetDebugMode(cx, false));
     }
 
@@ -181,7 +180,7 @@ BEGIN_TEST(testDebugger_debuggerObjectVsDebugMode)
          "hits;\n",
          &v);
     CHECK_SAME(v, INT_TO_JSVAL(4));
-
+    
     return true;
 }
 END_TEST(testDebugger_debuggerObjectVsDebugMode)
@@ -190,19 +189,29 @@ BEGIN_TEST(testDebugger_newScriptHook)
 {
     
     CHECK(JS_DefineDebuggerObject(cx, global));
-    JS::RootedObject g(cx, JS_NewGlobalObject(cx, getGlobalClass(), NULL));
-    CHECK(g);
+    JSObject *g1, *g2;
+    g1 = JS_NewCompartmentAndGlobalObject(cx, getGlobalClass(), NULL);
+    CHECK(g1);
     {
-        JSAutoCompartment ae(cx, g);
-        CHECK(JS_InitStandardClasses(cx, g));
+        JSAutoEnterCompartment ae;
+        CHECK(ae.enter(cx, g1));
+        CHECK(JS_InitStandardClasses(cx, g1));
+        g2 = JS_NewGlobalObject(cx, getGlobalClass());
+        CHECK(g2);
+        CHECK(JS_InitStandardClasses(cx, g2));
     }
 
-    JS::RootedObject gWrapper(cx, g);
-    CHECK(JS_WrapObject(cx, gWrapper.address()));
-    jsval v = OBJECT_TO_JSVAL(gWrapper);
-    CHECK(JS_SetProperty(cx, global, "g", &v));
+    JSObject *g1Wrapper = g1;
+    CHECK(JS_WrapObject(cx, &g1Wrapper));
+    jsval v = OBJECT_TO_JSVAL(g1Wrapper);
+    CHECK(JS_SetProperty(cx, global, "g1", &v));
 
-    EXEC("var dbg = Debugger(g);\n"
+    JSObject *g2Wrapper = g2;
+    CHECK(JS_WrapObject(cx, &g2Wrapper));
+    v = OBJECT_TO_JSVAL(g2Wrapper);
+    CHECK(JS_SetProperty(cx, global, "g2", &v));
+
+    EXEC("var dbg = Debugger(g1);\n"
          "var hits = 0;\n"
          "dbg.onNewScript = function (s) {\n"
          "    hits += Number(s instanceof Debugger.Script);\n"
@@ -214,25 +223,33 @@ BEGIN_TEST(testDebugger_newScriptHook)
     
     
     
-    return testIndirectEval(g, "Math.abs(0)");
+    
+    
+    bool ok = true;
+    ok = ok && testIndirectEval(g1, g1, "Math.abs(0)", 1);
+    ok = ok && testIndirectEval(g2, g1, "Math.abs(1)", 1);
+    ok = ok && testIndirectEval(g1, g2, "Math.abs(-1)", 0);
+    ok = ok && testIndirectEval(g2, g2, "Math.abs(-2)", 0);
+    return ok;
 }
 
-bool testIndirectEval(JS::HandleObject scope, const char *code)
+bool testIndirectEval(JSObject *scope, JSObject *g, const char *code, int expectedHits)
 {
     EXEC("hits = 0;");
 
     {
-        JSAutoCompartment ae(cx, scope);
+        JSAutoEnterCompartment ae;
+        CHECK(ae.enter(cx, scope));
         JSString *codestr = JS_NewStringCopyZ(cx, code);
         CHECK(codestr);
         jsval argv[1] = { STRING_TO_JSVAL(codestr) };
         jsval v;
-        CHECK(JS_CallFunctionName(cx, scope, "eval", 1, argv, &v));
+        CHECK(JS_CallFunctionName(cx, g, "eval", 1, argv, &v));
     }
 
     jsval hitsv;
     EVAL("hits", &hitsv);
-    CHECK_SAME(hitsv, INT_TO_JSVAL(1));
+    CHECK_SAME(hitsv, INT_TO_JSVAL(expectedHits));
     return true;
 }
 END_TEST(testDebugger_newScriptHook)
@@ -242,8 +259,9 @@ BEGIN_TEST(testDebugger_singleStepThrow)
         CHECK(JS_SetDebugModeForCompartment(cx, cx->compartment, true));
         CHECK(JS_SetInterrupt(rt, onStep, NULL));
 
-        uint32_t opts = JS_GetOptions(cx);
+        uint32 opts = JS_GetOptions(cx);
         opts |= JSOPTION_METHODJIT | JSOPTION_METHODJIT_ALWAYS;
+        opts &= ~JSOPTION_JIT;
         JS_SetOptions(cx, opts);
 
         CHECK(JS_DefineFunction(cx, global, "setStepMode", setStepMode, 0, 0));
@@ -256,12 +274,12 @@ BEGIN_TEST(testDebugger_singleStepThrow)
     }
 
     static JSBool
-    setStepMode(JSContext *cx, unsigned argc, jsval *vp)
+    setStepMode(JSContext *cx, uintN argc, jsval *vp)
     {
-        JSScript *script;
-        JS_DescribeScriptedCaller(cx, &script, NULL);
+        JSStackFrame *fp = JS_GetScriptedCaller(cx, NULL);
+        JS_ASSERT(fp);
+        JSScript *script = JS_GetFrameScript(cx, fp);
         JS_ASSERT(script);
-
         if (!JS_SetSingleStepMode(cx, script, true))
             return false;
         JS_SET_RVAL(cx, vp, JSVAL_VOID);
@@ -274,3 +292,32 @@ BEGIN_TEST(testDebugger_singleStepThrow)
         return JSTRAP_CONTINUE;
     }
 END_TEST(testDebugger_singleStepThrow)
+
+BEGIN_TEST(testDebugger_emptyObjectPropertyIterator)
+{
+    JSObject *obj = JS_NewObject(cx, NULL, NULL, NULL);
+    JSScopeProperty *prop = NULL;
+    CHECK(!JS_PropertyIterator(obj, &prop));
+    CHECK(!prop);
+
+    return true;
+}
+END_TEST(testDebugger_emptyObjectPropertyIterator)
+
+BEGIN_TEST(testDebugger_nonEmptyObjectPropertyIterator)
+{
+    jsval v;
+    EVAL("({a: 15})", &v);
+    JSObject *obj = JSVAL_TO_OBJECT(v);
+    JSScopeProperty *prop = NULL;
+    CHECK(JS_PropertyIterator(obj, &prop));
+    JSPropertyDesc desc;
+    CHECK(JS_GetPropertyDesc(cx, obj, prop, &desc));
+    CHECK_EQUAL(JSVAL_IS_INT(desc.value), true);
+    CHECK_EQUAL(JSVAL_TO_INT(desc.value), 15);
+    CHECK(!JS_PropertyIterator(obj, &prop));
+    CHECK(!prop);
+
+    return true;
+}
+END_TEST(testDebugger_nonEmptyObjectPropertyIterator)

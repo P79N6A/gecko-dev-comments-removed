@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSampleWordBreaker.h"
 
 #include "pratom.h"
@@ -18,14 +50,14 @@ nsSampleWordBreaker::~nsSampleWordBreaker()
 NS_IMPL_ISUPPORTS1(nsSampleWordBreaker, nsIWordBreaker)
 
 bool nsSampleWordBreaker::BreakInBetween(
-  const PRUnichar* aText1 , uint32_t aTextLen1,
-  const PRUnichar* aText2 , uint32_t aTextLen2)
+  const PRUnichar* aText1 , PRUint32 aTextLen1,
+  const PRUnichar* aText2 , PRUint32 aTextLen2)
 {
-  NS_PRECONDITION( nullptr != aText1, "null ptr");
-  NS_PRECONDITION( nullptr != aText2, "null ptr");
+  NS_PRECONDITION( nsnull != aText1, "null ptr");
+  NS_PRECONDITION( nsnull != aText2, "null ptr");
 
   if(!aText1 || !aText2 || (0 == aTextLen1) || (0 == aTextLen2))
-    return false;
+    return PR_FALSE;
 
   return (this->GetClass(aText1[aTextLen1-1]) != this->GetClass(aText2[0]));
 }
@@ -44,7 +76,7 @@ bool nsSampleWordBreaker::BreakInBetween(
 #define IS_HALFWIDTHKATAKANA(c)         (( 0xFF60 <= (c)) && ((c) <= 0xFF9F))
 #define IS_THAI(c)         (0x0E00 == (0xFF80 & (c) )) // Look at the higest 9 bits
 
-uint8_t nsSampleWordBreaker::GetClass(PRUnichar c)
+PRUint8 nsSampleWordBreaker::GetClass(PRUnichar c)
 {
   
 
@@ -81,11 +113,11 @@ uint8_t nsSampleWordBreaker::GetClass(PRUnichar c)
 }
 
 nsWordRange nsSampleWordBreaker::FindWord(
-  const PRUnichar* aText , uint32_t aTextLen,
-  uint32_t aOffset)
+  const PRUnichar* aText , PRUint32 aTextLen,
+  PRUint32 aOffset)
 {
   nsWordRange range;
-  NS_PRECONDITION( nullptr != aText, "null ptr");
+  NS_PRECONDITION( nsnull != aText, "null ptr");
   NS_PRECONDITION( 0 != aTextLen, "len = 0");
   NS_PRECONDITION( aOffset <= aTextLen, "aOffset > aTextLen");
 
@@ -95,8 +127,8 @@ nsWordRange nsSampleWordBreaker::FindWord(
   if(!aText || aOffset > aTextLen)
     return range;
 
-  uint8_t c = this->GetClass(aText[aOffset]);
-  uint32_t i;
+  PRUint8 c = this->GetClass(aText[aOffset]);
+  PRUint32 i;
   
   range.mEnd--;
   for(i = aOffset +1;i <= aTextLen; i++)
@@ -126,11 +158,11 @@ nsWordRange nsSampleWordBreaker::FindWord(
   return range;
 }
 
-int32_t nsSampleWordBreaker::NextWord( 
-  const PRUnichar* aText, uint32_t aLen, uint32_t aPos) 
+PRInt32 nsSampleWordBreaker::NextWord( 
+  const PRUnichar* aText, PRUint32 aLen, PRUint32 aPos) 
 {
-  int8_t c1, c2;
-  uint32_t cur = aPos;
+  PRInt8 c1, c2;
+  PRUint32 cur = aPos;
   if (cur == aLen)
     return NS_WORDBREAKER_NEED_MORE_TEXT;
   c1 = this->GetClass(aText[cur]);

@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsTemplateMap_h__
 #define nsTemplateMap_h__
 
@@ -20,7 +53,7 @@ protected:
     PLDHashTable mTable;
 
     void
-    Init() { PL_DHashTableInit(&mTable, PL_DHashGetStubOps(), nullptr, sizeof(Entry), PL_DHASH_MIN_SIZE); }
+    Init() { PL_DHashTableInit(&mTable, PL_DHashGetStubOps(), nsnull, sizeof(Entry), PL_DHASH_MIN_SIZE); }
 
     void
     Finish() { PL_DHashTableFinish(&mTable); }
@@ -64,7 +97,7 @@ public:
         if (PL_DHASH_ENTRY_IS_BUSY(&entry->mHdr))
             NS_IF_ADDREF(*aResult = entry->mTemplate);
         else
-            *aResult = nullptr;
+            *aResult = nsnull;
     }
 
     void

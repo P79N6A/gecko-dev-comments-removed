@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsPrintData.h"
 
 #include "nsIStringBundle.h"
@@ -33,14 +65,14 @@ static PRLogModuleInfo * kPrintingLogMod = PR_NewLogModule("printing");
 
 
 nsPrintData::nsPrintData(ePrintDataType aType) :
-  mType(aType), mDebugFilePtr(nullptr), mPrintObject(nullptr), mSelectedPO(nullptr),
-  mPrintDocList(0), mIsIFrameSelected(false),
-  mIsParentAFrameSet(false), mOnStartSent(false),
-  mIsAborted(false), mPreparingForPrint(false), mDocWasToBeDestroyed(false),
-  mShrinkToFit(false), mPrintFrameType(nsIPrintSettings::kFramesAsIs), 
+  mType(aType), mDebugFilePtr(nsnull), mPrintObject(nsnull), mSelectedPO(nsnull),
+  mPrintDocList(nsnull), mIsIFrameSelected(PR_FALSE),
+  mIsParentAFrameSet(PR_FALSE), mOnStartSent(PR_FALSE),
+  mIsAborted(PR_FALSE), mPreparingForPrint(PR_FALSE), mDocWasToBeDestroyed(PR_FALSE),
+  mShrinkToFit(PR_FALSE), mPrintFrameType(nsIPrintSettings::kFramesAsIs), 
   mNumPrintablePages(0), mNumPagesPrinted(0),
   mShrinkRatio(1.0), mOrigDCScale(1.0), mPPEventListeners(NULL), 
-  mBrandName(nullptr)
+  mBrandName(nsnull)
 {
   MOZ_COUNT_CTOR(nsPrintData);
   nsCOMPtr<nsIStringBundle> brandBundle;
@@ -102,28 +134,29 @@ nsPrintData::~nsPrintData()
 void nsPrintData::OnStartPrinting()
 {
   if (!mOnStartSent) {
-    DoOnProgressChange(0, 0, true, nsIWebProgressListener::STATE_START|nsIWebProgressListener::STATE_IS_DOCUMENT|nsIWebProgressListener::STATE_IS_NETWORK);
-    mOnStartSent = true;
+    DoOnProgressChange(0, 0, PR_TRUE, nsIWebProgressListener::STATE_START|nsIWebProgressListener::STATE_IS_DOCUMENT);
+    mOnStartSent = PR_TRUE;
   }
 }
 
 void nsPrintData::OnEndPrinting()
 {
-  DoOnProgressChange(100, 100, true, nsIWebProgressListener::STATE_STOP|nsIWebProgressListener::STATE_IS_DOCUMENT);
-  DoOnProgressChange(100, 100, true, nsIWebProgressListener::STATE_STOP|nsIWebProgressListener::STATE_IS_NETWORK);
+  DoOnProgressChange(100, 100, PR_TRUE, nsIWebProgressListener::STATE_STOP|nsIWebProgressListener::STATE_IS_DOCUMENT);
 }
 
 void
-nsPrintData::DoOnProgressChange(int32_t      aProgress,
-                                int32_t      aMaxProgress,
+nsPrintData::DoOnProgressChange(PRInt32      aProgess,
+                                PRInt32      aMaxProgress,
                                 bool         aDoStartStop,
-                                int32_t      aFlag)
+                                PRInt32      aFlag)
 {
-  for (int32_t i=0;i<mPrintProgressListeners.Count();i++) {
+  if (aProgess == 0) return;
+
+  for (PRInt32 i=0;i<mPrintProgressListeners.Count();i++) {
     nsIWebProgressListener* wpl = mPrintProgressListeners.ObjectAt(i);
-    wpl->OnProgressChange(nullptr, nullptr, aProgress, aMaxProgress, aProgress, aMaxProgress);
+    wpl->OnProgressChange(nsnull, nsnull, aProgess, aMaxProgress, aProgess, aMaxProgress);
     if (aDoStartStop) {
-      wpl->OnStateChange(nullptr, nullptr, aFlag, NS_OK);
+      wpl->OnStateChange(nsnull, nsnull, aFlag, 0);
     }
   }
 }

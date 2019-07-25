@@ -2,9 +2,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsButtonBoxFrame.h"
 #include "nsIContent.h"
+#include "nsIDocument.h"
+#include "nsIDOMDocument.h"
 #include "nsIDOMNodeList.h"
 #include "nsIDOMXULButtonElement.h"
 #include "nsGkAtoms.h"
@@ -93,8 +129,8 @@ nsButtonBoxFrame::HandleEvent(nsPresContext* aPresContext,
                                        NS_EVENT_STATE_HOVER)) {
             
             nsEventStateManager *esm = aPresContext->EventStateManager();
-            esm->SetContentState(nullptr, NS_EVENT_STATE_ACTIVE);
-            esm->SetContentState(nullptr, NS_EVENT_STATE_HOVER);
+            esm->SetContentState(nsnull, NS_EVENT_STATE_ACTIVE);
+            esm->SetContentState(nsnull, NS_EVENT_STATE_HOVER);
             MouseClicked(aPresContext, aEvent);
           }
         }
@@ -125,10 +161,10 @@ nsButtonBoxFrame::DoMouseClick(nsGUIEvent* aEvent, bool aTrustEvent)
   bool isAlt = false;
   bool isMeta = false;
   if(aEvent) {
-    isShift = ((nsInputEvent*)(aEvent))->IsShift();
-    isControl = ((nsInputEvent*)(aEvent))->IsControl();
-    isAlt = ((nsInputEvent*)(aEvent))->IsAlt();
-    isMeta = ((nsInputEvent*)(aEvent))->IsMeta();
+    isShift = ((nsInputEvent*)(aEvent))->isShift;
+    isControl = ((nsInputEvent*)(aEvent))->isControl;
+    isAlt = ((nsInputEvent*)(aEvent))->isAlt;
+    isMeta = ((nsInputEvent*)(aEvent))->isMeta;
   }
 
   
@@ -137,7 +173,7 @@ nsButtonBoxFrame::DoMouseClick(nsGUIEvent* aEvent, bool aTrustEvent)
     nsContentUtils::DispatchXULCommand(mContent,
                                        aEvent ?
                                          NS_IS_TRUSTED_EVENT(aEvent) : aTrustEvent,
-                                       nullptr, shell,
+                                       nsnull, shell,
                                        isControl, isAlt, isShift, isMeta);
   }
 }

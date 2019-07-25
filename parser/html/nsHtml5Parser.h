@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_HTML5_PARSER__
 #define NS_HTML5_PARSER__
 
@@ -14,14 +47,16 @@
 #include "nsITokenizer.h"
 #include "nsThreadUtils.h"
 #include "nsIContentSink.h"
+#include "nsIParserFilter.h"
 #include "nsIRequest.h"
 #include "nsIChannel.h"
 #include "nsCOMArray.h"
 #include "nsContentSink.h"
+#include "nsIHTMLDocument.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIInputStream.h"
 #include "nsDetectionConfident.h"
-#include "nsHtml5OwningUTF16Buffer.h"
+#include "nsHtml5UTF16Buffer.h"
 #include "nsHtml5TreeOpExecutor.h"
 #include "nsHtml5StreamParser.h"
 #include "nsHtml5AtomTable.h"
@@ -72,15 +107,20 @@ class nsHtml5Parser : public nsIParser,
 
 
 
-    NS_IMETHOD_(void) SetDocumentCharset(const nsACString& aCharset, int32_t aSource);
+    NS_IMETHOD_(void) SetDocumentCharset(const nsACString& aCharset, PRInt32 aSource);
 
     
 
 
-    NS_IMETHOD_(void) GetDocumentCharset(nsACString& aCharset, int32_t& aSource)
+    NS_IMETHOD_(void) GetDocumentCharset(nsACString& aCharset, PRInt32& aSource)
     {
       NS_NOTREACHED("No one should call this.");
     }
+
+    
+
+
+    NS_IMETHOD_(void) SetParserFilter(nsIParserFilter* aFilter);
 
     
 
@@ -97,7 +137,7 @@ class nsHtml5Parser : public nsIParser,
     
 
 
-    virtual nsIStreamListener* GetStreamListener();
+    NS_IMETHOD GetStreamListener(nsIStreamListener** aListener);
 
     
 
@@ -113,11 +153,6 @@ class nsHtml5Parser : public nsIParser,
 
 
     NS_IMETHOD_(void) UnblockParser();
-
-    
-
-
-    NS_IMETHOD_(void) ContinueInterruptedParsingAsync();
 
     
 
@@ -138,7 +173,7 @@ class nsHtml5Parser : public nsIParser,
 
 
     NS_IMETHOD Parse(nsIURI* aURL,
-                     nsIRequestObserver* aListener = nullptr,
+                     nsIRequestObserver* aListener = nsnull,
                      void* aKey = 0,
                      nsDTDMode aMode = eDTDMode_autodetect);
 
@@ -156,6 +191,11 @@ class nsHtml5Parser : public nsIParser,
                      const nsACString& aContentType,
                      bool aLastCall,
                      nsDTDMode aMode = eDTDMode_autodetect);
+
+    
+
+
+    NS_IMETHOD_(void *) GetRootContextKey();
 
     
 
@@ -207,10 +247,7 @@ class nsHtml5Parser : public nsIParser,
 
 
 
-
-
-
-    virtual void MarkAsNotScriptCreated(const char* aCommand);
+    virtual void MarkAsNotScriptCreated();
 
     
 
@@ -218,6 +255,25 @@ class nsHtml5Parser : public nsIParser,
     virtual bool IsScriptCreated();
 
     
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    nsresult ParseHtml5Fragment(const nsAString& aSourceBuffer,
+                                nsIContent* aTargetNode,
+                                nsIAtom* aContextLocalName,
+                                PRInt32 aContextNamespace,
+                                bool aQuirks,
+                                bool aPreventScriptExecution);
 
     
     
@@ -236,12 +292,12 @@ class nsHtml5Parser : public nsIParser,
       return mTokenizer;
     }
 
-    void InitializeDocWriteParserState(nsAHtml5TreeBuilderState* aState, int32_t aLine);
+    void InitializeDocWriteParserState(nsAHtml5TreeBuilderState* aState, PRInt32 aLine);
 
     void DropStreamParser() {
       if (mStreamParser) {
         mStreamParser->DropTimer();
-        mStreamParser = nullptr;
+        mStreamParser = nsnull;
       }
     }
     
@@ -276,6 +332,11 @@ class nsHtml5Parser : public nsIParser,
     
 
 
+    bool                          mFragmentMode;
+
+    
+
+
     bool                          mBlocked;
 
     
@@ -286,26 +347,27 @@ class nsHtml5Parser : public nsIParser,
     
 
 
-    int32_t                       mParserInsertedScriptsBeingEvaluated;
+    PRInt32                       mParserInsertedScriptsBeingEvaluated;
 
     
 
 
     bool                          mDocumentClosed;
 
-    bool                          mInDocumentWrite;
+    
+    void*                         mRootContextKey;
 
     
     
 
 
-    nsRefPtr<nsHtml5OwningUTF16Buffer>  mFirstBuffer;
+    nsRefPtr<nsHtml5UTF16Buffer>  mFirstBuffer;
 
     
 
 
-
-    nsHtml5OwningUTF16Buffer* mLastBuffer; 
+    nsHtml5UTF16Buffer*           mLastBuffer; 
+                      
 
     
 
@@ -340,7 +402,7 @@ class nsHtml5Parser : public nsIParser,
     
 
 
-    int32_t                             mRootContextLineNumber;
+    PRInt32                             mRootContextLineNumber;
     
     
 

@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsGlueLinking.h"
 #include "nsXPCOMGlue.h"
 
@@ -228,7 +261,7 @@ XPCOMGlueUnload()
 
     if (sXULLibrary) {
         FreeLibrary(sXULLibrary);
-        sXULLibrary = nullptr;
+        sXULLibrary = nsnull;
     }
 }
 

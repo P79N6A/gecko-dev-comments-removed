@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsChromeRegistryChrome_h
 #define nsChromeRegistryChrome_h
 
@@ -22,24 +55,24 @@ class nsChromeRegistryChrome : public nsChromeRegistry
   nsChromeRegistryChrome();
   ~nsChromeRegistryChrome();
 
-  nsresult Init() MOZ_OVERRIDE;
+  NS_OVERRIDE nsresult Init();
 
-  NS_IMETHOD CheckForNewChrome() MOZ_OVERRIDE;
-  NS_IMETHOD CheckForOSAccessibility() MOZ_OVERRIDE;
-  NS_IMETHOD GetLocalesForPackage(const nsACString& aPackage,
-                                  nsIUTF8StringEnumerator* *aResult) MOZ_OVERRIDE;
-  NS_IMETHOD IsLocaleRTL(const nsACString& package,
-                         bool *aResult) MOZ_OVERRIDE;
-  NS_IMETHOD GetSelectedLocale(const nsACString& aPackage,
-                               nsACString& aLocale) MOZ_OVERRIDE;
-  NS_IMETHOD Observe(nsISupports *aSubject, const char *aTopic,
-                     const PRUnichar *someData) MOZ_OVERRIDE;
+  NS_OVERRIDE NS_IMETHOD CheckForNewChrome();
+  NS_OVERRIDE NS_IMETHOD CheckForOSAccessibility();
+  NS_OVERRIDE NS_IMETHOD GetLocalesForPackage(const nsACString& aPackage,
+                                              nsIUTF8StringEnumerator* *aResult);
+  NS_OVERRIDE NS_IMETHOD IsLocaleRTL(const nsACString& package,
+                                     bool *aResult);
+  NS_OVERRIDE NS_IMETHOD GetSelectedLocale(const nsACString& aPackage,
+                                           nsACString& aLocale);
+  NS_OVERRIDE NS_IMETHOD Observe(nsISupports *aSubject, const char *aTopic,
+                                 const PRUnichar *someData);
 
 #ifdef MOZ_XUL
-  NS_IMETHOD GetXULOverlays(nsIURI *aURI,
-                            nsISimpleEnumerator **_retval) MOZ_OVERRIDE;
-  NS_IMETHOD GetStyleOverlays(nsIURI *aURI,
-                              nsISimpleEnumerator **_retval) MOZ_OVERRIDE;
+  NS_OVERRIDE NS_IMETHOD GetXULOverlays(nsIURI *aURI,
+                                        nsISimpleEnumerator **_retval);
+  NS_OVERRIDE NS_IMETHOD GetStyleOverlays(nsIURI *aURI,
+                                          nsISimpleEnumerator **_retval);
 #endif
   
   void SendRegisteredChrome(mozilla::dom::PContentParent* aChild);
@@ -47,15 +80,15 @@ class nsChromeRegistryChrome : public nsChromeRegistry
  private:
   static PLDHashOperator CollectPackages(PLDHashTable *table,
                                          PLDHashEntryHdr *entry,
-                                         uint32_t number, void *arg);
+                                         PRUint32 number, void *arg);
 
   nsresult SelectLocaleFromPref(nsIPrefBranch* prefs);
-  nsresult UpdateSelectedLocale() MOZ_OVERRIDE;
-  nsIURI* GetBaseURIFromPackage(const nsCString& aPackage,
-                                 const nsCString& aProvider,
-                                 const nsCString& aPath) MOZ_OVERRIDE;
-  nsresult GetFlagsFromPackage(const nsCString& aPackage,
-                               uint32_t* aFlags) MOZ_OVERRIDE;
+  NS_OVERRIDE nsresult UpdateSelectedLocale();
+  NS_OVERRIDE nsIURI* GetBaseURIFromPackage(const nsCString& aPackage,
+                                             const nsCString& aProvider,
+                                             const nsCString& aPath);
+  NS_OVERRIDE nsresult GetFlagsFromPackage(const nsCString& aPackage,
+                                           PRUint32* aFlags);
 
   static const PLDHashTableOps kTableOps;
   static PLDHashNumber HashKey(PLDHashTable *table, const void *key);
@@ -111,7 +144,7 @@ class nsChromeRegistryChrome : public nsChromeRegistry
 
     nsCString        package;
     nsCOMPtr<nsIURI> baseURI;
-    uint32_t         flags;
+    PRUint32         flags;
     nsProviderArray  locales;
     nsProviderArray  skins;
   };
@@ -138,7 +171,7 @@ class nsChromeRegistryChrome : public nsChromeRegistry
     OverlayListHash() { }
     ~OverlayListHash() { }
 
-    void Init() { mTable.Init(); }
+    bool Init() { return mTable.Init(); }
     void Add(nsIURI* aBase, nsIURI* aOverlay);
     void Clear() { mTable.Clear(); }
     const nsCOMArray<nsIURI>* GetArray(nsIURI* aBase);

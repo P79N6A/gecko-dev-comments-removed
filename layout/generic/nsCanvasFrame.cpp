@@ -5,10 +5,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCanvasFrame.h"
 #include "nsIServiceManager.h"
 #include "nsHTMLParts.h"
-#include "nsContainerFrame.h"
+#include "nsHTMLContainerFrame.h"
 #include "nsCSSRendering.h"
 #include "nsPresContext.h"
 #include "nsStyleContext.h"
@@ -42,7 +74,7 @@ NS_IMPL_FRAMEARENA_HELPERS(nsCanvasFrame)
 
 NS_QUERYFRAME_HEAD(nsCanvasFrame)
   NS_QUERYFRAME_ENTRY(nsCanvasFrame)
-NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
+NS_QUERYFRAME_TAIL_INHERITING(nsHTMLContainerFrame)
 
 void
 nsCanvasFrame::DestroyFrom(nsIFrame* aDestructRoot)
@@ -54,14 +86,14 @@ nsCanvasFrame::DestroyFrom(nsIFrame* aDestructRoot)
     sf->RemoveScrollPositionListener(this);
   }
 
-  nsContainerFrame::DestroyFrom(aDestructRoot);
+  nsHTMLContainerFrame::DestroyFrom(aDestructRoot);
 }
 
 void
 nsCanvasFrame::ScrollPositionWillChange(nscoord aX, nscoord aY)
 {
   if (mDoPaintFocus) {
-    mDoPaintFocus = false;
+    mDoPaintFocus = PR_FALSE;
     PresContext()->FrameManager()->GetRootFrame()->InvalidateFrameSubtree();
   }
 }
@@ -78,7 +110,7 @@ nsCanvasFrame::SetHasFocus(bool aHasFocus)
         PresContext()->GetPresShell()->GetRootScrollFrameAsScrollable();
       if (sf) {
         sf->AddScrollPositionListener(this);
-        mAddedScrollPositionListener = true;
+        mAddedScrollPositionListener = PR_TRUE;
       }
     }
   }
@@ -92,7 +124,7 @@ nsCanvasFrame::SetInitialChildList(ChildListID     aListID,
   NS_ASSERTION(aListID != kPrincipalList ||
                aChildList.IsEmpty() || aChildList.OnlyChild(),
                "Primary child list can have at most one frame in it");
-  return nsContainerFrame::SetInitialChildList(aListID, aChildList);
+  return nsHTMLContainerFrame::SetInitialChildList(aListID, aChildList);
 }
 
 NS_IMETHODIMP
@@ -116,10 +148,10 @@ nsCanvasFrame::AppendFrames(ChildListID     aListID,
   
   NS_ASSERTION(aFrameList.FirstChild() == aFrameList.LastChild(),
                "Only one principal child frame allowed");
-#ifdef DEBUG
+#ifdef NS_DEBUG
   nsFrame::VerifyDirtyBitSet(aFrameList);
 #endif
-  mFrames.AppendFrames(nullptr, aFrameList);
+  mFrames.AppendFrames(nsnull, aFrameList);
 
   PresContext()->PresShell()->
     FrameNeedsReflow(this, nsIPresShell::eTreeChange,
@@ -185,16 +217,6 @@ nsRect nsCanvasFrame::CanvasArea() const
   return result;
 }
 
-static void BlitSurface(gfxContext* aDest, const gfxRect& aRect, gfxASurface* aSource)
-{
-  aDest->Translate(gfxPoint(aRect.x, aRect.y));
-  aDest->SetSource(aSource);
-  aDest->NewPath();
-  aDest->Rectangle(gfxRect(0, 0, aRect.width, aRect.height));
-  aDest->Fill();
-  aDest->Translate(-gfxPoint(aRect.x, aRect.y));
-}
-
 void
 nsDisplayCanvasBackground::Paint(nsDisplayListBuilder* aBuilder,
                                  nsRenderingContext* aCtx)
@@ -202,45 +224,17 @@ nsDisplayCanvasBackground::Paint(nsDisplayListBuilder* aBuilder,
   nsCanvasFrame* frame = static_cast<nsCanvasFrame*>(mFrame);
   nsPoint offset = ToReferenceFrame();
   nsRect bgClipRect = frame->CanvasArea() + offset;
+
   if (NS_GET_A(mExtraBackgroundColor) > 0) {
     aCtx->SetColor(mExtraBackgroundColor);
     aCtx->FillRect(bgClipRect);
   }
 
-  bool snap;
-  nsRect bounds = GetBounds(aBuilder, &snap);
-  nsRenderingContext context;
-  nsRefPtr<gfxContext> dest = aCtx->ThebesContext();
-  nsRefPtr<gfxASurface> surf;
-  nsRefPtr<gfxContext> ctx;
-#ifndef MOZ_GFX_OPTIMIZE_MOBILE
-  if (IsSingleFixedPositionImage(aBuilder, bgClipRect) && aBuilder->IsPaintingToWindow() && !aBuilder->IsCompositingCheap()) {
-    surf = static_cast<gfxASurface*>(GetUnderlyingFrame()->Properties().Get(nsIFrame::CachedBackgroundImage()));
-    nsRefPtr<gfxASurface> destSurf = dest->CurrentSurface();
-    if (surf && surf->GetType() == destSurf->GetType()) {
-      BlitSurface(dest, mDestRect, surf);
-      return;
-    }
-    surf = destSurf->CreateSimilarSurface(gfxASurface::CONTENT_COLOR_ALPHA, gfxIntSize(ceil(mDestRect.width), ceil(mDestRect.height)));
-    if (surf) {
-      ctx = new gfxContext(surf);
-      ctx->Translate(-gfxPoint(mDestRect.x, mDestRect.y));
-      context.Init(aCtx->DeviceContext(), ctx);
-    }
-  }
-#endif
-
-  nsCSSRendering::PaintBackground(mFrame->PresContext(), surf ? context : *aCtx, mFrame,
-                                  surf ? bounds : mVisibleRect,
+  nsCSSRendering::PaintBackground(mFrame->PresContext(), *aCtx, mFrame,
+                                  mVisibleRect,
                                   nsRect(offset, mFrame->GetSize()),
                                   aBuilder->GetBackgroundPaintFlags(),
                                   &bgClipRect);
-  if (surf) {
-    BlitSurface(dest, mDestRect, surf);
-
-    GetUnderlyingFrame()->Properties().Set(nsIFrame::CachedBackgroundImage(), surf.forget().get());
-    GetUnderlyingFrame()->AddStateBits(NS_FRAME_HAS_CACHED_BACKGROUND);
-  }
 }
 
 
@@ -259,9 +253,8 @@ public:
     MOZ_COUNT_DTOR(nsDisplayCanvasFocus);
   }
 
-  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap)
+  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder)
   {
-    *aSnap = false;
     
     nsCanvasFrame* frame = static_cast<nsCanvasFrame*>(mFrame);
     return frame->CanvasArea() + ToReferenceFrame();
@@ -414,7 +407,7 @@ nsCanvasFrame::Reflow(nsPresContext*           aPresContext,
       
       
       
-      mFrames.InsertFrames(this, nullptr, *overflow);
+      mFrames.InsertFrames(this, nsnull, *overflow);
     }
   }
 
@@ -447,7 +440,7 @@ nsCanvasFrame::Reflow(nsPresContext*           aPresContext,
         (kidFrame->GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_HEIGHT)) {
       
       
-      kidReflowState.mFlags.mVResize = true;
+      kidReflowState.mFlags.mVResize = PR_TRUE;
     }
 
     nsPoint kidPt(kidReflowState.mComputedMargin.left,
@@ -571,7 +564,7 @@ nsCanvasFrame::Reflow(nsPresContext*           aPresContext,
   return NS_OK;
 }
 
-int
+PRIntn
 nsCanvasFrame::GetSkipSides() const
 {
   return 0;

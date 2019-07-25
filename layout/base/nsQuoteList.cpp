@@ -6,6 +6,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsQuoteList.h"
 #include "nsReadableUtils.h"
 
@@ -21,11 +53,11 @@ nsQuoteNode::InitTextFrame(nsGenConList* aList, nsIFrame* aPseudoFrame,
   if (quoteList->IsLast(this))
     quoteList->Calc(this);
   else
-    dirty = true;
+    dirty = PR_TRUE;
 
   
   if (IsRealQuote()) {
-    aTextFrame->GetContent()->SetText(*Text(), false);
+    aTextFrame->GetContent()->SetText(*Text(), PR_FALSE);
   }
   return dirty;
 }
@@ -37,8 +69,8 @@ nsQuoteNode::Text()
                mType == eStyleContentType_CloseQuote,
                "should only be called when mText should be non-null");
   const nsStyleQuotes* styleQuotes = mPseudoFrame->GetStyleQuotes();
-  int32_t quotesCount = styleQuotes->QuotesCount(); 
-  int32_t quoteDepth = Depth();
+  PRInt32 quotesCount = styleQuotes->QuotesCount(); 
+  PRInt32 quoteDepth = Depth();
 
   
   
@@ -77,7 +109,7 @@ nsQuoteList::RecalcAll()
     return;
 
   do {
-    int32_t oldDepth = node->mDepthBefore;
+    PRInt32 oldDepth = node->mDepthBefore;
     Calc(node);
 
     if (node->mDepthBefore != oldDepth && node->mText && node->IsRealQuote())

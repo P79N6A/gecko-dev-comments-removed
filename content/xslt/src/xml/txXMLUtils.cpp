@@ -7,6 +7,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "txXMLUtils.h"
 #include "nsString.h"
 #include "nsReadableUtils.h"
@@ -17,7 +51,7 @@
 
 nsresult
 txExpandedName::init(const nsAString& aQName, txNamespaceMap* aResolver,
-                     bool aUseDefault)
+                     MBool aUseDefault)
 {
     const nsAFlatString& qName = PromiseFlatString(aQName);
     const PRUnichar* colon;
@@ -28,7 +62,7 @@ txExpandedName::init(const nsAString& aQName, txNamespaceMap* aResolver,
 
     if (colon) {
         nsCOMPtr<nsIAtom> prefix = do_GetAtom(Substring(qName.get(), colon));
-        int32_t namespaceID = aResolver->lookupNamespace(prefix);
+        PRInt32 namespaceID = aResolver->lookupNamespace(prefix);
         if (namespaceID == kNameSpaceID_Unknown)
             return NS_ERROR_FAILURE;
         mNamespaceID = namespaceID;
@@ -38,7 +72,7 @@ txExpandedName::init(const nsAString& aQName, txNamespaceMap* aResolver,
         mLocalName = do_GetAtom(Substring(colon + 1, end));
     }
     else {
-        mNamespaceID = aUseDefault ? aResolver->lookupNamespace(nullptr) :
+        mNamespaceID = aUseDefault ? aResolver->lookupNamespace(nsnull) :
                                      kNameSpaceID_None;
         mLocalName = do_GetAtom(aQName);
     }
@@ -52,7 +86,7 @@ txExpandedName::init(const nsAString& aQName, txNamespaceMap* aResolver,
 
 nsresult
 XMLUtils::splitExpatName(const PRUnichar *aExpatName, nsIAtom **aPrefix,
-                         nsIAtom **aLocalName, int32_t* aNameSpaceID)
+                         nsIAtom **aLocalName, PRInt32* aNameSpaceID)
 {
     
 
@@ -61,8 +95,8 @@ XMLUtils::splitExpatName(const PRUnichar *aExpatName, nsIAtom **aPrefix,
 
 
 
-    const PRUnichar *uriEnd = nullptr;
-    const PRUnichar *nameEnd = nullptr;
+    const PRUnichar *uriEnd = nsnull;
+    const PRUnichar *nameEnd = nsnull;
     const PRUnichar *pos;
     for (pos = aExpatName; *pos; ++pos) {
         if (*pos == kExpatSeparatorChar) {
@@ -94,14 +128,14 @@ XMLUtils::splitExpatName(const PRUnichar *aExpatName, nsIAtom **aPrefix,
         }
         else {
             nameEnd = pos;
-            *aPrefix = nullptr;
+            *aPrefix = nsnull;
         }
     }
     else {
         *aNameSpaceID = kNameSpaceID_None;
         nameStart = aExpatName;
         nameEnd = pos;
-        *aPrefix = nullptr;
+        *aPrefix = nsnull;
     }
 
     *aLocalName = NS_NewAtom(Substring(nameStart, nameEnd));
@@ -128,7 +162,7 @@ XMLUtils::splitQName(const nsAString& aName, nsIAtom** aPrefix,
         *aLocalName = NS_NewAtom(Substring(colon + 1, end));
     }
     else {
-        *aPrefix = nullptr;
+        *aPrefix = nsnull;
         *aLocalName = NS_NewAtom(aName);
     }
 
@@ -138,7 +172,7 @@ XMLUtils::splitQName(const nsAString& aName, nsIAtom** aPrefix,
 const nsDependentSubstring XMLUtils::getLocalPart(const nsAString& src)
 {
     
-    int32_t idx = src.FindChar(':');
+    PRInt32 idx = src.FindChar(':');
     if (idx == kNotFound) {
         return Substring(src, 0, src.Length());
     }
@@ -157,10 +191,10 @@ bool XMLUtils::isWhitespace(const nsAFlatString& aText)
     aText.EndReading(end);
     for ( ; start != end; ++start) {
         if (!isWhitespace(*start)) {
-            return false;
+            return PR_FALSE;
         }
     }
-    return true;
+    return PR_TRUE;
 }
 
 
@@ -169,8 +203,8 @@ bool XMLUtils::isWhitespace(const nsAFlatString& aText)
 void XMLUtils::normalizePIValue(nsAString& piValue)
 {
     nsAutoString origValue(piValue);
-    uint32_t origLength = origValue.Length();
-    uint32_t conversionLoop = 0;
+    PRUint32 origLength = origValue.Length();
+    PRUint32 conversionLoop = 0;
     PRUnichar prevCh = 0;
     piValue.Truncate();
 
@@ -196,20 +230,20 @@ void XMLUtils::normalizePIValue(nsAString& piValue)
 }
 
 
-bool XMLUtils::getXMLSpacePreserve(const txXPathNode& aNode)
+MBool XMLUtils::getXMLSpacePreserve(const txXPathNode& aNode)
 {
     nsAutoString value;
     txXPathTreeWalker walker(aNode);
     do {
         if (walker.getAttr(nsGkAtoms::space, kNameSpaceID_XML, value)) {
             if (TX_StringEqualsAtom(value, nsGkAtoms::preserve)) {
-                return true;
+                return PR_TRUE;
             }
             if (TX_StringEqualsAtom(value, nsGkAtoms::_default)) {
-                return false;
+                return PR_FALSE;
             }
         }
     } while (walker.moveToParent());
 
-    return false;
+    return PR_FALSE;
 }

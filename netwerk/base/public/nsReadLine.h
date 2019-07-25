@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsReadLine_h__
 #define nsReadLine_h__
 
@@ -112,10 +146,10 @@ NS_ReadLine (StreamType* aStream, nsLineBuffer<CharT> * aBuffer,
 
   while (1) { 
     if (aBuffer->start == aBuffer->end) { 
-      uint32_t bytesRead;
+      PRUint32 bytesRead;
       nsresult rv = aStream->Read(aBuffer->buf, kLineBufferSize, &bytesRead);
       if (NS_FAILED(rv) || NS_UNLIKELY(bytesRead == 0)) {
-        *more = false;
+        *more = PR_FALSE;
         return rv;
       }
       aBuffer->start = aBuffer->buf;
@@ -152,7 +186,7 @@ NS_ReadLine (StreamType* aStream, nsLineBuffer<CharT> * aBuffer,
           continue;
         }
         aBuffer->start = current;
-        *more = true;
+        *more = PR_TRUE;
         return NS_OK;
       }
     }

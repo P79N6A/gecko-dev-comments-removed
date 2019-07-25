@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsISupports.h"
 #include "nsRegressionTester.h"
 
@@ -15,7 +47,10 @@
 #include "nsIDocShellTreeNode.h"
 #include "nsPIDOMWindow.h"
 #include "nsIPresShell.h"
+#include "nsIDocument.h"
+#include "nsIDOMDocument.h"
 #include "nsIURI.h"
+#include "nsIDOMHTMLDocument.h"
 #include "nsISimpleEnumerator.h"
 #include "nsIDocShell.h"
 #include "nsIContentViewer.h"
@@ -25,7 +60,7 @@
 #include "nsIFrameUtil.h"
 #include "nsLayoutCID.h"
 #include "nsNetUtil.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "nsIViewManager.h"
 #include "nsIView.h"
 
@@ -46,8 +81,8 @@ NS_IMPL_ISUPPORTS1(nsRegressionTester, nsILayoutRegressionTester)
 
 NS_IMETHODIMP
 nsRegressionTester::DumpFrameModel(nsIDOMWindow *aWindowToDump,
-                                   nsIFile *aDestFile,
-                                   uint32_t aFlagsMask, int32_t *aResult)
+                                   nsILocalFile *aDestFile,
+                                   PRUint32 aFlagsMask, PRInt32 *aResult)
 {
   NS_ENSURE_ARG(aWindowToDump);
   NS_ENSURE_ARG_POINTER(aResult);
@@ -58,7 +93,7 @@ nsRegressionTester::DumpFrameModel(nsIDOMWindow *aWindowToDump,
   return NS_ERROR_NOT_AVAILABLE;
 #else
   nsresult    rv = NS_ERROR_NOT_AVAILABLE;
-  uint32_t    busyFlags;
+  PRUint32    busyFlags;
   bool        stillLoading;
 
   nsCOMPtr<nsIDocShell> docShell;
@@ -92,7 +127,7 @@ nsRegressionTester::DumpFrameModel(nsIDOMWindow *aWindowToDump,
     if (viewer){
       nsCOMPtr<nsIContentViewerFile> viewerFile = do_QueryInterface(viewer);
       if (viewerFile) {
-         viewerFile->Print(true, fp, nullptr);
+         viewerFile->Print(PR_TRUE, fp, nsnull);
       }
     }
   }
@@ -107,14 +142,13 @@ nsRegressionTester::DumpFrameModel(nsIDOMWindow *aWindowToDump,
 }
 
 NS_IMETHODIMP
-nsRegressionTester::CompareFrameModels(nsIFile *aBaseFile, nsIFile *aVerFile,
-                                       uint32_t aFlags, bool *aResult)
+nsRegressionTester::CompareFrameModels(nsILocalFile *aBaseFile, nsILocalFile *aVerFile, PRUint32 aFlags, PRInt32 *aResult) 
 {
   NS_ENSURE_ARG(aBaseFile);
   NS_ENSURE_ARG(aVerFile);
   NS_ENSURE_ARG_POINTER(aResult);
   
-  *aResult = false;
+  *aResult = NS_OK;
   
   nsresult rv;
   FILE* baseFile;
@@ -131,7 +165,7 @@ nsRegressionTester::CompareFrameModels(nsIFile *aBaseFile, nsIFile *aVerFile,
   nsCOMPtr<nsIFrameUtil> frameUtil = do_CreateInstance(kFrameUtilCID, &rv);
   if (NS_SUCCEEDED(rv))
   {
-    int32_t outputLevel = (aFlags == COMPARE_FLAGS_VERBOSE) ? 0 : 1;
+    PRInt32 outputLevel = (aFlags == COMPARE_FLAGS_VERBOSE) ? 0 : 1;
     rv = frameUtil->CompareRegressionData(baseFile, verFile, outputLevel);
     
   } else {

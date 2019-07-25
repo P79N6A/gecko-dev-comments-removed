@@ -5,14 +5,49 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsURLHelper.h"
 #include "nsEscape.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "nsTArray.h"
 #include "nsReadableUtils.h"
 #include <Carbon/Carbon.h>
 
-static nsTArray<nsCString> *gVolumeList = nullptr;
+static nsTArray<nsCString> *gVolumeList = nsnull;
 
 static bool pathBeginsWithVolName(const nsACString& path, nsACString& firstPathComponent)
 {
@@ -24,7 +59,7 @@ static bool pathBeginsWithVolName(const nsACString& path, nsACString& firstPathC
   if (!gVolumeList) {
     gVolumeList = new nsTArray<nsCString>;
     if (!gVolumeList) {
-      return false; 
+      return PR_FALSE; 
     }
   }
 
@@ -55,9 +90,9 @@ static bool pathBeginsWithVolName(const nsACString& path, nsACString& firstPathC
   nsACString::const_iterator component_end(start);
   FindCharInReadable('/', component_end, directory_end);
   
-  nsAutoCString flatComponent((Substring(start, component_end)));
+  nsCAutoString flatComponent((Substring(start, component_end)));
   NS_UnescapeURL(flatComponent);
-  int32_t foundIndex = gVolumeList->IndexOf(flatComponent);
+  PRInt32 foundIndex = gVolumeList->IndexOf(flatComponent);
   firstPathComponent = flatComponent;
   return (foundIndex != -1);
 }
@@ -66,7 +101,7 @@ void
 net_ShutdownURLHelperOSX()
 {
   delete gVolumeList;
-  gVolumeList = nullptr;
+  gVolumeList = nsnull;
 }
 
 static nsresult convertHFSPathtoPOSIX(const nsACString& hfsPath, nsACString& posixPath)
@@ -115,14 +150,14 @@ net_GetURLSpecFromActualFile(nsIFile *aFile, nsACString &result)
   
   
   nsresult rv;
-  nsAutoCString ePath;
+  nsCAutoString ePath;
 
   
   rv = aFile->GetNativePath(ePath);
   if (NS_FAILED(rv))
     return rv;
 
-  nsAutoCString escPath;
+  nsCAutoString escPath;
   NS_NAMED_LITERAL_CSTRING(prefix, "file://");
       
   
@@ -148,12 +183,12 @@ net_GetFileFromURLSpec(const nsACString &aURL, nsIFile **result)
 
   nsresult rv;
 
-  nsCOMPtr<nsIFile> localFile;
-  rv = NS_NewNativeLocalFile(EmptyCString(), true, getter_AddRefs(localFile));
+  nsCOMPtr<nsILocalFile> localFile;
+  rv = NS_NewNativeLocalFile(EmptyCString(), PR_TRUE, getter_AddRefs(localFile));
   if (NS_FAILED(rv))
     return rv;
   
-  nsAutoCString directory, fileBaseName, fileExtension, path;
+  nsCAutoString directory, fileBaseName, fileExtension, path;
   bool bHFSPath = false;
 
   rv = net_ParseFileURL(aURL, directory, fileBaseName, fileExtension);
@@ -168,7 +203,7 @@ net_GetFileFromURLSpec(const nsACString &aURL, nsIFile **result)
     
     
     
-    nsAutoCString possibleVolName;
+    nsCAutoString possibleVolName;
     if (pathBeginsWithVolName(directory, possibleVolName)) {        
       
       
@@ -176,8 +211,8 @@ net_GetFileFromURLSpec(const nsACString &aURL, nsIFile **result)
       
       FSRef testRef;
       possibleVolName.Insert("/", 0);
-      if (::FSPathMakeRef((UInt8*)possibleVolName.get(), &testRef, nullptr) != noErr)
-        bHFSPath = true;
+      if (::FSPathMakeRef((UInt8*)possibleVolName.get(), &testRef, nsnull) != noErr)
+        bHFSPath = PR_TRUE;
     }
 
     if (bHFSPath) {

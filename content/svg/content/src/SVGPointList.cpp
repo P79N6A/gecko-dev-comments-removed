@@ -3,12 +3,41 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "SVGPointList.h"
 #include "SVGAnimatedPointList.h"
 #include "nsSVGElement.h"
-#include "nsError.h"
+#include "nsDOMError.h"
 #include "nsString.h"
 #include "nsSVGUtils.h"
 #include "string.h"
@@ -35,11 +64,11 @@ SVGPointList::GetValueAsString(nsAString& aValue) const
 {
   aValue.Truncate();
   PRUnichar buf[50];
-  uint32_t last = mItems.Length() - 1;
-  for (uint32_t i = 0; i < mItems.Length(); ++i) {
+  PRUint32 last = mItems.Length() - 1;
+  for (PRUint32 i = 0; i < mItems.Length(); ++i) {
     
     
-    nsTextFormatter::snprintf(buf, ArrayLength(buf),
+    nsTextFormatter::snprintf(buf, NS_ARRAY_LENGTH(buf),
                               NS_LITERAL_STRING("%g,%g").get(),
                               double(mItems[i].mX), double(mItems[i].mY));
     
@@ -72,7 +101,7 @@ SVGPointList::SetValueFromString(const nsAString& aValue)
   nsCharSeparatedTokenizerTemplate<IsSVGWhitespace>
     tokenizer(aValue, ',', nsCharSeparatedTokenizer::SEPARATOR_OPTIONAL);
 
-  nsAutoCString str1, str2;  
+  nsCAutoString str1, str2;  
 
   while (tokenizer.hasMoreTokens()) {
     CopyUTF16toUTF8(tokenizer.nextToken(), str1);

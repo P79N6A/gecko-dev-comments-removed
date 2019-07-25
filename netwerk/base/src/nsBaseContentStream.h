@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsBaseContentStream_h__
 #define nsBaseContentStream_h__
 
@@ -50,7 +82,7 @@ public:
   bool IsClosed() { return NS_FAILED(mStatus); }
 
   
-  bool HasPendingCallback() { return mCallback != nullptr; }
+  bool HasPendingCallback() { return mCallback != nsnull; }
 
   
   nsIEventTarget *CallbackTarget() { return mCallbackTarget; }
@@ -62,7 +94,7 @@ public:
   void DispatchCallback(bool async = true);
 
   
-  void DispatchCallbackSync() { DispatchCallback(false); }
+  void DispatchCallbackSync() { DispatchCallback(PR_FALSE); }
 
 protected:
   virtual ~nsBaseContentStream() {}

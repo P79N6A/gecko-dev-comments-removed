@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsSAXXMLReader_h__
 #define nsSAXXMLReader_h__
 
@@ -17,7 +49,6 @@
 #include "nsISAXErrorHandler.h"
 #include "nsISAXLexicalHandler.h"
 #include "nsCycleCollectionParticipant.h"
-#include "mozilla/Attributes.h"
 
 #define NS_SAXXMLREADER_CONTRACTID "@mozilla.org/saxparser/xmlreader;1"
 #define NS_SAXXMLREADER_CLASSNAME "SAX XML Reader"
@@ -25,9 +56,9 @@
 { 0xab1da296, 0x6125, 0x40ba, \
 { 0x96, 0xd0, 0x47, 0xa8, 0x28, 0x2a, 0xe3, 0xdb} }
 
-class nsSAXXMLReader MOZ_FINAL : public nsISAXXMLReader,
-                                 public nsIExtendedExpatSink,
-                                 public nsIContentSink
+class nsSAXXMLReader : public nsISAXXMLReader,
+                       public nsIExtendedExpatSink,
+                       public nsIContentSink
 {
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -48,7 +79,7 @@ public:
 
   NS_IMETHOD WillBuildModel(nsDTDMode aDTDMode);
   NS_IMETHOD DidBuildModel(bool aTerminated);
-  NS_IMETHOD SetParser(nsParserBase* aParser);
+  NS_IMETHOD SetParser(nsIParser* aParser);
   
   NS_IMETHOD WillInterrupt()
   {
@@ -71,7 +102,7 @@ public:
   
   virtual nsISupports *GetTarget()
   {
-    return nullptr;
+    return nsnull;
   }
 
 private:
@@ -84,7 +115,7 @@ private:
   nsCOMPtr<nsIRequestObserver> mParserObserver;
   bool mIsAsyncParse;
   static bool TryChannelCharset(nsIChannel *aChannel,
-                                  int32_t& aCharsetSource,
+                                  PRInt32& aCharsetSource,
                                   nsACString& aCharset);
   nsresult EnsureBaseURI();
   nsresult InitParser(nsIRequestObserver *aListener, nsIChannel *aChannel);

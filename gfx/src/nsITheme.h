@@ -6,6 +6,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsITheme_h_
 #define nsITheme_h_
 
@@ -65,7 +97,7 @@ public:
 
   NS_IMETHOD DrawWidgetBackground(nsRenderingContext* aContext,
                                   nsIFrame* aFrame,
-                                  uint8_t aWidgetType,
+                                  PRUint8 aWidgetType,
                                   const nsRect& aRect,
                                   const nsRect& aDirtyRect) = 0;
 
@@ -74,7 +106,7 @@ public:
 
   NS_IMETHOD GetWidgetBorder(nsDeviceContext* aContext, 
                              nsIFrame* aFrame,
-                             uint8_t aWidgetType,
+                             PRUint8 aWidgetType,
                              nsIntMargin* aResult)=0;
 
   
@@ -88,7 +120,7 @@ public:
 
   virtual bool GetWidgetPadding(nsDeviceContext* aContext,
                                   nsIFrame* aFrame,
-                                  uint8_t aWidgetType,
+                                  PRUint8 aWidgetType,
                                   nsIntMargin* aResult) = 0;
 
   
@@ -107,9 +139,9 @@ public:
 
   virtual bool GetWidgetOverflow(nsDeviceContext* aContext,
                                    nsIFrame* aFrame,
-                                   uint8_t aWidgetType,
+                                   PRUint8 aWidgetType,
                                     nsRect* aOverflowRect)
-  { return false; }
+  { return PR_FALSE; }
 
   
 
@@ -119,7 +151,7 @@ public:
 
   NS_IMETHOD GetMinimumWidgetSize(nsRenderingContext* aContext,
                                   nsIFrame* aFrame,
-                                  uint8_t aWidgetType,
+                                  PRUint8 aWidgetType,
                                   nsIntSize* aResult,
                                   bool* aIsOverridable)=0;
 
@@ -133,10 +165,10 @@ public:
   
 
 
-  virtual Transparency GetWidgetTransparency(nsIFrame* aFrame, uint8_t aWidgetType)
+  virtual Transparency GetWidgetTransparency(nsIFrame* aFrame, PRUint8 aWidgetType)
   { return eUnknownTransparency; }
 
-  NS_IMETHOD WidgetStateChanged(nsIFrame* aFrame, uint8_t aWidgetType, 
+  NS_IMETHOD WidgetStateChanged(nsIFrame* aFrame, PRUint8 aWidgetType, 
                                 nsIAtom* aAttribute, bool* aShouldRepaint)=0;
 
   NS_IMETHOD ThemeChanged()=0;
@@ -146,16 +178,16 @@ public:
 
   virtual bool ThemeSupportsWidget(nsPresContext* aPresContext,
                                      nsIFrame* aFrame,
-                                     uint8_t aWidgetType)=0;
+                                     PRUint8 aWidgetType)=0;
 
-  virtual bool WidgetIsContainer(uint8_t aWidgetType)=0;
+  virtual bool WidgetIsContainer(PRUint8 aWidgetType)=0;
 
   
 
 
   virtual bool ThemeDrawsFocusForWidget(nsPresContext* aPresContext,
                                           nsIFrame* aFrame,
-                                          uint8_t aWidgetType)=0;
+                                          PRUint8 aWidgetType)=0;
   
   
 

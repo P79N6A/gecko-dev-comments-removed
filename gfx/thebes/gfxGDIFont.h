@@ -3,6 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_GDIFONT_H
 #define GFX_GDIFONT_H
 
@@ -34,13 +69,13 @@ public:
     
     virtual const gfxFont::Metrics& GetMetrics();
 
-    virtual uint32_t GetSpaceGlyph();
+    virtual PRUint32 GetSpaceGlyph();
 
     virtual bool SetupCairoFont(gfxContext *aContext);
 
     
     virtual RunMetrics Measure(gfxTextRun *aTextRun,
-                               uint32_t aStart, uint32_t aEnd,
+                               PRUint32 aStart, PRUint32 aEnd,
                                BoundingBoxType aBoundingBoxType,
                                gfxContext *aContextForTightBoundingBox,
                                Spacing *aSpacing);
@@ -51,30 +86,23 @@ public:
     virtual bool ProvidesGlyphWidths() { return true; }
 
     
-    virtual int32_t GetGlyphWidth(gfxContext *aCtx, uint16_t aGID);
-
-    virtual void SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                     FontCacheSizes*   aSizes) const;
-    virtual void SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                     FontCacheSizes*   aSizes) const;
-
-    virtual FontType GetType() const { return FONT_TYPE_GDI; }
+    virtual PRInt32 GetGlyphWidth(gfxContext *aCtx, PRUint16 aGID);
 
 protected:
     virtual void CreatePlatformShaper();
 
     
-    virtual bool ShapeWord(gfxContext *aContext,
-                           gfxShapedWord *aShapedWord,
-                           const PRUnichar *aString,
-                           bool aPreferPlatformShaping = false);
+    virtual bool InitTextRun(gfxContext *aContext,
+                               gfxTextRun *aTextRun,
+                               const PRUnichar *aString,
+                               PRUint32 aRunStart,
+                               PRUint32 aRunLength,
+                               PRInt32 aRunScript,
+                               bool aPreferPlatformShaping = false);
 
     void Initialize(); 
 
-    
-    
-    
-    void FillLogFont(LOGFONTW& aLogFont, gfxFloat aSize, bool aUseGDIFakeItalic);
+    void FillLogFont(LOGFONTW& aLogFont, gfxFloat aSize);
 
     
     
@@ -82,14 +110,15 @@ protected:
 
     HFONT                 mFont;
     cairo_font_face_t    *mFontFace;
+    cairo_scaled_font_t  *mScaledFont;
 
     Metrics              *mMetrics;
-    uint32_t              mSpaceGlyph;
+    PRUint32              mSpaceGlyph;
 
     bool                  mNeedsBold;
 
     
-    nsDataHashtable<nsUint32HashKey,int32_t>    mGlyphWidths;
+    nsDataHashtable<nsUint32HashKey,PRInt32>    mGlyphWidths;
 };
 
 #endif 

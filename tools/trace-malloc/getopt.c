@@ -21,6 +21,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #if defined(LIBC_SCCS) && !defined(lint)
 static char sccsid[] = "@(#)getopt.c    4.12 (Berkeley) 6/1/90";
 #endif 

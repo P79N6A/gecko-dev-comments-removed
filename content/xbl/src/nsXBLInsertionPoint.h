@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsXBLInsertionPoint_h__
 #define nsXBLInsertionPoint_h__
 
@@ -14,17 +47,17 @@
 class nsXBLInsertionPoint
 {
 public:
-  nsXBLInsertionPoint(nsIContent* aParentElement, uint32_t aIndex, nsIContent* aDefContent);
+  nsXBLInsertionPoint(nsIContent* aParentElement, PRUint32 aIndex, nsIContent* aDefContent);
   ~nsXBLInsertionPoint();
 
-  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(nsXBLInsertionPoint)
+  NS_INLINE_DECL_REFCOUNTING(nsXBLInsertionPoint)
 
   NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(nsXBLInsertionPoint)
 
   nsIContent* GetInsertionParent();
-  void ClearInsertionParent() { mParentElement = nullptr; }
+  void ClearInsertionParent() { mParentElement = nsnull; }
 
-  int32_t GetInsertionIndex() { return mIndex; }
+  PRInt32 GetInsertionIndex() { return mIndex; }
 
   void SetDefaultContent(nsIContent* aDefaultContent) { mDefaultContent = aDefaultContent; }
   nsIContent* GetDefaultContent();
@@ -33,16 +66,16 @@ public:
   nsIContent* GetDefaultContentTemplate();
 
   void AddChild(nsIContent* aChildElement) { mElements.AppendObject(aChildElement); }
-  void InsertChildAt(int32_t aIndex, nsIContent* aChildElement) { mElements.InsertObjectAt(aChildElement, aIndex); }
+  void InsertChildAt(PRInt32 aIndex, nsIContent* aChildElement) { mElements.InsertObjectAt(aChildElement, aIndex); }
   void RemoveChild(nsIContent* aChildElement) { mElements.RemoveObject(aChildElement); }
   
-  int32_t ChildCount() { return mElements.Count(); }
+  PRInt32 ChildCount() { return mElements.Count(); }
 
-  nsIContent* ChildAt(uint32_t aIndex);
+  nsIContent* ChildAt(PRUint32 aIndex);
 
-  int32_t IndexOf(nsIContent* aContent) { return mElements.IndexOf(aContent); }
+  PRInt32 IndexOf(nsIContent* aContent) { return mElements.IndexOf(aContent); }
 
-  bool Matches(nsIContent* aContent, uint32_t aIndex);
+  bool Matches(nsIContent* aContent, PRUint32 aIndex);
 
   
   
@@ -50,7 +83,7 @@ public:
 
 protected:
   nsIContent* mParentElement;            
-  int32_t mIndex;                        
+  PRInt32 mIndex;                        
   nsCOMArray<nsIContent> mElements;      
   nsCOMPtr<nsIContent> mDefaultContentTemplate ;           
                                                            

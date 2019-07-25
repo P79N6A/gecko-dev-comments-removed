@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "txExpr.h"
 #include "nsIAtom.h"
 #include "txIXPathContext.h"
@@ -33,7 +66,7 @@ bool txNodeTypeTest::matches(const txXPathNode& aNode,
                    !aContext->isStripSpaceAllowed(aNode);
         }
     }
-    return true;
+    return PR_TRUE;
 }
 
 txNodeTest::NodeTestType

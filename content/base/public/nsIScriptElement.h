@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIScriptElement_h___
 #define nsIScriptElement_h___
 
@@ -14,11 +47,10 @@
 #include "nsIParser.h"
 #include "nsContentCreatorFunctions.h"
 #include "nsIDOMHTMLScriptElement.h"
-#include "mozilla/CORSMode.h"
 
 #define NS_ISCRIPTELEMENT_IID \
-{ 0x24ab3ff2, 0xd75e, 0x4be4, \
-  { 0x8d, 0x50, 0xd6, 0x75, 0x31, 0x29, 0xab, 0x65 } }
+{ 0x6d625b30, 0xfac4, 0x11de, \
+{ 0x8a, 0x39, 0x08, 0x00, 0x20, 0x0c, 0x9a, 0x66 } }
 
 
 
@@ -29,21 +61,21 @@ public:
 
   nsIScriptElement(mozilla::dom::FromParser aFromParser)
     : mLineNumber(0),
-      mAlreadyStarted(false),
-      mMalformed(false),
+      mAlreadyStarted(PR_FALSE),
+      mMalformed(PR_FALSE),
       mDoneAddingChildren(aFromParser == mozilla::dom::NOT_FROM_PARSER ||
                           aFromParser == mozilla::dom::FROM_PARSER_FRAGMENT),
       mForceAsync(aFromParser == mozilla::dom::NOT_FROM_PARSER ||
                   aFromParser == mozilla::dom::FROM_PARSER_FRAGMENT),
-      mFrozen(false),
-      mDefer(false),
-      mAsync(false),
-      mExternal(false),
+      mFrozen(PR_FALSE),
+      mDefer(PR_FALSE),
+      mAsync(PR_FALSE),
+      mExternal(PR_FALSE),
       mParserCreated(aFromParser == mozilla::dom::FROM_PARSER_FRAGMENT ?
                      mozilla::dom::NOT_FROM_PARSER : aFromParser),
                      
                      
-      mCreatorParser(nullptr)
+      mCreatorParser(nsnull)
   {
   }
 
@@ -112,18 +144,18 @@ public:
     return mParserCreated;
   }
 
-  void SetScriptLineNumber(uint32_t aLineNumber)
+  void SetScriptLineNumber(PRUint32 aLineNumber)
   {
     mLineNumber = aLineNumber;
   }
-  uint32_t GetScriptLineNumber()
+  PRUint32 GetScriptLineNumber()
   {
     return mLineNumber;
   }
 
   void SetIsMalformed()
   {
-    mMalformed = true;
+    mMalformed = PR_TRUE;
   }
   bool IsMalformed()
   {
@@ -132,14 +164,14 @@ public:
 
   void PreventExecution()
   {
-    mAlreadyStarted = true;
+    mAlreadyStarted = PR_TRUE;
   }
 
   void LoseParserInsertedness()
   {
-    mFrozen = false;
-    mUri = nullptr;
-    mCreatorParser = nullptr;
+    mFrozen = PR_FALSE;
+    mUri = nsnull;
+    mCreatorParser = nsnull;
     mParserCreated = mozilla::dom::NOT_FROM_PARSER;
     bool async = false;
     nsCOMPtr<nsIDOMHTMLScriptElement> htmlScript = do_QueryInterface(this);
@@ -152,28 +184,6 @@ public:
   void SetCreatorParser(nsIParser* aParser)
   {
     mCreatorParser = getter_AddRefs(NS_GetWeakReference(aParser));
-  }
-
-  
-
-
-  void UnblockParser()
-  {
-    nsCOMPtr<nsIParser> parser = do_QueryReferent(mCreatorParser);
-    if (parser) {
-      parser->UnblockParser();
-    }
-  }
-
-  
-
-
-  void ContinueParserAsync()
-  {
-    nsCOMPtr<nsIParser> parser = do_QueryReferent(mCreatorParser);
-    if (parser) {
-      parser->ContinueInterruptedParsingAsync();
-    }
   }
 
   
@@ -207,57 +217,11 @@ public:
     return parser.forget();
   }
 
-  
-
-
-
-
-
-
-  bool AttemptToExecute()
-  {
-    mDoneAddingChildren = true;
-    bool block = MaybeProcessScript();
-    if (!mAlreadyStarted) {
-      
-      
-      LoseParserInsertedness();
-    }
-    return block;
-  }
-
-  
-
-
-  virtual mozilla::CORSMode GetCORSMode() const
-  {
-    
-    return mozilla::CORS_NONE;
-  }
-
 protected:
   
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-  virtual bool MaybeProcessScript() = 0;
-
-  
-
-
-  uint32_t mLineNumber;
+  PRUint32 mLineNumber;
   
   
 

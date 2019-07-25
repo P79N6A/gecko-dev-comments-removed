@@ -55,6 +55,11 @@
 #include "nsILoginManager.h"
 #include "nsIMutationObserver.h"
 
+
+#ifdef KeyPress
+#undef KeyPress
+#endif
+
 class nsFormHistory;
 
 class nsFormFillController : public nsIFormFillController,
@@ -89,7 +94,7 @@ protected:
   void StopControllingInput();
 
   void RevalidateDataList();
-  PRBool RowMatch(nsFormHistory *aHistory, PRUint32 aIndex, const nsAString &aInputName, const nsAString &aInputValue);
+  bool RowMatch(nsFormHistory *aHistory, PRUint32 aIndex, const nsAString &aInputName, const nsAString &aInputValue);
 
   inline nsIDocShell *GetDocShellForInput(nsIDOMHTMLInputElement *aInput);
   inline nsIDOMWindow *GetWindowForDocShell(nsIDocShell *aDocShell);
@@ -98,8 +103,8 @@ protected:
   static PLDHashOperator RemoveForDOMDocumentEnumerator(nsISupports* aKey,
                                                         PRInt32& aEntry,
                                                         void* aUserData);
-  PRBool IsEventTrusted(nsIDOMEvent *aEvent);
-  PRBool IsInputAutoCompleteOff();
+  bool IsEventTrusted(nsIDOMEvent *aEvent);
+  bool IsInputAutoCompleteOff();
   
 
   nsCOMPtr<nsIAutoCompleteController> mController;
@@ -120,11 +125,11 @@ protected:
   PRUint32 mTimeout;
   PRUint32 mMinResultsForPopup;
   PRUint32 mMaxRows;
-  PRPackedBool mDisableAutoComplete;
-  PRPackedBool mCompleteDefaultIndex;
-  PRPackedBool mCompleteSelectedIndex;
-  PRPackedBool mForceComplete;
-  PRPackedBool mSuppressOnInput;
+  bool mDisableAutoComplete;
+  bool mCompleteDefaultIndex;
+  bool mCompleteSelectedIndex;
+  bool mForceComplete;
+  bool mSuppressOnInput;
 };
 
 #endif 

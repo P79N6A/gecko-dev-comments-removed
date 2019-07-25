@@ -4,18 +4,50 @@
 
 
 
-#include "nsAString.h"
-#include "nsCOMPtr.h"
-#include "nsCRT.h"
-#include "nsDebug.h"
-#include "nsDependentSubstring.h"
-#include "nsError.h"
-#include "nsILineBreaker.h"
-#include "nsInternetCiter.h"
-#include "nsLWBrkCIID.h"
-#include "nsServiceManagerUtils.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsString.h"
-#include "nsStringIterator.h"
+#include "nsReadableUtils.h"
+#include "nsInternetCiter.h"
+#include "nsCRT.h"
+
+#include "nsCOMPtr.h"
+
+
+#include "nsIServiceManager.h"
+#include "nsLWBrkCIID.h"
+#include "nsILineBreaker.h"
 
 const PRUnichar gt ('>');
 const PRUnichar space (' ');
@@ -72,7 +104,7 @@ nsresult
 nsInternetCiter::StripCitesAndLinebreaks(const nsAString& aInString,
                                          nsAString& aOutString,
                                          bool aLinebreaksToo,
-                                         int32_t* aCiteLevel)
+                                         PRInt32* aCiteLevel)
 {
   if (aCiteLevel)
     *aCiteLevel = 0;
@@ -84,7 +116,7 @@ nsInternetCiter::StripCitesAndLinebreaks(const nsAString& aInString,
   while (beginIter!= endIter)  
   {
     
-    int32_t thisLineCiteLevel = 0;
+    PRInt32 thisLineCiteLevel = 0;
     while (beginIter!= endIter && (*beginIter == gt || nsCRT::IsAsciiSpace(*beginIter)))
     {
       if (*beginIter == gt) ++thisLineCiteLevel;
@@ -115,20 +147,20 @@ nsInternetCiter::StripCitesAndLinebreaks(const nsAString& aInString,
 nsresult
 nsInternetCiter::StripCites(const nsAString& aInString, nsAString& aOutString)
 {
-  return StripCitesAndLinebreaks(aInString, aOutString, false, 0);
+  return StripCitesAndLinebreaks(aInString, aOutString, PR_FALSE, 0);
 }
 
-static void AddCite(nsAString& aOutString, int32_t citeLevel)
+static void AddCite(nsAString& aOutString, PRInt32 citeLevel)
 {
-  for (int32_t i = 0; i < citeLevel; ++i)
+  for (PRInt32 i = 0; i < citeLevel; ++i)
     aOutString.Append(gt);
   if (citeLevel > 0)
     aOutString.Append(space);
 }
 
 static inline void
-BreakLine(nsAString& aOutString, uint32_t& outStringCol,
-          uint32_t citeLevel)
+BreakLine(nsAString& aOutString, PRUint32& outStringCol,
+          PRUint32 citeLevel)
 {
   aOutString.Append(nl);
   if (citeLevel > 0)
@@ -147,14 +179,14 @@ static inline bool IsSpace(PRUnichar c)
 
 nsresult
 nsInternetCiter::Rewrap(const nsAString& aInString,
-                        uint32_t aWrapCol, uint32_t aFirstLineOffset,
+                        PRUint32 aWrapCol, PRUint32 aFirstLineOffset,
                         bool aRespectNewlines,
                         nsAString& aOutString)
 {
   
   
 #ifdef DEBUG
-  int32_t cr = aInString.FindChar(PRUnichar('\r'));
+  PRInt32 cr = aInString.FindChar(PRUnichar('\r'));
   NS_ASSERTION((cr < 0), "Rewrap: CR in string gotten from DOM!\n");
 #endif 
 
@@ -165,10 +197,10 @@ nsInternetCiter::Rewrap(const nsAString& aInString,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  uint32_t length;
-  uint32_t posInString = 0;
-  uint32_t outStringCol = 0;
-  uint32_t citeLevel = 0;
+  PRUint32 length;
+  PRUint32 posInString = 0;
+  PRUint32 outStringCol = 0;
+  PRUint32 citeLevel = 0;
   const nsPromiseFlatString &tString = PromiseFlatString(aInString);
   length = tString.Length();
 #ifdef DEBUG_wrapping
@@ -186,7 +218,7 @@ nsInternetCiter::Rewrap(const nsAString& aInString,
 #endif
 
     
-    uint32_t newCiteLevel = 0;
+    PRUint32 newCiteLevel = 0;
     while (posInString < length && tString[posInString] == gt)
     {
       ++newCiteLevel;
@@ -237,7 +269,7 @@ nsInternetCiter::Rewrap(const nsAString& aInString,
     }
 
     
-    int32_t nextNewline = tString.FindChar(nl, posInString);
+    PRInt32 nextNewline = tString.FindChar(nl, posInString);
     if (nextNewline < 0) nextNewline = length;
 
     
@@ -252,7 +284,7 @@ nsInternetCiter::Rewrap(const nsAString& aInString,
       aOutString.Append(Substring(tString, posInString,
                                   nextNewline-posInString));
       outStringCol += nextNewline - posInString;
-      if (nextNewline != (int32_t)length)
+      if (nextNewline != (PRInt32)length)
       {
         aOutString.Append(nl);
         outStringCol = 0;
@@ -263,11 +295,11 @@ nsInternetCiter::Rewrap(const nsAString& aInString,
 
     
     
-    while ((int32_t)posInString < nextNewline)
+    while ((PRInt32)posInString < nextNewline)
     {
 #ifdef DEBUG_wrapping
       if (++loopcount > 1000)
-        NS_ASSERTION(false, "possible infinite loop in nsInternetCiter\n");
+        NS_ASSERTION(PR_FALSE, "possible infinite loop in nsInternetCiter\n");
 
       printf("Inner loop: '%s'\n",
              NS_LossyConvertUTF16toASCII(Substring(tString, posInString,
@@ -275,7 +307,7 @@ nsInternetCiter::Rewrap(const nsAString& aInString,
 #endif
 
       
-      while ((int32_t)posInString < nextNewline
+      while ((PRInt32)posInString < nextNewline
              && nsCRT::IsAsciiSpace(tString[posInString]))
         ++posInString;
 
@@ -284,12 +316,12 @@ nsInternetCiter::Rewrap(const nsAString& aInString,
       {
         
         
-        if (nextNewline+1 == (int32_t)length && tString[nextNewline-1] == nl)
+        if (nextNewline+1 == (PRInt32)length && tString[nextNewline-1] == nl)
           ++nextNewline;
 
         
-        int32_t lastRealChar = nextNewline;
-        while ((uint32_t)lastRealChar > posInString
+        PRInt32 lastRealChar = nextNewline;
+        while ((PRUint32)lastRealChar > posInString
                && nsCRT::IsAsciiSpace(tString[lastRealChar-1]))
           --lastRealChar;
 
@@ -300,18 +332,18 @@ nsInternetCiter::Rewrap(const nsAString& aInString,
         continue;
       }
 
-      int32_t eol = posInString + aWrapCol - citeLevel - outStringCol;
+      PRInt32 eol = posInString + aWrapCol - citeLevel - outStringCol;
       
       
       
       
-      if (eol <= (int32_t)posInString)
+      if (eol <= (PRInt32)posInString)
       {
         BreakLine(aOutString, outStringCol, citeLevel);
         continue;    
       }
 
-      int32_t breakPt = 0;
+      PRInt32 breakPt = 0;
       rv = NS_ERROR_BASE;
       if (lineBreaker)
       {
@@ -364,7 +396,7 @@ nsInternetCiter::Rewrap(const nsAString& aInString,
 
       nsAutoString sub (Substring(tString, posInString, breakPt));
       
-      int32_t subend = sub.Length();
+      PRInt32 subend = sub.Length();
       while (subend > 0 && IsSpace(sub[subend-1]))
         --subend;
       sub.Left(sub, subend);

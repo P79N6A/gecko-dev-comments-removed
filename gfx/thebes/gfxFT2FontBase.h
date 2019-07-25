@@ -3,13 +3,49 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_FT2FONTBASE_H
 #define GFX_FT2FONTBASE_H
 
 #include "cairo.h"
 #include "gfxContext.h"
 #include "gfxFont.h"
-#include "mozilla/gfx/2D.h"
 
 class gfxFT2FontBase : public gfxFont {
 public:
@@ -18,31 +54,25 @@ public:
                    const gfxFontStyle *aFontStyle);
     virtual ~gfxFT2FontBase();
 
-    uint32_t GetGlyph(uint32_t aCharCode);
-    void GetGlyphExtents(uint32_t aGlyph,
+    PRUint32 GetGlyph(PRUint32 aCharCode);
+    void GetGlyphExtents(PRUint32 aGlyph,
                          cairo_text_extents_t* aExtents);
     virtual const gfxFont::Metrics& GetMetrics();
-    virtual uint32_t GetSpaceGlyph();
-    virtual hb_blob_t *GetFontTable(uint32_t aTag);
+    virtual PRUint32 GetSpaceGlyph();
+    virtual hb_blob_t *GetFontTable(PRUint32 aTag);
     virtual bool ProvidesGetGlyph() const { return true; }
-    virtual uint32_t GetGlyph(uint32_t unicode, uint32_t variation_selector);
+    virtual PRUint32 GetGlyph(PRUint32 unicode, PRUint32 variation_selector);
     virtual bool ProvidesGlyphWidths() { return true; }
-    virtual int32_t GetGlyphWidth(gfxContext *aCtx, uint16_t aGID);
+    virtual PRInt32 GetGlyphWidth(gfxContext *aCtx, PRUint16 aGID);
 
     cairo_scaled_font_t *CairoScaledFont() { return mScaledFont; };
     virtual bool SetupCairoFont(gfxContext *aContext);
 
-    virtual FontType GetType() const { return FONT_TYPE_FT2; }
-
-    mozilla::gfx::FontOptions* GetFontOptions() { return &mFontOptions; }
 protected:
-    uint32_t mSpaceGlyph;
+    cairo_scaled_font_t *mScaledFont;
+    PRUint32 mSpaceGlyph;
     bool mHasMetrics;
     Metrics mMetrics;
-
-    
-    mozilla::gfx::FontOptions  mFontOptions;
-    void ConstructFontOptions();
 };
 
 #endif 

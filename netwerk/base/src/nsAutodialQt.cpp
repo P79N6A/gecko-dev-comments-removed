@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsQtNetworkManager.h"
 #include "nsAutodialQt.h"
 #include "nsNetCID.h"
@@ -39,8 +72,8 @@ bool
 nsAutodial::ShouldDialOnNetworkError()
 {
   if (nsQtNetworkManager::get()->isOnline()) {
-    return false;
+    return PR_FALSE;
   }
 
-  return true;
+  return PR_TRUE;
 }

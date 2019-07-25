@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NSRENDERINGCONTEXT__H__
 #define NSRENDERINGCONTEXT__H__
 
@@ -12,7 +45,6 @@
 #include "nsColor.h"
 #include "nsCoord.h"
 #include "gfxContext.h"
-#include "mozilla/gfx/UserData.h"
 
 struct nsPoint;
 class nsIntRegion;
@@ -26,9 +58,6 @@ typedef enum {
 
 class nsRenderingContext
 {
-    typedef mozilla::gfx::UserData UserData;
-    typedef mozilla::gfx::UserDataKey UserDataKey;
-
 public:
     nsRenderingContext() : mP2A(0.) {}
     
@@ -41,7 +70,7 @@ public:
     
     gfxContext *ThebesContext() { return mThebes; }
     nsDeviceContext *DeviceContext() { return mDeviceContext; }
-    uint32_t AppUnitsPerDevPixel() { return NSToIntRound(mP2A); }
+    PRUint32 AppUnitsPerDevPixel() { return NSToIntRound(mP2A); }
 
     
 
@@ -74,15 +103,17 @@ public:
     void DrawRect(const nsRect& aRect);
     void DrawRect(nscoord aX, nscoord aY, nscoord aWidth, nscoord aHeight);
     void DrawEllipse(nscoord aX, nscoord aY, nscoord aWidth, nscoord aHeight);
+    void DrawEllipse(const nsRect& aRect);
 
     void FillRect(const nsRect& aRect);
     void FillRect(nscoord aX, nscoord aY, nscoord aWidth, nscoord aHeight);
-    void FillPolygon(const nsPoint aPoints[], int32_t aNumPoints);
+    void FillPolygon(const nsPoint aPoints[], PRInt32 aNumPoints);
 
     void FillEllipse(const nsRect& aRect);
     void FillEllipse(nscoord aX, nscoord aY, nscoord aWidth, nscoord aHeight);
 
     void InvertRect(const nsRect& aRect);
+    void InvertRect(nscoord aX, nscoord aY, nscoord aWidth, nscoord aHeight);
 
     
 
@@ -95,38 +126,26 @@ public:
     nscoord GetWidth(PRUnichar aC);
     nscoord GetWidth(const nsString& aString);
     nscoord GetWidth(const char* aString);
-    nscoord GetWidth(const char* aString, uint32_t aLength);
-    nscoord GetWidth(const PRUnichar *aString, uint32_t aLength);
+    nscoord GetWidth(const char* aString, PRUint32 aLength);
+    nscoord GetWidth(const PRUnichar *aString, PRUint32 aLength);
 
     nsBoundingMetrics GetBoundingMetrics(const PRUnichar *aString,
-                                         uint32_t aLength);
+                                         PRUint32 aLength);
 
     void DrawString(const nsString& aString, nscoord aX, nscoord aY);
-    void DrawString(const char *aString, uint32_t aLength,
+    void DrawString(const char *aString, PRUint32 aLength,
                     nscoord aX, nscoord aY);
-    void DrawString(const PRUnichar *aString, uint32_t aLength,
+    void DrawString(const PRUnichar *aString, PRUint32 aLength,
                     nscoord aX, nscoord aY);
-
-    void AddUserData(UserDataKey *key, void *userData, void (*destroy)(void*)) {
-      mUserData.Add(key, userData, destroy);
-    }
-    void *GetUserData(UserDataKey *key) {
-      return mUserData.Get(key);
-    }
-    void *RemoveUserData(UserDataKey *key) {
-      return mUserData.Remove(key);
-    }
 
 protected:
-    int32_t GetMaxChunkLength();
+    PRInt32 GetMaxChunkLength();
 
     nsRefPtr<gfxContext> mThebes;
     nsRefPtr<nsDeviceContext> mDeviceContext;
     nsRefPtr<nsFontMetrics> mFontMetrics;
 
     double mP2A; 
-
-    UserData mUserData;
 };
 
 #endif  

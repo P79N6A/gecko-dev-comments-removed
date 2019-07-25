@@ -3,34 +3,58 @@
 
 
 
-#include "nsAutoPtr.h"
-#include "nsCOMPtr.h"
-#include "nsDebug.h"
-#include "nsError.h"
-#include "nsFrameSelection.h"
-#include "nsIContent.h"
-#include "nsIDOMNode.h"
-#include "nsIEditor.h"
-#include "nsIPresShell.h"
-#include "nsISelection.h"
-#include "nsISelectionPrivate.h"
-#include "nsISupportsImpl.h"
-#include "nsPlaintextEditor.h"
-#include "nsPresContext.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsTextEditRules.h"
-#include "nscore.h"
-#include "prtypes.h"
+#include "nsCOMPtr.h"
+#include "nsIDOMNode.h"
+#include "nsIContent.h"
+#include "nsIPresShell.h"
+#include "nsPresContext.h"
+#include "nsIFrame.h"
+#include "nsISelectionPrivate.h"
+#include "nsFrameSelection.h"
 
 
 nsresult
 nsTextEditRules::CheckBidiLevelForDeletion(nsISelection         *aSelection,
                                            nsIDOMNode           *aSelNode, 
-                                           int32_t               aSelOffset, 
+                                           PRInt32               aSelOffset, 
                                            nsIEditor::EDirection aAction,
                                            bool                 *aCancel)
 {
   NS_ENSURE_ARG_POINTER(aCancel);
-  *aCancel = false;
+  *aCancel = PR_FALSE;
 
   nsCOMPtr<nsIPresShell> shell = mEditor->GetPresShell();
   NS_ENSURE_TRUE(shell, NS_ERROR_NOT_INITIALIZED);
@@ -44,8 +68,8 @@ nsTextEditRules::CheckBidiLevelForDeletion(nsISelection         *aSelection,
   nsCOMPtr<nsIContent> content = do_QueryInterface(aSelNode);
   NS_ENSURE_TRUE(content, NS_ERROR_NULL_POINTER);
 
-  uint8_t levelBefore;
-  uint8_t levelAfter;
+  PRUint8 levelBefore;
+  PRUint8 levelAfter;
 
   nsCOMPtr<nsISelectionPrivate> privateSelection(do_QueryInterface(aSelection));
   NS_ENSURE_TRUE(privateSelection, NS_ERROR_NULL_POINTER);
@@ -55,14 +79,14 @@ nsTextEditRules::CheckBidiLevelForDeletion(nsISelection         *aSelection,
   NS_ENSURE_TRUE(frameSelection, NS_ERROR_NULL_POINTER);
   
   nsPrevNextBidiLevels levels = frameSelection->
-    GetPrevNextBidiLevels(content, aSelOffset, true);
+    GetPrevNextBidiLevels(content, aSelOffset, PR_TRUE);
     
   levelBefore = levels.mLevelBefore;
   levelAfter = levels.mLevelAfter;
 
-  uint8_t currentCaretLevel = frameSelection->GetCaretBidiLevel();
+  PRUint8 currentCaretLevel = frameSelection->GetCaretBidiLevel();
 
-  uint8_t levelOfDeletion;
+  PRUint8 levelOfDeletion;
   levelOfDeletion =
     (nsIEditor::eNext==aAction || nsIEditor::eNextWord==aAction) ?
     levelAfter : levelBefore;
@@ -74,7 +98,7 @@ nsTextEditRules::CheckBidiLevelForDeletion(nsISelection         *aSelection,
     if (mDeleteBidiImmediately || levelBefore == levelAfter)
       ; 
     else
-      *aCancel = true;
+      *aCancel = PR_TRUE;
 
     
     

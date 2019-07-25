@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #define PL_ARENA_CONST_ALIGN_MASK 7
 
 #include "nsICategoryManager.h"
@@ -26,6 +59,7 @@
 #include "nsCRT.h"
 #include "nsQuickSort.h"
 #include "nsEnumeratorUtils.h"
+#include "nsIProxyObjectManager.h"
 #include "nsThreadUtils.h"
 #include "mozilla/Services.h"
 
@@ -70,7 +104,7 @@ protected:
   static int SortCallback(const void *, const void *, void *);
 
   BaseStringEnumerator()
-    : mArray(nullptr),
+    : mArray(nsnull),
       mCount(0),
       mSimpleCurItem(0),
       mStringCurItem(0) { }
@@ -87,9 +121,9 @@ protected:
   void Sort();
 
   const char** mArray;
-  uint32_t mCount;
-  uint32_t mSimpleCurItem;
-  uint32_t mStringCurItem;
+  PRUint32 mCount;
+  PRUint32 mSimpleCurItem;
+  PRUint32 mStringCurItem;
 };
 
 NS_IMPL_ISUPPORTS2(BaseStringEnumerator, nsISimpleEnumerator, nsIUTF8StringEnumerator)
@@ -149,7 +183,7 @@ BaseStringEnumerator::SortCallback(const void *e1, const void *e2,
 void
 BaseStringEnumerator::Sort()
 {
-  NS_QuickSort(mArray, mCount, sizeof(mArray[0]), SortCallback, nullptr);
+  NS_QuickSort(mArray, mCount, sizeof(mArray[0]), SortCallback, nsnull);
 }
 
 
@@ -182,12 +216,12 @@ EntryEnumerator::Create(nsTHashtable<CategoryLeaf>& aTable)
 {
   EntryEnumerator* enumObj = new EntryEnumerator();
   if (!enumObj)
-    return nullptr;
+    return nsnull;
 
   enumObj->mArray = new char const* [aTable.Count()];
   if (!enumObj->mArray) {
     delete enumObj;
-    return nullptr;
+    return nsnull;
   }
 
   aTable.EnumerateEntries(enumfunc_createenumerator, enumObj);
@@ -207,9 +241,13 @@ CategoryNode::Create(PLArenaPool* aArena)
 {
   CategoryNode* node = new(aArena) CategoryNode();
   if (!node)
-    return nullptr;
+    return nsnull;
 
-  node->mTable.Init();
+  if (!node->mTable.Init()) {
+    delete node;
+    return nsnull;
+  }
+
   return node;
 }
 
@@ -330,8 +368,8 @@ enumfunc_pentries(CategoryLeaf* aLeaf, void* userArg)
                    "%s,%s,%s\n",
                    args->categoryName,
                    aLeaf->GetKey(),
-                   aLeaf->value) == (uint32_t) -1) {
-      args->success = false;
+                   aLeaf->value) == (PRUint32) -1) {
+      args->success = PR_FALSE;
       status = PL_DHASH_STOP;
     }
   }
@@ -361,12 +399,12 @@ CategoryEnumerator::Create(nsClassHashtable<nsDepCharHashKey, CategoryNode>& aTa
 {
   CategoryEnumerator* enumObj = new CategoryEnumerator();
   if (!enumObj)
-    return nullptr;
+    return nsnull;
 
   enumObj->mArray = new const char* [aTable.Count()];
   if (!enumObj->mArray) {
     delete enumObj;
-    return nullptr;
+    return nsnull;
   }
 
   aTable.EnumerateRead(enumfunc_createenumerator, enumObj);
@@ -432,7 +470,7 @@ nsCategoryManager::Create(nsISupports* aOuter, REFNSIID aIID, void** aResult)
 
 nsCategoryManager::nsCategoryManager()
   : mLock("nsCategoryManager")
-  , mSuppressNotifications(false)
+  , mSuppressNotifications(PR_FALSE)
 {
   PL_INIT_ARENA_POOL(&mArena, "CategoryManagerArena",
                      NS_CATEGORYMANAGER_ARENA_SIZE);
@@ -454,45 +492,10 @@ inline CategoryNode*
 nsCategoryManager::get_category(const char* aName) {
   CategoryNode* node;
   if (!mTable.Get(aName, &node)) {
-    return nullptr;
+    return nsnull;
   }
   return node;
 }
-
-namespace {
-
-class CategoryNotificationRunnable : public nsRunnable
-{
-public:
-  CategoryNotificationRunnable(nsISupports* aSubject,
-                               const char* aTopic,
-                               const char* aData)
-    : mSubject(aSubject)
-    , mTopic(aTopic)
-    , mData(aData)
-  { }
-
-  NS_DECL_NSIRUNNABLE
-
-private:
-  nsCOMPtr<nsISupports> mSubject;
-  const char* mTopic;
-  NS_ConvertUTF8toUTF16 mData;
-};
-
-NS_IMETHODIMP
-CategoryNotificationRunnable::Run()
-{
-  nsCOMPtr<nsIObserverService> observerService =
-    mozilla::services::GetObserverService();
-  if (observerService)
-    observerService->NotifyObservers(mSubject, mTopic, mData.get());
-
-  return NS_OK;
-}
-  
-} 
-
 
 void
 nsCategoryManager::NotifyObservers( const char *aTopic,
@@ -502,7 +505,19 @@ nsCategoryManager::NotifyObservers( const char *aTopic,
   if (mSuppressNotifications)
     return;
 
-  nsRefPtr<CategoryNotificationRunnable> r;
+  nsCOMPtr<nsIObserverService> observerService =
+    mozilla::services::GetObserverService();
+  if (!observerService)
+    return;
+
+  nsCOMPtr<nsIObserverService> obsProxy;
+  NS_GetProxyForObject(NS_PROXY_TO_MAIN_THREAD,
+                       NS_GET_IID(nsIObserverService),
+                       observerService,
+                       NS_PROXY_ASYNC,
+                       getter_AddRefs(obsProxy));
+  if (!obsProxy)
+    return;
 
   if (aEntryName) {
     nsCOMPtr<nsISupportsCString> entry
@@ -514,12 +529,12 @@ nsCategoryManager::NotifyObservers( const char *aTopic,
     if (NS_FAILED(rv))
       return;
 
-    r = new CategoryNotificationRunnable(entry, aTopic, aCategoryName);
+    obsProxy->NotifyObservers(entry, aTopic,
+                              NS_ConvertUTF8toUTF16(aCategoryName).get());
   } else {
-    r = new CategoryNotificationRunnable(this, aTopic, aCategoryName);
+    obsProxy->NotifyObservers(this, aTopic,
+                              NS_ConvertUTF8toUTF16(aCategoryName).get());
   }
-
-  NS_DispatchToMainThread(r);
 }
 
 NS_IMETHODIMP
@@ -593,7 +608,7 @@ nsCategoryManager::AddCategoryEntry(const char *aCategoryName,
     return;
 
   
-  char *oldEntry = nullptr;
+  char *oldEntry = nsnull;
 
   nsresult rv = category->AddLeaf(aEntryName,
                                   aValue,
@@ -664,7 +679,7 @@ nsCategoryManager::DeleteCategory( const char *aCategoryName )
   if (category) {
     category->Clear();
     NotifyObservers(NS_XPCOM_CATEGORY_CLEARED_OBSERVER_ID,
-                    aCategoryName, nullptr);
+                    aCategoryName, nsnull);
   }
 
   return NS_OK;
@@ -758,7 +773,7 @@ NS_CreateServicesFromCategory(const char *category,
   bool hasMore;
   while (NS_SUCCEEDED(senumerator->HasMore(&hasMore)) && hasMore) {
     
-    nsAutoCString entryString;
+    nsCAutoString entryString;
     if (NS_FAILED(senumerator->GetNext(entryString)))
       continue;
       

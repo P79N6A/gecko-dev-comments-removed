@@ -11,12 +11,48 @@
 
 
 
-#include "jsapi.h"
-#include "jsfriendapi.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "jscntxt.h"  
 #include "nsXULContentSink.h"
 #include "nsCOMPtr.h"
 #include "nsForwardReference.h"
 #include "nsIContentSink.h"
+#include "nsIDOMDocument.h"
 #include "nsIDOMEventListener.h"
 #include "nsIDOMHTMLFormElement.h"
 #include "nsIDOMXULDocument.h"
@@ -25,6 +61,7 @@
 #include "nsHTMLStyleSheet.h"
 #include "nsINameSpaceManager.h"
 #include "nsINodeInfo.h"
+#include "nsIParser.h"
 #include "nsIScriptContext.h"
 #include "nsIScriptRuntime.h"
 #include "nsIScriptGlobalObject.h"
@@ -36,6 +73,7 @@
 #include "nsLayoutCID.h"
 #include "nsNetUtil.h"
 #include "nsRDFCID.h"
+#include "nsParserUtils.h"
 #include "nsXPIDLString.h"
 #include "nsReadableUtils.h"
 #include "nsXULElement.h"
@@ -61,7 +99,7 @@ static PRLogModuleInfo* gLog;
 
 
 XULContentSinkImpl::ContextStack::ContextStack()
-    : mTop(nullptr), mDepth(0)
+    : mTop(nsnull), mDepth(0)
 {
 }
 
@@ -128,6 +166,39 @@ XULContentSinkImpl::ContextStack::GetTopChildren(nsPrototypeArray** aChildren)
     return NS_OK;
 }
 
+nsresult
+XULContentSinkImpl::ContextStack::GetTopNodeScriptType(PRUint32 *aScriptType)
+{
+    if (mDepth == 0)
+        return NS_ERROR_UNEXPECTED;
+
+    
+    
+    nsresult rv = NS_OK;
+    nsRefPtr<nsXULPrototypeNode> node;
+    rv = GetTopNode(node);
+    if (NS_FAILED(rv)) return rv;
+    switch (node->mType) {
+        case nsXULPrototypeNode::eType_Element: {
+            nsXULPrototypeElement *parent =
+                reinterpret_cast<nsXULPrototypeElement*>(node.get());
+            *aScriptType = parent->mScriptTypeID;
+            break;
+        }
+        case nsXULPrototypeNode::eType_Script: {
+            nsXULPrototypeScript *parent =
+                reinterpret_cast<nsXULPrototypeScript*>(node.get());
+            *aScriptType = parent->mScriptObject.mLangID;
+            break;
+        }
+        default: {
+            NS_WARNING("Unexpected parent node type");
+            rv = NS_ERROR_UNEXPECTED;
+        }
+    }
+    return rv;
+}
+
 void
 XULContentSinkImpl::ContextStack::Clear()
 {
@@ -139,7 +210,7 @@ XULContentSinkImpl::ContextStack::Clear()
     cur = next;
   }
 
-  mTop = nullptr;
+  mTop = nsnull;
   mDepth = 0;
 }
 
@@ -147,12 +218,12 @@ XULContentSinkImpl::ContextStack::Clear()
 
 
 XULContentSinkImpl::XULContentSinkImpl()
-    : mText(nullptr),
+    : mText(nsnull),
       mTextLength(0),
       mTextSize(0),
-      mConstrainSize(true),
+      mConstrainSize(PR_TRUE),
       mState(eInProlog),
-      mParser(nullptr)
+      mParser(nsnull)
 {
 
 #ifdef PR_LOGGING
@@ -204,7 +275,7 @@ XULContentSinkImpl::DidBuildModel(bool aTerminated)
     nsCOMPtr<nsIDocument> doc = do_QueryReferent(mDocument);
     if (doc) {
         doc->EndLoad();
-        mDocument = nullptr;
+        mDocument = nsnull;
     }
 
     
@@ -228,7 +299,7 @@ XULContentSinkImpl::WillResume(void)
 }
 
 NS_IMETHODIMP 
-XULContentSinkImpl::SetParser(nsParserBase* aParser)
+XULContentSinkImpl::SetParser(nsIParser* aParser)
 {
     NS_IF_RELEASE(mParser);
     mParser = aParser;
@@ -260,7 +331,7 @@ nsresult
 XULContentSinkImpl::Init(nsIDocument* aDocument,
                          nsXULPrototypeDocument* aPrototype)
 {
-    NS_PRECONDITION(aDocument != nullptr, "null ptr");
+    NS_PRECONDITION(aDocument != nsnull, "null ptr");
     if (! aDocument)
         return NS_ERROR_NULL_POINTER;
     
@@ -302,18 +373,18 @@ XULContentSinkImpl::Init(nsIDocument* aDocument,
 
 
 bool
-XULContentSinkImpl::IsDataInBuffer(PRUnichar* buffer, int32_t length)
+XULContentSinkImpl::IsDataInBuffer(PRUnichar* buffer, PRInt32 length)
 {
-    for (int32_t i = 0; i < length; ++i) {
+    for (PRInt32 i = 0; i < length; ++i) {
         if (buffer[i] == ' ' ||
             buffer[i] == '\t' ||
             buffer[i] == '\n' ||
             buffer[i] == '\r')
             continue;
 
-        return true;
+        return PR_TRUE;
     }
-    return false;
+    return PR_FALSE;
 }
 
 
@@ -362,7 +433,7 @@ XULContentSinkImpl::FlushText(bool aCreateTextNode)
             text->mValue.Trim(" \t\n\r");
 
         
-        nsPrototypeArray* children = nullptr;
+        nsPrototypeArray* children = nsnull;
         rv = mContextStack.GetTopChildren(&children);
         if (NS_FAILED(rv)) return rv;
 
@@ -381,7 +452,7 @@ nsresult
 XULContentSinkImpl::NormalizeAttributeString(const PRUnichar *aExpatName,
                                              nsAttrName &aName)
 {
-    int32_t nameSpaceID;
+    PRInt32 nameSpaceID;
     nsCOMPtr<nsIAtom> prefix, localName;
     nsContentUtils::SplitExpatName(aExpatName, getter_AddRefs(prefix),
                                    getter_AddRefs(localName), &nameSpaceID);
@@ -423,9 +494,9 @@ XULContentSinkImpl::CreateElement(nsINodeInfo *aNodeInfo,
 NS_IMETHODIMP 
 XULContentSinkImpl::HandleStartElement(const PRUnichar *aName, 
                                        const PRUnichar **aAtts,
-                                       uint32_t aAttsCount, 
-                                       int32_t aIndex, 
-                                       uint32_t aLineNumber)
+                                       PRUint32 aAttsCount, 
+                                       PRInt32 aIndex, 
+                                       PRUint32 aLineNumber)
 { 
   
   
@@ -442,7 +513,7 @@ XULContentSinkImpl::HandleStartElement(const PRUnichar *aName,
       FlushText();
   }
 
-  int32_t nameSpaceID;
+  PRInt32 nameSpaceID;
   nsCOMPtr<nsIAtom> prefix, localName;
   nsContentUtils::SplitExpatName(aName, getter_AddRefs(prefix),
                                  getter_AddRefs(localName), &nameSpaceID);
@@ -506,19 +577,19 @@ XULContentSinkImpl::HandleEndElement(const PRUnichar *aName)
         FlushText();
 
         
-        nsPrototypeArray* children = nullptr;
+        nsPrototypeArray* children = nsnull;
         rv = mContextStack.GetTopChildren(&children);
         if (NS_FAILED(rv)) return rv;
 
         nsXULPrototypeElement* element =
           static_cast<nsXULPrototypeElement*>(node.get());
 
-        int32_t count = children->Length();
+        PRInt32 count = children->Length();
         if (count) {
             if (!element->mChildren.SetCapacity(count))
                 return NS_ERROR_OUT_OF_MEMORY;
 
-            for (int32_t i = 0; i < count; ++i)
+            for (PRInt32 i = 0; i < count; ++i)
                 element->mChildren.AppendElement(children->ElementAt(i));
 
         }
@@ -533,13 +604,13 @@ XULContentSinkImpl::HandleEndElement(const PRUnichar *aName)
         if (! script->mSrcURI && ! script->mScriptObject.mObject) {
             nsCOMPtr<nsIDocument> doc = do_QueryReferent(mDocument);
 
-            script->mOutOfLine = false;
+            script->mOutOfLine = PR_FALSE;
             if (doc)
                 script->Compile(mText, mTextLength, mDocumentURL,
                                 script->mLineNo, doc, mPrototype);
         }
 
-        FlushText(false);
+        FlushText(PR_FALSE);
     }
     break;
 
@@ -580,7 +651,7 @@ XULContentSinkImpl::HandleComment(const PRUnichar *aName)
 }
 
 NS_IMETHODIMP 
-XULContentSinkImpl::HandleCDataSection(const PRUnichar *aData, uint32_t aLength)
+XULContentSinkImpl::HandleCDataSection(const PRUnichar *aData, PRUint32 aLength)
 {
     FlushText();
     return AddText(aData, aLength);
@@ -598,7 +669,7 @@ XULContentSinkImpl::HandleDoctypeDecl(const nsAString & aSubset,
 
 NS_IMETHODIMP 
 XULContentSinkImpl::HandleCharacterData(const PRUnichar *aData, 
-                                        uint32_t aLength)
+                                        PRUint32 aLength)
 {
   if (aData && mState != eInProlog && mState != eInEpilog) {
     return AddText(aData, aLength);
@@ -629,7 +700,7 @@ XULContentSinkImpl::HandleProcessingInstruction(const PRUnichar *aTarget,
     }
 
     nsresult rv;
-    nsPrototypeArray* children = nullptr;
+    nsPrototypeArray* children = nsnull;
     rv = mContextStack.GetTopChildren(&children);
     if (NS_FAILED(rv)) {
         return rv;
@@ -646,7 +717,7 @@ XULContentSinkImpl::HandleProcessingInstruction(const PRUnichar *aTarget,
 NS_IMETHODIMP
 XULContentSinkImpl::HandleXMLDeclaration(const PRUnichar *aVersion,
                                          const PRUnichar *aEncoding,
-                                         int32_t aStandalone)
+                                         PRInt32 aStandalone)
 {
   return NS_OK;
 }
@@ -661,7 +732,7 @@ XULContentSinkImpl::ReportError(const PRUnichar* aErrorText,
   NS_PRECONDITION(aError && aSourceText && aErrorText, "Check arguments!!!");
 
   
-  *_retval = true;
+  *_retval = PR_TRUE;
 
   nsresult rv = NS_OK;
 
@@ -694,7 +765,7 @@ XULContentSinkImpl::ReportError(const PRUnichar* aErrorText,
   rv = HandleStartElement(parsererror.get(), noAtts, 0, -1, 0);
   NS_ENSURE_SUCCESS(rv,rv);
 
-  rv = HandleCharacterData(aErrorText, NS_strlen(aErrorText));
+  rv = HandleCharacterData(aErrorText, nsCRT::strlen(aErrorText));
   NS_ENSURE_SUCCESS(rv,rv);  
   
   nsAutoString sourcetext(errorNs);
@@ -704,7 +775,7 @@ XULContentSinkImpl::ReportError(const PRUnichar* aErrorText,
   rv = HandleStartElement(sourcetext.get(), noAtts, 0, -1, 0);
   NS_ENSURE_SUCCESS(rv,rv);
   
-  rv = HandleCharacterData(aSourceText, NS_strlen(aSourceText));
+  rv = HandleCharacterData(aSourceText, nsCRT::strlen(aSourceText));
   NS_ENSURE_SUCCESS(rv,rv);
   
   rv = HandleEndElement(sourcetext.get());
@@ -717,8 +788,57 @@ XULContentSinkImpl::ReportError(const PRUnichar* aErrorText,
 }
 
 nsresult
+XULContentSinkImpl::SetElementScriptType(nsXULPrototypeElement* element,
+                                         const PRUnichar** aAttributes, 
+                                         const PRUint32 aAttrLen)
+{
+    
+    nsresult rv = NS_OK;
+    PRUint32 i;
+    bool found = false;
+    for (i=0;i<aAttrLen;i++) {
+        const nsDependentString key(aAttributes[i*2]);
+        if (key.EqualsLiteral("script-type")) {
+            const nsDependentString value(aAttributes[i*2+1]);
+            if (!value.IsEmpty()) {
+                nsCOMPtr<nsIScriptRuntime> runtime;
+                rv = NS_GetScriptRuntime(value, getter_AddRefs(runtime));
+                if (NS_SUCCEEDED(rv))
+                    element->mScriptTypeID = runtime->GetScriptTypeID();
+                else {
+                    
+                    NS_WARNING("Failed to load the node's script language!");
+                    
+                    
+                    NS_ASSERTION(element->mScriptTypeID == nsIProgrammingLanguage::UNKNOWN,
+                                 "Default script type should be unknown");
+                }
+                found = PR_TRUE;
+                break;
+            }
+        }
+    }
+    
+    
+    if (!found) {
+        if (mContextStack.Depth() == 0) {
+            
+            element->mScriptTypeID = nsIProgrammingLanguage::JAVASCRIPT;
+        } else {
+            
+            
+            
+            PRUint32 scriptId = 0;
+            rv = mContextStack.GetTopNodeScriptType(&scriptId);
+            element->mScriptTypeID = scriptId;
+        }
+    }
+    return rv;
+}
+
+nsresult
 XULContentSinkImpl::OpenRoot(const PRUnichar** aAttributes, 
-                             const uint32_t aAttrLen, 
+                             const PRUint32 aAttrLen, 
                              nsINodeInfo *aNodeInfo)
 {
     NS_ASSERTION(mState == eInProlog, "how'd we get here?");
@@ -755,6 +875,10 @@ XULContentSinkImpl::OpenRoot(const PRUnichar** aAttributes,
     }
 
     
+    rv = SetElementScriptType(element, aAttributes, aAttrLen);
+    if (NS_FAILED(rv)) return rv;
+
+    
     
     rv = mContextStack.Push(element, mState);
     if (NS_FAILED(rv)) {
@@ -772,8 +896,8 @@ XULContentSinkImpl::OpenRoot(const PRUnichar** aAttributes,
 
 nsresult
 XULContentSinkImpl::OpenTag(const PRUnichar** aAttributes, 
-                            const uint32_t aAttrLen,
-                            const uint32_t aLineNumber,
+                            const PRUint32 aAttrLen,
+                            const PRUint32 aLineNumber,
                             nsINodeInfo *aNodeInfo)
 {
     nsresult rv;
@@ -798,7 +922,7 @@ XULContentSinkImpl::OpenTag(const PRUnichar** aAttributes,
     }
 
     
-    nsPrototypeArray* children = nullptr;
+    nsPrototypeArray* children = nsnull;
     rv = mContextStack.GetTopChildren(&children);
     if (NS_FAILED(rv)) {
         delete element;
@@ -814,6 +938,9 @@ XULContentSinkImpl::OpenTag(const PRUnichar** aAttributes,
     if (aNodeInfo->Equals(nsGkAtoms::script, kNameSpaceID_XHTML) || 
         aNodeInfo->Equals(nsGkAtoms::script, kNameSpaceID_XUL)) {
         
+        
+        
+        element->mScriptTypeID = nsIProgrammingLanguage::JAVASCRIPT;
         rv = OpenScript(aAttributes, aLineNumber);
         NS_ENSURE_SUCCESS(rv, rv);
 
@@ -827,6 +954,10 @@ XULContentSinkImpl::OpenTag(const PRUnichar** aAttributes,
     }
 
     
+    rv = SetElementScriptType(element, aAttributes, aAttrLen);
+    if (NS_FAILED(rv)) return rv;
+
+    
     
     rv = mContextStack.Push(element, mState);
     if (NS_FAILED(rv)) return rv;
@@ -837,11 +968,12 @@ XULContentSinkImpl::OpenTag(const PRUnichar** aAttributes,
 
 nsresult
 XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
-                               const uint32_t aLineNumber)
+                               const PRUint32 aLineNumber)
 {
-  uint32_t langID = nsIProgrammingLanguage::JAVASCRIPT;
-  uint32_t version = 0;
-  nsresult rv;
+  PRUint32 langID;
+  nsresult rv = mContextStack.GetTopNodeScriptType(&langID);
+  if (NS_FAILED(rv)) return rv;
+  PRUint32 version = 0;
 
   
   nsAutoString src;
@@ -865,29 +997,70 @@ XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
               NS_ENSURE_SUCCESS(rv, rv);
           }
 
-          if (nsContentUtils::IsJavascriptMIMEType(mimeType)) {
+          
+          
+          
+          
+          
+          static const char *jsTypes[] = {
+              "application/x-javascript",
+              "text/javascript",
+              "text/ecmascript",
+              "application/javascript",
+              "application/ecmascript",
+              nsnull
+          };
+
+          bool isJavaScript = false;
+          for (PRInt32 i = 0; jsTypes[i]; i++) {
+              if (mimeType.LowerCaseEqualsASCII(jsTypes[i])) {
+                  isJavaScript = PR_TRUE;
+                  break;
+              }
+          }
+
+          if (isJavaScript) {
               langID = nsIProgrammingLanguage::JAVASCRIPT;
               version = JSVERSION_LATEST;
           } else {
-              langID = nsIProgrammingLanguage::UNKNOWN;
+              
+              nsCOMPtr<nsIScriptRuntime> runtime;
+              rv = NS_GetScriptRuntime(mimeType, getter_AddRefs(runtime));
+              if (NS_FAILED(rv) || runtime == nsnull) {
+                  
+                  NS_WARNING("Failed to find a scripting language");
+                  langID = nsIProgrammingLanguage::UNKNOWN;
+              } else
+                  langID = runtime->GetScriptTypeID();
           }
 
           if (langID != nsIProgrammingLanguage::UNKNOWN) {
             
             nsAutoString versionName;
             rv = parser.GetParameter("version", versionName);
-
-            if (NS_SUCCEEDED(rv)) {
-              version = nsContentUtils::ParseJavascriptVersion(versionName);
-            } else if (rv != NS_ERROR_INVALID_ARG) {
-              return rv;
+            if (NS_FAILED(rv)) {
+              if (rv != NS_ERROR_INVALID_ARG)
+                return rv;
+              
+            } else {
+              nsCOMPtr<nsIScriptRuntime> runtime;
+              rv = NS_GetScriptRuntimeByID(langID, getter_AddRefs(runtime));
+              if (NS_FAILED(rv))
+                return rv;
+              rv = runtime->ParseVersion(versionName, &version);
+              if (NS_FAILED(rv)) {
+                NS_WARNING("This script language version is not supported - ignored");
+                langID = nsIProgrammingLanguage::UNKNOWN;
+              }
             }
           }
           
           if (langID == nsIProgrammingLanguage::JAVASCRIPT) {
               
               
-              version = js::VersionSetMoarXML(JSVersion(version), true);
+              
+              
+              version |= js::VersionFlags::HAS_XML;
 
               nsAutoString value;
               rv = parser.GetParameter("e4x", value);
@@ -896,7 +1069,7 @@ XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
                       return rv;
               } else {
                   if (value.Length() == 1 && value[0] == '0')
-                    version = js::VersionSetMoarXML(JSVersion(version), false);
+                    version &= ~js::VersionFlags::HAS_XML;
               }
           }
       }
@@ -905,17 +1078,16 @@ XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
           
           
           nsAutoString lang(aAttributes[1]);
-          if (nsContentUtils::IsJavaScriptLanguage(lang, &version)) {
+          if (nsParserUtils::IsJavaScriptLanguage(lang, &version)) {
               langID = nsIProgrammingLanguage::JAVASCRIPT;
 
               
               
-              version = js::VersionSetMoarXML(JSVersion(version), true);
+              version |= js::VersionFlags::HAS_XML;
           }
       }
       aAttributes += 2;
   }
-
   
   
   
@@ -931,21 +1103,20 @@ XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
       langID = nsIProgrammingLanguage::UNKNOWN;
       NS_WARNING("Non JS language called from non chrome - ignored");
   }
-
   
   if (langID != nsIProgrammingLanguage::UNKNOWN) {
-      nsIScriptGlobalObject* globalObject = nullptr; 
+      nsIScriptGlobalObject* globalObject = nsnull; 
       if (doc)
           globalObject = doc->GetScriptGlobalObject();
       nsRefPtr<nsXULPrototypeScript> script =
-          new nsXULPrototypeScript(aLineNumber, version);
+          new nsXULPrototypeScript(langID, aLineNumber, version);
       if (! script)
           return NS_ERROR_OUT_OF_MEMORY;
 
       
       if (! src.IsEmpty()) {
           
-          rv = NS_NewURI(getter_AddRefs(script->mSrcURI), src, nullptr, mDocumentURL);
+          rv = NS_NewURI(getter_AddRefs(script->mSrcURI), src, nsnull, mDocumentURL);
 
           
           
@@ -974,10 +1145,10 @@ XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
           
           
           if (globalObject)
-                script->DeserializeOutOfLine(nullptr, globalObject);
+                script->DeserializeOutOfLine(nsnull, globalObject);
       }
 
-      nsPrototypeArray* children = nullptr;
+      nsPrototypeArray* children = nsnull;
       rv = mContextStack.GetTopChildren(&children);
       if (NS_FAILED(rv)) {
           return rv;
@@ -985,7 +1156,7 @@ XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
 
       children->AppendElement(script);
 
-      mConstrainSize = false;
+      mConstrainSize = PR_FALSE;
 
       mContextStack.Push(script, mState);
       mState = eInScript;
@@ -996,14 +1167,14 @@ XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
 
 nsresult
 XULContentSinkImpl::AddAttributes(const PRUnichar** aAttributes, 
-                                  const uint32_t aAttrLen, 
+                                  const PRUint32 aAttrLen, 
                                   nsXULPrototypeElement* aElement)
 {
   
   nsresult rv;
 
   
-  nsXULPrototypeAttribute* attrs = nullptr;
+  nsXULPrototypeAttribute* attrs = nsnull;
   if (aAttrLen > 0) {
     attrs = new nsXULPrototypeAttribute[aAttrLen];
     if (! attrs)
@@ -1014,7 +1185,7 @@ XULContentSinkImpl::AddAttributes(const PRUnichar** aAttributes,
   aElement->mNumAttributes = aAttrLen;
 
   
-  uint32_t i;
+  PRUint32 i;
   for (i = 0; i < aAttrLen; ++i) {
       rv = NormalizeAttributeString(aAttributes[i * 2], attrs[i].mName);
       NS_ENSURE_SUCCESS(rv, rv);
@@ -1026,7 +1197,7 @@ XULContentSinkImpl::AddAttributes(const PRUnichar** aAttributes,
 #ifdef PR_LOGGING
       if (PR_LOG_TEST(gLog, PR_LOG_DEBUG)) {
           nsAutoString extraWhiteSpace;
-          int32_t cnt = mContextStack.Depth();
+          PRInt32 cnt = mContextStack.Depth();
           while (--cnt >= 0)
               extraWhiteSpace.AppendLiteral("  ");
           nsAutoString qnameC,valueC;
@@ -1047,21 +1218,21 @@ XULContentSinkImpl::AddAttributes(const PRUnichar** aAttributes,
 
 nsresult
 XULContentSinkImpl::AddText(const PRUnichar* aText, 
-                            int32_t aLength)
+                            PRInt32 aLength)
 {
   
   if (0 == mTextSize) {
       mText = (PRUnichar *) PR_MALLOC(sizeof(PRUnichar) * 4096);
-      if (nullptr == mText) {
+      if (nsnull == mText) {
           return NS_ERROR_OUT_OF_MEMORY;
       }
       mTextSize = 4096;
   }
 
   
-  int32_t offset = 0;
+  PRInt32 offset = 0;
   while (0 != aLength) {
-    int32_t amount = mTextSize - mTextLength;
+    PRInt32 amount = mTextSize - mTextLength;
     if (amount > aLength) {
         amount = aLength;
     }
@@ -1075,7 +1246,7 @@ XULContentSinkImpl::AddText(const PRUnichar* aText,
       else {
         mTextSize += aLength;
         mText = (PRUnichar *) PR_REALLOC(mText, sizeof(PRUnichar) * mTextSize);
-        if (nullptr == mText) {
+        if (nsnull == mText) {
             return NS_ERROR_OUT_OF_MEMORY;
         }
       }

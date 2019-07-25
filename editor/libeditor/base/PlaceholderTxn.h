@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef AggregatePlaceholderTxn_h__
 #define AggregatePlaceholderTxn_h__
 
@@ -44,8 +76,7 @@ public:
 
 
 
-  NS_IMETHOD Init(nsIAtom* aName, nsSelectionState* aSelState,
-                  nsEditor* aEditor);
+  NS_IMETHOD Init(nsIAtom *aName, nsSelectionState *aSelState, nsIEditor *aEditor);
   
   NS_IMETHOD GetTxnName(nsIAtom **aName);
   
@@ -73,7 +104,7 @@ protected:
   
   nsAutoPtr<nsSelectionState> mStartSel; 
   nsSelectionState  mEndSel;
-  nsEditor*         mEditor;   
+  nsIEditor*        mEditor;   
 };
 
 

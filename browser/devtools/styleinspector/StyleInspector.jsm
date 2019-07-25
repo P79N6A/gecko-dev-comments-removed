@@ -4,232 +4,251 @@
 
 
 
-const Cc = Components.classes;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const Cu = Components.utils;
 const Ci = Components.interfaces;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource:///modules/devtools/CssRuleView.jsm");
-Cu.import("resource:///modules/inspector.jsm");
 
+var EXPORTED_SYMBOLS = ["StyleInspector"];
 
-
-var EXPORTED_SYMBOLS = [];
-
-
-
-
-
-
-function l10n(aName)
-{
-  try {
-    return _strings.GetStringFromName(aName);
-  } catch (ex) {
-    Services.console.logStringMessage("Error reading '" + aName + "'");
-    throw new Error("l10n error with " + aName);
-  }
-}
-
-function RegisterStyleTools()
-{
+var StyleInspector = {
   
-  if (Services.prefs.getBoolPref("devtools.ruleview.enabled")) {
-    InspectorUI.registerSidebar({
-      id: "ruleview",
-      label: l10n("ruleView.label"),
-      tooltiptext: l10n("ruleView.tooltiptext"),
-      accesskey: l10n("ruleView.accesskey"),
-      contentURL: "chrome://browser/content/devtools/cssruleview.xul",
-      load: function(aInspector, aFrame) new RuleViewTool(aInspector, aFrame),
-      destroy: function(aContext) aContext.destroy()
-    });
-  }
+
+
+
+  get isEnabled()
+  {
+    return Services.prefs.getBoolPref("devtools.styleinspector.enabled");
+  },
 
   
-  if (Services.prefs.getBoolPref("devtools.styleinspector.enabled")) {
-    InspectorUI.registerSidebar({
-      id: "computedview",
-      label: this.l10n("style.highlighter.button.label2"),
-      tooltiptext: this.l10n("style.highlighter.button.tooltip2"),
-      accesskey: this.l10n("style.highlighter.accesskey2"),
-      contentURL: "chrome://browser/content/devtools/csshtmltree.xul",
-      load: function(aInspector, aFrame) new ComputedViewTool(aInspector, aFrame),
-      destroy: function(aContext) aContext.destroy()
-    });
-  }
-}
 
-function RuleViewTool(aInspector, aFrame)
-{
-  this.inspector = aInspector;
-  this.chromeWindow = this.inspector.chromeWindow;
-  this.doc = aFrame.contentDocument;
 
-  if (!this.inspector._ruleViewStore) {
-   this.inspector._ruleViewStore = {};
-  }
-  this.view = new CssRuleView(this.doc, this.inspector._ruleViewStore);
-  this.doc.documentElement.appendChild(this.view.element);
 
-  this._changeHandler = function() {
-    this.inspector.markDirty();
-    this.inspector.change("ruleview");
-  }.bind(this);
 
-  this.view.element.addEventListener("CssRuleViewChanged", this._changeHandler)
 
-  this._cssLinkHandler = function(aEvent) {
-    let rule = aEvent.detail.rule;
-    let styleSheet = rule.sheet;
-    let doc = this.chromeWindow.content.document;
-    let styleSheets = doc.styleSheets;
-    let contentSheet = false;
-    let line = rule.ruleLine || 0;
+  createPanel: function SI_createPanel(aPreserveOnHide)
+  {
+    let win = Services.wm.getMostRecentWindow("navigator:browser");
+    let popupSet = win.document.getElementById("mainPopupSet");
+    let ns = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
+    let panel = win.document.createElementNS(ns, "panel");
+
+    panel.setAttribute("class", "styleInspector");
+    panel.setAttribute("orient", "vertical");
+    panel.setAttribute("ignorekeys", "true");
+    panel.setAttribute("noautofocus", "true");
+    panel.setAttribute("noautohide", "true");
+    panel.setAttribute("titlebar", "normal");
+    panel.setAttribute("close", "true");
+    panel.setAttribute("label", StyleInspector.l10n("panelTitle"));
+    panel.setAttribute("width", 350);
+    panel.setAttribute("height", win.screen.height / 2);
+
+    let vbox = win.document.createElement("vbox");
+    vbox.setAttribute("flex", "1");
+    panel.appendChild(vbox);
+
+    let iframe = win.document.createElementNS(ns, "iframe");
+    iframe.setAttribute("flex", "1");
+    iframe.setAttribute("tooltip", "aHTMLTooltip");
+    iframe.setAttribute("src", "chrome://browser/content/csshtmltree.xhtml");
+    iframe.addEventListener("load", SI_iframeOnload, true);
+    vbox.appendChild(iframe);
+
+    let hbox = win.document.createElement("hbox");
+    hbox.setAttribute("class", "resizerbox");
+    vbox.appendChild(hbox);
+
+    let spacer = win.document.createElement("spacer");
+    spacer.setAttribute("flex", "1");
+    hbox.appendChild(spacer);
+
+    let resizer = win.document.createElement("resizer");
+    resizer.setAttribute("dir", "bottomend");
+    hbox.appendChild(resizer);
+    popupSet.appendChild(panel);
 
     
-    
-    for each (let sheet in styleSheets) {
-      if (sheet == styleSheet) {
-        contentSheet = true;
-        break;
+
+
+    let iframeReady = false;
+    function SI_iframeOnload() {
+      iframe.removeEventListener("load", SI_iframeOnload, true);
+      iframeReady = true;
+      if (panelReady) {
+        SI_popupShown.call(panel);
       }
     }
 
-    if (contentSheet)  {
-      this.chromeWindow.StyleEditor.openChrome(styleSheet, line);
-    } else {
-      let href = styleSheet ? styleSheet.href : "";
-      if (rule.elementStyle.element) {
-        href = rule.elementStyle.element.ownerDocument.location.href;
+    
+
+
+    let panelReady = false;
+    function SI_popupShown() {
+      panelReady = true;
+      if (iframeReady) {
+        if (!this.cssLogic) {
+          this.cssLogic = new CssLogic();
+          this.cssHtmlTree = new CssHtmlTree(iframe, this.cssLogic, this);
+        }
+        let selectedNode = this.selectedNode || null;
+        this.cssLogic.highlight(selectedNode);
+        this.cssHtmlTree.highlight(selectedNode);
+        Services.obs.notifyObservers(null, "StyleInspector-opened", null);
       }
-      let viewSourceUtils = this.chromeWindow.gViewSourceUtils;
-      viewSourceUtils.viewSource(href, null, doc, line);
-    }
-  }.bind(this);
-
-  this.view.element.addEventListener("CssRuleViewCSSLinkClicked",
-                                     this._cssLinkHandler);
-
-  this._onSelect = this.onSelect.bind(this);
-  this.inspector.on("select", this._onSelect);
-
-  this._onChange = this.onChange.bind(this);
-  this.inspector.on("change", this._onChange);
-  this.inspector.on("sidebaractivated-ruleview", this._onChange);
-
-  this.onSelect();
-}
-
-RuleViewTool.prototype = {
-  onSelect: function RVT_onSelect(aEvent, aFrom) {
-    let node = this.inspector.selection;
-    if (!node) {
-      this.view.highlight(null);
-      return;
     }
 
-    if (this.inspector.locked) {
-      this.view.highlight(node);
+    
+
+
+    function SI_popupHidden() {
+      if (panel.preserveOnHide) {
+        Services.obs.notifyObservers(null, "StyleInspector-closed", null);
+      } else {
+        panel.destroy();
+      }
     }
+
+    panel.addEventListener("popupshown", SI_popupShown);
+    panel.addEventListener("popuphidden", SI_popupHidden);
+    panel.preserveOnHide = !!aPreserveOnHide;
+
+    
+
+
+    panel.isOpen = function SI_isOpen()
+    {
+      return this.state && this.state == "open";
+    };
+
+    
+
+
+
+
+    panel.selectNode = function SI_selectNode(aNode)
+    {
+      this.selectedNode = aNode;
+      if (this.isOpen() && !this.hasAttribute("dimmed")) {
+        this.cssLogic.highlight(aNode);
+        this.cssHtmlTree.highlight(aNode);
+      }
+    };
+
+    
+
+
+    panel.destroy = function SI_destroy()
+    {
+      if (!this.cssLogic)
+        return;
+      if (this.isOpen())
+        this.hideTool();
+      this.cssLogic = null;
+      this.cssHtmlTree = null;
+      this.removeEventListener("popupshown", SI_popupShown);
+      this.removeEventListener("popuphidden", SI_popupHidden);
+      this.parentNode.removeChild(this);
+      Services.obs.notifyObservers(null, "StyleInspector-closed", null);
+    };
+
+    
+
+
+
+
+
+    panel.dimTool = function SI_dimTool(aState)
+    {
+      if (!this.isOpen())
+        return;
+
+      if (aState) {
+        this.setAttribute("dimmed", "true");
+      } else if (this.hasAttribute("dimmed")) {
+        this.removeAttribute("dimmed");
+      }
+    };
+
+    panel.showTool = function SI_showTool(aSelection)
+    {
+      this.selectNode(aSelection);
+      let win = Services.wm.getMostRecentWindow("navigator:browser");
+      this.openPopup(win.gBrowser.selectedBrowser, "end_before", 0, 0,
+        false, false);
+    };
+
+    panel.hideTool = function SI_hideTool()
+    {
+      this.hidePopup();
+    };
+
+    
+
+
+
+    function isInitialized()
+    {
+      return panel.cssLogic && panel.cssHtmlTree;
+    }
+
+    return panel;
   },
-
-  onChange: function RVT_onChange(aEvent, aFrom) {
-    if (aFrom == "ruleview" || aFrom == "createpanel") {
-      return;
-    }
-
-    if (this.inspector.locked && this.inspector.isPanelVisible("ruleview")) {
-      this.view.nodeChanged();
-    }
-  },
-
-  destroy: function RVT_destroy() {
-    this.inspector.removeListener("select", this._onSelect);
-    this.inspector.removeListener("change", this._onChange);
-    this.inspector.removeListener("sidebaractivated-ruleview", this._onChange);
-    this.view.element.removeEventListener("CssRuleViewChanged",
-                                          this._changeHandler);
-    this.view.element.removeEventListener("CssRuleViewCSSLinkClicked",
-                                          this._cssLinkHandler);
-    this.doc.documentElement.removeChild(this.view.element);
-
-    this.view.destroy();
-
-    delete this._changeHandler;
-    delete this.view;
-    delete this.doc;
-    delete this.inspector;
-  }
-}
-
-function ComputedViewTool(aInspector, aFrame)
-{
-  this.inspector = aInspector;
-  this.iframe = aFrame;
-  this.window = aInspector.chromeWindow;
-  this.document = this.window.document;
-  this.cssLogic = new CssLogic();
-  this.view = new CssHtmlTree(this);
-
-  this._onSelect = this.onSelect.bind(this);
-  this.inspector.on("select", this._onSelect);
-  this._onChange = this.onChange.bind(this);
-  this.inspector.on("change", this._onChange);
 
   
-  
-  
-  this.inspector.on("sidebaractivated-computedview", this._onChange);
 
-  this.cssLogic.highlight(null);
-  this.view.highlight(null);
 
-  this.onSelect();
-}
 
-ComputedViewTool.prototype = {
-  onSelect: function CVT_onSelect(aEvent)
+
+  l10n: function SI_l10n(aName)
   {
-    if (this.inspector.locked) {
-      this.cssLogic.highlight(this.inspector.selection);
-      this.view.highlight(this.inspector.selection);
+    try {
+      return _strings.GetStringFromName(aName);
+    } catch (ex) {
+      Services.console.logStringMessage("Error reading '" + aName + "'");
+      throw new Error("l10n error with " + aName);
     }
   },
-
-  onChange: function CVT_change(aEvent, aFrom)
-  {
-    if (aFrom == "computedview" ||
-        aFrom == "createpanel" ||
-        this.inspector.selection != this.cssLogic.viewedElement) {
-      return;
-    }
-
-    if (this.inspector.locked && this.inspector.isPanelVisible("computedview")) {
-      this.cssLogic.highlight(this.inspector.selection);
-      this.view.refreshPanel();
-    }
-  },
-
-  destroy: function CVT_destroy(aContext)
-  {
-    this.inspector.removeListener("select", this._onSelect);
-    this.inspector.removeListener("change", this._onChange);
-    this.inspector.removeListener("sidebaractivated-computedview", this._onChange);
-    this.view.destroy();
-    delete this.view;
-
-    delete this.cssLogic;
-    delete this.cssHtmlTree;
-    delete this.iframe;
-    delete this.window;
-    delete this.document;
-  }
-}
+};
 
 XPCOMUtils.defineLazyGetter(this, "_strings", function() Services.strings
-  .createBundle("chrome:
+          .createBundle("chrome:
 
 XPCOMUtils.defineLazyGetter(this, "CssLogic", function() {
   let tmp = {};
@@ -242,5 +261,3 @@ XPCOMUtils.defineLazyGetter(this, "CssHtmlTree", function() {
   Cu.import("resource:///modules/devtools/CssHtmlTree.jsm", tmp);
   return tmp.CssHtmlTree;
 });
-
-RegisterStyleTools();

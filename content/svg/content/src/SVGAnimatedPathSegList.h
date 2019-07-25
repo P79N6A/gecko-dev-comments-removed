@@ -3,16 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_SVGANIMATEDPATHSEGLIST_H__
 #define MOZILLA_SVGANIMATEDPATHSEGLIST_H__
 
-#include "nsAutoPtr.h"
-#include "nsISMILAttr.h"
 #include "SVGPathData.h"
 
-class nsISMILAnimationElement;
-class nsSMILValue;
 class nsSVGElement;
+
+#ifdef MOZ_SMIL
+#include "nsISMILAttr.h"
+#endif 
 
 namespace mozilla {
 
@@ -81,8 +112,10 @@ public:
     return !!mAnimVal;
   }
 
+#ifdef MOZ_SMIL
   
   nsISMILAttr* ToSMILAttr(nsSVGElement* aElement);
+#endif 
 
 private:
 
@@ -94,6 +127,7 @@ private:
   SVGPathData mBaseVal;
   nsAutoPtr<SVGPathData> mAnimVal;
 
+#ifdef MOZ_SMIL
   struct SMILAnimatedPathSegList : public nsISMILAttr
   {
   public:
@@ -118,6 +152,7 @@ private:
     virtual void ClearAnimValue();
     virtual nsresult SetAnimValue(const nsSMILValue& aValue);
   };
+#endif 
 };
 
 } 

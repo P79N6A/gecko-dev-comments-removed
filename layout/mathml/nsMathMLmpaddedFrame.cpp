@@ -4,6 +4,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsCRT.h"  
 #include "nsFrame.h"
@@ -74,42 +109,39 @@ nsMathMLmpaddedFrame::ProcessAttributes()
 
 
 
-
-
   
 
   
   mWidthSign = NS_MATHML_SIGN_INVALID;
-  GetAttribute(mContent, nullptr, nsGkAtoms::width, value);
+  GetAttribute(mContent, nsnull, nsGkAtoms::width, value);
   if (!value.IsEmpty()) {
     ParseAttribute(value, mWidthSign, mWidth, mWidthPseudoUnit);
   }
 
   
   mHeightSign = NS_MATHML_SIGN_INVALID;
-  GetAttribute(mContent, nullptr, nsGkAtoms::height, value);
+  GetAttribute(mContent, nsnull, nsGkAtoms::height, value);
   if (!value.IsEmpty()) {
     ParseAttribute(value, mHeightSign, mHeight, mHeightPseudoUnit);
   }
 
   
   mDepthSign = NS_MATHML_SIGN_INVALID;
-  GetAttribute(mContent, nullptr, nsGkAtoms::depth_, value);
+  GetAttribute(mContent, nsnull, nsGkAtoms::depth_, value);
   if (!value.IsEmpty()) {
     ParseAttribute(value, mDepthSign, mDepth, mDepthPseudoUnit);
   }
 
   
-  mLeadingSpaceSign = NS_MATHML_SIGN_INVALID;
-  GetAttribute(mContent, nullptr, nsGkAtoms::lspace_, value);
+  mLeftSpaceSign = NS_MATHML_SIGN_INVALID;
+  GetAttribute(mContent, nsnull, nsGkAtoms::lspace_, value);
   if (!value.IsEmpty()) {
-    ParseAttribute(value, mLeadingSpaceSign, mLeadingSpace,
-                   mLeadingSpacePseudoUnit);
+    ParseAttribute(value, mLeftSpaceSign, mLeftSpace, mLeftSpacePseudoUnit);
   }
 
   
   mVerticalOffsetSign = NS_MATHML_SIGN_INVALID;
-  GetAttribute(mContent, nullptr, nsGkAtoms::voffset_, value);
+  GetAttribute(mContent, nsnull, nsGkAtoms::voffset_, value);
   if (!value.IsEmpty()) {
     ParseAttribute(value, mVerticalOffsetSign, mVerticalOffset, 
                    mVerticalOffsetPseudoUnit);
@@ -121,25 +153,25 @@ nsMathMLmpaddedFrame::ProcessAttributes()
 
 bool
 nsMathMLmpaddedFrame::ParseAttribute(nsString&   aString,
-                                     int32_t&    aSign,
+                                     PRInt32&    aSign,
                                      nsCSSValue& aCSSValue,
-                                     int32_t&    aPseudoUnit)
+                                     PRInt32&    aPseudoUnit)
 {
   aCSSValue.Reset();
   aSign = NS_MATHML_SIGN_INVALID;
   aPseudoUnit = NS_MATHML_PSEUDO_UNIT_UNSPECIFIED;
   aString.CompressWhitespace(); 
 
-  int32_t stringLength = aString.Length();
+  PRInt32 stringLength = aString.Length();
   if (!stringLength)
-    return false;
+    return PR_FALSE;
 
   nsAutoString number, unit;
 
   
   
 
-  int32_t i = 0;
+  PRInt32 i = 0;
 
   if (aString[0] == '+') {
     aSign = NS_MATHML_SIGN_PLUS;
@@ -153,17 +185,21 @@ nsMathMLmpaddedFrame::ParseAttribute(nsString&   aString,
     aSign = NS_MATHML_SIGN_UNSPECIFIED;
 
   
+  if (i < stringLength && nsCRT::IsAsciiSpace(aString[i]))
+    i++;
+
+  
   bool gotDot = false, gotPercent = false;
   for (; i < stringLength; i++) {
     PRUnichar c = aString[i];
     if (gotDot && c == '.') {
       
       aSign = NS_MATHML_SIGN_INVALID;
-      return false;
+      return PR_FALSE;
     }
 
     if (c == '.')
-      gotDot = true;
+      gotDot = PR_TRUE;
     else if (!nsCRT::IsAsciiDigit(c)) {
       break;
     }
@@ -174,45 +210,55 @@ nsMathMLmpaddedFrame::ParseAttribute(nsString&   aString,
   
   
   if (number.IsEmpty()) {
-#ifdef DEBUG
+#ifdef NS_DEBUG
     printf("mpadded: attribute with bad numeric value: %s\n",
             NS_LossyConvertUTF16toASCII(aString).get());
 #endif
     aSign = NS_MATHML_SIGN_INVALID;
-    return false;
+    return PR_FALSE;
   }
 
-  nsresult errorCode;
+  PRInt32 errorCode;
   float floatValue = number.ToFloat(&errorCode);
-  if (NS_FAILED(errorCode)) {
+  if (errorCode) {
     aSign = NS_MATHML_SIGN_INVALID;
-    return false;
+    return PR_FALSE;
   }
+
+  
+  if (i < stringLength && nsCRT::IsAsciiSpace(aString[i]))
+    i++;
 
   
   if (i < stringLength && aString[i] == '%') {
     i++;
-    gotPercent = true;
+    gotPercent = PR_TRUE;
+
+    
+    if (i < stringLength && nsCRT::IsAsciiSpace(aString[i]))
+      i++;
   }
 
   
   aString.Right(unit, stringLength - i);
 
   if (unit.IsEmpty()) {
-    if (gotPercent) {
-      
+    
+    if (gotPercent || !floatValue) {
       aCSSValue.SetPercentValue(floatValue / 100.0f);
       aPseudoUnit = NS_MATHML_PSEUDO_UNIT_ITSELF;
-      return true;
-    } else {
-      
-      
-      if (!floatValue) {
-        aCSSValue.SetFloatValue(floatValue, eCSSUnit_Number);
-        aPseudoUnit = NS_MATHML_PSEUDO_UNIT_ITSELF;
-        return true;
-      }
+      return PR_TRUE;
     }
+    
+
+
+
+
+
+
+
+
+
   }
   else if (unit.EqualsLiteral("width"))  aPseudoUnit = NS_MATHML_PSEUDO_UNIT_WIDTH;
   else if (unit.EqualsLiteral("height")) aPseudoUnit = NS_MATHML_PSEUDO_UNIT_HEIGHT;
@@ -220,22 +266,19 @@ nsMathMLmpaddedFrame::ParseAttribute(nsString&   aString,
   else if (!gotPercent) { 
 
     
-    if (nsMathMLElement::ParseNamedSpaceValue(unit, aCSSValue,
-                                              nsMathMLElement::
-                                              PARSE_ALLOW_NEGATIVE)) {
+    
+    if (ParseNamedSpaceValue(nsnull, unit, aCSSValue)) {
       
       floatValue *= aCSSValue.GetFloatValue();
       aCSSValue.SetFloatValue(floatValue, eCSSUnit_EM);
       aPseudoUnit = NS_MATHML_PSEUDO_UNIT_NAMEDSPACE;
-      return true;
+      return PR_TRUE;
     }
 
     
-    
-    
     number.Append(unit); 
-    if (nsMathMLElement::ParseNumericValue(number, aCSSValue, 0))
-      return true;
+    if (ParseNumericValue(number, aCSSValue))
+      return PR_TRUE;
   }
 
   
@@ -245,22 +288,22 @@ nsMathMLmpaddedFrame::ParseAttribute(nsString&   aString,
     else
       aCSSValue.SetFloatValue(floatValue, eCSSUnit_Number);
 
-    return true;
+    return PR_TRUE;
   }
 
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
   printf("mpadded: attribute with bad numeric value: %s\n",
           NS_LossyConvertUTF16toASCII(aString).get());
 #endif
   
   aSign = NS_MATHML_SIGN_INVALID;
-  return false;
+  return PR_FALSE;
 }
 
 void
-nsMathMLmpaddedFrame::UpdateValue(int32_t                  aSign,
-                                  int32_t                  aPseudoUnit,
+nsMathMLmpaddedFrame::UpdateValue(PRInt32                  aSign,
+                                  PRInt32                  aPseudoUnit,
                                   const nsCSSValue&        aCSSValue,
                                   const nsBoundingMetrics& aBoundingMetrics,
                                   nscoord&                 aValueToUpdate) const
@@ -329,7 +372,7 @@ nsMathMLmpaddedFrame::Place(nsRenderingContext& aRenderingContext,
                             nsHTMLReflowMetrics& aDesiredSize)
 {
   nsresult rv =
-    nsMathMLContainerFrame::Place(aRenderingContext, false, aDesiredSize);
+    nsMathMLContainerFrame::Place(aRenderingContext, PR_FALSE, aDesiredSize);
   if (NS_MATHML_HAS_ERROR(mPresentationData.flags) || NS_FAILED(rv)) {
     DidReflowChildren(GetFirstPrincipalChild());
     return rv;
@@ -337,11 +380,6 @@ nsMathMLmpaddedFrame::Place(nsRenderingContext& aRenderingContext,
 
   nscoord height = mBoundingMetrics.ascent;
   nscoord depth  = mBoundingMetrics.descent;
-  
-  
-  
-  
-  
   
   
   
@@ -365,8 +403,7 @@ nsMathMLmpaddedFrame::Place(nsRenderingContext& aRenderingContext,
   nscoord width  = mBoundingMetrics.width;
   nscoord voffset = 0;
 
-  int32_t pseudoUnit;
-  nscoord initialWidth = width;
+  PRInt32 pseudoUnit;
 
   
   pseudoUnit = (mWidthPseudoUnit == NS_MATHML_PSEUDO_UNIT_ITSELF)
@@ -390,9 +427,9 @@ nsMathMLmpaddedFrame::Place(nsRenderingContext& aRenderingContext,
   depth = NS_MAX(0, depth);
 
   
-  if (mLeadingSpacePseudoUnit != NS_MATHML_PSEUDO_UNIT_ITSELF) {
-    pseudoUnit = mLeadingSpacePseudoUnit;
-    UpdateValue(mLeadingSpaceSign, pseudoUnit, mLeadingSpace,
+  if (mLeftSpacePseudoUnit != NS_MATHML_PSEUDO_UNIT_ITSELF) {
+    pseudoUnit = mLeftSpacePseudoUnit;
+    UpdateValue(mLeftSpaceSign, pseudoUnit, mLeftSpace,
                 mBoundingMetrics, lspace);
   }
 
@@ -408,25 +445,20 @@ nsMathMLmpaddedFrame::Place(nsRenderingContext& aRenderingContext,
   
   
 
-  if ((NS_MATHML_IS_RTL(mPresentationData.flags) ?
-       mWidthSign : mLeadingSpaceSign) != NS_MATHML_SIGN_INVALID) {
-    
+  if (mLeftSpaceSign != NS_MATHML_SIGN_INVALID) { 
     
     mBoundingMetrics.leftBearing = 0;
   }
 
-  if ((NS_MATHML_IS_RTL(mPresentationData.flags) ?
-       mLeadingSpaceSign : mWidthSign) != NS_MATHML_SIGN_INVALID) {
-    
+  if (mWidthSign != NS_MATHML_SIGN_INVALID) { 
     
     mBoundingMetrics.width = width;
     mBoundingMetrics.rightBearing = mBoundingMetrics.width;
   }
 
   nscoord dy = height - mBoundingMetrics.ascent;
-  nscoord dx = NS_MATHML_IS_RTL(mPresentationData.flags) ?
-    width - initialWidth - lspace : lspace;
-    
+  nscoord dx = lspace;
+
   aDesiredSize.ascent += dy;
   aDesiredSize.width = mBoundingMetrics.width;
   aDesiredSize.height += dy + depth - mBoundingMetrics.descent;

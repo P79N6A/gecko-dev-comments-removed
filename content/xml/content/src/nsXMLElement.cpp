@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsXMLElement.h"
 #include "nsContentUtils.h" 
 
@@ -32,7 +65,7 @@ NS_IMPL_RELEASE_INHERITED(nsXMLElement, nsGenericElement)
 NS_IMPL_ELEMENT_CLONE(nsXMLElement)
 
 nsresult
-nsXMLElement::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
+nsXMLElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
                         bool aNotify)
 {
   nsAutoScriptBlocker scriptBlocker;
@@ -41,7 +74,7 @@ nsXMLElement::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
       aNameSpaceID == kNameSpaceID_None) {
     
     RemoveFromIdTable();
-    isId = true;
+    isId = PR_TRUE;
   }
 
   nsMutationGuard guard;
@@ -70,7 +103,7 @@ nsXMLElement::DoGetID() const
   NS_ASSERTION(HasID(), "Unexpected call");
 
   const nsAttrValue* attrVal = mAttrsAndChildren.GetAttr(GetIDAttributeName());
-  return attrVal ? attrVal->GetAtomValue() : nullptr;
+  return attrVal ? attrVal->GetAtomValue() : nsnull;
 }
 
 void
@@ -112,7 +145,7 @@ nsXMLElement::NodeInfoChanged(nsINodeInfo* aOldNodeInfo)
 }
 
 bool
-nsXMLElement::ParseAttribute(int32_t aNamespaceID,
+nsXMLElement::ParseAttribute(PRInt32 aNamespaceID,
                              nsIAtom* aAttribute,
                              const nsAString& aValue,
                              nsAttrValue& aResult)
@@ -124,15 +157,15 @@ nsXMLElement::ParseAttribute(int32_t aNamespaceID,
     RemoveFromIdTable();
     if (aValue.IsEmpty()) {
       ClearHasID();
-      return false;
+      return PR_FALSE;
     }
     aResult.ParseAtom(aValue);
     SetHasID();
     AddToIdTable(aResult.GetAtomValue());
-    return true;
+    return PR_TRUE;
   }
 
-  return false;
+  return PR_FALSE;
 }
 
 nsresult

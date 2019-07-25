@@ -3,6 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsNavBookmarks_h_
 #define nsNavBookmarks_h_
 
@@ -13,11 +49,6 @@
 #include "nsToolkitCompsCID.h"
 #include "nsCategoryCache.h"
 #include "nsTHashtable.h"
-#include "nsWeakReference.h"
-#include "mozilla/Attributes.h"
-
-class nsNavBookmarks;
-class nsIOutputStream;
 
 namespace mozilla {
 namespace places {
@@ -28,14 +59,14 @@ namespace places {
   };
 
   struct BookmarkData {
-    int64_t id;
+    PRInt64 id;
     nsCString url;
     nsCString title;
-    int32_t position;
-    int64_t placeId;
-    int64_t parentId;
-    int64_t grandParentId;
-    int32_t type;
+    PRInt32 position;
+    PRInt64 placeId;
+    PRInt64 parentId;
+    PRInt64 grandParentId;
+    PRInt32 type;
     nsCString serviceCID;
     PRTime dateAdded;
     PRTime lastModified;
@@ -45,8 +76,8 @@ namespace places {
 
   struct ItemVisitData {
     BookmarkData bookmark;
-    int64_t visitId;
-    uint32_t transitionType;
+    PRInt64 visitId;
+    PRUint32 transitionType;
     PRTime time;
   };
 
@@ -63,7 +94,7 @@ namespace places {
   class BookmarkKeyClass : public nsTrimInt64HashKey
   {
     public:
-    BookmarkKeyClass(const int64_t* aItemId)
+    BookmarkKeyClass(const PRInt64* aItemId)
     : nsTrimInt64HashKey(aItemId)
     , creationTime(PR_Now())
     {
@@ -78,19 +109,15 @@ namespace places {
     PRTime creationTime;
   };
 
-  enum BookmarkDate {
-    DATE_ADDED = 0
-  , LAST_MODIFIED
-  };
-
 } 
 } 
 
-class nsNavBookmarks MOZ_FINAL : public nsINavBookmarksService
-                               , public nsINavHistoryObserver
-                               , public nsIAnnotationObserver
-                               , public nsIObserver
-                               , public nsSupportsWeakReference
+class nsIOutputStream;
+
+class nsNavBookmarks : public nsINavBookmarksService,
+                       public nsINavHistoryObserver,
+                       public nsIAnnotationObserver,
+                       public nsIObserver
 {
 public:
   NS_DECL_ISUPPORTS
@@ -111,6 +138,9 @@ public:
 
   nsresult Init();
 
+  
+  static nsresult InitTables(mozIStorageConnection* aDBConn);
+
   static nsNavBookmarks* GetBookmarksServiceIfAvailable() {
     return gBookmarksService;
   }
@@ -119,7 +149,7 @@ public:
     if (!gBookmarksService) {
       nsCOMPtr<nsINavBookmarksService> serv =
         do_GetService(NS_NAVBOOKMARKSSERVICE_CONTRACTID);
-      NS_ENSURE_TRUE(serv, nullptr);
+      NS_ENSURE_TRUE(serv, nsnull);
       NS_ASSERTION(gBookmarksService,
                    "Should have static instance pointer now");
     }
@@ -132,14 +162,14 @@ public:
   typedef mozilla::places::ItemChangeData ItemChangeData;
   typedef mozilla::places::BookmarkStatementId BookmarkStatementId;
 
-  nsresult ResultNodeForContainer(int64_t aID,
+  nsresult ResultNodeForContainer(PRInt64 aID,
                                   nsNavHistoryQueryOptions* aOptions,
                                   nsNavHistoryResultNode** aNode);
 
   
   
   
-  nsresult QueryFolderChildren(int64_t aFolderId,
+  nsresult QueryFolderChildren(PRInt64 aFolderId,
                                nsNavHistoryQueryOptions* aOptions,
                                nsCOMArray<nsNavHistoryResultNode>* children);
 
@@ -161,7 +191,7 @@ public:
   nsresult ProcessFolderNodeRow(mozIStorageValueArray* aRow,
                                 nsNavHistoryQueryOptions* aOptions,
                                 nsCOMArray<nsNavHistoryResultNode>* aChildren,
-                                int32_t& aCurrentIndex);
+                                PRInt32& aCurrentIndex);
 
   
 
@@ -173,21 +203,27 @@ public:
 
 
   nsresult QueryFolderChildrenAsync(nsNavHistoryFolderResultNode* aNode,
-                                    int64_t aFolderId,
+                                    PRInt64 aFolderId,
                                     mozIStoragePendingStatement** _pendingStmt);
 
   
-
-
-
-
-
-
-  nsresult CreateContainerWithID(int64_t aId, int64_t aParent,
+  
+  
+  nsresult CreateContainerWithID(PRInt64 aId, PRInt64 aParent,
                                  const nsACString& aTitle,
+                                 const nsAString& aContractId,
                                  bool aIsBookmarkFolder,
-                                 int32_t* aIndex,
-                                 int64_t* aNewFolder);
+                                 PRInt32* aIndex,
+                                 PRInt64* aNewFolder);
+
+  
+
+
+
+
+
+
+  bool IsRealBookmark(PRInt64 aPlaceId);
 
   
 
@@ -197,8 +233,25 @@ public:
 
 
 
-  nsresult FetchItemInfo(int64_t aItemId,
+  nsresult FetchItemInfo(PRInt64 aItemId,
                          BookmarkData& _bookmark);
+
+  
+
+
+  nsresult FinalizeStatements();
+
+  mozIStorageStatement* GetStatementById(BookmarkStatementId aStatementId)
+  {
+    using namespace mozilla::places;
+    switch(aStatementId) {
+      case DB_FIND_REDIRECTED_BOOKMARK:
+        return GetStatement(mDBFindRedirectedBookmark);
+      case DB_GET_BOOKMARKS_FOR_URI:
+        return GetStatement(mDBFindURIBookmarks);
+    }
+    return nsnull;
+  }
 
   
 
@@ -220,17 +273,6 @@ public:
 
   void NotifyItemChanged(const ItemChangeData& aData);
 
-  
-
-
-
-
-
-
-
-  nsresult GetDescendantFolders(int64_t aFolderId,
-                                nsTArray<int64_t>& aDescendantFoldersArray);
-
 private:
   static nsNavBookmarks* gBookmarksService;
 
@@ -240,12 +282,13 @@ private:
 
 
 
-  nsresult ReadRoots();
 
-  nsresult AdjustIndices(int64_t aFolder,
-                         int32_t aStartIndex,
-                         int32_t aEndIndex,
-                         int32_t aDelta);
+
+
+
+
+
+  nsresult InitRoots(bool aForceCreate);
 
   
 
@@ -261,44 +304,81 @@ private:
 
 
 
-  nsresult FetchFolderInfo(int64_t aFolderId,
-                           int32_t* _folderCount,
+
+  nsresult CreateRoot(const nsCString& name,
+                      PRInt64* _itemId,
+                      PRInt64 aParentId,
+                      nsIStringBundle* aBundle,
+                      const PRUnichar* aTitleStringId);
+
+  nsresult AdjustIndices(PRInt64 aFolder,
+                         PRInt32 aStartIndex,
+                         PRInt32 aEndIndex,
+                         PRInt32 aDelta);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  nsresult FetchFolderInfo(PRInt64 aFolderId,
+                           PRInt32* _folderCount,
                            nsACString& _guid,
-                           int64_t* _parentId);
+                           PRInt64* _parentId);
 
-  nsresult GetLastChildId(int64_t aFolder, int64_t* aItemId);
+  nsresult GetFolderType(PRInt64 aFolder, nsACString& aType);
+
+  nsresult GetLastChildId(PRInt64 aFolder, PRInt64* aItemId);
 
   
 
 
-  nsRefPtr<mozilla::places::Database> mDB;
+  nsCOMPtr<mozIStorageConnection> mDBConn;
+  
 
-  int32_t mItemCount;
+
+
+  nsCOMPtr<mozIStorageConnection> mDBReadOnlyConn;
+
+  nsString mGUIDBase;
+  nsresult GetGUIDBase(nsAString& aGUIDBase);
+
+  PRInt32 mItemCount;
 
   nsMaybeWeakPtrArray<nsINavBookmarkObserver> mObservers;
 
-  int64_t mRoot;
-  int64_t mMenuRoot;
-  int64_t mTagsRoot;
-  int64_t mUnfiledRoot;
-  int64_t mToolbarRoot;
+  PRInt64 mRoot;
+  PRInt64 mMenuRoot;
+  PRInt64 mTagsRoot;
+  PRInt64 mUnfiledRoot;
+  PRInt64 mToolbarRoot;
 
-  nsresult IsBookmarkedInDatabase(int64_t aBookmarkID, bool* aIsBookmarked);
+  nsresult IsBookmarkedInDatabase(PRInt64 aBookmarkID, bool* aIsBookmarked);
 
-  nsresult SetItemDateInternal(enum mozilla::places::BookmarkDate aDateType,
-                               int64_t aItemId,
+  nsresult SetItemDateInternal(mozIStorageStatement* aStatement,
+                               PRInt64 aItemId,
                                PRTime aValue);
 
   
-  nsresult GetDescendantChildren(int64_t aFolderId,
+  nsresult GetDescendantChildren(PRInt64 aFolderId,
                                  const nsACString& aFolderGuid,
-                                 int64_t aGrandParentId,
+                                 PRInt64 aGrandParentId,
                                  nsTArray<BookmarkData>& aFolderChildrenArray);
 
   enum ItemType {
     BOOKMARK = TYPE_BOOKMARK,
     FOLDER = TYPE_FOLDER,
     SEPARATOR = TYPE_SEPARATOR,
+    DYNAMIC_CONTAINER = TYPE_DYNAMIC_CONTAINER
   };
 
   
@@ -328,17 +408,18 @@ private:
 
 
 
-  nsresult InsertBookmarkInDB(int64_t aPlaceId,
+
+
+
+  nsresult InsertBookmarkInDB(PRInt64 aPlaceId,
                               enum ItemType aItemType,
-                              int64_t aParentId,
-                              int32_t aIndex,
+                              PRInt64 aParentId,
+                              PRInt32 aIndex,
                               const nsACString& aTitle,
                               PRTime aDateAdded,
                               PRTime aLastModified,
-                              const nsACString& aParentGuid,
-                              int64_t aGrandParentId,
-                              nsIURI* aURI,
-                              int64_t* _itemId,
+                              const nsAString& aServiceContractId,
+                              PRInt64* _itemId,
                               nsACString& _guid);
 
   
@@ -354,23 +435,86 @@ private:
 
 
   nsresult GetBookmarkIdsForURITArray(nsIURI* aURI,
-                                      nsTArray<int64_t>& aResult,
+                                      nsTArray<PRInt64>& aResult,
                                       bool aSkipTags);
 
   nsresult GetBookmarksForURI(nsIURI* aURI,
                               nsTArray<BookmarkData>& _bookmarks);
 
-  int64_t RecursiveFindRedirectedBookmark(int64_t aPlaceId);
+  PRInt64 RecursiveFindRedirectedBookmark(PRInt64 aPlaceId);
 
-  static const int32_t kGetChildrenIndex_Position;
-  static const int32_t kGetChildrenIndex_Type;
-  static const int32_t kGetChildrenIndex_PlaceID;
-  static const int32_t kGetChildrenIndex_FolderTitle;
-  static const int32_t kGetChildrenIndex_Guid;
+  
 
-  class RemoveFolderTransaction MOZ_FINAL : public nsITransaction {
+
+  mozIStorageStatement* GetStatement(const nsCOMPtr<mozIStorageStatement>& aStmt);
+
+  nsCOMPtr<mozIStorageStatement> mDBGetChildren;
+  
+  static const PRInt32 kGetChildrenIndex_Position;
+  static const PRInt32 kGetChildrenIndex_Type;
+  static const PRInt32 kGetChildrenIndex_PlaceID;
+  static const PRInt32 kGetChildrenIndex_FolderTitle;
+  static const PRInt32 kGetChildrenIndex_ServiceContractId;
+  static const PRInt32 kGetChildrenIndex_Guid;
+
+  nsCOMPtr<mozIStorageStatement> mDBFindURIBookmarks;
+  static const PRInt32 kFindURIBookmarksIndex_Id;
+  static const PRInt32 kFindURIBookmarksIndex_Guid;
+  static const PRInt32 kFindURIBookmarksIndex_ParentId;
+  static const PRInt32 kFindURIBookmarksIndex_LastModified;
+  static const PRInt32 kFindURIBookmarksIndex_ParentGuid;
+  static const PRInt32 kFindURIBookmarksIndex_GrandParentId;
+
+  nsCOMPtr<mozIStorageStatement> mDBGetItemProperties;
+  static const PRInt32 kGetItemPropertiesIndex_Id;
+  static const PRInt32 kGetItemPropertiesIndex_Url;
+  static const PRInt32 kGetItemPropertiesIndex_Title;
+  static const PRInt32 kGetItemPropertiesIndex_Position;
+  static const PRInt32 kGetItemPropertiesIndex_PlaceId;
+  static const PRInt32 kGetItemPropertiesIndex_ParentId;
+  static const PRInt32 kGetItemPropertiesIndex_Type;
+  static const PRInt32 kGetItemPropertiesIndex_ServiceContractId;
+  static const PRInt32 kGetItemPropertiesIndex_DateAdded;
+  static const PRInt32 kGetItemPropertiesIndex_LastModified;
+  static const PRInt32 kGetItemPropertiesIndex_Guid;
+  static const PRInt32 kGetItemPropertiesIndex_ParentGuid;
+  static const PRInt32 kGetItemPropertiesIndex_GrandParentId;
+
+  nsCOMPtr<mozIStorageStatement> mDBInsertBookmark;
+  static const PRInt32 kInsertBookmarkIndex_Id;
+  static const PRInt32 kInsertBookmarkIndex_PlaceId;
+  static const PRInt32 kInsertBookmarkIndex_Type;
+  static const PRInt32 kInsertBookmarkIndex_Parent;
+  static const PRInt32 kInsertBookmarkIndex_Position;
+  static const PRInt32 kInsertBookmarkIndex_Title;
+  static const PRInt32 kInsertBookmarkIndex_ServiceContractId;
+  static const PRInt32 kInsertBookmarkIndex_DateAdded;
+  static const PRInt32 kInsertBookmarkIndex_LastModified;
+
+  nsCOMPtr<mozIStorageStatement> mDBFolderInfo;
+  nsCOMPtr<mozIStorageStatement> mDBGetItemIndex;
+  nsCOMPtr<mozIStorageStatement> mDBGetChildAt;
+  nsCOMPtr<mozIStorageStatement> mDBGetItemIdForGUID;
+  nsCOMPtr<mozIStorageStatement> mDBIsBookmarkedInDatabase;
+  nsCOMPtr<mozIStorageStatement> mDBIsURIBookmarkedInDatabase;
+  nsCOMPtr<mozIStorageStatement> mDBIsRealBookmark;
+  nsCOMPtr<mozIStorageStatement> mDBGetLastBookmarkID;
+  nsCOMPtr<mozIStorageStatement> mDBSetItemDateAdded;
+  nsCOMPtr<mozIStorageStatement> mDBSetItemLastModified;
+  nsCOMPtr<mozIStorageStatement> mDBSetItemIndex;
+  nsCOMPtr<mozIStorageStatement> mDBGetKeywordForURI;
+  nsCOMPtr<mozIStorageStatement> mDBGetBookmarksToKeywords;
+  nsCOMPtr<mozIStorageStatement> mDBAdjustPosition;
+  nsCOMPtr<mozIStorageStatement> mDBRemoveItem;
+  nsCOMPtr<mozIStorageStatement> mDBGetLastChildId;
+  nsCOMPtr<mozIStorageStatement> mDBMoveItem;
+  nsCOMPtr<mozIStorageStatement> mDBSetItemTitle;
+  nsCOMPtr<mozIStorageStatement> mDBChangeBookmarkURI;
+  nsCOMPtr<mozIStorageStatement> mDBFindRedirectedBookmark;
+
+  class RemoveFolderTransaction : public nsITransaction {
   public:
-    RemoveFolderTransaction(int64_t aID) : mID(aID) {}
+    RemoveFolderTransaction(PRInt64 aID) : mID(aID) {}
 
     NS_DECL_ISUPPORTS
 
@@ -386,14 +530,19 @@ private:
       rv = bookmarks->GetItemTitle(mID, mTitle);
       NS_ENSURE_SUCCESS(rv, rv);
 
+      nsCAutoString type;
+      rv = bookmarks->GetFolderType(mID, type);
+      NS_ENSURE_SUCCESS(rv, rv);
+      CopyUTF8toUTF16(type, mType);
+
       return bookmarks->RemoveItem(mID);
     }
 
     NS_IMETHOD UndoTransaction() {
       nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
       NS_ENSURE_TRUE(bookmarks, NS_ERROR_OUT_OF_MEMORY);
-      int64_t newFolder;
-      return bookmarks->CreateContainerWithID(mID, mParent, mTitle, true,
+      PRInt64 newFolder;
+      return bookmarks->CreateContainerWithID(mID, mParent, mTitle, mType, PR_TRUE,
                                               &mIndex, &newFolder); 
     }
 
@@ -402,25 +551,28 @@ private:
     }
 
     NS_IMETHOD GetIsTransient(bool* aResult) {
-      *aResult = false;
+      *aResult = PR_FALSE;
       return NS_OK;
     }
     
     NS_IMETHOD Merge(nsITransaction* aTransaction, bool* aResult) {
-      *aResult = false;
+      *aResult = PR_FALSE;
       return NS_OK;
     }
 
   private:
-    int64_t mID;
-    int64_t mParent;
+    PRInt64 mID;
+    PRInt64 mParent;
     nsCString mTitle;
-    int32_t mIndex;
+    nsString mType;
+    PRInt32 mIndex;
   };
 
   
   bool mCanNotify;
   nsCategoryCache<nsINavBookmarkObserver> mCacheObservers;
+
+  bool mShuttingDown;
 
   
   
@@ -439,19 +591,13 @@ private:
 
 
 
-  nsresult UpdateKeywordsHashForRemovedBookmark(int64_t aItemId);
+  nsresult UpdateKeywordsHashForRemovedBookmark(PRInt64 aItemId);
 
   
 
 
 
   nsTHashtable<BookmarkKeyClass> mRecentBookmarksCache;
-
-  
-
-
-
-  nsTHashtable<nsTrimInt64HashKey> mUncachableBookmarks;
 };
 
 #endif 

@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsTreeImageListener_h__
 #define nsTreeImageListener_h__
 
@@ -11,10 +45,10 @@
 #include "nsITreeColumns.h"
 #include "nsStubImageDecoderObserver.h"
 #include "nsTreeBodyFrame.h"
-#include "mozilla/Attributes.h"
+#include "nsITreeImageListener.h"
 
 
-class nsTreeImageListener MOZ_FINAL : public nsStubImageDecoderObserver
+class nsTreeImageListener : public nsStubImageDecoderObserver, public nsITreeImageListener
 {
 public:
   nsTreeImageListener(nsTreeBodyFrame *aTreeFrame);
@@ -22,23 +56,25 @@ public:
 
   NS_DECL_ISUPPORTS
   
+  NS_IMETHOD OnStartDecode(imgIRequest *aRequest);
+  NS_IMETHOD OnStopDecode(imgIRequest *aRequest,
+                          nsresult aStatus, const PRUnichar *aStatusArg);
   NS_IMETHOD OnStartContainer(imgIRequest *aRequest, imgIContainer *aImage);
-  NS_IMETHOD OnImageIsAnimated(imgIRequest* aRequest);
   NS_IMETHOD OnDataAvailable(imgIRequest *aRequest, bool aCurrentFrame,
                              const nsIntRect *aRect);
   
-  NS_IMETHOD FrameChanged(imgIRequest *aRequest,
-                          imgIContainer *aContainer,
+  NS_IMETHOD FrameChanged(imgIContainer *aContainer,
                           const nsIntRect *aDirtyRect);
 
-  NS_IMETHOD ClearFrame();
+  NS_IMETHOD AddCell(PRInt32 aIndex, nsITreeColumn* aCol);
 
+  NS_IMETHOD ClearFrame();
+ 
   friend class nsTreeBodyFrame;
 
 protected:
-  void UnsuppressInvalidation() { mInvalidationSuppressed = false; }
+  void UnsuppressInvalidation() { mInvalidationSuppressed = PR_FALSE; }
   void Invalidate();
-  void AddCell(int32_t aIndex, nsITreeColumn* aCol);
 
 private:
   nsTreeBodyFrame* mTreeFrame;
@@ -54,17 +90,17 @@ private:
       friend class nsTreeImageListener;
 
     protected:
-      void AddRow(int32_t aIndex);
+      void AddRow(PRInt32 aIndex);
       nsITreeColumn* GetCol() { return mCol.get(); }
-      int32_t GetMin() { return mMin; }
-      int32_t GetMax() { return mMax; }
+      PRInt32 GetMin() { return mMin; }
+      PRInt32 GetMax() { return mMax; }
       InvalidationArea* GetNext() { return mNext; }
       void SetNext(InvalidationArea* aNext) { mNext = aNext; }
 
     private:
       nsCOMPtr<nsITreeColumn> mCol;
-      int32_t                 mMin;
-      int32_t                 mMax;
+      PRInt32                 mMin;
+      PRInt32                 mMax;
       InvalidationArea*       mNext;
   };
 

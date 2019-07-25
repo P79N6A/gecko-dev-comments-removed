@@ -3,6 +3,37 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_SVGUTILS_H
 #define NS_SVGUTILS_H
 
@@ -10,47 +41,42 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
-#include "gfxMatrix.h"
-#include "gfxPoint.h"
-#include "gfxRect.h"
-#include "nsAlgorithm.h"
-#include "nsChangeHint.h"
-#include "nsColor.h"
+#include "nscore.h"
 #include "nsCOMPtr.h"
-#include "nsID.h"
-#include "nsISupportsBase.h"
-#include "nsMathUtils.h"
-#include "nsPoint.h"
 #include "nsRect.h"
-#include "nsStyleStruct.h"
-#include "mozilla/Constants.h"
+#include "gfxContext.h"
+#include "nsRenderingContext.h"
+#include "gfxRect.h"
+#include "gfxMatrix.h"
 
-class gfxASurface;
-class gfxContext;
-class gfxImageSurface;
-class gfxPattern;
-class nsFrameList;
-class nsIContent;
 class nsIDocument;
-class nsIDOMSVGElement;
-class nsIFrame;
 class nsPresContext;
-class nsRenderingContext;
+class nsIContent;
 class nsStyleContext;
 class nsStyleCoord;
-class nsSVGDisplayContainerFrame;
-class nsSVGElement;
-class nsSVGEnum;
-class nsSVGGeometryFrame;
-class nsSVGLength2;
-class nsSVGOuterSVGFrame;
-class nsSVGPathGeometryFrame;
-class nsSVGSVGElement;
-class nsTextFrame;
-class gfxTextObjectPaint;
-
-struct nsStyleSVG;
+class nsFrameList;
+class nsIFrame;
 struct nsStyleSVGPaint;
+class nsIDOMSVGElement;
+class nsIDOMSVGLength;
+class nsIURI;
+class nsSVGOuterSVGFrame;
+class nsIAtom;
+class nsSVGLength2;
+class nsSVGElement;
+class nsSVGSVGElement;
+class nsAttrValue;
+class gfxContext;
+class gfxASurface;
+class gfxPattern;
+class gfxImageSurface;
+struct gfxSize;
+struct nsStyleFont;
+class nsSVGEnum;
+class nsISVGChildFrame;
+class nsSVGGeometryFrame;
+class nsSVGPathGeometryFrame;
+class nsSVGDisplayContainerFrame;
 
 namespace mozilla {
 class SVGAnimatedPreserveAspectRatio;
@@ -60,8 +86,14 @@ class Element;
 } 
 } 
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 
 #define NS_STATE_IS_OUTER_SVG                    NS_FRAME_STATE_BIT(20)
+
+#define NS_STATE_SVG_DIRTY                       NS_FRAME_STATE_BIT(21)
 
 
 #define NS_STATE_SVG_NONDISPLAY_CHILD            NS_FRAME_STATE_BIT(22)
@@ -93,10 +125,6 @@ class Element;
 #define SVG_WSP_DELIM       "\x20\x9\xD\xA"
 #define SVG_COMMA_WSP_DELIM "," SVG_WSP_DELIM
 
-#define SVG_HIT_TEST_FILL        0x01
-#define SVG_HIT_TEST_STROKE      0x02
-#define SVG_HIT_TEST_CHECK_MRECT 0x04
-
 inline bool
 IsSVGWhitespace(char aChar)
 {
@@ -111,96 +139,67 @@ IsSVGWhitespace(PRUnichar aChar)
          aChar == PRUnichar('\xD')  || aChar == PRUnichar('\xA');
 }
 
+#ifdef MOZ_SMIL
 
 
 
 
 bool NS_SMILEnabled();
-
-bool NS_SVGDisplayListHitTestingEnabled();
-bool NS_SVGDisplayListPaintingEnabled();
-bool NS_SVGTextCSSFramesEnabled();
-
-
-
-
-
-class SVGBBox {
-public:
-  SVGBBox() 
-    : mIsEmpty(true) {}
-
-  SVGBBox(const gfxRect& aRect) 
-    : mBBox(aRect), mIsEmpty(false) {}
-
-  SVGBBox& operator=(const gfxRect& aRect) {
-    mBBox = aRect;
-    mIsEmpty = false;
-    return *this;
-  }
-
-  operator const gfxRect& () const {
-    return mBBox;
-  }
-
-  bool IsEmpty() const {
-    return mIsEmpty;
-  }
-
-  void UnionEdges(const SVGBBox& aSVGBBox) {
-    if (aSVGBBox.mIsEmpty) {
-      return;
-    }
-    mBBox = mIsEmpty ? aSVGBBox.mBBox : mBBox.UnionEdges(aSVGBBox.mBBox);
-    mIsEmpty = false;
-  }
-
-private:
-  gfxRect mBBox;
-  bool    mIsEmpty;
-};
+#endif 
 
 
 #undef CLIP_MASK
 
-class NS_STACK_CLASS SVGAutoRenderState
+class nsSVGRenderState
 {
 public:
-  enum RenderMode {
-    
+  enum RenderMode { NORMAL, CLIP, CLIP_MASK };
+
+  
 
 
-    NORMAL, 
-    
+  nsSVGRenderState(nsRenderingContext *aContext);
+  
 
 
+  nsSVGRenderState(gfxContext *aContext);
+  
 
 
-    CLIP, 
-    
+  nsSVGRenderState(gfxASurface *aSurface);
 
+  nsRenderingContext *GetRenderingContext(nsIFrame *aFrame);
+  gfxContext *GetGfxContext() { return mGfxContext; }
 
+  void SetRenderMode(RenderMode aMode) { mRenderMode = aMode; }
+  RenderMode GetRenderMode() { return mRenderMode; }
 
-
-
-    CLIP_MASK 
-  };
-
-  SVGAutoRenderState(nsRenderingContext *aContext, RenderMode aMode);
-  ~SVGAutoRenderState();
-
-  void SetPaintingToWindow(bool aPaintingToWindow);
-
-  static RenderMode GetRenderMode(nsRenderingContext *aContext);
-  static bool IsPaintingToWindow(nsRenderingContext *aContext);
+  void SetPaintingToWindow(bool aPaintingToWindow) {
+    mPaintingToWindow = aPaintingToWindow;
+  }
+  bool IsPaintingToWindow() { return mPaintingToWindow; }
 
 private:
-  nsRenderingContext *mContext;
-  void *mOriginalRenderState;
-  RenderMode mMode;
-  bool mPaintingToWindow;
+  RenderMode                    mRenderMode;
+  nsRefPtr<nsRenderingContext> mRenderingContext;
+  nsRefPtr<gfxContext>          mGfxContext;
+  bool                          mPaintingToWindow;
 };
 
+class nsAutoSVGRenderMode
+{
+public:
+  nsAutoSVGRenderMode(nsSVGRenderState *aState,
+                      nsSVGRenderState::RenderMode aMode) : mState(aState) {
+    mOriginalMode = aState->GetRenderMode();
+    aState->SetRenderMode(aMode);
+  }
+  ~nsAutoSVGRenderMode() { mState->SetRenderMode(mOriginalMode); }
+
+private:
+  nsSVGRenderState            *mState;
+  nsSVGRenderState::RenderMode mOriginalMode;
+};
 
 #define NS_ISVGFILTERPROPERTY_IID \
 { 0x9744ee20, 0x1bcf, 0x4c62, \
@@ -221,8 +220,6 @@ public:
   typedef mozilla::SVGAnimatedPreserveAspectRatio SVGAnimatedPreserveAspectRatio;
   typedef mozilla::SVGPreserveAspectRatio SVGPreserveAspectRatio;
 
-  static void Init();
-
   
 
 
@@ -232,16 +229,6 @@ public:
 
 
   static nsSVGSVGElement *GetOuterSVGElement(nsSVGElement *aSVGElement);
-
-  
-
-
-
-
-
-
-
-  static void ActivateByHyperlink(nsIContent *aContent);
 
   
 
@@ -267,26 +254,26 @@ public:
   
 
 
-  static void UnPremultiplyImageDataAlpha(uint8_t *data, 
-                                          int32_t stride, 
+  static void UnPremultiplyImageDataAlpha(PRUint8 *data, 
+                                          PRInt32 stride, 
                                           const nsIntRect &rect);
   
 
 
-  static void PremultiplyImageDataAlpha(uint8_t *data, 
-                                        int32_t stride, 
+  static void PremultiplyImageDataAlpha(PRUint8 *data, 
+                                        PRInt32 stride, 
                                         const nsIntRect &rect);
   
 
 
-  static void ConvertImageDataToLinearRGB(uint8_t *data, 
-                                          int32_t stride, 
+  static void ConvertImageDataToLinearRGB(PRUint8 *data, 
+                                          PRInt32 stride, 
                                           const nsIntRect &rect);
   
 
 
-  static void ConvertImageDataFromLinearRGB(uint8_t *data, 
-                                            int32_t stride, 
+  static void ConvertImageDataFromLinearRGB(PRUint8 *data, 
+                                            PRInt32 stride, 
                                             const nsIntRect &rect);
 
   
@@ -295,7 +282,7 @@ public:
   static nsresult ReportToConsole(nsIDocument* doc,
                                   const char* aWarning,
                                   const PRUnichar **aParams,
-                                  uint32_t aParamsLength);
+                                  PRUint32 aParamsLength);
 
   
 
@@ -323,15 +310,7 @@ public:
 
 
   static nsSVGDisplayContainerFrame* GetNearestSVGViewport(nsIFrame *aFrame);
-
   
-
-
-
-
-  static nsRect GetPostFilterVisualOverflowRect(nsIFrame *aFrame,
-                                                const nsRect &aUnfilteredRect);
-
   
 
 
@@ -341,54 +320,17 @@ public:
 
 
 
-
-
-  static void InvalidateBounds(nsIFrame *aFrame, bool aDuringUpdate = false,
-                               const nsRect *aBoundsSubArea = nullptr,
-                               uint32_t aFlags = 0);
+  static nsRect FindFilterInvalidation(nsIFrame *aFrame, const nsRect& aRect);
 
   
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static void ScheduleReflowSVG(nsIFrame *aFrame);
+  static void InvalidateCoveredRegion(nsIFrame *aFrame);
 
   
 
 
-
-
-  static void InvalidateAndScheduleReflowSVG(nsIFrame *aFrame);
-
-  
-
-
-
-  static bool NeedsReflowSVG(nsIFrame *aFrame);
+  static void UpdateGraphic(nsISVGChildFrame *aSVGFrame);
 
   
 
@@ -456,7 +398,7 @@ public:
   
 
   static void
-  PaintFrameWithEffects(nsRenderingContext *aContext,
+  PaintFrameWithEffects(nsSVGRenderState *aContext,
                         const nsIntRect *aDirtyRect,
                         nsIFrame *aFrame);
 
@@ -475,31 +417,13 @@ public:
 
 
 
-  static gfxMatrix GetCanvasTM(nsIFrame* aFrame, uint32_t aFor);
+  static gfxMatrix GetCanvasTM(nsIFrame* aFrame);
 
   
-
-
-
-
-
-
-
-
-  static gfxMatrix GetUserToCanvasTM(nsIFrame* aFrame, uint32_t aFor);
-
-  
-
-
-
-
-
-
-
 
 
   static void
-  NotifyChildrenOfSVGChange(nsIFrame *aFrame, uint32_t aFlags);
+  NotifyChildrenOfSVGChange(nsIFrame *aFrame, PRUint32 aFlags);
 
   
 
@@ -508,18 +432,13 @@ public:
   GetCoveredRegion(const nsFrameList &aFrames);
 
   
-  
-  
-  
-  static nsPoint
-  TransformOuterSVGPointToChildFrame(nsPoint aPoint,
-                                     const gfxMatrix& aFrameToCanvasTM,
-                                     nsPresContext* aPresContext);
+
 
   static nsRect
-  TransformFrameRectToOuterSVG(const nsRect& aRect,
-                               const gfxMatrix& aMatrix,
-                               nsPresContext* aPresContext);
+  ToAppPixelRect(nsPresContext *aPresContext,
+                 double xmin, double ymin, double xmax, double ymax);
+  static nsRect
+  ToAppPixelRect(nsPresContext *aPresContext, const gfxRect& rect);
 
   
 
@@ -596,22 +515,19 @@ public:
                        nsIFrame *aFrame);
 
   enum BBoxFlags {
-    eBBoxIncludeFill           = 1 << 0,
-    eBBoxIncludeFillGeometry   = 1 << 1,
-    eBBoxIncludeStroke         = 1 << 2,
-    eBBoxIncludeStrokeGeometry = 1 << 3,
-    eBBoxIncludeMarkers        = 1 << 4
+    eBBoxIncludeFill          = 1 << 0,
+    eBBoxIgnoreFillIfNone     = 1 << 1,
+    eBBoxIncludeStroke        = 1 << 2,
+    eBBoxIgnoreStrokeIfNone   = 1 << 3,
+    eBBoxIncludeMarkers       = 1 << 4
   };
   
 
 
 
-  static gfxRect GetBBox(nsIFrame *aFrame,
-                         uint32_t aFlags = eBBoxIncludeFillGeometry);
+  static gfxRect GetBBox(nsIFrame *aFrame, PRUint32 aFlags = eBBoxIncludeFill);
 
   
-
-
 
 
 
@@ -621,7 +537,7 @@ public:
 
 
   static gfxRect
-  GetRelativeRect(uint16_t aUnits, const nsSVGLength2 *aXYWH,
+  GetRelativeRect(PRUint16 aUnits, const nsSVGLength2 *aXYWH,
                   const gfxRect &aBBox, nsIFrame *aFrame);
 
   
@@ -635,14 +551,6 @@ public:
   WritePPM(const char *fname, gfxImageSurface *aSurface);
 #endif
 
-  static bool OuterSVGIsCallingReflowSVG(nsIFrame *aFrame);
-
-  
-
-
-
-  static gfxMatrix GetStrokeTransform(nsIFrame *aFrame);
-
   
 
 
@@ -657,90 +565,29 @@ public:
 
 
   static gfxRect PathExtentsToMaxStrokeExtents(const gfxRect& aPathExtents,
-                                               nsSVGGeometryFrame* aFrame,
-                                               const gfxMatrix& aMatrix);
+                                               nsSVGGeometryFrame* aFrame);
   static gfxRect PathExtentsToMaxStrokeExtents(const gfxRect& aPathExtents,
-                                               nsTextFrame* aFrame,
-                                               const gfxMatrix& aMatrix);
-  static gfxRect PathExtentsToMaxStrokeExtents(const gfxRect& aPathExtents,
-                                               nsSVGPathGeometryFrame* aFrame,
-                                               const gfxMatrix& aMatrix);
+                                               nsSVGPathGeometryFrame* aFrame);
 
   
 
 
 
-  static int32_t ClampToInt(double aVal)
+  static PRInt32 ClampToInt(double aVal)
   {
     return NS_lround(NS_MAX(double(PR_INT32_MIN),
                             NS_MIN(double(PR_INT32_MAX), aVal)));
   }
 
-  static nscolor GetFallbackOrPaintColor(gfxContext *aContext,
-                                         nsStyleContext *aStyleContext,
-                                         nsStyleSVGPaint nsStyleSVG::*aFillOrStroke);
-
-  
-
-
-  static bool SetupObjectPaint(gfxContext *aContext,
-                               gfxTextObjectPaint *aObjectPaint,
-                               const nsStyleSVGPaint& aPaint,
-                               float aOpacity);
-
-  
-
-
-
-  static bool SetupCairoFillPaint(nsIFrame* aFrame, gfxContext* aContext,
-                                  gfxTextObjectPaint *aObjectPaint = nullptr);
-
-  
-
-
-
-  static bool SetupCairoStrokePaint(nsIFrame* aFrame, gfxContext* aContext,
-                                    gfxTextObjectPaint *aObjectPaint = nullptr);
-
-  static float GetOpacity(nsStyleSVGOpacitySource aOpacityType,
-                          const float& aOpacity,
-                          gfxTextObjectPaint *aOuterObjectPaint);
-
-  
-
-
-  static bool HasStroke(nsIFrame* aFrame,
-                        gfxTextObjectPaint *aObjectPaint = nullptr);
-
-  static float GetStrokeWidth(nsIFrame* aFrame,
-                              gfxTextObjectPaint *aObjectPaint = nullptr);
-
-  
-
-
-  static void SetupCairoStrokeGeometry(nsIFrame* aFrame, gfxContext *aContext,
-                                       gfxTextObjectPaint *aObjectPaint = nullptr);
-
-  
-
-
-  static void SetupCairoStrokeHitGeometry(nsIFrame* aFrame, gfxContext *aContext,
-                                          gfxTextObjectPaint *aObjectPaint = nullptr);
-
-  
-
-
-
-  static bool SetupCairoStroke(nsIFrame* aFrame, gfxContext *aContext,
-                               gfxTextObjectPaint *aObjectPaint = nullptr);
-
   
 
 
 
 
 
-  static uint16_t GetGeometryHitTestFlags(nsIFrame* aFrame);
+
+
+  static bool RootSVGElementHasViewbox(const nsIContent *aRootSVGElem);
 };
 
 #endif

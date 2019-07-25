@@ -4,10 +4,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsAutoRef_h_
 #define nsAutoRef_h_
-
-#include "mozilla/Attributes.h"
 
 #include "nscore.h" 
 
@@ -186,7 +217,7 @@ public:
     void swap(ThisClass& aOther)
     {
         LocalSimpleRef temp;
-        temp.SimpleRef::operator=(*this);
+        temp.SimpleRef::operator=(this);
         SimpleRef::operator=(aOther);
         aOther.SimpleRef::operator=(temp);
     }
@@ -467,7 +498,7 @@ public:
     
     typedef T* RawRef;
     
-    static RawRef Void() { return nullptr; }
+    static RawRef Void() { return nsnull; };
 };
 
 
@@ -611,7 +642,7 @@ protected:
     };
 
 private:
-    ThisClass& operator=(const ThisClass& aSmartRef) MOZ_DELETE;
+    ThisClass& operator=(const ThisClass& aSmartRef);
     
 public:
     RawRef operator->() const

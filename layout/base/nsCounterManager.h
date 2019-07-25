@@ -6,6 +6,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsCounterManager_h_
 #define nsCounterManager_h_
 
@@ -27,7 +59,7 @@ struct nsCounterNode : public nsGenConNode {
     Type mType;
 
     
-    int32_t mValueAfter;
+    PRInt32 mValueAfter;
 
     
     
@@ -60,12 +92,12 @@ struct nsCounterNode : public nsGenConNode {
     
     
     
-    nsCounterNode(int32_t aContentIndex, Type aType)
+    nsCounterNode(PRInt32 aContentIndex, Type aType)
         : nsGenConNode(aContentIndex)
         , mType(aType)
         , mValueAfter(0)
-        , mScopeStart(nullptr)
-        , mScopePrev(nullptr)
+        , mScopeStart(nsnull)
+        , mScopePrev(nsnull)
     {
     }
 
@@ -84,7 +116,7 @@ struct nsCounterUseNode : public nsCounterNode {
 
     
     nsCounterUseNode(nsCSSValue::Array* aCounterStyle,
-                     uint32_t aContentIndex, bool aAllCounters)
+                     PRUint32 aContentIndex, bool aAllCounters)
         : nsCounterNode(aContentIndex, USE)
         , mCounterStyle(aCounterStyle)
         , mAllCounters(aAllCounters)
@@ -104,7 +136,7 @@ struct nsCounterUseNode : public nsCounterNode {
 };
 
 struct nsCounterChangeNode : public nsCounterNode {
-    int32_t mChangeValue; 
+    PRInt32 mChangeValue; 
 
     
     
@@ -113,8 +145,8 @@ struct nsCounterChangeNode : public nsCounterNode {
     
     nsCounterChangeNode(nsIFrame* aPseudoFrame,
                         nsCounterNode::Type aChangeType,
-                        int32_t aChangeValue,
-                        int32_t aPropIndex)
+                        PRInt32 aChangeValue,
+                        PRInt32 aPropIndex)
         : nsCounterNode(
                         
                         
@@ -159,7 +191,7 @@ inline void nsCounterNode::Calc(nsCounterList* aList)
 class nsCounterList : public nsGenConList {
 public:
     nsCounterList() : nsGenConList(),
-                      mDirty(false)
+                      mDirty(PR_FALSE)
     {}
 
     void Insert(nsCounterNode* aNode) {
@@ -182,7 +214,7 @@ public:
         return static_cast<nsCounterNode*>(nsGenConList::Prev(aNode));
     }
 
-    static int32_t ValueBefore(nsCounterNode* aNode) {
+    static PRInt32 ValueBefore(nsCounterNode* aNode) {
         return aNode->mScopePrev ? aNode->mScopePrev->mValueAfter : 0;
     }
 
@@ -194,7 +226,7 @@ public:
     void RecalcAll();
 
     bool IsDirty() { return mDirty; }
-    void SetDirty() { mDirty = true; }
+    void SetDirty() { mDirty = PR_TRUE; }
 
 private:
     bool mDirty;
@@ -230,7 +262,7 @@ public:
 
 private:
     
-    bool AddResetOrIncrement(nsIFrame *aFrame, int32_t aIndex,
+    bool AddResetOrIncrement(nsIFrame *aFrame, PRInt32 aIndex,
                                const nsStyleCounterData *aCounterData,
                                nsCounterNode::Type aType);
 

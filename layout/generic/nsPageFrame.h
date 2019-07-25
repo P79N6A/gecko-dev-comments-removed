@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsPageFrame_h___
 #define nsPageFrame_h___
 
@@ -34,7 +66,7 @@ public:
 
   virtual nsIAtom* GetType() const;
   
-#ifdef DEBUG
+#ifdef NS_DEBUG
   NS_IMETHOD  GetFrameName(nsAString& aResult) const;
 #endif
 
@@ -43,7 +75,7 @@ public:
   
 
   
-  virtual void  SetPageNumInfo(int32_t aPageNumber, int32_t aTotalPages);
+  virtual void  SetPageNumInfo(PRInt32 aPageNumber, PRInt32 aTotalPages);
 
   virtual void SetSharedPageData(nsSharedPageData* aPD);
 
@@ -68,12 +100,12 @@ protected:
 
   nscoord GetXPosition(nsRenderingContext& aRenderingContext, 
                        const nsRect&        aRect, 
-                       int32_t              aJust,
+                       PRInt32              aJust,
                        const nsString&      aStr);
 
   void DrawHeaderFooter(nsRenderingContext& aRenderingContext,
                         nsHeaderFooterEnum   aHeaderFooter,
-                        int32_t              aJust,
+                        PRInt32              aJust,
                         const nsString&      sStr,
                         const nsRect&        aRect,
                         nscoord              aHeight,
@@ -91,8 +123,8 @@ protected:
 
   void ProcessSpecialCodes(const nsString& aStr, nsString& aNewStr);
 
-  int32_t     mPageNum;
-  int32_t     mTotNumPages;
+  PRInt32     mPageNum;
+  PRInt32     mTotNumPages;
 
   nsSharedPageData* mPD;
 };
@@ -112,7 +144,7 @@ class nsPageBreakFrame : public nsLeafFrame
 
   virtual nsIAtom* GetType() const;
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
   NS_IMETHOD  GetFrameName(nsAString& aResult) const;
 #endif
 

@@ -3,14 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "txResultRecycler.h"
 #include "txExprResult.h"
 #include "txNodeSet.h"
 
 txResultRecycler::txResultRecycler()
-    : mEmptyStringResult(nullptr),
-      mTrueResult(nullptr),
-      mFalseResult(nullptr)
+    : mEmptyStringResult(nsnull),
+      mTrueResult(nsnull),
+      mFalseResult(nsnull)
 {
 }
 
@@ -40,17 +73,17 @@ txResultRecycler::init()
 {
     NS_ASSERTION(!mEmptyStringResult && !mTrueResult && !mFalseResult,
                  "Already inited");
-    mEmptyStringResult = new StringResult(nullptr);
+    mEmptyStringResult = new StringResult(nsnull);
     NS_ENSURE_TRUE(mEmptyStringResult, NS_ERROR_OUT_OF_MEMORY);
 
     NS_ADDREF(mEmptyStringResult);
 
-    mTrueResult = new BooleanResult(true);
+    mTrueResult = new BooleanResult(PR_TRUE);
     NS_ENSURE_TRUE(mTrueResult, NS_ERROR_OUT_OF_MEMORY);
 
     NS_ADDREF(mTrueResult);
 
-    mFalseResult = new BooleanResult(false);
+    mFalseResult = new BooleanResult(PR_FALSE);
     NS_ENSURE_TRUE(mFalseResult, NS_ERROR_OUT_OF_MEMORY);
 
     NS_ADDREF(mFalseResult);
@@ -189,6 +222,23 @@ txResultRecycler::getNodeSet(const txXPathNode& aNode, txAExprResult** aResult)
         nodes->append(aNode);
         nodes->mRecycler = this;
         *aResult = nodes;
+    }
+    NS_ADDREF(*aResult);
+
+    return NS_OK;
+}
+
+nsresult
+txResultRecycler::getNodeSet(const txXPathNode& aNode, txNodeSet** aResult)
+{
+    if (mNodeSetResults.isEmpty()) {
+        *aResult = new txNodeSet(aNode, this);
+        NS_ENSURE_TRUE(*aResult, NS_ERROR_OUT_OF_MEMORY);
+    }
+    else {
+        *aResult = static_cast<txNodeSet*>(mNodeSetResults.pop());
+        (*aResult)->append(aNode);
+        (*aResult)->mRecycler = this;
     }
     NS_ADDREF(*aResult);
 

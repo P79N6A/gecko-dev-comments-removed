@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "txExpr.h"
 #include "nsIAtom.h"
 #include "txIXPathContext.h"
@@ -43,7 +76,7 @@ FunctionCall::evaluateToNodeSet(Expr* aExpr, txIEvalContext* aContext,
                                 txNodeSet** aResult)
 {
     NS_ASSERTION(aExpr, "Missing expression to evaluate");
-    *aResult = nullptr;
+    *aResult = nsnull;
 
     nsRefPtr<txAExprResult> exprRes;
     nsresult rv = aExpr->evaluate(aContext, getter_AddRefs(exprRes));
@@ -61,11 +94,11 @@ FunctionCall::evaluateToNodeSet(Expr* aExpr, txIEvalContext* aContext,
     return NS_OK;
 }
 
-bool FunctionCall::requireParams(int32_t aParamCountMin,
-                                   int32_t aParamCountMax,
+bool FunctionCall::requireParams(PRInt32 aParamCountMin,
+                                   PRInt32 aParamCountMax,
                                    txIEvalContext* aContext)
 {
-    int32_t argc = mParams.Length();
+    PRInt32 argc = mParams.Length();
     if (argc < aParamCountMin ||
         (aParamCountMax > -1 && argc > aParamCountMax)) {
         nsAutoString err(NS_LITERAL_STRING("invalid number of parameters for function"));
@@ -75,20 +108,20 @@ bool FunctionCall::requireParams(int32_t aParamCountMin,
 #endif
         aContext->receiveError(err, NS_ERROR_XPATH_INVALID_ARG);
 
-        return false;
+        return PR_FALSE;
     }
 
-    return true;
+    return PR_TRUE;
 }
 
 Expr*
-FunctionCall::getSubExprAt(uint32_t aPos)
+FunctionCall::getSubExprAt(PRUint32 aPos)
 {
     return mParams.SafeElementAt(aPos);
 }
 
 void
-FunctionCall::setSubExprAt(uint32_t aPos, Expr* aExpr)
+FunctionCall::setSubExprAt(PRUint32 aPos, Expr* aExpr)
 {
     NS_ASSERTION(aPos < mParams.Length(),
                  "setting bad subexpression index");
@@ -98,14 +131,14 @@ FunctionCall::setSubExprAt(uint32_t aPos, Expr* aExpr)
 bool
 FunctionCall::argsSensitiveTo(ContextSensitivity aContext)
 {
-    uint32_t i, len = mParams.Length();
+    PRUint32 i, len = mParams.Length();
     for (i = 0; i < len; ++i) {
         if (mParams[i]->isSensitiveTo(aContext)) {
-            return true;
+            return PR_TRUE;
         }
     }
 
-    return false;
+    return PR_FALSE;
 }
 
 #ifdef TX_TO_STRING
@@ -122,7 +155,7 @@ FunctionCall::toString(nsAString& aDest)
 
     aDest.Append(nsDependentAtomString(functionNameAtom) +
                  NS_LITERAL_STRING("("));
-    for (uint32_t i = 0; i < mParams.Length(); ++i) {
+    for (PRUint32 i = 0; i < mParams.Length(); ++i) {
         if (i != 0) {
             aDest.Append(PRUnichar(','));
         }

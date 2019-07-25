@@ -3,6 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsFrame.h"
 #include "nsPresContext.h"
@@ -55,24 +90,15 @@ nsMathMLmsupFrame::Place(nsRenderingContext& aRenderingContext,
   nscoord scriptSpace = nsPresContext::CSSPointsToAppUnits(0.5f); 
 
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   nsAutoString value;
   nscoord supScriptShift = 0;
   GetAttribute(mContent, mPresentationData.mstyle,
                nsGkAtoms::superscriptshift_, value);
   if (!value.IsEmpty()) {
-    ParseNumericValue(value, &supScriptShift,
-                      nsMathMLElement::PARSE_ALLOW_NEGATIVE,
-                      PresContext(), mStyleContext);
+    nsCSSValue cssValue;
+    if (ParseNumericValue(value, cssValue) && cssValue.IsLengthUnit()) {
+      supScriptShift = CalcLength(PresContext(), mStyleContext, cssValue);
+    }
   }
 
   return nsMathMLmsupFrame::PlaceSuperScript(PresContext(), 
@@ -105,7 +131,7 @@ nsMathMLmsupFrame::PlaceSuperScript(nsPresContext*      aPresContext,
   nsHTMLReflowMetrics baseSize;
   nsHTMLReflowMetrics supScriptSize;
   nsBoundingMetrics bmBase, bmSupScript;
-  nsIFrame* supScriptFrame = nullptr;
+  nsIFrame* supScriptFrame = nsnull;
   nsIFrame* baseFrame = aFrame->GetFirstPrincipalChild();
   if (baseFrame)
     supScriptFrame = baseFrame->GetNextSibling();
@@ -215,14 +241,12 @@ nsMathMLmsupFrame::PlaceSuperScript(nsPresContext*      aPresContext,
   if (aPlaceOrigin) {
     nscoord dx, dy;
     
-    dx = aFrame->MirrorIfRTL(aDesiredSize.width, baseSize.width, 0);
-    dy = aDesiredSize.ascent - baseSize.ascent;
-    FinishReflowChild (baseFrame, aPresContext, nullptr, baseSize, dx, dy, 0);
+    dx = 0; dy = aDesiredSize.ascent - baseSize.ascent;
+    FinishReflowChild (baseFrame, aPresContext, nsnull, baseSize, dx, dy, 0);
     
-    dx = aFrame->MirrorIfRTL(aDesiredSize.width, supScriptSize.width,
-                             bmBase.width + italicCorrection);
+    dx = bmBase.width + italicCorrection;
     dy = aDesiredSize.ascent - (supScriptSize.ascent + actualSupScriptShift);
-    FinishReflowChild (supScriptFrame, aPresContext, nullptr, supScriptSize, dx, dy, 0);
+    FinishReflowChild (supScriptFrame, aPresContext, nsnull, supScriptSize, dx, dy, 0);
   }
 
   return NS_OK;

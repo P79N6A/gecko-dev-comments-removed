@@ -2,6 +2,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIWifiMonitor.h"
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
@@ -13,7 +48,6 @@
 #include "prlog.h"
 #include "nsIObserver.h"
 #include "nsTArray.h"
-#include "mozilla/Attributes.h"
 
 #ifndef __nsWifiMonitor__
 #define __nsWifiMonitor__
@@ -32,7 +66,7 @@ class nsWifiListener
   nsWifiListener(nsIWifiListener* aListener)
   {
     mListener = aListener;
-    mHasSentData = false;
+    mHasSentData = PR_FALSE;
   }
   ~nsWifiListener() {}
 
@@ -40,7 +74,7 @@ class nsWifiListener
   bool mHasSentData;
 };
 
-class nsWifiMonitor MOZ_FINAL : nsIRunnable, nsIWifiMonitor, nsIObserver
+class nsWifiMonitor : nsIRunnable, nsIWifiMonitor, nsIObserver
 {
  public:
   NS_DECL_ISUPPORTS

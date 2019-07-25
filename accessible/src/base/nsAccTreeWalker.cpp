@@ -3,13 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsAccTreeWalker.h"
 
-#include "Accessible.h"
+#include "nsAccessible.h"
 #include "nsAccessibilityService.h"
-#include "DocAccessible.h"
 
 #include "nsINodeList.h"
+#include "nsIPresShell.h"
 
 
 
@@ -18,11 +52,11 @@
 struct WalkState
 {
   WalkState(nsIContent *aContent) :
-    content(aContent), childIdx(0), prevState(nullptr) {}
+    content(aContent), childIdx(0), prevState(nsnull) {}
 
   nsCOMPtr<nsIContent> content;
   nsCOMPtr<nsINodeList> childList;
-  uint32_t childIdx;
+  PRUint32 childIdx;
   WalkState *prevState;
 };
 
@@ -31,9 +65,9 @@ struct WalkState
 
 
 nsAccTreeWalker::
-  nsAccTreeWalker(DocAccessible* aDoc, nsIContent* aContent,
+  nsAccTreeWalker(nsIWeakReference* aShell, nsIContent* aContent,
                   bool aWalkAnonContent, bool aWalkCache) :
-  mDoc(aDoc), mWalkCache(aWalkCache), mState(nullptr)
+  mWeakShell(aShell), mWalkCache(aWalkCache), mState(nsnull)
 {
   NS_ASSERTION(aContent, "No node for the accessible tree walker!");
 
@@ -60,16 +94,18 @@ nsAccTreeWalker::~nsAccTreeWalker()
 
 
 
-Accessible*
+nsAccessible*
 nsAccTreeWalker::NextChildInternal(bool aNoWalkUp)
 {
   if (!mState || !mState->content)
-    return nullptr;
+    return nsnull;
 
   if (!mState->childList)
     mState->childList = mState->content->GetChildren(mChildFilter);
 
-  uint32_t length = 0;
+  nsCOMPtr<nsIPresShell> presShell(do_QueryReferent(mWeakShell));
+
+  PRUint32 length = 0;
   if (mState->childList)
     mState->childList->GetLength(&length);
 
@@ -78,8 +114,10 @@ nsAccTreeWalker::NextChildInternal(bool aNoWalkUp)
     mState->childIdx++;
 
     bool isSubtreeHidden = false;
-    Accessible* accessible = mWalkCache ? mDoc->GetAccessible(childNode) :
-      GetAccService()->GetOrCreateAccessible(childNode, mDoc, &isSubtreeHidden);
+    nsAccessible* accessible = mWalkCache ?
+      GetAccService()->GetAccessibleInWeakShell(childNode, mWeakShell) :
+      GetAccService()->GetOrCreateAccessible(childNode, presShell, mWeakShell,
+                                             &isSubtreeHidden);
 
     if (accessible)
       return accessible;
@@ -98,7 +136,7 @@ nsAccTreeWalker::NextChildInternal(bool aNoWalkUp)
   
   PopState();
 
-  return aNoWalkUp ? nullptr : NextChildInternal(false);
+  return aNoWalkUp ? nsnull : NextChildInternal(false);
 }
 
 void
@@ -114,10 +152,10 @@ nsAccTreeWalker::PushState(nsIContent* aContent)
 {
   WalkState* nextToLastState = new WalkState(aContent);
   if (!nextToLastState)
-    return false;
+    return PR_FALSE;
 
   nextToLastState->prevState = mState;
   mState = nextToLastState;
 
-  return true;
+  return PR_TRUE;
 }

@@ -9,6 +9,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsIContent.h"
 #include "nsINodeList.h"
@@ -27,14 +59,14 @@ protected:
   
   
   union {
-    uint32_t mIndex;
+    PRUint32 mIndex;
     nsIContent* mChild;
   };
   nsINodeList* mNodes;
 
 public:
   ChildIterator()
-    : mContent(nullptr), mChild(0), mNodes(nullptr) {}
+    : mContent(nsnull), mChild(0), mNodes(nsnull) {}
 
   ChildIterator(const ChildIterator& aOther)
     : mContent(aOther.mContent),
@@ -116,7 +148,7 @@ public:
 
   void seek(nsIContent* aContent) {
     if (XBLInvolved()) {
-      int32_t index = mNodes->IndexOf(aContent);
+      PRInt32 index = mNodes->IndexOf(aContent);
       
       
       
@@ -136,11 +168,11 @@ public:
       
       
       
-      mChild = nullptr;
+      mChild = nsnull;
     }
   }
 
-  bool XBLInvolved() const { return mNodes != nullptr; }
+  bool XBLInvolved() const { return mNodes != nsnull; }
 
   
 
@@ -152,9 +184,9 @@ public:
                        ChildIterator* aLast);
 
 private:
-  uint32_t length() {
+  PRUint32 length() {
     NS_PRECONDITION(XBLInvolved(), "Don't call me");
-    uint32_t l;
+    PRUint32 l;
     mNodes->GetLength(&l);
     return l;
   }

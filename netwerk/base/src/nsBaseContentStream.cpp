@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsBaseContentStream.h"
 #include "nsStreamUtils.h"
 
@@ -23,11 +55,11 @@ nsBaseContentStream::DispatchCallback(bool async)
                                 mCallbackTarget);
     if (!callback)
       return;  
-    mCallback = nullptr;
+    mCallback = nsnull;
   } else {
     callback.swap(mCallback);
   }
-  mCallbackTarget = nullptr;
+  mCallbackTarget = nsnull;
 
   callback->OnInputStreamReady(this);
 }
@@ -55,21 +87,21 @@ nsBaseContentStream::Close()
 }
 
 NS_IMETHODIMP
-nsBaseContentStream::Available(uint64_t *result)
+nsBaseContentStream::Available(PRUint32 *result)
 {
   *result = 0;
   return mStatus;
 }
 
 NS_IMETHODIMP
-nsBaseContentStream::Read(char *buf, uint32_t count, uint32_t *result)
+nsBaseContentStream::Read(char *buf, PRUint32 count, PRUint32 *result)
 {
   return ReadSegments(NS_CopySegmentToBuffer, buf, count, result); 
 }
 
 NS_IMETHODIMP
 nsBaseContentStream::ReadSegments(nsWriteSegmentFun fun, void *closure,
-                                  uint32_t count, uint32_t *result)
+                                  PRUint32 count, PRUint32 *result)
 {
   *result = 0;
 
@@ -108,7 +140,7 @@ nsBaseContentStream::CloseWithStatus(nsresult status)
 
 NS_IMETHODIMP
 nsBaseContentStream::AsyncWait(nsIInputStreamCallback *callback,
-                               uint32_t flags, uint32_t requestedCount,
+                               PRUint32 flags, PRUint32 requestedCount,
                                nsIEventTarget *target)
 {
   

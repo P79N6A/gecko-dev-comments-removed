@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_BinaryPath_h
 #define mozilla_BinaryPath_h
 
@@ -61,25 +94,6 @@ private:
     return rv;
   }
 
-#elif defined(ANDROID)
-  static nsresult Get(const char *argv0, char aResult[MAXPATHLEN])
-  {
-    
-    
-    const char *greHome = getenv("GRE_HOME");
-#if defined(MOZ_WIDGET_GONK)
-    if (!greHome)
-      greHome = "/system/b2g";
-#endif
-
-    if (!greHome)
-      return NS_ERROR_FAILURE;
-
-    snprintf(aResult, MAXPATHLEN, "%s/%s", greHome, "dummy");
-    aResult[MAXPATHLEN-1] = '\0';
-    return NS_OK;
-  }
-
 #elif defined(XP_UNIX)
   static nsresult Get(const char *argv0, char aResult[MAXPATHLEN])
   {
@@ -110,7 +124,7 @@ private:
       char tmpPath[MAXPATHLEN];
       sprintf(tmpPath, "%s/%s", token, argv0);
       if (realpath(tmpPath, aResult) && stat(aResult, &fileStat) == 0) {
-        found = true;
+        found = PR_TRUE;
         break;
       }
       token = strtok(NULL, ":");
@@ -135,9 +149,9 @@ private:
 #endif
 
 public:
-  static nsresult GetFile(const char *argv0, nsIFile* *aResult)
+  static nsresult GetFile(const char *argv0, nsILocalFile* *aResult)
   {
-    nsCOMPtr<nsIFile> lf;
+    nsCOMPtr<nsILocalFile> lf;
 #ifdef XP_WIN
     PRUnichar exePath[MAXPATHLEN];
     nsresult rv = GetW(argv0, exePath);
@@ -148,10 +162,10 @@ public:
     if (NS_FAILED(rv))
       return rv;
 #ifdef XP_WIN
-    rv = NS_NewLocalFile(nsDependentString(exePath), true,
+    rv = NS_NewLocalFile(nsDependentString(exePath), PR_TRUE,
                          getter_AddRefs(lf));
 #else
-    rv = NS_NewNativeLocalFile(nsDependentCString(exePath), true,
+    rv = NS_NewNativeLocalFile(nsDependentCString(exePath), PR_TRUE,
                                getter_AddRefs(lf));
 #endif
     if (NS_FAILED(rv))

@@ -3,20 +3,48 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsFilteredContentIterator_h__
 #define nsFilteredContentIterator_h__
 
-#include "nsCOMPtr.h"
-#include "nsCycleCollectionParticipant.h"
 #include "nsIContentIterator.h"
-#include "nsISupportsImpl.h"
-#include "nscore.h"
-
-class nsIAtom;
-class nsIDOMNode;
-class nsIDOMRange;
-class nsINode;
-class nsITextServicesFilter;
+#include "nsCOMPtr.h"
+#include "nsIAtom.h"
+#include "nsITextServicesFilter.h"
+#include "nsIDOMNSRange.h"
+#include "nsIRangeUtils.h"
+#include "nsCycleCollectionParticipant.h"
 
 
 
@@ -36,6 +64,7 @@ public:
   
   virtual nsresult Init(nsINode* aRoot);
   virtual nsresult Init(nsIDOMRange* aRange);
+  virtual nsresult Init(nsIRange* aRange);
   virtual void First();
   virtual void Last();
   virtual void Next();
@@ -46,7 +75,7 @@ public:
 
   
   bool DidSkip()      { return mDidSkip; }
-  void         ClearDidSkip() {  mDidSkip = false; }
+  void         ClearDidSkip() {  mDidSkip = PR_FALSE; }
 
 protected:
   nsFilteredContentIterator() { }
@@ -68,7 +97,7 @@ protected:
   nsCOMPtr<nsIAtom> mMapAtom;
 
   nsCOMPtr<nsITextServicesFilter> mFilter;
-  nsCOMPtr<nsIDOMRange>           mRange;
+  nsCOMPtr<nsIDOMNSRange>         mRange;
   bool                            mDidSkip;
   bool                            mIsOutOfRange;
   eDirectionType                  mDirection;

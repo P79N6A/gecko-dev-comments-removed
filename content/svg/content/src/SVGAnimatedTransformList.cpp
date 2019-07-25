@@ -3,15 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "SVGAnimatedTransformList.h"
 #include "DOMSVGAnimatedTransformList.h"
 
-#include "nsISMILAnimationElement.h"
+#ifdef MOZ_SMIL
 #include "nsSMILValue.h"
 #include "SVGTransform.h"
 #include "SVGTransformListSMILType.h"
 #include "nsSVGUtils.h"
 #include "prdtoa.h"
+#endif 
 
 namespace mozilla {
 
@@ -45,7 +77,7 @@ SVGAnimatedTransformList::SetBaseValueString(const nsAString& aValue)
     
     domWrapper->InternalBaseValListWillChangeLengthTo(mBaseVal.Length());
   } else {
-    mIsAttrSet = true;
+    mIsAttrSet = PR_TRUE;
   }
   return rv;
 }
@@ -60,7 +92,7 @@ SVGAnimatedTransformList::ClearBaseValue()
     domWrapper->InternalBaseValListWillChangeLengthTo(0);
   }
   mBaseVal.Clear();
-  mIsAttrSet = false;
+  mIsAttrSet = PR_FALSE;
   
 }
 
@@ -116,7 +148,7 @@ SVGAnimatedTransformList::ClearAnimValue(nsSVGElement *aElement)
     
     domWrapper->InternalAnimValListWillChangeLengthTo(mBaseVal.Length());
   }
-  mAnimVal = nullptr;
+  mAnimVal = nsnull;
   aElement->DidAnimateTransformList();
 }
 
@@ -137,6 +169,7 @@ SVGAnimatedTransformList::IsExplicitlySet() const
   return mIsAttrSet || !mBaseVal.IsEmpty() || mAnimVal;
 }
 
+#ifdef MOZ_SMIL
 nsISMILAttr*
 SVGAnimatedTransformList::ToSMILAttr(nsSVGElement* aSVGElement)
 {
@@ -167,7 +200,7 @@ SVGAnimatedTransformList::SMILAnimatedTransformList::ValueFromString(
   }
 
   ParseValue(aStr, transformType, aValue);
-  aPreventCachingOfSandwich = false;
+  aPreventCachingOfSandwich = PR_FALSE;
   return aValue.IsNull() ? NS_ERROR_FAILURE : NS_OK;
 }
 
@@ -183,8 +216,8 @@ SVGAnimatedTransformList::SMILAnimatedTransformList::ParseValue(
   PR_STATIC_ASSERT(SVGTransformSMILData::NUM_SIMPLE_PARAMS == 3);
 
   float params[3] = { 0.f };
-  int32_t numParsed = ParseParameterList(aSpec, params, 3);
-  uint16_t transformType;
+  PRInt32 numParsed = ParseParameterList(aSpec, params, 3);
+  PRUint16 transformType;
 
   if (aTransformType == nsGkAtoms::translate) {
     
@@ -239,11 +272,11 @@ namespace
   }
 } 
 
-int32_t
+PRInt32
 SVGAnimatedTransformList::SMILAnimatedTransformList::ParseParameterList(
   const nsAString& aSpec,
   float* aVars,
-  int32_t aNVars)
+  PRInt32 aNVars)
 {
   NS_ConvertUTF16toUTF8 spec(aSpec);
 
@@ -316,5 +349,7 @@ SVGAnimatedTransformList::SMILAnimatedTransformList::ClearAnimValue()
     mVal->ClearAnimValue(mElement);
   }
 }
+
+#endif 
 
 } 

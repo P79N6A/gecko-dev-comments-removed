@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "TestHarness.h"
 
 #include "nsIScriptableBase64Encoder.h"
@@ -12,11 +44,11 @@
 #include <wchar.h>
 
 struct Chunk {
-  Chunk(uint32_t l, const char* c)
+  Chunk(PRUint32 l, const char* c)
     : mLength(l), mData(c)
   {}
 
-  uint32_t mLength;
+  PRUint32 mLength;
   const char* mData;
 };
 
@@ -32,7 +64,7 @@ struct Test {
 static Chunk kTest1Chunks[] =
 {
    Chunk(9, "Hello sir"),
-   Chunk(0, nullptr)
+   Chunk(0, nsnull)
 };
 
 static Chunk kTest2Chunks[] =
@@ -40,33 +72,33 @@ static Chunk kTest2Chunks[] =
    Chunk(3, "Hel"),
    Chunk(3, "lo "),
    Chunk(3, "sir"),
-   Chunk(0, nullptr)
+   Chunk(0, nsnull)
 };
 
 static Chunk kTest3Chunks[] =
 {
    Chunk(1, "I"),
-   Chunk(0, nullptr)
+   Chunk(0, nsnull)
 };
 
 static Chunk kTest4Chunks[] =
 {
    Chunk(2, "Hi"),
-   Chunk(0, nullptr)
+   Chunk(0, nsnull)
 };
 
 static Chunk kTest5Chunks[] =
 {
    Chunk(1, "B"),
    Chunk(2, "ob"),
-   Chunk(0, nullptr)
+   Chunk(0, nsnull)
 };
 
 static Chunk kTest6Chunks[] =
 {
    Chunk(2, "Bo"),
    Chunk(1, "b"),
-   Chunk(0, nullptr)
+   Chunk(0, nsnull)
 };
 
 static Chunk kTest7Chunks[] =
@@ -78,7 +110,7 @@ static Chunk kTest7Chunks[] =
    Chunk(2, "aw"),   
    Chunk(4, "esom"), 
    Chunk(2, "e!"),
-   Chunk(0, nullptr)
+   Chunk(0, nsnull)
 };
 
 static Chunk kTest8Chunks[] =
@@ -90,7 +122,7 @@ static Chunk kTest8Chunks[] =
    Chunk(21, "RLDS ARE YOURS EXCEPT"),
    Chunk(9, " EUROPA. "),
    Chunk(25, "ATTEMPT NO LANDING THERE."),
-   Chunk(0, nullptr)
+   Chunk(0, nsnull)
 };
 
 static Test kTests[] =
@@ -137,8 +169,8 @@ static Test kTests[] =
     ),
     
     Test(
-      nullptr,
-      nullptr
+      nsnull,
+      nsnull
     )
   };
 
@@ -161,7 +193,7 @@ public:
   bool CheckTest(nsACString& aResult);
   bool CheckTest(nsAString& aResult);
 private:
-  uint32_t mTestNumber;
+  PRUint32 mTestNumber;
   const Test* mTest;
   const Chunk* mChunk;
   bool mClosed;
@@ -177,7 +209,7 @@ FakeInputStream::Close()
 }
 
 NS_IMETHODIMP
-FakeInputStream::Available(uint64_t* aAvailable)
+FakeInputStream::Available(PRUint32* aAvailable)
 {
   *aAvailable = 0;
 
@@ -194,7 +226,7 @@ FakeInputStream::Available(uint64_t* aAvailable)
 }
 
 NS_IMETHODIMP
-FakeInputStream::Read(char* aBuffer, uint32_t aCount, uint32_t* aOut)
+FakeInputStream::Read(char* aBuffer, PRUint32 aCount, PRUint32* aOut)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -202,8 +234,8 @@ FakeInputStream::Read(char* aBuffer, uint32_t aCount, uint32_t* aOut)
 NS_IMETHODIMP
 FakeInputStream::ReadSegments(nsWriteSegmentFun aWriter,
                               void* aClosure,
-                              uint32_t aCount,
-                              uint32_t* aRead)
+                              PRUint32 aCount,
+                              PRUint32* aRead)
 {
   *aRead = 0;
 
@@ -211,7 +243,7 @@ FakeInputStream::ReadSegments(nsWriteSegmentFun aWriter,
     return NS_BASE_STREAM_CLOSED;
 
   while (mChunk->mLength) {
-    uint32_t written = 0;
+    PRUint32 written = 0;
 
     nsresult rv = (*aWriter)(this, aClosure, mChunk->mData,
                              *aRead, mChunk->mLength, &written);
@@ -228,7 +260,7 @@ FakeInputStream::ReadSegments(nsWriteSegmentFun aWriter,
 NS_IMETHODIMP
 FakeInputStream::IsNonBlocking(bool* aIsBlocking)
 {
-  *aIsBlocking = false;
+  *aIsBlocking = PR_FALSE;
   return NS_OK;
 }
 

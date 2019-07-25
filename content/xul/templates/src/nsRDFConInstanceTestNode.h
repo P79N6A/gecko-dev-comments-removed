@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsRDFConInstanceTestNode_h__
 #define nsRDFConInstanceTestNode_h__
 
@@ -65,7 +98,7 @@ public:
         Create(nsIRDFResource* aContainer,
                Test aContainerTest, Test aEmptyTest) {
             void* place = MemoryElement::gPool.Alloc(sizeof(Element));
-            return place ? ::new (place) Element(aContainer, aContainerTest, aEmptyTest) : nullptr; }
+            return place ? ::new (place) Element(aContainer, aContainerTest, aEmptyTest) : nsnull; }
 
         void Destroy() {
             this->~Element();
@@ -76,8 +109,9 @@ public:
             return "nsRDFConInstanceTestNode::Element"; }
 
         virtual PLHashNumber Hash() const {
-            return mozilla::HashGeneric(mContainerTest, mEmptyTest, mContainer.get());
-        }
+            return (PLHashNumber(NS_PTR_TO_INT32(mContainer.get())) >> 4) ^
+                PLHashNumber(mContainerTest) ^
+                (PLHashNumber(mEmptyTest) << 4); }
 
         virtual bool Equals(const MemoryElement& aElement) const {
             if (aElement.Type() == Type()) {
@@ -86,7 +120,7 @@ public:
                     && mContainerTest == element.mContainerTest
                     && mEmptyTest == element.mEmptyTest;
             }
-            return false; }
+            return PR_FALSE; }
 
     protected:
         nsCOMPtr<nsIRDFResource> mContainer;

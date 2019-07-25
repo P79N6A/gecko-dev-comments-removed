@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsCSSRendering_h___
 #define nsCSSRendering_h___
 
@@ -12,128 +44,11 @@
 #include "gfxBlur.h"
 #include "gfxContext.h"
 #include "gfxImageSurface.h"
-#include "nsLayoutUtils.h"
 
 struct nsPoint;
 class nsStyleContext;
 class nsPresContext;
 class nsRenderingContext;
-
-
-
-
-
-
-
-
-
-class nsImageRenderer {
-public:
-  typedef mozilla::layers::ImageContainer ImageContainer;
-
-  enum {
-    FLAG_SYNC_DECODE_IMAGES = 0x01
-  };
-  nsImageRenderer(nsIFrame* aForFrame, const nsStyleImage* aImage, uint32_t aFlags);
-  ~nsImageRenderer();
-  
-
-
-
-
-  bool PrepareImage();
-  
-
-
-
-
-  nsSize ComputeSize(const nsStyleBackground::Size& aLayerSize,
-                     const nsSize& aBgPositioningArea);
-  
-
-
-
-  void Draw(nsPresContext*       aPresContext,
-            nsRenderingContext& aRenderingContext,
-            const nsRect&        aDest,
-            const nsRect&        aFill,
-            const nsPoint&       aAnchor,
-            const nsRect&        aDirty);
-
-
-  bool IsRasterImage();
-  already_AddRefed<ImageContainer> GetContainer();
-private:
-  
-
-
-
-
-
-  void ComputeUnscaledDimensions(const nsSize& aBgPositioningArea,
-                                 nscoord& aUnscaledWidth, bool& aHaveWidth,
-                                 nscoord& aUnscaledHeight, bool& aHaveHeight,
-                                 nsSize& aRatio);
-
-  
-
-
-
-
-  nsSize
-  ComputeDrawnSize(const nsStyleBackground::Size& aLayerSize,
-                   const nsSize& aBgPositioningArea,
-                   nscoord aUnscaledWidth, bool aHaveWidth,
-                   nscoord aUnscaledHeight, bool aHaveHeight,
-                   const nsSize& aIntrinsicRatio);
-
-  nsIFrame*                 mForFrame;
-  const nsStyleImage*       mImage;
-  nsStyleImageType          mType;
-  nsCOMPtr<imgIContainer>   mImageContainer;
-  nsRefPtr<nsStyleGradient> mGradientData;
-  nsIFrame*                 mPaintServerFrame;
-  nsLayoutUtils::SurfaceFromElementResult mImageElementSurface;
-  bool                      mIsReady;
-  nsSize                    mSize; 
-  uint32_t                  mFlags;
-};
-
-
-
-
-
-
-struct nsBackgroundLayerState {
-  
-
-
-  nsBackgroundLayerState(nsIFrame* aForFrame, const nsStyleImage* aImage, uint32_t aFlags)
-    : mImageRenderer(aForFrame, aImage, aFlags) {}
-
-  
-
-
-  nsImageRenderer mImageRenderer;
-  
-
-
-
-
-  nsRect mDestArea;
-  
-
-
-
-
-  nsRect mFillArea;
-  
-
-
-
-
-  nsPoint mAnchor;
-};
 
 struct nsCSSRendering {
   
@@ -173,7 +88,7 @@ struct nsCSSRendering {
                           const nsRect& aDirtyRect,
                           const nsRect& aBorderArea,
                           nsStyleContext* aStyleContext,
-                          int aSkipSides = 0);
+                          PRIntn aSkipSides = 0);
 
   
 
@@ -186,7 +101,7 @@ struct nsCSSRendering {
                                          const nsRect& aBorderArea,
                                          const nsStyleBorder& aBorderStyle,
                                          nsStyleContext* aStyleContext,
-                                         int aSkipSides = 0);
+                                         PRIntn aSkipSides = 0);
 
 
   
@@ -296,18 +211,7 @@ struct nsCSSRendering {
   static nscolor
   DetermineBackgroundColor(nsPresContext* aPresContext,
                            nsStyleContext* aStyleContext,
-                           nsIFrame* aFrame,
-                           bool& aDrawBackgroundImage,
-                           bool& aDrawBackgroundColor);
-
-  static nsBackgroundLayerState
-  PrepareBackgroundLayer(nsPresContext* aPresContext,
-                         nsIFrame* aForFrame,
-                         uint32_t aFlags,
-                         const nsRect& aBorderArea,
-                         const nsRect& aBGClipRect,
-                         const nsStyleBackground& aBackground,
-                         const nsStyleBackground::Layer& aLayer);
+                           nsIFrame* aFrame);
 
   
 
@@ -334,8 +238,8 @@ struct nsCSSRendering {
                               nsIFrame* aForFrame,
                               const nsRect& aDirtyRect,
                               const nsRect& aBorderArea,
-                              uint32_t aFlags,
-                              nsRect* aBGClipRect = nullptr);
+                              PRUint32 aFlags,
+                              nsRect* aBGClipRect = nsnull);
 
   
 
@@ -349,8 +253,8 @@ struct nsCSSRendering {
                                     const nsRect& aBorderArea,
                                     nsStyleContext *aStyleContext,
                                     const nsStyleBorder& aBorder,
-                                    uint32_t aFlags,
-                                    nsRect* aBGClipRect = nullptr);
+                                    PRUint32 aFlags,
+                                    nsRect* aBGClipRect = nsnull);
 
   
 
@@ -372,14 +276,14 @@ struct nsCSSRendering {
   
   
   static void DrawTableBorderSegment(nsRenderingContext& aContext,
-                                     uint8_t              aBorderStyle,  
+                                     PRUint8              aBorderStyle,  
                                      nscolor              aBorderColor,
                                      const nsStyleBackground* aBGColor,
                                      const nsRect&        aBorderRect,
-                                     int32_t              aAppUnitsPerCSSPixel,
-                                     uint8_t              aStartBevelSide = 0,
+                                     PRInt32              aAppUnitsPerCSSPixel,
+                                     PRUint8              aStartBevelSide = 0,
                                      nscoord              aStartBevelOffset = 0,
-                                     uint8_t              aEndBevelSide = 0,
+                                     PRUint8              aEndBevelSide = 0,
                                      nscoord              aEndBevelOffset = 0);
 
   
@@ -415,44 +319,16 @@ struct nsCSSRendering {
 
 
 
-
-
-
-
-
-
-  static void PaintDecorationLine(nsIFrame* aFrame,
-                                  gfxContext* aGfxContext,
+  static void PaintDecorationLine(gfxContext* aGfxContext,
                                   const gfxRect& aDirtyRect,
                                   const nscolor aColor,
                                   const gfxPoint& aPt,
-                                  const gfxFloat aXInFrame,
                                   const gfxSize& aLineSize,
                                   const gfxFloat aAscent,
                                   const gfxFloat aOffset,
-                                  const uint8_t aDecoration,
-                                  const uint8_t aStyle,
+                                  const PRUint8 aDecoration,
+                                  const PRUint8 aStyle,
                                   const gfxFloat aDescentLimit = -1.0);
-
-  
-
-
-
-
-
-
-  static void DecorationLineToPath(nsIFrame* aFrame,
-                                   gfxContext* aGfxContext,
-                                   const gfxRect& aDirtyRect,
-                                   const nscolor aColor,
-                                   const gfxPoint& aPt,
-                                   const gfxFloat aXInFrame,
-                                   const gfxSize& aLineSize,
-                                   const gfxFloat aAscent,
-                                   const gfxFloat aOffset,
-                                   const uint8_t aDecoration,
-                                   const uint8_t aStyle,
-                                   const gfxFloat aDescentLimit = -1.0);
 
   
 
@@ -491,8 +367,8 @@ struct nsCSSRendering {
                                       const gfxSize& aLineSize,
                                       const gfxFloat aAscent,
                                       const gfxFloat aOffset,
-                                      const uint8_t aDecoration,
-                                      const uint8_t aStyle,
+                                      const PRUint8 aDecoration,
+                                      const PRUint8 aStyle,
                                       const gfxFloat aDescentLimit = -1.0);
 
 protected:
@@ -500,35 +376,9 @@ protected:
                                                const gfxSize& aLineSize,
                                                const gfxFloat aAscent,
                                                const gfxFloat aOffset,
-                                               const uint8_t aDecoration,
-                                               const uint8_t aStyle,
+                                               const PRUint8 aDecoration,
+                                               const PRUint8 aStyle,
                                                const gfxFloat aDscentLimit);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static gfxRect ExpandPaintingRectForDecorationLine(
-                   nsIFrame* aFrame,
-                   const uint8_t aStyle,
-                   const gfxRect &aClippedRect,
-                   const gfxFloat aXInFrame,
-                   const gfxFloat aCycleLength);
 };
 
 
@@ -599,9 +449,9 @@ public:
 
   gfxContext* Init(const nsRect& aRect, nscoord aSpreadRadius,
                    nscoord aBlurRadius,
-                   int32_t aAppUnitsPerDevPixel, gfxContext* aDestinationCtx,
+                   PRInt32 aAppUnitsPerDevPixel, gfxContext* aDestinationCtx,
                    const nsRect& aDirtyRect, const gfxRect* aSkipRect,
-                   uint32_t aFlags = 0);
+                   PRUint32 aFlags = 0);
 
   
 
@@ -631,17 +481,13 @@ public:
 
 
   static nsMargin GetBlurRadiusMargin(nscoord aBlurRadius,
-                                      int32_t aAppUnitsPerDevPixel);
+                                      PRInt32 aAppUnitsPerDevPixel);
 
 protected:
   gfxAlphaBoxBlur blur;
   nsRefPtr<gfxContext> mContext;
   gfxContext* mDestinationCtx;
-
   
-
-  bool mPreTransformed;
-
 };
 
 #endif

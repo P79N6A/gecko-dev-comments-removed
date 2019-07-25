@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsAsyncStreamCopier_h__
 #define nsAsyncStreamCopier_h__
 
@@ -28,7 +61,7 @@ public:
     
     
 
-    bool IsComplete(nsresult *status = nullptr);
+    bool IsComplete(nsresult *status = nsnull);
     void   Complete(nsresult status);
 
 private:
@@ -48,7 +81,7 @@ private:
     mozilla::Mutex                 mLock;
 
     nsAsyncCopyMode                mMode;
-    uint32_t                       mChunkSize;
+    PRUint32                       mChunkSize;
     nsresult                       mStatus;
     bool                           mIsPending;
     bool                           mCloseSource;

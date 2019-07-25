@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifdef MOZILLA_INTERNAL_API
 #ifndef nsEventDispatcher_h___
 #define nsEventDispatcher_h___
@@ -10,6 +42,8 @@
 #include "nsCOMPtr.h"
 #include "nsEvent.h"
 
+class nsIContent;
+class nsIDocument;
 class nsPresContext;
 class nsIDOMEvent;
 class nsIScriptGlobalObject;
@@ -79,7 +113,7 @@ public:
 
 
 
-  uint16_t              mItemFlags;
+  PRUint16              mItemFlags;
 
   
 
@@ -100,20 +134,20 @@ public:
                          nsEventStatus aEventStatus,
                          bool aIsInAnon)
   : nsEventChainVisitor(aPresContext, aEvent, aDOMEvent, aEventStatus),
-    mCanHandle(true), mForceContentDispatch(false),
-    mRelatedTargetIsInAnon(false), mOriginalTargetIsInAnon(aIsInAnon),
-    mWantsWillHandleEvent(false), mMayHaveListenerManager(true),
-    mParentTarget(nullptr), mEventTargetAtParent(nullptr) {}
+    mCanHandle(PR_TRUE), mForceContentDispatch(PR_FALSE),
+    mRelatedTargetIsInAnon(PR_FALSE), mOriginalTargetIsInAnon(aIsInAnon),
+    mWantsWillHandleEvent(PR_FALSE), mMayHaveListenerManager(PR_TRUE),
+    mParentTarget(nsnull), mEventTargetAtParent(nsnull) {}
 
   void Reset() {
     mItemFlags = 0;
-    mItemData = nullptr;
-    mCanHandle = true;
-    mForceContentDispatch = false;
-    mWantsWillHandleEvent = false;
-    mMayHaveListenerManager = true;
-    mParentTarget = nullptr;
-    mEventTargetAtParent = nullptr;
+    mItemData = nsnull;
+    mCanHandle = PR_TRUE;
+    mForceContentDispatch = PR_FALSE;
+    mWantsWillHandleEvent = PR_FALSE;
+    mMayHaveListenerManager = PR_TRUE;
+    mParentTarget = nsnull;
+    mEventTargetAtParent = nsnull;
   }
 
   
@@ -212,10 +246,10 @@ public:
   static nsresult Dispatch(nsISupports* aTarget,
                            nsPresContext* aPresContext,
                            nsEvent* aEvent,
-                           nsIDOMEvent* aDOMEvent = nullptr,
-                           nsEventStatus* aEventStatus = nullptr,
-                           nsDispatchingCallback* aCallback = nullptr,
-                           nsCOMArray<nsIDOMEventTarget>* aTargets = nullptr);
+                           nsIDOMEvent* aDOMEvent = nsnull,
+                           nsEventStatus* aEventStatus = nsnull,
+                           nsDispatchingCallback* aCallback = nsnull,
+                           nsCOMArray<nsIDOMEventTarget>* aTargets = nsnull);
 
   
 

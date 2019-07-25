@@ -5,6 +5,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSHistory.h"
 
 
@@ -30,7 +63,6 @@
 #include "nsTArray.h"
 #include "nsCOMArray.h"
 #include "nsDocShell.h"
-#include "mozilla/Attributes.h"
 
 
 #include "nspr.h"
@@ -44,21 +76,21 @@ using namespace mozilla;
 static const char* kObservedPrefs[] = {
   PREF_SHISTORY_SIZE,
   PREF_SHISTORY_MAX_TOTAL_VIEWERS,
-  nullptr
+  nsnull
 };
 
-static int32_t  gHistoryMaxSize = 50;
+static PRInt32  gHistoryMaxSize = 50;
 
-static const int32_t  gHistoryMaxViewers = 3;
+static const PRInt32  gHistoryMaxViewers = 3;
 
 static PRCList gSHistoryList;
 
 
-int32_t nsSHistory::sHistoryMaxTotalViewers = -1;
+PRInt32 nsSHistory::sHistoryMaxTotalViewers = -1;
 
 
 
-static uint32_t gTouchCounter = 0;
+static PRUint32 gTouchCounter = 0;
 
 static PRLogModuleInfo* gLogModule = PR_LOG_DEFINE("nsSHistory");
 #define LOG(format) PR_LOG(gLogModule, PR_LOG_DEBUG, format)
@@ -72,7 +104,7 @@ static PRLogModuleInfo* gLogModule = PR_LOG_DEFINE("nsSHistory");
 #define LOG_SPEC(format, uri)                              \
   PR_BEGIN_MACRO                                           \
     if (PR_LOG_TEST(gLogModule, PR_LOG_DEBUG)) {           \
-      nsAutoCString _specStr(NS_LITERAL_CSTRING("(null)"));\
+      nsCAutoString _specStr(NS_LITERAL_CSTRING("(null)"));\
       if (uri) {                                           \
         uri->GetSpec(_specStr);                            \
       }                                                    \
@@ -107,7 +139,7 @@ enum HistCmd{
 
 
 
-class nsSHistoryObserver MOZ_FINAL : public nsIObserver
+class nsSHistoryObserver : public nsIObserver
 {
 
 public:
@@ -120,7 +152,7 @@ protected:
   ~nsSHistoryObserver() {}
 };
 
-static nsSHistoryObserver* gObserver = nullptr;
+static nsSHistoryObserver* gObserver = nsnull;
 
 NS_IMPL_ISUPPORTS1(nsSHistoryObserver, nsIObserver)
 
@@ -147,7 +179,7 @@ GetContentViewerForTransaction(nsISHTransaction *aTrans)
   nsCOMPtr<nsISHEntry> entry;
   aTrans->GetSHEntry(getter_AddRefs(entry));
   if (!entry) {
-    return nullptr;
+    return nsnull;
   }
 
   nsCOMPtr<nsISHEntry> ownerEntry;
@@ -176,7 +208,7 @@ EvictContentViewerForTransaction(nsISHTransaction *aTrans)
 
     
     
-    ownerEntry->SetContentViewer(nullptr);
+    ownerEntry->SetContentViewer(nsnull);
     ownerEntry->SyncPresentationState();
     viewer->Destroy();
   }
@@ -188,7 +220,7 @@ EvictContentViewerForTransaction(nsISHTransaction *aTrans)
 
 
 
-nsSHistory::nsSHistory() : mListRoot(nullptr), mIndex(-1), mLength(0), mRequestedIndex(-1)
+nsSHistory::nsSHistory() : mListRoot(nsnull), mIndex(-1), mLength(0), mRequestedIndex(-1)
 {
   
   PR_APPEND_LINK(this, &gSHistoryList);
@@ -220,7 +252,7 @@ NS_INTERFACE_MAP_END
 
 
 
-uint32_t
+PRUint32
 nsSHistory::CalcMaxTotalViewers()
 {
   
@@ -240,7 +272,7 @@ nsSHistory::CalcMaxTotalViewers()
   
   
   
-  uint64_t bytes = PR_GetPhysicalMemorySize();
+  PRUint64 bytes = PR_GetPhysicalMemorySize();
 
   if (LL_IS_ZERO(bytes))
     return 0;
@@ -251,19 +283,19 @@ nsSHistory::CalcMaxTotalViewers()
   if (LL_CMP(bytes, >, LL_MAXINT))
     bytes = LL_MAXINT;
 
-  uint64_t kbytes;
+  PRUint64 kbytes;
   LL_SHR(kbytes, bytes, 10);
 
   double kBytesD;
-  LL_L2D(kBytesD, (int64_t) kbytes);
+  LL_L2D(kBytesD, (PRInt64) kbytes);
 
   
   
   
-  uint32_t viewers = 0;
+  PRUint32 viewers = 0;
   double x = log(kBytesD)/log(2.0) - 14;
   if (x > 0) {
-    viewers    = (uint32_t)(x * x - x + 2.001); 
+    viewers    = (PRUint32)(x * x - x + 2.001); 
     viewers   /= 4;
   }
 
@@ -296,7 +328,7 @@ nsSHistory::Startup()
 
   
   
-  int32_t defaultHistoryMaxSize =
+  PRInt32 defaultHistoryMaxSize =
     Preferences::GetDefaultInt(PREF_SHISTORY_SIZE, 50);
   if (gHistoryMaxSize < defaultHistoryMaxSize) {
     gHistoryMaxSize = defaultHistoryMaxSize;
@@ -315,10 +347,10 @@ nsSHistory::Startup()
       
       
       obsSvc->AddObserver(gObserver,
-                          NS_CACHESERVICE_EMPTYCACHE_TOPIC_ID, false);
+                          NS_CACHESERVICE_EMPTYCACHE_TOPIC_ID, PR_FALSE);
 
       
-      obsSvc->AddObserver(gObserver, "memory-pressure", false);
+      obsSvc->AddObserver(gObserver, "memory-pressure", PR_FALSE);
     }
   }
 
@@ -377,7 +409,7 @@ nsSHistory::AddEntry(nsISHEntry * aSHEntry, bool aPersist)
       nsCOMPtr<nsIURI> uri;
       nsCOMPtr<nsIHistoryEntry> hEntry(do_QueryInterface(aSHEntry));
       if (hEntry) {
-        int32_t currentIndex = mIndex;
+        PRInt32 currentIndex = mIndex;
         hEntry->GetURI(getter_AddRefs(uri));
         listener->OnHistoryNewEntry(uri);
 
@@ -413,7 +445,7 @@ nsSHistory::AddEntry(nsISHEntry * aSHEntry, bool aPersist)
 
 
 NS_IMETHODIMP
-nsSHistory::GetCount(int32_t * aResult)
+nsSHistory::GetCount(PRInt32 * aResult)
 {
   NS_ENSURE_ARG_POINTER(aResult);
   *aResult = mLength;
@@ -422,7 +454,7 @@ nsSHistory::GetCount(int32_t * aResult)
 
 
 NS_IMETHODIMP
-nsSHistory::GetIndex(int32_t * aResult)
+nsSHistory::GetIndex(PRInt32 * aResult)
 {
   NS_PRECONDITION(aResult, "null out param?");
   *aResult = mIndex;
@@ -431,7 +463,7 @@ nsSHistory::GetIndex(int32_t * aResult)
 
 
 NS_IMETHODIMP
-nsSHistory::GetRequestedIndex(int32_t * aResult)
+nsSHistory::GetRequestedIndex(PRInt32 * aResult)
 {
   NS_PRECONDITION(aResult, "null out param?");
   *aResult = mRequestedIndex;
@@ -439,7 +471,7 @@ nsSHistory::GetRequestedIndex(int32_t * aResult)
 }
 
 NS_IMETHODIMP
-nsSHistory::GetEntryAtIndex(int32_t aIndex, bool aModifyIndex, nsISHEntry** aResult)
+nsSHistory::GetEntryAtIndex(PRInt32 aIndex, bool aModifyIndex, nsISHEntry** aResult)
 {
   nsresult rv;
   nsCOMPtr<nsISHTransaction> txn;
@@ -462,7 +494,7 @@ nsSHistory::GetEntryAtIndex(int32_t aIndex, bool aModifyIndex, nsISHEntry** aRes
 
 
 NS_IMETHODIMP
-nsSHistory::GetEntryAtIndex(int32_t aIndex, bool aModifyIndex, nsIHistoryEntry** aResult)
+nsSHistory::GetEntryAtIndex(PRInt32 aIndex, bool aModifyIndex, nsIHistoryEntry** aResult)
 {
   nsresult rv;
   nsCOMPtr<nsISHEntry> shEntry;
@@ -475,7 +507,7 @@ nsSHistory::GetEntryAtIndex(int32_t aIndex, bool aModifyIndex, nsIHistoryEntry**
 
 
 NS_IMETHODIMP
-nsSHistory::GetTransactionAtIndex(int32_t aIndex, nsISHTransaction ** aResult)
+nsSHistory::GetTransactionAtIndex(PRInt32 aIndex, nsISHTransaction ** aResult)
 {
   nsresult rv;
   NS_ENSURE_ARG_POINTER(aResult);
@@ -492,7 +524,7 @@ nsSHistory::GetTransactionAtIndex(int32_t aIndex, nsISHTransaction ** aResult)
     NS_ADDREF(*aResult);
     return NS_OK;
   } 
-  int32_t   cnt=0;
+  PRInt32   cnt=0;
   nsCOMPtr<nsISHTransaction>  tempPtr;
 
   rv = GetRootTransaction(getter_AddRefs(tempPtr));
@@ -527,7 +559,7 @@ nsSHistory::PrintHistory()
 {
 
   nsCOMPtr<nsISHTransaction>   txn;
-  int32_t index = 0;
+  PRInt32 index = 0;
   nsresult rv;
 
   if (!mListRoot) 
@@ -555,7 +587,7 @@ nsSHistory::PrintHistory()
     }
 
 #if 0
-    nsAutoCString url;
+    nsCAutoString url;
     if (uri)
      uri->GetSpec(url);
 
@@ -593,7 +625,7 @@ nsSHistory::GetRootTransaction(nsISHTransaction ** aResult)
 
 
 NS_IMETHODIMP
-nsSHistory::GetMaxLength(int32_t * aResult)
+nsSHistory::GetMaxLength(PRInt32 * aResult)
 {
   NS_ENSURE_ARG_POINTER(aResult);
   *aResult = gHistoryMaxSize;
@@ -602,7 +634,7 @@ nsSHistory::GetMaxLength(int32_t * aResult)
 
 
 NS_IMETHODIMP
-nsSHistory::SetMaxLength(int32_t aMaxSize)
+nsSHistory::SetMaxLength(PRInt32 aMaxSize)
 {
   if (aMaxSize < 0)
     return NS_ERROR_ILLEGAL_VALUE;
@@ -614,7 +646,7 @@ nsSHistory::SetMaxLength(int32_t aMaxSize)
 }
 
 NS_IMETHODIMP
-nsSHistory::PurgeHistory(int32_t aEntries)
+nsSHistory::PurgeHistory(PRInt32 aEntries)
 {
   if (mLength <= 0 || aEntries <= 0)
     return NS_ERROR_FAILURE;
@@ -635,16 +667,16 @@ nsSHistory::PurgeHistory(int32_t aEntries)
     return NS_SUCCESS_LOSS_OF_INSIGNIFICANT_DATA;
   }
 
-  int32_t cnt = 0;
+  PRInt32 cnt = 0;
   while (cnt < aEntries) {
     nsCOMPtr<nsISHTransaction> nextTxn;
     if (mListRoot) {
       mListRoot->GetNext(getter_AddRefs(nextTxn));
-      mListRoot->SetNext(nullptr);
+      mListRoot->SetNext(nsnull);
     }
     mListRoot = nextTxn;
     if (mListRoot) {
-      mListRoot->SetPrev(nullptr);
+      mListRoot->SetPrev(nsnull);
     }
     cnt++;        
   }
@@ -686,7 +718,7 @@ nsSHistory::RemoveSHistoryListener(nsISHistoryListener * aListener)
   
   nsWeakPtr listener = do_GetWeakReference(aListener);  
   if (listener == mListener) {
-    mListener = nullptr;
+    mListener = nsnull;
     return NS_OK;
   }
   return NS_ERROR_FAILURE;
@@ -697,7 +729,7 @@ nsSHistory::RemoveSHistoryListener(nsISHistoryListener * aListener)
 
 
 NS_IMETHODIMP
-nsSHistory::ReplaceEntry(int32_t aIndex, nsISHEntry * aReplaceEntry)
+nsSHistory::ReplaceEntry(PRInt32 aIndex, nsISHEntry * aReplaceEntry)
 {
   NS_ENSURE_ARG(aReplaceEntry);
   nsresult rv;
@@ -712,7 +744,7 @@ nsSHistory::ReplaceEntry(int32_t aIndex, nsISHEntry * aReplaceEntry)
   {
     
     rv = currentTxn->SetSHEntry(aReplaceEntry);
-    rv = currentTxn->SetPersist(true);
+    rv = currentTxn->SetPersist(PR_TRUE);
   }
   return rv;
 }
@@ -729,7 +761,7 @@ nsSHistory::GetListener(nsISHistoryListener ** aListener)
 }
 
 NS_IMETHODIMP
-nsSHistory::EvictOutOfRangeContentViewers(int32_t aIndex)
+nsSHistory::EvictOutOfRangeContentViewers(PRInt32 aIndex)
 {
   
   EvictOutOfRangeWindowContentViewers(aIndex);
@@ -764,12 +796,12 @@ NS_IMETHODIMP
 nsSHistory::GetCanGoBack(bool * aCanGoBack)
 {
   NS_ENSURE_ARG_POINTER(aCanGoBack);
-  *aCanGoBack = false;
+  *aCanGoBack = PR_FALSE;
 
-  int32_t index = -1;
+  PRInt32 index = -1;
   NS_ENSURE_SUCCESS(GetIndex(&index), NS_ERROR_FAILURE);
   if(index > 0)
-     *aCanGoBack = true;
+     *aCanGoBack = PR_TRUE;
 
   return NS_OK;
 }
@@ -778,16 +810,16 @@ NS_IMETHODIMP
 nsSHistory::GetCanGoForward(bool * aCanGoForward)
 {
   NS_ENSURE_ARG_POINTER(aCanGoForward);
-  *aCanGoForward = false;
+  *aCanGoForward = PR_FALSE;
 
-  int32_t index = -1;
-  int32_t count = -1;
+  PRInt32 index = -1;
+  PRInt32 count = -1;
 
   NS_ENSURE_SUCCESS(GetIndex(&index), NS_ERROR_FAILURE);
   NS_ENSURE_SUCCESS(GetCount(&count), NS_ERROR_FAILURE);
 
   if((index >= 0) && (index < (count - 1)))
-    *aCanGoForward = true;
+    *aCanGoForward = PR_TRUE;
 
   return NS_OK;
 }
@@ -816,7 +848,7 @@ nsSHistory::GoForward()
 }
 
 NS_IMETHODIMP
-nsSHistory::Reload(uint32_t aReloadFlags)
+nsSHistory::Reload(PRUint32 aReloadFlags)
 {
   nsresult rv;
   nsDocShellInfoLoadType loadType;
@@ -882,7 +914,7 @@ nsSHistory::ReloadCurrentEntry()
 }
 
 void
-nsSHistory::EvictOutOfRangeWindowContentViewers(int32_t aIndex)
+nsSHistory::EvictOutOfRangeWindowContentViewers(PRInt32 aIndex)
 {
   
 
@@ -928,8 +960,8 @@ nsSHistory::EvictOutOfRangeWindowContentViewers(int32_t aIndex)
   }
 
   
-  int32_t startSafeIndex = NS_MAX(0, aIndex - gHistoryMaxViewers);
-  int32_t endSafeIndex = NS_MIN(mLength, aIndex + gHistoryMaxViewers);
+  PRInt32 startSafeIndex = PR_MAX(0, aIndex - gHistoryMaxViewers);
+  PRInt32 endSafeIndex = PR_MIN(mLength, aIndex + gHistoryMaxViewers);
 
   LOG(("EvictOutOfRangeWindowContentViewers(index=%d), "
        "mLength=%d. Safe range [%d, %d]",
@@ -941,7 +973,7 @@ nsSHistory::EvictOutOfRangeWindowContentViewers(int32_t aIndex)
   nsCOMArray<nsIContentViewer> safeViewers;
   nsCOMPtr<nsISHTransaction> trans;
   GetTransactionAtIndex(startSafeIndex, getter_AddRefs(trans));
-  for (uint32_t i = startSafeIndex; trans && i <= endSafeIndex; i++) {
+  for (PRUint32 i = startSafeIndex; trans && i <= endSafeIndex; i++) {
     nsCOMPtr<nsIContentViewer> viewer = GetContentViewerForTransaction(trans);
     safeViewers.AppendObject(viewer);
     nsISHTransaction *temp = trans;
@@ -966,7 +998,7 @@ namespace {
 class TransactionAndDistance
 {
 public:
-  TransactionAndDistance(nsISHTransaction *aTrans, uint32_t aDist)
+  TransactionAndDistance(nsISHTransaction *aTrans, PRUint32 aDist)
     : mTransaction(aTrans)
     , mDistance(aDist)
   {
@@ -1006,8 +1038,8 @@ public:
 
   nsCOMPtr<nsISHTransaction> mTransaction;
   nsCOMPtr<nsIContentViewer> mViewer;
-  uint32_t mLastTouched;
-  int32_t mDistance;
+  PRUint32 mLastTouched;
+  PRInt32 mDistance;
 };
 
 } 
@@ -1043,12 +1075,12 @@ nsSHistory::GloballyEvictContentViewers()
     
     
     
-    int32_t startIndex = NS_MAX(0, shist->mIndex - gHistoryMaxViewers);
-    int32_t endIndex = NS_MIN(shist->mLength - 1,
+    PRInt32 startIndex = NS_MAX(0, shist->mIndex - gHistoryMaxViewers);
+    PRInt32 endIndex = NS_MIN(shist->mLength - 1,
                               shist->mIndex + gHistoryMaxViewers);
     nsCOMPtr<nsISHTransaction> trans;
     shist->GetTransactionAtIndex(startIndex, getter_AddRefs(trans));
-    for (int32_t i = startIndex; trans && i <= endIndex; i++) {
+    for (PRInt32 i = startIndex; trans && i <= endIndex; i++) {
       nsCOMPtr<nsIContentViewer> contentViewer =
         GetContentViewerForTransaction(trans);
 
@@ -1058,12 +1090,12 @@ nsSHistory::GloballyEvictContentViewers()
         
         
         bool found = false;
-        for (uint32_t j = 0; j < shTransactions.Length(); j++) {
+        for (PRUint32 j = 0; j < shTransactions.Length(); j++) {
           TransactionAndDistance &container = shTransactions[j];
           if (container.mViewer == contentViewer) {
-            container.mDistance = NS_MIN(container.mDistance,
-                                         NS_ABS(i - shist->mIndex));
-            found = true;
+            container.mDistance = PR_MIN(container.mDistance,
+                                         PR_ABS(i - shist->mIndex));
+            found = PR_TRUE;
             break;
           }
         }
@@ -1071,7 +1103,7 @@ nsSHistory::GloballyEvictContentViewers()
         
         
         if (!found) {
-          TransactionAndDistance container(trans, NS_ABS(i - shist->mIndex));
+          TransactionAndDistance container(trans, PR_ABS(i - shist->mIndex));
           shTransactions.AppendElement(container);
         }
       }
@@ -1088,7 +1120,7 @@ nsSHistory::GloballyEvictContentViewers()
 
   
   
-  if ((int32_t)transactions.Length() <= sHistoryMaxTotalViewers) {
+  if ((PRInt32)transactions.Length() <= sHistoryMaxTotalViewers) {
     return;
   }
 
@@ -1098,7 +1130,7 @@ nsSHistory::GloballyEvictContentViewers()
   
   transactions.Sort();
 
-  for (int32_t i = transactions.Length() - 1;
+  for (PRInt32 i = transactions.Length() - 1;
        i >= sHistoryMaxTotalViewers; --i) {
 
     EvictContentViewerForTransaction(transactions[i].mTransaction);
@@ -1109,13 +1141,13 @@ nsSHistory::GloballyEvictContentViewers()
 nsresult
 nsSHistory::EvictExpiredContentViewerForEntry(nsIBFCacheEntry *aEntry)
 {
-  int32_t startIndex = NS_MAX(0, mIndex - gHistoryMaxViewers);
-  int32_t endIndex = NS_MIN(mLength - 1,
+  PRInt32 startIndex = NS_MAX(0, mIndex - gHistoryMaxViewers);
+  PRInt32 endIndex = NS_MIN(mLength - 1,
                             mIndex + gHistoryMaxViewers);
   nsCOMPtr<nsISHTransaction> trans;
   GetTransactionAtIndex(startIndex, getter_AddRefs(trans));
 
-  int32_t i;
+  PRInt32 i;
   for (i = startIndex; trans && i <= endIndex; ++i) {
     nsCOMPtr<nsISHEntry> entry;
     trans->GetSHEntry(getter_AddRefs(entry));
@@ -1150,26 +1182,26 @@ nsSHistory::EvictExpiredContentViewerForEntry(nsIBFCacheEntry *aEntry)
 void
 nsSHistory::GloballyEvictAllContentViewers()
 {
-  int32_t maxViewers = sHistoryMaxTotalViewers;
+  PRInt32 maxViewers = sHistoryMaxTotalViewers;
   sHistoryMaxTotalViewers = 0;
   GloballyEvictContentViewers();
   sHistoryMaxTotalViewers = maxViewers;
 }
 
 void GetDynamicChildren(nsISHContainer* aContainer,
-                        nsTArray<uint64_t>& aDocshellIDs,
+                        nsTArray<PRUint64>& aDocshellIDs,
                         bool aOnlyTopLevelDynamic)
 {
-  int32_t count = 0;
+  PRInt32 count = 0;
   aContainer->GetChildCount(&count);
-  for (int32_t i = 0; i < count; ++i) {
+  for (PRInt32 i = 0; i < count; ++i) {
     nsCOMPtr<nsISHEntry> child;
     aContainer->GetChildAt(i, getter_AddRefs(child));
     if (child) {
       bool dynAdded = false;
       child->IsDynamicallyAdded(&dynAdded);
       if (dynAdded) {
-        uint64_t docshellID = 0;
+        PRUint64 docshellID = 0;
         child->GetDocshellID(&docshellID);
         aDocshellIDs.AppendElement(docshellID);
       }
@@ -1186,22 +1218,22 @@ void GetDynamicChildren(nsISHContainer* aContainer,
 
 bool
 RemoveFromSessionHistoryContainer(nsISHContainer* aContainer,
-                                  nsTArray<uint64_t>& aDocshellIDs)
+                                  nsTArray<PRUint64>& aDocshellIDs)
 {
   nsCOMPtr<nsISHEntry> root = do_QueryInterface(aContainer);
-  NS_ENSURE_TRUE(root, false);
+  NS_ENSURE_TRUE(root, PR_FALSE);
 
   bool didRemove = false;
-  int32_t childCount = 0;
+  PRInt32 childCount = 0;
   aContainer->GetChildCount(&childCount);
-  for (int32_t i = childCount - 1; i >= 0; --i) {
+  for (PRInt32 i = childCount - 1; i >= 0; --i) {
     nsCOMPtr<nsISHEntry> child;
     aContainer->GetChildAt(i, getter_AddRefs(child));
     if (child) {
-      uint64_t docshelldID = 0;
+      PRUint64 docshelldID = 0;
       child->GetDocshellID(&docshelldID);
       if (aDocshellIDs.Contains(docshelldID)) {
-        didRemove = true;
+        didRemove = PR_TRUE;
         aContainer->RemoveChild(child);
       } else {
         nsCOMPtr<nsISHContainer> container = do_QueryInterface(child);
@@ -1209,7 +1241,7 @@ RemoveFromSessionHistoryContainer(nsISHContainer* aContainer,
           bool childRemoved =
             RemoveFromSessionHistoryContainer(container, aDocshellIDs);
           if (childRemoved) {
-            didRemove = true;
+            didRemove = PR_TRUE;
           }
         }
       }
@@ -1218,77 +1250,77 @@ RemoveFromSessionHistoryContainer(nsISHContainer* aContainer,
   return didRemove;
 }
 
-bool RemoveChildEntries(nsISHistory* aHistory, int32_t aIndex,
-                          nsTArray<uint64_t>& aEntryIDs)
+bool RemoveChildEntries(nsISHistory* aHistory, PRInt32 aIndex,
+                          nsTArray<PRUint64>& aEntryIDs)
 {
   nsCOMPtr<nsIHistoryEntry> rootHE;
-  aHistory->GetEntryAtIndex(aIndex, false, getter_AddRefs(rootHE));
+  aHistory->GetEntryAtIndex(aIndex, PR_FALSE, getter_AddRefs(rootHE));
   nsCOMPtr<nsISHContainer> root = do_QueryInterface(rootHE);
-  return root ? RemoveFromSessionHistoryContainer(root, aEntryIDs) : false;
+  return root ? RemoveFromSessionHistoryContainer(root, aEntryIDs) : PR_FALSE;
 }
 
 bool IsSameTree(nsISHEntry* aEntry1, nsISHEntry* aEntry2)
 {
   if (!aEntry1 && !aEntry2) {
-    return true;
+    return PR_TRUE;
   }
   if ((!aEntry1 && aEntry2) || (aEntry1 && !aEntry2)) {
-    return false;
+    return PR_FALSE;
   }
-  uint32_t id1, id2;
+  PRUint32 id1, id2;
   aEntry1->GetID(&id1);
   aEntry2->GetID(&id2);
   if (id1 != id2) {
-    return false;
+    return PR_FALSE;
   }
 
   nsCOMPtr<nsISHContainer> container1 = do_QueryInterface(aEntry1);
   nsCOMPtr<nsISHContainer> container2 = do_QueryInterface(aEntry2);
-  int32_t count1, count2;
+  PRInt32 count1, count2;
   container1->GetChildCount(&count1);
   container2->GetChildCount(&count2);
   
-  int32_t count = NS_MAX(count1, count2);
-  for (int32_t i = 0; i < count; ++i) {
+  PRInt32 count = NS_MAX(count1, count2);
+  for (PRInt32 i = 0; i < count; ++i) {
     nsCOMPtr<nsISHEntry> child1, child2;
     container1->GetChildAt(i, getter_AddRefs(child1));
     container2->GetChildAt(i, getter_AddRefs(child2));
     if (!IsSameTree(child1, child2)) {
-      return false;
+      return PR_FALSE;
     }
   }
   
-  return true;
+  return PR_TRUE;
 }
 
 bool
-nsSHistory::RemoveDuplicate(int32_t aIndex, bool aKeepNext)
+nsSHistory::RemoveDuplicate(PRInt32 aIndex, bool aKeepNext)
 {
   NS_ASSERTION(aIndex >= 0, "aIndex must be >= 0!");
   NS_ASSERTION(aIndex != 0 || aKeepNext,
                "If we're removing index 0 we must be keeping the next");
   NS_ASSERTION(aIndex != mIndex, "Shouldn't remove mIndex!");
-  int32_t compareIndex = aKeepNext ? aIndex + 1 : aIndex - 1;
+  PRInt32 compareIndex = aKeepNext ? aIndex + 1 : aIndex - 1;
   nsCOMPtr<nsIHistoryEntry> rootHE1, rootHE2;
-  GetEntryAtIndex(aIndex, false, getter_AddRefs(rootHE1));
-  GetEntryAtIndex(compareIndex, false, getter_AddRefs(rootHE2));
+  GetEntryAtIndex(aIndex, PR_FALSE, getter_AddRefs(rootHE1));
+  GetEntryAtIndex(compareIndex, PR_FALSE, getter_AddRefs(rootHE2));
   nsCOMPtr<nsISHEntry> root1 = do_QueryInterface(rootHE1);
   nsCOMPtr<nsISHEntry> root2 = do_QueryInterface(rootHE2);
   if (IsSameTree(root1, root2)) {
     nsCOMPtr<nsISHTransaction> txToRemove, txToKeep, txNext, txPrev;
     GetTransactionAtIndex(aIndex, getter_AddRefs(txToRemove));
     GetTransactionAtIndex(compareIndex, getter_AddRefs(txToKeep));
-    NS_ENSURE_TRUE(txToRemove, false);
-    NS_ENSURE_TRUE(txToKeep, false);
+    NS_ENSURE_TRUE(txToRemove, PR_FALSE);
+    NS_ENSURE_TRUE(txToKeep, PR_FALSE);
     txToRemove->GetNext(getter_AddRefs(txNext));
     txToRemove->GetPrev(getter_AddRefs(txPrev));
-    txToRemove->SetNext(nullptr);
-    txToRemove->SetPrev(nullptr);
+    txToRemove->SetNext(nsnull);
+    txToRemove->SetPrev(nsnull);
     if (aKeepNext) {
       if (txPrev) {
         txPrev->SetNext(txToKeep);
       } else {
-        txToKeep->SetPrev(nullptr);
+        txToKeep->SetPrev(nsnull);
       }
     } else {
       txToKeep->SetNext(txNext);
@@ -1325,17 +1357,17 @@ nsSHistory::RemoveDuplicate(int32_t aIndex, bool aKeepNext)
       mRequestedIndex = mRequestedIndex - 1;
     }
     --mLength;
-    return true;
+    return PR_TRUE;
   }
-  return false;
+  return PR_FALSE;
 }
 
 NS_IMETHODIMP_(void)
-nsSHistory::RemoveEntries(nsTArray<uint64_t>& aIDs, int32_t aStartIndex)
+nsSHistory::RemoveEntries(nsTArray<PRUint64>& aIDs, PRInt32 aStartIndex)
 {
-  int32_t index = aStartIndex;
+  PRInt32 index = aStartIndex;
   while(index >= 0 && RemoveChildEntries(this, --index, aIDs));
-  int32_t minIndex = index;
+  PRInt32 minIndex = index;
   index = aStartIndex;
   while(index >= 0 && RemoveChildEntries(this, index++, aIDs));
   
@@ -1356,25 +1388,25 @@ nsSHistory::RemoveEntries(nsTArray<uint64_t>& aIDs, int32_t aStartIndex)
 }
 
 void
-nsSHistory::RemoveDynEntries(int32_t aOldIndex, int32_t aNewIndex)
+nsSHistory::RemoveDynEntries(PRInt32 aOldIndex, PRInt32 aNewIndex)
 {
   
   
   nsCOMPtr<nsISHEntry> originalSH;
-  GetEntryAtIndex(aOldIndex, false, getter_AddRefs(originalSH));
+  GetEntryAtIndex(aOldIndex, PR_FALSE, getter_AddRefs(originalSH));
   nsCOMPtr<nsISHContainer> originalContainer = do_QueryInterface(originalSH);
-  nsAutoTArray<uint64_t, 16> toBeRemovedEntries;
+  nsAutoTArray<PRUint64, 16> toBeRemovedEntries;
   if (originalContainer) {
-    nsTArray<uint64_t> originalDynDocShellIDs;
-    GetDynamicChildren(originalContainer, originalDynDocShellIDs, true);
+    nsTArray<PRUint64> originalDynDocShellIDs;
+    GetDynamicChildren(originalContainer, originalDynDocShellIDs, PR_TRUE);
     if (originalDynDocShellIDs.Length()) {
       nsCOMPtr<nsISHEntry> currentSH;
-      GetEntryAtIndex(aNewIndex, false, getter_AddRefs(currentSH));
+      GetEntryAtIndex(aNewIndex, PR_FALSE, getter_AddRefs(currentSH));
       nsCOMPtr<nsISHContainer> newContainer = do_QueryInterface(currentSH);
       if (newContainer) {
-        nsTArray<uint64_t> newDynDocShellIDs;
-        GetDynamicChildren(newContainer, newDynDocShellIDs, false);
-        for (uint32_t i = 0; i < originalDynDocShellIDs.Length(); ++i) {
+        nsTArray<PRUint64> newDynDocShellIDs;
+        GetDynamicChildren(newContainer, newDynDocShellIDs, PR_FALSE);
+        for (PRUint32 i = 0; i < originalDynDocShellIDs.Length(); ++i) {
           if (!newDynDocShellIDs.Contains(originalDynDocShellIDs[i])) {
             toBeRemovedEntries.AppendElement(originalDynDocShellIDs[i]);
           }
@@ -1401,7 +1433,7 @@ nsSHistory::UpdateIndex()
 }
 
 NS_IMETHODIMP
-nsSHistory::Stop(uint32_t aStopFlags)
+nsSHistory::Stop(PRUint32 aStopFlags)
 {
   
   return NS_OK;
@@ -1423,7 +1455,7 @@ nsSHistory::GetCurrentURI(nsIURI** aResultURI)
   nsresult rv;
 
   nsCOMPtr<nsIHistoryEntry> currentEntry;
-  rv = GetEntryAtIndex(mIndex, false, getter_AddRefs(currentEntry));
+  rv = GetEntryAtIndex(mIndex, PR_FALSE, getter_AddRefs(currentEntry));
   if (NS_FAILED(rv) && !currentEntry) return rv;
   rv = currentEntry->GetURI(aResultURI);
   return rv;
@@ -1433,7 +1465,7 @@ nsSHistory::GetCurrentURI(nsIURI** aResultURI)
 NS_IMETHODIMP
 nsSHistory::GetReferringURI(nsIURI** aURI)
 {
-  *aURI = nullptr;
+  *aURI = nsnull;
   
   return NS_OK;
 }
@@ -1457,7 +1489,7 @@ nsSHistory::GetSessionHistory(nsISHistory** aSessionHistory)
 
 NS_IMETHODIMP
 nsSHistory::LoadURI(const PRUnichar* aURI,
-                    uint32_t aLoadFlags,
+                    PRUint32 aLoadFlags,
                     nsIURI* aReferringURI,
                     nsIInputStream* aPostStream,
                     nsIInputStream* aExtraHeaderStream)
@@ -1466,13 +1498,13 @@ nsSHistory::LoadURI(const PRUnichar* aURI,
 }
 
 NS_IMETHODIMP
-nsSHistory::GotoIndex(int32_t aIndex)
+nsSHistory::GotoIndex(PRInt32 aIndex)
 {
   return LoadEntry(aIndex, nsIDocShellLoadInfo::loadHistory, HIST_CMD_GOTOINDEX);
 }
 
 nsresult
-nsSHistory::LoadNextPossibleEntry(int32_t aNewIndex, long aLoadType, uint32_t aHistCmd)
+nsSHistory::LoadNextPossibleEntry(PRInt32 aNewIndex, long aLoadType, PRUint32 aHistCmd)
 {
   mRequestedIndex = -1;
   if (aNewIndex < mIndex) {
@@ -1485,17 +1517,17 @@ nsSHistory::LoadNextPossibleEntry(int32_t aNewIndex, long aLoadType, uint32_t aH
 }
 
 NS_IMETHODIMP
-nsSHistory::LoadEntry(int32_t aIndex, long aLoadType, uint32_t aHistCmd)
+nsSHistory::LoadEntry(PRInt32 aIndex, long aLoadType, PRUint32 aHistCmd)
 {
   nsCOMPtr<nsIDocShell> docShell;
   
   mRequestedIndex = aIndex;
 
   nsCOMPtr<nsISHEntry> prevEntry;
-  GetEntryAtIndex(mIndex, false, getter_AddRefs(prevEntry));
+  GetEntryAtIndex(mIndex, PR_FALSE, getter_AddRefs(prevEntry));
 
   nsCOMPtr<nsISHEntry> nextEntry;
-  GetEntryAtIndex(mRequestedIndex, false, getter_AddRefs(nextEntry));
+  GetEntryAtIndex(mRequestedIndex, PR_FALSE, getter_AddRefs(nextEntry));
   nsCOMPtr<nsIHistoryEntry> nHEntry(do_QueryInterface(nextEntry));
   if (!nextEntry || !prevEntry || !nHEntry) {
     mRequestedIndex = -1;
@@ -1541,7 +1573,7 @@ nsSHistory::LoadEntry(int32_t aIndex, long aLoadType, uint32_t aHistCmd)
   }
 
   nsCOMPtr<nsIURI> nexturi;
-  int32_t pCount=0, nCount=0;
+  PRInt32 pCount=0, nCount=0;
   nsCOMPtr<nsISHContainer> prevAsContainer(do_QueryInterface(prevEntry));
   nsCOMPtr<nsISHContainer> nextAsContainer(do_QueryInterface(nextEntry));
   if (prevAsContainer && nextAsContainer) {
@@ -1571,8 +1603,8 @@ nsSHistory::LoadEntry(int32_t aIndex, long aLoadType, uint32_t aHistCmd)
     }   
     else {
       
-      uint32_t prevID = 0;
-      uint32_t nextID = 0;
+      PRUint32 prevID = 0;
+      PRUint32 nextID = 0;
       prevEntry->GetID(&prevID);
       nextEntry->GetID(&nextID);
       if (prevID == nextID) {
@@ -1604,13 +1636,13 @@ nsSHistory::CompareFrames(nsISHEntry * aPrevEntry, nsISHEntry * aNextEntry, nsID
   
   
   
-  uint64_t prevdID, nextdID;
+  PRUint64 prevdID, nextdID;
   aPrevEntry->GetDocshellID(&prevdID);
   aNextEntry->GetDocshellID(&nextdID);
   NS_ENSURE_STATE(prevdID == nextdID);
 
   nsresult result = NS_OK;
-  uint32_t prevID, nextID;
+  PRUint32 prevID, nextID;
 
   aPrevEntry->GetID(&prevID);
   aNextEntry->GetID(&nextID);
@@ -1618,16 +1650,16 @@ nsSHistory::CompareFrames(nsISHEntry * aPrevEntry, nsISHEntry * aNextEntry, nsID
   
   if (prevID != nextID) {
     if (aIsFrameFound)
-      *aIsFrameFound = true;
+      *aIsFrameFound = PR_TRUE;
     
     
-    aNextEntry->SetIsSubFrame(true);
+    aNextEntry->SetIsSubFrame(PR_TRUE);
     InitiateLoad(aNextEntry, aParent, aLoadType);
     return NS_OK;
   }
 
   
-  int32_t pcnt=0, ncnt=0, dsCount=0;
+  PRInt32 pcnt=0, ncnt=0, dsCount=0;
   nsCOMPtr<nsISHContainer>  prevContainer(do_QueryInterface(aPrevEntry));
   nsCOMPtr<nsISHContainer>  nextContainer(do_QueryInterface(aNextEntry));
   nsCOMPtr<nsIDocShellTreeNode> dsTreeNode(do_QueryInterface(aParent));
@@ -1643,7 +1675,7 @@ nsSHistory::CompareFrames(nsISHEntry * aPrevEntry, nsISHEntry * aNextEntry, nsID
 
   
   nsCOMArray<nsIDocShell> docshells;
-  for (int32_t i = 0; i < dsCount; ++i) {
+  for (PRInt32 i = 0; i < dsCount; ++i) {
     nsCOMPtr<nsIDocShellTreeItem> treeItem;
     dsTreeNode->GetChildAt(i, getter_AddRefs(treeItem));
     nsCOMPtr<nsIDocShell> shell = do_QueryInterface(treeItem);
@@ -1653,21 +1685,21 @@ nsSHistory::CompareFrames(nsISHEntry * aPrevEntry, nsISHEntry * aNextEntry, nsID
   }
 
   
-  for (int32_t i = 0; i < ncnt; ++i) {
+  for (PRInt32 i = 0; i < ncnt; ++i) {
     
     nsCOMPtr<nsISHEntry> nChild;
     nextContainer->GetChildAt(i, getter_AddRefs(nChild));
     if (!nChild) {
       continue;
     }
-    uint64_t docshellID = 0;
+    PRUint64 docshellID = 0;
     nChild->GetDocshellID(&docshellID);
 
     
-    nsIDocShell* dsChild = nullptr;
-    int32_t count = docshells.Count();
-    for (int32_t j = 0; j < count; ++j) {
-      uint64_t shellID = 0;
+    nsIDocShell* dsChild = nsnull;
+    PRInt32 count = docshells.Count();
+    for (PRInt32 j = 0; j < count; ++j) {
+      PRUint64 shellID = 0;
       nsIDocShell* shell = docshells[j];
       shell->GetHistoryID(&shellID);
       if (shellID == docshellID) {
@@ -1682,11 +1714,11 @@ nsSHistory::CompareFrames(nsISHEntry * aPrevEntry, nsISHEntry * aNextEntry, nsID
     
     
     nsCOMPtr<nsISHEntry> pChild;
-    for (int32_t k = 0; k < pcnt; ++k) {
+    for (PRInt32 k = 0; k < pcnt; ++k) {
       nsCOMPtr<nsISHEntry> child;
       prevContainer->GetChildAt(k, getter_AddRefs(child));
       if (child) {
-        uint64_t dID = 0;
+        PRUint64 dID = 0;
         child->GetDocshellID(&dID);
         if (dID == docshellID) {
           pChild = child;
@@ -1725,7 +1757,7 @@ nsSHistory::InitiateLoad(nsISHEntry * aFrameEntry, nsIDocShell * aFrameDS, long 
   nsCOMPtr<nsIHistoryEntry> hEntry(do_QueryInterface(aFrameEntry));
   hEntry->GetURI(getter_AddRefs(nextURI));
   
-  return aFrameDS->LoadURI(nextURI, loadInfo, nsIWebNavigation::LOAD_FLAGS_NONE, false);
+  return aFrameDS->LoadURI(nextURI, loadInfo, nsIWebNavigation::LOAD_FLAGS_NONE, PR_FALSE);
 
 }
 
@@ -1774,7 +1806,7 @@ nsSHEnumerator::nsSHEnumerator(nsSHistory * aSHistory):mIndex(-1)
 
 nsSHEnumerator::~nsSHEnumerator()
 {
-  mSHistory = nullptr;
+  mSHistory = nsnull;
 }
 
 NS_IMPL_ISUPPORTS1(nsSHEnumerator, nsISimpleEnumerator)
@@ -1782,11 +1814,11 @@ NS_IMPL_ISUPPORTS1(nsSHEnumerator, nsISimpleEnumerator)
 NS_IMETHODIMP
 nsSHEnumerator::HasMoreElements(bool * aReturn)
 {
-  int32_t cnt;
-  *aReturn = false;
+  PRInt32 cnt;
+  *aReturn = PR_FALSE;
   mSHistory->GetCount(&cnt);
   if (mIndex >= -1 && mIndex < (cnt-1) ) { 
-    *aReturn = true;
+    *aReturn = PR_TRUE;
   }
   return NS_OK;
 }
@@ -1796,14 +1828,14 @@ NS_IMETHODIMP
 nsSHEnumerator::GetNext(nsISupports **aItem)
 {
   NS_ENSURE_ARG_POINTER(aItem);
-  int32_t cnt= 0;
+  PRInt32 cnt= 0;
 
   nsresult  result = NS_ERROR_FAILURE;
   mSHistory->GetCount(&cnt);
   if (mIndex < (cnt-1)) {
     mIndex++;
     nsCOMPtr<nsIHistoryEntry> hEntry;
-    result = mSHistory->GetEntryAtIndex(mIndex, false, getter_AddRefs(hEntry));
+    result = mSHistory->GetEntryAtIndex(mIndex, PR_FALSE, getter_AddRefs(hEntry));
     if (hEntry)
       result = CallQueryInterface(hEntry, aItem);
   }

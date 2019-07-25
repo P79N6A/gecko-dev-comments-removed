@@ -3,23 +3,51 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGFILTERSELEMENT_H__
 #define __NS_SVGFILTERSELEMENT_H__
 
-#include "gfxImageSurface.h"
-#include "gfxRect.h"
-#include "nsIDOMSVGFilters.h"
-#include "nsIDOMSVGURIReference.h"
-#include "nsIFrame.h"
-#include "nsImageLoadingContent.h"
-#include "nsSVGLength2.h"
-#include "nsSVGString.h"
 #include "nsSVGStylableElement.h"
-#include "SVGAnimatedPreserveAspectRatio.h"
+#include "nsSVGLength2.h"
+#include "nsIFrame.h"
+#include "gfxRect.h"
+#include "gfxImageSurface.h"
+#include "nsIDOMSVGFilters.h"
 
-class nsSVGFilterInstance;
 class nsSVGFilterResource;
+class nsSVGString;
 class nsSVGNumberPair;
+class nsSVGFilterInstance;
 
 struct nsSVGStringInfo {
   nsSVGStringInfo(const nsSVGString* aString,
@@ -35,11 +63,6 @@ typedef nsSVGStylableElement nsSVGFEBase;
 #define NS_SVG_FE_CID \
 { 0x60483958, 0xd229, 0x4a77, \
   { 0x96, 0xb2, 0x62, 0x3e, 0x69, 0x95, 0x1e, 0x0e } }
-
-
-
-
-
 
 class nsSVGFE : public nsSVGFEBase
 
@@ -73,7 +96,7 @@ public:
     
     bool                      mConstantColorChannels;
     
-    Image() : mConstantColorChannels(false) {}
+    Image() : mConstantColorChannels(PR_FALSE) {}
   };
 
 protected:
@@ -97,7 +120,7 @@ protected:
 
 public:
   ColorModel
-  GetInputColorModel(nsSVGFilterInstance* aInstance, int32_t aInputIndex,
+  GetInputColorModel(nsSVGFilterInstance* aInstance, PRInt32 aInputIndex,
                      Image* aImage) {
     return ColorModel(
           (OperatesOnSRGB(aInstance, aInputIndex, aImage) ?
@@ -109,7 +132,7 @@ public:
   ColorModel
   GetOutputColorModel(nsSVGFilterInstance* aInstance) {
     return ColorModel(
-          (OperatesOnSRGB(aInstance, -1, nullptr) ?
+          (OperatesOnSRGB(aInstance, -1, nsnull) ?
              ColorModel::SRGB : ColorModel::LINEAR_RGB),
           (OperatesOnPremultipledAlpha(-1) ?
              ColorModel::PREMULTIPLIED : ColorModel::UNPREMULTIPLIED));
@@ -126,9 +149,6 @@ public:
 
   
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;
-
-  
-  virtual bool HasValidDimensions() const;
 
   virtual nsSVGString& GetResultImageName() = 0;
   
@@ -174,11 +194,6 @@ public:
                           const Image* aTarget,
                           const nsIntRect& aDataRect) = 0;
 
-  
-  
-  virtual bool AttributeAffectsRendering(
-          int32_t aNameSpaceID, nsIAtom* aAttribute) const;
-
   static nsIntRect GetMaxRect() {
     
     
@@ -188,15 +203,15 @@ public:
   operator nsISupports*() { return static_cast<nsIContent*>(this); }
   
 protected:
-  virtual bool OperatesOnPremultipledAlpha(int32_t) { return true; }
+  virtual bool OperatesOnPremultipledAlpha(PRInt32) { return true; }
 
   
   
   
   virtual bool OperatesOnSRGB(nsSVGFilterInstance* aInstance,
-                                int32_t aInputIndex, Image* aImage) {
+                                PRInt32 aInputIndex, Image* aImage) {
     nsIFrame* frame = GetPrimaryFrame();
-    if (!frame) return false;
+    if (!frame) return PR_FALSE;
 
     nsStyleContext* style = frame->GetStyleContext();
     return style->GetStyleSVG()->mColorInterpolationFilters ==
@@ -205,117 +220,21 @@ protected:
 
   
   virtual LengthAttributesInfo GetLengthInfo();
+  virtual void DidAnimateLength(PRUint8 aAttrEnum);
+  virtual void DidAnimateNumber(PRUint8 aAttrEnum);
+  virtual void DidAnimateNumberPair(PRUint8 aAttrEnum);
+  virtual void DidAnimateNumberList(PRUint8 aAttrEnum);
+  virtual void DidAnimateInteger(PRUint8 aAttrEnum);
+  virtual void DidAnimateIntegerPair(PRUint8 aAttrEnum);
+  virtual void DidAnimateEnum(PRUint8 aAttrEnum);
+  virtual void DidAnimateBoolean(PRUint8 aAttrEnum);
+  virtual void DidAnimatePreserveAspectRatio();
+  virtual void DidAnimateString(PRUint8 aAttrEnum);
 
   
   enum { X, Y, WIDTH, HEIGHT };
   nsSVGLength2 mLengthAttributes[4];
   static LengthInfo sLengthInfo[4];
-};
-
-typedef nsSVGFE nsSVGFEImageElementBase;
-
-class nsSVGFEImageElement : public nsSVGFEImageElementBase,
-                            public nsIDOMSVGFEImageElement,
-                            public nsIDOMSVGURIReference,
-                            public nsImageLoadingContent
-{
-  friend class SVGFEImageFrame;
-
-protected:
-  friend nsresult NS_NewSVGFEImageElement(nsIContent **aResult,
-                                          already_AddRefed<nsINodeInfo> aNodeInfo);
-  nsSVGFEImageElement(already_AddRefed<nsINodeInfo> aNodeInfo);
-  virtual ~nsSVGFEImageElement();
-
-public:
-  virtual bool SubregionIsUnionOfRegions() { return false; }
-
-  
-  NS_DECL_ISUPPORTS_INHERITED
-
-  
-  NS_FORWARD_NSIDOMSVGFILTERPRIMITIVESTANDARDATTRIBUTES(nsSVGFEImageElementBase::)
-
-  virtual nsresult Filter(nsSVGFilterInstance* aInstance,
-                          const nsTArray<const Image*>& aSources,
-                          const Image* aTarget,
-                          const nsIntRect& aDataRect);
-  virtual bool AttributeAffectsRendering(
-          int32_t aNameSpaceID, nsIAtom* aAttribute) const;
-  virtual nsSVGString& GetResultImageName() { return mStringAttributes[RESULT]; }
-  virtual nsIntRect ComputeTargetBBox(const nsTArray<nsIntRect>& aSourceBBoxes,
-          const nsSVGFilterInstance& aInstance);
-
-  NS_DECL_NSIDOMSVGFEIMAGEELEMENT
-  NS_DECL_NSIDOMSVGURIREFERENCE
-
-  NS_FORWARD_NSIDOMSVGELEMENT(nsSVGFEImageElementBase::)
-
-  NS_FORWARD_NSIDOMNODE(nsSVGFEImageElementBase::)
-  NS_FORWARD_NSIDOMELEMENT(nsSVGFEImageElementBase::)
-
-  
-  NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;
-
-  virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
-
-  virtual nsresult AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
-                                const nsAttrValue* aValue, bool aNotify);
-  virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
-                              nsIContent* aBindingParent,
-                              bool aCompileEventHandlers);
-  virtual void UnbindFromTree(bool aDeep, bool aNullParent);
-  virtual nsEventStates IntrinsicState() const;
-
-  
-  NS_IMETHOD OnStopDecode(imgIRequest *aRequest, nsresult status,
-                          const PRUnichar *statusArg);
-  
-  NS_IMETHOD FrameChanged(imgIRequest* aRequest,
-                          imgIContainer *aContainer,
-                          const nsIntRect *aDirtyRect);
-  
-  NS_IMETHOD OnStartContainer(imgIRequest *aRequest,
-                              imgIContainer *aContainer);
-
-  void MaybeLoadSVGImage();
-
-  virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
-private:
-  
-  void Invalidate();
-
-  nsresult LoadSVGImage(bool aForce, bool aNotify);
-
-protected:
-  virtual bool OperatesOnSRGB(nsSVGFilterInstance*,
-                                int32_t, Image*) { return true; }
-
-  virtual SVGAnimatedPreserveAspectRatio *GetPreserveAspectRatio();
-  virtual StringAttributesInfo GetStringInfo();
-
-  enum { RESULT, HREF };
-  nsSVGString mStringAttributes[2];
-  static StringInfo sStringInfo[2];
-
-  SVGAnimatedPreserveAspectRatio mPreserveAspectRatio;
-};
-
-typedef nsSVGElement SVGFEUnstyledElementBase;
-
-class SVGFEUnstyledElement : public SVGFEUnstyledElementBase
-{
-protected:
-  SVGFEUnstyledElement(already_AddRefed<nsINodeInfo> aNodeInfo)
-    : SVGFEUnstyledElementBase(aNodeInfo) {}
-
-public:
-  
-  
-  virtual bool AttributeAffectsRendering(
-          int32_t aNameSpaceID, nsIAtom* aAttribute) const = 0;
 };
 
 #endif

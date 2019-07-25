@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsSHEntryShared_h__
 #define nsSHEntryShared_h__
 
@@ -12,8 +45,6 @@
 #include "nsIMutationObserver.h"
 #include "nsExpirationTracker.h"
 #include "nsRect.h"
-#include "nsString.h"
-#include "mozilla/Attributes.h"
 
 class nsSHEntry;
 class nsISHEntry;
@@ -30,8 +61,8 @@ class nsDocShellEditorData;
 
 
 
-class nsSHEntryShared MOZ_FINAL : public nsIBFCacheEntry,
-                                  public nsIMutationObserver
+class nsSHEntryShared : public nsIBFCacheEntry,
+                        public nsIMutationObserver
 {
   public:
     static void Startup();
@@ -64,20 +95,21 @@ class nsSHEntryShared MOZ_FINAL : public nsIBFCacheEntry,
 
     
     
-    uint64_t                        mDocShellID;
+    PRUint64                        mDocShellID;
     nsCOMArray<nsIDocShellTreeItem> mChildShells;
     nsCOMPtr<nsISupports>           mOwner;
+    nsISHEntry*                     mParent;
     nsCString                       mContentType;
     bool                            mIsFrameNavigation;
     bool                            mSaveLayoutState;
     bool                            mSticky;
     bool                            mDynamicallyCreated;
     nsCOMPtr<nsISupports>           mCacheKey;
-    uint32_t                        mLastTouched;
+    PRUint32                        mLastTouched;
 
     
     
-    uint64_t                        mID;
+    PRUint64                        mID;
     nsCOMPtr<nsIContentViewer>      mContentViewer;
     nsCOMPtr<nsIDocument>           mDocument;
     nsCOMPtr<nsILayoutHistoryState> mLayoutHistoryState;

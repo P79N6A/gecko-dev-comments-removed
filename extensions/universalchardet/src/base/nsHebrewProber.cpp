@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsHebrewProber.h"
 #include <stdio.h>
 
@@ -74,7 +106,7 @@ bool nsHebrewProber::isNonFinal(char c)
 
 
 
-nsProbingState nsHebrewProber::HandleData(const char* aBuf, uint32_t aLen)
+nsProbingState nsHebrewProber::HandleData(const char* aBuf, PRUint32 aLen)
 {
   
   if (GetState() == eNotMe)
@@ -113,7 +145,7 @@ nsProbingState nsHebrewProber::HandleData(const char* aBuf, uint32_t aLen)
 const char* nsHebrewProber::GetCharSetName()
 {
   
-  int32_t finalsub = mFinalCharLogicalScore - mFinalCharVisualScore;
+  PRInt32 finalsub = mFinalCharLogicalScore - mFinalCharVisualScore;
   if (finalsub >= MIN_FINAL_CHAR_DISTANCE) 
     return LOGICAL_HEBREW_NAME;
   if (finalsub <= -(MIN_FINAL_CHAR_DISTANCE))

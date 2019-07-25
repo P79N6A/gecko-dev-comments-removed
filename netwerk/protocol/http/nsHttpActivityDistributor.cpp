@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsHttpActivityDistributor.h"
 #include "nsIChannel.h"
 #include "nsCOMPtr.h"
@@ -15,10 +47,10 @@ class nsHttpActivityEvent : public nsRunnable
 {
 public:
     nsHttpActivityEvent(nsISupports *aHttpChannel,
-                        uint32_t aActivityType,
-                        uint32_t aActivitySubtype,
+                        PRUint32 aActivityType,
+                        PRUint32 aActivitySubtype,
                         PRTime aTimestamp,
-                        uint64_t aExtraSizeData,
+                        PRUint64 aExtraSizeData,
                         const nsACString & aExtraStringData,
                         nsCOMArray<nsIHttpActivityObserver> *aObservers)
         : mHttpChannel(aHttpChannel)
@@ -33,7 +65,7 @@ public:
 
     NS_IMETHOD Run()
     {
-        for (int32_t i = 0 ; i < mObservers.Count() ; i++)
+        for (PRInt32 i = 0 ; i < mObservers.Count() ; i++)
             mObservers[i]->ObserveActivity(mHttpChannel, mActivityType,
                                            mActivitySubtype, mTimestamp,
                                            mExtraSizeData, mExtraStringData);
@@ -46,10 +78,10 @@ private:
     }
 
     nsCOMPtr<nsISupports> mHttpChannel;
-    uint32_t mActivityType;
-    uint32_t mActivitySubtype;
+    PRUint32 mActivityType;
+    PRUint32 mActivitySubtype;
     PRTime mTimestamp;
-    uint64_t mExtraSizeData;
+    PRUint64 mExtraSizeData;
     nsCString mExtraStringData;
 
     nsCOMArray<nsIHttpActivityObserver> mObservers;
@@ -70,10 +102,10 @@ nsHttpActivityDistributor::~nsHttpActivityDistributor()
 
 NS_IMETHODIMP
 nsHttpActivityDistributor::ObserveActivity(nsISupports *aHttpChannel,
-                                           uint32_t aActivityType,
-                                           uint32_t aActivitySubtype,
+                                           PRUint32 aActivityType,
+                                           PRUint32 aActivitySubtype,
                                            PRTime aTimestamp,
-                                           uint64_t aExtraSizeData,
+                                           PRUint64 aExtraSizeData,
                                            const nsACString & aExtraStringData)
 {
     nsRefPtr<nsIRunnable> event;

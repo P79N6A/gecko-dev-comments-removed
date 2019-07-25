@@ -3,6 +3,36 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_D2DSURFACE_H
 #define GFX_D2DSURFACE_H
 
@@ -39,8 +69,6 @@ public:
 
     void Present();
     void Scroll(const nsIntPoint &aDelta, const nsIntRect &aClip);
-
-    virtual const gfxIntSize GetSize() const;
 
     ID3D10Texture2D *GetTexture();
 

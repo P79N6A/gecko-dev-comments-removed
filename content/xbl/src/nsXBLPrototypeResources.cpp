@@ -3,9 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIStyleRuleProcessor.h"
 #include "nsIDocument.h"
 #include "nsIContent.h"
+#include "nsIXBLService.h"
 #include "nsIServiceManager.h"
 #include "nsXBLResourceLoader.h"
 #include "nsXBLPrototypeResources.h"
@@ -29,7 +63,7 @@ nsXBLPrototypeResources::~nsXBLPrototypeResources()
 {
   MOZ_COUNT_DTOR(nsXBLPrototypeResources);
   if (mLoader) {
-    mLoader->mResources = nullptr;
+    mLoader->mResources = nsnull;
     NS_RELEASE(mLoader);
   }
 }
@@ -47,7 +81,7 @@ nsXBLPrototypeResources::LoadResources(bool* aResult)
   if (mLoader)
     mLoader->LoadResources(aResult);
   else
-    *aResult = true; 
+    *aResult = PR_TRUE; 
 }
 
 void
@@ -61,8 +95,8 @@ static bool IsChromeURI(nsIURI* aURI)
 {
   bool isChrome=false;
   if (NS_SUCCEEDED(aURI->SchemeIs("chrome", &isChrome)) && isChrome)
-    return true;
-  return false;
+    return PR_TRUE;
+  return PR_FALSE;
 }
 
 nsresult
@@ -78,7 +112,7 @@ nsXBLPrototypeResources::FlushSkinSheets()
   
   
   
-  mRuleProcessor = nullptr;
+  mRuleProcessor = nsnull;
 
   sheet_array_type oldSheets(mStyleSheetList);
   mStyleSheetList.Clear();
@@ -103,13 +137,5 @@ nsXBLPrototypeResources::FlushSkinSheets()
   mRuleProcessor = new nsCSSRuleProcessor(mStyleSheetList, 
                                           nsStyleSet::eDocSheet);
 
-  return NS_OK;
-}
-
-nsresult
-nsXBLPrototypeResources::Write(nsIObjectOutputStream* aStream)
-{
-  if (mLoader)
-    return mLoader->Write(aStream);
   return NS_OK;
 }

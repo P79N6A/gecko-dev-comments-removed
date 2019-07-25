@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_SMILCSSPROPERTY_H_
 #define NS_SMILCSSPROPERTY_H_
 
@@ -12,6 +44,8 @@
 #include "nsIAtom.h"
 #include "nsCSSProperty.h"
 #include "nsCSSValue.h"
+
+class nsIContent;
 
 namespace mozilla {
 namespace dom {

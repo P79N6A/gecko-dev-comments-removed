@@ -8,13 +8,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsCSSFrameConstructor_h___
 #define nsCSSFrameConstructor_h___
 
-#include "mozilla/Attributes.h"
-
 #include "nsCOMPtr.h"
 #include "nsILayoutHistoryState.h"
+#include "nsIXBLService.h"
 #include "nsQuoteList.h"
 #include "nsCounterManager.h"
 #include "nsHashKeys.h"
@@ -23,7 +54,6 @@
 #include "nsCSSPseudoElements.h"
 #include "RestyleTracker.h"
 #include "nsIAnonymousContentCreator.h"
-#include "nsFrameManager.h"
 
 class nsIDocument;
 struct nsFrameItems;
@@ -32,6 +62,7 @@ class nsStyleContext;
 struct nsStyleContent;
 struct nsStyleDisplay;
 class nsIPresShell;
+class nsFrameManager;
 class nsIDOMHTMLSelectElement;
 class nsPresContext;
 class nsStyleChangeList;
@@ -46,7 +77,7 @@ class nsRefreshDriver;
 class nsFrameConstructorState;
 class nsFrameConstructorSaveState;
 
-class nsCSSFrameConstructor : public nsFrameManager
+class nsCSSFrameConstructor
 {
   friend class nsRefreshDriver;
 
@@ -63,13 +94,18 @@ public:
   friend struct RestyleData;
 
   
+  static nsIXBLService * GetXBLService();
+  static void ReleaseGlobals() { NS_IF_RELEASE(gXBLService); }
+
+  
   static void GetAlternateTextFor(nsIContent*    aContent,
                                   nsIAtom*       aTag,  
                                   nsXPIDLString& aAltText);
 
-private:
-  nsCSSFrameConstructor(const nsCSSFrameConstructor& aCopy) MOZ_DELETE;
-  nsCSSFrameConstructor& operator=(const nsCSSFrameConstructor& aCopy) MOZ_DELETE;
+private: 
+  
+  nsCSSFrameConstructor(const nsCSSFrameConstructor& aCopy); 
+  nsCSSFrameConstructor& operator=(const nsCSSFrameConstructor& aCopy); 
 
 public:
   
@@ -211,13 +247,13 @@ public:
   void NotifyDestroyingFrame(nsIFrame* aFrame);
 
   void AttributeWillChange(Element* aElement,
-                           int32_t  aNameSpaceID,
+                           PRInt32  aNameSpaceID,
                            nsIAtom* aAttribute,
-                           int32_t  aModType);
+                           PRInt32  aModType);
   void AttributeChanged(Element* aElement,
-                        int32_t  aNameSpaceID,
+                        PRInt32  aNameSpaceID,
                         nsIAtom* aAttribute,
-                        int32_t  aModType);
+                        PRInt32  aModType);
 
   void BeginUpdate();
   void EndUpdate();
@@ -229,7 +265,7 @@ public:
 
   
   
-  uint32_t GetHoverGeneration() const { return mHoverGeneration; }
+  PRUint32 GetHoverGeneration() const { return mHoverGeneration; }
 
   
   
@@ -293,7 +329,7 @@ public:
                                  nsRestyleHint aRestyleHint,
                                  nsChangeHint aMinChangeHint)
   {
-    PostRestyleEventCommon(aElement, aRestyleHint, aMinChangeHint, true);
+    PostRestyleEventCommon(aElement, aRestyleHint, aMinChangeHint, PR_TRUE);
   }
 private:
   
@@ -344,7 +380,7 @@ public:
   nsresult GetInsertionPoint(nsIFrame*     aParentFrame,
                              nsIContent*   aChildContent,
                              nsIFrame**    aInsertionPoint,
-                             bool*       aMultiple = nullptr);
+                             bool*       aMultiple = nsnull);
 
   nsresult CreateListBoxContent(nsPresContext* aPresContext,
                                 nsIFrame*       aParentFrame,
@@ -451,7 +487,7 @@ private:
 
   nsresult CreateAttributeContent(nsIContent* aParentContent,
                                   nsIFrame* aParentFrame,
-                                  int32_t aAttrNamespace,
+                                  PRInt32 aAttrNamespace,
                                   nsIAtom* aAttrName,
                                   nsStyleContext* aStyleContext,
                                   nsCOMArray<nsIContent>& aGeneratedContent,
@@ -479,7 +515,7 @@ private:
   already_AddRefed<nsIContent> CreateGeneratedContent(nsFrameConstructorState& aState,
                                                       nsIContent*     aParentContent,
                                                       nsStyleContext* aStyleContext,
-                                                      uint32_t        aContentIndex);
+                                                      PRUint32        aContentIndex);
 
   
   void CreateGeneratedContentItem(nsFrameConstructorState&   aState,
@@ -494,11 +530,11 @@ private:
   
   
   
-  nsresult AppendFramesToParent(nsFrameConstructorState&       aState,
-                                nsIFrame*                      aParentFrame,
-                                nsFrameItems&                  aFrameList,
-                                nsIFrame*                      aPrevSibling,
-                                bool                           aIsRecursiveCall = false);
+  nsresult AppendFrames(nsFrameConstructorState&       aState,
+                        nsIFrame*                      aParentFrame,
+                        nsFrameItems&                  aFrameList,
+                        nsIFrame*                      aPrevSibling,
+                        bool                           aIsRecursiveCall = false);
 
   
   
@@ -561,7 +597,7 @@ private:
   ParentType((_bits) >> FCDATA_PARENT_TYPE_OFFSET)
   
 #define FCDATA_DESIRED_PARENT_TYPE_TO_BITS(_type)     \
-  (((uint32_t)(_type)) << FCDATA_PARENT_TYPE_OFFSET)
+  (((PRUint32)(_type)) << FCDATA_PARENT_TYPE_OFFSET)
 
   
   static ParentType GetParentType(nsIFrame* aParentFrame) {
@@ -690,20 +726,12 @@ private:
 
 
 #define FCDATA_FORCED_NON_SCROLLABLE_BLOCK 0x20000
-  
-
-
-
-#define FCDATA_CREATE_BLOCK_WRAPPER_FOR_ALL_KIDS 0x40000
-  
-
-#define FCDATA_IS_SVG_TEXT 0x80000
 
   
 
   struct FrameConstructionData {
     
-    uint32_t mBits;
+    PRUint32 mBits;
     
     
     
@@ -716,9 +744,6 @@ private:
       FrameConstructionDataGetter mDataGetter;
     } mFunc;
     FrameFullConstructor mFullConstructor;
-    
-    
-    nsICSSAnonBoxPseudo * const * const mAnonBoxPseudo;
   };
 
   
@@ -736,7 +761,7 @@ private:
 
   struct FrameConstructionDataByInt {
     
-    const int32_t mInt;
+    const PRInt32 mInt;
     const FrameConstructionData mData;
   };
 
@@ -756,10 +781,10 @@ private:
 
 
   static const FrameConstructionData*
-    FindDataByInt(int32_t aInt, Element* aElement,
+    FindDataByInt(PRInt32 aInt, Element* aElement,
                   nsStyleContext* aStyleContext,
                   const FrameConstructionDataByInt* aDataPtr,
-                  uint32_t aDataLength);
+                  PRUint32 aDataLength);
 
   
 
@@ -770,7 +795,7 @@ private:
     FindDataByTag(nsIAtom* aTag, Element* aElement,
                   nsStyleContext* aStyleContext,
                   const FrameConstructionDataByTag* aDataPtr,
-                  uint32_t aDataLength);
+                  PRUint32 aDataLength);
 
   
   class FrameConstructionItemList {
@@ -780,10 +805,9 @@ private:
       mBlockCount(0),
       mLineParticipantCount(0),
       mItemCount(0),
-      mLineBoundaryAtStart(false),
-      mLineBoundaryAtEnd(false),
-      mParentHasNoXBLChildren(false),
-      mTriedConstructingFrames(false)
+      mLineBoundaryAtStart(PR_FALSE),
+      mLineBoundaryAtEnd(PR_FALSE),
+      mParentHasNoXBLChildren(PR_FALSE)
     {
       PR_INIT_CLIST(&mItems);
       memset(mDesiredParentCounts, 0, sizeof(mDesiredParentCounts));
@@ -799,20 +823,6 @@ private:
 
       
       
-
-      
-      
-      
-      if (!mUndisplayedItems.IsEmpty() && mTriedConstructingFrames) {
-        
-        
-        nsFrameManager *mgr =
-          mUndisplayedItems[0].mStyleContext->PresContext()->FrameManager();
-        for (uint32_t i = 0; i < mUndisplayedItems.Length(); ++i) {
-          UndisplayedItem& item = mUndisplayedItems[i];
-          mgr->SetUndisplayedContent(item.mContent, item.mStyleContext);
-        }
-      }
     }
 
     void SetLineBoundaryAtStart(bool aBoundary) { mLineBoundaryAtStart = aBoundary; }
@@ -820,7 +830,6 @@ private:
     void SetParentHasNoXBLChildren(bool aHasNoXBLChildren) {
       mParentHasNoXBLChildren = aHasNoXBLChildren;
     }
-    void SetTriedConstructingFrames() { mTriedConstructingFrames = true; }
     bool HasLineBoundaryAtStart() { return mLineBoundaryAtStart; }
     bool HasLineBoundaryAtEnd() { return mLineBoundaryAtEnd; }
     bool ParentHasNoXBLChildren() { return mParentHasNoXBLChildren; }
@@ -838,7 +847,7 @@ private:
     FrameConstructionItem* AppendItem(const FrameConstructionData* aFCData,
                                       nsIContent* aContent,
                                       nsIAtom* aTag,
-                                      int32_t aNameSpaceID,
+                                      PRInt32 aNameSpaceID,
                                       PendingBinding* aPendingBinding,
                                       already_AddRefed<nsStyleContext> aStyleContext,
                                       bool aSuppressWhiteSpaceOptimizations)
@@ -851,11 +860,6 @@ private:
       ++mItemCount;
       ++mDesiredParentCounts[item->DesiredParentType()];
       return item;
-    }
-
-    void AppendUndisplayedItem(nsIContent* aContent,
-                               nsStyleContext* aStyleContext) {
-      mUndisplayedItems.AppendElement(UndisplayedItem(aContent, aStyleContext));
     }
 
     void InlineItemAdded() { ++mInlineCount; }
@@ -919,20 +923,6 @@ private:
       
       inline bool SkipItemsWantingParentType(ParentType aParentType);
 
-#ifdef MOZ_FLEXBOX
-      
-      
-      
-      inline bool SkipItemsThatNeedAnonFlexItem(
-        const nsFrameConstructorState& aState);
-
-      
-      
-      
-      inline bool SkipItemsThatDontNeedAnonFlexItem(
-        const nsFrameConstructorState& aState);
-#endif 
-
       
       
       
@@ -978,25 +968,16 @@ private:
       return static_cast<FrameConstructionItem*>(item);
     }
 
-    struct UndisplayedItem {
-      UndisplayedItem(nsIContent* aContent, nsStyleContext* aStyleContext) :
-        mContent(aContent), mStyleContext(aStyleContext)
-      {}
-
-      nsIContent * const mContent;
-      nsRefPtr<nsStyleContext> mStyleContext;
-    };
-
     
     
-    void AdjustCountsForItem(FrameConstructionItem* aItem, int32_t aDelta);
+    void AdjustCountsForItem(FrameConstructionItem* aItem, PRInt32 aDelta);
 
     PRCList mItems;
-    uint32_t mInlineCount;
-    uint32_t mBlockCount;
-    uint32_t mLineParticipantCount;
-    uint32_t mItemCount;
-    uint32_t mDesiredParentCounts[eParentTypeCount];
+    PRUint32 mInlineCount;
+    PRUint32 mBlockCount;
+    PRUint32 mLineParticipantCount;
+    PRUint32 mItemCount;
+    PRUint32 mDesiredParentCounts[eParentTypeCount];
     
     
     bool mLineBoundaryAtStart;
@@ -1005,10 +986,6 @@ private:
     bool mLineBoundaryAtEnd;
     
     bool mParentHasNoXBLChildren;
-    
-    bool mTriedConstructingFrames;
-
-    nsTArray<UndisplayedItem> mUndisplayedItems;
   };
 
   typedef FrameConstructionItemList::Iterator FCItemIterator;
@@ -1023,7 +1000,7 @@ private:
     FrameConstructionItem(const FrameConstructionData* aFCData,
                           nsIContent* aContent,
                           nsIAtom* aTag,
-                          int32_t aNameSpaceID,
+                          PRInt32 aNameSpaceID,
                           PendingBinding* aPendingBinding,
                           already_AddRefed<nsStyleContext> aStyleContext,
                           bool aSuppressWhiteSpaceOptimizations) :
@@ -1031,10 +1008,10 @@ private:
       mNameSpaceID(aNameSpaceID),
       mPendingBinding(aPendingBinding), mStyleContext(aStyleContext),
       mSuppressWhiteSpaceOptimizations(aSuppressWhiteSpaceOptimizations),
-      mIsText(false), mIsGeneratedContent(false),
-      mIsRootPopupgroup(false), mIsAllInline(false), mIsBlock(false),
-      mHasInlineEnds(false), mIsPopup(false),
-      mIsLineParticipant(false)
+      mIsText(PR_FALSE), mIsGeneratedContent(PR_FALSE),
+      mIsRootPopupgroup(PR_FALSE), mIsAllInline(PR_FALSE), mIsBlock(PR_FALSE),
+      mHasInlineEnds(PR_FALSE), mIsPopup(PR_FALSE),
+      mIsLineParticipant(PR_FALSE)
     {}
     ~FrameConstructionItem() {
       if (mIsGeneratedContent) {
@@ -1046,12 +1023,6 @@ private:
     ParentType DesiredParentType() {
       return FCDATA_DESIRED_PARENT_TYPE(mFCData->mBits);
     }
-
-    
-    
-#ifdef MOZ_FLEXBOX
-    bool NeedsAnonFlexItem(const nsFrameConstructorState& aState);
-#endif 
 
     
     
@@ -1069,7 +1040,7 @@ private:
     
     nsIAtom* mTag;
     
-    int32_t mNameSpaceID;
+    PRInt32 mNameSpaceID;
     
     
     
@@ -1117,7 +1088,7 @@ private:
     FrameConstructionItemList mChildItems;
 
   private:
-    FrameConstructionItem(const FrameConstructionItem& aOther) MOZ_DELETE; 
+    FrameConstructionItem(const FrameConstructionItem& aOther); 
   };
 
   
@@ -1125,22 +1096,9 @@ private:
 
 
 
-
-
-#ifdef MOZ_FLEXBOX
-  void CreateNeededAnonFlexItems(nsFrameConstructorState& aState,
-                                    FrameConstructionItemList& aItems,
-                                    nsIFrame* aParentFrame);
-#endif 
-
-  
-
-
-
-
-  inline void CreateNeededTablePseudos(nsFrameConstructorState& aState,
-                                       FrameConstructionItemList& aItems,
-                                       nsIFrame* aParentFrame);
+  inline nsresult CreateNeededTablePseudos(nsFrameConstructorState& aState,
+                                           FrameConstructionItemList& aItems,
+                                           nsIFrame* aParentFrame);
 
   
 
@@ -1171,6 +1129,15 @@ protected:
                                             nsIFrame**       aPlaceholderFrame);
 
 private:
+  
+  
+  nsresult ConstructButtonFrame(nsFrameConstructorState& aState,
+                                FrameConstructionItem&    aItem,
+                                nsIFrame*                aParentFrame,
+                                const nsStyleDisplay*    aStyleDisplay,
+                                nsFrameItems&            aFrameItems,
+                                nsIFrame**               aNewFrame);
+
   
   
   nsresult ConstructSelectFrame(nsFrameConstructorState& aState,
@@ -1222,7 +1189,7 @@ private:
   
   static const FrameConstructionData* FindHTMLData(Element* aContent,
                                                    nsIAtom* aTag,
-                                                   int32_t aNameSpaceID,
+                                                   PRInt32 aNameSpaceID,
                                                    nsIFrame* aParentFrame,
                                                    nsStyleContext* aStyleContext);
   
@@ -1234,8 +1201,6 @@ private:
     FindInputData(Element* aElement, nsStyleContext* aStyleContext);
   static const FrameConstructionData*
     FindObjectData(Element* aElement, nsStyleContext* aStyleContext);
-  static const FrameConstructionData*
-    FindCanvasData(Element* aElement, nsStyleContext* aStyleContext);
 
   
 
@@ -1268,10 +1233,10 @@ private:
                                          nsIContent*              aContent,
                                          nsIFrame*                aParentFrame,
                                          nsIAtom*                 aTag,
-                                         int32_t                  aNameSpaceID,
+                                         PRInt32                  aNameSpaceID,
                                          bool                     aSuppressWhiteSpaceOptimizations,
                                          nsStyleContext*          aStyleContext,
-                                         uint32_t                 aFlags,
+                                         PRUint32                 aFlags,
                                          FrameConstructionItemList& aItems);
 
   
@@ -1307,21 +1272,21 @@ private:
   nsresult FlushAccumulatedBlock(nsFrameConstructorState& aState,
                                  nsIContent* aContent,
                                  nsIFrame* aParentFrame,
-                                 nsFrameItems& aBlockItems,
-                                 nsFrameItems& aNewItems);
+                                 nsFrameItems* aBlockItems,
+                                 nsFrameItems* aNewItems);
 
   
   
   static const FrameConstructionData* FindMathMLData(Element* aElement,
                                                      nsIAtom* aTag,
-                                                     int32_t aNameSpaceID,
+                                                     PRInt32 aNameSpaceID,
                                                      nsStyleContext* aStyleContext);
 
   
   
   static const FrameConstructionData* FindXULTagData(Element* aElement,
                                                      nsIAtom* aTag,
-                                                     int32_t aNameSpaceID,
+                                                     PRInt32 aNameSpaceID,
                                                      nsStyleContext* aStyleContext);
   
 #ifdef MOZ_XUL
@@ -1354,29 +1319,24 @@ private:
                        nsStyleContext* aStyleContext);
 
 
-  
-
-
-
-
-  nsresult ConstructOuterSVG(nsFrameConstructorState& aState,
-                             FrameConstructionItem&   aItem,
-                             nsIFrame*                aParentFrame,
-                             const nsStyleDisplay*    aDisplay,
-                             nsFrameItems&            aFrameItems,
-                             nsIFrame**               aNewFrame);
-
   static const FrameConstructionData* FindSVGData(Element* aElement,
                                                   nsIAtom* aTag,
-                                                  int32_t aNameSpaceID,
+                                                  PRInt32 aNameSpaceID,
                                                   nsIFrame* aParentFrame,
                                                   nsStyleContext* aStyleContext);
+
+  nsresult ConstructSVGForeignObjectFrame(nsFrameConstructorState& aState,
+                                          FrameConstructionItem&   aItem,
+                                          nsIFrame* aParentFrame,
+                                          const nsStyleDisplay* aStyleDisplay,
+                                          nsFrameItems& aFrameItems,
+                                          nsIFrame** aNewFrame);
 
   
 
   const FrameConstructionData*
     FindDisplayData(const nsStyleDisplay* aDisplay, Element* aElement,
-                    nsIFrame* aParentFrame, nsStyleContext* aStyleContext);
+                    nsStyleContext* aStyleContext);
 
   
 
@@ -1426,9 +1386,6 @@ private:
 
 
 
-
-
-
   nsresult ProcessChildren(nsFrameConstructorState& aState,
                            nsIContent*              aContent,
                            nsStyleContext*          aStyleContext,
@@ -1436,8 +1393,7 @@ private:
                            const bool               aCanHaveGeneratedContent,
                            nsFrameItems&            aFrameItems,
                            const bool               aAllowBlockStyles,
-                           PendingBinding*          aPendingBinding,
-                           nsIFrame*                aPossiblyLeafFrame = nullptr);
+                           PendingBinding*          aPendingBinding);
 
   nsIFrame* GetFrameFor(nsIContent* aContent);
 
@@ -1643,11 +1599,6 @@ private:
   nsresult StyleChangeReflow(nsIFrame* aFrame, nsChangeHint aHint);
 
   
-  
-  
-  bool RecomputePosition(nsIFrame* aFrame);
-
-  
 
   
 
@@ -1707,11 +1658,13 @@ private:
   
   nsresult RemoveLetterFrames(nsPresContext*  aPresContext,
                               nsIPresShell*    aPresShell,
+                              nsFrameManager*  aFrameManager,
                               nsIFrame*        aBlockFrame);
 
   
   nsresult RemoveFirstLetterFrames(nsPresContext*  aPresContext,
                                    nsIPresShell*    aPresShell,
+                                   nsFrameManager*  aFrameManager,
                                    nsIFrame*        aFrame,
                                    nsIFrame*        aBlockFrame,
                                    bool*          aStopLooking);
@@ -1719,13 +1672,18 @@ private:
   
   nsresult RemoveFloatingFirstLetterFrames(nsPresContext*  aPresContext,
                                            nsIPresShell*    aPresShell,
+                                           nsFrameManager*  aFrameManager,
                                            nsIFrame*        aBlockFrame,
                                            bool*          aStopLooking);
 
   
   
-  void CaptureStateForFramesOf(nsIContent* aContent,
-                               nsILayoutHistoryState* aHistoryState);
+  nsresult CaptureStateForFramesOf(nsIContent* aContent,
+                                   nsILayoutHistoryState* aHistoryState);
+
+  
+  nsresult CaptureStateFor(nsIFrame*              aFrame,
+                           nsILayoutHistoryState* aHistoryState);
 
   
 
@@ -1767,7 +1725,7 @@ private:
   
   nsIFrame* FindFrameForContentSibling(nsIContent* aContent,
                                        nsIContent* aTargetContent,
-                                       uint8_t& aTargetContentDisplay,
+                                       PRUint8& aTargetContentDisplay,
                                        bool aPrevSibling);
 
   
@@ -1775,14 +1733,14 @@ private:
   
   nsIFrame* FindPreviousSibling(const ChildIterator& aFirst,
                                 ChildIterator aIter,
-                                uint8_t& aTargetContentDisplay);
+                                PRUint8& aTargetContentDisplay);
 
   
   
   
   nsIFrame* FindNextSibling(ChildIterator aIter,
                             const ChildIterator& aLast,
-                            uint8_t& aTargetContentDisplay);
+                            PRUint8& aTargetContentDisplay);
 
   
   
@@ -1802,8 +1760,8 @@ private:
                                     nsIContent* aChild,
                                     bool* aIsAppend,
                                     bool* aIsRangeInsertSafe,
-                                    nsIContent* aStartSkipChild = nullptr,
-                                    nsIContent *aEndSkipChild = nullptr);
+                                    nsIContent* aStartSkipChild = nsnull,
+                                    nsIContent *aEndSkipChild = nsnull);
 
   
   
@@ -1811,31 +1769,17 @@ private:
   
   bool IsValidSibling(nsIFrame*              aSibling,
                         nsIContent*            aContent,
-                        uint8_t&               aDisplay);
+                        PRUint8&               aDisplay);
   
   void QuotesDirty() {
     NS_PRECONDITION(mUpdateCount != 0, "Instant quote updates are bad news");
-    mQuotesDirty = true;
-    mDocument->SetNeedLayoutFlush();
+    mQuotesDirty = PR_TRUE;
   }
 
   void CountersDirty() {
     NS_PRECONDITION(mUpdateCount != 0, "Instant counter updates are bad news");
-    mCountersDirty = true;
-    mDocument->SetNeedLayoutFlush();
+    mCountersDirty = PR_TRUE;
   }
-
-  
-
-
-
-
-
-
-  static void SetAsUndisplayedContent(FrameConstructionItemList& aList,
-                                      nsIContent* aContent,
-                                      nsStyleContext* aStyleContext,
-                                      bool aIsGeneratedContent);
 
 public:
 
@@ -1844,6 +1788,7 @@ public:
 private:
 
   nsIDocument*        mDocument;  
+  nsIPresShell*       mPresShell; 
 
   
   
@@ -1862,7 +1807,7 @@ private:
   nsIFrame*           mPageSequenceFrame;
   nsQuoteList         mQuoteList;
   nsCounterManager    mCounterManager;
-  uint16_t            mUpdateCount;
+  PRUint16            mUpdateCount;
   bool                mQuotesDirty : 1;
   bool                mCountersDirty : 1;
   bool                mIsDestroyingFrameTree : 1;
@@ -1873,13 +1818,15 @@ private:
   bool                mObservingRefreshDriver : 1;
   
   bool                mInStyleRefresh : 1;
-  uint32_t            mHoverGeneration;
+  PRUint32            mHoverGeneration;
   nsChangeHint        mRebuildAllExtraHint;
 
   nsCOMPtr<nsILayoutHistoryState> mTempFrameTreeState;
 
   RestyleTracker mPendingRestyles;
   RestyleTracker mPendingAnimationRestyles;
+
+  static nsIXBLService * gXBLService;
 };
 
 #endif 

@@ -5,6 +5,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_net_HttpChannelParent_h
 #define mozilla_net_HttpChannelParent_h
 
@@ -14,17 +48,14 @@
 #include "mozilla/net/NeckoCommon.h"
 #include "nsIParentRedirectingChannel.h"
 #include "nsIProgressEventSink.h"
-#include "nsHttpChannel.h"
+#include "nsITabParent.h"
+
+using namespace mozilla::dom;
 
 class nsICacheEntryDescriptor;
 class nsIAssociatedContentSecurity;
 
 namespace mozilla {
-
-namespace dom{
-class TabParent;
-}
-
 namespace net {
 
 class HttpChannelParentListener;
@@ -33,6 +64,7 @@ class HttpChannelParent : public PHttpChannelParent
                         , public nsIParentRedirectingChannel
                         , public nsIProgressEventSink
                         , public nsIInterfaceRequestor
+                        , public nsIHttpHeaderVisitor
 {
 public:
   NS_DECL_ISUPPORTS
@@ -42,44 +74,43 @@ public:
   NS_DECL_NSIPARENTREDIRECTINGCHANNEL
   NS_DECL_NSIPROGRESSEVENTSINK
   NS_DECL_NSIINTERFACEREQUESTOR
+  NS_DECL_NSIHTTPHEADERVISITOR
 
-  HttpChannelParent(mozilla::dom::PBrowserParent* iframeEmbedding);
+  HttpChannelParent(PBrowserParent* iframeEmbedding);
   virtual ~HttpChannelParent();
 
 protected:
-  virtual bool RecvAsyncOpen(const URIParams&           uri,
-                             const OptionalURIParams&   originalUri,
-                             const OptionalURIParams&   docUri,
-                             const OptionalURIParams&   referrerUri,
-                             const uint32_t&            loadFlags,
+  virtual bool RecvAsyncOpen(const IPC::URI&            uri,
+                             const IPC::URI&            originalUri,
+                             const IPC::URI&            docUri,
+                             const IPC::URI&            referrerUri,
+                             const PRUint32&            loadFlags,
                              const RequestHeaderTuples& requestHeaders,
                              const nsHttpAtom&          requestMethod,
-                             const OptionalInputStreamParams& uploadStream,
+                             const IPC::InputStream&    uploadStream,
                              const bool&              uploadStreamHasHeaders,
-                             const uint16_t&            priority,
-                             const uint8_t&             redirectionLimit,
+                             const PRUint16&            priority,
+                             const PRUint8&             redirectionLimit,
                              const bool&              allowPipelining,
                              const bool&              forceAllowThirdPartyCookie,
                              const bool&                doResumeAt,
-                             const uint64_t&            startPos,
+                             const PRUint64&            startPos,
                              const nsCString&           entityID,
                              const bool&                chooseApplicationCache,
-                             const nsCString&           appCacheClientID,
-                             const bool&                allowSpdy,
-                             const IPC::SerializedLoadContext& loadContext) MOZ_OVERRIDE;
+                             const nsCString&           appCacheClientID);
 
-  virtual bool RecvConnectChannel(const uint32_t& channelId);
-  virtual bool RecvSetPriority(const uint16_t& priority);
+  virtual bool RecvConnectChannel(const PRUint32& channelId);
+  virtual bool RecvSetPriority(const PRUint16& priority);
   virtual bool RecvSetCacheTokenCachedCharset(const nsCString& charset);
   virtual bool RecvSuspend();
   virtual bool RecvResume();
   virtual bool RecvCancel(const nsresult& status);
   virtual bool RecvRedirect2Verify(const nsresult& result,
                                    const RequestHeaderTuples& changedHeaders);
-  virtual bool RecvUpdateAssociatedContentSecurity(const int32_t& high,
-                                                   const int32_t& low,
-                                                   const int32_t& broken,
-                                                   const int32_t& no);
+  virtual bool RecvUpdateAssociatedContentSecurity(const PRInt32& high,
+                                                   const PRInt32& low,
+                                                   const PRInt32& broken,
+                                                   const PRInt32& no);
   virtual bool RecvDocumentChannelCleanup();
   virtual bool RecvMarkOfflineCacheEntryAsForeign();
 
@@ -87,7 +118,7 @@ protected:
 
 protected:
   friend class mozilla::net::HttpChannelParentListener;
-  nsRefPtr<mozilla::dom::TabParent> mTabParent;
+  nsCOMPtr<nsITabParent> mTabParent;
 
 private:
   nsCOMPtr<nsIChannel>                    mChannel;
@@ -98,19 +129,14 @@ private:
   nsCOMPtr<nsIChannel> mRedirectChannel;
   nsCOMPtr<nsIAsyncVerifyRedirectCallback> mRedirectCallback;
 
-  nsAutoPtr<class nsHttpChannel::OfflineCacheEntryAsForeignMarker> mOfflineForeignMarker;
-
   
   
   nsresult mStoredStatus;
-  uint64_t mStoredProgress;
-  uint64_t mStoredProgressMax;
+  PRUint64 mStoredProgress;
+  PRUint64 mStoredProgressMax;
 
-  bool mSentRedirect1Begin          : 1;
-  bool mSentRedirect1BeginFailed    : 1;
-  bool mReceivedRedirect2Verify     : 1;
-
-  nsCOMPtr<nsILoadContext> mLoadContext;
+  
+  RequestHeaderTuples *mHeadersToSyncToChild;
 };
 
 } 

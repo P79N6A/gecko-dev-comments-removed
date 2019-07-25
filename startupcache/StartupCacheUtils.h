@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsStartupCacheUtils_h_
 #define nsStartupCacheUtils_h_
 
@@ -13,7 +46,7 @@ namespace mozilla {
 namespace scache {
 
 NS_EXPORT nsresult
-NewObjectInputStreamFromBuffer(char* buffer, uint32_t len, 
+NewObjectInputStreamFromBuffer(char* buffer, PRUint32 len, 
                                nsIObjectInputStream** stream);
 
 
@@ -27,12 +60,9 @@ NewObjectOutputWrappedStorageStream(nsIObjectOutputStream **wrapperStream,
                                     nsIStorageStream** stream,
                                     bool wantDebugStream);
 
-
-
-
 NS_EXPORT nsresult
 NewBufferFromStorageStream(nsIStorageStream *storageStream, 
-                           char** buffer, uint32_t* len);
+                           char** buffer, PRUint32* len);
 
 NS_EXPORT nsresult
 PathifyURI(nsIURI *in, nsACString &out);

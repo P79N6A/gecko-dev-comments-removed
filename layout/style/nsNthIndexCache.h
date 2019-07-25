@@ -2,11 +2,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsContentIndexCache_h__
 #define nsContentIndexCache_h__
 
 #include "nscore.h"
-#include "js/HashTable.h"
+#include "jshashtable.h"
 #include "mozilla/dom/Element.h"
 
 
@@ -33,7 +67,7 @@ public:
   
   
   
-  int32_t GetNthIndex(Element* aChild, bool aIsOfType, bool aIsFromEnd,
+  PRInt32 GetNthIndex(Element* aChild, bool aIsOfType, bool aIsFromEnd,
                       bool aCheckEdgeOnly);
 
   void Reset();
@@ -47,10 +81,29 @@ private:
                                     bool aIsOfType);
 
   
-  
-  
-  
-  typedef int32_t CacheEntry;
+
+
+
+  inline bool IndexDetermined(nsIContent* aSibling, Element* aChild,
+                              bool aIsOfType, bool aIsFromEnd,
+                              bool aCheckEdgeOnly, PRInt32& aResult);
+
+  struct CacheEntry {
+    CacheEntry() {
+      mNthIndices[0][0] = -2;
+      mNthIndices[0][1] = -2;
+      mNthIndices[1][0] = -2;
+      mNthIndices[1][1] = -2;
+    }
+
+    
+    
+    
+    
+    
+    
+    PRInt32 mNthIndices[2][2];
+  };
 
   class SystemAllocPolicy {
   public:
@@ -63,30 +116,7 @@ private:
   typedef js::HashMap<nsIContent*, CacheEntry, js::DefaultHasher<nsIContent*>,
                       SystemAllocPolicy> Cache;
 
-  
-
-
-
-
-
-
-
-
-
-
-  inline bool IndexDeterminedFromPreviousSibling(nsIContent* aSibling,
-                                                 Element* aChild,
-                                                 bool aIsOfType,
-                                                 bool aIsFromEnd,
-                                                 const Cache& aCache,
-                                                 int32_t& aResult);
-
-  
-  
-  
-  
-  
-  Cache mCaches[2][2];
+  Cache mCache;
 };
 
 #endif 

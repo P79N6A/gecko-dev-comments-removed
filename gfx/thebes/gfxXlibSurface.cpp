@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "gfxXlibSurface.h"
 
 #include "cairo.h"
@@ -13,6 +46,7 @@
 #include "nsTArray.h"
 #include "nsAlgorithm.h"
 #include "mozilla/Preferences.h"
+#include "cairo-xlib-xrender.h"
 
 using namespace mozilla;
 
@@ -22,7 +56,7 @@ using namespace mozilla;
 #define XLIB_IMAGE_SIDE_SIZE_LIMIT 0x7fff
 
 gfxXlibSurface::gfxXlibSurface(Display *dpy, Drawable drawable, Visual *visual)
-    : mPixmapTaken(false), mDisplay(dpy), mDrawable(drawable)
+    : mPixmapTaken(PR_FALSE), mDisplay(dpy), mDrawable(drawable)
 #if defined(MOZ_WIDGET_GTK2) && !defined(MOZ_PLATFORM_MAEMO)
     , mGLXPixmap(None)
 #endif
@@ -33,7 +67,7 @@ gfxXlibSurface::gfxXlibSurface(Display *dpy, Drawable drawable, Visual *visual)
 }
 
 gfxXlibSurface::gfxXlibSurface(Display *dpy, Drawable drawable, Visual *visual, const gfxIntSize& size)
-    : mPixmapTaken(false), mDisplay(dpy), mDrawable(drawable), mSize(size)
+    : mPixmapTaken(PR_FALSE), mDisplay(dpy), mDrawable(drawable), mSize(size)
 #if defined(MOZ_WIDGET_GTK2) && !defined(MOZ_PLATFORM_MAEMO)
     , mGLXPixmap(None)
 #endif
@@ -47,7 +81,7 @@ gfxXlibSurface::gfxXlibSurface(Display *dpy, Drawable drawable, Visual *visual, 
 
 gfxXlibSurface::gfxXlibSurface(Screen *screen, Drawable drawable, XRenderPictFormat *format,
                                const gfxIntSize& size)
-    : mPixmapTaken(false), mDisplay(DisplayOfScreen(screen)),
+    : mPixmapTaken(PR_FALSE), mDisplay(DisplayOfScreen(screen)),
       mDrawable(drawable), mSize(size)
 #if defined(MOZ_WIDGET_GTK2) && !defined(MOZ_PLATFORM_MAEMO)
       , mGLXPixmap(None)
@@ -64,7 +98,7 @@ gfxXlibSurface::gfxXlibSurface(Screen *screen, Drawable drawable, XRenderPictFor
 }
 
 gfxXlibSurface::gfxXlibSurface(cairo_surface_t *csurf)
-    : mPixmapTaken(false),
+    : mPixmapTaken(PR_FALSE),
       mSize(cairo_xlib_surface_get_width(csurf),
             cairo_xlib_surface_get_height(csurf))
 #if defined(MOZ_WIDGET_GTK2) && !defined(MOZ_PLATFORM_MAEMO)
@@ -77,14 +111,14 @@ gfxXlibSurface::gfxXlibSurface(cairo_surface_t *csurf)
     mDrawable = cairo_xlib_surface_get_drawable(csurf);
     mDisplay = cairo_xlib_surface_get_display(csurf);
 
-    Init(csurf, true);
+    Init(csurf, PR_TRUE);
 }
 
 gfxXlibSurface::~gfxXlibSurface()
 {
 #if defined(MOZ_WIDGET_GTK2) && !defined(MOZ_PLATFORM_MAEMO)
     if (mGLXPixmap) {
-        gl::sDefGLXLib.DestroyPixmap(mGLXPixmap);
+        gl::sGLXLibrary.DestroyPixmap(mGLXPixmap);
     }
 #endif
     
@@ -115,7 +149,7 @@ void
 gfxXlibSurface::TakePixmap()
 {
     NS_ASSERTION(!mPixmapTaken, "I already own the Pixmap!");
-    mPixmapTaken = true;
+    mPixmapTaken = PR_TRUE;
 
     
     
@@ -126,7 +160,7 @@ gfxXlibSurface::TakePixmap()
 Drawable
 gfxXlibSurface::ReleasePixmap() {
     NS_ASSERTION(mPixmapTaken, "I don't own the Pixmap!");
-    mPixmapTaken = false;
+    mPixmapTaken = PR_FALSE;
     RecordMemoryFreed();
     return mDrawable;
 }
@@ -140,14 +174,14 @@ gfxXlibSurface::Create(Screen *screen, Visual *visual,
         CreatePixmap(screen, size, DepthOfVisual(screen, visual),
                      relatedDrawable);
     if (!drawable)
-        return nullptr;
+        return nsnull;
 
     nsRefPtr<gfxXlibSurface> result =
         new gfxXlibSurface(DisplayOfScreen(screen), drawable, visual, size);
     result->TakePixmap();
 
     if (result->CairoStatus() != 0)
-        return nullptr;
+        return nsnull;
 
     return result.forget();
 }
@@ -160,14 +194,14 @@ gfxXlibSurface::Create(Screen *screen, XRenderPictFormat *format,
     Drawable drawable =
         CreatePixmap(screen, size, format->depth, relatedDrawable);
     if (!drawable)
-        return nullptr;
+        return nsnull;
 
     nsRefPtr<gfxXlibSurface> result =
         new gfxXlibSurface(screen, drawable, format, size);
     result->TakePixmap();
 
     if (result->CairoStatus() != 0)
-        return nullptr;
+        return nsnull;
 
     return result.forget();
 }
@@ -182,7 +216,7 @@ gfxXlibSurface::CreateSimilarSurface(gfxContentType aContent,
                                      const gfxIntSize& aSize)
 {
     if (!mSurface || !mSurfaceValid) {
-      return nullptr;
+      return nsnull;
     }
 
     if (aContent == CONTENT_COLOR) {
@@ -313,19 +347,19 @@ DisplayTable::GetColormapAndVisual(Screen* aScreen, XRenderPictFormat* aFormat,
     {
         *aColormap = DefaultColormapOfScreen(aScreen);
         *aVisualForColormap = defaultVisual;
-        return true;
+        return PR_TRUE;
     }
 
     
     if (!aVisual || aVisual->c_class != TrueColor)
-        return false;
+        return PR_FALSE;
 
     if (!sDisplayTable) {
         sDisplayTable = new DisplayTable();
     }
 
     nsTArray<DisplayInfo>* displays = &sDisplayTable->mDisplays;
-    uint32_t d = displays->IndexOf(display, 0, FindDisplay());
+    PRUint32 d = displays->IndexOf(display, 0, FindDisplay());
 
     if (d == displays->NoIndex) {
         d = displays->Length();
@@ -333,7 +367,7 @@ DisplayTable::GetColormapAndVisual(Screen* aScreen, XRenderPictFormat* aFormat,
         
         XExtCodes *codes = XAddExtension(display);
         if (!codes)
-            return false;
+            return PR_FALSE;
 
         XESetCloseDisplay(display, codes->extension, DisplayClosing);
         
@@ -345,7 +379,7 @@ DisplayTable::GetColormapAndVisual(Screen* aScreen, XRenderPictFormat* aFormat,
 
     
     
-    for (uint32_t i = 0; i < entries->Length(); ++i) {
+    for (PRUint32 i = 0; i < entries->Length(); ++i) {
         const ColormapEntry& entry = entries->ElementAt(i);
         
         
@@ -354,7 +388,7 @@ DisplayTable::GetColormapAndVisual(Screen* aScreen, XRenderPictFormat* aFormat,
             || aVisual == entry.mVisual) {
             *aColormap = entry.mColormap;
             *aVisualForColormap = entry.mVisual;
-            return true;
+            return PR_TRUE;
         }
     }
 
@@ -369,7 +403,7 @@ DisplayTable::GetColormapAndVisual(Screen* aScreen, XRenderPictFormat* aFormat,
 
     *aColormap = colormap;
     *aVisualForColormap = aVisual;
-    return true;
+    return PR_TRUE;
 }
 
  int
@@ -380,7 +414,7 @@ DisplayTable::DisplayClosing(Display *display, XExtCodes* codes)
     sDisplayTable->mDisplays.RemoveElement(display, FindDisplay());
     if (sDisplayTable->mDisplays.Length() == 0) {
         delete sDisplayTable;
-        sDisplayTable = nullptr;
+        sDisplayTable = nsnull;
     }
     return 0;
 }
@@ -389,7 +423,7 @@ bool
 gfxXlibSurface::GetColormapAndVisual(Colormap* aColormap, Visual** aVisual)
 {
     if (!mSurfaceValid)
-        return false;
+        return PR_FALSE;
 
     XRenderPictFormat* format =
         cairo_xlib_surface_get_xrender_format(CairoSurface());
@@ -511,7 +545,7 @@ GLXPixmap
 gfxXlibSurface::GetGLXPixmap()
 {
     if (!mGLXPixmap) {
-        mGLXPixmap = gl::sDefGLXLib.CreatePixmap(this);
+        mGLXPixmap = gl::sGLXLibrary.CreatePixmap(this);
     }
     return mGLXPixmap;
 }

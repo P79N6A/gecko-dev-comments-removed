@@ -3,15 +3,48 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGIMAGEELEMENT_H__
 #define __NS_SVGIMAGEELEMENT_H__
 
+#include "nsSVGPathGeometryElement.h"
 #include "nsIDOMSVGImageElement.h"
 #include "nsIDOMSVGURIReference.h"
 #include "nsImageLoadingContent.h"
-#include "nsSVGLength2.h"
-#include "nsSVGPathGeometryElement.h"
 #include "nsSVGString.h"
+#include "nsSVGLength2.h"
 #include "SVGAnimatedPreserveAspectRatio.h"
 
 typedef nsSVGPathGeometryElement nsSVGImageElementBase;
@@ -44,12 +77,11 @@ public:
   NS_FORWARD_NSIDOMSVGELEMENT(nsSVGImageElementBase::)
 
   
-  virtual nsresult AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
-                                const nsAttrValue* aValue, bool aNotify);
+  virtual nsresult AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
+                                const nsAString* aValue, bool aNotify);
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
                               bool aCompileEventHandlers);
-  virtual void UnbindFromTree(bool aDeep, bool aNullParent);
 
   virtual nsEventStates IntrinsicState() const;
 
@@ -58,26 +90,20 @@ public:
   
   virtual void ConstructPath(gfxContext *aCtx);
 
-  
-  virtual bool HasValidDimensions() const;
-
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
-  nsresult CopyInnerTo(nsGenericElement* aDest);
+  nsresult CopyInnerTo(nsGenericElement* aDest) const;
 
   void MaybeLoadSVGImage();
 
-  bool IsImageSrcSetDisabled() const;
-
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 protected:
   nsresult LoadSVGImage(bool aForce, bool aNotify);
 
   virtual LengthAttributesInfo GetLengthInfo();
   virtual SVGAnimatedPreserveAspectRatio *GetPreserveAspectRatio();
   virtual StringAttributesInfo GetStringInfo();
+  virtual void DidAnimateString(PRUint8 aAttrEnum);
 
   enum { X, Y, WIDTH, HEIGHT };
   nsSVGLength2 mLengthAttributes[4];

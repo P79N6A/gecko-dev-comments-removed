@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsGfxButtonControlFrame_h___
 #define nsGfxButtonControlFrame_h___
 
@@ -45,16 +77,16 @@ public:
   
   virtual nsresult CreateAnonymousContent(nsTArray<ContentInfo>& aElements);
   virtual void AppendAnonymousContentTo(nsBaseContentList& aElements,
-                                        uint32_t aFilter);
+                                        PRUint32 aFilter);
   virtual nsIFrame* CreateFrameFor(nsIContent* aContent);
 
   
   virtual nsresult GetFormProperty(nsIAtom* aName, nsAString& aValue) const; 
 
 
-  NS_IMETHOD AttributeChanged(int32_t         aNameSpaceID,
+  NS_IMETHOD AttributeChanged(PRInt32         aNameSpaceID,
                               nsIAtom*        aAttribute,
-                              int32_t         aModType);
+                              PRInt32         aModType);
 
   virtual bool IsLeaf() const;
 
@@ -65,10 +97,11 @@ protected:
 
   nsresult GetLabel(nsXPIDLString& aLabel);
 
-  bool IsFileBrowseButton(int32_t type); 
+  bool IsFileBrowseButton(PRInt32 type); 
 
   virtual bool IsInput() { return true; }
 private:
+  nsSize mSuggestedSize;
   nsCOMPtr<nsIContent> mTextContent;
 };
 

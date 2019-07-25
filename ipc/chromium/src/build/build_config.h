@@ -19,12 +19,6 @@
 #define OS_MACOSX 1
 #elif defined(__linux__) || defined(ANDROID)
 #define OS_LINUX 1
-#elif defined(__DragonFly__)
-#define OS_DRAGONFLY 1
-#elif defined(__FreeBSD__)
-#define OS_FREEBSD 1
-#elif defined(__NetBSD__)
-#define OS_NETBSD 1
 #elif defined(__OpenBSD__)
 #define OS_OPENBSD 1
 #elif defined(_WIN32)
@@ -35,14 +29,7 @@
 
 
 
-#if defined(OS_DRAGONFLY) || defined(OS_FREEBSD)	\
-  || defined(OS_NETBSD) || defined(OS_OPENBSD)
-#define OS_BSD 1
-#endif
-
-
-
-#if defined(OS_MACOSX) || defined(OS_LINUX) || defined(OS_BSD)
+#if defined(OS_MACOSX) || defined(OS_LINUX) || defined(OS_OPENBSD)
 #define OS_POSIX 1
 #endif
 
@@ -99,9 +86,6 @@
 #elif defined(__s390__)
 #define ARCH_CPU_S390 1
 #define ARCH_CPU_32_BITS 1
-#elif defined(__alpha__)
-#define ARCH_CPU_ALPHA 1
-#define ARCH_CPU_64_BITS 1
 #else
 #error Please add support for your architecture in build/build_config.h
 #endif

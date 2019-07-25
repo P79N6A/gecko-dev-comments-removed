@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <limits.h>
 #include <stdio.h>
 
@@ -51,13 +85,13 @@ public:
   NS_DECL_ISUPPORTS
 
   NS_IMETHODIMP
-  GetInterfaces(uint32_t *_count, nsIID ***_array)
+  GetInterfaces(PRUint32 *_count, nsIID ***_array)
   {
     return NS_CI_INTERFACE_GETTER_NAME(AsyncStatement)(_count, _array);
   }
 
   NS_IMETHODIMP
-  GetHelperForLanguage(uint32_t aLanguage, nsISupports **_helper)
+  GetHelperForLanguage(PRUint32 aLanguage, nsISupports **_helper)
   {
     if (aLanguage == nsIProgrammingLanguage::JAVASCRIPT) {
       static AsyncStatementJSHelper sJSHelper;
@@ -65,42 +99,42 @@ public:
       return NS_OK;
     }
 
-    *_helper = nullptr;
+    *_helper = nsnull;
     return NS_OK;
   }
 
   NS_IMETHODIMP
   GetContractID(char **_contractID)
   {
-    *_contractID = nullptr;
+    *_contractID = nsnull;
     return NS_OK;
   }
 
   NS_IMETHODIMP
   GetClassDescription(char **_desc)
   {
-    *_desc = nullptr;
+    *_desc = nsnull;
     return NS_OK;
   }
 
   NS_IMETHODIMP
   GetClassID(nsCID **_id)
   {
-    *_id = nullptr;
+    *_id = nsnull;
     return NS_OK;
   }
 
   NS_IMETHODIMP
-  GetImplementationLanguage(uint32_t *_language)
+  GetImplementationLanguage(PRUint32 *_language)
   {
     *_language = nsIProgrammingLanguage::CPLUSPLUS;
     return NS_OK;
   }
 
   NS_IMETHODIMP
-  GetFlags(uint32_t *_flags)
+  GetFlags(PRUint32 *_flags)
   {
-    *_flags = 0;
+    *_flags = nsnull;
     return NS_OK;
   }
 
@@ -189,7 +223,7 @@ AsyncStatement::getParams()
   if (!mParamsArray) {
     nsCOMPtr<mozIStorageBindingParamsArray> array;
     rv = NewBindingParamsArray(getter_AddRefs(array));
-    NS_ENSURE_SUCCESS(rv, nullptr);
+    NS_ENSURE_SUCCESS(rv, nsnull);
 
     mParamsArray = static_cast<BindingParamsArray *>(array.get());
   }
@@ -197,14 +231,14 @@ AsyncStatement::getParams()
   
   if (mParamsArray->length() == 0) {
     nsRefPtr<AsyncBindingParams> params(new AsyncBindingParams(mParamsArray));
-    NS_ENSURE_TRUE(params, nullptr);
+    NS_ENSURE_TRUE(params, nsnull);
 
     rv = mParamsArray->AddParams(params);
-    NS_ENSURE_SUCCESS(rv, nullptr);
+    NS_ENSURE_SUCCESS(rv, nsnull);
 
     
     
-    params->unlock(nullptr);
+    params->unlock(nsnull);
 
     
     
@@ -235,7 +269,7 @@ AsyncStatement::~AsyncStatement()
   if (!onCallingThread) {
     
     
-    Connection *forgottenConn = nullptr;
+    Connection *forgottenConn = nsnull;
     mDBConnection.swap(forgottenConn);
     (void)::NS_ProxyRelease(forgottenConn->threadOpenedOn,
                             static_cast<mozIStorageConnection *>(forgottenConn));
@@ -254,8 +288,8 @@ AsyncStatement::cleanupJSHelpers()
       do_QueryWrappedNative(wrapper);
     AsyncStatementParams *params =
       static_cast<AsyncStatementParams *>(iParams.get());
-    params->mStatement = nullptr;
-    mStatementParamsHolder = nullptr;
+    params->mStatement = nsnull;
+    mStatementParamsHolder = nsnull;
   }
 }
 
@@ -299,7 +333,8 @@ AsyncStatement::getAsyncStatement(sqlite3_stmt **_stmt)
 #endif
 
   if (!mAsyncStatement) {
-    int rc = mDBConnection->prepareStatement(mSQLString, &mAsyncStatement);
+    int rc = prepareStmt(mDBConnection->GetNativeConnection(), mSQLString,
+                         &mAsyncStatement);
     if (rc != SQLITE_OK) {
 #ifdef PR_LOGGING
       PR_LOG(gStorageLog, PR_LOG_ERROR,
@@ -308,7 +343,7 @@ AsyncStatement::getAsyncStatement(sqlite3_stmt **_stmt)
       PR_LOG(gStorageLog, PR_LOG_ERROR,
              ("Statement was: '%s'", mSQLString.get()));
 #endif
-      *_stmt = nullptr;
+      *_stmt = nsnull;
       return rc;
     }
 
@@ -331,7 +366,7 @@ AsyncStatement::getAsynchronousStatementData(StatementData &_data)
 
   
   
-  _data = StatementData(nullptr, bindingParamsArray(), this);
+  _data = StatementData(nsnull, bindingParamsArray(), this);
 
   return NS_OK;
 }
@@ -340,7 +375,7 @@ already_AddRefed<mozIStorageBindingParams>
 AsyncStatement::newBindingParams(mozIStorageBindingParamsArray *aOwner)
 {
   if (mFinalized)
-    return nullptr;
+    return nsnull;
 
   nsCOMPtr<mozIStorageBindingParams> params(new AsyncBindingParams(aOwner));
   return params.forget();
@@ -399,7 +434,7 @@ AsyncStatement::BindParameters(mozIStorageBindingParamsArray *aParameters)
 }
 
 NS_IMETHODIMP
-AsyncStatement::GetState(int32_t *_state)
+AsyncStatement::GetState(PRInt32 *_state)
 {
   if (mFinalized)
     *_state = MOZ_STORAGE_STATEMENT_INVALID;

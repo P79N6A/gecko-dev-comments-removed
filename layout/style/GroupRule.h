@@ -8,6 +8,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_css_GroupRule_h__
 #define mozilla_css_GroupRule_h__
 
@@ -39,14 +71,14 @@ public:
 
   
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
+  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
 
 public:
   void AppendStyleRule(Rule* aRule);
 
-  int32_t StyleRuleCount() const { return mRules.Count(); }
-  Rule* GetStyleRuleAt(int32_t aIndex) const;
+  PRInt32 StyleRuleCount() const { return mRules.Count(); }
+  Rule* GetStyleRuleAt(PRInt32 aIndex) const;
 
   typedef nsCOMArray<Rule>::nsCOMArrayEnumFunc RuleEnumFunc;
   bool EnumerateRulesForwards(RuleEnumFunc aFunc, void * aData) const;
@@ -56,18 +88,13 @@ public:
 
 
 
-  nsresult DeleteStyleRuleAt(uint32_t aIndex);
-  nsresult InsertStyleRulesAt(uint32_t aIndex,
+  nsresult DeleteStyleRuleAt(PRUint32 aIndex);
+  nsresult InsertStyleRulesAt(PRUint32 aIndex,
                               nsCOMArray<Rule>& aRules);
   nsresult ReplaceStyleRule(Rule *aOld, Rule *aNew);
 
   virtual bool UseForPresentation(nsPresContext* aPresContext,
                                     nsMediaQueryResultCacheKey& aKey) = 0;
-
-  NS_MUST_OVERRIDE size_t   
-    SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
-  virtual size_t
-    SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const = 0;
 
 protected:
   
@@ -76,9 +103,9 @@ protected:
   
   
   nsresult GetCssRules(nsIDOMCSSRuleList* *aRuleList);
-  nsresult InsertRule(const nsAString & aRule, uint32_t aIndex,
-                      uint32_t* _retval);
-  nsresult DeleteRule(uint32_t aIndex);
+  nsresult InsertRule(const nsAString & aRule, PRUint32 aIndex,
+                      PRUint32* _retval);
+  nsresult DeleteRule(PRUint32 aIndex);
 
   nsCOMArray<Rule> mRules;
   nsRefPtr<GroupRuleRuleList> mRuleCollection; 

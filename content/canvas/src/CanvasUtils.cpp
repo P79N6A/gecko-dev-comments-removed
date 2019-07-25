@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <stdlib.h>
 #include <stdarg.h>
 
@@ -12,10 +44,13 @@
 #include "nsIServiceManager.h"
 
 #include "nsIConsoleService.h"
+#include "nsIDOMDocument.h"
+#include "nsIDocument.h"
 #include "nsIDOMCanvasRenderingContext2D.h"
 #include "nsICanvasRenderingContextInternal.h"
 #include "nsHTMLCanvasElement.h"
 #include "nsIPrincipal.h"
+#include "nsINode.h"
 
 #include "nsGfxCIID.h"
 
@@ -54,11 +89,9 @@ DoDrawImageSecurityCheck(nsHTMLCanvasElement *aCanvasElement,
     if (CORSUsed)
         return;
 
-    
     bool subsumes;
     nsresult rv =
-        aCanvasElement->NodePrincipal()->SubsumesIgnoringDomain(aPrincipal,
-                                                                &subsumes);
+        aCanvasElement->NodePrincipal()->Subsumes(aPrincipal, &subsumes);
 
     if (NS_SUCCEEDED(rv) && subsumes) {
         
@@ -66,6 +99,34 @@ DoDrawImageSecurityCheck(nsHTMLCanvasElement *aCanvasElement,
     }
 
     aCanvasElement->SetWriteOnly();
+}
+
+void
+LogMessage (const nsCString& errorString)
+{
+    nsCOMPtr<nsIConsoleService> console(do_GetService(NS_CONSOLESERVICE_CONTRACTID));
+    if (!console)
+        return;
+
+    console->LogStringMessage(NS_ConvertUTF8toUTF16(errorString).get());
+    fprintf(stderr, "%s\n", errorString.get());
+}
+
+void
+LogMessagef (const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    char buf[256];
+
+    nsCOMPtr<nsIConsoleService> console(do_GetService(NS_CONSOLESERVICE_CONTRACTID));
+    if (console) {
+        PR_vsnprintf(buf, 256, fmt, ap);
+        console->LogStringMessage(NS_ConvertUTF8toUTF16(nsDependentCString(buf)).get());
+        fprintf(stderr, "%s\n", buf);
+    }
+
+    va_end(ap);
 }
 
 bool
@@ -89,7 +150,7 @@ JSValToMatrixElts(JSContext* cx, const jsval& val,
                   double* (&elts)[N], nsresult* rv)
 {
     JSObject* obj;
-    uint32_t length;
+    jsuint length;
 
     if (JSVAL_IS_PRIMITIVE(val) ||
         !(obj = JSVAL_TO_OBJECT(val)) ||
@@ -100,7 +161,7 @@ JSValToMatrixElts(JSContext* cx, const jsval& val,
         return false;
     }
 
-    for (uint32_t i = 0; i < N; ++i) {
+    for (PRUint32 i = 0; i < N; ++i) {
         jsval elt;
         double d;
         if (!JS_GetElement(cx, obj, i, &elt)) {

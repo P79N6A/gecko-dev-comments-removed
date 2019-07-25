@@ -4,15 +4,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef DOM_PLUGINS_PLUGINMESSAGEUTILS_H
 #define DOM_PLUGINS_PLUGINMESSAGEUTILS_H
 
-#include "ipc/IPCMessageUtils.h"
+#include "IPC/IPCMessageUtils.h"
 #include "base/message_loop.h"
 
 #include "mozilla/ipc/RPCChannel.h"
-#include "mozilla/ipc/CrossProcessMutex.h"
-#include "gfxipc/ShadowLayerUtils.h"
 
 #include "npapi.h"
 #include "npruntime.h"
@@ -36,8 +66,6 @@ using mac_plugin_interposing::NSCursorInfo;
 namespace mozilla {
 namespace plugins {
 
-using layers::SurfaceDescriptorX11;
-
 enum ScriptableObjectType
 {
   LocalObject,
@@ -54,16 +82,6 @@ std::string
 UnmungePluginDsoPath(const std::string& munged);
 
 extern PRLogModuleInfo* gPluginLog;
-
-const uint32_t kAllowAsyncDrawing = 0x1;
-
-inline bool IsDrawingModelAsync(int16_t aModel) {
-  return aModel == NPDrawingModelAsyncBitmapSurface
-#ifdef XP_WIN
-         || aModel == NPDrawingModelAsyncWindowsDXGISurface
-#endif
-         ;
-}
 
 #if defined(_MSC_VER)
 #define FULLFUNCTION __FUNCSIG__
@@ -92,7 +110,6 @@ typedef nsCString Buffer;
 
 struct NPRemoteWindow
 {
-  NPRemoteWindow();
   uint64_t window;
   int32_t x;
   int32_t y;
@@ -121,10 +138,8 @@ typedef intptr_t NativeWindowHandle;
 
 #ifdef XP_WIN
 typedef base::SharedMemoryHandle WindowsSharedMemoryHandle;
-typedef HANDLE DXGISharedSurfaceHandle;
 #else
 typedef mozilla::null_t WindowsSharedMemoryHandle;
-typedef mozilla::null_t DXGISharedSurfaceHandle;
 #endif
 
 
@@ -237,7 +252,7 @@ NullableString(const char* aString)
 {
     if (!aString) {
         nsCString str;
-        str.SetIsVoid(true);
+        str.SetIsVoid(PR_TRUE);
         return str;
     }
     return nsCString(aString);
@@ -313,32 +328,6 @@ template <>
 struct ParamTraits<NPWindowType>
 {
   typedef NPWindowType paramType;
-
-  static void Write(Message* aMsg, const paramType& aParam)
-  {
-    aMsg->WriteInt16(int16(aParam));
-  }
-
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
-  {
-    int16 result;
-    if (aMsg->ReadInt16(aIter, &result)) {
-      *aResult = paramType(result);
-      return true;
-    }
-    return false;
-  }
-
-  static void Log(const paramType& aParam, std::wstring* aLog)
-  {
-    aLog->append(StringPrintf(L"%d", int16(aParam)));
-  }
-};
-
-template <>
-struct ParamTraits<NPImageFormat>
-{
-  typedef NPImageFormat paramType;
 
   static void Write(Message* aMsg, const paramType& aParam)
   {
@@ -461,7 +450,7 @@ struct ParamTraits<NPString>
         return true;
       }
 
-      const char* messageBuffer = nullptr;
+      const char* messageBuffer = nsnull;
       nsAutoArrayPtr<char> newBuffer(new char[byteCount]);
       if (newBuffer && aMsg->ReadBytes(aIter, &messageBuffer, byteCount )) {
         memcpy((void*)messageBuffer, newBuffer.get(), byteCount);
@@ -529,7 +518,7 @@ struct ParamTraits<NPNSString*>
       return false;
     }
 
-    UniChar* buffer = nullptr;
+    UniChar* buffer = nsnull;
     if (length != 0) {
       if (!aMsg->ReadBytes(aIter, (const char**)&buffer, length * sizeof(UniChar)) ||
           !buffer) {

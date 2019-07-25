@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIOService_h__
 #define nsIOService_h__
 
@@ -26,8 +58,6 @@
 #include "nsCategoryCache.h"
 #include "nsINetworkLinkService.h"
 #include "nsAsyncRedirectVerifyHelper.h"
-#include "nsISpeculativeConnect.h"
-#include "mozilla/Attributes.h"
 
 #define NS_N(x) (sizeof(x)/sizeof(*x))
 
@@ -40,12 +70,12 @@ static const char gScheme[][sizeof("resource")] =
     {"chrome", "file", "http", "jar", "resource"};
 
 class nsIPrefBranch;
+class nsIPrefBranch2;
 
-class nsIOService MOZ_FINAL : public nsIIOService2
-                            , public nsIObserver
-                            , public nsINetUtil
-                            , public nsISpeculativeConnect
-                            , public nsSupportsWeakReference
+class nsIOService : public nsIIOService2
+                  , public nsIObserver
+                  , public nsINetUtil
+                  , public nsSupportsWeakReference
 {
 public:
     NS_DECL_ISUPPORTS
@@ -53,7 +83,6 @@ public:
     NS_DECL_NSIIOSERVICE2
     NS_DECL_NSIOBSERVER
     NS_DECL_NSINETUTIL
-    NS_DECL_NSISPECULATIVECONNECT
 
     
     
@@ -68,7 +97,7 @@ public:
     
     
     nsresult AsyncOnChannelRedirect(nsIChannel* oldChan, nsIChannel* newChan,
-                                    uint32_t flags,
+                                    PRUint32 flags,
                                     nsAsyncRedirectVerifyHelper *helper);
 
     
@@ -94,22 +123,17 @@ private:
 
     NS_HIDDEN_(nsresult) GetCachedProtocolHandler(const char *scheme,
                                                   nsIProtocolHandler* *hdlrResult,
-                                                  uint32_t start=0,
-                                                  uint32_t end=0);
+                                                  PRUint32 start=0,
+                                                  PRUint32 end=0);
     NS_HIDDEN_(nsresult) CacheProtocolHandler(const char *scheme,
                                               nsIProtocolHandler* hdlr);
 
     
-    NS_HIDDEN_(void) PrefsChanged(nsIPrefBranch *prefs, const char *pref = nullptr);
-    NS_HIDDEN_(void) GetPrefBranch(nsIPrefBranch **);
+    NS_HIDDEN_(void) PrefsChanged(nsIPrefBranch *prefs, const char *pref = nsnull);
+    NS_HIDDEN_(void) GetPrefBranch(nsIPrefBranch2 **);
     NS_HIDDEN_(void) ParsePortList(nsIPrefBranch *prefBranch, const char *pref, bool remove);
 
     nsresult InitializeSocketTransportService();
-    nsresult InitializeNetworkLinkService();
-
-    
-    void LookupProxyInfo(nsIURI *aURI, nsIURI *aProxyURI, uint32_t aProxyFlags,
-                         nsCString *aScheme, nsIProxyInfo **outPI);
 
 private:
     bool                                 mOffline;
@@ -127,8 +151,7 @@ private:
     nsCOMPtr<nsPIDNSService>             mDNSService;
     nsCOMPtr<nsIProtocolProxyService2>   mProxyService;
     nsCOMPtr<nsINetworkLinkService>      mNetworkLinkService;
-    bool                                 mNetworkLinkServiceInitialized;
-
+    
     
     nsWeakPtr                            mWeakHandler[NS_N(gScheme)];
 
@@ -136,13 +159,15 @@ private:
     nsCategoryCache<nsIChannelEventSink> mChannelEventSinks;
     nsCategoryCache<nsIContentSniffer>   mContentSniffers;
 
-    nsTArray<int32_t>                    mRestrictedPortList;
+    nsTArray<PRInt32>                    mRestrictedPortList;
 
     bool                                 mAutoDialEnabled;
 public:
     
-    static uint32_t   gDefaultSegmentSize;
-    static uint32_t   gDefaultSegmentCount;
+    
+    static nsIMemory *gBufferCache;
+    static PRUint32   gDefaultSegmentSize;
+    static PRUint32   gDefaultSegmentCount;
 };
 
 

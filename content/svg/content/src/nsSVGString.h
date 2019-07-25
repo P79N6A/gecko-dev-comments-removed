@@ -3,28 +3,58 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGSTRING_H__
 #define __NS_SVGSTRING_H__
 
-#include "nsError.h"
 #include "nsIDOMSVGAnimatedString.h"
 #include "nsSVGElement.h"
-#include "mozilla/Attributes.h"
+#include "nsDOMError.h"
 
 class nsSVGString
 {
 
 public:
-  void Init(uint8_t aAttrEnum) {
-    mAnimVal = nullptr;
+  void Init(PRUint8 aAttrEnum) {
+    mAnimVal = nsnull;
     mAttrEnum = aAttrEnum;
-    mIsBaseSet = false;
+    mIsBaseSet = PR_FALSE;
   }
 
   void SetBaseValue(const nsAString& aValue,
                     nsSVGElement *aSVGElement,
                     bool aDoSetAttr);
-  void GetBaseValue(nsAString& aValue, const nsSVGElement *aSVGElement) const
+  void GetBaseValue(nsAString& aValue, nsSVGElement *aSVGElement) const
     { aSVGElement->GetStringBaseValue(mAttrEnum, aValue); }
 
   void SetAnimValue(const nsAString& aValue, nsSVGElement *aSVGElement);
@@ -40,17 +70,19 @@ public:
 
   nsresult ToDOMAnimatedString(nsIDOMSVGAnimatedString **aResult,
                                nsSVGElement *aSVGElement);
+#ifdef MOZ_SMIL
   
   nsISMILAttr* ToSMILAttr(nsSVGElement *aSVGElement);
+#endif 
 
 private:
 
   nsAutoPtr<nsString> mAnimVal;
-  uint8_t mAttrEnum; 
+  PRUint8 mAttrEnum; 
   bool mIsBaseSet;
 
 public:
-  struct DOMAnimatedString MOZ_FINAL : public nsIDOMSVGAnimatedString
+  struct DOMAnimatedString : public nsIDOMSVGAnimatedString
   {
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS(DOMAnimatedString)
@@ -64,15 +96,18 @@ public:
     NS_IMETHOD GetBaseVal(nsAString & aResult)
       { mVal->GetBaseValue(aResult, mSVGElement); return NS_OK; }
     NS_IMETHOD SetBaseVal(const nsAString & aValue)
-      { mVal->SetBaseValue(aValue, mSVGElement, true); return NS_OK; }
+      { mVal->SetBaseValue(aValue, mSVGElement, PR_TRUE); return NS_OK; }
 
     NS_IMETHOD GetAnimVal(nsAString & aResult)
     { 
+#ifdef MOZ_SMIL
       mSVGElement->FlushAnimations();
+#endif
       mVal->GetAnimValue(aResult, mSVGElement); return NS_OK;
     }
 
   };
+#ifdef MOZ_SMIL
   struct SMILString : public nsISMILAttr
   {
   public:
@@ -94,5 +129,6 @@ public:
     virtual void ClearAnimValue();
     virtual nsresult SetAnimValue(const nsSMILValue& aValue);
   };
+#endif 
 };
 #endif 

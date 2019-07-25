@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "ctypes.h"
 #include "jsapi.h"
 #include "mozilla/ModuleUtils.h"
@@ -23,7 +57,7 @@ namespace ctypes {
 static char*
 UnicodeToNative(JSContext *cx, const jschar *source, size_t slen)
 {
-  nsAutoCString native;
+  nsCAutoString native;
   nsDependentString unicode(reinterpret_cast<const PRUnichar*>(source), slen);
   nsresult rv = NS_CopyUnicodeToNative(unicode, native);
   if (NS_FAILED(rv)) {
@@ -85,10 +119,9 @@ InitAndSealCTypesClass(JSContext* cx, JSObject* global)
 
   
   jsval ctypes;
-  if (!JS_GetProperty(cx, global, "ctypes", &ctypes))
+  if (!JS_GetProperty(cx, global, "ctypes", &ctypes) ||
+      !JS_SetCTypesCallbacks(cx, JSVAL_TO_OBJECT(ctypes), &sCallbacks))
     return false;
-
-  JS_SetCTypesCallbacks(JSVAL_TO_OBJECT(ctypes), &sCallbacks);
 
   
   
@@ -108,7 +141,7 @@ NS_IMETHODIMP
 Module::Call(nsIXPConnectWrappedNative* wrapper,
              JSContext* cx,
              JSObject* obj,
-             uint32_t argc,
+             PRUint32 argc,
              jsval* argv,
              jsval* vp,
              bool* _retval)

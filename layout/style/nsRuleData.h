@@ -8,6 +8,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsRuleData_h_
 #define nsRuleData_h_
 
@@ -22,10 +55,10 @@ typedef void (*nsPostResolveFunc)(void* aStyleStruct, nsRuleData* aData);
 
 struct nsRuleData
 {
-  const uint32_t mSIDs;
+  const PRUint32 mSIDs;
   bool mCanStoreInRuleTree;
   bool mIsImportantRule;
-  uint8_t mLevel; 
+  PRUint8 mLevel; 
   nsPresContext* const mPresContext;
   nsStyleContext* const mStyleContext;
   const nsPostResolveFunc mPostResolveCallback;
@@ -44,7 +77,7 @@ struct nsRuleData
   nsCSSValue* const mValueStorage; 
   size_t mValueOffsets[nsStyleStructID_Length];
 
-  nsRuleData(uint32_t aSIDs, nsCSSValue* aValueStorage,
+  nsRuleData(PRUint32 aSIDs, nsCSSValue* aValueStorage,
              nsPresContext* aContext, nsStyleContext* aStyleContext);
 
 #ifdef DEBUG
@@ -93,8 +126,8 @@ struct nsRuleData
 
 
   #define CSS_PROP_DOMPROP_PREFIXED(prop_) prop_
-  #define CSS_PROP(name_, id_, method_, flags_, pref_, parsevariant_,        \
-                   kwtable_, stylestruct_, stylestructoffset_, animtype_)    \
+  #define CSS_PROP(name_, id_, method_, flags_, parsevariant_, kwtable_,     \
+                   stylestruct_, stylestructoffset_, animtype_)              \
     nsCSSValue* ValueFor##method_() {                                        \
       NS_ABORT_IF_FALSE(mSIDs & NS_STYLE_INHERIT_BIT(stylestruct_),          \
                         "Calling nsRuleData::ValueFor" #method_ " without "  \
@@ -110,8 +143,8 @@ struct nsRuleData
     const nsCSSValue* ValueFor##method_() const {                            \
       return const_cast<nsRuleData*>(this)->ValueFor##method_();             \
     }
-  #define CSS_PROP_BACKENDONLY(name_, id_, method_, flags_, pref_,           \
-                             parsevariant_, kwtable_)                        \
+  #define CSS_PROP_BACKENDONLY(name_, id_, method_, flags_, parsevariant_,   \
+                               kwtable_)                                     \
     /* empty; backend-only structs are not in nsRuleData  */
   #include "nsCSSPropList.h"
   #undef CSS_PROP

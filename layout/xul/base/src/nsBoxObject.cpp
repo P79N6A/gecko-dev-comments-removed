@@ -3,22 +3,57 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsBoxObject.h"
 #include "nsCOMPtr.h"
 #include "nsIDocument.h"
 #include "nsIPresShell.h"
 #include "nsPresContext.h"
+#include "nsIDocument.h"
 #include "nsIContent.h"
 #include "nsIFrame.h"
 #include "nsIDocShell.h"
 #include "nsReadableUtils.h"
-#include "nsDOMClassInfoID.h"
+#include "nsIDOMClassInfo.h"
 #include "nsIView.h"
 #ifdef MOZ_XUL
 #include "nsIDOMXULElement.h"
 #else
 #include "nsIDOMElement.h"
 #endif
+#include "nsIFrame.h"
 #include "nsLayoutUtils.h"
 #include "nsISupportsPrimitives.h"
 #include "prtypes.h"
@@ -68,7 +103,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 
 nsBoxObject::nsBoxObject(void)
-  :mContent(nullptr)
+  :mContent(nsnull)
 {
 }
 
@@ -83,7 +118,7 @@ nsBoxObject::GetElement(nsIDOMElement** aResult)
     return CallQueryInterface(mContent, aResult);
   }
 
-  *aResult = nullptr;
+  *aResult = nsnull;
   return NS_OK;
 }
 
@@ -99,8 +134,8 @@ nsBoxObject::Init(nsIContent* aContent)
 void
 nsBoxObject::Clear()
 {
-  mPropertyTable = nullptr;
-  mContent = nullptr;
+  mPropertyTable = nsnull;
+  mContent = nsnull;
 }
 
 void
@@ -113,7 +148,7 @@ nsBoxObject::GetFrame(bool aFlushLayout)
 {
   nsIPresShell* shell = GetPresShell(aFlushLayout);
   if (!shell)
-    return nullptr;
+    return nsnull;
 
   if (!aFlushLayout) {
     
@@ -125,7 +160,7 @@ nsBoxObject::GetFrame(bool aFlushLayout)
 
   
   if (!mContent) {
-    return nullptr;
+    return nsnull;
   }
 
   return mContent->GetPrimaryFrame();
@@ -135,12 +170,12 @@ nsIPresShell*
 nsBoxObject::GetPresShell(bool aFlushLayout)
 {
   if (!mContent) {
-    return nullptr;
+    return nsnull;
   }
 
   nsIDocument* doc = mContent->GetCurrentDoc();
   if (!doc) {
-    return nullptr;
+    return nsnull;
   }
 
   if (aFlushLayout) {
@@ -159,7 +194,7 @@ nsBoxObject::GetOffsetRect(nsIntRect& aRect)
     return NS_ERROR_NOT_INITIALIZED;
 
   
-  nsIFrame* frame = GetFrame(true);
+  nsIFrame* frame = GetFrame(PR_TRUE);
   if (frame) {
     
     nsPoint origin = frame->GetPositionIgnoringScrolling();
@@ -188,13 +223,13 @@ nsBoxObject::GetOffsetRect(nsIntRect& aRect)
   
     
     const nsStyleBorder* border = frame->GetStyleBorder();
-    origin.x += border->GetComputedBorderWidth(NS_SIDE_LEFT);
-    origin.y += border->GetComputedBorderWidth(NS_SIDE_TOP);
+    origin.x += border->GetActualBorderWidth(NS_SIDE_LEFT);
+    origin.y += border->GetActualBorderWidth(NS_SIDE_TOP);
 
     
     const nsStyleBorder* parentBorder = parent->GetStyleBorder();
-    origin.x -= parentBorder->GetComputedBorderWidth(NS_SIDE_LEFT);
-    origin.y -= parentBorder->GetComputedBorderWidth(NS_SIDE_TOP);
+    origin.x -= parentBorder->GetActualBorderWidth(NS_SIDE_LEFT);
+    origin.y -= parentBorder->GetActualBorderWidth(NS_SIDE_TOP);
 
     aRect.x = nsPresContext::AppUnitsToIntCSSPixels(origin.x);
     aRect.y = nsPresContext::AppUnitsToIntCSSPixels(origin.y);
@@ -219,7 +254,7 @@ nsBoxObject::GetScreenPosition(nsIntPoint& aPoint)
   if (!mContent)
     return NS_ERROR_NOT_INITIALIZED;
 
-  nsIFrame* frame = GetFrame(true);
+  nsIFrame* frame = GetFrame(PR_TRUE);
   if (frame) {
     nsIntRect rect = frame->GetScreenRect();
     aPoint.x = rect.x;
@@ -230,7 +265,7 @@ nsBoxObject::GetScreenPosition(nsIntPoint& aPoint)
 }
 
 NS_IMETHODIMP
-nsBoxObject::GetX(int32_t* aResult)
+nsBoxObject::GetX(PRInt32* aResult)
 {
   nsIntRect rect;
   GetOffsetRect(rect);
@@ -239,7 +274,7 @@ nsBoxObject::GetX(int32_t* aResult)
 }
 
 NS_IMETHODIMP 
-nsBoxObject::GetY(int32_t* aResult)
+nsBoxObject::GetY(PRInt32* aResult)
 {
   nsIntRect rect;
   GetOffsetRect(rect);
@@ -248,7 +283,7 @@ nsBoxObject::GetY(int32_t* aResult)
 }
 
 NS_IMETHODIMP
-nsBoxObject::GetWidth(int32_t* aResult)
+nsBoxObject::GetWidth(PRInt32* aResult)
 {
   nsIntRect rect;
   GetOffsetRect(rect);
@@ -257,7 +292,7 @@ nsBoxObject::GetWidth(int32_t* aResult)
 }
 
 NS_IMETHODIMP 
-nsBoxObject::GetHeight(int32_t* aResult)
+nsBoxObject::GetHeight(PRInt32* aResult)
 {
   nsIntRect rect;
   GetOffsetRect(rect);
@@ -266,7 +301,7 @@ nsBoxObject::GetHeight(int32_t* aResult)
 }
 
 NS_IMETHODIMP
-nsBoxObject::GetScreenX(int32_t *_retval)
+nsBoxObject::GetScreenX(PRInt32 *_retval)
 {
   nsIntPoint position;
   nsresult rv = GetScreenPosition(position);
@@ -278,7 +313,7 @@ nsBoxObject::GetScreenX(int32_t *_retval)
 }
 
 NS_IMETHODIMP
-nsBoxObject::GetScreenY(int32_t *_retval)
+nsBoxObject::GetScreenY(PRInt32 *_retval)
 {
   nsIntPoint position;
   nsresult rv = GetScreenPosition(position);
@@ -294,7 +329,7 @@ nsBoxObject::GetPropertyAsSupports(const PRUnichar* aPropertyName, nsISupports**
 {
   NS_ENSURE_ARG(aPropertyName && *aPropertyName);
   if (!mPropertyTable) {
-    *aResult = nullptr;
+    *aResult = nsnull;
     return NS_OK;
   }
   nsDependentString propertyName(aPropertyName);
@@ -310,11 +345,15 @@ nsBoxObject::SetPropertyAsSupports(const PRUnichar* aPropertyName, nsISupports* 
   if (!mPropertyTable) {  
     mPropertyTable = new nsInterfaceHashtable<nsStringHashKey,nsISupports>;  
     if (!mPropertyTable) return NS_ERROR_OUT_OF_MEMORY;
-    mPropertyTable->Init(8);
+    if (NS_FAILED(mPropertyTable->Init(8))) {
+       mPropertyTable = nsnull;
+       return NS_ERROR_FAILURE;
+    }
   }
 
   nsDependentString propertyName(aPropertyName);
-  mPropertyTable->Put(propertyName, aValue);
+  if (!mPropertyTable->Put(propertyName, aValue))
+    return NS_ERROR_OUT_OF_MEMORY;
   return NS_OK;
 }
 
@@ -326,7 +365,7 @@ nsBoxObject::GetProperty(const PRUnichar* aPropertyName, PRUnichar** aResult)
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (!data) {
-    *aResult = nullptr;
+    *aResult = nsnull;
     return NS_OK;
   }
 
@@ -347,7 +386,7 @@ nsBoxObject::SetProperty(const PRUnichar* aPropertyName, const PRUnichar* aPrope
   if (aPropertyValue) {
     propertyValue.Rebind(aPropertyValue);
   } else {
-    propertyValue.SetIsVoid(true);
+    propertyValue.SetIsVoid(PR_TRUE);
   }
   
   nsCOMPtr<nsISupportsString> supportsStr(do_CreateInstance(NS_SUPPORTS_STRING_CONTRACTID));
@@ -372,8 +411,8 @@ nsBoxObject::RemoveProperty(const PRUnichar* aPropertyName)
 NS_IMETHODIMP 
 nsBoxObject::GetParentBox(nsIDOMElement * *aParentBox)
 {
-  *aParentBox = nullptr;
-  nsIFrame* frame = GetFrame(false);
+  *aParentBox = nsnull;
+  nsIFrame* frame = GetFrame(PR_FALSE);
   if (!frame) return NS_OK;
   nsIFrame* parent = frame->GetParent();
   if (!parent) return NS_OK;
@@ -387,8 +426,8 @@ nsBoxObject::GetParentBox(nsIDOMElement * *aParentBox)
 NS_IMETHODIMP 
 nsBoxObject::GetFirstChild(nsIDOMElement * *aFirstVisibleChild)
 {
-  *aFirstVisibleChild = nullptr;
-  nsIFrame* frame = GetFrame(false);
+  *aFirstVisibleChild = nsnull;
+  nsIFrame* frame = GetFrame(PR_FALSE);
   if (!frame) return NS_OK;
   nsIFrame* firstFrame = frame->GetFirstPrincipalChild();
   if (!firstFrame) return NS_OK;
@@ -401,17 +440,17 @@ nsBoxObject::GetFirstChild(nsIDOMElement * *aFirstVisibleChild)
 NS_IMETHODIMP
 nsBoxObject::GetLastChild(nsIDOMElement * *aLastVisibleChild)
 {
-  *aLastVisibleChild = nullptr;
-  nsIFrame* frame = GetFrame(false);
+  *aLastVisibleChild = nsnull;
+  nsIFrame* frame = GetFrame(PR_FALSE);
   if (!frame) return NS_OK;
-  return GetPreviousSibling(frame, nullptr, aLastVisibleChild);
+  return GetPreviousSibling(frame, nsnull, aLastVisibleChild);
 }
 
 NS_IMETHODIMP
 nsBoxObject::GetNextSibling(nsIDOMElement **aNextOrdinalSibling)
 {
-  *aNextOrdinalSibling = nullptr;
-  nsIFrame* frame = GetFrame(false);
+  *aNextOrdinalSibling = nsnull;
+  nsIFrame* frame = GetFrame(PR_FALSE);
   if (!frame) return NS_OK;
   nsIFrame* nextFrame = frame->GetNextSibling();
   if (!nextFrame) return NS_OK;
@@ -424,8 +463,8 @@ nsBoxObject::GetNextSibling(nsIDOMElement **aNextOrdinalSibling)
 NS_IMETHODIMP
 nsBoxObject::GetPreviousSibling(nsIDOMElement **aPreviousOrdinalSibling)
 {
-  *aPreviousOrdinalSibling = nullptr;
-  nsIFrame* frame = GetFrame(false);
+  *aPreviousOrdinalSibling = nsnull;
+  nsIFrame* frame = GetFrame(PR_FALSE);
   if (!frame) return NS_OK;
   nsIFrame* parentFrame = frame->GetParent();
   if (!parentFrame) return NS_OK;
@@ -436,9 +475,9 @@ nsresult
 nsBoxObject::GetPreviousSibling(nsIFrame* aParentFrame, nsIFrame* aFrame,
                                 nsIDOMElement** aResult)
 {
-  *aResult = nullptr;
+  *aResult = nsnull;
   nsIFrame* nextFrame = aParentFrame->GetFirstPrincipalChild();
-  nsIFrame* prevFrame = nullptr;
+  nsIFrame* prevFrame = nsnull;
   while (nextFrame) {
     if (nextFrame == aFrame)
       break;

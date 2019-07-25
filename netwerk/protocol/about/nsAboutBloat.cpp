@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsTraceRefcntImpl.h"
 
 
@@ -19,7 +51,7 @@
 #include "nsIFileStreams.h"
 #include "nsNetUtil.h"
 #include "nsDirectoryServiceDefs.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 
 static void GC_gcollect() {}
 
@@ -30,7 +62,7 @@ nsAboutBloat::NewChannel(nsIURI *aURI, nsIChannel **result)
 {
     NS_ENSURE_ARG_POINTER(aURI);
     nsresult rv;
-    nsAutoCString path;
+    nsCAutoString path;
     rv = aURI->GetPath(path);
     if (NS_FAILED(rv)) return rv;
 
@@ -38,32 +70,32 @@ nsAboutBloat::NewChannel(nsIURI *aURI, nsIChannel **result)
     bool clear = false;
     bool leaks = false;
 
-    int32_t pos = path.Find("?");
+    PRInt32 pos = path.Find("?");
     if (pos > 0) {
-        nsAutoCString param;
+        nsCAutoString param;
         (void)path.Right(param, path.Length() - (pos+1));
         if (param.EqualsLiteral("new"))
             statType = nsTraceRefcntImpl::NEW_STATS;
         else if (param.EqualsLiteral("clear"))
-            clear = true;
+            clear = PR_TRUE;
         else if (param.EqualsLiteral("leaks"))
-            leaks = true;
+            leaks = PR_TRUE;
     }
 
     nsCOMPtr<nsIInputStream> inStr;
     if (clear) {
         nsTraceRefcntImpl::ResetStatistics();
 
-        rv = NS_NewCStringInputStream(getter_AddRefs(inStr),
-            NS_LITERAL_CSTRING("Bloat statistics cleared."));
+        const char* msg = "Bloat statistics cleared.";
+        rv = NS_NewCStringInputStream(getter_AddRefs(inStr), nsDependentCString(msg));
         if (NS_FAILED(rv)) return rv;
     }
     else if (leaks) {
         
         GC_gcollect();
     	
-        rv = NS_NewCStringInputStream(getter_AddRefs(inStr),
-            NS_LITERAL_CSTRING("Memory leaks dumped."));
+        const char* msg = "Memory leaks dumped.";
+        rv = NS_NewCStringInputStream(getter_AddRefs(inStr), nsDependentCString(msg));
         if (NS_FAILED(rv)) return rv;
     }
     else {
@@ -87,7 +119,7 @@ nsAboutBloat::NewChannel(nsIURI *aURI, nsIChannel **result)
             if (NS_FAILED(rv)) return rv;
         }
 
-        nsAutoCString dumpFileName;
+        nsCAutoString dumpFileName;
         if (statType == nsTraceRefcntImpl::ALL_STATS)
             dumpFileName.AssignLiteral("all-");
         else
@@ -101,7 +133,10 @@ nsAboutBloat::NewChannel(nsIURI *aURI, nsIChannel **result)
         if (NS_FAILED(rv)) return rv;
 
         FILE* out;
-        rv = file->OpenANSIFileDesc("w", &out);
+        nsCOMPtr<nsILocalFile> lfile = do_QueryInterface(file);
+        if (lfile == nsnull)
+            return NS_ERROR_FAILURE;
+        rv = lfile->OpenANSIFileDesc("w", &out);
         if (NS_FAILED(rv)) return rv;
 
         rv = nsTraceRefcntImpl::DumpStatistics(statType, out);
@@ -123,7 +158,7 @@ nsAboutBloat::NewChannel(nsIURI *aURI, nsIChannel **result)
 }
 
 NS_IMETHODIMP
-nsAboutBloat::GetURIFlags(nsIURI *aURI, uint32_t *result)
+nsAboutBloat::GetURIFlags(nsIURI *aURI, PRUint32 *result)
 {
     *result = 0;
     return NS_OK;
@@ -133,7 +168,7 @@ nsresult
 nsAboutBloat::Create(nsISupports *aOuter, REFNSIID aIID, void **aResult)
 {
     nsAboutBloat* about = new nsAboutBloat();
-    if (about == nullptr)
+    if (about == nsnull)
         return NS_ERROR_OUT_OF_MEMORY;
     NS_ADDREF(about);
     nsresult rv = about->QueryInterface(aIID, aResult);

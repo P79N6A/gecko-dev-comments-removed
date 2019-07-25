@@ -3,9 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "EditTxn.h"
-#include "nsError.h"
-#include "nsISupportsBase.h"
 
 NS_IMPL_CYCLE_COLLECTION_0(EditTxn)
 
@@ -31,7 +62,7 @@ EditTxn::RedoTransaction(void)
 NS_IMETHODIMP
 EditTxn::GetIsTransient(bool *aIsTransient)
 {
-  *aIsTransient = false;
+  *aIsTransient = PR_FALSE;
 
   return NS_OK;
 }
@@ -39,7 +70,7 @@ EditTxn::GetIsTransient(bool *aIsTransient)
 NS_IMETHODIMP
 EditTxn::Merge(nsITransaction *aTransaction, bool *aDidMerge)
 {
-  *aDidMerge = false;
+  *aDidMerge = PR_FALSE;
 
   return NS_OK;
 }

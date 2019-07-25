@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsDirectoryServiceDefs.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMHTMLImageElement.h"
@@ -34,7 +68,7 @@ NS_IMPL_ISUPPORTS3(nsMacShellService, nsIMacShellService, nsIShellService, nsIWe
 NS_IMETHODIMP
 nsMacShellService::IsDefaultBrowser(bool aStartupCheck, bool* aIsDefaultBrowser)
 {
-  *aIsDefaultBrowser = false;
+  *aIsDefaultBrowser = PR_FALSE;
 
   CFStringRef firefoxID = ::CFBundleGetIdentifier(::CFBundleGetMainBundle());
   if (!firefoxID) {
@@ -55,7 +89,7 @@ nsMacShellService::IsDefaultBrowser(bool aStartupCheck, bool* aIsDefaultBrowser)
   
   
   if (aStartupCheck)
-    mCheckedThisSession = true;
+    mCheckedThisSession = PR_TRUE;
 
   return NS_OK;
 }
@@ -95,7 +129,7 @@ nsMacShellService::GetShouldCheckDefaultBrowser(bool* aResult)
   
   
   if (mCheckedThisSession) {
-    *aResult = false;
+    *aResult = PR_FALSE;
     return NS_OK;
   }
 
@@ -123,15 +157,8 @@ nsMacShellService::SetShouldCheckDefaultBrowser(bool aShouldCheck)
 }
 
 NS_IMETHODIMP
-nsMacShellService::GetCanSetDesktopBackground(bool* aResult)
-{
-  *aResult = true;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsMacShellService::SetDesktopBackground(nsIDOMElement* aElement, 
-                                        int32_t aPosition)
+                                        PRInt32 aPosition)
 {
   
 
@@ -147,8 +174,12 @@ nsMacShellService::SetDesktopBackground(nsIDOMElement* aElement,
   
   nsCOMPtr<nsIContent> content = do_QueryInterface(aElement, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsIDocument> doc;
+  doc = content->GetOwnerDoc();
+  if (!doc)
+    return NS_ERROR_FAILURE;
 
-  nsIURI *docURI = content->OwnerDoc()->GetDocumentURI();
+  nsIURI *docURI = doc->GetDocumentURI();
   if (!docURI)
     return NS_ERROR_FAILURE;
 
@@ -160,14 +191,14 @@ nsMacShellService::SetDesktopBackground(nsIDOMElement* aElement,
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
-  nsAutoCString fileName;
+  nsCAutoString fileName;
   imageURL->GetFileName(fileName);
   nsCOMPtr<nsIProperties> fileLocator
     (do_GetService("@mozilla.org/file/directory_service;1", &rv));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  fileLocator->Get(NS_OSX_PICTURE_DOCUMENTS_DIR, NS_GET_IID(nsIFile),
+  fileLocator->Get(NS_OSX_PICTURE_DOCUMENTS_DIR, NS_GET_IID(nsILocalFile),
                    getter_AddRefs(mBackgroundFile));
   if (!mBackgroundFile)
     return NS_ERROR_OUT_OF_MEMORY;
@@ -183,24 +214,24 @@ nsMacShellService::SetDesktopBackground(nsIDOMElement* aElement,
     (do_CreateInstance("@mozilla.org/embedding/browser/nsWebBrowserPersist;1", &rv));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  uint32_t flags = nsIWebBrowserPersist::PERSIST_FLAGS_NO_CONVERSION | 
+  PRUint32 flags = nsIWebBrowserPersist::PERSIST_FLAGS_NO_CONVERSION | 
                    nsIWebBrowserPersist::PERSIST_FLAGS_REPLACE_EXISTING_FILES |
                    nsIWebBrowserPersist::PERSIST_FLAGS_FROM_CACHE;
 
   wbp->SetPersistFlags(flags);
   wbp->SetProgressListener(this);
 
-  return wbp->SaveURI(imageURI, nullptr, docURI, nullptr, nullptr,
+  return wbp->SaveURI(imageURI, nsnull, docURI, nsnull, nsnull,
                       mBackgroundFile);
 }
 
 NS_IMETHODIMP
 nsMacShellService::OnProgressChange(nsIWebProgress* aWebProgress,
                                     nsIRequest* aRequest,
-                                    int32_t aCurSelfProgress,
-                                    int32_t aMaxSelfProgress,
-                                    int32_t aCurTotalProgress,
-                                    int32_t aMaxTotalProgress)
+                                    PRInt32 aCurSelfProgress,
+                                    PRInt32 aMaxSelfProgress,
+                                    PRInt32 aCurTotalProgress,
+                                    PRInt32 aMaxTotalProgress)
 {
   return NS_OK;
 }
@@ -208,8 +239,7 @@ nsMacShellService::OnProgressChange(nsIWebProgress* aWebProgress,
 NS_IMETHODIMP
 nsMacShellService::OnLocationChange(nsIWebProgress* aWebProgress,
                                     nsIRequest* aRequest,
-                                    nsIURI* aLocation,
-                                    uint32_t aFlags)
+                                    nsIURI* aLocation)
 {
   return NS_OK;
 }
@@ -226,7 +256,7 @@ nsMacShellService::OnStatusChange(nsIWebProgress* aWebProgress,
 NS_IMETHODIMP
 nsMacShellService::OnSecurityChange(nsIWebProgress* aWebProgress,
                                     nsIRequest* aRequest,
-                                    uint32_t aState)
+                                    PRUint32 aState)
 {
   return NS_OK;
 }
@@ -234,20 +264,20 @@ nsMacShellService::OnSecurityChange(nsIWebProgress* aWebProgress,
 NS_IMETHODIMP
 nsMacShellService::OnStateChange(nsIWebProgress* aWebProgress,
                                  nsIRequest* aRequest,
-                                 uint32_t aStateFlags,
+                                 PRUint32 aStateFlags,
                                  nsresult aStatus)
 {
   if (aStateFlags & STATE_STOP) {
     nsCOMPtr<nsIObserverService> os(do_GetService("@mozilla.org/observer-service;1"));
     if (os)
-      os->NotifyObservers(nullptr, "shell:desktop-background-changed", nullptr);
+      os->NotifyObservers(nsnull, "shell:desktop-background-changed", nsnull);
 
     bool exists = false;
     mBackgroundFile->Exists(&exists);
     if (!exists)
       return NS_OK;
 
-    nsAutoCString nativePath;
+    nsCAutoString nativePath;
     mBackgroundFile->GetNativePath(nativePath);
 
     AEDesc tAEDesc = { typeNull, nil };
@@ -300,7 +330,7 @@ nsMacShellService::OnStateChange(nsIWebProgress* aWebProgress,
 }
 
 NS_IMETHODIMP
-nsMacShellService::OpenApplication(int32_t aApplication)
+nsMacShellService::OpenApplication(PRInt32 aApplication)
 {
   nsresult rv = NS_OK;
   CFURLRef appURL = nil;
@@ -329,8 +359,8 @@ nsMacShellService::OpenApplication(int32_t aApplication)
     break;
   case nsIMacShellService::APPLICATION_NETWORK:
     {
-      nsCOMPtr<nsIFile> lf;
-      rv = NS_NewNativeLocalFile(NETWORK_PREFPANE, true, getter_AddRefs(lf));
+      nsCOMPtr<nsILocalFile> lf;
+      rv = NS_NewNativeLocalFile(NETWORK_PREFPANE, PR_TRUE, getter_AddRefs(lf));
       NS_ENSURE_SUCCESS(rv, rv);
       bool exists;
       lf->Exists(&exists);
@@ -341,8 +371,8 @@ nsMacShellService::OpenApplication(int32_t aApplication)
     break;
   case nsIMacShellService::APPLICATION_DESKTOP:
     {
-      nsCOMPtr<nsIFile> lf;
-      rv = NS_NewNativeLocalFile(DESKTOP_PREFPANE, true, getter_AddRefs(lf));
+      nsCOMPtr<nsILocalFile> lf;
+      rv = NS_NewNativeLocalFile(DESKTOP_PREFPANE, PR_TRUE, getter_AddRefs(lf));
       NS_ENSURE_SUCCESS(rv, rv);
       bool exists;
       lf->Exists(&exists);
@@ -364,7 +394,7 @@ nsMacShellService::OpenApplication(int32_t aApplication)
 }
 
 NS_IMETHODIMP
-nsMacShellService::GetDesktopBackgroundColor(uint32_t *aColor)
+nsMacShellService::GetDesktopBackgroundColor(PRUint32 *aColor)
 {
   
   
@@ -373,7 +403,7 @@ nsMacShellService::GetDesktopBackgroundColor(uint32_t *aColor)
 }
 
 NS_IMETHODIMP
-nsMacShellService::SetDesktopBackgroundColor(uint32_t aColor)
+nsMacShellService::SetDesktopBackgroundColor(PRUint32 aColor)
 {
   
   
@@ -382,7 +412,7 @@ nsMacShellService::SetDesktopBackgroundColor(uint32_t aColor)
 }
 
 NS_IMETHODIMP
-nsMacShellService::OpenApplicationWithURI(nsIFile* aApplication, const nsACString& aURI)
+nsMacShellService::OpenApplicationWithURI(nsILocalFile* aApplication, const nsACString& aURI)
 {
   nsCOMPtr<nsILocalFileMac> lfm(do_QueryInterface(aApplication));
   CFURLRef appURL;
@@ -419,10 +449,10 @@ nsMacShellService::OpenApplicationWithURI(nsIFile* aApplication, const nsACStrin
 }
 
 NS_IMETHODIMP
-nsMacShellService::GetDefaultFeedReader(nsIFile** _retval)
+nsMacShellService::GetDefaultFeedReader(nsILocalFile** _retval)
 {
   nsresult rv = NS_ERROR_FAILURE;
-  *_retval = nullptr;
+  *_retval = nsnull;
 
   CFStringRef defaultHandlerID = ::LSCopyDefaultHandlerForURLScheme(CFSTR("feed"));
   if (!defaultHandlerID) {

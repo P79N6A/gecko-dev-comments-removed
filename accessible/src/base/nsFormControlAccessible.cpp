@@ -79,6 +79,16 @@ ProgressMeterAccessible<Max>::NativeRole()
 
 
 template<int Max>
+bool
+ProgressMeterAccessible<Max>::IsWidget() const
+{
+  return true;
+}
+
+
+
+
+template<int Max>
 NS_IMETHODIMP
 ProgressMeterAccessible<Max>::GetValue(nsAString& aValue)
 {
@@ -116,7 +126,7 @@ ProgressMeterAccessible<Max>::GetMaximumValue(double* aMaximumValue)
     return rv;
 
   nsAutoString value;
-  if (mContent->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::max, value)) {
+  if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::max, value)) {
     PRInt32 result = NS_OK;
     *aMaximumValue = value.ToDouble(&result);
     return result;
@@ -159,7 +169,7 @@ ProgressMeterAccessible<Max>::GetCurrentValue(double* aCurrentValue)
     return rv;
 
   nsAutoString attrValue;
-  mContent->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::value, attrValue);
+  mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::value, attrValue);
 
   
   if (attrValue.IsEmpty())
@@ -222,3 +232,11 @@ nsRadioButtonAccessible::NativeRole()
   return nsIAccessibleRole::ROLE_RADIOBUTTON;
 }
 
+
+
+
+bool
+nsRadioButtonAccessible::IsWidget() const
+{
+  return true;
+}

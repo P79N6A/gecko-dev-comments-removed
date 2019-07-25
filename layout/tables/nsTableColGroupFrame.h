@@ -2,11 +2,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsTableColGroupFrame_h__
 #define nsTableColGroupFrame_h__
 
 #include "nscore.h"
-#include "nsContainerFrame.h"
+#include "nsHTMLContainerFrame.h"
 #include "nsTableColFrame.h"
 #include "nsTablePainter.h"
 
@@ -24,7 +56,7 @@ enum nsTableColGroupType {
 
 
 
-class nsTableColGroupFrame : public nsContainerFrame
+class nsTableColGroupFrame : public nsHTMLContainerFrame
 {
 public:
   NS_DECL_FRAMEARENA_HELPERS
@@ -131,20 +163,20 @@ public:
 
 
 
-  nsresult AddColsToTable(int32_t                   aFirstColIndex,
+  nsresult AddColsToTable(PRInt32                   aFirstColIndex,
                           bool                      aResetSubsequentColIndices,
                           const nsFrameList::Slice& aCols);
 
 #ifdef DEBUG
   NS_IMETHOD GetFrameName(nsAString& aResult) const;
-  void Dump(int32_t aIndent);
+  void Dump(PRInt32 aIndent);
 #endif
 
   
 
 
 
-  virtual int32_t GetColCount() const;
+  virtual PRInt32 GetColCount() const;
 
   
   nsTableColFrame * GetFirstColumn();
@@ -156,15 +188,15 @@ public:
   
 
 
-  int32_t GetStartColumnIndex();
+  PRInt32 GetStartColumnIndex();
   
   
 
 
-  void SetStartColumnIndex(int32_t aIndex);
+  void SetStartColumnIndex(PRInt32 aIndex);
 
   
-  int32_t GetSpan();
+  PRInt32 GetSpan();
 
   
 
@@ -179,8 +211,8 @@ public:
 
 
   static void ResetColIndices(nsIFrame*       aFirstColGroup,
-                              int32_t         aFirstColIndex,
-                              nsIFrame*       aStartColFrame = nullptr);
+                              PRInt32         aFirstColIndex,
+                              nsIFrame*       aStartColFrame = nsnull);
 
   
 
@@ -193,21 +225,21 @@ public:
 
 
 
-  void SetContinuousBCBorderWidth(uint8_t     aForSide,
+  void SetContinuousBCBorderWidth(PRUint8     aForSide,
                                   BCPixelSize aPixelValue);
 protected:
   nsTableColGroupFrame(nsStyleContext* aContext);
 
-  void InsertColsReflow(int32_t                   aColIndex,
+  void InsertColsReflow(PRInt32                   aColIndex,
                         const nsFrameList::Slice& aCols);
 
   
-  virtual int GetSkipSides() const;
+  virtual PRIntn GetSkipSides() const;
 
   
-  int32_t mColCount;
+  PRInt32 mColCount;
   
-  int32_t mStartColIndex;
+  PRInt32 mStartColIndex;
 
   
   BCPixelSize mTopContBorderWidth;
@@ -215,22 +247,22 @@ protected:
 };
 
 inline nsTableColGroupFrame::nsTableColGroupFrame(nsStyleContext *aContext)
-: nsContainerFrame(aContext), mColCount(0), mStartColIndex(0)
+: nsHTMLContainerFrame(aContext), mColCount(0), mStartColIndex(0)
 { 
   SetColType(eColGroupContent);
 }
   
-inline int32_t nsTableColGroupFrame::GetStartColumnIndex()
+inline PRInt32 nsTableColGroupFrame::GetStartColumnIndex()
 {  
   return mStartColIndex;
 }
 
-inline void nsTableColGroupFrame::SetStartColumnIndex (int32_t aIndex)
+inline void nsTableColGroupFrame::SetStartColumnIndex (PRInt32 aIndex)
 {
   mStartColIndex = aIndex;
 }
 
-inline int32_t nsTableColGroupFrame::GetColCount() const
+inline PRInt32 nsTableColGroupFrame::GetColCount() const
 {  
   return mColCount;
 }

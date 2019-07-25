@@ -16,25 +16,56 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <mach/mach_time.h>
 #include <time.h>
 
 #include "mozilla/TimeStamp.h"
 
 
-static uint64_t sResolution;
-static uint64_t sResolutionSigDigs;
+static PRUint64 sResolution;
+static PRUint64 sResolutionSigDigs;
 
-static const uint16_t kNsPerUs   =       1000;
-static const uint64_t kNsPerMs   =    1000000;
-static const uint64_t kNsPerSec  = 1000000000;
+static const PRUint16 kNsPerUs   =       1000;
+static const PRUint64 kNsPerMs   =    1000000;
+static const PRUint64 kNsPerSec  = 1000000000;
 static const double kNsPerMsd    =    1000000.0;
 static const double kNsPerSecd   = 1000000000.0;
 
-static bool gInitialized = false;
 static double sNsPerTick;
 
-static uint64_t
+static PRUint64
 ClockTime()
 {
   
@@ -47,12 +78,12 @@ ClockTime()
   return mach_absolute_time();
 }
 
-static uint64_t
+static PRUint64
 ClockResolutionNs()
 {
-  uint64_t start = ClockTime();
-  uint64_t end = ClockTime();
-  uint64_t minres = (end - start);
+  PRUint64 start = ClockTime();
+  PRUint64 end = ClockTime();
+  PRUint64 minres = (end - start);
 
   
   
@@ -61,7 +92,7 @@ ClockResolutionNs()
     start = ClockTime();
     end = ClockTime();
 
-    uint64_t candidate = (start - end);
+    PRUint64 candidate = (start - end);
     if (candidate < minres)
       minres = candidate;
   }
@@ -80,16 +111,14 @@ namespace mozilla {
 double
 TimeDuration::ToSeconds() const
 {
-  NS_ABORT_IF_FALSE(gInitialized, "calling TimeDuration too early");
   return (mValue * sNsPerTick) / kNsPerSecd;
 }
 
 double
 TimeDuration::ToSecondsSigDigits() const
 {
-  NS_ABORT_IF_FALSE(gInitialized, "calling TimeDuration too early");
   
-  int64_t valueSigDigs = sResolution * (mValue / sResolution);
+  PRInt64 valueSigDigs = sResolution * (mValue / sResolution);
   
   valueSigDigs = sResolutionSigDigs * (valueSigDigs / sResolutionSigDigs);
   return (valueSigDigs * sNsPerTick) / kNsPerSecd;
@@ -98,15 +127,13 @@ TimeDuration::ToSecondsSigDigits() const
 TimeDuration
 TimeDuration::FromMilliseconds(double aMilliseconds)
 {
-  NS_ABORT_IF_FALSE(gInitialized, "calling TimeDuration too early");
-  return TimeDuration::FromTicks(int64_t((aMilliseconds * kNsPerMsd) / sNsPerTick));
+  return TimeDuration::FromTicks(PRInt64((aMilliseconds * kNsPerMsd) / sNsPerTick));
 }
 
 TimeDuration
 TimeDuration::Resolution()
 {
-  NS_ABORT_IF_FALSE(gInitialized, "calling TimeDuration too early");
-  return TimeDuration::FromTicks(int64_t(sResolution));
+  return TimeDuration::FromTicks(PRInt64(sResolution));
 }
 
 struct TimeStampInitialization
@@ -120,6 +147,7 @@ struct TimeStampInitialization
 };
 
 static TimeStampInitialization initOnce;
+static bool gInitialized = false;
 
 nsresult
 TimeStamp::Startup()
@@ -146,7 +174,7 @@ TimeStamp::Startup()
          || 10*sResolutionSigDigs > sResolution);
        sResolutionSigDigs *= 10);
 
-  gInitialized = true;
+  gInitialized = PR_TRUE;
   return NS_OK;
 }
 

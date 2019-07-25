@@ -3,10 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef txKey_h__
 #define txKey_h__
 
-#include "nsTHashtable.h"
+#include "nsDoubleHashtable.h"
 #include "txNodeSet.h"
 #include "txList.h"
 #include "txXSLTPatterns.h"
@@ -20,7 +53,7 @@ class txKeyValueHashKey
 {
 public:
     txKeyValueHashKey(const txExpandedName& aKeyName,
-                      int32_t aRootIdentifier,
+                      PRInt32 aRootIdentifier,
                       const nsAString& aKeyValue)
         : mKeyName(aKeyName),
           mKeyValue(aKeyValue),
@@ -30,78 +63,59 @@ public:
 
     txExpandedName mKeyName;
     nsString mKeyValue;
-    int32_t mRootIdentifier;
+    PRInt32 mRootIdentifier;
 };
 
 struct txKeyValueHashEntry : public PLDHashEntryHdr
 {
-public:
-    typedef const txKeyValueHashKey& KeyType;
-    typedef const txKeyValueHashKey* KeyTypePointer;
+    txKeyValueHashEntry(const void* aKey)
+        : mKey(*static_cast<const txKeyValueHashKey*>(aKey)),
+          mNodeSet(new txNodeSet(nsnull))
+    {
+    }
 
-    txKeyValueHashEntry(KeyTypePointer aKey)
-        : mKey(*aKey),
-          mNodeSet(new txNodeSet(nullptr)) { }
-
-    txKeyValueHashEntry(const txKeyValueHashEntry& entry)
-        : mKey(entry.mKey),
-          mNodeSet(entry.mNodeSet) { }
-
-    bool KeyEquals(KeyTypePointer aKey) const;
-
-    static KeyTypePointer KeyToPointer(KeyType aKey) { return &aKey; }
-
-    static PLDHashNumber HashKey(KeyTypePointer aKey);
-
-    enum { ALLOW_MEMMOVE = true };
+    
+    bool MatchEntry(const void* aKey) const;
+    static PLDHashNumber HashKey(const void* aKey);
     
     txKeyValueHashKey mKey;
     nsRefPtr<txNodeSet> mNodeSet;
 };
 
-typedef nsTHashtable<txKeyValueHashEntry> txKeyValueHash;
+DECL_DHASH_WRAPPER(txKeyValueHash, txKeyValueHashEntry, txKeyValueHashKey&)
 
 class txIndexedKeyHashKey
 {
 public:
     txIndexedKeyHashKey(txExpandedName aKeyName,
-                        int32_t aRootIdentifier)
+                        PRInt32 aRootIdentifier)
         : mKeyName(aKeyName),
           mRootIdentifier(aRootIdentifier)
     {
     }
 
     txExpandedName mKeyName;
-    int32_t mRootIdentifier;
+    PRInt32 mRootIdentifier;
 };
 
 struct txIndexedKeyHashEntry : public PLDHashEntryHdr
 {
-public:
-    typedef const txIndexedKeyHashKey& KeyType;
-    typedef const txIndexedKeyHashKey* KeyTypePointer;
+    txIndexedKeyHashEntry(const void* aKey)
+        : mKey(*static_cast<const txIndexedKeyHashKey*>(aKey)),
+          mIndexed(PR_FALSE)
+    {
+    }
 
-    txIndexedKeyHashEntry(KeyTypePointer aKey)
-        : mKey(*aKey),
-          mIndexed(false) { }
-
-    txIndexedKeyHashEntry(const txIndexedKeyHashEntry& entry)
-        : mKey(entry.mKey),
-          mIndexed(entry.mIndexed) { }
-
-    bool KeyEquals(KeyTypePointer aKey) const;
-
-    static KeyTypePointer KeyToPointer(KeyType aKey) { return &aKey; }
-
-    static PLDHashNumber HashKey(KeyTypePointer aKey);
-
-    enum { ALLOW_MEMMOVE = true };
+    
+    bool MatchEntry(const void* aKey) const;
+    static PLDHashNumber HashKey(const void* aKey);
 
     txIndexedKeyHashKey mKey;
     bool mIndexed;
 };
 
-typedef nsTHashtable<txIndexedKeyHashEntry> txIndexedKeyHash;
+DECL_DHASH_WRAPPER(txIndexedKeyHash, txIndexedKeyHashEntry,
+                   txIndexedKeyHashKey&)
 
 
 

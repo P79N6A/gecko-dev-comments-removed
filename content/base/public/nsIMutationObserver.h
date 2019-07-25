@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIMutationObserver_h
 #define nsIMutationObserver_h
 
@@ -20,8 +53,8 @@ class Element;
 } 
 
 #define NS_IMUTATION_OBSERVER_IID \
-{ 0x16fe5e3e, 0xeadc, 0x4312, \
-  { 0x9d, 0x44, 0xb6, 0xbe, 0xdd, 0x6b, 0x54, 0x74 } }
+{ 0x85eea794, 0xed8e, 0x4e1b, \
+  { 0xa1, 0x28, 0xd0, 0x93, 0x00, 0xae, 0x51, 0xaa } }
 
 
 
@@ -38,20 +71,20 @@ struct CharacterDataChangeInfo
   
 
 
-  uint32_t mChangeStart;
+  PRUint32 mChangeStart;
 
   
 
 
 
 
-  uint32_t mChangeEnd;
+  PRUint32 mChangeEnd;
 
   
 
 
 
-  uint32_t mReplaceLength;
+  PRUint32 mReplaceLength;
 
   
 
@@ -165,9 +198,9 @@ public:
 
   virtual void AttributeWillChange(nsIDocument* aDocument,
                                    mozilla::dom::Element* aElement,
-                                   int32_t      aNameSpaceID,
+                                   PRInt32      aNameSpaceID,
                                    nsIAtom*     aAttribute,
-                                   int32_t      aModType) = 0;
+                                   PRInt32      aModType) = 0;
 
   
 
@@ -188,23 +221,9 @@ public:
 
   virtual void AttributeChanged(nsIDocument* aDocument,
                                 mozilla::dom::Element* aElement,
-                                int32_t      aNameSpaceID,
+                                PRInt32      aNameSpaceID,
                                 nsIAtom*     aAttribute,
-                                int32_t      aModType) = 0;
-
-  
-
-
-
-
-
-
-
-
-  virtual void AttributeSetToCurrentValue(nsIDocument* aDocument,
-                                          mozilla::dom::Element* aElement,
-                                          int32_t aNameSpaceID,
-                                          nsIAtom* aAttribute) {}
+                                PRInt32      aModType) = 0;
 
   
 
@@ -226,7 +245,7 @@ public:
   virtual void ContentAppended(nsIDocument *aDocument,
                                nsIContent* aContainer,
                                nsIContent* aFirstNewContent,
-                               int32_t     aNewIndexInContainer) = 0;
+                               PRInt32     aNewIndexInContainer) = 0;
 
   
 
@@ -250,7 +269,7 @@ public:
   virtual void ContentInserted(nsIDocument *aDocument,
                                nsIContent* aContainer,
                                nsIContent* aChild,
-                               int32_t aIndexInContainer) = 0;
+                               PRInt32 aIndexInContainer) = 0;
 
   
 
@@ -277,7 +296,7 @@ public:
   virtual void ContentRemoved(nsIDocument *aDocument,
                               nsIContent* aContainer,
                               nsIContent* aChild,
-                              int32_t aIndexInContainer,
+                              PRInt32 aIndexInContainer,
                               nsIContent* aPreviousSibling) = 0;
 
  
@@ -333,34 +352,34 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIMutationObserver, NS_IMUTATION_OBSERVER_IID)
 #define NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTEWILLCHANGE                      \
     virtual void AttributeWillChange(nsIDocument* aDocument,                 \
                                      mozilla::dom::Element* aElement,        \
-                                     int32_t aNameSpaceID,                   \
+                                     PRInt32 aNameSpaceID,                   \
                                      nsIAtom* aAttribute,                    \
-                                     int32_t aModType);
+                                     PRInt32 aModType);
 
 #define NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED                         \
     virtual void AttributeChanged(nsIDocument* aDocument,                    \
                                   mozilla::dom::Element* aElement,           \
-                                  int32_t aNameSpaceID,                      \
+                                  PRInt32 aNameSpaceID,                      \
                                   nsIAtom* aAttribute,                       \
-                                  int32_t aModType);
+                                  PRInt32 aModType);
 
 #define NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED                          \
     virtual void ContentAppended(nsIDocument* aDocument,                     \
                                  nsIContent* aContainer,                     \
                                  nsIContent* aFirstNewContent,               \
-                                 int32_t aNewIndexInContainer);
+                                 PRInt32 aNewIndexInContainer);
 
 #define NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED                          \
     virtual void ContentInserted(nsIDocument* aDocument,                     \
                                  nsIContent* aContainer,                     \
                                  nsIContent* aChild,                         \
-                                 int32_t aIndexInContainer);
+                                 PRInt32 aIndexInContainer);
 
 #define NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED                           \
     virtual void ContentRemoved(nsIDocument* aDocument,                      \
                                 nsIContent* aContainer,                      \
                                 nsIContent* aChild,                          \
-                                int32_t aIndexInContainer,                   \
+                                PRInt32 aIndexInContainer,                   \
                                 nsIContent* aPreviousSibling);
 
 #define NS_DECL_NSIMUTATIONOBSERVER_NODEWILLBEDESTROYED                      \
@@ -402,38 +421,38 @@ _class::CharacterDataChanged(nsIDocument* aDocument,                      \
 void                                                                      \
 _class::AttributeWillChange(nsIDocument* aDocument,                       \
                             mozilla::dom::Element* aElement,              \
-                            int32_t aNameSpaceID,                         \
+                            PRInt32 aNameSpaceID,                         \
                             nsIAtom* aAttribute,                          \
-                            int32_t aModType)                             \
+                            PRInt32 aModType)                             \
 {                                                                         \
 }                                                                         \
 void                                                                      \
 _class::AttributeChanged(nsIDocument* aDocument,                          \
                          mozilla::dom::Element* aElement,                 \
-                         int32_t aNameSpaceID,                            \
+                         PRInt32 aNameSpaceID,                            \
                          nsIAtom* aAttribute,                             \
-                         int32_t aModType)                                \
+                         PRInt32 aModType)                                \
 {                                                                         \
 }                                                                         \
 void                                                                      \
 _class::ContentAppended(nsIDocument* aDocument,                           \
                         nsIContent* aContainer,                           \
                         nsIContent* aFirstNewContent,                     \
-                        int32_t aNewIndexInContainer)                     \
+                        PRInt32 aNewIndexInContainer)                     \
 {                                                                         \
 }                                                                         \
 void                                                                      \
 _class::ContentInserted(nsIDocument* aDocument,                           \
                         nsIContent* aContainer,                           \
                         nsIContent* aChild,                               \
-                        int32_t aIndexInContainer)                        \
+                        PRInt32 aIndexInContainer)                        \
 {                                                                         \
 }                                                                         \
 void                                                                      \
 _class::ContentRemoved(nsIDocument* aDocument,                            \
                        nsIContent* aContainer,                            \
                        nsIContent* aChild,                                \
-                       int32_t aIndexInContainer,                         \
+                       PRInt32 aIndexInContainer,                         \
                        nsIContent* aPreviousSibling)                      \
 {                                                                         \
 }                                                                         \

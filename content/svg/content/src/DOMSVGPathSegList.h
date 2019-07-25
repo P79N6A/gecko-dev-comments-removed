@@ -3,20 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_DOMSVGPATHSEGLIST_H__
 #define MOZILLA_DOMSVGPATHSEGLIST_H__
 
-#include "nsAutoPtr.h"
-#include "nsCOMPtr.h"
-#include "nsCycleCollectionParticipant.h"
-#include "nsDebug.h"
 #include "nsIDOMSVGPathSegList.h"
-#include "nsSVGElement.h"
-#include "nsTArray.h"
-#include "SVGPathData.h" 
-#include "mozilla/Attributes.h"
+#include "SVGPathData.h"
+#include "SVGPathSegUtils.h"
+#include "nsCOMArray.h"
+#include "nsAutoPtr.h"
 
-class nsIDOMSVGPathSeg;
+class nsSVGElement;
 
 namespace mozilla {
 
@@ -48,23 +75,14 @@ class SVGAnimatedPathSegList;
 
 
 
-class DOMSVGPathSegList MOZ_FINAL : public nsIDOMSVGPathSegList,
-                                    public nsWrapperCache
+class DOMSVGPathSegList : public nsIDOMSVGPathSegList
 {
   friend class DOMSVGPathSeg;
 
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGPathSegList)
+  NS_DECL_CYCLE_COLLECTION_CLASS(DOMSVGPathSegList)
   NS_DECL_NSIDOMSVGPATHSEGLIST
-
-  virtual JSObject* WrapObject(JSContext *cx, JSObject *scope,
-                               bool *triedToWrap);
-
-  nsISupports* GetParentObject()
-  {
-    return static_cast<nsIContent*>(mElement);
-  }
 
   
 
@@ -100,12 +118,15 @@ public:
 
 
 
-  uint32_t Length() const {
+  PRUint32 Length() const {
     NS_ABORT_IF_FALSE(mItems.Length() == 0 ||
-                      mItems.Length() == InternalList().CountItems(),
+                      mItems.Length() ==
+                        const_cast<DOMSVGPathSegList*>(this)->InternalList().CountItems(),
                       "DOM wrapper's list length is out of sync");
     return mItems.Length();
   }
+
+  nsIDOMSVGPathSeg* GetItemWithoutAddRef(PRUint32 aIndex);
 
   
 
@@ -141,8 +162,6 @@ private:
     : mElement(aElement)
     , mIsAnimValList(aIsAnimValList)
   {
-    SetIsDOMBinding();
-
     InternalListWillChangeTo(InternalList()); 
   }
 
@@ -165,27 +184,27 @@ private:
 
 
 
-  SVGPathData& InternalList() const;
+  SVGPathData& InternalList();
 
-  SVGAnimatedPathSegList& InternalAList() const;
-
-  
-  
-  void EnsureItemAt(uint32_t aIndex);
-
-  void MaybeInsertNullInAnimValListAt(uint32_t aIndex,
-                                      uint32_t aInternalIndex,
-                                      uint32_t aArgCountForItem);
-  void MaybeRemoveItemFromAnimValListAt(uint32_t aIndex,
-                                        uint32_t aArgCountForItem);
+  SVGAnimatedPathSegList& InternalAList();
 
   
   
-  
-  void UpdateListIndicesFromIndex(uint32_t aStartingIndex,
-                                  int32_t  aInternalDataIndexDelta);
+  void EnsureItemAt(PRUint32 aIndex);
 
-  DOMSVGPathSeg*& ItemAt(uint32_t aIndex) {
+  void MaybeInsertNullInAnimValListAt(PRUint32 aIndex,
+                                      PRUint32 aInternalIndex,
+                                      PRUint32 aArgCountForItem);
+  void MaybeRemoveItemFromAnimValListAt(PRUint32 aIndex,
+                                        PRUint32 aArgCountForItem);
+
+  
+  
+  
+  void UpdateListIndicesFromIndex(PRUint32 aStartingIndex,
+                                  PRInt32  aInternalDataIndexDelta);
+
+  DOMSVGPathSeg*& ItemAt(PRUint32 aIndex) {
     return mItems[aIndex].mItem;
   }
 
@@ -200,13 +219,13 @@ private:
 
   struct ItemProxy {
     ItemProxy(){}
-    ItemProxy(DOMSVGPathSeg *aItem, uint32_t aInternalDataIndex)
+    ItemProxy(DOMSVGPathSeg *aItem, PRUint32 aInternalDataIndex)
       : mItem(aItem)
       , mInternalDataIndex(aInternalDataIndex)
     {}
 
     DOMSVGPathSeg *mItem;
-    uint32_t mInternalDataIndex;
+    PRUint32 mInternalDataIndex;
   };
 
   

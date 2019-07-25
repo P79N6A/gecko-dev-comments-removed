@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDOMParser_h__
 #define nsDOMParser_h__
 
@@ -11,7 +43,6 @@
 #include "nsIURI.h"
 #include "nsWeakReference.h"
 #include "nsIJSNativeInitializer.h"
-#include "nsIDocument.h"
 
 class nsDOMParser : public nsIDOMParser,
                     public nsIDOMParserJS,
@@ -32,11 +63,9 @@ public:
 
   
   NS_IMETHOD Initialize(nsISupports* aOwner, JSContext* cx, JSObject* obj,
-                        uint32_t argc, jsval *argv);
+                        PRUint32 argc, jsval *argv);
 
 private:
-  nsresult SetUpDocument(DocumentFlavor aFlavor, nsIDOMDocument** aResult);
-
   class AttemptedInitMarker {
   public:
     AttemptedInitMarker(bool* aAttemptedInit) :
@@ -44,7 +73,7 @@ private:
     {}
 
     ~AttemptedInitMarker() {
-      *mAttemptedInit = true;
+      *mAttemptedInit = PR_TRUE;
     }
 
   private:
@@ -57,6 +86,7 @@ private:
   nsCOMPtr<nsIURI> mBaseURI;
   nsWeakPtr mScriptHandlingObject;
   
+  bool mLoopingForSyncLoad;
   bool mAttemptedInit;
 };
 

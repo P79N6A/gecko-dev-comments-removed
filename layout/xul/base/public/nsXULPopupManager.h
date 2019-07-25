@@ -7,6 +7,37 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsXULPopupManager_h__
 #define nsXULPopupManager_h__
 
@@ -14,6 +45,7 @@
 #include "nsGUIEvent.h"
 #include "nsIContent.h"
 #include "nsIRollupListener.h"
+#include "nsIMenuRollup.h"
 #include "nsIDOMEventListener.h"
 #include "nsPoint.h"
 #include "nsCOMPtr.h"
@@ -22,7 +54,6 @@
 #include "nsIReflowCallback.h"
 #include "nsThreadUtils.h"
 #include "nsStyleConsts.h"
-#include "mozilla/Attributes.h"
 
 
 #ifdef KeyPress
@@ -51,6 +82,7 @@ class nsMenuBarFrame;
 class nsMenuParent;
 class nsIDOMKeyEvent;
 class nsIDocShellTreeItem;
+class nsIView;
 
 
 
@@ -140,10 +172,10 @@ public:
     : mFrame(aFrame),
       mPopupType(aPopupType),
       mIsContext(aIsContext),
-      mOnMenuBar(false),
-      mIgnoreKeys(false),
-      mParent(nullptr),
-      mChild(nullptr)
+      mOnMenuBar(PR_FALSE),
+      mIgnoreKeys(PR_FALSE),
+      mParent(nsnull),
+      mChild(nsnull)
   {
     NS_ASSERTION(aFrame, "null frame passed to nsMenuChainItem constructor");
     MOZ_COUNT_CTOR(nsMenuChainItem);
@@ -269,10 +301,11 @@ private:
   CloseMenuMode mCloseMenuMode;
 };
 
-class nsXULPopupManager MOZ_FINAL : public nsIDOMEventListener,
-                                    public nsIRollupListener,
-                                    public nsITimerCallback,
-                                    public nsIObserver
+class nsXULPopupManager : public nsIDOMEventListener,
+                          public nsIMenuRollup,
+                          public nsIRollupListener,
+                          public nsITimerCallback,
+                          public nsIObserver
 {
 
 public:
@@ -286,11 +319,12 @@ public:
   NS_DECL_NSIDOMEVENTLISTENER
 
   
-  virtual nsIContent* Rollup(uint32_t aCount, bool aGetLastRolledUp = false);
-  virtual bool ShouldRollupOnMouseWheelEvent();
-  virtual bool ShouldRollupOnMouseActivate();
-  virtual uint32_t GetSubmenuWidgetChain(nsTArray<nsIWidget*> *aWidgetChain);
-  virtual void NotifyGeometryChange() {}
+  NS_IMETHOD Rollup(PRUint32 aCount, nsIContent **aContent);
+  NS_IMETHOD ShouldRollupOnMouseWheelEvent(bool *aShould);
+  NS_IMETHOD ShouldRollupOnMouseActivate(bool *aShould);
+
+  virtual PRUint32 GetSubmenuWidgetChain(nsTArray<nsIWidget*> *aWidgetChain);
+  virtual void AdjustPopupsOnWindowChange(nsPIDOMWindow* aWindow);
 
   static nsXULPopupManager* sInstance;
 
@@ -302,7 +336,12 @@ public:
   
   static nsXULPopupManager* GetInstance();
 
-  void AdjustPopupsOnWindowChange(nsPIDOMWindow* aWindow);
+  
+  
+  
+  nsIFrame* GetFrameOfTypeForContent(nsIContent* aContent,
+                                     nsIAtom* aFrameType,
+                                     bool aShouldFlush);
 
   
   
@@ -351,7 +390,7 @@ public:
   
   
   
-  void GetMouseLocation(nsIDOMNode** aNode, int32_t* aOffset);
+  void GetMouseLocation(nsIDOMNode** aNode, PRInt32* aOffset);
 
   
 
@@ -375,7 +414,7 @@ public:
   void ShowPopup(nsIContent* aPopup,
                  nsIContent* aAnchorContent,
                  const nsAString& aPosition,
-                 int32_t aXPos, int32_t aYPos,
+                 PRInt32 aXPos, PRInt32 aYPos,
                  bool aIsContextMenu,
                  bool aAttributesOverride,
                  bool aSelectFirstItem,
@@ -392,7 +431,7 @@ public:
 
 
   void ShowPopupAtScreen(nsIContent* aPopup,
-                         int32_t aXPos, int32_t aYPos,
+                         PRInt32 aXPos, PRInt32 aYPos,
                          bool aIsContextMenu,
                          nsIDOMEvent* aTriggerEvent);
 
@@ -404,7 +443,7 @@ public:
 
   void ShowTooltipAtScreen(nsIContent* aPopup,
                            nsIContent* aTriggerContent,
-                           int32_t aXPos, int32_t aYPos);
+                           PRInt32 aXPos, PRInt32 aYPos);
 
   
 
@@ -416,7 +455,7 @@ public:
                                 nsIContent* aAnchorContent,
                                 nsAString& aAnchor,
                                 nsAString& aAlign,
-                                int32_t aXPos, int32_t aYPos,
+                                PRInt32 aXPos, PRInt32 aYPos,
                                 bool aIsContextMenu);
 
   
@@ -438,13 +477,12 @@ public:
                  bool aHideChain,
                  bool aDeselectMenu,
                  bool aAsynchronous,
-                 nsIContent* aLastPopup = nullptr);
+                 nsIContent* aLastPopup = nsnull);
 
   
 
 
-
-  void HidePopup(nsIFrame* aFrame);
+  void HidePopup(nsIView* aView);
 
   
 
@@ -498,12 +536,12 @@ public:
 
   already_AddRefed<nsIDOMNode> GetLastTriggerPopupNode(nsIDocument* aDocument)
   {
-    return GetLastTriggerNode(aDocument, false);
+    return GetLastTriggerNode(aDocument, PR_FALSE);
   }
 
   already_AddRefed<nsIDOMNode> GetLastTriggerTooltipNode(nsIDocument* aDocument)
   {
-    return GetLastTriggerNode(aDocument, true);
+    return GetLastTriggerNode(aDocument, PR_TRUE);
   }
 
   
@@ -517,13 +555,13 @@ public:
 
 
 
-  void PopupMoved(nsIFrame* aFrame, nsIntPoint aPoint);
+  void PopupMoved(nsIView* aView, nsIntPoint aPoint);
 
   
 
 
 
-  void PopupResized(nsIFrame* aFrame, nsIntSize ASize);
+  void PopupResized(nsIView* aView, nsIntSize ASize);
 
   
 
@@ -577,7 +615,7 @@ public:
 
 
 
-  bool HandleKeyboardNavigation(uint32_t aKeyCode);
+  bool HandleKeyboardNavigation(PRUint32 aKeyCode);
 
   
 
@@ -587,7 +625,7 @@ public:
   bool HandleKeyboardNavigationInPopup(nsMenuPopupFrame* aFrame,
                                          nsNavigationDirection aDir)
   {
-    return HandleKeyboardNavigationInPopup(nullptr, aFrame, aDir);
+    return HandleKeyboardNavigationInPopup(nsnull, aFrame, aDir);
   }
 
   nsresult KeyUp(nsIDOMKeyEvent* aKeyEvent);
@@ -597,6 +635,9 @@ public:
 protected:
   nsXULPopupManager();
   ~nsXULPopupManager();
+
+  
+  nsMenuFrame* GetMenuFrameForContent(nsIContent* aContent);
 
   
   nsMenuPopupFrame* GetPopupFrameForContent(nsIContent* aContent, bool aShouldFlush);
@@ -721,13 +762,13 @@ protected:
 
   
   nsCOMPtr<nsIDOMNode> mRangeParent;
-  int32_t mRangeOffset;
+  PRInt32 mRangeOffset;
   
   
   nsIntPoint mCachedMousePoint;
 
   
-  mozilla::widget::Modifiers mCachedModifiers;
+  PRInt8 mCachedModifiers;
 
   
   nsMenuBarFrame* mActiveMenuBar;
@@ -748,5 +789,8 @@ protected:
   
   nsCOMPtr<nsIContent> mOpeningPopup;
 };
+
+nsresult
+NS_NewXULPopupManager(nsISupports** aResult);
 
 #endif

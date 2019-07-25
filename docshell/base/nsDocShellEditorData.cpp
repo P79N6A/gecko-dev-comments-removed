@@ -5,6 +5,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIComponentManager.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIDOMWindow.h"
@@ -20,9 +53,9 @@
 
 nsDocShellEditorData::nsDocShellEditorData(nsIDocShell* inOwningDocShell)
 : mDocShell(inOwningDocShell)
-, mMakeEditable(false)
-, mIsDetached(false)
-, mDetachedMakeEditable(false)
+, mMakeEditable(PR_FALSE)
+, mIsDetached(PR_FALSE)
+, mDetachedMakeEditable(PR_FALSE)
 , mDetachedEditingState(nsIHTMLDocument::eOff)
 {
   NS_ASSERTION(mDocShell, "Where is my docShell?");
@@ -43,11 +76,11 @@ void
 nsDocShellEditorData::TearDownEditor()
 {
   if (mEditor) {
-    mEditor->PreDestroy(false);
-    mEditor = nullptr;
+    mEditor->PreDestroy(PR_FALSE);
+    mEditor = nsnull;
   }
-  mEditingSession = nullptr;
-  mIsDetached = false;
+  mEditingSession = nsnull;
+  mIsDetached = PR_FALSE;
 }
 
 
@@ -68,12 +101,12 @@ nsDocShellEditorData::MakeEditable(bool inWaitForUriLoad)
   {
     NS_WARNING("Destroying existing editor on frame");
     
-    mEditor->PreDestroy(false);
-    mEditor = nullptr;
+    mEditor->PreDestroy(PR_FALSE);
+    mEditor = nsnull;
   }
   
   if (inWaitForUriLoad)
-    mMakeEditable = true;
+    mMakeEditable = PR_TRUE;
   return NS_OK;
 }
 
@@ -86,7 +119,7 @@ nsDocShellEditorData::MakeEditable(bool inWaitForUriLoad)
 bool
 nsDocShellEditorData::GetEditable()
 {
-  return mMakeEditable || (mEditor != nullptr);
+  return mMakeEditable || (mEditor != nsnull);
 }
 
 
@@ -155,13 +188,13 @@ nsDocShellEditorData::SetEditor(nsIEditor *inEditor)
   {
     if (mEditor)
     {
-      mEditor->PreDestroy(false);
-      mEditor = nullptr;
+      mEditor->PreDestroy(PR_FALSE);
+      mEditor = nsnull;
     }
       
     mEditor = inEditor;    
     if (!mEditor)
-      mMakeEditable = false;
+      mMakeEditable = PR_FALSE;
   }   
   
   return NS_OK;
@@ -203,9 +236,9 @@ nsDocShellEditorData::DetachFromWindow()
   nsresult rv = mEditingSession->DetachFromWindow(domWindow);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  mIsDetached = true;
+  mIsDetached = PR_TRUE;
   mDetachedMakeEditable = mMakeEditable;
-  mMakeEditable = false;
+  mMakeEditable = PR_FALSE;
 
   nsCOMPtr<nsIDOMDocument> domDoc;
   domWindow->GetDocument(getter_AddRefs(domDoc));
@@ -213,7 +246,7 @@ nsDocShellEditorData::DetachFromWindow()
   if (htmlDoc)
     mDetachedEditingState = htmlDoc->GetEditingState();
 
-  mDocShell = nullptr;
+  mDocShell = nsnull;
 
   return NS_OK;
 }
@@ -227,7 +260,7 @@ nsDocShellEditorData::ReattachToWindow(nsIDocShell* aDocShell)
   nsresult rv = mEditingSession->ReattachToWindow(domWindow);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  mIsDetached = false;
+  mIsDetached = PR_FALSE;
   mMakeEditable = mDetachedMakeEditable;
 
   nsCOMPtr<nsIDOMDocument> domDoc;

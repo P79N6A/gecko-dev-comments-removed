@@ -3,7 +3,37 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsSVGAElement.h"
 #include "nsSVGGraphicElement.h"
@@ -15,12 +45,10 @@
 #include "nsGkAtoms.h"
 #include "nsContentUtils.h"
 
-using namespace mozilla;
-
 nsSVGElement::StringInfo nsSVGAElement::sStringInfo[2] =
 {
-  { &nsGkAtoms::href, kNameSpaceID_XLink, true },
-  { &nsGkAtoms::target, kNameSpaceID_None, true }
+  { &nsGkAtoms::href, kNameSpaceID_XLink, PR_TRUE },
+  { &nsGkAtoms::target, kNameSpaceID_None, PR_TRUE }
 };
 
 NS_IMPL_NS_NEW_SVG_ELEMENT(A)
@@ -35,12 +63,11 @@ NS_IMPL_RELEASE_INHERITED(nsSVGAElement, nsSVGAElementBase)
 DOMCI_NODE_DATA(SVGAElement, nsSVGAElement)
 
 NS_INTERFACE_TABLE_HEAD(nsSVGAElement)
-  NS_NODE_INTERFACE_TABLE8(nsSVGAElement,
+  NS_NODE_INTERFACE_TABLE7(nsSVGAElement,
                            nsIDOMNode,
                            nsIDOMElement,
                            nsIDOMSVGElement,
                            nsIDOMSVGAElement,
-                           nsIDOMSVGTests,
                            nsIDOMSVGURIReference,
                            nsILink,
                            Link)
@@ -114,10 +141,6 @@ nsSVGAElement::BindToTree(nsIDocument *aDocument, nsIContent *aParent,
                                               aBindingParent,
                                               aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
-  
-  if (aDocument) {
-    aDocument->RegisterPendingLinkUpdate(this);
-  }
 
   return NS_OK;
 }
@@ -128,11 +151,6 @@ nsSVGAElement::UnbindFromTree(bool aDeep, bool aNullParent)
   
   
   Link::ResetLinkState(false);
-  
-  nsIDocument* doc = GetCurrentDoc();
-  if (doc) {
-    doc->UnregisterPendingLinkUpdate(this);
-  }
 
   nsSVGAElementBase::UnbindFromTree(aDeep, aNullParent);
 }
@@ -143,11 +161,17 @@ nsSVGAElement::GetLinkState() const
   return Link::GetLinkState();
 }
 
+void
+nsSVGAElement::RequestLinkStateUpdate()
+{
+  UpdateLinkState(Link::LinkState());
+}
+
 already_AddRefed<nsIURI>
 nsSVGAElement::GetHrefURI() const
 {
   nsCOMPtr<nsIURI> hrefURI;
-  return IsLink(getter_AddRefs(hrefURI)) ? hrefURI.forget() : nullptr;
+  return IsLink(getter_AddRefs(hrefURI)) ? hrefURI.forget() : nsnull;
 }
 
 
@@ -165,26 +189,26 @@ nsSVGAElement::IsAttributeMapped(const nsIAtom* name) const
     sViewportsMap
   };
 
-  return FindAttributeDependence(name, map) ||
+  return FindAttributeDependence(name, map, NS_ARRAY_LENGTH(map)) ||
     nsSVGAElementBase::IsAttributeMapped(name);
 }
 
 bool
-nsSVGAElement::IsFocusable(int32_t *aTabIndex, bool aWithMouse)
+nsSVGAElement::IsFocusable(PRInt32 *aTabIndex, bool aWithMouse)
 {
   nsCOMPtr<nsIURI> uri;
   if (IsLink(getter_AddRefs(uri))) {
     if (aTabIndex) {
       *aTabIndex = ((sTabFocusModel & eTabFocus_linksMask) == 0 ? -1 : 0);
     }
-    return true;
+    return PR_TRUE;
   }
 
   if (aTabIndex) {
     *aTabIndex = -1;
   }
 
-  return false;
+  return PR_FALSE;
 }
 
 bool
@@ -201,13 +225,13 @@ nsSVGAElement::IsLink(nsIURI** aURI) const
   
 
   static nsIContent::AttrValuesArray sTypeVals[] =
-    { &nsGkAtoms::_empty, &nsGkAtoms::simple, nullptr };
+    { &nsGkAtoms::_empty, &nsGkAtoms::simple, nsnull };
 
   static nsIContent::AttrValuesArray sShowVals[] =
-    { &nsGkAtoms::_empty, &nsGkAtoms::_new, &nsGkAtoms::replace, nullptr };
+    { &nsGkAtoms::_empty, &nsGkAtoms::_new, &nsGkAtoms::replace, nsnull };
 
   static nsIContent::AttrValuesArray sActuateVals[] =
-    { &nsGkAtoms::_empty, &nsGkAtoms::onRequest, nullptr };
+    { &nsGkAtoms::_empty, &nsGkAtoms::onRequest, nsnull };
 
   
   const nsAttrValue* href = mAttrsAndChildren.GetAttr(nsGkAtoms::href,
@@ -227,13 +251,13 @@ nsSVGAElement::IsLink(nsIURI** aURI) const
     nsAutoString str;
     mStringAttributes[HREF].GetAnimValue(str, this);
     nsContentUtils::NewURIWithDocumentCharset(aURI, str,
-                                              OwnerDoc(), baseURI);
+                                              GetOwnerDoc(), baseURI);
     
     return !!*aURI;
   }
 
-  *aURI = nullptr;
-  return false;
+  *aURI = nsnull;
+  return PR_FALSE;
 }
 
 void
@@ -243,7 +267,7 @@ nsSVGAElement::GetLinkTarget(nsAString& aTarget)
   if (aTarget.IsEmpty()) {
 
     static nsIContent::AttrValuesArray sShowVals[] =
-      { &nsGkAtoms::_new, &nsGkAtoms::replace, nullptr };
+      { &nsGkAtoms::_new, &nsGkAtoms::replace, nsnull };
 
     switch (FindAttrValueIn(kNameSpaceID_XLink, nsGkAtoms::show,
                             sShowVals, eCaseMatters)) {
@@ -253,7 +277,7 @@ nsSVGAElement::GetLinkTarget(nsAString& aTarget)
     case 1:
       return;
     }
-    nsIDocument* ownerDoc = OwnerDoc();
+    nsIDocument* ownerDoc = GetOwnerDoc();
     if (ownerDoc) {
       ownerDoc->GetBaseTarget(aTarget);
     }
@@ -267,7 +291,7 @@ nsSVGAElement::IntrinsicState() const
 }
 
 nsresult
-nsSVGAElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+nsSVGAElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                        nsIAtom* aPrefix, const nsAString& aValue,
                        bool aNotify)
 {
@@ -287,7 +311,7 @@ nsSVGAElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
 }
 
 nsresult
-nsSVGAElement::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttr,
+nsSVGAElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttr,
                          bool aNotify)
 {
   nsresult rv = nsSVGAElementBase::UnsetAttr(aNameSpaceID, aAttr, aNotify);
@@ -311,5 +335,5 @@ nsSVGElement::StringAttributesInfo
 nsSVGAElement::GetStringInfo()
 {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              ArrayLength(sStringInfo));
+                              NS_ARRAY_LENGTH(sStringInfo));
 }

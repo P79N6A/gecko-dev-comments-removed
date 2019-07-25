@@ -3,12 +3,48 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "mozilla/chrome/RegistryMessageUtils.h"
 
 #include "nsResProtocolHandler.h"
 #include "nsIURL.h"
 #include "nsIIOService.h"
 #include "nsIServiceManager.h"
+#include "nsILocalFile.h"
 #include "prenv.h"
 #include "prmem.h"
 #include "prprf.h"
@@ -23,7 +59,7 @@
 
 static NS_DEFINE_CID(kResURLCID, NS_RESURL_CID);
 
-static nsResProtocolHandler *gResHandler = nullptr;
+static nsResProtocolHandler *gResHandler = nsnull;
 
 #if defined(PR_LOGGING)
 
@@ -54,13 +90,13 @@ nsResURL::EnsureFile()
 
     NS_ENSURE_TRUE(gResHandler, NS_ERROR_NOT_AVAILABLE);
 
-    nsAutoCString spec;
+    nsCAutoString spec;
     rv = gResHandler->ResolveURI(this, spec);
     if (NS_FAILED(rv))
         return rv;
 
-    nsAutoCString scheme;
-    rv = net_ExtractURLScheme(spec, nullptr, nullptr, &scheme);
+    nsCAutoString scheme;
+    rv = net_ExtractURLScheme(spec, nsnull, nsnull, &scheme);
     if (NS_FAILED(rv))
         return rv;
 
@@ -115,20 +151,21 @@ nsResProtocolHandler::nsResProtocolHandler()
 
 nsResProtocolHandler::~nsResProtocolHandler()
 {
-    gResHandler = nullptr;
+    gResHandler = nsnull;
 }
 
 nsresult
 nsResProtocolHandler::Init()
 {
-    mSubstitutions.Init(32);
+    if (!mSubstitutions.Init(32))
+        return NS_ERROR_UNEXPECTED;
 
     nsresult rv;
 
     mIOService = do_GetIOService(&rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    nsAutoCString appURI, greURI;
+    nsCAutoString appURI, greURI;
     rv = mozilla::Omnijar::GetURIString(mozilla::Omnijar::APP, appURI);
     NS_ENSURE_SUCCESS(rv, rv);
     rv = mozilla::Omnijar::GetURIString(mozilla::Omnijar::GRE, greURI);
@@ -217,14 +254,14 @@ nsResProtocolHandler::GetScheme(nsACString &result)
 }
 
 NS_IMETHODIMP
-nsResProtocolHandler::GetDefaultPort(int32_t *result)
+nsResProtocolHandler::GetDefaultPort(PRInt32 *result)
 {
     *result = -1;        
     return NS_OK;
 }
 
 NS_IMETHODIMP
-nsResProtocolHandler::GetProtocolFlags(uint32_t *result)
+nsResProtocolHandler::GetProtocolFlags(PRUint32 *result)
 {
     
     
@@ -248,7 +285,7 @@ nsResProtocolHandler::NewURI(const nsACString &aSpec,
     
     
     
-    nsAutoCString spec;
+    nsCAutoString spec;
     const char *src = aSpec.BeginReading();
     const char *end = aSpec.EndReading();
     const char *last = src;
@@ -286,25 +323,22 @@ nsResProtocolHandler::NewChannel(nsIURI* uri, nsIChannel* *result)
 {
     NS_ENSURE_ARG_POINTER(uri);
     nsresult rv;
-    nsAutoCString spec;
+    nsCAutoString spec;
 
     rv = ResolveURI(uri, spec);
     if (NS_FAILED(rv)) return rv;
 
-    rv = mIOService->NewChannel(spec, nullptr, nullptr, result);
+    rv = mIOService->NewChannel(spec, nsnull, nsnull, result);
     if (NS_FAILED(rv)) return rv;
 
-    nsLoadFlags loadFlags = 0;
-    (*result)->GetLoadFlags(&loadFlags);
-    (*result)->SetLoadFlags(loadFlags & ~nsIChannel::LOAD_REPLACE);
     return (*result)->SetOriginalURI(uri);
 }
 
 NS_IMETHODIMP 
-nsResProtocolHandler::AllowPort(int32_t port, const char *scheme, bool *_retval)
+nsResProtocolHandler::AllowPort(PRInt32 port, const char *scheme, bool *_retval)
 {
     
-    *_retval = false;
+    *_retval = PR_FALSE;
     return NS_OK;
 }
 
@@ -321,26 +355,24 @@ nsResProtocolHandler::SetSubstitution(const nsACString& root, nsIURI *baseURI)
     }
 
     
-    nsAutoCString scheme;
+    nsCAutoString scheme;
     nsresult rv = baseURI->GetScheme(scheme);
     NS_ENSURE_SUCCESS(rv, rv);
     if (!scheme.Equals(NS_LITERAL_CSTRING("resource"))) {
-        mSubstitutions.Put(root, baseURI);
-        return NS_OK;
+        return mSubstitutions.Put(root, baseURI) ? NS_OK : NS_ERROR_UNEXPECTED;
     }
 
     
-    nsAutoCString newBase;
+    nsCAutoString newBase;
     rv = ResolveURI(baseURI, newBase);
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<nsIURI> newBaseURI;
-    rv = mIOService->NewURI(newBase, nullptr, nullptr,
+    rv = mIOService->NewURI(newBase, nsnull, nsnull,
                             getter_AddRefs(newBaseURI));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    mSubstitutions.Put(root, newBaseURI);
-    return NS_OK;
+    return mSubstitutions.Put(root, newBaseURI) ? NS_OK : NS_ERROR_UNEXPECTED;
 }
 
 NS_IMETHODIMP
@@ -353,7 +385,7 @@ nsResProtocolHandler::GetSubstitution(const nsACString& root, nsIURI **result)
 
     
 
-    nsAutoCString key;
+    nsCAutoString key;
     key.AssignLiteral("resource:");
     key.Append(root);
 
@@ -374,7 +406,7 @@ nsResProtocolHandler::HasSubstitution(const nsACString& root, bool *result)
 {
     NS_ENSURE_ARG_POINTER(result);
 
-    *result = mSubstitutions.Get(root, nullptr);
+    *result = mSubstitutions.Get(root, nsnull);
     return NS_OK;
 }
 
@@ -383,8 +415,8 @@ nsResProtocolHandler::ResolveURI(nsIURI *uri, nsACString &result)
 {
     nsresult rv;
 
-    nsAutoCString host;
-    nsAutoCString path;
+    nsCAutoString host;
+    nsCAutoString path;
 
     rv = uri->GetAsciiHost(host);
     if (NS_FAILED(rv)) return rv;
@@ -393,7 +425,7 @@ nsResProtocolHandler::ResolveURI(nsIURI *uri, nsACString &result)
     if (NS_FAILED(rv)) return rv;
 
     
-    nsAutoCString unescapedPath(path);
+    nsCAutoString unescapedPath(path);
     NS_UnescapeURL(unescapedPath);
 
     
@@ -417,7 +449,7 @@ nsResProtocolHandler::ResolveURI(nsIURI *uri, nsACString &result)
 
 #if defined(PR_LOGGING)
     if (PR_LOG_TEST(gResLog, PR_LOG_DEBUG)) {
-        nsAutoCString spec;
+        nsCAutoString spec;
         uri->GetAsciiSpec(spec);
         PR_LOG(gResLog, PR_LOG_DEBUG,
                ("%s\n -> %s\n", spec.get(), PromiseFlatCString(result).get()));

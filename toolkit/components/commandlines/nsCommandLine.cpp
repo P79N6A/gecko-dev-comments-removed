@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsICommandLineRunner.h"
 
 #include "nsICategoryManager.h"
@@ -24,7 +57,6 @@
 #include "nsTextFormatter.h"
 #include "nsXPCOMCID.h"
 #include "plstr.h"
-#include "mozilla/Attributes.h"
 
 #ifdef MOZ_WIDGET_COCOA
 #include <CoreFoundation/CoreFoundation.h>
@@ -45,7 +77,7 @@
 #define NS_COMMANDLINE_CID \
   { 0x23bcc750, 0xdc20, 0x460b, { 0xb2, 0xd4, 0x74, 0xd8, 0xf5, 0x8d, 0x36, 0x15 } }
 
-class nsCommandLine MOZ_FINAL : public nsICommandLineRunner
+class nsCommandLine : public nsICommandLineRunner
 {
 public:
   NS_DECL_ISUPPORTS
@@ -65,12 +97,12 @@ protected:
 					void *aClosure);
 
   void appendArg(const char* arg);
-  void resolveShortcutURL(nsIFile* aFile, nsACString& outURL);
+  void resolveShortcutURL(nsILocalFile* aFile, nsACString& outURL);
   nsresult EnumerateHandlers(EnumerateHandlersCallback aCallback, void *aClosure);
   nsresult EnumerateValidators(EnumerateValidatorsCallback aCallback, void *aClosure);
 
   nsTArray<nsString>      mArgs;
-  uint32_t                mState;
+  PRUint32                mState;
   nsCOMPtr<nsIFile>       mWorkingDir;
   nsCOMPtr<nsIDOMWindow>  mWindowContext;
   bool                    mPreventDefault;
@@ -78,7 +110,7 @@ protected:
 
 nsCommandLine::nsCommandLine() :
   mState(STATE_INITIAL_LAUNCH),
-  mPreventDefault(false)
+  mPreventDefault(PR_FALSE)
 {
 
 }
@@ -90,24 +122,24 @@ NS_IMPL_ISUPPORTS2_CI(nsCommandLine,
                       nsICommandLineRunner)
 
 NS_IMETHODIMP
-nsCommandLine::GetLength(int32_t *aResult)
+nsCommandLine::GetLength(PRInt32 *aResult)
 {
-  *aResult = int32_t(mArgs.Length());
+  *aResult = PRInt32(mArgs.Length());
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsCommandLine::GetArgument(int32_t aIndex, nsAString& aResult)
+nsCommandLine::GetArgument(PRInt32 aIndex, nsAString& aResult)
 {
   NS_ENSURE_ARG_MIN(aIndex, 0);
-  NS_ENSURE_ARG_MAX(aIndex, int32_t(mArgs.Length() - 1));
+  NS_ENSURE_ARG_MAX(aIndex, PRInt32(mArgs.Length() - 1));
 
   aResult = mArgs[aIndex];
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsCommandLine::FindFlag(const nsAString& aFlag, bool aCaseSensitive, int32_t *aResult)
+nsCommandLine::FindFlag(const nsAString& aFlag, bool aCaseSensitive, PRInt32 *aResult)
 {
   NS_ENSURE_ARG(!aFlag.IsEmpty());
 
@@ -117,7 +149,7 @@ nsCommandLine::FindFlag(const nsAString& aFlag, bool aCaseSensitive, int32_t *aR
     static_cast<nsStringComparator&>(caseCmp) :
     static_cast<nsStringComparator&>(caseICmp);
 
-  for (uint32_t f = 0; f < mArgs.Length(); f++) {
+  for (PRUint32 f = 0; f < mArgs.Length(); f++) {
     const nsString &arg = mArgs[f];
 
     if (arg.Length() >= 2 && arg.First() == PRUnichar('-')) {
@@ -133,12 +165,12 @@ nsCommandLine::FindFlag(const nsAString& aFlag, bool aCaseSensitive, int32_t *aR
 }
 
 NS_IMETHODIMP
-nsCommandLine::RemoveArguments(int32_t aStart, int32_t aEnd)
+nsCommandLine::RemoveArguments(PRInt32 aStart, PRInt32 aEnd)
 {
   NS_ENSURE_ARG_MIN(aStart, 0);
-  NS_ENSURE_ARG_MAX(uint32_t(aEnd) + 1, mArgs.Length());
+  NS_ENSURE_ARG_MAX(PRUint32(aEnd) + 1, mArgs.Length());
 
-  for (int32_t i = aEnd; i >= aStart; --i) {
+  for (PRInt32 i = aEnd; i >= aStart; --i) {
     mArgs.RemoveElementAt(i);
   }
 
@@ -151,16 +183,16 @@ nsCommandLine::HandleFlag(const nsAString& aFlag, bool aCaseSensitive,
 {
   nsresult rv;
 
-  int32_t found;
+  PRInt32 found;
   rv = FindFlag(aFlag, aCaseSensitive, &found);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (found == -1) {
-    *aResult = false;
+    *aResult = PR_FALSE;
     return NS_OK;
   }
 
-  *aResult = true;
+  *aResult = PR_TRUE;
   RemoveArguments(found, found);
 
   return NS_OK;
@@ -172,16 +204,16 @@ nsCommandLine::HandleFlagWithParam(const nsAString& aFlag, bool aCaseSensitive,
 {
   nsresult rv;
 
-  int32_t found;
+  PRInt32 found;
   rv = FindFlag(aFlag, aCaseSensitive, &found);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (found == -1) {
-    aResult.SetIsVoid(true);
+    aResult.SetIsVoid(PR_TRUE);
     return NS_OK;
   }
 
-  if (found == int32_t(mArgs.Length()) - 1) {
+  if (found == PRInt32(mArgs.Length()) - 1) {
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -198,7 +230,7 @@ nsCommandLine::HandleFlagWithParam(const nsAString& aFlag, bool aCaseSensitive,
 }
 
 NS_IMETHODIMP
-nsCommandLine::GetState(uint32_t *aResult)
+nsCommandLine::GetState(PRUint32 *aResult)
 {
   *aResult = mState;
   return NS_OK;
@@ -263,7 +295,7 @@ nsCommandLine::ResolveFile(const nsAString& aArgument, nsIFile* *aResult)
   rv = lfm->GetCFURL(&baseurl);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsAutoCString path;
+  nsCAutoString path;
   NS_CopyUnicodeToNative(aArgument, path);
 
   CFURLRef newurl =
@@ -281,7 +313,7 @@ nsCommandLine::ResolveFile(const nsAString& aArgument, nsIFile* *aResult)
   return NS_OK;
 
 #elif defined(XP_UNIX)
-  nsCOMPtr<nsIFile> lf (do_CreateInstance(NS_LOCAL_FILE_CONTRACTID));
+  nsCOMPtr<nsILocalFile> lf (do_CreateInstance(NS_LOCAL_FILE_CONTRACTID));
   NS_ENSURE_TRUE(lf, NS_ERROR_OUT_OF_MEMORY);
 
   if (aArgument.First() == '/') {
@@ -293,10 +325,10 @@ nsCommandLine::ResolveFile(const nsAString& aArgument, nsIFile* *aResult)
     return NS_OK;
   }
 
-  nsAutoCString nativeArg;
+  nsCAutoString nativeArg;
   NS_CopyUnicodeToNative(aArgument, nativeArg);
 
-  nsAutoCString newpath;
+  nsCAutoString newpath;
   mWorkingDir->GetNativePath(newpath);
 
   newpath.Append('/');
@@ -312,7 +344,7 @@ nsCommandLine::ResolveFile(const nsAString& aArgument, nsIFile* *aResult)
   return NS_OK;
 
 #elif defined(XP_WIN32)
-  nsCOMPtr<nsIFile> lf (do_CreateInstance(NS_LOCAL_FILE_CONTRACTID));
+  nsCOMPtr<nsILocalFile> lf (do_CreateInstance(NS_LOCAL_FILE_CONTRACTID));
   NS_ENSURE_TRUE(lf, NS_ERROR_OUT_OF_MEMORY);
 
   rv = lf->InitWithPath(aArgument);
@@ -339,16 +371,16 @@ nsCommandLine::ResolveFile(const nsAString& aArgument, nsIFile* *aResult)
   return NS_OK;
 
 #elif defined(XP_OS2)
-  nsCOMPtr<nsIFile> lf (do_CreateInstance(NS_LOCAL_FILE_CONTRACTID));
+  nsCOMPtr<nsILocalFile> lf (do_CreateInstance(NS_LOCAL_FILE_CONTRACTID));
   NS_ENSURE_TRUE(lf, NS_ERROR_OUT_OF_MEMORY);
 
   rv = lf->InitWithPath(aArgument);
   if (NS_FAILED(rv)) {
 
-    nsAutoCString fullPath;
+    nsCAutoString fullPath;
     mWorkingDir->GetNativePath(fullPath);
 
-    nsAutoCString carg;
+    nsCAutoString carg;
     NS_CopyUnicodeToNative(aArgument, carg);
 
     fullPath.Append('\\');
@@ -385,16 +417,16 @@ nsCommandLine::ResolveURI(const nsAString& aArgument, nsIURI* *aResult)
     io->NewFileURI(mWorkingDir, getter_AddRefs(workingDirURI));
   }
 
-  nsCOMPtr<nsIFile> lf (do_CreateInstance(NS_LOCAL_FILE_CONTRACTID));
+  nsCOMPtr<nsILocalFile> lf (do_CreateInstance(NS_LOCAL_FILE_CONTRACTID));
   rv = lf->InitWithPath(aArgument);
   if (NS_SUCCEEDED(rv)) {
     lf->Normalize();
-    nsAutoCString url;
+    nsCAutoString url;
     
     resolveShortcutURL(lf, url);
     if (!url.IsEmpty()) {
       return io->NewURI(url,
-                        nullptr,
+                        nsnull,
                         workingDirURI,
                         aResult);
     }
@@ -403,7 +435,7 @@ nsCommandLine::ResolveURI(const nsAString& aArgument, nsIURI* *aResult)
   }
 
   return io->NewURI(NS_ConvertUTF16toUTF8(aArgument),
-                    nullptr,
+                    nsnull,
                     workingDirURI,
                     aResult);
 }
@@ -426,7 +458,7 @@ nsCommandLine::appendArg(const char* arg)
 }
 
 void
-nsCommandLine::resolveShortcutURL(nsIFile* aFile, nsACString& outURL)
+nsCommandLine::resolveShortcutURL(nsILocalFile* aFile, nsACString& outURL)
 {
   nsCOMPtr<nsIFileProtocolHandler> fph;
   nsresult rv = NS_GetFileProtocolHandler(getter_AddRefs(fph));
@@ -442,13 +474,13 @@ nsCommandLine::resolveShortcutURL(nsIFile* aFile, nsACString& outURL)
 }
 
 NS_IMETHODIMP
-nsCommandLine::Init(int32_t argc, char** argv, nsIFile* aWorkingDir,
-                    uint32_t aState)
+nsCommandLine::Init(PRInt32 argc, char** argv, nsIFile* aWorkingDir,
+                    PRUint32 aState)
 {
   NS_ENSURE_ARG_MIN(aState, 0);
   NS_ENSURE_ARG_MAX(aState, 2);
 
-  int32_t i;
+  PRInt32 i;
 
   mWorkingDir = aWorkingDir;
 
@@ -538,7 +570,7 @@ nsCommandLine::EnumerateHandlers(EnumerateHandlersCallback aCallback, void *aClo
   nsCOMPtr<nsIUTF8StringEnumerator> strenum (do_QueryInterface(entenum));
   NS_ENSURE_TRUE(strenum, NS_ERROR_UNEXPECTED);
 
-  nsAutoCString entry;
+  nsCAutoString entry;
   bool hasMore;
   while (NS_SUCCEEDED(strenum->HasMore(&hasMore)) && hasMore) {
     strenum->GetNext(entry);
@@ -584,7 +616,7 @@ nsCommandLine::EnumerateValidators(EnumerateValidatorsCallback aCallback, void *
   nsCOMPtr<nsIUTF8StringEnumerator> strenum (do_QueryInterface(entenum));
   NS_ENSURE_TRUE(strenum, NS_ERROR_UNEXPECTED);
 
-  nsAutoCString entry;
+  nsCAutoString entry;
   bool hasMore;
   while (NS_SUCCEEDED(strenum->HasMore(&hasMore)) && hasMore) {
     strenum->GetNext(entry);
@@ -627,11 +659,11 @@ nsCommandLine::Run()
 {
   nsresult rv;
 
-  rv = EnumerateValidators(EnumValidate, nullptr);
+  rv = EnumerateValidators(EnumValidate, nsnull);
   if (rv == NS_ERROR_ABORT)
     return rv;
 
-  rv = EnumerateHandlers(EnumRun, nullptr);
+  rv = EnumerateHandlers(EnumRun, nsnull);
   if (rv == NS_ERROR_ABORT)
     return rv;
 

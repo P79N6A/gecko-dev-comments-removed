@@ -3,6 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifdef MOZ_OS2_HIGH_MEMORY
 
 #include <os2safe.h>
@@ -288,7 +323,7 @@ private:
                                                     HDDEDATA hdata,
                                                     ULONG    dwData1,
                                                     ULONG    dwData2 );
-    static void HandleCommandLine(const char* aCmdLineString, nsIFile* aWorkingDir, uint32_t aState);
+    static void HandleCommandLine(const char* aCmdLineString, nsIFile* aWorkingDir, PRUint32 aState);
     static void ParseDDEArg( HSZ args, int index, nsCString& string);
     static void ParseDDEArg( const char* args, int index, nsCString& aString);
     static void ActivateLastWindow();
@@ -699,14 +734,14 @@ struct MessageWindow {
         COPYDATASTRUCT *cds = (COPYDATASTRUCT*)lp;
         DosGetSharedMem( (PVOID)cds, PAG_READ|PAG_WRITE );
 
-        nsCOMPtr<nsIFile> workingDir;
+        nsCOMPtr<nsILocalFile> workingDir;
 
         
         
         if (cds->dwData >= 1) {
             char* wdpath = strchr( (char*)cds->lpData, 0) + 1;
             NS_NewNativeLocalFile(nsDependentCString(wdpath),
-                                  false, getter_AddRefs(workingDir));
+                                  PR_FALSE, getter_AddRefs(workingDir));
         }
 
         nsNativeAppSupportOS2::HandleCommandLine((char*)cds->lpData,
@@ -740,7 +775,7 @@ nsNativeAppSupportOS2::Start( bool *aResult ) {
     NS_ENSURE_TRUE( mInstance == 0, NS_ERROR_NOT_INITIALIZED );
 
     nsresult rv = NS_ERROR_FAILURE;
-    *aResult = false;
+    *aResult = PR_FALSE;
 
     
     
@@ -748,7 +783,7 @@ nsNativeAppSupportOS2::Start( bool *aResult ) {
     for (int i = 1; i < gArgc; i++) {
         if (stricmp("-dde", gArgv[i]) == 0 ||
             stricmp("/dde", gArgv[i]) == 0)
-            mUseDDE = true;
+            mUseDDE = PR_TRUE;
         else
             if (stricmp("-console", gArgv[i]) != 0 &&
                 stricmp("/console", gArgv[i]) != 0)
@@ -763,8 +798,8 @@ nsNativeAppSupportOS2::Start( bool *aResult ) {
     
     
     if (getenv("MOZ_NO_REMOTE")) {
-        mUseDDE = false;
-        *aResult = true;
+        mUseDDE = PR_FALSE;
+        *aResult = PR_TRUE;
         return NS_OK;
     }
 
@@ -804,13 +839,13 @@ nsNativeAppSupportOS2::Start( bool *aResult ) {
             if (mUseDDE)
                 this->StartDDE();
             
-            *aResult = true;
+            *aResult = PR_TRUE;
         }
     }
 
     startupLock.Unlock();
 
-    if( *aResult == false )
+    if( *aResult == PR_FALSE )
     {
         
 
@@ -828,10 +863,10 @@ bool
 nsNativeAppSupportOS2::InitTopicStrings() {
     for ( int i = 0; i < topicCount; i++ ) {
         if ( !( mTopics[ i ] = WinDdeCreateStringHandle( (PSZ)topicNames[ i ], CP_WINANSI ) ) ) {
-            return false;
+            return PR_FALSE;
         }
     }
-    return true;
+    return PR_TRUE;
 }
 
 int
@@ -864,7 +899,7 @@ nsNativeAppSupportOS2::StartDDE() {
     
     
     if (!bDDEML) {
-       mUseDDE = false;
+       mUseDDE = PR_FALSE;
        return NS_OK;
     }
 
@@ -896,7 +931,7 @@ nsNativeAppSupportOS2::Stop( bool *aResult ) {
     NS_ENSURE_TRUE( mInstance, NS_ERROR_NOT_INITIALIZED );
 
     nsresult rv = NS_OK;
-    *aResult = true;
+    *aResult = PR_TRUE;
 
     if (!mUseDDE) {
        return rv;
@@ -908,7 +943,7 @@ nsNativeAppSupportOS2::Stop( bool *aResult ) {
         if ( mConversations == 0 ) {
             this->Quit();
         } else {
-            *aResult = false;
+            *aResult = PR_FALSE;
         }
 
         ddeLock.Unlock();
@@ -916,7 +951,7 @@ nsNativeAppSupportOS2::Stop( bool *aResult ) {
     else {
         
         
-        *aResult = true;
+        *aResult = PR_TRUE;
     }
 
     return rv;
@@ -976,10 +1011,10 @@ nsNativeAppSupportOS2::Quit() {
 NS_IMETHODIMP
 nsNativeAppSupportOS2::Enable()
 {
-    mCanHandleRequests = true;
+    mCanHandleRequests = PR_TRUE;
     nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
     if (obs) {
-        obs->AddObserver(this, "quit-application", false);
+        obs->AddObserver(this, "quit-application", PR_FALSE);
     } else {
         NS_ERROR("No observer service?");
     }
@@ -1033,7 +1068,7 @@ static nsCString hszValue( DWORD instance, HSZ hsz ) {
 
 
 static void escapeQuotes( nsAString &aString ) {
-    int32_t offset = -1;
+    PRInt32 offset = -1;
     while( 1 ) {
        
        offset = aString.FindChar( '"', ++offset );
@@ -1095,12 +1130,12 @@ nsNativeAppSupportOS2::HandleDDENotification( ULONG idInst,
                     
 
                     
-                    nsAutoCString url;
+                    nsCAutoString url;
                     ParseDDEArg(hsz2, 0, url);
 
                     
                     
-                    nsAutoCString windowID;
+                    nsCAutoString windowID;
                     ParseDDEArg(hsz2, 2, windowID);
                     
                     
@@ -1114,7 +1149,7 @@ nsNativeAppSupportOS2::HandleDDENotification( ULONG idInst,
                     printf( "Handling dde XTYP_REQUEST request: [%s]...\n", url.get() );
 #endif
                     
-                    HandleCommandLine(url.get(), nullptr, nsICommandLine::STATE_REMOTE_EXPLICIT);
+                    HandleCommandLine(url.get(), nsnull, nsICommandLine::STATE_REMOTE_EXPLICIT);
                     
                     result = CreateDDEData( 1 );
                     break;
@@ -1182,7 +1217,7 @@ nsNativeAppSupportOS2::HandleDDENotification( ULONG idInst,
 
                         
                         
-                        nsAutoCString   outpt( NS_LITERAL_CSTRING("\"") );
+                        nsCAutoString   outpt( NS_LITERAL_CSTRING("\"") );
                         
                         
                         outpt.Append( NS_LossyConvertUTF16toASCII( url ) );
@@ -1203,12 +1238,12 @@ nsNativeAppSupportOS2::HandleDDENotification( ULONG idInst,
 #if MOZ_DEBUG_DDE
                         printf( "WWW_GetWindowInfo->%s\n", outpt.get() );
 #endif
-                    } while ( false );
+                    } while ( PR_FALSE );
                     break;
                 }
                 case topicActivate: {
                     
-                    nsAutoCString windowID;
+                    nsCAutoString windowID;
                     ParseDDEArg(hsz2, 0, windowID);
                     
                     
@@ -1229,12 +1264,12 @@ nsNativeAppSupportOS2::HandleDDENotification( ULONG idInst,
                 }
                 case topicRegisterViewer: {
                     
-                    result = CreateDDEData( false );
+                    result = CreateDDEData( PR_FALSE );
                     break;
                 }
                 case topicUnRegisterViewer: {
                     
-                    result = CreateDDEData( false );
+                    result = CreateDDEData( PR_FALSE );
                     break;
                 }
                 default:
@@ -1259,12 +1294,12 @@ nsNativeAppSupportOS2::HandleDDENotification( ULONG idInst,
 #if MOZ_DEBUG_DDE
             printf( "Handling dde request: [%s]...\n", (char*)request );
 #endif
-            nsAutoCString url;
+            nsCAutoString url;
             ParseDDEArg((const char*) request, 0, url);
 
             
             
-            nsAutoCString windowID;
+            nsCAutoString windowID;
             ParseDDEArg((const char*) request, 2, windowID);
 
             
@@ -1279,7 +1314,7 @@ nsNativeAppSupportOS2::HandleDDENotification( ULONG idInst,
             printf( "Handling dde XTYP_REQUEST request: [%s]...\n", url.get() );
 #endif
             
-            HandleCommandLine(url.get(), nullptr, nsICommandLine::STATE_REMOTE_EXPLICIT);
+            HandleCommandLine(url.get(), nsnull, nsICommandLine::STATE_REMOTE_EXPLICIT);
 
             
 
@@ -1302,7 +1337,7 @@ nsNativeAppSupportOS2::HandleDDENotification( ULONG idInst,
 
 
 
-static int32_t advanceToEndOfQuotedArg( const char *p, int32_t offset, int32_t len ) {
+static PRInt32 advanceToEndOfQuotedArg( const char *p, PRInt32 offset, PRInt32 len ) {
     
     if ( p[++offset] == '"' ) {
         
@@ -1323,7 +1358,7 @@ void nsNativeAppSupportOS2::ParseDDEArg( const char* args, int index, nsCString&
         nsDependentCString temp(args, argLen);
 
         
-        int32_t offset = -1;
+        PRInt32 offset = -1;
         
         while( index-- ) {
             
@@ -1344,7 +1379,7 @@ void nsNativeAppSupportOS2::ParseDDEArg( const char* args, int index, nsCString&
         
         
         
-        int32_t end = advanceToEndOfQuotedArg( args, offset++, argLen );
+        PRInt32 end = advanceToEndOfQuotedArg( args, offset++, argLen );
         
         end = temp.FindChar( ',', end );
         if ( end == kNotFound ) {
@@ -1362,7 +1397,7 @@ void nsNativeAppSupportOS2::ParseDDEArg( HSZ args, int index, nsCString& aString
     DWORD argLen = WinDdeQueryString( args, NULL, NULL, CP_WINANSI );
     
     if ( !argLen ) return;
-    nsAutoCString temp;
+    nsCAutoString temp;
     
     temp.SetLength( argLen );
     
@@ -1401,7 +1436,7 @@ HDDEDATA nsNativeAppSupportOS2::CreateDDEData( LPBYTE value, DWORD len ) {
 void
 nsNativeAppSupportOS2::HandleCommandLine(const char* aCmdLineString,
                                          nsIFile* aWorkingDir,
-                                         uint32_t aState)
+                                         PRUint32 aState)
 {
     nsresult rv;
 
@@ -1412,7 +1447,7 @@ nsNativeAppSupportOS2::HandleCommandLine(const char* aCmdLineString,
     int between, quoted, bSlashCount;
     int argc;
     const char *p;
-    nsAutoCString arg;
+    nsCAutoString arg;
 
     nsCOMPtr<nsICommandLineRunner> cmdLine
         (do_CreateInstance("@mozilla.org/toolkit/command-line;1"));
@@ -1552,8 +1587,8 @@ nsNativeAppSupportOS2::HandleCommandLine(const char* aCmdLineString,
     
     
     bool found;
-    cmdLine->HandleFlag(NS_LITERAL_STRING("console"), false, &found);
-    cmdLine->HandleFlag(NS_LITERAL_STRING("dde"), false, &found);
+    cmdLine->HandleFlag(NS_LITERAL_STRING("console"), PR_FALSE, &found);
+    cmdLine->HandleFlag(NS_LITERAL_STRING("dde"), PR_FALSE, &found);
 
     
     while ( argc ) {
@@ -1625,7 +1660,7 @@ protected:
   JSContext                         *mContext;
 };
 
-SafeJSContext::SafeJSContext() : mContext(nullptr) {
+SafeJSContext::SafeJSContext() : mContext(nsnull) {
 }
 
 SafeJSContext::~SafeJSContext() {
@@ -1643,9 +1678,11 @@ nsresult SafeJSContext::Push() {
     return NS_ERROR_FAILURE;
 
   mService = do_GetService(sJSStackContractID);
-  if (mService) {
-    JSContext* cx = mService->GetSafeJSContext();
-    if (cx && NS_SUCCEEDED(mService->Push(cx))) {
+  if(mService) {
+    JSContext *cx;
+    if (NS_SUCCEEDED(mService->GetSafeJSContext(&cx)) &&
+        cx &&
+        NS_SUCCEEDED(mService->Push(cx))) {
       
       mContext = cx;
     }
@@ -1712,7 +1749,7 @@ nsNativeAppSupportOS2::OpenBrowserWindow()
         }
 
         NS_ERROR("failed to hand off external URL to extant window");
-    } while ( false );
+    } while ( PR_FALSE );
 
     
 
@@ -1721,7 +1758,7 @@ nsNativeAppSupportOS2::OpenBrowserWindow()
         (do_CreateInstance("@mozilla.org/toolkit/command-line;1"));
     NS_ENSURE_TRUE(cmdLine, NS_ERROR_FAILURE);
 
-    rv = cmdLine->Init(0, argv, nullptr, nsICommandLine::STATE_REMOTE_EXPLICIT);
+    rv = cmdLine->Init(0, argv, nsnull, nsICommandLine::STATE_REMOTE_EXPLICIT);
     NS_ENSURE_SUCCESS(rv, rv);
 
     return cmdLine->Run();
@@ -1759,7 +1796,7 @@ bool       StartOS2App(int aArgc, char **aArgv)
         stricmp("help", arg) == 0 ||
         stricmp("version", arg) == 0 ||
         stricmp("console", arg) == 0) {
-        rv = false;
+        rv = PR_FALSE;
         break;
       }
     }
@@ -1807,7 +1844,7 @@ bool       StartOS2App(int aArgc, char **aArgv)
   PID   pid;
   ULONG rc = DosStartSession(&x, &ulSession, &pid);
   if (rc && rc != ERROR_SMG_START_IN_BACKGROUND)
-    rv = true;
+    rv = PR_TRUE;
 
   return rv;
 }

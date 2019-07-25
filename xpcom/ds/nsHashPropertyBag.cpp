@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsHashPropertyBag.h"
 #include "nsArray.h"
 #include "nsArrayEnumerator.h"
@@ -11,7 +44,6 @@
 #include "nsIVariant.h"
 #include "nsIProperty.h"
 #include "nsVariant.h"
-#include "mozilla/Attributes.h"
 
 nsresult
 NS_NewHashPropertyBag(nsIWritablePropertyBag* *_retval)
@@ -49,14 +81,16 @@ NS_INTERFACE_MAP_END
 nsresult
 nsHashPropertyBag::Init()
 {
-    mPropertyHash.Init();
+    
+    if (!mPropertyHash.Init())
+        return NS_ERROR_OUT_OF_MEMORY;
     return NS_OK;
 }
 
 NS_IMETHODIMP
 nsHashPropertyBag::HasKey(const nsAString& name, bool *aResult)
 {
-    *aResult = mPropertyHash.Get(name, nullptr);
+    *aResult = mPropertyHash.Get(name, nsnull);
 
     return NS_OK;
 }
@@ -65,7 +99,7 @@ NS_IMETHODIMP
 nsHashPropertyBag::Get(const nsAString& name, nsIVariant* *_retval)
 {
     if (!mPropertyHash.Get(name, _retval))
-        *_retval = nullptr;
+        *_retval = nsnull;
 
     return NS_OK;
 }
@@ -85,7 +119,9 @@ nsHashPropertyBag::SetProperty(const nsAString& name, nsIVariant *value)
 {
     NS_ENSURE_ARG_POINTER(value);
 
-    mPropertyHash.Put(name, value);
+    bool success = mPropertyHash.Put(name, value);
+    if (!success)
+        return NS_ERROR_FAILURE;
 
     return NS_OK;
 }
@@ -96,7 +132,7 @@ nsHashPropertyBag::DeleteProperty(const nsAString& name)
     
     
     
-    bool isFound = mPropertyHash.Get(name, nullptr);
+    bool isFound = mPropertyHash.Get(name, nsnull);
     if (!isFound)
         return NS_ERROR_FAILURE;
 
@@ -111,7 +147,7 @@ nsHashPropertyBag::DeleteProperty(const nsAString& name)
 
 
 
-class nsSimpleProperty MOZ_FINAL : public nsIProperty {
+class nsSimpleProperty : public nsIProperty {
 public:
     nsSimpleProperty(const nsAString& aName, nsIVariant* aValue)
         : mName(aName), mValue(aValue)
@@ -151,7 +187,7 @@ PropertyHashToArrayFunc (const nsAString &aKey,
     nsIMutableArray *propertyArray =
         static_cast<nsIMutableArray *>(userArg);
     nsSimpleProperty *sprop = new nsSimpleProperty(aKey, aData);
-    propertyArray->AppendElement(sprop, false);
+    propertyArray->AppendElement(sprop, PR_FALSE);
     return PL_DHASH_NEXT;
 }
 
@@ -188,10 +224,10 @@ nsHashPropertyBag::SetPropertyAs ## Name (const nsAString & prop, Type value) \
     return SetProperty(prop, var); \
 }
 
-IMPL_GETSETPROPERTY_AS(Int32, int32_t)
-IMPL_GETSETPROPERTY_AS(Uint32, uint32_t)
-IMPL_GETSETPROPERTY_AS(Int64, int64_t)
-IMPL_GETSETPROPERTY_AS(Uint64, uint64_t)
+IMPL_GETSETPROPERTY_AS(Int32, PRInt32)
+IMPL_GETSETPROPERTY_AS(Uint32, PRUint32)
+IMPL_GETSETPROPERTY_AS(Int64, PRInt64)
+IMPL_GETSETPROPERTY_AS(Uint64, PRUint64)
 IMPL_GETSETPROPERTY_AS(Double, double)
 IMPL_GETSETPROPERTY_AS(Bool, bool)
 
@@ -237,7 +273,7 @@ nsHashPropertyBag::GetPropertyAsInterface(const nsAString & prop,
         return rv;
     if (!val) {
         
-        *_retval = nullptr;
+        *_retval = nsnull;
         return NS_OK;
     }
     return val->QueryInterface(aIID, _retval);

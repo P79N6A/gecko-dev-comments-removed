@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsPagePrintTimer_h___
 #define nsPagePrintTimer_h___
 
@@ -10,39 +42,28 @@
 
 #include "nsIDocumentViewerPrint.h"
 #include "nsPrintObject.h"
-#include "mozilla/Attributes.h"
-#include "nsThreadUtils.h"
 
 class nsPrintEngine;
 
 
 
 
-class nsPagePrintTimer MOZ_FINAL : public nsITimerCallback,
-                                   public nsRunnable
+class nsPagePrintTimer : public nsITimerCallback
 {
 public:
 
   NS_DECL_ISUPPORTS
 
-  nsPagePrintTimer(nsPrintEngine* aPrintEngine,
-                   nsIDocumentViewerPrint* aDocViewerPrint,
-                   uint32_t aDelay)
-    : mPrintEngine(aPrintEngine)
-    , mDocViewerPrint(aDocViewerPrint)
-    , mDelay(aDelay)
-    , mFiringCount(0)
-    , mPrintObj(nullptr)
-  {
-    mDocViewerPrint->IncrementDestroyRefCount();
-  }
+  nsPagePrintTimer();
   ~nsPagePrintTimer();
 
   NS_DECL_NSITIMERCALLBACK
 
-  nsresult Start(nsPrintObject* aPO);
+  void Init(nsPrintEngine*          aPrintEngine,
+            nsIDocumentViewerPrint* aDocViewerPrint,
+            PRUint32                aDelay);
 
-  NS_IMETHOD Run();
+  nsresult Start(nsPrintObject* aPO);
 
   void Stop();
 
@@ -52,8 +73,8 @@ private:
   nsPrintEngine*             mPrintEngine;
   nsCOMPtr<nsIDocumentViewerPrint> mDocViewerPrint;
   nsCOMPtr<nsITimer>         mTimer;
-  uint32_t                   mDelay;
-  uint32_t                   mFiringCount;
+  PRUint32                   mDelay;
+  PRUint32                   mFiringCount;
   nsPrintObject *            mPrintObj;
 };
 

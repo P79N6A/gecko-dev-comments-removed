@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_PluginLibrary_h
 #define mozilla_PluginLibrary_h 1
 
@@ -12,7 +44,7 @@
 #include "npfunctions.h"
 #include "nscore.h"
 #include "nsTArray.h"
-#include "nsError.h"
+#include "nsPluginError.h"
 
 class gfxASurface;
 class gfxContext;
@@ -46,7 +78,7 @@ public:
 
   virtual bool HasRequiredFunctions() = 0;
 
-#if defined(XP_UNIX) && !defined(XP_MACOSX) && !defined(MOZ_WIDGET_GONK)
+#if defined(XP_UNIX) && !defined(XP_MACOSX)
   virtual nsresult NP_Initialize(NPNetscapeFuncs* bFuncs, NPPluginFuncs* pFuncs, NPError* error) = 0;
 #else
   virtual nsresult NP_Initialize(NPNetscapeFuncs* bFuncs, NPError* error) = 0;
@@ -68,9 +100,9 @@ public:
   virtual nsresult NPP_GetSitesWithData(InfallibleTArray<nsCString>& aResult) = 0;
 
   virtual nsresult AsyncSetWindow(NPP instance, NPWindow* window) = 0;
-  virtual nsresult GetImageContainer(NPP instance, ImageContainer** aContainer) = 0;
+  virtual nsresult GetImage(NPP instance, ImageContainer* aContainer, Image** aImage) = 0;
   virtual nsresult GetImageSize(NPP instance, nsIntSize* aSize) = 0;
-  virtual bool IsOOP() = 0;
+  virtual bool UseAsyncPainting() = 0;
 #if defined(XP_MACOSX)
   virtual nsresult IsRemoteDrawingCoreAnimation(NPP instance, bool *aDrawing) = 0;
 #endif

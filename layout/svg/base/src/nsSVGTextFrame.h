@@ -3,14 +3,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_SVGTEXTFRAME_H
 #define NS_SVGTEXTFRAME_H
 
-#include "gfxMatrix.h"
-#include "gfxRect.h"
 #include "nsSVGTextContainerFrame.h"
-
-class nsRenderingContext;
+#include "gfxRect.h"
+#include "gfxMatrix.h"
 
 typedef nsSVGTextContainerFrame nsSVGTextFrameBase;
 
@@ -21,7 +52,8 @@ class nsSVGTextFrame : public nsSVGTextFrameBase
 protected:
   nsSVGTextFrame(nsStyleContext* aContext)
     : nsSVGTextFrameBase(aContext),
-      mPositioningDirty(true) {}
+      mMetricsState(unsuspended),
+      mPositioningDirty(PR_TRUE) {}
 
 public:
   NS_DECL_FRAMEARENA_HELPERS
@@ -33,9 +65,9 @@ public:
                   nsIFrame*        aPrevInFlow);
 #endif
 
-  NS_IMETHOD  AttributeChanged(int32_t         aNameSpaceID,
+  NS_IMETHOD  AttributeChanged(PRInt32         aNameSpaceID,
                                nsIAtom*        aAttribute,
-                               int32_t         aModType);
+                               PRInt32         aModType);
 
   
 
@@ -51,34 +83,33 @@ public:
   }
 #endif
 
-  NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                              const nsRect&           aDirtyRect,
-                              const nsDisplayListSet& aLists);
-
   
-  virtual void NotifySVGChanged(uint32_t aFlags);
+  virtual void NotifySVGChanged(PRUint32 aFlags);
+  NS_IMETHOD NotifyRedrawSuspended();
+  NS_IMETHOD NotifyRedrawUnsuspended();
   
   
-  NS_IMETHOD PaintSVG(nsRenderingContext* aContext,
+  NS_IMETHOD PaintSVG(nsSVGRenderState* aContext,
                       const nsIntRect *aDirtyRect);
   NS_IMETHOD_(nsIFrame*) GetFrameForPoint(const nsPoint & aPoint);
-  virtual void ReflowSVG();
-  virtual SVGBBox GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
-                                      uint32_t aFlags);
+  NS_IMETHOD UpdateCoveredRegion();
+  NS_IMETHOD InitialUpdate();
+  virtual gfxRect GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
+                                      PRUint32 aFlags);
   
   
-  virtual gfxMatrix GetCanvasTM(uint32_t aFor);
+  virtual gfxMatrix GetCanvasTM();
   
   
-  virtual uint32_t GetNumberOfChars();
+  virtual PRUint32 GetNumberOfChars();
   virtual float GetComputedTextLength();
-  virtual float GetSubStringLength(uint32_t charnum, uint32_t nchars);
-  virtual int32_t GetCharNumAtPosition(nsIDOMSVGPoint *point);
+  virtual float GetSubStringLength(PRUint32 charnum, PRUint32 nchars);
+  virtual PRInt32 GetCharNumAtPosition(nsIDOMSVGPoint *point);
 
-  NS_IMETHOD GetStartPositionOfChar(uint32_t charnum, nsIDOMSVGPoint **_retval);
-  NS_IMETHOD GetEndPositionOfChar(uint32_t charnum, nsIDOMSVGPoint **_retval);
-  NS_IMETHOD GetExtentOfChar(uint32_t charnum, nsIDOMSVGRect **_retval);
-  NS_IMETHOD GetRotationOfChar(uint32_t charnum, float *_retval);
+  NS_IMETHOD GetStartPositionOfChar(PRUint32 charnum, nsIDOMSVGPoint **_retval);
+  NS_IMETHOD GetEndPositionOfChar(PRUint32 charnum, nsIDOMSVGPoint **_retval);
+  NS_IMETHOD GetExtentOfChar(PRUint32 charnum, nsIDOMSVGRect **_retval);
+  NS_IMETHOD GetRotationOfChar(PRUint32 charnum, float *_retval);
 
   
   void NotifyGlyphMetricsChange();
@@ -94,6 +125,9 @@ private:
   void SetWhitespaceHandling(nsSVGGlyphFrame *aFrame);
 
   nsAutoPtr<gfxMatrix> mCanvasTM;
+
+  enum UpdateState { unsuspended, suspended };
+  UpdateState mMetricsState;
 
   bool mPositioningDirty;
 };

@@ -3,6 +3,37 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsXULTemplateResultRDF.h"
 #include "nsXULContentUtils.h"
 
@@ -20,7 +51,7 @@ NS_IMPL_CYCLE_COLLECTING_ADDREF(nsXULTemplateResultRDF)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsXULTemplateResultRDF)
 
 nsXULTemplateResultRDF::nsXULTemplateResultRDF(nsIRDFResource* aNode)
-    : mQuery(nullptr),
+    : mQuery(nsnull),
       mNode(aNode)
 {
 }
@@ -41,7 +72,7 @@ nsXULTemplateResultRDF::~nsXULTemplateResultRDF()
 NS_IMETHODIMP
 nsXULTemplateResultRDF::GetIsContainer(bool* aIsContainer)
 {
-    *aIsContainer = false;
+    *aIsContainer = PR_FALSE;
 
     if (mNode) {
         nsXULTemplateQueryProcessorRDF* processor = GetProcessor();
@@ -55,7 +86,7 @@ nsXULTemplateResultRDF::GetIsContainer(bool* aIsContainer)
 NS_IMETHODIMP
 nsXULTemplateResultRDF::GetIsEmpty(bool* aIsEmpty)
 {
-    *aIsEmpty = true;
+    *aIsEmpty = PR_TRUE;
 
     if (mNode) {
         nsXULTemplateQueryProcessorRDF* processor = GetProcessor();
@@ -70,7 +101,7 @@ NS_IMETHODIMP
 nsXULTemplateResultRDF::GetMayProcessChildren(bool* aMayProcessChildren)
 {
     
-    *aMayProcessChildren = true;
+    *aMayProcessChildren = PR_TRUE;
     return NS_OK;
 }
 
@@ -169,7 +200,7 @@ void
 nsXULTemplateResultRDF::GetAssignment(nsIAtom* aVar, nsIRDFNode** aValue)
 {
     
-    *aValue = nullptr;
+    *aValue = nsnull;
     mInst.mAssignments.GetAssignmentFor(aVar, aValue);
 
     
@@ -187,11 +218,11 @@ nsXULTemplateResultRDF::SyncAssignments(nsIRDFResource* aSubject,
     RDFBindingSet* bindingset = mBindingValues.GetBindingSet();
     if (bindingset) {
         return bindingset->SyncAssignments(aSubject, aPredicate, aTarget,
-            (aSubject == mNode) ? mQuery->GetMemberVariable() : nullptr,
+            (aSubject == mNode) ? mQuery->GetMemberVariable() : nsnull,
             this, mBindingValues);
     }
 
-    return false;
+    return PR_FALSE;
 }
 
 bool
@@ -201,8 +232,8 @@ nsXULTemplateResultRDF::HasMemoryElement(const MemoryElement& aMemoryElement)
     for (MemoryElementSet::ConstIterator element = mInst.mSupport.First();
                                          element != last; ++element) {
         if ((*element).Equals(aMemoryElement))
-            return true;
+            return PR_TRUE;
     }
 
-    return false;
+    return PR_FALSE;
 }

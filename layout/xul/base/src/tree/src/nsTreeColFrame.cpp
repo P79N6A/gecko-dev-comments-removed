@@ -3,12 +3,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsTreeColFrame.h"
 #include "nsGkAtoms.h"
 #include "nsIContent.h"
 #include "nsStyleContext.h"
 #include "nsINameSpaceManager.h" 
+#include "nsIDocument.h"
 #include "nsIBoxObject.h"
 #include "nsTreeBoxObject.h"
 #include "nsIDOMElement.h"
@@ -49,7 +83,7 @@ nsTreeColFrame::Init(nsIContent*      aContent,
 void
 nsTreeColFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
-  InvalidateColumns(false);
+  InvalidateColumns(PR_FALSE);
   nsBoxFrame::DestroyFrom(aDestructRoot);
 }
 
@@ -81,9 +115,9 @@ nsDisplayXULTreeColSplitterTarget::HitTest(nsDisplayListBuilder* aBuilder, const
   bool left = false;
   bool right = false;
   if (mFrame->GetSize().width - nsPresContext::CSSPixelsToAppUnits(4) <= rect.XMost()) {
-    right = true;
+    right = PR_TRUE;
   } else if (nsPresContext::CSSPixelsToAppUnits(4) > rect.x) {
-    left = true;
+    left = PR_TRUE;
   }
 
   
@@ -129,9 +163,9 @@ nsTreeColFrame::BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
 }
 
 NS_IMETHODIMP
-nsTreeColFrame::AttributeChanged(int32_t aNameSpaceID,
+nsTreeColFrame::AttributeChanged(PRInt32 aNameSpaceID,
                                  nsIAtom* aAttribute,
-                                 int32_t aModType)
+                                 PRInt32 aModType)
 {
   nsresult rv = nsBoxFrame::AttributeChanged(aNameSpaceID, aAttribute,
                                              aModType);
@@ -161,7 +195,7 @@ nsTreeColFrame::SetBounds(nsBoxLayoutState& aBoxLayoutState,
 nsITreeBoxObject*
 nsTreeColFrame::GetTreeBoxObject()
 {
-  nsITreeBoxObject* result = nullptr;
+  nsITreeBoxObject* result = nsnull;
 
   nsIContent* parent = mContent->GetParent();
   if (parent) {

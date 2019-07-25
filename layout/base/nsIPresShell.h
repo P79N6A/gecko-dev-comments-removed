@@ -17,6 +17,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIPresShell_h___
 #define nsIPresShell_h___
 
@@ -34,10 +69,6 @@
 #include "nsWeakReference.h"
 #include <stdio.h> 
 #include "nsChangeHint.h"
-#include "nsGUIEvent.h"
-#include "nsInterfaceHashtable.h"
-#include "nsEventStates.h"
-#include "nsPresArena.h"
 
 class nsIContent;
 class nsIDocument;
@@ -71,18 +102,14 @@ class nsPIDOMWindow;
 struct nsPoint;
 struct nsIntPoint;
 struct nsIntRect;
-class nsRegion;
 class nsRefreshDriver;
 class nsARefreshObserver;
 #ifdef ACCESSIBILITY
 class nsAccessibilityService;
-class DocAccessible;
 #endif
-class nsIWidget;
-struct nsArenaMemoryStats;
 
 typedef short SelectionType;
-typedef uint64_t nsFrameState;
+typedef PRUint64 nsFrameState;
 
 namespace mozilla {
 namespace dom {
@@ -103,29 +130,34 @@ class LayerManager;
 
 #define CAPTURE_PREVENTDRAG 4
 
-#define CAPTURE_POINTERLOCK 8
-
 typedef struct CapturingContentInfo {
   
   bool mAllowed;
-  bool mPointerLock;
   bool mRetargetToElement;
   bool mPreventDrag;
   nsIContent* mContent;
 } CapturingContentInfo;
 
+#define NS_IPRESSHELL_IID    \
+{ 0x67eab923, 0x5c15, 0x4c13,\
+  { 0xb5, 0xcc, 0xb2, 0x75, 0xb3, 0x5a, 0xa5, 0x38 } }
 
-#define NS_IPRESSHELL_IID \
-  { 0x7e29e8a8, 0x9c77, 0x4445, \
-    { 0xa5, 0x23, 0x41, 0xb3, 0x63, 0xe0, 0xc9, 0x8a } }
+
+#define NS_PRESSHELL_SCROLL_TOP      0
+#define NS_PRESSHELL_SCROLL_BOTTOM   100
+#define NS_PRESSHELL_SCROLL_LEFT     0
+#define NS_PRESSHELL_SCROLL_RIGHT    100
+#define NS_PRESSHELL_SCROLL_CENTER   50
+#define NS_PRESSHELL_SCROLL_ANYWHERE -1
+#define NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE -2
 
 
-#define VERIFY_REFLOW_ON                    0x01
-#define VERIFY_REFLOW_NOISY                 0x02
-#define VERIFY_REFLOW_ALL                   0x04
-#define VERIFY_REFLOW_DUMP_COMMANDS         0x08
-#define VERIFY_REFLOW_NOISY_RC              0x10
-#define VERIFY_REFLOW_REALLY_NOISY_RC       0x20
+#define VERIFY_REFLOW_ON              0x01
+#define VERIFY_REFLOW_NOISY           0x02
+#define VERIFY_REFLOW_ALL             0x04
+#define VERIFY_REFLOW_DUMP_COMMANDS   0x08
+#define VERIFY_REFLOW_NOISY_RC        0x10
+#define VERIFY_REFLOW_REALLY_NOISY_RC 0x20
 #define VERIFY_REFLOW_DURING_RESIZE_REFLOW  0x40
 
 #undef NOISY_INTERRUPTIBLE_REFLOW
@@ -164,10 +196,10 @@ class nsIPresShell : public nsIPresShell_base
 protected:
   typedef mozilla::layers::LayerManager LayerManager;
 
-  enum eRenderFlag {
-    STATE_IGNORING_VIEWPORT_SCROLLING = 0x1
+  enum {
+    STATE_IGNORING_VIEWPORT_SCROLLING = 0x1,
+    STATE_USING_DISPLAYPORT = 0x2
   };
-  typedef uint8_t RenderFlags; 
 
 public:
   virtual NS_HIDDEN_(nsresult) Init(nsIDocument* aDocument,
@@ -188,61 +220,19 @@ public:
   bool IsDestroying() { return mIsDestroying; }
 
   
-
-
-
-
-
-
-  void* AllocateFrame(nsQueryFrame::FrameIID aID, size_t aSize)
-  {
-#ifdef DEBUG
-    mPresArenaAllocCount++;
-#endif
-    void* result = mFrameArena.AllocateByFrameID(aID, aSize);
   
-    if (result) {
-      memset(result, 0, aSize);
-    }
-    return result;
-  }
-
-  void FreeFrame(nsQueryFrame::FrameIID aID, void* aPtr)
-  {
-#ifdef DEBUG
-    mPresArenaAllocCount--;
-#endif
-    if (PRESARENA_MUST_FREE_DURING_DESTROY || !mIsDestroying)
-      mFrameArena.FreeByFrameID(aID, aPtr);
-  }
+  
+  
+  
+  virtual void* AllocateFrame(nsQueryFrame::FrameIID aCode, size_t aSize) = 0;
+  virtual void  FreeFrame(nsQueryFrame::FrameIID aCode, void* aChunk) = 0;
 
   
-
-
-
-
-
-  void* AllocateByObjectID(nsPresArena::ObjectID aID, size_t aSize)
-  {
-#ifdef DEBUG
-    mPresArenaAllocCount++;
-#endif
-    void* result = mFrameArena.AllocateByObjectID(aID, aSize);
   
-    if (result) {
-      memset(result, 0, aSize);
-    }
-    return result;
-  }
-
-  void FreeByObjectID(nsPresArena::ObjectID aID, void* aPtr)
-  {
-#ifdef DEBUG
-    mPresArenaAllocCount--;
-#endif
-    if (PRESARENA_MUST_FREE_DURING_DESTROY || !mIsDestroying)
-      mFrameArena.FreeByObjectID(aID, aPtr);
-  }
+  
+  
+  virtual void* AllocateMisc(size_t aSize) = 0;
+  virtual void  FreeMisc(size_t aSize, void* aChunk) = 0;
 
   
 
@@ -253,22 +243,15 @@ public:
 
 
 
-  void* AllocateMisc(size_t aSize)
-  {
-#ifdef DEBUG
-    mPresArenaAllocCount++;
-#endif
-    return mFrameArena.AllocateBySize(aSize);
-  }
 
-  void FreeMisc(size_t aSize, void* aPtr)
-  {
-#ifdef DEBUG
-    mPresArenaAllocCount--;
-#endif
-    if (PRESARENA_MUST_FREE_DURING_DESTROY || !mIsDestroying)
-      mFrameArena.FreeBySize(aSize, aPtr);
-  }
+
+
+
+
+
+  virtual void PushStackMemory() = 0;
+  virtual void PopStackMemory() = 0;
+  virtual void* AllocateStackMemory(size_t aSize) = 0;
 
   nsIDocument* GetDocument() const { return mDocument; }
 
@@ -276,23 +259,14 @@ public:
 
   nsIViewManager* GetViewManager() const { return mViewManager; }
 
-#ifdef ACCESSIBILITY
-  void SetAccDocument(DocAccessible* aAccDocument)
-  {
-    mAccDocument = aAccDocument;
-  }
-#endif
-
 #ifdef _IMPL_NS_LAYOUT
   nsStyleSet* StyleSet() const { return mStyleSet; }
 
   nsCSSFrameConstructor* FrameConstructor() const { return mFrameConstructor; }
 
   nsFrameManager* FrameManager() const {
-    
-    
     return reinterpret_cast<nsFrameManager*>
-                           (const_cast<nsIPresShell*>(this)->mFrameManager);
+                           (&const_cast<nsIPresShell*>(this)->mFrameManager);
   }
 
 #endif
@@ -356,7 +330,7 @@ public:
   
 
 
-  bool DidInitialize() const { return mDidInitialize; }
+  bool DidInitialReflow() const { return mDidInitialReflow; }
 
   
 
@@ -369,7 +343,7 @@ public:
 
 
 
-  virtual NS_HIDDEN_(nsresult) Initialize(nscoord aWidth, nscoord aHeight) = 0;
+  virtual NS_HIDDEN_(nsresult) InitialReflow(nscoord aWidth, nscoord aHeight) = 0;
 
   
 
@@ -404,7 +378,7 @@ public:
   virtual NS_HIDDEN_(nsIFrame*) GetRootFrameExternal() const;
   nsIFrame* GetRootFrame() const {
 #ifdef _IMPL_NS_LAYOUT
-    return mFrameManager->GetRootFrame();
+    return mFrameManager.GetRootFrame();
 #else
     return GetRootFrameExternal();
 #endif
@@ -552,23 +526,6 @@ public:
 
   virtual NS_HIDDEN_(nsresult) ScrollToAnchor() = 0;
 
-  enum {
-    SCROLL_TOP     = 0,
-    SCROLL_BOTTOM  = 100,
-    SCROLL_LEFT    = 0,
-    SCROLL_RIGHT   = 100,
-    SCROLL_CENTER  = 50,
-    SCROLL_MINIMUM = -1
-  };
-
-  enum WhenToScroll {
-    SCROLL_ALWAYS,
-    SCROLL_IF_NOT_VISIBLE,
-    SCROLL_IF_NOT_FULLY_VISIBLE
-  };
-  typedef struct ScrollAxis {
-    int16_t mWhereToScroll;
-    WhenToScroll mWhenToScroll : 16;
   
 
 
@@ -588,23 +545,6 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-    ScrollAxis(int16_t aWhere = SCROLL_MINIMUM,
-               WhenToScroll aWhen = SCROLL_IF_NOT_FULLY_VISIBLE) :
-                 mWhereToScroll(aWhere), mWhenToScroll(aWhen) {}
-  } ScrollAxis;
-  
 
 
 
@@ -626,9 +566,9 @@ public:
 
 
   virtual NS_HIDDEN_(nsresult) ScrollContentIntoView(nsIContent* aContent,
-                                                     ScrollAxis  aVertical,
-                                                     ScrollAxis  aHorizontal,
-                                                     uint32_t    aFlags) = 0;
+                                                     PRIntn      aVPercent,
+                                                     PRIntn      aHPercent,
+                                                     PRUint32    aFlags) = 0;
 
   enum {
     SCROLL_FIRST_ANCESTOR_ONLY = 0x01,
@@ -655,10 +595,10 @@ public:
 
 
   virtual bool ScrollFrameRectIntoView(nsIFrame*     aFrame,
-                                       const nsRect& aRect,
-                                       ScrollAxis    aVertical,
-                                       ScrollAxis    aHorizontal,
-                                       uint32_t      aFlags) = 0;
+                                         const nsRect& aRect,
+                                         PRIntn        aVPercent,
+                                         PRIntn        aHPercent,
+                                         PRUint32      aFlags) = 0;
 
   
 
@@ -694,6 +634,11 @@ public:
   
 
 
+  virtual NS_HIDDEN_(nsresult) GetLinkLocation(nsIDOMNode* aNode, nsAString& aLocation) const = 0;
+
+  
+
+
   virtual NS_HIDDEN_(already_AddRefed<nsCaret>) GetCaret() const = 0;
 
   
@@ -722,14 +667,14 @@ public:
 
 
 
-  NS_IMETHOD SetSelectionFlags(int16_t aInEnable) = 0;
+  NS_IMETHOD SetSelectionFlags(PRInt16 aInEnable) = 0;
 
   
 
 
 
 
-  int16_t GetSelectionFlags() const { return mSelectionFlags; }
+  PRInt16 GetSelectionFlags() const { return mSelectionFlags; }
 
   virtual nsISelection* GetCurrentSelection(SelectionType aType) = 0;
 
@@ -798,7 +743,7 @@ public:
   void DisableThemeSupport()
   {
     
-    mIsThemeSupportDisabled = true;
+    mIsThemeSupportDisabled = PR_TRUE;
   }
 
   
@@ -834,9 +779,10 @@ public:
   
 
 
-  virtual void ContentStateChanged(nsIDocument* aDocument,
-                                   nsIContent* aContent,
-                                   nsEventStates aStateMask) = 0;
+
+
+
+  virtual nsIFrame* GetFrameForPoint(nsIFrame* aFrame, nsPoint aPt) = 0;
 
   
 
@@ -861,7 +807,7 @@ public:
                                       nsPresContext * aPresContext,
                                       nsIFrame * aFrame,
                                       const nsPoint& aOffset,
-                                      uint32_t aColor) = 0;
+                                      PRUint32 aColor) = 0;
   virtual NS_HIDDEN_(void) SetPaintFrameCount(bool aOn) = 0;
   virtual bool IsPaintingFrameCounts() = 0;
 #endif
@@ -869,9 +815,9 @@ public:
 #ifdef DEBUG
   
   virtual void ListStyleContexts(nsIFrame *aRootFrame, FILE *out,
-                                 int32_t aIndent = 0) = 0;
+                                 PRInt32 aIndent = 0) = 0;
 
-  virtual void ListStyleSheets(FILE *out, int32_t aIndent = 0) = 0;
+  virtual void ListStyleSheets(FILE *out, PRInt32 aIndent = 0) = 0;
   virtual void VerifyStyleTree() = 0;
 #endif
 
@@ -957,7 +903,7 @@ public:
     RENDER_ASYNC_DECODE_IMAGES = 0x10,
     RENDER_DOCUMENT_RELATIVE = 0x20
   };
-  virtual NS_HIDDEN_(nsresult) RenderDocument(const nsRect& aRect, uint32_t aFlags,
+  virtual NS_HIDDEN_(nsresult) RenderDocument(const nsRect& aRect, PRUint32 aFlags,
                                               nscolor aBackgroundColor,
                                               gfxContext* aRenderedContext) = 0;
 
@@ -1015,7 +961,7 @@ public:
 #endif
   }
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
   nsIFrame* GetDrawEventTargetFrame() { return mDrawEventTargetFrame; }
 #endif
 
@@ -1059,7 +1005,7 @@ public:
                                                 nsIFrame* aFrame,
                                                 const nsRect& aBounds,
                                                 nscolor aBackstopColor = NS_RGBA(0,0,0,0),
-                                                uint32_t aFlags = 0) = 0;
+                                                PRUint32 aFlags = 0) = 0;
 
 
   
@@ -1099,9 +1045,6 @@ public:
 
   static CapturingContentInfo gCaptureInfo;
 
-  static nsInterfaceHashtable<nsUint32HashKey, nsIDOMTouch> gCaptureTouchList;
-  static bool gPreventMouseEvents;
-
   
 
 
@@ -1119,12 +1062,7 @@ public:
 
 
 
-
-
-
-
-
-  static void SetCapturingContent(nsIContent* aContent, uint8_t aFlags);
+  static void SetCapturingContent(nsIContent* aContent, PRUint8 aFlags);
 
   
 
@@ -1155,7 +1093,7 @@ public:
 
 
 
-  uint64_t GetPaintCount() { return mPaintCount; }
+  PRUint64 GetPaintCount() { return mPaintCount; }
   void IncrementPaintCount() { ++mPaintCount; }
 
   
@@ -1188,19 +1126,8 @@ public:
 
 
   virtual nsresult SetResolution(float aXResolution, float aYResolution) = 0;
-  gfxSize GetResolution() { return gfxSize(mXResolution, mYResolution); }
   float GetXResolution() { return mXResolution; }
   float GetYResolution() { return mYResolution; }
-
-  
-
-
-  void SetIsFirstPaint(bool aIsFirstPaint) { mIsFirstPaint = aIsFirstPaint; }
-
-  
-
-
-  bool GetIsFirstPaint() const { return mIsFirstPaint; }
 
   
 
@@ -1208,55 +1135,6 @@ public:
 
 
   virtual void SynthesizeMouseMove(bool aFromScroll) = 0;
-
-  enum PaintType {
-    PaintType_Composite, 
-    PaintType_NoComposite, 
-    PaintType_Full 
-  };
-  virtual void Paint(nsIView* aViewToPaint, const nsRegion& aDirtyRegion,
-                     PaintType aType, bool aWillSendDidPaint) = 0;
-  virtual nsresult HandleEvent(nsIFrame*       aFrame,
-                               nsGUIEvent*     aEvent,
-                               bool            aDontRetargetEvents,
-                               nsEventStatus*  aEventStatus) = 0;
-  virtual bool ShouldIgnoreInvalidation() = 0;
-  
-
-
-
-  virtual void WillPaint(bool aWillSendDidPaint) = 0;
-  
-
-
-
-  virtual void DidPaint() = 0;
-  virtual void ScheduleViewManagerFlush() = 0;
-  virtual void ClearMouseCaptureOnView(nsIView* aView) = 0;
-  virtual bool IsVisible() = 0;
-  virtual void DispatchSynthMouseMove(nsGUIEvent *aEvent, bool aFlushOnHoverChange) = 0;
-
-  virtual void SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                   nsArenaMemoryStats *aArenaObjectsSize,
-                                   size_t *aPresShellSize,
-                                   size_t *aStyleSetsSize,
-                                   size_t *aTextRunsSize,
-                                   size_t *aPresContextSize) = 0;
-
-  
-
-
-  uint32_t FontSizeInflationEmPerLine() const {
-    return mFontSizeInflationEmPerLine;
-  }
-
-  uint32_t FontSizeInflationMinTwips() const {
-    return mFontSizeInflationMinTwips;
-  }
-
-  uint32_t FontSizeInflationLineThreshold() const {
-    return mFontSizeInflationLineThreshold;
-  }
 
   
 
@@ -1295,29 +1173,6 @@ public:
   static void InitializeStatics();
   static void ReleaseStatics();
 
-  
-  
-  static void ClearMouseCapture(nsIFrame* aFrame);
-
-  void SetScrollPositionClampingScrollPortSize(nscoord aWidth, nscoord aHeight);
-  bool IsScrollPositionClampingScrollPortSizeSet() {
-    return mScrollPositionClampingScrollPortSizeSet;
-  }
-  nsSize GetScrollPositionClampingScrollPortSize() {
-    NS_ASSERTION(mScrollPositionClampingScrollPortSizeSet, "asking for scroll port when its not set?");
-    return mScrollPositionClampingScrollPortSize;
-  }
-
-  virtual void WindowSizeMoveDone() = 0;
-  virtual void SysColorChanged() = 0;
-  virtual void ThemeChanged() = 0;
-
-  nscoord MaxLineBoxWidth() {
-    return mMaxLineBoxWidth;
-  }
-
-  void SetMaxLineBoxWidth(nscoord aMaxLineBoxWidth);
-
 protected:
   friend class nsRefreshDriver;
 
@@ -1332,26 +1187,37 @@ protected:
   nsStyleSet*               mStyleSet;      
   nsCSSFrameConstructor*    mFrameConstructor; 
   nsIViewManager*           mViewManager;   
-  nsPresArena               mFrameArena;
   nsFrameSelection*         mSelection;
-  
-  
-  nsFrameManagerBase*       mFrameManager;
+  nsFrameManagerBase        mFrameManager;  
   nsWeakPtr                 mForwardingContainer;
-#ifdef ACCESSIBILITY
-  DocAccessible* mAccDocument;
-#endif
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
   nsIFrame*                 mDrawEventTargetFrame;
-  
-  uint32_t                  mPresArenaAllocCount;
 #endif
 
   
-  uint64_t                  mPaintCount;
+  
+  PRUint64                  mPaintCount;
 
-  nsSize                    mScrollPositionClampingScrollPortSize;
+  PRInt16                   mSelectionFlags;
+
+  bool                      mStylesHaveChanged;
+  bool                      mDidInitialReflow;
+  bool                      mIsDestroying;
+  bool                      mIsReflowing;
+  bool                      mPaintingSuppressed;  
+  bool                      mIsThemeSupportDisabled;  
+  bool                      mIsActive;
+  bool                      mFrozen;
+
+  bool                      mObservesMutationsForPrint;
+
+  bool                      mReflowScheduled; 
+                                              
+                                              
+                                              
+
+  bool                      mSuppressInterruptibleReflows;
 
   
   nsWeakFrame*              mWeakFrames;
@@ -1361,52 +1227,21 @@ protected:
 
   
   
+  
+  
+  
+  PRUint32                  mRenderFlags;
+
+  
+  
   float                     mXResolution;
   float                     mYResolution;
 
-  int16_t                   mSelectionFlags;
+  
+  typedef nsPtrHashKey<nsIPresShell> PresShellPtrKey;
+  static nsTHashtable<PresShellPtrKey> *sLiveShells;
 
-  
-  
-  
-  
-  
-  RenderFlags               mRenderFlags;
-
-  bool                      mStylesHaveChanged : 1;
-  bool                      mDidInitialize : 1;
-  bool                      mIsDestroying : 1;
-  bool                      mIsReflowing : 1;
-
-  
-  bool                      mPaintingSuppressed : 1;
-
-  
-  bool                      mIsThemeSupportDisabled : 1;
-
-  bool                      mIsActive : 1;
-  bool                      mFrozen : 1;
-  bool                      mIsFirstPaint : 1;
-  bool                      mObservesMutationsForPrint : 1;
-
-  
-  
-  bool                      mReflowScheduled : 1;
-
-  bool                      mSuppressInterruptibleReflows : 1;
-  bool                      mScrollPositionClampingScrollPortSizeSet : 1;
-
-  static nsIContent*        gKeyDownTarget;
-
-  
-  
-  uint32_t mFontSizeInflationEmPerLine;
-  uint32_t mFontSizeInflationMinTwips;
-  uint32_t mFontSizeInflationLineThreshold;
-
-  
-  
-  nscoord mMaxLineBoxWidth;
+  static nsIContent* gKeyDownTarget;
 };
 
 

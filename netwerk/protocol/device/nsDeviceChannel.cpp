@@ -3,21 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "plstr.h"
 #include "nsComponentManagerUtils.h"
 #include "nsDeviceChannel.h"
 #include "nsDeviceCaptureProvider.h"
 #include "mozilla/Preferences.h"
 
-#ifdef MOZ_WIDGET_ANDROID
+#ifdef ANDROID
 #include "AndroidCaptureProvider.h"
 #endif
-
-#ifdef MOZ_WIDGET_GONK
-#include "GonkCaptureProvider.h"
-#endif
-
-using namespace mozilla;
 
 
 
@@ -31,7 +57,7 @@ void extractAttributeValue(const char* searchString, const char* attributeName, 
   if (!searchString || !attributeName)
     return;
 
-  uint32_t attributeNameSize = strlen(attributeName);
+  PRUint32 attributeNameSize = strlen(attributeName);
   const char *startOfAttribute = PL_strcasestr(searchString, attributeName);
   if (!startOfAttribute ||
       !( *(startOfAttribute-1) == '?' || *(startOfAttribute-1) == '&') )
@@ -80,30 +106,30 @@ nsDeviceChannel::OpenContentStream(bool aAsync,
     return NS_ERROR_NOT_IMPLEMENTED;
 
   nsCOMPtr<nsIURI> uri = nsBaseChannel::URI();
-  *aStream = nullptr;
-  *aChannel = nullptr;
+  *aStream = nsnull;
+  *aChannel = nsnull;
   NS_NAMED_LITERAL_CSTRING(width, "width=");
   NS_NAMED_LITERAL_CSTRING(height, "height=");
 
-  nsAutoCString spec;
+  nsCAutoString spec;
   uri->GetSpec(spec);
 
-  nsAutoCString type;
+  nsCAutoString type;
 
   nsRefPtr<nsDeviceCaptureProvider> capture;
   nsCaptureParams captureParams;
   captureParams.camera = 0;
   if (kNotFound != spec.Find(NS_LITERAL_CSTRING("type=image/png"),
-                             true,
+                             PR_TRUE,
                              0,
                              -1)) {
     type.AssignLiteral("image/png");
     SetContentType(type);
-    captureParams.captureAudio = false;
-    captureParams.captureVideo = true;
+    captureParams.captureAudio = PR_FALSE;
+    captureParams.captureVideo = PR_TRUE;
     captureParams.timeLimit = 0;
     captureParams.frameLimit = 1;
-    nsAutoCString buffer;
+    nsCAutoString buffer;
     extractAttributeValue(spec.get(), "width=", buffer);
     nsresult err;
     captureParams.width = buffer.ToInteger(&err);
@@ -113,24 +139,19 @@ nsDeviceChannel::OpenContentStream(bool aAsync,
     captureParams.height = buffer.ToInteger(&err);
     if (!captureParams.height)
       captureParams.height = 480;
-    extractAttributeValue(spec.get(), "camera=", buffer);
-    captureParams.camera = buffer.ToInteger(&err);
     captureParams.bpp = 32;
-#ifdef MOZ_WIDGET_ANDROID
+#ifdef ANDROID
     capture = GetAndroidCaptureProvider();
 #endif
-#ifdef MOZ_WIDGET_GONK
-    capture = GetGonkCaptureProvider();
-#endif
   } else if (kNotFound != spec.Find(NS_LITERAL_CSTRING("type=video/x-raw-yuv"),
-                                    true,
+                                    PR_TRUE,
                                     0,
                                     -1)) {
     type.AssignLiteral("video/x-raw-yuv");
     SetContentType(type);
-    captureParams.captureAudio = false;
-    captureParams.captureVideo = true;
-    nsAutoCString buffer;
+    captureParams.captureAudio = PR_FALSE;
+    captureParams.captureVideo = PR_TRUE;
+    nsCAutoString buffer;
     extractAttributeValue(spec.get(), "width=", buffer);
     nsresult err;
     captureParams.width = buffer.ToInteger(&err);
@@ -140,19 +161,13 @@ nsDeviceChannel::OpenContentStream(bool aAsync,
     captureParams.height = buffer.ToInteger(&err);
     if (!captureParams.height)
       captureParams.height = 480;
-    extractAttributeValue(spec.get(), "camera=", buffer);
-    captureParams.camera = buffer.ToInteger(&err);
     captureParams.bpp = 32;
     captureParams.timeLimit = 0;
     captureParams.frameLimit = 60000;
-#ifdef MOZ_WIDGET_ANDROID
+#ifdef ANDROID
     
-    if (Preferences::GetBool("device.camera.enabled", false) == true)
+    if (mozilla::Preferences::GetBool("device.camera.enabled", false) == true)
       capture = GetAndroidCaptureProvider();
-#endif
-#ifdef MOZ_WIDGET_GONK
-    if (Preferences::GetBool("device.camera.enabled", false) == true)
-      capture = GetGonkCaptureProvider();
 #endif
   } else {
     return NS_ERROR_NOT_IMPLEMENTED;

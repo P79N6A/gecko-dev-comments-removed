@@ -16,7 +16,6 @@
 
 #include "common/debug.h"
 #include "libGLESv2/mathutil.h"
-#include "libGLESv2/utilities.h"
 
 #include "libEGL/main.h"
 
@@ -89,7 +88,6 @@ Display::Display(EGLNativeDisplayType displayId, HDC deviceContext, bool softwar
     mMaxSwapInterval = 1;
     mSoftwareDevice = software;
     mDisplayId = displayId;
-    mDeviceLost = false;
 }
 
 Display::~Display()
@@ -196,12 +194,6 @@ bool Display::initialize()
 
         mD3d9->GetAdapterIdentifier(mAdapter, 0, &mAdapterIdentifier);
 
-        
-        mSupportsNonPower2Textures = !(mDeviceCaps.TextureCaps & D3DPTEXTURECAPS_POW2) &&
-           !(mDeviceCaps.TextureCaps & D3DPTEXTURECAPS_CUBEMAP_POW2) &&
-           !(mDeviceCaps.TextureCaps & D3DPTEXTURECAPS_NONPOW2CONDITIONAL) &&
-           !(getComparableOSVersion() < versionWindowsVista && mAdapterIdentifier.VendorId == VENDOR_ID_AMD);
-
         const D3DFORMAT renderTargetFormats[] =
         {
             D3DFMT_A1R5G5B5,
@@ -294,15 +286,6 @@ bool Display::initialize()
 
     mDeviceWindow = CreateWindowEx(WS_EX_NOACTIVATE, className, windowName, WS_DISABLED | WS_POPUP, 0, 0, 1, 1, HWND_MESSAGE, NULL, GetModuleHandle(NULL), NULL);
 
-    if (!createDevice())
-    {
-        terminate();
-        return false;
-    }
-
-    mVertexShaderCache.initialize(mDevice);
-    mPixelShaderCache.initialize(mDevice);
-
     return true;
 }
 
@@ -318,19 +301,10 @@ void Display::terminate()
         destroyContext(*mContextSet.begin());
     }
 
-    while (!mEventQueryPool.empty())
-    {
-        mEventQueryPool.back()->Release();
-        mEventQueryPool.pop_back();
-    }
-
-    mVertexShaderCache.clear();
-    mPixelShaderCache.clear();
-
     if (mDevice)
     {
         
-        if (testDeviceLost())
+        if (isDeviceLost())
         {
             resetDevice();
         }
@@ -472,75 +446,33 @@ bool Display::createDevice()
         ASSERT(SUCCEEDED(result));
     }
 
-    initializeDevice();
-
-    return true;
-}
-
-
-
-
-void Display::initializeDevice()
-{
     
     mDevice->SetRenderState(D3DRS_POINTSPRITEENABLE, TRUE);
-    mDevice->SetRenderState(D3DRS_LASTPIXEL, FALSE);
-
-    if (mDeviceCaps.PixelShaderVersion >= D3DPS_VERSION(3, 0))
-    {
-        mDevice->SetRenderState(D3DRS_POINTSIZE_MAX, (DWORD&)mDeviceCaps.MaxPointSize);
-    }
-    else
-    {
-        mDevice->SetRenderState(D3DRS_POINTSIZE_MAX, 0x3F800000);   
-    }
 
     mSceneStarted = false;
+
+    return true;
 }
 
 bool Display::resetDevice()
 {
     D3DPRESENT_PARAMETERS presentParameters = getDefaultPresentParameters();
-
-    HRESULT result = D3D_OK;
-    bool lost = testDeviceLost();
-    int attempts = 3;    
-
-    while (lost && attempts > 0)
+    HRESULT result;
+    
+    do
     {
-        if (mDeviceEx)
-        {
-            Sleep(500);   
-            result = mDeviceEx->ResetEx(&presentParameters, NULL);
-        }
-        else
-        {
-            result = mDevice->TestCooperativeLevel();
-            
-            while (result == D3DERR_DEVICELOST)
-            {
-                Sleep(100);   
-                result = mDevice->TestCooperativeLevel();
-            }
+        Sleep(0);   
 
-            if (result == D3DERR_DEVICENOTRESET)
-            {
-                result = mDevice->Reset(&presentParameters);
-            }
-        }
-
-        lost = testDeviceLost();
-        attempts --;
+        result = mDevice->Reset(&presentParameters);
     }
+    while (result == D3DERR_DEVICELOST);
 
     if (FAILED(result))
     {
-        ERR("Reset/ResetEx failed multiple times: 0x%08X", result);
         return error(EGL_BAD_ALLOC, false);
     }
 
-    
-    initializeDevice();
+    ASSERT(SUCCEEDED(result));
 
     return true;
 }
@@ -548,7 +480,6 @@ bool Display::resetDevice()
 EGLSurface Display::createWindowSurface(HWND window, EGLConfig config, const EGLint *attribList)
 {
     const Config *configuration = mConfigSet.get(config);
-    EGLint postSubBufferSupported = EGL_FALSE;
 
     if (attribList)
     {
@@ -567,9 +498,6 @@ EGLSurface Display::createWindowSurface(HWND window, EGLConfig config, const EGL
                     return error(EGL_BAD_ATTRIBUTE, EGL_NO_SURFACE);
                 }
                 break;
-              case EGL_POST_SUB_BUFFER_SUPPORTED_NV:
-                postSubBufferSupported = attribList[1];
-                break;
               case EGL_VG_COLORSPACE:
                 return error(EGL_BAD_MATCH, EGL_NO_SURFACE);
               case EGL_VG_ALPHA_FORMAT:
@@ -587,13 +515,12 @@ EGLSurface Display::createWindowSurface(HWND window, EGLConfig config, const EGL
         return error(EGL_BAD_ALLOC, EGL_NO_SURFACE);
     }
 
-    if (testDeviceLost()) 
-    {
+    if (isDeviceLost()) {
         if (!restoreLostDevice())
             return EGL_NO_SURFACE;
     }
 
-    Surface *surface = new Surface(this, configuration, window, postSubBufferSupported);
+    Surface *surface = new Surface(this, configuration, window);
 
     if (!surface->initialize())
     {
@@ -700,8 +627,7 @@ EGLSurface Display::createOffscreenSurface(EGLConfig config, HANDLE shareHandle,
         return error(EGL_BAD_ATTRIBUTE, EGL_NO_SURFACE);
     }
 
-    if (testDeviceLost()) 
-    {
+    if (isDeviceLost()) {
         if (!restoreLostDevice())
             return EGL_NO_SURFACE;
     }
@@ -719,7 +645,7 @@ EGLSurface Display::createOffscreenSurface(EGLConfig config, HANDLE shareHandle,
     return success(surface);
 }
 
-EGLContext Display::createContext(EGLConfig configHandle, const gl::Context *shareContext, bool notifyResets, bool robustAccess)
+EGLContext Display::createContext(EGLConfig configHandle, const gl::Context *shareContext)
 {
     if (!mDevice)
     {
@@ -728,7 +654,7 @@ EGLContext Display::createContext(EGLConfig configHandle, const gl::Context *sha
             return NULL;
         }
     }
-    else if (testDeviceLost())   
+    else if (isDeviceLost())   
     {
         if (!restoreLostDevice())
             return NULL;
@@ -736,35 +662,19 @@ EGLContext Display::createContext(EGLConfig configHandle, const gl::Context *sha
 
     const egl::Config *config = mConfigSet.get(configHandle);
 
-    gl::Context *context = glCreateContext(config, shareContext, notifyResets, robustAccess);
+    gl::Context *context = glCreateContext(config, shareContext);
     mContextSet.insert(context);
-    mDeviceLost = false;
 
     return context;
 }
 
 bool Display::restoreLostDevice()
 {
-    for (ContextSet::iterator ctx = mContextSet.begin(); ctx != mContextSet.end(); ctx++)
-    {
-        if ((*ctx)->isResetNotificationEnabled())
-            return false;   
-    }
- 
     
     for (SurfaceSet::iterator surface = mSurfaceSet.begin(); surface != mSurfaceSet.end(); surface++)
     {
         (*surface)->release();
     }
-
-    while (!mEventQueryPool.empty())
-    {
-        mEventQueryPool.back()->Release();
-        mEventQueryPool.pop_back();
-    }
-
-    mVertexShaderCache.clear();
-    mPixelShaderCache.clear();
 
     if (!resetDevice())
     {
@@ -791,21 +701,6 @@ void Display::destroyContext(gl::Context *context)
 {
     glDestroyContext(context);
     mContextSet.erase(context);
-}
-
-void Display::notifyDeviceLost()
-{
-    for (ContextSet::iterator context = mContextSet.begin(); context != mContextSet.end(); context++)
-    {
-        (*context)->markContextLost();
-    }
-    mDeviceLost = true;
-    error(EGL_CONTEXT_LOST);
-}
-
-bool Display::isDeviceLost()
-{
-    return mDeviceLost;
 }
 
 bool Display::isInitialized() const
@@ -874,111 +769,18 @@ D3DADAPTER_IDENTIFIER9 *Display::getAdapterIdentifier()
     return &mAdapterIdentifier;
 }
 
-bool Display::testDeviceLost()
+bool Display::isDeviceLost()
 {
     if (mDeviceEx)
     {
         return FAILED(mDeviceEx->CheckDeviceState(NULL));
     }
-    else if (mDevice)
+    else if(mDevice)
     {
         return FAILED(mDevice->TestCooperativeLevel());
     }
 
     return false;   
-}
-
-bool Display::testDeviceResettable()
-{
-    HRESULT status = D3D_OK;
-
-    if (mDeviceEx)
-    {
-        status = mDeviceEx->CheckDeviceState(NULL);
-    }
-    else if (mDevice)
-    {
-        status = mDevice->TestCooperativeLevel();
-    }
-
-    switch (status)
-    {
-      case D3DERR_DEVICENOTRESET:
-      case D3DERR_DEVICEHUNG:
-        return true;
-      default:
-        return false;
-    }
-}
-
-void Display::sync(bool block)
-{
-    HRESULT result;
-
-    IDirect3DQuery9* query = allocateEventQuery();
-    if (!query)
-    {
-        return;
-    }
-
-    result = query->Issue(D3DISSUE_END);
-    ASSERT(SUCCEEDED(result));
-
-    do
-    {
-        result = query->GetData(NULL, 0, D3DGETDATA_FLUSH);
-
-        if(block && result == S_FALSE)
-        {
-            
-            Sleep(0);
-            
-            
-            
-            if (testDeviceLost())
-            {
-                result = D3DERR_DEVICELOST;
-            }
-        }
-    }
-    while(block && result == S_FALSE);
-
-    freeEventQuery(query);
-
-    if (isDeviceLostError(result))
-    {
-        notifyDeviceLost();
-    }
-}
-
-IDirect3DQuery9* Display::allocateEventQuery()
-{
-    IDirect3DQuery9 *query = NULL;
-
-    if (mEventQueryPool.empty())
-    {
-        HRESULT result = mDevice->CreateQuery(D3DQUERYTYPE_EVENT, &query);
-        ASSERT(SUCCEEDED(result));
-    }
-    else
-    {
-        query = mEventQueryPool.back();
-        mEventQueryPool.pop_back();
-    }
-
-    return query;
-}
-
-void Display::freeEventQuery(IDirect3DQuery9* query)
-{
-    if (mEventQueryPool.size() > 1000)
-    {
-        query->Release();
-    }
-    else
-    {
-        mEventQueryPool.push_back(query);
-    }
 }
 
 void Display::getMultiSampleSupport(D3DFORMAT format, bool *multiSampleArray)
@@ -1016,23 +818,7 @@ bool Display::getDXT5TextureSupport()
     return SUCCEEDED(mD3d9->CheckDeviceFormat(mAdapter, mDeviceType, currentDisplayMode.Format, 0, D3DRTYPE_TEXTURE, D3DFMT_DXT5));
 }
 
-
-
-
-bool Display::getDepthTextureSupport() const
-{
-    D3DDISPLAYMODE currentDisplayMode;
-    mD3d9->GetAdapterDisplayMode(mAdapter, &currentDisplayMode);
-
-    bool intz = SUCCEEDED(mD3d9->CheckDeviceFormat(mAdapter, mDeviceType, currentDisplayMode.Format,
-                                                   D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_TEXTURE, D3DFMT_INTZ));
-    bool null = SUCCEEDED(mD3d9->CheckDeviceFormat(mAdapter, mDeviceType, currentDisplayMode.Format,
-                                                   D3DUSAGE_RENDERTARGET, D3DRTYPE_SURFACE, D3DFMT_NULL));
-
-    return intz && null;
-}
-
-bool Display::getFloat32TextureSupport(bool *filtering, bool *renderable)
+bool Display::getFloatTextureSupport(bool *filtering, bool *renderable)
 {
     D3DDISPLAYMODE currentDisplayMode;
     mD3d9->GetAdapterDisplayMode(mAdapter, &currentDisplayMode);
@@ -1047,7 +833,7 @@ bool Display::getFloat32TextureSupport(bool *filtering, bool *renderable)
                   SUCCEEDED(mD3d9->CheckDeviceFormat(mAdapter, mDeviceType, currentDisplayMode.Format, D3DUSAGE_RENDERTARGET,
                                                      D3DRTYPE_CUBETEXTURE, D3DFMT_A32B32G32R32F));
 
-    if (!*filtering && !*renderable)
+    if (!filtering && !renderable)
     {
         return SUCCEEDED(mD3d9->CheckDeviceFormat(mAdapter, mDeviceType, currentDisplayMode.Format, 0, 
                                                   D3DRTYPE_TEXTURE, D3DFMT_A32B32G32R32F)) &&
@@ -1060,7 +846,7 @@ bool Display::getFloat32TextureSupport(bool *filtering, bool *renderable)
     }
 }
 
-bool Display::getFloat16TextureSupport(bool *filtering, bool *renderable)
+bool Display::getHalfFloatTextureSupport(bool *filtering, bool *renderable)
 {
     D3DDISPLAYMODE currentDisplayMode;
     mD3d9->GetAdapterDisplayMode(mAdapter, &currentDisplayMode);
@@ -1075,7 +861,7 @@ bool Display::getFloat16TextureSupport(bool *filtering, bool *renderable)
                  SUCCEEDED(mD3d9->CheckDeviceFormat(mAdapter, mDeviceType, currentDisplayMode.Format, D3DUSAGE_RENDERTARGET,
                                                     D3DRTYPE_CUBETEXTURE, D3DFMT_A16B16G16R16F));
 
-    if (!*filtering && !*renderable)
+    if (!filtering && !renderable)
     {
         return SUCCEEDED(mD3d9->CheckDeviceFormat(mAdapter, mDeviceType, currentDisplayMode.Format, 0, 
                                                   D3DRTYPE_TEXTURE, D3DFMT_A16B16G16R16F)) &&
@@ -1104,16 +890,6 @@ bool Display::getLuminanceAlphaTextureSupport()
     return SUCCEEDED(mD3d9->CheckDeviceFormat(mAdapter, mDeviceType, currentDisplayMode.Format, 0, D3DRTYPE_TEXTURE, D3DFMT_A8L8));
 }
 
-float Display::getTextureFilterAnisotropySupport() const
-{
-    
-    if ((mDeviceCaps.RasterCaps & D3DPRASTERCAPS_ANISOTROPY) && (mDeviceCaps.MaxAnisotropy >= 2))
-    {
-        return mDeviceCaps.MaxAnisotropy;
-    }
-    return 1.0f;
-}
-
 D3DPOOL Display::getBufferPool(DWORD usage) const
 {
     if (mD3d9Ex != NULL)
@@ -1131,35 +907,16 @@ D3DPOOL Display::getBufferPool(DWORD usage) const
     return D3DPOOL_DEFAULT;
 }
 
-D3DPOOL Display::getTexturePool(DWORD usage) const
-{
-    if (mD3d9Ex != NULL)
-    {
-        return D3DPOOL_DEFAULT;
-    }
-    else
-    {
-        if (!(usage & (D3DUSAGE_DEPTHSTENCIL | D3DUSAGE_RENDERTARGET)))
-        {
-            return D3DPOOL_MANAGED;
-        }
-    }
-
-    return D3DPOOL_DEFAULT;
-}
-
 bool Display::getEventQuerySupport()
 {
-    IDirect3DQuery9 *query = allocateEventQuery();
-    if (query)
+    IDirect3DQuery9 *query;
+    HRESULT result = mDevice->CreateQuery(D3DQUERYTYPE_EVENT, &query);
+    if (SUCCEEDED(result))
     {
-        freeEventQuery(query);
-        return true;
+        query->Release();
     }
-    else
-    {
-        return false;
-    }
+
+    return result != D3DERR_NOTAVAILABLE;
 }
 
 D3DPRESENT_PARAMETERS Display::getDefaultPresentParameters()
@@ -1187,15 +944,11 @@ D3DPRESENT_PARAMETERS Display::getDefaultPresentParameters()
 void Display::initExtensionString()
 {
     HMODULE swiftShader = GetModuleHandle(TEXT("swiftshader_d3d9.dll"));
+    bool isd3d9ex = isD3d9ExDevice();
 
     mExtensionString = "";
 
-    
-    mExtensionString += "EGL_EXT_create_context_robustness ";
-
-    
-    if (shareHandleSupported())
-    {
+    if (isd3d9ex) {
         mExtensionString += "EGL_ANGLE_d3d_share_handle_client_buffer ";
     }
 
@@ -1203,15 +956,12 @@ void Display::initExtensionString()
 
     if (swiftShader)
     {
-        mExtensionString += "EGL_ANGLE_software_display ";
+      mExtensionString += "EGL_ANGLE_software_display ";
     }
 
-    if (shareHandleSupported())
-    {
+    if (isd3d9ex) {
         mExtensionString += "EGL_ANGLE_surface_d3d_texture_2d_share_handle ";
     }
-
-    mExtensionString += "EGL_NV_post_sub_buffer";
 
     std::string::size_type end = mExtensionString.find_last_not_of(' ');
     if (end != std::string::npos)
@@ -1223,22 +973,6 @@ void Display::initExtensionString()
 const char *Display::getExtensionString() const
 {
     return mExtensionString.c_str();
-}
-
-bool Display::shareHandleSupported() const 
-{
-    
-    return isD3d9ExDevice() && !gl::perfActive();
-}
-
-IDirect3DVertexShader9 *Display::createVertexShader(const DWORD *function, size_t length)
-{
-    return mVertexShaderCache.create(function, length);
-}
-
-IDirect3DPixelShader9 *Display::createPixelShader(const DWORD *function, size_t length)
-{
-    return mPixelShaderCache.create(function, length);
 }
 
 
@@ -1260,33 +994,9 @@ bool Display::getVertexTextureSupport() const
 
 bool Display::getNonPower2TextureSupport() const
 {
-    return mSupportsNonPower2Textures;
-}
-
-bool Display::getOcclusionQuerySupport() const
-{
-    if (!isInitialized())
-    {
-        return false;
-    }
-
-    IDirect3DQuery9 *query = NULL;
-    HRESULT result = mDevice->CreateQuery(D3DQUERYTYPE_OCCLUSION, &query);
-    
-    if (SUCCEEDED(result) && query)
-    {
-        query->Release();
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-bool Display::getInstancingSupport() const
-{
-    return mDeviceCaps.PixelShaderVersion >= D3DPS_VERSION(3, 0); 
+    return !(mDeviceCaps.TextureCaps & D3DPTEXTURECAPS_POW2) &&
+           !(mDeviceCaps.TextureCaps & D3DPTEXTURECAPS_CUBEMAP_POW2) &&
+           !(mDeviceCaps.TextureCaps & D3DPTEXTURECAPS_NONPOW2CONDITIONAL);
 }
 
 }

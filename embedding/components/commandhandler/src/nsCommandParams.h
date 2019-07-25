@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsCommandParams_h__
 #define nsCommandParams_h__
 
@@ -37,11 +69,11 @@ protected:
   {
     nsCString      mEntryName;
 
-    uint8_t       mEntryType;
+    PRUint8       mEntryType;
     union {
     
       bool                    mBoolean;
-      int32_t                 mLong;
+      PRInt32                 mLong;
       double                  mDouble;
       nsString*               mString;
       nsCString*              mCString;
@@ -49,7 +81,7 @@ protected:
 
     nsCOMPtr<nsISupports>   mISupports;    
     
-    HashEntry(uint8_t inType, const char * inEntryName)
+    HashEntry(PRUint8 inType, const char * inEntryName)
     : mEntryName(inEntryName)
     , mEntryType(inType)
     {
@@ -90,17 +122,17 @@ protected:
         delete mData.mCString;
     }
     
-    void Reset(uint8_t inNewType)
+    void Reset(PRUint8 inNewType)
     {
       switch (mEntryType)
       {
         case eNoType:                                       break;
-        case eBooleanType:      mData.mBoolean = false;  break;
+        case eBooleanType:      mData.mBoolean = PR_FALSE;  break;
         case eLongType:         mData.mLong = 0;            break;
         case eDoubleType:       mData.mDouble = 0.0;        break;
-        case eWStringType:      delete mData.mString; mData.mString = nullptr;     break;
-        case eISupportsType:    mISupports = nullptr;        break;    
-        case eStringType:       delete mData.mCString; mData.mCString = nullptr;   break;
+        case eWStringType:      delete mData.mString; mData.mString = nsnull;     break;
+        case eISupportsType:    mISupports = nsnull;        break;    
+        case eStringType:       delete mData.mCString; mData.mCString = nsnull;   break;
         default:
           NS_ERROR("Unknown type");
       }
@@ -112,10 +144,10 @@ protected:
 
 
   HashEntry*          GetNamedEntry(const char * name);
-  HashEntry*          GetIndexedEntry(int32_t index);
-  uint32_t            GetNumEntries();
+  HashEntry*          GetIndexedEntry(PRInt32 index);
+  PRUint32            GetNumEntries();
   
-  nsresult            GetOrMakeEntry(const char * name, uint8_t entryType, HashEntry*& outEntry);
+  nsresult            GetOrMakeEntry(const char * name, PRUint8 entryType, HashEntry*& outEntry);
   
 protected:
 
@@ -144,8 +176,8 @@ protected:
   PLDHashTable    mValuesHash;
   
   
-  int32_t         mCurEntry;
-  int32_t         mNumEntries;      
+  PRInt32         mCurEntry;
+  PRInt32         mNumEntries;      
     
   static PLDHashTableOps    sHashOps;
 };

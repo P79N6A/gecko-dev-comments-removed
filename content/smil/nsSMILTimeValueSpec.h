@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_SMILTIMEVALUESPEC_H_
 #define NS_SMILTIMEVALUESPEC_H_
 
@@ -61,7 +93,6 @@ protected:
   void UpdateReferencedElement(Element* aFrom, Element* aTo);
   void UnregisterFromReferencedElement(Element* aElement);
   nsSMILTimedElement* GetTimedElement(Element* aElement);
-  bool IsWhitelistedEvent();
   void RegisterEventListener(Element* aElement);
   void UnregisterEventListener(Element* aElement);
   nsEventListenerManager* GetEventListenerManager(Element* aElement);
@@ -71,7 +102,6 @@ protected:
   bool CheckAccessKeyEventDetail(nsIDOMEvent* aEvent);
   nsSMILTimeValue ConvertBetweenTimeContainers(const nsSMILTimeValue& aSrcTime,
                                       const nsSMILTimeContainer* aSrcContainer);
-  bool ApplyOffset(nsSMILTimeValue& aTime) const;
 
   nsSMILTimedElement*           mOwner;
   bool                          mIsBegin; 
@@ -104,13 +134,13 @@ protected:
 
   TimeReferenceElement mReferencedElement;
 
-  class EventListener MOZ_FINAL : public nsIDOMEventListener
+  class EventListener : public nsIDOMEventListener
   {
   public:
     EventListener(nsSMILTimeValueSpec* aOwner) : mSpec(aOwner) { }
     void Disconnect()
     {
-      mSpec = nullptr;
+      mSpec = nsnull;
     }
 
     NS_DECL_ISUPPORTS

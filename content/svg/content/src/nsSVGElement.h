@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGELEMENT_H__
 #define __NS_SVGELEMENT_H__
 
@@ -11,30 +44,32 @@
 
 
 
-#include "mozilla/css/StyleRule.h"
-#include "nsAutoPtr.h"
-#include "nsChangeHint.h"
+#include "nsString.h"
 #include "nsCOMPtr.h"
-#include "nsCycleCollectionParticipant.h"
-#include "nsError.h"
+#include "nsIDOMSVGElement.h"
 #include "nsGenericElement.h"
-#include "nsISupportsImpl.h"
 #include "nsStyledElement.h"
+#include "mozilla/css/StyleRule.h"
 
-class nsIDOMSVGElement;
-class nsIDOMSVGSVGElement;
-class nsSVGAngle;
-class nsSVGBoolean;
-class nsSVGEnum;
-class nsSVGInteger;
-class nsSVGIntegerPair;
+#ifdef MOZ_SMIL
+#include "nsISMILAttr.h"
+#include "nsSMILAnimationController.h"
+#endif
+
+class nsSVGSVGElement;
 class nsSVGLength2;
 class nsSVGNumber2;
 class nsSVGNumberPair;
-class nsSVGString;
-class nsSVGSVGElement;
+class nsSVGInteger;
+class nsSVGIntegerPair;
+class nsSVGAngle;
+class nsSVGBoolean;
+class nsSVGEnum;
+struct nsSVGEnumMapping;
 class nsSVGViewBox;
-
+class nsSVGString;
+class nsSVGClass;
+struct gfxMatrix;
 namespace mozilla {
 class SVGAnimatedNumberList;
 class SVGNumberList;
@@ -44,12 +79,7 @@ class SVGAnimatedPointList;
 class SVGAnimatedPathSegList;
 class SVGAnimatedPreserveAspectRatio;
 class SVGAnimatedTransformList;
-class SVGStringList;
-class DOMSVGStringList;
 }
-
-struct gfxMatrix;
-struct nsSVGEnumMapping;
 
 typedef nsStyledElementNotElementCSSInlineStyle nsSVGElementBase;
 
@@ -69,7 +99,6 @@ public:
   typedef mozilla::SVGAnimatedPathSegList SVGAnimatedPathSegList;
   typedef mozilla::SVGAnimatedPreserveAspectRatio SVGAnimatedPreserveAspectRatio;
   typedef mozilla::SVGAnimatedTransformList SVGAnimatedTransformList;
-  typedef mozilla::SVGStringList SVGStringList;
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -80,17 +109,15 @@ public:
                               nsIContent* aBindingParent,
                               bool aCompileEventHandlers);
 
-  virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
+  virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
                              bool aNotify);
 
   virtual nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute,
-                                              int32_t aModType) const;
+                                              PRInt32 aModType) const;
 
-  virtual bool IsNodeOfType(uint32_t aFlags) const;
+  virtual bool IsNodeOfType(PRUint32 aFlags) const;
 
   NS_IMETHOD WalkContentStyleRules(nsRuleWalker* aRuleWalker);
-
-  NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;
 
   static const MappedAttributeEntry sFillStrokeMap[];
   static const MappedAttributeEntry sGraphicsMap[];
@@ -119,187 +146,110 @@ public:
   
   nsSVGSVGElement* GetCtx() const;
 
-  enum TransformTypes {
-     eAllTransforms
-    ,eUserSpaceToParent
-    ,eChildToUserSpace
-  };
   
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  virtual gfxMatrix PrependLocalTransformsTo(const gfxMatrix &aMatrix,
-                      TransformTypes aWhich = eAllTransforms) const;
+  virtual gfxMatrix PrependLocalTransformTo(const gfxMatrix &aMatrix) const;
 
   
   
   
   virtual void SetAnimateMotionTransform(const gfxMatrix* aMatrix) {}
-  virtual const gfxMatrix* GetAnimateMotionTransform() const { return nullptr; }
 
-  bool IsStringAnimatable(uint8_t aAttrEnum) {
+  bool IsStringAnimatable(PRUint8 aAttrEnum) {
     return GetStringInfo().mStringInfo[aAttrEnum].mIsAnimatable;
   }
-  bool NumberAttrAllowsPercentage(uint8_t aAttrEnum) {
+  bool NumberAttrAllowsPercentage(PRUint8 aAttrEnum) {
     return GetNumberInfo().mNumberInfo[aAttrEnum].mPercentagesAllowed;
   }
-  virtual bool HasValidDimensions() const {
-    return true;
-  }
   void SetLength(nsIAtom* aName, const nsSVGLength2 &aLength);
+  virtual void DidChangeLength(PRUint8 aAttrEnum, bool aDoSetAttr);
+  virtual void DidChangeNumber(PRUint8 aAttrEnum, bool aDoSetAttr);
+  virtual void DidChangeNumberPair(PRUint8 aAttrEnum, bool aDoSetAttr);
+  virtual void DidChangeInteger(PRUint8 aAttrEnum, bool aDoSetAttr);
+  virtual void DidChangeIntegerPair(PRUint8 aAttrEnum, bool aDoSetAttr);
+  virtual void DidChangeAngle(PRUint8 aAttrEnum, bool aDoSetAttr);
+  virtual void DidChangeBoolean(PRUint8 aAttrEnum, bool aDoSetAttr);
+  virtual void DidChangeEnum(PRUint8 aAttrEnum, bool aDoSetAttr);
+  virtual void DidChangeViewBox(bool aDoSetAttr);
+  virtual void DidChangePreserveAspectRatio(bool aDoSetAttr);
+  virtual void DidChangeNumberList(PRUint8 aAttrEnum, bool aDoSetAttr);
+  virtual void DidChangeLengthList(PRUint8 aAttrEnum, bool aDoSetAttr);
+  virtual void DidChangePointList(bool aDoSetAttr);
+  virtual void DidChangePathSegList(bool aDoSetAttr);
+  virtual void DidChangeTransformList(bool aDoSetAttr);
+  virtual void DidChangeString(PRUint8 aAttrEnum) {}
 
-  nsAttrValue WillChangeLength(uint8_t aAttrEnum);
-  nsAttrValue WillChangeNumberPair(uint8_t aAttrEnum);
-  nsAttrValue WillChangeIntegerPair(uint8_t aAttrEnum);
-  nsAttrValue WillChangeAngle(uint8_t aAttrEnum);
-  nsAttrValue WillChangeViewBox();
-  nsAttrValue WillChangePreserveAspectRatio();
-  nsAttrValue WillChangeNumberList(uint8_t aAttrEnum);
-  nsAttrValue WillChangeLengthList(uint8_t aAttrEnum);
-  nsAttrValue WillChangePointList();
-  nsAttrValue WillChangePathSegList();
-  nsAttrValue WillChangeTransformList();
-  nsAttrValue WillChangeStringList(bool aIsConditionalProcessingAttribute,
-                                   uint8_t aAttrEnum);
+  virtual void DidAnimateLength(PRUint8 aAttrEnum);
+  virtual void DidAnimateNumber(PRUint8 aAttrEnum);
+  virtual void DidAnimateNumberPair(PRUint8 aAttrEnum);
+  virtual void DidAnimateInteger(PRUint8 aAttrEnum);
+  virtual void DidAnimateIntegerPair(PRUint8 aAttrEnum);
+  virtual void DidAnimateAngle(PRUint8 aAttrEnum);
+  virtual void DidAnimateBoolean(PRUint8 aAttrEnum);
+  virtual void DidAnimateEnum(PRUint8 aAttrEnum);
+  virtual void DidAnimateViewBox();
+  virtual void DidAnimatePreserveAspectRatio();
+  virtual void DidAnimateNumberList(PRUint8 aAttrEnum);
+  virtual void DidAnimateLengthList(PRUint8 aAttrEnum);
+  virtual void DidAnimatePointList();
+  virtual void DidAnimatePathSegList();
+  virtual void DidAnimateTransformList();
+  virtual void DidAnimateString(PRUint8 aAttrEnum);
+  virtual void DidAnimateClass();
 
-  void DidChangeLength(uint8_t aAttrEnum, const nsAttrValue& aEmptyOrOldValue);
-  void DidChangeNumber(uint8_t aAttrEnum);
-  void DidChangeNumberPair(uint8_t aAttrEnum,
-                           const nsAttrValue& aEmptyOrOldValue);
-  void DidChangeInteger(uint8_t aAttrEnum);
-  void DidChangeIntegerPair(uint8_t aAttrEnum,
-                            const nsAttrValue& aEmptyOrOldValue);
-  void DidChangeAngle(uint8_t aAttrEnum, const nsAttrValue& aEmptyOrOldValue);
-  void DidChangeBoolean(uint8_t aAttrEnum);
-  void DidChangeEnum(uint8_t aAttrEnum);
-  void DidChangeViewBox(const nsAttrValue& aEmptyOrOldValue);
-  void DidChangePreserveAspectRatio(const nsAttrValue& aEmptyOrOldValue);
-  void DidChangeNumberList(uint8_t aAttrEnum,
-                           const nsAttrValue& aEmptyOrOldValue);
-  void DidChangeLengthList(uint8_t aAttrEnum,
-                           const nsAttrValue& aEmptyOrOldValue);
-  void DidChangePointList(const nsAttrValue& aEmptyOrOldValue);
-  void DidChangePathSegList(const nsAttrValue& aEmptyOrOldValue);
-  void DidChangeTransformList(const nsAttrValue& aEmptyOrOldValue);
-  void DidChangeString(uint8_t aAttrEnum) {}
-  void DidChangeStringList(bool aIsConditionalProcessingAttribute,
-                           uint8_t aAttrEnum,
-                           const nsAttrValue& aEmptyOrOldValue);
-
-  void DidAnimateLength(uint8_t aAttrEnum);
-  void DidAnimateNumber(uint8_t aAttrEnum);
-  void DidAnimateNumberPair(uint8_t aAttrEnum);
-  void DidAnimateInteger(uint8_t aAttrEnum);
-  void DidAnimateIntegerPair(uint8_t aAttrEnum);
-  void DidAnimateAngle(uint8_t aAttrEnum);
-  void DidAnimateBoolean(uint8_t aAttrEnum);
-  void DidAnimateEnum(uint8_t aAttrEnum);
-  void DidAnimateViewBox();
-  void DidAnimatePreserveAspectRatio();
-  void DidAnimateNumberList(uint8_t aAttrEnum);
-  void DidAnimateLengthList(uint8_t aAttrEnum);
-  void DidAnimatePointList();
-  void DidAnimatePathSegList();
-  void DidAnimateTransformList();
-  void DidAnimateString(uint8_t aAttrEnum);
-
-  enum {
-    
-
-
-
-
-
-    DO_ALLOCATE = 0x1
-  };
-
-  nsSVGLength2* GetAnimatedLength(const nsIAtom *aAttrName);
   void GetAnimatedLengthValues(float *aFirst, ...);
   void GetAnimatedNumberValues(float *aFirst, ...);
-  void GetAnimatedIntegerValues(int32_t *aFirst, ...);
-  SVGAnimatedNumberList* GetAnimatedNumberList(uint8_t aAttrEnum);
+  void GetAnimatedIntegerValues(PRInt32 *aFirst, ...);
+  SVGAnimatedNumberList* GetAnimatedNumberList(PRUint8 aAttrEnum);
   SVGAnimatedNumberList* GetAnimatedNumberList(nsIAtom *aAttrName);
   void GetAnimatedLengthListValues(SVGUserUnitList *aFirst, ...);
-  SVGAnimatedLengthList* GetAnimatedLengthList(uint8_t aAttrEnum);
+  SVGAnimatedLengthList* GetAnimatedLengthList(PRUint8 aAttrEnum);
   virtual SVGAnimatedPointList* GetAnimatedPointList() {
-    return nullptr;
+    return nsnull;
   }
   virtual SVGAnimatedPathSegList* GetAnimPathSegList() {
     
     
     
     
-    return nullptr;
+    return nsnull;
   }
   
-
-
-
-
-
-
-
-
-
-
-
-  virtual SVGAnimatedTransformList* GetAnimatedTransformList(
-                                                        uint32_t aFlags = 0) {
-    return nullptr;
+  
+  virtual SVGAnimatedTransformList* GetAnimatedTransformList() {
+    return nsnull;
   }
 
-  virtual nsISMILAttr* GetAnimatedAttr(int32_t aNamespaceID, nsIAtom* aName);
+#ifdef MOZ_SMIL
+  virtual nsISMILAttr* GetAnimatedAttr(PRInt32 aNamespaceID, nsIAtom* aName);
   void AnimationNeedsResample();
   void FlushAnimations();
+#else
+  void AnimationNeedsResample() {  }
+  void FlushAnimations() {  }
+#endif
 
   virtual void RecompileScriptEventListeners();
 
-  void GetStringBaseValue(uint8_t aAttrEnum, nsAString& aResult) const;
-  void SetStringBaseValue(uint8_t aAttrEnum, const nsAString& aValue);
+  void GetStringBaseValue(PRUint8 aAttrEnum, nsAString& aResult) const;
+  void SetStringBaseValue(PRUint8 aAttrEnum, const nsAString& aValue);
 
   virtual nsIAtom* GetPointListAttrName() const {
-    return nullptr;
+    return nsnull;
   }
   virtual nsIAtom* GetPathDataAttrName() const {
-    return nullptr;
+    return nsnull;
   }
   virtual nsIAtom* GetTransformListAttrName() const {
-    return nullptr;
+    return nsnull;
   }
 
 protected:
-#ifdef DEBUG
-  
-  
-  
-  
-  
-  virtual nsresult BeforeSetAttr(int32_t aNamespaceID, nsIAtom* aName,
-                                 const nsAttrValueOrString* aValue,
-                                 bool aNotify) MOZ_FINAL { return NS_OK; }
-#endif 
-  virtual nsresult AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
-                                const nsAttrValue* aValue, bool aNotify);
-  virtual bool ParseAttribute(int32_t aNamespaceID, nsIAtom* aAttribute,
+  virtual nsresult AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
+                                const nsAString* aValue, bool aNotify);
+  virtual bool ParseAttribute(PRInt32 aNamespaceID, nsIAtom* aAttribute,
                                 const nsAString& aValue, nsAttrValue& aResult);
   static nsresult ReportAttributeParseFailure(nsIDocument* aDocument,
                                               nsIAtom* aAttribute,
@@ -309,35 +259,32 @@ protected:
   virtual bool IsEventName(nsIAtom* aName);
 
   void UpdateContentStyleRule();
+#ifdef MOZ_SMIL
   void UpdateAnimatedContentStyleRule();
   mozilla::css::StyleRule* GetAnimatedContentStyleRule();
-
-  nsAttrValue WillChangeValue(nsIAtom* aName);
-  void DidChangeValue(nsIAtom* aName, const nsAttrValue& aEmptyOrOldValue,
-                      nsAttrValue& aNewValue);
-  void MaybeSerializeAttrBeforeRemoval(nsIAtom* aName, bool aNotify);
+#endif 
 
   static nsIAtom* GetEventNameForAttr(nsIAtom* aAttr);
 
   struct LengthInfo {
     nsIAtom** mName;
     float     mDefaultValue;
-    uint8_t   mDefaultUnitType;
-    uint8_t   mCtxType;
+    PRUint8   mDefaultUnitType;
+    PRUint8   mCtxType;
   };
 
   struct LengthAttributesInfo {
     nsSVGLength2* mLengths;
     LengthInfo*   mLengthInfo;
-    uint32_t      mLengthCount;
+    PRUint32      mLengthCount;
 
     LengthAttributesInfo(nsSVGLength2 *aLengths,
                          LengthInfo *aLengthInfo,
-                         uint32_t aLengthCount) :
+                         PRUint32 aLengthCount) :
       mLengths(aLengths), mLengthInfo(aLengthInfo), mLengthCount(aLengthCount)
       {}
 
-    void Reset(uint8_t aAttrEnum);
+    void Reset(PRUint8 aAttrEnum);
   };
 
   struct NumberInfo {
@@ -349,15 +296,15 @@ protected:
   struct NumberAttributesInfo {
     nsSVGNumber2* mNumbers;
     NumberInfo*   mNumberInfo;
-    uint32_t      mNumberCount;
+    PRUint32      mNumberCount;
 
     NumberAttributesInfo(nsSVGNumber2 *aNumbers,
                          NumberInfo *aNumberInfo,
-                         uint32_t aNumberCount) :
+                         PRUint32 aNumberCount) :
       mNumbers(aNumbers), mNumberInfo(aNumberInfo), mNumberCount(aNumberCount)
       {}
 
-    void Reset(uint8_t aAttrEnum);
+    void Reset(PRUint8 aAttrEnum);
   };
 
   struct NumberPairInfo {
@@ -369,76 +316,76 @@ protected:
   struct NumberPairAttributesInfo {
     nsSVGNumberPair* mNumberPairs;
     NumberPairInfo*  mNumberPairInfo;
-    uint32_t         mNumberPairCount;
+    PRUint32         mNumberPairCount;
 
     NumberPairAttributesInfo(nsSVGNumberPair *aNumberPairs,
                              NumberPairInfo *aNumberPairInfo,
-                             uint32_t aNumberPairCount) :
+                             PRUint32 aNumberPairCount) :
       mNumberPairs(aNumberPairs), mNumberPairInfo(aNumberPairInfo),
       mNumberPairCount(aNumberPairCount)
       {}
 
-    void Reset(uint8_t aAttrEnum);
+    void Reset(PRUint8 aAttrEnum);
   };
 
   struct IntegerInfo {
     nsIAtom** mName;
-    int32_t   mDefaultValue;
+    PRInt32   mDefaultValue;
   };
 
   struct IntegerAttributesInfo {
     nsSVGInteger* mIntegers;
     IntegerInfo*  mIntegerInfo;
-    uint32_t      mIntegerCount;
+    PRUint32      mIntegerCount;
 
     IntegerAttributesInfo(nsSVGInteger *aIntegers,
                           IntegerInfo *aIntegerInfo,
-                          uint32_t aIntegerCount) :
+                          PRUint32 aIntegerCount) :
       mIntegers(aIntegers), mIntegerInfo(aIntegerInfo), mIntegerCount(aIntegerCount)
       {}
 
-    void Reset(uint8_t aAttrEnum);
+    void Reset(PRUint8 aAttrEnum);
   };
 
   struct IntegerPairInfo {
     nsIAtom** mName;
-    int32_t   mDefaultValue1;
-    int32_t   mDefaultValue2;
+    PRInt32   mDefaultValue1;
+    PRInt32   mDefaultValue2;
   };
 
   struct IntegerPairAttributesInfo {
     nsSVGIntegerPair* mIntegerPairs;
     IntegerPairInfo*  mIntegerPairInfo;
-    uint32_t          mIntegerPairCount;
+    PRUint32          mIntegerPairCount;
 
     IntegerPairAttributesInfo(nsSVGIntegerPair *aIntegerPairs,
                               IntegerPairInfo *aIntegerPairInfo,
-                              uint32_t aIntegerPairCount) :
+                              PRUint32 aIntegerPairCount) :
       mIntegerPairs(aIntegerPairs), mIntegerPairInfo(aIntegerPairInfo),
       mIntegerPairCount(aIntegerPairCount)
       {}
 
-    void Reset(uint8_t aAttrEnum);
+    void Reset(PRUint8 aAttrEnum);
   };
 
   struct AngleInfo {
     nsIAtom** mName;
     float     mDefaultValue;
-    uint8_t   mDefaultUnitType;
+    PRUint8   mDefaultUnitType;
   };
 
   struct AngleAttributesInfo {
     nsSVGAngle* mAngles;
     AngleInfo*  mAngleInfo;
-    uint32_t    mAngleCount;
+    PRUint32    mAngleCount;
 
     AngleAttributesInfo(nsSVGAngle *aAngles,
                         AngleInfo *aAngleInfo,
-                        uint32_t aAngleCount) :
+                        PRUint32 aAngleCount) :
       mAngles(aAngles), mAngleInfo(aAngleInfo), mAngleCount(aAngleCount)
       {}
 
-    void Reset(uint8_t aAttrEnum);
+    void Reset(PRUint8 aAttrEnum);
   };
 
   struct BooleanInfo {
@@ -449,15 +396,15 @@ protected:
   struct BooleanAttributesInfo {
     nsSVGBoolean* mBooleans;
     BooleanInfo*  mBooleanInfo;
-    uint32_t      mBooleanCount;
+    PRUint32      mBooleanCount;
 
     BooleanAttributesInfo(nsSVGBoolean *aBooleans,
                           BooleanInfo *aBooleanInfo,
-                          uint32_t aBooleanCount) :
+                          PRUint32 aBooleanCount) :
       mBooleans(aBooleans), mBooleanInfo(aBooleanInfo), mBooleanCount(aBooleanCount)
       {}
 
-    void Reset(uint8_t aAttrEnum);
+    void Reset(PRUint8 aAttrEnum);
   };
 
   friend class nsSVGEnum;
@@ -465,21 +412,21 @@ protected:
   struct EnumInfo {
     nsIAtom**         mName;
     nsSVGEnumMapping* mMapping;
-    uint16_t          mDefaultValue;
+    PRUint16          mDefaultValue;
   };
 
   struct EnumAttributesInfo {
     nsSVGEnum* mEnums;
     EnumInfo*  mEnumInfo;
-    uint32_t   mEnumCount;
+    PRUint32   mEnumCount;
 
     EnumAttributesInfo(nsSVGEnum *aEnums,
                        EnumInfo *aEnumInfo,
-                       uint32_t aEnumCount) :
+                       PRUint32 aEnumCount) :
       mEnums(aEnums), mEnumInfo(aEnumInfo), mEnumCount(aEnumCount)
       {}
 
-    void Reset(uint8_t aAttrEnum);
+    void Reset(PRUint8 aAttrEnum);
   };
 
   struct NumberListInfo {
@@ -489,22 +436,22 @@ protected:
   struct NumberListAttributesInfo {
     SVGAnimatedNumberList* mNumberLists;
     NumberListInfo*        mNumberListInfo;
-    uint32_t               mNumberListCount;
+    PRUint32               mNumberListCount;
 
     NumberListAttributesInfo(SVGAnimatedNumberList *aNumberLists,
                              NumberListInfo *aNumberListInfo,
-                             uint32_t aNumberListCount)
+                             PRUint32 aNumberListCount)
       : mNumberLists(aNumberLists)
       , mNumberListInfo(aNumberListInfo)
       , mNumberListCount(aNumberListCount)
     {}
 
-    void Reset(uint8_t aAttrEnum);
+    void Reset(PRUint8 aAttrEnum);
   };
 
   struct LengthListInfo {
     nsIAtom** mName;
-    uint8_t   mAxis;
+    PRUint8   mAxis;
     
 
 
@@ -519,58 +466,37 @@ protected:
   struct LengthListAttributesInfo {
     SVGAnimatedLengthList* mLengthLists;
     LengthListInfo*        mLengthListInfo;
-    uint32_t               mLengthListCount;
+    PRUint32               mLengthListCount;
 
     LengthListAttributesInfo(SVGAnimatedLengthList *aLengthLists,
                              LengthListInfo *aLengthListInfo,
-                             uint32_t aLengthListCount)
+                             PRUint32 aLengthListCount)
       : mLengthLists(aLengthLists)
       , mLengthListInfo(aLengthListInfo)
       , mLengthListCount(aLengthListCount)
     {}
 
-    void Reset(uint8_t aAttrEnum);
+    void Reset(PRUint8 aAttrEnum);
   };
 
   struct StringInfo {
     nsIAtom**    mName;
-    int32_t      mNamespaceID;
+    PRInt32      mNamespaceID;
     bool mIsAnimatable;
   };
 
   struct StringAttributesInfo {
     nsSVGString*  mStrings;
     StringInfo*   mStringInfo;
-    uint32_t      mStringCount;
+    PRUint32      mStringCount;
 
     StringAttributesInfo(nsSVGString *aStrings,
                          StringInfo *aStringInfo,
-                         uint32_t aStringCount) :
+                         PRUint32 aStringCount) :
       mStrings(aStrings), mStringInfo(aStringInfo), mStringCount(aStringCount)
       {}
 
-    void Reset(uint8_t aAttrEnum);
-  };
-
-  friend class mozilla::DOMSVGStringList;
-
-  struct StringListInfo {
-    nsIAtom**    mName;
-  };
-
-  struct StringListAttributesInfo {
-    SVGStringList*    mStringLists;
-    StringListInfo*   mStringListInfo;
-    uint32_t          mStringListCount;
-
-    StringListAttributesInfo(SVGStringList  *aStringLists,
-                             StringListInfo *aStringListInfo,
-                             uint32_t aStringListCount) :
-      mStringLists(aStringLists), mStringListInfo(aStringListInfo),
-      mStringListCount(aStringListCount)
-      {}
-
-    void Reset(uint8_t aAttrEnum);
+    void Reset(PRUint8 aAttrEnum);
   };
 
   virtual LengthAttributesInfo GetLengthInfo();
@@ -588,14 +514,11 @@ protected:
   virtual NumberListAttributesInfo GetNumberListInfo();
   virtual LengthListAttributesInfo GetLengthListInfo();
   virtual StringAttributesInfo GetStringInfo();
-  virtual StringListAttributesInfo GetStringListInfo();
+  virtual nsSVGClass *GetClass();
 
   static nsSVGEnumMapping sSVGUnitTypesMap[];
 
 private:
-  void UnsetAttrInternal(int32_t aNameSpaceID, nsIAtom* aAttribute,
-                         bool aNotify);
-
   nsRefPtr<mozilla::css::StyleRule> mContentStyleRule;
 };
 
@@ -609,6 +532,8 @@ NS_NewSVG##_elementName##Element(nsIContent **aResult,                       \
 {                                                                            \
   nsRefPtr<nsSVG##_elementName##Element> it =                                \
     new nsSVG##_elementName##Element(aNodeInfo);                             \
+  if (!it)                                                                   \
+    return NS_ERROR_OUT_OF_MEMORY;                                           \
                                                                              \
   nsresult rv = it->Init();                                                  \
                                                                              \
@@ -616,7 +541,7 @@ NS_NewSVG##_elementName##Element(nsIContent **aResult,                       \
     return rv;                                                               \
   }                                                                          \
                                                                              \
-  it.forget(aResult);                                                        \
+  *aResult = it.forget().get();                                              \
                                                                              \
   return rv;                                                                 \
 }
@@ -629,6 +554,8 @@ NS_NewSVG##_elementName##Element(nsIContent **aResult,                       \
 {                                                                            \
   nsRefPtr<nsSVG##_elementName##Element> it =                                \
     new nsSVG##_elementName##Element(aNodeInfo, aFromParser);                \
+  if (!it)                                                                   \
+    return NS_ERROR_OUT_OF_MEMORY;                                           \
                                                                              \
   nsresult rv = it->Init();                                                  \
                                                                              \
@@ -636,7 +563,7 @@ NS_NewSVG##_elementName##Element(nsIContent **aResult,                       \
     return rv;                                                               \
   }                                                                          \
                                                                              \
-  it.forget(aResult);                                                        \
+  *aResult = it.forget().get();                                              \
                                                                              \
   return rv;                                                                 \
 }

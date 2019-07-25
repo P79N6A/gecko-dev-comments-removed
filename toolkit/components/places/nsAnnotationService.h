@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsAnnotationService_h___
 #define nsAnnotationService_h___
 
@@ -10,22 +44,14 @@
 #include "nsTArray.h"
 #include "nsCOMArray.h"
 #include "nsCOMPtr.h"
+#include "mozIStorageService.h"
+#include "mozIStorageConnection.h"
 #include "nsServiceManagerUtils.h"
-#include "nsWeakReference.h"
 #include "nsToolkitCompsCID.h"
-#include "Database.h"
-#include "nsString.h"
-#include "mozilla/Attributes.h"
 
-class nsAnnotationService MOZ_FINAL : public nsIAnnotationService
-                                    , public nsIObserver
-                                    , public nsSupportsWeakReference
+class nsAnnotationService : public nsIAnnotationService
 {
 public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIANNOTATIONSERVICE
-  NS_DECL_NSIOBSERVER
-
   nsAnnotationService();
 
   
@@ -37,6 +63,8 @@ public:
 
 
   nsresult Init();
+
+  static nsresult InitTables(mozIStorageConnection* aDBConn);
 
   static nsAnnotationService* GetAnnotationServiceIfAvailable() {
     return gAnnotationService;
@@ -51,21 +79,47 @@ public:
     if (!gAnnotationService) {
       nsCOMPtr<nsIAnnotationService> serv =
         do_GetService(NS_ANNOTATIONSERVICE_CONTRACTID);
-      NS_ENSURE_TRUE(serv, nullptr);
+      NS_ENSURE_TRUE(serv, nsnull);
       NS_ASSERTION(gAnnotationService,
                    "Should have static instance pointer now");
     }
     return gAnnotationService;
   }
 
+  
+
+
+  nsresult FinalizeStatements();
+
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIANNOTATIONSERVICE
+
 private:
   ~nsAnnotationService();
 
 protected:
-  nsRefPtr<mozilla::places::Database> mDB;
+  nsCOMPtr<mozIStorageService> mDBService;
+  nsCOMPtr<mozIStorageConnection> mDBConn;
+
+  
+
+
+  mozIStorageStatement* GetStatement(const nsCOMPtr<mozIStorageStatement>& aStmt);
+  nsCOMPtr<mozIStorageStatement> mDBGetAnnotationsForPage;
+  nsCOMPtr<mozIStorageStatement> mDBGetAnnotationsForItem;
+  nsCOMPtr<mozIStorageStatement> mDBGetPageAnnotationValue;
+  nsCOMPtr<mozIStorageStatement> mDBGetItemAnnotationValue;
+  nsCOMPtr<mozIStorageStatement> mDBAddAnnotationName;
+  nsCOMPtr<mozIStorageStatement> mDBAddPageAnnotation;
+  nsCOMPtr<mozIStorageStatement> mDBAddItemAnnotation;
+  nsCOMPtr<mozIStorageStatement> mDBRemovePageAnnotation;
+  nsCOMPtr<mozIStorageStatement> mDBRemoveItemAnnotation;
+  nsCOMPtr<mozIStorageStatement> mDBGetPagesWithAnnotation;
+  nsCOMPtr<mozIStorageStatement> mDBGetItemsWithAnnotation;
+  nsCOMPtr<mozIStorageStatement> mDBCheckPageAnnotation;
+  nsCOMPtr<mozIStorageStatement> mDBCheckItemAnnotation;
 
   nsCOMArray<nsIAnnotationObserver> mObservers;
-  bool mHasSessionAnnotations;
 
   static nsAnnotationService* gAnnotationService;
 
@@ -81,69 +135,71 @@ protected:
   static const int kAnnoIndex_LastModified;
 
   nsresult HasAnnotationInternal(nsIURI* aURI,
-                                 int64_t aItemId,
+                                 PRInt64 aItemId,
                                  const nsACString& aName,
                                  bool* _hasAnno);
 
   nsresult StartGetAnnotation(nsIURI* aURI,
-                              int64_t aItemId,
+                              PRInt64 aItemId,
                               const nsACString& aName,
-                              nsCOMPtr<mozIStorageStatement>& aStatement);
+                              mozIStorageStatement** _statement);
 
   nsresult StartSetAnnotation(nsIURI* aURI,
-                              int64_t aItemId,
+                              PRInt64 aItemId,
                               const nsACString& aName,
-                              int32_t aFlags,
-                              uint16_t aExpiration,
-                              uint16_t aType,
-                              nsCOMPtr<mozIStorageStatement>& aStatement);
+                              PRInt32 aFlags,
+                              PRUint16 aExpiration,
+                              PRUint16 aType,
+                              mozIStorageStatement** _statement);
 
   nsresult SetAnnotationStringInternal(nsIURI* aURI,
-                                       int64_t aItemId,
+                                       PRInt64 aItemId,
                                        const nsACString& aName,
                                        const nsAString& aValue,
-                                       int32_t aFlags,
-                                       uint16_t aExpiration);
+                                       PRInt32 aFlags,
+                                       PRUint16 aExpiration);
   nsresult SetAnnotationInt32Internal(nsIURI* aURI,
-                                      int64_t aItemId,
+                                      PRInt64 aItemId,
                                       const nsACString& aName,
-                                      int32_t aValue,
-                                      int32_t aFlags,
-                                      uint16_t aExpiration);
+                                      PRInt32 aValue,
+                                      PRInt32 aFlags,
+                                      PRUint16 aExpiration);
   nsresult SetAnnotationInt64Internal(nsIURI* aURI,
-                                      int64_t aItemId,
+                                      PRInt64 aItemId,
                                       const nsACString& aName,
-                                      int64_t aValue,
-                                      int32_t aFlags,
-                                      uint16_t aExpiration);
+                                      PRInt64 aValue,
+                                      PRInt32 aFlags,
+                                      PRUint16 aExpiration);
   nsresult SetAnnotationDoubleInternal(nsIURI* aURI,
-                                       int64_t aItemId,
+                                       PRInt64 aItemId,
                                        const nsACString& aName,
                                        double aValue,
-                                       int32_t aFlags,
-                                       uint16_t aExpiration);
+                                       PRInt32 aFlags,
+                                       PRUint16 aExpiration);
   nsresult SetAnnotationBinaryInternal(nsIURI* aURI,
-                                       int64_t aItemId,
+                                       PRInt64 aItemId,
                                        const nsACString& aName,
-                                       const uint8_t* aData,
-                                       uint32_t aDataLen,
+                                       const PRUint8* aData,
+                                       PRUint32 aDataLen,
                                        const nsACString& aMimeType,
-                                       int32_t aFlags,
-                                       uint16_t aExpiration);
+                                       PRInt32 aFlags,
+                                       PRUint16 aExpiration);
 
   nsresult RemoveAnnotationInternal(nsIURI* aURI,
-                                    int64_t aItemId,
+                                    PRInt64 aItemId,
                                     const nsACString& aName);
 
   bool InPrivateBrowsingMode() const;
+
+  bool mShuttingDown;
 
 public:
   nsresult GetPagesWithAnnotationCOMArray(const nsACString& aName,
                                           nsCOMArray<nsIURI>* _results);
   nsresult GetItemsWithAnnotationTArray(const nsACString& aName,
-                                        nsTArray<int64_t>* _result);
+                                        nsTArray<PRInt64>* _result);
   nsresult GetAnnotationNamesTArray(nsIURI* aURI,
-                                    int64_t aItemId,
+                                    PRInt64 aItemId,
                                     nsTArray<nsCString>* _result);
 };
 

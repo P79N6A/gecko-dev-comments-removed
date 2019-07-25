@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsCharSetProber_h__
 #define nsCharSetProber_h__
 
@@ -21,10 +54,11 @@ class nsCharSetProber {
 public:
   virtual ~nsCharSetProber() {}
   virtual const char* GetCharSetName() = 0;
-  virtual nsProbingState HandleData(const char* aBuf, uint32_t aLen) = 0;
+  virtual nsProbingState HandleData(const char* aBuf, PRUint32 aLen) = 0;
   virtual nsProbingState GetState(void) = 0;
   virtual void      Reset(void)  = 0;
   virtual float     GetConfidence(void) = 0;
+  virtual void      SetOpion() = 0;
 
 #ifdef DEBUG_chardet
   virtual void  DumpStatus() {};
@@ -34,8 +68,8 @@ public:
   
   
   
-  static bool FilterWithoutEnglishLetters(const char* aBuf, uint32_t aLen, char** newBuf, uint32_t& newLen);
-  static bool FilterWithEnglishLetters(const char* aBuf, uint32_t aLen, char** newBuf, uint32_t& newLen);
+  static bool FilterWithoutEnglishLetters(const char* aBuf, PRUint32 aLen, char** newBuf, PRUint32& newLen);
+  static bool FilterWithEnglishLetters(const char* aBuf, PRUint32 aLen, char** newBuf, PRUint32& newLen);
 
 };
 

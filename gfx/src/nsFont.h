@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsFont_h___
 #define nsFont_h___
 
@@ -10,7 +42,6 @@
 #include "nsCoord.h"
 #include "nsStringGlue.h"
 #include "gfxFontConstants.h"
-#include "gfxFontFeatures.h"
 
 
 
@@ -21,18 +52,16 @@ typedef bool (*nsFontFamilyEnumFunc)(const nsString& aFamily, bool aGeneric, voi
 
 
 
-const uint8_t kGenericFont_NONE         = 0x00;
+const PRUint8 kGenericFont_NONE         = 0x00;
 
-const uint8_t kGenericFont_moz_variable = 0x00; 
-const uint8_t kGenericFont_moz_fixed    = 0x01; 
+const PRUint8 kGenericFont_moz_variable = 0x00; 
+const PRUint8 kGenericFont_moz_fixed    = 0x01; 
 
-const uint8_t kGenericFont_serif        = 0x02;
-const uint8_t kGenericFont_sans_serif   = 0x04;
-const uint8_t kGenericFont_monospace    = 0x08;
-const uint8_t kGenericFont_cursive      = 0x10;
-const uint8_t kGenericFont_fantasy      = 0x20;
-
-struct gfxFontStyle;
+const PRUint8 kGenericFont_serif        = 0x02;
+const PRUint8 kGenericFont_sans_serif   = 0x04;
+const PRUint8 kGenericFont_monospace    = 0x08;
+const PRUint8 kGenericFont_cursive      = 0x10;
+const PRUint8 kGenericFont_fantasy      = 0x20;
 
 
 struct NS_GFX nsFont {
@@ -40,25 +69,25 @@ struct NS_GFX nsFont {
   nsString name;
 
   
-  uint8_t style;
+  PRUint8 style;
 
   
   
-  uint8_t systemFont;
+  PRUint8 systemFont;
 
   
-  uint8_t variant;
+  PRUint8 variant;
 
   
-  
-  uint8_t decorations;
-
-  
-  uint16_t weight;
+  PRUint16 weight;
 
   
   
-  int16_t stretch;
+  PRInt16 stretch;
+
+  
+  
+  PRUint8 decorations;
 
   
   nscoord size;
@@ -70,7 +99,7 @@ struct NS_GFX nsFont {
   float sizeAdjust;
 
   
-  nsTArray<gfxFontFeature> fontFeatureSettings;
+  nsString featureSettings;
 
   
   
@@ -78,16 +107,18 @@ struct NS_GFX nsFont {
   nsString languageOverride;
 
   
-  nsFont(const char* aName, uint8_t aStyle, uint8_t aVariant,
-         uint16_t aWeight, int16_t aStretch, uint8_t aDecoration,
+  nsFont(const char* aName, PRUint8 aStyle, PRUint8 aVariant,
+         PRUint16 aWeight, PRInt16 aStretch, PRUint8 aDecoration,
          nscoord aSize, float aSizeAdjust=0.0f,
-         const nsString* aLanguageOverride = nullptr);
+         const nsString* aFeatureSettings = nsnull,
+         const nsString* aLanguageOverride = nsnull);
 
   
-  nsFont(const nsString& aName, uint8_t aStyle, uint8_t aVariant,
-         uint16_t aWeight, int16_t aStretch, uint8_t aDecoration,
+  nsFont(const nsString& aName, PRUint8 aStyle, PRUint8 aVariant,
+         PRUint16 aWeight, PRInt16 aStretch, PRUint8 aDecoration,
          nscoord aSize, float aSizeAdjust=0.0f,
-         const nsString* aLanguageOverride = nullptr);
+         const nsString* aFeatureSettings = nsnull,
+         const nsString* aLanguageOverride = nsnull);
 
   
   nsFont(const nsFont& aFont);
@@ -106,9 +137,6 @@ struct NS_GFX nsFont {
   nsFont& operator=(const nsFont& aOther);
 
   
-  void AddFontFeaturesToStyle(gfxFontStyle *aStyle) const;
-
-  
   
   
   
@@ -116,7 +144,7 @@ struct NS_GFX nsFont {
   void GetFirstFamily(nsString& aFamily) const;
 
   
-  static void GetGenericID(const nsString& aGeneric, uint8_t* aID);
+  static void GetGenericID(const nsString& aGeneric, PRUint8* aID);
 };
 
 #define NS_FONT_VARIANT_NORMAL            0

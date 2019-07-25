@@ -3,6 +3,37 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsXULTemplateResultSetRDF.h"
 #include "nsXULTemplateQueryProcessorRDF.h"
 
@@ -11,28 +42,28 @@ NS_IMPL_ISUPPORTS1(nsXULTemplateResultSetRDF, nsISimpleEnumerator)
 NS_IMETHODIMP
 nsXULTemplateResultSetRDF::HasMoreElements(bool *aResult)
 {
-    *aResult = true;
+    *aResult = PR_TRUE;
 
     nsCOMPtr<nsIRDFNode> node;
 
     if (! mInstantiations || ! mQuery) {
-        *aResult = false;
+        *aResult = PR_FALSE;
         return NS_OK;
     }
 
     if (mCheckedNext) {
         if (!mCurrent || mCurrent == &(mInstantiations->mHead))
-            *aResult = false;
+            *aResult = PR_FALSE;
         return NS_OK;
     }
 
-    mCheckedNext = true;
+    mCheckedNext = PR_TRUE;
                 
     do {
         if (mCurrent) {
             mCurrent = mCurrent->mNext;
             if (mCurrent == &(mInstantiations->mHead)) {
-                *aResult = false;
+                *aResult = PR_FALSE;
                 return NS_OK;
             }
         }
@@ -74,7 +105,7 @@ nsXULTemplateResultSetRDF::GetNext(nsISupports **aResult)
     
     mProcessor->AddMemoryElements(mCurrent->mInstantiation, nextresult);
 
-    mCheckedNext = false;
+    mCheckedNext = PR_FALSE;
 
     *aResult = nextresult;
     NS_ADDREF(*aResult);

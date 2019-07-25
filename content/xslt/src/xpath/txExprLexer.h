@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MITREXSL_EXPRLEXER_H
 #define MITREXSL_EXPRLEXER_H
 
@@ -94,14 +128,16 @@ public:
         : mStart(aStart),
           mEnd(aEnd),
           mType(aType),
-          mNext(nullptr)
+          mNext(nsnull),
+          mPrevious(nsnull)
     {
     }
     Token(iterator aChar, Type aType)
         : mStart(aChar),
           mEnd(aChar + 1),
           mType(aType),
-          mNext(nullptr)
+          mNext(nsnull),
+          mPrevious(nsnull)
     {
     }
 
@@ -113,6 +149,8 @@ public:
     iterator mStart, mEnd;
     Type mType;
     Token* mNext;
+    
+    Token* mPrevious;
 };
 
 
@@ -148,19 +186,12 @@ public:
     Token* nextToken();
     Token* peek()
     {
-        NS_ASSERTION(mCurrentItem, "peek called uninitialized lexer");
         return mCurrentItem;
     }
-    Token* peekAhead()
-    {
-        NS_ASSERTION(mCurrentItem, "peekAhead called on uninitialized lexer");
-        
-        return (mCurrentItem && mCurrentItem->mNext) ? mCurrentItem->mNext : mCurrentItem;
-    }
+    void pushBack();
     bool hasMoreTokens()
     {
-        NS_ASSERTION(mCurrentItem, "HasMoreTokens called on uninitialized lexer");
-        return (mCurrentItem && mCurrentItem->mType != Token::END);
+        return (mCurrentItem->mType != Token::END);
     }
 
     

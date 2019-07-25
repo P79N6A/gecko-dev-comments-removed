@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSMILNullType.h"
 #include "nsSMILValue.h"
 #include "nsDebug.h"
@@ -26,12 +59,12 @@ nsSMILNullType::IsEqual(const nsSMILValue& aLeft,
   NS_PRECONDITION(aLeft.mType == aRight.mType, "Incompatible SMIL types");
   NS_PRECONDITION(aLeft.mType == this, "Unexpected type for SMIL value");
 
-  return true;  
+  return PR_TRUE;  
 }
 
 nsresult
 nsSMILNullType::Add(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
-                    uint32_t aCount) const
+                    PRUint32 aCount) const
 {
   NS_NOTREACHED("Adding NULL type");
   return NS_ERROR_FAILURE;

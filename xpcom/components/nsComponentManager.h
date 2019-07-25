@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsComponentManager_h__
 #define nsComponentManager_h__
 
@@ -12,7 +44,7 @@
 #include "nsIComponentManager.h"
 #include "nsIComponentRegistrar.h"
 #include "nsIServiceManager.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "mozilla/Module.h"
 #include "mozilla/ModuleLoader.h"
 #include "mozilla/ReentrantMonitor.h"
@@ -26,6 +58,7 @@
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
 #include "nsWeakReference.h"
+#include "nsIFile.h"
 #include "plarena.h"
 #include "nsCOMArray.h"
 #include "nsDataHashtable.h"
@@ -34,7 +67,7 @@
 #include "nsTArray.h"
 
 #include "mozilla/Omnijar.h"
-#include "mozilla/Attributes.h"
+#include "nsIZipReader.h"
 
 struct nsFactoryEntry;
 class nsIServiceManager;
@@ -69,7 +102,7 @@ struct nsLoaderdata {
     nsCString                 type;
 };
 
-class nsComponentManagerImpl MOZ_FINAL
+class nsComponentManagerImpl
     : public nsIComponentManager
     , public nsIServiceManager
     , public nsSupportsWeakReference
@@ -87,7 +120,7 @@ public:
     nsresult RegistryLocationForFile(nsIFile* aFile,
                                      nsCString& aResult);
     nsresult FileForRegistryLocation(const nsCString &aLocation,
-                                     nsIFile **aSpec);
+                                     nsILocalFile **aSpec);
 
     NS_DECL_NSISERVICEMANAGER
 
@@ -106,12 +139,12 @@ public:
 
     already_AddRefed<nsIFactory> FindFactory(const nsCID& aClass);
     already_AddRefed<nsIFactory> FindFactory(const char *contractID,
-                                             uint32_t aContractIDLen);
+                                             PRUint32 aContractIDLen);
 
     already_AddRefed<nsIFactory> LoadFactory(nsFactoryEntry *aEntry);
 
     nsFactoryEntry *GetFactoryEntry(const char *aContractID,
-                                    uint32_t aContractIDLen);
+                                    PRUint32 aContractIDLen);
     nsFactoryEntry *GetFactoryEntry(const nsCID &aClass);
 
     nsDataHashtable<nsIDHashKey, nsFactoryEntry*> mFactories;
@@ -125,7 +158,8 @@ public:
     struct ComponentLocation
     {
         NSLocationType type;
-        mozilla::FileLocation location;
+        nsCOMPtr<nsILocalFile> location;
+        bool jar;
     };
 
     class ComponentLocationComparator
@@ -133,12 +167,20 @@ public:
     public:
       bool Equals(const ComponentLocation& a, const ComponentLocation& b) const
       {
-        return (a.type == b.type && a.location.Equals(b.location));
+        if (a.type == b.type && a.jar == b.jar) {
+          bool res;
+          nsresult rv = a.location->Equals(b.location, &res);
+          NS_ASSERTION(NS_SUCCEEDED(rv), "Error comparing locations");
+          return res;
+        }
+
+        return PR_FALSE;
       }
     };
 
     static nsTArray<const mozilla::Module*>* sStaticModules;
     static nsTArray<ComponentLocation>* sModuleLocations;
+    static nsTArray<ComponentLocation>* sJarModuleLocations;
 
     nsNativeModuleLoader mNativeModuleLoader;
 
@@ -148,22 +190,25 @@ public:
         
 
 
-        KnownModule(const mozilla::Module* aModule, mozilla::FileLocation &aFile)
+        KnownModule(const mozilla::Module* aModule, nsILocalFile* aFile)
             : mModule(aModule)
             , mFile(aFile)
             , mLoaded(false)
             , mFailed(false)
         { }
 
-        KnownModule(const mozilla::Module* aModule)
-            : mModule(aModule)
-            , mLoaded(false)
-            , mFailed(false)
-        { }
-
-        KnownModule(mozilla::FileLocation &aFile)
+        KnownModule(nsILocalFile* aFile)
             : mModule(NULL)
             , mFile(aFile)
+            , mLoader(NULL)
+            , mLoaded(false)
+            , mFailed(false)
+        { }
+
+        KnownModule(nsILocalFile* aFile, const nsACString& aPath)
+            : mModule(NULL)
+            , mFile(aFile)
+            , mPath(aPath)
             , mLoader(NULL)
             , mLoaded(false)
             , mFailed(false)
@@ -191,7 +236,8 @@ public:
 
     private:
         const mozilla::Module* mModule;
-        mozilla::FileLocation mFile;
+        nsCOMPtr<nsILocalFile> mFile;
+        nsCString mPath;
         nsCOMPtr<mozilla::ModuleLoader> mLoader;
         bool mLoaded;
         bool mFailed;
@@ -200,30 +246,49 @@ public:
     
     
     nsTArray< nsAutoPtr<KnownModule> > mKnownStaticModules;
+    nsClassHashtable<nsHashableHashKey, KnownModule> mKnownFileModules;
     
-    nsClassHashtable<nsCStringHashKey, KnownModule> mKnownModules;
+    nsClassHashtable<nsCStringHashKey, KnownModule> mKnownJARModules;
 
     void RegisterModule(const mozilla::Module* aModule,
-                        mozilla::FileLocation* aFile);
+                        nsILocalFile* aFile);
     void RegisterCIDEntry(const mozilla::Module::CIDEntry* aEntry,
                           KnownModule* aModule);
     void RegisterContractID(const mozilla::Module::ContractIDEntry* aEntry);
 
-    void RegisterManifest(NSLocationType aType, mozilla::FileLocation &aFile,
-                          bool aChromeOnly);
+    void RegisterJarManifest(NSLocationType aType, nsIZipReader* aReader,
+                             const char* aPath, bool aChromeOnly);
+
+    void RegisterManifestFile(NSLocationType aType, nsILocalFile* aFile,
+                              bool aChromeOnly);
 
     struct ManifestProcessingContext
     {
-        ManifestProcessingContext(NSLocationType aType, mozilla::FileLocation &aFile, bool aChromeOnly)
+        ManifestProcessingContext(NSLocationType aType, nsILocalFile* aFile, bool aChromeOnly)
             : mType(aType)
             , mFile(aFile)
+            , mPath(NULL)
             , mChromeOnly(aChromeOnly)
         { }
+
+        ManifestProcessingContext(NSLocationType aType, nsIZipReader* aReader, const char* aPath, bool aChromeOnly)
+            : mType(aType)
+            , mReader(aReader)
+            , mPath(aPath)
+            , mChromeOnly(aChromeOnly)
+        {
+            nsCOMPtr<nsIFile> file;
+            aReader->GetFile(getter_AddRefs(file));
+            nsCOMPtr<nsILocalFile> localfile = do_QueryInterface(file);
+            mFile = localfile;
+        }
 
         ~ManifestProcessingContext() { }
 
         NSLocationType mType;
-        mozilla::FileLocation mFile;
+        nsILocalFile* mFile;
+        nsIZipReader* mReader;
+        const char* mPath;
         bool mChromeOnly;
     };
 
@@ -234,7 +299,7 @@ public:
     void ManifestContract(ManifestProcessingContext& cx, int lineno, char* const * argv);
     void ManifestCategory(ManifestProcessingContext& cx, int lineno, char* const * argv);
 
-    void RereadChromeManifests(bool aChromeOnly = true);
+    void RereadChromeManifests();
 
     
     enum {

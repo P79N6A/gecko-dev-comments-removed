@@ -7,16 +7,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsHTMLCSSStyleSheet_h_
 #define nsHTMLCSSStyleSheet_h_
-
-#include "mozilla/Attributes.h"
 
 #include "nsIStyleSheet.h"
 #include "nsIStyleRuleProcessor.h"
 
-class nsHTMLCSSStyleSheet MOZ_FINAL : public nsIStyleSheet,
-                                      public nsIStyleRuleProcessor {
+class nsHTMLCSSStyleSheet : public nsIStyleSheet,
+                            public nsIStyleRuleProcessor {
 public:
   nsHTMLCSSStyleSheet();
 
@@ -39,7 +69,7 @@ public:
   virtual nsIDocument* GetOwningDocument() const;
   virtual void SetOwningDocument(nsIDocument* aDocument);
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
+  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
 
   
@@ -54,14 +84,12 @@ public:
   virtual nsRestyleHint
     HasAttributeDependentStyle(AttributeRuleProcessorData* aData);
   virtual bool MediumFeaturesChanged(nsPresContext* aPresContext);
-  virtual NS_MUST_OVERRIDE size_t
-    SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const MOZ_OVERRIDE;
-  virtual NS_MUST_OVERRIDE size_t
-    SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const MOZ_OVERRIDE;
+  virtual PRInt64 SizeOf() const { return sizeof(*this); }
 
 private: 
-  nsHTMLCSSStyleSheet(const nsHTMLCSSStyleSheet& aCopy) MOZ_DELETE;
-  nsHTMLCSSStyleSheet& operator=(const nsHTMLCSSStyleSheet& aCopy) MOZ_DELETE;
+  
+  nsHTMLCSSStyleSheet(const nsHTMLCSSStyleSheet& aCopy); 
+  nsHTMLCSSStyleSheet& operator=(const nsHTMLCSSStyleSheet& aCopy); 
 
 protected:
   nsCOMPtr<nsIURI> mURL;

@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsZipWriter_h_
 #define _nsZipWriter_h_
 
@@ -15,7 +49,6 @@
 #include "nsCOMArray.h"
 #include "nsTArray.h"
 #include "nsDataHashtable.h"
-#include "mozilla/Attributes.h"
 
 #define ZIPWRITER_CONTRACTID "@mozilla.org/zipwriter;1"
 #define ZIPWRITER_CLASSNAME "Zip Writer"
@@ -27,18 +60,18 @@
 struct nsZipQueueItem
 {
 public:
-    uint32_t mOperation;
+    PRUint32 mOperation;
     nsCString mZipEntry;
     nsCOMPtr<nsIFile> mFile;
     nsCOMPtr<nsIChannel> mChannel;
     nsCOMPtr<nsIInputStream> mStream;
     PRTime mModTime;
-    int32_t mCompression;
-    uint32_t mPermissions;
+    PRInt32 mCompression;
+    PRUint32 mPermissions;
 };
 
-class nsZipWriter MOZ_FINAL : public nsIZipWriter,
-                              public nsIRequestObserver
+class nsZipWriter : public nsIZipWriter,
+                    public nsIRequestObserver
 {
 public:
     NS_DECL_ISUPPORTS
@@ -51,7 +84,7 @@ public:
 private:
     ~nsZipWriter();
 
-    uint32_t mCDSOffset;
+    PRUint32 mCDSOffset;
     bool mCDSDirty;
     bool mInQueue;
 
@@ -61,19 +94,19 @@ private:
     nsCOMPtr<nsIOutputStream> mStream;
     nsCOMArray<nsZipHeader> mHeaders;
     nsTArray<nsZipQueueItem> mQueue;
-    nsDataHashtable<nsCStringHashKey, int32_t> mEntryHash;
+    nsDataHashtable<nsCStringHashKey, PRInt32> mEntryHash;
     nsCString mComment;
 
     nsresult SeekCDS();
     void Cleanup();
     nsresult ReadFile(nsIFile *aFile);
     nsresult InternalAddEntryDirectory(const nsACString & aZipEntry,
-                                       PRTime aModTime, uint32_t aPermissions);
+                                       PRTime aModTime, PRUint32 aPermissions);
     nsresult BeginProcessingAddition(nsZipQueueItem* aItem, bool* complete);
-    nsresult BeginProcessingRemoval(int32_t aPos);
+    nsresult BeginProcessingRemoval(PRInt32 aPos);
     nsresult AddEntryStream(const nsACString & aZipEntry, PRTime aModTime,
-                            int32_t aCompression, nsIInputStream *aStream,
-                            bool aQueue, uint32_t aPermissions);
+                            PRInt32 aCompression, nsIInputStream *aStream,
+                            bool aQueue, PRUint32 aPermissions);
     void BeginProcessingNextItem();
     void FinishQueue(nsresult aStatus);
 };

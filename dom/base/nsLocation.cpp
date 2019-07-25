@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsLocation.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsIScriptContext.h"
@@ -29,15 +63,15 @@
 #include "nsPresContext.h"
 #include "nsIJSContextStack.h"
 #include "nsXPIDLString.h"
-#include "nsError.h"
-#include "nsDOMClassInfoID.h"
+#include "nsDOMError.h"
+#include "nsDOMClassInfo.h"
 #include "nsCRT.h"
 #include "nsIProtocolHandler.h"
 #include "nsReadableUtils.h"
 #include "nsITextToSubURI.h"
-#include "nsJSUtils.h"
-#include "jsfriendapi.h"
 #include "nsContentUtils.h"
+#include "nsJSUtils.h"
+#include "jsdbgapi.h"
 
 static nsresult
 GetContextFromStack(nsIJSContextStack *aStack, JSContext **aContext)
@@ -64,7 +98,7 @@ GetContextFromStack(nsIJSContextStack *aStack, JSContext **aContext)
     }
   }
 
-  *aContext = nullptr;
+  *aContext = nsnull;
 
   return NS_OK;
 }
@@ -143,18 +177,20 @@ static already_AddRefed<nsIDocument>
 GetFrameDocument(JSContext *cx, JSStackFrame *fp)
 {
   if (!cx || !fp)
-    return nullptr;
+    return nsnull;
 
-  JSObject* scope = JS_GetGlobalForFrame(fp);
+  JSObject* scope = JS_GetFrameScopeChain(cx, fp);
   if (!scope)
-    return nullptr;
+    return nsnull;
 
-  JSAutoCompartment ac(cx, scope);
+  JSAutoEnterCompartment ac;
+  if (!ac.enter(cx, scope))
+     return nsnull;
 
   nsCOMPtr<nsIDOMWindow> window =
     do_QueryInterface(nsJSUtils::GetStaticScriptGlobal(cx, scope));
   if (!window)
-    return nullptr;
+    return nsnull;
 
   
   nsCOMPtr<nsIDOMDocument> domDoc;
@@ -166,15 +202,7 @@ GetFrameDocument(JSContext *cx, JSStackFrame *fp)
 nsresult
 nsLocation::CheckURL(nsIURI* aURI, nsIDocShellLoadInfo** aLoadInfo)
 {
-  *aLoadInfo = nullptr;
-  JSContext* cx;
-  if ((cx = nsContentUtils::GetCurrentJSContext())) {
-    nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
-    NS_ENSURE_STATE(ssm);
-    
-    nsresult rv = ssm->CheckLoadURIFromScript(cx, aURI);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
+  *aLoadInfo = nsnull;
 
   nsCOMPtr<nsIDocShell> docShell(do_QueryReferent(mDocShell));
   NS_ENSURE_TRUE(docShell, NS_ERROR_NOT_AVAILABLE);
@@ -184,6 +212,8 @@ nsLocation::CheckURL(nsIURI* aURI, nsIDocShellLoadInfo** aLoadInfo)
   nsCOMPtr<nsIJSContextStack>
     stack(do_GetService("@mozilla.org/js/xpc/ContextStack;1", &rv));
   NS_ENSURE_SUCCESS(rv, rv);
+
+  JSContext *cx;
 
   NS_ENSURE_SUCCESS(GetContextFromStack(stack, &cx), NS_ERROR_FAILURE);
 
@@ -263,7 +293,7 @@ nsLocation::CheckURL(nsIURI* aURI, nsIDocShellLoadInfo** aLoadInfo)
 nsresult
 nsLocation::GetURI(nsIURI** aURI, bool aGetInnermostURI)
 {
-  *aURI = nullptr;
+  *aURI = nsnull;
 
   nsresult rv;
   nsCOMPtr<nsIDocShell> docShell(do_QueryReferent(mDocShell));
@@ -301,7 +331,7 @@ nsLocation::GetURI(nsIURI** aURI, bool aGetInnermostURI)
 nsresult
 nsLocation::GetWritableURI(nsIURI** aURI)
 {
-  *aURI = nullptr;
+  *aURI = nsnull;
 
   nsCOMPtr<nsIURI> uri;
 
@@ -331,7 +361,7 @@ nsLocation::SetURI(nsIURI* aURI, bool aReplace)
     }
 
     return docShell->LoadURI(aURI, loadInfo,
-                             nsIWebNavigation::LOAD_FLAGS_NONE, true);
+                             nsIWebNavigation::LOAD_FLAGS_NONE, PR_TRUE);
   }
 
   return NS_OK;
@@ -348,7 +378,7 @@ nsLocation::GetHash(nsAString& aHash)
     return rv;
   }
 
-  nsAutoCString ref;
+  nsCAutoString ref;
   nsAutoString unicodeRef;
 
   rv = uri->GetRef(ref);
@@ -357,7 +387,7 @@ nsLocation::GetHash(nsAString& aHash)
         do_GetService(NS_ITEXTTOSUBURI_CONTRACTID, &rv));
 
     if (NS_SUCCEEDED(rv)) {
-      nsAutoCString charset;
+      nsCAutoString charset;
       uri->GetOriginCharset(charset);
         
       rv = textToSubURI->UnEscapeURIForUI(charset, ref, unicodeRef);
@@ -417,10 +447,10 @@ nsLocation::GetHost(nsAString& aHost)
   nsCOMPtr<nsIURI> uri;
   nsresult result;
 
-  result = GetURI(getter_AddRefs(uri), true);
+  result = GetURI(getter_AddRefs(uri), PR_TRUE);
 
   if (uri) {
-    nsAutoCString hostport;
+    nsCAutoString hostport;
 
     result = uri->GetHostPort(hostport);
 
@@ -456,10 +486,10 @@ nsLocation::GetHostname(nsAString& aHostname)
   nsCOMPtr<nsIURI> uri;
   nsresult result;
 
-  result = GetURI(getter_AddRefs(uri), true);
+  result = GetURI(getter_AddRefs(uri), PR_TRUE);
 
   if (uri) {
-    nsAutoCString host;
+    nsCAutoString host;
 
     result = uri->GetHost(host);
 
@@ -498,7 +528,7 @@ nsLocation::GetHref(nsAString& aHref)
   result = GetURI(getter_AddRefs(uri));
 
   if (uri) {
-    nsAutoCString uriString;
+    nsCAutoString uriString;
 
     result = uri->GetSpec(uriString);
 
@@ -529,7 +559,7 @@ nsLocation::SetHref(const nsAString& aHref)
     return NS_ERROR_FAILURE;
 
   if (cx) {
-    rv = SetHrefWithContext(cx, aHref, false);
+    rv = SetHrefWithContext(cx, aHref, PR_FALSE);
   } else {
     rv = GetHref(oldHref);
 
@@ -539,7 +569,7 @@ nsLocation::SetHref(const nsAString& aHref)
       rv = NS_NewURI(getter_AddRefs(oldUri), oldHref);
 
       if (oldUri) {
-        rv = SetHrefWithBase(aHref, oldUri, false);
+        rv = SetHrefWithBase(aHref, oldUri, PR_FALSE);
       }
     }
   }
@@ -572,11 +602,11 @@ nsLocation::SetHrefWithBase(const nsAString& aHref, nsIURI* aBase,
 
   nsCOMPtr<nsIDocShell> docShell(do_QueryReferent(mDocShell));
 
-  nsAutoCString docCharset;
+  nsCAutoString docCharset;
   if (NS_SUCCEEDED(GetDocumentCharacterSetForURI(aHref, docCharset)))
     result = NS_NewURI(getter_AddRefs(newUri), aHref, docCharset.get(), aBase);
   else
-    result = NS_NewURI(getter_AddRefs(newUri), aHref, nullptr, aBase);
+    result = NS_NewURI(getter_AddRefs(newUri), aHref, nsnull, aBase);
 
   if (newUri) {
     
@@ -631,7 +661,7 @@ nsLocation::GetPathname(nsAString& aPathname)
 
   nsCOMPtr<nsIURL> url(do_QueryInterface(uri));
   if (url) {
-    nsAutoCString file;
+    nsCAutoString file;
 
     result = url->GetFilePath(file);
 
@@ -667,10 +697,10 @@ nsLocation::GetPort(nsAString& aPort)
   nsCOMPtr<nsIURI> uri;
   nsresult result = NS_OK;
 
-  result = GetURI(getter_AddRefs(uri), true);
+  result = GetURI(getter_AddRefs(uri), PR_TRUE);
 
   if (uri) {
-    int32_t port;
+    PRInt32 port;
     result = uri->GetPort(&port);
 
     if (NS_SUCCEEDED(result) && -1 != port) {
@@ -696,7 +726,7 @@ nsLocation::SetPort(const nsAString& aPort)
     
     NS_ConvertUTF16toUTF8 portStr(aPort);
     const char *buf = portStr.get();
-    int32_t port = -1;
+    PRInt32 port = -1;
 
     if (buf) {
       if (*buf == ':') {
@@ -727,7 +757,7 @@ nsLocation::GetProtocol(nsAString& aProtocol)
   result = GetURI(getter_AddRefs(uri));
 
   if (uri) {
-    nsAutoCString protocol;
+    nsCAutoString protocol;
 
     result = uri->GetScheme(protocol);
 
@@ -769,7 +799,7 @@ nsLocation::GetSearch(nsAString& aSearch)
   nsCOMPtr<nsIURL> url(do_QueryInterface(uri));
 
   if (url) {
-    nsAutoCString search;
+    nsCAutoString search;
 
     result = url->GetQuery(search);
 
@@ -827,7 +857,7 @@ nsLocation::Reload(bool aForceget)
   }
 
   if (webNav) {
-    uint32_t reloadFlags = nsIWebNavigation::LOAD_FLAGS_NONE;
+    PRUint32 reloadFlags = nsIWebNavigation::LOAD_FLAGS_NONE;
 
     if (aForceget) {
       reloadFlags = nsIWebNavigation::LOAD_FLAGS_BYPASS_CACHE | 
@@ -862,7 +892,7 @@ nsLocation::Replace(const nsAString& aUrl)
     rv = GetContextFromStack(stack, &cx);
     NS_ENSURE_SUCCESS(rv, rv);
     if (cx) {
-      return SetHrefWithContext(cx, aUrl, true);
+      return SetHrefWithContext(cx, aUrl, PR_TRUE);
     }
   }
 
@@ -876,7 +906,7 @@ nsLocation::Replace(const nsAString& aUrl)
   rv = NS_NewURI(getter_AddRefs(oldUri), oldHref);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  return SetHrefWithBase(aUrl, oldUri, true);
+  return SetHrefWithBase(aUrl, oldUri, PR_TRUE);
 }
 
 NS_IMETHODIMP
@@ -893,7 +923,7 @@ nsLocation::Assign(const nsAString& aUrl)
     result = NS_NewURI(getter_AddRefs(oldUri), oldHref);
 
     if (oldUri) {
-      result = SetHrefWithBase(aUrl, oldUri, false);
+      result = SetHrefWithBase(aUrl, oldUri, PR_FALSE);
     }
   }
 
@@ -933,7 +963,7 @@ nsLocation::GetSourceDocument(JSContext* cx, nsIDocument** aDocument)
       return CallQueryInterface(domDoc, aDocument);
     }
   } else {
-    *aDocument = nullptr;
+    *aDocument = nsnull;
   }
 
   return rv;
@@ -947,7 +977,7 @@ nsLocation::GetSourceBaseURL(JSContext* cx, nsIURI** sourceURL)
   if (doc) {
     *sourceURL = doc->GetBaseURI().get();
   } else {
-    *sourceURL = nullptr;
+    *sourceURL = nsnull;
   }
 
   return rv;

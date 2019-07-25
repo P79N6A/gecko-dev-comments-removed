@@ -3,13 +3,48 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef txStringUtils_h__
 #define txStringUtils_h__
 
 #include "nsAString.h"
 #include "nsIAtom.h"
 #include "nsUnicharUtils.h"
-#include "nsContentUtils.h"
+
+#define TX_ToLowerCase ToLowerCase
 
 typedef nsCaseInsensitiveStringComparator txCaseInsensitiveStringComparator;
 
@@ -27,7 +62,7 @@ TX_ToLowerCaseAtom(nsIAtom* aAtom)
 {
   nsAutoString str;
   aAtom->ToString(str);
-  nsContentUtils::ASCIIToLower(str);
+  TX_ToLowerCase(str);
   return do_GetAtom(str);
 }
 

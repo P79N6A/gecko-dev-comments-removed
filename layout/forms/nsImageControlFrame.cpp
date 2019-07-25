@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsImageFrame.h"
 #include "nsIFormControlFrame.h"
@@ -61,7 +93,7 @@ public:
   virtual nsIAtom* GetType() const;
 
 #ifdef ACCESSIBILITY
-  virtual already_AddRefed<Accessible> CreateAccessible();
+  virtual already_AddRefed<nsAccessible> CreateAccessible();
 #endif
 
 #ifdef DEBUG
@@ -92,7 +124,7 @@ void
 nsImageControlFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
   if (!GetPrevInFlow()) {
-    nsFormControlFrame::RegUnRegAccessKey(this, false);
+    nsFormControlFrame::RegUnRegAccessKey(this, PR_FALSE);
   }
   nsImageControlFrameSuper::DestroyFrom(aDestructRoot);
 }
@@ -129,19 +161,20 @@ NS_QUERYFRAME_HEAD(nsImageControlFrame)
 NS_QUERYFRAME_TAIL_INHERITING(nsImageControlFrameSuper)
 
 #ifdef ACCESSIBILITY
-already_AddRefed<Accessible>
+already_AddRefed<nsAccessible>
 nsImageControlFrame::CreateAccessible()
 {
   nsAccessibilityService* accService = nsIPresShell::AccService();
   if (accService) {
-    if (mContent->Tag() == nsGkAtoms::button || 
-        mContent->Tag() == nsGkAtoms::input) {
-      return accService->CreateHTMLButtonAccessible(mContent, 
-                                                    PresContext()->PresShell());
+    if (mContent->Tag() == nsGkAtoms::button) {
+      return accService->CreateHTML4ButtonAccessible(mContent, PresContext()->PresShell());
+    }
+    else if (mContent->Tag() == nsGkAtoms::input) {
+      return accService->CreateHTMLButtonAccessible(mContent, PresContext()->PresShell());
     }
   }
 
-  return nullptr;
+  return nsnull;
 }
 #endif
 
@@ -160,7 +193,7 @@ nsImageControlFrame::Reflow(nsPresContext*         aPresContext,
   DO_GLOBAL_REFLOW_COUNT("nsImageControlFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
   if (!GetPrevInFlow() && (mState & NS_FRAME_FIRST_REFLOW)) {
-    nsFormControlFrame::RegUnRegAccessKey(this, true);
+    nsFormControlFrame::RegUnRegAccessKey(this, PR_TRUE);
   }
   return nsImageControlFrameSuper::Reflow(aPresContext, aDesiredSize, aReflowState, aStatus);
 }

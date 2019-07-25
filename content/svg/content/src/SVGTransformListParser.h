@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_SVGTRANSFORMLISTPARSER_H__
 #define MOZILLA_SVGTRANSFORMLISTPARSER_H__
 
@@ -37,8 +69,8 @@ private:
   virtual nsresult Match();
 
   nsresult MatchNumberArguments(float *aResult,
-                                uint32_t aMaxNum,
-                                uint32_t *aParsedNum);
+                                PRUint32 aMaxNum,
+                                PRUint32 *aParsedNum);
 
   nsresult MatchTransformList();
 

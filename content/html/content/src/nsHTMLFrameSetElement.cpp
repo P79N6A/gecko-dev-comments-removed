@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsHTMLFrameSetElement.h"
 #include "jsapi.h"
 
@@ -42,7 +74,7 @@ NS_IMPL_STRING_ATTR(nsHTMLFrameSetElement, Cols, cols)
 NS_IMPL_STRING_ATTR(nsHTMLFrameSetElement, Rows, rows)
 
 nsresult
-nsHTMLFrameSetElement::SetAttr(int32_t aNameSpaceID,
+nsHTMLFrameSetElement::SetAttr(PRInt32 aNameSpaceID,
                                nsIAtom* aAttribute,
                                nsIAtom* aPrefix,
                                const nsAString& aValue,
@@ -58,7 +90,7 @@ nsHTMLFrameSetElement::SetAttr(int32_t aNameSpaceID,
 
 
   if (aAttribute == nsGkAtoms::rows && aNameSpaceID == kNameSpaceID_None) {
-    int32_t oldRows = mNumRows;
+    PRInt32 oldRows = mNumRows;
     ParseRowCol(aValue, mNumRows, getter_Transfers(mRowSpecs));
     
     if (mNumRows != oldRows) {
@@ -66,7 +98,7 @@ nsHTMLFrameSetElement::SetAttr(int32_t aNameSpaceID,
     }
   } else if (aAttribute == nsGkAtoms::cols &&
              aNameSpaceID == kNameSpaceID_None) {
-    int32_t oldCols = mNumCols;
+    PRInt32 oldCols = mNumCols;
     ParseRowCol(aValue, mNumCols, getter_Transfers(mColSpecs));
 
     if (mNumCols != oldCols) {
@@ -82,13 +114,13 @@ nsHTMLFrameSetElement::SetAttr(int32_t aNameSpaceID,
 }
 
 nsresult
-nsHTMLFrameSetElement::GetRowSpec(int32_t *aNumValues,
+nsHTMLFrameSetElement::GetRowSpec(PRInt32 *aNumValues,
                                   const nsFramesetSpec** aSpecs)
 {
   NS_PRECONDITION(aNumValues, "Must have a pointer to an integer here!");
   NS_PRECONDITION(aSpecs, "Must have a pointer to an array of nsFramesetSpecs");
   *aNumValues = 0;
-  *aSpecs = nullptr;
+  *aSpecs = nsnull;
   
   if (!mRowSpecs) {
     const nsAttrValue* value = GetParsedAttr(nsGkAtoms::rows);
@@ -116,13 +148,13 @@ nsHTMLFrameSetElement::GetRowSpec(int32_t *aNumValues,
 }
 
 nsresult
-nsHTMLFrameSetElement::GetColSpec(int32_t *aNumValues,
+nsHTMLFrameSetElement::GetColSpec(PRInt32 *aNumValues,
                                   const nsFramesetSpec** aSpecs)
 {
   NS_PRECONDITION(aNumValues, "Must have a pointer to an integer here!");
   NS_PRECONDITION(aSpecs, "Must have a pointer to an array of nsFramesetSpecs");
   *aNumValues = 0;
-  *aSpecs = nullptr;
+  *aSpecs = nsnull;
 
   if (!mColSpecs) {
     const nsAttrValue* value = GetParsedAttr(nsGkAtoms::cols);
@@ -151,7 +183,7 @@ nsHTMLFrameSetElement::GetColSpec(int32_t *aNumValues,
 
 
 bool
-nsHTMLFrameSetElement::ParseAttribute(int32_t aNamespaceID,
+nsHTMLFrameSetElement::ParseAttribute(PRInt32 aNamespaceID,
                                       nsIAtom* aAttribute,
                                       const nsAString& aValue,
                                       nsAttrValue& aResult)
@@ -174,7 +206,7 @@ nsHTMLFrameSetElement::ParseAttribute(int32_t aNamespaceID,
 
 nsChangeHint
 nsHTMLFrameSetElement::GetAttributeChangeHint(const nsIAtom* aAttribute,
-                                              int32_t aModType) const
+                                              PRInt32 aModType) const
 {
   nsChangeHint retval =
     nsGenericHTMLElement::GetAttributeChangeHint(aAttribute, aModType);
@@ -190,12 +222,12 @@ nsHTMLFrameSetElement::GetAttributeChangeHint(const nsIAtom* aAttribute,
 
 nsresult
 nsHTMLFrameSetElement::ParseRowCol(const nsAString & aValue,
-                                   int32_t& aNumSpecs,
+                                   PRInt32& aNumSpecs,
                                    nsFramesetSpec** aSpecs) 
 {
   if (aValue.IsEmpty()) {
     aNumSpecs = 0;
-    *aSpecs = nullptr;
+    *aSpecs = nsnull;
     return NS_OK;
   }
 
@@ -211,8 +243,8 @@ nsHTMLFrameSetElement::ParseRowCol(const nsAString & aValue,
   
   
   PR_STATIC_ASSERT(NS_MAX_FRAMESET_SPEC_COUNT * sizeof(nsFramesetSpec) < (1 << 30));
-  int32_t commaX = spec.FindChar(sComma);
-  int32_t count = 1;
+  PRInt32 commaX = spec.FindChar(sComma);
+  PRInt32 count = 1;
   while (commaX != kNotFound && count < NS_MAX_FRAMESET_SPEC_COUNT) {
     count++;
     commaX = spec.FindChar(sComma, commaX + 1);
@@ -220,25 +252,25 @@ nsHTMLFrameSetElement::ParseRowCol(const nsAString & aValue,
 
   nsFramesetSpec* specs = new nsFramesetSpec[count];
   if (!specs) {
-    *aSpecs = nullptr;
+    *aSpecs = nsnull;
     aNumSpecs = 0;
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
   
-  bool isInQuirks = InNavQuirksMode(OwnerDoc());
+  bool isInQuirks = InNavQuirksMode(GetOwnerDoc());
       
   
 
-  int32_t start = 0;
-  int32_t specLen = spec.Length();
+  PRInt32 start = 0;
+  PRInt32 specLen = spec.Length();
 
-  for (int32_t i = 0; i < count; i++) {
+  for (PRInt32 i = 0; i < count; i++) {
     
     commaX = spec.FindChar(sComma, start);
     NS_ASSERTION(i == count - 1 || commaX != kNotFound,
                  "Failed to find comma, somehow");
-    int32_t end = (commaX == kNotFound) ? specLen : commaX;
+    PRInt32 end = (commaX == kNotFound) ? specLen : commaX;
 
     
     
@@ -246,7 +278,7 @@ nsHTMLFrameSetElement::ParseRowCol(const nsAString & aValue,
     specs[i].mUnit = eFramesetUnit_Fixed;
     specs[i].mValue = 0;
     if (end > start) {
-      int32_t numberEnd = end;
+      PRInt32 numberEnd = end;
       PRUnichar ch = spec.CharAt(numberEnd - 1);
       if (sAster == ch) {
         specs[i].mUnit = eFramesetUnit_Relative;
@@ -275,9 +307,9 @@ nsHTMLFrameSetElement::ParseRowCol(const nsAString & aValue,
       }
       else {
         
-        nsresult err;
+        PRInt32 err;
         specs[i].mValue = token.ToInteger(&err);
-        if (NS_FAILED(err)) {
+        if (err) {
           specs[i].mValue = 0;
         }
       }
@@ -328,7 +360,7 @@ nsHTMLFrameSetElement::ParseRowCol(const nsAString & aValue,
   NS_IMETHODIMP nsHTMLFrameSetElement::GetOn##name_(JSContext *cx,    \
                                                jsval *vp) {           \
     /* XXXbz note to self: add tests for this! */                     \
-    nsPIDOMWindow* win = OwnerDoc()->GetInnerWindow();             \
+    nsPIDOMWindow* win = GetOwnerDoc()->GetInnerWindow();             \
     if (win && win->IsInnerWindow()) {                                \
       nsCOMPtr<nsIInlineEventHandlers> ev = do_QueryInterface(win);   \
       return ev->GetOn##name_(cx, vp);                                \
@@ -338,7 +370,7 @@ nsHTMLFrameSetElement::ParseRowCol(const nsAString & aValue,
   }                                                                   \
   NS_IMETHODIMP nsHTMLFrameSetElement::SetOn##name_(JSContext *cx,    \
                                                const jsval &v) {      \
-    nsPIDOMWindow* win = OwnerDoc()->GetInnerWindow();             \
+    nsPIDOMWindow* win = GetOwnerDoc()->GetInnerWindow();             \
     if (win && win->IsInnerWindow()) {                                \
       nsCOMPtr<nsIInlineEventHandlers> ev = do_QueryInterface(win);   \
       return ev->SetOn##name_(cx, v);                                 \
@@ -349,7 +381,7 @@ nsHTMLFrameSetElement::ParseRowCol(const nsAString & aValue,
   NS_IMETHODIMP nsHTMLFrameSetElement::GetOn##name_(JSContext *cx,    \
                                                     jsval *vp) {      \
     /* XXXbz note to self: add tests for this! */                     \
-    nsPIDOMWindow* win = OwnerDoc()->GetInnerWindow();             \
+    nsPIDOMWindow* win = GetOwnerDoc()->GetInnerWindow();             \
     if (win && win->IsInnerWindow()) {                                \
       return win->GetOn##name_(cx, vp);                               \
     }                                                                 \
@@ -358,7 +390,7 @@ nsHTMLFrameSetElement::ParseRowCol(const nsAString & aValue,
   }                                                                   \
   NS_IMETHODIMP nsHTMLFrameSetElement::SetOn##name_(JSContext *cx,    \
                                                     const jsval &v) { \
-    nsPIDOMWindow* win = OwnerDoc()->GetInnerWindow();             \
+    nsPIDOMWindow* win = GetOwnerDoc()->GetInnerWindow();             \
     if (win && win->IsInnerWindow()) {                                \
       return win->SetOn##name_(cx, v);                                \
     }                                                                 \

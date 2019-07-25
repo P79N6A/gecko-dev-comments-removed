@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsCOMPtr_h___
 #define nsCOMPtr_h___
 
@@ -19,7 +53,6 @@
 
 
 
-#include "mozilla/Attributes.h"
 
   
 #ifndef nsDebug_h___
@@ -58,7 +91,7 @@
 
 #define NSCAP_FEATURE_USE_BASE
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
   #define NSCAP_FEATURE_TEST_DONTQUERY_CASES
   #undef NSCAP_FEATURE_USE_BASE
 
@@ -244,7 +277,8 @@ class nsCOMPtr_helper
 class
   NS_COM_GLUE
   NS_STACK_CLASS
-nsQueryInterface MOZ_FINAL
+  NS_FINAL_CLASS
+nsQueryInterface
   {
     public:
       explicit
@@ -395,18 +429,46 @@ nsCOMPtr_base
   {
     public:
 
+      template <class T>
+      class
+        NS_FINAL_CLASS
+        NS_STACK_CLASS
+      nsDerivedSafe : public T
+          
+
+
+
+
+
+
+        {
+          private:
+            using T::AddRef;
+            using T::Release;
+            
+            ~nsDerivedSafe(); 
+            
+
+
+
+
+
+
+          protected:
+            nsDerivedSafe(); 
+              
+
+
+
+        };
+
       nsCOMPtr_base( nsISupports* rawPtr = 0 )
           : mRawPtr(rawPtr)
         {
           
         }
 
-      NS_COM_GLUE NS_CONSTRUCTOR_FASTCALL ~nsCOMPtr_base()
-        {
-          NSCAP_LOG_RELEASE(this, mRawPtr);
-            if ( mRawPtr )
-              NSCAP_RELEASE(this, mRawPtr);
-        }
+      NS_COM_GLUE NS_CONSTRUCTOR_FASTCALL ~nsCOMPtr_base();
 
       NS_COM_GLUE void NS_FASTCALL   assign_with_AddRef( nsISupports* );
       NS_COM_GLUE void NS_FASTCALL   assign_from_qi( const nsQueryInterface, const nsIID& );
@@ -444,7 +506,9 @@ nsCOMPtr_base
 
 
 template <class T>
-class nsCOMPtr MOZ_FINAL
+class
+  NS_FINAL_CLASS
+nsCOMPtr
 #ifdef NSCAP_FEATURE_USE_BASE
     : private nsCOMPtr_base
 #endif
@@ -738,18 +802,15 @@ class nsCOMPtr MOZ_FINAL
           return temp;
         }
 
-      template <typename I>
       void
-      forget( I** rhs )
-          
+      forget( T** rhs NS_OUTPARAM )
           
           
           
         {
           NS_ASSERTION(rhs, "Null pointer passed to forget!");
-          NSCAP_LOG_RELEASE(this, mRawPtr);
-          *rhs = get();
-          mRawPtr = 0;
+          *rhs = 0;
+          swap(*rhs);
         }
 
       T*
@@ -775,11 +836,11 @@ class nsCOMPtr MOZ_FINAL
           return get();
         }
 
-      T*
+      nsCOMPtr_base::nsDerivedSafe<T>*
       operator->() const
         {
-          NS_ABORT_IF_FALSE(mRawPtr != 0, "You can't dereference a NULL nsCOMPtr with operator->().");
-          return get();
+          NS_PRECONDITION(mRawPtr != 0, "You can't dereference a NULL nsCOMPtr with operator->().");
+          return reinterpret_cast<nsCOMPtr_base::nsDerivedSafe<T>*> (get());
         }
 
       nsCOMPtr<T>*
@@ -802,7 +863,7 @@ class nsCOMPtr MOZ_FINAL
       T&
       operator*() const
         {
-          NS_ABORT_IF_FALSE(mRawPtr != 0, "You can't dereference a NULL nsCOMPtr with operator*().");
+          NS_PRECONDITION(mRawPtr != 0, "You can't dereference a NULL nsCOMPtr with operator*().");
           return *get();
         }
 
@@ -829,7 +890,7 @@ class nsCOMPtr MOZ_FINAL
 
 
 
-template <>
+NS_SPECIALIZE_TEMPLATE
 class nsCOMPtr<nsISupports>
     : private nsCOMPtr_base
   {
@@ -1046,7 +1107,7 @@ class nsCOMPtr<nsISupports>
         }
 
       void
-      forget( nsISupports** rhs )
+      forget( nsISupports** rhs NS_OUTPARAM )
           
           
           
@@ -1082,11 +1143,11 @@ class nsCOMPtr<nsISupports>
           return get();
         }
 
-      nsISupports*
+      nsDerivedSafe<nsISupports>*
       operator->() const
         {
-          NS_ABORT_IF_FALSE(mRawPtr != 0, "You can't dereference a NULL nsCOMPtr with operator->().");
-          return get();
+          NS_PRECONDITION(mRawPtr != 0, "You can't dereference a NULL nsCOMPtr with operator->().");
+          return reinterpret_cast<nsCOMPtr_base::nsDerivedSafe<nsISupports>*> (get());
         }
 
       nsCOMPtr<nsISupports>*
@@ -1110,7 +1171,7 @@ class nsCOMPtr<nsISupports>
       nsISupports&
       operator*() const
         {
-          NS_ABORT_IF_FALSE(mRawPtr != 0, "You can't dereference a NULL nsCOMPtr with operator*().");
+          NS_PRECONDITION(mRawPtr != 0, "You can't dereference a NULL nsCOMPtr with operator*().");
           return *get();
         }
 
@@ -1300,7 +1361,7 @@ class nsGetterAddRefs
   };
 
 
-template <>
+NS_SPECIALIZE_TEMPLATE
 class nsGetterAddRefs<nsISupports>
   {
     public:

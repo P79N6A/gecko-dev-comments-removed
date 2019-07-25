@@ -3,18 +3,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_BLUR_H
 #define GFX_BLUR_H
 
 #include "gfxContext.h"
 #include "gfxImageSurface.h"
 #include "gfxTypes.h"
-
-namespace mozilla {
-  namespace gfx {
-    class AlphaBoxBlur;
-  }
-}
+#include "gfxUtils.h"
+#include "nsRect.h"
 
 
 
@@ -97,6 +125,15 @@ protected:
     
 
 
+    gfxIntSize mSpreadRadius;
+    
+
+
+    gfxIntSize mBlurRadius;
+
+    
+
+
     nsRefPtr<gfxContext> mContext;
 
     
@@ -104,10 +141,18 @@ protected:
 
     nsRefPtr<gfxImageSurface> mImageSurface;
 
-     
+    
 
 
-    mozilla::gfx::AlphaBoxBlur *mBlur;
+
+    gfxRect mDirtyRect;
+    
+
+
+
+    nsIntRect mSkipRect;
+
+    bool mHasDirtyRect;
 };
 
 #endif 

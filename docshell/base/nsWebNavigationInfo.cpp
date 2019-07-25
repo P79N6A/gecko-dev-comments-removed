@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsWebNavigationInfo.h"
 #include "nsIWebNavigation.h"
 #include "nsString.h"
@@ -24,15 +56,15 @@ nsWebNavigationInfo::Init()
   mCategoryManager = do_GetService(NS_CATEGORYMANAGER_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  mImgLoader = nsContentUtils::GetImgLoaderForChannel(nullptr);
+  mImgLoader = do_GetService("@mozilla.org/image/loader;1", &rv);
 
-  return NS_OK;
+  return rv;
 }
 
 NS_IMETHODIMP
 nsWebNavigationInfo::IsTypeSupported(const nsACString& aType,
                                      nsIWebNavigation* aWebNav,
-                                     uint32_t* aIsTypeSupported)
+                                     PRUint32* aIsTypeSupported)
 {
   NS_PRECONDITION(aIsTypeSupported, "null out param?");
 
@@ -58,7 +90,7 @@ nsWebNavigationInfo::IsTypeSupported(const nsACString& aType,
   if (pluginHost) {
     
     
-    rv = pluginHost->ReloadPlugins(false);
+    rv = pluginHost->ReloadPlugins(PR_FALSE);
     if (NS_SUCCEEDED(rv)) {
       
       
@@ -73,7 +105,7 @@ nsWebNavigationInfo::IsTypeSupported(const nsACString& aType,
 
 nsresult
 nsWebNavigationInfo::IsTypeSupportedInternal(const nsCString& aType,
-                                             uint32_t* aIsSupported)
+                                             PRUint32* aIsSupported)
 {
   NS_PRECONDITION(aIsSupported, "Null out param?");
 

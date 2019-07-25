@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsNPAPIPlugin_h_
 #define nsNPAPIPlugin_h_
 
@@ -20,7 +52,11 @@
 
 
 
-#define NP_CALLBACK NP_LOADDS
+#ifdef XP_OS2
+#define NP_CALLBACK _System
+#else
+#define NP_CALLBACK
+#endif
 
 #if defined(XP_WIN)
 #define NS_NPAPIPLUGIN_CALLBACK(_type, _name) _type (__stdcall * _name)
@@ -67,9 +103,8 @@ public:
   
   static bool RunPluginOOP(const nsPluginTag *aPluginTag);
 
+  nsresult CreatePluginInstance(nsNPAPIPluginInstance **aResult);
   nsresult Shutdown();
-
-  static nsresult RetainStream(NPStream *pstream, nsISupports **aRetainedPeer);
 
 protected:
   NPPluginFuncs mPluginFuncs;
@@ -120,14 +155,14 @@ NPIdentifierIsInt(NPIdentifier id)
     return JSID_IS_INT(NPIdentifierToJSId(id));
 }
 
-inline int
+inline jsint
 NPIdentifierToInt(NPIdentifier id)
 {
     return JSID_TO_INT(NPIdentifierToJSId(id));
 }
 
 inline NPIdentifier
-IntToNPIdentifier(int i)
+IntToNPIdentifier(jsint i)
 {
     return JSIdToNPIdentifier(INT_TO_JSID(i));
 }
@@ -259,15 +294,6 @@ _unscheduletimer(NPP instance, uint32_t timerID);
 
 NPError NP_CALLBACK
 _popupcontextmenu(NPP instance, NPMenu* menu);
-
-NPError NP_CALLBACK
-_initasyncsurface(NPP instance, NPSize *size, NPImageFormat format, void *initData, NPAsyncSurface *surface);
-
-NPError NP_CALLBACK
-_finalizeasyncsurface(NPP instance, NPAsyncSurface *surface);
-
-void NP_CALLBACK
-_setcurrentasyncsurface(NPP instance, NPAsyncSurface *surface, NPRect *changed);
 
 NPBool NP_CALLBACK
 _convertpoint(NPP instance, double sourceX, double sourceY, NPCoordinateSpace sourceSpace, double *destX, double *destY, NPCoordinateSpace destSpace);

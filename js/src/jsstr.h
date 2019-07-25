@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef jsstr_h___
 #define jsstr_h___
 
@@ -11,10 +44,10 @@
 #include "jsapi.h"
 #include "jsatom.h"
 #include "jsprvtd.h"
+#include "jshashtable.h"
 #include "jslock.h"
-#include "jsutil.h"
+#include "jscell.h"
 
-#include "js/HashTable.h"
 #include "vm/Unicode.h"
 
 namespace js {
@@ -40,7 +73,7 @@ class RopeBuilder;
 }  
 
 extern JSString * JS_FASTCALL
-js_ConcatStrings(JSContext *cx, js::HandleString s1, js::HandleString s2);
+js_ConcatStrings(JSContext *cx, JSString *s1, JSString *s2);
 
 extern JSString * JS_FASTCALL
 js_toLowerCase(JSContext *cx, JSString *str);
@@ -63,7 +96,7 @@ extern JSSubString js_EmptySubString;
 #define JS7_ISDEC(c)    ((((unsigned)(c)) - '0') <= 9)
 #define JS7_UNDEC(c)    ((c) - '0')
 #define JS7_ISHEX(c)    ((c) < 128 && isxdigit(c))
-#define JS7_UNHEX(c)    (unsigned)(JS7_ISDEC(c) ? (c) - '0' : 10 + tolower(c) - 'a')
+#define JS7_UNHEX(c)    (uintN)(JS7_ISDEC(c) ? (c) - '0' : 10 + tolower(c) - 'a')
 #define JS7_ISLET(c)    ((c) < 128 && isalpha(c))
 
 
@@ -106,14 +139,14 @@ extern const char *
 js_ValueToPrintable(JSContext *cx, const js::Value &,
                     JSAutoByteString *bytes, bool asSource = false);
 
-namespace js {
-
 
 
 
 
 extern JSString *
-ToStringSlow(JSContext *cx, const Value &v);
+js_ValueToString(JSContext *cx, const js::Value &v);
+
+namespace js {
 
 
 
@@ -121,18 +154,11 @@ ToStringSlow(JSContext *cx, const Value &v);
 
 
 static JS_ALWAYS_INLINE JSString *
-ToString(JSContext *cx, const js::Value &v)
+ValueToString_TestForStringInline(JSContext *cx, const Value &v)
 {
-#ifdef DEBUG
-    {
-        SkipRoot skip(cx, &v);
-        MaybeCheckStackRoots(cx);
-    }
-#endif
-
     if (v.isString())
         return v.toString();
-    return ToStringSlow(cx, v);
+    return js_ValueToString(cx, v);
 }
 
 
@@ -159,11 +185,7 @@ namespace js {
 
 
 extern bool
-EqualStrings(JSContext *cx, JSString *str1, JSString *str2, bool *result);
-
-
-extern bool
-EqualStrings(JSContext *cx, JSLinearString *str1, JSLinearString *str2, bool *result) MOZ_DELETE;
+EqualStrings(JSContext *cx, JSString *str1, JSString *str2, JSBool *result);
 
 
 extern bool
@@ -174,7 +196,7 @@ EqualStrings(JSLinearString *str1, JSLinearString *str2);
 
 
 extern bool
-CompareStrings(JSContext *cx, JSString *str1, JSString *str2, int32_t *result);
+CompareStrings(JSContext *cx, JSString *str1, JSString *str2, int32 *result);
 
 
 
@@ -193,14 +215,7 @@ js_strchr(const jschar *s, jschar c);
 extern jschar *
 js_strchr_limit(const jschar *s, jschar c, const jschar *limit);
 
-static JS_ALWAYS_INLINE void
-js_strncpy(jschar *dst, const jschar *src, size_t nelem)
-{
-    return js::PodCopy(dst, src, nelem);
-}
-
-extern jschar *
-js_strdup(JSContext *cx, const jschar *s);
+#define js_strncpy(t, s, n)     memcpy((t), (s), (n) * sizeof(jschar))
 
 namespace js {
 
@@ -260,38 +275,37 @@ DeflateStringToUTF8Buffer(JSContext *cx, const jschar *chars,
                           size_t charsLength, char *bytes, size_t *length,
                           FlationCoding fc = NormalEncoding);
 
-
-
-
-
-extern JSBool
-str_replace(JSContext *cx, unsigned argc, js::Value *vp);
-
-extern JSBool
-str_fromCharCode(JSContext *cx, unsigned argc, Value *vp);
-
 } 
 
+
+
+
+
+namespace js {
 extern JSBool
-js_str_toString(JSContext *cx, unsigned argc, js::Value *vp);
+str_replace(JSContext *cx, uintN argc, js::Value *vp);
+}
 
 extern JSBool
-js_str_charAt(JSContext *cx, unsigned argc, js::Value *vp);
+js_str_toString(JSContext *cx, uintN argc, js::Value *vp);
 
 extern JSBool
-js_str_charCodeAt(JSContext *cx, unsigned argc, js::Value *vp);
+js_str_charAt(JSContext *cx, uintN argc, js::Value *vp);
+
+extern JSBool
+js_str_charCodeAt(JSContext *cx, uintN argc, js::Value *vp);
 
 
 
 
 
 extern int
-js_OneUcs4ToUtf8Char(uint8_t *utf8Buffer, uint32_t ucs4Char);
+js_OneUcs4ToUtf8Char(uint8 *utf8Buffer, uint32 ucs4Char);
 
 namespace js {
 
 extern size_t
-PutEscapedStringImpl(char *buffer, size_t size, FILE *fp, JSLinearString *str, uint32_t quote);
+PutEscapedStringImpl(char *buffer, size_t size, FILE *fp, JSLinearString *str, uint32 quote);
 
 
 
@@ -303,7 +317,7 @@ PutEscapedStringImpl(char *buffer, size_t size, FILE *fp, JSLinearString *str, u
 
 
 inline size_t
-PutEscapedString(char *buffer, size_t size, JSLinearString *str, uint32_t quote)
+PutEscapedString(char *buffer, size_t size, JSLinearString *str, uint32 quote)
 {
     size_t n = PutEscapedStringImpl(buffer, size, NULL, str, quote);
 
@@ -318,23 +332,14 @@ PutEscapedString(char *buffer, size_t size, JSLinearString *str, uint32_t quote)
 
 
 inline bool
-FileEscapedString(FILE *fp, JSLinearString *str, uint32_t quote)
+FileEscapedString(FILE *fp, JSLinearString *str, uint32 quote)
 {
     return PutEscapedStringImpl(NULL, 0, fp, str, quote) != size_t(-1);
 }
 
-JSBool
-str_match(JSContext *cx, unsigned argc, Value *vp);
-
-JSBool
-str_search(JSContext *cx, unsigned argc, Value *vp);
-
-JSBool
-str_split(JSContext *cx, unsigned argc, Value *vp);
-
 } 
 
 extern JSBool
-js_String(JSContext *cx, unsigned argc, js::Value *vp);
+js_String(JSContext *cx, uintN argc, js::Value *vp);
 
 #endif 

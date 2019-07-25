@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_XLIBSURFACE_H
 #define GFX_XLIBSURFACE_H
 
@@ -78,18 +111,6 @@ public:
 #if defined(MOZ_WIDGET_GTK2) && !defined(MOZ_PLATFORM_MAEMO)
     GLXPixmap GetGLXPixmap();
 #endif
-
-    
-    
-    
-    
-    
-    bool IsPadSlow() {
-        
-        
-        return VendorRelease(mDisplay) >= 60700000 ||
-            VendorRelease(mDisplay) < 10699000;
-    }
 
 protected:
     

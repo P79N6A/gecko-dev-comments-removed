@@ -3,9 +3,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsListBoxLayout.h"
 
 #include "nsListBoxBodyFrame.h"
+#include "nsIFrame.h"
 #include "nsBox.h"
 #include "nsBoxLayoutState.h"
 #include "nsIScrollableFrame.h"
@@ -21,7 +56,7 @@ nsListBoxLayout::nsListBoxLayout() : nsGridRowGroupLayout()
 
 
 nsSize
-nsListBoxLayout::GetPrefSize(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState)
+nsListBoxLayout::GetPrefSize(nsIBox* aBox, nsBoxLayoutState& aBoxLayoutState)
 {
   nsSize pref = nsGridRowGroupLayout::GetPrefSize(aBox, aBoxLayoutState);
 
@@ -47,7 +82,7 @@ nsListBoxLayout::GetPrefSize(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState)
 }
 
 nsSize
-nsListBoxLayout::GetMinSize(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState)
+nsListBoxLayout::GetMinSize(nsIBox* aBox, nsBoxLayoutState& aBoxLayoutState)
 {
   nsSize minSize = nsGridRowGroupLayout::GetMinSize(aBox, aBoxLayoutState);
 
@@ -73,7 +108,7 @@ nsListBoxLayout::GetMinSize(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState)
 }
 
 nsSize
-nsListBoxLayout::GetMaxSize(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState)
+nsListBoxLayout::GetMaxSize(nsIBox* aBox, nsBoxLayoutState& aBoxLayoutState)
 {
   nsSize maxSize = nsGridRowGroupLayout::GetMaxSize(aBox, aBoxLayoutState);
 
@@ -93,7 +128,7 @@ nsListBoxLayout::GetMaxSize(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState)
 }
 
 NS_IMETHODIMP
-nsListBoxLayout::Layout(nsIFrame* aBox, nsBoxLayoutState& aState)
+nsListBoxLayout::Layout(nsIBox* aBox, nsBoxLayoutState& aState)
 {
   return LayoutInternal(aBox, aState);
 }
@@ -105,9 +140,9 @@ nsListBoxLayout::Layout(nsIFrame* aBox, nsBoxLayoutState& aState)
 
 
 NS_IMETHODIMP
-nsListBoxLayout::LayoutInternal(nsIFrame* aBox, nsBoxLayoutState& aState)
+nsListBoxLayout::LayoutInternal(nsIBox* aBox, nsBoxLayoutState& aState)
 {
-  int32_t redrawStart = -1;
+  PRInt32 redrawStart = -1;
 
   
   nsListBoxBodyFrame* body = static_cast<nsListBoxBodyFrame*>(aBox);
@@ -136,7 +171,7 @@ nsListBoxLayout::LayoutInternal(nsIFrame* aBox, nsBoxLayoutState& aState)
   }
 
   
-  nsIFrame* box = body->GetChildBox();
+  nsIBox* box = body->GetChildBox();
 
   
   nscoord rowHeight = body->GetRowHeightAppUnits();
@@ -166,7 +201,7 @@ nsListBoxLayout::LayoutInternal(nsIFrame* aBox, nsBoxLayoutState& aState)
     } else {
       
       
-      int32_t newPos = yOffset+margin.top;
+      PRInt32 newPos = yOffset+margin.top;
 
       
       

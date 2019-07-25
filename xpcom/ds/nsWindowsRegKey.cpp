@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <windows.h>
 #include <shlwapi.h>
 #include <stdlib.h>
@@ -74,7 +106,7 @@ nsWindowsRegKey::Close()
 }
 
 NS_IMETHODIMP
-nsWindowsRegKey::Open(uint32_t rootKey, const nsAString &path, uint32_t mode)
+nsWindowsRegKey::Open(PRUint32 rootKey, const nsAString &path, PRUint32 mode)
 {
   Close();
 
@@ -85,7 +117,7 @@ nsWindowsRegKey::Open(uint32_t rootKey, const nsAString &path, uint32_t mode)
 }
 
 NS_IMETHODIMP
-nsWindowsRegKey::Create(uint32_t rootKey, const nsAString &path, uint32_t mode)
+nsWindowsRegKey::Create(PRUint32 rootKey, const nsAString &path, PRUint32 mode)
 {
   Close();
 
@@ -98,7 +130,7 @@ nsWindowsRegKey::Create(uint32_t rootKey, const nsAString &path, uint32_t mode)
 }
 
 NS_IMETHODIMP
-nsWindowsRegKey::OpenChild(const nsAString &path, uint32_t mode,
+nsWindowsRegKey::OpenChild(const nsAString &path, PRUint32 mode,
                            nsIWindowsRegKey **result)
 {
   NS_ENSURE_TRUE(mKey, NS_ERROR_NOT_INITIALIZED);
@@ -116,7 +148,7 @@ nsWindowsRegKey::OpenChild(const nsAString &path, uint32_t mode,
 }
 
 NS_IMETHODIMP
-nsWindowsRegKey::CreateChild(const nsAString &path, uint32_t mode,
+nsWindowsRegKey::CreateChild(const nsAString &path, PRUint32 mode,
                              nsIWindowsRegKey **result)
 {
   NS_ENSURE_TRUE(mKey, NS_ERROR_NOT_INITIALIZED);
@@ -134,7 +166,7 @@ nsWindowsRegKey::CreateChild(const nsAString &path, uint32_t mode,
 }
 
 NS_IMETHODIMP
-nsWindowsRegKey::GetChildCount(uint32_t *result)
+nsWindowsRegKey::GetChildCount(PRUint32 *result)
 {
   NS_ENSURE_TRUE(mKey, NS_ERROR_NOT_INITIALIZED);
 
@@ -148,7 +180,7 @@ nsWindowsRegKey::GetChildCount(uint32_t *result)
 }
 
 NS_IMETHODIMP
-nsWindowsRegKey::GetChildName(uint32_t index, nsAString &result)
+nsWindowsRegKey::GetChildName(PRUint32 index, nsAString &result)
 {
   NS_ENSURE_TRUE(mKey, NS_ERROR_NOT_INITIALIZED);
 
@@ -186,7 +218,7 @@ nsWindowsRegKey::HasChild(const nsAString &name, bool *result)
 }
 
 NS_IMETHODIMP
-nsWindowsRegKey::GetValueCount(uint32_t *result)
+nsWindowsRegKey::GetValueCount(PRUint32 *result)
 {
   NS_ENSURE_TRUE(mKey, NS_ERROR_NOT_INITIALIZED);
 
@@ -200,7 +232,7 @@ nsWindowsRegKey::GetValueCount(uint32_t *result)
 }
 
 NS_IMETHODIMP
-nsWindowsRegKey::GetValueName(uint32_t index, nsAString &result)
+nsWindowsRegKey::GetValueName(PRUint32 index, nsAString &result)
 {
   NS_ENSURE_TRUE(mKey, NS_ERROR_NOT_INITIALIZED);
 
@@ -250,7 +282,7 @@ nsWindowsRegKey::RemoveValue(const nsAString &name)
 }
 
 NS_IMETHODIMP
-nsWindowsRegKey::GetValueType(const nsAString &name, uint32_t *result)
+nsWindowsRegKey::GetValueType(const nsAString &name, PRUint32 *result)
 {
   NS_ENSURE_TRUE(mKey, NS_ERROR_NOT_INITIALIZED);
 
@@ -330,7 +362,7 @@ nsWindowsRegKey::ReadStringValue(const nsAString &name, nsAString &result)
 }
 
 NS_IMETHODIMP
-nsWindowsRegKey::ReadIntValue(const nsAString &name, uint32_t *result)
+nsWindowsRegKey::ReadIntValue(const nsAString &name, PRUint32 *result)
 {
   NS_ENSURE_TRUE(mKey, NS_ERROR_NOT_INITIALIZED);
 
@@ -342,7 +374,7 @@ nsWindowsRegKey::ReadIntValue(const nsAString &name, uint32_t *result)
 }
 
 NS_IMETHODIMP
-nsWindowsRegKey::ReadInt64Value(const nsAString &name, uint64_t *result)
+nsWindowsRegKey::ReadInt64Value(const nsAString &name, PRUint64 *result)
 {
   NS_ENSURE_TRUE(mKey, NS_ERROR_NOT_INITIALIZED);
 
@@ -393,7 +425,7 @@ nsWindowsRegKey::WriteStringValue(const nsAString &name, const nsAString &value)
 }
 
 NS_IMETHODIMP
-nsWindowsRegKey::WriteIntValue(const nsAString &name, uint32_t value)
+nsWindowsRegKey::WriteIntValue(const nsAString &name, PRUint32 value)
 {
   NS_ENSURE_TRUE(mKey, NS_ERROR_NOT_INITIALIZED);
 
@@ -404,7 +436,7 @@ nsWindowsRegKey::WriteIntValue(const nsAString &name, uint32_t value)
 }
 
 NS_IMETHODIMP
-nsWindowsRegKey::WriteInt64Value(const nsAString &name, uint64_t value)
+nsWindowsRegKey::WriteInt64Value(const nsAString &name, PRUint64 value)
 {
   NS_ENSURE_TRUE(mKey, NS_ERROR_NOT_INITIALIZED);
 
@@ -473,9 +505,9 @@ nsWindowsRegKey::HasChanged(bool *result)
     
     StopWatching();
     StartWatching(mWatchRecursive);
-    *result = true;
+    *result = PR_TRUE;
   } else {
-    *result = false;
+    *result = PR_FALSE;
   }
   return NS_OK;
 }

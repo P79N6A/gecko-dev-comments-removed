@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsTextEditorState_h__
 #define nsTextEditorState_h__
 
@@ -12,7 +44,6 @@
 #include "nsITextControlElement.h"
 #include "nsITextControlFrame.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsIContent.h"
 
 class nsTextInputListener;
 class nsTextControlFrame;
@@ -122,19 +153,18 @@ public:
   explicit nsTextEditorState(nsITextControlElement* aOwningElement);
   ~nsTextEditorState();
 
-  void Traverse(nsCycleCollectionTraversalCallback& cb);
-  void Unlink();
+  NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(nsTextEditorState)
+  NS_INLINE_DECL_REFCOUNTING(nsTextEditorState)
 
   nsIEditor* GetEditor();
   nsISelectionController* GetSelectionController() const;
   nsFrameSelection* GetConstFrameSelection();
   nsresult BindToFrame(nsTextControlFrame* aFrame);
   void UnbindFromFrame(nsTextControlFrame* aFrame);
-  nsresult PrepareEditor(const nsAString *aValue = nullptr);
+  nsresult PrepareEditor(const nsAString *aValue = nsnull);
   void InitializeKeyboardEventListeners();
 
-  void SetValue(const nsAString& aValue, bool aUserInput,
-                bool aSetValueAsChanged);
+  void SetValue(const nsAString& aValue, bool aUserInput);
   void GetValue(nsAString& aValue, bool aIgnoreWrap) const;
   void EmptyValue() { if (mValue) mValue->Truncate(); }
   bool IsEmpty() const { return mValue ? mValue->IsEmpty() : true; }
@@ -162,13 +192,13 @@ public:
   bool IsPasswordTextControl() const {
     return mTextCtrlElement->IsPasswordTextControl();
   }
-  int32_t GetCols() {
+  PRInt32 GetCols() {
     return mTextCtrlElement->GetCols();
   }
-  int32_t GetWrapCols() {
+  PRInt32 GetWrapCols() {
     return mTextCtrlElement->GetWrapCols();
   }
-  int32_t GetRows() {
+  PRInt32 GetRows() {
     return mTextCtrlElement->GetRows();
   }
 
@@ -181,7 +211,7 @@ public:
 
 
 
-  bool GetMaxLength(int32_t* aMaxLength);
+  bool GetMaxLength(PRInt32* aMaxLength);
 
   
   static NS_HIDDEN_(void) ShutDown();
@@ -197,7 +227,7 @@ public:
       return mStart == 0 && mEnd == 0 &&
              mDirection == nsITextControlFrame::eForward;
     }
-    int32_t mStart, mEnd;
+    PRInt32 mStart, mEnd;
     nsITextControlFrame::SelectionDirection mDirection;
   };
 
@@ -205,14 +235,8 @@ public:
   SelectionProperties& GetSelectionProperties() {
     return mSelectionProperties;
   }
-  void WillInitEagerly() { mSelectionRestoreEagerInit = true; }
+  void WillInitEagerly() { mSelectionRestoreEagerInit = PR_TRUE; }
   bool HasNeverInitializedBefore() const { return !mEverInited; }
-
-  void UpdateEditableState(bool aNotify) {
-    if (mRootNode) {
-      mRootNode->UpdateEditableState(aNotify);
-    }
-  }
 
 private:
   friend class RestoreSelectionState;
@@ -231,22 +255,22 @@ private:
 
   nsresult InitializeRootNode();
 
-  void FinishedRestoringSelection() { mRestoringSelection = nullptr; }
+  void FinishedRestoringSelection() { mRestoringSelection = nsnull; }
 
   class InitializationGuard {
   public:
     explicit InitializationGuard(nsTextEditorState& aState) :
       mState(aState),
-      mGuardSet(false)
+      mGuardSet(PR_FALSE)
     {
       if (!mState.mInitializing) {
-        mGuardSet = true;
-        mState.mInitializing = true;
+        mGuardSet = PR_TRUE;
+        mState.mInitializing = PR_TRUE;
       }
     }
     ~InitializationGuard() {
       if (mGuardSet) {
-        mState.mInitializing = false;
+        mState.mInitializing = PR_FALSE;
       }
     }
     bool IsInitializingRecursively() const {

@@ -7,6 +7,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsMenuFrame_h__
 #define nsMenuFrame_h__
 
@@ -21,7 +54,6 @@
 #include "nsXULPopupManager.h"
 #include "nsITimer.h"
 #include "nsIContent.h"
-#include "mozilla/Attributes.h"
 
 nsIFrame* NS_NewMenuFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsIFrame* NS_NewMenuItemFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
@@ -56,7 +88,7 @@ class nsMenuFrame;
 
 
 
-class nsMenuTimerMediator MOZ_FINAL : public nsITimerCallback
+class nsMenuTimerMediator : public nsITimerCallback
 {
 public:
   nsMenuTimerMediator(nsMenuFrame* aFrame);
@@ -82,6 +114,7 @@ public:
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS
 
+  
   NS_IMETHOD DoLayout(nsBoxLayoutState& aBoxLayoutState);
   virtual nsSize GetMinSize(nsBoxLayoutState& aBoxLayoutState);
   virtual nsSize GetPrefSize(nsBoxLayoutState& aBoxLayoutState);
@@ -97,7 +130,7 @@ public:
   
   
   
-  virtual const nsFrameList& GetChildList(ChildListID aList) const;
+  virtual nsFrameList GetChildList(ChildListID aList) const;
   virtual void GetChildLists(nsTArray<ChildList>* aLists) const;
   NS_IMETHOD SetInitialChildList(ChildListID     aListID,
                                  nsFrameList&    aChildList);
@@ -152,16 +185,7 @@ public:
   virtual nsMenuParent *GetMenuParent() { return mMenuParent; }
   const nsAString& GetRadioGroupName() { return mGroupName; }
   nsMenuType GetMenuType() { return mType; }
-  nsMenuPopupFrame* GetPopup();
-
-  
-
-
-  bool HasPopup() const
-  {
-    return (GetStateBits() & NS_STATE_MENU_HAS_POPUP_LIST) != 0;
-  }
-
+  nsMenuPopupFrame* GetPopup() { return mPopupFrame; }
 
   
 
@@ -203,21 +227,8 @@ protected:
   friend class nsMenuAttributeChangedEvent;
 
   
-
-
-
+  
   void SetPopupFrame(nsFrameList& aChildList);
-
-  
-
-
-
-  nsFrameList* GetPopupList() const;
-
-  
-
-
-  void DestroyPopupList();
 
   
   
@@ -238,9 +249,9 @@ protected:
   void Execute(nsGUIEvent *aEvent);
 
   
-  NS_IMETHOD AttributeChanged(int32_t aNameSpaceID,
+  NS_IMETHOD AttributeChanged(PRInt32 aNameSpaceID,
                               nsIAtom* aAttribute,
-                              int32_t aModType);
+                              PRInt32 aModType);
   virtual ~nsMenuFrame() { };
 
   bool SizeToPopup(nsBoxLayoutState& aState, nsSize& aSize);
@@ -265,12 +276,15 @@ protected:
   nsMenuParent* mMenuParent; 
 
   
+  nsMenuPopupFrame* mPopupFrame;
+
+  
   nsRefPtr<nsMenuTimerMediator> mTimerMediator;
 
   nsCOMPtr<nsITimer> mOpenTimer;
   nsCOMPtr<nsITimer> mBlinkTimer;
 
-  uint8_t mBlinkState; 
+  PRUint8 mBlinkState; 
   nsRefPtr<nsXULMenuCommandEvent> mDelayedMenuCommandEvent;
 
   nsString mGroupName;

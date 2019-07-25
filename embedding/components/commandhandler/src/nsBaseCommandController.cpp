@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsString.h"
 #include "nsIComponentManager.h"
 #include "nsBaseCommandController.h"
@@ -23,7 +55,7 @@ NS_INTERFACE_MAP_BEGIN(nsBaseCommandController)
 NS_INTERFACE_MAP_END
 
 nsBaseCommandController::nsBaseCommandController()
-  : mCommandContextRawPtr(nullptr)
+  : mCommandContextRawPtr(nsnull)
 {
 }
 
@@ -47,8 +79,8 @@ nsBaseCommandController::Init(nsIControllerCommandTable *aCommandTable)
 NS_IMETHODIMP
 nsBaseCommandController::SetCommandContext(nsISupports *aCommandContext)
 {
-  mCommandContextWeakPtr = nullptr;
-  mCommandContextRawPtr = nullptr;
+  mCommandContextWeakPtr = nsnull;
+  mCommandContextRawPtr = nsnull;
 
   if (aCommandContext) {
     nsCOMPtr<nsISupportsWeakReference> weak = do_QueryInterface(aCommandContext);

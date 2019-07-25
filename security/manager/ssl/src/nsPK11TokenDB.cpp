@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsISupports.h"
 #include "nsIPK11TokenDB.h"
 #include "prerror.h"
@@ -51,7 +84,7 @@ nsPK11Token::refreshTokenInfo()
       ccLabel, 
       ccLabel+PL_strnlen(ccLabel, sizeof(tok_info.label)));
     mTokenLabel = NS_ConvertUTF8toUTF16(cLabel);
-    mTokenLabel.Trim(" ", false, true);
+    mTokenLabel.Trim(" ", PR_FALSE, PR_TRUE);
 
     
     const char *ccManID = (const char*)tok_info.manufacturerID;
@@ -59,7 +92,7 @@ nsPK11Token::refreshTokenInfo()
       ccManID, 
       ccManID+PL_strnlen(ccManID, sizeof(tok_info.manufacturerID)));
     mTokenManID = NS_ConvertUTF8toUTF16(cManID);
-    mTokenManID.Trim(" ", false, true);
+    mTokenManID.Trim(" ", PR_FALSE, PR_TRUE);
 
     
     mTokenHWVersion.AppendInt(tok_info.hardwareVersion.major);
@@ -75,7 +108,7 @@ nsPK11Token::refreshTokenInfo()
       ccSerial, 
       ccSerial+PL_strnlen(ccSerial, sizeof(tok_info.serialNumber)));
     mTokenSerialNum = NS_ConvertUTF8toUTF16(cSerial);
-    mTokenSerialNum.Trim(" ", false, true);
+    mTokenSerialNum.Trim(" ", PR_FALSE, PR_TRUE);
   }
 
 }
@@ -102,7 +135,7 @@ void nsPK11Token::destructorSafeDestroyNSSReference()
 
   if (mSlot) {
     PK11_FreeSlot(mSlot);
-    mSlot = nullptr;
+    mSlot = nsnull;
   }
 }
 
@@ -212,7 +245,7 @@ nsPK11Token::Login(bool force)
   }
   rv = setPassword(mSlot, mUIContext);
   if (NS_FAILED(rv)) return rv;
-  srv = PK11_Authenticate(mSlot, true, mUIContext);
+  srv = PK11_Authenticate(mSlot, PR_TRUE, mUIContext);
   return (srv == SECSuccess) ? NS_OK : NS_ERROR_FAILURE;
 }
 
@@ -254,7 +287,7 @@ NS_IMETHODIMP nsPK11Token::Reset()
 }
 
 
-NS_IMETHODIMP nsPK11Token::GetMinimumPasswordLength(int32_t *aMinimumPasswordLength)
+NS_IMETHODIMP nsPK11Token::GetMinimumPasswordLength(PRInt32 *aMinimumPasswordLength)
 {
   nsNSSShutDownPreventionLock locker;
   if (isAlreadyShutDown())
@@ -284,19 +317,19 @@ NS_IMETHODIMP nsPK11Token::CheckPassword(const PRUnichar *password, bool *_retva
     return NS_ERROR_NOT_AVAILABLE;
 
   SECStatus srv;
-  int32_t prerr;
+  PRInt32 prerr;
   NS_ConvertUTF16toUTF8 aUtf8Password(password);
   srv = PK11_CheckUserPassword(mSlot, 
                   const_cast<char *>(aUtf8Password.get()));
   if (srv != SECSuccess) {
-    *_retval =  false;
+    *_retval =  PR_FALSE;
     prerr = PR_GetError();
     if (prerr != SEC_ERROR_BAD_PASSWORD) {
       
       return NS_ERROR_FAILURE;
     }
   } else {
-    *_retval =  true;
+    *_retval =  PR_TRUE;
   }
   return NS_OK;
 }
@@ -321,7 +354,7 @@ done:
 
 
 NS_IMETHODIMP 
-nsPK11Token::GetAskPasswordTimes(int32_t *rvAskTimes)
+nsPK11Token::GetAskPasswordTimes(PRInt32 *rvAskTimes)
 {
   nsNSSShutDownPreventionLock locker;
   if (isAlreadyShutDown())
@@ -335,7 +368,7 @@ nsPK11Token::GetAskPasswordTimes(int32_t *rvAskTimes)
 
 
 NS_IMETHODIMP 
-nsPK11Token::GetAskPasswordTimeout(int32_t *rvAskTimeout)
+nsPK11Token::GetAskPasswordTimeout(PRInt32 *rvAskTimeout)
 {
   nsNSSShutDownPreventionLock locker;
   if (isAlreadyShutDown())
@@ -351,8 +384,8 @@ nsPK11Token::GetAskPasswordTimeout(int32_t *rvAskTimeout)
 
 
 NS_IMETHODIMP 
-nsPK11Token::SetAskPasswordDefaults(const int32_t askTimes,
-                                    const int32_t askTimeout)
+nsPK11Token::SetAskPasswordDefaults(const PRInt32 askTimes,
+                                    const PRInt32 askTimeout)
 {
   nsNSSShutDownPreventionLock locker;
   if (isAlreadyShutDown())
@@ -486,17 +519,17 @@ NS_IMETHODIMP nsPK11TokenDB::ListTokens(nsIEnumerator* *_retval)
   PK11SlotList *list = 0;
   PK11SlotListElement *le;
 
-  *_retval = nullptr;
+  *_retval = nsnull;
   nsresult rv = NS_NewISupportsArray(getter_AddRefs(array));
   if (NS_FAILED(rv)) { goto done; }
 
   
 
 
-  list = PK11_GetAllTokens(CKM_INVALID_MECHANISM, false, false, 0);
+  list = PK11_GetAllTokens(CKM_INVALID_MECHANISM, PR_FALSE, PR_FALSE, 0);
   if (!list) { rv = NS_ERROR_FAILURE; goto done; }
 
-  for (le = PK11_GetFirstSafe(list); le; le = PK11_GetNextSafe(list, le, false)) {
+  for (le = PK11_GetFirstSafe(list); le; le = PK11_GetNextSafe(list, le, PR_FALSE)) {
     nsCOMPtr<nsIPK11Token> token = new nsPK11Token(le->slot);
     rv = token
       ? array->AppendElement(token)

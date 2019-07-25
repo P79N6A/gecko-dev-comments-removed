@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDOMStorageMemoryDB_h___
 #define nsDOMStorageMemoryDB_h___
 
@@ -16,7 +49,7 @@ class nsDOMStoragePersistentDB;
 class nsDOMStorageMemoryDB : public nsDOMStorageBaseDB
 {
 public:
-  nsDOMStorageMemoryDB() : mPreloading(false) {}
+  nsDOMStorageMemoryDB() : mPreloading(PR_FALSE) {}
   ~nsDOMStorageMemoryDB() {}
 
   class nsInMemoryItem
@@ -32,7 +65,7 @@ public:
   {
   public:
     nsStorageItemsTable mTable;
-    int32_t mUsageDelta;
+    PRInt32 mUsageDelta;
 
     nsInMemoryStorage() : mUsageDelta(0) {}
   };
@@ -44,7 +77,7 @@ public:
 
 
   nsresult
-  Init(nsDOMStoragePersistentDB* aPreloadDB = nullptr);
+  Init(nsDOMStoragePersistentDB* aPreloadDB = nsnull);
 
   
 
@@ -79,9 +112,9 @@ public:
          const nsAString& aKey,
          const nsAString& aValue,
          bool aSecure,
-         int32_t aQuota,
+         PRInt32 aQuota,
          bool aExcludeOfflineFromUsage,
-         int32_t* aNewUsage);
+         PRInt32* aNewUsage);
 
   
 
@@ -99,7 +132,7 @@ public:
   RemoveKey(DOMStorageImpl* aStorage,
             const nsAString& aKey,
             bool aExcludeOfflineFromUsage,
-            int32_t aKeyUsage);
+            PRInt32 aKeyUsage);
 
   
 
@@ -137,13 +170,13 @@ public:
 
 
   nsresult
-  GetUsage(DOMStorageImpl* aStorage, bool aExcludeOfflineFromUsage, int32_t *aUsage);
+  GetUsage(DOMStorageImpl* aStorage, bool aExcludeOfflineFromUsage, PRInt32 *aUsage);
 
   
 
 
   nsresult
-  GetUsage(const nsACString& aDomain, bool aIncludeSubDomains, int32_t *aUsage);
+  GetUsage(const nsACString& aDomain, bool aIncludeSubDomains, PRInt32 *aUsage);
 
 protected:
 
@@ -152,7 +185,7 @@ protected:
   bool mPreloading;
 
   nsresult
-  GetUsageInternal(const nsACString& aQuotaDomainDBKey, bool aExcludeOfflineFromUsage, int32_t *aUsage);
+  GetUsageInternal(const nsACString& aQuotaDomainDBKey, bool aExcludeOfflineFromUsage, PRInt32 *aUsage);
 };
 
 #endif

@@ -3,9 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsAccEvent.h"
 #include "nsAccUtils.h"
-#include "DocAccessible.h"
+#include "nsDocAccessible.h"
 
 
 
@@ -21,7 +54,7 @@ nsAccEvent::GetIsFromUserInput(bool* aIsFromUserInput)
 }
 
 NS_IMETHODIMP
-nsAccEvent::GetEventType(uint32_t* aEventType)
+nsAccEvent::GetEventType(PRUint32* aEventType)
 {
   *aEventType = mEvent->GetEventType();
   return NS_OK;
@@ -31,7 +64,7 @@ NS_IMETHODIMP
 nsAccEvent::GetAccessible(nsIAccessible** aAccessible)
 {
   NS_ENSURE_ARG_POINTER(aAccessible);
-  *aAccessible = nullptr;
+  *aAccessible = nsnull;
 
   NS_IF_ADDREF(*aAccessible = mEvent->GetAccessible());
   return NS_OK;
@@ -41,7 +74,7 @@ NS_IMETHODIMP
 nsAccEvent::GetDOMNode(nsIDOMNode** aDOMNode)
 {
   NS_ENSURE_ARG_POINTER(aDOMNode);
-  *aDOMNode = nullptr;
+  *aDOMNode = nsnull;
 
   nsINode* node = mEvent->GetNode();
   if (node)
@@ -68,12 +101,12 @@ NS_IMPL_ISUPPORTS_INHERITED1(nsAccStateChangeEvent, nsAccEvent,
                              nsIAccessibleStateChangeEvent)
 
 NS_IMETHODIMP
-nsAccStateChangeEvent::GetState(uint32_t* aState)
+nsAccStateChangeEvent::GetState(PRUint32* aState)
 {
   NS_ENSURE_ARG_POINTER(aState);
 
-  uint32_t state1 = 0, state2 = 0;
-  uint64_t state = static_cast<AccStateChangeEvent*>(mEvent.get())->GetState();
+  PRUint32 state1 = 0, state2 = 0;
+  PRUint64 state = static_cast<AccStateChangeEvent*>(mEvent.get())->GetState();
   nsAccUtils::To32States(state, &state1, &state2);
 
   *aState = state1 | state2; 
@@ -85,8 +118,8 @@ nsAccStateChangeEvent::IsExtraState(bool* aIsExtraState)
 {
   NS_ENSURE_ARG_POINTER(aIsExtraState);
 
-  uint32_t state1 = 0, state2 = 0;
-  uint64_t state = static_cast<AccStateChangeEvent*>(mEvent.get())->GetState();
+  PRUint32 state1 = 0, state2 = 0;
+  PRUint64 state = static_cast<AccStateChangeEvent*>(mEvent.get())->GetState();
   nsAccUtils::To32States(state, &state1, &state2);
 
   *aIsExtraState = (state2 != 0);
@@ -109,7 +142,7 @@ NS_IMPL_ISUPPORTS_INHERITED1(nsAccTextChangeEvent, nsAccEvent,
                              nsIAccessibleTextChangeEvent)
 
 NS_IMETHODIMP
-nsAccTextChangeEvent::GetStart(int32_t* aStart)
+nsAccTextChangeEvent::GetStart(PRInt32* aStart)
 {
   NS_ENSURE_ARG_POINTER(aStart);
   *aStart = static_cast<AccTextChangeEvent*>(mEvent.get())->GetStartOffset();
@@ -117,7 +150,7 @@ nsAccTextChangeEvent::GetStart(int32_t* aStart)
 }
 
 NS_IMETHODIMP
-nsAccTextChangeEvent::GetLength(uint32_t* aLength)
+nsAccTextChangeEvent::GetLength(PRUint32* aLength)
 {
   NS_ENSURE_ARG_POINTER(aLength);
   *aLength = static_cast<AccTextChangeEvent*>(mEvent.get())->GetLength();
@@ -144,49 +177,11 @@ nsAccTextChangeEvent::GetModifiedText(nsAString& aModifiedText)
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED1(nsAccHideEvent, nsAccEvent,
-                             nsIAccessibleHideEvent)
-
-NS_IMETHODIMP
-nsAccHideEvent::GetTargetParent(nsIAccessible** aAccessible)
-{
-  NS_ENSURE_ARG_POINTER(aAccessible);
-
-  NS_IF_ADDREF(*aAccessible =
-    static_cast<AccHideEvent*>(mEvent.get())->TargetParent());
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsAccHideEvent::GetTargetNextSibling(nsIAccessible** aAccessible)
-{
-  NS_ENSURE_ARG_POINTER(aAccessible);
-
-  NS_IF_ADDREF(*aAccessible =
-    static_cast<AccHideEvent*>(mEvent.get())->TargetNextSibling());
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsAccHideEvent::GetTargetPrevSibling(nsIAccessible** aAccessible)
-{
-  NS_ENSURE_ARG_POINTER(aAccessible);
-
-  NS_IF_ADDREF(*aAccessible =
-    static_cast<AccHideEvent*>(mEvent.get())->TargetPrevSibling());
-  return NS_OK;
-}
-
-
-
-
-
-
 NS_IMPL_ISUPPORTS_INHERITED1(nsAccCaretMoveEvent, nsAccEvent,
                              nsIAccessibleCaretMoveEvent)
 
 NS_IMETHODIMP
-nsAccCaretMoveEvent::GetCaretOffset(int32_t *aCaretOffset)
+nsAccCaretMoveEvent::GetCaretOffset(PRInt32 *aCaretOffset)
 {
   NS_ENSURE_ARG_POINTER(aCaretOffset);
 
@@ -202,7 +197,7 @@ NS_IMPL_ISUPPORTS_INHERITED1(nsAccTableChangeEvent, nsAccEvent,
                              nsIAccessibleTableChangeEvent)
 
 NS_IMETHODIMP
-nsAccTableChangeEvent::GetRowOrColIndex(int32_t *aRowOrColIndex)
+nsAccTableChangeEvent::GetRowOrColIndex(PRInt32 *aRowOrColIndex)
 {
   NS_ENSURE_ARG_POINTER(aRowOrColIndex);
 
@@ -212,7 +207,7 @@ nsAccTableChangeEvent::GetRowOrColIndex(int32_t *aRowOrColIndex)
 }
 
 NS_IMETHODIMP
-nsAccTableChangeEvent::GetNumRowsOrCols(int32_t* aNumRowsOrCols)
+nsAccTableChangeEvent::GetNumRowsOrCols(PRInt32* aNumRowsOrCols)
 {
   NS_ENSURE_ARG_POINTER(aNumRowsOrCols);
 
@@ -220,49 +215,3 @@ nsAccTableChangeEvent::GetNumRowsOrCols(int32_t* aNumRowsOrCols)
   return NS_OK;
 }
 
-
-
-
-
-NS_IMPL_ISUPPORTS_INHERITED1(nsAccVirtualCursorChangeEvent, nsAccEvent,
-                             nsIAccessibleVirtualCursorChangeEvent)
-
-NS_IMETHODIMP
-nsAccVirtualCursorChangeEvent::GetOldAccessible(nsIAccessible** aOldAccessible)
-{
-  NS_ENSURE_ARG_POINTER(aOldAccessible);
-
-  *aOldAccessible =
-    static_cast<AccVCChangeEvent*>(mEvent.get())->OldAccessible();
-  NS_IF_ADDREF(*aOldAccessible);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsAccVirtualCursorChangeEvent::GetOldStartOffset(int32_t* aOldStartOffset)
-{
-  NS_ENSURE_ARG_POINTER(aOldStartOffset);
-
-  *aOldStartOffset =
-    static_cast<AccVCChangeEvent*>(mEvent.get())->OldStartOffset();
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsAccVirtualCursorChangeEvent::GetOldEndOffset(int32_t* aOldEndOffset)
-{
-  NS_ENSURE_ARG_POINTER(aOldEndOffset);
-
-  *aOldEndOffset =
-    static_cast<AccVCChangeEvent*>(mEvent.get())->OldEndOffset();
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsAccVirtualCursorChangeEvent::GetReason(int16_t* aReason)
-{
-  NS_ENSURE_ARG_POINTER(aReason);
-
-  *aReason = static_cast<AccVCChangeEvent*>(mEvent.get())->Reason();
-  return NS_OK;
-}

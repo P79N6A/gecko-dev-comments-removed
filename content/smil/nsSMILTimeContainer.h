@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_SMILTIMECONTAINER_H_
 #define NS_SMILTIMECONTAINER_H_
 
@@ -50,7 +82,7 @@ public:
 
 
 
-  virtual void Pause(uint32_t aType);
+  virtual void Pause(PRUint32 aType);
 
   
 
@@ -59,7 +91,7 @@ public:
 
 
 
-  virtual void Resume(uint32_t aType);
+  virtual void Resume(PRUint32 aType);
 
   
 
@@ -69,7 +101,7 @@ public:
 
 
 
-  bool IsPausedByType(uint32_t aType) const { return mPauseState & aType; }
+  bool IsPausedByType(PRUint32 aType) const { return mPauseState & aType; }
 
   
 
@@ -144,7 +176,7 @@ public:
 
 
   bool NeedsRewind() const { return mNeedsRewind; }
-  void ClearNeedsRewind() { mNeedsRewind = false; }
+  void ClearNeedsRewind() { mNeedsRewind = PR_FALSE; }
 
   
 
@@ -152,7 +184,7 @@ public:
 
 
   bool IsSeeking() const { return mIsSeeking; }
-  void MarkSeekFinished() { mIsSeeking = false; }
+  void MarkSeekFinished() { mIsSeeking = PR_FALSE; }
 
   
 
@@ -267,7 +299,7 @@ protected:
   bool mIsSeeking; 
 
   
-  uint32_t mPauseState;
+  PRUint32 mPauseState;
 
   struct MilestoneEntry
   {

@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_MATRIX_H
 #define GFX_MATRIX_H
 
@@ -63,21 +95,6 @@ public:
 
     gfxMatrix operator * (const gfxMatrix& m) const {
         return gfxMatrix(*this).Multiply(m);
-    }
-
-    
-
-
-    bool operator==(const gfxMatrix& other) const
-    {
-      return FuzzyEqual(xx, other.xx) && FuzzyEqual(yx, other.yx) &&
-             FuzzyEqual(xy, other.xy) && FuzzyEqual(yy, other.yy) &&
-             FuzzyEqual(x0, other.x0) && FuzzyEqual(y0, other.y0);
-    }
-
-    bool operator!=(const gfxMatrix& other) const
-    {
-      return !(*this == other);
     }
 
     
@@ -234,7 +251,8 @@ public:
         if (det == 0.0)
             return gfxSize(0.0, 0.0);
 
-        gfxSize sz = xMajor ? gfxSize(1.0, 0.0) : gfxSize(0.0, 1.0);
+        gfxSize sz((xMajor != 0 ? 1.0 : 0.0),
+                        (xMajor != 0 ? 0.0 : 1.0));
         sz = Transform(sz);
 
         double major = sqrt(sz.width * sz.width + sz.height * sz.height);

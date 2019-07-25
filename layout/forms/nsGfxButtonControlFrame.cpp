@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsGfxButtonControlFrame.h"
 #include "nsWidgetsCID.h"
 #include "nsFormControlFrame.h"
@@ -19,7 +51,6 @@
 #include "nsContentUtils.h"
 
 #include "nsGUIEvent.h"
-#include "nsContentList.h"
 #include "nsContentCreatorFunctions.h"
 
 #include "nsNodeInfoManager.h"
@@ -57,7 +88,7 @@ nsGfxButtonControlFrame::GetType() const
 
 
 bool
-nsGfxButtonControlFrame::IsFileBrowseButton(int32_t type)
+nsGfxButtonControlFrame::IsFileBrowseButton(PRInt32 type)
 {
   bool rv = false;
   if (NS_FORM_INPUT_BUTTON == type) {
@@ -93,7 +124,7 @@ nsGfxButtonControlFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements
     return NS_ERROR_OUT_OF_MEMORY;
 
   
-  mTextContent->SetText(label, false);
+  mTextContent->SetText(label, PR_FALSE);
   if (!aElements.AppendElement(mTextContent))
     return NS_ERROR_OUT_OF_MEMORY;
   return NS_OK;
@@ -101,7 +132,7 @@ nsGfxButtonControlFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements
 
 void
 nsGfxButtonControlFrame::AppendAnonymousContentTo(nsBaseContentList& aElements,
-                                                  uint32_t aFilter)
+                                                  PRUint32 aFilter)
 {
   aElements.MaybeAppendElement(mTextContent);
 }
@@ -111,7 +142,7 @@ nsGfxButtonControlFrame::AppendAnonymousContentTo(nsBaseContentList& aElements,
 nsIFrame*
 nsGfxButtonControlFrame::CreateFrameFor(nsIContent*      aContent)
 {
-  nsIFrame * newFrame = nullptr;
+  nsIFrame * newFrame = nsnull;
 
   if (aContent == mTextContent) {
     nsIFrame * parentFrame = mFrames.FirstChild();
@@ -125,7 +156,7 @@ nsGfxButtonControlFrame::CreateFrameFor(nsIContent*      aContent)
       newFrame = NS_NewTextFrame(presContext->PresShell(), textStyleContext);
       if (newFrame) {
         
-        newFrame->Init(mTextContent, parentFrame, nullptr);
+        newFrame->Init(mTextContent, parentFrame, nsnull);
         mTextContent->SetPrimaryFrame(newFrame);
       }
     }
@@ -166,7 +197,7 @@ nsGfxButtonControlFrame::GetDefaultLabel(nsXPIDLString& aString)
   nsCOMPtr<nsIFormControl> form = do_QueryInterface(mContent);
   NS_ENSURE_TRUE(form, NS_ERROR_UNEXPECTED);
 
-  int32_t type = form->GetType();
+  PRInt32 type = form->GetType();
   const char *prop;
   if (type == NS_FORM_INPUT_RESET) {
     prop = "Reset";
@@ -233,9 +264,9 @@ nsGfxButtonControlFrame::GetLabel(nsXPIDLString& aLabel)
 }
 
 NS_IMETHODIMP
-nsGfxButtonControlFrame::AttributeChanged(int32_t         aNameSpaceID,
+nsGfxButtonControlFrame::AttributeChanged(PRInt32         aNameSpaceID,
                                           nsIAtom*        aAttribute,
-                                          int32_t         aModType)
+                                          PRInt32         aModType)
 {
   nsresult rv = NS_OK;
 
@@ -246,7 +277,7 @@ nsGfxButtonControlFrame::AttributeChanged(int32_t         aNameSpaceID,
       rv = GetLabel(label);
       NS_ENSURE_SUCCESS(rv, rv);
     
-      mTextContent->SetText(label, true);
+      mTextContent->SetText(label, PR_TRUE);
     } else {
       rv = NS_ERROR_UNEXPECTED;
     }
@@ -261,7 +292,7 @@ nsGfxButtonControlFrame::AttributeChanged(int32_t         aNameSpaceID,
 bool
 nsGfxButtonControlFrame::IsLeaf() const
 {
-  return true;
+  return PR_TRUE;
 }
 
 nsIFrame*

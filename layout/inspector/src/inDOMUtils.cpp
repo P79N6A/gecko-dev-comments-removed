@@ -2,6 +2,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "inDOMUtils.h"
 #include "inLayoutUtils.h"
 
@@ -24,9 +58,8 @@
 #include "nsComputedDOMStyle.h"
 #include "nsEventStateManager.h"
 #include "nsIAtom.h"
-#include "nsRange.h"
+#include "nsIRange.h"
 #include "mozilla/dom/Element.h"
-#include "nsCSSStyleSheet.h"
 
 
 
@@ -52,7 +85,7 @@ inDOMUtils::IsIgnorableWhitespace(nsIDOMCharacterData *aDataNode,
 
   NS_ENSURE_ARG_POINTER(aDataNode);
 
-  *aReturn = false;
+  *aReturn = PR_FALSE;
 
   nsCOMPtr<nsIContent> content = do_QueryInterface(aDataNode);
   NS_ASSERTION(content, "Does not implement nsIContent!");
@@ -78,7 +111,7 @@ inDOMUtils::IsIgnorableWhitespace(nsIDOMCharacterData *aDataNode,
   }
   else {
     
-    *aReturn = true;
+    *aReturn = PR_TRUE;
   }
 
   return NS_OK;
@@ -100,16 +133,16 @@ inDOMUtils::GetParentForNode(nsIDOMNode* aNode,
   } else if (aShowingAnonymousContent) {
     nsCOMPtr<nsIContent> content = do_QueryInterface(aNode);
     if (content) {
-      nsIContent* bparent = nullptr;
+      nsIContent* bparent = nsnull;
       nsRefPtr<nsBindingManager> bindingManager = inLayoutUtils::GetBindingManagerFor(aNode);
       if (bindingManager) {
         bparent = bindingManager->GetInsertionParent(content);
       }
-
+    
       parent = do_QueryInterface(bparent);
     }
   }
-
+  
   if (!parent) {
     
     aNode->GetParentNode(getter_AddRefs(parent));
@@ -158,16 +191,15 @@ inDOMUtils::GetCSSStyleRules(nsIDOMElement *aElement,
 {
   NS_ENSURE_ARG_POINTER(aElement);
 
-  *_retval = nullptr;
+  *_retval = nsnull;
 
   nsCOMPtr<nsIAtom> pseudoElt;
   if (!aPseudo.IsEmpty()) {
     pseudoElt = do_GetAtom(aPseudo);
   }
 
-  nsRuleNode* ruleNode = nullptr;
+  nsRuleNode* ruleNode = nsnull;
   nsCOMPtr<nsIContent> content = do_QueryInterface(aElement);
-  NS_ENSURE_STATE(content);
   nsRefPtr<nsStyleContext> styleContext;
   GetRuleNodeForContent(content, pseudoElt, getter_AddRefs(styleContext), &ruleNode);
   if (!ruleNode) {
@@ -197,7 +229,7 @@ inDOMUtils::GetCSSStyleRules(nsIDOMElement *aElement,
 }
 
 NS_IMETHODIMP
-inDOMUtils::GetRuleLine(nsIDOMCSSStyleRule *aRule, uint32_t *_retval)
+inDOMUtils::GetRuleLine(nsIDOMCSSStyleRule *aRule, PRUint32 *_retval)
 {
   *_retval = 0;
 
@@ -207,36 +239,17 @@ inDOMUtils::GetRuleLine(nsIDOMCSSStyleRule *aRule, uint32_t *_retval)
   nsRefPtr<mozilla::css::StyleRule> cssrule;
   nsresult rv = rule->GetCSSStyleRule(getter_AddRefs(cssrule));
   NS_ENSURE_SUCCESS(rv, rv);
-  NS_ENSURE_TRUE(cssrule != nullptr, NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(cssrule != nsnull, NS_ERROR_FAILURE);
   *_retval = cssrule->GetLineNumber();
   return NS_OK;
 }
 
-NS_IMETHODIMP
-inDOMUtils::IsInheritedProperty(const nsAString &aPropertyName, bool *_retval)
-{
-  nsCSSProperty prop = nsCSSProps::LookupProperty(aPropertyName,
-                                                  nsCSSProps::eAny);
-  if (prop == eCSSProperty_UNKNOWN) {
-    *_retval = false;
-    return NS_OK;
-  }
-
-  if (nsCSSProps::IsShorthand(prop)) {
-    prop = nsCSSProps::SubpropertyEntryFor(prop)[0];
-  }
-
-  nsStyleStructID sid = nsCSSProps::kSIDTable[prop];
-  *_retval = !nsCachedStyleData::IsReset(sid);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
+NS_IMETHODIMP 
 inDOMUtils::GetBindingURLs(nsIDOMElement *aElement, nsIArray **_retval)
 {
   NS_ENSURE_ARG_POINTER(aElement);
 
-  *_retval = nullptr;
+  *_retval = nsnull;
 
   nsCOMPtr<nsIMutableArray> urls = do_CreateInstance(NS_ARRAY_CONTRACTID);
   if (!urls)
@@ -245,12 +258,14 @@ inDOMUtils::GetBindingURLs(nsIDOMElement *aElement, nsIArray **_retval)
   nsCOMPtr<nsIContent> content = do_QueryInterface(aElement);
   NS_ASSERTION(content, "elements must implement nsIContent");
 
-  nsIDocument *ownerDoc = content->OwnerDoc();
-  nsXBLBinding *binding = ownerDoc->BindingManager()->GetBinding(content);
+  nsIDocument *ownerDoc = content->GetOwnerDoc();
+  if (ownerDoc) {
+    nsXBLBinding *binding = ownerDoc->BindingManager()->GetBinding(content);
 
-  while (binding) {
-    urls->AppendElement(binding->PrototypeBinding()->BindingURI(), false);
-    binding = binding->GetBaseBinding();
+    while (binding) {
+      urls->AppendElement(binding->PrototypeBinding()->BindingURI(), PR_FALSE);
+      binding = binding->GetBaseBinding();
+    }
   }
 
   NS_ADDREF(*_retval = urls);
@@ -261,16 +276,15 @@ NS_IMETHODIMP
 inDOMUtils::SetContentState(nsIDOMElement *aElement, nsEventStates::InternalType aState)
 {
   NS_ENSURE_ARG_POINTER(aElement);
-
+  
   nsRefPtr<nsEventStateManager> esm = inLayoutUtils::GetEventStateManagerFor(aElement);
   if (esm) {
     nsCOMPtr<nsIContent> content;
     content = do_QueryInterface(aElement);
-
-    
-    return (nsresult)esm->SetContentState(content, nsEventStates(aState));
+  
+    return esm->SetContentState(content, nsEventStates(aState));
   }
-
+  
   return NS_ERROR_FAILURE;
 }
 
@@ -293,8 +307,8 @@ inDOMUtils::GetRuleNodeForContent(nsIContent* aContent,
                                   nsStyleContext** aStyleContext,
                                   nsRuleNode** aRuleNode)
 {
-  *aRuleNode = nullptr;
-  *aStyleContext = nullptr;
+  *aRuleNode = nsnull;
+  *aStyleContext = nsnull;
 
   if (!aContent->IsElement()) {
     return NS_ERROR_UNEXPECTED;
@@ -325,116 +339,8 @@ NS_IMETHODIMP
 inDOMUtils::GetUsedFontFaces(nsIDOMRange* aRange,
                              nsIDOMFontFaceList** aFontFaceList)
 {
-  return static_cast<nsRange*>(aRange)->GetUsedFontFaces(aFontFaceList);
-}
+  nsCOMPtr<nsIRange> range = do_QueryInterface(aRange);
+  NS_ENSURE_TRUE(range, NS_ERROR_UNEXPECTED);
 
-static nsEventStates
-GetStatesForPseudoClass(const nsAString& aStatePseudo)
-{
-  
-  
-  static const nsEventStates sPseudoClassStates[] = {
-#define CSS_PSEUDO_CLASS(_name, _value) \
-    nsEventStates(),
-#define CSS_STATE_PSEUDO_CLASS(_name, _value, _states) \
-    _states,
-#include "nsCSSPseudoClassList.h"
-#undef CSS_STATE_PSEUDO_CLASS
-#undef CSS_PSEUDO_CLASS
-
-    
-    
-    nsEventStates(),
-    nsEventStates()
-  };
-  MOZ_STATIC_ASSERT(NS_ARRAY_LENGTH(sPseudoClassStates) ==
-                    nsCSSPseudoClasses::ePseudoClass_NotPseudoClass + 1,
-                    "Length of PseudoClassStates array is incorrect");
-
-  nsCOMPtr<nsIAtom> atom = do_GetAtom(aStatePseudo);
-
-  
-  
-  if (nsCSSPseudoClasses::GetPseudoType(atom) ==
-      nsCSSPseudoClasses::ePseudoClass_mozAnyLink) {
-    return nsEventStates();
-  }
-  
-  
-  return sPseudoClassStates[nsCSSPseudoClasses::GetPseudoType(atom)];
-}
-
-NS_IMETHODIMP
-inDOMUtils::AddPseudoClassLock(nsIDOMElement *aElement,
-                               const nsAString &aPseudoClass)
-{
-  nsEventStates state = GetStatesForPseudoClass(aPseudoClass);
-  if (state.IsEmpty()) {
-    return NS_OK;
-  }
-
-  nsCOMPtr<mozilla::dom::Element> element = do_QueryInterface(aElement);
-  NS_ENSURE_ARG_POINTER(element);
-
-  element->LockStyleStates(state);
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-inDOMUtils::RemovePseudoClassLock(nsIDOMElement *aElement,
-                                  const nsAString &aPseudoClass)
-{
-  nsEventStates state = GetStatesForPseudoClass(aPseudoClass);
-  if (state.IsEmpty()) {
-    return NS_OK;
-  }
-
-  nsCOMPtr<mozilla::dom::Element> element = do_QueryInterface(aElement);
-  NS_ENSURE_ARG_POINTER(element);
-
-  element->UnlockStyleStates(state);
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-inDOMUtils::HasPseudoClassLock(nsIDOMElement *aElement,
-                               const nsAString &aPseudoClass,
-                               bool *_retval)
-{
-  nsEventStates state = GetStatesForPseudoClass(aPseudoClass);
-  if (state.IsEmpty()) {
-    *_retval = false;
-    return NS_OK;
-  }
-
-  nsCOMPtr<mozilla::dom::Element> element = do_QueryInterface(aElement);
-  NS_ENSURE_ARG_POINTER(element);
-
-  nsEventStates locks = element->LockedStyleStates();
-
-  *_retval = locks.HasAllStates(state);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-inDOMUtils::ClearPseudoClassLocks(nsIDOMElement *aElement)
-{
-  nsCOMPtr<mozilla::dom::Element> element = do_QueryInterface(aElement);
-  NS_ENSURE_ARG_POINTER(element);
-
-  element->ClearStyleStateLocks();
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-inDOMUtils::ParseStyleSheet(nsIDOMCSSStyleSheet *aSheet,
-                            const nsAString& aInput)
-{
-  nsRefPtr<nsCSSStyleSheet> sheet = do_QueryObject(aSheet);
-  NS_ENSURE_ARG_POINTER(sheet);
-
-  return sheet->ParseSheet(aInput);
+  return range->GetUsedFontFaces(aFontFaceList);
 }

@@ -5,6 +5,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "mozilla/layers/PLayers.h"
 #include "mozilla/layers/ShadowLayers.h"
  
@@ -12,7 +45,6 @@
 
 #include "gfxXlibSurface.h"
 #include "mozilla/X11Util.h"
-#include "cairo-xlib.h"
 
 namespace mozilla {
 namespace layers {
@@ -44,26 +76,19 @@ TakeAndDestroyXlibSurface(SurfaceDescriptor* aSurface)
   surf->TakePixmap();
   *aSurface = SurfaceDescriptor();
   
-  return true;
+  return PR_TRUE;
 }
 
 SurfaceDescriptorX11::SurfaceDescriptorX11(gfxXlibSurface* aSurf)
   : mId(aSurf->XDrawable())
   , mSize(aSurf->GetSize())
-{
-  const XRenderPictFormat *pictFormat = aSurf->XRenderFormat();
-  if (pictFormat) {
-    mFormat = pictFormat->id;
-  } else {
-    mFormat = cairo_xlib_surface_get_visual(aSurf->CairoSurface())->visualid;
-  }
-}
+  , mFormat(aSurf->XRenderFormat()->id)
+{ }
 
-SurfaceDescriptorX11::SurfaceDescriptorX11(Drawable aDrawable, XID aFormatID,
-                                           const gfxIntSize& aSize)
-  : mId(aDrawable)
-  , mFormat(aFormatID)
+SurfaceDescriptorX11::SurfaceDescriptorX11(const int aXid, const int aXrenderPictID, const gfxIntSize& aSize)
+  : mId(aXid)
   , mSize(aSize)
+  , mFormat(aXrenderPictID)
 { }
 
 already_AddRefed<gfxXlibSurface>
@@ -72,38 +97,32 @@ SurfaceDescriptorX11::OpenForeign() const
   Display* display = DefaultXDisplay();
   Screen* screen = DefaultScreenOfDisplay(display);
 
-  nsRefPtr<gfxXlibSurface> surf;
-  XRenderPictFormat* pictFormat = GetXRenderPictFormatFromId(display, mFormat);
-  if (pictFormat) {
-    surf = new gfxXlibSurface(screen, mId, pictFormat, mSize);
-  } else {
-    Visual* visual;
-    int depth;
-    FindVisualAndDepth(display, mFormat, &visual, &depth);
-    if (!visual)
-      return nullptr;
+  XRenderPictFormat* format = GetXRenderPictFormatFromId(display, mFormat);
+  nsRefPtr<gfxXlibSurface> surf =
+    new gfxXlibSurface(screen, mId, format, mSize);
+  return surf->CairoStatus() ? nsnull : surf.forget();
+}
 
-    surf = new gfxXlibSurface(display, mId, visual, mSize);
-  }
-  return surf->CairoStatus() ? nullptr : surf.forget();
+bool
+ShadowLayerForwarder::PlatformAllocDoubleBuffer(const gfxIntSize& aSize,
+                                                gfxASurface::gfxContentType aContent,
+                                                SurfaceDescriptor* aFrontBuffer,
+                                                SurfaceDescriptor* aBackBuffer)
+{
+  return (PlatformAllocBuffer(aSize, aContent, aFrontBuffer) &&
+          PlatformAllocBuffer(aSize, aContent, aBackBuffer));
 }
 
 bool
 ShadowLayerForwarder::PlatformAllocBuffer(const gfxIntSize& aSize,
                                           gfxASurface::gfxContentType aContent,
-                                          uint32_t aCaps,
                                           SurfaceDescriptor* aBuffer)
 {
   if (!UsingXCompositing()) {
     
     
     
-    return false;
-  }
-  if (MAP_AS_IMAGE_SURFACE & aCaps) {
-    
-    
-    return false;
+    return PR_FALSE;
   }
 
   gfxPlatform* platform = gfxPlatform::GetPlatform();
@@ -111,7 +130,7 @@ ShadowLayerForwarder::PlatformAllocBuffer(const gfxIntSize& aSize,
   if (!buffer ||
       buffer->GetType() != gfxASurface::SurfaceTypeXlib) {
     NS_ERROR("creating Xlib front/back surfaces failed!");
-    return false;
+    return PR_FALSE;
   }
 
   gfxXlibSurface* bufferX = static_cast<gfxXlibSurface*>(buffer.get());
@@ -119,49 +138,23 @@ ShadowLayerForwarder::PlatformAllocBuffer(const gfxIntSize& aSize,
   bufferX->ReleasePixmap();
 
   *aBuffer = SurfaceDescriptorX11(bufferX);
-  return true;
+  return PR_TRUE;
 }
 
  already_AddRefed<gfxASurface>
-ShadowLayerForwarder::PlatformOpenDescriptor(OpenMode aMode,
-                                             const SurfaceDescriptor& aSurface)
+ShadowLayerForwarder::PlatformOpenDescriptor(const SurfaceDescriptor& aSurface)
 {
   if (SurfaceDescriptor::TSurfaceDescriptorX11 != aSurface.type()) {
-    return nullptr;
+    return nsnull;
   }
   return aSurface.get_SurfaceDescriptorX11().OpenForeign();
-}
-
- bool
-ShadowLayerForwarder::PlatformCloseDescriptor(const SurfaceDescriptor& aDescriptor)
-{
-  
-  return false;
-}
-
- bool
-ShadowLayerForwarder::PlatformGetDescriptorSurfaceContentType(
-  const SurfaceDescriptor& aDescriptor, OpenMode aMode,
-  gfxContentType* aContent,
-  gfxASurface** aSurface)
-{
-  return false;
-}
-
- bool
-ShadowLayerForwarder::PlatformGetDescriptorSurfaceSize(
-  const SurfaceDescriptor& aDescriptor, OpenMode aMode,
-  gfxIntSize* aSize,
-  gfxASurface** aSurface)
-{
-  return false;
 }
 
 bool
 ShadowLayerForwarder::PlatformDestroySharedSurface(SurfaceDescriptor* aSurface)
 {
   if (SurfaceDescriptor::TSurfaceDescriptorX11 != aSurface->type()) {
-    return false;
+    return PR_FALSE;
   }
   return TakeAndDestroyXlibSurface(aSurface);
 }
@@ -187,24 +180,15 @@ ShadowLayerManager::PlatformSyncBeforeReplyUpdate()
     
     
     
-    FinishX(DefaultXDisplay());
+    XSync(DefaultXDisplay(), False);
   }
-}
-
- already_AddRefed<TextureImage>
-ShadowLayerManager::OpenDescriptorForDirectTexturing(GLContext*,
-                                                     const SurfaceDescriptor&,
-                                                     GLenum)
-{
-  
-  return nullptr;
 }
 
 bool
 ShadowLayerManager::PlatformDestroySharedSurface(SurfaceDescriptor* aSurface)
 {
   if (SurfaceDescriptor::TSurfaceDescriptorX11 != aSurface->type()) {
-    return false;
+    return PR_FALSE;
   }
   return TakeAndDestroyXlibSurface(aSurface);
 }

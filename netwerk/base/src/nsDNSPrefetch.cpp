@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsDNSPrefetch.h"
 #include "nsCOMPtr.h"
 #include "nsString.h"
@@ -15,7 +48,7 @@
 #include "nsICancelable.h"
 
 static NS_DEFINE_CID(kDNSServiceCID, NS_DNSSERVICE_CID);
-static nsIDNSService *sDNSService = nullptr;
+static nsIDNSService *sDNSService = nsnull;
 
 nsresult
 nsDNSPrefetch::Initialize(nsIDNSService *aDNSService)
@@ -40,7 +73,7 @@ nsDNSPrefetch::nsDNSPrefetch(nsIURI *aURI, bool storeTiming)
 }
 
 nsresult 
-nsDNSPrefetch::Prefetch(uint16_t flags)
+nsDNSPrefetch::Prefetch(PRUint16 flags)
 {
     if (mHostname.IsEmpty())
         return NS_ERROR_NOT_AVAILABLE;
@@ -57,7 +90,7 @@ nsDNSPrefetch::Prefetch(uint16_t flags)
     
     
     return sDNSService->AsyncResolve(mHostname, flags | nsIDNSService::RESOLVE_SPECULATE,
-                                     this, nullptr, getter_AddRefs(tmpOutstanding));
+                                     this, nsnull, getter_AddRefs(tmpOutstanding));
 }
 
 nsresult

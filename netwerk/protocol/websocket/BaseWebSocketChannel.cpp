@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "WebSocketLog.h"
 #include "BaseWebSocketChannel.h"
 #include "nsILoadGroup.h"
@@ -13,7 +46,7 @@
 #include "nsStandardURL.h"
 
 #if defined(PR_LOGGING)
-PRLogModuleInfo *webSocketLog = nullptr;
+PRLogModuleInfo *webSocketLog = nsnull;
 #endif
 
 namespace mozilla {
@@ -133,7 +166,7 @@ BaseWebSocketChannel::GetScheme(nsACString &aScheme)
 }
 
 NS_IMETHODIMP
-BaseWebSocketChannel::GetDefaultPort(int32_t *aDefaultPort)
+BaseWebSocketChannel::GetDefaultPort(PRInt32 *aDefaultPort)
 {
   LOG(("BaseWebSocketChannel::GetDefaultPort() %p\n", this));
 
@@ -145,7 +178,7 @@ BaseWebSocketChannel::GetDefaultPort(int32_t *aDefaultPort)
 }
 
 NS_IMETHODIMP
-BaseWebSocketChannel::GetProtocolFlags(uint32_t *aProtocolFlags)
+BaseWebSocketChannel::GetProtocolFlags(PRUint32 *aProtocolFlags)
 {
   LOG(("BaseWebSocketChannel::GetProtocolFlags() %p\n", this));
 
@@ -156,11 +189,11 @@ BaseWebSocketChannel::GetProtocolFlags(uint32_t *aProtocolFlags)
 
 NS_IMETHODIMP
 BaseWebSocketChannel::NewURI(const nsACString & aSpec, const char *aOriginCharset,
-                             nsIURI *aBaseURI, nsIURI **_retval)
+                             nsIURI *aBaseURI, nsIURI **_retval NS_OUTPARAM)
 {
   LOG(("BaseWebSocketChannel::NewURI() %p\n", this));
 
-  int32_t port;
+  PRInt32 port;
   nsresult rv = GetDefaultPort(&port);
   if (NS_FAILED(rv))
     return rv;
@@ -175,20 +208,20 @@ BaseWebSocketChannel::NewURI(const nsACString & aSpec, const char *aOriginCharse
 }
 
 NS_IMETHODIMP
-BaseWebSocketChannel::NewChannel(nsIURI *aURI, nsIChannel **_retval)
+BaseWebSocketChannel::NewChannel(nsIURI *aURI, nsIChannel **_retval NS_OUTPARAM)
 {
   LOG(("BaseWebSocketChannel::NewChannel() %p\n", this));
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-BaseWebSocketChannel::AllowPort(int32_t port, const char *scheme,
-                                bool *_retval)
+BaseWebSocketChannel::AllowPort(PRInt32 port, const char *scheme,
+                                bool *_retval NS_OUTPARAM)
 {
   LOG(("BaseWebSocketChannel::AllowPort() %p\n", this));
 
   
-  *_retval = false;
+  *_retval = PR_FALSE;
   return NS_OK;
 }
 

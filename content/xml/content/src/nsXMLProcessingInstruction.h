@@ -3,10 +3,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIXMLProcessingInstruction_h___
 #define nsIXMLProcessingInstruction_h___
 
 #include "nsIDOMProcessingInstruction.h"
+#include "nsIDocument.h"
 #include "nsGenericDOMDataNode.h"
 #include "nsAString.h"
 
@@ -32,19 +66,21 @@ public:
   NS_DECL_NSIDOMPROCESSINGINSTRUCTION
 
   
-  virtual bool IsNodeOfType(uint32_t aFlags) const;
+  NS_DECL_AND_IMPL_DOM_MEMORY_REPORTER_SIZEOF(nsXMLProcessingInstruction,
+                                              nsGenericDOMDataNode)
+
+  
+  virtual bool IsNodeOfType(PRUint32 aFlags) const;
 
   virtual nsGenericDOMDataNode* CloneDataNode(nsINodeInfo *aNodeInfo,
                                               bool aCloneText) const;
 
 #ifdef DEBUG
-  virtual void List(FILE* out, int32_t aIndent) const;
-  virtual void DumpContent(FILE* out, int32_t aIndent, bool aDumpAll) const;
+  virtual void List(FILE* out, PRInt32 aIndent) const;
+  virtual void DumpContent(FILE* out, PRInt32 aIndent, bool aDumpAll) const;
 #endif
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 protected:
   
 

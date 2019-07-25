@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NSSUBDOCUMENTFRAME_H_
 #define NSSUBDOCUMENTFRAME_H_
 
@@ -30,7 +62,7 @@ public:
 
   virtual nsIAtom* GetType() const;
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     
     return nsLeafFrame::IsFrameOfType(aFlags &
@@ -57,7 +89,7 @@ public:
   virtual nsSize ComputeSize(nsRenderingContext *aRenderingContext,
                              nsSize aCBSize, nscoord aAvailableWidth,
                              nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                             uint32_t aFlags) MOZ_OVERRIDE;
+                             bool aShrinkWrap);
 
   NS_IMETHOD Reflow(nsPresContext*          aPresContext,
                     nsHTMLReflowMetrics&     aDesiredSize,
@@ -68,9 +100,9 @@ public:
                               const nsRect&           aDirtyRect,
                               const nsDisplayListSet& aLists);
 
-  NS_IMETHOD AttributeChanged(int32_t aNameSpaceID,
+  NS_IMETHOD AttributeChanged(PRInt32 aNameSpaceID,
                               nsIAtom* aAttribute,
-                              int32_t aModType);
+                              PRInt32 aModType);
 
   
   
@@ -79,7 +111,7 @@ public:
   virtual bool SupportsVisibilityHidden() { return false; }
 
 #ifdef ACCESSIBILITY
-  virtual already_AddRefed<Accessible> CreateAccessible();
+  virtual already_AddRefed<nsAccessible> CreateAccessible();
 #endif
 
   nsresult GetDocShell(nsIDocShell **aDocShell);
@@ -91,18 +123,6 @@ public:
   
   virtual bool ReflowFinished();
   virtual void ReflowCallbackCanceled();
-
-  bool ShouldClipSubdocument()
-  {
-    nsFrameLoader* frameLoader = FrameLoader();
-    return !frameLoader || frameLoader->ShouldClipSubdocument();
-  }
-
-  bool ShouldClampScrollPosition()
-  {
-    nsFrameLoader* frameLoader = FrameLoader();
-    return !frameLoader || frameLoader->ShouldClampScrollPosition();
-  }
 
 protected:
   friend class AsyncFrameInit;
@@ -117,11 +137,10 @@ protected:
   virtual nscoord GetIntrinsicWidth();
   virtual nscoord GetIntrinsicHeight();
 
-  virtual int GetSkipSides() const;
+  virtual PRIntn GetSkipSides() const;
 
   
-  
-  
+  void HideViewer();
   void ShowViewer();
 
   

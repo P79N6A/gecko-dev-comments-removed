@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef TRANSFRMX_TXMOZILLAXSLTPROCESSOR_H
 #define TRANSFRMX_TXMOZILLAXSLTPROCESSOR_H
 
@@ -15,7 +48,6 @@
 #include "txNamespaceMap.h"
 #include "nsIJSNativeInitializer.h"
 #include "nsCycleCollectionParticipant.h"
-#include "mozilla/Attributes.h"
 
 class nsIDOMNode;
 class nsIPrincipal;
@@ -37,11 +69,11 @@ class txIGlobalParameter;
 
 
 
-class txMozillaXSLTProcessor MOZ_FINAL : public nsIXSLTProcessor,
-                                         public nsIXSLTProcessorPrivate,
-                                         public nsIDocumentTransformer,
-                                         public nsStubMutationObserver,
-                                         public nsIJSNativeInitializer
+class txMozillaXSLTProcessor : public nsIXSLTProcessor,
+                               public nsIXSLTProcessorPrivate,
+                               public nsIDocumentTransformer,
+                               public nsStubMutationObserver,
+                               public nsIJSNativeInitializer
 {
 public:
     
@@ -105,7 +137,7 @@ public:
 
     
     NS_IMETHODIMP Initialize(nsISupports* aOwner, JSContext *cx, JSObject *obj,
-                             uint32_t argc, jsval *argv);
+                             PRUint32 argc, jsval *argv);
 
     static nsresult Startup();
     static void Shutdown();
@@ -129,7 +161,7 @@ private:
     txNamespaceMap mParamNamespaceMap;
     nsRefPtr<txResultRecycler> mRecycler;
 
-    uint32_t mFlags;
+    PRUint32 mFlags;
 };
 
 extern nsresult TX_LoadSheet(nsIURI* aUri, txMozillaXSLTProcessor* aProcessor,

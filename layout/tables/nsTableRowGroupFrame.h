@@ -2,11 +2,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsTableRowGroupFrame_h__
 #define nsTableRowGroupFrame_h__
 
 #include "nscore.h"
-#include "nsContainerFrame.h"
+#include "nsHTMLContainerFrame.h"
 #include "nsIAtom.h"
 #include "nsILineIterator.h"
 #include "nsTablePainter.h"
@@ -60,7 +92,7 @@ struct nsRowGroupReflowState {
 
 
 class nsTableRowGroupFrame
-  : public nsContainerFrame
+  : public nsHTMLContainerFrame
   , public nsILineIterator
 {
 public:
@@ -124,19 +156,19 @@ public:
 #endif
 
   
-  int32_t GetRowCount();
+  PRInt32 GetRowCount();
 
   
 
 
-  int32_t GetStartRowIndex();
+  PRInt32 GetStartRowIndex();
 
   
 
 
 
-  void AdjustRowIndices(int32_t   aRowIndex,
-                        int32_t   anAdjustment);
+  void AdjustRowIndices(PRInt32   aRowIndex,
+                        PRInt32   anAdjustment);
 
   
 
@@ -169,7 +201,7 @@ public:
 
 
 
-  void SetContinuousBCBorderWidth(uint8_t     aForSide,
+  void SetContinuousBCBorderWidth(PRUint8     aForSide,
                                   BCPixelSize aPixelValue);
   
 
@@ -197,7 +229,7 @@ public:
   
 
 
-  virtual int32_t GetNumLines();
+  virtual PRInt32 GetNumLines();
 
   
 
@@ -216,11 +248,11 @@ public:
 
 
 
-  NS_IMETHOD GetLine(int32_t aLineNumber,
+  NS_IMETHOD GetLine(PRInt32 aLineNumber,
                      nsIFrame** aFirstFrameOnLine,
-                     int32_t* aNumFramesOnLine,
+                     PRInt32* aNumFramesOnLine,
                      nsRect& aLineBounds,
-                     uint32_t* aLineFlags);
+                     PRUint32* aLineFlags);
   
   
 
@@ -229,7 +261,7 @@ public:
 
 
 
-  virtual int32_t FindLineContaining(nsIFrame* aFrame, int32_t aStartLine = 0);
+  virtual PRInt32 FindLineContaining(nsIFrame* aFrame, PRInt32 aStartLine = 0);
 
   
 
@@ -242,7 +274,7 @@ public:
 
 
 
-  NS_IMETHOD FindFrameAt(int32_t aLineNumber,
+  NS_IMETHOD FindFrameAt(PRInt32 aLineNumber,
                          nscoord aX,
                          nsIFrame** aFrameFound,
                          bool* aXIsBeforeFirstFrame,
@@ -257,7 +289,7 @@ public:
 
 
 
-  NS_IMETHOD CheckLineOrder(int32_t                  aLine,
+  NS_IMETHOD CheckLineOrder(PRInt32                  aLine,
                             bool                     *aIsReordered,
                             nsIFrame                 **aFirstVisual,
                             nsIFrame                 **aLastVisual);
@@ -268,7 +300,7 @@ public:
 
 
   
-  NS_IMETHOD GetNextSiblingOnLine(nsIFrame*& aFrame, int32_t aLineNumber);
+  NS_IMETHOD GetNextSiblingOnLine(nsIFrame*& aFrame, PRInt32 aLineNumber);
 
   
   
@@ -282,7 +314,7 @@ public:
   
   struct FrameCursorData {
     nsTArray<nsIFrame*> mFrames;
-    uint32_t            mCursorIndex;
+    PRUint32            mCursorIndex;
     nscoord             mOverflowAbove;
     nscoord             mOverflowBelow;
     
@@ -332,7 +364,7 @@ protected:
                             nsHTMLReflowState& aReflowState);
   
   
-  virtual int GetSkipSides() const;
+  virtual PRIntn GetSkipSides() const;
 
   void PlaceChild(nsPresContext*         aPresContext,
                   nsRowGroupReflowState& aReflowState,
@@ -362,7 +394,7 @@ protected:
                           nsHTMLReflowMetrics&   aDesiredSize,
                           nsRowGroupReflowState& aReflowState,
                           nsReflowStatus&        aStatus,
-                          bool*                aPageBreakBeforeEnd = nullptr);
+                          bool*                aPageBreakBeforeEnd = nsnull);
 
   nsresult SplitRowGroup(nsPresContext*           aPresContext,
                          nsHTMLReflowMetrics&     aDesiredSize,
@@ -440,7 +472,7 @@ inline void nsTableRowGroupFrame::SetHasStyleHeight(bool aValue)
 inline void
 nsTableRowGroupFrame::GetContinuousBCBorderWidth(nsMargin& aBorder)
 {
-  int32_t aPixelsToTwips = nsPresContext::AppUnitsPerCSSPixel();
+  PRInt32 aPixelsToTwips = nsPresContext::AppUnitsPerCSSPixel();
   aBorder.right = BC_BORDER_LEFT_HALF_COORD(aPixelsToTwips,
                                             mRightContBorderWidth);
   aBorder.bottom = BC_BORDER_TOP_HALF_COORD(aPixelsToTwips,

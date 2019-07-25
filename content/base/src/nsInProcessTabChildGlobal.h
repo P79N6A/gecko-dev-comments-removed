@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsInProcessTabChildGlobal_h
 #define nsInProcessTabChildGlobal_h
 
@@ -33,12 +65,11 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsInProcessTabChildGlobal,
                                            nsDOMEventTargetHelper)
-  NS_FORWARD_SAFE_NSIMESSAGELISTENERMANAGER(mMessageManager)
-  NS_FORWARD_SAFE_NSIMESSAGESENDER(mMessageManager)
+  NS_FORWARD_SAFE_NSIFRAMEMESSAGEMANAGER(mMessageManager)
   NS_IMETHOD SendSyncMessage(const nsAString& aMessageName,
                              const jsval& aObject,
                              JSContext* aCx,
-                             uint8_t aArgc,
+                             PRUint8 aArgc,
                              jsval* aRetval)
   {
     return mMessageManager
@@ -66,12 +97,12 @@ public:
   {
     
     return nsDOMEventTargetHelper::AddEventListener(aType, aListener,
-                                                    aUseCapture, false, 2);
+                                                    aUseCapture, PR_FALSE, 2);
   }
   NS_IMETHOD AddEventListener(const nsAString& aType,
                               nsIDOMEventListener* aListener,
                               bool aUseCapture, bool aWantsUntrusted,
-                              uint8_t optional_argc)
+                              PRUint8 optional_argc)
   {
     return nsDOMEventTargetHelper::AddEventListener(aType, aListener,
                                                     aUseCapture,
@@ -111,10 +142,6 @@ protected:
   bool mInitialized;
   bool mLoadingScript;
   bool mDelayedDisconnect;
-
-  
-  
-  bool mIsBrowserFrame;
 public:
   nsIContent* mOwner;
   nsFrameMessageManager* mChromeMessageManager;

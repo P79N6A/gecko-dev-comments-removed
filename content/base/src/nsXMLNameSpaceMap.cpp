@@ -7,12 +7,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsXMLNameSpaceMap.h"
 #include "nsINameSpaceManager.h"
 #include "nsContentUtils.h"
 #include "nsGkAtoms.h"
 
-template <>
+NS_SPECIALIZE_TEMPLATE
 class nsDefaultComparator <nsNameSpaceEntry, nsIAtom*> {
   public:
     bool Equals(const nsNameSpaceEntry& aEntry, nsIAtom* const& aPrefix) const {
@@ -20,10 +53,10 @@ class nsDefaultComparator <nsNameSpaceEntry, nsIAtom*> {
     }
 };
 
-template <>
-class nsDefaultComparator <nsNameSpaceEntry, int32_t> {
+NS_SPECIALIZE_TEMPLATE
+class nsDefaultComparator <nsNameSpaceEntry, PRInt32> {
   public:
-    bool Equals(const nsNameSpaceEntry& aEntry, const int32_t& aNameSpace) const {
+    bool Equals(const nsNameSpaceEntry& aEntry, const PRInt32& aNameSpace) const {
       return aEntry.nameSpaceID == aNameSpace;
     }
 };
@@ -33,16 +66,16 @@ class nsDefaultComparator <nsNameSpaceEntry, int32_t> {
 nsXMLNameSpaceMap::Create(bool aForXML)
 {
   nsXMLNameSpaceMap *map = new nsXMLNameSpaceMap();
-  NS_ENSURE_TRUE(map, nullptr);
+  NS_ENSURE_TRUE(map, nsnull);
 
   if (aForXML) {
-    nsresult rv1 = map->AddPrefix(nsGkAtoms::xmlns,
-                                  kNameSpaceID_XMLNS);
-    nsresult rv2 = map->AddPrefix(nsGkAtoms::xml, kNameSpaceID_XML);
+    nsresult rv = map->AddPrefix(nsGkAtoms::xmlns,
+                                 kNameSpaceID_XMLNS);
+    rv |= map->AddPrefix(nsGkAtoms::xml, kNameSpaceID_XML);
 
-    if (NS_FAILED(rv1) || NS_FAILED(rv2)) {
+    if (NS_FAILED(rv)) {
       delete map;
-      map = nullptr;
+      map = nsnull;
     }
   }
 
@@ -55,7 +88,7 @@ nsXMLNameSpaceMap::nsXMLNameSpaceMap()
 }
 
 nsresult
-nsXMLNameSpaceMap::AddPrefix(nsIAtom *aPrefix, int32_t aNameSpaceID)
+nsXMLNameSpaceMap::AddPrefix(nsIAtom *aPrefix, PRInt32 aNameSpaceID)
 {
   if (!mNameSpaces.Contains(aPrefix) && !mNameSpaces.AppendElement(aPrefix)) {
     return NS_ERROR_OUT_OF_MEMORY;
@@ -67,7 +100,7 @@ nsXMLNameSpaceMap::AddPrefix(nsIAtom *aPrefix, int32_t aNameSpaceID)
 nsresult
 nsXMLNameSpaceMap::AddPrefix(nsIAtom *aPrefix, nsString &aURI)
 {
-  int32_t id;
+  PRInt32 id;
   nsresult rv = nsContentUtils::NameSpaceManager()->RegisterNameSpace(aURI,
                                                                       id);
 
@@ -76,10 +109,10 @@ nsXMLNameSpaceMap::AddPrefix(nsIAtom *aPrefix, nsString &aURI)
   return AddPrefix(aPrefix, id);
 }
 
-int32_t
+PRInt32
 nsXMLNameSpaceMap::FindNameSpaceID(nsIAtom *aPrefix) const
 {
-  uint32_t index = mNameSpaces.IndexOf(aPrefix);
+  PRUint32 index = mNameSpaces.IndexOf(aPrefix);
   if (index != mNameSpaces.NoIndex) {
     return mNameSpaces[index].nameSpaceID;
   }
@@ -91,14 +124,14 @@ nsXMLNameSpaceMap::FindNameSpaceID(nsIAtom *aPrefix) const
 }
 
 nsIAtom*
-nsXMLNameSpaceMap::FindPrefix(int32_t aNameSpaceID) const
+nsXMLNameSpaceMap::FindPrefix(PRInt32 aNameSpaceID) const
 {
-  uint32_t index = mNameSpaces.IndexOf(aNameSpaceID);
+  PRUint32 index = mNameSpaces.IndexOf(aNameSpaceID);
   if (index != mNameSpaces.NoIndex) {
     return mNameSpaces[index].prefix;
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 void

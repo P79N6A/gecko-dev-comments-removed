@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_LAYERS_H
 #define GFX_LAYERS_H
 
@@ -16,20 +48,13 @@
 #include "gfx3DMatrix.h"
 #include "gfxColor.h"
 #include "gfxPattern.h"
-#include "nsTArray.h"
-#include "nsThreadUtils.h"
-#include "nsStyleAnimation.h"
-#include "LayersTypes.h"
-#include "FrameMetrics.h"
+
 #include "mozilla/gfx/2D.h"
-#include "mozilla/TimeStamp.h"
 
 #if defined(DEBUG) || defined(PR_LOGGING)
 #  include <stdio.h>            
 #  include "prlog.h"
-#  ifndef MOZ_LAYERS_HAVE_LOG
-#    define MOZ_LAYERS_HAVE_LOG
-#  endif
+#  define MOZ_LAYERS_HAVE_LOG
 #  define MOZ_LAYERS_LOG(_args)                             \
   PR_LOG(LayerManager::GetLog(), PR_LOG_DEBUG, _args)
 #else
@@ -40,25 +65,13 @@ struct PRLogModuleInfo;
 class gfxContext;
 class nsPaintEvent;
 
-extern uint8_t gLayerManagerLayerBuilder;
-
 namespace mozilla {
-
-class FrameLayerBuilder;
-
 namespace gl {
 class GLContext;
 }
 
-namespace css {
-class ComputedTimingFunction;
-}
-
 namespace layers {
 
-class Animation;
-class AnimationData;
-class CommonLayerAttributes;
 class Layer;
 class ThebesLayer;
 class ContainerLayer;
@@ -68,12 +81,69 @@ class ImageContainer;
 class CanvasLayer;
 class ReadbackLayer;
 class ReadbackProcessor;
-class RefLayer;
 class ShadowLayer;
-class ShadowableLayer;
 class ShadowLayerForwarder;
 class ShadowLayerManager;
 class SpecificLayerAttributes;
+
+
+
+
+
+
+
+struct THEBES_API FrameMetrics {
+public:
+  
+  typedef PRUint64 ViewID;
+  static const ViewID NULL_SCROLL_ID;   
+  static const ViewID ROOT_SCROLL_ID;   
+  static const ViewID START_SCROLL_ID;  
+                                        
+
+  FrameMetrics()
+    : mViewport(0, 0, 0, 0)
+    , mContentSize(0, 0)
+    , mViewportScrollOffset(0, 0)
+    , mScrollId(NULL_SCROLL_ID)
+  {}
+
+  
+
+  bool operator==(const FrameMetrics& aOther) const
+  {
+    return (mViewport.IsEqualEdges(aOther.mViewport) &&
+            mViewportScrollOffset == aOther.mViewportScrollOffset &&
+            mDisplayPort.IsEqualEdges(aOther.mDisplayPort) &&
+            mScrollId == aOther.mScrollId);
+  }
+  bool operator!=(const FrameMetrics& aOther) const
+  { 
+    return !operator==(aOther);
+  }
+
+  bool IsDefault() const
+  {
+    return (FrameMetrics() == *this);
+  }
+
+  bool IsRootScrollable() const
+  {
+    return mScrollId == ROOT_SCROLL_ID;
+  }
+
+  bool IsScrollable() const
+  {
+    return mScrollId != NULL_SCROLL_ID;
+  }
+
+  
+  nsIntRect mViewport;
+  nsIntSize mContentSize;
+  nsIntPoint mViewportScrollOffset;
+  nsIntRect mDisplayPort;
+  ViewID mScrollId;
+};
 
 #define MOZ_LAYER_DECL_NAME(n, e)                           \
   virtual const char* Name() const { return n; }            \
@@ -87,50 +157,86 @@ public:
   virtual ~LayerUserData() {}
 };
 
-class LayerManagerLayerBuilder : public LayerUserData {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class THEBES_API LayerUserDataSet {
 public:
-  LayerManagerLayerBuilder(FrameLayerBuilder* aBuilder, bool aDelete = true)
-    : mLayerBuilder(aBuilder)
-    , mDelete(aDelete)
+  LayerUserDataSet() : mKey(nsnull) {}
+
+  void Set(void* aKey, LayerUserData* aValue)
   {
-    MOZ_COUNT_CTOR(LayerManagerLayerBuilder);
+    NS_ASSERTION(!mKey || mKey == aKey,
+                 "Multiple LayerUserData objects not supported");
+    mKey = aKey;
+    mValue = aValue;
   }
-  ~LayerManagerLayerBuilder();
+  
 
-  FrameLayerBuilder* mLayerBuilder;
-  bool mDelete;
+
+  LayerUserData* Remove(void* aKey)
+  {
+    if (mKey == aKey) {
+      mKey = nsnull;
+      LayerUserData* d = mValue.forget();
+      return d;
+    }
+    return nsnull;
+  }
+  
+
+
+  bool Has(void* aKey)
+  {
+    return mKey == aKey;
+  }
+  
+
+
+  LayerUserData* Get(void* aKey)
+  {
+    return mKey == aKey ? mValue.get() : nsnull;
+  }
+
+  
+
+
+  void Clear()
+  {
+    mKey = nsnull;
+    mValue = nsnull;
+  }
+
+private:
+  void* mKey;
+  nsAutoPtr<LayerUserData> mValue;
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static void LayerManagerUserDataDestroy(void *data)
-{
-  delete static_cast<LayerUserData*>(data);
-}
 
 
 
@@ -159,11 +265,16 @@ class THEBES_API LayerManager {
   NS_INLINE_DECL_REFCOUNTING(LayerManager)
 
 public:
-  LayerManager()
-    : mDestroyed(false)
-    , mSnapEffectiveTransforms(true)
-    , mId(0)
-    , mInTransaction(false)
+  enum LayersBackend {
+    LAYERS_NONE = 0,
+    LAYERS_BASIC,
+    LAYERS_OPENGL,
+    LAYERS_D3D9,
+    LAYERS_D3D10,
+    LAYERS_LAST
+  };
+
+  LayerManager() : mDestroyed(PR_FALSE), mSnapEffectiveTransforms(PR_TRUE)
   {
     InitLog();
   }
@@ -175,20 +286,14 @@ public:
 
 
 
-  virtual void Destroy() { mDestroyed = true; mUserData.Destroy(); }
+  virtual void Destroy() { mDestroyed = PR_TRUE; mUserData.Clear(); }
   bool IsDestroyed() { return mDestroyed; }
 
   virtual ShadowLayerForwarder* AsShadowForwarder()
-  { return nullptr; }
+  { return nsnull; }
 
   virtual ShadowLayerManager* AsShadowManager()
-  { return nullptr; }
-
-  
-
-
-
-  virtual bool IsWidgetLayerManager() { return true; }
+  { return nsnull; }
 
   
 
@@ -205,18 +310,6 @@ public:
 
 
   virtual void BeginTransactionWithTarget(gfxContext* aTarget) = 0;
-
-  enum EndTransactionFlags {
-    END_DEFAULT = 0,
-    END_NO_IMMEDIATE_REDRAW = 1 << 0,  
-    END_NO_COMPOSITE = 1 << 1 
-  };
-
-  FrameLayerBuilder* GetLayerBuilder() {
-    LayerManagerLayerBuilder *data = static_cast<LayerManagerLayerBuilder*>(GetUserData(&gLayerManagerLayerBuilder));
-    return data ? data->mLayerBuilder : nullptr;
-  }
-
   
 
 
@@ -225,7 +318,7 @@ public:
 
 
 
-  virtual bool EndEmptyTransaction(EndTransactionFlags aFlags = END_DEFAULT) = 0;
+  virtual bool EndEmptyTransaction() = 0;
 
   
 
@@ -259,6 +352,11 @@ public:
                                            const nsIntRegion& aRegionToInvalidate,
                                            void* aCallbackData);
 
+  enum EndTransactionFlags {
+    END_DEFAULT = 0,
+    END_NO_IMMEDIATE_REDRAW = 1 << 0  
+  };
+
   
 
 
@@ -270,17 +368,7 @@ public:
                               void* aCallbackData,
                               EndTransactionFlags aFlags = END_DEFAULT) = 0;
 
-  virtual bool HasShadowManagerInternal() const { return false; }
-  bool HasShadowManager() const { return HasShadowManagerInternal(); }
-
   bool IsSnappingEffectiveTransforms() { return mSnapEffectiveTransforms; } 
-
-  
-
-
-
-
-  virtual bool AreComponentAlphaLayersEnabled() { return true; }
 
   
 
@@ -335,31 +423,12 @@ public:
 
 
 
-  virtual already_AddRefed<ReadbackLayer> CreateReadbackLayer() { return nullptr; }
-  
-
-
-
-  virtual already_AddRefed<RefLayer> CreateRefLayer() { return nullptr; }
-
+  virtual already_AddRefed<ReadbackLayer> CreateReadbackLayer() { return nsnull; }
 
   
 
 
-
-
-
-  static already_AddRefed<ImageContainer> CreateImageContainer();
-  
-  
-
-
-
-
-
-
-
-  static already_AddRefed<ImageContainer> CreateAsynchronousImageContainer();
+  virtual already_AddRefed<ImageContainer> CreateImageContainer() = 0;
 
   
 
@@ -375,15 +444,6 @@ public:
   virtual already_AddRefed<gfxASurface>
     CreateOptimalSurface(const gfxIntSize &aSize,
                          gfxASurface::gfxImageFormat imageFormat);
- 
-  
-
-
-
-
-
-  virtual already_AddRefed<gfxASurface>
-    CreateOptimalMaskSurface(const gfxIntSize &aSize);
 
   
 
@@ -393,13 +453,7 @@ public:
     CreateDrawTarget(const mozilla::gfx::IntSize &aSize,
                      mozilla::gfx::SurfaceFormat aFormat);
 
-  virtual bool CanUseCanvasLayerForSize(const gfxIntSize &aSize) { return true; }
-
-  
-
-
-
-  virtual int32_t GetMaxTextureSize() const = 0;
+  virtual bool CanUseCanvasLayerForSize(const gfxIntSize &aSize) { return PR_TRUE; }
 
   
 
@@ -411,37 +465,23 @@ public:
 
 
   void SetUserData(void* aKey, LayerUserData* aData)
-  {
-    mUserData.Add(static_cast<gfx::UserDataKey*>(aKey), aData, LayerManagerUserDataDestroy);
-  }
+  { mUserData.Set(aKey, aData); }
   
 
 
   nsAutoPtr<LayerUserData> RemoveUserData(void* aKey)
-  { 
-    nsAutoPtr<LayerUserData> d(static_cast<LayerUserData*>(mUserData.Remove(static_cast<gfx::UserDataKey*>(aKey)))); 
-    return d;
-  }
+  { nsAutoPtr<LayerUserData> d(mUserData.Remove(aKey)); return d; }
   
 
 
   bool HasUserData(void* aKey)
-  {
-    return mUserData.Has(static_cast<gfx::UserDataKey*>(aKey));
-  }
+  { return mUserData.Has(aKey); }
   
 
 
 
   LayerUserData* GetUserData(void* aKey)
-  { 
-    return static_cast<LayerUserData*>(mUserData.Get(static_cast<gfx::UserDataKey*>(aKey)));
-  }
-
-  
-
-
-  virtual void SetIsFirstPaint() {}
+  { return mUserData.Get(aKey); }
 
   
   
@@ -453,7 +493,7 @@ public:
 
 
 
-  void Dump(FILE* aFile=NULL, const char* aPrefix="", bool aDumpHtml=false);
+  void Dump(FILE* aFile=NULL, const char* aPrefix="");
   
 
 
@@ -471,24 +511,17 @@ public:
 
   void LogSelf(const char* aPrefix="");
 
-  void StartFrameTimeRecording();
-  nsTArray<float> StopFrameTimeRecording();
-
-  void PostPresent();
-
   static bool IsLogEnabled();
   static PRLogModuleInfo* GetLog() { return sLog; }
 
-  bool IsCompositingCheap(LayersBackend aBackend)
+  bool IsCompositingCheap(LayerManager::LayersBackend aBackend)
   { return LAYERS_BASIC != aBackend; }
 
   virtual bool IsCompositingCheap() { return true; }
 
-  bool IsInTransaction() const { return mInTransaction; }
-
 protected:
   nsRefPtr<Layer> mRoot;
-  gfx::UserData mUserData;
+  LayerUserDataSet mUserData;
   bool mDestroyed;
   bool mSnapEffectiveTransforms;
 
@@ -498,21 +531,9 @@ protected:
 
   static void InitLog();
   static PRLogModuleInfo* sLog;
-  uint64_t mId;
-  bool mInTransaction;
-private:
-  TimeStamp mLastFrameTime;
-  nsTArray<float> mFrameTimes;
 };
 
 class ThebesLayer;
-typedef InfallibleTArray<Animation> AnimationArray;
-
-struct AnimData {
-  InfallibleTArray<nsStyleAnimation::Value> mStartValues;
-  InfallibleTArray<nsStyleAnimation::Value> mEndValues;
-  InfallibleTArray<mozilla::css::ComputedTimingFunction*> mFunctions;
-};
 
 
 
@@ -529,12 +550,11 @@ public:
     TYPE_CONTAINER,
     TYPE_IMAGE,
     TYPE_READBACK,
-    TYPE_REF,
     TYPE_SHADOW,
     TYPE_THEBES
   };
 
-  virtual ~Layer();
+  virtual ~Layer() {}
 
   
 
@@ -557,13 +577,7 @@ public:
 
 
 
-    CONTENT_COMPONENT_ALPHA = 0x02,
-
-    
-
-
-
-    CONTENT_PRESERVE_3D = 0x04
+    CONTENT_COMPONENT_ALPHA = 0x02
   };
   
 
@@ -571,15 +585,13 @@ public:
 
 
 
-  void SetContentFlags(uint32_t aFlags)
+  void SetContentFlags(PRUint32 aFlags)
   {
     NS_ASSERTION((aFlags & (CONTENT_OPAQUE | CONTENT_COMPONENT_ALPHA)) !=
                  (CONTENT_OPAQUE | CONTENT_COMPONENT_ALPHA),
                  "Can't be opaque and require component alpha");
-    if (mContentFlags != aFlags) {
-      mContentFlags = aFlags;
-      Mutated();
-    }
+    mContentFlags = aFlags;
+    Mutated();
   }
   
 
@@ -596,10 +608,8 @@ public:
 
   virtual void SetVisibleRegion(const nsIntRegion& aRegion)
   {
-    if (!mVisibleRegion.IsEqual(aRegion)) {
-      mVisibleRegion = aRegion;
-      Mutated();
-    }
+    mVisibleRegion = aRegion;
+    Mutated();
   }
 
   
@@ -609,10 +619,8 @@ public:
 
   void SetOpacity(float aOpacity)
   {
-    if (mOpacity != aOpacity) {
-      mOpacity = aOpacity;
-      Mutated();
-    }
+    mOpacity = aOpacity;
+    Mutated();
   }
 
   
@@ -627,25 +635,11 @@ public:
 
   void SetClipRect(const nsIntRect* aRect)
   {
-    if (mUseClipRect) {
-      if (!aRect) {
-        mUseClipRect = false;
-        Mutated();
-      } else {
-        if (!aRect->IsEqualEdges(mClipRect)) {
-          mClipRect = *aRect;
-          Mutated();
-        }
-      }
-    } else {
-      if (aRect) {
-        Mutated();
-        mUseClipRect = true;
-        if (!aRect->IsEqualEdges(mClipRect)) {
-          mClipRect = *aRect;
-        }
-      }
+    mUseClipRect = aRect != nsnull;
+    if (aRect) {
+      mClipRect = *aRect;
     }
+    Mutated();
   }
 
   
@@ -663,7 +657,7 @@ public:
     if (mUseClipRect) {
       mClipRect.IntersectRect(mClipRect, aRect);
     } else {
-      mUseClipRect = true;
+      mUseClipRect = PR_TRUE;
       mClipRect = aRect;
     }
     Mutated();
@@ -676,101 +670,61 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-  void SetMaskLayer(Layer* aMaskLayer)
+  void SetTransform(const gfx3DMatrix& aMatrix)
   {
-#ifdef DEBUG
-    if (aMaskLayer) {
-      gfxMatrix maskTransform;
-      bool maskIs2D = aMaskLayer->GetTransform().CanDraw2D(&maskTransform);
-      NS_ASSERTION(maskIs2D, "Mask layer has invalid transform.");
-    }
-#endif
-
-    if (mMaskLayer != aMaskLayer) {
-      mMaskLayer = aMaskLayer;
-      Mutated();
-    }
-  }
-
-  
-
-
-
-
-
-
-  void SetBaseTransform(const gfx3DMatrix& aMatrix)
-  {
-    if (mTransform == aMatrix) {
-      return;
-    }
     mTransform = aMatrix;
     Mutated();
   }
 
-  void SetPostScale(float aXScale, float aYScale)
-  {
-    mPostXScale = aXScale;
-    mPostYScale = aYScale;
-    Mutated();
-  }
-
   
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  void SetTileSourceRect(const nsIntRect* aRect)
+  {
+    mUseTileSourceRect = aRect != nsnull;
+    if (aRect) {
+      mTileSourceRect = *aRect;
+    }
+    Mutated();
+  }
 
   void SetIsFixedPosition(bool aFixedPosition) { mIsFixedPosition = aFixedPosition; }
 
   
-  
-  Animation* AddAnimation(mozilla::TimeStamp aStart, mozilla::TimeDuration aDuration,
-                          float aIterations, int aDirection,
-                          nsCSSProperty aProperty, const AnimationData& aData);
-  
-  void ClearAnimations();
-  
-  
-  void SetAnimations(const AnimationArray& aAnimations);
-
-  
-
-
-
-
-
-
-  void SetFixedPositionAnchor(const gfxPoint& aAnchor) { mAnchor = aAnchor; }
-
-  
   float GetOpacity() { return mOpacity; }
-  const nsIntRect* GetClipRect() { return mUseClipRect ? &mClipRect : nullptr; }
-  uint32_t GetContentFlags() { return mContentFlags; }
+  const nsIntRect* GetClipRect() { return mUseClipRect ? &mClipRect : nsnull; }
+  PRUint32 GetContentFlags() { return mContentFlags; }
   const nsIntRegion& GetVisibleRegion() { return mVisibleRegion; }
   ContainerLayer* GetParent() { return mParent; }
   Layer* GetNextSibling() { return mNextSibling; }
   Layer* GetPrevSibling() { return mPrevSibling; }
-  virtual Layer* GetFirstChild() { return nullptr; }
-  virtual Layer* GetLastChild() { return nullptr; }
-  const gfx3DMatrix GetTransform();
-  const gfx3DMatrix& GetBaseTransform() { return mTransform; }
-  float GetPostXScale() { return mPostXScale; }
-  float GetPostYScale() { return mPostYScale; }
+  virtual Layer* GetFirstChild() { return nsnull; }
+  virtual Layer* GetLastChild() { return nsnull; }
+  const gfx3DMatrix& GetTransform() { return mTransform; }
+  const nsIntRect* GetTileSourceRect() { return mUseTileSourceRect ? &mTileSourceRect : nsnull; }
   bool GetIsFixedPosition() { return mIsFixedPosition; }
-  gfxPoint GetFixedPositionAnchor() { return mAnchor; }
-  Layer* GetMaskLayer() { return mMaskLayer; }
 
-  AnimationArray& GetAnimations() { return mAnimations; }
-  InfallibleTArray<AnimData>& GetAnimationData() { return mAnimationData; }
   
 
 
@@ -805,32 +759,23 @@ public:
 
 
   void SetUserData(void* aKey, LayerUserData* aData)
-  { 
-    mUserData.Add(static_cast<gfx::UserDataKey*>(aKey), aData, LayerManagerUserDataDestroy);
-  }
+  { mUserData.Set(aKey, aData); }
   
 
 
   nsAutoPtr<LayerUserData> RemoveUserData(void* aKey)
-  { 
-    nsAutoPtr<LayerUserData> d(static_cast<LayerUserData*>(mUserData.Remove(static_cast<gfx::UserDataKey*>(aKey)))); 
-    return d;
-  }
+  { nsAutoPtr<LayerUserData> d(mUserData.Remove(aKey)); return d; }
   
 
 
   bool HasUserData(void* aKey)
-  {
-    return mUserData.Has(static_cast<gfx::UserDataKey*>(aKey));
-  }
+  { return mUserData.Has(aKey); }
   
 
 
 
   LayerUserData* GetUserData(void* aKey)
-  { 
-    return static_cast<LayerUserData*>(mUserData.Get(static_cast<gfx::UserDataKey*>(aKey)));
-  }
+  { return mUserData.Get(aKey); }
 
   
 
@@ -847,31 +792,19 @@ public:
 
 
 
-  virtual ThebesLayer* AsThebesLayer() { return nullptr; }
+  virtual ThebesLayer* AsThebesLayer() { return nsnull; }
 
   
 
 
 
-  virtual ContainerLayer* AsContainerLayer() { return nullptr; }
-
-   
-
-
-
-  virtual RefLayer* AsRefLayer() { return nullptr; }
+  virtual ContainerLayer* AsContainerLayer() { return nsnull; }
 
   
 
 
 
-  virtual ShadowLayer* AsShadowLayer() { return nullptr; }
-
-  
-
-
-
-  virtual ShadowableLayer* AsShadowableLayer() { return nullptr; }
+  virtual ShadowLayer* AsShadowLayer() { return nsnull; }
 
   
   
@@ -905,12 +838,7 @@ public:
 
 
   virtual void ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface) = 0;
-    
   
-
-
-  void ComputeEffectiveTransformForMaskLayer(const gfx3DMatrix& aTransformToSurface);
-
   
 
 
@@ -945,7 +873,7 @@ public:
 
 
 
-  void Dump(FILE* aFile=NULL, const char* aPrefix="", bool aDumpHtml=false);
+  void Dump(FILE* aFile=NULL, const char* aPrefix="");
   
 
 
@@ -965,13 +893,19 @@ public:
 
   static bool IsLogEnabled() { return LayerManager::IsLogEnabled(); }
 
-#ifdef DEBUG
-  void SetDebugColorIndex(uint32_t aIndex) { mDebugColorIndex = aIndex; }
-  uint32_t GetDebugColorIndex() { return mDebugColorIndex; }
-#endif
-
 protected:
-  Layer(LayerManager* aManager, void* aImplData);
+  Layer(LayerManager* aManager, void* aImplData) :
+    mManager(aManager),
+    mParent(nsnull),
+    mNextSibling(nsnull),
+    mPrevSibling(nsnull),
+    mImplData(aImplData),
+    mOpacity(1.0),
+    mContentFlags(0),
+    mUseClipRect(PR_FALSE),
+    mUseTileSourceRect(PR_FALSE),
+    mIsFixedPosition(PR_FALSE)
+    {}
 
   void Mutated() { mManager->Mutated(this); }
 
@@ -986,13 +920,7 @@ protected:
 
 
 
-  const gfx3DMatrix GetLocalTransform();
-
-  
-
-
-
-  const float GetLocalOpacity();
+  const gfx3DMatrix& GetLocalTransform();
 
   
 
@@ -1014,24 +942,17 @@ protected:
   Layer* mNextSibling;
   Layer* mPrevSibling;
   void* mImplData;
-  nsRefPtr<Layer> mMaskLayer;
-  gfx::UserData mUserData;
+  LayerUserDataSet mUserData;
   nsIntRegion mVisibleRegion;
   gfx3DMatrix mTransform;
-  float mPostXScale;
-  float mPostYScale;
   gfx3DMatrix mEffectiveTransform;
-  AnimationArray mAnimations;
-  InfallibleTArray<AnimData> mAnimationData;
   float mOpacity;
   nsIntRect mClipRect;
   nsIntRect mTileSourceRect;
-  uint32_t mContentFlags;
+  PRUint32 mContentFlags;
   bool mUseClipRect;
   bool mUseTileSourceRect;
   bool mIsFixedPosition;
-  gfxPoint mAnchor;
-  DebugOnly<uint32_t> mDebugColorIndex;
 };
 
 
@@ -1083,7 +1004,7 @@ public:
     gfx3DMatrix idealTransform = GetLocalTransform()*aTransformToSurface;
     gfxMatrix residual;
     mEffectiveTransform = SnapTransform(idealTransform, gfxRect(0, 0, 0, 0),
-        mAllowResidualTranslation ? &residual : nullptr);
+        mAllowResidualTranslation ? &residual : nsnull);
     
     
     
@@ -1096,7 +1017,6 @@ public:
                    "Residual translation out of range");
       mValidRegion.SetEmpty();
     }
-    ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
   }
 
   bool UsedForReadback() { return mUsedForReadback; }
@@ -1161,14 +1081,6 @@ public:
 
 
   virtual void RemoveChild(Layer* aChild) = 0;
-  
-
-
-
-
-
-
-  virtual void RepositionChild(Layer* aChild, Layer* aAfter) = 0;
 
   
 
@@ -1177,22 +1089,11 @@ public:
 
   void SetFrameMetrics(const FrameMetrics& aFrameMetrics)
   {
-    if (mFrameMetrics != aFrameMetrics) {
-      mFrameMetrics = aFrameMetrics;
-      Mutated();
-    }
-  }
-
-  void SetPreScale(float aXScale, float aYScale)
-  {
-    mPreXScale = aXScale;
-    mPreYScale = aYScale;
+    mFrameMetrics = aFrameMetrics;
     Mutated();
   }
 
   virtual void FillSpecificAttributes(SpecificLayerAttributes& aAttrs);
-
-  void SortChildrenBy3DZOrder(nsTArray<Layer*>& aArray);
 
   
 
@@ -1201,8 +1102,6 @@ public:
   virtual Layer* GetFirstChild() { return mFirstChild; }
   virtual Layer* GetLastChild() { return mLastChild; }
   const FrameMetrics& GetFrameMetrics() { return mFrameMetrics; }
-  float GetPreXScale() { return mPreXScale; }
-  float GetPreYScale() { return mPreYScale; }
 
   MOZ_LAYER_DECL_NAME("ContainerLayer", TYPE_CONTAINER)
 
@@ -1251,13 +1150,11 @@ protected:
 
   ContainerLayer(LayerManager* aManager, void* aImplData)
     : Layer(aManager, aImplData),
-      mFirstChild(nullptr),
-      mLastChild(nullptr),
-      mPreXScale(1.0f),
-      mPreYScale(1.0f),
-      mUseIntermediateSurface(false),
-      mSupportsComponentAlphaChildren(false),
-      mMayHaveReadbackChild(false)
+      mFirstChild(nsnull),
+      mLastChild(nsnull),
+      mUseIntermediateSurface(PR_FALSE),
+      mSupportsComponentAlphaChildren(PR_FALSE),
+      mMayHaveReadbackChild(PR_FALSE)
   {
     mContentFlags = 0; 
   }
@@ -1278,8 +1175,6 @@ protected:
   Layer* mFirstChild;
   Layer* mLastChild;
   FrameMetrics mFrameMetrics;
-  float mPreXScale;
-  float mPreYScale;
   bool mUseIntermediateSurface;
   bool mSupportsComponentAlphaChildren;
   bool mMayHaveReadbackChild;
@@ -1310,8 +1205,7 @@ public:
   {
     
     gfx3DMatrix idealTransform = GetLocalTransform()*aTransformToSurface;
-    mEffectiveTransform = SnapTransform(idealTransform, gfxRect(0, 0, 0, 0), nullptr);
-    ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
+    mEffectiveTransform = SnapTransform(idealTransform, gfxRect(0, 0, 0, 0), nsnull);
   }
 
 protected:
@@ -1339,8 +1233,8 @@ class THEBES_API CanvasLayer : public Layer {
 public:
   struct Data {
     Data()
-      : mSurface(nullptr), mGLContext(nullptr)
-      , mDrawTarget(nullptr), mGLBufferIsPremultiplied(false)
+      : mSurface(nsnull), mGLContext(nsnull)
+      , mDrawTarget(nsnull), mGLBufferIsPremultiplied(PR_FALSE)
     { }
 
     
@@ -1371,7 +1265,7 @@ public:
 
 
 
-  void Updated() { mDirty = true; }
+  void Updated() { mDirty = PR_TRUE; }
 
   
 
@@ -1400,16 +1294,15 @@ public:
     
     mEffectiveTransform =
         SnapTransform(GetLocalTransform(), gfxRect(0, 0, mBounds.width, mBounds.height),
-                      nullptr)*
-        SnapTransform(aTransformToSurface, gfxRect(0, 0, 0, 0), nullptr);
-    ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
+                      nsnull)*
+        SnapTransform(aTransformToSurface, gfxRect(0, 0, 0, 0), nsnull);
   }
 
 protected:
   CanvasLayer(LayerManager* aManager, void* aImplData)
     : Layer(aManager, aImplData),
-      mCallback(nullptr), mCallbackData(nullptr), mFilter(gfxPattern::FILTER_GOOD),
-      mDirty(false) {}
+      mCallback(nsnull), mCallbackData(nsnull), mFilter(gfxPattern::FILTER_GOOD),
+      mDirty(PR_FALSE) {}
 
   virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
 
@@ -1432,107 +1325,6 @@ protected:
 
   bool mDirty;
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class THEBES_API RefLayer : public ContainerLayer {
-  friend class LayerManager;
-
-private:
-  virtual void InsertAfter(Layer* aChild, Layer* aAfter)
-  { MOZ_NOT_REACHED("no"); }
-
-  virtual void RemoveChild(Layer* aChild)
-  { MOZ_NOT_REACHED("no"); }
-
-  virtual void RepositionChild(Layer* aChild, Layer* aAfter)
-  { MOZ_NOT_REACHED("no"); }
-
-  using ContainerLayer::SetFrameMetrics;
-
-public:
-  
-
-
-
-  void SetReferentId(uint64_t aId)
-  {
-    MOZ_ASSERT(aId != 0);
-    if (mId != aId) {
-      mId = aId;
-      Mutated();
-    }
-  }
-  
-
-
-
-
-  void ConnectReferentLayer(Layer* aLayer)
-  {
-    MOZ_ASSERT(!mFirstChild && !mLastChild);
-    MOZ_ASSERT(!aLayer->GetParent());
-
-    mFirstChild = mLastChild = aLayer;
-    aLayer->SetParent(this);
-  }
-
-  
-
-
-
-  void DetachReferentLayer(Layer* aLayer)
-  {
-    MOZ_ASSERT(aLayer == mFirstChild && mFirstChild == mLastChild);
-    MOZ_ASSERT(aLayer->GetParent() == this);
-
-    mFirstChild = mLastChild = nullptr;
-    aLayer->SetParent(nullptr);
-  }
-
-  
-  virtual RefLayer* AsRefLayer() { return this; }
-
-  virtual int64_t GetReferentId() { return mId; }
-
-  
-
-
-  virtual void FillSpecificAttributes(SpecificLayerAttributes& aAttrs);
-
-  MOZ_LAYER_DECL_NAME("RefLayer", TYPE_REF)
-
-protected:
-  RefLayer(LayerManager* aManager, void* aImplData)
-    : ContainerLayer(aManager, aImplData) , mId(0)
-  {}
-
-  virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
-
-  Layer* mTempReferent;
-  
-  uint64_t mId;
-};
-
-#ifdef MOZ_DUMP_PAINTING
-void WriteSnapshotToDumpFile(Layer* aLayer, gfxASurface* aSurf);
-void WriteSnapshotToDumpFile(LayerManager* aManager, gfxASurface* aSurf);
-#endif
 
 }
 }

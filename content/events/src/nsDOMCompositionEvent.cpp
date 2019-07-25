@@ -4,21 +4,54 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsDOMCompositionEvent.h"
-#include "nsDOMClassInfoID.h"
+#include "nsDOMClassInfo.h"
 
 nsDOMCompositionEvent::nsDOMCompositionEvent(nsPresContext* aPresContext,
                                              nsCompositionEvent* aEvent)
   : nsDOMUIEvent(aPresContext, aEvent ? aEvent :
-                 new nsCompositionEvent(false, 0, nullptr))
+                 new nsCompositionEvent(PR_FALSE, 0, nsnull))
 {
   NS_ASSERTION(mEvent->eventStructType == NS_COMPOSITION_EVENT,
                "event type mismatch");
 
   if (aEvent) {
-    mEventIsInternal = false;
+    mEventIsInternal = PR_FALSE;
   } else {
-    mEventIsInternal = true;
+    mEventIsInternal = PR_TRUE;
     mEvent->time = PR_Now();
 
     
@@ -35,7 +68,7 @@ nsDOMCompositionEvent::~nsDOMCompositionEvent()
 {
   if (mEventIsInternal) {
     delete static_cast<nsCompositionEvent*>(mEvent);
-    mEvent = nullptr;
+    mEvent = nsnull;
   }
 }
 

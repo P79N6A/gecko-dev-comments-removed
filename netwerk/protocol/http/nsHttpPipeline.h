@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsHttpPipeline_h__
 #define nsHttpPipeline_h__
 
@@ -20,37 +53,36 @@ class nsHttpPipeline : public nsAHttpConnection
 {
 public:
     NS_DECL_ISUPPORTS
-    NS_DECL_NSAHTTPCONNECTION(mConnection)
+    NS_DECL_NSAHTTPCONNECTION
     NS_DECL_NSAHTTPTRANSACTION
     NS_DECL_NSAHTTPSEGMENTREADER
 
     nsHttpPipeline();
     virtual ~nsHttpPipeline();
 
+    nsresult AddTransaction(nsAHttpTransaction *);
+
 private:
     nsresult FillSendBuf();
     
     static NS_METHOD ReadFromPipe(nsIInputStream *, void *, const char *,
-                                  uint32_t, uint32_t, uint32_t *);
+                                  PRUint32, PRUint32, PRUint32 *);
 
     
-    nsAHttpTransaction *Request(int32_t i)
+    nsAHttpTransaction *Request(PRInt32 i)
     {
         if (mRequestQ.Length() == 0)
-            return nullptr;
+            return nsnull;
 
         return mRequestQ[i];
     }
-    nsAHttpTransaction *Response(int32_t i)
+    nsAHttpTransaction *Response(PRInt32 i)
     {
         if (mResponseQ.Length() == 0)
-            return nullptr;
+            return nsnull;
 
         return mResponseQ[i];
     }
-
-    
-    nsHttpPipeline *QueryPipeline();
 
     nsAHttpConnection            *mConnection;
     nsTArray<nsAHttpTransaction*> mRequestQ;  
@@ -68,11 +100,8 @@ private:
     bool mClosed;
 
     
-    
-    bool mUtilizedPipeline;
-
-    
     nsAHttpSegmentReader *mReader;
+    nsAHttpSegmentWriter *mWriter;
 
     
     nsCOMPtr<nsIInputStream>  mSendBufIn;
@@ -80,16 +109,8 @@ private:
 
     
     char     *mPushBackBuf;
-    uint32_t  mPushBackLen;
-    uint32_t  mPushBackMax;
-
-    
-    uint32_t  mHttp1xTransactionCount;
-
-    
-    uint64_t  mReceivingFromProgress;
-    uint64_t  mSendingToProgress;
-    bool      mSuppressSendEvents;
+    PRUint32  mPushBackLen;
+    PRUint32  mPushBackMax;
 };
 
 #endif 

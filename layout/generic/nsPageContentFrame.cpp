@@ -2,11 +2,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsPageContentFrame.h"
 #include "nsPageFrame.h"
 #include "nsPlaceholderFrame.h"
 #include "nsCSSFrameConstructor.h"
-#include "nsContainerFrame.h"
+#include "nsHTMLContainerFrame.h"
 #include "nsHTMLParts.h"
 #include "nsIContent.h"
 #include "nsPresContext.h"
@@ -28,7 +60,7 @@ NS_IMPL_FRAMEARENA_HELPERS(nsPageContentFrame)
 nsPageContentFrame::ComputeSize(nsRenderingContext *aRenderingContext,
                                 nsSize aCBSize, nscoord aAvailableWidth,
                                 nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                                uint32_t aFlags)
+                                bool aShrinkWrap)
 {
   NS_ASSERTION(mPD, "Pages are supposed to have page data");
   nscoord height = (!mPD || mPD->mReflowSize.height == NS_UNCONSTRAINEDSIZE)
@@ -94,7 +126,7 @@ nsPageContentFrame::Reflow(nsPresContext*           aPresContext,
       if (xmost > aDesiredSize.width) {
         mPD->mPageContentXMost =
           xmost +
-          kidReflowState.mStyleBorder->GetComputedBorderWidth(NS_SIDE_RIGHT) +
+          kidReflowState.mStyleBorder->GetActualBorderWidth(NS_SIDE_RIGHT) +
           padding.right;
       }
     }

@@ -2,8 +2,43 @@
 
 
 
-#include "nsDOMClassInfoID.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsDOMDeviceMotionEvent.h"
+#include "nsContentUtils.h"
+
+
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsDOMDeviceMotionEvent)
 

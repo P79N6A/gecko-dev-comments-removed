@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsHttpConnection.h"
 #include "nsHttpTransaction.h"
 #include "nsHttpRequestHead.h"
@@ -20,10 +53,6 @@
 #include "nsProxyRelease.h"
 #include "prmem.h"
 #include "nsPreloadedStream.h"
-#include "ASpdySession.h"
-#include "mozilla/Telemetry.h"
-#include "nsISupportsPriority.h"
-#include "nsHttpPipeline.h"
 
 #ifdef DEBUG
 
@@ -39,32 +68,20 @@ using namespace mozilla::net;
 
 
 nsHttpConnection::nsHttpConnection()
-    : mTransaction(nullptr)
+    : mTransaction(nsnull)
+    , mLastReadTime(0)
     , mIdleTimeout(0)
     , mConsiderReusedAfterInterval(0)
     , mConsiderReusedAfterEpoch(0)
     , mCurrentBytesRead(0)
     , mMaxBytesRead(0)
-    , mTotalBytesRead(0)
-    , mTotalBytesWritten(0)
-    , mKeepAlive(true) 
-    , mKeepAliveMask(true)
-    , mDontReuse(false)
-    , mSupportsPipelining(false) 
-    , mIsReused(false)
-    , mCompletedProxyConnect(false)
-    , mLastTransactionExpectedNoContent(false)
-    , mIdleMonitoring(false)
-    , mProxyConnectInProgress(false)
-    , mHttp1xTransactionCount(0)
-    , mRemainingConnectionUses(0xffffffff)
-    , mClassification(nsAHttpTransaction::CLASS_GENERAL)
-    , mNPNComplete(false)
-    , mSetupNPNCalled(false)
-    , mUsingSpdyVersion(0)
-    , mPriority(nsISupportsPriority::PRIORITY_NORMAL)
-    , mReportedSpdy(false)
-    , mEverUsedSpdy(false)
+    , mKeepAlive(PR_TRUE) 
+    , mKeepAliveMask(PR_TRUE)
+    , mSupportsPipelining(PR_FALSE) 
+    , mIsReused(PR_FALSE)
+    , mCompletedProxyConnect(PR_FALSE)
+    , mLastTransactionExpectedNoContent(PR_FALSE)
+    , mIdleMonitoring(PR_FALSE)
 {
     LOG(("Creating nsHttpConnection @%x\n", this));
 
@@ -78,7 +95,7 @@ nsHttpConnection::~nsHttpConnection()
     LOG(("Destroying nsHttpConnection @%x\n", this));
 
     if (mCallbacks) {
-        nsIInterfaceRequestor *cbs = nullptr;
+        nsIInterfaceRequestor *cbs = nsnull;
         mCallbacks.swap(cbs);
         NS_ProxyRelease(mCallbackTarget, cbs);
     }
@@ -86,57 +103,34 @@ nsHttpConnection::~nsHttpConnection()
     
     nsHttpHandler *handler = gHttpHandler;
     NS_RELEASE(handler);
-
-    if (!mEverUsedSpdy) {
-        LOG(("nsHttpConnection %p performed %d HTTP/1.x transactions\n",
-             this, mHttp1xTransactionCount));
-        mozilla::Telemetry::Accumulate(
-            mozilla::Telemetry::HTTP_REQUEST_PER_CONN, mHttp1xTransactionCount);
-    }
-
-    if (mTotalBytesRead) {
-        uint32_t totalKBRead = static_cast<uint32_t>(mTotalBytesRead >> 10);
-        LOG(("nsHttpConnection %p read %dkb on connection spdy=%d\n",
-             this, totalKBRead, mEverUsedSpdy));
-        mozilla::Telemetry::Accumulate(
-            mEverUsedSpdy ?
-              mozilla::Telemetry::SPDY_KBREAD_PER_CONN :
-              mozilla::Telemetry::HTTP_KBREAD_PER_CONN,
-            totalKBRead);
-    }
 }
 
 nsresult
 nsHttpConnection::Init(nsHttpConnectionInfo *info,
-                       uint16_t maxHangTime,
+                       PRUint16 maxHangTime,
                        nsISocketTransport *transport,
                        nsIAsyncInputStream *instream,
                        nsIAsyncOutputStream *outstream,
                        nsIInterfaceRequestor *callbacks,
-                       nsIEventTarget *callbackTarget,
-                       PRIntervalTime rtt)
+                       nsIEventTarget *callbackTarget)
 {
     NS_ABORT_IF_FALSE(transport && instream && outstream,
                       "invalid socket information");
     LOG(("nsHttpConnection::Init [this=%p "
-         "transport=%p instream=%p outstream=%p rtt=%d]\n",
-         this, transport, instream, outstream,
-         PR_IntervalToMilliseconds(rtt)));
+         "transport=%p instream=%p outstream=%p]\n",
+         this, transport, instream, outstream));
 
     NS_ENSURE_ARG_POINTER(info);
     NS_ENSURE_TRUE(!mConnInfo, NS_ERROR_ALREADY_INITIALIZED);
 
     mConnInfo = info;
-    mLastReadTime = PR_IntervalNow();
-    mSupportsPipelining =
-        gHttpHandler->ConnMgr()->SupportsPipelining(mConnInfo);
-    mRtt = rtt;
-    mMaxHangTime = PR_SecondsToInterval(maxHangTime);
+    mMaxHangTime = maxHangTime;
+    mLastReadTime = NowInSeconds();
 
     mSocketTransport = transport;
     mSocketIn = instream;
     mSocketOut = outstream;
-    nsresult rv = mSocketTransport->SetEventSink(this, nullptr);
+    nsresult rv = mSocketTransport->SetEventSink(this, nsnull);
     NS_ENSURE_SUCCESS(rv, rv);
 
     mCallbacks = callbacks;
@@ -147,166 +141,9 @@ nsHttpConnection::Init(nsHttpConnectionInfo *info,
     return NS_OK;
 }
 
-void
-nsHttpConnection::StartSpdy(uint8_t spdyVersion)
-{
-    LOG(("nsHttpConnection::StartSpdy [this=%p]\n", this));
-
-    NS_ABORT_IF_FALSE(!mSpdySession, "mSpdySession should be null");
-
-    mUsingSpdyVersion = spdyVersion;
-    mEverUsedSpdy = true;
-
-    
-    
-    
-    
-    mIsReused = true;
-
-    
-    
-    
-
-    nsTArray<nsRefPtr<nsAHttpTransaction> > list;
-    nsresult rv = mTransaction->TakeSubTransactions(list);
-
-    if (rv == NS_ERROR_ALREADY_OPENED) {
-        
-        LOG(("TakeSubTranscations somehow called after "
-             "nsAHttpTransaction began processing\n"));
-        NS_ABORT_IF_FALSE(false,
-                          "TakeSubTranscations somehow called after "
-                          "nsAHttpTransaction began processing");
-        mTransaction->Close(NS_ERROR_ABORT);
-        return;
-    }
-
-    if (NS_FAILED(rv) && rv != NS_ERROR_NOT_IMPLEMENTED) {
-        
-        LOG(("unexpected rv from nnsAHttpTransaction::TakeSubTransactions()"));
-        NS_ABORT_IF_FALSE(false,
-                          "unexpected result from "
-                          "nsAHttpTransaction::TakeSubTransactions()");
-        mTransaction->Close(NS_ERROR_ABORT);
-        return;
-    }
-
-    if (NS_FAILED(rv)) { 
-        NS_ABORT_IF_FALSE(list.IsEmpty(), "sub transaction list not empty");
-
-        
-        
-        
-        mSpdySession = ASpdySession::NewSpdySession(spdyVersion,
-                                                    mTransaction, mSocketTransport,
-                                                    mPriority);
-        LOG(("nsHttpConnection::StartSpdy moves single transaction %p "
-             "into SpdySession %p\n", mTransaction.get(), mSpdySession.get()));
-    }
-    else {
-        int32_t count = list.Length();
-
-        LOG(("nsHttpConnection::StartSpdy moving transaction list len=%d "
-             "into SpdySession %p\n", count, mSpdySession.get()));
-
-        if (!count) {
-            mTransaction->Close(NS_ERROR_ABORT);
-            return;
-        }
-
-        for (int32_t index = 0; index < count; ++index) {
-            if (!mSpdySession) {
-                mSpdySession = ASpdySession::NewSpdySession(spdyVersion,
-                                                            list[index], mSocketTransport, 
-                                                            mPriority);
-            }
-            else {
-                
-                if (!mSpdySession->AddStream(list[index], mPriority)) {
-                    NS_ABORT_IF_FALSE(false, "SpdySession::AddStream failed");
-                    LOG(("SpdySession::AddStream failed\n"));
-                    mTransaction->Close(NS_ERROR_ABORT);
-                    return;
-                }
-            }
-        }
-    }
-
-    mSupportsPipelining = false; 
-    mTransaction = mSpdySession;
-    mIdleTimeout = gHttpHandler->SpdyTimeout();
-}
-
-bool
-nsHttpConnection::EnsureNPNComplete()
-{
-    
-    
-    
-    
-
-    if (!mSocketTransport) {
-        
-        NS_ABORT_IF_FALSE(false,
-                          "EnsureNPNComplete socket transport precondition");
-        mNPNComplete = true;
-        return true;
-    }
-
-    if (mNPNComplete)
-        return true;
-    
-    nsresult rv;
-
-    nsCOMPtr<nsISupports> securityInfo;
-    nsCOMPtr<nsISSLSocketControl> ssl;
-    nsAutoCString negotiatedNPN;
-    
-    rv = mSocketTransport->GetSecurityInfo(getter_AddRefs(securityInfo));
-    if (NS_FAILED(rv))
-        goto npnComplete;
-
-    ssl = do_QueryInterface(securityInfo, &rv);
-    if (NS_FAILED(rv))
-        goto npnComplete;
-
-    rv = ssl->GetNegotiatedNPN(negotiatedNPN);
-    if (rv == NS_ERROR_NOT_CONNECTED) {
-    
-        
-        
-        uint32_t count = 0;
-        rv = mSocketOut->Write("", 0, &count);
-
-        if (NS_FAILED(rv) && rv != NS_BASE_STREAM_WOULD_BLOCK)
-            goto npnComplete;
-        return false;
-    }
-
-    if (NS_FAILED(rv))
-        goto npnComplete;
-
-    LOG(("nsHttpConnection::EnsureNPNComplete %p negotiated to '%s'",
-         this, negotiatedNPN.get()));
-
-    uint8_t spdyVersion;
-    rv = gHttpHandler->SpdyInfo()->GetNPNVersionIndex(negotiatedNPN,
-                                                      &spdyVersion);
-    if (NS_SUCCEEDED(rv))
-        StartSpdy(spdyVersion);
-
-    mozilla::Telemetry::Accumulate(mozilla::Telemetry::SPDY_NPN_CONNECT,
-                                   mUsingSpdyVersion);
-
-npnComplete:
-    LOG(("nsHttpConnection::EnsureNPNComplete setting complete to true"));
-    mNPNComplete = true;
-    return true;
-}
-
 
 nsresult
-nsHttpConnection::Activate(nsAHttpTransaction *trans, uint8_t caps, int32_t pri)
+nsHttpConnection::Activate(nsAHttpTransaction *trans, PRUint8 caps)
 {
     nsresult rv;
 
@@ -314,15 +151,8 @@ nsHttpConnection::Activate(nsAHttpTransaction *trans, uint8_t caps, int32_t pri)
     LOG(("nsHttpConnection::Activate [this=%x trans=%x caps=%x]\n",
          this, trans, caps));
 
-    mPriority = pri;
-    if (mTransaction && mUsingSpdyVersion)
-        return AddTransaction(trans, pri);
-
     NS_ENSURE_ARG_POINTER(trans);
     NS_ENSURE_TRUE(!mTransaction, NS_ERROR_IN_PROGRESS);
-
-    
-    mLastReadTime = PR_IntervalNow();
 
     
     nsCOMPtr<nsIInterfaceRequestor> callbacks;
@@ -336,141 +166,36 @@ nsHttpConnection::Activate(nsAHttpTransaction *trans, uint8_t caps, int32_t pri)
         mCallbackTarget = callbackTarget;
     }
 
-    SetupNPN(caps); 
-
     
     mTransaction = trans;
 
     NS_ABORT_IF_FALSE(!mIdleMonitoring,
                       "Activating a connection with an Idle Monitor");
-    mIdleMonitoring = false;
+    mIdleMonitoring = PR_FALSE;
 
     
     mKeepAliveMask = mKeepAlive = (caps & NS_HTTP_ALLOW_KEEPALIVE);
 
     
     
-    if (mConnInfo->UsingConnect() && !mCompletedProxyConnect) {
+    if (((mConnInfo->UsingSSL() && mConnInfo->UsingHttpProxy()) ||
+         mConnInfo->ShouldForceConnectMethod()) && !mCompletedProxyConnect) {
         rv = SetupProxyConnect();
         if (NS_FAILED(rv))
             goto failed_activation;
-        mProxyConnectInProgress = true;
     }
 
     
     mCurrentBytesRead = 0;
 
-    
-    mInputOverflow = nullptr;
-
     rv = OnOutputStreamReady(mSocketOut);
     
 failed_activation:
     if (NS_FAILED(rv)) {
-        mTransaction = nullptr;
+        mTransaction = nsnull;
     }
 
     return rv;
-}
-
-void
-nsHttpConnection::SetupNPN(uint8_t caps)
-{
-    if (mSetupNPNCalled)                                
-        return;
-    mSetupNPNCalled = true;
-
-    
-    if (!mNPNComplete) {
-
-        mNPNComplete = true;
-
-        if (mConnInfo->UsingSSL()) {
-            LOG(("nsHttpConnection::SetupNPN Setting up "
-                 "Next Protocol Negotiation"));
-            nsCOMPtr<nsISupports> securityInfo;
-            nsresult rv =
-                mSocketTransport->GetSecurityInfo(getter_AddRefs(securityInfo));
-            if (NS_FAILED(rv))
-                return;
-
-            nsCOMPtr<nsISSLSocketControl> ssl =
-                do_QueryInterface(securityInfo, &rv);
-            if (NS_FAILED(rv))
-                return;
-
-            nsTArray<nsCString> protocolArray;
-            if (gHttpHandler->IsSpdyEnabled() &&
-                !(caps & NS_HTTP_DISALLOW_SPDY)) {
-                LOG(("nsHttpConnection::SetupNPN Allow SPDY NPN selection"));
-                if (gHttpHandler->SpdyInfo()->ProtocolEnabled(0))
-                    protocolArray.AppendElement(
-                        gHttpHandler->SpdyInfo()->VersionString[0]);
-                if (gHttpHandler->SpdyInfo()->ProtocolEnabled(1))
-                    protocolArray.AppendElement(
-                        gHttpHandler->SpdyInfo()->VersionString[1]);
-            }
-
-            protocolArray.AppendElement(NS_LITERAL_CSTRING("http/1.1"));
-            if (NS_SUCCEEDED(ssl->SetNPNList(protocolArray))) {
-                LOG(("nsHttpConnection::Init Setting up SPDY Negotiation OK"));
-                mNPNComplete = false;
-            }
-        }
-    }
-}
-
-void
-nsHttpConnection::HandleAlternateProtocol(nsHttpResponseHead *responseHead)
-{
-    
-    
-    
-    
-
-    if (!gHttpHandler->IsSpdyEnabled() || mUsingSpdyVersion)
-        return;
-
-    const char *val = responseHead->PeekHeader(nsHttp::Alternate_Protocol);
-    if (!val)
-        return;
-
-    
-    
-    
-    
-
-    uint8_t alternateProtocolVersion;
-    if (NS_SUCCEEDED(gHttpHandler->SpdyInfo()->
-                     GetAlternateProtocolVersionIndex(val,
-                                                      &alternateProtocolVersion))) {
-         LOG(("Connection %p Transaction %p found Alternate-Protocol "
-             "header %s", this, mTransaction.get(), val));
-        gHttpHandler->ConnMgr()->ReportSpdyAlternateProtocol(this);
-    }
-}
-
-nsresult
-nsHttpConnection::AddTransaction(nsAHttpTransaction *httpTransaction,
-                                 int32_t priority)
-{
-    LOG(("nsHttpConnection::AddTransaction for SPDY"));
-
-    NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
-    NS_ABORT_IF_FALSE(mSpdySession && mUsingSpdyVersion,
-                      "AddTransaction to live http connection without spdy");
-    NS_ABORT_IF_FALSE(mTransaction,
-                      "AddTransaction to idle http connection");
-    
-    if (!mSpdySession->AddStream(httpTransaction, priority)) {
-        NS_ABORT_IF_FALSE(0, "AddStream should never fail due to"
-                          "RoomForMore() admission check");
-        return NS_ERROR_FAILURE;
-    }
-
-    ResumeSend();
-
-    return NS_OK;
 }
 
 void
@@ -485,11 +210,11 @@ nsHttpConnection::Close(nsresult reason)
             EndIdleMonitoring();
 
         if (mSocketTransport) {
-            mSocketTransport->SetSecurityCallbacks(nullptr);
-            mSocketTransport->SetEventSink(nullptr, nullptr);
+            mSocketTransport->SetSecurityCallbacks(nsnull);
+            mSocketTransport->SetEventSink(nsnull, nsnull);
             mSocketTransport->Close(reason);
         }
-        mKeepAlive = false;
+        mKeepAlive = PR_FALSE;
     }
 }
 
@@ -512,121 +237,55 @@ nsHttpConnection::ProxyStartSSL()
     return ssl->ProxyStartSSL();
 }
 
-void
-nsHttpConnection::DontReuse()
-{
-    mKeepAliveMask = false;
-    mKeepAlive = false;
-    mDontReuse = true;
-    mIdleTimeout = 0;
-    if (mSpdySession)
-        mSpdySession->DontReuse();
-}
-
-
-bool
-nsHttpConnection::SupportsPipelining()
-{
-    if (mTransaction &&
-        mTransaction->PipelineDepth() >= mRemainingConnectionUses) {
-        LOG(("nsHttpConnection::SupportsPipelining this=%p deny pipeline "
-             "because current depth %d exceeds max remaining uses %d\n",
-             this, mTransaction->PipelineDepth(), mRemainingConnectionUses));
-        return false;
-    }
-    return mSupportsPipelining && IsKeepAlive() && !mDontReuse;
-}
-
 bool
 nsHttpConnection::CanReuse()
 {
-    if (mDontReuse)
-        return false;
-
-    if ((mTransaction ? mTransaction->PipelineDepth() : 0) >=
-        mRemainingConnectionUses) {
-        return false;
-    }
-
-    bool canReuse;
+    bool canReuse = IsKeepAlive() &&
+        (NowInSeconds() - mLastReadTime < mIdleTimeout) &&
+        IsAlive();
     
-    if (mSpdySession)
-        canReuse = mSpdySession->CanReuse();
-    else
-        canReuse = IsKeepAlive();
-
-    canReuse = canReuse && (IdleTime() < mIdleTimeout) && IsAlive();
-
+    
     
     
     
     
 
-    uint64_t dataSize;
-    if (canReuse && mSocketIn && !mUsingSpdyVersion && mHttp1xTransactionCount &&
+    PRUint32 dataSize;
+    if (canReuse && mSocketIn && !mConnInfo->UsingSSL() &&
         NS_SUCCEEDED(mSocketIn->Available(&dataSize)) && dataSize) {
         LOG(("nsHttpConnection::CanReuse %p %s"
-             "Socket not reusable because read data pending (%llu) on it.\n",
+             "Socket not reusable because read data pending (%d) on it.\n",
              this, mConnInfo->Host(), dataSize));
-        canReuse = false;
+        canReuse = PR_FALSE;
     }
     return canReuse;
 }
 
-bool
-nsHttpConnection::CanDirectlyActivate()
+PRUint32 nsHttpConnection::TimeToLive()
 {
-    
-    
-    
-    
-    return UsingSpdy() && CanReuse() &&
-        mSpdySession && mSpdySession->RoomForMoreStreams();
-}
+    PRInt32 tmp = mIdleTimeout - (NowInSeconds() - mLastReadTime);
+    if (0 > tmp)
+        tmp = 0;
 
-PRIntervalTime
-nsHttpConnection::IdleTime()
-{
-    return mSpdySession ?
-        mSpdySession->IdleTime() : (PR_IntervalNow() - mLastReadTime);
-}
-
-
-
-uint32_t
-nsHttpConnection::TimeToLive()
-{
-    if (IdleTime() >= mIdleTimeout)
-        return 0;
-    uint32_t timeToLive = PR_IntervalToSeconds(mIdleTimeout - IdleTime());
-
-    
-    
-    if (!timeToLive)
-        timeToLive = 1;
-    return timeToLive;
+    return tmp;
 }
 
 bool
 nsHttpConnection::IsAlive()
 {
     if (!mSocketTransport)
-        return false;
-
-    
-    
-    SetupNPN(0);
+        return PR_FALSE;
 
     bool alive;
     nsresult rv = mSocketTransport->IsAlive(&alive);
     if (NS_FAILED(rv))
-        alive = false;
+        alive = PR_FALSE;
 
 
 #ifdef TEST_RESTART_LOGIC
     if (!alive) {
         LOG(("pretending socket is still alive to test restart logic\n"));
-        alive = true;
+        alive = PR_TRUE;
     }
 #endif
 
@@ -637,57 +296,52 @@ bool
 nsHttpConnection::SupportsPipelining(nsHttpResponseHead *responseHead)
 {
     
-    if (mUsingSpdyVersion)
-        return false;
+    
 
     
-    if (mConnInfo->UsingHttpProxy() && !mConnInfo->UsingConnect()) {
+    if (mConnInfo->UsingHttpProxy() && !mConnInfo->UsingSSL()) {
         
-        return true;
+        return PR_TRUE;
     }
 
     
+
+    
     const char *val = responseHead->PeekHeader(nsHttp::Server);
-
-    
-    
     if (!val)
-        return true;
+        return PR_FALSE; 
 
     
     
     
 
-    static const char *bad_servers[26][6] = {
-        { nullptr }, { nullptr }, { nullptr }, { nullptr },                 
-        { "EFAServer/", nullptr },                                       
-        { nullptr }, { nullptr }, { nullptr }, { nullptr },                 
-        { nullptr }, { nullptr }, { nullptr },                             
-        { "Microsoft-IIS/4.", "Microsoft-IIS/5.", nullptr },             
+    static const char *bad_servers[26][5] = {
+        { nsnull }, { nsnull }, { nsnull }, { nsnull },                 
+        { "EFAServer/", nsnull },                                       
+        { nsnull }, { nsnull }, { nsnull }, { nsnull },                 
+        { nsnull }, { nsnull }, { nsnull },                             
+        { "Microsoft-IIS/4.", "Microsoft-IIS/5.", nsnull },             
         { "Netscape-Enterprise/3.", "Netscape-Enterprise/4.", 
-          "Netscape-Enterprise/5.", "Netscape-Enterprise/6.", nullptr }, 
-        { nullptr }, { nullptr }, { nullptr }, { nullptr },                 
-        { nullptr }, { nullptr }, { nullptr }, { nullptr },                 
-        { "WebLogic 3.", "WebLogic 4.","WebLogic 5.", "WebLogic 6.",
-          "Winstone Servlet Engine v0.", nullptr },                      
-        { nullptr }, { nullptr }, { nullptr }                              
+          "Netscape-Enterprise/5.", "Netscape-Enterprise/6.", nsnull }, 
+        { nsnull }, { nsnull }, { nsnull }, { nsnull },                 
+        { nsnull }, { nsnull }, { nsnull }, { nsnull },                 
+        { "WebLogic 3.", "WebLogic 4.","WebLogic 5.", "WebLogic 6.", nsnull }, 
+        { nsnull }, { nsnull }, { nsnull }                              
     };  
 
     int index = val[0] - 'A'; 
     if ((index >= 0) && (index <= 25))
     {
-        for (int i = 0; bad_servers[index][i] != nullptr; i++) {
+        for (int i = 0; bad_servers[index][i] != nsnull; i++) {
             if (!PL_strncmp (val, bad_servers[index][i], strlen (bad_servers[index][i]))) {
                 LOG(("looks like this server does not support pipelining"));
-                gHttpHandler->ConnMgr()->PipelineFeedbackInfo(
-                    mConnInfo, nsHttpConnectionMgr::RedBannedServer, this , 0);
-                return false;
+                return PR_FALSE;
             }
         }
     }
 
     
-    return true;
+    return PR_TRUE;
 }
 
 
@@ -713,7 +367,7 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
     
     if (responseHead->Status() == 408) {
         Close(NS_ERROR_NET_RESET);
-        *reset = true;
+        *reset = PR_TRUE;
         return NS_OK;
     }
 
@@ -727,34 +381,22 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
         val = responseHead->PeekHeader(nsHttp::Proxy_Connection);
 
     
-    mSupportsPipelining = false;
+    mSupportsPipelining = PR_FALSE;
 
     if ((responseHead->Version() < NS_HTTP_VERSION_1_1) ||
         (requestHead->Version() < NS_HTTP_VERSION_1_1)) {
         
         if (val && !PL_strcasecmp(val, "keep-alive"))
-            mKeepAlive = true;
+            mKeepAlive = PR_TRUE;
         else
-            mKeepAlive = false;
-        
-        
-        gHttpHandler->ConnMgr()->PipelineFeedbackInfo(
-            mConnInfo, nsHttpConnectionMgr::RedVersionTooLow, this, 0);
+            mKeepAlive = PR_FALSE;
     }
     else {
         
-        if (val && !PL_strcasecmp(val, "close")) {
-            mKeepAlive = false;
-
-            
-            
-            
-            if (mRemainingConnectionUses > 1)
-                gHttpHandler->ConnMgr()->PipelineFeedbackInfo(
-                    mConnInfo, nsHttpConnectionMgr::BadExplicitClose, this, 0);
-        }
+        if (val && !PL_strcasecmp(val, "close")) 
+            mKeepAlive = PR_FALSE;
         else {
-            mKeepAlive = true;
+            mKeepAlive = PR_TRUE;
 
             
             
@@ -771,96 +413,46 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
     
     
     
-    if (mSupportsPipelining) {
-        
-        
-        
-
-        gHttpHandler->ConnMgr()->PipelineFeedbackInfo(
-            mConnInfo, nsHttpConnectionMgr::NeutralExpectedOK, this, 0);
-
-        mSupportsPipelining =
-            gHttpHandler->ConnMgr()->SupportsPipelining(mConnInfo);
-    }
-
     
     
     
-    
-    if (mClassification == nsAHttpTransaction::CLASS_REVALIDATION &&
-        responseHead->Status() != 304) {
-        mClassification = nsAHttpTransaction::CLASS_GENERAL;
-    }
-    
-    
-    
-    
-    
-    
-    
-    
-    bool foundKeepAliveMax = false;
     if (mKeepAlive) {
         val = responseHead->PeekHeader(nsHttp::Keep_Alive);
 
-        if (!mUsingSpdyVersion) {
-            const char *cp = PL_strcasestr(val, "timeout=");
-            if (cp)
-                mIdleTimeout = PR_SecondsToInterval((uint32_t) atoi(cp + 8));
-            else
-                mIdleTimeout = gHttpHandler->IdleTimeout();
-
-            cp = PL_strcasestr(val, "max=");
-            if (cp) {
-                int val = atoi(cp + 4);
-                if (val > 0) {
-                    foundKeepAliveMax = true;
-                    mRemainingConnectionUses = static_cast<uint32_t>(val);
-                }
-            }
-        }
-        else {
-            mIdleTimeout = gHttpHandler->SpdyTimeout();
-        }
+        const char *cp = PL_strcasestr(val, "timeout=");
+        if (cp)
+            mIdleTimeout = (PRUint32) atoi(cp + 8);
+        else
+            mIdleTimeout = gHttpHandler->IdleTimeout();
         
-        LOG(("Connection can be reused [this=%p idle-timeout=%usec]\n",
-             this, PR_IntervalToSeconds(mIdleTimeout)));
+        LOG(("Connection can be reused [this=%x idle-timeout=%u]\n", this, mIdleTimeout));
     }
-
-    if (!foundKeepAliveMax && mRemainingConnectionUses && !mUsingSpdyVersion)
-        --mRemainingConnectionUses;
-
-    if (!mProxyConnectStream)
-        HandleAlternateProtocol(responseHead);
 
     
     
     
     
     if (mProxyConnectStream) {
-        NS_ABORT_IF_FALSE(!mUsingSpdyVersion,
-                          "SPDY NPN Complete while using proxy connect stream");
         mProxyConnectStream = 0;
         if (responseHead->Status() == 200) {
             LOG(("proxy CONNECT succeeded! ssl=%s\n",
                  mConnInfo->UsingSSL() ? "true" :"false"));
-            *reset = true;
+            *reset = PR_TRUE;
             nsresult rv;
             if (mConnInfo->UsingSSL()) {
                 rv = ProxyStartSSL();
                 if (NS_FAILED(rv)) 
                     LOG(("ProxyStartSSL failed [rv=%x]\n", rv));
             }
-            mCompletedProxyConnect = true;
-            mProxyConnectInProgress = false;
-            rv = mSocketOut->AsyncWait(this, 0, 0, nullptr);
+            mCompletedProxyConnect = PR_TRUE;
+            rv = mSocketOut->AsyncWait(this, 0, 0, nsnull);
             
             NS_ASSERTION(NS_SUCCEEDED(rv), "mSocketOut->AsyncWait failed");
         }
         else {
             LOG(("proxy CONNECT failed! ssl=%s\n",
                  mConnInfo->UsingSSL() ? "true" :"false"));
-            mTransaction->SetProxyConnectFailed();
+            mTransaction->SetSSLConnectFailed();
         }
     }
     
@@ -891,9 +483,9 @@ bool
 nsHttpConnection::IsReused()
 {
     if (mIsReused)
-        return true;
+        return PR_TRUE;
     if (!mConsiderReusedAfterInterval)
-        return false;
+        return PR_FALSE;
     
     
     
@@ -902,7 +494,7 @@ nsHttpConnection::IsReused()
 }
 
 void
-nsHttpConnection::SetIsReusedAfter(uint32_t afterMilliseconds)
+nsHttpConnection::SetIsReusedAfter(PRUint32 afterMilliseconds)
 {
     mConsiderReusedAfterEpoch = PR_IntervalNow();
     mConsiderReusedAfterInterval = PR_MillisecondsToInterval(afterMilliseconds);
@@ -913,8 +505,6 @@ nsHttpConnection::TakeTransport(nsISocketTransport  **aTransport,
                                 nsIAsyncInputStream **aInputStream,
                                 nsIAsyncOutputStream **aOutputStream)
 {
-    if (mUsingSpdyVersion)
-        return NS_ERROR_FAILURE;
     if (mTransaction && !mTransaction->IsDone())
         return NS_ERROR_IN_PROGRESS;
     if (!(mSocketTransport && mSocketIn && mSocketOut))
@@ -927,85 +517,13 @@ nsHttpConnection::TakeTransport(nsISocketTransport  **aTransport,
     NS_IF_ADDREF(*aInputStream = mSocketIn);
     NS_IF_ADDREF(*aOutputStream = mSocketOut);
 
-    mSocketTransport->SetSecurityCallbacks(nullptr);
-    mSocketTransport->SetEventSink(nullptr, nullptr);
-    mSocketTransport = nullptr;
-    mSocketIn = nullptr;
-    mSocketOut = nullptr;
+    mSocketTransport->SetSecurityCallbacks(nsnull);
+    mSocketTransport->SetEventSink(nsnull, nsnull);
+    mSocketTransport = nsnull;
+    mSocketIn = nsnull;
+    mSocketOut = nsnull;
     
     return NS_OK;
-}
-
-void
-nsHttpConnection::ReadTimeoutTick(PRIntervalTime now)
-{
-    NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
-
-    
-    if (!mTransaction)
-        return;
-
-    
-    if (mSpdySession) {
-        mSpdySession->ReadTimeoutTick(now);
-        return;
-    }
-    
-    if (!gHttpHandler->GetPipelineRescheduleOnTimeout())
-        return;
-
-    PRIntervalTime delta = now - mLastReadTime;
-
-    
-    
-    
-    
-    
-    
-    
-    
-
-    uint32_t pipelineDepth = mTransaction->PipelineDepth();
-
-    if (delta >= gHttpHandler->GetPipelineRescheduleTimeout() &&
-        pipelineDepth > 1) {
-
-        
-        
-        LOG(("cancelling pipeline due to a %ums stall - depth %d\n",
-             PR_IntervalToMilliseconds(delta), pipelineDepth));
-
-        nsHttpPipeline *pipeline = mTransaction->QueryPipeline();
-        NS_ABORT_IF_FALSE(pipeline, "pipelinedepth > 1 without pipeline");
-        
-        
-        
-        if (pipeline) {
-            pipeline->CancelPipeline(NS_ERROR_NET_TIMEOUT);
-            LOG(("Rescheduling the head of line blocked members of a pipeline "
-                 "because reschedule-timeout idle interval exceeded"));
-        }
-    }
-
-    if (delta < gHttpHandler->GetPipelineTimeout())
-        return;
-
-    if (pipelineDepth <= 1 && !mTransaction->PipelinePosition())
-        return;
-    
-    
-    
-    
-    
-    
-
-    LOG(("canceling transaction stalled for %ums on a pipeline "
-         "of depth %d and scheduled originally at pos %d\n",
-         PR_IntervalToMilliseconds(delta),
-         pipelineDepth, mTransaction->PipelinePosition()));
-
-    
-    CloseTransaction(mTransaction, NS_ERROR_NET_TIMEOUT);
 }
 
 void
@@ -1015,12 +533,12 @@ nsHttpConnection::GetSecurityInfo(nsISupports **secinfo)
 
     if (mSocketTransport) {
         if (NS_FAILED(mSocketTransport->GetSecurityInfo(secinfo)))
-            *secinfo = nullptr;
+            *secinfo = nsnull;
     }
 }
 
 nsresult
-nsHttpConnection::PushBack(const char *data, uint32_t length)
+nsHttpConnection::PushBack(const char *data, PRUint32 length)
 {
     LOG(("nsHttpConnection::PushBack [this=%p, length=%d]\n", this, length));
 
@@ -1041,7 +559,7 @@ nsHttpConnection::ResumeSend()
     NS_ASSERTION(PR_GetCurrentThread() == gSocketThread, "wrong thread");
 
     if (mSocketOut)
-        return mSocketOut->AsyncWait(this, 0, 0, nullptr);
+        return mSocketOut->AsyncWait(this, 0, 0, nsnull);
 
     NS_NOTREACHED("no socket output stream");
     return NS_ERROR_UNEXPECTED;
@@ -1054,16 +572,8 @@ nsHttpConnection::ResumeRecv()
 
     NS_ASSERTION(PR_GetCurrentThread() == gSocketThread, "wrong thread");
 
-    
-    
-    
-    
-    
-    
-    mLastReadTime = PR_IntervalNow();
-
     if (mSocketIn)
-        return mSocketIn->AsyncWait(this, 0, 0, nullptr);
+        return mSocketIn->AsyncWait(this, 0, 0, nsnull);
 
     NS_NOTREACHED("no socket input stream");
     return NS_ERROR_UNEXPECTED;
@@ -1075,12 +585,11 @@ nsHttpConnection::BeginIdleMonitoring()
     LOG(("nsHttpConnection::BeginIdleMonitoring [this=%p]\n", this));
     NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
     NS_ABORT_IF_FALSE(!mTransaction, "BeginIdleMonitoring() while active");
-    NS_ABORT_IF_FALSE(!mUsingSpdyVersion, "Idle monitoring of spdy not allowed");
-
+    
     LOG(("Entering Idle Monitoring Mode [this=%p]", this));
-    mIdleMonitoring = true;
+    mIdleMonitoring = PR_TRUE;
     if (mSocketIn)
-        mSocketIn->AsyncWait(this, 0, 0, nullptr);
+        mSocketIn->AsyncWait(this, 0, 0, nsnull);
 }
 
 void
@@ -1092,9 +601,9 @@ nsHttpConnection::EndIdleMonitoring()
 
     if (mIdleMonitoring) {
         LOG(("Leaving Idle Monitoring Mode [this=%p]", this));
-        mIdleMonitoring = false;
+        mIdleMonitoring = PR_FALSE;
         if (mSocketIn)
-            mSocketIn->AsyncWait(nullptr, 0, 0, nullptr);
+            mSocketIn->AsyncWait(nsnull, 0, 0, nsnull);
     }
 }
 
@@ -1118,22 +627,11 @@ nsHttpConnection::CloseTransaction(nsAHttpTransaction *trans, nsresult reason)
     if (reason == NS_BASE_STREAM_CLOSED)
         reason = NS_OK;
 
-    if (mUsingSpdyVersion) {
-        DontReuse();
-        
-        mUsingSpdyVersion = 0;
-        mSpdySession = nullptr;
-    }
-
-    if (mTransaction) {
-        mHttp1xTransactionCount += mTransaction->Http1xTransactionCount();
-
-        mTransaction->Close(reason);
-        mTransaction = nullptr;
-    }
+    mTransaction->Close(reason);
+    mTransaction = nsnull;
 
     if (mCallbacks) {
-        nsIInterfaceRequestor *cbs = nullptr;
+        nsIInterfaceRequestor *cbs = nsnull;
         mCallbacks.swap(cbs);
         NS_ProxyRelease(mCallbackTarget, cbs);
     }
@@ -1143,16 +641,16 @@ nsHttpConnection::CloseTransaction(nsAHttpTransaction *trans, nsresult reason)
 
     
     
-    mIsReused = true;
+    mIsReused = PR_TRUE;
 }
 
 NS_METHOD
 nsHttpConnection::ReadFromStream(nsIInputStream *input,
                                  void *closure,
                                  const char *buf,
-                                 uint32_t offset,
-                                 uint32_t count,
-                                 uint32_t *countRead)
+                                 PRUint32 offset,
+                                 PRUint32 count,
+                                 PRUint32 *countRead)
 {
     
     nsHttpConnection *conn = (nsHttpConnection *) closure;
@@ -1161,8 +659,8 @@ nsHttpConnection::ReadFromStream(nsIInputStream *input,
 
 nsresult
 nsHttpConnection::OnReadSegment(const char *buf,
-                                uint32_t count,
-                                uint32_t *countRead)
+                                PRUint32 count,
+                                PRUint32 *countRead)
 {
     if (count == 0) {
         
@@ -1177,11 +675,8 @@ nsHttpConnection::OnReadSegment(const char *buf,
         mSocketOutCondition = rv;
     else if (*countRead == 0)
         mSocketOutCondition = NS_BASE_STREAM_CLOSED;
-    else {
+    else
         mSocketOutCondition = NS_OK; 
-        if (!mProxyConnectInProgress)
-            mTotalBytesWritten += *countRead;
-    }
 
     return mSocketOutCondition;
 }
@@ -1189,16 +684,13 @@ nsHttpConnection::OnReadSegment(const char *buf,
 nsresult
 nsHttpConnection::OnSocketWritable()
 {
-    LOG(("nsHttpConnection::OnSocketWritable [this=%p] host=%s\n",
-         this, mConnInfo->Host()));
+    LOG(("nsHttpConnection::OnSocketWritable [this=%x]\n", this));
 
     nsresult rv;
-    uint32_t n;
+    PRUint32 n;
     bool again = true;
 
     do {
-        mSocketOutCondition = NS_OK;
-
         
         
         
@@ -1212,27 +704,8 @@ nsHttpConnection::OnSocketWritable()
                                                       nsIOService::gDefaultSegmentSize,
                                                       &n);
         }
-        else if (!EnsureNPNComplete()) {
-            
-            
-
-            
-            
-            
-            
-
-            rv = NS_OK;
-            mSocketOutCondition = NS_BASE_STREAM_WOULD_BLOCK;
-            n = 0;
-        }
         else {
-            if (!mReportedSpdy) {
-                mReportedSpdy = true;
-                gHttpHandler->ConnMgr()->ReportSpdyConnection(this, mUsingSpdyVersion);
-            }
-
             LOG(("  writing transaction request stream\n"));
-            mProxyConnectInProgress = false;
             rv = mTransaction->ReadSegments(this, nsIOService::gDefaultSegmentSize, &n);
         }
 
@@ -1240,7 +713,7 @@ nsHttpConnection::OnSocketWritable()
             rv, n, mSocketOutCondition));
 
         
-        if (rv == NS_BASE_STREAM_CLOSED && !mTransaction->IsDone()) {
+        if (rv == NS_BASE_STREAM_CLOSED) {
             rv = NS_OK;
             n = 0;
         }
@@ -1250,14 +723,14 @@ nsHttpConnection::OnSocketWritable()
             
             if (rv == NS_BASE_STREAM_WOULD_BLOCK)
                 rv = NS_OK;
-            again = false;
+            again = PR_FALSE;
         }
         else if (NS_FAILED(mSocketOutCondition)) {
             if (mSocketOutCondition == NS_BASE_STREAM_WOULD_BLOCK)
-                rv = mSocketOut->AsyncWait(this, 0, 0, nullptr); 
+                rv = mSocketOut->AsyncWait(this, 0, 0, nsnull); 
             else
                 rv = mSocketOutCondition;
-            again = false;
+            again = PR_FALSE;
         }
         else if (n == 0) {
             
@@ -1267,11 +740,11 @@ nsHttpConnection::OnSocketWritable()
             
             
             mTransaction->OnTransportStatus(mSocketTransport,
-                                            NS_NET_STATUS_WAITING_FOR,
+                                            nsISocketTransport::STATUS_WAITING_FOR,
                                             LL_ZERO);
 
-            rv = ResumeRecv(); 
-            again = false;
+            rv = mSocketIn->AsyncWait(this, 0, 0, nsnull); 
+            again = PR_FALSE;
         }
         
     } while (again);
@@ -1281,8 +754,8 @@ nsHttpConnection::OnSocketWritable()
 
 nsresult
 nsHttpConnection::OnWriteSegment(char *buf,
-                                 uint32_t count,
-                                 uint32_t *countWritten)
+                                 PRUint32 count,
+                                 PRUint32 *countWritten)
 {
     if (count == 0) {
         
@@ -1308,99 +781,39 @@ nsHttpConnection::OnSocketReadable()
 {
     LOG(("nsHttpConnection::OnSocketReadable [this=%x]\n", this));
 
-    PRIntervalTime now = PR_IntervalNow();
-    PRIntervalTime delta = now - mLastReadTime;
+    PRUint32 now = NowInSeconds();
 
-    if (mKeepAliveMask && (delta >= mMaxHangTime)) {
+    if (mKeepAliveMask && (now - mLastReadTime >= PRUint32(mMaxHangTime))) {
         LOG(("max hang time exceeded!\n"));
         
         
-        mKeepAliveMask = false;
+        mKeepAliveMask = PR_FALSE;
         gHttpHandler->ProcessPendingQ(mConnInfo);
     }
-
-    
-    
-    
-    
-    
-    
-    
-
-    if (delta > mRtt)
-        delta -= mRtt;
-    else
-        delta = 0;
-
-    static const PRIntervalTime k400ms  = PR_MillisecondsToInterval(400);
-
-    if (delta >= (mRtt + gHttpHandler->GetPipelineRescheduleTimeout())) {
-        LOG(("Read delta ms of %u causing slow read major "
-             "event and pipeline cancellation",
-             PR_IntervalToMilliseconds(delta)));
-
-        gHttpHandler->ConnMgr()->PipelineFeedbackInfo(
-            mConnInfo, nsHttpConnectionMgr::BadSlowReadMajor, this, 0);
-
-        if (gHttpHandler->GetPipelineRescheduleOnTimeout() &&
-            mTransaction->PipelineDepth() > 1) {
-            nsHttpPipeline *pipeline = mTransaction->QueryPipeline();
-            NS_ABORT_IF_FALSE(pipeline, "pipelinedepth > 1 without pipeline");
-            
-            
-            
-            if (pipeline) {
-                pipeline->CancelPipeline(NS_ERROR_NET_TIMEOUT);
-                LOG(("Rescheduling the head of line blocked members of a "
-                     "pipeline because reschedule-timeout idle interval "
-                     "exceeded"));
-            }
-        }
-    }
-    else if (delta > k400ms) {
-        gHttpHandler->ConnMgr()->PipelineFeedbackInfo(
-            mConnInfo, nsHttpConnectionMgr::BadSlowReadMinor, this, 0);
-    }
-
     mLastReadTime = now;
 
     nsresult rv;
-    uint32_t n;
+    PRUint32 n;
     bool again = true;
 
     do {
-        if (!mProxyConnectInProgress && !mNPNComplete) {
-            
-            
-            
-            
-            
-            
-
-            LOG(("nsHttpConnection::OnSocketReadable %p return due to inactive "
-                 "tunnel setup but incomplete NPN state\n", this));
-            rv = NS_OK;
-            break;
-        }
-
         rv = mTransaction->WriteSegments(this, nsIOService::gDefaultSegmentSize, &n);
         if (NS_FAILED(rv)) {
             
             
             if (rv == NS_BASE_STREAM_WOULD_BLOCK)
                 rv = NS_OK;
-            again = false;
+            again = PR_FALSE;
         }
         else {
             mCurrentBytesRead += n;
-            mTotalBytesRead += n;
             if (NS_FAILED(mSocketInCondition)) {
                 
                 if (mSocketInCondition == NS_BASE_STREAM_WOULD_BLOCK)
-                    rv = ResumeRecv();
+                    rv = mSocketIn->AsyncWait(this, 0, 0, nsnull);
                 else
                     rv = mSocketInCondition;
-                again = false;
+                again = PR_FALSE;
             }
         }
         
@@ -1417,10 +830,8 @@ nsHttpConnection::SetupProxyConnect()
     LOG(("nsHttpConnection::SetupProxyConnect [this=%x]\n", this));
 
     NS_ENSURE_TRUE(!mProxyConnectStream, NS_ERROR_ALREADY_INITIALIZED);
-    NS_ABORT_IF_FALSE(!mUsingSpdyVersion,
-                      "SPDY NPN Complete while using proxy connect stream");
 
-    nsAutoCString buf;
+    nsCAutoString buf;
     nsresult rv = nsHttpHandler::GenerateHostPort(
             nsDependentCString(mConnInfo->Host()), mConnInfo->Port(), buf);
     if (NS_FAILED(rv))
@@ -1432,6 +843,9 @@ nsHttpConnection::SetupProxyConnect()
     request.SetVersion(gHttpHandler->HttpVersion());
     request.SetRequestURI(buf);
     request.SetHeader(nsHttp::User_Agent, gHttpHandler->UserAgent());
+
+    
+    request.SetHeader(nsHttp::Proxy_Connection, NS_LITERAL_CSTRING("keep-alive"));
 
     val = mTransaction->RequestHead()->PeekHeader(nsHttp::Host);
     if (val) {
@@ -1448,7 +862,7 @@ nsHttpConnection::SetupProxyConnect()
     }
 
     buf.Truncate();
-    request.Flatten(buf, false);
+    request.Flatten(buf, PR_FALSE);
     buf.AppendLiteral("\r\n");
 
     return NS_NewCStringInputStream(getter_AddRefs(mProxyConnectStream), buf);
@@ -1537,8 +951,8 @@ nsHttpConnection::OnOutputStreamReady(nsIAsyncOutputStream *out)
 NS_IMETHODIMP
 nsHttpConnection::OnTransportStatus(nsITransport *trans,
                                     nsresult status,
-                                    uint64_t progress,
-                                    uint64_t progressMax)
+                                    PRUint64 progress,
+                                    PRUint64 progressMax)
 {
     if (mTransaction)
         mTransaction->OnTransportStatus(trans, status, progress);
@@ -1568,4 +982,3 @@ nsHttpConnection::GetInterface(const nsIID &iid, void **result)
         return mCallbacks->GetInterface(iid, result);
     return NS_ERROR_NO_INTERFACE;
 }
-

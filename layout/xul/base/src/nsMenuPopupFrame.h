@@ -7,6 +7,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsMenuPopupFrame_h__
 #define nsMenuPopupFrame_h__
 
@@ -141,7 +176,7 @@ public:
   virtual void LockMenuUntilClosed(bool aLock);
   virtual bool IsMenuLocked() { return mIsMenuLocked; }
 
-  nsIWidget* GetWidget();
+  NS_IMETHOD GetWidget(nsIWidget **aWidget);
 
   
   void AttachedDismissalListener();
@@ -151,15 +186,15 @@ public:
                   nsIFrame*        aParent,
                   nsIFrame*        aPrevInFlow);
 
-  NS_IMETHOD AttributeChanged(int32_t aNameSpaceID,
+  NS_IMETHOD AttributeChanged(PRInt32 aNameSpaceID,
                               nsIAtom* aAttribute,
-                              int32_t aModType);
+                              PRInt32 aModType);
 
   virtual void DestroyFrom(nsIFrame* aDestructRoot);
 
   virtual void InvalidateInternal(const nsRect& aDamageRect,
                                   nscoord aX, nscoord aY, nsIFrame* aForChild,
-                                  uint32_t aFlags);
+                                  PRUint32 aFlags);
 
   
   
@@ -173,7 +208,7 @@ public:
   void EnsureWidget();
 
   nsresult CreateWidgetForView(nsIView* aView);
-  uint8_t GetShadowStyle();
+  PRUint8 GetShadowStyle();
 
   NS_IMETHOD SetInitialChildList(ChildListID     aListID,
                                  nsFrameList&    aChildList);
@@ -193,7 +228,7 @@ public:
   nsresult SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove);
 
   bool HasGeneratedChildren() { return mGeneratedChildren; }
-  void SetGeneratedChildren() { mGeneratedChildren = true; }
+  void SetGeneratedChildren() { mGeneratedChildren = PR_TRUE; }
 
   
   
@@ -209,8 +244,17 @@ public:
 
   bool IsDragPopup() { return mIsDragPopup; }
 
+  
+  nsMenuFrame* GetParentMenu() {
+    nsIFrame* parent = GetParent();
+    if (parent && parent->GetType() == nsGkAtoms::menuFrame) {
+      return static_cast<nsMenuFrame *>(parent);
+    }
+    return nsnull;
+  }
+
   static nsIContent* GetTriggerContent(nsMenuPopupFrame* aMenuPopupFrame);
-  void ClearTriggerContent() { mTriggerContent = nullptr; }
+  void ClearTriggerContent() { mTriggerContent = nsnull; }
 
   
   
@@ -221,7 +265,7 @@ public:
   void InitializePopup(nsIContent* aAnchorContent,
                        nsIContent* aTriggerContent,
                        const nsAString& aPosition,
-                       int32_t aXPos, int32_t aYPos,
+                       PRInt32 aXPos, PRInt32 aYPos,
                        bool aAttributesOverride);
 
   
@@ -230,13 +274,13 @@ public:
 
 
   void InitializePopupAtScreen(nsIContent* aTriggerContent,
-                               int32_t aXPos, int32_t aYPos,
+                               PRInt32 aXPos, PRInt32 aYPos,
                                bool aIsContextMenu);
 
   void InitializePopupWithAnchorAlign(nsIContent* aAnchorContent,
                                       nsAString& aAnchor,
                                       nsAString& aAlign,
-                                      int32_t aXPos, int32_t aYPos);
+                                      PRInt32 aXPos, PRInt32 aYPos);
 
   
   void ShowPopup(bool aIsContextMenu, bool aSelectFirstItem);
@@ -269,11 +313,11 @@ public:
   
   
   
-  void MoveTo(int32_t aLeft, int32_t aTop, bool aUpdateAttrs);
+  void MoveTo(PRInt32 aLeft, PRInt32 aTop, bool aUpdateAttrs);
 
   bool GetAutoPosition();
   void SetAutoPosition(bool aShouldAutoPosition);
-  void SetConsumeRollupEvent(uint32_t aConsumeMode);
+  void SetConsumeRollupEvent(PRUint32 aConsumeMode);
 
   nsIScrollableFrame* GetScrollFrame(nsIFrame* aStart);
 
@@ -294,7 +338,7 @@ public:
   
   
   
-  void CanAdjustEdges(int8_t aHorizontalSide, int8_t aVerticalSide, nsIntPoint& aChange);
+  void CanAdjustEdges(PRInt8 aHorizontalSide, PRInt8 aVerticalSide, nsIntPoint& aChange);
 
   
   bool IsAnchored() const { return mScreenXPos == -1 && mScreenYPos == -1; }
@@ -308,16 +352,13 @@ public:
   NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                               const nsRect&           aDirtyRect,
                               const nsDisplayListSet& aLists);
-
-  nsIntPoint GetLastClientOffset() const { return mLastClientOffset; }
-
 protected:
 
   
   nsPopupLevel PopupLevel(bool aIsNoAutoHide) const;
 
   
-  virtual void GetLayoutFlags(uint32_t& aFlags);
+  virtual void GetLayoutFlags(PRUint32& aFlags);
 
   void InitPositionFromAnchorAlign(const nsAString& aAnchor,
                                    const nsAString& aAlign);
@@ -368,7 +409,7 @@ protected:
 
   
   
-  nsresult CreatePopupView();
+  nsresult CreatePopupViewForFrame();
 
   nsString     mIncrementalString;  
 
@@ -390,23 +431,19 @@ protected:
 
   
   
-  int32_t mXPos;
-  int32_t mYPos;
-  int32_t mScreenXPos;
-  int32_t mScreenYPos;
-  
-  
-  
-  nsIntPoint mLastClientOffset;
+  PRInt32 mXPos;
+  PRInt32 mYPos;
+  PRInt32 mScreenXPos;
+  PRInt32 mScreenYPos;
 
   nsPopupType mPopupType; 
   nsPopupState mPopupState; 
 
   
-  int8_t mPopupAlignment;
-  int8_t mPopupAnchor;
+  PRInt8 mPopupAlignment;
+  PRInt8 mPopupAnchor;
   
-  int8_t mConsumeRollupEvent;
+  PRInt8 mConsumeRollupEvent;
   bool mFlipBoth; 
 
   bool mIsOpenChanged; 
@@ -425,7 +462,7 @@ protected:
   bool mHFlip;
   bool mVFlip;
 
-  static int8_t sDefaultLevelIsTop;
+  static PRInt8 sDefaultLevelIsTop;
 }; 
 
 #endif

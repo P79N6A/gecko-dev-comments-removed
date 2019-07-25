@@ -7,6 +7,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "txExpr.h"
 #include "txIXPathContext.h"
 #include "txNodeSet.h"
@@ -28,7 +61,7 @@ nsresult
 LocationStep::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
 {
     NS_ASSERTION(aContext, "internal error");
-    *aResult = nullptr;
+    *aResult = nsnull;
 
     nsRefPtr<txNodeSet> nodes;
     nsresult rv = aContext->recycler()->getNodeSet(getter_AddRefs(nodes));
@@ -90,7 +123,7 @@ LocationStep::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
             bool cont = true;
             while (!walker.moveToNextSibling()) {
                 if (!walker.moveToParent()) {
-                    cont = false;
+                    cont = PR_FALSE;
                     break;
                 }
             }
@@ -103,7 +136,7 @@ LocationStep::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
 
                 while (!walker.moveToNextSibling()) {
                     if (!walker.moveToParent()) {
-                        cont = false;
+                        cont = PR_FALSE;
                         break;
                     }
                 }
@@ -140,7 +173,7 @@ LocationStep::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
             bool cont = true;
             while (!walker.moveToPreviousSibling()) {
                 if (!walker.moveToParent()) {
-                    cont = false;
+                    cont = PR_FALSE;
                     break;
                 }
             }
@@ -153,7 +186,7 @@ LocationStep::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
 
                 while (!walker.moveToPreviousSibling()) {
                     if (!walker.moveToParent()) {
-                        cont = false;
+                        cont = PR_FALSE;
                         break;
                     }
                 }
@@ -254,13 +287,13 @@ LocationStep::getType()
 TX_IMPL_EXPR_STUBS_BASE(LocationStep, NODESET_RESULT)
 
 Expr*
-LocationStep::getSubExprAt(uint32_t aPos)
+LocationStep::getSubExprAt(PRUint32 aPos)
 {
     return PredicateList::getSubExprAt(aPos);
 }
 
 void
-LocationStep::setSubExprAt(uint32_t aPos, Expr* aExpr)
+LocationStep::setSubExprAt(PRUint32 aPos, Expr* aExpr)
 {
     PredicateList::setSubExprAt(aPos, aExpr);
 }

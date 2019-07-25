@@ -3,18 +3,52 @@
 
 
 
-#include "nsDOMClassInfoID.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsDOMSimpleGestureEvent.h"
+#include "nsGUIEvent.h"
+#include "nsContentUtils.h"
+
 
 nsDOMSimpleGestureEvent::nsDOMSimpleGestureEvent(nsPresContext* aPresContext, nsSimpleGestureEvent* aEvent)
-  : nsDOMMouseEvent(aPresContext, aEvent ? aEvent : new nsSimpleGestureEvent(false, 0, nullptr, 0, 0.0))
+  : nsDOMMouseEvent(aPresContext, aEvent ? aEvent : new nsSimpleGestureEvent(PR_FALSE, 0, nsnull, 0, 0.0))
 {
   NS_ASSERTION(mEvent->eventStructType == NS_SIMPLE_GESTURE_EVENT, "event type mismatch");
 
   if (aEvent) {
-    mEventIsInternal = false;
+    mEventIsInternal = PR_FALSE;
   } else {
-    mEventIsInternal = true;
+    mEventIsInternal = PR_TRUE;
     mEvent->time = PR_Now();
     mEvent->refPoint.x = mEvent->refPoint.y = 0;
     static_cast<nsMouseEvent*>(mEvent)->inputSource = nsIDOMMouseEvent::MOZ_SOURCE_UNKNOWN;
@@ -25,7 +59,7 @@ nsDOMSimpleGestureEvent::~nsDOMSimpleGestureEvent()
 {
   if (mEventIsInternal) {
     delete static_cast<nsSimpleGestureEvent*>(mEvent);
-    mEvent = nullptr;
+    mEvent = nsnull;
   }
 }
 
@@ -41,7 +75,7 @@ NS_INTERFACE_MAP_END_INHERITING(nsDOMMouseEvent)
 
 
 NS_IMETHODIMP
-nsDOMSimpleGestureEvent::GetDirection(uint32_t *aDirection)
+nsDOMSimpleGestureEvent::GetDirection(PRUint32 *aDirection)
 {
   NS_ENSURE_ARG_POINTER(aDirection);
   *aDirection = static_cast<nsSimpleGestureEvent*>(mEvent)->direction;
@@ -50,19 +84,10 @@ nsDOMSimpleGestureEvent::GetDirection(uint32_t *aDirection)
 
 
 NS_IMETHODIMP
-nsDOMSimpleGestureEvent::GetDelta(double *aDelta)
+nsDOMSimpleGestureEvent::GetDelta(PRFloat64 *aDelta)
 {
   NS_ENSURE_ARG_POINTER(aDelta);
   *aDelta = static_cast<nsSimpleGestureEvent*>(mEvent)->delta;
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-nsDOMSimpleGestureEvent::GetClickCount(uint32_t *aClickCount)
-{
-  NS_ENSURE_ARG_POINTER(aClickCount);
-  *aClickCount = static_cast<nsSimpleGestureEvent*>(mEvent)->clickCount;
   return NS_OK;
 }
 
@@ -71,20 +96,19 @@ nsDOMSimpleGestureEvent::InitSimpleGestureEvent(const nsAString& aTypeArg,
                                                 bool aCanBubbleArg,
                                                 bool aCancelableArg,
                                                 nsIDOMWindow* aViewArg,
-                                                int32_t aDetailArg,
-                                                int32_t aScreenX, 
-                                                int32_t aScreenY,
-                                                int32_t aClientX,
-                                                int32_t aClientY,
+                                                PRInt32 aDetailArg,
+                                                PRInt32 aScreenX, 
+                                                PRInt32 aScreenY,
+                                                PRInt32 aClientX,
+                                                PRInt32 aClientY,
                                                 bool aCtrlKeyArg,
                                                 bool aAltKeyArg,
                                                 bool aShiftKeyArg,
                                                 bool aMetaKeyArg,
-                                                uint16_t aButton,
+                                                PRUint16 aButton,
                                                 nsIDOMEventTarget* aRelatedTarget,
-                                                uint32_t aDirectionArg,
-                                                double aDeltaArg,
-                                                uint32_t aClickCountArg)
+                                                PRUint32 aDirectionArg,
+                                                PRFloat64 aDeltaArg)
 {
   nsresult rv = nsDOMMouseEvent::InitMouseEvent(aTypeArg,
                                                 aCanBubbleArg,
@@ -106,7 +130,6 @@ nsDOMSimpleGestureEvent::InitSimpleGestureEvent(const nsAString& aTypeArg,
   nsSimpleGestureEvent* simpleGestureEvent = static_cast<nsSimpleGestureEvent*>(mEvent);
   simpleGestureEvent->direction = aDirectionArg;
   simpleGestureEvent->delta = aDeltaArg;
-  simpleGestureEvent->clickCount = aClickCountArg;
 
   return NS_OK;
 }
@@ -116,7 +139,7 @@ nsresult NS_NewDOMSimpleGestureEvent(nsIDOMEvent** aInstancePtrResult,
                                      nsSimpleGestureEvent *aEvent)
 {
   nsDOMSimpleGestureEvent *it = new nsDOMSimpleGestureEvent(aPresContext, aEvent);
-  if (nullptr == it) {
+  if (nsnull == it) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
   return CallQueryInterface(it, aInstancePtrResult);

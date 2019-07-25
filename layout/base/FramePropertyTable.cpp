@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "FramePropertyTable.h"
 #include "prlog.h"
 
@@ -37,9 +69,8 @@ FramePropertyTable::Set(nsIFrame* aFrame, const FramePropertyDescriptor* aProper
 
     
     PropertyValue current = entry->mProp;
-    entry->mProp.mProperty = nullptr;
-    MOZ_STATIC_ASSERT(sizeof(nsTArray<PropertyValue>) <= sizeof(void *),
-                      "Property array must fit entirely within entry->mProp.mValue");
+    entry->mProp.mProperty = nsnull;
+    PR_STATIC_ASSERT(sizeof(nsTArray<PropertyValue>) <= sizeof(void *));
     new (&entry->mProp.mValue) nsTArray<PropertyValue>(4);
     entry->mProp.ToArray()->AppendElement(current);
   }
@@ -66,7 +97,7 @@ FramePropertyTable::Get(const nsIFrame* aFrame,
   NS_ASSERTION(aProperty, "Null property?");
 
   if (aFoundResult) {
-    *aFoundResult = false;
+    *aFoundResult = PR_FALSE;
   }
 
   if (mLastFrame != aFrame) {
@@ -75,27 +106,27 @@ FramePropertyTable::Get(const nsIFrame* aFrame,
   }
   Entry* entry = mLastEntry;
   if (!entry)
-    return nullptr;
+    return nsnull;
 
   if (entry->mProp.mProperty == aProperty) {
     if (aFoundResult) {
-      *aFoundResult = true;
+      *aFoundResult = PR_TRUE;
     }
     return entry->mProp.mValue;
   }
   if (!entry->mProp.IsArray()) {
     
-    return nullptr;
+    return nsnull;
   }
 
   nsTArray<PropertyValue>* array = entry->mProp.ToArray();
   nsTArray<PropertyValue>::index_type index =
     array->IndexOf(aProperty, 0, PropertyComparator());
   if (index == nsTArray<PropertyValue>::NoIndex)
-    return nullptr;
+    return nsnull;
 
   if (aFoundResult) {
-    *aFoundResult = true;
+    *aFoundResult = PR_TRUE;
   }
 
   return array->ElementAt(index).mValue;
@@ -109,7 +140,7 @@ FramePropertyTable::Remove(nsIFrame* aFrame, const FramePropertyDescriptor* aPro
   NS_ASSERTION(aProperty, "Null property?");
 
   if (aFoundResult) {
-    *aFoundResult = false;
+    *aFoundResult = PR_FALSE;
   }
 
   if (mLastFrame != aFrame) {
@@ -118,21 +149,21 @@ FramePropertyTable::Remove(nsIFrame* aFrame, const FramePropertyDescriptor* aPro
   }
   Entry* entry = mLastEntry;
   if (!entry)
-    return nullptr;
+    return nsnull;
 
   if (entry->mProp.mProperty == aProperty) {
     
     void* value = entry->mProp.mValue;
     mEntries.RawRemoveEntry(entry);
-    mLastEntry = nullptr;
+    mLastEntry = nsnull;
     if (aFoundResult) {
-      *aFoundResult = true;
+      *aFoundResult = PR_TRUE;
     }
     return value;
   }
   if (!entry->mProp.IsArray()) {
     
-    return nullptr;
+    return nsnull;
   }
 
   nsTArray<PropertyValue>* array = entry->mProp.ToArray();
@@ -140,16 +171,16 @@ FramePropertyTable::Remove(nsIFrame* aFrame, const FramePropertyDescriptor* aPro
     array->IndexOf(aProperty, 0, PropertyComparator());
   if (index == nsTArray<PropertyValue>::NoIndex) {
     
-    return nullptr;
+    return nsnull;
   }
 
   if (aFoundResult) {
-    *aFoundResult = true;
+    *aFoundResult = PR_TRUE;
   }
 
   void* result = array->ElementAt(index).mValue;
 
-  uint32_t last = array->Length() - 1;
+  PRUint32 last = array->Length() - 1;
   array->ElementAt(index) = array->ElementAt(last);
   array->RemoveElementAt(last);
 
@@ -185,7 +216,7 @@ FramePropertyTable::DeleteAllForEntry(Entry* aEntry)
   }
 
   nsTArray<PropertyValue>* array = aEntry->mProp.ToArray();
-  for (uint32_t i = 0; i < array->Length(); ++i) {
+  for (PRUint32 i = 0; i < array->Length(); ++i) {
     array->ElementAt(i).DestroyValueFor(aEntry->GetKey());
   }
   array->~nsTArray<PropertyValue>();
@@ -203,8 +234,8 @@ FramePropertyTable::DeleteAllFor(nsIFrame* aFrame)
   if (mLastFrame == aFrame) {
     
     
-    mLastFrame = nullptr;
-    mLastEntry = nullptr;
+    mLastFrame = nsnull;
+    mLastEntry = nsnull;
   }
 
   DeleteAllForEntry(entry);
@@ -221,24 +252,10 @@ FramePropertyTable::DeleteEnumerator(Entry* aEntry, void* aArg)
 void
 FramePropertyTable::DeleteAll()
 {
-  mLastFrame = nullptr;
-  mLastEntry = nullptr;
+  mLastFrame = nsnull;
+  mLastEntry = nsnull;
 
-  mEntries.EnumerateEntries(DeleteEnumerator, nullptr);
-}
-
-size_t
-FramePropertyTable::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
-{
-  return mEntries.SizeOfExcludingThis(SizeOfPropertyTableEntryExcludingThis,
-                                      aMallocSizeOf);
-}
-
- size_t
-FramePropertyTable::SizeOfPropertyTableEntryExcludingThis(Entry* aEntry,
-                      nsMallocSizeOfFun aMallocSizeOf, void *)
-{
-  return aEntry->mProp.SizeOfExcludingThis(aMallocSizeOf);
+  mEntries.EnumerateEntries(DeleteEnumerator, nsnull);
 }
 
 }

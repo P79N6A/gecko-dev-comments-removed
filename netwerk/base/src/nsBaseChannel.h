@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsBaseChannel_h__
 #define nsBaseChannel_h__
 
@@ -91,7 +123,7 @@ private:
   
   
   virtual bool GetStatusArg(nsresult status, nsString &statusArg) {
-    return false;
+    return PR_FALSE;
   }
 
   
@@ -109,7 +141,7 @@ public:
   
   
   
-  nsresult Redirect(nsIChannel *newChannel, uint32_t redirectFlags,
+  nsresult Redirect(nsIChannel *newChannel, PRUint32 redirectFlags,
                     bool openNewChannel);
 
   
@@ -144,7 +176,7 @@ public:
   }
 
   
-  bool HasLoadFlag(uint32_t flag) {
+  bool HasLoadFlag(PRUint32 flag) {
     return (mLoadFlags & flag) != 0;
   }
 
@@ -155,8 +187,8 @@ public:
 
   
   
-  void SetContentLength64(int64_t len);
-  int64_t ContentLength64();
+  void SetContentLength64(PRInt64 len);
+  PRInt64 ContentLength64();
 
   
   template <class T> void GetCallback(nsCOMPtr<T> &result) {
@@ -198,7 +230,7 @@ public:
   
   nsresult PushStreamConverter(const char *fromType, const char *toType,
                                bool invalidatesContentLength = true,
-                               nsIStreamListener **converter = nullptr);
+                               nsIStreamListener **converter = nsnull);
 
 private:
   NS_DECL_NSISTREAMLISTENER
@@ -209,8 +241,8 @@ private:
 
   
   void CallbacksChanged() {
-    mProgressSink = nullptr;
-    mQueriedProgressSink = false;
+    mProgressSink = nsnull;
+    mQueriedProgressSink = PR_FALSE;
     OnCallbacksChanged();
   }
 
@@ -245,25 +277,25 @@ private:
   friend class RedirectRunnable;
 
   nsRefPtr<nsInputStreamPump>         mPump;
+  nsCOMPtr<nsIInterfaceRequestor>     mCallbacks;
   nsCOMPtr<nsIProgressEventSink>      mProgressSink;
   nsCOMPtr<nsIURI>                    mOriginalURI;
+  nsCOMPtr<nsIURI>                    mURI;
   nsCOMPtr<nsISupports>               mOwner;
   nsCOMPtr<nsISupports>               mSecurityInfo;
   nsCOMPtr<nsIChannel>                mRedirectChannel;
   nsCString                           mContentType;
   nsCString                           mContentCharset;
-  uint32_t                            mLoadFlags;
+  PRUint32                            mLoadFlags;
   bool                                mQueriedProgressSink;
   bool                                mSynthProgressEvents;
   bool                                mWasOpened;
   bool                                mWaitingOnAsyncRedirect;
   bool                                mOpenRedirectChannel;
-  uint32_t                            mRedirectFlags;
+  PRUint32                            mRedirectFlags;
 
 protected:
-  nsCOMPtr<nsIURI>                    mURI;
   nsCOMPtr<nsILoadGroup>              mLoadGroup;
-  nsCOMPtr<nsIInterfaceRequestor>     mCallbacks;
   nsCOMPtr<nsIStreamListener>         mListener;
   nsCOMPtr<nsISupports>               mListenerContext;
   nsresult                            mStatus;

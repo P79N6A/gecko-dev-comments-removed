@@ -3,7 +3,36 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "DOMSVGPathSeg.h"
 #include "DOMSVGPathSegList.h"
@@ -11,8 +40,7 @@
 #include "SVGAnimatedPathSegList.h"
 #include "nsSVGElement.h"
 #include "nsIDOMSVGPathSeg.h"
-#include "nsError.h"
-#include "nsContentUtils.h"
+#include "nsDOMError.h"
 
 
 
@@ -26,7 +54,7 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(DOMSVGPathSeg)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(DOMSVGPathSeg)
   
   if (tmp->mList) {
-    tmp->mList->ItemAt(tmp->mListIndex) = nullptr;
+    tmp->mList->ItemAt(tmp->mListIndex) = nsnull;
   }
 NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mList)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
@@ -47,7 +75,7 @@ NS_INTERFACE_MAP_END
 
 
 DOMSVGPathSeg::DOMSVGPathSeg(DOMSVGPathSegList *aList,
-                             uint32_t aListIndex,
+                             PRUint32 aListIndex,
                              bool aIsAnimValItem)
   : mList(aList)
   , mListIndex(aListIndex)
@@ -61,16 +89,16 @@ DOMSVGPathSeg::DOMSVGPathSeg(DOMSVGPathSegList *aList,
 }
 
 DOMSVGPathSeg::DOMSVGPathSeg()
-  : mList(nullptr)
+  : mList(nsnull)
   , mListIndex(0)
-  , mIsAnimValItem(false)
+  , mIsAnimValItem(PR_FALSE)
 {
 }
 
 NS_IMETHODIMP
-DOMSVGPathSeg::GetPathSegType(uint16_t *aPathSegType)
+DOMSVGPathSeg::GetPathSegType(PRUint16 *aPathSegType)
 {
-  *aPathSegType = uint16_t(Type());
+  *aPathSegType = PRUint16(Type());
   return NS_OK;
 }
 
@@ -83,7 +111,7 @@ DOMSVGPathSeg::GetPathSegTypeAsLetter(nsAString &aPathSegTypeAsLetter)
 
 void
 DOMSVGPathSeg::InsertingIntoList(DOMSVGPathSegList *aList,
-                                 uint32_t aListIndex,
+                                 PRUint32 aListIndex,
                                  bool aIsAnimValItem)
 {
   NS_ABORT_IF_FALSE(!HasOwner(), "Inserting item that is already in a list");
@@ -98,18 +126,18 @@ DOMSVGPathSeg::InsertingIntoList(DOMSVGPathSegList *aList,
 void
 DOMSVGPathSeg::RemovingFromList()
 {
-  uint32_t argCount = SVGPathSegUtils::ArgCountForType(Type());
+  PRUint32 argCount = SVGPathSegUtils::ArgCountForType(Type());
   
   memcpy(PtrToMemberArgs(), InternalItem() + 1, argCount * sizeof(float));
-  mList = nullptr;
-  mIsAnimValItem = false;
+  mList = nsnull;
+  mIsAnimValItem = PR_FALSE;
 }
 
 void
 DOMSVGPathSeg::ToSVGPathSegEncodedData(float* aRaw)
 {
   NS_ABORT_IF_FALSE(aRaw, "null pointer");
-  uint32_t argCount = SVGPathSegUtils::ArgCountForType(Type());
+  PRUint32 argCount = SVGPathSegUtils::ArgCountForType(Type());
   if (IsInList()) {
     
     memcpy(aRaw, InternalItem(), (1 + argCount) * sizeof(float));
@@ -123,7 +151,7 @@ DOMSVGPathSeg::ToSVGPathSegEncodedData(float* aRaw)
 float*
 DOMSVGPathSeg::InternalItem()
 {
-  uint32_t dataIndex = mList->mItems[mListIndex].mInternalDataIndex;
+  PRUint32 dataIndex = mList->mItems[mListIndex].mInternalDataIndex;
   return &(mList->InternalList().mData[dataIndex]);
 }
 
@@ -144,9 +172,9 @@ DOMSVGPathSeg::IndexIsValid()
 
 
 #define CHECK_ARG_COUNT_IN_SYNC(segType)                                      \
-          NS_ABORT_IF_FALSE(ArrayLength(mArgs) ==                         \
-            SVGPathSegUtils::ArgCountForType(uint32_t(segType)) ||            \
-            uint32_t(segType) == nsIDOMSVGPathSeg::PATHSEG_CLOSEPATH,         \
+          NS_ABORT_IF_FALSE(NS_ARRAY_LENGTH(mArgs) ==                         \
+            SVGPathSegUtils::ArgCountForType(PRUint32(segType)) ||            \
+            PRUint32(segType) == nsIDOMSVGPathSeg::PATHSEG_CLOSEPATH,         \
             "Arg count/array size out of sync")
 
 #define IMPL_SVGPATHSEG_SUBCLASS_COMMON(segName, segType)                     \
@@ -155,17 +183,17 @@ DOMSVGPathSeg::IndexIsValid()
   {                                                                           \
     CHECK_ARG_COUNT_IN_SYNC(segType);                                         \
     memcpy(mArgs, aArgs,                                                      \
-        SVGPathSegUtils::ArgCountForType(uint32_t(segType)) * sizeof(float)); \
+        SVGPathSegUtils::ArgCountForType(PRUint32(segType)) * sizeof(float)); \
   }                                                                           \
   DOMSVGPathSeg##segName(DOMSVGPathSegList *aList,                            \
-                         uint32_t aListIndex,                                 \
+                         PRUint32 aListIndex,                                 \
                          bool aIsAnimValItem)                               \
     : DOMSVGPathSeg(aList, aListIndex, aIsAnimValItem)                        \
   {                                                                           \
     CHECK_ARG_COUNT_IN_SYNC(segType);                                         \
   }                                                                           \
   /* From DOMSVGPathSeg: */                                                   \
-  virtual uint32_t                                                            \
+  virtual PRUint32                                                            \
   Type() const                                                                \
   {                                                                           \
     return segType;                                                           \
@@ -201,7 +229,7 @@ DOMSVGPathSeg::IndexIsValid()
   DOMSVGPathSeg##segName::Get##propName(type *a##propName)                    \
   {                                                                           \
     if (mIsAnimValItem && HasOwner()) {                                       \
-      Element()->FlushAnimations(); /* May make HasOwner() == false */     \
+      Element()->FlushAnimations(); /* May make HasOwner() == PR_FALSE */     \
     }                                                                         \
     *a##propName = type(HasOwner() ? InternalItem()[1+index] : mArgs[index]); \
     return NS_OK;                                                             \
@@ -214,13 +242,9 @@ DOMSVGPathSeg::IndexIsValid()
     }                                                                         \
     NS_ENSURE_FINITE(float(a##propName), NS_ERROR_ILLEGAL_VALUE);             \
     if (HasOwner()) {                                                         \
-      if (InternalItem()[1+index] == float(a##propName)) {                    \
-        return NS_OK;                                                         \
-      }                                                                       \
-      NS_ABORT_IF_FALSE(IsInList(), "Will/DidChangePathSegList() is wrong");  \
-      nsAttrValue emptyOrOldValue = Element()->WillChangePathSegList();       \
       InternalItem()[1+index] = float(a##propName);                           \
-      Element()->DidChangePathSegList(emptyOrOldValue);                       \
+      NS_ABORT_IF_FALSE(IsInList(), "DidChangePathSegList() is wrong");       \
+      Element()->DidChangePathSegList(PR_TRUE);                               \
       if (mList->AttrIsAnimating()) {                                         \
         Element()->AnimationNeedsResample();                                  \
       }                                                                       \
@@ -830,12 +854,12 @@ IMPL_FLOAT_PROP(CurvetoQuadraticSmoothRel, Y, 1)
 
  DOMSVGPathSeg*
 DOMSVGPathSeg::CreateFor(DOMSVGPathSegList *aList,
-                         uint32_t aListIndex,
+                         PRUint32 aListIndex,
                          bool aIsAnimValItem)
 {
-  uint32_t dataIndex = aList->mItems[aListIndex].mInternalDataIndex;
+  PRUint32 dataIndex = aList->mItems[aListIndex].mInternalDataIndex;
   float *data = &aList->InternalList().mData[dataIndex];
-  uint32_t type = SVGPathSegUtils::DecodeType(data[0]);
+  PRUint32 type = SVGPathSegUtils::DecodeType(data[0]);
 
   switch (type)
   {
@@ -879,7 +903,7 @@ DOMSVGPathSeg::CreateFor(DOMSVGPathSegList *aList,
     return new DOMSVGPathSegCurvetoQuadraticSmoothRel(aList, aListIndex, aIsAnimValItem);
   default:
     NS_NOTREACHED("Invalid path segment type");
-    return nullptr;
+    return nsnull;
   }
 }
 

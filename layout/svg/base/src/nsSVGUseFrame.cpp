@@ -4,10 +4,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsSVGGFrame.h"
 #include "nsIAnonymousContentCreator.h"
 #include "nsIDOMSVGUseElement.h"
-#include "nsSVGGFrame.h"
+#include "nsIDOMSVGTransformable.h"
+#include "nsSVGElement.h"
 #include "nsSVGUseElement.h"
+#include "gfxMatrix.h"
 
 typedef nsSVGGFrame nsSVGUseFrameBase;
 
@@ -18,10 +51,7 @@ class nsSVGUseFrame : public nsSVGUseFrameBase,
   NS_NewSVGUseFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
 protected:
-  nsSVGUseFrame(nsStyleContext* aContext) :
-    nsSVGUseFrameBase(aContext),
-    mHasValidDimensions(true)
-  {}
+  nsSVGUseFrame(nsStyleContext* aContext) : nsSVGUseFrameBase(aContext) {}
 
 public:
   NS_DECL_QUERYFRAME
@@ -29,13 +59,15 @@ public:
 
   
   
+#ifdef DEBUG
   NS_IMETHOD Init(nsIContent*      aContent,
                   nsIFrame*        aParent,
                   nsIFrame*        aPrevInFlow);
+#endif
 
-  NS_IMETHOD  AttributeChanged(int32_t         aNameSpaceID,
+  NS_IMETHOD  AttributeChanged(PRInt32         aNameSpaceID,
                                nsIAtom*        aAttribute,
-                               int32_t         aModType);
+                               PRInt32         aModType);
 
   virtual void DestroyFrom(nsIFrame* aDestructRoot);
 
@@ -56,16 +88,9 @@ public:
 #endif
 
   
-  virtual void ReflowSVG();
-  virtual void NotifySVGChanged(uint32_t aFlags);
-
-  
   virtual nsresult CreateAnonymousContent(nsTArray<ContentInfo>& aElements);
   virtual void AppendAnonymousContentTo(nsBaseContentList& aElements,
-                                        uint32_t aFilter);
-
-private:
-  bool mHasValidDimensions;
+                                        PRUint32 aFilter);
 };
 
 
@@ -95,58 +120,32 @@ NS_QUERYFRAME_TAIL_INHERITING(nsSVGUseFrameBase)
 
 
 
+#ifdef DEBUG
 NS_IMETHODIMP
 nsSVGUseFrame::Init(nsIContent* aContent,
                     nsIFrame* aParent,
                     nsIFrame* aPrevInFlow)
 {
-#ifdef DEBUG
   nsCOMPtr<nsIDOMSVGUseElement> use = do_QueryInterface(aContent);
   NS_ASSERTION(use, "Content is not an SVG use!");
-#endif 
-
-  mHasValidDimensions =
-    static_cast<nsSVGUseElement*>(aContent)->HasValidDimensions();
 
   return nsSVGUseFrameBase::Init(aContent, aParent, aPrevInFlow);
 }
+#endif 
 
 NS_IMETHODIMP
-nsSVGUseFrame::AttributeChanged(int32_t         aNameSpaceID,
+nsSVGUseFrame::AttributeChanged(PRInt32         aNameSpaceID,
                                 nsIAtom*        aAttribute,
-                                int32_t         aModType)
+                                PRInt32         aModType)
 {
-  nsSVGUseElement *useElement = static_cast<nsSVGUseElement*>(mContent);
-
-  if (aNameSpaceID == kNameSpaceID_None) {
-    if (aAttribute == nsGkAtoms::x ||
-        aAttribute == nsGkAtoms::y) {
-      
-      mCanvasTM = nullptr;
-      nsSVGUtils::InvalidateAndScheduleReflowSVG(this);
-      nsSVGUtils::NotifyChildrenOfSVGChange(this, TRANSFORM_CHANGED);
-    } else if (aAttribute == nsGkAtoms::width ||
-               aAttribute == nsGkAtoms::height) {
-      bool invalidate = false;
-      if (mHasValidDimensions != useElement->HasValidDimensions()) {
-        mHasValidDimensions = !mHasValidDimensions;
-        invalidate = true;
-      }
-      if (useElement->OurWidthAndHeightAreUsed()) {
-        invalidate = true;
-        useElement->SyncWidthOrHeight(aAttribute);
-      }
-      if (invalidate) {
-        nsSVGUtils::InvalidateAndScheduleReflowSVG(this);
-      }
-    }
-  } else if (aNameSpaceID == kNameSpaceID_XLink &&
-             aAttribute == nsGkAtoms::href) {
+  if (aNameSpaceID == kNameSpaceID_None &&
+      (aAttribute == nsGkAtoms::x ||
+       aAttribute == nsGkAtoms::y)) {
     
-    nsSVGUtils::InvalidateAndScheduleReflowSVG(this);
-    useElement->mOriginal = nullptr;
-    useElement->UnlinkSource();
-    useElement->TriggerReclone();
+    mCanvasTM = nsnull;
+    
+    nsSVGUtils::NotifyChildrenOfSVGChange(this, TRANSFORM_CHANGED);
+    return NS_OK;
   }
 
   return nsSVGUseFrameBase::AttributeChanged(aNameSpaceID,
@@ -164,55 +163,9 @@ nsSVGUseFrame::DestroyFrom(nsIFrame* aDestructRoot)
 bool
 nsSVGUseFrame::IsLeaf() const
 {
-  return true;
+  return PR_TRUE;
 }
 
-
-
-
-
-void
-nsSVGUseFrame::ReflowSVG()
-{
-  
-  
-  
-  float x, y;
-  static_cast<nsSVGUseElement*>(mContent)->
-    GetAnimatedLengthValues(&x, &y, nullptr);
-  mRect.MoveTo(nsLayoutUtils::RoundGfxRectToAppRect(
-                 gfxRect(x, y, 0.0, 0.0),
-                 PresContext()->AppUnitsPerCSSPixel()).TopLeft());
-  nsSVGUseFrameBase::ReflowSVG();
-}
-
-void
-nsSVGUseFrame::NotifySVGChanged(uint32_t aFlags)
-{
-  if (aFlags & COORD_CONTEXT_CHANGED &&
-      !(aFlags & TRANSFORM_CHANGED)) {
-    
-    
-    nsSVGUseElement *use = static_cast<nsSVGUseElement*>(mContent);
-    if (use->mLengthAttributes[nsSVGUseElement::X].IsPercentage() ||
-        use->mLengthAttributes[nsSVGUseElement::Y].IsPercentage()) {
-      aFlags |= TRANSFORM_CHANGED;
-      
-      
-      
-      
-      
-      
-      nsSVGUtils::ScheduleReflowSVG(this);
-    }
-  }
-
-  
-  
-  
-
-  nsSVGUseFrameBase::NotifySVGChanged(aFlags);
-}
 
 
 
@@ -232,7 +185,7 @@ nsSVGUseFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
 
 void
 nsSVGUseFrame::AppendAnonymousContentTo(nsBaseContentList& aElements,
-                                        uint32_t aFilter)
+                                        PRUint32 aFilter)
 {
   nsSVGUseElement *use = static_cast<nsSVGUseElement*>(mContent);
   nsIContent* clone = use->GetAnonymousContent();

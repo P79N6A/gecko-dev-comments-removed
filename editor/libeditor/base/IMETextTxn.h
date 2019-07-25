@@ -3,20 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef IMETextTxn_h__
 #define IMETextTxn_h__
 
 #include "EditTxn.h"
-#include "nsCOMPtr.h"
-#include "nsCycleCollectionParticipant.h"
-#include "nsID.h"
 #include "nsIDOMCharacterData.h"
 #include "nsIPrivateTextRange.h"
-#include "nsString.h"
-#include "nscore.h"
-#include "prtypes.h"
-
-class nsITransaction;
+#include "nsCOMPtr.h"
+#include "nsWeakPtr.h"
+#include "nsIAtom.h"
 
 
 #define IME_TEXT_TXN_CID							\
@@ -43,8 +70,8 @@ public:
 
 
   NS_IMETHOD Init(nsIDOMCharacterData *aElement,
-                  uint32_t aOffset,
-                  uint32_t aReplaceLength,
+                  PRUint32 aOffset,
+                  PRUint32 aReplaceLength,
                   nsIPrivateTextRangeList* aTextRangeList,
                   const nsAString& aString,
                   nsIEditor* aEditor);
@@ -75,9 +102,9 @@ protected:
   nsCOMPtr<nsIDOMCharacterData> mElement;
   
   
-  uint32_t mOffset;
+  PRUint32 mOffset;
 
-  uint32_t mReplaceLength;
+  PRUint32 mReplaceLength;
 
   
   nsString mStringToInsert;

@@ -3,11 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_SVGPOINT_H__
 #define MOZILLA_SVGPOINT_H__
 
 #include "nsDebug.h"
 #include "gfxPoint.h"
+#include "nsMathUtils.h"
 
 namespace mozilla {
 

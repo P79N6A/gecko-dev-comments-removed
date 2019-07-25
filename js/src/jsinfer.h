@@ -6,33 +6,52 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef jsinfer_h___
 #define jsinfer_h___
 
-#include "mozilla/Attributes.h"
-
 #include "jsalloc.h"
+#include "jscell.h"
 #include "jsfriendapi.h"
+#include "jstl.h"
 #include "jsprvtd.h"
+#include "jshashtable.h"
 
 #include "ds/LifoAlloc.h"
-#include "gc/Barrier.h"
-#include "gc/Heap.h"
-#include "js/HashTable.h"
-#include "js/Vector.h"
-
-namespace JS {
-struct TypeInferenceSizes;
-}
 
 namespace js {
-
-class CallObject;
-
-namespace mjit {
-    struct JITScript;
-}
-
 namespace types {
 
 
@@ -48,12 +67,12 @@ struct TypeObjectKey {
 
 class Type
 {
-    uintptr_t data;
-    Type(uintptr_t data) : data(data) {}
+    jsuword data;
+    Type(jsuword data) : data(data) {}
 
   public:
 
-    uintptr_t raw() const { return data; }
+    jsuword raw() const { return data; }
 
     bool isPrimitive() const {
         return data < JSVAL_TYPE_OBJECT;
@@ -61,7 +80,7 @@ class Type
 
     bool isPrimitive(JSValueType type) const {
         JS_ASSERT(type < JSVAL_TYPE_OBJECT);
-        return (uintptr_t) type == data;
+        return (jsuword) type == data;
     }
 
     JSValueType primitive() const {
@@ -84,7 +103,10 @@ class Type
         return data > JSVAL_TYPE_UNKNOWN;
     }
 
-    inline TypeObjectKey *objectKey() const;
+    TypeObjectKey *objectKey() const {
+        JS_ASSERT(isObject());
+        return (TypeObjectKey *) data;
+    }
 
     
 
@@ -92,7 +114,10 @@ class Type
         return isObject() && !!(data & 1);
     }
 
-    inline JSObject *singleObject() const;
+    JSObject *singleObject() const {
+        JS_ASSERT(isSingleObject());
+        return (JSObject *) (data ^ 1);
+    }
 
     
 
@@ -100,7 +125,10 @@ class Type
         return isObject() && !(data & 1);
     }
 
-    inline TypeObject *typeObject() const;
+    TypeObject *typeObject() const {
+        JS_ASSERT(isTypeObject());
+        return (TypeObject *) data;
+    }
 
     bool operator == (Type o) const { return data == o.data; }
     bool operator != (Type o) const { return data != o.data; }
@@ -111,7 +139,7 @@ class Type
     static inline Type Int32Type()     { return Type(JSVAL_TYPE_INT32); }
     static inline Type DoubleType()    { return Type(JSVAL_TYPE_DOUBLE); }
     static inline Type StringType()    { return Type(JSVAL_TYPE_STRING); }
-    static inline Type MagicArgType()  { return Type(JSVAL_TYPE_MAGIC); }
+    static inline Type LazyArgsType()  { return Type(JSVAL_TYPE_MAGIC); }
     static inline Type AnyObjectType() { return Type(JSVAL_TYPE_OBJECT); }
     static inline Type UnknownType()   { return Type(JSVAL_TYPE_UNKNOWN); }
 
@@ -151,36 +179,26 @@ inline Type GetValueType(JSContext *cx, const Value &val);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class TypeConstraint
 {
 public:
+#ifdef DEBUG
+    const char *kind_;
+    const char *kind() const { return kind_; }
+#else
+    const char *kind() const { return NULL; }
+#endif
+
     
     TypeConstraint *next;
 
-    TypeConstraint()
+    TypeConstraint(const char *kind)
         : next(NULL)
-    {}
-
-    
-    virtual const char *kind() = 0;
+    {
+#ifdef DEBUG
+        this->kind_ = kind;
+#endif
+    }
 
     
     virtual void newType(JSContext *cx, TypeSet *source, Type type) = 0;
@@ -228,45 +246,30 @@ enum {
 
 
 
-    TYPE_FLAG_PURGED              = 0x00020000,
+    TYPE_FLAG_PROPAGATED_PROPERTY = 0x00020000,
+
+    
+    TYPE_FLAG_OWN_PROPERTY        = 0x00040000,
 
     
 
 
 
 
-    TYPE_FLAG_CONSTRAINTS_PURGED  = 0x00040000,
-
-    
-
-    
-
-
-
-    TYPE_FLAG_PROPAGATED_PROPERTY = 0x00080000,
-
-    
-    TYPE_FLAG_OWN_PROPERTY        = 0x00100000,
+    TYPE_FLAG_CONFIGURED_PROPERTY = 0x00080000,
 
     
 
 
 
 
-    TYPE_FLAG_CONFIGURED_PROPERTY = 0x00200000,
-
-    
-
-
-
-
-    TYPE_FLAG_DEFINITE_PROPERTY   = 0x00400000,
+    TYPE_FLAG_DEFINITE_PROPERTY   = 0x00100000,
 
     
     TYPE_FLAG_DEFINITE_MASK       = 0x0f000000,
     TYPE_FLAG_DEFINITE_SHIFT      = 24
 };
-typedef uint32_t TypeFlags;
+typedef uint32 TypeFlags;
 
 
 enum {
@@ -299,37 +302,37 @@ enum {
 
 
 
-    OBJECT_FLAG_NON_DENSE_ARRAY       = 0x00010000,
+    OBJECT_FLAG_NON_DENSE_ARRAY       = 0x0010000,
 
     
-    OBJECT_FLAG_NON_PACKED_ARRAY      = 0x00020000,
+    OBJECT_FLAG_NON_PACKED_ARRAY      = 0x0020000,
 
     
-    OBJECT_FLAG_NON_TYPED_ARRAY       = 0x00040000,
+    OBJECT_FLAG_NON_TYPED_ARRAY       = 0x0040000,
 
     
-    OBJECT_FLAG_NON_DOM               = 0x00080000,
+    OBJECT_FLAG_CREATED_ARGUMENTS     = 0x0080000,
 
     
-    OBJECT_FLAG_UNINLINEABLE          = 0x00100000,
+    OBJECT_FLAG_UNINLINEABLE          = 0x0100000,
 
     
-    OBJECT_FLAG_SPECIAL_EQUALITY      = 0x00200000,
+    OBJECT_FLAG_SPECIAL_EQUALITY      = 0x0200000,
 
     
-    OBJECT_FLAG_ITERATED              = 0x00400000,
+    OBJECT_FLAG_ITERATED              = 0x0400000,
 
     
-    OBJECT_FLAG_REGEXP_FLAGS_SET      = 0x00800000,
+    OBJECT_FLAG_REENTRANT_FUNCTION    = 0x0800000,
 
     
-    OBJECT_FLAG_DYNAMIC_MASK          = 0x00ff0000,
+    OBJECT_FLAG_DYNAMIC_MASK          = 0x0ff0000,
 
     
 
 
 
-    OBJECT_FLAG_UNKNOWN_PROPERTIES    = 0x80000000,
+    OBJECT_FLAG_UNKNOWN_PROPERTIES    = 0x1000000,
 
     
     OBJECT_FLAG_UNKNOWN_MASK =
@@ -337,10 +340,7 @@ enum {
       | OBJECT_FLAG_UNKNOWN_PROPERTIES
       | OBJECT_FLAG_SETS_MARKED_UNKNOWN
 };
-typedef uint32_t TypeObjectFlags;
-
-class StackTypeSet;
-class HeapTypeSet;
+typedef uint32 TypeObjectFlags;
 
 
 class TypeSet
@@ -362,8 +362,8 @@ class TypeSet
 
     void print(JSContext *cx);
 
-    inline void sweep(JSCompartment *compartment);
-    inline size_t computedSizeOfExcludingThis();
+    inline void sweep(JSContext *cx, JSCompartment *compartment);
+    inline size_t dynamicSize();
 
     
     inline bool hasType(Type type);
@@ -379,12 +379,12 @@ class TypeSet
         return !!(baseFlags() & flags);
     }
 
-    bool ownProperty(bool configurable) const {
+    bool isOwnProperty(bool configurable) const {
         return flags & (configurable ? TYPE_FLAG_CONFIGURED_PROPERTY : TYPE_FLAG_OWN_PROPERTY);
     }
-    bool definiteProperty() const { return flags & TYPE_FLAG_DEFINITE_PROPERTY; }
+    bool isDefiniteProperty() const { return flags & TYPE_FLAG_DEFINITE_PROPERTY; }
     unsigned definiteSlot() const {
-        JS_ASSERT(definiteProperty());
+        JS_ASSERT(isDefiniteProperty());
         return flags >> TYPE_FLAG_DEFINITE_SHIFT;
     }
 
@@ -420,60 +420,36 @@ class TypeSet
     bool hasPropagatedProperty() { return !!(flags & TYPE_FLAG_PROPAGATED_PROPERTY); }
     void setPropagatedProperty() { flags |= TYPE_FLAG_PROPAGATED_PROPERTY; }
 
-    bool constraintsPurged() { return !!(flags & TYPE_FLAG_CONSTRAINTS_PURGED); }
-    void setConstraintsPurged() { flags |= TYPE_FLAG_CONSTRAINTS_PURGED; }
+    enum FilterKind {
+        FILTER_ALL_PRIMITIVES,
+        FILTER_NULL_VOID,
+        FILTER_VOID
+    };
 
-    bool purged() { return !!(flags & TYPE_FLAG_PURGED); }
-    void setPurged() { flags |= TYPE_FLAG_PURGED | TYPE_FLAG_CONSTRAINTS_PURGED; }
-
-    inline StackTypeSet *toStackTypeSet();
-    inline HeapTypeSet *toHeapTypeSet();
-
-    inline void addTypesToConstraint(JSContext *cx, TypeConstraint *constraint);
+    
     inline void add(JSContext *cx, TypeConstraint *constraint, bool callExisting = true);
-
-  protected:
-    uint32_t baseObjectCount() const {
-        return (flags & TYPE_FLAG_OBJECT_COUNT_MASK) >> TYPE_FLAG_OBJECT_COUNT_SHIFT;
-    }
-    inline void setBaseObjectCount(uint32_t count);
-
-    inline void clearObjects();
-};
-
-
-
-
-
-
-
-
-class StackTypeSet : public TypeSet
-{
-  public:
-
-    
-
-
-
-    static StackTypeSet *make(JSContext *cx, const char *name);
-
-    
-
     void addSubset(JSContext *cx, TypeSet *target);
     void addGetProperty(JSContext *cx, JSScript *script, jsbytecode *pc,
-                        StackTypeSet *target, jsid id);
+                        TypeSet *target, jsid id);
     void addSetProperty(JSContext *cx, JSScript *script, jsbytecode *pc,
-                        StackTypeSet *target, jsid id);
+                        TypeSet *target, jsid id);
+    void addCallProperty(JSContext *cx, JSScript *script, jsbytecode *pc, jsid id);
     void addSetElement(JSContext *cx, JSScript *script, jsbytecode *pc,
-                       StackTypeSet *objectTypes, StackTypeSet *valueTypes);
+                       TypeSet *objectTypes, TypeSet *valueTypes);
     void addCall(JSContext *cx, TypeCallsite *site);
-    void addArith(JSContext *cx, JSScript *script, jsbytecode *pc,
-                  TypeSet *target, TypeSet *other = NULL);
+    void addArith(JSContext *cx, TypeSet *target, TypeSet *other = NULL);
     void addTransformThis(JSContext *cx, JSScript *script, TypeSet *target);
     void addPropagateThis(JSContext *cx, JSScript *script, jsbytecode *pc,
-                          Type type, StackTypeSet *types = NULL);
+                          Type type, TypeSet *types = NULL);
+    void addFilterPrimitives(JSContext *cx, TypeSet *target, FilterKind filter);
     void addSubsetBarrier(JSContext *cx, JSScript *script, jsbytecode *pc, TypeSet *target);
+    void addLazyArguments(JSContext *cx, TypeSet *target);
+
+    
+
+
+
+    static TypeSet *make(JSContext *cx, const char *name);
 
     
 
@@ -481,54 +457,18 @@ class StackTypeSet : public TypeSet
 
 
 
-
-
-
-    
-    JSValueType getKnownTypeTag();
-
-    bool isMagicArguments() { return getKnownTypeTag() == JSVAL_TYPE_MAGIC; }
-
-    
-    bool hasObjectFlags(JSContext *cx, TypeObjectFlags flags);
-
-    
-
-
-
-    int getTypedArrayType();
-
-    
-    JSObject *getSingleton();
-
-    
-    bool propertyNeedsBarrier(JSContext *cx, jsid id);
-};
-
-
-
-
-
-
-
-class HeapTypeSet : public TypeSet
-{
-  public:
-
-    
-
-    void addSubset(JSContext *cx, TypeSet *target);
-    void addGetProperty(JSContext *cx, JSScript *script, jsbytecode *pc,
-                        StackTypeSet *target, jsid id);
-    void addCallProperty(JSContext *cx, JSScript *script, jsbytecode *pc, jsid id);
-    void addFilterPrimitives(JSContext *cx, TypeSet *target);
-    void addSubsetBarrier(JSContext *cx, JSScript *script, jsbytecode *pc, TypeSet *target);
-
-    
 
     
     void addFreeze(JSContext *cx);
 
+    
+    JSValueType getKnownTypeTag(JSContext *cx);
+
+    bool isLazyArguments(JSContext *cx) { return getKnownTypeTag(cx) == JSVAL_TYPE_MAGIC; }
+
+    
+    bool hasObjectFlags(JSContext *cx, TypeObjectFlags flags);
+    static bool HasObjectFlags(JSContext *cx, TypeObject *object, TypeObjectFlags flags);
 
     
 
@@ -536,9 +476,6 @@ class HeapTypeSet : public TypeSet
 
 
     static void WatchObjectStateChange(JSContext *cx, TypeObject *object);
-
-    
-    static bool HasObjectFlags(JSContext *cx, TypeObject *object, TypeObjectFlags flags);
 
     
 
@@ -553,31 +490,25 @@ class HeapTypeSet : public TypeSet
     bool knownNonEmpty(JSContext *cx);
 
     
-    bool knownSubset(JSContext *cx, TypeSet *other);
+
+
+
+    int getTypedArrayType(JSContext *cx);
 
     
-    JSObject *getSingleton(JSContext *cx);
+    JSObject *getSingleton(JSContext *cx, bool freeze = true);
 
     
+    bool hasGlobalObject(JSContext *cx, JSObject *global);
 
+    inline void clearObjects();
 
-
-    bool needsBarrier(JSContext *cx);
+  private:
+    uint32 baseObjectCount() const {
+        return (flags & TYPE_FLAG_OBJECT_COUNT_MASK) >> TYPE_FLAG_OBJECT_COUNT_SHIFT;
+    }
+    inline void setBaseObjectCount(uint32 count);
 };
-
-inline StackTypeSet *
-TypeSet::toStackTypeSet()
-{
-    JS_ASSERT(constraintsPurged());
-    return (StackTypeSet *) this;
-}
-
-inline HeapTypeSet *
-TypeSet::toHeapTypeSet()
-{
-    JS_ASSERT(!constraintsPurged());
-    return (HeapTypeSet *) this;
-}
 
 
 
@@ -587,11 +518,11 @@ TypeSet::toHeapTypeSet()
 
 struct TypeResult
 {
-    uint32_t offset;
+    uint32 offset;
     Type type;
     TypeResult *next;
 
-    TypeResult(uint32_t offset, Type type)
+    TypeResult(uint32 offset, Type type)
         : offset(offset), type(type), next(NULL)
     {}
 };
@@ -685,15 +616,20 @@ struct TypeBarrier
 struct Property
 {
     
-    HeapId id;
+    jsid id;
 
     
-    HeapTypeSet types;
+    TypeSet types;
 
-    inline Property(jsid id);
-    inline Property(const Property &o);
+    Property(jsid id)
+        : id(id)
+    {}
 
-    static uint32_t keyBits(jsid id) { return uint32_t(JSID_BITS(id)); }
+    Property(const Property &o)
+        : id(o.id), types(o.types)
+    {}
+
+    static uint32 keyBits(jsid id) { return (uint32) JSID_BITS(id); }
     static jsid getKey(Property *p) { return p->id; }
 };
 
@@ -709,7 +645,7 @@ struct Property
 
 struct TypeNewScript
 {
-    HeapPtrFunction fun;
+    JSFunction *fun;
 
     
     gc::AllocKind allocKind;
@@ -718,7 +654,7 @@ struct TypeNewScript
 
 
 
-    HeapPtrShape  shape;
+    const Shape *shape;
 
     
 
@@ -735,15 +671,12 @@ struct TypeNewScript
             FRAME_POP,
             DONE
         } kind;
-        uint32_t offset;
-        Initializer(Kind kind, uint32_t offset)
+        uint32 offset;
+        Initializer(Kind kind, uint32 offset)
           : kind(kind), offset(offset)
         {}
     };
     Initializer *initializerList;
-
-    static inline void writeBarrierPre(TypeNewScript *newScript);
-    static inline void writeBarrierPost(TypeNewScript *newScript, void *addr);
 };
 
 
@@ -776,21 +709,17 @@ struct TypeNewScript
 struct TypeObject : gc::Cell
 {
     
-    HeapPtrObject proto;
+    JSObject *proto;
 
     
 
 
 
 
-    HeapPtrObject singleton;
+    JSObject *singleton;
 
     
-
-
-
-    static const size_t LAZY_SINGLETON = 1;
-    bool lazy() const { return singleton == (JSObject *) LAZY_SINGLETON; }
+    js::EmptyShape **emptyShapes;
 
     
     TypeObjectFlags flags;
@@ -800,21 +729,21 @@ struct TypeObject : gc::Cell
 
 
 
-
-
-
-
-
-
-    uint32_t contribution;
-    static const uint32_t CONTRIBUTION_LIMIT = 2000;
+    TypeNewScript *newScript;
 
     
 
 
 
 
-    HeapPtr<TypeNewScript> newScript;
+
+
+
+
+
+
+    uint32 contribution;
+    static const uint32 CONTRIBUTION_LIMIT = 2000;
 
     
 
@@ -849,11 +778,7 @@ struct TypeObject : gc::Cell
     Property **propertySet;
 
     
-    HeapPtrFunction interpretedFunction;
-
-#if JS_BITS_PER_WORD == 32
-    void *padding;
-#endif
+    JSFunction *interpretedFunction;
 
     inline TypeObject(JSObject *proto, bool isFunction, bool unknown);
 
@@ -880,10 +805,20 @@ struct TypeObject : gc::Cell
 
 
 
-    inline HeapTypeSet *getProperty(JSContext *cx, jsid id, bool own);
+
+    inline bool canProvideEmptyShape(js::Class *clasp);
+    inline js::EmptyShape *getEmptyShape(JSContext *cx, js::Class *aclasp, gc::AllocKind kind);
 
     
-    inline HeapTypeSet *maybeGetProperty(JSContext *cx, jsid id);
+
+
+
+
+
+    inline TypeSet *getProperty(JSContext *cx, jsid id, bool assign);
+
+    
+    inline TypeSet *maybeGetProperty(JSContext *cx, jsid id);
 
     inline unsigned getPropertyCount();
     inline Property *getProperty(unsigned i);
@@ -895,7 +830,7 @@ struct TypeObject : gc::Cell
 
 
 
-    
+    inline JSObject *getGlobal();
 
     
 
@@ -917,28 +852,20 @@ struct TypeObject : gc::Cell
     void print(JSContext *cx);
 
     inline void clearProperties();
-    inline void sweep(FreeOp *fop);
+    inline void sweep(JSContext *cx);
 
-    inline size_t computedSizeOfExcludingThis();
-
-    void sizeOfExcludingThis(TypeInferenceSizes *sizes, JSMallocSizeOfFun mallocSizeOf);
+    inline size_t dynamicSize();
 
     
 
 
 
 
-    void finalize(FreeOp *fop) {}
-
-    static inline void writeBarrierPre(TypeObject *type);
-    static inline void writeBarrierPost(TypeObject *type, void *addr);
-    static inline void readBarrier(TypeObject *type);
-
-    static inline ThingRootKind rootKind() { return THING_ROOT_TYPE_OBJECT; }
+    void finalize(JSContext *cx) {}
 
   private:
-    inline uint32_t basePropertyCount() const;
-    inline void setBasePropertyCount(uint32_t count);
+    inline uint32 basePropertyCount() const;
+    inline void setBasePropertyCount(uint32 count);
 
     static void staticAsserts() {
         JS_STATIC_ASSERT(offsetof(TypeObject, proto) == offsetof(js::shadow::TypeObject, proto));
@@ -946,32 +873,18 @@ struct TypeObject : gc::Cell
 };
 
 
+extern TypeObject emptyTypeObject;
 
 
 
-struct TypeObjectEntry
-{
-    typedef JSObject *Lookup;
 
-    static inline HashNumber hash(JSObject *base);
-    static inline bool match(TypeObject *key, JSObject *lookup);
-};
-typedef HashSet<ReadBarriered<TypeObject>, TypeObjectEntry, SystemAllocPolicy> TypeObjectSet;
+
+extern void
+MarkArgumentsCreated(JSContext *cx, JSScript *script);
 
 
 bool
 UseNewType(JSContext *cx, JSScript *script, jsbytecode *pc);
-
-
-bool
-UseNewTypeForInitializer(JSContext *cx, JSScript *script, jsbytecode *pc, JSProtoKey key);
-
-
-
-
-
-bool
-ArrayPrototypeHasIndexedProperty(JSContext *cx, JSScript *script);
 
 
 
@@ -987,18 +900,101 @@ struct TypeCallsite
     bool isNew;
 
     
+    TypeSet **argumentTypes;
     unsigned argumentCount;
-    StackTypeSet **argumentTypes;
 
     
-    StackTypeSet *thisTypes;
+    TypeSet *thisTypes;
 
     
-    StackTypeSet *returnTypes;
+    TypeSet *returnTypes;
 
     inline TypeCallsite(JSContext *cx, JSScript *script, jsbytecode *pc,
                         bool isNew, unsigned argumentCount);
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct TypeScriptNesting
+{
+    
+
+
+
+
+
+
+
+    JSScript *parent;
+
+    
+    JSScript *children;
+
+    
+    JSScript *next;
+
+    
+    JSObject *activeCall;
+
+    
+
+
+
+
+
+
+
+    Value *argArray;
+    Value *varArray;
+
+    
+    uint32 activeFrames;
+
+    TypeScriptNesting() { PodZero(this); }
+    ~TypeScriptNesting();
+};
+
+
+bool CheckScriptNesting(JSContext *cx, JSScript *script);
+
+
+void NestingPrologue(JSContext *cx, StackFrame *fp);
+void NestingEpilogue(StackFrame *fp);
 
 
 class TypeScript
@@ -1008,29 +1004,48 @@ class TypeScript
     
     analyze::ScriptAnalysis *analysis;
 
+    
+    JSFunction *function;
+
+    
+
+
+
+
+    static const size_t GLOBAL_MISSING_SCOPE = 0x1;
+
+    
+    js::GlobalObject *global;
+
+    
+    TypeScriptNesting *nesting;
+
   public:
+
     
     TypeResult *dynamicList;
 
+    TypeScript(JSFunction *fun) {
+        this->function = fun;
+        this->global = (js::GlobalObject *) GLOBAL_MISSING_SCOPE;
+    }
+
+    bool hasScope() { return size_t(global) != GLOBAL_MISSING_SCOPE; }
+
     
-
-
-
-
-    HeapTypeSet *propertyReadTypes;
-
-    
-    TypeSet *typeArray() { return (TypeSet *) (uintptr_t(this) + sizeof(TypeScript)); }
+    TypeSet *typeArray() { return (TypeSet *) (jsuword(this) + sizeof(TypeScript)); }
 
     static inline unsigned NumTypeSets(JSScript *script);
 
-    static inline HeapTypeSet  *ReturnTypes(JSScript *script);
-    static inline StackTypeSet *ThisTypes(JSScript *script);
-    static inline StackTypeSet *ArgTypes(JSScript *script, unsigned i);
-    static inline StackTypeSet *LocalTypes(JSScript *script, unsigned i);
+    static bool SetScope(JSContext *cx, JSScript *script, JSObject *scope);
+
+    static inline TypeSet *ReturnTypes(JSScript *script);
+    static inline TypeSet *ThisTypes(JSScript *script);
+    static inline TypeSet *ArgTypes(JSScript *script, unsigned i);
+    static inline TypeSet *LocalTypes(JSScript *script, unsigned i);
 
     
-    static inline StackTypeSet *SlotTypes(JSScript *script, unsigned slot);
+    static inline TypeSet *SlotTypes(JSScript *script, unsigned slot);
 
 #ifdef DEBUG
     
@@ -1041,7 +1056,7 @@ class TypeScript
     static inline TypeObject *StandardType(JSContext *cx, JSScript *script, JSProtoKey kind);
 
     
-    static inline TypeObject *InitObject(JSContext *cx, JSScript *script, jsbytecode *pc, JSProtoKey kind);
+    static inline TypeObject *InitObject(JSContext *cx, JSScript *script, const jsbytecode *pc, JSProtoKey kind);
 
     
 
@@ -1050,11 +1065,6 @@ class TypeScript
     static inline void MonitorOverflow(JSContext *cx, JSScript *script, jsbytecode *pc);
     static inline void MonitorString(JSContext *cx, JSScript *script, jsbytecode *pc);
     static inline void MonitorUnknown(JSContext *cx, JSScript *script, jsbytecode *pc);
-
-    static inline void GetPcScript(JSContext *cx, JSScript **script, jsbytecode **pc);
-    static inline void MonitorOverflow(JSContext *cx);
-    static inline void MonitorString(JSContext *cx);
-    static inline void MonitorUnknown(JSContext *cx);
 
     
 
@@ -1065,10 +1075,10 @@ class TypeScript
 
     static inline void Monitor(JSContext *cx, JSScript *script, jsbytecode *pc,
                                const js::Value &val);
-    static inline void Monitor(JSContext *cx, const js::Value &rval);
 
     
-    static inline void MonitorAssign(JSContext *cx, JSObject *obj, jsid id);
+    static inline void MonitorAssign(JSContext *cx, JSScript *script, jsbytecode *pc,
+                                     JSObject *obj, jsid id, const js::Value &val);
 
     
     static inline void SetThis(JSContext *cx, JSScript *script, Type type);
@@ -1078,73 +1088,65 @@ class TypeScript
     static inline void SetArgument(JSContext *cx, JSScript *script, unsigned arg, Type type);
     static inline void SetArgument(JSContext *cx, JSScript *script, unsigned arg, const js::Value &value);
 
-    static void AddFreezeConstraints(JSContext *cx, JSScript *script);
-    static void Purge(JSContext *cx, JSScript *script);
-
-    static void Sweep(FreeOp *fop, JSScript *script);
+    static void Sweep(JSContext *cx, JSScript *script);
+    inline void trace(JSTracer *trc);
     void destroy();
 };
 
 struct ArrayTableKey;
-typedef HashMap<ArrayTableKey,ReadBarriered<TypeObject>,ArrayTableKey,SystemAllocPolicy> ArrayTypeTable;
+typedef HashMap<ArrayTableKey,TypeObject*,ArrayTableKey,SystemAllocPolicy> ArrayTypeTable;
 
 struct ObjectTableKey;
 struct ObjectTableEntry;
 typedef HashMap<ObjectTableKey,ObjectTableEntry,ObjectTableKey,SystemAllocPolicy> ObjectTypeTable;
 
 struct AllocationSiteKey;
-typedef HashMap<AllocationSiteKey,ReadBarriered<TypeObject>,AllocationSiteKey,SystemAllocPolicy> AllocationSiteTable;
-
-
-
-
-
-
-
-struct CompilerOutput
-{
-    JSScript *script;
-    bool constructing : 1;
-    bool barriers : 1;
-    bool pendingRecompilation : 1;
-    uint32_t chunkIndex:29;
-
-    CompilerOutput();
-
-    bool isJM() const { return true; }
-
-    mjit::JITScript * mjit() const;
-
-    bool isValid() const;
-
-    void setPendingRecompilation() {
-        pendingRecompilation = true;
-    }
-    void invalidate() {
-        script = NULL;
-    }
-};
-
-struct RecompileInfo
-{
-    static const uint32_t NoCompilerRunning = uint32_t(-1);
-    uint32_t outputIndex;
-
-    RecompileInfo()
-      : outputIndex(NoCompilerRunning)
-    {
-    }
-
-    bool operator == (const RecompileInfo &o) const {
-        return outputIndex == o.outputIndex;
-    }
-    CompilerOutput *compilerOutput(TypeCompartment &types) const;
-    CompilerOutput *compilerOutput(JSContext *cx) const;
-};
+typedef HashMap<AllocationSiteKey,TypeObject*,AllocationSiteKey,SystemAllocPolicy> AllocationSiteTable;
 
 
 struct TypeCompartment
 {
+    
+    bool inferenceEnabled;
+
+    
+    unsigned scriptCount;
+
+    
+
+
+
+    bool pendingNukeTypes;
+
+    
+    Vector<JSScript*> *pendingRecompiles;
+
+    
+
+
+
+
+    unsigned recompilations;
+    unsigned frameExpansions;
+
+    
+
+
+
+
+    JSScript *compiledScript;
+
+    
+    AllocationSiteTable *allocationSiteTable;
+
+    
+
+    ArrayTypeTable *arrayTypeTable;
+    ObjectTypeTable *objectTypeTable;
+
+    void fixArrayType(JSContext *cx, JSObject *obj);
+    void fixObjectType(JSContext *cx, JSObject *obj);
+
     
 
     
@@ -1165,50 +1167,6 @@ struct TypeCompartment
     bool resolving;
 
     
-    bool inferenceEnabled;
-
-    
-
-
-
-    bool pendingNukeTypes;
-
-    
-    unsigned scriptCount;
-
-    
-    Vector<CompilerOutput> *constrainedOutputs;
-
-    
-    Vector<RecompileInfo> *pendingRecompiles;
-
-    
-
-
-
-
-    unsigned recompilations;
-    unsigned frameExpansions;
-
-    
-
-
-
-
-    RecompileInfo compiledInfo;
-
-    
-    AllocationSiteTable *allocationSiteTable;
-
-    
-
-    ArrayTypeTable *arrayTypeTable;
-    ObjectTypeTable *objectTypeTable;
-
-    void fixArrayType(JSContext *cx, JSObject *obj);
-    void fixObjectType(JSContext *cx, JSObject *obj);
-
-    
 
     
     static const unsigned TYPE_COUNT_LIMIT = 4;
@@ -1222,7 +1180,7 @@ struct TypeCompartment
 
     
     inline void addPending(JSContext *cx, TypeConstraint *constraint, TypeSet *source, Type type);
-    bool growPendingArray(JSContext *cx);
+    void growPendingArray(JSContext *cx);
 
     
     inline void resolvePending(JSContext *cx);
@@ -1237,35 +1195,28 @@ struct TypeCompartment
 
 
     TypeObject *newTypeObject(JSContext *cx, JSScript *script,
-                              JSProtoKey kind, JSObject *proto,
-                              bool unknown = false, bool isDOM = false);
+                              JSProtoKey kind, JSObject *proto, bool unknown = false);
 
     
-    TypeObject *newAllocationSiteTypeObject(JSContext *cx, AllocationSiteKey key);
+    TypeObject *newAllocationSiteTypeObject(JSContext *cx, const AllocationSiteKey &key);
 
-    void nukeTypes(FreeOp *fop);
-    void processPendingRecompiles(FreeOp *fop);
+    void nukeTypes(JSContext *cx);
+    void processPendingRecompiles(JSContext *cx);
 
     
     void setPendingNukeTypes(JSContext *cx);
-    void setPendingNukeTypesNoReport();
 
     
-    void addPendingRecompile(JSContext *cx, const RecompileInfo &info);
-    void addPendingRecompile(JSContext *cx, JSScript *script, jsbytecode *pc);
+    void addPendingRecompile(JSContext *cx, JSScript *script);
 
     
-    void monitorBytecode(JSContext *cx, JSScript *script, uint32_t offset,
+    void monitorBytecode(JSContext *cx, JSScript *script, uint32 offset,
                          bool returnOnly = false);
 
     
     void markSetsUnknown(JSContext *cx, TypeObject *obj);
 
-    void sweep(FreeOp *fop);
-    void sweepCompilerOutputs(FreeOp *fop, bool discardConstraints);
-
-    void maybePurgeAnalysis(JSContext *cx, bool force = false);
-
+    void sweep(JSContext *cx);
     void finalizeObjects();
 };
 
@@ -1300,7 +1251,7 @@ inline const char * TypeObjectString(TypeObject *type) { return NULL; }
 #endif
 
 
-MOZ_NORETURN void TypeFailure(JSContext *cx, const char *fmt, ...);
+void TypeFailure(JSContext *cx, const char *fmt, ...);
 
 } 
 } 

@@ -9,6 +9,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef TestHarness_h__
 #define TestHarness_h__
 
@@ -19,8 +51,6 @@
 
 #define STATIC_JS_API
 #endif
-
-#include "mozilla/Util.h"
 
 #include "nsComponentManagerUtils.h"
 #include "nsServiceManagerUtils.h"
@@ -33,14 +63,13 @@
 #include "nsIDirectoryService.h"
 #include "nsIFile.h"
 #include "nsIProperties.h"
-#include "nsIObserverService.h"
 #include "nsXULAppAPI.h"
 #include "jsdbgapi.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 
-static uint32_t gFailCount = 0;
+static PRUint32 gFailCount = 0;
 
 
 
@@ -66,17 +95,9 @@ void fail(const char* msg, ...)
 
 
 
-void passed(const char* msg, ...)
+void passed(const char* test)
 {
-  va_list ap;
-
-  printf("TEST-PASS | ");
-
-  va_start(ap, msg);
-  vprintf(msg, ap);
-  va_end(ap);
-
-  putchar('\n');
+  printf("TEST-PASS | %s\n", test);
 }
 
 
@@ -106,7 +127,7 @@ StartProfiling(const char* profileName)
 
     JSBool ok = JS_StartProfiling(profileName);
     gCurrentProfile = profileName;
-    return ok ? true : false;
+    return ok ? PR_TRUE : PR_FALSE;
 }
 
 
@@ -127,7 +148,7 @@ StopProfiling()
 
     const char* profileName = gCurrentProfile;
     gCurrentProfile = 0;
-    return JS_StopProfiling(profileName) ? true : false;
+    return JS_StopProfiling(profileName) ? PR_TRUE : PR_FALSE;
 }
 
 
@@ -171,20 +192,10 @@ class ScopedXPCOM : public nsIDirectoryServiceProvider2
     {
       
       if (mProfD) {
-        nsCOMPtr<nsIObserverService> os =
-          do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
-        MOZ_ASSERT(os);
-        if (os) {
-          MOZ_ALWAYS_TRUE(NS_SUCCEEDED(os->NotifyObservers(nullptr, "profile-change-net-teardown", nullptr)));
-          MOZ_ALWAYS_TRUE(NS_SUCCEEDED(os->NotifyObservers(nullptr, "profile-change-teardown", nullptr)));
-          MOZ_ALWAYS_TRUE(NS_SUCCEEDED(os->NotifyObservers(nullptr, "profile-before-change", nullptr)));
-        }
+        if (NS_FAILED(mProfD->Remove(PR_TRUE)))
+          NS_WARNING("Problem removing profile direrctory");
 
-        if (NS_FAILED(mProfD->Remove(true))) {
-          NS_WARNING("Problem removing profile directory");
-        }
-
-        mProfD = nullptr;
+        mProfD = nsnull;
       }
 
       if (mServMgr)
@@ -217,13 +228,13 @@ class ScopedXPCOM : public nsIDirectoryServiceProvider2
       nsCOMPtr<nsIFile> profD;
       nsresult rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR,
                                            getter_AddRefs(profD));
-      NS_ENSURE_SUCCESS(rv, nullptr);
+      NS_ENSURE_SUCCESS(rv, nsnull);
 
       rv = profD->Append(NS_LITERAL_STRING("cpp-unit-profd"));
-      NS_ENSURE_SUCCESS(rv, nullptr);
+      NS_ENSURE_SUCCESS(rv, nsnull);
 
       rv = profD->CreateUnique(nsIFile::DIRECTORY_TYPE, 0755);
-      NS_ENSURE_SUCCESS(rv, nullptr);
+      NS_ENSURE_SUCCESS(rv, nsnull);
 
       mProfD = profD;
       return profD.forget();
@@ -253,7 +264,7 @@ class ScopedXPCOM : public nsIDirectoryServiceProvider2
         nsresult rv = profD->Clone(getter_AddRefs(clone));
         NS_ENSURE_SUCCESS(rv, rv);
 
-        *_persistent = true;
+        *_persistent = PR_TRUE;
         clone.forget(_result);
         return NS_OK;
       }

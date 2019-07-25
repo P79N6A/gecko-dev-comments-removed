@@ -13,28 +13,60 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <time.h>
 
 #include "mozilla/TimeStamp.h"
 
 
-static uint64_t sResolution;
-static uint64_t sResolutionSigDigs;
+static PRUint64 sResolution;
+static PRUint64 sResolutionSigDigs;
 
-static const uint16_t kNsPerUs   =       1000;
-static const uint64_t kNsPerMs   =    1000000;
-static const uint64_t kNsPerSec  = 1000000000; 
+static const PRUint16 kNsPerUs   =       1000;
+static const PRUint64 kNsPerMs   =    1000000;
+static const PRUint64 kNsPerSec  = 1000000000; 
 static const double kNsPerMsd    =    1000000.0;
 static const double kNsPerSecd   = 1000000000.0;
 
-static uint64_t
+static PRUint64
 TimespecToNs(const struct timespec& ts)
 {
-  uint64_t baseNs = uint64_t(ts.tv_sec) * kNsPerSec;
-  return baseNs + uint64_t(ts.tv_nsec);
+  PRUint64 baseNs = PRUint64(ts.tv_sec) * kNsPerSec;
+  return baseNs + PRUint64(ts.tv_nsec);
 }
 
-static uint64_t
+static PRUint64
 ClockTimeNs()
 {
   struct timespec ts;
@@ -51,7 +83,7 @@ ClockTimeNs()
   return TimespecToNs(ts);
 }
 
-static uint64_t
+static PRUint64
 ClockResolutionNs()
 {
   
@@ -61,9 +93,9 @@ ClockResolutionNs()
   
   
 
-  uint64_t start = ClockTimeNs();
-  uint64_t end = ClockTimeNs();
-  uint64_t minres = (end - start);
+  PRUint64 start = ClockTimeNs();
+  PRUint64 end = ClockTimeNs();
+  PRUint64 minres = (end - start);
 
   
   
@@ -72,7 +104,7 @@ ClockResolutionNs()
     start = ClockTimeNs();
     end = ClockTimeNs();
 
-    uint64_t candidate = (start - end);
+    PRUint64 candidate = (start - end);
     if (candidate < minres)
       minres = candidate;
   }
@@ -108,7 +140,7 @@ double
 TimeDuration::ToSecondsSigDigits() const
 {
   
-  int64_t valueSigDigs = sResolution * (mValue / sResolution);
+  PRInt64 valueSigDigs = sResolution * (mValue / sResolution);
   
   valueSigDigs = sResolutionSigDigs * (valueSigDigs / sResolutionSigDigs);
   return double(valueSigDigs) / kNsPerSecd;
@@ -123,7 +155,7 @@ TimeDuration::FromMilliseconds(double aMilliseconds)
 TimeDuration
 TimeDuration::Resolution()
 {
-  return TimeDuration::FromTicks(int64_t(sResolution));
+  return TimeDuration::FromTicks(PRInt64(sResolution));
 }
 
 struct TimeStampInitialization
@@ -158,7 +190,7 @@ TimeStamp::Startup()
          || 10*sResolutionSigDigs > sResolution);
        sResolutionSigDigs *= 10);
 
-  gInitialized = true;
+  gInitialized = PR_TRUE;
   return NS_OK;
 }
 

@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsID.h"
 #include "prprf.h"
 #include "nsMemory.h"
@@ -24,7 +57,7 @@ static const char gIDFormat2[] =
     if(the_char >= '0' && the_char <= '9') the_int_var -= '0'; \
     else if(the_char >= 'a' && the_char <= 'f') the_int_var -= 'a'-10; \
     else if(the_char >= 'A' && the_char <= 'F') the_int_var -= 'A'-10; \
-    else return false
+    else return PR_FALSE
 
 
 
@@ -35,7 +68,7 @@ static const char gIDFormat2[] =
 
 
 #define PARSE_CHARS_TO_NUM(char_pointer, dest_variable, number_of_chars) \
-  do { int32_t _i=number_of_chars; \
+  do { PRInt32 _i=number_of_chars; \
   dest_variable = 0; \
   while(_i) { \
     ADD_HEX_CHAR_TO_INT_OR_RETURN_FALSE(*char_pointer, dest_variable); \
@@ -50,7 +83,7 @@ static const char gIDFormat2[] =
 
 
 
- #define PARSE_HYPHEN(char_pointer)   if(*(char_pointer++) != '-') return false
+ #define PARSE_HYPHEN(char_pointer)   if(*(char_pointer++) != '-') return PR_FALSE
     
 
 
@@ -61,7 +94,7 @@ bool nsID::Parse(const char *aIDStr)
 {
   
   if(!aIDStr) {
-    return false;
+    return PR_FALSE;
   }
 
   bool expectFormat1 = (aIDStr[0] == '{');
@@ -82,7 +115,7 @@ bool nsID::Parse(const char *aIDStr)
     i++;
   }
   
-  return expectFormat1 ? *aIDStr == '}' : true;
+  return expectFormat1 ? *aIDStr == '}' : PR_TRUE;
 }
 
 #ifndef XPCOM_GLUE_AVOID_NSPR
@@ -99,10 +132,10 @@ char *nsID::ToString() const
 
   if (res != NULL) {
     PR_snprintf(res, NSID_LENGTH, gIDFormat,
-                m0, (uint32_t) m1, (uint32_t) m2,
-                (uint32_t) m3[0], (uint32_t) m3[1], (uint32_t) m3[2],
-                (uint32_t) m3[3], (uint32_t) m3[4], (uint32_t) m3[5],
-                (uint32_t) m3[6], (uint32_t) m3[7]);
+                m0, (PRUint32) m1, (PRUint32) m2,
+                (PRUint32) m3[0], (PRUint32) m3[1], (PRUint32) m3[2],
+                (PRUint32) m3[3], (PRUint32) m3[4], (PRUint32) m3[5],
+                (PRUint32) m3[6], (PRUint32) m3[7]);
   }
   return res;
 }
@@ -110,10 +143,10 @@ char *nsID::ToString() const
 void nsID::ToProvidedString(char (&dest)[NSID_LENGTH]) const 
 {
   PR_snprintf(dest, NSID_LENGTH, gIDFormat,
-              m0, (uint32_t) m1, (uint32_t) m2,
-              (uint32_t) m3[0], (uint32_t) m3[1], (uint32_t) m3[2],
-              (uint32_t) m3[3], (uint32_t) m3[4], (uint32_t) m3[5],
-              (uint32_t) m3[6], (uint32_t) m3[7]);
+              m0, (PRUint32) m1, (PRUint32) m2,
+              (PRUint32) m3[0], (PRUint32) m3[1], (PRUint32) m3[2],
+              (PRUint32) m3[3], (PRUint32) m3[4], (PRUint32) m3[5],
+              (PRUint32) m3[6], (PRUint32) m3[7]);
 }
 
 #endif 

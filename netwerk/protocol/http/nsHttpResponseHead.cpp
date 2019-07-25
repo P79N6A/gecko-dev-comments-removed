@@ -4,6 +4,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <stdlib.h>
 #include "nsHttpResponseHead.h"
 #include "nsPrintfCString.h"
@@ -34,13 +69,13 @@ nsHttpResponseHead::SetHeader(nsHttpAtom hdr,
 }
 
 void
-nsHttpResponseHead::SetContentLength(int64_t len)
+nsHttpResponseHead::SetContentLength(PRInt64 len)
 {
     mContentLength = len;
     if (!LL_GE_ZERO(len)) 
         mHeaders.ClearHeader(nsHttp::Content_Length);
     else
-        mHeaders.SetHeader(nsHttp::Content_Length, nsPrintfCString("%lld", len));
+        mHeaders.SetHeader(nsHttp::Content_Length, nsPrintfCString(20, "%lld", len));
 }
 
 void
@@ -55,19 +90,19 @@ nsHttpResponseHead::Flatten(nsACString &buf, bool pruneTransients)
     else
         buf.AppendLiteral("1.0 ");
 
-    buf.Append(nsPrintfCString("%u", unsigned(mStatus)) +
+    buf.Append(nsPrintfCString("%u", PRUintn(mStatus)) +
                NS_LITERAL_CSTRING(" ") +
                mStatusText +
                NS_LITERAL_CSTRING("\r\n"));
 
     if (!pruneTransients) {
-        mHeaders.Flatten(buf, false);
+        mHeaders.Flatten(buf, PR_FALSE);
         return;
     }
 
     
     
-    uint32_t i, count = mHeaders.Count();
+    PRUint32 i, count = mHeaders.Count();
     for (i=0; i<count; ++i) {
         nsHttpAtom header;
         const char *value = mHeaders.PeekHeaderAt(i, header);
@@ -143,7 +178,7 @@ nsHttpResponseHead::ParseStatusLine(const char *line)
     }
     else {
         
-        mStatus = (uint16_t) atoi(++line);
+        mStatus = (PRUint16) atoi(++line);
         if (mStatus == 0) {
             LOG(("mal-formed response status; assuming status = 200\n"));
             mStatus = 200;
@@ -155,11 +190,11 @@ nsHttpResponseHead::ParseStatusLine(const char *line)
             mStatusText.AssignLiteral("OK");
         }
         else
-            mStatusText = nsDependentCString(++line);
+            mStatusText = ++line;
     }
 
     LOG(("Have status line [version=%u status=%u statusText=%s]\n",
-        unsigned(mVersion), unsigned(mStatus), mStatusText.get()));
+        PRUintn(mVersion), PRUintn(mStatus), mStatusText.get()));
 }
 
 nsresult
@@ -177,15 +212,14 @@ nsHttpResponseHead::ParseHeaderLine(const char *line)
 
     
     if (hdr == nsHttp::Content_Length) {
-        int64_t len;
-        const char *ignored;
+        PRInt64 len;
         
-        if (nsHttp::ParseInt64(val, &ignored, &len)) {
+        if (nsHttp::ParseInt64(val, &len)) {
             mContentLength = len;
         }
         else {
-            
-            LOG(("invalid content-length! %s\n", val));
+            LOG(("invalid content-length!\n"));
+            return NS_ERROR_CORRUPTED_CONTENT;
         }
     }
     else if (hdr == nsHttp::Content_Type) {
@@ -212,12 +246,12 @@ nsHttpResponseHead::ParseHeaderLine(const char *line)
 
 
 nsresult
-nsHttpResponseHead::ComputeCurrentAge(uint32_t now,
-                                      uint32_t requestTime,
-                                      uint32_t *result) const
+nsHttpResponseHead::ComputeCurrentAge(PRUint32 now,
+                                      PRUint32 requestTime,
+                                      PRUint32 *result)
 {
-    uint32_t dateValue;
-    uint32_t ageValue;
+    PRUint32 dateValue;
+    PRUint32 ageValue;
 
     *result = 0;
 
@@ -256,7 +290,7 @@ nsHttpResponseHead::ComputeCurrentAge(uint32_t now,
 
 
 nsresult
-nsHttpResponseHead::ComputeFreshnessLifetime(uint32_t *result) const
+nsHttpResponseHead::ComputeFreshnessLifetime(PRUint32 *result)
 {
     *result = 0;
 
@@ -266,7 +300,7 @@ nsHttpResponseHead::ComputeFreshnessLifetime(uint32_t *result) const
 
     *result = 0;
 
-    uint32_t date = 0, date2 = 0;
+    PRUint32 date = 0, date2 = 0;
     if (NS_FAILED(GetDateValue(&date)))
         date = NowInSeconds(); 
 
@@ -291,7 +325,7 @@ nsHttpResponseHead::ComputeFreshnessLifetime(uint32_t *result) const
 
     
     if ((mStatus == 300) || (mStatus == 301)) {
-        *result = uint32_t(-1);
+        *result = PRUint32(-1);
         return NS_OK;
     }
 
@@ -303,7 +337,7 @@ nsHttpResponseHead::ComputeFreshnessLifetime(uint32_t *result) const
 }
 
 bool
-nsHttpResponseHead::MustValidate() const
+nsHttpResponseHead::MustValidate()
 {
     LOG(("nsHttpResponseHead::MustValidate ??\n"));
 
@@ -320,7 +354,6 @@ nsHttpResponseHead::MustValidate() const
     case 302:
     case 304:
     case 307:
-    case 308:
         break;
         
     case 303:
@@ -332,14 +365,14 @@ nsHttpResponseHead::MustValidate() const
     case 416:
     default:  
         LOG(("Must validate since response is an uncacheable error page\n"));
-        return true;
+        return PR_TRUE;
     }
     
     
     
     if (NoCache()) {
         LOG(("Must validate since response contains 'no-cache' header\n"));
-        return true;
+        return PR_TRUE;
     }
 
     
@@ -348,7 +381,7 @@ nsHttpResponseHead::MustValidate() const
     
     if (NoStore()) {
         LOG(("Must validate since response contains 'no-store' header\n"));
-        return true;
+        return PR_TRUE;
     }
 
     
@@ -356,15 +389,15 @@ nsHttpResponseHead::MustValidate() const
     
     if (ExpiresInPast()) {
         LOG(("Must validate since Expires < Date\n"));
-        return true;
+        return PR_TRUE;
     }
 
     LOG(("no mandatory validation requirement\n"));
-    return false;
+    return PR_FALSE;
 }
 
 bool
-nsHttpResponseHead::MustValidateIfExpired() const
+nsHttpResponseHead::MustValidateIfExpired()
 {
     
     
@@ -376,28 +409,24 @@ nsHttpResponseHead::MustValidateIfExpired() const
 }
 
 bool
-nsHttpResponseHead::IsResumable() const
+nsHttpResponseHead::IsResumable()
 {
     
     
-    
-    
-    
-    return mStatus == 200 &&
-           mVersion >= NS_HTTP_VERSION_1_1 &&
+    return mVersion >= NS_HTTP_VERSION_1_1 &&
            PeekHeader(nsHttp::Content_Length) && 
           (PeekHeader(nsHttp::ETag) || PeekHeader(nsHttp::Last_Modified)) &&
            HasHeaderValue(nsHttp::Accept_Ranges, "bytes");
 }
 
 bool
-nsHttpResponseHead::ExpiresInPast() const
+nsHttpResponseHead::ExpiresInPast()
 {
-    uint32_t maxAgeVal, expiresVal, dateVal;
+    PRUint32 maxAgeVal, expiresVal, dateVal;
     
     
     if (NS_SUCCEEDED(GetMaxAgeValue(&maxAgeVal))) {
-        return false;
+        return PR_FALSE;
     }
     
     return NS_SUCCEEDED(GetExpiresValue(&expiresVal)) &&
@@ -406,11 +435,11 @@ nsHttpResponseHead::ExpiresInPast() const
 }
 
 nsresult
-nsHttpResponseHead::UpdateHeaders(const nsHttpHeaderArray &headers)
+nsHttpResponseHead::UpdateHeaders(nsHttpHeaderArray &headers)
 {
     LOG(("nsHttpResponseHead::UpdateHeaders [this=%x]\n", this));
 
-    uint32_t i, count = headers.Count();
+    PRUint32 i, count = headers.Count();
     for (i=0; i<count; ++i) {
         nsHttpAtom header;
         const char *val = headers.PeekHeaderAt(i, header);
@@ -464,23 +493,23 @@ nsHttpResponseHead::Reset()
     mVersion = NS_HTTP_VERSION_1_1;
     mStatus = 200;
     mContentLength = LL_MAXUINT;
-    mCacheControlNoStore = false;
-    mCacheControlNoCache = false;
-    mPragmaNoCache = false;
+    mCacheControlNoStore = PR_FALSE;
+    mCacheControlNoCache = PR_FALSE;
+    mPragmaNoCache = PR_FALSE;
     mStatusText.Truncate();
     mContentType.Truncate();
     mContentCharset.Truncate();
 }
 
 nsresult
-nsHttpResponseHead::ParseDateHeader(nsHttpAtom header, uint32_t *result) const
+nsHttpResponseHead::ParseDateHeader(nsHttpAtom header, PRUint32 *result)
 {
     const char *val = PeekHeader(header);
     if (!val)
         return NS_ERROR_NOT_AVAILABLE;
 
     PRTime time;
-    PRStatus st = PR_ParseTimeString(val, true, &time);
+    PRStatus st = PR_ParseTimeString(val, PR_TRUE, &time);
     if (st != PR_SUCCESS)
         return NS_ERROR_NOT_AVAILABLE;
 
@@ -489,20 +518,20 @@ nsHttpResponseHead::ParseDateHeader(nsHttpAtom header, uint32_t *result) const
 }
 
 nsresult
-nsHttpResponseHead::GetAgeValue(uint32_t *result) const
+nsHttpResponseHead::GetAgeValue(PRUint32 *result)
 {
     const char *val = PeekHeader(nsHttp::Age);
     if (!val)
         return NS_ERROR_NOT_AVAILABLE;
 
-    *result = (uint32_t) atoi(val);
+    *result = (PRUint32) atoi(val);
     return NS_OK;
 }
 
 
 
 nsresult
-nsHttpResponseHead::GetMaxAgeValue(uint32_t *result) const
+nsHttpResponseHead::GetMaxAgeValue(PRUint32 *result)
 {
     const char *val = PeekHeader(nsHttp::Cache_Control);
     if (!val)
@@ -515,19 +544,19 @@ nsHttpResponseHead::GetMaxAgeValue(uint32_t *result) const
     int maxAgeValue = atoi(p + 8);
     if (maxAgeValue < 0)
         maxAgeValue = 0;
-    *result = uint32_t(maxAgeValue);
+    *result = PRUint32(maxAgeValue);
     return NS_OK;
 }
 
 nsresult
-nsHttpResponseHead::GetExpiresValue(uint32_t *result) const
+nsHttpResponseHead::GetExpiresValue(PRUint32 *result)
 {
     const char *val = PeekHeader(nsHttp::Expires);
     if (!val)
         return NS_ERROR_NOT_AVAILABLE;
 
     PRTime time;
-    PRStatus st = PR_ParseTimeString(val, true, &time);
+    PRStatus st = PR_ParseTimeString(val, PR_TRUE, &time);
     if (st != PR_SUCCESS) {
         
         
@@ -542,8 +571,8 @@ nsHttpResponseHead::GetExpiresValue(uint32_t *result) const
     return NS_OK;
 }
 
-int64_t
-nsHttpResponseHead::TotalEntitySize() const
+PRInt64
+nsHttpResponseHead::TotalEntitySize()
 {
     const char* contentRange = PeekHeader(nsHttp::Content_Range);
     if (!contentRange)
@@ -558,7 +587,7 @@ nsHttpResponseHead::TotalEntitySize() const
     if (*slash == '*') 
         return -1;
 
-    int64_t size;
+    PRInt64 size;
     if (!nsHttp::ParseInt64(slash, &size))
         size = LL_MAXUINT;
     return size;
@@ -592,7 +621,7 @@ nsHttpResponseHead::ParseVersion(const char *str)
     }
 
     char *p = PL_strchr(str, '.');
-    if (p == nullptr) {
+    if (p == nsnull) {
         LOG(("mal-formed server version; assuming HTTP/1.0\n"));
         mVersion = NS_HTTP_VERSION_1_0;
         return;
@@ -616,19 +645,19 @@ nsHttpResponseHead::ParseCacheControl(const char *val)
 {
     if (!(val && *val)) {
         
-        mCacheControlNoCache = false;
-        mCacheControlNoStore = false;
+        mCacheControlNoCache = PR_FALSE;
+        mCacheControlNoStore = PR_FALSE;
         return;
     }
 
     
     
     if (nsHttp::FindToken(val, "no-cache", HTTP_HEADER_VALUE_SEPS))
-        mCacheControlNoCache = true;
+        mCacheControlNoCache = PR_TRUE;
 
     
     if (nsHttp::FindToken(val, "no-store", HTTP_HEADER_VALUE_SEPS))
-        mCacheControlNoStore = true;
+        mCacheControlNoStore = PR_TRUE;
 }
 
 void
@@ -638,7 +667,7 @@ nsHttpResponseHead::ParsePragma(const char *val)
 
     if (!(val && *val)) {
         
-        mPragmaNoCache = false;
+        mPragmaNoCache = PR_FALSE;
         return;
     }
 
@@ -646,5 +675,5 @@ nsHttpResponseHead::ParsePragma(const char *val)
     
     
     if (nsHttp::FindToken(val, "no-cache", HTTP_HEADER_VALUE_SEPS))
-        mPragmaNoCache = true;
+        mPragmaNoCache = PR_TRUE;
 }

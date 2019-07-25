@@ -3,11 +3,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsXBLInsertionPoint.h"
+#include "nsContentUtils.h"
 #include "nsXBLBinding.h"
 
 nsXBLInsertionPoint::nsXBLInsertionPoint(nsIContent* aParentElement,
-                                         uint32_t aIndex,
+                                         PRUint32 aIndex,
                                          nsIContent* aDefaultContent)
   : mParentElement(aParentElement),
     mIndex(aIndex),
@@ -18,17 +52,17 @@ nsXBLInsertionPoint::nsXBLInsertionPoint(nsIContent* aParentElement,
 nsXBLInsertionPoint::~nsXBLInsertionPoint()
 {
   if (mDefaultContent) {
-    nsXBLBinding::UninstallAnonymousContent(mDefaultContent->OwnerDoc(),
+    nsXBLBinding::UninstallAnonymousContent(mDefaultContent->GetOwnerDoc(),
                                             mDefaultContent);
   }
 }
 
-NS_IMPL_CYCLE_COLLECTION_NATIVE_CLASS(nsXBLInsertionPoint)
+NS_IMPL_CYCLE_COLLECTION_CLASS(nsXBLInsertionPoint)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_NATIVE(nsXBLInsertionPoint)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMARRAY(mElements)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mDefaultContentTemplate)
   if (tmp->mDefaultContent) {
-    nsXBLBinding::UninstallAnonymousContent(tmp->mDefaultContent->OwnerDoc(),
+    nsXBLBinding::UninstallAnonymousContent(tmp->mDefaultContent->GetOwnerDoc(),
                                             tmp->mDefaultContent);
   }
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mDefaultContent)
@@ -60,15 +94,15 @@ nsXBLInsertionPoint::GetDefaultContentTemplate()
 }
 
 nsIContent*
-nsXBLInsertionPoint::ChildAt(uint32_t aIndex)
+nsXBLInsertionPoint::ChildAt(PRUint32 aIndex)
 {
   return mElements.ObjectAt(aIndex);
 }
 
 bool
-nsXBLInsertionPoint::Matches(nsIContent* aContent, uint32_t aIndex)
+nsXBLInsertionPoint::Matches(nsIContent* aContent, PRUint32 aIndex)
 {
-  return (aContent == mParentElement && mIndex != -1 && ((int32_t)aIndex) == mIndex);
+  return (aContent == mParentElement && mIndex != -1 && ((PRInt32)aIndex) == mIndex);
 }
 
 void
@@ -79,6 +113,6 @@ nsXBLInsertionPoint::UnbindDefaultContent()
   }
 
   
-  nsXBLBinding::UninstallAnonymousContent(mDefaultContent->OwnerDoc(),
+  nsXBLBinding::UninstallAnonymousContent(mDefaultContent->GetOwnerDoc(),
                                           mDefaultContent);
 }

@@ -3,11 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_IPARSER___
 #define NS_IPARSER___
-
-
-
 
 
 
@@ -24,11 +53,10 @@
 #include "nsStringGlue.h"
 #include "nsTArray.h"
 #include "nsIAtom.h"
-#include "nsParserBase.h"
 
 #define NS_IPARSER_IID \
-{ 0x2c4ad90a, 0x740e, 0x4212, \
-  { 0xba, 0x3f, 0xfe, 0xac, 0xda, 0x4b, 0x92, 0x9e } }
+{ 0xcbc0cbd8, 0xbbb7, 0x46d6, \
+  { 0xa5, 0x51, 0x37, 0x8a, 0x69, 0x53, 0xa7, 0x14 } }
 
 
 #define NS_IDEBUG_DUMP_CONTENT_IID \
@@ -37,6 +65,7 @@
 
 class nsIContentSink;
 class nsIRequestObserver;
+class nsIParserFilter;
 class nsString;
 class nsIURI;
 class nsIChannel;
@@ -55,6 +84,28 @@ enum eParserDocType {
   eHTML_Quirks,
   eHTML_Strict
 };
+
+
+
+
+#define kCharsetUninitialized           0
+#define kCharsetFromWeakDocTypeDefault  1
+#define kCharsetFromUserDefault         2
+#define kCharsetFromDocTypeDefault      3
+#define kCharsetFromCache               4
+#define kCharsetFromParentFrame         5
+#define kCharsetFromAutoDetection       6
+#define kCharsetFromHintPrevDoc         7
+#define kCharsetFromMetaPrescan         8 // this one and smaller: HTML5 Tentative
+#define kCharsetFromMetaTag             9 // this one and greater: HTML5 Confident
+#define kCharsetFromIrreversibleAutoDetection 10
+#define kCharsetFromByteOrderMark      11
+#define kCharsetFromChannel            12
+#define kCharsetFromOtherComponent     13
+
+#define kCharsetFromParentForced       14
+#define kCharsetFromUserForced         15
+#define kCharsetFromPreviousLoading    16
 
 enum eStreamState {eNone,eOnStart,eOnDataAvail,eOnStop};
 
@@ -79,13 +130,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIDebugDumpContent, NS_IDEBUG_DUMP_CONTENT_IID)
 
 
 
-
-
-
-
-
-
-class nsIParser : public nsParserBase {
+class nsIParser : public nsISupports {
   public:
 
     NS_DECLARE_STATIC_IID_ACCESSOR(NS_IPARSER_IID)
@@ -128,8 +173,10 @@ class nsIParser : public nsParserBase {
 
 
 
-    NS_IMETHOD_(void) SetDocumentCharset(const nsACString& aCharset, int32_t aSource)=0;
-    NS_IMETHOD_(void) GetDocumentCharset(nsACString& oCharset, int32_t& oSource)=0;
+    NS_IMETHOD_(void) SetDocumentCharset(const nsACString& aCharset, PRInt32 aSource)=0;
+    NS_IMETHOD_(void) GetDocumentCharset(nsACString& oCharset, PRInt32& oSource)=0;
+
+    NS_IMETHOD_(void) SetParserFilter(nsIParserFilter* aFilter) = 0;
 
     
 
@@ -150,7 +197,9 @@ class nsIParser : public nsParserBase {
     
 
 
-    virtual nsIStreamListener* GetStreamListener() = 0;
+
+
+    NS_IMETHOD GetStreamListener(nsIStreamListener** aListener) = 0;
 
     
 
@@ -175,19 +224,23 @@ class nsIParser : public nsParserBase {
     
     NS_IMETHOD_(void) UnblockParser() = 0;
 
-    
-
-
-    NS_IMETHOD_(void) ContinueInterruptedParsingAsync() = 0;
-
     NS_IMETHOD_(bool) IsParserEnabled() = 0;
     NS_IMETHOD_(bool) IsComplete() = 0;
     
     NS_IMETHOD Parse(nsIURI* aURL,
-                     nsIRequestObserver* aListener = nullptr,
+                     nsIRequestObserver* aListener = nsnull,
                      void* aKey = 0,
                      nsDTDMode aMode = eDTDMode_autodetect) = 0;
+    NS_IMETHOD Parse(const nsAString& aSourceBuffer,
+                     void* aKey,
+                     const nsACString& aMimeType,
+                     bool aLastCall,
+                     nsDTDMode aMode = eDTDMode_autodetect) = 0;
 
+    
+    
+    NS_IMETHOD_(void *) GetRootContextKey() = 0;
+    
     NS_IMETHOD Terminate(void) = 0;
 
     
@@ -227,6 +280,12 @@ class nsIParser : public nsParserBase {
     
 
 
+
+    virtual bool CanInterrupt() = 0;
+
+    
+
+
     virtual bool IsInsertionPointDefined() = 0;
 
     
@@ -242,7 +301,7 @@ class nsIParser : public nsParserBase {
     
 
 
-    virtual void MarkAsNotScriptCreated(const char* aCommand) = 0;
+    virtual void MarkAsNotScriptCreated() = 0;
 
     
 
@@ -259,18 +318,42 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIParser, NS_IPARSER_IID)
 #include "prtypes.h"
 #include "nsError.h"
 
-const nsresult  kEOF              = NS_ERROR_HTMLPARSER_EOF;
-const nsresult  kUnknownError     = NS_ERROR_HTMLPARSER_UNKNOWN;
-const nsresult  kCantPropagate    = NS_ERROR_HTMLPARSER_CANTPROPAGATE;
-const nsresult  kContextMismatch  = NS_ERROR_HTMLPARSER_CONTEXTMISMATCH;
-const nsresult  kBadFilename      = NS_ERROR_HTMLPARSER_BADFILENAME;
-const nsresult  kBadURL           = NS_ERROR_HTMLPARSER_BADURL;
-const nsresult  kInvalidParserContext = NS_ERROR_HTMLPARSER_INVALIDPARSERCONTEXT;
-const nsresult  kBlocked          = NS_ERROR_HTMLPARSER_BLOCK;
-const nsresult  kBadStringLiteral = NS_ERROR_HTMLPARSER_UNTERMINATEDSTRINGLITERAL;
-const nsresult  kHierarchyTooDeep = NS_ERROR_HTMLPARSER_HIERARCHYTOODEEP;
-const nsresult  kFakeEndTag       = NS_ERROR_HTMLPARSER_FAKE_ENDTAG;
-const nsresult  kNotAComment      = NS_ERROR_HTMLPARSER_INVALID_COMMENT;
+#define NS_ERROR_HTMLPARSER_EOF                            NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_HTMLPARSER,1000)
+#define NS_ERROR_HTMLPARSER_UNKNOWN                        NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_HTMLPARSER,1001)
+#define NS_ERROR_HTMLPARSER_CANTPROPAGATE                  NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_HTMLPARSER,1002)
+#define NS_ERROR_HTMLPARSER_CONTEXTMISMATCH                NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_HTMLPARSER,1003)
+#define NS_ERROR_HTMLPARSER_BADFILENAME                    NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_HTMLPARSER,1004)
+#define NS_ERROR_HTMLPARSER_BADURL                         NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_HTMLPARSER,1005)
+#define NS_ERROR_HTMLPARSER_INVALIDPARSERCONTEXT           NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_HTMLPARSER,1006)
+#define NS_ERROR_HTMLPARSER_INTERRUPTED                    NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_HTMLPARSER,1007)
+#define NS_ERROR_HTMLPARSER_BLOCK                          NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_HTMLPARSER,1008)
+#define NS_ERROR_HTMLPARSER_BADTOKENIZER                   NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_HTMLPARSER,1009)
+#define NS_ERROR_HTMLPARSER_BADATTRIBUTE                   NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_HTMLPARSER,1010)
+#define NS_ERROR_HTMLPARSER_UNRESOLVEDDTD                  NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_HTMLPARSER,1011)
+#define NS_ERROR_HTMLPARSER_MISPLACEDTABLECONTENT          NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_HTMLPARSER,1012)
+#define NS_ERROR_HTMLPARSER_BADDTD                         NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_HTMLPARSER,1013)
+#define NS_ERROR_HTMLPARSER_BADCONTEXT                     NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_HTMLPARSER,1014)
+#define NS_ERROR_HTMLPARSER_STOPPARSING                    NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_HTMLPARSER,1015)
+#define NS_ERROR_HTMLPARSER_UNTERMINATEDSTRINGLITERAL      NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_HTMLPARSER,1016)
+#define NS_ERROR_HTMLPARSER_HIERARCHYTOODEEP               NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_HTMLPARSER,1017)
+#define NS_ERROR_HTMLPARSER_FAKE_ENDTAG                    NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_HTMLPARSER,1018)
+#define NS_ERROR_HTMLPARSER_INVALID_COMMENT                NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_HTMLPARSER,1019)
+
+#define NS_ERROR_HTMLPARSER_CONTINUE              NS_OK
+
+
+const PRUint32  kEOF              = NS_ERROR_HTMLPARSER_EOF;
+const PRUint32  kUnknownError     = NS_ERROR_HTMLPARSER_UNKNOWN;
+const PRUint32  kCantPropagate    = NS_ERROR_HTMLPARSER_CANTPROPAGATE;
+const PRUint32  kContextMismatch  = NS_ERROR_HTMLPARSER_CONTEXTMISMATCH;
+const PRUint32  kBadFilename      = NS_ERROR_HTMLPARSER_BADFILENAME;
+const PRUint32  kBadURL           = NS_ERROR_HTMLPARSER_BADURL;
+const PRUint32  kInvalidParserContext = NS_ERROR_HTMLPARSER_INVALIDPARSERCONTEXT;
+const PRUint32  kBlocked          = NS_ERROR_HTMLPARSER_BLOCK;
+const PRUint32  kBadStringLiteral = NS_ERROR_HTMLPARSER_UNTERMINATEDSTRINGLITERAL;
+const PRUint32  kHierarchyTooDeep = NS_ERROR_HTMLPARSER_HIERARCHYTOODEEP;
+const PRUint32  kFakeEndTag       = NS_ERROR_HTMLPARSER_FAKE_ENDTAG;
+const PRUint32  kNotAComment      = NS_ERROR_HTMLPARSER_INVALID_COMMENT;
 
 #define NS_IPARSER_FLAG_UNKNOWN_MODE         0x00000000
 #define NS_IPARSER_FLAG_QUIRKS_MODE          0x00000002

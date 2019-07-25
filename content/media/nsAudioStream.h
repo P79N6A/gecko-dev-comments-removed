@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #if !defined(nsAudioStream_h_)
 #define nsAudioStream_h_
 
@@ -11,18 +43,6 @@
 #include "nsIThread.h"
 #include "nsAutoPtr.h"
 
-#ifdef MOZ_SAMPLE_TYPE_S16
-#define MOZ_AUDIO_DATA_FORMAT (nsAudioStream::FORMAT_S16)
-typedef short SampleType;
-#else
-#define MOZ_AUDIO_DATA_FORMAT (nsAudioStream::FORMAT_FLOAT32)
-typedef float SampleType;
-#endif
-
-
-
-
-
 class nsAudioStream : public nsISupports
 {
 public:
@@ -30,14 +50,9 @@ public:
   enum SampleFormat
   {
     FORMAT_U8,
-    FORMAT_S16,
+    FORMAT_S16_LE,
     FORMAT_FLOAT32
   };
-
-  nsAudioStream()
-    : mRate(0),
-      mChannels(0)
-  {}
 
   virtual ~nsAudioStream();
 
@@ -62,10 +77,8 @@ public:
   
   
   
-  
-  virtual nsresult Init(int32_t aNumChannels, int32_t aRate) = 0;
+  virtual nsresult Init(PRInt32 aNumChannels, PRInt32 aRate, SampleFormat aFormat) = 0;
 
-  
   
   
   virtual void Shutdown() = 0;
@@ -74,16 +87,15 @@ public:
   
   
   
-  virtual nsresult Write(const void* aBuf, uint32_t aFrames) = 0;
+  virtual nsresult Write(const void* aBuf, PRUint32 aFrames) = 0;
 
   
-  virtual uint32_t Available() = 0;
+  virtual PRUint32 Available() = 0;
 
   
   
   virtual void SetVolume(double aVolume) = 0;
 
-  
   
   
   virtual void Drain() = 0;
@@ -96,11 +108,11 @@ public:
 
   
   
-  virtual int64_t GetPosition() = 0;
+  virtual PRInt64 GetPosition() = 0;
 
   
   
-  virtual int64_t GetPositionInFrames() = 0;
+  virtual PRInt64 GetPositionInFrames() = 0;
 
   
   virtual bool IsPaused() = 0;
@@ -108,18 +120,10 @@ public:
   
   
   
-  
-  virtual int32_t GetMinWriteSize() = 0;
-
-  int GetRate() { return mRate; }
-  int GetChannels() { return mChannels; }
-  SampleFormat GetFormat() { return MOZ_AUDIO_DATA_FORMAT; }
+  virtual PRInt32 GetMinWriteSize() = 0;
 
 protected:
   nsCOMPtr<nsIThread> mAudioPlaybackThread;
-  int mRate;
-  int mChannels;
-  SampleFormat mFormat;
 };
 
 #endif

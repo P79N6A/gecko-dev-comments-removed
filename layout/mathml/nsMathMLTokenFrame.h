@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsMathMLTokenFrame_h___
 #define nsMathMLTokenFrame_h___
 
@@ -35,17 +68,13 @@ public:
   virtual eMathMLFrameType GetMathMLFrameType();
 
   NS_IMETHOD
+  Init(nsIContent*      aContent,
+       nsIFrame*        aParent,
+       nsIFrame*        aPrevInFlow);
+
+  NS_IMETHOD
   SetInitialChildList(ChildListID     aListID,
                       nsFrameList&    aChildList);
-
-  NS_IMETHOD
-  AppendFrames(ChildListID            aListID,
-               nsFrameList&           aChildList);
-
-  NS_IMETHOD
-  InsertFrames(ChildListID            aListID,
-               nsIFrame*              aPrevFrame,
-               nsFrameList&           aChildList);
 
   NS_IMETHOD
   Reflow(nsPresContext*          aPresContext,
@@ -60,8 +89,13 @@ public:
 
   virtual void MarkIntrinsicWidthsDirty();
 
+  NS_IMETHOD
+  AttributeChanged(PRInt32         aNameSpaceID,
+                   nsIAtom*        aAttribute,
+                   PRInt32         aModType);
+
   virtual nsresult
-  ChildListChanged(int32_t aModType)
+  ChildListChanged(PRInt32 aModType)
   {
     ProcessTextData();
     return nsMathMLContainerFrame::ChildListChanged(aModType);
@@ -71,7 +105,7 @@ protected:
   nsMathMLTokenFrame(nsStyleContext* aContext) : nsMathMLContainerFrame(aContext) {}
   virtual ~nsMathMLTokenFrame();
 
-  virtual int GetSkipSides() const { return 0; }
+  virtual PRIntn GetSkipSides() const { return 0; }
 
   
   virtual void ProcessTextData();
@@ -80,7 +114,8 @@ protected:
   
   bool SetTextStyle();
 
-  void ForceTrimChildTextFrames();
+  
+  void SetQuotes(bool aNotify);
 };
 
 #endif 

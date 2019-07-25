@@ -3,17 +3,52 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsDOMSerializer.h"
 #include "nsIDOMNode.h"
-#include "nsDOMClassInfoID.h"
+#include "nsIDOMClassInfo.h"
 #include "nsIOutputStream.h"
+#include "nsINode.h"
 #include "nsIDocument.h"
 #include "nsIDOMDocument.h"
 #include "nsIDocumentEncoder.h"
+#include "nsIContentSerializer.h"
 #include "nsString.h"
+#include "nsReadableUtils.h"
 #include "nsContentCID.h"
 #include "nsContentUtils.h"
-#include "nsError.h"
+#include "nsDOMError.h"
 
 nsDOMSerializer::nsDOMSerializer()
 {
@@ -41,7 +76,7 @@ static nsresult
 SetUpEncoder(nsIDOMNode *aRoot, const nsACString& aCharset,
              nsIDocumentEncoder **aEncoder)
 {
-  *aEncoder = nullptr;
+  *aEncoder = nsnull;
    
   nsresult rv;
   nsCOMPtr<nsIDocumentEncoder> encoder =
@@ -52,7 +87,7 @@ SetUpEncoder(nsIDOMNode *aRoot, const nsACString& aCharset,
   bool entireDocument = true;
   nsCOMPtr<nsIDOMDocument> domDoc(do_QueryInterface(aRoot));
   if (!domDoc) {
-    entireDocument = false;
+    entireDocument = PR_FALSE;
     rv = aRoot->GetOwnerDocument(getter_AddRefs(domDoc));
     if (NS_FAILED(rv))
       return rv;
@@ -66,7 +101,7 @@ SetUpEncoder(nsIDOMNode *aRoot, const nsACString& aCharset,
   if (NS_FAILED(rv))
     return rv;
 
-  nsAutoCString charset(aCharset);
+  nsCAutoString charset(aCharset);
   if (charset.IsEmpty()) {
     nsCOMPtr<nsIDocument> doc = do_QueryInterface(domDoc);
     NS_ASSERTION(doc, "Need a document");

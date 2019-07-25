@@ -4,16 +4,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSVGInnerSVGFrame.h"
-
-
-#include "gfxContext.h"
 #include "nsIFrame.h"
 #include "nsISVGChildFrame.h"
-#include "nsRenderingContext.h"
-#include "nsSVGContainerFrame.h"
-#include "nsSVGIntegrationUtils.h"
+#include "nsSVGOuterSVGFrame.h"
+#include "nsIDOMSVGAnimatedRect.h"
 #include "nsSVGSVGElement.h"
+#include "nsSVGContainerFrame.h"
+#include "gfxContext.h"
 
 nsIFrame*
 NS_NewSVGInnerSVGFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
@@ -54,29 +84,24 @@ nsSVGInnerSVGFrame::GetType() const
 
 
 NS_IMETHODIMP
-nsSVGInnerSVGFrame::PaintSVG(nsRenderingContext *aContext,
+nsSVGInnerSVGFrame::PaintSVG(nsSVGRenderState *aContext,
                              const nsIntRect *aDirtyRect)
 {
-  NS_ASSERTION(!NS_SVGDisplayListPaintingEnabled() ||
-               (mState & NS_STATE_SVG_NONDISPLAY_CHILD),
-               "If display lists are enabled, only painting of non-display "
-               "SVG should take this code path");
-
   gfxContextAutoSaveRestore autoSR;
 
   if (GetStyleDisplay()->IsScrollableOverflow()) {
     float x, y, width, height;
     static_cast<nsSVGSVGElement*>(mContent)->
-      GetAnimatedLengthValues(&x, &y, &width, &height, nullptr);
+      GetAnimatedLengthValues(&x, &y, &width, &height, nsnull);
 
     if (width <= 0 || height <= 0) {
       return NS_OK;
     }
 
     nsSVGContainerFrame *parent = static_cast<nsSVGContainerFrame*>(mParent);
-    gfxMatrix clipTransform = parent->GetCanvasTM(FOR_PAINTING);
+    gfxMatrix clipTransform = parent->GetCanvasTM();
 
-    gfxContext *gfx = aContext->ThebesContext();
+    gfxContext *gfx = aContext->GetGfxContext();
     autoSR.SetContext(gfx);
     gfxRect clipRect =
       nsSVGUtils::GetClipRectForFrame(this, x, y, width, height);
@@ -87,102 +112,67 @@ nsSVGInnerSVGFrame::PaintSVG(nsRenderingContext *aContext,
 }
 
 void
-nsSVGInnerSVGFrame::ReflowSVG()
+nsSVGInnerSVGFrame::NotifySVGChanged(PRUint32 aFlags)
 {
-  
-  
-  float x, y, width, height;
-  static_cast<nsSVGSVGElement*>(mContent)->
-    GetAnimatedLengthValues(&x, &y, &width, &height, nullptr);
-  mRect = nsLayoutUtils::RoundGfxRectToAppRect(
-                           gfxRect(x, y, width, height),
-                           PresContext()->AppUnitsPerCSSPixel());
-  nsSVGInnerSVGFrameBase::ReflowSVG();
-}
-
-void
-nsSVGInnerSVGFrame::NotifySVGChanged(uint32_t aFlags)
-{
-  NS_ABORT_IF_FALSE(aFlags & (TRANSFORM_CHANGED | COORD_CONTEXT_CHANGED),
-                    "Invalidation logic may need adjusting");
-
   if (aFlags & COORD_CONTEXT_CHANGED) {
 
     nsSVGSVGElement *svg = static_cast<nsSVGSVGElement*>(mContent);
-
-    bool xOrYIsPercentage =
-      svg->mLengthAttributes[nsSVGSVGElement::X].IsPercentage() ||
-      svg->mLengthAttributes[nsSVGSVGElement::Y].IsPercentage();
-    bool widthOrHeightIsPercentage =
-      svg->mLengthAttributes[nsSVGSVGElement::WIDTH].IsPercentage() ||
-      svg->mLengthAttributes[nsSVGSVGElement::HEIGHT].IsPercentage();
-
-    if (xOrYIsPercentage || widthOrHeightIsPercentage) {
-      
-      
-      
-      
-      
-      
-      nsSVGUtils::ScheduleReflowSVG(this);
-    }
 
     
     
     
 
     if (!(aFlags & TRANSFORM_CHANGED) &&
-        (xOrYIsPercentage ||
-         (widthOrHeightIsPercentage && svg->HasViewBox()))) {
+        (svg->mLengthAttributes[nsSVGSVGElement::X].IsPercentage() ||
+         svg->mLengthAttributes[nsSVGSVGElement::Y].IsPercentage() ||
+         (svg->mViewBox.IsValid() &&
+          (svg->mLengthAttributes[nsSVGSVGElement::WIDTH].IsPercentage() ||
+           svg->mLengthAttributes[nsSVGSVGElement::HEIGHT].IsPercentage())))) {
+    
       aFlags |= TRANSFORM_CHANGED;
     }
 
-    if (svg->HasViewBox() || !widthOrHeightIsPercentage) {
-      
-      
-      
-      aFlags &= ~COORD_CONTEXT_CHANGED;
-
-      if (!aFlags) {
-        return; 
-      }
-    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
   }
 
   if (aFlags & TRANSFORM_CHANGED) {
     
-    mCanvasTM = nullptr;
+    mCanvasTM = nsnull;
   }
 
   nsSVGInnerSVGFrameBase::NotifySVGChanged(aFlags);
 }
 
 NS_IMETHODIMP
-nsSVGInnerSVGFrame::AttributeChanged(int32_t  aNameSpaceID,
+nsSVGInnerSVGFrame::AttributeChanged(PRInt32  aNameSpaceID,
                                      nsIAtom* aAttribute,
-                                     int32_t  aModType)
+                                     PRInt32  aModType)
 {
-  if (aNameSpaceID == kNameSpaceID_None &&
-      !(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
-
-    nsSVGSVGElement* content = static_cast<nsSVGSVGElement*>(mContent);
-
+  if (aNameSpaceID == kNameSpaceID_None) {
     if (aAttribute == nsGkAtoms::width ||
         aAttribute == nsGkAtoms::height) {
-      nsSVGUtils::InvalidateAndScheduleReflowSVG(this);
 
-      if (content->HasViewBoxOrSyntheticViewBox()) {
+      if (static_cast<nsSVGSVGElement*>(mContent)->mViewBox.IsValid()) {
+
         
-        mCanvasTM = nullptr;
-        content->ChildrenOnlyTransformChanged();
+        mCanvasTM = nsnull;
+
         nsSVGUtils::NotifyChildrenOfSVGChange(this, TRANSFORM_CHANGED);
       } else {
-        uint32_t flags = COORD_CONTEXT_CHANGED;
-        if (mCanvasTM && mCanvasTM->IsSingular()) {
-          mCanvasTM = nullptr;
-          flags |= TRANSFORM_CHANGED;
-        }
-        nsSVGUtils::NotifyChildrenOfSVGChange(this, flags);
+        nsSVGUtils::NotifyChildrenOfSVGChange(this, COORD_CONTEXT_CHANGED);
       }
 
     } else if (aAttribute == nsGkAtoms::transform ||
@@ -191,19 +181,11 @@ nsSVGInnerSVGFrame::AttributeChanged(int32_t  aNameSpaceID,
                aAttribute == nsGkAtoms::x ||
                aAttribute == nsGkAtoms::y) {
       
-      mCanvasTM = nullptr;
-
-      nsSVGUtils::InvalidateAndScheduleReflowSVG(this);
+      mCanvasTM = nsnull;
 
       nsSVGUtils::NotifyChildrenOfSVGChange(
           this, aAttribute == nsGkAtoms::viewBox ?
                   TRANSFORM_CHANGED | COORD_CONTEXT_CHANGED : TRANSFORM_CHANGED);
-
-      if (aAttribute == nsGkAtoms::viewBox ||
-          (aAttribute == nsGkAtoms::preserveAspectRatio &&
-           content->HasViewBoxOrSyntheticViewBox())) {
-        content->ChildrenOnlyTransformChanged();
-      }
     }
   }
 
@@ -213,23 +195,18 @@ nsSVGInnerSVGFrame::AttributeChanged(int32_t  aNameSpaceID,
 NS_IMETHODIMP_(nsIFrame*)
 nsSVGInnerSVGFrame::GetFrameForPoint(const nsPoint &aPoint)
 {
-  NS_ASSERTION(!NS_SVGDisplayListHitTestingEnabled() ||
-               (mState & NS_STATE_SVG_NONDISPLAY_CHILD),
-               "If display lists are enabled, only hit-testing of non-display "
-               "SVG should take this code path");
-
   if (GetStyleDisplay()->IsScrollableOverflow()) {
     nsSVGElement *content = static_cast<nsSVGElement*>(mContent);
     nsSVGContainerFrame *parent = static_cast<nsSVGContainerFrame*>(mParent);
 
     float clipX, clipY, clipWidth, clipHeight;
-    content->GetAnimatedLengthValues(&clipX, &clipY, &clipWidth, &clipHeight, nullptr);
+    content->GetAnimatedLengthValues(&clipX, &clipY, &clipWidth, &clipHeight, nsnull);
 
-    if (!nsSVGUtils::HitTestRect(parent->GetCanvasTM(FOR_HIT_TESTING),
+    if (!nsSVGUtils::HitTestRect(parent->GetCanvasTM(),
                                  clipX, clipY, clipWidth, clipHeight,
                                  PresContext()->AppUnitsToDevPixels(aPoint.x),
                                  PresContext()->AppUnitsToDevPixels(aPoint.y))) {
-      return nullptr;
+      return nsnull;
     }
   }
 
@@ -239,53 +216,51 @@ nsSVGInnerSVGFrame::GetFrameForPoint(const nsPoint &aPoint)
 
 
 
-void
-nsSVGInnerSVGFrame::NotifyViewportOrTransformChanged(uint32_t aFlags)
+NS_IMETHODIMP
+nsSVGInnerSVGFrame::SuspendRedraw()
 {
-  
-  
-  
-  
-  
-  NS_ERROR("Not called for nsSVGInnerSVGFrame");
+  nsSVGOuterSVGFrame *outerSVGFrame = nsSVGUtils::GetOuterSVGFrame(this);
+  if (!outerSVGFrame) {
+    NS_ERROR("no outer svg frame");
+    return NS_ERROR_FAILURE;
+  }
+  return outerSVGFrame->SuspendRedraw();
+}
+
+NS_IMETHODIMP
+nsSVGInnerSVGFrame::UnsuspendRedraw()
+{
+  nsSVGOuterSVGFrame *outerSVGFrame = nsSVGUtils::GetOuterSVGFrame(this);
+  if (!outerSVGFrame) {
+    NS_ERROR("no outer svg frame");
+    return NS_ERROR_FAILURE;
+  }
+  return outerSVGFrame->UnsuspendRedraw();
+}
+
+NS_IMETHODIMP
+nsSVGInnerSVGFrame::NotifyViewportChange()
+{
+  NS_ERROR("Inner SVG frames should not get Viewport changes.");
+  return NS_ERROR_FAILURE;
 }
 
 
 
 
 gfxMatrix
-nsSVGInnerSVGFrame::GetCanvasTM(uint32_t aFor)
+nsSVGInnerSVGFrame::GetCanvasTM()
 {
-  if (!(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
-    if ((aFor == FOR_PAINTING && NS_SVGDisplayListPaintingEnabled()) ||
-        (aFor == FOR_HIT_TESTING && NS_SVGDisplayListHitTestingEnabled())) {
-      return nsSVGIntegrationUtils::GetCSSPxToDevPxMatrix(this);
-    }
-  }
   if (!mCanvasTM) {
     NS_ASSERTION(mParent, "null parent");
 
     nsSVGContainerFrame *parent = static_cast<nsSVGContainerFrame*>(mParent);
     nsSVGSVGElement *content = static_cast<nsSVGSVGElement*>(mContent);
 
-    gfxMatrix tm = content->PrependLocalTransformsTo(parent->GetCanvasTM(aFor));
+    gfxMatrix tm = content->PrependLocalTransformTo(parent->GetCanvasTM());
 
     mCanvasTM = new gfxMatrix(tm);
   }
   return *mCanvasTM;
 }
 
-bool
-nsSVGInnerSVGFrame::HasChildrenOnlyTransform(gfxMatrix *aTransform) const
-{
-  nsSVGSVGElement *content = static_cast<nsSVGSVGElement*>(mContent);
-
-  if (content->HasViewBoxOrSyntheticViewBox()) {
-    
-    if (aTransform) {
-      *aTransform = content->GetViewBoxTransform();
-    }
-    return true;
-  }
-  return false;
-}

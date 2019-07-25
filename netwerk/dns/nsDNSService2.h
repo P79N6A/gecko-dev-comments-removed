@@ -2,8 +2,37 @@
 
 
 
-#ifndef nsDNSService2_h__
-#define nsDNSService2_h__
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsPIDNSService.h"
 #include "nsIIDNService.h"
@@ -11,13 +40,10 @@
 #include "nsHostResolver.h"
 #include "nsAutoPtr.h"
 #include "nsString.h"
-#include "nsTHashtable.h"
-#include "nsHashKeys.h"
 #include "mozilla/Mutex.h"
-#include "mozilla/Attributes.h"
 
-class nsDNSService MOZ_FINAL : public nsPIDNSService
-                             , public nsIObserver
+class nsDNSService : public nsPIDNSService
+                   , public nsIObserver
 {
 public:
     NS_DECL_ISUPPORTS
@@ -29,7 +55,7 @@ public:
     ~nsDNSService();
 
 private:
-    uint16_t GetAFForLookup(const nsACString &host, uint32_t flags);
+    PRUint16 GetAFForLookup(const nsACString &host, PRUint32 flags);
 
     nsRefPtr<nsHostResolver>  mResolver;
     nsCOMPtr<nsIIDNService>   mIDN;
@@ -44,7 +70,4 @@ private:
     bool                      mDisableIPv6;
     bool                      mDisablePrefetch;
     bool                      mFirstTime;
-    nsTHashtable<nsCStringHashKey> mLocalDomains;
 };
-
-#endif 

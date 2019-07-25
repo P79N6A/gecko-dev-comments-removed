@@ -4,17 +4,52 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_net_PHttpChannelParams_h
 #define mozilla_net_PHttpChannelParams_h
 
 #define ALLOW_LATE_NSHTTP_H_INCLUDE 1
 #include "base/basictypes.h"
 
-#include "ipc/IPCMessageUtils.h"
+#include "IPC/IPCMessageUtils.h"
 #include "nsHttp.h"
 #include "nsHttpHeaderArray.h"
 #include "nsHttpResponseHead.h"
 
+#include "nsIIPCSerializable.h"
 #include "nsIClassInfo.h"
 #include "nsNetUtil.h"
 
@@ -66,13 +101,13 @@ struct ParamTraits<nsHttpAtom>
   {
     
     NS_ASSERTION(aParam.get(), "null nsHTTPAtom value");
-    nsAutoCString value(aParam.get());
+    nsCAutoString value(aParam.get());
     WriteParam(aMsg, value);
   }
 
   static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
   {
-    nsAutoCString value;
+    nsCAutoString value;
     if (!ReadParam(aMsg, aIter, &value))
       return false;
 
@@ -102,14 +137,6 @@ struct ParamTraits<nsHttpHeaderArray::nsEntry>
     return true;
   }
 };
-
-
-template<>
-struct ParamTraits<mozilla::net::InfallableCopyCString>
-  : public ParamTraits<nsCString>
-{
-};
-
 
 template<>
 struct ParamTraits<nsHttpHeaderArray>

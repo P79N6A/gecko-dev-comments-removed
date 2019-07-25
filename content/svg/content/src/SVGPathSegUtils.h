@@ -3,13 +3,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_SVGPATHSEGUTILS_H__
 #define MOZILLA_SVGPATHSEGUTILS_H__
 
-#include "gfxPoint.h"
-#include "nsDebug.h"
 #include "nsIDOMSVGPathSeg.h"
-#include "nsMemory.h"
+#include "nsIContent.h"
+#include "nsAString.h"
+#include "nsContentUtils.h"
+#include "gfxPoint.h"
 
 #define NS_SVG_PATH_SEG_MAX_ARGS         7
 #define NS_SVG_PATH_SEG_FIRST_VALID_TYPE nsIDOMSVGPathSeg::PATHSEG_CLOSEPATH
@@ -90,20 +122,20 @@ public:
 
 
 
-  static float EncodeType(uint32_t aType) {
-    PR_STATIC_ASSERT(sizeof(uint32_t) == sizeof(float));
+  static float EncodeType(PRUint32 aType) {
+    PR_STATIC_ASSERT(sizeof(PRUint32) == sizeof(float));
     NS_ABORT_IF_FALSE(IsValidType(aType), "Seg type not recognized");
     return *(reinterpret_cast<float*>(&aType));
   }
 
-  static uint32_t DecodeType(float aType) {
-    PR_STATIC_ASSERT(sizeof(uint32_t) == sizeof(float));
-    uint32_t type = *(reinterpret_cast<uint32_t*>(&aType));
+  static PRUint32 DecodeType(float aType) {
+    PR_STATIC_ASSERT(sizeof(PRUint32) == sizeof(float));
+    PRUint32 type = *(reinterpret_cast<PRUint32*>(&aType));
     NS_ABORT_IF_FALSE(IsValidType(type), "Seg type not recognized");
     return type;
   }
 
-  static PRUnichar GetPathSegTypeAsLetter(uint32_t aType) {
+  static PRUnichar GetPathSegTypeAsLetter(PRUint32 aType) {
     NS_ABORT_IF_FALSE(IsValidType(aType), "Seg type not recognized");
 
     static const PRUnichar table[] = {
@@ -133,10 +165,10 @@ public:
     return table[aType];
   }
 
-  static uint32_t ArgCountForType(uint32_t aType) {
+  static PRUint32 ArgCountForType(PRUint32 aType) {
     NS_ABORT_IF_FALSE(IsValidType(aType), "Seg type not recognized");
 
-    static const uint8_t table[] = {
+    static const PRUint8 table[] = {
       0,  
       0,  
       2,  
@@ -167,35 +199,35 @@ public:
 
 
 
-  static uint32_t ArgCountForType(float aType) {
+  static PRUint32 ArgCountForType(float aType) {
     return ArgCountForType(DecodeType(aType));
   }
 
-  static bool IsValidType(uint32_t aType) {
+  static bool IsValidType(PRUint32 aType) {
     return aType >= NS_SVG_PATH_SEG_FIRST_VALID_TYPE &&
            aType <= NS_SVG_PATH_SEG_LAST_VALID_TYPE;
   }
 
-  static bool IsCubicType(uint32_t aType) {
+  static bool IsCubicType(PRUint32 aType) {
     return aType == nsIDOMSVGPathSeg::PATHSEG_CURVETO_CUBIC_REL ||
            aType == nsIDOMSVGPathSeg::PATHSEG_CURVETO_CUBIC_ABS ||
            aType == nsIDOMSVGPathSeg::PATHSEG_CURVETO_CUBIC_SMOOTH_REL ||
            aType == nsIDOMSVGPathSeg::PATHSEG_CURVETO_CUBIC_SMOOTH_ABS;
   }
 
-  static bool IsQuadraticType(uint32_t aType) {
+  static bool IsQuadraticType(PRUint32 aType) {
     return aType == nsIDOMSVGPathSeg::PATHSEG_CURVETO_QUADRATIC_REL ||
            aType == nsIDOMSVGPathSeg::PATHSEG_CURVETO_QUADRATIC_ABS ||
            aType == nsIDOMSVGPathSeg::PATHSEG_CURVETO_QUADRATIC_SMOOTH_REL ||
            aType == nsIDOMSVGPathSeg::PATHSEG_CURVETO_QUADRATIC_SMOOTH_ABS;
   }
 
-  static bool IsArcType(uint32_t aType) {
+  static bool IsArcType(PRUint32 aType) {
     return aType == nsIDOMSVGPathSeg::PATHSEG_ARC_ABS || 
            aType == nsIDOMSVGPathSeg::PATHSEG_ARC_REL;
   }
 
-  static bool IsRelativeOrAbsoluteType(uint32_t aType) {
+  static bool IsRelativeOrAbsoluteType(PRUint32 aType) {
     NS_ABORT_IF_FALSE(IsValidType(aType), "Seg type not recognized");
 
     
@@ -206,7 +238,7 @@ public:
     return aType >= nsIDOMSVGPathSeg::PATHSEG_MOVETO_ABS;
   }
 
-  static bool IsRelativeType(uint32_t aType) {
+  static bool IsRelativeType(PRUint32 aType) {
     NS_ABORT_IF_FALSE
       (IsRelativeOrAbsoluteType(aType),
        "IsRelativeType called with segment type that does not come in relative and absolute forms");
@@ -219,7 +251,7 @@ public:
     return aType & 1;
   }
 
-  static uint32_t RelativeVersionOfType(uint32_t aType) {
+  static PRUint32 RelativeVersionOfType(PRUint32 aType) {
     NS_ABORT_IF_FALSE
       (IsRelativeOrAbsoluteType(aType),
        "RelativeVersionOfType called with segment type that does not come in relative and absolute forms");
@@ -232,7 +264,7 @@ public:
     return aType | 1;
   }
 
-  static uint32_t SameTypeModuloRelativeness(uint32_t aType1, uint32_t aType2) {
+  static PRUint32 SameTypeModuloRelativeness(PRUint32 aType1, PRUint32 aType2) {
     if (!IsRelativeOrAbsoluteType(aType1)) {
       return aType1 == aType2;
     }

@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsXBLProtoImplProperty_h__
 #define nsXBLProtoImplProperty_h__
 
@@ -11,7 +44,6 @@
 #include "jsapi.h"
 #include "nsIContent.h"
 #include "nsString.h"
-#include "nsXBLSerialize.h"
 #include "nsXBLProtoImplMember.h"
 
 class nsXBLProtoImplProperty: public nsXBLProtoImplMember
@@ -21,33 +53,25 @@ public:
                          const PRUnichar* aGetter, 
                          const PRUnichar* aSetter,
                          const PRUnichar* aReadOnly);
-
-  nsXBLProtoImplProperty(const PRUnichar* aName, const bool aIsReadOnly);
  
   virtual ~nsXBLProtoImplProperty();
 
   void AppendGetterText(const nsAString& aGetter);
   void AppendSetterText(const nsAString& aSetter);
 
-  void SetGetterLineNumber(uint32_t aLineNumber);
-  void SetSetterLineNumber(uint32_t aLineNumber);
+  void SetGetterLineNumber(PRUint32 aLineNumber);
+  void SetSetterLineNumber(PRUint32 aLineNumber);
 
   virtual nsresult InstallMember(nsIScriptContext* aContext,
                                  nsIContent* aBoundElement, 
-                                 JSObject* aScriptObject,
-                                 JSObject* aTargetClassObject,
+                                 void* aScriptObject,
+                                 void* aTargetClassObject,
                                  const nsCString& aClassStr);
   virtual nsresult CompileMember(nsIScriptContext* aContext,
                                  const nsCString& aClassStr,
-                                 JSObject* aClassObject);
+                                 void* aClassObject);
 
   virtual void Trace(TraceCallback aCallback, void *aClosure) const;
-
-  nsresult Read(nsIScriptContext* aContext,
-                nsIObjectInputStream* aStream,
-                XBLBindingSerializeDetails aType);
-  virtual nsresult Write(nsIScriptContext* aContext,
-                         nsIObjectOutputStream* aStream);
 
 protected:
   union {
@@ -64,7 +88,7 @@ protected:
     JSObject *               mJSSetterObject;
   };
   
-  unsigned mJSAttributes;          
+  uintN mJSAttributes;          
 
 #ifdef DEBUG
   bool mIsCompiled;

@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "storage_test_harness.h"
 #include "prthread.h"
 #include "nsIEventTarget.h"
@@ -220,9 +252,9 @@ test_TrueAsyncStatement()
   paramsArray->NewBindingParams(getter_AddRefs(params));
   params->BindInt32ByName(NS_LITERAL_CSTRING("id"), 2);
   paramsArray->AddParams(params);
-  params = nullptr;
+  params = nsnull;
   stmt->BindParameters(paramsArray);
-  paramsArray = nullptr;
+  paramsArray = nsnull;
   blocking_async_execute(stmt);
   stmt->Finalize();
   do_check_false(mutex_used_on_watched_thread);
@@ -332,7 +364,7 @@ void test_AsyncDestructorFinalizesOnAsyncThread()
   do_check_false(mutex_used_on_watched_thread);
 
   
-  stmt = nullptr;
+  stmt = nsnull;
 
   
   do_check_false(mutex_used_on_watched_thread);

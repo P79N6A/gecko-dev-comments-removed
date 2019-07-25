@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_READBACKLAYER_H
 #define GFX_READBACKLAYER_H
 
@@ -26,7 +58,7 @@ public:
   
 
 
-  virtual void SetUnknown(uint64_t aSequenceNumber) = 0;
+  virtual void SetUnknown(PRUint64 aSequenceNumber) = 0;
   
 
 
@@ -44,7 +76,7 @@ public:
 
 
   virtual already_AddRefed<gfxContext>
-      BeginUpdate(const nsIntRect& aRect, uint64_t aSequenceNumber) = 0;
+      BeginUpdate(const nsIntRect& aRect, PRUint64 aSequenceNumber) = 0;
   
 
 
@@ -78,8 +110,8 @@ public:
     
     mEffectiveTransform =
         SnapTransform(GetLocalTransform(), gfxRect(0, 0, mSize.width, mSize.height),
-                      nullptr)*
-        SnapTransform(aTransformToSurface, gfxRect(0, 0, 0, 0), nullptr);
+                      nsnull)*
+        SnapTransform(aTransformToSurface, gfxRect(0, 0, 0, 0), nsnull);
   }
 
   
@@ -120,19 +152,19 @@ public:
 
   void NotifyRemoved() {
     SetUnknown();
-    mSink = nullptr;
+    mSink = nsnull;
   }
 
   void NotifyThebesLayerRemoved(ThebesLayer* aLayer)
   {
     if (mBackgroundLayer == aLayer) {
-      mBackgroundLayer = nullptr;
+      mBackgroundLayer = nsnull;
     }
   }
 
   const nsIntPoint& GetBackgroundLayerOffset() { return mBackgroundLayerOffset; }
 
-  uint64_t AllocateSequenceNumber() { return ++mSequenceCounter; }
+  PRUint64 AllocateSequenceNumber() { return ++mSequenceCounter; }
 
   void SetUnknown()
   {
@@ -140,7 +172,7 @@ public:
       if (mSink) {
         mSink->SetUnknown(AllocateSequenceNumber());
       }
-      mBackgroundLayer = nullptr;
+      mBackgroundLayer = nsnull;
       mBackgroundColor = gfxRGBA(0,0,0,0);
     }
   }
@@ -152,7 +184,7 @@ protected:
     Layer(aManager, aImplData),
     mSequenceCounter(0),
     mSize(0,0),
-    mBackgroundLayer(nullptr),
+    mBackgroundLayer(nsnull),
     mBackgroundLayerOffset(0, 0),
     mBackgroundColor(gfxRGBA(0,0,0,0))
   {}
@@ -161,7 +193,7 @@ protected:
   
   virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
 
-  uint64_t mSequenceCounter;
+  PRUint64 mSequenceCounter;
   nsAutoPtr<ReadbackSink> mSink;
   nsIntSize mSize;
 

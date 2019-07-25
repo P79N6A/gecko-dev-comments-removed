@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsStringBundle_h__
 #define nsStringBundle_h__
 
@@ -31,7 +63,7 @@ protected:
     
     
     
-    nsresult GetStringFromID(int32_t aID, nsAString& aResult);
+    nsresult GetStringFromID(PRInt32 aID, nsAString& aResult);
     nsresult GetStringFromName(const nsAString& aName, nsAString& aResult);
 
     nsresult GetCombinedEnumeration(nsIStringBundleOverride* aOverrideString,
@@ -45,7 +77,7 @@ private:
     
 public:
     static nsresult FormatString(const PRUnichar *formatStr,
-                                 const PRUnichar **aParams, uint32_t aLength,
+                                 const PRUnichar **aParams, PRUint32 aLength,
                                  PRUnichar **aResult);
 };
 

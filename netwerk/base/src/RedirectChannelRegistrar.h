@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef RedirectChannelRegistrar_h__
 #define RedirectChannelRegistrar_h__
 
@@ -10,12 +42,11 @@
 #include "nsIChannel.h"
 #include "nsIParentChannel.h"
 #include "nsClassHashtable.h"
-#include "mozilla/Attributes.h"
 
 namespace mozilla {
 namespace net {
 
-class RedirectChannelRegistrar MOZ_FINAL : public nsIRedirectChannelRegistrar
+class RedirectChannelRegistrar : public nsIRedirectChannelRegistrar
 {
   NS_DECL_ISUPPORTS
   NS_DECL_NSIREDIRECTCHANNELREGISTRAR
@@ -42,7 +73,7 @@ protected:
 
   ChannelHashtable mRealChannels;
   ParentChannelHashtable mParentChannels;
-  uint32_t mId;
+  PRUint32 mId;
 };
 
 }

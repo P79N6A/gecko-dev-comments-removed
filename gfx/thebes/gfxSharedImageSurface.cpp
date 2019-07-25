@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "base/basictypes.h"
 #include "gfxSharedImageSurface.h"
 #include "cairo.h"
@@ -15,9 +47,9 @@ using namespace mozilla::ipc;
 static const cairo_user_data_key_t SHM_KEY = {0};
 
 struct SharedImageInfo {
-    int32_t width;
-    int32_t height;
-    int32_t format;
+    PRInt32 width;
+    PRInt32 height;
+    PRInt32 format;
 };
 
 static SharedImageInfo*
@@ -84,12 +116,12 @@ gfxSharedImageSurface::Open(const Shmem& aShmem)
     SharedImageInfo* shmInfo = GetShmInfoPtr(aShmem);
     gfxIntSize size(shmInfo->width, shmInfo->height);
     if (!CheckSurfaceSize(size))
-        return nullptr;
+        return nsnull;
 
     nsRefPtr<gfxSharedImageSurface> s =
         new gfxSharedImageSurface(size,
                                   (gfxImageFormat)shmInfo->format,
                                   aShmem);
     
-    return (s->CairoStatus() != 0) ? nullptr : s.forget();
+    return (s->CairoStatus() != 0) ? nsnull : s.forget();
 }

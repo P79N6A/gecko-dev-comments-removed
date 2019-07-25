@@ -3,11 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGDATAPARSER_H__
 #define __NS_SVGDATAPARSER_H__
 
-#include "nsError.h"
-#include "nsStringGlue.h"
+#include "nsCOMPtr.h"
 
 
 

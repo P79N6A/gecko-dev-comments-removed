@@ -2,7 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsContentBlocker.h"
+#include "nsIDocument.h"
 #include "nsIContent.h"
 #include "nsIURI.h"
 #include "nsIServiceManager.h"
@@ -35,11 +67,10 @@ static const char *kTypeString[] = {"other",
                                     "objectsubrequest",
                                     "dtd",
                                     "font",
-                                    "media",
-                                    "websocket"};
+                                    "media"};
 
 #define NUMBER_OF_TYPES NS_ARRAY_LENGTH(kTypeString)
-uint8_t nsContentBlocker::mBehaviorPref[NUMBER_OF_TYPES];
+PRUint8 nsContentBlocker::mBehaviorPref[NUMBER_OF_TYPES];
 
 NS_IMPL_ISUPPORTS3(nsContentBlocker, 
                    nsIContentPolicy,
@@ -68,10 +99,10 @@ nsContentBlocker::Init()
   
   nsCOMPtr<nsIPrefBranch> oldPrefBranch;
   oldPrefBranch = do_QueryInterface(prefService);
-  int32_t oldPref;
+  PRInt32 oldPref;
   rv = oldPrefBranch->GetIntPref("network.image.imageBehavior", &oldPref);
   if (NS_SUCCEEDED(rv) && oldPref) {
-    int32_t newPref;
+    PRInt32 newPref;
     switch (oldPref) {
       default:
         newPref = BEHAVIOR_ACCEPT;
@@ -94,8 +125,8 @@ nsContentBlocker::Init()
   mPrefBranchInternal = do_QueryInterface(prefBranch, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = mPrefBranchInternal->AddObserver("", this, true);
-  PrefChanged(prefBranch, nullptr);
+  rv = mPrefBranchInternal->AddObserver("", this, PR_TRUE);
+  PrefChanged(prefBranch, nsnull);
 
   return rv;
 }
@@ -107,11 +138,11 @@ void
 nsContentBlocker::PrefChanged(nsIPrefBranch *aPrefBranch,
                               const char    *aPref)
 {
-  int32_t val;
+  PRInt32 val;
 
 #define PREF_CHANGED(_P) (!aPref || !strcmp(aPref, _P))
 
-  for(uint32_t i = 0; i < NUMBER_OF_TYPES; ++i) {
+  for(PRUint32 i = 0; i < NUMBER_OF_TYPES; ++i) {
     if (PREF_CHANGED(kTypeString[i]) &&
         NS_SUCCEEDED(aPrefBranch->GetIntPref(kTypeString[i], &val)))
       mBehaviorPref[i] = LIMIT(val, 1, 3, 1);
@@ -121,14 +152,13 @@ nsContentBlocker::PrefChanged(nsIPrefBranch *aPrefBranch,
 
 
 NS_IMETHODIMP 
-nsContentBlocker::ShouldLoad(uint32_t          aContentType,
+nsContentBlocker::ShouldLoad(PRUint32          aContentType,
                              nsIURI           *aContentLocation,
                              nsIURI           *aRequestingLocation,
                              nsISupports      *aRequestingContext,
                              const nsACString &aMimeGuess,
                              nsISupports      *aExtra,
-                             nsIPrincipal     *aRequestPrincipal,
-                             int16_t          *aDecision)
+                             PRInt16          *aDecision)
 {
   *aDecision = nsIContentPolicy::ACCEPT;
   nsresult rv;
@@ -144,12 +174,7 @@ nsContentBlocker::ShouldLoad(uint32_t          aContentType,
 
   
   
-  if (aContentType == nsIContentPolicy::TYPE_OBJECT)
-    return NS_OK;
-  
-  
-  
-  nsAutoCString scheme;
+  nsCAutoString scheme;
   aContentLocation->GetScheme(scheme);
   if (!scheme.LowerCaseEqualsLiteral("ftp") &&
       !scheme.LowerCaseEqualsLiteral("http") &&
@@ -167,19 +192,49 @@ nsContentBlocker::ShouldLoad(uint32_t          aContentType,
       *aDecision = nsIContentPolicy::REJECT_SERVER;
     }
   }
+  if (aContentType != nsIContentPolicy::TYPE_OBJECT || aMimeGuess.IsEmpty())
+    return NS_OK;
 
-  return NS_OK;
+  
+  
+  nsCOMPtr<nsIObjectLoadingContent> objectLoader =
+    do_QueryInterface(aRequestingContext);
+  if (!objectLoader)
+    return NS_OK;
+
+  PRUint32 contentType;
+  rv = objectLoader->GetContentTypeForMIMEType(aMimeGuess, &contentType);
+  if (NS_FAILED(rv))
+    return rv;
+    
+  switch (contentType) {
+  case nsIObjectLoadingContent::TYPE_IMAGE:
+    aContentType = nsIContentPolicy::TYPE_IMAGE;
+    break;
+  case nsIObjectLoadingContent::TYPE_DOCUMENT:
+    aContentType = nsIContentPolicy::TYPE_SUBDOCUMENT;
+    break;
+  default:
+    return NS_OK;
+  }
+
+  NS_ASSERTION(aContentType != nsIContentPolicy::TYPE_OBJECT,
+	       "Shouldn't happen.  Infinite loops are bad!");
+
+  
+  
+  return ShouldLoad(aContentType, aContentLocation, aRequestingLocation,
+		    aRequestingContext, aMimeGuess, aExtra, aDecision);
 }
 
 NS_IMETHODIMP
-nsContentBlocker::ShouldProcess(uint32_t          aContentType,
+nsContentBlocker::ShouldProcess(PRUint32          aContentType,
                                 nsIURI           *aContentLocation,
                                 nsIURI           *aRequestingLocation,
                                 nsISupports      *aRequestingContext,
                                 const nsACString &aMimeGuess,
                                 nsISupports      *aExtra,
-                                nsIPrincipal     *aRequestPrincipal,
-                                int16_t          *aDecision)
+                                PRInt16          *aDecision)
 {
   
   
@@ -188,7 +243,7 @@ nsContentBlocker::ShouldProcess(uint32_t          aContentType,
     do_QueryInterface(NS_CP_GetDocShellFromContext(aRequestingContext));
 
   if (item) {
-    int32_t type;
+    PRInt32 type;
     item->GetItemType(&type);
     if (type == nsIDocShellTreeItem::typeChrome) {
       *aDecision = nsIContentPolicy::ACCEPT;
@@ -198,51 +253,27 @@ nsContentBlocker::ShouldProcess(uint32_t          aContentType,
 
   
   
-  
-  
-  
-  
-  if (aContentType == nsIContentPolicy::TYPE_OBJECT) {
-    *aDecision = nsIContentPolicy::ACCEPT;
-
-    bool shouldLoad, fromPrefs;
-    nsresult rv = TestPermission(aContentLocation, aRequestingLocation,
-                                 aContentType, &shouldLoad, &fromPrefs);
-    NS_ENSURE_SUCCESS(rv, rv);
-    if (!shouldLoad) {
-      if (fromPrefs) {
-        *aDecision = nsIContentPolicy::REJECT_TYPE;
-      } else {
-        *aDecision = nsIContentPolicy::REJECT_SERVER;
-      }
-    }
-    return NS_OK;
-  }
-  
-  
-  
   return ShouldLoad(aContentType, aContentLocation, aRequestingLocation,
-                    aRequestingContext, aMimeGuess, aExtra, aRequestPrincipal,
-                    aDecision);
+                    aRequestingContext, aMimeGuess, aExtra, aDecision);
 }
 
 nsresult
 nsContentBlocker::TestPermission(nsIURI *aCurrentURI,
                                  nsIURI *aFirstURI,
-                                 int32_t aContentType,
+                                 PRInt32 aContentType,
                                  bool *aPermission,
                                  bool *aFromPrefs)
 {
-  *aFromPrefs = false;
+  *aFromPrefs = PR_FALSE;
   
   
-  *aPermission = true;
+  *aPermission = PR_TRUE;
 
   
   
   
   
-  uint32_t permission;
+  PRUint32 permission;
   nsresult rv = mPermissionManager->TestPermission(aCurrentURI, 
                                                    kTypeString[aContentType - 1],
                                                    &permission);
@@ -251,17 +282,17 @@ nsContentBlocker::TestPermission(nsIURI *aCurrentURI,
   
   if (!permission) {
     permission = mBehaviorPref[aContentType - 1];
-    *aFromPrefs = true;
+    *aFromPrefs = PR_TRUE;
   }
 
   
   
   switch (permission) {
   case BEHAVIOR_ACCEPT:
-    *aPermission = true;
+    *aPermission = PR_TRUE;
     break;
   case BEHAVIOR_REJECT:
-    *aPermission = false;
+    *aPermission = PR_FALSE;
     break;
 
   case BEHAVIOR_NOFOREIGN:
@@ -287,14 +318,14 @@ nsContentBlocker::TestPermission(nsIURI *aCurrentURI,
     
     
 
-    nsAutoCString currentHost;
+    nsCAutoString currentHost;
     rv = aCurrentURI->GetAsciiHost(currentHost);
     NS_ENSURE_SUCCESS(rv, rv);
 
     
     
     
-    int32_t dot = currentHost.RFindChar('.');
+    PRInt32 dot = currentHost.RFindChar('.');
     dot = currentHost.RFindChar('.', dot-1);
     ++dot;
 
@@ -303,13 +334,13 @@ nsContentBlocker::TestPermission(nsIURI *aCurrentURI,
     const nsCSubstring &tail =
       Substring(currentHost, dot, currentHost.Length() - dot);
 
-    nsAutoCString firstHost;
+    nsCAutoString firstHost;
     rv = aFirstURI->GetAsciiHost(firstHost);
     NS_ENSURE_SUCCESS(rv, rv);
 
     
     if (firstHost.Length() < tail.Length()) {
-      *aPermission = false;
+      *aPermission = PR_FALSE;
       return NS_OK;
     }
     
@@ -322,7 +353,7 @@ nsContentBlocker::TestPermission(nsIURI *aCurrentURI,
     if ((firstHost.Length() > tail.Length() && 
          firstHost.CharAt(firstHost.Length() - tail.Length() - 1) != '.') || 
         !tail.Equals(firstTail)) {
-      *aPermission = false;
+      *aPermission = PR_FALSE;
     }
     break;
   }

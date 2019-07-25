@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  
 
 
@@ -52,13 +84,16 @@
 #include "nsDTDUtils.h"
 #include "nsThreadUtils.h"
 #include "nsIContentSink.h"
+#include "nsIParserFilter.h"
 #include "nsCOMArray.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsWeakReference.h"
 
 class nsICharsetConverterManager;
+class nsICharsetAlias;
 class nsIDTD;
 class nsScanner;
+class nsSpeculativeScriptThread;
 class nsIThreadPool;
 
 #ifdef _MSC_VER
@@ -134,13 +169,16 @@ class nsParser : public nsIParser,
 
 
 
-    NS_IMETHOD_(void) SetDocumentCharset(const nsACString& aCharset, int32_t aSource);
+    NS_IMETHOD_(void) SetDocumentCharset(const nsACString& aCharset, PRInt32 aSource);
 
-    NS_IMETHOD_(void) GetDocumentCharset(nsACString& aCharset, int32_t& aSource)
+    NS_IMETHOD_(void) GetDocumentCharset(nsACString& aCharset, PRInt32& aSource)
     {
          aCharset = mCharset;
          aSource = mCharsetSource;
     }
+
+
+    NS_IMETHOD_(void) SetParserFilter(nsIParserFilter* aFilter);
 
     
 
@@ -150,9 +188,23 @@ class nsParser : public nsIParser,
 
 
     NS_IMETHOD Parse(nsIURI* aURL,
-                     nsIRequestObserver* aListener = nullptr,
+                     nsIRequestObserver* aListener = nsnull,
                      void* aKey = 0,
                      nsDTDMode aMode = eDTDMode_autodetect);
+
+    
+
+
+
+
+
+    NS_IMETHOD Parse(const nsAString& aSourceBuffer,
+                     void* aKey,
+                     const nsACString& aContentType,
+                     bool aLastCall,
+                     nsDTDMode aMode = eDTDMode_autodetect);
+
+    NS_IMETHOD_(void *) GetRootContextKey();
 
     
 
@@ -171,7 +223,6 @@ class nsParser : public nsIParser,
     NS_IMETHOD        ContinueInterruptedParsing();
     NS_IMETHOD_(void) BlockParser();
     NS_IMETHOD_(void) UnblockParser();
-    NS_IMETHOD_(void) ContinueInterruptedParsingAsync();
     NS_IMETHOD        Terminate(void);
 
     
@@ -244,16 +295,18 @@ class nsParser : public nsIParser,
     
 
 
-    virtual nsIStreamListener* GetStreamListener();
+
+
+    NS_IMETHOD GetStreamListener(nsIStreamListener** aListener);
 
     
 
 
 
     bool DetectMetaTag(const char* aBytes, 
-                         int32_t aLen, 
+                         PRInt32 aLen, 
                          nsCString& oCharset, 
-                         int32_t& oCharsetSource);
+                         PRInt32& oCharsetSource);
 
     void SetSinkCharset(nsACString& aCharset);
 
@@ -263,6 +316,14 @@ class nsParser : public nsIParser,
 
 
     NS_IMETHODIMP CancelParsingEvents();
+
+    
+
+
+
+
+
+    virtual bool CanInterrupt();
 
     
 
@@ -282,7 +343,7 @@ class nsParser : public nsIParser,
     
 
 
-    virtual void MarkAsNotScriptCreated(const char* aCommand);
+    virtual void MarkAsNotScriptCreated();
 
     
 
@@ -312,6 +373,10 @@ class nsParser : public nsIParser,
 
     void HandleParserContinueEvent(class nsParserContinueEvent *);
 
+    static nsICharsetAlias* GetCharsetAliasService() {
+      return sCharsetAliasService;
+    }
+
     static nsICharsetConverterManager* GetCharsetConverterManager() {
       return sCharsetConverterManager;
     }
@@ -319,6 +384,10 @@ class nsParser : public nsIParser,
     virtual void Reset() {
       Cleanup();
       Initialize();
+    }
+
+    nsIThreadPool* ThreadPool() {
+      return sSpeculativeThreadPool;
     }
 
     bool IsScriptExecuting() {
@@ -349,6 +418,8 @@ class nsParser : public nsIParser,
 
 
     nsresult DidBuildModel(nsresult anErrorCode);
+
+    void SpeculativelyParse();
 
 private:
 
@@ -389,13 +460,6 @@ private:
 
     bool DidTokenize(bool aIsFinalChunk = false);
 
-    
-
-
-    nsresult Parse(const nsAString& aSourceBuffer,
-                   void* aKey,
-                   bool aLastCall);
-
 protected:
     
     
@@ -407,24 +471,33 @@ protected:
     nsCOMPtr<nsIRequestObserver> mObserver;
     nsCOMPtr<nsIContentSink>     mSink;
     nsIRunnable*                 mContinueEvent;  
+    nsRefPtr<nsSpeculativeScriptThread> mSpeculativeScriptThread;
    
+    nsCOMPtr<nsIParserFilter> mParserFilter;
     nsTokenAllocator          mTokenAllocator;
     
     eParserCommands     mCommand;
     nsresult            mInternalState;
-    nsresult            mStreamStatus;
-    int32_t             mCharsetSource;
+    PRInt32             mStreamStatus;
+    PRInt32             mCharsetSource;
     
-    uint16_t            mFlags;
+    PRUint16            mFlags;
 
     nsString            mUnusedInput;
     nsCString           mCharset;
     nsCString           mCommandStr;
 
     bool                mProcessingNetworkData;
-    bool                mIsAboutBlank;
 
+    static nsICharsetAlias*            sCharsetAliasService;
     static nsICharsetConverterManager* sCharsetConverterManager;
+    static nsIThreadPool*              sSpeculativeThreadPool;
+
+    enum {
+      kSpeculativeThreadLimit = 15,
+      kIdleThreadLimit = 0,
+      kIdleThreadTimeout = 50
+    };
 };
 
 #endif 

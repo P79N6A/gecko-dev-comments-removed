@@ -5,11 +5,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsTextEquivUtils_H_
 #define _nsTextEquivUtils_H_
 
-#include "Accessible.h"
-#include "Role.h"
+#include "nsAccessible.h"
 
 #include "nsIContent.h"
 #include "nsIStringBundle.h"
@@ -49,7 +80,7 @@ public:
 
 
 
-  static nsresult GetNameFromSubtree(Accessible* aAccessible,
+  static nsresult GetNameFromSubtree(nsAccessible *aAccessible,
                                      nsAString& aName);
 
   
@@ -60,7 +91,7 @@ public:
 
 
 
-  static nsresult GetTextEquivFromIDRefs(Accessible* aAccessible,
+  static nsresult GetTextEquivFromIDRefs(nsAccessible *aAccessible,
                                          nsIAtom *aIDRefsAttr,
                                          nsAString& aTextEquiv);
 
@@ -75,7 +106,7 @@ public:
 
 
 
-  static nsresult AppendTextEquivFromContent(Accessible* aInitiatorAcc,
+  static nsresult AppendTextEquivFromContent(nsAccessible *aInitiatorAcc,
                                              nsIContent *aContent,
                                              nsAString *aString);
 
@@ -94,20 +125,20 @@ private:
 
 
 
-  static nsresult AppendFromAccessibleChildren(Accessible* aAccessible,
+  static nsresult AppendFromAccessibleChildren(nsAccessible *aAccessible,
                                                nsAString *aString);
   
   
 
 
 
-  static nsresult AppendFromAccessible(Accessible* aAccessible,
+  static nsresult AppendFromAccessible(nsAccessible *aAccessible,
                                        nsAString *aString);
 
   
 
 
-  static nsresult AppendFromValue(Accessible* aAccessible,
+  static nsresult AppendFromValue(nsAccessible *aAccessible,
                                   nsAString *aString);
   
 
@@ -143,14 +174,14 @@ private:
   
 
 
-  static uint32_t GetRoleRule(mozilla::a11y::roles::Role aRole);
+  static PRUint32 gRoleToNameRulesMap[];
 
   
 
 
 
 
-  static nsRefPtr<Accessible> gInitiatorAcc;
+  static nsRefPtr<nsAccessible> gInitiatorAcc;
 };
 
 #endif

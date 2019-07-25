@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsMemoryImpl_h__
 #define nsMemoryImpl_h__
 
@@ -37,7 +69,7 @@ protected:
         const PRUnichar* mReason;
     };
 
-    static int32_t    sIsFlushing;
+    static PRInt32    sIsFlushing;
     static FlushEvent sFlushEvent;
     static PRIntervalTime sLastFlushTime;
 };

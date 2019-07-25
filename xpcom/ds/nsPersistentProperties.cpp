@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsID.h"
 #include "nsCRT.h"
 #include "nsReadableUtils.h"
@@ -32,7 +65,7 @@ ArenaStrdup(const nsAFlatString& aString, PLArenaPool* aArena)
 {
   void *mem;
   
-  int32_t len = (aString.Length()+1) * sizeof(PRUnichar);
+  PRInt32 len = (aString.Length()+1) * sizeof(PRUnichar);
   PL_ARENA_ALLOCATE(mem, aArena, len);
   NS_ASSERTION(mem, "Couldn't allocate space!\n");
   if (mem) {
@@ -46,7 +79,7 @@ ArenaStrdup(const nsAFlatCString& aString, PLArenaPool* aArena)
 {
   void *mem;
   
-  int32_t len = (aString.Length()+1) * sizeof(char);
+  PRInt32 len = (aString.Length()+1) * sizeof(char);
   PL_ARENA_ALLOCATE(mem, aArena, len);
   NS_ASSERTION(mem, "Couldn't allocate space!\n");
   if (mem)
@@ -62,7 +95,7 @@ static const struct PLDHashTableOps property_HashTableOps = {
   PL_DHashMoveEntryStub,
   PL_DHashClearEntryStub,
   PL_DHashFinalizeStub,
-  nullptr,
+  nsnull,
 };
 
 
@@ -86,22 +119,22 @@ class nsPropertiesParser
 {
 public:
   nsPropertiesParser(nsIPersistentProperties* aProps) :
-    mHaveMultiLine(false), mState(eParserState_AwaitingKey),
+    mHaveMultiLine(PR_FALSE), mState(eParserState_AwaitingKey),
     mProps(aProps) {}
 
   void FinishValueState(nsAString& aOldValue) {
     static const char trimThese[] = " \t";
-    mKey.Trim(trimThese, false, true);
+    mKey.Trim(trimThese, PR_FALSE, PR_TRUE);
 
     
     PRUnichar backup_char;
-    uint32_t minLength = mMinLength;
+    PRUint32 minLength = mMinLength;
     if (minLength)
     {
       backup_char = mValue[minLength-1];
       mValue.SetCharAt('x', minLength-1);
     }
-    mValue.Trim(trimThese, false, true);
+    mValue.Trim(trimThese, PR_FALSE, PR_TRUE);
     if (minLength)
       mValue.SetCharAt(backup_char, minLength-1);
 
@@ -115,11 +148,11 @@ public:
   static NS_METHOD SegmentWriter(nsIUnicharInputStream* aStream,
                                  void* aClosure,
                                  const PRUnichar *aFromSegment,
-                                 uint32_t aToOffset,
-                                 uint32_t aCount,
-                                 uint32_t *aWriteCount);
+                                 PRUint32 aToOffset,
+                                 PRUint32 aCount,
+                                 PRUint32 *aWriteCount);
 
-  nsresult ParseBuffer(const PRUnichar* aBuffer, uint32_t aBufferLength);
+  nsresult ParseBuffer(const PRUnichar* aBuffer, PRUint32 aBufferLength);
 
 private:
   bool ParseValueCharacter(
@@ -159,7 +192,7 @@ private:
   nsAutoString mKey;
   nsAutoString mValue;
 
-  uint32_t  mUnicodeValuesRead; 
+  PRUint32  mUnicodeValuesRead; 
   PRUnichar mUnicodeValue;      
   bool      mHaveMultiLine;     
                                 
@@ -169,7 +202,7 @@ private:
                                 
                                 
   bool      mMultiLineCanSkipN; 
-  uint32_t  mMinLength;         
+  PRUint32  mMinLength;         
                                 
   EParserState mState;
   
@@ -201,7 +234,7 @@ bool nsPropertiesParser::ParseValueCharacter(
     case '\\':
       if (mHaveMultiLine)
         
-        mHaveMultiLine = false;
+        mHaveMultiLine = PR_FALSE;
       else
         mValue += Substring(tokenStart, cur);
 
@@ -212,7 +245,7 @@ bool nsPropertiesParser::ParseValueCharacter(
       
       if (mHaveMultiLine && mMultiLineCanSkipN) {
         
-        mMultiLineCanSkipN = false;
+        mMultiLineCanSkipN = PR_FALSE;
         
         
         
@@ -226,7 +259,7 @@ bool nsPropertiesParser::ParseValueCharacter(
       
       mValue += Substring(tokenStart, cur);
       FinishValueState(oldValue);
-      mHaveMultiLine = false;
+      mHaveMultiLine = PR_FALSE;
       break;
 
     default:
@@ -235,7 +268,7 @@ bool nsPropertiesParser::ParseValueCharacter(
       if (mHaveMultiLine) {
         if (c == ' ' || c == '\t') {
           
-          mMultiLineCanSkipN = false;
+          mMultiLineCanSkipN = PR_FALSE;
           
           
           
@@ -243,7 +276,7 @@ bool nsPropertiesParser::ParseValueCharacter(
           tokenStart = cur+1;
           break;
         }
-        mHaveMultiLine = false;
+        mHaveMultiLine = PR_FALSE;
         tokenStart = cur;
       }
       break; 
@@ -287,7 +320,7 @@ bool nsPropertiesParser::ParseValueCharacter(
       
     case '\r':
     case '\n':
-      mHaveMultiLine = true;
+      mHaveMultiLine = PR_TRUE;
       mMultiLineCanSkipN = (c == '\r');
       mSpecialState = eParserSpecial_None;
       break;
@@ -322,7 +355,7 @@ bool nsPropertiesParser::ParseValueCharacter(
       tokenStart = cur;
 
       
-      return false;
+      return PR_FALSE;
     }
 
     if (++mUnicodeValuesRead >= 4) {
@@ -335,15 +368,15 @@ bool nsPropertiesParser::ParseValueCharacter(
     break;
   }
 
-  return true;
+  return PR_TRUE;
 }
 
 NS_METHOD nsPropertiesParser::SegmentWriter(nsIUnicharInputStream* aStream,
                                             void* aClosure,
                                             const PRUnichar *aFromSegment,
-                                            uint32_t aToOffset,
-                                            uint32_t aCount,
-                                            uint32_t *aWriteCount)
+                                            PRUint32 aToOffset,
+                                            PRUint32 aCount,
+                                            PRUint32 *aWriteCount)
 {
   nsPropertiesParser *parser = 
     static_cast<nsPropertiesParser *>(aClosure);
@@ -355,13 +388,13 @@ NS_METHOD nsPropertiesParser::SegmentWriter(nsIUnicharInputStream* aStream,
 }
 
 nsresult nsPropertiesParser::ParseBuffer(const PRUnichar* aBuffer,
-                                         uint32_t aBufferLength)
+                                         PRUint32 aBufferLength)
 {
   const PRUnichar* cur = aBuffer;
   const PRUnichar* end = aBuffer + aBufferLength;
 
   
-  const PRUnichar* tokenStart = nullptr;
+  const PRUnichar* tokenStart = nsnull;
 
   
   
@@ -450,10 +483,10 @@ nsresult nsPropertiesParser::ParseBuffer(const PRUnichar* aBuffer,
 }
 
 nsPersistentProperties::nsPersistentProperties()
-: mIn(nullptr)
+: mIn(nsnull)
 {
   mSubclass = static_cast<nsIPersistentProperties*>(this);
-  mTable.ops = nullptr;
+  mTable.ops = nsnull;
   PL_INIT_ARENA_POOL(&mArena, "PersistentPropertyArena", 2048);
 }
 
@@ -467,9 +500,9 @@ nsPersistentProperties::~nsPersistentProperties()
 nsresult
 nsPersistentProperties::Init()
 {
-  if (!PL_DHashTableInit(&mTable, &property_HashTableOps, nullptr,
+  if (!PL_DHashTableInit(&mTable, &property_HashTableOps, nsnull,
                          sizeof(PropertyTableEntry), 20)) {
-    mTable.ops = nullptr;
+    mTable.ops = nsnull;
     return NS_ERROR_OUT_OF_MEMORY;
   }
   return NS_OK;
@@ -481,7 +514,7 @@ nsPersistentProperties::Create(nsISupports *aOuter, REFNSIID aIID, void **aResul
   if (aOuter)
     return NS_ERROR_NO_AGGREGATION;
   nsPersistentProperties* props = new nsPersistentProperties();
-  if (props == nullptr)
+  if (props == nsnull)
     return NS_ERROR_OUT_OF_MEMORY;
 
   NS_ADDREF(props);
@@ -508,12 +541,12 @@ nsPersistentProperties::Load(nsIInputStream *aIn)
 
   nsPropertiesParser parser(mSubclass);
 
-  uint32_t nProcessed;
+  PRUint32 nProcessed;
   
   
   while (NS_SUCCEEDED(rv = mIn->ReadSegments(nsPropertiesParser::SegmentWriter, &parser, 4096, &nProcessed)) &&
          nProcessed != 0);
-  mIn = nullptr;
+  mIn = nsnull;
   if (NS_FAILED(rv))
     return rv;
 
@@ -539,7 +572,8 @@ nsPersistentProperties::SetStringProperty(const nsACString& aKey,
 
   if (entry->mKey) {
     aOldValue = entry->mValue;
-    NS_WARNING(nsPrintfCString("the property %s already exists\n",
+    NS_WARNING(nsPrintfCString(aKey.Length() + 30,
+                               "the property %s already exists\n",
                                flatKey.get()).get());
   }
   else {
@@ -587,7 +621,7 @@ nsPersistentProperties::GetStringProperty(const nsACString& aKey,
 
 static PLDHashOperator
 AddElemToArray(PLDHashTable* table, PLDHashEntryHdr *hdr,
-               uint32_t i, void *arg)
+               PRUint32 i, void *arg)
 {
   nsISupportsArray  *propArray = (nsISupportsArray *) arg;
   PropertyTableEntry* entry =
@@ -618,7 +652,7 @@ nsPersistentProperties::Enumerate(nsISimpleEnumerator** aResult)
     return NS_ERROR_OUT_OF_MEMORY;
 
   
-  uint32_t n =
+  PRUint32 n =
     PL_DHashTableEnumerate(&mTable, AddElemToArray, (void *)propArray);
   if (n < mTable.entryCount)
     return NS_ERROR_OUT_OF_MEMORY;
@@ -660,7 +694,7 @@ nsPersistentProperties::Has(const char* prop, bool *result)
 }
 
 NS_IMETHODIMP
-nsPersistentProperties::GetKeys(uint32_t *count, char ***keys)
+nsPersistentProperties::GetKeys(PRUint32 *count, char ***keys)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -675,7 +709,7 @@ nsPropertyElement::Create(nsISupports *aOuter, REFNSIID aIID, void **aResult)
   if (aOuter)
     return NS_ERROR_NO_AGGREGATION;
   nsPropertyElement* propElem = new nsPropertyElement();
-  if (propElem == nullptr)
+  if (propElem == nsnull)
     return NS_ERROR_OUT_OF_MEMORY;
   NS_ADDREF(propElem);
   nsresult rv = propElem->QueryInterface(aIID, aResult);

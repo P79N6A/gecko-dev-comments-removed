@@ -3,6 +3,37 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "DOMSVGAnimatedNumberList.h"
 #include "DOMSVGNumberList.h"
 #include "SVGAnimatedNumberList.h"
@@ -55,15 +86,16 @@ DOMSVGAnimatedNumberList::GetAnimVal(nsIDOMSVGNumberList **_retval)
  already_AddRefed<DOMSVGAnimatedNumberList>
 DOMSVGAnimatedNumberList::GetDOMWrapper(SVGAnimatedNumberList *aList,
                                         nsSVGElement *aElement,
-                                        uint8_t aAttrEnum)
+                                        PRUint8 aAttrEnum)
 {
-  nsRefPtr<DOMSVGAnimatedNumberList> wrapper =
+  DOMSVGAnimatedNumberList *wrapper =
     sSVGAnimatedNumberListTearoffTable.GetTearoff(aList);
   if (!wrapper) {
     wrapper = new DOMSVGAnimatedNumberList(aElement, aAttrEnum);
     sSVGAnimatedNumberListTearoffTable.AddTearoff(aList, wrapper);
   }
-  return wrapper.forget();
+  NS_ADDREF(wrapper);
+  return wrapper;
 }
 
  DOMSVGAnimatedNumberList*

@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  
 
 
@@ -27,7 +59,7 @@
 
 
 
-static const uint16_t g_uf_gb18030_2bytes[] = {
+static const PRUint16 g_uf_gb18030_2bytes[] = {
 #include "gb18030uniq2b.uf"
 };
 class nsUnicodeToGB18030Uniq2Bytes : public nsTableEncoderSupport
@@ -42,7 +74,7 @@ protected:
 
 
 
-static const uint16_t g_uf_gb18030_4bytes[] = {
+static const PRUint16 g_uf_gb18030_4bytes[] = {
 #include "gb180304bytes.uf"
 };
 class nsUnicodeTo4BytesGB18030 : public nsTableEncoderSupport
@@ -57,7 +89,7 @@ protected:
 
 
 
-static const uint16_t g_uf_gbk_2bytes[] = {
+static const PRUint16 g_uf_gbk_2bytes[] = {
 #include "gbkuniq2b.uf"
 };
 class nsUnicodeToGBKUniq2Bytes : public nsTableEncoderSupport
@@ -89,7 +121,7 @@ bool nsUnicodeToGB18030::EncodeSurrogate(
       NS_IS_LOW_SURROGATE(aSurrogateLow) )
   {
     
-    uint32_t idx = ((aSurrogateHigh - (PRUnichar)0xD800) << 10 ) |
+    PRUint32 idx = ((aSurrogateHigh - (PRUnichar)0xD800) << 10 ) |
                    (aSurrogateLow - (PRUnichar) 0xDC00);
 
     unsigned char *out = (unsigned char*) aOut;
@@ -100,19 +132,19 @@ bool nsUnicodeToGB18030::EncodeSurrogate(
     idx %= (10*126);
     out[2] = (idx / (10)) + 0x81;
     out[3] = (idx % 10) + 0x30;
-    return true;
+    return PR_TRUE;
   } 
-  return false; 
+  return PR_FALSE; 
 } 
 
 
 
 
-nsUnicodeToGBK::nsUnicodeToGBK(uint32_t aMaxLength) :
+nsUnicodeToGBK::nsUnicodeToGBK(PRUint32 aMaxLength) :
   nsEncoderSupport(aMaxLength)
 {
-  mExtensionEncoder = nullptr;
-  m4BytesEncoder = nullptr;
+  mExtensionEncoder = nsnull;
+  m4BytesEncoder = nsnull;
   mUtil.InitToGBKTable();
   mSurrogateHigh = 0;
 }
@@ -122,75 +154,75 @@ void nsUnicodeToGBK::CreateExtensionEncoder()
 }
 void nsUnicodeToGBK::Create4BytesEncoder()
 {
-  m4BytesEncoder = nullptr;
+  m4BytesEncoder = nsnull;
 }
 bool nsUnicodeToGBK::TryExtensionEncoder(
   PRUnichar aChar,
   char* aOut,
-  int32_t *aOutLen
+  PRInt32 *aOutLen
 )
 {
   if( NS_IS_HIGH_SURROGATE(aChar) || 
       NS_IS_LOW_SURROGATE(aChar) )
   {
     
-    return false;
+    return PR_FALSE;
   }
   if(! mExtensionEncoder )
     CreateExtensionEncoder();
   if(mExtensionEncoder) 
   {
-    int32_t len = 1;
+    PRInt32 len = 1;
     nsresult res = NS_OK;
     res = mExtensionEncoder->Convert(&aChar, &len, aOut, aOutLen);
     if(NS_SUCCEEDED(res) && (*aOutLen > 0))
-      return true;
+      return PR_TRUE;
   }
-  return false;
+  return PR_FALSE;
 }
 
 bool nsUnicodeToGBK::Try4BytesEncoder(
   PRUnichar aChar,
   char* aOut,
-  int32_t *aOutLen
+  PRInt32 *aOutLen
 )
 {
   if( NS_IS_HIGH_SURROGATE(aChar) || 
       NS_IS_LOW_SURROGATE(aChar) )
   {
     
-    return false;
+    return PR_FALSE;
   }
   if(! m4BytesEncoder )
     Create4BytesEncoder();
   if(m4BytesEncoder) 
   {
-    int32_t len = 1;
+    PRInt32 len = 1;
     nsresult res = NS_OK;
     res = m4BytesEncoder->Convert(&aChar, &len, aOut, aOutLen);
     NS_ASSERTION(NS_FAILED(res) || ((1 == len) && (4 == *aOutLen)),
       "unexpect conversion length");
     if(NS_SUCCEEDED(res) && (*aOutLen > 0))
-      return true;
+      return PR_TRUE;
   }
-  return false;
+  return PR_FALSE;
 }
 bool nsUnicodeToGBK::EncodeSurrogate(
   PRUnichar aSurrogateHigh,
   PRUnichar aSurrogateLow,
   char* aOut)
 {
-  return false; 
+  return PR_FALSE; 
 } 
 
 NS_IMETHODIMP nsUnicodeToGBK::ConvertNoBuff(
   const PRUnichar * aSrc, 
-  int32_t * aSrcLength, 
+  PRInt32 * aSrcLength, 
   char * aDest, 
-  int32_t * aDestLength)
+  PRInt32 * aDestLength)
 {
-  int32_t iSrcLength = 0;
-  int32_t iDestLength = 0;
+  PRInt32 iSrcLength = 0;
+  PRInt32 iDestLength = 0;
   PRUnichar unicode;
   nsresult res = NS_OK;
   while (iSrcLength < *aSrcLength )
@@ -205,7 +237,7 @@ NS_IMETHODIMP nsUnicodeToGBK::ConvertNoBuff(
       iDestLength +=1;
     } else {
       char byte1, byte2;
-      if(mUtil.UnicodeToGBKChar( unicode, false, &byte1, &byte2))
+      if(mUtil.UnicodeToGBKChar( unicode, PR_FALSE, &byte1, &byte2))
       {
         
         if(iDestLength+2 > *aDestLength)
@@ -218,7 +250,7 @@ NS_IMETHODIMP nsUnicodeToGBK::ConvertNoBuff(
         aDest += 2;	
         iDestLength +=2;
       } else {
-        int32_t aOutLen = 2;
+        PRInt32 aOutLen = 2;
         
         if(iDestLength+2 > *aDestLength)
         {

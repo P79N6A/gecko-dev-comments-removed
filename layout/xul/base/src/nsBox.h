@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsBox_h___
 #define nsBox_h___
 
@@ -30,7 +62,7 @@ public:
 
   virtual nsSize GetMinSizeForScrollArea(nsBoxLayoutState& aBoxLayoutState);
 
-  virtual bool IsCollapsed();
+  virtual bool IsCollapsed(nsBoxLayoutState& aBoxLayoutState);
 
   virtual void SetBounds(nsBoxLayoutState& aBoxLayoutState, const nsRect& aRect,
                          bool aRemoveOverflowAreas = false);
@@ -42,10 +74,10 @@ public:
   virtual Valignment GetVAlign() const { return vAlign_Top; }
   virtual Halignment GetHAlign() const { return hAlign_Left; }
 
-  NS_IMETHOD RelayoutChildAtOrdinal(nsBoxLayoutState& aState, nsIFrame* aChild);
+  NS_IMETHOD RelayoutChildAtOrdinal(nsBoxLayoutState& aState, nsIBox* aChild);
 
 #ifdef DEBUG_LAYOUT
-  NS_IMETHOD GetDebugBoxAt(const nsPoint& aPoint, nsIFrame** aBox);
+  NS_IMETHOD GetDebugBoxAt(const nsPoint& aPoint, nsIBox** aBox);
   NS_IMETHOD GetDebug(bool& aDebug);
   NS_IMETHOD SetDebug(nsBoxLayoutState& aState, bool aDebug);
 
@@ -72,8 +104,8 @@ public:
 
   void AddBorderAndPadding(nsSize& aSize);
 
-  static void AddBorderAndPadding(nsIFrame* aBox, nsSize& aSize);
-  static void AddMargin(nsIFrame* aChild, nsSize& aSize);
+  static void AddBorderAndPadding(nsIBox* aBox, nsSize& aSize);
+  static void AddMargin(nsIBox* aChild, nsSize& aSize);
   static void AddMargin(nsSize& aSize, const nsMargin& aMargin);
 
   static nsSize BoundsCheckMinMax(const nsSize& aMinSize, const nsSize& aMaxSize);
@@ -88,7 +120,7 @@ protected:
   virtual void ListBox(nsAutoString& aResult);
 #endif
   
-  virtual void GetLayoutFlags(uint32_t& aFlags);
+  virtual void GetLayoutFlags(PRUint32& aFlags);
 
   NS_HIDDEN_(nsresult) BeginLayout(nsBoxLayoutState& aState);
   NS_IMETHOD DoLayout(nsBoxLayoutState& aBoxLayoutState);

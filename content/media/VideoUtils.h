@@ -4,25 +4,63 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef VideoUtils_h
 #define VideoUtils_h
 
 #include "mozilla/ReentrantMonitor.h"
-#include "mozilla/CheckedInt.h"
 
 #include "nsRect.h"
 #include "nsIThreadManager.h"
-#include "nsThreadUtils.h"
-
-using mozilla::CheckedInt64;
-using mozilla::CheckedUint64;
-using mozilla::CheckedInt32;
-using mozilla::CheckedUint32;
 
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+#define PR_INT64_MAX (~((PRInt64)(1) << 63))
+#define PR_INT64_MIN (-PR_INT64_MAX - 1)
+#define PR_UINT64_MAX (~(PRUint64)(0))
 
 
 
@@ -70,60 +108,50 @@ private:
     ReentrantMonitor* mReentrantMonitor;
 };
 
-
-class ShutdownThreadEvent : public nsRunnable 
-{
-public:
-  ShutdownThreadEvent(nsIThread* aThread) : mThread(aThread) {}
-  ~ShutdownThreadEvent() {}
-  NS_IMETHOD Run() {
-    mThread->Shutdown();
-    mThread = nullptr;
-    return NS_OK;
-  }
-private:
-  nsCOMPtr<nsIThread> mThread;
-};
-
-class MediaResource;
 } 
 
-class nsTimeRanges;
+
+
+bool AddOverflow32(PRUint32 a, PRUint32 b, PRUint32& aResult);
+ 
+
+
+
+bool MulOverflow32(PRUint32 a, PRUint32 b, PRUint32& aResult);
+
+
+
+bool AddOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult);
+
+
+
+
+bool MulOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult);
 
 
 
 
 
-
-
-void GetEstimatedBufferedTimeRanges(mozilla::MediaResource* aStream,
-                                    int64_t aDurationUsecs,
-                                    nsTimeRanges* aOutBuffered);
+bool FramesToUsecs(PRInt64 aFrames, PRUint32 aRate, PRInt64& aOutUsecs);
 
 
 
 
 
-CheckedInt64 FramesToUsecs(int64_t aFrames, uint32_t aRate);
+bool UsecsToFrames(PRInt64 aUsecs, PRUint32 aRate, PRInt64& aOutFrames);
+
+
+static const PRInt64 USECS_PER_S = 1000000;
+
+
+static const PRInt64 USECS_PER_MS = 1000;
 
 
 
 
 
-CheckedInt64 UsecsToFrames(int64_t aUsecs, uint32_t aRate);
-
-
-static const int64_t USECS_PER_S = 1000000;
-
-
-static const int64_t USECS_PER_MS = 1000;
-
-
-
-
-
-static const int32_t MAX_VIDEO_WIDTH = 4000;
-static const int32_t MAX_VIDEO_HEIGHT = 3000;
+static const PRInt32 MAX_VIDEO_WIDTH = 4000;
+static const PRInt32 MAX_VIDEO_HEIGHT = 3000;
 
 
 
@@ -131,8 +159,7 @@ static const int32_t MAX_VIDEO_HEIGHT = 3000;
 void ScaleDisplayByAspectRatio(nsIntSize& aDisplay, float aAspectRatio);
 
 
-#if (defined(XP_WIN) || defined(XP_MACOSX) || defined(LINUX)) && \
-    !defined(MOZ_ASAN)
+#if defined(XP_WIN) || defined(XP_MACOSX) || defined(LINUX)
 #define MEDIA_THREAD_STACK_SIZE (128 * 1024)
 #else
 

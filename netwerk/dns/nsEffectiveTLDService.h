@@ -3,12 +3,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIEffectiveTLDService.h"
 
 #include "nsTHashtable.h"
 #include "nsString.h"
 #include "nsCOMPtr.h"
-#include "mozilla/Attributes.h"
 
 class nsIIDNService;
 
@@ -62,10 +96,10 @@ public:
   {
     
     
-    return PL_DHashStringKey(nullptr, aKey);
+    return PL_DHashStringKey(nsnull, aKey);
   }
 
-  enum { ALLOW_MEMMOVE = true };
+  enum { ALLOW_MEMMOVE = PR_TRUE };
 
   void SetData(const ETLDEntry* entry) { mData = entry; }
 
@@ -77,7 +111,7 @@ private:
   const ETLDEntry* mData;
 };
 
-class nsEffectiveTLDService MOZ_FINAL : public nsIEffectiveTLDService
+class nsEffectiveTLDService : public nsIEffectiveTLDService
 {
 public:
   NS_DECL_ISUPPORTS
@@ -87,7 +121,7 @@ public:
   nsresult Init();
 
 private:
-  nsresult GetBaseDomainInternal(nsCString &aHostname, uint32_t aAdditionalParts, nsACString &aBaseDomain);
+  nsresult GetBaseDomainInternal(nsCString &aHostname, PRUint32 aAdditionalParts, nsACString &aBaseDomain);
   nsresult NormalizeHostname(nsCString &aHostname);
   ~nsEffectiveTLDService() { }
 

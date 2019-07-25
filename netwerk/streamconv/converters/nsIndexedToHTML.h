@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef ____nsindexedtohtml___h___
 #define ____nsindexedtohtml___h___
 
@@ -42,7 +74,7 @@ public:
 
 protected:
     
-    void FormatSizeString(int64_t inSize, nsString& outSizeString);
+    void FormatSizeString(PRInt64 inSize, nsString& outSizeString);
     nsresult FormatInputStream(nsIRequest* aRequest, nsISupports *aContext, const nsAString &aBuffer);
     
     nsresult DoOnStartRequest(nsIRequest* request, nsISupports *aContext,

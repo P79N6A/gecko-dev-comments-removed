@@ -5,6 +5,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_net_HttpChannelChild_h
 #define mozilla_net_HttpChannelChild_h
 
@@ -72,13 +107,13 @@ public:
   
   NS_IMETHOD SetupFallbackChannel(const char *aFallbackKey);
   NS_IMETHOD GetLocalAddress(nsACString& addr);
-  NS_IMETHOD GetLocalPort(int32_t* port);
+  NS_IMETHOD GetLocalPort(PRInt32* port);
   NS_IMETHOD GetRemoteAddress(nsACString& addr);
-  NS_IMETHOD GetRemotePort(int32_t* port);
+  NS_IMETHOD GetRemotePort(PRInt32* port);
   
-  NS_IMETHOD SetPriority(int32_t value);
+  NS_IMETHOD SetPriority(PRInt32 value);
   
-  NS_IMETHOD ResumeAt(uint64_t startPos, const nsACString& entityID);
+  NS_IMETHOD ResumeAt(PRUint64 startPos, const nsACString& entityID);
 
   
   
@@ -91,44 +126,44 @@ public:
 protected:
   bool RecvOnStartRequest(const nsHttpResponseHead& responseHead,
                           const bool& useResponseHead,
-                          const nsHttpHeaderArray& requestHeaders,
+                          const RequestHeaderTuples& requestHeaders,
                           const bool& isFromCache,
                           const bool& cacheEntryAvailable,
-                          const uint32_t& cacheExpirationTime,
+                          const PRUint32& cacheExpirationTime,
                           const nsCString& cachedCharset,
                           const nsCString& securityInfoSerialization,
                           const PRNetAddr& selfAddr,
                           const PRNetAddr& peerAddr);
   bool RecvOnTransportAndData(const nsresult& status,
-                              const uint64_t& progress,
-                              const uint64_t& progressMax,
+                              const PRUint64& progress,
+                              const PRUint64& progressMax,
                               const nsCString& data,
-                              const uint64_t& offset,
-                              const uint32_t& count);
+                              const PRUint32& offset,
+                              const PRUint32& count);
   bool RecvOnStopRequest(const nsresult& statusCode);
-  bool RecvOnProgress(const uint64_t& progress, const uint64_t& progressMax);
+  bool RecvOnProgress(const PRUint64& progress, const PRUint64& progressMax);
   bool RecvOnStatus(const nsresult& status);
   bool RecvFailedAsyncOpen(const nsresult& status);
-  bool RecvRedirect1Begin(const uint32_t& newChannel,
-                          const URIParams& newURI,
-                          const uint32_t& redirectFlags,
+  bool RecvRedirect1Begin(const PRUint32& newChannel,
+                          const URI& newURI,
+                          const PRUint32& redirectFlags,
                           const nsHttpResponseHead& responseHead);
   bool RecvRedirect3Complete();
   bool RecvAssociateApplicationCache(const nsCString& groupID,
                                      const nsCString& clientID);
   bool RecvDeleteSelf();
 
-  bool GetAssociatedContentSecurity(nsIAssociatedContentSecurity** res = nullptr);
+  bool GetAssociatedContentSecurity(nsIAssociatedContentSecurity** res = nsnull);
   virtual void DoNotifyListenerCleanup();
 
 private:
-  RequestHeaderTuples mClientSetRequestHeaders;
+  RequestHeaderTuples mRequestHeaders;
   nsCOMPtr<nsIChildChannel> mRedirectChannelChild;
   nsCOMPtr<nsISupports> mSecurityInfo;
 
   bool mIsFromCache;
   bool mCacheEntryAvailable;
-  uint32_t     mCacheExpirationTime;
+  PRUint32     mCacheExpirationTime;
   nsCString    mCachedCharset;
 
   
@@ -145,28 +180,28 @@ private:
                                  const nsCString &clientID);
   void OnStartRequest(const nsHttpResponseHead& responseHead,
                       const bool& useResponseHead,
-                      const nsHttpHeaderArray& requestHeaders,
+                      const RequestHeaderTuples& requestHeaders,
                       const bool& isFromCache,
                       const bool& cacheEntryAvailable,
-                      const uint32_t& cacheExpirationTime,
+                      const PRUint32& cacheExpirationTime,
                       const nsCString& cachedCharset,
                       const nsCString& securityInfoSerialization,
                       const PRNetAddr& selfAddr,
                       const PRNetAddr& peerAddr);
   void OnTransportAndData(const nsresult& status,
-                          const uint64_t progress,
-                          const uint64_t& progressMax,
+                          const PRUint64 progress,
+                          const PRUint64& progressMax,
                           const nsCString& data,
-                          const uint64_t& offset,
-                          const uint32_t& count);
+                          const PRUint32& offset,
+                          const PRUint32& count);
   void OnStopRequest(const nsresult& statusCode);
-  void OnProgress(const uint64_t& progress, const uint64_t& progressMax);
+  void OnProgress(const PRUint64& progress, const PRUint64& progressMax);
   void OnStatus(const nsresult& status);
   void FailedAsyncOpen(const nsresult& status);
   void HandleAsyncAbort();
-  void Redirect1Begin(const uint32_t& newChannelId,
-                      const URIParams& newUri,
-                      const uint32_t& redirectFlags,
+  void Redirect1Begin(const PRUint32& newChannelId,
+                      const URI& newUri,
+                      const PRUint32& redirectFlags,
                       const nsHttpResponseHead& responseHead);
   void Redirect3Complete();
   void DeleteSelf();

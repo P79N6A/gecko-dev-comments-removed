@@ -2,29 +2,71 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIContent_h___
 #define nsIContent_h___
 
-#include "nsCaseTreatment.h" 
-#include "nsCOMPtr.h"        
-#include "nsIDocument.h"     
-#include "nsINode.h"         
+#include "nsCOMPtr.h" 
+#include "nsStringGlue.h"
+#include "nsCaseTreatment.h"
+#include "nsChangeHint.h"
+#include "nsINode.h"
+#include "nsIDocument.h" 
+#include "nsDOMMemoryReporter.h"
 
 
-class nsAString;
 class nsIAtom;
+class nsIDOMEvent;
+class nsIContent;
+class nsEventListenerManager;
 class nsIURI;
 class nsRuleWalker;
 class nsAttrValue;
 class nsAttrName;
 class nsTextFragment;
+class nsIDocShell;
 class nsIFrame;
+#ifdef MOZ_SMIL
+class nsISMILAttr;
+class nsIDOMCSSStyleDeclaration;
+#endif 
 
 namespace mozilla {
-namespace widget {
-struct IMEState;
-} 
-} 
+namespace css {
+class StyleRule;
+}
+}
 
 enum nsLinkState {
   eLinkState_Unknown    = 0,
@@ -34,9 +76,9 @@ enum nsLinkState {
 };
 
 
-#define NS_ICONTENT_IID \
-{ 0x98fb308d, 0xc6dd, 0x4c6d, \
-  { 0xb7, 0x7c, 0x91, 0x18, 0x0c, 0xf0, 0x6f, 0x23 } }
+#define NS_ICONTENT_IID       \
+{ 0x4aad2c06, 0xd6c3, 0x4f44, \
+ { 0x94, 0xf9, 0xd5, 0xac, 0xe5, 0x04, 0x67, 0xec } }
 
 
 
@@ -44,25 +86,24 @@ enum nsLinkState {
 
 class nsIContent : public nsINode {
 public:
-  typedef mozilla::widget::IMEState IMEState;
-
 #ifdef MOZILLA_INTERNAL_API
   
   
 
   nsIContent(already_AddRefed<nsINodeInfo> aNodeInfo)
-    : nsINode(aNodeInfo)
+    : nsINode(aNodeInfo),
+      mPrimaryFrame(nsnull)
   {
     NS_ASSERTION(mNodeInfo,
                  "No nsINodeInfo passed to nsIContent, PREPARE TO CRASH!!!");
-    SetNodeIsContent();
   }
 #endif 
 
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ICONTENT_IID)
 
-  
+  NS_DECL_AND_IMPL_DOM_MEMORY_REPORTER_SIZEOF(nsIContent, nsINode);
 
+  
 
 
 
@@ -161,7 +202,7 @@ public:
 
 
 
-  virtual already_AddRefed<nsINodeList> GetChildren(uint32_t aFilter) = 0;
+  virtual already_AddRefed<nsINodeList> GetChildren(PRUint32 aFilter) = 0;
 
   
 
@@ -228,7 +269,7 @@ public:
   {
     NS_ASSERTION(!IsInNativeAnonymousSubtree() || GetBindingParent() || !GetParent(),
                  "must have binding parent when in native anonymous subtree with a parent node");
-    return IsInNativeAnonymousSubtree() || GetBindingParent() != nullptr;
+    return IsInNativeAnonymousSubtree() || GetBindingParent() != nsnull;
   }
 
   
@@ -237,14 +278,16 @@ public:
 
   inline bool IsInHTMLDocument() const
   {
-    return OwnerDoc()->IsHTML();
+    nsIDocument* doc = GetOwnerDoc();
+    return doc && 
+           doc->IsHTML();
   }
 
   
 
 
 
-  inline int32_t GetNameSpaceID() const
+  PRInt32 GetNameSpaceID() const
   {
     return mNodeInfo->NamespaceID();
   }
@@ -253,49 +296,43 @@ public:
 
 
 
-  inline nsINodeInfo* NodeInfo() const
+  nsIAtom *Tag() const
+  {
+    return mNodeInfo->NameAtom();
+  }
+
+  
+
+
+
+  nsINodeInfo *NodeInfo() const
   {
     return mNodeInfo;
   }
 
-  inline bool IsInNamespace(int32_t aNamespace) const
-  {
+  inline bool IsInNamespace(PRInt32 aNamespace) const {
     return mNodeInfo->NamespaceID() == aNamespace;
   }
 
-  inline bool IsHTML() const
-  {
+  inline bool IsHTML() const {
     return IsInNamespace(kNameSpaceID_XHTML);
   }
 
-  inline bool IsHTML(nsIAtom* aTag) const
-  {
+  inline bool IsHTML(nsIAtom* aTag) const {
     return mNodeInfo->Equals(aTag, kNameSpaceID_XHTML);
   }
 
-  inline bool IsSVG() const
-  {
-    return IsInNamespace(kNameSpaceID_SVG);
+  inline bool IsSVG() const {
+    
+    return IsNodeOfType(eSVG);
   }
 
-  inline bool IsSVG(nsIAtom* aTag) const
-  {
-    return mNodeInfo->Equals(aTag, kNameSpaceID_SVG);
-  }
-
-  inline bool IsXUL() const
-  {
+  inline bool IsXUL() const {
     return IsInNamespace(kNameSpaceID_XUL);
   }
 
-  inline bool IsMathML() const
-  {
+  inline bool IsMathML() const {
     return IsInNamespace(kNameSpaceID_MathML);
-  }
-
-  inline bool IsMathML(nsIAtom* aTag) const
-  {
-    return mNodeInfo->Equals(aTag, kNameSpaceID_MathML);
   }
 
   
@@ -330,10 +367,10 @@ public:
 
 
 
-  nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+  nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                    const nsAString& aValue, bool aNotify)
   {
-    return SetAttr(aNameSpaceID, aName, nullptr, aValue, aNotify);
+    return SetAttr(aNameSpaceID, aName, nsnull, aValue, aNotify);
   }
 
   
@@ -350,7 +387,7 @@ public:
 
 
 
-  virtual nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+  virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                            nsIAtom* aPrefix, const nsAString& aValue,
                            bool aNotify) = 0;
 
@@ -364,7 +401,7 @@ public:
 
 
 
-  virtual bool GetAttr(int32_t aNameSpaceID, nsIAtom* aName, 
+  virtual bool GetAttr(PRInt32 aNameSpaceID, nsIAtom* aName, 
                          nsAString& aResult) const = 0;
 
   
@@ -374,7 +411,7 @@ public:
 
 
 
-  virtual bool HasAttr(int32_t aNameSpaceID, nsIAtom* aName) const = 0;
+  virtual bool HasAttr(PRInt32 aNameSpaceID, nsIAtom* aName) const = 0;
 
   
 
@@ -386,12 +423,12 @@ public:
 
 
 
-  virtual bool AttrValueIs(int32_t aNameSpaceID,
+  virtual bool AttrValueIs(PRInt32 aNameSpaceID,
                              nsIAtom* aName,
                              const nsAString& aValue,
                              nsCaseTreatment aCaseSensitive) const
   {
-    return false;
+    return PR_FALSE;
   }
   
   
@@ -404,12 +441,12 @@ public:
 
 
 
-  virtual bool AttrValueIs(int32_t aNameSpaceID,
+  virtual bool AttrValueIs(PRInt32 aNameSpaceID,
                              nsIAtom* aName,
                              nsIAtom* aValue,
                              nsCaseTreatment aCaseSensitive) const
   {
-    return false;
+    return PR_FALSE;
   }
   
   enum {
@@ -434,7 +471,7 @@ public:
 
 
   typedef nsIAtom* const* const AttrValuesArray;
-  virtual int32_t FindAttrValueIn(int32_t aNameSpaceID,
+  virtual PRInt32 FindAttrValueIn(PRInt32 aNameSpaceID,
                                   nsIAtom* aName,
                                   AttrValuesArray* aValues,
                                   nsCaseTreatment aCaseSensitive) const
@@ -450,7 +487,7 @@ public:
 
 
 
-  virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttr, 
+  virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttr, 
                              bool aNotify) = 0;
 
 
@@ -465,14 +502,14 @@ public:
 
 
 
-  virtual const nsAttrName* GetAttrNameAt(uint32_t aIndex) const = 0;
+  virtual const nsAttrName* GetAttrNameAt(PRUint32 aIndex) const = 0;
 
   
 
 
 
 
-  virtual uint32_t GetAttrCount() const = 0;
+  virtual PRUint32 GetAttrCount() const = 0;
 
   
 
@@ -485,14 +522,14 @@ public:
 
 
 
-  virtual uint32_t TextLength() const = 0;
+  virtual PRUint32 TextLength() = 0;
 
   
 
 
 
 
-  virtual nsresult SetText(const PRUnichar* aBuffer, uint32_t aLength,
+  virtual nsresult SetText(const PRUnichar* aBuffer, PRUint32 aLength,
                            bool aNotify) = 0;
 
   
@@ -500,7 +537,7 @@ public:
 
 
 
-  virtual nsresult AppendText(const PRUnichar* aBuffer, uint32_t aLength,
+  virtual nsresult AppendText(const PRUnichar* aBuffer, PRUint32 aLength,
                               bool aNotify) = 0;
 
   
@@ -547,11 +584,11 @@ public:
 
 
 
-  virtual bool IsFocusable(int32_t *aTabIndex = nullptr, bool aWithMouse = false)
+  virtual bool IsFocusable(PRInt32 *aTabIndex = nsnull, bool aWithMouse = false)
   {
     if (aTabIndex) 
       *aTabIndex = -1; 
-    return false;
+    return PR_FALSE;
   }
 
   
@@ -582,7 +619,29 @@ public:
 
 
 
-  virtual IMEState GetDesiredIMEState();
+
+
+
+
+
+
+
+
+  enum {
+    IME_STATUS_NONE     = 0x0000,
+    IME_STATUS_ENABLE   = 0x0001,
+    IME_STATUS_DISABLE  = 0x0002,
+    IME_STATUS_PASSWORD = 0x0004,
+    IME_STATUS_PLUGIN   = 0x0008,
+    IME_STATUS_OPEN     = 0x0010,
+    IME_STATUS_CLOSE    = 0x0020
+  };
+  enum {
+    IME_STATUS_MASK_ENABLED = IME_STATUS_ENABLE | IME_STATUS_DISABLE |
+                              IME_STATUS_PASSWORD | IME_STATUS_PLUGIN,
+    IME_STATUS_MASK_OPENED  = IME_STATUS_OPEN | IME_STATUS_CLOSE
+  };
+  virtual PRUint32 GetDesiredIMEState();
 
   
 
@@ -639,7 +698,7 @@ public:
 
   virtual already_AddRefed<nsIURI> GetHrefURI() const
   {
-    return nullptr;
+    return nsnull;
   }
 
   
@@ -702,8 +761,18 @@ public:
 
 
 
-  virtual void DoneAddingChildren(bool aHaveNotified)
+
+
+
+
+
+
+
+
+
+  virtual nsresult DoneAddingChildren(bool aHaveNotified)
   {
+    return NS_OK;
   }
 
   
@@ -717,7 +786,7 @@ public:
 
   virtual bool IsDoneAddingChildren()
   {
-    return true;
+    return PR_TRUE;
   }
 
   
@@ -729,7 +798,7 @@ public:
     if (HasID()) {
       return DoGetID();
     }
-    return nullptr;
+    return nsnull;
   }
 
   
@@ -742,7 +811,7 @@ public:
     if (HasFlag(NODE_MAY_HAVE_CLASS)) {
       return DoGetClasses();
     }
-    return nullptr;
+    return nsnull;
   }
 
   
@@ -750,6 +819,42 @@ public:
 
 
   NS_IMETHOD WalkContentStyleRules(nsRuleWalker* aRuleWalker) = 0;
+
+  
+
+
+  virtual mozilla::css::StyleRule* GetInlineStyleRule() = 0;
+
+  
+
+
+
+  NS_IMETHOD SetInlineStyleRule(mozilla::css::StyleRule* aStyleRule, bool aNotify) = 0;
+
+  
+
+
+
+
+
+
+  NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const = 0;
+
+  
+
+
+
+
+
+  virtual nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute,
+                                              PRInt32 aModType) const = 0;
+
+  
+
+
+
+
+  virtual nsIAtom *GetClassAttributeName() const = 0;
 
   
 
@@ -781,19 +886,50 @@ public:
 
 
 
-  nsIFrame* GetPrimaryFrame() const
-  {
-    return IsInDoc() ? mPrimaryFrame : nullptr;
-  }
+  nsIFrame* GetPrimaryFrame() const { return mPrimaryFrame; }
   void SetPrimaryFrame(nsIFrame* aFrame) {
-    NS_ASSERTION(IsInDoc(), "This will end badly!");
     NS_PRECONDITION(!aFrame || !mPrimaryFrame || aFrame == mPrimaryFrame,
                     "Losing track of existing primary frame");
     mPrimaryFrame = aFrame;
   }
 
-  nsresult LookupNamespaceURIInternal(const nsAString& aNamespacePrefix,
-                                      nsAString& aNamespaceURI) const;
+#ifdef MOZ_SMIL
+  
+
+
+
+
+
+  virtual nsISMILAttr* GetAnimatedAttr(PRInt32 aNamespaceID, nsIAtom* aName) = 0;
+
+  
+
+
+
+
+
+
+
+  virtual nsIDOMCSSStyleDeclaration* GetSMILOverrideStyle() = 0;
+
+  
+
+
+
+
+  virtual mozilla::css::StyleRule* GetSMILOverrideStyleRule() = 0;
+
+  
+
+
+
+
+  virtual nsresult SetSMILOverrideStyleRule(mozilla::css::StyleRule* aStyleRule,
+                                            bool aNotify) = 0;
+#endif 
+
+  nsresult LookupNamespaceURI(const nsAString& aNamespacePrefix,
+                              nsAString& aNamespaceURI) const;
 
   
 
@@ -806,7 +942,7 @@ public:
 
 
 
-  mozilla::dom::Element* GetEditingHost();
+  nsIContent* GetEditingHost();
 
   
 
@@ -820,7 +956,7 @@ public:
         
         bool hasAttr = content->GetAttr(kNameSpaceID_XML, nsGkAtoms::lang,
                                           aResult);
-        if (!hasAttr && (content->IsHTML() || content->IsSVG())) {
+        if (!hasAttr && content->IsHTML()) {
           hasAttr = content->GetAttr(kNameSpaceID_None, nsGkAtoms::lang,
                                      aResult);
         }
@@ -838,10 +974,6 @@ public:
 
   virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
 
-  virtual bool IsPurple() = 0;
-  virtual void RemovePurple() = 0;
-
-  virtual bool OwnedOnlyByTheDOMTree() { return false; }
 protected:
   
 
@@ -856,19 +988,24 @@ private:
 
   virtual const nsAttrValue* DoGetClasses() const = 0;
 
+  
+
+
+  nsIFrame* mPrimaryFrame;
+
 public:
 #ifdef DEBUG
   
 
 
 
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const = 0;
+  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const = 0;
 
   
 
 
 
-  virtual void DumpContent(FILE* out = stdout, int32_t aIndent = 0,
+  virtual void DumpContent(FILE* out = stdout, PRInt32 aIndent = 0,
                            bool aDumpAll = true) const = 0;
 #endif
 
@@ -880,19 +1017,14 @@ public:
   };
 
   
-  static int32_t sTabFocusModel;
+  static PRInt32 sTabFocusModel;
 
   
   
   static bool sTabFocusModelAppliesToXUL;
+
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIContent, NS_ICONTENT_IID)
-
-inline nsIContent* nsINode::AsContent()
-{
-  MOZ_ASSERT(IsContent());
-  return static_cast<nsIContent*>(this);
-}
 
 #endif 

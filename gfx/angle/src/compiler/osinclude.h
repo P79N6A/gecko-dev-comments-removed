@@ -16,9 +16,7 @@
 #define ANGLE_OS_WIN
 #elif defined(__APPLE__) || defined(__linux__) || \
       defined(__FreeBSD__) || defined(__OpenBSD__) || \
-      defined(__sun) || defined(ANDROID) || \
-      defined(__GLIBC__) || defined(__GNU__) || \
-      defined(__QNX__)
+      defined(__sun) || defined(ANDROID)
 #define ANGLE_OS_POSIX
 #else
 #error Unsupported platform.
@@ -43,7 +41,7 @@
 
 
 #if defined(ANGLE_USE_NSPR)
-typedef unsigned OS_TLSIndex;
+typedef PRUintn OS_TLSIndex;
 #define OS_INVALID_TLS_INDEX 0xFFFFFFFF
 #elif defined(ANGLE_OS_WIN)
 typedef DWORD OS_TLSIndex;

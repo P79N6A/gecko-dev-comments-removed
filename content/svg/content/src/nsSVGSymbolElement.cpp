@@ -3,10 +3,38 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsIDOMSVGSymbolElement.h"
-#include "DOMSVGTests.h"
 #include "nsSVGStylableElement.h"
 #include "nsSVGViewBox.h"
 #include "SVGAnimatedPreserveAspectRatio.h"
@@ -17,9 +45,8 @@ using namespace mozilla;
 typedef nsSVGStylableElement nsSVGSymbolElementBase;
 
 class nsSVGSymbolElement : public nsSVGSymbolElementBase,
-                           public nsIDOMSVGSymbolElement,
-                           public DOMSVGTests,
-                           public nsIDOMSVGFitToViewBox
+                           public nsIDOMSVGFitToViewBox,
+                           public nsIDOMSVGSymbolElement
 {
 protected:
   friend nsresult NS_NewSVGSymbolElement(nsIContent **aResult,
@@ -44,8 +71,6 @@ public:
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 protected:
   virtual nsSVGViewBox *GetViewBox();
   virtual SVGAnimatedPreserveAspectRatio *GetPreserveAspectRatio();
@@ -122,7 +147,7 @@ nsSVGSymbolElement::IsAttributeMapped(const nsIAtom* name) const
     sViewportsMap
    };
 
-  return FindAttributeDependence(name, map) ||
+  return FindAttributeDependence(name, map, NS_ARRAY_LENGTH(map)) ||
     nsSVGSymbolElementBase::IsAttributeMapped(name);
 }
 

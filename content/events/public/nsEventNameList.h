@@ -51,29 +51,37 @@
 
 
 
-#ifdef ID_TO_EVENT
-#ifdef EVENT
-#error "Don't define EVENT"
-#endif 
-#ifdef WINDOW_ONLY_EVENT
-#error "Don't define WINDOW_ONLY_EVENT"
-#endif 
-#ifdef TOUCH_EVENT
-#error "Don't define TOUCH_EVENT"
-#endif 
-#ifdef DOCUMENT_ONLY_EVENT
-#error "Don't define DOCUMENT_ONLY_EVENT"
-#endif 
-#ifdef NON_IDL_EVENT
-#error "Don't define NON_IDL_EVENT"
-#endif 
 
-#define EVENT ID_TO_EVENT
-#define WINDOW_ONLY_EVENT ID_TO_EVENT
-#define TOUCH_EVENT ID_TO_EVENT
-#define DOCUMENT_ONLY_EVENT ID_TO_EVENT
-#define NON_IDL_EVENT ID_TO_EVENT
-#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifdef DEFINED_FORWARDED_EVENT
 #error "Don't define DEFINED_FORWARDED_EVENT"
@@ -263,18 +271,6 @@ EVENT(mozfullscreenchange,
       NS_FULLSCREENCHANGE,
       EventNameType_HTML,
       NS_EVENT_NULL)
-EVENT(mozfullscreenerror,
-      NS_FULLSCREENERROR,
-      EventNameType_HTML,
-      NS_EVENT_NULL)
-EVENT(mozpointerlockchange,
-      NS_POINTERLOCKCHANGE,
-      EventNameType_HTML,
-      NS_EVENT_NULL)
-EVENT(mozpointerlockerror,
-      NS_POINTERLOCKERROR,
-      EventNameType_HTML,
-      NS_EVENT_NULL)
 
 
 EVENT(pause,
@@ -341,10 +337,6 @@ EVENT(waiting,
       NS_WAITING,
       EventNameType_HTML,
       NS_EVENT_NULL)
-EVENT(wheel,
-      NS_WHEEL_WHEEL,
-      EventNameType_All,
-      NS_WHEEL_EVENT)
 
 EVENT(copy,
       NS_COPY,
@@ -451,43 +443,31 @@ WINDOW_ONLY_EVENT(deviceorientation,
                   NS_DEVICE_ORIENTATION,
                   EventNameType_None,
                   NS_EVENT)
-WINDOW_ONLY_EVENT(deviceproximity,
-                  NS_DEVICE_PROXIMITY,
-                  EventNameType_None,
-                  NS_EVENT)
-WINDOW_ONLY_EVENT(userproximity,
-                  NS_USER_PROXIMITY,
-                  EventNameType_None,
-                  NS_EVENT)
-WINDOW_ONLY_EVENT(devicelight,
-                  NS_DEVICE_LIGHT,
-                  EventNameType_None,
-                  NS_EVENT)
 
 TOUCH_EVENT(touchstart,
-            NS_TOUCH_START,
+            NS_USER_DEFINED_EVENT,
             EventNameType_All,
-            NS_TOUCH_EVENT)
+            NS_INPUT_EVENT)
 TOUCH_EVENT(touchend,
-            NS_TOUCH_END,
+            NS_USER_DEFINED_EVENT,
             EventNameType_All,
-            NS_TOUCH_EVENT)
+            NS_INPUT_EVENT)
 TOUCH_EVENT(touchmove,
-            NS_TOUCH_MOVE,
+            NS_USER_DEFINED_EVENT,
             EventNameType_All,
-            NS_TOUCH_EVENT )
+            NS_INPUT_EVENT )
 TOUCH_EVENT(touchenter,
-            NS_TOUCH_ENTER,
+            NS_USER_DEFINED_EVENT,
             EventNameType_All,
-            NS_TOUCH_EVENT )
+            NS_INPUT_EVENT )
 TOUCH_EVENT(touchleave,
-            NS_TOUCH_LEAVE,
+            NS_USER_DEFINED_EVENT,
             EventNameType_All,
-            NS_TOUCH_EVENT)
+            NS_INPUT_EVENT)
 TOUCH_EVENT(touchcancel,
-            NS_TOUCH_CANCEL,
+            NS_USER_DEFINED_EVENT,
             EventNameType_All,
-            NS_TOUCH_EVENT)
+            NS_INPUT_EVENT)
 
 DOCUMENT_ONLY_EVENT(readystatechange,
                     NS_READYSTATECHANGE,
@@ -660,47 +640,36 @@ NON_IDL_EVENT(SVGZoom,
               EventNameType_None,
               NS_SVGZOOM_EVENT)
 
-
-#ifndef ID_TO_EVENT
-
 NON_IDL_EVENT(zoom,
               NS_SVG_ZOOM,
               EventNameType_SVGSVG,
               NS_EVENT_NULL)
-#endif
-
-#ifndef ID_TO_EVENT
+#ifdef MOZ_SMIL
 NON_IDL_EVENT(begin,
               NS_SMIL_BEGIN,
               EventNameType_SMIL,
               NS_EVENT_NULL)
-#endif
 NON_IDL_EVENT(beginEvent,
               NS_SMIL_BEGIN,
               EventNameType_None,
               NS_SMIL_TIME_EVENT)
-
-#ifndef ID_TO_EVENT
 NON_IDL_EVENT(end,
               NS_SMIL_END,
               EventNameType_SMIL,
               NS_EVENT_NULL)
-#endif
 NON_IDL_EVENT(endEvent,
               NS_SMIL_END,
               EventNameType_None,
               NS_SMIL_TIME_EVENT)
-
-#ifndef ID_TO_EVENT
 NON_IDL_EVENT(repeat,
               NS_SMIL_REPEAT,
               EventNameType_SMIL,
               NS_EVENT_NULL)
-#endif
 NON_IDL_EVENT(repeatEvent,
               NS_SMIL_REPEAT,
               EventNameType_None,
               NS_SMIL_TIME_EVENT)
+#endif 
 
 NON_IDL_EVENT(MozAudioAvailable,
               NS_MOZAUDIOAVAILABLE,
@@ -710,6 +679,10 @@ NON_IDL_EVENT(MozAfterPaint,
               NS_AFTERPAINT,
               EventNameType_None,
               NS_EVENT)
+NON_IDL_EVENT(MozBeforePaint,
+              NS_BEFOREPAINT,
+              EventNameType_None,
+              NS_EVENT_NULL)
 
 NON_IDL_EVENT(MozScrolledAreaChanged,
               NS_SCROLLEDAREACHANGED,
@@ -751,10 +724,6 @@ NON_IDL_EVENT(MozTapGesture,
               NS_SIMPLE_GESTURE_EVENT)
 NON_IDL_EVENT(MozPressTapGesture,
               NS_SIMPLE_GESTURE_PRESSTAP,
-              EventNameType_None,
-              NS_SIMPLE_GESTURE_EVENT)
-NON_IDL_EVENT(MozEdgeUIGesture,
-              NS_SIMPLE_GESTURE_EDGEUI,
               EventNameType_None,
               NS_SIMPLE_GESTURE_EVENT)
 
@@ -815,14 +784,6 @@ NON_IDL_EVENT(animationiteration,
 
 #ifdef DEFINED_NON_IDL_EVENT
 #undef DEFINED_NON_IDL_EVENT
-#undef NON_IDL_EVENT
-#endif 
-
-#ifdef ID_TO_EVENT
-#undef EVENT
-#undef WINDOW_ONLY_EVENT
-#undef TOUCH_EVENT
-#undef DOCUMENT_ONLY_EVENT
 #undef NON_IDL_EVENT
 #endif 
 

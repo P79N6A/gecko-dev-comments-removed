@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef CSSCalc_h_
 #define CSSCalc_h_
 
@@ -256,7 +288,7 @@ template <class CalcOps>
 static void
 SerializeCalc(const typename CalcOps::input_type& aValue, CalcOps &aOps)
 {
-  aOps.Append("calc(");
+  aOps.Append("-moz-calc(");
   nsCSSUnit unit = CalcOps::GetUnit(aValue);
   if (unit == eCSSUnit_Calc) {
     const typename CalcOps::input_array_type *array = aValue.GetArrayValue();

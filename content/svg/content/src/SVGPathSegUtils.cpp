@@ -3,15 +3,54 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "SVGPathSegUtils.h"
+#include "nsSVGElement.h"
+#include "nsSVGSVGElement.h"
 #include "nsSVGPathDataParser.h"
+#include "nsString.h"
+#include "nsSVGUtils.h"
 #include "nsContentUtils.h"
 #include "nsTextFormatter.h"
+#include "prdtoa.h"
+#include <limits>
+#include "nsMathUtils.h"
+#include "prtypes.h"
 
 using namespace mozilla;
 
 static const float PATH_SEG_LENGTH_TOLERANCE = 0.0000001f;
-static const uint32_t MAX_RECURSION = 10;
+static const PRUint32 MAX_RECURSION = 10;
 
 
  void
@@ -22,7 +61,7 @@ SVGPathSegUtils::GetValueAsString(const float* aSeg, nsAString& aValue)
                      nsIDOMSVGPathSeg::PATHSEG_CURVETO_QUADRATIC_SMOOTH_REL);
   PR_STATIC_ASSERT(NS_SVG_PATH_SEG_MAX_ARGS == 7);
 
-  uint32_t type = DecodeType(aSeg[0]);
+  PRUint32 type = DecodeType(aSeg[0]);
   PRUnichar typeAsChar = GetPathSegTypeAsLetter(type);
 
   
@@ -63,7 +102,7 @@ SVGPathSegUtils::GetValueAsString(const float* aSeg, nsAString& aValue)
       break;
 
     default:
-      NS_ABORT_IF_FALSE(false, "Unknown segment type");
+      NS_ABORT_IF_FALSE(PR_FALSE, "Unknown segment type");
       aValue = NS_LITERAL_STRING("<unknown-segment-type>").get();
       return;
     }
@@ -125,14 +164,14 @@ SplitCubicBezier(const gfxPoint* aCurve, gfxPoint* aLeft, gfxPoint* aRight)
 }
 
 static gfxFloat
-CalcBezLengthHelper(gfxPoint* aCurve, uint32_t aNumPts,
-                    uint32_t aRecursionCount,
+CalcBezLengthHelper(gfxPoint* aCurve, PRUint32 aNumPts,
+                    PRUint32 aRecursionCount,
                     void (*aSplit)(const gfxPoint*, gfxPoint*, gfxPoint*))
 {
   gfxPoint left[4];
   gfxPoint right[4];
   gfxFloat length = 0, dist;
-  for (uint32_t i = 0; i < aNumPts - 1; i++) {
+  for (PRUint32 i = 0; i < aNumPts - 1; i++) {
     length += CalcDistanceBetweenPoints(aCurve[i], aCurve[i+1]);
   }
   dist = CalcDistanceBetweenPoints(aCurve[0], aCurve[aNumPts - 1]);
@@ -413,7 +452,7 @@ TraverseArcRel(const float* aArgs, SVGPathTraversalState& aState)
 typedef void (*TraverseFunc)(const float*, SVGPathTraversalState&);
 
 static TraverseFunc gTraverseFuncTable[NS_SVG_PATH_SEG_TYPE_COUNT] = {
-  nullptr, 
+  nsnull, 
   TraverseClosePath,
   TraverseMovetoAbs,
   TraverseMovetoRel,
@@ -441,6 +480,6 @@ SVGPathSegUtils::TraversePathSegment(const float* aData,
 {
   PR_STATIC_ASSERT(NS_ARRAY_LENGTH(gTraverseFuncTable) ==
                      NS_SVG_PATH_SEG_TYPE_COUNT);
-  uint32_t type = DecodeType(aData[0]);
+  PRUint32 type = DecodeType(aData[0]);
   gTraverseFuncTable[type](aData + 1, aState);
 }

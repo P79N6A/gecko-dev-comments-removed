@@ -3,15 +3,52 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsIAtom.h"
+#include "nsIContent.h"
 #include "nsIDOMEventListener.h"
 #include "nsIDOMEventTarget.h"
 #include "nsIDOMKeyEvent.h"
 #include "nsIDOMMouseEvent.h"
+#include "nsGkAtoms.h"
 #include "nsXBLPrototypeHandler.h"
+#include "nsIDOMNSEvent.h"
 #include "nsGUIEvent.h"
 #include "nsContentUtils.h"
+#include "nsUnicharUtils.h"
 
 nsXBLEventHandler::nsXBLEventHandler(nsXBLPrototypeHandler* aHandler)
   : mProtoHandler(aHandler)
@@ -30,9 +67,9 @@ nsXBLEventHandler::HandleEvent(nsIDOMEvent* aEvent)
   if (!mProtoHandler)
     return NS_ERROR_FAILURE;
 
-  uint8_t phase = mProtoHandler->GetPhase();
+  PRUint8 phase = mProtoHandler->GetPhase();
   if (phase == NS_PHASE_TARGET) {
-    uint16_t eventPhase;
+    PRUint16 eventPhase;
     aEvent->GetEventPhase(&eventPhase);
     if (eventPhase != nsIDOMEvent::AT_TARGET)
       return NS_OK;
@@ -65,12 +102,12 @@ nsXBLMouseEventHandler::EventMatched(nsIDOMEvent* aEvent)
   return mouse && mProtoHandler->MouseEventMatched(mouse);
 }
 
-nsXBLKeyEventHandler::nsXBLKeyEventHandler(nsIAtom* aEventType, uint8_t aPhase,
-                                           uint8_t aType)
+nsXBLKeyEventHandler::nsXBLKeyEventHandler(nsIAtom* aEventType, PRUint8 aPhase,
+                                           PRUint8 aType)
   : mEventType(aEventType),
     mPhase(aPhase),
     mType(aType),
-    mIsBoundToChrome(false)
+    mIsBoundToChrome(PR_FALSE)
 {
 }
 
@@ -82,17 +119,19 @@ NS_IMPL_ISUPPORTS1(nsXBLKeyEventHandler, nsIDOMEventListener)
 
 bool
 nsXBLKeyEventHandler::ExecuteMatchedHandlers(nsIDOMKeyEvent* aKeyEvent,
-                                             uint32_t aCharCode,
+                                             PRUint32 aCharCode,
                                              bool aIgnoreShiftKey)
 {
+  nsCOMPtr<nsIDOMNSEvent> domNSEvent = do_QueryInterface(aKeyEvent);
   bool trustedEvent = false;
-  aKeyEvent->GetIsTrusted(&trustedEvent);
+  if (domNSEvent)
+    domNSEvent->GetIsTrusted(&trustedEvent);
 
   nsCOMPtr<nsIDOMEventTarget> target;
   aKeyEvent->GetCurrentTarget(getter_AddRefs(target));
 
   bool executed = false;
-  for (uint32_t i = 0; i < mProtoHandlers.Length(); ++i) {
+  for (PRUint32 i = 0; i < mProtoHandlers.Length(); ++i) {
     nsXBLPrototypeHandler* handler = mProtoHandlers[i];
     bool hasAllowUntrustedAttr = handler->HasAllowUntrustedAttr();
     if ((trustedEvent ||
@@ -100,7 +139,7 @@ nsXBLKeyEventHandler::ExecuteMatchedHandlers(nsIDOMKeyEvent* aKeyEvent,
         (!hasAllowUntrustedAttr && !mIsBoundToChrome)) &&
         handler->KeyEventMatched(aKeyEvent, aCharCode, aIgnoreShiftKey)) {
       handler->ExecuteHandler(target, aKeyEvent);
-      executed = true;
+      executed = PR_TRUE;
     }
   }
   return executed;
@@ -109,12 +148,12 @@ nsXBLKeyEventHandler::ExecuteMatchedHandlers(nsIDOMKeyEvent* aKeyEvent,
 NS_IMETHODIMP
 nsXBLKeyEventHandler::HandleEvent(nsIDOMEvent* aEvent)
 {
-  uint32_t count = mProtoHandlers.Length();
+  PRUint32 count = mProtoHandlers.Length();
   if (count == 0)
     return NS_ERROR_FAILURE;
 
   if (mPhase == NS_PHASE_TARGET) {
-    uint16_t eventPhase;
+    PRUint16 eventPhase;
     aEvent->GetEventPhase(&eventPhase);
     if (eventPhase != nsIDOMEvent::AT_TARGET)
       return NS_OK;
@@ -128,11 +167,11 @@ nsXBLKeyEventHandler::HandleEvent(nsIDOMEvent* aEvent)
   nsContentUtils::GetAccelKeyCandidates(key, accessKeys);
 
   if (accessKeys.IsEmpty()) {
-    ExecuteMatchedHandlers(key, 0, false);
+    ExecuteMatchedHandlers(key, 0, PR_FALSE);
     return NS_OK;
   }
 
-  for (uint32_t i = 0; i < accessKeys.Length(); ++i) {
+  for (PRUint32 i = 0; i < accessKeys.Length(); ++i) {
     if (ExecuteMatchedHandlers(key, accessKeys[i].mCharCode,
                                accessKeys[i].mIgnoreShift))
       return NS_OK;
@@ -151,7 +190,6 @@ NS_NewXBLEventHandler(nsXBLPrototypeHandler* aHandler,
     case NS_DRAG_EVENT:
     case NS_MOUSE_EVENT:
     case NS_MOUSE_SCROLL_EVENT:
-    case NS_WHEEL_EVENT:
     case NS_SIMPLE_GESTURE_EVENT:
       *aResult = new nsXBLMouseEventHandler(aHandler);
       break;
@@ -169,7 +207,7 @@ NS_NewXBLEventHandler(nsXBLPrototypeHandler* aHandler,
 }
 
 nsresult
-NS_NewXBLKeyEventHandler(nsIAtom* aEventType, uint8_t aPhase, uint8_t aType,
+NS_NewXBLKeyEventHandler(nsIAtom* aEventType, PRUint8 aPhase, PRUint8 aType,
                          nsXBLKeyEventHandler** aResult)
 {
   *aResult = new nsXBLKeyEventHandler(aEventType, aPhase, aType);

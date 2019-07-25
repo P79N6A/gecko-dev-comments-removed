@@ -3,14 +3,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsByteBuffer_h__
 #define nsByteBuffer_h__
 
-#include "mozilla/Attributes.h"
-
 #include "nsIByteBuffer.h"
 
-class ByteBufferImpl MOZ_FINAL : public nsIByteBuffer {
+class ByteBufferImpl : public nsIByteBuffer {
 public:
   ByteBufferImpl(void);
 
@@ -19,17 +49,17 @@ public:
   static nsresult
   Create(nsISupports *aOuter, REFNSIID aIID, void **aResult);
 
-  NS_IMETHOD Init(uint32_t aBufferSize);
-  NS_IMETHOD_(uint32_t) GetLength(void) const;
-  NS_IMETHOD_(uint32_t) GetBufferSize(void) const;
+  NS_IMETHOD Init(PRUint32 aBufferSize);
+  NS_IMETHOD_(PRUint32) GetLength(void) const;
+  NS_IMETHOD_(PRUint32) GetBufferSize(void) const;
   NS_IMETHOD_(char*) GetBuffer() const;
-  NS_IMETHOD_(bool) Grow(uint32_t aNewSize);
-  NS_IMETHOD_(int32_t) Fill(nsresult* aErrorCode, nsIInputStream* aStream,
-                            uint32_t aKeep);
+  NS_IMETHOD_(bool) Grow(PRUint32 aNewSize);
+  NS_IMETHOD_(PRInt32) Fill(nsresult* aErrorCode, nsIInputStream* aStream,
+                            PRUint32 aKeep);
 
   char* mBuffer;
-  uint32_t mSpace;
-  uint32_t mLength;
+  PRUint32 mSpace;
+  PRUint32 mLength;
 private:
   ~ByteBufferImpl();
 };

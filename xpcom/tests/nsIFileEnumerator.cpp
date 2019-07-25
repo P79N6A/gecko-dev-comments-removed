@@ -1,4 +1,4 @@
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "nsStringGlue.h"
 
 #include <stdio.h>
@@ -9,13 +9,13 @@
 #include "nsISimpleEnumerator.h"
 #include "nsCOMPtr.h"
 
-bool LoopInDir(nsIFile* file)
+bool LoopInDir(nsILocalFile* file)
 {
     nsresult rv;
     nsCOMPtr<nsISimpleEnumerator> entries;
     rv = file->GetDirectoryEntries(getter_AddRefs(entries));
     if(NS_FAILED(rv) || !entries)
-        return false;
+        return PR_FALSE;
     
     bool hasMore;
     while(NS_SUCCEEDED(entries->HasMoreElements(&hasMore)) && hasMore)
@@ -23,15 +23,15 @@ bool LoopInDir(nsIFile* file)
         nsCOMPtr<nsISupports> sup;
         entries->GetNext(getter_AddRefs(sup));
         if(!sup)
-            return false;
+            return PR_FALSE;
         
-        nsCOMPtr<nsIFile> file = do_QueryInterface(sup);
+        nsCOMPtr<nsILocalFile> file = do_QueryInterface(sup);
         if(!file)
-            return false;
+            return PR_FALSE;
     
-        nsAutoCString name;
+        nsCAutoString name;
         if(NS_FAILED(file->GetNativeLeafName(name)))
-            return false;
+            return PR_FALSE;
         
         bool isDir;
         printf("%s\n", name.get());
@@ -39,15 +39,16 @@ bool LoopInDir(nsIFile* file)
         if (NS_FAILED(rv))
 		{
 			printf("IsDirectory Failed!!!\n");
-				return false;
+				return PR_FALSE;
 		}
 
 		if (isDir)
         {
-           LoopInDir(file);   
+           nsCOMPtr<nsILocalFile> lfile = do_QueryInterface(file);
+           LoopInDir(lfile);   
         }        
     }
-    return true;
+    return PR_TRUE;
 }
 
 
@@ -56,16 +57,16 @@ main(int argc, char* argv[])
 {
     nsresult rv;
     {
-        nsCOMPtr<nsIFile> topDir;
+        nsCOMPtr<nsILocalFile> topDir;
 
         nsCOMPtr<nsIServiceManager> servMan;
-        rv = NS_InitXPCOM2(getter_AddRefs(servMan), nullptr, nullptr);
+        rv = NS_InitXPCOM2(getter_AddRefs(servMan), nsnull, nsnull);
         if (NS_FAILED(rv)) return -1;
 
-        if (argc > 1 && argv[1] != nullptr)
+        if (argc > 1 && argv[1] != nsnull)
         {
             char* pathStr = argv[1];
-            NS_NewNativeLocalFile(nsDependentCString(pathStr), false, getter_AddRefs(topDir));
+            NS_NewNativeLocalFile(nsDependentCString(pathStr), PR_FALSE, getter_AddRefs(topDir));
         }
     
         if (!topDir)
@@ -73,16 +74,16 @@ main(int argc, char* argv[])
            printf("No Top Dir\n");
            return -1;
         }
-        int32_t startTime = PR_IntervalNow();
+        PRInt32 startTime = PR_IntervalNow();
     
         LoopInDir(topDir);
     
-        int32_t endTime = PR_IntervalNow();
+        PRInt32 endTime = PR_IntervalNow();
     
         printf("\nTime: %d\n", PR_IntervalToMilliseconds(endTime - startTime));
     } 
     
-    rv = NS_ShutdownXPCOM(nullptr);
+    rv = NS_ShutdownXPCOM(nsnull);
     NS_ASSERTION(NS_SUCCEEDED(rv), "NS_ShutdownXPCOM failed");
     return 0;
 }

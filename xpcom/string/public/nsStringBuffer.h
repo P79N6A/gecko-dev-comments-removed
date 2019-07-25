@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsStringBuffer_h__
 #define nsStringBuffer_h__
 
@@ -22,8 +54,8 @@ class nsStringBuffer
     private:
       friend class CheckStaticAtomSizes;
 
-      int32_t  mRefCount;
-      uint32_t mStorageSize;
+      PRInt32  mRefCount;
+      PRUint32 mStorageSize;
 
     public:
       
@@ -90,7 +122,7 @@ class nsStringBuffer
 
 
 
-      uint32_t StorageSize() const
+      PRUint32 StorageSize() const
         {
           return mStorageSize;
         }
@@ -133,21 +165,10 @@ class nsStringBuffer
 
 
 
-      void ToString(uint32_t len, nsAString &str,
+      void ToString(PRUint32 len, nsAString &str,
                            bool aMoveOwnership = false);
-      void ToString(uint32_t len, nsACString &str,
+      void ToString(PRUint32 len, nsACString &str,
                            bool aMoveOwnership = false);
-
-      
-
-
-
-      size_t SizeOfIncludingThisMustBeUnshared(nsMallocSizeOfFun aMallocSizeOf) const;
-
-      
-
-
-      size_t SizeOfIncludingThisIfUnshared(nsMallocSizeOfFun aMallocSizeOf) const;
   };
 
 #endif 

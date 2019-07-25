@@ -3,6 +3,37 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsRDFBinding_h__
 #define nsRDFBinding_h__
 
@@ -45,8 +76,8 @@ private:
       : mSubjectVariable(aSubjectVariable),
         mPredicate(aPredicate),
         mTargetVariable(aTargetVariable),
-        mHasDependency(false),
-        mNext(nullptr)
+        mHasDependency(PR_FALSE),
+        mNext(nsnull)
     {
         MOZ_COUNT_CTOR(RDFBinding);
     }
@@ -66,7 +97,7 @@ class RDFBindingSet
 protected:
 
     
-    int32_t mCount;
+    PRInt32 mCount;
 
     
     RDFBinding* mFirst;
@@ -75,7 +106,7 @@ public:
 
     RDFBindingSet()
         : mCount(0),
-          mFirst(nullptr)
+          mFirst(nsnull)
     {
         MOZ_COUNT_CTOR(RDFBindingSet);
     }
@@ -84,7 +115,7 @@ public:
 
     NS_INLINE_DECL_REFCOUNTING(RDFBindingSet)
 
-    int32_t Count() const { return mCount; }
+    PRInt32 Count() const { return mCount; }
 
     
 
@@ -140,7 +171,7 @@ public:
 
 
 
-    int32_t
+    PRInt32
     LookupTargetIndex(nsIAtom* aTargetVariable, RDFBinding** aBinding);
 };
 
@@ -173,8 +204,8 @@ protected:
 public:
 
     nsBindingValues()
-      : mBindings(nullptr),
-        mValues(nullptr)
+      : mBindings(nsnull),
+        mValues(nsnull)
     {
         MOZ_COUNT_CTOR(nsBindingValues);
     }

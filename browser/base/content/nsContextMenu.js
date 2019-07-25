@@ -1,6 +1,66 @@
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http:
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http:
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is mozilla.org code.
+#
+# The Initial Developer of the Original Code is
+# Netscape Communications Corporation.
+# Portions created by the Initial Developer are Copyright (C) 1998
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#   Blake Ross <blake@cs.stanford.edu>
+#   David Hyatt <hyatt@mozilla.org>
+#   Peter Annema <disttsc@bart.nl>
+#   Dean Tessman <dean_tessman@hotmail.com>
+#   Kevin Puetz <puetzk@iastate.edu>
+#   Ben Goodger <ben@netscape.com>
+#   Pierre Chanial <chanial@noos.fr>
+#   Jason Eager <jce2@po.cwru.edu>
+#   Joe Hewitt <hewitt@netscape.com>
+#   Alec Flett <alecf@netscape.com>
+#   Asaf Romano <mozilla.mano@sent.com>
+#   Jason Barnabe <jason_barnabe@fastmail.fm>
+#   Peter Parente <parente@cs.unc.edu>
+#   Giorgio Maone <g.maone@informaction.com>
+#   Tom Germeau <tom.germeau@epigoon.com>
+#   Jesse Ruderman <jruderman@gmail.com>
+#   Joe Hughes <joe@retrovirus.com>
+#   Pamela Greene <pamg.bugs@gmail.com>
+#   Michael Ventnor <ventnors_dogs234@yahoo.com.au>
+#   Simon BÃ¼nzli <zeniko@gmail.com>
+#   Gijs Kruitbosch <gijskruitbosch@gmail.com>
+#   Ehsan Akhgari <ehsan.akhgari@gmail.com>
+#   Dan Mosedale <dmose@mozilla.org>
+#   Justin Dolske <dolske@mozilla.com>
+#   Kathleen Brade <brade@pearlcrescent.com>
+#   Mark Smith <mcs@pearlcrescent.com>
+#   Kailas Patil <patilkr24@gmail.com>
+#   Rob Campbell <rcampbell@mozilla.com>
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either the GNU General Public License Version 2 or later (the "GPL"), or
+# the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
 
 function nsContextMenu(aXulMenu, aBrowser, aIsShift) {
   this.shouldDisplay = true;
@@ -32,16 +92,9 @@ nsContextMenu.prototype = {
     } catch (e) { }
     this.isTextSelected = this.isTextSelection();
     this.isContentSelected = this.isContentSelection();
-    this.onPlainTextLink = false;
 
     
     this.initItems();
-  },
-
-  hiding: function CM_hiding() {
-    InlineSpellCheckerUI.clearSuggestionsFromMenu();
-    InlineSpellCheckerUI.clearDictionaryListFromMenu();
-    InlineSpellCheckerUI.uninit();
   },
 
   initItems: function CM_initItems() {
@@ -54,7 +107,6 @@ nsContextMenu.prototype = {
     this.initSaveItems();
     this.initClipboardItems();
     this.initMediaPlayerItems();
-    this.initLeaveDOMFullScreenItems();
   },
 
   initPageMenuSeparator: function CM_initPageMenuSeparator() {
@@ -74,6 +126,7 @@ nsContextMenu.prototype = {
 
     
     
+    var onPlainTextLink = false;
     if (this.isTextSelected && !this.onLink) {
       
       let selection =  document.commandDispatcher.focusedWindow
@@ -131,14 +184,14 @@ nsContextMenu.prototype = {
       if (uri && uri.host) {
         this.linkURI = uri;
         this.linkURL = this.linkURI.spec;
-        this.onPlainTextLink = true;
+        onPlainTextLink = true;
       }
     }
 
-    var shouldShow = this.onSaveableLink || isMailtoInternal || this.onPlainTextLink;
+    var shouldShow = this.onSaveableLink || isMailtoInternal || onPlainTextLink;
     this.showItem("context-openlink", shouldShow);
     this.showItem("context-openlinkintab", shouldShow);
-    this.showItem("context-openlinkincurrent", this.onPlainTextLink);
+    this.showItem("context-openlinkincurrent", onPlainTextLink);
     this.showItem("context-sep-open", shouldShow);
   },
 
@@ -148,23 +201,12 @@ nsContextMenu.prototype = {
                        this.onTextInput);
     this.showItem("context-back", shouldShow);
     this.showItem("context-forward", shouldShow);
-    var shouldShowReload = XULBrowserWindow.stopCommand.getAttribute("disabled") == "true";
-    this.showItem("context-reload", shouldShow && shouldShowReload);
-    this.showItem("context-stop", shouldShow && !shouldShowReload);
+    this.showItem("context-reload", shouldShow);
+    this.showItem("context-stop", shouldShow);
     this.showItem("context-sep-stop", shouldShow);
 
     
     
-  },
-
-  initLeaveDOMFullScreenItems: function CM_initLeaveFullScreenItem() {
-    
-    var shouldShow = (this.target.ownerDocument.mozFullScreenElement != null);
-    this.showItem("context-leave-dom-fullscreen", shouldShow);
-
-    
-    if (shouldShow)
-        this.showItem("context-media-sep-commands", true);
   },
 
   initSaveItems: function CM_initSaveItems() {
@@ -172,9 +214,11 @@ nsContextMenu.prototype = {
                        this.isContentSelected || this.onImage ||
                        this.onCanvas || this.onVideo || this.onAudio);
     this.showItem("context-savepage", shouldShow);
+    this.showItem("context-sendpage", shouldShow);
 
     
-    this.showItem("context-savelink", this.onSaveableLink || this.onPlainTextLink);
+    this.showItem("context-savelink", this.onSaveableLink);
+    this.showItem("context-sendlink", this.onSaveableLink);
 
     
     this.showItem("context-saveimage", this.onLoadedImage || this.onCanvas);
@@ -217,7 +261,7 @@ nsContextMenu.prototype = {
     
     var shell = getShellService();
     if (shell)
-      haveSetDesktopBackground = shell.canSetDesktopBackground;
+      haveSetDesktopBackground = true;
 #endif
     this.showItem("context-setDesktopBackground",
                   haveSetDesktopBackground && this.onLoadedImage);
@@ -233,20 +277,14 @@ nsContextMenu.prototype = {
     
     
     this.showItem("context-viewimage", (this.onImage &&
-                  (!this.inSyntheticDoc || this.inFrame)) || this.onCanvas);
+                  (!this.onStandaloneImage || this.inFrame)) || this.onCanvas);
 
-    
-    this.showItem("context-viewvideo", this.onVideo && (!this.inSyntheticDoc || this.inFrame));
+    this.showItem("context-viewvideo", this.onVideo);
     this.setItemAttr("context-viewvideo",  "disabled", !this.mediaURL);
 
     
-    
-    this.showItem("context-viewbgimage", shouldShow &&
-                                         !this._hasMultipleBGImages &&
-                                         !this.inSyntheticDoc);
-    this.showItem("context-sep-viewbgimage", shouldShow &&
-                                             !this._hasMultipleBGImages &&
-                                             !this.inSyntheticDoc);
+    this.showItem("context-viewbgimage", shouldShow && !this._hasMultipleBGImages);
+    this.showItem("context-sep-viewbgimage", shouldShow && !this._hasMultipleBGImages);
     document.getElementById("context-viewbgimage")
             .disabled = !this.hasBGImage;
 
@@ -260,7 +298,7 @@ nsContextMenu.prototype = {
     this.showItem("context-bookmarkpage",
                   !(this.isContentSelected || this.onTextInput || this.onLink ||
                     this.onImage || this.onVideo || this.onAudio));
-    this.showItem("context-bookmarklink", (this.onLink && !this.onMailtoLink) || this.onPlainTextLink);
+    this.showItem("context-bookmarklink", this.onLink && !this.onMailtoLink);
     this.showItem("context-searchselect", isTextSelected);
     this.showItem("context-keywordfield",
                   this.onTextInput && this.onKeywordField);
@@ -286,17 +324,15 @@ nsContextMenu.prototype = {
   initSpellingItems: function() {
     var canSpell = InlineSpellCheckerUI.canSpellCheck;
     var onMisspelling = InlineSpellCheckerUI.overMisspelling;
-    var showUndo = canSpell && InlineSpellCheckerUI.canUndo();
     this.showItem("spell-check-enabled", canSpell);
     this.showItem("spell-separator", canSpell || this.onEditableArea);
     document.getElementById("spell-check-enabled")
             .setAttribute("checked", canSpell && InlineSpellCheckerUI.enabled);
 
     this.showItem("spell-add-to-dictionary", onMisspelling);
-    this.showItem("spell-undo-add-to-dictionary", showUndo);
 
     
-    this.showItem("spell-suggestions-separator", onMisspelling || showUndo);
+    this.showItem("spell-suggestions-separator", onMisspelling);
     if (onMisspelling) {
       var suggestionsSeparator =
         document.getElementById("spell-add-to-dictionary");
@@ -342,9 +378,7 @@ nsContextMenu.prototype = {
     this.showItem("context-delete", this.onTextInput);
     this.showItem("context-sep-paste", this.onTextInput);
     this.showItem("context-selectall", !(this.onLink || this.onImage ||
-                                         this.onVideo || this.onAudio ||
-                                         this.inSyntheticDoc) ||
-                                       this.isDesignMode);
+                  this.onVideo || this.onAudio) || this.isDesignMode);
     this.showItem("context-sep-selectall", this.isContentSelected );
 
     
@@ -383,7 +417,7 @@ nsContextMenu.prototype = {
     this.showItem("context-media-unmute", onMedia && this.target.muted);
     this.showItem("context-media-showcontrols", onMedia && !this.target.controls);
     this.showItem("context-media-hidecontrols", onMedia && this.target.controls);
-    this.showItem("context-video-fullscreen", this.onVideo && this.target.ownerDocument.mozFullScreenElement == null);
+    this.showItem("context-video-fullscreen", this.onVideo);
     var statsShowing = this.onVideo && this.target.wrappedJSObject.mozMediaStatisticsShowing;
     this.showItem("context-video-showstats", this.onVideo && this.target.controls && !statsShowing);
     this.showItem("context-video-hidestats", this.onVideo && this.target.controls && statsShowing);
@@ -432,6 +466,7 @@ nsContextMenu.prototype = {
     this.onImage           = false;
     this.onLoadedImage     = false;
     this.onCompletedImage  = false;
+    this.onStandaloneImage = false;
     this.onCanvas          = false;
     this.onVideo           = false;
     this.onAudio           = false;
@@ -447,17 +482,24 @@ nsContextMenu.prototype = {
     this.linkProtocol      = "";
     this.onMathML          = false;
     this.inFrame           = false;
-    this.inSyntheticDoc    = false;
     this.hasBGImage        = false;
     this.bgImageURL        = "";
     this.onEditableArea    = false;
     this.isDesignMode      = false;
 
     
-    this.target = aNode;
+    
+    
+    
+    
+    InlineSpellCheckerUI.clearSuggestionsFromMenu();
+    InlineSpellCheckerUI.clearDictionaryListFromMenu();
+
+    InlineSpellCheckerUI.uninit();
 
     
-    this.inSyntheticDoc =  this.target.ownerDocument.mozSyntheticDocument;
+    this.target = aNode;
+
     
     if (this.target.nodeType == Node.ELEMENT_NODE) {
       
@@ -473,21 +515,15 @@ nsContextMenu.prototype = {
           this.onCompletedImage = true;
 
         this.mediaURL = this.target.currentURI.spec;
+        if (this.target.ownerDocument instanceof ImageDocument)
+          this.onStandaloneImage = true;
       }
       else if (this.target instanceof HTMLCanvasElement) {
         this.onCanvas = true;
       }
       else if (this.target instanceof HTMLVideoElement) {
+        this.onVideo = true;
         this.mediaURL = this.target.currentSrc || this.target.src;
-        
-        
-        
-        if (this.target.readyState >= this.target.HAVE_METADATA &&
-            (this.target.videoWidth == 0 || this.target.videoHeight == 0)) {
-          this.onAudio = true;
-        } else {
-          this.onVideo = true;
-        }
       }
       else if (this.target instanceof HTMLAudioElement) {
         this.onAudio = true;
@@ -725,8 +761,7 @@ nsContextMenu.prototype = {
     urlSecurityCheck(frameURL, this.browser.contentPrincipal,
                      Ci.nsIScriptSecurityManager.DISALLOW_SCRIPT);
     var referrer = doc.referrer;
-    openUILinkIn(frameURL, "current", { disallowInheritPrincipal: true,
-                                        referrerURI: referrer ? makeURI(referrer) : null });
+    this.browser.loadURI(frameURL, referrer ? makeURI(referrer) : null);
   },
 
   
@@ -798,8 +833,7 @@ nsContextMenu.prototype = {
     }
 
     var doc = this.target.ownerDocument;
-    openUILink(viewURL, e, { disallowInheritPrincipal: true,
-                             referrerURI: doc.documentURIObject });
+    openUILink(viewURL, e, null, null, null, null, doc.documentURIObject );
   },
 
   saveVideoFrameAsImage: function () {
@@ -810,7 +844,7 @@ nsContextMenu.prototype = {
       let uri = makeURI(this.mediaURL);
       let url = uri.QueryInterface(Ci.nsIURL);
       if (url.fileBaseName)
-        name = decodeURI(url.fileBaseName) + ".jpg";
+        name = url.fileBaseName + ".jpg";
     } catch (e) { }
     if (!name)
       name = "snapshot.jpg";
@@ -820,17 +854,14 @@ nsContextMenu.prototype = {
     canvas.height = video.videoHeight;
     var ctxDraw = canvas.getContext("2d");
     ctxDraw.drawImage(video, 0, 0);
-    saveImageURL(canvas.toDataURL("image/jpeg", ""), name, "SaveImageTitle", true, false, document.documentURIObject);
+    saveImageURL(canvas.toDataURL("image/jpg", ""), name, "SaveImageTitle", true, false, document.documentURIObject);
   },
 
   fullScreenVideo: function () {
-    let video = this.target;
-    if (document.mozFullScreenEnabled)
-      video.mozRequestFullScreen();
-  },
+    this.target.pause();
 
-  leaveDOMFullScreen: function() {
-    document.mozCancelFullScreen();
+    openDialog("chrome://browser/content/fullscreen-video.xhtml",
+               "", "chrome,centerscreen,dialog=no", this.target);
   },
 
   
@@ -839,8 +870,7 @@ nsContextMenu.prototype = {
                      this.browser.contentPrincipal,
                      Ci.nsIScriptSecurityManager.DISALLOW_SCRIPT);
     var doc = this.target.ownerDocument;
-    openUILink(this.bgImageURL, e, { disallowInheritPrincipal: true,
-                                     referrerURI: doc.documentURIObject });
+    openUILink(this.bgImageURL, e, null, null, null, null, doc.documentURIObject );
   },
 
   disableSetDesktopBackground: function() {
@@ -1038,15 +1068,14 @@ nsContextMenu.prototype = {
   
   saveLink: function() {
     var doc =  this.target.ownerDocument;
-    var linkText;
-    
-    if (this.onPlainTextLink)
-      linkText = document.commandDispatcher.focusedWindow.getSelection().toString().trim();
-    else
-      linkText = this.linkText();
     urlSecurityCheck(this.linkURL, doc.nodePrincipal);
 
-    this.saveHelper(this.linkURL, linkText, null, true, doc);
+    this.saveHelper(this.linkURL, this.linkText(), null, true, doc);
+  },
+
+  sendLink: function() {
+    
+    MailIntegration.sendMessage( this.linkURL, "" );
   },
 
   
@@ -1111,7 +1140,7 @@ nsContextMenu.prototype = {
 
     var clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"].
                     getService(Ci.nsIClipboardHelper);
-    clipboard.copyString(addresses, document);
+    clipboard.copyString(addresses);
   },
 
   
@@ -1356,14 +1385,8 @@ nsContextMenu.prototype = {
   },
 
   bookmarkLink: function CM_bookmarkLink() {
-    var linkText;
-    
-    if (this.onPlainTextLink)
-      linkText = document.commandDispatcher.focusedWindow.getSelection().toString().trim();
-    else
-      linkText = this.linkText();
     window.top.PlacesCommandHook.bookmarkLink(PlacesUtils.bookmarksMenuFolderId, this.linkURL,
-                                              linkText);
+                                              this.linkText());
   },
 
   addBookmarkForFrame: function CM_addBookmarkForFrame() {
@@ -1374,27 +1397,19 @@ nsContextMenu.prototype = {
     if (itemId == -1) {
       var title = doc.title;
       var description = PlacesUIUtils.getDescriptionFromDocument(doc);
-      PlacesUIUtils.showBookmarkDialog({ action: "add"
-                                       , type: "bookmark"
-                                       , uri: uri
-                                       , title: title
-                                       , description: description
-                                       , hiddenRows: [ "description"
-                                                     , "location"
-                                                     , "loadInSidebar"
-                                                     , "keyword" ]
-                                       }, window.top);
+      PlacesUIUtils.showMinimalAddBookmarkUI(uri, title, description);
     }
-    else {
-      PlacesUIUtils.showBookmarkDialog({ action: "edit"
-                                       , type: "bookmark"
-                                       , itemId: itemId
-                                       }, window.top);
-    }
+    else
+      PlacesUIUtils.showItemProperties(itemId,
+                                       PlacesUtils.bookmarks.TYPE_BOOKMARK);
   },
 
   savePageAs: function CM_savePageAs() {
     saveDocument(this.browser.contentDocument);
+  },
+
+  sendPage: function CM_sendPage() {
+    MailIntegration.sendLinkForWindow(this.browser.contentWindow);  
   },
 
   printFrame: function CM_printFrame() {
@@ -1443,7 +1458,7 @@ nsContextMenu.prototype = {
   copyMediaLocation : function () {
     var clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"].
                     getService(Ci.nsIClipboardHelper);
-    clipboard.copyString(this.mediaURL, document);
+    clipboard.copyString(this.mediaURL);
   },
 
   get imageURL() {

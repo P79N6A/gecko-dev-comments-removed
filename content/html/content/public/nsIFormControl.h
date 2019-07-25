@@ -2,12 +2,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIFormControl_h___
 #define nsIFormControl_h___
 
 #include "nsISupports.h"
 class nsIDOMHTMLFormElement;
 class nsPresState;
+class nsIContent;
 class nsString;
 class nsIFormProcessor;
 class nsFormSubmission;
@@ -25,6 +58,7 @@ enum FormControlsTypes {
   NS_FORM_SELECT,
   NS_FORM_TEXTAREA,
   NS_FORM_OBJECT,
+  NS_FORM_PROGRESS,
   eFormControlsWithoutSubTypesMax,
   
   
@@ -53,7 +87,6 @@ enum InputElementTypes {
   NS_FORM_INPUT_HIDDEN,
   NS_FORM_INPUT_RESET,
   NS_FORM_INPUT_IMAGE,
-  NS_FORM_INPUT_NUMBER,
   NS_FORM_INPUT_PASSWORD,
   NS_FORM_INPUT_RADIO,
   NS_FORM_INPUT_SEARCH,
@@ -64,13 +97,13 @@ enum InputElementTypes {
   eInputElementTypesMax
 };
 
-PR_STATIC_ASSERT((uint32_t)eFormControlsWithoutSubTypesMax < (uint32_t)NS_FORM_BUTTON_ELEMENT);
-PR_STATIC_ASSERT((uint32_t)eButtonElementTypesMax < (uint32_t)NS_FORM_INPUT_ELEMENT);
-PR_STATIC_ASSERT((uint32_t)eInputElementTypesMax  < 1<<8);
+PR_STATIC_ASSERT((PRUint32)eFormControlsWithoutSubTypesMax < (PRUint32)NS_FORM_BUTTON_ELEMENT);
+PR_STATIC_ASSERT((PRUint32)eButtonElementTypesMax < (PRUint32)NS_FORM_INPUT_ELEMENT);
+PR_STATIC_ASSERT((PRUint32)eInputElementTypesMax  < 1<<8);
 
 #define NS_IFORMCONTROL_IID   \
-{ 0xbc53dcf5, 0xbd4f, 0x4991, \
- { 0xa1, 0x87, 0xc4, 0x57, 0x98, 0x54, 0xda, 0x6e } }
+{ 0x671ef379, 0x7ac0, 0x414c, \
+ { 0xa2, 0x2b, 0xc1, 0x9e, 0x0b, 0x61, 0x4e, 0x83 } }
 
 
 
@@ -112,7 +145,7 @@ public:
 
 
 
-  NS_IMETHOD_(uint32_t) GetType() const = 0 ;
+  NS_IMETHOD_(PRUint32) GetType() const = 0 ;
 
   
 
@@ -173,6 +206,12 @@ public:
 
 
 
+  inline bool IsLabelableControl() const;
+
+  
+
+
+
   inline bool IsSubmittableControl() const;
 
   
@@ -189,7 +228,7 @@ protected:
 
 
 
-  inline static bool IsSingleLineTextControl(bool aExcludePassword, uint32_t aType);
+  inline static bool IsSingleLineTextControl(bool aExcludePassword, PRUint32 aType);
 
   
 
@@ -201,7 +240,7 @@ protected:
 bool
 nsIFormControl::IsSubmitControl() const
 {
-  uint32_t type = GetType();
+  PRUint32 type = GetType();
   return type == NS_FORM_INPUT_SUBMIT ||
          type == NS_FORM_INPUT_IMAGE ||
          type == NS_FORM_BUTTON_SUBMIT;
@@ -210,7 +249,7 @@ nsIFormControl::IsSubmitControl() const
 bool
 nsIFormControl::IsTextControl(bool aExcludePassword) const
 {
-  uint32_t type = GetType();
+  PRUint32 type = GetType();
   return type == NS_FORM_TEXTAREA ||
          IsSingleLineTextControl(aExcludePassword, type);
 }
@@ -223,23 +262,38 @@ nsIFormControl::IsSingleLineTextControl(bool aExcludePassword) const
 
 
 bool
-nsIFormControl::IsSingleLineTextControl(bool aExcludePassword, uint32_t aType)
+nsIFormControl::IsSingleLineTextControl(bool aExcludePassword, PRUint32 aType)
 {
   return aType == NS_FORM_INPUT_TEXT ||
          aType == NS_FORM_INPUT_EMAIL ||
          aType == NS_FORM_INPUT_SEARCH ||
          aType == NS_FORM_INPUT_TEL ||
          aType == NS_FORM_INPUT_URL ||
-         
-         aType == NS_FORM_INPUT_NUMBER ||
          (!aExcludePassword && aType == NS_FORM_INPUT_PASSWORD);
+}
+
+bool
+nsIFormControl::IsLabelableControl() const
+{
+  
+  
+  
+  PRUint32 type = GetType();
+  return type & NS_FORM_INPUT_ELEMENT ||
+         type & NS_FORM_BUTTON_ELEMENT ||
+         
+         
+         type == NS_FORM_OUTPUT ||
+         type == NS_FORM_PROGRESS ||
+         type == NS_FORM_SELECT ||
+         type == NS_FORM_TEXTAREA;
 }
 
 bool
 nsIFormControl::IsSubmittableControl() const
 {
   
-  uint32_t type = GetType();
+  PRUint32 type = GetType();
   return type == NS_FORM_OBJECT ||
          type == NS_FORM_TEXTAREA ||
          type == NS_FORM_SELECT ||
@@ -251,7 +305,7 @@ nsIFormControl::IsSubmittableControl() const
 bool
 nsIFormControl::AllowDraggableChildren() const
 {
-  uint32_t type = GetType();
+  PRUint32 type = GetType();
   return type == NS_FORM_OBJECT ||
          type == NS_FORM_LABEL ||
          type == NS_FORM_FIELDSET ||
@@ -261,7 +315,7 @@ nsIFormControl::AllowDraggableChildren() const
 bool
 nsIFormControl::IsAutofocusable() const
 {
-  uint32_t type = GetType();
+  PRUint32 type = GetType();
   return type & NS_FORM_INPUT_ELEMENT ||
          type & NS_FORM_BUTTON_ELEMENT ||
          type == NS_FORM_TEXTAREA ||

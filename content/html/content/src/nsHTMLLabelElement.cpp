@@ -6,6 +6,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsHTMLLabelElement.h"
 #include "nsCOMPtr.h"
 #include "nsIDOMHTMLFormElement.h"
@@ -15,6 +47,7 @@
 #include "nsPresContext.h"
 #include "nsIFormControl.h"
 #include "nsIForm.h"
+#include "nsIDOMDocument.h"
 #include "nsIDocument.h"
 #include "nsGUIEvent.h"
 #include "nsEventDispatcher.h"
@@ -30,7 +63,7 @@ NS_IMPL_NS_NEW_HTML_ELEMENT(Label)
 
 nsHTMLLabelElement::nsHTMLLabelElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsGenericHTMLFormElement(aNodeInfo)
-  , mHandlingEvent(false)
+  , mHandlingEvent(PR_FALSE)
 {
 }
 
@@ -71,8 +104,11 @@ nsHTMLLabelElement::GetForm(nsIDOMHTMLFormElement** aForm)
 NS_IMETHODIMP
 nsHTMLLabelElement::GetControl(nsIDOMHTMLElement** aElement)
 {
+  *aElement = nsnull;
+
   nsCOMPtr<nsIDOMHTMLElement> element = do_QueryInterface(GetLabeledElement());
-  element.forget(aElement);
+
+  element.swap(*aElement);
   return NS_OK;
 }
 
@@ -116,7 +152,7 @@ EventTargetIn(nsEvent *aEvent, nsIContent *aChild, nsIContent *aStop)
   nsIContent *content = c;
   while (content) {
     if (content == aChild) {
-      return true;
+      return PR_TRUE;
     }
 
     if (content == aStop) {
@@ -125,7 +161,7 @@ EventTargetIn(nsEvent *aEvent, nsIContent *aChild, nsIContent *aStop)
 
     content = content->GetParent();
   }
-  return false;
+  return PR_FALSE;
 }
 
 static void
@@ -134,7 +170,7 @@ DestroyMouseDownPoint(void *    ,
                       void *    aPropertyValue,
                       void *    )
 {
-  nsIntPoint* pt = static_cast<nsIntPoint*>(aPropertyValue);
+  nsIntPoint *pt = (nsIntPoint *)aPropertyValue;
   delete pt;
 }
 
@@ -155,7 +191,7 @@ nsHTMLLabelElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
   nsRefPtr<Element> content = GetLabeledElement();
 
   if (content && !EventTargetIn(aVisitor.mEvent, content, this)) {
-    mHandlingEvent = true;
+    mHandlingEvent = PR_TRUE;
     switch (aVisitor.mEvent->message) {
       case NS_MOUSE_BUTTON_DOWN:
         NS_ASSERTION(aVisitor.mEvent->eventStructType == NS_MOUSE_EVENT,
@@ -195,8 +231,8 @@ nsHTMLLabelElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
           
           
           if (dragSelect || event->clickCount > 1 ||
-              event->IsShift() || event->IsControl() || event->IsAlt() ||
-              event->IsMeta()) {
+              event->isShift || event->isControl || event->isAlt ||
+              event->isMeta) {
             break;
           }
 
@@ -222,7 +258,7 @@ nsHTMLLabelElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
           
           DispatchClickEvent(aVisitor.mPresContext,
                              static_cast<nsInputEvent*>(aVisitor.mEvent),
-                             content, false,
+                             content, PR_FALSE,
                              NS_EVENT_FLAG_PREVENT_MULTIPLE_ACTIONS, &status);
           
           
@@ -230,7 +266,7 @@ nsHTMLLabelElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
         }
         break;
     }
-    mHandlingEvent = false;
+    mHandlingEvent = PR_FALSE;
   }
   return NS_OK;
 }
@@ -248,7 +284,7 @@ nsHTMLLabelElement::SubmitNamesValues(nsFormSubmission* aFormSubmission)
 }
 
 nsresult
-nsHTMLLabelElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aName, nsIAtom* aPrefix,
+nsHTMLLabelElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName, nsIAtom* aPrefix,
                             const nsAString& aValue, bool aNotify)
 {
   return nsGenericHTMLFormElement::SetAttr(aNameSpaceID, aName, aPrefix, aValue,
@@ -256,7 +292,7 @@ nsHTMLLabelElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aName, nsIAtom* aPref
 }
 
 nsresult
-nsHTMLLabelElement::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
+nsHTMLLabelElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
                               bool aNotify)
 {
   return nsGenericHTMLFormElement::UnsetAttr(aNameSpaceID, aAttribute, aNotify);
@@ -277,7 +313,7 @@ nsHTMLLabelElement::PerformAccesskey(bool aKeyCausesActivation,
 
     
     nsMouseEvent event(aIsTrustedEvent, NS_MOUSE_CLICK,
-                       nullptr, nsMouseEvent::eReal);
+                       nsnull, nsMouseEvent::eReal);
     event.inputSource = nsIDOMMouseEvent::MOZ_SOURCE_KEYBOARD;
 
     nsAutoPopupStatePusher popupStatePusher(aIsTrustedEvent ?
@@ -296,35 +332,44 @@ nsHTMLLabelElement::GetLabeledElement()
   if (!GetAttr(kNameSpaceID_None, nsGkAtoms::_for, elementId)) {
     
     
-    return GetFirstLabelableDescendant();
+    return GetFirstDescendantFormControl();
   }
 
   
   
   nsIDocument* doc = GetCurrentDoc();
   if (!doc) {
-    return nullptr;
+    return nsnull;
   }
 
   Element* element = doc->GetElementById(elementId);
-  if (element && element->IsLabelable()) {
+  if (!element) {
+    return nsnull;
+  }
+
+  nsCOMPtr<nsIFormControl> controlElement = do_QueryInterface(element);
+  if (controlElement && controlElement->IsLabelableControl()) {
+    
     return element;
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 Element*
-nsHTMLLabelElement::GetFirstLabelableDescendant()
+nsHTMLLabelElement::GetFirstDescendantFormControl()
 {
-  for (nsIContent* cur = nsINode::GetFirstChild(); cur;
+  
+  for (nsINode* cur = static_cast<nsINode*>(this)->GetFirstChild();
+       cur;
        cur = cur->GetNextNode(this)) {
-    Element* element = cur->IsElement() ? cur->AsElement() : nullptr;
-    if (element && element->IsLabelable()) {
-      return element;
+    nsCOMPtr<nsIFormControl> element = do_QueryInterface(cur);
+    if (element && element->IsLabelableControl()) {
+      NS_ASSERTION(cur->IsElement(), "How did that happen?");
+      return cur->AsElement();
     }
   }
 
-  return nullptr;
+  return nsnull;
 }
 

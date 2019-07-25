@@ -16,6 +16,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsFrameManagerBase_h_
 #define _nsFrameManagerBase_h_
 
@@ -34,11 +68,6 @@ class nsILayoutHistoryState;
 class nsFrameManagerBase
 {
 public:
-  nsFrameManagerBase()
-  {
-    memset(this, '\0', sizeof(nsFrameManagerBase));
-  }
-
   bool IsDestroyingFrames() { return mIsDestroyingFrames; }
 
   
@@ -53,8 +82,6 @@ public:
     mRootFrame = aRootFrame;
   }
 
-  static uint32_t GetGlobalGenerationNumber() { return sGlobalGenerationNumber; }
-
 protected:
   class UndisplayedMap;
 
@@ -66,16 +93,6 @@ protected:
   PLDHashTable                    mPlaceholderMap;
   UndisplayedMap*                 mUndisplayedMap;
   bool                            mIsDestroyingFrames;  
-
-  
-  
-  
-  
-  
-  
-  
-  
-  static uint32_t                 sGlobalGenerationNumber;
 };
 
 #endif

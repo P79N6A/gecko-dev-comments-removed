@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_WINDOWSSURFACE_H
 #define GFX_WINDOWSSURFACE_H
 
@@ -21,8 +53,8 @@ public:
         FLAG_IS_TRANSPARENT = (1 << 2)
     };
 
-    gfxWindowsSurface(HWND wnd, uint32_t flags = 0);
-    gfxWindowsSurface(HDC dc, uint32_t flags = 0);
+    gfxWindowsSurface(HWND wnd, PRUint32 flags = 0);
+    gfxWindowsSurface(HDC dc, PRUint32 flags = 0);
 
     
     gfxWindowsSurface(const gfxIntSize& size,
@@ -38,7 +70,7 @@ public:
     virtual already_AddRefed<gfxASurface> CreateSimilarSurface(gfxContentType aType,
                                                                const gfxIntSize& aSize);
 
-    void InitWithDC(uint32_t flags);
+    void InitWithDC(PRUint32 flags);
 
     virtual ~gfxWindowsSurface();
 
@@ -58,9 +90,7 @@ public:
     nsresult BeginPage();
     nsresult EndPage();
 
-    virtual int32_t GetDefaultContextFlags() const;
-
-    const gfxIntSize GetSize() const;
+    virtual PRInt32 GetDefaultContextFlags() const;
 
     void MovePixels(const nsIntRect& aSourceRect,
                     const nsIntPoint& aDestTopLeft)

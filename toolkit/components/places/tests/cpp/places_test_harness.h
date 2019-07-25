@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "TestHarness.h"
 #include "nsMemory.h"
 #include "nsThreadUtils.h"
@@ -19,7 +52,6 @@
 #include "nsPIPlacesDatabase.h"
 #include "nsIObserver.h"
 #include "prinrval.h"
-#include "mozilla/Attributes.h"
 
 #define TOPIC_FRECENCY_UPDATED "places-frecency-updated"
 #define WAITFORTOPIC_TIMEOUT_SECONDS 5
@@ -96,29 +128,34 @@ void do_test_finished();
 
 
 
-class WaitForTopicSpinner MOZ_FINAL : public nsIObserver
+class WaitForTopicSpinner : public nsIObserver
 {
 public:
   NS_DECL_ISUPPORTS
 
   WaitForTopicSpinner(const char* const aTopic)
-  : mTopicReceived(false)
+  : mTopic(aTopic)
+  , mTopicReceived(false)
   , mStartTime(PR_IntervalNow())
   {
-    nsCOMPtr<nsIObserverService> observerService =
-      do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
-    do_check_true(observerService);
-    (void)observerService->AddObserver(this, aTopic, false);
   }
 
   void Spin() {
-    while (!mTopicReceived) {
-      if ((PR_IntervalNow() - mStartTime) > (WAITFORTOPIC_TIMEOUT_SECONDS * PR_USEC_PER_SEC)) {
-        
-        do_check_true(false);
-        break;
+    nsCOMPtr<nsIObserverService> observerService =
+      do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
+    if (observerService) {
+      (void)observerService->AddObserver(this, mTopic, PR_FALSE);
+
+      while (!mTopicReceived) {
+        if (PR_IntervalNow() - mStartTime > WAITFORTOPIC_TIMEOUT_SECONDS * PR_USEC_PER_SEC) {
+          
+          do_check_true(false);
+          break;
+        }
+        (void)NS_ProcessNextEvent();
       }
-      (void)NS_ProcessNextEvent();
+
+      (void)observerService->RemoveObserver(this, mTopic);
     }
   }
 
@@ -126,15 +163,13 @@ public:
                      const char* aTopic,
                      const PRUnichar* aData)
   {
+    do_check_false(strcmp(aTopic, mTopic));
     mTopicReceived = true;
-    nsCOMPtr<nsIObserverService> observerService =
-      do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
-    do_check_true(observerService);
-    (void)observerService->RemoveObserver(this, aTopic);
     return NS_OK;
   }
 
 private:
+  const char* const mTopic;
   bool mTopicReceived;
   PRIntervalTime mStartTime;
 };
@@ -152,35 +187,35 @@ NS_IMPL_ISUPPORTS1(
 void
 addURI(nsIURI* aURI)
 {
-  nsRefPtr<WaitForTopicSpinner> spinner =
-    new WaitForTopicSpinner(TOPIC_FRECENCY_UPDATED);
-
   nsCOMPtr<nsINavHistoryService> hist =
     do_GetService(NS_NAVHISTORYSERVICE_CONTRACTID);
-  int64_t id;
-  nsresult rv = hist->AddVisit(aURI, PR_Now(), nullptr,
-                               nsINavHistoryService::TRANSITION_LINK, false,
+
+  PRInt64 id;
+  nsresult rv = hist->AddVisit(aURI, PR_Now(), nsnull,
+                               nsINavHistoryService::TRANSITION_LINK, PR_FALSE,
                                0, &id);
   do_check_success(rv);
 
   
+  nsRefPtr<WaitForTopicSpinner> spinner =
+    new WaitForTopicSpinner(TOPIC_FRECENCY_UPDATED);
   spinner->Spin();
 }
 
 struct PlaceRecord
 {
-  int64_t id;
-  int32_t hidden;
-  int32_t typed;
-  int32_t visitCount;
+  PRInt64 id;
+  PRInt32 hidden;
+  PRInt32 typed;
+  PRInt32 visitCount;
   nsCString guid;
 };
 
 struct VisitRecord
 {
-  int64_t id;
-  int64_t lastVisitId;
-  int32_t transitionType;
+  PRInt64 id;
+  PRInt64 lastVisitId;
+  PRInt32 transitionType;
 };
 
 already_AddRefed<IHistory>
@@ -265,7 +300,7 @@ do_get_place(nsIURI* aURI, PlaceRecord& result)
 
 
 void
-do_get_lastVisit(int64_t placeId, VisitRecord& result)
+do_get_lastVisit(PRInt64 placeId, VisitRecord& result)
 {
   nsCOMPtr<mozIStorageConnection> dbConn = do_get_db();
   nsCOMPtr<mozIStorageStatement> stmt;
@@ -297,41 +332,38 @@ do_get_lastVisit(int64_t placeId, VisitRecord& result)
   do_check_success(rv);
 }
 
+static const char TOPIC_PROFILE_TEARDOWN[] = "profile-change-teardown";
 static const char TOPIC_PROFILE_CHANGE[] = "profile-before-change";
-static const char TOPIC_PLACES_CONNECTION_CLOSED[] = "places-connection-closed";
 
-class WaitForConnectionClosed MOZ_FINAL : public nsIObserver
+class ShutdownObserver : public nsIObserver
 {
-  nsRefPtr<WaitForTopicSpinner> mSpinner;
 public:
   NS_DECL_ISUPPORTS
 
-  WaitForConnectionClosed()
+  ShutdownObserver()
   {
-    nsCOMPtr<nsIObserverService> os =
+    nsCOMPtr<nsIObserverService> observerService =
       do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
-    MOZ_ASSERT(os);
-    if (os) {
-      MOZ_ALWAYS_TRUE(NS_SUCCEEDED(os->AddObserver(this, TOPIC_PROFILE_CHANGE, false)));
-    }
-    mSpinner = new WaitForTopicSpinner(TOPIC_PLACES_CONNECTION_CLOSED);
+    do_check_true(observerService);
+    observerService->AddObserver(this,
+                                 NS_XPCOM_WILL_SHUTDOWN_OBSERVER_ID,
+                                 PR_FALSE);
   }
 
   NS_IMETHOD Observe(nsISupports* aSubject,
                      const char* aTopic,
                      const PRUnichar* aData)
   {
-    nsCOMPtr<nsIObserverService> os =
-      do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
-    MOZ_ASSERT(os);
-    if (os) {
-      MOZ_ALWAYS_TRUE(NS_SUCCEEDED(os->RemoveObserver(this, aTopic)));
+    if (strcmp(aTopic, NS_XPCOM_WILL_SHUTDOWN_OBSERVER_ID) == 0) {
+      nsCOMPtr<nsIObserverService> os =
+        do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
+      (void)os->NotifyObservers(nsnull, TOPIC_PROFILE_TEARDOWN, nsnull);
+      (void)os->NotifyObservers(nsnull, TOPIC_PROFILE_CHANGE, nsnull);
     }
-
-    mSpinner->Spin();
-
-    return NS_OK;
+      return NS_OK;
   }
 };
-
-NS_IMPL_ISUPPORTS1(WaitForConnectionClosed, nsIObserver)
+NS_IMPL_ISUPPORTS1(
+  ShutdownObserver,
+  nsIObserver
+)

@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_CONTEXT_H
 #define GFX_CONTEXT_H
 
@@ -16,12 +49,8 @@
 #include "gfxPattern.h"
 #include "gfxPath.h"
 #include "nsISupportsImpl.h"
-#include "nsTArray.h"
-
-#include "mozilla/gfx/2D.h"
 
 typedef struct _cairo cairo_t;
-struct GlyphBufferAzure;
 template <typename T> class FallibleTArray;
 
 
@@ -46,12 +75,6 @@ public:
 
 
     gfxContext(gfxASurface *surface);
-
-    
-
-
-    gfxContext(mozilla::gfx::DrawTarget *aTarget);
-
     ~gfxContext();
 
     
@@ -74,9 +97,7 @@ public:
 
 
 
-    cairo_t *GetCairo();
-
-    mozilla::gfx::DrawTarget *GetDrawTarget() { return mDT; }
+    cairo_t *GetCairo() { return mCairo; }
 
     
 
@@ -153,7 +174,7 @@ public:
     
 
 
-    gfxPoint CurrentPoint();
+    gfxPoint CurrentPoint() const;
 
     
 
@@ -216,7 +237,7 @@ public:
     
 
 
-    void Polygon(const gfxPoint *points, uint32_t numPoints);
+    void Polygon(const gfxPoint *points, PRUint32 numPoints);
 
     
 
@@ -656,113 +677,16 @@ public:
         FLAG_DISABLE_COPY_BACKGROUND = (1 << 2)
     };
 
-    void SetFlag(int32_t aFlag) { mFlags |= aFlag; }
-    void ClearFlag(int32_t aFlag) { mFlags &= ~aFlag; }
-    int32_t GetFlags() const { return mFlags; }
-
-    bool IsCairo() const { return !mDT; }
-
-#ifdef MOZ_DUMP_PAINTING
-    
-
-
-
-    
-
-
-    void WriteAsPNG(const char* aFile);
-
-    
-
-
-    void DumpAsDataURL();
-
-    
-
-
-    void CopyAsDataURL();
-#endif
+    void SetFlag(PRInt32 aFlag) { mFlags |= aFlag; }
+    void ClearFlag(PRInt32 aFlag) { mFlags &= ~aFlag; }
+    PRInt32 GetFlags() const { return mFlags; }
 
 private:
-  friend class GeneralPattern;
-  friend struct GlyphBufferAzure;
-
-  typedef mozilla::gfx::Matrix Matrix;
-  typedef mozilla::gfx::DrawTarget DrawTarget;
-  typedef mozilla::gfx::Color Color;
-  typedef mozilla::gfx::StrokeOptions StrokeOptions;
-  typedef mozilla::gfx::Float Float;
-  typedef mozilla::gfx::Rect Rect;
-  typedef mozilla::gfx::CompositionOp CompositionOp;
-  typedef mozilla::gfx::Path Path;
-  typedef mozilla::gfx::PathBuilder PathBuilder;
-  typedef mozilla::gfx::SourceSurface SourceSurface;
-  
-  struct AzureState {
-    AzureState()
-      : op(mozilla::gfx::OP_OVER)
-      , opIsClear(false)
-      , color(0, 0, 0, 1.0f)
-      , clipWasReset(false)
-      , fillRule(mozilla::gfx::FILL_WINDING)
-      , aaMode(mozilla::gfx::AA_SUBPIXEL)
-      , patternTransformChanged(false)
-    {}
-
-    mozilla::gfx::CompositionOp op;
-    bool opIsClear;
-    Color color;
-    nsRefPtr<gfxPattern> pattern;
-    nsRefPtr<gfxASurface> sourceSurfCairo;
-    mozilla::RefPtr<SourceSurface> sourceSurface;
-    Matrix surfTransform;
-    Matrix transform;
-    struct PushedClip {
-      mozilla::RefPtr<Path> path;
-      Rect rect;
-      Matrix transform;
-    };
-    nsTArray<PushedClip> pushedClips;
-    nsTArray<Float> dashPattern;
-    bool clipWasReset;
-    mozilla::gfx::FillRule fillRule;
-    StrokeOptions strokeOptions;
-    mozilla::RefPtr<DrawTarget> drawTarget;
-    mozilla::RefPtr<DrawTarget> parentTarget;
-    mozilla::gfx::AntialiasMode aaMode;
-    bool patternTransformChanged;
-    Matrix patternTransform;
-  };
-
-  
-  void EnsurePath();
-  
-  void EnsurePathBuilder();
-  void FillAzure(mozilla::gfx::Float aOpacity);
-  void PushClipsToDT(mozilla::gfx::DrawTarget *aDT);
-  CompositionOp GetOp();
-  void ChangeTransform(const mozilla::gfx::Matrix &aNewMatrix);
-
-  bool mPathIsRect;
-  bool mTransformChanged;
-  Matrix mPathTransform;
-  Rect mRect;
-  mozilla::RefPtr<PathBuilder> mPathBuilder;
-  mozilla::RefPtr<Path> mPath;
-  Matrix mTransform;
-  nsTArray<AzureState> mStateStack;
-
-  AzureState &CurrentState() { return mStateStack[mStateStack.Length() - 1]; }
-  const AzureState &CurrentState() const { return mStateStack[mStateStack.Length() - 1]; }
-
-  cairo_t *mCairo;
-  cairo_t *mRefCairo;
-  nsRefPtr<gfxASurface> mSurface;
-  int32_t mFlags;
-
-  mozilla::RefPtr<DrawTarget> mDT;
-  mozilla::RefPtr<DrawTarget> mOriginalDT;
+    cairo_t *mCairo;
+    nsRefPtr<gfxASurface> mSurface;
+    PRInt32 mFlags;
 };
+
 
 
 
@@ -772,7 +696,7 @@ private:
 class THEBES_API gfxContextAutoSaveRestore
 {
 public:
-  gfxContextAutoSaveRestore() : mContext(nullptr) {}
+  gfxContextAutoSaveRestore() : mContext(nsnull) {}
 
   gfxContextAutoSaveRestore(gfxContext *aContext) : mContext(aContext) {
     mContext->Save();
@@ -814,7 +738,7 @@ private:
 class THEBES_API gfxContextPathAutoSaveRestore
 {
 public:
-    gfxContextPathAutoSaveRestore() : mContext(nullptr) {}
+    gfxContextPathAutoSaveRestore() : mContext(nsnull) {}
 
     gfxContextPathAutoSaveRestore(gfxContext *aContext, bool aSave = true) : mContext(aContext)
     {
@@ -854,7 +778,7 @@ public:
         if (mPath) {
             mContext->NewPath();
             mContext->AppendPath(mPath);
-            mPath = nullptr;
+            mPath = nsnull;
         }
     }
 
@@ -898,33 +822,20 @@ public:
     gfxContextAutoDisableSubpixelAntialiasing(gfxContext *aContext, bool aDisable)
     {
         if (aDisable) {
-            if (aContext->IsCairo()) {
-                mSurface = aContext->CurrentSurface();
-                if (!mSurface) {
-                  return;
-                }
-                mSubpixelAntialiasingEnabled = mSurface->GetSubpixelAntialiasingEnabled();
-                mSurface->SetSubpixelAntialiasingEnabled(false);
-            } else {
-                mDT = aContext->GetDrawTarget();
-
-                mSubpixelAntialiasingEnabled = mDT->GetPermitSubpixelAA();
-                mDT->SetPermitSubpixelAA(false);
-            }
+            mSurface = aContext->CurrentSurface();
+            mSubpixelAntialiasingEnabled = mSurface->GetSubpixelAntialiasingEnabled();
+            mSurface->SetSubpixelAntialiasingEnabled(PR_FALSE);
         }
     }
     ~gfxContextAutoDisableSubpixelAntialiasing()
     {
         if (mSurface) {
             mSurface->SetSubpixelAntialiasingEnabled(mSubpixelAntialiasingEnabled);
-        } else if (mDT) {
-            mDT->SetPermitSubpixelAA(mSubpixelAntialiasingEnabled);
         }
     }
 
 private:
     nsRefPtr<gfxASurface> mSurface;
-    mozilla::RefPtr<mozilla::gfx::DrawTarget> mDT;
     bool mSubpixelAntialiasingEnabled;
 };
 

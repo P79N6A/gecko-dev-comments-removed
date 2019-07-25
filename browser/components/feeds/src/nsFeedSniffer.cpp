@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsFeedSniffer.h"
 
 #include "prmem.h"
@@ -36,7 +69,7 @@
 #define NS_RDF "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
 #define NS_RSS "http://purl.org/rss/1.0/"
 
-#define MAX_BYTES 512u
+#define MAX_BYTES 512
 
 NS_IMPL_ISUPPORTS3(nsFeedSniffer,
                    nsIContentSniffer,
@@ -45,8 +78,8 @@ NS_IMPL_ISUPPORTS3(nsFeedSniffer,
 
 nsresult
 nsFeedSniffer::ConvertEncodedData(nsIRequest* request,
-                                  const uint8_t* data,
-                                  uint32_t length)
+                                  const PRUint8* data,
+                                  PRUint32 length)
 {
   nsresult rv = NS_OK;
 
@@ -55,7 +88,7 @@ nsFeedSniffer::ConvertEncodedData(nsIRequest* request,
   if (!httpChannel)
     return NS_ERROR_NO_INTERFACE;
 
-  nsAutoCString contentEncoding;
+  nsCAutoString contentEncoding;
   httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("Content-Encoding"), 
                                  contentEncoding);
   if (!contentEncoding.IsEmpty()) {
@@ -65,11 +98,11 @@ nsFeedSniffer::ConvertEncodedData(nsIRequest* request,
 
       nsCOMPtr<nsIStreamListener> converter;
       rv = converterService->AsyncConvertData(contentEncoding.get(), 
-                                              "uncompressed", this, nullptr, 
+                                              "uncompressed", this, nsnull, 
                                               getter_AddRefs(converter));
       NS_ENSURE_SUCCESS(rv, rv);
 
-      converter->OnStartRequest(request, nullptr);
+      converter->OnStartRequest(request, nsnull);
 
       nsCOMPtr<nsIStringInputStream> rawStream =
         do_CreateInstance(NS_STRINGINPUTSTREAM_CONTRACTID);
@@ -79,10 +112,10 @@ nsFeedSniffer::ConvertEncodedData(nsIRequest* request,
       rv = rawStream->SetData((const char*)data, length);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      rv = converter->OnDataAvailable(request, nullptr, rawStream, 0, length);
+      rv = converter->OnDataAvailable(request, nsnull, rawStream, 0, length);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      converter->OnStopRequest(request, nullptr, NS_OK);
+      converter->OnStopRequest(request, nsnull, NS_OK);
     }
   }
   return rv;
@@ -100,15 +133,15 @@ bool
 HasAttachmentDisposition(nsIHttpChannel* httpChannel)
 {
   if (!httpChannel)
-    return false;
+    return PR_FALSE;
 
-  uint32_t disp;
+  PRUint32 disp;
   nsresult rv = httpChannel->GetContentDisposition(&disp);
 
   if (NS_SUCCEEDED(rv) && disp == nsIChannel::DISPOSITION_ATTACHMENT)
-    return true;
+    return PR_TRUE;
 
-  return false;
+  return PR_FALSE;
 }
 
 
@@ -122,7 +155,7 @@ FindChar(char c, const char *begin, const char *end)
     if (*begin == c)
       return begin;
   }
-  return nullptr;
+  return nsnull;
 }
 
 
@@ -151,24 +184,24 @@ IsDocumentElement(const char *start, const char* end)
   while ( (start = FindChar('<', start, end)) ) {
     ++start;
     if (start >= end)
-      return false;
+      return PR_FALSE;
 
     
     
     
     if (*start != '?' && *start != '!')
-      return false;
+      return PR_FALSE;
     
     
     
     
     start = FindChar('>', start, end);
     if (!start)
-      return false;
+      return PR_FALSE;
 
     ++start;
   }
-  return true;
+  return PR_TRUE;
 }
 
 
@@ -184,9 +217,9 @@ IsDocumentElement(const char *start, const char* end)
 static bool
 ContainsTopLevelSubstring(nsACString& dataString, const char *substring) 
 {
-  int32_t offset = dataString.Find(substring);
+  PRInt32 offset = dataString.Find(substring);
   if (offset == -1)
-    return false;
+    return PR_FALSE;
 
   const char *begin = dataString.BeginReading();
 
@@ -196,8 +229,8 @@ ContainsTopLevelSubstring(nsACString& dataString, const char *substring)
 
 NS_IMETHODIMP
 nsFeedSniffer::GetMIMETypeFromContent(nsIRequest* request, 
-                                      const uint8_t* data, 
-                                      uint32_t length, 
+                                      const PRUint8* data, 
+                                      PRUint32 length, 
                                       nsACString& sniffedType)
 {
   nsCOMPtr<nsIHttpChannel> channel(do_QueryInterface(request));
@@ -205,7 +238,7 @@ nsFeedSniffer::GetMIMETypeFromContent(nsIRequest* request,
     return NS_ERROR_NO_INTERFACE;
 
   
-  nsAutoCString method;
+  nsCAutoString method;
   channel->GetRequestMethod(method);
   if (!method.Equals("GET")) {
     sniffedType.Truncate();
@@ -222,7 +255,7 @@ nsFeedSniffer::GetMIMETypeFromContent(nsIRequest* request,
   nsCOMPtr<nsIURI> originalURI;
   channel->GetOriginalURI(getter_AddRefs(originalURI));
 
-  nsAutoCString scheme;
+  nsCAutoString scheme;
   originalURI->GetScheme(scheme);
   if (scheme.EqualsLiteral("view-source")) {
     sniffedType.Truncate();
@@ -233,7 +266,7 @@ nsFeedSniffer::GetMIMETypeFromContent(nsIRequest* request,
   
   
   
-  nsAutoCString contentType;
+  nsCAutoString contentType;
   channel->GetContentType(contentType);
   bool noSniff = contentType.EqualsLiteral(TYPE_RSS) ||
                    contentType.EqualsLiteral(TYPE_ATOM);
@@ -242,7 +275,7 @@ nsFeedSniffer::GetMIMETypeFromContent(nsIRequest* request,
   
   
   if (!noSniff) {
-    nsAutoCString sniffHeader;
+    nsCAutoString sniffHeader;
     nsresult foundHeader =
       channel->GetRequestHeader(NS_LITERAL_CSTRING("X-Moz-Is-Feed"),
                                 sniffHeader);
@@ -259,7 +292,7 @@ nsFeedSniffer::GetMIMETypeFromContent(nsIRequest* request,
     
     
     channel->SetResponseHeader(NS_LITERAL_CSTRING("X-Moz-Is-Feed"),
-                               NS_LITERAL_CSTRING("1"), false);
+                               NS_LITERAL_CSTRING("1"), PR_FALSE);
     sniffedType.AssignLiteral(TYPE_MAYBE_FEED);
     return NS_OK;
   }
@@ -280,22 +313,19 @@ nsFeedSniffer::GetMIMETypeFromContent(nsIRequest* request,
   nsresult rv = ConvertEncodedData(request, data, length);
   if (NS_FAILED(rv))
     return rv;
+  
+  const char* testData = 
+    mDecodedData.IsEmpty() ? (const char*)data : mDecodedData.get();
 
   
   
   
-  const char* testData;
-  if (mDecodedData.IsEmpty()) {
-    testData = (const char*)data;
-    length = NS_MIN(length, MAX_BYTES);
-  } else {
-    testData = mDecodedData.get();
-    length = NS_MIN(mDecodedData.Length(), MAX_BYTES);
-  }
 
   
   
   
+  if (length > MAX_BYTES)
+    length = MAX_BYTES;
 
   
   nsDependentCSubstring dataString((const char*)testData, length);
@@ -334,9 +364,9 @@ NS_METHOD
 nsFeedSniffer::AppendSegmentToString(nsIInputStream* inputStream,
                                      void* closure,
                                      const char* rawSegment,
-                                     uint32_t toOffset,
-                                     uint32_t count,
-                                     uint32_t* writeCount)
+                                     PRUint32 toOffset,
+                                     PRUint32 count,
+                                     PRUint32* writeCount)
 {
   nsCString* decodedData = static_cast<nsCString*>(closure);
   decodedData->Append(rawSegment, count);
@@ -346,10 +376,10 @@ nsFeedSniffer::AppendSegmentToString(nsIInputStream* inputStream,
 
 NS_IMETHODIMP
 nsFeedSniffer::OnDataAvailable(nsIRequest* request, nsISupports* context,
-                               nsIInputStream* stream, uint64_t offset, 
-                               uint32_t count)
+                               nsIInputStream* stream, PRUint32 offset, 
+                               PRUint32 count)
 {
-  uint32_t read;
+  PRUint32 read;
   return stream->ReadSegments(AppendSegmentToString, &mDecodedData, count, 
                               &read);
 }

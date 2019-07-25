@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_IMAGESURFACE_H
 #define GFX_IMAGESURFACE_H
 
@@ -12,12 +44,6 @@
 
 
 class gfxSubimageSurface;
-
-namespace mozilla {
-namespace gfx {
-class SourceSurface;
-}
-}
 
 
 
@@ -45,7 +71,7 @@ public:
 
 
 
-    gfxImageSurface(const gfxIntSize& size, gfxImageFormat format, bool aClear = true);
+    gfxImageSurface(const gfxIntSize& size, gfxImageFormat format);
     gfxImageSurface(cairo_surface_t *csurf);
 
     virtual ~gfxImageSurface();
@@ -54,14 +80,14 @@ public:
     gfxImageFormat Format() const { return mFormat; }
 
     virtual const gfxIntSize GetSize() const { return mSize; }
-    int32_t Width() const { return mSize.width; }
-    int32_t Height() const { return mSize.height; }
+    PRInt32 Width() const { return mSize.width; }
+    PRInt32 Height() const { return mSize.height; }
 
     
 
 
 
-    int32_t Stride() const { return mStride; }
+    PRInt32 Stride() const { return mStride; }
     
 
 
@@ -70,16 +96,10 @@ public:
     
 
 
-    int32_t GetDataSize() const { return mStride*mSize.height; }
+    PRInt32 GetDataSize() const { return mStride*mSize.height; }
 
     
     bool CopyFrom (gfxImageSurface *other);
-
-    
-
-
-
-    bool CopyFrom (mozilla::gfx::SourceSurface *aSurface);
 
     
 
@@ -89,8 +109,9 @@ public:
     virtual already_AddRefed<gfxImageSurface> GetAsImageSurface();
 
     
+    NS_OVERRIDE
     virtual void MovePixels(const nsIntRect& aSourceRect,
-                            const nsIntPoint& aDestTopLeft) MOZ_OVERRIDE;
+                            const nsIntPoint& aDestTopLeft);
 
 protected:
     gfxImageSurface();

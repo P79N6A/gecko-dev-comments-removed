@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsFTPChannel.h"
 #include "nsFtpConnectionThread.h"  
 
@@ -18,17 +50,16 @@
 #include "nsIStreamConverterService.h"
 #include "nsISocketTransport.h"
 #include "nsURLHelper.h"
-#include "mozilla/Attributes.h"
 
 #if defined(PR_LOGGING)
 extern PRLogModuleInfo* gFTPLog;
 #endif 
 
 
-static inline uint32_t
+static inline PRUint32
 PRTimeToSeconds(PRTime t_usec)
 {
-    return uint32_t(t_usec / PR_USEC_PER_SEC);
+    return PRUint32(t_usec / PR_USEC_PER_SEC);
 }
 
 #define NowInSeconds() PRTimeToSeconds(PR_Now())
@@ -57,7 +88,7 @@ NS_IMPL_ISUPPORTS_INHERITED4(nsFtpChannel,
 NS_IMETHODIMP
 nsFtpChannel::SetUploadStream(nsIInputStream *stream,
                               const nsACString &contentType,
-                              int32_t contentLength)
+                              PRInt32 contentLength)
 {
     NS_ENSURE_TRUE(!IsPending(), NS_ERROR_IN_PROGRESS);
 
@@ -80,7 +111,7 @@ nsFtpChannel::GetUploadStream(nsIInputStream **stream)
 
 
 NS_IMETHODIMP
-nsFtpChannel::ResumeAt(uint64_t aStartPos, const nsACString& aEntityID)
+nsFtpChannel::ResumeAt(PRUint64 aStartPos, const nsACString& aEntityID)
 {
     NS_ENSURE_TRUE(!IsPending(), NS_ERROR_IN_PROGRESS);
     mEntityID = aEntityID;
@@ -135,23 +166,23 @@ nsFtpChannel::OpenContentStream(bool async, nsIInputStream **result,
 bool
 nsFtpChannel::GetStatusArg(nsresult status, nsString &statusArg)
 {
-    nsAutoCString host;
+    nsCAutoString host;
     URI()->GetHost(host);
     CopyUTF8toUTF16(host, statusArg);
-    return true;
+    return PR_TRUE;
 }
 
 void
 nsFtpChannel::OnCallbacksChanged()
 {
-    mFTPEventSink = nullptr;
+    mFTPEventSink = nsnull;
 }
 
 
 
 namespace {
 
-class FTPEventSinkProxy MOZ_FINAL : public nsIFTPEventSink
+class FTPEventSinkProxy : public nsIFTPEventSink
 {
 public:
     FTPEventSinkProxy(nsIFTPEventSink* aTarget)

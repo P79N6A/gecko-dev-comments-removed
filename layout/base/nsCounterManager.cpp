@@ -6,6 +6,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCounterManager.h"
 #include "nsBulletFrame.h" 
 #include "nsContentUtils.h"
@@ -25,17 +57,17 @@ nsCounterUseNode::InitTextFrame(nsGenConList* aList,
       Calc(counterList);
       nsAutoString contentString;
       GetText(contentString);
-      aTextFrame->GetContent()->SetText(contentString, false);
+      aTextFrame->GetContent()->SetText(contentString, PR_FALSE);
     } else {
       
       
       
       counterList->SetDirty();
-      return true;
+      return PR_TRUE;
     }
   }
   
-  return false;
+  return PR_FALSE;
 }
 
 
@@ -75,12 +107,12 @@ nsCounterUseNode::GetText(nsString& aResult)
             stack.AppendElement(n->mScopePrev);
 
     const nsCSSValue& styleItem = mCounterStyle->Item(mAllCounters ? 2 : 1);
-    int32_t style = styleItem.GetIntValue();
+    PRInt32 style = styleItem.GetIntValue();
     const PRUnichar* separator;
     if (mAllCounters)
         separator = mCounterStyle->Item(1).GetStringBufferValue();
 
-    for (uint32_t i = stack.Length() - 1;; --i) {
+    for (PRUint32 i = stack.Length() - 1;; --i) {
         nsCounterNode *n = stack[i];
         nsBulletFrame::AppendCounterText(style, n->mValueAfter, aResult);
         if (i == 0)
@@ -104,8 +136,8 @@ nsCounterList::SetScope(nsCounterNode *aNode)
     
 
     if (aNode == First()) {
-        aNode->mScopeStart = nullptr;
-        aNode->mScopePrev = nullptr;
+        aNode->mScopeStart = nsnull;
+        aNode->mScopePrev = nsnull;
         return;
     }
 
@@ -146,14 +178,14 @@ nsCounterList::SetScope(nsCounterNode *aNode)
         }
     }
 
-    aNode->mScopeStart = nullptr;
-    aNode->mScopePrev  = nullptr;
+    aNode->mScopeStart = nsnull;
+    aNode->mScopePrev  = nsnull;
 }
 
 void
 nsCounterList::RecalcAll()
 {
-    mDirty = false;
+    mDirty = PR_FALSE;
 
     nsCounterNode *node = First();
     if (!node)
@@ -188,11 +220,11 @@ nsCounterManager::AddCounterResetsAndIncrements(nsIFrame *aFrame)
     const nsStyleContent *styleContent = aFrame->GetStyleContent();
     if (!styleContent->CounterIncrementCount() &&
         !styleContent->CounterResetCount())
-        return false;
+        return PR_FALSE;
 
     
     
-    int32_t i, i_end;
+    PRInt32 i, i_end;
     bool dirty = false;
     for (i = 0, i_end = styleContent->CounterResetCount(); i != i_end; ++i)
         dirty |= AddResetOrIncrement(aFrame, i,
@@ -206,7 +238,7 @@ nsCounterManager::AddCounterResetsAndIncrements(nsIFrame *aFrame)
 }
 
 bool
-nsCounterManager::AddResetOrIncrement(nsIFrame *aFrame, int32_t aIndex,
+nsCounterManager::AddResetOrIncrement(nsIFrame *aFrame, PRInt32 aIndex,
                                       const nsStyleCounterData *aCounterData,
                                       nsCounterNode::Type aType)
 {
@@ -216,7 +248,7 @@ nsCounterManager::AddResetOrIncrement(nsIFrame *aFrame, int32_t aIndex,
     nsCounterList *counterList = CounterListFor(aCounterData->mCounter);
     if (!counterList) {
         NS_NOTREACHED("CounterListFor failed (should only happen on OOM)");
-        return false;
+        return PR_FALSE;
     }
 
     counterList->Insert(node);
@@ -224,7 +256,7 @@ nsCounterManager::AddResetOrIncrement(nsIFrame *aFrame, int32_t aIndex,
         
         
         counterList->SetDirty();
-        return true;
+        return PR_TRUE;
     }
 
     
@@ -232,7 +264,7 @@ nsCounterManager::AddResetOrIncrement(nsIFrame *aFrame, int32_t aIndex,
     if (NS_LIKELY(!counterList->IsDirty())) {
         node->Calc(counterList);
     }
-    return false;
+    return PR_FALSE;
 }
 
 nsCounterList*
@@ -243,7 +275,10 @@ nsCounterManager::CounterListFor(const nsSubstring& aCounterName)
     nsCounterList *counterList;
     if (!mNames.Get(aCounterName, &counterList)) {
         counterList = new nsCounterList();
-        mNames.Put(aCounterName, counterList);
+        if (!mNames.Put(aCounterName, counterList)) {
+            delete counterList;
+            return nsnull;
+        }
     }
     return counterList;
 }
@@ -259,13 +294,13 @@ RecalcDirtyLists(const nsAString& aKey, nsCounterList* aList, void* aClosure)
 void
 nsCounterManager::RecalcAll()
 {
-    mNames.EnumerateRead(RecalcDirtyLists, nullptr);
+    mNames.EnumerateRead(RecalcDirtyLists, nsnull);
 }
 
 struct DestroyNodesData {
     DestroyNodesData(nsIFrame *aFrame)
         : mFrame(aFrame)
-        , mDestroyedAny(false)
+        , mDestroyedAny(PR_FALSE)
     {
     }
 
@@ -278,7 +313,7 @@ DestroyNodesInList(const nsAString& aKey, nsCounterList* aList, void* aClosure)
 {
     DestroyNodesData *data = static_cast<DestroyNodesData*>(aClosure);
     if (aList->DestroyNodesFor(data->mFrame)) {
-        data->mDestroyedAny = true;
+        data->mDestroyedAny = PR_TRUE;
         aList->SetDirty();
     }
     return PL_DHASH_NEXT;
@@ -300,7 +335,7 @@ DumpList(const nsAString& aKey, nsCounterList* aList, void* aClosure)
     nsCounterNode *node = aList->First();
 
     if (node) {
-        int32_t i = 0;
+        PRInt32 i = 0;
         do {
             const char *types[] = { "RESET", "INCREMENT", "USE" };
             printf("  Node #%d @%p frame=%p index=%d type=%s valAfter=%d\n"
@@ -323,7 +358,7 @@ void
 nsCounterManager::Dump()
 {
     printf("\n\nCounter Manager Lists:\n");
-    mNames.EnumerateRead(DumpList, nullptr);
+    mNames.EnumerateRead(DumpList, nsnull);
     printf("\n\n");
 }
 #endif

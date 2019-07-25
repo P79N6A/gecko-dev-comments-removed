@@ -7,23 +7,55 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsComposerCommandsUpdater_h__
 #define nsComposerCommandsUpdater_h__
 
-#include "nsCOMPtr.h"                   
-#include "nsIDocumentStateListener.h"
-#include "nsISelectionListener.h"
-#include "nsISupportsImpl.h"            
-#include "nsITimer.h"                   
-#include "nsITransactionListener.h"     
-#include "nsIWeakReferenceUtils.h"      
-#include "nscore.h"                     
-#include "prtypes.h"                    
+#include "nsCOMPtr.h"
+#include "nsITimer.h"
+#include "nsWeakPtr.h"
+#include "nsPICommandUpdater.h"
 
-class nsIDOMWindow;
-class nsITransaction;
+#include "nsISelectionListener.h"
+#include "nsIDocumentStateListener.h"
+#include "nsITransactionListener.h"
+
+class nsIDocShell;
 class nsITransactionManager;
-class nsPICommandUpdater;
 
 class nsComposerCommandsUpdater : public nsISelectionListener,
                                   public nsIDocumentStateListener,
@@ -72,8 +104,8 @@ protected:
 
   enum {
     eStateUninitialized   = -1,
-    eStateOff             = false,
-    eStateOn              = true
+    eStateOff             = PR_FALSE,
+    eStateOn              = PR_TRUE
   };
   
   bool          SelectionIsCollapsed();
@@ -89,8 +121,8 @@ protected:
 
   nsWeakPtr     mDOMWindow;
   nsWeakPtr     mDocShell;
-  int8_t        mDirtyState;  
-  int8_t        mSelectionCollapsed;  
+  PRInt8        mDirtyState;  
+  PRInt8        mSelectionCollapsed;  
   bool          mFirstDoOfFirstUndo;
     
 

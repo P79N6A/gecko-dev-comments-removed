@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsFileProtocolHandler.h"
 #include "nsFileChannel.h"
 #include "nsInputStreamChannel.h"
@@ -63,6 +96,10 @@ NS_IMPL_THREADSAFE_ISUPPORTS3(nsFileProtocolHandler,
 NS_IMETHODIMP
 nsFileProtocolHandler::ReadURLFile(nsIFile* aFile, nsIURI** aURI)
 {
+
+#if _MSC_VER < 1200
+    return NS_ERROR_NOT_AVAILABLE;
+#else
     nsAutoString path;
     nsresult rv = aFile->GetPath(path);
     if (NS_FAILED(rv))
@@ -77,16 +114,16 @@ nsFileProtocolHandler::ReadURLFile(nsIFile* aFile, nsIURI** aURI)
 
     rv = NS_ERROR_NOT_AVAILABLE;
 
-    IUniformResourceLocatorW* urlLink = nullptr;
+    IUniformResourceLocatorW* urlLink = nsnull;
     result = ::CoCreateInstance(CLSID_InternetShortcut, NULL, CLSCTX_INPROC_SERVER,
                                 IID_IUniformResourceLocatorW, (void**)&urlLink);
     if (SUCCEEDED(result) && urlLink) {
-        IPersistFile* urlFile = nullptr;
+        IPersistFile* urlFile = nsnull;
         result = urlLink->QueryInterface(IID_IPersistFile, (void**)&urlFile);
         if (SUCCEEDED(result) && urlFile) {
             result = urlFile->Load(path.get(), STGM_READ);
             if (SUCCEEDED(result) ) {
-                LPWSTR lpTemp = nullptr;
+                LPWSTR lpTemp = nsnull;
 
                 
                 
@@ -102,6 +139,8 @@ nsFileProtocolHandler::ReadURLFile(nsIFile* aFile, nsIURI** aURI)
         urlLink->Release();
     }
     return rv;
+
+#endif 
 }
 
 #elif defined(XP_OS2)
@@ -127,7 +166,7 @@ nsFileProtocolHandler::ReadURLFile(nsIFile* aFile, nsIURI** aURI)
     if (NS_FAILED(rv))
         return NS_ERROR_NOT_AVAILABLE;
 
-    int64_t fileSize;
+    PRInt64 fileSize;
     os2File->GetFileSize(&fileSize);
     rv = NS_ERROR_NOT_AVAILABLE;
 
@@ -135,7 +174,7 @@ nsFileProtocolHandler::ReadURLFile(nsIFile* aFile, nsIURI** aURI)
     
     char * buffer = (char*)NS_Alloc(fileSize+1);
     if (buffer) {
-        int32_t cnt = PR_Read(file, buffer, fileSize);
+        PRInt32 cnt = PR_Read(file, buffer, fileSize);
         if (cnt > 0) {
             buffer[cnt] = '\0';
             if (NS_SUCCEEDED(NS_NewURI(aURI, nsDependentCString(buffer))))
@@ -154,23 +193,27 @@ nsFileProtocolHandler::ReadURLFile(nsIFile* aFile, nsIURI** aURI)
 {
     
     
-    nsAutoCString leafName;
+    nsCAutoString leafName;
     nsresult rv = aFile->GetNativeLeafName(leafName);
     if (NS_FAILED(rv) ||
 	!StringEndsWith(leafName, NS_LITERAL_CSTRING(".desktop")))
         return NS_ERROR_NOT_AVAILABLE;
 
-    nsINIParser parser;
-    rv = parser.Init(aFile);
+    nsCOMPtr<nsILocalFile> file(do_QueryInterface(aFile, &rv));
     if (NS_FAILED(rv))
         return rv;
 
-    nsAutoCString type;
+    nsINIParser parser;
+    rv = parser.Init(file);
+    if (NS_FAILED(rv))
+        return rv;
+
+    nsCAutoString type;
     parser.GetString(DESKTOP_ENTRY_SECTION, "Type", type);
     if (!type.EqualsLiteral("Link"))
         return NS_ERROR_NOT_AVAILABLE;
 
-    nsAutoCString url;
+    nsCAutoString url;
     rv = parser.GetString(DESKTOP_ENTRY_SECTION, "URL", url);
     if (NS_FAILED(rv) || url.IsEmpty())
         return NS_ERROR_NOT_AVAILABLE;
@@ -194,14 +237,14 @@ nsFileProtocolHandler::GetScheme(nsACString &result)
 }
 
 NS_IMETHODIMP
-nsFileProtocolHandler::GetDefaultPort(int32_t *result)
+nsFileProtocolHandler::GetDefaultPort(PRInt32 *result)
 {
     *result = -1;        
     return NS_OK;
 }
 
 NS_IMETHODIMP
-nsFileProtocolHandler::GetProtocolFlags(uint32_t *result)
+nsFileProtocolHandler::GetProtocolFlags(PRUint32 *result)
 {
     *result = URI_NOAUTH | URI_IS_LOCAL_FILE | URI_IS_LOCAL_RESOURCE;
     return NS_OK;
@@ -213,14 +256,14 @@ nsFileProtocolHandler::NewURI(const nsACString &spec,
                               nsIURI *baseURI,
                               nsIURI **result)
 {
-    nsCOMPtr<nsIStandardURL> url = new nsStandardURL(true);
+    nsCOMPtr<nsIStandardURL> url = new nsStandardURL(PR_TRUE);
     if (!url)
         return NS_ERROR_OUT_OF_MEMORY;
 
     const nsACString *specPtr = &spec;
 
 #if defined(XP_WIN) || defined(XP_OS2)
-    nsAutoCString buf;
+    nsCAutoString buf;
     if (net_NormalizeFileURL(spec, buf))
         specPtr = &buf;
 #endif
@@ -251,10 +294,10 @@ nsFileProtocolHandler::NewChannel(nsIURI *uri, nsIChannel **result)
 }
 
 NS_IMETHODIMP 
-nsFileProtocolHandler::AllowPort(int32_t port, const char *scheme, bool *result)
+nsFileProtocolHandler::AllowPort(PRInt32 port, const char *scheme, bool *result)
 {
     
-    *result = false;
+    *result = PR_FALSE;
     return NS_OK;
 }
 
@@ -267,7 +310,7 @@ nsFileProtocolHandler::NewFileURI(nsIFile *file, nsIURI **result)
     NS_ENSURE_ARG_POINTER(file);
     nsresult rv;
 
-    nsCOMPtr<nsIFileURL> url = new nsStandardURL(true);
+    nsCOMPtr<nsIFileURL> url = new nsStandardURL(PR_TRUE);
     if (!url)
         return NS_ERROR_OUT_OF_MEMORY;
 

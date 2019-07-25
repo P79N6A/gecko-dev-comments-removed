@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __nsmimeinfoimpl_h___
 #define __nsmimeinfoimpl_h___
 
@@ -132,7 +165,7 @@ class nsMIMEInfoBase : public nsIMIMEInfo {
 
 
     static NS_HIDDEN_(nsresult) GetLocalFileFromURI(nsIURI *aURI,
-                                                    nsIFile **aFile);
+                                                    nsILocalFile **aFile);
 
     
     nsTArray<nsCString>    mExtensions; 

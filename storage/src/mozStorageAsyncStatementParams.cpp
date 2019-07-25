@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsMemory.h"
 #include "nsString.h"
 #include "nsCOMPtr.h"
@@ -22,7 +56,7 @@ namespace storage {
 AsyncStatementParams::AsyncStatementParams(AsyncStatement *aStatement)
 : mStatement(aStatement)
 {
-  NS_ASSERTION(mStatement != nullptr, "mStatement is null");
+  NS_ASSERTION(mStatement != nsnull, "mStatement is null");
 }
 
 NS_IMPL_ISUPPORTS2(
@@ -76,7 +110,7 @@ AsyncStatementParams::SetProperty(
     return NS_ERROR_INVALID_ARG;
   }
 
-  *_retval = true;
+  *_retval = PR_TRUE;
   return NS_OK;
 }
 
@@ -86,7 +120,7 @@ AsyncStatementParams::NewResolve(
   JSContext *aCtx,
   JSObject *aScopeObj,
   jsid aId,
-  uint32_t aFlags,
+  PRUint32 aFlags,
   JSObject **_objp,
   bool *_retval
 )
@@ -98,24 +132,24 @@ AsyncStatementParams::NewResolve(
   bool resolved = false;
   bool ok = true;
   if (JSID_IS_INT(aId)) {
-    uint32_t idx = JSID_TO_INT(aId);
+    PRUint32 idx = JSID_TO_INT(aId);
     
     
-    ok = ::JS_DefineElement(aCtx, aScopeObj, idx, JSVAL_VOID, nullptr,
-                            nullptr, 0);
+    ok = ::JS_DefineElement(aCtx, aScopeObj, idx, JSVAL_VOID, nsnull,
+                            nsnull, 0);
     resolved = true;
   }
   else if (JSID_IS_STRING(aId)) {
     
     
     
-    ok = ::JS_DefinePropertyById(aCtx, aScopeObj, aId, JSVAL_VOID, nullptr,
-                                 nullptr, 0);
+    ok = ::JS_DefinePropertyById(aCtx, aScopeObj, aId, JSVAL_VOID, nsnull,
+                                 nsnull, 0);
     resolved = true;
   }
 
   *_retval = ok;
-  *_objp = resolved && ok ? aScopeObj : nullptr;
+  *_objp = resolved && ok ? aScopeObj : nsnull;
   return NS_OK;
 }
 

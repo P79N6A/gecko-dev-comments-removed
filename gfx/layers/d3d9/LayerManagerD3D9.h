@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_LAYERMANAGERD3D9_H
 #define GFX_LAYERMANAGERD3D9_H
 
@@ -41,12 +73,12 @@ struct ShaderConstantRect
     : mX(aX), mY(aY), mWidth(aWidth), mHeight(aHeight)
   { }
 
-  ShaderConstantRect(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight)
+  ShaderConstantRect(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight)
     : mX((float)aX), mY((float)aY)
     , mWidth((float)aWidth), mHeight((float)aHeight)
   { }
 
-  ShaderConstantRect(int32_t aX, int32_t aY, float aWidth, float aHeight)
+  ShaderConstantRect(PRInt32 aX, PRInt32 aY, float aWidth, float aHeight)
     : mX((float)aX), mY((float)aY), mWidth(aWidth), mHeight(aHeight)
   { }
 
@@ -71,7 +103,7 @@ public:
 
 
 
-  bool Initialize(bool force = false);
+  bool Initialize();
 
   
 
@@ -98,7 +130,7 @@ public:
 
   void EndConstruction();
 
-  virtual bool EndEmptyTransaction(EndTransactionFlags aFlags = END_DEFAULT);
+  virtual bool EndEmptyTransaction();
 
   struct CallbackInfo {
     DrawThebesLayerCallback Callback;
@@ -117,13 +149,8 @@ public:
   {
     if (!mDeviceManager)
       return false;
-    int32_t maxSize = mDeviceManager->GetMaxTextureSize();
+    PRInt32 maxSize = mDeviceManager->GetMaxTextureSize();
     return aSize <= gfxIntSize(maxSize, maxSize);
-  }
-
-  virtual int32_t GetMaxTextureSize() const
-  {
-    return mDeviceManager->GetMaxTextureSize();
   }
 
   virtual already_AddRefed<ThebesLayer> CreateThebesLayer();
@@ -137,6 +164,8 @@ public:
   virtual already_AddRefed<CanvasLayer> CreateCanvasLayer();
 
   virtual already_AddRefed<ReadbackLayer> CreateReadbackLayer();
+
+  virtual already_AddRefed<ImageContainer> CreateImageContainer();
 
   virtual already_AddRefed<ShadowThebesLayer> CreateShadowThebesLayer();
   virtual already_AddRefed<ShadowContainerLayer> CreateShadowContainerLayer();
@@ -153,9 +182,8 @@ public:
 
   void SetClippingEnabled(bool aEnabled);
 
-  void SetShaderMode(DeviceManagerD3D9::ShaderMode aMode,
-                     Layer* aMask, bool aIs2D = true)
-    { mDeviceManager->SetShaderMode(aMode, aMask, aIs2D); }
+  void SetShaderMode(DeviceManagerD3D9::ShaderMode aMode)
+    { mDeviceManager->SetShaderMode(aMode); }
 
   IDirect3DDevice9 *device() const { return mDeviceManager->device(); }
   DeviceManagerD3D9 *deviceManager() const { return mDeviceManager; }
@@ -167,7 +195,7 @@ public:
 
   static void OnDeviceManagerDestroy(DeviceManagerD3D9 *aDeviceManager) {
     if(aDeviceManager == mDefaultDeviceManager)
-      mDefaultDeviceManager = nullptr;
+      mDefaultDeviceManager = nsnull;
   }
 
 #ifdef MOZ_LAYERS_HAVE_LOG
@@ -175,9 +203,6 @@ public:
 #endif 
 
   void ReportFailure(const nsACString &aMsg, HRESULT aCode);
-
-  bool CompositingDisabled() { return mCompositingDisabled; }
-  void SetCompositingDisabled(bool aCompositingDisabled) { mCompositingDisabled = aCompositingDisabled; }
 
 private:
   
@@ -209,13 +234,7 @@ private:
 
 
 
-  uint32_t mDeviceResetCount;
-
-  
-
-
-
-  bool mCompositingDisabled;
+  PRUint32 mDeviceResetCount;
 
   
 
@@ -242,7 +261,7 @@ class LayerD3D9
 public:
   LayerD3D9(LayerManagerD3D9 *aManager);
 
-  virtual LayerD3D9 *GetFirstChildD3D9() { return nullptr; }
+  virtual LayerD3D9 *GetFirstChildD3D9() { return nsnull; }
 
   void SetFirstChild(LayerD3D9 *aParent);
 
@@ -280,22 +299,6 @@ public:
     device()->SetPixelShaderConstantF(CBfLayerOpacity, opacity, 1);
   }
 
-  
-
-
-
-
-
-
-
-
-
-
-  virtual already_AddRefed<IDirect3DTexture9> GetAsTexture(gfxIntSize* aSize)
-  {
-    return nullptr;
-  }
- 
 protected:
   LayerManagerD3D9 *mD3DManager;
 };

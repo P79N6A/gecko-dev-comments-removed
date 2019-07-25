@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsUCConstructors.h"
 #include "nsUCS2BEToUnicode.h"
 #include "nsUCvLatinDll.h"
@@ -17,11 +49,11 @@
 #define STATE_ODD_SURROGATE_PAIR 4
 
 static nsresult
-UTF16ConvertToUnicode(uint8_t& aState, uint8_t& aOddByte,
+UTF16ConvertToUnicode(PRUint8& aState, PRUint8& aOddByte,
                       PRUnichar& aOddHighSurrogate, PRUnichar& aOddLowSurrogate,
                       const char * aSrc,
-                      int32_t * aSrcLength, PRUnichar * aDest,
-                      int32_t * aDestLength,
+                      PRInt32 * aSrcLength, PRUnichar * aDest,
+                      PRInt32 * aDestLength,
                       bool aSwapBytes)
 {
   const char* src = aSrc;
@@ -170,8 +202,8 @@ nsUTF16ToUnicodeBase::Reset()
 }
 
 NS_IMETHODIMP
-nsUTF16ToUnicodeBase::GetMaxLength(const char * aSrc, int32_t aSrcLength, 
-                                   int32_t * aDestLength)
+nsUTF16ToUnicodeBase::GetMaxLength(const char * aSrc, PRInt32 aSrcLength, 
+                                   PRInt32 * aDestLength)
 {
   
   *aDestLength = (aSrcLength + ((STATE_HALF_CODE_POINT == mState) ? 1 : 0)) / 2;
@@ -184,8 +216,8 @@ nsUTF16ToUnicodeBase::GetMaxLength(const char * aSrc, int32_t aSrcLength,
 
 
 NS_IMETHODIMP
-nsUTF16BEToUnicode::Convert(const char * aSrc, int32_t * aSrcLength,
-                            PRUnichar * aDest, int32_t * aDestLength)
+nsUTF16BEToUnicode::Convert(const char * aSrc, PRInt32 * aSrcLength,
+                            PRUnichar * aDest, PRInt32 * aDestLength)
 {
     if(STATE_FIRST_CALL == mState && *aSrcLength < 2)
     {
@@ -215,17 +247,17 @@ nsUTF16BEToUnicode::Convert(const char * aSrc, int32_t * aSrcLength,
                                       mOddLowSurrogate,
                                       aSrc, aSrcLength, aDest, aDestLength,
 #ifdef IS_LITTLE_ENDIAN
-                                      true
+                                      PR_TRUE
 #else
-                                      false
+                                      PR_FALSE
 #endif
                                       );
   return rv;
 }
 
 NS_IMETHODIMP
-nsUTF16LEToUnicode::Convert(const char * aSrc, int32_t * aSrcLength,
-                            PRUnichar * aDest, int32_t * aDestLength)
+nsUTF16LEToUnicode::Convert(const char * aSrc, PRInt32 * aSrcLength,
+                            PRUnichar * aDest, PRInt32 * aDestLength)
 {
     if(STATE_FIRST_CALL == mState && *aSrcLength < 2)
     {
@@ -255,9 +287,9 @@ nsUTF16LEToUnicode::Convert(const char * aSrc, int32_t * aSrcLength,
                                       mOddLowSurrogate,
                                       aSrc, aSrcLength, aDest, aDestLength,
 #ifdef IS_BIG_ENDIAN
-                                      true
+                                      PR_TRUE
 #else
-                                      false
+                                      PR_FALSE
 #endif
                                       );
   return rv;
@@ -267,13 +299,13 @@ NS_IMETHODIMP
 nsUTF16ToUnicode::Reset()
 {
   mEndian = kUnknown;
-  mFoundBOM = false;
+  mFoundBOM = PR_FALSE;
   return nsUTF16ToUnicodeBase::Reset();
 }
 
 NS_IMETHODIMP
-nsUTF16ToUnicode::Convert(const char * aSrc, int32_t * aSrcLength,
-                          PRUnichar * aDest, int32_t * aDestLength)
+nsUTF16ToUnicode::Convert(const char * aSrc, PRInt32 * aSrcLength,
+                          PRUnichar * aDest, PRInt32 * aDestLength)
 {
     if(STATE_FIRST_CALL == mState && *aSrcLength < 2)
     {
@@ -287,15 +319,15 @@ nsUTF16ToUnicode::Convert(const char * aSrc, int32_t * aSrcLength,
       mState = STATE_NORMAL;
       
       
-      if(0xFF == uint8_t(aSrc[0]) && 0xFE == uint8_t(aSrc[1])) {
+      if(0xFF == PRUint8(aSrc[0]) && 0xFE == PRUint8(aSrc[1])) {
         mState = STATE_FOUND_BOM;
         mEndian = kLittleEndian;
-        mFoundBOM = true;
+        mFoundBOM = PR_TRUE;
       }
-      else if(0xFE == uint8_t(aSrc[0]) && 0xFF == uint8_t(aSrc[1])) {
+      else if(0xFE == PRUint8(aSrc[0]) && 0xFF == PRUint8(aSrc[1])) {
         mState = STATE_FOUND_BOM;
         mEndian = kBigEndian;
-        mFoundBOM = true;
+        mFoundBOM = PR_TRUE;
       }
       
       

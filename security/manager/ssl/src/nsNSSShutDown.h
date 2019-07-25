@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _INC_NSSShutDown_H
 #define _INC_NSSShutDown_H
 
@@ -142,23 +175,23 @@ public:
   
   static nsNSSActivityState *getActivityState()
   {
-    return singleton ? &singleton->mActivityState : nullptr;
+    return singleton ? &singleton->mActivityState : nsnull;
   }
   
 private:
   nsNSSShutDownList();
   static PLDHashOperator PR_CALLBACK
   evaporateAllNSSResourcesHelper(PLDHashTable *table, PLDHashEntryHdr *hdr,
-                                                        uint32_t number, void *arg);
+                                                        PRUint32 number, void *arg);
 
   static PLDHashOperator PR_CALLBACK
   doPK11LogoutHelper(PLDHashTable *table, PLDHashEntryHdr *hdr,
-                                                    uint32_t number, void *arg);
+                                                    PRUint32 number, void *arg);
 protected:
   mozilla::Mutex mListLock;
   static nsNSSShutDownList *singleton;
   PLDHashTable mObjects;
-  uint32_t mActiveSSLSockets;
+  PRUint32 mActiveSSLSockets;
   PLDHashTable mPK11LogoutCancelObjects;
   nsNSSActivityState mActivityState;
 };
@@ -240,7 +273,7 @@ public:
 
   nsNSSShutDownObject()
   {
-    mAlreadyShutDown = false;
+    mAlreadyShutDown = PR_FALSE;
     nsNSSShutDownList::remember(this);
   }
   
@@ -260,7 +293,7 @@ public:
       if (calledFromList == calledFrom) {
         virtualDestroyNSSReference();
       }
-      mAlreadyShutDown = true;
+      mAlreadyShutDown = PR_TRUE;
     }
   }
   
@@ -276,7 +309,7 @@ class nsOnPK11LogoutCancelObject
 {
 public:
   nsOnPK11LogoutCancelObject()
-  :mIsLoggedOut(false)
+  :mIsLoggedOut(PR_FALSE)
   {
     nsNSSShutDownList::remember(this);
   }
@@ -293,7 +326,7 @@ public:
     
     
     
-    mIsLoggedOut = true;
+    mIsLoggedOut = PR_TRUE;
   }
   
   bool isPK11LoggedOut()

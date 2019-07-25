@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIFormSubmission_h___
 #define nsIFormSubmission_h___
 
@@ -59,7 +91,7 @@ public:
 
   virtual bool SupportsIsindexSubmission()
   {
-    return false;
+    return PR_FALSE;
   }
 
   

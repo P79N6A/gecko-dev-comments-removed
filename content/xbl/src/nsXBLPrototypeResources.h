@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsXBLPrototypeResources_h__
 #define nsXBLPrototypeResources_h__
 
@@ -12,6 +45,7 @@
 
 class nsIContent;
 class nsIAtom;
+class nsIDocument;
 class nsIScriptContext;
 class nsSupportsHashtable;
 class nsXBLResourceLoader;
@@ -28,8 +62,6 @@ public:
   void AddResource(nsIAtom* aResourceType, const nsAString& aSrc);
   void AddResourceListener(nsIContent* aElement);
   nsresult FlushSkinSheets();
-
-  nsresult Write(nsIObjectOutputStream* aStream);
 
   nsXBLPrototypeResources(nsXBLPrototypeBinding* aBinding);
   ~nsXBLPrototypeResources();

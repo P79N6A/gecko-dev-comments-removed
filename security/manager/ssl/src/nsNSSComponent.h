@@ -4,6 +4,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsNSSComponent_h_
 #define _nsNSSComponent_h_
 
@@ -77,8 +114,8 @@ extern bool EnsureNSSInitialized(EnsureNSSOperator op);
 class PSMContentDownloader : public nsIStreamListener
 {
 public:
-  PSMContentDownloader() {NS_ASSERTION(false, "don't use this constructor."); }
-  PSMContentDownloader(uint32_t type);
+  PSMContentDownloader() {NS_ASSERTION(PR_FALSE, "don't use this constructor."); }
+  PSMContentDownloader(PRUint32 type);
   virtual ~PSMContentDownloader();
   void setSilentDownload(bool flag);
   void setCrlAutodownloadKey(nsAutoString key);
@@ -96,9 +133,9 @@ public:
 
 protected:
   char* mByteData;
-  int32_t mBufferOffset;
-  int32_t mBufferSize;
-  uint32_t mType;
+  PRInt32 mBufferOffset;
+  PRInt32 mBufferSize;
+  PRUint32 mType;
   bool mDoSilentDownload;
   nsString mCrlAutoDownloadKey;
   nsCOMPtr<nsIURI> mURI;
@@ -111,20 +148,18 @@ class NS_NO_VTABLE nsINSSComponent : public nsISupports {
  public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_INSSCOMPONENT_IID)
 
-  NS_IMETHOD ShowAlertFromStringBundle(const char * messageID) = 0;
-
   NS_IMETHOD GetPIPNSSBundleString(const char *name,
                                    nsAString &outString) = 0;
   NS_IMETHOD PIPBundleFormatStringFromName(const char *name,
                                            const PRUnichar **params,
-                                           uint32_t numParams,
+                                           PRUint32 numParams,
                                            nsAString &outString) = 0;
 
   NS_IMETHOD GetNSSBundleString(const char *name,
                                 nsAString &outString) = 0;
   NS_IMETHOD NSSBundleFormatStringFromName(const char *name,
                                            const PRUnichar **params,
-                                           uint32_t numParams,
+                                           PRUint32 numParams,
                                            nsAString &outString) = 0;
 
   
@@ -200,6 +235,7 @@ private:
 };
 
 class nsNSSShutDownList;
+class nsSSLThread;
 class nsCertVerificationThread;
 
 
@@ -226,21 +262,17 @@ public:
 
   NS_METHOD Init();
 
-  static nsresult GetNewPrompter(nsIPrompt ** result);
-  static nsresult ShowAlertWithConstructedString(const nsString & message);
-  NS_IMETHOD ShowAlertFromStringBundle(const char * messageID);
-
   NS_IMETHOD GetPIPNSSBundleString(const char *name,
                                    nsAString &outString);
   NS_IMETHOD PIPBundleFormatStringFromName(const char *name,
                                            const PRUnichar **params,
-                                           uint32_t numParams,
+                                           PRUint32 numParams,
                                            nsAString &outString);
   NS_IMETHOD GetNSSBundleString(const char *name,
                                nsAString &outString);
   NS_IMETHOD NSSBundleFormatStringFromName(const char *name,
                                            const PRUnichar **params,
-                                           uint32_t numParams,
+                                           PRUint32 numParams,
                                            nsAString &outString);
   NS_IMETHOD SkipOcsp();
   NS_IMETHOD SkipOcspOff();
@@ -271,6 +303,14 @@ private:
   void TryCFM2MachOMigration(nsIFile *cfmPath, nsIFile *machoPath);
 #endif
   
+  enum AlertIdentifier {
+    ai_nss_init_problem, 
+    ai_sockets_still_active, 
+    ai_crypto_ui_active,
+    ai_incomplete_logout
+  };
+  
+  void ShowAlert(AlertIdentifier ai);
   void InstallLoadableRoots();
   void UnloadLoadableRoots();
   void LaunchSmartCardThreads();
@@ -319,6 +359,7 @@ private:
 
   void deleteBackgroundThreads();
   void createBackgroundThreads();
+  nsSSLThread *mSSLThread;
   nsCertVerificationThread *mCertVerificationThread;
 
   nsNSSHttpInterface mHttpForNSS;
@@ -350,9 +391,9 @@ private:
 class nsNSSErrors
 {
 public:
-  static const char *getDefaultErrorStringName(PRErrorCode err);
-  static const char *getOverrideErrorStringName(PRErrorCode aErrorCode);
-  static nsresult getErrorMessageFromCode(PRErrorCode err,
+  static const char *getDefaultErrorStringName(PRInt32 err);
+  static const char *getOverrideErrorStringName(PRInt32 aErrorCode);
+  static nsresult getErrorMessageFromCode(PRInt32 err,
                                           nsINSSComponent *component,
                                           nsString &returnedMessage);
 };
@@ -362,7 +403,7 @@ class nsPSMInitPanic
 private:
   static bool isPanic;
 public:
-  static void SetPanic() {isPanic = true;}
+  static void SetPanic() {isPanic = PR_TRUE;}
   static bool GetPanic() {return isPanic;}
 };
 

@@ -3,6 +3,37 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "SVGLengthListSMILType.h"
 #include "nsSMILValue.h"
 #include "SVGLengthList.h"
@@ -24,7 +55,7 @@ SVGLengthListSMILType::Init(nsSMILValue &aValue) const
   SVGLengthListAndInfo* lengthList = new SVGLengthListAndInfo();
 
   
-  lengthList->SetCanZeroPadList(true);
+  lengthList->SetCanZeroPadList(PR_TRUE);
 
   aValue.mU.mPtr = lengthList;
   aValue.mType = this;
@@ -35,7 +66,7 @@ SVGLengthListSMILType::Destroy(nsSMILValue& aValue) const
 {
   NS_PRECONDITION(aValue.mType == this, "Unexpected SMIL value type");
   delete static_cast<SVGLengthListAndInfo*>(aValue.mU.mPtr);
-  aValue.mU.mPtr = nullptr;
+  aValue.mU.mPtr = nsnull;
   aValue.mType = &nsSMILNullType::sSingleton;
 }
 
@@ -68,7 +99,7 @@ SVGLengthListSMILType::IsEqual(const nsSMILValue& aLeft,
 nsresult
 SVGLengthListSMILType::Add(nsSMILValue& aDest,
                            const nsSMILValue& aValueToAdd,
-                           uint32_t aCount) const
+                           PRUint32 aCount) const
 {
   NS_PRECONDITION(aDest.mType == this, "Unexpected SMIL type");
   NS_PRECONDITION(aValueToAdd.mType == this, "Incompatible SMIL type");
@@ -92,11 +123,8 @@ SVGLengthListSMILType::Add(nsSMILValue& aDest,
   
   
 
-  if (dest.IsEmpty() && valueToAdd.IsEmpty()) {
-    
-    
-    return NS_OK;
-  }
+  NS_ABORT_IF_FALSE(!dest.IsEmpty() || !valueToAdd.IsEmpty(),
+                    "Expecting at least one non-identity operand");
 
   if (!valueToAdd.Element()) { 
     NS_ABORT_IF_FALSE(valueToAdd.IsEmpty(),
@@ -110,7 +138,7 @@ SVGLengthListSMILType::Add(nsSMILValue& aDest,
     if (!dest.SetLength(valueToAdd.Length())) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
-    for (uint32_t i = 0; i < dest.Length(); ++i) {
+    for (PRUint32 i = 0; i < dest.Length(); ++i) {
       dest[i].SetValueAndUnit(valueToAdd[i].GetValueInCurrentUnits() * aCount,
                               valueToAdd[i].GetUnit());
     }
@@ -131,7 +159,7 @@ SVGLengthListSMILType::Add(nsSMILValue& aDest,
     NS_ABORT_IF_FALSE(valueToAdd.CanZeroPadList(),
                       "values disagree about attribute's zero-paddibility");
 
-    uint32_t i = dest.Length();
+    PRUint32 i = dest.Length();
     if (!dest.SetLength(valueToAdd.Length())) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
@@ -140,7 +168,7 @@ SVGLengthListSMILType::Add(nsSMILValue& aDest,
     }
   }
 
-  for (uint32_t i = 0; i < valueToAdd.Length(); ++i) {
+  for (PRUint32 i = 0; i < valueToAdd.Length(); ++i) {
     float valToAdd;
     if (dest[i].GetUnit() == valueToAdd[i].GetUnit()) {
       valToAdd = valueToAdd[i].GetValueInCurrentUnits();
@@ -183,7 +211,7 @@ SVGLengthListSMILType::ComputeDistance(const nsSMILValue& aFrom,
                (from.CanZeroPadList() && from.IsEmpty()) ||
                (to.CanZeroPadList() && to.IsEmpty()),
                "Only \"zero\" nsSMILValues from the SMIL engine should "
-               "return true for CanZeroPadList() when the attribute "
+               "return PR_TRUE for CanZeroPadList() when the attribute "
                "being animated can't be zero padded");
 
   if ((from.Length() < to.Length() && !from.CanZeroPadList()) ||
@@ -204,7 +232,7 @@ SVGLengthListSMILType::ComputeDistance(const nsSMILValue& aFrom,
 
   double total = 0.0;
 
-  uint32_t i = 0;
+  PRUint32 i = 0;
   for (; i < from.Length() && i < to.Length(); ++i) {
     double f = from[i].GetValueInUserUnits(from.Element(), from.Axis());
     double t = to[i].GetValueInUserUnits(to.Element(), to.Axis());
@@ -258,7 +286,7 @@ SVGLengthListSMILType::Interpolate(const nsSMILValue& aStartVal,
                (start.CanZeroPadList() && start.IsEmpty()) ||
                (end.CanZeroPadList() && end.IsEmpty()),
                "Only \"zero\" nsSMILValues from the SMIL engine should "
-               "return true for CanZeroPadList() when the attribute "
+               "return PR_TRUE for CanZeroPadList() when the attribute "
                "being animated can't be zero padded");
 
   if ((start.Length() < end.Length() && !start.CanZeroPadList()) ||
@@ -271,7 +299,7 @@ SVGLengthListSMILType::Interpolate(const nsSMILValue& aStartVal,
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  uint32_t i = 0;
+  PRUint32 i = 0;
   for (; i < start.Length() && i < end.Length(); ++i) {
     float s;
     if (start[i].GetUnit() == end[i].GetUnit()) {

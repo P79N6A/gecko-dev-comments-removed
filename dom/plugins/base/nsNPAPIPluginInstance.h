@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsNPAPIPluginInstance_h_
 #define nsNPAPIPluginInstance_h_
 
@@ -15,15 +49,6 @@
 #include "nsIChannel.h"
 #include "nsInterfaceHashtable.h"
 #include "nsHashKeys.h"
-#ifdef MOZ_WIDGET_ANDROID
-#include "nsAutoPtr.h"
-#include "nsIRunnable.h"
-#include "GLContext.h"
-#include "nsSurfaceTexture.h"
-#include <map>
-class PluginEventRunnable;
-class SharedPluginTexture;
-#endif
 
 #include "mozilla/TimeStamp.h"
 #include "mozilla/PluginLibrary.h"
@@ -33,21 +58,8 @@ struct JSObject;
 class nsPluginStreamListenerPeer; 
 class nsNPAPIPluginStreamListener; 
 class nsIPluginInstanceOwner;
+class nsIPluginStreamListener;
 class nsIOutputStream;
-
-#if defined(OS_WIN)
-const NPDrawingModel kDefaultDrawingModel = NPDrawingModelSyncWin;
-#elif defined(MOZ_X11)
-const NPDrawingModel kDefaultDrawingModel = NPDrawingModelSyncX;
-#elif defined(XP_MACOSX)
-#ifndef NP_NO_QUICKDRAW
-const NPDrawingModel kDefaultDrawingModel = NPDrawingModelQuickDraw; 
-#else
-const NPDrawingModel kDefaultDrawingModel = NPDrawingModelCoreGraphics;
-#endif
-#else
-const NPDrawingModel kDefaultDrawingModel = static_cast<NPDrawingModel>(0);
-#endif
 
 class nsNPAPITimer
 {
@@ -67,21 +79,25 @@ private:
 public:
   NS_DECL_ISUPPORTS
 
-  nsresult Initialize(nsNPAPIPlugin *aPlugin, nsIPluginInstanceOwner* aOwner, const char* aMIMEType);
+  nsresult Initialize(nsIPluginInstanceOwner* aOwner, const char* aMIMEType);
   nsresult Start();
   nsresult Stop();
   nsresult SetWindow(NPWindow* window);
+  nsresult NewStreamToPlugin(nsIPluginStreamListener** listener);
   nsresult NewStreamFromPlugin(const char* type, const char* target, nsIOutputStream* *result);
   nsresult Print(NPPrint* platformPrint);
-  nsresult HandleEvent(void* event, int16_t* result);
+#ifdef ANDROID
+  nsresult PostEvent(void* event) { return 0; };
+#endif
+  nsresult HandleEvent(void* event, PRInt16* result);
   nsresult GetValueFromPlugin(NPPVariable variable, void* value);
-  nsresult GetDrawingModel(int32_t* aModel);
+  nsresult GetDrawingModel(PRInt32* aModel);
   nsresult IsRemoteDrawingCoreAnimation(bool* aDrawing);
   nsresult GetJSObject(JSContext *cx, JSObject** outObject);
-  bool ShouldCache();
+  nsresult DefineJavaProperties();
   nsresult IsWindowless(bool* isWindowless);
   nsresult AsyncSetWindow(NPWindow* window);
-  nsresult GetImageContainer(ImageContainer **aContainer);
+  nsresult GetImage(ImageContainer* aContainer, Image** aImage);
   nsresult GetImageSize(nsIntSize* aSize);
   nsresult NotifyPainted(void);
   nsresult UseAsyncPainting(bool* aIsAsync);
@@ -92,9 +108,10 @@ public:
   nsresult GetFormValue(nsAString& aValue);
   nsresult PushPopupsEnabledState(bool aEnabled);
   nsresult PopPopupsEnabledState();
-  nsresult GetPluginAPIVersion(uint16_t* version);
+  nsresult GetPluginAPIVersion(PRUint16* version);
   nsresult InvalidateRect(NPRect *invalidRect);
   nsresult InvalidateRegion(NPRegion invalidRegion);
+  nsresult ForceRedraw();
   nsresult GetMIMEType(const char* *result);
   nsresult GetJSContext(JSContext* *outContext);
   nsresult GetOwner(nsIPluginInstanceOwner **aOwner);
@@ -109,7 +126,12 @@ public:
 
   nsresult GetNPP(NPP * aNPP);
 
+  void SetURI(nsIURI* uri);
+  nsIURI* GetURI();
+
   NPError SetWindowless(bool aWindowless);
+
+  NPError SetWindowlessLocal(bool aWindowlessLocal);
 
   NPError SetTransparent(bool aTransparent);
 
@@ -118,97 +140,20 @@ public:
   NPError SetUsesDOMForCursor(bool aUsesDOMForCursor);
   bool UsesDOMForCursor();
 
-  void SetDrawingModel(NPDrawingModel aModel);
-  void RedrawPlugin();
 #ifdef XP_MACOSX
+  void SetDrawingModel(NPDrawingModel aModel);
   void SetEventModel(NPEventModel aModel);
 #endif
 
-#ifdef MOZ_WIDGET_ANDROID
-  void NotifyForeground(bool aForeground);
-  void NotifyOnScreen(bool aOnScreen);
-  void MemoryPressure();
-  void NotifyFullScreen(bool aFullScreen);
-  void NotifySize(nsIntSize size);
-
-  bool IsOnScreen() {
-    return mOnScreen;
-  }
-
-  uint32_t GetANPDrawingModel() { return mANPDrawingModel; }
-  void SetANPDrawingModel(uint32_t aModel);
-
+#ifdef ANDROID
+  void SetDrawingModel(PRUint32 aModel);
   void* GetJavaSurface();
-
-  void PostEvent(void* event);
-
-  
-  
-  uint32_t FullScreenOrientation() { return mFullScreenOrientation; }
-  void SetFullScreenOrientation(uint32_t orientation);
-
-  void SetWakeLock(bool aLock);
-
-  mozilla::gl::GLContext* GLContext();
-  
-  
-  class TextureInfo {
-  public:
-    TextureInfo() :
-      mTexture(0), mWidth(0), mHeight(0), mInternalFormat(0)
-    {
-    }
-
-    TextureInfo(GLuint aTexture, int32_t aWidth, int32_t aHeight, GLuint aInternalFormat) :
-      mTexture(aTexture), mWidth(aWidth), mHeight(aHeight), mInternalFormat(aInternalFormat)
-    {
-    }
-
-    GLuint mTexture;
-    int32_t mWidth;
-    int32_t mHeight;
-    GLuint mInternalFormat;
-  };
-
-  TextureInfo LockContentTexture();
-  void ReleaseContentTexture(TextureInfo& aTextureInfo);
-
-  
-  void* AcquireContentWindow();
-
-  mozilla::gl::SharedTextureHandle CreateSharedHandle();
-
-  
-  class VideoInfo {
-  public:
-    VideoInfo(nsSurfaceTexture* aSurfaceTexture) :
-      mSurfaceTexture(aSurfaceTexture)
-    {
-    }
-
-    ~VideoInfo()
-    {
-      mSurfaceTexture = nullptr;
-    }
-
-    nsRefPtr<nsSurfaceTexture> mSurfaceTexture;
-    gfxRect mDimensions;
-  };
-
-  void* AcquireVideoWindow();
-  void ReleaseVideoWindow(void* aWindow);
-  void SetVideoDimensions(void* aWindow, gfxRect aDimensions);
-
-  void GetVideos(nsTArray<VideoInfo*>& aVideos);
-
-  void SetInverted(bool aInverted);
-  bool Inverted() { return mInverted; }
 #endif
 
   nsresult NewStreamListener(const char* aURL, void* notifyData,
-                             nsNPAPIPluginStreamListener** listener);
+                             nsIPluginStreamListener** listener);
 
-  nsNPAPIPluginInstance();
+  nsNPAPIPluginInstance(nsNPAPIPlugin* plugin);
   virtual ~nsNPAPIPluginInstance();
 
   
@@ -228,19 +173,13 @@ public:
     return mRunning == RUNNING || mRunning == DESTROYING;
   }
 
-  
-  mozilla::TimeStamp StopTime();
-
-  
-  void SetCached(bool aCache);
-
   already_AddRefed<nsPIDOMWindow> GetDOMWindow();
 
-  nsresult PrivateModeStateChanged(bool aEnabled);
+  nsresult PrivateModeStateChanged();
 
   nsresult GetDOMElement(nsIDOMElement* *result);
 
-  nsNPAPITimer* TimerWithID(uint32_t id, uint32_t* index);
+  nsNPAPITimer* TimerWithID(uint32_t id, PRUint32* index);
   uint32_t      ScheduleTimer(uint32_t interval, NPBool repeat, void (*timerFunc)(NPP npp, uint32_t timerID));
   void          UnscheduleTimer(uint32_t timerID);
   NPError       PopUpContextMenu(NPMenu* menu);
@@ -255,46 +194,30 @@ public:
 
   void URLRedirectResponse(void* notifyData, NPBool allow);
 
-  NPError InitAsyncSurface(NPSize *size, NPImageFormat format,
-                           void *initData, NPAsyncSurface *surface);
-  NPError FinalizeAsyncSurface(NPAsyncSurface *surface);
-  void SetCurrentAsyncSurface(NPAsyncSurface *surface, NPRect *changed);
-
   
   
   void CarbonNPAPIFailure();
 
 protected:
+  nsresult InitializePlugin();
 
   nsresult GetTagType(nsPluginTagType *result);
-  nsresult GetAttributes(uint16_t& n, const char*const*& names,
+  nsresult GetAttributes(PRUint16& n, const char*const*& names,
                          const char*const*& values);
-  nsresult GetParameters(uint16_t& n, const char*const*& names,
+  nsresult GetParameters(PRUint16& n, const char*const*& names,
                          const char*const*& values);
-  nsresult GetMode(int32_t *result);
+  nsresult GetMode(PRInt32 *result);
 
   
   
   NPP_t mNPP;
 
+#ifdef XP_MACOSX
   NPDrawingModel mDrawingModel;
+#endif
 
-#ifdef MOZ_WIDGET_ANDROID
-  uint32_t mANPDrawingModel;
-
-  friend class PluginEventRunnable;
-
-  nsTArray<nsCOMPtr<PluginEventRunnable>> mPostedEvents;
-  void PopPostedEvent(PluginEventRunnable* r);
-  void OnSurfaceTextureFrameAvailable();
-
-  uint32_t mFullScreenOrientation;
-  bool mWakeLocked;
-  bool mFullScreen;
-  bool mInverted;
-
-  nsRefPtr<SharedPluginTexture> mContentTexture;
-  nsRefPtr<nsSurfaceTexture> mContentSurface;
+#ifdef ANDROID
+  PRUint32 mDrawingModel;
 #endif
 
   enum {
@@ -307,8 +230,8 @@ protected:
   
   
   bool mWindowless;
+  bool mWindowlessLocal;
   bool mTransparent;
-  bool mCached;
   bool mUsesDOMForCursor;
 
 public:
@@ -337,19 +260,11 @@ private:
   
   void* mCurrentPluginEvent;
 
-  
-  
-  mozilla::TimeStamp mStopTime;
+  nsCOMPtr<nsIURI> mURI;
 
   bool mUsePluginLayersPref;
-#ifdef MOZ_WIDGET_ANDROID
-  void EnsureSharedTexture();
-  nsSurfaceTexture* CreateSurfaceTexture();
-
-  std::map<void*, VideoInfo*> mVideos;
-  bool mOnScreen;
-
-  nsIntSize mCurrentSize;
+#ifdef ANDROID
+  void* mSurface;
 #endif
 };
 

@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsTablePainter_h__
 #define nsTablePainter_h__
 
@@ -14,7 +46,7 @@
 
 #define NS_PAINT_FLAG_TABLE_CELL_BG_PASS  0x00000002
 
-class nsIFrame;
+#include "nsIFrame.h"
 class nsTableFrame;
 class nsTableRowGroupFrame;
 class nsTableRowFrame;
@@ -48,7 +80,7 @@ class TableBackgroundPainter
                            nsRenderingContext& aRenderingContext,
                            const nsRect&        aDirtyRect,
                            const nsPoint&       aPt,
-                           uint32_t             aBGPaintFlags);
+                           PRUint32             aBGPaintFlags);
 
     
     ~TableBackgroundPainter();
@@ -92,7 +124,7 @@ class TableBackgroundPainter
 
 
     nsresult PaintRowGroup(nsTableRowGroupFrame* aFrame)
-    { return PaintRowGroup(aFrame, false); }
+    { return PaintRowGroup(aFrame, PR_FALSE); }
 
     
 
@@ -102,7 +134,7 @@ class TableBackgroundPainter
 
 
     nsresult PaintRow(nsTableRowFrame* aFrame)
-    { return PaintRow(aFrame, false); }
+    { return PaintRow(aFrame, PR_FALSE); }
 
   private:
 
@@ -196,7 +228,7 @@ class TableBackgroundPainter
       TableBackgroundData  mCol;
       TableBackgroundData* mColGroup; 
       ColData() {
-        mColGroup = nullptr;
+        mColGroup = nsnull;
       }
     };
 
@@ -211,13 +243,13 @@ class TableBackgroundPainter
     Origin               mOrigin; 
 
     ColData*             mCols;  
-    uint32_t             mNumCols;
+    PRUint32             mNumCols;
     TableBackgroundData  mRowGroup; 
     TableBackgroundData  mRow;      
     nsRect               mCellRect; 
 
     nsStyleBorder        mZeroBorder;  
-    uint32_t             mBGPaintFlags;
+    PRUint32             mBGPaintFlags;
 };
 
 #endif

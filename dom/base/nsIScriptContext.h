@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIScriptContext_h__
 #define nsIScriptContext_h__
 
@@ -11,7 +43,6 @@
 #include "nsISupports.h"
 #include "nsCOMPtr.h"
 #include "nsIProgrammingLanguage.h"
-#include "jsfriendapi.h"
 #include "jspubtd.h"
 
 class nsIScriptGlobalObject;
@@ -22,10 +53,8 @@ class nsIArray;
 class nsIVariant;
 class nsIObjectInputStream;
 class nsIObjectOutputStream;
-template<class> class nsScriptObjectHolder;
+class nsScriptObjectHolder;
 class nsIScriptObjectPrincipal;
-class nsIDOMWindow;
-class nsIURI;
 
 typedef void (*nsScriptTerminationFunc)(nsISupports* aRef);
 
@@ -45,8 +74,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIScriptContextPrincipal,
                               NS_ISCRIPTCONTEXTPRINCIPAL_IID)
 
 #define NS_ISCRIPTCONTEXT_IID \
-{ 0x8bdcea47, 0x6704, 0x4dd9, \
-  { 0xa1, 0x48, 0x05, 0x34, 0xcf, 0xe2, 0xdd, 0x57 } }
+{ 0x827d1e82, 0x5aab, 0x4e3a, \
+  { 0x88, 0x76, 0x53, 0xf7, 0xed, 0x1e, 0x3f, 0xbe } }
 
 
 
@@ -61,11 +90,10 @@ class nsIScriptContext : public nsIScriptContextPrincipal
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ISCRIPTCONTEXT_IID)
 
-  virtual void SetGlobalObject(nsIScriptGlobalObject* aGlobalObject) = 0;
+  
+  virtual PRUint32 GetScriptTypeID() = 0;
 
   
-
-
 
 
 
@@ -85,22 +113,23 @@ public:
 
 
   virtual nsresult EvaluateString(const nsAString& aScript,
-                                  JSObject* aScopeObject,
+                                  void *aScopeObject,
                                   nsIPrincipal *aPrincipal,
-                                  nsIPrincipal *aOriginPrincipal,
                                   const char *aURL,
-                                  uint32_t aLineNo,
-                                  JSVersion aVersion,
+                                  PRUint32 aLineNo,
+                                  PRUint32 aVersion,
                                   nsAString *aRetValue,
                                   bool* aIsUndefined) = 0;
 
+  
+  
   virtual nsresult EvaluateStringWithValue(const nsAString& aScript,
-                                           JSObject* aScopeObject,
+                                           void *aScopeObject,
                                            nsIPrincipal *aPrincipal,
                                            const char *aURL,
-                                           uint32_t aLineNo,
-                                           uint32_t aVersion,
-                                           JS::Value* aRetValue,
+                                           PRUint32 aLineNo,
+                                           PRUint32 aVersion,
+                                           void* aRetValue,
                                            bool* aIsUndefined) = 0;
 
   
@@ -119,14 +148,15 @@ public:
 
 
 
+
   virtual nsresult CompileScript(const PRUnichar* aText,
-                                 int32_t aTextLength,
+                                 PRInt32 aTextLength,
+                                 void* aScopeObject,
                                  nsIPrincipal* aPrincipal,
                                  const char* aURL,
-                                 uint32_t aLineNo,
-                                 uint32_t aVersion,
-                                 nsScriptObjectHolder<JSScript>& aScriptObject,
-                                 bool aSaveSource = false) = 0;
+                                 PRUint32 aLineNo,
+                                 PRUint32 aVersion,
+                                 nsScriptObjectHolder &aScriptObject) = 0;
 
   
 
@@ -142,8 +172,8 @@ public:
 
 
 
-  virtual nsresult ExecuteScript(JSScript* aScriptObject,
-                                 JSObject* aScopeObject,
+  virtual nsresult ExecuteScript(void* aScriptObject,
+                                 void* aScopeObject,
                                  nsAString* aRetValue,
                                  bool* aIsUndefined) = 0;
 
@@ -175,13 +205,13 @@ public:
 
 
   virtual nsresult CompileEventHandler(nsIAtom* aName,
-                                       uint32_t aArgCount,
+                                       PRUint32 aArgCount,
                                        const char** aArgNames,
                                        const nsAString& aBody,
                                        const char* aURL,
-                                       uint32_t aLineNo,
-                                       uint32_t aVersion,
-                                       nsScriptObjectHolder<JSObject>& aHandler) = 0;
+                                       PRUint32 aLineNo,
+                                       PRUint32 aVersion,
+                                       nsScriptObjectHolder &aHandler) = 0;
 
   
 
@@ -196,7 +226,7 @@ public:
 
 
   virtual nsresult CallEventHandler(nsISupports* aTarget,
-                                    JSObject* aScope, JSObject* aHandler,
+                                    void *aScope, void* aHandler,
                                     nsIArray *argv, nsIVariant **rval) = 0;
 
   
@@ -221,9 +251,9 @@ public:
 
 
   virtual nsresult BindCompiledEventHandler(nsISupports* aTarget,
-                                            JSObject* aScope,
-                                            JSObject* aHandler,
-                                            nsScriptObjectHolder<JSObject>& aBoundHandler) = 0;
+                                            void *aScope,
+                                            void* aHandler,
+                                            nsScriptObjectHolder& aBoundHandler) = 0;
 
   
 
@@ -232,16 +262,23 @@ public:
 
 
 
-  virtual nsresult CompileFunction(JSObject* aTarget,
+  virtual nsresult CompileFunction(void* aTarget,
                                    const nsACString& aName,
-                                   uint32_t aArgCount,
+                                   PRUint32 aArgCount,
                                    const char** aArgArray,
                                    const nsAString& aBody,
                                    const char* aURL,
-                                   uint32_t aLineNo,
-                                   uint32_t aVersion,
+                                   PRUint32 aLineNo,
+                                   PRUint32 aVersion,
                                    bool aShared,
-                                   JSObject** aFunctionObject) = 0;
+                                   void **aFunctionObject) = 0;
+
+  
+
+
+
+
+  virtual void SetDefaultLanguageVersion(PRUint32 aVersion) = 0;
 
   
 
@@ -259,12 +296,52 @@ public:
 
 
 
-  virtual JSObject* GetNativeGlobal() = 0;
+  virtual void *GetNativeGlobal() = 0;
+
+  
+
+
+
+
+  virtual nsresult CreateNativeGlobalForInner(
+                                      nsIScriptGlobalObject *aNewInner,
+                                      bool aIsChrome,
+                                      nsIPrincipal *aPrincipal,
+                                      void **aNativeGlobal,
+                                      nsISupports **aHolder) = 0;
+
+  
+
+
+
+
+  virtual nsresult ConnectToInner(nsIScriptGlobalObject *aNewInner,
+                                  void *aOuterGlobal) = 0;
+
 
   
 
 
   virtual nsresult InitContext() = 0;
+
+  
+
+
+
+
+  virtual nsresult CreateOuterObject(nsIScriptGlobalObject *aGlobalObject,
+                                     nsIScriptGlobalObject *aCurrentInner) = 0;
+
+  
+
+
+  virtual nsresult SetOuterObject(void *aOuterObject) = 0;
+
+  
+
+
+
+  virtual nsresult InitOuterWindow() = 0;
 
   
 
@@ -278,10 +355,15 @@ public:
   
 
 
+  virtual void FinalizeContext() = 0;
+
+  
 
 
 
-  virtual void GC(js::gcreason::Reason aReason) = 0;
+
+
+  virtual void GC() = 0;
 
   
 
@@ -298,12 +380,12 @@ public:
   virtual void ScriptEvaluated(bool aTerminated) = 0;
 
   virtual nsresult Serialize(nsIObjectOutputStream* aStream,
-                             JSScript* aScriptObject) = 0;
+                             void *aScriptObject) = 0;
   
   
 
   virtual nsresult Deserialize(nsIObjectInputStream* aStream,
-                               nsScriptObjectHolder<JSScript>& aResult) = 0;
+                               nsScriptObjectHolder &aResult) = 0;
 
   
 
@@ -315,8 +397,8 @@ public:
 
 
 
-  virtual void SetTerminationFunction(nsScriptTerminationFunc aFunc,
-                                      nsIDOMWindow* aRef) = 0;
+  virtual nsresult SetTerminationFunction(nsScriptTerminationFunc aFunc,
+                                          nsISupports* aRef) = 0;
 
   
 
@@ -326,7 +408,7 @@ public:
 
   
   
-  virtual nsresult SetProperty(JSObject* aTarget, const char* aPropName, nsISupports* aVal) = 0;
+  virtual nsresult SetProperty(void *aTarget, const char *aPropName, nsISupports *aVal) = 0;
   
 
 
@@ -351,7 +433,21 @@ public:
 
 
 
-  virtual nsresult InitClasses(JSObject* aGlobalObj) = 0;
+  virtual nsresult InitClasses(void *aGlobalObj) = 0;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  virtual void ClearScope(void* aGlobalObj, bool aClearFromProtoChain) = 0;
 
   
 
@@ -362,6 +458,13 @@ public:
 
 
   virtual void DidInitializeContext() = 0;
+
+  
+
+
+
+
+  virtual void DidSetDocument(nsISupports *aDoc, void *aGlobal) = 0;
 
   
 

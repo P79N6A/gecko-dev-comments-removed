@@ -8,6 +8,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsCSSDataBlock_h__
 #define nsCSSDataBlock_h__
 
@@ -28,6 +60,16 @@ class Declaration;
 
 
 
+struct CDBValueStorage {
+    nsCSSProperty property;
+    nsCSSValue value;
+};
+
+
+
+
+
+
 
 class nsCSSCompressedDataBlock {
 private:
@@ -35,9 +77,7 @@ private:
 
     
     
-    nsCSSCompressedDataBlock(uint32_t aNumProps)
-      : mStyleBits(0), mNumProps(aNumProps)
-    {}
+    nsCSSCompressedDataBlock() : mStyleBits(0) {}
 
 public:
     ~nsCSSCompressedDataBlock();
@@ -81,95 +121,46 @@ public:
 
     static nsCSSCompressedDataBlock* CreateEmptyBlock();
 
-    size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
-
-    bool HasDefaultBorderImageSlice() const;
-    bool HasDefaultBorderImageWidth() const;
-    bool HasDefaultBorderImageOutset() const;
-    bool HasDefaultBorderImageRepeat() const;
-
 private:
-    void* operator new(size_t aBaseSize, uint32_t aNumProps) {
+    void* operator new(size_t aBaseSize, size_t aDataSize) {
         NS_ABORT_IF_FALSE(aBaseSize == sizeof(nsCSSCompressedDataBlock),
                           "unexpected size for nsCSSCompressedDataBlock");
-        return ::operator new(aBaseSize + DataSize(aNumProps));
+        return ::operator new(aBaseSize + aDataSize);
     }
 
-public:
     
-    
-    
-    
-    typedef int16_t CompressedCSSProperty;
-    static const size_t MaxCompressedCSSProperty = PR_INT16_MAX;
 
-private:
-    static size_t DataSize(uint32_t aNumProps) {
-        return size_t(aNumProps) *
-               (sizeof(nsCSSValue) + sizeof(CompressedCSSProperty));
-    }
 
-    int32_t mStyleBits; 
+    void Destroy();
+
+    PRInt32 mStyleBits; 
                         
-    uint32_t mNumProps;
+    PRUint32 mDataSize;
     
     
     
     
     
-    
+    char* Block() { return (char*)this + sizeof(*this); }
+    char* BlockEnd() { return Block() + mDataSize; }
+    const char* Block() const { return (char*)this + sizeof(*this); }
+    const char* BlockEnd() const { return Block() + mDataSize; }
+    void SetBlockEnd(char *blockEnd) { 
+        
 
-    nsCSSValue* Values() const {
-        return (nsCSSValue*)(this + 1);
-    }
 
-    CompressedCSSProperty* CompressedProperties() const {
-        return (CompressedCSSProperty*)(Values() + mNumProps);
-    }
 
-    nsCSSValue* ValueAtIndex(uint32_t i) const {
-        NS_ABORT_IF_FALSE(i < mNumProps, "value index out of range");
-        return Values() + i;
-    }
 
-    nsCSSProperty PropertyAtIndex(uint32_t i) const {
-        NS_ABORT_IF_FALSE(i < mNumProps, "property index out of range");
-        nsCSSProperty prop = (nsCSSProperty)CompressedProperties()[i];
-        NS_ABORT_IF_FALSE(!nsCSSProps::IsShorthand(prop), "out of range");
-        return prop;
+        NS_ABORT_IF_FALSE(size_t(blockEnd - Block()) <= size_t(PR_UINT32_MAX),
+                          "overflow of mDataSize");
+        mDataSize = PRUint32(blockEnd - Block());
     }
-
-    void CopyValueToIndex(uint32_t i, nsCSSValue* aValue) {
-        new (ValueAtIndex(i)) nsCSSValue(*aValue);
-    }
-
-    void RawCopyValueToIndex(uint32_t i, nsCSSValue* aValue) {
-        memcpy(ValueAtIndex(i), aValue, sizeof(nsCSSValue));
-    }
-
-    void SetPropertyAtIndex(uint32_t i, nsCSSProperty aProperty) {
-        NS_ABORT_IF_FALSE(i < mNumProps, "set property index out of range");
-        CompressedProperties()[i] = (CompressedCSSProperty)aProperty;
-    }
-
-    void SetNumPropsToZero() {
-        mNumProps = 0;
-    }
+    ptrdiff_t DataSize() const { return mDataSize; }
 };
 
 
-
-MOZ_STATIC_ASSERT(sizeof(nsCSSCompressedDataBlock) == 8,
-                  "nsCSSCompressedDataBlock's size has changed");
-MOZ_STATIC_ASSERT(NS_ALIGNMENT_OF(nsCSSValue) == 4 || NS_ALIGNMENT_OF(nsCSSValue) == 8,
-                  "nsCSSValue doesn't align with nsCSSCompressedDataBlock"); 
-MOZ_STATIC_ASSERT(NS_ALIGNMENT_OF(nsCSSCompressedDataBlock::CompressedCSSProperty) == 2,
-                  "CompressedCSSProperty doesn't align with nsCSSValue"); 
-
-
-MOZ_STATIC_ASSERT(eCSSProperty_COUNT_no_shorthands <=
-                  nsCSSCompressedDataBlock::MaxCompressedCSSProperty,
-                  "nsCSSProperty doesn't fit in StoredSizeOfCSSProperty");
+PR_STATIC_ASSERT(sizeof(nsCSSCompressedDataBlock) == 8);
+PR_STATIC_ASSERT(NS_ALIGNMENT_OF(CDBValueStorage) <= 8); 
 
 class nsCSSExpandedDataBlock {
     friend class nsCSSCompressedDataBlock;
@@ -259,9 +250,11 @@ private:
 
 
 
-    void ComputeNumProps(uint32_t* aNumPropsNormal,
-                         uint32_t* aNumPropsImportant);
-    
+    struct ComputeSizeResult {
+        PRUint32 normal, important;
+    };
+    ComputeSizeResult ComputeSize();
+
     void DoExpand(nsCSSCompressedDataBlock *aBlock, bool aImportant);
 
     

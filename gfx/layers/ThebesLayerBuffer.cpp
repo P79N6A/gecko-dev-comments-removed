@@ -3,13 +3,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "ThebesLayerBuffer.h"
 #include "Layers.h"
 #include "gfxContext.h"
 #include "gfxPlatform.h"
 #include "gfxUtils.h"
 #include "nsDeviceContext.h"
-#include "sampler.h"
 
 namespace mozilla {
 namespace layers {
@@ -38,9 +69,7 @@ ThebesLayerBuffer::GetQuadrantRectangle(XSide aXSide, YSide aYSide)
 void
 ThebesLayerBuffer::DrawBufferQuadrant(gfxContext* aTarget,
                                       XSide aXSide, YSide aYSide,
-                                      float aOpacity,
-                                      gfxASurface* aMask,
-                                      const gfxMatrix* aMaskTransform)
+                                      float aOpacity)
 {
   
   
@@ -54,7 +83,7 @@ ThebesLayerBuffer::DrawBufferQuadrant(gfxContext* aTarget,
   aTarget->NewPath();
   aTarget->Rectangle(gfxRect(fillRect.x, fillRect.y,
                              fillRect.width, fillRect.height),
-                     true);
+                     PR_TRUE);
 
   gfxPoint quadrantTranslation(quadrantRect.x, quadrantRect.y);
   nsRefPtr<gfxPattern> pattern = new gfxPattern(mBuffer);
@@ -73,41 +102,25 @@ ThebesLayerBuffer::DrawBufferQuadrant(gfxContext* aTarget,
   pattern->SetMatrix(transform);
   aTarget->SetPattern(pattern);
 
-  if (aMask) {
-    if (aOpacity == 1.0) {
-      aTarget->SetMatrix(*aMaskTransform);
-      aTarget->Mask(aMask);
-    } else {
-      aTarget->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
-      aTarget->Paint(aOpacity);
-      aTarget->PopGroupToSource();
-      aTarget->SetMatrix(*aMaskTransform);
-      aTarget->Mask(aMask);
-    }
+  if (aOpacity != 1.0) {
+    aTarget->Save();
+    aTarget->Clip();
+    aTarget->Paint(aOpacity);
+    aTarget->Restore();
   } else {
-    if (aOpacity == 1.0) {
-      aTarget->Fill();
-    } else {
-      aTarget->Save();
-      aTarget->Clip();
-      aTarget->Paint(aOpacity);
-      aTarget->Restore();
-    }
+    aTarget->Fill();
   }
 }
 
 void
-ThebesLayerBuffer::DrawBufferWithRotation(gfxContext* aTarget, float aOpacity,
-                                          gfxASurface* aMask,
-                                          const gfxMatrix* aMaskTransform)
+ThebesLayerBuffer::DrawBufferWithRotation(gfxContext* aTarget, float aOpacity)
 {
-  SAMPLE_LABEL("ThebesLayerBuffer", "DrawBufferWithRotation");
   
   
-  DrawBufferQuadrant(aTarget, LEFT, TOP, aOpacity, aMask, aMaskTransform);
-  DrawBufferQuadrant(aTarget, RIGHT, TOP, aOpacity, aMask, aMaskTransform);
-  DrawBufferQuadrant(aTarget, LEFT, BOTTOM, aOpacity, aMask, aMaskTransform);
-  DrawBufferQuadrant(aTarget, RIGHT, BOTTOM, aOpacity, aMask, aMaskTransform);
+  DrawBufferQuadrant(aTarget, LEFT, TOP, aOpacity);
+  DrawBufferQuadrant(aTarget, RIGHT, TOP, aOpacity);
+  DrawBufferQuadrant(aTarget, LEFT, BOTTOM, aOpacity);
+  DrawBufferQuadrant(aTarget, RIGHT, BOTTOM, aOpacity);
 }
 
 already_AddRefed<gfxContext>
@@ -116,8 +129,8 @@ ThebesLayerBuffer::GetContextForQuadrantUpdate(const nsIntRect& aBounds)
   nsRefPtr<gfxContext> ctx = new gfxContext(mBuffer);
 
   
-  int32_t xBoundary = mBufferRect.XMost() - mBufferRotation.x;
-  int32_t yBoundary = mBufferRect.YMost() - mBufferRotation.y;
+  PRInt32 xBoundary = mBufferRect.XMost() - mBufferRotation.x;
+  PRInt32 yBoundary = mBufferRect.YMost() - mBufferRotation.y;
   XSide sideX = aBounds.XMost() <= xBoundary ? RIGHT : LEFT;
   YSide sideY = aBounds.YMost() <= yBoundary ? BOTTOM : TOP;
   nsIntRect quadrantRect = GetQuadrantRectangle(sideX, sideY);
@@ -128,7 +141,7 @@ ThebesLayerBuffer::GetContextForQuadrantUpdate(const nsIntRect& aBounds)
 }
 
 static void
-WrapRotationAxis(int32_t* aRotationPoint, int32_t aSize)
+WrapRotationAxis(PRInt32* aRotationPoint, PRInt32 aSize)
 {
   if (*aRotationPoint < 0) {
     *aRotationPoint += aSize;
@@ -139,12 +152,12 @@ WrapRotationAxis(int32_t* aRotationPoint, int32_t aSize)
 
 ThebesLayerBuffer::PaintState
 ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
-                              uint32_t aFlags)
+                              PRUint32 aFlags)
 {
   PaintState result;
   
   
-  bool canHaveRotation = !(aFlags & (PAINT_WILL_RESAMPLE | PAINT_NO_ROTATION));
+  bool canHaveRotation = !(aFlags & PAINT_WILL_RESAMPLE);
 
   nsIntRegion validRegion = aLayer->GetValidRegion();
 
@@ -153,7 +166,7 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
   bool canReuseBuffer;
   nsIntRect destBufferRect;
 
-  while (true) {
+  while (PR_TRUE) {
     contentType = aContentType;
     neededRegion = aLayer->GetVisibleRegion();
     canReuseBuffer = mBuffer && BufferSizeOkFor(neededRegion.GetBounds().Size());
@@ -207,7 +220,7 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
 
   nsIntRect drawBounds = result.mRegionToDraw.GetBounds();
   nsRefPtr<gfxASurface> destBuffer;
-  uint32_t bufferFlags = canHaveRotation ? ALLOW_REPEAT : 0;
+  PRUint32 bufferFlags = canHaveRotation ? ALLOW_REPEAT : 0;
   if (canReuseBuffer) {
     nsIntRect keepArea;
     if (keepArea.IntersectRect(destBufferRect, mBufferRect)) {
@@ -220,8 +233,8 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
       WrapRotationAxis(&newRotation.y, mBufferRect.height);
       NS_ASSERTION(nsIntRect(nsIntPoint(0,0), mBufferRect.Size()).Contains(newRotation),
                    "newRotation out of bounds");
-      int32_t xBoundary = destBufferRect.XMost() - newRotation.x;
-      int32_t yBoundary = destBufferRect.YMost() - newRotation.y;
+      PRInt32 xBoundary = destBufferRect.XMost() - newRotation.x;
+      PRInt32 yBoundary = destBufferRect.YMost() - newRotation.y;
       if ((drawBounds.x < xBoundary && xBoundary < drawBounds.XMost()) ||
           (drawBounds.y < yBoundary && yBoundary < drawBounds.YMost()) ||
           (newRotation != nsIntPoint(0,0) && !canHaveRotation)) {
@@ -232,7 +245,7 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
           nsIntRect srcRect(nsIntPoint(0, 0), mBufferRect.Size());
           nsIntPoint dest = mBufferRect.TopLeft() - destBufferRect.TopLeft();
           mBuffer->MovePixels(srcRect, dest);
-          result.mDidSelfCopy = true;
+          result.mDidSelfCopy = PR_TRUE;
           
           
           mBufferRect = destBufferRect;
@@ -266,7 +279,7 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
 
   
   
-  bool isClear = mBuffer == nullptr;
+  bool isClear = mBuffer == nsnull;
 
   if (destBuffer) {
     if (mBuffer) {

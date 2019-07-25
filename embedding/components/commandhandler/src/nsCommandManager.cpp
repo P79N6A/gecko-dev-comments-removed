@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsString.h"
 
 #include "nsIController.h"
@@ -14,6 +47,7 @@
 #include "nsServiceManagerUtils.h"
 #include "nsIScriptSecurityManager.h"
 
+#include "nsIDOMDocument.h"
 #include "nsIDOMWindow.h"
 #include "nsPIDOMWindow.h"
 #include "nsPIWindowRoot.h"
@@ -26,7 +60,7 @@
 
 
 nsCommandManager::nsCommandManager()
-: mWindow(nullptr)
+: mWindow(nsnull)
 {
   
 }
@@ -38,16 +72,15 @@ nsCommandManager::~nsCommandManager()
 
 
 static PLDHashOperator
-TraverseCommandObservers(const char* aKey,
-                         nsCommandManager::ObserverList* aObservers,
+TraverseCommandObservers(const char* aKey, nsCOMArray<nsIObserver>* aObservers,
                          void* aClosure)
 {
   nsCycleCollectionTraversalCallback *cb = 
     static_cast<nsCycleCollectionTraversalCallback*>(aClosure);
 
-  int32_t i, numItems = aObservers->Length();
+  PRInt32 i, numItems = aObservers->Count();
   for (i = 0; i < numItems; ++i) {
-    cb->NoteXPCOMChild(aObservers->ElementAt(i));
+    cb->NoteXPCOMChild(aObservers->ObjectAt(i));
   }
 
   return PL_DHASH_NEXT;
@@ -83,7 +116,7 @@ nsCommandManager::Init(nsIDOMWindow *aWindow)
   
   NS_ASSERTION(aWindow, "Need non-null window here");
   mWindow = aWindow;      
-  mObserversTable.Init();
+  NS_ENSURE_TRUE(mObserversTable.Init(), NS_ERROR_OUT_OF_MEMORY);
   return NS_OK;
 }
 
@@ -91,16 +124,16 @@ nsCommandManager::Init(nsIDOMWindow *aWindow)
 NS_IMETHODIMP
 nsCommandManager::CommandStatusChanged(const char * aCommandName)
 {
-  ObserverList* commandObservers;
+  nsCOMArray<nsIObserver>* commandObservers;
   mObserversTable.Get(aCommandName, &commandObservers);
 
   if (commandObservers)
   {
     
-    int32_t i, numItems = commandObservers->Length();
+    PRInt32 i, numItems = commandObservers->Count();
     for (i = 0; i < numItems;  ++i)
     {
-      nsCOMPtr<nsIObserver> observer = commandObservers->ElementAt(i);
+      nsCOMPtr<nsIObserver> observer = commandObservers->ObjectAt(i);
       
       observer->Observe(NS_ISUPPORTS_CAST(nsICommandManager*, this),
                         aCommandName,
@@ -121,24 +154,29 @@ nsCommandManager::AddCommandObserver(nsIObserver *aCommandObserver, const char *
 {
   NS_ENSURE_ARG(aCommandObserver);
 
+  nsresult rv = NS_OK;
+
   
 
   
-  ObserverList* commandObservers;
+  nsCOMArray<nsIObserver>* commandObservers;
   if (!mObserversTable.Get(aCommandToObserve, &commandObservers))
   {
-    commandObservers = new ObserverList;
-    mObserversTable.Put(aCommandToObserve, commandObservers);
+    nsAutoPtr<nsCOMArray<nsIObserver> > array(new nsCOMArray<nsIObserver>);
+    if (!array || !mObserversTable.Put(aCommandToObserve, array))
+      return NS_ERROR_OUT_OF_MEMORY;
+
+    commandObservers = array.forget();
   }
 
   
-  int32_t existingIndex = commandObservers->IndexOf(aCommandObserver);
+  PRInt32 existingIndex = commandObservers->IndexOf(aCommandObserver);
   if (existingIndex == -1)
-    commandObservers->AppendElement(aCommandObserver);
+    rv = commandObservers->AppendObject(aCommandObserver);
   else
     NS_WARNING("Registering command observer twice on the same command");
   
-  return NS_OK;
+  return rv;
 }
 
 
@@ -149,13 +187,12 @@ nsCommandManager::RemoveCommandObserver(nsIObserver *aCommandObserver, const cha
 
   
 
-  ObserverList* commandObservers;
+  nsCOMArray<nsIObserver>* commandObservers;
   if (!mObserversTable.Get(aCommandObserved, &commandObservers))
     return NS_ERROR_UNEXPECTED;
 
-  commandObservers->RemoveElement(aCommandObserver);
-
-  return NS_OK;
+  return commandObservers->RemoveObject(aCommandObserver) ? NS_OK :
+                                                            NS_ERROR_FAILURE;
 }
 
 
@@ -169,7 +206,7 @@ nsCommandManager::IsCommandSupported(const char *aCommandName,
 
   nsCOMPtr<nsIController> controller;
   GetControllerForCommand(aCommandName, aTargetWindow, getter_AddRefs(controller)); 
-  *outCommandSupported = (controller.get() != nullptr);
+  *outCommandSupported = (controller.get() != nsnull);
   return NS_OK;
 }
 
@@ -240,7 +277,7 @@ nsCommandManager::DoCommand(const char *aCommandName,
 nsresult
 nsCommandManager::IsCallerChrome(bool *is_caller_chrome)
 {
-  *is_caller_chrome = false;
+  *is_caller_chrome = PR_FALSE;
   nsresult rv = NS_OK;
   nsCOMPtr<nsIScriptSecurityManager> secMan = 
       do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
@@ -259,7 +296,7 @@ nsCommandManager::GetControllerForCommand(const char *aCommand,
                                           nsIController** outController)
 {
   nsresult rv = NS_ERROR_FAILURE;
-  *outController = nullptr;
+  *outController = nsnull;
 
   
   

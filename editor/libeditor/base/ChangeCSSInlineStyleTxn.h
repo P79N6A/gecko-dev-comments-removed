@@ -3,19 +3,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef ChangeCSSInlineStyleTxn_h__
 #define ChangeCSSInlineStyleTxn_h__
 
 #include "EditTxn.h"
 #include "nsCOMPtr.h"
-#include "nsCycleCollectionParticipant.h"
-#include "nsID.h"
 #include "nsIDOMElement.h"
-#include "nsString.h"
-#include "nscore.h"
-
-class nsIAtom;
-class nsIEditor;
+#include "nsIEditor.h"
 
 
 

@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsAutodialWin_h__
 #define nsAutodialWin_h__
 
@@ -12,6 +45,30 @@
 #include "nscore.h"
 #include "nspr.h"
 
+#if (WINVER < 0x401)
+
+
+typedef struct tagRASAUTODIALENTRYA {
+    DWORD dwSize;
+    DWORD dwFlags;
+    DWORD dwDialingLocation;
+    PRUnichar szEntry[RAS_MaxEntryName + 1];
+} RASAUTODIALENTRYW, *LPRASAUTODIALENTRYW;
+typedef RASAUTODIALENTRYW RASAUTODIALENTRY, *LPRASAUTODIALENTRY;
+
+#define RASADP_LoginSessionDisable              1
+
+#endif  
+
+
+typedef DWORD (WINAPI* tRASPHONEBOOKDLG)(LPWSTR,LPWSTR,LPRASPBDLG);
+typedef DWORD (WINAPI* tRASDIALDLG)(LPWSTR,LPWSTR,LPWSTR,LPRASDIALDLG);
+typedef DWORD (WINAPI* tRASENUMCONNECTIONS)(LPRASCONN,LPDWORD,LPDWORD);
+typedef DWORD (WINAPI* tRASENUMENTRIES)(LPWSTR,LPWSTR,LPRASENTRYNAMEW,LPDWORD,LPDWORD);
+typedef DWORD (WINAPI* tRASSETAUTODIALADDRESS)(LPCWSTR,DWORD,LPRASAUTODIALENTRYW,DWORD,DWORD);
+typedef DWORD (WINAPI* tRASGETAUTODIALADDRESS)(LPCWSTR,LPDWORD,LPRASAUTODIALENTRYW,LPDWORD,LPDWORD);
+typedef DWORD (WINAPI* tRASGETAUTODIALENABLE)(DWORD,LPBOOL);
+typedef DWORD (WINAPI* tRASGETAUTODIALPARAM)(DWORD,LPVOID,LPDWORD);
 
 
 
@@ -92,6 +149,27 @@ private:
 
     
     static PRIntervalTime mDontRetryUntil;
+
+    
+    OSVERSIONINFO mOSVerInfo;
+
+    
+    static HINSTANCE mhRASdlg;
+    static HINSTANCE mhRASapi32;
+
+    
+    static tRASPHONEBOOKDLG mpRasPhonebookDlg;
+    static tRASENUMCONNECTIONS	mpRasEnumConnections;
+    static tRASENUMENTRIES mpRasEnumEntries;
+    static tRASDIALDLG mpRasDialDlg;
+    static tRASSETAUTODIALADDRESS mpRasSetAutodialAddress;
+    static tRASGETAUTODIALADDRESS mpRasGetAutodialAddress;
+    static tRASGETAUTODIALENABLE mpRasGetAutodialEnable;
+    static tRASGETAUTODIALPARAM mpRasGetAutodialParam;
+
+    bool LoadRASapi32DLL();
+    bool LoadRASdlgDLL();
+
 
 public:
   

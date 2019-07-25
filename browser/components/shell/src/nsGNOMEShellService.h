@@ -3,17 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsgnomeshellservice_h____
 #define nsgnomeshellservice_h____
 
 #include "nsIShellService.h"
 #include "nsStringAPI.h"
-#include "mozilla/Attributes.h"
 
-class nsGNOMEShellService MOZ_FINAL : public nsIShellService
+class nsGNOMEShellService : public nsIShellService
 {
 public:
-  nsGNOMEShellService() : mCheckedThisSession(false), mAppIsInPath(false) { }
+  nsGNOMEShellService() : mCheckedThisSession(PR_FALSE), mAppIsInPath(PR_FALSE) { }
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSISHELLSERVICE

@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <stdlib.h>
 #include <QTimer>
 #include "mozilla/ipc/GeckoChildProcessHost.h"
@@ -21,9 +53,9 @@ nsNativeAppSupportQt::activityChanged(MeeGo::QmActivity::Activity activity)
         return;
 
     if (MeeGo::QmActivity::Inactive == activity) {
-        os->NotifyObservers(nullptr, "system-idle", nullptr);
+        os->NotifyObservers(nsnull, "system-idle", nsnull);
     } else {
-        os->NotifyObservers(nullptr, "system-active", nullptr);
+        os->NotifyObservers(nsnull, "system-active", nsnull);
     }
 }
 
@@ -36,13 +68,13 @@ nsNativeAppSupportQt::displayStateChanged(MeeGo::QmDisplayState::DisplayState st
 
     switch (state) {
     case MeeGo::QmDisplayState::On:
-        os->NotifyObservers(nullptr, "system-display-on", nullptr);
+        os->NotifyObservers(nsnull, "system-display-on", nsnull);
         break;
     case MeeGo::QmDisplayState::Off:
-        os->NotifyObservers(nullptr, "system-display-off", nullptr);
+        os->NotifyObservers(nsnull, "system-display-dimmed", nsnull);
         break;
     case MeeGo::QmDisplayState::Dimmed:
-        os->NotifyObservers(nullptr, "system-display-dimmed", nullptr);
+        os->NotifyObservers(nsnull, "system-display-off", nsnull);
         break;
     default:
         NS_WARNING("Unknown display state");
@@ -58,10 +90,10 @@ void nsNativeAppSupportQt::deviceModeChanged(MeeGo::QmDeviceMode::DeviceMode mod
 
     switch (mode) {
     case MeeGo::QmDeviceMode::DeviceMode::Normal:
-        os->NotifyObservers(nullptr, "profile-change-net-restore", nullptr);
+        os->NotifyObservers(nsnull, "profile-change-net-restore", nsnull);
         break;
     case MeeGo::QmDeviceMode::DeviceMode::Flight:
-        os->NotifyObservers(nullptr, "profile-change-net-teardown", nullptr);
+        os->NotifyObservers(nsnull, "profile-change-net-teardown", nsnull);
         break;
     case MeeGo::QmDeviceMode::DeviceMode::Error:
     default:
@@ -91,7 +123,7 @@ nsNativeAppSupportQt::Start(bool* aRetVal)
   QTimer::singleShot(0, this, SLOT(RefreshStates()));
 #endif
 
-  *aRetVal = true;
+  *aRetVal = PR_TRUE;
 #ifdef MOZ_ENABLE_LIBCONIC
   g_type_init();
 #endif
@@ -106,7 +138,7 @@ nsNativeAppSupportQt::Start(bool* aRetVal)
 
 
 
-  nsAutoCString applicationName;
+  nsCAutoString applicationName;
   if (gAppData->vendor) {
       applicationName.Append(gAppData->vendor);
       applicationName.Append(".");
@@ -116,11 +148,11 @@ nsNativeAppSupportQt::Start(bool* aRetVal)
 
   m_osso_context = osso_initialize(applicationName.get(),
                                    gAppData->version ? gAppData->version : "1.0",
-                                   true,
-                                   nullptr);
+                                   PR_TRUE,
+                                   nsnull);
 
   
-  if (m_osso_context == nullptr) {
+  if (m_osso_context == nsnull) {
       return NS_ERROR_FAILURE;
   }
 #endif
@@ -132,12 +164,12 @@ NS_IMETHODIMP
 nsNativeAppSupportQt::Stop(bool* aResult)
 {
   NS_ENSURE_ARG(aResult);
-  *aResult = true;
+  *aResult = PR_TRUE;
 
 #if (MOZ_PLATFORM_MAEMO == 5)
   if (m_osso_context) {
     osso_deinitialize(m_osso_context);
-    m_osso_context = nullptr;
+    m_osso_context = nsnull;
   }
 #endif
 

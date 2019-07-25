@@ -16,11 +16,47 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nscore.h"
 #include "nsCOMPtr.h"
+#include "nsCRT.h"
+#include "nsIComponentManager.h"
+#include "nsIContent.h"
 #include "plhash.h"
+#include "nsReadableUtils.h"
 
 #include "prlog.h"
 #ifdef PR_LOGGING
@@ -37,8 +73,6 @@ extern PRLogModuleInfo* gXULTemplateLog;
 #include "nsRDFConMemberTestNode.h"
 #include "nsRDFPropertyTestNode.h"
 
-using namespace mozilla;
-
 bool MemoryElement::gPoolInited;
 nsFixedSizeAllocator MemoryElement::gPool;
 
@@ -53,13 +87,13 @@ MemoryElement::Init()
         };
 
         if (NS_FAILED(gPool.Init("MemoryElement", bucketsizes,
-                                 ArrayLength(bucketsizes), 256)))
-            return false;
+                                 NS_ARRAY_LENGTH(bucketsizes), 256)))
+            return PR_FALSE;
 
-        gPoolInited = true;
+        gPoolInited = PR_TRUE;
     }
 
-    return true;
+    return PR_TRUE;
 }
 
 
@@ -117,10 +151,10 @@ nsAssignmentSet::Add(const nsAssignment& aAssignment)
     return NS_OK;
 }
 
-int32_t
+PRInt32
 nsAssignmentSet::Count() const
 {
-    int32_t count = 0;
+    PRInt32 count = 0;
     for (ConstIterator assignment = First(); assignment != Last(); ++assignment)
         ++count;
 
@@ -132,10 +166,10 @@ nsAssignmentSet::HasAssignment(nsIAtom* aVariable, nsIRDFNode* aValue) const
 {
     for (ConstIterator assignment = First(); assignment != Last(); ++assignment) {
         if (assignment->mVariable == aVariable && assignment->mValue == aValue)
-            return true;
+            return PR_TRUE;
     }
 
-    return false;
+    return PR_FALSE;
 }
 
 bool
@@ -143,10 +177,10 @@ nsAssignmentSet::HasAssignmentFor(nsIAtom* aVariable) const
 {
     for (ConstIterator assignment = First(); assignment != Last(); ++assignment) {
         if (assignment->mVariable == aVariable)
-            return true;
+            return PR_TRUE;
     }
 
-    return false;
+    return PR_FALSE;
 }
 
 bool
@@ -156,35 +190,35 @@ nsAssignmentSet::GetAssignmentFor(nsIAtom* aVariable, nsIRDFNode** aValue) const
         if (assignment->mVariable == aVariable) {
             *aValue = assignment->mValue;
             NS_IF_ADDREF(*aValue);
-            return true;
+            return PR_TRUE;
         }
     }
 
-    *aValue = nullptr;
-    return false;
+    *aValue = nsnull;
+    return PR_FALSE;
 }
 
 bool
 nsAssignmentSet::Equals(const nsAssignmentSet& aSet) const
 {
     if (aSet.mAssignments == mAssignments)
-        return true;
+        return PR_TRUE;
 
     
     if (Count() != aSet.Count())
-        return false;
+        return PR_FALSE;
 
     
     nsCOMPtr<nsIRDFNode> value;
     for (ConstIterator assignment = First(); assignment != Last(); ++assignment) {
         if (! aSet.GetAssignmentFor(assignment->mVariable, getter_AddRefs(value)))
-            return false;
+            return PR_FALSE;
 
         if (assignment->mValue != value)
-            return false;
+            return PR_FALSE;
     }
 
-    return true;
+    return PR_TRUE;
 }
 
 
@@ -205,7 +239,7 @@ Instantiation::Hash(const void* aKey)
 }
 
 
-int
+PRIntn
 Instantiation::Compare(const void* aLeft, const void* aRight)
 {
     const Instantiation* left  = static_cast<const Instantiation*>(aLeft);
@@ -294,7 +328,7 @@ InstantiationSet::Erase(Iterator aIterator)
 bool
 InstantiationSet::HasAssignmentFor(nsIAtom* aVariable) const
 {
-    return !Empty() ? First()->mAssignments.HasAssignmentFor(aVariable) : false;
+    return !Empty() ? First()->mAssignments.HasAssignmentFor(aVariable) : PR_FALSE;
 }
 
 
@@ -325,9 +359,9 @@ TestNode::Propagate(InstantiationSet& aInstantiations,
     PR_LOG(gXULTemplateLog, PR_LOG_DEBUG,
            ("TestNode[%p]: Propagate() begin", this));
 
-    aTakenInstantiations = false;
+    aTakenInstantiations = PR_FALSE;
 
-    nsresult rv = FilterInstantiations(aInstantiations, nullptr);
+    nsresult rv = FilterInstantiations(aInstantiations, nsnull);
     if (NS_FAILED(rv))
         return rv;
 
@@ -400,7 +434,7 @@ TestNode::Constrain(InstantiationSet& aInstantiations)
         rv = mParent->Constrain(aInstantiations);
 
         if (NS_SUCCEEDED(rv) && cantHandleYet)
-            rv = FilterInstantiations(aInstantiations, nullptr);
+            rv = FilterInstantiations(aInstantiations, nsnull);
     }
     else {
         PR_LOG(gXULTemplateLog, PR_LOG_DEBUG,
@@ -416,10 +450,17 @@ TestNode::Constrain(InstantiationSet& aInstantiations)
 }
 
 
+bool
+TestNode::HasAncestor(const ReteNode* aNode) const
+{
+    return aNode == this || (mParent && mParent->HasAncestor(aNode));
+}
+
+
 
 
 ReteNodeSet::ReteNodeSet()
-    : mNodes(nullptr), mCount(0), mCapacity(0)
+    : mNodes(nsnull), mCount(0), mCapacity(0)
 {
 }
 
@@ -431,17 +472,17 @@ ReteNodeSet::~ReteNodeSet()
 nsresult
 ReteNodeSet::Add(ReteNode* aNode)
 {
-    NS_PRECONDITION(aNode != nullptr, "null ptr");
+    NS_PRECONDITION(aNode != nsnull, "null ptr");
     if (! aNode)
         return NS_ERROR_NULL_POINTER;
 
     if (mCount >= mCapacity) {
-        int32_t capacity = mCapacity + 4;
+        PRInt32 capacity = mCapacity + 4;
         ReteNode** nodes = new ReteNode*[capacity];
         if (! nodes)
             return NS_ERROR_OUT_OF_MEMORY;
 
-        for (int32_t i = mCount - 1; i >= 0; --i)
+        for (PRInt32 i = mCount - 1; i >= 0; --i)
             nodes[i] = mNodes[i];
 
         delete[] mNodes;
@@ -458,7 +499,7 @@ nsresult
 ReteNodeSet::Clear()
 {
     delete[] mNodes;
-    mNodes = nullptr;
+    mNodes = nsnull;
     mCount = mCapacity = 0;
     return NS_OK;
 }

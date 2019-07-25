@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsFileControlFrame_h___
 #define nsFileControlFrame_h___
 
@@ -13,7 +45,9 @@
 #include "nsICapturePicker.h"
 #include "nsCOMPtr.h"
 
-class nsTextControlFrame;
+#include "nsTextControlFrame.h"
+typedef   nsTextControlFrame nsNewFrame;
+
 class nsIDOMDragEvent;
 
 class nsFileControlFrame : public nsBlockFrame,
@@ -41,15 +75,20 @@ public:
 
   virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext);
   
+  NS_IMETHOD Reflow(nsPresContext*          aCX,
+                    nsHTMLReflowMetrics&     aDesiredSize,
+                    const nsHTMLReflowState& aReflowState,
+                    nsReflowStatus&          aStatus);
+
   virtual void DestroyFrom(nsIFrame* aDestructRoot);
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
   NS_IMETHOD GetFrameName(nsAString& aResult) const;
 #endif
 
-  NS_IMETHOD AttributeChanged(int32_t         aNameSpaceID,
+  NS_IMETHOD AttributeChanged(PRInt32         aNameSpaceID,
                               nsIAtom*        aAttribute,
-                              int32_t         aModType);
+                              PRInt32         aModType);
   virtual void ContentStatesChanged(nsEventStates aStates);
   virtual bool IsLeaf() const;
 
@@ -58,36 +97,31 @@ public:
   
   virtual nsresult CreateAnonymousContent(nsTArray<ContentInfo>& aElements);
   virtual void AppendAnonymousContentTo(nsBaseContentList& aElements,
-                                        uint32_t aFilter);
+                                        PRUint32 aFilter);
 
 #ifdef ACCESSIBILITY
-  virtual already_AddRefed<Accessible> CreateAccessible();
-#endif  
+  virtual already_AddRefed<nsAccessible> CreateAccessible();
+#endif
 
   typedef bool (*AcceptAttrCallback)(const nsAString&, void*);
+  void ParseAcceptAttribute(AcceptAttrCallback aCallback, void* aClosure) const;
+
+  nsIFrame* GetTextFrame() { return mTextFrame; }
 
 protected:
-  
-  struct CaptureCallbackData {
-    nsICapturePicker* picker;
-    uint32_t mode;
-  };
-  
-  uint32_t GetCaptureMode(const CaptureCallbackData& aData);
-  
+
   class MouseListener;
   friend class MouseListener;
   class MouseListener : public nsIDOMEventListener {
   public:
     NS_DECL_ISUPPORTS
     
-    MouseListener(nsFileControlFrame* aFrame)
-     : mFrame(aFrame) 
+    MouseListener(nsFileControlFrame* aFrame) :
+      mFrame(aFrame)
     {}
-    virtual ~MouseListener() {}
 
     void ForgetFrame() {
-      mFrame = nullptr;
+      mFrame = nsnull;
     }
 
   protected:
@@ -117,34 +151,33 @@ protected:
 
   class CaptureMouseListener: public MouseListener {
   public:
-    CaptureMouseListener(nsFileControlFrame* aFrame) 
-      : MouseListener(aFrame)
-      , mMode(0) 
-    {}
-
+    CaptureMouseListener(nsFileControlFrame* aFrame) : MouseListener(aFrame),
+                                                       mMode(0) {};
     NS_DECL_NSIDOMEVENTLISTENER
-    uint32_t mMode;
+    PRUint32 mMode;
   };
   
   class BrowseMouseListener: public MouseListener {
   public:
-    BrowseMouseListener(nsFileControlFrame* aFrame) 
-      : MouseListener(aFrame) 
-    {}
-
+    BrowseMouseListener(nsFileControlFrame* aFrame) : MouseListener(aFrame) {};
     NS_DECL_NSIDOMEVENTLISTENER
 
     static bool IsValidDropData(nsIDOMDragEvent* aEvent);
   };
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     return nsBlockFrame::IsFrameOfType(aFlags &
       ~(nsIFrame::eReplaced | nsIFrame::eReplacedContainsBlock));
   }
 
-  virtual int GetSkipSides() const;
+  virtual PRIntn GetSkipSides() const;
 
+  
+
+
+
+  nsNewFrame* mTextFrame;
   
 
 
@@ -168,20 +201,28 @@ protected:
   nsRefPtr<BrowseMouseListener> mMouseListener;
   nsRefPtr<CaptureMouseListener> mCaptureMouseListener;
 
-protected:
-  
-
-
-  nsTextControlFrame* GetTextControlFrame();
-
+private:
   
 
 
 
 
 
-  void SyncAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
-                int32_t aWhichControls);
+
+
+
+
+  nsNewFrame* GetTextControlFrame(nsPresContext* aPresContext,
+                                  nsIFrame* aStart);
+
+  
+
+
+
+
+
+  void SyncAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
+                PRInt32 aWhichControls);
 
   
 

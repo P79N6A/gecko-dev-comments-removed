@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsPageFrame.h"
 #include "nsPresContext.h"
 #include "nsStyleContext.h"
@@ -94,8 +126,8 @@ NS_IMETHODIMP nsPageFrame::Reflow(nsPresContext*           aPresContext,
     }
 
     nsHTMLReflowState kidReflowState(aPresContext, aReflowState, frame, maxSize);
-    kidReflowState.mFlags.mIsTopOfPage = true;
-    kidReflowState.mFlags.mTableIsSplittable = true;
+    kidReflowState.mFlags.mIsTopOfPage = PR_TRUE;
+    kidReflowState.mFlags.mTableIsSplittable = PR_TRUE;
 
     
     nscoord xc = mPD->mReflowMargin.left + mPD->mExtraMargin.left;
@@ -153,7 +185,7 @@ nsPageFrame::ProcessSpecialCodes(const nsString& aStr, nsString& aNewStr)
   
   NS_NAMED_LITERAL_STRING(kDate, "&D");
   if (aStr.Find(kDate) != kNotFound) {
-    if (mPD->mDateTimeStr != nullptr) {
+    if (mPD->mDateTimeStr != nsnull) {
       aNewStr.ReplaceSubstring(kDate.get(), mPD->mDateTimeStr);
     } else {
       aNewStr.ReplaceSubstring(kDate.get(), EmptyString().get());
@@ -183,7 +215,7 @@ nsPageFrame::ProcessSpecialCodes(const nsString& aStr, nsString& aNewStr)
 
   NS_NAMED_LITERAL_STRING(kTitle, "&T");
   if (aStr.Find(kTitle) != kNotFound) {
-    if (mPD->mDocTitle != nullptr) {
+    if (mPD->mDocTitle != nsnull) {
       aNewStr.ReplaceSubstring(kTitle.get(), mPD->mDocTitle);
     } else {
       aNewStr.ReplaceSubstring(kTitle.get(), EmptyString().get());
@@ -192,7 +224,7 @@ nsPageFrame::ProcessSpecialCodes(const nsString& aStr, nsString& aNewStr)
 
   NS_NAMED_LITERAL_STRING(kDocURL, "&U");
   if (aStr.Find(kDocURL) != kNotFound) {
-    if (mPD->mDocURL != nullptr) {
+    if (mPD->mDocURL != nsnull) {
       aNewStr.ReplaceSubstring(kDocURL.get(), mPD->mDocURL);
     } else {
       aNewStr.ReplaceSubstring(kDocURL.get(), EmptyString().get());
@@ -211,7 +243,7 @@ nsPageFrame::ProcessSpecialCodes(const nsString& aStr, nsString& aNewStr)
 
 nscoord nsPageFrame::GetXPosition(nsRenderingContext& aRenderingContext, 
                                   const nsRect&        aRect, 
-                                  int32_t              aJust,
+                                  PRInt32              aJust,
                                   const nsString&      aStr)
 {
   nscoord width = nsLayoutUtils::GetStringWidth(this, &aRenderingContext,
@@ -254,7 +286,7 @@ nsPageFrame::DrawHeaderFooter(nsRenderingContext& aRenderingContext,
                               nscoord              aAscent,
                               nscoord              aHeight)
 {
-  int32_t numStrs = 0;
+  PRInt32 numStrs = 0;
   if (!aStrLeft.IsEmpty()) numStrs++;
   if (!aStrCenter.IsEmpty()) numStrs++;
   if (!aStrRight.IsEmpty()) numStrs++;
@@ -291,7 +323,7 @@ nsPageFrame::DrawHeaderFooter(nsRenderingContext& aRenderingContext,
 void
 nsPageFrame::DrawHeaderFooter(nsRenderingContext& aRenderingContext,
                               nsHeaderFooterEnum   aHeaderFooter,
-                              int32_t              aJust,
+                              PRInt32              aJust,
                               const nsString&      aStr,
                               const nsRect&        aRect,
                               nscoord              aAscent,
@@ -306,17 +338,17 @@ nsPageFrame::DrawHeaderFooter(nsRenderingContext& aRenderingContext,
     nsAutoString str;
     ProcessSpecialCodes(aStr, str);
 
-    int32_t indx;
-    int32_t textWidth = 0;
+    PRInt32 indx;
+    PRInt32 textWidth = 0;
     const PRUnichar* text = str.get();
 
-    int32_t len = (int32_t)str.Length();
+    PRInt32 len = (PRInt32)str.Length();
     if (len == 0) {
       return; 
     }
     
     if (nsLayoutUtils::BinarySearchForPosition(&aRenderingContext, text, 0, 0, 0, len,
-                                int32_t(contentWidth), indx, textWidth)) {
+                                PRInt32(contentWidth), indx, textWidth)) {
       if (indx < len-1 ) {
         
         if (indx > 3) {
@@ -405,7 +437,7 @@ nsPageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
 
 void
-nsPageFrame::SetPageNumInfo(int32_t aPageNumber, int32_t aTotalPages) 
+nsPageFrame::SetPageNumInfo(PRInt32 aPageNumber, PRInt32 aTotalPages) 
 { 
   mPageNum     = aPageNumber; 
   mTotNumPages = aTotalPages;
@@ -430,7 +462,7 @@ nsPageFrame::PaintHeaderFooter(nsRenderingContext& aRenderingContext,
 
   
   nsRefPtr<nsFontMetrics> fontMet;
-  pc->DeviceContext()->GetMetricsFor(*mPD->mHeadFootFont, nullptr,
+  pc->DeviceContext()->GetMetricsFor(*mPD->mHeadFootFont, nsnull,
                                      pc->GetUserFontSet(),
                                      *getter_AddRefs(fontMet));
 
@@ -537,7 +569,7 @@ NS_NewPageBreakFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 NS_IMPL_FRAMEARENA_HELPERS(nsPageBreakFrame)
 
 nsPageBreakFrame::nsPageBreakFrame(nsStyleContext* aContext) :
-  nsLeafFrame(aContext), mHaveReflowed(false)
+  nsLeafFrame(aContext), mHaveReflowed(PR_FALSE)
 {
 }
 
@@ -577,7 +609,7 @@ nsPageBreakFrame::Reflow(nsPresContext*           aPresContext,
 
   
   
-  mHaveReflowed = true;
+  mHaveReflowed = PR_TRUE;
   aStatus = NS_FRAME_COMPLETE; 
   return NS_OK;
 }

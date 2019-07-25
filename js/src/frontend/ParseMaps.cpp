@@ -5,14 +5,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "ParseMaps-inl.h"
-#include "jscntxt.h"
 #include "jscompartment.h"
 
-#include "vm/String-inl.h"
-
 using namespace js;
-using namespace js::frontend;
 
 void
 ParseMapPool::checkInvariants()
@@ -21,14 +50,14 @@ ParseMapPool::checkInvariants()
 
 
 
-    JS_STATIC_ASSERT(sizeof(Definition *) == sizeof(jsatomid));
-    JS_STATIC_ASSERT(sizeof(Definition *) == sizeof(DefinitionList));
+    JS_STATIC_ASSERT(sizeof(JSDefinition *) == sizeof(jsatomid));
+    JS_STATIC_ASSERT(sizeof(JSDefinition *) == sizeof(DefnOrHeader));
     JS_STATIC_ASSERT(sizeof(AtomDefnMap::Entry) == sizeof(AtomIndexMap::Entry));
-    JS_STATIC_ASSERT(sizeof(AtomDefnMap::Entry) == sizeof(AtomDefnListMap::Entry));
-    JS_STATIC_ASSERT(sizeof(AtomMapT::Entry) == sizeof(AtomDefnListMap::Entry));
+    JS_STATIC_ASSERT(sizeof(AtomDefnMap::Entry) == sizeof(AtomDOHMap::Entry));
+    JS_STATIC_ASSERT(sizeof(AtomMapT::Entry) == sizeof(AtomDOHMap::Entry));
     
     JS_STATIC_ASSERT(tl::IsPodType<AtomIndexMap::WordMap::Entry>::result);
-    JS_STATIC_ASSERT(tl::IsPodType<AtomDefnListMap::WordMap::Entry>::result);
+    JS_STATIC_ASSERT(tl::IsPodType<AtomDOHMap::WordMap::Entry>::result);
     JS_STATIC_ASSERT(tl::IsPodType<AtomDefnMap::WordMap::Entry>::result);
 }
 
@@ -36,7 +65,7 @@ void
 ParseMapPool::purgeAll()
 {
     for (void **it = all.begin(), **end = all.end(); it != end; ++it)
-        js_delete<AtomMapT>(asAtomMap(*it));
+        cx->delete_<AtomMapT>(asAtomMap(*it));
 
     all.clearAndFree();
     recyclable.clearAndFree();
@@ -57,67 +86,23 @@ ParseMapPool::allocateFresh()
     return (void *) map;
 }
 
-DefinitionList::Node *
-DefinitionList::allocNode(JSContext *cx, Definition *head, Node *tail)
-{
-    Node *result = cx->tempLifoAlloc().new_<Node>(head, tail);
-    if (!result)
-        js_ReportOutOfMemory(cx);
-    return result;
-}
-
-bool
-DefinitionList::pushFront(JSContext *cx, Definition *val)
-{
-    Node *tail;
-    if (isMultiple()) {
-        tail = firstNode();
-    } else {
-        tail = allocNode(cx, defn(), NULL);
-        if (!tail)
-            return false;
-    }
-
-    Node *node = allocNode(cx, val, tail);
-    if (!node)
-        return false;
-    *this = DefinitionList(node);
-    return true;
-}
-
-bool
-DefinitionList::pushBack(JSContext *cx, Definition *val)
-{
-    Node *last;
-    if (isMultiple()) {
-        last = firstNode();
-        while (last->next)
-            last = last->next;
-    } else {
-        last = allocNode(cx, defn(), NULL);
-        if (!last)
-            return false;
-    }
-
-    Node *node = allocNode(cx, val, NULL);
-    if (!node)
-        return false;
-    last->next = node;
-    if (!isMultiple())
-        *this = DefinitionList(last);
-    return true;
-}
-
 #ifdef DEBUG
 void
 AtomDecls::dump()
 {
-    for (AtomDefnListRange r = map->all(); !r.empty(); r.popFront()) {
+    for (AtomDOHRange r = map->all(); !r.empty(); r.popFront()) {
         fprintf(stderr, "atom: ");
         js_DumpAtom(r.front().key());
-        const DefinitionList &dlist = r.front().value();
-        for (DefinitionList::Range dr = dlist.all(); !dr.empty(); dr.popFront()) {
-            fprintf(stderr, "    defn: %p\n", (void *) dr.front());
+        const DefnOrHeader &doh = r.front().value();
+        if (doh.isHeader()) {
+            AtomDeclNode *node = doh.header();
+            do {
+                fprintf(stderr, "  node: %p\n", (void *) node);
+                fprintf(stderr, "    defn: %p\n", (void *) node->defn);
+                node = node->next;
+            } while (node);
+        } else {
+            fprintf(stderr, "  defn: %p\n", (void *) doh.defn());
         }
     }
 }
@@ -138,36 +123,74 @@ DumpAtomDefnMap(const AtomDefnMapPtr &map)
 }
 #endif
 
-bool
-AtomDecls::addShadow(JSAtom *atom, Definition *defn)
+AtomDeclNode *
+AtomDecls::allocNode(JSDefinition *defn)
 {
-    AtomDefnListAddPtr p = map->lookupForAdd(atom);
-    if (!p)
-        return map->add(p, atom, DefinitionList(defn));
-
-    return p.value().pushFront(cx, defn);
+    AtomDeclNode *p = cx->tempLifoAlloc().new_<AtomDeclNode>(defn);
+    if (!p) {
+        js_ReportOutOfMemory(cx);
+        return NULL;
+    }
+    return p;
 }
 
-void
-frontend::InitAtomMap(JSContext *cx, frontend::AtomIndexMap *indices, HeapPtrAtom *atoms)
+bool
+AtomDecls::addShadow(JSAtom *atom, JSDefinition *defn)
 {
-    if (indices->isMap()) {
-        typedef AtomIndexMap::WordMap WordMap;
-        const WordMap &wm = indices->asMap();
-        for (WordMap::Range r = wm.all(); !r.empty(); r.popFront()) {
-            JSAtom *atom = r.front().key;
-            jsatomid index = r.front().value;
-            JS_ASSERT(index < indices->count());
-            atoms[index].init(atom);
-        }
+    AtomDeclNode *node = allocNode(defn);
+    if (!node)
+        return false;
+
+    AtomDOHAddPtr p = map->lookupForAdd(atom);
+    if (!p)
+        return map->add(p, atom, DefnOrHeader(node));
+
+    AtomDeclNode *toShadow;
+    if (p.value().isHeader()) {
+        toShadow = p.value().header();
     } else {
-        for (const AtomIndexMap::InlineElem *it = indices->asInline(), *end = indices->inlineEnd();
-             it != end; ++it) {
-            JSAtom *atom = it->key;
-            if (!atom)
-                continue;
-            JS_ASSERT(it->value < indices->count());
-            atoms[it->value].init(atom);
-        }
+        toShadow = allocNode(p.value().defn());
+        if (!toShadow)
+            return false;
     }
+    node->next = toShadow;
+    p.value() = DefnOrHeader(node);
+    return true;
+}
+
+AtomDeclNode *
+AtomDecls::lastAsNode(DefnOrHeader *doh)
+{
+    if (doh->isHeader()) {
+        AtomDeclNode *last = doh->header();
+        while (last->next)
+            last = last->next;
+        return last;
+    }
+
+    
+    AtomDeclNode *node = allocNode(doh->defn());
+    if (!node)
+        return NULL;
+    *doh = DefnOrHeader(node);
+    return node;
+}
+
+bool
+AtomDecls::addHoist(JSAtom *atom, JSDefinition *defn)
+{
+    AtomDeclNode *node = allocNode(defn);
+    if (!node)
+        return false;
+
+    AtomDOHAddPtr p = map->lookupForAdd(atom);
+    if (p) {
+        AtomDeclNode *last = lastAsNode(&p.value());
+        if (!last)
+            return false;
+        last->next = node;
+        return true;
+    }
+
+    return map->add(p, atom, DefnOrHeader(node));
 }

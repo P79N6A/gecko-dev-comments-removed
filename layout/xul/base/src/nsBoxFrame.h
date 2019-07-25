@@ -11,6 +11,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsBoxFrame_h___
 #define nsBoxFrame_h___
 
@@ -29,7 +61,7 @@ class nsBoxLayoutState;
 #define NS_STATE_CURRENTLY_IN_DEBUG      NS_FRAME_STATE_BIT(25)
 
 
-#define NS_STATE_MENU_HAS_POPUP_LIST       NS_FRAME_STATE_BIT(28) /* used on nsMenuFrame */
+
 #define NS_STATE_BOX_WRAPS_KIDS_IN_BLOCK NS_FRAME_STATE_BIT(29)
 #define NS_STATE_EQUAL_SIZE              NS_FRAME_STATE_BIT(30)
 
@@ -58,10 +90,11 @@ public:
   
   
 
+  
   virtual void SetLayoutManager(nsBoxLayout* aLayout) { mLayoutManager = aLayout; }
   virtual nsBoxLayout* GetLayoutManager() { return mLayoutManager; }
 
-  NS_IMETHOD RelayoutChildAtOrdinal(nsBoxLayoutState& aState, nsIFrame* aChild);
+  NS_IMETHOD RelayoutChildAtOrdinal(nsBoxLayoutState& aState, nsIBox* aChild);
 
   virtual nsSize GetPrefSize(nsBoxLayoutState& aBoxLayoutState);
   virtual nsSize GetMinSize(nsBoxLayoutState& aBoxLayoutState);
@@ -87,9 +120,9 @@ public:
                    nsIFrame*        asPrevInFlow);
 
  
-  NS_IMETHOD AttributeChanged(int32_t         aNameSpaceID,
+  NS_IMETHOD AttributeChanged(PRInt32         aNameSpaceID,
                               nsIAtom*        aAttribute,
-                              int32_t         aModType);
+                              PRInt32         aModType);
 
   virtual void MarkIntrinsicWidthsDirty();
   virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext);
@@ -119,7 +152,7 @@ public:
 
   virtual nsIAtom* GetType() const;
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     
     
@@ -148,7 +181,7 @@ public:
 
   virtual ~nsBoxFrame();
   
-  nsBoxFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, bool aIsRoot = false, nsBoxLayout* aLayoutManager = nullptr);
+  nsBoxFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, bool aIsRoot = false, nsBoxLayout* aLayoutManager = nsnull);
 
   
   
@@ -161,12 +194,12 @@ public:
                               const nsDisplayListSet& aLists);
   
 #ifdef DEBUG_LAYOUT
-    virtual void SetDebugOnChildList(nsBoxLayoutState& aState, nsIFrame* aChild, bool aDebug);
-    nsresult DisplayDebugInfoFor(nsIFrame*  aBox, 
+    virtual void SetDebugOnChildList(nsBoxLayoutState& aState, nsIBox* aChild, bool aDebug);
+    nsresult DisplayDebugInfoFor(nsIBox*  aBox, 
                                  nsPoint& aPoint);
 #endif
 
-  static nsresult LayoutChildAt(nsBoxLayoutState& aState, nsIFrame* aBox, const nsRect& aRect);
+  static nsresult LayoutChildAt(nsBoxLayoutState& aState, nsIBox* aBox, const nsRect& aRect);
 
   
 
@@ -209,13 +242,6 @@ protected:
 
     nsCOMPtr<nsBoxLayout> mLayoutManager;
 
-    
-    
-    bool GetEventPoint(nsGUIEvent *aEvent, nsPoint &aPoint);
-    
-    
-    bool GetEventPoint(nsGUIEvent *aEvent, nsIntPoint &aPoint);
-
 protected:
     nsresult RegUnregAccessKey(bool aDoReg);
 
@@ -232,13 +258,13 @@ private:
     void GetDebugPadding(nsMargin& aInset);
     void GetDebugMargin(nsMargin& aInset);
 
-    nsresult GetFrameSizeWithMargin(nsIFrame* aBox, nsSize& aSize);
+    nsresult GetFrameSizeWithMargin(nsIBox* aBox, nsSize& aSize);
 
     void PixelMarginToTwips(nsPresContext* aPresContext, nsMargin& aMarginPixels);
 
     void GetValue(nsPresContext* aPresContext, const nsSize& a, const nsSize& b, char* value);
-    void GetValue(nsPresContext* aPresContext, int32_t a, int32_t b, char* value);
-    void DrawSpacer(nsPresContext* aPresContext, nsRenderingContext& aRenderingContext, bool aHorizontal, int32_t flex, nscoord x, nscoord y, nscoord size, nscoord spacerSize);
+    void GetValue(nsPresContext* aPresContext, PRInt32 a, PRInt32 b, char* value);
+    void DrawSpacer(nsPresContext* aPresContext, nsRenderingContext& aRenderingContext, bool aHorizontal, PRInt32 flex, nscoord x, nscoord y, nscoord size, nscoord spacerSize);
     void DrawLine(nsRenderingContext& aRenderingContext,  bool aHorizontal, nscoord x1, nscoord y1, nscoord x2, nscoord y2);
     void FillRect(nsRenderingContext& aRenderingContext,  bool aHorizontal, nscoord x, nscoord y, nscoord width, nscoord height);
 #endif
@@ -252,7 +278,7 @@ private:
 
 #ifdef DEBUG_LAYOUT
     static bool gDebug;
-    static nsIFrame* mDebugChild;
+    static nsIBox* mDebugChild;
 #endif
 
 }; 

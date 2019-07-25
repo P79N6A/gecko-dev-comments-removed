@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsDOMTouchEvent.h"
 #include "nsGUIEvent.h"
 #include "nsDOMClassInfoID.h"
@@ -10,7 +42,6 @@
 #include "nsIXPCScriptable.h"
 #include "nsContentUtils.h"
 #include "mozilla/Preferences.h"
-#include "nsPresContext.h"
 
 using namespace mozilla;
 
@@ -28,7 +59,7 @@ NS_IMPL_CYCLE_COLLECTING_ADDREF(nsDOMTouch)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsDOMTouch)
 
 NS_IMETHODIMP
-nsDOMTouch::GetIdentifier(int32_t* aIdentifier)
+nsDOMTouch::GetIdentifier(PRInt32* aIdentifier)
 {
   *aIdentifier = mIdentifier;
   return NS_OK;
@@ -42,58 +73,58 @@ nsDOMTouch::GetTarget(nsIDOMEventTarget** aTarget)
 }
 
 NS_IMETHODIMP
-nsDOMTouch::GetScreenX(int32_t* aScreenX)
+nsDOMTouch::GetScreenX(PRInt32* aScreenX)
 {
-  *aScreenX = mScreenPoint.x;
+  *aScreenX = mScreenX;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDOMTouch::GetScreenY(int32_t* aScreenY)
+nsDOMTouch::GetScreenY(PRInt32* aScreenY)
 {
-  *aScreenY = mScreenPoint.y;
+  *aScreenY = mScreenY;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDOMTouch::GetClientX(int32_t* aClientX)
+nsDOMTouch::GetClientX(PRInt32* aClientX)
 {
-  *aClientX = mClientPoint.x;
+  *aClientX = mClientX;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDOMTouch::GetClientY(int32_t* aClientY)
+nsDOMTouch::GetClientY(PRInt32* aClientY)
 {
-  *aClientY = mClientPoint.y;
+  *aClientY = mClientY;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDOMTouch::GetPageX(int32_t* aPageX)
+nsDOMTouch::GetPageX(PRInt32* aPageX)
 {
-  *aPageX = mPagePoint.x;
+  *aPageX = mPageX;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDOMTouch::GetPageY(int32_t* aPageY)
+nsDOMTouch::GetPageY(PRInt32* aPageY)
 {
-  *aPageY = mPagePoint.y;
+  *aPageY = mPageY;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDOMTouch::GetRadiusX(int32_t* aRadiusX)
+nsDOMTouch::GetRadiusX(PRInt32* aRadiusX)
 {
-  *aRadiusX = mRadius.x;
+  *aRadiusX = mRadiusX;
   return NS_OK;
 }
                                              
 NS_IMETHODIMP
-nsDOMTouch::GetRadiusY(int32_t* aRadiusY)
+nsDOMTouch::GetRadiusY(PRInt32* aRadiusY)
 {
-  *aRadiusY = mRadius.y;
+  *aRadiusY = mRadiusY;
   return NS_OK;
 }
 
@@ -111,27 +142,7 @@ nsDOMTouch::GetForce(float* aForce)
   return NS_OK;
 }
 
-bool
-nsDOMTouch::Equals(nsIDOMTouch* aTouch)
-{
-  float force;
-  float orientation;
-  int32_t radiusX, radiusY;
-  aTouch->GetForce(&force);
-  aTouch->GetRotationAngle(&orientation);
-  aTouch->GetRadiusX(&radiusX);
-  aTouch->GetRadiusY(&radiusY);
-  return mRefPoint != aTouch->mRefPoint ||
-         (mForce != force) ||
-         (mRotationAngle != orientation) ||
-         (mRadius.x != radiusX) || (mRadius.y != radiusY);
-}
 
-
-nsDOMTouchList::nsDOMTouchList(nsTArray<nsCOMPtr<nsIDOMTouch> > &aTouches)
-{
-  mPoints.AppendElements(aTouches);
-}
 
 DOMCI_DATA(TouchList, nsDOMTouchList)
 
@@ -144,36 +155,37 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsDOMTouchList)
 NS_INTERFACE_MAP_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsDOMTouchList)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSTARRAY_OF_NSCOMPTR(mPoints)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMARRAY(mPoints)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsDOMTouchList)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSTARRAY(mPoints)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMARRAY(mPoints)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsDOMTouchList)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsDOMTouchList)
 
 NS_IMETHODIMP
-nsDOMTouchList::GetLength(uint32_t* aLength)
+nsDOMTouchList::GetLength(PRUint32* aLength)
 {
-  *aLength = mPoints.Length();
+  *aLength = mPoints.Count();
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDOMTouchList::Item(uint32_t aIndex, nsIDOMTouch** aRetVal)
+nsDOMTouchList::Item(PRUint32 aIndex, nsIDOMTouch** aRetVal)
 {
-  NS_IF_ADDREF(*aRetVal = mPoints.SafeElementAt(aIndex, nullptr));
+  NS_IF_ADDREF(*aRetVal = mPoints.SafeObjectAt(aIndex));
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDOMTouchList::IdentifiedTouch(int32_t aIdentifier, nsIDOMTouch** aRetVal)
+nsDOMTouchList::IdentifiedTouch(PRInt32 aIdentifier, nsIDOMTouch** aRetVal)
 {
-  *aRetVal = nullptr;
-  for (uint32_t i = 0; i < mPoints.Length(); ++i) {
+  *aRetVal = nsnull;
+  for (PRInt32 i = 0; i < mPoints.Count(); ++i) {
     nsCOMPtr<nsIDOMTouch> point = mPoints[i];
-    int32_t identifier;
+    PRInt32 identifier;
     if (point && NS_SUCCEEDED(point->GetIdentifier(&identifier)) &&
         aIdentifier == identifier) {
       point.swap(*aRetVal);
@@ -186,20 +198,14 @@ nsDOMTouchList::IdentifiedTouch(int32_t aIdentifier, nsIDOMTouch** aRetVal)
 
 
 nsDOMTouchEvent::nsDOMTouchEvent(nsPresContext* aPresContext,
-                                 nsTouchEvent* aEvent)
+                                 nsInputEvent* aEvent)
   : nsDOMUIEvent(aPresContext, aEvent ? aEvent :
-                                        new nsTouchEvent(false, 0, nullptr))
+                                        new nsInputEvent(PR_FALSE, 0, nsnull))
 {
   if (aEvent) {
-    mEventIsInternal = false;
-
-    for (uint32_t i = 0; i < aEvent->touches.Length(); ++i) {
-      nsIDOMTouch *touch = aEvent->touches[i];
-      nsDOMTouch *domtouch = static_cast<nsDOMTouch*>(touch);
-      domtouch->InitializePoints(mPresContext, aEvent);
-    }
+    mEventIsInternal = PR_FALSE;
   } else {
-    mEventIsInternal = true;
+    mEventIsInternal = PR_TRUE;
     mEvent->time = PR_Now();
   }
 }
@@ -207,8 +213,8 @@ nsDOMTouchEvent::nsDOMTouchEvent(nsPresContext* aPresContext,
 nsDOMTouchEvent::~nsDOMTouchEvent()
 {
   if (mEventIsInternal && mEvent) {
-    delete static_cast<nsTouchEvent*>(mEvent);
-    mEvent = nullptr;
+    delete static_cast<nsInputEvent*>(mEvent);
+    mEvent = nsnull;
   }
 }
 
@@ -242,7 +248,7 @@ nsDOMTouchEvent::InitTouchEvent(const nsAString& aType,
                                 bool aCanBubble,
                                 bool aCancelable,
                                 nsIDOMWindow* aView,
-                                int32_t aDetail,
+                                PRInt32 aDetail,
                                 bool aCtrlKey,
                                 bool aAltKey,
                                 bool aShiftKey,
@@ -251,15 +257,13 @@ nsDOMTouchEvent::InitTouchEvent(const nsAString& aType,
                                 nsIDOMTouchList* aTargetTouches,
                                 nsIDOMTouchList* aChangedTouches)
 {
-  nsresult rv = nsDOMUIEvent::InitUIEvent(aType,
-                                          aCanBubble,
-                                          aCancelable,
-                                          aView,
-                                          aDetail);
+  nsresult rv = nsDOMUIEvent::InitUIEvent(aType, aCanBubble, aCancelable, aView, aDetail);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  static_cast<nsInputEvent*>(mEvent)->InitBasicModifiers(aCtrlKey, aAltKey,
-                                                         aShiftKey, aMetaKey);
+  static_cast<nsInputEvent*>(mEvent)->isControl = aCtrlKey;
+  static_cast<nsInputEvent*>(mEvent)->isAlt = aAltKey;
+  static_cast<nsInputEvent*>(mEvent)->isShift = aShiftKey;
+  static_cast<nsInputEvent*>(mEvent)->isMeta = aMetaKey;
   mTouches = aTouches;
   mTargetTouches = aTargetTouches;
   mChangedTouches = aChangedTouches;
@@ -269,107 +273,49 @@ nsDOMTouchEvent::InitTouchEvent(const nsAString& aType,
 NS_IMETHODIMP
 nsDOMTouchEvent::GetTouches(nsIDOMTouchList** aTouches)
 {
-  NS_ENSURE_ARG_POINTER(aTouches);
-  NS_ENSURE_STATE(mEvent);
-  nsRefPtr<nsDOMTouchList> t;
-
-  if (mTouches) {
-    return CallQueryInterface(mTouches, aTouches);
-  }
-
-  nsTouchEvent* touchEvent = static_cast<nsTouchEvent*>(mEvent);
-  if (mEvent->message == NS_TOUCH_END || mEvent->message == NS_TOUCH_CANCEL) {
-    
-    nsTArray<nsCOMPtr<nsIDOMTouch> > unchangedTouches;
-    nsTArray<nsCOMPtr<nsIDOMTouch> > touches = touchEvent->touches;
-    for (uint32_t i = 0; i < touches.Length(); ++i) {
-      if (!touches[i]->mChanged) {
-        unchangedTouches.AppendElement(touches[i]);
-      }
-    }
-    t = new nsDOMTouchList(unchangedTouches);
-  } else {
-    t = new nsDOMTouchList(touchEvent->touches);
-  }
-  mTouches = t;
-  return CallQueryInterface(mTouches, aTouches);
+  NS_IF_ADDREF(*aTouches = mTouches);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDOMTouchEvent::GetTargetTouches(nsIDOMTouchList** aTargetTouches)
 {
-  NS_ENSURE_ARG_POINTER(aTargetTouches);
-  NS_ENSURE_STATE(mEvent);
-
-  if (mTargetTouches) {
-    return CallQueryInterface(mTargetTouches, aTargetTouches);
-  }
-
-  nsTArray<nsCOMPtr<nsIDOMTouch> > targetTouches;
-  nsTouchEvent* touchEvent = static_cast<nsTouchEvent*>(mEvent);
-  nsTArray<nsCOMPtr<nsIDOMTouch> > touches = touchEvent->touches;
-  for (uint32_t i = 0; i < touches.Length(); ++i) {
-    
-    
-    if ((mEvent->message != NS_TOUCH_END &&
-         mEvent->message != NS_TOUCH_CANCEL) || !touches[i]->mChanged) {
-      nsIDOMEventTarget* targetPtr = touches[i]->GetTarget();
-      if (targetPtr == mEvent->target) {
-        targetTouches.AppendElement(touches[i]);
-      }
-    }
-  }
-  mTargetTouches = new nsDOMTouchList(targetTouches);
-  return CallQueryInterface(mTargetTouches, aTargetTouches);
+  NS_IF_ADDREF(*aTargetTouches = mTargetTouches);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDOMTouchEvent::GetChangedTouches(nsIDOMTouchList** aChangedTouches)
 {
-  NS_ENSURE_ARG_POINTER(aChangedTouches);
-  NS_ENSURE_STATE(mEvent);
-
-  if (mChangedTouches) {
-    return CallQueryInterface(mChangedTouches, aChangedTouches);
-  }
-
-  nsTArray<nsCOMPtr<nsIDOMTouch> > changedTouches;
-  nsTouchEvent* touchEvent = static_cast<nsTouchEvent*>(mEvent);
-  nsTArray<nsCOMPtr<nsIDOMTouch> > touches = touchEvent->touches;
-  for (uint32_t i = 0; i < touches.Length(); ++i) {
-    if (touches[i]->mChanged) {
-      changedTouches.AppendElement(touches[i]);
-    }
-  }
-  mChangedTouches = new nsDOMTouchList(changedTouches);
-  return CallQueryInterface(mChangedTouches, aChangedTouches);
+  NS_IF_ADDREF(*aChangedTouches = mChangedTouches);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDOMTouchEvent::GetAltKey(bool* aAltKey)
 {
-  *aAltKey = static_cast<nsInputEvent*>(mEvent)->IsAlt();
+  *aAltKey = static_cast<nsInputEvent*>(mEvent)->isAlt;
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDOMTouchEvent::GetMetaKey(bool* aMetaKey)
 {
-  *aMetaKey = static_cast<nsInputEvent*>(mEvent)->IsMeta();
+  *aMetaKey = static_cast<nsInputEvent*>(mEvent)->isMeta;
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDOMTouchEvent::GetCtrlKey(bool* aCtrlKey)
 {
-  *aCtrlKey = static_cast<nsInputEvent*>(mEvent)->IsControl();
+  *aCtrlKey = static_cast<nsInputEvent*>(mEvent)->isControl;
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDOMTouchEvent::GetShiftKey(bool* aShiftKey)
 {
-  *aShiftKey = static_cast<nsInputEvent*>(mEvent)->IsShift();
+  *aShiftKey = static_cast<nsInputEvent*>(mEvent)->isShift;
   return NS_OK;
 }
 
@@ -379,7 +325,7 @@ nsDOMTouchEvent::PrefEnabled()
   static bool sDidCheckPref = false;
   static bool sPrefValue = false;
   if (!sDidCheckPref) {
-    sDidCheckPref = true;
+    sDidCheckPref = PR_TRUE;
     sPrefValue = Preferences::GetBool("dom.w3c_touch_events.enabled", false);
     if (sPrefValue) {
       nsContentUtils::InitializeTouchEventTable();
@@ -391,7 +337,7 @@ nsDOMTouchEvent::PrefEnabled()
 nsresult
 NS_NewDOMTouchEvent(nsIDOMEvent** aInstancePtrResult,
                     nsPresContext* aPresContext,
-                    nsTouchEvent *aEvent)
+                    nsInputEvent *aEvent)
 {
   nsDOMTouchEvent* it = new nsDOMTouchEvent(aPresContext, aEvent);
 

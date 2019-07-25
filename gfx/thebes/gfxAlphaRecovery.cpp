@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "gfxAlphaRecovery.h"
 
 #include "gfxImageSurface.h"
@@ -22,12 +55,12 @@ gfxAlphaRecovery::RecoverAlpha(gfxImageSurface* blackSurf,
          blackSurf->Format() != gfxASurface::ImageFormatRGB24) ||
         (whiteSurf->Format() != gfxASurface::ImageFormatARGB32 &&
          whiteSurf->Format() != gfxASurface::ImageFormatRGB24))
-        return false;
+        return PR_FALSE;
 
 #ifdef MOZILLA_MAY_SUPPORT_SSE2
     if (!analysis && mozilla::supports_sse2() &&
         RecoverAlphaSSE2(blackSurf, whiteSurf)) {
-        return true;
+        return PR_TRUE;
     }
 #endif
 
@@ -38,23 +71,23 @@ gfxAlphaRecovery::RecoverAlpha(gfxImageSurface* blackSurf,
     unsigned char* whiteData = whiteSurf->Data();
 
     
-    uint32_t first;
+    PRUint32 first;
     if (size.width == 0 || size.height == 0) {
         first = 0;
     } else {
         if (!blackData || !whiteData)
-            return false;
+            return PR_FALSE;
 
-        first = RecoverPixel(*reinterpret_cast<uint32_t*>(blackData),
-                             *reinterpret_cast<uint32_t*>(whiteData));
+        first = RecoverPixel(*reinterpret_cast<PRUint32*>(blackData),
+                             *reinterpret_cast<PRUint32*>(whiteData));
     }
 
-    uint32_t deltas = 0;
-    for (int32_t i = 0; i < size.height; ++i) {
-        uint32_t* blackPixel = reinterpret_cast<uint32_t*>(blackData);
-        const uint32_t* whitePixel = reinterpret_cast<uint32_t*>(whiteData);
-        for (int32_t j = 0; j < size.width; ++j) {
-            uint32_t recovered = RecoverPixel(blackPixel[j], whitePixel[j]);
+    PRUint32 deltas = 0;
+    for (PRInt32 i = 0; i < size.height; ++i) {
+        PRUint32* blackPixel = reinterpret_cast<PRUint32*>(blackData);
+        const PRUint32* whitePixel = reinterpret_cast<PRUint32*>(whiteData);
+        for (PRInt32 j = 0; j < size.width; ++j) {
+            PRUint32 recovered = RecoverPixel(blackPixel[j], whitePixel[j]);
             blackPixel[j] = recovered;
             deltas |= (first ^ recovered);
         }
@@ -66,7 +99,7 @@ gfxAlphaRecovery::RecoverAlpha(gfxImageSurface* blackSurf,
     
     if (analysis) {
         analysis->uniformAlpha = (deltas >> 24) == 0;
-        analysis->uniformColor = false;
+        analysis->uniformColor = PR_FALSE;
         if (analysis->uniformAlpha) {
             double d_first_alpha = first >> 24;
             analysis->alpha = d_first_alpha/255.0;
@@ -88,5 +121,5 @@ gfxAlphaRecovery::RecoverAlpha(gfxImageSurface* blackSurf,
         }
     }
 
-    return true;
+    return PR_TRUE;
 }

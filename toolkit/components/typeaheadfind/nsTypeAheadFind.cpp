@@ -3,6 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsMemory.h"
 #include "nsIServiceManager.h"
@@ -17,7 +53,9 @@
 #include "nsIEditorDocShell.h"
 #include "nsISimpleEnumerator.h"
 #include "nsPIDOMWindow.h"
+#include "nsIDOMNSEvent.h"
 #include "nsIPrefBranch.h"
+#include "nsIPrefBranch2.h"
 #include "nsIPrefService.h"
 #include "nsString.h"
 #include "nsCRT.h"
@@ -25,7 +63,8 @@
 #include "nsIDOMNode.h"
 #include "mozilla/dom/Element.h"
 #include "nsIFrame.h"
-#include "nsFrameIterator.h"
+#include "nsFrameTraversal.h"
+#include "nsIDOMDocument.h"
 #include "nsIImageDocument.h"
 #include "nsIDOMHTMLDocument.h"
 #include "nsIDOMHTMLElement.h"
@@ -34,6 +73,7 @@
 #include "nsILink.h"
 #include "nsTextFragment.h"
 #include "nsIDOMNSEditableElement.h"
+#include "nsIDOMNSHTMLElement.h"
 #include "nsIEditor.h"
 
 #include "nsIDocShellTreeItem.h"
@@ -49,7 +89,6 @@
 #include "nsIObserverService.h"
 #include "nsFocusManager.h"
 #include "mozilla/dom/Element.h"
-#include "nsRange.h"
 
 #include "nsTypeAheadFind.h"
 
@@ -63,20 +102,22 @@ NS_INTERFACE_MAP_END
 NS_IMPL_ADDREF(nsTypeAheadFind)
 NS_IMPL_RELEASE(nsTypeAheadFind)
 
+static NS_DEFINE_IID(kRangeCID, NS_RANGE_CID);
+static NS_DEFINE_CID(kFrameTraversalCID, NS_FRAMETRAVERSAL_CID);
+
 #define NS_FIND_CONTRACTID "@mozilla.org/embedcomp/rangefind;1"
 
 nsTypeAheadFind::nsTypeAheadFind():
-  mStartLinksOnlyPref(false),
-  mCaretBrowsingOn(false),
+  mStartLinksOnlyPref(PR_FALSE),
+  mCaretBrowsingOn(PR_FALSE),
   mLastFindLength(0),
-  mIsSoundInitialized(false),
-  mCaseSensitive(false)
+  mIsSoundInitialized(PR_FALSE)
 {
 }
 
 nsTypeAheadFind::~nsTypeAheadFind()
 {
-  nsCOMPtr<nsIPrefBranch> prefInternal(do_GetService(NS_PREFSERVICE_CONTRACTID));
+  nsCOMPtr<nsIPrefBranch2> prefInternal(do_GetService(NS_PREFSERVICE_CONTRACTID));
   if (prefInternal) {
     prefInternal->RemoveObserver("accessibility.typeaheadfind", this);
     prefInternal->RemoveObserver("accessibility.browsewithcaret", this);
@@ -86,21 +127,26 @@ nsTypeAheadFind::~nsTypeAheadFind()
 nsresult
 nsTypeAheadFind::Init(nsIDocShell* aDocShell)
 {
-  nsCOMPtr<nsIPrefBranch> prefInternal(do_GetService(NS_PREFSERVICE_CONTRACTID));
-  mSearchRange = new nsRange();
-  mStartPointRange = new nsRange();
-  mEndPointRange = new nsRange();
-  if (!prefInternal || !EnsureFind())
+  nsCOMPtr<nsIPrefBranch2> prefInternal(do_GetService(NS_PREFSERVICE_CONTRACTID));
+  mSearchRange = do_CreateInstance(kRangeCID);
+  mStartPointRange = do_CreateInstance(kRangeCID);
+  mEndPointRange = do_CreateInstance(kRangeCID);
+  mFind = do_CreateInstance(NS_FIND_CONTRACTID);
+  if (!prefInternal || !mSearchRange || !mStartPointRange || !mEndPointRange || !mFind)
     return NS_ERROR_FAILURE;
 
   SetDocShell(aDocShell);
 
   
-  nsresult rv = prefInternal->AddObserver("accessibility.browsewithcaret", this, true);
+  nsresult rv = prefInternal->AddObserver("accessibility.browsewithcaret", this, PR_TRUE);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   PrefsReset();
+
+  
+  mFind->SetCaseSensitive(PR_FALSE);
+  mFind->SetWordBreaker(nsnull);
 
   return rv;
 }
@@ -132,20 +178,14 @@ nsTypeAheadFind::PrefsReset()
 NS_IMETHODIMP
 nsTypeAheadFind::SetCaseSensitive(bool isCaseSensitive)
 {
-  mCaseSensitive = isCaseSensitive;
-
-  if (mFind) {
-    mFind->SetCaseSensitive(mCaseSensitive);
-  }
-
+  mFind->SetCaseSensitive(isCaseSensitive);
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsTypeAheadFind::GetCaseSensitive(bool* isCaseSensitive)
 {
-  *isCaseSensitive = mCaseSensitive;
-
+  mFind->GetCaseSensitive(isCaseSensitive);
   return NS_OK;
 }
 
@@ -161,24 +201,21 @@ nsTypeAheadFind::SetDocShell(nsIDocShell* aDocShell)
   aDocShell->GetPresShell(getter_AddRefs(presShell));
   mPresShell = do_GetWeakReference(presShell);      
 
-  mStartFindRange = nullptr;
-  mStartPointRange = new nsRange();
-  mSearchRange = new nsRange();
-  mEndPointRange = new nsRange();
+  mStartFindRange = nsnull;
+  mStartPointRange = do_CreateInstance(kRangeCID);
+  mSearchRange = do_CreateInstance(kRangeCID);
 
-  mFoundLink = nullptr;
-  mFoundEditable = nullptr;
-  mCurrentWindow = nullptr;
+  mFoundLink = nsnull;
+  mFoundEditable = nsnull;
+  mCurrentWindow = nsnull;
 
-  mSelectionController = nullptr;
-
-  mFind = nullptr;
+  mSelectionController = nsnull;
 
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsTypeAheadFind::SetSelectionModeAndRepaint(int16_t aToggle)
+nsTypeAheadFind::SetSelectionModeAndRepaint(PRInt16 aToggle)
 {
   nsCOMPtr<nsISelectionController> selectionController = 
     do_QueryReferent(mSelectionController);
@@ -240,7 +277,7 @@ nsTypeAheadFind::PlayNotFoundSound()
     mSoundInterface = do_CreateInstance("@mozilla.org/sound;1");
 
   if (mSoundInterface) {
-    mIsSoundInitialized = true;
+    mIsSoundInitialized = PR_TRUE;
 
     if (mNotFoundSoundURL.Equals("beep")) {
       mSoundInterface->Beep();
@@ -262,12 +299,12 @@ nsTypeAheadFind::PlayNotFoundSound()
 nsresult
 nsTypeAheadFind::FindItNow(nsIPresShell *aPresShell, bool aIsLinksOnly,
                            bool aIsFirstVisiblePreferred, bool aFindPrev,
-                           uint16_t* aResult)
+                           PRUint16* aResult)
 {
   *aResult = FIND_NOTFOUND;
-  mFoundLink = nullptr;
-  mFoundEditable = nullptr;
-  mCurrentWindow = nullptr;
+  mFoundLink = nsnull;
+  mFoundEditable = nsnull;
+  mCurrentWindow = nsnull;
   nsCOMPtr<nsIPresShell> startingPresShell (GetPresShell());
   if (!startingPresShell) {    
     nsCOMPtr<nsIDocShell> ds = do_QueryReferent(mDocShell);
@@ -346,25 +383,25 @@ nsTypeAheadFind::FindItNow(nsIPresShell *aPresShell, bool aIsLinksOnly,
   if (NS_FAILED(GetSearchContainers(currentContainer,
                                     (!aIsFirstVisiblePreferred ||
                                      mStartFindRange) ?
-                                    selectionController.get() : nullptr,
+                                    selectionController.get() : nsnull,
                                     aIsFirstVisiblePreferred,  aFindPrev,
                                     getter_AddRefs(presShell),
                                     getter_AddRefs(presContext)))) {
     return NS_ERROR_FAILURE;
   }
 
-  int16_t rangeCompareResult = 0;
+  PRInt16 rangeCompareResult = 0;
   mStartPointRange->CompareBoundaryPoints(nsIDOMRange::START_TO_START, mSearchRange, &rangeCompareResult);
   
   bool hasWrapped = (rangeCompareResult < 0);
 
-  if (mTypeAheadBuffer.IsEmpty() || !EnsureFind())
+  if (mTypeAheadBuffer.IsEmpty())
     return NS_ERROR_FAILURE;
 
   mFind->SetFindBackwards(aFindPrev);
 
-  while (true) {    
-    while (true) {  
+  while (PR_TRUE) {    
+    while (PR_TRUE) {  
       mFind->Find(mTypeAheadBuffer.get(), mSearchRange, mStartPointRange,
                   mEndPointRange, getter_AddRefs(returnRange));
       
@@ -382,7 +419,7 @@ nsTypeAheadFind::FindItNow(nsIPresShell *aPresShell, bool aIsLinksOnly,
 
       bool usesIndependentSelection;
       if (!IsRangeVisible(presShell, presContext, returnRange,
-                          aIsFirstVisiblePreferred, false,
+                          aIsFirstVisiblePreferred, PR_FALSE,
                           getter_AddRefs(mStartPointRange), 
                           &usesIndependentSelection) ||
           (aIsLinksOnly && !isInsideLink) ||
@@ -439,7 +476,7 @@ nsTypeAheadFind::FindItNow(nsIPresShell *aPresShell, bool aIsLinksOnly,
                 nsCOMPtr<nsIDocShellTreeItem> fwRootTreeItem;
                 rv = fwTreeItem->GetSameTypeRootTreeItem(getter_AddRefs(fwRootTreeItem));
                 if (NS_SUCCEEDED(rv) && fwRootTreeItem == rootContentTreeItem)
-                  shouldFocusEditableElement = true;
+                  shouldFocusEditableElement = PR_TRUE;
               }
             }
           }
@@ -508,7 +545,7 @@ nsTypeAheadFind::FindItNow(nsIPresShell *aPresShell, bool aIsLinksOnly,
 
       if (!mFoundEditable && fm) {
         nsCOMPtr<nsIDOMWindow> win = do_QueryInterface(window);
-        fm->MoveFocus(win, nullptr, nsIFocusManager::MOVEFOCUS_CARET,
+        fm->MoveFocus(win, nsnull, nsIFocusManager::MOVEFOCUS_CARET,
                       nsIFocusManager::FLAG_NOSCROLL | nsIFocusManager::FLAG_NOSWITCHFRAME,
                       getter_AddRefs(mFoundLink));
       }
@@ -524,7 +561,6 @@ nsTypeAheadFind::FindItNow(nsIPresShell *aPresShell, bool aIsLinksOnly,
         selectionController->ScrollSelectionIntoView(
           nsISelectionController::SELECTION_NORMAL, 
           nsISelectionController::SELECTION_WHOLE_SELECTION,
-          nsISelectionController::SCROLL_CENTER_VERTICALLY |
           nsISelectionController::SCROLL_SYNCHRONOUS);
       }
 
@@ -555,24 +591,24 @@ nsTypeAheadFind::FindItNow(nsIPresShell *aPresShell, bool aIsLinksOnly,
       rootContentDocShell->GetDocShellEnumerator(nsIDocShellTreeItem::typeContent,
                                                  nsIDocShell::ENUMERATE_FORWARDS,
                                                  getter_AddRefs(docShellEnumerator));
-      hasTriedFirstDoc = true;      
+      hasTriedFirstDoc = PR_TRUE;      
     } while (docShellEnumerator);  
 
     bool continueLoop = false;
     if (currentDocShell != startingDocShell)
-      continueLoop = true;  
+      continueLoop = PR_TRUE;  
     else if (!hasWrapped || aIsFirstVisiblePreferred) {
       
       
       
       
-      aIsFirstVisiblePreferred = false;
-      hasWrapped = true;
-      continueLoop = true; 
+      aIsFirstVisiblePreferred = PR_FALSE;
+      hasWrapped = PR_TRUE;
+      continueLoop = PR_TRUE; 
     }
 
     if (continueLoop) {
-      if (NS_FAILED(GetSearchContainers(currentContainer, nullptr,
+      if (NS_FAILED(GetSearchContainers(currentContainer, nsnull,
                                         aIsFirstVisiblePreferred, aFindPrev,
                                         getter_AddRefs(presShell),
                                         getter_AddRefs(presContext)))) {
@@ -644,8 +680,8 @@ nsTypeAheadFind::GetSearchContainers(nsISupports *aContainer,
   NS_ENSURE_ARG_POINTER(aPresShell);
   NS_ENSURE_ARG_POINTER(aPresContext);
 
-  *aPresShell = nullptr;
-  *aPresContext = nullptr;
+  *aPresShell = nsnull;
+  *aPresContext = nsnull;
 
   nsCOMPtr<nsIDocShell> docShell(do_QueryInterface(aContainer));
   if (!docShell)
@@ -681,12 +717,12 @@ nsTypeAheadFind::GetSearchContainers(nsISupports *aContainer,
   if (!rootNode)
     return NS_ERROR_FAILURE;
 
-  uint32_t childCount = rootContent->GetChildCount();
+  PRUint32 childCount = rootContent->GetChildCount();
 
   mSearchRange->SelectNodeContents(rootNode);
 
   mEndPointRange->SetEnd(rootNode, childCount);
-  mEndPointRange->Collapse(false); 
+  mEndPointRange->Collapse(PR_FALSE); 
 
   
   
@@ -705,11 +741,11 @@ nsTypeAheadFind::GetSearchContainers(nsISupports *aContainer,
     
     
     IsRangeVisible(presShell, presContext, mSearchRange, 
-                   aIsFirstVisiblePreferred, true, 
-                   getter_AddRefs(mStartPointRange), nullptr);
+                   aIsFirstVisiblePreferred, PR_TRUE, 
+                   getter_AddRefs(mStartPointRange), nsnull);
   }
   else {
-    int32_t startOffset;
+    PRInt32 startOffset;
     nsCOMPtr<nsIDOMNode> startNode;
     if (aFindPrev) {
       currentSelectionRange->GetStartContainer(getter_AddRefs(startNode));
@@ -726,7 +762,7 @@ nsTypeAheadFind::GetSearchContainers(nsISupports *aContainer,
     mStartPointRange->SetStart(startNode, startOffset);
   }
 
-  mStartPointRange->Collapse(true); 
+  mStartPointRange->Collapse(PR_TRUE); 
 
   *aPresShell = presShell;
   NS_ADDREF(*aPresShell);
@@ -743,14 +779,14 @@ nsTypeAheadFind::RangeStartsInsideLink(nsIDOMRange *aRange,
                                        bool *aIsInsideLink,
                                        bool *aIsStartingLink)
 {
-  *aIsInsideLink = false;
-  *aIsStartingLink = true;
+  *aIsInsideLink = PR_FALSE;
+  *aIsStartingLink = PR_TRUE;
 
   
   nsCOMPtr<nsIDOMNode> startNode;
   nsCOMPtr<nsIContent> startContent, origContent;
   aRange->GetStartContainer(getter_AddRefs(startNode));
-  int32_t startOffset;
+  PRInt32 startOffset;
   aRange->GetStartOffset(&startOffset);
 
   startContent = do_QueryInterface(startNode);
@@ -770,9 +806,9 @@ nsTypeAheadFind::RangeStartsInsideLink(nsIDOMRange *aRange,
     const nsTextFragment *textFrag = startContent->GetText();
     if (textFrag) {
       
-      for (int32_t index = 0; index < startOffset; index++) {
+      for (PRInt32 index = 0; index < startOffset; index++) {
         if (!XP_IS_SPACE(textFrag->CharAt(index))) {
-          *aIsStartingLink = false;  
+          *aIsStartingLink = PR_FALSE;  
 
           break;
         }
@@ -788,7 +824,7 @@ nsTypeAheadFind::RangeStartsInsideLink(nsIDOMRange *aRange,
   nsCOMPtr<nsIAtom> tag, hrefAtom(do_GetAtom("href"));
   nsCOMPtr<nsIAtom> typeAtom(do_GetAtom("type"));
 
-  while (true) {
+  while (PR_TRUE) {
     
     
 
@@ -807,7 +843,7 @@ nsTypeAheadFind::RangeStartsInsideLink(nsIDOMRange *aRange,
         if (!startContent->AttrValueIs(kNameSpaceID_XLink, typeAtom,
                                        NS_LITERAL_STRING("simple"),
                                        eCaseMatters)) {
-          *aIsInsideLink = false;  
+          *aIsInsideLink = PR_FALSE;  
         }
 
         return;
@@ -819,29 +855,29 @@ nsTypeAheadFind::RangeStartsInsideLink(nsIDOMRange *aRange,
     if (!parent)
       break;
 
-    nsIContent* parentsFirstChild = parent->GetFirstChild();
+    nsIContent *parentsFirstChild = parent->GetChildAt(0);
 
     
     if (parentsFirstChild && parentsFirstChild->TextIsOnlyWhitespace()) {
-      parentsFirstChild = parentsFirstChild->GetNextSibling();
+      parentsFirstChild = parent->GetChildAt(1);
     }
 
     if (parentsFirstChild != startContent) {
       
       
-      *aIsStartingLink = false;
+      *aIsStartingLink = PR_FALSE;
     }
 
     startContent = parent;
   }
 
-  *aIsStartingLink = false;
+  *aIsStartingLink = PR_FALSE;
 }
 
 
 NS_IMETHODIMP
 nsTypeAheadFind::FindAgain(bool aFindBackwards, bool aLinksOnly,
-                           uint16_t* aResult)
+                           PRUint16* aResult)
 
 {
   *aResult = FIND_NOTFOUND;
@@ -849,14 +885,14 @@ nsTypeAheadFind::FindAgain(bool aFindBackwards, bool aLinksOnly,
   if (!mTypeAheadBuffer.IsEmpty())
     
     
-    FindItNow(nullptr, aLinksOnly, false, aFindBackwards, aResult);
+    FindItNow(nsnull, aLinksOnly, PR_FALSE, aFindBackwards, aResult);
 
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsTypeAheadFind::Find(const nsAString& aSearchString, bool aLinksOnly,
-                      uint16_t* aResult)
+                      PRUint16* aResult)
 {
   *aResult = FIND_NOTFOUND;
 
@@ -888,8 +924,8 @@ nsTypeAheadFind::Find(const nsAString& aSearchString, bool aLinksOnly,
 
     
     
-    mStartFindRange = nullptr;
-    mSelectionController = nullptr;
+    mStartFindRange = nsnull;
+    mSelectionController = nsnull;
 
     *aResult = FIND_FOUND;
     return NS_OK;
@@ -900,22 +936,22 @@ nsTypeAheadFind::Find(const nsAString& aSearchString, bool aLinksOnly,
     const nsAString& oldStr = Substring(mTypeAheadBuffer, 0, mTypeAheadBuffer.Length());
     const nsAString& newStr = Substring(aSearchString, 0, mTypeAheadBuffer.Length());
     if (oldStr.Equals(newStr))
-      atEnd = true;
+      atEnd = PR_TRUE;
   
     const nsAString& newStr2 = Substring(aSearchString, 0, aSearchString.Length());
     const nsAString& oldStr2 = Substring(mTypeAheadBuffer, 0, aSearchString.Length());
     if (oldStr2.Equals(newStr2))
-      atEnd = true;
+      atEnd = PR_TRUE;
     
     if (!atEnd)
-      mStartFindRange = nullptr;
+      mStartFindRange = nsnull;
   }
 
   if (!mIsSoundInitialized && !mNotFoundSoundURL.IsEmpty()) {
     
     
     
-    mIsSoundInitialized = true;
+    mIsSoundInitialized = PR_TRUE;
     mSoundInterface = do_CreateInstance("@mozilla.org/sound;1");
     if (mSoundInterface && !mNotFoundSoundURL.Equals(NS_LITERAL_CSTRING("beep"))) {
       mSoundInterface->Init();
@@ -926,10 +962,10 @@ nsTypeAheadFind::Find(const nsAString& aSearchString, bool aLinksOnly,
   
   
   
-  mSoundInterface = nullptr;
+  mSoundInterface = nsnull;
 #endif
 
-  int32_t bufferLength = mTypeAheadBuffer.Length();
+  PRInt32 bufferLength = mTypeAheadBuffer.Length();
 
   mTypeAheadBuffer = aSearchString;
 
@@ -965,14 +1001,14 @@ nsTypeAheadFind::Find(const nsAString& aSearchString, bool aLinksOnly,
       if (fm) {
         nsCOMPtr<nsIDOMElement> focusedElement;
         nsCOMPtr<nsIDOMWindow> focusedWindow;
-        fm->GetFocusedElementForWindow(window, false, getter_AddRefs(focusedWindow),
+        fm->GetFocusedElementForWindow(window, PR_FALSE, getter_AddRefs(focusedWindow),
                                        getter_AddRefs(focusedElement));
         
         
         if (focusedElement &&
             !SameCOMIdentity(focusedElement, document->GetRootElement())) {
           fm->MoveCaretToFocus(window);
-          isFirstVisiblePreferred = false;
+          isFirstVisiblePreferred = PR_FALSE;
         }
       }
     }
@@ -981,8 +1017,8 @@ nsTypeAheadFind::Find(const nsAString& aSearchString, bool aLinksOnly,
   
   
   
-  nsresult rv = FindItNow(nullptr, aLinksOnly, isFirstVisiblePreferred,
-                          false, aResult);
+  nsresult rv = FindItNow(nsnull, aLinksOnly, isFirstVisiblePreferred,
+                          PR_FALSE, aResult);
 
   
   if (NS_SUCCEEDED(rv)) {
@@ -990,7 +1026,7 @@ nsTypeAheadFind::Find(const nsAString& aSearchString, bool aLinksOnly,
       
       
 
-      mStartFindRange = nullptr;
+      mStartFindRange = nsnull;
       if (selection) {
         nsCOMPtr<nsIDOMRange> startFindRange;
         selection->GetRangeAt(0, getter_AddRefs(startFindRange));
@@ -1018,7 +1054,7 @@ nsTypeAheadFind::GetSelection(nsIPresShell *aPresShell,
     return;
 
   
-  *aDOMSel = nullptr;
+  *aDOMSel = nsnull;
 
   nsPresContext* presContext = aPresShell->GetPresContext();
 
@@ -1055,14 +1091,14 @@ nsTypeAheadFind::IsRangeVisible(nsIPresShell *aPresShell,
 
   nsCOMPtr<nsIContent> content(do_QueryInterface(node));
   if (!content)
-    return false;
+    return PR_FALSE;
 
   nsIFrame *frame = content->GetPrimaryFrame();
   if (!frame)    
-    return false;  
+    return PR_FALSE;  
 
   if (!frame->GetStyleVisibility()->IsVisible())
-    return false;
+    return PR_FALSE;
 
   
   
@@ -1073,12 +1109,12 @@ nsTypeAheadFind::IsRangeVisible(nsIPresShell *aPresShell,
 
   
   if (!aMustBeInViewPort)   
-    return true; 
+    return PR_TRUE; 
 
   
-  int32_t startRangeOffset, startFrameOffset, endFrameOffset;
+  PRInt32 startRangeOffset, startFrameOffset, endFrameOffset;
   aRange->GetStartOffset(&startRangeOffset);
-  while (true) {
+  while (PR_TRUE) {
     frame->GetOffsets(startFrameOffset, endFrameOffset);
     if (startRangeOffset < endFrameOffset)
       break;
@@ -1091,7 +1127,7 @@ nsTypeAheadFind::IsRangeVisible(nsIPresShell *aPresShell,
   }
 
   
-  const uint16_t kMinPixels  = 12;
+  const PRUint16 kMinPixels  = 12;
   nscoord minDistance = nsPresContext::CSSPixelsToAppUnits(kMinPixels);
 
   
@@ -1107,21 +1143,32 @@ nsTypeAheadFind::IsRangeVisible(nsIPresShell *aPresShell,
                                     minDistance);
 
     if (rectVisibility != nsRectVisibility_kAboveViewport) {
-      return true;
+      return PR_TRUE;
     }
   }
 
   
   
   
-  nsFrameIterator frameTraversal(aPresContext, frame,
-                                 eLeaf, nsFrameIterator::FLAG_NONE);
+  nsCOMPtr<nsIFrameEnumerator> frameTraversal;
+  nsCOMPtr<nsIFrameTraversal> trav(do_CreateInstance(kFrameTraversalCID));
+  if (trav)
+    trav->NewFrameTraversal(getter_AddRefs(frameTraversal),
+                            aPresContext, frame,
+                            eLeaf,
+                            PR_FALSE, 
+                            PR_FALSE, 
+                            PR_FALSE  
+                            );
+
+  if (!frameTraversal)
+    return PR_FALSE;
 
   while (rectVisibility == nsRectVisibility_kAboveViewport) {
-    frameTraversal.Next();
-    frame = frameTraversal.CurrentItem();
+    frameTraversal->Next();
+    frame = frameTraversal->CurrentItem();
     if (!frame)
-      return false;
+      return PR_FALSE;
 
     if (!frame->GetRect().IsEmpty()) {
       rectVisibility =
@@ -1138,20 +1185,20 @@ nsTypeAheadFind::IsRangeVisible(nsIPresShell *aPresShell,
       (*aFirstVisibleRange)->SelectNode(firstVisibleNode);
       frame->GetOffsets(startFrameOffset, endFrameOffset);
       (*aFirstVisibleRange)->SetStart(firstVisibleNode, startFrameOffset);
-      (*aFirstVisibleRange)->Collapse(true);  
+      (*aFirstVisibleRange)->Collapse(PR_TRUE);  
     }
   }
 
-  return false;
+  return PR_FALSE;
 }
 
 already_AddRefed<nsIPresShell>
 nsTypeAheadFind::GetPresShell()
 {
   if (!mPresShell)
-    return nullptr;
+    return nsnull;
 
-  nsIPresShell *shell = nullptr;
+  nsIPresShell *shell = nsnull;
   CallQueryReferent(mPresShell.get(), &shell);
   if (shell) {
     nsPresContext *pc = shell->GetPresContext();

@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsAppStartup_h__
 #define nsAppStartup_h__
 
@@ -13,14 +47,6 @@
 
 #include "nsINativeAppSupport.h"
 #include "nsIAppShell.h"
-#include "mozilla/Attributes.h"
-
-#if defined(XP_WIN)
-
-#include "mozilla/perfprobe.h"
-#include "nsAutoPtr.h"
-#endif 
-
 
 struct PLEvent;
 
@@ -29,10 +55,10 @@ struct PLEvent;
 { 0x7dd4d320, 0xc84b, 0x4624, { 0x8d, 0x45, 0x7b, 0xb9, 0xb2, 0x35, 0x69, 0x77 } }
 
 
-class nsAppStartup MOZ_FINAL : public nsIAppStartup,
-                               public nsIWindowCreator2,
-                               public nsIObserver,
-                               public nsSupportsWeakReference
+class nsAppStartup : public nsIAppStartup,
+                     public nsIWindowCreator2,
+                     public nsIObserver,
+                     public nsSupportsWeakReference
 {
 public:
   NS_DECL_ISUPPORTS
@@ -53,26 +79,12 @@ private:
 
   nsCOMPtr<nsIAppShell> mAppShell;
 
-  int32_t      mConsiderQuitStopper; 
+  PRInt32      mConsiderQuitStopper; 
   bool mRunning;        
   bool mShuttingDown;   
   bool mAttemptingQuit; 
   bool mRestart;        
   bool mInterrupted;    
-  bool mIsSafeModeNecessary;       
-  bool mStartupCrashTrackingEnded; 
-  bool mCachedShutdownTime;
-  uint32_t mLastShutdownTime;
-
-#if defined(XP_WIN)
-  
-  typedef mozilla::probes::ProbeManager ProbeManager;
-  typedef mozilla::probes::Probe        Probe;
-  nsRefPtr<ProbeManager> mProbesManager;
-  nsRefPtr<Probe> mPlacesInitCompleteProbe;
-  nsRefPtr<Probe> mSessionWindowRestoredProbe;
-  nsRefPtr<Probe> mXPCOMShutdownProbe;
-#endif
 };
 
 #endif 

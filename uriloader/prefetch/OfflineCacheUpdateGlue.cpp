@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "OfflineCacheUpdateGlue.h"
 #include "nsOfflineCacheUpdate.h"
 #include "mozilla/Services.h"
@@ -75,7 +108,7 @@ OfflineCacheUpdateGlue::Schedule()
         LOG(("Calling offline-cache-update-added"));
         observerService->NotifyObservers(static_cast<nsIOfflineCacheUpdate*>(this),
                                          "offline-cache-update-added",
-                                         nullptr);
+                                         nsnull);
         LOG(("Done offline-cache-update-added"));
     }
 
@@ -83,7 +116,7 @@ OfflineCacheUpdateGlue::Schedule()
         return NS_ERROR_NULL_POINTER;
 
     
-    mUpdate->AddObserver(this, false);
+    mUpdate->AddObserver(this, PR_FALSE);
 
     return mUpdate->Schedule();
 }
@@ -91,8 +124,7 @@ OfflineCacheUpdateGlue::Schedule()
 NS_IMETHODIMP
 OfflineCacheUpdateGlue::Init(nsIURI *aManifestURI, 
                              nsIURI *aDocumentURI,
-                             nsIDOMDocument *aDocument,
-                             nsIFile *aCustomProfileDir)
+                             nsIDOMDocument *aDocument)
 {
     if (!EnsureUpdate())
         return NS_ERROR_NULL_POINTER;
@@ -102,7 +134,7 @@ OfflineCacheUpdateGlue::Init(nsIURI *aManifestURI,
     if (aDocument)
         SetDocument(aDocument);
 
-    return mUpdate->Init(aManifestURI, aDocumentURI, nullptr, aCustomProfileDir);
+    return mUpdate->Init(aManifestURI, aDocumentURI, nsnull);
 }
 
 void
@@ -141,7 +173,7 @@ OfflineCacheUpdateGlue::SetDocument(nsIDOMDocument *aDocument)
 }
 
 NS_IMETHODIMP
-OfflineCacheUpdateGlue::UpdateStateChanged(nsIOfflineCacheUpdate *aUpdate, uint32_t state)
+OfflineCacheUpdateGlue::UpdateStateChanged(nsIOfflineCacheUpdate *aUpdate, PRUint32 state)
 {
     if (state == nsIOfflineCacheUpdateObserver::STATE_FINISHED) {
         LOG(("OfflineCacheUpdateGlue got STATE_FINISHED [%p]", this));
@@ -152,7 +184,7 @@ OfflineCacheUpdateGlue::UpdateStateChanged(nsIOfflineCacheUpdate *aUpdate, uint3
             LOG(("Calling offline-cache-update-completed"));
             observerService->NotifyObservers(static_cast<nsIOfflineCacheUpdate*>(this),
                                              "offline-cache-update-completed",
-                                             nullptr);
+                                             nsnull);
             LOG(("Done offline-cache-update-completed"));
         }
 
@@ -182,7 +214,7 @@ OfflineCacheUpdateGlue::ApplicationCacheAvailable(nsIApplicationCache *aApplicat
     if (!existingCache) {
 #if defined(PR_LOGGING)
         if (LOG_ENABLED()) {
-            nsAutoCString clientID;
+            nsCAutoString clientID;
             if (aApplicationCache) {
                 aApplicationCache->GetClientID(clientID);
             }

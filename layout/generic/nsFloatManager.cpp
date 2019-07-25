@@ -5,16 +5,50 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsFloatManager.h"
 #include "nsIPresShell.h"
 #include "nsMemory.h"
 #include "nsHTMLReflowState.h"
+#include "nsHashSets.h"
 #include "nsBlockDebugFlags.h"
-#include "nsError.h"
+#include "nsContentErrors.h"
 
 using namespace mozilla;
 
-int32_t nsFloatManager::sCachedFloatManagerCount = 0;
+PRInt32 nsFloatManager::sCachedFloatManagerCount = 0;
 void* nsFloatManager::sCachedFloatManagers[NS_FLOAT_MANAGER_CACHE_SIZE];
 
 
@@ -39,10 +73,10 @@ PSArenaFreeCB(size_t aSize, void* aPtr, void* aClosure)
 nsFloatManager::nsFloatManager(nsIPresShell* aPresShell)
   : mX(0), mY(0),
     mFloatDamage(PSArenaAllocCB, PSArenaFreeCB, aPresShell),
-    mPushedLeftFloatPastBreak(false),
-    mPushedRightFloatPastBreak(false),
-    mSplitLeftFloatAcrossBreak(false),
-    mSplitRightFloatAcrossBreak(false)
+    mPushedLeftFloatPastBreak(PR_FALSE),
+    mPushedRightFloatPastBreak(PR_FALSE),
+    mSplitLeftFloatAcrossBreak(PR_FALSE),
+    mSplitRightFloatAcrossBreak(PR_FALSE)
 {
   MOZ_COUNT_CTOR(nsFloatManager);
 }
@@ -96,7 +130,7 @@ void nsFloatManager::Shutdown()
   
   
 
-  int32_t i;
+  PRInt32 i;
 
   for (i = 0; i < sCachedFloatManagerCount; i++) {
     void* floatManager = sCachedFloatManagers[i];
@@ -123,7 +157,7 @@ nsFloatManager::GetFlowArea(nscoord aYOffset, BandInfoType aInfoType,
   }
 
   
-  uint32_t floatCount;
+  PRUint32 floatCount;
   if (aState) {
     
     floatCount = aState->mFloatInfoCount;
@@ -139,7 +173,7 @@ nsFloatManager::GetFlowArea(nscoord aYOffset, BandInfoType aInfoType,
       (mFloats[floatCount-1].mLeftYMost <= top &&
        mFloats[floatCount-1].mRightYMost <= top)) {
     return nsFlowAreaRect(aContentArea.x, aYOffset, aContentArea.width,
-                          aHeight, false);
+                          aHeight, PR_FALSE);
   }
 
   nscoord bottom;
@@ -166,7 +200,7 @@ nsFloatManager::GetFlowArea(nscoord aYOffset, BandInfoType aInfoType,
   
   
   bool haveFloats = false;
-  for (uint32_t i = floatCount; i > 0; --i) {
+  for (PRUint32 i = floatCount; i > 0; --i) {
     const FloatInfo &fi = mFloats[i-1];
     if (fi.mLeftYMost <= top && fi.mRightYMost <= top) {
       
@@ -209,7 +243,7 @@ nsFloatManager::GetFlowArea(nscoord aYOffset, BandInfoType aInfoType,
           
           
           
-          haveFloats = true;
+          haveFloats = PR_TRUE;
         }
       } else {
         
@@ -217,7 +251,7 @@ nsFloatManager::GetFlowArea(nscoord aYOffset, BandInfoType aInfoType,
         if (leftEdge < right) {
           right = leftEdge;
           
-          haveFloats = true;
+          haveFloats = PR_TRUE;
         }
       }
     }
@@ -244,7 +278,7 @@ nsFloatManager::AddFloat(nsIFrame* aFloatFrame, const nsRect& aMarginRect)
     info.mLeftYMost = nscoord_MIN;
     info.mRightYMost = nscoord_MIN;
   }
-  uint8_t floatStyle = aFloatFrame->GetStyleDisplay()->mFloats;
+  PRUint8 floatStyle = aFloatFrame->GetStyleDisplay()->mFloats;
   NS_ASSERTION(floatStyle == NS_STYLE_FLOAT_LEFT ||
                floatStyle == NS_STYLE_FLOAT_RIGHT, "unexpected float");
   nscoord& sideYMost = (floatStyle == NS_STYLE_FLOAT_LEFT) ? info.mLeftYMost
@@ -334,14 +368,14 @@ nsFloatManager::RemoveTrailingRegions(nsIFrame* aFrameList)
   
   
   
-  nsTHashtable<nsPtrHashKey<nsIFrame> > frameSet;
+  nsVoidHashSet frameSet;
 
   frameSet.Init(1);
   for (nsIFrame* f = aFrameList; f; f = f->GetNextSibling()) {
-    frameSet.PutEntry(f);
+    frameSet.Put(f);
   }
 
-  uint32_t newLength = mFloats.Length();
+  PRUint32 newLength = mFloats.Length();
   while (newLength > 0) {
     if (!frameSet.Contains(mFloats[newLength - 1].mFrame)) {
       break;
@@ -351,7 +385,7 @@ nsFloatManager::RemoveTrailingRegions(nsIFrame* aFrameList)
   mFloats.TruncateLength(newLength);
 
 #ifdef DEBUG
-  for (uint32_t i = 0; i < mFloats.Length(); ++i) {
+  for (PRUint32 i = 0; i < mFloats.Length(); ++i) {
     NS_ASSERTION(!frameSet.Contains(mFloats[i].mFrame),
                  "Frame region deletion was requested but we couldn't delete it");
   }
@@ -433,7 +467,7 @@ nsFloatManager::List(FILE* out) const
   if (!HasAnyFloats())
     return NS_OK;
 
-  for (uint32_t i = 0; i < mFloats.Length(); ++i) {
+  for (PRUint32 i = 0; i < mFloats.Length(); ++i) {
     const FloatInfo &fi = mFloats[i];
     printf("Float %u: frame=%p rect={%d,%d,%d,%d} ymost={l:%d, r:%d}\n",
            i, static_cast<void*>(fi.mFrame),
@@ -445,8 +479,8 @@ nsFloatManager::List(FILE* out) const
 #endif
 
 nscoord
-nsFloatManager::ClearFloats(nscoord aY, uint8_t aBreakType,
-                            uint32_t aFlags) const
+nsFloatManager::ClearFloats(nscoord aY, PRUint8 aBreakType,
+                            PRUint32 aFlags) const
 {
   if (!(aFlags & DONT_CLEAR_PUSHED_FLOATS) && ClearContinues(aBreakType)) {
     return nscoord_MAX;
@@ -480,7 +514,7 @@ nsFloatManager::ClearFloats(nscoord aY, uint8_t aBreakType,
 }
 
 bool
-nsFloatManager::ClearContinues(uint8_t aBreakType) const
+nsFloatManager::ClearContinues(PRUint8 aBreakType) const
 {
   return ((mPushedLeftFloatPastBreak || mSplitLeftFloatAcrossBreak) &&
           (aBreakType == NS_STYLE_CLEAR_LEFT_AND_RIGHT ||

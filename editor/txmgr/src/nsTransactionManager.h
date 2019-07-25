@@ -3,22 +3,53 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsTransactionManager_h__
 #define nsTransactionManager_h__
 
-#include "nsCOMArray.h"
-#include "nsCOMPtr.h"
-#include "nsCycleCollectionParticipant.h"
-#include "nsISupportsImpl.h"
-#include "nsITransactionManager.h"
-#include "nsTransactionStack.h"
+#include "prmon.h"
 #include "nsWeakReference.h"
-#include "nscore.h"
-#include "prtypes.h"
+#include "nsITransactionManager.h"
+#include "nsCOMArray.h"
+#include "nsITransactionListener.h"
+#include "nsCycleCollectionParticipant.h"
 
 class nsITransaction;
 class nsITransactionListener;
 class nsTransactionItem;
+class nsTransactionStack;
+class nsTransactionRedoStack;
 
 
 
@@ -28,17 +59,19 @@ class nsTransactionManager : public nsITransactionManager
 {
 private:
 
-  int32_t                mMaxTransactionCount;
+  PRInt32                mMaxTransactionCount;
   nsTransactionStack     mDoStack;
   nsTransactionStack     mUndoStack;
-  nsTransactionStack     mRedoStack;
+  nsTransactionRedoStack mRedoStack;
   nsCOMArray<nsITransactionListener> mListeners;
+
+  PRMonitor              *mMonitor;
 
 public:
 
   
 
-  nsTransactionManager(int32_t aMaxTransactionCount=-1);
+  nsTransactionManager(PRInt32 aMaxTransactionCount=-1);
 
   
 
@@ -55,8 +88,6 @@ public:
   
   virtual nsresult ClearUndoStack(void);
   virtual nsresult ClearRedoStack(void);
-  already_AddRefed<nsITransaction> PeekUndoStack();
-  already_AddRefed<nsITransaction> PeekRedoStack();
 
   virtual nsresult WillDoNotify(nsITransaction *aTransaction, bool *aInterrupt);
   virtual nsresult DidDoNotify(nsITransaction *aTransaction, nsresult aExecuteResult);
@@ -81,6 +112,8 @@ private:
   
   virtual nsresult BeginTransaction(nsITransaction *aTransaction);
   virtual nsresult EndTransaction(void);
+  virtual nsresult Lock(void);
+  virtual nsresult Unlock(void);
 };
 
 #endif 

@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <windows.h>
 
 #include "nsMathUtils.h"
@@ -28,7 +60,7 @@ enum {
 
 gfxWindowsNativeDrawing::gfxWindowsNativeDrawing(gfxContext* ctx,
                                                  const gfxRect& nativeRect,
-                                                 uint32_t nativeDrawFlags)
+                                                 PRUint32 nativeDrawFlags)
     : mContext(ctx), mNativeRect(nativeRect), mNativeDrawFlags(nativeDrawFlags), mRenderState(RENDER_STATE_INIT)
 {
 }
@@ -37,14 +69,9 @@ HDC
 gfxWindowsNativeDrawing::BeginNativeDrawing()
 {
     if (mRenderState == RENDER_STATE_INIT) {
-        nsRefPtr<gfxASurface> surf;
-        
-        if (mContext->GetCairo()) {
-          surf = mContext->CurrentSurface(&mDeviceOffset.x, &mDeviceOffset.y);
-        }
-
-        if (surf && surf->CairoStatus())
-            return nullptr;
+        nsRefPtr<gfxASurface> surf = mContext->CurrentSurface(&mDeviceOffset.x, &mDeviceOffset.y);
+        if (!surf || surf->CairoStatus())
+            return nsnull;
 
         gfxMatrix m = mContext->CurrentMatrix();
         if (!m.HasNonTranslation())
@@ -57,12 +84,11 @@ gfxWindowsNativeDrawing::BeginNativeDrawing()
         
         
         
-        if (surf &&
-            ((surf->GetType() == gfxASurface::SurfaceTypeWin32 ||
-              surf->GetType() == gfxASurface::SurfaceTypeWin32Printing) &&
-              (surf->GetContentType() == gfxASurface::CONTENT_COLOR ||
-               (surf->GetContentType() == gfxASurface::CONTENT_COLOR_ALPHA &&
-               (mNativeDrawFlags & CAN_DRAW_TO_COLOR_ALPHA)))))
+        if ((surf->GetType() == gfxASurface::SurfaceTypeWin32 ||
+             surf->GetType() == gfxASurface::SurfaceTypeWin32Printing) &&
+            (surf->GetContentType() == gfxASurface::CONTENT_COLOR ||
+             (surf->GetContentType() == gfxASurface::CONTENT_COLOR_ALPHA &&
+              (mNativeDrawFlags & CAN_DRAW_TO_COLOR_ALPHA))))
         {
             
             
@@ -112,11 +138,11 @@ gfxWindowsNativeDrawing::BeginNativeDrawing()
                 
                 
                 mTempSurfaceSize =
-                    gfxIntSize((int32_t) ceil(mNativeRect.Width() + 1),
-                               (int32_t) ceil(mNativeRect.Height() + 1));
+                    gfxIntSize((PRInt32) ceil(mNativeRect.Width() + 1),
+                               (PRInt32) ceil(mNativeRect.Height() + 1));
             } else {
                 
-                mScale = m.ScaleFactors(true);
+                mScale = m.ScaleFactors(PR_TRUE);
 
                 mWorldTransform.eM11 = (FLOAT) mScale.width;
                 mWorldTransform.eM12 = 0.0f;
@@ -127,8 +153,8 @@ gfxWindowsNativeDrawing::BeginNativeDrawing()
 
                 
                 mTempSurfaceSize =
-                    gfxIntSize((int32_t) ceil(mNativeRect.Width() * mScale.width + 1),
-                               (int32_t) ceil(mNativeRect.Height() * mScale.height + 1));
+                    gfxIntSize((PRInt32) ceil(mNativeRect.Width() * mScale.width + 1),
+                               (PRInt32) ceil(mNativeRect.Height() * mScale.height + 1));
             }
         }
     }
@@ -175,29 +201,25 @@ gfxWindowsNativeDrawing::BeginNativeDrawing()
         return mDC;
     } else {
         NS_ERROR("Bogus render state!");
-        return nullptr;
+        return nsnull;
     }
 }
 
 bool
 gfxWindowsNativeDrawing::IsDoublePass()
 {
-    if (!mContext->IsCairo()) {
-      return true;
-    }
-
     nsRefPtr<gfxASurface> surf = mContext->CurrentSurface(&mDeviceOffset.x, &mDeviceOffset.y);
     if (!surf || surf->CairoStatus())
         return false;
     if (surf->GetType() != gfxASurface::SurfaceTypeWin32 &&
-        surf->GetType() != gfxASurface::SurfaceTypeWin32Printing) {
-	return true;
+	surf->GetType() != gfxASurface::SurfaceTypeWin32Printing) {
+	return PR_TRUE;
     }
     if ((surf->GetContentType() != gfxASurface::CONTENT_COLOR ||
          (surf->GetContentType() == gfxASurface::CONTENT_COLOR_ALPHA &&
           !(mNativeDrawFlags & CAN_DRAW_TO_COLOR_ALPHA))))
-        return true;
-    return false;
+        return PR_TRUE;
+    return PR_FALSE;
 }
 
 bool
@@ -205,21 +227,21 @@ gfxWindowsNativeDrawing::ShouldRenderAgain()
 {
     switch (mRenderState) {
         case RENDER_STATE_NATIVE_DRAWING_DONE:
-            return false;
+            return PR_FALSE;
 
         case RENDER_STATE_ALPHA_RECOVERY_BLACK_DONE:
             mRenderState = RENDER_STATE_ALPHA_RECOVERY_WHITE;
-            return true;
+            return PR_TRUE;
 
         case RENDER_STATE_ALPHA_RECOVERY_WHITE_DONE:
-            return false;
+            return PR_FALSE;
 
         default:
             NS_ERROR("Invalid RenderState in gfxWindowsNativeDrawing::ShouldRenderAgain");
             break;
     }
 
-    return false;
+    return PR_FALSE;
 }
 
 void
@@ -237,12 +259,12 @@ gfxWindowsNativeDrawing::EndNativeDrawing()
         mRenderState = RENDER_STATE_NATIVE_DRAWING_DONE;
     } else if (mRenderState == RENDER_STATE_ALPHA_RECOVERY_BLACK) {
         mBlackSurface = mWinSurface;
-        mWinSurface = nullptr;
+        mWinSurface = nsnull;
 
         mRenderState = RENDER_STATE_ALPHA_RECOVERY_BLACK_DONE;
     } else if (mRenderState == RENDER_STATE_ALPHA_RECOVERY_WHITE) {
         mWhiteSurface = mWinSurface;
-        mWinSurface = nullptr;
+        mWinSurface = nsnull;
 
         mRenderState = RENDER_STATE_ALPHA_RECOVERY_WHITE_DONE;
     } else {

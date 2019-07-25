@@ -3,10 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsPrintData_h___
 #define nsPrintData_h___
-
-#include "mozilla/Attributes.h"
 
 
 #include "nsIDOMWindow.h"
@@ -56,10 +85,10 @@ public:
   
   void OnEndPrinting();
   void OnStartPrinting();
-  void DoOnProgressChange(int32_t      aProgress,
-                          int32_t      aMaxProgress,
+  void DoOnProgressChange(PRInt32      aProgess,
+                          PRInt32      aMaxProgress,
                           bool         aDoStartStop,
-                          int32_t      aFlag);
+                          PRInt32      aFlag);
 
 
   ePrintDataType               mType;            
@@ -82,9 +111,9 @@ public:
   bool                        mPreparingForPrint;   
   bool                        mDocWasToBeDestroyed; 
   bool                        mShrinkToFit;
-  int16_t                     mPrintFrameType;
-  int32_t                     mNumPrintablePages;
-  int32_t                     mNumPagesPrinted;
+  PRInt16                     mPrintFrameType;
+  PRInt32                     mNumPrintablePages;
+  PRInt32                     mNumPagesPrinted;
   float                       mShrinkRatio;
   float                       mOrigDCScale;
 
@@ -94,8 +123,8 @@ public:
   PRUnichar*            mBrandName; 
 
 private:
-  nsPrintData() MOZ_DELETE;
-  nsPrintData& operator=(const nsPrintData& aOther) MOZ_DELETE;
+  nsPrintData(); 
+  nsPrintData& operator=(const nsPrintData& aOther); 
 
 };
 

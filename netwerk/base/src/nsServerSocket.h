@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsServerSocket_h__
 #define nsServerSocket_h__
 
@@ -20,7 +52,7 @@ public:
   NS_DECL_NSISERVERSOCKET
 
   
-  virtual void OnSocketReady(PRFileDesc *fd, int16_t outFlags);
+  virtual void OnSocketReady(PRFileDesc *fd, PRInt16 outFlags);
   virtual void OnSocketDetached(PRFileDesc *fd);
 
   nsServerSocket();

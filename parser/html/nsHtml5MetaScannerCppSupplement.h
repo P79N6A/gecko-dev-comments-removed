@@ -1,20 +1,54 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  
 #include "nsICharsetConverterManager.h"
 #include "nsServiceManagerUtils.h"
-#include "nsCharsetAlias.h"
+#include "nsICharsetAlias.h"
 #include "nsEncoderDecoderUtils.h"
 #include "nsTraceRefcnt.h"
 
+static NS_DEFINE_CID(kCharsetAliasCID, NS_CHARSETALIAS_CID);
 
 void
 nsHtml5MetaScanner::sniff(nsHtml5ByteReadable* bytes, nsIUnicodeDecoder** decoder, nsACString& charset)
 {
   readable = bytes;
   stateLoop(stateSave);
-  readable = nullptr;
+  readable = nsnull;
   if (mUnicodeDecoder) {
     mUnicodeDecoder.forget(decoder);
     charset.Assign(mCharset);
@@ -31,9 +65,9 @@ nsHtml5MetaScanner::tryCharset(nsString* charset)
   nsCOMPtr<nsICharsetConverterManager> convManager = do_GetService(NS_CHARSETCONVERTERMANAGER_CONTRACTID, &res);
   if (NS_FAILED(res)) {
     NS_ERROR("Could not get CharsetConverterManager service.");
-    return false;
+    return PR_FALSE;
   }
-  nsAutoCString encoding;
+  nsCAutoString encoding;
   CopyUTF16toUTF8(*charset, encoding);
   encoding.Trim(" \t\r\n\f");
   if (encoding.LowerCaseEqualsLiteral("utf-16") ||
@@ -43,14 +77,19 @@ nsHtml5MetaScanner::tryCharset(nsString* charset)
     res = convManager->GetUnicodeDecoderRaw(mCharset.get(), getter_AddRefs(mUnicodeDecoder));
     if (NS_FAILED(res)) {
       NS_ERROR("Could not get decoder for UTF-8.");
-      return false;
+      return PR_FALSE;
     }
-    return true;
+    return PR_TRUE;
   }
-  nsAutoCString preferred;
-  res = nsCharsetAlias::GetPreferred(encoding, preferred);
+  nsCAutoString preferred;
+  nsCOMPtr<nsICharsetAlias> calias(do_GetService(kCharsetAliasCID, &res));
   if (NS_FAILED(res)) {
-    return false;
+    NS_ERROR("Could not get CharsetAlias service.");
+    return PR_FALSE;
+  }
+  res = calias->GetPreferred(encoding, preferred);
+  if (NS_FAILED(res)) {
+    return PR_FALSE;
   }
   if (preferred.LowerCaseEqualsLiteral("utf-16") ||
       preferred.LowerCaseEqualsLiteral("utf-16be") ||
@@ -60,18 +99,18 @@ nsHtml5MetaScanner::tryCharset(nsString* charset)
       preferred.LowerCaseEqualsLiteral("x-jis0208") ||
       preferred.LowerCaseEqualsLiteral("x-imap4-modified-utf7") ||
       preferred.LowerCaseEqualsLiteral("x-user-defined")) {
-    return false;
+    return PR_FALSE;
   }
   res = convManager->GetUnicodeDecoderRaw(preferred.get(), getter_AddRefs(mUnicodeDecoder));
   if (res == NS_ERROR_UCONV_NOCONV) {
-    return false;
+    return PR_FALSE;
   } else if (NS_FAILED(res)) {
     NS_ERROR("Getting an encoding decoder failed in a bad way.");
-    mUnicodeDecoder = nullptr;
-    return false;
+    mUnicodeDecoder = nsnull;
+    return PR_FALSE;
   } else {
     NS_ASSERTION(mUnicodeDecoder, "Getter nsresult and object don't match.");
     mCharset.Assign(preferred);
-    return true;
+    return PR_TRUE;
   }
 }

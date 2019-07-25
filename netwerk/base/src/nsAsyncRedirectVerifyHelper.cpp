@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifdef MOZ_LOGGING
 #define FORCE_PR_LOG
 #endif
@@ -49,7 +83,7 @@ private:
 };
 
 nsAsyncRedirectVerifyHelper::nsAsyncRedirectVerifyHelper()
-    : mCallbackInitiated(false),
+    : mCallbackInitiated(PR_FALSE),
       mExpectedCallbacks(0),
       mResult(NS_OK)
 {
@@ -63,7 +97,7 @@ nsAsyncRedirectVerifyHelper::~nsAsyncRedirectVerifyHelper()
 
 nsresult
 nsAsyncRedirectVerifyHelper::Init(nsIChannel* oldChan, nsIChannel* newChan,
-                                  uint32_t flags, bool synchronize)
+                                  PRUint32 flags, bool synchronize)
 {
     LOG(("nsAsyncRedirectVerifyHelper::Init() "
          "oldChan=%p newChan=%p", oldChan, newChan));
@@ -73,7 +107,7 @@ nsAsyncRedirectVerifyHelper::Init(nsIChannel* oldChan, nsIChannel* newChan,
     mCallbackThread    = do_GetCurrentThread();
 
     if (synchronize)
-      mWaitingForRedirectCallback = true;
+      mWaitingForRedirectCallback = PR_TRUE;
 
     nsresult rv;
     rv = NS_DispatchToMainThread(this);
@@ -127,7 +161,7 @@ nsresult
 nsAsyncRedirectVerifyHelper::DelegateOnChannelRedirect(nsIChannelEventSink *sink,
                                                        nsIChannel *oldChannel,
                                                        nsIChannel *newChannel,
-                                                       uint32_t flags)
+                                                       PRUint32 flags)
 {
     LOG(("nsAsyncRedirectVerifyHelper::DelegateOnChannelRedirect() "
          "sink=%p expectedCBs=%u mResult=%x",
@@ -174,8 +208,8 @@ nsAsyncRedirectVerifyHelper::ExplicitCallback(nsresult result)
         return;
     }
 
-    mCallbackInitiated = false;  
-    mWaitingForRedirectCallback = false;
+    mCallbackInitiated = PR_FALSE;  
+    mWaitingForRedirectCallback = PR_FALSE;
 
     
     nsRefPtr<nsIRunnable> event =
@@ -202,7 +236,7 @@ nsAsyncRedirectVerifyHelper::InitCallback()
     LOG(("nsAsyncRedirectVerifyHelper::InitCallback() "
          "expectedCBs=%d mResult=%x", mExpectedCallbacks, mResult));
 
-    mCallbackInitiated = true;
+    mCallbackInitiated = PR_TRUE;
 
     
     if (mExpectedCallbacks == 0)

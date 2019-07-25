@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsPROCESSWIN_H_
 #define _nsPROCESSWIN_H_
 
@@ -10,7 +44,6 @@
 #define PROCESSMODEL_WINAPI
 #endif
 
-#include "mozilla/Attributes.h"
 #include "mozilla/Mutex.h"
 #include "nsIProcess.h"
 #include "nsIFile.h"
@@ -31,8 +64,8 @@
 {0x7b4eeb20, 0xd781, 0x11d4, \
    {0x8A, 0x83, 0x00, 0x10, 0xa4, 0xe0, 0xc9, 0xca}}
 
-class nsProcess MOZ_FINAL : public nsIProcess,
-                            public nsIObserver
+class nsProcess : public nsIProcess,
+                  public nsIObserver
 {
 public:
 
@@ -47,10 +80,10 @@ private:
   static void PR_CALLBACK Monitor(void *arg);
   void ProcessComplete();
   nsresult CopyArgsAndRunProcess(bool blocking, const char** args,
-                                 uint32_t count, nsIObserver* observer,
+                                 PRUint32 count, nsIObserver* observer,
                                  bool holdWeak);
   nsresult CopyArgsAndRunProcessw(bool blocking, const PRUnichar** args,
-                                  uint32_t count, nsIObserver* observer,
+                                  PRUint32 count, nsIObserver* observer,
                                   bool holdWeak);
   
   nsresult RunProcess(bool blocking, char **args, nsIObserver* observer,
@@ -59,18 +92,18 @@ private:
   PRThread* mThread;
   mozilla::Mutex mLock;
   bool mShutdown;
-  bool mBlocking;
 
   nsCOMPtr<nsIFile> mExecutable;
   nsString mTargetPath;
-  int32_t mPid;
+  PRInt32 mPid;
   nsCOMPtr<nsIObserver> mObserver;
   nsWeakPtr mWeakObserver;
 
   
   
-  int32_t mExitValue;
+  PRInt32 mExitValue;
 #if defined(PROCESSMODEL_WINAPI)
+  typedef DWORD (WINAPI*GetProcessIdPtr)(HANDLE process);
   HANDLE mProcess;
 #elif !defined(XP_MACOSX)
   PRProcess *mProcess;

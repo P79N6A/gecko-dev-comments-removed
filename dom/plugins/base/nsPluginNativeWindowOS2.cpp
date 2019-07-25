@@ -5,6 +5,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #define INCL_WIN
 #include "os2.h"
 
@@ -25,8 +61,8 @@
 
 #define NP_POPUP_API_VERSION 16
 
-#define nsMajorVersion(v)       (((int32_t)(v) >> 16) & 0xffff)
-#define nsMinorVersion(v)       ((int32_t)(v) & 0xffff)
+#define nsMajorVersion(v)       (((PRInt32)(v) >> 16) & 0xffff)
+#define nsMinorVersion(v)       ((PRInt32)(v) & 0xffff)
 #define versionOK(suppliedV, requiredV)                   \
   (nsMajorVersion(suppliedV) == nsMajorVersion(requiredV) \
    && nsMinorVersion(suppliedV) >= nsMinorVersion(requiredV))
@@ -211,7 +247,7 @@ static MRESULT EXPENTRY PluginWndProc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM m
   
   if (win->mPluginType == nsPluginType_Unknown) {
     if (inst) {
-      const char* mimetype = nullptr;
+      const char* mimetype = nsnull;
       inst->GetMIMEType(&mimetype);
       if (mimetype) {
         if (!strcmp(mimetype, "application/x-shockwave-flash"))
@@ -301,7 +337,7 @@ static MRESULT EXPENTRY PluginWndProc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM m
   }
 
   if (enablePopups && inst) {
-    uint16_t apiVersion;
+    PRUint16 apiVersion;
     if (NS_SUCCEEDED(inst->GetPluginAPIVersion(&apiVersion)) &&
         !versionOK(apiVersion, NP_POPUP_API_VERSION))
       inst->PushPopupsEnabledState(true);
@@ -344,7 +380,7 @@ static MRESULT EXPENTRY PluginWndProc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM m
 nsPluginNativeWindowOS2::nsPluginNativeWindowOS2() : nsPluginNativeWindow()
 {
   
-  window = nullptr; 
+  window = nsnull; 
   x = 0; 
   y = 0; 
   width = 0; 
@@ -409,7 +445,7 @@ nsPluginNativeWindowOS2::GetPluginWindowEvent(HWND aWnd, ULONG aMsg, MPARAM aMp1
   if (!mWeakRef) {
     mWeakRef = this;
     if (!mWeakRef)
-      return nullptr;
+      return nsnull;
   }
 
   PluginWindowEvent *event;
@@ -420,14 +456,14 @@ nsPluginNativeWindowOS2::GetPluginWindowEvent(HWND aWnd, ULONG aMsg, MPARAM aMp1
   if (!mCachedPluginWindowEvent) {
     event = new PluginWindowEvent();
     if (!event)
-      return nullptr;
+      return nsnull;
     mCachedPluginWindowEvent = event;
   }
   else
   if (mCachedPluginWindowEvent->InUse()) {
     event = new PluginWindowEvent();
     if (!event)
-      return nullptr;
+      return nsnull;
   }
   else
     event = mCachedPluginWindowEvent;
@@ -485,7 +521,7 @@ nsresult nsPluginNativeWindowOS2::SubclassAndAssociateWindow()
 nsresult nsPluginNativeWindowOS2::UndoSubclassAndAssociateWindow()
 {
   
-  SetPluginInstance(nullptr);
+  SetPluginInstance(nsnull);
 
   
   HWND hWnd = (HWND)window;

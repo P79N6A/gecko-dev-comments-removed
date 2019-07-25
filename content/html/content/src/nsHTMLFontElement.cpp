@@ -3,7 +3,36 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsCOMPtr.h"
 #include "nsIDOMHTMLFontElement.h"
@@ -14,10 +43,7 @@
 #include "nsPresContext.h"
 #include "nsMappedAttributes.h"
 #include "nsRuleData.h"
-#include "nsAlgorithm.h"
-#include "nsContentUtils.h"
-
-using namespace mozilla;
+#include "nsIDocument.h"
 
 class nsHTMLFontElement : public nsGenericHTMLElement,
                           public nsIDOMHTMLFontElement
@@ -41,7 +67,7 @@ public:
   
   NS_DECL_NSIDOMHTMLFONTELEMENT
 
-  virtual bool ParseAttribute(int32_t aNamespaceID,
+  virtual bool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
@@ -49,7 +75,6 @@ public:
   virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction() const;
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
   virtual nsXPCClassInfo* GetClassInfo();
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 };
 
 
@@ -85,21 +110,65 @@ NS_IMPL_STRING_ATTR(nsHTMLFontElement, Color, color)
 NS_IMPL_STRING_ATTR(nsHTMLFontElement, Face, face)
 NS_IMPL_STRING_ATTR(nsHTMLFontElement, Size, size)
 
+static const nsAttrValue::EnumTable kRelFontSizeTable[] = {
+  { "-10", -10 },
+  { "-9", -9 },
+  { "-8", -8 },
+  { "-7", -7 },
+  { "-6", -6 },
+  { "-5", -5 },
+  { "-4", -4 },
+  { "-3", -3 },
+  { "-2", -2 },
+  { "-1", -1 },
+  { "-0", 0 },
+  { "+0", 0 },
+  { "+1", 1 },
+  { "+2", 2 },
+  { "+3", 3 },
+  { "+4", 4 },
+  { "+5", 5 },
+  { "+6", 6 },
+  { "+7", 7 },
+  { "+8", 8 },
+  { "+9", 9 },
+  { "+10", 10 },
+  { 0 }
+};
+
 
 bool
-nsHTMLFontElement::ParseAttribute(int32_t aNamespaceID,
+nsHTMLFontElement::ParseAttribute(PRInt32 aNamespaceID,
                                   nsIAtom* aAttribute,
                                   const nsAString& aValue,
                                   nsAttrValue& aResult)
 {
   if (aNamespaceID == kNameSpaceID_None) {
     if (aAttribute == nsGkAtoms::size) {
-      int32_t size = nsContentUtils::ParseLegacyFontSize(aValue);
-      if (size) {
-        aResult.SetTo(size, &aValue);
-        return true;
+      nsAutoString tmp(aValue);
+      tmp.CompressWhitespace(PR_TRUE, PR_TRUE);
+      PRUnichar ch = tmp.IsEmpty() ? 0 : tmp.First();
+      if ((ch == '+' || ch == '-')) {
+          if (aResult.ParseEnumValue(aValue, kRelFontSizeTable, PR_FALSE))
+              return PR_TRUE;
+
+          
+          PRUint32 i;
+          for (i = 1; i < tmp.Length(); i++) {
+              ch = tmp.CharAt(i);
+              if (!nsCRT::IsAsciiDigit(ch)) {
+                  tmp.Truncate(i);
+                  break;
+              }
+          }
+          return aResult.ParseEnumValue(tmp, kRelFontSizeTable, PR_FALSE);
       }
-      return false;
+
+      return aResult.ParseIntValue(aValue);
+    }
+    if (aAttribute == nsGkAtoms::pointSize ||
+        aAttribute == nsGkAtoms::fontWeight) {
+      return aResult.ParseIntValue(aValue);
     }
     if (aAttribute == nsGkAtoms::color) {
       return aResult.ParseColor(aValue);
@@ -128,10 +197,34 @@ MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
     
     nsCSSValue* fontSize = aData->ValueForFontSize();
     if (fontSize->GetUnit() == eCSSUnit_Null) {
-      const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::size);
-      if (value && value->Type() == nsAttrValue::eInteger) {
-        fontSize->SetIntValue(value->GetIntegerValue(), eCSSUnit_Enumerated);
+      const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::pointSize);
+      if (value && value->Type() == nsAttrValue::eInteger)
+        fontSize->SetFloatValue((float)value->GetIntegerValue(), eCSSUnit_Point);
+      else {
+        
+        value = aAttributes->GetAttr(nsGkAtoms::size);
+        if (value) {
+          nsAttrValue::ValueType unit = value->Type();
+          if (unit == nsAttrValue::eInteger || unit == nsAttrValue::eEnum) { 
+            PRInt32 size;
+            if (unit == nsAttrValue::eEnum) 
+              size = value->GetEnumValue() + 3;
+            else
+              size = value->GetIntegerValue();
+
+            size = ((0 < size) ? ((size < 8) ? size : 7) : 1); 
+            fontSize->SetIntValue(size, eCSSUnit_Enumerated);
+          }
+        }
       }
+    }
+
+    
+    nsCSSValue* fontWeight = aData->ValueForFontWeight();
+    if (fontWeight->GetUnit() == eCSSUnit_Null) {
+      const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::fontWeight);
+      if (value && value->Type() == nsAttrValue::eInteger) 
+        fontWeight->SetIntValue(value->GetIntegerValue(), eCSSUnit_Integer);
     }
   }
   if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Color)) {
@@ -155,7 +248,7 @@ MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
     nscolor color;
     if (value && value->GetColorValue(color)) {
       nsCSSValue* decoration = aData->ValueForTextDecorationLine();
-      int32_t newValue = NS_STYLE_TEXT_DECORATION_LINE_OVERRIDE_ALL;
+      PRInt32 newValue = NS_STYLE_TEXT_DECORATION_LINE_OVERRIDE_ALL;
       if (decoration->GetUnit() == eCSSUnit_Enumerated) {
         newValue |= decoration->GetIntValue();
       }
@@ -171,9 +264,11 @@ nsHTMLFontElement::IsAttributeMapped(const nsIAtom* aAttribute) const
 {
   static const MappedAttributeEntry attributes[] = {
     { &nsGkAtoms::face },
+    { &nsGkAtoms::pointSize },
     { &nsGkAtoms::size },
+    { &nsGkAtoms::fontWeight },
     { &nsGkAtoms::color },
-    { nullptr }
+    { nsnull }
   };
 
   static const MappedAttributeEntry* const map[] = {
@@ -181,7 +276,7 @@ nsHTMLFontElement::IsAttributeMapped(const nsIAtom* aAttribute) const
     sCommonAttributeMap,
   };
 
-  return FindAttributeDependence(aAttribute, map);
+  return FindAttributeDependence(aAttribute, map, NS_ARRAY_LENGTH(map));
 }
 
 

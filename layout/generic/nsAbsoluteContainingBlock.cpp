@@ -8,10 +8,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsAbsoluteContainingBlock.h"
 #include "nsContainerFrame.h"
 #include "nsIPresShell.h"
+#include "nsHTMLContainerFrame.h"
 #include "nsHTMLParts.h"
 #include "nsPresContext.h"
 #include "nsFrameManager.h"
@@ -27,7 +60,7 @@ nsAbsoluteContainingBlock::SetInitialChildList(nsIFrame*       aDelegatingFrame,
                                                nsFrameList&    aChildList)
 {
   NS_PRECONDITION(GetChildListID() == aListID, "unexpected child list name");
-#ifdef DEBUG
+#ifdef NS_DEBUG
   nsFrame::VerifyDirtyBitSet(aChildList);
 #endif
   mAbsoluteFrames.SetFrames(aChildList);
@@ -42,10 +75,10 @@ nsAbsoluteContainingBlock::AppendFrames(nsIFrame*      aDelegatingFrame,
   NS_ASSERTION(GetChildListID() == aListID, "unexpected child list");
 
   
-#ifdef DEBUG
+#ifdef NS_DEBUG
   nsFrame::VerifyDirtyBitSet(aFrameList);
 #endif
-  mAbsoluteFrames.AppendFrames(nullptr, aFrameList);
+  mAbsoluteFrames.AppendFrames(nsnull, aFrameList);
 
   
   
@@ -66,10 +99,10 @@ nsAbsoluteContainingBlock::InsertFrames(nsIFrame*      aDelegatingFrame,
   NS_ASSERTION(!aPrevFrame || aPrevFrame->GetParent() == aDelegatingFrame,
                "inserting after sibling frame with different parent");
 
-#ifdef DEBUG
+#ifdef NS_DEBUG
   nsFrame::VerifyDirtyBitSet(aFrameList);
 #endif
-  mAbsoluteFrames.InsertFrames(nullptr, aPrevFrame, aFrameList);
+  mAbsoluteFrames.InsertFrames(nsnull, aPrevFrame, aFrameList);
 
   
   
@@ -89,7 +122,7 @@ nsAbsoluteContainingBlock::RemoveFrame(nsIFrame*       aDelegatingFrame,
   nsIFrame* nif = aOldFrame->GetNextInFlow();
   if (nif) {
     static_cast<nsContainerFrame*>(nif->GetParent())
-      ->DeleteNextInFlowChild(aOldFrame->PresContext(), nif, false);
+      ->DeleteNextInFlowChild(aOldFrame->PresContext(), nif, PR_FALSE);
   }
 
   mAbsoluteFrames.DestroyFrame(aOldFrame);
@@ -112,7 +145,7 @@ nsAbsoluteContainingBlock::Reflow(nsContainerFrame*        aDelegatingFrame,
   bool reflowAll = aReflowState.ShouldReflowAllKids();
 
   nsIFrame* kidFrame;
-  nsOverflowContinuationTracker tracker(aPresContext, aDelegatingFrame, true);
+  nsOverflowContinuationTracker tracker(aPresContext, aDelegatingFrame, PR_TRUE);
   for (kidFrame = mAbsoluteFrames.FirstChild(); kidFrame; kidFrame = kidFrame->GetNextSibling()) {
     bool kidNeedsReflow = reflowAll || NS_SUBTREE_DIRTY(kidFrame) ||
       FrameDependsOnContainer(kidFrame, aCBWidthChanged, aCBHeightChanged);
@@ -143,7 +176,7 @@ nsAbsoluteContainingBlock::Reflow(nsContainerFrame*        aDelegatingFrame,
         if (nextFrame) {
           tracker.Finish(kidFrame);
           static_cast<nsContainerFrame*>(nextFrame->GetParent())
-            ->DeleteNextInFlowChild(aPresContext, nextFrame, true);
+            ->DeleteNextInFlowChild(aPresContext, nextFrame, PR_TRUE);
         }
       }
     }
@@ -212,11 +245,11 @@ nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
        pos->mOffset.GetBottomUnit() == eStyleUnit_Auto) ||
       (pos->mOffset.GetLeftUnit() == eStyleUnit_Auto &&
        pos->mOffset.GetRightUnit() == eStyleUnit_Auto)) {
-    return true;
+    return PR_TRUE;
   }
   if (!aCBWidthChanged && !aCBHeightChanged) {
     
-    return false;
+    return PR_FALSE;
   }
   const nsStylePadding* padding = f->GetStylePadding();
   const nsStyleMargin* margin = f->GetStyleMargin();
@@ -232,7 +265,7 @@ nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
         pos->MaxWidthDependsOnContainer() ||
         !IsFixedPaddingSize(padding->mPadding.GetLeft()) ||
         !IsFixedPaddingSize(padding->mPadding.GetRight())) {
-      return true;
+      return PR_TRUE;
     }
 
     
@@ -240,7 +273,7 @@ nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
     
     if (!IsFixedMarginSize(margin->mMargin.GetLeft()) ||
         !IsFixedMarginSize(margin->mMargin.GetRight())) {
-      return true;
+      return PR_TRUE;
     }
     if (f->GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
       
@@ -251,11 +284,11 @@ nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
       
       if (!IsFixedOffset(pos->mOffset.GetLeft()) ||
           pos->mOffset.GetRightUnit() != eStyleUnit_Auto) {
-        return true;
+        return PR_TRUE;
       }
     } else {
       if (!IsFixedOffset(pos->mOffset.GetLeft())) {
-        return true;
+        return PR_TRUE;
       }
     }
   }
@@ -274,19 +307,19 @@ nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
         pos->MaxHeightDependsOnContainer() ||
         !IsFixedPaddingSize(padding->mPadding.GetTop()) ||
         !IsFixedPaddingSize(padding->mPadding.GetBottom())) { 
-      return true;
+      return PR_TRUE;
     }
       
     
     if (!IsFixedMarginSize(margin->mMargin.GetTop()) ||
         !IsFixedMarginSize(margin->mMargin.GetBottom())) {
-      return true;
+      return PR_TRUE;
     }
     if (!IsFixedOffset(pos->mOffset.GetTop())) {
-      return true;
+      return PR_TRUE;
     }
   }
-  return false;
+  return PR_FALSE;
 }
 
 void
@@ -299,13 +332,13 @@ nsAbsoluteContainingBlock::DestroyFrames(nsIFrame* aDelegatingFrame,
 void
 nsAbsoluteContainingBlock::MarkSizeDependentFramesDirty()
 {
-  DoMarkFramesDirty(false);
+  DoMarkFramesDirty(PR_FALSE);
 }
 
 void
 nsAbsoluteContainingBlock::MarkAllFramesDirty()
 {
-  DoMarkFramesDirty(true);
+  DoMarkFramesDirty(PR_TRUE);
 }
 
 void
@@ -316,7 +349,7 @@ nsAbsoluteContainingBlock::DoMarkFramesDirty(bool aMarkAllDirty)
        kidFrame = kidFrame->GetNextSibling()) {
     if (aMarkAllDirty) {
       kidFrame->AddStateBits(NS_FRAME_IS_DIRTY);
-    } else if (FrameDependsOnContainer(kidFrame, true, true)) {
+    } else if (FrameDependsOnContainer(kidFrame, PR_TRUE, PR_TRUE)) {
       
       kidFrame->AddStateBits(NS_FRAME_HAS_DIRTY_CHILDREN);
     }
@@ -372,7 +405,7 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
 
   nsresult  rv;
   
-  const nsMargin& border = aReflowState.mStyleBorder->GetComputedBorder();
+  const nsMargin& border = aReflowState.mStyleBorder->GetActualBorder();
 
   nscoord availWidth = aContainingBlockWidth;
   if (availWidth == -1) {
@@ -504,7 +537,7 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
     strcpy(aBuf, "UC");
   }
   else {
-    if((int32_t)0xdeadbeef == aSize)
+    if((PRInt32)0xdeadbeef == aSize)
     {
       strcpy(aBuf, "deadbeef");
     }

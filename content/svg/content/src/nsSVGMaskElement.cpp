@@ -3,13 +3,40 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsCOMPtr.h"
 #include "nsGkAtoms.h"
 #include "nsSVGMaskElement.h"
-
-using namespace mozilla;
 
 
 
@@ -44,9 +71,9 @@ NS_IMPL_RELEASE_INHERITED(nsSVGMaskElement,nsSVGMaskElementBase)
 DOMCI_NODE_DATA(SVGMaskElement, nsSVGMaskElement)
 
 NS_INTERFACE_TABLE_HEAD(nsSVGMaskElement)
-  NS_NODE_INTERFACE_TABLE6(nsSVGMaskElement, nsIDOMNode, nsIDOMElement,
-                           nsIDOMSVGElement, nsIDOMSVGTests,
-                           nsIDOMSVGMaskElement, nsIDOMSVGUnitTypes)
+  NS_NODE_INTERFACE_TABLE5(nsSVGMaskElement, nsIDOMNode, nsIDOMElement,
+                           nsIDOMSVGElement, nsIDOMSVGMaskElement,
+                           nsIDOMSVGUnitTypes)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(SVGMaskElement)
 NS_INTERFACE_MAP_END_INHERITING(nsSVGMaskElementBase)
 
@@ -105,27 +132,18 @@ NS_IMETHODIMP nsSVGMaskElement::GetHeight(nsIDOMSVGAnimatedLength * *aHeight)
 
 
 
- bool
-nsSVGMaskElement::HasValidDimensions() const
-{
-  return (!mLengthAttributes[WIDTH].IsExplicitlySet() ||
-           mLengthAttributes[WIDTH].GetAnimValInSpecifiedUnits() > 0) &&
-         (!mLengthAttributes[HEIGHT].IsExplicitlySet() || 
-           mLengthAttributes[HEIGHT].GetAnimValInSpecifiedUnits() > 0);
-}
-
 nsSVGElement::LengthAttributesInfo
 nsSVGMaskElement::GetLengthInfo()
 {
   return LengthAttributesInfo(mLengthAttributes, sLengthInfo,
-                              ArrayLength(sLengthInfo));
+                              NS_ARRAY_LENGTH(sLengthInfo));
 }
 
 nsSVGElement::EnumAttributesInfo
 nsSVGMaskElement::GetEnumInfo()
 {
   return EnumAttributesInfo(mEnumAttributes, sEnumInfo,
-                            ArrayLength(sEnumInfo));
+                            NS_ARRAY_LENGTH(sEnumInfo));
 }
 
 
@@ -145,6 +163,6 @@ nsSVGMaskElement::IsAttributeMapped(const nsIAtom* name) const
     sViewportsMap
   };
 
-  return FindAttributeDependence(name, map) ||
+  return FindAttributeDependence(name, map, NS_ARRAY_LENGTH(map)) ||
     nsSVGMaskElementBase::IsAttributeMapped(name);
 }

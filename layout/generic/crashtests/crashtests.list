@@ -14,7 +14,7 @@ load 310556-1.xhtml
 load 322780-1.xul
 load 323381-1.html
 load 323381-2.html
-asserts-if(gtk2Widget,12-13) load 323386-1.html # Bug 575011
+asserts(2) asserts-if(gtk2Widget,8) load 323386-1.html # Bug 575011
 load 323389-1.html
 load 323389-2.html
 load 323493-1.html
@@ -184,7 +184,7 @@ load 413582-1.xhtml
 load 413582-2.html
 load 413712-1.xhtml
 asserts-if(Android,6) load 414061-1.html
-load 414180-1.xul
+asserts-if(!Android,6) load 414180-1.xul # Bug 439258
 load 414719-1.html
 load 415685-1.html
 load 416264-1.html
@@ -259,8 +259,8 @@ load 465651-1.html
 load 467137-1.html
 load 467213-1.html
 load 467487-1.html
-asserts(5-7) load 467493-1.html
-asserts(4-6) load 467493-2.html
+load 467493-1.html
+load 467493-2.html
 load 467875-1.xhtml
 load 467914-1.html
 load 468207-1.html
@@ -293,7 +293,7 @@ load 495875-1.html
 load 495875-2.html
 load 499862-1.html
 load 499857-1.html
-asserts(4-90) asserts-if(winWidget,3-108) load 499885-1.xhtml # nscoord_MAX assertions (bug 575011), plus bug 570436 on some versions of windows
+asserts(10-90) asserts-if(winWidget,3-108) load 499885-1.xhtml # nscoord_MAX assertions (bug 575011), plus bug 570436 on some versions of windows
 load 501535-1.html
 load 503961-1.xhtml
 load 503961-2.html
@@ -313,7 +313,6 @@ load 515811-1.html
 load 517968.html
 load 519031.xhtml
 load 520340.html
-load 522170-1.html
 load 533379-1.html
 load 533379-2.html
 load 534082-1.html
@@ -322,14 +321,14 @@ load 534366-2.html
 load 536692-1.xhtml
 load 541277-1.html
 load 541277-2.html
-asserts(3) load 541714-1.html
-asserts(3-7) load 541714-2.html
+load 541714-1.html
+load 541714-2.html
 load 542136-1.html
 load 545571-1.html
 load 547338.xul
 load 547843-1.xhtml
 load 551635-1.html
-asserts(3) load 553504-1.xhtml # nscoord_MAX assertions (bug 575011)
+asserts(5) load 553504-1.xhtml # nscoord_MAX assertions (bug 575011)
 load 564368-1.xhtml
 load 564968.xhtml
 load 570160.html
@@ -337,7 +336,7 @@ load 570289-1.html
 load 571618-1.svg
 asserts(1) load 571975-1.html # bug 574889
 load 574958.xhtml
-asserts(0-4) load 578977.html # bug 757305
+asserts(0-4) load 578977.html # bug 610331
 load 580504-1.xhtml
 load 585598-1.xhtml
 asserts(0-11) load 586806-1.html # Bug 439258
@@ -349,7 +348,7 @@ load 590404.html
 load 591141.html
 asserts(0-1) load 592118.html
 load 594808-1.html
-load 595435-1.xhtml
+asserts(4) load 595435-1.xhtml # bug 610331
 load 595740-1.html
 load 603490-1.html
 load 603510-1.html
@@ -373,22 +372,10 @@ load text-overflow-form-elements.html
 load text-overflow-iframe.html
 load text-overflow-bug666751-1.html
 load text-overflow-bug666751-2.html
-asserts(0-1) load text-overflow-bug670564.xhtml
+asserts(2) load text-overflow-bug670564.xhtml # asserts(2) for bug 436470
 load text-overflow-bug671796.xhtml
 load 667025.html
-asserts-if(Android,8) load 673770.html # bug 569193 and bug 459597
+asserts(14) asserts-if(Android,8) load 673770.html # bug 569193 and bug 459597
 load 679933-1.html
 load 682649-1.html
 load 683702-1.xhtml
-load 688996-1.html
-load 688996-2.html
-load 683712.html
-load text-overflow-bug713610.html
-load 700031.xhtml
-load 718516.html
-load first-letter-638937.html
-load first-letter-638937-2.html
-load 737313-1.html
-load 737313-2.html
-load 737313-3.html
-load 762764-1.html

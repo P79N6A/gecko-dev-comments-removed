@@ -10,6 +10,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsGridRowLeafFrame.h"
 #include "nsGridRowLeafLayout.h"
 #include "nsGridRow.h"
@@ -24,10 +56,10 @@ NS_NewGridRowLeafFrame(nsIPresShell* aPresShell,
 {
   nsCOMPtr<nsBoxLayout> layout = NS_NewGridRowLeafLayout();
   if (!layout) {
-    return nullptr;
+    return nsnull;
   }
   
-  return new (aPresShell) nsGridRowLeafFrame(aPresShell, aContext, false,
+  return new (aPresShell) nsGridRowLeafFrame(aPresShell, aContext, PR_FALSE,
                                              layout);
 }
 
@@ -47,7 +79,7 @@ nsGridRowLeafFrame::GetBorderAndPadding(nsMargin& aBorderAndPadding)
   if (!part)
     return rv;
     
-  int32_t index = 0;
+  PRInt32 index = 0;
   nsGrid* grid = part->GetGrid(this, &index);
 
   if (!grid) 
@@ -57,10 +89,10 @@ nsGridRowLeafFrame::GetBorderAndPadding(nsMargin& aBorderAndPadding)
 
   nsBoxLayoutState state(PresContext());
 
-  int32_t firstIndex = 0;
-  int32_t lastIndex = 0;
-  nsGridRow* firstRow = nullptr;
-  nsGridRow* lastRow = nullptr;
+  PRInt32 firstIndex = 0;
+  PRInt32 lastIndex = 0;
+  nsGridRow* firstRow = nsnull;
+  nsGridRow* lastRow = nsnull;
   grid->GetFirstAndLastRow(state, firstIndex, lastIndex, firstRow, lastRow, isHorizontal);
 
   

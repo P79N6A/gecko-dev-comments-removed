@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIDOMHTMLTableElement.h"
 #include "nsGenericHTMLElement.h"
 #include "nsMappedAttributes.h"
@@ -33,7 +65,7 @@ public:
   
   NS_DECL_NSIDOMHTMLTABLEELEMENT
 
-  virtual bool ParseAttribute(int32_t aNamespaceID,
+  virtual bool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
@@ -43,7 +75,6 @@ public:
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   virtual nsXPCClassInfo* GetClassInfo();
-  virtual nsIDOMNode* AsDOMNode() { return this; }
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
                               bool aCompileEventHandlers);
@@ -52,17 +83,16 @@ public:
   
 
 
-  virtual nsresult BeforeSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                                 const nsAttrValueOrString* aValue,
-                                 bool aNotify);
+  virtual nsresult BeforeSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
+                                 const nsAString* aValue, bool aNotify);
   
 
 
-  virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                                const nsAttrValue* aValue, bool aNotify);
+  virtual nsresult AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
+                                const nsAString* aValue, bool aNotify);
 
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsHTMLTableElement,
-                                           nsGenericHTMLElement)
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED_NO_UNLINK(nsHTMLTableElement,
+                                                     nsGenericHTMLElement)
   nsMappedAttributes* GetAttributesMappedForCell();
   already_AddRefed<nsIDOMHTMLTableSectionElement> GetTHead() {
     return GetSection(nsGkAtoms::thead);
@@ -70,7 +100,6 @@ public:
   already_AddRefed<nsIDOMHTMLTableSectionElement> GetTFoot() {
     return GetSection(nsGkAtoms::tfoot);
   }
-  already_AddRefed<nsIDOMHTMLTableCaptionElement> GetCaption();
   nsContentList* TBodies();
 protected:
   already_AddRefed<nsIDOMHTMLTableSectionElement> GetSection(nsIAtom *aTag);

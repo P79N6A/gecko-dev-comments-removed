@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_PLATFORM_ANDROID_H
 #define GFX_PLATFORM_ANDROID_H
 
@@ -32,20 +65,17 @@ public:
     virtual already_AddRefed<gfxASurface>
     CreateOffscreenSurface(const gfxIntSize& size,
                            gfxASurface::gfxContentType contentType);
-    
-    virtual gfxImageFormat GetOffscreenFormat() { return mOffscreenFormat; }
-    
-    mozilla::RefPtr<mozilla::gfx::ScaledFont>
-      GetScaledFontForFont(mozilla::gfx::DrawTarget* aTarget, gfxFont *aFont);
+
+    virtual gfxImageFormat GetOffscreenFormat() { return gfxASurface::ImageFormatRGB16_565; }
 
     
     void GetFontList(InfallibleTArray<FontListEntry>* retValue);
 
     
-    virtual bool IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags);
+    virtual bool IsFontFormatSupported(nsIURI *aFontURI, PRUint32 aFormatFlags);
     virtual gfxPlatformFontList* CreatePlatformFontList();
     virtual gfxFontEntry* MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
-                                           const uint8_t *aFontData, uint32_t aLength);
+                                           const PRUint8 *aFontData, PRUint32 aLength);
 
     virtual nsresult GetFontList(nsIAtom *aLangGroup,
                                  const nsACString& aGenericFamily,
@@ -64,15 +94,7 @@ public:
                                           const gfxFontStyle *aStyle,
                                           gfxUserFontSet* aUserFontSet);
 
-    virtual bool FontHintingEnabled() MOZ_OVERRIDE;
-
     FT_Library GetFTLibrary();
-
-    virtual int GetScreenDepth() const;
-
-private:
-    int mScreenDepth;
-    gfxImageFormat mOffscreenFormat;
 };
 
 #endif 

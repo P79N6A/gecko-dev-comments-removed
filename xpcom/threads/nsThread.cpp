@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "mozilla/ReentrantMonitor.h"
 #include "nsThread.h"
 #include "nsThreadManager.h"
@@ -12,9 +44,7 @@
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "prlog.h"
-#include "nsIObserverService.h"
-#include "mozilla/HangMonitor.h"
-#include "mozilla/Services.h"
+#include "nsThreadUtilsInternal.h"
 
 #define HAVE_UALARM _BSD_SOURCE || (_XOPEN_SOURCE >= 500 ||                 \
                       _XOPEN_SOURCE && _XOPEN_SOURCE_EXTENDED) &&           \
@@ -48,22 +78,7 @@ static PRLogModuleInfo *sLog = PR_NewLogModule("nsThread");
 
 NS_DECL_CI_INTERFACE_GETTER(nsThread)
 
-namespace mozilla {
-
-
-
-static int32_t sMemoryPressurePending = 0;
-
-
-
-
-
-void ScheduleMemoryPressureEvent()
-{
-  PR_ATOMIC_SET(&sMemoryPressurePending, 1);
-}
-
-} 
+nsIThreadObserver* nsThread::sGlobalObserver;
 
 
 
@@ -84,48 +99,48 @@ NS_IMETHODIMP_(nsrefcnt) nsThreadClassInfo::Release() { return 1; }
 NS_IMPL_QUERY_INTERFACE1(nsThreadClassInfo, nsIClassInfo)
 
 NS_IMETHODIMP
-nsThreadClassInfo::GetInterfaces(uint32_t *count, nsIID ***array)
+nsThreadClassInfo::GetInterfaces(PRUint32 *count, nsIID ***array)
 {
   return NS_CI_INTERFACE_GETTER_NAME(nsThread)(count, array);
 }
 
 NS_IMETHODIMP
-nsThreadClassInfo::GetHelperForLanguage(uint32_t lang, nsISupports **result)
+nsThreadClassInfo::GetHelperForLanguage(PRUint32 lang, nsISupports **result)
 {
-  *result = nullptr;
+  *result = nsnull;
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsThreadClassInfo::GetContractID(char **result)
 {
-  *result = nullptr;
+  *result = nsnull;
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsThreadClassInfo::GetClassDescription(char **result)
 {
-  *result = nullptr;
+  *result = nsnull;
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsThreadClassInfo::GetClassID(nsCID **result)
 {
-  *result = nullptr;
+  *result = nsnull;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsThreadClassInfo::GetImplementationLanguage(uint32_t *result)
+nsThreadClassInfo::GetImplementationLanguage(PRUint32 *result)
 {
   *result = nsIProgrammingLanguage::CPLUSPLUS;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsThreadClassInfo::GetFlags(uint32_t *result)
+nsThreadClassInfo::GetFlags(PRUint32 *result)
 {
   *result = THREADSAFE;
   return NS_OK;
@@ -181,14 +196,14 @@ public:
 private:
   NS_IMETHOD Run() {
     ReentrantMonitorAutoEnter mon(mMon);
-    mInitialized = true;
+    mInitialized = PR_TRUE;
     mon.Notify();
     return NS_OK;
   }
 
   nsThreadStartupEvent()
     : mMon("nsThreadStartupEvent.mMon")
-    , mInitialized(false) {
+    , mInitialized(PR_FALSE) {
   }
 
   ReentrantMonitor mMon;
@@ -210,7 +225,7 @@ public:
     : mShutdownContext(ctx) {
   }
   NS_IMETHOD Run() {
-    mShutdownContext->shutdownAck = true;
+    mShutdownContext->shutdownAck = PR_TRUE;
     return NS_OK;
   }
 private:
@@ -245,12 +260,12 @@ nsThread::ThreadFunc(void *arg)
 
   
   nsCOMPtr<nsIRunnable> event;
-  if (!self->GetEvent(true, getter_AddRefs(event))) {
+  if (!self->GetEvent(PR_TRUE, getter_AddRefs(event))) {
     NS_WARNING("failed waiting for thread startup event");
     return;
   }
   event->Run();  
-  event = nullptr;
+  event = nsnull;
 
   
   while (!self->ShuttingDown())
@@ -261,15 +276,15 @@ nsThread::ThreadFunc(void *arg)
   
   
   
-  while (true) {
+  while (PR_TRUE) {
     {
       MutexAutoLock lock(self->mLock);
-      if (!self->mEvents.HasPendingEvent()) {
+      if (!self->mEvents->HasPendingEvent()) {
         
         
         
         
-        self->mEventsAreDoomed = true;
+        self->mEventsAreDoomed = PR_TRUE;
         break;
       }
     }
@@ -284,23 +299,36 @@ nsThread::ThreadFunc(void *arg)
   self->mShutdownContext->joiningThread->Dispatch(event, NS_DISPATCH_NORMAL);
 
   
-  self->SetObserver(nullptr);
+  self->SetObserver(nsnull);
 
   NS_RELEASE(self);
 }
 
 
 
-nsThread::nsThread(MainThreadFlag aMainThread, uint32_t aStackSize)
+nsThread::nsThread()
   : mLock("nsThread.mLock")
+  , mEvents(&mEventsRoot)
   , mPriority(PRIORITY_NORMAL)
-  , mThread(nullptr)
+  , mThread(nsnull)
+  , mRunningEvent(0)
+  , mStackSize(0)
+  , mShutdownContext(nsnull)
+  , mShutdownRequired(PR_FALSE)
+  , mEventsAreDoomed(PR_FALSE)
+{
+}
+
+nsThread::nsThread(PRUint32 aStackSize)
+  : mLock("nsThread.mLock")
+  , mEvents(&mEventsRoot)
+  , mPriority(PRIORITY_NORMAL)
+  , mThread(nsnull)
   , mRunningEvent(0)
   , mStackSize(aStackSize)
-  , mShutdownContext(nullptr)
-  , mShutdownRequired(false)
-  , mEventsAreDoomed(false)
-  , mIsMainThread(aMainThread)
+  , mShutdownContext(nsnull)
+  , mShutdownRequired(PR_FALSE)
+  , mEventsAreDoomed(PR_FALSE)
 {
 }
 
@@ -317,7 +345,7 @@ nsThread::Init()
  
   NS_ADDREF_THIS();
  
-  mShutdownRequired = true;
+  mShutdownRequired = PR_TRUE;
 
   
   PRThread *thr = PR_CreateThread(PR_USER_THREAD, ThreadFunc, this,
@@ -333,7 +361,7 @@ nsThread::Init()
   
   {
     MutexAutoLock lock(mLock);
-    mEvents.PutEvent(startup);
+    mEvents->PutEvent(startup);
   }
 
   
@@ -360,7 +388,7 @@ nsThread::PutEvent(nsIRunnable *event)
       NS_WARNING("An event was posted to a thread that will never run it (rejected)");
       return NS_ERROR_UNEXPECTED;
     }
-    if (!mEvents.PutEvent(event))
+    if (!mEvents->PutEvent(event))
       return NS_ERROR_OUT_OF_MEMORY;
   }
 
@@ -375,7 +403,7 @@ nsThread::PutEvent(nsIRunnable *event)
 
 
 NS_IMETHODIMP
-nsThread::Dispatch(nsIRunnable *event, uint32_t flags)
+nsThread::Dispatch(nsIRunnable *event, PRUint32 flags)
 {
   LOG(("THRD(%p) Dispatch [%p %x]\n", this, event, flags));
 
@@ -442,12 +470,12 @@ nsThread::Shutdown()
     MutexAutoLock lock(mLock);
     if (!mShutdownRequired)
       return NS_ERROR_UNEXPECTED;
-    mShutdownRequired = false;
+    mShutdownRequired = PR_FALSE;
   }
 
   nsThreadShutdownContext context;
   context.joiningThread = nsThreadManager::get()->GetCurrentThread();
-  context.shutdownAck = false;
+  context.shutdownAck = PR_FALSE;
 
   
   
@@ -468,12 +496,7 @@ nsThread::Shutdown()
   
 
   PR_JoinThread(mThread);
-  mThread = nullptr;
-
-  
-  
-  
-  ClearObservers();
+  mThread = nsnull;
 
 #ifdef DEBUG
   {
@@ -490,7 +513,7 @@ nsThread::HasPendingEvents(bool *result)
 {
   NS_ENSURE_STATE(PR_GetCurrentThread() == mThread);
 
-  *result = mEvents.GetEvent(false, nullptr);
+  *result = mEvents->GetEvent(PR_FALSE, nsnull);
   return NS_OK;
 }
 
@@ -562,24 +585,10 @@ nsThread::ProcessNextEvent(bool mayWait, bool *result)
 
   NS_ENSURE_STATE(PR_GetCurrentThread() == mThread);
 
-  if (MAIN_THREAD == mIsMainThread && mayWait && !ShuttingDown())
-    HangMonitor::Suspend();
-
-  
-  
-  if (MAIN_THREAD == mIsMainThread && !ShuttingDown()) {
-    bool mpPending = PR_ATOMIC_SET(&sMemoryPressurePending, 0);
-    if (mpPending) {
-      nsCOMPtr<nsIObserverService> os = services::GetObserverService();
-      if (os) {
-        os->NotifyObservers(nullptr, "memory-pressure",
-                            NS_LITERAL_STRING("low-memory").get());
-      }
-      else {
-        NS_WARNING("Can't get observer service!");
-      }
-    }
-  }
+  bool notifyGlobalObserver = (sGlobalObserver != nsnull);
+  if (notifyGlobalObserver) 
+    sGlobalObserver->OnProcessNextEvent(this, mayWait && !ShuttingDown(),
+                                        mRunningEvent);
 
   nsCOMPtr<nsIThreadObserver> obs = mObserver;
   if (obs)
@@ -602,11 +611,11 @@ nsThread::ProcessNextEvent(bool mayWait, bool *result)
 
     
     nsCOMPtr<nsIRunnable> event;
-    mEvents.GetEvent(mayWait && !ShuttingDown(), getter_AddRefs(event));
+    mEvents->GetEvent(mayWait && !ShuttingDown(), getter_AddRefs(event));
 
 #ifdef NS_FUNCTION_TIMER
     char message[1024] = {'\0'};
-    if (MAIN_THREAD == mIsMainThread) {
+    if (NS_IsMainThread()) {
         mozilla::FunctionTimer::ft_snprintf(message, sizeof(message), 
                                             "@ Main Thread Event %p", (void*)event.get());
     }
@@ -615,12 +624,10 @@ nsThread::ProcessNextEvent(bool mayWait, bool *result)
     NS_TIME_FUNCTION_MIN_FMT(5.0, message);
 #endif
 
-    *result = (event.get() != nullptr);
+    *result = (event.get() != nsnull);
 
     if (event) {
       LOG(("THRD(%p) running [%p]\n", this, event.get()));
-      if (MAIN_THREAD == mIsMainThread)
-        HangMonitor::NotifyActivity();
       event->Run();
     } else if (mayWait) {
       NS_ASSERTION(ShuttingDown(),
@@ -636,6 +643,9 @@ nsThread::ProcessNextEvent(bool mayWait, bool *result)
   if (obs)
     obs->AfterProcessNextEvent(this, mRunningEvent);
 
+  if (notifyGlobalObserver && sGlobalObserver)
+    sGlobalObserver->AfterProcessNextEvent(this, mRunningEvent);
+
   return rv;
 }
 
@@ -643,14 +653,14 @@ nsThread::ProcessNextEvent(bool mayWait, bool *result)
 
 
 NS_IMETHODIMP
-nsThread::GetPriority(int32_t *priority)
+nsThread::GetPriority(PRInt32 *priority)
 {
   *priority = mPriority;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsThread::SetPriority(int32_t priority)
+nsThread::SetPriority(PRInt32 priority)
 {
   NS_ENSURE_STATE(mThread);
 
@@ -679,7 +689,7 @@ nsThread::SetPriority(int32_t priority)
 }
 
 NS_IMETHODIMP
-nsThread::AdjustPriority(int32_t delta)
+nsThread::AdjustPriority(PRInt32 delta)
 {
   return SetPriority(mPriority + delta);
 }
@@ -706,7 +716,50 @@ nsThread::SetObserver(nsIThreadObserver *obs)
 }
 
 NS_IMETHODIMP
-nsThread::GetRecursionDepth(uint32_t *depth)
+nsThread::PushEventQueue(nsIThreadEventFilter *filter)
+{
+  nsChainedEventQueue *queue = new nsChainedEventQueue(filter);
+
+  MutexAutoLock lock(mLock);
+  queue->mNext = mEvents;
+  mEvents = queue;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsThread::PopEventQueue()
+{
+  MutexAutoLock lock(mLock);
+
+  
+  NS_ENSURE_STATE(mEvents != &mEventsRoot);
+
+  nsChainedEventQueue *queue = mEvents;
+  mEvents = mEvents->mNext;
+
+  nsCOMPtr<nsIRunnable> event;
+  while (queue->GetEvent(PR_FALSE, getter_AddRefs(event)))
+    mEvents->PutEvent(event);
+
+  delete queue;
+  
+  return NS_OK;
+}
+
+bool
+nsThread::nsChainedEventQueue::PutEvent(nsIRunnable *event)
+{
+  bool val;
+  if (!mFilter || mFilter->AcceptEvent(event)) {
+    val = mQueue.PutEvent(event);
+  } else {
+    val = mNext->PutEvent(event);
+  }
+  return val;
+}
+
+NS_IMETHODIMP
+nsThread::GetRecursionDepth(PRUint32 *depth)
 {
   NS_ENSURE_ARG_POINTER(depth);
   NS_ENSURE_STATE(PR_GetCurrentThread() == mThread);
@@ -751,9 +804,24 @@ nsThreadSyncDispatch::Run()
 {
   if (mSyncTask) {
     mResult = mSyncTask->Run();
-    mSyncTask = nullptr;
+    mSyncTask = nsnull;
     
     mOrigin->Dispatch(this, NS_DISPATCH_NORMAL);
   }
+  return NS_OK;
+}
+
+nsresult
+NS_SetGlobalThreadObserver(nsIThreadObserver* aObserver)
+{
+  if (aObserver && nsThread::sGlobalObserver) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  if (!NS_IsMainThread()) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  nsThread::sGlobalObserver = aObserver;
   return NS_OK;
 }

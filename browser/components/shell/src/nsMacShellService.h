@@ -3,19 +3,51 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsmacshellservice_h____
 #define nsmacshellservice_h____
 
 #include "nsIMacShellService.h"
 #include "nsIWebProgressListener.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "nsCOMPtr.h"
 
 class nsMacShellService : public nsIMacShellService,
                           public nsIWebProgressListener
 {
 public:
-  nsMacShellService() : mCheckedThisSession(false) {};
+  nsMacShellService() : mCheckedThisSession(PR_FALSE) {};
   virtual ~nsMacShellService() {};
 
   NS_DECL_ISUPPORTS
@@ -26,7 +58,7 @@ public:
 protected:
 
 private:
-  nsCOMPtr<nsIFile> mBackgroundFile;
+  nsCOMPtr<nsILocalFile> mBackgroundFile;
 
   bool      mCheckedThisSession;
 };

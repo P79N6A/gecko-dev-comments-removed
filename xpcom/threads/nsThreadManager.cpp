@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsThreadManager.h"
 #include "nsThread.h"
 #include "nsThreadUtils.h"
@@ -32,7 +64,7 @@ ReleaseObject(void *data)
 }
 
 static PLDHashOperator
-AppendAndRemoveThread(PRThread *key, nsRefPtr<nsThread> &thread, void *arg)
+AppendAndRemoveThread(const void *key, nsRefPtr<nsThread> &thread, void *arg)
 {
   nsThreadArray *threads = static_cast<nsThreadArray *>(arg);
   threads->AppendElement(thread);
@@ -57,7 +89,8 @@ NS_IMPL_CI_INTERFACE_GETTER1(nsThreadManager, nsIThreadManager)
 nsresult
 nsThreadManager::Init()
 {
-  mThreadsByPRThread.Init();
+  if (!mThreadsByPRThread.Init())
+    return NS_ERROR_OUT_OF_MEMORY;
 
   if (PR_NewThreadPrivateIndex(&mCurThreadIndex, ReleaseObject) == PR_FAILURE)
     return NS_ERROR_FAILURE;
@@ -65,13 +98,13 @@ nsThreadManager::Init()
   mLock = new Mutex("nsThreadManager.mLock");
 
   
-  mMainThread = new nsThread(nsThread::MAIN_THREAD, 0);
+  mMainThread = new nsThread();
   if (!mMainThread)
     return NS_ERROR_OUT_OF_MEMORY;
 
   nsresult rv = mMainThread->InitCurrentThread();
   if (NS_FAILED(rv)) {
-    mMainThread = nullptr;
+    mMainThread = nsnull;
     return rv;
   }
 
@@ -85,7 +118,7 @@ nsThreadManager::Init()
   gTLSThreadID = mozilla::threads::Main;
 #endif
 
-  mInitialized = true;
+  mInitialized = PR_TRUE;
   return NS_OK;
 }
 
@@ -99,7 +132,7 @@ nsThreadManager::Shutdown()
   
   
   
-  mInitialized = false;
+  mInitialized = PR_FALSE;
 
   
   NS_ProcessPendingEvents(mMainThread);
@@ -122,7 +155,7 @@ nsThreadManager::Shutdown()
   
 
   
-  for (uint32_t i = 0; i < threads.Length(); ++i) {
+  for (PRUint32 i = 0; i < threads.Length(); ++i) {
     nsThread *thread = threads[i];
     if (thread->ShutdownRequired())
       thread->Shutdown();
@@ -142,15 +175,14 @@ nsThreadManager::Shutdown()
   
   
   
-  mMainThread->SetObserver(nullptr);
-  mMainThread->ClearObservers();
+  mMainThread->SetObserver(nsnull);
 
   
-  mMainThread = nullptr;
-  mLock = nullptr;
+  mMainThread = nsnull;
+  mLock = nsnull;
 
   
-  PR_SetThreadPrivate(mCurThreadIndex, nullptr);
+  PR_SetThreadPrivate(mCurThreadIndex, nsnull);
 }
 
 void
@@ -175,7 +207,7 @@ nsThreadManager::UnregisterCurrentThread(nsThread *thread)
 
   mThreadsByPRThread.Remove(thread->GetPRThread());
 
-  PR_SetThreadPrivate(mCurThreadIndex, nullptr);
+  PR_SetThreadPrivate(mCurThreadIndex, nsnull);
   
 }
 
@@ -188,26 +220,26 @@ nsThreadManager::GetCurrentThread()
     return static_cast<nsThread *>(data);
 
   if (!mInitialized) {
-    return nullptr;
+    return nsnull;
   }
 
   
-  nsRefPtr<nsThread> thread = new nsThread(nsThread::NOT_MAIN_THREAD, 0);
+  nsRefPtr<nsThread> thread = new nsThread();
   if (!thread || NS_FAILED(thread->InitCurrentThread()))
-    return nullptr;
+    return nsnull;
 
   return thread.get();  
 }
 
 NS_IMETHODIMP
-nsThreadManager::NewThread(uint32_t creationFlags,
-                           uint32_t stackSize,
+nsThreadManager::NewThread(PRUint32 creationFlags,
+                           PRUint32 stackSize,
                            nsIThread **result)
 {
   
   NS_ENSURE_TRUE(mInitialized, NS_ERROR_NOT_INITIALIZED);
 
-  nsThread *thr = new nsThread(nsThread::NOT_MAIN_THREAD, stackSize);
+  nsThread *thr = new nsThread(stackSize);
   if (!thr)
     return NS_ERROR_OUT_OF_MEMORY;
   NS_ADDREF(thr);

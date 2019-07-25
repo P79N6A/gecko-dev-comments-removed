@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsJSON_h__
 #define nsJSON_h__
 
@@ -28,17 +61,17 @@ public:
   virtual ~nsJSONWriter();
   nsresult SetCharset(const char *aCharset);
   nsCOMPtr<nsIOutputStream> mStream;
-  nsresult Write(const PRUnichar *aBuffer, uint32_t aLength);
+  nsresult Write(const PRUnichar *aBuffer, PRUint32 aLength);
   nsString mOutputString;
   bool DidWrite();
   void FlushBuffer();
 
 protected:
   PRUnichar *mBuffer;
-  uint32_t mBufferCount;
+  PRUint32 mBufferCount;
   bool mDidWrite;
   nsresult WriteToStream(nsIOutputStream *aStream, nsIUnicodeEncoder *encoder,
-                         const PRUnichar *aBuffer, uint32_t aLength);
+                         const PRUnichar *aBuffer, PRUint32 aLength);
 
   nsCOMPtr<nsIUnicodeEncoder> mEncoder;
 };
@@ -53,15 +86,11 @@ public:
   NS_DECL_NSIJSON
 
 protected:
-  nsresult EncodeInternal(JSContext* cx,
-                          const JS::Value& val,
-                          nsJSONWriter* writer);
+  nsresult EncodeInternal(nsJSONWriter *writer);
 
-  nsresult DecodeInternal(JSContext* cx,
-                          nsIInputStream* aStream,
-                          int32_t aContentLength,
+  nsresult DecodeInternal(nsIInputStream *aStream,
+                          PRInt32 aContentLength,
                           bool aNeedsConverter,
-                          JS::Value* aRetVal,
                           DecodingMode mode = STRICT);
   nsCOMPtr<nsIURI> mURI;
 };
@@ -88,9 +117,9 @@ protected:
   nsCString mSniffBuffer;
   nsTArray<PRUnichar> mBufferedChars;
   DecodingMode mDecodingMode;
-  nsresult ProcessBytes(const char* aBuffer, uint32_t aByteLength);
-  nsresult ConsumeConverted(const char* aBuffer, uint32_t aByteLength);
-  nsresult Consume(const PRUnichar *data, uint32_t len);
+  nsresult ProcessBytes(const char* aBuffer, PRUint32 aByteLength);
+  nsresult ConsumeConverted(const char* aBuffer, PRUint32 aByteLength);
+  nsresult Consume(const PRUnichar *data, PRUint32 len);
 };
 
 #endif

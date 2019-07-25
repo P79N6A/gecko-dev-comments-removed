@@ -3,6 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSVGAnimateMotionElement.h"
 
 NS_IMPL_NS_NEW_SVG_ELEMENT(AnimateMotion)
@@ -16,9 +51,9 @@ NS_IMPL_RELEASE_INHERITED(nsSVGAnimateMotionElement,nsSVGAnimateMotionElementBas
 DOMCI_NODE_DATA(SVGAnimateMotionElement, nsSVGAnimateMotionElement)
 
 NS_INTERFACE_TABLE_HEAD(nsSVGAnimateMotionElement)
-  NS_NODE_INTERFACE_TABLE6(nsSVGAnimateMotionElement, nsIDOMNode,
+  NS_NODE_INTERFACE_TABLE5(nsSVGAnimateMotionElement, nsIDOMNode,
                            nsIDOMElement, nsIDOMSVGElement,
-                           nsIDOMSVGAnimationElement, nsIDOMSVGTests,
+                           nsIDOMSVGAnimationElement,
                            nsIDOMSVGAnimateMotionElement)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(SVGAnimateMotionElement)
 NS_INTERFACE_MAP_END_INHERITING(nsSVGAnimateMotionElementBase)
@@ -46,7 +81,7 @@ nsSVGAnimateMotionElement::AnimationFunction()
 }
 
 bool
-nsSVGAnimateMotionElement::GetTargetAttributeName(int32_t *aNamespaceID,
+nsSVGAnimateMotionElement::GetTargetAttributeName(PRInt32 *aNamespaceID,
                                                   nsIAtom **aLocalName) const
 {
   
@@ -54,7 +89,7 @@ nsSVGAnimateMotionElement::GetTargetAttributeName(int32_t *aNamespaceID,
   
   *aNamespaceID = kNameSpaceID_None;
   *aLocalName = nsGkAtoms::mozAnimateMotionDummyAttr;
-  return true;
+  return PR_TRUE;
 }
 
 nsSMILTargetAttrType

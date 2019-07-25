@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_SMILMILESTONE_H_
 #define NS_SMILMILESTONE_H_
 
@@ -39,7 +71,7 @@ public:
   { }
 
   nsSMILMilestone()
-    : mTime(0), mIsEnd(false)
+    : mTime(0), mIsEnd(PR_FALSE)
   { }
 
   bool operator==(const nsSMILMilestone& aOther) const

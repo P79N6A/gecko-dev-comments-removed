@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "mozilla/Mutex.h"
 #include "nsTransportUtils.h"
 #include "nsITransport.h"
@@ -28,7 +60,7 @@ public:
         : mSink(sink)
         , mTarget(target)
         , mLock("nsTransportEventSinkProxy.mLock")
-        , mLastEvent(nullptr)
+        , mLastEvent(nsnull)
         , mCoalesceAll(coalesceAll)
     {
         NS_ADDREF(mSink);
@@ -54,8 +86,8 @@ public:
     nsTransportStatusEvent(nsTransportEventSinkProxy *proxy,
                            nsITransport *transport,
                            nsresult status,
-                           uint64_t progress,
-                           uint64_t progressMax)
+                           PRUint64 progress,
+                           PRUint64 progressMax)
         : mProxy(proxy)
         , mTransport(transport)
         , mStatus(status)
@@ -72,12 +104,12 @@ public:
         {
             MutexAutoLock lock(mProxy->mLock);
             if (mProxy->mLastEvent == this)
-                mProxy->mLastEvent = nullptr;
+                mProxy->mLastEvent = nsnull;
         }
 
         mProxy->mSink->OnTransportStatus(mTransport, mStatus, mProgress,
                                          mProgressMax);
-        return NS_OK;
+        return nsnull;
     }
 
     nsRefPtr<nsTransportEventSinkProxy> mProxy;
@@ -85,8 +117,8 @@ public:
     
     nsCOMPtr<nsITransport> mTransport;
     nsresult               mStatus;
-    uint64_t               mProgress;
-    uint64_t               mProgressMax;
+    PRUint64               mProgress;
+    PRUint64               mProgressMax;
 };
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(nsTransportEventSinkProxy, nsITransportEventSink)
@@ -94,8 +126,8 @@ NS_IMPL_THREADSAFE_ISUPPORTS1(nsTransportEventSinkProxy, nsITransportEventSink)
 NS_IMETHODIMP
 nsTransportEventSinkProxy::OnTransportStatus(nsITransport *transport,
                                              nsresult status,
-                                             uint64_t progress,
-                                             uint64_t progressMax)
+                                             PRUint64 progress,
+                                             PRUint64 progressMax)
 {
     nsresult rv = NS_OK;
     nsRefPtr<nsTransportStatusEvent> event;
@@ -122,7 +154,7 @@ nsTransportEventSinkProxy::OnTransportStatus(nsITransport *transport,
             NS_WARNING("unable to post transport status event");
 
             MutexAutoLock lock(mLock); 
-            mLastEvent = nullptr;
+            mLastEvent = nsnull;
         }
     }
     return rv;

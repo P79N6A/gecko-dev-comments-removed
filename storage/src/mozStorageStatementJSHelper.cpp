@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIXPConnect.h"
 #include "mozStorageStatement.h"
 #include "mozStorageService.h"
@@ -28,18 +61,14 @@ namespace storage {
 static
 JSBool
 stepFunc(JSContext *aCtx,
-         uint32_t,
+         PRUint32,
          jsval *_vp)
 {
   nsCOMPtr<nsIXPConnect> xpc(Service::getXPConnect());
   nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
-  JSObject *obj = JS_THIS_OBJECT(aCtx, _vp);
-  if (!obj) {
-    return JS_FALSE;
-  }
-
-  nsresult rv =
-    xpc->GetWrappedNativeOfJSObject(aCtx, obj, getter_AddRefs(wrapper));
+  nsresult rv = xpc->GetWrappedNativeOfJSObject(
+    aCtx, JS_THIS_OBJECT(aCtx, _vp), getter_AddRefs(wrapper)
+  );
   if (NS_FAILED(rv)) {
     ::JS_ReportError(aCtx, "mozIStorageStatement::step() could not obtain native statement");
     return JS_FALSE;
@@ -87,7 +116,7 @@ StatementJSHelper::getRow(Statement *aStatement,
   nsresult rv;
 
 #ifdef DEBUG
-  int32_t state;
+  PRInt32 state;
   (void)aStatement->GetState(&state);
   NS_ASSERTION(state == mozIStorageStatement::MOZ_STORAGE_STATEMENT_EXECUTING,
                "Invalid state to get the row object - all calls will fail!");
@@ -108,7 +137,7 @@ StatementJSHelper::getRow(Statement *aStatement,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  JSObject *obj = nullptr;
+  JSObject *obj = nsnull;
   rv = aStatement->mStatementRowHolder->GetJSObject(&obj);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -125,7 +154,7 @@ StatementJSHelper::getParams(Statement *aStatement,
   nsresult rv;
 
 #ifdef DEBUG
-  int32_t state;
+  PRInt32 state;
   (void)aStatement->GetState(&state);
   NS_ASSERTION(state == mozIStorageStatement::MOZ_STORAGE_STATEMENT_READY,
                "Invalid state to get the params object - all calls will fail!");
@@ -147,7 +176,7 @@ StatementJSHelper::getParams(Statement *aStatement,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  JSObject *obj = nullptr;
+  JSObject *obj = nsnull;
   rv = aStatement->mStatementParamsHolder->GetJSObject(&obj);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -211,7 +240,7 @@ StatementJSHelper::NewResolve(nsIXPConnectWrappedNative *aWrapper,
                               JSContext *aCtx,
                               JSObject *aScopeObj,
                               jsid aId,
-                              uint32_t aFlags,
+                              PRUint32 aFlags,
                               JSObject **_objp,
                               bool *_retval)
 {
@@ -220,7 +249,7 @@ StatementJSHelper::NewResolve(nsIXPConnectWrappedNative *aWrapper,
 
   if (::JS_FlatStringEqualsAscii(JSID_TO_FLAT_STRING(aId), "step")) {
     *_retval = ::JS_DefineFunction(aCtx, aScopeObj, "step", stepFunc,
-                                   0, 0) != nullptr;
+                                   0, 0) != nsnull;
     *_objp = aScopeObj;
     return NS_OK;
   }

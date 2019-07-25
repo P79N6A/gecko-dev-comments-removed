@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <stdlib.h>
 #include "nsHttp.h"
 #include "nsHttpNTLMAuth.h"
@@ -10,7 +44,6 @@
 #include "nsIAuthModule.h"
 #include "nsCOMPtr.h"
 #include "plbase64.h"
-#include "prnetdb.h"
 
 
 
@@ -19,13 +52,8 @@
 #include "nsIServiceManager.h"
 #include "nsIHttpAuthenticableChannel.h"
 #include "nsIURI.h"
-#include "nsIX509Cert.h"
-#include "nsISSLStatus.h"
-#include "nsISSLStatusProvider.h"
-#include "mozilla/Attributes.h"
 
 static const char kAllowProxies[] = "network.automatic-ntlm-auth.allow-proxies";
-static const char kAllowNonFqdn[] = "network.automatic-ntlm-auth.allow-non-fqdn";
 static const char kTrustedURIs[]  = "network.automatic-ntlm-auth.trusted-uris";
 static const char kForceGeneric[] = "network.auth.force-generic-ntlm";
 
@@ -36,7 +64,7 @@ static const char kForceGeneric[] = "network.auth.force-generic-ntlm";
 static bool
 MatchesBaseURI(const nsCSubstring &matchScheme,
                const nsCSubstring &matchHost,
-               int32_t             matchPort,
+               PRInt32             matchPort,
                const char         *baseStart,
                const char         *baseEnd)
 {
@@ -47,7 +75,7 @@ MatchesBaseURI(const nsCSubstring &matchScheme,
     if (schemeEnd) {
         
         if (!matchScheme.Equals(Substring(baseStart, schemeEnd)))
-            return false;
+            return PR_FALSE;
         hostStart = schemeEnd + 3;
     }
     else
@@ -58,8 +86,8 @@ MatchesBaseURI(const nsCSubstring &matchScheme,
     if (hostEnd && hostEnd < baseEnd) {
         
         int port = atoi(hostEnd + 1);
-        if (matchPort != (int32_t) port)
-            return false;
+        if (matchPort != (PRInt32) port)
+            return PR_FALSE;
     }
     else
         hostEnd = baseEnd;
@@ -67,13 +95,13 @@ MatchesBaseURI(const nsCSubstring &matchScheme,
 
     
     if (hostStart == hostEnd)
-        return true;
+        return PR_TRUE;
 
-    uint32_t hostLen = hostEnd - hostStart;
+    PRUint32 hostLen = hostEnd - hostStart;
 
     
     if (matchHost.Length() < hostLen)
-        return false;
+        return PR_FALSE;
 
     const char *end = matchHost.EndReading();
     if (PL_strncasecmp(end - hostLen, hostStart, hostLen) == 0) {
@@ -83,24 +111,10 @@ MatchesBaseURI(const nsCSubstring &matchScheme,
         if (matchHost.Length() == hostLen ||
             *(end - hostLen) == '.' ||
             *(end - hostLen - 1) == '.')
-            return true;
+            return PR_TRUE;
     }
 
-    return false;
-}
-
-static bool
-IsNonFqdn(nsIURI *uri)
-{
-    nsAutoCString host;
-    PRNetAddr addr;
-
-    if (NS_FAILED(uri->GetAsciiHost(host)))
-        return false;
-
-    
-    return !host.IsEmpty() && host.FindChar('.') == kNotFound &&
-           PR_StringToNetAddr(host.BeginReading(), &addr) != PR_SUCCESS;
+    return PR_FALSE;
 }
 
 static bool
@@ -108,21 +122,21 @@ TestPref(nsIURI *uri, const char *pref)
 {
     nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
     if (!prefs)
-        return false;
+        return PR_FALSE;
 
-    nsAutoCString scheme, host;
-    int32_t port;
+    nsCAutoString scheme, host;
+    PRInt32 port;
 
     if (NS_FAILED(uri->GetScheme(scheme)))
-        return false;
+        return PR_FALSE;
     if (NS_FAILED(uri->GetAsciiHost(host)))
-        return false;
+        return PR_FALSE;
     if (NS_FAILED(uri->GetPort(&port)))
-        return false;
+        return PR_FALSE;
 
     char *hostList;
     if (NS_FAILED(prefs->GetCharPref(pref, &hostList)) || !hostList)
-        return false;
+        return PR_FALSE;
 
     
     
@@ -147,14 +161,14 @@ TestPref(nsIURI *uri, const char *pref)
         if (start == end)
             break;
         if (MatchesBaseURI(scheme, host, port, start, end))
-            return true;
+            return PR_TRUE;
         if (*end == '\0')
             break;
         start = end + 1;
     }
     
     nsMemory::Free(hostList);
-    return false;
+    return PR_FALSE;
 }
 
 
@@ -163,11 +177,11 @@ ForceGenericNTLM()
 {
     nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
     if (!prefs)
-        return false;
+        return PR_FALSE;
     bool flag = false;
 
     if (NS_FAILED(prefs->GetBoolPref(kForceGeneric, &flag)))
-        flag = false;
+        flag = PR_FALSE;
 
     LOG(("Force use of generic ntlm auth module: %d\n", flag));
     return flag;
@@ -180,27 +194,18 @@ CanUseDefaultCredentials(nsIHttpAuthenticableChannel *channel,
 {
     nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
     if (!prefs)
-        return false;
+        return PR_FALSE;
 
     if (isProxyAuth) {
         bool val;
         if (NS_FAILED(prefs->GetBoolPref(kAllowProxies, &val)))
-            val = false;
+            val = PR_FALSE;
         LOG(("Default credentials allowed for proxy: %d\n", val));
         return val;
     }
 
     nsCOMPtr<nsIURI> uri;
     channel->GetURI(getter_AddRefs(uri));
-
-    bool allowNonFqdn;
-    if (NS_FAILED(prefs->GetBoolPref(kAllowNonFqdn, &allowNonFqdn)))
-        allowNonFqdn = false;
-    if (allowNonFqdn && uri && IsNonFqdn(uri)) {
-        LOG(("Host is non-fqdn, default credentials are allowed\n"));
-        return true;
-    }
-
     bool isTrustedHost = (uri && TestPref(uri, kTrustedURIs));
     LOG(("Default credentials allowed for host: %d\n", isTrustedHost));
     return isTrustedHost;
@@ -208,7 +213,7 @@ CanUseDefaultCredentials(nsIHttpAuthenticableChannel *channel,
 
 
 
-class nsNTLMSessionState MOZ_FINAL : public nsISupports
+class nsNTLMSessionState : public nsISupports
 {
 public:
     NS_DECL_ISUPPORTS
@@ -231,11 +236,8 @@ nsHttpNTLMAuth::ChallengeReceived(nsIHttpAuthenticableChannel *channel,
          *sessionState, *continuationState));
 
     
-    mUseNative = true;
 
-    
-
-    *identityInvalid = false;
+    *identityInvalid = PR_FALSE;
 
     
     
@@ -266,7 +268,7 @@ nsHttpNTLMAuth::ChallengeReceived(nsIHttpAuthenticableChannel *channel,
                 
                 
                 module = do_CreateInstance(NS_AUTH_MODULE_CONTRACTID_PREFIX "sys-ntlm");
-                *identityInvalid = true;
+                *identityInvalid = PR_TRUE;
             }
 #endif 
 #ifdef PR_LOGGING
@@ -296,11 +298,9 @@ nsHttpNTLMAuth::ChallengeReceived(nsIHttpAuthenticableChannel *channel,
             
             LOG(("Trying to fall back on internal ntlm auth.\n"));
             module = do_CreateInstance(NS_AUTH_MODULE_CONTRACTID_PREFIX "ntlm");
-	    
-            mUseNative = false;
 
             
-            *identityInvalid = true;
+            *identityInvalid = PR_TRUE;
         }
 
         
@@ -325,13 +325,13 @@ nsHttpNTLMAuth::GenerateCredentials(nsIHttpAuthenticableChannel *authChannel,
                                     const PRUnichar *pass,
                                     nsISupports    **sessionState,
                                     nsISupports    **continuationState,
-                                    uint32_t       *aFlags,
+                                    PRUint32       *aFlags,
                                     char           **creds)
 
 {
     LOG(("nsHttpNTLMAuth::GenerateCredentials\n"));
 
-    *creds = nullptr;
+    *creds = nsnull;
     *aFlags = 0;
 
     
@@ -346,13 +346,17 @@ nsHttpNTLMAuth::GenerateCredentials(nsIHttpAuthenticableChannel *authChannel,
     NS_ENSURE_SUCCESS(rv, rv);
 
     void *inBuf, *outBuf;
-    uint32_t inBufLen, outBufLen;
+    PRUint32 inBufLen, outBufLen;
 
     
     if (PL_strcasecmp(challenge, "NTLM") == 0) {
         
-        nsAutoCString serviceName, host;
-        rv = authChannel->GetAsciiHostForAuth(host);
+        nsCOMPtr<nsIURI> uri;
+        rv = authChannel->GetURI(getter_AddRefs(uri));
+        if (NS_FAILED(rv))
+            return rv;
+        nsCAutoString serviceName, host;
+        rv = uri->GetAsciiHost(host);
         if (NS_FAILED(rv))
             return rv;
         serviceName.AppendLiteral("HTTP@");
@@ -362,61 +366,8 @@ nsHttpNTLMAuth::GenerateCredentials(nsIHttpAuthenticableChannel *authChannel,
         if (NS_FAILED(rv))
             return rv;
 
-
-
-
-
-
-
-
-#if defined (XP_WIN) 
-        
-        
-        
-        
-        
-        
-        
-        nsCOMPtr<nsIChannel> channel = do_QueryInterface(authChannel, &rv);
-        if (NS_FAILED(rv))
-            return rv;
-
-        nsCOMPtr<nsISupports> security;
-        rv = channel->GetSecurityInfo(getter_AddRefs(security));
-        if (NS_FAILED(rv))
-            return rv;
-
-        nsCOMPtr<nsISSLStatusProvider> statusProvider =
-            do_QueryInterface(security);
-
-        if (mUseNative && statusProvider) {
-            nsCOMPtr<nsISSLStatus> status;
-            rv = statusProvider->GetSSLStatus(getter_AddRefs(status));
-            if (NS_FAILED(rv))
-                return rv;
-
-            nsCOMPtr<nsIX509Cert> cert;
-            rv = status->GetServerCert(getter_AddRefs(cert));
-            if (NS_FAILED(rv))
-                return rv;
-
-            uint32_t length;
-            uint8_t* certArray;
-            cert->GetRawDER(&length, &certArray);						  
-			
-            
-            
-            inBufLen = length;
-            inBuf = certArray;
-        } else { 
-            
-            inBufLen = 0;
-            inBuf = nullptr;
-        }
-#else 
         inBufLen = 0;
-        inBuf = nullptr;
-#endif
+        inBuf = nsnull;
     }
     else {
         
@@ -437,7 +388,7 @@ nsHttpNTLMAuth::GenerateCredentials(nsIHttpAuthenticableChannel *authChannel,
         if (!inBuf)
             return NS_ERROR_OUT_OF_MEMORY;
 
-        if (PL_Base64Decode(challenge, len, (char *) inBuf) == nullptr) {
+        if (PL_Base64Decode(challenge, len, (char *) inBuf) == nsnull) {
             nsMemory::Free(inBuf);
             return NS_ERROR_UNEXPECTED; 
         }
@@ -466,7 +417,7 @@ nsHttpNTLMAuth::GenerateCredentials(nsIHttpAuthenticableChannel *authChannel,
 }
 
 NS_IMETHODIMP
-nsHttpNTLMAuth::GetAuthFlags(uint32_t *flags)
+nsHttpNTLMAuth::GetAuthFlags(PRUint32 *flags)
 {
     *flags = CONNECTION_BASED | IDENTITY_INCLUDES_DOMAIN | IDENTITY_ENCRYPTED;
     return NS_OK;

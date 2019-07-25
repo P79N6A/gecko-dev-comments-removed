@@ -3,6 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_FT2FONTLIST_H
 #define GFX_FT2FONTLIST_H
 
@@ -28,8 +63,8 @@ public:
     FT2FontEntry(const nsAString& aFaceName) :
         gfxFontEntry(aFaceName)
     {
-        mFTFace = nullptr;
-        mFontFace = nullptr;
+        mFTFace = nsnull;
+        mFontFace = nsnull;
         mFTFontIndex = 0;
     }
 
@@ -42,7 +77,7 @@ public:
     
     static FT2FontEntry* 
     CreateFontEntry(const gfxProxyFontEntry &aProxyEntry,
-                    const uint8_t *aFontData, uint32_t aLength);
+                    const PRUint8 *aFontData, PRUint32 aLength);
 
     
     
@@ -52,12 +87,11 @@ public:
 
     
     
-    
-    
     static FT2FontEntry* 
-    CreateFontEntry(FT_Face aFace, const char *aFilename, uint8_t aIndex,
-                    const nsAString& aName,
-                    const uint8_t *aFontData = nullptr);
+    CreateFontEntry(FT_Face aFace, const char *aFilename, PRUint8 aIndex,
+                    const PRUint8 *aFontData = nsnull);
+        
+        
 
     virtual gfxFont *CreateFontInstance(const gfxFontStyle *aFontStyle,
                                         bool aNeedsBold);
@@ -66,22 +100,13 @@ public:
     cairo_scaled_font_t *CreateScaledFont(const gfxFontStyle *aStyle);
 
     nsresult ReadCMAP();
-    nsresult GetFontTable(uint32_t aTableTag, FallibleTArray<uint8_t>& aBuffer);
-
-    
-    
-    void CheckForBrokenFont();
-
-    virtual void SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                     FontListSizes*    aSizes) const;
-    virtual void SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                     FontListSizes*    aSizes) const;
+    nsresult GetFontTable(PRUint32 aTableTag, FallibleTArray<PRUint8>& aBuffer);
 
     FT_Face mFTFace;
     cairo_font_face_t *mFontFace;
 
     nsCString mFilename;
-    uint8_t mFTFontIndex;
+    PRUint8 mFTFontIndex;
 };
 
 class FT2FontFamily : public gfxFontFamily
@@ -106,8 +131,8 @@ public:
                                           const nsAString& aFontName);
 
     virtual gfxFontEntry* MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
-                                           const uint8_t *aFontData,
-                                           uint32_t aLength);
+                                           const PRUint8 *aFontData,
+                                           PRUint32 aLength);
 
     void GetFontList(InfallibleTArray<FontListEntry>* retValue);
 
@@ -123,7 +148,7 @@ protected:
 
     void AppendFacesFromFontFile(nsCString& aFileName,
                                  bool isStdFile = false,
-                                 FontNameCache *aCache = nullptr);
+                                 FontNameCache *aCache = nsnull);
 
     void AppendFacesFromCachedFaceList(nsCString& aFileName,
                                        bool isStdFile,

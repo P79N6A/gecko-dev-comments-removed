@@ -3,33 +3,55 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NSSVGINTEGRATIONUTILS_H_
 #define NSSVGINTEGRATIONUTILS_H_
 
+#include "nsPoint.h"
+#include "nsRect.h"
+#include "gfxRect.h"
 #include "gfxMatrix.h"
 #include "gfxPattern.h"
-#include "gfxRect.h"
-#include "nsRect.h"
 
-class nsDisplayList;
-class nsDisplayListBuilder;
 class nsIFrame;
+class nsDisplayListBuilder;
+class nsDisplayList;
 class nsRenderingContext;
 
-namespace mozilla {
-namespace layers {
-class LayerManager;
-}
-}
-
-struct nsPoint;
-struct nsSize;
 
 
-
-
-
-class nsSVGIntegrationUtils MOZ_FINAL
+class nsSVGIntegrationUtils
 {
 public:
   
@@ -42,66 +64,9 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static nsPoint
-  GetOffsetToUserSpace(nsIFrame* aFrame);
-
+  static nsRect
+  GetNonSVGUserSpace(nsIFrame* aFirst);
   
-
-
-
-  static nsSize
-  GetContinuationUnionSize(nsIFrame* aNonSVGFrame);
-
-  
-
-
-
-
-
-
-
-  static gfxSize
-  GetSVGCoordContextForNonSVGFrame(nsIFrame* aNonSVGFrame);
-
-  
-
-
-
-
-
-
-
-
-  static gfxRect
-  GetSVGBBoxForNonSVGFrame(nsIFrame* aNonSVGFrame);
-
-  
-
-
-
-
-
-
 
 
 
@@ -109,23 +74,18 @@ public:
 
 
   static nsRect
-  ComputePostEffectsVisualOverflowRect(nsIFrame* aFrame,
-                                       const nsRect& aPreEffectsOverflowRect);
-
+  ComputeFrameEffectsRect(nsIFrame* aFrame, const nsRect& aOverflowRect);
   
 
 
-
   static nsRect
-  AdjustInvalidAreaForSVGEffects(nsIFrame* aFrame, const nsRect& aInvalidRect);
-
+  GetInvalidAreaForChangedSource(nsIFrame* aFrame, const nsRect& aInvalidRect);
   
 
 
 
   static nsRect
   GetRequiredSourceForInvalidArea(nsIFrame* aFrame, const nsRect& aDamageRect);
-
   
 
 
@@ -136,20 +96,31 @@ public:
   
 
 
+
+
   static void
   PaintFramesWithEffects(nsRenderingContext* aCtx,
-                         nsIFrame* aFrame, const nsRect& aDirtyRect,
+                         nsIFrame* aEffectsFrame, const nsRect& aDirtyRect,
                          nsDisplayListBuilder* aBuilder,
-                         mozilla::layers::LayerManager* aManager);
+                         nsDisplayList* aInnerList);
 
+  static gfxMatrix
+  GetInitialMatrix(nsIFrame* aNonSVGFrame);
   
 
 
 
 
 
-  static gfxMatrix
-  GetCSSPxToDevPxMatrix(nsIFrame* aNonSVGFrame);
+  static gfxRect
+  GetSVGRectForNonSVGFrame(nsIFrame* aNonSVGFrame);
+  
+
+
+
+
+  static gfxRect
+  GetSVGBBoxForNonSVGFrame(nsIFrame* aNonSVGFrame);
 
   
 

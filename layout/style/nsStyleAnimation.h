@@ -5,6 +5,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsStyleAnimation_h_
 #define nsStyleAnimation_h_
 
@@ -15,10 +49,14 @@
 #include "nsCSSProperty.h"
 #include "nsCoord.h"
 #include "nsColor.h"
-#include "nsCSSValue.h"
 
 class nsPresContext;
 class nsStyleContext;
+class nsCSSValue;
+struct nsCSSValueList;
+struct nsCSSValuePair;
+struct nsCSSValueTriplet;
+struct nsCSSValuePairList;
 struct nsCSSRect;
 class gfx3DMatrix;
 
@@ -50,7 +88,7 @@ public:
 
 
   static bool Add(nsCSSProperty aProperty, Value& aDest,
-                    const Value& aValueToAdd, uint32_t aCount) {
+                    const Value& aValueToAdd, PRUint32 aCount) {
     return AddWeighted(aProperty, 1.0, aDest, aCount, aValueToAdd, aDest);
   }
 
@@ -152,7 +190,7 @@ public:
                              const nsAString& aSpecifiedValue,
                              bool aUseSVGMode,
                              Value& aComputedValue,
-                             bool* aIsContextSensitive = nullptr);
+                             bool* aIsContextSensitive = nsnull);
 
   
 
@@ -199,12 +237,8 @@ public:
 
 
    static gfx3DMatrix InterpolateTransformMatrix(const gfx3DMatrix &aMatrix1,
-                                                 const gfx3DMatrix &aMatrix2,
+                                                 const gfx3DMatrix &aMatrix2, 
                                                  double aProgress);
-
-   static already_AddRefed<nsCSSValue::Array>
-     AppendTransformFunction(nsCSSKeyword aTransformFunction,
-                             nsCSSValueList**& aListTail);
 
   
 
@@ -230,7 +264,6 @@ public:
     eUnit_Dasharray, 
     eUnit_Shadow, 
     eUnit_Transform, 
-    eUnit_BackgroundPosition, 
     eUnit_CSSValuePairList, 
     eUnit_UnparsedString 
   };
@@ -239,7 +272,7 @@ public:
   private:
     Unit mUnit;
     union {
-      int32_t mInt;
+      PRInt32 mInt;
       nscoord mCoord;
       float mFloat;
       nscolor mColor;
@@ -263,7 +296,7 @@ public:
       return mUnit == eUnit_Null;
     }
 
-    int32_t GetIntValue() const {
+    PRInt32 GetIntValue() const {
       NS_ASSERTION(IsIntUnit(mUnit), "unit mismatch");
       return mValue.mInt;
     }
@@ -315,7 +348,7 @@ public:
     void GetStringValue(nsAString& aBuffer) const {
       NS_ASSERTION(IsStringUnit(mUnit), "unit mismatch");
       aBuffer.Truncate();
-      uint32_t len = NS_strlen(GetBufferValue(mValue.mString));
+      PRUint32 len = NS_strlen(GetBufferValue(mValue.mString));
       mValue.mString->ToString(len, aBuffer);
     }
 
@@ -326,7 +359,7 @@ public:
     }
     Value(const Value& aOther) : mUnit(eUnit_Null) { *this = aOther; }
     enum IntegerConstructorType { IntegerConstructor };
-    Value(int32_t aInt, Unit aUnit, IntegerConstructorType);
+    Value(PRInt32 aInt, Unit aUnit, IntegerConstructorType);
     enum CoordConstructorType { CoordConstructor };
     Value(nscoord aLength, CoordConstructorType);
     enum PercentConstructorType { PercentConstructor };
@@ -341,7 +374,7 @@ public:
     void SetNormalValue();
     void SetAutoValue();
     void SetNoneValue();
-    void SetIntValue(int32_t aInt, Unit aUnit);
+    void SetIntValue(PRInt32 aInt, Unit aUnit);
     void SetCoordValue(nscoord aCoord);
     void SetPercentValue(float aPercent);
     void SetFloatValue(float aFloat);
@@ -388,7 +421,7 @@ public:
     }
     static bool IsCSSValueListUnit(Unit aUnit) {
       return aUnit == eUnit_Dasharray || aUnit == eUnit_Shadow ||
-             aUnit == eUnit_Transform || aUnit == eUnit_BackgroundPosition;
+             aUnit == eUnit_Transform;
     }
     static bool IsCSSValuePairListUnit(Unit aUnit) {
       return aUnit == eUnit_CSSValuePairList;

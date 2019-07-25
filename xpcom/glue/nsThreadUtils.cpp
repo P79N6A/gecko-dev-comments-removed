@@ -4,8 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsThreadUtils.h"
-#include "mozilla/Attributes.h"
 
 #ifdef MOZILLA_INTERNAL_API
 # include "nsThreadManager.h"
@@ -17,13 +48,7 @@
 
 #ifdef XP_WIN
 #include <windows.h>
-#include "nsWindowsHelpers.h"
-#elif defined(XP_MACOSX)
-#include <sys/resource.h>
 #endif
-
-#include <pratom.h>
-#include <prthread.h>
 
 #ifndef XPCOM_GLUE_AVOID_NSPR
 
@@ -41,7 +66,7 @@ nsRunnable::Run()
 
 
 NS_METHOD
-NS_NewThread(nsIThread **result, nsIRunnable *event, uint32_t stackSize)
+NS_NewThread(nsIThread **result, nsIRunnable *event, PRUint32 stackSize)
 {
   nsCOMPtr<nsIThread> thread;
 #ifdef MOZILLA_INTERNAL_API
@@ -62,7 +87,7 @@ NS_NewThread(nsIThread **result, nsIRunnable *event, uint32_t stackSize)
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  *result = nullptr;
+  *result = nsnull;
   thread.swap(*result);
   return NS_OK;
 }
@@ -136,7 +161,7 @@ NS_DispatchToCurrentThread(nsIRunnable *event)
 }
 
 NS_METHOD
-NS_DispatchToMainThread(nsIRunnable *event, uint32_t dispatchFlags)
+NS_DispatchToMainThread(nsIRunnable *event, PRUint32 dispatchFlags)
 {
   nsCOMPtr<nsIThread> thread;
   nsresult rv = NS_GetMainThread(getter_AddRefs(thread));
@@ -167,7 +192,7 @@ NS_ProcessPendingEvents(nsIThread *thread, PRIntervalTime timeout)
   PRIntervalTime start = PR_IntervalNow();
   for (;;) {
     bool processedEvent;
-    rv = thread->ProcessNextEvent(false, &processedEvent);
+    rv = thread->ProcessNextEvent(PR_FALSE, &processedEvent);
     if (NS_FAILED(rv) || !processedEvent)
       break;
     if (PR_IntervalNow() - start > timeout)
@@ -194,7 +219,7 @@ NS_HasPendingEvents(nsIThread *thread)
     return hasPendingEvents(current);
 #else
     thread = NS_GetCurrentThread();
-    NS_ENSURE_TRUE(thread, false);
+    NS_ENSURE_TRUE(thread, PR_FALSE);
 #endif
   }
   return hasPendingEvents(thread);
@@ -206,13 +231,13 @@ NS_ProcessNextEvent(nsIThread *thread, bool mayWait)
 #ifdef MOZILLA_INTERNAL_API
   if (!thread) {
     thread = NS_GetCurrentThread();
-    NS_ENSURE_TRUE(thread, false);
+    NS_ENSURE_TRUE(thread, PR_FALSE);
   }
 #else
   nsCOMPtr<nsIThread> current;
   if (!thread) {
     NS_GetCurrentThread(getter_AddRefs(current));
-    NS_ENSURE_TRUE(current, false);
+    NS_ENSURE_TRUE(current, PR_FALSE);
     thread = current.get();
   }
 #endif
@@ -220,108 +245,9 @@ NS_ProcessNextEvent(nsIThread *thread, bool mayWait)
   return NS_SUCCEEDED(thread->ProcessNextEvent(mayWait, &val)) && val;
 }
 
-#ifndef XPCOM_GLUE_AVOID_NSPR
-
-namespace {
-
-class nsNameThreadRunnable MOZ_FINAL : public nsIRunnable
-{
-public:
-  nsNameThreadRunnable(const nsACString &name) : mName(name) { }
-
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIRUNNABLE
-
-protected:
-  const nsCString mName;
-};
-
-NS_IMPL_THREADSAFE_ISUPPORTS1(nsNameThreadRunnable, nsIRunnable)
-
-NS_IMETHODIMP
-nsNameThreadRunnable::Run()
-{
-  PR_SetCurrentThreadName(mName.BeginReading());
-  return NS_OK;
-}
-
-} 
-
-void
-NS_SetThreadName(nsIThread *thread, const nsACString &name)
-{
-  if (!thread)
-    return;
-
-  thread->Dispatch(new nsNameThreadRunnable(name),
-                   nsIEventTarget::DISPATCH_NORMAL);
-}
-
-#else 
-
-void
-NS_SetThreadName(nsIThread *thread, const nsACString &name)
-{
-  
-}
-
-#endif
-
 #ifdef MOZILLA_INTERNAL_API
 nsIThread *
 NS_GetCurrentThread() {
   return nsThreadManager::get()->GetCurrentThread();
 }
 #endif
-
-
-void
-nsThreadPoolNaming::SetThreadPoolName(const nsACString & aPoolName,
-                                      nsIThread * aThread)
-{
-  nsCString name(aPoolName);
-  name.Append(NS_LITERAL_CSTRING(" #"));
-  name.AppendInt(++mCounter, 10); 
-
-  if (aThread) {
-    
-    NS_SetThreadName(aThread, name);
-  }
-  else {
-    
-    PR_SetCurrentThreadName(name.BeginReading());
-  }
-}
-
-
-nsAutoLowPriorityIO::nsAutoLowPriorityIO()
-{
-#if defined(XP_WIN)
-  lowIOPrioritySet = IsVistaOrLater() &&
-                     SetThreadPriority(GetCurrentThread(),
-                                       THREAD_MODE_BACKGROUND_BEGIN);
-#elif defined(XP_MACOSX)
-  oldPriority = getiopolicy_np(IOPOL_TYPE_DISK, IOPOL_SCOPE_THREAD);
-  lowIOPrioritySet = oldPriority != -1 &&
-                     setiopolicy_np(IOPOL_TYPE_DISK,
-                                    IOPOL_SCOPE_THREAD,
-                                    IOPOL_THROTTLE) != -1;
-#else
-  lowIOPrioritySet = false;
-#endif
-}
-
-nsAutoLowPriorityIO::~nsAutoLowPriorityIO()
-{
-#if defined(XP_WIN)
-  if (NS_LIKELY(lowIOPrioritySet)) {
-    
-    SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_END);
-  }
-#elif defined(XP_MACOSX)
-  if (NS_LIKELY(lowIOPrioritySet)) {
-    setiopolicy_np(IOPOL_TYPE_DISK, IOPOL_SCOPE_THREAD, oldPriority);
-  }
-#endif
-}
-

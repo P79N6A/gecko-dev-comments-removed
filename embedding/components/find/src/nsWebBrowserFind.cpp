@@ -4,6 +4,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsWebBrowserFind.h"
 
 
@@ -36,7 +71,7 @@
 #include "nsIObserverService.h"
 #include "nsISupportsPrimitives.h"
 #include "nsFind.h"
-#include "nsError.h"
+#include "nsDOMError.h"
 #include "nsFocusManager.h"
 #include "mozilla/Services.h"
 
@@ -56,12 +91,12 @@
 
 
 nsWebBrowserFind::nsWebBrowserFind() :
-    mFindBackwards(false),
-    mWrapFind(false),
-    mEntireWord(false),
-    mMatchCase(false),
-    mSearchSubFrames(true),
-    mSearchParentFrames(true)
+    mFindBackwards(PR_FALSE),
+    mWrapFind(PR_FALSE),
+    mEntireWord(PR_FALSE),
+    mMatchCase(PR_FALSE),
+    mSearchSubFrames(PR_TRUE),
+    mSearchParentFrames(PR_TRUE)
 {
 }
 
@@ -76,7 +111,7 @@ NS_IMPL_ISUPPORTS2(nsWebBrowserFind, nsIWebBrowserFind, nsIWebBrowserFindInFrame
 NS_IMETHODIMP nsWebBrowserFind::FindNext(bool *outDidFind)
 {
     NS_ENSURE_ARG_POINTER(outDidFind);
-    *outDidFind = false;
+    *outDidFind = PR_FALSE;
 
     NS_ENSURE_TRUE(CanFindNext(), NS_ERROR_NOT_INITIALIZED);
 
@@ -109,7 +144,7 @@ NS_IMETHODIMP nsWebBrowserFind::FindNext(bool *outDidFind)
                                      mFindBackwards? upStr.get(): dnStr.get());
         windowSupportsData->GetData(getter_AddRefs(searchWindowSupports));
         
-        *outDidFind = searchWindowSupports == nullptr;
+        *outDidFind = searchWindowSupports == nsnull;
         if (*outDidFind)
             return NS_OK;
     }
@@ -118,7 +153,7 @@ NS_IMETHODIMP nsWebBrowserFind::FindNext(bool *outDidFind)
 
     
     
-    rv = SearchInFrame(searchFrame, false, outDidFind);
+    rv = SearchInFrame(searchFrame, PR_FALSE, outDidFind);
     if (NS_FAILED(rv)) return rv;
     if (*outDidFind)
         return OnFind(searchFrame);     
@@ -130,7 +165,7 @@ NS_IMETHODIMP nsWebBrowserFind::FindNext(bool *outDidFind)
     nsIDocShell *rootDocShell = GetDocShellFromWindow(rootFrame);
     if (!rootDocShell) return NS_ERROR_FAILURE;
     
-    int32_t enumDirection;
+    PRInt32 enumDirection;
     if (mFindBackwards)
         enumDirection = nsIDocShell::ENUMERATE_BACKWARDS;
     else
@@ -168,7 +203,7 @@ NS_IMETHODIMP nsWebBrowserFind::FindNext(bool *outDidFind)
 
             
             
-            rv = SearchInFrame(searchFrame, false, outDidFind);
+            rv = SearchInFrame(searchFrame, PR_FALSE, outDidFind);
             if (NS_FAILED(rv)) return rv;
             if (*outDidFind)
                 return OnFind(searchFrame);     
@@ -177,7 +212,7 @@ NS_IMETHODIMP nsWebBrowserFind::FindNext(bool *outDidFind)
         }
 
         if (curItem.get() == startingItem.get())
-            doFind = true;       
+            doFind = PR_TRUE;       
     };
 
     if (!mWrapFind)
@@ -193,7 +228,7 @@ NS_IMETHODIMP nsWebBrowserFind::FindNext(bool *outDidFind)
 
     
     
-    docShellEnumerator = nullptr;
+    docShellEnumerator = nsnull;
     rv = rootDocShell->GetDocShellEnumerator(nsIDocShellTreeItem::typeAll,
             enumDirection, getter_AddRefs(docShellEnumerator));    
     if (NS_FAILED(rv)) return rv;
@@ -210,7 +245,7 @@ NS_IMETHODIMP nsWebBrowserFind::FindNext(bool *outDidFind)
         {
             
             
-            rv = SearchInFrame(searchFrame, true, outDidFind);
+            rv = SearchInFrame(searchFrame, PR_TRUE, outDidFind);
             if (NS_FAILED(rv)) return rv;
             if (*outDidFind)
                 return OnFind(searchFrame);        
@@ -224,7 +259,7 @@ NS_IMETHODIMP nsWebBrowserFind::FindNext(bool *outDidFind)
 
         
         
-        rv = SearchInFrame(searchFrame, false, outDidFind);
+        rv = SearchInFrame(searchFrame, PR_FALSE, outDidFind);
         if (NS_FAILED(rv)) return rv;
         if (*outDidFind)
             return OnFind(searchFrame);        
@@ -341,13 +376,13 @@ IsInNativeAnonymousSubtree(nsIContent* aContent)
     while (aContent) {
         nsIContent* bindingParent = aContent->GetBindingParent();
         if (bindingParent == aContent) {
-            return true;
+            return PR_TRUE;
         }
 
         aContent = bindingParent;
     }
 
-    return false;
+    return PR_FALSE;
 }
 
 void nsWebBrowserFind::SetSelectionAndScroll(nsIDOMWindow* aWindow,
@@ -373,7 +408,7 @@ void nsWebBrowserFind::SetSelectionAndScroll(nsIDOMWindow* aWindow,
   
   
   
-  nsITextControlFrame *tcFrame = nullptr;
+  nsITextControlFrame *tcFrame = nsnull;
   for ( ; content; content = content->GetParent()) {
     if (!IsInNativeAnonymousSubtree(content)) {
       nsIFrame* f = content->GetPrimaryFrame();
@@ -401,7 +436,7 @@ void nsWebBrowserFind::SetSelectionAndScroll(nsIDOMWindow* aWindow,
       }
       else  {
         nsCOMPtr<nsIDOMElement> result;
-        fm->MoveFocus(aWindow, nullptr, nsIFocusManager::MOVEFOCUS_CARET,
+        fm->MoveFocus(aWindow, nsnull, nsIFocusManager::MOVEFOCUS_CARET,
                       nsIFocusManager::FLAG_NOSCROLL,
                       getter_AddRefs(result));
       }
@@ -415,7 +450,6 @@ void nsWebBrowserFind::SetSelectionAndScroll(nsIDOMWindow* aWindow,
     selCon->ScrollSelectionIntoView
       (nsISelectionController::SELECTION_NORMAL,
        nsISelectionController::SELECTION_WHOLE_SELECTION,
-       nsISelectionController::SCROLL_CENTER_VERTICALLY |
        nsISelectionController::SCROLL_SYNCHRONOUS);
   }
 }
@@ -460,7 +494,7 @@ nsresult nsWebBrowserFind::SetRangeAroundDocument(nsIDOMRange* aSearchRange,
     NS_ENSURE_SUCCESS(rv, rv);
     NS_ENSURE_ARG_POINTER(bodyContent);
 
-    uint32_t childCount = bodyContent->GetChildCount();
+    PRUint32 childCount = bodyContent->GetChildCount();
 
     aSearchRange->SetStart(bodyNode, 0);
     aSearchRange->SetEnd(bodyNode, childCount);
@@ -497,7 +531,7 @@ nsWebBrowserFind::GetSearchLimits(nsIDOMRange* aSearchRange,
     NS_ENSURE_ARG_POINTER(aSel);
 
     
-    int32_t count = -1;
+    PRInt32 count = -1;
     nsresult rv = aSel->GetRangeCount(&count);
     if (count < 1)
         return SetRangeAroundDocument(aSearchRange, aStartPt, aEndPt, aDoc);
@@ -508,14 +542,14 @@ nsWebBrowserFind::GetSearchLimits(nsIDOMRange* aSearchRange,
     nsCOMPtr<nsIContent> bodyContent (do_QueryInterface(bodyNode));
     NS_ENSURE_ARG_POINTER(bodyContent);
 
-    uint32_t childCount = bodyContent->GetChildCount();
+    PRUint32 childCount = bodyContent->GetChildCount();
 
     
     
 
     nsCOMPtr<nsIDOMRange> range;
     nsCOMPtr<nsIDOMNode> node;
-    int32_t offset;
+    PRInt32 offset;
 
     
     if (!mFindBackwards && !aWrap)
@@ -677,7 +711,7 @@ nsresult nsWebBrowserFind::SearchInFrame(nsIDOMWindow* aWindow,
     NS_ENSURE_ARG(aWindow);
     NS_ENSURE_ARG_POINTER(aDidFind);
 
-    *aDidFind = false;
+    *aDidFind = PR_FALSE;
 
     nsCOMPtr<nsIDOMDocument> domDoc;    
     nsresult rv = aWindow->GetDocument(getter_AddRefs(domDoc));
@@ -705,21 +739,26 @@ nsresult nsWebBrowserFind::SearchInFrame(nsIDOMWindow* aWindow,
         NS_ENSURE_SUCCESS(rv, rv);
         if (!subsumes) {
             bool hasCap = false;
-            secMan->IsCapabilityEnabled("UniversalXPConnect", &hasCap);
+            secMan->IsCapabilityEnabled("UniversalBrowserWrite", &hasCap);
+            if (!hasCap) {
+                secMan->IsCapabilityEnabled("UniversalXPConnect", &hasCap);
+            }
             if (!hasCap) {
                 return NS_ERROR_DOM_PROP_ACCESS_DENIED;
             }
         }
     }
 
-    nsCOMPtr<nsIFind> find = do_CreateInstance(NS_FIND_CONTRACTID, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (!mFind) {
+        mFind = do_CreateInstance(NS_FIND_CONTRACTID, &rv);
+        NS_ENSURE_SUCCESS(rv, rv);
+    }
 
-    (void) find->SetCaseSensitive(mMatchCase);
-    (void) find->SetFindBackwards(mFindBackwards);
+    (void) mFind->SetCaseSensitive(mMatchCase);
+    (void) mFind->SetFindBackwards(mFindBackwards);
 
     
-    (void) find->SetWordBreaker(0);
+    (void) mFind->SetWordBreaker(0);
 
     
     
@@ -741,22 +780,22 @@ nsresult nsWebBrowserFind::SearchInFrame(nsIDOMWindow* aWindow,
     
     if (!aWrapping)
         rv = GetSearchLimits(searchRange, startPt, endPt, domDoc, sel,
-                             false);
+                             PR_FALSE);
 
     
     
     else
         rv = GetSearchLimits(searchRange, startPt, endPt, domDoc, sel,
-                             true);
+                             PR_TRUE);
 
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv =  find->Find(mSearchString.get(), searchRange, startPt, endPt,
-                     getter_AddRefs(foundRange));
+    rv =  mFind->Find(mSearchString.get(), searchRange, startPt, endPt,
+                      getter_AddRefs(foundRange));
 
     if (NS_SUCCEEDED(rv) && foundRange)
     {
-        *aDidFind = true;
+        *aDidFind = PR_TRUE;
         sel->RemoveAllRanges();
         
         
@@ -787,7 +826,7 @@ void
 nsWebBrowserFind::GetFrameSelection(nsIDOMWindow* aWindow, 
                                     nsISelection** aSel)
 {
-    *aSel = nullptr;
+    *aSel = nsnull;
 
     nsCOMPtr<nsIDOMDocument> domDoc;    
     aWindow->GetDocument(getter_AddRefs(domDoc));
@@ -801,7 +840,7 @@ nsWebBrowserFind::GetFrameSelection(nsIDOMWindow* aWindow,
     
     nsPresContext *presContext = presShell->GetPresContext();
 
-    nsIFrame *frame = nullptr;
+    nsIFrame *frame = nsnull;
     nsCOMPtr<nsIFocusManager> fm = do_GetService(FOCUSMANAGER_CONTRACTID);
     if (fm) {
       nsCOMPtr<nsIDOMElement> focusedElement;
@@ -810,7 +849,7 @@ nsWebBrowserFind::GetFrameSelection(nsIDOMWindow* aWindow,
       if (focusedContent) {
         frame = focusedContent->GetPrimaryFrame();
         if (frame && frame->PresContext() != presContext)
-          frame = nullptr;
+          frame = nsnull;
       }
     }
 
@@ -819,7 +858,7 @@ nsWebBrowserFind::GetFrameSelection(nsIDOMWindow* aWindow,
         frame->GetSelectionController(presContext, getter_AddRefs(selCon));
         selCon->GetSelection(nsISelectionController::SELECTION_NORMAL, aSel);
         if (*aSel) {
-            int32_t count = -1;
+            PRInt32 count = -1;
             (*aSel)->GetRangeCount(&count);
             if (count > 0) {
                 return;
@@ -880,7 +919,7 @@ nsIDocShell *
 nsWebBrowserFind::GetDocShellFromWindow(nsIDOMWindow *inWindow)
 {
     nsCOMPtr<nsPIDOMWindow> window(do_QueryInterface(inWindow));
-    if (!window) return nullptr;
+    if (!window) return nsnull;
 
     return window->GetDocShell();
 }

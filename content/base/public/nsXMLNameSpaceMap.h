@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsXMLNameSpaceMap_h_
 #define nsXMLNameSpaceMap_h_
 
@@ -17,7 +50,7 @@ struct nsNameSpaceEntry
     : prefix(aPrefix) {}
 
   nsCOMPtr<nsIAtom> prefix;
-  int32_t nameSpaceID;
+  PRInt32 nameSpaceID;
 };
 
 
@@ -38,7 +71,7 @@ public:
 
 
 
-  NS_HIDDEN_(nsresult) AddPrefix(nsIAtom *aPrefix, int32_t aNameSpaceID);
+  NS_HIDDEN_(nsresult) AddPrefix(nsIAtom *aPrefix, PRInt32 aNameSpaceID);
 
   
 
@@ -52,13 +85,13 @@ public:
 
 
 
-  NS_HIDDEN_(int32_t) FindNameSpaceID(nsIAtom *aPrefix) const;
+  NS_HIDDEN_(PRInt32) FindNameSpaceID(nsIAtom *aPrefix) const;
 
   
 
 
 
-  NS_HIDDEN_(nsIAtom*) FindPrefix(int32_t aNameSpaceID) const;
+  NS_HIDDEN_(nsIAtom*) FindPrefix(PRInt32 aNameSpaceID) const;
 
   
   NS_HIDDEN_(void) Clear();

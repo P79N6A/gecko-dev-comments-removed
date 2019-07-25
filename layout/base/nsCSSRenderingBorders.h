@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_CSS_RENDERING_BORDERS_H
 #define NS_CSS_RENDERING_BORDERS_H
 
@@ -63,15 +96,15 @@ typedef enum {
 } BorderColorStyle;
 
 struct nsCSSBorderRenderer {
-  nsCSSBorderRenderer(int32_t aAppUnitsPerPixel,
+  nsCSSBorderRenderer(PRInt32 aAppUnitsPerPixel,
                       gfxContext* aDestContext,
                       gfxRect& aOuterRect,
-                      const uint8_t* aBorderStyles,
+                      const PRUint8* aBorderStyles,
                       const gfxFloat* aBorderWidths,
                       gfxCornerSizes& aBorderRadii,
                       const nscolor* aBorderColors,
                       nsBorderColors* const* aCompositeColors,
-                      int aSkipSides,
+                      PRIntn aSkipSides,
                       nscolor aBackgroundColor);
 
   gfxCornerSizes mBorderCornerDimensions;
@@ -84,9 +117,9 @@ struct nsCSSBorderRenderer {
   gfxRect mInnerRect;
 
   
-  const uint8_t* mBorderStyles;
+  const PRUint8* mBorderStyles;
   const gfxFloat* mBorderWidths;
-  uint8_t* mSanitizedStyles;
+  PRUint8* mSanitizedStyles;
   gfxFloat* mSanitizedWidths;
   gfxCornerSizes mBorderRadii;
 
@@ -95,10 +128,10 @@ struct nsCSSBorderRenderer {
   nsBorderColors* const* mCompositeColors;
 
   
-  int32_t mAUPP;
+  PRInt32 mAUPP;
 
   
-  int mSkipSides;
+  PRIntn mSkipSides;
   nscolor mBackgroundColor;
 
   
@@ -108,13 +141,13 @@ struct nsCSSBorderRenderer {
 
   
   
-  bool AreBorderSideFinalStylesSame(uint8_t aSides);
+  bool AreBorderSideFinalStylesSame(PRUint8 aSides);
 
   
-  bool IsSolidCornerStyle(uint8_t aStyle, mozilla::css::Corner aCorner);
+  bool IsSolidCornerStyle(PRUint8 aStyle, mozilla::css::Corner aCorner);
 
   
-  BorderColorStyle BorderColorStyleForSolidCorner(uint8_t aStyle, mozilla::css::Corner aCorner);
+  BorderColorStyle BorderColorStyleForSolidCorner(PRUint8 aStyle, mozilla::css::Corner aCorner);
 
   
   
@@ -151,7 +184,7 @@ struct nsCSSBorderRenderer {
                        const gfxRect& aInnerRect,
                        const gfxCornerSizes& aBorderRadii,
                        const gfxFloat *aBorderSizes,
-                       int aSides,
+                       PRIntn aSides,
                        const gfxRGBA& aColor);
 
   
@@ -160,10 +193,10 @@ struct nsCSSBorderRenderer {
 
   
   
-  void DrawBorderSides (int aSides);
+  void DrawBorderSides (PRIntn aSides);
 
   
-  void DrawBorderSidesCompositeColors(int aSides, const nsBorderColors *compositeColors);
+  void DrawBorderSidesCompositeColors(PRIntn aSides, const nsBorderColors *compositeColors);
 
   
   void DrawDashedSide (mozilla::css::Side aSide);
@@ -203,14 +236,6 @@ struct nsCSSBorderRenderer {
   static void ComputeInnerRadii(const gfxCornerSizes& aRadii,
                                 const gfxFloat *aBorderSizes,
                                 gfxCornerSizes *aInnerRadiiRet);
-
-  
-  
-  
-  
-  static void ComputeOuterRadii(const gfxCornerSizes& aRadii,
-                                const gfxFloat *aBorderSizes,
-                                gfxCornerSizes *aOuterRadiiRet);
 };
 
 #ifdef DEBUG_NEW_BORDERS
@@ -236,7 +261,7 @@ static inline void S(const char *s) {
   fprintf (stderr, "%s", s);
 }
 
-static inline void SN(const char *s = nullptr) {
+static inline void SN(const char *s = nsnull) {
   if (s)
     fprintf (stderr, "%s", s);
   fprintf (stderr, "\n");
@@ -266,7 +291,7 @@ static inline void S(const gfxSize& s) {}
 static inline void S(const gfxRect& r) {}
 static inline void S(const gfxFloat f) {}
 static inline void S(const char *s) {}
-static inline void SN(const char *s = nullptr) {}
+static inline void SN(const char *s = nsnull) {}
 static inline void SF(const char *fmt, ...) {}
 static inline void SX(gfxContext *ctx) {}
 #endif

@@ -2,12 +2,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsAHttpConnection_h__
 #define nsAHttpConnection_h__
 
 #include "nsISupports.h"
-#include "nsAHttpTransaction.h"
 
+class nsAHttpTransaction;
 class nsHttpRequestHead;
 class nsHttpResponseHead;
 class nsHttpConnectionInfo;
@@ -53,17 +86,6 @@ public:
     
     
     
-    virtual void TransactionHasDataToWrite(nsAHttpTransaction *)
-    {
-        
-        return;
-    }
-    
-    
-    
-    
-    
-    
     
     
     
@@ -89,16 +111,10 @@ public:
 
     
     virtual bool IsReused() = 0;
-    virtual void DontReuse() = 0;
-
-    
-    
-    virtual nsresult PushBack(const char *data, uint32_t length) = 0;
-
     
     
     
-    virtual bool IsProxyConnectInProgress() = 0;
+    virtual nsresult PushBack(const char *data, PRUint32 length) = 0;
 
     
     
@@ -108,93 +124,23 @@ public:
     
     
     virtual nsHttpConnection *TakeHttpConnection() = 0;
-
-    
-    
-    virtual nsISocketTransport *Transport() = 0;
-
-    
-    
-    virtual uint32_t CancelPipeline(nsresult originalReason) = 0;
-
-    
-    virtual nsAHttpTransaction::Classifier Classification() = 0;
-    virtual void Classify(nsAHttpTransaction::Classifier newclass) = 0;
-
-    
-    
-    virtual int64_t BytesWritten() = 0;
 };
 
-#define NS_DECL_NSAHTTPCONNECTION(fwdObject)                    \
+#define NS_DECL_NSAHTTPCONNECTION \
     nsresult OnHeadersAvailable(nsAHttpTransaction *, nsHttpRequestHead *, nsHttpResponseHead *, bool *reset); \
+    nsresult ResumeSend(); \
+    nsresult ResumeRecv(); \
     void CloseTransaction(nsAHttpTransaction *, nsresult); \
+    void GetConnectionInfo(nsHttpConnectionInfo **); \
     nsresult TakeTransport(nsISocketTransport **,    \
                            nsIAsyncInputStream **,   \
                            nsIAsyncOutputStream **); \
+    void GetSecurityInfo(nsISupports **); \
     bool IsPersistent(); \
     bool IsReused(); \
-    void DontReuse();  \
-    nsresult PushBack(const char *, uint32_t); \
-    nsHttpConnection *TakeHttpConnection(); \
-    uint32_t CancelPipeline(nsresult originalReason);   \
-    nsAHttpTransaction::Classifier Classification();      \
-    /*                                                    \
-       Thes methods below have automatic definitions that just forward the \
-       function to a lower level connection object        \
-    */                                                    \
-    void GetConnectionInfo(nsHttpConnectionInfo **result) \
-    {                                                     \
-      if (!(fwdObject)) {                                 \
-          *result = nullptr;                               \
-          return;                                         \
-      }                                                   \
-        return (fwdObject)->GetConnectionInfo(result);    \
-    }                                                     \
-    void GetSecurityInfo(nsISupports **result)            \
-    {                                                     \
-      if (!(fwdObject)) {                                 \
-          *result = nullptr;                               \
-          return;                                         \
-      }                                                   \
-      return (fwdObject)->GetSecurityInfo(result);        \
-    }                                                     \
-    nsresult ResumeSend()                  \
-    {                                      \
-        if (!(fwdObject))                  \
-            return NS_ERROR_FAILURE;       \
-        return (fwdObject)->ResumeSend();  \
-    }                                      \
-    nsresult ResumeRecv()                  \
-    {                                      \
-        if (!(fwdObject))                  \
-            return NS_ERROR_FAILURE;       \
-        return (fwdObject)->ResumeRecv();  \
-    }                                      \
-    nsISocketTransport *Transport()        \
-    {                                      \
-        if (!(fwdObject))                  \
-            return nullptr;                 \
-        return (fwdObject)->Transport();   \
-    }                                      \
-    bool IsProxyConnectInProgress()                         \
-    {                                                       \
-        return (fwdObject)->IsProxyConnectInProgress();     \
-    }                                                       \
-    bool LastTransactionExpectedNoContent()                 \
-    {                                                       \
-        return (fwdObject)->LastTransactionExpectedNoContent(); \
-    }                                                       \
-    void SetLastTransactionExpectedNoContent(bool val)      \
-    {                                                       \
-        return (fwdObject)->SetLastTransactionExpectedNoContent(val); \
-    }                                                       \
-    void Classify(nsAHttpTransaction::Classifier newclass)  \
-    {                                                       \
-    if (fwdObject)                                          \
-        return (fwdObject)->Classify(newclass);             \
-    }                                                       \
-    int64_t BytesWritten()                                  \
-    {     return fwdObject ? (fwdObject)->BytesWritten() : 0; }
+    nsresult PushBack(const char *, PRUint32); \
+    bool LastTransactionExpectedNoContent(); \
+    void   SetLastTransactionExpectedNoContent(bool); \
+    nsHttpConnection *TakeHttpConnection();
 
 #endif 

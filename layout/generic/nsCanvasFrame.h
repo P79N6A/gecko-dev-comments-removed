@@ -5,10 +5,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsCanvasFrame_h___
 #define nsCanvasFrame_h___
 
-#include "nsContainerFrame.h"
+#include "nsHTMLContainerFrame.h"
 #include "nsIScrollPositionListener.h"
 #include "nsDisplayList.h"
 #include "nsGkAtoms.h"
@@ -24,13 +56,13 @@ class nsEvent;
 
 
 
-class nsCanvasFrame : public nsContainerFrame,
+class nsCanvasFrame : public nsHTMLContainerFrame,
                       public nsIScrollPositionListener
 {
 public:
   nsCanvasFrame(nsStyleContext* aContext)
-  : nsContainerFrame(aContext),
-    mDoPaintFocus(false),
+  : nsHTMLContainerFrame(aContext),
+    mDoPaintFocus(PR_FALSE),
     mAddedScrollPositionListener(false) {}
 
   NS_DECL_QUERYFRAME_TARGET(nsCanvasFrame)
@@ -56,9 +88,9 @@ public:
                     nsHTMLReflowMetrics&     aDesiredSize,
                     const nsHTMLReflowState& aReflowState,
                     nsReflowStatus&          aStatus);
-  virtual bool IsFrameOfType(uint32_t aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
-    return nsContainerFrame::IsFrameOfType(aFlags &
+    return nsHTMLContainerFrame::IsFrameOfType(aFlags &
              ~(nsIFrame::eCanContainOverflowContainers));
   }
 
@@ -92,7 +124,7 @@ public:
 
     
     
-    nsresult rv = nsContainerFrame::StealFrame(aPresContext, aChild, true);
+    nsresult rv = nsContainerFrame::StealFrame(aPresContext, aChild, PR_TRUE);
     if (NS_FAILED(rv)) {
       rv = nsContainerFrame::StealFrame(aPresContext, aChild);
     }
@@ -108,7 +140,7 @@ public:
   nsRect CanvasArea() const;
 
 protected:
-  virtual int GetSkipSides() const;
+  virtual PRIntn GetSkipSides() const;
 
   
   bool                      mDoPaintFocus;
@@ -130,37 +162,43 @@ public:
   }
 
   virtual bool ComputeVisibility(nsDisplayListBuilder* aBuilder,
-                                 nsRegion* aVisibleRegion,
-                                 const nsRect& aAllowVisibleRegionExpansion)
+                                   nsRegion* aVisibleRegion,
+                                   const nsRect& aAllowVisibleRegionExpansion)
   {
     return NS_GET_A(mExtraBackgroundColor) > 0 ||
       nsDisplayBackground::ComputeVisibility(aBuilder, aVisibleRegion,
                                              aAllowVisibleRegionExpansion);
   }
   virtual nsRegion GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
-                                   bool* aSnap)
+                                   bool* aForceTransparentSurface = nsnull)
   {
-    if (NS_GET_A(mExtraBackgroundColor) == 255) {
-      return nsRegion(GetBounds(aBuilder, aSnap));
+    if (aForceTransparentSurface) {
+      *aForceTransparentSurface = PR_FALSE;
     }
-    return nsDisplayBackground::GetOpaqueRegion(aBuilder, aSnap);
+    if (NS_GET_A(mExtraBackgroundColor) == 255)
+      return nsRegion(GetBounds(aBuilder));
+    return nsDisplayBackground::GetOpaqueRegion(aBuilder);
   }
   virtual bool IsUniform(nsDisplayListBuilder* aBuilder, nscolor* aColor)
   {
     nscolor background;
     if (!nsDisplayBackground::IsUniform(aBuilder, &background))
-      return false;
+      return PR_FALSE;
     NS_ASSERTION(background == NS_RGBA(0,0,0,0),
                  "The nsDisplayBackground for a canvas frame doesn't paint "
                  "its background color normally");
     *aColor = mExtraBackgroundColor;
-    return true;
+    return PR_TRUE;
   }
-  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap)
+  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder)
   {
     nsCanvasFrame* frame = static_cast<nsCanvasFrame*>(mFrame);
-    *aSnap = true;
-    return frame->CanvasArea() + ToReferenceFrame();
+    nsRect r = frame->CanvasArea() + ToReferenceFrame();
+    if (mSnappingEnabled) {
+      nscoord appUnitsPerDevPixel = frame->PresContext()->AppUnitsPerDevPixel();
+      r = r.ToNearestPixels(appUnitsPerDevPixel).ToAppUnits(appUnitsPerDevPixel);
+    }
+    return r;
   }
   virtual void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
                        HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames)

@@ -3,7 +3,38 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "DOMSVGAnimatedTransformList.h"
 #include "nsIDOMSVGAnimatedEnum.h"
@@ -14,6 +45,7 @@
 #include "nsSVGStylableElement.h"
 #include "nsGkAtoms.h"
 #include "nsSVGGradientElement.h"
+#include "nsIFrame.h"
 
 using namespace mozilla;
 
@@ -23,7 +55,7 @@ nsSVGEnumMapping nsSVGGradientElement::sSpreadMethodMap[] = {
   {&nsGkAtoms::pad, nsIDOMSVGGradientElement::SVG_SPREADMETHOD_PAD},
   {&nsGkAtoms::reflect, nsIDOMSVGGradientElement::SVG_SPREADMETHOD_REFLECT},
   {&nsGkAtoms::repeat, nsIDOMSVGGradientElement::SVG_SPREADMETHOD_REPEAT},
-  {nullptr, 0}
+  {nsnull, 0}
 };
 
 nsSVGElement::EnumInfo nsSVGGradientElement::sEnumInfo[2] =
@@ -40,7 +72,7 @@ nsSVGElement::EnumInfo nsSVGGradientElement::sEnumInfo[2] =
 
 nsSVGElement::StringInfo nsSVGGradientElement::sStringInfo[1] =
 {
-  { &nsGkAtoms::href, kNameSpaceID_XLink, true }
+  { &nsGkAtoms::href, kNameSpaceID_XLink, PR_TRUE }
 };
 
 
@@ -69,14 +101,14 @@ nsSVGElement::EnumAttributesInfo
 nsSVGGradientElement::GetEnumInfo()
 {
   return EnumAttributesInfo(mEnumAttributes, sEnumInfo,
-                            ArrayLength(sEnumInfo));
+                            NS_ARRAY_LENGTH(sEnumInfo));
 }
 
 nsSVGElement::StringAttributesInfo
 nsSVGGradientElement::GetStringInfo()
 {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              ArrayLength(sStringInfo));
+                              NS_ARRAY_LENGTH(sStringInfo));
 }
 
 
@@ -91,10 +123,9 @@ NS_IMETHODIMP nsSVGGradientElement::GetGradientUnits(nsIDOMSVGAnimatedEnumeratio
 
 NS_IMETHODIMP nsSVGGradientElement::GetGradientTransform(nsIDOMSVGAnimatedTransformList * *aGradientTransform)
 {
-  
-  
-  *aGradientTransform = DOMSVGAnimatedTransformList::GetDOMWrapper(
-                          GetAnimatedTransformList(DO_ALLOCATE), this).get();
+  *aGradientTransform =
+    DOMSVGAnimatedTransformList::GetDOMWrapper(GetAnimatedTransformList(), this)
+    .get();
   return NS_OK;
 }
 
@@ -125,7 +156,7 @@ nsSVGGradientElement::IsAttributeMapped(const nsIAtom* name) const
     sGradientStopMap
   };
   
-  return FindAttributeDependence(name, map) ||
+  return FindAttributeDependence(name, map, NS_ARRAY_LENGTH(map)) ||
     nsSVGGradientElementBase::IsAttributeMapped(name);
 }
 
@@ -150,9 +181,8 @@ NS_IMPL_RELEASE_INHERITED(nsSVGLinearGradientElement,nsSVGLinearGradientElementB
 DOMCI_NODE_DATA(SVGLinearGradientElement, nsSVGLinearGradientElement)
 
 NS_INTERFACE_TABLE_HEAD(nsSVGLinearGradientElement)
-  NS_NODE_INTERFACE_TABLE6(nsSVGLinearGradientElement, nsIDOMNode,
+  NS_NODE_INTERFACE_TABLE5(nsSVGLinearGradientElement, nsIDOMNode,
                            nsIDOMElement, nsIDOMSVGElement,
-                           nsIDOMSVGTests,
                            nsIDOMSVGGradientElement,
                            nsIDOMSVGLinearGradientElement)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(SVGLinearGradientElement)
@@ -203,9 +233,9 @@ NS_IMETHODIMP nsSVGLinearGradientElement::GetY2(nsIDOMSVGAnimatedLength * *aY2)
 
 
 SVGAnimatedTransformList*
-nsSVGGradientElement::GetAnimatedTransformList(uint32_t aFlags)
+nsSVGGradientElement::GetAnimatedTransformList()
 {
-  if (!mGradientTransform && (aFlags & DO_ALLOCATE)) {
+  if (!mGradientTransform) {
     mGradientTransform = new SVGAnimatedTransformList();
   }
   return mGradientTransform;
@@ -215,7 +245,7 @@ nsSVGElement::LengthAttributesInfo
 nsSVGLinearGradientElement::GetLengthInfo()
 {
   return LengthAttributesInfo(mLengthAttributes, sLengthInfo,
-                              ArrayLength(sLengthInfo));
+                              NS_ARRAY_LENGTH(sLengthInfo));
 }
 
 
@@ -240,9 +270,8 @@ NS_IMPL_RELEASE_INHERITED(nsSVGRadialGradientElement,nsSVGRadialGradientElementB
 DOMCI_NODE_DATA(SVGRadialGradientElement, nsSVGRadialGradientElement)
 
 NS_INTERFACE_TABLE_HEAD(nsSVGRadialGradientElement)
-  NS_NODE_INTERFACE_TABLE6(nsSVGRadialGradientElement, nsIDOMNode,
+  NS_NODE_INTERFACE_TABLE5(nsSVGRadialGradientElement, nsIDOMNode,
                            nsIDOMElement, nsIDOMSVGElement,
-                           nsIDOMSVGTests,
                            nsIDOMSVGGradientElement,
                            nsIDOMSVGRadialGradientElement)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(SVGRadialGradientElement)
@@ -301,5 +330,5 @@ nsSVGElement::LengthAttributesInfo
 nsSVGRadialGradientElement::GetLengthInfo()
 {
   return LengthAttributesInfo(mLengthAttributes, sLengthInfo,
-                              ArrayLength(sLengthInfo));
+                              NS_ARRAY_LENGTH(sLengthInfo));
 }

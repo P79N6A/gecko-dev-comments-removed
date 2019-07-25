@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDOMStorageDB_h___
 #define nsDOMStorageDB_h___
 
@@ -56,11 +89,6 @@ public:
   nsDOMStorageDBWrapper();
   ~nsDOMStorageDBWrapper();
 
-  
-
-
-  void Close();
-
   nsresult
   Init();
 
@@ -90,9 +118,9 @@ public:
          const nsAString& aKey,
          const nsAString& aValue,
          bool aSecure,
-         int32_t aQuota,
+         PRInt32 aQuota,
          bool aExcludeOfflineFromUsage,
-         int32_t* aNewUsage);
+         PRInt32* aNewUsage);
 
   
 
@@ -110,7 +138,7 @@ public:
   RemoveKey(DOMStorageImpl* aStorage,
             const nsAString& aKey,
             bool aExcludeOfflineFromUsage,
-            int32_t aKeyUsage);
+            PRInt32 aKeyUsage);
 
   
 
@@ -148,13 +176,19 @@ public:
 
 
   nsresult
-  GetUsage(DOMStorageImpl* aStorage, bool aExcludeOfflineFromUsage, int32_t *aUsage);
+  RemoveAll();
 
   
 
 
   nsresult
-  GetUsage(const nsACString& aDomain, bool aIncludeSubDomains, int32_t *aUsage, bool aPrivate);
+  GetUsage(DOMStorageImpl* aStorage, bool aExcludeOfflineFromUsage, PRInt32 *aUsage);
+
+  
+
+
+  nsresult
+  GetUsage(const nsACString& aDomain, bool aIncludeSubDomains, PRInt32 *aUsage);
 
   
 

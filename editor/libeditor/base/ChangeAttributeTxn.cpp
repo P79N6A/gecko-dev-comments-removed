@@ -3,13 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "ChangeAttributeTxn.h"
-#include "nsAString.h"
-#include "nsDebug.h"                    
-#include "nsError.h"                    
-#include "nsIDOMElement.h"              
-#include "nsIEditor.h"                  
-#include "nsString.h"                   
+#include "nsIDOMElement.h"
 
 ChangeAttributeTxn::ChangeAttributeTxn()
   : EditTxn()
@@ -45,7 +72,7 @@ NS_IMETHODIMP ChangeAttributeTxn::Init(nsIEditor      *aEditor,
   mAttribute = aAttribute;
   mValue = aValue;
   mRemoveAttribute = aRemoveAttribute;
-  mAttributeWasSet=false;
+  mAttributeWasSet=PR_FALSE;
   mUndoValue.Truncate();
   return NS_OK;
 }
@@ -59,7 +86,7 @@ NS_IMETHODIMP ChangeAttributeTxn::DoTransaction(void)
   nsresult result = mEditor->GetAttributeValue(mElement, mAttribute, mUndoValue, &mAttributeWasSet);
   
   if (!mUndoValue.IsEmpty())
-    mAttributeWasSet = true;
+    mAttributeWasSet = PR_TRUE;
   
   
   

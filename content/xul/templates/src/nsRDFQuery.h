@@ -3,13 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsRDFQuery_h__
 #define nsRDFQuery_h__
 
 #include "nsAutoPtr.h"
 #include "nsISimpleEnumerator.h"
 #include "nsCycleCollectionParticipant.h"
-#include "mozilla/Attributes.h"
 
 #define NS_ITEMPLATERDFQUERY_IID \
   {0x8929ff60, 0x1c9c, 0x4d87, \
@@ -37,15 +67,15 @@ public:
     virtual void ClearCachedResults() = 0;
 };
 
-class nsRDFQuery MOZ_FINAL : public nsITemplateRDFQuery
+class nsRDFQuery : public nsITemplateRDFQuery
 {
 public:
 
     nsRDFQuery(nsXULTemplateQueryProcessorRDF* aProcessor)
       : mProcessor(aProcessor),
-        mSimple(false),
-        mRoot(nullptr),
-        mCachedResults(nullptr)
+        mSimple(PR_FALSE),
+        mRoot(nsnull),
+        mCachedResults(nsnull)
     { }
 
     ~nsRDFQuery() { Finish(); }
@@ -88,7 +118,7 @@ public:
     
     void ClearCachedResults()
     {
-        mCachedResults = nullptr;
+        mCachedResults = nsnull;
     }
 
     nsXULTemplateQueryProcessorRDF* Processor() { return mProcessor; }
@@ -97,7 +127,7 @@ public:
 
     bool IsSimple() { return mSimple; }
 
-    void SetSimple() { mSimple = true; }
+    void SetSimple() { mSimple = PR_TRUE; }
 
     
     nsCOMPtr<nsIAtom> mRefVariable;

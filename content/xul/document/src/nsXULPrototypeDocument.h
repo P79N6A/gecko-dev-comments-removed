@@ -3,6 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsXULPrototypeDocument_h__
 #define nsXULPrototypeDocument_h__
 
@@ -12,6 +48,7 @@
 #include "nsTArray.h"
 #include "nsIScriptGlobalObjectOwner.h"
 #include "nsISerializable.h"
+#include "nsIDocument.h"
 #include "nsCycleCollectionParticipant.h"
 
 class nsIAtom;
@@ -110,11 +147,6 @@ public:
     
     virtual nsIScriptGlobalObject* GetScriptGlobalObject();
 
-    void MarkInCCGeneration(uint32_t aCCGeneration)
-    {
-        mCCGeneration = aCCGeneration;
-    }
-
     NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsXULPrototypeDocument,
                                              nsIScriptGlobalObjectOwner)
 
@@ -131,8 +163,6 @@ protected:
 
     nsRefPtr<nsNodeInfoManager> mNodeInfoManager;
 
-    uint32_t mCCGeneration;
-
     nsXULPrototypeDocument();
     virtual ~nsXULPrototypeDocument();
     nsresult Init();
@@ -144,7 +174,7 @@ protected:
 
     static nsIPrincipal* gSystemPrincipal;
     static nsXULPDGlobalObject* gSystemGlobal;
-    static uint32_t gRefCnt;
+    static PRUint32 gRefCnt;
 
     friend class nsXULPDGlobalObject;
 };

@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsDOMAnimationEvent.h"
 #include "nsGUIEvent.h"
 #include "nsDOMClassInfoID.h"
@@ -12,15 +44,15 @@
 nsDOMAnimationEvent::nsDOMAnimationEvent(nsPresContext *aPresContext,
                                          nsAnimationEvent *aEvent)
   : nsDOMEvent(aPresContext, aEvent ? aEvent
-                                    : new nsAnimationEvent(false, 0,
+                                    : new nsAnimationEvent(PR_FALSE, 0,
                                                            EmptyString(),
                                                            0.0))
 {
   if (aEvent) {
-    mEventIsInternal = false;
+    mEventIsInternal = PR_FALSE;
   }
   else {
-    mEventIsInternal = true;
+    mEventIsInternal = PR_TRUE;
     mEvent->time = PR_Now();
   }
 }
@@ -29,7 +61,7 @@ nsDOMAnimationEvent::~nsDOMAnimationEvent()
 {
   if (mEventIsInternal) {
     delete AnimationEvent();
-    mEvent = nullptr;
+    mEvent = nsnull;
   }
 }
 

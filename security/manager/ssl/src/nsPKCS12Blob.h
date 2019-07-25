@@ -3,11 +3,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _NS_PKCS12BLOB_H_
 #define _NS_PKCS12BLOB_H_
 
 #include "nsCOMPtr.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "nsIPK11TokenDB.h"
 #include "nsNSSHelper.h"
 #include "nsIPK11Token.h"
@@ -37,14 +70,14 @@ public:
   nsresult SetToken(nsIPK11Token *token);
 
   
-  nsresult ImportFromFile(nsIFile *file);
+  nsresult ImportFromFile(nsILocalFile *file);
 
   
 #if 0
   
   nsresult LoadCerts(nsIX509Cert **certs, int numCerts);
 #endif
-  nsresult ExportToFile(nsIFile *file, nsIX509Cert **certs, int numCerts);
+  nsresult ExportToFile(nsILocalFile *file, nsIX509Cert **certs, int numCerts);
 
 private:
 
@@ -55,7 +88,7 @@ private:
   
   nsresult getPKCS12FilePassword(SECItem *);
   nsresult newPKCS12FilePassword(SECItem *);
-  nsresult inputToDecoder(SEC_PKCS12DecoderContext *, nsIFile *);
+  nsresult inputToDecoder(SEC_PKCS12DecoderContext *, nsILocalFile *);
   void unicodeToItem(const PRUnichar *, SECItem *);
   void handleError(int myerr = 0);
 
@@ -74,7 +107,7 @@ private:
   enum RetryReason { rr_do_not_retry, rr_bad_password, rr_auto_retry_empty_password_flavors };
   enum ImportMode { im_standard_prompt, im_try_zero_length_secitem };
   
-  nsresult ImportFromFileHelper(nsIFile *file, ImportMode aImportMode, RetryReason &aWantRetry);
+  nsresult ImportFromFileHelper(nsILocalFile *file, ImportMode aImportMode, RetryReason &aWantRetry);
 
   
   PRFileDesc *mTmpFile;

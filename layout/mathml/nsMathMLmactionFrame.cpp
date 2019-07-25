@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsFrame.h"
 #include "nsPresContext.h"
@@ -19,7 +52,6 @@
 #include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIDOMElement.h"
-#include "nsTextFragment.h"
 
 #include "nsIDOMEventTarget.h"
 
@@ -27,47 +59,17 @@
 #include "nsAutoPtr.h"
 #include "nsStyleSet.h"
 #include "nsDisplayList.h"
+#include "nsContentUtils.h"
 
 
 
 
 
-enum nsMactionActionTypes {
-  NS_MATHML_ACTION_TYPE_CLASS_ERROR            = 0x10,
-  NS_MATHML_ACTION_TYPE_CLASS_USE_SELECTION    = 0x20,
-  NS_MATHML_ACTION_TYPE_CLASS_IGNORE_SELECTION = 0x40,
-  NS_MATHML_ACTION_TYPE_CLASS_BITMASK          = 0xF0,
+#define NS_MATHML_ACTION_TYPE_NONE         0
+#define NS_MATHML_ACTION_TYPE_TOGGLE       1
+#define NS_MATHML_ACTION_TYPE_STATUSLINE   2
+#define NS_MATHML_ACTION_TYPE_TOOLTIP      3 // unsupported
 
-  NS_MATHML_ACTION_TYPE_NONE       = NS_MATHML_ACTION_TYPE_CLASS_ERROR|0x01,
-
-  NS_MATHML_ACTION_TYPE_TOGGLE     = NS_MATHML_ACTION_TYPE_CLASS_USE_SELECTION|0x01,
-  NS_MATHML_ACTION_TYPE_UNKNOWN    = NS_MATHML_ACTION_TYPE_CLASS_USE_SELECTION|0x02,
-
-  NS_MATHML_ACTION_TYPE_STATUSLINE = NS_MATHML_ACTION_TYPE_CLASS_IGNORE_SELECTION|0x01,
-  NS_MATHML_ACTION_TYPE_TOOLTIP    = NS_MATHML_ACTION_TYPE_CLASS_IGNORE_SELECTION|0x02
-};
-
-
-
-static int32_t
-GetActionType(nsIContent* aContent)
-{
-  nsAutoString value;
-
-  if (aContent) {
-    if (!aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::actiontype_, value))
-      return NS_MATHML_ACTION_TYPE_NONE; 
-  }
-
-  if (value.EqualsLiteral("toggle"))
-    return NS_MATHML_ACTION_TYPE_TOGGLE;
-  if (value.EqualsLiteral("statusline"))
-    return NS_MATHML_ACTION_TYPE_STATUSLINE;
-  if (value.EqualsLiteral("tooltip"))
-    return NS_MATHML_ACTION_TYPE_TOOLTIP;
-
-  return NS_MATHML_ACTION_TYPE_UNKNOWN;
-}
 
 nsIFrame*
 NS_NewMathMLmactionFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
@@ -82,12 +84,12 @@ nsMathMLmactionFrame::~nsMathMLmactionFrame()
   
   
   if (mListener) {
-    mContent->RemoveSystemEventListener(NS_LITERAL_STRING("click"), mListener,
-                                        false);
-    mContent->RemoveSystemEventListener(NS_LITERAL_STRING("mouseover"), mListener,
-                                        false);
-    mContent->RemoveSystemEventListener(NS_LITERAL_STRING("mouseout"), mListener,
-                                        false);
+    mContent->RemoveEventListener(NS_LITERAL_STRING("click"), mListener,
+                                  PR_FALSE);
+    mContent->RemoveEventListener(NS_LITERAL_STRING("mouseover"), mListener,
+                                  PR_FALSE);
+    mContent->RemoveEventListener(NS_LITERAL_STRING("mouseout"), mListener,
+                                  PR_FALSE);
   }
 }
 
@@ -96,12 +98,36 @@ nsMathMLmactionFrame::Init(nsIContent*      aContent,
                            nsIFrame*        aParent,
                            nsIFrame*        aPrevInFlow)
 {
+  nsAutoString value, prefix;
+
   
 
   mChildCount = -1; 
   mSelection = 0;
-  mSelectedFrame = nullptr;
-  mActionType = GetActionType(aContent);
+  mSelectedFrame = nsnull;
+  nsRefPtr<nsStyleContext> newStyleContext;
+
+  mActionType = NS_MATHML_ACTION_TYPE_NONE;
+  aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::actiontype_, value);
+  if (!value.IsEmpty()) {
+    if (value.EqualsLiteral("toggle"))
+      mActionType = NS_MATHML_ACTION_TYPE_TOGGLE;
+
+    
+
+    if (NS_MATHML_ACTION_TYPE_NONE == mActionType) {
+      
+      if (8 < value.Length() && 0 == value.Find("tooltip#"))
+        mActionType = NS_MATHML_ACTION_TYPE_TOOLTIP;
+    }
+
+    if (NS_MATHML_ACTION_TYPE_NONE == mActionType) {
+      
+      if (11 < value.Length() && 0 == value.Find("statusline#"))
+        mActionType = NS_MATHML_ACTION_TYPE_STATUSLINE;
+    }
+
+  }
 
   
   return nsMathMLContainerFrame::Init(aContent, aParent, aPrevInFlow);
@@ -129,12 +155,12 @@ nsMathMLmactionFrame::TransmitAutomaticData() {
 }
 
 nsresult
-nsMathMLmactionFrame::ChildListChanged(int32_t aModType)
+nsMathMLmactionFrame::ChildListChanged(PRInt32 aModType)
 {
   
   mChildCount = -1;
   mSelection = 0;
-  mSelectedFrame = nullptr;
+  mSelectedFrame = nsnull;
   GetSelectedFrame();
 
   return nsMathMLContainerFrame::ChildListChanged(aModType);
@@ -145,32 +171,12 @@ nsIFrame*
 nsMathMLmactionFrame::GetSelectedFrame()
 {
   nsAutoString value;
-  int32_t selection; 
-
-  if ((mActionType & NS_MATHML_ACTION_TYPE_CLASS_BITMASK) == 
-       NS_MATHML_ACTION_TYPE_CLASS_ERROR) {
-    
-    mSelection = -1;
-    mSelectedFrame = nullptr;
-    return mSelectedFrame;
-  }
-
-  
-  
-  if ((mActionType & NS_MATHML_ACTION_TYPE_CLASS_BITMASK) == 
-       NS_MATHML_ACTION_TYPE_CLASS_IGNORE_SELECTION) {
-    
-    
-    
-    mSelection = 1;
-    mSelectedFrame = mFrames.FirstChild();
-    return mSelectedFrame;
-  }
+  PRInt32 selection; 
 
   GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::selection_,
                value);
   if (!value.IsEmpty()) {
-    nsresult errorCode;
+    PRInt32 errorCode;
     selection = value.ToInteger(&errorCode);
     if (NS_FAILED(errorCode)) 
       selection = 1;
@@ -179,15 +185,15 @@ nsMathMLmactionFrame::GetSelectedFrame()
 
   if (-1 != mChildCount) { 
     
-    if (selection > mChildCount || selection < 1)
-      selection = -1;
+    if (selection > mChildCount || selection < 1) 
+      selection = 1;
     
     if (selection == mSelection) 
       return mSelectedFrame;
   }
 
   
-  int32_t count = 0;
+  PRInt32 count = 0;
   nsIFrame* childFrame = mFrames.FirstChild();
   while (childFrame) {
     if (!mSelectedFrame) 
@@ -198,12 +204,11 @@ nsMathMLmactionFrame::GetSelectedFrame()
     childFrame = childFrame->GetNextSibling();
   }
   
-  if (selection > count || selection < 1)
-    selection = -1;
+  if (selection > count || selection < 1) 
+    selection = 1;
 
   mChildCount = count;
   mSelection = selection;
-  TransmitAutomaticData();
 
   return mSelectedFrame;
 }
@@ -223,51 +228,14 @@ nsMathMLmactionFrame::SetInitialChildList(ChildListID     aListID,
     
     mListener = new nsMathMLmactionFrame::MouseListener(this);
     
-    mContent->AddSystemEventListener(NS_LITERAL_STRING("click"), mListener,
-                                     false, false);
-    mContent->AddSystemEventListener(NS_LITERAL_STRING("mouseover"), mListener,
-                                     false, false);
-    mContent->AddSystemEventListener(NS_LITERAL_STRING("mouseout"), mListener,
-                                     false, false);
+    mContent->AddEventListener(NS_LITERAL_STRING("click"), mListener,
+                               PR_FALSE, PR_FALSE);
+    mContent->AddEventListener(NS_LITERAL_STRING("mouseover"), mListener,
+                               PR_FALSE, PR_FALSE);
+    mContent->AddEventListener(NS_LITERAL_STRING("mouseout"), mListener,
+                               PR_FALSE, PR_FALSE);
   }
   return rv;
-}
-
-NS_IMETHODIMP
-nsMathMLmactionFrame::AttributeChanged(int32_t  aNameSpaceID,
-                                       nsIAtom* aAttribute,
-                                       int32_t  aModType)
-{
-  bool needsReflow = false;
-
-  if (aAttribute == nsGkAtoms::actiontype_) {
-    
-    int32_t oldActionType = mActionType;
-    mActionType = GetActionType(mContent);
-
-    
-    if ((oldActionType & NS_MATHML_ACTION_TYPE_CLASS_BITMASK) !=
-          (mActionType & NS_MATHML_ACTION_TYPE_CLASS_BITMASK)) {
-      needsReflow = true;
-    }
-  } else if (aAttribute == nsGkAtoms::selection_) {
-    if ((mActionType & NS_MATHML_ACTION_TYPE_CLASS_BITMASK) == 
-         NS_MATHML_ACTION_TYPE_CLASS_USE_SELECTION) {
-      needsReflow = true;
-    }
-  } else {
-    
-    return 
-      nsMathMLContainerFrame::AttributeChanged(aNameSpaceID, 
-                                               aAttribute, aModType);
-  }
-
-  if (needsReflow) {
-    PresContext()->PresShell()->
-      FrameNeedsReflow(this, nsIPresShell::eTreeChange, NS_FRAME_IS_DIRTY);
-  }
-
-  return NS_OK;
 }
 
 
@@ -276,13 +244,6 @@ nsMathMLmactionFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                        const nsRect&           aDirtyRect,
                                        const nsDisplayListSet& aLists)
 {
-  
-  
-  
-  if (NS_MATHML_HAS_ERROR(mPresentationData.flags)) {
-    return nsMathMLContainerFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
-  }
-
   nsresult rv = DisplayBorderBackgroundOutline(aBuilder, aLists);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -295,7 +256,7 @@ nsMathMLmactionFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-#if defined(DEBUG) && defined(SHOW_BOUNDING_BOX)
+#if defined(NS_DEBUG) && defined(SHOW_BOUNDING_BOX)
   
   rv = DisplayBoundingMetrics(aBuilder, this, mReference, mBoundingMetrics, aLists);
 #endif
@@ -336,19 +297,14 @@ nsMathMLmactionFrame::Place(nsRenderingContext& aRenderingContext,
                             bool                 aPlaceOrigin,
                             nsHTMLReflowMetrics& aDesiredSize)
 {
-  nsIFrame* childFrame = GetSelectedFrame();
-
-  if (mSelection == -1) {
-    return ReflowError(aRenderingContext, aDesiredSize);
-  }
-
   aDesiredSize.width = aDesiredSize.height = 0;
   aDesiredSize.ascent = 0;
   mBoundingMetrics = nsBoundingMetrics();
+  nsIFrame* childFrame = GetSelectedFrame();
   if (childFrame) {
     GetReflowAndBoundingMetricsFor(childFrame, aDesiredSize, mBoundingMetrics);
     if (aPlaceOrigin) {
-      FinishReflowChild(childFrame, PresContext(), nullptr, aDesiredSize, 0, 0, 0);
+      FinishReflowChild(childFrame, PresContext(), nsnull, aDesiredSize, 0, 0, 0);
     }
     mReference.x = 0;
     mReference.y = aDesiredSize.ascent;
@@ -412,28 +368,12 @@ nsMathMLmactionFrame::MouseOver()
 {
   
   if (NS_MATHML_ACTION_TYPE_STATUSLINE == mActionType) {
+    nsAutoString value;
+    mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::actiontype_, value);
     
-    nsIFrame* childFrame = mFrames.FrameAt(1);
-    if (!childFrame) return;
-
-    nsIContent* content = childFrame->GetContent();
-    if (!content) return;
-
-    
-    if (content->GetNameSpaceID() == kNameSpaceID_MathML &&
-        content->Tag() == nsGkAtoms::mtext_) {
-      
-      content = content->GetFirstChild();
-      if (!content) return;
-
-      const nsTextFragment* textFrg = content->GetText();
-      if (!textFrg) return;
-
-      nsAutoString text;
-      textFrg->AppendTo(text);
-      
-      text.CompressWhitespace();
-      ShowStatus(PresContext(), text);
+    if (11 < value.Length() && 0 == value.Find("statusline#")) {
+      value.Cut(0, 11);
+      ShowStatus(PresContext(), value);
     }
   }
 }
@@ -454,7 +394,7 @@ nsMathMLmactionFrame::MouseClick()
 {
   if (NS_MATHML_ACTION_TYPE_TOGGLE == mActionType) {
     if (mChildCount > 1) {
-      int32_t selection = (mSelection == mChildCount)? 1 : mSelection + 1;
+      PRInt32 selection = (mSelection == mChildCount)? 1 : mSelection + 1;
       nsAutoString value;
       char cbuf[10];
       PR_snprintf(cbuf, sizeof(cbuf), "%d", selection);

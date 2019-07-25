@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_CACHED_TEMP_SURFACE_H
 #define GFX_CACHED_TEMP_SURFACE_H
 
@@ -42,7 +74,7 @@ public:
                                    const gfxRect& aRect,
                                    gfxASurface* aSimilarTo);
 
-  void Expire() { mSurface = nullptr; }
+  void Expire() { mSurface = nsnull; }
   nsExpirationState* GetExpirationState() { return &mExpirationState; }
   ~gfxCachedTempSurface();
 

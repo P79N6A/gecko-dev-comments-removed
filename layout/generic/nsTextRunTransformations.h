@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NSTEXTRUNTRANSFORMATIONS_H_
 #define NSTEXTRUNTRANSFORMATIONS_H_
 
@@ -16,13 +48,13 @@ public:
   virtual ~nsTransformingTextRunFactory() {}
 
   
-  nsTransformedTextRun* MakeTextRun(const uint8_t* aString, uint32_t aLength,
+  nsTransformedTextRun* MakeTextRun(const PRUint8* aString, PRUint32 aLength,
                                     const gfxFontGroup::Parameters* aParams,
-                                    gfxFontGroup* aFontGroup, uint32_t aFlags,
+                                    gfxFontGroup* aFontGroup, PRUint32 aFlags,
                                     nsStyleContext** aStyles, bool aOwnsFactory = true);
-  nsTransformedTextRun* MakeTextRun(const PRUnichar* aString, uint32_t aLength,
+  nsTransformedTextRun* MakeTextRun(const PRUnichar* aString, PRUint32 aLength,
                                     const gfxFontGroup::Parameters* aParams,
-                                    gfxFontGroup* aFontGroup, uint32_t aFlags,
+                                    gfxFontGroup* aFontGroup, PRUint32 aFlags,
                                     nsStyleContext** aStyles, bool aOwnsFactory = true);
 
   virtual void RebuildTextRun(nsTransformedTextRun* aTextRun, gfxContext* aRefContext) = 0;
@@ -71,8 +103,8 @@ public:
   static nsTransformedTextRun *Create(const gfxTextRunFactory::Parameters* aParams,
                                       nsTransformingTextRunFactory* aFactory,
                                       gfxFontGroup* aFontGroup,
-                                      const PRUnichar* aString, uint32_t aLength,
-                                      const uint32_t aFlags, nsStyleContext** aStyles,
+                                      const PRUnichar* aString, PRUint32 aLength,
+                                      const PRUint32 aFlags, nsStyleContext** aStyles,
                                       bool aOwnsFactory);
 
   ~nsTransformedTextRun() {
@@ -81,11 +113,11 @@ public:
     }
   }
   
-  void SetCapitalization(uint32_t aStart, uint32_t aLength,
+  void SetCapitalization(PRUint32 aStart, PRUint32 aLength,
                          bool* aCapitalization,
                          gfxContext* aRefContext);
-  virtual bool SetPotentialLineBreaks(uint32_t aStart, uint32_t aLength,
-                                        uint8_t* aBreakBefore,
+  virtual bool SetPotentialLineBreaks(PRUint32 aStart, PRUint32 aLength,
+                                        PRUint8* aBreakBefore,
                                         gfxContext* aRefContext);
   
 
@@ -95,19 +127,14 @@ public:
   void FinishSettingProperties(gfxContext* aRefContext)
   {
     if (mNeedsRebuild) {
-      mNeedsRebuild = false;
+      mNeedsRebuild = PR_FALSE;
       mFactory->RebuildTextRun(this, aRefContext);
     }
   }
 
-  
-  virtual NS_MUST_OVERRIDE size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf);
-  virtual NS_MUST_OVERRIDE size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf);
-
   nsTransformingTextRunFactory       *mFactory;
   nsTArray<nsRefPtr<nsStyleContext> > mStyles;
-  nsTArray<bool>                      mCapitalize;
-  nsString                            mString;
+  nsTArray<bool>              mCapitalize;
   bool                                mOwnsFactory;
   bool                                mNeedsRebuild;
 
@@ -115,20 +142,18 @@ private:
   nsTransformedTextRun(const gfxTextRunFactory::Parameters* aParams,
                        nsTransformingTextRunFactory* aFactory,
                        gfxFontGroup* aFontGroup,
-                       const PRUnichar* aString, uint32_t aLength,
-                       const uint32_t aFlags, nsStyleContext** aStyles,
-                       bool aOwnsFactory)
-    : gfxTextRun(aParams, aLength, aFontGroup, aFlags),
-      mFactory(aFactory), mString(aString, aLength),
-      mOwnsFactory(aOwnsFactory), mNeedsRebuild(true)
+                       const PRUnichar* aString, PRUint32 aLength,
+                       const PRUint32 aFlags, nsStyleContext** aStyles,
+                       bool aOwnsFactory,
+                       CompressedGlyph *aGlyphStorage)
+    : gfxTextRun(aParams, aString, aLength, aFontGroup, aFlags, aGlyphStorage),
+      mFactory(aFactory), mOwnsFactory(aOwnsFactory), mNeedsRebuild(PR_TRUE)
   {
-    mCharacterGlyphs = reinterpret_cast<CompressedGlyph*>(this + 1);
-
-    uint32_t i;
+    PRUint32 i;
     for (i = 0; i < aLength; ++i) {
       mStyles.AppendElement(aStyles[i]);
     }
-  }
+  }  
 };
 
 #endif 

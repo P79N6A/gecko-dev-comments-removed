@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "mozilla/ReentrantMonitor.h"
 
 #include "ImageLayers.h"
@@ -24,96 +56,118 @@ using mozilla::ReentrantMonitor;
 namespace mozilla {
 namespace layers {
 
-class BasicPlanarYCbCrImage : public PlanarYCbCrImage
-{
+
+
+
+class BasicImageImplData {
 public:
-  BasicPlanarYCbCrImage(const gfxIntSize& aScaleHint, gfxImageFormat aOffscreenFormat, BufferRecycleBin *aRecycleBin)
-    : PlanarYCbCrImage(aRecycleBin)
-    , mScaleHint(aScaleHint)
-    , mDelayedConversion(false)
+  
+
+
+  virtual already_AddRefed<gfxASurface> GetAsSurface() = 0;
+
+  gfxIntSize GetSize() { return mSize; }
+
+protected:
+  gfxIntSize mSize;
+};
+
+
+
+
+
+
+
+class BasicCairoImage : public CairoImage, public BasicImageImplData {
+public:
+  BasicCairoImage() : CairoImage(static_cast<BasicImageImplData*>(this)) {}
+
+  virtual void SetData(const Data& aData)
   {
-    SetOffscreenFormat(aOffscreenFormat);
+    mSurface = aData.mSurface;
+    mSize = aData.mSize;
   }
 
-  ~BasicPlanarYCbCrImage()
+  virtual already_AddRefed<gfxASurface> GetAsSurface()
   {
-    if (mDecodedBuffer) {
-      
-      
-      mRecycleBin->RecycleBuffer(mDecodedBuffer.forget(), mSize.height * mStride);
-    }
+    NS_ASSERTION(NS_IsMainThread(), "Must be main thread");
+    nsRefPtr<gfxASurface> surface = mSurface.get();
+    return surface.forget();
   }
+
+protected:
+  nsCountedRef<nsMainThreadSurfaceRef> mSurface;
+};
+
+
+
+
+
+
+class BasicPlanarYCbCrImage : public PlanarYCbCrImage, public BasicImageImplData {
+   typedef gfxASurface::gfxImageFormat gfxImageFormat;
+public:
+   
+
+
+
+  BasicPlanarYCbCrImage(const gfxIntSize& aScaleHint) :
+    PlanarYCbCrImage(static_cast<BasicImageImplData*>(this)),
+    mScaleHint(aScaleHint),
+    mOffscreenFormat(gfxASurface::ImageFormatUnknown),
+    mDelayedConversion(PR_FALSE)
+    {}
 
   virtual void SetData(const Data& aData);
   virtual void SetDelayedConversion(bool aDelayed) { mDelayedConversion = aDelayed; }
 
-  already_AddRefed<gfxASurface> GetAsSurface();
+  virtual already_AddRefed<gfxASurface> GetAsSurface();
 
-private:
-  nsAutoArrayPtr<uint8_t> mDecodedBuffer;
-  gfxIntSize mScaleHint;
-  int mStride;
-  bool mDelayedConversion;
-};
+  const Data* GetData() { return &mData; }
 
-class BasicImageFactory : public ImageFactory
-{
-public:
-  BasicImageFactory() {}
+  void SetOffscreenFormat(gfxImageFormat aFormat) { mOffscreenFormat = aFormat; }
+  gfxImageFormat GetOffscreenFormat() { return mOffscreenFormat; }
 
-  virtual already_AddRefed<Image> CreateImage(const ImageFormat* aFormats,
-                                              uint32_t aNumFormats,
-                                              const gfxIntSize &aScaleHint,
-                                              BufferRecycleBin *aRecycleBin)
-  {
-    if (!aNumFormats) {
-      return nullptr;
-    }
+  PRUint32 GetDataSize() { return mBuffer ? mDelayedConversion ? mBufferSize : mSize.height * mStride : 0; }
 
-    nsRefPtr<Image> image;
-    if (aFormats[0] == PLANAR_YCBCR) {
-      image = new BasicPlanarYCbCrImage(aScaleHint, gfxPlatform::GetPlatform()->GetOffscreenFormat(), aRecycleBin);
-      return image.forget();
-    }
-
-    return ImageFactory::CreateImage(aFormats, aNumFormats, aScaleHint, aRecycleBin);
-  }
+protected:
+  nsAutoArrayPtr<PRUint8>              mBuffer;
+  nsCountedRef<nsMainThreadSurfaceRef> mSurface;
+  gfxIntSize                           mScaleHint;
+  PRInt32                              mStride;
+  gfxImageFormat                       mOffscreenFormat;
+  Data                                 mData;
+  PRUint32                             mBufferSize;
+  bool                                 mDelayedConversion;
 };
 
 void
 BasicPlanarYCbCrImage::SetData(const Data& aData)
 {
-  PlanarYCbCrImage::SetData(aData);
-
-  if (mDelayedConversion) {
-    return;
-  }
-
   
-  if (aData.mYSize.width > PlanarYCbCrImage::MAX_DIMENSION ||
-      aData.mYSize.height > PlanarYCbCrImage::MAX_DIMENSION) {
-    NS_ERROR("Illegal image source width or height");
+  if (aData.mYSize.width > 16384 || aData.mYSize.height > 16384) {
+    NS_ERROR("Illegal width or height");
     return;
   }
-
+  
+  if (mDelayedConversion) {
+    mBuffer = CopyData(mData, mSize, mBufferSize, aData);
+    return;
+  }
+  
   gfxASurface::gfxImageFormat format = GetOffscreenFormat();
 
   gfxIntSize size(mScaleHint);
   gfxUtils::GetYCbCrToRGBDestFormatAndSize(aData, format, size);
-  if (size.width > PlanarYCbCrImage::MAX_DIMENSION ||
-      size.height > PlanarYCbCrImage::MAX_DIMENSION) {
-    NS_ERROR("Illegal image dest width or height");
-    return;
-  }
 
   mStride = gfxASurface::FormatStrideForWidth(format, size.width);
-  mDecodedBuffer = AllocateBuffer(size.height * mStride);
-  if (!mDecodedBuffer) {
+  mBuffer = AllocateBuffer(size.height * mStride);
+  if (!mBuffer) {
     
     return;
   }
 
-  gfxUtils::ConvertYCbCrToRGB(aData, format, size, mDecodedBuffer, mStride);
+  gfxUtils::ConvertYCbCrToRGB(aData, format, size, mBuffer, mStride);
   SetOffscreenFormat(format);
   mSize = size;
 }
@@ -123,7 +177,7 @@ static cairo_user_data_key_t imageSurfaceDataKey;
 static void
 DestroyBuffer(void* aBuffer)
 {
-  delete[] static_cast<uint8_t*>(aBuffer);
+  delete[] static_cast<PRUint8*>(aBuffer);
 }
 
 already_AddRefed<gfxASurface>
@@ -136,20 +190,22 @@ BasicPlanarYCbCrImage::GetAsSurface()
     return result.forget();
   }
 
-  if (!mDecodedBuffer) {
-    return PlanarYCbCrImage::GetAsSurface();
+  
+  
+  if (!mBuffer || mDelayedConversion) {
+    return nsnull;
   }
 
   gfxASurface::gfxImageFormat format = GetOffscreenFormat();
 
   nsRefPtr<gfxImageSurface> imgSurface =
-      new gfxImageSurface(mDecodedBuffer, mSize, mStride, format);
+      new gfxImageSurface(mBuffer, mSize, mStride, format);
   if (!imgSurface || imgSurface->CairoStatus() != 0) {
-    return nullptr;
+    return nsnull;
   }
 
   
-  imgSurface->SetData(&imageSurfaceDataKey, mDecodedBuffer.forget(), DestroyBuffer);
+  imgSurface->SetData(&imageSurfaceDataKey, mBuffer.forget(), DestroyBuffer);
 
   nsRefPtr<gfxASurface> result = imgSurface.get();
 #if defined(XP_MACOSX)
@@ -159,20 +215,144 @@ BasicPlanarYCbCrImage::GetAsSurface()
     result = quartzSurface.forget();
   }
 #endif
-
-  mSurface = result;
+  mSurface = result.get();
 
   return result.forget();
 }
 
-ImageFactory*
-BasicLayerManager::GetImageFactory()
+
+
+
+
+
+class BasicImageContainer : public ImageContainer {
+public:
+  typedef gfxASurface::gfxImageFormat gfxImageFormat;
+
+  BasicImageContainer() :
+    ImageContainer(nsnull),
+    mScaleHint(-1, -1),
+    mOffscreenFormat(gfxASurface::ImageFormatUnknown),
+    mDelayed(PR_FALSE)
+  {}
+  virtual already_AddRefed<Image> CreateImage(const Image::Format* aFormats,
+                                              PRUint32 aNumFormats);
+  virtual void SetDelayedConversion(bool aDelayed) { mDelayed = aDelayed; }
+  virtual void SetCurrentImage(Image* aImage);
+  virtual already_AddRefed<Image> GetCurrentImage();
+  virtual already_AddRefed<gfxASurface> GetCurrentAsSurface(gfxIntSize* aSize);
+  virtual gfxIntSize GetCurrentSize();
+  virtual bool SetLayerManager(LayerManager *aManager);
+  virtual void SetScaleHint(const gfxIntSize& aScaleHint);
+  void SetOffscreenFormat(gfxImageFormat aFormat) { mOffscreenFormat = aFormat; }
+  virtual LayerManager::LayersBackend GetBackendType() { return LayerManager::LAYERS_BASIC; }
+
+protected:
+  nsRefPtr<Image> mImage;
+  gfxIntSize mScaleHint;
+  gfxImageFormat mOffscreenFormat;
+  bool mDelayed;
+};
+
+
+
+
+static bool
+FormatInList(const Image::Format* aFormats, PRUint32 aNumFormats,
+             Image::Format aFormat)
 {
-  if (!mFactory) {
-    mFactory = new BasicImageFactory();
+  for (PRUint32 i = 0; i < aNumFormats; ++i) {
+    if (aFormats[i] == aFormat) {
+      return PR_TRUE;
+    }
+  }
+  return PR_FALSE;
+}
+
+already_AddRefed<Image>
+BasicImageContainer::CreateImage(const Image::Format* aFormats,
+                                 PRUint32 aNumFormats)
+{
+  nsRefPtr<Image> image;
+  
+  if (FormatInList(aFormats, aNumFormats, Image::CAIRO_SURFACE)) {
+    image = new BasicCairoImage();
+  } else if (FormatInList(aFormats, aNumFormats, Image::PLANAR_YCBCR)) {
+    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+    image = new BasicPlanarYCbCrImage(mScaleHint);
+    static_cast<BasicPlanarYCbCrImage*>(image.get())->SetOffscreenFormat(mOffscreenFormat);
+    static_cast<BasicPlanarYCbCrImage*>(image.get())->SetDelayedConversion(mDelayed);
+  }
+  return image.forget();
+}
+
+void
+BasicImageContainer::SetCurrentImage(Image* aImage)
+{
+  ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+  mImage = aImage;
+  CurrentImageChanged();
+}
+
+already_AddRefed<Image>
+BasicImageContainer::GetCurrentImage()
+{
+  ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+  nsRefPtr<Image> image = mImage;
+  return image.forget();
+}
+
+static BasicImageImplData*
+ToImageData(Image* aImage)
+{
+  return static_cast<BasicImageImplData*>(aImage->GetImplData());
+}
+
+already_AddRefed<gfxASurface>
+BasicImageContainer::GetCurrentAsSurface(gfxIntSize* aSizeResult)
+{
+  NS_PRECONDITION(NS_IsMainThread(), "Must be called on main thread");
+
+  ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+  if (!mImage) {
+    return nsnull;
+  }
+  *aSizeResult = ToImageData(mImage)->GetSize();
+  return ToImageData(mImage)->GetAsSurface();
+}
+
+gfxIntSize
+BasicImageContainer::GetCurrentSize()
+{
+  ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+  return !mImage ? gfxIntSize(0,0) : ToImageData(mImage)->GetSize();
+}
+
+void BasicImageContainer::SetScaleHint(const gfxIntSize& aScaleHint)
+{
+  ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+  mScaleHint = aScaleHint;
+}
+
+bool
+BasicImageContainer::SetLayerManager(LayerManager *aManager)
+{
+  if (aManager &&
+      aManager->GetBackendType() != LayerManager::LAYERS_BASIC)
+  {
+    return PR_FALSE;
   }
 
-  return mFactory.get();
+  return PR_TRUE;
+}
+
+already_AddRefed<ImageContainer>
+BasicLayerManager::CreateImageContainer()
+{
+  nsRefPtr<ImageContainer> container = new BasicImageContainer();
+  static_cast<BasicImageContainer*>(container.get())->
+    SetOffscreenFormat(gfxPlatform::GetPlatform()->GetOffscreenFormat());
+  return container.forget();
 }
 
 }

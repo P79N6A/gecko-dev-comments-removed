@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIView_h___
 #define nsIView_h___
 
@@ -17,8 +49,8 @@
 class nsIViewManager;
 class nsViewManager;
 class nsView;
+class nsWeakView;
 class nsIWidget;
-class nsIFrame;
 
 
 
@@ -30,8 +62,14 @@ enum nsViewVisibility {
 };
 
 #define NS_IVIEW_IID    \
-  { 0xa4577c1d, 0xbc80, 0x444c, \
-    { 0xb0, 0x9d, 0x5b, 0xef, 0x94, 0x7c, 0x43, 0x31 } }
+  { 0xe0a3b0ee, 0x8d0f, 0x4dcb, \
+    { 0x89, 0x04, 0x81, 0x2d, 0xfd, 0x90, 0x00, 0x73 } }
+
+
+#define NS_VIEW_FLAGS_PUBLIC              0x00FF
+
+
+#define NS_VIEW_FLAGS_PRIVATE             0xFF00
 
 
 
@@ -45,6 +83,15 @@ enum nsViewVisibility {
 
 
 #define NS_VIEW_FLAG_TOPMOST              0x0010
+
+struct nsViewZIndex {
+  bool mIsAuto;
+  PRInt32 mZIndex;
+  bool mIsTopmost;
+  
+  nsViewZIndex(bool aIsAuto, PRInt32 aZIndex, bool aIsTopmost)
+    : mIsAuto(aIsAuto), mZIndex(aZIndex), mIsTopmost(aIsTopmost) {}
+};
 
 
 
@@ -143,6 +190,17 @@ public:
 
 
 
+  void SetInvalidationDimensions(const nsRect* aRect);
+
+  
+
+
+
+
+
+
+
+
 
 
 
@@ -184,6 +242,19 @@ public:
 
 
 
+
+  nsViewZIndex GetZIndex() const { return nsViewZIndex((mVFlags & NS_VIEW_FLAG_AUTO_ZINDEX) != 0,
+                                                       mZIndex,
+                                                       (mVFlags & NS_VIEW_FLAG_TOPMOST) != 0); }
+
+  
+
+
+
+
+
+
+
   bool GetFloating() const { return (mVFlags & NS_VIEW_FLAG_FLOATING) != 0; }
 
   
@@ -210,12 +281,14 @@ public:
   
 
 
-  void SetFrame(nsIFrame* aRootFrame) { mFrame = aRootFrame; }
+
+  void SetClientData(void *aData) { mClientData = aData; }
 
   
 
 
-  nsIFrame* GetFrame() const { return mFrame; }
+
+  void* GetClientData() const { return mClientData; }
 
   
 
@@ -240,7 +313,7 @@ public:
 
 
 
-  nsresult CreateWidget(nsWidgetInitData *aWidgetInitData = nullptr,
+  nsresult CreateWidget(nsWidgetInitData *aWidgetInitData = nsnull,
                         bool aEnableDragDrop = true,
                         bool aResetVisibility = true);
 
@@ -250,7 +323,7 @@ public:
 
 
   nsresult CreateWidgetForParent(nsIWidget* aParentWidget,
-                                 nsWidgetInitData *aWidgetInitData = nullptr,
+                                 nsWidgetInitData *aWidgetInitData = nsnull,
                                  bool aEnableDragDrop = true,
                                  bool aResetVisibility = true);
 
@@ -262,7 +335,7 @@ public:
 
 
   nsresult CreateWidgetForPopup(nsWidgetInitData *aWidgetInitData,
-                                nsIWidget* aParentWidget = nullptr,
+                                nsIWidget* aParentWidget = nsnull,
                                 bool aEnableDragDrop = true,
                                 bool aResetVisibility = true);
 
@@ -305,14 +378,14 @@ public:
   
 
 
-  bool HasWidget() const { return mWindow != nullptr; }
+  bool HasWidget() const { return mWindow != nsnull; }
 
   
 
 
 
 
-  void AttachWidgetEventHandler(nsIWidget* aWidget);
+  EVENT_CALLBACK AttachWidgetEventHandler(nsIWidget* aWidget);
   
 
 
@@ -325,7 +398,7 @@ public:
 
 
 
-  virtual void List(FILE* out, int32_t aIndent = 0) const;
+  virtual void List(FILE* out, PRInt32 aIndent = 0) const;
 #endif 
 
   
@@ -334,6 +407,8 @@ public:
   bool IsRoot() const;
 
   virtual bool ExternalIsRoot() const;
+
+  void SetDeletionObserver(nsWeakView* aDeletionObserver);
 
   nsIntRect CalcWidgetBounds(nsWindowType aType);
 
@@ -346,13 +421,14 @@ public:
   nsPoint ViewToWidgetOffset() const { return mViewToWidgetOffset; }
 
 protected:
+  friend class nsWeakView;
   nsViewManager     *mViewManager;
   nsView            *mParent;
   nsIWidget         *mWindow;
   nsView            *mNextSibling;
   nsView            *mFirstChild;
-  nsIFrame          *mFrame;
-  int32_t           mZIndex;
+  void              *mClientData;
+  PRInt32           mZIndex;
   nsViewVisibility  mVis;
   
   nscoord           mPosX, mPosY;
@@ -361,7 +437,8 @@ protected:
   
   nsPoint           mViewToWidgetOffset;
   float             mOpacity;
-  uint32_t          mVFlags;
+  PRUint32          mVFlags;
+  nsWeakView*       mDeletionObserver;
   bool              mWidgetIsTopLevel;
 
   virtual ~nsIView() {}
@@ -372,5 +449,48 @@ private:
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIView, NS_IVIEW_IID)
+
+
+class nsWeakView
+{
+public:
+  nsWeakView(nsIView* aView) : mPrev(nsnull), mView(aView)
+  {
+    if (mView) {
+      mView->SetDeletionObserver(this);
+    }
+  }
+
+  ~nsWeakView()
+  {
+    if (mView) {
+      NS_ASSERTION(mView->mDeletionObserver == this,
+                   "nsWeakViews deleted in wrong order!");
+      
+      mView->SetDeletionObserver(nsnull);
+      
+      mView->SetDeletionObserver(mPrev);
+    }
+  }
+
+  bool IsAlive() { return !!mView; }
+
+  nsIView* GetView() { return mView; }
+
+  void SetPrevious(nsWeakView* aWeakView) { mPrev = aWeakView; }
+
+  void Clear()
+  {
+    if (mPrev) {
+      mPrev->Clear();
+    }
+    mView = nsnull;
+  }
+private:
+  static void* operator new(size_t) CPP_THROW_NEW { return 0; }
+  static void operator delete(void*, size_t) {}
+  nsWeakView* mPrev;
+  nsIView*    mView;
+};
 
 #endif

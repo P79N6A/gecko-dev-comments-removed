@@ -5,6 +5,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIURI.h"
 #include "nsIURL.h"
 #include "nsExternalProtocolHandler.h"
@@ -66,7 +100,7 @@ NS_INTERFACE_MAP_BEGIN(nsExtProtocolChannel)
 NS_INTERFACE_MAP_END_THREADSAFE
 
 nsExtProtocolChannel::nsExtProtocolChannel() : mStatus(NS_OK), 
-                                               mWasOpened(false)
+                                               mWasOpened(PR_FALSE)
 {
 }
 
@@ -100,7 +134,7 @@ NS_IMETHODIMP nsExtProtocolChannel::SetNotificationCallbacks(nsIInterfaceRequest
 NS_IMETHODIMP 
 nsExtProtocolChannel::GetSecurityInfo(nsISupports * *aSecurityInfo)
 {
-  *aSecurityInfo = nullptr;
+  *aSecurityInfo = nsnull;
   return NS_OK;
 }
 
@@ -138,7 +172,7 @@ nsresult nsExtProtocolChannel::OpenURL()
   if (extProtService)
   {
 #ifdef DEBUG
-    nsAutoCString urlScheme;
+    nsCAutoString urlScheme;
     mUrl->GetScheme(urlScheme);
     bool haveHandler = false;
     extProtService->ExternalProtocolHandlerExists(urlScheme.get(), &haveHandler);
@@ -176,7 +210,7 @@ NS_IMETHODIMP nsExtProtocolChannel::AsyncOpen(nsIStreamListener *listener, nsISu
   NS_ENSURE_ARG_POINTER(listener);
   NS_ENSURE_TRUE(!mWasOpened, NS_ERROR_ALREADY_OPENED);
 
-  mWasOpened = true;
+  mWasOpened = PR_TRUE;
 
   return OpenURL();
 }
@@ -213,7 +247,7 @@ NS_IMETHODIMP nsExtProtocolChannel::SetContentCharset(const nsACString &aContent
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-NS_IMETHODIMP nsExtProtocolChannel::GetContentDisposition(uint32_t *aContentDisposition)
+NS_IMETHODIMP nsExtProtocolChannel::GetContentDisposition(PRUint32 *aContentDisposition)
 {
   return NS_ERROR_NOT_AVAILABLE;
 }
@@ -228,14 +262,14 @@ NS_IMETHODIMP nsExtProtocolChannel::GetContentDispositionHeader(nsACString &aCon
   return NS_ERROR_NOT_AVAILABLE;
 }
 
-NS_IMETHODIMP nsExtProtocolChannel::GetContentLength(int32_t * aContentLength)
+NS_IMETHODIMP nsExtProtocolChannel::GetContentLength(PRInt32 * aContentLength)
 {
   *aContentLength = -1;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsExtProtocolChannel::SetContentLength(int32_t aContentLength)
+nsExtProtocolChannel::SetContentLength(PRInt32 aContentLength)
 {
   NS_NOTREACHED("SetContentLength");
   return NS_ERROR_NOT_IMPLEMENTED;
@@ -264,7 +298,7 @@ NS_IMETHODIMP nsExtProtocolChannel::GetName(nsACString &result)
 
 NS_IMETHODIMP nsExtProtocolChannel::IsPending(bool *result)
 {
-  *result = false;
+  *result = PR_FALSE;
   return NS_OK; 
 }
 
@@ -321,17 +355,17 @@ NS_IMETHODIMP nsExternalProtocolHandler::GetScheme(nsACString &aScheme)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsExternalProtocolHandler::GetDefaultPort(int32_t *aDefaultPort)
+NS_IMETHODIMP nsExternalProtocolHandler::GetDefaultPort(PRInt32 *aDefaultPort)
 {
   *aDefaultPort = 0;
     return NS_OK;
 }
 
 NS_IMETHODIMP 
-nsExternalProtocolHandler::AllowPort(int32_t port, const char *scheme, bool *_retval)
+nsExternalProtocolHandler::AllowPort(PRInt32 port, const char *scheme, bool *_retval)
 {
     
-    *_retval = false;
+    *_retval = PR_FALSE;
     return NS_OK;
 }
 
@@ -340,17 +374,16 @@ bool nsExternalProtocolHandler::HaveExternalProtocolHandler(nsIURI * aURI)
   bool haveHandler = false;
   if (aURI)
   {
-    nsAutoCString scheme;
+    nsCAutoString scheme;
     aURI->GetScheme(scheme);
-    nsCOMPtr<nsIExternalProtocolService> extProtSvc(do_GetService(NS_EXTERNALPROTOCOLSERVICE_CONTRACTID));
-    if (extProtSvc)
-      extProtSvc->ExternalProtocolHandlerExists(scheme.get(), &haveHandler);
+    if (gExtProtSvc)
+      gExtProtSvc->ExternalProtocolHandlerExists(scheme.get(), &haveHandler);
   }
 
   return haveHandler;
 }
 
-NS_IMETHODIMP nsExternalProtocolHandler::GetProtocolFlags(uint32_t *aUritype)
+NS_IMETHODIMP nsExternalProtocolHandler::GetProtocolFlags(PRUint32 *aUritype)
 {
     
     *aUritype = URI_NORELATIVE | URI_NOAUTH | URI_LOADABLE_BY_ANYONE |
@@ -405,12 +438,11 @@ NS_IMETHODIMP nsExternalProtocolHandler::NewChannel(nsIURI *aURI, nsIChannel **_
 
 NS_IMETHODIMP nsExternalProtocolHandler::ExternalAppExistsForScheme(const nsACString& aScheme, bool *_retval)
 {
-  nsCOMPtr<nsIExternalProtocolService> extProtSvc(do_GetService(NS_EXTERNALPROTOCOLSERVICE_CONTRACTID));
-  if (extProtSvc)
-    return extProtSvc->ExternalProtocolHandlerExists(
+  if (gExtProtSvc)
+    return gExtProtSvc->ExternalProtocolHandlerExists(
       PromiseFlatCString(aScheme).get(), _retval);
 
   
-  *_retval = false;
+  *_retval = PR_FALSE;
   return NS_OK;
 }

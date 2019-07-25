@@ -3,15 +3,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_DOMSVGNUMBER_H__
 #define MOZILLA_DOMSVGNUMBER_H__
 
-#include "DOMSVGNumberList.h"
-#include "nsAutoPtr.h"
-#include "nsCycleCollectionParticipant.h"
 #include "nsIDOMSVGNumber.h"
-#include "nsTArray.h"
-#include "mozilla/Attributes.h"
+#include "DOMSVGNumberList.h"
+#include "nsCycleCollectionParticipant.h"
+#include "nsAutoPtr.h"
 
 class nsSVGElement;
 
@@ -41,7 +70,7 @@ namespace mozilla {
 
 
 
-class DOMSVGNumber MOZ_FINAL : public nsIDOMSVGNumber
+class DOMSVGNumber : public nsIDOMSVGNumber
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_DOMSVGNUMBER_IID)
@@ -53,9 +82,9 @@ public:
 
 
   DOMSVGNumber(DOMSVGNumberList *aList,
-               uint8_t aAttrEnum,
-               uint32_t aListIndex,
-               uint8_t aIsAnimValItem);
+               PRUint8 aAttrEnum,
+               PRUint32 aListIndex,
+               PRUint8 aIsAnimValItem);
 
   
 
@@ -68,7 +97,7 @@ public:
     
     
     if (mList) {
-      mList->mItems[mListIndex] = nullptr;
+      mList->mItems[mListIndex] = nsnull;
     }
   };
 
@@ -103,16 +132,16 @@ public:
 
 
   void InsertingIntoList(DOMSVGNumberList *aList,
-                         uint8_t aAttrEnum,
-                         uint32_t aListIndex,
-                         uint8_t aIsAnimValItem);
+                         PRUint8 aAttrEnum,
+                         PRUint32 aListIndex,
+                         PRUint8 aIsAnimValItem);
 
-  static uint32_t MaxListIndex() {
+  static PRUint32 MaxListIndex() {
     return (1U << MOZ_SVG_LIST_INDEX_BIT_COUNT) - 1;
   }
 
   
-  void UpdateListIndex(uint32_t aListIndex) {
+  void UpdateListIndex(PRUint32 aListIndex) {
     mListIndex = aListIndex;
   }
 
@@ -132,7 +161,7 @@ private:
     return mList->Element();
   }
 
-  uint8_t AttrEnum() const {
+  PRUint8 AttrEnum() const {
     return mAttrEnum;
   }
 
@@ -156,9 +185,9 @@ private:
   
   
 
-  uint32_t mListIndex:MOZ_SVG_LIST_INDEX_BIT_COUNT;
-  uint32_t mAttrEnum:4; 
-  uint32_t mIsAnimValItem:1;
+  PRUint32 mListIndex:MOZ_SVG_LIST_INDEX_BIT_COUNT;
+  PRUint32 mAttrEnum:4; 
+  PRUint32 mIsAnimValItem:1;
 
   
   float mValue;

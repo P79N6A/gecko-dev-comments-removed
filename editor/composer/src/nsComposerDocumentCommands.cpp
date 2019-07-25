@@ -4,36 +4,65 @@
 
 
 
-#include "nsAutoPtr.h"                  
-#include "nsCOMPtr.h"                   
-#include "nsCRT.h"                      
-#include "nsComposerCommands.h"         
-#include "nsDebug.h"                    
-#include "nsError.h"                    
-#include "nsICommandParams.h"           
-#include "nsIDOMDocument.h"             
-#include "nsIDocShell.h"                
-#include "nsIDocument.h"                
-#include "nsIEditingSession.h"          
-#include "nsIEditor.h"                  
-#include "nsIHTMLEditor.h"              
-#include "nsIHTMLInlineTableEditor.h"   
-#include "nsIHTMLObjectResizer.h"       
-#include "nsIPlaintextEditor.h"         
-#include "nsIPresShell.h"               
-#include "nsISelectionController.h"     
-#include "nsISupportsImpl.h"            
-#include "nsISupportsUtils.h"           
-#include "nsIURI.h"                     
-#include "nsPresContext.h"              
-#include "nscore.h"                     
-#include "prtypes.h"                    
 
-class nsISupports;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsIEditor.h"
+#include "nsIEditingSession.h"
+#include "nsIPlaintextEditor.h"
+#include "nsIHTMLEditor.h"
+#include "nsIHTMLObjectResizer.h"
+#include "nsIHTMLInlineTableEditor.h"
+
+#include "nsIDOMDocument.h"
+#include "nsIDocument.h"
+#include "nsISelectionController.h"
+#include "nsIPresShell.h"
+#include "nsPresContext.h"
+#include "nsIDocShell.h"
+#include "nsIURI.h"
+
+#include "nsCOMPtr.h"
+
+#include "nsComposerCommands.h"
+#include "nsICommandParams.h"
+#include "nsCRT.h"
 
 
 #define STATE_ENABLED  "state_enabled"
-#define STATE_ALL "state_all"
 #define STATE_ATTRIBUTE "state_attribute"
 #define STATE_DATA "state_data"
 
@@ -42,7 +71,7 @@ nsresult
 GetPresContextFromEditor(nsIEditor *aEditor, nsPresContext **aResult)
 {
   NS_ENSURE_ARG_POINTER(aResult);
-  *aResult = nullptr;
+  *aResult = nsnull;
   NS_ENSURE_ARG_POINTER(aEditor);
 
   nsCOMPtr<nsISelectionController> selCon;
@@ -67,7 +96,7 @@ nsSetDocumentOptionsCommand::IsCommandEnabled(const char * aCommandName,
   if (editor)
     return editor->GetIsSelectionEditable(outCmdEnabled);
 
-  *outCmdEnabled = false;
+  *outCmdEnabled = PR_FALSE;
   return NS_OK;
 }
 
@@ -93,7 +122,7 @@ nsSetDocumentOptionsCommand::DoCommandParams(const char *aCommandName,
   NS_ENSURE_SUCCESS(rv, rv);
   NS_ENSURE_TRUE(presContext, NS_ERROR_FAILURE);
 
-  int32_t animationMode; 
+  PRInt32 animationMode; 
   rv = aParams->GetLongValue("imageAnimation", &animationMode);
   if (NS_SUCCEEDED(rv))
   {
@@ -144,7 +173,7 @@ nsSetDocumentOptionsCommand::GetCommandStateParams(const char *aCommandName,
   NS_ENSURE_SUCCESS(rv, rv);
   NS_ENSURE_TRUE(presContext, NS_ERROR_FAILURE);
 
-  int32_t animationMode;
+  PRInt32 animationMode;
   rv = aParams->GetLongValue("imageAnimation", &animationMode);
   if (NS_SUCCEEDED(rv))
   {
@@ -155,7 +184,7 @@ nsSetDocumentOptionsCommand::GetCommandStateParams(const char *aCommandName,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  bool allowPlugins = false; 
+  bool allowPlugins; 
   rv = aParams->GetBooleanValue("plugins", &allowPlugins);
   if (NS_SUCCEEDED(rv))
   {
@@ -166,7 +195,8 @@ nsSetDocumentOptionsCommand::GetCommandStateParams(const char *aCommandName,
     NS_ENSURE_SUCCESS(rv, rv);
     NS_ENSURE_TRUE(docShell, NS_ERROR_FAILURE);
 
-    allowPlugins = docShell->PluginsAllowedInCurrentDoc();
+    rv = docShell->GetAllowPlugins(&allowPlugins);
+    NS_ENSURE_SUCCESS(rv, rv);
 
     rv = aParams->SetBooleanValue("plugins", allowPlugins);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -189,9 +219,12 @@ nsSetDocumentStateCommand::IsCommandEnabled(const char * aCommandName,
                                             nsISupports *refCon,
                                             bool *outCmdEnabled)
 {
-  
   NS_ENSURE_ARG_POINTER(outCmdEnabled);
-  *outCmdEnabled = true;
+  nsCOMPtr<nsIEditor> editor = do_QueryInterface(refCon);
+  if (editor)
+    return editor->GetIsSelectionEditable(outCmdEnabled);
+
+  *outCmdEnabled = PR_FALSE;
   return NS_OK;
 }
 
@@ -234,7 +267,7 @@ nsSetDocumentStateCommand::DoCommandParams(const char *aCommandName,
     nsresult rvRO = aParams->GetBooleanValue(STATE_ATTRIBUTE, &isReadOnly);
     NS_ENSURE_SUCCESS(rvRO, rvRO);
 
-    uint32_t flags;
+    PRUint32 flags;
     editor->GetFlags(&flags);
     if (isReadOnly)
       flags |= nsIPlaintextEditor::eEditorReadonlyMask;
@@ -331,7 +364,7 @@ nsSetDocumentStateCommand::GetCommandStateParams(const char *aCommandName,
   {
     NS_ENSURE_ARG_POINTER(aParams);
 
-    uint32_t flags;
+    PRUint32 flags;
     editor->GetFlags(&flags);
     bool isReadOnly = flags & nsIPlaintextEditor::eEditorReadonlyMask;
     return aParams->SetBooleanValue(STATE_ATTRIBUTE, isReadOnly);
@@ -345,7 +378,7 @@ nsSetDocumentStateCommand::GetCommandStateParams(const char *aCommandName,
 
     bool isCSS;
     htmleditor->GetIsCSSEnabled(&isCSS);
-    return aParams->SetBooleanValue(STATE_ALL, isCSS);
+    return aParams->SetBooleanValue(STATE_ATTRIBUTE, isCSS);
   }
 
   if (!nsCRT::strcmp(aCommandName, "cmd_insertBrOnReturn"))
@@ -428,7 +461,7 @@ nsDocumentStateCommand::IsCommandEnabled(const char* aCommandName,
 {
   NS_ENSURE_ARG_POINTER(outCmdEnabled);
   
-  *outCmdEnabled = false;
+  *outCmdEnabled = PR_FALSE;
   return NS_OK;
 }
 
@@ -458,7 +491,7 @@ nsDocumentStateCommand::GetCommandStateParams(const char *aCommandName,
 
   if (!nsCRT::strcmp(aCommandName, "obs_documentCreated"))
   {
-    uint32_t editorStatus = nsIEditingSession::eEditorErrorUnknown;
+    PRUint32 editorStatus = nsIEditingSession::eEditorErrorUnknown;
 
     nsCOMPtr<nsIEditingSession> editingSession = do_QueryInterface(refCon);
     if (editingSession)

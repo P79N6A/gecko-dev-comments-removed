@@ -2,12 +2,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef TestCommon_h__
 #define TestCommon_h__
 
 #include <stdlib.h>
 #include "nsThreadUtils.h"
-#include "mozilla/Attributes.h"
 
 inline int test_common_init(int *argc, char ***argv)
 {
@@ -18,11 +49,11 @@ inline int test_common_init(int *argc, char ***argv)
 
 static bool gKeepPumpingEvents = false;
 
-class nsQuitPumpingEvent MOZ_FINAL : public nsIRunnable {
+class nsQuitPumpingEvent : public nsIRunnable {
 public:
   NS_DECL_ISUPPORTS
   NS_IMETHOD Run() {
-    gKeepPumpingEvents = false;
+    gKeepPumpingEvents = PR_FALSE;
     return NS_OK;
   }
 };
@@ -32,7 +63,7 @@ static inline void PumpEvents()
 {
   nsCOMPtr<nsIThread> thread = do_GetCurrentThread();
 
-  gKeepPumpingEvents = true;
+  gKeepPumpingEvents = PR_TRUE;
   while (gKeepPumpingEvents)
     NS_ProcessNextEvent(thread);
 

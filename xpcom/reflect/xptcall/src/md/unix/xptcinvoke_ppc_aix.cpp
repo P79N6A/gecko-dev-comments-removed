@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "xptcprivate.h"
 
 #ifndef AIX
@@ -12,16 +44,16 @@
 #endif
 
 extern "C" void
-invoke_copy_to_stack(uint32_t* d, uint32_t paramCount, nsXPTCVariant* s, double *fprData)
+invoke_copy_to_stack(PRUint32* d, PRUint32 paramCount, nsXPTCVariant* s, double *fprData)
 {
 
 
 
 
 
-    uint32_t *l_d = d;
+    PRUint32 *l_d = d;
     nsXPTCVariant *l_s = s;
-    uint32_t l_paramCount = paramCount, fpCount = 0;
+    PRUint32 l_paramCount = paramCount, fpCount = 0;
     double *l_fprData = fprData;
 
     typedef struct {
@@ -61,7 +93,7 @@ invoke_copy_to_stack(uint32_t* d, uint32_t paramCount, nsXPTCVariant* s, double 
             if(fpCount < 13)
                 l_fprData[fpCount++] = l_s->val.f;
             break;
-        case nsXPTType::T_BOOL   : *((uint32*) l_d) = l_s->val.b;           break;
+        case nsXPTType::T_BOOL   : *((bool*) l_d) = l_s->val.b;           break;
         case nsXPTType::T_CHAR   : *((uint32*) l_d) = l_s->val.c;           break;
         case nsXPTType::T_WCHAR  : *((int32*)  l_d) = l_s->val.wc;          break;
         default:

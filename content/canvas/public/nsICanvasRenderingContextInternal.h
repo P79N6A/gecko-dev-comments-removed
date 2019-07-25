@@ -3,20 +3,52 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsICanvasRenderingContextInternal_h___
 #define nsICanvasRenderingContextInternal_h___
 
 #include "nsISupports.h"
 #include "nsIInputStream.h"
 #include "nsIDocShell.h"
-#include "nsHTMLCanvasElement.h"
 #include "gfxPattern.h"
 #include "mozilla/RefPtr.h"
 
 #define NS_ICANVASRENDERINGCONTEXTINTERNAL_IID \
-{ 0x8b8da863, 0xd151, 0x4014, \
-  { 0x8b, 0xdc, 0x62, 0xb5, 0x0d, 0xc0, 0x2b, 0x62 } }
+{ 0xffb42d3c, 0x8281, 0x44c8, \
+  { 0xac, 0xba, 0x73, 0x15, 0x31, 0xaa, 0xe5, 0x07 } }
 
+class nsHTMLCanvasElement;
 class gfxContext;
 class gfxASurface;
 class nsIPropertyBag;
@@ -42,29 +74,18 @@ public:
 
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ICANVASRENDERINGCONTEXTINTERNAL_IID)
 
-  enum {
-    RenderFlagPremultAlpha = 0x1
-  };
-
-  void SetCanvasElement(nsHTMLCanvasElement* aParentCanvas)
-  {
-    mCanvasElement = aParentCanvas;
-  }
-  nsHTMLCanvasElement* GetParentObject() const
-  {
-    return mCanvasElement;
-  }
+  
+  
+  NS_IMETHOD SetCanvasElement(nsHTMLCanvasElement* aParentCanvas) = 0;
 
   
   
-  NS_IMETHOD SetDimensions(int32_t width, int32_t height) = 0;
+  NS_IMETHOD SetDimensions(PRInt32 width, PRInt32 height) = 0;
 
-  NS_IMETHOD InitializeWithSurface(nsIDocShell *docShell, gfxASurface *surface, int32_t width, int32_t height) = 0;
+  NS_IMETHOD InitializeWithSurface(nsIDocShell *docShell, gfxASurface *surface, PRInt32 width, PRInt32 height) = 0;
 
   
-  NS_IMETHOD Render(gfxContext *ctx,
-                    gfxPattern::GraphicsFilter aFilter,
-                    uint32_t aFlags = RenderFlagPremultAlpha) = 0;
+  NS_IMETHOD Render(gfxContext *ctx, gfxPattern::GraphicsFilter aFilter) = 0;
 
   
   
@@ -124,18 +145,7 @@ public:
   
   
   NS_IMETHOD SetIsIPC(bool isIPC) = 0;
-
-protected:
-  nsRefPtr<nsHTMLCanvasElement> mCanvasElement;
 };
-
-namespace mozilla {
-namespace dom {
-
-extern bool AzureCanvasEnabled();
-
-}
-}
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsICanvasRenderingContextInternal,
                               NS_ICANVASRENDERINGCONTEXTINTERNAL_IID)

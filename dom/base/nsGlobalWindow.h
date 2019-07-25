@@ -4,6 +4,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsGlobalWindow_h___
 #define nsGlobalWindow_h___
 
@@ -25,7 +61,11 @@
 #include "nsIBrowserDOMWindow.h"
 #include "nsIDocShellTreeOwner.h"
 #include "nsIDocShellTreeItem.h"
+#include "nsIDOMClientInformation.h"
 #include "nsIDOMEventTarget.h"
+#include "nsIDOMNavigator.h"
+#include "nsIDOMNavigatorGeolocation.h"
+#include "nsIDOMNavigatorDesktopNotification.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIDOMJSWindow.h"
@@ -45,6 +85,8 @@
 #include "nsIDOMCrypto.h"
 #endif
 #include "nsIPrincipal.h"
+#include "nsPluginArray.h"
+#include "nsMimeTypeArray.h"
 #include "nsIXPCScriptable.h"
 #include "nsPoint.h"
 #include "nsSize.h"
@@ -52,6 +94,7 @@
 #include "mozFlushType.h"
 #include "prclist.h"
 #include "nsIDOMStorageObsolete.h"
+#include "nsIDOMStorageList.h"
 #include "nsIDOMStorageEvent.h"
 #include "nsIDOMStorageIndexedDB.h"
 #include "nsIDOMOfflineResourceList.h"
@@ -62,29 +105,21 @@
 #include "mozilla/TimeStamp.h"
 #include "nsIDOMTouchEvent.h"
 #include "nsIInlineEventHandlers.h"
-#include "nsWrapperCacheInlines.h"
-#include "nsIDOMApplicationRegistry.h"
-#include "nsIIdleObserver.h"
 
 
 #include "jsapi.h"
+#include "jswrapper.h"
 
 #define DEFAULT_HOME_PAGE "www.mozilla.org"
 #define PREF_BROWSER_STARTUP_HOMEPAGE "browser.startup.homepage"
 
 
 
-#define DEFAULT_SUCCESSIVE_DIALOG_TIME_LIMIT 3 // 3 sec
+#define SUCCESSIVE_DIALOG_TIME_LIMIT 3 // 3 sec
 
 
 
-#define MAX_SUCCESSIVE_DIALOG_COUNT 5
-
-
-#define MAX_IDLE_FUZZ_TIME_MS 90000
-
-
-#define MIN_IDLE_NOTIFICATION_TIME_S 1
+#define MAX_DIALOG_COUNT 10
 
 class nsIDOMBarProp;
 class nsIDocument;
@@ -95,6 +130,7 @@ class nsIControllers;
 
 class nsBarProp;
 class nsLocation;
+class nsNavigator;
 class nsScreen;
 class nsHistory;
 class nsPerformance;
@@ -102,30 +138,23 @@ class nsIDocShellLoadInfo;
 class WindowStateHolder;
 class nsGlobalWindowObserver;
 class nsGlobalWindow;
+class nsDummyJavaPluginOwner;
 class PostMessageEvent;
 class nsRunnable;
-class nsDOMEventTargetHelper;
+
 class nsDOMOfflineResourceList;
+class nsGeolocation;
+class nsDesktopNotificationCenter;
 class nsDOMMozURLProperty;
-class nsDOMWindowUtils;
-class nsIIdleService;
 
 #ifdef MOZ_DISABLE_DOMCRYPTO
 class nsIDOMCrypto;
 #endif
 
-class nsWindowSizes;
-
-namespace mozilla {
-namespace dom {
-class Navigator;
-} 
-} 
-
 extern nsresult
 NS_CreateJSTimeoutHandler(nsGlobalWindow *aWindow,
                           bool *aIsInterval,
-                          int32_t *aInterval,
+                          PRInt32 *aInterval,
                           nsIScriptTimeoutHandler **aRet);
 
 
@@ -138,7 +167,7 @@ struct nsTimeout : PRCList
   nsTimeout();
   ~nsTimeout();
 
-  NS_DECL_CYCLE_COLLECTION_LEGACY_NATIVE_CLASS(nsTimeout)
+  NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(nsTimeout)
 
   nsrefcnt Release();
   nsrefcnt AddRef();
@@ -151,11 +180,6 @@ struct nsTimeout : PRCList
   nsTimeout* Prev() {
     
     return static_cast<nsTimeout*>(PR_PREV_LINK(this));
-  }
-
-  nsresult InitTimer(nsTimerCallbackFunc aFunc, uint64_t delay) {
-    return mTimer->InitWithFuncCallback(aFunc, this, delay,
-                                        nsITimer::TYPE_ONE_SHOT);
   }
 
   
@@ -174,10 +198,10 @@ struct nsTimeout : PRCList
   bool mIsInterval;
 
   
-  uint32_t mPublicId;
+  PRUint32 mPublicId;
 
   
-  uint32_t mInterval;
+  PRUint32 mInterval;
 
   
   
@@ -191,10 +215,10 @@ struct nsTimeout : PRCList
   nsCOMPtr<nsIPrincipal> mPrincipal;
 
   
-  uint32_t mFiringDepth;
+  PRUint32 mFiringDepth;
 
   
-  uint32_t mNestingLevel;
+  PRUint32 mNestingLevel;
 
   
   
@@ -208,36 +232,24 @@ private:
   nsAutoRefCnt mRefCnt;
 };
 
-struct IdleObserverHolder
+
+
+
+
+class nsOuterWindowProxy : public js::Wrapper
 {
-  nsCOMPtr<nsIIdleObserver> mIdleObserver;
-  uint32_t mTimeInS;
-  bool mPrevNotificationIdle;
+public:
+  nsOuterWindowProxy() : js::Wrapper((uintN)0) {}
 
-  IdleObserverHolder()
-    : mTimeInS(0), mPrevNotificationIdle(false)
-  {
-    MOZ_COUNT_CTOR(IdleObserverHolder);
+  virtual bool isOuterWindow() {
+    return true;
   }
+  JSString *obj_toString(JSContext *cx, JSObject *wrapper);
 
-  IdleObserverHolder(const IdleObserverHolder& aOther)
-    : mIdleObserver(aOther.mIdleObserver), mTimeInS(aOther.mTimeInS),
-      mPrevNotificationIdle(aOther.mPrevNotificationIdle)
-  {
-    MOZ_COUNT_CTOR(IdleObserverHolder);
-  }
-
-  bool operator==(const IdleObserverHolder& aOther) const {
-    return
-      mIdleObserver == aOther.mIdleObserver &&
-      mTimeInS == aOther.mTimeInS;
-  }
-
-  ~IdleObserverHolder()
-  {
-    MOZ_COUNT_DTOR(IdleObserverHolder);
-  }
+  static nsOuterWindowProxy singleton;
 };
+
+JSObject *NS_NewOuterWindowProxy(JSContext *cx, JSObject *parent);
 
 
 
@@ -277,7 +289,6 @@ public:
 
   typedef mozilla::TimeStamp TimeStamp;
   typedef mozilla::TimeDuration TimeDuration;
-  typedef mozilla::dom::Navigator Navigator;
   typedef nsDataHashtable<nsUint64HashKey, nsGlobalWindow*> WindowByIdTable;
 
   
@@ -289,15 +300,6 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
 
   
-  JSObject *WrapObject(JSContext *cx, JSObject *scope, bool *triedToWrap)
-  {
-    NS_ASSERTION(IsOuterWindow(),
-                 "Inner window supports nsWrapperCache, fix WrapObject!");
-    *triedToWrap = true;
-    return EnsureInnerWindow() ? GetWrapper() : nullptr;
-  }
-
-  
   virtual nsIScriptContext *GetContext();
   virtual JSObject *GetGlobalJSObject();
   JSObject *FastGetGlobalJSObject()
@@ -305,14 +307,17 @@ public:
     return mJSObject;
   }
 
-  virtual nsresult EnsureScriptEnvironment();
+  virtual nsresult EnsureScriptEnvironment(PRUint32 aLangID);
 
-  virtual nsIScriptContext *GetScriptContext();
+  virtual nsIScriptContext *GetScriptContext(PRUint32 lang);
+  virtual void *GetScriptGlobal(PRUint32 lang);
 
+  
+  
+  virtual nsresult SetScriptContext(PRUint32 lang, nsIScriptContext *aContext);
+  
   virtual void OnFinalize(JSObject* aObject);
   virtual void SetScriptsEnabled(bool aEnabled, bool aFireTimeouts);
-
-  virtual bool IsBlackForCC();
 
   
   virtual nsIPrincipal* GetPrincipal();
@@ -342,18 +347,19 @@ public:
   virtual NS_HIDDEN_(void) SetIsBackground(bool aIsBackground);
   virtual NS_HIDDEN_(void) SetChromeEventHandler(nsIDOMEventTarget* aChromeEventHandler);
 
-  virtual NS_HIDDEN_(void) SetInitialPrincipalToSubject();
+  virtual NS_HIDDEN_(void) SetOpenerScriptPrincipal(nsIPrincipal* aPrincipal);
+  virtual NS_HIDDEN_(nsIPrincipal*) GetOpenerScriptPrincipal();
 
   virtual NS_HIDDEN_(PopupControlState) PushPopupControlState(PopupControlState state, bool aForce) const;
   virtual NS_HIDDEN_(void) PopPopupControlState(PopupControlState state) const;
   virtual NS_HIDDEN_(PopupControlState) GetPopupControlState() const;
 
-  virtual already_AddRefed<nsISupports> SaveWindowState();
+  virtual NS_HIDDEN_(nsresult) SaveWindowState(nsISupports **aState);
   virtual NS_HIDDEN_(nsresult) RestoreWindowState(nsISupports *aState);
-  virtual NS_HIDDEN_(void) SuspendTimeouts(uint32_t aIncrease = 1,
+  virtual NS_HIDDEN_(void) SuspendTimeouts(PRUint32 aIncrease = 1,
                                            bool aFreezeChildren = true);
   virtual NS_HIDDEN_(nsresult) ResumeTimeouts(bool aThawChildren = true);
-  virtual NS_HIDDEN_(uint32_t) TimeoutSuspendCount();
+  virtual NS_HIDDEN_(PRUint32) TimeoutSuspendCount();
   virtual NS_HIDDEN_(nsresult) FireDelayedDOMEvents();
   virtual NS_HIDDEN_(bool) IsFrozen() const
   {
@@ -363,7 +369,6 @@ public:
   virtual NS_HIDDEN_(bool) WouldReuseInnerWindow(nsIDocument *aNewDocument);
 
   virtual NS_HIDDEN_(void) SetDocShell(nsIDocShell* aDocShell);
-  virtual void DetachFromDocShell();
   virtual NS_HIDDEN_(nsresult) SetNewDocument(nsIDocument *aDocument,
                                               nsISupports *aState,
                                               bool aForceReuseInnerWindow);
@@ -378,11 +383,10 @@ public:
   virtual NS_HIDDEN_(bool) CanClose();
   virtual NS_HIDDEN_(nsresult) ForceClose();
 
+  virtual NS_HIDDEN_(void) SetHasOrientationEventListener();
   virtual NS_HIDDEN_(void) MaybeUpdateTouchState();
   virtual NS_HIDDEN_(void) UpdateTouchState();
   virtual NS_HIDDEN_(bool) DispatchCustomEvent(const char *aEventName);
-  virtual NS_HIDDEN_(void) RefreshCompartmentPrincipal();
-  virtual NS_HIDDEN_(nsresult) SetFullScreenInternal(bool aIsFullScreen, bool aRequireTrust);
 
   
   NS_DECL_NSIDOMSTORAGEINDEXEDDB
@@ -408,53 +412,31 @@ public:
     return FromSupports(wrapper->Native());
   }
 
-  
-
-
-
-
-  nsresult GetTop(nsIDOMWindow **aWindow)
-  {
-    return nsIDOMWindow::GetTop(aWindow);
-  }
-
   inline nsGlobalWindow *GetTop()
   {
     nsCOMPtr<nsIDOMWindow> top;
     GetTop(getter_AddRefs(top));
     if (top)
-      return static_cast<nsGlobalWindow *>(top.get());
-    return nullptr;
-  }
-
-  inline nsGlobalWindow* GetScriptableTop()
-  {
-    nsCOMPtr<nsIDOMWindow> top;
-    GetScriptableTop(getter_AddRefs(top));
-    if (top) {
-      return static_cast<nsGlobalWindow *>(top.get());
-    }
-    return nullptr;
+      return static_cast<nsGlobalWindow *>(static_cast<nsIDOMWindow *>(top.get()));
+    return nsnull;
   }
 
   
   
-  bool DialogsAreBlocked(bool *aBeingAbused);
+  
+  bool DialogOpenAttempted();
+
+  
+  
+  bool AreDialogsBlocked();
 
   
   
   
-  bool DialogsAreBeingAbused();
+  bool ConfirmDialogAllowed();
 
   
-  
-  
-  bool ConfirmDialogIfNeeded();
-
-  
-  void PreventFurtherDialogs(bool aPermanent);
-
-  virtual void SetHasAudioAvailableEventListeners();
+  void PreventFurtherDialogs();
 
   nsIScriptContext *GetContextInternal()
   {
@@ -465,7 +447,7 @@ public:
     return mContext;
   }
 
-  nsIScriptContext *GetScriptContextInternal(uint32_t aLangID)
+  nsIScriptContext *GetScriptContextInternal(PRUint32 aLangID)
   {
     NS_ASSERTION(aLangID == nsIProgrammingLanguage::JAVASCRIPT,
                  "We don't support this language ID");
@@ -515,24 +497,23 @@ public:
 
   friend class WindowStateHolder;
 
-  NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS_AMBIGUOUS(nsGlobalWindow,
-                                                                   nsIScriptGlobalObject)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(nsGlobalWindow,
+                                                         nsIScriptGlobalObject)
 
-  virtual NS_HIDDEN_(JSObject*)
+  void InitJavaProperties();
+
+  virtual NS_HIDDEN_(void*)
     GetCachedXBLPrototypeHandler(nsXBLPrototypeHandler* aKey);
 
   virtual NS_HIDDEN_(void)
     CacheXBLPrototypeHandler(nsXBLPrototypeHandler* aKey,
-                             nsScriptObjectHolder<JSObject>& aHandler);
+                             nsScriptObjectHolder& aHandler);
 
-  virtual bool TakeFocus(bool aFocus, uint32_t aFocusMethod);
+  virtual bool TakeFocus(bool aFocus, PRUint32 aFocusMethod);
   virtual void SetReadyForFocus();
   virtual void PageHidden();
   virtual nsresult DispatchAsyncHashchange(nsIURI *aOldURI, nsIURI *aNewURI);
   virtual nsresult DispatchSyncPopState();
-
-  virtual void EnableDeviceSensor(uint32_t aType);
-  virtual void DisableDeviceSensor(uint32_t aType);
 
   virtual nsresult SetArguments(nsIArray *aArguments, nsIPrincipal *aOrigin);
 
@@ -551,26 +532,26 @@ public:
                                     const nsAString &aPopupWindowName,
                                     const nsAString &aPopupWindowFeatures);
 
-  virtual uint32_t GetSerial() {
+  virtual PRUint32 GetSerial() {
     return mSerial;
   }
 
-  static nsGlobalWindow* GetOuterWindowWithId(uint64_t aWindowID) {
+  static nsGlobalWindow* GetOuterWindowWithId(PRUint64 aWindowID) {
     if (!sWindowsById) {
-      return nullptr;
+      return nsnull;
     }
 
     nsGlobalWindow* outerWindow = sWindowsById->Get(aWindowID);
-    return outerWindow && !outerWindow->IsInnerWindow() ? outerWindow : nullptr;
+    return outerWindow && !outerWindow->IsInnerWindow() ? outerWindow : nsnull;
   }
 
-  static nsGlobalWindow* GetInnerWindowWithId(uint64_t aInnerWindowID) {
+  static nsGlobalWindow* GetInnerWindowWithId(PRUint64 aInnerWindowID) {
     if (!sWindowsById) {
-      return nullptr;
+      return nsnull;
     }
 
     nsGlobalWindow* innerWindow = sWindowsById->Get(aInnerWindowID);
-    return innerWindow && innerWindow->IsInnerWindow() ? innerWindow : nullptr;
+    return innerWindow && innerWindow->IsInnerWindow() ? innerWindow : nsnull;
   }
 
   static bool HasIndexedDBSupport();
@@ -581,45 +562,16 @@ public:
     return sWindowsById;
   }
 
-  void SizeOfIncludingThis(nsWindowSizes* aWindowSizes) const;
+  PRInt64 SizeOf() const;
 
-  void UnmarkGrayTimers();
+private:
+  
+  void EnableDeviceMotionUpdates();
 
-  void AddEventTargetObject(nsDOMEventTargetHelper* aObject);
-  void RemoveEventTargetObject(nsDOMEventTargetHelper* aObject);
-
-  void NotifyIdleObserver(IdleObserverHolder* aIdleObserverHolder,
-                          bool aCallOnidle);
-  nsresult HandleIdleActiveEvent();
-  bool ContainsIdleObserver(nsIIdleObserver* aIdleObserver, uint32_t timeInS);
-  void HandleIdleObserverCallback();
+  
+  void DisableDeviceMotionUpdates();
 
 protected:
-  
-  nsTObserverArray<IdleObserverHolder> mIdleObservers;
-
-  
-  nsCOMPtr<nsITimer> mIdleTimer;
-
-  
-  uint32_t mIdleFuzzFactor;
-
-  
-  
-  int32_t mIdleCallbackIndex;
-
-  
-  
-  bool mCurrentlyIdle;
-
-  
-  
-  bool mAddActiveEventFuzzTime;
-
-  nsCOMPtr <nsIIdleService> mIdleService;
-
-  static bool sIdleObserversAPIFuzzTimeDisabled;
-
   friend class HashchangeCallback;
   friend class nsBarProp;
 
@@ -627,22 +579,14 @@ protected:
   virtual ~nsGlobalWindow();
   void CleanUp(bool aIgnoreModalDialog);
   void ClearControllers();
+  static void TryClearWindowScope(nsISupports* aWindow);
+  void ClearScopeWhenAllScriptsStop();
   nsresult FinalClose();
 
-  inline void MaybeClearInnerWindow(nsGlobalWindow* aExpectedInner)
-  {
-    if(mInnerWindow == aExpectedInner) {
-      mInnerWindow = nullptr;
-    }
-  }
-
-  void FreeInnerObjects();
-  JSObject *CallerGlobal();
+  void FreeInnerObjects(bool aClearScope);
   nsGlobalWindow *CallerInnerWindow();
 
-  
-  
-  void InnerSetNewDocument(nsIDocument* aDocument);
+  nsresult InnerSetNewDocument(nsIDocument* aDocument);
 
   nsresult DefineArgumentsProperty(nsIArray *aArguments);
 
@@ -653,7 +597,7 @@ protected:
   bool IsPopupSpamWindow()
   {
     if (IsInnerWindow() && !mOuterWindow) {
-      return false;
+      return PR_FALSE;
     }
 
     return GetOuterWindowInternal()->mIsPopupSpam;
@@ -671,26 +615,7 @@ protected:
   }
 
   
-
-  virtual nsresult
-  OpenNoNavigate(const nsAString& aUrl,
-                 const nsAString& aName,
-                 const nsAString& aOptions,
-                 nsIDOMWindow **_retval);
-
   
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -729,7 +654,6 @@ protected:
                                     bool aContentModal,
                                     bool aCalledNoScript,
                                     bool aDoJSFixups,
-                                    bool aNavigate,
                                     nsIArray *argv,
                                     nsISupports *aExtraArgument,
                                     nsIPrincipal *aCalleePrincipal,
@@ -737,27 +661,24 @@ protected:
                                     nsIDOMWindow **aReturn);
 
   static void CloseWindow(nsISupports* aWindow);
+  static void ClearWindowScope(nsISupports* aWindow);
 
   
   
   
   nsresult SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
-                                int32_t interval,
-                                bool aIsInterval, int32_t *aReturn);
-  nsresult ClearTimeoutOrInterval(int32_t aTimerID);
+                                PRInt32 interval,
+                                bool aIsInterval, PRInt32 *aReturn);
+  nsresult ClearTimeoutOrInterval(PRInt32 aTimerID);
 
   
-  nsresult SetTimeoutOrInterval(bool aIsInterval, int32_t* aReturn);
+  nsresult SetTimeoutOrInterval(bool aIsInterval, PRInt32* aReturn);
+  nsresult ClearTimeoutOrInterval();
   nsresult ResetTimersForNonBackgroundWindow();
 
   
   void RunTimeout(nsTimeout *aTimeout);
-  void RunTimeout() { RunTimeout(nullptr); }
-  
-  bool RunTimeoutHandler(nsTimeout* aTimeout, nsIScriptContext* aScx);
-  
-  bool RescheduleTimeout(nsTimeout* aTimeout, const TimeStamp& now,
-                         bool aRunningPendingTimeouts);
+  void RunTimeout() { RunTimeout(nsnull); }
 
   void ClearAllTimeouts();
   
@@ -783,27 +704,17 @@ protected:
                            const nsAString &aPopupWindowName,
                            const nsAString &aPopupWindowFeatures);
   void FireOfflineStatusEvent();
-
-  nsresult ScheduleNextIdleObserverCallback();
-  uint32_t GetFuzzTimeMS();
-  nsresult ScheduleActiveTimerCallback();
-  uint32_t FindInsertionIndex(IdleObserverHolder* aIdleObserver);
-  virtual nsresult RegisterIdleObserver(nsIIdleObserver* aIdleObserverPtr);
-  nsresult FindIndexOfElementToRemove(nsIIdleObserver* aIdleObserver,
-                                      int32_t* aRemoveElementIndex);
-  virtual nsresult UnregisterIdleObserver(nsIIdleObserver* aIdleObserverPtr);
-
   nsresult FireHashchange(const nsAString &aOldURL, const nsAString &aNewURL);
 
   void FlushPendingNotifications(mozFlushType aType);
   void EnsureReflowFlushAndPaint();
-  nsresult CheckSecurityWidthAndHeight(int32_t* width, int32_t* height);
-  nsresult CheckSecurityLeftAndTop(int32_t* left, int32_t* top);
+  nsresult CheckSecurityWidthAndHeight(PRInt32* width, PRInt32* height);
+  nsresult CheckSecurityLeftAndTop(PRInt32* left, PRInt32* top);
 
   
   nsresult SetCSSViewportWidthAndHeight(nscoord width, nscoord height);
   
-  nsresult SetDocShellWidthAndHeight(int32_t width, int32_t height);
+  nsresult SetDocShellWidthAndHeight(PRInt32 width, PRInt32 height);
 
   static bool CanSetProperty(const char *aPrefName);
 
@@ -815,17 +726,17 @@ protected:
 
   
   
-  nsresult GetScrollXY(int32_t* aScrollX, int32_t* aScrollY,
+  nsresult GetScrollXY(PRInt32* aScrollX, PRInt32* aScrollY,
                        bool aDoFlush);
-  nsresult GetScrollMaxXY(int32_t* aScrollMaxX, int32_t* aScrollMaxY);
-
+  nsresult GetScrollMaxXY(PRInt32* aScrollMaxX, PRInt32* aScrollMaxY);
+  
   nsresult GetOuterSize(nsIntSize* aSizeCSSPixels);
-  nsresult SetOuterSize(int32_t aLengthCSSPixels, bool aIsWidth);
+  nsresult SetOuterSize(PRInt32 aLengthCSSPixels, bool aIsWidth);
   nsRect GetInnerScreenRect();
 
   bool IsFrame()
   {
-    return GetParentInternal() != nullptr;
+    return GetParentInternal() != nsnull;
   }
 
   
@@ -839,13 +750,13 @@ protected:
   void Freeze()
   {
     NS_ASSERTION(!IsFrozen(), "Double-freezing?");
-    mIsFrozen = true;
+    mIsFrozen = PR_TRUE;
     NotifyDOMWindowFrozen(this);
   }
 
   void Thaw()
   {
-    mIsFrozen = false;
+    mIsFrozen = PR_FALSE;
     NotifyDOMWindowThawed(this);
   }
 
@@ -868,16 +779,16 @@ protected:
   
   
   
-  int32_t DevToCSSIntPixels(int32_t px);
-  int32_t CSSToDevIntPixels(int32_t px);
+  PRInt32 DevToCSSIntPixels(PRInt32 px);
+  PRInt32 CSSToDevIntPixels(PRInt32 px);
   nsIntSize DevToCSSIntPixels(nsIntSize px);
   nsIntSize CSSToDevIntPixels(nsIntSize px);
 
   virtual void SetFocusedNode(nsIContent* aNode,
-                              uint32_t aFocusMethod = 0,
+                              PRUint32 aFocusMethod = 0,
                               bool aNeedsFocus = false);
 
-  virtual uint32_t GetFocusMethod();
+  virtual PRUint32 GetFocusMethod();
 
   virtual bool ShouldShowFocusRing();
 
@@ -895,25 +806,14 @@ protected:
 
   static void NotifyDOMWindowFrozen(nsGlobalWindow* aWindow);
   static void NotifyDOMWindowThawed(nsGlobalWindow* aWindow);
-
+  
   void ClearStatus();
 
   virtual void UpdateParentTarget();
 
   bool GetIsTabModalPromptAllowed();
 
-  inline int32_t DOMMinTimeoutValue() const;
-
-  nsresult CreateOuterObject(nsGlobalWindow* aNewInner);
-  nsresult SetOuterObject(JSContext* aCx, JSObject* aOuterObject);
-  nsresult CloneStorageEvent(const nsAString& aType,
-                             nsCOMPtr<nsIDOMStorageEvent>& aEvent);
-
-  
-  nsresult GetTopImpl(nsIDOMWindow **aWindow, bool aScriptable);
-
-  
-  void CreatePerformanceObjectIfNeeded();
+  inline PRInt32 DOMMinTimeoutValue() const;
 
   
   
@@ -932,6 +832,10 @@ protected:
 
   
   
+  bool                          mDidInitJavaProperties : 1;
+  
+  
+  
   bool                          mFullScreen : 1;
   bool                          mIsClosed : 1;
   bool                          mInClose : 1;
@@ -947,8 +851,6 @@ protected:
 
   
   bool                          mFireOfflineStatusChangeEventOnThaw : 1;
-  bool                          mNotifyIdleObserversIdleOnThaw : 1;
-  bool                          mNotifyIdleObserversActiveOnThaw : 1;
 
   
   
@@ -982,6 +884,9 @@ protected:
   bool                   mFocusByKeyOccurred : 1;
 
   
+  bool                   mHasDeviceMotion : 1;
+
+  
   bool                   mNotifiedIDDestroyed : 1;
 
   nsCOMPtr<nsIScriptContext>    mContext;
@@ -990,9 +895,8 @@ protected:
   nsCOMPtr<nsIArray>            mArguments;
   nsCOMPtr<nsIArray>            mArgumentsLast;
   nsCOMPtr<nsIPrincipal>        mArgumentsOrigin;
-  nsRefPtr<Navigator>           mNavigator;
+  nsRefPtr<nsNavigator>         mNavigator;
   nsRefPtr<nsScreen>            mScreen;
-  
   nsRefPtr<nsPerformance>       mPerformance;
   nsRefPtr<nsDOMWindowList>     mFrames;
   nsRefPtr<nsBarProp>           mMenubar;
@@ -1001,7 +905,7 @@ protected:
   nsRefPtr<nsBarProp>           mPersonalbar;
   nsRefPtr<nsBarProp>           mStatusbar;
   nsRefPtr<nsBarProp>           mScrollbars;
-  nsRefPtr<nsDOMWindowUtils>    mWindowUtils;
+  nsCOMPtr<nsIWeakReference>    mWindowUtils;
   nsString                      mStatus;
   nsString                      mDefaultStatus;
   
@@ -1013,6 +917,8 @@ protected:
   nsCOMPtr<nsIDOMStorage>      mSessionStorage;
 
   nsCOMPtr<nsIXPConnectJSObjectHolder> mInnerWindowHolder;
+  nsCOMPtr<nsIPrincipal> mOpenerScriptPrincipal; 
+                                                 
 
   
   nsRefPtr<nsEventListenerManager> mListenerManager;
@@ -1025,24 +931,30 @@ protected:
   
   
   nsTimeout*                    mTimeoutInsertionPoint;
-  uint32_t                      mTimeoutPublicIdCounter;
-  uint32_t                      mTimeoutFiringDepth;
+  PRUint32                      mTimeoutPublicIdCounter;
+  PRUint32                      mTimeoutFiringDepth;
   nsRefPtr<nsLocation>          mLocation;
   nsRefPtr<nsHistory>           mHistory;
 
   
+  
+  nsRefPtr<nsDummyJavaPluginOwner> mDummyJavaPluginOwner;
+
+  
   nsCOMPtr<nsIPrincipal> mDocumentPrincipal;
+  nsCOMPtr<nsIDocument> mDoc;  
   JSObject* mJSObject;
 
   typedef nsCOMArray<nsIDOMStorageEvent> nsDOMStorageEventArray;
   nsDOMStorageEventArray mPendingStorageEvents;
+  nsAutoPtr< nsDataHashtable<nsStringHashKey, bool> > mPendingStorageEventsObsolete;
 
-  uint32_t mTimeoutsSuspendDepth;
+  PRUint32 mTimeoutsSuspendDepth;
 
   
-  uint32_t mFocusMethod;
+  PRUint32 mFocusMethod;
 
-  uint32_t mSerial;
+  PRUint32 mSerial;
 
 #ifdef DEBUG
   bool mSetOpenerWindowCalled;
@@ -1053,7 +965,7 @@ protected:
 
   nsCOMPtr<nsIDOMOfflineResourceList> mApplicationCache;
 
-  nsDataHashtable<nsPtrHashKey<nsXBLPrototypeHandler>, JSObject*> mCachedXBLPrototypeHandlers;
+  nsDataHashtable<nsVoidPtrHashKey, void*> mCachedXBLPrototypeHandlers;
 
   nsCOMPtr<nsIDocument> mSuspendedDoc;
 
@@ -1061,35 +973,22 @@ protected:
 
   
   
-  
-  
-  uint32_t                      mDialogAbuseCount;
+  PRUint32                      mDialogAbuseCount;
 
+  
   
   
   
   
   TimeStamp                     mLastDialogQuitTime;
-
-  
-  
-  
-  bool                          mStopAbuseDialogs;
-
-  
-  
-  
-  bool                          mDialogsPermanentlyDisabled;
+  bool                          mDialogDisabled;
 
   nsRefPtr<nsDOMMozURLProperty> mURLProperty;
-
-  nsTHashtable<nsPtrHashKey<nsDOMEventTargetHelper> > mEventTargetObjects;
-
-  nsTArray<uint32_t> mEnabledSensors;
 
   friend class nsDOMScriptableHelper;
   friend class nsDOMWindowUtils;
   friend class PostMessageEvent;
+  static nsIDOMStorageList* sGlobalStorageList;
 
   static WindowByIdTable* sWindowsById;
   static bool sWarnedAboutWindowInternal;
@@ -1112,8 +1011,8 @@ public:
   nsGlobalChromeWindow(nsGlobalWindow *aOuterWindow)
     : nsGlobalWindow(aOuterWindow)
   {
-    mIsChrome = true;
-    mCleanMessageManager = true;
+    mIsChrome = PR_TRUE;
+    mCleanMessageManager = PR_TRUE;
   }
 
   ~nsGlobalChromeWindow()
@@ -1125,14 +1024,14 @@ public:
         mMessageManager.get())->Disconnect();
     }
 
-    mCleanMessageManager = false;
+    mCleanMessageManager = PR_FALSE;
   }
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsGlobalChromeWindow,
                                            nsGlobalWindow)
 
   nsCOMPtr<nsIBrowserDOMWindow> mBrowserDOMWindow;
-  nsCOMPtr<nsIMessageBroadcaster> mMessageManager;
+  nsCOMPtr<nsIChromeFrameMessageManager> mMessageManager;
 };
 
 
@@ -1147,7 +1046,7 @@ public:
   nsGlobalModalWindow(nsGlobalWindow *aOuterWindow)
     : nsGlobalWindow(aOuterWindow)
   {
-    mIsModalContentWindow = true;
+    mIsModalContentWindow = PR_TRUE;
   }
 
   NS_DECL_ISUPPORTS_INHERITED
@@ -1164,20 +1063,54 @@ protected:
 };
 
 
-inline already_AddRefed<nsGlobalWindow>
-NS_NewScriptGlobalObject(bool aIsChrome, bool aIsModalContentWindow)
-{
-  nsRefPtr<nsGlobalWindow> global;
 
-  if (aIsChrome) {
-    global = new nsGlobalChromeWindow(nullptr);
-  } else if (aIsModalContentWindow) {
-    global = new nsGlobalModalWindow(nullptr);
-  } else {
-    global = new nsGlobalWindow(nullptr);
+
+
+
+class nsNavigator : public nsIDOMNavigator,
+                    public nsIDOMClientInformation,
+                    public nsIDOMNavigatorGeolocation,
+                    public nsIDOMNavigatorDesktopNotification
+{
+public:
+  nsNavigator(nsIDocShell *aDocShell);
+  virtual ~nsNavigator();
+
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIDOMNAVIGATOR
+  NS_DECL_NSIDOMCLIENTINFORMATION
+  NS_DECL_NSIDOMNAVIGATORGEOLOCATION
+  NS_DECL_NSIDOMNAVIGATORDESKTOPNOTIFICATION
+  
+  void SetDocShell(nsIDocShell *aDocShell);
+  nsIDocShell *GetDocShell()
+  {
+    return mDocShell;
   }
 
-  return global.forget();
-}
+  void LoadingNewDocument();
+  nsresult RefreshMIMEArray();
+
+  static bool HasDesktopNotificationSupport();
+
+  PRInt64 SizeOf() const;
+
+protected:
+  nsRefPtr<nsMimeTypeArray> mMimeTypes;
+  nsRefPtr<nsPluginArray> mPlugins;
+  nsRefPtr<nsGeolocation> mGeolocation;
+  nsRefPtr<nsDesktopNotificationCenter> mNotification;
+  nsIDocShell* mDocShell; 
+};
+
+nsresult NS_GetNavigatorUserAgent(nsAString& aUserAgent);
+nsresult NS_GetNavigatorPlatform(nsAString& aPlatform);
+nsresult NS_GetNavigatorAppVersion(nsAString& aAppVersion);
+nsresult NS_GetNavigatorAppName(nsAString& aAppName);
+
+
+nsresult
+NS_NewScriptGlobalObject(bool aIsChrome, bool aIsModalContentWindow,
+                         nsIScriptGlobalObject **aResult);
 
 #endif 

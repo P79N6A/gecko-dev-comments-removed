@@ -5,10 +5,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "xptcprivate.h"
 #include "xptiprivate.h"
-
-#include "mozilla/StandardInteger.h"
 
 
 
@@ -16,7 +47,7 @@
 
 
 extern "C" nsresult
-PrepareAndDispatch(nsXPTCStubBase* self, uint32_t methodIndex, uint32_t* args)
+PrepareAndDispatch(nsXPTCStubBase* self, PRUint32 methodIndex, PRUint32* args)
 {
     args++; 
 
@@ -25,13 +56,13 @@ PrepareAndDispatch(nsXPTCStubBase* self, uint32_t methodIndex, uint32_t* args)
     nsXPTCMiniVariant paramBuffer[PARAM_BUFFER_COUNT];
     nsXPTCMiniVariant* dispatchParams = NULL;
     const nsXPTMethodInfo* info;
-    uint8_t paramCount;
-    uint8_t i;
+    PRUint8 paramCount;
+    PRUint8 i;
     nsresult result = NS_ERROR_FAILURE;
 
     NS_ASSERTION(self,"no self");
 
-    self->mEntry->GetMethodInfo(uint16_t(methodIndex), &info);
+    self->mEntry->GetMethodInfo(PRUint16(methodIndex), &info);
     NS_ASSERTION(info,"no method info");
 
     paramCount = info->GetParamCount();
@@ -43,7 +74,7 @@ PrepareAndDispatch(nsXPTCStubBase* self, uint32_t methodIndex, uint32_t* args)
         dispatchParams = paramBuffer;
     NS_ASSERTION(dispatchParams,"no place for params");
 
-    uint32_t* ap = args;
+    PRUint32* ap = args;
     for(i = 0; i < paramCount; i++, ap++)
     {
         const nsXPTParamInfo& param = info->GetParam(i);
@@ -59,15 +90,15 @@ PrepareAndDispatch(nsXPTCStubBase* self, uint32_t methodIndex, uint32_t* args)
         switch(type)
         {
         case nsXPTType::T_I64   :
-            if ((intptr_t)ap & 4) ap++;
-            dp->val.i64 = *((int64_t*) ap); ap++;
+            if ((PRWord)ap & 4) ap++;
+            dp->val.i64 = *((PRInt64*) ap); ap++;
             break;
         case nsXPTType::T_U64   :
-            if ((intptr_t)ap & 4) ap++;
-            dp->val.u64 = *((int64_t*) ap); ap++;
+            if ((PRWord)ap & 4) ap++;
+            dp->val.u64 = *((PRInt64*) ap); ap++;
             break;
         case nsXPTType::T_DOUBLE:
-            if ((intptr_t)ap & 4) ap++;
+            if ((PRWord)ap & 4) ap++;
             dp->val.d   = *((double*) ap);  ap++;
             break;
 #ifdef IS_LITTLE_ENDIAN
@@ -75,12 +106,12 @@ PrepareAndDispatch(nsXPTCStubBase* self, uint32_t methodIndex, uint32_t* args)
             dp->val.p = (void*) *ap;
             break;
 #else
-        case nsXPTType::T_I8    : dp->val.i8  = (int8_t)   *ap; break;
-        case nsXPTType::T_I16   : dp->val.i16 = (int16_t)  *ap; break;
-        case nsXPTType::T_I32   : dp->val.i32 = (int32_t)  *ap; break;
-        case nsXPTType::T_U8    : dp->val.u8  = (uint8_t)  *ap; break;
-        case nsXPTType::T_U16   : dp->val.u16 = (uint16_t) *ap; break;
-        case nsXPTType::T_U32   : dp->val.u32 = (uint32_t) *ap; break;
+        case nsXPTType::T_I8    : dp->val.i8  = (PRInt8)   *ap; break;
+        case nsXPTType::T_I16   : dp->val.i16 = (PRInt16)  *ap; break;
+        case nsXPTType::T_I32   : dp->val.i32 = (PRInt32)  *ap; break;
+        case nsXPTType::T_U8    : dp->val.u8  = (PRUint8)  *ap; break;
+        case nsXPTType::T_U16   : dp->val.u16 = (PRUint16) *ap; break;
+        case nsXPTType::T_U32   : dp->val.u32 = (PRUint32) *ap; break;
         case nsXPTType::T_BOOL  : dp->val.b   = (bool)   *ap; break;
         case nsXPTType::T_CHAR  : dp->val.c   = (char)     *ap; break;
         case nsXPTType::T_WCHAR : dp->val.wc  = (wchar_t)  *ap; break;
@@ -92,7 +123,7 @@ PrepareAndDispatch(nsXPTCStubBase* self, uint32_t methodIndex, uint32_t* args)
         }
     }
 
-    result = self->mOuter->CallMethod((uint16_t)methodIndex, info, dispatchParams);
+    result = self->mOuter->CallMethod((PRUint16)methodIndex, info, dispatchParams);
 
     if(dispatchParams != paramBuffer)
         delete [] dispatchParams;

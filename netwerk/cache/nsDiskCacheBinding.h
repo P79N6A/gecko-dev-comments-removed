@@ -5,6 +5,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsDiskCacheBinding_h_
 #define _nsDiskCacheBinding_h_
 
@@ -37,7 +72,7 @@ public:
     virtual ~nsDiskCacheBinding();
 
     nsresult EnsureStreamIO();
-    bool     IsActive() { return mCacheEntry != nullptr;}
+    bool     IsActive() { return mCacheEntry != nsnull;}
 
 
 public:
@@ -45,7 +80,7 @@ public:
     nsDiskCacheRecord       mRecord;
     nsDiskCacheStreamIO*    mStreamIO;      
     bool                    mDoomed;        
-    uint8_t                 mGeneration;    
+    PRUint8                 mGeneration;    
 
     
     
@@ -101,7 +136,7 @@ public:
     nsDiskCacheBinding *    CreateBinding(nsCacheEntry *       entry,
                                           nsDiskCacheRecord *  record);
 
-    nsDiskCacheBinding *    FindActiveBinding(uint32_t  hashNumber);
+    nsDiskCacheBinding *    FindActiveBinding(PRUint32  hashNumber);
     void                    RemoveBinding(nsDiskCacheBinding * binding);
     bool                    ActiveBindings();
     

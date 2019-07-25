@@ -7,16 +7,51 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDOMAttributeMap_h___
 #define nsDOMAttributeMap_h___
 
 #include "nsIDOMNamedNodeMap.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsRefPtrHashtable.h"
 #include "nsCycleCollectionParticipant.h"
+#include "prbit.h"
 #include "nsIDOMNode.h"
 
 class nsIAtom;
+class nsIContent;
 class nsDOMAttribute;
 class nsINodeInfo;
 class nsIDocument;
@@ -36,7 +71,7 @@ public:
   
 
 
-  int32_t  mNamespaceID;
+  PRInt32  mNamespaceID;
 
   
 
@@ -44,7 +79,7 @@ public:
 
   nsIAtom* mLocalName;
 
-  nsAttrKey(int32_t aNs, nsIAtom* aName)
+  nsAttrKey(PRInt32 aNs, nsIAtom* aName)
     : mNamespaceID(aNs), mLocalName(aName) {}
 
   nsAttrKey(const nsAttrKey& aAttr)
@@ -77,9 +112,10 @@ public:
       if (!aKey)
         return 0;
 
-      return mozilla::HashGeneric(aKey->mNamespaceID, aKey->mLocalName);
+      return PR_ROTATE_LEFT32(static_cast<PRUint32>(aKey->mNamespaceID), 4) ^
+             NS_PTR_TO_INT32(aKey->mLocalName);
     }
-  enum { ALLOW_MEMMOVE = true };
+  enum { ALLOW_MEMMOVE = PR_TRUE };
 
 private:
   nsAttrKey mKey;
@@ -93,6 +129,11 @@ public:
 
   nsDOMAttributeMap(Element *aContent);
   virtual ~nsDOMAttributeMap();
+
+  
+
+
+  bool Init();
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
 
@@ -116,7 +157,7 @@ public:
 
 
 
-  void DropAttribute(int32_t aNamespaceID, nsIAtom* aLocalName);
+  void DropAttribute(PRInt32 aNamespaceID, nsIAtom* aLocalName);
 
   
 
@@ -125,7 +166,7 @@ public:
 
 
 
-  uint32_t Count() const;
+  PRUint32 Count() const;
 
   typedef nsRefPtrHashtable<nsAttrHashKey, nsDOMAttribute> AttrCache;
 
@@ -135,9 +176,9 @@ public:
 
 
 
-  uint32_t Enumerate(AttrCache::EnumReadFunction aFunc, void *aUserArg) const;
+  PRUint32 Enumerate(AttrCache::EnumReadFunction aFunc, void *aUserArg) const;
 
-  nsDOMAttribute* GetItemAt(uint32_t aIndex, nsresult *rv);
+  nsDOMAttribute* GetItemAt(PRUint32 aIndex, nsresult *rv);
   nsDOMAttribute* GetNamedItem(const nsAString& aAttrName, nsresult *rv);
 
   static nsDOMAttributeMap* FromSupports(nsISupports* aSupports)

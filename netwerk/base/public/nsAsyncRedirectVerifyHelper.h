@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsAsyncRedirectVerifyHelper_h
 #define nsAsyncRedirectVerifyHelper_h
 
@@ -14,7 +48,6 @@
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
 #include "nsCycleCollectionParticipant.h"
-#include "mozilla/Attributes.h"
 
 class nsIChannel;
 
@@ -23,8 +56,8 @@ class nsIChannel;
 
 
 
-class nsAsyncRedirectVerifyHelper MOZ_FINAL : public nsIRunnable,
-                                              public nsIAsyncVerifyRedirectCallback
+class nsAsyncRedirectVerifyHelper : public nsIRunnable,
+                                    public nsIAsyncVerifyRedirectCallback
 {
     NS_DECL_ISUPPORTS
     NS_DECL_NSIRUNNABLE
@@ -40,7 +73,7 @@ public:
     nsresult DelegateOnChannelRedirect(nsIChannelEventSink *sink,
                                        nsIChannel *oldChannel, 
                                        nsIChannel *newChannel,
-                                       uint32_t flags);
+                                       PRUint32 flags);
  
     
 
@@ -60,17 +93,17 @@ public:
 
     nsresult Init(nsIChannel* oldChan,
                   nsIChannel* newChan,
-                  uint32_t flags,
+                  PRUint32 flags,
                   bool synchronize = false);
 
 protected:
     nsCOMPtr<nsIChannel> mOldChan;
     nsCOMPtr<nsIChannel> mNewChan;
-    uint32_t mFlags;
+    PRUint32 mFlags;
     bool mWaitingForRedirectCallback;
     nsCOMPtr<nsIThread>      mCallbackThread;
     bool                     mCallbackInitiated;
-    int32_t                  mExpectedCallbacks;
+    PRInt32                  mExpectedCallbacks;
     nsresult                 mResult; 
 
     void InitCallback();
@@ -114,7 +147,7 @@ public:
 
     void DontCallback()
     {
-        mCallback = nullptr;
+        mCallback = nsnull;
     }
 private:
     nsIAsyncVerifyRedirectCallback* mCallback;

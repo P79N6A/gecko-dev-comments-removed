@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIDOMHTMLDataListElement.h"
 #include "nsGenericHTMLElement.h"
 #include "nsIDOMEventTarget.h"
@@ -35,14 +67,14 @@ public:
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   
-  static bool MatchOptions(nsIContent* aContent, int32_t aNamespaceID,
+  static bool MatchOptions(nsIContent* aContent, PRInt32 aNamespaceID,
                              nsIAtom* aAtom, void* aData);
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsHTMLDataListElement,
                                            nsGenericHTMLElement)
 
   virtual nsXPCClassInfo* GetClassInfo();
-  virtual nsIDOMNode* AsDOMNode() { return this; }
+
 protected:
 
   
@@ -89,7 +121,7 @@ NS_HTML_CONTENT_INTERFACE_TABLE_TAIL_CLASSINFO(HTMLDataListElement)
 NS_IMPL_ELEMENT_CLONE(nsHTMLDataListElement)
 
 bool
-nsHTMLDataListElement::MatchOptions(nsIContent* aContent, int32_t aNamespaceID,
+nsHTMLDataListElement::MatchOptions(nsIContent* aContent, PRInt32 aNamespaceID,
                                     nsIAtom* aAtom, void* aData)
 {
   return aContent->NodeInfo()->Equals(nsGkAtoms::option, kNameSpaceID_XHTML) &&
@@ -100,7 +132,7 @@ NS_IMETHODIMP
 nsHTMLDataListElement::GetOptions(nsIDOMHTMLCollection** aOptions)
 {
   if (!mOptions) {
-    mOptions = new nsContentList(this, MatchOptions, nullptr, nullptr, true);
+    mOptions = new nsContentList(this, MatchOptions, nsnull, nsnull, PR_TRUE);
   }
 
   NS_ADDREF(*aOptions = mOptions);

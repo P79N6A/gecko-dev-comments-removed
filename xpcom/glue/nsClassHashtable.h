@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsClassHashtable_h__
 #define nsClassHashtable_h__
 
@@ -92,13 +124,13 @@ nsClassHashtable<KeyClass,T>::Get(KeyType aKey, T** retVal) const
     if (retVal)
       *retVal = ent->mData;
 
-    return true;
+    return PR_TRUE;
   }
 
   if (retVal)
-    *retVal = nullptr;
+    *retVal = nsnull;
 
-  return false;
+  return PR_FALSE;
 }
 
 template<class KeyClass,class T>
@@ -117,7 +149,7 @@ template<class KeyClass,class T>
 void
 nsClassHashtable<KeyClass,T>::RemoveAndForget(KeyType aKey, nsAutoPtr<T> &aOut)
 {
-  aOut = nullptr;
+  aOut = nsnull;
   nsAutoPtr<T> ptr;
 
   typename base_type::EntryType *ent = this->GetEntry(aKey);
@@ -150,15 +182,15 @@ nsClassHashtableMT<KeyClass,T>::Get(KeyType aKey, T** retVal) const
 
     PR_Unlock(this->mLock);
 
-    return true;
+    return PR_TRUE;
   }
 
   if (retVal)
-    *retVal = nullptr;
+    *retVal = nsnull;
 
   PR_Unlock(this->mLock);
 
-  return false;
+  return PR_FALSE;
 }
 
 #endif 

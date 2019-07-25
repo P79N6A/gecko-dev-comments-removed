@@ -3,20 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_DOMSVGPOINTLIST_H__
 #define MOZILLA_DOMSVGPOINTLIST_H__
 
-#include "nsAutoPtr.h"
-#include "nsCOMPtr.h"
-#include "nsCycleCollectionParticipant.h"
-#include "nsDebug.h"
 #include "nsIDOMSVGPointList.h"
-#include "nsSVGElement.h"
-#include "nsTArray.h"
-#include "SVGPointList.h" 
-#include "mozilla/Attributes.h"
+#include "SVGPointList.h"
+#include "SVGPoint.h"
+#include "nsCOMArray.h"
+#include "nsAutoPtr.h"
 
-class nsIDOMSVGPoint;
+class nsSVGElement;
 
 namespace mozilla {
 
@@ -48,23 +75,14 @@ class SVGAnimatedPointList;
 
 
 
-class DOMSVGPointList MOZ_FINAL : public nsIDOMSVGPointList,
-                                  public nsWrapperCache
+class DOMSVGPointList : public nsIDOMSVGPointList
 {
   friend class DOMSVGPoint;
 
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGPointList)
+  NS_DECL_CYCLE_COLLECTION_CLASS(DOMSVGPointList)
   NS_DECL_NSIDOMSVGPOINTLIST
-
-  virtual JSObject* WrapObject(JSContext *cx, JSObject *scope,
-                               bool *triedToWrap);
-
-  nsISupports* GetParentObject()
-  {
-    return static_cast<nsIContent*>(mElement);
-  }
 
   
 
@@ -100,12 +118,15 @@ public:
 
 
 
-  uint32_t Length() const {
+  PRUint32 Length() const {
     NS_ABORT_IF_FALSE(mItems.Length() == 0 ||
-                      mItems.Length() == InternalList().Length(),
+                      mItems.Length() ==
+                        const_cast<DOMSVGPointList*>(this)->InternalList().Length(),
                       "DOM wrapper's list length is out of sync");
     return mItems.Length();
   }
+
+  nsIDOMSVGPoint* GetItemWithoutAddRef(PRUint32 aIndex);
 
   
 
@@ -141,8 +162,6 @@ private:
     : mElement(aElement)
     , mIsAnimValList(aIsAnimValList)
   {
-    SetIsDOMBinding();
-
     InternalListWillChangeTo(InternalList()); 
   }
 
@@ -165,15 +184,15 @@ private:
 
 
 
-  SVGPointList& InternalList() const;
+  SVGPointList& InternalList();
 
-  SVGAnimatedPointList& InternalAList() const;
+  SVGAnimatedPointList& InternalAList();
 
   
-  void EnsureItemAt(uint32_t aIndex);
+  void EnsureItemAt(PRUint32 aIndex);
 
-  void MaybeInsertNullInAnimValListAt(uint32_t aIndex);
-  void MaybeRemoveItemFromAnimValListAt(uint32_t aIndex);
+  void MaybeInsertNullInAnimValListAt(PRUint32 aIndex);
+  void MaybeRemoveItemFromAnimValListAt(PRUint32 aIndex);
 
   
   

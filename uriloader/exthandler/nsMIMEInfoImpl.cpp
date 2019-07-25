@@ -4,11 +4,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsMIMEInfoImpl.h"
 #include "nsXPIDLString.h"
 #include "nsReadableUtils.h"
 #include "nsStringEnumerator.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "nsIFileURL.h"
 #include "nsEscape.h"
 #include "nsNetUtil.h"
@@ -33,7 +65,7 @@ nsMIMEInfoBase::nsMIMEInfoBase(const char *aMIMEType) :
     mSchemeOrType(aMIMEType),
     mClass(eMIMEInfo),
     mPreferredAction(nsIMIMEInfo::saveToDisk),
-    mAlwaysAskBeforeHandling(true)
+    mAlwaysAskBeforeHandling(PR_TRUE)
 {
 }
 
@@ -41,7 +73,7 @@ nsMIMEInfoBase::nsMIMEInfoBase(const nsACString& aMIMEType) :
     mSchemeOrType(aMIMEType),
     mClass(eMIMEInfo),
     mPreferredAction(nsIMIMEInfo::saveToDisk),
-    mAlwaysAskBeforeHandling(true)
+    mAlwaysAskBeforeHandling(PR_TRUE)
 {
 }
 
@@ -54,7 +86,7 @@ nsMIMEInfoBase::nsMIMEInfoBase(const nsACString& aType, HandlerClass aClass) :
     mSchemeOrType(aType),
     mClass(aClass),
     mPreferredAction(nsIMIMEInfo::saveToDisk),
-    mAlwaysAskBeforeHandling(true)
+    mAlwaysAskBeforeHandling(PR_TRUE)
 {
 }
 
@@ -73,13 +105,13 @@ nsMIMEInfoBase::ExtensionExists(const nsACString& aExtension, bool *_retval)
 {
     NS_ASSERTION(!aExtension.IsEmpty(), "no extension");
     bool found = false;
-    uint32_t extCount = mExtensions.Length();
+    PRUint32 extCount = mExtensions.Length();
     if (extCount < 1) return NS_OK;
 
-    for (uint8_t i=0; i < extCount; i++) {
+    for (PRUint8 i=0; i < extCount; i++) {
         const nsCString& ext = mExtensions[i];
         if (ext.Equals(aExtension, nsCaseInsensitiveCStringComparator())) {
-            found = true;
+            found = PR_TRUE;
             break;
         }
     }
@@ -102,13 +134,13 @@ NS_IMETHODIMP
 nsMIMEInfoBase::SetPrimaryExtension(const nsACString& aExtension)
 {
   NS_ASSERTION(!aExtension.IsEmpty(), "no extension");
-  uint32_t extCount = mExtensions.Length();
-  uint8_t i;
+  PRUint32 extCount = mExtensions.Length();
+  PRUint8 i;
   bool found = false;
   for (i=0; i < extCount; i++) {
     const nsCString& ext = mExtensions[i];
     if (ext.Equals(aExtension, nsCaseInsensitiveCStringComparator())) {
-      found = true;
+      found = PR_TRUE;
       break;
     }
   }
@@ -167,7 +199,7 @@ nsMIMEInfoBase::Equals(nsIMIMEInfo *aMIMEInfo, bool *_retval)
 {
     if (!aMIMEInfo) return NS_ERROR_NULL_POINTER;
 
-    nsAutoCString type;
+    nsCAutoString type;
     nsresult rv = aMIMEInfo->GetMIMEType(type);
     if (NS_FAILED(rv)) return rv;
 
@@ -182,7 +214,7 @@ nsMIMEInfoBase::SetFileExtensions(const nsACString& aExtensions)
     mExtensions.Clear();
     nsCString extList( aExtensions );
     
-    int32_t breakLocation = -1;
+    PRInt32 breakLocation = -1;
     while ( (breakLocation= extList.FindChar(',') )!= -1)
     {
         mExtensions.AppendElement(Substring(extList.get(), extList.get() + breakLocation));
@@ -260,7 +292,7 @@ nsMIMEInfoBase::SetAlwaysAskBeforeHandling(bool aAlwaysAsk)
 
 
 nsresult 
-nsMIMEInfoBase::GetLocalFileFromURI(nsIURI *aURI, nsIFile **aFile)
+nsMIMEInfoBase::GetLocalFileFromURI(nsIURI *aURI, nsILocalFile **aFile)
 {
   nsresult rv;
 
@@ -300,7 +332,7 @@ nsMIMEInfoBase::LaunchWithFile(nsIFile* aFile)
     rv = localHandler->GetExecutable(getter_AddRefs(executable));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    nsAutoCString path;
+    nsCAutoString path;
     aFile->GetNativePath(path);
     return LaunchWithIProcess(executable, path);
   }
@@ -349,11 +381,11 @@ nsMIMEInfoBase::InitProcess(nsIFile* aApp, nsresult* aResult)
   nsCOMPtr<nsIProcess> process = do_CreateInstance(NS_PROCESS_CONTRACTID,
                                                    aResult);
   if (NS_FAILED(*aResult))
-    return nullptr;
+    return nsnull;
 
   *aResult = process->Init(aApp);
   if (NS_FAILED(*aResult))
-    return nullptr;
+    return nsnull;
 
   return process.forget();
 }
@@ -369,7 +401,7 @@ nsMIMEInfoBase::LaunchWithIProcess(nsIFile* aApp, const nsCString& aArg)
 
   const char *string = aArg.get();
 
-  return process->Run(false, &string, 1);
+  return process->Run(PR_FALSE, &string, 1);
 }
 
 
@@ -383,7 +415,7 @@ nsMIMEInfoBase::LaunchWithIProcess(nsIFile* aApp, const nsString& aArg)
 
   const PRUnichar *string = aArg.get();
 
-  return process->Runw(false, &string, 1);
+  return process->Runw(PR_FALSE, &string, 1);
 }
 
 
@@ -418,7 +450,7 @@ nsMIMEInfoImpl::LaunchDefaultWithFile(nsIFile* aFile)
   if (!mDefaultApplication)
     return NS_ERROR_FILE_NOT_FOUND;
 
-  nsAutoCString nativePath;
+  nsCAutoString nativePath;
   aFile->GetNativePath(nativePath);
   
   return LaunchWithIProcess(mDefaultApplication, nativePath);

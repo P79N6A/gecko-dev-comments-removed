@@ -3,18 +3,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_ASURFACE_H
 #define GFX_ASURFACE_H
-
-#ifdef MOZ_DUMP_PAINTING
- #define MOZ_DUMP_IMAGES
-#endif
 
 #include "gfxTypes.h"
 #include "gfxRect.h"
 #include "nsAutoPtr.h"
-#include "nsAutoRef.h"
-#include "nsThreadUtils.h"
 
 typedef struct _cairo_surface cairo_surface_t;
 typedef struct _cairo_user_data_key cairo_user_data_key_t;
@@ -31,23 +57,8 @@ struct nsIntRect;
 
 class THEBES_API gfxASurface {
 public:
-#ifdef MOZILLA_INTERNAL_API
     nsrefcnt AddRef(void);
     nsrefcnt Release(void);
-
-    
-    virtual nsrefcnt AddRefExternal(void)
-    {
-      return AddRef();
-    }
-    virtual nsrefcnt ReleaseExternal(void)
-    {
-      return Release();
-    }
-#else
-    virtual nsrefcnt AddRef(void);
-    virtual nsrefcnt Release(void);
-#endif
 
 public:
     
@@ -69,11 +80,11 @@ public:
         SurfaceTypePS,
         SurfaceTypeXlib,
         SurfaceTypeXcb,
-        SurfaceTypeGlitz,           
+        SurfaceTypeGlitz,
         SurfaceTypeQuartz,
         SurfaceTypeWin32,
         SurfaceTypeBeOS,
-        SurfaceTypeDirectFB,        
+        SurfaceTypeDirectFB,
         SurfaceTypeSVG,
         SurfaceTypeOS2,
         SurfaceTypeWin32Printing,
@@ -95,8 +106,7 @@ public:
     typedef enum {
         CONTENT_COLOR       = 0x1000,
         CONTENT_ALPHA       = 0x2000,
-        CONTENT_COLOR_ALPHA = 0x3000,
-        CONTENT_SENTINEL    = 0xffff
+        CONTENT_COLOR_ALPHA = 0x3000
     } gfxContentType;
 
     
@@ -106,7 +116,7 @@ public:
 
     
     cairo_surface_t *CairoSurface() {
-        NS_ASSERTION(mSurface != nullptr, "gfxASurface::CairoSurface called with mSurface == nullptr!");
+        NS_ASSERTION(mSurface != nsnull, "gfxASurface::CairoSurface called with mSurface == nsnull!");
         return mSurface;
     }
 
@@ -152,7 +162,7 @@ public:
 
     virtual already_AddRefed<gfxImageSurface> GetAsImageSurface()
     {
-      return nullptr;
+      return nsnull;
     }
 
     int CairoStatus();
@@ -161,20 +171,21 @@ public:
 
 
 
-    static bool CheckSurfaceSize(const gfxIntSize& sz, int32_t limit = 0);
+    static bool CheckSurfaceSize(const gfxIntSize& sz, PRInt32 limit = 0);
 
     
 
 
-    static int32_t FormatStrideForWidth(gfxImageFormat format, int32_t width);
+    static PRInt32 FormatStrideForWidth(gfxImageFormat format, PRInt32 width);
 
     
 
 
 
-    virtual int32_t GetDefaultContextFlags() const { return 0; }
+    virtual PRInt32 GetDefaultContextFlags() const { return 0; }
 
     static gfxContentType ContentFromFormat(gfxImageFormat format);
+    static gfxImageFormat FormatFromContent(gfxContentType format);
 
     void SetSubpixelAntialiasingEnabled(bool aEnabled);
     bool GetSubpixelAntialiasingEnabled();
@@ -184,7 +195,7 @@ public:
 
 
     static void RecordMemoryUsedForSurfaceType(gfxASurface::gfxSurfaceType aType,
-                                               int32_t aBytes);
+                                               PRInt32 aBytes);
 
     
 
@@ -192,10 +203,10 @@ public:
 
 
 
-    void RecordMemoryUsed(int32_t aBytes);
+    void RecordMemoryUsed(PRInt32 aBytes);
     void RecordMemoryFreed();
 
-    virtual int32_t KnownMemoryUsed() { return mBytesRecorded; }
+    virtual PRInt32 KnownMemoryUsed() { return mBytesRecorded; }
 
     
 
@@ -214,41 +225,15 @@ public:
 
     virtual MemoryLocation GetMemoryLocation() const;
 
-    static int32_t BytePerPixelFromFormat(gfxImageFormat format);
+    static PRInt32 BytePerPixelFromFormat(gfxImageFormat format);
 
     virtual const gfxIntSize GetSize() const { return gfxIntSize(-1, -1); }
 
-#ifdef MOZ_DUMP_IMAGES
-    
-
-
-
-    
-
-
-    void WriteAsPNG(const char* aFile);
-
-    
-
-
-    void DumpAsDataURL(FILE* aOutput = stdout);
-
-    
-
-
-    void PrintAsDataURL();
-
-    
-
-
-    void CopyAsDataURL();
-    
-    void WriteAsPNG_internal(FILE* aFile, bool aBinary);
-#endif
+    void DumpAsDataURL();
 
     void SetOpaqueRect(const gfxRect& aRect) {
         if (aRect.IsEmpty()) {
-            mOpaqueRect = nullptr;
+            mOpaqueRect = nsnull;
         } else if (mOpaqueRect) {
             *mOpaqueRect = aRect;
         } else {
@@ -282,8 +267,8 @@ public:
     bool GetAllowUseAsSource() { return mAllowUseAsSource; }
 
 protected:
-    gfxASurface() : mSurface(nullptr), mFloatingRefs(0), mBytesRecorded(0),
-                    mSurfaceValid(false), mAllowUseAsSource(true)
+    gfxASurface() : mSurface(nsnull), mFloatingRefs(0), mBytesRecorded(0),
+                    mSurfaceValid(PR_FALSE), mAllowUseAsSource(PR_TRUE)
     {
         MOZ_COUNT_CTOR(gfxASurface);
     }
@@ -317,8 +302,8 @@ protected:
 private:
     static void SurfaceDestroyFunc(void *data);
 
-    int32_t mFloatingRefs;
-    int32_t mBytesRecorded;
+    PRInt32 mFloatingRefs;
+    PRInt32 mBytesRecorded;
 
 protected:
     bool mSurfaceValid;
@@ -331,62 +316,10 @@ protected:
 class THEBES_API gfxUnknownSurface : public gfxASurface {
 public:
     gfxUnknownSurface(cairo_surface_t *surf) {
-        Init(surf, true);
+        Init(surf, PR_TRUE);
     }
 
     virtual ~gfxUnknownSurface() { }
 };
 
-#ifndef XPCOM_GLUE_AVOID_NSPR
-
-
-
-
-
-
-
-
-
-
-
-
-class nsMainThreadSurfaceRef;
-
-template <>
-class nsAutoRefTraits<nsMainThreadSurfaceRef> {
-public:
-  typedef gfxASurface* RawRef;
-
-  
-
-
-  class SurfaceReleaser : public nsRunnable {
-  public:
-    SurfaceReleaser(RawRef aRef) : mRef(aRef) {}
-    NS_IMETHOD Run() {
-      mRef->Release();
-      return NS_OK;
-    }
-    RawRef mRef;
-  };
-
-  static RawRef Void() { return nullptr; }
-  static void Release(RawRef aRawRef)
-  {
-    if (NS_IsMainThread()) {
-      aRawRef->Release();
-      return;
-    }
-    nsCOMPtr<nsIRunnable> runnable = new SurfaceReleaser(aRawRef);
-    NS_DispatchToMainThread(runnable);
-  }
-  static void AddRef(RawRef aRawRef)
-  {
-    NS_ASSERTION(NS_IsMainThread(),
-                 "Can only add a reference on the main thread");
-    aRawRef->AddRef();
-  }
-};
-
-#endif
 #endif 

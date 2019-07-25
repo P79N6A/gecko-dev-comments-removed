@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_DWRITEFONTLIST_H
 #define GFX_DWRITEFONTLIST_H
 
@@ -47,11 +79,6 @@ public:
 
     void SetForceGDIClassic(bool aForce) { mForceGDIClassic = aForce; }
 
-    virtual void SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                     FontListSizes*    aSizes) const;
-    virtual void SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                     FontListSizes*    aSizes) const;
-
 protected:
     
     nsRefPtr<IDWriteFontFamily> mDWFamily;
@@ -72,16 +99,16 @@ public:
 
     gfxDWriteFontEntry(const nsAString& aFaceName,
                               IDWriteFont *aFont) 
-      : gfxFontEntry(aFaceName), mFont(aFont), mFontFile(nullptr),
+      : gfxFontEntry(aFaceName), mFont(aFont), mFontFile(nsnull),
         mForceGDIClassic(false)
     {
         mItalic = (aFont->GetStyle() == DWRITE_FONT_STYLE_ITALIC ||
                    aFont->GetStyle() == DWRITE_FONT_STYLE_OBLIQUE);
         mStretch = FontStretchFromDWriteStretch(aFont->GetStretch());
-        uint16_t weight = NS_ROUNDUP(aFont->GetWeight() - 50, 100);
+        PRUint16 weight = NS_ROUNDUP(aFont->GetWeight() - 50, 100);
 
-        weight = NS_MAX<uint16_t>(100, weight);
-        weight = NS_MIN<uint16_t>(900, weight);
+        weight = NS_MAX<PRUint16>(100, weight);
+        weight = NS_MIN<PRUint16>(900, weight);
         mWeight = weight;
 
         mIsCJK = UNINITIALIZED_VALUE;
@@ -100,17 +127,17 @@ public:
 
     gfxDWriteFontEntry(const nsAString& aFaceName,
                               IDWriteFont *aFont,
-                              uint16_t aWeight,
-                              int16_t aStretch,
+                              PRUint16 aWeight,
+                              PRInt16 aStretch,
                               bool aItalic)
-      : gfxFontEntry(aFaceName), mFont(aFont), mFontFile(nullptr),
+      : gfxFontEntry(aFaceName), mFont(aFont), mFontFile(nsnull),
         mForceGDIClassic(false)
     {
         mWeight = aWeight;
         mStretch = aStretch;
         mItalic = aItalic;
-        mIsUserFont = true;
-        mIsLocalUserFont = true;
+        mIsUserFont = PR_TRUE;
+        mIsLocalUserFont = PR_TRUE;
         mIsCJK = UNINITIALIZED_VALUE;
     }
 
@@ -125,16 +152,16 @@ public:
 
     gfxDWriteFontEntry(const nsAString& aFaceName,
                               IDWriteFontFile *aFontFile,
-                              uint16_t aWeight,
-                              int16_t aStretch,
+                              PRUint16 aWeight,
+                              PRInt16 aStretch,
                               bool aItalic)
-      : gfxFontEntry(aFaceName), mFont(nullptr), mFontFile(aFontFile),
+      : gfxFontEntry(aFaceName), mFont(nsnull), mFontFile(aFontFile),
         mForceGDIClassic(false)
     {
         mWeight = aWeight;
         mStretch = aStretch;
         mItalic = aItalic;
-        mIsUserFont = true;
+        mIsUserFont = PR_TRUE;
         mIsCJK = UNINITIALIZED_VALUE;
     }
 
@@ -142,8 +169,8 @@ public:
 
     virtual bool IsSymbolFont();
 
-    virtual nsresult GetFontTable(uint32_t aTableTag,
-                                  FallibleTArray<uint8_t>& aBuffer);
+    virtual nsresult GetFontTable(PRUint32 aTableTag,
+                                  FallibleTArray<PRUint8>& aBuffer);
 
     nsresult ReadCMAP();
 
@@ -151,11 +178,6 @@ public:
 
     void SetForceGDIClassic(bool aForce) { mForceGDIClassic = aForce; }
     bool GetForceGDIClassic() { return mForceGDIClassic; }
-
-    virtual void SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                     FontListSizes*    aSizes) const;
-    virtual void SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                     FontListSizes*    aSizes) const;
 
 protected:
     friend class gfxDWriteFont;
@@ -178,148 +200,9 @@ protected:
     nsRefPtr<IDWriteFontFile> mFontFile;
     DWRITE_FONT_FACE_TYPE mFaceType;
 
-    int8_t mIsCJK;
+    PRInt8 mIsCJK;
     bool mForceGDIClassic;
 };
-
-
-class FontFallbackRenderer : public IDWriteTextRenderer
-{
-public:
-    FontFallbackRenderer(IDWriteFactory *aFactory)
-        : mRefCount(0)
-    {
-        HRESULT hr = S_OK;
-
-        hr = aFactory->GetSystemFontCollection(getter_AddRefs(mSystemFonts));
-        NS_ASSERTION(SUCCEEDED(hr), "GetSystemFontCollection failed!");
-    }
-
-    ~FontFallbackRenderer()
-    {}
-
-    
-    IFACEMETHOD(DrawGlyphRun)(
-        void* clientDrawingContext,
-        FLOAT baselineOriginX,
-        FLOAT baselineOriginY,
-        DWRITE_MEASURING_MODE measuringMode,
-        DWRITE_GLYPH_RUN const* glyphRun,
-        DWRITE_GLYPH_RUN_DESCRIPTION const* glyphRunDescription,
-        IUnknown* clientDrawingEffect
-        );
-
-    IFACEMETHOD(DrawUnderline)(
-        void* clientDrawingContext,
-        FLOAT baselineOriginX,
-        FLOAT baselineOriginY,
-        DWRITE_UNDERLINE const* underline,
-        IUnknown* clientDrawingEffect
-        )
-    {
-        return E_NOTIMPL;
-    }
-
-
-    IFACEMETHOD(DrawStrikethrough)(
-        void* clientDrawingContext,
-        FLOAT baselineOriginX,
-        FLOAT baselineOriginY,
-        DWRITE_STRIKETHROUGH const* strikethrough,
-        IUnknown* clientDrawingEffect
-        )
-    {
-        return E_NOTIMPL;
-    }
-
-
-    IFACEMETHOD(DrawInlineObject)(
-        void* clientDrawingContext,
-        FLOAT originX,
-        FLOAT originY,
-        IDWriteInlineObject* inlineObject,
-        BOOL isSideways,
-        BOOL isRightToLeft,
-        IUnknown* clientDrawingEffect
-        )
-    {
-        return E_NOTIMPL;
-    }
-
-    
-
-    IFACEMETHOD(IsPixelSnappingDisabled)(
-        void* clientDrawingContext,
-        BOOL* isDisabled
-        )
-    {
-        *isDisabled = FALSE;
-        return S_OK;
-    }
-
-    IFACEMETHOD(GetCurrentTransform)(
-        void* clientDrawingContext,
-        DWRITE_MATRIX* transform
-        )
-    {
-        const DWRITE_MATRIX ident = {1.0, 0.0, 0.0, 1.0, 0.0, 0.0};
-        *transform = ident;
-        return S_OK;
-    }
-
-    IFACEMETHOD(GetPixelsPerDip)(
-        void* clientDrawingContext,
-        FLOAT* pixelsPerDip
-        )
-    {
-        *pixelsPerDip = 1.0f;
-        return S_OK;
-    }
-
-    
-
-    IFACEMETHOD_(unsigned long, AddRef) ()
-    {
-        return InterlockedIncrement(&mRefCount);
-    }
-
-    IFACEMETHOD_(unsigned long,  Release) ()
-    {
-        unsigned long newCount = InterlockedDecrement(&mRefCount);
-        if (newCount == 0)
-        {
-            delete this;
-            return 0;
-        }
-
-        return newCount;
-    }
-
-    IFACEMETHOD(QueryInterface) (IID const& riid, void** ppvObject)
-    {
-        if (__uuidof(IDWriteTextRenderer) == riid) {
-            *ppvObject = this;
-        } else if (__uuidof(IDWritePixelSnapping) == riid) {
-            *ppvObject = this;
-        } else if (__uuidof(IUnknown) == riid) {
-            *ppvObject = this;
-        } else {
-            *ppvObject = NULL;
-            return E_FAIL;
-        }
-
-        this->AddRef();
-        return S_OK;
-    }
-
-    const nsString& FallbackFamilyName() { return mFamilyName; }
-
-protected:
-    long mRefCount;
-    nsRefPtr<IDWriteFontCollection> mSystemFonts;
-    nsString mFamilyName;
-};
-
 
 
 class gfxDWriteFontList : public gfxPlatformFontList {
@@ -340,8 +223,8 @@ public:
                                           const nsAString& aFontName);
 
     virtual gfxFontEntry* MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
-                                           const uint8_t *aFontData,
-                                           uint32_t aLength);
+                                           const PRUint8 *aFontData,
+                                           PRUint32 aLength);
     
     virtual bool ResolveFontName(const nsAString& aFontName,
                                    nsAString& aResolvedFontName);
@@ -358,11 +241,6 @@ public:
 
     gfxFloat GetForceGDIClassicMaxFontSize() { return mForceGDIClassicMaxFontSize; }
 
-    virtual void SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                     FontListSizes*    aSizes) const;
-    virtual void SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                     FontListSizes*    aSizes) const;
-
 private:
     friend class gfxDWriteFontFamily;
 
@@ -371,20 +249,12 @@ private:
     void GetDirectWriteSubstitutes();
 
     
-    virtual gfxFontEntry* GlobalFontFallback(const uint32_t aCh,
-                                             int32_t aRunScript,
-                                             const gfxFontStyle* aMatchStyle,
-                                             uint32_t& aCmapCount);
-
-    virtual bool UsesSystemFallback() { return true; }
-
-    
 
 
 
     nsTArray<nsString> mNonExistingFonts;
 
-    typedef nsRefPtrHashtable<nsStringHashKey, gfxFontFamily> FontTable;
+    typedef nsDataHashtable<nsStringHashKey, nsRefPtr<gfxFontFamily> > FontTable;
 
     
 
@@ -400,9 +270,6 @@ private:
     
     bool mGDIFontTableAccess;
     nsRefPtr<IDWriteGdiInterop> mGDIInterop;
-
-    nsRefPtr<FontFallbackRenderer> mFallbackRenderer;
-    nsRefPtr<IDWriteTextFormat>    mFallbackFormat;
 };
 
 

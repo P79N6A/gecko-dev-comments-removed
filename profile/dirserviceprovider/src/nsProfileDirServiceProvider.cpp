@@ -3,10 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsProfileDirServiceProvider.h"
 #include "nsProfileStringTypes.h"
 #include "nsProfileLock.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsISupportsUtils.h"
@@ -31,10 +64,10 @@
 
 nsProfileDirServiceProvider::nsProfileDirServiceProvider(bool aNotifyObservers) :
 #ifdef MOZ_PROFILELOCKING
-  mProfileDirLock(nullptr),
+  mProfileDirLock(nsnull),
 #endif
   mNotifyObservers(aNotifyObservers),
-  mSharingEnabled(false)
+  mSharingEnabled(PR_FALSE)
 {
 }
 
@@ -81,12 +114,12 @@ nsProfileDirServiceProvider::SetProfileDir(nsIFile* aProfileDir,
 #ifdef MOZ_PROFILELOCKING
   
   
-  nsCOMPtr<nsIFile> dirToLock;
+  nsCOMPtr<nsILocalFile> dirToLock;
   if (mSharingEnabled)
-    dirToLock = mNonSharedProfileDir;
+    dirToLock = do_QueryInterface(mNonSharedProfileDir);
   else
-    dirToLock = mProfileDir;
-  rv = mProfileDirLock->Lock(dirToLock, nullptr);
+    dirToLock = do_QueryInterface(mProfileDir);
+  rv = mProfileDirLock->Lock(dirToLock, nsnull);
   if (NS_FAILED(rv))
     return rv;
 #endif
@@ -99,9 +132,9 @@ nsProfileDirServiceProvider::SetProfileDir(nsIFile* aProfileDir,
 
     NS_NAMED_LITERAL_STRING(context, "startup");
     
-    observerService->NotifyObservers(nullptr, "profile-do-change", context.get());
+    observerService->NotifyObservers(nsnull, "profile-do-change", context.get());
     
-    observerService->NotifyObservers(nullptr, "profile-after-change", context.get());
+    observerService->NotifyObservers(nsnull, "profile-after-change", context.get());
   }
 
   return NS_OK;
@@ -129,7 +162,7 @@ nsProfileDirServiceProvider::Shutdown()
     return NS_ERROR_FAILURE;
 
   NS_NAMED_LITERAL_STRING(context, "shutdown-persist");
-  observerService->NotifyObservers(nullptr, "profile-before-change", context.get());
+  observerService->NotifyObservers(nsnull, "profile-before-change", context.get());
   return NS_OK;
 }
 
@@ -155,7 +188,7 @@ nsProfileDirServiceProvider::GetFile(const char *prop, bool *persistant, nsIFile
   if (!mProfileDir)
     return NS_ERROR_FAILURE;
 
-  *persistant = true;
+  *persistant = PR_TRUE;
   nsIFile* domainDir = mProfileDir;
 
   nsCOMPtr<nsIFile>  localFile;
@@ -269,7 +302,7 @@ nsProfileDirServiceProvider::InitProfileDir(nsIFile *profileDir)
   if (!exists) {
     nsCOMPtr<nsIFile> profileDefaultsDir;
     nsCOMPtr<nsIFile> profileDirParent;
-    nsAutoCString profileDirName;
+    nsCAutoString profileDirName;
 
     (void)profileDir->GetParent(getter_AddRefs(profileDirParent));
     if (!profileDirParent)
@@ -371,7 +404,7 @@ nsProfileDirServiceProvider::EnsureProfileFileExists(nsIFile *aFile, nsIFile *de
       return rv;
   }
 
-  nsAutoCString leafName;
+  nsCAutoString leafName;
   rv = aFile->GetNativeLeafName(leafName);
   if (NS_FAILED(rv))
     return rv;
@@ -413,7 +446,7 @@ nsresult NS_NewProfileDirServiceProvider(bool aNotifyObservers,
                                          nsProfileDirServiceProvider** aProvider)
 {
   NS_ENSURE_ARG_POINTER(aProvider);
-  *aProvider = nullptr;
+  *aProvider = nsnull;
 
   nsProfileDirServiceProvider *prov = new nsProfileDirServiceProvider(aNotifyObservers);
   if (!prov)

@@ -5,7 +5,40 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsXRemoteService.h"
 #include "nsIObserverService.h"
@@ -16,7 +49,7 @@
 
 #include "nsIBaseWindow.h"
 #include "nsIDocShell.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "nsIServiceManager.h"
 #include "nsIWeakReference.h"
 #include "nsIWidget.h"
@@ -36,7 +69,6 @@
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 
-using namespace mozilla;
 
 #define MOZILLA_VERSION_PROP   "_MOZILLA_VERSION"
 #define MOZILLA_LOCK_PROP      "_MOZILLA_LOCK"
@@ -88,7 +120,7 @@ FindExtensionParameterInCommand(const char* aParameterName,
                                 char aSeparator,
                                 nsACString* aValue)
 {
-  nsAutoCString searchFor;
+  nsCAutoString searchFor;
   searchFor.Append(aSeparator);
   searchFor.Append(aParameterName);
   searchFor.Append('=');
@@ -97,7 +129,7 @@ FindExtensionParameterInCommand(const char* aParameterName,
   aCommand.BeginReading(start);
   aCommand.EndReading(end);
   if (!FindInReadable(searchFor, start, end))
-    return false;
+    return PR_FALSE;
 
   nsACString::const_iterator charStart, charEnd;
   charStart = end;
@@ -109,7 +141,7 @@ FindExtensionParameterInCommand(const char* aParameterName,
     idEnd = charEnd;
   }
   *aValue = nsDependentCSubstring(idStart, idEnd);
-  return true;
+  return PR_TRUE;
 }
 
 
@@ -129,8 +161,8 @@ nsXRemoteService::XRemoteBaseStartup(const char *aAppName, const char *aProfileN
 
     nsCOMPtr<nsIObserverService> obs(do_GetService("@mozilla.org/observer-service;1"));
     if (obs) {
-      obs->AddObserver(this, "xpcom-shutdown", false);
-      obs->AddObserver(this, "quit-application", false);
+      obs->AddObserver(this, "xpcom-shutdown", PR_FALSE);
+      obs->AddObserver(this, "quit-application", PR_FALSE);
     }
 }
 
@@ -207,11 +239,11 @@ nsXRemoteService::HandleNewProperty(XID aWindowId, Display* aDisplay,
 
     
     if (result != Success)
-      return false;
+      return PR_FALSE;
 
     
-    if (!data || !TO_LITTLE_ENDIAN32(*reinterpret_cast<int32_t*>(data)))
-      return false;
+    if (!data || !TO_LITTLE_ENDIAN32(*reinterpret_cast<PRInt32*>(data)))
+      return PR_FALSE;
 
     
     const char *response = NULL;
@@ -227,25 +259,25 @@ nsXRemoteService::HandleNewProperty(XID aWindowId, Display* aDisplay,
                      (const unsigned char *)response,
                      strlen (response));
     XFree(data);
-    return true;
+    return PR_TRUE;
   }
 
   else if (aChangedAtom == sMozResponseAtom) {
     
-    return true;
+    return PR_TRUE;
   }
 
   else if (aChangedAtom == sMozLockAtom) {
     
-    return true;
+    return PR_TRUE;
   }
 
-  return false;
+  return PR_FALSE;
 }
 
 const char*
 nsXRemoteService::HandleCommand(char* aCommand, nsIDOMWindow* aWindow,
-                                uint32_t aTimestamp)
+                                PRUint32 aTimestamp)
 {
   nsresult rv;
 
@@ -257,8 +289,8 @@ nsXRemoteService::HandleCommand(char* aCommand, nsIDOMWindow* aWindow,
   
   
 
-  nsAutoCString command(aCommand);
-  int32_t p1, p2;
+  nsCAutoString command(aCommand);
+  PRInt32 p1, p2;
   p1 = command.FindChar('(');
   p2 = command.FindChar(')');
 
@@ -267,18 +299,18 @@ nsXRemoteService::HandleCommand(char* aCommand, nsIDOMWindow* aWindow,
   }
 
   command.Truncate(p1);
-  command.Trim(" ", true, true);
+  command.Trim(" ", PR_TRUE, PR_TRUE);
   ToLowerCase(command);
 
   if (!command.EqualsLiteral("ping")) {
-    nsAutoCString desktopStartupID;
+    nsCAutoString desktopStartupID;
     nsDependentCString cmd(aCommand);
     FindExtensionParameterInCommand("DESKTOP_STARTUP_ID",
                                     cmd, '\n',
                                     &desktopStartupID);
 
     char* argv[3] = {"dummyappname", "-remote", aCommand};
-    rv = cmdline->Init(3, argv, nullptr, nsICommandLine::STATE_REMOTE_EXPLICIT);
+    rv = cmdline->Init(3, argv, nsnull, nsICommandLine::STATE_REMOTE_EXPLICIT);
     if (NS_FAILED(rv))
       return "509 internal error";
 
@@ -300,7 +332,7 @@ nsXRemoteService::HandleCommand(char* aCommand, nsIDOMWindow* aWindow,
 
 const char*
 nsXRemoteService::HandleCommandLine(char* aBuffer, nsIDOMWindow* aWindow,
-                                    uint32_t aTimestamp)
+                                    PRUint32 aTimestamp)
 {
   nsresult rv;
 
@@ -315,21 +347,21 @@ nsXRemoteService::HandleCommandLine(char* aBuffer, nsIDOMWindow* aWindow,
   
   
 
-  int32_t argc = TO_LITTLE_ENDIAN32(*reinterpret_cast<int32_t*>(aBuffer));
-  char *wd   = aBuffer + ((argc + 1) * sizeof(int32_t));
+  PRInt32 argc = TO_LITTLE_ENDIAN32(*reinterpret_cast<PRInt32*>(aBuffer));
+  char *wd   = aBuffer + ((argc + 1) * sizeof(PRInt32));
 
-  nsCOMPtr<nsIFile> lf;
-  rv = NS_NewNativeLocalFile(nsDependentCString(wd), true,
+  nsCOMPtr<nsILocalFile> lf;
+  rv = NS_NewNativeLocalFile(nsDependentCString(wd), PR_TRUE,
                              getter_AddRefs(lf));
   if (NS_FAILED(rv))
     return "509 internal error";
 
-  nsAutoCString desktopStartupID;
+  nsCAutoString desktopStartupID;
 
   char **argv = (char**) malloc(sizeof(char*) * argc);
   if (!argv) return "509 internal error";
 
-  int32_t  *offset = reinterpret_cast<int32_t*>(aBuffer) + 1;
+  PRInt32  *offset = reinterpret_cast<PRInt32*>(aBuffer) + 1;
 
   for (int i = 0; i < argc; ++i) {
     argv[i] = aBuffer + TO_LITTLE_ENDIAN32(offset[i]);
@@ -372,7 +404,7 @@ nsXRemoteService::EnsureAtoms(void)
   if (sMozVersionAtom)
     return;
 
-  XInternAtoms(mozilla::DefaultXDisplay(), XAtomNames, ArrayLength(XAtomNames),
+  XInternAtoms(mozilla::DefaultXDisplay(), XAtomNames, NS_ARRAY_LENGTH(XAtomNames),
                False, XAtoms);
 
   int i = 0;

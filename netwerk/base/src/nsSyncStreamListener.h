@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsSyncStreamListener_h__
 #define nsSyncStreamListener_h__
 
@@ -10,12 +42,11 @@
 #include "nsIOutputStream.h"
 #include "nsThreadUtils.h"
 #include "nsCOMPtr.h"
-#include "mozilla/Attributes.h"
 
 
 
-class nsSyncStreamListener MOZ_FINAL : public nsISyncStreamListener
-                                     , public nsIInputStream
+class nsSyncStreamListener : public nsISyncStreamListener
+                           , public nsIInputStream
 {
 public:
     NS_DECL_ISUPPORTS
@@ -26,8 +57,8 @@ public:
 
     nsSyncStreamListener()
         : mStatus(NS_OK)
-        , mKeepWaiting(false)
-        , mDone(false) {}
+        , mKeepWaiting(PR_FALSE)
+        , mDone(PR_FALSE) {}
 
     nsresult Init();
 

@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsGkAtoms.h"
 #include "txIXPathContext.h"
 #include "txNodeSet.h"
@@ -33,7 +65,7 @@ nsresult
 GenerateIdFunctionCall::evaluate(txIEvalContext* aContext,
                                  txAExprResult** aResult)
 {
-    *aResult = nullptr;
+    *aResult = nsnull;
     if (!requireParams(0, 1, aContext))
         return NS_ERROR_XPATH_BAD_ARGUMENT_COUNT;
 

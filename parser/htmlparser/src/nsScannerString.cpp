@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <stdlib.h>
 #include "nsScannerString.h"
 
@@ -12,16 +44,10 @@
 
 
 
-#define MAX_CAPACITY ((PR_UINT32_MAX / sizeof(PRUnichar)) - \
-                      (sizeof(Buffer) + sizeof(PRUnichar)))
-
 nsScannerBufferList::Buffer*
 nsScannerBufferList::AllocBufferFromString( const nsAString& aString )
   {
-    uint32_t len = aString.Length();
-
-    if (len > MAX_CAPACITY)
-      return nullptr;
+    PRUint32 len = aString.Length();
 
     Buffer* buf = (Buffer*) malloc(sizeof(Buffer) + (len + 1) * sizeof(PRUnichar));
     if (buf)
@@ -43,11 +69,8 @@ nsScannerBufferList::AllocBufferFromString( const nsAString& aString )
   }
 
 nsScannerBufferList::Buffer*
-nsScannerBufferList::AllocBuffer( uint32_t capacity )
+nsScannerBufferList::AllocBuffer( PRUint32 capacity )
   {
-    if (capacity > MAX_CAPACITY)
-      return nullptr;
-
     Buffer* buf = (Buffer*) malloc(sizeof(Buffer) + (capacity + 1) * sizeof(PRUnichar));
     if (buf)
       {
@@ -84,12 +107,12 @@ nsScannerBufferList::SplitBuffer( const Position& pos )
     Buffer* bufferToSplit = pos.mBuffer;
     NS_ASSERTION(bufferToSplit, "null pointer");
 
-    uint32_t splitOffset = pos.mPosition - bufferToSplit->DataStart();
+    PRUint32 splitOffset = pos.mPosition - bufferToSplit->DataStart();
     NS_ASSERTION(pos.mPosition >= bufferToSplit->DataStart() &&
                  splitOffset <= bufferToSplit->DataLength(),
                  "split offset is outside buffer");
     
-    uint32_t len = bufferToSplit->DataLength() - splitOffset;
+    PRUint32 len = bufferToSplit->DataLength() - splitOffset;
     Buffer* new_buffer = AllocBuffer(len);
     if (new_buffer)
       {
@@ -139,17 +162,17 @@ nsScannerBufferList::Position::Distance( const Position& aStart, const Position&
 
 
 nsScannerSubstring::nsScannerSubstring()
-  : mStart(nullptr, nullptr)
-  , mEnd(nullptr, nullptr)
-  , mBufferList(nullptr)
+  : mStart(nsnull, nsnull)
+  , mEnd(nsnull, nsnull)
+  , mBufferList(nsnull)
   , mLength(0)
-  , mIsDirty(true)
+  , mIsDirty(PR_TRUE)
   {
   }
 
 nsScannerSubstring::nsScannerSubstring( const nsAString& s )
-  : mBufferList(nullptr)
-  , mIsDirty(true)
+  : mBufferList(nsnull)
+  , mIsDirty(PR_TRUE)
   {
     Rebind(s);
   }
@@ -159,7 +182,7 @@ nsScannerSubstring::~nsScannerSubstring()
     release_ownership_of_buffer_list();
   }
 
-int32_t
+PRInt32
 nsScannerSubstring::CountChar( PRUnichar c ) const
   {
       
@@ -172,7 +195,7 @@ nsScannerSubstring::CountChar( PRUnichar c ) const
     nsScannerIterator iter;
     for ( BeginReading(iter); ; )
       {
-        int32_t lengthToExamineInThisFragment = iter.size_forward();
+        PRInt32 lengthToExamineInThisFragment = iter.size_forward();
         const PRUnichar* fromBegin = iter.get();
         result += size_type(NS_COUNT(fromBegin, fromBegin+lengthToExamineInThisFragment, c));
         if ( !(lengthToExamine -= lengthToExamineInThisFragment) )
@@ -197,7 +220,7 @@ nsScannerSubstring::Rebind( const nsScannerSubstring& aString,
     mEnd        = aEnd;
     mBufferList = aString.mBufferList;
     mLength     = Distance(aStart, aEnd);
-    mIsDirty    = true;
+    mIsDirty    = PR_TRUE;
   }
 
 void
@@ -206,7 +229,7 @@ nsScannerSubstring::Rebind( const nsAString& aString )
     release_ownership_of_buffer_list();
 
     mBufferList = new nsScannerBufferList(AllocBufferFromString(aString));
-    mIsDirty    = true;
+    mIsDirty    = PR_TRUE;
 
     init_range_from_buffer_list();
     acquire_ownership_of_buffer_list();
@@ -229,7 +252,7 @@ nsScannerSubstring::AsString() const
           CopyUnicodeTo(BeginReading(start), EndReading(end), mutable_this->mFlattenedRep);
         }
 
-        mutable_this->mIsDirty = false;
+        mutable_this->mIsDirty = PR_FALSE;
       }
 
     return mFlattenedRep;
@@ -274,7 +297,7 @@ nsScannerSubstring::GetNextFragment( nsScannerFragment& frag ) const
   {
     
     if (frag.mBuffer == mEnd.mBuffer)
-      return false;
+      return PR_FALSE;
 
     frag.mBuffer = static_cast<const Buffer*>(PR_NEXT_LINK(frag.mBuffer));
 
@@ -288,7 +311,7 @@ nsScannerSubstring::GetNextFragment( nsScannerFragment& frag ) const
     else
       frag.mFragmentEnd = frag.mBuffer->DataEnd();
 
-    return true;
+    return PR_TRUE;
   }
 
 bool
@@ -296,7 +319,7 @@ nsScannerSubstring::GetPrevFragment( nsScannerFragment& frag ) const
   {
     
     if (frag.mBuffer == mStart.mBuffer)
-      return false;
+      return PR_FALSE;
 
     frag.mBuffer = static_cast<const Buffer*>(PR_PREV_LINK(frag.mBuffer));
 
@@ -310,7 +333,7 @@ nsScannerSubstring::GetPrevFragment( nsScannerFragment& frag ) const
     else
       frag.mFragmentEnd = frag.mBuffer->DataEnd();
 
-    return true;
+    return PR_TRUE;
   }
 
 
@@ -335,7 +358,7 @@ nsScannerString::AppendBuffer( Buffer* aBuf )
     mEnd.mBuffer = aBuf;
     mEnd.mPosition = aBuf->DataEnd();
 
-    mIsDirty = true;
+    mIsDirty = PR_TRUE;
   }
 
 void
@@ -350,7 +373,7 @@ nsScannerString::DiscardPrefix( const nsScannerIterator& aIter )
 
     mBufferList->DiscardUnreferencedPrefix(old_start.mBuffer);
 
-    mIsDirty = true;
+    mIsDirty = PR_TRUE;
   }
 
 void
@@ -382,7 +405,7 @@ nsScannerString::UngetReadable( const nsAString& aReadable, const nsScannerItera
     mEnd.mBuffer = mBufferList->Tail();
     mEnd.mPosition = mEnd.mBuffer->DataEnd();
 
-    mIsDirty = true;
+    mIsDirty = PR_TRUE;
   }
 
 void
@@ -394,7 +417,7 @@ nsScannerString::ReplaceCharacter(nsScannerIterator& aPosition, PRUnichar aChar)
     PRUnichar* pos = const_cast<PRUnichar*>(aPosition.get());
     *pos = aChar;
 
-    mIsDirty = true;
+    mIsDirty = PR_TRUE;
   }
 
 
@@ -429,8 +452,8 @@ nsScannerSharedSubstring::Rebind(const nsScannerIterator &aStart,
     mBufferList = bufferList;
     mString.Rebind(aStart.mPosition, aEnd.mPosition);
   } else {
-    mBuffer = nullptr;
-    mBufferList = nullptr;
+    mBuffer = nsnull;
+    mBufferList = nsnull;
     CopyUnicodeTo(aStart, aEnd, mString);
   }
 }
@@ -452,8 +475,8 @@ nsScannerSharedSubstring::MakeMutable()
 
   ReleaseBuffer();
 
-  mBuffer = nullptr;
-  mBufferList = nullptr;
+  mBuffer = nsnull;
+  mBufferList = nsnull;
 }
 
   
@@ -470,7 +493,7 @@ copy_multifragment_string( nsScannerIterator& first, const nsScannerIterator& la
 
     while ( first != last )
       {
-        uint32_t distance = source_traits::readable_distance(first, last);
+        PRUint32 distance = source_traits::readable_distance(first, last);
         sink_traits::write(result, source_traits::read(first), distance);
         NS_ASSERTION(distance > 0, "|copy_multifragment_string| will never terminate");
         source_traits::advance(first, distance);
@@ -517,7 +540,7 @@ AppendUnicodeTo( const nsScannerIterator& aSrcStart,
                  nsAString& aDest )
   {
     nsAString::iterator writer;
-    uint32_t oldLength = aDest.Length();
+    PRUint32 oldLength = aDest.Length();
     if (!EnsureStringLength(aDest, oldLength + Distance(aSrcStart, aSrcEnd)))
       return; 
     aDest.BeginWriting(writer).advance(oldLength);
@@ -533,7 +556,7 @@ FindCharInReadable( PRUnichar aChar,
   {
     while ( aSearchStart != aSearchEnd )
       {
-        int32_t fragmentLength;
+        PRInt32 fragmentLength;
         if ( SameFragment(aSearchStart, aSearchEnd) ) 
           fragmentLength = aSearchEnd.get() - aSearchStart.get();
         else
@@ -542,13 +565,13 @@ FindCharInReadable( PRUnichar aChar,
         const PRUnichar* charFoundAt = nsCharTraits<PRUnichar>::find(aSearchStart.get(), fragmentLength, aChar);
         if ( charFoundAt ) {
           aSearchStart.advance( charFoundAt - aSearchStart.get() );
-          return true;
+          return PR_TRUE;
         }
 
         aSearchStart.advance(fragmentLength);
       }
 
-    return false;
+    return PR_FALSE;
   }
 
 bool
@@ -593,7 +616,7 @@ FindInReadable( const nsAString& aPattern,
                   
                 if ( testPattern == aPatternEnd )
                   {
-                    found_it = true;
+                    found_it = PR_TRUE;
                     aSearchEnd = testSearch; 
                     break;
                   }
@@ -640,7 +663,7 @@ RFindInReadable( const nsAString& aPattern,
       {
         if ( FindInReadable(aPattern, searchStart, searchEnd, aComparator) )
           {
-            found_it = true;
+            found_it = PR_TRUE;
 
               
             aSearchStart = searchStart;

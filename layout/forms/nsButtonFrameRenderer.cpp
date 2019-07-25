@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsButtonFrameRenderer.h"
 #include "nsCSSRendering.h"
 #include "nsPresContext.h"
@@ -74,16 +106,15 @@ public:
   
   virtual void Paint(nsDisplayListBuilder* aBuilder,
                      nsRenderingContext* aCtx);
-  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap);
+  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder);
   NS_DISPLAY_DECL_NAME("ButtonBoxShadowOuter", TYPE_BUTTON_BOX_SHADOW_OUTER)
 private:
   nsButtonFrameRenderer* mBFR;
 };
 
 nsRect
-nsDisplayButtonBoxShadowOuter::GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) {
-  *aSnap = false;
-  return mFrame->GetVisualOverflowRectRelativeToSelf() + ToReferenceFrame();
+nsDisplayButtonBoxShadowOuter::GetBounds(nsDisplayListBuilder* aBuilder) {
+  return mFrame->GetVisualOverflowRect() + ToReferenceFrame();
 }
 
 void
@@ -226,7 +257,7 @@ nsButtonFrameRenderer::PaintBorderAndBackground(nsPresContext* aPresContext,
           nsRenderingContext& aRenderingContext,
           const nsRect& aDirtyRect,
           const nsRect& aRect,
-          uint32_t aBGFlags)
+          PRUint32 aBGFlags)
 
 {
   
@@ -276,7 +307,7 @@ nsButtonFrameRenderer::GetButtonOuterFocusBorderAndPadding()
     if (!mOuterFocusStyle->GetStylePadding()->GetPadding(result)) {
       NS_NOTYETIMPLEMENTED("percentage padding");
     }
-    result += mOuterFocusStyle->GetStyleBorder()->GetComputedBorder();
+    result += mOuterFocusStyle->GetStyleBorder()->GetActualBorder();
   }
 
   return result;
@@ -315,7 +346,7 @@ nsButtonFrameRenderer::GetButtonInnerFocusBorderAndPadding()
     if (!mInnerFocusStyle->GetStylePadding()->GetPadding(result)) {
       NS_NOTYETIMPLEMENTED("percentage padding");
     }
-    result += mInnerFocusStyle->GetStyleBorder()->GetComputedBorder();
+    result += mInnerFocusStyle->GetStyleBorder()->GetActualBorder();
   }
 
   return result;
@@ -352,7 +383,7 @@ nsButtonFrameRenderer::ReResolveStyles(nsPresContext* aPresContext)
 }
 
 nsStyleContext*
-nsButtonFrameRenderer::GetStyleContext(int32_t aIndex) const
+nsButtonFrameRenderer::GetStyleContext(PRInt32 aIndex) const
 {
   switch (aIndex) {
   case NS_BUTTON_RENDERER_FOCUS_INNER_CONTEXT_INDEX:
@@ -360,12 +391,12 @@ nsButtonFrameRenderer::GetStyleContext(int32_t aIndex) const
   case NS_BUTTON_RENDERER_FOCUS_OUTER_CONTEXT_INDEX:
     return mOuterFocusStyle;
   default:
-    return nullptr;
+    return nsnull;
   }
 }
 
 void 
-nsButtonFrameRenderer::SetStyleContext(int32_t aIndex, nsStyleContext* aStyleContext)
+nsButtonFrameRenderer::SetStyleContext(PRInt32 aIndex, nsStyleContext* aStyleContext)
 {
   switch (aIndex) {
   case NS_BUTTON_RENDERER_FOCUS_INNER_CONTEXT_INDEX:

@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsILineIterator_h___
 #define nsILineIterator_h___
 
@@ -41,7 +73,7 @@ public:
   
 
 
-  virtual int32_t GetNumLines() = 0;
+  virtual PRInt32 GetNumLines() = 0;
 
   
 
@@ -64,11 +96,11 @@ public:
   
   
   
-  NS_IMETHOD GetLine(int32_t aLineNumber,
+  NS_IMETHOD GetLine(PRInt32 aLineNumber,
                      nsIFrame** aFirstFrameOnLine,
-                     int32_t* aNumFramesOnLine,
+                     PRInt32* aNumFramesOnLine,
                      nsRect& aLineBounds,
-                     uint32_t* aLineFlags) = 0;
+                     PRUint32* aLineFlags) = 0;
 
   
 
@@ -76,14 +108,14 @@ public:
 
 
 
-  virtual int32_t FindLineContaining(nsIFrame* aFrame,
-                                     int32_t aStartLine = 0) = 0;
+  virtual PRInt32 FindLineContaining(nsIFrame* aFrame,
+                                     PRInt32 aStartLine = 0) = 0;
 
   
   
   
   
-  NS_IMETHOD FindFrameAt(int32_t aLineNumber,
+  NS_IMETHOD FindFrameAt(PRInt32 aLineNumber,
                          nscoord aX,
                          nsIFrame** aFrameFound,
                          bool* aXIsBeforeFirstFrame,
@@ -91,12 +123,12 @@ public:
 
   
   
-  NS_IMETHOD GetNextSiblingOnLine(nsIFrame*& aFrame, int32_t aLineNumber) = 0;
+  NS_IMETHOD GetNextSiblingOnLine(nsIFrame*& aFrame, PRInt32 aLineNumber) = 0;
 
 #ifdef IBMBIDI
   
   
-  NS_IMETHOD CheckLineOrder(int32_t                  aLine,
+  NS_IMETHOD CheckLineOrder(PRInt32                  aLine,
                             bool                     *aIsReordered,
                             nsIFrame                 **aFirstVisual,
                             nsIFrame                 **aLastVisual) = 0;
@@ -106,7 +138,7 @@ public:
 class nsAutoLineIterator
 {
 public:
-  nsAutoLineIterator() : mRawPtr(nullptr) { }
+  nsAutoLineIterator() : mRawPtr(nsnull) { }
   nsAutoLineIterator(nsILineIterator *i) : mRawPtr(i) { }
 
   ~nsAutoLineIterator() {

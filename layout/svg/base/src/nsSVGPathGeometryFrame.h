@@ -3,30 +3,51 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGPATHGEOMETRYFRAME_H__
 #define __NS_SVGPATHGEOMETRYFRAME_H__
 
-#include "gfxMatrix.h"
-#include "gfxRect.h"
 #include "nsFrame.h"
 #include "nsISVGChildFrame.h"
-#include "nsLiteralString.h"
-#include "nsQueryFrame.h"
-#include "nsRect.h"
+#include "nsGkAtoms.h"
 #include "nsSVGGeometryFrame.h"
-#include "nsSVGUtils.h"
+#include "gfxRect.h"
+#include "gfxMatrix.h"
 
-class gfxContext;
-class nsDisplaySVGPathGeometry;
-class nsIAtom;
-class nsIFrame;
-class nsIPresShell;
-class nsRenderingContext;
-class nsStyleContext;
 class nsSVGMarkerFrame;
 class nsSVGMarkerProperty;
-
-struct nsPoint;
 
 typedef nsSVGGeometryFrame nsSVGPathGeometryFrameBase;
 
@@ -35,24 +56,18 @@ class nsSVGPathGeometryFrame : public nsSVGPathGeometryFrameBase,
 {
   friend nsIFrame*
   NS_NewSVGPathGeometryFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
-
-  friend class nsDisplaySVGPathGeometry;
-
 protected:
-  nsSVGPathGeometryFrame(nsStyleContext* aContext)
-    : nsSVGPathGeometryFrameBase(aContext)
-  {
-     AddStateBits(NS_FRAME_MAY_BE_TRANSFORMED);
-  }
+  nsSVGPathGeometryFrame(nsStyleContext* aContext) :
+    nsSVGPathGeometryFrameBase(aContext) {}
 
 public:
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS
 
   
-  NS_IMETHOD  AttributeChanged(int32_t         aNameSpaceID,
+  NS_IMETHOD  AttributeChanged(PRInt32         aNameSpaceID,
                                nsIAtom*        aAttribute,
-                               int32_t         aModType);
+                               PRInt32         aModType);
 
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);
 
@@ -63,9 +78,6 @@ public:
 
   virtual nsIAtom* GetType() const;
 
-  virtual bool IsSVGTransformed(gfxMatrix *aOwnTransforms = nullptr,
-                                gfxMatrix *aFromParentTransforms = nullptr) const;
-
 #ifdef DEBUG
   NS_IMETHOD GetFrameName(nsAString& aResult) const
   {
@@ -73,30 +85,31 @@ public:
   }
 #endif
 
-  NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                              const nsRect&           aDirtyRect,
-                              const nsDisplayListSet& aLists);
-
   
-  gfxMatrix GetCanvasTM(uint32_t aFor);
+  gfxMatrix GetCanvasTM();
 
 protected:
   
-  NS_IMETHOD PaintSVG(nsRenderingContext *aContext,
+  NS_IMETHOD PaintSVG(nsSVGRenderState *aContext,
                       const nsIntRect *aDirtyRect);
   NS_IMETHOD_(nsIFrame*) GetFrameForPoint(const nsPoint &aPoint);
   NS_IMETHOD_(nsRect) GetCoveredRegion();
-  virtual void ReflowSVG();
-  virtual void NotifySVGChanged(uint32_t aFlags);
-  virtual SVGBBox GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
-                                      uint32_t aFlags);
+  NS_IMETHOD UpdateCoveredRegion();
+  NS_IMETHOD InitialUpdate();
+  virtual void NotifySVGChanged(PRUint32 aFlags);
+  NS_IMETHOD NotifyRedrawSuspended();
+  NS_IMETHOD NotifyRedrawUnsuspended();
+  virtual gfxRect GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
+                                      PRUint32 aFlags);
   NS_IMETHOD_(bool) IsDisplayContainer() { return false; }
+  NS_IMETHOD_(bool) HasValidCoveredRect() { return true; }
 
 protected:
-  void GeneratePath(gfxContext *aContext, const gfxMatrix &aTransform);
+  void GeneratePath(gfxContext *aContext,
+                    const gfxMatrix *aOverrideTransform = nsnull);
 
 private:
-  void Render(nsRenderingContext *aContext);
+  void Render(nsSVGRenderState *aContext);
 
   struct MarkerProperties {
     nsSVGMarkerProperty* mMarkerStart;

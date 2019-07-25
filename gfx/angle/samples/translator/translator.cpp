@@ -26,7 +26,7 @@ enum TFailCode {
 static void usage();
 static ShShaderType FindShaderType(const char* fileName);
 static bool CompileFile(char* fileName, ShHandle compiler, int compileOptions);
-static void LogMsg(const char* msg, const char* name, const int num, const char* logName);
+static void LogMsg(char* msg, const char* name, const int num, const char* logName);
 static void PrintActiveVariables(ShHandle compiler, ShShaderInfo varType, bool mapLongVariableNames);
 
 
@@ -67,7 +67,6 @@ int main(int argc, char* argv[])
     char* buffer = 0;
     int bufferLen = 0;
     int numAttribs = 0, numUniforms = 0;
-    ShShaderSpec spec = SH_GLES2_SPEC;
     ShShaderOutput output = SH_ESSL_OUTPUT;
 
     ShInitialize();
@@ -86,20 +85,6 @@ int main(int argc, char* argv[])
             case 'u': compileOptions |= SH_ATTRIBUTES_UNIFORMS; break;
             case 'l': compileOptions |= SH_UNROLL_FOR_LOOP_WITH_INTEGER_INDEX; break;
             case 'e': compileOptions |= SH_EMULATE_BUILT_IN_FUNCTIONS; break;
-            case 'd': compileOptions |= SH_DEPENDENCY_GRAPH; break;
-            case 't': compileOptions |= SH_TIMING_RESTRICTIONS; break;
-            case 's':
-                if (argv[0][2] == '=') {
-                    switch (argv[0][3]) {
-                        case 'e': spec = SH_GLES2_SPEC; break;
-                        case 'w': spec = SH_WEBGL_SPEC; break;
-                        case 'c': spec = SH_CSS_SHADERS_SPEC; break;
-                        default: failCode = EFailUsage;
-                    }                    
-                } else {
-                    failCode = EFailUsage;
-                }
-                break;
             case 'b':
                 if (argv[0][2] == '=') {
                     switch (argv[0][3]) {
@@ -117,7 +102,6 @@ int main(int argc, char* argv[])
                     switch (argv[0][3]) {
                     case 'i': resources.OES_EGL_image_external = 1; break;
                     case 'd': resources.OES_standard_derivatives = 1; break;
-                    case 'r': resources.ARB_texture_rectangle = 1; break;
                     default: failCode = EFailUsage;
                     }
                 } else {
@@ -132,13 +116,13 @@ int main(int argc, char* argv[])
             case SH_VERTEX_SHADER:
                 if (vertexCompiler == 0)
                     vertexCompiler = ShConstructCompiler(
-                        SH_VERTEX_SHADER, spec, output, &resources);
+                        SH_VERTEX_SHADER, SH_GLES2_SPEC, output, &resources);
                 compiler = vertexCompiler;
                 break;
             case SH_FRAGMENT_SHADER:
                 if (fragmentCompiler == 0)
                     fragmentCompiler = ShConstructCompiler(
-                        SH_FRAGMENT_SHADER, spec, output, &resources);
+                        SH_FRAGMENT_SHADER, SH_GLES2_SPEC, output, &resources);
                 compiler = fragmentCompiler;
                 break;
             default: break;
@@ -165,12 +149,12 @@ int main(int argc, char* argv[])
               }
               if (compiled && (compileOptions & SH_ATTRIBUTES_UNIFORMS)) {
                   LogMsg("BEGIN", "COMPILER", numCompiles, "ACTIVE ATTRIBS");
-                  PrintActiveVariables(compiler, SH_ACTIVE_ATTRIBUTES, (compileOptions & SH_MAP_LONG_VARIABLE_NAMES) != 0);
+                  PrintActiveVariables(compiler, SH_ACTIVE_ATTRIBUTES, compileOptions & SH_MAP_LONG_VARIABLE_NAMES);
                   LogMsg("END", "COMPILER", numCompiles, "ACTIVE ATTRIBS");
                   printf("\n\n");
 
                   LogMsg("BEGIN", "COMPILER", numCompiles, "ACTIVE UNIFORMS");
-                  PrintActiveVariables(compiler, SH_ACTIVE_UNIFORMS, (compileOptions & SH_MAP_LONG_VARIABLE_NAMES) != 0);
+                  PrintActiveVariables(compiler, SH_ACTIVE_UNIFORMS, compileOptions & SH_MAP_LONG_VARIABLE_NAMES);
                   LogMsg("END", "COMPILER", numCompiles, "ACTIVE UNIFORMS");
                   printf("\n\n");
               }
@@ -212,17 +196,11 @@ void usage()
         "       -u       : print active attribs and uniforms\n"
         "       -l       : unroll for-loops with integer indices\n"
         "       -e       : emulate certain built-in functions (workaround for driver bugs)\n"
-        "       -t       : enforce experimental timing restrictions\n"
-        "       -d       : print dependency graph used to enforce timing restrictions\n"
-        "       -s=e     : use GLES2 spec (this is by default)\n"
-        "       -s=w     : use WebGL spec\n"
-        "       -s=c     : use CSS Shaders spec\n"
         "       -b=e     : output GLSL ES code (this is by default)\n"
         "       -b=g     : output GLSL code\n"
         "       -b=h     : output HLSL code\n"
         "       -x=i     : enable GL_OES_EGL_image_external\n"
-        "       -x=d     : enable GL_OES_EGL_standard_derivatives\n"
-        "       -x=r     : enable ARB_texture_rectangle\n");
+        "       -x=d     : enable GL_OES_EGL_standard_derivatives\n");
 }
 
 
@@ -241,8 +219,7 @@ ShShaderType FindShaderType(const char* fileName)
     if (ext && strcmp(ext, ".sl") == 0)
         for (; ext > fileName && ext[0] != '.'; ext--);
 
-    ext = strrchr(fileName, '.');
-    if (ext) {
+    if (ext = strrchr(fileName, '.')) {
         if (strncmp(ext, ".frag", 4) == 0) return SH_FRAGMENT_SHADER;
         if (strncmp(ext, ".vert", 4) == 0) return SH_VERTEX_SHADER;
     }
@@ -265,7 +242,7 @@ bool CompileFile(char* fileName, ShHandle compiler, int compileOptions)
     return ret ? true : false;
 }
 
-void LogMsg(const char* msg, const char* name, const int num, const char* logName)
+void LogMsg(char* msg, const char* name, const int num, const char* logName)
 {
     printf("#### %s %s %d %s ####\n", msg, name, num, logName);
 }
@@ -294,7 +271,7 @@ void PrintActiveVariables(ShHandle compiler, ShShaderInfo varType, bool mapLongV
 
     int activeVars = 0, size = 0;
     ShDataType type = SH_NONE;
-    const char* typeName = NULL;
+    char* typeName = NULL;
     ShGetInfo(compiler, varType, &activeVars);
     for (int i = 0; i < activeVars; ++i) {
         switch (varType) {
@@ -324,7 +301,6 @@ void PrintActiveVariables(ShHandle compiler, ShShaderInfo varType, bool mapLongV
             case SH_FLOAT_MAT4: typeName = "GL_FLOAT_MAT4"; break;
             case SH_SAMPLER_2D: typeName = "GL_SAMPLER_2D"; break;
             case SH_SAMPLER_CUBE: typeName = "GL_SAMPLER_CUBE"; break;
-            case SH_SAMPLER_EXTERNAL_OES: typeName = "GL_SAMPLER_EXTERNAL_OES"; break;
             default: assert(0);
         }
         printf("%d: name:%s type:%s size:%d", i, name, typeName, size);

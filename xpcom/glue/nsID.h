@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsID_h__
 #define nsID_h__
 
@@ -24,10 +56,10 @@ struct nsID {
 
 
   
-  uint32_t m0;
-  uint16_t m1;
-  uint16_t m2;
-  uint8_t m3[8];
+  PRUint32 m0;
+  PRUint16 m1;
+  PRUint16 m2;
+  PRUint8 m3[8];
   
 
   
@@ -43,10 +75,8 @@ struct nsID {
   inline bool Equals(const nsID& other) const {
     
     return
-      ((((uint32_t*) &m0)[0] == ((uint32_t*) &other.m0)[0]) &&
-       (((uint32_t*) &m0)[1] == ((uint32_t*) &other.m0)[1]) &&
-       (((uint32_t*) &m0)[2] == ((uint32_t*) &other.m0)[2]) &&
-       (((uint32_t*) &m0)[3] == ((uint32_t*) &other.m0)[3]));
+      ((PRUint64*)(void*) &m0)[0] == ((PRUint64*)(void*) &other.m0)[0] &&
+      ((PRUint64*)(void*) &m0)[1] == ((PRUint64*)(void*) &other.m0)[1];
   }
 
   

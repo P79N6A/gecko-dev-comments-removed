@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZSTORAGEHELPER_H
 #define MOZSTORAGEHELPER_H
 
@@ -10,7 +43,7 @@
 
 #include "mozIStorageConnection.h"
 #include "mozIStorageStatement.h"
-#include "nsError.h"
+#include "mozStorage.h"
 
 
 
@@ -33,11 +66,11 @@ class mozStorageTransaction
 public:
   mozStorageTransaction(mozIStorageConnection* aConnection,
                         bool aCommitOnComplete,
-                        int32_t aType = mozIStorageConnection::TRANSACTION_DEFERRED)
+                        PRInt32 aType = mozIStorageConnection::TRANSACTION_DEFERRED)
     : mConnection(aConnection),
-      mHasTransaction(false),
+      mHasTransaction(PR_FALSE),
       mCommitOnComplete(aCommitOnComplete),
-      mCompleted(false)
+      mCompleted(PR_FALSE)
   {
     
     if (mConnection)
@@ -62,12 +95,12 @@ public:
   {
     if (!mConnection || mCompleted)
       return NS_OK; 
-    mCompleted = true;
+    mCompleted = PR_TRUE;
     if (! mHasTransaction)
       return NS_OK; 
     nsresult rv = mConnection->CommitTransaction();
     if (NS_SUCCEEDED(rv))
-      mHasTransaction = false;
+      mHasTransaction = PR_FALSE;
 
     return rv;
   }
@@ -81,7 +114,7 @@ public:
   {
     if (!mConnection || mCompleted)
       return NS_OK; 
-    mCompleted = true;
+    mCompleted = PR_TRUE;
     if (! mHasTransaction)
       return NS_ERROR_FAILURE;
 
@@ -94,7 +127,7 @@ public:
     } while (rv == NS_ERROR_STORAGE_BUSY);
 
     if (NS_SUCCEEDED(rv))
-      mHasTransaction = false;
+      mHasTransaction = PR_FALSE;
 
     return rv;
   }
@@ -152,16 +185,11 @@ public:
 
   void Abandon()
   {
-    mStatement = nullptr;
+    mStatement = nsnull;
   }
 
 protected:
   nsCOMPtr<mozIStorageStatement> mStatement;
 };
-
-
-
-
-#define MOZ_STORAGE_UNIQUIFY_QUERY_STR "/* " __FILE__ " */ "
 
 #endif 

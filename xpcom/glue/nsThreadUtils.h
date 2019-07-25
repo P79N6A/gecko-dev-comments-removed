@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsThreadUtils_h__
 #define nsThreadUtils_h__
 
@@ -21,9 +53,7 @@
 
 
 #ifdef MOZILLA_INTERNAL_API
-# define NS_SetThreadName NS_SetThreadName_P
 # define NS_NewThread NS_NewThread_P
-# define NS_NewNamedThread NS_NewNamedThread_P
 # define NS_GetCurrentThread NS_GetCurrentThread_P
 # define NS_GetMainThread NS_GetMainThread_P
 # define NS_IsMainThread NS_IsMainThread_P
@@ -41,25 +71,6 @@
 
 
 
-extern NS_COM_GLUE void
-NS_SetThreadName(nsIThread *thread, const nsACString &name);
-
-
-
-
-
-template <size_t LEN>
-inline NS_COM_GLUE void
-NS_SetThreadName(nsIThread *thread, const char (&name)[LEN])
-{
-  MOZ_STATIC_ASSERT(LEN <= 16,
-                    "Thread name must be no more than 16 characters");
-  NS_SetThreadName(thread, nsDependentCString(name));
-}
-
-
-
-
 
 
 
@@ -72,23 +83,8 @@ NS_SetThreadName(nsIThread *thread, const char (&name)[LEN])
 
 extern NS_COM_GLUE NS_METHOD
 NS_NewThread(nsIThread **result,
-             nsIRunnable *initialEvent = nullptr,
-             uint32_t stackSize = nsIThreadManager::DEFAULT_STACK_SIZE);
-
-
-
-
-template <size_t LEN>
-inline NS_METHOD
-NS_NewNamedThread(const char (&name)[LEN],
-                  nsIThread **result,
-                  nsIRunnable *initialEvent = nullptr,
-                  uint32_t stackSize = nsIThreadManager::DEFAULT_STACK_SIZE)
-{
-    nsresult rv = NS_NewThread(result, initialEvent, stackSize);
-    NS_SetThreadName<LEN>(*result, name);
-    return rv;
-}
+             nsIRunnable *initialEvent = nsnull,
+             PRUint32 stackSize = nsIThreadManager::DEFAULT_STACK_SIZE);
 
 
 
@@ -153,7 +149,7 @@ NS_DispatchToCurrentThread(nsIRunnable *event);
 
 extern NS_COM_GLUE NS_METHOD
 NS_DispatchToMainThread(nsIRunnable *event,
-                        uint32_t dispatchFlags = NS_DISPATCH_NORMAL);
+                        PRUint32 dispatchFlags = NS_DISPATCH_NORMAL);
 
 #ifndef XPCOM_GLUE_AVOID_NSPR
 
@@ -191,7 +187,7 @@ NS_ProcessPendingEvents(nsIThread *thread,
 
 
 extern NS_COM_GLUE bool
-NS_HasPendingEvents(nsIThread *thread = nullptr);
+NS_HasPendingEvents(nsIThread *thread = nsnull);
 
 
 
@@ -211,21 +207,21 @@ NS_HasPendingEvents(nsIThread *thread = nullptr);
 
 
 extern NS_COM_GLUE bool
-NS_ProcessNextEvent(nsIThread *thread = nullptr, bool mayWait = true);
+NS_ProcessNextEvent(nsIThread *thread = nsnull, bool mayWait = true);
 
 
 
 
 inline already_AddRefed<nsIThread>
 do_GetCurrentThread() {
-  nsIThread *thread = nullptr;
+  nsIThread *thread = nsnull;
   NS_GetCurrentThread(&thread);
   return already_AddRefed<nsIThread>(thread);
 }
 
 inline already_AddRefed<nsIThread>
 do_GetMainThread() {
-  nsIThread *thread = nullptr;
+  nsIThread *thread = nsnull;
   NS_GetMainThread(&thread);
   return already_AddRefed<nsIThread>(thread);
 }
@@ -308,7 +304,7 @@ template <class ClassType>
 struct nsRunnableMethodReceiver<ClassType, false> {
   ClassType *mObj;
   nsRunnableMethodReceiver(ClassType *obj) : mObj(obj) {}
-  void Revoke() { mObj = nullptr; }
+  void Revoke() { mObj = nsnull; }
 };
 
 template <typename Method, bool Owning> struct nsRunnableMethodTraits;
@@ -430,7 +426,7 @@ template <class T>
 class nsRevocableEventPtr {
 public:
   nsRevocableEventPtr()
-    : mEvent(nullptr) {
+    : mEvent(nsnull) {
   }
 
   ~nsRevocableEventPtr() {
@@ -448,16 +444,16 @@ public:
   void Revoke() {
     if (mEvent) {
       mEvent->Revoke();
-      mEvent = nullptr;
+      mEvent = nsnull;
     }
   }
 
   void Forget() {
-    mEvent = nullptr;
+    mEvent = nsnull;
   }
 
   bool IsPending() {
-    return mEvent != nullptr;
+    return mEvent != nsnull;
   }
   
   T *get() { return mEvent; }
@@ -469,50 +465,5 @@ private:
 
   nsRefPtr<T> mEvent;
 };
-
-
-
-
-
-class nsThreadPoolNaming
-{
-public:
-  nsThreadPoolNaming() : mCounter(0) {}
-
-  
-
-
-
-
-  void SetThreadPoolName(const nsACString & aPoolName,
-                         nsIThread * aThread = nullptr);
-
-private:
-  volatile uint32_t mCounter;
-
-  nsThreadPoolNaming(const nsThreadPoolNaming &) MOZ_DELETE;
-  void operator=(const nsThreadPoolNaming &) MOZ_DELETE;
-};
-
-
-
-
-
-
-
-class NS_STACK_CLASS nsAutoLowPriorityIO
-{
-public:
-  nsAutoLowPriorityIO();
-  ~nsAutoLowPriorityIO();
-
-private:
-  bool lowIOPrioritySet;
-#if defined(XP_MACOSX)
-  int oldPriority;
-#endif
-};
-
-
 
 #endif  

@@ -3,21 +3,52 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_DOMSVGANIMATEDNUMBERLIST_H__
 #define MOZILLA_DOMSVGANIMATEDNUMBERLIST_H__
 
-#include "nsAutoPtr.h"
-#include "nsCOMPtr.h"
-#include "nsCycleCollectionParticipant.h"
 #include "nsIDOMSVGAnimatedNumberList.h"
-#include "nsSVGElement.h"
-#include "mozilla/Attributes.h"
+#include "nsCycleCollectionParticipant.h"
+#include "nsAutoPtr.h"
+#include "nsTArray.h"
+
+class nsSVGElement;
 
 namespace mozilla {
 
-class DOMSVGNumberList;
 class SVGAnimatedNumberList;
 class SVGNumberList;
+class DOMSVGNumberList;
 
 
 
@@ -34,7 +65,7 @@ class SVGNumberList;
 
 
 
-class DOMSVGAnimatedNumberList MOZ_FINAL : public nsIDOMSVGAnimatedNumberList
+class DOMSVGAnimatedNumberList : public nsIDOMSVGAnimatedNumberList
 {
   friend class DOMSVGNumberList;
 
@@ -57,7 +88,7 @@ public:
   static already_AddRefed<DOMSVGAnimatedNumberList>
     GetDOMWrapper(SVGAnimatedNumberList *aList,
                   nsSVGElement *aElement,
-                  uint8_t aAttrEnum);
+                  PRUint8 aAttrEnum);
 
   
 
@@ -94,9 +125,9 @@ private:
 
 
 
-  DOMSVGAnimatedNumberList(nsSVGElement *aElement, uint8_t aAttrEnum)
-    : mBaseVal(nullptr)
-    , mAnimVal(nullptr)
+  DOMSVGAnimatedNumberList(nsSVGElement *aElement, PRUint8 aAttrEnum)
+    : mBaseVal(nsnull)
+    , mAnimVal(nsnull)
     , mElement(aElement)
     , mAttrEnum(aAttrEnum)
   {}
@@ -117,7 +148,7 @@ private:
   
   nsRefPtr<nsSVGElement> mElement;
 
-  uint8_t mAttrEnum;
+  PRUint8 mAttrEnum;
 };
 
 } 

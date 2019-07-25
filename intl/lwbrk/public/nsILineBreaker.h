@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsILineBreaker_h__
 #define nsILineBreaker_h__
 
@@ -13,25 +45,18 @@
 
 
 #define NS_ILINEBREAKER_IID \
-{0x4b0b9e04, 0x6ffb, 0x4647, \
-    {0xaa, 0x5f, 0x2f, 0xa2, 0xeb, 0xd8, 0x83, 0xe8}}
+{ 0x5ae68851, 0xd9a3, 0x49fd, \
+    { 0x93, 0x88, 0x58, 0x58, 0x6d, 0xad, 0x80, 0x44 } }
 
 class nsILineBreaker : public nsISupports
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ILINEBREAKER_IID)
+  virtual PRInt32 Next( const PRUnichar* aText, PRUint32 aLen, 
+                        PRUint32 aPos) = 0;
 
-  enum {
-    kWordBreak_Normal   = 0, 
-    kWordBreak_BreakAll = 1, 
-    kWordBreak_KeepAll  = 2  
-  };
-
-  virtual int32_t Next( const PRUnichar* aText, uint32_t aLen, 
-                        uint32_t aPos) = 0;
-
-  virtual int32_t Prev( const PRUnichar* aText, uint32_t aLen, 
-                        uint32_t aPos) = 0;
+  virtual PRInt32 Prev( const PRUnichar* aText, PRUint32 aLen, 
+                        PRUint32 aPos) = 0;
 
   
   
@@ -39,12 +64,10 @@ public:
   
   
   
-  virtual void GetJISx4051Breaks(const PRUnichar* aText, uint32_t aLength,
-                                 uint8_t aWordBreak,
-                                 uint8_t* aBreakBefore) = 0;
-  virtual void GetJISx4051Breaks(const uint8_t* aText, uint32_t aLength,
-                                 uint8_t aWordBreak,
-                                 uint8_t* aBreakBefore) = 0;
+  virtual void GetJISx4051Breaks(const PRUnichar* aText, PRUint32 aLength,
+                                 PRUint8* aBreakBefore) = 0;
+  virtual void GetJISx4051Breaks(const PRUint8* aText, PRUint32 aLength,
+                                 PRUint8* aBreakBefore) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsILineBreaker, NS_ILINEBREAKER_IID)
@@ -58,8 +81,9 @@ NS_IsSpace(PRUnichar u)
          (0x2000 <= u && u <= 0x2006) || 
                                          
                                          
-         (0x2008 <= u && u <= 0x200B);   
+         (0x2008 <= u && u <= 0x200B) || 
                                          
+         u == 0x3000;                    
 }
 
 static inline bool

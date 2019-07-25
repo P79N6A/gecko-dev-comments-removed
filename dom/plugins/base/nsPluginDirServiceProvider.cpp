@@ -3,19 +3,53 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsPluginDirServiceProvider.h"
 
 #include "nsCRT.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
+#include "nsIPrefBranch.h"
+#include "nsIPrefService.h"
 #include "nsDependentString.h"
+#include "nsXPIDLString.h"
 #include "prmem.h"
 #include "nsArrayEnumerator.h"
-#include "mozilla/Preferences.h"
 
 #include <windows.h>
 #include "nsIWindowsRegKey.h"
-
-using namespace mozilla;
 
 typedef struct structVer
 {
@@ -100,7 +134,7 @@ TranslateVersionStr(const WCHAR* szVersion, verBlock *vbVersion)
   WCHAR* szNum4 = NULL;
   WCHAR* szJavaBuild = NULL;
 
-  WCHAR *strVer = nullptr;
+  WCHAR *strVer = nsnull;
   if (szVersion) {
     strVer = wcsdup(szVersion);
   }
@@ -189,23 +223,26 @@ NS_IMETHODIMP
 nsPluginDirServiceProvider::GetFile(const char *charProp, bool *persistant,
                                     nsIFile **_retval)
 {
-  nsCOMPtr<nsIFile>  localFile;
+  nsCOMPtr<nsILocalFile>  localFile;
   nsresult rv = NS_ERROR_FAILURE;
 
   NS_ENSURE_ARG(charProp);
 
-  *_retval = nullptr;
+  *_retval = nsnull;
   *persistant = false;
+
+  nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID));
+  if (!prefs)
+    return NS_ERROR_FAILURE;
 
   nsCOMPtr<nsIWindowsRegKey> regKey =
     do_CreateInstance("@mozilla.org/windows-registry-key;1");
   NS_ENSURE_TRUE(regKey, NS_ERROR_FAILURE);
 
   if (nsCRT::strcmp(charProp, NS_WIN_JRE_SCAN_KEY) == 0) {
-    nsAdoptingCString strVer = Preferences::GetCString(charProp);
-    if (!strVer) {
+    nsXPIDLCString strVer;
+    if (NS_FAILED(prefs->GetCharPref(charProp, getter_Copies(strVer))))
       return NS_ERROR_FAILURE;
-    }
     verBlock minVer;
     TranslateVersionStr(NS_ConvertASCIItoUTF16(strVer).get(), &minVer);
 
@@ -222,18 +259,18 @@ nsPluginDirServiceProvider::GetFile(const char *charProp, bool *persistant,
     regKey->ReadStringValue(NS_LITERAL_STRING("BrowserJavaVersion"),
                             browserJavaVersion);
 
-    uint32_t childCount = 0;
+    PRUint32 childCount = 0;
     regKey->GetChildCount(&childCount);
 
     
     
-    for (uint32_t index = 0; index < childCount; ++index) {
+    for (PRUint32 index = 0; index < childCount; ++index) {
       nsAutoString childName;
       rv = regKey->GetChildName(index, childName);
       if (NS_SUCCEEDED(rv)) {
         
-        uint32_t numChars = 0;
-        int32_t offset = 0;
+        PRUint32 numChars = 0;
+        PRInt32 offset = 0;
         while ((offset = childName.FindChar(L'.', offset + 1)) >= 0) {
           ++numChars;
         }
@@ -295,10 +332,9 @@ nsPluginDirServiceProvider::GetFile(const char *charProp, bool *persistant,
       }
     }
   } else if (nsCRT::strcmp(charProp, NS_WIN_QUICKTIME_SCAN_KEY) == 0) {
-    nsAdoptingCString strVer = Preferences::GetCString(charProp);
-    if (!strVer) {
+    nsXPIDLCString strVer;
+    if (NS_FAILED(prefs->GetCharPref(charProp, getter_Copies(strVer))))
       return NS_ERROR_FAILURE;
-    }
     verBlock minVer;
     TranslateVersionStr(NS_ConvertASCIItoUTF16(strVer).get(), &minVer);
 
@@ -335,10 +371,9 @@ nsPluginDirServiceProvider::GetFile(const char *charProp, bool *persistant,
       }
     }
   } else if (nsCRT::strcmp(charProp, NS_WIN_WMP_SCAN_KEY) == 0) {
-    nsAdoptingCString strVer = Preferences::GetCString(charProp);
-    if (!strVer) {
+    nsXPIDLCString strVer;
+    if (NS_FAILED(prefs->GetCharPref(charProp, getter_Copies(strVer))))
       return NS_ERROR_FAILURE;
-    }
     verBlock minVer;
     TranslateVersionStr(NS_ConvertASCIItoUTF16(strVer).get(), &minVer);
 
@@ -374,8 +409,8 @@ nsPluginDirServiceProvider::GetFile(const char *charProp, bool *persistant,
       }
     }
   } else if (nsCRT::strcmp(charProp, NS_WIN_ACROBAT_SCAN_KEY) == 0) {
-    nsAdoptingCString strVer = Preferences::GetCString(charProp);
-    if (!strVer) {
+    nsXPIDLCString strVer;
+    if (NS_FAILED(prefs->GetCharPref(charProp, getter_Copies(strVer)))) {
       return NS_ERROR_FAILURE;
     }
 
@@ -402,10 +437,10 @@ nsPluginDirServiceProvider::GetFile(const char *charProp, bool *persistant,
 
     
     
-    uint32_t childCount = 0;
+    PRUint32 childCount = 0;
     regKey->GetChildCount(&childCount);
 
-    for (uint32_t index = 0; index < childCount; ++index) {
+    for (PRUint32 index = 0; index < childCount; ++index) {
       nsAutoString childName;
       rv = regKey->GetChildName(index, childName);
       if (NS_SUCCEEDED(rv)) {
@@ -449,9 +484,9 @@ nsresult
 nsPluginDirServiceProvider::GetPLIDDirectories(nsISimpleEnumerator **aEnumerator)
 {
   NS_ENSURE_ARG_POINTER(aEnumerator);
-  *aEnumerator = nullptr;
+  *aEnumerator = nsnull;
 
-  nsCOMArray<nsIFile> dirs;
+  nsCOMArray<nsILocalFile> dirs;
 
   GetPLIDDirectoriesWithRootKey(nsIWindowsRegKey::ROOT_KEY_CURRENT_USER, dirs);
   GetPLIDDirectoriesWithRootKey(nsIWindowsRegKey::ROOT_KEY_LOCAL_MACHINE, dirs);
@@ -460,7 +495,7 @@ nsPluginDirServiceProvider::GetPLIDDirectories(nsISimpleEnumerator **aEnumerator
 }
 
 nsresult
-nsPluginDirServiceProvider::GetPLIDDirectoriesWithRootKey(uint32_t aKey, nsCOMArray<nsIFile> &aDirs)
+nsPluginDirServiceProvider::GetPLIDDirectoriesWithRootKey(PRUint32 aKey, nsCOMArray<nsILocalFile> &aDirs)
 {
   nsCOMPtr<nsIWindowsRegKey> regKey =
     do_CreateInstance("@mozilla.org/windows-registry-key;1");
@@ -471,10 +506,10 @@ nsPluginDirServiceProvider::GetPLIDDirectoriesWithRootKey(uint32_t aKey, nsCOMAr
                              nsIWindowsRegKey::ACCESS_READ);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  uint32_t childCount = 0;
+  PRUint32 childCount = 0;
   regKey->GetChildCount(&childCount);
 
-  for (uint32_t index = 0; index < childCount; ++index) {
+  for (PRUint32 index = 0; index < childCount; ++index) {
     nsAutoString childName;
     rv = regKey->GetChildName(index, childName);
     if (NS_SUCCEEDED(rv)) {
@@ -485,7 +520,7 @@ nsPluginDirServiceProvider::GetPLIDDirectoriesWithRootKey(uint32_t aKey, nsCOMAr
         nsAutoString path;
         rv = childKey->ReadStringValue(NS_LITERAL_STRING("Path"), path);
         if (NS_SUCCEEDED(rv)) {
-          nsCOMPtr<nsIFile> localFile;
+          nsCOMPtr<nsILocalFile> localFile;
           if (NS_SUCCEEDED(NS_NewLocalFile(path, true,
                                            getter_AddRefs(localFile))) &&
               localFile) {
@@ -496,7 +531,7 @@ nsPluginDirServiceProvider::GetPLIDDirectoriesWithRootKey(uint32_t aKey, nsCOMAr
               nsCOMPtr<nsIFile> temp;
               localFile->GetParent(getter_AddRefs(temp));
               if (temp)
-                localFile = temp;
+                localFile = do_QueryInterface(temp);
             }
 
             
@@ -504,8 +539,8 @@ nsPluginDirServiceProvider::GetPLIDDirectoriesWithRootKey(uint32_t aKey, nsCOMAr
             bool isFileThere = false;
             bool isDupEntry = false;
             if (NS_SUCCEEDED(localFile->Exists(&isFileThere)) && isFileThere) {
-              int32_t c = aDirs.Count();
-              for (int32_t i = 0; i < c; i++) {
+              PRInt32 c = aDirs.Count();
+              for (PRInt32 i = 0; i < c; i++) {
                 nsIFile *dup = static_cast<nsIFile*>(aDirs[i]);
                 if (dup &&
                     NS_SUCCEEDED(dup->Equals(localFile, &isDupEntry)) &&

@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIScriptGlobalObject_h__
 #define nsIScriptGlobalObject_h__
 
@@ -12,6 +44,7 @@
 #include "nsIProgrammingLanguage.h"
 
 class nsIScriptContext;
+class nsIDOMDocument;
 class nsIDOMEvent;
 class nsIScriptGlobalObjectOwner;
 class nsIArray;
@@ -67,8 +100,8 @@ NS_HandleScriptError(nsIScriptGlobalObject *aScriptGlobal,
 
 
 #define NS_ISCRIPTGLOBALOBJECT_IID \
-{ 0x92569431, 0x6e6e, 0x408a, \
-  { 0xa8, 0x8c, 0x45, 0x28, 0x5c, 0x1c, 0x85, 0x73 } }
+{ 0x4eb16819, 0x4e81, 0x406e, \
+  { 0x93, 0x05, 0x6f, 0x30, 0xfc, 0xd2, 0x62, 0x4a } }
 
 
 
@@ -89,17 +122,32 @@ public:
 
 
 
-  virtual nsresult EnsureScriptEnvironment() = 0;
+  virtual nsresult EnsureScriptEnvironment(PRUint32 aLangID) = 0;
   
 
 
-  virtual nsIScriptContext *GetScriptContext() = 0;
+  virtual nsIScriptContext *GetScriptContext(PRUint32 lang) = 0;
   
-  virtual JSObject* GetGlobalJSObject() = 0;
+  
 
-  nsIScriptContext* GetContext() {
-    return GetScriptContext();
+
+  virtual void *GetScriptGlobal(PRUint32 lang) = 0;
+
+  
+  virtual JSObject *GetGlobalJSObject() {
+        return (JSObject *)GetScriptGlobal(nsIProgrammingLanguage::JAVASCRIPT);
   }
+
+  virtual nsIScriptContext *GetContext() {
+        return GetScriptContext(nsIProgrammingLanguage::JAVASCRIPT);
+  }
+
+  
+
+
+
+
+  virtual nsresult SetScriptContext(PRUint32 lang, nsIScriptContext *aContext) = 0;
 
   
 
@@ -120,11 +168,8 @@ public:
 
   virtual nsresult HandleScriptError(nsScriptErrorEvent *aErrorEvent,
                                      nsEventStatus *aEventStatus) {
-    NS_ENSURE_STATE(NS_HandleScriptError(this, aErrorEvent, aEventStatus));
-    return NS_OK;
+    return NS_HandleScriptError(this, aErrorEvent, aEventStatus);
   }
-
-  virtual bool IsBlackForCC() { return false; }
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIScriptGlobalObject,

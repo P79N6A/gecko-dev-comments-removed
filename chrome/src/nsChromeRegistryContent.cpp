@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "RegistryMessageUtils.h"
 #include "nsChromeRegistry.h"
 #include "nsChromeRegistryContent.h"
@@ -25,17 +58,17 @@ nsChromeRegistryContent::RegisterRemoteChrome(
   NS_ABORT_IF_FALSE(mLocale == nsDependentCString(""),
                     "RegisterChrome twice?");
 
-  for (uint32_t i = aPackages.Length(); i > 0; ) {
+  for (PRUint32 i = aPackages.Length(); i > 0; ) {
     --i;
     RegisterPackage(aPackages[i]);
   }
 
-  for (uint32_t i = aResources.Length(); i > 0; ) {
+  for (PRUint32 i = aResources.Length(); i > 0; ) {
     --i;
     RegisterResource(aResources[i]);
   }
 
-  for (uint32_t i = aOverrides.Length(); i > 0; ) {
+  for (PRUint32 i = aOverrides.Length(); i > 0; ) {
     --i;
     RegisterOverride(aOverrides[i]);
   }
@@ -56,7 +89,7 @@ nsChromeRegistryContent::RegisterPackage(const ChromePackage& aPackage)
     nsresult rv = NS_NewURI(getter_AddRefs(content),
                             aPackage.contentBaseURI.spec,
                             aPackage.contentBaseURI.charset.get(),
-                            nullptr, io);
+                            nsnull, io);
     if (NS_FAILED(rv))
       return;
   }
@@ -64,7 +97,7 @@ nsChromeRegistryContent::RegisterPackage(const ChromePackage& aPackage)
     nsresult rv = NS_NewURI(getter_AddRefs(locale),
                             aPackage.localeBaseURI.spec,
                             aPackage.localeBaseURI.charset.get(),
-                            nullptr, io);
+                            nsnull, io);
     if (NS_FAILED(rv))
       return;
   }
@@ -73,7 +106,7 @@ nsChromeRegistryContent::RegisterPackage(const ChromePackage& aPackage)
     nsresult rv = NS_NewURI(getter_AddRefs(skin),
                             aPackage.skinBaseURI.spec,
                             aPackage.skinBaseURI.charset.get(),
-                            nullptr, io);
+                            nsnull, io);
     if (NS_FAILED(rv))
       return;
   }
@@ -84,7 +117,9 @@ nsChromeRegistryContent::RegisterPackage(const ChromePackage& aPackage)
   entry->localeBaseURI = locale;
   entry->skinBaseURI = skin;
 
-  mPackagesHash.Put(aPackage.package, entry);
+  nsresult rv = mPackagesHash.Put(aPackage.package, entry);
+  if (NS_FAILED(rv))
+    return;
 }
 
 void
@@ -108,7 +143,7 @@ nsChromeRegistryContent::RegisterResource(const ResourceMapping& aResource)
     nsresult rv = NS_NewURI(getter_AddRefs(resolvedURI),
                             aResource.resolvedURI.spec,
                             aResource.resolvedURI.charset.get(),
-                            nullptr, io);                 
+                            nsnull, io);                 
     if (NS_FAILED(rv))
       return;
   }
@@ -129,12 +164,12 @@ nsChromeRegistryContent::RegisterOverride(const OverrideMapping& aOverride)
   nsresult rv = NS_NewURI(getter_AddRefs(chromeURI),
                           aOverride.originalURI.spec,
                           aOverride.originalURI.charset.get(),
-                          nullptr, io);
+                          nsnull, io);
   if (NS_FAILED(rv))
     return;
 
   rv = NS_NewURI(getter_AddRefs(overrideURI), aOverride.overrideURI.spec,
-                 aOverride.overrideURI.charset.get(), nullptr, io);
+                 aOverride.overrideURI.charset.get(), nsnull, io);
   if (NS_FAILED(rv))
     return;
   
@@ -148,7 +183,7 @@ nsChromeRegistryContent::GetBaseURIFromPackage(const nsCString& aPackage,
 {
   PackageEntry* entry;
   if (!mPackagesHash.Get(aPackage, &entry)) {
-    return nullptr;
+    return nsnull;
   }
 
   if (aProvider.EqualsLiteral("locale")) {
@@ -160,12 +195,12 @@ nsChromeRegistryContent::GetBaseURIFromPackage(const nsCString& aPackage,
   else if (aProvider.EqualsLiteral("content")) {
     return entry->contentBaseURI;
   }
-  return nullptr;
+  return nsnull;
 }
 
 nsresult
 nsChromeRegistryContent::GetFlagsFromPackage(const nsCString& aPackage,
-                                             uint32_t* aFlags)
+                                             PRUint32* aFlags)
 {
   PackageEntry* entry;
   if (!mPackagesHash.Get(aPackage, &entry)) {

@@ -13,6 +13,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef DTDUTILS_
 #define DTDUTILS_
 
@@ -30,7 +62,6 @@
 #include "nsIParserService.h"
 #include "nsReadableUtils.h"
 #include "nsIHTMLContentSink.h"
-#include "nsIFrame.h"
 
 #define IF_HOLD(_ptr) \
  PR_BEGIN_MACRO       \
@@ -91,18 +122,18 @@ public:
 
   nsTagEntry*     PopEntry();
   void            PushEntry(nsTagEntry* aEntry, bool aRefCntNode = true);
-  void            EnsureCapacityFor(int32_t aNewMax, int32_t aShiftOffset=0);
+  void            EnsureCapacityFor(PRInt32 aNewMax, PRInt32 aShiftOffset=0);
   void            Push(nsCParserNode* aNode,nsEntryStack* aStyleStack=0, bool aRefCntNode = true);
   void            PushTag(eHTMLTags aTag);
   void            PushFront(nsCParserNode* aNode,nsEntryStack* aStyleStack=0, bool aRefCntNode = true);
   void            Append(nsEntryStack *aStack);
   nsCParserNode*  Pop(void);
-  nsCParserNode*  Remove(int32_t anIndex,eHTMLTags aTag);
-  nsCParserNode*  NodeAt(int32_t anIndex) const;
+  nsCParserNode*  Remove(PRInt32 anIndex,eHTMLTags aTag);
+  nsCParserNode*  NodeAt(PRInt32 anIndex) const;
   eHTMLTags       First() const;
-  eHTMLTags       TagAt(int32_t anIndex) const;
-  nsTagEntry*     EntryAt(int32_t anIndex) const;
-  eHTMLTags       operator[](int32_t anIndex) const;
+  eHTMLTags       TagAt(PRInt32 anIndex) const;
+  nsTagEntry*     EntryAt(PRInt32 anIndex) const;
+  eHTMLTags       operator[](PRInt32 anIndex) const;
   eHTMLTags       Last() const;
   void            Empty(void); 
 
@@ -117,8 +148,8 @@ public:
 
 
 
-  inline int32_t FirstOf(eHTMLTags aTag) const {
-    int32_t index=-1;
+  inline PRInt32 FirstOf(eHTMLTags aTag) const {
+    PRInt32 index=-1;
     
     if(0<mCount) {
       while(++index<mCount) {
@@ -137,8 +168,8 @@ public:
 
 
 
-  inline int32_t LastOf(eHTMLTags aTag) const {
-    int32_t index=mCount;
+  inline PRInt32 LastOf(eHTMLTags aTag) const {
+    PRInt32 index=mCount;
     while(--index>=0) {
         if(aTag==mEntries[index].mTag) {
           return index; 
@@ -148,8 +179,8 @@ public:
   }
 
   nsTagEntry* mEntries;
-  int32_t    mCount;
-  int32_t    mCapacity;
+  PRInt32    mCount;
+  PRInt32    mCapacity;
 };
 
 
@@ -162,11 +193,11 @@ public:
 class CTableState {
 public:
   CTableState(CTableState *aPreviousState=0) {
-    mHasCaption=false;
-    mHasCols=false;
-    mHasTHead=false;
-    mHasTFoot=false;
-    mHasTBody=false;    
+    mHasCaption=PR_FALSE;
+    mHasCols=PR_FALSE;
+    mHasTHead=PR_FALSE;
+    mHasTFoot=PR_FALSE;
+    mHasTBody=PR_FALSE;    
     mPrevious=aPreviousState;
   }
 
@@ -226,7 +257,7 @@ public:
 
 protected:
   nsFixedSizeAllocator mArenaPool;
-#ifdef  DEBUG
+#ifdef  NS_DEBUG
   int mTotals[eToken_last-1];
 #endif
 };
@@ -248,7 +279,7 @@ public:
   
   nsNodeAllocator();
   ~nsNodeAllocator();
-  nsCParserNode* CreateNode(CToken* aToken=nullptr, nsTokenAllocator* aTokenAllocator=0);
+  nsCParserNode* CreateNode(CToken* aToken=nsnull, nsTokenAllocator* aTokenAllocator=0);
 
   nsFixedSizeAllocator&  GetArenaPool() { return mNodePool; }
 
@@ -257,7 +288,7 @@ public:
 protected:
   nsDeque mSharedNodes;
 #ifdef DEBUG_TRACK_NODES
-  int32_t mCount;
+  PRInt32 mCount;
 #endif
 #endif
 
@@ -277,7 +308,7 @@ public:
 
   nsTagEntry*     PopEntry();
   void            PushEntry(nsTagEntry* aEntry, bool aRefCntNode = true);
-  void            MoveEntries(nsDTDContext& aDest, int32_t aCount);
+  void            MoveEntries(nsDTDContext& aDest, PRInt32 aCount);
   void            Push(nsCParserNode* aNode,nsEntryStack* aStyleStack=0, bool aRefCntNode = true);
   void            PushTag(eHTMLTags aTag);
   nsCParserNode*  Pop(nsEntryStack*& aChildStack);
@@ -286,16 +317,16 @@ public:
   eHTMLTags       First(void) const;
   eHTMLTags       Last(void) const;
   nsTagEntry*     LastEntry(void) const;
-  eHTMLTags       TagAt(int32_t anIndex) const;
-  eHTMLTags       operator[](int32_t anIndex) const {return TagAt(anIndex);}
+  eHTMLTags       TagAt(PRInt32 anIndex) const;
+  eHTMLTags       operator[](PRInt32 anIndex) const {return TagAt(anIndex);}
   bool            HasOpenContainer(eHTMLTags aTag) const;
-  int32_t         FirstOf(eHTMLTags aTag) const {return mStack.FirstOf(aTag);}
-  int32_t         LastOf(eHTMLTags aTag) const {return mStack.LastOf(aTag);}
+  PRInt32         FirstOf(eHTMLTags aTag) const {return mStack.FirstOf(aTag);}
+  PRInt32         LastOf(eHTMLTags aTag) const {return mStack.LastOf(aTag);}
 
   void            Empty(void); 
-  int32_t         GetCount(void) const {return mStack.mCount;}
-  int32_t         GetResidualStyleCount(void) {return mResidualStyleCount;}
-  nsEntryStack*   GetStylesAt(int32_t anIndex) const;
+  PRInt32         GetCount(void) const {return mStack.mCount;}
+  PRInt32         GetResidualStyleCount(void) {return mResidualStyleCount;}
+  nsEntryStack*   GetStylesAt(PRInt32 anIndex) const;
   void            PushStyle(nsCParserNode* aNode);
   void            PushStyles(nsEntryStack *aStyles);
   nsCParserNode*  PopStyle(void);
@@ -308,13 +339,13 @@ public:
   void            SetNodeAllocator(nsNodeAllocator* aNodeAllocator) { mNodeAllocator=aNodeAllocator; }
 
   nsEntryStack    mStack; 
-  int32_t         mResidualStyleCount;
-  int32_t         mContextTopIndex;
+  PRInt32         mResidualStyleCount;
+  PRInt32         mContextTopIndex;
 
   nsTokenAllocator  *mTokenAllocator;
   nsNodeAllocator   *mNodeAllocator;
 
-#ifdef  DEBUG
+#ifdef  NS_DEBUG
   enum { eMaxTags = MAX_REFLOW_DEPTH };
   eHTMLTags       mXTags[eMaxTags];
 #endif
@@ -363,7 +394,7 @@ public:
 
 
 
-inline int32_t IndexOfTagInSet(int32_t aTag,const eHTMLTags* aTagSet,int32_t aCount)  {
+inline PRInt32 IndexOfTagInSet(PRInt32 aTag,const eHTMLTags* aTagSet,PRInt32 aCount)  {
 
   const eHTMLTags* theEnd=aTagSet+aCount;
   const eHTMLTags* theTag=aTagSet;
@@ -386,14 +417,42 @@ inline int32_t IndexOfTagInSet(int32_t aTag,const eHTMLTags* aTagSet,int32_t aCo
 
 
 
-inline bool FindTagInSet(int32_t aTag,const eHTMLTags *aTagSet,int32_t aCount)  {
+inline bool FindTagInSet(PRInt32 aTag,const eHTMLTags *aTagSet,PRInt32 aCount)  {
   return bool(-1<IndexOfTagInSet(aTag,aTagSet,aCount));
 }
 
 
 
+
+
+
+
+class nsObserverEntry : public nsIObserverEntry {
+public:
+  NS_DECL_ISUPPORTS
+            nsObserverEntry(const nsAString& aString);
+  virtual   ~nsObserverEntry();
+
+  NS_IMETHOD Notify(nsIParserNode* aNode,
+                    nsIParser* aParser,
+                    nsISupports* aDocShell,
+                    const PRUint32 aFlags);
+
+  nsresult   AddObserver(nsIElementObserver* aObserver,eHTMLTags aTag);
+  void       RemoveObserver(nsIElementObserver* aObserver);
+  bool       Matches(const nsAString& aTopic);
+
+protected:
+  nsString mTopic;
+  nsCOMArray<nsIElementObserver>* mObservers[NS_HTML_TAG_MAX + 1];
+  friend class nsMatchesTopic;
+};
+
+
+
+
 struct TagList {
-  size_t mCount;
+  PRUint32 mCount;
   const eHTMLTags *mTags;
 };
 
@@ -404,7 +463,7 @@ struct TagList {
 
 
 
-inline int32_t LastOf(nsDTDContext& aContext, const TagList& aTagList){
+inline PRInt32 LastOf(nsDTDContext& aContext, const TagList& aTagList){
   int max = aContext.GetCount();
   int index;
   for(index=max-1;index>=0;index--){
@@ -424,7 +483,7 @@ inline int32_t LastOf(nsDTDContext& aContext, const TagList& aTagList){
 
 
 
-inline int32_t FirstOf(nsDTDContext& aContext,int32_t aStartOffset,TagList& aTagList){
+inline PRInt32 FirstOf(nsDTDContext& aContext,PRInt32 aStartOffset,TagList& aTagList){
   int max = aContext.GetCount();
   int index;
   for(index=aStartOffset;index<max;++index){

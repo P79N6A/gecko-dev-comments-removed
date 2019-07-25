@@ -3,29 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGGRADIENTFRAME_H__
 #define __NS_SVGGRADIENTFRAME_H__
 
-#include "gfxMatrix.h"
-#include "nsCOMPtr.h"
-#include "nsFrame.h"
-#include "nsLiteralString.h"
 #include "nsSVGPaintServerFrame.h"
+#include "nsSVGElement.h"
+#include "gfxPattern.h"
 
-class gfxPattern;
-class nsIAtom;
-class nsIContent;
-class nsIFrame;
-class nsIPresShell;
-class nsStyleContext;
-class nsSVGLinearGradientElement;
-class nsSVGRadialGradientElement;
-
-struct gfxRect;
-
-namespace mozilla {
-class SVGAnimatedTransformList;
-}
+class nsIDOMSVGStopElement;
 
 typedef nsSVGPaintServerFrame nsSVGGradientFrameBase;
 
@@ -44,17 +62,15 @@ public:
   
   virtual already_AddRefed<gfxPattern>
     GetPaintServerPattern(nsIFrame *aSource,
-                          const gfxMatrix& aContextMatrix,
-                          nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
                           float aGraphicOpacity,
                           const gfxRect *aOverrideBounds);
 
   
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);
 
-  NS_IMETHOD AttributeChanged(int32_t         aNameSpaceID,
+  NS_IMETHOD AttributeChanged(PRInt32         aNameSpaceID,
                               nsIAtom*        aAttribute,
-                              int32_t         aModType);
+                              PRInt32         aModType);
 
 #ifdef DEBUG
   NS_IMETHOD GetFrameName(nsAString& aResult) const
@@ -71,40 +87,44 @@ private:
   nsSVGGradientFrame* GetReferencedGradient();
 
   
-  int32_t GetStopFrame(int32_t aIndex, nsIFrame * *aStopFrame);
+  
+  
+  nsSVGGradientElement* GetGradientWithAttr(nsIAtom *aAttrName, nsIContent *aDefault);
 
-  uint32_t GetStopCount();
-  void GetStopInformation(int32_t aIndex,
+  
+  
+  
+  nsSVGGradientElement* GetGradientWithAttr(nsIAtom *aAttrName, nsIAtom *aGradType,
+                                            nsIContent *aDefault);
+
+  
+  PRInt32 GetStopFrame(PRInt32 aIndex, nsIFrame * *aStopFrame);
+
+  PRUint16 GetSpreadMethod();
+  PRUint32 GetStopCount();
+  void GetStopInformation(PRInt32 aIndex,
                           float *aOffset, nscolor *aColor, float *aStopOpacity);
 
-  const mozilla::SVGAnimatedTransformList* GetGradientTransformList(
-    nsIContent* aDefault);
   
-  gfxMatrix GetGradientTransform(nsIFrame *aSource,
-                                 const gfxRect *aOverrideBounds);
+  gfxMatrix GetGradientTransform(nsIFrame *aSource, const gfxRect *aOverrideBounds);
 
 protected:
   virtual already_AddRefed<gfxPattern> CreateGradient() = 0;
 
   
-  class AutoGradientReferencer;
-  nsSVGGradientFrame* GetReferencedGradientIfNotInUse();
-
-  
-  uint16_t GetEnumValue(uint32_t aIndex, nsIContent *aDefault);
-  uint16_t GetEnumValue(uint32_t aIndex)
+  nsSVGLinearGradientElement* GetLinearGradientWithAttr(nsIAtom *aAttrName, nsIContent *aDefault)
   {
-    return GetEnumValue(aIndex, mContent);
+    return static_cast<nsSVGLinearGradientElement*>(
+            GetGradientWithAttr(aAttrName, nsGkAtoms::svgLinearGradientFrame, aDefault));
   }
-  uint16_t GetGradientUnits();
-  uint16_t GetSpreadMethod();
+  nsSVGRadialGradientElement* GetRadialGradientWithAttr(nsIAtom *aAttrName, nsIContent *aDefault)
+  {
+    return static_cast<nsSVGRadialGradientElement*>(
+            GetGradientWithAttr(aAttrName, nsGkAtoms::svgRadialGradientFrame, aDefault));
+  }
 
   
-  
-  virtual nsSVGLinearGradientElement * GetLinearGradientWithLength(
-    uint32_t aIndex, nsSVGLinearGradientElement* aDefault);
-  virtual nsSVGRadialGradientElement * GetRadialGradientWithLength(
-    uint32_t aIndex, nsSVGRadialGradientElement* aDefault);
+  PRUint16 GetGradientUnits();
 
   
   nsIFrame*                              mSource;
@@ -146,9 +166,9 @@ public:
 
   virtual nsIAtom* GetType() const;  
 
-  NS_IMETHOD AttributeChanged(int32_t         aNameSpaceID,
+  NS_IMETHOD AttributeChanged(PRInt32         aNameSpaceID,
                               nsIAtom*        aAttribute,
-                              int32_t         aModType);
+                              PRInt32         aModType);
 
 #ifdef DEBUG
   NS_IMETHOD GetFrameName(nsAString& aResult) const
@@ -158,9 +178,7 @@ public:
 #endif 
 
 protected:
-  float GetLengthValue(uint32_t aIndex);
-  virtual nsSVGLinearGradientElement * GetLinearGradientWithLength(
-    uint32_t aIndex, nsSVGLinearGradientElement* aDefault);
+  float GradientLookupAttribute(nsIAtom *aAtomName, PRUint16 aEnumName);
   virtual already_AddRefed<gfxPattern> CreateGradient();
 };
 
@@ -190,9 +208,9 @@ public:
 
   virtual nsIAtom* GetType() const;  
 
-  NS_IMETHOD AttributeChanged(int32_t         aNameSpaceID,
+  NS_IMETHOD AttributeChanged(PRInt32         aNameSpaceID,
                               nsIAtom*        aAttribute,
-                              int32_t         aModType);
+                              PRInt32         aModType);
 
 #ifdef DEBUG
   NS_IMETHOD GetFrameName(nsAString& aResult) const
@@ -202,12 +220,8 @@ public:
 #endif 
 
 protected:
-  float GetLengthValue(uint32_t aIndex);
-  float GetLengthValue(uint32_t aIndex, float aDefaultValue);
-  float GetLengthValueFromElement(uint32_t aIndex,
-                                  nsSVGRadialGradientElement& aElement);
-  virtual nsSVGRadialGradientElement * GetRadialGradientWithLength(
-    uint32_t aIndex, nsSVGRadialGradientElement* aDefault);
+  float GradientLookupAttribute(nsIAtom *aAtomName, PRUint16 aEnumName,
+                                nsSVGRadialGradientElement *aElement = nsnull);
   virtual already_AddRefed<gfxPattern> CreateGradient();
 };
 

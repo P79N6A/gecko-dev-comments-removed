@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsStringIterator_h___
 #define nsStringIterator_h___
 
@@ -286,7 +319,7 @@ class nsWritingIterator
         }
 
       void
-      write( const value_type* s, uint32_t n )
+      write( const value_type* s, PRUint32 n )
         {
           NS_ASSERTION(size_forward() > 0, "You can't |write| into an |nsWritingIterator| with no space!");
 

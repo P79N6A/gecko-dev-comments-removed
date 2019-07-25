@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsXBLDocumentInfo_h__
 #define nsXBLDocumentInfo_h__
 
@@ -36,11 +68,6 @@ public:
   nsresult SetPrototypeBinding(const nsACString& aRef,
                                nsXBLPrototypeBinding* aBinding);
 
-  
-  void RemovePrototypeBinding(const nsACString& aRef);
-
-  nsresult WritePrototypeBindings();
-
   void SetFirstPrototypeBinding(nsXBLPrototypeBinding* aBinding);
   
   void FlushSkinStylesheets();
@@ -49,10 +76,6 @@ public:
 
   
   virtual nsIScriptGlobalObject* GetScriptGlobalObject();
-
-  void MarkInCCGeneration(uint32_t aGeneration);
-
-  static nsresult ReadPrototypeBindings(nsIURI* aURI, nsXBLDocumentInfo** aDocInfo);
 
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(nsXBLDocumentInfo,
                                                          nsIScriptGlobalObjectOwner)
@@ -68,5 +91,7 @@ private:
 
   nsRefPtr<nsXBLDocGlobalObject> mGlobalObject;
 };
+
+nsXBLDocumentInfo* NS_NewXBLDocumentInfo(nsIDocument* aDocument);
 
 #endif

@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "prlog.h"
 #include "nsAutoPtr.h"
 #include "nsIFactory.h"
@@ -43,7 +76,7 @@
 NS_IMPL_THREADSAFE_ISUPPORTS2(nsObserverService, nsIObserverService, nsObserverService)
 
 nsObserverService::nsObserverService() :
-    mShuttingDown(false)
+    mShuttingDown(PR_FALSE)
 {
     mObserverTopicTable.Init();
 }
@@ -56,7 +89,7 @@ nsObserverService::~nsObserverService(void)
 void
 nsObserverService::Shutdown()
 {
-    mShuttingDown = true;
+    mShuttingDown = PR_TRUE;
 
     if (mObserverTopicTable.IsInitialized())
         mObserverTopicTable.Clear();
@@ -157,21 +190,3 @@ NS_IMETHODIMP nsObserverService::NotifyObservers(nsISupports *aSubject,
     return NS_OK;
 }
 
-static PLDHashOperator
-UnmarkGrayObserverEntry(nsObserverList* aObserverList, void* aClosure)
-{
-    if (aObserverList) {
-        aObserverList->UnmarkGrayStrongObservers();
-    }
-    return PL_DHASH_NEXT;
-}
-
-NS_IMETHODIMP
-nsObserverService::UnmarkGrayStrongObservers()
-{
-    NS_ENSURE_VALIDCALL
-
-    mObserverTopicTable.EnumerateEntries(UnmarkGrayObserverEntry, nullptr);
-
-    return NS_OK;
-}

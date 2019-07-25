@@ -3,12 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_SVGATTRTEAROFFTABLE_H_
 #define NS_SVGATTRTEAROFFTABLE_H_
 
 #include "nsDataHashtable.h"
-#include "nsDebug.h"
-#include "nsHashKeys.h"
 
 
 
@@ -46,9 +72,9 @@ TearoffType*
 nsSVGAttrTearoffTable<SimpleType, TearoffType>::GetTearoff(SimpleType* aSimple)
 {
   if (!mTable.IsInitialized())
-    return nullptr;
+    return nsnull;
 
-  TearoffType *tearoff = nullptr;
+  TearoffType *tearoff = nsnull;
 
 #ifdef DEBUG
   bool found =
@@ -71,12 +97,16 @@ nsSVGAttrTearoffTable<SimpleType, TearoffType>::AddTearoff(SimpleType* aSimple,
 
   
   
-  if (mTable.Get(aSimple, nullptr)) {
-    NS_ABORT_IF_FALSE(false, "There is already a tear-off for this object.");
+  if (mTable.Get(aSimple, nsnull)) {
+    NS_ABORT_IF_FALSE(PR_FALSE, "There is already a tear-off for this object.");
     return;
   }
 
-  mTable.Put(aSimple, aTearoff);
+#ifdef DEBUG
+  bool result =
+#endif
+    mTable.Put(aSimple, aTearoff);
+  NS_ABORT_IF_FALSE(result, "Out of memory.");
 }
 
 template<class SimpleType, class TearoffType>

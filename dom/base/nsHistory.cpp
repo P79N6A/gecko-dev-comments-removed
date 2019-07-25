@@ -4,12 +4,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsHistory.h"
 
 #include "nsCOMPtr.h"
 #include "nscore.h"
 #include "nsPIDOMWindow.h"
 #include "nsIScriptGlobalObject.h"
+#include "nsIDOMDocument.h"
 #include "nsIDocument.h"
 #include "nsIPresShell.h"
 #include "nsPresContext.h"
@@ -22,8 +56,7 @@
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsXPIDLString.h"
 #include "nsReadableUtils.h"
-#include "nsDOMClassInfoID.h"
-#include "nsError.h"
+#include "nsDOMClassInfo.h"
 #include "nsContentUtils.h"
 #include "nsISHistoryInternal.h"
 #include "mozilla/Preferences.h"
@@ -63,7 +96,7 @@ NS_IMPL_RELEASE(nsHistory)
 
 
 NS_IMETHODIMP
-nsHistory::GetLength(int32_t* aLength)
+nsHistory::GetLength(PRInt32* aLength)
 {
   nsCOMPtr<nsISHistory>   sHistory;
 
@@ -79,8 +112,8 @@ nsHistory::GetCurrent(nsAString& aCurrent)
   if (!nsContentUtils::IsCallerTrustedForRead())
     return NS_ERROR_DOM_SECURITY_ERR;
 
-  int32_t curIndex=0;
-  nsAutoCString curURL;
+  PRInt32 curIndex=0;
+  nsCAutoString curURL;
   nsCOMPtr<nsISHistory> sHistory;
 
   
@@ -93,7 +126,7 @@ nsHistory::GetCurrent(nsAString& aCurrent)
   nsCOMPtr<nsIURI>     uri;
 
   
-  sHistory->GetEntryAtIndex(curIndex, false, getter_AddRefs(curEntry));
+  sHistory->GetEntryAtIndex(curIndex, PR_FALSE, getter_AddRefs(curEntry));
   NS_ENSURE_TRUE(curEntry, NS_ERROR_FAILURE);
 
   
@@ -111,8 +144,8 @@ nsHistory::GetPrevious(nsAString& aPrevious)
   if (!nsContentUtils::IsCallerTrustedForRead())
     return NS_ERROR_DOM_SECURITY_ERR;
 
-  int32_t curIndex;
-  nsAutoCString prevURL;
+  PRInt32 curIndex;
+  nsCAutoString prevURL;
   nsCOMPtr<nsISHistory>  sHistory;
 
   
@@ -125,7 +158,7 @@ nsHistory::GetPrevious(nsAString& aPrevious)
   nsCOMPtr<nsIURI>     uri;
 
   
-  sHistory->GetEntryAtIndex((curIndex-1), false, getter_AddRefs(prevEntry));
+  sHistory->GetEntryAtIndex((curIndex-1), PR_FALSE, getter_AddRefs(prevEntry));
   NS_ENSURE_TRUE(prevEntry, NS_ERROR_FAILURE);
 
   
@@ -140,11 +173,8 @@ nsHistory::GetPrevious(nsAString& aPrevious)
 NS_IMETHODIMP
 nsHistory::GetNext(nsAString& aNext)
 {
-  if (!nsContentUtils::IsCallerTrustedForRead())
-    return NS_ERROR_DOM_SECURITY_ERR;
-
-  int32_t curIndex;
-  nsAutoCString nextURL;
+  PRInt32 curIndex;
+  nsCAutoString nextURL;
   nsCOMPtr<nsISHistory>  sHistory;
 
   
@@ -157,7 +187,7 @@ nsHistory::GetNext(nsAString& aNext)
   nsCOMPtr<nsIURI>     uri;
 
   
-  sHistory->GetEntryAtIndex((curIndex+1), false, getter_AddRefs(nextEntry));
+  sHistory->GetEntryAtIndex((curIndex+1), PR_FALSE, getter_AddRefs(nextEntry));
   NS_ENSURE_TRUE(nextEntry, NS_ERROR_FAILURE);
 
   
@@ -202,7 +232,7 @@ nsHistory::Forward()
 }
 
 NS_IMETHODIMP
-nsHistory::Go(int32_t aDelta)
+nsHistory::Go(PRInt32 aDelta)
 {
   if (aDelta == 0) {
     nsCOMPtr<nsPIDOMWindow> window(do_GetInterface(GetDocShell()));
@@ -238,12 +268,12 @@ nsHistory::Go(int32_t aDelta)
   nsCOMPtr<nsIWebNavigation> webnav(do_QueryInterface(session_history));
   NS_ENSURE_TRUE(webnav, NS_ERROR_FAILURE);
 
-  int32_t curIndex=-1;
-  int32_t len = 0;
-  session_history->GetIndex(&curIndex);
-  session_history->GetCount(&len);
+  PRInt32 curIndex=-1;
+  PRInt32 len = 0;
+  nsresult rv = session_history->GetIndex(&curIndex);
+  rv = session_history->GetCount(&len);
 
-  int32_t index = curIndex + aDelta;
+  PRInt32 index = curIndex + aDelta;
   if (index > -1  &&  index < len)
     webnav->GotoIndex(index);
 
@@ -278,7 +308,7 @@ nsHistory::PushState(nsIVariant *aData, const nsAString& aTitle,
 
   
   
-  nsresult rv = docShell->AddState(aData, aTitle, aURL, false, aCx);
+  nsresult rv = docShell->AddState(aData, aTitle, aURL, PR_FALSE, aCx);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
@@ -308,13 +338,13 @@ nsHistory::ReplaceState(nsIVariant *aData, const nsAString& aTitle,
 
   
   
-  return docShell->AddState(aData, aTitle, aURL, true, aCx);
+  return docShell->AddState(aData, aTitle, aURL, PR_TRUE, aCx);
 }
 
 NS_IMETHODIMP
 nsHistory::GetState(nsIVariant **aState)
 {
-  *aState = nullptr;
+  *aState = nsnull;
 
   nsCOMPtr<nsPIDOMWindow> win(do_QueryReferent(mInnerWindow));
   if (!win)
@@ -332,7 +362,7 @@ nsHistory::GetState(nsIVariant **aState)
 }
 
 NS_IMETHODIMP
-nsHistory::Item(uint32_t aIndex, nsAString& aReturn)
+nsHistory::Item(PRUint32 aIndex, nsAString& aReturn)
 {
   aReturn.Truncate();
   if (!nsContentUtils::IsCallerTrustedForRead()) {
@@ -348,7 +378,7 @@ nsHistory::Item(uint32_t aIndex, nsAString& aReturn)
   nsCOMPtr<nsIHistoryEntry> sh_entry;
   nsCOMPtr<nsIURI> uri;
 
-  rv = session_history->GetEntryAtIndex(aIndex, false,
+  rv = session_history->GetEntryAtIndex(aIndex, PR_FALSE,
                                         getter_AddRefs(sh_entry));
 
   if (sh_entry) {
@@ -356,7 +386,7 @@ nsHistory::Item(uint32_t aIndex, nsAString& aReturn)
   }
 
   if (uri) {
-    nsAutoCString urlCString;
+    nsCAutoString urlCString;
     rv = uri->GetSpec(urlCString);
 
     CopyUTF8toUTF16(urlCString, aReturn);

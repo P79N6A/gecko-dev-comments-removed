@@ -3,6 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsBidiUtils_h__
 #define nsBidiUtils_h__
 
@@ -16,6 +52,31 @@
 
 
 
+
+typedef enum {
+  eBidiCat_Undefined,
+  eBidiCat_L,          
+  eBidiCat_R,          
+  eBidiCat_AL,         
+  eBidiCat_AN,         
+  eBidiCat_EN,         
+  eBidiCat_ES,         
+  eBidiCat_ET,         
+  eBidiCat_CS,         
+  eBidiCat_ON,         
+  eBidiCat_NSM,        
+  eBidiCat_BN,         
+  eBidiCat_B,          
+  eBidiCat_S,          
+  eBidiCat_WS,         
+  eBidiCat_CC = 0xf,   
+                       
+  eBidiCat_LRE = 0x2a, 
+  eBidiCat_RLE = 0x2b, 
+  eBidiCat_PDF = 0x2c, 
+  eBidiCat_LRO = 0x2d, 
+  eBidiCat_RLO = 0x2e  
+} eBidiCategory;
 
 enum nsCharType   { 
   eCharType_LeftToRight              = 0, 
@@ -66,7 +127,7 @@ typedef enum nsCharType nsCharType;
 
 
 
-  PRUnichar HandleNumberInChar(PRUnichar aChar, bool aPrevCharArabic, uint32_t aNumFlag);
+  PRUnichar HandleNumberInChar(PRUnichar aChar, bool aPrevCharArabic, PRUint32 aNumFlag);
 
   
 
@@ -78,14 +139,19 @@ typedef enum nsCharType nsCharType;
 
 
 
-  nsresult HandleNumbers(PRUnichar* aBuffer, uint32_t aSize, uint32_t  aNumFlag);
+  nsresult HandleNumbers(PRUnichar* aBuffer, PRUint32 aSize, PRUint32  aNumFlag);
+
+  
+
+
+  nsCharType GetCharType(PRUint32 aChar);
 
   
 
 
 
 
-  bool IsBidiControl(uint32_t aChar);
+  bool IsBidiControl(PRUint32 aChar);
 
   
 
@@ -183,9 +249,7 @@ typedef enum nsCharType nsCharType;
 
 
 
-#define IS_ARABIC_SEPARATOR(u) ( ( /*(u) >= 0x0600 &&*/ (u) <= 0x0603 ) || \
-                                 ( (u) >= 0x066A && (u) <= 0x066C ) || \
-                                 ( (u) == 0x06DD ) )
+#define IS_ARABIC_SEPARATOR(u) ( ( (u) == 0x0600 ) || ( (u) == 0x0601 ) || ( (u) == 0x0602 ) || ( (u) == 0x0603 ) || ( (u) == 0x066A ) || ( (u) == 0x066B ) || ( (u) == 0x066C ) || ( (u) == 0x06DD ) )
 
 #define IS_BIDI_DIACRITIC(u) ( \
   ( (u) >= 0x0591 && (u) <= 0x05A1) || ( (u) >= 0x05A3 && (u) <= 0x05B9) \
@@ -195,14 +259,11 @@ typedef enum nsCharType nsCharType;
     || ( (u) >= 0x06D7 && (u) <= 0x06E4) || ( (u) == 0x06E7) || ( (u) == 0x06E8) \
     || ( (u) >= 0x06EA && (u) <= 0x06ED) )
 
-#define IS_HEBREW_CHAR(c) (((0x0590 <= (c)) && ((c) <= 0x05FF)) || (((c) >= 0xfb1d) && ((c) <= 0xfb4f)))
-#define IS_ARABIC_CHAR(c) ( (0x0600 <= (c) && (c) <= 0x08FF) &&   \
-                            ( (c) <= 0x06ff ||                    \
-                              ((c) >= 0x0750 && (c) <= 0x077f) || \
-                              (c) >= 0x08a0 ) )
+#define IS_HEBREW_CHAR(c) (((0x0590 <= (c)) && ((c)<= 0x05FF)) || (((c) >= 0xfb1d) && ((c) <= 0xfb4f)))
+#define IS_ARABIC_CHAR(c) ((0x0600 <= (c)) && ((c)<= 0x06FF))
 #define IS_ARABIC_ALPHABETIC(c) (IS_ARABIC_CHAR(c) && \
                                 !(IS_HINDI_DIGIT(c) || IS_FARSI_DIGIT(c) || IS_ARABIC_SEPARATOR(c)))
-#define IS_BIDI_CONTROL_CHAR(c) (((0x202a <= (c)) && ((c) <= 0x202e)) \
+#define IS_BIDI_CONTROL_CHAR(c) (((0x202a <= (c)) && ((c)<= 0x202e)) \
                                 || ((c) == 0x200e) || ((c) == 0x200f))
 
 
@@ -217,8 +278,7 @@ typedef enum nsCharType nsCharType;
 #define IS_IN_BMP_RTL_BLOCK(c) ((0x590 <= (c)) && ((c) <= 0x8ff))
 #define IS_RTL_PRESENTATION_FORM(c) (((0xfb1d <= (c)) && ((c) <= 0xfdff)) || \
                                      ((0xfe70 <= (c)) && ((c) <= 0xfefc)))
-#define IS_IN_SMP_RTL_BLOCK(c) (((0x10800 <= (c)) && ((c) <= 0x10fff)) || \
-                                ((0x1e800 <= (c)) && ((c) <= 0x1eFFF)))
+#define IS_IN_SMP_RTL_BLOCK(c) ((0x10800 <= (c)) && ((c) <= 0x10fff))
 #define UCS2_CHAR_IS_BIDI(c) ((IS_IN_BMP_RTL_BLOCK(c)) || \
                               (IS_RTL_PRESENTATION_FORM(c)))
 #define UTF32_CHAR_IS_BIDI(c)  ((IS_IN_BMP_RTL_BLOCK(c)) || \

@@ -3,15 +3,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "xpcom-config.h"
 #include NEW_H    
 #include "nscore.h"
 #include "nsCRT.h"
 
 #include "nsCommandParams.h"
-#include "mozilla/HashFunctions.h"
 
-using namespace mozilla;
 
 PLDHashTableOps nsCommandParams::sHashOps =
 {
@@ -53,7 +83,7 @@ nsCommandParams::Init()
 #endif
 
 
-NS_IMETHODIMP nsCommandParams::GetValueType(const char * name, int16_t *_retval)
+NS_IMETHODIMP nsCommandParams::GetValueType(const char * name, PRInt16 *_retval)
 {
   NS_ENSURE_ARG_POINTER(_retval);
   *_retval = eNoType;
@@ -71,7 +101,7 @@ NS_IMETHODIMP nsCommandParams::GetValueType(const char * name, int16_t *_retval)
 NS_IMETHODIMP nsCommandParams::GetBooleanValue(const char * name, bool *_retval)
 {
   NS_ENSURE_ARG_POINTER(_retval);
-  *_retval = false;
+  *_retval = PR_FALSE;
 
   HashEntry*  foundEntry = GetNamedEntry(name);
   if (foundEntry && foundEntry->mEntryType == eBooleanType)
@@ -84,10 +114,10 @@ NS_IMETHODIMP nsCommandParams::GetBooleanValue(const char * name, bool *_retval)
 }
 
 
-NS_IMETHODIMP nsCommandParams::GetLongValue(const char * name, int32_t *_retval)
+NS_IMETHODIMP nsCommandParams::GetLongValue(const char * name, PRInt32 *_retval)
 {
   NS_ENSURE_ARG_POINTER(_retval);
-  *_retval = false;
+  *_retval = PR_FALSE;
 
   HashEntry*  foundEntry = GetNamedEntry(name);
   if (foundEntry && foundEntry->mEntryType == eLongType)
@@ -148,7 +178,7 @@ NS_IMETHODIMP nsCommandParams::GetCStringValue(const char * name, char **_retval
 NS_IMETHODIMP nsCommandParams::GetISupportsValue(const char * name, nsISupports **_retval)
 {
   NS_ENSURE_ARG_POINTER(_retval);
-  *_retval = nullptr;
+  *_retval = nsnull;
 
   HashEntry*  foundEntry = GetNamedEntry(name);
   if (foundEntry && foundEntry->mEntryType == eISupportsType)
@@ -177,7 +207,7 @@ NS_IMETHODIMP nsCommandParams::SetBooleanValue(const char * name, bool value)
 }
 
 
-NS_IMETHODIMP nsCommandParams::SetLongValue(const char * name, int32_t value)
+NS_IMETHODIMP nsCommandParams::SetLongValue(const char * name, PRInt32 value)
 {
   HashEntry*  foundEntry;
   GetOrMakeEntry(name, eLongType, foundEntry);
@@ -256,38 +286,38 @@ nsCommandParams::GetNamedEntry(const char * name)
   if (PL_DHASH_ENTRY_IS_BUSY(foundEntry))
     return foundEntry;
    
-  return nullptr;
+  return nsnull;
 }
 
 
 nsCommandParams::HashEntry*
-nsCommandParams::GetIndexedEntry(int32_t index)
+nsCommandParams::GetIndexedEntry(PRInt32 index)
 {
   HashEntry*  entry = reinterpret_cast<HashEntry*>(mValuesHash.entryStore);
   HashEntry*  limit = entry + PL_DHASH_TABLE_SIZE(&mValuesHash);
-  uint32_t    entryCount = 0;
+  PRUint32    entryCount = 0;
   
   do
   {  
     if (!PL_DHASH_ENTRY_IS_LIVE(entry))
       continue;
 
-    if ((int32_t)entryCount == index)
+    if ((PRInt32)entryCount == index)
       return entry;
     
     entryCount ++;
   } while (++entry < limit);
 
-  return nullptr;
+  return nsnull;
 }
 
 
-uint32_t
+PRUint32
 nsCommandParams::GetNumEntries()
 {
   HashEntry*  entry = reinterpret_cast<HashEntry*>(mValuesHash.entryStore);
   HashEntry*  limit = entry + PL_DHASH_TABLE_SIZE(&mValuesHash);
-  uint32_t    entryCount = 0;
+  PRUint32    entryCount = 0;
   
   do
   {  
@@ -299,7 +329,7 @@ nsCommandParams::GetNumEntries()
 }
 
 nsresult
-nsCommandParams::GetOrMakeEntry(const char * name, uint8_t entryType, HashEntry*& outEntry)
+nsCommandParams::GetOrMakeEntry(const char * name, PRUint8 entryType, HashEntry*& outEntry)
 {
 
   HashEntry *foundEntry = (HashEntry *)PL_DHashTableOperate(&mValuesHash, (void *)name, PL_DHASH_LOOKUP);
@@ -326,7 +356,7 @@ nsCommandParams::GetOrMakeEntry(const char * name, uint8_t entryType, HashEntry*
 PLDHashNumber
 nsCommandParams::HashKey(PLDHashTable *table, const void *key)
 {
-  return HashString((const char *)key);
+  return nsCRT::HashCode((const char *)key);
 }
 
 bool

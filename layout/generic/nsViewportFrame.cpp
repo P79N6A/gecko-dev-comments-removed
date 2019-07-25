@@ -8,6 +8,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsViewportFrame.h"
 #include "nsHTMLParts.h"
@@ -15,9 +47,7 @@
 #include "nsIScrollableFrame.h"
 #include "nsDisplayList.h"
 #include "FrameLayerBuilder.h"
-#include "nsSubDocumentFrame.h"
 #include "nsAbsoluteContainingBlock.h"
-#include "sampler.h"
 
 using namespace mozilla;
 
@@ -49,7 +79,7 @@ ViewportFrame::SetInitialChildList(ChildListID     aListID,
                                    nsFrameList&    aChildList)
 {
   
-#ifdef DEBUG
+#ifdef NS_DEBUG
   nsFrame::VerifyDirtyBitSet(aChildList);
 #endif
   return nsContainerFrame::SetInitialChildList(aListID, aChildList);
@@ -60,7 +90,6 @@ ViewportFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists)
 {
-  SAMPLE_LABEL("ViewportFrame", "BuildDisplayList");
   nsIFrame* kid = mFrames.FirstChild();
   if (!kid)
     return NS_OK;
@@ -201,7 +230,7 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
                        0, 0, 0, aStatus);
       kidHeight = kidDesiredSize.height;
 
-      FinishReflowChild(kidFrame, aPresContext, nullptr, kidDesiredSize, 0, 0, 0);
+      FinishReflowChild(kidFrame, aPresContext, nsnull, kidDesiredSize, 0, 0, 0);
     } else {
       kidHeight = mFrames.FirstChild()->GetSize().height;
     }
@@ -217,39 +246,28 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
   aDesiredSize.height = aReflowState.ComputedHeight() != NS_UNCONSTRAINEDSIZE
                           ? aReflowState.ComputedHeight()
                           : kidHeight;
-  aDesiredSize.SetOverflowAreasToDesiredBounds();
-
-  if (mFrames.NotEmpty()) {
-    ConsiderChildOverflow(aDesiredSize.mOverflowAreas, mFrames.FirstChild());
-  }
 
   
   
   nsHTMLReflowState reflowState(aReflowState);
   nsPoint offset = AdjustReflowStateForScrollbars(&reflowState);
 
+#ifdef DEBUG
   if (IsAbsoluteContainer()) {
     NS_ASSERTION(GetAbsoluteContainingBlock()->GetChildList().IsEmpty() ||
                  (offset.x == 0 && offset.y == 0),
                  "We don't handle correct positioning of fixed frames with "
                  "scrollbars in odd positions");
+  }
+#endif
 
-    
-    
-    nscoord width = reflowState.ComputedWidth();
-    nscoord height = reflowState.ComputedHeight();
-    if (aPresContext->PresShell()->IsScrollPositionClampingScrollPortSizeSet()) {
-      nsSize size = aPresContext->PresShell()->
-        GetScrollPositionClampingScrollPortSize();
-      width = size.width;
-      height = size.height;
-    }
-
+  if (IsAbsoluteContainer()) {
     
     rv = GetAbsoluteContainingBlock()->Reflow(this, aPresContext, reflowState, aStatus,
-                                              width, height,
+                                              reflowState.ComputedWidth(),
+                                              reflowState.ComputedHeight(),
                                               false, true, true, 
-                                              &aDesiredSize.mOverflowAreas);
+                                              nsnull );
   }
 
   
@@ -259,18 +277,7 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
   }
 
   
-  
-  bool overflowChanged = FinishAndStoreOverflow(&aDesiredSize);
-  if (overflowChanged) {
-    
-    
-    nsSubDocumentFrame* container = static_cast<nsSubDocumentFrame*>
-      (nsLayoutUtils::GetCrossDocParentFrame(this));
-    if (container && !container->ShouldClipSubdocument()) {
-      container->PresContext()->PresShell()->
-        FrameNeedsReflow(container, nsIPresShell::eResize, NS_FRAME_IS_DIRTY);
-    }
-  }
+  aDesiredSize.SetOverflowAreasToDesiredBounds();
 
   NS_FRAME_TRACE_REFLOW_OUT("ViewportFrame::Reflow", aStatus);
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
@@ -286,7 +293,7 @@ ViewportFrame::GetType() const
 void
 ViewportFrame::InvalidateInternal(const nsRect& aDamageRect,
                                   nscoord aX, nscoord aY, nsIFrame* aForChild,
-                                  uint32_t aFlags)
+                                  PRUint32 aFlags)
 {
   nsRect r = aDamageRect + nsPoint(aX, aY);
   nsPresContext* presContext = PresContext();
@@ -307,8 +314,8 @@ ViewportFrame::InvalidateInternal(const nsRect& aDamageRect,
     if (!presContext->PresShell()->IsActive())
       return;
     nsPoint pt = -parent->GetOffsetToCrossDoc(this);
-    int32_t ourAPD = presContext->AppUnitsPerDevPixel();
-    int32_t parentAPD = parent->PresContext()->AppUnitsPerDevPixel();
+    PRInt32 ourAPD = presContext->AppUnitsPerDevPixel();
+    PRInt32 parentAPD = parent->PresContext()->AppUnitsPerDevPixel();
     r = r.ConvertAppUnitsRoundOut(ourAPD, parentAPD);
     parent->InvalidateInternal(r, pt.x, pt.y, this,
                                aFlags | INVALIDATE_CROSS_DOC);

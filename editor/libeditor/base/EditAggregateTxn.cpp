@@ -3,14 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "EditAggregateTxn.h"
-#include "nsAString.h"
-#include "nsCOMPtr.h"                   
-#include "nsError.h"                    
-#include "nsISupportsUtils.h"           
-#include "nsITransaction.h"             
-#include "nsString.h"                   
-#include "prtypes.h"                    
+#include "nsCOMPtr.h"
 
 EditAggregateTxn::EditAggregateTxn()
   : EditTxn()
@@ -23,7 +49,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(EditAggregateTxn, EditTxn)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(EditAggregateTxn, EditTxn)
-  for (uint32_t i = 0; i < tmp->mChildren.Length(); ++i) {
+  for (PRUint32 i = 0; i < tmp->mChildren.Length(); ++i) {
     NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mChildren[i]");
     cb.NoteXPCOMChild(static_cast<nsITransaction*>(tmp->mChildren[i]));
   }
@@ -37,7 +63,7 @@ NS_INTERFACE_MAP_END_INHERITING(EditTxn)
 NS_IMETHODIMP EditAggregateTxn::DoTransaction(void)
 {
   nsresult result=NS_OK;  
-  for (uint32_t i = 0, length = mChildren.Length(); i < length; ++i)
+  for (PRUint32 i = 0, length = mChildren.Length(); i < length; ++i)
   {
     nsITransaction *txn = mChildren[i];
     if (!txn) { return NS_ERROR_NULL_POINTER; }
@@ -52,7 +78,7 @@ NS_IMETHODIMP EditAggregateTxn::UndoTransaction(void)
 {
   nsresult result=NS_OK;  
   
-  for (uint32_t i = mChildren.Length(); i-- != 0; )
+  for (PRUint32 i = mChildren.Length(); i-- != 0; )
   {
     nsITransaction *txn = mChildren[i];
     if (!txn) { return NS_ERROR_NULL_POINTER; }
@@ -66,7 +92,7 @@ NS_IMETHODIMP EditAggregateTxn::UndoTransaction(void)
 NS_IMETHODIMP EditAggregateTxn::RedoTransaction(void)
 {
   nsresult result=NS_OK;  
-  for (uint32_t i = 0, length = mChildren.Length(); i < length; ++i)
+  for (PRUint32 i = 0, length = mChildren.Length(); i < length; ++i)
   {
     nsITransaction *txn = mChildren[i];
     if (!txn) { return NS_ERROR_NULL_POINTER; }
@@ -81,7 +107,7 @@ NS_IMETHODIMP EditAggregateTxn::Merge(nsITransaction *aTransaction, bool *aDidMe
 {
   nsresult result=NS_OK;  
   if (aDidMerge)
-    *aDidMerge = false;
+    *aDidMerge = PR_FALSE;
   
   
   if (mChildren.Length() > 0)
@@ -119,6 +145,43 @@ NS_IMETHODIMP EditAggregateTxn::AppendChild(EditTxn *aTxn)
   }
 
   *slot = aTxn;
+  return NS_OK;
+}
+
+NS_IMETHODIMP EditAggregateTxn::GetCount(PRUint32 *aCount)
+{
+  if (!aCount) {
+    return NS_ERROR_NULL_POINTER;
+  }
+  *aCount = mChildren.Length();
+  return NS_OK;
+}
+
+NS_IMETHODIMP EditAggregateTxn::GetTxnAt(PRInt32 aIndex, EditTxn **aTxn)
+{
+  
+  NS_PRECONDITION(aTxn, "null out param");
+
+  if (!aTxn) {
+    return NS_ERROR_NULL_POINTER;
+  }
+  *aTxn = nsnull; 
+  
+  PRUint32 txnCount = mChildren.Length();
+  if (0>aIndex || ((PRInt32)txnCount)<=aIndex) {
+    return NS_ERROR_UNEXPECTED;
+  }
+  
+  *aTxn = mChildren[aIndex];
+  NS_ENSURE_TRUE(*aTxn, NS_ERROR_UNEXPECTED);
+  NS_ADDREF(*aTxn);
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP EditAggregateTxn::SetName(nsIAtom *aName)
+{
+  mName = do_QueryInterface(aName);
   return NS_OK;
 }
 

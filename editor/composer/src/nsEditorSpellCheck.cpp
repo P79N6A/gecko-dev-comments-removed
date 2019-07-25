@@ -3,43 +3,65 @@
 
 
 
-#include <stdlib.h>                     
 
-#include "mozilla/Attributes.h"         
-#include "mozilla/Preferences.h"        
-#include "mozilla/Services.h"           
-#include "mozilla/dom/Element.h"        
-#include "mozilla/mozalloc.h"           
-#include "nsAString.h"                  
-#include "nsComponentManagerUtils.h"    
-#include "nsDebug.h"                    
-#include "nsDependentSubstring.h"       
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsEditorSpellCheck.h"
-#include "nsError.h"                    
-#include "nsIChromeRegistry.h"          
-#include "nsIContent.h"                 
-#include "nsIContentPrefService.h"      
-#include "nsIDOMDocument.h"             
-#include "nsIDOMElement.h"              
-#include "nsIDOMRange.h"                
-#include "nsIDocument.h"                
-#include "nsIEditor.h"                  
-#include "nsIHTMLEditor.h"              
-#include "nsISelection.h"               
-#include "nsISpellChecker.h"            
-#include "nsISupportsBase.h"            
-#include "nsISupportsUtils.h"           
-#include "nsITextServicesDocument.h"    
-#include "nsITextServicesFilter.h"      
-#include "nsIURI.h"                     
-#include "nsIVariant.h"                 
-#include "nsLiteralString.h"            
-#include "nsMemory.h"                   
-#include "nsReadableUtils.h"            
-#include "nsServiceManagerUtils.h"      
-#include "nsString.h"                   
-#include "nsStringFwd.h"                
-#include "nsStyleUtil.h"                
+
+#include "nsStyleUtil.h"
+#include "nsIContent.h"
+#include "nsIDOMElement.h"
+#include "nsITextServicesDocument.h"
+#include "nsISpellChecker.h"
+#include "nsISelection.h"
+#include "nsIDOMRange.h"
+#include "nsIEditor.h"
+#include "nsIHTMLEditor.h"
+
+#include "nsIComponentManager.h"
+#include "nsIContentPrefService.h"
+#include "nsServiceManagerUtils.h"
+#include "nsIChromeRegistry.h"
+#include "nsString.h"
+#include "nsReadableUtils.h"
+#include "nsITextServicesFilter.h"
+#include "nsUnicharUtils.h"
+#include "mozilla/Services.h"
+#include "mozilla/Preferences.h"
 
 using namespace mozilla;
 
@@ -61,7 +83,7 @@ class UpdateDictionnaryHolder {
 
 #define CPS_PREF_NAME NS_LITERAL_STRING("spellcheck.lang")
 
-class LastDictionary MOZ_FINAL {
+class LastDictionary {
 public:
   
 
@@ -130,7 +152,7 @@ LastDictionary::FetchLastDictionary(nsIEditor* aEditor, nsAString& aDictionary)
   bool hasPref;
   if (NS_SUCCEEDED(contentPrefService->HasPref(uri, CPS_PREF_NAME, &hasPref)) && hasPref) {
     nsCOMPtr<nsIVariant> pref;
-    contentPrefService->GetPref(uri, CPS_PREF_NAME, nullptr, getter_AddRefs(pref));
+    contentPrefService->GetPref(uri, CPS_PREF_NAME, nsnull, getter_AddRefs(pref));
     pref->GetAsAString(aDictionary);
   } else {
     aDictionary.Truncate();
@@ -187,7 +209,7 @@ LastDictionary::ClearCurrentDictionary(nsIEditor* aEditor)
   return contentPrefService->RemovePref(uri, CPS_PREF_NAME);
 }
 
-LastDictionary* nsEditorSpellCheck::gDictionaryStore = nullptr;
+LastDictionary* nsEditorSpellCheck::gDictionaryStore = nsnull;
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsEditorSpellCheck)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsEditorSpellCheck)
@@ -206,8 +228,8 @@ NS_IMPL_CYCLE_COLLECTION_3(nsEditorSpellCheck,
 nsEditorSpellCheck::nsEditorSpellCheck()
   : mSuggestedWordIndex(0)
   , mDictionaryIndex(0)
-  , mEditor(nullptr)
-  , mUpdateDictionaryRunning(false)
+  , mEditor(nsnull)
+  , mUpdateDictionaryRunning(PR_FALSE)
 {
 }
 
@@ -215,7 +237,7 @@ nsEditorSpellCheck::~nsEditorSpellCheck()
 {
   
   
-  mSpellChecker = nullptr;
+  mSpellChecker = nsnull;
 }
 
 
@@ -278,7 +300,7 @@ nsEditorSpellCheck::InitSpellChecker(nsIEditor* aEditor, bool aEnableSelectionCh
     NS_ENSURE_SUCCESS(rv, rv);
     NS_ENSURE_TRUE(selection, NS_ERROR_FAILURE);
 
-    int32_t count = 0;
+    PRInt32 count = 0;
 
     rv = selection->GetRangeCount(&count);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -321,7 +343,7 @@ nsEditorSpellCheck::InitSpellChecker(nsIEditor* aEditor, bool aEnableSelectionCh
 
   NS_ENSURE_TRUE(mSpellChecker, NS_ERROR_NULL_POINTER);
 
-  rv = mSpellChecker->SetDocument(tsDoc, true);
+  rv = mSpellChecker->SetDocument(tsDoc, PR_TRUE);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -351,7 +373,7 @@ NS_IMETHODIMP
 nsEditorSpellCheck::GetSuggestedWord(PRUnichar **aSuggestedWord)
 {
   nsAutoString word;
-  if ( mSuggestedWordIndex < int32_t(mSuggestedWordList.Length()))
+  if ( mSuggestedWordIndex < PRInt32(mSuggestedWordList.Length()))
   {
     *aSuggestedWord = ToNewUnicode(mSuggestedWordList[mSuggestedWordIndex]);
     mSuggestedWordIndex++;
@@ -380,7 +402,7 @@ nsEditorSpellCheck::CheckCurrentWordNoSuggest(const PRUnichar *aSuggestedWord,
   NS_ENSURE_TRUE(mSpellChecker, NS_ERROR_NOT_INITIALIZED);
 
   return mSpellChecker->CheckWord(nsDependentString(aSuggestedWord),
-                                  aIsMisspelled, nullptr);
+                                  aIsMisspelled, nsnull);
 }
 
 NS_IMETHODIMP    
@@ -416,7 +438,7 @@ nsEditorSpellCheck::GetPersonalDictionary()
 NS_IMETHODIMP    
 nsEditorSpellCheck::GetPersonalDictionaryWord(PRUnichar **aDictionaryWord)
 {
-  if ( mDictionaryIndex < int32_t( mDictionaryList.Length()))
+  if ( mDictionaryIndex < PRInt32( mDictionaryList.Length()))
   {
     *aDictionaryWord = ToNewUnicode(mDictionaryList[mDictionaryIndex]);
     mDictionaryIndex++;
@@ -445,7 +467,7 @@ nsEditorSpellCheck::RemoveWordFromDictionary(const PRUnichar *aWord)
 }
 
 NS_IMETHODIMP    
-nsEditorSpellCheck::GetDictionaryList(PRUnichar ***aDictionaryList, uint32_t *aCount)
+nsEditorSpellCheck::GetDictionaryList(PRUnichar ***aDictionaryList, PRUint32 *aCount)
 {
   NS_ENSURE_TRUE(mSpellChecker, NS_ERROR_NOT_INITIALIZED);
 
@@ -485,7 +507,7 @@ nsEditorSpellCheck::GetDictionaryList(PRUnichar ***aDictionaryList, uint32_t *aC
   *aDictionaryList = tmpPtr;
   *aCount          = dictList.Length();
 
-  uint32_t i;
+  PRUint32 i;
 
   for (i = 0; i < *aCount; i++)
   {
@@ -508,13 +530,11 @@ nsEditorSpellCheck::SetCurrentDictionary(const nsAString& aDictionary)
 {
   NS_ENSURE_TRUE(mSpellChecker, NS_ERROR_NOT_INITIALIZED);
 
-  nsRefPtr<nsEditorSpellCheck> kungFuDeathGrip = this;
-
   if (!mUpdateDictionaryRunning) {
 
     nsDefaultStringComparator comparator;
     nsAutoString langCode;
-    int32_t dashIdx = aDictionary.FindChar('-');
+    PRInt32 dashIdx = aDictionary.FindChar('-');
     if (dashIdx != -1) {
       langCode.Assign(Substring(aDictionary, 0, dashIdx));
     } else {
@@ -598,8 +618,6 @@ nsEditorSpellCheck::UpdateCurrentDictionary()
 {
   nsresult rv;
 
-  nsRefPtr<nsEditorSpellCheck> kungFuDeathGrip = this;
-
   UpdateDictionnaryHolder holder(this);
 
   
@@ -658,7 +676,7 @@ nsEditorSpellCheck::UpdateCurrentDictionary()
       mozilla::services::GetXULChromeRegistryService();
 
     if (packageRegistry) {
-      nsAutoCString utf8DictName;
+      nsCAutoString utf8DictName;
       rv = packageRegistry->GetSelectedLocale(NS_LITERAL_CSTRING("global"),
                                               utf8DictName);
       AppendUTF8toUTF16(utf8DictName, dictName);
@@ -672,7 +690,7 @@ nsEditorSpellCheck::UpdateCurrentDictionary()
       
 
       nsAutoString langCode;
-      int32_t dashIdx = dictName.FindChar('-');
+      PRInt32 dashIdx = dictName.FindChar('-');
       if (dashIdx != -1) {
         langCode.Assign(Substring(dictName, 0, dashIdx));
       } else {
@@ -702,7 +720,7 @@ nsEditorSpellCheck::UpdateCurrentDictionary()
         nsTArray<nsString> dictList;
         rv = mSpellChecker->GetDictionaryList(&dictList);
         NS_ENSURE_SUCCESS(rv, rv);
-        int32_t i, count = dictList.Length();
+        PRInt32 i, count = dictList.Length();
         for (i = 0; i < count; i++) {
           nsAutoString dictStr(dictList.ElementAt(i));
 
@@ -729,25 +747,12 @@ nsEditorSpellCheck::UpdateCurrentDictionary()
     nsAutoString currentDictionary;
     rv = GetCurrentDictionary(currentDictionary);
     if (NS_FAILED(rv) || currentDictionary.IsEmpty()) {
-      
-      char* env_lang = getenv("LANG");
-      if (env_lang != nullptr) {
-        nsString lang = NS_ConvertUTF8toUTF16(env_lang);
-        
-        int32_t dot_pos = lang.FindChar('.');
-        if (dot_pos != -1) {
-          lang = Substring(lang, 0, dot_pos - 1);
-        }
-        rv = SetCurrentDictionary(lang);
-      }
+      rv = SetCurrentDictionary(NS_LITERAL_STRING("en-US"));
       if (NS_FAILED(rv)) {
-        rv = SetCurrentDictionary(NS_LITERAL_STRING("en-US"));
-        if (NS_FAILED(rv)) {
-          nsTArray<nsString> dictList;
-          rv = mSpellChecker->GetDictionaryList(&dictList);
-          if (NS_SUCCEEDED(rv) && dictList.Length() > 0) {
-            SetCurrentDictionary(dictList[0]);
-          }
+        nsTArray<nsString> dictList;
+        rv = mSpellChecker->GetDictionaryList(&dictList);
+        if (NS_SUCCEEDED(rv) && dictList.Length() > 0) {
+          SetCurrentDictionary(dictList[0]);
         }
       }
     }

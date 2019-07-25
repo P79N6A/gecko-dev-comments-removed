@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _NSKEYGENTHREAD_H_
 #define _NSKEYGENTHREAD_H_
 
@@ -14,14 +46,14 @@
 #include "nsIKeygenThread.h"
 #include "nsCOMPtr.h"
 
-class nsIRunnable;
+class nsIObserver;
 
 class nsKeygenThread : public nsIKeygenThread
 {
 private:
   mozilla::Mutex mutex;
   
-  nsCOMPtr<nsIRunnable> mNotifyObserver;
+  nsCOMPtr<nsIObserver> observer;
 
   bool iAmRunning;
   bool keygenReady;
@@ -31,12 +63,10 @@ private:
   SECKEYPrivateKey *privateKey;
   SECKEYPublicKey *publicKey;
   PK11SlotInfo *slot;
-  PK11AttrFlags flags;
-  PK11SlotInfo *altSlot;
-  PK11AttrFlags altFlags;
-  PK11SlotInfo *usedSlot;
-  uint32_t keyGenMechanism;
+  PRUint32 keyGenMechanism;
   void *params;
+  bool isPerm;
+  bool isSensitive;
   void *wincx;
 
   PRThread *threadHandle;
@@ -50,15 +80,13 @@ public:
 
   void SetParams(
     PK11SlotInfo *a_slot,
-    PK11AttrFlags a_flags,
-    PK11SlotInfo *a_alternative_slot,
-    PK11AttrFlags a_alternative_flags,
-    uint32_t a_keyGenMechanism,
+    PRUint32 a_keyGenMechanism,
     void *a_params,
+    bool a_isPerm,
+    bool a_isSensitive,
     void *a_wincx );
 
-  nsresult ConsumeResult(
-    PK11SlotInfo **a_used_slot,
+  nsresult GetParams(
     SECKEYPrivateKey **a_privateKey,
     SECKEYPublicKey **a_publicKey);
   

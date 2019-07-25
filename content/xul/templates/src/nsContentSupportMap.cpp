@@ -3,15 +3,48 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsContentSupportMap.h"
 #include "nsXULElement.h"
 
 void
 nsContentSupportMap::Init()
 {
-    if (!PL_DHashTableInit(&mMap, PL_DHashGetStubOps(), nullptr,
+    if (!PL_DHashTableInit(&mMap, PL_DHashGetStubOps(), nsnull,
                            sizeof(Entry), PL_DHASH_MIN_SIZE))
-        mMap.ops = nullptr;
+        mMap.ops = nsnull;
 }
 
 void

@@ -6,6 +6,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 
 #include "nsITimer.h"
@@ -39,7 +73,7 @@
 
 
 
-static const int32_t kMinBidiIndicatorPixels = 2;
+static const PRInt32 kMinBidiIndicatorPixels = 2;
 
 #ifdef IBMBIDI
 #include "nsIBidiKeyboard.h"
@@ -62,7 +96,7 @@ CheckForTrailingTextFrameRecursive(nsIFrame* aFrame, nsIFrame* aStopAtFrame)
        (static_cast<nsTextFrame*>(aFrame))->IsAtEndOfLine())))
     return aFrame;
   if (!aFrame->IsFrameOfType(nsIFrame::eLineParticipant))
-    return nullptr;
+    return nsnull;
 
   for (nsIFrame* f = aFrame->GetFirstPrincipalChild(); f; f = f->GetNextSibling())
   {
@@ -70,7 +104,7 @@ CheckForTrailingTextFrameRecursive(nsIFrame* aFrame, nsIFrame* aStopAtFrame)
     if (r)
       return r;
   }
-  return nullptr;
+  return nsnull;
 }
 
 static nsLineBox*
@@ -84,20 +118,20 @@ FindContainingLine(nsIFrame* aFrame)
     {
       bool isValid;
       nsBlockInFlowLineIterator iter(blockParent, aFrame, &isValid);
-      return isValid ? iter.GetLine().get() : nullptr;
+      return isValid ? iter.GetLine().get() : nsnull;
     }
     aFrame = parent;
   }
-  return nullptr;
+  return nsnull;
 }
 
 static void
-AdjustCaretFrameForLineEnd(nsIFrame** aFrame, int32_t* aOffset)
+AdjustCaretFrameForLineEnd(nsIFrame** aFrame, PRInt32* aOffset)
 {
   nsLineBox* line = FindContainingLine(*aFrame);
   if (!line)
     return;
-  int32_t count = line->GetChildCount();
+  PRInt32 count = line->GetChildCount();
   for (nsIFrame* f = line->mFirstChild; count > 0; --count, f = f->GetNextSibling())
   {
     nsIFrame* r = CheckForTrailingTextFrameRecursive(f, *aFrame);
@@ -116,16 +150,16 @@ AdjustCaretFrameForLineEnd(nsIFrame** aFrame, int32_t* aOffset)
 
 
 nsCaret::nsCaret()
-: mPresShell(nullptr)
+: mPresShell(nsnull)
 , mBlinkRate(500)
-, mVisible(false)
-, mDrawn(false)
-, mPendingDraw(false)
-, mReadOnly(false)
-, mShowDuringSelection(false)
-, mIgnoreUserModify(true)
+, mVisible(PR_FALSE)
+, mDrawn(PR_FALSE)
+, mPendingDraw(PR_FALSE)
+, mReadOnly(PR_FALSE)
+, mShowDuringSelection(PR_FALSE)
+, mIgnoreUserModify(PR_TRUE)
 #ifdef IBMBIDI
-, mKeyboardRTL(false)
+, mKeyboardRTL(PR_FALSE)
 , mLastBidiLevel(0)
 #endif
 , mLastContentOffset(0)
@@ -153,7 +187,7 @@ nsresult nsCaret::Init(nsIPresShell *inPresShell)
   mCaretAspectRatio =
     LookAndFeel::GetFloat(LookAndFeel::eFloatID_CaretAspectRatio, 0.0f);
 
-  mBlinkRate = static_cast<uint32_t>(
+  mBlinkRate = static_cast<PRUint32>(
     LookAndFeel::GetInt(LookAndFeel::eIntID_CaretBlinkTime, mBlinkRate));
   mShowDuringSelection =
     LookAndFeel::GetInt(LookAndFeel::eIntID_ShowCaretDuringSelection,
@@ -192,19 +226,19 @@ nsresult nsCaret::Init(nsIPresShell *inPresShell)
 }
 
 static bool
-DrawCJKCaret(nsIFrame* aFrame, int32_t aOffset)
+DrawCJKCaret(nsIFrame* aFrame, PRInt32 aOffset)
 {
   nsIContent* content = aFrame->GetContent();
   const nsTextFragment* frag = content->GetText();
   if (!frag)
-    return false;
-  if (aOffset < 0 || uint32_t(aOffset) >= frag->GetLength())
-    return false;
+    return PR_FALSE;
+  if (aOffset < 0 || PRUint32(aOffset) >= frag->GetLength())
+    return PR_FALSE;
   PRUnichar ch = frag->CharAt(aOffset);
   return 0x2e80 <= ch && ch <= 0xd7ff;
 }
 
-nsCaret::Metrics nsCaret::ComputeMetrics(nsIFrame* aFrame, int32_t aOffset, nscoord aCaretHeight)
+nsCaret::Metrics nsCaret::ComputeMetrics(nsIFrame* aFrame, PRInt32 aOffset, nscoord aCaretHeight)
 {
   
   nscoord caretWidth = (aCaretHeight * mCaretAspectRatio) +
@@ -218,7 +252,7 @@ nsCaret::Metrics nsCaret::ComputeMetrics(nsIFrame* aFrame, int32_t aOffset, nsco
 
   
   
-  uint32_t tpp = aFrame->PresContext()->AppUnitsPerDevPixel();
+  PRUint32 tpp = aFrame->PresContext()->AppUnitsPerDevPixel();
   Metrics result;
   result.mCaretWidth = NS_ROUND_BORDER_TO_PIXELS(caretWidth, tpp);
   result.mBidiIndicatorSize = NS_ROUND_BORDER_TO_PIXELS(bidiIndicatorSize, tpp);
@@ -232,17 +266,17 @@ void nsCaret::Terminate()
   
   
   KillTimer();
-  mBlinkTimer = nullptr;
+  mBlinkTimer = nsnull;
 
   
   nsCOMPtr<nsISelection> domSelection = do_QueryReferent(mDomSelectionWeak);
   nsCOMPtr<nsISelectionPrivate> privateSelection(do_QueryInterface(domSelection));
   if (privateSelection)
     privateSelection->RemoveSelectionListener(this);
-  mDomSelectionWeak = nullptr;
-  mPresShell = nullptr;
+  mDomSelectionWeak = nsnull;
+  mPresShell = nsnull;
 
-  mLastContent = nullptr;
+  mLastContent = nsnull;
 }
 
 
@@ -276,11 +310,11 @@ void nsCaret::SetCaretVisible(bool inMakeVisible)
 {
   mVisible = inMakeVisible;
   if (mVisible) {
-    SetIgnoreUserModify(true);
+    SetIgnoreUserModify(PR_TRUE);
     StartBlinking();
   } else {
     StopBlinking();
-    SetIgnoreUserModify(false);
+    SetIgnoreUserModify(PR_FALSE);
   }
 }
 
@@ -289,7 +323,7 @@ void nsCaret::SetCaretVisible(bool inMakeVisible)
 nsresult nsCaret::GetCaretVisible(bool *outMakeVisible)
 {
   NS_ENSURE_ARG_POINTER(outMakeVisible);
-  *outMakeVisible = (mVisible && MustDrawCaret(true));
+  *outMakeVisible = (mVisible && MustDrawCaret(PR_TRUE));
   return NS_OK;
 }
 
@@ -302,7 +336,7 @@ void nsCaret::SetCaretReadOnly(bool inMakeReadonly)
 
 nsresult
 nsCaret::GetGeometryForFrame(nsIFrame* aFrame,
-                             int32_t   aFrameOffset,
+                             PRInt32   aFrameOffset,
                              nsRect*   aRect,
                              nscoord*  aBidiIndicatorSize)
 {
@@ -316,8 +350,7 @@ nsCaret::GetGeometryForFrame(nsIFrame* aFrame,
   nscoord baseline = frame->GetCaretBaseline();
   nscoord ascent = 0, descent = 0;
   nsRefPtr<nsFontMetrics> fm;
-  nsLayoutUtils::GetFontMetricsForFrame(aFrame, getter_AddRefs(fm),
-    nsLayoutUtils::FontSizeInflationFor(aFrame));
+  nsLayoutUtils::GetFontMetricsForFrame(aFrame, getter_AddRefs(fm));
   NS_ASSERTION(fm, "We should be able to get the font metrics");
   if (fm) {
     ascent = fm->MaxAscent();
@@ -358,28 +391,28 @@ nsIFrame* nsCaret::GetGeometry(nsISelection* aSelection, nsRect* aRect,
   nsCOMPtr<nsIDOMNode> focusNode;
   nsresult rv = aSelection->GetFocusNode(getter_AddRefs(focusNode));
   if (NS_FAILED(rv) || !focusNode)
-    return nullptr;
+    return nsnull;
 
-  int32_t focusOffset;
+  PRInt32 focusOffset;
   rv = aSelection->GetFocusOffset(&focusOffset);
   if (NS_FAILED(rv))
-    return nullptr;
+    return nsnull;
     
   nsCOMPtr<nsIContent> contentNode = do_QueryInterface(focusNode);
   if (!contentNode)
-    return nullptr;
+    return nsnull;
 
   nsRefPtr<nsFrameSelection> frameSelection = GetFrameSelection();
   if (!frameSelection)
-    return nullptr;
-  uint8_t bidiLevel = frameSelection->GetCaretBidiLevel();
+    return nsnull;
+  PRUint8 bidiLevel = frameSelection->GetCaretBidiLevel();
   nsIFrame* frame;
-  int32_t frameOffset;
+  PRInt32 frameOffset;
   rv = GetCaretFrameForNodeOffset(contentNode, focusOffset,
                                   frameSelection->GetHint(), bidiLevel,
                                   &frame, &frameOffset);
   if (NS_FAILED(rv) || !frame)
-    return nullptr;
+    return nsnull;
 
   GetGeometryForFrame(frame, frameOffset, aRect, aBidiIndicatorSize);
   return frame;
@@ -402,7 +435,7 @@ void nsCaret::DrawCaretAfterBriefDelay()
 void nsCaret::EraseCaret()
 {
   if (mDrawn) {
-    DrawCaret(true);
+    DrawCaret(PR_TRUE);
     if (mReadOnly && mBlinkRate) {
       
       
@@ -417,27 +450,11 @@ void nsCaret::SetVisibilityDuringSelection(bool aVisibility)
   mShowDuringSelection = aVisibility;
 }
 
-static
-nsFrameSelection::HINT GetHintForPosition(nsIDOMNode* aNode, int32_t aOffset)
-{
-  nsFrameSelection::HINT hint = nsFrameSelection::HINTLEFT;
-  nsCOMPtr<nsIContent> node = do_QueryInterface(aNode);
-  if (!node || aOffset < 1) {
-    return hint;
-  }
-  const nsTextFragment* text = node->GetText();
-  if (text && text->CharAt(aOffset - 1) == '\n') {
-    
-    hint = nsFrameSelection::HINTRIGHT;
-  }
-  return hint;
-}
-
-nsresult nsCaret::DrawAtPosition(nsIDOMNode* aNode, int32_t aOffset)
+nsresult nsCaret::DrawAtPosition(nsIDOMNode* aNode, PRInt32 aOffset)
 {
   NS_ENSURE_ARG(aNode);
 
-  uint8_t bidiLevel;
+  PRUint8 bidiLevel;
   nsRefPtr<nsFrameSelection> frameSelection = GetFrameSelection();
   if (!frameSelection)
     return NS_ERROR_FAILURE;
@@ -448,29 +465,30 @@ nsresult nsCaret::DrawAtPosition(nsIDOMNode* aNode, int32_t aOffset)
   
   mBlinkRate = 0;
 
+  
   nsresult rv = DrawAtPositionWithHint(aNode, aOffset,
-                                       GetHintForPosition(aNode, aOffset),
-                                       bidiLevel, true)
+                                       nsFrameSelection::HINTLEFT,
+                                       bidiLevel, PR_TRUE)
     ?  NS_OK : NS_ERROR_FAILURE;
   ToggleDrawnStatus();
   return rv;
 }
 
-nsIFrame * nsCaret::GetCaretFrame(int32_t *aOffset)
+nsIFrame * nsCaret::GetCaretFrame(PRInt32 *aOffset)
 {
   
   if (!mDrawn)
-    return nullptr;
+    return nsnull;
 
   
   
-  int32_t offset;
-  nsIFrame *frame = nullptr;
+  PRInt32 offset;
+  nsIFrame *frame = nsnull;
   nsresult rv = GetCaretFrameForNodeOffset(mLastContent, mLastContentOffset,
                                            mLastHint, mLastBidiLevel, &frame,
                                            &offset);
   if (NS_FAILED(rv))
-    return nullptr;
+    return nsnull;
 
   if (aOffset) {
     *aOffset = offset;
@@ -495,8 +513,8 @@ void nsCaret::UpdateCaretPosition()
 
   
   
-  mDrawn = false;
-  DrawCaret(false);
+  mDrawn = PR_FALSE;
+  DrawCaret(PR_FALSE);
 }
 
 void nsCaret::PaintCaret(nsDisplayListBuilder *aBuilder,
@@ -507,21 +525,13 @@ void nsCaret::PaintCaret(nsDisplayListBuilder *aBuilder,
   NS_ASSERTION(mDrawn, "The caret shouldn't be drawing");
 
   const nsRect drawCaretRect = mCaretRect + aOffset;
-  int32_t contentOffset;
+  PRInt32 contentOffset;
 
 #ifdef DEBUG
   nsIFrame* frame =
 #endif
     GetCaretFrame(&contentOffset);
   NS_ASSERTION(frame == aForFrame, "We're referring different frame");
-  
-  int32_t startOffset, endOffset;
-  if (aForFrame->GetType() == nsGkAtoms::textFrame &&
-      (NS_FAILED(aForFrame->GetOffsets(startOffset, endOffset)) ||
-      startOffset > contentOffset ||
-      endOffset < contentOffset)) {
-    return;
-  }
   nscolor foregroundColor = aForFrame->GetCaretColorAt(contentOffset);
 
   
@@ -552,7 +562,7 @@ void nsCaret::PaintCaret(nsDisplayListBuilder *aBuilder,
 
 
 
-NS_IMETHODIMP nsCaret::NotifySelectionChanged(nsIDOMDocument *, nsISelection *aDomSel, int16_t aReason)
+NS_IMETHODIMP nsCaret::NotifySelectionChanged(nsIDOMDocument *, nsISelection *aDomSel, PRInt16 aReason)
 {
   if (aReason & nsISelectionListener::MOUSEUP_REASON)
     return NS_OK;
@@ -652,9 +662,9 @@ void nsCaret::StartBlinking()
   
   
   if (mDrawn)
-    DrawCaret(true);
+    DrawCaret(PR_TRUE);
 
-  DrawCaret(true);    
+  DrawCaret(PR_TRUE);    
 }
 
 
@@ -664,7 +674,7 @@ void nsCaret::StopBlinking()
   InvalidateTextOverflowBlock();
 
   if (mDrawn)     
-    DrawCaret(true);
+    DrawCaret(PR_TRUE);
 
   NS_ASSERTION(!mDrawn, "Caret still drawn after StopBlinking().");
   KillTimer();
@@ -672,22 +682,22 @@ void nsCaret::StopBlinking()
 
 bool
 nsCaret::DrawAtPositionWithHint(nsIDOMNode*             aNode,
-                                int32_t                 aOffset,
+                                PRInt32                 aOffset,
                                 nsFrameSelection::HINT  aFrameHint,
-                                uint8_t                 aBidiLevel,
+                                PRUint8                 aBidiLevel,
                                 bool                    aInvalidate)
 {
   nsCOMPtr<nsIContent> contentNode = do_QueryInterface(aNode);
   if (!contentNode)
-    return false;
+    return PR_FALSE;
 
-  nsIFrame* theFrame = nullptr;
-  int32_t   theFrameOffset = 0;
+  nsIFrame* theFrame = nsnull;
+  PRInt32   theFrameOffset = 0;
 
   nsresult rv = GetCaretFrameForNodeOffset(contentNode, aOffset, aFrameHint, aBidiLevel,
                                            &theFrame, &theFrameOffset);
   if (NS_FAILED(rv) || !theFrame)
-    return false;
+    return PR_FALSE;
 
   
   const nsStyleUserInterface* userinterface = theFrame->GetStyleUserInterface();
@@ -696,7 +706,7 @@ nsCaret::DrawAtPositionWithHint(nsIDOMNode*             aNode,
       (userinterface->mUserInput == NS_STYLE_USER_INPUT_NONE) ||
       (userinterface->mUserInput == NS_STYLE_USER_INPUT_DISABLED))
   {
-    return false;
+    return PR_FALSE;
   }  
 
   if (!mDrawn)
@@ -711,28 +721,28 @@ nsCaret::DrawAtPositionWithHint(nsIDOMNode*             aNode,
     if (aBidiLevel & BIDI_LEVEL_UNDEFINED) {
       nsRefPtr<nsFrameSelection> frameSelection = GetFrameSelection();
       if (!frameSelection)
-        return false;
+        return PR_FALSE;
       frameSelection->SetCaretBidiLevel(NS_GET_EMBEDDING_LEVEL(theFrame));
     }
 
     
     if (!UpdateCaretRects(theFrame, theFrameOffset))
-      return false;
+      return PR_FALSE;
   }
 
   if (aInvalidate)
     InvalidateRects(mCaretRect, mHookRect, theFrame);
 
-  return true;
+  return PR_TRUE;
 }
 
 nsresult 
 nsCaret::GetCaretFrameForNodeOffset(nsIContent*             aContentNode,
-                                    int32_t                 aOffset,
+                                    PRInt32                 aOffset,
                                     nsFrameSelection::HINT aFrameHint,
-                                    uint8_t                 aBidiLevel,
+                                    PRUint8                 aBidiLevel,
                                     nsIFrame**              aReturnFrame,
-                                    int32_t*                aReturnOffset)
+                                    PRInt32*                aReturnOffset)
 {
 
   
@@ -748,8 +758,8 @@ nsCaret::GetCaretFrameForNodeOffset(nsIContent*             aContentNode,
   if (!frameSelection)
     return NS_ERROR_FAILURE;
 
-  nsIFrame* theFrame = nullptr;
-  int32_t   theFrameOffset = 0;
+  nsIFrame* theFrame = nsnull;
+  PRInt32   theFrameOffset = 0;
 
   theFrame = frameSelection->GetFrameForNodeOffset(aContentNode, aOffset,
                                                    aFrameHint, &theFrameOffset);
@@ -776,18 +786,18 @@ nsCaret::GetCaretFrameForNodeOffset(nsIContent*             aContentNode,
     if (aBidiLevel & BIDI_LEVEL_UNDEFINED)
       aBidiLevel = NS_GET_EMBEDDING_LEVEL(theFrame);
 
-    int32_t start;
-    int32_t end;
+    PRInt32 start;
+    PRInt32 end;
     nsIFrame* frameBefore;
     nsIFrame* frameAfter;
-    uint8_t levelBefore;     
-    uint8_t levelAfter;      
+    PRUint8 levelBefore;     
+    PRUint8 levelAfter;      
 
     theFrame->GetOffsets(start, end);
     if (start == 0 || end == 0 || start == theFrameOffset || end == theFrameOffset)
     {
       nsPrevNextBidiLevels levels = frameSelection->
-        GetPrevNextBidiLevels(aContentNode, aOffset, false);
+        GetPrevNextBidiLevels(aContentNode, aOffset, PR_FALSE);
     
       
       if (levels.mFrameBefore || levels.mFrameAfter)
@@ -819,10 +829,11 @@ nsCaret::GetCaretFrameForNodeOffset(nsIContent*             aContentNode,
                 
                 
                 
-                uint8_t baseLevel = NS_GET_BASE_LEVEL(frameAfter);
+                PRUint8 baseLevel = NS_GET_BASE_LEVEL(frameAfter);
                 if (baseLevel != levelAfter)
                 {
-                  nsPeekOffsetStruct pos(eSelectBeginLine, eDirPrevious, 0, 0, false, true, false, true);
+                  nsPeekOffsetStruct pos;
+                  pos.SetData(eSelectBeginLine, eDirPrevious, 0, 0, PR_FALSE, PR_TRUE, PR_FALSE, PR_TRUE);
                   if (NS_SUCCEEDED(frameAfter->PeekOffset(&pos))) {
                     theFrame = pos.mResultFrame;
                     theFrameOffset = pos.mContentOffset;
@@ -850,10 +861,11 @@ nsCaret::GetCaretFrameForNodeOffset(nsIContent*             aContentNode,
                 
                 
                 
-                uint8_t baseLevel = NS_GET_BASE_LEVEL(frameBefore);
+                PRUint8 baseLevel = NS_GET_BASE_LEVEL(frameBefore);
                 if (baseLevel != levelBefore)
                 {
-                  nsPeekOffsetStruct pos(eSelectEndLine, eDirNext, 0, 0, false, true, false, true);
+                  nsPeekOffsetStruct pos;
+                  pos.SetData(eSelectEndLine, eDirNext, 0, 0, PR_FALSE, PR_TRUE, PR_FALSE, PR_TRUE);
                   if (NS_SUCCEEDED(frameBefore->PeekOffset(&pos))) {
                     theFrame = pos.mResultFrame;
                     theFrameOffset = pos.mContentOffset;
@@ -906,14 +918,14 @@ nsresult nsCaret::CheckCaretDrawingState()
 {
   if (mDrawn) {
     
-    if (!mVisible || !MustDrawCaret(true))
+    if (!mVisible || !MustDrawCaret(PR_TRUE))
       EraseCaret();
   }
   else
   {
     
-    if (mPendingDraw && (mVisible && MustDrawCaret(true)))
-      DrawCaret(true);
+    if (mPendingDraw && (mVisible && MustDrawCaret(PR_TRUE)))
+      DrawCaret(PR_TRUE);
   }
   return NS_OK;
 }
@@ -933,21 +945,21 @@ nsresult nsCaret::CheckCaretDrawingState()
 bool nsCaret::MustDrawCaret(bool aIgnoreDrawnState)
 {
   if (!aIgnoreDrawnState && mDrawn)
-    return true;
+    return PR_TRUE;
 
   nsCOMPtr<nsISelection> domSelection = do_QueryReferent(mDomSelectionWeak);
   if (!domSelection)
-    return false;
+    return PR_FALSE;
 
   bool isCollapsed;
   if (NS_FAILED(domSelection->GetIsCollapsed(&isCollapsed)))
-    return false;
+    return PR_FALSE;
 
   if (mShowDuringSelection)
-    return true;      
+    return PR_TRUE;      
 
   if (IsMenuPopupHidingCaret())
-    return false;
+    return PR_FALSE;
 
   return isCollapsed;
 }
@@ -960,50 +972,50 @@ bool nsCaret::IsMenuPopupHidingCaret()
   nsTArray<nsIFrame*> popups = popMgr->GetVisiblePopups();
 
   if (popups.Length() == 0)
-    return false; 
+    return PR_FALSE; 
 
   
   
   nsCOMPtr<nsIDOMNode> node;
   nsCOMPtr<nsISelection> domSelection = do_QueryReferent(mDomSelectionWeak);
   if (!domSelection)
-    return true; 
+    return PR_TRUE; 
   domSelection->GetFocusNode(getter_AddRefs(node));
   if (!node)
-    return true; 
+    return PR_TRUE; 
   nsCOMPtr<nsIContent> caretContent = do_QueryInterface(node);
   if (!caretContent)
-    return true; 
+    return PR_TRUE; 
 
   
   
-  for (uint32_t i=0; i<popups.Length(); i++) {
+  for (PRUint32 i=0; i<popups.Length(); i++) {
     nsMenuPopupFrame* popupFrame = static_cast<nsMenuPopupFrame*>(popups[i]);
     nsIContent* popupContent = popupFrame->GetContent();
 
     if (nsContentUtils::ContentIsDescendantOf(caretContent, popupContent)) {
       
       
-      return false;
+      return PR_FALSE;
     }
 
     if (popupFrame->PopupType() == ePopupTypeMenu && !popupFrame->IsContextMenu()) {
       
       
       
-      return true;
+      return PR_TRUE;
     }
   }
 #endif
 
   
-  return false;
+  return PR_FALSE;
 }
 
 void nsCaret::DrawCaret(bool aInvalidate)
 {
   
-  if (!MustDrawCaret(false))
+  if (!MustDrawCaret(PR_FALSE))
     return;
   
   
@@ -1013,7 +1025,7 @@ void nsCaret::DrawCaret(bool aInvalidate)
     if (presShell->IsPaintingSuppressed())
     {
       if (!mDrawn)
-        mPendingDraw = true;
+        mPendingDraw = PR_TRUE;
 
       
       
@@ -1022,9 +1034,9 @@ void nsCaret::DrawCaret(bool aInvalidate)
   }
 
   nsCOMPtr<nsIDOMNode> node;
-  int32_t offset;
+  PRInt32 offset;
   nsFrameSelection::HINT hint;
-  uint8_t bidiLevel;
+  PRUint8 bidiLevel;
 
   if (!mDrawn)
   {
@@ -1054,20 +1066,20 @@ void nsCaret::DrawCaret(bool aInvalidate)
       return;
 
     bidiLevel = frameSelection->GetCaretBidiLevel();
-    mPendingDraw = false;
+    mPendingDraw = PR_FALSE;
   }
   else
   {
     if (!mLastContent)
     {
-      mDrawn = false;
+      mDrawn = PR_FALSE;
       return;
     }
     if (!mLastContent->IsInDoc() ||
         presShell->GetDocument() != mLastContent->GetCurrentDoc())
     {
-      mLastContent = nullptr;
-      mDrawn = false;
+      mLastContent = nsnull;
+      mDrawn = PR_FALSE;
       return;
     }
     node = do_QueryInterface(mLastContent);
@@ -1081,7 +1093,7 @@ void nsCaret::DrawCaret(bool aInvalidate)
 }
 
 bool
-nsCaret::UpdateCaretRects(nsIFrame* aFrame, int32_t aFrameOffset)
+nsCaret::UpdateCaretRects(nsIFrame* aFrame, PRInt32 aFrameOffset)
 {
   NS_ASSERTION(aFrame, "Should have a frame here");
 
@@ -1089,7 +1101,7 @@ nsCaret::UpdateCaretRects(nsIFrame* aFrame, int32_t aFrameOffset)
   nsresult rv =
     GetGeometryForFrame(aFrame, aFrameOffset, &mCaretRect, &bidiIndicatorSize);
   if (NS_FAILED(rv)) {
-    return false;
+    return PR_FALSE;
   }
 
   
@@ -1121,7 +1133,7 @@ nsCaret::UpdateCaretRects(nsIFrame* aFrame, int32_t aFrameOffset)
       nsCOMPtr<nsISelection> domSelection = do_QueryReferent(mDomSelectionWeak);
       if (!domSelection ||
           NS_SUCCEEDED(domSelection->SelectionLanguageChange(mKeyboardRTL)))
-        return false;
+        return PR_FALSE;
     }
     
     
@@ -1134,7 +1146,7 @@ nsCaret::UpdateCaretRects(nsIFrame* aFrame, int32_t aFrameOffset)
                       mCaretRect.width);
   }
 #endif 
-  return true;
+  return PR_TRUE;
 }
 
 
@@ -1154,7 +1166,7 @@ void nsCaret::CaretBlinkCallback(nsITimer *aTimer, void *aClosure)
   nsCaret   *theCaret = reinterpret_cast<nsCaret*>(aClosure);
   if (!theCaret) return;
   
-  theCaret->DrawCaret(true);
+  theCaret->DrawCaret(PR_TRUE);
 }
 
 
@@ -1164,8 +1176,8 @@ nsCaret::GetFrameSelection()
 {
   nsCOMPtr<nsISelectionPrivate> privateSelection(do_QueryReferent(mDomSelectionWeak));
   if (!privateSelection)
-    return nullptr;
-  nsFrameSelection* frameSelection = nullptr;
+    return nsnull;
+  nsFrameSelection* frameSelection = nsnull;
   privateSelection->GetFrameSelection(&frameSelection);
   return frameSelection;
 }

@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsOSHelperAppService.h"
 #include "nsMIMEInfoAndroid.h"
 #include "AndroidBridge.h"
@@ -21,7 +53,7 @@ nsOSHelperAppService::GetMIMEInfoFromOS(const nsACString& aMIMEType,
                                         bool* aFound)
 {
     nsRefPtr<nsMIMEInfoAndroid> mimeInfo;
-    *aFound = false;
+    *aFound = PR_FALSE;
     if (!aMIMEType.IsEmpty())
         *aFound = 
             nsMIMEInfoAndroid::GetMimeInfoForMimeType(aMIMEType, 

@@ -3,31 +3,61 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCaretAccessible.h"
 
-#include "DocAccessible-inl.h"
 #include "nsAccessibilityService.h"
 #include "nsAccUtils.h"
 #include "nsCoreUtils.h"
 #include "nsIAccessibleEvent.h"
-#include "RootAccessible.h"
 
 #include "nsCaret.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMHTMLAnchorElement.h"
+#include "nsIDOMHTMLInputElement.h"
 #include "nsIDOMHTMLTextAreaElement.h"
 #include "nsIFrame.h"
 #include "nsIPresShell.h"
+#include "nsRootAccessible.h"
 #include "nsISelectionPrivate.h"
 #include "nsServiceManagerUtils.h"
 
 class nsIWidget;
 
-using namespace mozilla::a11y;
-
 NS_IMPL_ISUPPORTS1(nsCaretAccessible, nsISelectionListener)
   
-nsCaretAccessible::nsCaretAccessible(RootAccessible* aRootAccessible) :
+nsCaretAccessible::nsCaretAccessible( nsRootAccessible *aRootAccessible):
 mLastCaretOffset(-1), mRootAccessible(aRootAccessible)
 {
 }
@@ -43,9 +73,9 @@ void nsCaretAccessible::Shutdown()
   
 
   ClearControlSelectionListener(); 
-  mLastTextAccessible = nullptr;
-  mLastUsedSelection = nullptr;
-  mRootAccessible = nullptr;
+  mLastTextAccessible = nsnull;
+  mLastUsedSelection = nsnull;
+  mRootAccessible = nsnull;
 }
 
 nsresult nsCaretAccessible::ClearControlSelectionListener()
@@ -53,7 +83,7 @@ nsresult nsCaretAccessible::ClearControlSelectionListener()
   nsCOMPtr<nsISelectionController> controller =
     GetSelectionControllerForNode(mCurrentControl);
 
-  mCurrentControl = nullptr;
+  mCurrentControl = nsnull;
 
   if (!controller)
     return NS_OK;
@@ -87,7 +117,7 @@ nsCaretAccessible::SetControlSelectionListener(nsIContent *aCurrentNode)
   ClearControlSelectionListener();
 
   mCurrentControl = aCurrentNode;
-  mLastTextAccessible = nullptr;
+  mLastTextAccessible = nsnull;
 
   
   
@@ -172,17 +202,31 @@ nsCaretAccessible::RemoveDocSelectionListener(nsIPresShell *aShell)
 NS_IMETHODIMP
 nsCaretAccessible::NotifySelectionChanged(nsIDOMDocument* aDOMDocument,
                                           nsISelection* aSelection,
-                                          int16_t aReason)
+                                          PRInt16 aReason)
 {
   NS_ENSURE_ARG(aDOMDocument);
   NS_ENSURE_STATE(mRootAccessible);
 
   nsCOMPtr<nsIDocument> documentNode(do_QueryInterface(aDOMDocument));
-  DocAccessible* document = GetAccService()->GetDocAccessible(documentNode);
+  nsDocAccessible* document = GetAccService()->GetDocAccessible(documentNode);
 
-#ifdef DEBUG
-  if (logging::IsEnabled(logging::eSelection))
-    logging::SelChange(aSelection, document);
+#ifdef DEBUG_NOTIFICATIONS
+  nsCOMPtr<nsISelectionPrivate> privSel(do_QueryInterface(aSelection));
+
+  PRInt16 type = 0;
+  privSel->GetType(&type);
+
+  if (type == nsISelectionController::SELECTION_NORMAL ||
+      type == nsISelectionController::SELECTION_SPELLCHECK) {
+
+    bool isNormalSelection =
+      (type == nsISelectionController::SELECTION_NORMAL);
+
+    bool isIgnored = !document || !document->IsContentLoaded();
+    printf("\nSelection changed, selection type: %s, notification %s\n",
+           (isNormalSelection ? "normal" : "spellcheck"),
+           (isIgnored ? "ignored" : "pending"));
+  }
 #endif
 
   
@@ -203,7 +247,7 @@ nsCaretAccessible::ProcessSelectionChanged(nsISelection* aSelection)
 {
   nsCOMPtr<nsISelectionPrivate> privSel(do_QueryInterface(aSelection));
 
-  int16_t type = 0;
+  PRInt16 type = 0;
   privSel->GetType(&type);
 
   if (type == nsISelectionController::SELECTION_NORMAL)
@@ -218,25 +262,25 @@ nsCaretAccessible::NormalSelectionChanged(nsISelection* aSelection)
 {
   mLastUsedSelection = do_GetWeakReference(aSelection);
 
-  int32_t rangeCount = 0;
+  PRInt32 rangeCount = 0;
   aSelection->GetRangeCount(&rangeCount);
   if (rangeCount == 0) {
-    mLastTextAccessible = nullptr;
+    mLastTextAccessible = nsnull;
     return; 
   }
 
-  HyperTextAccessible* textAcc =
+  nsHyperTextAccessible* textAcc =
     nsAccUtils::GetTextAccessibleFromSelection(aSelection);
   if (!textAcc)
     return;
 
-  int32_t caretOffset = -1;
+  PRInt32 caretOffset = -1;
   nsresult rv = textAcc->GetCaretOffset(&caretOffset);
   if (NS_FAILED(rv))
     return;
 
   if (textAcc == mLastTextAccessible && caretOffset == mLastCaretOffset) {
-    int32_t selectionCount = 0;
+    PRInt32 selectionCount = 0;
     textAcc->GetSelectionCount(&selectionCount);   
     if (!selectionCount)
       return;  
@@ -248,7 +292,7 @@ nsCaretAccessible::NormalSelectionChanged(nsISelection* aSelection)
   nsRefPtr<AccEvent> event =
     new AccCaretMoveEvent(mLastTextAccessible->GetNode());
   if (event)
-    mLastTextAccessible->Document()->FireDelayedAccessibleEvent(event);
+    mLastTextAccessible->GetDocAccessible()->FireDelayedAccessibleEvent(event);
 }
 
 void
@@ -260,7 +304,7 @@ nsCaretAccessible::SpellcheckSelectionChanged(nsISelection* aSelection)
   
   
 
-  HyperTextAccessible* textAcc =
+  nsHyperTextAccessible* textAcc =
     nsAccUtils::GetTextAccessibleFromSelection(aSelection);
   if (!textAcc)
     return;
@@ -268,7 +312,7 @@ nsCaretAccessible::SpellcheckSelectionChanged(nsISelection* aSelection)
   nsRefPtr<AccEvent> event =
     new AccEvent(nsIAccessibleEvent::EVENT_TEXT_ATTRIBUTE_CHANGED, textAcc);
   if (event)
-    textAcc->Document()->FireDelayedAccessibleEvent(event);
+    textAcc->GetDocAccessible()->FireDelayedAccessibleEvent(event);
 }
 
 nsIntRect
@@ -276,7 +320,7 @@ nsCaretAccessible::GetCaretRect(nsIWidget **aOutWidget)
 {
   nsIntRect caretRect;
   NS_ENSURE_TRUE(aOutWidget, caretRect);
-  *aOutWidget = nullptr;
+  *aOutWidget = nsnull;
   NS_ENSURE_TRUE(mRootAccessible, caretRect);
 
   if (!mLastTextAccessible) {
@@ -321,7 +365,7 @@ nsCaretAccessible::GetCaretRect(nsIWidget **aOutWidget)
   
   
   
-  int32_t charX, charY, charWidth, charHeight;
+  PRInt32 charX, charY, charWidth, charHeight;
   if (NS_SUCCEEDED(mLastTextAccessible->GetCharacterExtents(mLastCaretOffset, &charX, &charY,
                                                             &charWidth, &charHeight,
                                                             nsIAccessibleCoordinateType::COORDTYPE_SCREEN_RELATIVE))) {
@@ -336,21 +380,25 @@ already_AddRefed<nsISelectionController>
 nsCaretAccessible::GetSelectionControllerForNode(nsIContent *aContent)
 {
   if (!aContent)
-    return nullptr;
+    return nsnull;
 
-  nsIPresShell *presShell = aContent->OwnerDoc()->GetShell();
+  nsIDocument *document = aContent->GetOwnerDoc();
+  if (!document)
+    return nsnull;
+
+  nsIPresShell *presShell = document->GetShell();
   if (!presShell)
-    return nullptr;
+    return nsnull;
 
   nsIFrame *frame = aContent->GetPrimaryFrame();
   if (!frame)
-    return nullptr;
+    return nsnull;
 
   nsPresContext *presContext = presShell->GetPresContext();
   if (!presContext)
-    return nullptr;
+    return nsnull;
 
-  nsISelectionController *controller = nullptr;
+  nsISelectionController *controller = nsnull;
   frame->GetSelectionController(presContext, &controller);
   return controller;
 }

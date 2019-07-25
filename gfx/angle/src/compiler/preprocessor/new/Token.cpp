@@ -6,78 +6,50 @@
 
 #include "Token.h"
 
-#include <cassert>
+#include "token_type.h"
 
-#include "numeric_lex.h"
+static const int kLocationLineSize = 16;  
+static const int kLocationLineMask = (1 << kLocationLineSize) - 1;
 
 namespace pp
 {
 
-void Token::reset()
+Token::Location Token::encodeLocation(int line, int file)
 {
-    type = 0;
-    flags = 0;
-    location = SourceLocation();
-    text.clear();
+    return (file << kLocationLineSize) | (line & kLocationLineMask);
 }
 
-bool Token::equals(const Token& other) const
+void Token::decodeLocation(Location loc, int* line, int* file)
 {
-    return (type == other.type) &&
-           (flags == other.flags) &&
-           (location == other.location) &&
-           (text == other.text);
+    if (file) *file = loc >> kLocationLineSize;
+    if (line) *line = loc & kLocationLineMask;
 }
 
-void Token::setAtStartOfLine(bool start)
+Token::Token(Location location, int type, std::string* value)
+    : mLocation(location),
+      mType(type),
+      mValue(value)
 {
-    if (start)
-        flags |= AT_START_OF_LINE;
-    else
-        flags &= ~AT_START_OF_LINE;
 }
 
-void Token::setHasLeadingSpace(bool space)
-{
-    if (space)
-        flags |= HAS_LEADING_SPACE;
-    else
-        flags &= ~HAS_LEADING_SPACE;
-}
-
-void Token::setExpansionDisabled(bool disable)
-{
-    if (disable)
-        flags |= EXPANSION_DISABLED;
-    else
-        flags &= ~EXPANSION_DISABLED;
-}
-
-bool Token::iValue(int* value) const
-{
-    assert(type == CONST_INT);
-    return numeric_lex_int(text, value);
-}
-
-bool Token::uValue(unsigned int* value) const
-{
-    assert(type == CONST_INT);
-    return numeric_lex_int(text, value);
-}
-
-bool Token::fValue(float* value) const
-{
-    assert(type == CONST_FLOAT);
-    return numeric_lex_float(text, value);
+Token::~Token() {
+    delete mValue;
 }
 
 std::ostream& operator<<(std::ostream& out, const Token& token)
 {
-    if (token.hasLeadingSpace())
-        out << " ";
-
-    out << token.text;
+    switch (token.type())
+    {
+      case INT_CONSTANT:
+      case FLOAT_CONSTANT:
+      case IDENTIFIER:
+        out << *(token.value());
+        break;
+      default:
+        out << static_cast<char>(token.type());
+        break;
+    }
     return out;
 }
-
 }  
+

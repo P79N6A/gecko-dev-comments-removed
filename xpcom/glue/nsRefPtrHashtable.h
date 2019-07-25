@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsRefPtrHashtable_h__
 #define nsRefPtrHashtable_h__
 
@@ -40,7 +73,7 @@ public:
 
 
 
-  RefPtr* GetWeak(KeyType aKey, bool* aFound = nullptr) const;
+  RefPtr* GetWeak(KeyType aKey, bool* aFound = nsnull) const;
 };
 
 
@@ -91,15 +124,15 @@ nsRefPtrHashtable<KeyClass,RefPtr>::Get
       NS_IF_ADDREF(*pRefPtr);
     }
 
-    return true;
+    return PR_TRUE;
   }
 
   
   
   if (pRefPtr)
-    *pRefPtr = nullptr;
+    *pRefPtr = nsnull;
 
-  return false;
+  return PR_FALSE;
 }
 
 template<class KeyClass, class RefPtr>
@@ -112,15 +145,15 @@ nsRefPtrHashtable<KeyClass,RefPtr>::GetWeak
   if (ent)
   {
     if (aFound)
-      *aFound = true;
+      *aFound = PR_TRUE;
 
     return ent->mData;
   }
 
   
   if (aFound)
-    *aFound = false;
-  return nullptr;
+    *aFound = PR_FALSE;
+  return nsnull;
 }
 
 
@@ -147,17 +180,17 @@ nsRefPtrHashtableMT<KeyClass,RefPtr>::Get
 
     PR_Unlock(this->mLock);
 
-    return true;
+    return PR_TRUE;
   }
 
   
   
   if (pRefPtr)
-    *pRefPtr = nullptr;
+    *pRefPtr = nsnull;
 
   PR_Unlock(this->mLock);
 
-  return false;
+  return PR_FALSE;
 }
 
 #endif 

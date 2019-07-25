@@ -2,14 +2,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsVoidArray_h___
 #define nsVoidArray_h___
 
 
 
+#include "nscore.h"
+#include "nsStringGlue.h"
 #include "nsDebug.h"
-
-#include "mozilla/StandardInteger.h"
 
 
 typedef int (* nsVoidArrayComparatorFunc)
@@ -17,33 +49,27 @@ typedef int (* nsVoidArrayComparatorFunc)
 
 
 typedef bool (* nsVoidArrayEnumFunc)(void* aElement, void *aData);
-typedef bool (* nsVoidArrayEnumFuncConst)(const void* aElement, void *aData);
-
-
-typedef size_t (* nsVoidArraySizeOfElementIncludingThisFunc)(const void* aElement,
-                                                             nsMallocSizeOfFun aMallocSizeOf,
-                                                             void *aData);
 
 
 class NS_COM_GLUE nsVoidArray {
 public:
   nsVoidArray();
-  nsVoidArray(int32_t aCount);  
+  nsVoidArray(PRInt32 aCount);  
   ~nsVoidArray();
 
   nsVoidArray& operator=(const nsVoidArray& other);
 
-  inline int32_t Count() const {
+  inline PRInt32 Count() const {
     return mImpl ? mImpl->mCount : 0;
   }
   
-  bool SetCount(int32_t aNewCount);
+  bool SetCount(PRInt32 aNewCount);
   
-  inline int32_t GetArraySize() const {
-    return mImpl ? (int32_t(mImpl->mBits) & kArraySizeMask) : 0;
+  inline PRInt32 GetArraySize() const {
+    return mImpl ? (PRInt32(mImpl->mBits) & kArraySizeMask) : 0;
   }
 
-  void* FastElementAt(int32_t aIndex) const
+  void* FastElementAt(PRInt32 aIndex) const
   {
     NS_ASSERTION(0 <= aIndex && aIndex < Count(), "nsVoidArray::FastElementAt: index out of range");
     return mImpl->mArray[aIndex];
@@ -52,34 +78,34 @@ public:
   
   
   
-  void* ElementAt(int32_t aIndex) const
+  void* ElementAt(PRInt32 aIndex) const
   {
     NS_ASSERTION(0 <= aIndex && aIndex < Count(), "nsVoidArray::ElementAt: index out of range");
     return SafeElementAt(aIndex);
   }
 
   
-  void* SafeElementAt(int32_t aIndex) const
+  void* SafeElementAt(PRInt32 aIndex) const
   {
-    if (uint32_t(aIndex) >= uint32_t(Count())) 
+    if (PRUint32(aIndex) >= PRUint32(Count())) 
     {
-      return nullptr;
+      return nsnull;
     }
     
     return mImpl->mArray[aIndex];
   }
 
-  void* operator[](int32_t aIndex) const { return ElementAt(aIndex); }
+  void* operator[](PRInt32 aIndex) const { return ElementAt(aIndex); }
 
-  int32_t IndexOf(void* aPossibleElement) const;
+  PRInt32 IndexOf(void* aPossibleElement) const;
 
-  bool InsertElementAt(void* aElement, int32_t aIndex);
-  bool InsertElementsAt(const nsVoidArray &other, int32_t aIndex);
+  bool InsertElementAt(void* aElement, PRInt32 aIndex);
+  bool InsertElementsAt(const nsVoidArray &other, PRInt32 aIndex);
 
-  bool ReplaceElementAt(void* aElement, int32_t aIndex);
+  bool ReplaceElementAt(void* aElement, PRInt32 aIndex);
 
   
-  bool MoveElement(int32_t aFrom, int32_t aTo);
+  bool MoveElement(PRInt32 aFrom, PRInt32 aTo);
 
   bool AppendElement(void* aElement) {
     return InsertElementAt(aElement, Count());
@@ -90,12 +116,12 @@ public:
   }
 
   bool RemoveElement(void* aElement);
-  bool RemoveElementsAt(int32_t aIndex, int32_t aCount);
-  bool RemoveElementAt(int32_t aIndex) { return RemoveElementsAt(aIndex,1); }
+  bool RemoveElementsAt(PRInt32 aIndex, PRInt32 aCount);
+  bool RemoveElementAt(PRInt32 aIndex) { return RemoveElementsAt(aIndex,1); }
 
   void   Clear();
 
-  bool SizeTo(int32_t aMin);
+  bool SizeTo(PRInt32 aMin);
   
   
   void Compact();
@@ -103,18 +129,10 @@ public:
   void Sort(nsVoidArrayComparatorFunc aFunc, void* aData);
 
   bool EnumerateForwards(nsVoidArrayEnumFunc aFunc, void* aData);
-  bool EnumerateForwards(nsVoidArrayEnumFuncConst aFunc, void* aData) const;
   bool EnumerateBackwards(nsVoidArrayEnumFunc aFunc, void* aData);
 
-  
-  
-  
-  size_t SizeOfExcludingThis(
-           nsVoidArraySizeOfElementIncludingThisFunc aSizeOfElementIncludingThis,
-           nsMallocSizeOfFun aMallocSizeOf, void* aData = NULL) const;
-
 protected:
-  bool GrowArrayBy(int32_t aGrowBy);
+  bool GrowArrayBy(PRInt32 aGrowBy);
 
   struct Impl {
     
@@ -123,12 +141,12 @@ protected:
 
 
 
-    uint32_t mBits;
+    PRUint32 mBits;
 
     
 
 
-    int32_t mCount;
+    PRInt32 mCount;
 
     
 
@@ -138,8 +156,8 @@ protected:
 
   Impl* mImpl;
 #if DEBUG_VOIDARRAY
-  int32_t mMaxCount;
-  int32_t mMaxSize;
+  PRInt32 mMaxCount;
+  PRInt32 mMaxSize;
   bool    mIsAuto;
 #endif
 
@@ -152,7 +170,7 @@ protected:
 
 
   
-  void SetArray(Impl *newImpl, int32_t aSize, int32_t aCount, bool aOwner,
+  void SetArray(Impl *newImpl, PRInt32 aSize, PRInt32 aCount, bool aOwner,
                 bool aHasAuto);
   inline bool IsArrayOwner() const {
     return mImpl && (mImpl->mBits & kArrayOwnerMask);
@@ -174,8 +192,8 @@ public:
 
   void ResetToAutoBuffer()
   {
-    SetArray(reinterpret_cast<Impl*>(mAutoBuf), kAutoBufSize, 0, false,
-             true);
+    SetArray(reinterpret_cast<Impl*>(mAutoBuf), kAutoBufSize, 0, PR_FALSE,
+             PR_TRUE);
   }
 
   nsAutoVoidArray& operator=(const nsVoidArray& other)
@@ -187,6 +205,74 @@ public:
 protected:
   
   char mAutoBuf[sizeof(Impl) + (kAutoBufSize - 1) * sizeof(void*)];
+};
+
+
+class nsCString;
+
+typedef int (* nsCStringArrayComparatorFunc)
+            (const nsCString* aElement1, const nsCString* aElement2, void* aData);
+
+typedef bool (*nsCStringArrayEnumFunc)(nsCString& aElement, void *aData);
+
+class NS_COM_GLUE nsCStringArray: private nsVoidArray
+{
+public:
+  nsCStringArray(void);
+  nsCStringArray(PRInt32 aCount); 
+  ~nsCStringArray(void);
+
+  nsCStringArray& operator=(const nsCStringArray& other);
+
+  PRInt32 Count(void) const {
+    return nsVoidArray::Count();
+  }
+
+  void CStringAt(PRInt32 aIndex, nsACString& aCString) const;
+  nsCString* CStringAt(PRInt32 aIndex) const;
+  nsCString* operator[](PRInt32 aIndex) const { return CStringAt(aIndex); }
+
+  PRInt32 IndexOf(const nsACString& aPossibleString) const;
+
+#ifdef MOZILLA_INTERNAL_API
+  PRInt32 IndexOfIgnoreCase(const nsACString& aPossibleString) const;
+#endif
+
+  bool InsertCStringAt(const nsACString& aCString, PRInt32 aIndex);
+
+  bool ReplaceCStringAt(const nsACString& aCString, PRInt32 aIndex);
+
+  bool AppendCString(const nsACString& aCString) {
+    return InsertCStringAt(aCString, Count());
+  }
+
+  bool RemoveCString(const nsACString& aCString);
+
+#ifdef MOZILLA_INTERNAL_API
+  bool RemoveCStringIgnoreCase(const nsACString& aCString);
+#endif
+
+  bool RemoveCStringAt(PRInt32 aIndex);
+  void   Clear(void);
+
+  void Compact(void) {
+    nsVoidArray::Compact();
+  }
+
+  void Sort(void);
+
+#ifdef MOZILLA_INTERNAL_API
+  void SortIgnoreCase(void);
+#endif
+
+  void Sort(nsCStringArrayComparatorFunc aFunc, void* aData);
+
+  bool EnumerateForwards(nsCStringArrayEnumFunc aFunc, void* aData);
+  bool EnumerateBackwards(nsCStringArrayEnumFunc aFunc, void* aData);
+
+private:
+  
+  nsCStringArray(const nsCStringArray& other);
 };
 
 
@@ -220,43 +306,43 @@ public:
   ~nsSmallVoidArray();
 
   nsSmallVoidArray& operator=(nsSmallVoidArray& other);
-  void* operator[](int32_t aIndex) const { return ElementAt(aIndex); }
+  void* operator[](PRInt32 aIndex) const { return ElementAt(aIndex); }
 
-  int32_t GetArraySize() const;
+  PRInt32 GetArraySize() const;
 
-  int32_t Count() const;
-  void* FastElementAt(int32_t aIndex) const;
+  PRInt32 Count() const;
+  void* FastElementAt(PRInt32 aIndex) const;
   
   
   
-  void* ElementAt(int32_t aIndex) const
+  void* ElementAt(PRInt32 aIndex) const
   {
     NS_ASSERTION(0 <= aIndex && aIndex < Count(), "nsSmallVoidArray::ElementAt: index out of range");
     return SafeElementAt(aIndex);
   }
-  void* SafeElementAt(int32_t aIndex) const {
+  void* SafeElementAt(PRInt32 aIndex) const {
     
-    if (uint32_t(aIndex) >= uint32_t(Count())) 
+    if (PRUint32(aIndex) >= PRUint32(Count())) 
     {
-      return nullptr;
+      return nsnull;
     }
     return FastElementAt(aIndex);
   }
-  int32_t IndexOf(void* aPossibleElement) const;
-  bool InsertElementAt(void* aElement, int32_t aIndex);
-  bool InsertElementsAt(const nsVoidArray &other, int32_t aIndex);
-  bool ReplaceElementAt(void* aElement, int32_t aIndex);
-  bool MoveElement(int32_t aFrom, int32_t aTo);
+  PRInt32 IndexOf(void* aPossibleElement) const;
+  bool InsertElementAt(void* aElement, PRInt32 aIndex);
+  bool InsertElementsAt(const nsVoidArray &other, PRInt32 aIndex);
+  bool ReplaceElementAt(void* aElement, PRInt32 aIndex);
+  bool MoveElement(PRInt32 aFrom, PRInt32 aTo);
   bool AppendElement(void* aElement);
   bool AppendElements(nsVoidArray& aElements) {
     return InsertElementsAt(aElements, Count());
   }
   bool RemoveElement(void* aElement);
-  bool RemoveElementsAt(int32_t aIndex, int32_t aCount);
-  bool RemoveElementAt(int32_t aIndex);
+  bool RemoveElementsAt(PRInt32 aIndex, PRInt32 aCount);
+  bool RemoveElementAt(PRInt32 aIndex);
 
   void Clear();
-  bool SizeTo(int32_t aMin);
+  bool SizeTo(PRInt32 aMin);
   void Compact();
   void Sort(nsVoidArrayComparatorFunc aFunc, void* aData);
 
@@ -267,19 +353,19 @@ private:
 
   bool HasSingle() const
   {
-    return !!(reinterpret_cast<intptr_t>(mImpl) & 0x1);
+    return !!(reinterpret_cast<PRWord>(mImpl) & 0x1);
   }
   void* GetSingle() const
   {
     NS_ASSERTION(HasSingle(), "wrong type");
     return reinterpret_cast<void*>
-                           (reinterpret_cast<intptr_t>(mImpl) & ~0x1);
+                           (reinterpret_cast<PRWord>(mImpl) & ~0x1);
   }
   void SetSingle(void *aChild)
   {
     NS_ASSERTION(HasSingle() || !mImpl, "overwriting array");
     mImpl = reinterpret_cast<Impl*>
-                            (reinterpret_cast<intptr_t>(aChild) | 0x1);
+                            (reinterpret_cast<PRWord>(aChild) | 0x1);
   }
   bool IsEmpty() const
   {

@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDOMValidityState_h__
 #define nsDOMValidityState_h__
 
@@ -10,7 +42,7 @@
 #include "nsIConstraintValidation.h"
 
 
-class nsDOMValidityState MOZ_FINAL : public nsIDOMValidityState
+class nsDOMValidityState : public nsIDOMValidityState
 {
 public:
   NS_DECL_ISUPPORTS
@@ -28,7 +60,7 @@ protected:
 
   inline void Disconnect()
   {
-    mConstraintValidation = nullptr;
+    mConstraintValidation = nsnull;
   }
 
   

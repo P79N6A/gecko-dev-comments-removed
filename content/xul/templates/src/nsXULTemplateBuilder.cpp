@@ -17,6 +17,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsCRT.h"
 #include "nsFixedSizeAllocator.h"
@@ -60,7 +99,7 @@
 #include "rdf.h"
 #include "pldhash.h"
 #include "plhash.h"
-#include "nsDOMClassInfoID.h"
+#include "nsIDOMClassInfo.h"
 #include "nsPIDOMWindow.h"
 #include "nsIConsoleService.h" 
 #include "nsNetUtil.h"
@@ -101,10 +140,10 @@ PRLogModuleInfo* gXULTemplateLog;
 
 
 nsXULTemplateBuilder::nsXULTemplateBuilder(void)
-    : mQueriesCompiled(false),
+    : mQueriesCompiled(PR_FALSE),
       mFlags(0),
-      mTop(nullptr),
-      mObservedDocument(nullptr)
+      mTop(nsnull),
+      mObservedDocument(nsnull)
 {
 }
 
@@ -116,7 +155,7 @@ DestroyMatchList(nsISupports* aKey, nsTemplateMatch*& aMatch, void* aContext)
     
     while (aMatch) {
         nsTemplateMatch* next = aMatch->mNext;
-        nsTemplateMatch::Destroy(*pool, aMatch, true);
+        nsTemplateMatch::Destroy(*pool, aMatch, PR_TRUE);
         aMatch = next;
     }
 
@@ -125,8 +164,6 @@ DestroyMatchList(nsISupports* aKey, nsTemplateMatch*& aMatch, void* aContext)
 
 nsXULTemplateBuilder::~nsXULTemplateBuilder(void)
 {
-    Uninit(true);
-
     if (--gRefCnt == 0) {
         NS_IF_RELEASE(gRDFService);
         NS_IF_RELEASE(gRDFContainerUtils);
@@ -134,6 +171,8 @@ nsXULTemplateBuilder::~nsXULTemplateBuilder(void)
         NS_IF_RELEASE(gScriptSecurityManager);
         NS_IF_RELEASE(gObserverService);
     }
+
+    Uninit(PR_TRUE);
 }
 
 
@@ -172,30 +211,13 @@ nsXULTemplateBuilder::InitGlobals()
         gXULTemplateLog = PR_NewLogModule("nsXULTemplateBuilder");
 #endif
 
-    if (!mMatchMap.IsInitialized())
-        mMatchMap.Init();
+    if (!mMatchMap.IsInitialized() && !mMatchMap.Init())
+        return NS_ERROR_OUT_OF_MEMORY;
 
     const size_t bucketsizes[] = { sizeof(nsTemplateMatch) };
     return mPool.Init("nsXULTemplateBuilder", bucketsizes, 1, 256);
 }
 
-void
-nsXULTemplateBuilder::CleanUp(bool aIsFinal)
-{
-    for (int32_t q = mQuerySets.Length() - 1; q >= 0; q--) {
-        nsTemplateQuerySet* qs = mQuerySets[q];
-        delete qs;
-    }
-
-    mQuerySets.Clear();
-
-    mMatchMap.Enumerate(DestroyMatchList, &mPool);
-
-    
-    
-    if (aIsFinal)
-        mQueryProcessor = nullptr;
-}
 
 void
 nsXULTemplateBuilder::Uninit(bool aIsFinal)
@@ -204,19 +226,26 @@ nsXULTemplateBuilder::Uninit(bool aIsFinal)
         gObserverService->RemoveObserver(this, DOM_WINDOW_DESTROYED_TOPIC);
         gObserverService->RemoveObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID);
         mObservedDocument->RemoveObserver(this);
-        mObservedDocument = nullptr;
+        mObservedDocument = nsnull;
     }
 
     if (mQueryProcessor)
         mQueryProcessor->Done();
 
-    CleanUp(aIsFinal);
+    for (PRInt32 q = mQuerySets.Length() - 1; q >= 0; q--) {
+        nsTemplateQuerySet* qs = mQuerySets[q];
+        delete qs;
+    }
 
-    mRootResult = nullptr;
-    mRefVariable = nullptr;
-    mMemberVariable = nullptr;
+    mQuerySets.Clear();
 
-    mQueriesCompiled = false;
+    mMatchMap.Enumerate(DestroyMatchList, &mPool);
+
+    mRootResult = nsnull;
+    mRefVariable = nsnull;
+    mMemberVariable = nsnull;
+
+    mQueriesCompiled = PR_FALSE;
 }
 
 static PLDHashOperator
@@ -248,18 +277,13 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsXULTemplateBuilder)
     if (tmp->mMatchMap.IsInitialized()) {
       tmp->mMatchMap.Enumerate(DestroyMatchList, &(tmp->mPool));
     }
-    for (uint32_t i = 0; i < tmp->mQuerySets.Length(); ++i) {
+    for (PRUint32 i = 0; i < tmp->mQuerySets.Length(); ++i) {
         nsTemplateQuerySet* qs = tmp->mQuerySets[i];
         delete qs;
     }
     tmp->mQuerySets.Clear();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsXULTemplateBuilder)
-    if (tmp->mObservedDocument && !cb.WantAllTraces()) {
-        
-        return NS_SUCCESS_INTERRUPTED_TRAVERSE;
-    }
-
     NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mDataSource)
     NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mDB)
     NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mCompDB)
@@ -270,12 +294,12 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsXULTemplateBuilder)
     if (tmp->mMatchMap.IsInitialized())
         tmp->mMatchMap.EnumerateRead(TraverseMatchList, &cb);
     {
-      uint32_t i, count = tmp->mQuerySets.Length();
+      PRUint32 i, count = tmp->mQuerySets.Length();
       for (i = 0; i < count; ++i) {
         nsTemplateQuerySet *set = tmp->mQuerySets[i];
         cb.NoteXPCOMChild(set->mQueryNode);
         cb.NoteXPCOMChild(set->mCompiledQuery);
-        uint16_t j, rulesCount = set->RuleCount();
+        PRUint16 j, rulesCount = set->RuleCount();
         for (j = 0; j < rulesCount; ++j) {
           set->GetRuleAt(j)->Traverse(cb);
         }
@@ -309,7 +333,7 @@ nsXULTemplateBuilder::GetRoot(nsIDOMElement** aResult)
     if (mRoot) {
         return CallQueryInterface(mRoot, aResult);
     }
-    *aResult = nullptr;
+    *aResult = nsnull;
     return NS_OK;
 }
 
@@ -356,12 +380,12 @@ nsXULTemplateBuilder::AddRuleFilter(nsIDOMNode* aRule, nsIXULTemplateRuleFilter*
     
     
 
-    int32_t count = mQuerySets.Length();
-    for (int32_t q = 0; q < count; q++) {
+    PRInt32 count = mQuerySets.Length();
+    for (PRInt32 q = 0; q < count; q++) {
         nsTemplateQuerySet* queryset = mQuerySets[q];
 
-        int16_t rulecount = queryset->RuleCount();
-        for (int16_t r = 0; r < rulecount; r++) {
+        PRInt16 rulecount = queryset->RuleCount();
+        for (PRInt16 r = 0; r < rulecount; r++) {
             nsTemplateRule* rule = queryset->GetRuleAt(r);
 
             nsCOMPtr<nsIDOMNode> rulenode;
@@ -379,7 +403,7 @@ nsXULTemplateBuilder::AddRuleFilter(nsIDOMNode* aRule, nsIXULTemplateRuleFilter*
 NS_IMETHODIMP
 nsXULTemplateBuilder::Rebuild()
 {
-    int32_t i;
+    PRInt32 i;
 
     for (i = mListeners.Count() - 1; i >= 0; --i) {
         mListeners[i]->WillRebuild(this);
@@ -413,7 +437,7 @@ nsXULTemplateBuilder::Refresh()
     while(NS_SUCCEEDED(dslist->HasMoreElements(&hasMore)) && hasMore) {
         dslist->GetNext(getter_AddRefs(next));
         if (next && (rds = do_QueryInterface(next))) {
-            rds->Refresh(false);
+            rds->Refresh(PR_FALSE);
         }
     }
 
@@ -443,9 +467,9 @@ nsXULTemplateBuilder::Init(nsIContent* aElement)
 
         mObservedDocument = doc;
         gObserverService->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID,
-                                      false);
+                                      PR_FALSE);
         gObserverService->AddObserver(this, DOM_WINDOW_DESTROYED_TOPIC,
-                                      false);
+                                      PR_FALSE);
     }
 
     return rv;
@@ -462,7 +486,7 @@ nsXULTemplateBuilder::HasGeneratedContent(nsIRDFResource* aResource,
                                           nsIAtom* aTag,
                                           bool* aGenerated)
 {
-    *aGenerated = false;
+    *aGenerated = PR_FALSE;
     return NS_OK;
 }
 
@@ -473,7 +497,7 @@ nsXULTemplateBuilder::AddResult(nsIXULTemplateResult* aResult,
     NS_ENSURE_ARG_POINTER(aResult);
     NS_ENSURE_ARG_POINTER(aQueryNode);
 
-    return UpdateResult(nullptr, aResult, aQueryNode);
+    return UpdateResult(nsnull, aResult, aQueryNode);
 }
 
 NS_IMETHODIMP
@@ -481,7 +505,7 @@ nsXULTemplateBuilder::RemoveResult(nsIXULTemplateResult* aResult)
 {
     NS_ENSURE_ARG_POINTER(aResult);
 
-    return UpdateResult(aResult, nullptr, nullptr);
+    return UpdateResult(aResult, nsnull, nsnull);
 }
 
 NS_IMETHODIMP
@@ -495,11 +519,11 @@ nsXULTemplateBuilder::ReplaceResult(nsIXULTemplateResult* aOldResult,
 
     
 
-    nsresult rv = UpdateResult(aOldResult, nullptr, nullptr);
+    nsresult rv = UpdateResult(aOldResult, nsnull, nsnull);
     if (NS_FAILED(rv))
         return rv;
 
-    return UpdateResult(nullptr, aNewResult, aQueryNode);
+    return UpdateResult(nsnull, aNewResult, aQueryNode);
 }
 
 nsresult
@@ -529,7 +553,7 @@ nsXULTemplateBuilder::UpdateResult(nsIXULTemplateResult* aOldResult,
     nsresult rv = NS_OK;
 
     nsCOMPtr<nsIRDFResource> oldId, newId;
-    nsTemplateQuerySet* queryset = nullptr;
+    nsTemplateQuerySet* queryset = nsnull;
 
     if (aOldResult) {
         rv = GetResultResource(aOldResult, getter_AddRefs(oldId));
@@ -559,8 +583,8 @@ nsXULTemplateBuilder::UpdateResult(nsIXULTemplateResult* aOldResult,
         
         nsCOMPtr<nsIContent> querycontent = do_QueryInterface(aQueryNode);
 
-        int32_t count = mQuerySets.Length();
-        for (int32_t q = 0; q < count; q++) {
+        PRInt32 count = mQuerySets.Length();
+        for (PRInt32 q = 0; q < count; q++) {
             nsTemplateQuerySet* qs = mQuerySets[q];
             if (qs->mQueryNode == querycontent) {
                 queryset = qs;
@@ -575,8 +599,8 @@ nsXULTemplateBuilder::UpdateResult(nsIXULTemplateResult* aOldResult,
     if (insertionPoints) {
         
         
-        uint32_t count = insertionPoints->Count();
-        for (uint32_t t = 0; t < count; t++) {
+        PRUint32 count = insertionPoints->Count();
+        for (PRUint32 t = 0; t < count; t++) {
             nsCOMPtr<nsIContent> insertionPoint = insertionPoints->SafeObjectAt(t);
             if (insertionPoint) {
                 rv = UpdateResultInContainer(aOldResult, aNewResult, queryset,
@@ -590,7 +614,7 @@ nsXULTemplateBuilder::UpdateResult(nsIXULTemplateResult* aOldResult,
         
         
         rv = UpdateResultInContainer(aOldResult, aNewResult, queryset,
-                                     oldId, newId, nullptr);
+                                     oldId, newId, nsnull);
     }
 
     return NS_OK;
@@ -663,8 +687,8 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
     
 
     nsresult rv = NS_OK;
-    int16_t ruleindex;
-    nsTemplateRule* matchedrule = nullptr;
+    PRInt16 ruleindex;
+    nsTemplateRule* matchedrule = nsnull;
 
     
     
@@ -676,13 +700,13 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
     
     
     
-    nsTemplateMatch* acceptedmatch = nullptr;
+    nsTemplateMatch* acceptedmatch = nsnull;
 
     
     
     
     
-    nsTemplateMatch* removedmatch = nullptr;
+    nsTemplateMatch* removedmatch = nsnull;
 
     
     
@@ -694,13 +718,13 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
     
     
     
-    nsTemplateMatch* replacedmatch = nullptr, * replacedmatchtodelete = nullptr;
+    nsTemplateMatch* replacedmatch = nsnull, * replacedmatchtodelete = nsnull;
 
     if (aOldResult) {
         nsTemplateMatch* firstmatch;
         if (mMatchMap.Get(aOldId, &firstmatch)) {
             nsTemplateMatch* oldmatch = firstmatch;
-            nsTemplateMatch* prevmatch = nullptr;
+            nsTemplateMatch* prevmatch = nsnull;
 
             
             while (oldmatch && (oldmatch->mResult != aOldResult)) {
@@ -718,7 +742,7 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
                 if (oldmatch->IsActive()) {
                     
                     
-                    oldMatchWasActive = true;
+                    oldMatchWasActive = PR_TRUE;
 
                     
                     
@@ -752,7 +776,8 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
                 if (oldmatch == firstmatch) {
                     
                     if (oldmatch->mNext) {
-                        mMatchMap.Put(aOldId, oldmatch->mNext);
+                        if (!mMatchMap.Put(aOldId, oldmatch->mNext))
+                            return NS_ERROR_OUT_OF_MEMORY;
                     }
                     else {
                         mMatchMap.Remove(aOldId);
@@ -764,19 +789,19 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
 
                 removedmatch = oldmatch;
                 if (mFlags & eLoggingEnabled)
-                    OutputMatchToLog(aOldId, removedmatch, false);
+                    OutputMatchToLog(aOldId, removedmatch, PR_FALSE);
             }
         }
     }
 
-    nsTemplateMatch *newmatch = nullptr;
+    nsTemplateMatch *newmatch = nsnull;
     if (aNewResult) {
         
         nsIAtom* tag = aQuerySet->GetTag();
         if (aInsertionPoint && tag && tag != aInsertionPoint->Tag())
             return NS_OK;
 
-        int32_t findpriority = aQuerySet->Priority();
+        PRInt32 findpriority = aQuerySet->Priority();
 
         newmatch = nsTemplateMatch::Create(mPool, findpriority,
                                            aNewResult, aInsertionPoint);
@@ -790,15 +815,15 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
             
             
             
-            nsTemplateMatch* prevmatch = nullptr;
+            nsTemplateMatch* prevmatch = nsnull;
             nsTemplateMatch* oldmatch = firstmatch;
             while (oldmatch) {
                 
                 
                 
-                int32_t priority = oldmatch->QuerySetPriority();
+                PRInt32 priority = oldmatch->QuerySetPriority();
                 if (priority > findpriority) {
-                    oldmatch = nullptr;
+                    oldmatch = nsnull;
                     break;
                 }
 
@@ -810,7 +835,7 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
                     
                     
                     if (oldmatch->IsActive())
-                        hasEarlierActiveMatch = true;
+                        hasEarlierActiveMatch = PR_TRUE;
                 }
 
                 prevmatch = oldmatch;
@@ -850,7 +875,7 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
                 rv = DetermineMatchedRule(aInsertionPoint, newmatch->mResult,
                                           aQuerySet, &matchedrule, &ruleindex);
                 if (NS_FAILED(rv)) {
-                    nsTemplateMatch::Destroy(mPool, newmatch, false);
+                    nsTemplateMatch::Destroy(mPool, newmatch, PR_FALSE);
                     return rv;
                 }
 
@@ -859,7 +884,7 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
                                                matchedrule, ruleindex,
                                                newmatch->mResult);
                     if (NS_FAILED(rv)) {
-                        nsTemplateMatch::Destroy(mPool, newmatch, false);
+                        nsTemplateMatch::Destroy(mPool, newmatch, PR_FALSE);
                         return rv;
                     }
 
@@ -900,7 +925,7 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
                                                       aQuerySet, &matchedrule, &ruleindex);
                             if (NS_FAILED(rv)) {
                                 nsTemplateMatch::Destroy(mPool, newmatch,
-                                                         false);
+                                                         PR_FALSE);
                                 return rv;
                             }
 
@@ -910,7 +935,7 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
                                                            newmatch->mResult);
                                 if (NS_FAILED(rv)) {
                                     nsTemplateMatch::Destroy(mPool, newmatch,
-                                                             false);
+                                                             PR_FALSE);
                                     return rv;
                                 }
 
@@ -925,7 +950,13 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
 
                 
                 if (! prevmatch) {
-                    mMatchMap.Put(aNewId, newmatch);
+                    if (!mMatchMap.Put(aNewId, newmatch)) {
+                        
+                        
+                        
+                        nsTemplateMatch::Destroy(mPool, newmatch, PR_TRUE);
+                        return rv;
+                    }
                 }
             }
 
@@ -939,7 +970,7 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
             rv = DetermineMatchedRule(aInsertionPoint, aNewResult,
                                       aQuerySet, &matchedrule, &ruleindex);
             if (NS_FAILED(rv)) {
-                nsTemplateMatch::Destroy(mPool, newmatch, false);
+                nsTemplateMatch::Destroy(mPool, newmatch, PR_FALSE);
                 return rv;
             }
 
@@ -947,14 +978,17 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
                 rv = newmatch->RuleMatched(aQuerySet, matchedrule,
                                            ruleindex, aNewResult);
                 if (NS_FAILED(rv)) {
-                    nsTemplateMatch::Destroy(mPool, newmatch, false);
+                    nsTemplateMatch::Destroy(mPool, newmatch, PR_FALSE);
                     return rv;
                 }
 
                 acceptedmatch = newmatch;
             }
 
-            mMatchMap.Put(aNewId, newmatch);
+            if (!mMatchMap.Put(aNewId, newmatch)) {
+                nsTemplateMatch::Destroy(mPool, newmatch, PR_TRUE);
+                return NS_ERROR_OUT_OF_MEMORY;
+            }
         }
     }
 
@@ -963,31 +997,31 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
 
     
     if (replacedmatch) {
-        rv = ReplaceMatch(replacedmatch->mResult, nullptr, nullptr,
+        rv = ReplaceMatch(replacedmatch->mResult, nsnull, nsnull,
                           aInsertionPoint);
 
         if (mFlags & eLoggingEnabled)
-            OutputMatchToLog(aNewId, replacedmatch, false);
+            OutputMatchToLog(aNewId, replacedmatch, PR_FALSE);
     }
  
     
     if (replacedmatchtodelete)
-        nsTemplateMatch::Destroy(mPool, replacedmatchtodelete, true);
+        nsTemplateMatch::Destroy(mPool, replacedmatchtodelete, PR_TRUE);
 
     
     
     
     
     if (oldMatchWasActive || acceptedmatch)
-        rv = ReplaceMatch(oldMatchWasActive ? aOldResult : nullptr,
+        rv = ReplaceMatch(oldMatchWasActive ? aOldResult : nsnull,
                           acceptedmatch, matchedrule, aInsertionPoint);
 
     
     if (removedmatch)
-        nsTemplateMatch::Destroy(mPool, removedmatch, true);
+        nsTemplateMatch::Destroy(mPool, removedmatch, PR_TRUE);
 
     if (mFlags & eLoggingEnabled && newmatch)
-        OutputMatchToLog(aNewId, newmatch, true);
+        OutputMatchToLog(aNewId, newmatch, PR_TRUE);
 
     return rv;
 }
@@ -1024,7 +1058,7 @@ nsXULTemplateBuilder::GetResultForId(const nsAString& aId,
     nsCOMPtr<nsIRDFResource> resource;
     gRDFService->GetUnicodeResource(aId, getter_AddRefs(resource));
 
-    *aResult = nullptr;
+    *aResult = nsnull;
 
     nsTemplateMatch* match;
     if (mMatchMap.Get(resource, &match)) {
@@ -1046,7 +1080,7 @@ NS_IMETHODIMP
 nsXULTemplateBuilder::GetResultForContent(nsIDOMElement* aContent,
                                           nsIXULTemplateResult** aResult)
 {
-    *aResult = nullptr;
+    *aResult = nsnull;
     return NS_OK;
 }
 
@@ -1099,9 +1133,9 @@ nsXULTemplateBuilder::Observe(nsISupports* aSubject,
 void
 nsXULTemplateBuilder::AttributeChanged(nsIDocument* aDocument,
                                        Element*     aElement,
-                                       int32_t      aNameSpaceID,
+                                       PRInt32      aNameSpaceID,
                                        nsIAtom*     aAttribute,
-                                       int32_t      aModType)
+                                       PRInt32      aModType)
 {
     if (aElement == mRoot && aNameSpaceID == kNameSpaceID_None) {
         
@@ -1124,7 +1158,7 @@ void
 nsXULTemplateBuilder::ContentRemoved(nsIDocument* aDocument,
                                      nsIContent* aContainer,
                                      nsIContent* aChild,
-                                     int32_t aIndexInContainer,
+                                     PRInt32 aIndexInContainer,
                                      nsIContent* aPreviousSibling)
 {
     if (mRoot && nsContentUtils::ContentIsDescendantOf(mRoot, aChild)) {
@@ -1141,7 +1175,7 @@ nsXULTemplateBuilder::ContentRemoved(nsIDocument* aDocument,
 
         nsCOMPtr<nsIXULDocument> xuldoc = do_QueryInterface(aDocument);
         if (xuldoc)
-            xuldoc->SetTemplateBuilderFor(mRoot, nullptr);
+            xuldoc->SetTemplateBuilderFor(mRoot, nsnull);
 
         
         
@@ -1149,11 +1183,9 @@ nsXULTemplateBuilder::ContentRemoved(nsIDocument* aDocument,
         if (xulcontent)
             xulcontent->ClearTemplateGenerated();
 
-        CleanUp(true);
-
-        mDB = nullptr;
-        mCompDB = nullptr;
-        mDataSource = nullptr;
+        mDB = nsnull;
+        mCompDB = nsnull;
+        mDataSource = nsnull;
     }
 }
 
@@ -1168,9 +1200,9 @@ nsXULTemplateBuilder::NodeWillBeDestroyed(const nsINode* aNode)
     if (mQueryProcessor)
         mQueryProcessor->Done();
 
-    mDataSource = nullptr;
-    mDB = nullptr;
-    mCompDB = nullptr;
+    mDataSource = nsnull;
+    mDB = nsnull;
+    mCompDB = nsnull;
 
     nsContentUtils::AddScriptRunner(
         NS_NewRunnableMethod(this, &nsXULTemplateBuilder::UninitTrue));
@@ -1188,17 +1220,17 @@ nsresult
 nsXULTemplateBuilder::LoadDataSources(nsIDocument* aDocument,
                                       bool* aShouldDelayBuilding)
 {
-    NS_PRECONDITION(mRoot != nullptr, "not initialized");
+    NS_PRECONDITION(mRoot != nsnull, "not initialized");
 
     nsresult rv;
     bool isRDFQuery = false;
   
     
-    mDB = nullptr;
-    mCompDB = nullptr;
-    mDataSource = nullptr;
+    mDB = nsnull;
+    mCompDB = nsnull;
+    mDataSource = nsnull;
 
-    *aShouldDelayBuilding = false;
+    *aShouldDelayBuilding = PR_FALSE;
 
     nsAutoString datasources;
     mRoot->GetAttr(kNameSpaceID_None, nsGkAtoms::datasources, datasources);
@@ -1214,7 +1246,7 @@ nsXULTemplateBuilder::LoadDataSources(nsIDocument* aDocument,
         querytype.AssignLiteral("rdf");
 
     if (querytype.EqualsLiteral("rdf")) {
-        isRDFQuery = true;
+        isRDFQuery = PR_TRUE;
         mQueryProcessor = new nsXULTemplateQueryProcessorRDF();
         NS_ENSURE_TRUE(mQueryProcessor, NS_ERROR_OUT_OF_MEMORY);
     }
@@ -1227,7 +1259,7 @@ nsXULTemplateBuilder::LoadDataSources(nsIDocument* aDocument,
         NS_ENSURE_TRUE(mQueryProcessor, NS_ERROR_OUT_OF_MEMORY);
     }
     else {
-        nsAutoCString cid(NS_QUERY_PROCESSOR_CONTRACTID_PREFIX);
+        nsCAutoString cid(NS_QUERY_PROCESSOR_CONTRACTID_PREFIX);
         AppendUTF16toUTF8(querytype, cid);
         mQueryProcessor = do_CreateInstance(cid.get(), &rv);
 
@@ -1284,7 +1316,7 @@ nsXULTemplateBuilder::LoadDataSourceUrls(nsIDocument* aDocument,
         return NS_ERROR_FAILURE;
 
     nsAutoString datasources(aDataSources);
-    uint32_t first = 0;
+    PRUint32 first = 0;
     while (1) {
         while (first < datasources.Length() && nsCRT::IsAsciiSpace(datasources.CharAt(first)))
             ++first;
@@ -1292,7 +1324,7 @@ nsXULTemplateBuilder::LoadDataSourceUrls(nsIDocument* aDocument,
         if (first >= datasources.Length())
             break;
 
-        uint32_t last = first;
+        PRUint32 last = first;
         while (last < datasources.Length() && !nsCRT::IsAsciiSpace(datasources.CharAt(last)))
             ++last;
 
@@ -1313,7 +1345,7 @@ nsXULTemplateBuilder::LoadDataSourceUrls(nsIDocument* aDocument,
                                    getter_AddRefs(dsnode));
 
             if (dsnode)
-                uriList->AppendElement(dsnode, false);
+                uriList->AppendElement(dsnode, PR_FALSE);
             continue;
         }
 
@@ -1328,10 +1360,10 @@ nsXULTemplateBuilder::LoadDataSourceUrls(nsIDocument* aDocument,
 
         
         
-        if (!isTrusted && NS_FAILED(docPrincipal->CheckMayLoad(uri, true, false)))
+        if (!isTrusted && NS_FAILED(docPrincipal->CheckMayLoad(uri, PR_TRUE)))
           continue;
 
-        uriList->AppendElement(uri, false);
+        uriList->AppendElement(uri, PR_FALSE);
     }
 
     nsCOMPtr<nsIDOMNode> rootNode = do_QueryInterface(mRoot);
@@ -1389,7 +1421,7 @@ nsXULTemplateBuilder::InitHTMLTemplateRoot()
         return NS_ERROR_UNEXPECTED;
 
     JSContext* jscontext = context->GetNativeContext();
-    NS_ASSERTION(context != nullptr, "no jscontext");
+    NS_ASSERTION(context != nsnull, "no jscontext");
     if (! jscontext)
         return NS_ERROR_UNEXPECTED;
 
@@ -1442,11 +1474,11 @@ nsXULTemplateBuilder::DetermineMatchedRule(nsIContent *aContainer,
                                            nsIXULTemplateResult* aResult,
                                            nsTemplateQuerySet* aQuerySet,
                                            nsTemplateRule** aMatchedRule,
-                                           int16_t *aRuleIndex)
+                                           PRInt16 *aRuleIndex)
 {
     
-    int16_t count = aQuerySet->RuleCount();
-    for (int16_t r = 0; r < count; r++) {
+    PRInt16 count = aQuerySet->RuleCount();
+    for (PRInt16 r = 0; r < count; r++) {
         nsTemplateRule* rule = aQuerySet->GetRuleAt(r);
         
         
@@ -1460,7 +1492,7 @@ nsXULTemplateBuilder::DetermineMatchedRule(nsIContent *aContainer,
     }
 
     *aRuleIndex = -1;
-    *aMatchedRule = nullptr;
+    *aMatchedRule = nsnull;
     return NS_OK;
 }
 
@@ -1483,16 +1515,16 @@ nsXULTemplateBuilder::ParseAttribute(const nsAString& aAttributeValue,
         
         bool isvar;
         if (*iter == PRUnichar('?') && (++iter != done_parsing)) {
-            isvar = true;
+            isvar = PR_TRUE;
         }
         else if ((*iter == PRUnichar('r') && (++iter != done_parsing)) &&
                  (*iter == PRUnichar('d') && (++iter != done_parsing)) &&
                  (*iter == PRUnichar('f') && (++iter != done_parsing)) &&
                  (*iter == PRUnichar(':') && (++iter != done_parsing))) {
-            isvar = true;
+            isvar = PR_TRUE;
         }
         else {
-            isvar = false;
+            isvar = PR_FALSE;
         }
 
         if (! isvar) {
@@ -1630,7 +1662,7 @@ nsXULTemplateBuilder::IsTemplateElement(nsIContent* aContent)
 nsresult
 nsXULTemplateBuilder::GetTemplateRoot(nsIContent** aResult)
 {
-    NS_PRECONDITION(mRoot != nullptr, "not initialized");
+    NS_PRECONDITION(mRoot != nsnull, "not initialized");
     if (! mRoot)
         return NS_ERROR_NOT_INITIALIZED;
 
@@ -1689,10 +1721,10 @@ nsXULTemplateBuilder::GetTemplateRoot(nsIContent** aResult)
     doc->BindingManager()->GetXBLChildNodesFor(mRoot, getter_AddRefs(kids));
 
     if (kids) {
-        uint32_t length;
+        PRUint32 length;
         kids->GetLength(&length);
 
-        for (uint32_t i = 0; i < length; ++i) {
+        for (PRUint32 i = 0; i < length; ++i) {
             nsCOMPtr<nsIDOMNode> node;
             kids->Item(i, getter_AddRefs(node));
             if (! node)
@@ -1707,7 +1739,7 @@ nsXULTemplateBuilder::GetTemplateRoot(nsIContent** aResult)
         }
     }
 
-    *aResult = nullptr;
+    *aResult = nsnull;
     return NS_OK;
 }
 
@@ -1779,7 +1811,7 @@ nsXULTemplateBuilder::CompileQueries()
     tmpl->GetAttr(kNameSpaceID_None, nsGkAtoms::member, membervar);
 
     if (membervar.IsEmpty())
-        mMemberVariable = nullptr;
+        mMemberVariable = nsnull;
     else
         mMemberVariable = do_GetAtom(membervar);
 
@@ -1793,18 +1825,18 @@ nsXULTemplateBuilder::CompileQueries()
     }
 
     bool canUseTemplate = false;
-    int32_t priority = 0;
-    rv = CompileTemplate(tmpl, queryset, false, &priority, &canUseTemplate);
+    PRInt32 priority = 0;
+    rv = CompileTemplate(tmpl, queryset, PR_FALSE, &priority, &canUseTemplate);
 
     if (NS_FAILED(rv) || !canUseTemplate) {
-        for (int32_t q = mQuerySets.Length() - 1; q >= 0; q--) {
+        for (PRInt32 q = mQuerySets.Length() - 1; q >= 0; q--) {
             nsTemplateQuerySet* qs = mQuerySets[q];
             delete qs;
         }
         mQuerySets.Clear();
     }
 
-    mQueriesCompiled = true;
+    mQueriesCompiled = PR_TRUE;
 
     return NS_OK;
 }
@@ -1813,7 +1845,7 @@ nsresult
 nsXULTemplateBuilder::CompileTemplate(nsIContent* aTemplate,
                                       nsTemplateQuerySet* aQuerySet,
                                       bool aIsQuerySet,
-                                      int32_t* aPriority,
+                                      PRInt32* aPriority,
                                       bool* aCanUseTemplate)
 {
     NS_ASSERTION(aQuerySet, "No queryset supplied");
@@ -1841,7 +1873,7 @@ nsXULTemplateBuilder::CompileTemplate(nsIContent* aTemplate,
               continue;
             }
 
-            isQuerySetMode = true;
+            isQuerySetMode = PR_TRUE;
 
             
             
@@ -1858,9 +1890,9 @@ nsXULTemplateBuilder::CompileTemplate(nsIContent* aTemplate,
                 }
             }
 
-            hasQuerySet = true;
+            hasQuerySet = PR_TRUE;
 
-            rv = CompileTemplate(rulenode, aQuerySet, true, aPriority, aCanUseTemplate);
+            rv = CompileTemplate(rulenode, aQuerySet, PR_TRUE, aPriority, aCanUseTemplate);
             if (NS_FAILED(rv))
                 return rv;
         }
@@ -1909,7 +1941,7 @@ nsXULTemplateBuilder::CompileTemplate(nsIContent* aTemplate,
                         if (NS_FAILED(rv))
                             return rv;
 
-                        *aCanUseTemplate = true;
+                        *aCanUseTemplate = PR_TRUE;
                     }
                 }
                 else {
@@ -1941,7 +1973,7 @@ nsXULTemplateBuilder::CompileTemplate(nsIContent* aTemplate,
                         if (tag)
                             aQuerySet->SetTag(tag);
 
-                        hasQuerySet = true;
+                        hasQuerySet = PR_TRUE;
 
                         nsCOMPtr<nsIDOMNode> conditionsnode(do_QueryInterface(conditions));
 
@@ -1959,7 +1991,7 @@ nsXULTemplateBuilder::CompileTemplate(nsIContent* aTemplate,
                             if (NS_FAILED(rv))
                                 return rv;
 
-                            *aCanUseTemplate = true;
+                            *aCanUseTemplate = PR_TRUE;
                         }
                     }
                 }
@@ -1980,21 +2012,21 @@ nsXULTemplateBuilder::CompileTemplate(nsIContent* aTemplate,
                     }
                 }
 
-                hasQuerySet = true;
+                hasQuerySet = PR_TRUE;
 
                 rv = CompileSimpleQuery(rulenode, aQuerySet, aCanUseTemplate);
                 if (NS_FAILED(rv))
                     return rv;
             }
 
-            hasRule = true;
+            hasRule = PR_TRUE;
         }
         else if (ni->Equals(nsGkAtoms::query, kNameSpaceID_XUL)) {
             if (hasQuery)
               continue;
 
             aQuerySet->mQueryNode = rulenode;
-            hasQuery = true;
+            hasQuery = PR_TRUE;
         }
         else if (ni->Equals(nsGkAtoms::action, kNameSpaceID_XUL)) {
             
@@ -2028,7 +2060,7 @@ nsXULTemplateBuilder::CompileTemplate(nsIContent* aTemplate,
 
                 rule->SetVars(mRefVariable, memberVariable);
 
-                *aCanUseTemplate = true;
+                *aCanUseTemplate = PR_TRUE;
 
                 return NS_OK;
             }
@@ -2114,7 +2146,7 @@ nsXULTemplateBuilder::DetermineMemberVariable(nsIContent* aElement)
         }
     }
 
-    return nullptr;
+    return nsnull;
 }
 
 void
@@ -2175,7 +2207,7 @@ nsXULTemplateBuilder::CompileSimpleQuery(nsIContent* aRuleElement,
         return rv;
 
     if (! aQuerySet->mCompiledQuery) {
-        *aCanUseTemplate = false;
+        *aCanUseTemplate = PR_FALSE;
         return NS_OK;
     }
 
@@ -2193,7 +2225,7 @@ nsXULTemplateBuilder::CompileSimpleQuery(nsIContent* aRuleElement,
         aQuerySet->SetTag(tagatom);
     }
 
-    *aCanUseTemplate = true;
+    *aCanUseTemplate = PR_TRUE;
 
     return AddSimpleRuleBindings(rule, aRuleElement);
 }
@@ -2210,7 +2242,7 @@ nsXULTemplateBuilder::CompileConditions(nsTemplateRule* aRule,
         aRule->SetTag(tagatom);
     }
 
-    nsTemplateCondition* currentCondition = nullptr;
+    nsTemplateCondition* currentCondition = nsnull;
 
     for (nsIContent* node = aCondition->GetFirstChild();
          node;
@@ -2418,18 +2450,18 @@ nsXULTemplateBuilder::AddSimpleRuleBindings(nsTemplateRule* aRule,
 
     nsAutoTArray<nsIContent*, 8> elements;
 
-    if (elements.AppendElement(aElement) == nullptr)
+    if (elements.AppendElement(aElement) == nsnull)
         return NS_ERROR_OUT_OF_MEMORY;
 
     while (elements.Length()) {
         
-        uint32_t i = elements.Length() - 1;
+        PRUint32 i = elements.Length() - 1;
         nsIContent* element = elements[i];
         elements.RemoveElementAt(i);
 
         
         
-        uint32_t count = element->GetAttrCount();
+        PRUint32 count = element->GetAttrCount();
 
         for (i = 0; i < count; ++i) {
             const nsAttrName* name = element->GetAttrNameAt(i);
@@ -2441,7 +2473,7 @@ nsXULTemplateBuilder::AddSimpleRuleBindings(nsTemplateRule* aRule,
 
                 
                 
-                ParseAttribute(value, AddBindingsFor, nullptr, aRule);
+                ParseAttribute(value, AddBindingsFor, nsnull, aRule);
             }
         }
 
@@ -2477,7 +2509,7 @@ nsXULTemplateBuilder::AddBindingsFor(nsXULTemplateBuilder* aThis,
     
     
     nsAutoString property;
-    property.Assign(Substring(aVariable, uint32_t(4), aVariable.Length() - 4));
+    property.Assign(Substring(aVariable, PRUint32(4), aVariable.Length() - 4));
 
     if (! rule->HasBinding(rule->GetMemberVariable(), property, var))
         
@@ -2500,12 +2532,12 @@ bool
 nsXULTemplateBuilder::IsActivated(nsIRDFResource *aResource)
 {
     for (ActivationEntry *entry = mTop;
-         entry != nullptr;
+         entry != nsnull;
          entry = entry->mPrevious) {
         if (entry->mResource == aResource)
-            return true;
+            return PR_TRUE;
     }
-    return false;
+    return PR_FALSE;
 }
 
 nsresult
@@ -2537,8 +2569,8 @@ nsXULTemplateBuilder::OutputMatchToLog(nsIRDFResource* aId,
                                        nsTemplateMatch* aMatch,
                                        bool aIsNew)
 {
-    int32_t priority = aMatch->QuerySetPriority() + 1;
-    int32_t activePriority = -1;
+    PRInt32 priority = aMatch->QuerySetPriority() + 1;
+    PRInt32 activePriority = -1;
 
     nsAutoString msg;
 
@@ -2559,7 +2591,7 @@ nsXULTemplateBuilder::OutputMatchToLog(nsIRDFResource* aId,
 
     msg.AppendLiteral("\n    ");
 
-    nsTemplateMatch* match = nullptr;
+    nsTemplateMatch* match = nsnull;
     if (mMatchMap.Get(aId, &match)){
         while (match) {
             if (match == aMatch)

@@ -4,6 +4,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCacheSession.h"
 #include "nsCacheService.h"
 #include "nsCRT.h"
@@ -21,8 +57,6 @@ nsCacheSession::nsCacheSession(const char *         clientID,
   if (streamBased) MarkStreamBased();
   else SetStoragePolicy(nsICache::STORE_IN_MEMORY);
 
-  MarkPublic();
-
   MarkDoomEntriesIfExpired();
 }
 
@@ -37,31 +71,6 @@ NS_IMETHODIMP nsCacheSession::GetDoomEntriesIfExpired(bool *result)
 {
     NS_ENSURE_ARG_POINTER(result);
     *result = WillDoomEntriesIfExpired();
-    return NS_OK;
-}
-
-
-NS_IMETHODIMP nsCacheSession::SetProfileDirectory(nsIFile *profileDir)
-{
-  if (StoragePolicy() != nsICache::STORE_OFFLINE && profileDir) {
-        
-        
-        
-        
-        return NS_ERROR_UNEXPECTED;
-    }
-
-    mProfileDir = profileDir;
-    return NS_OK;
-}
-
-NS_IMETHODIMP nsCacheSession::GetProfileDirectory(nsIFile **profileDir)
-{
-    if (mProfileDir)
-        NS_ADDREF(*profileDir = mProfileDir);
-    else
-        *profileDir = nullptr;
-
     return NS_OK;
 }
 
@@ -85,7 +94,7 @@ nsCacheSession::OpenCacheEntry(const nsACString &         key,
                                          key,
                                          accessRequested,
                                          blockingMode,
-                                         nullptr, 
+                                         nsnull, 
                                          result);
     return rv;
 }
@@ -93,16 +102,15 @@ nsCacheSession::OpenCacheEntry(const nsACString &         key,
 
 NS_IMETHODIMP nsCacheSession::AsyncOpenCacheEntry(const nsACString & key,
                                                   nsCacheAccessMode accessRequested,
-                                                  nsICacheListener *listener,
-                                                  bool              noWait)
+                                                  nsICacheListener *listener)
 {
     nsresult rv;
     rv = nsCacheService::OpenCacheEntry(this,
                                         key,
                                         accessRequested,
-                                        !noWait,
+                                        nsICache::BLOCKING,
                                         listener,
-                                        nullptr); 
+                                        nsnull); 
 
     if (rv == NS_ERROR_CACHE_WAIT_FOR_VALIDATION) rv = NS_OK;
     return rv;
@@ -118,25 +126,4 @@ NS_IMETHODIMP nsCacheSession::IsStorageEnabled(bool *result)
 {
 
     return nsCacheService::IsStorageEnabledForPolicy(StoragePolicy(), result);
-}
-
-NS_IMETHODIMP nsCacheSession::DoomEntry(const nsACString &key,
-                                        nsICacheListener *listener)
-{
-    return nsCacheService::DoomEntry(this, key, listener);
-}
-
-NS_IMETHODIMP nsCacheSession::GetIsPrivate(bool* aPrivate)
-{
-    *aPrivate = IsPrivate();
-    return NS_OK;
-}
-
-NS_IMETHODIMP nsCacheSession::SetIsPrivate(bool aPrivate)
-{
-    if (aPrivate)
-        MarkPrivate();
-    else
-        MarkPublic();
-    return NS_OK;
 }

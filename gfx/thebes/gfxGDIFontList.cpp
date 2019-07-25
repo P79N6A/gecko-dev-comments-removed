@@ -3,7 +3,41 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifdef MOZ_LOGGING
 #define FORCE_PR_LOG
@@ -29,7 +63,6 @@
 #include "mozilla/Telemetry.h"
 
 #include <usp10.h>
-#include <t2embapi.h>
 
 using namespace mozilla;
 
@@ -47,18 +80,14 @@ using namespace mozilla;
                                    gfxPlatform::GetLog(eGfxLog_fontlist), \
                                    PR_LOG_DEBUG)
 
-#define LOG_CMAPDATA_ENABLED() PR_LOG_TEST( \
-                                   gfxPlatform::GetLog(eGfxLog_cmapdata), \
-                                   PR_LOG_DEBUG)
-
 #endif 
 
 
 
 
 
-static const uint32_t kDelayBeforeLoadingFonts = 120 * 1000; 
-static const uint32_t kIntervalBetweenLoadingFonts = 2000;   
+static const PRUint32 kDelayBeforeLoadingFonts = 120 * 1000; 
+static const PRUint32 kIntervalBetweenLoadingFonts = 2000;   
 
 static __inline void
 BuildKeyNameFromFontName(nsAString &aName)
@@ -71,23 +100,49 @@ BuildKeyNameFromFontName(nsAString &aName)
 
 
 
-typedef LONG
-(WINAPI *TTLoadEmbeddedFontProc)(HANDLE* phFontReference, ULONG ulFlags,
-                                 ULONG* pulPrivStatus, ULONG ulPrivs,
-                                 ULONG* pulStatus,
-                                 READEMBEDPROC lpfnReadFromStream,
-                                 LPVOID lpvReadStream,
-                                 LPWSTR szWinFamilyName, 
-                                 LPSTR szMacFamilyName,
-                                 TTLOADINFO* pTTLoadInfo);
-
-typedef LONG
-(WINAPI *TTDeleteEmbeddedFontProc)(HANDLE hFontReference, ULONG ulFlags,
-                                   ULONG* pulStatus);
 
 
-static TTLoadEmbeddedFontProc TTLoadEmbeddedFontPtr = nullptr;
-static TTDeleteEmbeddedFontProc TTDeleteEmbeddedFontPtr = nullptr;
+#ifndef __t2embapi__
+
+#define TTLOAD_PRIVATE                  0x00000001
+#define LICENSE_PREVIEWPRINT            0x0004
+#define E_NONE                          0x0000L
+
+typedef unsigned long( WINAPIV *READEMBEDPROC ) ( void*, void*, const unsigned long );
+
+typedef struct
+{
+    unsigned short usStructSize;    
+    unsigned short usRefStrSize;    
+    unsigned short *pusRefStr;      
+}TTLOADINFO;
+
+LONG WINAPI TTLoadEmbeddedFont
+(
+    HANDLE*  phFontReference,           
+                                        
+    ULONG    ulFlags,                   
+    ULONG*   pulPrivStatus,             
+    ULONG    ulPrivs,                   
+    ULONG*   pulStatus,                 
+    READEMBEDPROC lpfnReadFromStream,   
+    LPVOID   lpvReadStream,             
+    LPWSTR   szWinFamilyName,           
+    LPSTR    szMacFamilyName,           
+    TTLOADINFO* pTTLoadInfo             
+);
+
+#endif 
+
+typedef LONG( WINAPI *TTLoadEmbeddedFontProc ) (HANDLE* phFontReference, ULONG ulFlags, ULONG* pulPrivStatus, ULONG ulPrivs, ULONG* pulStatus, 
+                                             READEMBEDPROC lpfnReadFromStream, LPVOID lpvReadStream, LPWSTR szWinFamilyName, 
+                                             LPSTR szMacFamilyName, TTLOADINFO* pTTLoadInfo);
+
+typedef LONG( WINAPI *TTDeleteEmbeddedFontProc ) (HANDLE hFontReference, ULONG ulFlags, ULONG* pulStatus);
+
+
+static TTLoadEmbeddedFontProc TTLoadEmbeddedFontPtr = nsnull;
+static TTDeleteEmbeddedFontProc TTDeleteEmbeddedFontPtr = nsnull;
 
 class WinUserFontData : public gfxUserFontData {
 public:
@@ -126,7 +181,7 @@ public:
 };
 
 BYTE 
-FontTypeToOutPrecision(uint8_t fontType)
+FontTypeToOutPrecision(PRUint8 fontType)
 {
     BYTE ret;
     switch (fontType) {
@@ -160,14 +215,12 @@ FontTypeToOutPrecision(uint8_t fontType)
 
 GDIFontEntry::GDIFontEntry(const nsAString& aFaceName,
                            gfxWindowsFontType aFontType,
-                           bool aItalic, uint16_t aWeight, int16_t aStretch,
-                           gfxUserFontData *aUserFontData,
-                           bool aFamilyHasItalicFace)
+                           bool aItalic, PRUint16 aWeight, PRInt16 aStretch,
+                           gfxUserFontData *aUserFontData)
     : gfxFontEntry(aFaceName),
       mWindowsFamily(0), mWindowsPitch(0),
       mFontType(aFontType),
-      mForceGDI(false),
-      mFamilyHasItalicFace(aFamilyHasItalicFace),
+      mForceGDI(PR_FALSE), mUnknownCMAP(PR_FALSE),
       mCharset(), mUnicodeRanges()
 {
     mUserFontData = aUserFontData;
@@ -175,8 +228,8 @@ GDIFontEntry::GDIFontEntry(const nsAString& aFaceName,
     mWeight = aWeight;
     mStretch = aStretch;
     if (IsType1())
-        mForceGDI = true;
-    mIsUserFont = aUserFontData != nullptr;
+        mForceGDI = PR_TRUE;
+    mIsUserFont = aUserFontData != nsnull;
 
     InitLogFont(aFaceName, aFontType);
 }
@@ -185,62 +238,35 @@ nsresult
 GDIFontEntry::ReadCMAP()
 {
     
-    if (mCharacterMap) {
-        return NS_OK;
-    }
-
-    
     if (mFontType != GFX_FONT_TYPE_PS_OPENTYPE && 
         mFontType != GFX_FONT_TYPE_TT_OPENTYPE &&
         mFontType != GFX_FONT_TYPE_TRUETYPE) 
     {
-        mCharacterMap = new gfxCharacterMap();
-        mCharacterMap->mBuildOnTheFly = true;
         return NS_ERROR_FAILURE;
     }
 
-    nsRefPtr<gfxCharacterMap> charmap = new gfxCharacterMap();
+    
+    if (mCmapInitialized)
+        return NS_OK;
+    mCmapInitialized = PR_TRUE;
 
-    uint32_t kCMAP = TRUETYPE_TAG('c','m','a','p');
-    nsresult rv;
+    const PRUint32 kCmapTag = TRUETYPE_TAG('c','m','a','p');
+    AutoFallibleTArray<PRUint8,16384> buffer;
+    if (GetFontTable(kCmapTag, buffer) != NS_OK)
+        return NS_ERROR_FAILURE;
+    PRUint8 *cmap = buffer.Elements();
 
-    AutoFallibleTArray<uint8_t,16384> cmap;
-    rv = GetFontTable(kCMAP, cmap);
-
-    bool unicodeFont = false, symbolFont = false; 
-
-    if (NS_SUCCEEDED(rv)) {
-        rv = gfxFontUtils::ReadCMAP(cmap.Elements(), cmap.Length(),
-                                    *charmap, mUVSOffset,
-                                    unicodeFont, symbolFont);
-    }
+    bool          unicodeFont = false, symbolFont = false;
+    nsresult rv = gfxFontUtils::ReadCMAP(cmap, buffer.Length(),
+                                         mCharacterMap, mUVSOffset,
+                                         unicodeFont, symbolFont);
     mSymbolFont = symbolFont;
-
     mHasCmapTable = NS_SUCCEEDED(rv);
-    if (mHasCmapTable) {
-        gfxPlatformFontList *pfl = gfxPlatformFontList::PlatformFontList();
-        mCharacterMap = pfl->FindCharMap(charmap);
-    } else {
-        
-        mCharacterMap = new gfxCharacterMap();
-        
-        
-        mCharacterMap->mBuildOnTheFly = true;
-    }
 
 #ifdef PR_LOGGING
-    LOG_FONTLIST(("(fontlist-cmap) name: %s, size: %d hash: %8.8x%s\n",
-                  NS_ConvertUTF16toUTF8(mName).get(),
-                  charmap->SizeOfIncludingThis(moz_malloc_size_of),
-                  charmap->mHash, mCharacterMap == charmap ? " new" : ""));
-    if (LOG_CMAPDATA_ENABLED()) {
-        char prefix[256];
-        sprintf(prefix, "(cmapdata) name: %.220s",
-                NS_ConvertUTF16toUTF8(mName).get());
-        charmap->Dump(prefix, eGfxLog_cmapdata);
-    }
+    LOG_FONTLIST(("(fontlist-cmap) name: %s, size: %d\n",
+                  NS_ConvertUTF16toUTF8(mName).get(), mCharacterMap.GetSize()));
 #endif
-
     return rv;
 }
 
@@ -269,8 +295,8 @@ GDIFontEntry::CreateFontInstance(const gfxFontStyle* aFontStyle, bool aNeedsBold
 }
 
 nsresult
-GDIFontEntry::GetFontTable(uint32_t aTableTag,
-                           FallibleTArray<uint8_t>& aBuffer)
+GDIFontEntry::GetFontTable(PRUint32 aTableTag,
+                           FallibleTArray<PRUint8>& aBuffer)
 {
     if (!IsTrueType()) {
         return NS_ERROR_FAILURE;
@@ -279,7 +305,7 @@ GDIFontEntry::GetFontTable(uint32_t aTableTag,
     AutoDC dc;
     AutoSelectFont font(dc.GetDC(), &mLogFont);
     if (font.IsValid()) {
-        int32_t tableSize =
+        PRInt32 tableSize =
             ::GetFontData(dc.GetDC(), NS_SWAP32(aTableTag), 0, NULL, NULL);
         if (tableSize != GDI_ERROR) {
             if (aBuffer.SetLength(tableSize)) {
@@ -294,65 +320,54 @@ GDIFontEntry::GetFontTable(uint32_t aTableTag,
 }
 
 void
-GDIFontEntry::FillLogFont(LOGFONTW *aLogFont,
-                          uint16_t aWeight, gfxFloat aSize,
+GDIFontEntry::FillLogFont(LOGFONTW *aLogFont, bool aItalic,
+                          PRUint16 aWeight, gfxFloat aSize,
                           bool aUseCleartype)
 {
     memcpy(aLogFont, &mLogFont, sizeof(LOGFONTW));
 
     aLogFont->lfHeight = (LONG)-ROUND(aSize);
 
-    if (aLogFont->lfHeight == 0) {
+    if (aLogFont->lfHeight == 0)
         aLogFont->lfHeight = -1;
-    }
 
     
     
     
     
-    
-    if (aWeight) {
-        aLogFont->lfWeight = aWeight;
-    }
-
-    
-    
-    
-    
-    if (IsUserFont() && !IsLocalUserFont()) {
-        aLogFont->lfItalic = 0;
-    }
-
-    aLogFont->lfQuality = (aUseCleartype ? CLEARTYPE_QUALITY : DEFAULT_QUALITY);
+    aLogFont->lfItalic         = aItalic;
+    aLogFont->lfWeight         = aWeight;
+    aLogFont->lfQuality        = (aUseCleartype ? CLEARTYPE_QUALITY : DEFAULT_QUALITY);
 }
 
 #define MISSING_GLYPH 0x1F // glyph index returned for missing characters
                            
 
 bool 
-GDIFontEntry::TestCharacterMap(uint32_t aCh)
+GDIFontEntry::TestCharacterMap(PRUint32 aCh)
 {
-    if (!mCharacterMap) {
-        nsresult rv = ReadCMAP();
-        NS_ASSERTION(mCharacterMap, "failed to initialize a character map");
+    if (ReadCMAP() != NS_OK) {
+        
+        
+        mUnknownCMAP = PR_TRUE;
     }
 
-    if (mCharacterMap->mBuildOnTheFly) {
+    if (mUnknownCMAP) {
         if (aCh > 0xFFFF)
-            return false;
+            return PR_FALSE;
 
         
         gfxFontStyle fakeStyle;  
         if (mItalic)
-            fakeStyle.style = NS_FONT_STYLE_ITALIC;
+            fakeStyle.style = FONT_STYLE_ITALIC;
         fakeStyle.weight = mWeight * 100;
 
-        nsRefPtr<gfxFont> tempFont = FindOrMakeFont(&fakeStyle, false);
+        nsRefPtr<gfxFont> tempFont = FindOrMakeFont(&fakeStyle, PR_FALSE);
         if (!tempFont || !tempFont->Valid())
-            return false;
+            return PR_FALSE;
         gfxGDIFont *font = static_cast<gfxGDIFont*>(tempFont.get());
 
-        HDC dc = GetDC((HWND)nullptr);
+        HDC dc = GetDC((HWND)nsnull);
         SetGraphicsMode(dc, GM_ADVANCED);
         HFONT hfont = font->GetHFONT();
         HFONT oldFont = (HFONT)SelectObject(dc, hfont);
@@ -374,7 +389,7 @@ GDIFontEntry::TestCharacterMap(uint32_t aCh)
                 && glyph[0] != 0xFFFF
                 && (IsType1() || glyph[0] != MISSING_GLYPH))
             {
-                hasGlyph = true;
+                hasGlyph = PR_TRUE;
             }
         } else {
             
@@ -382,22 +397,22 @@ GDIFontEntry::TestCharacterMap(uint32_t aCh)
             SCRIPT_CACHE sc = NULL;
             HRESULT rv = ScriptGetCMap(dc, &sc, str, 1, 0, glyph);
             if (rv == S_OK)
-                hasGlyph = true;
+                hasGlyph = PR_TRUE;
         }
 
         SelectObject(dc, oldFont);
         ReleaseDC(NULL, dc);
 
         if (hasGlyph) {
-            mCharacterMap->set(aCh);
-            return true;
+            mCharacterMap.set(aCh);
+            return PR_TRUE;
         }
     } else {
         
-        return mCharacterMap->test(aCh);
+        return mCharacterMap.test(aCh);
     }
 
-    return false;
+    return PR_FALSE;
 }
 
 void
@@ -405,7 +420,7 @@ GDIFontEntry::InitLogFont(const nsAString& aName,
                           gfxWindowsFontType aFontType)
 {
 #define CLIP_TURNOFF_FONTASSOCIATION 0x40
-
+    
     mLogFont.lfHeight = -1;
 
     
@@ -434,25 +449,15 @@ GDIFontEntry::InitLogFont(const nsAString& aName,
 GDIFontEntry* 
 GDIFontEntry::CreateFontEntry(const nsAString& aName,
                               gfxWindowsFontType aFontType, bool aItalic,
-                              uint16_t aWeight, int16_t aStretch,
-                              gfxUserFontData* aUserFontData,
-                              bool aFamilyHasItalicFace)
+                              PRUint16 aWeight, PRInt16 aStretch,
+                              gfxUserFontData* aUserFontData)
 {
     
 
     GDIFontEntry *fe = new GDIFontEntry(aName, aFontType, aItalic,
-                                        aWeight, aStretch, aUserFontData,
-                                        aFamilyHasItalicFace);
+                                        aWeight, aStretch, aUserFontData);
 
     return fe;
-}
-
-void
-GDIFontEntry::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                  FontListSizes*    aSizes) const
-{
-    aSizes->mFontListSize += aMallocSizeOf(this);
-    SizeOfExcludingThis(aMallocSizeOf, aSizes);
 }
 
 
@@ -471,12 +476,12 @@ GDIFontFamily::FamilyAddStylesProc(const ENUMLOGFONTEXW *lpelfe,
     GDIFontFamily *ff = reinterpret_cast<GDIFontFamily*>(data);
 
     
-    logFont.lfWeight = clamped(logFont.lfWeight, LONG(100), LONG(900));
+    logFont.lfWeight = NS_MAX<LONG>(NS_MIN<LONG>(logFont.lfWeight, 900), 100);
 
     gfxWindowsFontType feType = GDIFontEntry::DetermineFontType(metrics, fontType);
 
-    GDIFontEntry *fe = nullptr;
-    for (uint32_t i = 0; i < ff->mAvailableFonts.Length(); ++i) {
+    GDIFontEntry *fe = nsnull;
+    for (PRUint32 i = 0; i < ff->mAvailableFonts.Length(); ++i) {
         fe = static_cast<GDIFontEntry*>(ff->mAvailableFonts[i].get());
         if (feType > fe->mFontType) {
             
@@ -488,7 +493,7 @@ GDIFontFamily::FamilyAddStylesProc(const ENUMLOGFONTEXW *lpelfe,
         }
     }
 
-    for (uint32_t i = 0; i < ff->mAvailableFonts.Length(); ++i) {
+    for (PRUint32 i = 0; i < ff->mAvailableFonts.Length(); ++i) {
         fe = static_cast<GDIFontEntry*>(ff->mAvailableFonts[i].get());
         
         if (fe->mWeight == logFont.lfWeight &&
@@ -499,14 +504,10 @@ GDIFontFamily::FamilyAddStylesProc(const ENUMLOGFONTEXW *lpelfe,
         }
     }
 
-    
-    
-    
-    
     fe = GDIFontEntry::CreateFontEntry(nsDependentString(lpelfe->elfFullName),
                                        feType, (logFont.lfItalic == 0xFF),
-                                       (uint16_t) (logFont.lfWeight), 0,
-                                       nullptr, false);
+                                       (PRUint16) (logFont.lfWeight), 0,
+                                       nsnull);
     if (!fe)
         return 1;
 
@@ -524,10 +525,10 @@ GDIFontFamily::FamilyAddStylesProc(const ENUMLOGFONTEXW *lpelfe,
         nmetrics->ntmFontSig.fsUsb[3] != 0x00000000) {
 
         
-        uint32_t x = 0;
-        for (uint32_t i = 0; i < 4; ++i) {
+        PRUint32 x = 0;
+        for (PRUint32 i = 0; i < 4; ++i) {
             DWORD range = nmetrics->ntmFontSig.fsUsb[i];
-            for (uint32_t k = 0; k < 32; ++k) {
+            for (PRUint32 k = 0; k < 32; ++k) {
                 fe->mUnicodeRanges.set(x++, (range & (1 << k)) != 0);
             }
         }
@@ -551,16 +552,16 @@ GDIFontFamily::FindStyleVariations()
 {
     if (mHasStyles)
         return;
-    mHasStyles = true;
+    mHasStyles = PR_TRUE;
 
-    HDC hdc = GetDC(nullptr);
+    HDC hdc = GetDC(nsnull);
     SetGraphicsMode(hdc, GM_ADVANCED);
 
     LOGFONTW logFont;
     memset(&logFont, 0, sizeof(LOGFONTW));
     logFont.lfCharSet = DEFAULT_CHARSET;
     logFont.lfPitchAndFamily = 0;
-    uint32_t l = NS_MIN<uint32_t>(mName.Length(), LF_FACESIZE - 1);
+    PRUint32 l = NS_MIN<PRUint32>(mName.Length(), LF_FACESIZE - 1);
     memcpy(logFont.lfFaceName,
            nsPromiseFlatString(mName).get(),
            l * sizeof(PRUnichar));
@@ -576,7 +577,7 @@ GDIFontFamily::FindStyleVariations()
     }
 #endif
 
-    ReleaseDC(nullptr, hdc);
+    ReleaseDC(nsnull, hdc);
 
     if (mIsBadUnderlineFamily)
         SetBadUnderlineFonts();
@@ -598,7 +599,7 @@ gfxGDIFontList::gfxGDIFontList()
 static void
 RemoveCharsetFromFontSubstitute(nsAString &aName)
 {
-    int32_t comma = aName.FindChar(PRUnichar(','));
+    PRInt32 comma = aName.FindChar(PRUnichar(','));
     if (comma >= 0)
         aName.Truncate(comma);
 }
@@ -623,7 +624,7 @@ gfxGDIFontList::GetFontSubstitutes()
 
     for (i = 0, rv = ERROR_SUCCESS; rv != ERROR_NO_MORE_ITEMS; i++) {
         aliasName[0] = 0;
-        lenAlias = ArrayLength(aliasName);
+        lenAlias = NS_ARRAY_LENGTH(aliasName);
         actualName[0] = 0;
         lenActual = sizeof(actualName);
         rv = RegEnumValueW(hKey, i, aliasName, &lenAlias, NULL, &valueType, 
@@ -649,23 +650,6 @@ gfxGDIFontList::GetFontSubstitutes()
             mFontSubstitutes.Put(substituteName, ff);
         } else {
             mNonExistingFonts.AppendElement(substituteName);
-        }
-    }
-
-    
-    
-    
-    nsAutoString substituteName;
-    substituteName.AssignLiteral("Courier");
-    BuildKeyNameFromFontName(substituteName);
-    if (!mFontSubstitutes.GetWeak(substituteName)) {
-        gfxFontFamily *ff;
-        nsAutoString actualFontName;
-        actualFontName.AssignLiteral("Courier New");
-        BuildKeyNameFromFontName(actualFontName);
-        ff = mFontFamilies.GetWeak(actualFontName);
-        if (ff) {
-            mFontSubstitutes.Put(substituteName, ff);
         }
     }
     return NS_OK;
@@ -743,6 +727,7 @@ gfxFontEntry*
 gfxGDIFontList::LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
                                 const nsAString& aFullname)
 {
+    bool found;
     gfxFontEntry *lookup;
 
     
@@ -751,54 +736,48 @@ gfxGDIFontList::LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
     }
 
     
-    if (!(lookup = mPostscriptNames.GetWeak(aFullname)) &&
-        !(lookup = mFullnames.GetWeak(aFullname))) 
+    if (!(lookup = mPostscriptNames.GetWeak(aFullname, &found)) &&
+        !(lookup = mFullnames.GetWeak(aFullname, &found))) 
     {
-        return nullptr;
+        return nsnull;
     }
 
+    
+    PRUint16 w = (aProxyEntry->mWeight == 0 ? 400 : aProxyEntry->mWeight);
     bool isCFF = false; 
     
     
     
     
     
-    GDIFontEntry *fe = GDIFontEntry::CreateFontEntry(lookup->Name(), 
+    gfxFontEntry *fe = GDIFontEntry::CreateFontEntry(lookup->Name(), 
         gfxWindowsFontType(isCFF ? GFX_FONT_TYPE_PS_OPENTYPE : GFX_FONT_TYPE_TRUETYPE) , 
-        lookup->mItalic ? NS_FONT_STYLE_ITALIC : NS_FONT_STYLE_NORMAL,
-        lookup->mWeight, aProxyEntry->mStretch, nullptr,
-        lookup->Family()->HasItalicFace());
+        PRUint32(aProxyEntry->mItalic ? FONT_STYLE_ITALIC : FONT_STYLE_NORMAL), 
+        w, aProxyEntry->mStretch, nsnull);
         
     if (!fe)
-        return nullptr;
+        return nsnull;
 
-    fe->mIsUserFont = true;
-    fe->mIsLocalUserFont = true;
-
-    
-    fe->mWeight = (aProxyEntry->mWeight == 0 ? 400 : aProxyEntry->mWeight);
-    fe->mItalic = aProxyEntry->mItalic;
-
+    fe->mIsUserFont = PR_TRUE;
+    fe->mIsLocalUserFont = PR_TRUE;
     return fe;
 }
 
 void gfxGDIFontList::InitializeFontEmbeddingProcs()
 {
-    static HMODULE fontlib = LoadLibraryW(L"t2embed.dll");
+    HMODULE fontlib = LoadLibraryW(L"t2embed.dll");
     if (!fontlib)
         return;
-    TTLoadEmbeddedFontPtr = (TTLoadEmbeddedFontProc)
-        GetProcAddress(fontlib, "TTLoadEmbeddedFont");
-    TTDeleteEmbeddedFontPtr = (TTDeleteEmbeddedFontProc)
-        GetProcAddress(fontlib, "TTDeleteEmbeddedFont");
+    TTLoadEmbeddedFontPtr = (TTLoadEmbeddedFontProc) GetProcAddress(fontlib, "TTLoadEmbeddedFont");
+    TTDeleteEmbeddedFontPtr = (TTDeleteEmbeddedFontProc) GetProcAddress(fontlib, "TTDeleteEmbeddedFont");
 }
 
 
 
 class EOTFontStreamReader {
 public:
-    EOTFontStreamReader(const uint8_t *aFontData, uint32_t aLength, uint8_t *aEOTHeader, 
-                           uint32_t aEOTHeaderLen, FontDataOverlay *aNameOverlay)
+    EOTFontStreamReader(const PRUint8 *aFontData, PRUint32 aLength, PRUint8 *aEOTHeader, 
+                           PRUint32 aEOTHeaderLen, FontDataOverlay *aNameOverlay)
         : mCurrentChunk(0), mChunkOffset(0)
     {
         NS_ASSERTION(aFontData, "null font data ptr passed in");
@@ -836,23 +815,23 @@ public:
     }
 
     struct FontDataChunk {
-        const uint8_t *mData;
-        uint32_t       mLength;
+        const PRUint8 *mData;
+        PRUint32       mLength;
     };
 
-    uint32_t                mNumChunks;
+    PRUint32                mNumChunks;
     FontDataChunk           mDataChunks[4];
-    uint32_t                mCurrentChunk;
-    uint32_t                mChunkOffset;
+    PRUint32                mCurrentChunk;
+    PRUint32                mChunkOffset;
 
     unsigned long Read(void *outBuffer, const unsigned long aBytesToRead)
     {
-        uint32_t bytesLeft = aBytesToRead;  
-        uint8_t *out = static_cast<uint8_t*> (outBuffer);
+        PRUint32 bytesLeft = aBytesToRead;  
+        PRUint8 *out = static_cast<PRUint8*> (outBuffer);
 
         while (mCurrentChunk < mNumChunks && bytesLeft) {
             FontDataChunk& currentChunk = mDataChunks[mCurrentChunk];
-            uint32_t bytesToCopy = NS_MIN(bytesLeft, 
+            PRUint32 bytesToCopy = NS_MIN(bytesLeft, 
                                           currentChunk.mLength - mChunkOffset);
             memcpy(out, currentChunk.mData + mChunkOffset, bytesToCopy);
             bytesLeft -= bytesToCopy;
@@ -882,41 +861,45 @@ public:
 
 gfxFontEntry* 
 gfxGDIFontList::MakePlatformFont(const gfxProxyFontEntry *aProxyEntry, 
-                                 const uint8_t *aFontData,
-                                 uint32_t aLength)
+                                 const PRUint8 *aFontData,
+                                 PRUint32 aLength)
 {
     
     
     
     struct FontDataDeleter {
-        FontDataDeleter(const uint8_t *aFontData)
+        FontDataDeleter(const PRUint8 *aFontData)
             : mFontData(aFontData) { }
         ~FontDataDeleter() { NS_Free((void*)mFontData); }
-        const uint8_t *mFontData;
+        const PRUint8 *mFontData;
     };
     FontDataDeleter autoDelete(aFontData);
+
+    
+    if (!TTLoadEmbeddedFontPtr || !TTDeleteEmbeddedFontPtr)
+        return nsnull;
 
     bool hasVertical;
     bool isCFF = gfxFontUtils::IsCffFont(aFontData, hasVertical);
 
     nsresult rv;
-    HANDLE fontRef = nullptr;
+    HANDLE fontRef = nsnull;
     bool isEmbedded = false;
 
     nsAutoString uniqueName;
     rv = gfxFontUtils::MakeUniqueUserFontName(uniqueName);
     if (NS_FAILED(rv))
-        return nullptr;
+        return nsnull;
 
     
-    if (!isCFF && TTLoadEmbeddedFontPtr && TTDeleteEmbeddedFontPtr) {
+    if (!isCFF) {
         
-        AutoFallibleTArray<uint8_t,2048> eotHeader;
-        uint8_t *buffer;
-        uint32_t eotlen;
+        AutoFallibleTArray<PRUint8,2048> eotHeader;
+        PRUint8 *buffer;
+        PRUint32 eotlen;
 
-        isEmbedded = true;
-        uint32_t nameLen = NS_MIN<uint32_t>(uniqueName.Length(), LF_FACESIZE - 1);
+        isEmbedded = PR_TRUE;
+        PRUint32 nameLen = NS_MIN<PRUint32>(uniqueName.Length(), LF_FACESIZE - 1);
         nsAutoString fontName(Substring(uniqueName, 0, nameLen));
         
         FontDataOverlay overlayNameData = {0, 0, 0};
@@ -927,20 +910,20 @@ gfxGDIFontList::MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
 
             
             eotlen = eotHeader.Length();
-            buffer = reinterpret_cast<uint8_t*> (eotHeader.Elements());
+            buffer = reinterpret_cast<PRUint8*> (eotHeader.Elements());
             
-            int32_t ret;
+            PRInt32 ret;
             ULONG privStatus, pulStatus;
             EOTFontStreamReader eotReader(aFontData, aLength, buffer, eotlen,
                                           &overlayNameData);
 
             ret = TTLoadEmbeddedFontPtr(&fontRef, TTLOAD_PRIVATE, &privStatus,
-                                        LICENSE_PREVIEWPRINT, &pulStatus,
-                                        EOTFontStreamReader::ReadEOTStream,
-                                        &eotReader,
-                                        (PRUnichar*)(fontName.get()), 0, 0);
+                                       LICENSE_PREVIEWPRINT, &pulStatus,
+                                       EOTFontStreamReader::ReadEOTStream,
+                                       &eotReader,
+                                       (PRUnichar*)(fontName.get()), 0, 0);
             if (ret != E_NONE) {
-                fontRef = nullptr;
+                fontRef = nsnull;
                 char buf[256];
                 sprintf(buf, "font (%s) not loaded using TTLoadEmbeddedFont - error %8.8x", NS_ConvertUTF16toUTF8(aProxyEntry->FamilyName()).get(), ret);
                 NS_WARNING(buf);
@@ -949,20 +932,20 @@ gfxGDIFontList::MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
     }
 
     
-    if (fontRef == nullptr) {
+    if (fontRef == nsnull) {
         
-        FallibleTArray<uint8_t> newFontData;
+        FallibleTArray<PRUint8> newFontData;
 
-        isEmbedded = false;
+        isEmbedded = PR_FALSE;
         rv = gfxFontUtils::RenameFont(uniqueName, aFontData, aLength, &newFontData);
 
         if (NS_FAILED(rv))
-            return nullptr;
+            return nsnull;
         
         DWORD numFonts = 0;
 
-        uint8_t *fontData = reinterpret_cast<uint8_t*> (newFontData.Elements());
-        uint32_t fontLength = newFontData.Length();
+        PRUint8 *fontData = reinterpret_cast<PRUint8*> (newFontData.Elements());
+        PRUint32 fontLength = newFontData.Length();
         NS_ASSERTION(fontData, "null font data after renaming");
 
         
@@ -971,36 +954,36 @@ gfxGDIFontList::MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
         fontRef = AddFontMemResourceEx(fontData, fontLength, 
                                        0 , &numFonts);
         if (!fontRef)
-            return nullptr;
+            return nsnull;
 
         
         
         
         if (fontRef && numFonts != 1 + !!hasVertical) {
             RemoveFontMemResourceEx(fontRef);
-            return nullptr;
+            return nsnull;
         }
     }
 
     
     WinUserFontData *winUserFontData = new WinUserFontData(fontRef, isEmbedded);
-    uint16_t w = (aProxyEntry->mWeight == 0 ? 400 : aProxyEntry->mWeight);
+    PRUint16 w = (aProxyEntry->mWeight == 0 ? 400 : aProxyEntry->mWeight);
 
     GDIFontEntry *fe = GDIFontEntry::CreateFontEntry(uniqueName, 
         gfxWindowsFontType(isCFF ? GFX_FONT_TYPE_PS_OPENTYPE : GFX_FONT_TYPE_TRUETYPE) , 
-        uint32_t(aProxyEntry->mItalic ? NS_FONT_STYLE_ITALIC : NS_FONT_STYLE_NORMAL), 
-        w, aProxyEntry->mStretch, winUserFontData, false);
+        PRUint32(aProxyEntry->mItalic ? FONT_STYLE_ITALIC : FONT_STYLE_NORMAL), 
+        w, aProxyEntry->mStretch, winUserFontData);
 
     if (!fe)
         return fe;
 
-    fe->mIsUserFont = true;
+    fe->mIsUserFont = PR_TRUE;
 
     
     
     if (isCFF && gfxWindowsPlatform::WindowsOSVersion() 
                  < gfxWindowsPlatform::kWindows7) {
-        fe->mForceGDI = true;
+        fe->mForceGDI = PR_TRUE;
     }
  
     return fe;
@@ -1031,7 +1014,7 @@ gfxGDIFontList::GetDefaultFont(const gfxFontStyle* aStyle, bool& aNeedsBold)
         }
     }
 
-    return nullptr;
+    return nsnull;
 }
 
 
@@ -1041,41 +1024,17 @@ gfxGDIFontList::ResolveFontName(const nsAString& aFontName, nsAString& aResolved
     nsAutoString keyName(aFontName);
     BuildKeyNameFromFontName(keyName);
 
-    gfxFontFamily *ff = mFontSubstitutes.GetWeak(keyName);
-    if (ff) {
+    nsRefPtr<gfxFontFamily> ff;
+    if (mFontSubstitutes.Get(keyName, &ff)) {
         aResolvedFontName = ff->Name();
-        return true;
+        return PR_TRUE;
     }
 
     if (mNonExistingFonts.Contains(keyName))
-        return false;
+        return PR_FALSE;
 
     if (gfxPlatformFontList::ResolveFontName(aFontName, aResolvedFontName))
-        return true;
+        return PR_TRUE;
 
-    return false;
-}
-
-void
-gfxGDIFontList::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                    FontListSizes*    aSizes) const
-{
-    gfxPlatformFontList::SizeOfExcludingThis(aMallocSizeOf, aSizes);
-    aSizes->mFontListSize +=
-        mFontSubstitutes.SizeOfExcludingThis(SizeOfFamilyNameEntryExcludingThis,
-                                             aMallocSizeOf);
-    aSizes->mFontListSize +=
-        mNonExistingFonts.SizeOfExcludingThis(aMallocSizeOf);
-    for (uint32_t i = 0; i < mNonExistingFonts.Length(); ++i) {
-        aSizes->mFontListSize +=
-            mNonExistingFonts[i].SizeOfExcludingThisIfUnshared(aMallocSizeOf);
-    }
-}
-
-void
-gfxGDIFontList::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                    FontListSizes*    aSizes) const
-{
-    aSizes->mFontListSize += aMallocSizeOf(this);
-    SizeOfExcludingThis(aMallocSizeOf, aSizes);
+    return PR_FALSE;
 }

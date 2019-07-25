@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "TestCommon.h"
 #include <stdio.h>
 #ifdef WIN32 
@@ -20,7 +52,6 @@
 #include "nsIInterfaceRequestor.h" 
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIDNSService.h" 
-#include "mozilla/Attributes.h"
 
 #include "nsISimpleEnumerator.h"
 #include "nsNetUtil.h"
@@ -29,7 +60,7 @@
 static NS_DEFINE_CID(kIOServiceCID,              NS_IOSERVICE_CID);
 
 static bool gError = false;
-static int32_t gKeepRunning = 0;
+static PRInt32 gKeepRunning = 0;
 
 #define NS_IEQUALS_IID \
     { 0x11c5c8ee, 0x1dd2, 0x11b2, \
@@ -43,15 +74,15 @@ public:
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIEquals, NS_IEQUALS_IID)
 
-class ConsumerContext MOZ_FINAL : public nsIEquals {
+class ConsumerContext : public nsIEquals {
 public:
     NS_DECL_ISUPPORTS
 
     ConsumerContext() { }
 
     NS_IMETHOD Equals(void *aPtr, bool *_retval) {
-        *_retval = true;
-        if (aPtr != this) *_retval = false;
+        *_retval = PR_TRUE;
+        if (aPtr != this) *_retval = PR_FALSE;
         return NS_OK;
     };
 };
@@ -72,7 +103,7 @@ public:
     
     bool    mOnStart; 
     bool    mOnStop;  
-    int32_t mOnDataCount; 
+    PRInt32 mOnDataCount; 
     nsCOMPtr<nsIURI>     mURI;
     nsCOMPtr<nsIChannel> mChannel;
     nsCOMPtr<nsIEquals>  mContext;
@@ -90,7 +121,7 @@ Consumer::OnStartRequest(nsIRequest *request, nsISupports* aContext) {
     if (mOnStart) {
         fprintf(stderr, "INFO: multiple OnStarts received\n");
     }
-    mOnStart = true;
+    mOnStart = PR_TRUE;
 
     nsresult rv = Validate(request, aContext);
     if (NS_FAILED(rv)) return rv;
@@ -105,7 +136,7 @@ Consumer::OnStopRequest(nsIRequest *request, nsISupports *aContext,
     fprintf(stderr, "Consumer::OnStop() -> in\n\n");
 
     if (!mOnStart) {
-        gError = true;
+        gError = PR_TRUE;
         fprintf(stderr, "ERROR: No OnStart received\n");
     }
 
@@ -115,7 +146,7 @@ Consumer::OnStopRequest(nsIRequest *request, nsISupports *aContext,
 
     fprintf(stderr, "INFO: received %d OnData()s\n", mOnDataCount);
 
-    mOnStop = true;
+    mOnStop = PR_TRUE;
 
     nsresult rv = Validate(request, aContext);
     if (NS_FAILED(rv)) return rv;
@@ -129,11 +160,11 @@ Consumer::OnStopRequest(nsIRequest *request, nsISupports *aContext,
 NS_IMETHODIMP
 Consumer::OnDataAvailable(nsIRequest *request, nsISupports *aContext,
                           nsIInputStream *aIStream,
-                          uint64_t aOffset, uint32_t aLength) {
+                          PRUint32 aOffset, PRUint32 aLength) {
     fprintf(stderr, "Consumer::OnData() -> in\n\n");
 
     if (!mOnStart) {
-        gError = true;
+        gError = PR_TRUE;
         fprintf(stderr, "ERROR: No OnStart received\n");
     }
 
@@ -148,7 +179,7 @@ Consumer::OnDataAvailable(nsIRequest *request, nsISupports *aContext,
 
 
 Consumer::Consumer() {
-    mOnStart = mOnStop = false;
+    mOnStart = mOnStop = PR_FALSE;
     mOnDataCount = 0;
     gKeepRunning++;
 }
@@ -157,12 +188,12 @@ Consumer::~Consumer() {
     fprintf(stderr, "Consumer::~Consumer -> in\n\n");
 
     if (!mOnStart) {
-        gError = true;
+        gError = PR_TRUE;
         fprintf(stderr, "ERROR: Never got an OnStart\n");
     }
 
     if (!mOnStop) {
-        gError = true;
+        gError = PR_TRUE;
         fprintf(stderr, "ERROR: Never got an OnStop \n");
     }
 
@@ -200,7 +231,7 @@ Consumer::Validate(nsIRequest* request, nsISupports *aContext) {
     if (NS_FAILED(rv)) return rv;
 
     if (!same) {
-        gError = true;
+        gError = PR_TRUE;
         fprintf(stderr, "ERROR: Contexts do not match\n");
     }
     return rv;
@@ -217,27 +248,27 @@ int main(int argc, char *argv[]) {
 
     if (argc > 1) {
         
-        cmdLineURL = true;
+        cmdLineURL = PR_TRUE;
     }
 
-    rv = NS_InitXPCOM2(nullptr, nullptr, nullptr);
-    if (NS_FAILED(rv)) return -1;
+    rv = NS_InitXPCOM2(nsnull, nsnull, nsnull);
+    if (NS_FAILED(rv)) return rv;
 
     if (cmdLineURL) {
         rv = StartLoad(argv[1]);
     } else {
         rv = StartLoad("http://badhostnamexyz/test.txt");
     }
-    if (NS_FAILED(rv)) return -1;
+    if (NS_FAILED(rv)) return rv;
 
     
     PumpEvents();
 
-    NS_ShutdownXPCOM(nullptr);
+    NS_ShutdownXPCOM(nsnull);
     if (gError) {
         fprintf(stderr, "\n\n-------ERROR-------\n\n");
     }
-    return 0;
+    return rv;
 }
 
 nsresult StartLoad(const char *aURISpec) {

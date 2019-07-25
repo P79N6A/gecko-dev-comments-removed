@@ -10,26 +10,56 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsImageLoadingContent_h__
 #define nsImageLoadingContent_h__
 
-#include "imgIContainerObserver.h"
-#include "imgIDecoderObserver.h"
-#include "imgIOnloadBlocker.h"
-#include "mozilla/CORSMode.h"
+#include "nsIImageLoadingContent.h"
+#include "nsINode.h"
+#include "imgIRequest.h"
+#include "prtypes.h"
 #include "nsCOMPtr.h"
 #include "nsContentUtils.h" 
+#include "nsString.h"
 #include "nsEventStates.h"
-#include "nsIImageLoadingContent.h"
-#include "nsIRequest.h"
 
 class nsIURI;
 class nsIDocument;
 class imgILoader;
 class nsIIOService;
 
-class nsImageLoadingContent : public nsIImageLoadingContent,
-                              public imgIOnloadBlocker
+class nsImageLoadingContent : public nsIImageLoadingContent
 {
   
 public:
@@ -39,7 +69,25 @@ public:
   NS_DECL_IMGICONTAINEROBSERVER
   NS_DECL_IMGIDECODEROBSERVER
   NS_DECL_NSIIMAGELOADINGCONTENT
-  NS_DECL_IMGIONLOADBLOCKER
+
+  enum CORSMode {
+    
+
+
+    CORS_NONE,
+
+    
+
+
+
+    CORS_ANONYMOUS,
+
+    
+
+
+
+    CORS_USE_CREDENTIALS
+  };
 
 protected:
   
@@ -86,7 +134,7 @@ protected:
 
 
   nsresult LoadImage(nsIURI* aNewURI, bool aForce, bool aNotify,
-                     nsIDocument* aDocument = nullptr,
+                     nsIDocument* aDocument = nsnull,
                      nsLoadFlags aLoadFlags = nsIRequest::LOAD_NORMAL);
 
   
@@ -96,8 +144,7 @@ protected:
 
 
 
-  nsIDocument* GetOurOwnerDoc();
-  nsIDocument* GetOurCurrentDoc();
+  nsIDocument* GetOurDocument();
 
   
 
@@ -142,7 +189,7 @@ protected:
 
   void DestroyImageLoadingContent();
 
-  void ClearBrokenState() { mBroken = false; }
+  void ClearBrokenState() { mBroken = PR_FALSE; }
 
   bool LoadingEnabled() { return mLoadingEnabled; }
 
@@ -154,12 +201,7 @@ protected:
 
 
 
-  virtual mozilla::CORSMode GetCORSMode();
-
-  
-  void BindToTree(nsIDocument* aDocument, nsIContent* aParent,
-                  nsIContent* aBindingParent, bool aCompileEventHandlers);
-  void UnbindFromTree(bool aDeep, bool aNullParent);
+  virtual CORSMode GetCORSMode();
 
 private:
   
@@ -168,7 +210,7 @@ private:
   struct ImageObserver {
     ImageObserver(imgIDecoderObserver* aObserver) :
       mObserver(aObserver),
-      mNext(nullptr)
+      mNext(nsnull)
     {
       MOZ_COUNT_CTOR(ImageObserver);
     }
@@ -225,7 +267,7 @@ private:
 
 
   void CancelImageRequests(nsresult aReason, bool aEvenIfSizeAvailable,
-                           int16_t aNewImageStatus);
+                           PRInt16 aNewImageStatus);
 
   
 
@@ -260,7 +302,7 @@ protected:
 
 
 
-  void SetBlockedRequest(nsIURI* aURI, int16_t aContentDecision);
+  void SetBlockedRequest(nsIURI* aURI, PRInt16 aContentDecision);
 
   
 
@@ -271,12 +313,6 @@ protected:
 
   nsCOMPtr<imgIRequest>& PrepareCurrentRequest();
   nsCOMPtr<imgIRequest>& PreparePendingRequest();
-
-  
-
-
-
-  void MakePendingRequestCurrent();
 
   
 
@@ -298,12 +334,6 @@ protected:
 
 
 
-  void ResetAnimationIfNeeded();
-
-  
-
-
-
   static bool HaveSize(imgIRequest *aImage);
 
   
@@ -317,16 +347,6 @@ protected:
   
   nsCOMPtr<imgIRequest> mCurrentRequest;
   nsCOMPtr<imgIRequest> mPendingRequest;
-  uint32_t mCurrentRequestFlags;
-  uint32_t mPendingRequestFlags;
-
-  enum {
-    
-    REQUEST_NEEDS_ANIMATION_RESET = 0x00000001U,
-    
-    
-    REQUEST_SHOULD_BE_TRACKED = 0x00000002U
-  };
 
   
   
@@ -351,7 +371,7 @@ private:
 
   nsEventStates mForcedImageState;
 
-  int16_t mImageBlockingStatus;
+  PRInt16 mImageBlockingStatus;
   bool mLoadingEnabled : 1;
 
   
@@ -368,6 +388,11 @@ private:
   bool mUserDisabled : 1;
   bool mSuppressed : 1;
 
+  
+
+
+  bool mBlockingOnload : 1;
+
 protected:
   
 
@@ -380,8 +405,11 @@ protected:
   bool mNewRequestsWillNeedAnimationReset : 1;
 
 private:
+  bool mPendingRequestNeedsResetAnimation : 1;
+  bool mCurrentRequestNeedsResetAnimation : 1;
+
   
-  uint8_t mStateChangerDepth;
+  PRUint8 mStateChangerDepth;
 
   
   

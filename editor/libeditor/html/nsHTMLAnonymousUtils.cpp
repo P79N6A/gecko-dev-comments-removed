@@ -2,60 +2,70 @@
 
 
 
-#include "mozilla/Attributes.h"
-#include "mozilla/dom/Element.h"
-#include "mozilla/mozalloc.h"
-#include "nsAString.h"
-#include "nsAutoPtr.h"
-#include "nsCOMPtr.h"
-#include "nsComputedDOMStyle.h"
-#include "nsContentUtils.h"
-#include "nsDebug.h"
-#include "nsEditProperty.h"
-#include "nsError.h"
-#include "nsHTMLCSSUtils.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsHTMLEditor.h"
-#include "nsIAtom.h"
+
 #include "nsIContent.h"
-#include "nsID.h"
+#include "nsIDocument.h"
+#include "nsIEditor.h"
+#include "nsIPresShell.h"
+#include "nsPresContext.h"
+
+#include "nsISelection.h"
+
+#include "nsTextEditUtils.h"
+#include "nsEditorUtils.h"
+#include "nsHTMLEditUtils.h"
+#include "nsTextEditRules.h"
+
+#include "nsIDOMHTMLElement.h"
+#include "nsIDOMNSHTMLElement.h"
+#include "nsIDOMEventTarget.h"
+
+#include "nsIDOMCSSValue.h"
 #include "nsIDOMCSSPrimitiveValue.h"
 #include "nsIDOMCSSStyleDeclaration.h"
-#include "nsIDOMCSSValue.h"
-#include "nsIDOMElement.h"
-#include "nsIDOMEventTarget.h"
-#include "nsIDOMHTMLElement.h"
-#include "nsIDOMNode.h"
-#include "nsIDOMWindow.h"
-#include "nsIDocument.h"
-#include "nsIDocumentObserver.h"
-#include "nsIHTMLAbsPosEditor.h"
-#include "nsIHTMLEditor.h"
-#include "nsIHTMLInlineTableEditor.h"
-#include "nsIHTMLObjectResizer.h"
 #include "nsIMutationObserver.h"
-#include "nsINode.h"
-#include "nsIPresShell.h"
-#include "nsISupportsImpl.h"
-#include "nsISupportsUtils.h"
-#include "nsLiteralString.h"
-#include "nsPresContext.h"
-#include "nsReadableUtils.h"
-#include "nsString.h"
-#include "nsStringFwd.h"
 #include "nsUnicharUtils.h"
-#include "nscore.h"
-#include "prtypes.h"
-
-class nsIDOMEventListener;
-class nsISelection;
-
-using namespace mozilla;
+#include "nsContentUtils.h"
 
 
-static int32_t GetCSSFloatValue(nsIDOMCSSStyleDeclaration * aDecl,
+static PRInt32 GetCSSFloatValue(nsIDOMCSSStyleDeclaration * aDecl,
                                 const nsAString & aProperty)
 {
-  MOZ_ASSERT(aDecl);
+  NS_ENSURE_ARG_POINTER(aDecl);
 
   nsCOMPtr<nsIDOMCSSValue> value;
   
@@ -65,7 +75,7 @@ static int32_t GetCSSFloatValue(nsIDOMCSSStyleDeclaration * aDecl,
   
   
   nsCOMPtr<nsIDOMCSSPrimitiveValue> val = do_QueryInterface(value);
-  uint16_t type;
+  PRUint16 type;
   val->GetPrimitiveType(&type);
 
   float f = 0;
@@ -90,10 +100,10 @@ static int32_t GetCSSFloatValue(nsIDOMCSSStyleDeclaration * aDecl,
     }
   }
 
-  return (int32_t) f;
+  return (PRInt32) f;
 }
 
-class nsElementDeletionObserver MOZ_FINAL : public nsIMutationObserver
+class nsElementDeletionObserver : public nsIMutationObserver
 {
 public:
   nsElementDeletionObserver(nsINode* aNativeAnonNode, nsINode* aObservedNode)
@@ -134,12 +144,15 @@ nsHTMLEditor::CreateAnonymousElement(const nsAString & aTag, nsIDOMNode *  aPare
 {
   NS_ENSURE_ARG_POINTER(aParentNode);
   NS_ENSURE_ARG_POINTER(aReturn);
-  *aReturn = nullptr;
+  *aReturn = nsnull;
 
   nsCOMPtr<nsIContent> parentContent( do_QueryInterface(aParentNode) );
   NS_ENSURE_TRUE(parentContent, NS_OK);
 
-  nsCOMPtr<nsIDocument> doc = GetDocument();
+  
+  nsCOMPtr<nsIDOMDocument> domDoc;
+  GetDocument(getter_AddRefs(domDoc));
+  nsCOMPtr<nsIDocument> doc = do_QueryInterface(domDoc);
   NS_ENSURE_TRUE(doc, NS_ERROR_NULL_POINTER);
 
   
@@ -147,7 +160,7 @@ nsHTMLEditor::CreateAnonymousElement(const nsAString & aTag, nsIDOMNode *  aPare
   NS_ENSURE_TRUE(ps, NS_ERROR_NOT_INITIALIZED);
 
   
-  nsCOMPtr<dom::Element> newContent;
+  nsCOMPtr<nsIContent> newContent;
   nsresult res = CreateHTMLContent(aTag, getter_AddRefs(newContent));
   NS_ENSURE_SUCCESS(res, res);
 
@@ -173,7 +186,7 @@ nsHTMLEditor::CreateAnonymousElement(const nsAString & aTag, nsIDOMNode *  aPare
 
     
     newContent->SetNativeAnonymous();
-    res = newContent->BindToTree(doc, parentContent, parentContent, true);
+    res = newContent->BindToTree(doc, parentContent, parentContent, PR_TRUE);
     if (NS_FAILED(res)) {
       newContent->UnbindFromTree();
       return res;
@@ -182,6 +195,10 @@ nsHTMLEditor::CreateAnonymousElement(const nsAString & aTag, nsIDOMNode *  aPare
 
   nsElementDeletionObserver* observer =
     new nsElementDeletionObserver(newContent, parentContent);
+  if (!observer) {
+    newContent->UnbindFromTree();
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
   NS_ADDREF(observer); 
   parentContent->AddMutationObserver(observer);
   newContent->AddMutationObserver(observer);
@@ -189,7 +206,8 @@ nsHTMLEditor::CreateAnonymousElement(const nsAString & aTag, nsIDOMNode *  aPare
   
   ps->RecreateFramesFor(newContent);
 
-  newElement.forget(aReturn);
+  *aReturn = newElement;
+  NS_IF_ADDREF(*aReturn);
   return NS_OK;
 }
 
@@ -232,13 +250,12 @@ nsHTMLEditor::DeleteRefToAnonymousNode(nsIDOMElement* aElement,
         if (docObserver) {
           
           
-          nsCOMPtr<nsIDocument> document = GetDocument();
+          nsCOMPtr<nsIDOMDocument> domDocument;
+          GetDocument(getter_AddRefs(domDocument));
+          nsCOMPtr<nsIDocument> document = do_QueryInterface(domDocument);
           if (document)
             docObserver->BeginUpdate(document, UPDATE_CONTENT_MODEL);
 
-          
-          
-          
           docObserver->ContentRemoved(content->GetCurrentDoc(),
                                       aParentContent, content, -1,
                                       content->GetPreviousSibling());
@@ -277,13 +294,6 @@ nsHTMLEditor::CheckSelectionStateForAnonymousButtons(nsISelection * aSelection)
   NS_ENSURE_SUCCESS(res, res);
 
   
-  nsCOMPtr<dom::Element> focusElementNode = do_QueryInterface(focusElement);
-  NS_ENSURE_STATE(focusElementNode);
-  if (!focusElementNode->IsInDoc()) {
-    return NS_OK;
-  }
-
-  
   nsAutoString focusTagName;
   res = focusElement->GetTagName(focusTagName);
   NS_ENSURE_SUCCESS(res, res);
@@ -303,7 +313,7 @@ nsHTMLEditor::CheckSelectionStateForAnonymousButtons(nsISelection * aSelection)
     
     
     res = GetElementOrParentByTagName(NS_LITERAL_STRING("td"),
-                                      nullptr,
+                                      nsnull,
                                       getter_AddRefs(cellElement));
     NS_ENSURE_SUCCESS(res, res);
   }
@@ -364,7 +374,7 @@ nsHTMLEditor::CheckSelectionStateForAnonymousButtons(nsISelection * aSelection)
   if (mIsObjectResizingEnabled && focusElement &&
       IsModifiableNode(focusElement) && focusElement != hostNode) {
     if (nsEditProperty::img == focusTagAtom)
-      mResizedObjectIsAnImage = true;
+      mResizedObjectIsAnImage = PR_TRUE;
     if (mResizedObject)
       res = RefreshResizers();
     else
@@ -396,12 +406,12 @@ nsHTMLEditor::CheckSelectionStateForAnonymousButtons(nsISelection * aSelection)
 
 nsresult
 nsHTMLEditor::GetPositionAndDimensions(nsIDOMElement * aElement,
-                                       int32_t & aX, int32_t & aY,
-                                       int32_t & aW, int32_t & aH,
-                                       int32_t & aBorderLeft,
-                                       int32_t & aBorderTop,
-                                       int32_t & aMarginLeft,
-                                       int32_t & aMarginTop)
+                                       PRInt32 & aX, PRInt32 & aY,
+                                       PRInt32 & aW, PRInt32 & aH,
+                                       PRInt32 & aBorderLeft,
+                                       PRInt32 & aBorderTop,
+                                       PRInt32 & aMarginLeft,
+                                       PRInt32 & aMarginTop)
 {
   NS_ENSURE_ARG_POINTER(aElement);
 
@@ -419,12 +429,16 @@ nsHTMLEditor::GetPositionAndDimensions(nsIDOMElement * aElement,
 
   if (isPositioned) {
     
-    mResizedObjectIsAbsolutelyPositioned = true;
+    mResizedObjectIsAbsolutelyPositioned = PR_TRUE;
 
+    nsCOMPtr<nsIDOMWindow> window;
+    res = mHTMLCSSUtils->GetDefaultViewCSS(aElement, getter_AddRefs(window));
+    NS_ENSURE_TRUE(window, NS_ERROR_FAILURE);
+
+    nsCOMPtr<nsIDOMCSSStyleDeclaration> cssDecl;
     
-    nsRefPtr<nsComputedDOMStyle> cssDecl =
-      mHTMLCSSUtils->GetComputedStyle(aElement);
-    NS_ENSURE_STATE(cssDecl);
+    res = window->GetComputedStyle(aElement, EmptyString(), getter_AddRefs(cssDecl));
+    NS_ENSURE_SUCCESS(res, res);
 
     aBorderLeft = GetCSSFloatValue(cssDecl, NS_LITERAL_STRING("border-left-width"));
     aBorderTop  = GetCSSFloatValue(cssDecl, NS_LITERAL_STRING("border-top-width"));
@@ -439,16 +453,15 @@ nsHTMLEditor::GetPositionAndDimensions(nsIDOMElement * aElement,
     aH = GetCSSFloatValue(cssDecl, NS_LITERAL_STRING("height"));
   }
   else {
-    mResizedObjectIsAbsolutelyPositioned = false;
-    nsCOMPtr<nsIDOMHTMLElement> htmlElement = do_QueryInterface(aElement);
-    if (!htmlElement) {
-      return NS_ERROR_NULL_POINTER;
-    }
+    mResizedObjectIsAbsolutelyPositioned = PR_FALSE;
+    nsCOMPtr<nsIDOMNSHTMLElement> nsElement = do_QueryInterface(aElement);
+    if (!nsElement) {return NS_ERROR_NULL_POINTER; }
+
     GetElementOrigin(aElement, aX, aY);
 
-    res = htmlElement->GetOffsetWidth(&aW);
+    res = nsElement->GetOffsetWidth(&aW);
     NS_ENSURE_SUCCESS(res, res);
-    res = htmlElement->GetOffsetHeight(&aH);
+    res = nsElement->GetOffsetHeight(&aH);
 
     aBorderLeft = 0;
     aBorderTop  = 0;
@@ -460,7 +473,7 @@ nsHTMLEditor::GetPositionAndDimensions(nsIDOMElement * aElement,
 
 
 void
-nsHTMLEditor::SetAnonymousElementPosition(int32_t aX, int32_t aY, nsIDOMElement *aElement)
+nsHTMLEditor::SetAnonymousElementPosition(PRInt32 aX, PRInt32 aY, nsIDOMElement *aElement)
 {
   mHTMLCSSUtils->SetCSSPropertyPixels(aElement, NS_LITERAL_STRING("left"), aX);
   mHTMLCSSUtils->SetCSSPropertyPixels(aElement, NS_LITERAL_STRING("top"), aY);

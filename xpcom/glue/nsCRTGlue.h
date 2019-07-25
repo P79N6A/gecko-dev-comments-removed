@@ -2,6 +2,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsCRTGlue_h__
 #define nsCRTGlue_h__
 
@@ -40,7 +74,7 @@ NS_strtok(const char *delims, char **str);
 
 
 
-NS_COM_GLUE uint32_t
+NS_COM_GLUE PRUint32
 NS_strlen(const PRUnichar *aString);
 
 
@@ -66,7 +100,7 @@ NS_strdup(const char *aString);
 
 
 NS_COM_GLUE PRUnichar*
-NS_strndup(const PRUnichar *aString, uint32_t aLen);
+NS_strndup(const PRUnichar *aString, PRUint32 aLen);
 
 
 
@@ -97,11 +131,7 @@ NS_COM_GLUE bool NS_IsAsciiAlpha(PRUnichar aChar);
 NS_COM_GLUE bool NS_IsAsciiDigit(PRUnichar aChar);
 NS_COM_GLUE bool NS_IsAsciiWhitespace(PRUnichar aChar);
 NS_COM_GLUE bool NS_IsAscii(const char* aString);
-NS_COM_GLUE bool NS_IsAscii(const char* aString, uint32_t aLength);
-
-#ifndef XPCOM_GLUE_AVOID_NSPR
-NS_COM_GLUE void NS_MakeRandomString(char *buf, int32_t bufLen);
-#endif
+NS_COM_GLUE bool NS_IsAscii(const char* aString, PRUint32 aLength);
 
 #define FF '\f'
 #define TAB '\t'

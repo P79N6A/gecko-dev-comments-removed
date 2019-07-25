@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "TestHarness.h"
 
 #include "nsIFactory.h"
@@ -15,7 +47,6 @@
 #include "nsThreadUtils.h"
 #include "nsXPCOMCIDInternal.h"
 #include "prmon.h"
-#include "mozilla/Attributes.h"
 
 #include "mozilla/ReentrantMonitor.h"
 using namespace mozilla;
@@ -55,10 +86,10 @@ NS_DEFINE_CID(kFactoryCID2, FACTORY_CID2);
 #define FACTORY_CONTRACTID                           \
   "TestRacingThreadManager/factory;1"
 
-int32_t gComponent1Count = 0;
-int32_t gComponent2Count = 0;
+PRInt32 gComponent1Count = 0;
+PRInt32 gComponent2Count = 0;
 
-ReentrantMonitor* gReentrantMonitor = nullptr;
+ReentrantMonitor* gReentrantMonitor = nsnull;
 
 bool gCreateInstanceCalled = false;
 bool gMainThreadWaiting = false;
@@ -76,7 +107,7 @@ public:
   ~AutoCreateAndDestroyReentrantMonitor() {
     if (*mReentrantMonitorPtr) {
       delete *mReentrantMonitorPtr;
-      *mReentrantMonitorPtr = nullptr;
+      *mReentrantMonitorPtr = nsnull;
     }
   }
 
@@ -84,12 +115,12 @@ private:
   ReentrantMonitor** mReentrantMonitorPtr;
 };
 
-class Factory MOZ_FINAL : public nsIFactory
+class Factory : public nsIFactory
 {
 public:
   NS_DECL_ISUPPORTS
 
-  Factory() : mFirstComponentCreated(false) { }
+  Factory() : mFirstComponentCreated(PR_FALSE) { }
 
   NS_IMETHOD CreateInstance(nsISupports* aDelegate,
                             const nsIID& aIID,
@@ -104,14 +135,14 @@ public:
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(Factory, nsIFactory)
 
-class Component1 MOZ_FINAL : public nsISupports
+class Component1 : public nsISupports
 {
 public:
   NS_DECL_ISUPPORTS
 
   Component1() {
     
-    int32_t count = PR_AtomicIncrement(&gComponent1Count);
+    PRInt32 count = PR_AtomicIncrement(&gComponent1Count);
     TEST_ASSERTION(count == 1, "Too many components created!");
   }
 };
@@ -124,14 +155,14 @@ NS_INTERFACE_MAP_BEGIN(Component1)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-class Component2 MOZ_FINAL : public nsISupports
+class Component2 : public nsISupports
 {
 public:
   NS_DECL_ISUPPORTS
 
   Component2() {
     
-    int32_t count = PR_AtomicIncrement(&gComponent2Count);
+    PRInt32 count = PR_AtomicIncrement(&gComponent2Count);
     TEST_ASSERTION(count == 1, "Too many components created!");
   }
 };
@@ -156,7 +187,7 @@ Factory::CreateInstance(nsISupports* aDelegate,
   {
     ReentrantMonitorAutoEnter mon(*gReentrantMonitor);
 
-    gCreateInstanceCalled = true;
+    gCreateInstanceCalled = PR_TRUE;
     mon.Notify();
 
     mon.Wait(PR_MillisecondsToInterval(3000));
@@ -186,7 +217,7 @@ class Runnable : public nsRunnable
 public:
   NS_DECL_NSIRUNNABLE
 
-  Runnable() : mFirstRunnableDone(false) { }
+  Runnable() : mFirstRunnableDone(PR_FALSE) { }
 
   bool mFirstRunnableDone;
 };
@@ -267,7 +298,7 @@ int main(int argc, char** argv)
   {
     ReentrantMonitorAutoEnter mon(*gReentrantMonitor);
 
-    gMainThreadWaiting = true;
+    gMainThreadWaiting = PR_TRUE;
     mon.Notify();
 
     while (!gCreateInstanceCalled) {
@@ -279,9 +310,9 @@ int main(int argc, char** argv)
   NS_ENSURE_SUCCESS(rv, 1);
 
   
-  gMainThreadWaiting = gCreateInstanceCalled = false;
-  gFactory->mFirstComponentCreated = runnable->mFirstRunnableDone = true;
-  component = nullptr;
+  gMainThreadWaiting = gCreateInstanceCalled = PR_FALSE;
+  gFactory->mFirstComponentCreated = runnable->mFirstRunnableDone = PR_TRUE;
+  component = nsnull;
 
   rv = newThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
   NS_ENSURE_SUCCESS(rv, 1);
@@ -289,7 +320,7 @@ int main(int argc, char** argv)
   {
     ReentrantMonitorAutoEnter mon(*gReentrantMonitor);
 
-    gMainThreadWaiting = true;
+    gMainThreadWaiting = PR_TRUE;
     mon.Notify();
 
     while (!gCreateInstanceCalled) {

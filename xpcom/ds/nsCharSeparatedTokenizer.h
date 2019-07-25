@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __nsCharSeparatedTokenizer_h
 #define __nsCharSeparatedTokenizer_h
 
@@ -39,10 +72,10 @@ public:
 
     nsCharSeparatedTokenizerTemplate(const nsSubstring& aSource,
                                      PRUnichar aSeparatorChar,
-                                     uint32_t  aFlags = 0)
-        : mFirstTokenBeganWithWhitespace(false),
-          mLastTokenEndedWithWhitespace(false),
-          mLastTokenEndedWithSeparator(false),
+                                     PRUint32  aFlags = 0)
+        : mFirstTokenBeganWithWhitespace(PR_FALSE),
+          mLastTokenEndedWithWhitespace(PR_FALSE),
+          mLastTokenEndedWithSeparator(PR_FALSE),
           mSeparatorChar(aSeparatorChar),
           mFlags(aFlags)
     {
@@ -51,7 +84,7 @@ public:
 
         
         while (mIter != mEnd && IsWhitespace(*mIter)) {
-            mFirstTokenBeganWithWhitespace = true;
+            mFirstTokenBeganWithWhitespace = PR_TRUE;
             ++mIter;
         }
     }
@@ -103,9 +136,9 @@ public:
           end = mIter;
 
           
-          mLastTokenEndedWithWhitespace = false;
+          mLastTokenEndedWithWhitespace = PR_FALSE;
           while (mIter != mEnd && IsWhitespace(*mIter)) {
-              mLastTokenEndedWithWhitespace = true;
+              mLastTokenEndedWithWhitespace = PR_TRUE;
               ++mIter;
           }
           if (mFlags & SEPARATOR_OPTIONAL) {
@@ -141,7 +174,7 @@ private:
     bool mLastTokenEndedWithWhitespace;
     bool mLastTokenEndedWithSeparator;
     PRUnichar mSeparatorChar;
-    uint32_t  mFlags;
+    PRUint32  mFlags;
 };
 
 class nsCharSeparatedTokenizer: public nsCharSeparatedTokenizerTemplate<>
@@ -149,7 +182,7 @@ class nsCharSeparatedTokenizer: public nsCharSeparatedTokenizerTemplate<>
 public:
     nsCharSeparatedTokenizer(const nsSubstring& aSource,
                              PRUnichar aSeparatorChar,
-                             uint32_t  aFlags = 0)
+                             PRUint32  aFlags = 0)
       : nsCharSeparatedTokenizerTemplate<>(aSource, aSeparatorChar, aFlags)
     {
     }

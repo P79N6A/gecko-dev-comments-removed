@@ -3,14 +3,48 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGPATHELEMENT_H__
 #define __NS_SVGPATHELEMENT_H__
 
-#include "nsIDOMSVGAnimatedPathData.h"
-#include "nsIDOMSVGPathElement.h"
-#include "nsSVGNumber2.h"
 #include "nsSVGPathGeometryElement.h"
+#include "nsIDOMSVGPathElement.h"
+#include "nsIDOMSVGAnimatedPathData.h"
+#include "nsSVGNumber2.h"
 #include "SVGAnimatedPathSegList.h"
+#include "gfxPath.h"
 
 class gfxContext;
 
@@ -44,9 +78,6 @@ public:
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* name) const;
 
   
-  virtual bool HasValidDimensions() const;
-
-  
   virtual bool AttributeDefinesGeometry(const nsIAtom *aName);
   virtual bool IsMarkable();
   virtual void GetMarkPoints(nsTArray<nsSVGMark> *aMarks);
@@ -59,8 +90,6 @@ public:
 
   virtual nsXPCClassInfo* GetClassInfo();
 
-  virtual nsIDOMNode* AsDOMNode() { return this; }
-
   virtual SVGAnimatedPathSegList* GetAnimPathSegList() {
     return &mD;
   }
@@ -69,17 +98,7 @@ public:
     return nsGkAtoms::d;
   }
 
-  enum PathLengthScaleForType {
-    eForTextPath,
-    eForStroking
-  };
-
-  
-
-
-
-
-  gfxFloat GetPathLengthScale(PathLengthScaleForType aFor);
+  gfxFloat GetScale();
 
 protected:
 

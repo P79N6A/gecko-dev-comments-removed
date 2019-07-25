@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsXBLProtoImplMethod_h__
 #define nsXBLProtoImplMethod_h__
 
@@ -12,7 +45,6 @@
 #include "nsIContent.h"
 #include "nsString.h"
 #include "nsXBLProtoImplMember.h"
-#include "nsXBLSerialize.h"
 
 struct nsXBLParameter {
   nsXBLParameter* mNext;
@@ -21,7 +53,7 @@ struct nsXBLParameter {
   nsXBLParameter(const nsAString& aName) {
     MOZ_COUNT_CTOR(nsXBLParameter);
     mName = ToNewCString(aName);
-    mNext = nullptr;
+    mNext = nsnull;
   }
 
   ~nsXBLParameter() {
@@ -37,8 +69,8 @@ struct nsXBLUncompiledMethod {
   nsXBLTextWithLineNumber mBodyText;
 
   nsXBLUncompiledMethod() :
-    mParameters(nullptr),
-    mLastParameter(nullptr),
+    mParameters(nsnull),
+    mLastParameter(nsnull),
     mBodyText()
   {
     MOZ_COUNT_CTOR(nsXBLUncompiledMethod);
@@ -49,8 +81,8 @@ struct nsXBLUncompiledMethod {
     delete mParameters;
   }
 
-  int32_t GetParameterCount() {
-    int32_t result = 0;
+  PRInt32 GetParameterCount() {
+    PRInt32 result = 0;
     for (nsXBLParameter* curr = mParameters; curr; curr=curr->mNext)
       result++;
     return result;
@@ -71,7 +103,7 @@ struct nsXBLUncompiledMethod {
     mLastParameter = param;
   }
 
-  void SetLineNumber(uint32_t aLineNumber) {
+  void SetLineNumber(PRUint32 aLineNumber) {
     mBodyText.SetLineNumber(aLineNumber);
   }
 };
@@ -85,21 +117,18 @@ public:
   void AppendBodyText(const nsAString& aBody);
   void AddParameter(const nsAString& aName);
 
-  void SetLineNumber(uint32_t aLineNumber);
+  void SetLineNumber(PRUint32 aLineNumber);
   
   virtual nsresult InstallMember(nsIScriptContext* aContext,
                                  nsIContent* aBoundElement, 
-                                 JSObject* aScriptObject,
-                                 JSObject* aTargetClassObject,
+                                 void* aScriptObject,
+                                 void* aTargetClassObject,
                                  const nsCString& aClassStr);
   virtual nsresult CompileMember(nsIScriptContext* aContext,
                                  const nsCString& aClassStr,
-                                 JSObject* aClassObject);
+                                 void* aClassObject);
 
   virtual void Trace(TraceCallback aCallback, void *aClosure) const;
-
-  nsresult Read(nsIScriptContext* aContext, nsIObjectInputStream* aStream);
-  virtual nsresult Write(nsIScriptContext* aContext, nsIObjectOutputStream* aStream);
 
   bool IsCompiled() const
   {
@@ -141,16 +170,11 @@ public:
   
   virtual nsresult InstallMember(nsIScriptContext* aContext,
                                  nsIContent* aBoundElement, 
-                                 JSObject* aScriptObject,
-                                 JSObject* aTargetClassObject,
+                                 void* aScriptObject,
+                                 void* aTargetClassObject,
                                  const nsCString& aClassStr) {
     return NS_OK;
   }
-
-  using nsXBLProtoImplMethod::Write;
-  nsresult Write(nsIScriptContext* aContext,
-                 nsIObjectOutputStream* aStream,
-                 XBLBindingSerializeDetails aType);
 };
 
 #endif

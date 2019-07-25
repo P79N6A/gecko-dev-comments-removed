@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIDNService.h"
 #include "nsReadableUtils.h"
 #include "nsCRT.h"
@@ -10,6 +43,7 @@
 #include "nsIServiceManager.h"
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
+#include "nsIPrefBranch2.h"
 #include "nsIObserverService.h"
 #include "nsISupportsPrimitives.h"
 #include "punycode.h"
@@ -18,7 +52,7 @@
 
 
 
-static const uint32_t kMaxDNSNodeLen = 63;
+static const PRUint32 kMaxDNSNodeLen = 63;
 
 
 
@@ -53,13 +87,13 @@ nsresult nsIDNService::Init()
   if (prefs)
     prefs->GetBranch(NS_NET_PREF_IDNWHITELIST, getter_AddRefs(mIDNWhitelistPrefBranch));
 
-  nsCOMPtr<nsIPrefBranch> prefInternal(do_QueryInterface(prefs));
+  nsCOMPtr<nsIPrefBranch2> prefInternal(do_QueryInterface(prefs));
   if (prefInternal) {
-    prefInternal->AddObserver(NS_NET_PREF_IDNTESTBED, this, true); 
-    prefInternal->AddObserver(NS_NET_PREF_IDNPREFIX, this, true); 
-    prefInternal->AddObserver(NS_NET_PREF_IDNBLACKLIST, this, true);
-    prefInternal->AddObserver(NS_NET_PREF_SHOWPUNYCODE, this, true);
-    prefsChanged(prefInternal, nullptr);
+    prefInternal->AddObserver(NS_NET_PREF_IDNTESTBED, this, PR_TRUE); 
+    prefInternal->AddObserver(NS_NET_PREF_IDNPREFIX, this, PR_TRUE); 
+    prefInternal->AddObserver(NS_NET_PREF_IDNBLACKLIST, this, PR_TRUE);
+    prefInternal->AddObserver(NS_NET_PREF_SHOWPUNYCODE, this, PR_TRUE);
+    prefsChanged(prefInternal, nsnull);
   }
 
   return NS_OK;
@@ -113,10 +147,10 @@ nsIDNService::nsIDNService()
   const char kIDNSPrefix[] = "xn--";
   strcpy(mACEPrefix, kIDNSPrefix);
 
-  mMultilingualTestBed = false;
+  mMultilingualTestBed = PR_FALSE;
 
   if (idn_success != idn_nameprep_create(NULL, &mNamePrepHandle))
-    mNamePrepHandle = nullptr;
+    mNamePrepHandle = nsnull;
 
   mNormalizer = do_GetService(NS_UNICODE_NORMALIZER_CONTRACTID);
   
@@ -130,7 +164,7 @@ nsIDNService::~nsIDNService()
 
 NS_IMETHODIMP nsIDNService::ConvertUTF8toACE(const nsACString & input, nsACString & ace)
 {
-  return UTF8toACE(input, ace, true);
+  return UTF8toACE(input, ace, PR_TRUE);
 }
 
 nsresult nsIDNService::UTF8toACE(const nsACString & input, nsACString & ace, bool allowUnassigned)
@@ -142,10 +176,10 @@ nsresult nsIDNService::UTF8toACE(const nsACString & input, nsACString & ace, boo
   normalizeFullStops(ustr);
 
 
-  uint32_t len, offset;
+  PRUint32 len, offset;
   len = 0;
   offset = 0;
-  nsAutoCString encodedBuf;
+  nsCAutoString encodedBuf;
 
   nsAString::const_iterator start, end;
   ustr.BeginReading(start); 
@@ -185,7 +219,7 @@ nsresult nsIDNService::UTF8toACE(const nsACString & input, nsACString & ace, boo
 
 NS_IMETHODIMP nsIDNService::ConvertACEtoUTF8(const nsACString & input, nsACString & _retval)
 {
-  return ACEtoUTF8(input, _retval, true);
+  return ACEtoUTF8(input, _retval, PR_TRUE);
 }
 
 nsresult nsIDNService::ACEtoUTF8(const nsACString & input, nsACString & _retval,
@@ -200,8 +234,8 @@ nsresult nsIDNService::ACEtoUTF8(const nsACString & input, nsACString & _retval,
     return NS_OK;
   }
   
-  uint32_t len = 0, offset = 0;
-  nsAutoCString decodedBuf;
+  PRUint32 len = 0, offset = 0;
+  nsCAutoString decodedBuf;
 
   nsACString::const_iterator start, end;
   input.BeginReading(start); 
@@ -243,7 +277,7 @@ NS_IMETHODIMP nsIDNService::IsACE(const nsACString & input, bool *_retval)
   input.BeginReading(begin);
 
   const char *data = begin.get();
-  uint32_t dataLen = begin.size_forward();
+  PRUint32 dataLen = begin.size_forward();
 
   
   
@@ -267,7 +301,7 @@ NS_IMETHODIMP nsIDNService::Normalize(const nsACString & input, nsACString & out
   
   nsAutoString outUTF16, outLabel;
 
-  uint32_t len = 0, offset = 0;
+  PRUint32 len = 0, offset = 0;
   nsresult rv;
   nsAString::const_iterator start, end;
   inUTF16.BeginReading(start);
@@ -276,7 +310,7 @@ NS_IMETHODIMP nsIDNService::Normalize(const nsACString & input, nsACString & out
   while (start != end) {
     len++;
     if (*start++ == PRUnichar('.')) {
-      rv = stringPrep(Substring(inUTF16, offset, len - 1), outLabel, true);
+      rv = stringPrep(Substring(inUTF16, offset, len - 1), outLabel, PR_TRUE);
       NS_ENSURE_SUCCESS(rv, rv);
    
       outUTF16.Append(outLabel);
@@ -286,7 +320,7 @@ NS_IMETHODIMP nsIDNService::Normalize(const nsACString & input, nsACString & out
     }
   }
   if (len) {
-    rv = stringPrep(Substring(inUTF16, offset, len), outLabel, true);
+    rv = stringPrep(Substring(inUTF16, offset, len), outLabel, PR_TRUE);
     NS_ENSURE_SUCCESS(rv, rv);
 
     outUTF16.Append(outLabel);
@@ -316,11 +350,11 @@ NS_IMETHODIMP nsIDNService::ConvertToDisplayIDN(const nsACString & input, bool *
 
     if (isACE && !mShowPunycode && isInWhitelist(_retval)) {
       
-      nsAutoCString temp(_retval);
-      ACEtoUTF8(temp, _retval, false);
+      nsCAutoString temp(_retval);
+      ACEtoUTF8(temp, _retval, PR_FALSE);
       *_isASCII = IsASCII(_retval);
     } else {
-      *_isASCII = true;
+      *_isASCII = PR_TRUE;
     }
   } else {
     
@@ -330,7 +364,7 @@ NS_IMETHODIMP nsIDNService::ConvertToDisplayIDN(const nsACString & input, bool *
     if (NS_FAILED(rv)) return rv;
 
     if (mShowPunycode && NS_SUCCEEDED(ConvertUTF8toACE(_retval, _retval))) {
-      *_isASCII = true;
+      *_isASCII = PR_TRUE;
       return NS_OK;
     }
 
@@ -339,7 +373,7 @@ NS_IMETHODIMP nsIDNService::ConvertToDisplayIDN(const nsACString & input, bool *
     
     *_isASCII = IsASCII(_retval);
     if (!*_isASCII && !isInWhitelist(_retval)) {
-      *_isASCII = true;
+      *_isASCII = PR_TRUE;
       return ConvertUTF8toACE(_retval, _retval);
     }
   }
@@ -349,9 +383,9 @@ NS_IMETHODIMP nsIDNService::ConvertToDisplayIDN(const nsACString & input, bool *
 
 
 
-static void utf16ToUcs4(const nsAString& in, uint32_t *out, uint32_t outBufLen, uint32_t *outLen)
+static void utf16ToUcs4(const nsAString& in, PRUint32 *out, PRUint32 outBufLen, PRUint32 *outLen)
 {
-  uint32_t i = 0;
+  PRUint32 i = 0;
   nsAString::const_iterator start, end;
   in.BeginReading(start); 
   in.EndReading(end); 
@@ -373,16 +407,16 @@ static void utf16ToUcs4(const nsAString& in, uint32_t *out, uint32_t outBufLen, 
     i++;
     if (i >= outBufLen) {
       NS_ERROR("input too big, the result truncated");
-      out[outBufLen-1] = (uint32_t)'\0';
+      out[outBufLen-1] = (PRUint32)'\0';
       *outLen = outBufLen-1;
       return;
     }
   }
-  out[i] = (uint32_t)'\0';
+  out[i] = (PRUint32)'\0';
   *outLen = i;
 }
 
-static void ucs4toUtf16(const uint32_t *in, nsAString& out)
+static void ucs4toUtf16(const PRUint32 *in, nsAString& out)
 {
   while (*in) {
     if (!IS_IN_BMP(*in)) {
@@ -397,19 +431,19 @@ static void ucs4toUtf16(const uint32_t *in, nsAString& out)
 
 static nsresult punycode(const char* prefix, const nsAString& in, nsACString& out)
 {
-  uint32_t ucs4Buf[kMaxDNSNodeLen + 1];
-  uint32_t ucs4Len;
+  PRUint32 ucs4Buf[kMaxDNSNodeLen + 1];
+  PRUint32 ucs4Len;
   utf16ToUcs4(in, ucs4Buf, kMaxDNSNodeLen, &ucs4Len);
 
   
   
-  const uint32_t kEncodedBufSize = kMaxDNSNodeLen * 20 / 8 + 1 + 1;  
+  const PRUint32 kEncodedBufSize = kMaxDNSNodeLen * 20 / 8 + 1 + 1;  
   char encodedBuf[kEncodedBufSize];
   punycode_uint encodedLength = kEncodedBufSize;
 
   enum punycode_status status = punycode_encode(ucs4Len,
                                                 ucs4Buf,
-                                                nullptr,
+                                                nsnull,
                                                 &encodedLength,
                                                 encodedBuf);
 
@@ -427,7 +461,7 @@ static nsresult encodeToRACE(const char* prefix, const nsAString& in, nsACString
 {
   
   
-  const uint32_t kEncodedBufSize = kMaxDNSNodeLen * 20 / 8 + 1 + 1;  
+  const PRUint32 kEncodedBufSize = kMaxDNSNodeLen * 20 / 8 + 1 + 1;  
 
   
   PRUnichar temp[kMaxDNSNodeLen + 2];
@@ -438,7 +472,7 @@ static nsresult encodeToRACE(const char* prefix, const nsAString& in, nsACString
   in.BeginReading(start); 
   in.EndReading(end);
   
-  for (uint32_t i = 1; start != end; i++)
+  for (PRUint32 i = 1; start != end; i++)
     temp[i] = *start++;
 
   
@@ -484,16 +518,16 @@ nsresult nsIDNService::stringPrep(const nsAString& in, nsAString& out,
     return NS_ERROR_FAILURE;
 
   nsresult rv = NS_OK;
-  uint32_t ucs4Buf[kMaxDNSNodeLen + 1];
-  uint32_t ucs4Len;
+  PRUint32 ucs4Buf[kMaxDNSNodeLen + 1];
+  PRUint32 ucs4Len;
   utf16ToUcs4(in, ucs4Buf, kMaxDNSNodeLen, &ucs4Len);
 
   
   idn_result_t idn_err;
 
-  uint32_t namePrepBuf[kMaxDNSNodeLen * 3];   
-  idn_err = idn_nameprep_map(mNamePrepHandle, (const uint32_t *) ucs4Buf,
-		                     (uint32_t *) namePrepBuf, kMaxDNSNodeLen * 3);
+  PRUint32 namePrepBuf[kMaxDNSNodeLen * 3];   
+  idn_err = idn_nameprep_map(mNamePrepHandle, (const PRUint32 *) ucs4Buf,
+		                     (PRUint32 *) namePrepBuf, kMaxDNSNodeLen * 3);
   NS_ENSURE_TRUE(idn_err == idn_success, NS_ERROR_FAILURE);
 
   nsAutoString namePrepStr;
@@ -508,22 +542,22 @@ nsresult nsIDNService::stringPrep(const nsAString& in, nsAString& out,
     return NS_ERROR_FAILURE;
 
   
-  const uint32_t *found = nullptr;
+  const PRUint32 *found = nsnull;
   idn_err = idn_nameprep_isprohibited(mNamePrepHandle, 
-                                      (const uint32_t *) ucs4Buf, &found);
+                                      (const PRUint32 *) ucs4Buf, &found);
   if (idn_err != idn_success || found)
     return NS_ERROR_FAILURE;
 
   
   idn_err = idn_nameprep_isvalidbidi(mNamePrepHandle, 
-                                     (const uint32_t *) ucs4Buf, &found);
+                                     (const PRUint32 *) ucs4Buf, &found);
   if (idn_err != idn_success || found)
     return NS_ERROR_FAILURE;
 
   if (!allowUnassigned) {
     
     idn_err = idn_nameprep_isunassigned(mNamePrepHandle,
-                                        (const uint32_t *) ucs4Buf, &found);
+                                        (const PRUint32 *) ucs4Buf, &found);
     if (idn_err != idn_success || found)
       return NS_ERROR_FAILURE;
   }
@@ -588,7 +622,7 @@ void nsIDNService::normalizeFullStops(nsAString& s)
   nsAString::const_iterator start, end;
   s.BeginReading(start); 
   s.EndReading(end); 
-  int32_t index = 0;
+  PRInt32 index = 0;
 
   while (start != end) {
     switch (*start) {
@@ -625,7 +659,7 @@ nsresult nsIDNService::decodeACE(const nsACString& in, nsACString& out,
                                                 PromiseFlatCString(in).get() + kACEPrefixLen,
                                                 &output_length,
                                                 output,
-                                                nullptr);
+                                                nsnull);
   if (status != punycode_success) {
     delete [] output;
     return NS_ERROR_FAILURE;
@@ -641,7 +675,7 @@ nsresult nsIDNService::decodeACE(const nsACString& in, nsACString& out,
   CopyUTF16toUTF8(utf16, out);
 
   
-  nsAutoCString ace;
+  nsCAutoString ace;
   nsresult rv = UTF8toACE(out, ace, allowUnassigned);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -654,18 +688,18 @@ nsresult nsIDNService::decodeACE(const nsACString& in, nsACString& out,
 bool nsIDNService::isInWhitelist(const nsACString &host)
 {
   if (mIDNWhitelistPrefBranch) {
-    nsAutoCString tld(host);
+    nsCAutoString tld(host);
     
     
-    if (!IsASCII(tld) && NS_FAILED(UTF8toACE(tld, tld, false))) {
-      return false;
+    if (!IsASCII(tld) && NS_FAILED(UTF8toACE(tld, tld, PR_FALSE))) {
+      return PR_FALSE;
     }
 
     
     tld.Trim(".");
-    int32_t pos = tld.RFind(".");
+    PRInt32 pos = tld.RFind(".");
     if (pos == kNotFound)
-      return false;
+      return PR_FALSE;
 
     tld.Cut(0, pos + 1);
 
@@ -674,6 +708,6 @@ bool nsIDNService::isInWhitelist(const nsACString &host)
       return safe;
   }
 
-  return false;
+  return PR_FALSE;
 }
 

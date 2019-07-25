@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsThread_h__
 #define nsThread_h__
 
@@ -14,11 +46,9 @@
 #include "nsThreadUtils.h"
 #include "nsString.h"
 #include "nsTObserverArray.h"
-#include "mozilla/Attributes.h"
 
 
-class nsThread MOZ_FINAL : public nsIThreadInternal,
-                           public nsISupportsPriority
+class nsThread : public nsIThreadInternal, public nsISupportsPriority
 {
 public:
   NS_DECL_ISUPPORTS
@@ -27,12 +57,8 @@ public:
   NS_DECL_NSITHREADINTERNAL
   NS_DECL_NSISUPPORTSPRIORITY
 
-  enum MainThreadFlag {
-    MAIN_THREAD,
-    NOT_MAIN_THREAD
-  };
-
-  nsThread(MainThreadFlag aMainThread, uint32_t aStackSize);
+  nsThread();
+  nsThread(PRUint32 aStackSize);
 
   
   nsresult Init();
@@ -48,14 +74,14 @@ public:
   bool ShutdownRequired() { return mShutdownRequired; }
 
   
-  void ClearObservers() { mEventObservers.Clear(); }
+  static nsIThreadObserver* sGlobalObserver;
 
 private:
   friend class nsThreadShutdownEvent;
 
   ~nsThread();
 
-  bool ShuttingDown() { return mShutdownContext != nullptr; }
+  bool ShuttingDown() { return mShutdownContext != nsnull; }
 
   static void ThreadFunc(void *arg);
 
@@ -68,9 +94,32 @@ private:
 
   
   bool GetEvent(bool mayWait, nsIRunnable **event) {
-    return mEvents.GetEvent(mayWait, event);
+    return mEvents->GetEvent(mayWait, event);
   }
   nsresult PutEvent(nsIRunnable *event);
+
+  
+  class nsChainedEventQueue {
+  public:
+    nsChainedEventQueue(nsIThreadEventFilter *filter = nsnull)
+      : mNext(nsnull), mFilter(filter) {
+    }
+
+    bool GetEvent(bool mayWait, nsIRunnable **event) {
+      return mQueue.GetEvent(mayWait, event);
+    }
+
+    bool PutEvent(nsIRunnable *event);
+    
+    bool HasPendingEvent() {
+      return mQueue.HasPendingEvent();
+    }
+
+    class nsChainedEventQueue *mNext;
+  private:
+    nsCOMPtr<nsIThreadEventFilter> mFilter;
+    nsEventQueue mQueue;
+  };
 
   
   
@@ -84,19 +133,20 @@ private:
   
   nsAutoTObserverArray<nsCOMPtr<nsIThreadObserver>, 2> mEventObservers;
 
-  nsEventQueue  mEvents;
+  nsChainedEventQueue *mEvents;   
+  nsChainedEventQueue  mEventsRoot;
 
-  int32_t   mPriority;
+  PRInt32   mPriority;
   PRThread *mThread;
-  uint32_t  mRunningEvent;  
-  uint32_t  mStackSize;
+  PRUint32  mRunningEvent;  
+  PRUint32  mStackSize;
 
   struct nsThreadShutdownContext *mShutdownContext;
 
   bool mShutdownRequired;
+  bool mShutdownPending;
   
   bool mEventsAreDoomed;
-  MainThreadFlag mIsMainThread;
 };
 
 
@@ -108,7 +158,7 @@ public:
   }
 
   bool IsPending() {
-    return mSyncTask != nullptr;
+    return mSyncTask != nsnull;
   }
 
   nsresult Result() {
@@ -122,17 +172,5 @@ private:
   nsCOMPtr<nsIRunnable> mSyncTask;
   nsresult mResult;
 };
-
-namespace mozilla {
-
-
-
-
-
-
-
-void ScheduleMemoryPressureEvent();
-
-} 
 
 #endif  

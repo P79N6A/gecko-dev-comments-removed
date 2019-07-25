@@ -65,18 +65,44 @@
 
 
 
-#include "mozilla/mozalloc.h"
-#include "nsAString.h"
-#include "nsDebug.h"
-#include "nsError.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsHTMLURIRefObject.h"
-#include "nsID.h"
+
+#include "nsAString.h"
+#include "nsString.h"
 #include "nsIDOMAttr.h"
 #include "nsIDOMElement.h"
-#include "nsIDOMNamedNodeMap.h"
-#include "nsIDOMNode.h"
-#include "nsISupportsUtils.h"
-#include "nsString.h"
 
 
 

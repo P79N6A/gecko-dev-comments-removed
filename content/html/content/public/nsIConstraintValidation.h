@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIConstraintValidition_h___
 #define nsIConstraintValidition_h___
 
@@ -32,7 +64,7 @@ public:
 
   friend class nsDOMValidityState;
 
-  static const uint16_t sContentSpecifiedMaxLengthMessage;
+  static const PRUint16 sContentSpecifiedMaxLengthMessage;
 
   virtual ~nsIConstraintValidation();
 
@@ -85,7 +117,7 @@ private:
 
 
 
-  int8_t                        mValidityBitField;
+  PRInt8                        mValidityBitField;
 
   
 

@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 package org.mozilla.gecko;
 
 import java.io.*;
@@ -63,7 +95,6 @@ class GeckoSurfaceView
         initEditable("");
         mIMEState = IME_STATE_DISABLED;
         mIMETypeHint = "";
-        mIMEModeHint = "";
         mIMEActionHint = "";
     }
 
@@ -198,9 +229,7 @@ class GeckoSurfaceView
         
         
         
-        
-        if (mDrawMode == DRAW_GLES_2 && 
-            (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.HONEYCOMB)) {
+        if (mDrawMode == DRAW_GLES_2) {
             
             
             
@@ -503,20 +532,6 @@ class GeckoSurfaceView
         else if (mIMETypeHint.equalsIgnoreCase("time"))
             outAttrs.inputType = InputType.TYPE_CLASS_DATETIME |
                                  InputType.TYPE_DATETIME_VARIATION_TIME;
-        else if (mIMEModeHint.equalsIgnoreCase("numeric"))
-            outAttrs.inputType = InputType.TYPE_CLASS_NUMBER |
-                                 InputType.TYPE_NUMBER_FLAG_SIGNED |
-                                 InputType.TYPE_NUMBER_FLAG_DECIMAL;
-        else if (mIMEModeHint.equalsIgnoreCase("digit"))
-            outAttrs.inputType = InputType.TYPE_CLASS_NUMBER;
-        else if (mIMEModeHint.equalsIgnoreCase("uppercase"))
-            outAttrs.inputType |= InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS;
-        else if (mIMEModeHint.equalsIgnoreCase("lowercase"))
-            outAttrs.inputType = InputType.TYPE_CLASS_TEXT; 
-        else if (mIMEModeHint.equalsIgnoreCase("titlecase"))
-            outAttrs.inputType |= InputType.TYPE_TEXT_FLAG_CAP_WORDS;
-        else if (mIMEModeHint.equalsIgnoreCase("autocapitalized"))
-            outAttrs.inputType |= InputType.TYPE_TEXT_FLAG_CAP_SENTENCES;
 
         if (mIMEActionHint.equalsIgnoreCase("go"))
             outAttrs.imeOptions = EditorInfo.IME_ACTION_GO;
@@ -563,10 +578,47 @@ class GeckoSurfaceView
         GeckoAppShell.sendEventToGecko(new GeckoEvent(event));
     }
 
+    private class GeocoderTask extends AsyncTask<Location, Void, Void> {
+        protected Void doInBackground(Location... location) {
+            try {
+                List<Address> addresses = mGeocoder.getFromLocation(location[0].getLatitude(),
+                                                                    location[0].getLongitude(), 1);
+                
+                
+                
+                mLastGeoAddress = addresses.get(0);
+                GeckoAppShell.sendEventToGecko(new GeckoEvent(location[0], mLastGeoAddress));
+            } catch (Exception e) {
+                Log.w(LOG_FILE_NAME, "GeocoderTask "+e);
+            }
+            return null;
+        }
+    }
+
     
     public void onLocationChanged(Location location)
     {
-        GeckoAppShell.sendEventToGecko(new GeckoEvent(location));
+        if (mGeocoder == null)
+            mGeocoder = new Geocoder(getContext(), Locale.getDefault());
+
+        if (mLastGeoAddress == null) {
+            new GeocoderTask().execute(location);
+        }
+        else {
+            float[] results = new float[1];
+            Location.distanceBetween(location.getLatitude(),
+                                     location.getLongitude(),
+                                     mLastGeoAddress.getLatitude(),
+                                     mLastGeoAddress.getLongitude(),
+                                     results);
+            
+            
+            
+            if (results[0] > 100)
+                new GeocoderTask().execute(location);
+        }
+
+        GeckoAppShell.sendEventToGecko(new GeckoEvent(location, mLastGeoAddress));
     }
 
     public void onProviderDisabled(String provider)
@@ -763,7 +815,6 @@ class GeckoSurfaceView
     Editable.Factory mEditableFactory;
     int mIMEState;
     String mIMETypeHint;
-    String mIMEModeHint;
     String mIMEActionHint;
     boolean mIMELandscapeFS;
 
@@ -771,6 +822,9 @@ class GeckoSurfaceView
     Bitmap mSoftwareBitmap;
     ByteBuffer mSoftwareBuffer;
     Bitmap mSoftwareBufferCopy;
+
+    Geocoder mGeocoder;
+    Address  mLastGeoAddress;
 
     final SynchronousQueue<Object> mSyncDraws = new SynchronousQueue<Object>();
 }

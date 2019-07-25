@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NSPROMPTUTILS_H_
 #define NSPROMPTUTILS_H_
 
@@ -22,11 +55,11 @@ inline void
 NS_SetAuthInfo(nsIAuthInformation* aAuthInfo, const nsString& user,
                const nsString& password)
 {
-  uint32_t flags;
+  PRUint32 flags;
   aAuthInfo->GetFlags(&flags);
   if (flags & nsIAuthInformation::NEED_DOMAIN) {
     
-    int32_t idx = user.FindChar(PRUnichar('\\'));
+    PRInt32 idx = user.FindChar(PRUnichar('\\'));
     if (idx == kNotFound) {
       aAuthInfo->SetUsername(user);
     } else {
@@ -54,7 +87,7 @@ NS_SetAuthInfo(nsIAuthInformation* aAuthInfo, const nsString& user,
 
 inline void
 NS_GetAuthHostPort(nsIChannel* aChannel, nsIAuthInformation* aAuthInfo,
-                   bool machineProcessing, nsCString& host, int32_t* port)
+                   bool machineProcessing, nsCString& host, PRInt32* port)
 {
   nsCOMPtr<nsIURI> uri;
   nsresult rv = aChannel->GetURI(getter_AddRefs(uri));
@@ -62,7 +95,7 @@ NS_GetAuthHostPort(nsIChannel* aChannel, nsIAuthInformation* aAuthInfo,
     return;
 
   
-  uint32_t flags;
+  PRUint32 flags;
   aAuthInfo->GetFlags(&flags);
   if (flags & nsIAuthInformation::AUTH_PROXY) {
     nsCOMPtr<nsIProxiedChannel> proxied(do_QueryInterface(aChannel));
@@ -72,7 +105,7 @@ NS_GetAuthHostPort(nsIChannel* aChannel, nsIAuthInformation* aAuthInfo,
     proxied->GetProxyInfo(getter_AddRefs(info));
     NS_ASSERTION(info, "proxy auth needs nsIProxyInfo");
 
-    nsAutoCString idnhost;
+    nsCAutoString idnhost;
     info->GetHost(idnhost);
     info->GetPort(port);
 
@@ -119,9 +152,9 @@ NS_GetAuthKey(nsIChannel* aChannel, nsIAuthInformation* aAuthInfo,
 
   
   nsCString host;
-  int32_t port = -1;
+  PRInt32 port = -1;
 
-  NS_GetAuthHostPort(aChannel, aAuthInfo, true, host, &port);
+  NS_GetAuthHostPort(aChannel, aAuthInfo, PR_TRUE, host, &port);
 
   nsAutoString realm;
   aAuthInfo->GetRealm(realm);

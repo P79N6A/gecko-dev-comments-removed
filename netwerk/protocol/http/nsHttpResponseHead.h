@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsHttpResponseHead_h__
 #define nsHttpResponseHead_h__
 
@@ -21,45 +54,42 @@ public:
     nsHttpResponseHead() : mVersion(NS_HTTP_VERSION_1_1)
                          , mStatus(200)
                          , mContentLength(LL_MAXUINT)
-                         , mCacheControlNoStore(false)
-                         , mCacheControlNoCache(false)
-                         , mPragmaNoCache(false) {}
+                         , mCacheControlNoStore(PR_FALSE)
+                         , mCacheControlNoCache(PR_FALSE)
+                         , mPragmaNoCache(PR_FALSE) {}
+    ~nsHttpResponseHead() 
+    {
+        Reset();
+    }
     
-    const nsHttpHeaderArray & Headers()   const { return mHeaders; }
-    nsHttpHeaderArray    &Headers()             { return mHeaders; }
-    nsHttpVersion         Version()       const { return mVersion; }
-    uint16_t              Status()        const { return mStatus; }
-    const nsAFlatCString &StatusText()    const { return mStatusText; }
-    int64_t               ContentLength() const { return mContentLength; }
-    const nsAFlatCString &ContentType()   const { return mContentType; }
-    const nsAFlatCString &ContentCharset() const { return mContentCharset; }
-    bool                  NoStore() const { return mCacheControlNoStore; }
-    bool                  NoCache() const { return (mCacheControlNoCache || mPragmaNoCache); }
+    nsHttpHeaderArray    &Headers()        { return mHeaders; }
+    nsHttpVersion         Version()        { return mVersion; }
+    PRUint16              Status()         { return mStatus; }
+    const nsAFlatCString &StatusText()     { return mStatusText; }
+    PRInt64               ContentLength()  { return mContentLength; }
+    const nsAFlatCString &ContentType()    { return mContentType; }
+    const nsAFlatCString &ContentCharset() { return mContentCharset; }
+    bool                  NoStore()        { return mCacheControlNoStore; }
+    bool                  NoCache()        { return (mCacheControlNoCache || mPragmaNoCache); }
     
 
 
 
 
-    int64_t               TotalEntitySize() const;
+    PRInt64               TotalEntitySize();
 
-    const char *PeekHeader(nsHttpAtom h) const      { return mHeaders.PeekHeader(h); }
+    const char *PeekHeader(nsHttpAtom h)            { return mHeaders.PeekHeader(h); }
     nsresult SetHeader(nsHttpAtom h, const nsACString &v, bool m=false);
-    nsresult GetHeader(nsHttpAtom h, nsACString &v) const { return mHeaders.GetHeader(h, v); }
+    nsresult GetHeader(nsHttpAtom h, nsACString &v) { return mHeaders.GetHeader(h, v); }
     void     ClearHeader(nsHttpAtom h)              { mHeaders.ClearHeader(h); }
     void     ClearHeaders()                         { mHeaders.Clear(); }
 
-    const char *FindHeaderValue(nsHttpAtom h, const char *v) const
-    {
-      return mHeaders.FindHeaderValue(h, v);
-    }
-    bool        HasHeaderValue(nsHttpAtom h, const char *v) const
-    {
-      return mHeaders.HasHeaderValue(h, v);
-    }
+    const char *FindHeaderValue(nsHttpAtom h, const char *v) { return mHeaders.FindHeaderValue(h, v); }
+    bool        HasHeaderValue(nsHttpAtom h, const char *v) { return mHeaders.HasHeaderValue(h, v); }
 
     void     SetContentType(const nsACString &s)    { mContentType = s; }
     void     SetContentCharset(const nsACString &s) { mContentCharset = s; }
-    void     SetContentLength(int64_t);
+    void     SetContentLength(PRInt64);
 
     
     
@@ -77,37 +107,31 @@ public:
     nsresult ParseHeaderLine(const char *line);
 
     
-    nsresult ComputeFreshnessLifetime(uint32_t *) const;
-    nsresult ComputeCurrentAge(uint32_t now, uint32_t requestTime, uint32_t *result) const;
-    bool     MustValidate() const;
-    bool     MustValidateIfExpired() const;
+    nsresult ComputeFreshnessLifetime(PRUint32 *);
+    nsresult ComputeCurrentAge(PRUint32 now, PRUint32 requestTime, PRUint32 *result);
+    bool     MustValidate();
+    bool     MustValidateIfExpired();
 
     
-    bool     IsResumable() const;
+    bool     IsResumable();
 
     
     
-    bool     ExpiresInPast() const;
+    bool     ExpiresInPast();
 
     
-    nsresult UpdateHeaders(const nsHttpHeaderArray &headers); 
+    nsresult UpdateHeaders(nsHttpHeaderArray &headers); 
 
     
     void     Reset();
 
     
-    nsresult ParseDateHeader(nsHttpAtom header, uint32_t *result) const;
-    nsresult GetAgeValue(uint32_t *result) const;
-    nsresult GetMaxAgeValue(uint32_t *result) const;
-    nsresult GetDateValue(uint32_t *result) const
-    {
-        return ParseDateHeader(nsHttp::Date, result);
-    }
-    nsresult GetExpiresValue(uint32_t *result) const ;
-    nsresult GetLastModifiedValue(uint32_t *result) const
-    {
-        return ParseDateHeader(nsHttp::Last_Modified, result);
-    }
+    nsresult ParseDateHeader(nsHttpAtom header, PRUint32 *result);
+    nsresult GetAgeValue(PRUint32 *result);
+    nsresult GetMaxAgeValue(PRUint32 *result);
+    nsresult GetDateValue(PRUint32 *result)         { return ParseDateHeader(nsHttp::Date, result); }
+    nsresult GetExpiresValue(PRUint32 *result);
+    nsresult GetLastModifiedValue(PRUint32 *result) { return ParseDateHeader(nsHttp::Last_Modified, result); }
 
 private:
     void     ParseVersion(const char *);
@@ -115,14 +139,13 @@ private:
     void     ParsePragma(const char *);
 
 private:
-    
     nsHttpHeaderArray mHeaders;
     nsHttpVersion     mVersion;
-    uint16_t          mStatus;
-    mozilla::net::InfallableCopyCString mStatusText;
-    int64_t           mContentLength;
-    mozilla::net::InfallableCopyCString mContentType;
-    mozilla::net::InfallableCopyCString mContentCharset;
+    PRUint16          mStatus;
+    nsCString         mStatusText;
+    PRInt64           mContentLength;
+    nsCString         mContentType;
+    nsCString         mContentCharset;
     bool              mCacheControlNoStore;
     bool              mCacheControlNoCache;
     bool              mPragmaNoCache;

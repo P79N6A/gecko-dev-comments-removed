@@ -4,20 +4,54 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_DOMSVGANIMATEDTRANSFORMLIST_H__
 #define MOZILLA_DOMSVGANIMATEDTRANSFORMLIST_H__
 
-#include "nsAutoPtr.h"
-#include "nsCOMPtr.h"
-#include "nsCycleCollectionParticipant.h"
 #include "nsIDOMSVGAnimTransformList.h"
-#include "nsSVGElement.h"
-#include "mozilla/Attributes.h"
+#include "nsCycleCollectionParticipant.h"
+#include "nsAutoPtr.h"
+#include "nsTArray.h"
+
+class nsSVGElement;
 
 namespace mozilla {
 
-class DOMSVGTransformList;
 class SVGAnimatedTransformList;
+class SVGTransformList;
+class DOMSVGTransformList;
 
 
 
@@ -35,7 +69,7 @@ class SVGAnimatedTransformList;
 
 
 
-class DOMSVGAnimatedTransformList MOZ_FINAL : public nsIDOMSVGAnimatedTransformList
+class DOMSVGAnimatedTransformList : public nsIDOMSVGAnimatedTransformList
 {
   friend class DOMSVGTransformList;
 
@@ -78,8 +112,8 @@ public:
 
 
 
-  void InternalBaseValListWillChangeLengthTo(uint32_t aNewLength);
-  void InternalAnimValListWillChangeLengthTo(uint32_t aNewLength);
+  void InternalBaseValListWillChangeLengthTo(PRUint32 aNewLength);
+  void InternalAnimValListWillChangeLengthTo(PRUint32 aNewLength);
 
   
 
@@ -94,8 +128,8 @@ private:
 
 
   DOMSVGAnimatedTransformList(nsSVGElement *aElement)
-    : mBaseVal(nullptr)
-    , mAnimVal(nullptr)
+    : mBaseVal(nsnull)
+    , mAnimVal(nsnull)
     , mElement(aElement)
   {}
 

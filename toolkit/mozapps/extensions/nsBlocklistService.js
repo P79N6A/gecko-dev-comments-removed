@@ -4,6 +4,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 "use strict";
 
 const Cc = Components.classes;
@@ -11,11 +47,9 @@ const Ci = Components.interfaces;
 const Cr = Components.results;
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource://gre/modules/FileUtils.jsm");
 Components.utils.import("resource://gre/modules/AddonManager.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
-                                  "resource://gre/modules/FileUtils.jsm");
 
 const TOOLKIT_ID                      = "toolkit@mozilla.org"
 const KEY_PROFILEDIR                  = "ProfD";
@@ -44,9 +78,6 @@ const DEFAULT_SEVERITY                = 3;
 const DEFAULT_LEVEL                   = 2;
 const MAX_BLOCK_LEVEL                 = 3;
 const SEVERITY_OUTDATED               = 0;
-const VULNERABILITYSTATUS_NONE             = 0;
-const VULNERABILITYSTATUS_UPDATE_AVAILABLE = 1;
-const VULNERABILITYSTATUS_NO_UPDATE        = 2;
 
 var gLoggingEnabled = null;
 var gBlocklistEnabled = true;
@@ -62,7 +93,7 @@ XPCOMUtils.defineLazyServiceGetter(this, "gVersionChecker",
 
 XPCOMUtils.defineLazyGetter(this, "gPref", function bls_gPref() {
   return Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefService).
-         QueryInterface(Ci.nsIPrefBranch);
+         QueryInterface(Ci.nsIPrefBranch2);
 });
 
 XPCOMUtils.defineLazyGetter(this, "gApp", function bls_gApp() {
@@ -381,9 +412,9 @@ Blocklist.prototype = {
     if (!blItem)
       return Ci.nsIBlocklistService.STATE_NOT_BLOCKED;
 
-    for (let currentblItem of blItem) {
-      if (currentblItem.includesItem(version, appVersion, toolkitVersion))
-        return currentblItem.severity >= gBlocklistLevel ? Ci.nsIBlocklistService.STATE_BLOCKED :
+    for (var i = 0; i < blItem.length; ++i) {
+      if (blItem[i].includesItem(version, appVersion, toolkitVersion))
+        return blItem[i].severity >= gBlocklistLevel ? Ci.nsIBlocklistService.STATE_BLOCKED :
                                                        Ci.nsIBlocklistService.STATE_SOFTBLOCKED;
     }
     return Ci.nsIBlocklistService.STATE_NOT_BLOCKED;
@@ -677,7 +708,8 @@ Blocklist.prototype = {
       }
 
       var childNodes = doc.documentElement.childNodes;
-      for (let element of childNodes) {
+      for (var i = 0; i < childNodes.length; ++i) {
+        var element = childNodes[i];
         if (!(element instanceof Ci.nsIDOMElement))
           continue;
         switch (element.localName) {
@@ -828,19 +860,13 @@ Blocklist.prototype = {
       if (matchFailed)
         continue;
 
-      for (let blockEntryVersion of blockEntry.versions) {
-        if (blockEntryVersion.includesItem(plugin.version, appVersion,
+      for (var i = 0; i < blockEntry.versions.length; i++) {
+        if (blockEntry.versions[i].includesItem(plugin.version, appVersion,
                                                 toolkitVersion)) {
-          if (blockEntryVersion.severity >= gBlocklistLevel)
+          if (blockEntry.versions[i].severity >= gBlocklistLevel)
             return Ci.nsIBlocklistService.STATE_BLOCKED;
-          if (blockEntryVersion.severity == SEVERITY_OUTDATED) {
-            let vulnerabilityStatus = blockEntryVersion.vulnerabilityStatus;
-            if (vulnerabilityStatus == VULNERABILITYSTATUS_UPDATE_AVAILABLE)
-              return Ci.nsIBlocklistService.STATE_VULNERABLE_UPDATE_AVAILABLE;
-            if (vulnerabilityStatus == VULNERABILITYSTATUS_NO_UPDATE)
-              return Ci.nsIBlocklistService.STATE_VULNERABLE_NO_UPDATE;
+          if (blockEntry.versions[i].severity == SEVERITY_OUTDATED)
             return Ci.nsIBlocklistService.STATE_OUTDATED;
-          }
           return Ci.nsIBlocklistService.STATE_SOFTBLOCKED;
         }
       }
@@ -881,16 +907,16 @@ Blocklist.prototype = {
     var addonList = [];
 
     var self = this;
-    AddonManager.getAddonsByTypes(["extension", "theme", "locale", "dictionary"], function(addons) {
+    AddonManager.getAddonsByTypes(["extension", "theme", "locale"], function(addons) {
 
-      for (let addon of addons) {
+      for (let i = 0; i < addons.length; i++) {
         let oldState = Ci.nsIBlocklistService.STATE_NOTBLOCKED;
         if (oldAddonEntries)
-          oldState = self._getAddonBlocklistState(addon.id, addon.version,
+          oldState = self._getAddonBlocklistState(addons[i].id, addons[i].version,
                                                   oldAddonEntries);
-        let state = self.getAddonBlocklistState(addon.id, addon.version);
+        let state = self.getAddonBlocklistState(addons[i].id, addons[i].version);
 
-        LOG("Blocklist state for " + addon.id + " changed from " +
+        LOG("Blocklist state for " + addons[i].id + " changed from " +
             oldState + " to " + state);
 
         
@@ -899,7 +925,7 @@ Blocklist.prototype = {
 
         
         if (state != Ci.nsIBlocklistService.STATE_SOFTBLOCKED)
-          addon.softDisabled = false;
+          addons[i].softDisabled = false;
 
         
         if (state == Ci.nsIBlocklistService.STATE_NOT_BLOCKED)
@@ -909,23 +935,23 @@ Blocklist.prototype = {
         
         if (state == Ci.nsIBlocklistService.STATE_SOFTBLOCKED &&
             oldState == Ci.nsIBlocklistService.STATE_BLOCKED) {
-          addon.softDisabled = true;
+          addons[i].softDisabled = true;
           continue;
         }
 
         
         
-        if (!addon.isActive)
+        if (!addons[i].isActive)
           continue;
 
         addonList.push({
-          name: addon.name,
-          version: addon.version,
-          icon: addon.iconURL,
+          name: addons[i].name,
+          version: addons[i].version,
+          icon: addons[i].iconURL,
           disable: false,
           blocked: state == Ci.nsIBlocklistService.STATE_BLOCKED,
-          item: addon,
-          url: self.getAddonBlocklistURL(addon.id),
+          item: addons[i],
+          url: self.getAddonBlocklistURL(addons[i].id),
         });
       }
 
@@ -935,46 +961,38 @@ Blocklist.prototype = {
                 getService(Ci.nsIPluginHost);
       var plugins = phs.getPluginTags();
 
-      for (let plugin of plugins) {
+      for (let i = 0; i < plugins.length; i++) {
         let oldState = -1;
         if (oldPluginEntries)
-          oldState = self._getPluginBlocklistState(plugin, oldPluginEntries);
-        let state = self.getPluginBlocklistState(plugin);
-        LOG("Blocklist state for " + plugin.name + " changed from " +
+          oldState = self._getPluginBlocklistState(plugins[i], oldPluginEntries);
+        let state = self.getPluginBlocklistState(plugins[i]);
+        LOG("Blocklist state for " + plugins[i].name + " changed from " +
             oldState + " to " + state);
         
         if (state == oldState)
           continue;
 
-        if (plugin.blocklisted) {
+        if (plugins[i].blocklisted) {
           if (state == Ci.nsIBlocklistService.STATE_SOFTBLOCKED)
-            plugin.disabled = true;
+            plugins[i].disabled = true;
         }
-        else if (!plugin.disabled && state != Ci.nsIBlocklistService.STATE_NOT_BLOCKED) {
+        else if (!plugins[i].disabled && state != Ci.nsIBlocklistService.STATE_NOT_BLOCKED) {
           if (state == Ci.nsIBlocklistService.STATE_OUTDATED) {
             gPref.setBoolPref(PREF_PLUGINS_NOTIFYUSER, true);
           }
-          else if (state != Ci.nsIBlocklistService.STATE_VULNERABLE_UPDATE_AVAILABLE &&
-                   state != Ci.nsIBlocklistService.STATE_VULNERABLE_NO_UPDATE) {
+          else {
             addonList.push({
-              name: plugin.name,
-              version: plugin.version,
+              name: plugins[i].name,
+              version: plugins[i].version,
               icon: "chrome://mozapps/skin/plugins/pluginGeneric.png",
               disable: false,
               blocked: state == Ci.nsIBlocklistService.STATE_BLOCKED,
-              item: plugin,
-              url: self.getPluginBlocklistURL(plugin),
+              item: plugins[i],
+              url: self.getPluginBlocklistURL(plugins[i]),
             });
           }
         }
-        plugin.blocklisted = state == Ci.nsIBlocklistService.STATE_BLOCKED;
-        if (state == Ci.nsIBlocklistService.STATE_VULNERABLE_UPDATE_AVAILABLE ||
-            state == Ci.nsIBlocklistService.STATE_VULNERABLE_NO_UPDATE)
-          plugin.clicktoplay = true;
-        
-        else if (oldState == Ci.nsIBlocklistService.STATE_VULNERABLE_UPDATE_AVAILABLE ||
-                 oldState == Ci.nsIBlocklistService.STATE_VULNERABLE_NO_UPDATE)
-          plugin.clicktoplay = false;
+        plugins[i].blocklisted = state == Ci.nsIBlocklistService.STATE_BLOCKED;
       }
 
       if (addonList.length == 0) {
@@ -1006,14 +1024,14 @@ Blocklist.prototype = {
 
 
       let applyBlocklistChanges = function() {
-        for (let addon of addonList) {
-          if (!addon.disable)
+        for (let i = 0; i < addonList.length; i++) {
+          if (!addonList[i].disable)
             continue;
 
-          if (addon.item instanceof Ci.nsIPluginTag)
-            addon.item.disabled = true;
+          if (addonList[i].item instanceof Ci.nsIPluginTag)
+            addonList[i].item.disabled = true;
           else
-            addon.item.softDisabled = true;
+            addonList[i].item.softDisabled = true;
         }
 
         if (args.restart)
@@ -1055,11 +1073,6 @@ function BlocklistItemData(versionRangeElement) {
     this.severity = versionRangeElement.getAttribute("severity");
   else
     this.severity = DEFAULT_SEVERITY;
-  if (versionRangeElement && versionRangeElement.hasAttribute("vulnerabilitystatus")) {
-    this.vulnerabilityStatus = versionRangeElement.getAttribute("vulnerabilitystatus");
-  } else {
-    this.vulnerabilityStatus = VULNERABILITYSTATUS_NONE;
-  }
   this.targetApps = { };
   var found = false;
 
@@ -1147,8 +1160,8 @@ BlocklistItemData.prototype = {
     if (!blTargetApp)
       return false;
 
-    for (let app of blTargetApp) {
-      if (this.matchesRange(appVersion, app.minVersion, app.maxVersion))
+    for (var x = 0; x < blTargetApp.length; ++x) {
+      if (this.matchesRange(appVersion, blTargetApp[x].minVersion, blTargetApp[x].maxVersion))
         return true;
     }
 

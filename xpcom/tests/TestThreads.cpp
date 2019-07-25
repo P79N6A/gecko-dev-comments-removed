@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsThreadUtils.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -79,7 +112,7 @@ public:
 
     NS_IMETHOD Run() {
         NS_ASSERTION(!mWasRun, "run twice!");
-        mWasRun = true;
+        mWasRun = PR_TRUE;
         PR_Sleep(1);
         if (!PR_AtomicDecrement(&gNum)) {
             printf("   last thread was %d\n", mNum);
@@ -87,11 +120,11 @@ public:
         return NS_OK;
     }
 
-    nsStressRunner(int num) : mNum(num), mWasRun(false) {
+    nsStressRunner(int num) : mNum(num), mWasRun(PR_FALSE) {
         PR_AtomicIncrement(&gNum);
     }
 
-    static int32_t GetGlobalCount() {return gNum;}
+    static PRInt32 GetGlobalCount() {return gNum;}
 
 private:
     ~nsStressRunner() {
@@ -99,12 +132,12 @@ private:
     }
 
 protected:
-    static int32_t gNum;
-    int32_t mNum;
+    static PRInt32 gNum;
+    PRInt32 mNum;
     bool mWasRun;
 };
 
-int32_t nsStressRunner::gNum = 0;
+PRInt32 nsStressRunner::gNum = 0;
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(nsStressRunner, nsIRunnable)
 
@@ -185,7 +218,7 @@ main(int argc, char** argv)
     int retval = 0;
     nsresult rv;
     
-    rv = NS_InitXPCOM2(nullptr, nullptr, nullptr);
+    rv = NS_InitXPCOM2(nsnull, nsnull, nsnull);
     if (NS_FAILED(rv)) return -1;
 
     if (argc > 1 && !strcmp(argv[1], "-stress")) {
@@ -217,7 +250,7 @@ main(int argc, char** argv)
         if (NS_FAILED(rv)) return -1;
     }
 
-    rv = NS_ShutdownXPCOM(nullptr);
+    rv = NS_ShutdownXPCOM(nsnull);
     if (NS_FAILED(rv)) return -1;
     return retval;
 }

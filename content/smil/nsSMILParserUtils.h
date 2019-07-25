@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_SMILPARSERUTILS_H_
 #define NS_SMILPARSERUTILS_H_
 
@@ -58,9 +90,9 @@ public:
 
 
   
-  static const int8_t kClockValueAllowSign       = 1;
+  static const PRInt8 kClockValueAllowSign       = 1;
   
-  static const int8_t kClockValueAllowIndefinite = 2;
+  static const PRInt8 kClockValueAllowIndefinite = 2;
 
   
 
@@ -90,8 +122,8 @@ public:
 
   static nsresult ParseClockValue(const nsAString& aSpec,
                                   nsSMILTimeValue* aResult,
-                                  uint32_t aFlags = 0,
-                                  bool* aIsMedia = nullptr);
+                                  PRUint32 aFlags = 0,
+                                  bool* aIsMedia = nsnull);
 
   
 
@@ -100,7 +132,7 @@ public:
 
 
 
-  static int32_t CheckForNegativeNumber(const nsAString& aStr);
+  static PRInt32 CheckForNegativeNumber(const nsAString& aStr);
 };
 
 #endif 

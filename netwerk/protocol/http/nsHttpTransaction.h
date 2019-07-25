@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsHttpTransaction_h__
 #define nsHttpTransaction_h__
 
@@ -69,7 +102,7 @@ public:
     
     
     
-    nsresult Init(uint8_t                caps,
+    nsresult Init(PRUint8                caps,
                   nsHttpConnectionInfo  *connInfo,
                   nsHttpRequestHead     *reqHeaders,
                   nsIInputStream        *reqBody,
@@ -80,12 +113,14 @@ public:
                   nsIAsyncInputStream  **responseBody);
 
     
+    PRUint8                Caps()           { return mCaps; }
     nsHttpConnectionInfo  *ConnectionInfo() { return mConnInfo; }
-    nsHttpResponseHead    *ResponseHead()   { return mHaveAllHeaders ? mResponseHead : nullptr; }
+    nsHttpResponseHead    *ResponseHead()   { return mHaveAllHeaders ? mResponseHead : nsnull; }
     nsISupports           *SecurityInfo()   { return mSecurityInfo; }
 
     nsIInterfaceRequestor *Callbacks()      { return mCallbacks; } 
     nsIEventTarget        *ConsumerTarget() { return mConsumerTarget; }
+    nsAHttpConnection     *Connection()     { return mConnection; }
 
     
     
@@ -94,37 +129,30 @@ public:
     
     bool ResponseIsComplete() { return mResponseIsComplete; }
 
-    bool      ProxyConnectFailed() { return mProxyConnectFailed; }
+    bool      SSLConnectFailed() { return mSSLConnectFailed; }
 
     
-    void    SetPriority(int32_t priority) { mPriority = priority; }
-    int32_t    Priority()                 { return mPriority; }
+    void    SetPriority(PRInt32 priority) { mPriority = priority; }
+    PRInt32    Priority()                 { return mPriority; }
 
     const TimingStruct& Timings() const { return mTimings; }
-    enum Classifier Classification() { return mClassification; }
-
-    void PrintDiagnostics(nsCString &log);
 
 private:
     nsresult Restart();
-    nsresult RestartInProgress();
-    char    *LocateHttpStart(char *buf, uint32_t len,
+    char    *LocateHttpStart(char *buf, PRUint32 len,
                              bool aAllowPartialMatch);
     nsresult ParseLine(char *line);
-    nsresult ParseLineSegment(char *seg, uint32_t len);
-    nsresult ParseHead(char *, uint32_t count, uint32_t *countRead);
+    nsresult ParseLineSegment(char *seg, PRUint32 len);
+    nsresult ParseHead(char *, PRUint32 count, PRUint32 *countRead);
     nsresult HandleContentStart();
-    nsresult HandleContent(char *, uint32_t count, uint32_t *contentRead, uint32_t *contentRemaining);
-    nsresult ProcessData(char *, uint32_t, uint32_t *);
+    nsresult HandleContent(char *, PRUint32 count, PRUint32 *contentRead, PRUint32 *contentRemaining);
+    nsresult ProcessData(char *, PRUint32, PRUint32 *);
     void     DeleteSelfOnConsumerThread();
 
-    Classifier Classify();
-    void       CancelPipeline(uint32_t reason);
-
     static NS_METHOD ReadRequestSegment(nsIInputStream *, void *, const char *,
-                                        uint32_t, uint32_t, uint32_t *);
+                                        PRUint32, PRUint32, PRUint32 *);
     static NS_METHOD WritePipeSegment(nsIOutputStream *, void *, char *,
-                                      uint32_t, uint32_t, uint32_t *);
+                                      PRUint32, PRUint32, PRUint32 *);
 
     bool TimingEnabled() const { return mCaps & NS_HTTP_TIMING_ENABLED; }
 
@@ -141,7 +169,7 @@ private:
 
     nsCString                       mReqHeaderBuf;    
     nsCOMPtr<nsIInputStream>        mRequestStream;
-    uint64_t                        mRequestSize;
+    PRUint32                        mRequestSize;
 
     nsAHttpConnection              *mConnection;      
     nsHttpConnectionInfo           *mConnInfo;        
@@ -153,15 +181,15 @@ private:
 
     nsCString                       mLineBuf;         
 
-    int64_t                         mContentLength;   
-    int64_t                         mContentRead;     
+    PRInt64                         mContentLength;   
+    PRInt64                         mContentRead;     
 
     
     
     
     
     
-    uint32_t                        mInvalidResponseBytesRead;
+    PRUint32                        mInvalidResponseBytesRead;
 
     nsHttpChunkedDecoder           *mChunkedDecoder;
 
@@ -169,15 +197,10 @@ private:
 
     nsresult                        mStatus;
 
-    int16_t                         mPriority;
+    PRInt16                         mPriority;
 
-    uint16_t                        mRestartCount;        
-    uint8_t                         mCaps;
-    enum Classifier                 mClassification;
-    int32_t                         mPipelinePosition;
-    int64_t                         mMaxPipelineObjectSize;
-
-    nsHttpVersion                   mHttpVersion;
+    PRUint16                        mRestartCount;        
+    PRUint8                         mCaps;
 
     
     
@@ -193,83 +216,13 @@ private:
     bool                            mReceivedData;
     bool                            mStatusEventPending;
     bool                            mHasRequestBody;
-    bool                            mProxyConnectFailed;
+    bool                            mSSLConnectFailed;
     bool                            mHttpResponseMatched;
     bool                            mPreserveStream;
 
     
     
     
-
-    
-    bool                            mReportedStart;
-    bool                            mReportedResponseHeader;
-
-    
-    nsHttpResponseHead             *mForTakeResponseHead;
-    bool                            mResponseHeadTaken;
-
-    class RestartVerifier 
-    {
-
-        
-        
-        
-        
-        
-        
-        
-
-    public:
-        RestartVerifier()
-            : mContentLength(-1)
-            , mAlreadyProcessed(0)
-            , mToReadBeforeRestart(0)
-            , mSetup(false)
-        {}
-        ~RestartVerifier() {}
-        
-        void Set(int64_t contentLength, nsHttpResponseHead *head);
-        bool Verify(int64_t contentLength, nsHttpResponseHead *head);
-        bool IsDiscardingContent() { return mToReadBeforeRestart != 0; }
-        bool IsSetup() { return mSetup; }
-        int64_t AlreadyProcessed() { return mAlreadyProcessed; }
-        void SetAlreadyProcessed(int64_t val) {
-            mAlreadyProcessed = val;
-            mToReadBeforeRestart = val;
-        }
-        int64_t ToReadBeforeRestart() { return mToReadBeforeRestart; }
-        void HaveReadBeforeRestart(uint32_t amt)
-        {
-            NS_ABORT_IF_FALSE(amt <= mToReadBeforeRestart,
-                              "too large of a HaveReadBeforeRestart deduction");
-            mToReadBeforeRestart -= amt;
-        }
-
-    private:
-        
-        
-
-        int64_t                         mContentLength;
-        nsCString                       mETag;
-        nsCString                       mLastModified;
-        nsCString                       mContentRange;
-        nsCString                       mContentEncoding;
-        nsCString                       mTransferEncoding;
-
-        
-        
-        
-        int64_t                         mAlreadyProcessed;
-
-        
-        
-        
-        int64_t                         mToReadBeforeRestart;
-
-        
-        bool                            mSetup;
-    } mRestartInProgressVerifier;
 };
 
 #endif 

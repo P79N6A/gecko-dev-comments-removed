@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _NSSSLSTATUS_H
 #define _NSSSLSTATUS_H
 
@@ -32,8 +65,8 @@ public:
   
   nsCOMPtr<nsIX509Cert> mServerCert;
 
-  uint32_t mKeyLength;
-  uint32_t mSecretKeyLength;
+  PRUint32 mKeyLength;
+  PRUint32 mSecretKeyLength;
   nsXPIDLCString mCipherName;
 
   bool mIsDomainMismatch;
@@ -41,9 +74,6 @@ public:
   bool mIsUntrusted;
 
   bool mHaveKeyLengthAndCipher;
-
-  
-
   bool mHaveCertErrorBits;
 };
 

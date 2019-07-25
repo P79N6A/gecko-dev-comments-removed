@@ -3,33 +3,52 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGPAINTSERVERFRAME_H__
 #define __NS_SVGPAINTSERVERFRAME_H__
 
-#include "nsCOMPtr.h"
-#include "nsFrame.h"
-#include "nsIFrame.h"
-#include "nsQueryFrame.h"
 #include "nsSVGContainerFrame.h"
-#include "nsSVGUtils.h"
 
 class gfxContext;
-class gfxPattern;
-class nsStyleContext;
 class nsSVGGeometryFrame;
-
-struct gfxRect;
 
 typedef nsSVGContainerFrame nsSVGPaintServerFrameBase;
 
 class nsSVGPaintServerFrame : public nsSVGPaintServerFrameBase
 {
 protected:
-  nsSVGPaintServerFrame(nsStyleContext* aContext)
-    : nsSVGPaintServerFrameBase(aContext)
-  {
-    AddStateBits(NS_STATE_SVG_NONDISPLAY_CHILD);
-  }
+  nsSVGPaintServerFrame(nsStyleContext* aContext) :
+    nsSVGPaintServerFrameBase(aContext) {}
 
 public:
   NS_DECL_FRAMEARENA_HELPERS
@@ -37,35 +56,20 @@ public:
   
 
 
-
-
-
-
-
   virtual already_AddRefed<gfxPattern>
     GetPaintServerPattern(nsIFrame *aSource,
-                          const gfxMatrix& aContextMatrix,
-                          nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
                           float aOpacity,
-                          const gfxRect *aOverrideBounds = nullptr) = 0;
+                          const gfxRect *aOverrideBounds = nsnull) = 0;
 
   
 
 
 
   virtual bool SetupPaintServer(gfxContext *aContext,
-                                nsIFrame *aSource,
-                                nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
-                                float aOpacity);
+                                  nsSVGGeometryFrame *aSource,
+                                  float aOpacity);
 
-  
-  NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                              const nsRect&           aDirtyRect,
-                              const nsDisplayListSet& aLists) {
-    return NS_OK;
-  }
-
-  virtual bool IsFrameOfType(uint32_t aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     return nsSVGPaintServerFrameBase::IsFrameOfType(aFlags & ~nsIFrame::eSVGPaintServer);
   }

@@ -3,6 +3,37 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "SMILBoolType.h"
 #include "nsSMILValue.h"
 #include "nsDebug.h"
@@ -16,7 +47,7 @@ void
 SMILBoolType::Init(nsSMILValue& aValue) const
 {
   NS_PRECONDITION(aValue.IsNull(), "Unexpected value type");
-  aValue.mU.mBool = false;
+  aValue.mU.mBool = PR_FALSE;
   aValue.mType = this;
 }
 
@@ -24,7 +55,7 @@ void
 SMILBoolType::Destroy(nsSMILValue& aValue) const
 {
   NS_PRECONDITION(aValue.mType == this, "Unexpected SMIL value");
-  aValue.mU.mBool = false;
+  aValue.mU.mBool = PR_FALSE;
   aValue.mType = &nsSMILNullType::sSingleton;
 }
 
@@ -49,7 +80,7 @@ SMILBoolType::IsEqual(const nsSMILValue& aLeft,
 
 nsresult
 SMILBoolType::Add(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
-                  uint32_t aCount) const
+                  PRUint32 aCount) const
 {
   NS_PRECONDITION(aValueToAdd.mType == aDest.mType,
                   "Trying to add invalid types");

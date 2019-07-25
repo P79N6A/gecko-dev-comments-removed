@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef TRANSFRMX_TXSTYLESHEETCOMPILER_H
 #define TRANSFRMX_TXSTYLESHEETCOMPILER_H
 
@@ -15,7 +48,7 @@
 #include "nsTArray.h"
 
 extern bool
-TX_XSLTFunctionAvailable(nsIAtom* aName, int32_t aNameSpaceID);
+TX_XSLTFunctionAvailable(nsIAtom* aName, PRInt32 aNameSpaceID);
 
 class txHandlerTable;
 class txElementContext;
@@ -27,7 +60,7 @@ class txPushNewContext;
 class txStylesheetCompiler;
 class txInScopeVariable;
 
-class txElementContext : public txObject
+class txElementContext : public TxObject
 {
 public:
     txElementContext(const nsAString& aBaseURI);
@@ -37,31 +70,31 @@ public:
     bool mForwardsCompatibleParsing;
     nsString mBaseURI;
     nsRefPtr<txNamespaceMap> mMappings;
-    nsTArray<int32_t> mInstructionNamespaces;
-    int32_t mDepth;
+    nsTArray<PRInt32> mInstructionNamespaces;
+    PRInt32 mDepth;
 };
 
 class txACompileObserver
 {
 public:
-    NS_IMETHOD_(nsrefcnt) AddRef() = 0;
-    NS_IMETHOD_(nsrefcnt) Release() = 0;
+    virtual void AddRef() = 0;
+    virtual void Release() = 0;
 
     virtual nsresult loadURI(const nsAString& aUri,
                              const nsAString& aReferrerUri,
                              txStylesheetCompiler* aCompiler) = 0;
     virtual void onDoneCompiling(txStylesheetCompiler* aCompiler,
                                  nsresult aResult,
-                                 const PRUnichar *aErrorText = nullptr,
-                                 const PRUnichar *aParam = nullptr) = 0;
+                                 const PRUnichar *aErrorText = nsnull,
+                                 const PRUnichar *aParam = nsnull) = 0;
 };
 
 #define TX_DECL_ACOMPILEOBSERVER \
   nsresult loadURI(const nsAString& aUri, const nsAString& aReferrerUri, \
                    txStylesheetCompiler* aCompiler); \
   void onDoneCompiling(txStylesheetCompiler* aCompiler, nsresult aResult, \
-                       const PRUnichar *aErrorText = nullptr, \
-                       const PRUnichar *aParam = nullptr);
+                       const PRUnichar *aErrorText = nsnull, \
+                       const PRUnichar *aParam = nsnull);
 
 class txStylesheetCompilerState : public txIParseContext
 {
@@ -83,29 +116,17 @@ public:
     }
 
     
-    enum enumStackType
-    {
-      eElementHandler,
-      eHandlerTable,
-      eVariableItem,
-      eCopy,
-      eInstruction,
-      ePushNewContext,
-      eConditionalGoto,
-      eCheckParam,
-      ePushNullTemplateRule
-    };
     nsresult pushHandlerTable(txHandlerTable* aTable);
     void popHandlerTable();
     nsresult pushSorter(txPushNewContext* aSorter);
     void popSorter();
     nsresult pushChooseGotoList();
     void popChooseGotoList();
-    nsresult pushObject(txObject* aObject);
-    txObject* popObject();
-    nsresult pushPtr(void* aPtr, enumStackType aType);
-    void* popPtr(enumStackType aType);
-    
+    nsresult pushObject(TxObject* aObject);
+    TxObject* popObject();
+    nsresult pushPtr(void* aPtr);
+    void* popPtr();
+
     
     nsresult addToplevelItem(txToplevelItem* aItem);
     nsresult openInstructionContainer(txInstructionContainer* aContainer);
@@ -120,8 +141,8 @@ public:
     nsresult addVariable(const txExpandedName& aName);
 
     
-    nsresult resolveNamespacePrefix(nsIAtom* aPrefix, int32_t& aID);
-    nsresult resolveFunctionCall(nsIAtom* aName, int32_t aID,
+    nsresult resolveNamespacePrefix(nsIAtom* aPrefix, PRInt32& aID);
+    nsresult resolveFunctionCall(nsIAtom* aName, PRInt32 aID,
                                  FunctionCall** aFunction);
     bool caseInsensitiveNameTests();
 
@@ -133,7 +154,7 @@ public:
         return mElementContext->mForwardsCompatibleParsing;
     }
 
-    void SetErrorOffset(uint32_t aOffset);
+    void SetErrorOffset(PRUint32 aOffset);
 
     static void shutdown();
 
@@ -164,7 +185,6 @@ protected:
     bool mDoneWithThisStylesheet;
     txStack mObjectStack;
     txStack mOtherStack;
-    nsTArray<enumStackType> mTypeStack;
 
 private:
     txInstruction** mNextInstrPtr;
@@ -174,7 +194,7 @@ private:
 
 struct txStylesheetAttr
 {
-    int32_t mNamespaceID;
+    PRInt32 mNamespaceID;
     nsCOMPtr<nsIAtom> mLocalName;
     nsCOMPtr<nsIAtom> mPrefix;
     nsString mValue;
@@ -186,7 +206,7 @@ class txStylesheetCompiler : private txStylesheetCompilerState,
 public:
     friend class txStylesheetCompilerState;
     friend bool TX_XSLTFunctionAvailable(nsIAtom* aName,
-                                           int32_t aNameSpaceID);
+                                           PRInt32 aNameSpaceID);
     txStylesheetCompiler(const nsAString& aStylesheetURI,
                          txACompileObserver* aObserver);
     txStylesheetCompiler(const nsAString& aStylesheetURI,
@@ -196,18 +216,18 @@ public:
 
     void setBaseURI(const nsString& aBaseURI);
 
-    nsresult startElement(int32_t aNamespaceID, nsIAtom* aLocalName,
+    nsresult startElement(PRInt32 aNamespaceID, nsIAtom* aLocalName,
                           nsIAtom* aPrefix, txStylesheetAttr* aAttributes,
-                          int32_t aAttrCount);
+                          PRInt32 aAttrCount);
     nsresult startElement(const PRUnichar *aName,
                           const PRUnichar **aAtts,
-                          int32_t aAttrCount, int32_t aIDOffset);
+                          PRInt32 aAttrCount, PRInt32 aIDOffset);
     nsresult endElement();
     nsresult characters(const nsAString& aStr);
     nsresult doneLoading();
 
-    void cancel(nsresult aError, const PRUnichar *aErrorText = nullptr,
-                const PRUnichar *aParam = nullptr);
+    void cancel(nsresult aError, const PRUnichar *aErrorText = nsnull,
+                const PRUnichar *aParam = nsnull);
 
     txStylesheet* getStylesheet();
 
@@ -215,11 +235,11 @@ public:
     NS_INLINE_DECL_REFCOUNTING(txStylesheetCompiler)
 
 private:
-    nsresult startElementInternal(int32_t aNamespaceID, nsIAtom* aLocalName,
+    nsresult startElementInternal(PRInt32 aNamespaceID, nsIAtom* aLocalName,
                                   nsIAtom* aPrefix,
                                   txStylesheetAttr* aAttributes,
-                                  int32_t aAttrCount,
-                                  int32_t aIDOffset = -1);
+                                  PRInt32 aAttrCount,
+                                  PRInt32 aIDOffset = -1);
 
     nsresult flushCharacters();
     nsresult ensureNewElementContext();
@@ -235,7 +255,7 @@ public:
     {
     }
     txExpandedName mName;
-    int32_t mLevel;
+    PRInt32 mLevel;
 };
 
 #endif

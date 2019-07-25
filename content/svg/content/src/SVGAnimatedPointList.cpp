@@ -3,12 +3,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "SVGAnimatedPointList.h"
 #include "DOMSVGPointList.h"
 #include "nsSVGElement.h"
 #include "nsSVGAttrTearoffTable.h"
+#ifdef MOZ_SMIL
 #include "nsSMILValue.h"
 #include "SVGPointListSMILType.h"
+#endif 
 
 
 
@@ -37,7 +70,7 @@ SVGAnimatedPointList::SetBaseValueString(const nsAString& aValue)
     baseValWrapper->InternalListWillChangeTo(newBaseValue);
   }
 
-  DOMSVGPointList* animValWrapper = nullptr;
+  DOMSVGPointList* animValWrapper = nsnull;
   if (!IsAnimating()) {  
     animValWrapper = DOMSVGPointList::GetDOMWrapperIfExists(GetAnimValKey());
     if (animValWrapper) {
@@ -140,10 +173,11 @@ SVGAnimatedPointList::ClearAnimValue(nsSVGElement *aElement)
     
     domWrapper->InternalListWillChangeTo(mBaseVal);
   }
-  mAnimVal = nullptr;
+  mAnimVal = nsnull;
   aElement->DidAnimatePointList();
 }
 
+#ifdef MOZ_SMIL
 nsISMILAttr*
 SVGAnimatedPointList::ToSMILAttr(nsSVGElement *aElement)
 {
@@ -164,7 +198,7 @@ SVGAnimatedPointList::
     list->SetInfo(mElement);
     aValue.Swap(val);
   }
-  aPreventCachingOfSandwich = false;
+  aPreventCachingOfSandwich = PR_FALSE;
   return rv;
 }
 
@@ -205,5 +239,6 @@ SVGAnimatedPointList::SMILAnimatedPointList::ClearAnimValue()
     mVal->ClearAnimValue(mElement);
   }
 }
+#endif 
 
 } 

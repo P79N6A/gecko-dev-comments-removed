@@ -3,7 +3,38 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsSVGImageElement.h"
 #include "nsCOMPtr.h"
@@ -12,6 +43,7 @@
 #include "imgIContainer.h"
 #include "imgIDecoderObserver.h"
 #include "gfxContext.h"
+#include "mozilla/Preferences.h"
 
 using namespace mozilla;
 
@@ -25,7 +57,7 @@ nsSVGElement::LengthInfo nsSVGImageElement::sLengthInfo[4] =
 
 nsSVGElement::StringInfo nsSVGImageElement::sStringInfo[1] =
 {
-  { &nsGkAtoms::href, kNameSpaceID_XLink, true }
+  { &nsGkAtoms::href, kNameSpaceID_XLink, PR_TRUE }
 };
 
 NS_IMPL_NS_NEW_SVG_ELEMENT(Image)
@@ -39,11 +71,10 @@ NS_IMPL_RELEASE_INHERITED(nsSVGImageElement,nsSVGImageElementBase)
 DOMCI_NODE_DATA(SVGImageElement, nsSVGImageElement)
 
 NS_INTERFACE_TABLE_HEAD(nsSVGImageElement)
-  NS_NODE_INTERFACE_TABLE9(nsSVGImageElement, nsIDOMNode, nsIDOMElement,
-                           nsIDOMSVGElement, nsIDOMSVGTests,
-                           nsIDOMSVGImageElement,
+  NS_NODE_INTERFACE_TABLE7(nsSVGImageElement, nsIDOMNode, nsIDOMElement,
+                           nsIDOMSVGElement, nsIDOMSVGImageElement,
                            nsIDOMSVGURIReference, imgIDecoderObserver,
-                           nsIImageLoadingContent, imgIOnloadBlocker)
+                           nsIImageLoadingContent)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(SVGImageElement)
 NS_INTERFACE_MAP_END_INHERITING(nsSVGImageElementBase)
 
@@ -136,27 +167,21 @@ nsSVGImageElement::LoadSVGImage(bool aForce, bool aNotify)
 
 
 nsresult
-nsSVGImageElement::AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
-                                const nsAttrValue* aValue, bool aNotify)
+nsSVGImageElement::AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
+                                const nsAString* aValue, bool aNotify)
 {
   if (aNamespaceID == kNameSpaceID_XLink && aName == nsGkAtoms::href) {
+    
+    
+    if (Preferences::GetBool("dom.disable_image_src_set") &&
+        !nsContentUtils::IsCallerChrome()) {
+      return NS_OK;
+    }
 
-    
-    
-    
-    
-    if (!GetPrimaryFrame()) {
-
-      
-      if (nsContentUtils::IsImageSrcSetDisabled()) {
-        return NS_OK;
-      }
-
-      if (aValue) {
-        LoadSVGImage(true, aNotify);
-      } else {
-        CancelImageRequests(aNotify);
-      }
+    if (aValue) {
+      LoadSVGImage(PR_TRUE, aNotify);
+    } else {
+      CancelImageRequests(aNotify);
     }
   }
   return nsSVGImageElementBase::AfterSetAttr(aNamespaceID, aName,
@@ -167,9 +192,9 @@ void
 nsSVGImageElement::MaybeLoadSVGImage()
 {
   if (mStringAttributes[HREF].IsExplicitlySet() &&
-      (NS_FAILED(LoadSVGImage(false, true)) ||
+      (NS_FAILED(LoadSVGImage(PR_FALSE, PR_TRUE)) ||
        !LoadingEnabled())) {
-    CancelImageRequests(true);
+    CancelImageRequests(PR_TRUE);
   }
 }
 
@@ -183,9 +208,6 @@ nsSVGImageElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                                   aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsImageLoadingContent::BindToTree(aDocument, aParent, aBindingParent,
-                                    aCompileEventHandlers);
-
   if (mStringAttributes[HREF].IsExplicitlySet()) {
     
     
@@ -196,13 +218,6 @@ nsSVGImageElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   }
 
   return rv;
-}
-
-void
-nsSVGImageElement::UnbindFromTree(bool aDeep, bool aNullParent)
-{
-  nsImageLoadingContent::UnbindFromTree(aDeep, aNullParent);
-  nsSVGImageElementBase::UnbindFromTree(aDeep, aNullParent);
 }
 
 nsEventStates
@@ -219,7 +234,7 @@ nsSVGImageElement::IsAttributeMapped(const nsIAtom* name) const
     sViewportsMap,
   };
   
-  return FindAttributeDependence(name, map) ||
+  return FindAttributeDependence(name, map, NS_ARRAY_LENGTH(map)) ||
     nsSVGImageElementBase::IsAttributeMapped(name);
 }
 
@@ -233,7 +248,7 @@ nsSVGImageElement::ConstructPath(gfxContext *aCtx)
 {
   float x, y, width, height;
 
-  GetAnimatedLengthValues(&x, &y, &width, &height, nullptr);
+  GetAnimatedLengthValues(&x, &y, &width, &height, nsnull);
 
   if (width <= 0 || height <= 0)
     return;
@@ -244,20 +259,11 @@ nsSVGImageElement::ConstructPath(gfxContext *aCtx)
 
 
 
- bool
-nsSVGImageElement::HasValidDimensions() const
-{
-  return mLengthAttributes[WIDTH].IsExplicitlySet() &&
-         mLengthAttributes[WIDTH].GetAnimValInSpecifiedUnits() > 0 &&
-         mLengthAttributes[HEIGHT].IsExplicitlySet() &&
-         mLengthAttributes[HEIGHT].GetAnimValInSpecifiedUnits() > 0;
-}
-
 nsSVGElement::LengthAttributesInfo
 nsSVGImageElement::GetLengthInfo()
 {
   return LengthAttributesInfo(mLengthAttributes, sLengthInfo,
-                              ArrayLength(sLengthInfo));
+                              NS_ARRAY_LENGTH(sLengthInfo));
 }
 
 SVGAnimatedPreserveAspectRatio *
@@ -270,13 +276,24 @@ nsSVGElement::StringAttributesInfo
 nsSVGImageElement::GetStringInfo()
 {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              ArrayLength(sStringInfo));
+                              NS_ARRAY_LENGTH(sStringInfo));
+}
+
+void
+nsSVGImageElement::DidAnimateString(PRUint8 aAttrEnum)
+{
+  if (aAttrEnum == HREF) {
+    LoadSVGImage(PR_TRUE, PR_FALSE);
+    return;
+  }
+
+  nsSVGImageElementBase::DidAnimateString(aAttrEnum);
 }
 
 nsresult
-nsSVGImageElement::CopyInnerTo(nsGenericElement* aDest)
+nsSVGImageElement::CopyInnerTo(nsGenericElement* aDest) const
 {
-  if (aDest->OwnerDoc()->IsStaticDocument()) {
+  if (aDest->GetOwnerDoc()->IsStaticDocument()) {
     CreateStaticImageClone(static_cast<nsSVGImageElement*>(aDest));
   }
   return nsSVGImageElementBase::CopyInnerTo(aDest);

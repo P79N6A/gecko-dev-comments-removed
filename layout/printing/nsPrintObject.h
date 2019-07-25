@@ -2,10 +2,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsPrintObject_h___
 #define nsPrintObject_h___
-
-#include "mozilla/Attributes.h"
 
 
 #include "nsCOMPtr.h"
@@ -64,7 +94,8 @@ public:
   float            mZoomRatio;
 
 private:
-  nsPrintObject& operator=(const nsPrintObject& aOther) MOZ_DELETE;
+  nsPrintObject& operator=(const nsPrintObject& aOther); 
+
 };
 
 

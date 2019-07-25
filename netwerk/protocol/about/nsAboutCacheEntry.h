@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsAboutCacheEntry_h__
 #define nsAboutCacheEntry_h__
 
@@ -29,7 +62,7 @@ public:
     NS_DECL_NSICACHEMETADATAVISITOR
 
     nsAboutCacheEntry()
-        : mBuffer(nullptr)
+        : mBuffer(nsnull)
     {}
 
     virtual ~nsAboutCacheEntry() {}

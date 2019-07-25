@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsContentAreaDragDrop_h__
 #define nsContentAreaDragDrop_h__
 
@@ -14,7 +47,8 @@
 #include "nsITransferable.h"
 
 class nsIDOMNode;
-class nsPIDOMWindow;
+class nsIDOMWindow;
+class nsIDOMDocument;
 class nsIDOMDragEvent;
 class nsISelection;
 class nsITransferable;
@@ -49,13 +83,13 @@ public:
 
 
 
-  static nsresult GetDragData(nsPIDOMWindow* aWindow,
+  static nsresult GetDragData(nsIDOMWindow* aWindow,
                               nsIContent* aTarget,
                               nsIContent* aSelectionTargetNode,
                               bool aIsAltKeyPressed,
                               nsDOMDataTransfer* aDataTransfer,
                               bool* aCanDrag,
-                              nsISelection** aSelection,
+                              bool* aDragSelection,
                               nsIContent** aDragNode);
 };
 

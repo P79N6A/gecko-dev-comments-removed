@@ -3,25 +3,60 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsDOMMouseScrollEvent.h"
-#include "nsDOMClassInfoID.h"
+#include "nsGUIEvent.h"
+#include "nsIContent.h"
+#include "nsContentUtils.h"
 
 nsDOMMouseScrollEvent::nsDOMMouseScrollEvent(nsPresContext* aPresContext,
                                              nsInputEvent* aEvent)
   : nsDOMMouseEvent(aPresContext, aEvent ? aEvent :
-                                  new nsMouseScrollEvent(false, 0, nullptr))
+                                  new nsMouseScrollEvent(PR_FALSE, 0, nsnull))
 {
   if (aEvent) {
-    mEventIsInternal = false;
+    mEventIsInternal = PR_FALSE;
   } else {
-    mEventIsInternal = true;
+    mEventIsInternal = PR_TRUE;
     mEvent->time = PR_Now();
     mEvent->refPoint.x = mEvent->refPoint.y = 0;
     static_cast<nsMouseEvent*>(mEvent)->inputSource = nsIDOMMouseEvent::MOZ_SOURCE_UNKNOWN;
   }
 
   if(mEvent->eventStructType == NS_MOUSE_SCROLL_EVENT) {
-    mDetail = static_cast<nsMouseScrollEvent*>(mEvent)->delta;
+    nsMouseScrollEvent* mouseEvent = static_cast<nsMouseScrollEvent*>(mEvent);
+    mDetail = mouseEvent->delta;
   }
 }
 
@@ -37,7 +72,7 @@ nsDOMMouseScrollEvent::~nsDOMMouseScrollEvent()
         delete mEvent;
         break;
     }
-    mEvent = nullptr;
+    mEvent = nsnull;
   }
 }
 
@@ -53,11 +88,11 @@ NS_INTERFACE_MAP_END_INHERITING(nsDOMMouseEvent)
 
 NS_IMETHODIMP
 nsDOMMouseScrollEvent::InitMouseScrollEvent(const nsAString & aType, bool aCanBubble, bool aCancelable,
-                                nsIDOMWindow *aView, int32_t aDetail, int32_t aScreenX, 
-                                int32_t aScreenY, int32_t aClientX, int32_t aClientY, 
+                                nsIDOMWindow *aView, PRInt32 aDetail, PRInt32 aScreenX, 
+                                PRInt32 aScreenY, PRInt32 aClientX, PRInt32 aClientY, 
                                 bool aCtrlKey, bool aAltKey, bool aShiftKey, 
-                                bool aMetaKey, uint16_t aButton, nsIDOMEventTarget *aRelatedTarget,
-                                int32_t aAxis)
+                                bool aMetaKey, PRUint16 aButton, nsIDOMEventTarget *aRelatedTarget,
+                                PRInt32 aAxis)
 {
   nsresult rv = nsDOMMouseEvent::InitMouseEvent(aType, aCanBubble, aCancelable, aView, aDetail,
                                                 aScreenX, aScreenY, aClientX, aClientY, aCtrlKey,
@@ -65,8 +100,9 @@ nsDOMMouseScrollEvent::InitMouseScrollEvent(const nsAString & aType, bool aCanBu
   NS_ENSURE_SUCCESS(rv, rv);
   
   if (mEvent->eventStructType == NS_MOUSE_SCROLL_EVENT) {
-    static_cast<nsMouseScrollEvent*>(mEvent)->isHorizontal =
-                                                (aAxis == HORIZONTAL_AXIS);
+    static_cast<nsMouseScrollEvent*>(mEvent)->scrollFlags =
+        (aAxis == HORIZONTAL_AXIS) ? nsMouseScrollEvent::kIsHorizontal
+                                   : nsMouseScrollEvent::kIsVertical;
   }
 
   return NS_OK;
@@ -74,14 +110,14 @@ nsDOMMouseScrollEvent::InitMouseScrollEvent(const nsAString & aType, bool aCanBu
 
 
 NS_IMETHODIMP
-nsDOMMouseScrollEvent::GetAxis(int32_t* aResult)
+nsDOMMouseScrollEvent::GetAxis(PRInt32* aResult)
 {
   NS_ENSURE_ARG_POINTER(aResult);
 
   if (mEvent->eventStructType == NS_MOUSE_SCROLL_EVENT) {
-    *aResult = static_cast<nsMouseScrollEvent*>(mEvent)->isHorizontal ?
-                 static_cast<int32_t>(HORIZONTAL_AXIS) :
-                 static_cast<int32_t>(VERTICAL_AXIS);
+    PRUint32 flags = static_cast<nsMouseScrollEvent*>(mEvent)->scrollFlags;
+    *aResult = (flags & nsMouseScrollEvent::kIsHorizontal)
+         ? PRInt32(HORIZONTAL_AXIS) : PRInt32(VERTICAL_AXIS);
   } else {
     *aResult = 0;
   }

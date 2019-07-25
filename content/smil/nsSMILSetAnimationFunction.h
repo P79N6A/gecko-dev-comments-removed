@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_SMILSETANIMATIONFUNCTION_H_
 #define NS_SMILSETANIMATIONFUNCTION_H_
 
@@ -31,7 +63,7 @@ public:
 
 
   virtual bool SetAttr(nsIAtom* aAttribute, const nsAString& aValue,
-                         nsAttrValue& aResult, nsresult* aParseResult = nullptr);
+                         nsAttrValue& aResult, nsresult* aParseResult = nsnull);
 
   
 
@@ -39,26 +71,26 @@ public:
 
 
 
-  virtual bool UnsetAttr(nsIAtom* aAttribute) MOZ_OVERRIDE;
+  NS_OVERRIDE virtual bool UnsetAttr(nsIAtom* aAttribute);
 
 protected:
   
   
   
   
-  virtual bool IsToAnimation() const MOZ_OVERRIDE {
-    return false;
+  NS_OVERRIDE virtual bool IsToAnimation() const {
+    return PR_FALSE;
   }
 
   
-  virtual bool IsValueFixedForSimpleDuration() const MOZ_OVERRIDE {
-    return true;
+  NS_OVERRIDE virtual bool IsValueFixedForSimpleDuration() const {
+    return PR_TRUE;
   }
-  virtual bool               HasAttr(nsIAtom* aAttName) const MOZ_OVERRIDE;
-  virtual const nsAttrValue* GetAttr(nsIAtom* aAttName) const MOZ_OVERRIDE;
-  virtual bool               GetAttr(nsIAtom* aAttName,
-                                     nsAString& aResult) const MOZ_OVERRIDE;
-  virtual bool WillReplace() const MOZ_OVERRIDE;
+  NS_OVERRIDE virtual bool               HasAttr(nsIAtom* aAttName) const;
+  NS_OVERRIDE virtual const nsAttrValue* GetAttr(nsIAtom* aAttName) const;
+  NS_OVERRIDE virtual bool               GetAttr(nsIAtom* aAttName,
+                                                 nsAString& aResult) const;
+  NS_OVERRIDE virtual bool WillReplace() const;
 
   bool IsDisallowedAttribute(const nsIAtom* aAttribute) const;
 };

@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsLoadGroup_h__
 #define nsLoadGroup_h__
 
@@ -59,8 +91,8 @@ private:
                                 bool defaultRequest);
 
 protected:
-    uint32_t                        mForegroundCount;
-    uint32_t                        mLoadFlags;
+    PRUint32                        mForegroundCount;
+    PRUint32                        mLoadFlags;
 
     nsCOMPtr<nsILoadGroup>          mLoadGroup; 
     nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
@@ -71,14 +103,14 @@ protected:
     nsWeakPtr                       mObserver;
     
     nsresult                        mStatus;
-    int32_t                         mPriority;
+    PRInt32                         mPriority;
     bool                            mIsCanceling;
 
     
     mozilla::TimeStamp              mDefaultRequestCreationTime;
     bool                            mDefaultLoadIsTimed;
-    uint32_t                        mTimedRequests;
-    uint32_t                        mCachedRequests;
+    PRUint32                        mTimedRequests;
+    PRUint32                        mCachedRequests;
 };
 
 #endif 

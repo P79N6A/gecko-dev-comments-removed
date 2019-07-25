@@ -6,6 +6,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDOMTokenList_h___
 #define nsDOMTokenList_h___
 
@@ -14,39 +46,28 @@
 
 class nsAttrValue;
 
-
-
-class nsDOMTokenList : public nsIDOMDOMTokenList,
-                       public nsWrapperCache
+class nsDOMTokenList : public nsIDOMDOMTokenList
 {
 public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(nsDOMTokenList)
+  NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMDOMTOKENLIST
 
   nsDOMTokenList(nsGenericElement* aElement, nsIAtom* aAttrAtom);
 
   void DropReference();
 
-  virtual JSObject* WrapObject(JSContext *cx, JSObject *scope,
-                               bool *triedToWrap);
-
-  nsINode *GetParentObject()
-  {
-    return mElement;
-  }
+protected:
+  ~nsDOMTokenList();
 
   const nsAttrValue* GetParsedAttr() {
     if (!mElement) {
-      return nullptr;
+      return nsnull;
     }
     return mElement->GetAttrInfo(kNameSpaceID_None, mAttrAtom).mValue;
   }
 
-protected:
-  virtual ~nsDOMTokenList();
-
   nsresult CheckToken(const nsAString& aStr);
+  bool ContainsInternal(const nsAttrValue* aAttr, const nsAString& aToken);
   void AddInternal(const nsAttrValue* aAttr, const nsAString& aToken);
   void RemoveInternal(const nsAttrValue* aAttr, const nsAString& aToken);
 

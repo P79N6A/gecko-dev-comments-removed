@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_THEBESLAYERD3D9_H
 #define GFX_THEBESLAYERD3D9_H
 
@@ -30,7 +62,7 @@ public:
   
   Layer* GetLayer();
   virtual bool IsEmpty();
-  virtual void RenderLayer() { RenderThebesLayer(nullptr); }
+  virtual void RenderLayer() { RenderThebesLayer(nsnull); }
   virtual void CleanResources();
   virtual void LayerManagerDestroyed();
 
@@ -88,9 +120,12 @@ public:
   ShadowThebesLayerD3D9(LayerManagerD3D9 *aManager);
   virtual ~ShadowThebesLayerD3D9();
 
+  
+  virtual void SetFrontBuffer(const OptionalThebesBuffer& aNewFront,
+                              const nsIntRegion& aValidRegion);
   virtual void
   Swap(const ThebesBuffer& aNewFront, const nsIntRegion& aUpdatedRegion,
-       OptionalThebesBuffer* aNewBack, nsIntRegion* aNewBackValidRegion,
+       ThebesBuffer* aNewBack, nsIntRegion* aNewBackValidRegion,
        OptionalThebesBuffer* aReadOnlyFront, nsIntRegion* aFrontUpdatedRegion);
   virtual void DestroyFrontBuffer();
 

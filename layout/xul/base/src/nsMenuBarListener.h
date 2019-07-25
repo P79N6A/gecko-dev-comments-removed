@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsMenuBarListener_h__
 #define nsMenuBarListener_h__
 
@@ -36,7 +69,7 @@ public:
   nsresult Blur(nsIDOMEvent* aEvent);
   nsresult MouseDown(nsIDOMEvent* aMouseEvent);
 
-  static nsresult GetMenuAccessKey(int32_t* aAccessKey);
+  static nsresult GetMenuAccessKey(PRInt32* aAccessKey);
   
   NS_DECL_ISUPPORTS
 
@@ -45,7 +78,7 @@ public:
 protected:
   static void InitAccessKey();
 
-  static uint32_t GetModifiers(nsIDOMKeyEvent* event);
+  static PRUint32 GetModifiers(nsIDOMKeyEvent* event);
 
   
   
@@ -57,8 +90,8 @@ protected:
   
   bool mAccessKeyDownCanceled;
   static bool mAccessKeyFocuses; 
-  static int32_t mAccessKey;     
-  static uint32_t mAccessKeyMask;
+  static PRInt32 mAccessKey;     
+  static PRUint32 mAccessKeyMask;
 };
 
 

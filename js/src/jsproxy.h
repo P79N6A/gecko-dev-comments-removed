@@ -5,204 +5,97 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef jsproxy_h___
 #define jsproxy_h___
 
 #include "jsapi.h"
+#include "jscntxt.h"
 #include "jsfriendapi.h"
 
 namespace js {
 
-class JS_FRIEND_API(Wrapper);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class JS_FRIEND_API(BaseProxyHandler) {
+class JS_FRIEND_API(ProxyHandler) {
     void *mFamily;
-    bool mHasPrototype;
-  protected:
-    
-    void setHasPrototype(bool hasPrototype) { mHasPrototype = hasPrototype; }
-
   public:
-    explicit BaseProxyHandler(void *family);
-    virtual ~BaseProxyHandler();
+    explicit ProxyHandler(void *family);
+    virtual ~ProxyHandler();
 
-    bool hasPrototype() {
-        return mHasPrototype;
-    }
+    
+    virtual bool getPropertyDescriptor(JSContext *cx, JSObject *proxy, jsid id, bool set,
+                                       PropertyDescriptor *desc) = 0;
+    virtual bool getOwnPropertyDescriptor(JSContext *cx, JSObject *proxy, jsid id, bool set,
+                                          PropertyDescriptor *desc) = 0;
+    virtual bool defineProperty(JSContext *cx, JSObject *proxy, jsid id,
+                                PropertyDescriptor *desc) = 0;
+    virtual bool getOwnPropertyNames(JSContext *cx, JSObject *proxy, AutoIdVector &props) = 0;
+    virtual bool delete_(JSContext *cx, JSObject *proxy, jsid id, bool *bp) = 0;
+    virtual bool enumerate(JSContext *cx, JSObject *proxy, AutoIdVector &props) = 0;
+    virtual bool fix(JSContext *cx, JSObject *proxy, Value *vp) = 0;
 
-    inline void *family() {
-        return mFamily;
-    }
+    
+    virtual bool has(JSContext *cx, JSObject *proxy, jsid id, bool *bp);
+    virtual bool hasOwn(JSContext *cx, JSObject *proxy, jsid id, bool *bp);
+    virtual bool get(JSContext *cx, JSObject *proxy, JSObject *receiver, jsid id, Value *vp);
+    virtual bool set(JSContext *cx, JSObject *proxy, JSObject *receiver, jsid id, bool strict,
+                     Value *vp);
+    virtual bool keys(JSContext *cx, JSObject *proxy, AutoIdVector &props);
+    virtual bool iterate(JSContext *cx, JSObject *proxy, uintN flags, Value *vp);
+
+    
+    virtual bool call(JSContext *cx, JSObject *proxy, uintN argc, Value *vp);
+    virtual bool construct(JSContext *cx, JSObject *proxy, uintN argc, Value *argv, Value *rval);
+    virtual bool nativeCall(JSContext *cx, JSObject *proxy, Class *clasp, Native native, CallArgs args);
+    virtual bool hasInstance(JSContext *cx, JSObject *proxy, const Value *vp, bool *bp);
+    virtual JSType typeOf(JSContext *cx, JSObject *proxy);
+    virtual bool objectClassIs(JSObject *obj, ESClassValue classValue, JSContext *cx);
+    virtual JSString *obj_toString(JSContext *cx, JSObject *proxy);
+    virtual JSString *fun_toString(JSContext *cx, JSObject *proxy, uintN indent);
+    virtual bool defaultValue(JSContext *cx, JSObject *obj, JSType hint, Value *vp);
+    virtual void finalize(JSContext *cx, JSObject *proxy);
+    virtual void trace(JSTracer *trc, JSObject *proxy);
 
     virtual bool isOuterWindow() {
         return false;
     }
 
-    
-
-
-
-
-
-
-
-
-
-    virtual Wrapper *toWrapper() {
-        return NULL;
+    inline void *family() {
+        return mFamily;
     }
-
-    
-    virtual bool getPropertyDescriptor(JSContext *cx, JSObject *proxy, jsid id,
-                                       bool set, PropertyDescriptor *desc) = 0;
-    virtual bool getOwnPropertyDescriptor(JSContext *cx, JSObject *proxy,
-                                          jsid id, bool set,
-                                          PropertyDescriptor *desc) = 0;
-    virtual bool defineProperty(JSContext *cx, JSObject *proxy, jsid id,
-                                PropertyDescriptor *desc) = 0;
-    virtual bool getOwnPropertyNames(JSContext *cx, JSObject *proxy,
-                                     AutoIdVector &props) = 0;
-    virtual bool delete_(JSContext *cx, JSObject *proxy, jsid id, bool *bp) = 0;
-    virtual bool enumerate(JSContext *cx, JSObject *proxy,
-                           AutoIdVector &props) = 0;
-
-    
-    virtual bool has(JSContext *cx, JSObject *proxy, jsid id, bool *bp);
-    virtual bool hasOwn(JSContext *cx, JSObject *proxy, jsid id, bool *bp);
-    virtual bool get(JSContext *cx, JSObject *proxy, JSObject *receiver,
-                     jsid id, Value *vp);
-    virtual bool set(JSContext *cx, JSObject *proxy, JSObject *receiver,
-                     jsid id, bool strict, Value *vp);
-    virtual bool keys(JSContext *cx, JSObject *proxy, AutoIdVector &props);
-    virtual bool iterate(JSContext *cx, JSObject *proxy, unsigned flags,
-                         Value *vp);
-
-    
-    virtual bool call(JSContext *cx, JSObject *proxy, unsigned argc, Value *vp);
-    virtual bool construct(JSContext *cx, JSObject *proxy, unsigned argc, Value *argv, Value *rval);
-    virtual bool nativeCall(JSContext *cx, IsAcceptableThis test, NativeImpl impl, CallArgs args);
-    virtual bool hasInstance(JSContext *cx, HandleObject proxy, MutableHandleValue v, bool *bp);
-    virtual JSType typeOf(JSContext *cx, JSObject *proxy);
-    virtual bool objectClassIs(JSObject *obj, ESClassValue classValue, JSContext *cx);
-    virtual JSString *obj_toString(JSContext *cx, JSObject *proxy);
-    virtual JSString *fun_toString(JSContext *cx, JSObject *proxy, unsigned indent);
-    virtual bool regexp_toShared(JSContext *cx, JSObject *proxy, RegExpGuard *g);
-    virtual bool defaultValue(JSContext *cx, JSObject *obj, JSType hint, Value *vp);
-    virtual bool iteratorNext(JSContext *cx, JSObject *proxy, Value *vp);
-    virtual void finalize(JSFreeOp *fop, JSObject *proxy);
-    virtual bool getElementIfPresent(JSContext *cx, JSObject *obj, JSObject *receiver,
-                                     uint32_t index, Value *vp, bool *present);
-    virtual bool getPrototypeOf(JSContext *cx, JSObject *proxy, JSObject **proto);
-};
-
-
-
-
-
-
-
-
-
-
-class JS_PUBLIC_API(IndirectProxyHandler) : public BaseProxyHandler {
-  public:
-    explicit IndirectProxyHandler(void *family);
-
-    
-    virtual bool getPropertyDescriptor(JSContext *cx, JSObject *proxy, jsid id,
-                                       bool set,
-                                       PropertyDescriptor *desc) MOZ_OVERRIDE;
-    virtual bool getOwnPropertyDescriptor(JSContext *cx, JSObject *proxy,
-                                          jsid id, bool set,
-                                          PropertyDescriptor *desc) MOZ_OVERRIDE;
-    virtual bool defineProperty(JSContext *cx, JSObject *proxy, jsid id,
-                                PropertyDescriptor *desc) MOZ_OVERRIDE;
-    virtual bool getOwnPropertyNames(JSContext *cx, JSObject *proxy,
-                                     AutoIdVector &props) MOZ_OVERRIDE;
-    virtual bool delete_(JSContext *cx, JSObject *proxy, jsid id,
-                         bool *bp) MOZ_OVERRIDE;
-    virtual bool enumerate(JSContext *cx, JSObject *proxy,
-                           AutoIdVector &props) MOZ_OVERRIDE;
-
-    
-    virtual bool call(JSContext *cx, JSObject *proxy, unsigned argc,
-                      Value *vp) MOZ_OVERRIDE;
-    virtual bool construct(JSContext *cx, JSObject *proxy, unsigned argc,
-                           Value *argv, Value *rval) MOZ_OVERRIDE;
-    virtual bool nativeCall(JSContext *cx, IsAcceptableThis test, NativeImpl impl,
-                            CallArgs args) MOZ_OVERRIDE;
-    virtual bool hasInstance(JSContext *cx, HandleObject proxy, MutableHandleValue v,
-                             bool *bp) MOZ_OVERRIDE;
-    virtual JSType typeOf(JSContext *cx, JSObject *proxy) MOZ_OVERRIDE;
-    virtual bool objectClassIs(JSObject *obj, ESClassValue classValue,
-                               JSContext *cx) MOZ_OVERRIDE;
-    virtual JSString *obj_toString(JSContext *cx, JSObject *proxy) MOZ_OVERRIDE;
-    virtual JSString *fun_toString(JSContext *cx, JSObject *proxy,
-                                   unsigned indent) MOZ_OVERRIDE;
-    virtual bool regexp_toShared(JSContext *cx, JSObject *proxy,
-                                 RegExpGuard *g) MOZ_OVERRIDE;
-    virtual bool defaultValue(JSContext *cx, JSObject *obj, JSType hint,
-                              Value *vp) MOZ_OVERRIDE;
-    virtual bool iteratorNext(JSContext *cx, JSObject *proxy,
-                              Value *vp) MOZ_OVERRIDE;
-};
-
-
-
-
-
-
-
-
-
-class JS_PUBLIC_API(DirectProxyHandler) : public IndirectProxyHandler {
-public:
-    explicit DirectProxyHandler(void *family);
-
-    
-    virtual bool has(JSContext *cx, JSObject *proxy, jsid id,
-                     bool *bp) MOZ_OVERRIDE;
-    virtual bool hasOwn(JSContext *cx, JSObject *proxy, jsid id,
-                        bool *bp) MOZ_OVERRIDE;
-    virtual bool get(JSContext *cx, JSObject *proxy, JSObject *receiver,
-                     jsid id, Value *vp) MOZ_OVERRIDE;
-    virtual bool set(JSContext *cx, JSObject *proxy, JSObject *receiver,
-                     jsid id, bool strict, Value *vp) MOZ_OVERRIDE;
-    virtual bool keys(JSContext *cx, JSObject *proxy,
-                      AutoIdVector &props) MOZ_OVERRIDE;
-    virtual bool iterate(JSContext *cx, JSObject *proxy, unsigned flags,
-                         Value *vp) MOZ_OVERRIDE;
 };
 
 
@@ -221,127 +114,96 @@ class Proxy {
     static bool getOwnPropertyNames(JSContext *cx, JSObject *proxy, AutoIdVector &props);
     static bool delete_(JSContext *cx, JSObject *proxy, jsid id, bool *bp);
     static bool enumerate(JSContext *cx, JSObject *proxy, AutoIdVector &props);
+    static bool fix(JSContext *cx, JSObject *proxy, Value *vp);
 
     
     static bool has(JSContext *cx, JSObject *proxy, jsid id, bool *bp);
     static bool hasOwn(JSContext *cx, JSObject *proxy, jsid id, bool *bp);
-    static bool get(JSContext *cx, HandleObject proxy, HandleObject receiver, HandleId id, MutableHandleValue vp);
-    static bool getElementIfPresent(JSContext *cx, HandleObject proxy, HandleObject receiver,
-                                    uint32_t index, MutableHandleValue vp, bool *present);
-    static bool set(JSContext *cx, HandleObject proxy, HandleObject receiver, HandleId id, bool strict,
-                    MutableHandleValue vp);
+    static bool get(JSContext *cx, JSObject *proxy, JSObject *receiver, jsid id, Value *vp);
+    static bool set(JSContext *cx, JSObject *proxy, JSObject *receiver, jsid id, bool strict,
+                    Value *vp);
     static bool keys(JSContext *cx, JSObject *proxy, AutoIdVector &props);
-    static bool iterate(JSContext *cx, HandleObject proxy, unsigned flags, MutableHandleValue vp);
+    static bool iterate(JSContext *cx, JSObject *proxy, uintN flags, Value *vp);
 
     
-    static bool call(JSContext *cx, JSObject *proxy, unsigned argc, Value *vp);
-    static bool construct(JSContext *cx, JSObject *proxy, unsigned argc, Value *argv, Value *rval);
-    static bool nativeCall(JSContext *cx, IsAcceptableThis test, NativeImpl impl, CallArgs args);
-    static bool hasInstance(JSContext *cx, HandleObject proxy, MutableHandleValue v, bool *bp);
+    static bool call(JSContext *cx, JSObject *proxy, uintN argc, Value *vp);
+    static bool construct(JSContext *cx, JSObject *proxy, uintN argc, Value *argv, Value *rval);
+    static bool nativeCall(JSContext *cx, JSObject *proxy, Class *clasp, Native native, CallArgs args);
+    static bool hasInstance(JSContext *cx, JSObject *proxy, const Value *vp, bool *bp);
     static JSType typeOf(JSContext *cx, JSObject *proxy);
     static bool objectClassIs(JSObject *obj, ESClassValue classValue, JSContext *cx);
     static JSString *obj_toString(JSContext *cx, JSObject *proxy);
-    static JSString *fun_toString(JSContext *cx, JSObject *proxy, unsigned indent);
-    static bool regexp_toShared(JSContext *cx, JSObject *proxy, RegExpGuard *g);
+    static JSString *fun_toString(JSContext *cx, JSObject *proxy, uintN indent);
     static bool defaultValue(JSContext *cx, JSObject *obj, JSType hint, Value *vp);
-    static bool iteratorNext(JSContext *cx, JSObject *proxy, Value *vp);
 };
 
-inline bool IsObjectProxyClass(const Class *clasp)
+inline bool IsObjectProxy(const JSObject *obj)
 {
+    Class *clasp = GetObjectClass(obj);
     return clasp == &js::ObjectProxyClass || clasp == &js::OuterWindowProxyClass;
 }
 
-inline bool IsFunctionProxyClass(const Class *clasp)
+inline bool IsFunctionProxy(const JSObject *obj)
 {
+    Class *clasp = GetObjectClass(obj);
     return clasp == &js::FunctionProxyClass;
 }
 
-inline bool IsObjectProxy(RawObject obj)
+inline bool IsProxy(const JSObject *obj)
 {
-    return IsObjectProxyClass(GetObjectClass(obj));
-}
-
-inline bool IsFunctionProxy(RawObject obj)
-{
-    return IsFunctionProxyClass(GetObjectClass(obj));
-}
-
-inline bool IsProxy(RawObject obj)
-{
-    Class *clasp = GetObjectClass(obj);
-    return IsObjectProxyClass(clasp) || IsFunctionProxyClass(clasp);
+    return IsObjectProxy(obj) || IsFunctionProxy(obj);
 }
 
 
-const uint32_t JSSLOT_PROXY_HANDLER = 0;
-const uint32_t JSSLOT_PROXY_PRIVATE = 1;
-const uint32_t JSSLOT_PROXY_EXTRA   = 2;
+const uint32 JSSLOT_PROXY_HANDLER = 0;
+const uint32 JSSLOT_PROXY_PRIVATE = 1;
+const uint32 JSSLOT_PROXY_EXTRA   = 2;
 
-const uint32_t JSSLOT_PROXY_CALL = 4;
-const uint32_t JSSLOT_PROXY_CONSTRUCT = 5;
+const uint32 JSSLOT_PROXY_CALL = 3;
+const uint32 JSSLOT_PROXY_CONSTRUCT = 4;
 
-inline BaseProxyHandler *
-GetProxyHandler(RawObject obj)
+inline ProxyHandler *
+GetProxyHandler(const JSObject *obj)
 {
     JS_ASSERT(IsProxy(obj));
-    return (BaseProxyHandler *) GetReservedSlot(obj, JSSLOT_PROXY_HANDLER).toPrivate();
+    return (ProxyHandler *) GetReservedSlot(obj, JSSLOT_PROXY_HANDLER).toPrivate();
 }
 
 inline const Value &
-GetProxyPrivate(RawObject obj)
+GetProxyPrivate(const JSObject *obj)
 {
     JS_ASSERT(IsProxy(obj));
     return GetReservedSlot(obj, JSSLOT_PROXY_PRIVATE);
 }
 
-inline JSObject *
-GetProxyTargetObject(RawObject obj)
+inline void
+SetProxyPrivate(JSObject *obj, const Value &priv)
 {
     JS_ASSERT(IsProxy(obj));
-    return GetProxyPrivate(obj).toObjectOrNull();
+    SetReservedSlot(obj, JSSLOT_PROXY_PRIVATE, priv);
 }
 
 inline const Value &
-GetProxyCall(RawObject obj)
-{
-    JS_ASSERT(IsFunctionProxy(obj));
-    return GetReservedSlot(obj, JSSLOT_PROXY_CALL);
-}
-
-inline const Value &
-GetProxyExtra(RawObject obj, size_t n)
+GetProxyExtra(const JSObject *obj)
 {
     JS_ASSERT(IsProxy(obj));
-    return GetReservedSlot(obj, JSSLOT_PROXY_EXTRA + n);
+    return GetReservedSlot(obj, JSSLOT_PROXY_EXTRA);
 }
 
 inline void
-SetProxyHandler(RawObject obj, BaseProxyHandler *handler)
+SetProxyExtra(JSObject *obj, const Value &extra)
 {
     JS_ASSERT(IsProxy(obj));
-    SetReservedSlot(obj, JSSLOT_PROXY_HANDLER, PrivateValue(handler));
-}
-
-inline void
-SetProxyPrivate(RawObject obj, const Value &value)
-{
-    JS_ASSERT(IsProxy(obj));
-    SetReservedSlot(obj, JSSLOT_PROXY_PRIVATE, value);
-}
-
-inline void
-SetProxyExtra(RawObject obj, size_t n, const Value &extra)
-{
-    JS_ASSERT(IsProxy(obj));
-    JS_ASSERT(n <= 1);
-    SetReservedSlot(obj, JSSLOT_PROXY_EXTRA + n, extra);
+    SetReservedSlot(obj, JSSLOT_PROXY_EXTRA, extra);
 }
 
 JS_FRIEND_API(JSObject *)
-NewProxyObject(JSContext *cx, BaseProxyHandler *handler, const Value &priv,
+NewProxyObject(JSContext *cx, ProxyHandler *handler, const Value &priv,
                JSObject *proto, JSObject *parent,
                JSObject *call = NULL, JSObject *construct = NULL);
+
+JS_FRIEND_API(JSBool)
+FixProxy(JSContext *cx, JSObject *proxy, JSBool *bp);
 
 } 
 

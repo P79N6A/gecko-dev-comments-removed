@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include  <dbus/dbus.h>
 #include "nsDBusHandlerApp.h"
 #include "nsIURI.h"
@@ -61,20 +94,20 @@ nsDBusHandlerApp::Equals(nsIHandlerApp *aHandlerApp, bool *_retval)
   
   nsCOMPtr<nsIDBusHandlerApp> dbusHandlerApp = do_QueryInterface(aHandlerApp);
   if (!dbusHandlerApp) {
-    *_retval = false;
+    *_retval = PR_FALSE;
     return NS_OK;
   }
-  nsAutoCString service;
-  nsAutoCString method;
+  nsCAutoString service;
+  nsCAutoString method;
   
   nsresult rv = dbusHandlerApp->GetService(service);
   if (NS_FAILED(rv)) {
-    *_retval = false;
+    *_retval = PR_FALSE;
     return NS_OK;
   }
   rv = dbusHandlerApp->GetMethod(method);
   if (NS_FAILED(rv)) {
-    *_retval = false;
+    *_retval = PR_FALSE;
     return NS_OK;
   }
   
@@ -86,7 +119,7 @@ NS_IMETHODIMP
 nsDBusHandlerApp::LaunchWithURI(nsIURI *aURI,
                                 nsIInterfaceRequestor *aWindowContext)
 {
-  nsAutoCString spec;
+  nsCAutoString spec;
   nsresult rv = aURI->GetAsciiSpec(spec);
   NS_ENSURE_SUCCESS(rv,rv);
   const char* uri = spec.get(); 
@@ -100,7 +133,7 @@ nsDBusHandlerApp::LaunchWithURI(nsIURI *aURI,
     dbus_error_free(&err); 
     return NS_ERROR_FAILURE;
   }
-  if (nullptr == connection) { 
+  if (nsnull == connection) { 
     return NS_ERROR_FAILURE; 
   }
   dbus_connection_set_exit_on_disconnect(connection,false);
@@ -114,7 +147,7 @@ nsDBusHandlerApp::LaunchWithURI(nsIURI *aURI,
   if (!msg) {
     return NS_ERROR_FAILURE;
   }
-  dbus_message_set_no_reply(msg, true);
+  dbus_message_set_no_reply(msg, PR_TRUE);
   
   DBusMessageIter iter;
   dbus_message_iter_init_append(msg, &iter);

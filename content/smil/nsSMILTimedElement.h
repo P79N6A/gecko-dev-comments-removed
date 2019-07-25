@@ -3,10 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_SMILTIMEDELEMENT_H_
 #define NS_SMILTIMEDELEMENT_H_
 
-#include "nsISMILAnimationElement.h"
 #include "nsSMILInterval.h"
 #include "nsSMILInstanceTime.h"
 #include "nsSMILMilestone.h"
@@ -19,6 +50,7 @@
 #include "nsAutoPtr.h"
 #include "nsAttrValue.h"
 
+class nsISMILAnimationElement;
 class nsSMILAnimationFunction;
 class nsSMILTimeContainer;
 class nsSMILTimeValue;
@@ -55,7 +87,7 @@ public:
   {
     return mAnimationElement ?
         mAnimationElement->GetTargetElementContent() :
-        nullptr;
+        nsnull;
   }
 
   
@@ -110,25 +142,6 @@ public:
   
 
 
-
-  
-
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  nsSMILTimeValue GetHyperlinkTime() const;
 
   
 
@@ -259,7 +272,7 @@ public:
 
   bool SetAttr(nsIAtom* aAttribute, const nsAString& aValue,
                  nsAttrValue& aResult, Element* aContextNode,
-                 nsresult* aParseResult = nullptr);
+                 nsresult* aParseResult = nsnull);
 
   
 
@@ -353,7 +366,7 @@ protected:
   };
 
   struct NotifyTimeDependentsParams {
-    nsSMILTimedElement*  mTimedElement;
+    nsSMILInterval*      mCurrentInterval;
     nsSMILTimeContainer* mTimeContainer;
   };
 
@@ -477,16 +490,16 @@ protected:
                                     nsSMILInterval& aResult) const;
   nsSMILInstanceTime* GetNextGreater(const InstanceTimeList& aList,
                                      const nsSMILTimeValue& aBase,
-                                     int32_t& aPosition) const;
+                                     PRInt32& aPosition) const;
   nsSMILInstanceTime* GetNextGreaterOrEqual(const InstanceTimeList& aList,
                                             const nsSMILTimeValue& aBase,
-                                            int32_t& aPosition) const;
+                                            PRInt32& aPosition) const;
   nsSMILTimeValue   CalcActiveEnd(const nsSMILTimeValue& aBegin,
                                   const nsSMILTimeValue& aEnd) const;
   nsSMILTimeValue   GetRepeatDuration() const;
   nsSMILTimeValue   ApplyMinAndMax(const nsSMILTimeValue& aDuration) const;
   nsSMILTime        ActiveTimeToSimpleTime(nsSMILTime aActiveTime,
-                                           uint32_t& aRepeatIteration);
+                                           PRUint32& aRepeatIteration);
   nsSMILInstanceTime* CheckForEarlyEnd(
                         const nsSMILTimeValue& aContainerTime) const;
   void              UpdateCurrentInterval(bool aForceChangeNotice = false);
@@ -508,13 +521,12 @@ protected:
                                           bool aBeginObjectChanged,
                                           bool aEndObjectChanged);
 
-  void              FireTimeEventAsync(uint32_t aMsg, int32_t aDetail);
+  void              FireTimeEventAsync(PRUint32 aMsg, PRInt32 aDetail);
   const nsSMILInstanceTime* GetEffectiveBeginInstance() const;
   const nsSMILInterval* GetPreviousInterval() const;
   bool              HasPlayed() const { return !mOldIntervals.IsEmpty(); }
+  bool              HaveDefiniteEndTimes() const;
   bool              EndHasEventConditions() const;
-  bool              AreEndTimesDependentOn(
-                      const nsSMILInstanceTime* aBase) const;
 
   
   
@@ -567,16 +579,16 @@ protected:
 
   InstanceTimeList                mBeginInstances;
   InstanceTimeList                mEndInstances;
-  uint32_t                        mInstanceSerialIndex;
+  PRUint32                        mInstanceSerialIndex;
 
   nsSMILAnimationFunction*        mClient;
   nsAutoPtr<nsSMILInterval>       mCurrentInterval;
   IntervalList                    mOldIntervals;
-  uint32_t                        mCurrentRepeatIteration;
+  PRUint32                        mCurrentRepeatIteration;
   nsSMILMilestone                 mPrevRegisteredMilestone;
   static const nsSMILMilestone    sMaxMilestone;
-  static const uint8_t            sMaxNumIntervals;
-  static const uint8_t            sMaxNumInstanceTimes;
+  static const PRUint8            sMaxNumIntervals;
+  static const PRUint8            sMaxNumInstanceTimes;
 
   
   
@@ -613,12 +625,12 @@ protected:
   class AutoIntervalUpdateBatcher;
   bool mDeferIntervalUpdates;
   bool mDoDeferredUpdate; 
-                          
+                                  
+                                  
 
   
-  uint8_t              mDeleteCount;
-  uint8_t              mUpdateIntervalRecursionDepth;
-  static const uint8_t sMaxUpdateIntervalRecursionDepth;
+  PRUint16              mUpdateIntervalRecursionDepth;
+  static const PRUint16 sMaxUpdateIntervalRecursionDepth;
 };
 
 #endif 

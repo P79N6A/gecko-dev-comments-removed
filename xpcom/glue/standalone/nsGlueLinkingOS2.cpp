@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsGlueLinking.h"
 #include "nsXPCOMGlue.h"
 
@@ -96,7 +129,7 @@ XPCOMGlueLoad(const char *xpcomFile, GetFrozenFunctionsFunc *func)
     ulrc = DosLoadModule(pszError, _MAX_PATH, xpcomFile, &h);
 
     if (ulrc != NO_ERROR)
-        return nullptr;
+        return nsnull;
 
     AppendDependentLib(h);
 
@@ -128,7 +161,7 @@ XPCOMGlueUnload()
 
     if (sXULLibrary) {
         DosFreeModule(sXULLibrary);
-        sXULLibrary = nullptr;
+        sXULLibrary = nsnull;
     }
 }
 

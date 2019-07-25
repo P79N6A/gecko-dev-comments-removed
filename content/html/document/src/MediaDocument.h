@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_dom_MediaDocument_h
 #define mozilla_dom_MediaDocument_h
 
@@ -30,21 +62,15 @@ public:
                                      nsISupports*        aContainer,
                                      nsIStreamListener** aDocListener,
                                      bool                aReset = true,
-                                     nsIContentSink*     aSink = nullptr);
-
-  virtual void SetScriptGlobalObject(nsIScriptGlobalObject* aGlobalObject);
+                                     nsIContentSink*     aSink = nsnull);
 
 protected:
-  void BecomeInteractive();
-
   virtual nsresult CreateSyntheticDocument();
 
   friend class MediaDocumentStreamListener;
   nsresult StartLayout();
 
   void GetFileName(nsAString& aResult);
-
-  nsresult LinkStylesheet(const nsAString& aStylesheet);
 
   
   
@@ -59,16 +85,15 @@ protected:
   
   void UpdateTitleAndCharset(const nsACString&  aTypeStr,
                              const char* const* aFormatNames = sFormatNames,
-                             int32_t            aWidth = 0,
-                             int32_t            aHeight = 0,
+                             PRInt32            aWidth = 0,
+                             PRInt32            aHeight = 0,
                              const nsAString&   aStatus = EmptyString());
 
   nsCOMPtr<nsIStringBundle>     mStringBundle;
   static const char* const      sFormatNames[4];
-  
+
 private:
   enum                          {eWithNoInfo, eWithFile, eWithDim, eWithDimAndFile};
-  bool                          mDocumentElementInserted;   
 };
 
 

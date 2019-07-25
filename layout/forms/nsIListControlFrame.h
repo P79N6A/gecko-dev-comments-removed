@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIListControlFrame_h___
 #define nsIListControlFrame_h___
 
@@ -29,13 +61,13 @@ public:
   
 
 
-  virtual void GetOptionText(int32_t aIndex, nsAString & aStr) = 0;
+  virtual void GetOptionText(PRInt32 aIndex, nsAString & aStr) = 0;
 
   
 
 
 
-  virtual int32_t GetSelectedIndex() = 0;
+  virtual PRInt32 GetSelectedIndex() = 0;
 
   
 
@@ -59,7 +91,12 @@ public:
 
 
 
-  virtual int32_t GetNumberOfOptions() = 0; 
+  virtual PRInt32 GetNumberOfOptions() = 0; 
+
+  
+
+
+  virtual void SyncViewWithFrame() = 0;
 
   
 
@@ -82,7 +119,7 @@ public:
 
 
 
-  virtual void ComboboxFinish(int32_t aIndex) = 0;
+  virtual void ComboboxFinish(PRInt32 aIndex) = 0;
 
   
 

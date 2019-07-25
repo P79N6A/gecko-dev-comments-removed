@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIEventTarget.h"
 #include "nsIServiceManager.h"
 #include "nsIObserverService.h"
@@ -15,7 +47,7 @@
 
 
 
-static PRLogModuleInfo *gIOThreadPoolLog = nullptr;
+static PRLogModuleInfo *gIOThreadPoolLog = nsnull;
 #endif
 #define LOG(args) PR_LOG(gIOThreadPoolLog, PR_LOG_DEBUG, args)
 
@@ -59,11 +91,10 @@ private:
     PRLock    *mLock;
     PRCondVar *mIdleThreadCV;   
     PRCondVar *mExitThreadCV;   
-    uint32_t   mNumThreads;     
-    uint32_t   mNumIdleThreads; 
+    PRUint32   mNumThreads;     
+    PRUint32   mNumIdleThreads; 
     PRCList    mEventQ;         
     bool       mShutdown;       
-    nsThreadPoolNaming mNaming; 
 };
 
 NS_IMPL_THREADSAFE_ISUPPORTS2(nsIOThreadPool, nsIEventTarget, nsIObserver)
@@ -78,7 +109,7 @@ nsIOThreadPool::Init()
 
     mNumThreads = 0;
     mNumIdleThreads = 0;
-    mShutdown = false;
+    mShutdown = PR_FALSE;
 
     mLock = nsAutoLock::NewLock("nsIOThreadPool::mLock");
     if (!mLock)
@@ -97,7 +128,7 @@ nsIOThreadPool::Init()
     
     nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
     if (os)
-        os->AddObserver(this, "xpcom-shutdown-threads", false);
+        os->AddObserver(this, "xpcom-shutdown-threads", PR_FALSE);
     return NS_OK;
 }
 
@@ -126,7 +157,7 @@ nsIOThreadPool::Shutdown()
     
     {
         nsAutoLock lock(mLock);
-        mShutdown = true;
+        mShutdown = PR_TRUE;
 
         PR_NotifyAllCondVar(mIdleThreadCV);
 
@@ -186,7 +217,7 @@ nsIOThreadPool::IsOnCurrentThread(bool *result)
     NS_NOTREACHED("nsIOThreadPool::IsOnCurrentThread");
 
     
-    *result = false;
+    *result = PR_FALSE;
     return NS_OK;
 }
 
@@ -202,8 +233,6 @@ void
 nsIOThreadPool::ThreadFunc(void *arg)
 {
     nsIOThreadPool *pool = (nsIOThreadPool *) arg;
-
-    pool->mNaming.SetThreadPoolName("IO Thread");
 
     LOG(("entering ThreadFunc\n"));
 

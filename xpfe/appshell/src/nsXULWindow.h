@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsXULWindow_h__
 #define nsXULWindow_h__
 
@@ -61,7 +94,7 @@ public:
 
    NS_DECLARE_STATIC_IID_ACCESSOR(NS_XULWINDOW_IMPL_CID)
 
-   void LockUntilChromeLoad() { mLockedUntilChromeLoad = true; }
+   void LockUntilChromeLoad() { mLockedUntilChromeLoad = PR_TRUE; }
    bool IsLocked() const { return mLockedUntilChromeLoad; }
    void IgnoreXULSizeMode(bool aEnable) { mIgnoreXULSizeMode = aEnable; }
 
@@ -72,7 +105,7 @@ protected:
      PAD_SIZE =         0x4
    };
 
-   nsXULWindow(uint32_t aChromeFlags);
+   nsXULWindow(PRUint32 aChromeFlags);
    virtual ~nsXULWindow();
 
    NS_IMETHOD EnsureChromeTreeOwner();
@@ -82,8 +115,8 @@ protected:
    NS_IMETHOD EnsureAuthPrompter();
    
    void OnChromeLoaded();
-   void StaggerPosition(int32_t &aRequestedX, int32_t &aRequestedY,
-                        int32_t aSpecWidth, int32_t aSpecHeight);
+   void StaggerPosition(PRInt32 &aRequestedX, PRInt32 &aRequestedY,
+                        PRInt32 aSpecWidth, PRInt32 aSpecHeight);
    bool       LoadPositionFromXUL();
    bool       LoadSizeFromXUL();
    bool       LoadMiscPersistentAttributesFromXUL();
@@ -98,21 +131,23 @@ protected:
                                           bool aPrimary, bool aTargetable,
                                           const nsAString& aID);
    NS_HIDDEN_(nsresult) ContentShellRemoved(nsIDocShellTreeItem* aContentShell);
-   NS_IMETHOD SizeShellTo(nsIDocShellTreeItem* aShellItem, int32_t aCX, 
-      int32_t aCY);
+   NS_IMETHOD SizeShellTo(nsIDocShellTreeItem* aShellItem, PRInt32 aCX, 
+      PRInt32 aCY);
    NS_IMETHOD ExitModalLoop(nsresult aStatus);
-   NS_IMETHOD CreateNewChromeWindow(int32_t aChromeFlags, nsIXULWindow **_retval);
-   NS_IMETHOD CreateNewContentWindow(int32_t aChromeFlags, nsIXULWindow **_retval);
+   NS_IMETHOD CreateNewChromeWindow(PRInt32 aChromeFlags,
+      nsIAppShell* aAppShell, nsIXULWindow **_retval);
+   NS_IMETHOD CreateNewContentWindow(PRInt32 aChromeFlags,
+      nsIAppShell* aAppShell, nsIXULWindow **_retval);
 
    void       EnableParent(bool aEnable);
    bool       ConstrainToZLevel(bool aImmediate, nsWindowZ *aPlacement,
                                 nsIWidget *aReqBelow, nsIWidget **aActualBelow);
-   void       PlaceWindowLayersBehind(uint32_t aLowLevel, uint32_t aHighLevel,
+   void       PlaceWindowLayersBehind(PRUint32 aLowLevel, PRUint32 aHighLevel,
                                       nsIXULWindow *aBehind);
    void       SetContentScrollbarVisibility(bool aVisible);
    bool       GetContentScrollbarVisibility();
-   void       PersistentAttributesDirty(uint32_t aDirtyFlags);
-   uint32_t   AppUnitsPerDevPixel();
+   void       PersistentAttributesDirty(PRUint32 aDirtyFlags);
+   PRUint32   AppUnitsPerDevPixel();
 
    nsChromeTreeOwner*      mChromeTreeOwner;
    nsContentTreeOwner*     mContentTreeOwner;
@@ -139,11 +174,12 @@ protected:
    bool                    mIgnoreXULPosition;
    bool                    mChromeFlagsFrozen;
    bool                    mIgnoreXULSizeMode;
-   uint32_t                mContextFlags;
-   uint32_t                mPersistentAttributesDirty; 
-   uint32_t                mPersistentAttributesMask;
-   uint32_t                mChromeFlags;
-   uint32_t                mAppPerDev; 
+   PRUint32                mContextFlags;
+   PRUint32                mBlurSuppressionLevel;
+   PRUint32                mPersistentAttributesDirty; 
+   PRUint32                mPersistentAttributesMask;
+   PRUint32                mChromeFlags;
+   PRUint32                mAppPerDev; 
                                        
    nsString                mTitle;
    nsIntRect               mOpenerScreenRect; 

@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __nsmultimixedconv__h__
 #define __nsmultimixedconv__h__
 
@@ -14,7 +46,6 @@
 #include "nsIByteRangeRequest.h"
 #include "nsIMultiPartChannel.h"
 #include "nsAutoPtr.h"
-#include "mozilla/Attributes.h"
 
 #define NS_MULTIMIXEDCONVERTER_CID                         \
 { /* 7584CE90-5B25-11d3-A175-0050041CAF44 */         \
@@ -31,19 +62,19 @@
 
 
 
-class nsPartChannel MOZ_FINAL : public nsIChannel,
-                                public nsIByteRangeRequest,
-                                public nsIMultiPartChannel
+class nsPartChannel : public nsIChannel,
+                      public nsIByteRangeRequest,
+                      public nsIMultiPartChannel
 {
 public:
-  nsPartChannel(nsIChannel *aMultipartChannel, uint32_t aPartID,
+  nsPartChannel(nsIChannel *aMultipartChannel, PRUint32 aPartID,
                 nsIStreamListener* aListener);
 
-  void InitializeByteRange(int64_t aStart, int64_t aEnd);
-  void SetIsLastPart() { mIsLastPart = true; }
+  void InitializeByteRange(PRInt64 aStart, PRInt64 aEnd);
+  void SetIsLastPart() { mIsLastPart = PR_TRUE; }
   nsresult SendOnStartRequest(nsISupports* aContext);
   nsresult SendOnDataAvailable(nsISupports* aContext, nsIInputStream* aStream,
-                               uint64_t aOffset, uint32_t aLen);
+                               PRUint32 aOffset, PRUint32 aLen);
   nsresult SendOnStopRequest(nsISupports* aContext, nsresult aStatus);
   
 
@@ -69,16 +100,16 @@ protected:
 
   nsCString               mContentType;
   nsCString               mContentCharset;
-  uint32_t                mContentDisposition;
+  PRUint32                mContentDisposition;
   nsString                mContentDispositionFilename;
   nsCString               mContentDispositionHeader;
-  uint64_t                mContentLength;
+  PRUint64                mContentLength;
 
   bool                    mIsByteRangeRequest;
-  int64_t                 mByteRangeStart;
-  int64_t                 mByteRangeEnd;
+  PRInt64                 mByteRangeStart;
+  PRInt64                 mByteRangeEnd;
 
-  uint32_t                mPartID; 
+  PRUint32                mPartID; 
                                    
   bool                    mIsLastPart;
 };
@@ -133,12 +164,12 @@ public:
 protected:
     nsresult SendStart(nsIChannel *aChannel);
     nsresult SendStop(nsresult aStatus);
-    nsresult SendData(char *aBuffer, uint32_t aLen);
+    nsresult SendData(char *aBuffer, PRUint32 aLen);
     nsresult ParseHeaders(nsIChannel *aChannel, char *&aPtr,
-                          uint32_t &aLen, bool *_retval);
-    int32_t  PushOverLine(char *&aPtr, uint32_t &aLen);
-    char *FindToken(char *aCursor, uint32_t aLen);
-    nsresult BufferData(char *aData, uint32_t aLen);
+                          PRUint32 &aLen, bool *_retval);
+    PRInt32  PushOverLine(char *&aPtr, PRUint32 &aLen);
+    char *FindToken(char *aCursor, PRUint32 aLen);
+    nsresult BufferData(char *aData, PRUint32 aLen);
 
     
     bool                mNewPart;        
@@ -146,28 +177,28 @@ protected:
     nsCOMPtr<nsIStreamListener> mFinalListener; 
 
     nsCString           mToken;
-    uint32_t            mTokenLen;
+    PRUint32            mTokenLen;
 
     nsRefPtr<nsPartChannel> mPartChannel;   
                                         
     nsCOMPtr<nsISupports> mContext;
     nsCString           mContentType;
     nsCString           mContentDisposition;
-    uint64_t            mContentLength;
+    PRUint64            mContentLength;
     
     char                *mBuffer;
-    uint32_t            mBufLen;
-    uint64_t            mTotalSent;
+    PRUint32            mBufLen;
+    PRUint64            mTotalSent;
     bool                mFirstOnData;   
 
     
     
     
-    int64_t             mByteRangeStart;
-    int64_t             mByteRangeEnd;
+    PRInt64             mByteRangeStart;
+    PRInt64             mByteRangeEnd;
     bool                mIsByteRangeRequest;
 
-    uint32_t            mCurrentPartID;
+    PRUint32            mCurrentPartID;
 };
 
 #endif 

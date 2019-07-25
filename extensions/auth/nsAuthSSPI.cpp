@@ -13,13 +13,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsAuthSSPI.h"
 #include "nsIServiceManager.h"
 #include "nsIDNSService.h"
 #include "nsIDNSRecord.h"
 #include "nsNetCID.h"
 #include "nsCOMPtr.h"
-#include "nsICryptoHash.h"
 
 #include <windows.h>
 
@@ -73,14 +105,33 @@ static const char *MapErrorCode(int rc)
 
 
 
+static HINSTANCE                 sspi_lib; 
 static PSecurityFunctionTableW   sspi;
 
 static nsresult
 InitSSPI()
 {
+    PSecurityFunctionTableW (*initFun)(void);
+
     LOG(("  InitSSPI\n"));
 
-    sspi = InitSecurityInterfaceW();
+    sspi_lib = LoadLibraryW(L"secur32.dll");
+    if (!sspi_lib) {
+        sspi_lib = LoadLibraryW(L"security.dll");
+        if (!sspi_lib) {
+            LOG(("SSPI library not found"));
+            return NS_ERROR_UNEXPECTED;
+        }
+    }
+
+    initFun = (PSecurityFunctionTableW (*)(void))
+            GetProcAddress(sspi_lib, "InitSecurityInterfaceW");
+    if (!initFun) {
+        LOG(("InitSecurityInterfaceW not found"));
+        return NS_ERROR_UNEXPECTED;
+    }
+
+    sspi = initFun();
     if (!sspi) {
         LOG(("InitSecurityInterfaceW failed"));
         return NS_ERROR_UNEXPECTED;
@@ -91,12 +142,54 @@ InitSSPI()
 
 
 
+static nsresult
+MakeSN(const char *principal, nsCString &result)
+{
+    nsresult rv;
+
+    nsCAutoString buf(principal);
+
+    
+    
+    
+    PRInt32 index = buf.FindChar('@');
+    if (index == kNotFound)
+        return NS_ERROR_UNEXPECTED;
+    
+    nsCOMPtr<nsIDNSService> dns = do_GetService(NS_DNSSERVICE_CONTRACTID, &rv);
+    if (NS_FAILED(rv))
+        return rv;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    nsCOMPtr<nsIDNSRecord> record;
+    rv = dns->Resolve(Substring(buf, index + 1),
+                      nsIDNSService::RESOLVE_CANONICAL_NAME,
+                      getter_AddRefs(record));
+    if (NS_FAILED(rv))
+        return rv;
+
+    nsCAutoString cname;
+    rv = record->GetCanonicalName(cname);
+    if (NS_SUCCEEDED(rv)) {
+        result = StringHead(buf, index) + NS_LITERAL_CSTRING("/") + cname;
+        LOG(("Using SPN of [%s]\n", result.get()));
+    }
+    return rv;
+}
+
+
+
 nsAuthSSPI::nsAuthSSPI(pType package)
     : mServiceFlags(REQ_DEFAULT)
     , mMaxTokenLen(0)
     , mPackage(package)
-    , mCertDERData(nullptr)
-    , mCertDERLength(0)
 {
     memset(&mCred, 0, sizeof(mCred));
     memset(&mCtxt, 0, sizeof(mCtxt));
@@ -119,14 +212,6 @@ nsAuthSSPI::~nsAuthSSPI()
 void
 nsAuthSSPI::Reset()
 {
-    mIsFirst = true;
-
-    if (mCertDERData){
-        nsMemory::Free(mCertDERData);
-        mCertDERData = nullptr;
-        mCertDERLength = 0;   
-    }
-
     if (mCtxt.dwLower || mCtxt.dwUpper) {
         (sspi->DeleteSecurityContext)(&mCtxt);
         memset(&mCtxt, 0, sizeof(mCtxt));
@@ -137,16 +222,12 @@ NS_IMPL_ISUPPORTS1(nsAuthSSPI, nsIAuthModule)
 
 NS_IMETHODIMP
 nsAuthSSPI::Init(const char *serviceName,
-                 uint32_t    serviceFlags,
+                 PRUint32    serviceFlags,
                  const PRUnichar *domain,
                  const PRUnichar *username,
                  const PRUnichar *password)
 {
     LOG(("  nsAuthSSPI::Init\n"));
-
-    mIsFirst = true;
-    mCertDERLength = 0;
-    mCertDERData = nullptr;
 
     
     
@@ -164,13 +245,23 @@ nsAuthSSPI::Init(const char *serviceName,
 
     package = (SEC_WCHAR *) pTypeName[(int)mPackage];
 
-    
-    
-    mServiceName.Assign(serviceName);
-    int32_t index = mServiceName.FindChar('@');
-    if (index == kNotFound)
-        return NS_ERROR_UNEXPECTED;
-    mServiceName.Replace(index, 1, '/');
+    if (mPackage == PACKAGE_TYPE_NTLM) {
+        
+        
+        
+        mServiceName.Assign(serviceName);
+        PRInt32 index = mServiceName.FindChar('@');
+        if (index == kNotFound)
+            return NS_ERROR_UNEXPECTED;
+        mServiceName.Replace(index, 1, '/');
+    }
+    else {
+        
+        
+        rv = MakeSN(serviceName, mServiceName);
+        if (NS_FAILED(rv))
+            return rv;
+    }
 
     mServiceFlags = serviceFlags;
 
@@ -188,7 +279,7 @@ nsAuthSSPI::Init(const char *serviceName,
     TimeStamp useBefore;
 
     SEC_WINNT_AUTH_IDENTITY_W ai;
-    SEC_WINNT_AUTH_IDENTITY_W *pai = nullptr;
+    SEC_WINNT_AUTH_IDENTITY_W *pai = nsnull;
     
     
     
@@ -223,32 +314,19 @@ nsAuthSSPI::Init(const char *serviceName,
     return NS_OK;
 }
 
-
-
-
 NS_IMETHODIMP
 nsAuthSSPI::GetNextToken(const void *inToken,
-                         uint32_t    inTokenLen,
+                         PRUint32    inTokenLen,
                          void      **outToken,
-                         uint32_t   *outTokenLen)
+                         PRUint32   *outTokenLen)
 {
-    
-    const char end_point[] = "tls-server-end-point:"; 
-    const int end_point_length = sizeof(end_point) - 1;
-    const int hash_size = 32;  
-    const int cbt_size = hash_size + end_point_length;
-	
     SECURITY_STATUS rc;
     TimeStamp ignored;
 
     DWORD ctxAttr, ctxReq = 0;
     CtxtHandle *ctxIn;
     SecBufferDesc ibd, obd;
-    
-    SecBuffer ib[2], ob;
-    
-    char* sspi_cbt = nullptr;
-    SEC_CHANNEL_BINDINGS pendpoint_binding;
+    SecBuffer ib, ob;
 
     LOG(("entering nsAuthSSPI::GetNextToken()\n"));
 
@@ -263,123 +341,26 @@ nsAuthSSPI::GetNextToken(const void *inToken,
         ctxReq |= ISC_REQ_MUTUAL_AUTH;
 
     if (inToken) {
-        if (mIsFirst) {
-            
-            
-            mIsFirst = false;
-            mCertDERLength = inTokenLen;
-            mCertDERData = nsMemory::Alloc(inTokenLen);
-            if (!mCertDERData)
-                return NS_ERROR_OUT_OF_MEMORY;
-            memcpy(mCertDERData, inToken, inTokenLen);
-
-            
-            
-            
-            
-            
-            if (mCtxt.dwLower || mCtxt.dwUpper) {
-                LOG(("Cannot restart authentication sequence!"));
-                return NS_ERROR_UNEXPECTED;
-            }
-            ctxIn = nullptr;
-            
-            
-            inToken = nullptr;
-            inTokenLen = 0;
-        } else {
-            ibd.ulVersion = SECBUFFER_VERSION;
-            ibd.cBuffers = 0;
-            ibd.pBuffers = ib;
-            
-            
-            
-            if (mCertDERLength > 0) {
-                
-                pendpoint_binding.dwInitiatorAddrType = 0;
-                pendpoint_binding.cbInitiatorLength = 0;
-                pendpoint_binding.dwInitiatorOffset = 0;
-                pendpoint_binding.dwAcceptorAddrType = 0;
-                pendpoint_binding.cbAcceptorLength = 0;
-                pendpoint_binding.dwAcceptorOffset = 0;
-                pendpoint_binding.cbApplicationDataLength = cbt_size;
-                pendpoint_binding.dwApplicationDataOffset = 
-                                            sizeof(SEC_CHANNEL_BINDINGS);
-
-                
-                ib[ibd.cBuffers].BufferType = SECBUFFER_CHANNEL_BINDINGS;
-                ib[ibd.cBuffers].cbBuffer =
-                        pendpoint_binding.cbApplicationDataLength
-                        + pendpoint_binding.dwApplicationDataOffset;
-          
-                sspi_cbt = (char *) nsMemory::Alloc(ib[ibd.cBuffers].cbBuffer);
-                if (!sspi_cbt){
-                    return NS_ERROR_OUT_OF_MEMORY;
-                }
-
-                
-                char* sspi_cbt_ptr = sspi_cbt;
-          
-                ib[ibd.cBuffers].pvBuffer = sspi_cbt;
-                ibd.cBuffers++;
-
-                memcpy(sspi_cbt_ptr, &pendpoint_binding,
-                       pendpoint_binding.dwApplicationDataOffset);
-                sspi_cbt_ptr += pendpoint_binding.dwApplicationDataOffset;
-
-                memcpy(sspi_cbt_ptr, end_point, end_point_length);
-                sspi_cbt_ptr += end_point_length;
-          
-                
-                
-                nsAutoCString hashString;
-
-                nsresult rv;
-                nsCOMPtr<nsICryptoHash> crypto;
-                crypto = do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &rv);
-                if (NS_SUCCEEDED(rv))
-                    rv = crypto->Init(nsICryptoHash::SHA256);
-                if (NS_SUCCEEDED(rv))
-                    rv = crypto->Update((unsigned char*)mCertDERData, mCertDERLength);
-                if (NS_SUCCEEDED(rv))
-                    rv = crypto->Finish(false, hashString);
-                if (NS_FAILED(rv)) {
-                    nsMemory::Free(mCertDERData);
-                    mCertDERData = nullptr;
-                    mCertDERLength = 0;
-                    nsMemory::Free(sspi_cbt);
-                    return rv;
-                }
-          
-                
-                
-                
-                memcpy(sspi_cbt_ptr, hashString.get(), hash_size);
-          
-                
-                nsMemory::Free(mCertDERData);
-                mCertDERData = nullptr;
-                mCertDERLength = 0;
-            } 
-
-            
-            ib[ibd.cBuffers].BufferType = SECBUFFER_TOKEN;
-            ib[ibd.cBuffers].cbBuffer = inTokenLen;
-            ib[ibd.cBuffers].pvBuffer = (void *) inToken;
-            ibd.cBuffers++;
-            ctxIn = &mCtxt;
-        }
-    } else { 
+        ib.BufferType = SECBUFFER_TOKEN;
+        ib.cbBuffer = inTokenLen;
+        ib.pvBuffer = (void *) inToken;
+        ibd.ulVersion = SECBUFFER_VERSION;
+        ibd.cBuffers = 1;
+        ibd.pBuffers = &ib;
+        ctxIn = &mCtxt;
+    }
+    else {
         
         
         
         
-        if (mCtxt.dwLower || mCtxt.dwUpper || mCertDERData || mCertDERLength) {
+        
+        if (mCtxt.dwLower || mCtxt.dwUpper) {
             LOG(("Cannot restart authentication sequence!"));
             return NS_ERROR_UNEXPECTED;
         }
+
         ctxIn = NULL;
-        mIsFirst = false;
     }
 
     obd.ulVersion = SECBUFFER_VERSION;
@@ -388,11 +369,8 @@ nsAuthSSPI::GetNextToken(const void *inToken,
     ob.BufferType = SECBUFFER_TOKEN;
     ob.cbBuffer = mMaxTokenLen;
     ob.pvBuffer = nsMemory::Alloc(ob.cbBuffer);
-    if (!ob.pvBuffer){
-        if (sspi_cbt)
-            nsMemory::Free(sspi_cbt);
+    if (!ob.pvBuffer)
         return NS_ERROR_OUT_OF_MEMORY;
-    }
     memset(ob.pvBuffer, 0, ob.cbBuffer);
 
     NS_ConvertUTF8toUTF16 wSN(mServiceName);
@@ -418,9 +396,7 @@ nsAuthSSPI::GetNextToken(const void *inToken,
         else
             LOG(("InitializeSecurityContext: continue.\n"));
 #endif
-        if (sspi_cbt)
-            nsMemory::Free(sspi_cbt);
-            
+
         if (!ob.cbBuffer) {
             nsMemory::Free(ob.pvBuffer);
             ob.pvBuffer = NULL;
@@ -442,9 +418,9 @@ nsAuthSSPI::GetNextToken(const void *inToken,
 
 NS_IMETHODIMP
 nsAuthSSPI::Unwrap(const void *inToken,
-                   uint32_t    inTokenLen,
+                   PRUint32    inTokenLen,
                    void      **outToken,
-                   uint32_t   *outTokenLen)
+                   PRUint32   *outTokenLen)
 {
     SECURITY_STATUS rc;
     SecBufferDesc ibd;
@@ -523,10 +499,10 @@ public:
 
 NS_IMETHODIMP
 nsAuthSSPI::Wrap(const void *inToken,
-                 uint32_t    inTokenLen,
+                 PRUint32    inTokenLen,
                  bool        confidential,
                  void      **outToken,
-                 uint32_t   *outTokenLen)
+                 PRUint32   *outTokenLen)
 {
     SECURITY_STATUS rc;
 
@@ -598,17 +574,4 @@ nsAuthSSPI::Wrap(const void *inToken,
     }
 
     return NS_ERROR_FAILURE;
-}
-
-NS_IMETHODIMP
-nsAuthSSPI::GetModuleProperties(uint32_t *flags)
-{
-    *flags = 0;
-
-    
-    
-    if (mPackage != PACKAGE_TYPE_NTLM)
-        *flags |= CANONICAL_NAME_REQUIRED;
-
-    return NS_OK;
 }

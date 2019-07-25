@@ -4,7 +4,37 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsFormSubmission.h"
 
@@ -13,9 +43,10 @@
 #include "nsILinkHandler.h"
 #include "nsIDocument.h"
 #include "nsGkAtoms.h"
+#include "nsIHTMLDocument.h"
 #include "nsIFormControl.h"
 #include "nsIDOMHTMLFormElement.h"
-#include "nsError.h"
+#include "nsDOMError.h"
 #include "nsGenericHTMLElement.h"
 #include "nsISaveAsCharset.h"
 #include "nsIFile.h"
@@ -27,7 +58,7 @@
 #include "nsNetUtil.h"
 #include "nsLinebreakConverter.h"
 #include "nsICharsetConverterManager.h"
-#include "nsCharsetAlias.h"
+#include "nsICharsetAlias.h"
 #include "nsEscape.h"
 #include "nsUnicharUtils.h"
 #include "nsIMultiplexInputStream.h"
@@ -40,18 +71,18 @@
 #include "nsIFileStreams.h"
 #include "nsContentUtils.h"
 
-using namespace mozilla;
-
 static void
 SendJSWarning(nsIDocument* aDocument,
               const char* aWarningName,
-              const PRUnichar** aWarningArgs, uint32_t aWarningArgsLen)
+              const PRUnichar** aWarningArgs, PRUint32 aWarningArgsLen)
 {
-  nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
-                                  "HTML", aDocument,
-                                  nsContentUtils::eFORMS_PROPERTIES,
+  nsContentUtils::ReportToConsole(nsContentUtils::eFORMS_PROPERTIES,
                                   aWarningName,
-                                  aWarningArgs, aWarningArgsLen);
+                                  aWarningArgs, aWarningArgsLen,
+                                  nsnull,
+                                  EmptyString(), 0, 0,
+                                  nsIScriptError::warningFlag,
+                                  "HTML", aDocument);
 }
 
 
@@ -65,13 +96,13 @@ public:
 
 
   nsFSURLEncoded(const nsACString& aCharset,
-                 int32_t aMethod,
+                 PRInt32 aMethod,
                  nsIDocument* aDocument,
                  nsIContent* aOriginatingElement)
     : nsEncodingFormSubmission(aCharset, aOriginatingElement),
       mMethod(aMethod),
       mDocument(aDocument),
-      mWarnedFileControl(false)
+      mWarnedFileControl(PR_FALSE)
   {
   }
 
@@ -84,7 +115,7 @@ public:
 
   virtual bool SupportsIsindexSubmission()
   {
-    return true;
+    return PR_TRUE;
   }
 
   virtual nsresult AddIsindex(const nsAString& aValue);
@@ -106,7 +137,7 @@ private:
 
 
 
-  int32_t mMethod;
+  PRInt32 mMethod;
 
   
   nsCString mQueryString;
@@ -128,7 +159,7 @@ nsFSURLEncoded::AddNameValuePair(const nsAString& aName,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  nsAutoCString convName;
+  nsCAutoString convName;
   rv = URLEncode(aName, convName);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -167,8 +198,8 @@ nsFSURLEncoded::AddNameFilePair(const nsAString& aName,
                                 nsIDOMBlob* aBlob)
 {
   if (!mWarnedFileControl) {
-    SendJSWarning(mDocument, "ForgotFileEnctypeWarning", nullptr, 0);
-    mWarnedFileControl = true;
+    SendJSWarning(mDocument, "ForgotFileEnctypeWarning", nsnull, 0);
+    mWarnedFileControl = PR_TRUE;
   }
 
   nsAutoString filename;
@@ -186,14 +217,14 @@ HandleMailtoSubject(nsCString& aPath) {
   
   bool hasSubject = false;
   bool hasParams = false;
-  int32_t paramSep = aPath.FindChar('?');
-  while (paramSep != kNotFound && paramSep < (int32_t)aPath.Length()) {
-    hasParams = true;
+  PRInt32 paramSep = aPath.FindChar('?');
+  while (paramSep != kNotFound && paramSep < (PRInt32)aPath.Length()) {
+    hasParams = PR_TRUE;
 
     
     
-    int32_t nameEnd = aPath.FindChar('=', paramSep+1);
-    int32_t nextParamSep = aPath.FindChar('&', paramSep+1);
+    PRInt32 nameEnd = aPath.FindChar('=', paramSep+1);
+    PRInt32 nextParamSep = aPath.FindChar('&', paramSep+1);
     if (nextParamSep == kNotFound) {
       nextParamSep = aPath.Length();
     }
@@ -207,7 +238,7 @@ HandleMailtoSubject(nsCString& aPath) {
     if (nameEnd != kNotFound) {
       if (Substring(aPath, paramSep+1, nameEnd-(paramSep+1)).
           LowerCaseEqualsLiteral("subject")) {
-        hasSubject = true;
+        hasSubject = PR_TRUE;
         break;
       }
     }
@@ -236,6 +267,7 @@ HandleMailtoSubject(nsCString& aPath) {
                                            nsContentUtils::eFORMS_PROPERTIES,
                                            "DefaultFormSubject",
                                            formatStrings,
+                                           NS_ARRAY_LENGTH(formatStrings),
                                            subjectStr);
     if (NS_FAILED(rv))
       return;
@@ -252,7 +284,7 @@ nsFSURLEncoded::GetEncodedSubmission(nsIURI* aURI,
 {
   nsresult rv = NS_OK;
 
-  *aPostDataStream = nullptr;
+  *aPostDataStream = nsnull;
 
   if (mMethod == NS_FORM_METHOD_POST) {
 
@@ -260,7 +292,7 @@ nsFSURLEncoded::GetEncodedSubmission(nsIURI* aURI,
     aURI->SchemeIs("mailto", &isMailto);
     if (isMailto) {
 
-      nsAutoCString path;
+      nsCAutoString path;
       rv = aURI->GetPath(path);
       NS_ENSURE_SUCCESS(rv, rv);
 
@@ -297,7 +329,7 @@ nsFSURLEncoded::GetEncodedSubmission(nsIURI* aURI,
       mimeStream->AddHeader("Content-Type",
                             "application/x-www-form-urlencoded");
 #endif
-      mimeStream->SetAddContentLength(true);
+      mimeStream->SetAddContentLength(PR_TRUE);
       mimeStream->SetData(dataStream);
 
       *aPostDataStream = mimeStream;
@@ -318,12 +350,12 @@ nsFSURLEncoded::GetEncodedSubmission(nsIURI* aURI,
       url->SetQuery(mQueryString);
     }
     else {
-      nsAutoCString path;
+      nsCAutoString path;
       rv = aURI->GetPath(path);
       NS_ENSURE_SUCCESS(rv, rv);
       
-      int32_t namedAnchorPos = path.FindChar('#');
-      nsAutoCString namedAnchor;
+      PRInt32 namedAnchorPos = path.FindChar('#');
+      nsCAutoString namedAnchor;
       if (kNotFound != namedAnchorPos) {
         path.Right(namedAnchor, (path.Length() - namedAnchorPos));
         path.Truncate(namedAnchorPos);
@@ -331,7 +363,7 @@ nsFSURLEncoded::GetEncodedSubmission(nsIURI* aURI,
 
       
       
-      int32_t queryStart = path.FindChar('?');
+      PRInt32 queryStart = path.FindChar('?');
       if (kNotFound != queryStart) {
         path.Truncate(queryStart);
       }
@@ -358,7 +390,7 @@ nsFSURLEncoded::URLEncode(const nsAString& aStr, nsCString& aEncoded)
                                                    nsLinebreakConverter::eLinebreakNet);
   NS_ENSURE_TRUE(convertedBuf, NS_ERROR_OUT_OF_MEMORY);
 
-  nsAutoCString encodedBuf;
+  nsCAutoString encodedBuf;
   nsresult rv = EncodeVal(nsDependentString(convertedBuf), encodedBuf, false);
   nsMemory::Free(convertedBuf);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -408,7 +440,7 @@ nsFSMultipartFormData::AddNameValuePair(const nsAString& aName,
                                         const nsAString& aValue)
 {
   nsCString valueStr;
-  nsAutoCString encodedVal;
+  nsCAutoString encodedVal;
   nsresult rv = EncodeVal(aValue, encodedVal, false);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -417,7 +449,7 @@ nsFSMultipartFormData::AddNameValuePair(const nsAString& aName,
                                    nsLinebreakConverter::eLinebreakAny,
                                    nsLinebreakConverter::eLinebreakNet));
 
-  nsAutoCString nameStr;
+  nsCAutoString nameStr;
   rv = EncodeVal(aName, nameStr, true);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -440,7 +472,7 @@ nsFSMultipartFormData::AddNameFilePair(const nsAString& aName,
                                        nsIDOMBlob* aBlob)
 {
   
-  nsAutoCString nameStr;
+  nsCAutoString nameStr;
   nsresult rv = EncodeVal(aName, nameStr, true);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -532,10 +564,10 @@ nsFSMultipartFormData::GetEncodedSubmission(nsIURI* aURI,
     = do_CreateInstance("@mozilla.org/network/mime-input-stream;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsAutoCString contentType;
+  nsCAutoString contentType;
   GetContentType(contentType);
   mimeStream->AddHeader("Content-Type", contentType.get());
-  mimeStream->SetAddContentLength(true);
+  mimeStream->SetAddContentLength(PR_TRUE);
   mimeStream->SetData(GetSubmissionBody());
 
   *aPostDataStream = mimeStream.forget().get();
@@ -621,7 +653,7 @@ nsFSTextPlain::GetEncodedSubmission(nsIURI* aURI,
   bool isMailto = false;
   aURI->SchemeIs("mailto", &isMailto);
   if (isMailto) {
-    nsAutoCString path;
+    nsCAutoString path;
     rv = aURI->GetPath(path);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -663,7 +695,7 @@ nsFSTextPlain::GetEncodedSubmission(nsIURI* aURI,
     NS_ENSURE_SUCCESS(rv, rv);
 
     mimeStream->AddHeader("Content-Type", "text/plain");
-    mimeStream->SetAddContentLength(true);
+    mimeStream->SetAddContentLength(PR_TRUE);
     mimeStream->SetData(bodyStream);
     CallQueryInterface(mimeStream, aPostDataStream);
   }
@@ -677,21 +709,17 @@ nsEncodingFormSubmission::nsEncodingFormSubmission(const nsACString& aCharset,
                                                    nsIContent* aOriginatingElement)
   : nsFormSubmission(aCharset, aOriginatingElement)
 {
-  nsAutoCString charset(aCharset);
+  nsCAutoString charset(aCharset);
   
   
   if (charset.EqualsLiteral("ISO-8859-1")) {
     charset.AssignLiteral("windows-1252");
   }
 
-  if (!(charset.EqualsLiteral("UTF-8") || charset.EqualsLiteral("gb18030"))) {
-    NS_ConvertUTF8toUTF16 charsetUtf16(charset);
-    const PRUnichar* charsetPtr = charsetUtf16.get();
-    SendJSWarning(aOriginatingElement ? aOriginatingElement->GetOwnerDocument()
-                                      : nullptr,
-                  "CannotEncodeAllUnicode",
-                  &charsetPtr,
-                  1);
+  
+  
+  if (StringBeginsWith(charset, NS_LITERAL_CSTRING("UTF-16"))) {
+    charset.AssignLiteral("UTF-8");
   }
 
   mEncoder = do_CreateInstance(NS_SAVEASCHARSET_CONTRACTID);
@@ -702,7 +730,7 @@ nsEncodingFormSubmission::nsEncodingFormSubmission(const nsACString& aCharset,
                       nsISaveAsCharset::attr_FallbackDecimalNCR),
                      0);
     if (NS_FAILED(rv)) {
-      mEncoder = nullptr;
+      mEncoder = nsnull;
     }
   }
 }
@@ -748,28 +776,36 @@ GetSubmitCharset(nsGenericHTMLElement* aForm,
 {
   oCharset.AssignLiteral("UTF-8"); 
 
+  nsresult rv = NS_OK;
   nsAutoString acceptCharsetValue;
   aForm->GetAttr(kNameSpaceID_None, nsGkAtoms::acceptcharset,
                  acceptCharsetValue);
 
-  int32_t charsetLen = acceptCharsetValue.Length();
+  PRInt32 charsetLen = acceptCharsetValue.Length();
   if (charsetLen > 0) {
-    int32_t offset=0;
-    int32_t spPos=0;
+    PRInt32 offset=0;
+    PRInt32 spPos=0;
     
-    do {
-      spPos = acceptCharsetValue.FindChar(PRUnichar(' '), offset);
-      int32_t cnt = ((-1==spPos)?(charsetLen-offset):(spPos-offset));
-      if (cnt > 0) {
-        nsAutoString uCharset;
-        acceptCharsetValue.Mid(uCharset, offset, cnt);
+    nsCOMPtr<nsICharsetAlias> calias(do_GetService(NS_CHARSETALIAS_CONTRACTID, &rv));
+    if (NS_FAILED(rv)) {
+      return;
+    }
+    if (calias) {
+      do {
+        spPos = acceptCharsetValue.FindChar(PRUnichar(' '), offset);
+        PRInt32 cnt = ((-1==spPos)?(charsetLen-offset):(spPos-offset));
+        if (cnt > 0) {
+          nsAutoString uCharset;
+          acceptCharsetValue.Mid(uCharset, offset, cnt);
 
-        if (NS_SUCCEEDED(nsCharsetAlias::GetPreferred(NS_LossyConvertUTF16toASCII(uCharset),
-                                                      oCharset)))
-          return;
-      }
-      offset = spPos + 1;
-    } while (spPos != -1);
+          if (NS_SUCCEEDED(calias->
+                           GetPreferred(NS_LossyConvertUTF16toASCII(uCharset),
+                                        oCharset)))
+            return;
+        }
+        offset = spPos + 1;
+      } while (spPos != -1);
+    }
   }
   
   
@@ -781,7 +817,7 @@ GetSubmitCharset(nsGenericHTMLElement* aForm,
 
 static void
 GetEnumAttr(nsGenericHTMLElement* aContent,
-            nsIAtom* atom, int32_t* aValue)
+            nsIAtom* atom, PRInt32* aValue)
 {
   const nsAttrValue* value = aContent->GetParsedAttr(atom);
   if (value && value->Type() == nsAttrValue::eEnum) {
@@ -799,7 +835,7 @@ GetSubmissionFromForm(nsGenericHTMLElement* aForm,
                "Should have doc if we're building submission!");
 
   
-  int32_t enctype = NS_FORM_ENCTYPE_URLENCODED;
+  PRInt32 enctype = NS_FORM_ENCTYPE_URLENCODED;
   if (aOriginatingElement &&
       aOriginatingElement->HasAttr(kNameSpaceID_None, nsGkAtoms::formenctype)) {
     GetEnumAttr(aOriginatingElement, nsGkAtoms::formenctype, &enctype);
@@ -808,7 +844,7 @@ GetSubmissionFromForm(nsGenericHTMLElement* aForm,
   }
 
   
-  int32_t method = NS_FORM_METHOD_GET;
+  PRInt32 method = NS_FORM_METHOD_GET;
   if (aOriginatingElement &&
       aOriginatingElement->HasAttr(kNameSpaceID_None, nsGkAtoms::formmethod)) {
     GetEnumAttr(aOriginatingElement, nsGkAtoms::formmethod, &method);
@@ -817,17 +853,8 @@ GetSubmissionFromForm(nsGenericHTMLElement* aForm,
   }
 
   
-  nsAutoCString charset;
+  nsCAutoString charset;
   GetSubmitCharset(aForm, charset);
-
-  
-  
-
-  
-  
-  if (StringBeginsWith(charset, NS_LITERAL_CSTRING("UTF-16"))) {
-    charset.AssignLiteral("UTF-8");
-  }
 
   
   if (method == NS_FORM_METHOD_POST &&
@@ -837,7 +864,7 @@ GetSubmissionFromForm(nsGenericHTMLElement* aForm,
              enctype == NS_FORM_ENCTYPE_TEXTPLAIN) {
     *aFormSubmission = new nsFSTextPlain(charset, aOriginatingElement);
   } else {
-    nsIDocument* doc = aForm->OwnerDoc();
+    nsIDocument* doc = aForm->GetOwnerDoc();
     if (enctype == NS_FORM_ENCTYPE_MULTIPART ||
         enctype == NS_FORM_ENCTYPE_TEXTPLAIN) {
       nsAutoString enctypeStr;

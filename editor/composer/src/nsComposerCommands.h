@@ -3,18 +3,48 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsComposerCommands_h_
 #define nsComposerCommands_h_
 
 #include "nsIControllerCommand.h"
-#include "nsISupportsImpl.h"            
-#include "nscore.h"                     
+#include "nsString.h"
 
-class nsIAtom;
-class nsICommandParams;
 class nsIEditor;
-class nsISupports;
-class nsString;
 
 
 
@@ -53,8 +83,9 @@ public:                                                 \
 class nsBaseStateUpdatingCommand : public nsBaseComposerCommand
 {
 public:
-  nsBaseStateUpdatingCommand(nsIAtom* aTagName);
-  virtual ~nsBaseStateUpdatingCommand();
+
+              nsBaseStateUpdatingCommand(const char* aTagName);
+  virtual     ~nsBaseStateUpdatingCommand();
     
   NS_DECL_ISUPPORTS_INHERITED
 
@@ -63,13 +94,14 @@ public:
 protected:
 
   
-  virtual nsresult  GetCurrentState(nsIEditor* aEditor, nsICommandParams* aParams) = 0;
+  virtual nsresult  GetCurrentState(nsIEditor *aEditor, const char* aTagName, nsICommandParams *aParams) = 0;
   
   
-  virtual nsresult  ToggleState(nsIEditor* aEditor) = 0;
+  virtual nsresult  ToggleState(nsIEditor *aEditor, const char* aTagName) = 0;
 
 protected:
-  nsIAtom* mTagName;
+
+  const char* mTagName;
 };
 
 
@@ -78,22 +110,25 @@ protected:
 class nsStyleUpdatingCommand : public nsBaseStateUpdatingCommand
 {
 public:
-  nsStyleUpdatingCommand(nsIAtom* aTagName);
+
+            nsStyleUpdatingCommand(const char* aTagName);
            
 protected:
 
   
-  virtual nsresult  GetCurrentState(nsIEditor* aEditor, nsICommandParams* aParams);
+  virtual nsresult  GetCurrentState(nsIEditor *aEditor, const char* aTagName, nsICommandParams *aParams);
   
   
-  virtual nsresult  ToggleState(nsIEditor* aEditor);
+  virtual nsresult  ToggleState(nsIEditor *aEditor, const char* aTagName);
+  
 };
 
 
 class nsInsertTagCommand : public nsBaseComposerCommand
 {
 public:
-  explicit nsInsertTagCommand(nsIAtom* aTagName);
+
+              nsInsertTagCommand(const char* aTagName);
   virtual     ~nsInsertTagCommand();
     
   NS_DECL_ISUPPORTS_INHERITED
@@ -102,36 +137,38 @@ public:
 
 protected:
 
-  nsIAtom* mTagName;
+  const char* mTagName;
 };
 
 
 class nsListCommand : public nsBaseStateUpdatingCommand
 {
 public:
-  nsListCommand(nsIAtom* aTagName);
+
+            nsListCommand(const char* aTagName);
 
 protected:
 
   
-  virtual nsresult  GetCurrentState(nsIEditor* aEditor, nsICommandParams* aParams);
+  virtual nsresult  GetCurrentState(nsIEditor *aEditor, const char* aTagName, nsICommandParams *aParams);
   
   
-  virtual nsresult  ToggleState(nsIEditor* aEditor);
+  virtual nsresult  ToggleState(nsIEditor *aEditor, const char* aTagName);
 };
 
 class nsListItemCommand : public nsBaseStateUpdatingCommand
 {
 public:
-  nsListItemCommand(nsIAtom* aTagName);
+
+            nsListItemCommand(const char* aTagName);
 
 protected:
 
   
-  virtual nsresult  GetCurrentState(nsIEditor* aEditor, nsICommandParams* aParams);
+  virtual nsresult  GetCurrentState(nsIEditor *aEditor, const char* aTagName, nsICommandParams *aParams);
   
   
-  virtual nsresult  ToggleState(nsIEditor* aEditor);
+  virtual nsresult  ToggleState(nsIEditor *aEditor, const char* aTagName);
 };
 
 
@@ -236,13 +273,13 @@ protected:
 class nsAbsolutePositioningCommand : public nsBaseStateUpdatingCommand
 {
 public:
-  nsAbsolutePositioningCommand();
+                   nsAbsolutePositioningCommand();
 
 protected:
 
   NS_IMETHOD IsCommandEnabled(const char *aCommandName, nsISupports *aCommandRefCon, bool *_retval);
-  virtual nsresult  GetCurrentState(nsIEditor* aEditor, nsICommandParams* aParams);
-  virtual nsresult  ToggleState(nsIEditor* aEditor);
+  virtual nsresult  GetCurrentState(nsIEditor *aEditor, const char* aTagName, nsICommandParams *aParams);
+  virtual nsresult  ToggleState(nsIEditor *aEditor, const char* aTagName);
 };
 
 

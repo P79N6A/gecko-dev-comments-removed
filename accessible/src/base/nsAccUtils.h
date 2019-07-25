@@ -3,29 +3,68 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsAccUtils_h_
 #define nsAccUtils_h_
 
 #include "nsIAccessible.h"
+#include "nsIAccessNode.h"
+#include "nsIAccessibleDocument.h"
 #include "nsIAccessibleRole.h"
 #include "nsIAccessibleText.h"
+#include "nsIAccessibleTable.h"
 
+#include "nsARIAMap.h"
 #include "nsAccessibilityService.h"
 #include "nsCoreUtils.h"
 
 #include "mozilla/dom/Element.h"
 #include "nsIDocShell.h"
-#include "nsIDocShellTreeItem.h"
 #include "nsIDOMNode.h"
 #include "nsIPersistentProperties2.h"
 #include "nsIPresShell.h"
 #include "nsPoint.h"
 
 class nsAccessNode;
-class Accessible;
-class HyperTextAccessible;
-class DocAccessible;
-struct nsRoleMapEntry;
+class nsAccessible;
+class nsHyperTextAccessible;
+class nsHTMLTableAccessible;
+class nsDocAccessible;
+#ifdef MOZ_XUL
+class nsXULTreeAccessible;
+#endif
 
 class nsAccUtils
 {
@@ -56,24 +95,40 @@ public:
 
 
   static void SetAccGroupAttrs(nsIPersistentProperties *aAttributes,
-                               int32_t aLevel, int32_t aSetSize,
-                               int32_t aPosInSet);
+                               PRInt32 aLevel, PRInt32 aSetSize,
+                               PRInt32 aPosInSet);
 
   
 
 
-  static int32_t GetDefaultLevel(Accessible* aAcc);
+  static PRInt32 GetDefaultLevel(nsAccessible *aAcc);
 
   
 
 
 
-  static int32_t GetARIAOrDefaultLevel(Accessible* aAccessible);
+  static PRInt32 GetARIAOrDefaultLevel(nsAccessible *aAccessible);
 
   
 
 
-  static int32_t GetLevelForXULContainerItem(nsIContent *aContent);
+
+  static void GetPositionAndSizeForXULSelectControlItem(nsIContent *aContent,
+                                                        PRInt32 *aPosInSet,
+                                                        PRInt32 *aSetSize);
+
+  
+
+
+
+  static void GetPositionAndSizeForXULContainerItem(nsIContent *aContent,
+                                                    PRInt32 *aPosInSet,
+                                                    PRInt32 *aSetSize);
+
+  
+
+
+  static PRInt32 GetLevelForXULContainerItem(nsIContent *aContent);
 
   
 
@@ -103,21 +158,33 @@ public:
   
 
 
-  static DocAccessible* GetDocAccessibleFor(nsINode* aNode)
+  static nsDocAccessible *GetDocAccessibleFor(nsIWeakReference *aWeakShell)
   {
-    nsIPresShell *presShell = nsCoreUtils::GetPresShellFor(aNode);
-    return GetAccService()->GetDocAccessible(presShell);
+    nsCOMPtr<nsIPresShell> presShell(do_QueryReferent(aWeakShell));
+    return presShell ?
+      GetAccService()->GetDocAccessible(presShell->GetDocument()) : nsnull;
   }
 
   
 
 
-  static DocAccessible* GetDocAccessibleFor(nsIDocShellTreeItem* aContainer)
+  static nsDocAccessible *GetDocAccessibleFor(nsINode *aNode)
+  {
+    nsIPresShell *presShell = nsCoreUtils::GetPresShellFor(aNode);
+    return presShell ?
+      GetAccService()->GetDocAccessible(presShell->GetDocument()) : nsnull;
+  }
+
+  
+
+
+  static nsDocAccessible *GetDocAccessibleFor(nsIDocShellTreeItem *aContainer)
   {
     nsCOMPtr<nsIDocShell> docShell(do_QueryInterface(aContainer));
     nsCOMPtr<nsIPresShell> presShell;
     docShell->GetPresShell(getter_AddRefs(presShell));
-    return GetAccService()->GetDocAccessible(presShell);
+    return presShell ?
+      GetAccService()->GetDocAccessible(presShell->GetDocument()) : nsnull;
   }
 
   
@@ -128,8 +195,8 @@ public:
 
 
 
-   static Accessible* GetAncestorWithRole(Accessible* aDescendant,
-                                          uint32_t aRole);
+   static nsAccessible * GetAncestorWithRole(nsAccessible *aDescendant,
+                                             PRUint32 aRole);
 
   
 
@@ -137,14 +204,19 @@ public:
 
 
 
-  static Accessible* GetSelectableContainer(Accessible* aAccessible,
-                                            uint64_t aState);
+  static nsAccessible* GetSelectableContainer(nsAccessible* aAccessible,
+                                              PRUint64 aState);
+
+  
+
+
+  static nsAccessible *GetMultiSelectableContainer(nsINode *aNode);
 
   
 
 
 
-  static bool IsARIASelected(Accessible* aAccessible);
+  static bool IsARIASelected(nsAccessible *aAccessible);
 
   
 
@@ -153,7 +225,7 @@ public:
 
 
 
-  static HyperTextAccessible*
+  static nsHyperTextAccessible*
     GetTextAccessibleFromSelection(nsISelection* aSelection);
 
   
@@ -167,8 +239,8 @@ public:
 
 
 
-  static nsresult ConvertToScreenCoords(int32_t aX, int32_t aY,
-                                        uint32_t aCoordinateType,
+  static nsresult ConvertToScreenCoords(PRInt32 aX, PRInt32 aY,
+                                        PRUint32 aCoordinateType,
                                         nsAccessNode *aAccessNode,
                                         nsIntPoint *aCoords);
 
@@ -183,8 +255,8 @@ public:
 
 
 
-  static nsresult ConvertScreenCoordsTo(int32_t *aX, int32_t *aY,
-                                        uint32_t aCoordinateType,
+  static nsresult ConvertScreenCoordsTo(PRInt32 *aX, PRInt32 *aY,
+                                        PRUint32 aCoordinateType,
                                         nsAccessNode *aAccessNode);
 
   
@@ -204,9 +276,19 @@ public:
   
 
 
-  static uint32_t Role(nsIAccessible *aAcc)
+
+
+
+
+
+  static nsRoleMapEntry *GetRoleMapEntry(nsINode *aNode);
+
+  
+
+
+  static PRUint32 Role(nsIAccessible *aAcc)
   {
-    uint32_t role = nsIAccessibleRole::ROLE_NOTHING;
+    PRUint32 role = nsIAccessibleRole::ROLE_NOTHING;
     if (aAcc)
       aAcc->GetRole(&role);
 
@@ -220,7 +302,7 @@ public:
 
 
 
-  static uint8_t GetAttributeCharacteristics(nsIAtom* aAtom);
+  static PRUint8 GetAttributeCharacteristics(nsIAtom* aAtom);
 
   
 
@@ -231,14 +313,14 @@ public:
 
 
 
-  static bool GetLiveAttrValue(uint32_t aRule, nsAString& aValue);
+  static bool GetLiveAttrValue(PRUint32 aRule, nsAString& aValue);
 
-#ifdef DEBUG
+#ifdef DEBUG_A11Y
   
 
 
 
-  static bool IsTextInterfaceSupportCorrect(Accessible* aAccessible);
+  static bool IsTextInterfaceSupportCorrect(nsAccessible *aAccessible);
 #endif
 
   
@@ -246,7 +328,7 @@ public:
 
   static bool IsText(nsIAccessible *aAcc)
   {
-    uint32_t role = Role(aAcc);
+    PRUint32 role = Role(aAcc);
     return role == nsIAccessibleRole::ROLE_TEXT_LEAF ||
            role == nsIAccessibleRole::ROLE_STATICTEXT;
   }
@@ -254,14 +336,14 @@ public:
   
 
 
-  static uint32_t TextLength(Accessible* aAccessible);
+  static PRUint32 TextLength(nsAccessible *aAccessible);
 
   
 
 
   static bool IsEmbeddedObject(nsIAccessible *aAcc)
   {
-    uint32_t role = Role(aAcc);
+    PRUint32 role = Role(aAcc);
     return role != nsIAccessibleRole::ROLE_TEXT_LEAF &&
            role != nsIAccessibleRole::ROLE_WHITESPACE &&
            role != nsIAccessibleRole::ROLE_STATICTEXT;
@@ -270,28 +352,54 @@ public:
   
 
 
-  static inline uint64_t To64State(uint32_t aState1, uint32_t aState2)
+  static inline PRUint64 To64State(PRUint32 aState1, PRUint32 aState2)
   {
-    return static_cast<uint64_t>(aState1) +
-        (static_cast<uint64_t>(aState2) << 31);
+    return static_cast<PRUint64>(aState1) +
+        (static_cast<PRUint64>(aState2) << 31);
   }
 
   
 
 
-  static inline void To32States(uint64_t aState64,
-                                uint32_t* aState1, uint32_t* aState2)
+  static inline void To32States(PRUint64 aState64,
+                                PRUint32* aState1, PRUint32* aState2)
   {
     *aState1 = aState64 & 0x7fffffff;
     if (aState2)
-      *aState2 = static_cast<uint32_t>(aState64 >> 31);
+      *aState2 = static_cast<PRUint32>(aState64 >> 31);
   }
 
   
 
 
 
-  static bool MustPrune(Accessible* aAccessible);
+  static bool MustPrune(nsIAccessible *aAccessible);
+
+  
+
+
+  enum {
+    
+    eRowHeaderCells,
+    
+    eColumnHeaderCells
+  };
+
+  
+
+
+
+
+
+
+
+
+
+
+  static nsresult GetHeaderCellsFor(nsIAccessibleTable *aTable,
+                                    nsIAccessibleTableCell *aCell,
+                                    PRInt32 aRowOrColHeaderCells,
+                                    nsIArray **aCells);
 };
 
 #endif

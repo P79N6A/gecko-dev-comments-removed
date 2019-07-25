@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsButtonBoxFrame_h___
 #define nsButtonBoxFrame_h___
 
@@ -15,7 +48,7 @@ public:
   friend nsIFrame* NS_NewButtonBoxFrame(nsIPresShell* aPresShell);
 
   nsButtonBoxFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
-    :nsBoxFrame(aPresShell, aContext, false) {
+    :nsBoxFrame(aPresShell, aContext, PR_FALSE) {
     UpdateMouseThrough();
   }
 
@@ -28,7 +61,7 @@ public:
                                       nsEventStatus* aEventStatus);
 
   virtual void MouseClicked (nsPresContext* aPresContext, nsGUIEvent* aEvent)
-  { DoMouseClick(aEvent, false); }
+  { DoMouseClick(aEvent, PR_FALSE); }
 
 #ifdef DEBUG
   NS_IMETHOD GetFrameName(nsAString& aResult) const {

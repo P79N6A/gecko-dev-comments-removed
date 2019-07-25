@@ -3,12 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_SVGINTEGERPAIRSMILTYPE_H_
 #define MOZILLA_SVGINTEGERPAIRSMILTYPE_H_
 
 #include "nsISMILType.h"
-
-class nsSMILValue;
 
 namespace mozilla {
 
@@ -27,7 +56,7 @@ protected:
   virtual bool     IsEqual(const nsSMILValue& aLeft,
                            const nsSMILValue& aRight) const;
   virtual nsresult Add(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
-                       uint32_t aCount) const;
+                       PRUint32 aCount) const;
   virtual nsresult ComputeDistance(const nsSMILValue& aFrom,
                                    const nsSMILValue& aTo,
                                    double& aDistance) const;

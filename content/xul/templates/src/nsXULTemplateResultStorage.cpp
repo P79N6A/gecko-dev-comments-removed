@@ -3,10 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIServiceManager.h"
 #include "nsRDFCID.h"
 #include "nsIRDFService.h"
-#include "nsString.h"
+
 #include "nsXULTemplateResultStorage.h"
 
 static NS_DEFINE_CID(kRDFServiceCID, NS_RDFSERVICE_CID);
@@ -26,28 +58,28 @@ nsXULTemplateResultStorage::nsXULTemplateResultStorage(nsXULTemplateResultSetSto
 NS_IMETHODIMP
 nsXULTemplateResultStorage::GetIsContainer(bool* aIsContainer)
 {
-    *aIsContainer = false;
+    *aIsContainer = PR_FALSE;
     return NS_OK;
 }
 
 NS_IMETHODIMP
 nsXULTemplateResultStorage::GetIsEmpty(bool* aIsEmpty)
 {
-    *aIsEmpty = true;
+    *aIsEmpty = PR_TRUE;
     return NS_OK;
 }
 
 NS_IMETHODIMP
 nsXULTemplateResultStorage::GetMayProcessChildren(bool* aMayProcessChildren)
 {
-    *aMayProcessChildren = false;
+    *aMayProcessChildren = PR_FALSE;
     return NS_OK;
 }
 
 NS_IMETHODIMP
 nsXULTemplateResultStorage::GetId(nsAString& aId)
 {
-    const char* uri = nullptr;
+    const char* uri = nsnull;
     mNode->GetValueConst(&uri);
 
     aId.Assign(NS_ConvertUTF8toUTF16(uri));
@@ -81,7 +113,7 @@ nsXULTemplateResultStorage::GetBindingFor(nsIAtom* aVar, nsAString& aValue)
         return NS_OK;
     }
 
-    int32_t idx = mResultSet->GetColumnIndex(aVar);
+    PRInt32 idx = mResultSet->GetColumnIndex(aVar);
     if (idx < 0) {
         return NS_OK;
     }
@@ -99,14 +131,14 @@ nsXULTemplateResultStorage::GetBindingObjectFor(nsIAtom* aVar, nsISupports** aVa
     NS_ENSURE_ARG_POINTER(aVar);
 
     if (mResultSet) {
-        int32_t idx = mResultSet->GetColumnIndex(aVar);
+        PRInt32 idx = mResultSet->GetColumnIndex(aVar);
         if (idx >= 0) {
             *aValue = mValues[idx];
             NS_IF_ADDREF(*aValue);
             return NS_OK;
         }
     }
-    *aValue = nullptr;
+    *aValue = nsnull;
     return NS_OK;
 }
 

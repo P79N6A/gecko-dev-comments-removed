@@ -3,6 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsMathMLmoFrame_h___
 #define nsMathMLmoFrame_h___
 
@@ -22,10 +57,10 @@ public:
   virtual eMathMLFrameType GetMathMLFrameType();
 
   virtual void
-  SetAdditionalStyleContext(int32_t          aIndex, 
+  SetAdditionalStyleContext(PRInt32          aIndex, 
                             nsStyleContext*  aStyleContext);
   virtual nsStyleContext*
-  GetAdditionalStyleContext(int32_t aIndex) const;
+  GetAdditionalStyleContext(PRInt32 aIndex) const;
 
   NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                               const nsRect&           aDirtyRect,
@@ -49,9 +84,9 @@ public:
   GetIntrinsicWidth(nsRenderingContext *aRenderingContext);
 
   NS_IMETHOD
-  AttributeChanged(int32_t         aNameSpaceID,
+  AttributeChanged(PRInt32         aNameSpaceID,
                    nsIAtom*        aAttribute,
-                   int32_t         aModType);
+                   PRInt32         aModType);
 
   
   
@@ -65,7 +100,7 @@ protected:
   nsMathMLmoFrame(nsStyleContext* aContext) : nsMathMLTokenFrame(aContext) {}
   virtual ~nsMathMLmoFrame();
   
-  virtual int GetSkipSides() const { return 0; }
+  virtual PRIntn GetSkipSides() const { return 0; }
 
   nsMathMLChar     mMathMLChar; 
   nsOperatorFlags  mFlags;

@@ -1,6 +1,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsNSSASN1Object.h"
 #include "nsIComponentManager.h"
 #include "secasn1.h"
@@ -53,14 +86,14 @@ getInteger256(unsigned char *data, unsigned int nb)
 
 
 
-static int32_t
+static PRInt32
 getDERItemLength(unsigned char *data, unsigned char *end,
                  unsigned long *bytesUsed, bool *indefinite)
 {
   unsigned char lbyte = *data++;
-  int32_t length = -1;
+  PRInt32 length = -1;
   
-  *indefinite = false;
+  *indefinite = PR_FALSE;
   if (lbyte >= 0x80) {
     
     unsigned nb = (unsigned) (lbyte & 0x7f);
@@ -76,7 +109,7 @@ getDERItemLength(unsigned char *data, unsigned char *end,
       if (length < 0)
         return -1;
     } else {
-      *indefinite = true;
+      *indefinite = PR_TRUE;
       length = 0;
     }
     *bytesUsed = nb+1;
@@ -112,11 +145,11 @@ buildASN1ObjectFromDER(unsigned char *data,
   
   unsigned long bytesUsed;
   bool indefinite;
-  int32_t len;
-  uint32_t type;
+  PRInt32 len;
+  PRUint32 type;
 
   rv = parent->GetASN1Objects(getter_AddRefs(parentObjects));
-  if (NS_FAILED(rv) || parentObjects == nullptr)
+  if (NS_FAILED(rv) || parentObjects == nsnull)
     return NS_ERROR_FAILURE;
   while (data < end) {
     code = *data;
@@ -169,7 +202,7 @@ buildASN1ObjectFromDER(unsigned char *data,
       printableItem->SetData((char*)data, len);
     }
     data += len;
-    parentObjects->AppendElement(asn1Obj, false);
+    parentObjects->AppendElement(asn1Obj, PR_FALSE);
   }
 
   return NS_OK;
@@ -181,7 +214,7 @@ CreateFromDER(unsigned char *data,
               nsIASN1Object **retval)
 {
   nsCOMPtr<nsIASN1Sequence> sequence = new nsNSSASN1Sequence;
-  *retval = nullptr;
+  *retval = nsnull;
   
   nsresult rv =  buildASN1ObjectFromDER(data, data+len, sequence);
 
@@ -193,7 +226,7 @@ CreateFromDER(unsigned char *data,
     sequence->GetASN1Objects(getter_AddRefs(elements));
     nsCOMPtr<nsIASN1Object> asn1Obj = do_QueryElementAt(elements, 0);
     *retval = asn1Obj;
-    if (*retval == nullptr)
+    if (*retval == nsnull)
       return NS_ERROR_FAILURE;
 
     NS_ADDREF(*retval);
@@ -204,8 +237,8 @@ CreateFromDER(unsigned char *data,
 
 nsNSSASN1Sequence::nsNSSASN1Sequence() : mType(0),
                                          mTag(0),
-                                         mIsValidContainer(true),
-                                         mIsExpanded(true)
+                                         mIsValidContainer(PR_TRUE),
+                                         mIsExpanded(PR_TRUE)
 {
   
 }
@@ -218,7 +251,7 @@ nsNSSASN1Sequence::~nsNSSASN1Sequence()
 NS_IMETHODIMP 
 nsNSSASN1Sequence::GetASN1Objects(nsIMutableArray * *aASN1Objects)
 {
-  if (mASN1Objects == nullptr) {
+  if (mASN1Objects == nsnull) {
     mASN1Objects = do_CreateInstance(NS_ARRAY_CONTRACTID);
   }
   *aASN1Objects = mASN1Objects;
@@ -234,28 +267,28 @@ nsNSSASN1Sequence::SetASN1Objects(nsIMutableArray * aASN1Objects)
 }
 
 NS_IMETHODIMP 
-nsNSSASN1Sequence::GetTag(uint32_t *aTag)
+nsNSSASN1Sequence::GetTag(PRUint32 *aTag)
 {
   *aTag = mTag;
   return NS_OK;
 }
 
 NS_IMETHODIMP 
-nsNSSASN1Sequence::SetTag(uint32_t aTag)
+nsNSSASN1Sequence::SetTag(PRUint32 aTag)
 {
   mTag = aTag;
   return NS_OK;
 }
 
 NS_IMETHODIMP 
-nsNSSASN1Sequence::GetType(uint32_t *aType)
+nsNSSASN1Sequence::GetType(PRUint32 *aType)
 {
   *aType = mType;
   return NS_OK;
 }
 
 NS_IMETHODIMP 
-nsNSSASN1Sequence::SetType(uint32_t aType)
+nsNSSASN1Sequence::SetType(PRUint32 aType)
 {
   mType = aType;
   return NS_OK;
@@ -323,7 +356,7 @@ nsNSSASN1Sequence::SetIsExpanded(bool aIsExpanded)
 
 nsNSSASN1PrintableItem::nsNSSASN1PrintableItem() : mType(0),
                                                    mTag(0),
-                                                   mData(nullptr),
+                                                   mData(nsnull),
                                                    mLen(0)
 {
   
@@ -352,35 +385,35 @@ nsNSSASN1PrintableItem::SetDisplayValue(const nsAString &aValue)
 }
 
 NS_IMETHODIMP 
-nsNSSASN1PrintableItem::GetTag(uint32_t *aTag)
+nsNSSASN1PrintableItem::GetTag(PRUint32 *aTag)
 {
   *aTag = mTag;
   return NS_OK;
 }
 
 NS_IMETHODIMP 
-nsNSSASN1PrintableItem::SetTag(uint32_t aTag)
+nsNSSASN1PrintableItem::SetTag(PRUint32 aTag)
 {
   mTag = aTag;
   return NS_OK;
 }
 
 NS_IMETHODIMP 
-nsNSSASN1PrintableItem::GetType(uint32_t *aType)
+nsNSSASN1PrintableItem::GetType(PRUint32 *aType)
 {
   *aType = mType;
   return NS_OK;
 }
 
 NS_IMETHODIMP 
-nsNSSASN1PrintableItem::SetType(uint32_t aType)
+nsNSSASN1PrintableItem::SetType(PRUint32 aType)
 {
   mType = aType;
   return NS_OK;
 }
 
 NS_IMETHODIMP 
-nsNSSASN1PrintableItem::SetData(char *data, uint32_t len)
+nsNSSASN1PrintableItem::SetData(char *data, PRUint32 len)
 {
   if (len > 0) {
     if (mLen < len) {
@@ -395,7 +428,7 @@ nsNSSASN1PrintableItem::SetData(char *data, uint32_t len)
   } else if (len == 0) {
     if (mData) {
       nsMemory::Free(mData);
-      mData = nullptr;
+      mData = nsnull;
     }
   }
   mLen = len;
@@ -403,7 +436,7 @@ nsNSSASN1PrintableItem::SetData(char *data, uint32_t len)
 }
 
 NS_IMETHODIMP
-nsNSSASN1PrintableItem::GetData(char **outData, uint32_t *outLen)
+nsNSSASN1PrintableItem::GetData(char **outData, PRUint32 *outLen)
 {
   NS_ENSURE_ARG_POINTER(outData);
   NS_ENSURE_ARG_POINTER(outLen);

@@ -3,12 +3,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _CANVASUTILS_H_
 #define _CANVASUTILS_H_
 
 #include "prtypes.h"
 
-#include "mozilla/CheckedInt.h"
+#include "CheckedInt.h"
 
 class nsHTMLCanvasElement;
 class nsIPrincipal;
@@ -25,15 +57,15 @@ using namespace gfx;
 
 
 
-inline bool CheckSaneSubrectSize(int32_t x, int32_t y, int32_t w, int32_t h,
-                            int32_t realWidth, int32_t realHeight) {
+inline bool CheckSaneSubrectSize(PRInt32 x, PRInt32 y, PRInt32 w, PRInt32 h,
+                            PRInt32 realWidth, PRInt32 realHeight) {
     CheckedInt32 checked_xmost  = CheckedInt32(x) + w;
     CheckedInt32 checked_ymost  = CheckedInt32(y) + h;
 
     return w >= 0 && h >= 0 && x >= 0 && y >= 0 &&
-        checked_xmost.isValid() &&
+        checked_xmost.valid() &&
         checked_xmost.value() <= realWidth &&
-        checked_ymost.isValid() &&
+        checked_ymost.valid() &&
         checked_ymost.value() <= realHeight;
 }
 
@@ -44,6 +76,9 @@ void DoDrawImageSecurityCheck(nsHTMLCanvasElement *aCanvasElement,
                               nsIPrincipal *aPrincipal,
                               bool forceWriteOnly,
                               bool CORSUsed);
+
+void LogMessage (const nsCString& errorString);
+void LogMessagef (const char *fmt, ...);
 
 
 
@@ -63,36 +98,36 @@ nsresult MatrixToJSVal(const Matrix& matrix,
                        JSContext* cx, jsval* val);
 
     
-#define VALIDATE(_f)  if (!NS_finite(_f)) return false
+#define VALIDATE(_f)  if (!NS_finite(_f)) return PR_FALSE
 
 inline bool FloatValidate (double f1) {
     VALIDATE(f1);
-    return true;
+    return PR_TRUE;
 }
 
 inline bool FloatValidate (double f1, double f2) {
     VALIDATE(f1); VALIDATE(f2);
-    return true;
+    return PR_TRUE;
 }
 
 inline bool FloatValidate (double f1, double f2, double f3) {
     VALIDATE(f1); VALIDATE(f2); VALIDATE(f3);
-    return true;
+    return PR_TRUE;
 }
 
 inline bool FloatValidate (double f1, double f2, double f3, double f4) {
     VALIDATE(f1); VALIDATE(f2); VALIDATE(f3); VALIDATE(f4);
-    return true;
+    return PR_TRUE;
 }
 
 inline bool FloatValidate (double f1, double f2, double f3, double f4, double f5) {
     VALIDATE(f1); VALIDATE(f2); VALIDATE(f3); VALIDATE(f4); VALIDATE(f5);
-    return true;
+    return PR_TRUE;
 }
 
 inline bool FloatValidate (double f1, double f2, double f3, double f4, double f5, double f6) {
     VALIDATE(f1); VALIDATE(f2); VALIDATE(f3); VALIDATE(f4); VALIDATE(f5); VALIDATE(f6);
-    return true;
+    return PR_TRUE;
 }
 
 #undef VALIDATE
@@ -114,11 +149,11 @@ JSValToDashArray(JSContext* cx, const jsval& patternArray,
 {
     
     
-    static const uint32_t MAX_NUM_DASHES = 1 << 14;
+    static const jsuint MAX_NUM_DASHES = 1 << 14;
 
     if (!JSVAL_IS_PRIMITIVE(patternArray)) {
         JSObject* obj = JSVAL_TO_OBJECT(patternArray);
-        uint32_t length;
+        jsuint length;
         if (!JS_GetArrayLength(cx, obj, &length)) {
             
             return NS_ERROR_INVALID_ARG;
@@ -128,7 +163,7 @@ JSValToDashArray(JSContext* cx, const jsval& patternArray,
         }
 
         bool haveNonzeroElement = false;
-        for (uint32_t i = 0; i < length; ++i) {
+        for (uint32 i = 0; i < length; ++i) {
             jsval elt;
             double d;
             if (!JS_GetElement(cx, obj, i, &elt)) {
@@ -168,11 +203,11 @@ DashArrayToJSVal(FallibleTArray<T>& dashes,
     if (dashes.IsEmpty()) {
         *val = JSVAL_NULL;
     } else {
-        JSObject* obj = JS_NewArrayObject(cx, dashes.Length(), nullptr);
+        JSObject* obj = JS_NewArrayObject(cx, dashes.Length(), nsnull);
         if (!obj) {
             return NS_ERROR_OUT_OF_MEMORY;
         }
-        for (uint32_t i = 0; i < dashes.Length(); ++i) {
+        for (PRUint32 i = 0; i < dashes.Length(); ++i) {
             double d = dashes[i];
             jsval elt = DOUBLE_TO_JSVAL(d);
             if (!JS_SetElement(cx, obj, i, &elt)) {

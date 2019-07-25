@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "TestCommon.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,7 +56,7 @@ class myDNSListener : public nsIDNSListener
 public:
     NS_DECL_ISUPPORTS
 
-    myDNSListener(const char *host, int32_t index)
+    myDNSListener(const char *host, PRInt32 index)
         : mHost(host)
         , mIndex(index) {}
     virtual ~myDNSListener() {}
@@ -37,7 +69,7 @@ public:
             mIndex, mHost.get(), status, (void*)rec);
 
         if (NS_SUCCEEDED(status)) {
-            nsAutoCString buf;
+            nsCAutoString buf;
 
             rec->GetCanonicalName(buf);
             printf("%d: canonname=%s\n", mIndex, buf.get());
@@ -54,7 +86,7 @@ public:
 
 private:
     nsCString mHost;
-    int32_t   mIndex;
+    PRInt32   mIndex;
 };
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(myDNSListener, nsIDNSListener)
@@ -63,10 +95,10 @@ static bool IsAscii(const char *s)
 {
   for (; *s; ++s) {
     if (*s & 0x80)
-      return false;
+      return PR_FALSE;
   }
 
-  return true;
+  return PR_TRUE;
 }
 
 int main(int argc, char **argv)
@@ -83,7 +115,7 @@ int main(int argc, char **argv)
 
     {
         nsCOMPtr<nsIServiceManager> servMan;
-        NS_InitXPCOM2(getter_AddRefs(servMan), nullptr, nullptr);
+        NS_InitXPCOM2(getter_AddRefs(servMan), nsnull, nsnull);
 
         nsCOMPtr<nsPIDNSService> dns = do_GetService(NS_DNSSERVICE_CONTRACTID);
         if (!dns)
@@ -98,7 +130,7 @@ int main(int argc, char **argv)
         for (int j=0; j<2; ++j) {
             for (int i=1; i<argc; ++i) {
                 
-                nsAutoCString hostBuf;
+                nsCAutoString hostBuf;
                 if (IsAscii(argv[i]))
                     hostBuf.Assign(argv[i]);
                 else
@@ -109,7 +141,7 @@ int main(int argc, char **argv)
                 nsCOMPtr<nsICancelable> req;
                 nsresult rv = dns->AsyncResolve(hostBuf,
                                                 nsIDNSService::RESOLVE_CANONICAL_NAME,
-                                                listener, nullptr, getter_AddRefs(req));
+                                                listener, nsnull, getter_AddRefs(req));
                 if (NS_FAILED(rv))
                     printf("### AsyncResolve failed [rv=%x]\n", rv);
             }
@@ -122,6 +154,6 @@ int main(int argc, char **argv)
         dns->Shutdown();
     }
 
-    NS_ShutdownXPCOM(nullptr);
+    NS_ShutdownXPCOM(nsnull);
     return 0;
 }

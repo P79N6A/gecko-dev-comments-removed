@@ -5,17 +5,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsCSSParser_h___
 #define nsCSSParser_h___
-
-#include "mozilla/Attributes.h"
 
 #include "nsAString.h"
 #include "nsCSSProperty.h"
 #include "nsColor.h"
 #include "nsCOMArray.h"
 #include "nsCOMPtr.h"
-#include "nsTArray.h"
 
 class nsCSSStyleSheet;
 class nsIPrincipal;
@@ -23,7 +52,6 @@ class nsIURI;
 struct nsCSSSelectorList;
 class nsMediaList;
 class nsCSSKeyframeRule;
-class nsCSSValue;
 
 namespace mozilla {
 namespace css {
@@ -38,15 +66,16 @@ class StyleRule;
 
 class NS_STACK_CLASS nsCSSParser {
 public:
-  nsCSSParser(mozilla::css::Loader* aLoader = nullptr,
-              nsCSSStyleSheet* aSheet = nullptr);
+  nsCSSParser(mozilla::css::Loader* aLoader = nsnull,
+              nsCSSStyleSheet* aSheet = nsnull);
   ~nsCSSParser();
 
   static void Shutdown();
 
 private:
-  nsCSSParser(nsCSSParser const&) MOZ_DELETE;
-  nsCSSParser& operator=(nsCSSParser const&) MOZ_DELETE;
+  
+  nsCSSParser(nsCSSParser const&);
+  nsCSSParser& operator=(nsCSSParser const&);
 
 public:
   
@@ -83,7 +112,7 @@ public:
                       nsIURI*          aSheetURL,
                       nsIURI*          aBaseURI,
                       nsIPrincipal*    aSheetPrincipal,
-                      uint32_t         aLineNumber,
+                      PRUint32         aLineNumber,
                       bool             aAllowUnsafeRules);
 
   
@@ -132,7 +161,7 @@ public:
 
   nsresult ParseMediaList(const nsSubstring& aBuffer,
                           nsIURI*            aURL,
-                          uint32_t           aLineNumber,
+                          PRUint32           aLineNumber,
                           nsMediaList*       aMediaList,
                           bool               aHTMLMode);
 
@@ -142,10 +171,13 @@ public:
 
 
 
-  bool ParseColorString(const nsSubstring& aBuffer,
-                        nsIURI*            aURL,
-                        uint32_t           aLineNumber,
-                        nsCSSValue&        aValue);
+
+
+
+  nsresult ParseColorString(const nsSubstring& aBuffer,
+                            nsIURI*            aURL,
+                            PRUint32           aLineNumber,
+                            nscolor*           aColor);
 
   
 
@@ -153,7 +185,7 @@ public:
 
   nsresult ParseSelectorString(const nsSubstring&  aSelectorString,
                                nsIURI*             aURL,
-                               uint32_t            aLineNumber,
+                               PRUint32            aLineNumber,
                                nsCSSSelectorList** aSelectorList);
 
   
@@ -163,7 +195,7 @@ public:
   already_AddRefed<nsCSSKeyframeRule>
   ParseKeyframeRule(const nsSubstring& aBuffer,
                     nsIURI*            aURL,
-                    uint32_t           aLineNumber);
+                    PRUint32           aLineNumber);
 
   
 
@@ -171,8 +203,8 @@ public:
 
   bool ParseKeyframeSelectorString(const nsSubstring& aSelectorString,
                                    nsIURI*            aURL,
-                                   uint32_t           aLineNumber,
-                                   InfallibleTArray<float>& aSelectorList);
+                                   PRUint32           aLineNumber,
+                                   nsTArray<float>&   aSelectorList);
 
 protected:
   

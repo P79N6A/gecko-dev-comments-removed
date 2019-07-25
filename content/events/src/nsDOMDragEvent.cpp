@@ -3,24 +3,55 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsDOMDragEvent.h"
 #include "nsIServiceManager.h"
 #include "nsGUIEvent.h"
 #include "nsContentUtils.h"
 #include "nsDOMDataTransfer.h"
 #include "nsIDragService.h"
-#include "nsDOMClassInfoID.h"
 
 nsDOMDragEvent::nsDOMDragEvent(nsPresContext* aPresContext,
                                nsInputEvent* aEvent)
   : nsDOMMouseEvent(aPresContext, aEvent ? aEvent :
-                    new nsDragEvent(false, 0, nullptr))
+                    new nsDragEvent(PR_FALSE, 0, nsnull))
 {
   if (aEvent) {
-    mEventIsInternal = false;
+    mEventIsInternal = PR_FALSE;
   }
   else {
-    mEventIsInternal = true;
+    mEventIsInternal = PR_TRUE;
     mEvent->time = PR_Now();
     mEvent->refPoint.x = mEvent->refPoint.y = 0;
     static_cast<nsMouseEvent*>(mEvent)->inputSource = nsIDOMMouseEvent::MOZ_SOURCE_UNKNOWN;
@@ -32,7 +63,7 @@ nsDOMDragEvent::~nsDOMDragEvent()
   if (mEventIsInternal) {
     if (mEvent->eventStructType == NS_DRAG_EVENT)
       delete static_cast<nsDragEvent*>(mEvent);
-    mEvent = nullptr;
+    mEvent = nsnull;
   }
 }
 
@@ -49,11 +80,11 @@ NS_INTERFACE_MAP_END_INHERITING(nsDOMMouseEvent)
 NS_IMETHODIMP
 nsDOMDragEvent::InitDragEvent(const nsAString & aType,
                               bool aCanBubble, bool aCancelable,
-                              nsIDOMWindow* aView, int32_t aDetail,
-                              int32_t aScreenX, int32_t aScreenY,
-                              int32_t aClientX, int32_t aClientY, 
+                              nsIDOMWindow* aView, PRInt32 aDetail,
+                              PRInt32 aScreenX, PRInt32 aScreenY,
+                              PRInt32 aClientX, PRInt32 aClientY, 
                               bool aCtrlKey, bool aAltKey, bool aShiftKey,
-                              bool aMetaKey, uint16_t aButton,
+                              bool aMetaKey, PRUint16 aButton,
                               nsIDOMEventTarget *aRelatedTarget,
                               nsIDOMDataTransfer* aDataTransfer)
 {
@@ -78,7 +109,7 @@ nsDOMDragEvent::GetDataTransfer(nsIDOMDataTransfer** aDataTransfer)
   
   
   
-  *aDataTransfer = nullptr;
+  *aDataTransfer = nsnull;
 
   if (!mEvent || mEvent->eventStructType != NS_DRAG_EVENT) {
     NS_WARNING("Tried to get dataTransfer from non-drag event!");

@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsGfxCheckboxControlFrame_h___
 #define nsGfxCheckboxControlFrame_h___
 
@@ -30,7 +62,7 @@ public:
                               const nsDisplayListSet& aLists);
 
 #ifdef ACCESSIBILITY
-  virtual already_AddRefed<Accessible> CreateAccessible();
+  virtual already_AddRefed<nsAccessible> CreateAccessible();
 #endif
 
 protected:

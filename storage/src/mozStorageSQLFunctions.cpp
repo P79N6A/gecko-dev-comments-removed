@@ -4,7 +4,41 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "mozStorageSQLFunctions.h"
 #include "nsUnicharUtils.h"
@@ -93,11 +127,11 @@ likeCompare(nsAString::const_iterator aPatternItr,
         return 0;
       }
       aStringItr++;
-      lastWasEscape = false;
+      lastWasEscape = PR_FALSE;
     }
     else if (!lastWasEscape && *aPatternItr == aEscapeChar) {
       
-      lastWasEscape = true;
+      lastWasEscape = PR_TRUE;
     }
     else {
       
@@ -106,7 +140,7 @@ likeCompare(nsAString::const_iterator aPatternItr,
         return 0;
       }
       aStringItr++;
-      lastWasEscape = false;
+      lastWasEscape = PR_FALSE;
     }
 
     aPatternItr++;
@@ -176,8 +210,8 @@ levenshteinDistance(const nsAString &aStringS,
     
     *_result = -1;
 
-    const uint32_t sLen = aStringS.Length();
-    const uint32_t tLen = aStringT.Length();
+    const PRUint32 sLen = aStringS.Length();
+    const PRUint32 tLen = aStringT.Length();
 
     if (sLen == 0) {
       *_result = tLen;
@@ -218,7 +252,7 @@ levenshteinDistance(const nsAString &aStringS,
     NS_ENSURE_TRUE(currRow, SQLITE_NOMEM);
 
     
-    for (uint32_t i = 0; i <= sLen; i++)
+    for (PRUint32 i = 0; i <= sLen; i++)
         prevRow[i] = i;
 
     const PRUnichar *s = aStringS.BeginReading();
@@ -226,7 +260,7 @@ levenshteinDistance(const nsAString &aStringS,
 
     
     
-    for (uint32_t ti = 1; ti <= tLen; ti++) {
+    for (PRUint32 ti = 1; ti <= tLen; ti++) {
 
         
         currRow[0] = ti;
@@ -236,7 +270,7 @@ levenshteinDistance(const nsAString &aStringS,
 
         
         
-        for (uint32_t si = 1; si <= sLen; si++) {
+        for (PRUint32 si = 1; si <= sLen; si++) {
             
             
             
@@ -268,16 +302,6 @@ levenshteinDistance(const nsAString &aStringS,
     return SQLITE_OK;
 }
 
-
-
-struct Functions {
-  const char *zName;
-  int nArg;
-  int enc;
-  void *pContext;
-  void (*xFunc)(::sqlite3_context*, int, sqlite3_value**);
-};
-
 } 
 
 
@@ -286,6 +310,14 @@ struct Functions {
 int
 registerFunctions(sqlite3 *aDB)
 {
+  struct Functions {
+    const char *zName;
+    int nArg;
+    int enc;
+    void *pContext;
+    void (*xFunc)(::sqlite3_context*, int, sqlite3_value**);
+  };
+  
   Functions functions[] = {
     {"lower",               
       1, 
@@ -342,7 +374,7 @@ registerFunctions(sqlite3 *aDB)
   };
 
   int rv = SQLITE_OK;
-  for (size_t i = 0; SQLITE_OK == rv && i < ArrayLength(functions); ++i) {
+  for (size_t i = 0; SQLITE_OK == rv && i < NS_ARRAY_LENGTH(functions); ++i) {
     struct Functions *p = &functions[i];
     rv = ::sqlite3_create_function(aDB, p->zName, p->nArg, p->enc, p->pContext,
                                    p->xFunc, NULL, NULL);

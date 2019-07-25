@@ -5,6 +5,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDOMCSSAttributeDeclaration_h
 #define nsDOMCSSAttributeDeclaration_h
 
@@ -12,6 +45,7 @@
 
 #include "nsAutoPtr.h"
 #include "nsString.h"
+#include "nsWrapperCache.h"
 
 namespace mozilla {
 namespace css {
@@ -23,16 +57,21 @@ class Element;
 }
 }
 
-class nsDOMCSSAttributeDeclaration MOZ_FINAL : public nsDOMCSSDeclaration
+class nsDOMCSSAttributeDeclaration : public nsDOMCSSDeclaration,
+                                     public nsWrapperCache
 {
 public:
   typedef mozilla::dom::Element Element;
-  nsDOMCSSAttributeDeclaration(Element* aContent, bool aIsSMILOverride);
+  nsDOMCSSAttributeDeclaration(Element* aContent
+#ifdef MOZ_SMIL
+                               , bool aIsSMILOverride
+#endif 
+                               );
   ~nsDOMCSSAttributeDeclaration();
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS_AMBIGUOUS(nsDOMCSSAttributeDeclaration,
-                                                                   nsICSSDeclaration)
+  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsDOMCSSAttributeDeclaration,
+                                           nsICSSDeclaration)
 
   
   
@@ -48,11 +87,13 @@ protected:
 
   nsRefPtr<Element> mElement;
 
+#ifdef MOZ_SMIL
   
 
 
 
   const bool mIsSMILOverride;
+#endif 
 };
 
 #endif 

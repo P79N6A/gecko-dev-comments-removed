@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "TestHarness.h"
 
 #include "nsThreadUtils.h"
@@ -18,16 +51,12 @@
 #include "nsIObjectOutputStream.h"
 #include "nsIURI.h"
 #include "nsStringAPI.h"
-#include "nsIPrefBranch.h"
-#include "nsIPrefService.h"
-#include "nsITelemetry.h"
-#include "jsapi.h"
 
 namespace mozilla {
 namespace scache {
 
 NS_IMPORT nsresult
-NewObjectInputStreamFromBuffer(char* buffer, uint32_t len, 
+NewObjectInputStreamFromBuffer(char* buffer, PRUint32 len, 
                                nsIObjectInputStream** stream);
 
 
@@ -38,7 +67,7 @@ NewObjectOutputWrappedStorageStream(nsIObjectOutputStream **wrapperStream,
 
 NS_IMPORT nsresult
 NewBufferFromStorageStream(nsIStorageStream *storageStream, 
-                           char** buffer, uint32_t* len);
+                           char** buffer, PRUint32* len);
 }
 }
 
@@ -62,8 +91,7 @@ WaitForStartupTimer() {
   
   bool complete;
   while (true) {
-    
-    NS_ProcessPendingEvents(nullptr);
+    NS_ProcessPendingEvents(nsnull);
     rv = sc->StartupWriteComplete(&complete);
     if (NS_FAILED(rv) || complete)
       break;
@@ -85,11 +113,11 @@ TestStartupWriteRead() {
   }
   sc->InvalidateCache();
   
-  const char* buf = "Market opportunities for BeardBook";
-  const char* id = "id";
+  char* buf = "Market opportunities for BeardBook";
+  char* id = "id";
   char* outbufPtr = NULL;
   nsAutoArrayPtr<char> outbuf;  
-  uint32_t len;
+  PRUint32 len;
   
   rv = sc->PutBuffer(id, buf, strlen(buf) + 1);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -114,10 +142,10 @@ TestStartupWriteRead() {
 nsresult
 TestWriteInvalidateRead() {
   nsresult rv;
-  const char* buf = "BeardBook competitive analysis";
-  const char* id = "id";
+  char* buf = "BeardBook competitive analysis";
+  char* id = "id";
   char* outbuf = NULL;
-  uint32_t len;
+  PRUint32 len;
   nsCOMPtr<nsIStartupCache> sc 
     = do_GetService("@mozilla.org/startupcache/cache;1", &rv);
   sc->InvalidateCache();
@@ -163,12 +191,12 @@ TestWriteObject() {
   
   
   
-  const char* id = "id";
+  char* id = "id";
   nsCOMPtr<nsIStorageStream> storageStream
     = do_CreateInstance("@mozilla.org/storagestream;1");
   NS_ENSURE_ARG_POINTER(storageStream);
   
-  rv = storageStream->Init(256, (uint32_t) -1, nullptr);
+  rv = storageStream->Init(256, (PRUint32) -1, nsnull);
   NS_ENSURE_SUCCESS(rv, rv);
   
   nsCOMPtr<nsIObjectOutputStream> objectOutput
@@ -186,7 +214,7 @@ TestWriteObject() {
     return rv;
   }
   nsCOMPtr<nsISupports> objQI(do_QueryInterface(obj));
-  rv = objectOutput->WriteObject(objQI, true);
+  rv = objectOutput->WriteObject(objQI, PR_TRUE);
   if (NS_FAILED(rv)) {
     fail("failed to write object");
     return rv;
@@ -194,7 +222,7 @@ TestWriteObject() {
 
   char* bufPtr = NULL;
   nsAutoArrayPtr<char> buf;
-  uint32_t len;
+  PRUint32 len;
   NewBufferFromStorageStream(storageStream, &bufPtr, &len);
   buf = bufPtr;
 
@@ -208,7 +236,7 @@ TestWriteObject() {
     
   char* buf2Ptr = NULL;
   nsAutoArrayPtr<char> buf2;
-  uint32_t len2;
+  PRUint32 len2;
   nsCOMPtr<nsIObjectInputStream> objectInput;
   rv = sc->GetBuffer(id, &buf2Ptr, &len2);
   if (NS_FAILED(rv)) {
@@ -225,7 +253,7 @@ TestWriteObject() {
   buf2.forget();
 
   nsCOMPtr<nsISupports> deserialized;
-  rv = objectInput->ReadObject(true, getter_AddRefs(deserialized));
+  rv = objectInput->ReadObject(PR_TRUE, getter_AddRefs(deserialized));
   if (NS_FAILED(rv)) {
     fail("failed to read object");
     return rv;
@@ -254,9 +282,9 @@ TestEarlyShutdown() {
     = do_GetService("@mozilla.org/startupcache/cache;1", &rv);
   sc->InvalidateCache();
 
-  const char* buf = "Find your soul beardmate on BeardBook";
-  const char* id = "id";
-  uint32_t len;
+  char* buf = "Find your soul beardmate on BeardBook";
+  char* id = "id";
+  PRUint32 len;
   char* outbuf = NULL;
   
   sc->ResetStartupWriteTimer();
@@ -265,7 +293,7 @@ TestEarlyShutdown() {
 
   nsCOMPtr<nsIObserver> obs;
   sc->GetObserver(getter_AddRefs(obs));
-  obs->Observe(nullptr, "xpcom-shutdown", nullptr);
+  obs->Observe(nsnull, "xpcom-shutdown", nsnull);
   rv = WaitForStartupTimer();
   NS_ENSURE_SUCCESS(rv, rv);
   
@@ -285,131 +313,13 @@ TestEarlyShutdown() {
   return NS_OK;
 }
 
-bool
-SetupJS(JSContext **cxp)
-{
-  JSRuntime *rt = JS_NewRuntime(32 * 1024 * 1024);
-  if (!rt)
-    return false;
-  JSContext *cx = JS_NewContext(rt, 8192);
-  if (!cx)
-    return false;
-  *cxp = cx;
-  return true;
-}
-
-bool
-GetHistogramCounts(const char *testmsg, JSContext *cx, jsval *counts)
-{
-  nsCOMPtr<nsITelemetry> telemetry = do_GetService("@mozilla.org/base/telemetry;1");
-  NS_NAMED_LITERAL_CSTRING(histogram_id, "STARTUP_CACHE_AGE_HOURS");
-  JS::AutoValueRooter h(cx);
-  nsresult trv = telemetry->GetHistogramById(histogram_id, cx, h.addr());
-  if (NS_FAILED(trv)) {
-    fail("%s: couldn't get histogram", testmsg);
-    return false;
-  }
-  passed(testmsg);
-
-  JS::AutoValueRooter snapshot_val(cx);
-  JSFunction *snapshot_fn = NULL;
-  JS::AutoValueRooter ss(cx);
-  return (JS_GetProperty(cx, JSVAL_TO_OBJECT(h.value()), "snapshot",
-                         snapshot_val.addr())
-          && (snapshot_fn = JS_ValueToFunction(cx, snapshot_val.value()))
-          && JS::Call(cx, JSVAL_TO_OBJECT(h.value()),
-                      snapshot_fn, 0, NULL, ss.addr())
-          && JS_GetProperty(cx, JSVAL_TO_OBJECT(ss.value()),
-                            "counts", counts));
-}
-
-nsresult
-CompareCountArrays(JSContext *cx, JSObject *before, JSObject *after)
-{
-  uint32_t before_size, after_size;
-  if (!(JS_GetArrayLength(cx, before, &before_size)
-        && JS_GetArrayLength(cx, after, &after_size))) {
-    return NS_ERROR_UNEXPECTED;
-  }
-
-  if (before_size != after_size) {
-    return NS_ERROR_UNEXPECTED;
-  }
-
-  for (uint32_t i = 0; i < before_size; ++i) {
-    jsval before_num, after_num;
-
-    if (!(JS_GetElement(cx, before, i, &before_num)
-          && JS_GetElement(cx, after, i, &after_num))) {
-      return NS_ERROR_UNEXPECTED;
-    }
-
-    JSBool same = JS_TRUE;
-    if (!JS_LooselyEqual(cx, before_num, after_num, &same)) {
-      return NS_ERROR_UNEXPECTED;
-    } else {
-      if (same) {
-        continue;
-      } else {
-        
-        
-        return NS_OK;
-      }
-    }
-  }
-
-  
-  
-  return NS_ERROR_FAILURE;
-}
 
 int main(int argc, char** argv)
 {
-  ScopedXPCOM xpcom("Startup Cache");
-  if (xpcom.failed())
-    return 1;
-
-  nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
-  prefs->SetIntPref("hangmonitor.timeout", 0);
-  
   int rv = 0;
+  nsresult rv2;
+  ScopedXPCOM xpcom("Startup Cache");
   
-  JSContext *cx;
-  bool use_js = true;
-  if (!SetupJS(&cx))
-    use_js = false;
-
-  JSAutoRequest req(cx);
-  static JSClass global_class = {
-    "global", JSCLASS_NEW_RESOLVE | JSCLASS_GLOBAL_FLAGS | JSCLASS_HAS_PRIVATE,
-    JS_PropertyStub,  JS_PropertyStub,
-    JS_PropertyStub,  JS_StrictPropertyStub,
-    JS_EnumerateStub, JS_ResolveStub,
-    JS_ConvertStub
-  };
-  JSObject *glob = nullptr;
-  if (use_js)
-    glob = JS_NewGlobalObject(cx, &global_class, NULL);
-  if (!glob)
-    use_js = false;
-  mozilla::Maybe<JSAutoCompartment> ac;
-  if (use_js)
-    ac.construct(cx, glob);
-  if (use_js && !JS_InitStandardClasses(cx, glob))
-    use_js = false;
-
-  JS::AutoValueRooter before_counts(cx);
-  if (use_js && !GetHistogramCounts("STARTUP_CACHE_AGE_HOURS histogram before test",
-                                 cx, before_counts.addr()))
-    use_js = false;
-  
-  nsresult scrv;
-  nsCOMPtr<nsIStartupCache> sc 
-    = do_GetService("@mozilla.org/startupcache/cache;1", &scrv);
-  if (NS_FAILED(scrv))
-    rv = 1;
-  else
-    sc->RecordAgesAlways();
   if (NS_FAILED(TestStartupWriteRead()))
     rv = 1;
   if (NS_FAILED(TestWriteInvalidateRead()))
@@ -418,29 +328,6 @@ int main(int argc, char** argv)
     rv = 1;
   if (NS_FAILED(TestEarlyShutdown()))
     rv = 1;
-
-  JS::AutoValueRooter after_counts(cx);
-  if (use_js && !GetHistogramCounts("STARTUP_CACHE_AGE_HOURS histogram after test",
-                                    cx, after_counts.addr()))
-    use_js = false;
-
-  if (!use_js) {
-    fail("couldn't check histogram recording");
-    rv = 1;
-  } else {
-    nsresult compare = CompareCountArrays(cx,
-                                          JSVAL_TO_OBJECT(before_counts.value()),
-                                          JSVAL_TO_OBJECT(after_counts.value()));
-    if (compare == NS_ERROR_UNEXPECTED) {
-      fail("count comparison error");
-      rv = 1;
-    } else if (compare == NS_ERROR_FAILURE) {
-      fail("histogram didn't record samples");
-      rv = 1;
-    } else {
-      passed("histogram records samples");
-    }
-  }
-
+  
   return rv;
 }

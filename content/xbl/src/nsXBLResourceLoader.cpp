@@ -3,14 +3,45 @@
 
 
 
-#include "nsTArray.h"
-#include "nsString.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCSSStyleSheet.h"
 #include "nsIStyleRuleProcessor.h"
 #include "nsIDocument.h"
 #include "nsIContent.h"
 #include "nsIPresShell.h"
-#include "nsXBLService.h"
+#include "nsIXBLService.h"
 #include "nsIServiceManager.h"
 #include "nsXBLResourceLoader.h"
 #include "nsXBLPrototypeResources.h"
@@ -49,10 +80,10 @@ nsXBLResourceLoader::nsXBLResourceLoader(nsXBLPrototypeBinding* aBinding,
                                          nsXBLPrototypeResources* aResources)
 :mBinding(aBinding),
  mResources(aResources),
- mResourceList(nullptr),
- mLastResource(nullptr),
- mLoadingResources(false),
- mInLoadResourcesFunc(false),
+ mResourceList(nsnull),
+ mLastResource(nsnull),
+ mLoadingResources(PR_FALSE),
+ mInLoadResourcesFunc(PR_FALSE),
  mPendingSheets(0)
 {
 }
@@ -65,16 +96,16 @@ nsXBLResourceLoader::~nsXBLResourceLoader()
 void
 nsXBLResourceLoader::LoadResources(bool* aResult)
 {
-  mInLoadResourcesFunc = true;
+  mInLoadResourcesFunc = PR_TRUE;
 
   if (mLoadingResources) {
     *aResult = (mPendingSheets == 0);
-    mInLoadResourcesFunc = false;
+    mInLoadResourcesFunc = PR_FALSE;
     return;
   }
 
-  mLoadingResources = true;
-  *aResult = true;
+  mLoadingResources = PR_TRUE;
+  *aResult = PR_TRUE;
 
   
   nsCOMPtr<nsIDocument> doc = mBinding->XBLDocumentInfo()->GetDocument();
@@ -103,7 +134,7 @@ nsXBLResourceLoader::LoadResources(bool* aResult)
       
       
       nsCOMPtr<imgIRequest> req;
-      nsContentUtils::LoadImage(url, doc, docPrincipal, docURL, nullptr,
+      nsContentUtils::LoadImage(url, doc, docPrincipal, docURL, nsnull,
                                 nsIRequest::LOAD_BACKGROUND,
                                 getter_AddRefs(req));
     }
@@ -125,7 +156,7 @@ nsXBLResourceLoader::LoadResources(bool* aResult)
           NS_ASSERTION(NS_SUCCEEDED(rv), "Load failed!!!");
           if (NS_SUCCEEDED(rv))
           {
-            rv = StyleSheetLoaded(sheet, false, NS_OK);
+            rv = StyleSheetLoaded(sheet, PR_FALSE, NS_OK);
             NS_ASSERTION(NS_SUCCEEDED(rv), "Processing the style sheet failed!!!");
           }
         }
@@ -140,11 +171,11 @@ nsXBLResourceLoader::LoadResources(bool* aResult)
   }
 
   *aResult = (mPendingSheets == 0);
-  mInLoadResourcesFunc = false;
+  mInLoadResourcesFunc = PR_FALSE;
   
   
   delete mResourceList;
-  mResourceList = nullptr;
+  mResourceList = nsnull;
 }
 
 
@@ -202,14 +233,11 @@ nsXBLResourceLoader::AddResourceListener(nsIContent* aBoundElement)
 void
 nsXBLResourceLoader::NotifyBoundElements()
 {
-  nsXBLService* xblService = nsXBLService::GetInstance();
-  if (!xblService)
-    return;
-
+  nsCOMPtr<nsIXBLService> xblService(do_GetService("@mozilla.org/xbl;1"));
   nsIURI* bindingURI = mBinding->BindingURI();
 
-  uint32_t eltCount = mBoundElements.Count();
-  for (uint32_t j = 0; j < eltCount; j++) {
+  PRUint32 eltCount = mBoundElements.Count();
+  for (PRUint32 j = 0; j < eltCount; j++) {
     nsCOMPtr<nsIContent> content = mBoundElements.ObjectAt(j);
     
     bool ready = false;
@@ -259,26 +287,4 @@ nsXBLResourceLoader::NotifyBoundElements()
 
   
   NS_RELEASE(mResources->mLoader);
-}
-
-nsresult
-nsXBLResourceLoader::Write(nsIObjectOutputStream* aStream)
-{
-  nsresult rv;
-
-  for (nsXBLResource* curr = mResourceList; curr; curr = curr->mNext) {
-    if (curr->mType == nsGkAtoms::image)
-      rv = aStream->Write8(XBLBinding_Serialize_Image);
-    else if (curr->mType == nsGkAtoms::stylesheet)
-      rv = aStream->Write8(XBLBinding_Serialize_Stylesheet);
-    else
-      continue;
-
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = aStream->WriteWStringZ(curr->mSrc.get());
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  return NS_OK;
 }

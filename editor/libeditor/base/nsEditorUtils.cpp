@@ -3,38 +3,65 @@
 
 
 
-#include "mozilla/Selection.h"
-#include "nsCOMArray.h"
-#include "nsComponentManagerUtils.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsEditorUtils.h"
-#include "nsError.h"
-#include "nsIClipboardDragDropHookList.h"
+#include "nsIDOMDocument.h"
+#include "nsIDOMRange.h"
+#include "nsIContent.h"
+#include "nsLayoutCID.h"
+
 
 #include "nsIClipboardDragDropHooks.h"
-#include "nsIContent.h"
-#include "nsIContentIterator.h"
-#include "nsIDOMDocument.h"
+#include "nsIClipboardDragDropHookList.h"
+#include "nsISimpleEnumerator.h"
 #include "nsIDocShell.h"
 #include "nsIDocument.h"
 #include "nsIInterfaceRequestorUtils.h"
-#include "nsINode.h"
-#include "nsISimpleEnumerator.h"
-
-class nsIDOMRange;
-class nsISupports;
-
-using namespace mozilla;
 
 
 
 
 
-nsAutoSelectionReset::nsAutoSelectionReset(Selection* aSel, nsEditor* aEd)
-  : mSel(nullptr), mEd(nullptr)
+
+nsAutoSelectionReset::nsAutoSelectionReset(nsISelection *aSel, nsEditor *aEd) : 
+mSel(nsnull)
+,mEd(nsnull)
 { 
   if (!aSel || !aEd) return;    
   if (aEd->ArePreservingSelection()) return;   
-  mSel = aSel;
+  mSel = do_QueryInterface(aSel);
   mEd = aEd;
   if (mSel)
   {
@@ -65,7 +92,7 @@ nsAutoSelectionReset::Abort()
 
 
 nsDOMIterator::nsDOMIterator() :
-mIter(nullptr)
+mIter(nsnull)
 {
 }
     
@@ -92,6 +119,23 @@ nsDOMIterator::Init(nsIDOMNode* aNode)
   NS_ENSURE_TRUE(mIter, NS_ERROR_FAILURE);
   nsCOMPtr<nsIContent> content = do_QueryInterface(aNode);
   return mIter->Init(content);
+}
+
+void
+nsDOMIterator::ForEach(nsDomIterFunctor& functor) const
+{
+  nsCOMPtr<nsIDOMNode> node;
+  
+  
+  while (!mIter->IsDone())
+  {
+    node = do_QueryInterface(mIter->GetCurrentNode());
+    if (!node)
+      return;
+
+    functor(node);
+    mIter->Next();
+  }
 }
 
 nsresult
@@ -133,15 +177,26 @@ nsDOMSubtreeIterator::Init(nsIDOMRange* aRange)
   return mIter->Init(aRange);
 }
 
+nsresult
+nsDOMSubtreeIterator::Init(nsIDOMNode* aNode)
+{
+  nsresult res;
+  mIter = do_CreateInstance("@mozilla.org/content/subtree-content-iterator;1", &res);
+  NS_ENSURE_SUCCESS(res, res);
+  NS_ENSURE_TRUE(mIter, NS_ERROR_FAILURE);
+  nsCOMPtr<nsIContent> content = do_QueryInterface(aNode);
+  return mIter->Init(content);
+}
+
 
 
 
 
 bool 
-nsEditorUtils::IsDescendantOf(nsIDOMNode *aNode, nsIDOMNode *aParent, int32_t *aOffset) 
+nsEditorUtils::IsDescendantOf(nsIDOMNode *aNode, nsIDOMNode *aParent, PRInt32 *aOffset) 
 {
-  NS_ENSURE_TRUE(aNode || aParent, false);
-  if (aNode == aParent) return false;
+  NS_ENSURE_TRUE(aNode || aParent, PR_FALSE);
+  if (aNode == aParent) return PR_FALSE;
   
   nsCOMPtr<nsIDOMNode> parent, node = do_QueryInterface(aNode);
   nsresult res;
@@ -149,7 +204,7 @@ nsEditorUtils::IsDescendantOf(nsIDOMNode *aNode, nsIDOMNode *aParent, int32_t *a
   do
   {
     res = node->GetParentNode(getter_AddRefs(parent));
-    NS_ENSURE_SUCCESS(res, false);
+    NS_ENSURE_SUCCESS(res, PR_FALSE);
     if (parent == aParent) 
     {
       if (aOffset)
@@ -161,12 +216,12 @@ nsEditorUtils::IsDescendantOf(nsIDOMNode *aNode, nsIDOMNode *aParent, int32_t *a
           *aOffset = pCon->IndexOf(cCon);
         }
       }
-      return true;
+      return PR_TRUE;
     }
     node = parent;
   } while (parent);
   
-  return false;
+  return PR_FALSE;
 }
 
 bool
@@ -203,7 +258,7 @@ nsEditorHookUtils::DoInsertionHook(nsIDOMDocument *aDoc, nsIDOMEvent *aDropEvent
 {
   nsCOMPtr<nsISimpleEnumerator> enumerator;
   GetHookEnumeratorFromDocument(aDoc, getter_AddRefs(enumerator));
-  NS_ENSURE_TRUE(enumerator, true);
+  NS_ENSURE_TRUE(enumerator, PR_TRUE);
 
   bool hasMoreHooks = false;
   while (NS_SUCCEEDED(enumerator->HasMoreElements(&hasMoreHooks)) && hasMoreHooks)
@@ -221,9 +276,9 @@ nsEditorHookUtils::DoInsertionHook(nsIDOMDocument *aDoc, nsIDOMEvent *aDropEvent
 #endif
       override->OnPasteOrDrop(aDropEvent, aTrans, &doInsert);
       NS_ASSERTION(NS_SUCCEEDED(hookResult), "hook failure in OnPasteOrDrop");
-      NS_ENSURE_TRUE(doInsert, false);
+      NS_ENSURE_TRUE(doInsert, PR_FALSE);
     }
   }
 
-  return true;
+  return PR_TRUE;
 }

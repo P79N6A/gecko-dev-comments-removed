@@ -4,6 +4,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsMemoryCacheDevice_h_
 #define _nsMemoryCacheDevice_h_
 
@@ -35,43 +70,39 @@ public:
 
     virtual nsresult OpenInputStreamForEntry(nsCacheEntry *     entry,
                                              nsCacheAccessMode  mode,
-                                             uint32_t           offset,
+                                             PRUint32           offset,
                                              nsIInputStream **  result);
 
     virtual nsresult OpenOutputStreamForEntry(nsCacheEntry *     entry,
                                               nsCacheAccessMode  mode,
-                                              uint32_t           offset,
+                                              PRUint32           offset,
                                               nsIOutputStream ** result);
 
     virtual nsresult GetFileForEntry( nsCacheEntry *    entry,
                                       nsIFile **        result );
 
-    virtual nsresult OnDataSizeChange( nsCacheEntry * entry, int32_t deltaSize );
+    virtual nsresult OnDataSizeChange( nsCacheEntry * entry, PRInt32 deltaSize );
 
     virtual nsresult Visit( nsICacheVisitor * visitor );
 
     virtual nsresult EvictEntries(const char * clientID);
-    nsresult EvictPrivateEntries();
     
-    void             SetCapacity(int32_t  capacity);
-    void             SetMaxEntrySize(int32_t  maxSizeInKilobytes);
+    void             SetCapacity(PRInt32  capacity);
+    void             SetMaxEntrySize(PRInt32  maxSizeInKilobytes);
 
-    bool             EntryIsTooBig(int64_t entrySize);
+    bool             EntryIsTooBig(PRInt64 entrySize);
 
     size_t           TotalSize();
 
 private:
     friend class nsMemoryCacheDeviceInfo;
-    enum      { DELETE_ENTRY        = true,
-                DO_NOT_DELETE_ENTRY = false };
+    enum      { DELETE_ENTRY        = PR_TRUE,
+                DO_NOT_DELETE_ENTRY = PR_FALSE };
 
-    void      AdjustMemoryLimits( int32_t  softLimit, int32_t  hardLimit);
+    void      AdjustMemoryLimits( PRInt32  softLimit, PRInt32  hardLimit);
     void      EvictEntry( nsCacheEntry * entry , bool deleteEntry);
     void      EvictEntriesIfNecessary();
-    int       EvictionList(nsCacheEntry * entry, int32_t  deltaSize);
-
-    typedef bool (*EvictionMatcherFn)(nsCacheEntry* entry, void* args);
-    nsresult DoEvictEntries(EvictionMatcherFn matchFn, void* args);
+    int       EvictionList(nsCacheEntry * entry, PRInt32  deltaSize);
 
 #ifdef DEBUG
     void      CheckEntryCount();
@@ -87,16 +118,17 @@ private:
     bool                   mInitialized;
 
     PRCList                mEvictionList[kQueueCount];
+    PRInt32                mEvictionThreshold;
 
-    int32_t                mHardLimit;
-    int32_t                mSoftLimit;
+    PRInt32                mHardLimit;
+    PRInt32                mSoftLimit;
 
-    int32_t                mTotalSize;
-    int32_t                mInactiveSize;
+    PRInt32                mTotalSize;
+    PRInt32                mInactiveSize;
 
-    int32_t                mEntryCount;
-    int32_t                mMaxEntryCount;
-    int32_t                mMaxEntrySize; 
+    PRInt32                mEntryCount;
+    PRInt32                mMaxEntryCount;
+    PRInt32                mMaxEntrySize; 
 
     
 };

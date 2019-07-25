@@ -2,8 +2,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/KeyValueParser.jsm");
 
 let EXPORTED_SYMBOLS = [
   "CrashSubmit"
@@ -21,6 +53,42 @@ const SUBMITTING = "submitting";
 let reportURL = null;
 let strings = null;
 let myListener = null;
+
+function parseKeyValuePairs(text) {
+  var lines = text.split('\n');
+  var data = {};
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i] == '')
+      continue;
+
+    
+    let eq = lines[i].indexOf('=');
+    if (eq != -1) {
+      let [key, value] = [lines[i].substring(0, eq),
+                          lines[i].substring(eq + 1)];
+      if (key && value)
+        data[key] = value.replace("\\n", "\n", "g").replace("\\\\", "\\", "g");
+    }
+  }
+  return data;
+}
+
+function parseKeyValuePairsFromFile(file) {
+  var fstream = Cc["@mozilla.org/network/file-input-stream;1"].
+                createInstance(Ci.nsIFileInputStream);
+  fstream.init(file, -1, 0, 0);
+  var is = Cc["@mozilla.org/intl/converter-input-stream;1"].
+           createInstance(Ci.nsIConverterInputStream);
+  is.init(fstream, "UTF-8", 1024, Ci.nsIConverterInputStream.DEFAULT_REPLACEMENT_CHARACTER);
+  var str = {};
+  var contents = '';
+  while (is.readString(4096, str) != 0) {
+    contents += str.value;
+  }
+  is.close();
+  fstream.close();
+  return parseKeyValuePairs(contents);
+}
 
 function parseINIStrings(file) {
   var factory = Cc["@mozilla.org/xpcom/ini-parser-factory;1"].
@@ -124,7 +192,6 @@ function Submitter(id, submitSuccess, submitError, noThrottle) {
   this.successCallback = submitSuccess;
   this.errorCallback = submitError;
   this.noThrottle = noThrottle;
-  this.additionalDumps = [];
 }
 
 Submitter.prototype = {
@@ -143,9 +210,6 @@ Submitter.prototype = {
     try {
       this.dump.remove(false);
       this.extra.remove(false);
-      for (let i of this.additionalDumps) {
-        i.dump.remove(false);
-      }
     }
     catch (ex) {
       
@@ -162,7 +226,6 @@ Submitter.prototype = {
     this.iframe = null;
     this.dump = null;
     this.extra = null;
-    this.additionalDumps = null;
     
     let idx = CrashSubmit._activeSubmissions.indexOf(this);
     if (idx != -1)
@@ -193,17 +256,6 @@ Submitter.prototype = {
     }
     
     formData.append("upload_file_minidump", File(this.dump.path));
-    if (this.additionalDumps.length > 0) {
-      let names = [];
-      for (let i of this.additionalDumps) {
-        names.push(i.name);
-        formData.append("upload_file_minidump_"+i.name,
-                        File(i.dump.path));
-      }
-
-      formData.append("additional_minidumps", names.join(","));
-    }
-
     let self = this;
     xhr.addEventListener("readystatechange", function (aEvt) {
       if (xhr.readyState == 4) {
@@ -255,26 +307,10 @@ Submitter.prototype = {
       return false;
     }
 
-    let reportData = parseKeyValuePairsFromFile(extra);
-    let additionalDumps = [];
-    if ("additional_minidumps" in reportData) {
-      let names = extraData.additional_minidumps.split(',');
-      for (let name in names) {
-        let [dump, extra] = getPendingMiniDump(this.id + "-" + name);
-        if (!dump.exists()) {
-          this.notifyStatus(FAILED);
-          this.cleanup();
-          return false;
-        }
-        additionalDumps.push({'name': name, 'dump': dump});
-      }
-    }
-
     this.notifyStatus(SUBMITTING);
 
     this.dump = dump;
     this.extra = extra;
-    this.additionalDumps = additionalDumps;
 
     if (!this.submitForm()) {
        this.notifyStatus(FAILED);

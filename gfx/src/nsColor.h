@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsColor_h___
 #define nsColor_h___
 
@@ -15,7 +47,7 @@ class nsCString;
 
 
 
-typedef uint32_t nscolor;
+typedef PRUint32 nscolor;
 
 
 
@@ -28,10 +60,10 @@ typedef uint32_t nscolor;
   ((nscolor) (((_a) << 24) | ((_b)<<16) | ((_g)<<8) | (_r)))
 
 
-#define NS_GET_R(_rgba) ((uint8_t) ((_rgba) & 0xff))
-#define NS_GET_G(_rgba) ((uint8_t) (((_rgba) >> 8) & 0xff))
-#define NS_GET_B(_rgba) ((uint8_t) (((_rgba) >> 16) & 0xff))
-#define NS_GET_A(_rgba) ((uint8_t) (((_rgba) >> 24) & 0xff))
+#define NS_GET_R(_rgba) ((PRUint8) ((_rgba) & 0xff))
+#define NS_GET_G(_rgba) ((PRUint8) (((_rgba) >> 8) & 0xff))
+#define NS_GET_B(_rgba) ((PRUint8) (((_rgba) >> 16) & 0xff))
+#define NS_GET_A(_rgba) ((PRUint8) (((_rgba) >> 24) & 0xff))
 
 
 

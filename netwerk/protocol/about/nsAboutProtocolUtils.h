@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIURI.h"
 #include "nsString.h"
 #include "nsReadableUtils.h"
@@ -22,7 +54,7 @@ NS_GetAboutModuleName(nsIURI *aAboutURI, nsCString& aModule)
     nsresult rv = aAboutURI->GetPath(aModule);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    int32_t f = aModule.FindCharInSet(NS_LITERAL_CSTRING("#?"));
+    PRInt32 f = aModule.FindCharInSet(NS_LITERAL_CSTRING("#?"));
     if (f != kNotFound) {
         aModule.Truncate(f);
     }
@@ -37,7 +69,7 @@ NS_GetAboutModule(nsIURI *aAboutURI, nsIAboutModule** aModule)
 {
   NS_PRECONDITION(aAboutURI, "Must have URI");
 
-  nsAutoCString contractID;
+  nsCAutoString contractID;
   nsresult rv = NS_GetAboutModuleName(aAboutURI, contractID);
   if (NS_FAILED(rv)) return rv;
 

@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsTableColFrame_h__
 #define nsTableColFrame_h__
 
@@ -41,9 +73,9 @@ public:
   
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);
   
-  int32_t GetColIndex() const;
+  PRInt32 GetColIndex() const;
   
-  void SetColIndex (int32_t aColIndex);
+  void SetColIndex (PRInt32 aColIndex);
 
   nsTableColFrame* GetNextCol() const;
 
@@ -73,10 +105,10 @@ public:
   virtual nsSplittableType GetSplittableType() const;
 
   
-  int32_t GetSpan();
+  PRInt32 GetSpan();
 
   
-  int32_t Count() const;
+  PRInt32 Count() const;
 
   nscoord GetLeftBorderWidth();
   void    SetLeftBorderWidth(BCPixelSize aWidth);
@@ -96,10 +128,10 @@ public:
 
 
 
-  void SetContinuousBCBorderWidth(uint8_t     aForSide,
+  void SetContinuousBCBorderWidth(PRUint8     aForSide,
                                   BCPixelSize aPixelValue);
 #ifdef DEBUG
-  void Dump(int32_t aIndent);
+  void Dump(PRInt32 aIndent);
 #endif
 
   
@@ -110,7 +142,7 @@ public:
     mMinCoord = 0;
     mPrefCoord = 0;
     mPrefPercent = 0.0f;
-    mHasSpecifiedCoord = false;
+    mHasSpecifiedCoord = PR_FALSE;
   }
 
   
@@ -157,7 +189,7 @@ public:
 
     if (aHasSpecifiedCoord && !mHasSpecifiedCoord) {
       mPrefCoord = mMinCoord;
-      mHasSpecifiedCoord = true;
+      mHasSpecifiedCoord = PR_TRUE;
     }
     if (!aHasSpecifiedCoord && mHasSpecifiedCoord) {
       aPrefCoord = aMinCoord; 
@@ -283,7 +315,7 @@ protected:
   
   
   
-  uint32_t mColIndex:        16;
+  PRUint32 mColIndex:        16;
   
   
   BCPixelSize mLeftBorderWidth;
@@ -295,12 +327,12 @@ protected:
   bool mHasSpecifiedCoord;
 };
 
-inline int32_t nsTableColFrame::GetColIndex() const
+inline PRInt32 nsTableColFrame::GetColIndex() const
 {
   return mColIndex; 
 }
 
-inline void nsTableColFrame::SetColIndex (int32_t aColIndex)
+inline void nsTableColFrame::SetColIndex (PRInt32 aColIndex)
 { 
   mColIndex = aColIndex; 
 }
@@ -328,7 +360,7 @@ inline void nsTableColFrame::SetRightBorderWidth(BCPixelSize aWidth)
 inline nscoord
 nsTableColFrame::GetContinuousBCBorderWidth(nsMargin& aBorder)
 {
-  int32_t aPixelsToTwips = nsPresContext::AppUnitsPerCSSPixel();
+  PRInt32 aPixelsToTwips = nsPresContext::AppUnitsPerCSSPixel();
   aBorder.top = BC_BORDER_BOTTOM_HALF_COORD(aPixelsToTwips,
                                             mTopContBorderWidth);
   aBorder.right = BC_BORDER_LEFT_HALF_COORD(aPixelsToTwips,

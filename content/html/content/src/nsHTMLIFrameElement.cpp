@@ -3,19 +3,93 @@
 
 
 
-#include "mozilla/Util.h"
 
-#include "nsHTMLIFrameElement.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsIDOMHTMLIFrameElement.h"
+#include "nsGenericHTMLElement.h"
+#include "nsIDOMDocument.h"
+#include "nsIDOMGetSVGDocument.h"
 #include "nsIDOMSVGDocument.h"
+#include "nsGkAtoms.h"
+#include "nsIDocument.h"
 #include "nsMappedAttributes.h"
-#include "nsError.h"
+#include "nsDOMError.h"
 #include "nsRuleData.h"
 #include "nsStyleConsts.h"
 
-using namespace mozilla;
 using namespace mozilla::dom;
 
+class nsHTMLIFrameElement : public nsGenericHTMLFrameElement
+                          , public nsIDOMHTMLIFrameElement
+                          , public nsIDOMGetSVGDocument
+{
+public:
+  nsHTMLIFrameElement(already_AddRefed<nsINodeInfo> aNodeInfo,
+                      mozilla::dom::FromParser aFromParser = mozilla::dom::NOT_FROM_PARSER);
+  virtual ~nsHTMLIFrameElement();
+
+  
+  NS_DECL_ISUPPORTS_INHERITED
+
+  
+  NS_FORWARD_NSIDOMNODE(nsGenericHTMLFrameElement::)
+
+  
+  NS_FORWARD_NSIDOMELEMENT(nsGenericHTMLFrameElement::)
+
+  
+  NS_FORWARD_NSIDOMHTMLELEMENT(nsGenericHTMLFrameElement::)
+
+  
+  NS_DECL_NSIDOMHTMLIFRAMEELEMENT
+
+  
+  NS_DECL_NSIDOMGETSVGDOCUMENT
+
+  
+  virtual bool ParseAttribute(PRInt32 aNamespaceID,
+                                nsIAtom* aAttribute,
+                                const nsAString& aValue,
+                                nsAttrValue& aResult);
+  NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;
+  virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction() const;
+
+  virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
+  virtual nsXPCClassInfo* GetClassInfo();
+};
+
+
 NS_IMPL_NS_NEW_HTML_ELEMENT_CHECK_PARSER(IFrame)
+
 
 nsHTMLIFrameElement::nsHTMLIFrameElement(already_AddRefed<nsINodeInfo> aNodeInfo,
                                          FromParser aFromParser)
@@ -26,6 +100,7 @@ nsHTMLIFrameElement::nsHTMLIFrameElement(already_AddRefed<nsINodeInfo> aNodeInfo
 nsHTMLIFrameElement::~nsHTMLIFrameElement()
 {
 }
+
 
 NS_IMPL_ADDREF_INHERITED(nsHTMLIFrameElement,nsGenericElement)
 NS_IMPL_RELEASE_INHERITED(nsHTMLIFrameElement,nsGenericElement)
@@ -42,7 +117,9 @@ NS_INTERFACE_TABLE_HEAD(nsHTMLIFrameElement)
                                                nsGenericHTMLFrameElement)
 NS_HTML_CONTENT_INTERFACE_TABLE_TAIL_CLASSINFO(HTMLIFrameElement)
 
+
 NS_IMPL_ELEMENT_CLONE(nsHTMLIFrameElement)
+
 
 NS_IMPL_STRING_ATTR(nsHTMLIFrameElement, Align, align)
 NS_IMPL_STRING_ATTR(nsHTMLIFrameElement, FrameBorder, frameborder)
@@ -55,30 +132,11 @@ NS_IMPL_STRING_ATTR(nsHTMLIFrameElement, Scrolling, scrolling)
 NS_IMPL_URI_ATTR(nsHTMLIFrameElement, Src, src)
 NS_IMPL_STRING_ATTR(nsHTMLIFrameElement, Width, width)
 NS_IMPL_BOOL_ATTR(nsHTMLIFrameElement, MozAllowFullScreen, mozallowfullscreen)
-NS_IMPL_STRING_ATTR(nsHTMLIFrameElement, Sandbox, sandbox)
-
-void
-nsHTMLIFrameElement::GetItemValueText(nsAString& aValue)
-{
-  GetSrc(aValue);
-}
-
-void
-nsHTMLIFrameElement::SetItemValueText(const nsAString& aValue)
-{
-  SetSrc(aValue);
-}
 
 NS_IMETHODIMP
 nsHTMLIFrameElement::GetContentDocument(nsIDOMDocument** aContentDocument)
 {
   return nsGenericHTMLFrameElement::GetContentDocument(aContentDocument);
-}
-
-NS_IMETHODIMP
-nsHTMLIFrameElement::GetContentWindow(nsIDOMWindow** aContentWindow)
-{
-  return nsGenericHTMLFrameElement::GetContentWindow(aContentWindow);
 }
 
 NS_IMETHODIMP
@@ -88,7 +146,7 @@ nsHTMLIFrameElement::GetSVGDocument(nsIDOMDocument **aResult)
 }
 
 bool
-nsHTMLIFrameElement::ParseAttribute(int32_t aNamespaceID,
+nsHTMLIFrameElement::ParseAttribute(PRInt32 aNamespaceID,
                                     nsIAtom* aAttribute,
                                     const nsAString& aValue,
                                     nsAttrValue& aResult)
@@ -131,7 +189,7 @@ MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
     
     const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::frameborder);
     if (value && value->Type() == nsAttrValue::eEnum) {
-      int32_t frameborder = value->GetEnumValue();
+      PRInt32 frameborder = value->GetEnumValue();
       if (NS_STYLE_FRAME_0 == frameborder ||
           NS_STYLE_FRAME_NO == frameborder ||
           NS_STYLE_FRAME_OFF == frameborder) {
@@ -184,7 +242,7 @@ nsHTMLIFrameElement::IsAttributeMapped(const nsIAtom* aAttribute) const
     { &nsGkAtoms::width },
     { &nsGkAtoms::height },
     { &nsGkAtoms::frameborder },
-    { nullptr },
+    { nsnull },
   };
 
   static const MappedAttributeEntry* const map[] = {
@@ -194,7 +252,7 @@ nsHTMLIFrameElement::IsAttributeMapped(const nsIAtom* aAttribute) const
     sCommonAttributeMap,
   };
   
-  return FindAttributeDependence(aAttribute, map);
+  return FindAttributeDependence(aAttribute, map, NS_ARRAY_LENGTH(map));
 }
 
 
@@ -205,32 +263,3 @@ nsHTMLIFrameElement::GetAttributeMappingFunction() const
   return &MapAttributesIntoRule;
 }
 
-nsresult
-nsHTMLIFrameElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                                  const nsAttrValue* aValue,
-                                  bool aNotify)
-{
-  if (aName == nsGkAtoms::sandbox && aNameSpaceID == kNameSpaceID_None) {
-    
-    
-    if (mFrameLoader) {
-      nsCOMPtr<nsIDocShell> docshell = mFrameLoader->GetExistingDocShell();
-
-      if (docshell) {
-        uint32_t newFlags = 0;
-        
-        
-        if (aValue) {
-          nsAutoString strValue;
-          aValue->ToString(strValue);
-          newFlags = nsContentUtils::ParseSandboxAttributeToFlags(
-            strValue);
-        }   
-        docshell->SetSandboxFlags(newFlags);
-      }
-    }
-  }
-  return nsGenericHTMLElement::AfterSetAttr(aNameSpaceID, aName, aValue,
-                                            aNotify);
-
-}

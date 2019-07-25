@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsFtpControlConnection_h___
 #define nsFtpControlConnection_h___
 
@@ -17,7 +49,6 @@
 #include "nsIAsyncInputStream.h"
 #include "nsAutoPtr.h"
 #include "nsString.h"
-#include "mozilla/Attributes.h"
 
 class nsIProxyInfo;
 class nsITransportEventSink;
@@ -31,7 +62,7 @@ public:
 
 
 
-    virtual void OnControlDataAvailable(const char *data, uint32_t dataLen) = 0;
+    virtual void OnControlDataAvailable(const char *data, PRUint32 dataLen) = 0;
 
     
 
@@ -41,13 +72,13 @@ public:
     virtual void OnControlError(nsresult status) = 0;
 };
 
-class nsFtpControlConnection MOZ_FINAL : public nsIInputStreamCallback
+class nsFtpControlConnection : public nsIInputStreamCallback
 {
 public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIINPUTSTREAMCALLBACK
 
-    nsFtpControlConnection(const nsCSubstring& host, uint32_t port);
+    nsFtpControlConnection(const nsCSubstring& host, PRUint32 port);
     ~nsFtpControlConnection();
 
     nsresult Connect(nsIProxyInfo* proxyInfo, nsITransportEventSink* eventSink);
@@ -66,15 +97,15 @@ public:
 
     nsresult WaitData(nsFtpControlConnectionListener *listener);
 
-    uint32_t         mServerType;           
+    PRUint32         mServerType;           
     nsString         mPassword;
-    int32_t          mSuspendedWrite;
+    PRInt32          mSuspendedWrite;
     nsCString        mPwd;
-    uint32_t         mSessionId;
+    PRUint32         mSessionId;
 
 private:
     nsCString mHost;
-    uint32_t  mPort;
+    PRUint32  mPort;
 
     nsCOMPtr<nsISocketTransport>     mSocket;
     nsCOMPtr<nsIOutputStream>        mSocketOutput;

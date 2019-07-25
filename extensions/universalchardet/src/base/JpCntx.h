@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __JPCNTX_H__
 #define __JPCNTX_H__
 
@@ -14,21 +46,21 @@
 #define MAX_REL_THRESHOLD     1000
 
 
-extern const uint8_t jp2CharContext[83][83];
+extern const PRUint8 jp2CharContext[83][83];
 
 class JapaneseContextAnalysis
 {
 public:
-  JapaneseContextAnalysis() {Reset(false);}
+  JapaneseContextAnalysis() {Reset(PR_FALSE);}
 
-  void HandleData(const char* aBuf, uint32_t aLen);
+  void HandleData(const char* aBuf, PRUint32 aLen);
 
-  void HandleOneChar(const char* aStr, uint32_t aCharLen)
+  void HandleOneChar(const char* aStr, PRUint32 aCharLen)
   {
-    int32_t order;
+    PRInt32 order;
 
     
-    if (mTotalRel > MAX_REL_THRESHOLD)   mDone = true;
+    if (mTotalRel > MAX_REL_THRESHOLD)   mDone = PR_TRUE;
     if (mDone)       return;
      
     
@@ -44,27 +76,28 @@ public:
 
   float GetConfidence(void);
   void      Reset(bool aIsPreferredLanguage);
+  void      SetOpion(){}
   bool GotEnoughData() {return mTotalRel > ENOUGH_REL_THRESHOLD;}
 
 protected:
-  virtual int32_t GetOrder(const char* str, uint32_t *charLen) = 0;
-  virtual int32_t GetOrder(const char* str) = 0;
+  virtual PRInt32 GetOrder(const char* str, PRUint32 *charLen) = 0;
+  virtual PRInt32 GetOrder(const char* str) = 0;
 
   
-  uint32_t mRelSample[NUM_OF_CATEGORY];
+  PRUint32 mRelSample[NUM_OF_CATEGORY];
 
   
-  uint32_t mTotalRel;
+  PRUint32 mTotalRel;
 
   
-  uint32_t mDataThreshold;
+  PRUint32 mDataThreshold;
   
   
-  int32_t  mLastCharOrder;
+  PRInt32  mLastCharOrder;
 
   
   
-  uint32_t mNeedToSkipCharNum;
+  PRUint32 mNeedToSkipCharNum;
 
   
   bool     mDone;
@@ -75,9 +108,9 @@ class SJISContextAnalysis : public JapaneseContextAnalysis
 {
   
 protected:
-  int32_t GetOrder(const char* str, uint32_t *charLen);
+  PRInt32 GetOrder(const char* str, PRUint32 *charLen);
 
-  int32_t GetOrder(const char* str)
+  PRInt32 GetOrder(const char* str)
   {
     
     if (*str == '\202' && 
@@ -91,8 +124,8 @@ protected:
 class EUCJPContextAnalysis : public JapaneseContextAnalysis
 {
 protected:
-  int32_t GetOrder(const char* str, uint32_t *charLen);
-  int32_t GetOrder(const char* str)
+  PRInt32 GetOrder(const char* str, PRUint32 *charLen);
+  PRInt32 GetOrder(const char* str)
     
   {
     if (*str == '\244' &&

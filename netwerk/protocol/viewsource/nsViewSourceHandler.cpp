@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsViewSourceHandler.h"
 #include "nsViewSourceChannel.h"
 #include "nsNetUtil.h"
@@ -26,14 +60,14 @@ nsViewSourceHandler::GetScheme(nsACString &result)
 }
 
 NS_IMETHODIMP
-nsViewSourceHandler::GetDefaultPort(int32_t *result)
+nsViewSourceHandler::GetDefaultPort(PRInt32 *result)
 {
     *result = -1;
     return NS_OK;
 }
 
 NS_IMETHODIMP
-nsViewSourceHandler::GetProtocolFlags(uint32_t *result)
+nsViewSourceHandler::GetProtocolFlags(PRUint32 *result)
 {
     *result = URI_NORELATIVE | URI_NOAUTH | URI_LOADABLE_BY_ANYONE |
         URI_NON_PERSISTABLE;
@@ -46,12 +80,12 @@ nsViewSourceHandler::NewURI(const nsACString &aSpec,
                             nsIURI *aBaseURI,
                             nsIURI **aResult)
 {
-    *aResult = nullptr;
+    *aResult = nsnull;
 
     
     
 
-    int32_t colon = aSpec.FindChar(':');
+    PRInt32 colon = aSpec.FindChar(':');
     if (colon == kNotFound)
         return NS_ERROR_MALFORMED_URI;
 
@@ -61,7 +95,7 @@ nsViewSourceHandler::NewURI(const nsACString &aSpec,
     if (NS_FAILED(rv))
         return rv;
 
-    nsAutoCString asciiSpec;
+    nsCAutoString asciiSpec;
     rv = innerURI->GetAsciiSpec(asciiSpec);
     if (NS_FAILED(rv))
         return rv;
@@ -83,7 +117,7 @@ nsViewSourceHandler::NewURI(const nsACString &aSpec,
 
     
     
-    ourURI->SetMutable(false);
+    ourURI->SetMutable(PR_FALSE);
 
     uri.swap(*aResult);
     return rv;
@@ -109,9 +143,9 @@ nsViewSourceHandler::NewChannel(nsIURI* uri, nsIChannel* *result)
 }
 
 NS_IMETHODIMP 
-nsViewSourceHandler::AllowPort(int32_t port, const char *scheme, bool *_retval)
+nsViewSourceHandler::AllowPort(PRInt32 port, const char *scheme, bool *_retval)
 {
     
-    *_retval = false;
+    *_retval = PR_FALSE;
     return NS_OK;
 }

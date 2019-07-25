@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  
 
 
@@ -28,7 +60,7 @@ public:
   
 
 
-  nsUnicodeToGBK(uint32_t aMaxLengthFactor = 2);
+  nsUnicodeToGBK(PRUint32 aMaxLengthFactor = 2);
   virtual ~nsUnicodeToGBK() {}
 
 protected:
@@ -36,12 +68,12 @@ protected:
   
   
   NS_IMETHOD ConvertNoBuff(const PRUnichar * aSrc, 
-                            int32_t * aSrcLength, 
+                            PRInt32 * aSrcLength, 
                             char * aDest, 
-                            int32_t * aDestLength);
+                            PRInt32 * aDestLength);
 
-  NS_IMETHOD ConvertNoBuffNoErr(const PRUnichar * aSrc, int32_t * aSrcLength, 
-                                char * aDest, int32_t * aDestLength)
+  NS_IMETHOD ConvertNoBuffNoErr(const PRUnichar * aSrc, PRInt32 * aSrcLength, 
+                                char * aDest, PRInt32 * aDestLength)
   {
     return NS_OK;
   }  
@@ -54,8 +86,8 @@ protected:
 protected:
   PRUnichar mSurrogateHigh;
   nsGBKConvUtil mUtil;
-  bool TryExtensionEncoder(PRUnichar aChar, char* aDest, int32_t* aOutLen);
-  bool Try4BytesEncoder(PRUnichar aChar, char* aDest, int32_t* aOutLen);
+  bool TryExtensionEncoder(PRUnichar aChar, char* aDest, PRInt32* aOutLen);
+  bool Try4BytesEncoder(PRUnichar aChar, char* aDest, PRInt32* aOutLen);
   virtual bool EncodeSurrogate(PRUnichar aSurrogateHigh, PRUnichar aSurrogateLow, char* aDest);
 };
 

@@ -3,16 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_SVGNUMBERLIST_H__
 #define MOZILLA_SVGNUMBERLIST_H__
 
-#include "nsCOMPtr.h"
-#include "nsDebug.h"
-#include "nsIContent.h"
-#include "nsINode.h"
-#include "nsIWeakReferenceUtils.h"
-#include "nsSVGElement.h"
 #include "nsTArray.h"
+#include "nsSVGElement.h"
 
 namespace mozilla {
 
@@ -46,11 +72,11 @@ public:
     return mNumbers.IsEmpty();
   }
 
-  uint32_t Length() const {
+  PRUint32 Length() const {
     return mNumbers.Length();
   }
 
-  const float& operator[](uint32_t aIndex) const {
+  const float& operator[](PRUint32 aIndex) const {
     return mNumbers[aIndex];
   }
 
@@ -58,7 +84,7 @@ public:
     return mNumbers == rhs.mNumbers;
   }
 
-  bool SetCapacity(uint32_t size) {
+  bool SetCapacity(PRUint32 size) {
     return mNumbers.SetCapacity(size);
   }
 
@@ -81,7 +107,7 @@ protected:
 
   nsresult CopyFrom(const SVGNumberList& rhs);
 
-  float& operator[](uint32_t aIndex) {
+  float& operator[](PRUint32 aIndex) {
     return mNumbers[aIndex];
   }
 
@@ -89,7 +115,7 @@ protected:
 
 
 
-  bool SetLength(uint32_t aNumberOfItems) {
+  bool SetLength(PRUint32 aNumberOfItems) {
     return mNumbers.SetLength(aNumberOfItems);
   }
 
@@ -105,20 +131,20 @@ private:
     mNumbers.Clear();
   }
 
-  bool InsertItem(uint32_t aIndex, const float &aNumber) {
+  bool InsertItem(PRUint32 aIndex, const float &aNumber) {
     if (aIndex >= mNumbers.Length()) {
       aIndex = mNumbers.Length();
     }
     return !!mNumbers.InsertElementAt(aIndex, aNumber);
   }
 
-  void ReplaceItem(uint32_t aIndex, const float &aNumber) {
+  void ReplaceItem(PRUint32 aIndex, const float &aNumber) {
     NS_ABORT_IF_FALSE(aIndex < mNumbers.Length(),
                       "DOM wrapper caller should have raised INDEX_SIZE_ERR");
     mNumbers[aIndex] = aNumber;
   }
 
-  void RemoveItem(uint32_t aIndex) {
+  void RemoveItem(PRUint32 aIndex) {
     NS_ABORT_IF_FALSE(aIndex < mNumbers.Length(),
                       "DOM wrapper caller should have raised INDEX_SIZE_ERR");
     mNumbers.RemoveElementAt(aIndex);
@@ -149,7 +175,7 @@ class SVGNumberListAndInfo : public SVGNumberList
 public:
 
   SVGNumberListAndInfo()
-    : mElement(nullptr)
+    : mElement(nsnull)
   {}
 
   SVGNumberListAndInfo(nsSVGElement *aElement)
@@ -182,13 +208,13 @@ public:
   nsresult CopyFrom(const SVGNumberList& rhs) {
     return SVGNumberList::CopyFrom(rhs);
   }
-  const float& operator[](uint32_t aIndex) const {
+  const float& operator[](PRUint32 aIndex) const {
     return SVGNumberList::operator[](aIndex);
   }
-  float& operator[](uint32_t aIndex) {
+  float& operator[](PRUint32 aIndex) {
     return SVGNumberList::operator[](aIndex);
   }
-  bool SetLength(uint32_t aNumberOfItems) {
+  bool SetLength(PRUint32 aNumberOfItems) {
     return SVGNumberList::SetLength(aNumberOfItems);
   }
 

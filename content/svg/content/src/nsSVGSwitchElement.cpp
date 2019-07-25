@@ -3,11 +3,41 @@
 
 
 
-#include "mozilla/Util.h"
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsSVGFeatures.h"
 #include "nsSVGSwitchElement.h"
-#include "DOMSVGTests.h"
 #include "nsIFrame.h"
+#include "nsISVGChildFrame.h"
 #include "nsSVGUtils.h"
 #include "mozilla/Preferences.h"
 
@@ -39,9 +69,8 @@ NS_IMPL_RELEASE_INHERITED(nsSVGSwitchElement,nsSVGSwitchElementBase)
 DOMCI_NODE_DATA(SVGSwitchElement, nsSVGSwitchElement)
 
 NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(nsSVGSwitchElement)
-  NS_NODE_INTERFACE_TABLE5(nsSVGSwitchElement, nsIDOMNode, nsIDOMElement,
-                           nsIDOMSVGElement, nsIDOMSVGSwitchElement,
-                           nsIDOMSVGTests)
+  NS_NODE_INTERFACE_TABLE4(nsSVGSwitchElement, nsIDOMNode, nsIDOMElement,
+                           nsIDOMSVGElement, nsIDOMSVGSwitchElement)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(SVGSwitchElement)
 NS_INTERFACE_MAP_END_INHERITING(nsSVGSwitchElementBase)
 
@@ -60,18 +89,17 @@ nsSVGSwitchElement::MaybeInvalidate()
   
   
 
-  nsIContent *newActiveChild = FindActiveChild();
-
-  if (newActiveChild == mActiveChild) {
+  if (FindActiveChild() == mActiveChild) {
     return;
   }
 
   nsIFrame *frame = GetPrimaryFrame();
   if (frame) {
-    nsSVGUtils::InvalidateAndScheduleReflowSVG(frame);
+    nsISVGChildFrame* svgFrame = do_QueryFrame(frame);
+    if (svgFrame) {
+      nsSVGUtils::UpdateGraphic(svgFrame);
+    }
   }
-
-  mActiveChild = newActiveChild;
 }
 
 
@@ -85,7 +113,7 @@ NS_IMPL_ELEMENT_CLONE_WITH_INIT(nsSVGSwitchElement)
 
 nsresult
 nsSVGSwitchElement::InsertChildAt(nsIContent* aKid,
-                                  uint32_t aIndex,
+                                  PRUint32 aIndex,
                                   bool aNotify)
 {
   nsresult rv = nsSVGSwitchElementBase::InsertChildAt(aKid, aIndex, aNotify);
@@ -95,11 +123,14 @@ nsSVGSwitchElement::InsertChildAt(nsIContent* aKid,
   return rv;
 }
 
-void
-nsSVGSwitchElement::RemoveChildAt(uint32_t aIndex, bool aNotify)
+nsresult
+nsSVGSwitchElement::RemoveChildAt(PRUint32 aIndex, bool aNotify)
 {
-  nsSVGSwitchElementBase::RemoveChildAt(aIndex, aNotify);
-  MaybeInvalidate();
+  nsresult rv = nsSVGSwitchElementBase::RemoveChildAt(aIndex, aNotify);
+  if (NS_SUCCEEDED(rv)) {
+    MaybeInvalidate();
+  }
+  return rv;
 }
  
 
@@ -119,7 +150,7 @@ nsSVGSwitchElement::IsAttributeMapped(const nsIAtom* name) const
     sViewportsMap
   };
 
-  return FindAttributeDependence(name, map) ||
+  return FindAttributeDependence(name, map, NS_ARRAY_LENGTH(map)) ||
     nsSVGSwitchElementBase::IsAttributeMapped(name);
 }
 
@@ -137,21 +168,18 @@ nsSVGSwitchElement::FindActiveChild() const
     Preferences::GetLocalizedString("intl.accept_languages");
 
   if (allowReorder && !acceptLangs.IsEmpty()) {
-    int32_t bestLanguagePreferenceRank = -1;
-    nsIContent *bestChild = nullptr;
+    PRInt32 bestLanguagePreferenceRank = -1;
+    nsIContent *bestChild = nsnull;
     for (nsIContent* child = nsINode::GetFirstChild();
          child;
          child = child->GetNextSibling()) {
-
-      if (!child->IsElement()) {
-        continue;
-      }
-      nsCOMPtr<DOMSVGTests> tests(do_QueryInterface(child));
-      if (tests) {
-        if (tests->PassesConditionalProcessingTests(
-                            DOMSVGTests::kIgnoreSystemLanguage)) {
-          int32_t languagePreferenceRank =
-              tests->GetBestLanguagePreferenceRank(acceptLangs);
+      if (nsSVGFeatures::PassesConditionalProcessingTests(
+            child, nsSVGFeatures::kIgnoreSystemLanguage)) {
+        nsAutoString value;
+        if (child->GetAttr(kNameSpaceID_None, nsGkAtoms::systemLanguage,
+                           value)) {
+          PRInt32 languagePreferenceRank =
+            nsSVGFeatures::GetBestLanguagePreferenceRank(value, acceptLangs);
           switch (languagePreferenceRank) {
           case 0:
             
@@ -167,9 +195,9 @@ nsSVGSwitchElement::FindActiveChild() const
             }
             break;
           }
+        } else if (!bestChild) {
+          bestChild = child;
         }
-      } else if (!bestChild) {
-         bestChild = child;
       }
     }
     return bestChild;
@@ -178,13 +206,9 @@ nsSVGSwitchElement::FindActiveChild() const
   for (nsIContent* child = nsINode::GetFirstChild();
        child;
        child = child->GetNextSibling()) {
-    if (!child->IsElement()) {
-      continue;
-    }
-    nsCOMPtr<DOMSVGTests> tests(do_QueryInterface(child));
-    if (!tests || tests->PassesConditionalProcessingTests(&acceptLangs)) {
+    if (nsSVGFeatures::PassesConditionalProcessingTests(child, &acceptLangs)) {
       return child;
     }
   }
-  return nullptr;
+  return nsnull;
 }

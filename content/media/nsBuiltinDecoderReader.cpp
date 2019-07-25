@@ -4,14 +4,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsISeekableStream.h"
+#include "nsClassHashtable.h"
+#include "nsTArray.h"
 #include "nsBuiltinDecoder.h"
 #include "nsBuiltinDecoderReader.h"
 #include "nsBuiltinDecoderStateMachine.h"
-#include "VideoUtils.h"
-#include "ImageContainer.h"
-
 #include "mozilla/mozalloc.h"
-#include "mozilla/StandardInteger.h"
+#include "VideoUtils.h"
 
 using namespace mozilla;
 using mozilla::layers::ImageContainer;
@@ -39,21 +72,6 @@ extern PRLogModuleInfo* gBuiltinDecoderLog;
 #define SEEK_LOG(type, msg)
 #endif
 
-void
-AudioData::EnsureAudioBuffer()
-{
-  if (mAudioBuffer)
-    return;
-  mAudioBuffer = SharedBuffer::Create(mFrames*mChannels*sizeof(AudioDataValue));
-
-  AudioDataValue* data = static_cast<AudioDataValue*>(mAudioBuffer->Data());
-  for (uint32_t i = 0; i < mFrames; ++i) {
-    for (uint32_t j = 0; j < mChannels; ++j) {
-      data[j*mFrames + i] = mAudioData[i*mChannels + j];
-    }
-  }
-}
-
 static bool
 ValidatePlane(const VideoData::YCbCrBuffer::Plane& aPlane)
 {
@@ -61,20 +79,6 @@ ValidatePlane(const VideoData::YCbCrBuffer::Plane& aPlane)
          aPlane.mHeight <= PlanarYCbCrImage::MAX_DIMENSION &&
          aPlane.mWidth * aPlane.mHeight < MAX_VIDEO_WIDTH * MAX_VIDEO_HEIGHT &&
          aPlane.mStride > 0;
-}
-
-static bool
-IsYV12Format(const VideoData::YCbCrBuffer::Plane& aYPlane,
-             const VideoData::YCbCrBuffer::Plane& aCbPlane,
-             const VideoData::YCbCrBuffer::Plane& aCrPlane)
-{
-  return
-    aYPlane.mWidth % 2 == 0 &&
-    aYPlane.mHeight % 2 == 0 &&
-    aYPlane.mWidth / 2 == aCbPlane.mWidth &&
-    aYPlane.mHeight / 2 == aCbPlane.mHeight &&
-    aCbPlane.mWidth == aCrPlane.mWidth &&
-    aCbPlane.mHeight == aCrPlane.mHeight;
 }
 
 bool
@@ -101,62 +105,18 @@ nsVideoInfo::ValidateVideoRegion(const nsIntSize& aFrame,
     aDisplay.width * aDisplay.height != 0;
 }
 
-VideoData::  VideoData(int64_t aOffset, int64_t aTime, int64_t aEndTime, int64_t aTimecode)
-  : mOffset(aOffset),
-    mTime(aTime),
-    mEndTime(aEndTime),
-    mTimecode(aTimecode),
-    mDuplicate(true),
-    mKeyframe(false)
-{
-  MOZ_COUNT_CTOR(VideoData);
-  NS_ASSERTION(aEndTime >= aTime, "Frame must start before it ends.");
-}
-
-VideoData::VideoData(int64_t aOffset,
-          int64_t aTime,
-          int64_t aEndTime,
-          bool aKeyframe,
-          int64_t aTimecode,
-          nsIntSize aDisplay)
-  : mDisplay(aDisplay),
-    mOffset(aOffset),
-    mTime(aTime),
-    mEndTime(aEndTime),
-    mTimecode(aTimecode),
-    mDuplicate(false),
-    mKeyframe(aKeyframe)
-{
-  MOZ_COUNT_CTOR(VideoData);
-  NS_ASSERTION(aEndTime >= aTime, "Frame must start before it ends.");
-}
-
-VideoData::~VideoData()
-{
-  MOZ_COUNT_DTOR(VideoData);
-}
-
-
 VideoData* VideoData::Create(nsVideoInfo& aInfo,
                              ImageContainer* aContainer,
-                             int64_t aOffset,
-                             int64_t aTime,
-                             int64_t aEndTime,
+                             PRInt64 aOffset,
+                             PRInt64 aTime,
+                             PRInt64 aEndTime,
                              const YCbCrBuffer& aBuffer,
                              bool aKeyframe,
-                             int64_t aTimecode,
+                             PRInt64 aTimecode,
                              nsIntRect aPicture)
 {
   if (!aContainer) {
-    
-    
-    nsAutoPtr<VideoData> v(new VideoData(aOffset,
-                                         aTime,
-                                         aEndTime,
-                                         aKeyframe,
-                                         aTimecode,
-                                         aInfo.mDisplay));
-    return v.forget();
+    return nsnull;
   }
 
   
@@ -164,31 +124,33 @@ VideoData* VideoData::Create(nsVideoInfo& aInfo,
   if (aBuffer.mPlanes[1].mWidth != aBuffer.mPlanes[2].mWidth ||
       aBuffer.mPlanes[1].mHeight != aBuffer.mPlanes[2].mHeight) {
     NS_ERROR("C planes with different sizes");
-    return nullptr;
+    return nsnull;
   }
 
   
   if (aPicture.width <= 0 || aPicture.height <= 0) {
     NS_WARNING("Empty picture rect");
-    return nullptr;
+    return nsnull;
   }
   if (!ValidatePlane(aBuffer.mPlanes[0]) || !ValidatePlane(aBuffer.mPlanes[1]) ||
       !ValidatePlane(aBuffer.mPlanes[2])) {
     NS_WARNING("Invalid plane size");
-    return nullptr;
+    return nsnull;
   }
 
   
   
-  CheckedUint32 xLimit = aPicture.x + CheckedUint32(aPicture.width);
-  CheckedUint32 yLimit = aPicture.y + CheckedUint32(aPicture.height);
-  if (!xLimit.isValid() || xLimit.value() > aBuffer.mPlanes[0].mStride ||
-      !yLimit.isValid() || yLimit.value() > aBuffer.mPlanes[0].mHeight)
+  PRUint32 xLimit;
+  PRUint32 yLimit;
+  if (!AddOverflow32(aPicture.x, aPicture.width, xLimit) ||
+      xLimit > aBuffer.mPlanes[0].mStride ||
+      !AddOverflow32(aPicture.y, aPicture.height, yLimit) ||
+      yLimit > aBuffer.mPlanes[0].mHeight)
   {
     
     
     NS_WARNING("Overflowing picture rect");
-    return nullptr;
+    return nsnull;
   }
 
   nsAutoPtr<VideoData> v(new VideoData(aOffset,
@@ -197,58 +159,32 @@ VideoData* VideoData::Create(nsVideoInfo& aInfo,
                                        aKeyframe,
                                        aTimecode,
                                        aInfo.mDisplay));
-  const YCbCrBuffer::Plane &Y = aBuffer.mPlanes[0];
-  const YCbCrBuffer::Plane &Cb = aBuffer.mPlanes[1];
-  const YCbCrBuffer::Plane &Cr = aBuffer.mPlanes[2];
-
   
   
-  ImageFormat format[2] = {PLANAR_YCBCR, GRALLOC_PLANAR_YCBCR};
-  if (IsYV12Format(Y, Cb, Cr)) {
-    v->mImage = aContainer->CreateImage(format, 2);
-  } else {
-    v->mImage = aContainer->CreateImage(format, 1);
-  }
+  Image::Format format = Image::PLANAR_YCBCR;
+  v->mImage = aContainer->CreateImage(&format, 1);
   if (!v->mImage) {
-    return nullptr;
+    return nsnull;
   }
-  NS_ASSERTION(v->mImage->GetFormat() == PLANAR_YCBCR ||
-               v->mImage->GetFormat() == GRALLOC_PLANAR_YCBCR,
+  NS_ASSERTION(v->mImage->GetFormat() == Image::PLANAR_YCBCR,
                "Wrong format?");
   PlanarYCbCrImage* videoImage = static_cast<PlanarYCbCrImage*>(v->mImage.get());
 
   PlanarYCbCrImage::Data data;
-  data.mYChannel = Y.mData + Y.mOffset;
-  data.mYSize = gfxIntSize(Y.mWidth, Y.mHeight);
-  data.mYStride = Y.mStride;
-  data.mYSkip = Y.mSkip;
-  data.mCbChannel = Cb.mData + Cb.mOffset;
-  data.mCrChannel = Cr.mData + Cr.mOffset;
-  data.mCbCrSize = gfxIntSize(Cb.mWidth, Cb.mHeight);
-  data.mCbCrStride = Cb.mStride;
-  data.mCbSkip = Cb.mSkip;
-  data.mCrSkip = Cr.mSkip;
+  data.mYChannel = aBuffer.mPlanes[0].mData;
+  data.mYSize = gfxIntSize(aBuffer.mPlanes[0].mWidth, aBuffer.mPlanes[0].mHeight);
+  data.mYStride = aBuffer.mPlanes[0].mStride;
+  data.mCbChannel = aBuffer.mPlanes[1].mData;
+  data.mCrChannel = aBuffer.mPlanes[2].mData;
+  data.mCbCrSize = gfxIntSize(aBuffer.mPlanes[1].mWidth, aBuffer.mPlanes[1].mHeight);
+  data.mCbCrStride = aBuffer.mPlanes[1].mStride;
   data.mPicX = aPicture.x;
   data.mPicY = aPicture.y;
   data.mPicSize = gfxIntSize(aPicture.width, aPicture.height);
   data.mStereoMode = aInfo.mStereoMode;
 
-  videoImage->SetDelayedConversion(true);
-  videoImage->SetData(data);
+  videoImage->SetData(data); 
   return v.forget();
-}
-
-void* nsBuiltinDecoderReader::VideoQueueMemoryFunctor::operator()(void* anObject) {
-  const VideoData* v = static_cast<const VideoData*>(anObject);
-  if (!v->mImage) {
-    return nullptr;
-  }
-  NS_ASSERTION(v->mImage->GetFormat() == PLANAR_YCBCR,
-               "Wrong format?");
-  mozilla::layers::PlanarYCbCrImage* vi = static_cast<mozilla::layers::PlanarYCbCrImage*>(v->mImage.get());
-
-  mResult += vi->GetDataSize();
-  return nullptr;
 }
 
 nsBuiltinDecoderReader::nsBuiltinDecoderReader(nsBuiltinDecoder* aDecoder)
@@ -273,16 +209,16 @@ nsresult nsBuiltinDecoderReader::ResetDecode()
   return res;
 }
 
-VideoData* nsBuiltinDecoderReader::FindStartTime(int64_t& aOutStartTime)
+VideoData* nsBuiltinDecoderReader::FindStartTime(PRInt64& aOutStartTime)
 {
   NS_ASSERTION(mDecoder->OnStateMachineThread() || mDecoder->OnDecodeThread(),
                "Should be on state machine or decode thread.");
 
   
   
-  int64_t videoStartTime = INT64_MAX;
-  int64_t audioStartTime = INT64_MAX;
-  VideoData* videoData = nullptr;
+  PRInt64 videoStartTime = PR_INT64_MAX;
+  PRInt64 audioStartTime = PR_INT64_MAX;
+  VideoData* videoData = nsnull;
 
   if (HasVideo()) {
     videoData = DecodeToFirstData(&nsBuiltinDecoderReader::DecodeVideoFrame,
@@ -299,8 +235,8 @@ VideoData* nsBuiltinDecoderReader::FindStartTime(int64_t& aOutStartTime)
     }
   }
 
-  int64_t startTime = NS_MIN(videoStartTime, audioStartTime);
-  if (startTime != INT64_MAX) {
+  PRInt64 startTime = NS_MIN(videoStartTime, audioStartTime);
+  if (startTime != PR_INT64_MAX) {
     aOutStartTime = startTime;
   }
 
@@ -316,22 +252,21 @@ Data* nsBuiltinDecoderReader::DecodeToFirstData(DecodeFn aDecodeFn,
     {
       ReentrantMonitorAutoEnter decoderMon(mDecoder->GetReentrantMonitor());
       if (mDecoder->GetDecodeState() == nsDecoderStateMachine::DECODER_STATE_SHUTDOWN) {
-        return nullptr;
+        return nsnull;
       }
     }
     eof = !(this->*aDecodeFn)();
   }
-  Data* d = nullptr;
-  return (d = aQueue.PeekFront()) ? d : nullptr;
+  Data* d = nsnull;
+  return (d = aQueue.PeekFront()) ? d : nsnull;
 }
 
-nsresult nsBuiltinDecoderReader::DecodeToTarget(int64_t aTarget)
+nsresult nsBuiltinDecoderReader::DecodeToTarget(PRInt64 aTarget)
 {
   
   if (HasVideo()) {
     bool eof = false;
-    int64_t startTime = -1;
-    nsAutoPtr<VideoData> video;
+    PRInt64 startTime = -1;
     while (HasVideo() && !eof) {
       while (mVideoQueue.GetSize() == 0 && !eof) {
         bool skip = false;
@@ -344,13 +279,9 @@ nsresult nsBuiltinDecoderReader::DecodeToTarget(int64_t aTarget)
         }
       }
       if (mVideoQueue.GetSize() == 0) {
-        
-        if (video) {
-          mVideoQueue.PushFront(video.forget());
-        }
         break;
       }
-      video = mVideoQueue.PeekFront();
+      nsAutoPtr<VideoData> video(mVideoQueue.PeekFront());
       
       
       if (video && video->mEndTime <= aTarget) {
@@ -358,6 +289,7 @@ nsresult nsBuiltinDecoderReader::DecodeToTarget(int64_t aTarget)
           startTime = video->mTime;
         }
         mVideoQueue.PopFront();
+        video = nsnull;
       } else {
         video.forget();
         break;
@@ -374,6 +306,10 @@ nsresult nsBuiltinDecoderReader::DecodeToTarget(int64_t aTarget)
 
   if (HasAudio()) {
     
+    PRInt64 targetFrame = 0;
+    if (!UsecsToFrames(aTarget, mInfo.mAudioRate, targetFrame)) {
+      return NS_ERROR_FAILURE;
+    }
     bool eof = false;
     while (HasAudio() && !eof) {
       while (!eof && mAudioQueue.GetSize() == 0) {
@@ -388,19 +324,18 @@ nsresult nsBuiltinDecoderReader::DecodeToTarget(int64_t aTarget)
       const AudioData* audio = mAudioQueue.PeekFront();
       if (!audio)
         break;
-      CheckedInt64 startFrame = UsecsToFrames(audio->mTime, mInfo.mAudioRate);
-      CheckedInt64 targetFrame = UsecsToFrames(aTarget, mInfo.mAudioRate);
-      if (!startFrame.isValid() || !targetFrame.isValid()) {
+      PRInt64 startFrame = 0;
+      if (!UsecsToFrames(audio->mTime, mInfo.mAudioRate, startFrame)) {
         return NS_ERROR_FAILURE;
       }
-      if (startFrame.value() + audio->mFrames <= targetFrame.value()) {
+      if (startFrame + audio->mFrames <= targetFrame) {
         
         
         delete mAudioQueue.PopFront();
-        audio = nullptr;
+        audio = nsnull;
         continue;
       }
-      if (startFrame.value() > targetFrame.value()) {
+      if (startFrame > targetFrame) {
         
         
         
@@ -415,31 +350,29 @@ nsresult nsBuiltinDecoderReader::DecodeToTarget(int64_t aTarget)
       
       
       
-      NS_ASSERTION(targetFrame.value() >= startFrame.value(),
-                   "Target must at or be after data start.");
-      NS_ASSERTION(targetFrame.value() < startFrame.value() + audio->mFrames,
-                   "Data must end after target.");
+      NS_ASSERTION(targetFrame >= startFrame, "Target must at or be after data start.");
+      NS_ASSERTION(targetFrame < startFrame + audio->mFrames, "Data must end after target.");
 
-      int64_t framesToPrune = targetFrame.value() - startFrame.value();
+      PRInt64 framesToPrune = targetFrame - startFrame;
       if (framesToPrune > audio->mFrames) {
         
         
         NS_WARNING("Can't prune more frames that we have!");
         break;
       }
-      uint32_t frames = audio->mFrames - static_cast<uint32_t>(framesToPrune);
-      uint32_t channels = audio->mChannels;
+      PRUint32 frames = audio->mFrames - static_cast<PRUint32>(framesToPrune);
+      PRUint32 channels = audio->mChannels;
       nsAutoArrayPtr<AudioDataValue> audioData(new AudioDataValue[frames * channels]);
       memcpy(audioData.get(),
              audio->mAudioData.get() + (framesToPrune * channels),
              frames * channels * sizeof(AudioDataValue));
-      CheckedInt64 duration = FramesToUsecs(frames, mInfo.mAudioRate);
-      if (!duration.isValid()) {
+      PRInt64 duration;
+      if (!FramesToUsecs(frames, mInfo.mAudioRate, duration)) {
         return NS_ERROR_FAILURE;
       }
       nsAutoPtr<AudioData> data(new AudioData(audio->mOffset,
                                               aTarget,
-                                              duration.value(),
+                                              duration,
                                               frames,
                                               audioData.forget(),
                                               channels));

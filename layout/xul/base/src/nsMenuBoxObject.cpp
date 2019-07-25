@@ -2,11 +2,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsISupportsUtils.h"
 #include "nsIMenuBoxObject.h"
 #include "nsBoxObject.h"
 #include "nsIFrame.h"
 #include "nsGUIEvent.h"
+#include "nsIDOMNSEvent.h"
 #include "nsMenuBarFrame.h"
 #include "nsMenuBarListener.h"
 #include "nsMenuFrame.h"
@@ -38,18 +72,17 @@ NS_IMETHODIMP nsMenuBoxObject::OpenMenu(bool aOpenFlag)
 {
   nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
   if (pm) {
-    nsIFrame* frame = GetFrame(false);
+    nsIFrame* frame = GetFrame(PR_FALSE);
     if (frame) {
       if (aOpenFlag) {
         nsCOMPtr<nsIContent> content = mContent;
-        pm->ShowMenu(content, false, false);
+        pm->ShowMenu(content, PR_FALSE, PR_FALSE);
       }
       else {
-        nsMenuFrame* menu = do_QueryFrame(frame);
-        if (menu) {
-          nsMenuPopupFrame* popupFrame = menu->GetPopup();
+        if (frame->GetType() == nsGkAtoms::menuFrame) {
+          nsMenuPopupFrame* popupFrame = (static_cast<nsMenuFrame *>(frame))->GetPopup();
           if (popupFrame)
-            pm->HidePopup(popupFrame->GetContent(), false, true, false);
+            pm->HidePopup(popupFrame->GetContent(), PR_FALSE, PR_TRUE, PR_FALSE);
         }
       }
     }
@@ -60,25 +93,25 @@ NS_IMETHODIMP nsMenuBoxObject::OpenMenu(bool aOpenFlag)
 
 NS_IMETHODIMP nsMenuBoxObject::GetActiveChild(nsIDOMElement** aResult)
 {
-  *aResult = nullptr;
-  nsMenuFrame* menu = do_QueryFrame(GetFrame(false));
-  if (menu)
-    return menu->GetActiveChild(aResult);
+  *aResult = nsnull;
+  nsIFrame* frame = GetFrame(PR_FALSE);
+  if (frame && frame->GetType() == nsGkAtoms::menuFrame)
+    return static_cast<nsMenuFrame *>(frame)->GetActiveChild(aResult);
   return NS_OK;
 }
 
 NS_IMETHODIMP nsMenuBoxObject::SetActiveChild(nsIDOMElement* aResult)
 {
-  nsMenuFrame* menu = do_QueryFrame(GetFrame(false));
-  if (menu)
-    return menu->SetActiveChild(aResult);
+  nsIFrame* frame = GetFrame(PR_FALSE);
+  if (frame && frame->GetType() == nsGkAtoms::menuFrame)
+    return static_cast<nsMenuFrame *>(frame)->SetActiveChild(aResult);
   return NS_OK;
 }
 
 
 NS_IMETHODIMP nsMenuBoxObject::HandleKeyPress(nsIDOMKeyEvent* aKeyEvent, bool* aHandledFlag)
 {
-  *aHandledFlag = false;
+  *aHandledFlag = PR_FALSE;
   NS_ENSURE_ARG(aKeyEvent);
 
   nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
@@ -86,23 +119,27 @@ NS_IMETHODIMP nsMenuBoxObject::HandleKeyPress(nsIDOMKeyEvent* aKeyEvent, bool* a
     return NS_OK;
 
   
+  nsCOMPtr<nsIDOMNSEvent> domNSEvent = do_QueryInterface(aKeyEvent);
+  if (!domNSEvent)
+    return NS_OK;
+
   bool eventHandled = false;
-  aKeyEvent->GetPreventDefault(&eventHandled);
+  domNSEvent->GetPreventDefault(&eventHandled);
   if (eventHandled)
     return NS_OK;
 
   if (nsMenuBarListener::IsAccessKeyPressed(aKeyEvent))
     return NS_OK;
 
-  nsMenuFrame* menu = do_QueryFrame(GetFrame(false));
-  if (!menu)
+  nsIFrame* frame = GetFrame(PR_FALSE);
+  if (!frame || frame->GetType() != nsGkAtoms::menuFrame)
     return NS_OK;
 
-  nsMenuPopupFrame* popupFrame = menu->GetPopup();
+  nsMenuPopupFrame* popupFrame = static_cast<nsMenuFrame *>(frame)->GetPopup();
   if (!popupFrame)
     return NS_OK;
 
-  uint32_t keyCode;
+  PRUint32 keyCode;
   aKeyEvent->GetKeyCode(&keyCode);
   switch (keyCode) {
     case NS_VK_UP:
@@ -125,17 +162,16 @@ NS_IMETHODIMP nsMenuBoxObject::HandleKeyPress(nsIDOMKeyEvent* aKeyEvent, bool* a
 NS_IMETHODIMP
 nsMenuBoxObject::GetOpenedWithKey(bool* aOpenedWithKey)
 {
-  *aOpenedWithKey = false;
+  *aOpenedWithKey = PR_FALSE;
 
-  nsMenuFrame* menuframe = do_QueryFrame(GetFrame(false));
-  if (!menuframe)
+  nsIFrame* frame = GetFrame(PR_FALSE);
+  if (!frame || frame->GetType() != nsGkAtoms::menuFrame)
     return NS_OK;
 
-  nsIFrame* frame = menuframe->GetParent();
+  frame = frame->GetParent();
   while (frame) {
-    nsMenuBarFrame* menubar = do_QueryFrame(frame);
-    if (menubar) {
-      *aOpenedWithKey = menubar->IsActiveByKeyboard();
+    if (frame->GetType() == nsGkAtoms::menuBarFrame) {
+      *aOpenedWithKey = (static_cast<nsMenuBarFrame *>(frame))->IsActiveByKeyboard();
       return NS_OK;
     }
     frame = frame->GetParent();

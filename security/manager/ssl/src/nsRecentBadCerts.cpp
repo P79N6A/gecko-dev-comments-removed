@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsRecentBadCerts.h"
 #include "nsIX509Cert.h"
 #include "nsSSLStatus.h"
@@ -52,14 +85,14 @@ nsRecentBadCertsService::GetRecentBadCert(const nsAString & aHostNameWithPort,
   if (!aHostNameWithPort.Length())
     return NS_ERROR_INVALID_ARG;
 
-  *aStatus = nullptr;
+  *aStatus = nsnull;
   nsRefPtr<nsSSLStatus> status = new nsSSLStatus();
   if (!status)
     return NS_ERROR_OUT_OF_MEMORY;
 
   SECItem foundDER;
   foundDER.len = 0;
-  foundDER.data = nullptr;
+  foundDER.data = nsnull;
 
   bool isDomainMismatch = false;
   bool isNotValidAtThisTime = false;
@@ -69,7 +102,7 @@ nsRecentBadCertsService::GetRecentBadCert(const nsAString & aHostNameWithPort,
     ReentrantMonitorAutoEnter lock(monitor);
     for (size_t i=0; i<const_recently_seen_list_size; ++i) {
       if (mCerts[i].mHostWithPort.Equals(aHostNameWithPort)) {
-        SECStatus srv = SECITEM_CopyItem(nullptr, &foundDER, &mCerts[i].mDERCert);
+        SECStatus srv = SECITEM_CopyItem(nsnull, &foundDER, &mCerts[i].mDERCert);
         if (srv != SECSuccess)
           return NS_ERROR_OUT_OF_MEMORY;
 
@@ -86,11 +119,11 @@ nsRecentBadCertsService::GetRecentBadCert(const nsAString & aHostNameWithPort,
     nssCert = CERT_FindCertByDERCert(certdb, &foundDER);
     if (!nssCert) 
       nssCert = CERT_NewTempCertificate(certdb, &foundDER,
-                                        nullptr, 
-                                        false, 
-                                        true); 
+                                        nsnull, 
+                                        PR_FALSE, 
+                                        PR_TRUE); 
 
-    SECITEM_FreeItem(&foundDER, false);
+    SECITEM_FreeItem(&foundDER, PR_FALSE);
 
     if (!nssCert)
       return NS_ERROR_FAILURE;
@@ -98,7 +131,7 @@ nsRecentBadCertsService::GetRecentBadCert(const nsAString & aHostNameWithPort,
     status->mServerCert = nsNSSCertificate::Create(nssCert);
     CERT_DestroyCertificate(nssCert);
 
-    status->mHaveCertErrorBits = true;
+    status->mHaveCertErrorBits = PR_TRUE;
     status->mIsDomainMismatch = isDomainMismatch;
     status->mIsNotValidAtThisTime = isNotValidAtThisTime;
     status->mIsUntrusted = isUntrusted;
@@ -135,7 +168,7 @@ nsRecentBadCertsService::AddBadCert(const nsAString &hostWithPort,
   NS_ENSURE_SUCCESS(rv, rv);
 
   SECItem tempItem;
-  rv = cert->GetRawDER(&tempItem.len, (uint8_t **)&tempItem.data);
+  rv = cert->GetRawDER(&tempItem.len, (PRUint8 **)&tempItem.data);
   NS_ENSURE_SUCCESS(rv, rv);
 
   {

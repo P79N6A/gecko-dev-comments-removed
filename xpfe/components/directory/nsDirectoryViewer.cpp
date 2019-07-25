@@ -15,6 +15,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsDirectoryViewer.h"
 #include "nsIDirIndex.h"
 #include "jsapi.h"
@@ -22,9 +58,11 @@
 #include "nsCRT.h"
 #include "nsEscape.h"
 #include "nsIEnumerator.h"
+#ifdef MOZ_RDF
 #include "nsIRDFService.h"
 #include "nsRDFCID.h"
 #include "rdf.h"
+#endif
 #include "nsIScriptContext.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIServiceManager.h"
@@ -44,6 +82,7 @@
 #include "nsIProgressEventSink.h"
 #include "nsIDOMWindow.h"
 #include "nsIDOMWindowCollection.h"
+#include "nsIDOMDocument.h"
 #include "nsIDOMElement.h"
 #include "nsIStreamConverterService.h"
 #include "nsICategoryManager.h"
@@ -61,7 +100,9 @@ static const int FORMAT_XUL = 3;
 
 
 
+#ifdef MOZ_RDF
 static NS_DEFINE_CID(kRDFServiceCID,             NS_RDFSERVICE_CID);
+#endif
 
 
 static const char               kFTPProtocol[] = "ftp://";
@@ -71,6 +112,7 @@ static const char               kFTPProtocol[] = "ftp://";
 
 
 
+#ifdef MOZ_RDF
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsHTTPIndex)
     NS_INTERFACE_MAP_ENTRY(nsIHTTPIndex)
     NS_INTERFACE_MAP_ENTRY(nsIRDFDataSource)
@@ -224,7 +266,7 @@ nsHTTPIndex::OnStartRequest(nsIRequest *request, nsISupports* aContext)
   
   
   if (mBindToGlobalObject && mRequestor) {
-    mBindToGlobalObject = false;
+    mBindToGlobalObject = PR_FALSE;
 
     
     nsCOMPtr<nsIScriptGlobalObject> scriptGlobal(do_GetInterface(mRequestor));
@@ -278,7 +320,7 @@ nsHTTPIndex::OnStartRequest(nsIRequest *request, nsISupports* aContext)
     nsCOMPtr<nsIURI> uri;
     channel->GetURI(getter_AddRefs(uri));
       
-    nsAutoCString entryuriC;
+    nsCAutoString entryuriC;
     uri->GetSpec(entryuriC);
 
     nsCOMPtr<nsIRDFResource> entry;
@@ -289,7 +331,7 @@ nsHTTPIndex::OnStartRequest(nsIRequest *request, nsISupports* aContext)
     nsCOMPtr<nsIRDFLiteral> URLVal;
     rv = mDirRDF->GetLiteral(uriUnicode.get(), getter_AddRefs(URLVal));
 
-    Assert(entry, kNC_URL, URLVal, true);
+    Assert(entry, kNC_URL, URLVal, PR_TRUE);
     mDirectory = do_QueryInterface(entry);
   }
   else
@@ -305,7 +347,7 @@ nsHTTPIndex::OnStartRequest(nsIRequest *request, nsISupports* aContext)
 
   
   rv = Assert(mDirectory, kNC_Loading,
-                           kTrueLiteral, true);
+                           kTrueLiteral, PR_TRUE);
   if (NS_FAILED(rv)) return rv;
 
   return NS_OK;
@@ -334,7 +376,7 @@ nsHTTPIndex::OnStopRequest(nsIRequest *request,
   rv = mDirRDF->GetLiteral(NS_ConvertASCIItoUTF16(commentStr).get(), getter_AddRefs(comment));
   if (NS_FAILED(rv)) return rv;
 
-  rv = Assert(mDirectory, kNC_Comment, comment, true);
+  rv = Assert(mDirectory, kNC_Comment, comment, PR_TRUE);
   if (NS_FAILED(rv)) return rv;
 
   
@@ -348,8 +390,8 @@ NS_IMETHODIMP
 nsHTTPIndex::OnDataAvailable(nsIRequest *request,
                              nsISupports* aContext,
                              nsIInputStream* aStream,
-                             uint64_t aSourceOffset,
-                             uint32_t aCount)
+                             PRUint32 aSourceOffset,
+                             PRUint32 aCount)
 {
   
   
@@ -379,7 +421,7 @@ nsHTTPIndex::OnIndexAvailable(nsIRequest* aRequest, nsISupports *aContext,
   }
 
   
-  nsAutoCString entryuriC(baseStr);
+  nsCAutoString entryuriC(baseStr);
 
   nsXPIDLCString filename;
   nsresult rv = aIndex->GetLocation(getter_Copies(filename));
@@ -387,7 +429,7 @@ nsHTTPIndex::OnIndexAvailable(nsIRequest* aRequest, nsISupports *aContext,
   entryuriC.Append(filename);
 
   
-  uint32_t type;
+  PRUint32 type;
   rv = aIndex->GetType(&type);
   if (NS_FAILED(rv))
     return rv;
@@ -414,7 +456,7 @@ nsHTTPIndex::OnIndexAvailable(nsIRequest* aRequest, nsISupports *aContext,
     rv = mDirRDF->GetLiteral(str.get(), getter_AddRefs(lit));
 
     if (NS_SUCCEEDED(rv)) {
-      rv = Assert(entry, kNC_URL, lit, true);
+      rv = Assert(entry, kNC_URL, lit, PR_TRUE);
       if (NS_FAILED(rv)) return rv;
       
       nsXPIDLString xpstr;
@@ -427,22 +469,22 @@ nsHTTPIndex::OnIndexAvailable(nsIRequest* aRequest, nsISupports *aContext,
 
       rv = mDirRDF->GetLiteral(xpstr.get(), getter_AddRefs(lit));
       if (NS_FAILED(rv)) return rv;
-      rv = Assert(entry, kNC_Description, lit, true);
+      rv = Assert(entry, kNC_Description, lit, PR_TRUE);
       if (NS_FAILED(rv)) return rv;
       
       
-      int64_t size;
+      PRInt64 size;
       rv = aIndex->GetSize(&size);
       if (NS_FAILED(rv)) return rv;
-      int64_t minus1 = LL_MAXUINT;
+      PRInt64 minus1 = LL_MAXUINT;
       if (LL_NE(size, minus1)) {
-        int32_t intSize;
+        PRInt32 intSize;
         LL_L2I(intSize, size);
         
         nsCOMPtr<nsIRDFInt> val;
         rv = mDirRDF->GetIntLiteral(intSize, getter_AddRefs(val));
         if (NS_FAILED(rv)) return rv;
-        rv = Assert(entry, kNC_ContentLength, val, true);
+        rv = Assert(entry, kNC_ContentLength, val, PR_TRUE);
         if (NS_FAILED(rv)) return rv;
       }
 
@@ -454,11 +496,11 @@ nsHTTPIndex::OnIndexAvailable(nsIRequest* aRequest, nsISupports *aContext,
         nsCOMPtr<nsIRDFDate> val;
         rv = mDirRDF->GetDateLiteral(tm, getter_AddRefs(val));
         if (NS_FAILED(rv)) return rv;
-        rv = Assert(entry, kNC_LastModified, val, true);
+        rv = Assert(entry, kNC_LastModified, val, PR_TRUE);
       }
 
       
-      uint32_t type;
+      PRUint32 type;
       rv = aIndex->GetType(&type);
       switch (type) {
       case nsIDirIndex::TYPE_UNKNOWN:
@@ -476,7 +518,7 @@ nsHTTPIndex::OnIndexAvailable(nsIRequest* aRequest, nsISupports *aContext,
       }
       
       if (NS_FAILED(rv)) return rv;
-      rv = Assert(entry, kNC_FileType, lit, true);
+      rv = Assert(entry, kNC_FileType, lit, PR_TRUE);
       if (NS_FAILED(rv)) return rv;
     }
 
@@ -484,9 +526,9 @@ nsHTTPIndex::OnIndexAvailable(nsIRequest* aRequest, nsISupports *aContext,
     
     
     if (isDirType)
-      Assert(entry, kNC_IsContainer, kTrueLiteral, true);
+      Assert(entry, kNC_IsContainer, kTrueLiteral, PR_TRUE);
     else
-      Assert(entry, kNC_IsContainer, kFalseLiteral, true);
+      Assert(entry, kNC_IsContainer, kFalseLiteral, PR_TRUE);
     
 
 
@@ -511,14 +553,14 @@ nsHTTPIndex::OnInformationAvailable(nsIRequest *aRequest,
 
 
 nsHTTPIndex::nsHTTPIndex()
-  : mBindToGlobalObject(true),
-    mRequestor(nullptr)
+  : mBindToGlobalObject(PR_TRUE),
+    mRequestor(nsnull)
 {
 }
 
 
 nsHTTPIndex::nsHTTPIndex(nsIInterfaceRequestor* aRequestor)
-  : mBindToGlobalObject(true),
+  : mBindToGlobalObject(PR_TRUE),
     mRequestor(aRequestor)
 {
 }
@@ -534,11 +576,11 @@ nsHTTPIndex::~nsHTTPIndex()
         
         
         mTimer->Cancel();
-        mTimer = nullptr;
+        mTimer = nsnull;
     }
 
-    mConnectionList = nullptr;
-    mNodeList = nullptr;
+    mConnectionList = nsnull;
+    mNodeList = nsnull;
     
     if (mDirRDF)
       {
@@ -614,7 +656,7 @@ nsHTTPIndex::Init()
 	if (NS_FAILED(rv))	return(rv);
 
 	
-	rv = mDirRDF->RegisterDataSource(this, false);
+	rv = mDirRDF->RegisterDataSource(this, PR_FALSE);
 	if (NS_FAILED(rv)) return(rv);
 
 	return(NS_OK);
@@ -625,7 +667,7 @@ nsHTTPIndex::Init()
 nsresult
 nsHTTPIndex::Init(nsIURI* aBaseURL)
 {
-  NS_PRECONDITION(aBaseURL != nullptr, "null ptr");
+  NS_PRECONDITION(aBaseURL != nsnull, "null ptr");
   if (! aBaseURL)
     return NS_ERROR_NULL_POINTER;
 
@@ -642,7 +684,7 @@ nsHTTPIndex::Init(nsIURI* aBaseURL)
   
   nsCOMPtr<nsIRDFResource> baseRes;
   mDirRDF->GetResource(mBaseURL, getter_AddRefs(baseRes));
-  Assert(baseRes, kNC_IsContainer, kTrueLiteral, true);
+  Assert(baseRes, kNC_IsContainer, kTrueLiteral, PR_TRUE);
 
   return NS_OK;
 }
@@ -653,7 +695,7 @@ nsresult
 nsHTTPIndex::Create(nsIURI* aBaseURL, nsIInterfaceRequestor* aRequestor,
                     nsIHTTPIndex** aResult)
 {
-  *aResult = nullptr;
+  *aResult = nsnull;
 
   nsHTTPIndex* result = new nsHTTPIndex(aRequestor);
   if (! result)
@@ -698,7 +740,7 @@ void nsHTTPIndex::GetDestination(nsIRDFResource* r, nsXPIDLCString& dest) {
   
   nsCOMPtr<nsIRDFNode> node;
   
-  GetTarget(r, kNC_URL, true, getter_AddRefs(node));
+  GetTarget(r, kNC_URL, PR_TRUE, getter_AddRefs(node));
   nsCOMPtr<nsIRDFLiteral> url;
   
   if (node)
@@ -737,7 +779,7 @@ bool
 nsHTTPIndex::isWellknownContainerURI(nsIRDFResource *r)
 {
   nsCOMPtr<nsIRDFNode> node;
-  GetTarget(r, kNC_IsContainer, true, getter_AddRefs(node));
+  GetTarget(r, kNC_IsContainer, PR_TRUE, getter_AddRefs(node));
   if (node) {
     bool isContainerFlag;
     if (NS_SUCCEEDED(node->EqualsNode(kTrueLiteral, &isContainerFlag)))
@@ -754,11 +796,11 @@ nsHTTPIndex::isWellknownContainerURI(nsIRDFResource *r)
 NS_IMETHODIMP
 nsHTTPIndex::GetURI(char * *uri)
 {
-	NS_PRECONDITION(uri != nullptr, "null ptr");
+	NS_PRECONDITION(uri != nsnull, "null ptr");
 	if (! uri)
 		return(NS_ERROR_NULL_POINTER);
 
-	if ((*uri = nsCRT::strdup("rdf:httpindex")) == nullptr)
+	if ((*uri = nsCRT::strdup("rdf:httpindex")) == nsnull)
 		return(NS_ERROR_OUT_OF_MEMORY);
 
 	return(NS_OK);
@@ -772,7 +814,7 @@ nsHTTPIndex::GetSource(nsIRDFResource *aProperty, nsIRDFNode *aTarget, bool aTru
 {
 	nsresult	rv = NS_ERROR_UNEXPECTED;
 
-	*_retval = nullptr;
+	*_retval = nsnull;
 
 	if (mInner)
 	{
@@ -804,7 +846,7 @@ nsHTTPIndex::GetTarget(nsIRDFResource *aSource, nsIRDFResource *aProperty, bool 
 {
 	nsresult	rv = NS_ERROR_UNEXPECTED;
 
-	*_retval = nullptr;
+	*_retval = nsnull;
 
         if ((aTruthValue) && (aProperty == kNC_Child) && isWellknownContainerURI(aSource))
 	{
@@ -847,7 +889,7 @@ nsHTTPIndex::GetTargets(nsIRDFResource *aSource, nsIRDFResource *aProperty, bool
 			bool hasResults;
 			if (NS_SUCCEEDED((*_retval)->HasMoreElements(&hasResults)) &&
 			    hasResults)
-			  doNetworkRequest = false;
+			  doNetworkRequest = PR_FALSE;
 		}
 
         
@@ -855,7 +897,7 @@ nsHTTPIndex::GetTargets(nsIRDFResource *aSource, nsIRDFResource *aProperty, bool
         
 		if (doNetworkRequest && mConnectionList)
 		{
-		    int32_t connectionIndex = mConnectionList->IndexOf(aSource);
+		    PRInt32 connectionIndex = mConnectionList->IndexOf(aSource);
 		    if (connectionIndex < 0)
 		    {
     		    
@@ -921,15 +963,15 @@ nsHTTPIndex::FireTimer(nsITimer* aTimer, void* aClosure)
   if (!httpIndex)	return;
   
   
-  uint32_t    numItems = 0;
+  PRUint32    numItems = 0;
   if (httpIndex->mConnectionList)
   {
         httpIndex->mConnectionList->Count(&numItems);
         if (numItems > 0)
         {
           nsCOMPtr<nsISupports>   isupports;
-          httpIndex->mConnectionList->GetElementAt((uint32_t)0, getter_AddRefs(isupports));
-          httpIndex->mConnectionList->RemoveElementAt((uint32_t)0);
+          httpIndex->mConnectionList->GetElementAt((PRUint32)0, getter_AddRefs(isupports));
+          httpIndex->mConnectionList->RemoveElementAt((PRUint32)0);
           
           nsCOMPtr<nsIRDFResource>    aSource;
           if (isupports)  aSource = do_QueryInterface(isupports);
@@ -950,7 +992,7 @@ nsHTTPIndex::FireTimer(nsITimer* aTimer, void* aClosure)
           rv = NS_NewURI(getter_AddRefs(url), uri.get());
           nsCOMPtr<nsIChannel>	channel;
           if (NS_SUCCEEDED(rv) && (url)) {
-            rv = NS_NewChannel(getter_AddRefs(channel), url, nullptr, nullptr);
+            rv = NS_NewChannel(getter_AddRefs(channel), url, nsnull, nsnull);
           }
           if (NS_SUCCEEDED(rv) && (channel)) {
             channel->SetNotificationCallbacks(httpIndex);
@@ -967,21 +1009,21 @@ nsHTTPIndex::FireTimer(nsITimer* aTimer, void* aClosure)
             numItems /=3;
             if (numItems > 10)  numItems = 10;
           
-            int32_t loop;
-            for (loop=0; loop<(int32_t)numItems; loop++)
+            PRInt32 loop;
+            for (loop=0; loop<(PRInt32)numItems; loop++)
             {
                 nsCOMPtr<nsISupports>   isupports;
-                httpIndex->mNodeList->GetElementAt((uint32_t)0, getter_AddRefs(isupports));
-                httpIndex->mNodeList->RemoveElementAt((uint32_t)0);
+                httpIndex->mNodeList->GetElementAt((PRUint32)0, getter_AddRefs(isupports));
+                httpIndex->mNodeList->RemoveElementAt((PRUint32)0);
                 nsCOMPtr<nsIRDFResource>    src;
                 if (isupports)  src = do_QueryInterface(isupports);
-                httpIndex->mNodeList->GetElementAt((uint32_t)0, getter_AddRefs(isupports));
-                httpIndex->mNodeList->RemoveElementAt((uint32_t)0);
+                httpIndex->mNodeList->GetElementAt((PRUint32)0, getter_AddRefs(isupports));
+                httpIndex->mNodeList->RemoveElementAt((PRUint32)0);
                 nsCOMPtr<nsIRDFResource>    prop;
                 if (isupports)  prop = do_QueryInterface(isupports);
                 
-                httpIndex->mNodeList->GetElementAt((uint32_t)0, getter_AddRefs(isupports));
-                httpIndex->mNodeList->RemoveElementAt((uint32_t)0);
+                httpIndex->mNodeList->GetElementAt((PRUint32)0, getter_AddRefs(isupports));
+                httpIndex->mNodeList->RemoveElementAt((PRUint32)0);
                 nsCOMPtr<nsIRDFNode>    target;
                 if (isupports)  target = do_QueryInterface(isupports);
                 
@@ -993,7 +1035,7 @@ nsHTTPIndex::FireTimer(nsITimer* aTimer, void* aClosure)
                     }
                     else
                     {
-                        httpIndex->Assert(src, prop, target, true);
+                        httpIndex->Assert(src, prop, target, PR_TRUE);
                     }
                 }
             }                
@@ -1007,7 +1049,7 @@ nsHTTPIndex::FireTimer(nsITimer* aTimer, void* aClosure)
         httpIndex->mConnectionList->Count(&numItems);
         if (numItems > 0)
         {
-            refireTimer = true;
+            refireTimer = PR_TRUE;
         }
         else
         {
@@ -1019,7 +1061,7 @@ nsHTTPIndex::FireTimer(nsITimer* aTimer, void* aClosure)
         httpIndex->mNodeList->Count(&numItems);
         if (numItems > 0)
         {
-            refireTimer = true;
+            refireTimer = PR_TRUE;
         }
         else
         {
@@ -1030,7 +1072,7 @@ nsHTTPIndex::FireTimer(nsITimer* aTimer, void* aClosure)
     
     
     httpIndex->mTimer->Cancel();
-    httpIndex->mTimer = nullptr;
+    httpIndex->mTimer = nsnull;
     
     
     
@@ -1132,7 +1174,7 @@ NS_IMETHODIMP
 nsHTTPIndex::HasArcIn(nsIRDFNode *aNode, nsIRDFResource *aArc, bool *result)
 {
   if (!mInner) {
-    *result = false;
+    *result = PR_FALSE;
     return NS_OK;
   }
   return mInner->HasArcIn(aNode, aArc, result);
@@ -1142,7 +1184,7 @@ NS_IMETHODIMP
 nsHTTPIndex::HasArcOut(nsIRDFResource *aSource, nsIRDFResource *aArc, bool *result)
 {
     if (aArc == kNC_Child && isWellknownContainerURI(aSource)) {
-      *result = true;
+      *result = PR_TRUE;
       return NS_OK;
     }
 
@@ -1150,7 +1192,7 @@ nsHTTPIndex::HasArcOut(nsIRDFResource *aSource, nsIRDFResource *aArc, bool *resu
       return mInner->HasArcOut(aSource, aArc, result);
     }
 
-    *result = false;
+    *result = PR_FALSE;
     return NS_OK;
 }
 
@@ -1170,7 +1212,7 @@ nsHTTPIndex::ArcLabelsOut(nsIRDFResource *aSource, nsISimpleEnumerator **_retval
 {
 	nsresult	rv = NS_ERROR_UNEXPECTED;
 
-	*_retval = nullptr;
+	*_retval = nsnull;
 
 	nsCOMPtr<nsISupportsArray> array;
 	rv = NS_NewISupportsArray(getter_AddRefs(array));
@@ -1258,6 +1300,8 @@ nsHTTPIndex::GetAllCmds(nsIRDFResource *aSource, nsISimpleEnumerator **_retval)
 	return(rv);
 }
 
+#endif 
+
 
 
 
@@ -1291,6 +1335,8 @@ nsDirectoryViewerFactory::CreateInstance(const char *aCommand,
   nsresult rv;
 
   bool viewSource = (PL_strstr(aContentType,"view-source") != 0);
+  
+#ifdef MOZ_RDF
 
   if (!viewSource &&
       Preferences::GetInt("network.dir.format", FORMAT_XUL) == FORMAT_XUL) {
@@ -1319,7 +1365,7 @@ nsDirectoryViewerFactory::CreateInstance(const char *aCommand,
     if (NS_FAILED(rv)) return rv;
     
     nsCOMPtr<nsIChannel> channel;
-    rv = NS_NewChannel(getter_AddRefs(channel), uri, nullptr, aLoadGroup);
+    rv = NS_NewChannel(getter_AddRefs(channel), uri, nsnull, aLoadGroup);
     if (NS_FAILED(rv)) return rv;
     
     nsCOMPtr<nsIStreamListener> listener;
@@ -1328,7 +1374,7 @@ nsDirectoryViewerFactory::CreateInstance(const char *aCommand,
                                  aDocViewerResult);
     if (NS_FAILED(rv)) return rv;
 
-    rv = channel->AsyncOpen(listener, nullptr);
+    rv = channel->AsyncOpen(listener, nsnull);
     if (NS_FAILED(rv)) return rv;
     
     
@@ -1351,6 +1397,7 @@ nsDirectoryViewerFactory::CreateInstance(const char *aCommand,
     
     return NS_OK;
   }
+#endif
 
   
   (void)aChannel->SetContentType(NS_LITERAL_CSTRING("text/html"));
@@ -1388,7 +1435,7 @@ nsDirectoryViewerFactory::CreateInstance(const char *aCommand,
   rv = scs->AsyncConvertData("application/http-index-format",
                              "text/html",
                              listener,
-                             nullptr,
+                             nsnull,
                              aDocListenerResult);
 
   if (NS_FAILED(rv)) return rv;

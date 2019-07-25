@@ -3,12 +3,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "SVGAnimatedPathSegList.h"
 #include "DOMSVGPathSegList.h"
 #include "nsSVGElement.h"
 #include "nsSVGAttrTearoffTable.h"
+#ifdef MOZ_SMIL
 #include "nsSMILValue.h"
 #include "SVGPathSegListSMILType.h"
+#endif 
 
 
 
@@ -37,7 +70,7 @@ SVGAnimatedPathSegList::SetBaseValueString(const nsAString& aValue)
     baseValWrapper->InternalListWillChangeTo(newBaseValue);
   }
 
-  DOMSVGPathSegList* animValWrapper = nullptr;
+  DOMSVGPathSegList* animValWrapper = nsnull;
   if (!IsAnimating()) {  
     animValWrapper = DOMSVGPathSegList::GetDOMWrapperIfExists(GetAnimValKey());
     if (animValWrapper) {
@@ -137,10 +170,11 @@ SVGAnimatedPathSegList::ClearAnimValue(nsSVGElement *aElement)
     
     domWrapper->InternalListWillChangeTo(mBaseVal);
   }
-  mAnimVal = nullptr;
+  mAnimVal = nsnull;
   aElement->DidAnimatePathSegList();
 }
 
+#ifdef MOZ_SMIL
 nsISMILAttr*
 SVGAnimatedPathSegList::ToSMILAttr(nsSVGElement *aElement)
 {
@@ -161,7 +195,7 @@ SVGAnimatedPathSegList::
     list->SetElement(mElement);
     aValue.Swap(val);
   }
-  aPreventCachingOfSandwich = false;
+  aPreventCachingOfSandwich = PR_FALSE;
   return rv;
 }
 
@@ -202,5 +236,6 @@ SVGAnimatedPathSegList::SMILAnimatedPathSegList::ClearAnimValue()
     mVal->ClearAnimValue(mElement);
   }
 }
+#endif 
 
 } 

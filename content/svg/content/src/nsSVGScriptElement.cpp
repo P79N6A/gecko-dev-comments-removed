@@ -4,7 +4,38 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsSVGElement.h"
 #include "nsGkAtoms.h"
@@ -18,7 +49,6 @@
 #include "nsScriptElement.h"
 #include "nsContentUtils.h"
 
-using namespace mozilla;
 using namespace mozilla::dom;
 
 typedef nsSVGElement nsSVGScriptElementBase;
@@ -53,27 +83,23 @@ public:
   virtual void GetScriptText(nsAString& text);
   virtual void GetScriptCharset(nsAString& charset);
   virtual void FreezeUriAsyncDefer();
-  virtual CORSMode GetCORSMode() const;
   
   
   virtual bool HasScriptContent();
 
   
+  virtual void DidChangeString(PRUint8 aAttrEnum);
+
+  
+  virtual nsresult DoneAddingChildren(bool aHaveNotified);
+  virtual bool IsDoneAddingChildren();
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
                               bool aCompileEventHandlers);
-  virtual nsresult AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
-                                const nsAttrValue* aValue, bool aNotify);
-  virtual bool ParseAttribute(int32_t aNamespaceID,
-                              nsIAtom* aAttribute,
-                              const nsAString& aValue,
-                              nsAttrValue& aResult);
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 protected:
   virtual StringAttributesInfo GetStringInfo();
 
@@ -84,7 +110,7 @@ protected:
 
 nsSVGElement::StringInfo nsSVGScriptElement::sStringInfo[1] =
 {
-  { &nsGkAtoms::href, kNameSpaceID_XLink, false }
+  { &nsGkAtoms::href, kNameSpaceID_XLink, PR_FALSE }
 };
 
 NS_IMPL_NS_NEW_SVG_ELEMENT_CHECK_PARSER(Script)
@@ -122,16 +148,15 @@ nsSVGScriptElement::nsSVGScriptElement(already_AddRefed<nsINodeInfo> aNodeInfo,
 nsresult
 nsSVGScriptElement::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
 {
-  *aResult = nullptr;
+  *aResult = nsnull;
 
   nsCOMPtr<nsINodeInfo> ni = aNodeInfo;
   nsSVGScriptElement* it = new nsSVGScriptElement(ni.forget(), NOT_FROM_PARSER);
 
   nsCOMPtr<nsINode> kungFuDeathGrip = it;
-  nsresult rv1 = it->Init();
-  nsresult rv2 = const_cast<nsSVGScriptElement*>(this)->CopyInnerTo(it);
-  NS_ENSURE_SUCCESS(rv1, rv1);
-  NS_ENSURE_SUCCESS(rv2, rv2);
+  nsresult rv = it->Init();
+  rv |= CopyInnerTo(it);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   it->mAlreadyStarted = mAlreadyStarted;
@@ -147,9 +172,18 @@ nsSVGScriptElement::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
 
 
 
-NS_IMPL_STRING_ATTR(nsSVGScriptElement, Type, type)
+NS_IMETHODIMP
+nsSVGScriptElement::GetType(nsAString & aType)
+{
+  GetAttr(kNameSpaceID_None, nsGkAtoms::type, aType);
 
-NS_IMPL_STRING_ATTR(nsSVGScriptElement, CrossOrigin, crossorigin)
+  return NS_OK;
+}
+NS_IMETHODIMP
+nsSVGScriptElement::SetType(const nsAString & aType)
+{
+  return SetAttr(kNameSpaceID_None, nsGkAtoms::type, aType, PR_TRUE); 
+}
 
 
 
@@ -173,7 +207,7 @@ nsSVGScriptElement::GetScriptType(nsAString& type)
 void
 nsSVGScriptElement::GetScriptText(nsAString& text)
 {
-  nsContentUtils::GetNodeTextContent(this, false, text);
+  nsContentUtils::GetNodeTextContent(this, PR_FALSE, text);
 }
 
 void
@@ -189,19 +223,19 @@ nsSVGScriptElement::FreezeUriAsyncDefer()
     return;
   }
 
-  if (mStringAttributes[HREF].IsExplicitlySet()) {
-    
-    
-    nsAutoString src;
-    mStringAttributes[HREF].GetAnimValue(src, this);
-
+  
+  
+  nsAutoString src;
+  mStringAttributes[HREF].GetAnimValue(src, this);
+  
+  if (!src.IsEmpty()) {
     nsCOMPtr<nsIURI> baseURI = GetBaseURI();
-    NS_NewURI(getter_AddRefs(mUri), src, nullptr, baseURI);
+    NS_NewURI(getter_AddRefs(mUri), src, nsnull, baseURI);
     
-    mExternal = true;
+    mExternal = PR_TRUE;
   }
   
-  mFrozen = true;
+  mFrozen = PR_TRUE;
 }
 
 
@@ -210,22 +244,54 @@ nsSVGScriptElement::FreezeUriAsyncDefer()
 bool
 nsSVGScriptElement::HasScriptContent()
 {
-  return (mFrozen ? mExternal : mStringAttributes[HREF].IsExplicitlySet()) ||
+  nsAutoString src;
+  mStringAttributes[HREF].GetAnimValue(src, this);
+  
+  return (mFrozen ? mExternal : !src.IsEmpty()) ||
          nsContentUtils::HasNonEmptyTextContent(this);
 }
 
 
 
 
+void
+nsSVGScriptElement::DidChangeString(PRUint8 aAttrEnum)
+{
+  nsSVGScriptElementBase::DidChangeString(aAttrEnum);
+
+  if (aAttrEnum == HREF) {
+    MaybeProcessScript();
+  }
+}
+
 nsSVGElement::StringAttributesInfo
 nsSVGScriptElement::GetStringInfo()
 {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              ArrayLength(sStringInfo));
+                              NS_ARRAY_LENGTH(sStringInfo));
 }
 
 
 
+
+nsresult
+nsSVGScriptElement::DoneAddingChildren(bool aHaveNotified)
+{
+  mDoneAddingChildren = PR_TRUE;
+  nsresult rv = MaybeProcessScript();
+  if (!mAlreadyStarted) {
+    
+    
+    LoseParserInsertedness();
+  }
+  return rv;
+}
+
+bool
+nsSVGScriptElement::IsDoneAddingChildren()
+{
+  return mDoneAddingChildren;
+}
 
 nsresult
 nsSVGScriptElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
@@ -242,38 +308,5 @@ nsSVGScriptElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   }
 
   return NS_OK;
-}
-
-nsresult
-nsSVGScriptElement::AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
-                                 const nsAttrValue* aValue, bool aNotify)
-{
-  if (aNamespaceID == kNameSpaceID_XLink && aName == nsGkAtoms::href) {
-    MaybeProcessScript();
-  }
-  return nsSVGScriptElementBase::AfterSetAttr(aNamespaceID, aName,
-                                              aValue, aNotify);
-}
-
-bool
-nsSVGScriptElement::ParseAttribute(int32_t aNamespaceID,
-                                   nsIAtom* aAttribute,
-                                   const nsAString& aValue,
-                                   nsAttrValue& aResult)
-{
-  if (aNamespaceID == kNameSpaceID_None &&
-      aAttribute == nsGkAtoms::crossorigin) {
-    ParseCORSValue(aValue, aResult);
-    return true;
-  }
-
-  return nsSVGScriptElementBase::ParseAttribute(aNamespaceID, aAttribute,
-                                                aValue, aResult);
-}
-
-CORSMode
-nsSVGScriptElement::GetCORSMode() const
-{
-  return AttrValueToCORSMode(GetParsedAttr(nsGkAtoms::crossorigin));
 }
 

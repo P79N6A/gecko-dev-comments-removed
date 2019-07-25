@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef StartupCache_h_
 #define StartupCache_h_
 
@@ -21,7 +54,6 @@
 #include "nsIObserver.h"
 #include "nsIOutputStream.h"
 #include "nsIFile.h"
-#include "mozilla/Attributes.h"
 
 
 
@@ -62,8 +94,6 @@
 
 
 
-
-class nsIMemoryReporter;
 
 namespace mozilla {
 namespace scache {
@@ -71,25 +101,21 @@ namespace scache {
 struct CacheEntry 
 {
   nsAutoArrayPtr<char> data;
-  uint32_t size;
+  PRUint32 size;
 
-  CacheEntry() : data(nullptr), size(0) { }
+  CacheEntry() : data(nsnull), size(0) { }
 
   
-  CacheEntry(char* buf, uint32_t len) : data(buf), size(len) { }
+  CacheEntry(char* buf, PRUint32 len) : data(buf), size(len) { }
 
   ~CacheEntry()
   {
-  }
-
-  size_t SizeOfExcludingThis(nsMallocSizeOfFun mallocSizeOf) {
-    return mallocSizeOf(data);
   }
 };
 
 
 
-class StartupCacheListener MOZ_FINAL : public nsIObserver
+class StartupCacheListener : public nsIObserver
 {
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
@@ -106,10 +132,10 @@ public:
   
 
   
-  nsresult GetBuffer(const char* id, char** outbuf, uint32_t* length);
+  nsresult GetBuffer(const char* id, char** outbuf, PRUint32* length);
 
   
-  nsresult PutBuffer(const char* id, const char* inbuf, uint32_t length);
+  nsresult PutBuffer(const char* id, const char* inbuf, PRUint32 length);
 
   
   void InvalidateCache();
@@ -119,28 +145,14 @@ public:
   nsresult GetDebugObjectOutputStream(nsIObjectOutputStream* aStream,
                                       nsIObjectOutputStream** outStream);
 
-  nsresult RecordAgesAlways();
-
   static StartupCache* GetSingleton();
   static void DeleteSingleton();
-
-  
-  
-  size_t HeapSizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf);
-
-  size_t SizeOfMapping();
 
 private:
   StartupCache();
   ~StartupCache();
 
-  enum TelemetrifyAge {
-    IGNORE_AGE = 0,
-    RECORD_AGE = 1
-  };
-  static enum TelemetrifyAge gPostFlushAgeAction;
-
-  nsresult LoadArchive(enum TelemetrifyAge flag);
+  nsresult LoadArchive();
   nsresult Init();
   void WriteToDisk();
   nsresult ResetStartupWriteTimer();
@@ -150,14 +162,9 @@ private:
   static void WriteTimeout(nsITimer *aTimer, void *aClosure);
   static void ThreadedWrite(void *aClosure);
 
-  static size_t SizeOfEntryExcludingThis(const nsACString& key,
-                                         const nsAutoPtr<CacheEntry>& data,
-                                         nsMallocSizeOfFun mallocSizeOf,
-                                         void *);
-
   nsClassHashtable<nsCStringHashKey, CacheEntry> mTable;
-  nsRefPtr<nsZipArchive> mArchive;
-  nsCOMPtr<nsIFile> mFile;
+  nsAutoPtr<nsZipArchive> mArchive;
+  nsCOMPtr<nsILocalFile> mFile;
   
   nsCOMPtr<nsIObserverService> mObserverService;
   nsRefPtr<StartupCacheListener> mListener;
@@ -171,16 +178,13 @@ private:
 #ifdef DEBUG
   nsTHashtable<nsISupportsHashKey> mWriteObjectMap;
 #endif
-
-  nsIMemoryReporter* mMappingMemoryReporter;
-  nsIMemoryReporter* mDataMemoryReporter;
 };
 
 
 
 
 #ifdef DEBUG
-class StartupCacheDebugOutputStream MOZ_FINAL
+class StartupCacheDebugOutputStream
   : public nsIObjectOutputStream
 {  
   NS_DECL_ISUPPORTS
@@ -206,7 +210,7 @@ class StartupCacheDebugOutputStream MOZ_FINAL
       {0xb5, 0x77, 0xf9, 0x23, 0x57, 0xed, 0xa8, 0x84}}
 
 
-class StartupCacheWrapper MOZ_FINAL
+class StartupCacheWrapper 
   : public nsIStartupCache
 {
   NS_DECL_ISUPPORTS
@@ -218,4 +222,4 @@ class StartupCacheWrapper MOZ_FINAL
 
 } 
 } 
-#endif
+#endif 

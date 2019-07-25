@@ -3,16 +3,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_ISMILATTR_H_
 #define NS_ISMILATTR_H_
 
-#include "nscore.h"
+#include "nsStringFwd.h"
 
 class nsSMILValue;
 class nsISMILType;
 class nsISMILAnimationElement;
 class nsIContent;
-class nsAString;
 
 
 
@@ -82,7 +113,7 @@ public:
 
 
 
-  virtual const nsIContent* GetTargetNode() const { return nullptr; }
+  virtual const nsIContent* GetTargetNode() const { return nsnull; }
 
   
 

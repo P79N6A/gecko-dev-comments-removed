@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsCacheDevice_h_
 #define _nsCacheDevice_h_
 
@@ -38,18 +72,18 @@ public:
 
     virtual nsresult OpenInputStreamForEntry(nsCacheEntry *     entry,
                                              nsCacheAccessMode  mode,
-                                             uint32_t           offset,
+                                             PRUint32           offset,
                                              nsIInputStream **  result) = 0;
 
     virtual nsresult OpenOutputStreamForEntry(nsCacheEntry *     entry,
                                               nsCacheAccessMode  mode,
-                                              uint32_t           offset,
+                                              PRUint32           offset,
                                               nsIOutputStream ** result) = 0;
 
     virtual nsresult GetFileForEntry( nsCacheEntry *    entry,
                                       nsIFile **        result ) = 0;
 
-    virtual nsresult OnDataSizeChange( nsCacheEntry * entry, int32_t deltaSize ) = 0;
+    virtual nsresult OnDataSizeChange( nsCacheEntry * entry, PRInt32 deltaSize ) = 0;
 
     virtual nsresult Visit(nsICacheVisitor * visitor) = 0;
 

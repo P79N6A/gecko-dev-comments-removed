@@ -3,20 +3,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_SVGMOTIONSMILANIMATIONFUNCTION_H_
 #define MOZILLA_SVGMOTIONSMILANIMATIONFUNCTION_H_
 
-#include "gfxPath.h"  
-#include "nsAutoPtr.h"
 #include "nsSMILAnimationFunction.h"
-#include "nsTArray.h"
-#include "SVGMotionSMILType.h"  
+#include "SVGMotionSMILType.h" 
+#include "gfxPath.h"  
 
-class nsAttrValue;
-class nsIAtom;
-class nsIContent;
-class nsISMILAttr;
-class nsSMILValue;
 class nsSVGMpathElement;
 
 namespace mozilla {
@@ -31,18 +56,18 @@ class SVGMotionSMILAnimationFunction : public nsSMILAnimationFunction
 {
 public:
   SVGMotionSMILAnimationFunction();
-  virtual bool SetAttr(nsIAtom* aAttribute,
-                       const nsAString& aValue,
-                       nsAttrValue& aResult,
-                       nsresult* aParseResult = nullptr) MOZ_OVERRIDE;
-  virtual bool UnsetAttr(nsIAtom* aAttribute) MOZ_OVERRIDE;
+  NS_OVERRIDE virtual bool SetAttr(nsIAtom* aAttribute,
+                                     const nsAString& aValue,
+                                     nsAttrValue& aResult,
+                                     nsresult* aParseResult = nsnull);
+  NS_OVERRIDE virtual bool UnsetAttr(nsIAtom* aAttribute);
 
   
   
   
   
   
-  void MpathChanged() { mIsPathStale = mHasChanged = true; }
+  void MpathChanged() { mIsPathStale = mHasChanged = PR_TRUE; }
 
 protected:
   enum PathSourceType {
@@ -56,12 +81,12 @@ protected:
     ePathSourceType_Mpath
   };
 
-  virtual nsSMILCalcMode GetCalcMode() const MOZ_OVERRIDE;
-  virtual nsresult GetValues(const nsISMILAttr& aSMILAttr,
-                             nsSMILValueArray& aResult) MOZ_OVERRIDE;
-  virtual void CheckValueListDependentAttrs(uint32_t aNumValues) MOZ_OVERRIDE;
+  NS_OVERRIDE virtual nsSMILCalcMode GetCalcMode() const;
+  NS_OVERRIDE virtual nsresult GetValues(const nsISMILAttr& aSMILAttr,
+                                         nsSMILValueArray& aResult);
+  NS_OVERRIDE virtual void CheckValueListDependentAttrs(PRUint32 aNumValues);
 
-  virtual bool IsToAnimation() const MOZ_OVERRIDE;
+  NS_OVERRIDE virtual bool IsToAnimation() const;
 
   void     CheckKeyPoints();
   nsresult SetKeyPoints(const nsAString& aKeyPoints, nsAttrValue& aResult);

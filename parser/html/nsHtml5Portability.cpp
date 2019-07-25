@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "prtypes.h"
 #include "nsIAtom.h"
 #include "nsString.h"
@@ -9,7 +42,7 @@
 #include "nsHtml5Portability.h"
 
 nsIAtom*
-nsHtml5Portability::newLocalNameFromBuffer(PRUnichar* buf, int32_t offset, int32_t length, nsHtml5AtomTable* interner)
+nsHtml5Portability::newLocalNameFromBuffer(PRUnichar* buf, PRInt32 offset, PRInt32 length, nsHtml5AtomTable* interner)
 {
   NS_ASSERTION(!offset, "The offset should always be zero here.");
   NS_ASSERTION(interner, "Didn't get an atom service.");
@@ -17,7 +50,7 @@ nsHtml5Portability::newLocalNameFromBuffer(PRUnichar* buf, int32_t offset, int32
 }
 
 nsString*
-nsHtml5Portability::newStringFromBuffer(PRUnichar* buf, int32_t offset, int32_t length)
+nsHtml5Portability::newStringFromBuffer(PRUnichar* buf, PRInt32 offset, PRInt32 length)
 {
   return new nsString(buf + offset, length);
 }
@@ -43,22 +76,22 @@ nsHtml5Portability::newStringFromString(nsString* string) {
   return newStr;
 }
 
-jArray<PRUnichar,int32_t>
+jArray<PRUnichar,PRInt32>
 nsHtml5Portability::newCharArrayFromLocal(nsIAtom* local)
 {
   nsAutoString temp;
   local->ToString(temp);
-  int32_t len = temp.Length();
-  jArray<PRUnichar,int32_t> arr = jArray<PRUnichar,int32_t>::newJArray(len);
+  PRInt32 len = temp.Length();
+  jArray<PRUnichar,PRInt32> arr = jArray<PRUnichar,PRInt32>::newJArray(len);
   memcpy(arr, temp.BeginReading(), len * sizeof(PRUnichar));
   return arr;
 }
 
-jArray<PRUnichar,int32_t>
+jArray<PRUnichar,PRInt32>
 nsHtml5Portability::newCharArrayFromString(nsString* string)
 {
-  int32_t len = string->Length();
-  jArray<PRUnichar,int32_t> arr = jArray<PRUnichar,int32_t>::newJArray(len);
+  PRInt32 len = string->Length();
+  jArray<PRUnichar,PRInt32> arr = jArray<PRUnichar,PRInt32>::newJArray(len);
   memcpy(arr, string->BeginReading(), len * sizeof(PRUnichar));
   return arr;
 }
@@ -83,7 +116,7 @@ nsHtml5Portability::releaseString(nsString* str)
 }
 
 bool
-nsHtml5Portability::localEqualsBuffer(nsIAtom* local, PRUnichar* buf, int32_t offset, int32_t length)
+nsHtml5Portability::localEqualsBuffer(nsIAtom* local, PRUnichar* buf, PRInt32 offset, PRInt32 length)
 {
   return local->Equals(nsDependentSubstring(buf + offset, buf + offset + length));
 }
@@ -92,7 +125,7 @@ bool
 nsHtml5Portability::lowerCaseLiteralIsPrefixOfIgnoreAsciiCaseString(const char* lowerCaseLiteral, nsString* string)
 {
   if (!string) {
-    return false;
+    return PR_FALSE;
   }
   const char* litPtr = lowerCaseLiteral;
   const PRUnichar* strPtr = string->BeginReading();
@@ -101,26 +134,26 @@ nsHtml5Portability::lowerCaseLiteralIsPrefixOfIgnoreAsciiCaseString(const char* 
   while ((litChar = *litPtr)) {
     NS_ASSERTION(!(litChar >= 'A' && litChar <= 'Z'), "Literal isn't in lower case.");
     if (strPtr == end) {
-      return false;
+      return PR_FALSE;
     }
     PRUnichar strChar = *strPtr;
     if (strChar >= 'A' && strChar <= 'Z') {
       strChar += 0x20;
     }
     if (litChar != strChar) {
-      return false;
+      return PR_FALSE;
     }
     ++litPtr;
     ++strPtr;
   }
-  return true;
+  return PR_TRUE;
 }
 
 bool
 nsHtml5Portability::lowerCaseLiteralEqualsIgnoreAsciiCaseString(const char* lowerCaseLiteral, nsString* string)
 {
   if (!string) {
-    return false;
+    return PR_FALSE;
   }
   return string->LowerCaseEqualsASCII(lowerCaseLiteral);
 }
@@ -129,7 +162,7 @@ bool
 nsHtml5Portability::literalEqualsString(const char* literal, nsString* string)
 {
   if (!string) {
-    return false;
+    return PR_FALSE;
   }
   return string->EqualsASCII(literal);
 }

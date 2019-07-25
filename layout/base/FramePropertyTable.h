@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef FRAMEPROPERTYTABLE_H_
 #define FRAMEPROPERTYTABLE_H_
 
@@ -63,7 +95,7 @@ struct FramePropertyDescriptor {
 
 class FramePropertyTable {
 public:
-  FramePropertyTable() : mLastFrame(nullptr), mLastEntry(nullptr)
+  FramePropertyTable() : mLastFrame(nsnull), mLastEntry(nsnull)
   {
     mEntries.Init();
   }
@@ -91,7 +123,7 @@ public:
 
 
   void* Get(const nsIFrame* aFrame, const FramePropertyDescriptor* aProperty,
-            bool* aFoundResult = nullptr);
+            bool* aFoundResult = nsnull);
   
 
 
@@ -104,7 +136,7 @@ public:
 
 
   void* Remove(nsIFrame* aFrame, const FramePropertyDescriptor* aProperty,
-               bool* aFoundResult = nullptr);
+               bool* aFoundResult = nsnull);
   
 
 
@@ -122,15 +154,13 @@ public:
 
   void DeleteAll();
 
-  size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
-
 protected:
   
 
 
 
   struct PropertyValue {
-    PropertyValue() : mProperty(nullptr), mValue(nullptr) {}
+    PropertyValue() : mProperty(nsnull), mValue(nsnull) {}
     PropertyValue(const FramePropertyDescriptor* aProperty, void* aValue)
       : mProperty(aProperty), mValue(aValue) {}
 
@@ -147,20 +177,6 @@ protected:
       } else if (mProperty->mDestructorWithFrame) {
         mProperty->mDestructorWithFrame(aFrame, mValue);
       }
-    }
-
-    size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) {
-      size_t n = 0;
-      
-      
-      
-      
-      
-      if (IsArray()) {
-        nsTArray<PropertyValue>* array = ToArray();
-        n += array->SizeOfExcludingThis(aMallocSizeOf);
-      }
-      return n;
     }
 
     const FramePropertyDescriptor* mProperty;
@@ -201,9 +217,6 @@ protected:
   static void DeleteAllForEntry(Entry* aEntry);
   static PLDHashOperator DeleteEnumerator(Entry* aEntry, void* aArg);
 
-  static size_t SizeOfPropertyTableEntryExcludingThis(Entry* aEntry,
-                  nsMallocSizeOfFun aMallocSizeOf, void *);
-
   nsTHashtable<Entry> mEntries;
   nsIFrame* mLastFrame;
   Entry* mLastEntry;
@@ -224,12 +237,12 @@ public:
     mTable->Set(mFrame, aProperty, aValue);
   }
   void* Get(const FramePropertyDescriptor* aProperty,
-            bool* aFoundResult = nullptr) const
+            bool* aFoundResult = nsnull) const
   {
     return mTable->Get(mFrame, aProperty, aFoundResult);
   }
   void* Remove(const FramePropertyDescriptor* aProperty,
-               bool* aFoundResult = nullptr) const
+               bool* aFoundResult = nsnull) const
   {
     return mTable->Remove(mFrame, aProperty, aFoundResult);
   }

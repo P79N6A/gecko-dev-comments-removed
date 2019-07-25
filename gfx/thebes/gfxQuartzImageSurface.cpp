@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "gfxQuartzImageSurface.h"
 
 #include "cairo-quartz.h"
@@ -19,14 +51,14 @@ gfxQuartzImageSurface::gfxQuartzImageSurface(gfxImageSurface *imageSurface)
 
 gfxQuartzImageSurface::gfxQuartzImageSurface(cairo_surface_t *csurf)
 {
-    Init (csurf, true);
+    Init (csurf, PR_TRUE);
 }
 
 gfxQuartzImageSurface::~gfxQuartzImageSurface()
 {
 }
 
-int32_t
+PRInt32
 gfxQuartzImageSurface::KnownMemoryUsed()
 {
   
@@ -41,12 +73,12 @@ already_AddRefed<gfxImageSurface>
 gfxQuartzImageSurface::GetAsImageSurface()
 {
     if (!mSurfaceValid)
-        return nullptr;
+        return nsnull;
 
     cairo_surface_t *isurf = cairo_quartz_image_surface_get_image (CairoSurface());
     if (!isurf) {
         NS_WARNING ("Couldn't obtain an image surface from a QuartzImageSurface?!");
-        return nullptr;
+        return nsnull;
     }
 
     nsRefPtr<gfxASurface> asurf = gfxASurface::Wrap(isurf);

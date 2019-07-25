@@ -3,21 +3,56 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "gfxFT2FontBase.h"
 #include "gfxFT2Utils.h"
-#include "harfbuzz/hb.h"
-
-using namespace mozilla::gfx;
+#include "harfbuzz/hb-blob.h"
 
 gfxFT2FontBase::gfxFT2FontBase(cairo_scaled_font_t *aScaledFont,
                                gfxFontEntry *aFontEntry,
                                const gfxFontStyle *aFontStyle)
-    : gfxFont(aFontEntry, aFontStyle, kAntialiasDefault, aScaledFont),
+    : gfxFont(aFontEntry, aFontStyle),
+      mScaledFont(aScaledFont),
       mSpaceGlyph(0),
-      mHasMetrics(false)
+      mHasMetrics(PR_FALSE)
 {
     cairo_scaled_font_reference(mScaledFont);
-    ConstructFontOptions();
 }
 
 gfxFT2FontBase::~gfxFT2FontBase()
@@ -25,8 +60,8 @@ gfxFT2FontBase::~gfxFT2FontBase()
     cairo_scaled_font_destroy(mScaledFont);
 }
 
-uint32_t
-gfxFT2FontBase::GetGlyph(uint32_t aCharCode)
+PRUint32
+gfxFT2FontBase::GetGlyph(PRUint32 aCharCode)
 {
     
     
@@ -45,10 +80,10 @@ gfxFT2FontBase::GetGlyph(uint32_t aCharCode)
     
 
     struct CmapCacheSlot {
-        uint32_t mCharCode;
-        uint32_t mGlyphIndex;
+        PRUint32 mCharCode;
+        PRUint32 mGlyphIndex;
     };
-    const uint32_t kNumSlots = 256;
+    const PRUint32 kNumSlots = 256;
     static cairo_user_data_key_t sCmapCacheKey;
 
     CmapCacheSlot *slots = static_cast<CmapCacheSlot*>
@@ -88,7 +123,7 @@ gfxFT2FontBase::GetGlyph(uint32_t aCharCode)
 }
 
 void
-gfxFT2FontBase::GetGlyphExtents(uint32_t aGlyph, cairo_text_extents_t* aExtents)
+gfxFT2FontBase::GetGlyphExtents(PRUint32 aGlyph, cairo_text_extents_t* aExtents)
 {
     NS_PRECONDITION(aExtents != NULL, "aExtents must not be NULL");
 
@@ -117,7 +152,7 @@ gfxFT2FontBase::GetMetrics()
         gfxFT2LockedFace(this).GetMetrics(&mMetrics, &mSpaceGlyph);
     }
 
-    SanitizeMetrics(&mMetrics, false);
+    SanitizeMetrics(&mMetrics, PR_FALSE);
 
 #if 0
     
@@ -131,12 +166,12 @@ gfxFT2FontBase::GetMetrics()
     fprintf (stderr, "    uOff: %f uSize: %f stOff: %f stSize: %f suOff: %f suSize: %f\n", mMetrics.underlineOffset, mMetrics.underlineSize, mMetrics.strikeoutOffset, mMetrics.strikeoutSize, mMetrics.superscriptOffset, mMetrics.subscriptOffset);
 #endif
 
-    mHasMetrics = true;
+    mHasMetrics = PR_TRUE;
     return mMetrics;
 }
 
 
-uint32_t
+PRUint32
 gfxFT2FontBase::GetSpaceGlyph()
 {
     NS_ASSERTION(GetStyle()->size != 0,
@@ -146,26 +181,26 @@ gfxFT2FontBase::GetSpaceGlyph()
 }
 
 hb_blob_t *
-gfxFT2FontBase::GetFontTable(uint32_t aTag)
+gfxFT2FontBase::GetFontTable(PRUint32 aTag)
 {
     hb_blob_t *blob;
     if (mFontEntry->GetExistingFontTable(aTag, &blob))
         return blob;
 
-    FallibleTArray<uint8_t> buffer;
+    FallibleTArray<PRUint8> buffer;
     bool haveTable = gfxFT2LockedFace(this).GetFontTable(aTag, buffer);
 
     
     
     return mFontEntry->ShareFontTableAndGetBlob(aTag,
-                                                haveTable ? &buffer : nullptr);
+                                                haveTable ? &buffer : nsnull);
 }
 
-uint32_t
-gfxFT2FontBase::GetGlyph(uint32_t unicode, uint32_t variation_selector)
+PRUint32
+gfxFT2FontBase::GetGlyph(PRUint32 unicode, PRUint32 variation_selector)
 {
     if (variation_selector) {
-        uint32_t id =
+        PRUint32 id =
             gfxFT2LockedFace(this).GetUVSGlyph(unicode, variation_selector);
         if (id)
             return id;
@@ -174,8 +209,8 @@ gfxFT2FontBase::GetGlyph(uint32_t unicode, uint32_t variation_selector)
     return GetGlyph(unicode);
 }
 
-int32_t
-gfxFT2FontBase::GetGlyphWidth(gfxContext *aCtx, uint16_t aGID)
+PRInt32
+gfxFT2FontBase::GetGlyphWidth(gfxContext *aCtx, PRUint16 aGID)
 {
     cairo_text_extents_t extents;
     GetGlyphExtents(aGID, &extents);
@@ -199,7 +234,7 @@ gfxFT2FontBase::SetupCairoFont(gfxContext *aContext)
     if (cairo_scaled_font_status(cairoFont) != CAIRO_STATUS_SUCCESS) {
         
         
-        return false;
+        return PR_FALSE;
     }
     
     
@@ -221,27 +256,5 @@ gfxFT2FontBase::SetupCairoFont(gfxContext *aContext)
     
     
     cairo_set_scaled_font(cr, cairoFont);
-    return true;
-}
-
-void
-gfxFT2FontBase::ConstructFontOptions()
-{
-  NS_LossyConvertUTF16toASCII name(this->GetName());
-  mFontOptions.mName = name.get();
-
-  const gfxFontStyle* style = this->GetStyle();
-  if (style->style == NS_FONT_STYLE_ITALIC) {
-    if (style->weight == NS_FONT_WEIGHT_BOLD) {
-      mFontOptions.mStyle = FONT_STYLE_BOLD_ITALIC;
-    } else {
-      mFontOptions.mStyle = FONT_STYLE_ITALIC;
-    }
-  } else {
-    if (style->weight == NS_FONT_WEIGHT_BOLD) {
-      mFontOptions.mStyle = FONT_STYLE_BOLD;
-    } else {
-      mFontOptions.mStyle = FONT_STYLE_NORMAL;
-    }
-  }
+    return PR_TRUE;
 }

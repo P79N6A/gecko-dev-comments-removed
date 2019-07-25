@@ -3,14 +3,41 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsGkAtoms.h"
 #include "nsCOMPtr.h"
 #include "nsSVGFilterElement.h"
 #include "nsSVGEffects.h"
-
-using namespace mozilla;
 
 nsSVGElement::LengthInfo nsSVGFilterElement::sLengthInfo[4] =
 {
@@ -39,7 +66,7 @@ nsSVGElement::EnumInfo nsSVGFilterElement::sEnumInfo[2] =
 
 nsSVGElement::StringInfo nsSVGFilterElement::sStringInfo[1] =
 {
-  { &nsGkAtoms::href, kNameSpaceID_XLink, true }
+  { &nsGkAtoms::href, kNameSpaceID_XLink, PR_TRUE }
 };
 
 NS_IMPL_NS_NEW_SVG_ELEMENT(Filter)
@@ -53,9 +80,8 @@ NS_IMPL_RELEASE_INHERITED(nsSVGFilterElement,nsSVGFilterElementBase)
 DOMCI_NODE_DATA(SVGFilterElement, nsSVGFilterElement)
 
 NS_INTERFACE_TABLE_HEAD(nsSVGFilterElement)
-  NS_NODE_INTERFACE_TABLE6(nsSVGFilterElement, nsIDOMNode, nsIDOMElement,
-                           nsIDOMSVGElement, nsIDOMSVGTests,
-                           nsIDOMSVGFilterElement,
+  NS_NODE_INTERFACE_TABLE5(nsSVGFilterElement, nsIDOMNode, nsIDOMElement,
+                           nsIDOMSVGElement, nsIDOMSVGFilterElement,
                            nsIDOMSVGURIReference)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(SVGFilterElement)
 NS_INTERFACE_MAP_END_INHERITING(nsSVGFilterElementBase)
@@ -133,9 +159,9 @@ NS_IMETHODIMP nsSVGFilterElement::GetFilterResY(nsIDOMSVGAnimatedInteger * *aFil
 
 
 NS_IMETHODIMP
-nsSVGFilterElement::SetFilterRes(uint32_t filterResX, uint32_t filterResY)
+nsSVGFilterElement::SetFilterRes(PRUint32 filterResX, PRUint32 filterResY)
 {
-  mIntegerPairAttributes[FILTERRES].SetBaseValues(filterResX, filterResY, this);
+  mIntegerPairAttributes[FILTERRES].SetBaseValues(filterResX, filterResY, this, PR_FALSE);
   return NS_OK;
 }
 
@@ -165,7 +191,7 @@ nsSVGFilterElement::IsAttributeMapped(const nsIAtom* name) const
     sTextContentElementsMap,
     sViewportsMap
   };
-  return FindAttributeDependence(name, map) ||
+  return FindAttributeDependence(name, map, NS_ARRAY_LENGTH(map)) ||
     nsSVGGraphicElementBase::IsAttributeMapped(name);
 }
 
@@ -188,39 +214,63 @@ nsSVGFilterElement::Invalidate()
 
 
 
- bool
-nsSVGFilterElement::HasValidDimensions() const
-{
-  return (!mLengthAttributes[WIDTH].IsExplicitlySet() ||
-           mLengthAttributes[WIDTH].GetAnimValInSpecifiedUnits() > 0) &&
-         (!mLengthAttributes[HEIGHT].IsExplicitlySet() || 
-           mLengthAttributes[HEIGHT].GetAnimValInSpecifiedUnits() > 0);
-}
-
 nsSVGElement::LengthAttributesInfo
 nsSVGFilterElement::GetLengthInfo()
 {
   return LengthAttributesInfo(mLengthAttributes, sLengthInfo,
-                              ArrayLength(sLengthInfo));
+                              NS_ARRAY_LENGTH(sLengthInfo));
 }
 
 nsSVGElement::IntegerPairAttributesInfo
 nsSVGFilterElement::GetIntegerPairInfo()
 {
   return IntegerPairAttributesInfo(mIntegerPairAttributes, sIntegerPairInfo,
-                                   ArrayLength(sIntegerPairInfo));
+                                   NS_ARRAY_LENGTH(sIntegerPairInfo));
 }
 
 nsSVGElement::EnumAttributesInfo
 nsSVGFilterElement::GetEnumInfo()
 {
   return EnumAttributesInfo(mEnumAttributes, sEnumInfo,
-                            ArrayLength(sEnumInfo));
+                            NS_ARRAY_LENGTH(sEnumInfo));
 }
 
 nsSVGElement::StringAttributesInfo
 nsSVGFilterElement::GetStringInfo()
 {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              ArrayLength(sStringInfo));
+                              NS_ARRAY_LENGTH(sStringInfo));
+}
+
+inline static void DidAnimateAttr(nsSVGFilterElement *aFilterElement)
+{
+  
+  nsIFrame* frame = aFilterElement->GetPrimaryFrame();
+  if (frame) {
+    nsSVGEffects::InvalidateRenderingObservers(frame);
+  }
+}
+
+void
+nsSVGFilterElement::DidAnimateLength(PRUint8 aAttrEnum)
+{
+  DidAnimateAttr(this);
+}
+
+void
+nsSVGFilterElement::DidAnimateIntegerPair(PRUint8 aAttrEnum)
+{
+  DidAnimateAttr(this);
+}
+
+void
+nsSVGFilterElement::DidAnimateEnum(PRUint8 aAttrEnum)
+{
+  DidAnimateAttr(this);
+}
+
+void
+nsSVGFilterElement::DidAnimateString(PRUint8 aAttrEnum)
+{
+  DidAnimateAttr(this);
 }

@@ -5,6 +5,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsINIParser_h__
 #define nsINIParser_h__
 
@@ -18,7 +53,7 @@
 
 #include <stdio.h>
 
-class nsIFile;
+class nsILocalFile;
 
 class NS_COM_GLUE nsINIParser
 {
@@ -32,7 +67,7 @@ public:
 
 
 
-    nsresult Init(nsIFile* aFile);
+    nsresult Init(nsILocalFile* aFile);
 
     
 
@@ -94,7 +129,7 @@ public:
 
 
     nsresult GetString(const char *aSection, const char* aKey,
-                       char *aResult, uint32_t aResultLen);
+                       char *aResult, PRUint32 aResultLen);
 
 private:
     struct INIValue

@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsXBLPrototypeHandler_h__
 #define nsXBLPrototypeHandler_h__
 
@@ -50,27 +83,24 @@ public:
                         const PRUnichar* aPreventDefault,
                         const PRUnichar* aAllowUntrusted,
                         nsXBLPrototypeBinding* aBinding,
-                        uint32_t aLineNumber);
+                        PRUint32 aLineNumber);
 
   
   nsXBLPrototypeHandler(nsIContent* aKeyElement);
-
-  
-  nsXBLPrototypeHandler(nsXBLPrototypeBinding* aBinding);
 
   ~nsXBLPrototypeHandler();
 
   
   bool KeyEventMatched(nsIDOMKeyEvent* aKeyEvent,
-                         uint32_t aCharCode = 0,
+                         PRUint32 aCharCode = 0,
                          bool aIgnoreShiftKey = false);
   inline bool KeyEventMatched(nsIAtom* aEventType,
                                 nsIDOMKeyEvent* aEvent,
-                                uint32_t aCharCode = 0,
+                                PRUint32 aCharCode = 0,
                                 bool aIgnoreShiftKey = false)
   {
     if (aEventType != mEventName)
-      return false;
+      return PR_FALSE;
 
     return KeyEventMatched(aEvent, aCharCode, aIgnoreShiftKey);
   }
@@ -80,7 +110,7 @@ public:
                                   nsIDOMMouseEvent* aEvent)
   {
     if (aEventType != mEventName)
-      return false;
+      return PR_FALSE;
 
     return MouseEventMatched(aEvent);
   }
@@ -89,8 +119,8 @@ public:
 
   void AppendHandlerText(const nsAString& aText);
 
-  uint8_t GetPhase() { return mPhase; }
-  uint8_t GetType() { return mType; }
+  PRUint8 GetPhase() { return mPhase; }
+  PRUint8 GetType() { return mType; }
 
   nsXBLPrototypeHandler* GetNextHandler() { return mNextHandler; }
   void SetNextHandler(nsXBLPrototypeHandler* aHandler) { mNextHandler = aHandler; }
@@ -127,31 +157,21 @@ public:
     return (mType & NS_HANDLER_ALLOW_UNTRUSTED) != 0;
   }
 
-  nsresult Read(nsIScriptContext* aContext, nsIObjectInputStream* aStream);
-  nsresult Write(nsIScriptContext* aContext, nsIObjectOutputStream* aStream);
-
 public:
-  static uint32_t gRefCnt;
+  static PRUint32 gRefCnt;
   
 protected:
-  void Init() {
-    ++gRefCnt;
-    if (gRefCnt == 1)
-      
-      InitAccessKeys();
-  }
-
   already_AddRefed<nsIController> GetController(nsIDOMEventTarget* aTarget);
   
-  inline int32_t GetMatchingKeyCode(const nsAString& aKeyName);
+  inline PRInt32 GetMatchingKeyCode(const nsAString& aKeyName);
   void ConstructPrototype(nsIContent* aKeyElement, 
-                          const PRUnichar* aEvent=nullptr, const PRUnichar* aPhase=nullptr,
-                          const PRUnichar* aAction=nullptr, const PRUnichar* aCommand=nullptr,
-                          const PRUnichar* aKeyCode=nullptr, const PRUnichar* aCharCode=nullptr,
-                          const PRUnichar* aModifiers=nullptr, const PRUnichar* aButton=nullptr,
-                          const PRUnichar* aClickCount=nullptr, const PRUnichar* aGroup=nullptr,
-                          const PRUnichar* aPreventDefault=nullptr,
-                          const PRUnichar* aAllowUntrusted=nullptr);
+                          const PRUnichar* aEvent=nsnull, const PRUnichar* aPhase=nsnull,
+                          const PRUnichar* aAction=nsnull, const PRUnichar* aCommand=nsnull,
+                          const PRUnichar* aKeyCode=nsnull, const PRUnichar* aCharCode=nsnull,
+                          const PRUnichar* aModifiers=nsnull, const PRUnichar* aButton=nsnull,
+                          const PRUnichar* aClickCount=nsnull, const PRUnichar* aGroup=nsnull,
+                          const PRUnichar* aPreventDefault=nsnull,
+                          const PRUnichar* aAllowUntrusted=nsnull);
 
   void ReportKeyConflict(const PRUnichar* aKey, const PRUnichar* aModifiers, nsIContent* aElement, const char *aMessageName);
   void GetEventType(nsAString& type);
@@ -161,26 +181,24 @@ protected:
   nsresult DispatchXULKeyCommand(nsIDOMEvent* aEvent);
   nsresult EnsureEventHandler(nsIScriptGlobalObject* aGlobal,
                               nsIScriptContext *aBoundContext, nsIAtom *aName,
-                              nsScriptObjectHolder<JSObject>& aHandler);
-  static int32_t KeyToMask(int32_t key);
+                              nsScriptObjectHolder &aHandler);
+  static PRInt32 KeyToMask(PRInt32 key);
   
-  static int32_t kAccelKey;
-  static int32_t kMenuAccessKey;
+  static PRInt32 kAccelKey;
+  static PRInt32 kMenuAccessKey;
   static void InitAccessKeys();
 
-  static const int32_t cShift;
-  static const int32_t cAlt;
-  static const int32_t cControl;
-  static const int32_t cMeta;
-  static const int32_t cOS;
+  static const PRInt32 cShift;
+  static const PRInt32 cAlt;
+  static const PRInt32 cControl;
+  static const PRInt32 cMeta;
 
-  static const int32_t cShiftMask;
-  static const int32_t cAltMask;
-  static const int32_t cControlMask;
-  static const int32_t cMetaMask;
-  static const int32_t cOSMask;
+  static const PRInt32 cShiftMask;
+  static const PRInt32 cAltMask;
+  static const PRInt32 cControlMask;
+  static const PRInt32 cMetaMask;
 
-  static const int32_t cAllModifiers;
+  static const PRInt32 cAllModifiers;
 
 protected:
   union {
@@ -191,23 +209,22 @@ protected:
                                         
   };
 
-  uint32_t mLineNumber;  
+  PRUint32 mLineNumber;  
   
   
-  uint8_t mPhase;            
-  uint8_t mType;             
+  PRUint8 mPhase;            
+  PRUint8 mKeyMask;          
+                             
+  PRUint8 mType;             
                              
                              
                              
-  uint8_t mMisc;             
+  PRUint8 mMisc;             
                              
                              
 
-  int32_t mKeyMask;          
-                             
- 
   
-  int32_t mDetail;           
+  PRInt32 mDetail;           
                              
 
   

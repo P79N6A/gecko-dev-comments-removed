@@ -9,6 +9,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsXULElement_h__
 #define nsXULElement_h__
 
@@ -25,10 +62,12 @@
 #include "nsEventListenerManager.h"
 #include "nsIRDFCompositeDataSource.h"
 #include "nsIRDFResource.h"
+#include "nsIScriptObjectOwner.h"
 #include "nsBindingManager.h"
 #include "nsIURI.h"
 #include "nsIXULTemplateBuilder.h"
 #include "nsIBoxObject.h"
+#include "nsIXBLService.h"
 #include "nsLayoutCID.h"
 #include "nsAttrAndChildArray.h"
 #include "nsGkAtoms.h"
@@ -36,7 +75,6 @@
 #include "nsStyledElement.h"
 #include "nsDOMScriptObjectHolder.h"
 #include "nsIFrameLoader.h"
-#include "jspubtd.h"
 
 class nsIDocument;
 class nsString;
@@ -73,7 +111,8 @@ class nsXULPrototypeAttribute
 {
 public:
     nsXULPrototypeAttribute()
-        : mName(nsGkAtoms::id)  
+        : mName(nsGkAtoms::id),  
+          mEventHandler(nsnull)
     {
         XUL_PROTOTYPE_ATTRIBUTE_METER(gNumAttributes);
         MOZ_COUNT_CTOR(nsXULPrototypeAttribute);
@@ -83,16 +122,61 @@ public:
 
     nsAttrName mName;
     nsAttrValue mValue;
+    
+    
+    
+    void* mEventHandler;
 
 #ifdef XUL_PROTOTYPE_ATTRIBUTE_METERING
-    static uint32_t   gNumElements;
-    static uint32_t   gNumAttributes;
-    static uint32_t   gNumCacheTests;
-    static uint32_t   gNumCacheHits;
-    static uint32_t   gNumCacheSets;
-    static uint32_t   gNumCacheFills;
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    static PRUint32   gNumElements;
+    static PRUint32   gNumAttributes;
+    static PRUint32   gNumEventHandlers;
+    static PRUint32   gNumCacheTests;
+    static PRUint32   gNumCacheHits;
+    static PRUint32   gNumCacheSets;
+    static PRUint32   gNumCacheFills;
 #endif 
 };
+
+
 
 
 
@@ -109,6 +193,8 @@ public:
 
     Type                     mType;
 
+    nsAutoRefCnt             mRefCnt;
+
     virtual ~nsXULPrototypeNode() {}
     virtual nsresult Serialize(nsIObjectOutputStream* aStream,
                                nsIScriptGlobalObject* aGlobal,
@@ -120,9 +206,20 @@ public:
 
 #ifdef NS_BUILD_REFCNT_LOGGING
     virtual const char* ClassName() = 0;
-    virtual uint32_t ClassSize() = 0;
+    virtual PRUint32 ClassSize() = 0;
 #endif
 
+    void AddRef() {
+        ++mRefCnt;
+        NS_LOG_ADDREF(this, mRefCnt, ClassName(), ClassSize());
+    }
+    void Release()
+    {
+        --mRefCnt;
+        NS_LOG_RELEASE(this, mRefCnt, ClassName());
+        if (mRefCnt == 0)
+            delete this;
+    }
     
 
 
@@ -134,7 +231,6 @@ public:
     virtual void ReleaseSubtree() { }
 
     NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(nsXULPrototypeNode)
-    NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(nsXULPrototypeNode)
 
 protected:
     nsXULPrototypeNode(Type aType)
@@ -147,10 +243,12 @@ public:
     nsXULPrototypeElement()
         : nsXULPrototypeNode(eType_Element),
           mNumAttributes(0),
-          mHasIdAttribute(false),
-          mHasClassAttribute(false),
-          mHasStyleAttribute(false),
-          mAttributes(nullptr)
+          mAttributes(nsnull),
+          mHasIdAttribute(PR_FALSE),
+          mHasClassAttribute(PR_FALSE),
+          mHasStyleAttribute(PR_FALSE),
+          mHoldsScriptObject(PR_FALSE),
+          mScriptTypeID(nsIProgrammingLanguage::UNKNOWN)
     {
     }
 
@@ -161,12 +259,12 @@ public:
 
 #ifdef NS_BUILD_REFCNT_LOGGING
     virtual const char* ClassName() { return "nsXULPrototypeElement"; }
-    virtual uint32_t ClassSize() { return sizeof(*this); }
+    virtual PRUint32 ClassSize() { return sizeof(*this); }
 #endif
 
     virtual void ReleaseSubtree()
     {
-        for (int32_t i = mChildren.Length() - 1; i >= 0; i--) {
+        for (PRInt32 i = mChildren.Length() - 1; i >= 0; i--) {
             if (mChildren[i].get())
                 mChildren[i]->ReleaseSubtree();
         }
@@ -182,7 +280,7 @@ public:
                                  nsIURI* aDocumentURI,
                                  const nsCOMArray<nsINodeInfo> *aNodeInfos);
 
-    nsresult SetAttrAt(uint32_t aPos, const nsAString& aValue, nsIURI* aDocumentURI);
+    nsresult SetAttrAt(PRUint32 aPos, const nsAString& aValue, nsIURI* aDocumentURI);
 
     void Unlink();
 
@@ -190,11 +288,19 @@ public:
 
     nsCOMPtr<nsINodeInfo>    mNodeInfo;           
 
-    uint32_t                 mNumAttributes:29;
-    uint32_t                 mHasIdAttribute:1;
-    uint32_t                 mHasClassAttribute:1;
-    uint32_t                 mHasStyleAttribute:1;
+    PRUint32                 mNumAttributes;
     nsXULPrototypeAttribute* mAttributes;         
+    
+    bool                     mHasIdAttribute:1;
+    bool                     mHasClassAttribute:1;
+    bool                     mHasStyleAttribute:1;
+    bool                     mHoldsScriptObject:1;
+
+    
+    
+    
+    
+    PRUint16                 mScriptTypeID;
 };
 
 class nsXULDocument;
@@ -202,12 +308,12 @@ class nsXULDocument;
 class nsXULPrototypeScript : public nsXULPrototypeNode
 {
 public:
-    nsXULPrototypeScript(uint32_t aLineNo, uint32_t version);
+    nsXULPrototypeScript(PRUint32 aLangID, PRUint32 aLineNo, PRUint32 version);
     virtual ~nsXULPrototypeScript();
 
 #ifdef NS_BUILD_REFCNT_LOGGING
     virtual const char* ClassName() { return "nsXULPrototypeScript"; }
-    virtual uint32_t ClassSize() { return sizeof(*this); }
+    virtual PRUint32 ClassSize() { return sizeof(*this); }
 #endif
 
     virtual nsresult Serialize(nsIObjectOutputStream* aStream,
@@ -222,33 +328,38 @@ public:
     nsresult DeserializeOutOfLine(nsIObjectInputStream* aInput,
                                   nsIScriptGlobalObject* aGlobal);
 
-    nsresult Compile(const PRUnichar* aText, int32_t aTextLength,
-                     nsIURI* aURI, uint32_t aLineNo,
+    nsresult Compile(const PRUnichar* aText, PRInt32 aTextLength,
+                     nsIURI* aURI, PRUint32 aLineNo,
                      nsIDocument* aDocument,
                      nsIScriptGlobalObjectOwner* aGlobalOwner);
 
     void UnlinkJSObjects();
 
-    void Set(nsScriptObjectHolder<JSScript>& aHolder)
+    void Set(nsScriptObjectHolder &aHolder)
     {
-        Set(aHolder.get());
+        NS_ASSERTION(mScriptObject.mLangID == aHolder.getScriptTypeID(),
+                     "Wrong language, this will leak the previous object.");
+
+        mScriptObject.mLangID = aHolder.getScriptTypeID();
+        Set((void*)aHolder);
     }
-    void Set(JSScript* aObject);
+    void Set(void *aObject);
 
     struct ScriptObjectHolder
     {
-        ScriptObjectHolder() : mObject(nullptr)
+        ScriptObjectHolder(PRUint32 aLangID) : mLangID(aLangID),
+                                               mObject(nsnull)
         {
         }
-        JSScript* mObject;
+        PRUint32 mLangID;
+        void* mObject;
     };
-
     nsCOMPtr<nsIURI>         mSrcURI;
-    uint32_t                 mLineNo;
+    PRUint32                 mLineNo;
     bool                     mSrcLoading;
     bool                     mOutOfLine;
     nsXULDocument*           mSrcLoadWaiters;   
-    uint32_t                 mLangVersion;
+    PRUint32                 mLangVersion;
     ScriptObjectHolder       mScriptObject;
 };
 
@@ -266,7 +377,7 @@ public:
 
 #ifdef NS_BUILD_REFCNT_LOGGING
     virtual const char* ClassName() { return "nsXULPrototypeText"; }
-    virtual uint32_t ClassSize() { return sizeof(*this); }
+    virtual PRUint32 ClassSize() { return sizeof(*this); }
 #endif
 
     virtual nsresult Serialize(nsIObjectOutputStream* aStream,
@@ -294,7 +405,7 @@ public:
 
 #ifdef NS_BUILD_REFCNT_LOGGING
     virtual const char* ClassName() { return "nsXULPrototypePI"; }
-    virtual uint32_t ClassSize() { return sizeof(*this); }
+    virtual PRUint32 ClassSize() { return sizeof(*this); }
 #endif
 
     virtual nsresult Serialize(nsIObjectOutputStream* aStream,
@@ -333,8 +444,22 @@ public:
     {
         if (aContent->IsXUL())
             return static_cast<nsXULElement*>(aContent);
-        return nullptr;
+        return nsnull;
     }
+
+public:
+    static nsIXBLService* GetXBLService() {
+        if (!gXBLService)
+            CallGetService("@mozilla.org/xbl;1", &gXBLService);
+        return gXBLService;
+    }
+    static void ReleaseGlobals() {
+        NS_IF_RELEASE(gXBLService);
+    }
+
+protected:
+    
+    static nsIXBLService*       gXBLService;
 
 public:
     nsXULElement(already_AddRefed<nsINodeInfo> aNodeInfo);
@@ -356,27 +481,47 @@ public:
                                 nsIContent* aBindingParent,
                                 bool aCompileEventHandlers);
     virtual void UnbindFromTree(bool aDeep, bool aNullParent);
-    virtual void RemoveChildAt(uint32_t aIndex, bool aNotify);
+    virtual nsresult RemoveChildAt(PRUint32 aIndex, bool aNotify);
+    virtual bool GetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
+                           nsAString& aResult) const;
+    virtual bool HasAttr(PRInt32 aNameSpaceID, nsIAtom* aName) const;
+    virtual bool AttrValueIs(PRInt32 aNameSpaceID, nsIAtom* aName,
+                               const nsAString& aValue,
+                               nsCaseTreatment aCaseSensitive) const;
+    virtual bool AttrValueIs(PRInt32 aNameSpaceID, nsIAtom* aName,
+                               nsIAtom* aValue,
+                               nsCaseTreatment aCaseSensitive) const;
+    virtual PRInt32 FindAttrValueIn(PRInt32 aNameSpaceID,
+                                    nsIAtom* aName,
+                                    AttrValuesArray* aValues,
+                                    nsCaseTreatment aCaseSensitive) const;
+    virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
+                               bool aNotify);
+    virtual const nsAttrName* GetAttrNameAt(PRUint32 aIndex) const;
+    virtual PRUint32 GetAttrCount() const;
     virtual void DestroyContent();
 
 #ifdef DEBUG
-    virtual void List(FILE* out, int32_t aIndent) const;
-    virtual void DumpContent(FILE* out, int32_t aIndent,bool aDumpAll) const
+    virtual void List(FILE* out, PRInt32 aIndent) const;
+    virtual void DumpContent(FILE* out, PRInt32 aIndent,bool aDumpAll) const
     {
     }
 #endif
 
     virtual void PerformAccesskey(bool aKeyCausesActivation,
                                   bool aIsTrustedEvent);
-    nsresult ClickWithInputSource(uint16_t aInputSource);
+    nsresult ClickWithInputSource(PRUint16 aInputSource);
 
     virtual nsIContent *GetBindingParent() const;
-    virtual bool IsNodeOfType(uint32_t aFlags) const;
-    virtual bool IsFocusable(int32_t *aTabIndex = nullptr, bool aWithMouse = false);
+    virtual bool IsNodeOfType(PRUint32 aFlags) const;
+    virtual bool IsFocusable(PRInt32 *aTabIndex = nsnull, bool aWithMouse = false);
+    virtual nsIAtom* DoGetID() const;
+    virtual const nsAttrValue* DoGetClasses() const;
 
     NS_IMETHOD WalkContentStyleRules(nsRuleWalker* aRuleWalker);
+    virtual mozilla::css::StyleRule* GetInlineStyleRule();
     virtual nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute,
-                                                int32_t aModType) const;
+                                                PRInt32 aModType) const;
     NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;
 
     
@@ -400,6 +545,8 @@ public:
     virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
     virtual nsEventStates IntrinsicState() const;
 
+    nsresult EnsureLocalStyle();
+
     nsresult GetFrameLoader(nsIFrameLoader** aFrameLoader);
     already_AddRefed<nsFrameLoader> GetFrameLoader();
     nsresult SwapFrameLoaders(nsIFrameLoaderOwner* aOtherOwner);
@@ -414,10 +561,18 @@ public:
       mBindingParent = aBindingParent;
     }
 
-    virtual nsXPCClassInfo* GetClassInfo();
+    
 
-    virtual nsIDOMNode* AsDOMNode() { return this; }
+
+
+
+    virtual nsAttrInfo GetAttrInfo(PRInt32 aNamespaceID, nsIAtom* aName) const;
+
+    virtual nsXPCClassInfo* GetClassInfo();
 protected:
+    
+    
+    friend class nsNodeUtils;
 
     
     friend class nsNSElementTearoff;
@@ -451,6 +606,9 @@ protected:
     nsresult LoadSrc();
 
     
+    nsRefPtr<nsXULPrototypeElement>     mPrototype;
+
+    
 
 
 
@@ -459,17 +617,21 @@ protected:
     
 
 
-    nsresult MakeHeavyweight(nsXULPrototypeElement* aPrototype);
+    nsresult MakeHeavyweight();
 
-    virtual nsresult BeforeSetAttr(int32_t aNamespaceID, nsIAtom* aName,
-                                   const nsAttrValueOrString* aValue,
-                                   bool aNotify);
-    virtual nsresult AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
-                                  const nsAttrValue* aValue, bool aNotify);
+    const nsAttrValue* FindLocalOrProtoAttr(PRInt32 aNameSpaceID,
+                                            nsIAtom *aName) const {
+        return nsXULElement::GetAttrInfo(aNameSpaceID, aName).mValue;
+    }
+
+    virtual nsresult BeforeSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
+                                   const nsAString* aValue, bool aNotify);
+    virtual nsresult AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
+                                  const nsAString* aValue, bool aNotify);
 
     virtual void UpdateEditableState(bool aNotify);
 
-    virtual bool ParseAttribute(int32_t aNamespaceID,
+    virtual bool ParseAttribute(PRInt32 aNamespaceID,
                                   nsIAtom* aAttribute,
                                   const nsAString& aValue,
                                   nsAttrValue& aResult);
@@ -477,6 +639,11 @@ protected:
     virtual nsEventListenerManager*
       GetEventListenerManagerForAttr(nsIAtom* aAttrName, bool* aDefer);
   
+    
+
+
+    nsXULPrototypeAttribute *FindPrototypeAttribute(PRInt32 aNameSpaceID,
+                                                    nsIAtom *aName) const;
     
 
 
@@ -488,11 +655,13 @@ protected:
 
     
     nsresult HideWindowChrome(bool aShouldHide);
-    void SetChromeMargins(const nsAttrValue* aValue);
+    void SetChromeMargins(const nsAString* aValue);
     void ResetChromeMargins();
     void SetTitlebarColor(nscolor aColor, bool aActive);
 
     void SetDrawsInTitlebar(bool aState);
+
+    const nsAttrName* InternalGetExistingAttrNameFromQName(const nsAString& aStr) const;
 
     void RemoveBroadcaster(const nsAString & broadcasterId);
 
@@ -501,7 +670,7 @@ protected:
     
     nsIControllers *Controllers() {
       nsDOMSlots* slots = GetExistingDOMSlots();
-      return slots ? slots->mControllers : nullptr; 
+      return slots ? slots->mControllers : nsnull; 
     }
 
     void UnregisterAccessKey(const nsAString& aOldValue);
@@ -516,6 +685,8 @@ protected:
     Create(nsXULPrototypeElement* aPrototype, nsINodeInfo *aNodeInfo,
            bool aIsScriptable);
 
+    friend class nsScriptEventHandlerOwnerTearoff;
+
     bool IsReadWriteTextElement() const
     {
         const nsIAtom* tag = Tag();
@@ -526,4 +697,4 @@ protected:
     }
 };
 
-#endif
+#endif 

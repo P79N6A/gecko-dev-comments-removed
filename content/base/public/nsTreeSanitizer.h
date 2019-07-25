@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsTreeSanitizer_h_
 #define nsTreeSanitizer_h_
 
@@ -9,10 +42,6 @@
 #include "mozilla/css/StyleRule.h"
 #include "nsIPrincipal.h"
 #include "mozilla/dom/Element.h"
-
-
-
-
 
 class NS_STACK_CLASS nsTreeSanitizer {
 
@@ -23,7 +52,8 @@ class NS_STACK_CLASS nsTreeSanitizer {
 
 
 
-    nsTreeSanitizer(uint32_t aFlags = 0);
+
+    nsTreeSanitizer(bool aAllowStyles, bool aAllowComments);
 
     static void InitializeStatics();
     static void ReleaseStatics();
@@ -36,14 +66,6 @@ class NS_STACK_CLASS nsTreeSanitizer {
 
 
     void Sanitize(nsIContent* aFragment);
-
-    
-
-
-
-
-
-    void Sanitize(nsIDocument* aDocument);
 
   private:
 
@@ -60,38 +82,11 @@ class NS_STACK_CLASS nsTreeSanitizer {
     
 
 
-    bool mDropNonCSSPresentation;
-
-    
-
-
-    bool mDropForms;
-
-    
-
-
-    bool mCidEmbedsOnly;
-
-    
-
-
-    bool mDropMedia;
-
-    
-
-
-    bool mFullDocument;
-
-    void SanitizeChildren(nsINode* aRoot);
-
-    
 
 
 
 
-
-
-    bool MustFlatten(int32_t aNamespace, nsIAtom* aLocal);
+    bool MustFlatten(PRInt32 aNamespace, nsIAtom* aLocal);
 
     
 
@@ -101,7 +96,7 @@ class NS_STACK_CLASS nsTreeSanitizer {
 
 
 
-    bool MustPrune(int32_t aNamespace,
+    bool MustPrune(PRInt32 aNamespace,
                      nsIAtom* aLocal,
                      mozilla::dom::Element* aElement);
 
@@ -145,7 +140,7 @@ class NS_STACK_CLASS nsTreeSanitizer {
 
 
     bool SanitizeURL(mozilla::dom::Element* aElement,
-                       int32_t aNamespace,
+                       PRInt32 aNamespace,
                        nsIAtom* aLocalName);
 
     
@@ -180,22 +175,12 @@ class NS_STACK_CLASS nsTreeSanitizer {
     
 
 
-    void RemoveAllAttributes(nsIContent* aElement);
-
-    
-
-
     static nsTHashtable<nsISupportsHashKey>* sElementsHTML;
 
     
 
 
     static nsTHashtable<nsISupportsHashKey>* sAttributesHTML;
-
-    
-
-
-    static nsTHashtable<nsISupportsHashKey>* sPresAttributesHTML;
 
     
 

@@ -3,7 +3,40 @@
 
 
 
-#include "nsError.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "txError.h"
 #include "txExpr.h"
 #include "nsString.h"
 #include "txIXPathContext.h"
@@ -11,7 +44,7 @@
 nsresult
 txErrorExpr::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
 {
-    *aResult = nullptr;
+    *aResult = nsnull;
 
     nsAutoString err(NS_LITERAL_STRING("Invalid expression evaluated"));
 #ifdef TX_TO_STRING
@@ -31,7 +64,7 @@ txErrorExpr::isSensitiveTo(ContextSensitivity aContext)
 {
     
     
-    return true;
+    return PR_TRUE;
 }
 
 #ifdef TX_TO_STRING

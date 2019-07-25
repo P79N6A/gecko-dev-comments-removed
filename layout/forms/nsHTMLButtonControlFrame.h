@@ -3,11 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsHTMLButtonControlFrame_h___
 #define nsHTMLButtonControlFrame_h___
 
 #include "nsCOMPtr.h"
-#include "nsContainerFrame.h"
+#include "nsHTMLContainerFrame.h"
 #include "nsIFormControlFrame.h"
 #include "nsHTMLParts.h"
 
@@ -22,7 +54,7 @@
 class nsRenderingContext;
 class nsPresContext;
 
-class nsHTMLButtonControlFrame : public nsContainerFrame,
+class nsHTMLButtonControlFrame : public nsHTMLContainerFrame,
                                  public nsIFormControlFrame 
 {
 public:
@@ -55,8 +87,8 @@ public:
                    nsIFrame*        aParent,
                    nsIFrame*        asPrevInFlow);
 
-  virtual nsStyleContext* GetAdditionalStyleContext(int32_t aIndex) const;
-  virtual void SetAdditionalStyleContext(int32_t aIndex, 
+  virtual nsStyleContext* GetAdditionalStyleContext(PRInt32 aIndex) const;
+  virtual void SetAdditionalStyleContext(PRInt32 aIndex, 
                                          nsStyleContext* aStyleContext);
  
   NS_IMETHOD AppendFrames(ChildListID     aListID,
@@ -70,7 +102,7 @@ public:
                          nsIFrame*       aOldFrame);
 
 #ifdef ACCESSIBILITY
-  virtual already_AddRefed<Accessible> CreateAccessible();
+  virtual already_AddRefed<nsAccessible> CreateAccessible();
 #endif
 
   virtual nsIAtom* GetType() const;
@@ -93,9 +125,9 @@ public:
     return GetFirstPrincipalChild()->GetContentInsertionFrame();
   }
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
-    return nsContainerFrame::IsFrameOfType(aFlags &
+    return nsHTMLContainerFrame::IsFrameOfType(aFlags &
       ~(nsIFrame::eReplaced | nsIFrame::eReplacedContainsBlock));
   }
 
@@ -108,7 +140,7 @@ protected:
                             nsMargin aFocusPadding,
                             nsReflowStatus& aStatus);
 
-  int GetSkipSides() const;
+  PRIntn GetSkipSides() const;
   nsButtonFrameRenderer mRenderer;
 };
 

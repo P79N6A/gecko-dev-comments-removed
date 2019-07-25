@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsDOMString_h___
 #define nsDOMString_h___
 
@@ -15,7 +49,7 @@ inline bool DOMStringIsNull(const nsAString& aString)
 
 inline void SetDOMStringToNull(nsAString& aString)
 {
-  aString.SetIsVoid(true);
+  aString.SetIsVoid(PR_TRUE);
 }
 
 #endif 

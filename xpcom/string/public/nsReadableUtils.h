@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsReadableUtils_h___
 #define nsReadableUtils_h___
 
@@ -25,17 +59,17 @@ inline size_t Distance( const nsReadingIterator<char>& start, const nsReadingIte
     return end.get() - start.get();
   }
 
-void LossyCopyUTF16toASCII( const nsAString& aSource, nsACString& aDest );
-void CopyASCIItoUTF16( const nsACString& aSource, nsAString& aDest );
+void LossyCopyUTF16toASCII( const nsAString& aSource, nsACString& aDest NS_OUTPARAM );
+void CopyASCIItoUTF16( const nsACString& aSource, nsAString& aDest NS_OUTPARAM );
 
-void LossyCopyUTF16toASCII( const PRUnichar* aSource, nsACString& aDest );
-void CopyASCIItoUTF16( const char* aSource, nsAString& aDest );
+void LossyCopyUTF16toASCII( const PRUnichar* aSource, nsACString& aDest NS_OUTPARAM );
+void CopyASCIItoUTF16( const char* aSource, nsAString& aDest NS_OUTPARAM );
 
-void CopyUTF16toUTF8( const nsAString& aSource, nsACString& aDest );
-void CopyUTF8toUTF16( const nsACString& aSource, nsAString& aDest );
+void CopyUTF16toUTF8( const nsAString& aSource, nsACString& aDest NS_OUTPARAM );
+void CopyUTF8toUTF16( const nsACString& aSource, nsAString& aDest NS_OUTPARAM );
 
-void CopyUTF16toUTF8( const PRUnichar* aSource, nsACString& aDest );
-void CopyUTF8toUTF16( const char* aSource, nsAString& aDest );
+void CopyUTF16toUTF8( const PRUnichar* aSource, nsACString& aDest NS_OUTPARAM );
+void CopyUTF8toUTF16( const char* aSource, nsAString& aDest NS_OUTPARAM );
 
 void LossyAppendUTF16toASCII( const nsAString& aSource, nsACString& aDest );
 void AppendASCIItoUTF16( const nsACString& aSource, nsAString& aDest );
@@ -89,7 +123,7 @@ char* ToNewCString( const nsACString& aSource );
 
 
 
-char* ToNewUTF8String( const nsAString& aSource, uint32_t *aUTF8Count = nullptr );
+char* ToNewUTF8String( const nsAString& aSource, PRUint32 *aUTF8Count = nsnull );
 
 
   
@@ -135,7 +169,7 @@ PRUnichar* ToNewUnicode( const nsACString& aSource );
 
 
 
-PRUnichar* UTF8ToNewUnicode( const nsACString& aSource, uint32_t *aUTF16Count = nullptr );
+PRUnichar* UTF8ToNewUnicode( const nsACString& aSource, PRUint32 *aUTF16Count = nsnull );
 
   
 
@@ -150,9 +184,9 @@ PRUnichar* UTF8ToNewUnicode( const nsACString& aSource, uint32_t *aUTF16Count = 
 
 
 PRUnichar* CopyUnicodeTo( const nsAString& aSource,
-                                 uint32_t aSrcOffset,
+                                 PRUint32 aSrcOffset,
                                  PRUnichar* aDest,
-                                 uint32_t aLength );
+                                 PRUint32 aLength );
 
 
   
@@ -309,9 +343,9 @@ bool FindCharInReadable( char aChar, nsACString::const_iterator& aSearchStart, c
     
 
 
-uint32_t CountCharInReadable( const nsAString& aStr,
+PRUint32 CountCharInReadable( const nsAString& aStr,
                                      PRUnichar aChar );
-uint32_t CountCharInReadable( const nsACString& aStr,
+PRUint32 CountCharInReadable( const nsACString& aStr,
                                      char aChar );
 
 bool
@@ -334,9 +368,6 @@ StringEndsWith( const nsACString& aSource, const nsACString& aSubstring,
 const nsAFlatString& EmptyString();
 const nsAFlatCString& EmptyCString();
 
-const nsAFlatString& NullString();
-const nsAFlatCString& NullCString();
-
    
 
 
@@ -345,15 +376,15 @@ const nsAFlatCString& NullCString();
 
 
 
-int32_t
+PRInt32
 CompareUTF8toUTF16(const nsASingleFragmentCString& aUTF8String,
                    const nsASingleFragmentString& aUTF16String);
 
 void
-AppendUCS4ToUTF16(const uint32_t aSource, nsAString& aDest);
+AppendUCS4ToUTF16(const PRUint32 aSource, nsAString& aDest);
 
 template<class T>
-inline bool EnsureStringLength(T& aStr, uint32_t aLen)
+inline bool EnsureStringLength(T& aStr, PRUint32 aLen)
 {
     aStr.SetLength(aLen);
     return (aStr.Length() == aLen);

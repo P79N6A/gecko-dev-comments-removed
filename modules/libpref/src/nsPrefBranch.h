@@ -3,6 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsIObserver.h"
 #include "nsIPrefBranch.h"
@@ -11,7 +46,7 @@
 #include "nsXPCOM.h"
 #include "nsISupportsPrimitives.h"
 #include "nsIRelativeFilePref.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "nsString.h"
 #include "nsVoidArray.h"
 #include "nsTArray.h"
@@ -20,7 +55,6 @@
 #include "nsCRT.h"
 #include "prbit.h"
 #include "nsTraceRefcnt.h"
-#include "mozilla/HashFunctions.h"
 
 class nsPrefBranch;
 
@@ -37,8 +71,11 @@ class PrefCallback : public PLDHashEntryHdr {
 
     static PLDHashNumber HashKey(const PrefCallback *aKey)
     {
-      uint32_t hash = mozilla::HashString(aKey->mDomain);
-      return mozilla::AddToHash(hash, aKey->mCanonical);
+      PRUint32 strHash = nsCRT::HashCode(aKey->mDomain.BeginReading(),
+                                         aKey->mDomain.Length());
+
+      return PR_ROTATE_LEFT32(strHash, 4) ^
+             NS_PTR_TO_UINT32(aKey->mCanonical);
     }
 
 
@@ -48,7 +85,7 @@ class PrefCallback : public PLDHashEntryHdr {
                  nsPrefBranch *aBranch)
       : mDomain(aDomain),
         mBranch(aBranch),
-        mWeakRef(nullptr),
+        mWeakRef(nsnull),
         mStrongRef(aObserver)
     {
       MOZ_COUNT_CTOR(PrefCallback);
@@ -63,7 +100,7 @@ class PrefCallback : public PLDHashEntryHdr {
       : mDomain(aDomain),
         mBranch(aBranch),
         mWeakRef(do_GetWeakReference(aObserver)),
-        mStrongRef(nullptr)
+        mStrongRef(nsnull)
     {
       MOZ_COUNT_CTOR(PrefCallback);
       nsCOMPtr<nsISupports> canonical = do_QueryInterface(aObserver);
@@ -106,7 +143,7 @@ class PrefCallback : public PLDHashEntryHdr {
         return this == aKey;
 
       if (mCanonical != aKey->mCanonical)
-        return false;
+        return PR_FALSE;
 
       return mDomain.Equals(aKey->mDomain);
     }
@@ -143,13 +180,13 @@ class PrefCallback : public PLDHashEntryHdr {
     bool IsExpired() const
     {
       if (!IsWeak())
-        return false;
+        return PR_FALSE;
 
       nsCOMPtr<nsIObserver> observer(do_QueryReferent(mWeakRef));
       return !observer;
     }
 
-    enum { ALLOW_MEMMOVE = true };
+    enum { ALLOW_MEMMOVE = PR_TRUE };
 
   private:
     nsCString             mDomain;
@@ -181,7 +218,7 @@ public:
   nsPrefBranch(const char *aPrefRoot, bool aDefaultBranch);
   virtual ~nsPrefBranch();
 
-  int32_t GetRootLength() { return mPrefRootLength; }
+  PRInt32 GetRootLength() { return mPrefRootLength; }
 
   nsresult RemoveObserverFromMap(const char *aDomain, nsISupports *aObserver);
 
@@ -202,7 +239,7 @@ protected:
                      void *aArgs);
 
 private:
-  int32_t               mPrefRootLength;
+  PRInt32               mPrefRootLength;
   nsCString             mPrefRoot;
   bool                  mIsDefault;
 
@@ -227,7 +264,7 @@ public:
 private:
   NS_IMETHOD GetData(PRUnichar**);
   NS_IMETHOD SetData(const PRUnichar* aData);
-  NS_IMETHOD SetDataWithLength(uint32_t aLength, const PRUnichar *aData);
+  NS_IMETHOD SetDataWithLength(PRUint32 aLength, const PRUnichar *aData);
 
   nsCOMPtr<nsISupportsString> mUnicodeString;
 };
@@ -243,6 +280,6 @@ public:
   virtual       ~nsRelativeFilePref();
   
 private:
-  nsCOMPtr<nsIFile> mFile;
+  nsCOMPtr<nsILocalFile> mFile;
   nsCString mRelativeToKey;
 };

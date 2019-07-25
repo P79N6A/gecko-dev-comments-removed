@@ -3,10 +3,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsMenuBarListener.h"
 #include "nsMenuBarFrame.h"
 #include "nsMenuPopupFrame.h"
-#include "nsIDOMEvent.h"
+#include "nsIDOMNSEvent.h"
 #include "nsGUIEvent.h"
 
 
@@ -33,16 +68,15 @@ NS_IMPL_ISUPPORTS1(nsMenuBarListener, nsIDOMEventListener)
 #define MODIFIER_CONTROL  2
 #define MODIFIER_ALT      4
 #define MODIFIER_META     8
-#define MODIFIER_OS       16
 
 
 
-int32_t nsMenuBarListener::mAccessKey = -1;
-uint32_t nsMenuBarListener::mAccessKeyMask = 0;
+PRInt32 nsMenuBarListener::mAccessKey = -1;
+PRUint32 nsMenuBarListener::mAccessKeyMask = 0;
 bool nsMenuBarListener::mAccessKeyFocuses = false;
 
 nsMenuBarListener::nsMenuBarListener(nsMenuBarFrame* aMenuBar) 
-  :mAccessKeyDown(false), mAccessKeyDownCanceled(false)
+  :mAccessKeyDown(PR_FALSE), mAccessKeyDownCanceled(PR_FALSE)
 {
   mMenuBarFrame = aMenuBar;
 }
@@ -53,7 +87,7 @@ nsMenuBarListener::~nsMenuBarListener()
 }
 
 nsresult
-nsMenuBarListener::GetMenuAccessKey(int32_t* aAccessKey)
+nsMenuBarListener::GetMenuAccessKey(PRInt32* aAccessKey)
 {
   if (!aAccessKey)
     return NS_ERROR_INVALID_POINTER;
@@ -87,8 +121,6 @@ void nsMenuBarListener::InitAccessKey()
     mAccessKeyMask = MODIFIER_ALT;
   else if (mAccessKey == nsIDOMKeyEvent::DOM_VK_META)
     mAccessKeyMask = MODIFIER_META;
-  else if (mAccessKey == nsIDOMKeyEvent::DOM_VK_WIN)
-    mAccessKeyMask = MODIFIER_OS;
 
   mAccessKeyFocuses = Preferences::GetBool("ui.key.menuAccessKeyFocuses");
 }
@@ -101,7 +133,7 @@ nsMenuBarListener::ToggleMenuActiveState()
   if (pm && closemenu) {
     nsMenuPopupFrame* popupFrame = closemenu->GetPopup();
     if (popupFrame)
-      pm->HidePopup(popupFrame->GetContent(), false, false, true);
+      pm->HidePopup(popupFrame->GetContent(), PR_FALSE, PR_FALSE, PR_TRUE);
   }
 }
 
@@ -117,26 +149,26 @@ nsMenuBarListener::KeyUp(nsIDOMEvent* aKeyEvent)
   InitAccessKey();
 
   
+  nsCOMPtr<nsIDOMNSEvent> domNSEvent = do_QueryInterface(aKeyEvent);
   bool trustedEvent = false;
-  aKeyEvent->GetIsTrusted(&trustedEvent);
 
-  if (!trustedEvent) {
-    return NS_OK;
+  if (domNSEvent) {
+    domNSEvent->GetIsTrusted(&trustedEvent);
   }
+
+  if (!trustedEvent)
+    return NS_OK;
 
   if (mAccessKey && mAccessKeyFocuses)
   {
-    bool defaultPrevented = false;
-    aKeyEvent->GetDefaultPrevented(&defaultPrevented);
-
     
     
     
-    uint32_t theChar;
+    PRUint32 theChar;
     keyEvent->GetKeyCode(&theChar);
 
-    if (!defaultPrevented && mAccessKeyDown && !mAccessKeyDownCanceled &&
-        (int32_t)theChar == mAccessKey)
+    if (mAccessKeyDown && !mAccessKeyDownCanceled &&
+        (PRInt32)theChar == mAccessKey)
     {
       
       
@@ -145,8 +177,8 @@ nsMenuBarListener::KeyUp(nsIDOMEvent* aKeyEvent)
       }
       ToggleMenuActiveState();
     }
-    mAccessKeyDown = false;
-    mAccessKeyDownCanceled = false;
+    mAccessKeyDown = PR_FALSE;
+    mAccessKeyDownCanceled = PR_FALSE;
 
     bool active = mMenuBarFrame->IsActive();
     if (active) {
@@ -164,9 +196,10 @@ nsresult
 nsMenuBarListener::KeyPress(nsIDOMEvent* aKeyEvent)
 {
   
-  if (aKeyEvent) {
+  nsCOMPtr<nsIDOMNSEvent> domNSEvent = do_QueryInterface(aKeyEvent);
+  if (domNSEvent) {
     bool eventHandled = false;
-    aKeyEvent->GetPreventDefault(&eventHandled);
+    domNSEvent->GetPreventDefault(&eventHandled);
     if (eventHandled) {
       return NS_OK;       
     }
@@ -174,8 +207,8 @@ nsMenuBarListener::KeyPress(nsIDOMEvent* aKeyEvent)
 
   
   bool trustedEvent = false;
-  if (aKeyEvent) {
-    aKeyEvent->GetIsTrusted(&trustedEvent);
+  if (domNSEvent) {
+    domNSEvent->GetIsTrusted(&trustedEvent);
   }
 
   if (!trustedEvent)
@@ -188,10 +221,10 @@ nsMenuBarListener::KeyPress(nsIDOMEvent* aKeyEvent)
   if (mAccessKey)
   {
     bool preventDefault;
-    aKeyEvent->GetPreventDefault(&preventDefault);
+    domNSEvent->GetPreventDefault(&preventDefault);
     if (!preventDefault) {
       nsCOMPtr<nsIDOMKeyEvent> keyEvent = do_QueryInterface(aKeyEvent);
-      uint32_t keyCode, charCode;
+      PRUint32 keyCode, charCode;
       keyEvent->GetKeyCode(&keyCode);
       keyEvent->GetCharCode(&charCode);
 
@@ -200,15 +233,15 @@ nsMenuBarListener::KeyPress(nsIDOMEvent* aKeyEvent)
         nsEvent* nativeEvent = nsContentUtils::GetNativeEvent(aKeyEvent);
         nsKeyEvent* nativeKeyEvent = static_cast<nsKeyEvent*>(nativeEvent);
         if (nativeKeyEvent) {
-          nsAutoTArray<uint32_t, 10> keys;
+          nsAutoTArray<PRUint32, 10> keys;
           nsContentUtils::GetAccessKeyCandidates(nativeKeyEvent, keys);
           hasAccessKeyCandidates = !keys.IsEmpty();
         }
       }
 
       
-      if (keyCode != (uint32_t)mAccessKey) {
-        mAccessKeyDownCanceled = true;
+      if (keyCode != (PRUint32)mAccessKey) {
+        mAccessKeyDownCanceled = PR_TRUE;
       }
 
       if (IsAccessKeyPressed(keyEvent) && hasAccessKeyCandidates) {
@@ -218,12 +251,12 @@ nsMenuBarListener::KeyPress(nsIDOMEvent* aKeyEvent)
         nsMenuFrame* result = mMenuBarFrame->FindMenuWithShortcut(keyEvent);
         if (result) {
           mMenuBarFrame->SetActiveByKeyboard();
-          mMenuBarFrame->SetActive(true);
-          result->OpenMenu(true);
+          mMenuBarFrame->SetActive(PR_TRUE);
+          result->OpenMenu(PR_TRUE);
 
           
           
-          mAccessKeyDown = mAccessKeyDownCanceled = false;
+          mAccessKeyDown = mAccessKeyDownCanceled = PR_FALSE;
 
           aKeyEvent->StopPropagation();
           aKeyEvent->PreventDefault();
@@ -239,11 +272,9 @@ nsMenuBarListener::KeyPress(nsIDOMEvent* aKeyEvent)
           mMenuBarFrame->SetActiveByKeyboard();
           ToggleMenuActiveState();
 
-          if (mMenuBarFrame->IsActive()) {
-            aKeyEvent->StopPropagation();
-            aKeyEvent->PreventDefault();
-            return NS_OK; 
-          }
+          aKeyEvent->StopPropagation();
+          aKeyEvent->PreventDefault();
+          return NS_OK; 
         }
       }
 #endif 
@@ -258,40 +289,34 @@ nsMenuBarListener::IsAccessKeyPressed(nsIDOMKeyEvent* aKeyEvent)
 {
   InitAccessKey();
   
-  uint32_t modifiers = GetModifiers(aKeyEvent);
+  PRUint32 modifiers = GetModifiers(aKeyEvent);
 
   return (mAccessKeyMask != MODIFIER_SHIFT &&
           (modifiers & mAccessKeyMask) &&
           (modifiers & ~(mAccessKeyMask | MODIFIER_SHIFT)) == 0);
 }
 
-uint32_t
+PRUint32
 nsMenuBarListener::GetModifiers(nsIDOMKeyEvent* aKeyEvent)
 {
-  uint32_t modifiers = 0;
-  nsInputEvent* inputEvent =
-    static_cast<nsInputEvent*>(aKeyEvent->GetInternalNSEvent());
-  MOZ_ASSERT(inputEvent);
+  PRUint32 modifiers = 0;
+  bool modifier;
 
-  if (inputEvent->IsShift()) {
+  aKeyEvent->GetShiftKey(&modifier);
+  if (modifier)
     modifiers |= MODIFIER_SHIFT;
-  }
 
-  if (inputEvent->IsControl()) {
+  aKeyEvent->GetCtrlKey(&modifier);
+  if (modifier)
     modifiers |= MODIFIER_CONTROL;
-  }
 
-  if (inputEvent->IsAlt()) {
+  aKeyEvent->GetAltKey(&modifier);
+  if (modifier)
     modifiers |= MODIFIER_ALT;
-  }
 
-  if (inputEvent->IsMeta()) {
+  aKeyEvent->GetMetaKey(&modifier);
+  if (modifier)
     modifiers |= MODIFIER_META;
-  }
-
-  if (inputEvent->IsOS()) {
-    modifiers |= MODIFIER_OS;
-  }
 
   return modifiers;
 }
@@ -303,9 +328,11 @@ nsMenuBarListener::KeyDown(nsIDOMEvent* aKeyEvent)
   InitAccessKey();
 
   
+  nsCOMPtr<nsIDOMNSEvent> domNSEvent = do_QueryInterface(aKeyEvent);
   bool trustedEvent = false;
-  if (aKeyEvent) {
-    aKeyEvent->GetIsTrusted(&trustedEvent);
+
+  if (domNSEvent) {
+    domNSEvent->GetIsTrusted(&trustedEvent);
   }
 
   if (!trustedEvent)
@@ -313,43 +340,25 @@ nsMenuBarListener::KeyDown(nsIDOMEvent* aKeyEvent)
 
   if (mAccessKey && mAccessKeyFocuses)
   {
-    bool defaultPrevented = false;
-    aKeyEvent->GetDefaultPrevented(&defaultPrevented);
-
     nsCOMPtr<nsIDOMKeyEvent> keyEvent = do_QueryInterface(aKeyEvent);
-    uint32_t theChar;
+    PRUint32 theChar;
     keyEvent->GetKeyCode(&theChar);
 
-    
-    
-    
-    bool isAccessKeyDownEvent =
-      ((theChar == (uint32_t)mAccessKey) &&
-       (GetModifiers(keyEvent) & ~mAccessKeyMask) == 0);
-
-    if (!mAccessKeyDown) {
+    if (!mAccessKeyDownCanceled && theChar == (PRUint32)mAccessKey &&
+        (GetModifiers(keyEvent) & ~mAccessKeyMask) == 0) {
       
       
-      if (!isAccessKeyDownEvent) {
-        return NS_OK;
-      }
-
       
-      mAccessKeyDown = true;
       
-      mAccessKeyDownCanceled = defaultPrevented;
-      return NS_OK;
+      mAccessKeyDown = PR_TRUE;
     }
+    else {
+      
+      
+      
 
-    
-    
-    if (mAccessKeyDownCanceled || defaultPrevented) {
-      return NS_OK;
+      mAccessKeyDownCanceled = PR_TRUE;
     }
-
-    
-    
-    mAccessKeyDownCanceled = !isAccessKeyDownEvent;
   }
 
   return NS_OK; 
@@ -362,11 +371,9 @@ nsMenuBarListener::Blur(nsIDOMEvent* aEvent)
 {
   if (!mMenuBarFrame->IsMenuOpen() && mMenuBarFrame->IsActive()) {
     ToggleMenuActiveState();
+    mAccessKeyDown = PR_FALSE;
+    mAccessKeyDownCanceled = PR_FALSE;
   }
-  
-  
-  mAccessKeyDown = false;
-  mAccessKeyDownCanceled = false;
   return NS_OK; 
 }
   
@@ -380,10 +387,10 @@ nsMenuBarListener::MouseDown(nsIDOMEvent* aMouseEvent)
   
   
   if (mAccessKeyDown) {
-    mAccessKeyDownCanceled = true;
+    mAccessKeyDownCanceled = PR_TRUE;
   }
 
-  uint16_t phase = 0;
+  PRUint16 phase = 0;
   nsresult rv = aMouseEvent->GetEventPhase(&phase);
   NS_ENSURE_SUCCESS(rv, rv);
   

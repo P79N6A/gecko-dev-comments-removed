@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsString.h"
 
@@ -17,12 +49,12 @@ class nsWindowMediator;
 
 struct nsWindowInfo
 {
-  nsWindowInfo(nsIXULWindow* inWindow, int32_t inTimeStamp);
+  nsWindowInfo(nsIXULWindow* inWindow, PRInt32 inTimeStamp);
   ~nsWindowInfo();
 
   nsCOMPtr<nsIXULWindow>    mWindow;
-  int32_t                   mTimeStamp;
-  uint32_t                  mZLevel;
+  PRInt32                   mTimeStamp;
+  PRUint32                  mZLevel;
 
   
   nsWindowInfo              *mYounger, 

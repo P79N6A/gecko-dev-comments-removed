@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef jsiter_h___
 #define jsiter_h___
 
@@ -16,7 +48,6 @@
 #include "jspubtd.h"
 #include "jsversion.h"
 
-#include "gc/Barrier.h"
 #include "vm/Stack.h"
 
 
@@ -28,25 +59,24 @@
 
 namespace js {
 
-struct NativeIterator
-{
-    HeapPtrObject obj;
-    HeapPtr<JSFlatString> *props_array;
-    HeapPtr<JSFlatString> *props_cursor;
-    HeapPtr<JSFlatString> *props_end;
-    Shape **shapes_array;
-    uint32_t shapes_length;
-    uint32_t shapes_key;
-    uint32_t flags;
-    PropertyIteratorObject *next;  
+struct NativeIterator {
+    JSObject  *obj;
+    jsid      *props_array;
+    jsid      *props_cursor;
+    jsid      *props_end;
+    uint32    *shapes_array;
+    uint32    shapes_length;
+    uint32    shapes_key;
+    uint32    flags;
+    JSObject  *next;  
 
     bool isKeyIter() const { return (flags & JSITER_FOREACH) == 0; }
 
-    inline HeapPtr<JSFlatString> *begin() const {
+    inline jsid *begin() const {
         return props_array;
     }
 
-    inline HeapPtr<JSFlatString> *end() const {
+    inline jsid *end() const {
         return props_end;
     }
 
@@ -54,7 +84,7 @@ struct NativeIterator
         return end() - begin();
     }
 
-    HeapPtr<JSFlatString> *current() const {
+    jsid *current() const {
         JS_ASSERT(props_cursor < props_end);
         return props_cursor;
     }
@@ -63,103 +93,54 @@ struct NativeIterator
         props_cursor = props_cursor + 1;
     }
 
-    static NativeIterator *allocateIterator(JSContext *cx, uint32_t slength,
+    static NativeIterator *allocateIterator(JSContext *cx, uint32 slength,
                                             const js::AutoIdVector &props);
-    void init(JSObject *obj, unsigned flags, uint32_t slength, uint32_t key);
+    void init(JSObject *obj, uintN flags, uint32 slength, uint32 key);
 
     void mark(JSTracer *trc);
 };
 
-class PropertyIteratorObject : public JSObject
-{
-  public:
-    static Class class_;
-
-    inline NativeIterator *getNativeIterator() const;
-    inline void setNativeIterator(js::NativeIterator *ni);
-
-  private:
-    static void trace(JSTracer *trc, JSObject *obj);
-    static void finalize(FreeOp *fop, JSObject *obj);
-};
-
-
-
-
-
-
-
-
-
-
-
-
-class ElementIteratorObject : public JSObject
-{
-  public:
-    static JSObject *create(JSContext *cx, Handle<Value> target);
-    static JSFunctionSpec methods[];
-
-    enum {
-        TargetSlot,
-        IndexSlot,
-        NumSlots
-    };
-
-    static JSBool next(JSContext *cx, unsigned argc, Value *vp);
-    static bool next_impl(JSContext *cx, JS::CallArgs args);
-};
+bool
+VectorToIdArray(JSContext *cx, js::AutoIdVector &props, JSIdArray **idap);
 
 bool
-VectorToIdArray(JSContext *cx, AutoIdVector &props, JSIdArray **idap);
+GetIterator(JSContext *cx, JSObject *obj, uintN flags, js::Value *vp);
 
 bool
-GetIterator(JSContext *cx, HandleObject obj, unsigned flags, MutableHandleValue vp);
+VectorToKeyIterator(JSContext *cx, JSObject *obj, uintN flags, js::AutoIdVector &props, js::Value *vp);
 
 bool
-VectorToKeyIterator(JSContext *cx, HandleObject obj, unsigned flags, AutoIdVector &props,
-                    MutableHandleValue vp);
-
-bool
-VectorToValueIterator(JSContext *cx, HandleObject obj, unsigned flags, AutoIdVector &props,
-                      MutableHandleValue vp);
+VectorToValueIterator(JSContext *cx, JSObject *obj, uintN flags, js::AutoIdVector &props, js::Value *vp);
 
 
 
 
 
 bool
-EnumeratedIdVectorToIterator(JSContext *cx, HandleObject obj, unsigned flags, AutoIdVector &props,
-                             MutableHandleValue vp);
-
-
-
-
-
-
-
-bool
-ValueToIterator(JSContext *cx, unsigned flags, MutableHandleValue vp);
-
-bool
-CloseIterator(JSContext *cx, JSObject *iterObj);
-
-bool
-UnwindIteratorForException(JSContext *cx, JSObject *obj);
-
-void
-UnwindIteratorForUncatchableException(JSContext *cx, JSObject *obj);
+EnumeratedIdVectorToIterator(JSContext *cx, JSObject *obj, uintN flags, js::AutoIdVector &props, js::Value *vp);
 
 }
 
-extern bool
-js_SuppressDeletedProperty(JSContext *cx, js::HandleObject obj, jsid id);
 
-extern bool
-js_SuppressDeletedElement(JSContext *cx, js::HandleObject obj, uint32_t index);
 
-extern bool
-js_SuppressDeletedElements(JSContext *cx, js::HandleObject obj, uint32_t begin, uint32_t end);
+
+
+
+
+extern JS_FRIEND_API(JSBool)
+js_ValueToIterator(JSContext *cx, uintN flags, js::Value *vp);
+
+extern JS_FRIEND_API(JSBool)
+js_CloseIterator(JSContext *cx, JSObject *iterObj);
+
+bool
+js_SuppressDeletedProperty(JSContext *cx, JSObject *obj, jsid id);
+
+bool
+js_SuppressDeletedElement(JSContext *cx, JSObject *obj, uint32 index);
+
+bool
+js_SuppressDeletedIndexProperties(JSContext *cx, JSObject *obj, jsint begin, jsint end);
 
 
 
@@ -167,144 +148,89 @@ js_SuppressDeletedElements(JSContext *cx, js::HandleObject obj, uint32_t begin, 
 
 
 extern JSBool
-js_IteratorMore(JSContext *cx, js::HandleObject iterobj, js::MutableHandleValue rval);
+js_IteratorMore(JSContext *cx, JSObject *iterobj, js::Value *rval);
 
 extern JSBool
-js_IteratorNext(JSContext *cx, JSObject *iterobj, js::MutableHandleValue rval);
+js_IteratorNext(JSContext *cx, JSObject *iterobj, js::Value *rval);
 
 extern JSBool
 js_ThrowStopIteration(JSContext *cx);
-
-namespace js {
-
-
-
-
-
-
-
-inline bool
-Next(JSContext *cx, HandleObject iter, MutableHandleValue vp)
-{
-    if (!js_IteratorMore(cx, iter, vp))
-        return false;
-    if (vp.toBoolean())
-        return js_IteratorNext(cx, iter, vp);
-    vp.setMagic(JS_NO_ITER_VALUE);
-    return true;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class ForOfIterator
-{
-  private:
-    JSContext *cx;
-    RootedObject iterator;
-    RootedValue currentValue;
-    bool ok;
-    bool closed;
-
-    ForOfIterator(const ForOfIterator &) MOZ_DELETE;
-    ForOfIterator &operator=(const ForOfIterator &) MOZ_DELETE;
-
-  public:
-    ForOfIterator(JSContext *cx, const Value &iterable)
-        : cx(cx), iterator(cx, NULL), currentValue(cx), closed(false)
-    {
-        RootedValue iterv(cx, iterable);
-        ok = ValueToIterator(cx, JSITER_FOR_OF, &iterv);
-        iterator = ok ? &iterv.get().toObject() : NULL;
-    }
-
-    ~ForOfIterator() {
-        if (!closed)
-            close();
-    }
-
-    bool next() {
-        JS_ASSERT(!closed);
-        ok = ok && Next(cx, iterator, &currentValue);
-        return ok && !currentValue.get().isMagic(JS_NO_ITER_VALUE);
-    }
-
-    Value &value() {
-        JS_ASSERT(ok);
-        JS_ASSERT(!closed);
-        return currentValue.get();
-    }
-
-    bool close() {
-        JS_ASSERT(!closed);
-        closed = true;
-        if (!iterator)
-            return false;
-        bool throwing = cx->isExceptionPending();
-        RootedValue exc(cx);
-        if (throwing) {
-            exc = cx->getPendingException();
-            cx->clearPendingException();
-        }
-        bool closedOK = CloseIterator(cx, iterator);
-        if (throwing && closedOK)
-            cx->setPendingException(exc);
-        return ok && !throwing && closedOK;
-    }
-};
-
-} 
 
 #if JS_HAS_GENERATORS
 
 
 
 
-enum JSGeneratorState
-{
+typedef enum JSGeneratorState {
     JSGEN_NEWBORN,  
     JSGEN_OPEN,     
     JSGEN_RUNNING,  
     JSGEN_CLOSING,  
     JSGEN_CLOSED    
-};
+} JSGeneratorState;
 
-struct JSGenerator
-{
-    js::HeapPtrObject   obj;
+struct JSGenerator {
+    JSObject            *obj;
     JSGeneratorState    state;
     js::FrameRegs       regs;
-    js::PropertyIteratorObject *enumerators;
-    JSGenerator         *prevGenerator;
-    js::StackFrame      *fp;
-    js::HeapValue       stackSnapshot[1];
+    JSObject            *enumerators;
+    js::StackFrame      *floating;
+    js::Value           floatingStack[1];
+
+    js::StackFrame *floatingFrame() {
+        return floating;
+    }
+
+    js::StackFrame *liveFrame() {
+        JS_ASSERT((state == JSGEN_RUNNING || state == JSGEN_CLOSING) ==
+                  (regs.fp() != floatingFrame()));
+        return regs.fp();
+    }
 };
 
 extern JSObject *
 js_NewGenerator(JSContext *cx);
 
+
+
+
+
+
+
+
+
+
+
+
+inline js::StackFrame *
+js_FloatingFrameIfGenerator(JSContext *cx, js::StackFrame *fp)
+{
+    if (JS_UNLIKELY(fp->isGeneratorFrame()))
+        return cx->generatorFor(fp)->floatingFrame();
+    return fp;
+}
+
+
+extern JSGenerator *
+js_FloatingFrameToGenerator(js::StackFrame *fp);
+
+inline js::StackFrame *
+js_LiveFrameIfGenerator(js::StackFrame *fp)
+{
+    return fp->isGeneratorFrame() ? js_FloatingFrameToGenerator(fp)->liveFrame() : fp;
+}
+
+#endif
+
 namespace js {
 
-bool
-GeneratorHasMarkableFrame(JSGenerator *gen);
+static inline bool
+IsStopIteration(const js::Value &v)
+{
+    return v.isObject() && v.toObject().isStopIteration();
+}
 
-} 
-#endif
+}  
 
 extern JSObject *
 js_InitIteratorClasses(JSContext *cx, JSObject *obj);

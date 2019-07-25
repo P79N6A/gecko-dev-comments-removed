@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsFaviconService_h_
 #define nsFaviconService_h_
 
@@ -13,15 +46,11 @@
 #include "nsString.h"
 #include "nsDataHashtable.h"
 #include "nsServiceManagerUtils.h"
-#include "nsTHashtable.h"
-#include "nsToolkitCompsCID.h"
-#include "nsURIHashKey.h"
-#include "nsITimer.h"
-#include "Database.h"
-#include "mozilla/storage.h"
-#include "mozilla/Attributes.h"
 
-#include "AsyncFaviconHelpers.h"
+#include "nsToolkitCompsCID.h"
+
+#include "mozilla/storage.h"
+#include "mozilla/storage/StatementCache.h"
 
 
 
@@ -30,30 +59,15 @@
 
 
 
-#define MAX_ICON_FILESIZE(s) ((uint32_t) s*s*4)
+#define MAX_ICON_FILESIZE(s) ((PRUint32) s*s*4)
 
 
 class mozIStorageStatementCallback;
 
-class UnassociatedIconHashKey : public nsURIHashKey
-{
-public:
-  UnassociatedIconHashKey(const nsIURI* aURI)
-  : nsURIHashKey(aURI)
-  {
-  }
-  UnassociatedIconHashKey(const UnassociatedIconHashKey& aOther)
-  : nsURIHashKey(aOther)
-  {
-    NS_NOTREACHED("Do not call me!");
-  }
-  mozilla::places::IconData iconData;
-  PRTime created;
-};
+class FaviconLoadListener;
 
-class nsFaviconService MOZ_FINAL : public nsIFaviconService
-                                 , public mozIAsyncFavicons
-                                 , public nsITimerCallback
+class nsFaviconService : public nsIFaviconService
+                       , public mozIAsyncFavicons
 {
 public:
   nsFaviconService();
@@ -68,6 +82,9 @@ public:
 
   nsresult Init();
 
+  
+  static nsresult InitTables(mozIStorageConnection* aDBConn);
+
   static nsFaviconService* GetFaviconServiceIfAvailable() {
     return gFaviconService;
   }
@@ -81,20 +98,26 @@ public:
     if (!gFaviconService) {
       nsCOMPtr<nsIFaviconService> serv =
         do_GetService(NS_FAVICONSERVICE_CONTRACTID);
-      NS_ENSURE_TRUE(serv, nullptr);
+      NS_ENSURE_TRUE(serv, nsnull);
       NS_ASSERTION(gFaviconService, "Should have static instance pointer now");
     }
     return gFaviconService;
   }
 
   
+  nsresult DoSetAndLoadFaviconForPage(nsIURI* aPageURI,
+                                      nsIURI* aFaviconURI,
+                                      bool aForceReload,
+                                      nsIFaviconDataCallback* aCallback);
+
+  
   nsresult GetFaviconLinkForIconString(const nsCString& aIcon, nsIURI** aOutput);
   void GetFaviconSpecForIconString(const nsCString& aIcon, nsACString& aOutput);
 
-  nsresult OptimizeFaviconImage(const uint8_t* aData, uint32_t aDataLen,
+  nsresult OptimizeFaviconImage(const PRUint8* aData, PRUint32 aDataLen,
                                 const nsACString& aMimeType,
                                 nsACString& aNewData, nsACString& aNewMimeType);
-  int32_t GetOptimizedIconDimension() { return mOptimizedIconDimension; }
+  PRInt32 GetOptimizedIconDimension() { return mOptimizedIconDimension; }
 
   
 
@@ -118,21 +141,54 @@ public:
 
 
 
+  void checkAndNotify(nsIURI* aPageURI, nsIURI* aFaviconURI);
+
+  
+
+
+  nsresult FinalizeStatements();
+
+  
+
+
+
+
+
+
+
+
 
   void SendFaviconNotifications(nsIURI* aPageURI, nsIURI* aFaviconURI,
                                 const nsACString& aGUID);
 
+  
+
+
+
+
+  mozilla::storage::StatementCache<mozIStorageStatement> mSyncStatements;
+
   NS_DECL_ISUPPORTS
   NS_DECL_NSIFAVICONSERVICE
   NS_DECL_MOZIASYNCFAVICONS
-  NS_DECL_NSITIMERCALLBACK
 
 private:
   ~nsFaviconService();
 
-  nsRefPtr<mozilla::places::Database> mDB;
+  nsCOMPtr<mozIStorageConnection> mDBConn; 
 
-  nsCOMPtr<nsITimer> mExpireUnassociatedIconsTimer;
+  
+
+
+  mozIStorageStatement* GetStatement(const nsCOMPtr<mozIStorageStatement>& aStmt);
+  nsCOMPtr<mozIStorageStatement> mDBGetURL; 
+  nsCOMPtr<mozIStorageStatement> mDBGetData; 
+  nsCOMPtr<mozIStorageStatement> mDBGetIconInfo;
+  nsCOMPtr<mozIStorageStatement> mDBInsertIcon;
+  nsCOMPtr<mozIStorageStatement> mDBUpdateIcon;
+  nsCOMPtr<mozIStorageStatement> mDBSetPageFavicon;
+  nsCOMPtr<mozIStorageStatement> mDBRemoveOnDiskReferences;
+  nsCOMPtr<mozIStorageStatement> mDBRemoveAllFavicons;
 
   static nsFaviconService* gFaviconService;
 
@@ -152,15 +208,17 @@ private:
   
   
   
-  int32_t mOptimizedIconDimension;
+  PRInt32 mOptimizedIconDimension;
 
-  uint32_t mFailedFaviconSerial;
-  nsDataHashtable<nsCStringHashKey, uint32_t> mFailedFavicons;
+  PRUint32 mFailedFaviconSerial;
+  nsDataHashtable<nsCStringHashKey, PRUint32> mFailedFavicons;
 
-  
-  friend class mozilla::places::AsyncFetchAndSetIconForPage;
-  friend class mozilla::places::RemoveIconDataCacheEntry;
-  nsTHashtable<UnassociatedIconHashKey> mUnassociatedIcons;
+  nsresult SetFaviconUrlForPageInternal(nsIURI* aURI, nsIURI* aFavicon,
+                                        bool* aHasData);
+
+  friend class FaviconLoadListener;
+
+  bool mShuttingDown;
 
   
   

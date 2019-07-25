@@ -2,6 +2,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsNativeConnectionHelper.h"
 
 #if defined(MOZ_PLATFORM_MAEMO)
@@ -25,14 +59,14 @@ nsNativeConnectionHelper::OnConnectionFailed(const PRUnichar* hostName)
   
 #if !defined(MOZ_PLATFORM_MAEMO)
     if (gIOService->IsLinkUp())
-        return false;
+        return PR_FALSE;
 #endif
 
     nsAutodial autodial;
     if (autodial.ShouldDialOnNetworkError())
         return NS_SUCCEEDED(autodial.DialDefault(hostName));
 
-    return false;
+    return PR_FALSE;
 }
 
 bool

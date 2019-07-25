@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsMaybeWeakPtr_h_
 #define nsMaybeWeakPtr_h_
 
@@ -74,7 +107,7 @@ public:
 
 
 #define ENUMERATE_WEAKARRAY(array, type, method)                           \
-  for (uint32_t array_idx = 0; array_idx < array.Length(); ++array_idx) {  \
+  for (PRUint32 array_idx = 0; array_idx < array.Length(); ++array_idx) {  \
     const nsCOMPtr<type> &e = array.ElementAt(array_idx);                  \
     if (e)                                                                 \
       e->method;                                                           \

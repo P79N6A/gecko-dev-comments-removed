@@ -1,6 +1,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _NSSASN_H_
 #define _NSSASN_H_
 
@@ -31,8 +64,8 @@ private:
   nsCOMPtr<nsIMutableArray> mASN1Objects;
   nsString mDisplayName;
   nsString mDisplayValue;
-  uint32_t mType;
-  uint32_t mTag;
+  PRUint32 mType;
+  PRUint32 mTag;
   bool     mIsValidContainer;
   bool     mIsExpanded;
 };
@@ -50,10 +83,10 @@ public:
 private:
   nsString mDisplayName;
   nsString mValue;
-  uint32_t mType;
-  uint32_t mTag;
+  PRUint32 mType;
+  PRUint32 mTag;
   unsigned char *mData;
-  uint32_t       mLen;
+  PRUint32       mLen;
 };
 
 nsresult CreateFromDER(unsigned char *data,

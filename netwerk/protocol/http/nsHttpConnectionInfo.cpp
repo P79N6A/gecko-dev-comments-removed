@@ -3,10 +3,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsHttpConnectionInfo.h"
+#include "nsIProtocolProxyService.h"
 
 void
-nsHttpConnectionInfo::SetOriginServer(const nsACString &host, int32_t port)
+nsHttpConnectionInfo::SetOriginServer(const nsACString &host, PRInt32 port)
 {
     mHost = host;
     mPort = port == -1 ? DefaultPort() : port;
@@ -22,9 +56,9 @@ nsHttpConnectionInfo::SetOriginServer(const nsACString &host, int32_t port)
     
 
     const char *keyHost;
-    int32_t keyPort;
+    PRInt32 keyPort;
 
-    if (mUsingHttpProxy && !mUsingConnect) {
+    if (mUsingHttpProxy && !mUsingSSL) {
         keyHost = ProxyHost();
         keyPort = ProxyPort();
     }
@@ -33,7 +67,7 @@ nsHttpConnectionInfo::SetOriginServer(const nsACString &host, int32_t port)
         keyPort = Port();
     }
 
-    mHashKey.AssignLiteral("....");
+    mHashKey.AssignLiteral("...");
     mHashKey.Append(keyHost);
     mHashKey.Append(':');
     mHashKey.AppendInt(keyPort);
@@ -46,21 +80,9 @@ nsHttpConnectionInfo::SetOriginServer(const nsACString &host, int32_t port)
     
     
     
-    
-    
-    
-    
-    
-    
-
-    if ((!mUsingHttpProxy && ProxyHost()) ||
-        (mUsingHttpProxy && mUsingConnect)) {
+    if (!mUsingHttpProxy && ProxyHost()) {
         mHashKey.AppendLiteral(" (");
         mHashKey.Append(ProxyType());
-        mHashKey.Append(':');
-        mHashKey.Append(ProxyHost());
-        mHashKey.Append(':');
-        mHashKey.AppendInt(ProxyPort());
         mHashKey.Append(')');
     }
 }
@@ -69,11 +91,27 @@ nsHttpConnectionInfo*
 nsHttpConnectionInfo::Clone() const
 {
     nsHttpConnectionInfo* clone = new nsHttpConnectionInfo(mHost, mPort, mProxyInfo, mUsingSSL);
+    if (!clone)
+        return nsnull;
 
     
-    clone->SetAnonymous(GetAnonymous());
-    clone->SetPrivate(GetPrivate());
-
+    clone->SetAnonymous(mHashKey.CharAt(2) == 'A');
+    
     return clone;
 }
 
+bool
+nsHttpConnectionInfo::ShouldForceConnectMethod()
+{
+    if (!mProxyInfo)
+        return PR_FALSE;
+    
+    PRUint32 resolveFlags;
+    nsresult rv;
+    
+    rv = mProxyInfo->GetResolveFlags(&resolveFlags);
+    if (NS_FAILED(rv))
+        return PR_FALSE;
+
+    return resolveFlags & nsIProtocolProxyService::RESOLVE_ALWAYS_TUNNEL;
+}

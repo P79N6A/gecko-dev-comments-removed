@@ -10,6 +10,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsAutoPtr.h"
 #include "nsChromeProtocolHandler.h"
 #include "nsChromeRegistry.h"
@@ -54,22 +86,22 @@ nsChromeProtocolHandler::GetScheme(nsACString &result)
 }
 
 NS_IMETHODIMP
-nsChromeProtocolHandler::GetDefaultPort(int32_t *result)
+nsChromeProtocolHandler::GetDefaultPort(PRInt32 *result)
 {
     *result = -1;        
     return NS_OK;
 }
 
 NS_IMETHODIMP
-nsChromeProtocolHandler::AllowPort(int32_t port, const char *scheme, bool *_retval)
+nsChromeProtocolHandler::AllowPort(PRInt32 port, const char *scheme, bool *_retval)
 {
     
-    *_retval = false;
+    *_retval = PR_FALSE;
     return NS_OK;
 }
 
 NS_IMETHODIMP
-nsChromeProtocolHandler::GetProtocolFlags(uint32_t *result)
+nsChromeProtocolHandler::GetProtocolFlags(PRUint32 *result)
 {
     *result = URI_STD | URI_IS_UI_RESOURCE | URI_IS_LOCAL_RESOURCE;
     return NS_OK;
@@ -104,7 +136,7 @@ nsChromeProtocolHandler::NewURI(const nsACString &aSpec,
     if (NS_FAILED(rv))
         return rv;
 
-    surl->SetMutable(false);
+    surl->SetMutable(PR_FALSE);
 
     NS_ADDREF(*result = url);
     return NS_OK;
@@ -151,7 +183,7 @@ nsChromeProtocolHandler::NewChannel(nsIURI* aURI,
     rv = nsChromeRegistry::gChromeRegistry->ConvertChromeURL(aURI, getter_AddRefs(resolvedURI));
     if (NS_FAILED(rv)) {
 #ifdef DEBUG
-        nsAutoCString spec;
+        nsCAutoString spec;
         aURI->GetSpec(spec);
         printf("Couldn't convert chrome URL: %s\n", spec.get());
 #endif
@@ -173,7 +205,7 @@ nsChromeProtocolHandler::NewChannel(nsIURI* aURI,
         bool exists = false;
         file->Exists(&exists);
         if (!exists) {
-            nsAutoCString path;
+            nsCAutoString path;
             file->GetNativePath(path);
             printf("Chrome file doesn't exist: %s\n", path.get());
         }
@@ -182,16 +214,13 @@ nsChromeProtocolHandler::NewChannel(nsIURI* aURI,
 
     
     
-    nsLoadFlags loadFlags = 0;
-    result->GetLoadFlags(&loadFlags);
-    result->SetLoadFlags(loadFlags & ~nsIChannel::LOAD_REPLACE);
     rv = result->SetOriginalURI(aURI);
     if (NS_FAILED(rv)) return rv;
 
     
     
     nsCOMPtr<nsIURL> url = do_QueryInterface(aURI);
-    nsAutoCString path;
+    nsCAutoString path;
     rv = url->GetPath(path);
     if (StringBeginsWith(path, NS_LITERAL_CSTRING("/content/")))
     {
@@ -212,7 +241,6 @@ nsChromeProtocolHandler::NewChannel(nsIURI* aURI,
     
     
     
-    result->SetContentCharset(NS_LITERAL_CSTRING("UTF-8"));
 
     *aResult = result;
     NS_ADDREF(*aResult);

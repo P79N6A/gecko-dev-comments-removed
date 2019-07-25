@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsXPCOM.h"
 #include "nsMemoryImpl.h"
 #include "nsThreadUtils.h"
@@ -26,13 +58,13 @@ static nsMemoryImpl sGlobalMemory;
 NS_IMPL_QUERY_INTERFACE1(nsMemoryImpl, nsIMemory)
 
 NS_IMETHODIMP_(void*)
-nsMemoryImpl::Alloc(size_t size)
+nsMemoryImpl::Alloc(PRSize size)
 {
     return NS_Alloc(size);
 }
 
 NS_IMETHODIMP_(void*)
-nsMemoryImpl::Realloc(void* ptr, size_t size)
+nsMemoryImpl::Realloc(void* ptr, PRSize size)
 {
     return NS_Realloc(ptr, size);
 }
@@ -53,7 +85,7 @@ NS_IMETHODIMP
 nsMemoryImpl::IsLowMemory(bool *result)
 {
     NS_ERROR("IsLowMemory is deprecated.  See bug 592308.");
-    *result = false;
+    *result = PR_FALSE;
     return NS_OK;
 }
 
@@ -79,7 +111,7 @@ nsMemoryImpl::FlushMemory(const PRUnichar* aReason, bool aImmediate)
         }
     }
 
-    int32_t lastVal = PR_ATOMIC_SET(&sIsFlushing, 1);
+    PRInt32 lastVal = PR_ATOMIC_SET(&sIsFlushing, 1);
     if (lastVal)
         return NS_OK;
 
@@ -148,7 +180,7 @@ nsMemoryImpl::FlushEvent::Run()
     return NS_OK;
 }
 
-int32_t
+PRInt32
 nsMemoryImpl::sIsFlushing = 0;
 
 PRIntervalTime
@@ -158,15 +190,31 @@ nsMemoryImpl::FlushEvent
 nsMemoryImpl::sFlushEvent;
 
 XPCOM_API(void*)
-NS_Alloc(size_t size)
+NS_Alloc(PRSize size)
 {
-    return moz_xmalloc(size);
+    if (size > PR_INT32_MAX)
+        return nsnull;
+
+    void* result = moz_malloc(size);
+    if (! result) {
+        
+        sGlobalMemory.FlushMemory(NS_LITERAL_STRING("alloc-failure").get(), PR_FALSE);
+    }
+    return result;
 }
 
 XPCOM_API(void*)
-NS_Realloc(void* ptr, size_t size)
+NS_Realloc(void* ptr, PRSize size)
 {
-    return moz_xrealloc(ptr, size);
+    if (size > PR_INT32_MAX)
+        return nsnull;
+
+    void* result = moz_realloc(ptr, size);
+    if (! result && size != 0) {
+        
+        sGlobalMemory.FlushMemory(NS_LITERAL_STRING("alloc-failure").get(), PR_FALSE);
+    }
+    return result;
 }
 
 XPCOM_API(void)

@@ -4,21 +4,51 @@
 
 
 
-#include "nsPrintPreviewListener.h"
 
-#include "mozilla/dom/Element.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsPrintPreviewListener.h"
+#include "nsIContent.h"
 #include "nsIDOMWindow.h"
 #include "nsPIDOMWindow.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMKeyEvent.h"
-#include "nsIDOMEvent.h"
+#include "nsIDOMNSEvent.h"
 #include "nsIDocument.h"
 #include "nsIDocShell.h"
 #include "nsPresContext.h"
 #include "nsFocusManager.h"
 #include "nsLiteralString.h"
-
-using namespace mozilla;
 
 NS_IMPL_ISUPPORTS1(nsPrintPreviewListener, nsIDOMEventListener)
 
@@ -98,7 +128,7 @@ enum eEventAction {
 static eEventAction
 GetActionForEvent(nsIDOMEvent* aEvent)
 {
-  static const uint32_t kOKKeyCodes[] = {
+  static const PRUint32 kOKKeyCodes[] = {
     nsIDOMKeyEvent::DOM_VK_PAGE_UP, nsIDOMKeyEvent::DOM_VK_PAGE_DOWN,
     nsIDOMKeyEvent::DOM_VK_UP,      nsIDOMKeyEvent::DOM_VK_DOWN, 
     nsIDOMKeyEvent::DOM_VK_HOME,    nsIDOMKeyEvent::DOM_VK_END 
@@ -114,19 +144,19 @@ GetActionForEvent(nsIDOMEvent* aEvent)
 
     keyEvent->GetShiftKey(&b);
 
-    uint32_t keyCode;
+    PRUint32 keyCode;
     keyEvent->GetKeyCode(&keyCode);
     if (keyCode == nsIDOMKeyEvent::DOM_VK_TAB)
       return b ? eEventAction_ShiftTab : eEventAction_Tab;
 
-    uint32_t charCode;
+    PRUint32 charCode;
     keyEvent->GetCharCode(&charCode);
     if (charCode == ' ' || keyCode == nsIDOMKeyEvent::DOM_VK_SPACE)
       return eEventAction_Propagate;
 
     if (b) return eEventAction_Suppress;
 
-    for (uint32_t i = 0; i < sizeof(kOKKeyCodes)/sizeof(kOKKeyCodes[0]); ++i) {
+    for (PRUint32 i = 0; i < sizeof(kOKKeyCodes)/sizeof(kOKKeyCodes[0]); ++i) {
       if (keyCode == kOKKeyCodes[i]) {
         return eEventAction_Propagate;
       }
@@ -139,8 +169,9 @@ NS_IMETHODIMP
 nsPrintPreviewListener::HandleEvent(nsIDOMEvent* aEvent)
 {
   nsCOMPtr<nsIDOMEventTarget> target;
-  if (aEvent)
-    aEvent->GetOriginalTarget(getter_AddRefs(target));
+  nsCOMPtr<nsIDOMNSEvent> nsEvent = do_QueryInterface(aEvent);
+  if (nsEvent)
+    nsEvent->GetOriginalTarget(getter_AddRefs(target));
   nsCOMPtr<nsIContent> content(do_QueryInterface(target));
   if (content && !content->IsXUL()) {
     eEventAction action = ::GetActionForEvent(aEvent);
@@ -163,8 +194,8 @@ nsPrintPreviewListener::HandleEvent(nsIDOMEvent* aEvent)
 
           nsIFocusManager* fm = nsFocusManager::GetFocusManager();
           if (fm && win) {
-            dom::Element* fromElement = parentDoc->FindContentForSubDocument(doc);
-            nsCOMPtr<nsIDOMElement> from = do_QueryInterface(fromElement);
+            nsIContent* fromContent = parentDoc->FindContentForSubDocument(doc);
+            nsCOMPtr<nsIDOMElement> from = do_QueryInterface(fromContent);
 
             bool forward = (action == eEventAction_Tab);
             nsCOMPtr<nsIDOMElement> result;

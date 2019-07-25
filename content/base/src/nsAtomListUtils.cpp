@@ -7,6 +7,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsAtomListUtils.h"
 #include "nsIAtom.h"
 #include "nsStaticAtom.h"
@@ -14,12 +46,12 @@
  bool
 nsAtomListUtils::IsMember(nsIAtom *aAtom,
                           const nsStaticAtom* aInfo,
-                          uint32_t aInfoCount)
+                          PRUint32 aInfoCount)
 {
     for (const nsStaticAtom *info = aInfo, *info_end = aInfo + aInfoCount;
          info != info_end; ++info) {
         if (aAtom == *(info->mAtom))
-            return true;
+            return PR_TRUE;
     }
-    return false;
+    return PR_FALSE;
 }

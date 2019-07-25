@@ -5,16 +5,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsARIAMap_H_
 #define _nsARIAMap_H_
 
-#include "ARIAStateMap.h"
-#include "mozilla/a11y/Role.h"
+#include "prtypes.h"
 
-#include "nsIAtom.h"
-#include "nsIContent.h"
-
-class nsINode;
+class nsIAtom;
+class nsIContent;
 
 
 
@@ -48,7 +77,6 @@ enum EActionRule
   eNoAction,
   eActivateAction,
   eClickAction,
-  ePressAction,
   eCheckUncheckAction,
   eExpandAction,
   eJumpAction,
@@ -96,13 +124,13 @@ const bool kUseNativeRole = false;
 
 
 
-const uint8_t ATTR_BYPASSOBJ  = 0x0001;
+const PRUint8 ATTR_BYPASSOBJ  = 0x0001;
 
 
 
 
 
-const uint8_t ATTR_VALTOKEN   = 0x0010;
+const PRUint8 ATTR_VALTOKEN   = 0x0010;
 
 
 
@@ -110,7 +138,7 @@ const uint8_t ATTR_VALTOKEN   = 0x0010;
 struct nsAttributeCharacteristics
 {
   nsIAtom** attributeName;
-  const uint8_t characteristics;
+  const PRUint8 characteristics;
 };
 
 
@@ -123,11 +151,115 @@ struct nsAttributeCharacteristics
 
 #define kNoReqStates 0
 
+enum eStateValueType
+{
+  kBoolType,
+  kMixedType
+};
+
 enum EDefaultStateRule
 {
   
   eUseFirstState
 };
+
+
+
+
+enum eStateMapEntryID
+{
+  eARIANone,
+  eARIAAutoComplete,
+  eARIABusy,
+  eARIACheckableBool,
+  eARIACheckableMixed,
+  eARIACheckedMixed,
+  eARIADisabled,
+  eARIAExpanded,
+  eARIAHasPopup,
+  eARIAInvalid,
+  eARIAMultiline,
+  eARIAMultiSelectable,
+  eARIAOrientation,
+  eARIAPressed,
+  eARIAReadonly,
+  eARIAReadonlyOrEditable,
+  eARIARequired,
+  eARIASelectable
+};
+
+class nsStateMapEntry
+{
+public:
+  
+
+
+  nsStateMapEntry();
+
+  
+
+
+  nsStateMapEntry(nsIAtom** aAttrName, eStateValueType aType,
+                  PRUint64 aPermanentState,
+                  PRUint64 aTrueState,
+                  PRUint64 aFalseState = 0,
+                  bool aDefinedIfAbsent = false);
+
+  
+
+
+  nsStateMapEntry(nsIAtom** aAttrName,
+                  const char* aValue1, PRUint64 aState1,
+                  const char* aValue2, PRUint64 aState2,
+                  const char* aValue3 = 0, PRUint64 aState3 = 0);
+
+  
+
+
+
+  nsStateMapEntry(nsIAtom** aAttrName, EDefaultStateRule aDefaultStateRule,
+                  const char* aValue1, PRUint64 aState1,
+                  const char* aValue2, PRUint64 aState2,
+                  const char* aValue3 = 0, PRUint64 aState3 = 0);
+
+  
+
+
+
+
+
+
+
+  static bool MapToStates(nsIContent* aContent, PRUint64* aState,
+                            eStateMapEntryID aStateMapEntryID);
+
+private:
+  
+  nsIAtom** mAttributeName;
+
+  
+  bool mIsToken;
+
+  
+  PRUint64 mPermanentState;
+
+  
+  const char* mValue1;
+  PRUint64 mState1;
+
+  const char* mValue2;
+  PRUint64 mState2;
+
+  const char* mValue3;
+  PRUint64 mState3;
+
+  
+  PRUint64 mDefaultState;
+
+  
+  bool mDefinedIfAbsent;
+};
+
 
 
 
@@ -138,22 +270,10 @@ enum EDefaultStateRule
 struct nsRoleMapEntry
 {
   
-
-
-  bool Is(nsIAtom* aARIARole) const
-    { return *roleAtom == aARIARole; }
-
+  const char *roleString;
   
-
-
-  const nsDependentAtomString ARIARoleString() const
-    { return nsDependentAtomString(*roleAtom); }
-
   
-  nsIAtom** roleAtom;
-
-  
-  mozilla::a11y::role role;
+  PRUint32 role;
   
   
   bool roleRule;
@@ -169,16 +289,16 @@ struct nsRoleMapEntry
   ELiveAttrRule liveAttRule;
 
   
-  uint64_t state;   
-
+  PRUint64 state;   
   
   
   
   
   
-  mozilla::a11y::aria::EStateRule attributeMap1;
-  mozilla::a11y::aria::EStateRule attributeMap2;
-  mozilla::a11y::aria::EStateRule attributeMap3;
+  
+  eStateMapEntryID attributeMap1;
+  eStateMapEntryID attributeMap2;
+  eStateMapEntryID attributeMap3;
 };
 
 
@@ -195,6 +315,18 @@ struct nsARIAMap
   
 
 
+  static nsRoleMapEntry gWAIRoleMap[];
+  static PRUint32 gWAIRoleMapLength;
+
+  
+
+
+
+  static nsRoleMapEntry gLandmarkRoleMap;
+
+  
+
+
 
 
   static nsRoleMapEntry gEmptyRoleMap;
@@ -202,57 +334,19 @@ struct nsARIAMap
   
 
 
+  static nsStateMapEntry gWAIStateMap[];
+
+  
+
+
+
+  static eStateMapEntryID gWAIUnivStateMap[];
+  
+  
+
+
   static nsAttributeCharacteristics gWAIUnivAttrMap[];
-  static uint32_t gWAIUnivAttrMapLength;
+  static PRUint32 gWAIUnivAttrMapLength;
 };
-
-namespace mozilla {
-namespace a11y {
-namespace aria {
-
-
-
-
-
-
-
-
-
-nsRoleMapEntry* GetRoleMap(nsINode* aNode);
-
-
-
-
-
-uint64_t UniversalStatesFor(mozilla::dom::Element* aElement);
-
- 
-
-
-
-class AttrIterator
-{
-public:
-  AttrIterator(nsIContent* aContent) : 
-    mContent(aContent), mAttrIdx(0) 
-  { 
-    mAttrCount = mContent->GetAttrCount();
-  }
-
-  bool Next(nsAString& aAttrName, nsAString& aAttrValue);
-
-private:
-  AttrIterator() MOZ_DELETE;
-  AttrIterator(const AttrIterator&) MOZ_DELETE;
-  AttrIterator& operator= (const AttrIterator&) MOZ_DELETE;
-
-  nsIContent* mContent;
-  uint32_t mAttrIdx;
-  uint32_t mAttrCount;
-};
-
-} 
-} 
-} 
 
 #endif

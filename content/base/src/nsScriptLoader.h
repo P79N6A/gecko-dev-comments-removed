@@ -7,6 +7,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __nsScriptLoader_h__
 #define __nsScriptLoader_h__
 
@@ -42,7 +75,7 @@ public:
 
   void DropDocumentReference()
   {
-    mDocument = nullptr;
+    mDocument = nsnull;
   }
 
   
@@ -82,7 +115,7 @@ public:
 
 
 
-  bool ProcessScriptElement(nsIScriptElement* aElement);
+  nsresult ProcessScriptElement(nsIScriptElement* aElement);
 
   
 
@@ -99,6 +132,7 @@ public:
   }
 
   
+
 
 
 
@@ -142,9 +176,9 @@ public:
 
 
 
-  static nsresult ConvertToUTF16(nsIChannel* aChannel, const uint8_t* aData,
-                                 uint32_t aLength,
-                                 const nsAString& aHintCharset,
+  static nsresult ConvertToUTF16(nsIChannel* aChannel, const PRUint8* aData,
+                                 PRUint32 aLength,
+                                 const nsString& aHintCharset,
                                  nsIDocument* aDocument, nsString& aString);
 
   
@@ -174,7 +208,7 @@ public:
 
   void BeginDeferringScripts()
   {
-    mDeferEnabled = true;
+    mDeferEnabled = PR_TRUE;
     if (mDocument) {
       mDocument->BlockOnload();
     }
@@ -194,7 +228,7 @@ public:
   
 
 
-  uint32_t HasPendingOrCurrentScripts()
+  PRUint32 HasPendingOrCurrentScripts()
   {
     return mCurrentScript || mParserBlockingRequest;
   }
@@ -206,24 +240,10 @@ public:
 
 
 
-
-
   virtual void PreloadURI(nsIURI *aURI, const nsAString &aCharset,
-                          const nsAString &aType,
-                          const nsAString &aCrossOrigin);
+                          const nsAString &aType);
 
 private:
-  
-
-
-  void UnblockParser(nsScriptLoadRequest* aParserBlockingRequest);
-
-  
-
-
-  void ContinueParserAsync(nsScriptLoadRequest* aParserBlockingRequest);
-
-
   
 
 
@@ -263,7 +283,7 @@ private:
   }
 
   bool AddPendingChildLoader(nsScriptLoader* aChild) {
-    return mPendingChildLoaders.AppendElement(aChild) != nullptr;
+    return mPendingChildLoaders.AppendElement(aChild) != nsnull;
   }
   
   nsresult ProcessRequest(nsScriptLoadRequest* aRequest);
@@ -277,8 +297,8 @@ private:
   nsresult PrepareLoadedRequest(nsScriptLoadRequest* aRequest,
                                 nsIStreamLoader* aLoader,
                                 nsresult aStatus,
-                                uint32_t aStringLen,
-                                const uint8_t* aString);
+                                PRUint32 aStringLen,
+                                const PRUint8* aString);
 
   nsIDocument* mDocument;                   
   nsCOMArray<nsIScriptLoaderObserver> mObservers;
@@ -310,7 +330,7 @@ private:
   nsCOMPtr<nsIScriptElement> mCurrentParserInsertedScript;
   
   nsTArray< nsRefPtr<nsScriptLoader> > mPendingChildLoaders;
-  uint32_t mBlockerCount;
+  PRUint32 mBlockerCount;
   bool mEnabled;
   bool mDeferEnabled;
   bool mDocumentParsingDone;
@@ -324,14 +344,14 @@ public:
     mLoader = aDoc->ScriptLoader();
     mWasEnabled = mLoader->GetEnabled();
     if (mWasEnabled) {
-      mLoader->SetEnabled(false);
+      mLoader->SetEnabled(PR_FALSE);
     }
   }
   
   ~nsAutoScriptLoaderDisabler()
   {
     if (mWasEnabled) {
-      mLoader->SetEnabled(true);
+      mLoader->SetEnabled(PR_TRUE);
     }
   }
   

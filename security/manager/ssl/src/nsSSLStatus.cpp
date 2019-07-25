@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSSLStatus.h"
 #include "plstr.h"
 #include "nsIClassInfoImpl.h"
@@ -23,7 +56,7 @@ nsSSLStatus::GetServerCert(nsIX509Cert** _result)
 }
 
 NS_IMETHODIMP
-nsSSLStatus::GetKeyLength(uint32_t* _result)
+nsSSLStatus::GetKeyLength(PRUint32* _result)
 {
   NS_ASSERTION(_result, "non-NULL destination required");
   if (!mHaveKeyLengthAndCipher)
@@ -35,7 +68,7 @@ nsSSLStatus::GetKeyLength(uint32_t* _result)
 }
 
 NS_IMETHODIMP
-nsSSLStatus::GetSecretKeyLength(uint32_t* _result)
+nsSSLStatus::GetSecretKeyLength(PRUint32* _result)
 {
   NS_ASSERTION(_result, "non-NULL destination required");
   if (!mHaveKeyLengthAndCipher)
@@ -92,7 +125,7 @@ NS_IMETHODIMP
 nsSSLStatus::Read(nsIObjectInputStream* stream)
 {
   nsCOMPtr<nsISupports> cert;
-  nsresult rv = stream->ReadObject(true, getter_AddRefs(cert));
+  nsresult rv = stream->ReadObject(PR_TRUE, getter_AddRefs(cert));
   NS_ENSURE_SUCCESS(rv, rv);
 
   mServerCert = do_QueryInterface(cert);
@@ -126,7 +159,7 @@ nsSSLStatus::Write(nsIObjectOutputStream* stream)
 {
   nsresult rv = stream->WriteCompoundObject(mServerCert,
                                             NS_GET_IID(nsIX509Cert),
-                                            true);
+                                            PR_TRUE);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = stream->Write32(mKeyLength);
@@ -152,31 +185,31 @@ nsSSLStatus::Write(nsIObjectOutputStream* stream)
 }
 
 NS_IMETHODIMP
-nsSSLStatus::GetInterfaces(uint32_t *count, nsIID * **array)
+nsSSLStatus::GetInterfaces(PRUint32 *count, nsIID * **array)
 {
   *count = 0;
-  *array = nullptr;
+  *array = nsnull;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsSSLStatus::GetHelperForLanguage(uint32_t language, nsISupports **_retval)
+nsSSLStatus::GetHelperForLanguage(PRUint32 language, nsISupports **_retval)
 {
-  *_retval = nullptr;
+  *_retval = nsnull;
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsSSLStatus::GetContractID(char * *aContractID)
 {
-  *aContractID = nullptr;
+  *aContractID = nsnull;
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsSSLStatus::GetClassDescription(char * *aClassDescription)
 {
-  *aClassDescription = nullptr;
+  *aClassDescription = nsnull;
   return NS_OK;
 }
 
@@ -190,14 +223,14 @@ nsSSLStatus::GetClassID(nsCID * *aClassID)
 }
 
 NS_IMETHODIMP
-nsSSLStatus::GetImplementationLanguage(uint32_t *aImplementationLanguage)
+nsSSLStatus::GetImplementationLanguage(PRUint32 *aImplementationLanguage)
 {
   *aImplementationLanguage = nsIProgrammingLanguage::CPLUSPLUS;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsSSLStatus::GetFlags(uint32_t *aFlags)
+nsSSLStatus::GetFlags(PRUint32 *aFlags)
 {
   *aFlags = 0;
   return NS_OK;
@@ -216,11 +249,11 @@ nsSSLStatus::GetClassIDNoAlloc(nsCID *aClassIDNoAlloc)
 
 nsSSLStatus::nsSSLStatus()
 : mKeyLength(0), mSecretKeyLength(0)
-, mIsDomainMismatch(false)
-, mIsNotValidAtThisTime(false)
-, mIsUntrusted(false)
-, mHaveKeyLengthAndCipher(false)
-, mHaveCertErrorBits(false)
+, mIsDomainMismatch(PR_FALSE)
+, mIsNotValidAtThisTime(PR_FALSE)
+, mIsUntrusted(PR_FALSE)
+, mHaveKeyLengthAndCipher(PR_FALSE)
+, mHaveCertErrorBits(PR_FALSE)
 {
   mCipherName = "";
 }

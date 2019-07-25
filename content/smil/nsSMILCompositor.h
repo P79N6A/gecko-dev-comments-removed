@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_SMILCOMPOSITOR_H_
 #define NS_SMILCOMPOSITOR_H_
 
@@ -29,12 +61,12 @@ public:
 
   explicit nsSMILCompositor(KeyTypePointer aKey)
    : mKey(*aKey),
-     mForceCompositing(false)
+     mForceCompositing(PR_FALSE)
   { }
   nsSMILCompositor(const nsSMILCompositor& toCopy)
     : mKey(toCopy.mKey),
       mAnimationFunctions(toCopy.mAnimationFunctions),
-      mForceCompositing(false)
+      mForceCompositing(PR_FALSE)
   { }
   ~nsSMILCompositor() { }
 
@@ -43,7 +75,7 @@ public:
   bool KeyEquals(KeyTypePointer aKey) const;
   static KeyTypePointer KeyToPointer(KeyTypeRef aKey) { return &aKey; }
   static PLDHashNumber HashKey(KeyTypePointer aKey);
-  enum { ALLOW_MEMMOVE = false };
+  enum { ALLOW_MEMMOVE = PR_FALSE };
 
   
   void AddAnimationFunction(nsSMILAnimationFunction* aFunc);
@@ -61,7 +93,7 @@ public:
 
   
   
-  void ToggleForceCompositing() { mForceCompositing = true; }
+  void ToggleForceCompositing() { mForceCompositing = PR_TRUE; }
 
   
   void StealCachedBaseValue(nsSMILCompositor* aOther) {
@@ -76,7 +108,7 @@ public:
   
   
   
-  uint32_t GetFirstFuncToAffectSandwich();
+  PRUint32 GetFirstFuncToAffectSandwich();
 
   
   

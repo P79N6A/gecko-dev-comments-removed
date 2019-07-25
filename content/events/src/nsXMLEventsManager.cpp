@@ -3,10 +3,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIDOMMutationEvent.h"
 #include "nsXMLEventsManager.h"
 #include "nsGkAtoms.h"
 #include "nsIDOMElement.h"
+#include "nsIDOMDocument.h"
 #include "nsIDOMEventTarget.h"
 #include "nsNetUtil.h"
 #include "nsIURL.h"
@@ -22,9 +56,9 @@ bool nsXMLEventsListener::InitXMLEventsListener(nsIDocument * aDocument,
                                                   nsIContent * aContent)
 {
   nsresult rv;
-  int32_t nameSpaceID;
+  PRInt32 nameSpaceID;
   if (aContent->GetDocument() != aDocument)
-    return false;
+    return PR_FALSE;
   if (aContent->NodeInfo()->Equals(nsGkAtoms::listener,
                                    kNameSpaceID_XMLEvents))
     nameSpaceID = kNameSpaceID_None;
@@ -33,21 +67,21 @@ bool nsXMLEventsListener::InitXMLEventsListener(nsIDocument * aDocument,
   nsAutoString eventType;
   aContent->GetAttr(nameSpaceID, nsGkAtoms::event, eventType);
   if (eventType.IsEmpty())
-    return false;
+    return PR_FALSE;
   nsAutoString handlerURIStr;
   bool hasHandlerURI = false;
-  nsIContent *handler = nullptr;
+  nsIContent *handler = nsnull;
   nsAutoString observerID;
   nsAutoString targetIdref;
   
   if (aContent->GetAttr(nameSpaceID, nsGkAtoms::handler, handlerURIStr)) {
-    hasHandlerURI = true;
-    nsAutoCString handlerRef;
+    hasHandlerURI = PR_TRUE;
+    nsCAutoString handlerRef;
     nsCOMPtr<nsIURI> handlerURI;
     bool equals = false;
     nsIURI *docURI = aDocument->GetDocumentURI();
     nsIURI *baseURI = aDocument->GetDocBaseURI();
-    rv = NS_NewURI( getter_AddRefs(handlerURI), handlerURIStr, nullptr, baseURI);
+    rv = NS_NewURI( getter_AddRefs(handlerURI), handlerURIStr, nsnull, baseURI);
     if (NS_SUCCEEDED(rv)) {
       handlerURI->GetRef(handlerRef);
       
@@ -60,7 +94,7 @@ bool nsXMLEventsListener::InitXMLEventsListener(nsIDocument * aDocument,
   else
     handler = aContent;
   if (!handler)
-    return false;
+    return PR_FALSE;
 
   aContent->GetAttr(nameSpaceID, nsGkAtoms::target, targetIdref);
 
@@ -79,7 +113,7 @@ bool nsXMLEventsListener::InitXMLEventsListener(nsIDocument * aDocument,
     aContent->AttrValueIs(nameSpaceID, nsGkAtoms::defaultAction,
                           nsGkAtoms::cancel, eCaseMatters);
 
-  nsIContent *observer = nullptr;
+  nsIContent *observer = nsnull;
   if (!hasObserver) {
     if (!hasHandlerURI) 
       observer = aContent->GetParent();
@@ -106,13 +140,13 @@ bool nsXMLEventsListener::InitXMLEventsListener(nsIDocument * aDocument,
         aManager->RemoveXMLEventsContent(aContent);
         aManager->RemoveListener(aContent);
         aManager->AddListener(aContent, eli);
-        return true;
+        return PR_TRUE;
       }
       else
         delete eli;
     }
   }
-  return false;
+  return PR_FALSE;
 }
 
 nsXMLEventsListener::nsXMLEventsListener(nsXMLEventsManager * aManager,
@@ -147,15 +181,15 @@ void nsXMLEventsListener::Unregister()
   if (target) {
     target->RemoveEventListener(mEvent, this, mPhase);
   }
-  mObserver = nullptr;
-  mHandler = nullptr;
+  mObserver = nsnull;
+  mHandler = nsnull;
 }
 
 void nsXMLEventsListener::SetIncomplete()
 {
   Unregister();
   mManager->AddXMLEventsContent(mElement);
-  mElement = nullptr;
+  mElement = nsnull;
 }
 
 bool nsXMLEventsListener::ObserverEquals(nsIContent * aTarget)
@@ -177,12 +211,12 @@ nsXMLEventsListener::HandleEvent(nsIDOMEvent* aEvent)
   bool targetMatched = true;
   nsCOMPtr<nsIDOMEvent> event(aEvent);
   if (mTarget) {
-    targetMatched = false;
+    targetMatched = PR_FALSE;
     nsCOMPtr<nsIDOMEventTarget> target;
     aEvent->GetTarget(getter_AddRefs(target));
     nsCOMPtr<nsIContent> targetEl(do_QueryInterface(target));
     if (targetEl && targetEl->GetID() == mTarget) 
-        targetMatched = true;
+        targetMatched = PR_TRUE;
   }
   if (!targetMatched)
     return NS_OK;
@@ -262,9 +296,9 @@ bool nsXMLEventsManager::RemoveListener(nsIContent * aContent)
   if (listener) {
     listener->Unregister();
     mListeners.Remove(aContent);
-    return true;
+    return PR_TRUE;
   }
-  return false;
+  return PR_FALSE;
 }
 
 void nsXMLEventsManager::AddListeners(nsIDocument* aDocument)
@@ -298,9 +332,9 @@ nsXMLEventsManager::EndLoad(nsIDocument* aDocument)
 void
 nsXMLEventsManager::AttributeChanged(nsIDocument* aDocument,
                                      Element* aElement,
-                                     int32_t aNameSpaceID,
+                                     PRInt32 aNameSpaceID,
                                      nsIAtom* aAttribute,
-                                     int32_t aModType)
+                                     PRInt32 aModType)
 {
   nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
 
@@ -344,7 +378,7 @@ void
 nsXMLEventsManager::ContentAppended(nsIDocument* aDocument,
                                     nsIContent* aContainer,
                                     nsIContent* aFirstNewContent,
-                                    int32_t aNewIndexInContainer)
+                                    PRInt32 aNewIndexInContainer)
 {
   AddListeners(aDocument);
 }
@@ -353,7 +387,7 @@ void
 nsXMLEventsManager::ContentInserted(nsIDocument* aDocument,
                                     nsIContent* aContainer,
                                     nsIContent* aChild,
-                                    int32_t aIndexInContainer)
+                                    PRInt32 aIndexInContainer)
 {
   AddListeners(aDocument);
 }
@@ -362,7 +396,7 @@ void
 nsXMLEventsManager::ContentRemoved(nsIDocument* aDocument,
                                    nsIContent* aContainer,
                                    nsIContent* aChild,
-                                   int32_t aIndexInContainer,
+                                   PRInt32 aIndexInContainer,
                                    nsIContent* aPreviousSibling)
 {
   if (!aChild || !aChild->IsElement())
@@ -382,8 +416,8 @@ nsXMLEventsManager::ContentRemoved(nsIDocument* aDocument,
     AddXMLEventsContent(aChild);
   }
 
-  uint32_t count = aChild->GetChildCount();
-  for (uint32_t i = 0; i < count; ++i) {
+  PRUint32 count = aChild->GetChildCount();
+  for (PRUint32 i = 0; i < count; ++i) {
     ContentRemoved(aDocument, aChild, aChild->GetChildAt(i), i, aChild->GetPreviousSibling());
   }
 }

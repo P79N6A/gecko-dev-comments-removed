@@ -118,7 +118,7 @@ struct Registers {
 #elif defined(JS_CPU_X64)
     static const RegisterID JSFrameReg = JSC::X86Registers::ebx;
 #elif defined(JS_CPU_ARM)
-    static const RegisterID JSFrameReg = JSC::ARMRegisters::r11;
+    static const RegisterID JSFrameReg = JSC::ARMRegisters::r10;
 #elif defined(JS_CPU_SPARC)
     static const RegisterID JSFrameReg = JSC::SparcRegisters::l0;
 #endif
@@ -130,11 +130,13 @@ struct Registers {
     static const RegisterID ArgReg1 = JSC::X86Registers::edx;
 #  if defined(JS_CPU_X64)
     static const RegisterID ArgReg2 = JSC::X86Registers::r8;
+    static const RegisterID ArgReg3 = JSC::X86Registers::r9;
 #  endif
 # else
     static const RegisterID ArgReg0 = JSC::X86Registers::edi;
     static const RegisterID ArgReg1 = JSC::X86Registers::esi;
     static const RegisterID ArgReg2 = JSC::X86Registers::edx;
+    static const RegisterID ArgReg3 = JSC::X86Registers::ecx;
 # endif
 #elif JS_CPU_ARM
     static const RegisterID ReturnReg = JSC::ARMRegisters::r0;
@@ -225,8 +227,7 @@ struct Registers {
         | (1 << JSC::ARMRegisters::r6)
         | (1 << JSC::ARMRegisters::r7)
     
-        | (1 << JSC::ARMRegisters::r9)
-        | (1 << JSC::ARMRegisters::r10);
+        | (1 << JSC::ARMRegisters::r9);
     
     
     
@@ -248,13 +249,7 @@ struct Registers {
         | (1 << JSC::SparcRegisters::l4)
         | (1 << JSC::SparcRegisters::l5)
         | (1 << JSC::SparcRegisters::l6)
-        | (1 << JSC::SparcRegisters::l7)
-        | (1 << JSC::SparcRegisters::i0)
-        | (1 << JSC::SparcRegisters::i1)
-        | (1 << JSC::SparcRegisters::i2)
-        | (1 << JSC::SparcRegisters::i3)
-        | (1 << JSC::SparcRegisters::i4)
-        | (1 << JSC::SparcRegisters::i5);
+        | (1 << JSC::SparcRegisters::l7);
 
     static const uint32 SingleByteRegs = TempRegs | SavedRegs;
 #else
@@ -382,25 +377,25 @@ struct Registers {
         ) << TotalRegisters;
     static const FPRegisterID FPConversionTemp = JSC::ARMRegisters::d3;
 #elif defined(JS_CPU_SPARC)
-    static const uint32 TotalFPRegisters = 16;
-    static const uint32 TempFPRegs = 
-          (1 << JSC::SparcRegisters::f2)
+    static const uint32 TotalFPRegisters = 8;
+    static const uint32 TempFPRegs = (uint32)(
+          (1 << JSC::SparcRegisters::f0)
+        | (1 << JSC::SparcRegisters::f2)
         | (1 << JSC::SparcRegisters::f4)
         | (1 << JSC::SparcRegisters::f6)
-        | (1 << JSC::SparcRegisters::f8)
-        | (1 << JSC::SparcRegisters::f10)
-        | (1 << JSC::SparcRegisters::f12)
-        | (1 << JSC::SparcRegisters::f14)
-        | (1 << JSC::SparcRegisters::f16)
-        | (1 << JSC::SparcRegisters::f18)
-        | (1 << JSC::SparcRegisters::f20)
-        | (1 << JSC::SparcRegisters::f22)
-        | (1 << JSC::SparcRegisters::f24)
-        | (1 << JSC::SparcRegisters::f26)
-        | (1 << JSC::SparcRegisters::f28);
-    static const FPRegisterID FPConversionTemp = JSC::SparcRegisters::f0;
+        ) << TotalRegisters;
+    static const FPRegisterID FPConversionTemp = JSC::SparcRegisters::f8;
 #else
 # error "Unsupported platform"
+#endif
+
+    
+#if defined(JS_CPU_X86) || defined(JS_CPU_X64)
+    static const RegisterID ClobberInCall = JSC::X86Registers::ecx;
+#elif defined(JS_CPU_ARM)
+    static const RegisterID ClobberInCall = JSC::ARMRegisters::r2;
+#elif defined(JS_CPU_SPARC)
+    static const RegisterID ClobberInCall = JSC::SparcRegisters::l1;
 #endif
 
     static const uint32 AvailFPRegs = TempFPRegs;
@@ -421,10 +416,24 @@ struct Registers {
 
     
     static inline RegisterID tempCallReg() {
-        Registers regs(AvailRegs);
+        Registers regs(TempRegs);
         regs.takeReg(Registers::ArgReg0);
         regs.takeReg(Registers::ArgReg1);
         return regs.takeAnyReg().reg();
+    }
+
+    
+    static inline Registers tempCallRegMask() {
+        Registers regs(AvailRegs);
+#ifndef JS_CPU_X86
+        regs.takeReg(ArgReg0);
+        regs.takeReg(ArgReg1);
+        regs.takeReg(ArgReg2);
+#if defined(JS_CPU_SPARC) || defined(JS_CPU_X64)
+        regs.takeReg(ArgReg3);
+#endif
+#endif
+        return regs;
     }
 
     Registers(uint32 freeMask)

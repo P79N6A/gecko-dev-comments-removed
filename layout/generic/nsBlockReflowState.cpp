@@ -6,6 +6,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsBlockReflowContext.h"
 #include "nsBlockReflowState.h"
 #include "nsBlockFrame.h"
@@ -26,7 +62,6 @@
 #endif
 
 using namespace mozilla;
-using namespace mozilla::layout;
 
 nsBlockReflowState::nsBlockReflowState(const nsHTMLReflowState& aReflowState,
                                        nsPresContext* aPresContext,
@@ -38,30 +73,30 @@ nsBlockReflowState::nsBlockReflowState(const nsHTMLReflowState& aReflowState,
   : mBlock(aFrame),
     mPresContext(aPresContext),
     mReflowState(aReflowState),
-    mPushedFloats(nullptr),
-    mOverflowTracker(nullptr),
+    mPushedFloats(nsnull),
+    mOverflowTracker(nsnull),
     mPrevBottomMargin(),
     mLineNumber(0),
     mFlags(0),
     mFloatBreakType(NS_STYLE_CLEAR_NONE)
 {
-  SetFlag(BRS_ISFIRSTINFLOW, aFrame->GetPrevInFlow() == nullptr);
+  SetFlag(BRS_ISFIRSTINFLOW, aFrame->GetPrevInFlow() == nsnull);
   SetFlag(BRS_ISOVERFLOWCONTAINER,
           IS_TRUE_OVERFLOW_CONTAINER(aFrame));
 
   const nsMargin& borderPadding = BorderPadding();
 
   if (aTopMarginRoot || 0 != aReflowState.mComputedBorderPadding.top) {
-    SetFlag(BRS_ISTOPMARGINROOT, true);
+    SetFlag(BRS_ISTOPMARGINROOT, PR_TRUE);
   }
   if (aBottomMarginRoot || 0 != aReflowState.mComputedBorderPadding.bottom) {
-    SetFlag(BRS_ISBOTTOMMARGINROOT, true);
+    SetFlag(BRS_ISBOTTOMMARGINROOT, PR_TRUE);
   }
   if (GetFlag(BRS_ISTOPMARGINROOT)) {
-    SetFlag(BRS_APPLYTOPMARGIN, true);
+    SetFlag(BRS_APPLYTOPMARGIN, PR_TRUE);
   }
   if (aBlockNeedsFloatManager) {
-    SetFlag(BRS_FLOAT_MGR, true);
+    SetFlag(BRS_FLOAT_MGR, PR_TRUE);
   }
   
   mFloatManager = aReflowState.mFloatManager;
@@ -101,16 +136,32 @@ nsBlockReflowState::nsBlockReflowState(const nsHTMLReflowState& aReflowState,
   else {
     
     
-    SetFlag(BRS_UNCONSTRAINEDHEIGHT, true);
+    SetFlag(BRS_UNCONSTRAINEDHEIGHT, PR_TRUE);
     mContentArea.height = mBottomEdge = NS_UNCONSTRAINEDSIZE;
   }
   mContentArea.x = borderPadding.left;
   mY = mContentArea.y = borderPadding.top;
 
-  mPrevChild = nullptr;
+  mPrevChild = nsnull;
   mCurrentLine = aFrame->end_lines();
 
   mMinLineHeight = aReflowState.CalcLineHeight();
+}
+
+nsLineBox*
+nsBlockReflowState::NewLineBox(nsIFrame* aFrame,
+                               PRInt32 aCount,
+                               bool aIsBlock)
+{
+  return NS_NewLineBox(mPresContext->PresShell(), aFrame, aCount, aIsBlock);
+}
+
+void
+nsBlockReflowState::FreeLineBox(nsLineBox* aLine)
+{
+  if (aLine) {
+    aLine->Destroy(mPresContext->PresShell());
+  }
 }
 
 void
@@ -351,7 +402,7 @@ nsBlockReflowState::SetupPushedFloatList()
     
     
     mPushedFloats = mBlock->EnsurePushedFloats();
-    SetFlag(BRS_PROPTABLE_FLOATCLIST, true);
+    SetFlag(BRS_PROPTABLE_FLOATCLIST, PR_TRUE);
   }
 }
 
@@ -516,7 +567,7 @@ nsBlockReflowState::AddFloat(nsLineLayout*       aLineLayout,
   else {
     
     
-    placed = true;
+    placed = PR_TRUE;
     
     
     mBelowCurrentLineFloats.Append(mFloatCacheFreeList.Alloc(aFloat));
@@ -546,7 +597,6 @@ FloatMarginWidth(const nsHTMLReflowState& aCBReflowState,
                  nsIFrame *aFloat,
                  const nsCSSOffsetState& aFloatOffsetState)
 {
-  AutoMaybeDisableFontInflation an(aFloat);
   return aFloat->ComputeSize(
     aCBReflowState.rendContext,
     nsSize(aCBReflowState.ComputedWidth(),
@@ -560,7 +610,7 @@ FloatMarginWidth(const nsHTMLReflowState& aCBReflowState,
              aFloatOffsetState.mComputedPadding.TopBottom()),
     nsSize(aFloatOffsetState.mComputedPadding.LeftRight(),
            aFloatOffsetState.mComputedPadding.TopBottom()),
-    true).width +
+    PR_TRUE).width +
   aFloatOffsetState.mComputedMargin.LeftRight() +
   aFloatOffsetState.mComputedBorderPadding.LeftRight();
 }
@@ -618,7 +668,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
   bool isLetter = aFloat->GetType() == nsGkAtoms::letterFrame;
   if (isLetter) {
     mBlock->ReflowFloat(*this, adjustedAvailableSpace, aFloat,
-                        floatMargin, false, reflowStatus);
+                        floatMargin, PR_FALSE, reflowStatus);
     floatMarginWidth = aFloat->GetSize().width + floatMargin.LeftRight();
     NS_ASSERTION(NS_FRAME_IS_COMPLETE(reflowStatus),
                  "letter frames shouldn't break, and if they do now, "
@@ -647,7 +697,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
         !mustPlaceFloat) {
       
       PushFloatPastBreak(aFloat);
-      return false;
+      return PR_FALSE;
     }
 
     if (CanPlaceFloat(floatMarginWidth, floatAvailableSpace)) {
@@ -670,7 +720,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
 
       
       nsFloatCache* fc = mCurrentLineFloats.Head();
-      nsIFrame* prevFrame = nullptr;
+      nsIFrame* prevFrame = nsnull;
       while (fc) {
         if (fc->mFloat == aFloat) {
           break;
@@ -690,7 +740,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
             
             if (content->AttrValueIs(kNameSpaceID_None, nsGkAtoms::align,
                                      NS_LITERAL_STRING("left"), eIgnoreCase)) {
-              keepFloatOnSameLine = true;
+              keepFloatOnSameLine = PR_TRUE;
               
               
               
@@ -712,7 +762,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
                                           aFloat, offsets);
     }
 
-    mustPlaceFloat = false;
+    mustPlaceFloat = PR_FALSE;
   }
 
   
@@ -770,7 +820,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
       NS_FRAME_IS_TRUNCATED(reflowStatus)) {
 
     PushFloatPastBreak(aFloat);
-    return false;
+    return PR_FALSE;
   }
 
   
@@ -846,7 +896,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
   }
 #endif
 
-  return true;
+  return PR_TRUE;
 }
 
 void
@@ -905,9 +955,9 @@ nsBlockReflowState::PlaceBelowCurrentLineFloats(nsFloatCacheFreeList& aList,
 }
 
 nscoord
-nsBlockReflowState::ClearFloats(nscoord aY, uint8_t aBreakType,
+nsBlockReflowState::ClearFloats(nscoord aY, PRUint8 aBreakType,
                                 nsIFrame *aReplacedBlock,
-                                uint32_t aFlags)
+                                PRUint32 aFlags)
 {
 #ifdef DEBUG
   if (nsBlockFrame::gNoisyReflow) {

@@ -3,23 +3,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NSSVGTSPANFRAME_H
 #define NSSVGTSPANFRAME_H
 
-#include "gfxMatrix.h"
-#include "nsFrame.h"
-#include "nsISVGGlyphFragmentNode.h"
-#include "nsLiteralString.h"
-#include "nsQueryFrame.h"
 #include "nsSVGTextContainerFrame.h"
-
-class nsIAtom;
-class nsIContent;
-class nsIDOMSVGPoint;
-class nsIFrame;
-class nsIPresShell;
-class nsStyleContext;
-class nsSVGGlyphFrame;
+#include "nsISVGGlyphFragmentNode.h"
+#include "gfxMatrix.h"
 
 typedef nsSVGTextContainerFrame nsSVGTSpanFrameBase;
 
@@ -43,9 +65,9 @@ public:
                   nsIFrame*        aPrevInFlow);
 #endif
 
-  NS_IMETHOD  AttributeChanged(int32_t         aNameSpaceID,
+  NS_IMETHOD  AttributeChanged(PRInt32         aNameSpaceID,
                                nsIAtom*        aAttribute,
-                               int32_t         aModType);
+                               PRInt32         aModType);
 
   
 
@@ -61,13 +83,13 @@ public:
   }
 #endif
   
-  virtual gfxMatrix GetCanvasTM(uint32_t aFor);
+  virtual gfxMatrix GetCanvasTM();
   
   
-  virtual uint32_t GetNumberOfChars();
+  virtual PRUint32 GetNumberOfChars();
   virtual float GetComputedTextLength();
-  virtual float GetSubStringLength(uint32_t charnum, uint32_t fragmentChars);
-  virtual int32_t GetCharNumAtPosition(nsIDOMSVGPoint *point);
+  virtual float GetSubStringLength(PRUint32 charnum, PRUint32 fragmentChars);
+  virtual PRInt32 GetCharNumAtPosition(nsIDOMSVGPoint *point);
   NS_IMETHOD_(nsSVGGlyphFrame *) GetFirstGlyphFrame();
   NS_IMETHOD_(nsSVGGlyphFrame *) GetNextGlyphFrame();
   NS_IMETHOD_(void) SetWhitespaceCompression(bool aCompressWhitespace);

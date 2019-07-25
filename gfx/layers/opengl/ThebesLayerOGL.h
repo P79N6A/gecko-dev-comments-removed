@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_THEBESLAYEROGL_H
 #define GFX_THEBESLAYEROGL_H
 
@@ -13,7 +45,6 @@
 #include "LayerManagerOGL.h"
 #include "gfxImageSurface.h"
 #include "GLContext.h"
-#include "base/task.h"
 
 
 namespace mozilla {
@@ -44,7 +75,6 @@ public:
   virtual bool IsEmpty();
   virtual void RenderLayer(int aPreviousFrameBuffer,
                            const nsIntPoint& aOffset);
-  virtual void CleanupResources();
 
 private:
   friend class BasicBufferOGL;
@@ -54,60 +84,6 @@ private:
   nsRefPtr<Buffer> mBuffer;
 };
 
-class ShadowThebesLayerBufferOGL
-{
-public:
-  ShadowThebesLayerBufferOGL()
-  {
-    MOZ_COUNT_CTOR(ShadowThebesLayerBufferOGL);
-  }
-
-  ~ShadowThebesLayerBufferOGL()
-  {
-    MOZ_COUNT_DTOR(ShadowThebesLayerBufferOGL);
-  }
-
-  void Swap(const SurfaceDescriptor& aDescriptor,
-            const nsIntRect& aNewRect, const nsIntPoint& aNewRotation,
-            SurfaceDescriptor* aOldDescriptor,
-            nsIntRect* aOldRect, nsIntPoint* aOldRotation)
-  {
-    *aOldDescriptor = mBuffer;
-    *aOldRect = mBufferRect;
-    *aOldRotation = mBufferRotation;
-
-    mBuffer = aDescriptor;
-    mBufferRect = aNewRect;
-    mBufferRotation = aNewRotation;
-  }
-
-  nsIntRect Rect() {
-    return mBufferRect;
-  }
-
-  nsIntPoint Rotation() {
-    return mBufferRotation;
-  }
-
-  SurfaceDescriptor Buffer() {
-    return mBuffer;
-  }
-
-  
-
-
-
-  void Clear()
-  {
-    mBufferRect.SetEmpty();
-  }
-
-protected:
-  SurfaceDescriptor mBuffer;
-  nsIntRect mBufferRect;
-  nsIntPoint mBufferRotation;
-};
-
 class ShadowThebesLayerOGL : public ShadowThebesLayer,
                              public LayerOGL
 {
@@ -115,18 +91,16 @@ public:
   ShadowThebesLayerOGL(LayerManagerOGL *aManager);
   virtual ~ShadowThebesLayerOGL();
 
+  
+  virtual void SetFrontBuffer(const OptionalThebesBuffer& aNewFront,
+                              const nsIntRegion& aValidRegion);
   virtual void
   Swap(const ThebesBuffer& aNewFront, const nsIntRegion& aUpdatedRegion,
-       OptionalThebesBuffer* aNewBack, nsIntRegion* aNewBackValidRegion,
+       ThebesBuffer* aNewBack, nsIntRegion* aNewBackValidRegion,
        OptionalThebesBuffer* aReadOnlyFront, nsIntRegion* aFrontUpdatedRegion);
   virtual void DestroyFrontBuffer();
 
   virtual void Disconnect();
-
-  virtual void SetValidRegion(const nsIntRegion& aRegion)
-  {
-    ShadowThebesLayer::SetValidRegion(aRegion);
-  }
 
   
   void Destroy();
@@ -134,12 +108,9 @@ public:
   virtual bool IsEmpty();
   virtual void RenderLayer(int aPreviousFrameBuffer,
                            const nsIntPoint& aOffset);
-  virtual void CleanupResources();
 
 private:
   nsRefPtr<ShadowBufferOGL> mBuffer;
-  SurfaceDescriptor mBufferDescriptor;
-  nsIntRegion mValidRegionForNextBackBuffer;
 };
 
 } 

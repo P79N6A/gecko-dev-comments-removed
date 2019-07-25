@@ -4,11 +4,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_SVGTRANSFORM_H__
 #define MOZILLA_SVGTRANSFORM_H__
 
 #include "gfxMatrix.h"
-#include "nsDebug.h"
 #include "nsIDOMSVGTransform.h"
 
 namespace mozilla {
@@ -53,7 +84,7 @@ public:
     aOriginX = mOriginX;
     aOriginY = mOriginY;
   }
-  uint16_t Type() const {
+  PRUint16 Type() const {
     return mType;
   }
 
@@ -65,6 +96,7 @@ public:
   nsresult SetSkewX(float aAngle);
   nsresult SetSkewY(float aAngle);
 
+protected:
   static bool MatricesEqual(const gfxMatrix& a, const gfxMatrix& b)
   {
     return a.xx == b.xx &&
@@ -75,10 +107,9 @@ public:
            a.y0 == b.y0;
   }
 
-protected:
   gfxMatrix mMatrix;
   float mAngle, mOriginX, mOriginY;
-  uint16_t mType;
+  PRUint16 mType;
 };
 
 
@@ -109,33 +140,33 @@ class SVGTransformSMILData
 public:
   
   
-  static const uint32_t NUM_SIMPLE_PARAMS = 3;
+  static const PRUint32 NUM_SIMPLE_PARAMS = 3;
 
   
   
-  static const uint32_t NUM_STORED_PARAMS = 6;
+  static const PRUint32 NUM_STORED_PARAMS = 6;
 
-  explicit SVGTransformSMILData(uint16_t aType)
+  explicit SVGTransformSMILData(PRUint16 aType)
   : mTransformType(aType)
   {
     NS_ABORT_IF_FALSE(aType >= nsIDOMSVGTransform::SVG_TRANSFORM_MATRIX &&
                       aType <= nsIDOMSVGTransform::SVG_TRANSFORM_SKEWY,
                       "Unexpected transform type");
-    for (uint32_t i = 0; i < NUM_STORED_PARAMS; ++i) {
+    for (PRUint32 i = 0; i < NUM_STORED_PARAMS; ++i) {
       mParams[i] = 0.f;
     }
   }
 
-  SVGTransformSMILData(uint16_t aType, float (&aParams)[NUM_SIMPLE_PARAMS])
+  SVGTransformSMILData(PRUint16 aType, float (&aParams)[NUM_SIMPLE_PARAMS])
   : mTransformType(aType)
   {
     NS_ABORT_IF_FALSE(aType >= nsIDOMSVGTransform::SVG_TRANSFORM_TRANSLATE &&
                       aType <= nsIDOMSVGTransform::SVG_TRANSFORM_SKEWY,
                       "Expected 'simple' transform type");
-    for (uint32_t i = 0; i < NUM_SIMPLE_PARAMS; ++i) {
+    for (PRUint32 i = 0; i < NUM_SIMPLE_PARAMS; ++i) {
       mParams[i] = aParams[i];
     }
-    for (uint32_t i = NUM_SIMPLE_PARAMS; i < NUM_STORED_PARAMS; ++i) {
+    for (PRUint32 i = NUM_SIMPLE_PARAMS; i < NUM_STORED_PARAMS; ++i) {
       mParams[i] = 0.f;
     }
   }
@@ -147,15 +178,15 @@ public:
   bool operator==(const SVGTransformSMILData& aOther) const
   {
     if (mTransformType != aOther.mTransformType)
-      return false;
+      return PR_FALSE;
 
-    for (uint32_t i = 0; i < NUM_STORED_PARAMS; ++i) {
+    for (PRUint32 i = 0; i < NUM_STORED_PARAMS; ++i) {
       if (mParams[i] != aOther.mParams[i]) {
-        return false;
+        return PR_FALSE;
       }
     }
 
-    return true;
+    return PR_TRUE;
   }
 
   bool operator!=(const SVGTransformSMILData& aOther) const
@@ -163,7 +194,7 @@ public:
     return !(*this == aOther);
   }
 
-  uint16_t mTransformType;
+  PRUint16 mTransformType;
   float    mParams[NUM_STORED_PARAMS];
 };
 

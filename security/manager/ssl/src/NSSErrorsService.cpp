@@ -2,6 +2,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "NSSErrorsService.h"
 
 #include "nsNSSComponent.h"
@@ -51,7 +92,7 @@ NSSErrorsService::Init()
 #endif
 
 NS_IMETHODIMP
-NSSErrorsService::IsNSSErrorCode(int32_t aNSPRCode, bool *_retval)
+NSSErrorsService::IsNSSErrorCode(PRInt32 aNSPRCode, bool *_retval)
 {
   if (!_retval)
     return NS_ERROR_FAILURE;
@@ -61,7 +102,7 @@ NSSErrorsService::IsNSSErrorCode(int32_t aNSPRCode, bool *_retval)
 }
 
 NS_IMETHODIMP
-NSSErrorsService::GetXPCOMFromNSSError(int32_t aNSPRCode, nsresult *aXPCOMErrorCode)
+NSSErrorsService::GetXPCOMFromNSSError(PRInt32 aNSPRCode, nsresult *aXPCOMErrorCode)
 {
   if (!IS_SEC_ERROR(aNSPRCode) && !IS_SSL_ERROR(aNSPRCode))
     return NS_ERROR_FAILURE;
@@ -71,16 +112,15 @@ NSSErrorsService::GetXPCOMFromNSSError(int32_t aNSPRCode, nsresult *aXPCOMErrorC
 
   
   
-  
 
   *aXPCOMErrorCode =
-    (nsresult)NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_SECURITY,
-                                        -1 * aNSPRCode);
+    NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_SECURITY,
+                              -1 * aNSPRCode);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-NSSErrorsService::GetErrorClass(nsresult aXPCOMErrorCode, uint32_t *aErrorClass)
+NSSErrorsService::GetErrorClass(nsresult aXPCOMErrorCode, PRUint32 *aErrorClass)
 {
   NS_ENSURE_ARG(aErrorClass);
 
@@ -88,7 +128,7 @@ NSSErrorsService::GetErrorClass(nsresult aXPCOMErrorCode, uint32_t *aErrorClass)
       || NS_ERROR_GET_SEVERITY(aXPCOMErrorCode) != NS_ERROR_SEVERITY_ERROR)
     return NS_ERROR_FAILURE;
   
-  int32_t aNSPRCode = -1 * NS_ERROR_GET_CODE(aXPCOMErrorCode);
+  PRInt32 aNSPRCode = -1 * NS_ERROR_GET_CODE(aXPCOMErrorCode);
 
   if (!IS_SEC_ERROR(aNSPRCode) && !IS_SSL_ERROR(aNSPRCode))
     return NS_ERROR_FAILURE;
@@ -103,7 +143,6 @@ NSSErrorsService::GetErrorClass(nsresult aXPCOMErrorCode, uint32_t *aErrorClass)
     case SEC_ERROR_INADEQUATE_KEY_USAGE:
     case SSL_ERROR_BAD_CERT_DOMAIN:
     case SEC_ERROR_EXPIRED_CERTIFICATE:
-    case SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED:
       *aErrorClass = ERROR_CLASS_BAD_CERT;
       break;
     default:
@@ -120,7 +159,7 @@ NSSErrorsService::GetErrorMessage(nsresult aXPCOMErrorCode, nsAString &aErrorMes
       || NS_ERROR_GET_SEVERITY(aXPCOMErrorCode) != NS_ERROR_SEVERITY_ERROR)
     return NS_ERROR_FAILURE;
   
-  int32_t aNSPRCode = -1 * NS_ERROR_GET_CODE(aXPCOMErrorCode);
+  PRInt32 aNSPRCode = -1 * NS_ERROR_GET_CODE(aXPCOMErrorCode);
 
   if (!IS_SEC_ERROR(aNSPRCode) && !IS_SSL_ERROR(aNSPRCode))
     return NS_ERROR_FAILURE;

@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsXULAppAPI_h__
 #define _nsXULAppAPI_h__
 
@@ -12,9 +46,129 @@
 #include "nsXPCOM.h"
 #include "nsISupports.h"
 #include "prlog.h"
-#include "nsXREAppData.h"
 
-#include "mozilla/Assertions.h"
+
+
+
+
+
+
+
+struct nsXREAppData
+{
+  
+
+
+
+
+  PRUint32 size;
+
+  
+
+
+
+  nsILocalFile* directory;
+
+  
+
+
+
+
+  const char *vendor;
+
+  
+
+
+
+
+  const char *name;
+
+  
+
+
+
+
+  const char *version;
+
+  
+
+
+  const char *buildID;
+
+  
+
+
+
+
+
+
+
+
+
+  const char *ID;
+
+  
+
+
+
+  const char *copyright;
+
+  
+
+
+  PRUint32 flags;
+
+  
+
+
+
+  nsILocalFile* xreDirectory;
+
+  
+
+
+  const char *minVersion;
+  const char *maxVersion;
+
+  
+
+
+  const char *crashReporterURL;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const char *profile;
+};
+
+
+
+
+
+#define NS_XRE_ENABLE_PROFILE_MIGRATOR (1 << 1)
+
+
+
+
+
+#define NS_XRE_ENABLE_EXTENSION_MANAGER (1 << 2)
+
+
+
+
+#define NS_XRE_ENABLE_CRASH_REPORTER (1 << 3)
 
 
 
@@ -122,25 +276,6 @@
 
 
 
-#define XRE_UPDATE_ROOT_DIR "UpdRootD"
-
-
-
-
-
-
-
-#define XRE_MAIN_FLAG_USE_METRO 0x01
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -150,8 +285,7 @@
 
 
 XRE_API(int,
-        XRE_main, (int argc, char* argv[], const nsXREAppData* aAppData,
-                   uint32_t aFlags))
+        XRE_main, (int argc, char* argv[], const nsXREAppData* sAppData))
 
 
 
@@ -160,7 +294,7 @@ XRE_API(int,
 
 
 XRE_API(nsresult,
-        XRE_GetFileFromPath, (const char *aPath, nsIFile* *aResult))
+        XRE_GetFileFromPath, (const char *aPath, nsILocalFile* *aResult))
 
 
 
@@ -169,7 +303,7 @@ XRE_API(nsresult,
 
 
 XRE_API(nsresult,
-        XRE_GetBinaryPath, (const char *argv0, nsIFile* *aResult))
+        XRE_GetBinaryPath, (const char *argv0, nsILocalFile* *aResult))
 
 
 
@@ -185,7 +319,7 @@ XRE_API(const mozilla::Module*,
 
 
 XRE_API(nsresult,
-        XRE_LockProfileDirectory, (nsIFile* aDirectory,
+        XRE_LockProfileDirectory, (nsILocalFile* aDirectory,
                                    nsISupports* *aLockObject))
 
 
@@ -209,8 +343,8 @@ XRE_API(nsresult,
 
 
 XRE_API(nsresult,
-        XRE_InitEmbedding2, (nsIFile *aLibXULDirectory,
-                             nsIFile *aAppDirectory,
+        XRE_InitEmbedding2, (nsILocalFile *aLibXULDirectory,
+                             nsILocalFile *aAppDirectory,
                              nsIDirectoryServiceProvider *aAppDirProvider))
 
 
@@ -245,7 +379,7 @@ enum NSLocationType
 
 XRE_API(nsresult,
         XRE_AddManifestLocation, (NSLocationType aType,
-                                  nsIFile* aLocation))
+                                  nsILocalFile* aLocation))
 
 
 
@@ -266,7 +400,7 @@ XRE_API(nsresult,
 
 XRE_API(nsresult,
         XRE_AddJarManifestLocation, (NSLocationType aType,
-                                     nsIFile* aLocation))
+                                     nsILocalFile* aLocation))
 
 
 
@@ -312,7 +446,7 @@ XRE_API(void,
 
 
 XRE_API(nsresult,
-        XRE_CreateAppData, (nsIFile* aINIFile,
+        XRE_CreateAppData, (nsILocalFile* aINIFile,
                             nsXREAppData **aAppData))
 
 
@@ -323,7 +457,7 @@ XRE_API(nsresult,
 
 
 XRE_API(nsresult,
-        XRE_ParseAppData, (nsIFile* aINIFile,
+        XRE_ParseAppData, (nsILocalFile* aINIFile,
                            nsXREAppData *aAppData))
 
 
@@ -337,6 +471,7 @@ enum GeckoProcessType {
 
   GeckoProcessType_Plugin,
   GeckoProcessType_Content,
+  GeckoProcessType_Jetpack,
 
   GeckoProcessType_IPDLUnitTest,
 
@@ -348,15 +483,14 @@ static const char* const kGeckoProcessTypeString[] = {
   "default",
   "plugin",
   "tab",
+  "jetpack",
   "ipdlunittest"
 };
 
+PR_STATIC_ASSERT(sizeof(kGeckoProcessTypeString) /
+                 sizeof(kGeckoProcessTypeString[0]) ==
+                 GeckoProcessType_End);
 
-
-MOZ_STATIC_ASSERT(sizeof(kGeckoProcessTypeString) /
-                  sizeof(kGeckoProcessTypeString[0]) ==
-                  GeckoProcessType_End,
-                  "Array length mismatch");
 
 XRE_API(const char*,
         XRE_ChildProcessTypeToString, (GeckoProcessType aProcessType))
@@ -367,8 +501,7 @@ XRE_API(GeckoProcessType,
 #if defined(MOZ_CRASHREPORTER)
 
 XRE_API(bool,
-        XRE_TakeMinidumpForChild, (uint32_t aChildPid, nsIFile** aDump,
-                                   uint32_t* aSequence))
+        XRE_TakeMinidumpForChild, (PRUint32 aChildPid, nsILocalFile** aDump))
 
 
 XRE_API(bool,
@@ -438,30 +571,10 @@ XRE_API(void,
 #endif
 
 XRE_API(void,
-        XRE_TelemetryAccumulate, (int aID, uint32_t aSample))
+        XRE_TelemetryAccumulate, (int aID, PRUint32 aSample))
+
 
 XRE_API(void,
-        XRE_StartupTimelineRecord, (int aEvent, PRTime aWhen))
-
-XRE_API(void,
-        XRE_InitOmnijar, (nsIFile* greOmni,
-                          nsIFile* appOmni))
-
-#ifdef XP_WIN
-
-
-
-enum WindowsEnvironmentType {
-  WindowsEnvironmentType_Desktop = 0,
-  WindowsEnvironmentType_Metro = 1
-};
-
-
-
-
-
-XRE_API(WindowsEnvironmentType,
-        XRE_GetWindowsEnvironment, ())
-#endif 
-
+        XRE_InitOmnijar, (nsILocalFile* greOmni,
+                          nsILocalFile* appOmni))
 #endif 

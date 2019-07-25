@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsQtNetworkManager.h"
 #include "nsQtNetworkLinkService.h"
 #include "nsCOMPtr.h"
@@ -38,7 +71,7 @@ nsQtNetworkLinkService::GetLinkStatusKnown(bool* aIsKnown)
 }
 
 NS_IMETHODIMP
-nsQtNetworkLinkService::GetLinkType(uint32_t *aLinkType)
+nsQtNetworkLinkService::GetLinkType(PRUint32 *aLinkType)
 {
   NS_ENSURE_ARG_POINTER(aLinkType);
 
@@ -76,12 +109,12 @@ nsQtNetworkLinkService::Init(void)
   nsQtNetworkManager::create();
   nsresult rv;
 
-  rv = observerService->AddObserver(this, "xpcom-shutdown", false);
+  rv = observerService->AddObserver(this, "xpcom-shutdown", PR_FALSE);
   if (NS_FAILED(rv)) {
     return NS_ERROR_FAILURE;
   }
 
-  rv = observerService->AddObserver(this, "browser-lastwindow-close-granted", false);
+  rv = observerService->AddObserver(this, "browser-lastwindow-close-granted", PR_FALSE);
   if (NS_FAILED(rv)) {
     return NS_ERROR_FAILURE;
   }

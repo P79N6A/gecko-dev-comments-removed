@@ -3,24 +3,49 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __selectionstate_h__
 #define __selectionstate_h__
 
 #include "nsCOMPtr.h"
-#include "nsIDOMNode.h"
-#include "nsINode.h"
 #include "nsTArray.h"
-#include "nscore.h"
-#include "prtypes.h"
+#include "nsIDOMNode.h"
+#include "nsIDOMRange.h"
+#include "nsCycleCollectionParticipant.h"
 
-class nsCycleCollectionTraversalCallback;
 class nsIDOMCharacterData;
-class nsIDOMRange;
 class nsISelection;
-class nsRange;
-namespace mozilla {
-class Selection;
-}
 
 
 
@@ -34,14 +59,12 @@ struct nsRangeStore
   nsRangeStore();
   ~nsRangeStore();
   nsresult StoreRange(nsIDOMRange *aRange);
-  nsresult GetRange(nsRange** outRange);
-
-  NS_INLINE_DECL_REFCOUNTING(nsRangeStore)
+  nsresult GetRange(nsCOMPtr<nsIDOMRange> *outRange);
         
   nsCOMPtr<nsIDOMNode> startNode;
-  int32_t              startOffset;
+  PRInt32              startOffset;
   nsCOMPtr<nsIDOMNode> endNode;
-  int32_t              endOffset;
+  PRInt32              endOffset;
   
 };
 
@@ -55,14 +78,14 @@ class nsSelectionState
     void DoTraverse(nsCycleCollectionTraversalCallback &cb);
     void DoUnlink() { MakeEmpty(); }
   
-    void     SaveSelection(mozilla::Selection *aSel);
+    nsresult SaveSelection(nsISelection *aSel);
     nsresult RestoreSelection(nsISelection *aSel);
     bool     IsCollapsed();
     bool     IsEqual(nsSelectionState *aSelState);
     void     MakeEmpty();
     bool     IsEmpty();
   protected:    
-    nsTArray<nsRefPtr<nsRangeStore> > mArray;
+    nsTArray<nsRangeStore> mArray;
     
     friend class nsRangeUpdater;
 };
@@ -84,29 +107,29 @@ class nsRangeUpdater
     
     
     
-    nsresult SelAdjCreateNode(nsIDOMNode *aParent, int32_t aPosition);
-    nsresult SelAdjInsertNode(nsIDOMNode *aParent, int32_t aPosition);
-    void     SelAdjDeleteNode(nsIDOMNode *aNode);
-    nsresult SelAdjSplitNode(nsIDOMNode *aOldRightNode, int32_t aOffset, nsIDOMNode *aNewLeftNode);
+    nsresult SelAdjCreateNode(nsIDOMNode *aParent, PRInt32 aPosition);
+    nsresult SelAdjInsertNode(nsIDOMNode *aParent, PRInt32 aPosition);
+    nsresult SelAdjDeleteNode(nsIDOMNode *aNode);
+    nsresult SelAdjSplitNode(nsIDOMNode *aOldRightNode, PRInt32 aOffset, nsIDOMNode *aNewLeftNode);
     nsresult SelAdjJoinNodes(nsIDOMNode *aLeftNode, 
                              nsIDOMNode *aRightNode, 
                              nsIDOMNode *aParent, 
-                             int32_t aOffset,
-                             int32_t aOldLeftNodeLength);
-    nsresult SelAdjInsertText(nsIDOMCharacterData *aTextNode, int32_t aOffset, const nsAString &aString);
-    nsresult SelAdjDeleteText(nsIDOMCharacterData *aTextNode, int32_t aOffset, int32_t aLength);
+                             PRInt32 aOffset,
+                             PRInt32 aOldLeftNodeLength);
+    nsresult SelAdjInsertText(nsIDOMCharacterData *aTextNode, PRInt32 aOffset, const nsAString &aString);
+    nsresult SelAdjDeleteText(nsIDOMCharacterData *aTextNode, PRInt32 aOffset, PRInt32 aLength);
     
     
     nsresult WillReplaceContainer();
     nsresult DidReplaceContainer(nsIDOMNode *aOriginalNode, nsIDOMNode *aNewNode);
     nsresult WillRemoveContainer();
-    nsresult DidRemoveContainer(nsIDOMNode *aNode, nsIDOMNode *aParent, int32_t aOffset, uint32_t aNodeOrigLen);
+    nsresult DidRemoveContainer(nsIDOMNode *aNode, nsIDOMNode *aParent, PRInt32 aOffset, PRUint32 aNodeOrigLen);
     nsresult WillInsertContainer();
     nsresult DidInsertContainer();
     nsresult WillMoveNode();
-    nsresult DidMoveNode(nsIDOMNode *aOldParent, int32_t aOldOffset, nsIDOMNode *aNewParent, int32_t aNewOffset);
+    nsresult DidMoveNode(nsIDOMNode *aOldParent, PRInt32 aOldOffset, nsIDOMNode *aNewParent, PRInt32 aNewOffset);
   protected:    
-    nsTArray<nsRefPtr<nsRangeStore> > mArray;
+    nsTArray<nsRangeStore*> mArray;
     bool mLock;
 };
 
@@ -121,27 +144,26 @@ class NS_STACK_CLASS nsAutoTrackDOMPoint
   private:
     nsRangeUpdater &mRU;
     nsCOMPtr<nsIDOMNode> *mNode;
-    int32_t *mOffset;
-    nsRefPtr<nsRangeStore> mRangeItem;
+    PRInt32 *mOffset;
+    nsRangeStore mRangeItem;
   public:
-    nsAutoTrackDOMPoint(nsRangeUpdater &aRangeUpdater, nsCOMPtr<nsIDOMNode> *aNode, int32_t *aOffset) :
+    nsAutoTrackDOMPoint(nsRangeUpdater &aRangeUpdater, nsCOMPtr<nsIDOMNode> *aNode, PRInt32 *aOffset) :
     mRU(aRangeUpdater)
     ,mNode(aNode)
     ,mOffset(aOffset)
     {
-      mRangeItem = new nsRangeStore();
-      mRangeItem->startNode = *mNode;
-      mRangeItem->endNode = *mNode;
-      mRangeItem->startOffset = *mOffset;
-      mRangeItem->endOffset = *mOffset;
-      mRU.RegisterRangeItem(mRangeItem);
+      mRangeItem.startNode = *mNode;
+      mRangeItem.endNode = *mNode;
+      mRangeItem.startOffset = *mOffset;
+      mRangeItem.endOffset = *mOffset;
+      mRU.RegisterRangeItem(&mRangeItem);
     }
     
     ~nsAutoTrackDOMPoint()
     {
-      mRU.DropRangeItem(mRangeItem);
-      *mNode  = mRangeItem->startNode;
-      *mOffset = mRangeItem->startOffset;
+      mRU.DropRangeItem(&mRangeItem);
+      *mNode  = mRangeItem.startNode;
+      *mOffset = mRangeItem.startOffset;
     }
 };
 
@@ -186,20 +208,20 @@ class NS_STACK_CLASS nsAutoRemoveContainerSelNotify
     nsRangeUpdater &mRU;
     nsIDOMNode *mNode;
     nsIDOMNode *mParent;
-    int32_t    mOffset;
-    uint32_t   mNodeOrigLen;
+    PRInt32    mOffset;
+    PRUint32   mNodeOrigLen;
 
   public:
-    nsAutoRemoveContainerSelNotify(nsRangeUpdater& aRangeUpdater,
-                                   nsINode* aNode,
-                                   nsINode* aParent,
-                                   int32_t aOffset,
-                                   uint32_t aNodeOrigLen)
-      : mRU(aRangeUpdater)
-      , mNode(aNode->AsDOMNode())
-      , mParent(aParent->AsDOMNode())
-      , mOffset(aOffset)
-      , mNodeOrigLen(aNodeOrigLen)
+    nsAutoRemoveContainerSelNotify(nsRangeUpdater &aRangeUpdater, 
+                                   nsIDOMNode *aNode, 
+                                   nsIDOMNode *aParent, 
+                                   PRInt32 aOffset, 
+                                   PRUint32 aNodeOrigLen) :
+    mRU(aRangeUpdater)
+    ,mNode(aNode)
+    ,mParent(aParent)
+    ,mOffset(aOffset)
+    ,mNodeOrigLen(aNodeOrigLen)
     {
       mRU.WillRemoveContainer();
     }
@@ -245,15 +267,15 @@ class NS_STACK_CLASS nsAutoMoveNodeSelNotify
     nsRangeUpdater &mRU;
     nsIDOMNode *mOldParent;
     nsIDOMNode *mNewParent;
-    int32_t    mOldOffset;
-    int32_t    mNewOffset;
+    PRInt32    mOldOffset;
+    PRInt32    mNewOffset;
 
   public:
     nsAutoMoveNodeSelNotify(nsRangeUpdater &aRangeUpdater, 
                             nsIDOMNode *aOldParent, 
-                            int32_t aOldOffset, 
+                            PRInt32 aOldOffset, 
                             nsIDOMNode *aNewParent, 
-                            int32_t aNewOffset) :
+                            PRInt32 aNewOffset) :
     mRU(aRangeUpdater)
     ,mOldParent(aOldParent)
     ,mNewParent(aNewParent)

@@ -3,18 +3,50 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "base/basictypes.h"
-#include "ipc/IPCMessageUtils.h"
+#include "IPC/IPCMessageUtils.h"
 #include "nsDOMNotifyPaintEvent.h"
 #include "nsContentUtils.h"
 #include "nsClientRect.h"
 #include "nsPaintRequest.h"
 #include "nsIFrame.h"
-#include "nsDOMClassInfoID.h"
 
 nsDOMNotifyPaintEvent::nsDOMNotifyPaintEvent(nsPresContext* aPresContext,
                                              nsEvent* aEvent,
-                                             uint32_t aEventType,
+                                             PRUint32 aEventType,
                                              nsInvalidateRequestList* aInvalidateRequests)
 : nsDOMEvent(aPresContext, aEvent)
 {
@@ -41,7 +73,7 @@ nsDOMNotifyPaintEvent::GetRegion()
 {
   nsRegion r;
   bool isTrusted = nsContentUtils::IsCallerTrustedForRead();
-  for (uint32_t i = 0; i < mInvalidateRequests.Length(); ++i) {
+  for (PRUint32 i = 0; i < mInvalidateRequests.Length(); ++i) {
     if (!isTrusted &&
         (mInvalidateRequests[i].mFlags & nsIFrame::INVALIDATE_CROSS_DOC))
       continue;
@@ -71,8 +103,7 @@ nsDOMNotifyPaintEvent::GetBoundingClientRect(nsIDOMClientRect** aResult)
 NS_IMETHODIMP
 nsDOMNotifyPaintEvent::GetClientRects(nsIDOMClientRectList** aResult)
 {
-  nsRefPtr<nsClientRectList> rectList =
-    new nsClientRectList(static_cast<nsIDOMEvent*>(static_cast<nsDOMEvent*>(this)));
+  nsRefPtr<nsClientRectList> rectList = new nsClientRectList();
   if (!rectList)
     return NS_ERROR_OUT_OF_MEMORY;
 
@@ -94,13 +125,12 @@ nsDOMNotifyPaintEvent::GetClientRects(nsIDOMClientRectList** aResult)
 NS_IMETHODIMP
 nsDOMNotifyPaintEvent::GetPaintRequests(nsIDOMPaintRequestList** aResult)
 {
-  nsRefPtr<nsPaintRequestList> requests =
-    new nsPaintRequestList(static_cast<nsDOMEvent*>(this));
+  nsRefPtr<nsPaintRequestList> requests = new nsPaintRequestList();
   if (!requests)
     return NS_ERROR_OUT_OF_MEMORY;
 
   bool isTrusted = nsContentUtils::IsCallerTrustedForRead();
-  for (uint32_t i = 0; i < mInvalidateRequests.Length(); ++i) {
+  for (PRUint32 i = 0; i < mInvalidateRequests.Length(); ++i) {
     if (!isTrusted &&
         (mInvalidateRequests[i].mFlags & nsIFrame::INVALIDATE_CROSS_DOC))
       continue;
@@ -116,7 +146,7 @@ nsDOMNotifyPaintEvent::GetPaintRequests(nsIDOMPaintRequestList** aResult)
   return NS_OK;
 }
 
-NS_IMETHODIMP_(void)
+void
 nsDOMNotifyPaintEvent::Serialize(IPC::Message* aMsg,
                                  bool aSerializeInterfaceType)
 {
@@ -124,11 +154,11 @@ nsDOMNotifyPaintEvent::Serialize(IPC::Message* aMsg,
     IPC::WriteParam(aMsg, NS_LITERAL_STRING("notifypaintevent"));
   }
 
-  nsDOMEvent::Serialize(aMsg, false);
+  nsDOMEvent::Serialize(aMsg, PR_FALSE);
 
-  uint32_t length = mInvalidateRequests.Length();
+  PRUint32 length = mInvalidateRequests.Length();
   IPC::WriteParam(aMsg, length);
-  for (uint32_t i = 0; i < length; ++i) {
+  for (PRUint32 i = 0; i < length; ++i) {
     IPC::WriteParam(aMsg, mInvalidateRequests[i].mRect.x);
     IPC::WriteParam(aMsg, mInvalidateRequests[i].mRect.y);
     IPC::WriteParam(aMsg, mInvalidateRequests[i].mRect.width);
@@ -137,37 +167,37 @@ nsDOMNotifyPaintEvent::Serialize(IPC::Message* aMsg,
   }
 }
 
-NS_IMETHODIMP_(bool)
+bool
 nsDOMNotifyPaintEvent::Deserialize(const IPC::Message* aMsg, void** aIter)
 {
-  NS_ENSURE_TRUE(nsDOMEvent::Deserialize(aMsg, aIter), false);
+  NS_ENSURE_TRUE(nsDOMEvent::Deserialize(aMsg, aIter), PR_FALSE);
 
-  uint32_t length = 0;
-  NS_ENSURE_TRUE(IPC::ReadParam(aMsg, aIter, &length), false);
+  PRUint32 length = 0;
+  NS_ENSURE_TRUE(IPC::ReadParam(aMsg, aIter, &length), PR_FALSE);
   mInvalidateRequests.SetCapacity(length);
-  for (uint32_t i = 0; i < length; ++i) {
+  for (PRUint32 i = 0; i < length; ++i) {
     nsInvalidateRequestList::Request req;
-    NS_ENSURE_TRUE(IPC::ReadParam(aMsg, aIter, &req.mRect.x), false);
-    NS_ENSURE_TRUE(IPC::ReadParam(aMsg, aIter, &req.mRect.y), false);
-    NS_ENSURE_TRUE(IPC::ReadParam(aMsg, aIter, &req.mRect.width), false);
-    NS_ENSURE_TRUE(IPC::ReadParam(aMsg, aIter, &req.mRect.height), false);
-    NS_ENSURE_TRUE(IPC::ReadParam(aMsg, aIter, &req.mFlags), false);
+    NS_ENSURE_TRUE(IPC::ReadParam(aMsg, aIter, &req.mRect.x), PR_FALSE);
+    NS_ENSURE_TRUE(IPC::ReadParam(aMsg, aIter, &req.mRect.y), PR_FALSE);
+    NS_ENSURE_TRUE(IPC::ReadParam(aMsg, aIter, &req.mRect.width), PR_FALSE);
+    NS_ENSURE_TRUE(IPC::ReadParam(aMsg, aIter, &req.mRect.height), PR_FALSE);
+    NS_ENSURE_TRUE(IPC::ReadParam(aMsg, aIter, &req.mFlags), PR_FALSE);
     mInvalidateRequests.AppendElement(req);
   }
 
-  return true;
+  return PR_TRUE;
 }
 
 nsresult NS_NewDOMNotifyPaintEvent(nsIDOMEvent** aInstancePtrResult,
                                    nsPresContext* aPresContext,
                                    nsEvent *aEvent,
-                                   uint32_t aEventType,
+                                   PRUint32 aEventType,
                                    nsInvalidateRequestList* aInvalidateRequests) 
 {
   nsDOMNotifyPaintEvent* it =
     new nsDOMNotifyPaintEvent(aPresContext, aEvent, aEventType,
                               aInvalidateRequests);
-  if (nullptr == it) {
+  if (nsnull == it) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 

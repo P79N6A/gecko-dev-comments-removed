@@ -3,67 +3,50 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFXPLATFORMFONTLIST_H_
 #define GFXPLATFORMFONTLIST_H_
 
 #include "nsDataHashtable.h"
 #include "nsRefPtrHashtable.h"
-#include "nsTHashtable.h"
+#include "nsHashSets.h"
 
 #include "gfxFontUtils.h"
 #include "gfxFont.h"
 #include "gfxPlatform.h"
 
-#include "nsIMemoryReporter.h"
 #include "mozilla/FunctionTimer.h"
-#include "mozilla/Attributes.h"
-
-class CharMapHashKey : public PLDHashEntryHdr
-{
-public:
-    typedef gfxCharacterMap* KeyType;
-    typedef const gfxCharacterMap* KeyTypePointer;
-
-    CharMapHashKey(const gfxCharacterMap *aCharMap) :
-        mCharMap(const_cast<gfxCharacterMap*>(aCharMap))
-    {
-        MOZ_COUNT_CTOR(CharMapHashKey);
-    }
-    CharMapHashKey(const CharMapHashKey& toCopy) :
-        mCharMap(toCopy.mCharMap)
-    {
-        MOZ_COUNT_CTOR(CharMapHashKey);
-    }
-    ~CharMapHashKey()
-    {
-        MOZ_COUNT_DTOR(CharMapHashKey);
-    }
-
-    gfxCharacterMap* GetKey() const { return mCharMap; }
-
-    bool KeyEquals(const gfxCharacterMap *aCharMap) const {
-        NS_ASSERTION(!aCharMap->mBuildOnTheFly && !mCharMap->mBuildOnTheFly,
-                     "custom cmap used in shared cmap hashtable");
-        
-        if (aCharMap->mHash != mCharMap->mHash)
-        {
-            return false;
-        }
-        return mCharMap->Equals(aCharMap);
-    }
-
-    static const gfxCharacterMap* KeyToPointer(gfxCharacterMap *aCharMap) {
-        return aCharMap;
-    }
-    static PLDHashNumber HashKey(const gfxCharacterMap *aCharMap) {
-        return aCharMap->mHash;
-    }
-
-    enum { ALLOW_MEMMOVE = true };
-
-protected:
-    gfxCharacterMap *mCharMap;
-};
 
 
 
@@ -72,14 +55,6 @@ protected:
 
 
 
-
-struct FontListSizes {
-    uint32_t mFontListSize; 
-                            
-                            
-    uint32_t mFontTableCacheSize; 
-    uint32_t mCharMapsSize; 
-};
 
 class gfxPlatformFontList : protected gfxFontInfoLoader
 {
@@ -101,7 +76,7 @@ public:
 
     static void Shutdown() {
         delete sPlatformFontList;
-        sPlatformFontList = nullptr;
+        sPlatformFontList = nsnull;
     }
 
     virtual ~gfxPlatformFontList();
@@ -122,10 +97,7 @@ public:
 
     virtual void GetFontFamilyList(nsTArray<nsRefPtr<gfxFontFamily> >& aFamilyArray);
 
-    virtual gfxFontEntry*
-    SystemFindFontForChar(const uint32_t aCh,
-                          int32_t aRunScript,
-                          const gfxFontStyle* aStyle);
+    gfxFontEntry* FindFontForChar(const PRUint32 aCh, gfxFont *aPrevFont);
 
     
     virtual gfxFontFamily* FindFamily(const nsAString& aFamily);
@@ -158,37 +130,14 @@ public:
     
     
     virtual gfxFontEntry* MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
-                                           const uint8_t *aFontData,
-                                           uint32_t aLength) = 0;
+                                           const PRUint8 *aFontData,
+                                           PRUint32 aLength) = 0;
 
     
     
     virtual bool GetStandardFamilyName(const nsAString& aFontName, nsAString& aFamilyName);
 
-    virtual void SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                     FontListSizes*    aSizes) const;
-    virtual void SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                     FontListSizes*    aSizes) const;
-
-    
-    
-    gfxCharacterMap* FindCharMap(gfxCharacterMap *aCmap);
-
-    
-    gfxCharacterMap* AddCmap(const gfxCharacterMap *aCharMap);
-
-    
-    void RemoveCmap(const gfxCharacterMap *aCharMap);
-
 protected:
-    class MemoryReporter MOZ_FINAL
-        : public nsIMemoryMultiReporter
-    {
-    public:
-        NS_DECL_ISUPPORTS
-        NS_DECL_NSIMEMORYMULTIREPORTER
-    };
-
     gfxPlatformFontList(bool aNeedFullnamePostscriptNames = true);
 
     static gfxPlatformFontList *sPlatformFontList;
@@ -196,21 +145,6 @@ protected:
     static PLDHashOperator FindFontForCharProc(nsStringHashKey::KeyType aKey,
                                                nsRefPtr<gfxFontFamily>& aFamilyEntry,
                                                void* userArg);
-
-    
-    virtual gfxFontEntry* CommonFontFallback(const uint32_t aCh,
-                                             int32_t aRunScript,
-                                             const gfxFontStyle* aMatchStyle);
-
-    
-    virtual gfxFontEntry* GlobalFontFallback(const uint32_t aCh,
-                                             int32_t aRunScript,
-                                             const gfxFontStyle* aMatchStyle,
-                                             uint32_t& aCmapCount);
-
-    
-    
-    virtual bool UsesSystemFallback() { return false; }
 
     
     void InitOtherFamilyNames();
@@ -248,13 +182,6 @@ protected:
     virtual void FinishLoader();
 
     
-    static size_t
-    SizeOfFamilyNameEntryExcludingThis(const nsAString&               aKey,
-                                       const nsRefPtr<gfxFontFamily>& aFamily,
-                                       nsMallocSizeOfFun              aMallocSizeOf,
-                                       void*                          aUserArg);
-
-    
     nsRefPtrHashtable<nsStringHashKey, gfxFontFamily> mFontFamilies;
 
     
@@ -287,17 +214,13 @@ protected:
     
     nsString mReplacementCharFallbackFamily;
 
-    nsTHashtable<nsStringHashKey> mBadUnderlineFamilyNames;
-
-    
-    
-    nsTHashtable<CharMapHashKey> mSharedCmaps;
+    nsStringHashSet mBadUnderlineFamilyNames;
 
     
     nsTArray<nsRefPtr<gfxFontFamily> > mFontFamiliesToLoad;
-    uint32_t mStartIndex;
-    uint32_t mIncrement;
-    uint32_t mNumFamilies;
+    PRUint32 mStartIndex;
+    PRUint32 mIncrement;
+    PRUint32 mNumFamilies;
 };
 
-#endif
+#endif 

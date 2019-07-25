@@ -3,11 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nscore.h"
 #include "JpCntx.h"
 
 
-const uint8_t jp2CharContext[83][83] = 
+const PRUint8 jp2CharContext[83][83] = 
 { 
 { 0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,},
 { 2,4,0,4,0,3,0,4,0,3,4,4,4,2,4,3,3,4,3,2,3,3,4,2,3,3,3,2,4,1,4,3,3,1,5,4,3,4,3,4,3,5,3,0,3,5,4,2,0,3,1,0,3,3,0,3,3,0,1,1,0,4,3,0,3,3,0,4,0,2,0,3,5,5,5,5,4,0,4,1,0,3,4,},
@@ -96,11 +128,11 @@ const uint8_t jp2CharContext[83][83] =
 
 #define MINIMUM_DATA_THRESHOLD  4
 
-void JapaneseContextAnalysis::HandleData(const char* aBuf, uint32_t aLen)
+void JapaneseContextAnalysis::HandleData(const char* aBuf, PRUint32 aLen)
 {
-  uint32_t charLen;
-  int32_t order;
-  uint32_t i;
+  PRUint32 charLen;
+  PRInt32 order;
+  PRUint32 i;
   
   if (mDone)
     return;
@@ -126,7 +158,7 @@ void JapaneseContextAnalysis::HandleData(const char* aBuf, uint32_t aLen)
         mTotalRel ++;
         if (mTotalRel > MAX_REL_THRESHOLD)
         {
-          mDone = true;
+          mDone = PR_TRUE;
           break;
         }
         mRelSample[jp2CharContext[mLastCharOrder][order]]++;
@@ -141,11 +173,11 @@ void JapaneseContextAnalysis::HandleData(const char* aBuf, uint32_t aLen)
 void JapaneseContextAnalysis::Reset(bool aIsPreferredLanguage)
 {
   mTotalRel = 0;
-  for (uint32_t i = 0; i < NUM_OF_CATEGORY; i++)
+  for (PRUint32 i = 0; i < NUM_OF_CATEGORY; i++)
     mRelSample[i] = 0;
   mNeedToSkipCharNum = 0;
   mLastCharOrder = -1;
-  mDone = false;
+  mDone = PR_FALSE;
   mDataThreshold = aIsPreferredLanguage ? 0 : MINIMUM_DATA_THRESHOLD;
 }
 #define DONT_KNOW (float)-1
@@ -160,11 +192,11 @@ float  JapaneseContextAnalysis::GetConfidence(void)
 }
 
 
-int32_t SJISContextAnalysis::GetOrder(const char* str, uint32_t *charLen)
+PRInt32 SJISContextAnalysis::GetOrder(const char* str, PRUint32 *charLen)
 {
   
-  if (((unsigned char)*str >= (unsigned char)0x81 && (unsigned char)*str <= (unsigned char)0x9f) ||
-      ((unsigned char)*str >= (unsigned char)0xe0 && (unsigned char)*str <= (unsigned char)0xfc) )
+  if ((unsigned char)*str >= (unsigned char)0x81 && (unsigned char)*str <= (unsigned char)0x9f || 
+      (unsigned char)*str >= (unsigned char)0xe0 && (unsigned char)*str <= (unsigned char)0xfc )
       *charLen = 2;
   else 
       *charLen = 1;
@@ -177,7 +209,7 @@ int32_t SJISContextAnalysis::GetOrder(const char* str, uint32_t *charLen)
   return -1;
 }
 
-int32_t EUCJPContextAnalysis::GetOrder(const char* str, uint32_t *charLen)
+PRInt32 EUCJPContextAnalysis::GetOrder(const char* str, PRUint32 *charLen)
 {
   
   if ((unsigned char)*str == (unsigned char)0x8e ||

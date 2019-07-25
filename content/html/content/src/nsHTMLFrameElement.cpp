@@ -3,16 +3,44 @@
 
 
 
-#include "mozilla/Util.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsIDOMHTMLFrameElement.h"
-#include "nsGenericHTMLFrameElement.h"
+#include "nsGenericHTMLElement.h"
 #include "nsGkAtoms.h"
-#include "nsError.h"
+#include "nsIDocument.h"
+#include "nsIDOMDocument.h"
+#include "nsDOMError.h"
 
-class nsIDOMDocument;
-
-using namespace mozilla;
 using namespace mozilla::dom;
 
 class nsHTMLFrameElement : public nsGenericHTMLFrameElement,
@@ -39,7 +67,7 @@ public:
   NS_DECL_NSIDOMHTMLFRAMEELEMENT
 
   
-  virtual bool ParseAttribute(int32_t aNamespaceID,
+  virtual bool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
@@ -47,7 +75,6 @@ public:
   nsMapRuleToAttributesFunc GetAttributeMappingFunction() const;
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
   virtual nsXPCClassInfo* GetClassInfo();
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 };
 
 
@@ -98,14 +125,8 @@ nsHTMLFrameElement::GetContentDocument(nsIDOMDocument** aContentDocument)
   return nsGenericHTMLFrameElement::GetContentDocument(aContentDocument);
 }
 
-NS_IMETHODIMP
-nsHTMLFrameElement::GetContentWindow(nsIDOMWindow** aContentWindow)
-{
-  return nsGenericHTMLFrameElement::GetContentWindow(aContentWindow);
-}
-
 bool
-nsHTMLFrameElement::ParseAttribute(int32_t aNamespaceID,
+nsHTMLFrameElement::ParseAttribute(PRInt32 aNamespaceID,
                                    nsIAtom* aAttribute,
                                    const nsAString& aValue,
                                    nsAttrValue& aResult)
@@ -148,7 +169,7 @@ nsHTMLFrameElement::IsAttributeMapped(const nsIAtom* aAttribute) const
     sCommonAttributeMap,
   };
   
-  return FindAttributeDependence(aAttribute, map);
+  return FindAttributeDependence(aAttribute, map, NS_ARRAY_LENGTH(map));
 }
 
 nsMapRuleToAttributesFunc

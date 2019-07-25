@@ -3,32 +3,57 @@
 
 
 
-#include "mozilla/Assertions.h"
-#include "mozilla/dom/Element.h"
-#include "nsAString.h"
-#include "nsCOMPtr.h"
-#include "nsCaseTreatment.h"
-#include "nsDebug.h"
-#include "nsEditor.h"
-#include "nsError.h"
-#include "nsGkAtoms.h"
-#include "nsIDOMElement.h"
-#include "nsIDOMNode.h"
-#include "nsINameSpaceManager.h"
-#include "nsLiteralString.h"
-#include "nsPlaintextEditor.h"
-#include "nsString.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsTextEditUtils.h"
 
-using namespace mozilla;
+#include "nsEditor.h"
+#include "nsPlaintextEditor.h"
+#include "nsEditProperty.h"
+
+
+
+
 
 
 
 bool 
 nsTextEditUtils::IsBody(nsIDOMNode *node)
 {
-  return nsEditor::NodeIsType(node, nsGkAtoms::body);
+  return nsEditor::NodeIsTypeString(node, NS_LITERAL_STRING("body"));
 }
+
+
 
 
 
@@ -36,7 +61,7 @@ nsTextEditUtils::IsBody(nsIDOMNode *node)
 bool 
 nsTextEditUtils::IsBreak(nsIDOMNode *node)
 {
-  return nsEditor::NodeIsType(node, nsGkAtoms::br);
+  return nsEditor::NodeIsTypeString(node, NS_LITERAL_STRING("br"));
 }
 
 
@@ -47,18 +72,10 @@ bool
 nsTextEditUtils::IsMozBR(nsIDOMNode *node)
 {
   NS_PRECONDITION(node, "null node passed to nsHTMLEditUtils::IsMozBR");
-  return IsBreak(node) && HasMozAttr(node);
+  if (IsBreak(node) && HasMozAttr(node)) return PR_TRUE;
+  return PR_FALSE;
 }
 
-
-bool
-nsTextEditUtils::IsMozBR(dom::Element* aNode)
-{
-  MOZ_ASSERT(aNode);
-  return aNode->IsHTML(nsGkAtoms::br) &&
-         aNode->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
-                            NS_LITERAL_STRING("_moz"), eIgnoreCase);
-}
 
 
 
@@ -75,9 +92,9 @@ nsTextEditUtils::HasMozAttr(nsIDOMNode *node)
     nsAutoString typeAttrVal;
     nsresult res = elem->GetAttribute(NS_LITERAL_STRING("type"), typeAttrVal);
     if (NS_SUCCEEDED(res) && (typeAttrVal.LowerCaseEqualsLiteral("_moz")))
-      return true;
+      return PR_TRUE;
   }
-  return false;
+  return PR_FALSE;
 }
 
 

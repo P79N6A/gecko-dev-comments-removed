@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsNSSShutDown.h"
 #include "nsCOMPtr.h"
 
@@ -29,7 +62,7 @@ ObjectSetInitEntry(PLDHashTable *table, PLDHashEntryHdr *hdr,
 {
   ObjectHashEntry *entry = static_cast<ObjectHashEntry*>(hdr);
   entry->obj = const_cast<nsNSSShutDownObject*>(static_cast<const nsNSSShutDownObject*>(key));
-  return true;
+  return PR_TRUE;
 }
 
 static PLDHashTableOps gSetOps = {
@@ -43,17 +76,17 @@ static PLDHashTableOps gSetOps = {
   ObjectSetInitEntry
 };
 
-nsNSSShutDownList *nsNSSShutDownList::singleton = nullptr;
+nsNSSShutDownList *nsNSSShutDownList::singleton = nsnull;
 
 nsNSSShutDownList::nsNSSShutDownList()
 :mListLock("nsNSSShutDownList.mListLock")
 {
   mActiveSSLSockets = 0;
-  mPK11LogoutCancelObjects.ops = nullptr;
-  mObjects.ops = nullptr;
-  PL_DHashTableInit(&mObjects, &gSetOps, nullptr,
+  mPK11LogoutCancelObjects.ops = nsnull;
+  mObjects.ops = nsnull;
+  PL_DHashTableInit(&mObjects, &gSetOps, nsnull,
                     sizeof(ObjectHashEntry), 16);
-  PL_DHashTableInit(&mPK11LogoutCancelObjects, &gSetOps, nullptr,
+  PL_DHashTableInit(&mPK11LogoutCancelObjects, &gSetOps, nsnull,
                     sizeof(ObjectHashEntry), 16);
 }
 
@@ -61,14 +94,14 @@ nsNSSShutDownList::~nsNSSShutDownList()
 {
   if (mObjects.ops) {
     PL_DHashTableFinish(&mObjects);
-    mObjects.ops = nullptr;
+    mObjects.ops = nsnull;
   }
   if (mPK11LogoutCancelObjects.ops) {
     PL_DHashTableFinish(&mPK11LogoutCancelObjects);
-    mPK11LogoutCancelObjects.ops = nullptr;
+    mPK11LogoutCancelObjects.ops = nsnull;
   }
   PR_ASSERT(this == singleton);
-  singleton = nullptr;
+  singleton = nsnull;
 }
 
 void nsNSSShutDownList::remember(nsNSSShutDownObject *o)
@@ -136,7 +169,7 @@ bool nsNSSShutDownList::areSSLSocketsActive()
     
     
     
-    return false;
+    return PR_FALSE;
   }
   
   MutexAutoLock lock(singleton->mListLock);
@@ -159,7 +192,7 @@ nsresult nsNSSShutDownList::doPK11Logout()
 
 PLDHashOperator PR_CALLBACK
 nsNSSShutDownList::doPK11LogoutHelper(PLDHashTable *table, 
-  PLDHashEntryHdr *hdr, uint32_t number, void *arg)
+  PLDHashEntryHdr *hdr, PRUint32 number, void *arg)
 {
   ObjectHashEntry *entry = static_cast<ObjectHashEntry*>(hdr);
 
@@ -211,7 +244,7 @@ nsresult nsNSSShutDownList::evaporateAllNSSResources()
 
 PLDHashOperator PR_CALLBACK
 nsNSSShutDownList::evaporateAllNSSResourcesHelper(PLDHashTable *table, 
-  PLDHashEntryHdr *hdr, uint32_t number, void *arg)
+  PLDHashEntryHdr *hdr, PRUint32 number, void *arg)
 {
   ObjectHashEntry *entry = static_cast<ObjectHashEntry*>(hdr);
   {
@@ -228,7 +261,7 @@ nsNSSShutDownList *nsNSSShutDownList::construct()
 {
   if (singleton) {
     
-    return nullptr;
+    return nsnull;
   }
 
   singleton = new nsNSSShutDownList();
@@ -241,8 +274,8 @@ nsNSSActivityState::nsNSSActivityState()
                      "nsNSSActivityState.mNSSActivityStateLock"),
  mNSSActivityCounter(0),
  mBlockingUICounter(0),
- mIsUIForbidden(false),
- mNSSRestrictedThread(nullptr)
+ mIsUIForbidden(PR_FALSE),
+ mNSSRestrictedThread(nsnull)
 {
 }
 
@@ -305,10 +338,10 @@ bool nsNSSActivityState::ifPossibleDisallowUI(RealOrTesting rot)
 
   if (!mBlockingUICounter) {
     
-    retval = true;
+    retval = PR_TRUE;
     if (rot == do_it_for_real) {
       
-      mIsUIForbidden = true;
+      mIsUIForbidden = PR_TRUE;
         
       
       
@@ -324,7 +357,7 @@ void nsNSSActivityState::allowUI()
 {
   MutexAutoLock lock(mNSSActivityStateLock);
 
-  mIsUIForbidden = false;
+  mIsUIForbidden = PR_FALSE;
 }
 
 PRStatus nsNSSActivityState::restrictActivityToCurrentThread()
@@ -355,8 +388,8 @@ void nsNSSActivityState::releaseCurrentThreadActivityRestriction()
 {
   MutexAutoLock lock(mNSSActivityStateLock);
 
-  mNSSRestrictedThread = nullptr;
-  mIsUIForbidden = false;
+  mNSSRestrictedThread = nsnull;
+  mIsUIForbidden = PR_FALSE;
 
   mNSSActivityChanged.NotifyAll();
 }
@@ -401,7 +434,7 @@ bool nsPSMUITracker::isUIForbidden()
 {
   nsNSSActivityState *state = nsNSSShutDownList::getActivityState();
   if (!state)
-    return false;
+    return PR_FALSE;
 
   return state->isUIForbidden();
 }

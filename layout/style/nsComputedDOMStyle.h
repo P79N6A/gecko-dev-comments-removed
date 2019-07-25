@@ -5,6 +5,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsComputedDOMStyle_h__
 #define nsComputedDOMStyle_h__
 
@@ -16,30 +49,31 @@
 #include "nsCSSProps.h"
 
 #include "nsIContent.h"
+#include "nsIFrame.h"
 #include "nsCOMPtr.h"
 #include "nsWeakReference.h"
 #include "nsAutoPtr.h"
 #include "nsStyleStruct.h"
-#include "nsStyleContext.h"
 
-class nsIFrame;
 class nsIPresShell;
 
-class nsComputedDOMStyle MOZ_FINAL : public nsDOMCSSDeclaration
+class nsComputedDOMStyle : public nsDOMCSSDeclaration,
+                           public nsWrapperCache
 {
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS_AMBIGUOUS(nsComputedDOMStyle,
-                                                                   nsICSSDeclaration)
+  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsComputedDOMStyle,
+                                           nsICSSDeclaration)
+
+  NS_IMETHOD Init(nsIDOMElement *aElement,
+                  const nsAString& aPseudoElt,
+                  nsIPresShell *aPresShell);
 
   NS_DECL_NSICSSDECLARATION
 
   NS_DECL_NSIDOMCSSSTYLEDECLARATION
-  virtual void IndexedGetter(uint32_t aIndex, bool& aFound, nsAString& aPropName);
 
-  nsComputedDOMStyle(mozilla::dom::Element* aElement,
-                     const nsAString& aPseudoElt,
-                     nsIPresShell* aPresShell);
+  nsComputedDOMStyle();
   virtual ~nsComputedDOMStyle();
 
   static void Shutdown();
@@ -93,7 +127,7 @@ private:
   
 
   nsIDOMCSSValue* GetEllipseRadii(const nsStyleCorners& aRadius,
-                                  uint8_t aFullCorner,
+                                  PRUint8 aFullCorner,
                                   bool aIsBorder); 
 
   nsIDOMCSSValue* GetOffsetWidthFor(mozilla::css::Side aSide);
@@ -124,9 +158,9 @@ private:
                                     const nscolor& aDefaultColor,
                                     bool aIsBoxShadow);
 
-  nsIDOMCSSValue* GetBackgroundList(uint8_t nsStyleBackground::Layer::* aMember,
-                                    uint32_t nsStyleBackground::* aCount,
-                                    const int32_t aTable[]);
+  nsIDOMCSSValue* GetBackgroundList(PRUint8 nsStyleBackground::Layer::* aMember,
+                                    PRUint32 nsStyleBackground::* aCount,
+                                    const PRInt32 aTable[]);
 
   void GetCSSGradientString(const nsStyleGradient* aGradient,
                             nsAString& aString);
@@ -167,8 +201,8 @@ private:
   
   nsIDOMCSSValue* DoGetColor();
   nsIDOMCSSValue* DoGetFontFamily();
-  nsIDOMCSSValue* DoGetFontFeatureSettings();
-  nsIDOMCSSValue* DoGetFontLanguageOverride();
+  nsIDOMCSSValue* DoGetMozFontFeatureSettings();
+  nsIDOMCSSValue* DoGetMozFontLanguageOverride();
   nsIDOMCSSValue* DoGetFontSize();
   nsIDOMCSSValue* DoGetFontSizeAdjust();
   nsIDOMCSSValue* DoGetFontStretch();
@@ -185,9 +219,10 @@ private:
   nsIDOMCSSValue* DoGetBackgroundClip();
   nsIDOMCSSValue* DoGetBackgroundInlinePolicy();
   nsIDOMCSSValue* DoGetBackgroundOrigin();
-  nsIDOMCSSValue* DoGetBackgroundSize();
+  nsIDOMCSSValue* DoGetMozBackgroundSize();
 
   
+  nsIDOMCSSValue* DoGetPadding();
   nsIDOMCSSValue* DoGetPaddingTop();
   nsIDOMCSSValue* DoGetPaddingBottom();
   nsIDOMCSSValue* DoGetPaddingLeft();
@@ -202,6 +237,8 @@ private:
   nsIDOMCSSValue* DoGetVerticalAlign();
 
   
+  nsIDOMCSSValue* DoGetBorderStyle();
+  nsIDOMCSSValue* DoGetBorderWidth();
   nsIDOMCSSValue* DoGetBorderTopStyle();
   nsIDOMCSSValue* DoGetBorderBottomStyle();
   nsIDOMCSSValue* DoGetBorderLeftStyle();
@@ -223,13 +260,7 @@ private:
   nsIDOMCSSValue* DoGetBorderTopLeftRadius();
   nsIDOMCSSValue* DoGetBorderTopRightRadius();
   nsIDOMCSSValue* DoGetFloatEdge();
-
-  
-  nsIDOMCSSValue* DoGetBorderImageSource();
-  nsIDOMCSSValue* DoGetBorderImageSlice();
-  nsIDOMCSSValue* DoGetBorderImageWidth();
-  nsIDOMCSSValue* DoGetBorderImageOutset();
-  nsIDOMCSSValue* DoGetBorderImageRepeat();
+  nsIDOMCSSValue* DoGetBorderImage();
 
   
   nsIDOMCSSValue* DoGetBoxShadow();
@@ -238,12 +269,14 @@ private:
   nsIDOMCSSValue* DoGetWindowShadow();
 
   
+  nsIDOMCSSValue* DoGetMarginWidth();
   nsIDOMCSSValue* DoGetMarginTopWidth();
   nsIDOMCSSValue* DoGetMarginBottomWidth();
   nsIDOMCSSValue* DoGetMarginLeftWidth();
   nsIDOMCSSValue* DoGetMarginRightWidth();
 
   
+  nsIDOMCSSValue* DoGetOutline();
   nsIDOMCSSValue* DoGetOutlineWidth();
   nsIDOMCSSValue* DoGetOutlineStyle();
   nsIDOMCSSValue* DoGetOutlineColor();
@@ -274,12 +307,11 @@ private:
   
   nsIDOMCSSValue* DoGetLineHeight();
   nsIDOMCSSValue* DoGetTextAlign();
-  nsIDOMCSSValue* DoGetTextAlignLast();
   nsIDOMCSSValue* DoGetMozTextBlink();
   nsIDOMCSSValue* DoGetTextDecoration();
-  nsIDOMCSSValue* DoGetTextDecorationColor();
-  nsIDOMCSSValue* DoGetTextDecorationLine();
-  nsIDOMCSSValue* DoGetTextDecorationStyle();
+  nsIDOMCSSValue* DoGetMozTextDecorationColor();
+  nsIDOMCSSValue* DoGetMozTextDecorationLine();
+  nsIDOMCSSValue* DoGetMozTextDecorationStyle();
   nsIDOMCSSValue* DoGetTextIndent();
   nsIDOMCSSValue* DoGetTextOverflow();
   nsIDOMCSSValue* DoGetTextTransform();
@@ -287,11 +319,9 @@ private:
   nsIDOMCSSValue* DoGetLetterSpacing();
   nsIDOMCSSValue* DoGetWordSpacing();
   nsIDOMCSSValue* DoGetWhiteSpace();
-  nsIDOMCSSValue* DoGetWordBreak();
   nsIDOMCSSValue* DoGetWordWrap();
   nsIDOMCSSValue* DoGetHyphens();
-  nsIDOMCSSValue* DoGetTabSize();
-  nsIDOMCSSValue* DoGetTextSizeAdjust();
+  nsIDOMCSSValue* DoGetMozTabSize();
 
   
   nsIDOMCSSValue* DoGetOpacity();
@@ -315,12 +345,12 @@ private:
   nsIDOMCSSValue* DoGetResize();
   nsIDOMCSSValue* DoGetPageBreakAfter();
   nsIDOMCSSValue* DoGetPageBreakBefore();
-  nsIDOMCSSValue* DoGetTransform();
-  nsIDOMCSSValue* DoGetTransformOrigin();
-  nsIDOMCSSValue* DoGetPerspective();
-  nsIDOMCSSValue* DoGetBackfaceVisibility();
-  nsIDOMCSSValue* DoGetPerspectiveOrigin();
-  nsIDOMCSSValue* DoGetTransformStyle();
+  nsIDOMCSSValue* DoGetMozTransform();
+  nsIDOMCSSValue* DoGetMozTransformOrigin();
+  nsIDOMCSSValue* DoGetMozPerspective();
+  nsIDOMCSSValue* DoGetMozBackfaceVisibility();
+  nsIDOMCSSValue* DoGetMozPerspectiveOrigin();
+  nsIDOMCSSValue* DoGetMozTransformStyle();
   nsIDOMCSSValue* DoGetOrient();
 
   
@@ -334,7 +364,6 @@ private:
 
   
   nsIDOMCSSValue* DoGetColumnCount();
-  nsIDOMCSSValue* DoGetColumnFill();
   nsIDOMCSSValue* DoGetColumnWidth();
   nsIDOMCSSValue* DoGetColumnGap();
   nsIDOMCSSValue* DoGetColumnRuleWidth();
@@ -357,18 +386,6 @@ private:
   nsIDOMCSSValue* DoGetAnimationIterationCount();
   nsIDOMCSSValue* DoGetAnimationPlayState();
 
-#ifdef MOZ_FLEXBOX
-  
-  nsIDOMCSSValue* DoGetAlignItems();
-  nsIDOMCSSValue* DoGetAlignSelf();
-  nsIDOMCSSValue* DoGetFlexBasis();
-  nsIDOMCSSValue* DoGetFlexDirection();
-  nsIDOMCSSValue* DoGetFlexGrow();
-  nsIDOMCSSValue* DoGetFlexShrink();
-  nsIDOMCSSValue* DoGetOrder();
-  nsIDOMCSSValue* DoGetJustifyContent();
-#endif 
-
   
   nsIDOMCSSValue* DoGetFill();
   nsIDOMCSSValue* DoGetStroke();
@@ -379,7 +396,6 @@ private:
 
   nsIDOMCSSValue* DoGetStrokeDashoffset();
   nsIDOMCSSValue* DoGetStrokeWidth();
-  nsIDOMCSSValue* DoGetVectorEffect();
 
   nsIDOMCSSValue* DoGetFillOpacity();
   nsIDOMCSSValue* DoGetFloodOpacity();
@@ -437,8 +453,8 @@ private:
   void SetValueToCoord(nsROCSSPrimitiveValue* aValue,
                        const nsStyleCoord& aCoord,
                        bool aClampNegativeCalc,
-                       PercentageBaseGetter aPercentageBaseGetter = nullptr,
-                       const int32_t aTable[] = nullptr,
+                       PercentageBaseGetter aPercentageBaseGetter = nsnull,
+                       const PRInt32 aTable[] = nsnull,
                        nscoord aMinAppUnits = nscoord_MIN,
                        nscoord aMaxAppUnits = nscoord_MAX);
 
@@ -470,7 +486,7 @@ private:
     bool mNeedsLayoutFlush;
   };
 
-  static const ComputedStyleMapEntry* GetQueryablePropertyMap(uint32_t* aLength);
+  static const ComputedStyleMapEntry* GetQueryablePropertyMap(PRUint32* aLength);
 
   
   
@@ -511,10 +527,10 @@ private:
 #endif
 };
 
-already_AddRefed<nsComputedDOMStyle>
-NS_NewComputedDOMStyle(mozilla::dom::Element* aElement,
-                       const nsAString& aPseudoElt,
-                       nsIPresShell* aPresShell);
+nsresult
+NS_NewComputedDOMStyle(nsIDOMElement *aElement, const nsAString &aPseudoElt,
+                       nsIPresShell *aPresShell,
+                       nsComputedDOMStyle **aComputedStyle);
 
 #endif 
 

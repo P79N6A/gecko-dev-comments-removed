@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsCookiePermission_h__
 #define nsCookiePermission_h__
 
@@ -25,7 +58,7 @@ public:
   nsCookiePermission() 
     : mCookiesLifetimeSec(LL_MAXINT)
     , mCookiesLifetimePolicy(0) 
-    , mCookiesAlwaysAcceptSession(false)
+    , mCookiesAlwaysAcceptSession(PR_FALSE)
     {}
   virtual ~nsCookiePermission() {}
 
@@ -39,8 +72,8 @@ private:
   nsCOMPtr<nsIPermissionManager> mPermMgr;
   nsCOMPtr<nsIPrivateBrowsingService> mPBService;
 
-  int64_t      mCookiesLifetimeSec;            
-  uint8_t      mCookiesLifetimePolicy;         
+  PRInt64      mCookiesLifetimeSec;            
+  PRUint8      mCookiesLifetimePolicy;         
   bool mCookiesAlwaysAcceptSession;    
 };
 

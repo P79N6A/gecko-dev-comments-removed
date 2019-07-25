@@ -4,6 +4,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsHttpHeaderArray.h"
 #include "nsHttp.h"
 
@@ -15,8 +50,8 @@ nsHttpHeaderArray::SetHeader(nsHttpAtom header,
                              const nsACString &value,
                              bool merge)
 {
-    nsEntry *entry = nullptr;
-    int32_t index;
+    nsEntry *entry = nsnull;
+    PRInt32 index;
 
     index = LookupEntry(header, &entry);
 
@@ -47,17 +82,14 @@ nsHttpHeaderArray::SetHeader(nsHttpAtom header,
 nsresult
 nsHttpHeaderArray::SetHeaderFromNet(nsHttpAtom header, const nsACString &value)
 {
-    nsEntry *entry = nullptr;
+    nsEntry *entry = nsnull;
+    PRInt32 index;
 
-    LookupEntry(header, &entry);
+    index = LookupEntry(header, &entry);
 
     if (!entry) {
-        if (value.IsEmpty()) {
-            if (!TrackEmptyHeader(header)) {
-                LOG(("Ignoring Empty Header: %s\n", header.get()));
-                return NS_OK; 
-            }
-        }
+        if (value.IsEmpty())
+            return NS_OK; 
         entry = mHeaders.AppendElement(); 
         if (!entry)
             return NS_ERROR_OUT_OF_MEMORY;
@@ -73,8 +105,6 @@ nsHttpHeaderArray::SetHeaderFromNet(nsHttpAtom header, const nsACString &value)
                 
                 return NS_ERROR_CORRUPTED_CONTENT;
             } 
-            LOG(("Header %s silently dropped as non mergeable header\n",
-                 header.get()));
         }
     }
 
@@ -88,17 +118,17 @@ nsHttpHeaderArray::ClearHeader(nsHttpAtom header)
 }
 
 const char *
-nsHttpHeaderArray::PeekHeader(nsHttpAtom header) const
+nsHttpHeaderArray::PeekHeader(nsHttpAtom header)
 {
-    const nsEntry *entry = nullptr;
+    nsEntry *entry = nsnull;
     LookupEntry(header, &entry);
-    return entry ? entry->value.get() : nullptr;
+    return entry ? entry->value.get() : nsnull;
 }
 
 nsresult
-nsHttpHeaderArray::GetHeader(nsHttpAtom header, nsACString &result) const
+nsHttpHeaderArray::GetHeader(nsHttpAtom header, nsACString &result)
 {
-    const nsEntry *entry = nullptr;
+    nsEntry *entry = nsnull;
     LookupEntry(header, &entry);
     if (!entry)
         return NS_ERROR_NOT_AVAILABLE;
@@ -110,7 +140,7 @@ nsresult
 nsHttpHeaderArray::VisitHeaders(nsIHttpHeaderVisitor *visitor)
 {
     NS_ENSURE_ARG_POINTER(visitor);
-    uint32_t i, count = mHeaders.Length();
+    PRUint32 i, count = mHeaders.Length();
     for (i = 0; i < count; ++i) {
         const nsEntry &entry = mHeaders[i];
         if (NS_FAILED(visitor->VisitHeader(nsDependentCString(entry.header),
@@ -180,7 +210,7 @@ nsHttpHeaderArray::ParseHeaderLine(const char *line,
 void
 nsHttpHeaderArray::Flatten(nsACString &buf, bool pruneProxyHeaders)
 {
-    uint32_t i, count = mHeaders.Length();
+    PRUint32 i, count = mHeaders.Length();
     for (i = 0; i < count; ++i) {
         const nsEntry &entry = mHeaders[i];
         
@@ -195,7 +225,7 @@ nsHttpHeaderArray::Flatten(nsACString &buf, bool pruneProxyHeaders)
 }
 
 const char *
-nsHttpHeaderArray::PeekHeaderAt(uint32_t index, nsHttpAtom &header) const
+nsHttpHeaderArray::PeekHeaderAt(PRUint32 index, nsHttpAtom &header)
 {
     const nsEntry &entry = mHeaders[index];
 

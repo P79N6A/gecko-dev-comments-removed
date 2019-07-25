@@ -32,13 +32,14 @@ function sync_httpd_setup() {
 }
 
 function setUp() {
-  setBasicCredentials("johndoe", "ilovejane", "abcdeabcdeabcdeabcdeabcdea");
-  Service.serverURL = TEST_SERVER_URL;
-  Service.clusterURL = TEST_CLUSTER_URL;
+  Service.username = "johndoe";
+  Service.password = "ilovejane";
+  Service.passphrase = "abcdeabcdeabcdeabcdeabcdea";
+  Service.clusterURL = "http://localhost:8080/";
 
   generateNewKeys();
   let serverKeys = CollectionKeys.asWBO("crypto", "keys");
-  serverKeys.encrypt(Identity.syncKeyBundle);
+  serverKeys.encrypt(Service.syncKeyBundle);
   return serverKeys.upload(Service.cryptoKeysURL);
 }
 

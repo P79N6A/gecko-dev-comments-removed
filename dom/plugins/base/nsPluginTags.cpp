@@ -3,50 +3,86 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsPluginTags.h"
 
 #include "prlink.h"
 #include "plstr.h"
 #include "nsIPluginInstanceOwner.h"
+#include "nsIDocument.h"
 #include "nsServiceManagerUtils.h"
+#include "nsIPrefService.h"
+#include "nsIPrefBranch.h"
 #include "nsPluginsDir.h"
 #include "nsPluginHost.h"
 #include "nsIUnicodeDecoder.h"
 #include "nsIPlatformCharset.h"
 #include "nsICharsetConverterManager.h"
-#include "nsIDOMMimeType.h"
 #include "nsPluginLogging.h"
+#include "nsICategoryManager.h"
 #include "nsNPAPIPlugin.h"
 #include "mozilla/TimeStamp.h"
-#include "mozilla/Preferences.h"
 
-using namespace mozilla;
 using mozilla::TimeStamp;
 
 inline char* new_str(const char* str)
 {
-  if (str == nullptr)
-    return nullptr;
+  if (str == nsnull)
+    return nsnull;
   
   char* result = new char[strlen(str) + 1];
-  if (result != nullptr)
+  if (result != nsnull)
     return strcpy(result, str);
   return result;
 }
 
-NS_IMPL_ISUPPORTS1(DOMMimeTypeImpl, nsIDOMMimeType)
-
 
 
 nsPluginTag::nsPluginTag(nsPluginTag* aPluginTag)
-: mPluginHost(nullptr),
+: mPluginHost(nsnull),
 mName(aPluginTag->mName),
 mDescription(aPluginTag->mDescription),
 mMimeTypes(aPluginTag->mMimeTypes),
 mMimeDescriptions(aPluginTag->mMimeDescriptions),
 mExtensions(aPluginTag->mExtensions),
-mLibrary(nullptr),
+mLibrary(nsnull),
+mCanUnloadLibrary(true),
 mIsJavaPlugin(aPluginTag->mIsJavaPlugin),
+mIsNPRuntimeEnabledJavaPlugin(aPluginTag->mIsNPRuntimeEnabledJavaPlugin),
 mIsFlashPlugin(aPluginTag->mIsFlashPlugin),
 mFileName(aPluginTag->mFileName),
 mFullPath(aPluginTag->mFullPath),
@@ -57,11 +93,17 @@ mFlags(NS_PLUGIN_FLAG_ENABLED)
 }
 
 nsPluginTag::nsPluginTag(nsPluginInfo* aPluginInfo)
-: mPluginHost(nullptr),
+: mPluginHost(nsnull),
 mName(aPluginInfo->fName),
 mDescription(aPluginInfo->fDescription),
-mLibrary(nullptr),
+mLibrary(nsnull),
+#ifdef XP_MACOSX
+mCanUnloadLibrary(false),
+#else
+mCanUnloadLibrary(true),
+#endif
 mIsJavaPlugin(false),
+mIsNPRuntimeEnabledJavaPlugin(false),
 mIsFlashPlugin(false),
 mFileName(aPluginInfo->fFileName),
 mFullPath(aPluginInfo->fFullPath),
@@ -69,10 +111,72 @@ mVersion(aPluginInfo->fVersion),
 mLastModifiedTime(0),
 mFlags(NS_PLUGIN_FLAG_ENABLED)
 {
-  InitMime(aPluginInfo->fMimeTypeArray,
-           aPluginInfo->fMimeDescriptionArray,
-           aPluginInfo->fExtensionArray,
-           aPluginInfo->fVariantCount);
+  if (!aPluginInfo->fMimeTypeArray) {
+    return;
+  }
+
+  for (PRUint32 i = 0; i < aPluginInfo->fVariantCount; i++) {
+    
+    char* currentMIMEType = aPluginInfo->fMimeTypeArray[i];
+    if (currentMIMEType) {
+      if (mIsJavaPlugin) {
+        if (strcmp(currentMIMEType, "application/x-java-vm-npruntime") == 0) {
+          
+          
+          
+          mIsNPRuntimeEnabledJavaPlugin = true;
+          continue;
+        }
+      }
+      mMimeTypes.AppendElement(nsCString(currentMIMEType));
+      if (nsPluginHost::IsJavaMIMEType(currentMIMEType)) {
+        mIsJavaPlugin = true;
+      }
+      else if (strcmp(currentMIMEType, "application/x-shockwave-flash") == 0) {
+        mIsFlashPlugin = true;
+      }
+    } else {
+      continue;
+    }
+
+    
+    if (aPluginInfo->fMimeDescriptionArray &&
+        aPluginInfo->fMimeDescriptionArray[i]) {
+      
+      
+      
+      
+      char cur = '\0';
+      char pre = '\0';
+      char * p = PL_strrchr(aPluginInfo->fMimeDescriptionArray[i], '(');
+      if (p && (p != aPluginInfo->fMimeDescriptionArray[i])) {
+        if ((p - 1) && *(p - 1) == ' ') {
+          pre = *(p - 1);
+          *(p - 1) = '\0';
+        } else {
+          cur = *p;
+          *p = '\0';
+        }
+      }
+      mMimeDescriptions.AppendElement(nsCString(aPluginInfo->fMimeDescriptionArray[i]));
+      
+      if (cur != '\0')
+        *p = cur;
+      if (pre != '\0')
+        *(p - 1) = pre;      
+    } else {
+      mMimeDescriptions.AppendElement(nsCString());
+    }
+
+    
+    if (aPluginInfo->fExtensionArray &&
+        aPluginInfo->fExtensionArray[i]) {
+      mExtensions.AppendElement(nsCString(aPluginInfo->fExtensionArray[i]));
+    } else {
+      mExtensions.AppendElement(nsCString());
+    }
+  }
+
   EnsureMembersAreUTF8();
 }
 
@@ -84,22 +188,37 @@ nsPluginTag::nsPluginTag(const char* aName,
                          const char* const* aMimeTypes,
                          const char* const* aMimeDescriptions,
                          const char* const* aExtensions,
-                         int32_t aVariants,
-                         int64_t aLastModifiedTime,
+                         PRInt32 aVariants,
+                         PRInt64 aLastModifiedTime,
+                         bool aCanUnload,
                          bool aArgsAreUTF8)
-: mPluginHost(nullptr),
+: mPluginHost(nsnull),
 mName(aName),
 mDescription(aDescription),
-mLibrary(nullptr),
+mLibrary(nsnull),
+mCanUnloadLibrary(aCanUnload),
 mIsJavaPlugin(false),
-mIsFlashPlugin(false),
+mIsNPRuntimeEnabledJavaPlugin(false),
 mFileName(aFileName),
 mFullPath(aFullPath),
 mVersion(aVersion),
 mLastModifiedTime(aLastModifiedTime),
 mFlags(0) 
 {
-  InitMime(aMimeTypes, aMimeDescriptions, aExtensions, static_cast<uint32_t>(aVariants));
+  for (PRInt32 i = 0; i < aVariants; i++) {
+    if (mIsJavaPlugin && aMimeTypes[i] &&
+        strcmp(aMimeTypes[i], "application/x-java-vm-npruntime") == 0) {
+      mIsNPRuntimeEnabledJavaPlugin = true;
+      continue;
+    }
+    mMimeTypes.AppendElement(nsCString(aMimeTypes[i]));
+    mMimeDescriptions.AppendElement(nsCString(aMimeDescriptions[i]));
+    mExtensions.AppendElement(nsCString(aExtensions[i]));
+    if (nsPluginHost::IsJavaMIMEType(mMimeTypes[i].get())) {
+      mIsJavaPlugin = true;
+    }
+  }
+
   if (!aArgsAreUTF8)
     EnsureMembersAreUTF8();
 }
@@ -111,75 +230,11 @@ nsPluginTag::~nsPluginTag()
 
 NS_IMPL_ISUPPORTS1(nsPluginTag, nsIPluginTag)
 
-void nsPluginTag::InitMime(const char* const* aMimeTypes,
-                           const char* const* aMimeDescriptions,
-                           const char* const* aExtensions,
-                           uint32_t aVariantCount)
-{
-  if (!aMimeTypes) {
-    return;
-  }
-
-  for (uint32_t i = 0; i < aVariantCount; i++) {
-    if (!aMimeTypes[i] || !nsPluginHost::IsTypeWhitelisted(aMimeTypes[i])) {
-      continue;
-    }
-
-    
-    if (nsPluginHost::IsJavaMIMEType(aMimeTypes[i])) {
-      mIsJavaPlugin = true;
-    } else if (strcmp(aMimeTypes[i], "application/x-shockwave-flash") == 0) {
-      mIsFlashPlugin = true;
-    }
-
-    
-    mMimeTypes.AppendElement(nsCString(aMimeTypes[i]));
-
-    
-    if (aMimeDescriptions && aMimeDescriptions[i]) {
-      
-      
-      
-      
-      char cur = '\0';
-      char pre = '\0';
-      char * p = PL_strrchr(aMimeDescriptions[i], '(');
-      if (p && (p != aMimeDescriptions[i])) {
-        if ((p - 1) && *(p - 1) == ' ') {
-          pre = *(p - 1);
-          *(p - 1) = '\0';
-        } else {
-          cur = *p;
-          *p = '\0';
-        }
-      }
-      mMimeDescriptions.AppendElement(nsCString(aMimeDescriptions[i]));
-      
-      if (cur != '\0') {
-        *p = cur;
-      }
-      if (pre != '\0') {
-        *(p - 1) = pre;
-      }
-    } else {
-      mMimeDescriptions.AppendElement(nsCString());
-    }
-
-    
-    if (aExtensions && aExtensions[i]) {
-      mExtensions.AppendElement(nsCString(aExtensions[i]));
-    } else {
-      mExtensions.AppendElement(nsCString());
-    }
-  }
-}
-
-#if !defined(XP_WIN) && !defined(XP_MACOSX)
 static nsresult ConvertToUTF8(nsIUnicodeDecoder *aUnicodeDecoder,
                               nsAFlatCString& aString)
 {
-  int32_t numberOfBytes = aString.Length();
-  int32_t outUnicodeLen;
+  PRInt32 numberOfBytes = aString.Length();
+  PRInt32 outUnicodeLen;
   nsAutoString buffer;
   nsresult rv = aUnicodeDecoder->GetMaxLength(aString.get(), numberOfBytes,
                                               &outUnicodeLen);
@@ -194,7 +249,6 @@ static nsresult ConvertToUTF8(nsIUnicodeDecoder *aUnicodeDecoder,
   
   return NS_OK;
 }
-#endif
 
 nsresult nsPluginTag::EnsureMembersAreUTF8()
 {
@@ -211,7 +265,7 @@ nsresult nsPluginTag::EnsureMembersAreUTF8()
   do_GetService(NS_CHARSETCONVERTERMANAGER_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
   
-  nsAutoCString charset;
+  nsCAutoString charset;
   rv = pcs->GetCharset(kPlatformCharsetSel_FileName, charset);
   NS_ENSURE_SUCCESS(rv, rv);
   if (!charset.LowerCaseEqualsLiteral("utf-8")) {
@@ -233,7 +287,7 @@ nsresult nsPluginTag::EnsureMembersAreUTF8()
     
     ConvertToUTF8(decoder, mName);
     ConvertToUTF8(decoder, mDescription);
-    for (uint32_t i = 0; i < mMimeDescriptions.Length(); ++i) {
+    for (PRUint32 i = 0; i < mMimeDescriptions.Length(); ++i) {
       ConvertToUTF8(decoder, mMimeDescriptions[i]);
     }
   }
@@ -298,7 +352,8 @@ nsPluginTag::SetDisabled(bool aDisabled)
     UnMark(NS_PLUGIN_FLAG_ENABLED);
   else
     Mark(NS_PLUGIN_FLAG_ENABLED);
-
+  
+  mPluginHost->UpdatePluginInfo(this);
   return NS_OK;
 }
 
@@ -319,79 +374,115 @@ nsPluginTag::SetBlocklisted(bool aBlocklisted)
     Mark(NS_PLUGIN_FLAG_BLOCKLISTED);
   else
     UnMark(NS_PLUGIN_FLAG_BLOCKLISTED);
-
+  
+  mPluginHost->UpdatePluginInfo(nsnull);
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsPluginTag::GetClicktoplay(bool *aClicktoplay)
+void
+nsPluginTag::RegisterWithCategoryManager(bool aOverrideInternalTypes,
+                                         nsPluginTag::nsRegisterType aType)
 {
-  *aClicktoplay = HasFlag(NS_PLUGIN_FLAG_CLICKTOPLAY);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsPluginTag::SetClicktoplay(bool aClicktoplay)
-{
-  if (HasFlag(NS_PLUGIN_FLAG_CLICKTOPLAY) == aClicktoplay) {
-    return NS_OK;
+  PLUGIN_LOG(PLUGIN_LOG_NORMAL,
+             ("nsPluginTag::RegisterWithCategoryManager plugin=%s, removing = %s\n",
+              mFileName.get(), aType == ePluginUnregister ? "yes" : "no"));
+  
+  nsCOMPtr<nsICategoryManager> catMan = do_GetService(NS_CATEGORYMANAGER_CONTRACTID);
+  if (!catMan)
+    return;
+  
+  const char *contractId = "@mozilla.org/content/plugin/document-loader-factory;1";
+  
+  nsCOMPtr<nsIPrefBranch> psvc(do_GetService(NS_PREFSERVICE_CONTRACTID));
+  if (!psvc)
+    return; 
+  
+  
+  
+  
+  
+  
+  
+  
+  nsXPIDLCString overrideTypes;
+  nsCAutoString overrideTypesFormatted;
+  if (aType != ePluginUnregister) {
+    psvc->GetCharPref("plugin.disable_full_page_plugin_for_types", getter_Copies(overrideTypes));
+    overrideTypesFormatted.Assign(',');
+    overrideTypesFormatted += overrideTypes;
+    overrideTypesFormatted.Append(',');
   }
   
-  if (aClicktoplay) {
-    Mark(NS_PLUGIN_FLAG_CLICKTOPLAY);
-  } else {
-    UnMark(NS_PLUGIN_FLAG_CLICKTOPLAY);
+  nsACString::const_iterator start, end;
+  for (PRUint32 i = 0; i < mMimeTypes.Length(); i++) {
+    if (aType == ePluginUnregister) {
+      nsXPIDLCString value;
+      if (NS_SUCCEEDED(catMan->GetCategoryEntry("Gecko-Content-Viewers",
+                                                mMimeTypes[i].get(),
+                                                getter_Copies(value)))) {
+        
+        if (strcmp(value, contractId) == 0) {
+          catMan->DeleteCategoryEntry("Gecko-Content-Viewers",
+                                      mMimeTypes[i].get(),
+                                      true);
+        }
+      }
+    } else {
+      overrideTypesFormatted.BeginReading(start);
+      overrideTypesFormatted.EndReading(end);
+      
+      nsCAutoString commaSeparated; 
+      commaSeparated.Assign(',');
+      commaSeparated += mMimeTypes[i];
+      commaSeparated.Append(',');
+      if (!FindInReadable(commaSeparated, start, end)) {
+        catMan->AddCategoryEntry("Gecko-Content-Viewers",
+                                 mMimeTypes[i].get(),
+                                 contractId,
+                                 false, 
+                                 aOverrideInternalTypes, 
+                                 nsnull);
+      }
+    }
+    
+    PLUGIN_LOG(PLUGIN_LOG_NOISY,
+               ("nsPluginTag::RegisterWithCategoryManager mime=%s, plugin=%s\n",
+                mMimeTypes[i].get(), mFileName.get()));
   }
-  
-  mPluginHost->UpdatePluginInfo(nullptr);
-  return NS_OK;
 }
 
-NS_IMETHODIMP
-nsPluginTag::GetMimeTypes(uint32_t* aCount, nsIDOMMimeType*** aResults)
-{
-  uint32_t count = mMimeTypes.Length();
-  *aResults = static_cast<nsIDOMMimeType**>
-                         (nsMemory::Alloc(count * sizeof(**aResults)));
-  if (!*aResults)
-    return NS_ERROR_OUT_OF_MEMORY;
-  *aCount = count;
-
-  for (uint32_t i = 0; i < count; i++) {
-    nsIDOMMimeType* mimeType = new DOMMimeTypeImpl(this, i);
-    (*aResults)[i] = mimeType;
-    NS_ADDREF((*aResults)[i]);
-  }
-
-  return NS_OK;
-}
-
-void nsPluginTag::Mark(uint32_t mask)
+void nsPluginTag::Mark(PRUint32 mask)
 {
   bool wasEnabled = IsEnabled();
   mFlags |= mask;
-
+  
   if (mPluginHost && wasEnabled != IsEnabled()) {
-    mPluginHost->UpdatePluginInfo(this);
+    if (wasEnabled)
+      RegisterWithCategoryManager(false, nsPluginTag::ePluginUnregister);
+    else
+      RegisterWithCategoryManager(false, nsPluginTag::ePluginRegister);
   }
 }
 
-void nsPluginTag::UnMark(uint32_t mask)
+void nsPluginTag::UnMark(PRUint32 mask)
 {
   bool wasEnabled = IsEnabled();
   mFlags &= ~mask;
-
+  
   if (mPluginHost && wasEnabled != IsEnabled()) {
-    mPluginHost->UpdatePluginInfo(this);
+    if (wasEnabled)
+      RegisterWithCategoryManager(false, nsPluginTag::ePluginUnregister);
+    else
+      RegisterWithCategoryManager(false, nsPluginTag::ePluginRegister);
   }
 }
 
-bool nsPluginTag::HasFlag(uint32_t flag)
+bool nsPluginTag::HasFlag(PRUint32 flag)
 {
   return (mFlags & flag) != 0;
 }
 
-uint32_t nsPluginTag::Flags()
+PRUint32 nsPluginTag::Flags()
 {
   return mFlags;
 }
@@ -401,17 +492,17 @@ bool nsPluginTag::IsEnabled()
   return HasFlag(NS_PLUGIN_FLAG_ENABLED) && !HasFlag(NS_PLUGIN_FLAG_BLOCKLISTED);
 }
 
-bool
-nsPluginTag::HasSameNameAndMimes(const nsPluginTag *aPluginTag) const
+bool nsPluginTag::Equals(nsPluginTag *aPluginTag)
 {
   NS_ENSURE_TRUE(aPluginTag, false);
-
+  
   if ((!mName.Equals(aPluginTag->mName)) ||
+      (!mDescription.Equals(aPluginTag->mDescription)) ||
       (mMimeTypes.Length() != aPluginTag->mMimeTypes.Length())) {
     return false;
   }
 
-  for (uint32_t i = 0; i < mMimeTypes.Length(); i++) {
+  for (PRUint32 i = 0; i < mMimeTypes.Length(); i++) {
     if (!mMimeTypes[i].Equals(aPluginTag->mMimeTypes[i])) {
       return false;
     }
@@ -420,16 +511,28 @@ nsPluginTag::HasSameNameAndMimes(const nsPluginTag *aPluginTag) const
   return true;
 }
 
-void nsPluginTag::TryUnloadPlugin(bool inShutdown)
+void nsPluginTag::TryUnloadPlugin()
 {
-  
-  
-  if (mLibrary && !inShutdown) {
-    return;
+  if (mEntryPoint) {
+    mEntryPoint->Shutdown();
+    mEntryPoint = nsnull;
   }
-
-  if (mPlugin) {
-    mPlugin->Shutdown();
-    mPlugin = nullptr;
+  
+  
+  if (mLibrary && mCanUnloadLibrary) {
+    
+    nsPluginHost::PostPluginUnloadEvent(mLibrary);
+  }
+  
+  
+  
+  
+  
+  mLibrary = nsnull;
+  
+  
+  
+  if (mPluginHost) {
+    RegisterWithCategoryManager(false, nsPluginTag::ePluginUnregister);
   }
 }

@@ -3,26 +3,56 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #if !defined(nsWebMReader_h_)
 #define nsWebMReader_h_
 
-#include "mozilla/StandardInteger.h"
-
 #include "nsDeque.h"
 #include "nsBuiltinDecoderReader.h"
+#include "nsWebMBufferedParser.h"
 #include "nsAutoRef.h"
 #include "nestegg/nestegg.h"
-
-#define VPX_DONT_DEFINE_STDINT_TYPES
-#include "vpx/vpx_codec.h"
-
+#include "vpx/vpx_decoder.h"
+#include "vpx/vp8dx.h"
 #ifdef MOZ_TREMOR
 #include "tremor/ivorbiscodec.h"
 #else
 #include "vorbis/codec.h"
 #endif
 
-class nsWebMBufferedState;
+class nsMediaDecoder;
 
 
 
@@ -30,7 +60,7 @@ class nsWebMBufferedState;
 
 class NesteggPacketHolder {
 public:
-  NesteggPacketHolder(nestegg_packet* aPacket, int64_t aOffset)
+  NesteggPacketHolder(nestegg_packet* aPacket, PRInt64 aOffset)
     : mPacket(aPacket), mOffset(aOffset)
   {
     MOZ_COUNT_CTOR(NesteggPacketHolder);
@@ -42,7 +72,7 @@ public:
   nestegg_packet* mPacket;
   
   
-  int64_t mOffset;
+  PRInt64 mOffset;
 private:
   
   NesteggPacketHolder(const NesteggPacketHolder &aOther);
@@ -53,7 +83,7 @@ private:
 class PacketQueueDeallocator : public nsDequeFunctor {
   virtual void* operator() (void* anObject) {
     delete static_cast<NesteggPacketHolder*>(anObject);
-    return nullptr;
+    return nsnull;
   }
 };
 
@@ -70,7 +100,7 @@ class PacketQueue : private nsDeque {
     Reset();
   }
 
-  inline int32_t GetSize() { 
+  inline PRInt32 GetSize() { 
     return nsDeque::GetSize();
   }
   
@@ -109,7 +139,7 @@ public:
   
   
   virtual bool DecodeVideoFrame(bool &aKeyframeSkip,
-                                  int64_t aTimeThreshold);
+                                  PRInt64 aTimeThreshold);
 
   virtual bool HasAudio()
   {
@@ -123,16 +153,10 @@ public:
     return mHasVideo;
   }
 
-  
-  bool IsSeekableInBufferedRanges() {
-    return false;
-  }
-
-  virtual nsresult ReadMetadata(nsVideoInfo* aInfo,
-                                nsHTMLMediaElement::MetadataTags** aTags);
-  virtual nsresult Seek(int64_t aTime, int64_t aStartTime, int64_t aEndTime, int64_t aCurrentTime);
-  virtual nsresult GetBuffered(nsTimeRanges* aBuffered, int64_t aStartTime);
-  virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset);
+  virtual nsresult ReadMetadata(nsVideoInfo* aInfo);
+  virtual nsresult Seek(PRInt64 aTime, PRInt64 aStartTime, PRInt64 aEndTime, PRInt64 aCurrentTime);
+  virtual nsresult GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime);
+  virtual void NotifyDataArrived(const char* aBuffer, PRUint32 aLength, PRUint32 aOffset);
 
 private:
   
@@ -152,7 +176,7 @@ private:
                            size_t aLength,
                            bool aBOS,
                            bool aEOS,
-                           int64_t aGranulepos);
+                           PRInt64 aGranulepos);
 
   
   
@@ -160,7 +184,7 @@ private:
   
   
   
-  bool DecodeAudioPacket(nestegg_packet* aPacket, int64_t aOffset);
+  bool DecodeAudioPacket(nestegg_packet* aPacket, PRInt64 aOffset);
 
   
   
@@ -172,15 +196,15 @@ private:
   nestegg* mContext;
 
   
-  vpx_codec_ctx_t mVP8;
+  vpx_codec_ctx_t  mVP8;
 
   
   vorbis_info mVorbisInfo;
   vorbis_comment mVorbisComment;
   vorbis_dsp_state mVorbisDsp;
   vorbis_block mVorbisBlock;
-  uint32_t mPacketCount;
-  uint32_t mChannels;
+  PRUint32 mPacketCount;
+  PRUint32 mChannels;
 
   
   
@@ -188,14 +212,14 @@ private:
   PacketQueue mAudioPackets;
 
   
-  uint32_t mVideoTrack;
-  uint32_t mAudioTrack;
+  PRUint32 mVideoTrack;
+  PRUint32 mAudioTrack;
 
   
-  int64_t mAudioStartUsec;
+  PRInt64 mAudioStartUsec;
 
   
-  uint64_t mAudioFrames;
+  PRUint64 mAudioFrames;
 
   
   

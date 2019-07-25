@@ -7,6 +7,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsXULPopupListener_h___
 #define nsXULPopupListener_h___
 
@@ -15,6 +51,7 @@
 #include "nsIContent.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMMouseEvent.h"
+#include "nsIFrame.h"
 #include "nsIDOMEventListener.h"
 #include "nsCycleCollectionParticipant.h"
 

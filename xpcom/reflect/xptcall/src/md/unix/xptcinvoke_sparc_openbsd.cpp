@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "xptcprivate.h"
 
 #if !defined(__sparc__)
@@ -13,11 +45,11 @@
 
 typedef unsigned nsXPCVariant;
 
-extern "C" uint32_t
-invoke_count_words(uint32_t paramCount, nsXPTCVariant* s)
+extern "C" PRUint32
+invoke_count_words(PRUint32 paramCount, nsXPTCVariant* s)
 {
-    uint32_t result = 0;
-    for(uint32_t i = 0; i < paramCount; i++, s++)
+    PRUint32 result = 0;
+    for(PRUint32 i = 0; i < paramCount; i++, s++)
     {
         if(s->IsPtrData())
         {
@@ -65,8 +97,8 @@ invoke_count_words(uint32_t paramCount, nsXPTCVariant* s)
     return result;
 }
 
-extern "C" uint32_t
-invoke_copy_to_stack(uint32_t* d, uint32_t paramCount, nsXPTCVariant* s)
+extern "C" PRUint32
+invoke_copy_to_stack(PRUint32* d, PRUint32 paramCount, nsXPTCVariant* s)
 {
 
 
@@ -107,7 +139,7 @@ invoke_copy_to_stack(uint32_t* d, uint32_t paramCount, nsXPTCVariant* s)
         case nsXPTType::T_U16    : *((uint32*) l_d) = l_s->val.u16;         break;
         case nsXPTType::T_U32    : *((uint32*) l_d) = l_s->val.u32;         break;
         case nsXPTType::T_FLOAT  : *((float*)  l_d) = l_s->val.f;           break;
-        case nsXPTType::T_BOOL   : *((uint32*) l_d) = l_s->val.b;           break;
+        case nsXPTType::T_BOOL   : *((bool*) l_d) = l_s->val.b;           break;
         case nsXPTType::T_CHAR   : *((uint32*) l_d) = l_s->val.c;           break;
         case nsXPTType::T_WCHAR  : *((int32*)  l_d) = l_s->val.wc;          break;
         default:

@@ -68,6 +68,9 @@ public:
 
   
   virtual PRUint8 ActionCount();
+
+  
+  virtual bool IsWidget() const;
 };
 
 
@@ -110,6 +113,9 @@ public:
 
   
   virtual PRUint8 ActionCount();
+
+  
+  virtual bool IsWidget() const;
 };
 
 
@@ -134,6 +140,9 @@ public:
 
   
   virtual PRUint8 ActionCount();
+
+  
+  virtual bool IsWidget() const;
 };
 
 
@@ -159,12 +168,17 @@ public:
   NS_IMETHOD GetAssociatedEditor(nsIEditor **aEditor);
 
   
+  virtual void ApplyARIAState(PRUint64* aState);
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual PRUint32 NativeRole();
   virtual PRUint64 NativeState();
 
   
   virtual PRUint8 ActionCount();
+
+  
+  virtual bool IsWidget() const;
+  virtual nsAccessible* ContainerWidget() const;
 };
 
 
@@ -177,12 +191,9 @@ public:
   nsHTMLGroupboxAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  NS_IMETHOD GetRelationByType(PRUint32 aRelationType,
-                               nsIAccessibleRelation **aRelation);
-
-  
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual PRUint32 NativeRole();
+  virtual Relation RelationByType(PRUint32 aType);
 
 protected:
   nsIContent* GetLegend();
@@ -198,11 +209,8 @@ public:
   nsHTMLLegendAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  NS_IMETHOD GetRelationByType(PRUint32 aRelationType,
-                               nsIAccessibleRelation **aRelation);
-
-  
   virtual PRUint32 NativeRole();
+  virtual Relation RelationByType(PRUint32 aType);
 };
 
 #endif  

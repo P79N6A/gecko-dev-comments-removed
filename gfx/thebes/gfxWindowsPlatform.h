@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_WINDOWS_PLATFORM_H
 #define GFX_WINDOWS_PLATFORM_H
 
@@ -28,8 +61,6 @@
 #include <windows.h>
 #include <objbase.h>
 
-class nsIMemoryMultiReporter;
-
 
 
 struct DCFromContext {
@@ -42,7 +73,7 @@ struct DCFromContext {
              aSurface->GetType() == gfxASurface::SurfaceTypeWin32Printing))
         {
             dc = static_cast<gfxWindowsSurface*>(aSurface.get())->GetDC();
-            needsRelease = false;
+            needsRelease = PR_FALSE;
             SaveDC(dc);
             cairo_scaled_font_t* scaled =
                 cairo_get_scaled_font(aContext->GetCairo());
@@ -51,7 +82,7 @@ struct DCFromContext {
         if (!dc) {
             dc = GetDC(NULL);
             SetGraphicsMode(dc, GM_ADVANCED);
-            needsRelease = true;
+            needsRelease = PR_TRUE;
         }
     }
 
@@ -78,21 +109,14 @@ struct ClearTypeParameterInfo {
     { }
 
     nsString    displayName;  
-    int32_t     gamma;
-    int32_t     pixelStructure;
-    int32_t     clearTypeLevel;
-    int32_t     enhancedContrast;
+    PRInt32     gamma;
+    PRInt32     pixelStructure;
+    PRInt32     clearTypeLevel;
+    PRInt32     enhancedContrast;
 };
 
 class THEBES_API gfxWindowsPlatform : public gfxPlatform {
 public:
-    enum TextRenderingMode {
-        TEXT_RENDERING_NO_CLEARTYPE,
-        TEXT_RENDERING_NORMAL,
-        TEXT_RENDERING_GDI_CLASSIC,
-        TEXT_RENDERING_COUNT
-    };
-
     gfxWindowsPlatform();
     virtual ~gfxWindowsPlatform();
     static gfxWindowsPlatform *GetPlatform() {
@@ -103,12 +127,8 @@ public:
 
     already_AddRefed<gfxASurface> CreateOffscreenSurface(const gfxIntSize& size,
                                                          gfxASurface::gfxContentType contentType);
-    virtual already_AddRefed<gfxASurface>
-      CreateOffscreenImageSurface(const gfxIntSize& aSize,
-                                  gfxASurface::gfxContentType aContentType);
-
     virtual mozilla::RefPtr<mozilla::gfx::ScaledFont>
-      GetScaledFontForFont(mozilla::gfx::DrawTarget* aTarget, gfxFont *aFont);
+      GetScaledFontForFont(gfxFont *aFont);
     virtual already_AddRefed<gfxASurface>
       GetThebesSurfaceForDrawTarget(mozilla::gfx::DrawTarget *aTarget);
 
@@ -155,10 +175,6 @@ public:
 
     nsresult UpdateFontList();
 
-    virtual void GetCommonFallbackFonts(const uint32_t aCh,
-                                        int32_t aRunScript,
-                                        nsTArray<const char*>& aFontList);
-
     nsresult ResolveFontName(const nsAString& aFontName,
                              FontResolverCallback aCallback,
                              void *aClosure, bool& aAborted);
@@ -179,13 +195,13 @@ public:
 
 
     virtual gfxFontEntry* MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
-                                           const uint8_t *aFontData,
-                                           uint32_t aLength);
+                                           const PRUint8 *aFontData,
+                                           PRUint32 aLength);
 
     
 
 
-    virtual bool IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags);
+    virtual bool IsFontFormatSupported(nsIURI *aFontURI, PRUint32 aFormatFlags);
 
     
     gfxFontFamily *FindFontFamily(const nsAString& aName);
@@ -205,14 +221,14 @@ public:
     
     enum {
         kWindowsUnknown = 0,
+        kWindows2000 = 0x50000,
         kWindowsXP = 0x50001,
         kWindowsServer2003 = 0x50002,
         kWindowsVista = 0x60000,
-        kWindows7 = 0x60001,
-        kWindows8 = 0x60002
+        kWindows7 = 0x60001
     };
 
-    static int32_t WindowsOSVersion(int32_t *aBuildNum = nullptr);
+    static PRInt32 WindowsOSVersion(PRInt32 *aBuildNum = nsnull);
 
     static void GetDLLVersion(const PRUnichar *aDLLPath, nsAString& aVersion);
 
@@ -227,33 +243,21 @@ public:
     IDWriteFactory *GetDWriteFactory() { return mDWriteFactory; }
     inline bool DWriteEnabled() { return mUseDirectWrite; }
     inline DWRITE_MEASURING_MODE DWriteMeasuringMode() { return mMeasuringMode; }
-    IDWriteTextAnalyzer *GetDWriteAnalyzer() { return mDWriteAnalyzer; }
-
-    IDWriteRenderingParams *GetRenderingParams(TextRenderingMode aRenderMode)
-    { return mRenderingParams[aRenderMode]; }
 #else
     inline bool DWriteEnabled() { return false; }
 #endif
 #ifdef CAIRO_HAS_D2D_SURFACE
     cairo_device_t *GetD2DDevice() { return mD2DDevice; }
-    ID3D10Device1 *GetD3D10Device() { return mD2DDevice ? cairo_d2d_device_get_device(mD2DDevice) : nullptr; }
+    ID3D10Device1 *GetD3D10Device() { return mD2DDevice ? cairo_d2d_device_get_device(mD2DDevice) : nsnull; }
 #endif
 
     static bool IsOptimus();
-    static bool IsRunningInWindows8Metro();
 
 protected:
-    virtual mozilla::gfx::BackendType GetContentBackend()
-    {
-      return UseAzureContentDrawing() && mRenderMode == RENDER_DIRECT2D ?
-               mozilla::gfx::BACKEND_DIRECT2D :
-               mozilla::gfx::BACKEND_NONE;
-    }
-
     RenderMode mRenderMode;
 
-    int8_t mUseClearTypeForDownloadableFonts;
-    int8_t mUseClearTypeAlways;
+    PRInt8 mUseClearTypeForDownloadableFonts;
+    PRInt8 mUseClearTypeAlways;
     HDC mScreenDC;
 
 private:
@@ -264,8 +268,6 @@ private:
 
 #ifdef CAIRO_HAS_DWRITE_FONT
     nsRefPtr<IDWriteFactory> mDWriteFactory;
-    nsRefPtr<IDWriteTextAnalyzer> mDWriteAnalyzer;
-    nsRefPtr<IDWriteRenderingParams> mRenderingParams[TEXT_RENDERING_COUNT];
     DWRITE_MEASURING_MODE mMeasuringMode;
 #endif
 #ifdef CAIRO_HAS_D2D_SURFACE
@@ -276,8 +278,6 @@ private:
 
     
     nsDataHashtable<nsCStringHashKey, nsTArray<nsRefPtr<gfxFontEntry> > > mPrefFonts;
-
-    nsIMemoryMultiReporter* mGPUAdapterMultiReporter;
 };
 
-#endif
+#endif 

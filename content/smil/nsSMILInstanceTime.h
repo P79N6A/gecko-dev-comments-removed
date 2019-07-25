@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_SMILINSTANCETIME_H_
 #define NS_SMILINSTANCETIME_H_
 
@@ -52,8 +84,8 @@ public:
 
   nsSMILInstanceTime(const nsSMILTimeValue& aTime,
                      nsSMILInstanceTimeSource aSource = SOURCE_NONE,
-                     nsSMILTimeValueSpec* aCreator = nullptr,
-                     nsSMILInterval* aBaseInterval = nullptr);
+                     nsSMILTimeValueSpec* aCreator = nsnull,
+                     nsSMILInterval* aBaseInterval = nsnull);
   ~nsSMILInstanceTime();
   void Unlink();
   void HandleChangedInterval(const nsSMILTimeContainer* aSrcContainer,
@@ -94,8 +126,8 @@ public:
 
   
   
-  uint32_t Serial() const { return mSerial; }
-  void SetSerial(uint32_t aIndex) { mSerial = aIndex; }
+  PRUint32 Serial() const { return mSerial; }
+  void SetSerial(PRUint32 aIndex) { mSerial = aIndex; }
 
   NS_INLINE_DECL_REFCOUNTING(nsSMILInstanceTime)
 
@@ -131,8 +163,8 @@ protected:
     
     kWasDynamicEndpoint = 8
   };
-  uint8_t       mFlags;   
-  mutable bool  mVisited; 
+  PRUint8       mFlags;   
+  bool          mVisited; 
 
   
   
@@ -147,9 +179,9 @@ protected:
   
   
   
-  uint16_t      mFixedEndpointRefCnt;
+  PRUint16      mFixedEndpointRefCnt;
 
-  uint32_t      mSerial; 
+  PRUint32      mSerial; 
                          
                          
 

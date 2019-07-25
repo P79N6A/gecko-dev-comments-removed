@@ -2,11 +2,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsTableRowFrame_h__
 #define nsTableRowFrame_h__
 
 #include "nscore.h"
-#include "nsContainerFrame.h"
+#include "nsHTMLContainerFrame.h"
 #include "nsTablePainter.h"
 
 class  nsTableFrame;
@@ -32,7 +64,7 @@ struct nsTableCellReflowState;
 
 
 
-class nsTableRowFrame : public nsContainerFrame
+class nsTableRowFrame : public nsHTMLContainerFrame
 {
 public:
   NS_DECL_QUERYFRAME_TARGET(nsTableRowFrame)
@@ -106,8 +138,8 @@ public:
   void UpdateHeight(nscoord           aHeight,
                     nscoord           aAscent,
                     nscoord           aDescent,
-                    nsTableFrame*     aTableFrame = nullptr,
-                    nsTableCellFrame* aCellFrame  = nullptr);
+                    nsTableFrame*     aTableFrame = nsnull,
+                    nsTableCellFrame* aCellFrame  = nsnull);
 
   void ResetHeight(nscoord aRowStyleHeight);
 
@@ -129,7 +161,7 @@ public:
   nscoord GetRowBaseline();
  
   
-  virtual int32_t GetRowIndex() const;
+  virtual PRInt32 GetRowIndex() const;
 
   
   void SetRowIndex (int aRowIndex);
@@ -164,7 +196,7 @@ public:
 
 
   void InsertCellFrame(nsTableCellFrame* aFrame,
-                       int32_t           aColIndex);
+                       PRInt32           aColIndex);
 
   nsresult CalculateCellActualHeight(nsTableCellFrame* aCellFrame,
                                      nscoord&          aDesiredHeight);
@@ -220,12 +252,8 @@ public:
 
 
 
-  void SetContinuousBCBorderWidth(uint8_t     aForSide,
+  void SetContinuousBCBorderWidth(PRUint8     aForSide,
                                   BCPixelSize aPixelValue);
-
-#ifdef ACCESSIBILITY
-  virtual already_AddRefed<Accessible> CreateAccessible();
-#endif
 
 protected:
 
@@ -240,7 +268,7 @@ protected:
                             nsTableCellReflowState& aReflowState);
   
   
-  virtual int GetSkipSides() const;
+  virtual PRIntn GetSkipSides() const;
 
   
 
@@ -295,9 +323,9 @@ private:
 
 };
 
-inline int32_t nsTableRowFrame::GetRowIndex() const
+inline PRInt32 nsTableRowFrame::GetRowIndex() const
 {
-  return int32_t(mBits.mRowIndex);
+  return PRInt32(mBits.mRowIndex);
 }
 
 inline void nsTableRowFrame::SetRowIndex (int aRowIndex)
@@ -414,7 +442,7 @@ inline nsMargin* nsTableRowFrame::GetBCBorderWidth(nsMargin& aBorder)
 inline void
 nsTableRowFrame::GetContinuousBCBorderWidth(nsMargin& aBorder)
 {
-  int32_t aPixelsToTwips = nsPresContext::AppUnitsPerCSSPixel();
+  PRInt32 aPixelsToTwips = nsPresContext::AppUnitsPerCSSPixel();
   aBorder.right = BC_BORDER_LEFT_HALF_COORD(aPixelsToTwips,
                                             mLeftContBorderWidth);
   aBorder.top = BC_BORDER_BOTTOM_HALF_COORD(aPixelsToTwips,
@@ -425,7 +453,7 @@ nsTableRowFrame::GetContinuousBCBorderWidth(nsMargin& aBorder)
 
 inline nscoord nsTableRowFrame::GetOuterTopContBCBorderWidth()
 {
-  int32_t aPixelsToTwips = nsPresContext::AppUnitsPerCSSPixel();
+  PRInt32 aPixelsToTwips = nsPresContext::AppUnitsPerCSSPixel();
   return BC_BORDER_TOP_HALF_COORD(aPixelsToTwips, mTopContBorderWidth);
 }
 

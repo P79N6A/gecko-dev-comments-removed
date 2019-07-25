@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsStyledElement.h"
 #include "nsGkAtoms.h"
 #include "nsAttrValue.h"
@@ -49,7 +83,7 @@ nsStyledElementNotElementCSSInlineStyle::DoGetID() const
 
   const nsAttrValue* attr = mAttrsAndChildren.GetAttr(nsGkAtoms::id);
 
-  return attr ? attr->GetAtomValue() : nullptr;
+  return attr ? attr->GetAtomValue() : nsnull;
 }
 
 const nsAttrValue*
@@ -60,7 +94,7 @@ nsStyledElementNotElementCSSInlineStyle::DoGetClasses() const
 }
 
 bool
-nsStyledElementNotElementCSSInlineStyle::ParseAttribute(int32_t aNamespaceID,
+nsStyledElementNotElementCSSInlineStyle::ParseAttribute(PRInt32 aNamespaceID,
                                                         nsIAtom* aAttribute,
                                                         const nsAString& aValue,
                                                         nsAttrValue& aResult)
@@ -68,13 +102,13 @@ nsStyledElementNotElementCSSInlineStyle::ParseAttribute(int32_t aNamespaceID,
   if (aNamespaceID == kNameSpaceID_None) {
     if (aAttribute == nsGkAtoms::style) {
       SetMayHaveStyle();
-      ParseStyleAttribute(aValue, aResult, false);
-      return true;
+      ParseStyleAttribute(aValue, aResult, PR_FALSE);
+      return PR_TRUE;
     }
     if (aAttribute == nsGkAtoms::_class) {
       SetFlags(NODE_MAY_HAVE_CLASS);
       aResult.ParseAtomArray(aValue);
-      return true;
+      return PR_TRUE;
     }
     if (aAttribute == nsGkAtoms::id) {
       
@@ -82,12 +116,12 @@ nsStyledElementNotElementCSSInlineStyle::ParseAttribute(int32_t aNamespaceID,
       RemoveFromIdTable();
       if (aValue.IsEmpty()) {
         ClearHasID();
-        return false;
+        return PR_FALSE;
       }
       aResult.ParseAtom(aValue);
       SetHasID();
       AddToIdTable(aResult.GetAtomValue());
-      return true;
+      return PR_TRUE;
     }
   }
 
@@ -96,7 +130,7 @@ nsStyledElementNotElementCSSInlineStyle::ParseAttribute(int32_t aNamespaceID,
 }
 
 nsresult
-nsStyledElementNotElementCSSInlineStyle::UnsetAttr(int32_t aNameSpaceID,
+nsStyledElementNotElementCSSInlineStyle::UnsetAttr(PRInt32 aNameSpaceID,
                                                    nsIAtom* aAttribute,
                                                    bool aNotify)
 {
@@ -110,9 +144,9 @@ nsStyledElementNotElementCSSInlineStyle::UnsetAttr(int32_t aNameSpaceID,
 }
 
 nsresult
-nsStyledElementNotElementCSSInlineStyle::AfterSetAttr(int32_t aNamespaceID,
+nsStyledElementNotElementCSSInlineStyle::AfterSetAttr(PRInt32 aNamespaceID,
                                                       nsIAtom* aAttribute,
-                                                      const nsAttrValue* aValue,
+                                                      const nsAString* aValue,
                                                       bool aNotify)
 {
   if (aNamespaceID == kNameSpaceID_None && !aValue &&
@@ -127,14 +161,13 @@ nsStyledElementNotElementCSSInlineStyle::AfterSetAttr(int32_t aNamespaceID,
                                         aNotify);
 }
 
-nsresult
+NS_IMETHODIMP
 nsStyledElementNotElementCSSInlineStyle::SetInlineStyleRule(css::StyleRule* aStyleRule,
-                                                            const nsAString* aSerialized,
                                                             bool aNotify)
 {
   SetMayHaveStyle();
   bool modification = false;
-  nsAttrValue oldValue;
+  nsAutoString oldValueStr;
 
   bool hasListeners = aNotify &&
     nsContentUtils::HasMutationListeners(this,
@@ -149,34 +182,30 @@ nsStyledElementNotElementCSSInlineStyle::SetInlineStyleRule(css::StyleRule* aSty
     
     
     
-    nsAutoString oldValueStr;
     modification = GetAttr(kNameSpaceID_None, nsGkAtoms::style,
                            oldValueStr);
-    if (modification) {
-      oldValue.SetTo(oldValueStr);
-    }
   }
   else if (aNotify && IsInDoc()) {
     modification = !!mAttrsAndChildren.GetAttr(nsGkAtoms::style);
   }
 
-  nsAttrValue attrValue(aStyleRule, aSerialized);
+  nsAttrValue attrValue(aStyleRule, nsnull);
 
   
-  uint8_t modType = modification ?
-    static_cast<uint8_t>(nsIDOMMutationEvent::MODIFICATION) :
-    static_cast<uint8_t>(nsIDOMMutationEvent::ADDITION);
+  PRUint8 modType = modification ?
+    static_cast<PRUint8>(nsIDOMMutationEvent::MODIFICATION) :
+    static_cast<PRUint8>(nsIDOMMutationEvent::ADDITION);
 
-  return SetAttrAndNotify(kNameSpaceID_None, nsGkAtoms::style, nullptr,
-                          oldValue, attrValue, modType, hasListeners,
-                          aNotify, kDontCallAfterSetAttr);
+  return SetAttrAndNotify(kNameSpaceID_None, nsGkAtoms::style, nsnull,
+                          oldValueStr, attrValue, modType, hasListeners,
+                          aNotify, nsnull);
 }
 
 css::StyleRule*
 nsStyledElementNotElementCSSInlineStyle::GetInlineStyleRule()
 {
   if (!MayHaveStyle()) {
-    return nullptr;
+    return nsnull;
   }
   const nsAttrValue* attrVal = mAttrsAndChildren.GetAttr(nsGkAtoms::style);
 
@@ -184,8 +213,42 @@ nsStyledElementNotElementCSSInlineStyle::GetInlineStyleRule()
     return attrVal->GetCSSStyleRuleValue();
   }
 
-  return nullptr;
+  return nsnull;
 }
+
+nsresult
+nsStyledElementNotElementCSSInlineStyle::BindToTree(nsIDocument* aDocument,
+                                                    nsIContent* aParent,
+                                                    nsIContent* aBindingParent,
+                                                    bool aCompileEventHandlers)
+{
+  nsresult rv = nsStyledElementBase::BindToTree(aDocument, aParent,
+                                                aBindingParent,
+                                                aCompileEventHandlers);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (aDocument && HasID() && !GetBindingParent()) {
+    aDocument->AddToIdTable(this, DoGetID());
+  }
+
+  if (!IsXUL()) {
+    
+    
+    ReparseStyleAttribute(PR_FALSE);
+  }
+
+  return NS_OK;
+}
+
+void
+nsStyledElementNotElementCSSInlineStyle::UnbindFromTree(bool aDeep,
+                                                        bool aNullParent)
+{
+  RemoveFromIdTable();
+
+  nsStyledElementBase::UnbindFromTree(aDeep, aNullParent);
+}
+
 
 
 
@@ -193,13 +256,26 @@ nsStyledElementNotElementCSSInlineStyle::GetInlineStyleRule()
 nsIDOMCSSStyleDeclaration*
 nsStyledElementNotElementCSSInlineStyle::GetStyle(nsresult* retval)
 {
+  nsXULElement* xulElement = nsXULElement::FromContent(this);
+  if (xulElement) {
+    nsresult rv = xulElement->EnsureLocalStyle();
+    if (NS_FAILED(rv)) {
+      *retval = rv;
+      return nsnull;
+    }
+  }
+    
   nsGenericElement::nsDOMSlots *slots = DOMSlots();
 
   if (!slots->mStyle) {
     
-    ReparseStyleAttribute(true);
+    ReparseStyleAttribute(PR_TRUE);
 
-    slots->mStyle = new nsDOMCSSAttributeDeclaration(this, false);
+    slots->mStyle = new nsDOMCSSAttributeDeclaration(this
+#ifdef MOZ_SMIL
+                                                     , PR_FALSE
+#endif 
+                                                     );
     SetMayHaveStyle();
   }
 
@@ -234,11 +310,11 @@ nsStyledElementNotElementCSSInlineStyle::ParseStyleAttribute(const nsAString& aV
                                                              nsAttrValue& aResult,
                                                              bool aForceInDataDoc)
 {
-  nsIDocument* doc = OwnerDoc();
+  nsIDocument* doc = GetOwnerDoc();
 
-  if (aForceInDataDoc ||
-      !doc->IsLoadedAsData() ||
-      doc->IsStaticDocument()) {
+  if (doc && (aForceInDataDoc ||
+              !doc->IsLoadedAsData() ||
+              doc->IsStaticDocument())) {
     bool isCSS = true; 
 
     if (!IsInNativeAnonymousSubtree()) {  

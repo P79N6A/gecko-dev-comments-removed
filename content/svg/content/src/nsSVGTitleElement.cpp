@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSVGStylableElement.h"
 #include "nsIDOMSVGTitleElement.h"
 
@@ -44,11 +77,9 @@ public:
   virtual void UnbindFromTree(bool aDeep = true,
                               bool aNullParent = true);
 
-  virtual void DoneAddingChildren(bool aHaveNotified);
+  virtual nsresult DoneAddingChildren(bool aHaveNotified);
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
 private:
   void SendTitleChangeEvent(bool aBound);
 };
@@ -92,35 +123,35 @@ nsSVGTitleElement::CharacterDataChanged(nsIDocument *aDocument,
                                         nsIContent *aContent,
                                         CharacterDataChangeInfo *aInfo)
 {
-  SendTitleChangeEvent(false);
+  SendTitleChangeEvent(PR_FALSE);
 }
 
 void
 nsSVGTitleElement::ContentAppended(nsIDocument *aDocument,
                                    nsIContent *aContainer,
                                    nsIContent *aFirstNewContent,
-                                   int32_t aNewIndexInContainer)
+                                   PRInt32 aNewIndexInContainer)
 {
-  SendTitleChangeEvent(false);
+  SendTitleChangeEvent(PR_FALSE);
 }
 
 void
 nsSVGTitleElement::ContentInserted(nsIDocument *aDocument,
                                    nsIContent *aContainer,
                                    nsIContent *aChild,
-                                   int32_t aIndexInContainer)
+                                   PRInt32 aIndexInContainer)
 {
-  SendTitleChangeEvent(false);
+  SendTitleChangeEvent(PR_FALSE);
 }
 
 void
 nsSVGTitleElement::ContentRemoved(nsIDocument *aDocument,
                                   nsIContent *aContainer,
                                   nsIContent *aChild,
-                                  int32_t aIndexInContainer,
+                                  PRInt32 aIndexInContainer,
                                   nsIContent *aPreviousSibling)
 {
-  SendTitleChangeEvent(false);
+  SendTitleChangeEvent(PR_FALSE);
 }
 
 nsresult
@@ -135,7 +166,7 @@ nsSVGTitleElement::BindToTree(nsIDocument *aDocument,
                                                   aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  SendTitleChangeEvent(true);
+  SendTitleChangeEvent(PR_TRUE);
 
   return NS_OK;
 }
@@ -143,18 +174,19 @@ nsSVGTitleElement::BindToTree(nsIDocument *aDocument,
 void
 nsSVGTitleElement::UnbindFromTree(bool aDeep, bool aNullParent)
 {
-  SendTitleChangeEvent(false);
+  SendTitleChangeEvent(PR_FALSE);
 
   
   nsSVGTitleElementBase::UnbindFromTree(aDeep, aNullParent);
 }
 
-void
+nsresult
 nsSVGTitleElement::DoneAddingChildren(bool aHaveNotified)
 {
   if (!aHaveNotified) {
-    SendTitleChangeEvent(false);
+    SendTitleChangeEvent(PR_FALSE);
   }
+  return NS_OK;
 }
 
 void

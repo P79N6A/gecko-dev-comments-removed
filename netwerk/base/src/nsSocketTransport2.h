@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsSocketTransport2_h__
 #define nsSocketTransport2_h__
 
@@ -44,7 +77,7 @@ public:
 
     bool     IsReferenced() { return mReaderRefCnt > 0; }
     nsresult Condition()    { return mCondition; }
-    uint64_t ByteCount()    { return mByteCount; }
+    PRUint64 ByteCount()    { return mByteCount; }
 
     
     void OnSocketReady(nsresult condition);
@@ -56,8 +89,8 @@ private:
     
     nsresult                         mCondition;
     nsCOMPtr<nsIInputStreamCallback> mCallback;
-    uint32_t                         mCallbackFlags;
-    uint64_t                         mByteCount;
+    PRUint32                         mCallbackFlags;
+    PRUint64                         mByteCount;
 };
 
 
@@ -74,15 +107,15 @@ public:
 
     bool     IsReferenced() { return mWriterRefCnt > 0; }
     nsresult Condition()    { return mCondition; }
-    uint64_t ByteCount()    { return mByteCount; }
+    PRUint64 ByteCount()    { return mByteCount; }
 
     
     void OnSocketReady(nsresult condition); 
 
 private:
     static NS_METHOD WriteFromSegments(nsIInputStream *, void *,
-                                       const char *, uint32_t offset,
-                                       uint32_t count, uint32_t *countRead);
+                                       const char *, PRUint32 offset,
+                                       PRUint32 count, PRUint32 *countRead);
 
     nsSocketTransport                *mTransport;
     nsrefcnt                          mWriterRefCnt;
@@ -90,8 +123,8 @@ private:
     
     nsresult                          mCondition;
     nsCOMPtr<nsIOutputStreamCallback> mCallback;
-    uint32_t                          mCallbackFlags;
-    uint64_t                          mByteCount;
+    PRUint32                          mCallbackFlags;
+    PRUint64                          mByteCount;
 };
 
 
@@ -114,8 +147,8 @@ public:
 
     
     
-    nsresult Init(const char **socketTypes, uint32_t typeCount,
-                  const nsACString &host, uint16_t port,
+    nsresult Init(const char **socketTypes, PRUint32 typeCount,
+                  const nsACString &host, PRUint16 port,
                   nsIProxyInfo *proxyInfo);
 
     
@@ -124,11 +157,11 @@ public:
                                      const PRNetAddr *addr);
 
     
-    void OnSocketReady(PRFileDesc *, int16_t outFlags); 
+    void OnSocketReady(PRFileDesc *, PRInt16 outFlags); 
     void OnSocketDetached(PRFileDesc *);
 
     
-    void OnSocketEvent(uint32_t type, nsresult status, nsISupports *param);
+    void OnSocketEvent(PRUint32 type, nsresult status, nsISupports *param);
 
 protected:
 
@@ -147,7 +180,7 @@ private:
         MSG_OUTPUT_CLOSED,
         MSG_OUTPUT_PENDING
     };
-    nsresult PostEvent(uint32_t type, nsresult status = NS_OK, nsISupports *param = nullptr);
+    nsresult PostEvent(PRUint32 type, nsresult status = NS_OK, nsISupports *param = nsnull);
 
     enum {
         STATE_CLOSED,
@@ -164,16 +197,16 @@ private:
 
     
     char       **mTypes;
-    uint32_t     mTypeCount;
+    PRUint32     mTypeCount;
     nsCString    mHost;
     nsCString    mProxyHost;
-    uint16_t     mPort;
-    uint16_t     mProxyPort;
+    PRUint16     mPort;
+    PRUint16     mProxyPort;
     bool mProxyTransparent;
     bool mProxyTransparentResolvesHost;
-    uint32_t     mConnectionFlags;
+    PRUint32     mConnectionFlags;
     
-    uint16_t         SocketPort() { return (!mProxyHost.IsEmpty() && !mProxyTransparent) ? mProxyPort : mPort; }
+    PRUint16         SocketPort() { return (!mProxyHost.IsEmpty() && !mProxyTransparent) ? mProxyPort : mPort; }
     const nsCString &SocketHost() { return (!mProxyHost.IsEmpty() && !mProxyTransparent) ? mProxyHost : mHost; }
 
     
@@ -182,7 +215,7 @@ private:
     
 
     
-    uint32_t     mState;     
+    PRUint32     mState;     
     bool mAttached;
     bool mInputClosed;
     bool mOutputClosed;
@@ -193,11 +226,7 @@ private:
 
     nsCOMPtr<nsICancelable> mDNSRequest;
     nsCOMPtr<nsIDNSRecord>  mDNSRecord;
-
-    
-    
     PRNetAddr               mNetAddr;
-    bool                    mNetAddrIsSet;
 
     
 
@@ -243,10 +272,10 @@ private:
     friend class nsSocketOutputStream;
 
     
-    uint16_t mTimeouts[2];
+    PRUint16 mTimeouts[2];
 
     
-    uint8_t mQoSBits;
+    PRUint8 mQoSBits;
 
     
     
@@ -291,8 +320,8 @@ private:
     }
 
 #ifdef ENABLE_SOCKET_TRACING
-    void TraceInBuf(const char *buf, int32_t n);
-    void TraceOutBuf(const char *buf, int32_t n);
+    void TraceInBuf(const char *buf, PRInt32 n);
+    void TraceOutBuf(const char *buf, PRInt32 n);
 #endif
 };
 

@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsOSHelperAppService_h__
 #define nsOSHelperAppService_h__
 
@@ -47,9 +81,9 @@ protected:
   already_AddRefed<nsMIMEInfoBase> GetFromType(const nsCString& aMimeType);
   already_AddRefed<nsMIMEInfoBase> GetFromExtension(const nsCString& aFileExt);
 
-  virtual void FixFilePermissions(nsIFile* aFile);
+  virtual void FixFilePermissions(nsILocalFile* aFile);
 private:
-  uint32_t mPermissions;
+  PRUint32 mPermissions;
 
   
   static nsresult UnescapeCommand(const nsAString& aEscapedCommand,

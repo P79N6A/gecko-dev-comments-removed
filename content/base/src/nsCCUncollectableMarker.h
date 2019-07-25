@@ -3,13 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsIObserver.h"
 #include "nsCycleCollectionParticipant.h"
-#include "mozilla/Attributes.h"
 
-struct JSTracer;
-
-class nsCCUncollectableMarker MOZ_FINAL : public nsIObserver
+class nsCCUncollectableMarker : public nsIObserver
 {
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
@@ -22,26 +51,16 @@ class nsCCUncollectableMarker MOZ_FINAL : public nsIObserver
   
 
 
-  static bool InGeneration(uint32_t aGeneration)
-  {
-    return aGeneration && aGeneration == sGeneration;
+  static bool InGeneration(nsCycleCollectionTraversalCallback &cb,
+                             PRUint32 aGeneration) {
+    return !cb.WantAllTraces() &&
+           aGeneration &&
+           aGeneration == sGeneration;
   }
 
-  static bool InGeneration(nsCycleCollectionTraversalCallback& aCb,
-                           uint32_t aGeneration)
-  {
-    return InGeneration(aGeneration) && !aCb.WantAllTraces();
-  }
-
-  static uint32_t sGeneration;
+  static PRUint32 sGeneration;
 
 private:
   nsCCUncollectableMarker() {}
 
 };
-
-namespace mozilla {
-namespace dom {
-void TraceBlackJS(JSTracer* aTrc);
-}
-}

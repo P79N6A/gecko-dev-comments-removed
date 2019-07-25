@@ -3,9 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsEventShell.h"
 
 #include "nsAccUtils.h"
+
 
 
 
@@ -17,7 +51,7 @@ nsEventShell::FireEvent(AccEvent* aEvent)
   if (!aEvent)
     return;
 
-  Accessible* accessible = aEvent->GetAccessible();
+  nsAccessible *accessible = aEvent->GetAccessible();
   NS_ENSURE_TRUE(accessible,);
 
   nsINode* node = aEvent->GetNode();
@@ -28,11 +62,11 @@ nsEventShell::FireEvent(AccEvent* aEvent)
 
   accessible->HandleAccEvent(aEvent);
 
-  sEventTargetNode = nullptr;
+  sEventTargetNode = nsnull;
 }
 
 void
-nsEventShell::FireEvent(uint32_t aEventType, Accessible* aAccessible,
+nsEventShell::FireEvent(PRUint32 aEventType, nsAccessible *aAccessible,
                         EIsFromUserInput aIsFromUserInput)
 {
   NS_ENSURE_TRUE(aAccessible,);

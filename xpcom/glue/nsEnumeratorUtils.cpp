@@ -3,7 +3,42 @@
 
 
 
-#include "mozilla/Attributes.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsEnumeratorUtils.h"
 
@@ -53,13 +88,13 @@ NS_IMPL_QUERY_INTERFACE3(EmptyEnumeratorImpl, nsISimpleEnumerator,
 
 NS_IMETHODIMP EmptyEnumeratorImpl::HasMoreElements(bool* aResult)
 {
-    *aResult = false;
+    *aResult = PR_FALSE;
     return NS_OK;
 }
 
 NS_IMETHODIMP EmptyEnumeratorImpl::HasMore(bool* aResult)
 {
-    *aResult = false;
+    *aResult = PR_FALSE;
     return NS_OK;
 }
 
@@ -89,7 +124,7 @@ NS_NewEmptyEnumerator(nsISimpleEnumerator** aResult)
 
 
 
-class nsSingletonEnumerator MOZ_FINAL : public nsISimpleEnumerator
+class nsSingletonEnumerator : public nsISimpleEnumerator
 {
 public:
     NS_DECL_ISUPPORTS
@@ -112,7 +147,7 @@ nsSingletonEnumerator::nsSingletonEnumerator(nsISupports* aValue)
     : mValue(aValue)
 {
     NS_IF_ADDREF(mValue);
-    mConsumed = (mValue ? false : true);
+    mConsumed = (mValue ? PR_FALSE : PR_TRUE);
 }
 
 nsSingletonEnumerator::~nsSingletonEnumerator()
@@ -144,7 +179,7 @@ nsSingletonEnumerator::GetNext(nsISupports** aResult)
     if (mConsumed)
         return NS_ERROR_UNEXPECTED;
 
-    mConsumed = true;
+    mConsumed = PR_TRUE;
 
     *aResult = mValue;
     NS_ADDREF(*aResult);
@@ -156,7 +191,7 @@ NS_NewSingletonEnumerator(nsISimpleEnumerator* *result,
                           nsISupports* singleton)
 {
     nsSingletonEnumerator* enumer = new nsSingletonEnumerator(singleton);
-    if (enumer == nullptr)
+    if (enumer == nsnull)
         return NS_ERROR_OUT_OF_MEMORY;
     *result = enumer; 
     NS_ADDREF(*result);
@@ -165,7 +200,7 @@ NS_NewSingletonEnumerator(nsISimpleEnumerator* *result,
 
 
 
-class nsUnionEnumerator MOZ_FINAL : public nsISimpleEnumerator
+class nsUnionEnumerator : public nsISimpleEnumerator
 {
 public:
     NS_DECL_ISUPPORTS
@@ -190,7 +225,7 @@ nsUnionEnumerator::nsUnionEnumerator(nsISimpleEnumerator* firstEnumerator,
                                      nsISimpleEnumerator* secondEnumerator)
     : mFirstEnumerator(firstEnumerator),
       mSecondEnumerator(secondEnumerator),
-      mConsumed(false), mAtSecond(false)
+      mConsumed(PR_FALSE), mAtSecond(PR_FALSE)
 {
 }
 
@@ -210,7 +245,7 @@ nsUnionEnumerator::HasMoreElements(bool* aResult)
     nsresult rv;
 
     if (mConsumed) {
-        *aResult = false;
+        *aResult = PR_FALSE;
         return NS_OK;
     }
 
@@ -221,7 +256,7 @@ nsUnionEnumerator::HasMoreElements(bool* aResult)
         if (*aResult)
             return NS_OK;
 
-        mAtSecond = true;
+        mAtSecond = PR_TRUE;
     }
 
     rv = mSecondEnumerator->HasMoreElements(aResult);
@@ -230,8 +265,8 @@ nsUnionEnumerator::HasMoreElements(bool* aResult)
     if (*aResult)
         return NS_OK;
 
-    *aResult = false;
-    mConsumed = true;
+    *aResult = PR_FALSE;
+    mConsumed = PR_TRUE;
     return NS_OK;
 }
 
@@ -256,14 +291,14 @@ NS_NewUnionEnumerator(nsISimpleEnumerator* *result,
                       nsISimpleEnumerator* firstEnumerator,
                       nsISimpleEnumerator* secondEnumerator)
 {
-    *result = nullptr;
+    *result = nsnull;
     if (! firstEnumerator) {
         *result = secondEnumerator;
     } else if (! secondEnumerator) {
         *result = firstEnumerator;
     } else {
         nsUnionEnumerator* enumer = new nsUnionEnumerator(firstEnumerator, secondEnumerator);
-        if (enumer == nullptr)
+        if (enumer == nsnull)
             return NS_ERROR_OUT_OF_MEMORY;
         *result = enumer; 
     }

@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "TestCommon.h"
 #include "nsXPCOM.h"
 #include "nsStringAPI.h"
@@ -35,19 +68,19 @@ main(int argc, char* argv[])
   nsresult ret;
 
   nsCOMPtr<nsIServiceManager> servMan;
-  NS_InitXPCOM2(getter_AddRefs(servMan), nullptr, nullptr);
+  NS_InitXPCOM2(getter_AddRefs(servMan), nsnull, nsnull);
 
-  nsIInputStream* in = nullptr;
+  nsIInputStream* in = nsnull;
 
   nsCOMPtr<nsIIOService> service(do_GetService(kIOServiceCID, &ret));
-  if (NS_FAILED(ret)) return 1;
+  if (NS_FAILED(ret)) return ret;
 
-  nsIChannel *channel = nullptr;
-  ret = service->NewChannel(NS_LITERAL_CSTRING(TEST_URL), nullptr, nullptr, &channel);
-  if (NS_FAILED(ret)) return 1;
+  nsIChannel *channel = nsnull;
+  ret = service->NewChannel(NS_LITERAL_CSTRING(TEST_URL), nsnull, nsnull, &channel);
+  if (NS_FAILED(ret)) return ret;
 
   ret = channel->Open(&in);
-  if (NS_FAILED(ret)) return 1;
+  if (NS_FAILED(ret)) return ret;
 
   nsIPersistentProperties* props;
   ret = CallCreateInstance(kPersistentPropertiesCID, &props);
@@ -98,7 +131,7 @@ main(int argc, char* argv[])
       return 1;
 	  }
 
-    nsAutoCString key;
+    nsCAutoString key;
     nsAutoString value;
 
     ret = propElem->GetKey(key);

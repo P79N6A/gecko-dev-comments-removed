@@ -3,33 +3,66 @@
 
 
 
-#include "mozilla/Assertions.h"
-#include "mozilla/mozalloc.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsITransaction.h"
+#include "nsITransactionListener.h"
+
+#include "nsTransactionItem.h"
+#include "nsTransactionStack.h"
+#include "nsVoidArray.h"
+#include "nsTransactionManager.h"
+#include "nsTransactionList.h"
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
-#include "nsDebug.h"
-#include "nsError.h"
-#include "nsISupportsBase.h"
-#include "nsISupportsUtils.h"
-#include "nsITransaction.h"
-#include "nsITransactionList.h"
-#include "nsITransactionListener.h"
-#include "nsIWeakReference.h"
-#include "nsTransactionItem.h"
-#include "nsTransactionList.h"
-#include "nsTransactionManager.h"
-#include "nsTransactionStack.h"
 
-nsTransactionManager::nsTransactionManager(int32_t aMaxTransactionCount)
+#define LOCK_TX_MANAGER(mgr)    (mgr)->Lock()
+#define UNLOCK_TX_MANAGER(mgr)  (mgr)->Unlock()
+
+
+nsTransactionManager::nsTransactionManager(PRInt32 aMaxTransactionCount)
   : mMaxTransactionCount(aMaxTransactionCount)
-  , mDoStack(nsTransactionStack::FOR_UNDO)
-  , mUndoStack(nsTransactionStack::FOR_UNDO)
-  , mRedoStack(nsTransactionStack::FOR_REDO)
 {
+  mMonitor = ::PR_NewMonitor();
 }
 
 nsTransactionManager::~nsTransactionManager()
 {
+  if (mMonitor)
+  {
+    ::PR_DestroyMonitor(mMonitor);
+    mMonitor = 0;
+  }
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsTransactionManager)
@@ -64,15 +97,19 @@ nsTransactionManager::DoTransaction(nsITransaction *aTransaction)
 
   NS_ENSURE_TRUE(aTransaction, NS_ERROR_NULL_POINTER);
 
+  LOCK_TX_MANAGER(this);
+
   bool doInterrupt = false;
 
   result = WillDoNotify(aTransaction, &doInterrupt);
 
   if (NS_FAILED(result)) {
+    UNLOCK_TX_MANAGER(this);
     return result;
   }
 
   if (doInterrupt) {
+    UNLOCK_TX_MANAGER(this);
     return NS_OK;
   }
 
@@ -80,6 +117,7 @@ nsTransactionManager::DoTransaction(nsITransaction *aTransaction)
 
   if (NS_FAILED(result)) {
     DidDoNotify(aTransaction, result);
+    UNLOCK_TX_MANAGER(this);
     return result;
   }
 
@@ -90,6 +128,8 @@ nsTransactionManager::DoTransaction(nsITransaction *aTransaction)
   if (NS_SUCCEEDED(result))
     result = result2;
 
+  UNLOCK_TX_MANAGER(this);
+
   return result;
 }
 
@@ -97,51 +137,79 @@ NS_IMETHODIMP
 nsTransactionManager::UndoTransaction()
 {
   nsresult result       = NS_OK;
+  nsRefPtr<nsTransactionItem> tx;
+
+  LOCK_TX_MANAGER(this);
 
   
   
   
 
-  nsRefPtr<nsTransactionItem> tx = mDoStack.Peek();
+  result = mDoStack.Peek(getter_AddRefs(tx));
+
+  if (NS_FAILED(result)) {
+    UNLOCK_TX_MANAGER(this);
+    return result;
+  }
 
   if (tx) {
+    UNLOCK_TX_MANAGER(this);
     return NS_ERROR_FAILURE;
   }
 
   
   
-  tx = mUndoStack.Peek();
+  result = mUndoStack.Peek(getter_AddRefs(tx));
+
+  if (NS_FAILED(result)) {
+    UNLOCK_TX_MANAGER(this);
+    return result;
+  }
 
   
   if (!tx) {
+    UNLOCK_TX_MANAGER(this);
     return NS_OK;
   }
 
-  nsCOMPtr<nsITransaction> t = tx->GetTransaction();
+  nsCOMPtr<nsITransaction> t;
+
+  result = tx->GetTransaction(getter_AddRefs(t));
+
+  if (NS_FAILED(result)) {
+    UNLOCK_TX_MANAGER(this);
+    return result;
+  }
 
   bool doInterrupt = false;
 
   result = WillUndoNotify(t, &doInterrupt);
 
   if (NS_FAILED(result)) {
+    UNLOCK_TX_MANAGER(this);
     return result;
   }
 
   if (doInterrupt) {
+    UNLOCK_TX_MANAGER(this);
     return NS_OK;
   }
 
   result = tx->UndoTransaction(this);
 
   if (NS_SUCCEEDED(result)) {
-    tx = mUndoStack.Pop();
-    mRedoStack.Push(tx);
+    result = mUndoStack.Pop(getter_AddRefs(tx));
+
+    if (NS_SUCCEEDED(result))
+      result = mRedoStack.Push(tx);
   }
 
   nsresult result2 = DidUndoNotify(t, result);
 
   if (NS_SUCCEEDED(result))
     result = result2;
+
+  UNLOCK_TX_MANAGER(this);
 
   return result;
 }
@@ -150,51 +218,79 @@ NS_IMETHODIMP
 nsTransactionManager::RedoTransaction()
 {
   nsresult result       = NS_OK;
+  nsRefPtr<nsTransactionItem> tx;
+
+  LOCK_TX_MANAGER(this);
 
   
   
   
 
-  nsRefPtr<nsTransactionItem> tx = mDoStack.Peek();
+  result = mDoStack.Peek(getter_AddRefs(tx));
+
+  if (NS_FAILED(result)) {
+    UNLOCK_TX_MANAGER(this);
+    return result;
+  }
 
   if (tx) {
+    UNLOCK_TX_MANAGER(this);
     return NS_ERROR_FAILURE;
   }
 
   
   
-  tx = mRedoStack.Peek();
+  result = mRedoStack.Peek(getter_AddRefs(tx));
+
+  if (NS_FAILED(result)) {
+    UNLOCK_TX_MANAGER(this);
+    return result;
+  }
 
   
   if (!tx) {
+    UNLOCK_TX_MANAGER(this);
     return NS_OK;
   }
 
-  nsCOMPtr<nsITransaction> t = tx->GetTransaction();
+  nsCOMPtr<nsITransaction> t;
+
+  result = tx->GetTransaction(getter_AddRefs(t));
+
+  if (NS_FAILED(result)) {
+    UNLOCK_TX_MANAGER(this);
+    return result;
+  }
 
   bool doInterrupt = false;
 
   result = WillRedoNotify(t, &doInterrupt);
 
   if (NS_FAILED(result)) {
+    UNLOCK_TX_MANAGER(this);
     return result;
   }
 
   if (doInterrupt) {
+    UNLOCK_TX_MANAGER(this);
     return NS_OK;
   }
 
   result = tx->RedoTransaction(this);
 
   if (NS_SUCCEEDED(result)) {
-    tx = mRedoStack.Pop();
-    mUndoStack.Push(tx);
+    result = mRedoStack.Pop(getter_AddRefs(tx));
+
+    if (NS_SUCCEEDED(result))
+      result = mUndoStack.Push(tx);
   }
 
   nsresult result2 = DidRedoNotify(t, result);
 
   if (NS_SUCCEEDED(result))
     result = result2;
+
+  UNLOCK_TX_MANAGER(this);
 
   return result;
 }
@@ -204,13 +300,18 @@ nsTransactionManager::Clear()
 {
   nsresult result;
 
+  LOCK_TX_MANAGER(this);
+
   result = ClearRedoStack();
 
   if (NS_FAILED(result)) {
+    UNLOCK_TX_MANAGER(this);
     return result;
   }
 
   result = ClearUndoStack();
+
+  UNLOCK_TX_MANAGER(this);
 
   return result;
 }
@@ -225,15 +326,19 @@ nsTransactionManager::BeginBatch()
   
   
 
+  LOCK_TX_MANAGER(this);
+
   bool doInterrupt = false;
 
   result = WillBeginBatchNotify(&doInterrupt);
 
   if (NS_FAILED(result)) {
+    UNLOCK_TX_MANAGER(this);
     return result;
   }
 
   if (doInterrupt) {
+    UNLOCK_TX_MANAGER(this);
     return NS_OK;
   }
 
@@ -244,15 +349,20 @@ nsTransactionManager::BeginBatch()
   if (NS_SUCCEEDED(result))
     result = result2;
 
+  UNLOCK_TX_MANAGER(this);
+
   return result;
 }
 
 NS_IMETHODIMP
 nsTransactionManager::EndBatch()
 {
+  nsRefPtr<nsTransactionItem> tx;
   nsCOMPtr<nsITransaction> ti;
   nsresult result;
 
+  LOCK_TX_MANAGER(this);
+
   
   
   
@@ -264,13 +374,18 @@ nsTransactionManager::EndBatch()
   
   
 
-  nsRefPtr<nsTransactionItem> tx = mDoStack.Peek();
+  result = mDoStack.Peek(getter_AddRefs(tx));
 
-  if (tx) {
-    ti = tx->GetTransaction();
+  if (NS_FAILED(result)) {
+    UNLOCK_TX_MANAGER(this);
+    return result;
   }
 
+  if (tx)
+    tx->GetTransaction(getter_AddRefs(ti));
+
   if (!tx || ti) {
+    UNLOCK_TX_MANAGER(this);
     return NS_ERROR_FAILURE;
   }
 
@@ -279,10 +394,12 @@ nsTransactionManager::EndBatch()
   result = WillEndBatchNotify(&doInterrupt);
 
   if (NS_FAILED(result)) {
+    UNLOCK_TX_MANAGER(this);
     return result;
   }
 
   if (doInterrupt) {
+    UNLOCK_TX_MANAGER(this);
     return NS_OK;
   }
 
@@ -293,37 +410,55 @@ nsTransactionManager::EndBatch()
   if (NS_SUCCEEDED(result))
     result = result2;
 
+  UNLOCK_TX_MANAGER(this);
+
   return result;
 }
 
 NS_IMETHODIMP
-nsTransactionManager::GetNumberOfUndoItems(int32_t *aNumItems)
+nsTransactionManager::GetNumberOfUndoItems(PRInt32 *aNumItems)
 {
-  *aNumItems = mUndoStack.GetSize();
-  return NS_OK;
+  nsresult result;
+
+  LOCK_TX_MANAGER(this);
+  result = mUndoStack.GetSize(aNumItems);
+  UNLOCK_TX_MANAGER(this);
+
+  return result;
 }
 
 NS_IMETHODIMP
-nsTransactionManager::GetNumberOfRedoItems(int32_t *aNumItems)
+nsTransactionManager::GetNumberOfRedoItems(PRInt32 *aNumItems)
 {
-  *aNumItems = mRedoStack.GetSize();
-  return NS_OK;
+  nsresult result;
+
+  LOCK_TX_MANAGER(this);
+  result = mRedoStack.GetSize(aNumItems);
+  UNLOCK_TX_MANAGER(this);
+
+  return result;
 }
 
 NS_IMETHODIMP
-nsTransactionManager::GetMaxTransactionCount(int32_t *aMaxCount)
+nsTransactionManager::GetMaxTransactionCount(PRInt32 *aMaxCount)
 {
   NS_ENSURE_TRUE(aMaxCount, NS_ERROR_NULL_POINTER);
 
+  LOCK_TX_MANAGER(this);
   *aMaxCount = mMaxTransactionCount;
+  UNLOCK_TX_MANAGER(this);
 
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsTransactionManager::SetMaxTransactionCount(int32_t aMaxCount)
+nsTransactionManager::SetMaxTransactionCount(PRInt32 aMaxCount)
 {
-  int32_t numUndoItems  = 0, numRedoItems = 0, total = 0;
+  PRInt32 numUndoItems  = 0, numRedoItems = 0, total = 0;
+  nsRefPtr<nsTransactionItem> tx;
+  nsresult result;
+
+  LOCK_TX_MANAGER(this);
 
   
   
@@ -331,9 +466,15 @@ nsTransactionManager::SetMaxTransactionCount(int32_t aMaxCount)
   
   
 
-  nsRefPtr<nsTransactionItem> tx = mDoStack.Peek();
+  result = mDoStack.Peek(getter_AddRefs(tx));
+
+  if (NS_FAILED(result)) {
+    UNLOCK_TX_MANAGER(this);
+    return result;
+  }
 
   if (tx) {
+    UNLOCK_TX_MANAGER(this);
     return NS_ERROR_FAILURE;
   }
 
@@ -342,12 +483,23 @@ nsTransactionManager::SetMaxTransactionCount(int32_t aMaxCount)
 
   if (aMaxCount < 0) {
     mMaxTransactionCount = -1;
-    return NS_OK;
+    UNLOCK_TX_MANAGER(this);
+    return result;
   }
 
-  numUndoItems = mUndoStack.GetSize();
+  result = mUndoStack.GetSize(&numUndoItems);
 
-  numRedoItems = mRedoStack.GetSize();
+  if (NS_FAILED(result)) {
+    UNLOCK_TX_MANAGER(this);
+    return result;
+  }
+
+  result = mRedoStack.GetSize(&numRedoItems);
+
+  if (NS_FAILED(result)) {
+    UNLOCK_TX_MANAGER(this);
+    return result;
+  }
 
   total = numUndoItems + numRedoItems;
 
@@ -357,17 +509,19 @@ nsTransactionManager::SetMaxTransactionCount(int32_t aMaxCount)
 
   if (aMaxCount > total ) {
     mMaxTransactionCount = aMaxCount;
-    return NS_OK;
+    UNLOCK_TX_MANAGER(this);
+    return result;
   }
 
   
   
 
   while (numUndoItems > 0 && (numRedoItems + numUndoItems) > aMaxCount) {
-    tx = mUndoStack.PopBottom();
+    result = mUndoStack.PopBottom(getter_AddRefs(tx));
 
-    if (!tx) {
-      return NS_ERROR_FAILURE;
+    if (NS_FAILED(result) || !tx) {
+      UNLOCK_TX_MANAGER(this);
+      return result;
     }
 
     --numUndoItems;
@@ -377,10 +531,11 @@ nsTransactionManager::SetMaxTransactionCount(int32_t aMaxCount)
   
 
   while (numRedoItems > 0 && (numRedoItems + numUndoItems) > aMaxCount) {
-    tx = mRedoStack.PopBottom();
+    result = mRedoStack.PopBottom(getter_AddRefs(tx));
 
-    if (!tx) {
-      return NS_ERROR_FAILURE;
+    if (NS_FAILED(result) || !tx) {
+      UNLOCK_TX_MANAGER(this);
+      return result;
     }
 
     --numRedoItems;
@@ -388,47 +543,61 @@ nsTransactionManager::SetMaxTransactionCount(int32_t aMaxCount)
 
   mMaxTransactionCount = aMaxCount;
 
-  return NS_OK;
+  UNLOCK_TX_MANAGER(this);
+
+  return result;
 }
 
 NS_IMETHODIMP
 nsTransactionManager::PeekUndoStack(nsITransaction **aTransaction)
 {
-  MOZ_ASSERT(aTransaction);
-  *aTransaction = PeekUndoStack().get();
-  return NS_OK;
-}
+  nsRefPtr<nsTransactionItem> tx;
+  nsresult result;
 
-already_AddRefed<nsITransaction>
-nsTransactionManager::PeekUndoStack()
-{
-  nsRefPtr<nsTransactionItem> tx = mUndoStack.Peek();
+  NS_ENSURE_TRUE(aTransaction, NS_ERROR_NULL_POINTER);
 
-  if (!tx) {
-    return nullptr;
+  *aTransaction = 0;
+
+  LOCK_TX_MANAGER(this);
+
+  result = mUndoStack.Peek(getter_AddRefs(tx));
+
+  if (NS_FAILED(result) || !tx) {
+    UNLOCK_TX_MANAGER(this);
+    return result;
   }
 
-  return tx->GetTransaction();
+  result = tx->GetTransaction(aTransaction);
+
+  UNLOCK_TX_MANAGER(this);
+
+  return result;
 }
 
 NS_IMETHODIMP
-nsTransactionManager::PeekRedoStack(nsITransaction** aTransaction)
+nsTransactionManager::PeekRedoStack(nsITransaction **aTransaction)
 {
-  MOZ_ASSERT(aTransaction);
-  *aTransaction = PeekRedoStack().get();
-  return NS_OK;
-}
+  nsRefPtr<nsTransactionItem> tx;
+  nsresult result;
 
-already_AddRefed<nsITransaction>
-nsTransactionManager::PeekRedoStack()
-{
-  nsRefPtr<nsTransactionItem> tx = mRedoStack.Peek();
+  NS_ENSURE_TRUE(aTransaction, NS_ERROR_NULL_POINTER);
 
-  if (!tx) {
-    return nullptr;
+  *aTransaction = 0;
+
+  LOCK_TX_MANAGER(this);
+
+  result = mRedoStack.Peek(getter_AddRefs(tx));
+
+  if (NS_FAILED(result) || !tx) {
+    UNLOCK_TX_MANAGER(this);
+    return result;
   }
 
-  return tx->GetTransaction();
+  result = tx->GetTransaction(aTransaction);
+
+  UNLOCK_TX_MANAGER(this);
+
+  return result;
 }
 
 NS_IMETHODIMP
@@ -460,7 +629,13 @@ nsTransactionManager::AddListener(nsITransactionListener *aListener)
 {
   NS_ENSURE_TRUE(aListener, NS_ERROR_NULL_POINTER);
 
-  return mListeners.AppendObject(aListener) ? NS_OK : NS_ERROR_FAILURE;
+  LOCK_TX_MANAGER(this);
+
+  nsresult rv = mListeners.AppendObject(aListener) ? NS_OK : NS_ERROR_FAILURE;
+
+  UNLOCK_TX_MANAGER(this);
+
+  return rv;
 }
 
 NS_IMETHODIMP
@@ -468,28 +643,44 @@ nsTransactionManager::RemoveListener(nsITransactionListener *aListener)
 {
   NS_ENSURE_TRUE(aListener, NS_ERROR_NULL_POINTER);
 
-  return mListeners.RemoveObject(aListener) ? NS_OK : NS_ERROR_FAILURE;
+  LOCK_TX_MANAGER(this);
+
+  nsresult rv = mListeners.RemoveObject(aListener) ? NS_OK : NS_ERROR_FAILURE;
+
+  UNLOCK_TX_MANAGER(this);
+
+  return rv;
 }
 
 nsresult
 nsTransactionManager::ClearUndoStack()
 {
-  mUndoStack.Clear();
-  return NS_OK;
+  nsresult result;
+
+  LOCK_TX_MANAGER(this);
+  result = mUndoStack.Clear();
+  UNLOCK_TX_MANAGER(this);
+
+  return result;
 }
 
 nsresult
 nsTransactionManager::ClearRedoStack()
 {
-  mRedoStack.Clear();
-  return NS_OK;
+  nsresult result;
+
+  LOCK_TX_MANAGER(this);
+  result = mRedoStack.Clear();
+  UNLOCK_TX_MANAGER(this);
+
+  return result;
 }
 
 nsresult
 nsTransactionManager::WillDoNotify(nsITransaction *aTransaction, bool *aInterrupt)
 {
   nsresult result = NS_OK;
-  for (int32_t i = 0, lcount = mListeners.Count(); i < lcount; i++)
+  for (PRInt32 i = 0, lcount = mListeners.Count(); i < lcount; i++)
   {
     nsITransactionListener *listener = mListeners[i];
 
@@ -508,7 +699,7 @@ nsresult
 nsTransactionManager::DidDoNotify(nsITransaction *aTransaction, nsresult aDoResult)
 {
   nsresult result = NS_OK;
-  for (int32_t i = 0, lcount = mListeners.Count(); i < lcount; i++)
+  for (PRInt32 i = 0, lcount = mListeners.Count(); i < lcount; i++)
   {
     nsITransactionListener *listener = mListeners[i];
 
@@ -527,7 +718,7 @@ nsresult
 nsTransactionManager::WillUndoNotify(nsITransaction *aTransaction, bool *aInterrupt)
 {
   nsresult result = NS_OK;
-  for (int32_t i = 0, lcount = mListeners.Count(); i < lcount; i++)
+  for (PRInt32 i = 0, lcount = mListeners.Count(); i < lcount; i++)
   {
     nsITransactionListener *listener = mListeners[i];
 
@@ -546,7 +737,7 @@ nsresult
 nsTransactionManager::DidUndoNotify(nsITransaction *aTransaction, nsresult aUndoResult)
 {
   nsresult result = NS_OK;
-  for (int32_t i = 0, lcount = mListeners.Count(); i < lcount; i++)
+  for (PRInt32 i = 0, lcount = mListeners.Count(); i < lcount; i++)
   {
     nsITransactionListener *listener = mListeners[i];
 
@@ -565,7 +756,7 @@ nsresult
 nsTransactionManager::WillRedoNotify(nsITransaction *aTransaction, bool *aInterrupt)
 {
   nsresult result = NS_OK;
-  for (int32_t i = 0, lcount = mListeners.Count(); i < lcount; i++)
+  for (PRInt32 i = 0, lcount = mListeners.Count(); i < lcount; i++)
   {
     nsITransactionListener *listener = mListeners[i];
 
@@ -584,7 +775,7 @@ nsresult
 nsTransactionManager::DidRedoNotify(nsITransaction *aTransaction, nsresult aRedoResult)
 {
   nsresult result = NS_OK;
-  for (int32_t i = 0, lcount = mListeners.Count(); i < lcount; i++)
+  for (PRInt32 i = 0, lcount = mListeners.Count(); i < lcount; i++)
   {
     nsITransactionListener *listener = mListeners[i];
 
@@ -603,7 +794,7 @@ nsresult
 nsTransactionManager::WillBeginBatchNotify(bool *aInterrupt)
 {
   nsresult result = NS_OK;
-  for (int32_t i = 0, lcount = mListeners.Count(); i < lcount; i++)
+  for (PRInt32 i = 0, lcount = mListeners.Count(); i < lcount; i++)
   {
     nsITransactionListener *listener = mListeners[i];
 
@@ -622,7 +813,7 @@ nsresult
 nsTransactionManager::DidBeginBatchNotify(nsresult aResult)
 {
   nsresult result = NS_OK;
-  for (int32_t i = 0, lcount = mListeners.Count(); i < lcount; i++)
+  for (PRInt32 i = 0, lcount = mListeners.Count(); i < lcount; i++)
   {
     nsITransactionListener *listener = mListeners[i];
 
@@ -641,7 +832,7 @@ nsresult
 nsTransactionManager::WillEndBatchNotify(bool *aInterrupt)
 {
   nsresult result = NS_OK;
-  for (int32_t i = 0, lcount = mListeners.Count(); i < lcount; i++)
+  for (PRInt32 i = 0, lcount = mListeners.Count(); i < lcount; i++)
   {
     nsITransactionListener *listener = mListeners[i];
 
@@ -660,7 +851,7 @@ nsresult
 nsTransactionManager::DidEndBatchNotify(nsresult aResult)
 {
   nsresult result = NS_OK;
-  for (int32_t i = 0, lcount = mListeners.Count(); i < lcount; i++)
+  for (PRInt32 i = 0, lcount = mListeners.Count(); i < lcount; i++)
   {
     nsITransactionListener *listener = mListeners[i];
 
@@ -679,7 +870,7 @@ nsresult
 nsTransactionManager::WillMergeNotify(nsITransaction *aTop, nsITransaction *aTransaction, bool *aInterrupt)
 {
   nsresult result = NS_OK;
-  for (int32_t i = 0, lcount = mListeners.Count(); i < lcount; i++)
+  for (PRInt32 i = 0, lcount = mListeners.Count(); i < lcount; i++)
   {
     nsITransactionListener *listener = mListeners[i];
 
@@ -701,7 +892,7 @@ nsTransactionManager::DidMergeNotify(nsITransaction *aTop,
                                      nsresult aMergeResult)
 {
   nsresult result = NS_OK;
-  for (int32_t i = 0, lcount = mListeners.Count(); i < lcount; i++)
+  for (PRInt32 i = 0, lcount = mListeners.Count(); i < lcount; i++)
   {
     nsITransactionListener *listener = mListeners[i];
 
@@ -723,18 +914,25 @@ nsTransactionManager::BeginTransaction(nsITransaction *aTransaction)
 
   
   
+
+  
+  
   nsRefPtr<nsTransactionItem> tx = new nsTransactionItem(aTransaction);
 
   if (!tx) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  mDoStack.Push(tx);
+  result = mDoStack.Push(tx);
+
+  if (NS_FAILED(result)) {
+    return result;
+  }
 
   result = tx->DoTransaction();
 
   if (NS_FAILED(result)) {
-    tx = mDoStack.Pop();
+    mDoStack.Pop(getter_AddRefs(tx));
     return result;
   }
 
@@ -744,17 +942,27 @@ nsTransactionManager::BeginTransaction(nsITransaction *aTransaction)
 nsresult
 nsTransactionManager::EndTransaction()
 {
+  nsCOMPtr<nsITransaction> tint;
+  nsRefPtr<nsTransactionItem> tx;
   nsresult result              = NS_OK;
 
-  nsRefPtr<nsTransactionItem> tx = mDoStack.Pop();
+  
+  
 
-  if (!tx)
-    return NS_ERROR_FAILURE;
+  result = mDoStack.Pop(getter_AddRefs(tx));
 
-  nsCOMPtr<nsITransaction> tint = tx->GetTransaction();
+  if (NS_FAILED(result) || !tx)
+    return result;
+
+  result = tx->GetTransaction(getter_AddRefs(tint));
+
+  if (NS_FAILED(result)) {
+    
+    return result;
+  }
 
   if (!tint) {
-    int32_t nc = 0;
+    PRInt32 nc = 0;
 
     
     
@@ -780,11 +988,13 @@ nsTransactionManager::EndTransaction()
     return result;
   }
 
+  nsRefPtr<nsTransactionItem> top;
+
   
   
   
 
-  nsRefPtr<nsTransactionItem> top = mDoStack.Peek();
+  result = mDoStack.Peek(getter_AddRefs(top));
   if (top) {
     result = top->AddChild(tx);
 
@@ -804,11 +1014,14 @@ nsTransactionManager::EndTransaction()
   
   
 
-  top = mUndoStack.Peek();
+  top = 0;
+  result = mUndoStack.Peek(getter_AddRefs(top));
 
   if (tint && top) {
     bool didMerge = false;
-    nsCOMPtr<nsITransaction> topTransaction = top->GetTransaction();
+    nsCOMPtr<nsITransaction> topTransaction;
+
+    result = top->GetTransaction(getter_AddRefs(topTransaction));
 
     if (topTransaction) {
 
@@ -840,15 +1053,44 @@ nsTransactionManager::EndTransaction()
   
   
 
-  int32_t sz = mUndoStack.GetSize();
+  PRInt32 sz = 0;
+
+  result = mUndoStack.GetSize(&sz);
 
   if (mMaxTransactionCount > 0 && sz >= mMaxTransactionCount) {
-    nsRefPtr<nsTransactionItem> overflow = mUndoStack.PopBottom();
+    nsRefPtr<nsTransactionItem> overflow;
+
+    result = mUndoStack.PopBottom(getter_AddRefs(overflow));
+
+    
   }
 
   
 
-  mUndoStack.Push(tx);
+  result = mUndoStack.Push(tx);
+
+  if (NS_FAILED(result)) {
+    
+    
+  }
+
+  return result;
+}
+
+nsresult
+nsTransactionManager::Lock()
+{
+  if (mMonitor)
+    PR_EnterMonitor(mMonitor);
+
+  return NS_OK;
+}
+
+nsresult
+nsTransactionManager::Unlock()
+{
+  if (mMonitor)
+    PR_ExitMonitor(mMonitor);
 
   return NS_OK;
 }

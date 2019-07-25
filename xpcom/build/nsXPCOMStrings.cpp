@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsString.h"
 #include "nsCharTraits.h"
 
@@ -26,8 +58,8 @@ NS_StringContainerInit(nsStringContainer &aContainer)
 XPCOM_API(nsresult)
 NS_StringContainerInit2(nsStringContainer &aContainer,
                         const PRUnichar   *aData,
-                        uint32_t           aDataLength,
-                        uint32_t           aFlags)
+                        PRUint32           aDataLength,
+                        PRUint32           aFlags)
 {
   NS_ASSERTION(sizeof(nsStringContainer_base) >= sizeof(nsString),
       "nsStringContainer is not large enough");
@@ -47,7 +79,7 @@ NS_StringContainerInit2(nsStringContainer &aContainer,
     if (aFlags & (NS_STRING_CONTAINER_INIT_DEPEND |
                   NS_STRING_CONTAINER_INIT_ADOPT))
     {
-      uint32_t flags;
+      PRUint32 flags;
       if (aFlags & NS_STRING_CONTAINER_INIT_SUBSTRING)
         flags = nsSubstring::F_NONE;
       else
@@ -77,7 +109,7 @@ NS_StringContainerFinish(nsStringContainer &aContainer)
 
 
 
-XPCOM_API(uint32_t)
+XPCOM_API(PRUint32)
 NS_StringGetData(const nsAString &aStr, const PRUnichar **aData,
                  bool *aTerminated)
 {
@@ -90,14 +122,14 @@ NS_StringGetData(const nsAString &aStr, const PRUnichar **aData,
   return begin.size_forward();
 }
 
-XPCOM_API(uint32_t)
-NS_StringGetMutableData(nsAString &aStr, uint32_t aDataLength,
+XPCOM_API(PRUint32)
+NS_StringGetMutableData(nsAString &aStr, PRUint32 aDataLength,
                         PRUnichar **aData)
 {
   if (aDataLength != PR_UINT32_MAX) {
     aStr.SetLength(aDataLength);
     if (aStr.Length() != aDataLength) {
-      *aData = nullptr;
+      *aData = nsnull;
       return 0;
     }
   }
@@ -115,7 +147,7 @@ NS_StringCloneData(const nsAString &aStr)
 }
 
 XPCOM_API(nsresult)
-NS_StringSetData(nsAString &aStr, const PRUnichar *aData, uint32_t aDataLength)
+NS_StringSetData(nsAString &aStr, const PRUnichar *aData, PRUint32 aDataLength)
 {
   aStr.Assign(aData, aDataLength);
   return NS_OK; 
@@ -123,8 +155,8 @@ NS_StringSetData(nsAString &aStr, const PRUnichar *aData, uint32_t aDataLength)
 
 XPCOM_API(nsresult)
 NS_StringSetDataRange(nsAString &aStr,
-                      uint32_t aCutOffset, uint32_t aCutLength,
-                      const PRUnichar *aData, uint32_t aDataLength)
+                      PRUint32 aCutOffset, PRUint32 aCutLength,
+                      const PRUnichar *aData, PRUint32 aDataLength)
 {
   if (aCutOffset == PR_UINT32_MAX)
   {
@@ -142,7 +174,7 @@ NS_StringSetDataRange(nsAString &aStr,
     if (aDataLength == PR_UINT32_MAX)
       aStr.Replace(aCutOffset, aCutLength, nsDependentString(aData));
     else
-      aStr.Replace(aCutOffset, aCutLength, Substring(aData, aDataLength));
+      aStr.Replace(aCutOffset, aCutLength, Substring(aData, aData + aDataLength));
   }
   else
     aStr.Cut(aCutOffset, aCutLength);
@@ -186,8 +218,8 @@ NS_CStringContainerInit(nsCStringContainer &aContainer)
 XPCOM_API(nsresult)
 NS_CStringContainerInit2(nsCStringContainer &aContainer,
                          const char         *aData,
-                         uint32_t            aDataLength,
-                         uint32_t            aFlags)
+                         PRUint32            aDataLength,
+                         PRUint32            aFlags)
 {
   NS_ASSERTION(sizeof(nsStringContainer_base) >= sizeof(nsCString),
       "nsStringContainer is not large enough");
@@ -207,7 +239,7 @@ NS_CStringContainerInit2(nsCStringContainer &aContainer,
     if (aFlags & (NS_CSTRING_CONTAINER_INIT_DEPEND |
                   NS_CSTRING_CONTAINER_INIT_ADOPT))
     {
-      uint32_t flags;
+      PRUint32 flags;
       if (aFlags & NS_CSTRING_CONTAINER_INIT_SUBSTRING)
         flags = nsCSubstring::F_NONE;
       else
@@ -237,7 +269,7 @@ NS_CStringContainerFinish(nsCStringContainer &aContainer)
 
 
 
-XPCOM_API(uint32_t)
+XPCOM_API(PRUint32)
 NS_CStringGetData(const nsACString &aStr, const char **aData,
                   bool *aTerminated)
 {
@@ -250,13 +282,13 @@ NS_CStringGetData(const nsACString &aStr, const char **aData,
   return begin.size_forward();
 }
 
-XPCOM_API(uint32_t)
-NS_CStringGetMutableData(nsACString &aStr, uint32_t aDataLength, char **aData)
+XPCOM_API(PRUint32)
+NS_CStringGetMutableData(nsACString &aStr, PRUint32 aDataLength, char **aData)
 {
   if (aDataLength != PR_UINT32_MAX) {
     aStr.SetLength(aDataLength);
     if (aStr.Length() != aDataLength) {
-      *aData = nullptr;
+      *aData = nsnull;
       return 0;
     }
   }
@@ -274,7 +306,7 @@ NS_CStringCloneData(const nsACString &aStr)
 }
 
 XPCOM_API(nsresult)
-NS_CStringSetData(nsACString &aStr, const char *aData, uint32_t aDataLength)
+NS_CStringSetData(nsACString &aStr, const char *aData, PRUint32 aDataLength)
 {
   aStr.Assign(aData, aDataLength);
   return NS_OK; 
@@ -282,8 +314,8 @@ NS_CStringSetData(nsACString &aStr, const char *aData, uint32_t aDataLength)
 
 XPCOM_API(nsresult)
 NS_CStringSetDataRange(nsACString &aStr,
-                       uint32_t aCutOffset, uint32_t aCutLength,
-                       const char *aData, uint32_t aDataLength)
+                       PRUint32 aCutOffset, PRUint32 aCutLength,
+                       const char *aData, PRUint32 aDataLength)
 {
   if (aCutOffset == PR_UINT32_MAX)
   {
@@ -301,7 +333,7 @@ NS_CStringSetDataRange(nsACString &aStr,
     if (aDataLength == PR_UINT32_MAX)
       aStr.Replace(aCutOffset, aCutLength, nsDependentCString(aData));
     else
-      aStr.Replace(aCutOffset, aCutLength, Substring(aData, aDataLength));
+      aStr.Replace(aCutOffset, aCutLength, Substring(aData, aData + aDataLength));
   }
   else
     aStr.Cut(aCutOffset, aCutLength);

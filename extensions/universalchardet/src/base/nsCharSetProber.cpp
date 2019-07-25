@@ -2,12 +2,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  
 #include "nsCharSetProber.h"
 #include "prmem.h"
 
 
-bool nsCharSetProber::FilterWithoutEnglishLetters(const char* aBuf, uint32_t aLen, char** newBuf, uint32_t& newLen)
+bool nsCharSetProber::FilterWithoutEnglishLetters(const char* aBuf, PRUint32 aLen, char** newBuf, PRUint32& newLen)
 {
   char *newptr;
   char *prevPtr, *curPtr;
@@ -15,13 +48,13 @@ bool nsCharSetProber::FilterWithoutEnglishLetters(const char* aBuf, uint32_t aLe
   bool meetMSB = false;   
   newptr = *newBuf = (char*)PR_Malloc(aLen);
   if (!newptr)
-    return false;
+    return PR_FALSE;
 
   for (curPtr = prevPtr = (char*)aBuf; curPtr < aBuf+aLen; curPtr++)
   {
     if (*curPtr & 0x80)
     {
-      meetMSB = true;
+      meetMSB = PR_TRUE;
     }
     else if (*curPtr < 'A' || (*curPtr > 'Z' && *curPtr < 'a') || *curPtr > 'z') 
     {
@@ -32,7 +65,7 @@ bool nsCharSetProber::FilterWithoutEnglishLetters(const char* aBuf, uint32_t aLe
         while (prevPtr < curPtr) *newptr++ = *prevPtr++;  
         prevPtr++;
         *newptr++ = ' ';
-        meetMSB = false;
+        meetMSB = PR_FALSE;
       }
       else 
         prevPtr = curPtr+1;
@@ -43,11 +76,11 @@ bool nsCharSetProber::FilterWithoutEnglishLetters(const char* aBuf, uint32_t aLe
 
   newLen = newptr - *newBuf;
 
-  return true;
+  return PR_TRUE;
 }
 
 
-bool nsCharSetProber::FilterWithEnglishLetters(const char* aBuf, uint32_t aLen, char** newBuf, uint32_t& newLen)
+bool nsCharSetProber::FilterWithEnglishLetters(const char* aBuf, PRUint32 aLen, char** newBuf, PRUint32& newLen)
 {
   
   char *newptr;
@@ -56,14 +89,14 @@ bool nsCharSetProber::FilterWithEnglishLetters(const char* aBuf, uint32_t aLen, 
 
   newptr = *newBuf = (char*)PR_Malloc(aLen);
   if (!newptr)
-    return false;
+    return PR_FALSE;
 
   for (curPtr = prevPtr = (char*)aBuf; curPtr < aBuf+aLen; curPtr++)
   {
     if (*curPtr == '>')
-      isInTag = false;
+      isInTag = PR_FALSE;
     else if (*curPtr == '<')
-      isInTag = true;
+      isInTag = PR_TRUE;
 
     if (!(*curPtr & 0x80) &&
         (*curPtr < 'A' || (*curPtr > 'Z' && *curPtr < 'a') || *curPtr > 'z') )
@@ -88,5 +121,5 @@ bool nsCharSetProber::FilterWithEnglishLetters(const char* aBuf, uint32_t aLen, 
 
   newLen = newptr - *newBuf;
 
-  return true;
+  return PR_TRUE;
 }

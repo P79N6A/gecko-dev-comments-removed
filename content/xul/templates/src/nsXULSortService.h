@@ -20,6 +20,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsCOMArray.h"
 #include "nsTArray.h"
@@ -44,7 +80,7 @@ struct nsSortState
   bool sortStaticsLast;
   bool isContainerRDFSeq;
 
-  uint32_t sortHints;
+  PRUint32 sortHints;
 
   nsSortState_direction direction;
   nsAutoString sort;
@@ -55,7 +91,7 @@ struct nsSortState
   bool lastWasFirst, lastWasLast;
 
   nsSortState()
-    : initialized(false),
+    : initialized(PR_FALSE),
       sortHints(0)
   {
   }
@@ -152,7 +188,7 @@ public:
 
   nsresult
   InvertSortInfo(nsTArray<contentSortInfo>& aData,
-                 int32_t aStart, int32_t aNumItems);
+                 PRInt32 aStart, PRInt32 aNumItems);
 
   
 
@@ -175,7 +211,7 @@ public:
 
 
 
-  static int32_t CompareValues(const nsAString& aLeft,
+  static PRInt32 CompareValues(const nsAString& aLeft,
                                const nsAString& aRight,
-                               uint32_t aSortHints);
+                               PRUint32 aSortHints);
 };

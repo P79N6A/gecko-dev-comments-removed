@@ -3,25 +3,56 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsCoreUtils_h_
 #define nsCoreUtils_h_
 
 
+#include "nsIDOMNode.h"
 #include "nsIContent.h"
 #include "nsIBoxObject.h"
-#include "nsIPresShell.h"
+#include "nsITreeBoxObject.h"
+#include "nsITreeColumns.h"
 
+#include "nsIFrame.h"
+#include "nsIDocShellTreeItem.h"
+#include "nsIDOMCSSStyleDeclaration.h"
 #include "nsIDOMDOMStringList.h"
+#include "nsIMutableArray.h"
 #include "nsPoint.h"
 #include "nsTArray.h"
-
-class nsRange;
-class nsIDOMNode;
-class nsIFrame;
-class nsIDocShellTreeItem;
-class nsITreeColumn;
-class nsITreeBoxObject;
-class nsIWidget;
 
 
 
@@ -45,7 +76,7 @@ public:
 
 
   static void DispatchClickEvent(nsITreeBoxObject *aTreeBoxObj,
-                                 int32_t aRowIndex, nsITreeColumn *aColumn,
+                                 PRInt32 aRowIndex, nsITreeColumn *aColumn,
                                  const nsCString& aPseudoElt = EmptyCString());
 
   
@@ -55,7 +86,7 @@ public:
 
 
 
-  static bool DispatchMouseEvent(uint32_t aEventType,
+  static bool DispatchMouseEvent(PRUint32 aEventType,
                                    nsIPresShell *aPresShell,
                                    nsIContent *aContent);
 
@@ -70,7 +101,7 @@ public:
 
 
 
-  static void DispatchMouseEvent(uint32_t aEventType, int32_t aX, int32_t aY,
+  static void DispatchMouseEvent(PRUint32 aEventType, PRInt32 aX, PRInt32 aY,
                                  nsIContent *aContent, nsIFrame *aFrame,
                                  nsIPresShell *aPresShell,
                                  nsIWidget *aRootWidget);
@@ -81,7 +112,7 @@ public:
 
 
 
-  static uint32_t GetAccessKeyFor(nsIContent *aContent);
+  static PRUint32 GetAccessKeyFor(nsIContent *aContent);
 
   
 
@@ -96,7 +127,7 @@ public:
   
 
 
-  static nsINode *GetDOMNodeFromDOMPoint(nsINode *aNode, uint32_t aOffset);
+  static nsINode *GetDOMNodeFromDOMPoint(nsINode *aNode, PRUint32 aOffset);
 
   
 
@@ -124,7 +155,7 @@ public:
 
    static bool IsAncestorOf(nsINode *aPossibleAncestorNode,
                               nsINode *aPossibleDescendantNode,
-                              nsINode *aRootNode = nullptr);
+                              nsINode *aRootNode = nsnull);
 
   
 
@@ -134,8 +165,13 @@ public:
 
 
 
-  static nsresult ScrollSubstringTo(nsIFrame* aFrame, nsRange* aRange,
-                                    uint32_t aScrollType);
+
+
+
+  static nsresult ScrollSubstringTo(nsIFrame *aFrame,
+                                    nsIDOMNode *aStartNode, PRInt32 aStartIndex,
+                                    nsIDOMNode *aEndNode, PRInt32 aEndIndex,
+                                    PRUint32 aScrollType);
 
   
 
@@ -145,9 +181,13 @@ public:
 
 
 
-  static nsresult ScrollSubstringTo(nsIFrame* aFrame, nsRange* aRange,
-                                    nsIPresShell::ScrollAxis aVertical,
-                                    nsIPresShell::ScrollAxis aHorizontal);
+
+
+
+  static nsresult ScrollSubstringTo(nsIFrame *aFrame,
+                                    nsIDOMNode *aStartNode, PRInt32 aStartIndex,
+                                    nsIDOMNode *aEndNode, PRInt32 aEndIndex,
+                                    PRInt16 aVPercent, PRInt16 aHPercent);
 
   
 
@@ -164,9 +204,9 @@ public:
 
 
 
-  static void ConvertScrollTypeToPercents(uint32_t aScrollType,
-                                          nsIPresShell::ScrollAxis *aVertical,
-                                          nsIPresShell::ScrollAxis *aHorizontal);
+  static void ConvertScrollTypeToPercents(PRUint32 aScrollType,
+                                          PRInt16 *aVPercent,
+                                          PRInt16 *aHPercent);
 
   
 
@@ -204,9 +244,24 @@ public:
   
 
 
+
+
+
+  static bool IsCorrectFrameType(nsIFrame* aFrame, nsIAtom* aAtom);
+
+  
+
+
   static nsIPresShell *GetPresShellFor(nsINode *aNode)
   {
-    return aNode->OwnerDoc()->GetShell();
+    nsIDocument *document = aNode->GetOwnerDoc();
+    return document ? document->GetShell() : nsnull;
+  }
+  static already_AddRefed<nsIWeakReference> GetWeakShellFor(nsINode *aNode)
+  {
+    nsCOMPtr<nsIWeakReference> weakShell =
+      do_GetWeakReference(GetPresShellFor(aNode));
+    return weakShell.forget();
   }
 
   
@@ -228,7 +283,7 @@ public:
 
 
   static bool GetUIntAttr(nsIContent *aContent, nsIAtom *aAttr,
-                            int32_t *aUInt);
+                            PRInt32 *aUInt);
 
   
 
@@ -251,6 +306,13 @@ public:
   
 
 
+  static already_AddRefed<nsIDOMCSSStyleDeclaration>
+    GetComputedStyleDeclaration(const nsAString& aPseudoElt,
+                                nsIContent *aContent);
+
+  
+
+
   static already_AddRefed<nsIBoxObject>
     GetTreeBodyBoxObject(nsITreeBoxObject *aTreeBoxObj);
 
@@ -269,13 +331,19 @@ public:
   
 
 
-  static uint32_t GetSensibleColumnCount(nsITreeBoxObject *aTree);
+  static already_AddRefed<nsITreeColumn>
+    GetLastSensibleColumn(nsITreeBoxObject *aTree);
+
+  
+
+
+  static PRUint32 GetSensibleColumnCount(nsITreeBoxObject *aTree);
 
   
 
 
   static already_AddRefed<nsITreeColumn>
-    GetSensibleColumnAt(nsITreeBoxObject *aTree, uint32_t aIndex);
+    GetSensibleColumnAt(nsITreeBoxObject *aTree, PRUint32 aIndex);
 
   
 
@@ -297,17 +365,16 @@ public:
   
 
 
-  static void ScrollTo(nsIPresShell* aPresShell, nsIContent* aContent,
-                       uint32_t aScrollType);
-
-  
-
-
   static bool IsHTMLTableHeader(nsIContent *aContent)
   {
     return aContent->NodeInfo()->Equals(nsGkAtoms::th) ||
       aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::scope);
   }
+
+  
+
+
+  static bool CheckVisibilityInParentChain(nsIFrame* aFrame);
 
 };
 
@@ -325,7 +392,7 @@ public:
   NS_DECL_NSIDOMDOMSTRINGLIST
 
   bool Add(const nsAString& aName) {
-    return mNames.AppendElement(aName) != nullptr;
+    return mNames.AppendElement(aName) != nsnull;
   }
 
 private:

@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsGfxRadioControlFrame.h"
 #include "nsIContent.h"
 #include "nsCOMPtr.h"
@@ -34,7 +66,7 @@ nsGfxRadioControlFrame::~nsGfxRadioControlFrame()
 }
 
 #ifdef ACCESSIBILITY
-already_AddRefed<Accessible>
+already_AddRefed<nsAccessible>
 nsGfxRadioControlFrame::CreateAccessible()
 {
   nsAccessibilityService* accService = nsIPresShell::AccService();
@@ -43,7 +75,7 @@ nsGfxRadioControlFrame::CreateAccessible()
                                                        PresContext()->PresShell());
   }
 
-  return nullptr;
+  return nsnull;
 }
 #endif
 

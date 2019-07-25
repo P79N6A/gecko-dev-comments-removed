@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsHTMLFrameSetElement_h
 #define nsHTMLFrameSetElement_h
 
@@ -12,6 +46,8 @@
 #include "nsGenericHTMLElement.h"
 #include "nsGkAtoms.h"
 #include "nsStyleConsts.h"
+#include "nsIHTMLDocument.h"
+#include "nsIDocument.h"
 
 
 
@@ -74,12 +110,12 @@ public:
 
   
   
-  nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+  nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                    const nsAString& aValue, bool aNotify)
   {
-    return SetAttr(aNameSpaceID, aName, nullptr, aValue, aNotify);
+    return SetAttr(aNameSpaceID, aName, nsnull, aValue, aNotify);
   }
-  virtual nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+  virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                            nsIAtom* aPrefix, const nsAString& aValue,
                            bool aNotify);
 
@@ -90,7 +126,7 @@ public:
 
 
 
-  nsresult GetRowSpec(int32_t *aNumValues, const nsFramesetSpec** aSpecs);
+  nsresult GetRowSpec(PRInt32 *aNumValues, const nsFramesetSpec** aSpecs);
    
 
 
@@ -98,39 +134,38 @@ public:
 
 
 
-  nsresult GetColSpec(int32_t *aNumValues, const nsFramesetSpec** aSpecs);
+  nsresult GetColSpec(PRInt32 *aNumValues, const nsFramesetSpec** aSpecs);
 
 
-  virtual bool ParseAttribute(int32_t aNamespaceID,
+  virtual bool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
   virtual nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute,
-                                              int32_t aModType) const;
+                                              PRInt32 aModType) const;
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
   virtual nsXPCClassInfo* GetClassInfo();
-  virtual nsIDOMNode* AsDOMNode() { return this; }
   static nsHTMLFrameSetElement* FromContent(nsIContent *aContent)
   {
     if (aContent->IsHTML(nsGkAtoms::frameset))
       return static_cast<nsHTMLFrameSetElement*>(aContent);
-    return nullptr;
+    return nsnull;
   }
 
 private:
   nsresult ParseRowCol(const nsAString& aValue,
-                       int32_t&         aNumSpecs,
+                       PRInt32&         aNumSpecs,
                        nsFramesetSpec** aSpecs);
 
   
 
 
-  int32_t          mNumRows;
+  PRInt32          mNumRows;
   
 
 
-  int32_t          mNumCols;
+  PRInt32          mNumCols;
   
 
 

@@ -3,6 +3,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <stdlib.h>
 #include "nsHttp.h"
 #include "nsHttpBasicAuth.h"
@@ -43,7 +79,7 @@ nsHttpBasicAuth::ChallengeReceived(nsIHttpAuthenticableChannel *authChannel,
 {
     
     
-    *identityInvalid = true;
+    *identityInvalid = PR_TRUE;
     return NS_OK;
 }
 
@@ -56,7 +92,7 @@ nsHttpBasicAuth::GenerateCredentials(nsIHttpAuthenticableChannel *authChannel,
                                      const PRUnichar *password,
                                      nsISupports **sessionState,
                                      nsISupports **continuationState,
-                                     uint32_t *aFlags,
+                                     PRUint32 *aFlags,
                                      char **creds)
 
 {
@@ -71,7 +107,7 @@ nsHttpBasicAuth::GenerateCredentials(nsIHttpAuthenticableChannel *authChannel,
     NS_ENSURE_TRUE(isBasicAuth, NS_ERROR_UNEXPECTED);
 
     
-    nsAutoCString userpass;
+    nsCAutoString userpass;
     LossyCopyUTF16toASCII(user, userpass);
     userpass.Append(':'); 
     if (password)
@@ -89,7 +125,7 @@ nsHttpBasicAuth::GenerateCredentials(nsIHttpAuthenticableChannel *authChannel,
 }
 
 NS_IMETHODIMP
-nsHttpBasicAuth::GetAuthFlags(uint32_t *flags)
+nsHttpBasicAuth::GetAuthFlags(nsresult *flags)
 {
     *flags = REQUEST_BASED | REUSABLE_CREDENTIALS | REUSABLE_CHALLENGE;
     return NS_OK;

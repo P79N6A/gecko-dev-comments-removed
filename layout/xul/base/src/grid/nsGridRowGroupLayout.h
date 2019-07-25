@@ -10,6 +10,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsGridRowGroupLayout_h___
 #define nsGridRowGroupLayout_h___
 
@@ -25,26 +57,26 @@ public:
   friend already_AddRefed<nsBoxLayout> NS_NewGridRowGroupLayout();
 
   virtual nsGridRowGroupLayout* CastToRowGroupLayout() { return this; }
-  virtual nsSize GetMinSize(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState);
-  virtual nsSize GetPrefSize(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState);
-  virtual nsSize GetMaxSize(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState);
-  virtual void CountRowsColumns(nsIFrame* aBox, int32_t& aRowCount, int32_t& aComputedColumnCount);
-  virtual void DirtyRows(nsIFrame* aBox, nsBoxLayoutState& aState);
-  virtual int32_t BuildRows(nsIFrame* aBox, nsGridRow* aRows);
-  virtual nsMargin GetTotalMargin(nsIFrame* aBox, bool aIsHorizontal);
-  virtual int32_t GetRowCount() { return mRowCount; }
+  virtual nsSize GetMinSize(nsIBox* aBox, nsBoxLayoutState& aBoxLayoutState);
+  virtual nsSize GetPrefSize(nsIBox* aBox, nsBoxLayoutState& aBoxLayoutState);
+  virtual nsSize GetMaxSize(nsIBox* aBox, nsBoxLayoutState& aBoxLayoutState);
+  virtual void CountRowsColumns(nsIBox* aBox, PRInt32& aRowCount, PRInt32& aComputedColumnCount);
+  virtual void DirtyRows(nsIBox* aBox, nsBoxLayoutState& aState);
+  virtual PRInt32 BuildRows(nsIBox* aBox, nsGridRow* aRows);
+  virtual nsMargin GetTotalMargin(nsIBox* aBox, bool aIsHorizontal);
+  virtual PRInt32 GetRowCount() { return mRowCount; }
   virtual Type GetType() { return eRowGroup; }
 
 protected:
   nsGridRowGroupLayout();
   virtual ~nsGridRowGroupLayout();
 
-  virtual void ChildAddedOrRemoved(nsIFrame* aBox, nsBoxLayoutState& aState);
+  virtual void ChildAddedOrRemoved(nsIBox* aBox, nsBoxLayoutState& aState);
   static void AddWidth(nsSize& aSize, nscoord aSize2, bool aIsHorizontal);
 
 private:
   nsGridRow* mRowColumn;
-  int32_t mRowCount;
+  PRInt32 mRowCount;
 };
 
 #endif

@@ -3,12 +3,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "mozEnglishWordUtils.h"
+#include "nsICharsetAlias.h"
 #include "nsReadableUtils.h"
 #include "nsIServiceManager.h"
 #include "nsUnicharUtils.h"
 #include "nsUnicharUtilCIID.h"
-#include "nsUnicodeProperties.h"
 #include "nsCRT.h"
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(mozEnglishWordUtils)
@@ -20,7 +52,8 @@ NS_INTERFACE_MAP_BEGIN(mozEnglishWordUtils)
   NS_INTERFACE_MAP_ENTRIES_CYCLE_COLLECTION(mozEnglishWordUtils)
 NS_INTERFACE_MAP_END
 
-NS_IMPL_CYCLE_COLLECTION_1(mozEnglishWordUtils,
+NS_IMPL_CYCLE_COLLECTION_2(mozEnglishWordUtils,
+                           mCategories,
                            mURLDetector)
 
 mozEnglishWordUtils::mozEnglishWordUtils()
@@ -29,6 +62,7 @@ mozEnglishWordUtils::mozEnglishWordUtils()
 
   nsresult rv;
   mURLDetector = do_CreateInstance(MOZ_TXTTOHTMLCONV_CONTRACTID, &rv);
+  mCategories = do_GetService(NS_UNICHARCATEGORY_CONTRACTID);
 }
 
 mozEnglishWordUtils::~mozEnglishWordUtils()
@@ -48,11 +82,11 @@ NS_IMETHODIMP mozEnglishWordUtils::GetLanguage(PRUnichar * *aLanguage)
 
 
 
-NS_IMETHODIMP mozEnglishWordUtils::GetRootForm(const PRUnichar *aWord, uint32_t type, PRUnichar ***words, uint32_t *count)
+NS_IMETHODIMP mozEnglishWordUtils::GetRootForm(const PRUnichar *aWord, PRUint32 type, PRUnichar ***words, PRUint32 *count)
 {
   nsAutoString word(aWord);
   PRUnichar **tmpPtr;
-  int32_t length = word.Length();
+  PRInt32 length = word.Length();
 
   *count = 0;
 
@@ -134,11 +168,11 @@ NS_IMETHODIMP mozEnglishWordUtils::GetRootForm(const PRUnichar *aWord, uint32_t 
 bool mozEnglishWordUtils::ucIsAlpha(PRUnichar aChar)
 {
   
-  return nsIUGenCategory::kLetter == mozilla::unicode::GetGenCategory(aChar);
+  return nsIUGenCategory::kLetter == mCategories->Get(PRUint32(aChar));
 }
 
 
-NS_IMETHODIMP mozEnglishWordUtils::FindNextWord(const PRUnichar *word, uint32_t length, uint32_t offset, int32_t *begin, int32_t *end)
+NS_IMETHODIMP mozEnglishWordUtils::FindNextWord(const PRUnichar *word, PRUint32 length, PRUint32 offset, PRInt32 *begin, PRInt32 *end)
 {
   const PRUnichar *p = word + offset;
   const PRUnichar *endbuf = word + length;
@@ -173,8 +207,8 @@ NS_IMETHODIMP mozEnglishWordUtils::FindNextWord(const PRUnichar *word, uint32_t 
        
         if (mURLDetector)
         {
-          int32_t startPos = -1;
-          int32_t endPos = -1;        
+          PRInt32 startPos = -1;
+          PRInt32 endPos = -1;        
 
           mURLDetector->FindURLInPlaintext(startWord, endbuf - startWord, p - startWord, &startPos, &endPos);
 
@@ -222,7 +256,7 @@ mozEnglishWordUtils::captype(const nsString &word)
     nsMemory::Free(lword);
     return NoCap;
   }
-  int32_t length=word.Length();
+  PRInt32 length=word.Length();
   if(Substring(word,1,length-1).Equals(lword+1)){
     nsMemory::Free(lword);
     return InitCap;
@@ -233,19 +267,19 @@ mozEnglishWordUtils::captype(const nsString &word)
 
 
 
-NS_IMETHODIMP mozEnglishWordUtils::FromRootForm(const PRUnichar *aWord, const PRUnichar **iwords, uint32_t icount, PRUnichar ***owords, uint32_t *ocount)
+NS_IMETHODIMP mozEnglishWordUtils::FromRootForm(const PRUnichar *aWord, const PRUnichar **iwords, PRUint32 icount, PRUnichar ***owords, PRUint32 *ocount)
 {
   nsAutoString word(aWord);
   nsresult rv = NS_OK;
 
-  int32_t length;
+  PRInt32 length;
   PRUnichar **tmpPtr  = (PRUnichar **)nsMemory::Alloc(sizeof(PRUnichar *)*icount);
   if (!tmpPtr)
     return NS_ERROR_OUT_OF_MEMORY;
 
   mozEnglishWordUtils::myspCapitalization ct = captype(word);
-  for(uint32_t i = 0; i < icount; ++i) {
-    length = NS_strlen(iwords[i]);
+  for(PRUint32 i = 0; i < icount; ++i) {
+    length = nsCRT::strlen(iwords[i]);
     tmpPtr[i] = (PRUnichar *) nsMemory::Alloc(sizeof(PRUnichar) * (length + 1));
     if (NS_UNLIKELY(!tmpPtr[i])) {
       NS_FREE_XPCOM_ALLOCATED_POINTER_ARRAY(i, tmpPtr);

@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsFind_h__
 #define nsFind_h__
 
@@ -12,6 +45,7 @@
 #include "nsIDOMNode.h"
 #include "nsIDOMRange.h"
 #include "nsIContentIterator.h"
+#include "nsIParserService.h"
 #include "nsIWordBreaker.h"
 
 class nsIAtom;
@@ -36,14 +70,28 @@ public:
   static already_AddRefed<nsIDOMRange> CreateRange();
 
 protected:
+  static PRInt32 sInstanceCount;
+
+  
+  static nsIAtom* sImgAtom;
+  static nsIAtom* sHRAtom;
+  
+  static nsIAtom* sScriptAtom;
+  static nsIAtom* sNoframesAtom;
+  static nsIAtom* sSelectAtom;
+  static nsIAtom* sTextareaAtom;
+  static nsIAtom* sThAtom;
+  static nsIAtom* sTdAtom;
+
   
   
   bool mFindBackward;
   bool mCaseSensitive;
 
   nsCOMPtr<nsIWordBreaker> mWordBreaker;
+  nsCOMPtr<nsIParserService> mParserService;
 
-  int32_t mIterOffset;
+  PRInt32 mIterOffset;
   nsCOMPtr<nsIDOMNode> mIterNode;
 
   
@@ -65,8 +113,8 @@ protected:
   void ResetAll();
 
   
-  nsresult InitIterator(nsIDOMNode* aStartNode, int32_t aStartOffset,
-                        nsIDOMNode* aEndNode, int32_t aEndOffset);
+  nsresult InitIterator(nsIDOMNode* aStartNode, PRInt32 aStartOffset,
+                        nsIDOMNode* aEndNode, PRInt32 aEndOffset);
   nsCOMPtr<nsFindContentIterator> mIterator;
 };
 

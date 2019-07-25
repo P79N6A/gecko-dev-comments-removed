@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsXBLEventHandler_h__
 #define nsXBLEventHandler_h__
 
@@ -11,6 +44,7 @@
 #include "nsTArray.h"
 
 class nsIAtom;
+class nsIContent;
 class nsIDOMKeyEvent;
 class nsXBLPrototypeHandler;
 
@@ -31,7 +65,7 @@ private:
   nsXBLEventHandler();
   virtual bool EventMatched(nsIDOMEvent* aEvent)
   {
-    return true;
+    return PR_TRUE;
   }
 };
 
@@ -48,7 +82,7 @@ private:
 class nsXBLKeyEventHandler : public nsIDOMEventListener
 {
 public:
-  nsXBLKeyEventHandler(nsIAtom* aEventType, uint8_t aPhase, uint8_t aType);
+  nsXBLKeyEventHandler(nsIAtom* aEventType, PRUint8 aPhase, PRUint8 aType);
   virtual ~nsXBLKeyEventHandler();
 
   NS_DECL_ISUPPORTS
@@ -60,7 +94,7 @@ public:
     mProtoHandlers.AppendElement(aProtoHandler);
   }
 
-  bool Matches(nsIAtom* aEventType, uint8_t aPhase, uint8_t aType) const
+  bool Matches(nsIAtom* aEventType, PRUint8 aPhase, PRUint8 aType) const
   {
     return (mEventType == aEventType && mPhase == aPhase && mType == aType);
   }
@@ -70,12 +104,12 @@ public:
     mEventType->ToString(aString);
   }
 
-  uint8_t GetPhase() const
+  PRUint8 GetPhase() const
   {
     return mPhase;
   }
 
-  uint8_t GetType() const
+  PRUint8 GetType() const
   {
     return mType;
   }
@@ -86,13 +120,13 @@ public:
   }
 private:
   nsXBLKeyEventHandler();
-  bool ExecuteMatchedHandlers(nsIDOMKeyEvent* aEvent, uint32_t aCharCode,
+  bool ExecuteMatchedHandlers(nsIDOMKeyEvent* aEvent, PRUint32 aCharCode,
                                 bool aIgnoreShiftKey);
 
   nsTArray<nsXBLPrototypeHandler*> mProtoHandlers;
   nsCOMPtr<nsIAtom> mEventType;
-  uint8_t mPhase;
-  uint8_t mType;
+  PRUint8 mPhase;
+  PRUint8 mType;
   bool mIsBoundToChrome;
 };
 
@@ -102,7 +136,7 @@ NS_NewXBLEventHandler(nsXBLPrototypeHandler* aHandler,
                       nsXBLEventHandler** aResult);
 
 nsresult
-NS_NewXBLKeyEventHandler(nsIAtom* aEventType, uint8_t aPhase,
-                         uint8_t aType, nsXBLKeyEventHandler** aResult);
+NS_NewXBLKeyEventHandler(nsIAtom* aEventType, PRUint8 aPhase,
+                         PRUint8 aType, nsXBLKeyEventHandler** aResult);
 
 #endif

@@ -44,6 +44,7 @@
 
 
 
+
 let Keys = { meta: false };
 
 
@@ -79,6 +80,10 @@ let UI = {
   
   
   restoredClosedTab: false,
+
+  
+  
+  _isChangingVisibility: false,
 
   
   
@@ -125,7 +130,7 @@ let UI = {
   
   
   
-  _storageBusyCount: 0,
+  _storageBusy: false,
 
   
   
@@ -169,9 +174,19 @@ let UI = {
 
       
       Storage.init();
+
+      
+      StoragePolicy.init();
+
+      if (Storage.readWindowBusyState(gWindow))
+        this.storageBusy();
+
       let data = Storage.readUIData(gWindow);
       this._storageSanity(data);
       this._pageBounds = data.pageBounds;
+
+      
+      Search.init();
 
       
       this._currentTab = gBrowser.selectedTab;
@@ -231,6 +246,15 @@ let UI = {
       });
 
       
+      let mm = gWindow.messageManager;
+      let callback = this._onDOMWillOpenModalDialog.bind(this);
+      mm.addMessageListener("Panorama:DOMWillOpenModalDialog", callback);
+
+      this._cleanupFunctions.push(function () {
+        mm.removeMessageListener("Panorama:DOMWillOpenModalDialog", callback);
+      });
+
+      
       this._setTabViewFrameKeyHandlers();
 
       
@@ -262,15 +286,22 @@ let UI = {
       gWindow.addEventListener("SSWindowClosing", function onWindowClosing() {
         gWindow.removeEventListener("SSWindowClosing", onWindowClosing, false);
 
+        
         self.isDOMWindowClosing = true;
 
         if (self.isTabViewVisible())
           GroupItems.removeHiddenGroups();
 
+        TabItems.saveAll();
+        TabItems.saveAllThumbnails({synchronously: true});
+
         Storage.saveActiveGroupName(gWindow);
-        TabItems.saveAll(true);
         self._save();
       }, false);
+
+      
+      let frameScript = "chrome://browser/content/tabview-content.js";
+      gWindow.messageManager.loadFrameScript(frameScript, true);
 
       
       this._frameInitialized = true;
@@ -301,7 +332,7 @@ let UI = {
     TabItems.uninit();
     GroupItems.uninit();
     Storage.uninit();
-    ThumbnailStorage.uninit();
+    StoragePolicy.uninit();
 
     this._removeTabActionHandlers();
     this._currentTab = null;
@@ -477,8 +508,10 @@ let UI = {
   
   
   showTabView: function UI_showTabView(zoomOut) {
-    if (this.isTabViewVisible())
+    if (this.isTabViewVisible() || this._isChangingVisibility)
       return;
+
+    this._isChangingVisibility = true;
 
     
     this._initPageDirection();
@@ -522,6 +555,7 @@ let UI = {
         self.setActive(item);
 
         self._resize(true);
+        self._isChangingVisibility = false;
         dispatchEvent(event);
 
         
@@ -531,6 +565,7 @@ let UI = {
       });
     } else {
       self.clearActiveTab();
+      self._isChangingVisibility = false;
       dispatchEvent(event);
 
       
@@ -547,8 +582,10 @@ let UI = {
   
   
   hideTabView: function UI_hideTabView() {
-    if (!this.isTabViewVisible())
+    if (!this.isTabViewVisible() || this._isChangingVisibility)
       return;
+
+    this._isChangingVisibility = true;
 
     
     
@@ -575,6 +612,8 @@ let UI = {
     this.setTitlebarColors(false);
 #endif
     Storage.saveVisibilityData(gWindow, "false");
+
+    this._isChangingVisibility = false;
 
     let event = document.createEvent("Events");
     event.initEvent("tabviewhidden", true, false);
@@ -612,12 +651,13 @@ let UI = {
   
   
   storageBusy: function UI_storageBusy() {
-    if (!this._storageBusyCount) {
-      TabItems.pauseReconnecting();
-      GroupItems.pauseAutoclose();
-    }
-    
-    this._storageBusyCount++;
+    if (this._storageBusy)
+      return;
+
+    this._storageBusy = true;
+
+    TabItems.pauseReconnecting();
+    GroupItems.pauseAutoclose();
   },
   
   
@@ -625,16 +665,18 @@ let UI = {
   
   
   storageReady: function UI_storageReady() {
-    this._storageBusyCount--;
-    if (!this._storageBusyCount) {
-      let hasGroupItemsData = GroupItems.load();
-      if (!hasGroupItemsData)
-        this.reset();
-  
-      TabItems.resumeReconnecting();
-      GroupItems._updateTabBar();
-      GroupItems.resumeAutoclose();
-    }
+    if (!this._storageBusy)
+      return;
+
+    this._storageBusy = false;
+
+    let hasGroupItemsData = GroupItems.load();
+    if (!hasGroupItemsData)
+      this.reset();
+
+    TabItems.resumeReconnecting();
+    GroupItems._updateTabBar();
+    GroupItems.resumeAutoclose();
   },
 
   
@@ -678,8 +720,13 @@ let UI = {
         }
       } else if (topic == "private-browsing-change-granted") {
         if (data == "enter" || data == "exit") {
+          Search.hide();
           self._privateBrowsing.transitionMode = data;
-          self.storageBusy();
+
+          
+          
+          if (data == "enter")
+            TabItems.saveAllThumbnails({synchronously: true});
         }
       } else if (topic == "private-browsing-transition-complete") {
         
@@ -688,7 +735,6 @@ let UI = {
           self.showTabView(false);
 
         self._privateBrowsing.transitionMode = "";
-        self.storageReady();
       }
     }
 
@@ -703,9 +749,8 @@ let UI = {
     });
 
     
-    this._eventListeners.open = function(tab) {
-      if (tab.ownerDocument.defaultView != gWindow)
-        return;
+    this._eventListeners.open = function (event) {
+      let tab = event.target;
 
       
       if (tab.pinned)
@@ -715,9 +760,8 @@ let UI = {
     };
     
     
-    this._eventListeners.close = function(tab) {
-      if (tab.ownerDocument.defaultView != gWindow)
-        return;
+    this._eventListeners.close = function (event) {
+      let tab = event.target;
 
       
       if (tab.pinned)
@@ -730,7 +774,7 @@ let UI = {
       } else {
         
         
-        if (self._storageBusyCount)
+        if (self._storageBusy)
           return;
 
         
@@ -752,18 +796,11 @@ let UI = {
           
           
           
-          let closingUnnamedGroup = (groupItem == null &&
-              gBrowser.visibleTabs.length <= 1); 
-
-          
-          
-          
           let tabItem = tab && tab._tabViewTabItem;
           let closingBlankTabAfterRestore =
             (tabItem && tabItem.isRemovedAfterRestore);
 
-          if ((closingLastOfGroup || closingUnnamedGroup) &&
-              !closingBlankTabAfterRestore) {
+          if (closingLastOfGroup && !closingBlankTabAfterRestore) {
             
             self._closedLastVisibleTab = true;
             self.showTabView();
@@ -773,9 +810,8 @@ let UI = {
     };
 
     
-    this._eventListeners.move = function(tab) {
-      if (tab.ownerDocument.defaultView != gWindow)
-        return;
+    this._eventListeners.move = function (event) {
+      let tab = event.target;
 
       if (GroupItems.groupItems.length > 0) {
         if (tab.pinned) {
@@ -790,26 +826,21 @@ let UI = {
     };
 
     
-    this._eventListeners.select = function(tab) {
-      if (tab.ownerDocument.defaultView != gWindow)
-        return;
-
-      self.onTabSelect(tab);
+    this._eventListeners.select = function (event) {
+      self.onTabSelect(event.target);
     };
 
     
-    this._eventListeners.pinned = function(tab) {
-      if (tab.ownerDocument.defaultView != gWindow)
-        return;
+    this._eventListeners.pinned = function (event) {
+      let tab = event.target;
 
       TabItems.handleTabPin(tab);
       GroupItems.addAppTab(tab);
     };
 
     
-    this._eventListeners.unpinned = function(tab) {
-      if (tab.ownerDocument.defaultView != gWindow)
-        return;
+    this._eventListeners.unpinned = function (event) {
+      let tab = event.target;
 
       TabItems.handleTabUnpin(tab);
       GroupItems.removeAppTab(tab);
@@ -850,8 +881,12 @@ let UI = {
     this._currentTab = tab;
 
     if (this.isTabViewVisible()) {
-      if (!this.restoredClosedTab && this._lastOpenedTab == tab && 
-        tab._tabViewTabItem) {
+      
+      
+      
+      
+      if (!this.restoredClosedTab && !this._privateBrowsing.transitionMode &&
+          this._lastOpenedTab == tab && tab._tabViewTabItem) {
         tab._tabViewTabItem.zoomIn(true);
         this._lastOpenedTab = null;
         return;
@@ -883,8 +918,14 @@ let UI = {
 
     
     
-    if (this.isTabViewVisible())
+    if (this.isTabViewVisible()) {
+      
+      if (tab && tab._tabViewTabItem && tab._tabViewTabItem.parent &&
+          tab._tabViewTabItem.parent.hidden)
+        tab._tabViewTabItem.parent._unhide({immediately: true});
+
       this.hideTabView();
+    }
 
     
     
@@ -916,6 +957,27 @@ let UI = {
       if (GroupItems.getActiveGroupItem())
         GroupItems._updateTabBar();
     }
+  },
+
+  
+  
+  
+  _onDOMWillOpenModalDialog: function UI__onDOMWillOpenModalDialog(cx) {
+    if (!this.isTabViewVisible())
+      return;
+
+    let index = gBrowser.browsers.indexOf(cx.target);
+    if (index == -1)
+      return;
+
+    let tab = gBrowser.tabs[index];
+
+    
+    
+    
+    
+    if (gBrowser.selectedTab == tab && this._currentTab == tab)
+      this.onTabSelect(tab);
   },
 
   
@@ -1075,7 +1137,7 @@ let UI = {
         }
       }
       if ((iQ(":focus").length > 0 && iQ(":focus")[0].nodeName == "INPUT") ||
-          isSearchEnabled() || self.ignoreKeypressForSearch) {
+          Search.isEnabled() || self.ignoreKeypressForSearch) {
         self.ignoreKeypressForSearch = false;
         processBrowserKeys(event);
         return;
@@ -1084,18 +1146,26 @@ let UI = {
       function getClosestTabBy(norm) {
         if (!self.getActiveTab())
           return null;
-        let centers =
-          [[item.bounds.center(), item]
-             for each(item in TabItems.getItems()) if (!item.parent || !item.parent.hidden)];
-        let myCenter = self.getActiveTab().bounds.center();
-        let matches = centers
-          .filter(function(item){return norm(item[0], myCenter)})
-          .sort(function(a,b){
-            return myCenter.distance(a[0]) - myCenter.distance(b[0]);
-          });
-        if (matches.length > 0)
-          return matches[0][1];
-        return null;
+
+        let activeTab = self.getActiveTab();
+        let activeTabGroup = activeTab.parent;
+        let myCenter = activeTab.bounds.center();
+        let match;
+
+        TabItems.getItems().forEach(function (item) {
+          if (!item.parent.hidden &&
+              (!activeTabGroup.expanded || activeTabGroup.id == item.parent.id)) {
+            let itemCenter = item.bounds.center();
+
+            if (norm(itemCenter, myCenter)) {
+              let itemDist = myCenter.distance(itemCenter);
+              if (!match || match[0] > itemDist)
+                match = [itemDist, item];
+            }
+          }
+        });
+
+        return match && match[1];
       }
 
       let preventDefault = true;
@@ -1148,6 +1218,7 @@ let UI = {
               let currentIndex = tabItems.indexOf(activeTab);
 
               if (length > 1) {
+                let newIndex;
                 if (event.shiftKey) {
                   if (currentIndex == 0)
                     newIndex = (length - 1);
@@ -1179,9 +1250,9 @@ let UI = {
   
   
   enableSearch: function UI_enableSearch() {
-    if (!isSearchEnabled()) {
-      ensureSearchShown();
-      SearchEventHandler.switchToInMode();
+    if (!Search.isEnabled()) {
+      Search.ensureShown();
+      Search.switchToInMode();
     }
   },
 
@@ -1448,15 +1519,15 @@ let UI = {
     let self = this;
     let zoomedIn = false;
 
-    if (isSearchEnabled()) {
-      let matcher = createSearchTabMacher();
+    if (Search.isEnabled()) {
+      let matcher = Search.createSearchTabMatcher();
       let matches = matcher.matched();
 
       if (matches.length > 0) {
         matches[0].zoomIn();
         zoomedIn = true;
       }
-      hideSearch(null);
+      Search.hide();
     }
 
     if (!zoomedIn) {
@@ -1567,11 +1638,15 @@ let UI = {
   getFavIconUrlForTab: function UI_getFavIconUrlForTab(tab) {
     let url;
 
-    
-    if (tab.image && !(/^https?:/.test(tab.image)))
-      url = tab.image;
-    else
+    if (tab.image) {
+      
+      if (/^https?:/.test(tab.image))
+        url = gFavIconService.getFaviconLinkForIcon(gWindow.makeURI(tab.image)).spec;
+      else
+        url = tab.image;
+    } else {
       url = gFavIconService.getFaviconImageForPage(tab.linkedBrowser.currentURI).spec;
+    }
 
     return url;
   },

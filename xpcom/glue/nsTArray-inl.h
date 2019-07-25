@@ -4,6 +4,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsTArray_h__
 #  error "Don't include this file directly"
 #endif
@@ -23,94 +55,20 @@ nsTArray_base<Alloc>::~nsTArray_base() {
 }
 
 template<class Alloc>
-const nsTArrayHeader* nsTArray_base<Alloc>::GetAutoArrayBufferUnsafe(size_t elemAlign) const {
-  
-  
-
-  const void* autoBuf = &reinterpret_cast<const nsAutoArrayBase<nsTArray<uint32_t>, 1>*>(this)->mAutoBuf;
-
-  
-  
-
-  MOZ_STATIC_ASSERT(sizeof(void*) != 4 ||
-                    (MOZ_ALIGNOF(mozilla::AlignedElem<8>) == 8 &&
-                     sizeof(nsAutoTArray<mozilla::AlignedElem<8>, 1>) ==
-                       sizeof(void*) + sizeof(nsTArrayHeader) +
-                       4 + sizeof(mozilla::AlignedElem<8>)),
-                    "auto array padding wasn't what we expected");
-
-  
-  NS_ABORT_IF_FALSE(elemAlign <= 4 || elemAlign == 8, "unsupported alignment.");
-  if (sizeof(void*) == 4 && elemAlign == 8) {
-    autoBuf = reinterpret_cast<const char*>(autoBuf) + 4;
-  }
-
-  return reinterpret_cast<const Header*>(autoBuf);
-}
-
-template<class Alloc>
-bool nsTArray_base<Alloc>::UsesAutoArrayBuffer() const {
-  if (!mHdr->mIsAutoArray) {
-    return false;
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  MOZ_STATIC_ASSERT(sizeof(nsTArrayHeader) > 4,
-                    "see comment above");
-
-#ifdef DEBUG
-  ptrdiff_t diff = reinterpret_cast<const char*>(GetAutoArrayBuffer(8)) -
-                   reinterpret_cast<const char*>(GetAutoArrayBuffer(4));
-  NS_ABORT_IF_FALSE(diff >= 0 && diff <= 4, "GetAutoArrayBuffer doesn't do what we expect.");
-#endif
-
-  return mHdr == GetAutoArrayBuffer(4) || mHdr == GetAutoArrayBuffer(8);
-}
-
-
-template<class Alloc>
 bool
 nsTArray_base<Alloc>::EnsureCapacity(size_type capacity, size_type elemSize) {
   
   if (capacity <= mHdr->mCapacity)
-    return true;
+    return PR_TRUE;
 
   
   
   
   
   
-  if ((uint64_t)capacity * elemSize > size_type(-1)/2) {
+  if ((PRUint64)capacity * elemSize > size_type(-1)/2) {
     NS_ERROR("Attempting to allocate excessively large array");
-    return false;
+    return PR_FALSE;
   }
 
   if (mHdr == EmptyHdr()) {
@@ -118,23 +76,23 @@ nsTArray_base<Alloc>::EnsureCapacity(size_type capacity, size_type elemSize) {
     Header *header = static_cast<Header*>
                      (Alloc::Malloc(sizeof(Header) + capacity * elemSize));
     if (!header)
-      return false;
+      return PR_FALSE;
     header->mLength = 0;
     header->mCapacity = capacity;
     header->mIsAutoArray = 0;
     mHdr = header;
 
-    return true;
+    return PR_TRUE;
   }
 
   
   
   
-  const uint32_t pageSizeBytes = 12;
-  const uint32_t pageSize = 1 << pageSizeBytes;
+  const PRUint32 pageSizeBytes = 12;
+  const PRUint32 pageSize = 1 << pageSizeBytes;
 
-  uint32_t minBytes = capacity * elemSize + sizeof(Header);
-  uint32_t bytesToAlloc;
+  PRUint32 minBytes = capacity * elemSize + sizeof(Header);
+  PRUint32 bytesToAlloc;
   if (minBytes >= pageSize) {
     
     bytesToAlloc = pageSize * ((minBytes + pageSize - 1) / pageSize);
@@ -150,8 +108,8 @@ nsTArray_base<Alloc>::EnsureCapacity(size_type capacity, size_type elemSize) {
     bytesToAlloc |= bytesToAlloc >> 16;
     bytesToAlloc++;
 
-    MOZ_ASSERT((bytesToAlloc & (bytesToAlloc - 1)) == 0,
-               "nsTArray's allocation size should be a power of two!");
+    NS_ASSERTION((bytesToAlloc & (bytesToAlloc - 1)) == 0,
+                 "nsTArray's allocation size should be a power of two!");
   }
 
   Header *header;
@@ -159,29 +117,29 @@ nsTArray_base<Alloc>::EnsureCapacity(size_type capacity, size_type elemSize) {
     
     header = static_cast<Header*>(Alloc::Malloc(bytesToAlloc));
     if (!header)
-      return false;
+      return PR_FALSE;
 
     memcpy(header, mHdr, sizeof(Header) + Length() * elemSize);
   } else {
     
     header = static_cast<Header*>(Alloc::Realloc(mHdr, bytesToAlloc));
     if (!header)
-      return false;
+      return PR_FALSE;
   }
 
   
-  uint32_t newCapacity = (bytesToAlloc - sizeof(Header)) / elemSize;
-  MOZ_ASSERT(newCapacity >= capacity, "Didn't enlarge the array enough!");
+  PRUint32 newCapacity = (bytesToAlloc - sizeof(Header)) / elemSize;
+  NS_ASSERTION(newCapacity >= capacity, "Didn't enlarge the array enough!");
   header->mCapacity = newCapacity;
 
   mHdr = header;
 
-  return true;
+  return PR_TRUE;
 }
 
 template<class Alloc>
 void
-nsTArray_base<Alloc>::ShrinkCapacity(size_type elemSize, size_t elemAlign) {
+nsTArray_base<Alloc>::ShrinkCapacity(size_type elemSize) {
   if (mHdr == EmptyHdr() || UsesAutoArrayBuffer())
     return;
 
@@ -190,8 +148,8 @@ nsTArray_base<Alloc>::ShrinkCapacity(size_type elemSize, size_t elemAlign) {
 
   size_type length = Length();
 
-  if (IsAutoArray() && GetAutoArrayBuffer(elemAlign)->mCapacity >= length) {
-    Header* header = GetAutoArrayBuffer(elemAlign);
+  if (IsAutoArray() && GetAutoArrayBuffer()->mCapacity >= length) {
+    Header* header = GetAutoArrayBuffer();
 
     
     header->mLength = length;
@@ -203,7 +161,7 @@ nsTArray_base<Alloc>::ShrinkCapacity(size_type elemSize, size_t elemAlign) {
   }
 
   if (length == 0) {
-    MOZ_ASSERT(!IsAutoArray(), "autoarray should have fit 0 elements");
+    NS_ASSERTION(!IsAutoArray(), "autoarray should have fit 0 elements");
     Alloc::Free(mHdr);
     mHdr = EmptyHdr();
     return;
@@ -221,7 +179,7 @@ template<class Alloc>
 void
 nsTArray_base<Alloc>::ShiftData(index_type start,
                                 size_type oldLen, size_type newLen,
-                                size_type elemSize, size_t elemAlign) {
+                                size_type elemSize) {
   if (oldLen == newLen)
     return;
 
@@ -231,7 +189,7 @@ nsTArray_base<Alloc>::ShiftData(index_type start,
   
   mHdr->mLength += newLen - oldLen;
   if (mHdr->mLength == 0) {
-    ShrinkCapacity(elemSize, elemAlign);
+    ShrinkCapacity(elemSize);
   } else {
     
     if (num == 0)
@@ -249,21 +207,21 @@ nsTArray_base<Alloc>::ShiftData(index_type start,
 template<class Alloc>
 bool
 nsTArray_base<Alloc>::InsertSlotsAt(index_type index, size_type count,
-                                    size_type elementSize, size_t elemAlign)  {
-  MOZ_ASSERT(index <= Length(), "Bogus insertion index");
+                                    size_type elementSize)  {
+  NS_ASSERTION(index <= Length(), "Bogus insertion index");
   size_type newLen = Length() + count;
 
   EnsureCapacity(newLen, elementSize);
 
   
   if (Capacity() < newLen)
-    return false;
+    return PR_FALSE;
 
   
   
-  ShiftData(index, 0, count, elementSize, elemAlign);
+  ShiftData(index, 0, count, elementSize);
       
-  return true;
+  return PR_TRUE;
 }
 
 
@@ -276,10 +234,8 @@ nsTArray_base<Alloc>::InsertSlotsAt(index_type index, size_type count,
 
 template<class Alloc>
 nsTArray_base<Alloc>::IsAutoArrayRestorer::IsAutoArrayRestorer(
-  nsTArray_base<Alloc> &array,
-  size_t elemAlign) 
+  nsTArray_base<Alloc> &array) 
   : mArray(array),
-    mElemAlign(elemAlign),
     mIsAuto(array.IsAutoArray())
 {
 }
@@ -290,7 +246,7 @@ nsTArray_base<Alloc>::IsAutoArrayRestorer::~IsAutoArrayRestorer() {
   if (mIsAuto && mArray.mHdr == mArray.EmptyHdr()) {
     
     
-    mArray.mHdr = mArray.GetAutoArrayBufferUnsafe(mElemAlign);
+    mArray.mHdr = mArray.GetAutoArrayBufferUnsafe();
     mArray.mHdr->mLength = 0;
   }
   else {
@@ -302,16 +258,15 @@ template<class Alloc>
 template<class Allocator>
 bool
 nsTArray_base<Alloc>::SwapArrayElements(nsTArray_base<Allocator>& other,
-                                        size_type elemSize,
-                                        size_t elemAlign) {
+                                        size_type elemSize) {
 
   
   
   
   
 
-  IsAutoArrayRestorer ourAutoRestorer(*this, elemAlign);
-  typename nsTArray_base<Allocator>::IsAutoArrayRestorer otherAutoRestorer(other, elemAlign);
+  IsAutoArrayRestorer ourAutoRestorer(*this);
+  typename nsTArray_base<Allocator>::IsAutoArrayRestorer otherAutoRestorer(other);
 
   
   
@@ -321,14 +276,14 @@ nsTArray_base<Alloc>::SwapArrayElements(nsTArray_base<Allocator>& other,
 
     if (!EnsureNotUsingAutoArrayBuffer(elemSize) ||
         !other.EnsureNotUsingAutoArrayBuffer(elemSize)) {
-      return false;
+      return PR_FALSE;
     }
 
     Header *temp = mHdr;
     mHdr = other.mHdr;
     other.mHdr = temp;
 
-    return true;
+    return PR_TRUE;
   }
 
   
@@ -344,13 +299,12 @@ nsTArray_base<Alloc>::SwapArrayElements(nsTArray_base<Allocator>& other,
 
   if (!EnsureCapacity(other.Length(), elemSize) ||
       !other.EnsureCapacity(Length(), elemSize)) {
-    return false;
+    return PR_FALSE;
   }
 
   
   
-  NS_ABORT_IF_FALSE(UsesAutoArrayBuffer() ||
-                    other.UsesAutoArrayBuffer(),
+  NS_ABORT_IF_FALSE(UsesAutoArrayBuffer() || other.UsesAutoArrayBuffer(),
                     "One of the arrays should be using its auto buffer.");
 
   size_type smallerLength = NS_MIN(Length(), other.Length());
@@ -370,9 +324,9 @@ nsTArray_base<Alloc>::SwapArrayElements(nsTArray_base<Allocator>& other,
   
   
   
-  nsAutoTArray<uint8_t, 64, Alloc> temp;
+  nsAutoTArray<PRUint8, 8192, Alloc> temp;
   if (!temp.SetCapacity(smallerLength * elemSize)) {
-    return false;
+    return PR_FALSE;
   }
 
   memcpy(temp.Elements(), smallerElements, smallerLength * elemSize);
@@ -387,7 +341,7 @@ nsTArray_base<Alloc>::SwapArrayElements(nsTArray_base<Allocator>& other,
   mHdr->mLength = other.Length();
   other.mHdr->mLength = tempLength;
 
-  return true;
+  return PR_TRUE;
 }
 
 template<class Alloc>
@@ -401,19 +355,19 @@ nsTArray_base<Alloc>::EnsureNotUsingAutoArrayBuffer(size_type elemSize) {
     
     if (Length() == 0) {
       mHdr = EmptyHdr();
-      return true;
+      return PR_TRUE;
     }
 
     size_type size = sizeof(Header) + Length() * elemSize;
 
     Header* header = static_cast<Header*>(Alloc::Malloc(size));
     if (!header)
-      return false;
+      return PR_FALSE;
 
     memcpy(header, mHdr, size);
     header->mCapacity = Length();
     mHdr = header;
   }
   
-  return true;
+  return PR_TRUE;
 }

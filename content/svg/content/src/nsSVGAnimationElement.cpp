@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSVGAnimationElement.h"
 #include "nsSVGSVGElement.h"
 #include "nsSMILTimeContainer.h"
@@ -22,7 +55,6 @@ NS_IMPL_RELEASE_INHERITED(nsSVGAnimationElement, nsSVGAnimationElementBase)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsSVGAnimationElement)
   NS_INTERFACE_MAP_ENTRY(nsISMILAnimationElement)
   NS_INTERFACE_MAP_ENTRY(nsIDOMElementTimeControl)
-  NS_INTERFACE_MAP_ENTRY(nsIDOMSVGTests)
 NS_INTERFACE_MAP_END_INHERITING(nsSVGAnimationElementBase)
 
 
@@ -86,14 +118,6 @@ nsSVGAnimationElement::AsElement()
   return *this;
 }
 
-bool
-nsSVGAnimationElement::PassesConditionalProcessingTests()
-{
-  nsCOMPtr<DOMSVGTests> tests(do_QueryInterface(
-    static_cast<nsSVGElement*>(this)));
-  return tests->PassesConditionalProcessingTests();
-}
-
 const nsAttrValue*
 nsSVGAnimationElement::GetAnimAttr(nsIAtom* aName) const
 {
@@ -125,18 +149,18 @@ nsSVGAnimationElement::GetTargetElementContent()
 
   
   nsIContent* parent = GetFlattenedTreeParent();
-  return parent && parent->IsElement() ? parent->AsElement() : nullptr;
+  return parent && parent->IsElement() ? parent->AsElement() : nsnull;
 }
 
 bool
-nsSVGAnimationElement::GetTargetAttributeName(int32_t *aNamespaceID,
+nsSVGAnimationElement::GetTargetAttributeName(PRInt32 *aNamespaceID,
                                               nsIAtom **aLocalName) const
 {
   const nsAttrValue* nameAttr
     = mAttrsAndChildren.GetAttr(nsGkAtoms::attributeName);
 
   if (!nameAttr)
-    return false;
+    return PR_FALSE;
 
   NS_ASSERTION(nameAttr->Type() == nsAttrValue::eAtom,
     "attributeName should have been parsed as an atom");
@@ -151,10 +175,10 @@ nsSVGAnimationElement::GetTargetAttributeType() const
 {
   nsIContent::AttrValuesArray typeValues[] = { &nsGkAtoms::css,
                                                &nsGkAtoms::XML,
-                                               nullptr};
+                                               nsnull};
   nsSMILTargetAttrType smilTypes[] = { eSMILTargetAttrType_CSS,
                                        eSMILTargetAttrType_XML };
-  int32_t index = FindAttrValueIn(kNameSpaceID_None,
+  PRInt32 index = FindAttrValueIn(kNameSpaceID_None,
                                   nsGkAtoms::attributeType,
                                   typeValues,
                                   eCaseMatters);
@@ -286,9 +310,12 @@ nsSVGAnimationElement::BindToTree(nsIDocument* aDocument,
 void
 nsSVGAnimationElement::UnbindFromTree(bool aDeep, bool aNullParent)
 {
-  nsSMILAnimationController *controller = OwnerDoc()->GetAnimationController();
-  if (controller) {
-    controller->UnregisterAnimationElement(this);
+  nsIDocument *doc = GetOwnerDoc();
+  if (doc) {
+    nsSMILAnimationController *controller = doc->GetAnimationController();
+    if (controller) {
+      controller->UnregisterAnimationElement(this);
+    }
   }
 
   mHrefTarget.Unlink();
@@ -300,7 +327,7 @@ nsSVGAnimationElement::UnbindFromTree(bool aDeep, bool aNullParent)
 }
 
 bool
-nsSVGAnimationElement::ParseAttribute(int32_t aNamespaceID,
+nsSVGAnimationElement::ParseAttribute(PRInt32 aNamespaceID,
                                       nsIAtom* aAttribute,
                                       const nsAString& aValue,
                                       nsAttrValue& aResult)
@@ -311,7 +338,7 @@ nsSVGAnimationElement::ParseAttribute(int32_t aNamespaceID,
         aAttribute == nsGkAtoms::attributeType) {
       aResult.ParseAtom(aValue);
       AnimationNeedsResample();
-      return true;
+      return PR_TRUE;
     }
 
     nsresult rv = NS_ERROR_FAILURE;
@@ -330,10 +357,10 @@ nsSVGAnimationElement::ParseAttribute(int32_t aNamespaceID,
     if (foundMatch) {
       AnimationNeedsResample();
       if (NS_FAILED(rv)) {
-        ReportAttributeParseFailure(OwnerDoc(), aAttribute, aValue);
-        return false;
+        ReportAttributeParseFailure(GetOwnerDoc(), aAttribute, aValue);
+        return PR_FALSE;
       }
-      return true;
+      return PR_TRUE;
     }
   }
 
@@ -342,8 +369,8 @@ nsSVGAnimationElement::ParseAttribute(int32_t aNamespaceID,
 }
 
 nsresult
-nsSVGAnimationElement::AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
-                                    const nsAttrValue* aValue, bool aNotify)
+nsSVGAnimationElement::AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
+                                    const nsAString* aValue, bool aNotify)
 {
   nsresult rv =
     nsSVGAnimationElementBase::AfterSetAttr(aNamespaceID, aName, aValue,
@@ -356,9 +383,7 @@ nsSVGAnimationElement::AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
     mHrefTarget.Unlink();
     AnimationTargetChanged();
   } else if (IsInDoc()) {
-    NS_ABORT_IF_FALSE(aValue->Type() == nsAttrValue::eString,
-                      "Expected href attribute to be string type");
-    UpdateHrefTarget(this, aValue->GetStringValue());
+    UpdateHrefTarget(this, *aValue);
   } 
     
 
@@ -366,7 +391,7 @@ nsSVGAnimationElement::AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
 }
 
 nsresult
-nsSVGAnimationElement::UnsetAttr(int32_t aNamespaceID,
+nsSVGAnimationElement::UnsetAttr(PRInt32 aNamespaceID,
                                  nsIAtom* aAttribute, bool aNotify)
 {
   nsresult rv = nsSVGAnimationElementBase::UnsetAttr(aNamespaceID, aAttribute,
@@ -384,37 +409,9 @@ nsSVGAnimationElement::UnsetAttr(int32_t aNamespaceID,
 }
 
 bool
-nsSVGAnimationElement::IsNodeOfType(uint32_t aFlags) const
+nsSVGAnimationElement::IsNodeOfType(PRUint32 aFlags) const
 {
-  return !(aFlags & ~(eCONTENT | eANIMATION));
-}
-
-
-
-
-void
-nsSVGAnimationElement::ActivateByHyperlink()
-{
-  FlushAnimations();
-
-  
-  
-  
-  nsSMILTimeValue seekTime = mTimedElement.GetHyperlinkTime();
-  if (seekTime.IsDefinite()) {
-    nsSMILTimeContainer* timeContainer = GetTimeContainer();
-    if (timeContainer) {
-      timeContainer->SetCurrentTime(seekTime.GetMillis());
-      AnimationNeedsResample();
-      
-      
-      FlushAnimations();
-    }
-    
-    
-  } else {
-    BeginElement();
-  }
+  return !(aFlags & ~(eCONTENT | eSVG | eANIMATION));
 }
 
 
@@ -429,7 +426,7 @@ nsSVGAnimationElement::GetTimeContainer()
     return element->GetTimedDocumentRoot();
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 
@@ -503,7 +500,7 @@ nsSVGAnimationElement::UpdateHrefTarget(nsIContent* aNodeForContext,
   nsCOMPtr<nsIURI> targetURI;
   nsCOMPtr<nsIURI> baseURI = GetBaseURI();
   nsContentUtils::NewURIWithDocumentCharset(getter_AddRefs(targetURI),
-                                            aHrefStr, OwnerDoc(), baseURI);
+                                            aHrefStr, GetOwnerDoc(), baseURI);
   mHrefTarget.Reset(aNodeForContext, targetURI);
   AnimationTargetChanged();
 }

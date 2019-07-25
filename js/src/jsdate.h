@@ -8,37 +8,49 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef jsdate_h___
 #define jsdate_h___
 
-#include "mozilla/FloatingPoint.h"
+#include "jscntxt.h"
 
-#include <math.h>
+#define HalfTimeDomain  8.64e15
 
-#include "jstypes.h"
-
-#include "vm/NumericConversions.h"
-
-extern "C" {
-struct JSObject;
-struct JSContext;
-}
-
-namespace js {
-
-
-inline double
-TimeClip(double time)
-{
-    
-    if (!MOZ_DOUBLE_IS_FINITE(time) || fabs(time) > 8.64e15)
-        return js_NaN;
-
-    
-    return ToInteger(time + (+0.0));
-}
-
-} 
+#define TIMECLIP(d) ((JSDOUBLE_IS_FINITE(d) \
+                      && !((d < 0 ? -d : d) > HalfTimeDomain)) \
+                     ? js_DoubleToInteger(d + (+0.)) : js_NaN)
 
 extern JSObject *
 js_InitDateClass(JSContext *cx, JSObject *obj);
@@ -52,7 +64,7 @@ js_InitDateClass(JSContext *cx, JSObject *obj);
 
 
 extern JS_FRIEND_API(JSObject*)
-js_NewDateObjectMsec(JSContext* cx, double msec_time);
+js_NewDateObjectMsec(JSContext* cx, jsdouble msec_time);
 
 
 
@@ -65,8 +77,12 @@ extern JS_FRIEND_API(JSObject*)
 js_NewDateObject(JSContext* cx, int year, int mon, int mday,
                  int hour, int min, int sec);
 
-extern void
-js_ClearDateCaches();
+
+
+
+
+extern JS_FRIEND_API(JSBool)
+js_DateIsValid(JSContext *cx, JSObject* obj);
 
 extern JS_FRIEND_API(int)
 js_DateGetYear(JSContext *cx, JSObject* obj);
@@ -86,8 +102,16 @@ js_DateGetMinutes(JSContext *cx, JSObject* obj);
 extern JS_FRIEND_API(int)
 js_DateGetSeconds(JSContext *cx, JSObject* obj);
 
+extern JS_FRIEND_API(jsdouble)
+js_DateGetMsecSinceEpoch(JSContext *cx, JSObject *obj);
+
+typedef uint32 JSIntervalTime;
+
+extern JS_FRIEND_API(JSIntervalTime)
+js_IntervalNow();
+
 
 JSBool
-js_Date(JSContext *cx, unsigned argc, js::Value *vp);
+js_Date(JSContext *cx, uintN argc, js::Value *vp);
 
 #endif 

@@ -3,12 +3,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsGenericElement.h"
 #include "nsGkAtoms.h"
 #include "nsUnicharUtils.h"
 #include "nsXMLProcessingInstruction.h"
+#include "nsParserUtils.h"
 #include "nsContentCreatorFunctions.h"
-#include "nsContentUtils.h"
 
 nsresult
 NS_NewXMLProcessingInstruction(nsIContent** aInstancePtrResult,
@@ -26,11 +58,11 @@ NS_NewXMLProcessingInstruction(nsIContent** aInstancePtrResult,
                                                     aNodeInfoManager, aData);
   }
 
-  *aInstancePtrResult = nullptr;
+  *aInstancePtrResult = nsnull;
 
   nsCOMPtr<nsINodeInfo> ni;
   ni = aNodeInfoManager->GetNodeInfo(nsGkAtoms::processingInstructionTagName,
-                                     nullptr, kNameSpaceID_None,
+                                     nsnull, kNameSpaceID_None,
                                      nsIDOMNode::PROCESSING_INSTRUCTION_NODE,
                                      target);
   NS_ENSURE_TRUE(ni, NS_ERROR_OUT_OF_MEMORY);
@@ -56,7 +88,7 @@ nsXMLProcessingInstruction::nsXMLProcessingInstruction(already_AddRefed<nsINodeI
 
   SetTextInternal(0, mText.GetLength(),
                   aData.BeginReading(), aData.Length(),
-                  false);  
+                  PR_FALSE);  
 }
 
 nsXMLProcessingInstruction::~nsXMLProcessingInstruction()
@@ -97,11 +129,11 @@ nsXMLProcessingInstruction::GetAttrValue(nsIAtom *aName, nsAString& aValue)
   nsAutoString data;
 
   GetData(data);
-  return nsContentUtils::GetPseudoAttributeValue(data, aName, aValue);
+  return nsParserUtils::GetQuotedAttributeValue(data, aName, aValue);
 }
 
 bool
-nsXMLProcessingInstruction::IsNodeOfType(uint32_t aFlags) const
+nsXMLProcessingInstruction::IsNodeOfType(PRUint32 aFlags) const
 {
   return !(aFlags & ~(eCONTENT | ePROCESSING_INSTRUCTION | eDATA_NODE));
 }
@@ -118,9 +150,9 @@ nsXMLProcessingInstruction::CloneDataNode(nsINodeInfo *aNodeInfo,
 
 #ifdef DEBUG
 void
-nsXMLProcessingInstruction::List(FILE* out, int32_t aIndent) const
+nsXMLProcessingInstruction::List(FILE* out, PRInt32 aIndent) const
 {
-  int32_t index;
+  PRInt32 index;
   for (index = aIndent; --index >= 0; ) fputs("  ", out);
 
   fprintf(out, "Processing instruction refcount=%d<", mRefCnt.get());
@@ -134,7 +166,7 @@ nsXMLProcessingInstruction::List(FILE* out, int32_t aIndent) const
 }
 
 void
-nsXMLProcessingInstruction::DumpContent(FILE* out, int32_t aIndent,
+nsXMLProcessingInstruction::DumpContent(FILE* out, PRInt32 aIndent,
                                         bool aDumpAll) const
 {
 }

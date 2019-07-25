@@ -3,20 +3,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGANGLE_H__
 #define __NS_SVGANGLE_H__
 
-#include "nsAutoPtr.h"
-#include "nsCycleCollectionParticipant.h"
-#include "nsError.h"
 #include "nsIDOMSVGAngle.h"
 #include "nsIDOMSVGAnimatedAngle.h"
-#include "nsISMILAttr.h"
 #include "nsSVGElement.h"
-#include "mozilla/Attributes.h"
+#include "nsDOMError.h"
 
-class nsISMILAnimationElement;
-class nsSMILValue;
 class nsSVGOrientType;
 
 class nsSVGAngle
@@ -24,60 +49,62 @@ class nsSVGAngle
   friend class DOMSVGAngle;
 
 public:
-  void Init(uint8_t aAttrEnum = 0xff,
+  void Init(PRUint8 aAttrEnum = 0xff,
             float aValue = 0,
-            uint8_t aUnitType = nsIDOMSVGAngle::SVG_ANGLETYPE_UNSPECIFIED) {
+            PRUint8 aUnitType = nsIDOMSVGAngle::SVG_ANGLETYPE_UNSPECIFIED) {
     mAnimVal = mBaseVal = aValue;
     mAnimValUnit = mBaseValUnit = aUnitType;
     mAttrEnum = aAttrEnum;
-    mIsAnimated = false;
+    mIsAnimated = PR_FALSE;
   }
 
   nsresult SetBaseValueString(const nsAString& aValue,
                               nsSVGElement *aSVGElement,
                               bool aDoSetAttr);
-  void GetBaseValueString(nsAString& aValue) const;
-  void GetAnimValueString(nsAString& aValue) const;
+  void GetBaseValueString(nsAString& aValue);
+  void GetAnimValueString(nsAString& aValue);
 
   float GetBaseValue() const
     { return mBaseVal * GetDegreesPerUnit(mBaseValUnit); }
   float GetAnimValue() const
     { return mAnimVal * GetDegreesPerUnit(mAnimValUnit); }
 
-  void SetBaseValue(float aValue, nsSVGElement *aSVGElement, bool aDoSetAttr);
-  void SetAnimValue(float aValue, uint8_t aUnit, nsSVGElement *aSVGElement);
+  void SetBaseValue(float aValue, nsSVGElement *aSVGElement);
+  void SetAnimValue(float aValue, PRUint8 aUnit, nsSVGElement *aSVGElement);
 
-  uint8_t GetBaseValueUnit() const { return mBaseValUnit; }
-  uint8_t GetAnimValueUnit() const { return mAnimValUnit; }
+  PRUint8 GetBaseValueUnit() const { return mBaseValUnit; }
+  PRUint8 GetAnimValueUnit() const { return mAnimValUnit; }
   float GetBaseValInSpecifiedUnits() const { return mBaseVal; }
   float GetAnimValInSpecifiedUnits() const { return mAnimVal; }
 
   static nsresult ToDOMSVGAngle(nsIDOMSVGAngle **aResult);
   nsresult ToDOMAnimatedAngle(nsIDOMSVGAnimatedAngle **aResult,
                               nsSVGElement* aSVGElement);
+#ifdef MOZ_SMIL
   
   nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement);
+#endif 
 
-  static float GetDegreesPerUnit(uint8_t aUnit);
+  static float GetDegreesPerUnit(PRUint8 aUnit);
 
 private:
   
   float mAnimVal;
   float mBaseVal;
-  uint8_t mAnimValUnit;
-  uint8_t mBaseValUnit;
-  uint8_t mAttrEnum; 
+  PRUint8 mAnimValUnit;
+  PRUint8 mBaseValUnit;
+  PRUint8 mAttrEnum; 
   bool mIsAnimated;
   
   void SetBaseValueInSpecifiedUnits(float aValue, nsSVGElement *aSVGElement);
-  nsresult NewValueSpecifiedUnits(uint16_t aUnitType, float aValue,
+  nsresult NewValueSpecifiedUnits(PRUint16 aUnitType, float aValue,
                                   nsSVGElement *aSVGElement);
-  nsresult ConvertToSpecifiedUnits(uint16_t aUnitType, nsSVGElement *aSVGElement);
+  nsresult ConvertToSpecifiedUnits(PRUint16 aUnitType, nsSVGElement *aSVGElement);
   nsresult ToDOMBaseVal(nsIDOMSVGAngle **aResult, nsSVGElement* aSVGElement);
   nsresult ToDOMAnimVal(nsIDOMSVGAngle **aResult, nsSVGElement* aSVGElement);
 
 public:
-  struct DOMBaseVal MOZ_FINAL : public nsIDOMSVGAngle
+  struct DOMBaseVal : public nsIDOMSVGAngle
   {
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS(DOMBaseVal)
@@ -88,13 +115,13 @@ public:
     nsSVGAngle* mVal; 
     nsRefPtr<nsSVGElement> mSVGElement;
     
-    NS_IMETHOD GetUnitType(uint16_t* aResult)
+    NS_IMETHOD GetUnitType(PRUint16* aResult)
       { *aResult = mVal->mBaseValUnit; return NS_OK; }
 
     NS_IMETHOD GetValue(float* aResult)
       { *aResult = mVal->GetBaseValue(); return NS_OK; }
     NS_IMETHOD SetValue(float aValue)
-      { mVal->SetBaseValue(aValue, mSVGElement, true); return NS_OK; }
+      { mVal->SetBaseValue(aValue, mSVGElement); return NS_OK; }
 
     NS_IMETHOD GetValueInSpecifiedUnits(float* aResult)
       { *aResult = mVal->mBaseVal; return NS_OK; }
@@ -103,20 +130,20 @@ public:
         return NS_OK; }
 
     NS_IMETHOD SetValueAsString(const nsAString& aValue)
-      { return mVal->SetBaseValueString(aValue, mSVGElement, true); }
+      { return mVal->SetBaseValueString(aValue, mSVGElement, PR_TRUE); }
     NS_IMETHOD GetValueAsString(nsAString& aValue)
       { mVal->GetBaseValueString(aValue); return NS_OK; }
 
-    NS_IMETHOD NewValueSpecifiedUnits(uint16_t unitType,
+    NS_IMETHOD NewValueSpecifiedUnits(PRUint16 unitType,
                                       float valueInSpecifiedUnits)
       { return mVal->NewValueSpecifiedUnits(unitType, valueInSpecifiedUnits,
                                      mSVGElement); }
 
-    NS_IMETHOD ConvertToSpecifiedUnits(uint16_t unitType)
+    NS_IMETHOD ConvertToSpecifiedUnits(PRUint16 unitType)
       { return mVal->ConvertToSpecifiedUnits(unitType, mSVGElement); }
   };
 
-  struct DOMAnimVal MOZ_FINAL : public nsIDOMSVGAngle
+  struct DOMAnimVal : public nsIDOMSVGAngle
   {
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS(DOMAnimVal)
@@ -127,7 +154,7 @@ public:
     nsSVGAngle* mVal; 
     nsRefPtr<nsSVGElement> mSVGElement;
     
-    NS_IMETHOD GetUnitType(uint16_t* aResult)
+    NS_IMETHOD GetUnitType(PRUint16* aResult)
       { *aResult = mVal->mAnimValUnit; return NS_OK; }
 
     NS_IMETHOD GetValue(float* aResult)
@@ -145,15 +172,15 @@ public:
     NS_IMETHOD GetValueAsString(nsAString& aValue)
       { mVal->GetAnimValueString(aValue); return NS_OK; }
 
-    NS_IMETHOD NewValueSpecifiedUnits(uint16_t unitType,
+    NS_IMETHOD NewValueSpecifiedUnits(PRUint16 unitType,
                                       float valueInSpecifiedUnits)
       { return NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR; }
 
-    NS_IMETHOD ConvertToSpecifiedUnits(uint16_t unitType)
+    NS_IMETHOD ConvertToSpecifiedUnits(PRUint16 unitType)
       { return NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR; }
   };
 
-  struct DOMAnimatedAngle MOZ_FINAL : public nsIDOMSVGAnimatedAngle
+  struct DOMAnimatedAngle : public nsIDOMSVGAnimatedAngle
   {
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS(DOMAnimatedAngle)
@@ -171,12 +198,13 @@ public:
       { return mVal->ToDOMAnimVal(aAnimVal, mSVGElement); }
   };
 
+#ifdef MOZ_SMIL
   
   
   
   
 
-  struct SMILOrient MOZ_FINAL : public nsISMILAttr
+  struct SMILOrient : public nsISMILAttr
   {
   public:
     SMILOrient(nsSVGOrientType* aOrientType,
@@ -203,6 +231,7 @@ public:
     virtual void ClearAnimValue();
     virtual nsresult SetAnimValue(const nsSMILValue& aValue);
   };
+#endif 
 };
 
 nsresult

@@ -15,9 +15,7 @@ const EVENT_MENUPOPUP_END = nsIAccessibleEvent.EVENT_MENUPOPUP_END;
 const EVENT_OBJECT_ATTRIBUTE_CHANGED = nsIAccessibleEvent.EVENT_OBJECT_ATTRIBUTE_CHANGED;
 const EVENT_REORDER = nsIAccessibleEvent.EVENT_REORDER;
 const EVENT_SCROLLING_START = nsIAccessibleEvent.EVENT_SCROLLING_START;
-const EVENT_SELECTION = nsIAccessibleEvent.EVENT_SELECTION;
 const EVENT_SELECTION_ADD = nsIAccessibleEvent.EVENT_SELECTION_ADD;
-const EVENT_SELECTION_REMOVE = nsIAccessibleEvent.EVENT_SELECTION_REMOVE;
 const EVENT_SELECTION_WITHIN = nsIAccessibleEvent.EVENT_SELECTION_WITHIN;
 const EVENT_SHOW = nsIAccessibleEvent.EVENT_SHOW;
 const EVENT_STATE_CHANGE = nsIAccessibleEvent.EVENT_STATE_CHANGE;
@@ -25,17 +23,10 @@ const EVENT_TEXT_ATTRIBUTE_CHANGED = nsIAccessibleEvent.EVENT_TEXT_ATTRIBUTE_CHA
 const EVENT_TEXT_CARET_MOVED = nsIAccessibleEvent.EVENT_TEXT_CARET_MOVED;
 const EVENT_TEXT_INSERTED = nsIAccessibleEvent.EVENT_TEXT_INSERTED;
 const EVENT_TEXT_REMOVED = nsIAccessibleEvent.EVENT_TEXT_REMOVED;
-const EVENT_TEXT_SELECTION_CHANGED = nsIAccessibleEvent.EVENT_TEXT_SELECTION_CHANGED;
 const EVENT_VALUE_CHANGE = nsIAccessibleEvent.EVENT_VALUE_CHANGE;
-const EVENT_VIRTUALCURSOR_CHANGED = nsIAccessibleEvent.EVENT_VIRTUALCURSOR_CHANGED;
-
-const kNotFromUserInput = 0;
-const kFromUserInput = 1;
 
 
 
-
-Components.utils.import("resource://gre/modules/Services.jsm");
 
 
 
@@ -51,11 +42,6 @@ var gA11yEventDumpToConsole = false;
 
 
 var gA11yEventDumpToAppConsole = false;
-
-
-
-
-var gA11yEventDumpFeature = "";
 
 
 
@@ -96,21 +82,6 @@ function waitForEvent(aEventType, aTarget, aFunc, aContext, aArg1, aArg2)
   };
 
   registerA11yEventListener(aEventType, handler);
-}
-
-
-
-
-function waitForImageMap(aImageMapID, aTestFunc)
-{
-  synthesizeMouse(aImageMapID, 10, 10, { type: "mousemove" },
-                  aImageMapID.ownerDocument.defaultView);
-
-  var imageMapAcc = getAccessible(aImageMapID);
-  if (imageMapAcc.firstChild)
-    return aTestFunc();
-
-  waitForEvent(EVENT_REORDER, imageMapAcc, aTestFunc);
 }
 
 
@@ -327,20 +298,12 @@ function eventQueue(aEventType)
     
     invoker = this.getNextInvoker();
 
-    this.setEventHandler(invoker);
-
     if (gLogger.isEnabled()) {
       gLogger.logToConsole("Event queue: \n  invoke: " + invoker.getID());
       gLogger.logToDOM("EQ: invoke: " + invoker.getID(), true);
     }
 
-    var infoText = "Invoke the '" + invoker.getID() + "' test { ";
-    for (var idx = 0; idx < this.mEventSeq.length; idx++) {
-      infoText += this.isEventUnexpected(idx) ? "un" : "";
-      infoText += "expected '" + this.getEventTypeAsString(idx) + "' event; ";
-    }
-    infoText += " }";
-    info(infoText);
+    this.setEventHandler(invoker);
 
     if (invoker.invoke() == INVOKER_ACTION_FAILED) {
       
@@ -362,7 +325,7 @@ function eventQueue(aEventType)
     }
 
     
-    window.setTimeout(function(aQueue) { aQueue.processNextInvoker(); }, 300,
+    window.setTimeout(function(aQueue) { aQueue.processNextInvoker(); }, 100,
                       this);
   }
 
@@ -560,8 +523,6 @@ function eventQueue(aEventType)
           var msg = "registered";
           if (this.isEventUnexpected(idx))
             msg += " unexpected";
-          if (this.mEventSeq[idx].async)
-            msg += " async";
 
           msg += ": event type: " + this.getEventTypeAsString(idx) +
             ", target: " + this.getEventTargetDescr(idx, true);
@@ -862,7 +823,7 @@ function synthClick(aNodeOrID, aCheckerOrEventSeq, aArgs)
     }
 
     
-    if (targetNode instanceof nsIDOMHTMLElement) {
+    if (targetNode instanceof nsIDOMNSHTMLElement) {
       targetNode.scrollIntoView(true);
     } else if (targetNode instanceof nsIDOMXULElement) {
       var targetAcc = getAccessible(targetNode);
@@ -871,7 +832,7 @@ function synthClick(aNodeOrID, aCheckerOrEventSeq, aArgs)
 
     var x = 1, y = 1;
     if (aArgs && ("where" in aArgs) && aArgs.where == "right") {
-      if (targetNode instanceof nsIDOMHTMLElement)
+      if (targetNode instanceof nsIDOMNSHTMLElement)
         x = targetNode.offsetWidth - 1;
       else if (targetNode instanceof nsIDOMXULElement)
         x = targetNode.boxObject.width - 1;
@@ -1257,33 +1218,6 @@ function synthSelectAll(aNodeOrID, aCheckerOrEventSeq)
 
 
 
-function setCaretOffset(aID, aOffset, aFocusTargetID)
-{
-  this.target = getAccessible(aID, [nsIAccessibleText]);
-  this.offset = aOffset == -1 ? this.target.characterCount: aOffset;
-  this.focus = aFocusTargetID ? getAccessible(aFocusTargetID) : null;
-
-  this.invoke = function setCaretOffset_invoke()
-  {
-    this.target.caretOffset = this.offset;
-  }
-
-  this.getID = function setCaretOffset_getID()
-  {
-   return "Set caretOffset on " + prettyName(aID) + " at " + this.offset;
-  }
-
-  this.eventSeq = [
-    new caretMoveChecker(this.offset, this.target)
-  ];
-
-  if (this.focus)
-    this.eventSeq.push(new asyncInvokerChecker(EVENT_FOCUS, this.focus));
-}
-
-
-
-
 
 
 
@@ -1358,8 +1292,7 @@ function nofocusChecker(aID)
 
 
 
-
-function textChangeChecker(aID, aStart, aEnd, aTextOrFunc, aIsInserted, aFromUser)
+function textChangeChecker(aID, aStart, aEnd, aTextOrFunc, aIsInserted)
 {
   this.target = getNode(aID);
   this.type = aIsInserted ? EVENT_TEXT_INSERTED : EVENT_TEXT_REMOVED;
@@ -1379,9 +1312,6 @@ function textChangeChecker(aID, aStart, aEnd, aTextOrFunc, aIsInserted, aFromUse
        "Text was " + changeInfo + " for " + prettyName(aID));
     is(aEvent.modifiedText, modifiedText,
        "Wrong " + changeInfo + " text for " + prettyName(aID));
-    if (typeof aFromUser != "undefined")
-      is(aEvent.isFromUserInput, aFromUser,
-         "wrong value of isFromUserInput() for " + prettyName(aID));
   }
 }
 
@@ -1405,10 +1335,10 @@ function caretMoveChecker(aCaretOffset, aTargetOrFunc, aTargetFuncArg)
 
 
 function stateChangeChecker(aState, aIsExtraState, aIsEnabled,
-                            aTargetOrFunc, aTargetFuncArg, aIsAsync)
+                            aTargetOrFunc, aTargetFuncArg)
 {
   this.__proto__ = new invokerChecker(EVENT_STATE_CHANGE, aTargetOrFunc,
-                                      aTargetFuncArg, aIsAsync);
+                                      aTargetFuncArg);
 
   this.check = function stateChangeChecker_check(aEvent)
   {
@@ -1422,10 +1352,9 @@ function stateChangeChecker(aState, aIsExtraState, aIsEnabled,
     if (!event)
       return;
 
+    is(event.state, aState, "Wrong state of the statechange event.");
     is(event.isExtraState(), aIsExtraState,
        "Wrong extra state bit of the statechange event.");
-    isState(event.state, aState, aIsExtraState,
-            "Wrong state of the statechange event.");
     is(event.isEnabled(), aIsEnabled,
       "Wrong state of statechange event state");
 
@@ -1435,22 +1364,6 @@ function stateChangeChecker(aState, aIsExtraState, aIsEnabled,
     var unxpdExtraState = aIsEnabled ? 0 : (aIsExtraState ? aState : 0);
     testStates(event.accessible, state, extraState, unxpdState, unxpdExtraState);
   }
-
-  this.match = function stateChangeChecker_match(aEvent)
-  {
-    if (aEvent instanceof nsIAccessibleStateChangeEvent) {
-      var scEvent = aEvent.QueryInterface(nsIAccessibleStateChangeEvent);
-      return aEvent.accessible = this.target && scEvent.state == aState;
-    }
-    return false;
-  }
-}
-
-function asyncStateChangeChecker(aState, aIsExtraState, aIsEnabled,
-                                 aTargetOrFunc, aTargetFuncArg)
-{
-  this.__proto__ = new stateChangeChecker(aState, aIsExtraState, aIsEnabled,
-                                          aTargetOrFunc, aTargetFuncArg, true);
 }
 
 
@@ -1497,6 +1410,12 @@ var gA11yEventApplicantsCount = 0;
 
 var gA11yEventObserver =
 {
+  
+  
+  observerService :
+    Components.classes["@mozilla.org/observer-service;1"]
+              .getService(nsIObserverService),
+
   observe: function observe(aSubject, aTopic, aData)
   {
     if (aTopic != "accessible-event")
@@ -1508,7 +1427,7 @@ var gA11yEventObserver =
     } catch (ex) {
       
       
-      Services.obs.removeObserver(this, "accessible-event");
+      this.observerService.removeObserver(this, "accessible-event");
       
       throw "[accessible/events.js, gA11yEventObserver.observe] This is expected if a previous test has been aborted... Initial exception was: [ " + ex + " ]";
     }
@@ -1543,15 +1462,6 @@ var gA11yEventObserver =
         if (listenersArray)
           info += ". Listeners count: " + listenersArray.length;
 
-        if (gLogger.hasFeature("parentchain:" + type)) {
-          info += "\nParent chain:\n";
-          var acc = event.accessible;
-          while (acc) {
-            info += "  " + prettyName(acc) + "\n";
-            acc = acc.parent;
-          }
-        }
-
         eventFromDumpArea = false;
         gLogger.log(info);
       }
@@ -1571,12 +1481,14 @@ function listenA11yEvents(aStartToListen)
   if (aStartToListen) {
     
     if (!(gA11yEventApplicantsCount++))
-      Services.obs.addObserver(gA11yEventObserver, "accessible-event", false);
+      gA11yEventObserver.observerService
+                        .addObserver(gA11yEventObserver, "accessible-event", false);
   } else {
     
     
     if (--gA11yEventApplicantsCount <= 0)
-      Services.obs.removeObserver(gA11yEventObserver, "accessible-event");
+      gA11yEventObserver.observerService
+                        .removeObserver(gA11yEventObserver, "accessible-event");
   }
 }
 
@@ -1693,22 +1605,11 @@ var gLogger =
   logToAppConsole: function logger_logToAppConsole(aMsg)
   {
     if (gA11yEventDumpToAppConsole)
-      Services.console.logStringMessage("events: " + aMsg);
+      consoleService.logStringMessage("events: " + aMsg);
   },
 
-  
-
-
-  hasFeature: function logger_hasFeature(aFeature)
-  {
-    var startIdx = gA11yEventDumpFeature.indexOf(aFeature);
-    if (startIdx == - 1)
-      return false;
-
-    var endIdx = startIdx + aFeature.length;
-    return endIdx == gA11yEventDumpFeature.length ||
-      gA11yEventDumpFeature[endIdx] == ";";
-  }
+  consoleService: Components.classes["@mozilla.org/consoleservice;1"].
+    getService(Components.interfaces.nsIConsoleService)
 };
 
 

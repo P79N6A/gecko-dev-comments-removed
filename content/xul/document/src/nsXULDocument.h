@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsXULDocument_h__
 #define nsXULDocument_h__
 
@@ -23,8 +57,6 @@
 #include "nsScriptLoader.h"
 #include "nsIStreamListener.h"
 #include "nsICSSLoaderObserver.h"
-
-#include "mozilla/Attributes.h"
 
 class nsIRDFResource;
 class nsIRDFService;
@@ -105,7 +137,7 @@ public:
                                        nsISupports* aContainer,
                                        nsIStreamListener **aDocListener,
                                        bool aReset = true,
-                                       nsIContentSink* aSink = nullptr);
+                                       nsIContentSink* aSink = nsnull);
 
     virtual void SetContentType(const nsAString& aContentType);
 
@@ -133,8 +165,7 @@ public:
     bool OnDocumentParserError();
 
     
-    NS_IMETHOD CloneNode(bool deep, uint8_t aOptionalArgc, nsIDOMNode **_retval)
-        MOZ_OVERRIDE;
+    NS_IMETHOD CloneNode(bool deep, nsIDOMNode **_retval);
 
     
     NS_IMETHOD GetContentType(nsAString& aContentType);
@@ -166,7 +197,7 @@ public:
 
     static bool
     MatchAttribute(nsIContent* aContent,
-                   int32_t aNameSpaceID,
+                   PRInt32 aNameSpaceID,
                    nsIAtom* aAttrName,
                    void* aData);
 
@@ -186,7 +217,7 @@ protected:
     void
     RemoveElementFromRefMap(mozilla::dom::Element* aElement);
 
-    nsresult GetViewportSize(int32_t* aWidth, int32_t* aHeight);
+    nsresult GetViewportSize(PRInt32* aWidth, PRInt32* aHeight);
 
     nsresult PrepareToLoad(nsISupports* aContainer,
                            const char* aCommand,
@@ -222,17 +253,22 @@ protected:
 
     nsresult
     BroadcastAttributeChangeFromOverlay(nsIContent* aNode,
-                                        int32_t aNameSpaceID,
+                                        PRInt32 aNameSpaceID,
                                         nsIAtom* aAttribute,
                                         nsIAtom* aPrefix,
                                         const nsAString& aValue);
 
     already_AddRefed<nsPIWindowRoot> GetWindowRoot();
 
+    PRInt32 GetDefaultNamespaceID() const
+    {
+        return kNameSpaceID_XUL;
+    }
+
     static NS_HIDDEN_(int) DirectionChanged(const char* aPrefName, void* aData);
 
     
-    static int32_t gRefCnt;
+    static PRInt32 gRefCnt;
 
     static nsIAtom** kIdentityAttrs[];
 
@@ -249,7 +285,7 @@ protected:
     IsCapabilityEnabled(const char* aCapabilityLabel);
 
     nsresult
-    Persist(nsIContent* aElement, int32_t aNameSpaceID, nsIAtom* aAttribute);
+    Persist(nsIContent* aElement, PRInt32 aNameSpaceID, nsIAtom* aAttribute);
 
     
     
@@ -291,7 +327,7 @@ protected:
         BuilderTable;
     BuilderTable* mTemplateBuilderTable;
 
-    uint32_t mPendingSheets;
+    PRUint32 mPendingSheets;
 
     
 
@@ -308,24 +344,26 @@ protected:
         struct Entry {
             nsXULPrototypeElement* mPrototype;
             nsIContent*            mElement;
-            int32_t                mIndex;
+            PRInt32                mIndex;
             Entry*                 mNext;
         };
 
         Entry* mTop;
-        int32_t mDepth;
+        PRInt32 mDepth;
 
     public:
         ContextStack();
         ~ContextStack();
 
-        int32_t Depth() { return mDepth; }
+        PRInt32 Depth() { return mDepth; }
 
         nsresult Push(nsXULPrototypeElement* aPrototype, nsIContent* aElement);
         nsresult Pop();
-        nsresult Peek(nsXULPrototypeElement** aPrototype, nsIContent** aElement, int32_t* aIndex);
+        nsresult Peek(nsXULPrototypeElement** aPrototype, nsIContent** aElement, PRInt32* aIndex);
 
-        nsresult SetTopIndex(int32_t aIndex);
+        nsresult SetTopIndex(PRInt32 aIndex);
+
+        bool IsInsideXULTemplate();
     };
 
     friend class ContextStack;
@@ -345,7 +383,7 @@ protected:
 
 
 
-    nsTArray<nsCOMPtr<nsIURI> > mUnloadedOverlays;
+    nsCOMArray<nsIURI> mUnloadedOverlays;
 
     
 
@@ -358,7 +396,7 @@ protected:
 
 
 
-    nsresult ExecuteScript(nsIScriptContext *aContext, JSScript* aScriptObject);
+    nsresult ExecuteScript(nsIScriptContext *aContext, void* aScriptObject);
 
     
 
@@ -455,7 +493,7 @@ protected:
                           mozilla::dom::Element* aObservesElement)
             : mDocument(aDocument),
               mObservesElement(aObservesElement),
-              mResolved(false)
+              mResolved(PR_FALSE)
         {
         }
 
@@ -482,7 +520,7 @@ protected:
 
     public:
         OverlayForwardReference(nsXULDocument* aDocument, nsIContent* aOverlay)
-            : mDocument(aDocument), mOverlay(aOverlay), mResolved(false) {}
+            : mDocument(aDocument), mOverlay(aOverlay), mResolved(PR_FALSE) {}
 
         virtual ~OverlayForwardReference();
 
@@ -565,7 +603,7 @@ protected:
 
     nsresult
     CreateAndInsertPI(const nsXULPrototypePI* aProtoPI,
-                      nsINode* aParent, uint32_t aIndex);
+                      nsINode* aParent, PRUint32 aIndex);
 
     
 
@@ -579,7 +617,7 @@ protected:
     nsresult
     InsertXMLStylesheetPI(const nsXULPrototypePI* aProtoPI,
                           nsINode* aParent,
-                          uint32_t aIndex,
+                          PRUint32 aIndex,
                           nsIContent* aPINode);
 
     
@@ -589,7 +627,7 @@ protected:
     nsresult
     InsertXULOverlayPI(const nsXULPrototypePI* aProtoPI,
                        nsINode* aParent,
-                       uint32_t aIndex,
+                       PRUint32 aIndex,
                        nsIContent* aPINode);
 
     
@@ -669,7 +707,7 @@ protected:
                                nsIDOMElement* aListener,
                                const nsAString &aAttr)
       : mBroadcaster(aBroadcaster), mListener(aListener), mAttr(aAttr),
-        mSetAttr(false), mNeedsAttrChange(false) {}
+        mSetAttr(PR_FALSE), mNeedsAttrChange(PR_FALSE) {}
 
       nsDelayedBroadcastUpdate(nsIDOMElement* aBroadcaster,
                                nsIDOMElement* aListener,

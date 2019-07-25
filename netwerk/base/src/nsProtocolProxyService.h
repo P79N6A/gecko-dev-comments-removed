@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  
 #ifndef nsProtocolProxyService_h__
 #define nsProtocolProxyService_h__
@@ -23,15 +56,14 @@
 #include "prtime.h"
 #include "prmem.h"
 #include "prio.h"
-#include "mozilla/Attributes.h"
 
-typedef nsDataHashtable<nsCStringHashKey, uint32_t> nsFailedProxyTable;
+typedef nsDataHashtable<nsCStringHashKey, PRUint32> nsFailedProxyTable;
 
 class nsProxyInfo;
 struct nsProtocolInfo;
 
-class nsProtocolProxyService MOZ_FINAL : public nsIProtocolProxyService2
-                                       , public nsIObserver
+class nsProtocolProxyService : public nsIProtocolProxyService2
+                             , public nsIObserver
 {
 public:
     NS_DECL_ISUPPORTS
@@ -77,7 +109,7 @@ protected:
 
 
     NS_HIDDEN_(const char *) ExtractProxyInfo(const char *proxy,
-                                              uint32_t aResolveFlags,
+                                              PRUint32 aResolveFlags,
                                               nsProxyInfo **result);
 
     
@@ -101,7 +133,7 @@ protected:
 
 
     NS_HIDDEN_(void) ProcessPACString(const nsCString &pacString,
-                                      uint32_t aResolveFlags,
+                                      PRUint32 aResolveFlags,
                                       nsIProxyInfo **result);
 
     
@@ -118,7 +150,7 @@ protected:
     
 
 
-    NS_HIDDEN_(uint32_t) SecondsSinceSessionStart();
+    NS_HIDDEN_(PRUint32) SecondsSinceSessionStart();
 
     
 
@@ -182,11 +214,11 @@ protected:
 
     NS_HIDDEN_(nsresult) NewProxyInfo_Internal(const char *type,
                                                const nsACString &host,
-                                               int32_t port,
-                                               uint32_t flags,
-                                               uint32_t timeout,
+                                               PRInt32 port,
+                                               PRUint32 flags,
+                                               PRUint32 timeout,
                                                nsIProxyInfo *next,
-                                               uint32_t aResolveFlags,
+                                               PRUint32 aResolveFlags,
                                                nsIProxyInfo **result);
 
     
@@ -209,7 +241,7 @@ protected:
 
     NS_HIDDEN_(nsresult) Resolve_Internal(nsIURI *uri,
                                           const nsProtocolInfo &info,
-                                          uint32_t flags,
+                                          PRUint32 flags,
                                           bool *usePAC, 
                                           nsIProxyInfo **result);
 
@@ -234,7 +266,7 @@ protected:
     inline void ApplyFilters(nsIURI *uri, const nsProtocolInfo &info,
                              nsCOMPtr<nsIProxyInfo> &proxyInfo)
     {
-      nsIProxyInfo *pi = nullptr;
+      nsIProxyInfo *pi = nsnull;
       proxyInfo.swap(pi);
       ApplyFilters(uri, info, &pi);
       proxyInfo.swap(pi);
@@ -270,7 +302,7 @@ protected:
 
 
 
-    NS_HIDDEN_(bool) CanUseProxy(nsIURI *uri, int32_t defaultPort);
+    NS_HIDDEN_(bool) CanUseProxy(nsIURI *uri, PRInt32 defaultPort);
 
 public:
     
@@ -278,14 +310,14 @@ public:
     
 
     struct HostInfoIP {
-        uint16_t   family;
-        uint16_t   mask_len;
+        PRUint16   family;
+        PRUint16   mask_len;
         PRIPv6Addr addr; 
     };
 
     struct HostInfoName {
         char    *host;
-        uint32_t host_len;
+        PRUint32 host_len;
     };
 
 protected:
@@ -293,14 +325,14 @@ protected:
     
     struct HostInfo {
         bool    is_ipaddr;
-        int32_t port;
+        PRInt32 port;
         union {
             HostInfoIP   ip;
             HostInfoName name;
         };
 
         HostInfo()
-            : is_ipaddr(false)
+            : is_ipaddr(PR_FALSE)
             {  }
        ~HostInfo() {
             if (!is_ipaddr && name.host)
@@ -311,11 +343,11 @@ protected:
     
     struct FilterLink {
       struct FilterLink                *next;
-      uint32_t                          position;
+      PRUint32                          position;
       nsCOMPtr<nsIProtocolProxyFilter>  filter;
 
-      FilterLink(uint32_t p, nsIProtocolProxyFilter *f)
-        : next(nullptr), position(p), filter(f) {}
+      FilterLink(PRUint32 p, nsIProtocolProxyFilter *f)
+        : next(nsnull), position(p), filter(f) {}
 
       
       ~FilterLink() { if (next) delete next; }
@@ -331,20 +363,20 @@ protected:
     
     FilterLink                  *mFilters;
 
-    uint32_t                     mProxyConfig;
+    PRUint32                     mProxyConfig;
 
     nsCString                    mHTTPProxyHost;
-    int32_t                      mHTTPProxyPort;
+    PRInt32                      mHTTPProxyPort;
 
     nsCString                    mFTPProxyHost;
-    int32_t                      mFTPProxyPort;
+    PRInt32                      mFTPProxyPort;
 
     nsCString                    mHTTPSProxyHost;
-    int32_t                      mHTTPSProxyPort;
+    PRInt32                      mHTTPSProxyPort;
     
     nsCString                    mSOCKSProxyHost;
-    int32_t                      mSOCKSProxyPort;
-    int32_t                      mSOCKSProxyVersion;
+    PRInt32                      mSOCKSProxyPort;
+    PRInt32                      mSOCKSProxyVersion;
     bool                         mSOCKSProxyRemoteDNS;
 
     nsRefPtr<nsPACMan>           mPACMan;  
@@ -352,7 +384,7 @@ protected:
 
     PRTime                       mSessionStart;
     nsFailedProxyTable           mFailedProxies;
-    int32_t                      mFailedProxyTimeout;
+    PRInt32                      mFailedProxyTimeout;
 };
 
 #endif 

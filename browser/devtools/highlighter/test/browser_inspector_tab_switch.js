@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 let div;
 let tab1;
 let tab2;
@@ -27,8 +61,7 @@ function inspectorUIOpen1()
 
   
   ok(InspectorUI.inspecting, "Inspector is highlighting");
-  ok(!InspectorUI.currentInspector.markupOpen, "Inspector Tree Panel is not open");
-  ok(!InspectorUI.sidebar.visible, "Inspector Sidebar is not open");
+  ok(!InspectorUI.treePanel.isOpen(), "Inspector Tree Panel is not open");
   ok(!InspectorUI.store.isEmpty(), "InspectorUI.store is not empty");
   is(InspectorUI.store.length, 1, "Inspector.store.length = 1");
 
@@ -54,13 +87,13 @@ function inspectorTabOpen2()
 {
   
   ok(!InspectorUI.inspecting, "Inspector is not highlighting");
+  ok(!InspectorUI.treePanel, "Inspector Tree Panel is closed");
   is(InspectorUI.store.length, 1, "Inspector.store.length = 1");
 
   
   executeSoon(function() {
     Services.obs.addObserver(inspectorUIOpen2,
       InspectorUI.INSPECTOR_NOTIFICATIONS.OPENED, false);
-    clearUserPrefs();
     InspectorUI.openInspectorUI();
   });
 }
@@ -72,13 +105,12 @@ function inspectorUIOpen2()
 
   
   ok(InspectorUI.inspecting, "Inspector is highlighting");
-  ok(!InspectorUI.currentInspector.markupOpen, "Inspector Tree Panel is not open");
+  ok(!InspectorUI.treePanel.isOpen(), "Inspector Tree Panel is not open");
   is(InspectorUI.store.length, 2, "Inspector.store.length = 2");
 
   
   InspectorUI.toggleInspection();
   ok(!InspectorUI.inspecting, "Inspector is not highlighting");
-
 
   
   executeSoon(function() {
@@ -95,41 +127,25 @@ function inspectorFocusTab1()
 
   
   ok(InspectorUI.inspecting, "Inspector is highlighting");
-  ok(!InspectorUI.currentInspector.markupOpen, "Inspector Tree Panel is not open");
+  ok(!InspectorUI.treePanel.isOpen(), "Inspector Tree Panel is not open");
   is(InspectorUI.store.length, 2, "Inspector.store.length = 2");
   is(InspectorUI.selection, div, "selection matches the div element");
 
-  InspectorUI.currentInspector.once("markuploaded", inspectorOpenTreePanelTab1);
-  InspectorUI.toggleHTMLPanel();
+  Services.obs.addObserver(inspectorOpenTreePanelTab1,
+    InspectorUI.INSPECTOR_NOTIFICATIONS.TREEPANELREADY, false);
+
+  InspectorUI.treePanel.open();
 }
 
 function inspectorOpenTreePanelTab1()
 {
+  Services.obs.removeObserver(inspectorOpenTreePanelTab1,
+    InspectorUI.INSPECTOR_NOTIFICATIONS.TREEPANELREADY);
+
   ok(InspectorUI.inspecting, "Inspector is highlighting");
-  ok(InspectorUI.currentInspector.markupOpen, "Inspector Tree Panel is open");
+  ok(InspectorUI.treePanel.isOpen(), "Inspector Tree Panel is open");
   is(InspectorUI.store.length, 2, "Inspector.store.length = 2");
   is(InspectorUI.selection, div, "selection matches the div element");
-
-  InspectorUI.currentInspector.once("sidebaractivated-computedview",
-    inspectorSidebarStyleView1);
-
-  executeSoon(function() {
-    InspectorUI.sidebar.show();
-    InspectorUI.sidebar.activatePanel("computedview");
-  });
-}
-
-function inspectorSidebarStyleView1()
-{
-  ok(InspectorUI.sidebar.visible, "Inspector Sidebar is open");
-  ok(computedView(), "Inspector Has a computed view Instance");
-
-  InspectorUI.sidebar._toolObjects().forEach(function (aTool) {
-    let btn = aTool.button;
-    is(btn.hasAttribute("checked"),
-      (aTool.id == "computedview"),
-      "Button " + btn.label + " has correct checked attribute");
-  });
 
   
   Services.obs.addObserver(inspectorFocusTab2,
@@ -144,49 +160,25 @@ function inspectorFocusTab2()
 
   
   ok(!InspectorUI.inspecting, "Inspector is not highlighting");
-  ok(!InspectorUI.currentInspector.markupOpen, "Inspector Tree Panel is not open");
-  ok(!InspectorUI.sidebar.visible, "Inspector Sidebar is not open");
+  ok(!InspectorUI.treePanel.isOpen(), "Inspector Tree Panel is not open");
   is(InspectorUI.store.length, 2, "Inspector.store.length is 2");
   isnot(InspectorUI.selection, div, "selection does not match the div element");
 
-
-  executeSoon(function() {
-    
-    synthesizeKeyFromKeyTag("key_inspect");
-
-    ok(InspectorUI.inspecting, "Inspector is highlighting");
-    InspectorUI.toggleInspection();
-
-    
-    Services.obs.addObserver(inspectorSecondFocusTab1,
-      InspectorUI.INSPECTOR_NOTIFICATIONS.OPENED, false);
-    gBrowser.selectedTab = tab1;
-  });
+  
+  Services.obs.addObserver(inspectorSecondFocusTab1,
+    InspectorUI.INSPECTOR_NOTIFICATIONS.TREEPANELREADY, false);
+  gBrowser.selectedTab = tab1;
 }
 
 function inspectorSecondFocusTab1()
 {
   Services.obs.removeObserver(inspectorSecondFocusTab1,
-    InspectorUI.INSPECTOR_NOTIFICATIONS.OPENED);
-  InspectorUI.currentInspector.once("sidebaractivated-computedview",
-    inspectorSecondFocusTabSidebarLoaded);
-}
+    InspectorUI.INSPECTOR_NOTIFICATIONS.TREEPANELREADY);
 
-function inspectorSecondFocusTabSidebarLoaded()
-{
   ok(InspectorUI.inspecting, "Inspector is highlighting");
-  ok(InspectorUI.currentInspector.markupOpen, "Inspector Tree Panel is open");
+  ok(InspectorUI.treePanel.isOpen(), "Inspector Tree Panel is open");
   is(InspectorUI.store.length, 2, "Inspector.store.length = 2");
   is(InspectorUI.selection, div, "selection matches the div element");
-
-  ok(InspectorUI.sidebar.visible, "Inspector Sidebar is open");
-  ok(computedView(), "Inspector Has a Style Panel Instance");
-  InspectorUI.sidebar._toolObjects().forEach(function(aTool) {
-    let btn = aTool.button;
-    is(btn.hasAttribute("checked"),
-      (aTool.id == "computedview"),
-      "Button " + btn.label + " has correct checked attribute");
-  });
 
   
   Services.obs.addObserver(inspectorSecondFocusTab2,
@@ -201,9 +193,7 @@ function inspectorSecondFocusTab2()
 
   
   ok(!InspectorUI.inspecting, "Inspector is not highlighting");
-  ok(!InspectorUI.currentInspector.markupOpen, "Inspector Tree Panel is not open");
-  ok(!InspectorUI.isSidebarOpen, "Inspector Sidebar is not open");
-
+  ok(!InspectorUI.treePanel.isOpen(), "Inspector Tree Panel is not open");
   is(InspectorUI.store.length, 2, "Inspector.store.length is 2");
   isnot(InspectorUI.selection, div, "selection does not match the div element");
 
@@ -220,7 +210,7 @@ function inspectorTabUnload1(evt)
 
   
   ok(!InspectorUI.inspecting, "Inspector is not highlighting");
-  ok(!InspectorUI.currentInspector.markupOpen, "Inspector Tree Panel is not open");
+  ok(!InspectorUI.treePanel.isOpen(), "Inspector Tree Panel is not open");
   is(InspectorUI.store.length, 1, "Inspector.store.length = 1");
 
   InspectorUI.closeInspectorUI();
@@ -231,7 +221,6 @@ function inspectorTabUnload1(evt)
 function test()
 {
   waitForExplicitFinish();
-  ignoreAllUncaughtExceptions();
 
   tab1 = gBrowser.addTab();
   gBrowser.selectedTab = tab1;

@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsGBK2312ToUnicode_h___
 #define nsGBK2312ToUnicode_h___
 
@@ -29,15 +61,15 @@ public:
 
   nsGBKToUnicode() : nsBufferDecoderSupport(1)
   {
-    mExtensionDecoder = nullptr;
-    m4BytesDecoder = nullptr;
+    mExtensionDecoder = nsnull;
+    m4BytesDecoder = nsnull;
   }
 
 protected:
 
   
   
-  NS_IMETHOD ConvertNoBuff(const char* aSrc, int32_t * aSrcLength, PRUnichar *aDest, int32_t * aDestLength);
+  NS_IMETHOD ConvertNoBuff(const char* aSrc, PRInt32 * aSrcLength, PRUnichar *aDest, PRInt32 * aDestLength);
 
 protected:
   nsGBKConvUtil mUtil;

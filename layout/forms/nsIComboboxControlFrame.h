@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIComboboxControlFrame_h___
 #define nsIComboboxControlFrame_h___
 
@@ -58,7 +90,12 @@ public:
   
 
 
-  virtual int32_t UpdateRecentIndex(int32_t aIndex) = 0;
+  virtual PRInt32 UpdateRecentIndex(PRInt32 aIndex) = 0;
+
+  
+
+
+  virtual void AbsolutelyPositionDropDown() = 0;
 
   
 
@@ -81,7 +118,7 @@ public:
 
 
 
-  virtual int32_t GetIndexOfDisplayArea() = 0;
+  virtual PRInt32 GetIndexOfDisplayArea() = 0;
 };
 
 #endif

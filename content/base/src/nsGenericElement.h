@@ -9,15 +9,47 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsGenericElement_h___
 #define nsGenericElement_h___
 
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
-#include "mozilla/dom/FragmentOrElement.h"
 #include "mozilla/dom/Element.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMDocumentFragment.h"
+#include "nsIDOMNSElement.h"
 #include "nsILinkHandler.h"
 #include "nsNodeUtils.h"
 #include "nsAttrAndChildArray.h"
@@ -34,10 +66,10 @@
 #include "nsDOMClassInfoID.h" 
 #include "nsIDOMTouchEvent.h"
 #include "nsIInlineEventHandlers.h"
-#include "mozilla/CORSMode.h"
-#include "mozilla/Attributes.h"
-#include "nsContentUtils.h"
+
+#ifdef MOZ_SMIL
 #include "nsISMILAttr.h"
+#endif 
 
 class nsIDOMAttr;
 class nsIDOMEventListener;
@@ -48,16 +80,154 @@ class nsIDOMCSSStyleDeclaration;
 class nsIURI;
 class nsINodeInfo;
 class nsIControllers;
-class nsEventChainVisitor;
 class nsEventListenerManager;
 class nsIScrollableFrame;
-class nsAttrValueOrString;
 class nsContentList;
 class nsDOMTokenList;
-class ContentUnbinder;
 struct nsRect;
 
 typedef PRUptrdiff PtrBits;
+
+
+
+
+
+
+
+class nsChildContentList : public nsINodeList
+{
+public:
+  nsChildContentList(nsINode* aNode)
+    : mNode(aNode)
+  {
+  }
+
+  NS_DECL_ISUPPORTS
+
+  
+  NS_DECL_NSIDOMNODELIST
+
+  
+  virtual nsIContent* GetNodeAt(PRUint32 aIndex);
+  virtual PRInt32 IndexOf(nsIContent* aContent);
+
+  void DropReference()
+  {
+    mNode = nsnull;
+  }
+
+  virtual nsINode* GetParentObject()
+  {
+    return mNode;
+  }
+
+private:
+  
+  nsINode* mNode;
+};
+
+
+
+
+class nsNode3Tearoff : public nsIDOMXPathNSResolver
+{
+public:
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+
+  NS_DECL_CYCLE_COLLECTION_CLASS(nsNode3Tearoff)
+
+  NS_DECL_NSIDOMXPATHNSRESOLVER
+
+  nsNode3Tearoff(nsINode *aNode) : mNode(aNode)
+  {
+  }
+
+protected:
+  virtual ~nsNode3Tearoff() {}
+
+private:
+  nsCOMPtr<nsINode> mNode;
+};
+
+
+
+
+
+class nsNodeWeakReference : public nsIWeakReference
+{
+public:
+  nsNodeWeakReference(nsINode* aNode)
+    : mNode(aNode)
+  {
+  }
+
+  ~nsNodeWeakReference();
+
+  
+  NS_DECL_ISUPPORTS
+
+  
+  NS_DECL_NSIWEAKREFERENCE
+
+  void NoticeNodeDestruction()
+  {
+    mNode = nsnull;
+  }
+
+private:
+  nsINode* mNode;
+};
+
+
+
+
+class nsNodeSupportsWeakRefTearoff : public nsISupportsWeakReference
+{
+public:
+  nsNodeSupportsWeakRefTearoff(nsINode* aNode)
+    : mNode(aNode)
+  {
+  }
+
+  
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+
+  
+  NS_DECL_NSISUPPORTSWEAKREFERENCE
+
+  NS_DECL_CYCLE_COLLECTION_CLASS(nsNodeSupportsWeakRefTearoff)
+
+private:
+  nsCOMPtr<nsINode> mNode;
+};
+
+
+
+
+class nsNodeSelectorTearoff : public nsIDOMNodeSelector
+{
+public:
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+
+  NS_DECL_NSIDOMNODESELECTOR
+
+  NS_DECL_CYCLE_COLLECTION_CLASS(nsNodeSelectorTearoff)
+
+  nsNodeSelectorTearoff(nsINode *aNode) : mNode(aNode)
+  {
+  }
+
+private:
+  ~nsNodeSelectorTearoff() {}
+
+private:
+  nsCOMPtr<nsINode> mNode;
+};
+
+
+class nsNSElementTearoff;
+class nsTouchEventReceiverTearoff;
+class nsInlineEventHandlersTearoff;
 
 
 
@@ -67,6 +237,34 @@ class nsGenericElement : public mozilla::dom::Element
 {
 public:
   nsGenericElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  virtual ~nsGenericElement();
+
+  friend class nsNSElementTearoff;
+  friend class nsTouchEventReceiverTearoff;
+  friend class nsInlineEventHandlersTearoff;
+
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+
+  NS_DECL_DOM_MEMORY_REPORTER_SIZEOF
+
+  
+
+
+
+  nsresult PostQueryInterface(REFNSIID aIID, void** aInstancePtr);
+
+  
+  virtual PRUint32 GetChildCount() const;
+  virtual nsIContent *GetChildAt(PRUint32 aIndex) const;
+  virtual nsIContent * const * GetChildArray(PRUint32* aChildCount) const;
+  virtual PRInt32 IndexOf(nsINode* aPossibleChild) const;
+  virtual nsresult InsertChildAt(nsIContent* aKid, PRUint32 aIndex,
+                                 bool aNotify);
+  virtual nsresult RemoveChildAt(PRUint32 aIndex, bool aNotify);
+  NS_IMETHOD GetTextContent(nsAString &aTextContent);
+  NS_IMETHOD SetTextContent(const nsAString& aTextContent);
+
+  
   virtual void UpdateEditableState(bool aNotify);
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
@@ -74,12 +272,13 @@ public:
                               bool aCompileEventHandlers);
   virtual void UnbindFromTree(bool aDeep = true,
                               bool aNullParent = true);
+  virtual already_AddRefed<nsINodeList> GetChildren(PRUint32 aFilter);
   virtual nsIAtom *GetClassAttributeName() const;
   virtual already_AddRefed<nsINodeInfo> GetExistingAttrNameFromQName(const nsAString& aStr) const;
-  nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+  nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                    const nsAString& aValue, bool aNotify)
   {
-    return SetAttr(aNameSpaceID, aName, nullptr, aValue, aNotify);
+    return SetAttr(aNameSpaceID, aName, nsnull, aValue, aNotify);
   }
   
 
@@ -96,80 +295,84 @@ public:
 
 
 
-
-  bool MaybeCheckSameAttrVal(int32_t aNamespaceID, nsIAtom* aName,
-                             nsIAtom* aPrefix,
-                             const nsAttrValueOrString& aValue,
-                             bool aNotify, nsAttrValue& aOldValue,
-                             uint8_t* aModType, bool* aHasListeners);
-
-  bool OnlyNotifySameValueSet(int32_t aNamespaceID, nsIAtom* aName,
-                              nsIAtom* aPrefix,
-                              const nsAttrValueOrString& aValue,
-                              bool aNotify, nsAttrValue& aOldValue,
-                              uint8_t* aModType, bool* aHasListeners)
-  {
-    if (MaybeCheckSameAttrVal(aNamespaceID, aName, aPrefix, aValue, aNotify,
-                              aOldValue, aModType, aHasListeners)) {
-      nsAutoScriptBlocker scriptBlocker;
-      nsNodeUtils::AttributeSetToCurrentValue(this, aNamespaceID, aName);
-      return true;
-    }
-    return false;
-  }
-
-  virtual nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName, nsIAtom* aPrefix,
+  bool MaybeCheckSameAttrVal(PRInt32 aNamespaceID, nsIAtom* aName,
+                               nsIAtom* aPrefix, const nsAString& aValue,
+                               bool aNotify, nsAutoString* aOldValue,
+                               PRUint8* aModType, bool* aHasListeners);
+  virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName, nsIAtom* aPrefix,
                            const nsAString& aValue, bool aNotify);
-  virtual nsresult SetParsedAttr(int32_t aNameSpaceID, nsIAtom* aName,
+  virtual nsresult SetParsedAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                                  nsIAtom* aPrefix, nsAttrValue& aParsedValue,
                                  bool aNotify);
-  virtual bool GetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+  virtual bool GetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                          nsAString& aResult) const;
-  virtual bool HasAttr(int32_t aNameSpaceID, nsIAtom* aName) const;
-  virtual bool AttrValueIs(int32_t aNameSpaceID, nsIAtom* aName,
+  virtual bool HasAttr(PRInt32 aNameSpaceID, nsIAtom* aName) const;
+  virtual bool AttrValueIs(PRInt32 aNameSpaceID, nsIAtom* aName,
                              const nsAString& aValue,
                              nsCaseTreatment aCaseSensitive) const;
-  virtual bool AttrValueIs(int32_t aNameSpaceID, nsIAtom* aName,
+  virtual bool AttrValueIs(PRInt32 aNameSpaceID, nsIAtom* aName,
                              nsIAtom* aValue,
                              nsCaseTreatment aCaseSensitive) const;
-  virtual int32_t FindAttrValueIn(int32_t aNameSpaceID,
+  virtual PRInt32 FindAttrValueIn(PRInt32 aNameSpaceID,
                                   nsIAtom* aName,
                                   AttrValuesArray* aValues,
                                   nsCaseTreatment aCaseSensitive) const;
-  virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
+  virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
                              bool aNotify);
-  virtual const nsAttrName* GetAttrNameAt(uint32_t aIndex) const;
-  virtual uint32_t GetAttrCount() const;
-  virtual bool IsNodeOfType(uint32_t aFlags) const;
-
-  virtual nsISMILAttr* GetAnimatedAttr(int32_t , nsIAtom* )
+  virtual const nsAttrName* GetAttrNameAt(PRUint32 aIndex) const;
+  virtual PRUint32 GetAttrCount() const;
+  virtual const nsTextFragment *GetText();
+  virtual PRUint32 TextLength();
+  virtual nsresult SetText(const PRUnichar* aBuffer, PRUint32 aLength,
+                           bool aNotify);
+  
+  nsresult SetText(const nsAString& aStr, bool aNotify)
   {
-    return nullptr;
+    return SetText(aStr.BeginReading(), aStr.Length(), aNotify);
   }
-  virtual nsICSSDeclaration* GetSMILOverrideStyle();
+  virtual nsresult AppendText(const PRUnichar* aBuffer, PRUint32 aLength,
+                              bool aNotify);
+  virtual bool TextIsOnlyWhitespace();
+  virtual void AppendTextTo(nsAString& aResult);
+  virtual nsIContent *GetBindingParent() const;
+  virtual bool IsNodeOfType(PRUint32 aFlags) const;
+  virtual bool IsLink(nsIURI** aURI) const;
+
+  virtual PRUint32 GetScriptTypeID() const;
+  NS_IMETHOD SetScriptTypeID(PRUint32 aLang);
+
+  virtual void DestroyContent();
+  virtual void SaveSubtreeState();
+
+#ifdef MOZ_SMIL
+  virtual nsISMILAttr* GetAnimatedAttr(PRInt32 , nsIAtom* )
+  {
+    return nsnull;
+  }
+  virtual nsIDOMCSSStyleDeclaration* GetSMILOverrideStyle();
   virtual mozilla::css::StyleRule* GetSMILOverrideStyleRule();
   virtual nsresult SetSMILOverrideStyleRule(mozilla::css::StyleRule* aStyleRule,
                                             bool aNotify);
-  virtual bool IsLabelable() const;
+#endif 
 
 #ifdef DEBUG
-  virtual void List(FILE* out, int32_t aIndent) const
+  virtual void List(FILE* out, PRInt32 aIndent) const
   {
     List(out, aIndent, EmptyCString());
   }
-  virtual void DumpContent(FILE* out, int32_t aIndent, bool aDumpAll) const;
-  void List(FILE* out, int32_t aIndent, const nsCString& aPrefix) const;
+  virtual void DumpContent(FILE* out, PRInt32 aIndent, bool aDumpAll) const;
+  void List(FILE* out, PRInt32 aIndent, const nsCString& aPrefix) const;
   void ListAttributes(FILE* out) const;
 #endif
 
+  virtual const nsAttrValue* DoGetClasses() const;
+  NS_IMETHOD WalkContentStyleRules(nsRuleWalker* aRuleWalker);
   virtual mozilla::css::StyleRule* GetInlineStyleRule();
-  virtual nsresult SetInlineStyleRule(mozilla::css::StyleRule* aStyleRule,
-                                      const nsAString* aSerialized,
-                                      bool aNotify);
+  NS_IMETHOD SetInlineStyleRule(mozilla::css::StyleRule* aStyleRule, bool aNotify);
   NS_IMETHOD_(bool)
     IsAttributeMapped(const nsIAtom* aAttribute) const;
   virtual nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute,
-                                              int32_t aModType) const;
+                                              PRInt32 aModType) const;
   
 
 
@@ -183,25 +386,81 @@ public:
 
 
 
-  template<size_t N>
-  static bool
-  FindAttributeDependence(const nsIAtom* aAttribute,
-                          const MappedAttributeEntry* const (&aMaps)[N])
-  {
-    return FindAttributeDependence(aAttribute, aMaps, N);
-  }
-
-private:
   static bool
   FindAttributeDependence(const nsIAtom* aAttribute,
                           const MappedAttributeEntry* const aMaps[],
-                          uint32_t aMapCount);
-
-public:
-  
-  NS_DECL_NSIDOMELEMENT
+                          PRUint32 aMapCount);
 
   
+  NS_IMETHOD GetNodeName(nsAString& aNodeName);
+  NS_IMETHOD GetLocalName(nsAString& aLocalName);
+  NS_IMETHOD GetNodeValue(nsAString& aNodeValue);
+  NS_IMETHOD SetNodeValue(const nsAString& aNodeValue);
+  NS_IMETHOD GetNodeType(PRUint16* aNodeType);
+  NS_IMETHOD GetAttributes(nsIDOMNamedNodeMap** aAttributes);
+  NS_IMETHOD GetNamespaceURI(nsAString& aNamespaceURI);
+  NS_IMETHOD GetPrefix(nsAString& aPrefix);
+  NS_IMETHOD IsSupported(const nsAString& aFeature,
+                         const nsAString& aVersion, bool* aReturn);
+  NS_IMETHOD HasAttributes(bool* aHasAttributes);
+  NS_IMETHOD HasChildNodes(bool* aHasChildNodes);
+  nsresult InsertBefore(nsIDOMNode* aNewChild, nsIDOMNode* aRefChild,
+                        nsIDOMNode** aReturn)
+  {
+    return ReplaceOrInsertBefore(PR_FALSE, aNewChild, aRefChild, aReturn);
+  }
+  nsresult ReplaceChild(nsIDOMNode* aNewChild, nsIDOMNode* aOldChild,
+                        nsIDOMNode** aReturn)
+  {
+    return ReplaceOrInsertBefore(PR_TRUE, aNewChild, aOldChild, aReturn);
+  }
+  nsresult RemoveChild(nsIDOMNode* aOldChild, nsIDOMNode** aReturn)
+  {
+    return nsINode::RemoveChild(aOldChild, aReturn);
+  }
+  nsresult AppendChild(nsIDOMNode* aNewChild, nsIDOMNode** aReturn)
+  {
+    return InsertBefore(aNewChild, nsnull, aReturn);
+  }
+
+  
+  NS_IMETHOD GetTagName(nsAString& aTagName);
+  NS_IMETHOD GetAttribute(const nsAString& aName,
+                          nsAString& aReturn);
+  NS_IMETHOD SetAttribute(const nsAString& aName,
+                          const nsAString& aValue);
+  NS_IMETHOD RemoveAttribute(const nsAString& aName);
+  NS_IMETHOD GetAttributeNode(const nsAString& aName,
+                              nsIDOMAttr** aReturn);
+  NS_IMETHOD SetAttributeNode(nsIDOMAttr* aNewAttr, nsIDOMAttr** aReturn);
+  NS_IMETHOD RemoveAttributeNode(nsIDOMAttr* aOldAttr, nsIDOMAttr** aReturn);
+  NS_IMETHOD GetElementsByTagName(const nsAString& aTagname,
+                                  nsIDOMNodeList** aReturn);
+  NS_IMETHOD GetAttributeNS(const nsAString& aNamespaceURI,
+                            const nsAString& aLocalName,
+                            nsAString& aReturn);
+  NS_IMETHOD SetAttributeNS(const nsAString& aNamespaceURI,
+                            const nsAString& aQualifiedName,
+                            const nsAString& aValue);
+  NS_IMETHOD RemoveAttributeNS(const nsAString& aNamespaceURI,
+                               const nsAString& aLocalName);
+  NS_IMETHOD GetAttributeNodeNS(const nsAString& aNamespaceURI,
+                                const nsAString& aLocalName,
+                                nsIDOMAttr** aReturn);
+  NS_IMETHOD SetAttributeNodeNS(nsIDOMAttr* aNewAttr, nsIDOMAttr** aReturn);
+  NS_IMETHOD GetElementsByTagNameNS(const nsAString& aNamespaceURI,
+                                    const nsAString& aLocalName,
+                                    nsIDOMNodeList** aReturn);
+  NS_IMETHOD HasAttribute(const nsAString& aName, bool* aReturn);
+  NS_IMETHOD HasAttributeNS(const nsAString& aNamespaceURI,
+                            const nsAString& aLocalName,
+                            bool* aReturn);
+  nsresult CloneNode(bool aDeep, nsIDOMNode **aResult)
+  {
+    return nsNodeUtils::CloneNodeImpl(this, aDeep, PR_TRUE, aResult);
+  }
+
+  
 
   
 
@@ -210,16 +469,46 @@ public:
 
 
 
-  nsresult SetEventHandler(nsIAtom* aEventName,
-                           const nsAString& aValue,
-                           bool aDefer = true);
+  nsresult AddScriptEventListener(nsIAtom* aEventName,
+                                  const nsAString& aValue,
+                                  bool aDefer = true);
 
   
 
 
   nsresult LeaveLink(nsPresContext* aPresContext);
 
+  
+
+
+
+
+
+
+
+  static nsresult InternalIsSupported(nsISupports* aObject,
+                                      const nsAString& aFeature,
+                                      const nsAString& aVersion,
+                                      bool* aReturn);
+
   static bool ShouldBlur(nsIContent *aContent);
+
+  
+
+
+
+  static void FireNodeInserted(nsIDocument* aDoc,
+                               nsINode* aParent,
+                               nsTArray<nsCOMPtr<nsIContent> >& aNodes);
+
+  
+
+
+  static nsIContent* doQuerySelector(nsINode* aRoot, const nsAString& aSelector,
+                                     nsresult *aResult NS_OUTPARAM);
+  static nsresult doQuerySelectorAll(nsINode* aRoot,
+                                     const nsAString& aSelector,
+                                     nsIDOMNodeList **aReturn);
 
   
 
@@ -232,7 +521,7 @@ public:
                                      nsInputEvent* aSourceEvent,
                                      nsIContent* aTarget,
                                      bool aFullDispatch,
-                                     uint32_t aFlags,
+                                     PRUint32 aFlags,
                                      nsEventStatus* aStatus);
 
   
@@ -290,32 +579,37 @@ public:
   {
     nsDOMSlots *slots = GetExistingDOMSlots();
 
-    return slots ? slots->mAttributeMap.get() : nullptr;
+    return slots ? slots->mAttributeMap.get() : nsnull;
   }
 
   virtual void RecompileScriptEventListeners()
   {
   }
 
-  int32_t GetScrollTop();
-  int32_t GetScrollLeft();
-  int32_t GetScrollHeight();
-  int32_t GetScrollWidth();
-  int32_t GetScrollLeftMax();
-  int32_t GetScrollTopMax();
-  int32_t GetClientTop()
+  
+  nsresult GetElementsByClassName(const nsAString& aClasses,
+                                  nsIDOMNodeList** aReturn);
+  nsresult GetClientRects(nsIDOMClientRectList** aResult);
+  nsresult GetBoundingClientRect(nsIDOMClientRect** aResult);
+  PRInt32 GetScrollTop();
+  void SetScrollTop(PRInt32 aScrollTop);
+  PRInt32 GetScrollLeft();
+  void SetScrollLeft(PRInt32 aScrollLeft);
+  PRInt32 GetScrollHeight();
+  PRInt32 GetScrollWidth();
+  PRInt32 GetClientTop()
   {
     return nsPresContext::AppUnitsToIntCSSPixels(GetClientAreaRect().y);
   }
-  int32_t GetClientLeft()
+  PRInt32 GetClientLeft()
   {
     return nsPresContext::AppUnitsToIntCSSPixels(GetClientAreaRect().x);
   }
-  int32_t GetClientHeight()
+  PRInt32 GetClientHeight()
   {
     return nsPresContext::AppUnitsToIntCSSPixels(GetClientAreaRect().height);
   }
-  int32_t GetClientWidth()
+  PRInt32 GetClientWidth()
   {
     return nsPresContext::AppUnitsToIntCSSPixels(GetClientAreaRect().width);
   }
@@ -323,7 +617,35 @@ public:
   nsIContent* GetLastElementChild();
   nsIContent* GetPreviousElementSibling();
   nsIContent* GetNextElementSibling();
-  nsDOMTokenList* GetClassList(nsresult *aResult);
+  nsresult GetChildElementCount(PRUint32* aResult)
+  {
+    nsContentList* list = GetChildrenList();
+    if (!list) {
+      *aResult = 0;
+
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+
+    *aResult = list->Length(PR_TRUE);
+
+    return NS_OK;
+  }
+  nsresult GetChildren(nsIDOMNodeList** aResult)
+  {
+    nsContentList* list = GetChildrenList();
+    if (!list) {
+      *aResult = nsnull;
+
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+
+    NS_ADDREF(*aResult = list);
+
+    return NS_OK;
+  }
+  nsIDOMDOMTokenList* GetClassList(nsresult *aResult);
+  void SetCapture(bool aRetargetToElement);
+  void ReleaseCapture();
   bool MozMatchesSelector(const nsAString& aSelector, nsresult* aResult);
 
   
@@ -334,7 +656,9 @@ public:
 
 
 
-  virtual nsAttrInfo GetAttrInfo(int32_t aNamespaceID, nsIAtom* aName) const;
+  virtual nsAttrInfo GetAttrInfo(PRInt32 aNamespaceID, nsIAtom* aName) const;
+
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(nsGenericElement)
 
   virtual void NodeInfoChanged(nsINodeInfo* aOldNodeInfo)
   {
@@ -343,34 +667,13 @@ public:
   
 
 
-
-
-  static void ParseCORSValue(const nsAString& aValue, nsAttrValue& aResult);
-
-  
-
-
-  static mozilla::CORSMode StringToCORSMode(const nsAString& aValue);
-  
-  
-
-
-
-  static mozilla::CORSMode AttrValueToCORSMode(const nsAttrValue* aValue);
+  void FireNodeRemovedForChildren();
 
 protected:
   
 
 
 
-  static const bool kFireMutationEvent           = true;
-  static const bool kDontFireMutationEvent       = false;
-  static const bool kNotifyDocumentObservers     = true;
-  static const bool kDontNotifyDocumentObservers = false;
-  static const bool kCallAfterSetAttr            = true;
-  static const bool kDontCallAfterSetAttr        = false;
-
-  
 
 
 
@@ -387,20 +690,15 @@ protected:
 
 
 
-
-
-
-
-
-  nsresult SetAttrAndNotify(int32_t aNamespaceID,
+  nsresult SetAttrAndNotify(PRInt32 aNamespaceID,
                             nsIAtom* aName,
                             nsIAtom* aPrefix,
-                            const nsAttrValue& aOldValue,
+                            const nsAString& aOldValue,
                             nsAttrValue& aParsedValue,
-                            uint8_t aModType,
+                            PRUint8 aModType,
                             bool aFireMutation,
                             bool aNotify,
-                            bool aCallAfterSetAttr);
+                            const nsAString* aValueForAfterSetAttr);
 
   
 
@@ -413,7 +711,7 @@ protected:
 
 
 
-  virtual bool ParseAttribute(int32_t aNamespaceID,
+  virtual bool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
@@ -449,12 +747,10 @@ protected:
 
 
 
-
   
   
-  virtual nsresult BeforeSetAttr(int32_t aNamespaceID, nsIAtom* aName,
-                                 const nsAttrValueOrString* aValue,
-                                 bool aNotify)
+  virtual nsresult BeforeSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
+                                 const nsAString* aValue, bool aNotify)
   {
     return NS_OK;
   }
@@ -473,8 +769,8 @@ protected:
 
   
   
-  virtual nsresult AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
-                                const nsAttrValue* aValue, bool aNotify)
+  virtual nsresult AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
+                                const nsAString* aValue, bool aNotify)
   {
     return NS_OK;
   }
@@ -485,6 +781,12 @@ protected:
 
   virtual nsEventListenerManager*
     GetEventListenerManagerForAttr(nsIAtom* aAttrName, bool* aDefer);
+
+  
+
+
+
+  nsresult CopyInnerTo(nsGenericElement* aDest) const;
 
   
 
@@ -500,13 +802,6 @@ protected:
 
   virtual void GetOffsetRect(nsRect& aRect, nsIContent** aOffsetParent);
 
-  
-
-
-
-
-  nsIntSize GetPaddingRectSize();
-
   nsIFrame* GetStyledFrame();
 
   virtual mozilla::dom::Element* GetNameSpaceElement()
@@ -514,15 +809,105 @@ protected:
     return this;
   }
 
-  nsresult GetAttributeNodeNSInternal(const nsAString& aNamespaceURI,
-                                      const nsAString& aLocalName,
-                                      nsIDOMAttr** aReturn);
+public:
+  
+  
+  
+
+
+
+
+
+
+
+  class nsDOMSlots : public nsINode::nsSlots
+  {
+  public:
+    nsDOMSlots();
+    virtual ~nsDOMSlots();
+
+    void Traverse(nsCycleCollectionTraversalCallback &cb, bool aIsXUL);
+    void Unlink(bool aIsXUL);
+
+    
+
+
+
+
+    nsCOMPtr<nsICSSDeclaration> mStyle;
+
+    
+
+
+
+    nsIDOMDOMStringMap* mDataset; 
+
+    
+
+
+
+    nsCOMPtr<nsICSSDeclaration> mSMILOverrideStyle;
+
+    
+
+
+    nsRefPtr<mozilla::css::StyleRule> mSMILOverrideStyleRule;
+
+    
+
+
+
+    nsRefPtr<nsDOMAttributeMap> mAttributeMap;
+
+    union {
+      
+
+
+
+      nsIContent* mBindingParent;  
+
+      
+
+
+      nsIControllers* mControllers; 
+    };
+
+    
+
+
+    nsRefPtr<nsContentList> mChildrenList;
+
+    
+
+
+    nsRefPtr<nsDOMTokenList> mClassList;
+  };
+
+protected:
+  
+  virtual nsINode::nsSlots* CreateSlots();
+
+  nsDOMSlots *DOMSlots()
+  {
+    return static_cast<nsDOMSlots*>(GetSlots());
+  }
+
+  nsDOMSlots *GetExistingDOMSlots() const
+  {
+    return static_cast<nsDOMSlots*>(GetExistingSlots());
+  }
 
   void RegisterFreezableElement() {
-    OwnerDoc()->RegisterFreezableElement(this);
+    nsIDocument* doc = GetOwnerDoc();
+    if (doc) {
+      doc->RegisterFreezableElement(this);
+    }
   }
   void UnregisterFreezableElement() {
-    OwnerDoc()->UnregisterFreezableElement(this);
+    nsIDocument* doc = GetOwnerDoc();
+    if (doc) {
+      doc->UnregisterFreezableElement(this);
+    }
   }
 
   
@@ -588,6 +973,11 @@ protected:
 
   virtual void GetLinkTarget(nsAString& aTarget);
 
+  
+
+
+  nsAttrAndChildArray mAttrsAndChildren;
+
 private:
   
 
@@ -595,7 +985,9 @@ private:
 
   nsRect GetClientAreaRect();
 
-  nsIScrollableFrame* GetScrollFrame(nsIFrame **aStyledFrame = nullptr);
+  nsIScrollableFrame* GetScrollFrame(nsIFrame **aStyledFrame = nsnull);
+
+  nsContentList* GetChildrenList();
 };
 
 
@@ -606,7 +998,7 @@ private:
 nsresult                                                                    \
 _elementName::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const        \
 {                                                                           \
-  *aResult = nullptr;                                                        \
+  *aResult = nsnull;                                                        \
   nsCOMPtr<nsINodeInfo> ni = aNodeInfo;                                     \
   _elementName *it = new _elementName(ni.forget());                         \
   if (!it) {                                                                \
@@ -614,7 +1006,7 @@ _elementName::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const        \
   }                                                                         \
                                                                             \
   nsCOMPtr<nsINode> kungFuDeathGrip = it;                                   \
-  nsresult rv = const_cast<_elementName*>(this)->CopyInnerTo(it);           \
+  nsresult rv = CopyInnerTo(it);                                            \
   if (NS_SUCCEEDED(rv)) {                                                   \
     kungFuDeathGrip.swap(*aResult);                                         \
   }                                                                         \
@@ -626,7 +1018,7 @@ _elementName::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const        \
 nsresult                                                                    \
 _elementName::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const        \
 {                                                                           \
-  *aResult = nullptr;                                                        \
+  *aResult = nsnull;                                                        \
   nsCOMPtr<nsINodeInfo> ni = aNodeInfo;                                     \
   _elementName *it = new _elementName(ni.forget());                         \
   if (!it) {                                                                \
@@ -635,10 +1027,7 @@ _elementName::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const        \
                                                                             \
   nsCOMPtr<nsINode> kungFuDeathGrip = it;                                   \
   nsresult rv = it->Init();                                                 \
-  nsresult rv2 = const_cast<_elementName*>(this)->CopyInnerTo(it);          \
-  if (NS_FAILED(rv2)) {                                                     \
-    rv = rv2;                                                               \
-  }                                                                         \
+  rv |= CopyInnerTo(it);                                                    \
   if (NS_SUCCEEDED(rv)) {                                                   \
     kungFuDeathGrip.swap(*aResult);                                         \
   }                                                                         \
@@ -658,20 +1047,80 @@ _elementName::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const        \
 
 
 
+class nsNSElementTearoff : public nsIDOMNSElement
+{
+public:
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+
+  NS_DECL_NSIDOMNSELEMENT
+
+  NS_DECL_CYCLE_COLLECTION_CLASS(nsNSElementTearoff)
+
+  nsNSElementTearoff(nsGenericElement *aContent) : mContent(aContent)
+  {
+  }
+
+private:
+  nsRefPtr<nsGenericElement> mContent;
+};
 
 
 
-#define NS_IMPL_STRING_ATTR(_class, _method, _atom)                     \
-  NS_IMETHODIMP                                                         \
-  _class::Get##_method(nsAString& aValue)                               \
-  {                                                                     \
-    GetAttr(kNameSpaceID_None, nsGkAtoms::_atom, aValue);               \
-    return NS_OK;                                                       \
-  }                                                                     \
-  NS_IMETHODIMP                                                         \
-  _class::Set##_method(const nsAString& aValue)                         \
-  {                                                                     \
-    return SetAttr(kNameSpaceID_None, nsGkAtoms::_atom, nullptr, aValue, true); \
+
+class nsTouchEventReceiverTearoff : public nsITouchEventReceiver
+{
+public:
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+
+  NS_FORWARD_NSITOUCHEVENTRECEIVER(mElement->)
+
+  NS_DECL_CYCLE_COLLECTION_CLASS(nsTouchEventReceiverTearoff)
+
+  nsTouchEventReceiverTearoff(nsGenericElement *aElement) : mElement(aElement)
+  {
+  }
+
+private:
+  nsRefPtr<nsGenericElement> mElement;
+};
+
+
+
+
+class nsInlineEventHandlersTearoff : public nsIInlineEventHandlers
+{
+public:
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+
+  NS_FORWARD_NSIINLINEEVENTHANDLERS(mElement->)
+
+  NS_DECL_CYCLE_COLLECTION_CLASS(nsInlineEventHandlersTearoff)
+
+  nsInlineEventHandlersTearoff(nsGenericElement *aElement) : mElement(aElement)
+  {
+  }
+
+private:
+  nsRefPtr<nsGenericElement> mElement;
+};
+
+#define NS_ELEMENT_INTERFACE_TABLE_TO_MAP_SEGUE                               \
+    rv = nsGenericElement::QueryInterface(aIID, aInstancePtr);                \
+    if (NS_SUCCEEDED(rv))                                                     \
+      return rv;                                                              \
+                                                                              \
+    NS_OFFSET_AND_INTERFACE_TABLE_TO_MAP_SEGUE
+
+#define NS_ELEMENT_INTERFACE_MAP_END                                          \
+    {                                                                         \
+      return PostQueryInterface(aIID, aInstancePtr);                          \
+    }                                                                         \
+                                                                              \
+    NS_ADDREF(foundInterface);                                                \
+                                                                              \
+    *aInstancePtr = foundInterface;                                           \
+                                                                              \
+    return NS_OK;                                                             \
   }
 
 #endif 

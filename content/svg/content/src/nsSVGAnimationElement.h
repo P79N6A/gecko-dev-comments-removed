@@ -3,21 +3,53 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef NS_SVGANIMATIONELEMENT_H_
 #define NS_SVGANIMATIONELEMENT_H_
 
-#include "DOMSVGTests.h"
-#include "nsIDOMElementTimeControl.h"
-#include "nsIDOMSVGAnimationElement.h"
-#include "nsISMILAnimationElement.h"
-#include "nsReferencedElement.h"
-#include "nsSMILTimedElement.h"
 #include "nsSVGElement.h"
+#include "nsAutoPtr.h"
+#include "nsReferencedElement.h"
+#include "nsIDOMSVGAnimationElement.h"
+#include "nsIDOMElementTimeControl.h"
+#include "nsISMILAnimationElement.h"
+#include "nsSMILTimedElement.h"
 
 typedef nsSVGElement nsSVGAnimationElementBase;
 
 class nsSVGAnimationElement : public nsSVGAnimationElementBase,
-                              public DOMSVGTests,
                               public nsISMILAnimationElement,
                               public nsIDOMElementTimeControl
 {
@@ -40,35 +72,31 @@ public:
                               bool aCompileEventHandlers);
   virtual void UnbindFromTree(bool aDeep, bool aNullParent);
 
-  virtual nsresult UnsetAttr(int32_t aNamespaceID, nsIAtom* aAttribute,
+  virtual nsresult UnsetAttr(PRInt32 aNamespaceID, nsIAtom* aAttribute,
                              bool aNotify);
 
-  virtual bool IsNodeOfType(uint32_t aFlags) const;
+  virtual bool IsNodeOfType(PRUint32 aFlags) const;
 
   
-  virtual bool ParseAttribute(int32_t aNamespaceID,
+  virtual bool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
-  virtual nsresult AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
-                                const nsAttrValue* aValue, bool aNotify);
+  virtual nsresult AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
+                                const nsAString* aValue, bool aNotify);
 
   
   virtual const Element& AsElement() const;
   virtual Element& AsElement();
-  virtual bool PassesConditionalProcessingTests();
   virtual const nsAttrValue* GetAnimAttr(nsIAtom* aName) const;
   virtual bool GetAnimAttr(nsIAtom* aAttName, nsAString& aResult) const;
   virtual bool HasAnimAttr(nsIAtom* aAttName) const;
   virtual Element* GetTargetElementContent();
-  virtual bool GetTargetAttributeName(int32_t* aNamespaceID,
+  virtual bool GetTargetAttributeName(PRInt32* aNamespaceID,
                                         nsIAtom** aLocalName) const;
   virtual nsSMILTargetAttrType GetTargetAttributeType() const;
   virtual nsSMILTimedElement& TimedElement();
   virtual nsSMILTimeContainer* GetTimeContainer();
-
-  
-  void ActivateByHyperlink();
 
 protected:
   

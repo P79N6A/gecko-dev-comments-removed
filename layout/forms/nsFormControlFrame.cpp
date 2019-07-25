@@ -3,9 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsFormControlFrame.h"
 #include "nsGkAtoms.h"
-#include "nsLayoutUtils.h"
 #include "nsIDOMHTMLInputElement.h"
 #include "nsEventStateManager.h"
 #include "mozilla/LookAndFeel.h"
@@ -14,7 +45,7 @@ using namespace mozilla;
 
 
 
-const int32_t kSizeNotSet = -1;
+const PRInt32 kSizeNotSet = -1;
 
 nsFormControlFrame::nsFormControlFrame(nsStyleContext* aContext) :
   nsLeafFrame(aContext)
@@ -25,17 +56,11 @@ nsFormControlFrame::~nsFormControlFrame()
 {
 }
 
-nsIAtom*
-nsFormControlFrame::GetType() const
-{
-  return nsGkAtoms::formControlFrame; 
-}
-
 void
 nsFormControlFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
   
-  nsFormControlFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), false);
+  nsFormControlFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), PR_FALSE);
   nsLeafFrame::DestroyFrom(aDestructRoot);
 }
 
@@ -84,23 +109,11 @@ nsFormControlFrame::Reflow(nsPresContext*          aPresContext,
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
 
   if (mState & NS_FRAME_FIRST_REFLOW) {
-    RegUnRegAccessKey(static_cast<nsIFrame*>(this), true);
+    RegUnRegAccessKey(static_cast<nsIFrame*>(this), PR_TRUE);
   }
 
-  nsresult rv = nsLeafFrame::Reflow(aPresContext, aDesiredSize, aReflowState,
-                                    aStatus);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  if (nsLayoutUtils::FontSizeInflationEnabled(aPresContext)) {
-    float inflation = nsLayoutUtils::FontSizeInflationFor(this);
-    aDesiredSize.width *= inflation;
-    aDesiredSize.height *= inflation;
-    aDesiredSize.UnionOverflowAreasWithDesiredBounds();
-    FinishAndStoreOverflow(&aDesiredSize);
-  }
-  return NS_OK;
+  return nsLeafFrame::Reflow(aPresContext, aDesiredSize, aReflowState,
+                             aStatus);
 }
 
 nsresult
@@ -119,9 +132,9 @@ nsFormControlFrame::RegUnRegAccessKey(nsIFrame * aFrame, bool aDoReg)
   if (!accessKey.IsEmpty()) {
     nsEventStateManager *stateManager = presContext->EventStateManager();
     if (aDoReg) {
-      stateManager->RegisterAccessKey(content, (uint32_t)accessKey.First());
+      stateManager->RegisterAccessKey(content, (PRUint32)accessKey.First());
     } else {
-      stateManager->UnregisterAccessKey(content, (uint32_t)accessKey.First());
+      stateManager->UnregisterAccessKey(content, (PRUint32)accessKey.First());
     }
     return NS_OK;
   }
@@ -176,7 +189,7 @@ nsFormControlFrame::GetUsableScreenRect(nsPresContext* aPresContext)
   nsRect screen;
 
   nsDeviceContext *context = aPresContext->DeviceContext();
-  int32_t dropdownCanOverlapOSBar =
+  PRInt32 dropdownCanOverlapOSBar =
     LookAndFeel::GetInt(LookAndFeel::eIntID_MenusCanOverlapOSBar, 0);
   if ( dropdownCanOverlapOSBar )
     context->GetRect(screen);

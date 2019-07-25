@@ -3,10 +3,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsNPAPIPluginStreamListener_h_
 #define nsNPAPIPluginStreamListener_h_
 
 #include "nscore.h"
+#include "nsIPluginStreamListener.h"
+#include "nsIPluginStreamInfo.h"
 #include "nsIHTTPHeaderListener.h"
 #include "nsIRequest.h"
 #include "nsITimer.h"
@@ -21,24 +55,66 @@
 
 #define MAX_PLUGIN_NECKO_BUFFER 16384
 
+class nsINPAPIPluginStreamInfo;
 class nsPluginStreamListenerPeer;
-class nsNPAPIPluginStreamListener;
 
-class nsNPAPIStreamWrapper
+
+
+#define NS_INPAPIPLUGINSTREAMINFO_IID       \
+{ 0x097fdaaa, 0xa2a3, 0x49c2, \
+{0x91, 0xee, 0xeb, 0xc5, 0x7d, 0x6c, 0x9c, 0x97} }
+
+class nsINPAPIPluginStreamInfo : public nsIPluginStreamInfo
 {
 public:
-  nsNPAPIStreamWrapper(nsIOutputStream *outputStream,
-                       nsNPAPIPluginStreamListener *streamListener);
-  ~nsNPAPIStreamWrapper();
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_INPAPIPLUGINSTREAMINFO_IID)
 
-  nsIOutputStream* GetOutputStream() { return mOutputStream.get(); }
-  nsNPAPIPluginStreamListener* GetStreamListener() { return mStreamListener; }
+  void TrackRequest(nsIRequest* request)
+  {
+    mRequests.AppendObject(request);
+  }
 
-  NPStream                              mNPStream;
+  void ReplaceRequest(nsIRequest* oldRequest, nsIRequest* newRequest)
+  {
+    PRInt32 i = mRequests.IndexOfObject(oldRequest);
+    if (i == -1) {
+      NS_ASSERTION(mRequests.Count() == 0,
+                   "Only our initial stream should be unknown!");
+      mRequests.AppendObject(oldRequest);
+    }
+    else {
+      mRequests.ReplaceObjectAt(newRequest, i);
+    }
+  }
+  
+  void CancelRequests(nsresult status)
+  {
+    
+    nsCOMArray<nsIRequest> requestsCopy(mRequests);
+    for (PRInt32 i = 0; i < requestsCopy.Count(); ++i)
+      requestsCopy[i]->Cancel(status);
+  }
+
+  void SuspendRequests() {
+    nsCOMArray<nsIRequest> requestsCopy(mRequests);
+    for (PRInt32 i = 0; i < requestsCopy.Count(); ++i)
+      requestsCopy[i]->Suspend();
+  }
+
+  void ResumeRequests() {
+    nsCOMArray<nsIRequest> requestsCopy(mRequests);
+    for (PRInt32 i = 0; i < requestsCopy.Count(); ++i)
+      requestsCopy[i]->Resume();
+  }
+
 protected:
-  nsCOMPtr<nsIOutputStream>             mOutputStream; 
-  nsNPAPIPluginStreamListener*          mStreamListener; 
+  friend class nsPluginByteRangeStreamListener;
+  
+  nsCOMArray<nsIRequest> mRequests;
 };
+
+NS_DEFINE_STATIC_IID_ACCESSOR(nsINPAPIPluginStreamInfo,
+                              NS_INPAPIPLUGINSTREAMINFO_IID)
 
 
 
@@ -54,12 +130,13 @@ public:
 protected:
   char* mTarget;
   nsCString mFileURL;
-  nsCOMPtr<nsIFile> mTempFile;
+  nsCOMPtr<nsILocalFile> mTempFile;
   nsCOMPtr<nsIOutputStream> mOutputStream;
   nsIPluginInstanceOwner* mOwner;
 };
 
-class nsNPAPIPluginStreamListener : public nsITimerCallback,
+class nsNPAPIPluginStreamListener : public nsIPluginStreamListener,
+                                    public nsITimerCallback,
                                     public nsIHTTPHeaderListener
 {
 private:
@@ -67,22 +144,13 @@ private:
 
 public:
   NS_DECL_ISUPPORTS
+  NS_DECL_NSIPLUGINSTREAMLISTENER
   NS_DECL_NSITIMERCALLBACK
   NS_DECL_NSIHTTPHEADERLISTENER
 
   nsNPAPIPluginStreamListener(nsNPAPIPluginInstance* inst, void* notifyData,
                               const char* aURL);
   virtual ~nsNPAPIPluginStreamListener();
-
-  nsresult OnStartBinding(nsPluginStreamListenerPeer* streamPeer);
-  nsresult OnDataAvailable(nsPluginStreamListenerPeer* streamPeer,
-                           nsIInputStream* input,
-                           uint32_t length);
-  nsresult OnFileAvailable(nsPluginStreamListenerPeer* streamPeer, 
-                           const char* fileName);
-  nsresult OnStopBinding(nsPluginStreamListenerPeer* streamPeer, 
-                         nsresult status);
-  nsresult GetStreamType(int32_t *result);
 
   bool IsStarted();
   nsresult CleanUpStream(NPReason reason);
@@ -94,7 +162,7 @@ public:
   void StopDataPump();
   bool PluginInitJSLoadInProgress();
 
-  void* GetNotifyData();
+  void* GetNotifyData() { return mNPStream.notifyData; }
   nsPluginStreamListenerPeer* GetStreamListenerPeer() { return mStreamListenerPeer; }
   void SetStreamListenerPeer(nsPluginStreamListenerPeer* aPeer) { mStreamListenerPeer = aPeer; }
 
@@ -107,10 +175,11 @@ protected:
   char* mStreamBuffer;
   char* mNotifyURL;
   nsRefPtr<nsNPAPIPluginInstance> mInst;
-  nsNPAPIStreamWrapper *mNPStreamWrapper;
-  uint32_t mStreamBufferSize;
-  int32_t mStreamBufferByteCount;
-  int32_t mStreamType;
+  nsPluginStreamListenerPeer* mStreamListenerPeer;
+  NPStream mNPStream;
+  PRUint32 mStreamBufferSize;
+  PRInt32 mStreamBufferByteCount;
+  PRInt32 mStreamType;
   bool mStreamStarted;
   bool mStreamCleanedUp;
   bool mCallNotify;
@@ -123,7 +192,7 @@ protected:
   nsCOMPtr<nsIAsyncVerifyRedirectCallback> mHTTPRedirectCallback;
 
 public:
-  nsRefPtr<nsPluginStreamListenerPeer> mStreamListenerPeer;
+  nsCOMPtr<nsIPluginStreamInfo> mStreamInfo;
 };
 
 #endif 

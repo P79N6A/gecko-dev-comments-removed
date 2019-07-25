@@ -3,22 +3,52 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "PlaceholderTxn.h"
 #include "nsEditor.h"
 #include "IMETextTxn.h"
 #include "nsGkAtoms.h"
-#include "mozilla/Selection.h"
-
-using namespace mozilla;
 
 PlaceholderTxn::PlaceholderTxn() :  EditAggregateTxn(), 
-                                    mAbsorb(true), 
-                                    mForwarding(nullptr),
-                                    mIMETextTxn(nullptr),
-                                    mCommitted(false),
-                                    mStartSel(nullptr),
+                                    mAbsorb(PR_TRUE), 
+                                    mForwarding(nsnull),
+                                    mIMETextTxn(nsnull),
+                                    mCommitted(PR_FALSE),
+                                    mStartSel(nsnull),
                                     mEndSel(),
-                                    mEditor(nullptr)
+                                    mEditor(nsnull)
 {
 }
 
@@ -44,9 +74,7 @@ NS_INTERFACE_MAP_END_INHERITING(EditAggregateTxn)
 NS_IMPL_ADDREF_INHERITED(PlaceholderTxn, EditAggregateTxn)
 NS_IMPL_RELEASE_INHERITED(PlaceholderTxn, EditAggregateTxn)
 
-NS_IMETHODIMP
-PlaceholderTxn::Init(nsIAtom* aName, nsSelectionState* aSelState,
-                     nsEditor* aEditor)
+NS_IMETHODIMP PlaceholderTxn::Init(nsIAtom *aName, nsSelectionState *aSelState, nsIEditor *aEditor)
 {
   NS_ENSURE_TRUE(aEditor && aSelState, NS_ERROR_NULL_POINTER);
 
@@ -98,7 +126,7 @@ NS_IMETHODIMP PlaceholderTxn::Merge(nsITransaction *aTransaction, bool *aDidMerg
   NS_ENSURE_TRUE(aDidMerge && aTransaction, NS_ERROR_NULL_POINTER);
 
   
-  *aDidMerge=false;
+  *aDidMerge=PR_FALSE;
     
   if (mForwarding) 
   {
@@ -153,7 +181,7 @@ NS_IMETHODIMP PlaceholderTxn::Merge(nsITransaction *aTransaction, bool *aDidMerg
     {                  
       AppendChild(editTxn);
     }
-    *aDidMerge = true;
+    *aDidMerge = PR_TRUE;
 
 
 
@@ -182,7 +210,7 @@ NS_IMETHODIMP PlaceholderTxn::Merge(nsITransaction *aTransaction, bool *aDidMerg
           plcTxn->StartSelectionEquals(&mEndSel, &isSame);
           if (isSame)
           {
-            mAbsorb = true;  
+            mAbsorb = PR_TRUE;  
             plcTxn->ForwardEndBatchTo(this);
             
             
@@ -190,7 +218,7 @@ NS_IMETHODIMP PlaceholderTxn::Merge(nsITransaction *aTransaction, bool *aDidMerg
             
             
             RememberEndingSelection();
-            *aDidMerge = true;
+            *aDidMerge = PR_TRUE;
           }
         }
       }
@@ -225,7 +253,7 @@ NS_IMETHODIMP PlaceholderTxn::StartSelectionEquals(nsSelectionState *aSelState, 
   NS_ENSURE_TRUE(aResult && aSelState, NS_ERROR_NULL_POINTER);
   if (!mStartSel->IsCollapsed() || !aSelState->IsCollapsed())
   {
-    *aResult = false;
+    *aResult = PR_FALSE;
     return NS_OK;
   }
   *aResult = mStartSel->IsEqual(aSelState);
@@ -234,7 +262,7 @@ NS_IMETHODIMP PlaceholderTxn::StartSelectionEquals(nsSelectionState *aSelState, 
 
 NS_IMETHODIMP PlaceholderTxn::EndPlaceHolderBatch()
 {
-  mAbsorb = false;
+  mAbsorb = PR_FALSE;
   
   if (mForwarding) 
   {
@@ -254,15 +282,16 @@ NS_IMETHODIMP PlaceholderTxn::ForwardEndBatchTo(nsIAbsorbingTransaction *aForwar
 
 NS_IMETHODIMP PlaceholderTxn::Commit()
 {
-  mCommitted = true;
+  mCommitted = PR_TRUE;
   return NS_OK;
 }
 
 NS_IMETHODIMP PlaceholderTxn::RememberEndingSelection()
 {
-  nsRefPtr<Selection> selection = mEditor->GetSelection();
+  nsCOMPtr<nsISelection> selection;
+  nsresult res = mEditor->GetSelection(getter_AddRefs(selection));
+  NS_ENSURE_SUCCESS(res, res);
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
-  mEndSel.SaveSelection(selection);
-  return NS_OK;
+  return mEndSel.SaveSelection(selection);
 }
 

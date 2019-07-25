@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSMILTimeValueSpec.h"
 #include "nsSMILInterval.h"
 #include "nsSMILTimeContainer.h"
@@ -11,11 +43,11 @@
 #include "nsSMILInstanceTime.h"
 #include "nsSMILParserUtils.h"
 #include "nsISMILAnimationElement.h"
+#include "nsContentUtils.h"
 #include "nsEventListenerManager.h"
 #include "nsGUIEvent.h"
 #include "nsIDOMTimeEvent.h"
 #include "nsString.h"
-#include <limits>
 
 using namespace mozilla::dom;
 
@@ -59,7 +91,7 @@ nsSMILTimeValueSpec::~nsSMILTimeValueSpec()
   UnregisterFromReferencedElement(mReferencedElement.get());
   if (mEventListener) {
     mEventListener->Disconnect();
-    mEventListener = nullptr;
+    mEventListener = nsnull;
   }
 }
 
@@ -127,7 +159,7 @@ nsSMILTimeValueSpec::ResolveReferences(nsIContent* aContextNode)
     NS_ABORT_IF_FALSE(doc, "We are in the document but current doc is null");
     mReferencedElement.ResetWithElement(doc->GetRootElement());
   } else {
-    NS_ABORT_IF_FALSE(false, "Syncbase or repeat spec without ID");
+    NS_ABORT_IF_FALSE(PR_FALSE, "Syncbase or repeat spec without ID");
   }
   UpdateReferencedElement(oldReferencedElement, mReferencedElement.get());
 }
@@ -150,9 +182,8 @@ nsSMILTimeValueSpec::HandleNewInterval(nsSMILInterval& aInterval,
     ConvertBetweenTimeContainers(baseInstance.Time(), aSrcContainer);
 
   
-  if (!ApplyOffset(newTime)) {
-    NS_WARNING("New time overflows nsSMILTime, ignoring");
-    return;
+  if (newTime.IsDefinite()) {
+    newTime.SetMillis(newTime.GetMillis() + mParams.mOffset.GetMillis());
   }
 
   
@@ -187,9 +218,9 @@ nsSMILTimeValueSpec::HandleChangedInstanceTime(
     ConvertBetweenTimeContainers(aBaseTime.Time(), aSrcContainer);
 
   
-  if (!ApplyOffset(updatedTime)) {
-    NS_WARNING("Updated time overflows nsSMILTime, ignoring");
-    return;
+  if (updatedTime.IsDefinite()) {
+    updatedTime.SetMillis(updatedTime.GetMillis() +
+                          mParams.mOffset.GetMillis());
   }
 
   
@@ -280,35 +311,13 @@ nsSMILTimedElement*
 nsSMILTimeValueSpec::GetTimedElement(Element* aElement)
 {
   if (!aElement)
-    return nullptr;
+    return nsnull;
 
   nsCOMPtr<nsISMILAnimationElement> animElement = do_QueryInterface(aElement);
   if (!animElement)
-    return nullptr;
+    return nsnull;
 
   return &animElement->TimedElement();
-}
-
-
-
-bool
-nsSMILTimeValueSpec::IsWhitelistedEvent()
-{
-  
-  if (mParams.mType == nsSMILTimeValueSpecParams::REPEAT) {
-    return true;
-  }
-
-  
-  if (mParams.mType == nsSMILTimeValueSpecParams::EVENT &&
-      (mParams.mEventSymbol == nsGkAtoms::repeat ||
-       mParams.mEventSymbol == nsGkAtoms::repeatEvent ||
-       mParams.mEventSymbol == nsGkAtoms::beginEvent ||
-       mParams.mEventSymbol == nsGkAtoms::endEvent)) {
-    return true;
-  }
-
-  return false;
 }
 
 void
@@ -323,12 +332,6 @@ nsSMILTimeValueSpec::RegisterEventListener(Element* aTarget)
   if (!aTarget)
     return;
 
-  
-  if (!aTarget->GetOwnerDocument()->IsScriptEnabled() &&
-      !IsWhitelistedEvent()) {
-    return;
-  }
-
   if (!mEventListener) {
     mEventListener = new EventListener(this);
   }
@@ -336,7 +339,7 @@ nsSMILTimeValueSpec::RegisterEventListener(Element* aTarget)
   nsEventListenerManager* elm = GetEventListenerManager(aTarget);
   if (!elm)
     return;
-
+  
   elm->AddEventListenerByType(mEventListener,
                               nsDependentAtomString(mParams.mEventSymbol),
                               NS_EVENT_FLAG_BUBBLE |
@@ -371,18 +374,18 @@ nsSMILTimeValueSpec::GetEventListenerManager(Element* aTarget)
   if (mParams.mType == nsSMILTimeValueSpecParams::ACCESSKEY) {
     nsIDocument* doc = aTarget->GetCurrentDoc();
     if (!doc)
-      return nullptr;
+      return nsnull;
     nsPIDOMWindow* win = doc->GetWindow();
     if (!win)
-      return nullptr;
+      return nsnull;
     target = do_QueryInterface(win);
   } else {
     target = aTarget;
   }
   if (!target)
-    return nullptr;
+    return nsnull;
 
-  return target->GetListenerManager(true);
+  return target->GetListenerManager(PR_TRUE);
 }
 
 void
@@ -404,11 +407,7 @@ nsSMILTimeValueSpec::HandleEvent(nsIDOMEvent* aEvent)
     return;
 
   nsSMILTime currentTime = container->GetCurrentTime();
-  nsSMILTimeValue newTime(currentTime);
-  if (!ApplyOffset(newTime)) {
-    NS_WARNING("New time generated from event overflows nsSMILTime, ignoring");
-    return;
-  }
+  nsSMILTimeValue newTime(currentTime + mParams.mOffset.GetMillis());
 
   nsRefPtr<nsSMILInstanceTime> newInstance =
     new nsSMILInstanceTime(newTime, nsSMILInstanceTime::SOURCE_EVENT);
@@ -428,7 +427,7 @@ nsSMILTimeValueSpec::CheckEventDetail(nsIDOMEvent *aEvent)
 
   default:
     
-    return true;
+    return PR_TRUE;
   }
 }
 
@@ -438,12 +437,12 @@ nsSMILTimeValueSpec::CheckRepeatEventDetail(nsIDOMEvent *aEvent)
   nsCOMPtr<nsIDOMTimeEvent> timeEvent = do_QueryInterface(aEvent);
   if (!timeEvent) {
     NS_WARNING("Received a repeat event that was not a DOMTimeEvent");
-    return false;
+    return PR_FALSE;
   }
 
-  int32_t detail;
+  PRInt32 detail;
   timeEvent->GetDetail(&detail);
-  return detail > 0 && (uint32_t)detail == mParams.mRepeatIterationOrAccessKey;
+  return detail > 0 && (PRUint32)detail == mParams.mRepeatIterationOrAccessKey;
 }
 
 bool
@@ -452,7 +451,7 @@ nsSMILTimeValueSpec::CheckAccessKeyEventDetail(nsIDOMEvent *aEvent)
   nsCOMPtr<nsIDOMKeyEvent> keyEvent = do_QueryInterface(aEvent);
   if (!keyEvent) {
     NS_WARNING("Received an accesskey event that was not a DOMKeyEvent");
-    return false;
+    return PR_FALSE;
   }
 
   
@@ -463,9 +462,9 @@ nsSMILTimeValueSpec::CheckAccessKeyEventDetail(nsIDOMEvent *aEvent)
   keyEvent->GetCtrlKey(&isCtrl);
   keyEvent->GetMetaKey(&isMeta);
   if (isCtrl || isMeta)
-    return false;
+    return PR_FALSE;
 
-  uint32_t code;
+  PRUint32 code;
   keyEvent->GetCharCode(&code);
   if (code)
     return code == mParams.mRepeatIterationOrAccessKey;
@@ -479,7 +478,7 @@ nsSMILTimeValueSpec::CheckAccessKeyEventDetail(nsIDOMEvent *aEvent)
   keyEvent->GetAltKey(&isAlt);
   keyEvent->GetShiftKey(&isShift);
   if (isAlt || isShift)
-    return false;
+    return PR_FALSE;
 
   keyEvent->GetKeyCode(&code);
   switch (code)
@@ -499,7 +498,7 @@ nsSMILTimeValueSpec::CheckAccessKeyEventDetail(nsIDOMEvent *aEvent)
     return mParams.mRepeatIterationOrAccessKey == 0x7F;
 
   default:
-    return false;
+    return PR_FALSE;
   }
 }
 
@@ -535,22 +534,4 @@ nsSMILTimeValueSpec::ConvertBetweenTimeContainers(
     "ContainerToParentTime gave us an unresolved or indefinite time");
 
   return dstContainer->ParentToContainerTime(docTime.GetMillis());
-}
-
-bool
-nsSMILTimeValueSpec::ApplyOffset(nsSMILTimeValue& aTime) const
-{
-  
-  if (!aTime.IsDefinite()) {
-    return true;
-  }
-
-  double resultAsDouble =
-    (double)aTime.GetMillis() + mParams.mOffset.GetMillis();
-  if (resultAsDouble > std::numeric_limits<nsSMILTime>::max() ||
-      resultAsDouble < std::numeric_limits<nsSMILTime>::min()) {
-    return false;
-  }
-  aTime.SetMillis(aTime.GetMillis() + mParams.mOffset.GetMillis());
-  return true;
 }

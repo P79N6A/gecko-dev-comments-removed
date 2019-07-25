@@ -12,6 +12,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsAnnoProtocolHandler.h"
 #include "nsFaviconService.h"
 #include "nsIChannel.h"
@@ -24,11 +58,12 @@
 #include "nsNetUtil.h"
 #include "nsServiceManagerUtils.h"
 #include "nsStringStream.h"
-#include "mozilla/storage.h"
+#include "mozIStorageStatementCallback.h"
+#include "mozIStorageResultSet.h"
+#include "mozIStorageRow.h"
+#include "mozIStorageError.h"
 #include "nsIPipe.h"
 #include "Helpers.h"
-
-using namespace mozilla;
 using namespace mozilla::places;
 
 
@@ -93,7 +128,7 @@ public:
 
     
     
-    nsAutoCString mimeType;
+    nsCAutoString mimeType;
     (void)row->GetUTF8String(1, mimeType);
     NS_ENSURE_FALSE(mimeType.IsEmpty(), NS_OK);
 
@@ -102,14 +137,14 @@ public:
     NS_ENSURE_SUCCESS(rv, rv);
 
     
-    uint8_t *favicon;
-    uint32_t size = 0;
+    PRUint8 *favicon;
+    PRUint32 size = 0;
     rv = row->GetBlob(0, &size, &favicon);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    uint32_t totalWritten = 0;
+    PRUint32 totalWritten = 0;
     do {
-      uint32_t bytesWritten;
+      PRUint32 bytesWritten;
       rv = mOutputStream->Write(
         &(reinterpret_cast<const char *>(favicon)[totalWritten]),
         size - totalWritten,
@@ -135,7 +170,7 @@ public:
     return NS_OK;
   }
 
-  NS_IMETHOD HandleCompletion(uint16_t aReason)
+  NS_IMETHOD HandleCompletion(PRUint16 aReason)
   {
     if (!mReturnDefaultIcon)
       return mOutputStream->Close();
@@ -152,7 +187,7 @@ public:
     rv = GetDefaultIcon(getter_AddRefs(newChannel));
     NS_ENSURE_SUCCESS(rv, mOutputStream->Close());
 
-    rv = newChannel->AsyncOpen(listener, nullptr);
+    rv = newChannel->AsyncOpen(listener, nsnull);
     NS_ENSURE_SUCCESS(rv, mOutputStream->Close());
 
     return NS_OK;
@@ -212,7 +247,7 @@ nsAnnoProtocolHandler::GetScheme(nsACString& aScheme)
 
 
 NS_IMETHODIMP
-nsAnnoProtocolHandler::GetDefaultPort(int32_t *aDefaultPort)
+nsAnnoProtocolHandler::GetDefaultPort(PRInt32 *aDefaultPort)
 {
   *aDefaultPort = -1;
   return NS_OK;
@@ -222,7 +257,7 @@ nsAnnoProtocolHandler::GetDefaultPort(int32_t *aDefaultPort)
 
 
 NS_IMETHODIMP
-nsAnnoProtocolHandler::GetProtocolFlags(uint32_t *aProtocolFlags)
+nsAnnoProtocolHandler::GetProtocolFlags(PRUint32 *aProtocolFlags)
 {
   *aProtocolFlags = (URI_NORELATIVE | URI_NOAUTH | URI_DANGEROUS_TO_LOAD |
                      URI_IS_LOCAL_RESOURCE);
@@ -243,7 +278,7 @@ nsAnnoProtocolHandler::NewURI(const nsACString& aSpec,
   nsresult rv = uri->SetSpec(aSpec);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  *_retval = nullptr;
+  *_retval = nsnull;
   uri.swap(*_retval);
   return NS_OK;
 }
@@ -258,7 +293,7 @@ nsAnnoProtocolHandler::NewChannel(nsIURI *aURI, nsIChannel **_retval)
   NS_ENSURE_ARG_POINTER(aURI);
   nsresult rv;
 
-  nsAutoCString path;
+  nsCAutoString path;
   rv = aURI->GetPath(path);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -268,7 +303,7 @@ nsAnnoProtocolHandler::NewChannel(nsIURI *aURI, nsIChannel **_retval)
 
   
   nsCOMPtr<nsIURI> annoURI;
-  nsAutoCString annoName;
+  nsCAutoString annoName;
   rv = ParseAnnoURI(aURI, getter_AddRefs(annoURI), annoName);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -278,9 +313,9 @@ nsAnnoProtocolHandler::NewChannel(nsIURI *aURI, nsIChannel **_retval)
     return NewFaviconChannel(aURI, annoURI, _retval);
 
   
-  uint8_t* data;
-  uint32_t dataLen;
-  nsAutoCString mimeType;
+  PRUint8* data;
+  PRUint32 dataLen;
+  nsCAutoString mimeType;
 
   
   rv = annotationService->GetPageAnnotationBinary(annoURI, annoName, &data,
@@ -320,10 +355,10 @@ nsAnnoProtocolHandler::NewChannel(nsIURI *aURI, nsIChannel **_retval)
 
 
 NS_IMETHODIMP
-nsAnnoProtocolHandler::AllowPort(int32_t port, const char *scheme,
+nsAnnoProtocolHandler::AllowPort(PRInt32 port, const char *scheme,
                                  bool *_retval)
 {
-  *_retval = false;
+  *_retval = PR_FALSE;
   return NS_OK;
 }
 
@@ -337,11 +372,11 @@ nsAnnoProtocolHandler::ParseAnnoURI(nsIURI* aURI,
                                     nsIURI** aResultURI, nsCString& aName)
 {
   nsresult rv;
-  nsAutoCString path;
+  nsCAutoString path;
   rv = aURI->GetPath(path);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  int32_t firstColon = path.FindChar(':');
+  PRInt32 firstColon = path.FindChar(':');
   if (firstColon <= 0)
     return NS_ERROR_MALFORMED_URI;
 
@@ -362,8 +397,8 @@ nsAnnoProtocolHandler::NewFaviconChannel(nsIURI *aURI, nsIURI *aAnnotationURI,
   nsCOMPtr<nsIOutputStream> outputStream;
   nsresult rv = NS_NewPipe(getter_AddRefs(inputStream),
                            getter_AddRefs(outputStream),
-                           MAX_FAVICON_SIZE, MAX_FAVICON_SIZE, true,
-                           true);
+                           MAX_FAVICON_SIZE, MAX_FAVICON_SIZE, PR_TRUE,
+                           PR_TRUE);
   NS_ENSURE_SUCCESS(rv, GetDefaultIcon(_channel));
 
   

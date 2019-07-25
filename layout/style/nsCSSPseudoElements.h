@@ -5,6 +5,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsCSSPseudoElements_h___
 #define nsCSSPseudoElements_h___
 
@@ -68,10 +101,10 @@ public:
   static nsIAtom* GetPseudoAtom(Type aType);
 
 private:
-  static uint32_t FlagsForPseudoElement(nsIAtom *aAtom);
+  static PRUint32 FlagsForPseudoElement(nsIAtom *aAtom);
 
   
-  static bool PseudoElementHasFlags(nsIAtom *aAtom, uint32_t aFlags)
+  static bool PseudoElementHasFlags(nsIAtom *aAtom, PRUint32 aFlags)
   {
     return (FlagsForPseudoElement(aAtom) & aFlags) == aFlags;
   }

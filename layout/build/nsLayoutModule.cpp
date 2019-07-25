@@ -1,40 +1,40 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Communicator client code.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Pierre Phaneuf <pp@ludusdesign.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "base/basictypes.h"
 
@@ -95,7 +95,7 @@
 #include "nsIEventListenerService.h"
 #include "nsIFrameMessageManager.h"
 
-// Transformiix stuff
+
 #include "nsXPathEvaluator.h"
 #include "txMozillaXSLTProcessor.h"
 #include "txNodeSetAdaptor.h"
@@ -107,12 +107,12 @@
 #include "nsWebSocket.h"
 #include "nsEventSource.h"
 
-// view stuff
+
 #include "nsViewsCID.h"
 #include "nsViewManager.h"
 #include "nsContentCreatorFunctions.h"
 
-// DOM includes
+
 #include "nsDOMException.h"
 #include "nsDOMFileReader.h"
 #include "nsFormData.h"
@@ -129,11 +129,11 @@
 
 using mozilla::dom::indexedDB::IndexedDatabaseManager;
 
-// Editor stuff
+
 #include "nsEditorCID.h"
 #include "nsEditor.h"
 #include "nsPlaintextEditor.h"
-#include "nsEditorController.h" //CID
+#include "nsEditorController.h" 
 #include "nsIController.h"
 #include "nsIControllerContext.h"
 #include "nsIControllerCommandTable.h"
@@ -163,8 +163,8 @@ static NS_DEFINE_CID(kEditorCommandTableCID, NS_EDITORCOMMANDTABLE_CID);
 
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsPlaintextEditor)
 
-// Constructor of a controller which is set up to use, internally, a
-// singleton command-table pre-filled with editor commands.
+
+
 static nsresult
 nsEditorControllerConstructor(nsISupports *aOuter, REFNSIID aIID,
                                             void **aResult)
@@ -176,7 +176,7 @@ nsEditorControllerConstructor(nsISupports *aOuter, REFNSIID aIID,
   nsCOMPtr<nsIControllerCommandTable> editorCommandTable = do_GetService(kEditorCommandTableCID, &rv);
   if (NS_FAILED(rv)) return rv;
   
-  // this guy is a singleton, so make it immutable
+  
   editorCommandTable->MakeImmutable();
   
   nsCOMPtr<nsIControllerContext> controllerContext = do_QueryInterface(controller, &rv);
@@ -189,7 +189,7 @@ nsEditorControllerConstructor(nsISupports *aOuter, REFNSIID aIID,
 }
 
 
-// Constructor for a command-table pref-filled with editor commands
+
 static nsresult
 nsEditorCommandTableConstructor(nsISupports *aOuter, REFNSIID aIID,
                                             void **aResult)
@@ -202,8 +202,8 @@ nsEditorCommandTableConstructor(nsISupports *aOuter, REFNSIID aIID,
   rv = nsEditorController::RegisterEditorCommands(commandTable);
   if (NS_FAILED(rv)) return rv;
   
-  // we don't know here whether we're being created as an instance,
-  // or a service, so we can't become immutable
+  
+  
 
   return commandTable->QueryInterface(aIID, aResult);
 }
@@ -237,7 +237,7 @@ class nsIDocumentLoaderFactory;
   "@mozilla.org/content/element/html;1?name=audio"
 #endif
 
-/* 0ddf4df8-4dbb-4133-8b79-9afb966514f5 */
+
 #define NS_PLUGINDOCLOADERFACTORY_CID \
 { 0x0ddf4df8, 0x4dbb, 0x4133, { 0x8b, 0x79, 0x9a, 0xfb, 0x96, 0x65, 0x14, 0xf5 } }
 
@@ -251,7 +251,7 @@ static NS_DEFINE_CID(kWindowCommandTableCID, NS_WINDOWCOMMANDTABLE_CID);
 
 #ifdef MOZ_XUL
 #include "inDOMView.h"
-#endif /* MOZ_XUL */
+#endif 
 
 #include "inDeepTreeWalker.h"
 #include "inFlasher.h"
@@ -285,15 +285,15 @@ static void Shutdown();
 #endif
 #include "nsCSPService.h"
 
-// Transformiix
-/* 5d5d92cd-6bf8-11d9-bf4a-000a95dc234c */
+
+
 #define TRANSFORMIIX_NODESET_CID \
 { 0x5d5d92cd, 0x6bf8, 0x11d9, { 0xbf, 0x4a, 0x0, 0x0a, 0x95, 0xdc, 0x23, 0x4c } }
 
 #define TRANSFORMIIX_NODESET_CONTRACTID \
 "@mozilla.org/transformiix-nodeset;1"
 
-// Factory Constructor
+
 NS_GENERIC_FACTORY_CONSTRUCTOR(txMozillaXSLTProcessor)
 NS_GENERIC_AGGREGATED_CONSTRUCTOR_INIT(nsXPathEvaluator, Init)
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(txNodeSetAdaptor, Init)
@@ -321,13 +321,13 @@ NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(ThirdPartyUtil, Init)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsHapticFeedback)
 #endif
 
-//-----------------------------------------------------------------------------
 
-// Per bug 209804, it is necessary to observe the "xpcom-shutdown" event and
-// perform shutdown of the layout modules at that time instead of waiting for
-// our module destructor to run.  If we do not do this, then we risk holding
-// references to objects in other component libraries that have already been
-// shutdown (and possibly unloaded if 60709 is ever fixed).
+
+
+
+
+
+
 
 class LayoutShutdownObserver : public nsIObserver
 {
@@ -350,13 +350,13 @@ LayoutShutdownObserver::Observe(nsISupports *aSubject,
   return NS_OK;
 }
 
-//-----------------------------------------------------------------------------
 
-static PRBool gInitialized = PR_FALSE;
 
-// Perform our one-time intialization for this module
+static bool gInitialized = false;
 
-// static
+
+
+
 nsresult
 Initialize()
 {
@@ -382,7 +382,7 @@ Initialize()
     return rv;
   }
 
-  // Add our shutdown observer.
+  
   nsCOMPtr<nsIObserverService> observerService =
     mozilla::services::GetObserverService();
 
@@ -403,9 +403,9 @@ Initialize()
   return NS_OK;
 }
 
-// Shutdown this module, releasing all of the module resources
 
-// static
+
+
 void
 Shutdown()
 {
@@ -494,7 +494,7 @@ MAKE_CTOR(CreateNewPopupBoxObject,      nsIBoxObject,           NS_NewPopupBoxOb
 MAKE_CTOR(CreateNewScrollBoxObject,     nsIBoxObject,           NS_NewScrollBoxObject)
 MAKE_CTOR(CreateNewTreeBoxObject,       nsIBoxObject,           NS_NewTreeBoxObject)
 MAKE_CTOR(CreateNewContainerBoxObject,  nsIBoxObject,           NS_NewContainerBoxObject)
-#endif // MOZ_XUL
+#endif 
 
 #ifdef MOZ_XUL
 NS_GENERIC_FACTORY_CONSTRUCTOR(inDOMView)
@@ -516,9 +516,9 @@ MAKE_CTOR(CreateRangeUtils,               nsIRangeUtils,               NS_NewRan
 MAKE_CTOR(CreateContentIterator,          nsIContentIterator,          NS_NewContentIterator)
 MAKE_CTOR(CreatePreContentIterator,       nsIContentIterator,          NS_NewPreContentIterator)
 MAKE_CTOR(CreateSubtreeIterator,          nsIContentIterator,          NS_NewContentSubtreeIterator)
-// CreateHTMLImgElement, see below
-// CreateHTMLOptionElement, see below
-// CreateHTMLAudioElement, see below
+
+
+
 MAKE_CTOR(CreateTextEncoder,              nsIDocumentEncoder,          NS_NewTextEncoder)
 MAKE_CTOR(CreateHTMLCopyTextEncoder,      nsIDocumentEncoder,          NS_NewHTMLCopyTextEncoder)
 MAKE_CTOR(CreateXMLContentSerializer,     nsIContentSerializer,        NS_NewXMLContentSerializer)
@@ -530,10 +530,10 @@ MAKE_CTOR(CreateXBLService,               nsIXBLService,               NS_NewXBL
 MAKE_CTOR(CreateContentPolicy,            nsIContentPolicy,            NS_NewContentPolicy)
 #ifdef MOZ_XUL
 MAKE_CTOR(CreateXULSortService,           nsIXULSortService,           NS_NewXULSortService)
-// NS_NewXULContentBuilder
-// NS_NewXULTreeBuilder
+
+
 MAKE_CTOR(CreateXULDocument,              nsIXULDocument,              NS_NewXULDocument)
-// NS_NewXULControllers
+
 MAKE_CTOR(CreateXULPopupManager,      nsISupports,      NS_NewXULPopupManager)
 #endif
 #ifdef MOZ_XTF
@@ -561,8 +561,8 @@ NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsStyleSheetService, Init)
 
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsJSURI)
 
-// views are not refcounted, so this is the same as
-// NS_GENERIC_FACTORY_CONSTRUCTOR without the NS_ADDREF/NS_RELEASE
+
+
 #define NS_GENERIC_FACTORY_CONSTRUCTOR_NOREFS(_InstanceClass)                 \
 static nsresult                                                               \
 _InstanceClass##Constructor(nsISupports *aOuter, REFNSIID aIID,               \
@@ -594,7 +594,7 @@ CreateHTMLImgElement(nsISupports* aOuter, REFNSIID aIID, void** aResult)
   *aResult = nsnull;
   if (aOuter)
     return NS_ERROR_NO_AGGREGATION;
-  // Note! NS_NewHTMLImageElement is special cased to handle a null nodeinfo
+  
   nsCOMPtr<nsINodeInfo> ni;
   nsIContent* inst = NS_NewHTMLImageElement(ni.forget());
   nsresult rv = NS_ERROR_OUT_OF_MEMORY;
@@ -612,7 +612,7 @@ CreateHTMLOptionElement(nsISupports* aOuter, REFNSIID aIID, void** aResult)
   *aResult = nsnull;
   if (aOuter)
     return NS_ERROR_NO_AGGREGATION;
-  // Note! NS_NewHTMLOptionElement is special cased to handle a null nodeinfo
+  
   nsCOMPtr<nsINodeInfo> ni;
   nsIContent* inst = NS_NewHTMLOptionElement(ni.forget());
   nsresult rv = NS_ERROR_OUT_OF_MEMORY;
@@ -631,7 +631,7 @@ CreateHTMLAudioElement(nsISupports* aOuter, REFNSIID aIID, void** aResult)
   *aResult = nsnull;
   if (aOuter)
     return NS_ERROR_NO_AGGREGATION;
-  // Note! NS_NewHTMLAudioElement is special cased to handle a null nodeinfo
+  
   nsCOMPtr<nsINodeInfo> ni;
   nsCOMPtr<nsIContent> inst(NS_NewHTMLAudioElement(ni.forget()));
   return inst ? inst->QueryInterface(aIID, aResult) : NS_ERROR_OUT_OF_MEMORY;
@@ -666,7 +666,7 @@ CreateWindowControllerWithSingletonCommandTable(nsISupports *aOuter,
   nsCOMPtr<nsIControllerCommandTable> windowCommandTable = do_GetService(kWindowCommandTableCID, &rv);
   if (NS_FAILED(rv)) return rv;
 
-  // this is a singleton; make it immutable
+  
   windowCommandTable->MakeImmutable();
 
   nsCOMPtr<nsIControllerContext> controllerContext = do_QueryInterface(controller, &rv);
@@ -731,7 +731,7 @@ NS_DEFINE_NAMED_CID(NS_POPUPBOXOBJECT_CID);
 NS_DEFINE_NAMED_CID(NS_CONTAINERBOXOBJECT_CID);
 NS_DEFINE_NAMED_CID(NS_SCROLLBOXOBJECT_CID);
 NS_DEFINE_NAMED_CID(NS_TREEBOXOBJECT_CID);
-#endif // MOZ_XUL
+#endif 
 #ifdef MOZ_XUL
 NS_DEFINE_NAMED_CID(IN_DOMVIEW_CID);
 #endif
@@ -865,7 +865,7 @@ static const mozilla::Module::CIDEntry kLayoutCIDs[] = {
   { &kNS_CONTAINERBOXOBJECT_CID, false, NULL, CreateNewContainerBoxObject },
   { &kNS_SCROLLBOXOBJECT_CID, false, NULL, CreateNewScrollBoxObject },
   { &kNS_TREEBOXOBJECT_CID, false, NULL, CreateNewTreeBoxObject },
-#endif // MOZ_XUL
+#endif 
 #ifdef MOZ_XUL
   { &kIN_DOMVIEW_CID, false, NULL, inDOMViewConstructor },
 #endif
@@ -993,7 +993,7 @@ static const mozilla::Module::ContractIDEntry kLayoutContracts[] = {
   { "@mozilla.org/layout/xul-boxobject-container;1", &kNS_CONTAINERBOXOBJECT_CID },
   { "@mozilla.org/layout/xul-boxobject-scrollbox;1", &kNS_SCROLLBOXOBJECT_CID },
   { "@mozilla.org/layout/xul-boxobject-tree;1", &kNS_TREEBOXOBJECT_CID },
-#endif // MOZ_XUL
+#endif 
 #ifdef MOZ_XUL
   { "@mozilla.org/inspector/dom-view;1", &kIN_DOMVIEW_CID },
 #endif

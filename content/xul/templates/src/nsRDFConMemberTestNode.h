@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsRDFConMemberTestNode_h__
 #define nsRDFConMemberTestNode_h__
 
@@ -57,7 +90,7 @@ public:
         static Element*
         Create(nsIRDFResource* aContainer, nsIRDFNode* aMember) {
             void* place = MemoryElement::gPool.Alloc(sizeof(Element));
-            return place ? ::new (place) Element(aContainer, aMember) : nullptr; }
+            return place ? ::new (place) Element(aContainer, aMember) : nsnull; }
 
         void Destroy() {
             this->~Element();
@@ -76,7 +109,7 @@ public:
                 const Element& element = static_cast<const Element&>(aElement);
                 return mContainer == element.mContainer && mMember == element.mMember;
             }
-            return false; }
+            return PR_FALSE; }
 
     protected:
         nsCOMPtr<nsIRDFResource> mContainer;

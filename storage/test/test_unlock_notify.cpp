@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "storage_test_harness.h"
 
 #include "mozilla/ReentrantMonitor.h"
@@ -112,7 +145,7 @@ public:
     
     rv = stmt->Finalize();
     do_check_eq(rv, NS_ERROR_FILE_IS_LOCKED);
-    mConnection = nullptr;
+    mConnection = nsnull;
 
     Notify(TEST_DONE);
 

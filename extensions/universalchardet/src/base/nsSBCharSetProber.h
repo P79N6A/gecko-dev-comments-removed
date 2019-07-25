@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsSingleByteCharSetProber_h__
 #define nsSingleByteCharSetProber_h__
 
@@ -19,7 +52,7 @@
 typedef struct
 {
   const unsigned char* const charToOrderMap;    
-  const uint8_t* const precedenceMatrix;  
+  const PRUint8* const precedenceMatrix;  
   float  mTypicalPositiveRatio;     
   bool keepEnglishLetter;         
   const char* const charsetName;
@@ -29,15 +62,16 @@ typedef struct
 class nsSingleByteCharSetProber : public nsCharSetProber{
 public:
   nsSingleByteCharSetProber(const SequenceModel *model) 
-    :mModel(model), mReversed(false), mNameProber(0) { Reset(); }
+    :mModel(model), mReversed(PR_FALSE), mNameProber(0) { Reset(); }
   nsSingleByteCharSetProber(const SequenceModel *model, bool reversed, nsCharSetProber* nameProber)
     :mModel(model), mReversed(reversed), mNameProber(nameProber) { Reset(); }
 
   virtual const char* GetCharSetName();
-  virtual nsProbingState HandleData(const char* aBuf, uint32_t aLen);
+  virtual nsProbingState HandleData(const char* aBuf, PRUint32 aLen);
   virtual nsProbingState GetState(void) {return mState;}
   virtual void      Reset(void);
   virtual float     GetConfidence(void);
+  virtual void      SetOpion() {}
   
   
   
@@ -59,12 +93,12 @@ protected:
   
   unsigned char mLastOrder;
 
-  uint32_t mTotalSeqs;
-  uint32_t mSeqCounters[NUMBER_OF_SEQ_CAT];
+  PRUint32 mTotalSeqs;
+  PRUint32 mSeqCounters[NUMBER_OF_SEQ_CAT];
 
-  uint32_t mTotalChar;
+  PRUint32 mTotalChar;
   
-  uint32_t mFreqChar;
+  PRUint32 mFreqChar;
   
   
   nsCharSetProber* mNameProber; 

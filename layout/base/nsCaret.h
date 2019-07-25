@@ -6,6 +6,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsCaret_h__
 #define nsCaret_h__
 
@@ -80,7 +112,7 @@ class nsCaret : public nsISelectionListener
 
     virtual nsIFrame* GetGeometry(nsISelection* aSelection,
                                   nsRect* aRect,
-                                  nscoord* aBidiIndicatorSize = nullptr);
+                                  nscoord* aBidiIndicatorSize = nsnull);
 
     
 
@@ -97,7 +129,7 @@ class nsCaret : public nsISelectionListener
 
 
 
-    nsresult    DrawAtPosition(nsIDOMNode* aNode, int32_t aOffset);
+    nsresult    DrawAtPosition(nsIDOMNode* aNode, PRInt32 aOffset);
 
     
 
@@ -106,7 +138,7 @@ class nsCaret : public nsISelectionListener
 
 
 
-    nsIFrame*     GetCaretFrame(int32_t *aOffset = nullptr);
+    nsIFrame*     GetCaretFrame(PRInt32 *aOffset = nsnull);
 
     
 
@@ -157,11 +189,11 @@ class nsCaret : public nsISelectionListener
     static void   CaretBlinkCallback(nsITimer *aTimer, void *aClosure);
 
     nsresult      GetCaretFrameForNodeOffset(nsIContent* aContentNode,
-                                             int32_t aOffset,
+                                             PRInt32 aOffset,
                                              nsFrameSelection::HINT aFrameHint,
-                                             uint8_t aBidiLevel,
+                                             PRUint8 aBidiLevel,
                                              nsIFrame** aReturnFrame,
-                                             int32_t* aReturnOffset);
+                                             PRInt32* aReturnOffset);
 
     NS_IMETHOD CheckCaretDrawingState();
 
@@ -178,18 +210,18 @@ protected:
     void          InvalidateTextOverflowBlock();
     
     bool          DrawAtPositionWithHint(nsIDOMNode* aNode,
-                                         int32_t aOffset,
+                                         PRInt32 aOffset,
                                          nsFrameSelection::HINT aFrameHint,
-                                         uint8_t aBidiLevel,
+                                         PRUint8 aBidiLevel,
                                          bool aInvalidate);
 
     struct Metrics {
       nscoord mBidiIndicatorSize; 
       nscoord mCaretWidth;        
     };
-    Metrics ComputeMetrics(nsIFrame* aFrame, int32_t aOffset, nscoord aCaretHeight);
+    Metrics ComputeMetrics(nsIFrame* aFrame, PRInt32 aOffset, nscoord aCaretHeight);
     nsresult GetGeometryForFrame(nsIFrame* aFrame,
-                                 int32_t   aFrameOffset,
+                                 PRInt32   aFrameOffset,
                                  nsRect*   aRect,
                                  nscoord*  aBidiIndicatorSize);
 
@@ -202,7 +234,7 @@ protected:
 
     void          DrawCaret(bool aInvalidate);
     void          DrawCaretAfterBriefDelay();
-    bool          UpdateCaretRects(nsIFrame* aFrame, int32_t aFrameOffset);
+    bool          UpdateCaretRects(nsIFrame* aFrame, PRInt32 aFrameOffset);
     static void   InvalidateRects(const nsRect &aRect, const nsRect &aHook,
                                   nsIFrame *aFrame);
     nsRect        GetHookRect()
@@ -236,7 +268,7 @@ protected:
 
     
     
-    uint32_t              mBlinkRate;         
+    PRUint32              mBlinkRate;         
     nscoord               mCaretWidthCSSPx;   
     float                 mCaretAspectRatio;  
     
@@ -254,7 +286,7 @@ protected:
     bool                  mKeyboardRTL;       
     bool                  mBidiUI;            
     nsRect                mHookRect;          
-    uint8_t               mLastBidiLevel;     
+    PRUint8               mLastBidiLevel;     
 #endif
     nsRect                mCaretRect;         
 
@@ -262,7 +294,7 @@ protected:
                                               
                                               
                                               
-    int32_t               mLastContentOffset; 
+    PRInt32               mLastContentOffset; 
 
     nsFrameSelection::HINT mLastHint;        
                                               
@@ -275,20 +307,20 @@ class StCaretHider
 {
 public:
                StCaretHider(nsCaret* aSelCon)
-               : mWasVisible(false), mCaret(aSelCon)
+               : mWasVisible(PR_FALSE), mCaret(aSelCon)
                {
                  if (mCaret)
                  {
                    mCaret->GetCaretVisible(&mWasVisible);
                    if (mWasVisible)
-                     mCaret->SetCaretVisible(false);
+                     mCaret->SetCaretVisible(PR_FALSE);
                  }
                }
 
                ~StCaretHider()
                {
                  if (mCaret && mWasVisible)
-                   mCaret->SetCaretVisible(true);
+                   mCaret->SetCaretVisible(PR_TRUE);
                  
                }
 

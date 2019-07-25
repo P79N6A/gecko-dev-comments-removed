@@ -3,10 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsRadioVisitor.h"
 #include "nsAutoPtr.h"
 #include "nsHTMLInputElement.h"
 #include "nsEventStates.h"
+#include "nsIDocument.h"
 #include "nsIConstraintValidation.h"
 
 
@@ -20,14 +53,14 @@ nsRadioSetCheckedChangedVisitor::Visit(nsIFormControl* aRadio)
   NS_ASSERTION(radio, "Visit() passed a null button!");
 
   radio->SetCheckedChangedInternal(mCheckedChanged);
-  return true;
+  return PR_TRUE;
 }
 
 bool
 nsRadioGetCheckedChangedVisitor::Visit(nsIFormControl* aRadio)
 {
   if (aRadio == mExcludeElement) {
-    return true;
+    return PR_TRUE;
   }
 
   nsRefPtr<nsHTMLInputElement> radio =
@@ -35,14 +68,14 @@ nsRadioGetCheckedChangedVisitor::Visit(nsIFormControl* aRadio)
   NS_ASSERTION(radio, "Visit() passed a null button!");
 
   *mCheckedChanged = radio->GetCheckedChanged();
-  return false;
+  return PR_FALSE;
 }
 
 bool
 nsRadioSetValueMissingState::Visit(nsIFormControl* aRadio)
 {
   if (aRadio == mExcludeElement) {
-    return true;
+    return PR_TRUE;
   }
 
   nsHTMLInputElement* input = static_cast<nsHTMLInputElement*>(aRadio);
@@ -52,6 +85,6 @@ nsRadioSetValueMissingState::Visit(nsIFormControl* aRadio)
 
   input->UpdateState(true);
 
-  return true;
+  return PR_TRUE;
 }
 

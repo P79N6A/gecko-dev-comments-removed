@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsINameSpaceManager.h"
 #include "nsMathMLFrame.h"
 #include "nsMathMLChar.h"
@@ -39,7 +72,7 @@ nsMathMLFrame::FindAttrDisplaystyle(nsIContent*         aContent,
                aContent->Tag() == nsGkAtoms::mtable_ ||
                aContent->Tag() == nsGkAtoms::math, "bad caller");
   static nsIContent::AttrValuesArray strings[] =
-    {&nsGkAtoms::_false, &nsGkAtoms::_true, nullptr};
+    {&nsGkAtoms::_false, &nsGkAtoms::_true, nsnull};
   
   switch (aContent->FindAttrValueIn(kNameSpaceID_None,
     nsGkAtoms::displaystyle_, strings, eCaseMatters)) {
@@ -55,49 +88,18 @@ nsMathMLFrame::FindAttrDisplaystyle(nsIContent*         aContent,
   
 }
 
-
- void
-nsMathMLFrame::FindAttrDirectionality(nsIContent*         aContent,
-                                      nsPresentationData& aPresentationData)
-{
-  NS_ASSERTION(aContent->Tag() == nsGkAtoms::math ||
-               aContent->Tag() == nsGkAtoms::mrow_ ||
-               aContent->Tag() == nsGkAtoms::mstyle_ ||
-               aContent->Tag() == nsGkAtoms::mi_ ||
-               aContent->Tag() == nsGkAtoms::mn_ ||
-               aContent->Tag() == nsGkAtoms::mo_ ||
-               aContent->Tag() == nsGkAtoms::mtext_ ||
-               aContent->Tag() == nsGkAtoms::ms_, "bad caller");
-
-  static nsIContent::AttrValuesArray strings[] =
-    {&nsGkAtoms::ltr, &nsGkAtoms::rtl, nullptr};
-
-  
-  switch (aContent->FindAttrValueIn(kNameSpaceID_None,
-                                    nsGkAtoms::dir, strings, eCaseMatters))
-    {
-    case 0:
-      aPresentationData.flags &= ~NS_MATHML_RTL;
-      break;
-    case 1:
-      aPresentationData.flags |= NS_MATHML_RTL;
-      break;
-    }
-  
-}
-
 NS_IMETHODIMP
 nsMathMLFrame::InheritAutomaticData(nsIFrame* aParent) 
 {
   mEmbellishData.flags = 0;
-  mEmbellishData.coreFrame = nullptr;
+  mEmbellishData.coreFrame = nsnull;
   mEmbellishData.direction = NS_STRETCH_DIRECTION_UNSUPPORTED;
-  mEmbellishData.leadingSpace = 0;
-  mEmbellishData.trailingSpace = 0;
+  mEmbellishData.leftSpace = 0;
+  mEmbellishData.rightSpace = 0;
 
   mPresentationData.flags = 0;
-  mPresentationData.baseFrame = nullptr;
-  mPresentationData.mstyle = nullptr;
+  mPresentationData.baseFrame = nsnull;
+  mPresentationData.mstyle = nsnull;
 
   
   nsPresentationData parentData;
@@ -106,11 +108,8 @@ nsMathMLFrame::InheritAutomaticData(nsIFrame* aParent)
   if (NS_MATHML_IS_DISPLAYSTYLE(parentData.flags)) {
     mPresentationData.flags |= NS_MATHML_DISPLAYSTYLE;
   }
-  if (NS_MATHML_IS_RTL(parentData.flags)) {
-    mPresentationData.flags |= NS_MATHML_RTL;
-  }
 
-#if defined(DEBUG) && defined(SHOW_BOUNDING_BOX)
+#if defined(NS_DEBUG) && defined(SHOW_BOUNDING_BOX)
   mPresentationData.flags |= NS_MATHML_SHOW_BOUNDING_METRICS;
 #endif
 
@@ -118,13 +117,9 @@ nsMathMLFrame::InheritAutomaticData(nsIFrame* aParent)
 }
 
 NS_IMETHODIMP
-nsMathMLFrame::UpdatePresentationData(uint32_t        aFlagsValues,
-                                      uint32_t        aWhichFlags)
+nsMathMLFrame::UpdatePresentationData(PRUint32        aFlagsValues,
+                                      PRUint32        aWhichFlags)
 {
-  NS_ASSERTION(NS_MATHML_IS_DISPLAYSTYLE(aWhichFlags) ||
-               NS_MATHML_IS_COMPRESSED(aWhichFlags),
-               "aWhichFlags should only be displaystyle or compression flag"); 
-
   
   if (NS_MATHML_IS_DISPLAYSTYLE(aWhichFlags)) {
     
@@ -175,10 +170,10 @@ nsMathMLFrame::GetEmbellishDataFrom(nsIFrame*        aFrame,
 {
   
   aEmbellishData.flags = 0;
-  aEmbellishData.coreFrame = nullptr;
+  aEmbellishData.coreFrame = nsnull;
   aEmbellishData.direction = NS_STRETCH_DIRECTION_UNSUPPORTED;
-  aEmbellishData.leadingSpace = 0;
-  aEmbellishData.trailingSpace = 0;
+  aEmbellishData.leftSpace = 0;
+  aEmbellishData.rightSpace = 0;
 
   if (aFrame && aFrame->IsFrameOfType(nsIFrame::eMathML)) {
     nsIMathMLFrame* mathMLFrame = do_QueryFrame(aFrame);
@@ -197,8 +192,8 @@ nsMathMLFrame::GetPresentationDataFrom(nsIFrame*           aFrame,
 {
   
   aPresentationData.flags = 0;
-  aPresentationData.baseFrame = nullptr;
-  aPresentationData.mstyle = nullptr;
+  aPresentationData.baseFrame = nsnull;
+  aPresentationData.mstyle = nsnull;
 
   nsIFrame* frame = aFrame;
   while (frame) {
@@ -226,7 +221,6 @@ nsMathMLFrame::GetPresentationDataFrom(nsIFrame*           aFrame,
         aPresentationData.flags |= NS_MATHML_DISPLAYSTYLE;
       }
       FindAttrDisplaystyle(content, aPresentationData);
-      FindAttrDirectionality(content, aPresentationData);
       aPresentationData.mstyle = frame->GetFirstContinuation();
       break;
     }
@@ -246,18 +240,18 @@ nsMathMLFrame::GetAttribute(nsIContent* aContent,
   
   if (aContent && aContent->GetAttr(kNameSpaceID_None, aAttributeAtom,
                                     aValue)) {
-    return true;
+    return PR_TRUE;
   }
 
   
   if (!aMathMLmstyleFrame) {
-    return false;
+    return PR_FALSE;
   }
 
   nsIFrame* mstyleParent = aMathMLmstyleFrame->GetParent();
 
   nsPresentationData mstyleParentData;
-  mstyleParentData.mstyle = nullptr;
+  mstyleParentData.mstyle = nsnull;
 
   if (mstyleParent) {
     nsIMathMLFrame* mathMLFrame = do_QueryFrame(mstyleParent);
@@ -346,33 +340,95 @@ nsMathMLFrame::CalcLength(nsPresContext*   aPresContext,
   return 0;
 }
 
- void
-nsMathMLFrame::ParseNumericValue(const nsString&   aString,
-                                 nscoord*          aLengthValue,
-                                 uint32_t          aFlags,
-                                 nsPresContext*    aPresContext,
-                                 nsStyleContext*   aStyleContext)
+ bool
+nsMathMLFrame::ParseNamedSpaceValue(nsIFrame*   aMathMLmstyleFrame,
+                                    nsString&   aString,
+                                    nsCSSValue& aCSSValue)
 {
-  nsCSSValue cssValue;
+  aCSSValue.Reset();
+  aString.CompressWhitespace(); 
+  if (!aString.Length()) return PR_FALSE;
 
-  if (!nsMathMLElement::ParseNumericValue(aString, cssValue, aFlags)) {
-    
-    
-    return;
+  
+  PRInt32 i = 0;
+  nsIAtom* namedspaceAtom = nsnull;
+  if (aString.EqualsLiteral("veryverythinmathspace")) {
+    i = 1;
+    namedspaceAtom = nsGkAtoms::veryverythinmathspace_;
+  }
+  else if (aString.EqualsLiteral("verythinmathspace")) {
+    i = 2;
+    namedspaceAtom = nsGkAtoms::verythinmathspace_;
+  }
+  else if (aString.EqualsLiteral("thinmathspace")) {
+    i = 3;
+    namedspaceAtom = nsGkAtoms::thinmathspace_;
+  }
+  else if (aString.EqualsLiteral("mediummathspace")) {
+    i = 4;
+    namedspaceAtom = nsGkAtoms::mediummathspace_;
+  }
+  else if (aString.EqualsLiteral("thickmathspace")) {
+    i = 5;
+    namedspaceAtom = nsGkAtoms::thickmathspace_;
+  }
+  else if (aString.EqualsLiteral("verythickmathspace")) {
+    i = 6;
+    namedspaceAtom = nsGkAtoms::verythickmathspace_;
+  }
+  else if (aString.EqualsLiteral("veryverythickmathspace")) {
+    i = 7;
+    namedspaceAtom = nsGkAtoms::veryverythickmathspace_;
+  }
+  else if (aString.EqualsLiteral("negativeveryverythinmathspace")) {
+    i = -1;
+    namedspaceAtom = nsGkAtoms::negativeveryverythinmathspace_;
+  }
+  else if (aString.EqualsLiteral("negativeverythinmathspace")) {
+    i = -2;
+    namedspaceAtom = nsGkAtoms::negativeverythinmathspace_;
+  }
+  else if (aString.EqualsLiteral("negativethinmathspace")) {
+    i = -3;
+    namedspaceAtom = nsGkAtoms::negativethinmathspace_;
+  }
+  else if (aString.EqualsLiteral("negativemediummathspace")) {
+    i = -4;
+    namedspaceAtom = nsGkAtoms::negativemediummathspace_;
+  }
+  else if (aString.EqualsLiteral("negativethickmathspace")) {
+    i = -5;
+    namedspaceAtom = nsGkAtoms::negativethickmathspace_;
+  }
+  else if (aString.EqualsLiteral("negativeverythickmathspace")) {
+    i = -6;
+    namedspaceAtom = nsGkAtoms::negativeverythickmathspace_;
+  }
+  else if (aString.EqualsLiteral("negativeveryverythickmathspace")) {
+    i = -7;
+    namedspaceAtom = nsGkAtoms::negativeveryverythickmathspace_;
   }
 
-  nsCSSUnit unit = cssValue.GetUnit();
+  if (0 != i) {
+    if (aMathMLmstyleFrame) {
+      
+      
+      nsAutoString value;
+      GetAttribute(nsnull, aMathMLmstyleFrame, namedspaceAtom, value);
+      if (!value.IsEmpty()) {
+        if (ParseNumericValue(value, aCSSValue) &&
+            aCSSValue.IsLengthUnit()) {
+          return PR_TRUE;
+        }
+      }
+    }
 
-  if (unit == eCSSUnit_Percent || unit == eCSSUnit_Number) {
     
-    *aLengthValue = NSToCoordRound(*aLengthValue * (unit == eCSSUnit_Percent ?
-                                                    cssValue.GetPercentValue() :
-                                                    cssValue.GetFloatValue()));
-    return;
+    aCSSValue.SetFloatValue(float(i)/float(18), eCSSUnit_EM);
+    return PR_TRUE;
   }
-  
-  
-  *aLengthValue = CalcLength(aPresContext, aStyleContext, cssValue);
+
+  return PR_FALSE;
 }
 
 
@@ -380,17 +436,17 @@ nsMathMLFrame::ParseNumericValue(const nsString&   aString,
 
 
 
-static const int32_t kMathMLversion1 = 1;
-static const int32_t kMathMLversion2 = 2;
+static const PRInt32 kMathMLversion1 = 1;
+static const PRInt32 kMathMLversion2 = 2;
 
 struct
 nsCSSMapping {
-  int32_t        compatibility;
+  PRInt32        compatibility;
   const nsIAtom* attrAtom;
   const char*    cssProperty;
 };
 
-#if defined(DEBUG) && defined(SHOW_BOUNDING_BOX)
+#if defined(NS_DEBUG) && defined(SHOW_BOUNDING_BOX)
 class nsDisplayMathMLBoundingMetrics : public nsDisplayItem {
 public:
   nsDisplayMathMLBoundingMetrics(nsDisplayListBuilder* aBuilder,
@@ -460,7 +516,7 @@ void nsDisplayMathMLBar::Paint(nsDisplayListBuilder* aBuilder,
                                nsRenderingContext* aCtx)
 {
   
-  aCtx->SetColor(mFrame->GetVisitedDependentColor(eCSSProperty_color));
+  aCtx->SetColor(mFrame->GetStyleColor()->mColor);
   aCtx->FillRect(mRect + ToReferenceFrame());
 }
 

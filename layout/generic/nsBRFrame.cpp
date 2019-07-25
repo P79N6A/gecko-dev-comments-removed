@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsFrame.h"
 #include "nsHTMLParts.h"
@@ -25,6 +57,8 @@
 #include "nsFrameSelection.h"
 
 
+#define BR_USING_CENTERED_FONT_BASELINE NS_FRAME_STATE_BIT(63)
+
 class BRFrame : public nsFrame {
 public:
   NS_DECL_FRAMEARENA_HELPERS
@@ -33,11 +67,11 @@ public:
 
   virtual ContentOffsets CalcContentOffsetsFromFramePoint(nsPoint aPoint);
 
-  virtual bool PeekOffsetNoAmount(bool aForward, int32_t* aOffset);
-  virtual bool PeekOffsetCharacter(bool aForward, int32_t* aOffset,
+  virtual bool PeekOffsetNoAmount(bool aForward, PRInt32* aOffset);
+  virtual bool PeekOffsetCharacter(bool aForward, PRInt32* aOffset,
                                      bool aRespectClusters = true);
   virtual bool PeekOffsetWord(bool aForward, bool aWordSelectEatSpace, bool aIsKeyboardSelect,
-                                int32_t* aOffset, PeekWordState* aState);
+                                PRInt32* aOffset, PeekWordState* aState);
 
   NS_IMETHOD Reflow(nsPresContext* aPresContext,
                     nsHTMLReflowMetrics& aDesiredSize,
@@ -52,21 +86,19 @@ public:
   virtual nsIAtom* GetType() const;
   virtual nscoord GetBaseline() const;
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     return nsFrame::IsFrameOfType(aFlags & ~(nsIFrame::eReplaced |
                                              nsIFrame::eLineParticipant));
   }
 
 #ifdef ACCESSIBILITY
-  virtual already_AddRefed<Accessible> CreateAccessible();
+  virtual already_AddRefed<nsAccessible> CreateAccessible();
 #endif
 
 protected:
   BRFrame(nsStyleContext* aContext) : nsFrame(aContext) {}
   virtual ~BRFrame();
-
-  nscoord mAscent;
 };
 
 nsIFrame*
@@ -94,6 +126,7 @@ BRFrame::Reflow(nsPresContext* aPresContext,
                        
   aMetrics.width = 0;
   aMetrics.ascent = 0;
+  RemoveStateBits(BR_USING_CENTERED_FONT_BASELINE);
 
   
   
@@ -118,14 +151,14 @@ BRFrame::Reflow(nsPresContext* aPresContext,
       
       
       nsRefPtr<nsFontMetrics> fm;
-      nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm),
-        nsLayoutUtils::FontSizeInflationFor(this));
+      nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm));
       aReflowState.rendContext->SetFont(fm); 
       if (fm) {
         nscoord logicalHeight = aReflowState.CalcLineHeight();
         aMetrics.height = logicalHeight;
         aMetrics.ascent =
           nsLayoutUtils::GetCenteredFontBaseline(fm, logicalHeight);
+        AddStateBits(BR_USING_CENTERED_FONT_BASELINE);
       }
       else {
         aMetrics.ascent = aMetrics.height = 0;
@@ -141,22 +174,20 @@ BRFrame::Reflow(nsPresContext* aPresContext,
     }
 
     
-    uint32_t breakType = aReflowState.mStyleDisplay->mBreakType;
+    PRUint32 breakType = aReflowState.mStyleDisplay->mBreakType;
     if (NS_STYLE_CLEAR_NONE == breakType) {
       breakType = NS_STYLE_CLEAR_LINE;
     }
 
     aStatus = NS_INLINE_BREAK | NS_INLINE_BREAK_AFTER |
       NS_INLINE_MAKE_BREAK_TYPE(breakType);
-    ll->SetLineEndsInBR(true);
+    ll->SetLineEndsInBR(PR_TRUE);
   }
   else {
     aStatus = NS_FRAME_COMPLETE;
   }
 
   aMetrics.SetOverflowAreasToDesiredBounds();
-
-  mAscent = aMetrics.ascent;
 
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aMetrics);
   return NS_OK;
@@ -201,7 +232,18 @@ BRFrame::GetType() const
 nscoord
 BRFrame::GetBaseline() const
 {
-  return mAscent;
+  nscoord ascent = 0;
+  nsRefPtr<nsFontMetrics> fm;
+  nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm));
+  if (fm) {
+    nscoord logicalHeight = GetRect().height;
+    if (GetStateBits() & BR_USING_CENTERED_FONT_BASELINE) {
+      ascent = nsLayoutUtils::GetCenteredFontBaseline(fm, logicalHeight);
+    } else {
+      ascent = fm->MaxAscent() + GetUsedBorderAndPadding().top;
+    }
+  }
+  return NS_MIN(mRect.height, ascent);
 }
 
 nsIFrame::ContentOffsets BRFrame::CalcContentOffsetsFromFramePoint(nsPoint aPoint)
@@ -211,50 +253,50 @@ nsIFrame::ContentOffsets BRFrame::CalcContentOffsetsFromFramePoint(nsPoint aPoin
   if (offsets.content) {
     offsets.offset = offsets.content->IndexOf(mContent);
     offsets.secondaryOffset = offsets.offset;
-    offsets.associateWithNext = true;
+    offsets.associateWithNext = PR_TRUE;
   }
   return offsets;
 }
 
 bool
-BRFrame::PeekOffsetNoAmount(bool aForward, int32_t* aOffset)
+BRFrame::PeekOffsetNoAmount(bool aForward, PRInt32* aOffset)
 {
   NS_ASSERTION (aOffset && *aOffset <= 1, "aOffset out of range");
-  int32_t startOffset = *aOffset;
+  PRInt32 startOffset = *aOffset;
   
   if (!aForward && startOffset != 0) {
     *aOffset = 0;
-    return true;
+    return PR_TRUE;
   }
   
   return (startOffset == 0);
 }
 
 bool
-BRFrame::PeekOffsetCharacter(bool aForward, int32_t* aOffset,
+BRFrame::PeekOffsetCharacter(bool aForward, PRInt32* aOffset,
                              bool aRespectClusters)
 {
   NS_ASSERTION (aOffset && *aOffset <= 1, "aOffset out of range");
   
-  return false;
+  return PR_FALSE;
 }
 
 bool
 BRFrame::PeekOffsetWord(bool aForward, bool aWordSelectEatSpace, bool aIsKeyboardSelect,
-                        int32_t* aOffset, PeekWordState* aState)
+                        PRInt32* aOffset, PeekWordState* aState)
 {
   NS_ASSERTION (aOffset && *aOffset <= 1, "aOffset out of range");
   
-  return false;
+  return PR_FALSE;
 }
 
 #ifdef ACCESSIBILITY
-already_AddRefed<Accessible>
+already_AddRefed<nsAccessible>
 BRFrame::CreateAccessible()
 {
   nsAccessibilityService* accService = nsIPresShell::AccService();
   if (!accService) {
-    return nullptr;
+    return nsnull;
   }
   nsIContent *parent = mContent->GetParent();
   if (parent &&
@@ -262,7 +304,7 @@ BRFrame::CreateAccessible()
       parent->GetChildCount() == 1) {
     
     
-    return nullptr;
+    return nsnull;
   }
   return accService->CreateHTMLBRAccessible(mContent,
                                             PresContext()->PresShell());

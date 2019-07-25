@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsAuth.h"
 #include "nsAuthSambaNTLM.h"
 #include "prenv.h"
@@ -12,8 +44,8 @@
 #include <stdlib.h>
 
 nsAuthSambaNTLM::nsAuthSambaNTLM()
-    : mInitialMessage(nullptr), mChildPID(nullptr), mFromChildFD(nullptr),
-      mToChildFD(nullptr)
+    : mInitialMessage(nsnull), mChildPID(nsnull), mFromChildFD(nsnull),
+      mToChildFD(nsnull)
 {
 }
 
@@ -30,41 +62,41 @@ nsAuthSambaNTLM::Shutdown()
 {
     if (mFromChildFD) {
         PR_Close(mFromChildFD);
-        mFromChildFD = nullptr;
+        mFromChildFD = nsnull;
     }
     if (mToChildFD) {
         PR_Close(mToChildFD);
-        mToChildFD = nullptr;
+        mToChildFD = nsnull;
     }
     if (mChildPID) {
-        int32_t exitCode;
+        PRInt32 exitCode;
         PR_WaitProcess(mChildPID, &exitCode);
-        mChildPID = nullptr;
+        mChildPID = nsnull;
     }
 }
 
 NS_IMPL_ISUPPORTS1(nsAuthSambaNTLM, nsIAuthModule)
 
 static bool
-SpawnIOChild(char* const* aArgs, PRProcess** aPID,
+SpawnIOChild(char** aArgs, PRProcess** aPID,
              PRFileDesc** aFromChildFD, PRFileDesc** aToChildFD)
 {
     PRFileDesc* toChildPipeRead;
     PRFileDesc* toChildPipeWrite;
     if (PR_CreatePipe(&toChildPipeRead, &toChildPipeWrite) != PR_SUCCESS)
-        return false;
-    PR_SetFDInheritable(toChildPipeRead, true);
-    PR_SetFDInheritable(toChildPipeWrite, false);
+        return PR_FALSE;
+    PR_SetFDInheritable(toChildPipeRead, PR_TRUE);
+    PR_SetFDInheritable(toChildPipeWrite, PR_FALSE);
 
     PRFileDesc* fromChildPipeRead;
     PRFileDesc* fromChildPipeWrite;
     if (PR_CreatePipe(&fromChildPipeRead, &fromChildPipeWrite) != PR_SUCCESS) {
         PR_Close(toChildPipeRead);
         PR_Close(toChildPipeWrite);
-        return false;
+        return PR_FALSE;
     }
-    PR_SetFDInheritable(fromChildPipeRead, false);
-    PR_SetFDInheritable(fromChildPipeWrite, true);
+    PR_SetFDInheritable(fromChildPipeRead, PR_FALSE);
+    PR_SetFDInheritable(fromChildPipeWrite, PR_TRUE);
 
     PRProcessAttr* attr = PR_NewProcessAttr();
     if (!attr) {
@@ -72,13 +104,13 @@ SpawnIOChild(char* const* aArgs, PRProcess** aPID,
         PR_Close(fromChildPipeWrite);
         PR_Close(toChildPipeRead);
         PR_Close(toChildPipeWrite);
-        return false;
+        return PR_FALSE;
     }
 
     PR_ProcessAttrSetStdioRedirect(attr, PR_StandardInput, toChildPipeRead);
     PR_ProcessAttrSetStdioRedirect(attr, PR_StandardOutput, fromChildPipeWrite);   
 
-    PRProcess* process = PR_CreateProcess(aArgs[0], aArgs, nullptr, attr);
+    PRProcess* process = PR_CreateProcess(aArgs[0], aArgs, nsnull, attr);
     PR_DestroyProcessAttr(attr);
     PR_Close(fromChildPipeWrite);
     PR_Close(toChildPipeRead);
@@ -86,29 +118,29 @@ SpawnIOChild(char* const* aArgs, PRProcess** aPID,
         LOG(("ntlm_auth exec failure [%d]", PR_GetError()));
         PR_Close(fromChildPipeRead);
         PR_Close(toChildPipeWrite);
-        return false;        
+        return PR_FALSE;        
     }
 
     *aPID = process;
     *aFromChildFD = fromChildPipeRead;
     *aToChildFD = toChildPipeWrite;
-    return true;
+    return PR_TRUE;
 }
 
 static bool WriteString(PRFileDesc* aFD, const nsACString& aString)
 {
-    int32_t length = aString.Length();
+    PRInt32 length = aString.Length();
     const char* s = aString.BeginReading();
     LOG(("Writing to ntlm_auth: %s", s));
 
     while (length > 0) {
         int result = PR_Write(aFD, s, length);
         if (result <= 0)
-            return false;
+            return PR_FALSE;
         s += result;
         length -= result;
     }
-    return true;
+    return PR_TRUE;
 }
 
 static bool ReadLine(PRFileDesc* aFD, nsACString& aString)
@@ -121,11 +153,11 @@ static bool ReadLine(PRFileDesc* aFD, nsACString& aString)
         char buf[1024];
         int result = PR_Read(aFD, buf, sizeof(buf));
         if (result <= 0)
-            return false;
+            return PR_FALSE;
         aString.Append(buf, result);
         if (buf[result - 1] == '\n') {
             LOG(("Read from ntlm_auth: %s", nsPromiseFlatCString(aString).get()));
-            return true;
+            return PR_TRUE;
         }
     }
 }
@@ -134,11 +166,11 @@ static bool ReadLine(PRFileDesc* aFD, nsACString& aString)
 
 
 
-static uint8_t* ExtractMessage(const nsACString& aLine, uint32_t* aLen)
+static PRUint8* ExtractMessage(const nsACString& aLine, PRUint32* aLen)
 {
     
     
-    int32_t length = aLine.Length();
+    PRInt32 length = aLine.Length();
     
     
     NS_ASSERTION(length >= 4, "Line too short...");
@@ -151,18 +183,18 @@ static uint8_t* ExtractMessage(const nsACString& aLine, uint32_t* aLen)
         
         
         NS_WARNING("Base64 encoded block should be a multiple of 4 chars");
-        return nullptr;
+        return nsnull;
     } 
 
     
     
-    int32_t numEquals;
+    PRInt32 numEquals;
     for (numEquals = 0; numEquals < length; ++numEquals) {
         if (s[length - 1 - numEquals] != '=')
             break;
     }
     *aLen = (length/4)*3 - numEquals;
-    return reinterpret_cast<uint8_t*>(PL_Base64Decode(s, length, nullptr));
+    return reinterpret_cast<PRUint8*>(PL_Base64Decode(s, length, nsnull));
 }
 
 nsresult
@@ -172,15 +204,15 @@ nsAuthSambaNTLM::SpawnNTLMAuthHelper()
     if (!username)
         return NS_ERROR_FAILURE;
 
-    const char* const args[] = {
+    char* args[] = {
         "ntlm_auth",
         "--helper-protocol", "ntlmssp-client-1",
         "--use-cached-creds",
-        "--username", username,
-        nullptr
+        "--username", const_cast<char*>(username),
+        nsnull
     };
 
-    bool isOK = SpawnIOChild(const_cast<char* const*>(args), &mChildPID, &mFromChildFD, &mToChildFD);
+    bool isOK = SpawnIOChild(args, &mChildPID, &mFromChildFD, &mToChildFD);
     if (!isOK)  
         return NS_ERROR_FAILURE;
 
@@ -204,7 +236,7 @@ nsAuthSambaNTLM::SpawnNTLMAuthHelper()
 
 NS_IMETHODIMP
 nsAuthSambaNTLM::Init(const char *serviceName,
-                      uint32_t    serviceFlags,
+                      PRUint32    serviceFlags,
                       const PRUnichar *domain,
                       const PRUnichar *username,
                       const PRUnichar *password)
@@ -215,9 +247,9 @@ nsAuthSambaNTLM::Init(const char *serviceName,
 
 NS_IMETHODIMP
 nsAuthSambaNTLM::GetNextToken(const void *inToken,
-                              uint32_t    inTokenLen,
+                              PRUint32    inTokenLen,
                               void      **outToken,
-                              uint32_t   *outTokenLen)
+                              PRUint32   *outTokenLen)
 {
     if (!inToken) {
         
@@ -229,7 +261,7 @@ nsAuthSambaNTLM::GetNextToken(const void *inToken,
     }
 
     
-    char* encoded = PL_Base64Encode(static_cast<const char*>(inToken), inTokenLen, nullptr);
+    char* encoded = PL_Base64Encode(static_cast<const char*>(inToken), inTokenLen, nsnull);
     if (!encoded)
         return NS_ERROR_OUT_OF_MEMORY;
 
@@ -248,7 +280,7 @@ nsAuthSambaNTLM::GetNextToken(const void *inToken,
         
         return NS_ERROR_FAILURE;
     }
-    uint8_t* buf = ExtractMessage(line, outTokenLen);
+    PRUint8* buf = ExtractMessage(line, outTokenLen);
     if (!buf)
         return NS_ERROR_FAILURE;
     
@@ -266,26 +298,19 @@ nsAuthSambaNTLM::GetNextToken(const void *inToken,
 
 NS_IMETHODIMP
 nsAuthSambaNTLM::Unwrap(const void *inToken,
-                        uint32_t    inTokenLen,
+                        PRUint32    inTokenLen,
                         void      **outToken,
-                        uint32_t   *outTokenLen)
+                        PRUint32   *outTokenLen)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
 nsAuthSambaNTLM::Wrap(const void *inToken,
-                      uint32_t    inTokenLen,
+                      PRUint32    inTokenLen,
                       bool        confidential,
                       void      **outToken,
-                      uint32_t   *outTokenLen)
+                      PRUint32   *outTokenLen)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-nsAuthSambaNTLM::GetModuleProperties(uint32_t *flags)
-{
-    *flags = 0;
-    return NS_OK;
 }

@@ -4,6 +4,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 let doc;
 let div1;
 let div2;
@@ -61,32 +95,32 @@ function runIframeTests()
   Services.obs.removeObserver(runIframeTests,
     InspectorUI.INSPECTOR_NOTIFICATIONS.OPENED, false);
 
+  Services.obs.addObserver(performTestComparisons1,
+    InspectorUI.INSPECTOR_NOTIFICATIONS.HIGHLIGHTING, false);
 
-  executeSoon(function() {
-    InspectorUI.highlighter.addListener("nodeselected", performTestComparisons1);
-    moveMouseOver(div1)
-  });
+  executeSoon(moveMouseOver.bind(this, div1));
 }
 
 function performTestComparisons1()
 {
-  InspectorUI.highlighter.removeListener("nodeselected", performTestComparisons1);
+  Services.obs.removeObserver(performTestComparisons1,
+    InspectorUI.INSPECTOR_NOTIFICATIONS.HIGHLIGHTING, false);
+  Services.obs.addObserver(performTestComparisons2,
+    InspectorUI.INSPECTOR_NOTIFICATIONS.HIGHLIGHTING, false);
 
   is(InspectorUI.selection, div1, "selection matches div1 node");
-  is(getHighlitNode(), div1, "highlighter matches selection");
+  is(InspectorUI.highlighter.highlitNode, div1, "highlighter matches selection");
 
-  executeSoon(function() {
-    InspectorUI.highlighter.addListener("nodeselected", performTestComparisons2);
-    moveMouseOver(div2);
-  });
+  executeSoon(moveMouseOver.bind(this, div2));
 }
 
 function performTestComparisons2()
 {
-  InspectorUI.highlighter.removeListener("nodeselected", performTestComparisons2);
+  Services.obs.removeObserver(performTestComparisons2,
+    InspectorUI.INSPECTOR_NOTIFICATIONS.HIGHLIGHTING, false);
 
   is(InspectorUI.selection, div2, "selection matches div2 node");
-  is(getHighlitNode(), div2, "highlighter matches selection");
+  is(InspectorUI.highlighter.highlitNode, div2, "highlighter matches selection");
 
   finish();
 }

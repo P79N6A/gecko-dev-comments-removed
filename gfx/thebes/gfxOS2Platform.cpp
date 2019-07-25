@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "gfxOS2Platform.h"
 #include "gfxOS2Surface.h"
 #include "gfxImageSurface.h"
@@ -15,7 +49,7 @@
 
 
 
-gfxFontconfigUtils *gfxOS2Platform::sFontconfigUtils = nullptr;
+gfxFontconfigUtils *gfxOS2Platform::sFontconfigUtils = nsnull;
 
 gfxOS2Platform::gfxOS2Platform()
 {
@@ -39,7 +73,7 @@ gfxOS2Platform::~gfxOS2Platform()
     printf("gfxOS2Platform::~gfxOS2Platform()\n");
 #endif
     gfxFontconfigUtils::Shutdown();
-    sFontconfigUtils = nullptr;
+    sFontconfigUtils = nsnull;
 
     
     cairo_os2_fini();
@@ -56,18 +90,18 @@ gfxOS2Platform::CreateOffscreenSurface(const gfxIntSize& aSize,
     printf("gfxOS2Platform::CreateOffscreenSurface(%d/%d, %d)\n",
            aSize.width, aSize.height, aImageFormat);
 #endif
-    gfxASurface *newSurface = nullptr;
+    gfxASurface *newSurface = nsnull;
 
     
     
     if (contentType == gfxASurface::CONTENT_COLOR_ALPHA ||
         contentType == gfxASurface::CONTENT_COLOR)
     {
-        newSurface = new gfxOS2Surface(aSize, OptimalFormatForContent(contentType));
+        newSurface = new gfxOS2Surface(aSize, gfxASurface::FormatFromContent(contentType));
     } else if (contentType == gfxASurface::CONTENT_ALPHA) {
-        newSurface = new gfxImageSurface(aSize, OptimalFormatForContent(contentType));
+        newSurface = new gfxImageSurface(aSize, gfxASurface::FormatFromContent(contentType));
     } else {
-        return nullptr;
+        return nsnull;
     }
 
     NS_IF_ADDREF(newSurface);
@@ -137,7 +171,7 @@ gfxOS2Platform::CreateFontGroup(const nsAString &aFamilies,
 }
 
 already_AddRefed<gfxOS2Font>
-gfxOS2Platform::FindFontForChar(uint32_t aCh, gfxOS2Font *aFont)
+gfxOS2Platform::FindFontForChar(PRUint32 aCh, gfxOS2Font *aFont)
 {
 #ifdef DEBUG_thebes
     printf("gfxOS2Platform::FindFontForChar(%d, ...)\n", aCh);
@@ -145,7 +179,7 @@ gfxOS2Platform::FindFontForChar(uint32_t aCh, gfxOS2Font *aFont)
 
     
     if (mCodepointsWithNoFonts.test(aCh)) {
-        return nullptr;
+        return nsnull;
     }
 
     
@@ -153,11 +187,11 @@ gfxOS2Platform::FindFontForChar(uint32_t aCh, gfxOS2Font *aFont)
 
     
     nsTArray<nsString> fontList;
-    nsAutoCString generic;
+    nsCAutoString generic;
     nsresult rv = GetFontList(aFont->GetStyle()->language, generic, fontList);
     if (NS_SUCCEEDED(rv)) {
         
-        for (uint32_t i = 3; i < fontList.Length(); i++) {
+        for (PRUint32 i = 3; i < fontList.Length(); i++) {
 #ifdef DEBUG_thebes
             printf("searching in entry i=%d (%s)\n",
                    i, NS_LossyConvertUTF16toASCII(fontList[i]).get());
@@ -184,5 +218,5 @@ gfxOS2Platform::FindFontForChar(uint32_t aCh, gfxOS2Font *aFont)
 
     
     mCodepointsWithNoFonts.set(aCh);
-    return nullptr;
+    return nsnull;
 }

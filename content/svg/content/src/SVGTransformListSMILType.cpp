@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "SVGTransformListSMILType.h"
 #include "SVGTransform.h"
 #include "SVGTransformList.h"
@@ -35,7 +67,7 @@ SVGTransformListSMILType::Destroy(nsSMILValue& aValue) const
   NS_PRECONDITION(aValue.mType == this, "Unexpected SMIL value type");
   TransformArray* params = static_cast<TransformArray*>(aValue.mU.mPtr);
   delete params;
-  aValue.mU.mPtr = nullptr;
+  aValue.mU.mPtr = nsnull;
   aValue.mType = &nsSMILNullType::sSingleton;
 }
 
@@ -73,25 +105,25 @@ SVGTransformListSMILType::IsEqual(const nsSMILValue& aLeft,
 
   
   if (leftArr.Length() != rightArr.Length()) {
-    return false;
+    return PR_FALSE;
   }
 
   
-  uint32_t length = leftArr.Length(); 
-  for (uint32_t i = 0; i < length; ++i) {
+  PRUint32 length = leftArr.Length(); 
+  for (PRUint32 i = 0; i < length; ++i) {
     if (leftArr[i] != rightArr[i]) {
-      return false;
+      return PR_FALSE;
     }
   }
 
   
-  return true;
+  return PR_TRUE;
 }
 
 nsresult
 SVGTransformListSMILType::Add(nsSMILValue& aDest,
                               const nsSMILValue& aValueToAdd,
-                              uint32_t aCount) const
+                              PRUint32 aCount) const
 {
   NS_PRECONDITION(aDest.mType == this, "Unexpected SMIL type");
   NS_PRECONDITION(aDest.mType == aValueToAdd.mType, "Incompatible SMIL types");
@@ -275,7 +307,7 @@ SVGTransformListSMILType::Interpolate(const nsSMILValue& aStartVal,
   
   
   static float identityParams[3] = { 0.f };
-  const float* startParams = nullptr;
+  const float* startParams = nsnull;
   if (startTransforms.Length() == 1) {
     const SVGTransformSMILData& startTransform = startTransforms[0];
     if (startTransform.mTransformType == endTransform.mTransformType) {
@@ -338,14 +370,14 @@ SVGTransformListSMILType::AppendTransforms(const SVGTransformList& aList,
   TransformArray& transforms = *static_cast<TransformArray*>(aValue.mU.mPtr);
 
   if (!transforms.SetCapacity(transforms.Length() + aList.Length()))
-    return false;
+    return PR_FALSE;
 
-  for (uint32_t i = 0; i < aList.Length(); ++i) {
+  for (PRUint32 i = 0; i < aList.Length(); ++i) {
     
     
     transforms.AppendElement(SVGTransformSMILData(aList[i]));
   }
-  return true;
+  return PR_TRUE;
 }
 
 
@@ -360,12 +392,12 @@ SVGTransformListSMILType::GetTransforms(const nsSMILValue& aValue,
 
   aTransforms.Clear();
   if (!aTransforms.SetCapacity(smilTransforms.Length()))
-      return false;
+      return PR_FALSE;
 
-  for (uint32_t i = 0; i < smilTransforms.Length(); ++i) {
+  for (PRUint32 i = 0; i < smilTransforms.Length(); ++i) {
     
     
     aTransforms.AppendElement(smilTransforms[i].ToSVGTransform());
   }
-  return true;
+  return PR_TRUE;
 }

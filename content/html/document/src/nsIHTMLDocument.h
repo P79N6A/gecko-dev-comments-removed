@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsIHTMLDocument_h
 #define nsIHTMLDocument_h
 
@@ -17,8 +49,9 @@ class nsContentList;
 class nsWrapperCache;
 
 #define NS_IHTMLDOCUMENT_IID \
-{ 0xcf814492, 0x303c, 0x4718, \
-  { 0x9a, 0x3e, 0x39, 0xbc, 0xd5, 0x2c, 0x10, 0xdb } }
+{ 0x51a360fa, 0xd659, 0x4d85, \
+  { 0xa5, 0xc5, 0x4a, 0xbb, 0x0d, 0x97, 0x0f, 0x7a } }
+
 
 
 
@@ -42,6 +75,18 @@ public:
 
 
 
+  virtual void ScriptLoading(nsIScriptElement *aScript) = 0;
+
+  
+
+
+
+  virtual void ScriptExecuted(nsIScriptElement *aScript) = 0;
+
+  
+
+
+
   virtual void AddedForm() = 0;
   
 
@@ -54,9 +99,12 @@ public:
 
   
   
-  virtual int32_t GetNumFormsSynchronous() = 0;
+  virtual PRInt32 GetNumFormsSynchronous() = 0;
   
   virtual bool IsWriting() = 0;
+
+  virtual bool GetIsFrameset() = 0;
+  virtual void SetIsFrameset(bool aFrameset) = 0;
 
   
 
@@ -79,7 +127,7 @@ public:
 
 
   virtual nsresult ChangeContentEditableCount(nsIContent *aElement,
-                                              int32_t aChange) = 0;
+                                              PRInt32 aChange) = 0;
 
   enum EditingState {
     eTearingDown = -2,

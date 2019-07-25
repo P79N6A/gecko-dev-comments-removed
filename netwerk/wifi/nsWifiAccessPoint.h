@@ -2,17 +2,51 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsWifiMonitor.h"
 #include "nsIWifiAccessPoint.h"
 
 #include "nsString.h"
 #include "nsCOMArray.h"
-#include "mozilla/Attributes.h"
 
 #ifndef __nsWifiAccessPoint__
 #define __nsWifiAccessPoint__
 
-class nsWifiAccessPoint MOZ_FINAL : public nsIWifiAccessPoint
+class nsWifiAccessPoint : public nsIWifiAccessPoint
 {
 public:
   NS_DECL_ISUPPORTS
@@ -29,7 +63,7 @@ public:
   void setSignal(int signal)
   {
     mSignal = signal;
-  }
+  };
 
   void setMac(const unsigned char mac_as_int[6])
   {
@@ -48,7 +82,7 @@ public:
             mac_as_int[3], mac_as_int[4], mac_as_int[5]);
 
     mMac[17] = 0;
-  }
+  };
 
   void setSSID(const char* aSSID, unsigned long len) {
     if (aSSID && (len < sizeof(mSsid))) {
@@ -61,7 +95,7 @@ public:
       mSsid[0] = 0;
       mSsidLen = 0;
     }
-  }
+  };
 };
 
 

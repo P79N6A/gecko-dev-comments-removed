@@ -3,18 +3,42 @@
 
 
 
-#include "mozilla/mozalloc.h"
-#include "nsCOMPtr.h"
-#include "nsDebug.h"
-#include "nsError.h"
-#include "nsID.h"
-#include "nsISupportsUtils.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsITransactionManager.h"
 #include "nsTransactionItem.h"
 #include "nsTransactionList.h"
 #include "nsTransactionStack.h"
-#include "nscore.h"
-#include "prtypes.h"
 
 NS_IMPL_ISUPPORTS1(nsTransactionList, nsITransactionList)
 
@@ -41,7 +65,7 @@ nsTransactionList::~nsTransactionList()
 }
 
 
-NS_IMETHODIMP nsTransactionList::GetNumItems(int32_t *aNumItems)
+NS_IMETHODIMP nsTransactionList::GetNumItems(PRInt32 *aNumItems)
 {
   NS_ENSURE_TRUE(aNumItems, NS_ERROR_NULL_POINTER);
 
@@ -51,10 +75,10 @@ NS_IMETHODIMP nsTransactionList::GetNumItems(int32_t *aNumItems)
 
   NS_ENSURE_TRUE(txMgr, NS_ERROR_FAILURE);
 
-  nsresult result = NS_OK;
+  nsresult result = NS_ERROR_FAILURE;
 
   if (mTxnStack)
-    *aNumItems = mTxnStack->GetSize();
+    result = mTxnStack->GetSize(aNumItems);
   else if (mTxnItem)
     result = mTxnItem->GetNumberOfChildren(aNumItems);
 
@@ -62,11 +86,11 @@ NS_IMETHODIMP nsTransactionList::GetNumItems(int32_t *aNumItems)
 }
 
 
-NS_IMETHODIMP nsTransactionList::ItemIsBatch(int32_t aIndex, bool *aIsBatch)
+NS_IMETHODIMP nsTransactionList::ItemIsBatch(PRInt32 aIndex, bool *aIsBatch)
 {
   NS_ENSURE_TRUE(aIsBatch, NS_ERROR_NULL_POINTER);
 
-  *aIsBatch = false;
+  *aIsBatch = PR_FALSE;
 
   nsCOMPtr<nsITransactionManager> txMgr = do_QueryReferent(mTxnMgr);
 
@@ -74,10 +98,10 @@ NS_IMETHODIMP nsTransactionList::ItemIsBatch(int32_t aIndex, bool *aIsBatch)
 
   nsRefPtr<nsTransactionItem> item;
 
-  nsresult result = NS_OK;
+  nsresult result = NS_ERROR_FAILURE;
 
   if (mTxnStack)
-    item = mTxnStack->GetItem(aIndex);
+    result = mTxnStack->GetItem(aIndex, getter_AddRefs(item));
   else if (mTxnItem)
     result = mTxnItem->GetChild(aIndex, getter_AddRefs(item));
 
@@ -89,7 +113,7 @@ NS_IMETHODIMP nsTransactionList::ItemIsBatch(int32_t aIndex, bool *aIsBatch)
 }
 
 
-NS_IMETHODIMP nsTransactionList::GetItem(int32_t aIndex, nsITransaction **aItem)
+NS_IMETHODIMP nsTransactionList::GetItem(PRInt32 aIndex, nsITransaction **aItem)
 {
   NS_ENSURE_TRUE(aItem, NS_ERROR_NULL_POINTER);
 
@@ -101,10 +125,10 @@ NS_IMETHODIMP nsTransactionList::GetItem(int32_t aIndex, nsITransaction **aItem)
 
   nsRefPtr<nsTransactionItem> item;
 
-  nsresult result = NS_OK;
+  nsresult result = NS_ERROR_FAILURE;
 
   if (mTxnStack)
-    item = mTxnStack->GetItem(aIndex);
+    result = mTxnStack->GetItem(aIndex, getter_AddRefs(item));
   else if (mTxnItem)
     result = mTxnItem->GetChild(aIndex, getter_AddRefs(item));
 
@@ -112,13 +136,11 @@ NS_IMETHODIMP nsTransactionList::GetItem(int32_t aIndex, nsITransaction **aItem)
 
   NS_ENSURE_TRUE(item, NS_ERROR_FAILURE);
 
-  *aItem = item->GetTransaction().get();
-
-  return NS_OK;
+  return item->GetTransaction(aItem);
 }
 
 
-NS_IMETHODIMP nsTransactionList::GetNumChildrenForItem(int32_t aIndex, int32_t *aNumChildren)
+NS_IMETHODIMP nsTransactionList::GetNumChildrenForItem(PRInt32 aIndex, PRInt32 *aNumChildren)
 {
   NS_ENSURE_TRUE(aNumChildren, NS_ERROR_NULL_POINTER);
 
@@ -130,10 +152,10 @@ NS_IMETHODIMP nsTransactionList::GetNumChildrenForItem(int32_t aIndex, int32_t *
 
   nsRefPtr<nsTransactionItem> item;
 
-  nsresult result = NS_OK;
+  nsresult result = NS_ERROR_FAILURE;
 
   if (mTxnStack)
-    item = mTxnStack->GetItem(aIndex);
+    result = mTxnStack->GetItem(aIndex, getter_AddRefs(item));
   else if (mTxnItem)
     result = mTxnItem->GetChild(aIndex, getter_AddRefs(item));
 
@@ -145,7 +167,7 @@ NS_IMETHODIMP nsTransactionList::GetNumChildrenForItem(int32_t aIndex, int32_t *
 }
 
 
-NS_IMETHODIMP nsTransactionList::GetChildListForItem(int32_t aIndex, nsITransactionList **aTxnList)
+NS_IMETHODIMP nsTransactionList::GetChildListForItem(PRInt32 aIndex, nsITransactionList **aTxnList)
 {
   NS_ENSURE_TRUE(aTxnList, NS_ERROR_NULL_POINTER);
 
@@ -157,10 +179,10 @@ NS_IMETHODIMP nsTransactionList::GetChildListForItem(int32_t aIndex, nsITransact
 
   nsRefPtr<nsTransactionItem> item;
 
-  nsresult result = NS_OK;
+  nsresult result = NS_ERROR_FAILURE;
 
   if (mTxnStack)
-    item = mTxnStack->GetItem(aIndex);
+    result = mTxnStack->GetItem(aIndex, getter_AddRefs(item));
   else if (mTxnItem)
     result = mTxnItem->GetChild(aIndex, getter_AddRefs(item));
 

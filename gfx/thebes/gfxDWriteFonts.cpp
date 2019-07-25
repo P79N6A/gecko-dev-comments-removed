@@ -3,24 +3,51 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "gfxDWriteFonts.h"
 #include "gfxDWriteShaper.h"
 #include "gfxHarfBuzzShaper.h"
-#ifdef MOZ_GRAPHITE
-#include "gfxGraphiteShaper.h"
-#endif
 #include "gfxDWriteFontList.h"
 #include "gfxContext.h"
 #include <dwrite.h>
 
 #include "gfxDWriteTextAnalysis.h"
 
-#include "harfbuzz/hb.h"
+#include "harfbuzz/hb-blob.h"
 
 
 #define OBLIQUE_SKEW_FACTOR 0.3
-
-using namespace mozilla::gfx;
 
 
 
@@ -52,12 +79,28 @@ GetCairoAntialiasOption(gfxFont::AntialiasOption anAntialiasOption)
 #endif
 
 static bool
+HasClearType()
+{
+    OSVERSIONINFO versionInfo;
+    versionInfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+
+    return (GetVersionEx(&versionInfo) &&
+            (versionInfo.dwMajorVersion > 5 ||
+             (versionInfo.dwMajorVersion == 5 &&
+              versionInfo.dwMinorVersion >= 1))); 
+}
+
+static bool
 UsingClearType()
 {
     BOOL fontSmoothing;
     if (!SystemParametersInfo(SPI_GETFONTSMOOTHING, 0, &fontSmoothing, 0) ||
         !fontSmoothing)
     {
+        return false;    
+    }
+
+    if (!HasClearType()) {
         return false;
     }
 
@@ -77,22 +120,23 @@ gfxDWriteFont::gfxDWriteFont(gfxFontEntry *aFontEntry,
                              bool aNeedsBold,
                              AntialiasOption anAAOption)
     : gfxFont(aFontEntry, aFontStyle, anAAOption)
-    , mCairoFontFace(nullptr)
-    , mMetrics(nullptr)
-    , mNeedsOblique(false)
+    , mCairoFontFace(nsnull)
+    , mCairoScaledFont(nsnull)
+    , mMetrics(nsnull)
+    , mNeedsOblique(PR_FALSE)
     , mNeedsBold(aNeedsBold)
-    , mUseSubpixelPositions(false)
-    , mAllowManualShowGlyphs(true)
+    , mUseSubpixelPositions(PR_FALSE)
+    , mAllowManualShowGlyphs(PR_TRUE)
 {
     gfxDWriteFontEntry *fe =
         static_cast<gfxDWriteFontEntry*>(aFontEntry);
     nsresult rv;
     DWRITE_FONT_SIMULATIONS sims = DWRITE_FONT_SIMULATIONS_NONE;
-    if ((GetStyle()->style & (NS_FONT_STYLE_ITALIC | NS_FONT_STYLE_OBLIQUE)) &&
+    if ((GetStyle()->style & (FONT_STYLE_ITALIC | FONT_STYLE_OBLIQUE)) &&
         !fe->IsItalic()) {
             
             
-            mNeedsOblique = true;
+            mNeedsOblique = PR_TRUE;
     }
     if (aNeedsBold) {
         sims |= DWRITE_FONT_SIMULATIONS_BOLD;
@@ -101,17 +145,11 @@ gfxDWriteFont::gfxDWriteFont(gfxFontEntry *aFontEntry,
     rv = fe->CreateFontFace(getter_AddRefs(mFontFace), sims);
 
     if (NS_FAILED(rv)) {
-        mIsValid = false;
+        mIsValid = PR_FALSE;
         return;
     }
 
     ComputeMetrics(anAAOption);
-
-#ifdef MOZ_GRAPHITE
-    if (FontCanSupportGraphite()) {
-        mGraphiteShaper = new gfxGraphiteShaper(this);
-    }
-#endif
 
     if (FontCanSupportHarfBuzz()) {
         mHarfBuzzShaper = new gfxHarfBuzzShaper(this);
@@ -123,8 +161,8 @@ gfxDWriteFont::~gfxDWriteFont()
     if (mCairoFontFace) {
         cairo_font_face_destroy(mCairoFontFace);
     }
-    if (mScaledFont) {
-        cairo_scaled_font_destroy(mScaledFont);
+    if (mCairoScaledFont) {
+        cairo_scaled_font_destroy(mCairoScaledFont);
     }
     delete mMetrics;
 }
@@ -156,14 +194,14 @@ gfxDWriteFont::GetFakeMetricsForArialBlack(DWRITE_FONT_METRICS *aFontMetrics)
     bool needsBold;
     gfxFontEntry *fe = mFontEntry->Family()->FindFontForStyle(style, needsBold);
     if (!fe || fe == mFontEntry) {
-        return false;
+        return PR_FALSE;
     }
 
     nsRefPtr<gfxFont> font = fe->FindOrMakeFont(&style, needsBold);
     gfxDWriteFont *dwFont = static_cast<gfxDWriteFont*>(font.get());
     dwFont->mFontFace->GetMetrics(aFontMetrics);
 
-    return true;
+    return PR_TRUE;
 }
 
 void
@@ -192,7 +230,7 @@ gfxDWriteFont::ComputeMetrics(AntialiasOption anAAOption)
          GetMeasuringMode() == DWRITE_MEASURING_MODE_NATURAL) ||
         anAAOption == gfxFont::kAntialiasSubpixel)
     {
-        mUseSubpixelPositions = true;
+        mUseSubpixelPositions = PR_TRUE;
         
         
     }
@@ -201,13 +239,13 @@ gfxDWriteFont::ComputeMetrics(AntialiasOption anAAOption)
         static_cast<gfxDWriteFontEntry*>(mFontEntry.get());
     if (fe->IsCJKFont() && HasBitmapStrikeForSize(NS_lround(mAdjustedSize))) {
         mAdjustedSize = NS_lround(mAdjustedSize);
-        mUseSubpixelPositions = false;
+        mUseSubpixelPositions = PR_FALSE;
         
         
         
         
         
-        mAllowManualShowGlyphs = false;
+        mAllowManualShowGlyphs = PR_FALSE;
     }
 
     mMetrics = new gfxFont::Metrics;
@@ -229,8 +267,8 @@ gfxDWriteFont::ComputeMetrics(AntialiasOption anAAOption)
     mMetrics->maxAdvance = mAdjustedSize;
 
     
-    uint8_t *tableData;
-    uint32_t len;
+    PRUint8 *tableData;
+    PRUint32 len;
     void *tableContext = NULL;
     BOOL exists;
     HRESULT hr =
@@ -244,7 +282,7 @@ gfxDWriteFont::ComputeMetrics(AntialiasOption anAAOption)
             const mozilla::HheaTable* hhea =
                 reinterpret_cast<const mozilla::HheaTable*>(tableData);
             mMetrics->maxAdvance =
-                uint16_t(hhea->advanceWidthMax) * mFUnitsConvFactor;
+                PRUint16(hhea->advanceWidthMax) * mFUnitsConvFactor;
         }
         mFontFace->ReleaseFontTable(tableContext);
     }
@@ -252,7 +290,7 @@ gfxDWriteFont::ComputeMetrics(AntialiasOption anAAOption)
     mMetrics->internalLeading = NS_MAX(mMetrics->maxHeight - mMetrics->emHeight, 0.0);
     mMetrics->externalLeading = ceil(fontMetrics.lineGap * mFUnitsConvFactor);
 
-    UINT16 glyph = (uint16_t)GetSpaceGlyph();
+    UINT16 glyph = (PRUint16)GetSpaceGlyph();
     mMetrics->spaceWidth = MeasureGlyphWidth(glyph);
 
     
@@ -272,7 +310,7 @@ gfxDWriteFont::ComputeMetrics(AntialiasOption anAAOption)
                 const mozilla::OS2Table* os2 =
                     reinterpret_cast<const mozilla::OS2Table*>(tableData);
                 mMetrics->aveCharWidth =
-                    int16_t(os2->xAvgCharWidth) * mFUnitsConvFactor;
+                    PRInt16(os2->xAvgCharWidth) * mFUnitsConvFactor;
             }
             mFontFace->ReleaseFontTable(tableContext);
         }
@@ -333,18 +371,18 @@ struct EBLCHeader {
 };
 
 struct SbitLineMetrics {
-    int8_t  ascender;
-    int8_t  descender;
-    uint8_t widthMax;
-    int8_t  caretSlopeNumerator;
-    int8_t  caretSlopeDenominator;
-    int8_t  caretOffset;
-    int8_t  minOriginSB;
-    int8_t  minAdvanceSB;
-    int8_t  maxBeforeBL;
-    int8_t  minAfterBL;
-    int8_t  pad1;
-    int8_t  pad2;
+    PRInt8  ascender;
+    PRInt8  descender;
+    PRUint8 widthMax;
+    PRInt8  caretSlopeNumerator;
+    PRInt8  caretSlopeDenominator;
+    PRInt8  caretOffset;
+    PRInt8  minOriginSB;
+    PRInt8  minAdvanceSB;
+    PRInt8  maxBeforeBL;
+    PRInt8  minAfterBL;
+    PRInt8  pad1;
+    PRInt8  pad2;
 };
 
 struct BitmapSizeTable {
@@ -356,10 +394,10 @@ struct BitmapSizeTable {
     SbitLineMetrics   vert;
     AutoSwap_PRUint16 startGlyphIndex;
     AutoSwap_PRUint16 endGlyphIndex;
-    uint8_t           ppemX;
-    uint8_t           ppemY;
-    uint8_t           bitDepth;
-    uint8_t           flags;
+    PRUint8           ppemX;
+    PRUint8           ppemY;
+    PRUint8           bitDepth;
+    PRUint8           flags;
 };
 
 typedef EBLCHeader EBSCHeader;
@@ -367,17 +405,17 @@ typedef EBLCHeader EBSCHeader;
 struct BitmapScaleTable {
     SbitLineMetrics   hori;
     SbitLineMetrics   vert;
-    uint8_t           ppemX;
-    uint8_t           ppemY;
-    uint8_t           substitutePpemX;
-    uint8_t           substitutePpemY;
+    PRUint8           ppemX;
+    PRUint8           ppemY;
+    PRUint8           substitutePpemX;
+    PRUint8           substitutePpemY;
 };
 
 bool
-gfxDWriteFont::HasBitmapStrikeForSize(uint32_t aSize)
+gfxDWriteFont::HasBitmapStrikeForSize(PRUint32 aSize)
 {
-    uint8_t *tableData;
-    uint32_t len;
+    PRUint8 *tableData;
+    PRUint32 len;
     void *tableContext;
     BOOL exists;
     HRESULT hr =
@@ -385,7 +423,7 @@ gfxDWriteFont::HasBitmapStrikeForSize(uint32_t aSize)
                                    (const void**)&tableData, &len,
                                    &tableContext, &exists);
     if (FAILED(hr)) {
-        return false;
+        return PR_FALSE;
     }
 
     bool hasStrike = false;
@@ -400,7 +438,7 @@ gfxDWriteFont::HasBitmapStrikeForSize(uint32_t aSize)
         if (hdr->version != 0x00020000) {
             break;
         }
-        uint32_t numSizes = hdr->numSizes;
+        PRUint32 numSizes = hdr->numSizes;
         if (numSizes > 0xffff) { 
             break;
         }
@@ -409,14 +447,14 @@ gfxDWriteFont::HasBitmapStrikeForSize(uint32_t aSize)
         }
         const BitmapSizeTable *sizeTable =
             reinterpret_cast<const BitmapSizeTable*>(hdr + 1);
-        for (uint32_t i = 0; i < numSizes; ++i, ++sizeTable) {
+        for (PRUint32 i = 0; i < numSizes; ++i, ++sizeTable) {
             if (sizeTable->ppemX == aSize && sizeTable->ppemY == aSize) {
                 
                 
                 
                 
-                hasStrike = (uint16_t(sizeTable->endGlyphIndex) >=
-                             uint16_t(sizeTable->startGlyphIndex) + 3);
+                hasStrike = (PRUint16(sizeTable->endGlyphIndex) >=
+                             PRUint16(sizeTable->startGlyphIndex) + 3);
                 break;
             }
         }
@@ -427,7 +465,7 @@ gfxDWriteFont::HasBitmapStrikeForSize(uint32_t aSize)
     mFontFace->ReleaseFontTable(tableContext);
 
     if (hasStrike) {
-        return true;
+        return PR_TRUE;
     }
 
     
@@ -436,7 +474,7 @@ gfxDWriteFont::HasBitmapStrikeForSize(uint32_t aSize)
                                     (const void**)&tableData, &len,
                                     &tableContext, &exists);
     if (FAILED(hr)) {
-        return false;
+        return PR_FALSE;
     }
 
     while (exists) {
@@ -447,7 +485,7 @@ gfxDWriteFont::HasBitmapStrikeForSize(uint32_t aSize)
         if (hdr->version != 0x00020000) {
             break;
         }
-        uint32_t numSizes = hdr->numSizes;
+        PRUint32 numSizes = hdr->numSizes;
         if (numSizes > 0xffff) {
             break;
         }
@@ -456,9 +494,9 @@ gfxDWriteFont::HasBitmapStrikeForSize(uint32_t aSize)
         }
         const BitmapScaleTable *scaleTable =
             reinterpret_cast<const BitmapScaleTable*>(hdr + 1);
-        for (uint32_t i = 0; i < numSizes; ++i, ++scaleTable) {
+        for (PRUint32 i = 0; i < numSizes; ++i, ++scaleTable) {
             if (scaleTable->ppemX == aSize && scaleTable->ppemY == aSize) {
-                hasStrike = true;
+                hasStrike = PR_TRUE;
                 break;
             }
         }
@@ -469,7 +507,7 @@ gfxDWriteFont::HasBitmapStrikeForSize(uint32_t aSize)
     return hasStrike;
 }
 
-uint32_t
+PRUint32
 gfxDWriteFont::GetSpaceGlyph()
 {
     UINT32 ucs = L' ';
@@ -489,10 +527,10 @@ gfxDWriteFont::SetupCairoFont(gfxContext *aContext)
     if (cairo_scaled_font_status(scaledFont) != CAIRO_STATUS_SUCCESS) {
         
         
-        return false;
+        return PR_FALSE;
     }
     cairo_set_scaled_font(aContext->GetCairo(), scaledFont);
-    return true;
+    return PR_TRUE;
 }
 
 bool
@@ -524,7 +562,7 @@ gfxDWriteFont::CairoFontFace()
 cairo_scaled_font_t *
 gfxDWriteFont::CairoScaledFont()
 {
-    if (!mScaledFont) {
+    if (!mCairoScaledFont) {
         cairo_matrix_t sizeMatrix;
         cairo_matrix_t identityMatrix;
 
@@ -551,32 +589,32 @@ gfxDWriteFont::CairoScaledFont()
                 GetCairoAntialiasOption(mAntialiasOption));
         }
 
-        mScaledFont = cairo_scaled_font_create(CairoFontFace(),
+        mCairoScaledFont = cairo_scaled_font_create(CairoFontFace(),
                                                     &sizeMatrix,
                                                     &identityMatrix,
                                                     fontOptions);
         cairo_font_options_destroy(fontOptions);
 
-        cairo_dwrite_scaled_font_allow_manual_show_glyphs(mScaledFont,
+        cairo_dwrite_scaled_font_allow_manual_show_glyphs(mCairoScaledFont,
                                                           mAllowManualShowGlyphs);
 
         gfxDWriteFontEntry *fe =
             static_cast<gfxDWriteFontEntry*>(mFontEntry.get());
-        cairo_dwrite_scaled_font_set_force_GDI_classic(mScaledFont,
+        cairo_dwrite_scaled_font_set_force_GDI_classic(mCairoScaledFont,
                                                        GetForceGDIClassic());
     }
 
     NS_ASSERTION(mAdjustedSize == 0.0 ||
-                 cairo_scaled_font_status(mScaledFont) 
+                 cairo_scaled_font_status(mCairoScaledFont) 
                    == CAIRO_STATUS_SUCCESS,
                  "Failed to make scaled font");
 
-    return mScaledFont;
+    return mCairoScaledFont;
 }
 
 gfxFont::RunMetrics
 gfxDWriteFont::Measure(gfxTextRun *aTextRun,
-                    uint32_t aStart, uint32_t aEnd,
+                    PRUint32 aStart, PRUint32 aEnd,
                     BoundingBoxType aBoundingBoxType,
                     gfxContext *aRefContext,
                     Spacing *aSpacing)
@@ -628,7 +666,7 @@ gfxDWriteFont::DestroyBlobFunc(void* aUserData)
 }
 
 hb_blob_t *
-gfxDWriteFont::GetFontTable(uint32_t aTag)
+gfxDWriteFont::GetFontTable(PRUint32 aTag)
 {
     const void *data;
     UINT32      size;
@@ -640,7 +678,7 @@ gfxDWriteFont::GetFontTable(uint32_t aTag)
         FontTableRec *ftr = new FontTableRec(mFontFace, context);
         return hb_blob_create(static_cast<const char*>(data), size,
                               HB_MEMORY_MODE_READONLY,
-                              ftr, DestroyBlobFunc);
+                              DestroyBlobFunc, ftr);
     }
 
     if (mFontEntry->IsUserFont() && !mFontEntry->IsLocalUserFont()) {
@@ -652,7 +690,7 @@ gfxDWriteFont::GetFontTable(uint32_t aTag)
         }
     }
 
-    return nullptr;
+    return nsnull;
 }
 
 bool
@@ -662,14 +700,14 @@ gfxDWriteFont::ProvidesGlyphWidths()
            (mFontFace->GetSimulations() & DWRITE_FONT_SIMULATIONS_BOLD);
 }
 
-int32_t
-gfxDWriteFont::GetGlyphWidth(gfxContext *aCtx, uint16_t aGID)
+PRInt32
+gfxDWriteFont::GetGlyphWidth(gfxContext *aCtx, PRUint16 aGID)
 {
     if (!mGlyphWidths.IsInitialized()) {
         mGlyphWidths.Init(200);
     }
 
-    int32_t width = -1;
+    PRInt32 width = -1;
     if (mGlyphWidths.Get(aGID, &width)) {
         return width;
     }
@@ -677,19 +715,6 @@ gfxDWriteFont::GetGlyphWidth(gfxContext *aCtx, uint16_t aGID)
     width = NS_lround(MeasureGlyphWidth(aGID) * 65536.0);
     mGlyphWidths.Put(aGID, width);
     return width;
-}
-
-TemporaryRef<GlyphRenderingOptions>
-gfxDWriteFont::GetGlyphRenderingOptions()
-{
-  if (UsingClearType()) {
-    return Factory::CreateDWriteGlyphRenderingOptions(
-      gfxWindowsPlatform::GetPlatform()->GetRenderingParams(GetForceGDIClassic() ?
-        gfxWindowsPlatform::TEXT_RENDERING_GDI_CLASSIC : gfxWindowsPlatform::TEXT_RENDERING_NORMAL));
-  } else {
-    return Factory::CreateDWriteGlyphRenderingOptions(gfxWindowsPlatform::GetPlatform()->
-      GetRenderingParams(gfxWindowsPlatform::TEXT_RENDERING_NO_CLEARTYPE));
-  }
 }
 
 bool
@@ -710,7 +735,7 @@ gfxDWriteFont::GetMeasuringMode()
 }
 
 gfxFloat
-gfxDWriteFont::MeasureGlyphWidth(uint16_t aGlyph)
+gfxDWriteFont::MeasureGlyphWidth(PRUint16 aGlyph)
 {
     DWRITE_GLYPH_METRICS metrics;
     HRESULT hr;
@@ -721,7 +746,7 @@ gfxDWriteFont::MeasureGlyphWidth(uint16_t aGlyph)
         }
     } else {
         hr = mFontFace->GetGdiCompatibleGlyphMetrics(
-                  FLOAT(mAdjustedSize), 1.0f, nullptr,
+                  FLOAT(mAdjustedSize), 1.0f, nsnull,
                   GetMeasuringMode() == DWRITE_MEASURING_MODE_GDI_NATURAL,
                   &aGlyph, 1, &metrics, FALSE);
         if (SUCCEEDED(hr)) {
@@ -729,21 +754,4 @@ gfxDWriteFont::MeasureGlyphWidth(uint16_t aGlyph)
         }
     }
     return 0;
-}
-
-void
-gfxDWriteFont::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                   FontCacheSizes*   aSizes) const
-{
-    gfxFont::SizeOfExcludingThis(aMallocSizeOf, aSizes);
-    aSizes->mFontInstances += aMallocSizeOf(mMetrics) +
-        mGlyphWidths.SizeOfExcludingThis(nullptr, aMallocSizeOf);
-}
-
-void
-gfxDWriteFont::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                   FontCacheSizes*   aSizes) const
-{
-    aSizes->mFontInstances += aMallocSizeOf(this);
-    SizeOfExcludingThis(aMallocSizeOf, aSizes);
 }

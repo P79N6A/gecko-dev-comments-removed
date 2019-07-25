@@ -2,23 +2,115 @@
 
 
 
-const EXPORTED_SYMBOLS = [
-  "AsyncResource",
-  "Resource"
-];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const EXPORTED_SYMBOLS = ["Resource", "AsyncResource",
+                          "Auth", "BrokenBasicAuthenticator",
+                          "BasicAuthenticator", "NoOpAuthenticator"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
 const Cu = Components.utils;
 
-Cu.import("resource://services-common/async.js");
+Cu.import("resource://services-sync/async.js");
 Cu.import("resource://services-sync/constants.js");
-Cu.import("resource://services-common/observers.js");
-Cu.import("resource://services-common/preferences.js");
-Cu.import("resource://services-sync/identity.js");
-Cu.import("resource://services-common/log4moz.js");
+Cu.import("resource://services-sync/ext/Observers.js");
+Cu.import("resource://services-sync/ext/Preferences.js");
+Cu.import("resource://services-sync/log4moz.js");
 Cu.import("resource://services-sync/util.js");
+
+XPCOMUtils.defineLazyGetter(this, "Auth", function () {
+  return new AuthMgr();
+});
+
+
+
+
+function NoOpAuthenticator() {}
+NoOpAuthenticator.prototype = {
+  onRequest: function NoOpAuth_onRequest(headers) {
+    return headers;
+  }
+};
+
+
+
+function BrokenBasicAuthenticator(identity) {
+  this._id = identity;
+}
+BrokenBasicAuthenticator.prototype = {
+  onRequest: function BasicAuth_onRequest(headers) {
+    headers['authorization'] = 'Basic ' +
+      btoa(this._id.username + ':' + this._id.password);
+    return headers;
+  }
+};
+
+function BasicAuthenticator(identity) {
+  this._id = identity;
+}
+BasicAuthenticator.prototype = {
+  onRequest: function onRequest(headers) {
+    headers['authorization'] = 'Basic ' +
+      btoa(this._id.username + ':' + this._id.passwordUTF8);
+    return headers;
+  }
+};
+
+function AuthMgr() {
+  this._authenticators = {};
+  this.defaultAuthenticator = new NoOpAuthenticator();
+}
+AuthMgr.prototype = {
+  defaultAuthenticator: null,
+
+  registerAuthenticator: function AuthMgr_register(match, authenticator) {
+    this._authenticators[match] = authenticator;
+  },
+
+  lookupAuthenticator: function AuthMgr_lookup(uri) {
+    for (let match in this._authenticators) {
+      if (uri.match(match))
+        return this._authenticators[match];
+    }
+    return this.defaultAuthenticator;
+  }
+};
+
 
 
 
@@ -59,14 +151,6 @@ AsyncResource.prototype = {
   serverTime: null,
 
   
-
-
-
-
-
-  authenticator: null,
-
-  
   
   
   
@@ -88,8 +172,24 @@ AsyncResource.prototype = {
   
   
   
+  
+  get authenticator() {
+    if (this._authenticator)
+      return this._authenticator;
+    else
+      return Auth.lookupAuthenticator(this.spec);
+  },
+  set authenticator(value) {
+    this._authenticator = value;
+  },
+
+  
+  
+  
+  
+  
   get headers() {
-    return this._headers;
+    return this.authenticator.onRequest(this._headers);
   },
   set headers(value) {
     this._headers = value;
@@ -135,7 +235,7 @@ AsyncResource.prototype = {
   
   
   
-  _createRequest: function Res__createRequest(method) {
+  _createRequest: function Res__createRequest() {
     let channel = Services.io.newChannel(this.spec, null, null)
                           .QueryInterface(Ci.nsIRequest)
                           .QueryInterface(Ci.nsIHttpChannel);
@@ -145,32 +245,17 @@ AsyncResource.prototype = {
     channel.loadFlags |= Ci.nsIRequest.INHIBIT_CACHING;
 
     
-    channel.notificationCallbacks = new ChannelNotificationListener();
+    channel.notificationCallbacks = new BadCertListener();
 
     
     if (Svc.Prefs.get("sendVersionInfo", true)) {
       let ua = this._userAgent + Svc.Prefs.get("client.type", "desktop");
       channel.setRequestHeader("user-agent", ua, false);
     }
-
+    
+    
     let headers = this.headers;
-
-    let authenticator = this.authenticator;
-    if (!authenticator) {
-      authenticator = Identity.getResourceAuthenticator();
-    }
-    if (authenticator) {
-      let result = authenticator(this, method);
-      if (result && result.headers) {
-        for (let [k, v] in Iterator(result.headers)) {
-          headers[k.toLowerCase()] = v;
-        }
-      }
-    } else {
-      this._log.debug("No authenticator found.");
-    }
-
-    for (let [key, value] in Iterator(headers)) {
+    for (let key in headers) {
       if (key == 'authorization')
         this._log.trace("HTTP Header " + key + ": ***** (suppressed)");
       else
@@ -185,7 +270,7 @@ AsyncResource.prototype = {
   _doRequest: function _doRequest(action, data, callback) {
     this._log.trace("In _doRequest.");
     this._callback = callback;
-    let channel = this._createRequest(action);
+    let channel = this._channel = this._createRequest();
 
     if ("undefined" != typeof(data))
       this._data = data;
@@ -218,7 +303,7 @@ AsyncResource.prototype = {
     channel.asyncOpen(listener, null);
   },
 
-  _onComplete: function _onComplete(error, data, channel) {
+  _onComplete: function _onComplete(error, data) {
     this._log.trace("In _onComplete. Error is " + error + ".");
 
     if (error) {
@@ -227,6 +312,7 @@ AsyncResource.prototype = {
     }
 
     this._data = data;
+    let channel = this._channel;
     let action = channel.requestMethod;
 
     this._log.trace("Channel: " + channel);
@@ -301,18 +387,7 @@ AsyncResource.prototype = {
     
     
     
-    XPCOMUtils.defineLazyGetter(ret, "obj", function() {
-      try {
-        return JSON.parse(ret);
-      } catch (ex) {
-        this._log.warn("Got exception parsing response body: \"" + Utils.exceptionStr(ex));
-        
-        this._log.debug("Parse fail: Response body starts: \"" +
-                        JSON.stringify((ret + "").slice(0, 100)) +
-                        "\".");
-        throw ex;
-      }
-    }.bind(this));
+    XPCOMUtils.defineLazyGetter(ret, "obj", function() JSON.parse(ret));
 
     this._callback(null, ret);
   },
@@ -435,14 +510,7 @@ ChannelListener.prototype = {
 
   onStartRequest: function Channel_onStartRequest(channel) {
     this._log.trace("onStartRequest called for channel " + channel + ".");
-
-    try {
-      channel.QueryInterface(Ci.nsIHttpChannel);
-    } catch (ex) {
-      this._log.error("Unexpected error: channel is not a nsIHttpChannel!");
-      channel.cancel(Cr.NS_BINDING_ABORTED);
-      return;
-    }
+    channel.QueryInterface(Ci.nsIHttpChannel);
 
     
     try {
@@ -460,26 +528,45 @@ ChannelListener.prototype = {
     
     this.abortTimer.clear();
 
-    if (!this._onComplete) {
-      this._log.error("Unexpected error: _onComplete not defined in onStopRequest.");
-      this._onProgress = null;
-      return;
-    }
+    
 
-    try {
-      channel.QueryInterface(Ci.nsIHttpChannel);
-    } catch (ex) {
-      this._log.error("Unexpected error: channel is not a nsIHttpChannel!");
 
-      this._onComplete(ex, this._data, channel);
-      this._onComplete = this._onProgress = null;
-      return;
-    }
 
+
+
+
+
+
+
+
+    let requestStatus = Cr.NS_ERROR_UNEXPECTED;
     let statusSuccess = Components.isSuccessCode(status);
+    try {
+      
+      requestStatus = channel.status;
+      this._log.trace("Request status is " + requestStatus);
+    } catch (ex) {
+      this._log.warn("Got exception " + Utils.exceptionStr(ex) +
+                     " fetching channel.status.");
+    }
+    if (statusSuccess && (status != requestStatus)) {
+      this._log.error("Request status " + requestStatus +
+                      " does not match status arg " + status);
+      try {
+        channel.responseStatus;
+      } catch (ex) {
+        this._log.error("... and we got " + Utils.exceptionStr(ex) +
+                        " retrieving responseStatus.");
+      }
+    }
+
+    let requestStatusSuccess = Components.isSuccessCode(requestStatus);
+
     let uri = channel && channel.URI && channel.URI.spec || "<unknown>";
     this._log.trace("Channel for " + channel.requestMethod + " " + uri + ": " +
-                    "isSuccessCode(" + status + ")? " + statusSuccess);
+                    "isSuccessCode(" + status + ")? " + statusSuccess + ", " +
+                    "isSuccessCode(" + requestStatus + ")? " +
+                    requestStatusSuccess);
 
     if (this._data == '') {
       this._data = null;
@@ -488,20 +575,22 @@ ChannelListener.prototype = {
     
     
     
-    if (!statusSuccess) {
-      let message = Components.Exception("", status).name;
-      let error   = Components.Exception(message, status);
-
-      this._onComplete(error, undefined, channel);
-      this._onComplete = this._onProgress = null;
+    
+    
+    
+    if (!statusSuccess || !requestStatusSuccess) {
+      
+      let code    = statusSuccess ? requestStatus : status;
+      let message = Components.Exception("", code).name;
+      let error   = Components.Exception(message, code);
+      this._onComplete(error);
       return;
     }
 
     this._log.trace("Channel: flags = " + channel.loadFlags +
                     ", URI = " + uri +
                     ", HTTP success? " + channel.requestSucceeded);
-    this._onComplete(null, this._data, channel);
-    this._onComplete = this._onProgress = null;
+    this._onComplete(null, this._data);
   },
 
   onDataAvailable: function Channel_onDataAvail(req, cb, stream, off, count) {
@@ -541,11 +630,6 @@ ChannelListener.prototype = {
     this.onStopRequest = function() {};
     let error = Components.Exception("Aborting due to channel inactivity.",
                                      Cr.NS_ERROR_NET_TIMEOUT);
-    if (!this._onComplete) {
-      this._log.error("Unexpected error: _onComplete not defined in " +
-                      "abortRequest.");
-      return;
-    }
     this._onComplete(error);
   }
 };
@@ -555,35 +639,31 @@ ChannelListener.prototype = {
 
 
 
-function ChannelNotificationListener() {
+
+
+function BadCertListener() {
 }
-ChannelNotificationListener.prototype = {
+BadCertListener.prototype = {
   getInterface: function(aIID) {
     return this.QueryInterface(aIID);
   },
 
   QueryInterface: function(aIID) {
-    if (aIID.equals(Ci.nsIBadCertListener2) ||
-        aIID.equals(Ci.nsIInterfaceRequestor) ||
-        aIID.equals(Ci.nsISupports) ||
-        aIID.equals(Ci.nsIChannelEventSink))
+    if (aIID.equals(Components.interfaces.nsIBadCertListener2) ||
+        aIID.equals(Components.interfaces.nsIInterfaceRequestor) ||
+        aIID.equals(Components.interfaces.nsISupports))
       return this;
 
-    throw Cr.NS_ERROR_NO_INTERFACE;
+    throw Components.results.NS_ERROR_NO_INTERFACE;
   },
 
   notifyCertProblem: function certProblem(socketInfo, sslStatus, targetHost) {
+    
     let log = Log4Moz.repository.getLogger("Sync.CertListener");
-    log.warn("Invalid HTTPS certificate encountered!");
+    log.level =
+      Log4Moz.Level[Svc.Prefs.get("log.logger.network.resources")];
+    log.debug("Invalid HTTPS certificate encountered, ignoring!");
 
-    
     return true;
-  },
-
-  asyncOnChannelRedirect:
-    function asyncOnChannelRedirect(oldChannel, newChannel, flags, callback) {
-
-    
-    callback.onRedirectVerifyCallback(Cr.NS_OK);
   }
 };

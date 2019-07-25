@@ -3,6 +3,37 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "SVGOrientSMILType.h"
 #include "nsSMILValue.h"
 #include "nsSVGViewBox.h"
@@ -30,7 +61,7 @@ void
 SVGOrientSMILType::Destroy(nsSMILValue& aValue) const
 {
   NS_PRECONDITION(aValue.mType == this, "Unexpected SMIL value.");
-  aValue.mU.mPtr = nullptr;
+  aValue.mU.mPtr = nsnull;
   aValue.mType = &nsSMILNullType::sSingleton;
 }
 
@@ -61,7 +92,7 @@ SVGOrientSMILType::IsEqual(const nsSMILValue& aLeft,
 
 nsresult
 SVGOrientSMILType::Add(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
-                       uint32_t aCount) const
+                       PRUint32 aCount) const
 {
   NS_PRECONDITION(aValueToAdd.mType == aDest.mType,
                   "Trying to add invalid types");
@@ -128,7 +159,7 @@ SVGOrientSMILType::Interpolate(const nsSMILValue& aStartVal,
   NS_PRECONDITION(aResult.mType   == this, "Unexpected result type.");
 
   if (aStartVal.mU.mOrient.mOrientType != nsIDOMSVGMarkerElement::SVG_MARKER_ORIENT_ANGLE ||
-      aEndVal.mU.mOrient.mOrientType != nsIDOMSVGMarkerElement::SVG_MARKER_ORIENT_ANGLE) {
+      aStartVal.mU.mOrient.mOrientType != nsIDOMSVGMarkerElement::SVG_MARKER_ORIENT_ANGLE) {
     
     return NS_ERROR_FAILURE;
   }

@@ -48,6 +48,7 @@
 #include "jspubtd.h"
 #include "jsatom.h"
 #include "jsscan.h"
+#include "jsscript.h"
 #include "jswin.h"
 
 #include "frontend/ParseMaps.h"
@@ -798,6 +799,8 @@ struct LexicalScopeNode : public JSParseNode {
 };
 
 } 
+
+
 
 
 

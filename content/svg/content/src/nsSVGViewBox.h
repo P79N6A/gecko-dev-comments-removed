@@ -3,20 +3,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_SVGVIEWBOX_H__
 #define __NS_SVGVIEWBOX_H__
 
-#include "nsAutoPtr.h"
-#include "nsCycleCollectionParticipant.h"
-#include "nsError.h"
-#include "nsIDOMSVGAnimatedRect.h"
 #include "nsIDOMSVGRect.h"
-#include "nsISMILAttr.h"
+#include "nsIDOMSVGAnimatedRect.h"
 #include "nsSVGElement.h"
-#include "mozilla/Attributes.h"
-
-class nsISMILAnimationElement;
-class nsSMILValue;
+#include "nsDOMError.h"
 
 struct nsSVGViewBoxRect
 {
@@ -39,25 +65,14 @@ public:
   void Init();
 
   
-
-
-
-
-
-
-
-
-
-  bool IsExplicitlySet() const
+  bool IsValid() const
     { return (mHasBaseVal || mAnimVal); }
 
   const nsSVGViewBoxRect& GetBaseValue() const
     { return mBaseVal; }
-  void SetBaseValue(const nsSVGViewBoxRect& aRect,
-                    nsSVGElement *aSVGElement);
   void SetBaseValue(float aX, float aY, float aWidth, float aHeight,
-                    nsSVGElement *aSVGElement)
-    { SetBaseValue(nsSVGViewBoxRect(aX, aY, aWidth, aHeight), aSVGElement); }
+                    nsSVGElement *aSVGElement, bool aDoSetAttr);
+
   const nsSVGViewBoxRect& GetAnimValue() const
     { return mAnimVal ? *mAnimVal : mBaseVal; }
   void SetAnimValue(float aX, float aY, float aWidth, float aHeight,
@@ -70,16 +85,18 @@ public:
 
   nsresult ToDOMAnimatedRect(nsIDOMSVGAnimatedRect **aResult,
                              nsSVGElement *aSVGElement);
+#ifdef MOZ_SMIL
   
   nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement);
-
+#endif 
+  
 private:
 
   nsSVGViewBoxRect mBaseVal;
   nsAutoPtr<nsSVGViewBoxRect> mAnimVal;
   bool mHasBaseVal;
 
-  struct DOMBaseVal MOZ_FINAL : public nsIDOMSVGRect
+  struct DOMBaseVal : public nsIDOMSVGRect
   {
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS(DOMBaseVal)
@@ -105,7 +122,7 @@ private:
     NS_IMETHOD SetHeight(float aHeight);
   };
 
-  struct DOMAnimVal MOZ_FINAL : public nsIDOMSVGRect
+  struct DOMAnimVal : public nsIDOMSVGRect
   {
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS(DOMAnimVal)
@@ -120,25 +137,33 @@ private:
     
     NS_IMETHOD GetX(float *aX)
     {
+#ifdef MOZ_SMIL
       mSVGElement->FlushAnimations();
+#endif
       *aX = mVal->GetAnimValue().x;
       return NS_OK;
     }
     NS_IMETHOD GetY(float *aY)
     {
+#ifdef MOZ_SMIL
       mSVGElement->FlushAnimations();
+#endif
       *aY = mVal->GetAnimValue().y;
       return NS_OK;
     }
     NS_IMETHOD GetWidth(float *aWidth)
     {
+#ifdef MOZ_SMIL
       mSVGElement->FlushAnimations();
+#endif
       *aWidth = mVal->GetAnimValue().width;
       return NS_OK;
     }
     NS_IMETHOD GetHeight(float *aHeight)
     {
+#ifdef MOZ_SMIL
       mSVGElement->FlushAnimations();
+#endif
       *aHeight = mVal->GetAnimValue().height;
       return NS_OK;
     }
@@ -154,7 +179,7 @@ private:
   };
 
 public:
-  struct DOMAnimatedRect MOZ_FINAL : public nsIDOMSVGAnimatedRect
+  struct DOMAnimatedRect : public nsIDOMSVGAnimatedRect
   {
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS(DOMAnimatedRect)
@@ -169,6 +194,7 @@ public:
     NS_IMETHOD GetAnimVal(nsIDOMSVGRect **aResult);
   };
 
+#ifdef MOZ_SMIL
   struct SMILViewBox : public nsISMILAttr
   {
   public:
@@ -190,6 +216,7 @@ public:
     virtual void ClearAnimValue();
     virtual nsresult SetAnimValue(const nsSMILValue& aValue);
   };
+#endif 
 };
 
 #endif 

@@ -4,16 +4,48 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSVGContainerFrame.h"
-
-
-#include "nsError.h"
-#include "nsSVGGlyphFrame.h"
 #include "nsSVGTextFrame.h"
 #include "nsSVGUtils.h"
+#include "nsSVGOuterSVGFrame.h"
+#include "nsIDOMSVGTextElement.h"
+#include "nsIDOMSVGAnimatedLengthList.h"
 #include "SVGAnimatedNumberList.h"
-#include "SVGLengthList.h"
 #include "SVGNumberList.h"
+#include "nsSVGGlyphFrame.h"
+#include "nsDOMError.h"
+#include "SVGLengthList.h"
+#include "nsSVGTextPositioningElement.h"
 
 using namespace mozilla;
 
@@ -38,7 +70,7 @@ void
 nsSVGTextContainerFrame::GetXY(SVGUserUnitList *aX, SVGUserUnitList *aY)
 {
   static_cast<nsSVGElement*>(mContent)->
-    GetAnimatedLengthListValues(aX, aY, nullptr);
+    GetAnimatedLengthListValues(aX, aY, nsnull);
 }
 
 void
@@ -48,7 +80,7 @@ nsSVGTextContainerFrame::GetDxDy(SVGUserUnitList *aDx, SVGUserUnitList *aDy)
   
   SVGUserUnitList xLengthList, yLengthList;
   static_cast<nsSVGElement*>(mContent)->
-    GetAnimatedLengthListValues(&xLengthList, &yLengthList, aDx, aDy, nullptr);
+    GetAnimatedLengthListValues(&xLengthList, &yLengthList, aDx, aDy, nsnull);
 }
 
 const SVGNumberList*
@@ -57,7 +89,7 @@ nsSVGTextContainerFrame::GetRotate()
   SVGAnimatedNumberList *animList =
     static_cast<nsSVGElement*>(mContent)->
       GetAnimatedNumberList(nsGkAtoms::rotate);
-  return animList ? &animList->GetAnimValue() : nullptr;
+  return animList ? &animList->GetAnimValue() : nsnull;
 }
 
 
@@ -90,9 +122,9 @@ nsSVGTextContainerFrame::RemoveFrame(ChildListID aListID, nsIFrame *aOldFrame)
 }
 
 NS_IMETHODIMP
-nsSVGTextContainerFrame::GetStartPositionOfChar(uint32_t charnum, nsIDOMSVGPoint **_retval)
+nsSVGTextContainerFrame::GetStartPositionOfChar(PRUint32 charnum, nsIDOMSVGPoint **_retval)
 {
-  *_retval = nullptr;
+  *_retval = nsnull;
 
   if (charnum >= GetNumberOfChars()) {
     return NS_ERROR_DOM_INDEX_SIZE_ERR;
@@ -103,7 +135,7 @@ nsSVGTextContainerFrame::GetStartPositionOfChar(uint32_t charnum, nsIDOMSVGPoint
     return NS_ERROR_FAILURE;
   }
 
-  uint32_t offset;
+  PRUint32 offset;
   nsSVGGlyphFrame *frame = GetGlyphFrameAtCharNum(node, charnum, &offset);
   if (!frame) {
     return NS_ERROR_FAILURE;
@@ -113,9 +145,9 @@ nsSVGTextContainerFrame::GetStartPositionOfChar(uint32_t charnum, nsIDOMSVGPoint
 }
 
 NS_IMETHODIMP
-nsSVGTextContainerFrame::GetEndPositionOfChar(uint32_t charnum, nsIDOMSVGPoint **_retval)
+nsSVGTextContainerFrame::GetEndPositionOfChar(PRUint32 charnum, nsIDOMSVGPoint **_retval)
 {
-  *_retval = nullptr;
+  *_retval = nsnull;
 
   if (charnum >= GetNumberOfChars()) {
     return NS_ERROR_DOM_INDEX_SIZE_ERR;
@@ -126,7 +158,7 @@ nsSVGTextContainerFrame::GetEndPositionOfChar(uint32_t charnum, nsIDOMSVGPoint *
     return NS_ERROR_FAILURE;
   }
 
-  uint32_t offset;
+  PRUint32 offset;
   nsSVGGlyphFrame *frame = GetGlyphFrameAtCharNum(node, charnum, &offset);
   if (!frame) {
     return NS_ERROR_FAILURE;
@@ -136,9 +168,9 @@ nsSVGTextContainerFrame::GetEndPositionOfChar(uint32_t charnum, nsIDOMSVGPoint *
 }
 
 NS_IMETHODIMP
-nsSVGTextContainerFrame::GetExtentOfChar(uint32_t charnum, nsIDOMSVGRect **_retval)
+nsSVGTextContainerFrame::GetExtentOfChar(PRUint32 charnum, nsIDOMSVGRect **_retval)
 {
-  *_retval = nullptr;
+  *_retval = nsnull;
 
   if (charnum >= GetNumberOfChars()) {
     return NS_ERROR_DOM_INDEX_SIZE_ERR;
@@ -149,7 +181,7 @@ nsSVGTextContainerFrame::GetExtentOfChar(uint32_t charnum, nsIDOMSVGRect **_retv
     return NS_ERROR_FAILURE;
   }
 
-  uint32_t offset;
+  PRUint32 offset;
   nsSVGGlyphFrame *frame = GetGlyphFrameAtCharNum(node, charnum, &offset);
   if (!frame) {
     return NS_ERROR_FAILURE;
@@ -159,7 +191,7 @@ nsSVGTextContainerFrame::GetExtentOfChar(uint32_t charnum, nsIDOMSVGRect **_retv
 }
 
 NS_IMETHODIMP
-nsSVGTextContainerFrame::GetRotationOfChar(uint32_t charnum, float *_retval)
+nsSVGTextContainerFrame::GetRotationOfChar(PRUint32 charnum, float *_retval)
 {
   *_retval = 0.0f;
 
@@ -172,7 +204,7 @@ nsSVGTextContainerFrame::GetRotationOfChar(uint32_t charnum, float *_retval)
     return NS_ERROR_FAILURE;
   }
 
-  uint32_t offset;
+  PRUint32 offset;
   nsSVGGlyphFrame *frame = GetGlyphFrameAtCharNum(node, charnum, &offset);
   if (!frame) {
     return NS_ERROR_FAILURE;
@@ -181,10 +213,10 @@ nsSVGTextContainerFrame::GetRotationOfChar(uint32_t charnum, float *_retval)
   return frame->GetRotationOfChar(charnum - offset, _retval);
 }
 
-uint32_t
+PRUint32
 nsSVGTextContainerFrame::GetNumberOfChars()
 {
-  uint32_t nchars = 0;
+  PRUint32 nchars = 0;
   nsISVGGlyphFragmentNode* node = GetFirstGlyphFragmentChildNode();
 
   while (node) {
@@ -210,15 +242,15 @@ nsSVGTextContainerFrame::GetComputedTextLength()
 }
 
 float
-nsSVGTextContainerFrame::GetSubStringLength(uint32_t charnum, uint32_t nchars)
+nsSVGTextContainerFrame::GetSubStringLength(PRUint32 charnum, PRUint32 nchars)
 {
   float length = 0.0f;
   nsISVGGlyphFragmentNode *node = GetFirstGlyphFragmentChildNode();
 
   while (node) {
-    uint32_t count = node->GetNumberOfChars();
+    PRUint32 count = node->GetNumberOfChars();
     if (count > charnum) {
-      uint32_t fragmentChars = NS_MIN(nchars, count - charnum);
+      PRUint32 fragmentChars = NS_MIN(nchars, count);
       float fragmentLength = node->GetSubStringLength(charnum, fragmentChars);
       length += fragmentLength;
       nchars -= fragmentChars;
@@ -231,17 +263,17 @@ nsSVGTextContainerFrame::GetSubStringLength(uint32_t charnum, uint32_t nchars)
   return length;
 }
 
-int32_t
+PRInt32
 nsSVGTextContainerFrame::GetCharNumAtPosition(nsIDOMSVGPoint *point)
 {
-  int32_t index = -1;
-  int32_t offset = 0;
+  PRInt32 index = -1;
+  PRInt32 offset = 0;
   nsISVGGlyphFragmentNode *node = GetFirstGlyphFragmentChildNode();
 
   while (node) {
-    uint32_t count = node->GetNumberOfChars();
+    PRUint32 count = node->GetNumberOfChars();
     if (count > 0) {
-      int32_t charnum = node->GetCharNumAtPosition(point);
+      PRInt32 charnum = node->GetCharNumAtPosition(point);
       if (charnum >= 0) {
         index = charnum + offset;
       }
@@ -262,7 +294,7 @@ nsSVGTextContainerFrame::GetCharNumAtPosition(nsIDOMSVGPoint *point)
 nsISVGGlyphFragmentNode *
 nsSVGTextContainerFrame::GetFirstGlyphFragmentChildNode()
 {
-  nsISVGGlyphFragmentNode *retval = nullptr;
+  nsISVGGlyphFragmentNode *retval = nsnull;
   nsIFrame* kid = mFrames.FirstChild();
   while (kid) {
     retval = do_QueryFrame(kid);
@@ -275,7 +307,7 @@ nsSVGTextContainerFrame::GetFirstGlyphFragmentChildNode()
 nsISVGGlyphFragmentNode *
 nsSVGTextContainerFrame::GetNextGlyphFragmentChildNode(nsISVGGlyphFragmentNode *node)
 {
-  nsISVGGlyphFragmentNode *retval = nullptr;
+  nsISVGGlyphFragmentNode *retval = nsnull;
   nsIFrame *frame = do_QueryFrame(node);
   NS_ASSERTION(frame, "interface not implemented");
   frame = frame->GetNextSibling();
@@ -293,14 +325,14 @@ nsSVGTextContainerFrame::GetNextGlyphFragmentChildNode(nsISVGGlyphFragmentNode *
 
 nsSVGGlyphFrame *
 nsSVGTextContainerFrame::GetGlyphFrameAtCharNum(nsISVGGlyphFragmentNode* node,
-                                                uint32_t charnum,
-                                                uint32_t *offset)
+                                                PRUint32 charnum,
+                                                PRUint32 *offset)
 {
   nsSVGGlyphFrame *frame = node->GetFirstGlyphFrame();
   *offset = 0;
   
   while (frame) {
-    uint32_t count = frame->GetNumberOfChars();
+    PRUint32 count = frame->GetNumberOfChars();
     if (count > charnum)
       return frame;
     charnum -= count;
@@ -309,45 +341,45 @@ nsSVGTextContainerFrame::GetGlyphFrameAtCharNum(nsISVGGlyphFragmentNode* node,
   }
 
   
-  return nullptr;
+  return nsnull;
 }
 
 nsSVGTextFrame *
 nsSVGTextContainerFrame::GetTextFrame()
 {
-  for (nsIFrame *frame = this; frame != nullptr; frame = frame->GetParent()) {
+  for (nsIFrame *frame = this; frame != nsnull; frame = frame->GetParent()) {
     if (frame->GetType() == nsGkAtoms::svgTextFrame) {
       return static_cast<nsSVGTextFrame*>(frame);
     }
   }
-  return nullptr;
+  return nsnull;
 }
 
 void
 nsSVGTextContainerFrame::CopyPositionList(nsTArray<float> *parentList,
                                         SVGUserUnitList *selfList,
                                         nsTArray<float> &dstList,
-                                        uint32_t aOffset)
+                                        PRUint32 aOffset)
 {
   dstList.Clear();
 
-  uint32_t strLength = GetNumberOfChars();
-  uint32_t parentCount = 0;
+  PRUint32 strLength = GetNumberOfChars();
+  PRUint32 parentCount = 0;
   if (parentList && parentList->Length() > aOffset) {
     parentCount = NS_MIN(parentList->Length() - aOffset, strLength);
   }
 
-  uint32_t selfCount = NS_MIN(selfList->Length(), strLength);
+  PRUint32 selfCount = NS_MIN(selfList->Length(), strLength);
 
-  uint32_t count = NS_MAX(parentCount, selfCount);
+  PRUint32 count = NS_MAX(parentCount, selfCount);
 
   if (!dstList.SetLength(count))
     return;
 
-  for (uint32_t i = 0; i < selfCount; i++) {
+  for (PRUint32 i = 0; i < selfCount; i++) {
     dstList[i] = (*selfList)[i];
   }
-  for (uint32_t i = selfCount; i < parentCount; i++) {
+  for (PRUint32 i = selfCount; i < parentCount; i++) {
     dstList[i] = (*parentList)[aOffset + i];
   }
 
@@ -357,26 +389,26 @@ void
 nsSVGTextContainerFrame::CopyRotateList(nsTArray<float> *parentList,
                                         const SVGNumberList *selfList,
                                         nsTArray<float> &dstList,
-                                        uint32_t aOffset)
+                                        PRUint32 aOffset)
 {
   dstList.Clear();
 
-  uint32_t strLength = GetNumberOfChars();
-  uint32_t parentCount = 0;
+  PRUint32 strLength = GetNumberOfChars();
+  PRUint32 parentCount = 0;
   if (parentList && parentList->Length() > aOffset) {
     parentCount = NS_MIN(parentList->Length() - aOffset, strLength);
   }
 
-  uint32_t selfCount = NS_MIN(selfList ? selfList->Length() : 0, strLength);
-  uint32_t count = NS_MAX(parentCount, selfCount);
+  PRUint32 selfCount = NS_MIN(selfList ? selfList->Length() : 0, strLength);
+  PRUint32 count = NS_MAX(parentCount, selfCount);
 
   if (count > 0) {
     if (!dstList.SetLength(count))
       return;
-    for (uint32_t i = 0; i < selfCount; i++) {
+    for (PRUint32 i = 0; i < selfCount; i++) {
       dstList[i] = (*selfList)[i];
     }
-    for (uint32_t i = selfCount; i < parentCount; i++) {
+    for (PRUint32 i = selfCount; i < parentCount; i++) {
       dstList[i] = (*parentList)[aOffset + i];
     }
   } else if (parentList && !parentList->IsEmpty()) {
@@ -385,14 +417,14 @@ nsSVGTextContainerFrame::CopyRotateList(nsTArray<float> *parentList,
   }
 }
 
-uint32_t
-nsSVGTextContainerFrame::BuildPositionList(uint32_t aOffset,
-                                           uint32_t aDepth)
+PRUint32
+nsSVGTextContainerFrame::BuildPositionList(PRUint32 aOffset,
+                                           PRUint32 aDepth)
 {
   nsSVGTextContainerFrame *parent = do_QueryFrame(mParent);
-  nsTArray<float> *parentX = nullptr, *parentY = nullptr;
-  nsTArray<float> *parentDx = nullptr, *parentDy = nullptr;
-  nsTArray<float> *parentRotate = nullptr;
+  nsTArray<float> *parentX = nsnull, *parentY = nsnull;
+  nsTArray<float> *parentDx = nsnull, *parentDy = nsnull;
+  nsTArray<float> *parentRotate = nsnull;
   if (parent) {
     parentX = &(parent->mX);
     parentY = &(parent->mY);
@@ -414,7 +446,7 @@ nsSVGTextContainerFrame::BuildPositionList(uint32_t aOffset,
   const SVGNumberList *rotate = GetRotate();
   CopyRotateList(parentRotate, rotate, mRotate, aOffset);
 
-  uint32_t startIndex = 0;
+  PRUint32 startIndex = 0;
   nsIFrame* kid = mFrames.FirstChild();
   while (kid) {
     nsSVGTextContainerFrame *text = do_QueryFrame(kid);
@@ -457,16 +489,16 @@ nsSVGTextContainerFrame::SetWhitespaceCompression()
 {
   bool compressWhitespace = true;
 
-  for (const nsIFrame *frame = this; frame != nullptr; frame = frame->GetParent()) {
+  for (const nsIFrame *frame = this; frame != nsnull; frame = frame->GetParent()) {
     static const nsIContent::AttrValuesArray strings[] =
-      {&nsGkAtoms::preserve, &nsGkAtoms::_default, nullptr};
+      {&nsGkAtoms::preserve, &nsGkAtoms::_default, nsnull};
 
-    int32_t index = frame->GetContent()->FindAttrValueIn(
+    PRInt32 index = frame->GetContent()->FindAttrValueIn(
                                            kNameSpaceID_XML,
                                            nsGkAtoms::space,
                                            strings, eCaseMatters);
     if (index == 0) {
-      compressWhitespace = false;
+      compressWhitespace = PR_FALSE;
       break;
     }
     if (index != nsIContent::ATTR_MISSING ||

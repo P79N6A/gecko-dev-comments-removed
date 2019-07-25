@@ -3,52 +3,52 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsWrapperCache_h___
 #define nsWrapperCache_h___
 
 #include "nsCycleCollectionParticipant.h"
 
 struct JSObject;
-struct JSContext;
-class XPCWrappedNativeScope;
+class nsContentUtils;
 
 typedef PRUptrdiff PtrBits;
 
-namespace mozilla {
-namespace dom {
-namespace workers {
-
-class DOMBindingBase;
-
-} 
-} 
-} 
-
 #define NS_WRAPPERCACHE_IID \
-{ 0x6f3179a1, 0x36f7, 0x4a5c, \
-  { 0x8c, 0xf1, 0xad, 0xc8, 0x7c, 0xde, 0x3e, 0x87 } }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+{ 0x3a51ca81, 0xddab, 0x422c, \
+  { 0x95, 0x3a, 0x13, 0x06, 0x28, 0x0e, 0xee, 0x14 } }
 
 
 
@@ -59,7 +59,7 @@ class DOMBindingBase;
 
 class nsWrapperCache
 {
-  friend class mozilla::dom::workers::DOMBindingBase;
+  friend class nsContentUtils;
 
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_WRAPPERCACHE_IID)
@@ -79,11 +79,11 @@ public:
 
 
 
-  JSObject* GetWrapper() const;
+
+
+  inline JSObject* GetWrapper() const;
 
   
-
-
 
 
 
@@ -93,26 +93,20 @@ public:
 
   JSObject* GetWrapperPreserveColor() const
   {
-    return GetJSObjectFromBits();
+    return reinterpret_cast<JSObject*>(mWrapperPtrBits & ~kWrapperBitMask);
   }
 
   void SetWrapper(JSObject* aWrapper)
   {
     NS_ASSERTION(!PreservingWrapper(), "Clearing a preserved wrapper!");
-    NS_ASSERTION(aWrapper, "Use ClearWrapper!");
-
-    SetWrapperBits(aWrapper);
+    mWrapperPtrBits = reinterpret_cast<PtrBits>(aWrapper) |
+                      (mWrapperPtrBits & WRAPPER_IS_PROXY);
   }
-
-  
-
-
 
   void ClearWrapper()
   {
     NS_ASSERTION(!PreservingWrapper(), "Clearing a preserved wrapper!");
-
-    SetWrapperBits(NULL);
+    mWrapperPtrBits = 0;
   }
 
   bool PreservingWrapper()
@@ -120,45 +114,17 @@ public:
     return (mWrapperPtrBits & WRAPPER_BIT_PRESERVED) != 0;
   }
 
-  void SetIsDOMBinding()
+  void SetIsProxy()
   {
-    NS_ASSERTION(!mWrapperPtrBits,
-                 "This flag should be set before creating any wrappers.");
-    mWrapperPtrBits = WRAPPER_IS_DOM_BINDING;
-  }
-  void ClearIsDOMBinding()
-  {
-    NS_ASSERTION(!mWrapperPtrBits || mWrapperPtrBits == WRAPPER_IS_DOM_BINDING,
-                 "This flag should be cleared before creating any wrappers.");
-    mWrapperPtrBits = 0;
+    mWrapperPtrBits |= WRAPPER_IS_PROXY;
   }
 
-  bool IsDOMBinding() const
+  bool IsProxy()
   {
-    return (mWrapperPtrBits & WRAPPER_IS_DOM_BINDING) != 0;
+    return (mWrapperPtrBits & WRAPPER_IS_PROXY) != 0;
   }
 
-
-  
-
-
-
-
-
-
-
-  virtual JSObject* WrapObject(JSContext *cx, JSObject *scope,
-                               bool *triedToWrap)
-  {
-    *triedToWrap = false;
-    return nullptr;
-  }
-
-  
-
-
-  bool IsBlack();
-
+private:
   
   void SetPreservingWrapper(bool aPreserve)
   {
@@ -170,37 +136,9 @@ public:
     }
   }
 
-private:
-  JSObject *GetJSObjectFromBits() const
-  {
-    return reinterpret_cast<JSObject*>(mWrapperPtrBits & ~kWrapperBitMask);
-  }
-  void SetWrapperBits(void *aWrapper)
-  {
-    mWrapperPtrBits = reinterpret_cast<PtrBits>(aWrapper) |
-                      (mWrapperPtrBits & WRAPPER_IS_DOM_BINDING);
-  }
-
-  
-
-
-
-
-
-
-
-
-
-
   enum { WRAPPER_BIT_PRESERVED = 1 << 0 };
-
-  
-
-
-
-  enum { WRAPPER_IS_DOM_BINDING = 1 << 1 };
-
-  enum { kWrapperBitMask = (WRAPPER_BIT_PRESERVED | WRAPPER_IS_DOM_BINDING) };
+  enum { WRAPPER_IS_PROXY = 1 << 1 };
+  enum { kWrapperBitMask = (WRAPPER_BIT_PRESERVED | WRAPPER_IS_PROXY) };
 
   PtrBits mWrapperPtrBits;
 };
@@ -212,74 +150,5 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsWrapperCache, NS_WRAPPERCACHE_IID)
     *aInstancePtr = static_cast<nsWrapperCache*>(this);                       \
     return NS_OK;                                                             \
   }
-
-
-
-
-#define NS_IMPL_CYCLE_COLLECTION_TRACE_PRESERVED_WRAPPER \
-  nsContentUtils::TraceWrapper(tmp, aCallback, aClosure);
-
-#define NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER \
-  nsContentUtils::ReleaseWrapper(s, tmp);
-
-#define NS_IMPL_CYCLE_COLLECTION_TRACE_WRAPPERCACHE(_class) \
-  NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(_class)              \
-    NS_IMPL_CYCLE_COLLECTION_TRACE_PRESERVED_WRAPPER        \
-  NS_IMPL_CYCLE_COLLECTION_TRACE_END
-
-#define NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_0(_class) \
-  NS_IMPL_CYCLE_COLLECTION_CLASS(_class)                \
-  NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(_class)         \
-    NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER   \
-  NS_IMPL_CYCLE_COLLECTION_UNLINK_END                   \
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(_class)       \
-    NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS    \
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END                 \
-  NS_IMPL_CYCLE_COLLECTION_TRACE_WRAPPERCACHE(_class)
-
-#define NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_1(_class, _field) \
-  NS_IMPL_CYCLE_COLLECTION_CLASS(_class)                        \
-  NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(_class)                 \
-    NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(_field)            \
-    NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER           \
-  NS_IMPL_CYCLE_COLLECTION_UNLINK_END                           \
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(_class)               \
-    NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(_field)          \
-    NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS            \
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END                         \
-  NS_IMPL_CYCLE_COLLECTION_TRACE_WRAPPERCACHE(_class)
-
-#define NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_2(_class, _field1,\
-                                                _field2)        \
-  NS_IMPL_CYCLE_COLLECTION_CLASS(_class)                        \
-  NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(_class)                 \
-    NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(_field1)           \
-    NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(_field2)           \
-    NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER           \
-  NS_IMPL_CYCLE_COLLECTION_UNLINK_END                           \
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(_class)               \
-    NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(_field1)         \
-    NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(_field2)         \
-    NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS            \
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END                         \
-  NS_IMPL_CYCLE_COLLECTION_TRACE_WRAPPERCACHE(_class)
-
-#define NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_3(_class, _field1,\
-                                                _field2,        \
-                                                _field3)        \
-  NS_IMPL_CYCLE_COLLECTION_CLASS(_class)                        \
-  NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(_class)                 \
-    NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(_field1)           \
-    NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(_field2)           \
-    NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(_field3)           \
-    NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER           \
-  NS_IMPL_CYCLE_COLLECTION_UNLINK_END                           \
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(_class)               \
-    NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(_field1)         \
-    NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(_field2)         \
-    NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(_field3)         \
-    NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS            \
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END                         \
-  NS_IMPL_CYCLE_COLLECTION_TRACE_WRAPPERCACHE(_class)
 
 #endif 

@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsContentHandlerApp.h"
 #include "nsIURI.h"
 #include "nsIClassInfoImpl.h"
@@ -60,7 +93,7 @@ NS_IMETHODIMP
 nsContentHandlerApp::LaunchWithURI(nsIURI *aURI,
                                    nsIInterfaceRequestor *aWindowContext)
 {
-  nsAutoCString spec;
+  nsCAutoString spec;
   nsresult rv = aURI->GetAsciiSpec(spec);
   NS_ENSURE_SUCCESS(rv,rv);
   const char* url = spec.get();
