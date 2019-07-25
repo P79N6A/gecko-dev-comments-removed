@@ -96,7 +96,7 @@ nsDeckFrame::AttributeChanged(PRInt32         aNameSpaceID,
 
    
   if (aAttribute == nsGkAtoms::selectedIndex) {
-    IndexChanged(PresContext());
+    IndexChanged();
   }
 
   return rv;
@@ -114,68 +114,14 @@ nsDeckFrame::Init(nsIContent*     aContent,
   return rv;
 }
 
-static void
-CreateViewsForFrames(const nsFrameList& aFrames)
+void
+nsDeckFrame::HideBox(nsIBox* aBox)
 {
-  for (nsFrameList::Enumerator f(aFrames); !f.AtEnd(); f.Next()) {
-    nsContainerFrame::CreateViewForFrame(f.get(), true);
-  }
-}
-
-NS_IMETHODIMP
-nsDeckFrame::SetInitialChildList(ChildListID     aListID,
-                                 nsFrameList&    aChildList)
-{
-  CreateViewsForFrames(aChildList);
-  return nsBoxFrame::SetInitialChildList(aListID, aChildList);
-}
-
-NS_IMETHODIMP
-nsDeckFrame::AppendFrames(ChildListID     aListID,
-                          nsFrameList&    aFrameList)
-{
-  CreateViewsForFrames(aFrameList);
-  return nsBoxFrame::AppendFrames(aListID, aFrameList);
-}
-
-NS_IMETHODIMP
-nsDeckFrame::InsertFrames(ChildListID     aListID,
-                          nsIFrame*       aPrevFrame,
-                          nsFrameList&    aFrameList)
-{
-  CreateViewsForFrames(aFrameList);
-  return nsBoxFrame::InsertFrames(aListID, aPrevFrame, aFrameList);
+  nsIPresShell::ClearMouseCapture(aBox);
 }
 
 void
-nsDeckFrame::HideBox(nsPresContext* aPresContext, nsIBox* aBox)
-{
-  nsIView* view = aBox->GetView();
-
-  if (view) {
-    nsIViewManager* viewManager = view->GetViewManager();
-    viewManager->SetViewVisibility(view, nsViewVisibility_kHide);
-    viewManager->ResizeView(view, nsRect(0, 0, 0, 0));
-    
-    nsIPresShell::ClearMouseCapture(aBox);
-  }
-}
-
-void
-nsDeckFrame::ShowBox(nsPresContext* aPresContext, nsIBox* aBox)
-{
-  nsRect rect = aBox->GetRect();
-  nsIView* view = aBox->GetView();
-  if (view) {
-    nsIViewManager* viewManager = view->GetViewManager();
-    rect.x = rect.y = 0;
-    viewManager->ResizeView(view, rect);
-    viewManager->SetViewVisibility(view, nsViewVisibility_kShow);
-  }
-}
-
-void
-nsDeckFrame::IndexChanged(nsPresContext* aPresContext)
+nsDeckFrame::IndexChanged()
 {
   
   PRInt32 index = GetSelectedIndex();
@@ -188,14 +134,9 @@ nsDeckFrame::IndexChanged(nsPresContext* aPresContext)
   
   nsIBox* currentBox = GetSelectedBox();
   if (currentBox) 
-     HideBox(aPresContext, currentBox);
+    HideBox(currentBox);
 
   mIndex = index;
-
-  
-  nsIBox* newBox = GetSelectedBox();
-  if (newBox) 
-     ShowBox(aPresContext, newBox);
 }
 
 PRInt32
@@ -271,10 +212,8 @@ nsDeckFrame::DoLayout(nsBoxLayoutState& aState)
   while (box) 
   {
     
-    if (count == mIndex) 
-      ShowBox(aState.PresContext(), box);
-    else
-      HideBox(aState.PresContext(), box);
+    if (count != mIndex) 
+      HideBox(box);
 
     box = box->GetNextBox();
     count++;

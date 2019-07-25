@@ -76,16 +76,6 @@ public:
                   nsIFrame*        aParent,
                   nsIFrame*        aPrevInFlow);
 
-  
-  
-  NS_IMETHOD  SetInitialChildList(ChildListID     aListID,
-                                  nsFrameList&    aChildList);
-  NS_IMETHOD AppendFrames(ChildListID     aListID,
-                          nsFrameList&    aFrameList);
-  NS_IMETHOD InsertFrames(ChildListID     aListID,
-                          nsIFrame*       aPrevFrame,
-                          nsFrameList&    aFrameList);
-
   virtual nsIAtom* GetType() const;
 
 #ifdef NS_DEBUG
@@ -101,11 +91,9 @@ public:
 
 protected:
 
-  
-  void IndexChanged(nsPresContext* aPresContext);
+  void IndexChanged();
   PRInt32 GetSelectedIndex();
-  void HideBox(nsPresContext* aPresContext, nsIBox* aBox);
-  void ShowBox(nsPresContext* aPresContext, nsIBox* aBox);
+  void HideBox(nsIBox* aBox);
 
 private:
 
