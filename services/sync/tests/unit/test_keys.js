@@ -123,7 +123,37 @@ function test_collections_manager() {
   do_check_true(CollectionKeys.updateNeeded({}));
 }
 
+
+function test_key_persistence() {
+  _("Testing key persistence.");
+  
+  
+  let k = new SyncKeyBundle(null, null, "abcdeabcdeabcdeabcdeabcdea");
+  k.username = "john@example.com";
+  ID.set("WeaveCryptoID", k);
+  let id = ID.get("WeaveCryptoID");
+  do_check_eq(k, id);
+  id.persist();
+  
+  
+  ID.del("WeaveCryptoID");
+  k = id = null;
+  
+  
+  id = new SyncKeyBundle();
+  id.username = "john@example.com";
+  
+  
+  do_check_eq(id.password, "abcdeabcdeabcdeabcdeabcdea");
+  
+  
+  do_check_true(!!id.hmacKeyObject);
+  do_check_true(!!id.hmacKey);
+  do_check_true(!!id.encryptionKey);
+}
+
 function run_test() {
   test_keymanager();
   test_collections_manager();
+  test_key_persistence();
 }
