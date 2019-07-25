@@ -40,6 +40,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
@@ -2797,6 +2798,10 @@ JSTerm.prototype = {
   {
     let inputNode = this.inputNode;
     let inputValue = inputNode.value;
+    
+    if (!inputValue) {
+      return;
+    }
     let selStart = inputNode.selectionStart, selEnd = inputNode.selectionEnd;
 
     
