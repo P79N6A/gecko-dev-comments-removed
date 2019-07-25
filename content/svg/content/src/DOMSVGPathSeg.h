@@ -122,7 +122,7 @@ public:
                          PRBool aIsAnimValItem);
 
   
-  void UpdateListIndex(PRUint8 aListIndex) {
+  void UpdateListIndex(PRUint32 aListIndex) {
     mListIndex = aListIndex;
   }
 

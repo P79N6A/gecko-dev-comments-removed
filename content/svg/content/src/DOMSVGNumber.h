@@ -80,8 +80,8 @@ public:
 
 
   DOMSVGNumber(DOMSVGNumberList *aList,
-               PRUint32 aAttrEnum,
-               PRUint8 aListIndex,
+               PRUint8 aAttrEnum,
+               PRUint32 aListIndex,
                PRUint8 aIsAnimValItem);
 
   
@@ -130,12 +130,12 @@ public:
 
 
   void InsertingIntoList(DOMSVGNumberList *aList,
-                         PRUint32 aAttrEnum,
-                         PRUint8 aListIndex,
+                         PRUint8 aAttrEnum,
+                         PRUint32 aListIndex,
                          PRUint8 aIsAnimValItem);
 
   
-  void UpdateListIndex(PRUint8 aListIndex) {
+  void UpdateListIndex(PRUint32 aListIndex) {
     mListIndex = aListIndex;
   }
 
