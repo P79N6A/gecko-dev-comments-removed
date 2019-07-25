@@ -249,15 +249,6 @@ Service::initialize()
     return convertResultCode(rc);
 
   
-  
-  
-  
-  
-  rc = ::sqlite3_enable_shared_cache(1);
-  if (rc != SQLITE_OK)
-    return convertResultCode(rc);
-
-  
   nsCOMPtr<nsIRunnable> event =
     new ServiceMainThreadInitializer(this, &sXPConnect);
   if (event && ::NS_IsMainThread()) {
@@ -369,7 +360,7 @@ Service::OpenSpecialDatabase(const char *aStorageKey,
   Connection *msc = new Connection(this);
   NS_ENSURE_TRUE(msc, NS_ERROR_OUT_OF_MEMORY);
 
-  rv = msc->initialize(storageFile);
+  rv = msc->initialize(storageFile, SQLITE_OPEN_READWRITE);
   NS_ENSURE_SUCCESS(rv, rv);
 
   NS_ADDREF(*_connection = msc);
@@ -391,11 +382,9 @@ Service::OpenDatabase(nsIFile *aDatabaseFile,
   nsRefPtr<Connection> msc = new Connection(this);
   NS_ENSURE_TRUE(msc, NS_ERROR_OUT_OF_MEMORY);
 
-  {
-    MutexAutoLock mutex(mMutex);
-    nsresult rv = msc->initialize(aDatabaseFile);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
+  int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_SHAREDCACHE;
+  nsresult rv = msc->initialize(aDatabaseFile, flags);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   NS_ADDREF(*_connection = msc);
   return NS_OK;
@@ -415,25 +404,8 @@ Service::OpenUnsharedDatabase(nsIFile *aDatabaseFile,
   nsRefPtr<Connection> msc = new Connection(this);
   NS_ENSURE_TRUE(msc, NS_ERROR_OUT_OF_MEMORY);
 
-  
-  
-  
-  
-  
-  
-  nsresult rv;
-  {
-    MutexAutoLock mutex(mMutex);
-    int rc = ::sqlite3_enable_shared_cache(0);
-    if (rc != SQLITE_OK)
-      return convertResultCode(rc);
-
-    rv = msc->initialize(aDatabaseFile);
-
-    rc = ::sqlite3_enable_shared_cache(1);
-    if (rc != SQLITE_OK)
-      return convertResultCode(rc);
-  }
+  int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_PRIVATECACHE;
+  nsresult rv = msc->initialize(aDatabaseFile, flags);
   NS_ENSURE_SUCCESS(rv, rv);
 
   NS_ADDREF(*_connection = msc);

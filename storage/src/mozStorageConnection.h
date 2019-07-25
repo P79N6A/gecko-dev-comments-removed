@@ -80,7 +80,10 @@ public:
 
 
 
-  nsresult initialize(nsIFile *aDatabaseFile);
+
+
+
+  nsresult initialize(nsIFile *aDatabaseFile, int aFlags);
 
   
   sqlite3 *GetNativeConnection() { return mDBConn; }
