@@ -74,6 +74,7 @@
 #include "nsSVGEnum.h"
 #include "nsSVGViewBox.h"
 #include "nsSVGString.h"
+#include "nsSVGClass.h"
 #include "SVGAnimatedNumberList.h"
 #include "SVGAnimatedLengthList.h"
 #include "SVGAnimatedPointList.h"
@@ -547,6 +548,14 @@ nsSVGElement::ParseAttribute(PRInt32 aNamespaceID,
           }
           foundMatch = PR_TRUE;
         }
+      
+      } else if (aAttribute == nsGkAtoms::_class) {
+        nsSVGClass *svgClass = GetClass();
+        if (svgClass) {
+          svgClass->SetBaseValue(aValue, this, PR_FALSE);
+          aResult.ParseAtomArray(aValue);
+          return PR_TRUE;
+        }
       }
     }
   }
@@ -585,8 +594,6 @@ nsSVGElement::UnsetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
   
   nsresult rv = nsSVGElementBase::UnsetAttr(aNamespaceID, aName, aNotify);
 
-  PRBool foundMatch = PR_FALSE;
-
   if (aNamespaceID == kNameSpaceID_None) {
     
     if (IsAttributeMapped(aName))
@@ -598,203 +605,178 @@ nsSVGElement::UnsetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
         nsIAtom* eventName = GetEventNameForAttr(aName);
         manager->RemoveScriptEventListener(eventName);
       }
-      foundMatch = PR_TRUE;
+      return rv;
     }
     
-    if (!foundMatch) {
-      
-      LengthAttributesInfo lenInfo = GetLengthInfo();
+    
+    LengthAttributesInfo lenInfo = GetLengthInfo();
 
-      for (PRUint32 i = 0; i < lenInfo.mLengthCount; i++) {
-        if (aName == *lenInfo.mLengthInfo[i].mName) {
-          lenInfo.Reset(i);
-          DidChangeLength(i, PR_FALSE);
-          foundMatch = PR_TRUE;
-          break;
-        }
+    for (PRUint32 i = 0; i < lenInfo.mLengthCount; i++) {
+      if (aName == *lenInfo.mLengthInfo[i].mName) {
+        lenInfo.Reset(i);
+        DidChangeLength(i, PR_FALSE);
+        return rv;
       }
     }
 
-    if (!foundMatch) {
-      
-      LengthListAttributesInfo lengthListInfo = GetLengthListInfo();
+    
+    LengthListAttributesInfo lengthListInfo = GetLengthListInfo();
 
-      for (PRUint32 i = 0; i < lengthListInfo.mLengthListCount; i++) {
-        if (aName == *lengthListInfo.mLengthListInfo[i].mName) {
-          lengthListInfo.Reset(i);
-          DidChangeLengthList(i, PR_FALSE);
-          foundMatch = PR_TRUE;
-          break;
-        }
+    for (PRUint32 i = 0; i < lengthListInfo.mLengthListCount; i++) {
+      if (aName == *lengthListInfo.mLengthListInfo[i].mName) {
+        lengthListInfo.Reset(i);
+        DidChangeLengthList(i, PR_FALSE);
+        return rv;
       }
     }
 
-    if (!foundMatch) {
-      
-      NumberListAttributesInfo numberListInfo = GetNumberListInfo();
+    
+    NumberListAttributesInfo numberListInfo = GetNumberListInfo();
 
-      for (PRUint32 i = 0; i < numberListInfo.mNumberListCount; i++) {
-        if (aName == *numberListInfo.mNumberListInfo[i].mName) {
-          numberListInfo.Reset(i);
-          DidChangeNumberList(i, PR_FALSE);
-          foundMatch = PR_TRUE;
-          break;
-        }
+    for (PRUint32 i = 0; i < numberListInfo.mNumberListCount; i++) {
+      if (aName == *numberListInfo.mNumberListInfo[i].mName) {
+        numberListInfo.Reset(i);
+        DidChangeNumberList(i, PR_FALSE);
+        return rv;
       }
     }
 
-    if (!foundMatch) {
-      
-      if (GetPointListAttrName() == aName) {
-        SVGAnimatedPointList *pointList = GetAnimatedPointList();
-        if (pointList) {
-          pointList->ClearBaseValue();
-          DidChangePointList(PR_FALSE);
-          foundMatch = PR_TRUE;
-        }
+    
+    if (GetPointListAttrName() == aName) {
+      SVGAnimatedPointList *pointList = GetAnimatedPointList();
+      if (pointList) {
+        pointList->ClearBaseValue();
+        return rv;
       }
     }
 
-    if (!foundMatch) {
-      
-      if (GetPathDataAttrName() == aName) {
-        SVGAnimatedPathSegList *segList = GetAnimPathSegList();
-        if (segList) {
-          segList->ClearBaseValue();
-          DidChangePathSegList(PR_FALSE);
-          foundMatch = PR_TRUE;
-        }
+    
+    if (GetPathDataAttrName() == aName) {
+      SVGAnimatedPathSegList *segList = GetAnimPathSegList();
+      if (segList) {
+        segList->ClearBaseValue();
+        DidChangePathSegList(PR_FALSE);
+        return rv;
       }
     }
 
-    if (!foundMatch) {
-      
-      NumberAttributesInfo numInfo = GetNumberInfo();
+    
+    NumberAttributesInfo numInfo = GetNumberInfo();
 
-      for (PRUint32 i = 0; i < numInfo.mNumberCount; i++) {
-        if (aName == *numInfo.mNumberInfo[i].mName) {
-          if (i + 1 < numInfo.mNumberCount &&
-              aName == *numInfo.mNumberInfo[i + 1].mName) {
-            
-            numInfo.Reset(i + 1);
-            DidChangeNumber(i + 1, PR_FALSE);
-          }
-          numInfo.Reset(i);
-          DidChangeNumber(i, PR_FALSE);
-          foundMatch = PR_TRUE;
-          break;
+    for (PRUint32 i = 0; i < numInfo.mNumberCount; i++) {
+      if (aName == *numInfo.mNumberInfo[i].mName) {
+        if (i + 1 < numInfo.mNumberCount &&
+            aName == *numInfo.mNumberInfo[i + 1].mName) {
+          
+          numInfo.Reset(i + 1);
+          DidChangeNumber(i + 1, PR_FALSE);
         }
+        numInfo.Reset(i);
+        DidChangeNumber(i, PR_FALSE);
+        return rv;
       }
     }
 
-    if (!foundMatch) {
-      
-      IntegerAttributesInfo intInfo = GetIntegerInfo();
+    
+    IntegerAttributesInfo intInfo = GetIntegerInfo();
 
-      for (PRUint32 i = 0; i < intInfo.mIntegerCount; i++) {
-        if (aName == *intInfo.mIntegerInfo[i].mName) {
-          if (i + 1 < intInfo.mIntegerCount &&
-              aName == *intInfo.mIntegerInfo[i + 1].mName) {
-            
-            intInfo.Reset(i + 1);
-            DidChangeNumber(i + 1, PR_FALSE);
-          }
-          intInfo.Reset(i);
-          DidChangeInteger(i, PR_FALSE);
-          foundMatch = PR_TRUE;
-          break;
+    for (PRUint32 i = 0; i < intInfo.mIntegerCount; i++) {
+      if (aName == *intInfo.mIntegerInfo[i].mName) {
+        if (i + 1 < intInfo.mIntegerCount &&
+            aName == *intInfo.mIntegerInfo[i + 1].mName) {
+          
+          intInfo.Reset(i + 1);
+          DidChangeNumber(i + 1, PR_FALSE);
         }
+        intInfo.Reset(i);
+        DidChangeInteger(i, PR_FALSE);
+        return rv;
       }
     }
 
-    if (!foundMatch) {
-      
-      AngleAttributesInfo angleInfo = GetAngleInfo();
+    
+    AngleAttributesInfo angleInfo = GetAngleInfo();
 
-      for (PRUint32 i = 0; i < angleInfo.mAngleCount; i++) {
-        if (aName == *angleInfo.mAngleInfo[i].mName) {
-          angleInfo.Reset(i);
-          DidChangeAngle(i, PR_FALSE);
-          foundMatch = PR_TRUE;
-          break;
-        }
+    for (PRUint32 i = 0; i < angleInfo.mAngleCount; i++) {
+      if (aName == *angleInfo.mAngleInfo[i].mName) {
+        angleInfo.Reset(i);
+        DidChangeAngle(i, PR_FALSE);
+        return rv;
       }
     }
 
-    if (!foundMatch) {
-      
-      BooleanAttributesInfo boolInfo = GetBooleanInfo();
+    
+    BooleanAttributesInfo boolInfo = GetBooleanInfo();
 
-      for (PRUint32 i = 0; i < boolInfo.mBooleanCount; i++) {
-        if (aName == *boolInfo.mBooleanInfo[i].mName) {
-          boolInfo.Reset(i);
-          DidChangeBoolean(i, PR_FALSE);
-          foundMatch = PR_TRUE;
-        }
+    for (PRUint32 i = 0; i < boolInfo.mBooleanCount; i++) {
+      if (aName == *boolInfo.mBooleanInfo[i].mName) {
+        boolInfo.Reset(i);
+        DidChangeBoolean(i, PR_FALSE);
+        return rv;
       }
     }
 
-    if (!foundMatch) {
-      
-      EnumAttributesInfo enumInfo = GetEnumInfo();
+    
+    EnumAttributesInfo enumInfo = GetEnumInfo();
 
-      for (PRUint32 i = 0; i < enumInfo.mEnumCount; i++) {
-        if (aName == *enumInfo.mEnumInfo[i].mName) {
-          enumInfo.Reset(i);
-          DidChangeEnum(i, PR_FALSE);
-          foundMatch = PR_TRUE;
-          break;
-        }
+    for (PRUint32 i = 0; i < enumInfo.mEnumCount; i++) {
+      if (aName == *enumInfo.mEnumInfo[i].mName) {
+        enumInfo.Reset(i);
+        DidChangeEnum(i, PR_FALSE);
+        return rv;
       }
     }
 
-    if (!foundMatch) {
-      
-      if (aName == nsGkAtoms::viewBox) {
-        nsSVGViewBox* viewBox = GetViewBox();
-        if (viewBox) {
-          viewBox->Init();
-          DidChangeViewBox(PR_FALSE);
-          foundMatch = PR_TRUE;
-        }
-      
-      } else if (aName == nsGkAtoms::preserveAspectRatio) {
-        SVGAnimatedPreserveAspectRatio *preserveAspectRatio =
-          GetPreserveAspectRatio();
+    
+    if (aName == nsGkAtoms::viewBox) {
+      nsSVGViewBox* viewBox = GetViewBox();
+      if (viewBox) {
+        viewBox->Init();
+        DidChangeViewBox(PR_FALSE);
+        return rv;
+      }
+    }
+    
+    if (aName == nsGkAtoms::preserveAspectRatio) {
+      SVGAnimatedPreserveAspectRatio *preserveAspectRatio =
+        GetPreserveAspectRatio();
 
-        if (preserveAspectRatio) {
-          preserveAspectRatio->Init();
-          DidChangePreserveAspectRatio(PR_FALSE);
-          foundMatch = PR_TRUE;
-        }
+      if (preserveAspectRatio) {
+        preserveAspectRatio->Init();
+        DidChangePreserveAspectRatio(PR_FALSE);
+        return rv;
+      }
+    }
+    
+    if (aName == nsGkAtoms::_class) {
+      nsSVGClass *svgClass = GetClass();
+
+      if (svgClass) {
+        svgClass->Init();
+        return rv;
       }
     }
   }
 
-  if (!foundMatch) {
-    
-    StringAttributesInfo stringInfo = GetStringInfo();
+  
+  StringAttributesInfo stringInfo = GetStringInfo();
 
-    for (PRUint32 i = 0; i < stringInfo.mStringCount; i++) {
-      if (aNamespaceID == stringInfo.mStringInfo[i].mNamespaceID &&
-          aName == *stringInfo.mStringInfo[i].mName) {
-        stringInfo.Reset(i);
-        DidChangeString(i);
-        foundMatch = PR_TRUE;
-        break;
-      }
+  for (PRUint32 i = 0; i < stringInfo.mStringCount; i++) {
+    if (aNamespaceID == stringInfo.mStringInfo[i].mNamespaceID &&
+        aName == *stringInfo.mStringInfo[i].mName) {
+      stringInfo.Reset(i);
+      DidChangeString(i);
+      return rv;
     }
   }
 
-  if (!foundMatch) {
-    
-    nsCOMPtr<nsISVGValue> svg_value = GetMappedAttribute(aNamespaceID, aName);
+  
+  nsCOMPtr<nsISVGValue> svg_value = GetMappedAttribute(aNamespaceID, aName);
 
-    if (svg_value) {
-      mSuppressNotification = PR_TRUE;
-      ResetOldStyleBaseType(svg_value);
-      mSuppressNotification = PR_FALSE;
-    }
+  if (svg_value) {
+    mSuppressNotification = PR_TRUE;
+    ResetOldStyleBaseType(svg_value);
+    mSuppressNotification = PR_FALSE;
   }
 
   return rv;
@@ -2166,6 +2148,23 @@ nsSVGElement::DidAnimateString(PRUint8 aAttrEnum)
   }
 }
 
+nsSVGClass *
+nsSVGElement::GetClass()
+{
+  return nsnull;
+}
+
+void
+nsSVGElement::DidAnimateClass()
+{
+  nsIFrame* frame = GetPrimaryFrame();
+
+  if (frame) {
+    frame->AttributeChanged(kNameSpaceID_None, nsGkAtoms::_class,
+                            nsIDOMMutationEvent::MODIFICATION);
+  }
+}
+
 nsresult
 nsSVGElement::ParseNumberOptionalNumber(const nsAString& aValue,
                                         PRUint32 aIndex1, PRUint32 aIndex2)
@@ -2411,6 +2410,11 @@ nsSVGElement::GetAnimatedAttr(PRInt32 aNamespaceID, nsIAtom* aName)
         preserveAspectRatio->ToSMILAttr(this) : nsnull;
     }
 
+    if (aName == nsGkAtoms::_class) {
+      nsSVGClass *svgClass = GetClass();
+      return svgClass ? svgClass->ToSMILAttr(this) : nsnull;
+    }
+
     
     {
       NumberListAttributesInfo info = GetNumberListInfo();
@@ -2435,6 +2439,38 @@ nsSVGElement::GetAnimatedAttr(PRInt32 aNamespaceID, nsIAtom* aName)
         }
       }
     }
+
+    
+    {
+      if (GetPointListAttrName() == aName) {
+        SVGAnimatedPointList *pointList = GetAnimatedPointList();
+        if (pointList) {
+          return pointList->ToSMILAttr(this);
+        }
+      }
+    }
+
+    
+    {
+      if (GetPathDataAttrName() == aName) {
+        SVGAnimatedPathSegList *segList = GetAnimPathSegList();
+        if (segList) {
+          return segList->ToSMILAttr(this);
+        }
+      }
+    }
+
+    
+    if (IsAttributeMapped(aName)) {
+      nsCSSProperty prop =
+        nsCSSProps::LookupProperty(nsDependentAtomString(aName));
+      
+      
+      
+      if (nsSMILCSSProperty::IsPropertyAnimatable(prop)) {
+        return new nsSMILMappedAttribute(prop, this);
+      }
+    }
   }
 
   
@@ -2445,38 +2481,6 @@ nsSVGElement::GetAnimatedAttr(PRInt32 aNamespaceID, nsIAtom* aName)
           aName == *info.mStringInfo[i].mName) {
         return info.mStrings[i].ToSMILAttr(this);
       }
-    }
-  }
-
-  
-  {
-    if (GetPointListAttrName() == aName) {
-      SVGAnimatedPointList *pointList = GetAnimatedPointList();
-      if (pointList) {
-        return pointList->ToSMILAttr(this);
-      }
-    }
-  }
-
-  
-  {
-    if (GetPathDataAttrName() == aName) {
-      SVGAnimatedPathSegList *segList = GetAnimPathSegList();
-      if (segList) {
-        return segList->ToSMILAttr(this);
-      }
-    }
-  }
-
-  
-  if (IsAttributeMapped(aName)) {
-    nsCSSProperty prop =
-      nsCSSProps::LookupProperty(nsDependentAtomString(aName));
-    
-    
-    
-    if (nsSMILCSSProperty::IsPropertyAnimatable(prop)) {
-      return new nsSMILMappedAttribute(prop, this);
     }
   }
 
