@@ -18,6 +18,14 @@ function debug(msg) {
   
 }
 
+function sendAsyncMsg(frameElement, msg, data) {
+  let mm = frameElement.QueryInterface(Ci.nsIFrameLoaderOwner)
+                       .frameLoader
+                       .messageManager;
+
+  mm.sendAsyncMessage('browser-element-api:' + msg, data);
+}
+
 
 
 
@@ -38,8 +46,6 @@ BrowserElementParent.prototype = {
 
 
   _init: function() {
-    debug("_init");
-
     if (this._initialized) {
       return;
     }
@@ -52,6 +58,7 @@ BrowserElementParent.prototype = {
       return;
     }
 
+    debug("_init");
     this._initialized = true;
 
     this._screenshotListeners = {};
@@ -107,6 +114,7 @@ BrowserElementParent.prototype = {
     addMessageListener("iconchange", this._fireEventFromMsg);
     addMessageListener("get-mozapp-manifest-url", this._sendMozAppManifestURL);
     addMessageListener("keyevent", this._fireKeyEvent);
+    addMessageListener("showmodalprompt", this._handleShowModalPrompt);
     mm.addMessageListener('browser-element-api:got-screenshot',
                           this._recvGotScreenshot.bind(this));
 
@@ -129,24 +137,83 @@ BrowserElementParent.prototype = {
 
 
   _fireEventFromMsg: function(frameElement, data) {
-    let name = data.name;
+    let name = data.name.substring('browser-element-api:'.length);
     let detail = data.json;
 
-    debug('fireEventFromMsg: ' + name + ' ' + detail);
-    let evtName = name.substring('browser-element-api:'.length);
+    debug('fireEventFromMsg: ' + name + ', ' + detail);
+    let evt = this._createEvent(frameElement, name, detail,
+                                 false);
+    frameElement.dispatchEvent(evt);
+  },
+
+  _handleShowModalPrompt: function(frameElement, data) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    let detail = data.json;
+    debug('handleShowPrompt ' + JSON.stringify(detail));
+
+    
+    
+    let windowID = detail.windowID;
+    delete detail.windowID;
+    debug("Event will have detail: " + JSON.stringify(detail));
+    let evt = this._createEvent(frameElement, 'showmodalprompt', detail,
+                                 true);
+
+    let unblockMsgSent = false;
+    function sendUnblockMsg() {
+      if (unblockMsgSent) {
+        return;
+      }
+      unblockMsgSent = true;
+
+      
+      
+
+      let data = { windowID: windowID,
+                   returnValue: evt.detail.returnValue };
+      sendAsyncMsg(frameElement, 'unblock-modal-prompt', data);
+    }
+
+    XPCNativeWrapper.unwrap(evt.detail).unblock = function() {
+      sendUnblockMsg();
+    };
+
+    frameElement.dispatchEvent(evt);
+
+    if (!evt.defaultPrevented) {
+      
+      
+      sendUnblockMsg();
+    }
+  },
+
+  _createEvent: function(frameElement, evtName, detail, cancelable) {
     let win = frameElement.ownerDocument.defaultView;
     let evt;
 
     
     
     if (detail !== undefined && detail !== null) {
-      evt = new win.CustomEvent('mozbrowser' + evtName, {detail: detail});
+      evt = new win.CustomEvent('mozbrowser' + evtName,
+                                {bubbles: true, cancelable: cancelable,
+                                 detail: detail});
     }
     else {
-      evt = new win.Event('mozbrowser' + evtName);
+      evt = new win.Event('mozbrowser' + evtName,
+                          {bubbles: true, cancelable: cancelable});
     }
 
-    frameElement.dispatchEvent(evt);
+    return evt;
   },
 
   _sendMozAppManifestURL: function(frameElement, data) {

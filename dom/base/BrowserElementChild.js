@@ -7,7 +7,10 @@
 let Cu = Components.utils;
 let Ci = Components.interfaces;
 let Cc = Components.classes;
+let Cr = Components.results;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/BrowserElementPromptService.jsm");
 
 
 let whitelistedEvents = [
@@ -45,12 +48,17 @@ var global = this;
 
 function BrowserElementChild() {
   this._init();
+
+  
+  this._windowIDDict = {};
 };
 
 BrowserElementChild.prototype = {
   _init: function() {
     debug("Starting up.");
     sendAsyncMsg("hello");
+
+    BrowserElementPromptService.mapWindowToBrowserElementChild(content, this);
 
     docShell.QueryInterface(Ci.nsIWebProgress)
             .addProgressListener(this._progressListener,
@@ -87,11 +95,14 @@ BrowserElementChild.prototype = {
                       true,
                       false);
 
-    addMessageListener("browser-element-api:get-screenshot",
-                       this._recvGetScreenshot.bind(this));
+    var self = this;
+    function addMsgListener(msg, handler) {
+      addMessageListener('browser-element-api:' + msg, handler.bind(self));
+    }
 
-    addMessageListener("browser-element-api:set-visible",
-                        this._recvSetVisible.bind(this));
+    addMsgListener("get-screenshot", this._recvGetScreenshot);
+    addMsgListener("set-visible", this._recvSetVisible);
+    addMsgListener("unblock-modal-prompt", this._recvStopWaiting);
 
     let els = Cc["@mozilla.org/eventlistenerservice;1"]
                 .getService(Ci.nsIEventListenerService);
@@ -107,6 +118,136 @@ BrowserElementChild.prototype = {
     els.addSystemEventListener(global, 'keyup',
                                this._keyEventHandler.bind(this),
                                 true);
+  },
+
+  _tryGetInnerWindowID: function(win) {
+    let utils = win.QueryInterface(Ci.nsIInterfaceRequestor)
+                   .getInterface(Ci.nsIDOMWindowUtils);
+    try {
+      return utils.currentInnerWindowID;
+    }
+    catch(e) {
+      return null;
+    }
+  },
+
+  
+
+
+  showModalPrompt: function(win, args) {
+    let utils = win.QueryInterface(Ci.nsIInterfaceRequestor)
+                   .getInterface(Ci.nsIDOMWindowUtils);
+
+    args.windowID = { outer: utils.outerWindowID,
+                      inner: this._tryGetInnerWindowID(win) };
+    sendAsyncMsg('showmodalprompt', args);
+
+    let returnValue = this._waitForResult(win);
+
+    if (args.promptType == 'prompt' ||
+        args.promptType == 'confirm') {
+      return returnValue;
+    }
+  },
+
+  
+
+
+
+  _waitForResult: function(win) {
+    debug("_waitForResult(" + win + ")");
+    let utils = win.QueryInterface(Ci.nsIInterfaceRequestor)
+                   .getInterface(Ci.nsIDOMWindowUtils);
+
+    let outerWindowID = utils.outerWindowID;
+    let innerWindowID = this._tryGetInnerWindowID(win);
+    if (innerWindowID === null) {
+      
+      
+      debug("_waitForResult: No inner window. Bailing.");
+      return;
+    }
+
+    this._windowIDDict[outerWindowID] = Cu.getWeakReference(win);
+
+    debug("Entering modal state (outerWindowID=" + outerWindowID + ", " +
+                                "innerWindowID=" + innerWindowID + ")");
+
+    
+    
+    
+    
+    
+    var modalStateWin = utils.enterModalStateWithWindow();
+
+    
+    
+    if (!win.modalDepth) {
+      win.modalDepth = 0;
+    }
+    win.modalDepth++;
+    let origModalDepth = win.modalDepth;
+
+    let thread = Services.tm.currentThread;
+    debug("Nested event loop - begin");
+    while (win.modalDepth == origModalDepth) {
+      
+      
+      if (this._tryGetInnerWindowID(win) !== innerWindowID) {
+        debug("_waitForResult: Inner window ID changed " +
+              "while in nested event loop.");
+        break;
+      }
+
+      thread.processNextEvent( true);
+    }
+    debug("Nested event loop - finish");
+
+    
+    
+    if (innerWindowID !== this._tryGetInnerWindowID(win)) {
+      throw Components.Exception("Modal state aborted by navigation",
+                                 Cr.NS_ERROR_NOT_AVAILABLE);
+    }
+
+    let returnValue = win.modalReturnValue;
+    delete win.modalReturnValue;
+
+    utils.leaveModalStateWithWindow(modalStateWin);
+
+    debug("Leaving modal state (outerID=" + outerWindowID + ", " +
+                               "innerID=" + innerWindowID + ")");
+    return returnValue;
+  },
+
+  _recvStopWaiting: function(msg) {
+    let outerID = msg.json.windowID.outer;
+    let innerID = msg.json.windowID.inner;
+    let returnValue = msg.json.returnValue;
+    debug("recvStopWaiting(outer=" + outerID + ", inner=" + innerID +
+          ", returnValue=" + returnValue + ")");
+
+    if (!this._windowIDDict[outerID]) {
+      debug("recvStopWaiting: No record of outer window ID " + outerID);
+      return;
+    }
+
+    let win = this._windowIDDict[outerID].get();
+    delete this._windowIDDict[outerID];
+
+    if (!win) {
+      debug("recvStopWaiting, but window is gone\n");
+      return;
+    }
+
+    if (innerID !== this._tryGetInnerWindowID(win)) {
+      debug("recvStopWaiting, but inner ID has changed\n");
+      return;
+    }
+
+    debug("recvStopWaiting " + win);
+    win.modalReturnValue = returnValue;
+    win.modalDepth--;
   },
 
   _titleChangedHandler: function(e) {
@@ -179,8 +320,7 @@ BrowserElementChild.prototype = {
   
   _progressListener: {
     QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
-                                           Ci.nsISupportsWeakReference,
-                                           Ci.nsISupports]),
+                                           Ci.nsISupportsWeakReference]),
     _seenLoadStart: false,
 
     onLocationChange: function(webProgress, request, location, flags) {
