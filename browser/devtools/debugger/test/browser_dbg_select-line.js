@@ -44,36 +44,40 @@ function testSelectLine() {
         "The correct script was loaded initially.");
 
       
-      is(gDebugger.editor.getCaretPosition().line, 5,
-         "The correct line is selected.");
-
-      gDebugger.editor.addEventListener(SourceEditor.EVENTS.TEXT_CHANGED,
-                                        function onChange() {
-        gDebugger.editor.removeEventListener(SourceEditor.EVENTS.TEXT_CHANGED,
-                                             onChange);
-        ok(gDebugger.editor.getText().search(/debugger/) == -1,
-          "The second script is no longer displayed.");
-
-        ok(gDebugger.editor.getText().search(/firstCall/) != -1,
-          "The first script is displayed.");
-
+      
+      executeSoon(function(){
         
-        
-        executeSoon(function(){
+        is(gDebugger.editor.getCaretPosition().line, 5,
+           "The correct line is selected.");
+
+        gDebugger.editor.addEventListener(SourceEditor.EVENTS.TEXT_CHANGED,
+                                          function onChange() {
+          gDebugger.editor.removeEventListener(SourceEditor.EVENTS.TEXT_CHANGED,
+                                               onChange);
+          ok(gDebugger.editor.getText().search(/debugger/) == -1,
+            "The second script is no longer displayed.");
+
+          ok(gDebugger.editor.getText().search(/firstCall/) != -1,
+            "The first script is displayed.");
+
           
-          is(gDebugger.editor.getCaretPosition().line, 4,
-             "The correct line is selected.");
+          
+          executeSoon(function(){
+            
+            is(gDebugger.editor.getCaretPosition().line, 4,
+               "The correct line is selected.");
 
-          gDebugger.StackFrames.activeThread.resume(function() {
-            removeTab(gTab);
-            finish();
+            gDebugger.StackFrames.activeThread.resume(function() {
+              removeTab(gTab);
+              finish();
+            });
           });
         });
-      });
 
-      
-      let element = gDebugger.document.getElementById("stackframe-3");
-      EventUtils.synthesizeMouseAtCenter(element, {}, gDebugger);
+        
+        let element = gDebugger.document.getElementById("stackframe-3");
+        EventUtils.synthesizeMouseAtCenter(element, {}, gDebugger);
+      });
     }}, 0);
   });
 
