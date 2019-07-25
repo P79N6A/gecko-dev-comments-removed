@@ -1221,7 +1221,7 @@ PrepareAcceptLanguages(const char *i_AcceptLanguages, nsACString &o_AcceptLangua
     if (!i_AcceptLanguages)
         return NS_OK;
 
-    uint32_t n, size, wrote;
+    uint32_t n, count_n, size, wrote;
     double q, dec;
     char *p, *p2, *token, *q_Accept, *o_Accept;
     const char *comma;
@@ -1244,7 +1244,7 @@ PrepareAcceptLanguages(const char *i_AcceptLanguages, nsACString &o_AcceptLangua
     *q_Accept = '\0';
     q = 1.0;
     dec = q / (double) n;
-    n = 0;
+    count_n = 0;
     p2 = q_Accept;
     for (token = nsCRT::strtok(o_Accept, ",", &p);
          token != (char *) 0;
@@ -1257,12 +1257,28 @@ PrepareAcceptLanguages(const char *i_AcceptLanguages, nsACString &o_AcceptLangua
             *trim = '\0';
 
         if (*token != '\0') {
-            comma = n++ != 0 ? "," : ""; 
+            comma = count_n++ != 0 ? "," : ""; 
             uint32_t u = QVAL_TO_UINT(q);
-            if (u < 10)
-                wrote = PR_snprintf(p2, available, "%s%s;q=0.%u", comma, token, u);
-            else
+
+            
+            if (u < 100) {
+                char *qval_str;
+
+                
+                
+                if ((n < 10) || ((u % 10) == 0)) {
+                    u = (u + 5) / 10;
+                    qval_str = "%s%s;q=0.%u";
+                } else {
+                    
+                    qval_str = "%s%s;q=0.%02u";
+                }
+
+                wrote = PR_snprintf(p2, available, qval_str, comma, token, u);
+            } else {
                 wrote = PR_snprintf(p2, available, "%s%s", comma, token);
+            }
+
             q -= dec;
             p2 += wrote;
             available -= wrote;
