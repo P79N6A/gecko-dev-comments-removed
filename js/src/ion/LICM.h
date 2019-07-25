@@ -62,6 +62,27 @@ class LICM
     bool analyze();
 };
 
+
+
+struct LinearSum
+{
+    MDefinition *term;
+    int32 constant;
+
+    LinearSum(MDefinition *term, int32 constant)
+        : term(term), constant(constant)
+    {}
+};
+
+LinearSum
+ExtractLinearSum(MDefinition *ins);
+
+
+
+bool
+ExtractLinearInequality(MTest *test, BranchDirection direction,
+                        LinearSum *plhs, MDefinition **prhs, bool *plessEqual);
+
 class Loop
 {
     MIRGraph &graph;
@@ -99,11 +120,12 @@ class Loop
     
     LoopReturn iterateLoopBlocks(MBasicBlock *current);
 
-    bool hoistInstructions(InstructionQueue &toHoist);
+    bool hoistInstructions(InstructionQueue &toHoist, InstructionQueue &boundsChecks);
 
     
     bool isInLoop(MDefinition *ins);
     bool isLoopInvariant(MInstruction *ins);
+    bool isLoopInvariant(MDefinition *ins);
 
     
     
@@ -118,9 +140,17 @@ class Loop
         return ins->isMovable() && !ins->isEffectful();
     }
 
+    
+    
+    
+
+    void tryHoistBoundsCheck(MBoundsCheck *ins, MTest *test, BranchDirection direction,
+                             MInstruction **pupper, MInstruction **plower);
+
+    bool nonDecreasing(MDefinition *initial, MDefinition *start);
 };
 
 } 
 } 
 
-#endif
+#endif 

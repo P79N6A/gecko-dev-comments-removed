@@ -986,6 +986,48 @@ class LBoundsCheck : public LInstructionHelper<0, 2, 0>
 };
 
 
+class LBoundsCheckRange : public LInstructionHelper<0, 2, 1>
+{
+  public:
+    LIR_HEADER(BoundsCheckRange);
+
+    LBoundsCheckRange(const LAllocation &index, const LAllocation &length,
+                      const LDefinition &temp)
+    {
+        setOperand(0, index);
+        setOperand(1, length);
+        setTemp(0, temp);
+    }
+    const MBoundsCheck *mir() const {
+        return mir_->toBoundsCheck();
+    }
+    const LAllocation *index() {
+        return getOperand(0);
+    }
+    const LAllocation *length() {
+        return getOperand(1);
+    }
+};
+
+
+class LBoundsCheckLower : public LInstructionHelper<0, 1, 0>
+{
+  public:
+    LIR_HEADER(BoundsCheckLower);
+
+    LBoundsCheckLower(const LAllocation &index)
+    {
+        setOperand(0, index);
+    }
+    MBoundsCheckLower *mir() const {
+        return mir_->toBoundsCheckLower();
+    }
+    const LAllocation *index() {
+        return getOperand(0);
+    }
+};
+
+
 class LLoadElementV : public LInstructionHelper<BOX_PIECES, 2, 0>
 {
   public:

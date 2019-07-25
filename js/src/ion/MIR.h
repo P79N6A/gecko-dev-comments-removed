@@ -400,6 +400,13 @@ class MDefinition : public MNode
 
     
     
+    
+    virtual bool updateForReplacement(MDefinition *ins) {
+        return true;
+    }
+
+    
+    
     void linkUse(MUse *use) {
         JS_ASSERT(use->node()->getOperand(use->index()) == this);
         uses_.pushFront(use);
@@ -2117,11 +2124,17 @@ class MArrayLength
 };
 
 
+
+
 class MBoundsCheck
   : public MBinaryInstruction
 {
+    
+    int32 minimum_;
+    int32 maximum_;
+
     MBoundsCheck(MDefinition *index, MDefinition *length)
-      : MBinaryInstruction(index, length)
+      : MBinaryInstruction(index, length), minimum_(0), maximum_(0)
     {
         setGuard();
         setMovable();
@@ -2142,8 +2155,56 @@ class MBoundsCheck
     MDefinition *length() const {
         return getOperand(1);
     }
-    bool congruentTo(MDefinition * const &ins) const {
-        return false;
+    int32 minimum() const {
+        return minimum_;
+    }
+    void setMinimum(int32 n) {
+        minimum_ = n;
+    }
+    int32 maximum() const {
+        return maximum_;
+    }
+    void setMaximum(int32 n) {
+        maximum_ = n;
+    }
+    virtual AliasSet getAliasSet() const {
+        return AliasSet::None();
+    }
+
+    HashNumber valueHash() const;
+    bool congruentTo(MDefinition * const &ins) const;
+    bool updateForReplacement(MDefinition *ins);
+};
+
+
+class MBoundsCheckLower
+  : public MUnaryInstruction
+{
+    int32 minimum_;
+
+    MBoundsCheckLower(MDefinition *index)
+      : MUnaryInstruction(index), minimum_(0)
+    {
+        setGuard();
+        setMovable();
+        JS_ASSERT(index->type() == MIRType_Int32);
+    }
+
+  public:
+    INSTRUCTION_HEADER(BoundsCheckLower);
+
+    static MBoundsCheckLower *New(MDefinition *index) {
+        return new MBoundsCheckLower(index);
+    }
+
+    MDefinition *index() const {
+        return getOperand(0);
+    }
+    int32 minimum() const {
+        return minimum_;
+    }
+    void setMinimum(int32 n) {
+        minimum_ = n;
     }
     AliasSet getAliasSet() const {
         return AliasSet::None();

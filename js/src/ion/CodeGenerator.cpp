@@ -785,6 +785,79 @@ CodeGenerator::visitInitializedLength(LInitializedLength *lir)
 }
 
 bool
+CodeGenerator::visitBoundsCheck(LBoundsCheck *lir)
+{
+    if (lir->index()->isConstant())
+        masm.cmp32(ToRegister(lir->length()), Imm32(ToInt32(lir->index())));
+    else
+        masm.cmp32(ToRegister(lir->length()), ToRegister(lir->index()));
+    return bailoutIf(Assembler::BelowOrEqual, lir->snapshot());
+}
+
+bool
+CodeGenerator::visitBoundsCheckRange(LBoundsCheckRange *lir)
+{
+    int32 min = lir->mir()->minimum();
+    int32 max = lir->mir()->maximum();
+    JS_ASSERT(max >= min);
+
+    Register temp = ToRegister(lir->getTemp(0));
+    if (lir->index()->isConstant()) {
+        int32 nmin, nmax;
+        int32 index = ToInt32(lir->index());
+        if (SafeAdd(index, min, &nmin) && SafeAdd(index, max, &nmax) && nmin >= 0) {
+            masm.cmp32(ToRegister(lir->length()), Imm32(nmax));
+            return bailoutIf(Assembler::BelowOrEqual, lir->snapshot());
+        }
+        masm.mov(Imm32(index), temp);
+    } else {
+        masm.mov(ToRegister(lir->index()), temp);
+    }
+
+    
+    
+    
+    if (min != max) {
+        if (min != 0) {
+            masm.add32(Imm32(min), temp);
+            if (!bailoutIf(Assembler::Overflow, lir->snapshot()))
+                return false;
+            int32 diff;
+            if (SafeSub(max, min, &diff))
+                max = diff;
+            else
+                masm.sub32(Imm32(min), temp);
+        }
+
+        masm.cmp32(temp, Imm32(0));
+        if (!bailoutIf(Assembler::LessThan, lir->snapshot()))
+            return false;
+    }
+
+    
+    
+    
+    
+    
+    if (max != 0) {
+        masm.add32(Imm32(max), temp);
+        if (max < 0 && !bailoutIf(Assembler::Overflow, lir->snapshot()))
+            return false;
+    }
+
+    masm.cmp32(ToRegister(lir->length()), temp);
+    return bailoutIf(Assembler::BelowOrEqual, lir->snapshot());
+}
+
+bool
+CodeGenerator::visitBoundsCheckLower(LBoundsCheckLower *lir)
+{
+    int32 min = lir->mir()->minimum();
+    masm.cmp32(ToRegister(lir->index()), Imm32(min));
+    return bailoutIf(Assembler::LessThan, lir->snapshot());
+}
+
+bool
 CodeGenerator::generate()
 {
     JSContext *cx = gen->cx;
