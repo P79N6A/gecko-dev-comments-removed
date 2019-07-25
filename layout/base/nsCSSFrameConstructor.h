@@ -482,11 +482,9 @@ private:
   
   
   
-  
-  
   void AddFrameConstructionItems(nsFrameConstructorState& aState,
                                  nsIContent*              aContent,
-                                 PRInt32                  aContentIndex,
+                                 PRBool                   aSuppressWhiteSpaceOptimizations,
                                  nsIFrame*                aParentFrame,
                                  FrameConstructionItemList& aItems);
 
@@ -881,13 +879,14 @@ private:
                                       nsIContent* aContent,
                                       nsIAtom* aTag,
                                       PRInt32 aNameSpaceID,
-                                      PRInt32 aContentIndex,
                                       PendingBinding* aPendingBinding,
-                                      already_AddRefed<nsStyleContext> aStyleContext)
+                                      already_AddRefed<nsStyleContext> aStyleContext,
+                                      PRBool aSuppressWhiteSpaceOptimizations)
     {
       FrameConstructionItem* item =
         new FrameConstructionItem(aFCData, aContent, aTag, aNameSpaceID,
-                                  aContentIndex, aPendingBinding, aStyleContext);
+                                  aPendingBinding, aStyleContext,
+                                  aSuppressWhiteSpaceOptimizations);
       if (item) {
         PR_APPEND_LINK(item, &mItems);
         ++mItemCount;
@@ -1038,12 +1037,13 @@ private:
                           nsIContent* aContent,
                           nsIAtom* aTag,
                           PRInt32 aNameSpaceID,
-                          PRInt32 aContentIndex,
                           PendingBinding* aPendingBinding,
-                          already_AddRefed<nsStyleContext> aStyleContext) :
+                          already_AddRefed<nsStyleContext> aStyleContext,
+                          PRBool aSuppressWhiteSpaceOptimizations) :
       mFCData(aFCData), mContent(aContent), mTag(aTag),
-      mNameSpaceID(aNameSpaceID), mContentIndex(aContentIndex),
+      mNameSpaceID(aNameSpaceID),
       mPendingBinding(aPendingBinding), mStyleContext(aStyleContext),
+      mSuppressWhiteSpaceOptimizations(aSuppressWhiteSpaceOptimizations),
       mIsText(PR_FALSE), mIsGeneratedContent(PR_FALSE),
       mIsRootPopupgroup(PR_FALSE), mIsAllInline(PR_FALSE), mIsBlock(PR_FALSE),
       mHasInlineEnds(PR_FALSE), mIsPopup(PR_FALSE),
@@ -1079,9 +1079,6 @@ private:
     PRInt32 mNameSpaceID;
     
     
-    PRInt32 mContentIndex;
-    
-    
     
     
     
@@ -1091,6 +1088,9 @@ private:
     PendingBinding* mPendingBinding;
     
     nsRefPtr<nsStyleContext> mStyleContext;
+    
+    
+    PRPackedBool mSuppressWhiteSpaceOptimizations;
     
     PRPackedBool mIsText;
     
@@ -1271,7 +1271,7 @@ private:
                                          nsIFrame*                aParentFrame,
                                          nsIAtom*                 aTag,
                                          PRInt32                  aNameSpaceID,
-                                         PRInt32                  aContentIndex,
+                                         PRBool                   aSuppressWhiteSpaceOptimizations,
                                          nsStyleContext*          aStyleContext,
                                          PRUint32                 aFlags,
                                          FrameConstructionItemList& aItems);
