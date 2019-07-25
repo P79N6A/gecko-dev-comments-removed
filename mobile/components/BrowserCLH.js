@@ -44,12 +44,12 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 function openWindow(aParent, aURL, aTarget, aFeatures, aArgs) {
   let argString = null;
-  if (aArgs) {
+  if (aArgs && !(aArgs instanceof Ci.nsISupportsArray)) {
     argString = Cc["@mozilla.org/supports-string;1"].createInstance(Ci.nsISupportsString);
     argString.data = aArgs;
   }
 
-  return Services.ww.openWindow(aParent, aURL, aTarget, aFeatures, argString);
+  return Services.ww.openWindow(aParent, aURL, aTarget, aFeatures, argString || aArgs);
 }
 
 function resolveURIInternal(aCmdLine, aArgument) {
@@ -61,16 +61,14 @@ function resolveURIInternal(aCmdLine, aArgument) {
   try {
     if (uri.file.exists())
       return uri;
-  }
-  catch (e) {
+  } catch (e) {
     Cu.reportError(e);
   }
 
   try {
     let urifixup = Cc["@mozilla.org/docshell/urifixup;1"].getService(Ci.nsIURIFixup);
     uri = urifixup.createFixupURI(aArgument, 0);
-  }
-  catch (e) {
+  } catch (e) {
     Cu.reportError(e);
   }
 
@@ -155,8 +153,7 @@ BrowserCLH.prototype = {
           
           aCmdLine.preventDefault = true;
         }
-      }
-      catch (e) {
+      } catch (e) {
         Cu.reportError(e);
       }
       return;
@@ -164,6 +161,12 @@ BrowserCLH.prototype = {
 
     
     let alertFlag = aCmdLine.handleFlagWithParam("alert", false);
+
+    
+    let appFlag = aCmdLine.handleFlagWithParam("webapp", false);
+    let appURI;
+    if (appFlag)
+      appURI = resolveURIInternal(aCmdLine, appFlag);
 
     
     let uris = [];
@@ -187,16 +190,17 @@ BrowserCLH.prototype = {
     }
 
     
-    let win;
-    let localePickerWin;
+    let browserWin;
     try {
-      win = Services.wm.getMostRecentWindow("navigator:browser");
-      localePickerWin = Services.wm.getMostRecentWindow("navigator:localepicker");
-      if (localePickerWin) {
-        localePickerWin.focus();
+      let localeWin = Services.wm.getMostRecentWindow("navigator:localepicker");
+      if (localeWin) {
+        localeWin.focus();
         aCmdLine.preventDefault = true;
         return;
-      } else  if (!win) {
+      }
+
+      browserWin = Services.wm.getMostRecentWindow("navigator:browser");
+      if (!browserWin) {
         
         let defaultURL = getHomePage();
 
@@ -208,30 +212,35 @@ BrowserCLH.prototype = {
 
         
         if (needHomepageOverride() == "new profile" && Services.prefs.getBoolPref("browser.firstrun.show.localepicker")) {
-          win = openWindow(null, "chrome://browser/content/localePicker.xul", "_blank", "chrome,dialog=no,all", defaultURL);
+          browserWin = openWindow(null, "chrome://browser/content/localePicker.xul", "_blank", "chrome,dialog=no,all", defaultURL);
           aCmdLine.preventDefault = true;
           return;
         }
 
-        win = openWindow(null, "chrome://browser/content/browser.xul", "_blank", "chrome,dialog=no,all", defaultURL);
+        browserWin = openWindow(null, "chrome://browser/content/browser.xul", "_blank", "chrome,dialog=no,all", defaultURL);
       }
 
-      win.focus();
+      browserWin.focus();
 
       
       aCmdLine.preventDefault = true;
-    } catch (e) { }
+    } catch (e) {
+      Cu.reportError(e);
+    }
 
     
     
 
     
-    while (!win.browserDOMWindow)
+    while (!browserWin.browserDOMWindow)
       Services.tm.currentThread.processNextEvent(true);
 
     
     for (let i = 0; i < uris.length; i++)
-      win.browserDOMWindow.openURI(uris[i], null, Ci.nsIBrowserDOMWindow.OPEN_NEWTAB, Ci.nsIBrowserDOMWindow.OPEN_EXTERNAL);
+      browserWin.browserDOMWindow.openURI(uris[i], null, Ci.nsIBrowserDOMWindow.OPEN_NEWTAB, Ci.nsIBrowserDOMWindow.OPEN_EXTERNAL);
+
+    if (appURI)
+      browserWin.browserDOMWindow.openURI(appURI, null, browserWin.OPEN_APPTAB, Ci.nsIBrowserDOMWindow.OPEN_NEW);
 
     
     if (alertFlag) {
@@ -243,9 +252,9 @@ BrowserCLH.prototype = {
         var updateTimerCallback = updateService.QueryInterface(Ci.nsITimerCallback);
         updateTimerCallback.notify(null);
       } else if (alertFlag.length >= 9 && alertFlag.substr(0, 9) == "download:") {
-        showPanelWhenReady(win, "downloads-container");
+        showPanelWhenReady(browserWin, "downloads-container");
       } else if (alertFlag == "addons") {
-        showPanelWhenReady(win, "addons-container");
+        showPanelWhenReady(browserWin, "addons-container");
       }
     }
   },
