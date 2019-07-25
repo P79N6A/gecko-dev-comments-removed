@@ -365,6 +365,31 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameT
   mFlags.mHResize = !(frame->GetStateBits() & NS_FRAME_IS_DIRTY) &&
                     frame->GetSize().width !=
                       mComputedWidth + mComputedBorderPadding.LeftRight();
+  if (mFlags.mHResize &&
+      nsLayoutUtils::FontSizeInflationEnabled(aPresContext)) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+    frame->AddStateBits(NS_FRAME_IS_DIRTY);
+  }
 
   
   
