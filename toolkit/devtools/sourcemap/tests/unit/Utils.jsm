@@ -12,7 +12,7 @@
 
 
 
-Components.utils.import('resource://gre/modules/devtools/Require.jsm');
+Components.utils.import('resource://gre/modules/Require.jsm');
 Components.utils.import('resource:///modules/devtools/SourceMap.jsm');
 
 let EXPORTED_SYMBOLS = [ "define", "runSourceMapTests" ];
