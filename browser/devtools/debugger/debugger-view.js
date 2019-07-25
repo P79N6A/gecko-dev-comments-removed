@@ -96,11 +96,11 @@ DebuggerView.Stackframes = {
     
     if (aState === "paused") {
       status.textContent = DebuggerView.getStr("pausedState");
-      resume.disabled = false;
+      resume.label = DebuggerView.getStr("resumeLabel");
     } else if (aState === "attached") {
       
       status.textContent = DebuggerView.getStr("runningState");
-      resume.disabled = true;
+      resume.label = DebuggerView.getStr("pauseLabel");
     } else {
       
       status.textContent = "";
@@ -275,7 +275,11 @@ DebuggerView.Stackframes = {
 
 
   _onResumeButtonClick: function DVF__onResumeButtonClick() {
-    ThreadState.activeThread.resume();
+    if (ThreadState.activeThread.paused) {
+      ThreadState.activeThread.resume();
+    } else {
+      ThreadState.activeThread.interrupt();
+    }
   },
 
   

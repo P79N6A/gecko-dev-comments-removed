@@ -367,23 +367,23 @@ BrowserTabActor.prototype = {
   
 
 
-
   preNest: function BTA_preNest() {
-    this.browser.contentWindow
-        .QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-        .getInterface(Ci.nsIDOMWindowUtils)
-        .suppressEventHandling(true);
+    let windowUtils = this.browser.contentWindow
+                          .QueryInterface(Ci.nsIInterfaceRequestor)
+                          .getInterface(Ci.nsIDOMWindowUtils);
+    windowUtils.suppressEventHandling(true);
+    windowUtils.suspendTimeouts();
   },
 
   
 
 
-
   postNest: function BTA_postNest(aNestData) {
-    this.browser.contentWindow
-        .QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-        .getInterface(Ci.nsIDOMWindowUtils)
-        .suppressEventHandling(false);
+    let windowUtils = this.browser.contentWindow
+                          .QueryInterface(Ci.nsIInterfaceRequestor)
+                          .getInterface(Ci.nsIDOMWindowUtils);
+    windowUtils.resumeTimeouts();
+    windowUtils.suppressEventHandling(false);
   },
 
   
