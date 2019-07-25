@@ -1,0 +1,135 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if !defined jsjaeger_valueinfo_h__ && defined JS_METHODJIT
+#define jsjaeger_valueinfo_h__
+
+#include "jsapi.h"
+#include "MachineRegs.h"
+#include "assembler/assembler/MacroAssembler.h"
+
+namespace js {
+namespace mjit {
+
+struct RematInfo {
+    typedef JSC::MacroAssembler::RegisterID RegisterID;
+
+    
+    enum PhysLoc {
+        
+        PhysLoc_Copy,
+
+        
+        PhysLoc_Constant,
+
+        
+        PhysLoc_Register,
+
+        
+        PhysLoc_Memory
+    };
+
+    void setRegister(RegisterID reg, bool synced) {
+        reg_ = reg;
+        location_ = PhysLoc_Register;
+        synced_ = synced;
+    }
+
+    bool isCopy() { return location_ == PhysLoc_Copy; }
+    void setMemory() { synced_ = true; }
+    void setConstant() { location_ = PhysLoc_Constant; }
+    void unsync() { synced_ = false; }
+    bool isConstant() { return location_ == PhysLoc_Constant; }
+    bool inRegister() { return location_ == PhysLoc_Register; }
+    RegisterID reg() { return reg_; }
+
+    RegisterID reg_;
+    PhysLoc    location_;
+    bool       synced_;
+};
+
+class FrameEntry
+{
+    friend class FrameState;
+
+  public:
+    bool isConstant() {
+        return data.isConstant();
+    }
+
+    const jsval &getConstant() {
+        JS_ASSERT(isConstant());
+        return v_;
+    }
+
+    bool isTypeConstant() {
+        return type.isConstant();
+    }
+
+    uint32 getTypeTag() {
+        return v_.mask;
+    }
+
+    uint32 copyOf() {
+        JS_ASSERT(type.isCopy() || data.isCopy());
+        return index_;
+    }
+
+  private:
+    void setConstant(const jsval &v) {
+        type.setConstant();
+        type.unsync();
+        data.setConstant();
+        data.unsync();
+        v_ = v;
+    }
+
+  private:
+    RematInfo  type;
+    RematInfo  data;
+    jsval      v_;
+    uint32     index_;
+    uint32     copies;
+};
+
+} 
+} 
+
+#endif 
+
