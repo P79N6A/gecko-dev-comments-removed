@@ -955,17 +955,75 @@ namespace nanojit
                 switch (op) {
                 case LIR_addxovi:
                 case LIR_addjovi:
-                    SLT(AT, rr, ra);
+                    
+                    
+
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+
+                    t = registerAllocTmp(allow);
+                    SRL(AT, AT, 31);
+                    if (rhsc < 0) {
+                        AND(AT, AT, t);
+                        NOT(t, rr);
+                    }
+                    else
+                        AND(AT, AT, rr);
+                    if (rr == ra)
+                        XOR(AT, rr, t);
+                    else
+                        XOR(AT, rr, ra);
                     ADDIU(rr, ra, rhsc);
+                    if (rr == ra)
+                        MOVE(t, ra);
                     goto done;
                 case LIR_addi:
                     ADDIU(rr, ra, rhsc);
                     goto done;
                 case LIR_subxovi:
                 case LIR_subjovi:
+                    
+                    
+
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
                     if (isS16(-rhsc)) {
-                        SLT(AT, ra, rr);
+                        t = registerAllocTmp(allow);
+                        SRL(AT,AT,31);
+                        if (rhsc < 0) {
+                            AND(AT, AT, t);
+                            if (rr == ra)
+                                NOT(t, t);
+                            else
+                                NOT(t, ra);
+                        }
+                        else {
+                            if (rr == ra)
+                                AND(AT, AT, t);
+                            else
+                                AND(AT, AT, ra);
+                        }
+                        if (rr == ra)
+                            XOR(AT, rr, t);
+                        else
+                            XOR(AT, rr, ra);
                         ADDIU(rr, ra, -rhsc);
+                        if (rr == ra)
+                            MOVE(t, ra);
                         goto done;
                     }
                     break;
@@ -1025,11 +1083,44 @@ namespace nanojit
         NanoAssert(deprecated_isKnownReg(rb));
         allow &= ~rmask(rb);
 
+        
+        
+        
+        
+        
+        NanoAssert(ra == rb || rr != rb);
+
         switch (op) {
             case LIR_addxovi:
             case LIR_addjovi:
-                SLT(AT, rr, ra);
+                
+                
+
+                
+                
+                
+                
+                
+                
+                
+                
+                
+
+                t = ZERO;
+                if (rr == ra || ra != rb)
+                    t = registerAllocTmp(allow);
+                SRL(AT, AT, 31);
+                if (ra != rb) {
+                    AND(AT, AT, t);
+                    XOR(t, rr, rb);
+                }
+                if (rr == ra)
+                    XOR(AT, rr, t);
+                else
+                    XOR(AT, rr, ra);
                 ADDU(rr, ra, rb);
+                if (rr == ra)
+                    MOVE(t, ra);
                 break;
             case LIR_addi:
                 ADDU(rr, ra, rb);
@@ -1045,8 +1136,37 @@ namespace nanojit
                 break;
             case LIR_subxovi:
             case LIR_subjovi:
-                SLT(AT,ra,rr);
-                SUBU(rr, ra, rb);
+                
+                
+
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                if (ra == rb) {
+                    
+                    MOVE(AT, ZERO);
+                    SUBU(rr, ra, rb);
+                }
+                else {
+                    t = registerAllocTmp(allow);
+                    SRL(AT, AT, 31);
+                    AND(AT, AT, t);
+                    if (rr == ra)
+                        XOR(t, rr, t);
+                    else
+                        XOR(t, rr, ra);
+                    SUBU(rr, ra, rb);
+                    XOR(AT, ra, rb);
+                    if (rr == ra)
+                        MOVE(t, ra);
+                }
                 break;
             case LIR_subi:
                 SUBU(rr, ra, rb);
