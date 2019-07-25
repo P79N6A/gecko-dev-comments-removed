@@ -37,19 +37,20 @@ function run_test() {
   let tests = {
     
     test_zero_sized: function() {
-      return run_one_test("0_sized_mar.mar", ["0_sized_file"]);
+      return run_one_test(refMARPrefix + "0_sized_mar.mar", ["0_sized_file"]);
     },
     
     test_one_byte: function() {
-      return run_one_test("1_byte_mar.mar", ["1_byte_file"]);
+      return run_one_test(refMARPrefix + "1_byte_mar.mar", ["1_byte_file"]);
     },
     
     test_binary_data: function() {
-      return run_one_test("binary_data_mar.mar", ["binary_data_file"]);
+      return run_one_test(refMARPrefix + "binary_data_mar.mar", 
+                          ["binary_data_file"]);
     },
     
     test_multiple_file: function() {
-      return run_one_test("multiple_file_mar.mar", 
+      return run_one_test(refMARPrefix + "multiple_file_mar.mar", 
                           ["0_sized_file", "1_byte_file", "binary_data_file"]);
     },
     
@@ -58,7 +59,8 @@ function run_test() {
       let differentFile = do_get_file("data/1_byte_mar.mar");
       let outMARDir = do_get_file(".");
       differentFile.copyTo(outMARDir, "out.mar");
-      return run_one_test("binary_data_mar.mar", ["binary_data_file"], false);
+      return run_one_test(refMARPrefix + "binary_data_mar.mar", 
+                          ["binary_data_file"], false);
     },
     
     cleanup_per_test: function() {
