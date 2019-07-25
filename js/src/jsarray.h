@@ -46,6 +46,46 @@
 #include "jspubtd.h"
 #include "jsobj.h"
 
+
+const uintN MIN_SPARSE_INDEX = 256;
+
+inline JSObject::EnsureDenseResult
+JSObject::ensureDenseArrayElements(JSContext *cx, uintN index, uintN extra)
+{
+    JS_ASSERT(isDenseArray());
+    uintN currentCapacity = numSlots();
+
+    uintN requiredCapacity;
+    if (extra == 1) {
+        
+        if (index < currentCapacity)
+            return ED_OK;
+        requiredCapacity = index + 1;
+        if (requiredCapacity == 0) {
+            
+            return ED_SPARSE;
+        }
+    } else {
+        requiredCapacity = index + extra;
+        if (requiredCapacity < index) {
+            
+            return ED_SPARSE;
+        }
+        if (requiredCapacity <= currentCapacity)
+            return ED_OK;
+    }
+
+    
+
+
+
+    if (requiredCapacity > MIN_SPARSE_INDEX &&
+        willBeSparseDenseArray(requiredCapacity, extra)) {
+        return ED_SPARSE;
+    }
+    return growSlots(cx, requiredCapacity) ? ED_OK : ED_FAILED;
+}
+
 extern JSBool
 js_StringIsIndex(JSString *str, jsuint *indexp);
 
@@ -143,9 +183,6 @@ js_NewArrayObject(JSContext *cx, jsuint length, const js::Value *vector);
 
 extern JSObject *
 js_NewSlowArrayObject(JSContext *cx);
-
-
-const uint32 MIN_SPARSE_INDEX = 256;
 
 extern JSBool
 js_GetLengthProperty(JSContext *cx, JSObject *obj, jsuint *lengthp);

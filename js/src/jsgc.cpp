@@ -1374,16 +1374,6 @@ GCMarker::markDelayedChildren()
     JS_ASSERT(!unmarkedArenaStackTop);
 }
 
-void
-GCMarker::slowifyArrays()
-{
-    while (!arraysToSlowify.empty()) {
-        JSObject *obj = arraysToSlowify.back();
-        arraysToSlowify.popBack();
-        if (obj->isMarked())
-            obj->makeDenseArraySlow(context);
-    }
-}
 } 
 
 static void
@@ -2242,9 +2232,6 @@ MarkAndSweep(JSContext *cx, JSGCInvocationKind gckind GCTIMER_PARAM)
 
 
     js_SweepScriptFilenames(rt);
-
-    
-    gcmarker.slowifyArrays();
 
     
 

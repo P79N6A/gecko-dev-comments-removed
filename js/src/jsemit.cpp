@@ -6810,11 +6810,7 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 #endif 
 
         
-
-
-
-
-        if (cg->hasSharps() || pn->pn_count >= MIN_SPARSE_INDEX) {
+        if (cg->hasSharps()) {
             if (!EmitNewInit(cx, cg, JSProto_Array, pn, sharpnum))
                 return JS_FALSE;
         } else {

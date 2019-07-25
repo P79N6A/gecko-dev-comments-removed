@@ -552,8 +552,6 @@ struct JSObject : js::gc::Cell {
 
     inline bool hasPropertyTable() const;
 
-     unsigned finalizeKind() const;
-
     uint32 numSlots() const { return capacity; }
 
     size_t slotsAndStructSize(uint32 nslots) const;
@@ -752,8 +750,23 @@ struct JSObject : js::gc::Cell {
     inline const js::Value &getDenseArrayElement(uintN idx);
     inline js::Value* addressOfDenseArrayElement(uintN idx);
     inline void setDenseArrayElement(uintN idx, const js::Value &val);
-    inline bool ensureDenseArrayElements(JSContext *cx, uintN cap);
     inline void shrinkDenseArrayElements(JSContext *cx, uintN cap);
+
+    
+
+
+
+
+
+
+    enum EnsureDenseResult { ED_OK, ED_FAILED, ED_SPARSE };
+    inline EnsureDenseResult ensureDenseArrayElements(JSContext *cx, uintN index, uintN extra);
+
+    
+
+
+
+    bool willBeSparseDenseArray(uintN requiredCapacity, uintN newElementsHint);
 
     JSBool makeDenseArraySlow(JSContext *cx);
 
@@ -1133,9 +1146,7 @@ struct JSObject : js::gc::Cell {
 
     inline JSObject *getThrowTypeError() const;
 
-    JS_FRIEND_API(JSObject *) clone(JSContext *cx, JSObject *proto, JSObject *parent);
-    JS_FRIEND_API(bool) copyPropertiesFrom(JSContext *cx, JSObject *obj);
-    bool swap(JSContext *cx, JSObject *other);
+    bool swap(JSContext *cx, JSObject *obj);
 
     const js::Shape *defineBlockVariable(JSContext *cx, jsid id, intN index);
 
