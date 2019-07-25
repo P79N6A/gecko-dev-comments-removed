@@ -74,7 +74,7 @@ void  CPPWarningToInfoLog(const char *msg);
 void  HandlePragma(const char**, int numTokens);  
 void  ResetTString(void);                   
 void  CPPErrorToInfoLog(const char*);       
-void  StoreStr(char*);                      
+void  StoreStr(const char*);                
 void  SetLineNumber(int);                   
 void  SetStringNumber(int);                 
 int   GetLineNumber(void);                  

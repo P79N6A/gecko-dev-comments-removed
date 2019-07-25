@@ -29,6 +29,7 @@ Framebuffer::~Framebuffer()
     mColorbufferPointer.set(NULL);
     mDepthbufferPointer.set(NULL);
     mStencilbufferPointer.set(NULL);
+    mNullColorbufferPointer.set(NULL);
 }
 
 Renderbuffer *Framebuffer::lookupRenderbuffer(GLenum type, GLuint handle) const
@@ -128,6 +129,8 @@ unsigned int Framebuffer::getRenderTargetSerial()
     return 0;
 }
 
+
+
 IDirect3DSurface9 *Framebuffer::getRenderTarget()
 {
     Renderbuffer *colorbuffer = mColorbufferPointer.get();
@@ -139,6 +142,8 @@ IDirect3DSurface9 *Framebuffer::getRenderTarget()
 
     return NULL;
 }
+
+
 
 IDirect3DSurface9 *Framebuffer::getDepthStencil()
 {
@@ -196,6 +201,30 @@ Renderbuffer *Framebuffer::getStencilbuffer()
     return mStencilbufferPointer.get();
 }
 
+Renderbuffer *Framebuffer::getNullColorbuffer()
+{
+    Renderbuffer *nullbuffer  = mNullColorbufferPointer.get();
+    Renderbuffer *depthbuffer = getDepthbuffer();
+
+    if (!depthbuffer)
+    {
+        ERR("Unexpected null depthbuffer for depth-only FBO.");
+        return NULL;
+    }
+
+    GLsizei width  = depthbuffer->getWidth();
+    GLsizei height = depthbuffer->getHeight();
+
+    if (!nullbuffer ||
+        width != nullbuffer->getWidth() || height != nullbuffer->getHeight())
+    {
+        nullbuffer = new Renderbuffer(0, new Colorbuffer(width, height, GL_NONE, 0));
+        mNullColorbufferPointer.set(nullbuffer);
+    }
+
+    return nullbuffer;
+}
+
 GLenum Framebuffer::getColorbufferType()
 {
     return mColorbufferType;
@@ -243,9 +272,11 @@ bool Framebuffer::hasStencil()
 
 GLenum Framebuffer::completeness()
 {
+    gl::Context *context = gl::getContext();
     int width = 0;
     int height = 0;
     int samples = -1;
+    bool missingAttachment = true;
 
     if (mColorbufferType != GL_NONE)
     {
@@ -270,31 +301,38 @@ GLenum Framebuffer::completeness()
         }
         else if (IsInternalTextureTarget(mColorbufferType))
         {
-            if (IsCompressed(colorbuffer->getInternalFormat()))
+            GLenum internalformat = colorbuffer->getInternalFormat();
+            D3DFORMAT d3dformat = colorbuffer->getD3DFormat();
+
+            if (IsCompressed(internalformat) ||
+                internalformat == GL_ALPHA ||
+                internalformat == GL_LUMINANCE ||
+                internalformat == GL_LUMINANCE_ALPHA)
             {
                 return GL_FRAMEBUFFER_UNSUPPORTED;
             }
 
-            if ((dx2es::IsFloat32Format(colorbuffer->getD3DFormat()) && !getContext()->supportsFloat32RenderableTextures()) || 
-                (dx2es::IsFloat16Format(colorbuffer->getD3DFormat()) && !getContext()->supportsFloat16RenderableTextures()))
+            if ((dx2es::IsFloat32Format(d3dformat) && !context->supportsFloat32RenderableTextures()) ||
+                (dx2es::IsFloat16Format(d3dformat) && !context->supportsFloat16RenderableTextures()))
             {
                 return GL_FRAMEBUFFER_UNSUPPORTED;
             }
 
-            if (colorbuffer->getInternalFormat() == GL_LUMINANCE || colorbuffer->getInternalFormat() == GL_LUMINANCE_ALPHA)
+            if (dx2es::IsDepthTextureFormat(d3dformat) || dx2es::IsStencilTextureFormat(d3dformat))
             {
-                return GL_FRAMEBUFFER_UNSUPPORTED;
+                return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
             }
         }
-        else UNREACHABLE();
+        else
+        {
+            UNREACHABLE();
+            return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
+        }
 
         width = colorbuffer->getWidth();
         height = colorbuffer->getHeight();
         samples = colorbuffer->getSamples();
-    }
-    else
-    {
-        return GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT;
+        missingAttachment = false;
     }
 
     Renderbuffer *depthbuffer = NULL;
@@ -302,11 +340,6 @@ GLenum Framebuffer::completeness()
 
     if (mDepthbufferType != GL_NONE)
     {
-        if (mDepthbufferType != GL_RENDERBUFFER)
-        {
-            return GL_FRAMEBUFFER_UNSUPPORTED;   
-        }
-
         depthbuffer = getDepthbuffer();
 
         if (!depthbuffer)
@@ -319,19 +352,44 @@ GLenum Framebuffer::completeness()
             return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
         }
 
-        if (width == 0)
+        if (mDepthbufferType == GL_RENDERBUFFER)
+        {
+            if (!gl::IsDepthRenderable(depthbuffer->getInternalFormat()))
+            {
+                return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
+            }
+        }
+        else if (IsInternalTextureTarget(mDepthbufferType))
+        {
+            D3DFORMAT d3dformat = depthbuffer->getD3DFormat();
+
+            
+            if (!context->supportsDepthTextures())
+            {
+                return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
+            }
+
+            if (!dx2es::IsDepthTextureFormat(d3dformat))
+            {
+                return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
+            }
+        }
+        else
+        {
+            UNREACHABLE();
+            return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
+        }
+
+        if (missingAttachment)
         {
             width = depthbuffer->getWidth();
             height = depthbuffer->getHeight();
+            samples = depthbuffer->getSamples();
+            missingAttachment = false;
         }
         else if (width != depthbuffer->getWidth() || height != depthbuffer->getHeight())
         {
             return GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS;
-        }
-
-        if (samples == -1)
-        {
-            samples = depthbuffer->getSamples();
         }
         else if (samples != depthbuffer->getSamples())
         {
@@ -341,11 +399,6 @@ GLenum Framebuffer::completeness()
 
     if (mStencilbufferType != GL_NONE)
     {
-        if (mStencilbufferType != GL_RENDERBUFFER)
-        {
-            return GL_FRAMEBUFFER_UNSUPPORTED;
-        }
-
         stencilbuffer = getStencilbuffer();
 
         if (!stencilbuffer)
@@ -358,19 +411,45 @@ GLenum Framebuffer::completeness()
             return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
         }
 
-        if (width == 0)
+        if (mStencilbufferType == GL_RENDERBUFFER)
+        {
+            if (!gl::IsStencilRenderable(stencilbuffer->getInternalFormat()))
+            {
+                return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
+            }
+        }
+        else if (IsInternalTextureTarget(mStencilbufferType))
+        {
+            D3DFORMAT d3dformat = stencilbuffer->getD3DFormat();
+
+            
+            
+            if (!context->supportsDepthTextures())
+            {
+                return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
+            }
+
+            if (!dx2es::IsStencilTextureFormat(d3dformat))
+            {
+                return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
+            }
+        }
+        else
+        {
+            UNREACHABLE();
+            return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
+        }
+
+        if (missingAttachment)
         {
             width = stencilbuffer->getWidth();
             height = stencilbuffer->getHeight();
+            samples = stencilbuffer->getSamples();
+            missingAttachment = false;
         }
         else if (width != stencilbuffer->getWidth() || height != stencilbuffer->getHeight())
         {
             return GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS;
-        }
-
-        if (samples == -1)
-        {
-            samples = stencilbuffer->getSamples();
         }
         else if (samples != stencilbuffer->getSamples())
         {
@@ -378,14 +457,17 @@ GLenum Framebuffer::completeness()
         }
     }
 
-    if (mDepthbufferType == GL_RENDERBUFFER && mStencilbufferType == GL_RENDERBUFFER)
+    
+    
+    if (depthbuffer && stencilbuffer && (depthbuffer != stencilbuffer))
     {
-        if (depthbuffer->getInternalFormat() != GL_DEPTH24_STENCIL8_OES ||
-            stencilbuffer->getInternalFormat() != GL_DEPTH24_STENCIL8_OES ||
-            depthbuffer->getSerial() != stencilbuffer->getSerial())
-        {
-            return GL_FRAMEBUFFER_UNSUPPORTED;
-        }
+        return GL_FRAMEBUFFER_UNSUPPORTED;
+    }
+
+    
+    if (missingAttachment)
+    {
+        return GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT;
     }
 
     return GL_FRAMEBUFFER_COMPLETE;

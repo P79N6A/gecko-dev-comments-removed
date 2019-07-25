@@ -63,67 +63,143 @@ GLuint RenderbufferInterface::getStencilSize() const
     return dx2es::GetStencilSize(getD3DFormat());
 }
 
-RenderbufferTexture::RenderbufferTexture(Texture *texture, GLenum target) : mTarget(target)
-{
-    mTexture.set(texture);
-}
-
-RenderbufferTexture::~RenderbufferTexture()
-{
-    mTexture.set(NULL);
-}
 
 
-
-void RenderbufferTexture::addProxyRef(const Renderbuffer *proxy)
+RenderbufferTexture2D::RenderbufferTexture2D(Texture2D *texture, GLenum target) : mTarget(target)
 {
-    mTexture->addProxyRef(proxy);
+    mTexture2D.set(texture);
 }
 
-void RenderbufferTexture::releaseProxy(const Renderbuffer *proxy)
+RenderbufferTexture2D::~RenderbufferTexture2D()
 {
-    mTexture->releaseProxy(proxy);
+    mTexture2D.set(NULL);
 }
 
-IDirect3DSurface9 *RenderbufferTexture::getRenderTarget()
+
+
+void RenderbufferTexture2D::addProxyRef(const Renderbuffer *proxy)
 {
-    return mTexture->getRenderTarget(mTarget);
+    mTexture2D->addProxyRef(proxy);
 }
 
-IDirect3DSurface9 *RenderbufferTexture::getDepthStencil()
+void RenderbufferTexture2D::releaseProxy(const Renderbuffer *proxy)
 {
-    return NULL;
+    mTexture2D->releaseProxy(proxy);
 }
 
-GLsizei RenderbufferTexture::getWidth() const
+
+
+IDirect3DSurface9 *RenderbufferTexture2D::getRenderTarget()
 {
-    return mTexture->getWidth(0);
-}
- 
-GLsizei RenderbufferTexture::getHeight() const
-{
-    return mTexture->getHeight(0);
-}
- 
-GLenum RenderbufferTexture::getInternalFormat() const
-{
-    return mTexture->getInternalFormat();
+    return mTexture2D->getRenderTarget(mTarget);
 }
 
-D3DFORMAT RenderbufferTexture::getD3DFormat() const
+
+
+IDirect3DSurface9 *RenderbufferTexture2D::getDepthStencil()
 {
-    return mTexture->getD3DFormat();
+    return mTexture2D->getDepthStencil(mTarget);
 }
 
-GLsizei RenderbufferTexture::getSamples() const
+GLsizei RenderbufferTexture2D::getWidth() const
+{
+    return mTexture2D->getWidth(0);
+}
+
+GLsizei RenderbufferTexture2D::getHeight() const
+{
+    return mTexture2D->getHeight(0);
+}
+
+GLenum RenderbufferTexture2D::getInternalFormat() const
+{
+    return mTexture2D->getInternalFormat(0);
+}
+
+D3DFORMAT RenderbufferTexture2D::getD3DFormat() const
+{
+    return mTexture2D->getD3DFormat(0);
+}
+
+GLsizei RenderbufferTexture2D::getSamples() const
 {
     return 0;
 }
 
-unsigned int RenderbufferTexture::getSerial() const
+unsigned int RenderbufferTexture2D::getSerial() const
 {
-    return mTexture->getRenderTargetSerial(mTarget);
+    return mTexture2D->getRenderTargetSerial(mTarget);
 }
+
+
+
+RenderbufferTextureCubeMap::RenderbufferTextureCubeMap(TextureCubeMap *texture, GLenum target) : mTarget(target)
+{
+    mTextureCubeMap.set(texture);
+}
+
+RenderbufferTextureCubeMap::~RenderbufferTextureCubeMap()
+{
+    mTextureCubeMap.set(NULL);
+}
+
+
+
+void RenderbufferTextureCubeMap::addProxyRef(const Renderbuffer *proxy)
+{
+    mTextureCubeMap->addProxyRef(proxy);
+}
+
+void RenderbufferTextureCubeMap::releaseProxy(const Renderbuffer *proxy)
+{
+    mTextureCubeMap->releaseProxy(proxy);
+}
+
+
+
+IDirect3DSurface9 *RenderbufferTextureCubeMap::getRenderTarget()
+{
+    return mTextureCubeMap->getRenderTarget(mTarget);
+}
+
+
+
+IDirect3DSurface9 *RenderbufferTextureCubeMap::getDepthStencil()
+{
+    return NULL;
+}
+
+GLsizei RenderbufferTextureCubeMap::getWidth() const
+{
+    return mTextureCubeMap->getWidth(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0);
+}
+
+GLsizei RenderbufferTextureCubeMap::getHeight() const
+{
+    return mTextureCubeMap->getHeight(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0);
+}
+
+GLenum RenderbufferTextureCubeMap::getInternalFormat() const
+{
+    return mTextureCubeMap->getInternalFormat(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0);
+}
+
+D3DFORMAT RenderbufferTextureCubeMap::getD3DFormat() const
+{
+    return mTextureCubeMap->getD3DFormat(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0);
+}
+
+GLsizei RenderbufferTextureCubeMap::getSamples() const
+{
+    return 0;
+}
+
+unsigned int RenderbufferTextureCubeMap::getSerial() const
+{
+    return mTextureCubeMap->getRenderTargetSerial(mTarget);
+}
+
+
 
 Renderbuffer::Renderbuffer(GLuint id, RenderbufferInterface *instance) : RefCountObject(id)
 {
@@ -152,10 +228,14 @@ void Renderbuffer::release() const
     RefCountObject::release();
 }
 
+
+
 IDirect3DSurface9 *Renderbuffer::getRenderTarget()
 {
     return mInstance->getRenderTarget();
 }
+
+
 
 IDirect3DSurface9 *Renderbuffer::getDepthStencil()
 {
@@ -243,10 +323,14 @@ RenderbufferStorage::~RenderbufferStorage()
 {
 }
 
+
+
 IDirect3DSurface9 *RenderbufferStorage::getRenderTarget()
 {
     return NULL;
 }
+
+
 
 IDirect3DSurface9 *RenderbufferStorage::getDepthStencil()
 {
@@ -356,6 +440,8 @@ Colorbuffer::~Colorbuffer()
     }
 }
 
+
+
 IDirect3DSurface9 *Colorbuffer::getRenderTarget()
 {
     if (mRenderTarget)
@@ -428,8 +514,15 @@ DepthStencilbuffer::~DepthStencilbuffer()
     }
 }
 
+
+
 IDirect3DSurface9 *DepthStencilbuffer::getDepthStencil()
 {
+    if (mDepthStencil)
+    {
+        mDepthStencil->AddRef();
+    }
+
     return mDepthStencil;
 }
 

@@ -13,6 +13,7 @@
 
 #include "libGLESv2/Buffer.h"
 #include "libGLESv2/Program.h"
+#include "libGLESv2/ProgramBinary.h"
 #include "libGLESv2/main.h"
 
 #include "libGLESv2/vertexconversion.h"
@@ -127,11 +128,11 @@ GLenum VertexDataManager::prepareVertexData(GLint start, GLsizei count, Translat
     }
 
     const VertexAttributeArray &attribs = mContext->getVertexAttributes();
-    Program *program = mContext->getCurrentProgram();
+    ProgramBinary *programBinary = mContext->getCurrentProgramBinary();
 
     for (int attributeIndex = 0; attributeIndex < MAX_VERTEX_ATTRIBS; attributeIndex++)
     {
-        translated[attributeIndex].active = (program->getSemanticIndex(attributeIndex) != -1);
+        translated[attributeIndex].active = (programBinary->getSemanticIndex(attributeIndex) != -1);
     }
 
     
@@ -448,8 +449,8 @@ struct ConversionRule : gl::Cast<typename GLToCType<fromType>::type, typename D3
 template <GLenum fromType> struct ConversionRule<fromType, true, D3DVT_FLOAT> : gl::Normalize<typename GLToCType<fromType>::type> { };
 
 
-template <> struct ConversionRule<GL_FIXED, true, D3DVT_FLOAT> : gl::FixedToFloat<GLuint, 16> { };
-template <> struct ConversionRule<GL_FIXED, false, D3DVT_FLOAT> : gl::FixedToFloat<GLuint, 16> { };
+template <> struct ConversionRule<GL_FIXED, true, D3DVT_FLOAT> : gl::FixedToFloat<GLint, 16> { };
+template <> struct ConversionRule<GL_FIXED, false, D3DVT_FLOAT> : gl::FixedToFloat<GLint, 16> { };
 
 
 

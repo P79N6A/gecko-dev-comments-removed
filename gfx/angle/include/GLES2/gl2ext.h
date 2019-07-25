@@ -239,6 +239,11 @@ typedef void* GLeglImageOES;
 #endif
 
 
+#ifndef GL_ANGLE_program_binary
+#define GL_PROGRAM_BINARY_ANGLE                                 0x93A6
+#endif
+
+
 
 
 
@@ -1485,6 +1490,11 @@ typedef void (GL_APIENTRYP PFNGLENDTILINGQCOMPROC) (GLbitfield preserveMask);
 
 #ifndef GL_VIV_shader_binary
 #define GL_VIV_shader_binary 1
+#endif
+
+
+#ifndef GL_ANGLE_program_binary
+#define GL_ANGLE_program_binary 1
 #endif
 
 #ifdef __cplusplus

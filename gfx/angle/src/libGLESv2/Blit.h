@@ -18,6 +18,8 @@
 
 #include "common/angleutils.h"
 
+#include "libEGL/Display.h"
+
 namespace gl
 {
 class Context;
@@ -67,14 +69,12 @@ class Blit
         SHADER_COUNT
     };
 
-    static const char * const mShaderSource[];
-
     
     IUnknown *mCompiledShaders[SHADER_COUNT];
 
     template <class D3DShaderType>
     bool setShader(ShaderId source, const char *profile,
-                   HRESULT (WINAPI IDirect3DDevice9::*createShader)(const DWORD *, D3DShaderType **),
+                   D3DShaderType *(egl::Display::*createShader)(const DWORD *, size_t length),
                    HRESULT (WINAPI IDirect3DDevice9::*setShader)(D3DShaderType*));
 
     bool setVertexShader(ShaderId shader);

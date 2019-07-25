@@ -7,68 +7,42 @@
 #ifndef COMPILER_PREPROCESSOR_INPUT_H_
 #define COMPILER_PREPROCESSOR_INPUT_H_
 
+#include <vector>
+
 namespace pp
 {
-
 
 
 class Input
 {
   public:
+    Input();
     Input(int count, const char* const string[], const int length[]);
 
-    enum Error
+    int count() const { return mCount; }
+    const char* string(int index) const { return mString[index]; }
+    int length(int index) const { return mLength[index]; }
+
+    int read(char* buf, int maxSize);
+
+    struct Location
     {
-        kErrorNone,
-        kErrorUnexpectedEOF
+        int sIndex;  
+        int cIndex;  
+
+        Location() : sIndex(0), cIndex(0) { }
     };
-    Error error() const { return mError; }
+    const Location& readLoc() const { return mReadLoc; }
 
-    
-    int stringIndex() const { return mIndex; }
-    
-    bool eof() const;
-
-    
-    
-    
-    
-    
-    int read(char* buf, int bufSize);
-
-private:
-    enum State
-    {
-        kStateInitial,
-        kStateLineComment,
-        kStateBlockComment
-    };
-
-    int getChar();
-    int peekChar();
-    
-    
-    void switchToNextString();
-    
-    bool isStringEmpty(int index);
-    
-    
-    int stringLength(int index);
-
+  private:
     
     int mCount;
     const char* const* mString;
-    const int* mLength;
+    std::vector<int> mLength;
 
-    
-    int mIndex;   
-    int mSize;    
-
-    
-    Error mError;
-    State mState;
+    Location mReadLoc;
 };
 
 }  
-#endif
+#endif  
 

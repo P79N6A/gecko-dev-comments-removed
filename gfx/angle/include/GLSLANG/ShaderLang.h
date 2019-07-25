@@ -34,7 +34,7 @@ extern "C" {
 
 
 
-#define SH_VERSION 105
+#define SH_VERSION 107
 
 
 
@@ -49,7 +49,29 @@ typedef enum {
 
 typedef enum {
   SH_GLES2_SPEC = 0x8B40,
-  SH_WEBGL_SPEC = 0x8B41
+  SH_WEBGL_SPEC = 0x8B41,
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  SH_CSS_SHADERS_SPEC = 0x8B42
 } ShShaderSpec;
 
 typedef enum {
@@ -104,7 +126,23 @@ typedef enum {
   SH_UNROLL_FOR_LOOP_WITH_INTEGER_INDEX = 0x0080,
 
   
-  SH_EMULATE_BUILT_IN_FUNCTIONS = 0x0100
+  SH_EMULATE_BUILT_IN_FUNCTIONS = 0x0100,
+
+  
+  
+  
+  
+  
+  
+  SH_TIMING_RESTRICTIONS = 0x0200,
+    
+  
+  
+  
+  
+  
+  
+  SH_DEPENDENCY_GRAPH = 0x0400
 } ShCompileOptions;
 
 

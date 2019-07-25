@@ -6,8 +6,10 @@
 #ifndef _PARSER_HELPER_INCLUDED_
 #define _PARSER_HELPER_INCLUDED_
 
-#include "compiler/ExtensionBehavior.h"
+#include "compiler/Diagnostics.h"
+#include "compiler/DirectiveHandler.h"
 #include "compiler/localintermediate.h"
+#include "compiler/preprocessor/new/Preprocessor.h"
 #include "compiler/ShHandle.h"
 #include "compiler/SymbolTable.h"
 
@@ -18,13 +20,6 @@ struct TMatrixFields {
     int col;
 };
 
-struct TPragma {
-    TPragma(bool o, bool d) : optimize(o), debug(d) { }
-    bool optimize;
-    bool debug;
-    TPragmaTable pragmaTable;
-};
-
 
 
 
@@ -33,14 +28,11 @@ struct TParseContext {
     TParseContext(TSymbolTable& symt, TExtensionBehavior& ext, TIntermediate& interm, ShShaderType type, ShShaderSpec spec, int options, bool checksPrecErrors, const char* sourcePath, TInfoSink& is) :
             intermediate(interm),
             symbolTable(symt),
-            extensionBehavior(ext),
-            infoSink(is),
             shaderType(type),
             shaderSpec(spec),
             compileOptions(options),
             sourcePath(sourcePath),
             treeRoot(0),
-            numErrors(0),
             lexAfterType(false),
             loopNestingLevel(0),
             structNestingLevel(0),
@@ -48,18 +40,17 @@ struct TParseContext {
             currentFunctionType(NULL),
             functionReturnsValue(false),
             checksPrecisionErrors(checksPrecErrors),
-            contextPragma(true, false),
+            diagnostics(is),
+            directiveHandler(ext, diagnostics),
+            preprocessor(&diagnostics, &directiveHandler),
             scanner(NULL) {  }
     TIntermediate& intermediate; 
     TSymbolTable& symbolTable;   
-    TExtensionBehavior& extensionBehavior;  
-    TInfoSink& infoSink;
     ShShaderType shaderType;              
     ShShaderSpec shaderSpec;              
     int compileOptions;
     const char* sourcePath;      
     TIntermNode* treeRoot;       
-    int numErrors;
     bool lexAfterType;           
     int loopNestingLevel;        
     int structNestingLevel;      
@@ -67,15 +58,20 @@ struct TParseContext {
     const TType* currentFunctionType;  
     bool functionReturnsValue;   
     bool checksPrecisionErrors;  
-    struct TPragma contextPragma;
     TString HashErrMsg;
     bool AfterEOF;
+    TDiagnostics diagnostics;
+    TDirectiveHandler directiveHandler;
+    pp::Preprocessor preprocessor;
     void* scanner;
 
+    int numErrors() const { return diagnostics.numErrors(); }
+    TInfoSink& infoSink() { return diagnostics.infoSink(); }
     void error(TSourceLoc loc, const char *reason, const char* token,
-               const char* extraInfoFormat, ...);
+               const char* extraInfo="");
     void warning(TSourceLoc loc, const char* reason, const char* token,
-                 const char* extraInfoFormat, ...);
+                 const char* extraInfo="");
+    void trace(const char* str);
     void recover();
 
     bool parseVectorFields(const TString&, int vecSize, TVectorFields&, int line);
@@ -105,7 +101,13 @@ struct TParseContext {
     bool nonInitErrorCheck(int line, TString& identifier, TPublicType& type, TVariable*& variable);
     bool paramErrorCheck(int line, TQualifier qualifier, TQualifier paramQualifier, TType* type);
     bool extensionErrorCheck(int line, const TString&);
+
+    const TExtensionBehavior& extensionBehavior() const { return directiveHandler.extensionBehavior(); }
     bool supportsExtension(const char* extension);
+    void handleExtensionDirective(int line, const char* extName, const char* behavior);
+
+    const TPragma& pragma() const { return directiveHandler.pragma(); }
+    void handlePragmaDirective(int line, const char* name, const char* value);
 
     bool containsSampler(TType& type);
     bool areAllChildConst(TIntermAggregate* aggrNode);
@@ -134,14 +136,5 @@ struct TParseContext {
 
 int PaParseStrings(int count, const char* const string[], const int length[],
                    TParseContext* context);
-
-typedef TParseContext* TParseContextPointer;
-extern TParseContextPointer& GetGlobalParseContext();
-#define GlobalParseContext GetGlobalParseContext()
-
-typedef struct TThreadParseContextRec
-{
-    TParseContext *lpGlobalParseContext;
-} TThreadParseContext;
 
 #endif 
