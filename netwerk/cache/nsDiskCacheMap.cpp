@@ -312,6 +312,10 @@ nsDiskCacheMap::GrowRecords()
         return NS_ERROR_OUT_OF_MEMORY;
 
     
+    memset(newArray + mHeader.mRecordCount, 0,
+           (newCount - mHeader.mRecordCount) * sizeof(nsDiskCacheRecord));
+
+    
     PRUint32 oldRecordsPerBucket = GetRecordsPerBucket();
     PRUint32 newRecordsPerBucket = newCount / kBuckets;
     
@@ -322,9 +326,6 @@ nsDiskCacheMap::GrowRecords()
         memmove(newRecords,
                 newArray + bucketIndex * oldRecordsPerBucket,
                 count * sizeof(nsDiskCacheRecord));
-        
-        for (PRUint32 i = count; i < newRecordsPerBucket; ++i)
-            newRecords[i].SetHashNumber(0);
     }
 
     
