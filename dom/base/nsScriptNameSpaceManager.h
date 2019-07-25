@@ -176,6 +176,8 @@ protected:
 
 
 
+
+
   nsresult AddCategoryEntryToHash(nsICategoryManager* aCategoryManager,
                                   const char* aCategory,
                                   nsISupports* aEntry);
