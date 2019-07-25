@@ -55,7 +55,10 @@ onconnect = function(e) {
         
         port.postMessage({topic: "social.initialize-response"});
         let profile = {
-          userName: "foo"
+          portrait: "https://example.com/portrait.jpg",
+          userName: "trickster",
+          displayName: "Kuma Lisa",
+          profileURL: "http://en.wikipedia.org/wiki/Kuma_Lisa"
         };
         port.postMessage({topic: "social.user-profile", data: profile});
         let icon = {
