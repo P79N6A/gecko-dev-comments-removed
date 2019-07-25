@@ -92,6 +92,11 @@ class nsCookie : public nsICookie2
   public:
     
     
+    
+    static PRInt64 GenerateCreationID(PRInt64 aCreationTime);
+
+    
+    
     static nsCookie * Create(const nsACString &aName,
                              const nsACString &aValue,
                              const nsACString &aHost,

@@ -83,6 +83,20 @@ StrBlockCopy(const nsACString &aSource1,
 
 static PRInt64 gLastCreationID;
 
+PRInt64
+nsCookie::GenerateCreationID(PRInt64 aCreationTime)
+{
+  
+  
+  if (aCreationTime > gLastCreationID) {
+    gLastCreationID = aCreationTime;
+    return aCreationTime;
+  }
+
+  
+  return ++gLastCreationID;
+}
+
 nsCookie *
 nsCookie::Create(const nsACString &aName,
                  const nsACString &aValue,
@@ -112,11 +126,8 @@ nsCookie::Create(const nsACString &aName,
                name, value, host, path, end);
 
   
-  
   if (aCreationID > gLastCreationID)
     gLastCreationID = aCreationID;
-  else
-    aCreationID = ++gLastCreationID;
 
   
   return new (place) nsCookie(name, value, host, path, end,

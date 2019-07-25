@@ -852,6 +852,7 @@ nsCookieService::TryInitDB(PRBool aDeleteExistingDB)
             "host, "
             "path, "
             "expiry, "
+            "lastAccessed, "
             "isSecure, "
             "isHttpOnly "
           "FROM moz_cookies"), getter_AddRefs(stmt));
@@ -1337,7 +1338,7 @@ nsCookieService::Add(const nsACString &aHost,
     nsCookie::Create(aName, aValue, host, aPath,
                      aExpiry,
                      currentTimeInUsec,
-                     currentTimeInUsec,
+                     nsCookie::GenerateCreationID(currentTimeInUsec),
                      aIsSession,
                      aIsSecure,
                      aIsHttpOnly);
@@ -1454,6 +1455,7 @@ nsCookieService::GetCookieFromRow(T &aRow)
   PRBool isSecure = 0 != aRow->AsInt32(7);
   PRBool isHttpOnly = 0 != aRow->AsInt32(8);
 
+  
   
   return nsCookie::Create(name, value, host, path,
                           expiry,
@@ -1787,7 +1789,6 @@ nsCookieService::ImportCookies(nsIFile *aCookieFile)
     
     
     
-    
     nsRefPtr<nsCookie> newCookie =
       nsCookie::Create(Substring(buffer, nameIndex, cookieIndex - nameIndex - 1),
                        Substring(buffer, cookieIndex, buffer.Length() - cookieIndex),
@@ -1795,7 +1796,7 @@ nsCookieService::ImportCookies(nsIFile *aCookieFile)
                        Substring(buffer, pathIndex, secureIndex - pathIndex - 1),
                        expires,
                        lastAccessedCounter,
-                       currentTimeInUsec,
+                       nsCookie::GenerateCreationID(currentTimeInUsec),
                        PR_FALSE,
                        Substring(buffer, secureIndex, expiresIndex - secureIndex - 1).EqualsLiteral(kTrue),
                        isHttpOnly);
@@ -2119,7 +2120,7 @@ nsCookieService::SetCookieInternal(nsIURI                        *aHostURI,
                      cookieAttributes.path,
                      cookieAttributes.expiryTime,
                      currentTimeInUsec,
-                     currentTimeInUsec,
+                     nsCookie::GenerateCreationID(currentTimeInUsec),
                      cookieAttributes.isSession,
                      cookieAttributes.isSecure,
                      cookieAttributes.isHttpOnly);
