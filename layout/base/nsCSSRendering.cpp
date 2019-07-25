@@ -2122,9 +2122,28 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
       gfxRect fillRect =
         forceRepeatToCoverTiles ? areaToFill : tileRect.Intersect(areaToFill);
       ctx->NewPath();
-      ctx->Translate(tileRect.TopLeft());
+      
+      
+      gfxRect fillRectSnapped = fillRect;
+      
+      
+      
+      
+      gfxPoint tileRectSnappedTopLeft = tileRect.TopLeft();
+      gfxPoint tileRectSnappedBottomRight = tileRect.BottomRight();
+      if (ctx->UserToDevicePixelSnapped(fillRectSnapped, true) &&
+          ctx->UserToDevicePixelSnapped(tileRectSnappedTopLeft, true) &&
+          ctx->UserToDevicePixelSnapped(tileRectSnappedBottomRight, true)) {
+        ctx->IdentityMatrix();
+        ctx->Rectangle(fillRectSnapped);
+        ctx->Translate(tileRectSnappedTopLeft);
+        ctx->Scale((tileRectSnappedBottomRight.x - tileRectSnappedTopLeft.x)/tileRect.width,
+                   (tileRectSnappedBottomRight.y - tileRectSnappedTopLeft.y)/tileRect.height);
+      } else {
+        ctx->Rectangle(fillRect);
+        ctx->Translate(tileRect.TopLeft());
+      }
       ctx->SetPattern(gradientPattern);
-      ctx->Rectangle(fillRect - tileRect.TopLeft(), true);
       ctx->Fill();
       ctx->SetMatrix(ctm);
     }
