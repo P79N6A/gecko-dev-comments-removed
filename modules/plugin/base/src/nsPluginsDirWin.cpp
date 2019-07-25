@@ -81,31 +81,7 @@ static char* GetKeyValue(void* verbuf, const WCHAR* key,
     return nsnull;
   }
 
-  
-  
-  nsCString bstr;
-  for (UINT i = 0; i < blen; ++i) {
-    bstr.Append((char)buf[i]);
-  }
-
-  
-  int ulen = ::MultiByteToWideChar(codepage, MB_PRECOMPOSED,
-                                   bstr.BeginReading(), bstr.Length(),
-                                   nsnull, 0);
-  if (ulen == 0) {
-    return nsnull;
-  }
-
-  nsString ustr;
-  ustr.SetLength(ulen);
-  if (ustr.Length() < (unsigned)ulen) {
-    return nsnull;
-  }
-
-  (void)::MultiByteToWideChar(codepage, MB_PRECOMPOSED,
-                              bstr.BeginReading(), bstr.Length(),
-                              ustr.BeginWriting(), ustr.Length());
-  return PL_strdup(NS_ConvertUTF16toUTF8(ustr).get());
+  return PL_strdup(NS_ConvertUTF16toUTF8(buf, blen).get());
 }
 
 static char* GetVersion(void* verbuf)
