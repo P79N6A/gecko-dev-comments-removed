@@ -458,10 +458,13 @@ protected:
   
   
   already_AddRefed<nsINode> GetFocusedNode();
+  
+  
+  nsIContent* GetActiveEditingHost();
 
   
   PRBool SetCaretInTableCell(nsIDOMElement* aElement);
-  PRBool IsElementInBody(nsIDOMElement* aElement);
+  PRBool IsNodeInActiveEditor(nsIDOMNode* aNode);
 
   
   NS_IMETHOD TabInTable(PRBool inIsShift, PRBool *outHandled);

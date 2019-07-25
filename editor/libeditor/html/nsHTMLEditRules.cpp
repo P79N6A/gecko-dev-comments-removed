@@ -1886,22 +1886,21 @@ nsHTMLEditRules::WillDeleteSelection(nsISelection *aSelection,
       return res;
     }
   }
-  
+
   res = mHTMLEditor->GetStartNodeAndOffset(aSelection, getter_AddRefs(startNode), &startOffset);
   NS_ENSURE_SUCCESS(res, res);
   NS_ENSURE_TRUE(startNode, NS_ERROR_FAILURE);
-    
-  
-  nsIDOMElement *rootNode = mHTMLEditor->GetRoot();
-  NS_ENSURE_TRUE(rootNode, NS_ERROR_UNEXPECTED);
 
   if (bCollapsed)
   {
     
-    res = CheckForEmptyBlock(startNode, rootNode, aSelection, aHandled);
+    nsCOMPtr<nsIContent> hostContent = mHTMLEditor->GetActiveEditingHost();
+    nsCOMPtr<nsIDOMNode> hostNode = do_QueryInterface(hostContent);
+    NS_ENSURE_TRUE(hostNode, NS_ERROR_FAILURE);
+    res = CheckForEmptyBlock(startNode, hostNode, aSelection, aHandled);
     NS_ENSURE_SUCCESS(res, res);
     if (*aHandled) return NS_OK;
-        
+
     
     res = CheckBidiLevelForDeletion(aSelection, startNode, startOffset, aAction, aCancel);
     NS_ENSURE_SUCCESS(res, res);
@@ -4894,6 +4893,10 @@ nsHTMLEditRules::CheckForEmptyBlock(nsIDOMNode *aStartNode,
                                     PRBool *aHandled)
 {
   
+  if (IsInlineNode(aBodyNode)) {
+    return NS_OK;
+  }
+  
   
   nsresult res = NS_OK;
   nsCOMPtr<nsIDOMNode> block, emptyBlock;
@@ -5474,10 +5477,13 @@ nsHTMLEditRules::GetPromotedPoint(RulesEndpoint aWhere, nsIDOMNode *aNode, PRInt
   *outOffset = offset;
 
   
-  if (actionID == kInsertText)
+  if (actionID == nsEditor::kOpInsertText ||
+      actionID == nsEditor::kOpInsertIMEText ||
+      actionID == nsEditor::kOpInsertBreak ||
+      actionID == nsEditor::kOpDeleteText)
   {
-    PRBool isSpace, isNBSP; 
-    nsCOMPtr<nsIDOMNode> temp;   
+    PRBool isSpace, isNBSP;
+    nsCOMPtr<nsIDOMNode> temp;
     
     
     
@@ -5485,12 +5491,17 @@ nsHTMLEditRules::GetPromotedPoint(RulesEndpoint aWhere, nsIDOMNode *aNode, PRInt
     {
       do
       {
-        res = mHTMLEditor->IsPrevCharWhitespace(node, offset, &isSpace, &isNBSP, address_of(temp), &offset);
+        PRInt32 prevOffset;
+        res = mHTMLEditor->IsPrevCharWhitespace(node, offset, &isSpace, &isNBSP, address_of(temp), &prevOffset);
         NS_ENSURE_SUCCESS(res, res);
-        if (isSpace || isNBSP) node = temp;
-        else break;
+        if (isSpace || isNBSP) {
+          node = temp;
+          offset = prevOffset;
+        } else {
+          break;
+        }
       } while (node);
-  
+
       *outNode = node;
       *outOffset = offset;
     }
@@ -5498,18 +5509,23 @@ nsHTMLEditRules::GetPromotedPoint(RulesEndpoint aWhere, nsIDOMNode *aNode, PRInt
     {
       do
       {
-        res = mHTMLEditor->IsNextCharWhitespace(node, offset, &isSpace, &isNBSP, address_of(temp), &offset);
+        PRInt32 nextOffset;
+        res = mHTMLEditor->IsNextCharWhitespace(node, offset, &isSpace, &isNBSP, address_of(temp), &nextOffset);
         NS_ENSURE_SUCCESS(res, res);
-        if (isSpace || isNBSP) node = temp;
-        else break;
+        if (isSpace || isNBSP) {
+          node = temp;
+          offset = nextOffset;
+        } else {
+          break;
+        }
       } while (node);
-  
+
       *outNode = node;
       *outOffset = offset;
     }
     return res;
   }
-  
+
   
   
   if (aWhere == kStart)
@@ -5549,11 +5565,21 @@ nsHTMLEditRules::GetPromotedPoint(RulesEndpoint aWhere, nsIDOMNode *aNode, PRInt
       
       
       
-      if ((actionID == kOutdent) && nsHTMLEditUtils::IsBlockquote(node))
+      if ((actionID == nsHTMLEditor::kOpOutdent) && nsHTMLEditUtils::IsBlockquote(node))
         break;
 
       res = nsEditor::GetNodeLocation(node, address_of(parent), &pOffset);
       NS_ENSURE_SUCCESS(res, res);
+
+      
+      
+      
+      
+      if (!mHTMLEditor->IsNodeInActiveEditor(node) &&
+          !mHTMLEditor->IsNodeInActiveEditor(parent)) {
+        break;
+      }
+
       node = parent;
       offset = pOffset;
       res = mHTMLEditor->GetPriorHTMLNode(node, offset, address_of(nearNode), PR_TRUE);
@@ -5600,6 +5626,16 @@ nsHTMLEditRules::GetPromotedPoint(RulesEndpoint aWhere, nsIDOMNode *aNode, PRInt
     {
       res = nsEditor::GetNodeLocation(node, address_of(parent), &pOffset);
       NS_ENSURE_SUCCESS(res, res);
+
+      
+      
+      
+      
+      if (!mHTMLEditor->IsNodeInActiveEditor(node) &&
+          !mHTMLEditor->IsNodeInActiveEditor(parent)) {
+        break;
+      }
+
       node = parent;
       offset = pOffset+1;  
       res = mHTMLEditor->GetNextHTMLNode(node, offset, address_of(nearNode), PR_TRUE);
@@ -5693,8 +5729,8 @@ nsHTMLEditRules::PromoteRange(nsIDOMRange *inRange,
     {
       PRBool bIsEmptyNode = PR_FALSE;
       
-      nsIDOMElement *rootElement = mHTMLEditor->GetRoot();
-      nsCOMPtr<nsINode> rootNode = do_QueryInterface(rootElement);
+      nsIContent *rootContent = mHTMLEditor->GetActiveEditingHost();
+      nsCOMPtr<nsINode> rootNode = do_QueryInterface(rootContent);
       nsCOMPtr<nsINode> blockNode = do_QueryInterface(block);
       NS_ENSURE_TRUE(rootNode && blockNode, NS_ERROR_UNEXPECTED);
       
@@ -5727,6 +5763,13 @@ nsHTMLEditRules::PromoteRange(nsIDOMRange *inRange,
   NS_ENSURE_SUCCESS(res, res);
   res = GetPromotedPoint( kEnd, endNode, endOffset, inOperationType, address_of(opEndNode), &opEndOffset);
   NS_ENSURE_SUCCESS(res, res);
+
+  
+  if (!mHTMLEditor->IsNodeInActiveEditor(nsEditor::GetNodeAtRangeOffsetPoint(opStartNode, opStartOffset)) ||
+      !mHTMLEditor->IsNodeInActiveEditor(nsEditor::GetNodeAtRangeOffsetPoint(opEndNode, opEndOffset - 1))) {
+    return NS_OK;
+  }
+
   res = inRange->SetStart(opStartNode, opStartOffset);
   NS_ENSURE_SUCCESS(res, res);
   res = inRange->SetEnd(opEndNode, opEndOffset);

@@ -3792,7 +3792,20 @@ nsEditor::GetChildAt(nsIDOMNode *aParent, PRInt32 aOffset)
 
   return resultNode;
 }
-  
+
+
+
+
+
+
+nsCOMPtr<nsIDOMNode>
+nsEditor::GetNodeAtRangeOffsetPoint(nsIDOMNode* aParentOrNode, PRInt32 aOffset)
+{
+  if (IsTextNode(aParentOrNode)) {
+    return aParentOrNode;
+  }
+  return GetChildAt(aParentOrNode, aOffset);
+}
 
 
 
