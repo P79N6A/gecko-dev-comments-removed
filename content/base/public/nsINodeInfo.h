@@ -309,7 +309,7 @@ public:
 
   nsIDocument* GetDocument() const
   {
-    return mOwnerManager->GetDocument();
+    return mDocument;
   }
 
 protected:
@@ -358,6 +358,8 @@ protected:
 
   
   friend class nsNodeInfoManager;
+
+  nsIDocument* mDocument; 
 
   nsNodeInfoInner mInner;
 

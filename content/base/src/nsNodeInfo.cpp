@@ -120,6 +120,8 @@ nsNodeInfo::nsNodeInfo(nsIAtom *aName, nsIAtom *aPrefix, PRInt32 aNamespaceID,
   NS_ADDREF(mOwnerManager = aOwnerManager);
   NS_IF_ADDREF(mInner.mExtraName = aExtraName);
 
+  mDocument = aOwnerManager->GetDocument();
+
   
 
   
