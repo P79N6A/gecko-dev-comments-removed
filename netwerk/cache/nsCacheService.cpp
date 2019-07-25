@@ -134,6 +134,7 @@ const PRInt32 BASE_LINE = 250 * 1024 * 1024;
 const PRInt32 MIN_SIZE = 50 * 1024 * 1024;
 const PRInt32 MAX_SIZE = 1024 * 1024 * 1024;
 
+const PRInt32 PRE_FF4_DEFAULT_CACHE_SIZE = 50 * 1024 * 1024;
 
 class nsCacheProfilePrefObserver : public nsIObserver
 {
@@ -596,7 +597,6 @@ nsCacheProfilePrefObserver::PermittedToSmartSize(nsIPrefBranch* branch, PRBool
     nsresult rv;
     
     
-    
     if (firstRun) {
         
         PRBool userSet;
@@ -605,7 +605,7 @@ nsCacheProfilePrefObserver::PermittedToSmartSize(nsIPrefBranch* branch, PRBool
         if (userSet) {
             PRInt32 oldCapacity;
             rv = branch->GetIntPref(DISK_CACHE_CAPACITY_PREF, &oldCapacity);
-            if (oldCapacity < BASE_LINE / 1024) {
+            if (oldCapacity < PRE_FF4_DEFAULT_CACHE_SIZE / 1024) {
                 branch->SetBoolPref(DISK_CACHE_SMART_SIZE_ENABLED_PREF, 
                                     PR_FALSE);
                 return false;
