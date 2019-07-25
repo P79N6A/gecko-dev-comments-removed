@@ -58,10 +58,12 @@ StatsArenaCallback(JSRuntime *rt, void *data, gc::Arena *arena,
 {
     RuntimeStats *rtStats = static_cast<RuntimeStats *>(data);
 
-    rtStats->currCompartmentStats->gcHeapArenaHeaders += sizeof(gc::ArenaHeader);
+    
+    
     size_t allocationSpace = arena->thingsSpan(thingSize);
-    rtStats->currCompartmentStats->gcHeapArenaPadding +=
-        gc::ArenaSize - allocationSpace - sizeof(gc::ArenaHeader);
+    rtStats->currCompartmentStats->gcHeapArenaAdmin +=
+        gc::ArenaSize - allocationSpace;
+
     
     
     
@@ -183,8 +185,7 @@ CollectRuntimeStats(JSRuntime *rt, RuntimeStats *rtStats)
          index++) {
         CompartmentStats &cStats = rtStats->compartmentStatsVector[index];
 
-        size_t used = cStats.gcHeapArenaHeaders +
-                      cStats.gcHeapArenaPadding +
+        size_t used = cStats.gcHeapArenaAdmin +
                       cStats.gcHeapArenaUnused +
                       cStats.gcHeapObjectsNonFunction +
                       cStats.gcHeapObjectsFunction +
