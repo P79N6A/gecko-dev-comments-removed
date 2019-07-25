@@ -62,10 +62,6 @@ class ContextFlags {
     bool            bindingsAccessedDynamically:1;
 
     
-    
-    
-
-    
     bool            funIsHeavyweight:1;
 
     
@@ -145,66 +141,63 @@ struct SharedContext {
 
 
   private:
-    RootedFunction  fun_;           
+    const RootedFunction fun_;      
 
-    RootedObject    scopeChain_;    
+    FunctionBox *const funbox_;     
+
+
+
+    const RootedObject scopeChain_; 
 
   public:
     unsigned        staticLevel;    
-
-    FunctionBox     *funbox;        
-
-
 
     Bindings        bindings;       
 
     Bindings::AutoRooter bindingsRoot; 
 
-    const bool      inFunction:1;   
-
     bool            inForInit:1;    
 
     ContextFlags    cxFlags;
 
-    inline SharedContext(JSContext *cx, bool inFunction);
+    
+    
+    inline SharedContext(JSContext *cx, JSObject *scopeChain, JSFunction *fun, FunctionBox *funbox);
 
-    bool inStrictMode()                const { return cxFlags.inStrictMode; }
-    bool bindingsAccessedDynamically() const { return cxFlags.bindingsAccessedDynamically; }
-    bool funIsHeavyweight()            const { return cxFlags.funIsHeavyweight; }
-    bool funIsGenerator()              const { return cxFlags.funIsGenerator; }
-    bool funMightAliasLocals()         const { return cxFlags.funMightAliasLocals; }
-    bool funHasExtensibleScope()       const { return cxFlags.funHasExtensibleScope; }
-    bool funArgumentsHasLocalBinding() const { return cxFlags.funArgumentsHasLocalBinding; }
-    bool funDefinitelyNeedsArgsObj()   const { return cxFlags.funDefinitelyNeedsArgsObj; }
+    
+    
+    
+    
+#define INFUNC JS_ASSERT(inFunction())
 
-    void setInStrictMode()                  { cxFlags.inStrictMode                = true; }
-    void setBindingsAccessedDynamically()   { cxFlags.bindingsAccessedDynamically = true; }
-    void setFunIsHeavyweight()              { cxFlags.funIsHeavyweight            = true; }
-    void setFunIsGenerator()                { cxFlags.funIsGenerator              = true; }
-    void setFunMightAliasLocals()           { cxFlags.funMightAliasLocals         = true; }
-    void setFunHasExtensibleScope()         { cxFlags.funHasExtensibleScope       = true; }
-    void setFunArgumentsHasLocalBinding()   { cxFlags.funArgumentsHasLocalBinding = true; }
+    bool inStrictMode()                const {         return cxFlags.inStrictMode; }
+    bool bindingsAccessedDynamically() const {         return cxFlags.bindingsAccessedDynamically; }
+    bool funIsHeavyweight()            const { INFUNC; return cxFlags.funIsHeavyweight; }
+    bool funIsGenerator()              const { INFUNC; return cxFlags.funIsGenerator; }
+    bool funMightAliasLocals()         const {         return cxFlags.funMightAliasLocals; }
+    bool funHasExtensibleScope()       const {         return cxFlags.funHasExtensibleScope; }
+    bool funArgumentsHasLocalBinding() const { INFUNC; return cxFlags.funArgumentsHasLocalBinding; }
+    bool funDefinitelyNeedsArgsObj()   const { INFUNC; return cxFlags.funDefinitelyNeedsArgsObj; }
+
+    void setInStrictMode()                  {         cxFlags.inStrictMode                = true; }
+    void setBindingsAccessedDynamically()   {         cxFlags.bindingsAccessedDynamically = true; }
+    void setFunIsHeavyweight()              {         cxFlags.funIsHeavyweight            = true; }
+    void setFunIsGenerator()                { INFUNC; cxFlags.funIsGenerator              = true; }
+    void setFunMightAliasLocals()           {         cxFlags.funMightAliasLocals         = true; }
+    void setFunHasExtensibleScope()         {         cxFlags.funHasExtensibleScope       = true; }
+    void setFunArgumentsHasLocalBinding()   { INFUNC; cxFlags.funArgumentsHasLocalBinding = true; }
     void setFunDefinitelyNeedsArgsObj()     { JS_ASSERT(cxFlags.funArgumentsHasLocalBinding);
-                                              cxFlags.funDefinitelyNeedsArgsObj   = true; }
+                                              INFUNC; cxFlags.funDefinitelyNeedsArgsObj   = true; }
+
+#undef INFUNC
 
     unsigned argumentsLocalSlot() const;
 
-    JSFunction *fun() const {
-        JS_ASSERT(inFunction);
-        return fun_;
-    }
-    void setFunction(JSFunction *fun) {
-        JS_ASSERT(inFunction);
-        fun_ = fun;
-    }
-    JSObject *scopeChain() const {
-        JS_ASSERT(!inFunction);
-        return scopeChain_;
-    }
-    void setScopeChain(JSObject *scopeChain) {
-        JS_ASSERT(!inFunction);
-        scopeChain_ = scopeChain;
-    }
+    bool inFunction() const { return !!fun_; }
+
+    JSFunction *fun()      const { JS_ASSERT(inFunction());  return fun_; }
+    FunctionBox *funbox()  const { JS_ASSERT(inFunction());  return funbox_; }
+    JSObject *scopeChain() const { JS_ASSERT(!inFunction()); return scopeChain_; }
 
     unsigned blockid();
 
