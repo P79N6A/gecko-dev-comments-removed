@@ -1405,16 +1405,7 @@ public:
 
   void SetBackBufferAndAttrs(const ThebesBuffer& aBuffer,
                              const nsIntRegion& aValidRegion,
-                             float aXResolution, float aYResolution)
-  {
-    mBackBuffer = aBuffer.buffer();
-    mValidRegion = aValidRegion;
-    mXResolution = aXResolution;
-    mYResolution = aYResolution;
-
-    nsRefPtr<gfxASurface> backBuffer = BasicManager()->OpenDescriptor(mBackBuffer);
-    mBuffer.SetBackingBuffer(backBuffer, aBuffer.rect(), aBuffer.rotation());
-  }
+                             float aXResolution, float aYResolution);
 
   virtual void Disconnect()
   {
@@ -1450,7 +1441,22 @@ private:
   SurfaceDescriptor mNewFrontBuffer;
   nsIntSize mBufferSize;
 };
- 
+
+void
+BasicShadowableThebesLayer::SetBackBufferAndAttrs(const ThebesBuffer& aBuffer,
+                                                  const nsIntRegion& aValidRegion,
+                                                  float aXResolution,
+                                                  float aYResolution);
+{
+  mBackBuffer = aBuffer.buffer();
+  mValidRegion = aValidRegion;
+  mXResolution = aXResolution;
+  mYResolution = aYResolution;
+
+  nsRefPtr<gfxASurface> backBuffer = BasicManager()->OpenDescriptor(mBackBuffer);
+  mBuffer.SetBackingBuffer(backBuffer, aBuffer.rect(), aBuffer.rotation());
+}
+
 void
 BasicShadowableThebesLayer::PaintBuffer(gfxContext* aContext,
                                         const nsIntRegion& aRegionToDraw,
@@ -1460,48 +1466,49 @@ BasicShadowableThebesLayer::PaintBuffer(gfxContext* aContext,
 {
   Base::PaintBuffer(aContext, aRegionToDraw, aRegionToInvalidate,
                     aCallback, aCallbackData);
-
-  if (HasShadow()) {
-    NS_ABORT_IF_FALSE(IsSurfaceDescriptorValid(mBackBuffer),
-                      "should have a back buffer by now");
-
-    nsIntRegion updatedRegion = aRegionToDraw;
-    if (IsSurfaceDescriptorValid(mNewFrontBuffer)) {
-      
-      
-      
-      
-      
-      
-      nsRefPtr<gfxASurface> frontBuffer =
-        BasicManager()->OpenDescriptor(mNewFrontBuffer);
-      nsRefPtr<gfxASurface> backBuffer =
-        BasicManager()->OpenDescriptor(mBackBuffer);
-
-      nsRefPtr<gfxContext> ctx = new gfxContext(frontBuffer);
-      ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
-      ctx->DrawSurface(backBuffer, backBuffer->GetSize());
-
-      BasicManager()->CreatedThebesBuffer(BasicManager()->Hold(this),
-                                          mValidRegion,
-                                          mXResolution,
-                                          mYResolution,
-                                          mBuffer.BufferRect(),
-                                          mNewFrontBuffer);
-
-      
-      mNewFrontBuffer = SurfaceDescriptor();
-      
-      
-      updatedRegion.SetEmpty();
-    }
-
-    BasicManager()->PaintedThebesBuffer(BasicManager()->Hold(this),
-                                        updatedRegion,
-                                        mBuffer.BufferRect(),
-                                        mBuffer.BufferRotation(),
-                                        mBackBuffer);
+  if (!HasShadow()) {
+    return;
   }
+
+  NS_ABORT_IF_FALSE(IsSurfaceDescriptorValid(mBackBuffer),
+                    "should have a back buffer by now");
+
+  nsIntRegion updatedRegion = aRegionToDraw;
+  if (IsSurfaceDescriptorValid(mNewFrontBuffer)) {
+    
+    
+    
+    
+    
+    
+    nsRefPtr<gfxASurface> frontBuffer =
+      BasicManager()->OpenDescriptor(mNewFrontBuffer);
+    nsRefPtr<gfxASurface> backBuffer =
+      BasicManager()->OpenDescriptor(mBackBuffer);
+
+    nsRefPtr<gfxContext> ctx = new gfxContext(frontBuffer);
+    ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
+    ctx->DrawSurface(backBuffer, backBuffer->GetSize());
+
+    BasicManager()->CreatedThebesBuffer(BasicManager()->Hold(this),
+                                        mValidRegion,
+                                        mXResolution,
+                                        mYResolution,
+                                        mBuffer.BufferRect(),
+                                        mNewFrontBuffer);
+
+    
+    mNewFrontBuffer = SurfaceDescriptor();
+    
+    
+    updatedRegion.SetEmpty();
+  }
+
+  BasicManager()->PaintedThebesBuffer(BasicManager()->Hold(this),
+                                      updatedRegion,
+                                      mBuffer.BufferRect(),
+                                      mBuffer.BufferRotation(),
+                                      mBackBuffer);
 }
 
 already_AddRefed<gfxASurface>
