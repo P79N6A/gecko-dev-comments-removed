@@ -6,7 +6,9 @@
 #define Mappable_h
 
 #include <sys/types.h>
+#include <pthread.h>
 #include "Zip.h"
+#include "SeekableZStream.h"
 #include "mozilla/RefPtr.h"
 #include "zlib.h"
 
@@ -153,6 +155,86 @@ private:
 
   
   z_stream zStream;
+};
+
+
+
+
+
+class MappableSeekableZStream: public Mappable
+{
+public:
+  ~MappableSeekableZStream();
+
+  
+
+
+
+
+
+  static MappableSeekableZStream *Create(const char *name, Zip *zip,
+                                         Zip::Stream *stream);
+
+  
+  virtual void *mmap(const void *addr, size_t length, int prot, int flags, off_t offset);
+  virtual void munmap(void *addr, size_t length);
+  virtual void finalize();
+  virtual bool ensure(const void *addr);
+
+private:
+  MappableSeekableZStream(Zip *zip);
+
+  
+  mozilla::RefPtr<Zip> zip;
+
+  
+  AutoDeletePtr<_MappableBuffer> buffer;
+
+  
+  SeekableZStream zStream;
+
+  
+
+
+  struct LazyMap
+  {
+    const void *addr;
+    size_t length;
+    int prot;
+    off_t offset;
+
+    
+    const void *end() const {
+      return reinterpret_cast<const void *>
+             (reinterpret_cast<const unsigned char *>(addr) + length);
+    }
+
+    
+    const off_t endOffset() const {
+      return offset + length;
+    }
+
+    
+    const off_t offsetOf(const void *ptr) const {
+      return reinterpret_cast<uintptr_t>(ptr)
+             - reinterpret_cast<uintptr_t>(addr) + offset;
+    }
+
+    
+    const bool Contains(const void *ptr) const {
+      return (ptr >= addr) && (ptr < end());
+    }
+  };
+
+  
+  std::vector<LazyMap> lazyMaps;
+
+  
+
+  AutoDeleteArray<unsigned char> chunkAvail;
+
+  
+  pthread_mutex_t mutex;
 };
 
 #endif 
