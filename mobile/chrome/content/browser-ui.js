@@ -438,10 +438,6 @@ var BrowserUI = {
     window.addEventListener("NavigationPanelShown", this, false);
     window.addEventListener("NavigationPanelHidden", this, false);
 
-    Elements.tabs.addEventListener("TabSelect", this, true);
-    Elements.tabs.addEventListener("TabOpen", this, true);
-    Elements.tabs.addEventListener("TabRemove", this, true);
-
     Elements.browsers.addEventListener("PanFinished", this, true);
 #if MOZ_PLATFORM_MAEMO == 6
     Elements.browsers.addEventListener("SizeChanged", this, true);
@@ -488,6 +484,15 @@ var BrowserUI = {
       Elements.panelUI.hidden = false;
 
       
+      Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);
+      Cc["@mozilla.org/satchel/form-history;1"].getService(Ci.nsIFormHistory2);
+
+      
+      Elements.tabs.addEventListener("TabSelect", BrowserUI, true);
+      Elements.tabs.addEventListener("TabOpen", BrowserUI, true);
+      Elements.tabs.addEventListener("TabRemove", this, true);
+
+      
       ExtensionsView.init();
       DownloadsView.init();
       PreferencesView.init();
@@ -503,6 +508,8 @@ var BrowserUI = {
       
       WeaveGlue.init();
 #endif
+
+      Services.obs.addObserver(BrowserSearch, "browser-search-engine-modified", false);
 
       
       BadgeHandlers.register(BrowserUI._edit.popup);
@@ -531,6 +538,7 @@ var BrowserUI = {
   },
 
   uninit: function() {
+    Services.obs.removeObserver(BrowserSearch, "browser-search-engine-modified");
     ExtensionsView.uninit();
     ConsoleView.uninit();
   },
@@ -1180,13 +1188,11 @@ var BrowserUI = {
         break;
       }
       case "cmd_panel":
-      {
-        if (BrowserUI.isPanelVisible())
+        if (this.isPanelVisible())
           this.hidePanel();
         else
           this.showPanel();
         break;
-      }
       case "cmd_zoomin":
         Browser.zoom(-1);
         break;

@@ -75,95 +75,68 @@ XPCOMUtils.defineLazyServiceGetter(this, "CrashReporter",
   "@mozilla.org/xre/app-info;1", "nsICrashReporter");
 #endif
 
-function onDebugKeyPress(ev) {
-  if (!ev.ctrlKey)
+function onDebugKeyPress(aEvent) {
+  if (!aEvent.ctrlKey)
     return;
 
-  
-
-  const a = 65; 
-  const b = 66;
-  const c = 67;
-  const d = 68; 
-  const e = 69;
-  const f = 70;  
-  const g = 71;
-  const h = 72;
-  const i = 73;
-  const j = 74;
-  const k = 75;
-  const l = 76;
-  const m = 77; 
-  const n = 78;
-  const o = 79;
-  const p = 80;  
-  const q = 81;  
-  const r = 82;
-  const s = 83; 
-  const t = 84;
-  const u = 85;
-  const v = 86;
-  const w = 87; 
-  const x = 88;
-  const y = 89;
-  const z = 90;
-
   function doSwipe(aDirection) {
-    let e = document.createEvent("SimpleGestureEvent");
-    e.initSimpleGestureEvent("MozSwipeGesture", true, true, window, null,
+    let evt = document.createEvent("SimpleGestureEvent");
+    evt.initSimpleGestureEvent("MozSwipeGesture", true, true, window, null,
                                0, 0, 0, 0, false, false, false, false, 0, null,
                                aDirection, 0);
-    Browser.selectedTab.inputHandler.dispatchEvent(e);
+    Browser.selectedTab.inputHandler.dispatchEvent(evt);
   }
-  switch (ev.charCode) {
-  case w:
-    doSwipe(Ci.nsIDOMSimpleGestureEvent.DIRECTION_UP);
-    break;
-  case s:
-    doSwipe(Ci.nsIDOMSimpleGestureEvent.DIRECTION_DOWN);
-    break;
-  case d:
-    doSwipe(Ci.nsIDOMSimpleGestureEvent.DIRECTION_RIGHT);
-    break;
-  case a:
-    doSwipe(Ci.nsIDOMSimpleGestureEvent.DIRECTION_LEFT);
-    break;
-  case f:
-    MemoryObserver.observe();
-    dump("Forced a GC\n");
-    break;
-  case m:
-    CommandUpdater.doCommand("cmd_menu");
-    break;
-#ifndef MOZ_PLATFORM_MAEMO
-  case p:
-    function dispatchMagnifyEvent(aName, aDelta) {
-      let e = document.createEvent("SimpleGestureEvent");
-      e.initSimpleGestureEvent("MozMagnifyGesture"+aName, true, true, window, null,
-                               0, 0, 0, 0, false, false, false, false, 0, null, 0, aDelta);
-      Browser.selectedTab.inputHandler.dispatchEvent(e);
-    }
-    dispatchMagnifyEvent("Start", 0);
 
-    let frame = 0;
-    let timer = new Util.Timeout();
-    timer.interval(100, function() {
-      dispatchMagnifyEvent("Update", 20);
-      if (++frame > 10) {
-        timer.clear();
-        dispatchMagnifyEvent("", frame*20);
+  let nsIDOMKeyEvent  = Ci.nsIDOMKeyEvent;
+  switch (aEvent.charCode) {
+    case nsIDOMKeyEvent.DOM_VK_A: 
+      doSwipe(Ci.nsIDOMSimpleGestureEvent.DIRECTION_LEFT);
+      break;
+    case nsIDOMKeyEvent.DOM_VK_D: 
+      doSwipe(Ci.nsIDOMSimpleGestureEvent.DIRECTION_RIGHT);
+      break;
+    case nsIDOMKeyEvent.DOM_VK_F: 
+      MemoryObserver.observe();
+      dump("Forced a GC\n");
+      break;
+    case nsIDOMKeyEvent.DOM_VK_M: 
+      CommandUpdater.doCommand("cmd_menu");
+      break;
+#ifndef MOZ_PLATFORM_MAEMO
+    case nsIDOMKeyEvent.DOM_VK_P: 
+      function dispatchMagnifyEvent(aName, aDelta) {
+        let evt = document.createEvent("SimpleGestureEvent");
+        evt.initSimpleGestureEvent("MozMagnifyGesture" + aName, true, true, window, null,
+                                   0, 0, 0, 0, false, false, false, false, 0, null, 0, aDelta);
+        Browser.selectedTab.inputHandler.dispatchEvent(evt);
       }
-    });
-    break;
-  case q:
-    if (Util.isPortrait())
-      window.top.resizeTo(800,480);
-    else
-      window.top.resizeTo(480,800);
-    break;
+      dispatchMagnifyEvent("Start", 0);
+
+      let frame = 0;
+      let timer = new Util.Timeout();
+      timer.interval(100, function() {
+        dispatchMagnifyEvent("Update", 20);
+        if (++frame > 10) {
+          timer.clear();
+          dispatchMagnifyEvent("", frame*20);
+        }
+      });
+      break;
+    case nsIDOMKeyEvent.DOM_VK_Q: 
+      if (Util.isPortrait())
+        window.top.resizeTo(800,480);
+      else
+        window.top.resizeTo(480,800);
+      break;
 #endif
-  default:
-    break;
+    case nsIDOMKeyEvent.DOM_VK_S: 
+      doSwipe(Ci.nsIDOMSimpleGestureEvent.DIRECTION_DOWN);
+      break;
+    case nsIDOMKeyEvent.DOM_VK_W: 
+      doSwipe(Ci.nsIDOMSimpleGestureEvent.DIRECTION_UP);
+      break;
+    default:
+      break;
   }
 }
 
@@ -341,7 +314,6 @@ var Browser = {
     os.addObserver(SessionHistoryObserver, "browser:purge-session-history", false);
     os.addObserver(ContentCrashObserver, "ipc:content-shutdown", false);
     os.addObserver(MemoryObserver, "memory-pressure", false);
-    os.addObserver(BrowserSearch, "browser-search-engine-modified", false);
 
     
 #if MOZ_PLATFORM_MAEMO == 6
@@ -354,10 +326,6 @@ var Browser = {
     window.QueryInterface(Ci.nsIDOMChromeWindow).browserDOMWindow = new nsBrowserAccess();
 
     Elements.browsers.addEventListener("DOMUpdatePageReport", PopupBlockerObserver.onUpdatePageReport, false);
-
-    
-    Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);
-    Cc["@mozilla.org/satchel/form-history;1"].getService(Ci.nsIFormHistory2);
 
     
     Util.forceOnline();
@@ -487,7 +455,6 @@ var Browser = {
     os.removeObserver(SessionHistoryObserver, "browser:purge-session-history");
     os.removeObserver(ContentCrashObserver, "ipc:content-shutdown");
     os.removeObserver(MemoryObserver, "memory-pressure");
-    os.removeObserver(BrowserSearch, "browser-search-engine-modified");
 
     window.controllers.removeController(this);
     window.controllers.removeController(BrowserUI);
@@ -2814,6 +2781,11 @@ function rendererFactory(aBrowser, aCanvas) {
 
   return wrapper;
 };
+
+
+
+
+
 
 var ViewableAreaObserver = {
   get width() {
