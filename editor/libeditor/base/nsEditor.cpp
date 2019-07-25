@@ -3614,11 +3614,52 @@ nsEditor::IsTextInDirtyFrameVisible(nsIDOMNode *aNode)
   return true;
 }
 
-static bool
-IsElementVisible(nsIContent* aContent) {
-  mozilla::dom::Element* element = aContent->AsElement();
+static inline bool
+IsElementVisible(dom::Element* aElement)
+{
+  if (aElement->GetPrimaryFrame()) {
+    
+    return true;
+  }
+
+  nsIContent *cur = aElement;
+  for (; ;) {
+    cur = cur->GetFlattenedTreeParent();
+    if (!cur) {
+      
+      return false;
+    }
+
+    if (cur->GetPrimaryFrame()) {
+      
+      
+      return false;
+    }
+
+    if (cur->HasFlag(NODE_NEEDS_FRAME)) {
+      
+      nsIContent *parent = cur->GetFlattenedTreeParent();
+      if (parent) {
+        NS_ASSERTION(parent->GetPrimaryFrame(),
+                     "Why does our parent not have a frame?");
+        if (parent->GetPrimaryFrame()->IsLeaf()) {
+          
+          return false;
+        }
+      }
+
+      
+      
+      break;
+    }
+  }
+
+  
+  
+  
+  
   nsRefPtr<nsStyleContext> styleContext =
-    nsComputedDOMStyle::GetStyleContextForElementNoFlush(element,
+    nsComputedDOMStyle::GetStyleContextForElementNoFlush(aElement,
                                                          nsnull, nsnull);
   if (styleContext) {
     return styleContext->GetStyleDisplay()->mDisplay != NS_STYLE_DISPLAY_NONE;
@@ -3638,9 +3679,12 @@ nsEditor::IsEditable(nsIDOMNode *aNode)
   nsCOMPtr<nsIContent> content = do_QueryInterface(aNode);
   if (content)
   {
-    if (content->IsElement() &&
-        !IsElementVisible(content)) 
+    if (content->IsElement() && !IsElementVisible(content->AsElement())) {
+      
+      
+      
       return false;
+    }
     if (!content->IsNodeOfType(nsINode::eTEXT))
       return true;  
 
