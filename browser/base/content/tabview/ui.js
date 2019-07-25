@@ -106,6 +106,10 @@ let UI = {
     transitionMode: "",
     wasInTabView: false 
   },
+  
+  
+  
+  _storageBusyCount: 0,
 
   
   
@@ -512,23 +516,50 @@ let UI = {
   
   
   
+  
+  storageBusy: function UI_storageBusy() {
+    if (!this._storageBusyCount)
+      TabItems.pauseReconnecting();
+    
+    this._storageBusyCount++;
+  },
+  
+  
+  
+  
+  
+  storageReady: function UI_storageReady() {
+    this._storageBusyCount--;
+    if (!this._storageBusyCount) {
+      let hasGroupItemsData = GroupItems.load();
+      if (!hasGroupItemsData)
+        this.reset(false);
+  
+      TabItems.resumeReconnecting();
+    }
+  },
+
+  
+  
+  
   _addTabActionHandlers: function UI__addTabActionHandlers() {
     var self = this;
 
     
-    function srObserver(aSubject, aTopic, aData) {
-      if (aTopic != "sessionstore-browser-state-restored")
-        return;
-        
-      let hasGroupItemsData = GroupItems.load();
-      if (!hasGroupItemsData)
-        self.reset(false);
+    function handleSSWindowStateBusy() {
+      self.storageBusy();
     }
-
-    Services.obs.addObserver(srObserver, "sessionstore-browser-state-restored", false);
+    
+    function handleSSWindowStateReady() {
+      self.storageReady();
+    }
+    
+    gWindow.addEventListener("SSWindowStateBusy", handleSSWindowStateBusy, false);
+    gWindow.addEventListener("SSWindowStateReady", handleSSWindowStateReady, false);
 
     this._cleanupFunctions.push(function() {
-      Services.obs.removeObserver(srObserver, "sessionstore-browser-state-restored");
+      gWindow.removeEventListener("SSWindowStateBusy", handleSSWindowStateBusy, false);
+      gWindow.removeEventListener("SSWindowStateReady", handleSSWindowStateReady, false);
     });
 
     
@@ -551,7 +582,7 @@ let UI = {
         if (aData == "enter" || aData == "exit") {
           self._privateBrowsing.transitionMode = aData;
           GroupItems.pauseUpdatingTabBar();
-          TabItems.pauseReconnecting();
+          self.storageBusy();
         }
       } else if (aTopic == "private-browsing-transition-complete") {
         
@@ -560,7 +591,7 @@ let UI = {
           self.showTabView(false);
 
         self._privateBrowsing.transitionMode = "";
-        TabItems.resumeReconnecting();
+        self.storageReady();
         GroupItems.resumeUpdatingTabBar();
       }
     }
