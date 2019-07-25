@@ -885,6 +885,7 @@ abstract public class GeckoApp
                     public void run() {
                         if (sMenu != null)
                             sMenu.findItem(R.id.preferences).setEnabled(true);
+                        Looper.myQueue().addIdleHandler(new UpdateIdleHandler());
                     }
                 });
                 setLaunchState(GeckoApp.LaunchState.GeckoRunning);
@@ -1401,31 +1402,6 @@ abstract public class GeckoApp
         registerReceiver(mSmsReceiver, smsFilter);
 
         final GeckoApp self = this;
- 
-        mMainHandler.postDelayed(new Runnable() {
-            public void run() {
-                
-                Log.w(LOGTAG, "zerdatime " + new Date().getTime() + " - pre checkLaunchState");
-
-                
-
-
-
-
-
-
-
-
-                if (!checkLaunchState(LaunchState.Launched)) {
-                    return;
-                }
-
-                
-                long startTime = new Date().getTime();
-                checkAndLaunchUpdate();
-                Log.w(LOGTAG, "checking for an update took " + (new Date().getTime() - startTime) + "ms");
-            }
-        }, 50);
     }
 
     public void enableCameraView() {
@@ -1666,6 +1642,21 @@ abstract public class GeckoApp
 
     public void handleNotification(String action, String alertName, String alertCookie) {
         GeckoAppShell.handleNotification(action, alertName, alertCookie);
+    }
+
+    
+    private class UpdateIdleHandler implements MessageQueue.IdleHandler {
+        public boolean queueIdle() {
+            mMainHandler.post(new Runnable() {
+                    public void run() {
+                        long startTime = new Date().getTime();
+                        checkAndLaunchUpdate();
+                        Log.w(LOGTAG, "checking for an update took " + (new Date().getTime() - startTime) + "ms");
+                    }
+                });
+            
+            return false;
+        }
     }
 
     private void checkAndLaunchUpdate() {
