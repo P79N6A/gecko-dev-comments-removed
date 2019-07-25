@@ -77,7 +77,6 @@ public class BrowserToolbar extends LinearLayout {
 
     final private Context mContext;
     private Handler mHandler;
-    private boolean mInflated;
     private int mColor;
     private int mCounterColor;
     private int[] mPadding;
@@ -94,7 +93,6 @@ public class BrowserToolbar extends LinearLayout {
     public BrowserToolbar(Context context, AttributeSet attrs) {
         super(context, attrs);
         mContext = context;
-        mInflated = false;
         mTitleCanExpand = true;
 
         
@@ -111,18 +109,7 @@ public class BrowserToolbar extends LinearLayout {
         typedArray.recycle();
     }
 
-    @Override
-    protected void onFinishInflate () {
-        super.onFinishInflate();
-
-        
-        
-        
-        if (mInflated)
-            return;
-
-        mInflated = true;
-
+    public void init() {
         mAwesomeBar = (Button) findViewById(R.id.awesome_bar);
         mAwesomeBar.setOnClickListener(new Button.OnClickListener() {
             public void onClick(View v) {
