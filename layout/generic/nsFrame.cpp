@@ -2192,7 +2192,7 @@ nsFrame::HandlePress(nsPresContext* aPresContext,
   else
     frameselection = shell->ConstFrameSelection();
 
-  if (frameselection->GetDisplaySelection() == nsISelectionController::SELECTION_OFF)
+  if (!frameselection || frameselection->GetDisplaySelection() == nsISelectionController::SELECTION_OFF)
     return NS_OK;
 
   nsMouseEvent *me = (nsMouseEvent *)aEvent;
