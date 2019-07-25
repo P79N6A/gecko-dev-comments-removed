@@ -271,26 +271,6 @@ js_GetDenseArrayElementValue(JSContext *cx, JSObject *obj, jsid id,
 JSBool
 js_Array(JSContext *cx, uintN argc, js::Value *vp);
 
-
-
-
-
-
-
-
-
-
-
-JS_FRIEND_API(JSBool)
-js_CloneDensePrimitiveArray(JSContext *cx, JSObject *obj, JSObject **clone);
-
-
-
-
-
-JS_FRIEND_API(JSBool)
-js_IsDensePrimitiveArray(JSObject *obj);
-
 extern JSBool JS_FASTCALL
 js_EnsureDenseArrayCapacity(JSContext *cx, JSObject *obj, jsint i);
 
