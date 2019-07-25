@@ -344,39 +344,28 @@ BookmarksEngine.prototype = {
                                     this._annoSvc.EXPIRE_NEVER);
 
     
-    let tmpIdentity = { realm   : "temp ID",
-                        bulkKey : null,
-                        bulkIV  : null
-                      };
-    Crypto.randomKeyGen.async(Crypto, self.cb, tmpIdentity);
-    yield;
-    let bulkKey = tmpIdentity.bulkKey;
-    let bulkIV  = tmpIdentity.bulkIV;
-
+    Crypto.PBEkeygen.async(Crypto, self.cb);
+    let newSymKey = yield;
 
     
 
-    let idRSA = ID.get('WeaveCryptoID');
-    let myPubKey = idRSA.pubkey;
+    let myPubKeyFile = new Resource("/user/" + myUserName + "/public/pubkey");
+    myPubKeyFile.get(self.cb);
+    let myPubKey = yield;
     let userPubKeyFile = new Resource("/user/" + username + "/public/pubkey");
     userPubKeyFile.get(self.cb);
     let userPubKey = yield;
 
     
 
-    Crypto.wrapKey.async(Crypto, self.cb, bulkKey, 
-                         {realm : "tmpWrapID", pubkey: myPubKey} );
+    Crypto.RSAencrypt.async(Crypto, self.cb, symKey, {pubkey: myPubKey} );
     let encryptedForMe = yield;
-    Crypto.wrapKey.async(Crypto, self.cb, bulkKey, 
-                         {realm : "tmpWrapID", pubkey: userPubKey} );
+    Crypto.RSAencrypt.async(Crypto, self.cb, symKey, {pubkey: userPubKey} );
     let encryptedForYou = yield;
-    let keys = { ring   : { },
-                 bulkIV : bulkIV
-               };
-    keys.ring[myUserName] = encryptedForMe;
-    keys.ring[username]   = encryptedForYou;
+    let keyring = { myUserName: encryptedForMe,
+                    username: encryptedForYou };
     let keyringFile = new Resource( serverPath + "/" + KEYRING_FILE_NAME );
-    keyringFile.put( self.cb, this._json.encode( keys ) );
+    keyringFile.put( self.cb, this._json.encode( keyring ) );
     yield;
 
     
@@ -404,12 +393,8 @@ BookmarksEngine.prototype = {
     
     let keyringFile = new Resource(serverPath + "/" + KEYRING_FILE_NAME);
     keyringFile.get(self.cb);
-    let keys = yield;
-    
-    let idRSA = ID.get('WeaveCryptoID');
-    let bulkKey = yield Crypto.unwrapKey.async(Crypto, self.cb,
-                           keys.ring[myUserName], idRSA);
-    let bulkIV = keys.bulkIV;
+    let keyring = yield;
+    let symKey = keyring[ myUserName ];
     
     let json = this._store._wrapMount( folderNode, myUserName );
     
@@ -417,11 +402,7 @@ BookmarksEngine.prototype = {
 
     
     let bmkFile = new Resource(serverPath + "/" + SHARED_BOOKMARK_FILE_NAME);
-    let tmpIdentity = { realm   : "temp ID",
-                        bulkKey : bulkKey,
-                        bulkIV  : bulkIV 
-                      };
-    Crypto.encryptData.async( Crypto, self.cb, json, tmpIdentity );
+    Crypto.PBEencrypt.async( Crypto, self.cb, json, {password:symKey} );
     let cyphertext = yield;
     bmkFile.put( self.cb, cyphertext );
     yield;
@@ -567,22 +548,14 @@ BookmarksEngine.prototype = {
     
     let keyringFile = new Resource(serverPath + "/" + KEYRING_FILE_NAME);
     keyringFile.get(self.cb);
-    let keys = yield;
-    
-    let idRSA = ID.get('WeaveCryptoID');
-    let bulkKey = yield Crypto.unwrapKey.async(Crypto, self.cb,
-                           keys.ring[myUserName], idRSA);
-    let bulkIV = keys.bulkIV;
+    let keyring = yield;
+    let symKey = keyring[ myUserName ];
 
     
     let bmkFile = new Resource(serverPath + "/" + SHARED_BOOKMARK_FILE_NAME);
     bmkFile.get(self.cb);
     let cyphertext = yield;
-    let tmpIdentity = { realm   : "temp ID",
-                        bulkKey : bulkKey,
-                        bulkIV  : bulkIV 
-                      };
-    Crypto.decryptData.async( Crypto, self.cb, cyphertext, tmpIdentity );
+    Crypto.PBEdecrypt.async( Crypto, self.cb, cyphertext, {password:symKey} );
     let json = yield;
     
 
