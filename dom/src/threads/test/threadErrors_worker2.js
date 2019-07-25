@@ -1,0 +1,4 @@
+
+onmessage = function(event) {
+  foopy(); 
+} 
