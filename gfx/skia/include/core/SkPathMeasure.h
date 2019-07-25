@@ -29,7 +29,7 @@ public:
 
 
 
-    void    setPath(const SkPath*, bool forceClosed);
+    void setPath(const SkPath*, bool forceClosed);
 
     
 
@@ -41,19 +41,23 @@ public:
 
 
 
-    bool getPosTan(SkScalar distance, SkPoint* position, SkVector* tangent);
+    bool SK_WARN_UNUSED_RESULT getPosTan(SkScalar distance, SkPoint* position, 
+                                         SkVector* tangent);
 
     enum MatrixFlags {
         kGetPosition_MatrixFlag     = 0x01,
         kGetTangent_MatrixFlag      = 0x02,
         kGetPosAndTan_MatrixFlag    = kGetPosition_MatrixFlag | kGetTangent_MatrixFlag
     };
+
     
 
 
 
 
-    bool getMatrix(SkScalar distance, SkMatrix* matrix, MatrixFlags flags = kGetPosAndTan_MatrixFlag);
+    bool SK_WARN_UNUSED_RESULT getMatrix(SkScalar distance, SkMatrix* matrix, 
+                                  MatrixFlags flags = kGetPosAndTan_MatrixFlag);
+
     
 
 
@@ -85,13 +89,14 @@ private:
 
     struct Segment {
         SkScalar    fDistance;  
-        unsigned    fPtIndex : 15;
+        unsigned    fPtIndex : 15; 
         unsigned    fTValue : 15;
         unsigned    fType : 2;
 
         SkScalar getScalarT() const;
     };
     SkTDArray<Segment>  fSegments;
+    SkTDArray<SkPoint>  fPts; 
 
     static const Segment* NextSegment(const Segment*);
 
@@ -104,4 +109,3 @@ private:
 };
 
 #endif
-

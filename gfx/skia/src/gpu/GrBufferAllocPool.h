@@ -176,7 +176,9 @@ private:
 
     SkTArray<BufferBlock>           fBlocks;
     int                             fPreallocBuffersInUse;
-    int                             fFirstPreallocBuffer;
+    
+    
+    int                             fPreallocBufferStartIdx;
     SkAutoMalloc                    fCpuData;
     void*                           fBufferPtr;
 };

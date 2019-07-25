@@ -36,20 +36,13 @@ public:
                          const SkPMColor* src,
                          int count, U8CPU alpha, int x, int y);
 
-   
-
-
-   typedef void (*ColorProc)(SkPMColor* dst, const SkPMColor* src, int count,
-                             SkPMColor color);
-
-    
     static Proc Factory(unsigned flags, SkBitmap::Config);
 
     
 
     enum Flags32 {
         kGlobalAlpha_Flag32     = 1 << 0,
-        kSrcPixelAlpha_Flag32   = 1 << 1
+        kSrcPixelAlpha_Flag32   = 1 << 1,
     };
 
     
@@ -64,6 +57,12 @@ public:
 
     static Proc32 Factory32(unsigned flags32);
 
+   
+
+
+   typedef void (*ColorProc)(SkPMColor* dst, const SkPMColor* src, int count,
+                             SkPMColor color);
+
     
 
 
@@ -71,7 +70,19 @@ public:
     static void Color32(SkPMColor dst[], const SkPMColor src[],
                         int count, SkPMColor color);
 
+    
     static ColorProc ColorProcFactory();
+
+    
+    typedef void (*ColorRectProc)(SkPMColor* dst, int width, int height,
+                                  size_t rowBytes, SkPMColor color);
+
+    
+    static void ColorRect32(SkPMColor* dst, int width, int height,
+                            size_t rowBytes, SkPMColor color);
+
+    
+    static ColorRectProc ColorRectProcFactory();
 
     
 

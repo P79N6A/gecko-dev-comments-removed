@@ -64,6 +64,11 @@ public:
     
 
 
+    void flush();
+
+    
+
+
 
 
     SkISize getDeviceSize() const;
@@ -78,7 +83,7 @@ public:
 
 
 
-    SkDevice* setDevice(SkDevice* device);
+    virtual SkDevice* setDevice(SkDevice* device);
 
     
 
@@ -87,7 +92,13 @@ public:
 
 
 
-    SkDevice* getTopDevice() const;
+
+
+
+
+
+
+    SkDevice* getTopDevice(bool updateMatrixClip = false) const;
 
     
 
@@ -99,7 +110,7 @@ public:
 
 
 
-    SkDevice* createCompatibleDevice(SkBitmap::Config config, 
+    SkDevice* createCompatibleDevice(SkBitmap::Config config,
                                     int width, int height,
                                     bool isOpaque);
 
@@ -137,7 +148,7 @@ public:
 
 
         kRGBA_Premul_Config8888,
-        kRGBA_Unpremul_Config8888
+        kRGBA_Unpremul_Config8888,
     };
 
     
@@ -290,7 +301,7 @@ public:
     
 
 
-    bool isDrawingToLayer() const;
+    virtual bool isDrawingToLayer() const;
 
     
 
@@ -424,7 +435,16 @@ public:
 
 
 
-    bool quickRejectY(SkScalar top, SkScalar bottom, EdgeType et) const;
+    bool quickRejectY(SkScalar top, SkScalar bottom, EdgeType et) const {
+        SkASSERT(SkScalarToCompareType(top) <= SkScalarToCompareType(bottom));
+        const SkRectCompareType& clipR = this->getLocalClipBoundsCompareType(et);
+        
+        
+        
+        
+        return SkScalarToCompareType(top) >= clipR.fBottom
+            || SkScalarToCompareType(bottom) <= clipR.fTop;
+    }
 
     
 
@@ -438,7 +458,7 @@ public:
 
 
     bool getClipDeviceBounds(SkIRect* bounds) const;
-       
+
 
     
 
@@ -862,23 +882,24 @@ public:
 
 
 
+
+
     const SkRegion& getTotalClip() const;
 
-    
-
-
-
-
-
-    bool getTotalClipBounds(SkIRect* bounds) const;
-
-    
-
-
-
-    const SkClipStack& getTotalClipStack() const;
-
     void setExternalMatrix(const SkMatrix* = NULL);
+
+    class ClipVisitor {
+    public:
+        virtual void clipRect(const SkRect&, SkRegion::Op, bool antialias) = 0;
+        virtual void clipPath(const SkPath&, SkRegion::Op, bool antialias) = 0;
+    };
+
+    
+
+
+
+
+    void replayClips(ClipVisitor*) const;
 
     
 
@@ -922,8 +943,19 @@ public:
 
 protected:
     
-    virtual void commonDrawBitmap(const SkBitmap&, const SkIRect*,
-                                  const SkMatrix&, const SkPaint& paint);
+    
+    
+    
+    virtual SkCanvas* canvasForDrawIter();
+
+    
+    void commonDrawBitmap(const SkBitmap&, const SkIRect*, const SkMatrix&,
+                          const SkPaint& paint);
+
+    
+    
+    bool clipRectBounds(const SkRect* bounds, SaveFlags flags,
+                        SkIRect* intersection);
 
 private:
     class MCRec;
@@ -937,7 +969,7 @@ private:
 
     SkBounder*  fBounder;
     SkDevice*   fLastDeviceToGainFocus;
-    int         fLayerCount;    
+    int         fSaveLayerCount;    
 
     void prepareForDeviceDraw(SkDevice*, const SkMatrix&, const SkRegion&,
                               const SkClipStack& clipStack);
@@ -946,8 +978,9 @@ private:
     void updateDeviceCMCache();
 
     friend class SkDrawIter;    
+    friend class AutoDrawLooper;
 
-    SkDevice* createLayerDevice(SkBitmap::Config, int width, int height, 
+    SkDevice* createLayerDevice(SkBitmap::Config, int width, int height,
                                 bool isOpaque);
 
     SkDevice* init(SkDevice*);
@@ -961,9 +994,10 @@ private:
     void internalDrawBitmapNine(const SkBitmap& bitmap, const SkIRect& center,
                                 const SkRect& dst, const SkPaint* paint);
     void internalDrawPaint(const SkPaint& paint);
+    int internalSaveLayer(const SkRect* bounds, const SkPaint* paint,
+                          SaveFlags, bool justForImageFilter);
+    void internalDrawDevice(SkDevice*, int x, int y, const SkPaint*);
 
-        
-    void drawDevice(SkDevice*, int x, int y, const SkPaint*);
     
     int internalSave(SaveFlags flags);
     void internalRestore();

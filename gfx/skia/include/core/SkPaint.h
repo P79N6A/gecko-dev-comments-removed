@@ -7,10 +7,12 @@
 
 
 
+
 #ifndef SkPaint_DEFINED
 #define SkPaint_DEFINED
 
 #include "SkColor.h"
+#include "SkDrawLooper.h"
 #include "SkXfermode.h"
 
 class SkAutoGlyphCache;
@@ -28,7 +30,6 @@ class SkPath;
 class SkPathEffect;
 class SkRasterizer;
 class SkShader;
-class SkDrawLooper;
 class SkTypeface;
 
 typedef const SkGlyph& (*SkDrawCacheProc)(SkGlyphCache*, const char**,
@@ -75,7 +76,7 @@ public:
         kNo_Hinting            = 0,
         kSlight_Hinting        = 1,
         kNormal_Hinting        = 2,     
-        kFull_Hinting          = 3
+        kFull_Hinting          = 3,
     };
 
     Hinting getHinting() const {
@@ -100,11 +101,12 @@ public:
         kEmbeddedBitmapText_Flag = 0x400, 
         kAutoHinting_Flag     = 0x800,  
         kVerticalText_Flag    = 0x1000,
+        kGenA8FromLCD_Flag    = 0x2000, 
 
         
         
 
-        kAllFlags = 0x1FFF
+        kAllFlags = 0x3FFF
     };
 
     
@@ -287,7 +289,7 @@ public:
         kStroke_Style,          
         kStrokeAndFill_Style,   
 
-        kStyleCount
+        kStyleCount,
     };
 
     
@@ -436,48 +438,17 @@ public:
 
 
 
-    bool canComputeFastBounds() const {
-        
-        return (reinterpret_cast<uintptr_t>(this->getMaskFilter()) |
-                reinterpret_cast<uintptr_t>(this->getLooper()) |
-                reinterpret_cast<uintptr_t>(this->getRasterizer()) |
-                reinterpret_cast<uintptr_t>(this->getPathEffect())) == 0;
-    }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    const SkRect& computeFastBounds(const SkRect& orig, SkRect* storage) const {
-        return this->getStyle() == kFill_Style ? orig :
-                    this->computeStrokeFastBounds(orig, storage);
-    }
-
-    
-
-
-
 
     SkShader* getShader() const { return fShader; }
 
     
+
+
+
+
+
+
+
 
 
 
@@ -690,6 +661,7 @@ public:
     enum TextEncoding {
         kUTF8_TextEncoding,     
         kUTF16_TextEncoding,    
+        kUTF32_TextEncoding,    
         kGlyphID_TextEncoding   
     };
 
@@ -841,20 +813,82 @@ public:
     void getTextPath(const void* text, size_t length, SkScalar x, SkScalar y,
                      SkPath* path) const;
 
-    void getPosTextPath(const void* text, size_t length, 
-                        const SkPoint pos[], SkPath* path) const;
-
 #ifdef SK_BUILD_FOR_ANDROID
     const SkGlyph& getUnicharMetrics(SkUnichar);
+    const SkGlyph& getGlyphMetrics(uint16_t);
     const void* findImage(const SkGlyph&);
 
     uint32_t getGenerationID() const;
+
+    
+
+    unsigned getBaseGlyphCount(SkUnichar text) const;
 #endif
 
     
     
     bool nothingToDraw() const;
 
+    
+    
+
+    
+
+
+
+    bool canComputeFastBounds() const {
+        if (this->getLooper()) {
+            return this->getLooper()->canComputeFastBounds(*this);
+        }
+        return !this->getRasterizer();
+    }
+    
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    const SkRect& computeFastBounds(const SkRect& orig, SkRect* storage) const {
+        SkPaint::Style style = this->getStyle();
+        
+        if (kFill_Style == style) {
+            uintptr_t effects = reinterpret_cast<uintptr_t>(this->getLooper());
+            effects |= reinterpret_cast<uintptr_t>(this->getMaskFilter());
+            effects |= reinterpret_cast<uintptr_t>(this->getPathEffect());
+            if (!effects) {
+                return orig;
+            }
+        }
+        
+        return this->doComputeFastBounds(orig, storage, style);
+    }
+    
+    const SkRect& computeFastStrokeBounds(const SkRect& orig,
+                                          SkRect* storage) const {
+        return this->doComputeFastBounds(orig, storage, kStroke_Style);
+    }
+    
+    
+    
+    const SkRect& doComputeFastBounds(const SkRect& orig, SkRect* storage,
+                                      Style) const;
+    
 private:
     SkTypeface*     fTypeface;
     SkScalar        fTextSize;
@@ -873,7 +907,7 @@ private:
     SkColor         fColor;
     SkScalar        fWidth;
     SkScalar        fMiterLimit;
-    unsigned        fFlags : 14;
+    unsigned        fFlags : 15;
     unsigned        fTextAlign : 2;
     unsigned        fCapType : 2;
     unsigned        fJoinType : 2;
@@ -894,9 +928,6 @@ private:
                         void (*proc)(const SkDescriptor*, void*),
                         void* context, bool ignoreGamma = false) const;
 
-    const SkRect& computeStrokeFastBounds(const SkRect& orig,
-                                          SkRect* storage) const;
-
     enum {
         kCanonicalTextSizeForPaths = 64
     };
@@ -911,45 +942,6 @@ private:
     
     uint32_t        fGenerationID;
 #endif
-};
-
-
-
-#include "SkPathEffect.h"
-
-
-
-
-
-
-
-
-class SkStrokePathEffect : public SkPathEffect {
-public:
-    SkStrokePathEffect(const SkPaint&);
-    SkStrokePathEffect(SkScalar width, SkPaint::Style, SkPaint::Join,
-                       SkPaint::Cap, SkScalar miterLimit = -1);
-
-    
-    virtual bool filterPath(SkPath* dst, const SkPath& src, SkScalar* width);
-
-    
-    virtual void flatten(SkFlattenableWriteBuffer&);
-    virtual Factory getFactory();
-
-    static SkFlattenable* CreateProc(SkFlattenableReadBuffer&);
-
-private:
-    SkScalar    fWidth, fMiter;
-    uint8_t     fStyle, fJoin, fCap;
-
-    SkStrokePathEffect(SkFlattenableReadBuffer&);
-
-    typedef SkPathEffect INHERITED;
-
-    
-    SkStrokePathEffect(const SkStrokePathEffect&);
-    SkStrokePathEffect& operator=(const SkStrokePathEffect&);
 };
 
 #endif

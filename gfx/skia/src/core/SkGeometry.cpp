@@ -834,9 +834,70 @@ static SkScalar refine_cubic_root(const SkFP coeff[4], SkScalar root)
 }
 #endif
 
+
+
+
+
+static int collaps_duplicates(float array[], int count) {
+    for (int n = count; n > 1; --n) {
+        if (array[0] == array[1]) {
+            for (int i = 1; i < n; ++i) {
+                array[i - 1] = array[i];
+            }
+            count -= 1;
+        } else {
+            array += 1;
+        }
+    }
+    return count;
+}
+
+#ifdef SK_DEBUG
+
+#define TEST_COLLAPS_ENTRY(array)   array, SK_ARRAY_COUNT(array)
+
+static void test_collaps_duplicates() {
+    static bool gOnce;
+    if (gOnce) { return; }
+    gOnce = true;
+    const float src0[] = { 0 };
+    const float src1[] = { 0, 0 };
+    const float src2[] = { 0, 1 };
+    const float src3[] = { 0, 0, 0 };
+    const float src4[] = { 0, 0, 1 };
+    const float src5[] = { 0, 1, 1 };
+    const float src6[] = { 0, 1, 2 };
+    const struct {
+        const float* fData;
+        int fCount;
+        int fCollapsedCount;
+    } data[] = {
+        { TEST_COLLAPS_ENTRY(src0), 1 },
+        { TEST_COLLAPS_ENTRY(src1), 1 },
+        { TEST_COLLAPS_ENTRY(src2), 2 },
+        { TEST_COLLAPS_ENTRY(src3), 1 },
+        { TEST_COLLAPS_ENTRY(src4), 2 },
+        { TEST_COLLAPS_ENTRY(src5), 2 },
+        { TEST_COLLAPS_ENTRY(src6), 3 },
+    };
+    for (size_t i = 0; i < SK_ARRAY_COUNT(data); ++i) {
+        float dst[3];
+        memcpy(dst, data[i].fData, data[i].fCount * sizeof(dst[0]));
+        int count = collaps_duplicates(dst, data[i].fCount);
+        SkASSERT(data[i].fCollapsedCount == count);
+        for (int j = 1; j < count; ++j) {
+            SkASSERT(dst[j-1] < dst[j]);
+        }
+    }
+}
+#endif
+
 #if defined _WIN32 && _MSC_VER >= 1300  && defined SK_SCALAR_IS_FIXED 
 #pragma warning ( disable : 4702 )
 #endif
+
+
+
 
 
 
@@ -895,8 +956,14 @@ static int solve_cubic_polynomial(const SkFP coeff[4], SkScalar tValues[3])
         if (is_unit_interval(r))
             *roots++ = r;
 
+        SkDEBUGCODE(test_collaps_duplicates();)
+
         
-        bubble_sort(tValues, (int)(roots - tValues));
+        int count = (int)(roots - tValues);
+        SkASSERT((unsigned)count <= 3);
+        bubble_sort(tValues, count);
+        count = collaps_duplicates(tValues, count);
+        roots = tValues + count;    
 #endif
     }
     else                

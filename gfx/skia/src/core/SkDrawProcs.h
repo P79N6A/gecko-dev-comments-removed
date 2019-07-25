@@ -14,19 +14,20 @@ class SkAAClip;
 class SkBlitter;
 
 struct SkDraw1Glyph {
-    const SkDraw*   fDraw;
-	SkBounder*		fBounder;
-	const SkRegion*	fClip;
-	const SkAAClip*	fAAClip;
-	SkBlitter*		fBlitter;
-	SkGlyphCache*	fCache;
-	SkIRect			fClipBounds;
-	
+    const SkDraw* fDraw;
+    SkBounder* fBounder;
+    const SkRegion* fClip;
+    const SkAAClip* fAAClip;
+    SkBlitter* fBlitter;
+    SkGlyphCache* fCache;
+    SkIRect fClipBounds;
+
     
     
-	typedef void (*Proc)(const SkDraw1Glyph&, SkFixed x, SkFixed y, const SkGlyph&);
-	
-	Proc init(const SkDraw* draw, SkBlitter* blitter, SkGlyphCache* cache);
+    
+    typedef void (*Proc)(const SkDraw1Glyph&, SkFixed x, SkFixed y, const SkGlyph&);
+    
+    Proc init(const SkDraw* draw, SkBlitter* blitter, SkGlyphCache* cache);
 };
 
 struct SkDrawProcs {
@@ -39,8 +40,7 @@ struct SkDrawProcs {
 
 
 
-
-bool SkDrawTreatAsHairline(const SkPaint&, const SkMatrix&, SkAlpha* newAlpha);
+bool SkDrawTreatAsHairline(const SkPaint&, const SkMatrix&, SkScalar* coverage);
 
 #endif
 

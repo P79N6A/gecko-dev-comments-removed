@@ -73,10 +73,10 @@ GrContext::TextureCacheEntry sk_gr_create_bitmap_texture(GrContext* ctx,
 
     GrTextureDesc desc = {
         kNone_GrTextureFlags,
-        kNone_GrAALevel,
         bitmap->width(),
         bitmap->height(),
-        SkGr::Bitmap2PixelConfig(*bitmap)
+        SkGr::Bitmap2PixelConfig(*bitmap),
+        0 
     };
 
     if (SkBitmap::kIndex8_Config == bitmap->config()) {
@@ -159,26 +159,21 @@ GrClipType SkGrClipIterator::getType() const {
     }
 }
 
-GrSetOp SkGrClipIterator::getOp() const {
+SkRegion::Op SkGrClipIterator::getOp() const {
     
     
     
     
-    GrSetOp skToGrOps[] = {
-        kDifference_SetOp,         
-        kIntersect_SetOp,          
-        kUnion_SetOp,              
-        kXor_SetOp,                
-        kReverseDifference_SetOp,  
-        kIntersect_SetOp           
-    };
-    GR_STATIC_ASSERT(0 == SkRegion::kDifference_Op);
-    GR_STATIC_ASSERT(1 == SkRegion::kIntersect_Op);
-    GR_STATIC_ASSERT(2 == SkRegion::kUnion_Op);
-    GR_STATIC_ASSERT(3 == SkRegion::kXOR_Op);
-    GR_STATIC_ASSERT(4 == SkRegion::kReverseDifference_Op);
-    GR_STATIC_ASSERT(5 == SkRegion::kReplace_Op);
-    return skToGrOps[fCurr->fOp];
+    if (SkRegion::kReplace_Op == fCurr->fOp) {
+        return SkRegion::kIntersect_Op;
+    }
+
+    return fCurr->fOp;
+
+}
+
+bool SkGrClipIterator::getDoAA() const {
+    return fCurr->fDoAA;
 }
 
 GrPathFill SkGrClipIterator::getPathFill() const {

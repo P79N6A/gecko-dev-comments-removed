@@ -10,15 +10,17 @@
 #ifndef SkPDFDocument_DEFINED
 #define SkPDFDocument_DEFINED
 
-#include "SkPDFTypes.h"
+#include "SkAdvancedTypefaceMetrics.h"
 #include "SkRefCnt.h"
 #include "SkTDArray.h"
 #include "SkTScopedPtr.h"
 
 class SkPDFCatalog;
 class SkPDFDevice;
+class SkPDFDict;
 class SkPDFPage;
-class SkWSteam;
+class SkPDFObject;
+class SkWStream;
 
 
 
@@ -64,7 +66,8 @@ public:
 
     
 
-    SK_API const SkTDArray<SkPDFPage*>& getPages();
+    SK_API void getCountOfFontTypes(
+        int counts[SkAdvancedTypefaceMetrics::kNotEmbeddable_Font + 1]) const;
 
 private:
     SkTScopedPtr<SkPDFCatalog> fCatalog;

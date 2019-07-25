@@ -125,7 +125,11 @@ public:
     
 
 
-    SK_API void getResources(SkTDArray<SkPDFObject*>* resourceList) const;
+
+
+
+    SK_API void getResources(SkTDArray<SkPDFObject*>* resourceList,
+                             bool recursive) const;
 
     
 
@@ -156,10 +160,12 @@ public:
     const SkPDFGlyphSetMap& getFontGlyphUsage() const {
         return *(fFontGlyphUsage.get());
     }
-    
+
 protected:
     virtual bool onReadPixels(const SkBitmap& bitmap, int x, int y,
                               SkCanvas::Config8888) SK_OVERRIDE;
+
+    virtual bool allowImageFilter(SkImageFilter*) SK_OVERRIDE;
 
 private:
     

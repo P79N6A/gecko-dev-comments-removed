@@ -22,17 +22,17 @@ public:
 
     explicit SkDumpCanvas(Dumper* = 0);
     virtual ~SkDumpCanvas();
-    
+
     enum Verb {
         kNULL_Verb,
 
         kSave_Verb,
         kRestore_Verb,
-        
+
         kMatrix_Verb,
-        
+
         kClip_Verb,
-        
+
         kDrawPaint_Verb,
         kDrawPoints_Verb,
         kDrawRect_Verb,
@@ -43,7 +43,7 @@ public:
         kDrawVertices_Verb,
         kDrawData_Verb
     };
-    
+
     
 
 
@@ -52,12 +52,12 @@ public:
         virtual void dump(SkDumpCanvas*, SkDumpCanvas::Verb, const char str[],
                           const SkPaint*) = 0;
     };
-        
+
     Dumper* getDumper() const { return fDumper; }
     void    setDumper(Dumper*);
-    
+
     int getNestLevel() const { return fNestLevel; }
-    
+
     virtual int save(SaveFlags) SK_OVERRIDE;
     virtual int saveLayer(const SkRect* bounds, const SkPaint* paint,
                           SaveFlags) SK_OVERRIDE;
@@ -69,7 +69,7 @@ public:
     virtual bool skew(SkScalar sx, SkScalar sy) SK_OVERRIDE;
     virtual bool concat(const SkMatrix& matrix) SK_OVERRIDE;
     virtual void setMatrix(const SkMatrix& matrix) SK_OVERRIDE;
-    
+
     virtual bool clipRect(const SkRect&, SkRegion::Op, bool) SK_OVERRIDE;
     virtual bool clipPath(const SkPath&, SkRegion::Op, bool) SK_OVERRIDE;
     virtual bool clipRegion(const SkRegion& deviceRgn,
@@ -109,7 +109,7 @@ public:
 private:
     Dumper* fDumper;
     int     fNestLevel; 
-    
+
     void dump(Verb, const SkPaint*, const char format[], ...);
 
     typedef SkCanvas INHERITED;
@@ -121,16 +121,16 @@ private:
 class SkFormatDumper : public SkDumpCanvas::Dumper {
 public:
     SkFormatDumper(void (*)(const char text[], void* refcon), void* refcon);
-    
+
     
     
     virtual void dump(SkDumpCanvas*, SkDumpCanvas::Verb, const char str[],
                       const SkPaint*) SK_OVERRIDE;
-    
+
 private:
     void (*fProc)(const char*, void*);
     void* fRefcon;
-    
+
     typedef SkDumpCanvas::Dumper INHERITED;
 };
 

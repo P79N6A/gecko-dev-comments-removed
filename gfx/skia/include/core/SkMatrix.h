@@ -336,7 +336,7 @@ public:
 
 
 
-    bool invert(SkMatrix* inverse) const;
+    bool SK_WARN_UNUSED_RESULT invert(SkMatrix* inverse) const;
 
     
 
@@ -483,20 +483,28 @@ public:
 
     bool fixedStepInX(SkScalar y, SkFixed* stepX, SkFixed* stepY) const;
 
-#ifdef SK_SCALAR_IS_FIXED
-    friend bool operator==(const SkMatrix& a, const SkMatrix& b) {
-        return memcmp(a.fMat, b.fMat, sizeof(a.fMat)) == 0;
+    
+
+
+
+
+
+
+
+    bool cheapEqualTo(const SkMatrix& m) const {
+        return 0 == memcmp(fMat, m.fMat, sizeof(fMat));
     }
 
-    friend bool operator!=(const SkMatrix& a, const SkMatrix& b) {
-        return memcmp(a.fMat, b.fMat, sizeof(a.fMat)) != 0;
+#ifdef SK_SCALAR_IS_FIXED
+    friend bool operator==(const SkMatrix& a, const SkMatrix& b) {
+        return a.cheapEqualTo(b);
     }
 #else
-    friend bool operator==(const SkMatrix& a, const SkMatrix& b);    
+    friend bool operator==(const SkMatrix& a, const SkMatrix& b);
+#endif
     friend bool operator!=(const SkMatrix& a, const SkMatrix& b) {
         return !(a == b);
     }
-#endif
 
     enum {
         
@@ -566,8 +574,8 @@ private:
                     kRectStaysRect_Mask
     };
 
-    SkScalar        fMat[9];
-    mutable uint8_t fTypeMask;
+    SkScalar         fMat[9];
+    mutable uint32_t fTypeMask;
 
     uint8_t computeTypeMask() const;
     uint8_t computePerspectiveTypeMask() const;

@@ -45,6 +45,20 @@ public:
 
     virtual bool next(SkCanvas*, SkPaint* paint) = 0;
     
+    
+
+
+
+
+
+
+
+
+
+    virtual bool canComputeFastBounds(const SkPaint& paint);
+    virtual void computeFastBounds(const SkPaint& paint,
+                                   const SkRect& src, SkRect* dst);
+
 protected:
     SkDrawLooper() {}
     SkDrawLooper(SkFlattenableReadBuffer& buffer) : INHERITED(buffer) {}

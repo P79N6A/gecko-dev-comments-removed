@@ -10,6 +10,9 @@
 
 SkRasterClip::SkRasterClip() {
     fIsBW = true;
+    fIsEmpty = true;
+    fIsRect = false;
+    SkDEBUGCODE(this->validate();)
 }
 
 SkRasterClip::SkRasterClip(const SkRasterClip& src) {
@@ -21,22 +24,21 @@ SkRasterClip::SkRasterClip(const SkRasterClip& src) {
     } else {
         fAA = src.fAA;
     }
+
+    fIsEmpty = src.isEmpty();
+    fIsRect = src.isRect();
+    SkDEBUGCODE(this->validate();)
 }
 
 SkRasterClip::SkRasterClip(const SkIRect& bounds) : fBW(bounds) {
     fIsBW = true;
+    fIsEmpty = this->computeIsEmpty();  
+    fIsRect = !fIsEmpty;
+    SkDEBUGCODE(this->validate();)
 }
 
 SkRasterClip::~SkRasterClip() {
-    AUTO_RASTERCLIP_VALIDATE(*this);
-}
-
-bool SkRasterClip::isEmpty() const {
-    return fIsBW ? fBW.isEmpty() : fAA.isEmpty();
-}
-
-bool SkRasterClip::isRect() const {
-    return fIsBW ? fBW.isRect() : false;
+    SkDEBUGCODE(this->validate();)
 }
 
 bool SkRasterClip::isComplex() const {
@@ -53,6 +55,8 @@ bool SkRasterClip::setEmpty() {
     fIsBW = true;
     fBW.setEmpty();
     fAA.setEmpty();
+    fIsEmpty = true;
+    fIsRect = false;
     return false;
 }
 
@@ -61,20 +65,25 @@ bool SkRasterClip::setRect(const SkIRect& rect) {
     
     fIsBW = true;
     fAA.setEmpty();
-    return fBW.setRect(rect);
+    fIsRect = fBW.setRect(rect);
+    fIsEmpty = !fIsRect;
+    return fIsRect;
 }
 
 bool SkRasterClip::setPath(const SkPath& path, const SkRegion& clip, bool doAA) {
     AUTO_RASTERCLIP_VALIDATE(*this);
 
     if (this->isBW() && !doAA) {
-        return fBW.setPath(path, clip);
+        (void)fBW.setPath(path, clip);
     } else {
+        
+        
         if (this->isBW()) {
             this->convertToAA();
         }
-        return fAA.setPath(path, &clip, doAA);
+        (void)fAA.setPath(path, &clip, doAA);
     }
+    return this->updateCacheAndReturnNonEmpty();
 }
 
 bool SkRasterClip::setPath(const SkPath& path, const SkIRect& clip, bool doAA) {
@@ -100,19 +109,21 @@ bool SkRasterClip::setPath(const SkPath& path, const SkRasterClip& clip,
 bool SkRasterClip::op(const SkIRect& rect, SkRegion::Op op) {
     AUTO_RASTERCLIP_VALIDATE(*this);
     
-    return fIsBW ? fBW.op(rect, op) : fAA.op(rect, op);
+    fIsBW ? fBW.op(rect, op) : fAA.op(rect, op);
+    return this->updateCacheAndReturnNonEmpty();
 }
 
 bool SkRasterClip::op(const SkRegion& rgn, SkRegion::Op op) {
     AUTO_RASTERCLIP_VALIDATE(*this);
     
     if (fIsBW) {
-        return fBW.op(rgn, op);
+        (void)fBW.op(rgn, op);
     } else {
         SkAAClip tmp;
         tmp.setRegion(rgn);
-        return fAA.op(tmp, op);
+        (void)fAA.op(tmp, op);
     }
+    return this->updateCacheAndReturnNonEmpty();
 }
 
 bool SkRasterClip::op(const SkRasterClip& clip, SkRegion::Op op) {
@@ -120,7 +131,7 @@ bool SkRasterClip::op(const SkRasterClip& clip, SkRegion::Op op) {
     clip.validate();
 
     if (this->isBW() && clip.isBW()) {
-        return fBW.op(clip.fBW, op);
+        (void)fBW.op(clip.fBW, op);
     } else {
         SkAAClip tmp;
         const SkAAClip* other;
@@ -134,25 +145,32 @@ bool SkRasterClip::op(const SkRasterClip& clip, SkRegion::Op op) {
         } else {
             other = &clip.aaRgn();
         }
-        return fAA.op(*other, op);
+        (void)fAA.op(*other, op);
     }
+    return this->updateCacheAndReturnNonEmpty();
 }
 
 
 
-static bool is_integral(SkScalar x) {
-    int ix = SkScalarRoundToInt(x);
-    SkScalar sx = SkIntToScalar(ix);
-    return SkScalarAbs(sx - x) < (SK_Scalar1 / 16);
+
+
+
+static bool nearly_integral(SkScalar x) {
+    static const SkScalar domain = SK_Scalar1 / 4;
+    static const SkScalar halfDomain = domain / 2;
+
+    x += halfDomain;
+    return x - SkScalarFloorToScalar(x) < domain;
 }
 
 bool SkRasterClip::op(const SkRect& r, SkRegion::Op op, bool doAA) {
     AUTO_RASTERCLIP_VALIDATE(*this);
     
-    if (doAA) {
+    if (fIsBW && doAA) {
         
-        if (is_integral(r.fLeft) && is_integral(r.fTop) &&
-            is_integral(r.fRight) && is_integral(r.fBottom)) {
+        
+        if (nearly_integral(r.fLeft) && nearly_integral(r.fTop) &&
+            nearly_integral(r.fRight) && nearly_integral(r.fBottom)) {
             doAA = false;
         }
     }
@@ -160,13 +178,14 @@ bool SkRasterClip::op(const SkRect& r, SkRegion::Op op, bool doAA) {
     if (fIsBW && !doAA) {
         SkIRect ir;
         r.round(&ir);
-        return fBW.op(ir, op);
+        (void)fBW.op(ir, op);
     } else {
         if (fIsBW) {
             this->convertToAA();
         }
-        return fAA.op(r, op, doAA);
+        (void)fAA.op(r, op, doAA);
     }
+    return this->updateCacheAndReturnNonEmpty();
 }
 
 void SkRasterClip::translate(int dx, int dy, SkRasterClip* dst) const {
@@ -193,6 +212,7 @@ void SkRasterClip::translate(int dx, int dy, SkRasterClip* dst) const {
         fAA.translate(dx, dy, &dst->fAA);
         dst->fBW.setEmpty();
     }
+    dst->updateCacheAndReturnNonEmpty();
 }
 
 bool SkRasterClip::quickContains(const SkIRect& ir) const {
@@ -216,6 +236,7 @@ void SkRasterClip::convertToAA() {
     SkASSERT(fIsBW);
     fAA.setRegion(fBW);
     fIsBW = false;
+    (void)this->updateCacheAndReturnNonEmpty();
 }
 
 #ifdef SK_DEBUG
@@ -227,6 +248,9 @@ void SkRasterClip::validate() const {
 
     fBW.validate();
     fAA.validate();
+
+    SkASSERT(this->computeIsEmpty() == fIsEmpty);
+    SkASSERT(this->computeIsRect() == fIsRect);
 }
 #endif
 

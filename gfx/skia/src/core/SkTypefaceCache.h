@@ -23,6 +23,11 @@
 
 class SkTypefaceCache {
 public:
+    
+
+
+
+
     typedef bool (*FindProc)(SkTypeface*, SkTypeface::Style, void* context);
 
     
@@ -36,9 +41,13 @@ public:
 
 
 
-    static void Add(SkTypeface*, SkTypeface::Style requested);
+
+    static void Add(SkTypeface*,
+                    SkTypeface::Style requested,
+                    bool strong = true);
 
     
+
 
 
 
@@ -50,9 +59,10 @@ public:
 
 
 
-    static SkTypeface* FindByProc(FindProc proc, void* ctx);
+    static SkTypeface* FindByProcAndRef(FindProc proc, void* ctx);
 
     
+
 
 
 
@@ -67,14 +77,15 @@ public:
 private:
     static SkTypefaceCache& Get();
 
-    void add(SkTypeface*, SkTypeface::Style requested);
+    void add(SkTypeface*, SkTypeface::Style requested, bool strong = true);
     SkTypeface* findByID(SkFontID findID) const;
-    SkTypeface* findByProc(FindProc proc, void* ctx) const;
+    SkTypeface* findByProcAndRef(FindProc proc, void* ctx) const;
     void purge(int count);
     void purgeAll();
 
     struct Rec {
         SkTypeface*         fFace;
+        bool                fStrong;
         SkTypeface::Style   fRequestedStyle;
     };
     SkTDArray<Rec> fArray;

@@ -22,10 +22,10 @@ public:
     SkProxyCanvas() : fProxy(NULL) {}
     SkProxyCanvas(SkCanvas* proxy);
     virtual ~SkProxyCanvas();
-    
+
     SkCanvas*   getProxy() const { return fProxy; }
     void        setProxy(SkCanvas* proxy);
-    
+
     virtual int save(SaveFlags flags = kMatrixClip_SaveFlag) SK_OVERRIDE;
     virtual int saveLayer(const SkRect* bounds, const SkPaint* paint,
                           SaveFlags flags = kARGB_ClipLayer_SaveFlag) SK_OVERRIDE;
@@ -37,7 +37,7 @@ public:
     virtual bool skew(SkScalar sx, SkScalar sy) SK_OVERRIDE;
     virtual bool concat(const SkMatrix& matrix) SK_OVERRIDE;
     virtual void setMatrix(const SkMatrix& matrix) SK_OVERRIDE;
-    
+
     virtual bool clipRect(const SkRect&, SkRegion::Op, bool) SK_OVERRIDE;
     virtual bool clipPath(const SkPath&, SkRegion::Op, bool) SK_OVERRIDE;
     virtual bool clipRegion(const SkRegion& deviceRgn,
@@ -79,7 +79,7 @@ public:
 
 private:
     SkCanvas*   fProxy;
-    
+
     typedef SkCanvas INHERITED;
 };
 

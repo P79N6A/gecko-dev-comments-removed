@@ -45,19 +45,21 @@ public:
 
     void ref() const {
         SkASSERT(fRefCnt > 0);
-        sk_atomic_inc(&fRefCnt);
+        sk_atomic_inc(&fRefCnt);  
     }
 
     
 
 
 
-
     void unref() const {
         SkASSERT(fRefCnt > 0);
+        
         if (sk_atomic_dec(&fRefCnt) == 1) {
-            fRefCnt = 1;    
-            SkDELETE(this);
+            
+            
+            sk_membar_aquire__after_atomic_dec();
+            internal_dispose();
         }
     }
 
@@ -66,6 +68,17 @@ public:
     }
 
 private:
+    
+
+    virtual void internal_dispose() const {
+#ifdef SK_DEBUG
+        
+        fRefCnt = 1;
+#endif
+        SkDELETE(this);
+    }
+    friend class SkWeakRefCnt;
+
     mutable int32_t fRefCnt;
 };
 
@@ -127,6 +140,9 @@ public:
         fObj = NULL;
         return obj;
     }
+
+    T* operator->() { return fObj; }
+    operator T*() { return fObj; }
 
 private:
     T*  fObj;

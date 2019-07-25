@@ -36,10 +36,16 @@ size_t sk_fgetsize(SkFILE* f)
 {
     SkASSERT(f);
 
-    size_t  curr = ::ftell((FILE*)f);       
+    long curr = ::ftell((FILE*)f);       
+    if (curr < 0) {
+        return 0;
+    }
     ::fseek((FILE*)f, 0, SEEK_END);         
-    size_t size = ::ftell((FILE*)f);        
-    ::fseek((FILE*)f, (long)curr, SEEK_SET);        
+    long size = ::ftell((FILE*)f);        
+    if (size < 0) {
+        size = 0;
+    }
+    ::fseek((FILE*)f, curr, SEEK_SET);        
     return size;
 }
 

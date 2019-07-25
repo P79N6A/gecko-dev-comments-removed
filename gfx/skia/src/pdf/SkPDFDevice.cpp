@@ -262,7 +262,7 @@ static void emit_clip(SkPath* clipPath, SkRect* clipRect,
 
     SkPath::FillType clipFill;
     if (clipPath) {
-        SkPDFUtils::EmitPath(*clipPath, contentStream);
+        SkPDFUtils::EmitPath(*clipPath, SkPaint::kFill_Style, contentStream);
         clipFill = clipPath->getFillType();
     } else {
         SkPDFUtils::AppendRectangle(*clipRect, contentStream);
@@ -490,7 +490,11 @@ static inline SkBitmap makeContentBitmap(const SkISize& contentSize,
         SkMatrix inverse;
         drawingSize.set(SkIntToScalar(contentSize.fWidth),
                         SkIntToScalar(contentSize.fHeight));
-        initialTransform->invert(&inverse);
+        if (!initialTransform->invert(&inverse)) {
+            
+            SkASSERT(false);
+            inverse.reset();
+        }
         inverse.mapVectors(&drawingSize, 1);
         SkISize size = SkSize::Make(drawingSize.fX, drawingSize.fY).toRound();
         bitmap.setConfig(SkBitmap::kNo_Config, abs(size.fWidth),
@@ -600,8 +604,9 @@ void SkPDFDevice::internalDrawPaint(const SkPaint& paint,
     SkMatrix totalTransform = fInitialTransform;
     totalTransform.preConcat(contentEntry->fState.fMatrix);
     SkMatrix inverse;
-    inverse.reset();
-    totalTransform.invert(&inverse);
+    if (!totalTransform.invert(&inverse)) {
+        return;
+    }
     inverse.mapRect(&bbox);
 
     SkPDFUtils::AppendRectangle(bbox, &contentEntry->fContent);
@@ -760,7 +765,8 @@ void SkPDFDevice::drawPath(const SkDraw& d, const SkPath& origPath,
     if (!content.entry()) {
         return;
     }
-    SkPDFUtils::EmitPath(*pathPtr, &content.entry()->fContent);
+    SkPDFUtils::EmitPath(*pathPtr, paint.getStyle(),
+                         &content.entry()->fContent);
     SkPDFUtils::PaintPath(paint.getStyle(), pathPtr->getFillType(),
                           &content.entry()->fContent);
 }
@@ -1037,7 +1043,8 @@ SkPDFDict* SkPDFDevice::getResourceDict() {
     return fResourceDict.get();
 }
 
-void SkPDFDevice::getResources(SkTDArray<SkPDFObject*>* resourceList) const {
+void SkPDFDevice::getResources(SkTDArray<SkPDFObject*>* resourceList,
+                               bool recursive) const {
     resourceList->setReserve(resourceList->count() +
                              fGraphicStateResources.count() +
                              fXObjectResources.count() +
@@ -1046,22 +1053,30 @@ void SkPDFDevice::getResources(SkTDArray<SkPDFObject*>* resourceList) const {
     for (int i = 0; i < fGraphicStateResources.count(); i++) {
         resourceList->push(fGraphicStateResources[i]);
         fGraphicStateResources[i]->ref();
-        fGraphicStateResources[i]->getResources(resourceList);
+        if (recursive) {
+            fGraphicStateResources[i]->getResources(resourceList);
+        }
     }
     for (int i = 0; i < fXObjectResources.count(); i++) {
         resourceList->push(fXObjectResources[i]);
         fXObjectResources[i]->ref();
-        fXObjectResources[i]->getResources(resourceList);
+        if (recursive) {
+            fXObjectResources[i]->getResources(resourceList);
+        }
     }
     for (int i = 0; i < fFontResources.count(); i++) {
         resourceList->push(fFontResources[i]);
         fFontResources[i]->ref();
-        fFontResources[i]->getResources(resourceList);
+        if (recursive) {
+            fFontResources[i]->getResources(resourceList);
+        }
     }
     for (int i = 0; i < fShaderResources.count(); i++) {
         resourceList->push(fShaderResources[i]);
         fShaderResources[i]->ref();
-        fShaderResources[i]->getResources(resourceList);
+        if (recursive) {
+            fShaderResources[i]->getResources(resourceList);
+        }
     }
 }
 
@@ -1128,7 +1143,8 @@ SkData* SkPDFDevice::copyContentToData() const {
     
     
     if (fPageSize != fContentSize) {
-        SkRect r = SkRect::MakeWH(this->width(), this->height());
+        SkRect r = SkRect::MakeWH(SkIntToScalar(this->width()),
+                                  SkIntToScalar(this->height()));
         emit_clip(NULL, &r, &data);
     }
 
@@ -1399,6 +1415,14 @@ void SkPDFDevice::populateGraphicStateEntryFromPaint(
         
         
         SkIRect bounds = clipRegion.getBounds();
+
+        
+        
+        SkRect boundsTemp;
+        boundsTemp.set(bounds);
+        fInitialTransform.mapRect(&boundsTemp);
+        boundsTemp.roundOut(&bounds);
+
         pdfShader = SkPDFShader::GetPDFShader(*shader, transform, bounds);
         SkSafeUnref(pdfShader.get());  
 
@@ -1535,3 +1559,8 @@ bool SkPDFDevice::onReadPixels(const SkBitmap& bitmap, int x, int y,
                                SkCanvas::Config8888) {
     return false;
 }
+
+bool SkPDFDevice::allowImageFilter(SkImageFilter*) {
+    return false;
+}
+

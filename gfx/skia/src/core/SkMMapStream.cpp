@@ -15,6 +15,7 @@
 SkMMAPStream::SkMMAPStream(const char filename[])
 {
     fAddr = NULL;   
+    fSize = 0;
 
     int fildes = open(filename, O_RDONLY);
     if (fildes < 0)

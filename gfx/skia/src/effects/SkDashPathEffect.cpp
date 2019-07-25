@@ -43,29 +43,35 @@ SkDashPathEffect::SkDashPathEffect(const SkScalar intervals[], int count,
     }
     fIntervalLength = len;
 
-    if (len > 0) {  
+    
+    if ((len > 0) && SkScalarIsFinite(phase) && SkScalarIsFinite(len)) {
+
+        
+        
         if (phase < 0) {
             phase = -phase;
             if (phase > len) {
                 phase = SkScalarMod(phase, len);
             }
             phase = len - phase;
+
+            
+            
+            
+            SkASSERT(phase <= len);
+            if (phase == len) {
+                phase = 0;
+            }
         } else if (phase >= len) {
             phase = SkScalarMod(phase, len);
         }
-
-        
-        if (!SkScalarIsFinite(phase) || !SkScalarIsFinite(len)) {
-            goto BAD_DASH;
-        }
-
         SkASSERT(phase >= 0 && phase < len);
+
         fInitialDashLength = FindFirstInterval(intervals, phase, &fInitialDashIndex);
 
         SkASSERT(fInitialDashLength >= 0);
         SkASSERT(fInitialDashIndex >= 0 && fInitialDashIndex < fCount);
     } else {
-        BAD_DASH:
         fInitialDashLength = -1;    
     }
 }
@@ -140,9 +146,10 @@ SkFlattenable::Factory SkDashPathEffect::getFactory() {
     return fInitialDashLength < 0 ? NULL : CreateProc;
 }
 
-void SkDashPathEffect::flatten(SkFlattenableWriteBuffer& buffer) {
+void SkDashPathEffect::flatten(SkFlattenableWriteBuffer& buffer) const {
     SkASSERT(fInitialDashLength >= 0);
 
+    this->INHERITED::flatten(buffer);
     buffer.write32(fCount);
     buffer.write32(fInitialDashIndex);
     buffer.writeScalar(fInitialDashLength);

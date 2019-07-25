@@ -204,7 +204,7 @@ static inline bool SkIsU16(long x) {
 
 
 #ifndef SK_OFFSETOF
-    #define SK_OFFSETOF(type, field)    ((char*)&(((type*)1)->field) - (char*)1)
+    #define SK_OFFSETOF(type, field)    (size_t)((char*)&(((type*)1)->field) - (char*)1)
 #endif
 
 
@@ -438,7 +438,7 @@ public:
 
 
 
-        kReuse_OnShrink
+        kReuse_OnShrink,
     };
 
     

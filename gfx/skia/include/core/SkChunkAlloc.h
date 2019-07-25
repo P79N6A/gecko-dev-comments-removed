@@ -20,14 +20,8 @@ public:
     
 
 
+
     void reset();
-
-    
-
-
-
-
-    void reuse();
 
     enum AllocFailType {
         kReturnNil_AllocFailType,
@@ -48,6 +42,7 @@ public:
     size_t unalloc(void* ptr);
     
     size_t totalCapacity() const { return fTotalCapacity; }
+    int blockCount() const { return fBlockCount; }
 
     
 
@@ -58,10 +53,12 @@ public:
 
 private:
     struct Block;
+
     Block*  fBlock;
     size_t  fMinSize;
-    Block*  fPool;
+    size_t  fChunkSize;
     size_t  fTotalCapacity;
+    int     fBlockCount;
 
     Block* newBlock(size_t bytes, AllocFailType ftype);
 };

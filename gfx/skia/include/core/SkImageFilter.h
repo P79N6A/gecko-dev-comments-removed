@@ -40,8 +40,11 @@ class SK_API SkImageFilter : public SkFlattenable {
 public:
     class Proxy {
     public:
+        virtual ~Proxy() {};
+
         virtual SkDevice* createDevice(int width, int height) = 0;
         
+        virtual bool canHandleImageFilter(SkImageFilter*) = 0;
         
         
         virtual bool filterImage(SkImageFilter*, const SkBitmap& src,
@@ -78,6 +81,22 @@ public:
 
 
     virtual bool asABlur(SkSize* sigma) const;
+
+    
+
+
+
+
+
+    virtual bool asAnErode(SkISize* radius) const;
+
+    
+
+
+
+
+
+    virtual bool asADilate(SkISize* radius) const;
 
 protected:
     SkImageFilter() {}

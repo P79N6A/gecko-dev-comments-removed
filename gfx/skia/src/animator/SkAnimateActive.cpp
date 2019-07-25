@@ -142,8 +142,11 @@ void SkActive::calcDurations(int index)
     SkAnimateBase* animate = fAnimators[index];
     SkMSec duration = animate->dur;
     SkState& state = fState[index];
-    if (state.fMode == SkApply::kMode_immediate || state.fMode == SkApply::kMode_create)
+    switch (state.fMode) {
+      case SkApply::kMode_immediate:
+      case SkApply::kMode_create:
         duration = state.fSteps ? state.fSteps * SK_MSec1 : 1;
+        break;
 
 
 
@@ -153,6 +156,8 @@ void SkActive::calcDurations(int index)
 
 
 
+
+    }
     state.fDuration = duration;
     SkMSec maxTime = state.fBegin + duration;
     if (fMaxTime < maxTime)

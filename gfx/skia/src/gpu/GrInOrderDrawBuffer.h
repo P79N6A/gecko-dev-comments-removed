@@ -57,16 +57,10 @@ public:
 
 
 
-    void initializeDrawStateAndClip(const GrDrawTarget& target);
-
-    
-
-
-
-
     void setQuadIndexBuffer(const GrIndexBuffer* indexBuffer);
 
     
+
 
 
     void reset();
@@ -76,23 +70,55 @@ public:
 
 
 
+
+
+
+
     void playback(GrDrawTarget* target);
+
     
+
+
+
+    void flushTo(GrDrawTarget* target) {
+        this->playback(target);
+        this->reset();
+    }
+
+    
+
+
+
+
+
+
+
+    void setAutoFlushTarget(GrDrawTarget* target);
+
     
     virtual void drawRect(const GrRect& rect, 
                           const GrMatrix* matrix = NULL,
                           StageMask stageEnableMask = 0,
                           const GrRect* srcRects[] = NULL,
-                          const GrMatrix* srcMatrices[] = NULL);
+                          const GrMatrix* srcMatrices[] = NULL) SK_OVERRIDE;
+
+    virtual void drawIndexedInstances(GrPrimitiveType type,
+                                      int instanceCount,
+                                      int verticesPerInstance,
+                                      int indicesPerInstance)
+                                      SK_OVERRIDE;
 
     virtual bool geometryHints(GrVertexLayout vertexLayout,
                                int* vertexCount,
-                               int* indexCount) const;
+                               int* indexCount) const SK_OVERRIDE;
 
-    virtual void clear(const GrIRect* rect, GrColor color);
+    virtual void clear(const GrIRect* rect, GrColor color) SK_OVERRIDE;
 
+protected:
+    virtual void willReserveVertexAndIndexSpace(GrVertexLayout vertexLayout,
+                                                int vertexCount,
+                                                int indexCount) SK_OVERRIDE;
 private:
-
     struct Draw {
         GrPrimitiveType         fPrimitiveType;
         int                     fStartVertex;
@@ -141,8 +167,12 @@ private:
     bool needsNewClip() const;
 
     void pushState();
-    void pushClip();
+    void storeClip();
+
     
+    
+    void resetDrawTracking();
+
     enum {
         kDrawPreallocCnt         = 8,
         kStatePreallocCnt        = 8,
@@ -151,23 +181,34 @@ private:
         kGeoPoolStatePreAllocCnt = 4,
     };
 
-    const GrGpu*                    fGpu;
-
     GrSTAllocator<kDrawPreallocCnt, Draw>               fDraws;
-    GrSTAllocator<kStatePreallocCnt, SavedDrawState>    fStates;
+    GrSTAllocator<kStatePreallocCnt, GrDrawState>       fStates;
     GrSTAllocator<kClearPreallocCnt, Clear>             fClears;
     GrSTAllocator<kClipPreallocCnt, GrClip>             fClips;
-    
+
+    GrDrawTarget*                   fAutoFlushTarget;
+
     bool                            fClipSet;
 
+    GrVertexBufferAllocPool&        fVertexPool;
+
+    GrIndexBufferAllocPool&         fIndexPool;
+
+    
     GrVertexLayout                  fLastRectVertexLayout;
     const GrIndexBuffer*            fQuadIndexBuffer;
     int                             fMaxQuads;
     int                             fCurrQuad;
 
-    GrVertexBufferAllocPool&        fVertexPool;
-
-    GrIndexBufferAllocPool&         fIndexPool;
+    
+    struct {
+        int            fVerticesPerInstance;
+        int            fIndicesPerInstance;
+        void reset() {
+            fVerticesPerInstance = 0;
+            fIndicesPerInstance = 0;
+        }
+    } fInstancedDrawTracker;
 
     struct GeometryPoolState {
         const GrVertexBuffer*           fPoolVertexBuffer;

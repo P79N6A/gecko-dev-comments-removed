@@ -23,13 +23,6 @@ extern "C" {
     #include "jerror.h"
 }
 
-#ifdef ANDROID
-#include <cutils/properties.h>
-
-
-static const char KEY_MEM_CAP[] = "ro.media.dec.jpeg.memcap";
-#endif
-
 
 
 
@@ -87,7 +80,11 @@ private:
     jpeg_decompress_struct* cinfo_ptr;
 };
 
-#ifdef ANDROID
+#ifdef SK_BUILD_FOR_ANDROID
+
+
+
+
 
 
 
@@ -146,6 +143,29 @@ static bool return_false(const jpeg_decompress_struct& cinfo,
     return false;   
 }
 
+
+
+static void convert_CMYK_to_RGB(uint8_t* scanline, unsigned int width) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    for (unsigned int x = 0; x < width; ++x, scanline += 4) {
+        scanline[0] = SkMulDiv255Round(scanline[0], scanline[3]);
+        scanline[1] = SkMulDiv255Round(scanline[1], scanline[3]);
+        scanline[2] = SkMulDiv255Round(scanline[2], scanline[3]);
+        scanline[3] = 255;
+    }
+}
+
 bool SkJPEGImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
 #ifdef TIME_DECODE
     AutoTimeMillis atm("JPEG Decode");
@@ -156,7 +176,7 @@ bool SkJPEGImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
 
     jpeg_decompress_struct  cinfo;
     skjpeg_error_mgr        sk_err;
-    skjpeg_source_mgr       sk_stream(stream, this);
+    skjpeg_source_mgr       sk_stream(stream, this, false);
 
     cinfo.err = jpeg_std_error(&sk_err);
     sk_err.error_exit = skjpeg_error_exit;
@@ -170,7 +190,7 @@ bool SkJPEGImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
     jpeg_create_decompress(&cinfo);
     autoClean.set(&cinfo);
 
-#ifdef ANDROID
+#ifdef SK_BUILD_FOR_ANDROID
     overwrite_mem_buffer_size(&cinfo);
 #endif
 
@@ -201,7 +221,14 @@ bool SkJPEGImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
     cinfo.do_block_smoothing = 0;
 
     
-    cinfo.out_color_space = JCS_RGB;
+    if (cinfo.jpeg_color_space == JCS_CMYK) {
+        
+        
+        
+        cinfo.out_color_space = JCS_CMYK;
+    } else {
+        cinfo.out_color_space = JCS_RGB;
+    }
 
     SkBitmap::Config config = this->getPrefConfig(k32Bit_SrcDepth, false);
     
@@ -213,9 +240,9 @@ bool SkJPEGImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
 
 #ifdef ANDROID_RGB
     cinfo.dither_mode = JDITHER_NONE;
-    if (config == SkBitmap::kARGB_8888_Config) {
+    if (SkBitmap::kARGB_8888_Config == config && JCS_CMYK != cinfo.out_color_space) {
         cinfo.out_color_space = JCS_RGBA_8888;
-    } else if (config == SkBitmap::kRGB_565_Config) {
+    } else if (SkBitmap::kRGB_565_Config == config && JCS_CMYK != cinfo.out_color_space) {
         cinfo.out_color_space = JCS_RGB_565;
         if (this->getDitherImage()) {
             cinfo.dither_mode = JDITHER_ORDERED;
@@ -300,10 +327,13 @@ bool SkJPEGImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
         return true;
     }
 #endif
-    
+
     
     SkScaledBitmapSampler::SrcConfig sc;
-    if (3 == cinfo.out_color_components && JCS_RGB == cinfo.out_color_space) {
+    if (JCS_CMYK == cinfo.out_color_space) {
+        
+        sc = SkScaledBitmapSampler::kRGBX;
+    } else if (3 == cinfo.out_color_components && JCS_RGB == cinfo.out_color_space) {
         sc = SkScaledBitmapSampler::kRGB;
 #ifdef ANDROID_RGB
     } else if (JCS_RGBA_8888 == cinfo.out_color_space) {
@@ -332,12 +362,13 @@ bool SkJPEGImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
         return return_false(cinfo, *bm, "allocPixelRef");
     }
 
-    SkAutoLockPixels alp(*bm);                          
+    SkAutoLockPixels alp(*bm);
     if (!sampler.begin(bm, sc, this->getDitherImage())) {
         return return_false(cinfo, *bm, "sampler.begin");
     }
 
-    uint8_t* srcRow = (uint8_t*)srcStorage.alloc(cinfo.output_width * 4);
+    
+    uint8_t* srcRow = (uint8_t*)srcStorage.reset(cinfo.output_width * 4);
 
     
     if (!skip_src_rows(&cinfo, srcRow, sampler.srcY0())) {
@@ -354,7 +385,11 @@ bool SkJPEGImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
         if (this->shouldCancelDecode()) {
             return return_false(cinfo, *bm, "shouldCancelDecode");
         }
-        
+
+        if (JCS_CMYK == cinfo.out_color_space) {
+            convert_CMYK_to_RGB(srcRow, cinfo.output_width);
+        }
+
         sampler.next(srcRow);
         if (bm->height() - 1 == y) {
             
@@ -593,7 +628,7 @@ protected:
         jpeg_start_compress(&cinfo, TRUE);
 
         const int       width = bm.width();
-        uint8_t*        oneRowP = (uint8_t*)oneRow.alloc(width * 3);
+        uint8_t*        oneRowP = (uint8_t*)oneRow.reset(width * 3);
 
         const SkPMColor* colors = ctLocker.lockColors(bm);
         const void*      srcRow = bm.getPixels();
@@ -615,11 +650,14 @@ protected:
 };
 
 
+DEFINE_DECODER_CREATOR(JPEGImageDecoder);
+DEFINE_ENCODER_CREATOR(JPEGImageEncoder);
+
 
 #include "SkTRegistry.h"
 
-static SkImageDecoder* DFactory(SkStream* stream) {
-    static const char gHeader[] = { 0xFF, 0xD8, 0xFF };
+SkImageDecoder* sk_libjpeg_dfactory(SkStream* stream) {
+    static const unsigned char gHeader[] = { 0xFF, 0xD8, 0xFF };
     static const size_t HEADER_SIZE = sizeof(gHeader);
 
     char buffer[HEADER_SIZE];
@@ -634,9 +672,11 @@ static SkImageDecoder* DFactory(SkStream* stream) {
     return SkNEW(SkJPEGImageDecoder);
 }
 
-static SkImageEncoder* EFactory(SkImageEncoder::Type t) {
+static SkImageEncoder* sk_libjpeg_efactory(SkImageEncoder::Type t) {
     return (SkImageEncoder::kJPEG_Type == t) ? SkNEW(SkJPEGImageEncoder) : NULL;
 }
 
-static SkTRegistry<SkImageDecoder*, SkStream*> gDReg(DFactory);
-static SkTRegistry<SkImageEncoder*, SkImageEncoder::Type> gEReg(EFactory);
+
+static SkTRegistry<SkImageDecoder*, SkStream*> gDReg(sk_libjpeg_dfactory);
+static SkTRegistry<SkImageEncoder*, SkImageEncoder::Type> gEReg(sk_libjpeg_efactory);
+

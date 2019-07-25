@@ -40,4 +40,21 @@ protected:
     virtual bool onEncode(SkWStream*, const SkBitmap&, int quality) = 0;
 };
 
+
+
+#define DECLARE_ENCODER_CREATOR(codec)          \
+    SkImageEncoder *Create ## codec ();
+
+
+
+#define DEFINE_ENCODER_CREATOR(codec)           \
+    SkImageEncoder *Create ## codec () {        \
+        return SkNEW( Sk ## codec );            \
+    }
+
+
+
+DECLARE_ENCODER_CREATOR(JPEGImageEncoder);
+DECLARE_ENCODER_CREATOR(PNGImageEncoder);
+
 #endif

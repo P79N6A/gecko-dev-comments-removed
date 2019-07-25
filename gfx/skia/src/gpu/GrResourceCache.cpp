@@ -304,14 +304,18 @@ void GrResourceCache::removeAll() {
     fMaxCount = 0;
     this->purgeAsNeeded();
 
-    GrAssert(!fCache.count());
+#if GR_DEBUG
     GrAssert(!fUnlockedEntryCount);
-    
-    
-    GrAssert(fEntryCount == fClientDetachedCount);
-    GrAssert(fEntryBytes == fClientDetachedBytes);
-    GrAssert(NULL == fHead);
-    GrAssert(NULL == fTail);
+    if (!fCache.count()) {
+        
+        
+        
+        GrAssert(fEntryCount == fClientDetachedCount);
+        GrAssert(fEntryBytes == fClientDetachedBytes);
+        GrAssert(NULL == fHead);
+        GrAssert(NULL == fTail);
+    }
+#endif
 
     fMaxBytes = savedMaxBytes;
     fMaxCount = savedMaxCount;

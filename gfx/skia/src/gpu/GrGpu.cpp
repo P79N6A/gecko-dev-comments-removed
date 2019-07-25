@@ -13,8 +13,7 @@
 #include "GrClipIterator.h"
 #include "GrContext.h"
 #include "GrIndexBuffer.h"
-#include "GrPathRenderer.h"
-#include "GrGLStencilBuffer.h"
+#include "GrStencilBuffer.h"
 #include "GrVertexBuffer.h"
 
 
@@ -39,7 +38,6 @@ GrGpu::GrGpu()
     , fIndexPoolUseCnt(0)
     , fQuadIndexBuffer(NULL)
     , fUnitSquareVertexBuffer(NULL)
-    , fPathRendererChain(NULL)
     , fContextIsDirty(true)
     , fResourceHead(NULL) {
 
@@ -56,6 +54,10 @@ GrGpu::GrGpu()
     poolState.fPoolStartIndex = DEBUG_INVAL_START_IDX;
 #endif
     resetStats();
+
+    for (int i = 0; i < kGrPixelConfigCount; ++i) {
+        fConfigRenderSupport[i] = false;
+    };
 }
 
 GrGpu::~GrGpu() {
@@ -63,6 +65,8 @@ GrGpu::~GrGpu() {
 }
 
 void GrGpu::abandonResources() {
+
+    fClipMaskManager.releaseResources();
 
     while (NULL != fResourceHead) {
         fResourceHead->abandon();
@@ -77,11 +81,11 @@ void GrGpu::abandonResources() {
     fVertexPool = NULL;
     delete fIndexPool;
     fIndexPool = NULL;
-    
-    GrSafeSetNull(fPathRendererChain);
 }
 
 void GrGpu::releaseResources() {
+
+    fClipMaskManager.releaseResources();
 
     while (NULL != fResourceHead) {
         fResourceHead->release();
@@ -96,8 +100,6 @@ void GrGpu::releaseResources() {
     fVertexPool = NULL;
     delete fIndexPool;
     fIndexPool = NULL;
-    
-    GrSafeSetNull(fPathRendererChain);
 }
 
 void GrGpu::insertResource(GrResource* resource) {
@@ -215,11 +217,6 @@ GrRenderTarget* GrGpu::createPlatformRenderTarget(const GrPlatformRenderTargetDe
     return this->onCreatePlatformRenderTarget(desc);
 }
 
-GrResource* GrGpu::createPlatformSurface(const GrPlatformSurfaceDesc& desc) {
-    this->handleDirtyContext();
-    return this->onCreatePlatformSurface(desc);
-}
-
 GrVertexBuffer* GrGpu::createVertexBuffer(uint32_t size, bool dynamic) {
     this->handleDirtyContext();
     return this->onCreateVertexBuffer(size, dynamic);
@@ -264,6 +261,13 @@ void GrGpu::writeTexturePixels(GrTexture* texture,
     this->onWriteTexturePixels(texture, left, top, width, height,
                                config, buffer, rowBytes);
 }
+
+void GrGpu::resolveRenderTarget(GrRenderTarget* target) {
+    GrAssert(target);
+    this->handleDirtyContext();
+    this->onResolveRenderTarget(target);
+}
+
 
 
 
@@ -341,15 +345,17 @@ const GrVertexBuffer* GrGpu::getUnitSquareVertexBuffer() const {
 
 
 
-
-GR_STATIC_CONST_SAME_STENCIL(gClipStencilSettings,
-    kKeep_StencilOp,
-    kKeep_StencilOp,
-    kAlwaysIfInClip_StencilFunc,
-    0x0000,
-    0x0000,
-    0x0000);
-const GrStencilSettings& GrGpu::gClipStencilSettings = ::gClipStencilSettings;
+const GrStencilSettings* GrGpu::GetClipStencilSettings(void) {
+    
+    GR_STATIC_CONST_SAME_STENCIL_STRUCT(sClipStencilSettings,
+        kKeep_StencilOp,
+        kKeep_StencilOp,
+        kAlwaysIfInClip_StencilFunc,
+        0x0000,
+        0x0000,
+        0x0000);
+    return GR_CONST_STENCIL_SETTINGS_PTR_FROM_STRUCT_PTR(&sClipStencilSettings);
+}
 
 
 
@@ -434,311 +440,22 @@ void GrGpu::ConvertStencilFuncAndMask(GrStencilFunc func,
 
 
 
-#define VISUALIZE_COMPLEX_CLIP 0
-
-#if VISUALIZE_COMPLEX_CLIP
-    #include "GrRandom.h"
-    GrRandom gRandom;
-    #define SET_RANDOM_COLOR this->setColor(0xff000000 | gRandom.nextU());
-#else
-    #define SET_RANDOM_COLOR
-#endif
-
-namespace {
-
-
-
-int process_initial_clip_elements(const GrClip& clip,
-                                  const GrRect& bounds,
-                                  bool* clearToInside,
-                                  GrSetOp* startOp) {
-
-    
-    
-    
-    
-    
-    int curr;
-    bool done = false;
-    *clearToInside = true;
-    int count = clip.getElementCount();
-
-    for (curr = 0; curr < count && !done; ++curr) {
-        switch (clip.getOp(curr)) {
-            case kReplace_SetOp:
-                
-                *startOp = kReplace_SetOp;
-                *clearToInside = false;
-                done = true;
-                break;
-            case kIntersect_SetOp:
-                
-                
-                if (kRect_ClipType == clip.getElementType(curr)
-                    && clip.getRect(curr).contains(bounds)) {
-                    break;
-                }
-                
-                
-                
-                if (*clearToInside) {
-                    *startOp = kReplace_SetOp;
-                    *clearToInside = false;
-                    done = true;
-                }
-                break;
-                
-            case kUnion_SetOp:
-                
-                
-                
-                if (!*clearToInside) {
-                    *startOp = kReplace_SetOp;
-                    done = true;
-                }
-                break;
-            case kXor_SetOp:
-                
-                
-                if (*clearToInside) {
-                    *startOp = kDifference_SetOp;
-                } else {
-                    *startOp = kReplace_SetOp;
-                }
-                done = true;
-                break;
-            case kDifference_SetOp:
-                
-                
-                
-                if (*clearToInside) {
-                    *startOp = kDifference_SetOp;
-                    done = true;
-                }
-                break;
-            case kReverseDifference_SetOp:
-                
-                
-                if (*clearToInside) {
-                    *clearToInside = false;
-                } else {
-                    *startOp = kReplace_SetOp;
-                    done = true;
-                }
-                break;
-            default:
-                GrCrash("Unknown set op.");
-        }
-    }
-    return done ? curr-1 : count;
-}
-}
-
 bool GrGpu::setupClipAndFlushState(GrPrimitiveType type) {
-    const GrIRect* r = NULL;
-    GrIRect clipRect;
 
-    GrDrawState* drawState = this->drawState();
-    const GrRenderTarget* rt = drawState->getRenderTarget();
+    ScissoringSettings scissoringSettings;
 
-    
-    GrAssert(NULL != rt);
-
-    if (drawState->isClipState()) {
-
-        GrRect bounds;
-        GrRect rtRect;
-        rtRect.setLTRB(0, 0,
-                       GrIntToScalar(rt->width()), GrIntToScalar(rt->height()));
-        if (fClip.hasConservativeBounds()) {
-            bounds = fClip.getConservativeBounds();
-            if (!bounds.intersect(rtRect)) {
-                bounds.setEmpty();
-            }
-        } else {
-            bounds = rtRect;
-        }
-
-        bounds.roundOut(&clipRect);
-        if  (clipRect.isEmpty()) {
-            clipRect.setLTRB(0,0,0,0);
-        }
-        r = &clipRect;
-
-        
-        fClipInStencil = !fClip.isRect() && !fClip.isEmpty() && 
-                         !bounds.isEmpty();
-
-        
-        GrStencilBuffer* stencilBuffer = rt->getStencilBuffer();
-        if (fClipInStencil && NULL == stencilBuffer) {
-            return false;
-        }
-
-        if (fClipInStencil &&
-            stencilBuffer->mustRenderClip(fClip, rt->width(), rt->height())) {
-
-            stencilBuffer->setLastClip(fClip, rt->width(), rt->height());
-
-            
-            
-            
-            
-            const GrClip& clip = stencilBuffer->getLastClip();
-            fClip.setFromRect(bounds);
-
-            AutoStateRestore asr(this);
-            AutoGeometryPush agp(this);
-
-            drawState->setViewMatrix(GrMatrix::I());
-            this->flushScissor(NULL);
-#if !VISUALIZE_COMPLEX_CLIP
-            drawState->enableState(GrDrawState::kNoColorWrites_StateBit);
-#else
-            drawState->disableState(GrDrawState::kNoColorWrites_StateBit);
-#endif
-            int count = clip.getElementCount();
-            int clipBit = stencilBuffer->bits();
-            SkASSERT((clipBit <= 16) &&
-                     "Ganesh only handles 16b or smaller stencil buffers");
-            clipBit = (1 << (clipBit-1));
-            
-            bool clearToInside;
-            GrSetOp startOp = kReplace_SetOp; 
-            int start = process_initial_clip_elements(clip,
-                                                      rtRect,
-                                                      &clearToInside,
-                                                      &startOp);
-
-            this->clearStencilClip(clipRect, clearToInside);
-
-            
-            
-            for (int c = start; c < count; ++c) {
-                GrPathFill fill;
-                bool fillInverted;
-                
-                drawState->disableState(kModifyStencilClip_StateBit);
-
-                bool canRenderDirectToStencil; 
-                                               
-                                               
-                                               
-                                               
-
-                GrPathRenderer* pr = NULL;
-                const GrPath* clipPath = NULL;
-                GrPathRenderer::AutoClearPath arp;
-                if (kRect_ClipType == clip.getElementType(c)) {
-                    canRenderDirectToStencil = true;
-                    fill = kEvenOdd_PathFill;
-                    fillInverted = false;
-                    
-                    
-                    if (kIntersect_SetOp == clip.getOp(c) &&
-                        clip.getRect(c).contains(rtRect)) {
-                        continue;
-                    }
-                } else {
-                    fill = clip.getPathFill(c);
-                    fillInverted = GrIsFillInverted(fill);
-                    fill = GrNonInvertedFill(fill);
-                    clipPath = &clip.getPath(c);
-                    pr = this->getClipPathRenderer(*clipPath, fill);
-                    if (NULL == pr) {
-                        fClipInStencil = false;
-                        fClip = clip;
-                        return false;
-                    }
-                    canRenderDirectToStencil =
-                        !pr->requiresStencilPass(this, *clipPath, fill);
-                    arp.set(pr, this, clipPath, fill, false, NULL);
-                }
-
-                GrSetOp op = (c == start) ? startOp : clip.getOp(c);
-                int passes;
-                GrStencilSettings stencilSettings[GrStencilSettings::kMaxStencilClipPasses];
-
-                bool canDrawDirectToClip; 
-                                          
-                                          
-                                          
-                canDrawDirectToClip =
-                    GrStencilSettings::GetClipPasses(op,
-                                                     canRenderDirectToStencil,
-                                                     clipBit,
-                                                     fillInverted,
-                                                     &passes, stencilSettings);
-
-                
-                if (!canDrawDirectToClip) {
-                    GR_STATIC_CONST_SAME_STENCIL(gDrawToStencil,
-                        kIncClamp_StencilOp,
-                        kIncClamp_StencilOp,
-                        kAlways_StencilFunc,
-                        0xffff,
-                        0x0000,
-                        0xffff);
-                    SET_RANDOM_COLOR
-                    if (kRect_ClipType == clip.getElementType(c)) {
-                        *drawState->stencil() = gDrawToStencil;
-                        this->drawSimpleRect(clip.getRect(c), NULL, 0);
-                    } else {
-                        if (canRenderDirectToStencil) {
-                            *drawState->stencil() = gDrawToStencil;
-                            pr->drawPath(0);
-                        } else {
-                            pr->drawPathToStencil();
-                        }
-                    }
-                }
-
-                
-                
-                drawState->enableState(kModifyStencilClip_StateBit);
-                for (int p = 0; p < passes; ++p) {
-                    *drawState->stencil() = stencilSettings[p];
-                    if (canDrawDirectToClip) {
-                        if (kRect_ClipType == clip.getElementType(c)) {
-                            SET_RANDOM_COLOR
-                            this->drawSimpleRect(clip.getRect(c), NULL, 0);
-                        } else {
-                            SET_RANDOM_COLOR
-                            pr->drawPath(0);
-                        }
-                    } else {
-                        SET_RANDOM_COLOR
-                        this->drawSimpleRect(bounds, NULL, 0);
-                    }
-                }
-            }
-            
-            fClip = clip;
-            
-            
-            fClipInStencil = true;
-        }
+    if (!fClipMaskManager.createClipMask(this, fClip, &scissoringSettings)) {
+        return false;
     }
 
     
     if (!this->flushGraphicsState(type)) {
         return false;
     }
-    this->flushScissor(r);
+
+    scissoringSettings.setupScissoring(this);
     return true;
 }
-
-GrPathRenderer* GrGpu::getClipPathRenderer(const GrPath& path,
-                                           GrPathFill fill) {
-    if (NULL == fPathRendererChain) {
-        fPathRendererChain = 
-            new GrPathRendererChain(this->getContext(),
-                                    GrPathRendererChain::kNonAAOnly_UsageFlag);
-    }
-    return fPathRendererChain->getPathRenderer(this->getCaps(),
-                                               path, fill, false);
-}
-
 
 
 
@@ -909,7 +626,7 @@ void GrGpu::onSetVertexSourceToArray(const void* vertexArray, int vertexCount) {
 #if GR_DEBUG
     bool success =
 #endif
-    fVertexPool->appendVertices(this->getGeomSrc().fVertexLayout,
+    fVertexPool->appendVertices(this->getVertexLayout(),
                                 vertexCount,
                                 vertexArray,
                                 &geomPoolState.fPoolVertexBuffer,
@@ -975,4 +692,5 @@ void GrGpu::printStats() const {
     fStats.fTextureCreateCnt, fStats.fRenderTargetCreateCnt);
     }
 }
+
 

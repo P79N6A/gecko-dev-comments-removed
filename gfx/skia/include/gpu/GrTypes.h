@@ -225,6 +225,8 @@ static inline bool GrIsPrimTypeTris(GrPrimitiveType type) {
 
 
 enum GrBlendCoeff {
+    kInvalid_BlendCoeff = -1,
+
     kZero_BlendCoeff,    
     kOne_BlendCoeff,     
     kSC_BlendCoeff,      
@@ -301,6 +303,8 @@ enum GrPixelConfig {
 
 
     kBGRA_8888_UPM_GrPixelConfig,
+
+    kGrPixelConfigCount
 };
 
 
@@ -318,11 +322,6 @@ enum GrPixelConfig {
 #else
     #error "SK_*32_SHIFT values must correspond to GL_BGRA or GL_RGBA format."
 #endif
-
-
-
-
-static const GrPixelConfig kRGBA_8888_GrPixelConfig = kSkia8888_PM_GrPixelConfig;
 
 
 
@@ -431,20 +430,6 @@ static inline bool GrPixelConfigIsAlphaOnly(GrPixelConfig config) {
 
 
 
-
-enum GrAALevels {
-    kNone_GrAALevel, 
-    kLow_GrAALevel,  
-                     
-    kMed_GrAALevel,  
-                     
-    kHigh_GrAALevel, 
-                     
-};
-
-
-
-
 enum GrTextureFlags {
     kNone_GrTextureFlags            = 0x0,
     
@@ -479,30 +464,23 @@ enum {
 
 struct GrTextureDesc {
     GrTextureFlags         fFlags;  
-    
-
-
-
-    GrAALevels             fAALevel;
     int                    fWidth;  
     int                    fHeight; 
+
     
 
 
 
     GrPixelConfig          fConfig;
-};
+
+    
 
 
 
 
-enum GrSetOp {
-    kReplace_SetOp,
-    kIntersect_SetOp,
-    kUnion_SetOp,
-    kXor_SetOp,
-    kDifference_SetOp,
-    kReverseDifference_SetOp,
+
+
+    int fSampleCnt;
 };
 
 
@@ -596,24 +574,6 @@ static inline bool GrIsFillInverted(GrPathFill fill) {
 
 
 
-enum GrConvexHint {
-    kNone_ConvexHint,                         
-                                              
-    kConvex_ConvexHint,                       
-    kNonOverlappingConvexPieces_ConvexHint,   
-                                              
-                                              
-    kSameWindingConvexPieces_ConvexHint,      
-                                              
-                                              
-                                              
-    kConcave_ConvexHint                       
-                                              
-};
-
-
-
-
 typedef intptr_t GrPlatform3DObject;
 
 
@@ -701,133 +661,6 @@ struct GrPlatformRenderTargetDesc {
 
     GrPlatform3DObject              fRenderTargetHandle;
 };
-
-
-
-
-
-enum GrPlatformSurfaceType {
-    
-
-
-    kRenderTarget_GrPlatformSurfaceType,
-    
-
-
-    kTexture_GrPlatformSurfaceType,
-    
-
-
-
-    kTextureRenderTarget_GrPlatformSurfaceType,
-};
-
-enum GrPlatformRenderTargetFlags {
-    kNone_GrPlatformRenderTargetFlagBit             = 0x0,
-
-    
-
-
-
-
-
-
-
-
-    kGrCanResolve_GrPlatformRenderTargetFlagBit     = 0x2,
-};
-
-GR_MAKE_BITFIELD_OPS(GrPlatformRenderTargetFlags)
-
-struct GrPlatformSurfaceDesc {
-    GrPlatformSurfaceType           fSurfaceType;   
-    
-
-
-    GrPlatformRenderTargetFlags     fRenderTargetFlags;
-
-    int                             fWidth;         
-    int                             fHeight;        
-    GrPixelConfig                   fConfig;        
-    
-
-
-
-    int                             fStencilBits;
-
-    
-
-
-
-    int                             fSampleCnt;
-
-    
-
-
-
-
-    GrPlatform3DObject              fPlatformTexture;
-    
-
-
-
-
-    GrPlatform3DObject              fPlatformRenderTarget;
-    
-
-
-
-
-
-
-    GrPlatform3DObject              fPlatformResolveDestination;
-
-    void reset() { memset(this, 0, sizeof(GrPlatformSurfaceDesc)); }
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

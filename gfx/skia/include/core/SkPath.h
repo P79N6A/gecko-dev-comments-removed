@@ -165,6 +165,18 @@ public:
 
 
 
+
+
+
+
+
+
+    bool isOval(SkRect* rect) const;
+
+    
+
+
+
     void reset();
     
     
@@ -185,7 +197,7 @@ public:
 
 
     static bool IsLineDegenerate(const SkPoint& p1, const SkPoint& p2) {
-        return p1.equalsWithinTolerance(p2, SK_ScalarNearlyZero);
+        return p1.equalsWithinTolerance(p2);
     }
 
     
@@ -194,8 +206,8 @@ public:
 
     static bool IsQuadDegenerate(const SkPoint& p1, const SkPoint& p2,
                                  const SkPoint& p3) {
-        return p1.equalsWithinTolerance(p2, SK_ScalarNearlyZero) &&
-               p2.equalsWithinTolerance(p3, SK_ScalarNearlyZero);
+        return p1.equalsWithinTolerance(p2) &&
+               p2.equalsWithinTolerance(p3);
     }
 
     
@@ -204,10 +216,18 @@ public:
 
     static bool IsCubicDegenerate(const SkPoint& p1, const SkPoint& p2,
                                   const SkPoint& p3, const SkPoint& p4) {
-        return p1.equalsWithinTolerance(p2, SK_ScalarNearlyZero) &&
-               p2.equalsWithinTolerance(p3, SK_ScalarNearlyZero) &&
-               p3.equalsWithinTolerance(p4, SK_ScalarNearlyZero);
+        return p1.equalsWithinTolerance(p2) &&
+               p2.equalsWithinTolerance(p3) &&
+               p3.equalsWithinTolerance(p4);
     }
+
+    
+
+
+
+
+
+    bool isLine(SkPoint line[2]) const;
 
     
 
@@ -457,6 +477,24 @@ public:
 
 
 
+
+
+    bool cheapComputeDirection(Direction* dir) const;
+
+    
+
+
+
+
+    bool cheapIsDirection(Direction dir) const {
+        Direction computedDir;
+        return this->cheapComputeDirection(&computedDir) && computedDir == dir;
+    }
+
+    
+
+
+
     void    addRect(const SkRect& rect, Direction dir = kCW_Direction);
 
     
@@ -526,7 +564,7 @@ public:
 
 
 
-    void    addPath(const SkPath& src, SkScalar dx, SkScalar dy);
+    void addPath(const SkPath& src, SkScalar dx, SkScalar dy);
 
     
 
@@ -540,6 +578,11 @@ public:
 
 
     void addPath(const SkPath& src, const SkMatrix& matrix);
+
+    
+
+
+    void reverseAddPath(const SkPath& src);
 
     
 
@@ -643,7 +686,14 @@ public:
 
 
 
-        Verb next(SkPoint pts[4]);
+
+
+        Verb next(SkPoint pts[4], bool doConsumeDegerates = true) {
+            if (doConsumeDegerates) {
+                this->consumeDegenerateSegments();
+            }
+            return this->doNext(pts);
+        }
 
         
 
@@ -671,9 +721,10 @@ public:
         SkBool8         fCloseLine;
         SkBool8         fSegmentState;
 
-        bool cons_moveTo(SkPoint pts[1]);
+        inline const SkPoint& cons_moveTo();
         Verb autoClose(SkPoint pts[2]);
         void consumeDegenerateSegments();
+        Verb doNext(SkPoint pts[4]);
     };
 
     
@@ -709,6 +760,8 @@ public:
 
 #ifdef SK_BUILD_FOR_ANDROID
     uint32_t getGenerationID() const;
+    const SkPath* getSourcePath() const;
+    void setSourcePath(const SkPath* path);
 #endif
 
     SkDEBUGCODE(void validate() const;)
@@ -717,19 +770,22 @@ private:
     SkTDArray<SkPoint>  fPts;
     SkTDArray<uint8_t>  fVerbs;
     mutable SkRect      fBounds;
+    int                 fLastMoveToIndex;
     uint8_t             fFillType;
     uint8_t             fSegmentMask;
     mutable uint8_t     fBoundsIsDirty;
     mutable uint8_t     fConvexity;
+
+    mutable SkBool8     fIsOval;
 #ifdef SK_BUILD_FOR_ANDROID
     uint32_t            fGenerationID;
+    const SkPath*       fSourcePath;
 #endif
 
     
     void computeBounds() const;
 
     friend class Iter;
-    void cons_moveto();
 
     friend class SkPathStroker;
     
@@ -744,8 +800,18 @@ private:
 
     void reversePathTo(const SkPath&);
 
-    friend const SkPoint* sk_get_path_points(const SkPath&, int index);
+    
+    
+    
+    
+    
+    
+    inline void injectMoveToIfNeeded();
+
+    inline bool hasOnlyMoveTos() const;
+
     friend class SkAutoPathBoundsUpdate;
+    friend class SkAutoDisableOvalCheck;
 };
 
 #endif

@@ -9,7 +9,28 @@
 #include "SkFlattenable.h"
 #include "SkThread.h"
 
-static SkMutex  gPixelRefMutex;
+
+#define PIXELREF_MUTEX_RING_COUNT       32
+
+#ifdef PIXELREF_MUTEX_RING_COUNT
+    static int32_t gPixelRefMutexRingIndex;
+    static SK_DECLARE_MUTEX_ARRAY(gPixelRefMutexRing, PIXELREF_MUTEX_RING_COUNT);
+#else
+    SK_DECLARE_STATIC_MUTEX(gPixelRefMutex);
+#endif
+
+SkBaseMutex* get_default_mutex() {
+#ifdef PIXELREF_MUTEX_RING_COUNT
+    
+    
+    int index = sk_atomic_inc(&gPixelRefMutexRingIndex);
+    return &gPixelRefMutexRing[index & (PIXELREF_MUTEX_RING_COUNT - 1)];
+#else
+    return &gPixelRefMutex;
+#endif
+}
+
+
 
 extern int32_t SkNextPixelRefGenerationID();
 int32_t SkNextPixelRefGenerationID() {
@@ -24,50 +45,76 @@ int32_t SkNextPixelRefGenerationID() {
 }
 
 
-SkPixelRef::SkPixelRef(SkMutex* mutex) {
+
+void SkPixelRef::setMutex(SkBaseMutex* mutex) {
     if (NULL == mutex) {
-        mutex = &gPixelRefMutex;
+        mutex = get_default_mutex();
     }
     fMutex = mutex;
+}
+
+
+#define SKPIXELREF_PRELOCKED_LOCKCOUNT     123456789
+
+SkPixelRef::SkPixelRef(SkBaseMutex* mutex) : fPreLocked(false) {
+    this->setMutex(mutex);
     fPixels = NULL;
     fColorTable = NULL; 
     fLockCount = 0;
     fGenerationID = 0;  
     fIsImmutable = false;
+    fPreLocked = false;
 }
 
-SkPixelRef::SkPixelRef(SkFlattenableReadBuffer& buffer, SkMutex* mutex) {
-    if (NULL == mutex) {
-        mutex = &gPixelRefMutex;
-    }
-    fMutex = mutex;
+SkPixelRef::SkPixelRef(SkFlattenableReadBuffer& buffer, SkBaseMutex* mutex)
+        : INHERITED(buffer) {
+    this->setMutex(mutex);
     fPixels = NULL;
     fColorTable = NULL; 
     fLockCount = 0;
     fGenerationID = 0;  
     fIsImmutable = buffer.readBool();
+    fPreLocked = false;
+}
+
+void SkPixelRef::setPreLocked(void* pixels, SkColorTable* ctable) {
+    
+    
+    fPixels = pixels;
+    fColorTable = ctable;
+    fLockCount = SKPIXELREF_PRELOCKED_LOCKCOUNT;
+    fPreLocked = true;
 }
 
 void SkPixelRef::flatten(SkFlattenableWriteBuffer& buffer) const {
+    this->INHERITED::flatten(buffer);
     buffer.writeBool(fIsImmutable);
 }
 
 void SkPixelRef::lockPixels() {
-    SkAutoMutexAcquire  ac(*fMutex);
+    SkASSERT(!fPreLocked || SKPIXELREF_PRELOCKED_LOCKCOUNT == fLockCount);
 
-    if (1 == ++fLockCount) {
-        fPixels = this->onLockPixels(&fColorTable);
+    if (!fPreLocked) {
+        SkAutoMutexAcquire  ac(*fMutex);
+
+        if (1 == ++fLockCount) {
+            fPixels = this->onLockPixels(&fColorTable);
+        }
     }
 }
 
 void SkPixelRef::unlockPixels() {
-    SkAutoMutexAcquire  ac(*fMutex);
+    SkASSERT(!fPreLocked || SKPIXELREF_PRELOCKED_LOCKCOUNT == fLockCount);
+    
+    if (!fPreLocked) {
+        SkAutoMutexAcquire  ac(*fMutex);
 
-    SkASSERT(fLockCount > 0);
-    if (0 == --fLockCount) {
-        this->onUnlockPixels();
-        fPixels = NULL;
-        fColorTable = NULL;
+        SkASSERT(fLockCount > 0);
+        if (0 == --fLockCount) {
+            this->onUnlockPixels();
+            fPixels = NULL;
+            fColorTable = NULL;
+        }
     }
 }
 
@@ -106,71 +153,6 @@ bool SkPixelRef::readPixels(SkBitmap* dst, const SkIRect* subset) {
 
 bool SkPixelRef::onReadPixels(SkBitmap* dst, const SkIRect* subset) {
     return false;
-}
-
-
-
-#define MAX_PAIR_COUNT  16
-
-struct Pair {
-    const char*          fName;
-    SkPixelRef::Factory  fFactory;
-};
-
-static int gCount;
-static Pair gPairs[MAX_PAIR_COUNT];
-
-void SkPixelRef::Register(const char name[], Factory factory) {
-    SkASSERT(name);
-    SkASSERT(factory);
-
-    static bool gOnce;
-    if (!gOnce) {
-        gCount = 0;
-        gOnce = true;
-    }
-
-    SkASSERT(gCount < MAX_PAIR_COUNT);
-
-    gPairs[gCount].fName = name;
-    gPairs[gCount].fFactory = factory;
-    gCount += 1;
-}
-
-#if !SK_ALLOW_STATIC_GLOBAL_INITIALIZERS && defined(SK_DEBUG)
-static void report_no_entries(const char* functionName) {
-    if (!gCount) {
-        SkDebugf("%s has no registered name/factory pairs."
-                 " Call SkGraphics::Init() at process initialization time.",
-                 functionName);
-    }
-}
-#endif
-
-SkPixelRef::Factory SkPixelRef::NameToFactory(const char name[]) {
-#if !SK_ALLOW_STATIC_GLOBAL_INITIALIZERS && defined(SK_DEBUG)
-    report_no_entries(__FUNCTION__);
-#endif
-    const Pair* pairs = gPairs;
-    for (int i = gCount - 1; i >= 0; --i) {
-        if (strcmp(pairs[i].fName, name) == 0) {
-            return pairs[i].fFactory;
-        }
-    }
-    return NULL;
-}
-
-const char* SkPixelRef::FactoryToName(Factory fact) {
-#if !SK_ALLOW_STATIC_GLOBAL_INITIALIZERS && defined(SK_DEBUG)
-    report_no_entries(__FUNCTION__);
-#endif
-    const Pair* pairs = gPairs;
-    for (int i = gCount - 1; i >= 0; --i) {
-        if (pairs[i].fFactory == fact) {
-            return pairs[i].fName;
-        }
-    }
-    return NULL;
 }
 
 

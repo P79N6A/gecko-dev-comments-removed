@@ -12,7 +12,7 @@
 
 #include "SkTypes.h"
 
-class SkGraphics {
+class SK_API SkGraphics {
 public:
     
 
@@ -64,6 +64,26 @@ public:
 
 
     static void SetFlags(const char* flags);
+    
+    
+
+
+
+
+
+
+
+
+
+
+    static size_t GetTLSFontCacheLimit();
+    
+    
+
+
+
+
+    static void SetTLSFontCacheLimit(size_t bytes);
     
 private:
     

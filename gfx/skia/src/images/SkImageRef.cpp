@@ -16,7 +16,7 @@
 
 
 
-SkMutex gImageRefMutex;
+SK_DECLARE_GLOBAL_MUTEX(gImageRefMutex);
 
 
 

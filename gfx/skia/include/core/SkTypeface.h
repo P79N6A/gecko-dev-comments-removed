@@ -11,13 +11,14 @@
 #define SkTypeface_DEFINED
 
 #include "SkAdvancedTypefaceMetrics.h"
-#include "SkRefCnt.h"
+#include "SkWeakRefCnt.h"
 
 class SkStream;
 class SkAdvancedTypefaceMetrics;
 class SkWStream;
 
 typedef uint32_t SkFontID;
+typedef uint32_t SkFontTableTag;
 
 
 
@@ -28,7 +29,7 @@ typedef uint32_t SkFontID;
 
 
 
-class SK_API SkTypeface : public SkRefCnt {
+class SK_API SkTypeface : public SkWeakRefCnt {
 public:
     
 
@@ -61,7 +62,7 @@ public:
 
 
     SkFontID uniqueID() const { return fUniqueID; }
-
+    
     
 
 
@@ -83,18 +84,6 @@ public:
 
 
     static SkTypeface* CreateFromName(const char familyName[], Style style);
-
-    
-
-
-
-
-
-
-
-
-    static SkTypeface* CreateForChars(const void* data, size_t bytelength,
-                                      Style s);
 
     
 
@@ -146,6 +135,46 @@ public:
             const uint32_t* glyphIDs = NULL,
             uint32_t glyphIDsCount = 0) const;
 
+    
+    
+
+    
+    int countTables() const;
+    
+    
+
+
+
+
+    int getTableTags(SkFontTableTag tags[]) const;
+    
+    
+
+    size_t getTableSize(SkFontTableTag) const;
+    
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    size_t getTableData(SkFontTableTag tag, size_t offset, size_t length,
+                        void* data) const;
+    
 protected:
     
 
@@ -157,7 +186,7 @@ private:
     Style       fStyle;
     bool        fIsFixedWidth;
 
-    typedef SkRefCnt INHERITED;
+    typedef SkWeakRefCnt INHERITED;
 };
 
 #endif

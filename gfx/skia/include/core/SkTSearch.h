@@ -12,6 +12,24 @@
 
 #include "SkTypes.h"
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 template <typename T>
 int SkTSearch(const T* base, int count, const T& target, size_t elemSize)
 {
@@ -47,7 +65,7 @@ int SkTSearch(const T* base, int count, const T& target, size_t elemSize)
 
 template <typename T>
 int SkTSearch(const T* base, int count, const T& target, size_t elemSize,
-              int (*compare)(const T&, const T&))
+              int (*compare)(const T*, const T*))
 {
     SkASSERT(count >= 0);
     if (count <= 0) {
@@ -63,14 +81,14 @@ int SkTSearch(const T* base, int count, const T& target, size_t elemSize,
         int mid = (hi + lo) >> 1;
         const T* elem = (const T*)((const char*)base + mid * elemSize);
 
-        if ((*compare)(*elem, target) < 0)
+        if ((*compare)(elem, &target) < 0)
             lo = mid + 1;
         else
             hi = mid;
     }
 
     const T* elem = (const T*)((const char*)base + hi * elemSize);
-    int pred = (*compare)(*elem, target);
+    int pred = (*compare)(elem, &target);
     if (pred != 0) {
         if (pred < 0)
             hi += 1;
@@ -149,10 +167,8 @@ private:
     char    fStorage[STORAGE+1];
 };
 
-extern "C" {
-    typedef int (*SkQSortCompareProc)(const void*, const void*);
-    void SkQSort(void* base, size_t count, size_t elemSize, SkQSortCompareProc);
-}
+
+#define SkCastForQSort(compare) reinterpret_cast<int (*)(const void*, const void*)>(compare)
 
 #endif
 

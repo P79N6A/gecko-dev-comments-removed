@@ -213,7 +213,13 @@ struct SK_API SkPoint {
 
 
 
-    static bool CanNormalize(SkScalar dx, SkScalar dy);
+    static bool CanNormalize(SkScalar dx, SkScalar dy)
+#ifdef SK_SCALAR_IS_FLOAT
+    
+    { return (dx*dx + dy*dy) > (SK_ScalarNearlyZero * SK_ScalarNearlyZero); }
+#else
+    ;
+#endif
 
     bool canNormalize() const {
         return CanNormalize(fX, fY);
@@ -317,9 +323,27 @@ struct SK_API SkPoint {
 
     
 
-    bool equalsWithinTolerance(const SkPoint& v, SkScalar tol) const {
-        return SkScalarNearlyZero(fX - v.fX, tol)
-               && SkScalarNearlyZero(fY - v.fY, tol);
+
+
+
+
+
+
+
+    bool equalsWithinTolerance(const SkPoint& p) const {
+        return !CanNormalize(fX - p.fX, fY - p.fY);
+    }
+
+    
+
+
+
+
+
+
+    bool equalsWithinTolerance(const SkPoint& p, SkScalar tol) const {
+        return SkScalarNearlyZero(fX - p.fX, tol)
+               && SkScalarNearlyZero(fY - p.fY, tol);
     }
 
     
@@ -442,11 +466,11 @@ struct SK_API SkPoint {
     void setOrthog(const SkPoint& vec, Side side = kLeft_Side) {
         
         SkScalar tmp = vec.fX;
-        if (kLeft_Side == side) {
+        if (kRight_Side == side) {
             fX = -vec.fY;
             fY = tmp;
         } else {
-            SkASSERT(kRight_Side == side);
+            SkASSERT(kLeft_Side == side);
             fX = vec.fY;
             fY = -tmp;
         }

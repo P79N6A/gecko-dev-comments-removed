@@ -211,6 +211,11 @@ public:
     
 
 
+    size_t getCachedResourceBytes() const { return fEntryBytes; }
+
+    
+
+
     enum LockType {
         kNested_LockType,
         kSingle_LockType,
@@ -315,4 +320,3 @@ private:
 #endif
 
 #endif
-

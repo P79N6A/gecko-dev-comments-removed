@@ -62,7 +62,7 @@ public:
 
 
 
-    SkDevice* createCompatibleDevice(SkBitmap::Config config, 
+    SkDevice* createCompatibleDevice(SkBitmap::Config config,
                                      int width, int height,
                                      bool isOpaque);
 
@@ -139,7 +139,7 @@ public:
 protected:
     enum Usage {
        kGeneral_Usage,
-       kSaveLayer_Usage 
+       kSaveLayer_Usage, 
     };
 
     struct TextFlags {
@@ -283,7 +283,10 @@ protected:
 
 
 
-    virtual void onAccessBitmap(SkBitmap*);
+
+
+
+    virtual const SkBitmap& onAccessBitmap(SkBitmap*);
 
     SkPixelRef* getPixelRef() const { return fBitmap.pixelRef(); }
     
@@ -291,7 +294,7 @@ protected:
         fBitmap.setPixelRef(pr, offset);
         return pr;
     }
-    
+
     
 
 
@@ -314,8 +317,26 @@ protected:
 
 
 
-    virtual bool filterImage(SkImageFilter*, const SkBitmap& src,
-                             const SkMatrix& ctm,
+
+    virtual bool allowImageFilter(SkImageFilter*);
+
+    
+
+
+
+
+
+
+    virtual bool canHandleImageFilter(SkImageFilter*);
+
+    
+
+
+
+
+
+
+    virtual bool filterImage(SkImageFilter*, const SkBitmap&, const SkMatrix&,
                              SkBitmap* result, SkIPoint* offset);
 
     
@@ -331,17 +352,31 @@ private:
     friend class DeviceImageFilterProxy;
 
     
+
+
+
+
+    virtual void postSave() {};
+
+    
+
+
+
+
+    virtual void preRestore() {};
+
+    
     void setOrigin(int x, int y) { fOrigin.set(x, y); }
     
-    SkDevice* createCompatibleDeviceForSaveLayer(SkBitmap::Config config, 
+    SkDevice* createCompatibleDeviceForSaveLayer(SkBitmap::Config config,
                                                  int width, int height,
                                                  bool isOpaque);
 
     
 
 
-    virtual SkDevice* onCreateCompatibleDevice(SkBitmap::Config config, 
-                                               int width, int height, 
+    virtual SkDevice* onCreateCompatibleDevice(SkBitmap::Config config,
+                                               int width, int height,
                                                bool isOpaque,
                                                Usage usage);
 

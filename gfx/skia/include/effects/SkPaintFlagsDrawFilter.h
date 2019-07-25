@@ -20,7 +20,6 @@ public:
     virtual void filter(SkPaint*, Type);
     
 private:
-    uint32_t    fPrevFlags;     
     uint16_t    fClearFlags;    
     uint16_t    fSetFlags;      
 };

@@ -24,6 +24,20 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     SkDashPathEffect(const SkScalar intervals[], int count, SkScalar phase, bool scaleToFit = false);
     virtual ~SkDashPathEffect();
 
@@ -34,15 +48,11 @@ public:
     
     
     virtual Factory getFactory();
-    
-    virtual void flatten(SkFlattenableWriteBuffer&);
-
     static SkFlattenable* CreateProc(SkFlattenableReadBuffer&);
-
-    SK_DECLARE_FLATTENABLE_REGISTRAR()
 
 protected:
     SkDashPathEffect(SkFlattenableReadBuffer&);
+    virtual void flatten(SkFlattenableWriteBuffer&) const SK_OVERRIDE;
     
 private:
     SkScalar*   fIntervals;

@@ -31,6 +31,7 @@ static void S32A_D565_Opaque_neon(uint16_t* SK_RESTRICT dst,
                       "vld4.8     {d0-d3}, [%[src]]           \n\t"
                       
                       
+                      
                       "it eq                                  \n\t"
                       "moveq      ip, #8                      \n\t"
                       "mov        %[keep_dst], %[dst]         \n\t"
@@ -553,7 +554,7 @@ static void S32A_Opaque_BlitRow32_neon(SkPMColor* SK_RESTRICT dst,
 #error The ARM asm version of S32A_Opaque_BlitRow32 does not support TEST_SRC_ALPHA
 #endif
 
-static void  __attribute((noinline,optimize("-fomit-frame-pointer"))) S32A_Opaque_BlitRow32_arm(SkPMColor* SK_RESTRICT dst,
+static void S32A_Opaque_BlitRow32_arm(SkPMColor* SK_RESTRICT dst,
                                   const SkPMColor* SK_RESTRICT src,
                                   int count, U8CPU alpha) {
 
@@ -650,7 +651,7 @@ static void  __attribute((noinline,optimize("-fomit-frame-pointer"))) S32A_Opaqu
 
 
 
-static void __attribute((noinline,optimize("-fomit-frame-pointer"))) S32A_Blend_BlitRow32_arm(SkPMColor* SK_RESTRICT dst,
+static void S32A_Blend_BlitRow32_arm(SkPMColor* SK_RESTRICT dst,
                                  const SkPMColor* SK_RESTRICT src,
                                  int count, U8CPU alpha) {
     asm volatile (
@@ -674,13 +675,8 @@ static void __attribute((noinline,optimize("-fomit-frame-pointer"))) S32A_Blend_
                   
                   "lsr    r9, r5, #24                \n\t" 
                   "lsr    r10, r6, #24               \n\t" 
-#ifdef SK_ARM_HAS_EDSP
                   "smulbb r9, r9, %[alpha]           \n\t" 
                   "smulbb r10, r10, %[alpha]         \n\t" 
-#else
-                  "mul    r9, r9, %[alpha]           \n\t" 
-                  "mul    r10, r10, %[alpha]         \n\t" 
-#endif
                   "lsr    r9, r9, #8                 \n\t" 
                   "lsr    r10, r10, #8               \n\t" 
                   "rsb    r9, r9, #256               \n\t" 
@@ -749,11 +745,7 @@ static void __attribute((noinline,optimize("-fomit-frame-pointer"))) S32A_Blend_
 
                   "lsr    r6, r5, #24                \n\t" 
                   "and    r8, r12, r5, lsr #8        \n\t" 
-#ifdef SK_ARM_HAS_EDSP
                   "smulbb r6, r6, %[alpha]           \n\t" 
-#else
-                  "mul    r6, r6, %[alpha]           \n\t" 
-#endif
                   "and    r9, r12, r5                \n\t" 
                   "lsr    r6, r6, #8                 \n\t" 
                   "mul    r8, r8, %[alpha]           \n\t" 
@@ -1000,7 +992,7 @@ static void S32A_D565_Opaque_Dither_neon (uint16_t * SK_RESTRICT dst,
 
 	    
 	    
-#if SK_BUILD_FOR_ANDROID
+#if defined(SK_BUILD_FOR_ANDROID)
 	    
 	    alpha8 = vaddw_u8(vmovl_u8(sa), vdup_n_u8(1));
 #else
@@ -1322,6 +1314,10 @@ SkBlitRow::ColorProc SkBlitRow::PlatformColorProc() {
 SkBlitMask::ColorProc SkBlitMask::PlatformColorProcs(SkBitmap::Config dstConfig,
                                                      SkMask::Format maskFormat,
                                                      SkColor color) {
+    return NULL;
+}
+
+SkBlitMask::BlitLCD16RowProc SkBlitMask::PlatformBlitRowProcs16(bool isOpaque) {
     return NULL;
 }
 

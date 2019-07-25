@@ -11,8 +11,9 @@
 #ifndef GrClipIterator_DEFINED
 #define GrClipIterator_DEFINED
 
-#include "GrPath.h"
 #include "GrRect.h"
+#include "SkPath.h"
+#include "SkRegion.h"
 
 
 
@@ -40,7 +41,7 @@ public:
 
 
 
-    virtual const GrPath* getPath() = 0;
+    virtual const SkPath* getPath() = 0;
 
     
 
@@ -58,7 +59,12 @@ public:
 
 
 
-    virtual GrSetOp getOp() const = 0;
+    virtual SkRegion::Op getOp() const = 0;
+
+    
+
+
+    virtual bool getDoAA() const = 0;
 
     
 

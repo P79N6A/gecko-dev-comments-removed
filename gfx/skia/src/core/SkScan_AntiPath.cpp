@@ -36,7 +36,8 @@
 
 
 
-#define SK_SUPPORT_NEW_AA
+
+
 
 
 
@@ -79,10 +80,12 @@ BaseSuperBlitter::BaseSuperBlitter(SkBlitter* realBlitter, const SkIRect& ir,
     fRealBlitter = realBlitter;
 
     
-    
-    const int left = SkMin32(ir.fLeft, clip.getBounds().fLeft);
-    const int right = SkMax32(ir.fRight, clip.getBounds().fRight);
 
+
+
+    const int left = clip.getBounds().fLeft;
+    const int right = clip.getBounds().fRight;
+    
     fLeft = left;
     fSuperLeft = left << SHIFT;
     fWidth = right - left;
@@ -150,11 +153,22 @@ void SuperBlitter::flush() {
     }
 }
 
-static inline int coverage_to_alpha(int aa) {
+
+
+
+
+
+
+static inline int coverage_to_partial_alpha(int aa) {
     aa <<= 8 - 2*SHIFT;
+#ifdef SK_USE_LEGACY_AA_COVERAGE
     aa -= aa >> (8 - SHIFT - 1);
+#endif
     return aa;
 }
+
+
+
 
 static inline int coverage_to_exact_alpha(int aa) {
     int alpha = (256 >> SHIFT) * aa;
@@ -210,9 +224,8 @@ void SuperBlitter::blitH(int x, int y, int width) {
         }
     }
 
-    
-    fOffsetX = fRuns.add(x >> SHIFT, coverage_to_alpha(fb),
-                         n, coverage_to_alpha(fe),
+    fOffsetX = fRuns.add(x >> SHIFT, coverage_to_partial_alpha(fb),
+                         n, coverage_to_partial_alpha(fe),
                          (1 << (8 - SHIFT)) - (((y & MASK) + 1) >> SHIFT),
                          fOffsetX);
 
@@ -372,10 +385,12 @@ public:
         return false;
 #endif
         int width = bounds.width();
-        int rb = SkAlign4(width);
+        int64_t rb = SkAlign4(width);
+        
+        int64_t storage = rb * bounds.height();
 
         return (width <= MaskSuperBlitter::kMAX_WIDTH) &&
-        (rb * bounds.height() <= MaskSuperBlitter::kMAX_STORAGE);
+               (storage <= MaskSuperBlitter::kMAX_STORAGE);
     }
 
 private:
@@ -405,7 +420,7 @@ MaskSuperBlitter::MaskSuperBlitter(SkBlitter* realBlitter, const SkIRect& ir,
     fMask.fBounds   = ir;
     fMask.fRowBytes = ir.width();
     fMask.fFormat   = SkMask::kA8_Format;
-
+            
     fClipRect = ir;
     fClipRect.intersect(clip.getBounds());
 
@@ -431,28 +446,25 @@ static inline uint32_t quadplicate_byte(U8CPU value) {
 }
 
 
+
+
+
+
+static inline void saturated_add(uint8_t* ptr, U8CPU add) {
+    unsigned tmp = *ptr + add;
+    SkASSERT(tmp <= 256);
+    *ptr = SkToU8(tmp - (tmp >> 8));
+}
+
+
 #define MIN_COUNT_FOR_QUAD_LOOP  16
 
 static void add_aa_span(uint8_t* alpha, U8CPU startAlpha, int middleCount,
                         U8CPU stopAlpha, U8CPU maxValue) {
     SkASSERT(middleCount >= 0);
 
-    
-
-
-
-
-#ifdef SK_SUPPORT_NEW_AA
-    if (startAlpha) {
-        unsigned tmp = *alpha + startAlpha;
-        SkASSERT(tmp <= 256);
-        *alpha++ = SkToU8(tmp - (tmp >> 8));
-    }
-#else
-    unsigned tmp = *alpha + startAlpha;
-    SkASSERT(tmp <= 256);
-    *alpha++ = SkToU8(tmp - (tmp >> 8));
-#endif
+    saturated_add(alpha, startAlpha);
+    alpha += 1;
 
     if (middleCount >= MIN_COUNT_FOR_QUAD_LOOP) {
         
@@ -483,7 +495,7 @@ static void add_aa_span(uint8_t* alpha, U8CPU startAlpha, int middleCount,
     
     
     
-    *alpha = SkToU8(*alpha + stopAlpha);
+    saturated_add(alpha, stopAlpha);
 }
 
 void MaskSuperBlitter::blitH(int x, int y, int width) {
@@ -528,20 +540,13 @@ void MaskSuperBlitter::blitH(int x, int y, int width) {
     if (n < 0) {
         SkASSERT(row >= fMask.fImage);
         SkASSERT(row < fMask.fImage + kMAX_STORAGE + 1);
-        add_aa_span(row, coverage_to_alpha(fe - fb));
+        add_aa_span(row, coverage_to_partial_alpha(fe - fb));
     } else {
-#ifdef SK_SUPPORT_NEW_AA
-        if (0 == fb) {
-            n += 1;
-        } else {
-            fb = SCALE - fb;
-        }
-#else
         fb = SCALE - fb;
-#endif
         SkASSERT(row >= fMask.fImage);
         SkASSERT(row + n + 1 < fMask.fImage + kMAX_STORAGE + 1);
-        add_aa_span(row,  coverage_to_alpha(fb), n, coverage_to_alpha(fe),
+        add_aa_span(row,  coverage_to_partial_alpha(fb),
+                    n, coverage_to_partial_alpha(fe),
                     (1 << (8 - SHIFT)) - (((y & MASK) + 1) >> SHIFT));
     }
 
@@ -552,47 +557,115 @@ void MaskSuperBlitter::blitH(int x, int y, int width) {
 
 
 
-
-
-
+static bool fitsInsideLimit(const SkRect& r, SkScalar max) {
+    const SkScalar min = -max;
+    return  r.fLeft > min && r.fTop > min &&
+            r.fRight < max && r.fBottom < max;
+}
 
 static int overflows_short_shift(int value, int shift) {
     const int s = 16 + shift;
     return (value << s >> s) - value;
 }
 
-void SkScan::AntiFillPath(const SkPath& path, const SkRegion& clip,
+
+
+
+
+static int rect_overflows_short_shift(SkIRect rect, int shift) {
+    SkASSERT(!overflows_short_shift(8191, SHIFT));
+    SkASSERT(overflows_short_shift(8192, SHIFT));
+    SkASSERT(!overflows_short_shift(32767, 0));
+    SkASSERT(overflows_short_shift(32768, 0));
+
+    
+    
+    return overflows_short_shift(rect.fLeft, SHIFT) |
+           overflows_short_shift(rect.fRight, SHIFT) |
+           overflows_short_shift(rect.fTop, SHIFT) |
+           overflows_short_shift(rect.fBottom, SHIFT);
+}
+
+static bool safeRoundOut(const SkRect& src, SkIRect* dst, int32_t maxInt) {
+#ifdef SK_SCALAR_IS_FIXED
+    
+    
+    const SkFixed maxScalar = maxInt;
+#else
+    const SkScalar maxScalar = SkIntToScalar(maxInt);
+#endif
+    if (fitsInsideLimit(src, maxScalar)) {
+        src.roundOut(dst);
+        return true;
+    }
+    return false;
+}
+
+void SkScan::AntiFillPath(const SkPath& path, const SkRegion& origClip,
                           SkBlitter* blitter, bool forceRLE) {
-    if (clip.isEmpty()) {
+    if (origClip.isEmpty()) {
         return;
     }
 
     SkIRect ir;
-    path.getBounds().roundOut(&ir);
+
+    if (!safeRoundOut(path.getBounds(), &ir, SK_MaxS32 >> SHIFT)) {
+#if 0
+        const SkRect& r = path.getBounds();
+        SkDebugf("--- bounds can't fit in SkIRect\n", r.fLeft, r.fTop, r.fRight, r.fBottom);
+#endif
+        return;
+    }
     if (ir.isEmpty()) {
         if (path.isInverseFillType()) {
-            blitter->blitRegion(clip);
+            blitter->blitRegion(origClip);
         }
         return;
     }
 
     
     
-    if (overflows_short_shift(ir.fLeft, SHIFT) |
-            overflows_short_shift(ir.fRight, SHIFT) |
-            overflows_short_shift(ir.fTop, SHIFT) |
-            overflows_short_shift(ir.fBottom, SHIFT)) {
-        
-        SkScan::FillPath(path, clip, blitter);
+    
+    SkIRect clippedIR;
+    if (path.isInverseFillType()) {
+       
+       
+       clippedIR = origClip.getBounds();
+    } else {
+       if (!clippedIR.intersect(ir, origClip.getBounds())) {
+           return;
+       }
+    }
+    if (rect_overflows_short_shift(clippedIR, SHIFT)) {
+        SkScan::FillPath(path, origClip, blitter);
         return;
     }
 
-    SkScanClipper   clipper(blitter, &clip, ir);
+    
+    
+    
+    
+    
+    
+    SkRegion tmpClipStorage;
+    const SkRegion* clipRgn = &origClip;
+    {
+        static const int32_t kMaxClipCoord = 32767;
+        const SkIRect& bounds = origClip.getBounds();
+        if (bounds.fRight > kMaxClipCoord || bounds.fBottom > kMaxClipCoord) {
+            SkIRect limit = { 0, 0, kMaxClipCoord, kMaxClipCoord };
+            tmpClipStorage.op(origClip, limit, SkRegion::kIntersect_Op);
+            clipRgn = &tmpClipStorage;
+        }
+    }
+    
+
+    SkScanClipper   clipper(blitter, clipRgn, ir);
     const SkIRect*  clipRect = clipper.getClipRect();
 
     if (clipper.getBlitter() == NULL) { 
         if (path.isInverseFillType()) {
-            blitter->blitRegion(clip);
+            blitter->blitRegion(*clipRgn);
         }
         return;
     }
@@ -601,7 +674,7 @@ void SkScan::AntiFillPath(const SkPath& path, const SkRegion& clip,
     blitter = clipper.getBlitter();
 
     if (path.isInverseFillType()) {
-        sk_blit_above(blitter, ir, clip);
+        sk_blit_above(blitter, ir, *clipRgn);
     }
 
     SkIRect superRect, *superClipRect = NULL;
@@ -617,16 +690,16 @@ void SkScan::AntiFillPath(const SkPath& path, const SkRegion& clip,
     
     
     if (!path.isInverseFillType() && MaskSuperBlitter::CanHandleRect(ir) && !forceRLE) {
-        MaskSuperBlitter    superBlit(blitter, ir, clip);
+        MaskSuperBlitter    superBlit(blitter, ir, *clipRgn);
         SkASSERT(SkIntToScalar(ir.fTop) <= path.getBounds().fTop);
-        sk_fill_path(path, superClipRect, &superBlit, ir.fTop, ir.fBottom, SHIFT, clip);
+        sk_fill_path(path, superClipRect, &superBlit, ir.fTop, ir.fBottom, SHIFT, *clipRgn);
     } else {
-        SuperBlitter    superBlit(blitter, ir, clip);
-        sk_fill_path(path, superClipRect, &superBlit, ir.fTop, ir.fBottom, SHIFT, clip);
+        SuperBlitter    superBlit(blitter, ir, *clipRgn);
+        sk_fill_path(path, superClipRect, &superBlit, ir.fTop, ir.fBottom, SHIFT, *clipRgn);
     }
 
     if (path.isInverseFillType()) {
-        sk_blit_below(blitter, ir, clip);
+        sk_blit_below(blitter, ir, *clipRgn);
     }
 }
 

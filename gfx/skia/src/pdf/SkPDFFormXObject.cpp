@@ -20,7 +20,7 @@ SkPDFFormXObject::SkPDFFormXObject(SkPDFDevice* device) {
     
     
     
-    device->getResources(&fResources);
+    device->getResources(&fResources, false);
 
     SkRefPtr<SkStream> content = device->content();
     content->unref();  
@@ -36,8 +36,11 @@ SkPDFFormXObject::SkPDFFormXObject(SkPDFDevice* device) {
     
     if (!device->initialTransform().isIdentity()) {
         SkMatrix inverse;
-        inverse.reset();
-        device->initialTransform().invert(&inverse);
+        if (!device->initialTransform().invert(&inverse)) {
+            
+            SkASSERT(false);
+            inverse.reset();
+        }
         insert("Matrix", SkPDFUtils::MatrixToArray(inverse))->unref();
     }
 

@@ -17,8 +17,6 @@ class SkDescriptor;
 class SkStream;
 class SkWStream;
 
-typedef uint32_t SkFontTableTag;
-
 
 
 
@@ -57,10 +55,8 @@ public:
 
 
 
-
     static SkTypeface* CreateTypeface(const SkTypeface* familyFace,
                                       const char familyName[],
-                                      const void* data, size_t bytelength,
                                       SkTypeface::Style style);
 
     
@@ -83,12 +79,6 @@ public:
     static SkTypeface* CreateTypefaceFromFile(const char path[]);
 
     
-
-    
-
-
-
-    static bool ValidFontID(SkFontID uniqueID);
 
     
 
@@ -250,7 +240,7 @@ public:
 
     enum LCDOrientation {
         kHorizontal_LCDOrientation = 0,    
-        kVertical_LCDOrientation   = 1
+        kVertical_LCDOrientation   = 1,
     };
 
     static void SetSubpixelOrientation(LCDOrientation orientation);
@@ -269,7 +259,7 @@ public:
     enum LCDOrder {
         kRGB_LCDOrder = 0,    
         kBGR_LCDOrder = 1,
-        kNONE_LCDOrder = 2
+        kNONE_LCDOrder = 2,
     };
 
     static void SetSubpixelOrder(LCDOrder order);

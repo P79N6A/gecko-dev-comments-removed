@@ -8,8 +8,8 @@
 
 
 #include "GrPathUtils.h"
-
 #include "GrPoint.h"
+#include "SkGeometry.h"
 
 GrScalar GrPathUtils::scaleToleranceToSrc(GrScalar devTol,
                                           const GrMatrix& viewM,
@@ -145,7 +145,7 @@ uint32_t GrPathUtils::generateCubicPoints(const GrPoint& p0,
     return a + b;
 }
 
-int GrPathUtils::worstCasePointCount(const GrPath& path, int* subpaths,
+int GrPathUtils::worstCasePointCount(const SkPath& path, int* subpaths,
                                      GrScalar tol) {
     if (tol < gMinCurveTol) {
         tol = gMinCurveTol;
@@ -185,4 +185,148 @@ int GrPathUtils::worstCasePointCount(const GrPath& path, int* subpaths,
         first = false;
     }
     return pointCount;
+}
+
+void GrPathUtils::QuadUVMatrix::set(const GrPoint qPts[3]) {
+    
+    SkMatrix UVpts;
+#ifndef SK_SCALAR_IS_FLOAT
+    GrCrash("Expected scalar is float.");
+#endif
+    SkMatrix m;
+    
+    
+    
+    
+    
+    UVpts.setAll(0,   0.5f,  1.f,
+                 0,   0,     1.f,
+                 1.f, 1.f,   1.f);
+    m.setAll(qPts[0].fX, qPts[1].fX, qPts[2].fX,
+             qPts[0].fY, qPts[1].fY, qPts[2].fY,
+             1.f,        1.f,        1.f);
+    if (!m.invert(&m)) {
+        
+        
+        SkScalar maxD = qPts[0].distanceToSqd(qPts[1]);
+        int maxEdge = 0;
+        SkScalar d = qPts[1].distanceToSqd(qPts[2]);
+        if (d > maxD) {
+            maxD = d;
+            maxEdge = 1;
+        }
+        d = qPts[2].distanceToSqd(qPts[0]);
+        if (d > maxD) {
+            maxD = d;
+            maxEdge = 2;
+        }
+        
+        if (maxD > 0) {
+            
+            GrVec lineVec = qPts[(maxEdge + 1)%3] - qPts[maxEdge];
+            
+            
+            
+            lineVec.setOrthog(lineVec, GrPoint::kLeft_Side);
+            lineVec.dot(qPts[0]);
+            
+            fM[0] = 0;
+            fM[1] = 0;
+            fM[2] = 0;
+            
+            fM[3] = lineVec.fX;
+            fM[4] = lineVec.fY;
+            fM[5] = -lineVec.dot(qPts[maxEdge]);
+        } else {
+            
+            
+            fM[0] = 0; fM[1] = 0; fM[2] = 100.f;
+            fM[3] = 0; fM[4] = 0; fM[5] = 100.f;
+        }
+    } else {
+        m.postConcat(UVpts);
+
+        
+        static const GrScalar gTOL = 1.f / 100.f;
+        GrAssert(GrScalarAbs(m.get(SkMatrix::kMPersp0)) < gTOL);
+        GrAssert(GrScalarAbs(m.get(SkMatrix::kMPersp1)) < gTOL);
+
+        
+        float m33 = m.get(SkMatrix::kMPersp2);
+        if (1.f != m33) {
+            m33 = 1.f / m33;
+            fM[0] = m33 * m.get(SkMatrix::kMScaleX);
+            fM[1] = m33 * m.get(SkMatrix::kMSkewX);
+            fM[2] = m33 * m.get(SkMatrix::kMTransX);
+            fM[3] = m33 * m.get(SkMatrix::kMSkewY);
+            fM[4] = m33 * m.get(SkMatrix::kMScaleY);
+            fM[5] = m33 * m.get(SkMatrix::kMTransY);
+        } else {
+            fM[0] = m.get(SkMatrix::kMScaleX);
+            fM[1] = m.get(SkMatrix::kMSkewX);
+            fM[2] = m.get(SkMatrix::kMTransX);
+            fM[3] = m.get(SkMatrix::kMSkewY);
+            fM[4] = m.get(SkMatrix::kMScaleY);
+            fM[5] = m.get(SkMatrix::kMTransY);
+        }
+    }
+}
+
+namespace {
+void convert_noninflect_cubic_to_quads(const SkPoint p[4],
+                                       SkScalar tolScale,
+                                       SkTArray<SkPoint, true>* quads,
+                                       int sublevel = 0) {
+    SkVector ab = p[1];
+    ab -= p[0];
+    SkVector dc = p[2];
+    dc -= p[3];
+
+    static const SkScalar gLengthScale = 3 * SK_Scalar1 / 2;
+    
+    const SkScalar distanceSqdTol = SkScalarMul(tolScale, 1 * SK_Scalar1);
+    static const int kMaxSubdivs = 10;
+
+    ab.scale(gLengthScale);
+    dc.scale(gLengthScale);
+
+    SkVector c0 = p[0];
+    c0 += ab;
+    SkVector c1 = p[3];
+    c1 += dc;
+
+    SkScalar dSqd = c0.distanceToSqd(c1);
+    if (sublevel > kMaxSubdivs || dSqd <= distanceSqdTol) {
+        SkPoint cAvg = c0;
+        cAvg += c1;
+        cAvg.scale(SK_ScalarHalf);
+
+        SkPoint* pts = quads->push_back_n(3);
+        pts[0] = p[0];
+        pts[1] = cAvg;
+        pts[2] = p[3];
+
+        return;
+    } else {
+        SkPoint choppedPts[7];
+        SkChopCubicAtHalf(p, choppedPts);
+        convert_noninflect_cubic_to_quads(choppedPts + 0, tolScale, 
+                                          quads, sublevel + 1);
+        convert_noninflect_cubic_to_quads(choppedPts + 3, tolScale,
+                                          quads, sublevel + 1);
+    }
+}
+}
+
+void GrPathUtils::convertCubicToQuads(const GrPoint p[4],
+                                      SkScalar tolScale,
+                                      SkTArray<SkPoint, true>* quads) {
+    SkPoint chopped[10];
+    int count = SkChopCubicAtInflections(p, chopped);
+
+    for (int i = 0; i < count; ++i) {
+        SkPoint* cubic = chopped + 3*i;
+        convert_noninflect_cubic_to_quads(cubic, tolScale, quads);
+    }
+
 }

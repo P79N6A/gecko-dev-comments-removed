@@ -16,7 +16,7 @@
 
 
 
-#if defined(BUILD_FOR_WIN_32)
+#if defined(SK_BUILD_FOR_WIN32)
 #define UNROLL_KERNEL_LOOP 1
 #endif
 

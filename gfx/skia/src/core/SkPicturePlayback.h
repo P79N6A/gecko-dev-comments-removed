@@ -13,6 +13,7 @@
 
 #include "SkBitmap.h"
 #include "SkMatrix.h"
+#include "SkOrderedReadBuffer.h"
 #include "SkPaint.h"
 #include "SkPath.h"
 #include "SkPathHeap.h"
@@ -41,7 +42,7 @@ public:
     void serialize(SkWStream*) const;
 
     void dumpSize() const;
-    
+
     
     
     void abort();
@@ -83,7 +84,7 @@ private:
         SkASSERT(index > 0 && index <= fPictureCount);
         return *fPictureRefs[index - 1];
     }
-    
+
     const SkPaint* getPaint() {
         int index = getInt();
         if (index == 0) {
@@ -166,7 +167,7 @@ private:
     int fPaintCount;
     SkRegion* fRegions;
     int fRegionCount;
-    mutable SkFlattenableReadBuffer fReader;
+    mutable SkReader32 fReader;
 
     SkPicture** fPictureRefs;
     int fPictureCount;

@@ -16,6 +16,8 @@
 #include "SkPath.h"
 #include "SkPoint.h"
 
+
+
 class SkDescriptor;
 class SkMaskFilter;
 class SkPathEffect;
@@ -176,15 +178,26 @@ public:
         kLCD_BGROrder_Flag        = 0x0400,    
 
         
-        kLuminance_Shift          = 11, 
-        kLuminance_Bits           = 3  
+        
+        kGenA8FromLCD_Flag        = 0x0800,
+
+#ifdef SK_USE_COLOR_LUMINANCE
+        kLuminance_Bits           = 3,
+#else
+        
+        kLuminance_Shift          = 13, 
+        kLuminance_Bits           = 3,  
+#endif
     };
     
     
     enum {
         kHinting_Mask   = kHintingBit1_Flag | kHintingBit2_Flag,
+#ifdef SK_USE_COLOR_LUMINANCE
+#else
         kLuminance_Max  = (1 << kLuminance_Bits) - 1,
-        kLuminance_Mask = kLuminance_Max << kLuminance_Shift
+        kLuminance_Mask = kLuminance_Max << kLuminance_Shift,
+#endif
     };
 
     struct Rec {
@@ -193,6 +206,9 @@ public:
         SkScalar    fTextSize, fPreScaleX, fPreSkewX;
         SkScalar    fPost2x2[2][2];
         SkScalar    fFrameWidth, fMiterLimit;
+#ifdef SK_USE_COLOR_LUMINANCE
+        uint32_t    fLumBits;
+#endif
         uint8_t     fMaskFormat;
         uint8_t     fStrokeJoin;
         uint16_t    fFlags;
@@ -213,7 +229,20 @@ public:
         void setHinting(SkPaint::Hinting hinting) {
             fFlags = (fFlags & ~kHinting_Mask) | (hinting << kHinting_Shift);
         }
-
+        
+        SkMask::Format getFormat() const {
+            return static_cast<SkMask::Format>(fMaskFormat);
+        }
+        
+#ifdef SK_USE_COLOR_LUMINANCE
+        SkColor getLuminanceColor() const {
+            return fLumBits;
+        }
+        
+        void setLuminanceColor(SkColor c) {
+            fLumBits = c;
+        }
+#else
         unsigned getLuminanceBits() const {
             return (fFlags & kLuminance_Mask) >> kLuminance_Shift;
         }
@@ -230,10 +259,7 @@ public:
             lum |= (lum << kLuminance_Bits*2);
             return lum >> (4*kLuminance_Bits - 8);
         }
-
-        SkMask::Format getFormat() const {
-            return static_cast<SkMask::Format>(fMaskFormat);
-        }
+#endif
     };
 
     SkScalerContext(const SkDescriptor* desc);
@@ -272,7 +298,13 @@ public:
     void        getFontMetrics(SkPaint::FontMetrics* mX,
                                SkPaint::FontMetrics* mY);
 
+#ifdef SK_BUILD_FOR_ANDROID
+    unsigned getBaseGlyphCount(SkUnichar charCode);
+#endif
+
     static inline void MakeRec(const SkPaint&, const SkMatrix*, Rec* rec);
+    static inline void PostMakeRec(Rec*);
+
     static SkScalerContext* Create(const SkDescriptor*);
 
 protected:
@@ -296,7 +328,6 @@ private:
     SkPathEffect*   fPathEffect;
     SkMaskFilter*   fMaskFilter;
     SkRasterizer*   fRasterizer;
-    SkScalar        fDevFrameWidth;
 
     
     

@@ -16,6 +16,7 @@
 #include "SkRefCnt.h"
 
 struct SkIRect;
+struct SkRect;
 class SkColorTable;
 class SkPaint;
 class SkPixelRef;
@@ -66,12 +67,17 @@ public:
     
 
 
+
     SkBitmap();
+
     
+
+
+
+
 
 
     SkBitmap(const SkBitmap& src);
-    
 
     ~SkBitmap();
 
@@ -217,6 +223,12 @@ public:
 
     static Sk64 ComputeSize64(Config, int width, int height);
     static size_t ComputeSize(Config, int width, int height);
+
+    
+
+
+    void getBounds(SkRect* bounds) const;
+    void getBounds(SkIRect* bounds) const;
 
     
 

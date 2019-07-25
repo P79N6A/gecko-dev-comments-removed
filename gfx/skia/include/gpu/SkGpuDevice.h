@@ -33,10 +33,7 @@ public:
 
 
 
-
-    SkGpuDevice(GrContext*, SkBitmap::Config,
-                int width, int height, 
-                SkDevice::Usage usage = SkDevice::kGeneral_Usage);
+    SkGpuDevice(GrContext*, SkBitmap::Config, int width, int height);
 
     
 
@@ -102,7 +99,7 @@ public:
                             const SkPaint&) SK_OVERRIDE;
     virtual bool filterTextFlags(const SkPaint&, TextFlags*) SK_OVERRIDE;
 
-    virtual void flush(); 
+    virtual void flush();
 
     
 
@@ -110,46 +107,24 @@ public:
 
     virtual void makeRenderTargetCurrent();
 
-    virtual bool filterImage(SkImageFilter*, const SkBitmap& src,
-                             const SkMatrix& ctm,
-                             SkBitmap* result, SkIPoint* offset) SK_OVERRIDE;
-    
+    virtual bool canHandleImageFilter(SkImageFilter*) SK_OVERRIDE;
+    virtual bool filterImage(SkImageFilter*, const SkBitmap&, const SkMatrix&,
+                             SkBitmap*, SkIPoint*) SK_OVERRIDE;
+
+    class SkAutoCachedTexture; 
+
 protected:
     typedef GrContext::TextureCacheEntry TexCache;
-    enum TexType {
-        kBitmap_TexType,
-        kDeviceRenderTarget_TexType,
-        kSaveLayerDeviceRenderTarget_TexType
-    };
     TexCache lockCachedTexture(const SkBitmap& bitmap,
-                               const GrSamplerState* sampler,
-                               TexType type = kBitmap_TexType);
+                               const GrSamplerState* sampler);
     bool isBitmapInTextureCache(const SkBitmap& bitmap,
                                 const GrSamplerState& sampler) const;
     void unlockCachedTexture(TexCache);
 
-    class SkAutoCachedTexture {
-    public:
-        SkAutoCachedTexture();
-        SkAutoCachedTexture(SkGpuDevice* device,
-                            const SkBitmap& bitmap,
-                            const GrSamplerState* sampler,
-                            GrTexture** texture);
-        ~SkAutoCachedTexture();
-
-        GrTexture* set(SkGpuDevice*, const SkBitmap&, const GrSamplerState*);
-
-    private:
-        SkGpuDevice*    fDevice;
-        TexCache        fTex;
-    };
-    friend class SkAutoTexCache;
-    
     
     virtual bool onReadPixels(const SkBitmap& bitmap,
                               int x, int y,
                               SkCanvas::Config8888 config8888) SK_OVERRIDE;
-
 
 private:
     GrContext*      fContext;
@@ -163,38 +138,26 @@ private:
     bool                fNeedClear;
     bool                fNeedPrepareRenderTarget;
 
+    GrTextContext*      fTextContext;
+
     
     void initFromRenderTarget(GrContext*, GrRenderTarget*);
 
     
-    
-    
-    
-    
-    
-    
-    bool skPaint2GrPaintNoShader(const SkPaint& skPaint,
-                                 bool justAlpha,
-                                 GrPaint* grPaint,
-                                 bool constantColor);
+    SkGpuDevice(GrContext*, GrTexture* texture, TexCache, bool needClear);
 
     
-    
-    
-    
-    
-    
-    bool skPaint2GrPaintShader(const SkPaint& skPaint,
-                               SkAutoCachedTexture* act,
-                               const SkMatrix& ctm,
-                               GrPaint* grPaint,
-                               bool constantColor);
+    virtual void postSave() SK_OVERRIDE {
+        fContext->postClipPush();
+    }
+    virtual void preRestore() SK_OVERRIDE {
+        fContext->preClipPop();
+    }
 
-    
-    virtual SkDevice* onCreateCompatibleDevice(SkBitmap::Config config, 
-                                               int width, int height, 
+    virtual SkDevice* onCreateCompatibleDevice(SkBitmap::Config config,
+                                               int width, int height,
                                                bool isOpaque,
-                                               Usage usage);
+                                               Usage usage) SK_OVERRIDE;
 
     SkDrawProcs* initDrawForText(GrTextContext*);
     bool bindDeviceAsTexture(GrPaint* paint);
@@ -206,6 +169,11 @@ private:
                           int* tileSize) const;
     void internalDrawBitmap(const SkDraw&, const SkBitmap&,
                             const SkIRect&, const SkMatrix&, GrPaint* grPaint);
+
+    
+
+
+    GrTextContext* getTextContext();
 
     typedef SkDevice INHERITED;
 };

@@ -182,7 +182,7 @@ typedef unsigned __int64 uint64_t;
 
 
 
-extern GR_API void GrPrintf(const char format[], ...);
+#define GrPrintf SkDebugf
 
 
 
@@ -363,23 +363,6 @@ inline void GrCrash(const char* msg) { GrPrintf(msg); GrAlwaysAssert(false); }
 #if !defined(GR_GEOM_BUFFER_LOCK_THRESHOLD)
     #define GR_GEOM_BUFFER_LOCK_THRESHOLD (1 << 15)
 #endif
-
-
-
-
-#if !defined(GR_USE_OFFSCREEN_AA)
-    #define GR_USE_OFFSCREEN_AA 1
-#endif
-
-
-
-
-
-
-#if !defined(GR_MAX_OFFSCREEN_AA_SIZE)
-    #define GR_MAX_OFFSCREEN_AA_SIZE    256
-#endif
-
 
 
 

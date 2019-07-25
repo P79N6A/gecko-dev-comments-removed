@@ -73,6 +73,14 @@ public:
 
     unsigned getGlyphCount();
 
+#ifdef SK_BUILD_FOR_ANDROID
+    
+
+    unsigned getBaseGlyphCount(SkUnichar charCode) const {
+        return fScalerContext->getBaseGlyphCount(charCode);
+    }
+#endif
+
     
 
 
@@ -147,18 +155,6 @@ public:
     static SkGlyphCache* DetachCache(const SkDescriptor* desc) {
         return VisitCache(desc, DetachProc, NULL);
     }
-
-    
-
-    static size_t GetCacheUsed();
-
-    
-
-
-
-
-
-    static bool SetCacheUsed(size_t bytesUsed);
 
 #ifdef SK_DEBUG
     void validate() const;
@@ -268,7 +264,6 @@ private:
     static size_t InternalFreeCache(SkGlyphCache_Globals*, size_t bytesNeeded);
 
     inline static SkGlyphCache* FindTail(SkGlyphCache* head);
-    static size_t ComputeMemoryUsed(const SkGlyphCache* head);
 
     friend class SkGlyphCache_Globals;
 };

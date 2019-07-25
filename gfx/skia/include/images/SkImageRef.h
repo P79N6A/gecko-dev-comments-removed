@@ -60,9 +60,6 @@ public:
     
     SkImageDecoderFactory* setDecoderFactory(SkImageDecoderFactory*);
 
-    
-    virtual void flatten(SkFlattenableWriteBuffer&) const;
-
 protected:
     
 
@@ -79,6 +76,7 @@ protected:
     virtual void onUnlockPixels();
     
     SkImageRef(SkFlattenableReadBuffer&);
+    virtual void flatten(SkFlattenableWriteBuffer&) const SK_OVERRIDE;
 
     SkBitmap fBitmap;
 

@@ -113,6 +113,14 @@ public:
     const GrIRect& getResolveRect() const { return fResolveRect; }
 
     
+
+
+
+
+
+    void resolve();
+
+    
     virtual size_t sizeInBytes() const;
 
     

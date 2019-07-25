@@ -85,9 +85,10 @@ SkPDFGraphicState::CanonicalPaints() {
 }
 
 
-SkMutex& SkPDFGraphicState::CanonicalPaintsMutex() {
+SkBaseMutex& SkPDFGraphicState::CanonicalPaintsMutex() {
     
-    static SkMutex gCanonicalPaintsMutex;
+    
+    SK_DECLARE_STATIC_MUTEX(gCanonicalPaintsMutex);
     return gCanonicalPaintsMutex;
 }
 

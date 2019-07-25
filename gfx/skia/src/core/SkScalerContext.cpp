@@ -13,6 +13,7 @@
 #include "SkDraw.h"
 #include "SkFontHost.h"
 #include "SkMaskFilter.h"
+#include "SkOrderedReadBuffer.h"
 #include "SkPathEffect.h"
 #include "SkRasterizer.h"
 #include "SkRasterClip.h"
@@ -64,7 +65,7 @@ static SkFlattenable* load_flattenable(const SkDescriptor* desc, uint32_t tag) {
     const void*     data = desc->findEntry(tag, &len);
 
     if (data) {
-        SkFlattenableReadBuffer   buffer(data, len);
+        SkOrderedReadBuffer   buffer(data, len);
         obj = buffer.readFlattenable();
         SkASSERT(buffer.offset() == buffer.size());
     }
@@ -174,6 +175,32 @@ SkScalerContext* SkScalerContext::getGlyphContext(const SkGlyph& glyph) {
     }
     return ctx;
 }
+
+#ifdef SK_BUILD_FOR_ANDROID
+
+
+
+
+
+
+unsigned SkScalerContext::getBaseGlyphCount(SkUnichar uni) {
+    SkScalerContext* ctx = this;
+    unsigned glyphID;
+    for (;;) {
+        glyphID = ctx->generateCharToGlyph(uni);
+        if (glyphID) {
+            break;  
+        }
+        ctx = ctx->getNextContext();
+        if (NULL == ctx) {
+            SkDebugf("--- no context for char %x\n", uni);
+            
+            return this->fBaseGlyphCount;
+        }
+    }
+    return ctx->fBaseGlyphCount;
+}
+#endif
 
 
 
@@ -591,7 +618,10 @@ void SkScalerContext::internalGetPath(const SkGlyph& glyph, SkPath* fillPath,
         SkMatrix    matrix, inverse;
 
         fRec.getMatrixFrom2x2(&matrix);
-        matrix.invert(&inverse);
+        if (!matrix.invert(&inverse)) {
+            
+            return;
+        }
         path.transform(inverse, &localPath);
         
 

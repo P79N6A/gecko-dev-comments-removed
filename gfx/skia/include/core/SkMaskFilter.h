@@ -12,6 +12,7 @@
 
 #include "SkFlattenable.h"
 #include "SkMask.h"
+#include "SkPaint.h"
 
 class SkBlitter;
 class SkBounder;
@@ -55,14 +56,12 @@ public:
     virtual bool filterMask(SkMask* dst, const SkMask& src, const SkMatrix&,
                             SkIPoint* margin);
 
-    virtual void flatten(SkFlattenableWriteBuffer& ) {}
-
     enum BlurType {
         kNone_BlurType,    
         kNormal_BlurType,  
         kSolid_BlurType,   
         kOuter_BlurType,   
-        kInner_BlurType    
+        kInner_BlurType,   
     };
 
     struct BlurInfo {
@@ -79,9 +78,22 @@ public:
 
     virtual BlurType asABlur(BlurInfo*) const;
 
+    
+
+
+
+
+
+
+
+
+
+
+    virtual void computeFastBounds(const SkRect& src, SkRect* dest);
+
 protected:
     
-    SkMaskFilter(SkFlattenableReadBuffer&) {}
+    SkMaskFilter(SkFlattenableReadBuffer& buffer) : INHERITED(buffer) {}
 
 private:
     friend class SkDraw;
@@ -92,7 +104,10 @@ private:
 
 
     bool filterPath(const SkPath& devPath, const SkMatrix& devMatrix,
-                    const SkRasterClip&, SkBounder*, SkBlitter* blitter);
+                    const SkRasterClip&, SkBounder*, SkBlitter* blitter,
+                    SkPaint::Style style);
+
+    typedef SkFlattenable INHERITED;
 };
 
 #endif

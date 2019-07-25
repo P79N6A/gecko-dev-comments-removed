@@ -23,9 +23,7 @@ public:
     virtual void    shadeSpan(int x, int y, SkPMColor[], int count) SK_OVERRIDE;
     virtual void    shadeSpan16(int x, int y, uint16_t span[], int count) SK_OVERRIDE;
 
-    
-    virtual Factory getFactory() SK_OVERRIDE;
-    virtual void flatten(SkFlattenableWriteBuffer&) SK_OVERRIDE;
+    SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkTransparentShader)
 
 private:
     
@@ -34,10 +32,6 @@ private:
 
     SkTransparentShader(SkFlattenableReadBuffer& buffer) : INHERITED(buffer) {}
     
-    static SkFlattenable* Create(SkFlattenableReadBuffer& buffer) {
-        return SkNEW_ARGS(SkTransparentShader, (buffer));
-    }
-
     typedef SkShader INHERITED;
 };
 

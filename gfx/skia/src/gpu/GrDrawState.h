@@ -11,6 +11,7 @@
 #include "GrColor.h"
 #include "GrMatrix.h"
 #include "GrNoncopyable.h"
+#include "GrRefCnt.h"
 #include "GrSamplerState.h"
 #include "GrStencil.h"
 
@@ -19,9 +20,15 @@
 class GrRenderTarget;
 class GrTexture;
 
-struct GrDrawState {
+class GrDrawState : public GrRefCnt {
 
+public:
     
+
+
+
+
+
 
 
 
@@ -36,7 +43,7 @@ struct GrDrawState {
 
 
     enum {
-        kNumStages = 3,
+        kNumStages = 4,
         kMaxTexCoords = kNumStages
     };
 
@@ -47,21 +54,45 @@ struct GrDrawState {
     GR_STATIC_ASSERT(sizeof(StageMask)*8 >= GrDrawState::kNumStages);
 
     GrDrawState() {
+        this->reset();
+    }
+
+    GrDrawState(const GrDrawState& state) {
+        *this = state;
+    }
+
+    
+
+ 
+    void reset() {
         
         
         
-        memset(this, 0, sizeof(GrDrawState));
-            
         
-        fColorFilterMode = SkXfermode::kDstIn_Mode;
-        fFirstCoverageStage = kNumStages;
+        memset(this->podStart(), 0, this->memsetSize());
 
         
         
         GrAssert((intptr_t)(void*)NULL == 0LL);
-
+        GR_STATIC_ASSERT(0 == kBoth_DrawFace);
         GrAssert(fStencilSettings.isDisabled());
+
+        
+        fColor = 0xffffffff;
+        fCoverage = 0xffffffff;
         fFirstCoverageStage = kNumStages;
+        fColorFilterMode = SkXfermode::kDst_Mode;
+        fSrcBlend = kOne_BlendCoeff;
+        fDstBlend = kZero_BlendCoeff;
+        fViewMatrix.reset();
+        fBehaviorBits = 0;
+
+        
+        
+        GrAssert(this->memsetSize() +  sizeof(fColor) + sizeof(fCoverage) +
+                 sizeof(fFirstCoverageStage) + sizeof(fColorFilterMode) +
+                 sizeof(fSrcBlend) + sizeof(fDstBlend) ==
+                 this->podSize());
     }
 
     
@@ -110,11 +141,50 @@ struct GrDrawState {
 
 
 
+    void setCoverage(uint8_t coverage) {
+        fCoverage = GrColorPackRGBA(coverage, coverage, coverage, coverage);
+    }
+
+    
+
+
+
+    void setCoverage4(GrColor coverage) {
+        fCoverage = coverage;
+    }
+
+    GrColor getCoverage() const {
+        return fCoverage;
+    }
+
+    
+
+    
+    
+    
+
+    
+
+
+
+
 
 
 
     void setTexture(int stage, GrTexture* texture) {
         GrAssert((unsigned)stage < kNumStages);
+
+        if (isBehaviorEnabled(kTexturesNeedRef_BehaviorBit)) {
+            
+            
+            
+            GrTexture* temp = fTextures[stage];
+            fTextures[stage] = NULL;
+
+            SkSafeRef(texture);
+            SkSafeUnref(temp);
+        }
+
         fTextures[stage] = texture;
     }
 
@@ -403,9 +473,10 @@ struct GrDrawState {
 
     class AutoRenderTargetRestore : public ::GrNoncopyable {
     public:
-        AutoRenderTargetRestore() : fDrawState(NULL) {}
+        AutoRenderTargetRestore() : fDrawState(NULL), fSavedTarget(NULL) {}
         AutoRenderTargetRestore(GrDrawState* ds, GrRenderTarget* newTarget) {
             fDrawState = NULL;
+            fSavedTarget = NULL;
             this->set(ds, newTarget);
         }
         ~AutoRenderTargetRestore() { this->set(NULL, NULL); }
@@ -477,10 +548,11 @@ struct GrDrawState {
     
     
     
-    
-    
 
     
+
+
+
 
 
 
@@ -491,7 +563,17 @@ struct GrDrawState {
         kHairLine_EdgeType,
         
 
-        kHairQuad_EdgeType
+
+
+        kQuad_EdgeType,
+        
+
+        kHairQuad_EdgeType,
+        
+
+        kCircle_EdgeType,
+
+        kVertexEdgeTypeCnt
     };
 
     
@@ -500,54 +582,11 @@ struct GrDrawState {
 
 
     void setVertexEdgeType(VertexEdgeType type) {
+        GrAssert(type >=0 && type < kVertexEdgeTypeCnt);
         fVertexEdgeType = type;
     }
 
-    VertexEdgeType getVertexEdgeType() const {
-        return fVertexEdgeType;
-    }
-
-    
-
-
-
-
-
-    enum {
-        
-        
-        kMaxEdges = 1
-    };
-
-    class Edge {
-      public:
-        Edge() {}
-        Edge(float x, float y, float z) : fX(x), fY(y), fZ(z) {}
-        GrPoint intersect(const Edge& other) {
-            return GrPoint::Make(
-                SkFloatToScalar((fY * other.fZ - other.fY * fZ) /
-                                (fX * other.fY - other.fX * fY)),
-                SkFloatToScalar((fX * other.fZ - other.fX * fZ) /
-                                (other.fX * fY - fX * other.fY)));
-        }
-        float fX, fY, fZ;
-    };
-
-    
-
-
-
-
-
-    void setEdgeAAData(const Edge* edges, int numEdges) {
-        GrAssert(numEdges <= GrDrawState::kMaxEdges);
-        memcpy(fEdgeAAEdges, edges, numEdges * sizeof(GrDrawState::Edge));
-        fEdgeAANumEdges = numEdges;
-    }
-
-    int getNumAAEdges() const { return fEdgeAANumEdges; }
-
-    const Edge* getAAEdges() const { return fEdgeAAEdges; }
+    VertexEdgeType getVertexEdgeType() const { return fVertexEdgeType; }
 
     
 
@@ -634,10 +673,6 @@ struct GrDrawState {
         return 0 != (fFlagBits & kNoColorWrites_StateBit);
     }
 
-    bool isConcaveEdgeAAState() const {
-        return 0 != (fFlagBits & kEdgeAAConcave_StateBit);
-    }
-
     bool isStateFlagEnabled(uint32_t stateBit) const {
         return 0 != (stateBit & fFlagBits);
     }
@@ -648,11 +683,35 @@ struct GrDrawState {
 
     
 
+
+    enum GrBehaviorBits {
+        
+
+
+        kTexturesNeedRef_BehaviorBit = 0x01,
+    };
+
+    void enableBehavior(uint32_t behaviorBits) {
+        fBehaviorBits |= behaviorBits;
+    }
+
+    void disableBehavior(uint32_t behaviorBits) {
+        fBehaviorBits &= ~(behaviorBits);
+    }
+
+    bool isBehaviorEnabled(uint32_t behaviorBits) const {
+        return 0 != (behaviorBits & fBehaviorBits);
+    }
+
+    
+
     
     
     
 
     enum DrawFace {
+        kInvalid_DrawFace = -1,
+
         kBoth_DrawFace,
         kCCW_DrawFace,
         kCW_DrawFace,
@@ -663,6 +722,7 @@ struct GrDrawState {
 
 
     void setDrawFace(DrawFace face) {
+        GrAssert(kInvalid_DrawFace != face);
         fDrawFace = face;
     }
 
@@ -671,9 +731,7 @@ struct GrDrawState {
 
 
 
-    DrawFace getDrawFace() const {
-        return fDrawFace;
-    }
+    DrawFace getDrawFace() const { return fDrawFace; }
     
     
 
@@ -682,12 +740,32 @@ struct GrDrawState {
     
     
     bool operator ==(const GrDrawState& s) const {
-        if (memcmp(this, &s, this->leadingBytes())) return false;
+        if (memcmp(this->podStart(), s.podStart(), this->podSize())) {
+            return false;
+        }
+
+        if (!s.fViewMatrix.cheapEqualTo(fViewMatrix)) {
+            return false;
+        }
+
+        
+        
+        
+        if ((fBehaviorBits & ~kTexturesNeedRef_BehaviorBit) != 
+            (s.fBehaviorBits & ~kTexturesNeedRef_BehaviorBit)) {
+            return false;
+        }
 
         for (int i = 0; i < kNumStages; i++) {
             if (fTextures[i] &&
-                memcmp(&this->fSamplerStates[i], &s.fSamplerStates[i],
-                       sizeof(GrSamplerState))) {
+                this->fSamplerStates[i] != s.fSamplerStates[i]) {
+                return false;
+            }
+        }
+        if (kColorMatrix_StateBit & s.fFlagBits) {
+            if (memcmp(fColorMatrix,
+                        s.fColorMatrix,
+                        sizeof(fColorMatrix))) {
                 return false;
             }
         }
@@ -699,55 +777,82 @@ struct GrDrawState {
     
     
     GrDrawState& operator =(const GrDrawState& s) {
-        memcpy(this, &s, this->leadingBytes());
+        memcpy(this->podStart(), s.podStart(), this->podSize());
+
+        fViewMatrix = s.fViewMatrix;
+        fBehaviorBits = s.fBehaviorBits;
 
         for (int i = 0; i < kNumStages; i++) {
             if (s.fTextures[i]) {
-                memcpy(&this->fSamplerStates[i], &s.fSamplerStates[i],
-                       sizeof(GrSamplerState));
+                this->fSamplerStates[i] = s.fSamplerStates[i];
             }
+        }
+        if (kColorMatrix_StateBit & s.fFlagBits) {
+            memcpy(this->fColorMatrix, s.fColorMatrix, sizeof(fColorMatrix));
         }
 
         return *this;
     }
 
 private:
-    static const StageMask kIllegalStageMaskBits = ~((1 << kNumStages)-1);
-    uint8_t                 fFlagBits;
-    GrBlendCoeff            fSrcBlend : 8;
-    GrBlendCoeff            fDstBlend : 8;
-    DrawFace                fDrawFace : 8;
-    uint8_t                 fFirstCoverageStage;
-    SkXfermode::Mode        fColorFilterMode : 8;
-    GrColor                 fBlendConstant;
-    GrTexture*              fTextures[kNumStages];
-    GrRenderTarget*         fRenderTarget;
-    GrColor                 fColor;
-    GrColor                 fColorFilterColor;
-    float                   fColorMatrix[20];
-    GrStencilSettings       fStencilSettings;
-    GrMatrix                fViewMatrix;
-    
-    
-    
 
-    VertexEdgeType          fVertexEdgeType;
-    int                     fEdgeAANumEdges;
-    Edge                    fEdgeAAEdges[kMaxEdges];
-
-    
-    
-    
-    GrSamplerState          fSamplerStates[kNumStages];
-
-    size_t leadingBytes() const {
-        
-        
-        
-        
-        return (size_t) ((unsigned char*)&fEdgeAANumEdges -
-                         (unsigned char*)&fFlagBits);
+    const void* podStart() const {
+        return reinterpret_cast<const void*>(&fPodStartMarker);
     }
+    void* podStart() {
+        return reinterpret_cast<void*>(&fPodStartMarker);
+    }
+    size_t memsetSize() const {
+        return reinterpret_cast<size_t>(&fMemsetEndMarker) -
+               reinterpret_cast<size_t>(&fPodStartMarker) +
+               sizeof(fMemsetEndMarker);
+    }
+    size_t podSize() const {
+        
+        return reinterpret_cast<size_t>(&fPodEndMarker) -
+               reinterpret_cast<size_t>(&fPodStartMarker) +
+               sizeof(fPodEndMarker);
+    }
+
+    static const StageMask kIllegalStageMaskBits = ~((1 << kNumStages)-1);
+    
+    union {
+        GrColor             fBlendConstant;
+        GrColor             fPodStartMarker;
+    };
+    GrTexture*          fTextures[kNumStages];
+    GrColor             fColorFilterColor;
+    uint32_t            fFlagBits;
+    DrawFace            fDrawFace; 
+    VertexEdgeType      fVertexEdgeType;
+    GrStencilSettings   fStencilSettings;
+    union {
+        GrRenderTarget* fRenderTarget;
+        GrRenderTarget* fMemsetEndMarker;
+    };
+    
+
+    
+    
+    GrColor             fColor;
+    GrColor             fCoverage;
+    int                 fFirstCoverageStage;
+    SkXfermode::Mode    fColorFilterMode;
+    GrBlendCoeff        fSrcBlend;
+    union {
+        GrBlendCoeff    fDstBlend;
+        GrBlendCoeff    fPodEndMarker;
+    };
+    
+
+    uint32_t            fBehaviorBits;
+    GrMatrix            fViewMatrix;
+
+    
+    
+    GrSamplerState      fSamplerStates[kNumStages];
+    
+    float               fColorMatrix[20];       
 
 };
 

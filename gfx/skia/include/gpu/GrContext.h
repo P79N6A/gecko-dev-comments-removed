@@ -16,6 +16,8 @@
 
 #include "GrRenderTarget.h" 
 
+class GrAutoScratchTexture;
+class GrDrawState;
 class GrDrawTarget;
 class GrFontCache;
 class GrGpu;
@@ -30,6 +32,7 @@ class GrResourceCache;
 class GrStencilBuffer;
 class GrVertexBuffer;
 class GrVertexBufferAllocPool;
+class GrSoftwarePathRenderer;
 
 class GR_API GrContext : public GrRefCnt {
 public:
@@ -76,13 +79,18 @@ public:
     void freeGpuResources();
 
     
+
+
+    size_t getGpuTextureCacheBytes() const;
+
+    
     
 
     
 
 
 
-    class TextureCacheEntry {
+    class SK_API TextureCacheEntry {
     public:
         TextureCacheEntry() : fEntry(NULL) {}
         TextureCacheEntry(const TextureCacheEntry& e) : fEntry(e.fEntry) {}
@@ -268,6 +276,11 @@ public:
     GrRenderTarget* getRenderTarget();
 
     
+
+
+    bool isConfigRenderable(GrPixelConfig config) const;
+
+    
     
 
     
@@ -294,26 +307,6 @@ public:
 
      GrRenderTarget* createPlatformRenderTarget(
                                     const GrPlatformRenderTargetDesc& desc);
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    GrResource* createPlatformSurface(const GrPlatformSurfaceDesc& desc);
 
     
     
@@ -419,7 +412,7 @@ public:
 
 
 
-    void drawPath(const GrPaint& paint, const GrPath& path, GrPathFill fill,
+    void drawPath(const GrPaint& paint, const SkPath& path, GrPathFill fill,
                   const GrPoint* translate = NULL);
 
     
@@ -448,12 +441,21 @@ public:
                       int indexCount);
 
     
-    
+
+
+
+
+
+
+
+
+
+    void drawOval(const GrPaint& paint,
+                  const GrRect& rect,
+                  SkScalar strokeWidth);
 
     
-
-
-    bool supportsShaders() const;
+    
 
     
 
@@ -582,18 +584,7 @@ public:
 
 
     void copyTexture(GrTexture* src, GrRenderTarget* dst);
-    
 
-
-
-
-
-
-
-    void convolveInX(GrTexture* texture,
-                     const SkRect& rect,
-                     const float* kernel,
-                     int kernelWidth);
     
 
 
@@ -603,10 +594,47 @@ public:
 
 
 
-    void convolveInY(GrTexture* texture,
-                     const SkRect& rect,
-                     const float* kernel,
-                     int kernelWidth);
+
+
+    void resolveRenderTarget(GrRenderTarget* target);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+     GrTexture* gaussianBlur(GrTexture* srcTexture,
+                             GrAutoScratchTexture* temp1,
+                             GrAutoScratchTexture* temp2,
+                             const SkRect& rect,
+                             float sigmaX, float sigmaY);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    GrTexture* applyMorphology(GrTexture* srcTexture,
+                               const GrRect& rect,
+                               GrTexture* temp1, GrTexture* temp2,
+                               GrSamplerState::Filter filter,
+                               SkISize radius);
+    
     
     
 
@@ -637,7 +665,6 @@ public:
     const GrGpu* getGpu() const { return fGpu; }
     GrFontCache* getFontCache() { return fFontCache; }
     GrDrawTarget* getTextTarget(const GrPaint& paint);
-    void flushText();
     const GrIndexBuffer* getQuadIndexBuffer() const;
     void resetStats();
     const GrGpuStats& getStats() const;
@@ -654,20 +681,40 @@ public:
     void unlockStencilBuffer(GrResourceEntry* sbEntry);
     GrStencilBuffer* findStencilBuffer(int width, int height, int sampleCnt);
 
+    
+
+
+
+    virtual void postClipPush();
+
+    
+
+
+
+    virtual void preClipPop();
+
+    GrPathRenderer* getPathRenderer(const SkPath& path,
+                                    GrPathFill fill,
+                                    const GrDrawTarget* target,
+                                    bool antiAlias,
+                                    bool allowSW);
+
 private:
     
     enum DrawCategory {
         kBuffered_DrawCategory,      
         kUnbuffered_DrawCategory,    
-        kText_DrawCategory           
     };
     DrawCategory fLastDrawCategory;
 
     GrGpu*              fGpu;
+    GrDrawState*        fDrawState;
+
     GrResourceCache*    fTextureCache;
     GrFontCache*        fFontCache;
 
     GrPathRendererChain*        fPathRendererChain;
+    GrSoftwarePathRenderer*     fSoftwarePathRenderer;
 
     GrVertexBufferAllocPool*    fDrawBufferVBAllocPool;
     GrIndexBufferAllocPool*     fDrawBufferIBAllocPool;
@@ -675,7 +722,6 @@ private:
 
     GrIndexBuffer*              fAAFillRectIndexBuffer;
     GrIndexBuffer*              fAAStrokeRectIndexBuffer;
-    int                         fMaxOffscreenAASize;
 
     GrContext(GrGpu* gpu);
 
@@ -698,52 +744,12 @@ private:
 
     void flushDrawBuffer();
 
-    void setPaint(const GrPaint& paint, GrDrawTarget* target);
+    void setPaint(const GrPaint& paint);
 
     GrDrawTarget* prepareToDraw(const GrPaint& paint, DrawCategory drawType);
 
-    GrPathRenderer* getPathRenderer(const GrPath& path,
-                                    GrPathFill fill,
-                                    bool antiAlias);
-
-    struct OffscreenRecord;
-
-    
-    bool doOffscreenAA(GrDrawTarget* target,
-                       bool isHairLines) const;
-
-    
-    
-    bool prepareForOffscreenAA(GrDrawTarget* target,
-                               bool requireStencil,
-                               const GrIRect& boundRect,
-                               GrPathRenderer* pr,
-                               OffscreenRecord* record);
-
-    
-    void setupOffscreenAAPass1(GrDrawTarget* target,
-                               const GrIRect& boundRect,
-                               int tileX, int tileY,
-                               OffscreenRecord* record);
-
-    
-    
-    void doOffscreenAAPass2(GrDrawTarget* target,
-                            const GrPaint& paint,
-                            const GrIRect& boundRect,
-                            int tileX, int tileY,
-                            OffscreenRecord* record);
-
-    
-    void cleanupOffscreenAA(GrDrawTarget* target,
-                            GrPathRenderer* pr,
-                            OffscreenRecord* record);
-
-    void convolve(GrTexture* texture,
-                  const SkRect& rect,
-                  float imageIncrement[2],
-                  const float* kernel,
-                  int kernelWidth);
+    void internalDrawPath(const GrPaint& paint, const SkPath& path,
+                          GrPathFill fill, const GrPoint* translate);
 
     
 
@@ -862,6 +868,7 @@ public:
                         GrContext::kApprox_ScratchTexMatch) {
         if (NULL != fContext) {
             fContext->unlockTexture(fEntry);
+            fEntry.reset();
         }
         fContext = context;
         if (NULL != fContext) {
@@ -883,4 +890,3 @@ private:
 };
 
 #endif
-

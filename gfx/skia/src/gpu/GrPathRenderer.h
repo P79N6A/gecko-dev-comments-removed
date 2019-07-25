@@ -26,10 +26,6 @@ struct GrPoint;
 
 
 
-
-
-
-
 class GR_API GrPathRenderer : public GrRefCnt {
 public:
 
@@ -49,25 +45,7 @@ public:
                                  GrPathRendererChain* prChain);
 
 
-    GrPathRenderer(void);
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-    virtual bool canDrawPath(const GrDrawTarget::Caps& targetCaps,
-                             const SkPath& path,
-                             GrPathFill fill,
-                             bool antiAlias) const = 0;
+    GrPathRenderer();
 
     
 
@@ -88,126 +66,97 @@ public:
 
 
 
-
-
-    virtual bool requiresStencilPass(const GrDrawTarget* target,
-                                     const SkPath& path,
-                                     GrPathFill fill) const { return false; }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    void setPath(GrDrawTarget* target,
-                 const SkPath* path,
-                 GrPathFill fill,
-                 bool antiAlias,
-                 const GrPoint* translate);
-
-    
-
-
-    void clearPath();
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-    virtual void drawPath(GrDrawState::StageMask stageMask) = 0;
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-    virtual void drawPathToStencil() {
-        GrCrash("Unexpected call to drawPathToStencil.");
+    virtual bool requiresStencilPass(const SkPath& path,
+                                     GrPathFill fill,
+                                     const GrDrawTarget* target) const {
+        return false;
     }
 
     
 
 
-    class AutoClearPath {
-    public:
-        AutoClearPath() {
-            fPathRenderer = NULL;
-        }
-        AutoClearPath(GrPathRenderer* pr,
-                      GrDrawTarget* target,
-                      const SkPath* path,
-                      GrPathFill fill,
-                      bool antiAlias,
-                      const GrPoint* translate) {
-            GrAssert(NULL != pr);
-            pr->setPath(target, path, fill, antiAlias, translate);
-            fPathRenderer = pr;
-        }
-        void set(GrPathRenderer* pr,
-                 GrDrawTarget* target,
-                 const SkPath* path,
-                 GrPathFill fill,
-                 bool antiAlias,
-                 const GrPoint* translate) {
-            if (NULL != fPathRenderer) {
-                fPathRenderer->clearPath();
-            }
-            GrAssert(NULL != pr);
-            pr->setPath(target, path, fill, antiAlias, translate);
-            fPathRenderer = pr;
-        }
-        ~AutoClearPath() {
-            if (NULL != fPathRenderer) {
-                fPathRenderer->clearPath();
-            }
-        }
-    private:
-        GrPathRenderer* fPathRenderer;
-    };
+
+
+
+
+
+
+
+
+
+
+    virtual bool canDrawPath(const SkPath& path,
+                             GrPathFill fill,
+                             const GrDrawTarget* target,
+                             bool antiAlias) const = 0;
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    virtual bool drawPath(const SkPath& path,
+                          GrPathFill fill,
+                          const GrVec* translate,
+                          GrDrawTarget* target,
+                          GrDrawState::StageMask stageMask,
+                          bool antiAlias) {
+        GrAssert(this->canDrawPath(path, fill, target, antiAlias));
+        return this->onDrawPath(path, fill, translate,
+                                target, stageMask, antiAlias);
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    virtual void drawPathToStencil(const SkPath& path,
+                                   GrPathFill fill,
+                                   GrDrawTarget* target) {
+        GrCrash("Unexpected call to drawPathToStencil.");
+    }
 
 protected:
-
     
-    
-    virtual void pathWasSet() {}
-    virtual void pathWillClear() {}
 
-    const SkPath*               fPath;
-    GrDrawTarget*               fTarget;
-    GrPathFill                  fFill;
-    GrPoint                     fTranslate;
-    bool                        fAntiAlias;
+
+
+
+
+
+
+
+
+
+
+
+
+
+    virtual bool onDrawPath(const SkPath& path,
+                            GrPathFill fill,
+                            const GrVec* translate,
+                            GrDrawTarget* target,
+                            GrDrawState::StageMask stageMask,
+                            bool antiAlias) = 0;
 
 private:
 

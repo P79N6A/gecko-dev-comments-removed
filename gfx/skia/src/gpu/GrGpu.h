@@ -14,6 +14,7 @@
 #include "GrRect.h"
 #include "GrRefCnt.h"
 #include "GrTexture.h"
+#include "GrClipMaskManager.h"
 
 class GrContext;
 class GrIndexBufferAllocPool;
@@ -86,6 +87,7 @@ public:
     void setContext(GrContext* context) {
         GrAssert(NULL == fContext); 
         fContext = context;
+        fClipMaskManager.setContext(context);
     }
     GrContext* getContext() { return fContext; }
     const GrContext* getContext() const { return fContext; }
@@ -134,11 +136,6 @@ public:
     
 
 
-    GrResource* createPlatformSurface(const GrPlatformSurfaceDesc& desc);
-
-    
-
-
 
 
 
@@ -179,9 +176,21 @@ public:
     
 
 
+    void resolveRenderTarget(GrRenderTarget* target);
+
+    
+
+
 
 
     void forceRenderTargetFlush();
+
+    
+
+
+
+
+    virtual bool canPreserveReadWriteUnpremulPixels() = 0;
 
     
 
@@ -309,6 +318,12 @@ public:
     
     virtual void clear(const GrIRect* rect, GrColor color);
 
+    virtual void purgeResources() SK_OVERRIDE {
+        
+        
+        fClipMaskManager.releaseResources();
+    }
+
     
     
     
@@ -326,7 +341,22 @@ public:
         return fResetTimestamp;
     }
 
-protected:
+    
+
+
+    bool isConfigRenderable(GrPixelConfig config) const {
+        GrAssert(kGrPixelConfigCount > config); 
+        return fConfigRenderSupport[config];
+    }
+
+    virtual void enableScissoring(const GrIRect& rect) = 0;
+    virtual void disableScissor() = 0;
+
+    
+    
+    
+    virtual void clearStencilClip(const GrIRect& rect, bool insideClip) = 0;
+
     enum PrivateDrawStateStateBits {
         kFirstBit = (GrDrawState::kLastPublicStateBit << 1),
 
@@ -335,10 +365,14 @@ protected:
                                                  
     };
 
-    
-    
-    bool    fClipInStencil;
+    virtual void postClipPush() SK_OVERRIDE {
+        fClipMaskManager.postClipPush();
+    }
+    virtual void preClipPop() SK_OVERRIDE {
+        fClipMaskManager.preClipPop();
+    }
 
+protected:
     
     bool setupClipAndFlushState(GrPrimitiveType type);
 
@@ -355,9 +389,11 @@ protected:
 
     
     
-    static const GrStencilSettings& gClipStencilSettings;
+    static const GrStencilSettings* GetClipStencilSettings();
 
     GrGpuStats fStats;
+
+    GrClipMaskManager           fClipMaskManager;
 
     struct GeometryPoolState {
         const GrVertexBuffer* fPoolVertexBuffer;
@@ -369,6 +405,10 @@ protected:
     const GeometryPoolState& getGeomPoolState() { 
         return fGeomPoolStateStack.back(); 
     }
+
+    
+    
+    bool    fConfigRenderSupport[kGrPixelConfigCount];
 
     
     virtual bool onReserveVertexSpace(GrVertexLayout vertexLayout,
@@ -401,7 +441,6 @@ protected:
                                        size_t rowBytes) = 0;
     virtual GrTexture* onCreatePlatformTexture(const GrPlatformTextureDesc& desc) = 0;
     virtual GrRenderTarget* onCreatePlatformRenderTarget(const GrPlatformRenderTargetDesc& desc) = 0;
-    virtual GrResource* onCreatePlatformSurface(const GrPlatformSurfaceDesc& desc) = 0;
     virtual GrVertexBuffer* onCreateVertexBuffer(uint32_t size,
                                                  bool dynamic) = 0;
     virtual GrIndexBuffer* onCreateIndexBuffer(uint32_t size,
@@ -440,6 +479,9 @@ protected:
                                       size_t rowBytes) = 0;
 
     
+    virtual void onResolveRenderTarget(GrRenderTarget* target) = 0;
+
+    
     
     
     virtual void setupGeometry(int* startVertex,
@@ -463,14 +505,6 @@ protected:
     
     
     virtual bool flushGraphicsState(GrPrimitiveType type) = 0;
-
-    
-    virtual void flushScissor(const GrIRect* rect) = 0;
-
-    
-    
-    
-    virtual void clearStencilClip(const GrIRect& rect, bool insideClip) = 0;
 
     
     virtual void clearStencil() = 0;
@@ -500,10 +534,6 @@ private:
     mutable GrVertexBuffer*     fUnitSquareVertexBuffer; 
                                                          
 
-    
-    
-    GrPathRendererChain*        fPathRendererChain;
-
     bool                        fContextIsDirty;
 
     GrResource*                 fResourceHead;
@@ -524,9 +554,6 @@ private:
     
     void prepareVertexPool();
     void prepareIndexPool();
-
-    
-    GrPathRenderer* getClipPathRenderer(const SkPath& path, GrPathFill fill);
 
     void resetContext() {
         this->onResetContext();

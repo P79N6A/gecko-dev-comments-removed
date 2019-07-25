@@ -39,4 +39,24 @@ struct FontFamily {
 
 void getFontFamilies(SkTDArray<FontFamily*> &fontFamilies);
 
+
+
+
+
+void getSystemFontFamilies(SkTDArray<FontFamily*> &fontFamilies);
+
+
+
+
+
+
+void getFallbackFontFamilies(SkTDArray<FontFamily*> &fallbackFonts);
+
+struct AndroidLocale {
+    char language[3];
+    char region[3];
+};
+
+void getLocale(AndroidLocale &locale);
+
 #endif 

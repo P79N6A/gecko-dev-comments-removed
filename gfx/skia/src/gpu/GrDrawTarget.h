@@ -14,6 +14,7 @@
 #include "GrClip.h"
 #include "GrColor.h"
 #include "GrDrawState.h"
+#include "GrIndexBuffer.h"
 #include "GrMatrix.h"
 #include "GrRefCnt.h"
 #include "GrSamplerState.h"
@@ -21,6 +22,7 @@
 #include "GrTexture.h"
 
 #include "SkXfermode.h"
+#include "SkTLazy.h"
 
 class GrTexture;
 class GrClipIterator;
@@ -45,13 +47,11 @@ public:
         bool fTwoSidedStencilSupport    : 1;
         bool fStencilWrapOpsSupport     : 1;
         bool fHWAALineSupport           : 1;
-        bool fShaderSupport             : 1;
         bool fShaderDerivativeSupport   : 1;
         bool fGeometryShaderSupport     : 1;
         bool fFSAASupport               : 1;
         bool fDualSourceBlendingSupport : 1;
         bool fBufferLockSupport         : 1;
-        bool fSupportPerVertexCoverage  : 1;
         int fMaxRenderTargetSize;
         int fMaxTextureSize;
     };
@@ -86,8 +86,24 @@ public:
 
     const GrClip& getClip() const;
 
-    const GrDrawState& getDrawState() const { return fCurrDrawState; }
-    GrDrawState* drawState() { return &fCurrDrawState; }
+    
+
+
+
+
+
+    void setDrawState(GrDrawState*  drawState);
+
+    
+
+
+    const GrDrawState& getDrawState() const { return *fDrawState; }
+
+    
+
+
+
+    GrDrawState* drawState() { return fDrawState; }
 
     
 
@@ -107,9 +123,7 @@ public:
 
 
 
-    bool drawWillReadDst() const;
 
-    
 
 
 
@@ -127,6 +141,8 @@ public:
 
 
 
+
+
     bool canTweakAlphaForCoverage() const;
 
     
@@ -134,44 +150,8 @@ public:
 
 
 
+
     bool willUseHWAALines() const;
-
-    
-
-
-    struct SavedDrawState {
-    private:
-        GrDrawState fState;
-        friend class GrDrawTarget;
-    };
-
-    
-
-
-
-
-
-
-
-    void saveCurrentDrawState(SavedDrawState* state) const;
-
-    
-
-
-
-
-
-
-
-
-    void restoreDrawState(const SavedDrawState& state);
-
-    
-
-
-
-
-    void copyDrawState(const GrDrawTarget& srcTarget);
 
     
 
@@ -210,6 +190,9 @@ public:
         return 1 << (stage + (texCoordIdx * GrDrawState::kNumStages));
     }
 
+    virtual void postClipPush() {};
+    virtual void preClipPop() {};
+
 private:
     static const int TEX_COORD_BIT_CNT = GrDrawState::kNumStages *
                                          GrDrawState::kMaxTexCoords;
@@ -229,6 +212,19 @@ public:
         return (1 << (TEX_COORD_BIT_CNT + stage));
     }
 
+    
+
+
+
+
+    void addToVertexLayout(int flag) {
+        GrAssert((1 << TEX_COORD_BIT_CNT) == flag ||
+                 (1 << (TEX_COORD_BIT_CNT + 1)) == flag ||
+                 (1 << (TEX_COORD_BIT_CNT + 2)) == flag ||
+                 (1 << (TEX_COORD_BIT_CNT + 3)) == flag);
+        fGeoSrcStateStack.back().fVertexLayout |= flag;
+    }
+
 private:
     static const int STAGE_BIT_CNT = TEX_COORD_BIT_CNT +
         GrDrawState::kNumStages;
@@ -242,7 +238,6 @@ public:
         
         kColor_VertexLayoutBit              = 1 << (STAGE_BIT_CNT + 0),
         
-
 
         kCoverage_VertexLayoutBit           = 1 << (STAGE_BIT_CNT + 1),
         
@@ -293,6 +288,18 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     
 
 
@@ -320,34 +327,13 @@ public:
 
 
 
-    bool reserveVertexSpace(GrVertexLayout vertexLayout,
-                            int vertexCount,
-                            void** vertices);
-    
 
+     bool reserveVertexAndIndexSpace(GrVertexLayout vertexLayout,
+                                     int vertexCount,
+                                     int indexCount,
+                                     void** vertices,
+                                     void** indices);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    bool reserveIndexSpace(int indexCount, void** indices);
     
 
 
@@ -429,7 +415,15 @@ public:
 
 
 
-    void resetIndexSource(); 
+    void resetIndexSource();
+    
+    
+
+
+    bool hasReservedVerticesOrIndices() const {
+        return kReserved_GeometrySrcType == this->getGeomSrc().fVertexSrc ||
+        kReserved_GeometrySrcType == this->getGeomSrc().fIndexSrc;
+    }
 
     
 
@@ -508,6 +502,39 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    virtual void drawIndexedInstances(GrPrimitiveType type,
+                                      int instanceCount,
+                                      int verticesPerInstance,
+                                      int indicesPerInstance);
+
+    
+
+
+
     void drawSimpleRect(const GrRect& rect,
                         const GrMatrix* matrix,
                         StageMask stageEnableBitfield) {
@@ -525,17 +552,49 @@ public:
 
 
 
-
-
-
-    virtual int getMaxEdges() const { return 6; }
+    virtual void purgeResources() {};
 
     
 
+    
+
+
+    enum ASRInit {
+        kPreserve_ASRInit,
+        kReset_ASRInit
+    };
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     class AutoStateRestore : ::GrNoncopyable {
     public:
+        
+
+
         AutoStateRestore();
-        AutoStateRestore(GrDrawTarget* target);
+
+        
+
+
+
+
+
+
+        AutoStateRestore(GrDrawTarget* target, ASRInit init);
+
         ~AutoStateRestore();
 
         
@@ -543,11 +602,16 @@ public:
 
 
 
-        void set(GrDrawTarget* target);
+
+
+
+
+        void set(GrDrawTarget* target, ASRInit init);
 
     private:
-        GrDrawTarget*       fDrawTarget;
-        SavedDrawState      fDrawState;
+        GrDrawTarget*        fDrawTarget;
+        SkTLazy<GrDrawState> fTempState;
+        GrDrawState*         fSavedState;
     };
 
     
@@ -878,7 +942,7 @@ protected:
                                GrBlendCoeff* dstCoeff = NULL) const;
 
     
-    bool srcAlphaWillBeOne() const;
+    bool srcAlphaWillBeOne(GrVertexLayout vertexLayout) const;
 
     enum GeometrySrcType {
         kNone_GeometrySrcType,     
@@ -906,7 +970,22 @@ protected:
         
         GrVertexLayout          fVertexLayout;
     };
-    
+
+    int indexCountInCurrentSource() const {
+        const GeometrySrcState& src = this->getGeomSrc();
+        switch (src.fIndexSrc) {
+            case kNone_GeometrySrcType:
+                return 0;
+            case kReserved_GeometrySrcType:
+            case kArray_GeometrySrcType:
+                return src.fIndexCount;
+            case kBuffer_GeometrySrcType:
+                return src.fIndexBuffer->sizeInBytes() / sizeof(uint16_t);
+            default:
+                GrCrash("Unexpected Index Source.");
+                return 0;
+        }
+    }
     
     static bool StageWillBeUsed(int stage, GrVertexLayout layout, 
                                 const GrDrawState& state) {
@@ -915,8 +994,8 @@ protected:
     }
 
     bool isStageEnabled(int stage) const {
-        return StageWillBeUsed(stage, this->getGeomSrc().fVertexLayout, 
-                               fCurrDrawState);
+        return StageWillBeUsed(stage, this->getVertexLayout(),
+                               this->getDrawState());
     }
 
     StageMask enabledStages() const {
@@ -929,10 +1008,10 @@ protected:
 
     
     
-    static GrDrawState& accessSavedDrawState(SavedDrawState& sds)
-                                                        { return sds.fState; }
-    static const GrDrawState& accessSavedDrawState(const SavedDrawState& sds)
-                                                        { return sds.fState; }
+    virtual void willReserveVertexAndIndexSpace(GrVertexLayout vertexLayout,
+                                                int vertexCount,
+                                                int indexCount) {}
+    
 
     
     virtual bool onReserveVertexSpace(GrVertexLayout vertexLayout,
@@ -965,7 +1044,7 @@ protected:
                                   int vertexCount) = 0;
     
     
-    virtual void clipWillBeSet(const GrClip& clip);
+    virtual void clipWillBeSet(const GrClip& clip) {}
 
     
     
@@ -983,10 +1062,19 @@ protected:
     const GeometrySrcState& getGeomSrc() const {
         return fGeoSrcStateStack.back();
     }
+    
+    
+    GrVertexLayout getVertexLayout() const {
+        
+        
+        GrAssert(this->getGeomSrc().fVertexSrc != kNone_GeometrySrcType);
+        return this->getGeomSrc().fVertexLayout;
+    }
 
     GrClip fClip;
 
-    GrDrawState fCurrDrawState;
+    GrDrawState* fDrawState;
+    GrDrawState fDefaultDrawState;
 
     Caps fCaps;
 
@@ -994,7 +1082,14 @@ protected:
     
     
     void releaseGeometry();
+
 private:
+    
+    bool reserveVertexSpace(GrVertexLayout vertexLayout,
+                            int vertexCount,
+                            void** vertices);
+    bool reserveIndexSpace(int indexCount, void** indices);
+    
     
     
     bool checkDraw(GrPrimitiveType type, int startVertex,

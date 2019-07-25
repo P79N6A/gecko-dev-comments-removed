@@ -15,15 +15,11 @@
 class GrGpu;
 class GrContext;
 
+
+
+
 class GrResource : public GrRefCnt {
 public:
-    explicit GrResource(GrGpu* gpu);
-
-    virtual ~GrResource() {
-        
-        GrAssert(!isValid());
-    }
-
     
 
 
@@ -66,19 +62,22 @@ public:
      GrContext* getContext();
 
 protected:
+    explicit GrResource(GrGpu* gpu);
+    virtual ~GrResource();
+
+    GrGpu* getGpu() const { return fGpu; }
 
     virtual void onRelease() = 0;
     virtual void onAbandon() = 0;
 
-    GrGpu* getGpu() const { return fGpu; }
-
 private:
-    GrResource(); 
-
-    GrGpu* fGpu; 
 
     friend class GrGpu; 
 
+    GrGpu*      fGpu;       
+                            
+                            
+                            
     GrResource* fNext;      
     GrResource* fPrevious;
 

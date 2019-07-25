@@ -28,18 +28,11 @@ public:
     
     virtual bool filterPath(SkPath* dst, const SkPath& src, SkScalar* width);
 
-    
-    
-    virtual Factory getFactory();
-    
-    virtual void flatten(SkFlattenableWriteBuffer&);
-
-    static SkFlattenable* CreateProc(SkFlattenableReadBuffer&);
-
-    SK_DECLARE_FLATTENABLE_REGISTRAR()
+    SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkDiscretePathEffect)
 
 protected:
     SkDiscretePathEffect(SkFlattenableReadBuffer&);
+    virtual void flatten(SkFlattenableWriteBuffer&) const SK_OVERRIDE;
 
 private:
     SkScalar fSegLength, fPerterb;

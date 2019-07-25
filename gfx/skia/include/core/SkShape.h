@@ -31,14 +31,7 @@ public:
 
     void drawMatrix(SkCanvas*, const SkMatrix&);
 
-    
-    virtual Factory getFactory();
-    virtual void flatten(SkFlattenableWriteBuffer&);
-
-    
-    static SkFlattenable* CreateProc(SkFlattenableReadBuffer&);
-
-    SK_DECLARE_FLATTENABLE_REGISTRAR()
+    SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkShape)
 
 protected:
     virtual void onDraw(SkCanvas*);

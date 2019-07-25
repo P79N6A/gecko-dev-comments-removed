@@ -20,31 +20,31 @@
 struct SK_API SkIRect {
     int32_t fLeft, fTop, fRight, fBottom;
 
-    static SkIRect MakeEmpty() {
+    static SkIRect SK_WARN_UNUSED_RESULT MakeEmpty() {
         SkIRect r;
         r.setEmpty();
         return r;
     }
     
-    static SkIRect MakeWH(int32_t w, int32_t h) {
+    static SkIRect SK_WARN_UNUSED_RESULT MakeWH(int32_t w, int32_t h) {
         SkIRect r;
         r.set(0, 0, w, h);
         return r;
     }
     
-    static SkIRect MakeSize(const SkISize& size) {
+    static SkIRect SK_WARN_UNUSED_RESULT MakeSize(const SkISize& size) {
         SkIRect r;
         r.set(0, 0, size.width(), size.height());
         return r;
     }
     
-    static SkIRect MakeLTRB(int32_t l, int32_t t, int32_t r, int32_t b) {
+    static SkIRect SK_WARN_UNUSED_RESULT MakeLTRB(int32_t l, int32_t t, int32_t r, int32_t b) {
         SkIRect rect;
         rect.set(l, t, r, b);
         return rect;
     }
     
-    static SkIRect MakeXYWH(int32_t x, int32_t y, int32_t w, int32_t h) {
+    static SkIRect SK_WARN_UNUSED_RESULT MakeXYWH(int32_t x, int32_t y, int32_t w, int32_t h) {
         SkIRect r;
         r.set(x, y, x + w, y + h);
         return r;
@@ -75,7 +75,7 @@ struct SK_API SkIRect {
 
 
     bool isEmpty() const { return fLeft >= fRight || fTop >= fBottom; }
-
+    
     friend bool operator==(const SkIRect& a, const SkIRect& b) {
         return !memcmp(&a, &b, sizeof(a));
     }
@@ -153,6 +153,13 @@ struct SK_API SkIRect {
         fBottom -= dy;
     }
 
+   
+
+
+
+
+    void outset(int32_t dx, int32_t dy)  { this->inset(-dx, -dy); }
+
     bool quickReject(int l, int t, int r, int b) const {
         return l >= fRight || fLeft >= r || t >= fBottom || fTop >= b;
     }
@@ -191,12 +198,12 @@ struct SK_API SkIRect {
 
 
     bool containsNoEmptyCheck(int32_t left, int32_t top,
-							  int32_t right, int32_t bottom) const {
-		SkASSERT(fLeft < fRight && fTop < fBottom);
+                              int32_t right, int32_t bottom) const {
+        SkASSERT(fLeft < fRight && fTop < fBottom);
         SkASSERT(left < right && top < bottom);
 
         return fLeft <= left && fTop <= top &&
-			   fRight >= right && fBottom >= bottom;
+               fRight >= right && fBottom >= bottom;
     }
     
     
@@ -294,7 +301,7 @@ struct SK_API SkIRect {
 
     void sort();
 
-    static const SkIRect& EmptyIRect() {
+    static const SkIRect& SK_WARN_UNUSED_RESULT EmptyIRect() {
         static const SkIRect gEmpty = { 0, 0, 0, 0 };
         return gEmpty;
     }
@@ -305,31 +312,31 @@ struct SK_API SkIRect {
 struct SK_API SkRect {
     SkScalar    fLeft, fTop, fRight, fBottom;
 
-    static SkRect MakeEmpty() {
+    static SkRect SK_WARN_UNUSED_RESULT MakeEmpty() {
         SkRect r;
         r.setEmpty();
         return r;
     }
 
-    static SkRect MakeWH(SkScalar w, SkScalar h) {
+    static SkRect SK_WARN_UNUSED_RESULT MakeWH(SkScalar w, SkScalar h) {
         SkRect r;
         r.set(0, 0, w, h);
         return r;
     }
 
-    static SkRect MakeSize(const SkSize& size) {
+    static SkRect SK_WARN_UNUSED_RESULT MakeSize(const SkSize& size) {
         SkRect r;
         r.set(0, 0, size.width(), size.height());
         return r;
     }
 
-    static SkRect MakeLTRB(SkScalar l, SkScalar t, SkScalar r, SkScalar b) {
+    static SkRect SK_WARN_UNUSED_RESULT MakeLTRB(SkScalar l, SkScalar t, SkScalar r, SkScalar b) {
         SkRect rect;
         rect.set(l, t, r, b);
         return rect;
     }
 
-    static SkRect MakeXYWH(SkScalar x, SkScalar y, SkScalar w, SkScalar h) {
+    static SkRect SK_WARN_UNUSED_RESULT MakeXYWH(SkScalar x, SkScalar y, SkScalar w, SkScalar h) {
         SkRect r;
         r.set(x, y, x + w, y + h);
         return r;
@@ -347,13 +354,18 @@ struct SK_API SkRect {
 
     bool isFinite() const {
 #ifdef SK_SCALAR_IS_FLOAT
+        float accum = 0;
+        accum *= fLeft;
+        accum *= fTop;
+        accum *= fRight;
+        accum *= fBottom;
         
         
-        float value = fLeft * 0 + fTop * 0 + fRight * 0 + fBottom * 0;
+        SkASSERT(0 == accum || !(accum == accum));
+
         
         
-        
-        return value == value;
+        return accum == accum;
 #else
         
         
@@ -363,6 +375,8 @@ struct SK_API SkRect {
 #endif
     }
 
+    SkScalar    x() const { return fLeft; }
+    SkScalar    y() const { return fTop; }
     SkScalar    left() const { return fLeft; }
     SkScalar    top() const { return fTop; }
     SkScalar    right() const { return fRight; }
@@ -425,6 +439,13 @@ struct SK_API SkRect {
     
     void setBounds(const SkPoint pts[], int count) {
         this->set(pts, count);
+    }
+
+    void set(const SkPoint& p0, const SkPoint& p1) {
+        fLeft =   SkMinScalar(p0.fX, p1.fX);
+        fRight =  SkMaxScalar(p0.fX, p1.fX);
+        fTop =    SkMinScalar(p0.fY, p1.fY);
+        fBottom = SkMaxScalar(p0.fY, p1.fY);
     }
 
     void setXYWH(SkScalar x, SkScalar y, SkScalar width, SkScalar height) {

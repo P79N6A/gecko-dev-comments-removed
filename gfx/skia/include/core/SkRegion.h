@@ -45,13 +45,13 @@ public:
 
 
 
-    friend bool operator==(const SkRegion& a, const SkRegion& b);
+    bool operator==(const SkRegion& other) const;
 
     
 
 
-    friend bool operator!=(const SkRegion& a, const SkRegion& b) {
-        return !(a == b);
+    bool operator!=(const SkRegion& other) const {
+        return !(*this == other);
     }
     
     
@@ -378,28 +378,53 @@ private:
     };
 
     enum {
-        kRectRegionRuns = 6 
+        
+        
+        
+        kRectRegionRuns = 7
     };
 
     friend class android::Region;    
-    void allocateRuns(int count); 
 
     struct RunHead;
+    
+    
+    void allocateRuns(int count);
+    void allocateRuns(int count, int ySpanCount, int intervalCount);
+    void allocateRuns(const RunHead& src);
 
     SkIRect     fBounds;
     RunHead*    fRunHead;
 
-    void            freeRuns();
-    const RunType*  getRuns(RunType tmpStorage[], int* count) const;
-    bool            setRuns(RunType runs[], int count);
+    void freeRuns();
+    
+    
+
+
+
+
+    const RunType*  getRuns(RunType tmpStorage[], int* intervals) const;
+    
+    
+    
+    
+    bool setRuns(RunType runs[], int count);
 
     int count_runtype_values(int* itop, int* ibot) const;
     
     static void BuildRectRuns(const SkIRect& bounds,
                               RunType runs[kRectRegionRuns]);
+
     
-    static bool ComputeRunBounds(const RunType runs[], int count,
-                                 SkIRect* bounds);
+    
+    static bool RunsAreARect(const SkRegion::RunType runs[], int count,
+                             SkIRect* bounds);
+
+    
+
+
+
+    static bool Oper(const SkRegion&, const SkRegion&, SkRegion::Op, SkRegion*);
 
     friend struct RunHead;
     friend class Iterator;

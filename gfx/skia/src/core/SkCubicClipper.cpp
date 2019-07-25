@@ -10,7 +10,9 @@
 #include "SkCubicClipper.h"
 #include "SkGeometry.h"
 
-SkCubicClipper::SkCubicClipper() {}
+SkCubicClipper::SkCubicClipper() {
+    fClip.setEmpty();
+}
 
 void SkCubicClipper::setClip(const SkIRect& clip) {
     

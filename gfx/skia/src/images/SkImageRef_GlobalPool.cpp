@@ -9,25 +9,41 @@
 #include "SkImageRefPool.h"
 #include "SkThread.h"
 
-extern SkMutex gImageRefMutex;
+extern SkBaseMutex gImageRefMutex;
 
-static SkImageRefPool gGlobalImageRefPool;
+
+
+
+
+static SkImageRefPool* GetGlobalPool() {
+    static SkImageRefPool* gPool;
+    if (NULL == gPool) {
+        gPool = SkNEW(SkImageRefPool);
+        
+    }
+    return gPool;
+}
 
 SkImageRef_GlobalPool::SkImageRef_GlobalPool(SkStream* stream,
                                              SkBitmap::Config config,
                                              int sampleSize)
         : SkImageRef(stream, config, sampleSize) {
     this->mutex()->acquire();
-    gGlobalImageRefPool.addToHead(this);
+    GetGlobalPool()->addToHead(this);
     this->mutex()->release();
 }
 
 SkImageRef_GlobalPool::~SkImageRef_GlobalPool() {
     this->mutex()->acquire();
-    gGlobalImageRefPool.detach(this);
+    GetGlobalPool()->detach(this);
     this->mutex()->release();
 }
-    
+
+
+
+
+
+
 bool SkImageRef_GlobalPool::onDecode(SkImageDecoder* codec, SkStream* stream,
                                      SkBitmap* bitmap, SkBitmap::Config config,
                                      SkImageDecoder::Mode mode) {
@@ -35,7 +51,8 @@ bool SkImageRef_GlobalPool::onDecode(SkImageDecoder* codec, SkStream* stream,
         return false;
     }
     if (mode == SkImageDecoder::kDecodePixels_Mode) {
-        gGlobalImageRefPool.justAddedPixels(this);
+        
+        GetGlobalPool()->justAddedPixels(this);
     }
     return true;
 }
@@ -43,46 +60,43 @@ bool SkImageRef_GlobalPool::onDecode(SkImageDecoder* codec, SkStream* stream,
 void SkImageRef_GlobalPool::onUnlockPixels() {
     this->INHERITED::onUnlockPixels();
     
-    gGlobalImageRefPool.canLosePixels(this);
+    
+    GetGlobalPool()->canLosePixels(this);
 }
 
 SkImageRef_GlobalPool::SkImageRef_GlobalPool(SkFlattenableReadBuffer& buffer)
         : INHERITED(buffer) {
     this->mutex()->acquire();
-    gGlobalImageRefPool.addToHead(this);
+    GetGlobalPool()->addToHead(this);
     this->mutex()->release();
 }
 
-SkPixelRef* SkImageRef_GlobalPool::Create(SkFlattenableReadBuffer& buffer) {
-    return SkNEW_ARGS(SkImageRef_GlobalPool, (buffer));
-}
-
-SK_DEFINE_PIXEL_REF_REGISTRAR(SkImageRef_GlobalPool)
+SK_DEFINE_FLATTENABLE_REGISTRAR(SkImageRef_GlobalPool)
 
 
 
 
 size_t SkImageRef_GlobalPool::GetRAMBudget() {
     SkAutoMutexAcquire ac(gImageRefMutex);
-    return gGlobalImageRefPool.getRAMBudget();
+    return GetGlobalPool()->getRAMBudget();
 }
 
 void SkImageRef_GlobalPool::SetRAMBudget(size_t size) {
     SkAutoMutexAcquire ac(gImageRefMutex);
-    gGlobalImageRefPool.setRAMBudget(size);
+    GetGlobalPool()->setRAMBudget(size);
 }
 
 size_t SkImageRef_GlobalPool::GetRAMUsed() {
     SkAutoMutexAcquire ac(gImageRefMutex);    
-    return gGlobalImageRefPool.getRAMUsed();
+    return GetGlobalPool()->getRAMUsed();
 }
 
 void SkImageRef_GlobalPool::SetRAMUsed(size_t usage) {
     SkAutoMutexAcquire ac(gImageRefMutex);
-    gGlobalImageRefPool.setRAMUsed(usage);
+    GetGlobalPool()->setRAMUsed(usage);
 }
 
 void SkImageRef_GlobalPool::DumpPool() {
     SkAutoMutexAcquire ac(gImageRefMutex);
-    gGlobalImageRefPool.dump();
+    GetGlobalPool()->dump();
 }

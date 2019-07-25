@@ -13,34 +13,15 @@
 #include "SkBitmap.h"
 #include "SkRefCnt.h"
 #include "SkString.h"
+#include "SkFlattenable.h"
 
 class SkColorTable;
 struct SkIRect;
 class SkMutex;
-class SkFlattenableReadBuffer;
-class SkFlattenableWriteBuffer;
 
 
 class SkGpuTexture;
 
-#if SK_ALLOW_STATIC_GLOBAL_INITIALIZERS
-
-#define SK_DECLARE_PIXEL_REF_REGISTRAR() 
-
-#define SK_DEFINE_PIXEL_REF_REGISTRAR(pixelRef) \
-    static SkPixelRef::Registrar g##pixelRef##Reg(#pixelRef, \
-                                                  pixelRef::Create);
-                                                      
-#else
-
-#define SK_DECLARE_PIXEL_REF_REGISTRAR() static void Init();
-
-#define SK_DEFINE_PIXEL_REF_REGISTRAR(pixelRef) \
-    void pixelRef::Init() { \
-        SkPixelRef::Registrar(#pixelRef, Create); \
-    }
-
-#endif
 
 
 
@@ -49,10 +30,9 @@ class SkGpuTexture;
 
 
 
-
-class SkPixelRef : public SkRefCnt {
+class SK_API SkPixelRef : public SkFlattenable {
 public:
-    explicit SkPixelRef(SkMutex* mutex = NULL);
+    explicit SkPixelRef(SkBaseMutex* mutex = NULL);
 
     
 
@@ -65,7 +45,8 @@ public:
 
     
 
-    int getLockCount() const { return fLockCount; }
+
+    bool isLocked() const { return fLockCount > 0; }
 
     
 
@@ -142,13 +123,6 @@ public:
 
     virtual SkPixelRef* deepCopy(SkBitmap::Config config) { return NULL; }
 
-    
-
-    typedef SkPixelRef* (*Factory)(SkFlattenableReadBuffer&);
-
-    virtual Factory getFactory() const { return NULL; }
-    virtual void flatten(SkFlattenableWriteBuffer&) const;
-
 #ifdef SK_BUILD_FOR_ANDROID
     
 
@@ -164,17 +138,6 @@ public:
 
     virtual void globalUnref();
 #endif
-
-    static Factory NameToFactory(const char name[]);
-    static const char* FactoryToName(Factory);
-    static void Register(const char name[], Factory);
-
-    class Registrar {
-    public:
-        Registrar(const char name[], Factory factory) {
-            SkPixelRef::Register(name, factory);
-        }
-    };
 
 protected:
     
@@ -201,16 +164,27 @@ protected:
     
 
 
-    SkMutex* mutex() const { return fMutex; }
+    SkBaseMutex* mutex() const { return fMutex; }
 
-    SkPixelRef(SkFlattenableReadBuffer&, SkMutex*);
+    
+    SkPixelRef(SkFlattenableReadBuffer&, SkBaseMutex*);
+    virtual void flatten(SkFlattenableWriteBuffer&) const SK_OVERRIDE;
+
+    
+    
+    
+    void setPreLocked(void* pixels, SkColorTable* ctable);
+
+    
+
+
+
+
+    void useDefaultMutex() { this->setMutex(NULL); }
 
 private:
-#if !SK_ALLOW_STATIC_GLOBAL_INITIALIZERS
-    static void InitializeFlattenables();
-#endif
 
-    SkMutex*        fMutex; 
+    SkBaseMutex*    fMutex; 
     void*           fPixels;
     SkColorTable*   fColorTable;    
     int             fLockCount;
@@ -221,8 +195,12 @@ private:
 
     
     bool    fIsImmutable;
+    
+    bool    fPreLocked;
 
-    friend class SkGraphics;
+    void setMutex(SkBaseMutex* mutex);
+
+    typedef SkFlattenable INHERITED;
 };
 
 #endif

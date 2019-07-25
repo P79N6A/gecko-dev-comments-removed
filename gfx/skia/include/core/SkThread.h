@@ -29,33 +29,39 @@
 
 
 
+
 class SkAutoMutexAcquire : SkNoncopyable {
 public:
-    explicit SkAutoMutexAcquire(SkMutex& mutex) : fMutex(&mutex)
-    {
+    explicit SkAutoMutexAcquire(SkBaseMutex& mutex) : fMutex(&mutex) {
         SkASSERT(fMutex != NULL);
         mutex.acquire();
     }
     
-
-    ~SkAutoMutexAcquire()
-    {
-        if (fMutex)
-            fMutex->release();
+    SkAutoMutexAcquire(SkBaseMutex* mutex) : fMutex(mutex) {
+        if (mutex) {
+            mutex->acquire();
+        }
     }
+
     
 
-    void release()
-    {
-        if (fMutex)
-        {
+    ~SkAutoMutexAcquire() {
+        if (fMutex) {
+            fMutex->release();
+        }
+    }
+
+    
+
+    void release() {
+        if (fMutex) {
             fMutex->release();
             fMutex = NULL;
         }
     }
         
 private:
-    SkMutex* fMutex;
+    SkBaseMutex* fMutex;
 };
 
 #endif

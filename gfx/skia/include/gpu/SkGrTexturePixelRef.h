@@ -21,7 +21,7 @@
 
 
 
-class SkROLockPixelsPixelRef : public SkPixelRef {
+class SK_API SkROLockPixelsPixelRef : public SkPixelRef {
 public:
     SkROLockPixelsPixelRef();
     virtual ~SkROLockPixelsPixelRef();
@@ -40,13 +40,15 @@ private:
 
 
 
-class SkGrTexturePixelRef : public SkROLockPixelsPixelRef {
+class SK_API SkGrTexturePixelRef : public SkROLockPixelsPixelRef {
 public:
             SkGrTexturePixelRef(GrTexture*);
     virtual ~SkGrTexturePixelRef();
 
     
     virtual SkGpuTexture* getTexture();
+
+    SK_DECLARE_UNFLATTENABLE_OBJECT()
 
 protected:
     
@@ -63,13 +65,15 @@ private:
 
 
 
-class SkGrRenderTargetPixelRef : public SkROLockPixelsPixelRef {
+class SK_API SkGrRenderTargetPixelRef : public SkROLockPixelsPixelRef {
 public:
             SkGrRenderTargetPixelRef(GrRenderTarget* rt);
     virtual ~SkGrRenderTargetPixelRef();
 
     
     virtual SkGpuTexture* getTexture();
+
+    SK_DECLARE_UNFLATTENABLE_OBJECT()
 
 protected:
     

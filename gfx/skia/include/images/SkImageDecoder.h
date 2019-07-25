@@ -333,4 +333,24 @@ public:
 };
 
 
+
+#define DECLARE_DECODER_CREATOR(codec)          \
+    SkImageDecoder *Create ## codec ();
+
+
+
+#define DEFINE_DECODER_CREATOR(codec)           \
+    SkImageDecoder *Create ## codec () {        \
+        return SkNEW( Sk ## codec );            \
+    }
+
+
+
+DECLARE_DECODER_CREATOR(BMPImageDecoder);
+DECLARE_DECODER_CREATOR(GIFImageDecoder);
+DECLARE_DECODER_CREATOR(ICOImageDecoder);
+DECLARE_DECODER_CREATOR(JPEGImageDecoder);
+DECLARE_DECODER_CREATOR(PNGImageDecoder);
+DECLARE_DECODER_CREATOR(WBMPImageDecoder);
+
 #endif
