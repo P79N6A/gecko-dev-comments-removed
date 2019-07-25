@@ -540,9 +540,10 @@ nsMathMLmtableOuterFrame::GetRowFrameAt(nsPresContext* aPresContext,
   
   if (aRowIndex < 0) {
     aRowIndex = rowCount + aRowIndex;
+  } else {
+    
+    --aRowIndex;
   }
-  
-  --aRowIndex;
 
   
   if (0 <= aRowIndex && aRowIndex <= rowCount) {
