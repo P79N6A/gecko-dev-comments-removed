@@ -597,6 +597,26 @@ public:
   }
 
   
+  elem_type& LastElement() {
+    return ElementAt(Length() - 1);
+  }
+
+  
+  const elem_type& LastElement() const {
+    return ElementAt(Length() - 1);
+  }
+
+  
+  elem_type& SafeLastElement(elem_type& def) {
+    return SafeElementAt(Length() - 1, def);
+  }
+
+  
+  const elem_type& SafeLastElement(const elem_type& def) const {
+    return SafeElementAt(Length() - 1, def);
+  }
+
+  
   
   
 
