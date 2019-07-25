@@ -382,7 +382,6 @@ nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
 
   
   
-  bool javaIsEnabled;
   if (aPluginTag->mIsJavaPlugin &&
       !Preferences::GetBool("dom.ipc.plugins.java.enabled", true)) {
     return false;
