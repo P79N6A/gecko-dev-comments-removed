@@ -280,7 +280,7 @@ protected:
 
 
 
-  nsresult DoSetChecked(PRBool aValue, PRBool aNotify = PR_TRUE);
+  nsresult DoSetChecked(PRBool aValue, PRBool aNotify, PRBool aSetValueChanged);
 
   
 
