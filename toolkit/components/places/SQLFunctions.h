@@ -155,6 +155,18 @@ private:
 
 
 
+  static bool findBeginningCaseSensitive(const nsDependentCSubstring &aToken,
+                                         const nsACString &aSourceString);
+
+  
+
+
+
+
+
+
+
+
 
   static bool findAnywhere(const nsDependentCSubstring &aToken,
                            const nsACString &aSourceString);

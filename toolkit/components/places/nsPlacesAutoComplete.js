@@ -76,6 +76,7 @@ const MATCH_ANYWHERE = Ci.mozIPlacesAutoComplete.MATCH_ANYWHERE;
 const MATCH_BOUNDARY_ANYWHERE = Ci.mozIPlacesAutoComplete.MATCH_BOUNDARY_ANYWHERE;
 const MATCH_BOUNDARY = Ci.mozIPlacesAutoComplete.MATCH_BOUNDARY;
 const MATCH_BEGINNING = Ci.mozIPlacesAutoComplete.MATCH_BEGINNING;
+const MATCH_BEGINNING_CASE_SENSITIVE = Ci.mozIPlacesAutoComplete.MATCH_BEGINNING_CASE_SENSITIVE;
 
 
 
@@ -1441,9 +1442,18 @@ urlInlineComplete.prototype = {
 
     
     
+    let pathIndex =
+      this._originalSearchString.indexOf("/", this._strippedPrefix.length);
+    this._currentSearchString = fixupSearchText(
+      this._originalSearchString.slice(0, pathIndex).toLowerCase() +
+      this._originalSearchString.slice(pathIndex)
+    );
+
+    
+    
     let query = this._asyncQuery;
     let (params = query.params) {
-      params.matchBehavior = MATCH_BEGINNING;
+      params.matchBehavior = MATCH_BEGINNING_CASE_SENSITIVE;
       params.searchBehavior = Ci.mozIPlacesAutoComplete["BEHAVIOR_URL"];
       params.searchString = this._currentSearchString;
     }
