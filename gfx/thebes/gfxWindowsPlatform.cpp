@@ -170,6 +170,7 @@ gfxWindowsPlatform::gfxWindowsPlatform()
 
 #ifdef CAIRO_HAS_D2D_SURFACE
     NS_RegisterMemoryReporter(new D2DCacheReporter());
+    mD2DDevice = NULL;
 #endif
 #ifdef CAIRO_HAS_DWRITE_FONT
     nsresult rv;
@@ -213,7 +214,8 @@ gfxWindowsPlatform::gfxWindowsPlatform()
 #ifndef CAIRO_HAS_D2D_SURFACE
                 return;
 #else
-                if (!cairo_d2d_has_support()) {
+		mD2DDevice = cairo_d2d_create_device();
+                if (!mD2DDevice) {
                     return;
                 }
 #ifdef CAIRO_HAS_DWRITE_FONT
@@ -235,6 +237,11 @@ gfxWindowsPlatform::~gfxWindowsPlatform()
 {
     
     
+#ifdef CAIRO_HAS_D2D_SURFACE
+    if (mD2DDevice) {
+	cairo_release_device(mD2DDevice);
+    }
+#endif
 }
 
 gfxPlatformFontList*

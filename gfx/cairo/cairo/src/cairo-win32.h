@@ -127,6 +127,38 @@ cairo_dwrite_font_face_create_for_dwrite_fontface(void *dwrite_font, void *dwrit
 
 #if CAIRO_HAS_D2D_SURFACE
 
+struct _cairo_device
+{
+    int type;
+    int refcount;
+};
+typedef struct _cairo_device cairo_device_t;
+
+
+
+
+
+
+cairo_device_t *
+cairo_d2d_create_device();
+
+
+
+
+
+
+int
+cairo_release_device(cairo_device_t *device);
+
+
+
+
+
+
+int
+cairo_addref_device(cairo_device_t *device);
+
+
 
 
 
@@ -135,7 +167,8 @@ cairo_dwrite_font_face_create_for_dwrite_fontface(void *dwrite_font, void *dwrit
 
 
 cairo_public cairo_surface_t *
-cairo_d2d_surface_create_for_hwnd(HWND wnd, cairo_content_t content);
+cairo_d2d_surface_create_for_hwnd(cairo_device_t *device, HWND wnd, cairo_content_t content);
+
 
 
 
@@ -146,7 +179,8 @@ cairo_d2d_surface_create_for_hwnd(HWND wnd, cairo_content_t content);
 
 
 cairo_public cairo_surface_t *
-cairo_d2d_surface_create(cairo_format_t format,
+cairo_d2d_surface_create(cairo_device_t *device,
+			 cairo_format_t format,
                          int width,
                          int height);
 
@@ -171,15 +205,6 @@ void cairo_d2d_present_backbuffer(cairo_surface_t *surface);
 
 
 void cairo_d2d_scroll(cairo_surface_t *surface, int x, int y, cairo_rectangle_t *clip);
-
-
-
-
-
-
-
-
-cairo_bool_t cairo_d2d_has_support();
 
 
 
