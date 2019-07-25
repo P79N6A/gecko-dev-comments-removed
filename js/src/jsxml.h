@@ -283,8 +283,8 @@ js_InitXMLClasses(JSContext *cx, JSObject *obj);
 
 
 
-JSBool
-js_IsFunctionQName(JSContext *cx, JSObject *obj, jsid *funidp);
+extern bool
+js_GetLocalNameFromFunctionQName(JSObject *obj, jsid *funidp, JSContext *cx);
 
 extern JSBool
 js_GetDefaultXMLNamespace(JSContext *cx, jsval *vp);
