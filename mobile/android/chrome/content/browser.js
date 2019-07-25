@@ -1611,17 +1611,35 @@ Tab.prototype = {
     if (zoom <= 0 || resolution <= 0)
       return;
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
     let element = this.browser.contentDocument.documentElement;
     if (!element)
       return;
 
+    
+    
+    
     let cwu = window.top.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
     if (BrowserApp.selectedTab == this)
       cwu.setResolution(resolution, resolution);
     else if (resolution != zoom)
       dump("Warning: setDisplayPort resolution did not match zoom for background tab!");
-    cwu.setDisplayPortForElement((aDisplayPort.left - aViewportX) / resolution,
-                                 (aDisplayPort.top - aViewportY) / resolution,
+
+    
+    
+    cwu.setDisplayPortForElement((aDisplayPort.left / resolution) - (aViewportX / zoom),
+                                 (aDisplayPort.top / resolution) - (aViewportY / zoom),
                                  (aDisplayPort.right - aDisplayPort.left) / resolution,
                                  (aDisplayPort.bottom - aDisplayPort.top) / resolution,
                                  element);
