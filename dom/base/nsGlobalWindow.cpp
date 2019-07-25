@@ -2100,7 +2100,7 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
     } else {
       if (!JS_DefineProperty(cx, newInnerWindow->mJSObject, "window",
                              OBJECT_TO_JSVAL(mJSObject),
-                             JS_PropertyStub, JS_PropertyStub,
+                             JS_PropertyStub, JS_StrictPropertyStub,
                              JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT)) {
         NS_ERROR("can't create the 'window' property");
         return NS_ERROR_FAILURE;
@@ -4438,8 +4438,6 @@ nsGlobalWindow::Dump(const nsAString& aStr)
 void
 nsGlobalWindow::EnsureReflowFlushAndPaint()
 {
-  NS_ASSERTION(IsOuterWindow(), "EnsureReflowFlushAndPaint() must be called on"
-               "the outer window");
   NS_ASSERTION(mDocShell, "EnsureReflowFlushAndPaint() called with no "
                "docshell!");
 
@@ -4719,9 +4717,6 @@ NS_IMETHODIMP
 nsGlobalWindow::Prompt(const nsAString& aMessage, const nsAString& aInitial,
                        nsAString& aReturn)
 {
-  FORWARD_TO_OUTER(Prompt, (aMessage, aInitial, aReturn),
-                   NS_ERROR_NOT_INITIALIZED);
-
   SetDOMStringToNull(aReturn);
 
   if (AreDialogsBlocked())
@@ -6760,9 +6755,6 @@ nsGlobalWindow::ShowModalDialog(const nsAString& aURI, nsIVariant *aArgs,
                                 const nsAString& aOptions,
                                 nsIVariant **aRetVal)
 {
-  FORWARD_TO_OUTER(ShowModalDialog, (aURI, aArgs, aOptions, aRetVal),
-                   NS_ERROR_NOT_INITIALIZED);
-
   *aRetVal = nsnull;
 
   

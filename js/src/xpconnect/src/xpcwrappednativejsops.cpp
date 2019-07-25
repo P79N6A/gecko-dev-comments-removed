@@ -493,12 +493,12 @@ DefinePropertyIfFound(XPCCallContext& ccx,
     propFlags |= JSPROP_GETTER | JSPROP_SHARED;
     JSObject* funobj = JSVAL_TO_OBJECT(funval);
     JSPropertyOp getter = JS_DATA_TO_FUNC_PTR(JSPropertyOp, funobj);
-    JSPropertyOp setter;
+    JSStrictPropertyOp setter;
     if(member->IsWritableAttribute())
     {
         propFlags |= JSPROP_SETTER;
         propFlags &= ~JSPROP_READONLY;
-        setter = getter;
+        setter = JS_DATA_TO_FUNC_PTR(JSStrictPropertyOp, funobj);
     }
     else
     {
@@ -517,7 +517,7 @@ DefinePropertyIfFound(XPCCallContext& ccx,
 
 
 static JSBool
-XPC_WN_OnlyIWrite_PropertyStub(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
+XPC_WN_OnlyIWrite_AddPropertyStub(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
     XPCCallContext ccx(JS_CALLER, cx, obj, nsnull, id);
     XPCWrappedNative* wrapper = ccx.GetWrapper();
@@ -531,9 +531,22 @@ XPC_WN_OnlyIWrite_PropertyStub(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 }
 
 static JSBool
+XPC_WN_OnlyIWrite_SetPropertyStub(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp)
+{
+    return XPC_WN_OnlyIWrite_AddPropertyStub(cx, obj, id, vp);
+}
+
+static JSBool
 XPC_WN_CannotModifyPropertyStub(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
     return Throw(NS_ERROR_XPC_CANT_MODIFY_PROP_ON_WN, cx);
+}
+
+static JSBool
+XPC_WN_CannotModifyStrictPropertyStub(JSContext *cx, JSObject *obj, jsid id, JSBool strict,
+                                      jsval *vp)
+{
+    return XPC_WN_CannotModifyPropertyStub(cx, obj, id, vp);
 }
 
 static JSBool
@@ -864,10 +877,10 @@ js::Class XPC_WN_NoHelper_JSClass = {
     JSCLASS_MARK_IS_TRACE, 
 
     
-    JS_VALUEIFY(js::PropertyOp, XPC_WN_OnlyIWrite_PropertyStub), 
-    JS_VALUEIFY(js::PropertyOp, XPC_WN_CannotModifyPropertyStub),
-    js::PropertyStub,                                            
-    JS_VALUEIFY(js::PropertyOp, XPC_WN_OnlyIWrite_PropertyStub), 
+    JS_VALUEIFY(js::PropertyOp, XPC_WN_OnlyIWrite_AddPropertyStub),       
+    JS_VALUEIFY(js::PropertyOp, XPC_WN_CannotModifyPropertyStub),         
+    js::PropertyStub,                                                     
+    JS_VALUEIFY(js::StrictPropertyOp, XPC_WN_OnlyIWrite_SetPropertyStub), 
    
     XPC_WN_Shared_Enumerate,                                     
     XPC_WN_NoHelper_Resolve,                                     
@@ -926,6 +939,13 @@ XPC_WN_MaybeResolvingPropertyStub(JSContext *cx, JSObject *obj, jsid id, jsval *
     return Throw(NS_ERROR_XPC_CANT_MODIFY_PROP_ON_WN, cx);
 }
 
+static JSBool
+XPC_WN_MaybeResolvingStrictPropertyStub(JSContext *cx, JSObject *obj, jsid id, JSBool strict,
+                                        jsval *vp)
+{
+    return XPC_WN_MaybeResolvingPropertyStub(cx, obj, id, vp);
+}
+
 
 #define PRE_HELPER_STUB_NO_SLIM                                              \
     XPCWrappedNative* wrapper =                                              \
@@ -981,7 +1001,7 @@ XPC_WN_Helper_GetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 }
 
 static JSBool
-XPC_WN_Helper_SetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
+XPC_WN_Helper_SetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp)
 {
     PRE_HELPER_STUB
     SetProperty(wrapper, cx, obj, id, vp, &retval);
@@ -1478,15 +1498,15 @@ XPCNativeScriptableShared::PopulateJSClass(JSBool isGlobal)
     else
         mJSClass.base.getProperty = js::PropertyStub;
 
-    JSPropertyOp setProperty;
+    JSStrictPropertyOp setProperty;
     if(mFlags.WantSetProperty())
         setProperty = XPC_WN_Helper_SetProperty;
     else if(mFlags.UseJSStubForSetProperty())
-        setProperty = JS_PropertyStub;
+        setProperty = JS_StrictPropertyStub;
     else if(mFlags.AllowPropModsDuringResolve())
-        setProperty = XPC_WN_MaybeResolvingPropertyStub;
+        setProperty = XPC_WN_MaybeResolvingStrictPropertyStub;
     else
-        setProperty = XPC_WN_CannotModifyPropertyStub;
+        setProperty = XPC_WN_CannotModifyStrictPropertyStub;
     mJSClass.base.setProperty = js::Valueify(setProperty);
 
     
@@ -1752,7 +1772,7 @@ js::Class XPC_WN_ModsAllowed_WithCall_Proto_JSClass = {
     js::PropertyStub,               
     js::PropertyStub,               
     js::PropertyStub,               
-    js::PropertyStub,               
+    js::StrictPropertyStub,         
     XPC_WN_Shared_Proto_Enumerate,  
     XPC_WN_ModsAllowed_Proto_Resolve, 
     JS_VALUEIFY(js::ConvertOp, XPC_WN_Shared_Proto_Convert), 
@@ -1779,7 +1799,7 @@ js::Class XPC_WN_ModsAllowed_NoCall_Proto_JSClass = {
     js::PropertyStub,               
     js::PropertyStub,               
     js::PropertyStub,               
-    js::PropertyStub,               
+    js::StrictPropertyStub,         
     XPC_WN_Shared_Proto_Enumerate,  
     XPC_WN_ModsAllowed_Proto_Resolve,
     JS_VALUEIFY(js::ConvertOp, XPC_WN_Shared_Proto_Convert), 
@@ -1801,7 +1821,7 @@ js::Class XPC_WN_ModsAllowed_NoCall_Proto_JSClass = {
 
 
 static JSBool
-XPC_WN_OnlyIWrite_Proto_PropertyStub(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
+XPC_WN_OnlyIWrite_Proto_AddPropertyStub(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
     NS_ASSERTION(obj->getClass() == &XPC_WN_NoMods_WithCall_Proto_JSClass ||
                  obj->getClass() == &XPC_WN_NoMods_NoCall_Proto_JSClass,
@@ -1821,6 +1841,13 @@ XPC_WN_OnlyIWrite_Proto_PropertyStub(JSContext *cx, JSObject *obj, jsid id, jsva
         return JS_TRUE;
 
     return Throw(NS_ERROR_XPC_BAD_OP_ON_WN_PROTO, cx);
+}
+
+static JSBool
+XPC_WN_OnlyIWrite_Proto_SetPropertyStub(JSContext *cx, JSObject *obj, jsid id, JSBool strict,
+                                        jsval *vp)
+{
+    return XPC_WN_OnlyIWrite_Proto_AddPropertyStub(cx, obj, id, vp);
 }
 
 static JSBool
@@ -1857,14 +1884,14 @@ js::Class XPC_WN_NoMods_WithCall_Proto_JSClass = {
     WRAPPER_SLOTS | JSCLASS_MARK_IS_TRACE, 
 
     
-    JS_VALUEIFY(js::PropertyOp, XPC_WN_OnlyIWrite_Proto_PropertyStub), 
-    JS_VALUEIFY(js::PropertyOp, XPC_WN_CannotModifyPropertyStub),      
-    js::PropertyStub,                                                  
-    JS_VALUEIFY(js::PropertyOp, XPC_WN_OnlyIWrite_Proto_PropertyStub), 
-    XPC_WN_Shared_Proto_Enumerate,                                     
-    XPC_WN_NoMods_Proto_Resolve,                                       
-    JS_VALUEIFY(js::ConvertOp, XPC_WN_Shared_Proto_Convert),           
-    XPC_WN_Shared_Proto_Finalize,                                      
+    JS_VALUEIFY(js::PropertyOp, XPC_WN_OnlyIWrite_Proto_AddPropertyStub),       
+    JS_VALUEIFY(js::PropertyOp, XPC_WN_CannotModifyPropertyStub),               
+    js::PropertyStub,                                                           
+    JS_VALUEIFY(js::StrictPropertyOp, XPC_WN_OnlyIWrite_Proto_SetPropertyStub), 
+    XPC_WN_Shared_Proto_Enumerate,                                              
+    XPC_WN_NoMods_Proto_Resolve,                                                
+    JS_VALUEIFY(js::ConvertOp, XPC_WN_Shared_Proto_Convert),                    
+    XPC_WN_Shared_Proto_Finalize,                                               
 
     
     nsnull,                         
@@ -1884,14 +1911,14 @@ js::Class XPC_WN_NoMods_NoCall_Proto_JSClass = {
     WRAPPER_SLOTS | JSCLASS_MARK_IS_TRACE,              
 
     
-    JS_VALUEIFY(js::PropertyOp, XPC_WN_OnlyIWrite_Proto_PropertyStub), 
-    JS_VALUEIFY(js::PropertyOp, XPC_WN_CannotModifyPropertyStub),      
-    js::PropertyStub,                                                  
-    JS_VALUEIFY(js::PropertyOp, XPC_WN_OnlyIWrite_Proto_PropertyStub), 
-    XPC_WN_Shared_Proto_Enumerate,                                     
-    XPC_WN_NoMods_Proto_Resolve,                                       
-    JS_VALUEIFY(js::ConvertOp, XPC_WN_Shared_Proto_Convert),           
-    XPC_WN_Shared_Proto_Finalize,                                      
+    JS_VALUEIFY(js::PropertyOp, XPC_WN_OnlyIWrite_Proto_AddPropertyStub),       
+    JS_VALUEIFY(js::PropertyOp, XPC_WN_CannotModifyPropertyStub),               
+    js::PropertyStub,                                                           
+    JS_VALUEIFY(js::StrictPropertyOp, XPC_WN_OnlyIWrite_Proto_SetPropertyStub), 
+    XPC_WN_Shared_Proto_Enumerate,                                              
+    XPC_WN_NoMods_Proto_Resolve,                                                
+    JS_VALUEIFY(js::ConvertOp, XPC_WN_Shared_Proto_Convert),                    
+    XPC_WN_Shared_Proto_Finalize,                                               
 
     
     nsnull,                         
@@ -1968,12 +1995,12 @@ js::Class XPC_WN_Tearoff_JSClass = {
     "WrappedNative_TearOff",                        
     WRAPPER_SLOTS | JSCLASS_MARK_IS_TRACE,          
 
-    JS_VALUEIFY(js::PropertyOp, XPC_WN_OnlyIWrite_PropertyStub),   
-    JS_VALUEIFY(js::PropertyOp, XPC_WN_CannotModifyPropertyStub),  
-    js::PropertyStub,                                              
-    JS_VALUEIFY(js::PropertyOp, XPC_WN_OnlyIWrite_PropertyStub),   
-    XPC_WN_TearOff_Enumerate,                                      
-    XPC_WN_TearOff_Resolve,                                        
-    JS_VALUEIFY(js::ConvertOp, XPC_WN_Shared_Convert),             
-    XPC_WN_TearOff_Finalize                                        
+    JS_VALUEIFY(js::PropertyOp, XPC_WN_OnlyIWrite_AddPropertyStub),       
+    JS_VALUEIFY(js::PropertyOp, XPC_WN_CannotModifyPropertyStub),         
+    js::PropertyStub,                                                     
+    JS_VALUEIFY(js::StrictPropertyOp, XPC_WN_OnlyIWrite_SetPropertyStub), 
+    XPC_WN_TearOff_Enumerate,                                             
+    XPC_WN_TearOff_Resolve,                                               
+    JS_VALUEIFY(js::ConvertOp, XPC_WN_Shared_Convert),                    
+    XPC_WN_TearOff_Finalize                                               
 };
