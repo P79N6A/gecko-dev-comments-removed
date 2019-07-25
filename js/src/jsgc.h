@@ -177,11 +177,18 @@ js_GCThingIsMarked(void *thing, uint32 color);
 extern void
 js_TraceStackFrame(JSTracer *trc, JSStackFrame *fp);
 
+namespace js {
+
 extern JS_REQUIRES_STACK void
-js_TraceRuntime(JSTracer *trc);
+MarkRuntime(JSTracer *trc);
+
+extern void
+TraceRuntime(JSTracer *trc);
 
 extern JS_REQUIRES_STACK JS_FRIEND_API(void)
-js_TraceContext(JSTracer *trc, JSContext *acx);
+MarkContext(JSTracer *trc, JSContext *acx);
+
+} 
 
 
 
@@ -438,11 +445,27 @@ struct ConservativeGCThreadData {
         jsuword         words[JS_HOWMANY(sizeof(jmp_buf), sizeof(jsuword))];
     } registerSnapshot;
 
-    int                 enableCount;
+    
 
-    JS_NEVER_INLINE JS_FRIEND_API(void) enable(bool knownStackBoundary = false);
-    JS_FRIEND_API(void) disable();
-    bool isEnabled() const { return enableCount > 0; }
+
+
+
+    unsigned requestThreshold;
+
+    JS_NEVER_INLINE void recordStackTop();
+
+#ifdef JS_THREADSAFE
+    void updateForRequestEnd(unsigned suspendCount) {
+        if (suspendCount)
+            recordStackTop();
+        else
+            nativeStackTop = NULL;
+    }
+#endif
+   
+    bool hasStackToScan() const {
+        return !!nativeStackTop;
+    }
 };
 
 struct GCMarker : public JSTracer {

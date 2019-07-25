@@ -46,6 +46,7 @@ var expect = 'No leak';
 test();
 
 
+
 function test()
 {
   enterFunc ('test');
@@ -67,6 +68,7 @@ function test()
   else
   {
     var x = f();
+    f(); 
     gc();
     var n = countHeap();
     x = null;

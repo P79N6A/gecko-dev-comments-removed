@@ -792,31 +792,15 @@ JS_SetRuntimePrivate(JSRuntime *rt, void *data)
     rt->data = data;
 }
 
-JS_PUBLIC_API(void)
-JS_BeginRequest(JSContext *cx)
-{
 #ifdef JS_THREADSAFE
-    JS_ASSERT(CURRENT_THREAD_IS_ME(cx->thread));
-    JS_ASSERT(cx->requestDepth <= cx->outstandingRequests);
-    if (cx->requestDepth) {
-        JS_ASSERT(cx->thread->requestContext == cx);
-        cx->requestDepth++;
-        cx->outstandingRequests++;
-    } else if (JSContext *old = cx->thread->requestContext) {
-        JS_ASSERT(!cx->prevRequestContext);
-        JS_ASSERT(cx->prevRequestDepth == 0);
-        JS_ASSERT(old != cx);
-        JS_ASSERT(old->requestDepth != 0);
-        JS_ASSERT(old->requestDepth <= old->outstandingRequests);
-
-        
-        AutoLockGC lock(cx->runtime);
-        cx->prevRequestContext = old;
-        cx->prevRequestDepth = old->requestDepth;
-        cx->requestDepth = 1;
-        cx->outstandingRequests++;
-        old->requestDepth = 0;
-        cx->thread->requestContext = cx;
+static void
+StartRequest(JSContext *cx)
+{
+    JSThread *t = cx->thread;
+    JS_ASSERT(CURRENT_THREAD_IS_ME(t));
+   
+    if (t->requestDepth) {
+        t->requestDepth++;
     } else {
         JSRuntime *rt = cx->runtime;
         AutoLockGC lock(rt);
@@ -828,55 +812,32 @@ JS_BeginRequest(JSContext *cx)
         }
 
         
-        cx->requestDepth = 1;
-        cx->outstandingRequests++;
-        cx->thread->requestContext = cx;
         rt->requestCount++;
+        t->requestDepth = 1;
 
         if (rt->requestCount == 1 && rt->activityCallback)
             rt->activityCallback(rt->activityCallbackArg, true);
     }
-#endif
 }
 
-#ifdef JS_THREADSAFE
 static void
 StopRequest(JSContext *cx)
 {
-    JSRuntime *rt;
-
-    JS_ASSERT(CURRENT_THREAD_IS_ME(cx->thread));
-    JS_ASSERT(cx->requestDepth > 0);
-    JS_ASSERT(cx->outstandingRequests >= cx->requestDepth);
-    JS_ASSERT(cx->thread->requestContext == cx);
-    if (cx->requestDepth >= 2) {
-        cx->requestDepth--;
-        cx->outstandingRequests--;
-    } else if (JSContext *old = cx->prevRequestContext) {
-        JS_ASSERT(cx != old);
-        JS_ASSERT(old->requestDepth == 0);
-        JS_ASSERT(old->outstandingRequests >= cx->prevRequestDepth);
-        
-        
-        AutoLockGC lock(cx->runtime);
-        
-        cx->outstandingRequests--;
-        cx->requestDepth = 0;
-        old->requestDepth = cx->prevRequestDepth;
-        cx->prevRequestContext = NULL;
-        cx->prevRequestDepth = 0;
-        cx->thread->requestContext = old;
+    JSThread *t = cx->thread;
+    JS_ASSERT(CURRENT_THREAD_IS_ME(t));
+    JS_ASSERT(t->requestDepth != 0);
+    if (t->requestDepth != 1) {
+        t->requestDepth--;
     } else {
-        JS_ASSERT(cx->prevRequestDepth == 0);
         LeaveTrace(cx);  
 
+        t->data.conservativeGC.updateForRequestEnd(t->suspendCount);
+
         
-        rt = cx->runtime;
+        JSRuntime *rt = cx->runtime;
         AutoLockGC lock(rt);
 
-        cx->requestDepth = 0;
-        cx->outstandingRequests--;
-        cx->thread->requestContext = NULL;
+        t->requestDepth = 0;
 
         js_ShareWaitingTitles(cx);
 
@@ -890,19 +851,23 @@ StopRequest(JSContext *cx)
         }
     }
 }
+#endif 
+
+JS_PUBLIC_API(void)
+JS_BeginRequest(JSContext *cx)
+{
+#ifdef JS_THREADSAFE
+    cx->outstandingRequests++;
+    StartRequest(cx);
 #endif
+}
 
 JS_PUBLIC_API(void)
 JS_EndRequest(JSContext *cx)
 {
 #ifdef JS_THREADSAFE
-    
-
-
-
-
-    JS_ASSERT_IF(cx->requestDepth == 1 && cx->outstandingRequests == 1,
-                 cx->checkRequestDepth == 0);
+    JS_ASSERT(cx->outstandingRequests != 0);
+    cx->outstandingRequests--;
     StopRequest(cx);
 #endif
 }
@@ -912,11 +877,7 @@ JS_PUBLIC_API(void)
 JS_YieldRequest(JSContext *cx)
 {
 #ifdef JS_THREADSAFE
-    JS_ASSERT(cx->thread);
     CHECK_REQUEST(cx);
-    cx = cx->thread->requestContext;
-    if (!cx)
-        return;
     JS_ResumeRequest(cx, JS_SuspendRequest(cx));
 #endif
 }
@@ -925,16 +886,16 @@ JS_PUBLIC_API(jsrefcount)
 JS_SuspendRequest(JSContext *cx)
 {
 #ifdef JS_THREADSAFE
-    jsrefcount saveDepth = cx->requestDepth;
-    if (saveDepth == 0)
+    JSThread *t = cx->thread;
+    JS_ASSERT(CURRENT_THREAD_IS_ME(t));
+
+    jsrefcount saveDepth = t->requestDepth;
+    if (!saveDepth)
         return 0;
 
-    JS_THREAD_DATA(cx)->conservativeGC.enable();
-    do {
-        cx->outstandingRequests++;  
-        StopRequest(cx);
-    } while (cx->requestDepth);
-
+    t->suspendCount++;
+    t->requestDepth = 1;
+    StopRequest(cx);
     return saveDepth;
 #else
     return 0;
@@ -945,15 +906,16 @@ JS_PUBLIC_API(void)
 JS_ResumeRequest(JSContext *cx, jsrefcount saveDepth)
 {
 #ifdef JS_THREADSAFE
+    JSThread *t = cx->thread;
+    JS_ASSERT(CURRENT_THREAD_IS_ME(t));
     if (saveDepth == 0)
         return;
-
-    JS_ASSERT(cx->outstandingRequests != 0);
-    do {
-        JS_BeginRequest(cx);
-        cx->outstandingRequests--;  
-    } while (--saveDepth != 0);
-    JS_THREAD_DATA(cx)->conservativeGC.disable();
+    JS_ASSERT(saveDepth >= 1);
+    JS_ASSERT(!t->requestDepth);
+    JS_ASSERT(t->suspendCount);
+    StartRequest(cx);
+    t->requestDepth = saveDepth;
+    t->suspendCount--;
 #endif
 }
 
@@ -2055,8 +2017,7 @@ JS_SetExtraGCRoots(JSRuntime *rt, JSTraceDataOp traceOp, void *data)
 JS_PUBLIC_API(void)
 JS_TraceRuntime(JSTracer *trc)
 {
-    LeaveTrace(trc->context);
-    js_TraceRuntime(trc);
+    TraceRuntime(trc);
 }
 
 JS_PUBLIC_API(void)
@@ -2371,7 +2332,7 @@ JS_DumpHeap(JSContext *cx, FILE *fp, void* startThing, uint32 startKind,
     dtrc.lastNodep = &node;
     if (!startThing) {
         JS_ASSERT(startKind == 0);
-        JS_TraceRuntime(&dtrc.base);
+        TraceRuntime(&dtrc.base);
     } else {
         JS_TraceChildren(&dtrc.base, startThing, startKind);
     }
@@ -5618,7 +5579,7 @@ JS_PUBLIC_API(jsword)
 JS_SetContextThread(JSContext *cx)
 {
 #ifdef JS_THREADSAFE
-    JS_ASSERT(cx->requestDepth == 0);
+    JS_ASSERT(!cx->outstandingRequests);
     if (cx->thread) {
         JS_ASSERT(CURRENT_THREAD_IS_ME(cx->thread));
         return reinterpret_cast<jsword>(cx->thread->id);
@@ -5644,11 +5605,11 @@ JS_ClearContextThread(JSContext *cx)
 
 
 
-    JS_ASSERT(cx->requestDepth == 0);
-    if (!cx->thread)
+    JS_ASSERT(cx->outstandingRequests == 0);
+    JSThread *t = cx->thread;
+    if (!t)
         return 0;
-    JS_ASSERT(CURRENT_THREAD_IS_ME(cx->thread));
-    void *old = cx->thread->id;
+    JS_ASSERT(CURRENT_THREAD_IS_ME(t));
 
     
 
@@ -5658,7 +5619,13 @@ JS_ClearContextThread(JSContext *cx)
     AutoLockGC lock(rt);
     js_WaitForGC(rt);
     js_ClearContextThread(cx);
-    return reinterpret_cast<jsword>(old);
+    JS_ASSERT_IF(JS_CLIST_IS_EMPTY(&t->contextList), !t->requestDepth);
+   
+    
+
+
+
+    return reinterpret_cast<jsword>(t->id);
 #else
     return 0;
 #endif
