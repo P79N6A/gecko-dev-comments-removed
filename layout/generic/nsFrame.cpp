@@ -1529,13 +1529,12 @@ WrapPreserve3DListInternal(nsIFrame* aFrame, nsDisplayListBuilder *aBuilder, nsD
   nsDisplayList temp;
   while (nsDisplayItem *item = aList->RemoveBottom()) {
     nsIFrame *childFrame = item->GetUnderlyingFrame();
-    NS_ASSERTION(childFrame, "All display items to be wrapped must have a frame!");
 
     
     
     
 
-    if (childFrame->GetParent()->Preserves3DChildren()) {
+    if (childFrame && childFrame->GetParent()->Preserves3DChildren()) {
       switch (item->GetType()) {
         case nsDisplayItem::TYPE_TRANSFORM: {
           if (!temp.IsEmpty()) {
