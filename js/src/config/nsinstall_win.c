@@ -41,6 +41,38 @@ static BOOL sh_DoCopy(wchar_t *srcFileName, DWORD srcFileAttributes,
 #define ARRAY_LEN(a) (sizeof(a) / sizeof(a[0]))
 #define STR_LEN(a) (ARRAY_LEN(a) - 1)
 
+#ifdef __MINGW32__
+
+
+
+
+
+#include <shellapi.h>
+
+int wmain(int argc, WCHAR **argv);
+
+int main(int argc, char **argv)
+{
+    int result;
+    wchar_t *commandLine = GetCommandLineW();
+    int argcw = 0;
+    wchar_t **_argvw = CommandLineToArgvW( commandLine, &argcw );
+    wchar_t *argvw[argcw + 1];
+    int i;
+    if (!_argvw)
+        return 127;
+    
+
+    for ( i = 0; i < argcw; i++ )
+        argvw[i] = _argvw[i];
+    argvw[argcw] = NULL;
+
+    result = wmain(argcw, argvw);
+    LocalFree(_argvw);
+    return result;
+}
+#endif 
+
 
 void changeForwardSlashesToBackSlashes ( wchar_t *arg )
 {
