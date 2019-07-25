@@ -46,8 +46,8 @@
 #include "nsThreadUtils.h"
 
 #include "IDBEvents.h"
-#include "IDBFactory.h"
 #include "IDBTransaction.h"
+#include "IndexedDatabaseManager.h"
 #include "TransactionThreadPool.h"
 
 using mozilla::TimeStamp;
@@ -245,7 +245,7 @@ AsyncConnectionHelper::Run()
   if (NS_SUCCEEDED(rv)) {
     bool hasSavepoint = false;
     if (mDatabase) {
-      IDBFactory::SetCurrentDatabase(mDatabase);
+      IndexedDatabaseManager::SetCurrentDatabase(mDatabase);
 
       
       if (mTransaction) {
@@ -258,7 +258,7 @@ AsyncConnectionHelper::Run()
     mResultCode = DoDatabaseWork(connection);
 
     if (mDatabase) {
-      IDBFactory::SetCurrentDatabase(nsnull);
+      IndexedDatabaseManager::SetCurrentDatabase(nsnull);
 
       
       if (hasSavepoint) {

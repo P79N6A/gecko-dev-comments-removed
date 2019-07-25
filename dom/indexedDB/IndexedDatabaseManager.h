@@ -55,6 +55,7 @@
 
 #define INDEXEDDB_MANAGER_CONTRACTID "@mozilla.org/dom/indexeddb/manager;1"
 
+class mozIStorageQuotaCallback;
 class nsITimer;
 
 BEGIN_INDEXEDDB_NAMESPACE
@@ -107,6 +108,14 @@ public:
 
   
   bool HasOpenTransactions(nsPIDOMWindow* aWindow);
+
+  static bool
+  SetCurrentDatabase(IDBDatabase* aDatabase);
+
+  static PRUint32
+  GetIndexedDBQuotaMB();
+
+  nsresult EnsureQuotaManagementForDirectory(nsIFile* aDirectory);
 
 private:
   IndexedDatabaseManager();
@@ -235,6 +244,15 @@ private:
 
   
   nsCOMPtr<nsITimer> mShutdownTimer;
+
+  
+  
+  nsCOMPtr<mozIStorageQuotaCallback> mQuotaCallbackSingleton;
+
+  
+  
+  
+  nsTArray<nsCString> mTrackedQuotaPaths;
 };
 
 END_INDEXEDDB_NAMESPACE

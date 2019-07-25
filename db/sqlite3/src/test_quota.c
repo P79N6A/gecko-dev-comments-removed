@@ -34,6 +34,20 @@
 
 
 
+#if defined(SQLITE_THREADSAFE) && SQLITE_THREADSAFE==0
+#define sqlite3_mutex_alloc(X)    ((sqlite3_mutex*)8)
+#define sqlite3_mutex_free(X)
+#define sqlite3_mutex_enter(X)
+#define sqlite3_mutex_try(X)      SQLITE_OK
+#define sqlite3_mutex_leave(X)
+#define sqlite3_mutex_held(X)     ((void)(X),1)
+#define sqlite3_mutex_notheld(X)  ((void)(X),1)
+#endif 
+
+
+
+
+
 typedef struct quotaGroup quotaGroup;
 typedef struct quotaConn quotaConn;
 typedef struct quotaFile quotaFile;
@@ -81,6 +95,7 @@ struct quotaFile {
   quotaGroup *pGroup;             
   sqlite3_int64 iSize;            
   int nRef;                       
+  int deleteOnClose;              
   quotaFile *pNext, **ppPrev;     
 };
 
@@ -152,10 +167,43 @@ static void quotaLeave(void){ sqlite3_mutex_leave(gQuota.pMutex); }
 
 
 
+static int quotaGroupOpenFileCount(quotaGroup *pGroup){
+  int N = 0;
+  quotaFile *pFile = pGroup->pFiles;
+  while( pFile ){
+    if( pFile->nRef ) N++;
+    pFile = pFile->pNext;
+  }
+  return N;
+}
+
+
+
+static void quotaRemoveFile(quotaFile *pFile){
+  quotaGroup *pGroup = pFile->pGroup;
+  pGroup->iSize -= pFile->iSize;
+  *pFile->ppPrev = pFile->pNext;
+  if( pFile->pNext ) pFile->pNext->ppPrev = pFile->ppPrev;
+  sqlite3_free(pFile);
+}
+
+
+
+
+static void quotaRemoveAllFiles(quotaGroup *pGroup){
+  while( pGroup->pFiles ){
+    assert( pGroup->pFiles->nRef==0 );
+    quotaRemoveFile(pGroup->pFiles);
+  }
+}
+
+
+
 
 
 static void quotaGroupDeref(quotaGroup *pGroup){
-  if( pGroup->pFiles==0 && pGroup->iLimit==0 ){
+  if( pGroup->iLimit==0 && quotaGroupOpenFileCount(pGroup)==0 ){
+    quotaRemoveAllFiles(pGroup);
     *pGroup->ppPrev = pGroup->pNext;
     if( pGroup->pNext ) pGroup->pNext->ppPrev = pGroup->ppPrev;
     if( pGroup->xDestroy ) pGroup->xDestroy(pGroup->pArg);
@@ -265,6 +313,17 @@ static sqlite3_file *quotaSubOpen(sqlite3_file *pConn){
 
 
 
+static quotaFile *quotaFindFile(quotaGroup *pGroup, const char *zName){
+  quotaFile *pFile = pGroup->pFiles;
+  while( pFile && strcmp(pFile->zFilename, zName)!=0 ){
+    pFile = pFile->pNext;
+  }
+  return pFile;
+}
+
+
+
+
 
 
 
@@ -305,8 +364,7 @@ static int quotaOpen(
     pSubOpen = quotaSubOpen(pConn);
     rc = pOrigVfs->xOpen(pOrigVfs, zName, pSubOpen, flags, pOutFlags);
     if( rc==SQLITE_OK ){
-      for(pFile=pGroup->pFiles; pFile && strcmp(pFile->zFilename, zName);
-          pFile=pFile->pNext){}
+      pFile = quotaFindFile(pGroup, zName);
       if( pFile==0 ){
         int nName = strlen(zName);
         pFile = (quotaFile *)sqlite3_malloc( sizeof(*pFile) + nName + 1 );
@@ -323,6 +381,7 @@ static int quotaOpen(
         pFile->ppPrev = &pGroup->pFiles;
         pGroup->pFiles = pFile;
         pFile->pGroup = pGroup;
+        pFile->deleteOnClose = (flags & SQLITE_OPEN_DELETEONCLOSE)!=0;
       }
       pFile->nRef++;
       pQuotaOpen->pFile = pFile;
@@ -343,6 +402,49 @@ static int quotaOpen(
 
 
 
+
+static int quotaDelete(
+  sqlite3_vfs *pVfs,          
+  const char *zName,          
+  int syncDir                 
+){
+  int rc;                                             
+  quotaFile *pFile;                          
+  quotaGroup *pGroup;                        
+  sqlite3_vfs *pOrigVfs = gQuota.pOrigVfs;   
+
+  
+  rc = pOrigVfs->xDelete(pOrigVfs, zName, syncDir);
+
+  
+
+
+  if( rc==SQLITE_OK ){
+    quotaEnter();
+    pGroup = quotaGroupFind(zName);
+    if( pGroup ){
+      pFile = quotaFindFile(pGroup, zName);
+      if( pFile ){
+        if( pFile->nRef ){
+          pFile->deleteOnClose = 1;
+        }else{
+          quotaRemoveFile(pFile);
+          quotaGroupDeref(pGroup);
+        }
+      }
+    }
+    quotaLeave();
+  }
+  return rc;
+}
+
+
+
+
+
+
+
+
 static int quotaClose(sqlite3_file *pConn){
   quotaConn *p = (quotaConn*)pConn;
   quotaFile *pFile = p->pFile;
@@ -353,11 +455,8 @@ static int quotaClose(sqlite3_file *pConn){
   pFile->nRef--;
   if( pFile->nRef==0 ){
     quotaGroup *pGroup = pFile->pGroup;
-    pGroup->iSize -= pFile->iSize;
-    if( pFile->pNext ) pFile->pNext->ppPrev = pFile->ppPrev;
-    *pFile->ppPrev = pFile->pNext;
+    if( pFile->deleteOnClose ) quotaRemoveFile(pFile);
     quotaGroupDeref(pGroup);
-    sqlite3_free(pFile);
   }
   quotaLeave();
   return rc;
@@ -572,6 +671,7 @@ int sqlite3_quota_initialize(const char *zOrigVfsName, int makeDefault){
   gQuota.pOrigVfs = pOrigVfs;
   gQuota.sThisVfs = *pOrigVfs;
   gQuota.sThisVfs.xOpen = quotaOpen;
+  gQuota.sThisVfs.xDelete = quotaDelete;
   gQuota.sThisVfs.szOsFile += sizeof(quotaConn);
   gQuota.sThisVfs.zName = "quota";
   gQuota.sIoMethodsV1.iVersion = 1;
@@ -610,12 +710,13 @@ int sqlite3_quota_shutdown(void){
   quotaGroup *pGroup;
   if( gQuota.isInitialized==0 ) return SQLITE_MISUSE;
   for(pGroup=gQuota.pGroup; pGroup; pGroup=pGroup->pNext){
-    if( pGroup->pFiles ) return SQLITE_MISUSE;
+    if( quotaGroupOpenFileCount(pGroup)>0 ) return SQLITE_MISUSE;
   }
   while( gQuota.pGroup ){
     pGroup = gQuota.pGroup;
     gQuota.pGroup = pGroup->pNext;
     pGroup->iLimit = 0;
+    assert( quotaGroupOpenFileCount(pGroup)==0 );
     quotaGroupDeref(pGroup);
   }
   gQuota.isInitialized = 0;
@@ -692,6 +793,44 @@ int sqlite3_quota_set(
   quotaGroupDeref(pGroup);
   quotaLeave();
   return SQLITE_OK;
+}
+
+
+
+
+
+int sqlite3_quota_file(const char *zFilename){
+  char *zFull;
+  sqlite3_file *fd;
+  int rc;
+  int outFlags = 0;
+  sqlite3_int64 iSize;
+  fd = (sqlite3_file*)
+    sqlite3_malloc(gQuota.sThisVfs.szOsFile + gQuota.sThisVfs.mxPathname+1);
+  if( fd==0 ) return SQLITE_NOMEM;
+  zFull = gQuota.sThisVfs.szOsFile + (char*)fd;
+  rc = gQuota.pOrigVfs->xFullPathname(gQuota.pOrigVfs, zFilename,
+                                      gQuota.sThisVfs.mxPathname+1, zFull);
+  if( rc==SQLITE_OK ){
+    rc = quotaOpen(&gQuota.sThisVfs, zFull, fd, 
+                   SQLITE_OPEN_READONLY | SQLITE_OPEN_MAIN_DB, &outFlags);
+  }
+  if( rc==SQLITE_OK ){
+    fd->pMethods->xFileSize(fd, &iSize);
+    fd->pMethods->xClose(fd);
+  }else if( rc==SQLITE_CANTOPEN ){
+    quotaGroup *pGroup;
+    quotaFile *pFile;
+    quotaEnter();
+    pGroup = quotaGroupFind(zFull);
+    if( pGroup ){
+      pFile = quotaFindFile(pGroup, zFull);
+      if( pFile ) quotaRemoveFile(pFile);
+    }
+    quotaLeave();
+  }
+  sqlite3_free(fd);
+  return rc;
 }
 
   
@@ -873,6 +1012,32 @@ static int test_quota_set(
 
 
 
+static int test_quota_file(
+  void * clientData,
+  Tcl_Interp *interp,
+  int objc,
+  Tcl_Obj *CONST objv[]
+){
+  const char *zFilename;          
+  int rc;                         
+
+  
+  if( objc!=2 ){
+    Tcl_WrongNumArgs(interp, 1, objv, "FILENAME");
+    return TCL_ERROR;
+  }
+  zFilename = Tcl_GetString(objv[1]);
+
+  
+  rc = sqlite3_quota_file(zFilename);
+
+  Tcl_SetResult(interp, (char *)sqlite3TestErrorName(rc), TCL_STATIC);
+  return TCL_OK;
+}
+
+
+
+
 static int test_quota_dump(
   void * clientData,
   Tcl_Interp *interp,
@@ -903,6 +1068,8 @@ static int test_quota_dump(
             Tcl_NewWideIntObj(pFile->iSize));
       Tcl_ListObjAppendElement(interp, pFileTerm,
             Tcl_NewWideIntObj(pFile->nRef));
+      Tcl_ListObjAppendElement(interp, pFileTerm,
+            Tcl_NewWideIntObj(pFile->deleteOnClose));
       Tcl_ListObjAppendElement(interp, pGroupTerm, pFileTerm);
     }
     Tcl_ListObjAppendElement(interp, pResult, pGroupTerm);
@@ -925,6 +1092,7 @@ int Sqlitequota_Init(Tcl_Interp *interp){
     { "sqlite3_quota_initialize", test_quota_initialize },
     { "sqlite3_quota_shutdown", test_quota_shutdown },
     { "sqlite3_quota_set", test_quota_set },
+    { "sqlite3_quota_file", test_quota_file },
     { "sqlite3_quota_dump", test_quota_dump },
   };
   int i;
