@@ -262,22 +262,6 @@ Rect.prototype = {
     this.top = a.top;
     this.width = a.width;
     this.height = a.height;
-  },
-
-  
-  
-  
-  
-  
-  
-  
-  css: function Rect_css() {
-    return {
-      left: this.left,
-      top: this.top,
-      width: this.width,
-      height: this.height
-    };
   }
 };
 

@@ -511,7 +511,7 @@ Item.prototype = {
   
   _updateDebugBounds: function Item__updateDebugBounds() {
     if (this.$debug) {
-      this.$debug.css(this.bounds.css());
+      this.$debug.css(this.bounds);
     }
   },
 
