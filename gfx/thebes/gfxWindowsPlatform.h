@@ -61,6 +61,8 @@
 #include <windows.h>
 #include <objbase.h>
 
+class nsIMemoryMultiReporter;
+
 
 
 struct DCFromContext {
@@ -282,6 +284,8 @@ private:
 
     
     nsDataHashtable<nsCStringHashKey, nsTArray<nsRefPtr<gfxFontEntry> > > mPrefFonts;
+
+    nsIMemoryMultiReporter* mGPUAdapterMultiReporter;
 };
 
 #endif 
