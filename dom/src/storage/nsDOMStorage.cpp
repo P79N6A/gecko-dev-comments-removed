@@ -1699,10 +1699,21 @@ nsDOMStorage::CanAccess(nsIPrincipal *aPrincipal)
     return true;
 
   
+
+  
+  
+  
+
   bool subsumes;
   nsresult rv = aPrincipal->SubsumesIgnoringDomain(mPrincipal, &subsumes);
   if (NS_FAILED(rv))
     return false;
+
+  if (!subsumes) {
+    nsresult rv = aPrincipal->Subsumes(mPrincipal, &subsumes);
+    if (NS_FAILED(rv))
+      return false;
+  }
 
   return subsumes;
 }
