@@ -124,6 +124,7 @@ public:
   GetIndexedDBQuotaMB();
 
   nsresult EnsureOriginIsInitialized(const nsACString& aOrigin,
+                                     FactoryPrivilege aPrivilege,
                                      nsIFile** aDirectory);
 
   
