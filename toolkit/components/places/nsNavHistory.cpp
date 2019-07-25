@@ -138,6 +138,13 @@ using namespace mozilla::places;
 
 
 
+
+#define MEMSIZE_MAX_BYTES 137438953472LL // 128 G
+#define MEMSIZE_FALLBACK_BYTES 268435456 // 256 M
+
+
+
+
 #define DATABASE_MAX_WAL_SIZE_IN_KIBIBYTES 512
 
 #define BYTES_PER_MEBIBYTE 1048576
@@ -729,6 +736,9 @@ nsNavHistory::InitDB()
     cachePercentage = 0;
 
   static PRInt64 physMem = PR_GetPhysicalMemorySize();
+  if (physMem <= 0 || physMem > MEMSIZE_MAX_BYTES)
+    physMem = MEMSIZE_FALLBACK_BYTES;
+
   PRInt64 cacheSize = physMem * cachePercentage / 100;
 
   
