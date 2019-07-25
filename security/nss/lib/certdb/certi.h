@@ -282,15 +282,6 @@ dpcacheStatus DPCache_Lookup(CRLDPCache* cache, SECItem* sn,
 void ReleaseDPCache(CRLDPCache* dpcache, PRBool writeLocked);
 
 
-SECStatus DPCache_GetAllCRLs(CRLDPCache* dpc, PRArenaPool* arena,
-                             CERTSignedCrl*** crls, PRUint16* status);
-
-
-SECStatus DPCache_GetCRLEntry(CRLDPCache* cache, PRBool readlocked,
-                              CERTSignedCrl* crl, SECItem* sn,
-                              CERTCrlEntry** returned);
-
-
 
 
 
@@ -390,6 +381,14 @@ SECStatus cert_FindCRLByGeneralName(NamedCRLCache* ncc,
                                     NamedCRLCacheEntry** retEntry);
 
 SECStatus cert_ReleaseNamedCRLCache(NamedCRLCache* ncc);
+
+
+CERTGeneralName *
+cert_GetSubjectAltNameList(CERTCertificate *cert, PRArenaPool *arena);
+
+
+PRUint32
+cert_CountDNSPatterns(CERTGeneralName *firstName);
 
 #endif 
 

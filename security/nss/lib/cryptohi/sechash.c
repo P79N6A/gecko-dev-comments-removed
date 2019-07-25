@@ -235,7 +235,7 @@ HASH_GetHMACOidTagByHashOidTag(SECOidTag hashOid)
 {
     SECOidTag hmacOid = SEC_OID_UNKNOWN;
 
-    switch(hmacOid) {
+    switch(hashOid) {
     
     
     case SEC_OID_SHA1:   hmacOid = SEC_OID_HMAC_SHA1;   break;

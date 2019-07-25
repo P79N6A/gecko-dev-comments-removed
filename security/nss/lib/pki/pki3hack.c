@@ -35,7 +35,7 @@
 
 
 #ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: pki3hack.c,v $ $Revision: 1.98 $ $Date: 2009/10/01 17:14:02 $";
+static const char CVS_ID[] = "@(#) $RCSfile: pki3hack.c,v $ $Revision: 1.100 $ $Date: 2010/05/18 19:38:40 $";
 #endif 
 
 
@@ -817,7 +817,7 @@ fill_CERTCertificateFields(NSSCertificate *c, CERTCertificate *cc, PRBool forced
 
 	
 	PORT_Assert(sizeof(cc->nsCertType) == sizeof(PRInt32));
-	PR_AtomicSet((PRInt32 *)&cc->nsCertType, nsCertType);
+	PR_ATOMIC_SET((PRInt32 *)&cc->nsCertType, nsCertType);
     }
 }
 

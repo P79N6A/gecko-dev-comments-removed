@@ -72,7 +72,9 @@
 
 
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && defined(NSS_X86_OR_X64)
+
+
 
 # define SWAP(x) (_lrotl(x, 8) & 0x00ff00ff | _lrotr(x, 8) & 0xff00ff00)
 # define GETU32(p) SWAP(*((PRUint32 *)(p)))

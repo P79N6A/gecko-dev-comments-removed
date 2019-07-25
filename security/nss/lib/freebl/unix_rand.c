@@ -944,7 +944,9 @@ void RNG_SystemInfoForRNG(void)
 
 
 
-#if defined(BSDI) || defined(LINUX)
+#if defined(BSDI) || defined(FREEBSD) || defined(NETBSD) \
+    || defined(OPENBSD) || defined(DARWIN) || defined(LINUX) \
+    || defined(HPUX)
     if (bytes)
         return;
 #endif

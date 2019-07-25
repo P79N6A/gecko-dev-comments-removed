@@ -108,7 +108,7 @@ UpdateRNG(void)
     FPS "\n");
     FPS "\n");
     FPS "Continue typing until the progress meter is full:\n\n");
-    FPS meter);
+    FPS "%s", meter);
     FPS "\r|");
 
     

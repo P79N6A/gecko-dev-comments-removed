@@ -35,7 +35,7 @@
 
 
 #ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: pkibase.c,v $ $Revision: 1.31 $ $Date: 2009/04/17 19:28:07 $";
+static const char CVS_ID[] = "@(#) $RCSfile: pkibase.c,v $ $Revision: 1.33 $ $Date: 2010/04/03 18:27:32 $";
 #endif 
 
 #ifndef DEV_H
@@ -152,7 +152,7 @@ nssPKIObject_Create (
 	    goto loser;
 	}
     }
-    PR_AtomicIncrement(&object->refCount);
+    PR_ATOMIC_INCREMENT(&object->refCount);
     if (mark) {
 	nssArena_Unmark(arena, mark);
     }
@@ -173,7 +173,7 @@ nssPKIObject_Destroy (
 {
     PRUint32 i;
     PR_ASSERT(object->refCount > 0);
-    if (PR_AtomicDecrement(&object->refCount) == 0) {
+    if (PR_ATOMIC_DECREMENT(&object->refCount) == 0) {
 	for (i=0; i<object->numInstances; i++) {
 	    nssCryptokiObject_Destroy(object->instances[i]);
 	}
@@ -189,7 +189,7 @@ nssPKIObject_AddRef (
   nssPKIObject *object
 )
 {
-    PR_AtomicIncrement(&object->refCount);
+    PR_ATOMIC_INCREMENT(&object->refCount);
     return object;
 }
 
@@ -510,6 +510,11 @@ nssCertificateArray_FindBestCertificate (
 
 	}
 	bestdc = nssCertificate_GetDecoding(bestCert);
+	if (!bestdc) {
+	    nssCertificate_Destroy(bestCert);
+	    bestCert = nssCertificate_AddRef(c);
+	    continue;
+	}
 	
 	if (bestdc->isValidAtTime(bestdc, time)) {
 	    
@@ -1247,7 +1252,9 @@ NSSTime_SetPRTime (
 {
     NSSTime *rvTime;
     rvTime = (timeOpt) ? timeOpt : nss_ZNEW(NULL, NSSTime);
-    rvTime->prTime = prTime;
+    if (rvTime) {
+        rvTime->prTime = prTime;
+    }
     return rvTime;
 }
 

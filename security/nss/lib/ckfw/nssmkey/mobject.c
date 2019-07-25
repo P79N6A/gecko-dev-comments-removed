@@ -36,7 +36,7 @@
 
 
 #ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: mobject.c,v $ $Revision: 1.4 $ $Date: 2009/02/25 18:38:04 $";
+static const char CVS_ID[] = "@(#) $RCSfile: mobject.c,v $ $Revision: 1.5 $ $Date: 2010/04/25 23:37:40 $";
 #endif 
 
 #include "ckmk.h"

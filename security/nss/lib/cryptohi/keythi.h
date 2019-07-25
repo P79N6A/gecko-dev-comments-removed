@@ -42,6 +42,20 @@
 #include "secmodt.h"
 #include "prclist.h"
 
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
 typedef enum { 
     nullKey = 0, 
     rsaKey = 1, 
@@ -49,7 +63,9 @@ typedef enum {
     fortezzaKey = 3,
     dhKey = 4, 
     keaKey = 5,
-    ecKey = 6
+    ecKey = 6,
+    rsaPssKey = 7,
+    rsaOaepKey = 8
 } KeyType;
 
 
@@ -158,6 +174,8 @@ struct SECKEYFortezzaPublicKeyStr {
     SECKEYPQGParams keaParams;
 };
 typedef struct SECKEYFortezzaPublicKeyStr SECKEYFortezzaPublicKey;
+#define KEAprivilege KEApriviledge /* corrected spelling */
+#define DSSprivilege DSSpriviledge /* corrected spelling */
 
 struct SECKEYDiffPQGParamsStr {
     SECKEYPQGParams DiffKEAParams;

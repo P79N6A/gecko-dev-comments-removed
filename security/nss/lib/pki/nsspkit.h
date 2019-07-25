@@ -38,7 +38,7 @@
 #define NSSPKIT_H
 
 #ifdef DEBUG
-static const char NSSPKIT_CVS_ID[] = "@(#) $RCSfile: nsspkit.h,v $ $Revision: 1.6 $ $Date: 2005/01/20 02:25:49 $";
+static const char NSSPKIT_CVS_ID[] = "@(#) $RCSfile: nsspkit.h,v $ $Revision: 1.8 $ $Date: 2010/05/21 00:02:48 $";
 #endif 
 
 
@@ -168,6 +168,15 @@ typedef struct NSSCryptoContextStr NSSCryptoContext;
 
 
 
+
+
+
+
+
+
+
+struct NSSOIDStr;  
+typedef struct NSSOIDStr NSSOID;
 
 
 

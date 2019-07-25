@@ -747,8 +747,7 @@ jar_listzip(JAR *jar, JAR_FILE fp)
 	    
 
 	    compression = x86ShortToUint32(Local->method);
-	    phy->compression = 
-	    	(compression >= 0 && compression <= 255) ? compression : 222;
+	    phy->compression = (compression <= 255) ? compression : 222;
 		
 
 	    phy->offset = pos + (sizeof *Local) + filename_len + extra_len;

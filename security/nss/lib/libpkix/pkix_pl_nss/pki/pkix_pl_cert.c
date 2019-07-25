@@ -3182,9 +3182,10 @@ PKIX_PL_Cert_CheckNameConstraints(
                 }
 
                 
-                PKIX_CERT_DEBUG("\t\tCalling CERT_GetCertificateNames\n");
-                nssSubjectNames = CERT_GetCertificateNames
-                        (cert->nssCert, arena);
+                PKIX_CERT_DEBUG
+                    ("\t\tCalling CERT_GetConstrainedCertificateNames\n");
+                nssSubjectNames = CERT_GetConstrainedCertificateNames
+                        (cert->nssCert, arena, PR_TRUE);
 
                 PKIX_CHECK(pkix_pl_CertNameConstraints_CheckNameSpaceNssNames
                         (nssSubjectNames,
