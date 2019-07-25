@@ -264,9 +264,9 @@ function InitAndStartRefTests()
       logFile = prefs.getCharPref("reftest.logFile");
       if (logFile) {
         try {
-          MozillaFileLogger.init(logFile);
+          var mfl = new MozillaFileLogger(logFile);
           
-          gDumpLog = function (msg) {dump(msg); MozillaFileLogger.log(msg);};
+          gDumpLog = function (msg) {dump(msg); mfl.log(msg);};
         }
         catch(e) {
           

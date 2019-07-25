@@ -81,8 +81,8 @@ if (params.closeWhenDone) {
 
 
 if (params.logFile) {
-  MozillaFileLogger.init(params.logFile);
-  TestRunner.logger.addListener("mozLogger", fileLevel + "", MozillaFileLogger.getLogCallback());
+  var spl = new SpecialPowersLogger(params.logFile);
+  TestRunner.logger.addListener("mozLogger", fileLevel + "", spl.getLogCallback());
 }
 
 
