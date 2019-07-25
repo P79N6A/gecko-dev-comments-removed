@@ -279,6 +279,7 @@ let Content = {
       addEventListener("DOMActivate", this, true);
 
     addEventListener("MozApplicationManifest", this, false);
+    addEventListener("DOMContentLoaded", this, false);
     addEventListener("pagehide", this, false);
     addEventListener("keypress", this, false, false);
 
@@ -383,6 +384,10 @@ let Content = {
         }
         break;
       }
+
+      case "DOMContentLoaded":
+        this._maybeNotifyErroPage();
+        break;
 
       case "pagehide":
         if (aEvent.target == content.document)
@@ -600,6 +605,14 @@ let Content = {
         break;
       }
     }
+  },
+
+  _maybeNotifyErroPage: function _maybeNotifyErroPage() {
+    
+    
+    
+    if (content.location.href !== content.document.documentURI)
+      sendAsyncMessage("Browser:ErrorPage", null);
   },
 
   _resetFontSize: function _resetFontSize() {
