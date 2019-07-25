@@ -557,6 +557,8 @@ struct JSCodeGenerator : public JSTreeContext
     SlotVector      closedArgs;
     SlotVector      closedVars;
 
+    uint16          traceIndex;     
+    
     
 
 

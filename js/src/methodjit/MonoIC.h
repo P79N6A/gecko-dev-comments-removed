@@ -69,8 +69,7 @@ struct MICInfo {
 #endif
     {
         GET,
-        SET,
-        TRACER
+        SET
     };
 
     
@@ -88,10 +87,6 @@ struct MICInfo {
 #endif
 
     
-    JSC::CodeLocationJump traceHint;
-    JSC::CodeLocationJump slowTraceHint;
-
-    
     Kind kind : 3;
     union {
         
@@ -100,12 +95,24 @@ struct MICInfo {
             bool typeConst : 1;
             bool dataConst : 1;
         } name;
-        
-        struct {
-            bool hasSlowTraceHint : 1;
-        } hints;
     } u;
 };
+
+struct TraceICInfo {
+    TraceICInfo() {}
+
+    JSC::CodeLocationLabel stubEntry;
+    JSC::CodeLocationLabel jumpTarget;
+    JSC::CodeLocationJump traceHint;
+    JSC::CodeLocationJump slowTraceHint;
+#ifdef DEBUG
+    jsbytecode *jumpTargetPC;
+#endif
+
+    bool hasSlowTraceHint : 1;
+};
+
+static const uint16 BAD_TRACEIC_INDEX = (uint16_t)-1;
 
 void JS_FASTCALL GetGlobalName(VMFrame &f, ic::MICInfo *ic);
 void JS_FASTCALL SetGlobalName(VMFrame &f, ic::MICInfo *ic);

@@ -859,7 +859,10 @@ class TraceRecorder
     JSObject* const                 globalObj;
 
     
-    jsbytecode* const               outer;
+    JSScript* const                 outerScript;
+    
+    
+    jsbytecode* const               outerPC;
 
     
     uint32 const                    outerArgc;
@@ -1414,7 +1417,7 @@ class TraceRecorder
     JS_REQUIRES_STACK
     TraceRecorder(JSContext* cx, VMSideExit*, VMFragment*,
                   unsigned stackSlots, unsigned ngslots, JSValueType* typeMap,
-                  VMSideExit* expectedInnerExit, jsbytecode* outerTree,
+                  VMSideExit* expectedInnerExit, JSScript* outerScript, jsbytecode* outerPC,
                   uint32 outerArgc, bool speculate);
 
     
@@ -1447,7 +1450,7 @@ class TraceRecorder
     static bool JS_REQUIRES_STACK
     startRecorder(JSContext*, VMSideExit*, VMFragment*,
                   unsigned stackSlots, unsigned ngslots, JSValueType* typeMap,
-                  VMSideExit* expectedInnerExit, jsbytecode* outerTree,
+                  VMSideExit* expectedInnerExit, JSScript* outerScript, jsbytecode* outerPC,
                   uint32 outerArgc, bool speculate);
 
     
