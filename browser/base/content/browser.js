@@ -1929,6 +1929,11 @@ function BrowserGoHome(aEvent) {
   var urls;
 
   
+  if (where == "current" &&
+      gBrowser.selectedTab.pinned)
+    where = "tab";
+
+  
   switch (where) {
   case "current":
     loadOneOrMoreURIs(homePage);
