@@ -687,8 +687,8 @@ BookmarksTracker.prototype = {
 
   onItemChanged: function BMT_onItemChanged(itemId, property, isAnno, value) {
     this._log.trace("onItemChanged: " + itemId +
-                    ", \"" + property + (isAnno? " (anno)" : "") + "\"" +
-                    " = \"" + value + "\"");
+                    (", " + property + (isAnno? " (anno)" : "")) +
+                    (value? (" = \"" + value + "\"") : ""));
     
     
     

@@ -189,8 +189,9 @@ ClientTracker.prototype = {
   
   _init: function ClientTracker__init() {
     this._log = Log4Moz.repository.getLogger(this._logName);
+    this._score = 0;
+    this._ignored = [];
     this._store = new ClientStore(); 
-    this.enable();
   },
 
   
