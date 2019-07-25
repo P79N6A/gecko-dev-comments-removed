@@ -432,8 +432,9 @@ HistoryTracker.prototype = {
   
 
 
-  _upScore: function BMT__upScore() {
-    this.score += SCORE_INCREMENT_SMALL;
+
+  _upScoreXLarge: function BMT__upScore() {
+    this.score += SCORE_INCREMENT_XLARGE;
   },
 
   onVisit: function HT_onVisit(uri, vid, time, session, referrer, trans, guid) {
@@ -441,7 +442,7 @@ HistoryTracker.prototype = {
       return;
     this._log.trace("onVisit: " + uri.spec);
     if (this.addChangedID(guid)) {
-      this._upScore();
+      this.score += SCORE_INCREMENT_SMALL;
     }
   },
   onDeleteVisits: function onDeleteVisits() {
@@ -451,13 +452,13 @@ HistoryTracker.prototype = {
       return;
     this._log.trace("onBeforeDeleteURI: " + uri.spec);
     if (this.addChangedID(guid)) {
-      this._upScore();
+      this._upScoreXLarge();
     }
   },
   onDeleteURI: function HT_onDeleteURI(uri, guid) {
   },
   onClearHistory: function HT_onClearHistory() {
     this._log.trace("onClearHistory");
-    this.score += SCORE_INCREMENT_XLARGE;
+    this._upScoreXLarge();
   }
 };
