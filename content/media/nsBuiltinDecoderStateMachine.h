@@ -265,6 +265,10 @@ public:
   
   void ReleaseDecoder() { mDecoder = nsnull; }
 
+   
+   
+   void NotifyAudioAvailableListener();
+
 protected:
 
   

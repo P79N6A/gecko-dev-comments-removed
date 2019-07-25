@@ -344,6 +344,10 @@ public:
   
   
   virtual void SetFrameBufferLength(PRUint32 aLength) = 0;
+
+  
+  
+  virtual void NotifyAudioAvailableListener() = 0;
 };
 
 class nsBuiltinDecoder : public nsMediaDecoder
@@ -609,6 +613,10 @@ class nsBuiltinDecoder : public nsMediaDecoder
 
   
   void ReleaseStateMachine() { mDecoderStateMachine = nsnull; }
+
+   
+   
+   virtual void NotifyAudioAvailableListener();
 
 public:
   

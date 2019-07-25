@@ -80,6 +80,11 @@ public:
   
   void SetSignalBufferLength(PRUint32 aLength);
 
+  
+  
+  
+  void NotifyAudioAvailableListener();
+
 private:
   
   
@@ -108,6 +113,11 @@ private:
   
   
   ReentrantMonitor mReentrantMonitor;
+
+  
+  
+  
+  bool mHasListener;
 };
 
 #endif

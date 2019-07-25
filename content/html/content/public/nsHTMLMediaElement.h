@@ -180,6 +180,13 @@ public:
 
   
   
+  
+  
+  
+  void NotifyAudioAvailableListener();
+
+  
+  
   ImageContainer* GetImageContainer();
 
   
@@ -300,12 +307,6 @@ public:
 
   void NotifyAudioAvailable(float* aFrameBuffer, PRUint32 aFrameBufferLength,
                             float aTime);
-
-  
-
-
-
-  bool MayHaveAudioAvailableEventListener();
 
   virtual bool IsNodeOfType(PRUint32 aFlags) const;
 
