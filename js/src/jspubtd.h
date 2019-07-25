@@ -590,6 +590,7 @@ typedef JSObject *(*ReadStructuredCloneOp)(JSContext *cx, JSStructuredCloneReade
 
 
 
+
 typedef JSBool (*WriteStructuredCloneOp)(JSContext *cx, JSStructuredCloneWriter *w, JSObject *obj);
 
 
