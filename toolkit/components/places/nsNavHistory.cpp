@@ -3933,6 +3933,8 @@ nsNavHistory::DecayFrecency()
   
   
   
+  
+  
   nsCOMPtr<mozIStorageAsyncStatement> decayFrecency = mDB->GetAsyncStatement(
     "UPDATE moz_places SET frecency = ROUND(frecency * .975) "
     "WHERE frecency > 0"

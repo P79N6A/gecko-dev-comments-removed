@@ -154,6 +154,7 @@ const char *const js_common_atom_names[] = {
     js_noSuchMethod_str,        
     "[object Null]",            
     "[object Undefined]",       
+    "of",                       
     js_proto_str,               
     js_set_str,                 
     js_source_str,              
@@ -400,20 +401,20 @@ js_TraceAtomState(JSTracer *trc)
 }
 
 void
-js_SweepAtomState(JSContext *cx)
+js_SweepAtomState(JSRuntime *rt)
 {
-    JSAtomState *state = &cx->runtime->atomState;
+    JSAtomState *state = &rt->atomState;
 
     for (AtomSet::Enum e(state->atoms); !e.empty(); e.popFront()) {
         AtomStateEntry entry = e.front();
 
         if (entry.isTagged()) {
             
-            JS_ASSERT(!IsAboutToBeFinalized(cx, entry.asPtr()));
+            JS_ASSERT(!IsAboutToBeFinalized(entry.asPtr()));
             continue;
         }
 
-        if (IsAboutToBeFinalized(cx, entry.asPtr()))
+        if (IsAboutToBeFinalized(entry.asPtr()))
             e.removeFront();
     }
 }

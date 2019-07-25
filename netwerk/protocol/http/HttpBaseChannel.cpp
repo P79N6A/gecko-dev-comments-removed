@@ -589,14 +589,43 @@ HttpBaseChannel::ApplyContentConversions()
     return NS_OK;
   }
 
-  const char *val = mResponseHead->PeekHeader(nsHttp::Content_Encoding);
-  if (gHttpHandler->IsAcceptableEncoding(val)) {
-    nsCOMPtr<nsIStreamConverterService> serv;
-    nsresult rv = gHttpHandler->
-            GetStreamConverterService(getter_AddRefs(serv));
-    
-    
-    if (NS_SUCCEEDED(rv)) {
+  nsCAutoString contentEncoding;
+  char *cePtr, *val;
+  nsresult rv;
+
+  rv = mResponseHead->GetHeader(nsHttp::Content_Encoding, contentEncoding);
+  if (NS_FAILED(rv) || contentEncoding.IsEmpty())
+    return NS_OK;
+
+  
+  
+  
+  
+  
+
+  cePtr = contentEncoding.BeginWriting();
+  PRUint32 count = 0;
+  while ((val = nsCRT::strtok(cePtr, HTTP_LWS ",", &cePtr))) {
+    if (++count > 16) {
+      
+      
+      
+      LOG(("Too many Content-Encodings. Ignoring remainder.\n"));
+      break;
+    }
+
+    if (gHttpHandler->IsAcceptableEncoding(val)) {
+      nsCOMPtr<nsIStreamConverterService> serv;
+      rv = gHttpHandler->GetStreamConverterService(getter_AddRefs(serv));
+
+      
+      
+      if (NS_FAILED(rv)) {
+        if (val)
+          LOG(("Unknown content encoding '%s', ignoring\n", val));
+        continue;
+      }
+
       nsCOMPtr<nsIStreamListener> converter;
       nsCAutoString from(val);
       ToLowerCase(from);
@@ -605,13 +634,18 @@ HttpBaseChannel::ApplyContentConversions()
                                   mListener,
                                   mListenerContext,
                                   getter_AddRefs(converter));
-      if (NS_SUCCEEDED(rv)) {
-        LOG(("converter installed from \'%s\' to \'uncompressed\'\n", val));
-        mListener = converter;
+      if (NS_FAILED(rv)) {
+        LOG(("Unexpected failure of AsyncConvertData %s\n", val));
+        return rv;
       }
+
+      LOG(("converter removed '%s' content-encoding\n", val));
+      mListener = converter;
     }
-  } else if (val != nsnull) {
-    LOG(("Unknown content encoding '%s', ignoring\n", val));
+    else {
+      if (val)
+        LOG(("Unknown content encoding '%s', ignoring\n", val));
+    }
   }
 
   return NS_OK;
@@ -1549,11 +1583,12 @@ HttpBaseChannel::IsSafeMethod(nsHttpAtom method)
 nsresult
 HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI, 
                                          nsIChannel   *newChannel,
-                                         bool          preserveMethod)
+                                         bool          preserveMethod,
+                                         bool          forProxy)
 {
   LOG(("HttpBaseChannel::SetupReplacementChannel "
-     "[this=%p newChannel=%p preserveMethod=%d]",
-     this, newChannel, preserveMethod));
+     "[this=%p newChannel=%p preserveMethod=%d forProxy=%d]",
+     this, newChannel, preserveMethod, forProxy));
   PRUint32 newLoadFlags = mLoadFlags | LOAD_REPLACE;
   
   
@@ -1676,6 +1711,21 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
   nsCOMPtr<nsITimedChannel> timed(do_QueryInterface(newChannel));
   if (timed)
     timed->SetTimingEnabled(mTimingEnabled);
+
+  if (forProxy) {
+    
+    
+    
+    
+    PRUint32 count = mRequestHead.Headers().Count();
+    for (PRUint32 i = 0; i < count; ++i) {
+      nsHttpAtom header;
+      const char *value = mRequestHead.Headers().PeekHeaderAt(i, header);
+
+      httpChannel->SetRequestHeader(nsDependentCString(header),
+                                    nsDependentCString(value), false);
+    }
+  }
 
   return NS_OK;
 }

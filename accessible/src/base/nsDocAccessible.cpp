@@ -1525,7 +1525,7 @@ nsDocAccessible::CacheChildren()
   
   
   nsAccTreeWalker walker(mWeakShell, mDocument->GetRootElement(),
-                         GetAllowsAnonChildAccessibles());
+                         CanHaveAnonChildren());
 
   nsAccessible* child = nsnull;
   while ((child = walker.NextChild()) && AppendChild(child));
@@ -1881,7 +1881,7 @@ nsDocAccessible::UpdateTree(nsAccessible* aContainer, nsIContent* aChildNode,
 
   } else {
     nsAccTreeWalker walker(mWeakShell, aChildNode,
-                           aContainer->GetAllowsAnonChildAccessibles(), true);
+                           aContainer->CanHaveAnonChildren(), true);
 
     while ((child = walker.NextChild()))
       updateFlags |= UpdateTreeInternal(child, aIsInsert);

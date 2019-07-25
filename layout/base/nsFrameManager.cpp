@@ -1064,6 +1064,13 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
   
   
   
+  aMinChange = NS_SubtractHint(aMinChange, nsChangeHint_UpdateTransformLayer);
+  aMinChange = NS_SubtractHint(aMinChange, nsChangeHint_UpdateOpacityLayer);
+  aMinChange = NS_SubtractHint(aMinChange, nsChangeHint_UpdateOverflow);
+
+  
+  
+  
   
   
   

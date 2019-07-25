@@ -1145,8 +1145,8 @@ STDMETHODIMP
 nsAccessibleWrap::scrollTo(enum IA2ScrollType aScrollType)
 {
 __try {
-  nsresult rv = ScrollTo(aScrollType);
-  return GetHRESULT(rv);
+  nsAccessNode::ScrollTo(aScrollType);
+  return S_OK;
 
 } __except(nsAccessNodeWrap::FilterA11yExceptions(::GetExceptionCode(), GetExceptionInformation())) { }
   return E_FAIL;
@@ -1366,9 +1366,7 @@ __try {
   
 
   nsAutoString lang;
-  nsresult rv = GetLanguage(lang);
-  if (NS_FAILED(rv))
-    return GetHRESULT(rv);
+  Language(lang);
 
   
   PRInt32 offset = lang.FindChar('-', 0);

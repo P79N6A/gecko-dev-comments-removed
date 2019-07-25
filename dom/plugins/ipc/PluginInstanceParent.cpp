@@ -464,7 +464,12 @@ PluginInstanceParent::AnswerPStreamNotifyConstructor(PStreamNotifyParent* actor,
                                            file, actor);
     }
 
-    if (!streamDestroyed) {
+    if (streamDestroyed) {
+        
+        
+        *result = NPERR_GENERIC_ERROR;
+    }
+    else {
         static_cast<StreamNotifyParent*>(actor)->ClearDestructionFlag();
         if (*result != NPERR_NO_ERROR)
             return PStreamNotifyParent::Send__delete__(actor,

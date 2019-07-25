@@ -51,6 +51,7 @@
 #include "nsDOMError.h"
 #include "nsGlobalWindow.h"
 #include "nsIContentSecurityPolicy.h"
+#include "nsAlgorithm.h"
 
 static const char kSetIntervalStr[] = "setInterval";
 static const char kSetTimeoutStr[] = "setTimeout";
@@ -85,9 +86,6 @@ public:
   virtual nsIArray *GetArgv() {
     return mArgv;
   }
-  
-  
-  virtual void SetLateness(PRIntervalTime aHowLate);
 
   nsresult Init(nsGlobalWindow *aWindow, bool *aIsInterval,
                 PRInt32 *aInterval);
@@ -327,8 +325,10 @@ nsJSScriptTimeoutHandler::Init(nsGlobalWindow *aWindow, bool *aIsInterval,
     
     
     
+    
     nsCOMPtr<nsIArray> array;
-    rv = NS_CreateJSArgv(cx, (argc > 1) ? argc - 1 : argc, nsnull,
+    
+    rv = NS_CreateJSArgv(cx, NS_MAX(argc, 2u) - 2, nsnull,
                          getter_AddRefs(array));
     if (NS_FAILED(rv)) {
       return NS_ERROR_OUT_OF_MEMORY;
@@ -340,31 +340,19 @@ nsJSScriptTimeoutHandler::Init(nsGlobalWindow *aWindow, bool *aIsInterval,
     jsarray->GetArgs(&dummy, reinterpret_cast<void **>(&jsargv));
 
     
-    NS_ASSERTION(jsargv, "No argv!");
-    for (PRInt32 i = 2; (PRUint32)i < argc; ++i) {
-      jsargv[i - 2] = argv[i];
+    if (jsargv) {
+      for (PRInt32 i = 2; (PRUint32)i < argc; ++i) {
+        jsargv[i - 2] = argv[i];
+      }
+    } else {
+      NS_ASSERTION(argc <= 2, "Why do we have no jsargv when we have arguments?");
     }
-    
     mArgv = array;
   } else {
     NS_WARNING("No func and no expr - why are we here?");
   }
   *aInterval = interval;
   return NS_OK;
-}
-
-void nsJSScriptTimeoutHandler::SetLateness(PRIntervalTime aHowLate)
-{
-  nsCOMPtr<nsIJSArgArray> jsarray(do_QueryInterface(mArgv));
-  if (jsarray) {
-    PRUint32 argc;
-    jsval *jsargv;
-    nsresult rv = jsarray->GetArgs(&argc, reinterpret_cast<void **>(&jsargv));
-    if (NS_SUCCEEDED(rv) && jsargv && argc)
-      jsargv[argc-1] = INT_TO_JSVAL((jsint) aHowLate);
-  } else {
-    NS_ERROR("How can our argv not handle this?");
-  }
 }
 
 const PRUnichar *

@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef A11Y_STATISTICS_H_
 #define A11Y_STATISTICS_H_
 
@@ -47,7 +48,7 @@ namespace a11y {
 namespace statistics {
 
   inline void A11yInitialized()
-    { Telemetry::Accumulate(Telemetry::A11Y_INSTANTIATED, true); }
+    { Telemetry::Accumulate(Telemetry::A11Y_INSTANTIATED, 1); }
 
   inline void A11yConsumers(PRUint32 aConsumer)
     { Telemetry::Accumulate(Telemetry::A11Y_CONSUMERS, aConsumer); }
@@ -69,6 +70,12 @@ namespace statistics {
 
   inline void IAccessibleTableUsed()
     { Telemetry::Accumulate(Telemetry::IACCESSIBLE_TABLE_USAGE, 1); }
+
+  
+
+
+  inline void XFormsAccessibleUsed()
+    { Telemetry::Accumulate(Telemetry::XFORMS_ACCESSIBLE_USED, 1); }
 
 } 
 } 

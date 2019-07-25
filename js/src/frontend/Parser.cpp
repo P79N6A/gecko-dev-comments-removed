@@ -1867,6 +1867,7 @@ Parser::statements()
     tc->blockNode = saveBlock;
 
     pn->pn_pos.end = tokenStream.currentToken().pos.end;
+    JS_ASSERT(pn->pn_pos.begin <= pn->pn_pos.end);
     return pn;
 }
 
@@ -3136,6 +3137,23 @@ Parser::switchStatement()
     return pn;
 }
 
+bool
+Parser::matchInOrOf(bool *isForOfp)
+{
+    if (tokenStream.matchToken(TOK_IN)) {
+        *isForOfp = false;
+        return true;
+    }
+    if (tokenStream.matchToken(TOK_NAME)) {
+        if (tokenStream.currentToken().name() == context->runtime->atomState.ofAtom) {
+            *isForOfp = true;
+            return true;
+        }
+        tokenStream.ungetToken();
+    }
+    return false;
+}
+
 ParseNode *
 Parser::forStatement()
 {
@@ -3241,7 +3259,8 @@ Parser::forStatement()
     ParseNode *forHead;     
     StmtInfo letStmt;       
     ParseNode *pn2, *pn3;   
-    if (pn1 && tokenStream.matchToken(TOK_IN)) {
+    bool forOf;
+    if (pn1 && matchInOrOf(&forOf)) {
         
 
 
@@ -3249,8 +3268,16 @@ Parser::forStatement()
 
 
 
-        pn->pn_iflags |= JSITER_ENUMERATE;
+
         forStmt.type = STMT_FOR_IN_LOOP;
+
+        
+        if (forOf && pn->pn_iflags != 0) {
+            JS_ASSERT(pn->pn_iflags == JSITER_FOREACH);
+            reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_BAD_FOR_EACH_LOOP);
+            return NULL;
+        }
+        pn->pn_iflags |= (forOf ? JSITER_FOR_OF : JSITER_ENUMERATE);
 
         
         if (forDecl
@@ -4323,7 +4350,9 @@ Parser::variables(ParseNodeKind kind, StaticBlockObject *blockObj, VarContext va
 
             if (!CheckDestructuring(context, &data, pn2, tc))
                 return NULL;
-            if ((tc->flags & TCF_IN_FOR_INIT) && tokenStream.peekToken() == TOK_IN) {
+            bool ignored;
+            if ((tc->flags & TCF_IN_FOR_INIT) && matchInOrOf(&ignored)) {
+                tokenStream.ungetToken();
                 pn->append(pn2);
                 continue;
             }
@@ -5427,7 +5456,20 @@ Parser::comprehensionTail(ParseNode *kid, uintN blockid, bool isGenexp,
             return NULL;
         }
 
-        MUST_MATCH_TOKEN(TOK_IN, JSMSG_IN_AFTER_FOR_NAME);
+        bool forOf;
+        if (!matchInOrOf(&forOf)) {
+            reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_IN_AFTER_FOR_NAME);
+            return NULL;
+        }
+        if (forOf) {
+            if (pn2->pn_iflags != JSITER_ENUMERATE) {
+                JS_ASSERT(pn2->pn_iflags == (JSITER_FOREACH | JSITER_ENUMERATE));
+                reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_BAD_FOR_EACH_LOOP);
+                return NULL;
+            }
+            pn2->pn_iflags = JSITER_FOR_OF;
+        }
+
         ParseNode *pn4 = expr();
         if (!pn4)
             return NULL;
@@ -5751,15 +5793,6 @@ Parser::memberExpr(JSBool allowCallSyntax)
                                                       tokenStream.currentToken().pos.end);
                     if (!nextMember)
                         return NULL;
-
-                    
-
-
-
-
-
-                    if (tc->inFunction() && field == context->runtime->atomState.argumentsAtom)
-                        tc->noteArgumentsPropertyAccess(nextMember);
                 }
             }
 #if JS_HAS_XML_SUPPORT

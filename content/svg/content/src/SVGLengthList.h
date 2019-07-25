@@ -339,12 +339,12 @@ public:
     mList = nsnull;
   }
 
-  PRUint32 Length() {
+  PRUint32 Length() const {
     return mList ? mList->Length() : 0;
   }
 
   
-  float operator[](PRUint32 aIndex) {
+  float operator[](PRUint32 aIndex) const {
     return (*mList)[aIndex].GetValueInUserUnits(mElement, mAxis);
   }
 

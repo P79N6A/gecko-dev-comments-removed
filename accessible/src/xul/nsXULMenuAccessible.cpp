@@ -320,7 +320,7 @@ nsXULMenuitemAccessible::GetPositionAndSizeInternal(PRInt32 *aPosInSet,
 }
 
 bool
-nsXULMenuitemAccessible::GetAllowsAnonChildAccessibles()
+nsXULMenuitemAccessible::CanHaveAnonChildren()
 {
   
   return false;

@@ -379,6 +379,9 @@ nsWebShellWindow::HandleEvent(nsGUIEvent *aEvent)
           if (modeEvent->mSizeMode == nsSizeMode_Fullscreen) {
             ourWindow->SetFullScreen(true);
           }
+          else if (modeEvent->mSizeMode != nsSizeMode_Minimized) {
+            ourWindow->SetFullScreen(false);
+          }
 
           
           ourWindow->DispatchCustomEvent("sizemodechange");

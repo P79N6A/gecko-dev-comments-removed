@@ -1334,9 +1334,11 @@ typedef void
 
 
 
+typedef struct JSStringFinalizer JSStringFinalizer;
 
-typedef void
-(* JSStringFinalizeOp)(JSContext *cx, JSString *str);
+struct JSStringFinalizer {
+    void (*finalize)(const JSStringFinalizer *fin, jschar *chars);
+};
 
 
 
@@ -3249,7 +3251,7 @@ extern JS_PUBLIC_API(JSBool)
 JS_IsGCMarkingTracer(JSTracer *trc);
 
 extern JS_PUBLIC_API(JSBool)
-JS_IsAboutToBeFinalized(JSContext *cx, void *thing);
+JS_IsAboutToBeFinalized(void *thing);
 
 typedef enum JSGCParamKey {
     
@@ -3310,66 +3312,23 @@ JS_FlushCaches(JSContext *cx);
 
 
 
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(intN)
-JS_AddExternalStringFinalizer(JSStringFinalizeOp finalizer);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(intN)
-JS_RemoveExternalStringFinalizer(JSStringFinalizeOp finalizer);
-
-
-
-
-
-
 extern JS_PUBLIC_API(JSString *)
-JS_NewExternalString(JSContext *cx, const jschar *chars, size_t length, intN type);
-
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(JSString *)
-JS_NewExternalStringWithClosure(JSContext *cx, const jschar *chars, size_t length,
-                                intN type, void *closure);
+JS_NewExternalString(JSContext *cx, const jschar *chars, size_t length,
+                     const JSStringFinalizer *fin);
 
 
 
 
 
 extern JS_PUBLIC_API(JSBool)
-JS_IsExternalString(JSContext *cx, JSString *str);
+JS_IsExternalString(JSString *str);
 
 
 
 
 
-extern JS_PUBLIC_API(void *)
-JS_GetExternalStringClosure(JSContext *cx, JSString *str);
+extern JS_PUBLIC_API(const JSStringFinalizer *)
+JS_GetExternalStringFinalizer(JSString *str);
 
 
 
@@ -3439,7 +3398,12 @@ struct JSClass {
 #define JSCLASS_HIGH_FLAGS_SHIFT        (JSCLASS_RESERVED_SLOTS_SHIFT +       \
                                          JSCLASS_RESERVED_SLOTS_WIDTH)
 
-#define JSCLASS_INTERNAL_FLAG1          (1<<(JSCLASS_HIGH_FLAGS_SHIFT+0))
+
+
+
+
+#define JSCLASS_FOR_OF_ITERATION        (1<<(JSCLASS_HIGH_FLAGS_SHIFT+0))
+
 #define JSCLASS_IS_ANONYMOUS            (1<<(JSCLASS_HIGH_FLAGS_SHIFT+1))
 #define JSCLASS_IS_GLOBAL               (1<<(JSCLASS_HIGH_FLAGS_SHIFT+2))
 #define JSCLASS_INTERNAL_FLAG2          (1<<(JSCLASS_HIGH_FLAGS_SHIFT+3))
@@ -4042,6 +4006,21 @@ JS_NewPropertyIterator(JSContext *cx, JSObject *obj);
 
 extern JS_PUBLIC_API(JSBool)
 JS_NextProperty(JSContext *cx, JSObject *iterobj, jsid *idp);
+
+
+
+
+
+extern JS_PUBLIC_API(JSObject *)
+JS_NewElementIterator(JSContext *cx, JSObject *obj);
+
+
+
+
+
+
+extern JS_PUBLIC_API(JSObject *)
+JS_ElementIteratorStub(JSContext *cx, JSObject *obj, JSBool keysonly);
 
 extern JS_PUBLIC_API(JSBool)
 JS_CheckAccess(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,

@@ -434,10 +434,6 @@ struct TreeContext {
         return flags & TCF_FUN_MUTATES_PARAMETER;
     }
 
-    
-
-
-
     void noteArgumentsNameUse(ParseNode *node) {
         JS_ASSERT(inFunction());
         JS_ASSERT(node->isKind(PNK_NAME));
@@ -446,23 +442,6 @@ struct TreeContext {
         flags |= TCF_FUN_USES_ARGUMENTS;
         if (funbox)
             funbox->node->pn_dflags |= PND_FUNARG;
-    }
-
-    
-
-
-
-
-
-    void noteArgumentsPropertyAccess(ParseNode *node) {
-        JS_ASSERT(inFunction());
-        JS_ASSERT(&node->asPropertyAccess().name() ==
-                  parser->context->runtime->atomState.argumentsAtom);
-        if (!inStrictMode()) {
-            flags |= TCF_FUN_USES_ARGUMENTS;
-            if (funbox)
-                funbox->node->pn_dflags |= PND_FUNARG;
-        }
     }
 
     

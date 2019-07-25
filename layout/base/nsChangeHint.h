@@ -44,7 +44,13 @@
 
 
 
+
+
+
+
 enum nsChangeHint {
+  
+  
   
   nsChangeHint_RepaintFrame = 0x01,
 
@@ -66,6 +72,7 @@ enum nsChangeHint {
   nsChangeHint_NeedDirtyReflow = 0x10,
 
   
+  
   nsChangeHint_SyncFrameView = 0x20,
 
   
@@ -86,15 +93,26 @@ enum nsChangeHint {
 
 
 
+
   nsChangeHint_UpdateOpacityLayer = 0x100,
+  
+
+
+
   nsChangeHint_UpdateTransformLayer = 0x200,
 
   
-  
+
+
+
+
   nsChangeHint_ReconstructFrame = 0x400,
 
   
-  
+
+
+
+
   nsChangeHint_UpdateOverflow = 0x800
 };
 
@@ -137,15 +155,15 @@ inline bool NS_IsHintSubset(nsChangeHint aSubset, nsChangeHint aSuperSet) {
 
 #define NS_STYLE_HINT_NONE \
   nsChangeHint(0)
+#define NS_STYLE_HINT_VISUAL \
+  nsChangeHint(nsChangeHint_RepaintFrame | nsChangeHint_SyncFrameView)
 #define nsChangeHint_ReflowFrame                        \
   nsChangeHint(nsChangeHint_NeedReflow |                \
                nsChangeHint_ClearAncestorIntrinsics |   \
                nsChangeHint_ClearDescendantIntrinsics | \
                nsChangeHint_NeedDirtyReflow)
 #define NS_STYLE_HINT_REFLOW \
-  nsChangeHint(nsChangeHint_RepaintFrame | nsChangeHint_ReflowFrame)
-#define NS_STYLE_HINT_UPDATE_OVERFLOW \
-  nsChangeHint(nsChangeHint_RepaintFrame | nsChangeHint_UpdateOverflow)
+  nsChangeHint(NS_STYLE_HINT_VISUAL | nsChangeHint_ReflowFrame)
 #define NS_STYLE_HINT_FRAMECHANGE \
   nsChangeHint(NS_STYLE_HINT_REFLOW | nsChangeHint_ReconstructFrame)
 

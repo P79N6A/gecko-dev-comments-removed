@@ -84,6 +84,11 @@ public:
   
 
 
+  static nsresult ResetAndReadUserPrefs();
+
+  
+
+
   static Preferences* GetInstanceForService();
 
   

@@ -83,8 +83,6 @@ public:
                                                     const nsAString& aPropertyName,
                                                     nsIDOMCSSPrimitiveValue** aValue NS_OUTPARAM);
   NS_SCRIPTABLE NS_IMETHOD GetLanguage(nsAString& aLanguage);
-
-  
   NS_IMETHOD GetParent(nsIAccessible **aParent);
   NS_IMETHOD GetNextSibling(nsIAccessible **aNextSibling);
   NS_IMETHOD GetPreviousSibling(nsIAccessible **aPreviousSibling);

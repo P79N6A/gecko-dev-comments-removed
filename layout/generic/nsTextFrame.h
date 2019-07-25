@@ -393,6 +393,10 @@ public:
 
 
 
+
+
+
+
   gfxSkipCharsIterator EnsureTextRun(TextRunType aWhichTextRun,
                                      float aInflation,
                                      gfxContext* aReferenceContext = nsnull,

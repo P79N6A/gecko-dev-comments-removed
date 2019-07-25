@@ -1148,7 +1148,7 @@ nsHyperTextAccessible::GetTextAttributes(bool aIncludeDefAttrs,
   
   nsIFrame *offsetFrame = accAtOffset->GetFrame();
   if (offsetFrame && offsetFrame->GetType() == nsGkAtoms::textFrame) {
-    nsCOMPtr<nsIDOMNode> node = accAtOffset->GetDOMNode();
+    nsCOMPtr<nsIDOMNode> node = accAtOffset->DOMNode();
 
     PRInt32 nodeOffset = 0;
     nsresult rv = RenderedToContentOffset(offsetFrame, offsetInAcc,
@@ -1560,12 +1560,17 @@ nsHyperTextAccessible::GetAssociatedEditor(nsIEditor **aEditor)
 nsresult
 nsHyperTextAccessible::SetSelectionRange(PRInt32 aStartPos, PRInt32 aEndPos)
 {
-  nsresult rv = TakeFocus();
-  NS_ENSURE_SUCCESS(rv, rv);
+  bool isFocusable = State() & states::FOCUSABLE;
+
+  
+  
+  
+  
+  if (isFocusable)
+    TakeFocus();
 
   
   SetSelectionBounds(0, aStartPos, aEndPos);
-  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
@@ -1586,6 +1591,11 @@ nsHyperTextAccessible::SetSelectionRange(PRInt32 aStartPos, PRInt32 aEndPos)
   }
 
   
+  
+  
+  if (isFocusable)
+    return NS_OK;
+
   nsFocusManager* DOMFocusManager = nsFocusManager::GetFocusManager();
   if (DOMFocusManager) {
     nsCOMPtr<nsIPresShell> shell = GetPresShell();
@@ -2255,10 +2265,8 @@ nsHyperTextAccessible::GetDOMPointByFrameOffset(nsIFrame *aFrame,
   if (!aFrame) {
     
     
-    nsCOMPtr<nsIAccessNode> accessNode(do_QueryInterface(aAccessible));
-
     nsCOMPtr<nsIDOMNode> DOMNode;
-    accessNode->GetDOMNode(getter_AddRefs(DOMNode));
+    aAccessible->GetDOMNode(getter_AddRefs(DOMNode));
     nsCOMPtr<nsIContent> content(do_QueryInterface(DOMNode));
     NS_ENSURE_STATE(content);
 

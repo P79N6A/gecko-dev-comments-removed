@@ -559,7 +559,8 @@ Class js::NormalArgumentsObjectClass = {
     "Arguments",
     JSCLASS_NEW_RESOLVE |
     JSCLASS_HAS_RESERVED_SLOTS(NormalArgumentsObject::RESERVED_SLOTS) |
-    JSCLASS_HAS_CACHED_PROTO(JSProto_Object),
+    JSCLASS_HAS_CACHED_PROTO(JSProto_Object) |
+    JSCLASS_FOR_OF_ITERATION,
     JS_PropertyStub,         
     args_delProperty,
     JS_PropertyStub,         
@@ -574,7 +575,15 @@ Class js::NormalArgumentsObjectClass = {
     NULL,                    
     NULL,                    
     NULL,                    
-    args_trace
+    args_trace,
+    {
+        NULL,       
+        NULL,       
+        NULL,       
+        JS_ElementIteratorStub,
+        NULL,       
+        false,      
+    }
 };
 
 
@@ -586,7 +595,8 @@ Class js::StrictArgumentsObjectClass = {
     "Arguments",
     JSCLASS_NEW_RESOLVE |
     JSCLASS_HAS_RESERVED_SLOTS(StrictArgumentsObject::RESERVED_SLOTS) |
-    JSCLASS_HAS_CACHED_PROTO(JSProto_Object),
+    JSCLASS_HAS_CACHED_PROTO(JSProto_Object) |
+    JSCLASS_FOR_OF_ITERATION,
     JS_PropertyStub,         
     args_delProperty,
     JS_PropertyStub,         
@@ -601,7 +611,15 @@ Class js::StrictArgumentsObjectClass = {
     NULL,                    
     NULL,                    
     NULL,                    
-    args_trace
+    args_trace,
+    {
+        NULL,       
+        NULL,       
+        NULL,       
+        JS_ElementIteratorStub,
+        NULL,       
+        false,      
+    }
 };
 
 namespace js {
@@ -1077,14 +1095,17 @@ fun_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
 
     
     StackFrame *fp = js_GetTopStackFrame(cx, FRAME_EXPAND_NONE);
+    for (; fp; fp = fp->prev()) {
+        if (!fp->isFunctionFrame() || fp->isEvalFrame())
+            continue;
+        Value callee;
+        if (!fp->getValidCalleeObject(cx, &callee))
+            return false;
+        if (&callee.toObject() == fun)
+            break;
+    }
     if (!fp)
         return true;
-
-    while (!fp->isFunctionFrame() || &fp->callee() != fun || fp->isEvalFrame()) {
-        fp = fp->prev();
-        if (!fp)
-            return true;
-    }
 
 #ifdef JS_METHODJIT
     if (JSID_IS_ATOM(id, cx->runtime->atomState.callerAtom) && fp && fp->prev()) {

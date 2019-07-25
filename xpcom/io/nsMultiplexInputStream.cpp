@@ -331,6 +331,14 @@ NS_IMETHODIMP
 nsMultiplexInputStream::IsNonBlocking(bool *aNonBlocking)
 {
     PRUint32 len = mStreams.Count();
+    if (len == 0) {
+        
+        
+        
+        
+        *aNonBlocking = true;
+        return NS_OK;
+    }
     for (PRUint32 i = 0; i < len; ++i) {
         nsresult rv = mStreams[i]->IsNonBlocking(aNonBlocking);
         NS_ENSURE_SUCCESS(rv, rv);

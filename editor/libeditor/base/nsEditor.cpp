@@ -3636,6 +3636,8 @@ nsEditor::IsEditable(nsIContent *aNode)
     
     return false;
   }
+  if (aNode->NodeType() == nsIDOMNode::COMMENT_NODE)
+    return false;
   if (aNode->NodeType() != nsIDOMNode::TEXT_NODE)
     return true;  
 

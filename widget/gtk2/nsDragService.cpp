@@ -327,13 +327,11 @@ nsDragService::InvokeDragSession(nsIDOMNode *aDOMNode,
     
     
     
-    
-    
     GdkEvent event;
     memset(&event, 0, sizeof(GdkEvent));
     event.type = GDK_BUTTON_PRESS;
     event.button.window = mHiddenWidget->window;
-    event.button.time = nsWindow::sLastButtonPressTime;
+    event.button.time = nsWindow::GetCurrentEventTime();
 
     
     GdkDragContext *context = gtk_drag_begin(mHiddenWidget,
@@ -345,6 +343,8 @@ nsDragService::InvokeDragSession(nsIDOMNode *aDOMNode,
     mSourceRegion = nsnull;
 
     if (context) {
+        StartDragSession();
+
         
         mGrabWidget = gtk_grab_get_current();
         if (mGrabWidget) {
@@ -360,8 +360,6 @@ nsDragService::InvokeDragSession(nsIDOMNode *aDOMNode,
     }
 
     gtk_target_list_unref(sourceList);
-
-    StartDragSession();
 
     return rv;
 }
@@ -1374,11 +1372,8 @@ nsDragService::SourceEndDragSession(GdkDragContext *aContext,
         }
     }
 
-    nsCOMPtr<nsIDOMNSDataTransfer> dataTransfer =
-        do_QueryInterface(mDataTransfer);
-
-    if (dataTransfer) {
-        dataTransfer->SetDropEffectInt(dropEffect);
+    if (mDataTransfer) {
+        mDataTransfer->SetDropEffectInt(dropEffect);
     }
 
     

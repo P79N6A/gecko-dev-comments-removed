@@ -84,7 +84,7 @@ protected:
   ULONG m_cRef;
 
   
-  nsCOMPtr<nsIDOMNSDataTransfer> mDataTransfer;
+  nsCOMPtr<nsIDOMDataTransfer> mDataTransfer;
 
   
   HCURSOR m_hCursor;

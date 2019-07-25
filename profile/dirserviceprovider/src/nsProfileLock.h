@@ -89,9 +89,15 @@ public:
 
 
     nsresult                Unlock(bool aFatalSignal = false);
-        
+
+    
+
+
+    nsresult                GetReplacedLockTime(PRInt64* aResult);
+
 private:
     bool                    mHaveLock;
+    PRInt64                 mReplacedLockTime;
 
 #if defined (XP_WIN)
     HANDLE                  mLockFileHandle;
@@ -114,13 +120,13 @@ private:
                                                );
     static PRCList          mPidLockList;
 
-    nsresult                LockWithFcntl(const nsACString& lockFilePath);
+    nsresult                LockWithFcntl(nsILocalFile *aLockFile);
 
     
 
 
 
-    nsresult                LockWithSymlink(const nsACString& lockFilePath, bool aHaveFcntlLock);
+    nsresult                LockWithSymlink(nsILocalFile *aLockFile, bool aHaveFcntlLock);
 
     char*                   mPidLockFileName;
     int                     mLockFileDesc;

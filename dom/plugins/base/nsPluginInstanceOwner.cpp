@@ -3221,6 +3221,8 @@ nsresult nsPluginInstanceOwner::Init(nsIContent* aContent)
     
     
     objFrame->PresContext()->EnsureVisible();
+  } else {
+    return NS_ERROR_FAILURE;
   }
 
   

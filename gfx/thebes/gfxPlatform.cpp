@@ -367,6 +367,16 @@ gfxPlatform::Shutdown()
     }
 
     mozilla::gl::GLContextProvider::Shutdown();
+    mozilla::gl::GLContextProviderOSMesa::Shutdown();
+
+#if defined(XP_WIN)
+    
+    
+    
+    
+    
+    mozilla::gl::GLContextProviderEGL::Shutdown();
+#endif
 
     delete gPlatform;
     gPlatform = nsnull;

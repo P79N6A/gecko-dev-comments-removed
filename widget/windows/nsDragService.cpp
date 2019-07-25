@@ -330,14 +330,11 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
     else
         dropResult = DRAGDROP_ACTION_NONE;
     
-    nsCOMPtr<nsIDOMNSDataTransfer> dataTransfer =
-      do_QueryInterface(mDataTransfer);
-
-    if (dataTransfer) {
+    if (mDataTransfer) {
       if (res == DRAGDROP_S_DROP) 
-        dataTransfer->SetDropEffectInt(dropResult);
+        mDataTransfer->SetDropEffectInt(dropResult);
       else
-        dataTransfer->SetDropEffectInt(DRAGDROP_ACTION_NONE);
+        mDataTransfer->SetDropEffectInt(DRAGDROP_ACTION_NONE);
     }
   }
 

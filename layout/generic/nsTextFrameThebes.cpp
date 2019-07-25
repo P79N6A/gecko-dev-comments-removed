@@ -3027,7 +3027,7 @@ PropertyProvider::GetHyphenationBreaks(PRUint32 aStart, PRUint32 aLength,
   if (!mTextStyle->WhiteSpaceCanWrap() ||
       mTextStyle->mHyphens == NS_STYLE_HYPHENS_NONE)
   {
-    memset(aBreakBefore, false, aLength);
+    memset(aBreakBefore, false, aLength*sizeof(bool));
     return;
   }
 
@@ -3054,7 +3054,7 @@ PropertyProvider::GetHyphenationBreaks(PRUint32 aStart, PRUint32 aLength,
         mFrag->CharAt(run.GetOriginalOffset() + run.GetRunLength() - 1) == CH_SHY;
     } else {
       PRInt32 runOffsetInSubstring = run.GetSkippedOffset() - aStart;
-      memset(aBreakBefore + runOffsetInSubstring, false, run.GetRunLength());
+      memset(aBreakBefore + runOffsetInSubstring, false, run.GetRunLength()*sizeof(bool));
       
       aBreakBefore[runOffsetInSubstring] = allowHyphenBreakBeforeNextChar &&
           (!(mFrame->GetStateBits() & TEXT_START_OF_LINE) ||
@@ -6314,7 +6314,7 @@ ClusterIterator::ClusterIterator(nsTextFrame* aTextFrame, PRInt32 aPosition,
     mDirection = 0; 
     return;
   }
-  memset(mWordBreaks.Elements(), false, textLen + 1);
+  memset(mWordBreaks.Elements(), false, (textLen + 1)*sizeof(bool));
   PRInt32 textStart;
   if (aDirection > 0) {
     if (aContext.IsEmpty()) {

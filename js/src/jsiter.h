@@ -101,6 +101,67 @@ struct NativeIterator {
     void mark(JSTracer *trc);
 };
 
+class ElementIteratorObject : public JSObject {
+  public:
+    enum {
+        TargetSlot,
+        IndexSlot,
+        NumSlots
+    };
+
+    static JSObject *create(JSContext *cx, JSObject *target);
+
+    inline uint32_t getIndex() const;
+    inline void setIndex(uint32_t index);
+    inline JSObject *getTargetObject() const;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+    bool iteratorNext(JSContext *cx, Value *vp);
+};
+
 bool
 VectorToIdArray(JSContext *cx, js::AutoIdVector &props, JSIdArray **idap);
 

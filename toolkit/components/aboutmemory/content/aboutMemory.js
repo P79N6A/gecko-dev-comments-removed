@@ -42,19 +42,17 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
-
-
-var gVerbose = (location.href.split(/[\?,]/).indexOf("verbose") !== -1);
+const gVerbose = location.href === "about:memory?verbose";
 
 var gAddedObserver = false;
 
-const KIND_NONHEAP = Ci.nsIMemoryReporter.KIND_NONHEAP;
-const KIND_HEAP    = Ci.nsIMemoryReporter.KIND_HEAP;
-const KIND_OTHER   = Ci.nsIMemoryReporter.KIND_OTHER;
-const UNITS_BYTES  = Ci.nsIMemoryReporter.UNITS_BYTES;
-const UNITS_COUNT  = Ci.nsIMemoryReporter.UNITS_COUNT;
+const KIND_NONHEAP           = Ci.nsIMemoryReporter.KIND_NONHEAP;
+const KIND_HEAP              = Ci.nsIMemoryReporter.KIND_HEAP;
+const KIND_OTHER             = Ci.nsIMemoryReporter.KIND_OTHER;
+const UNITS_BYTES            = Ci.nsIMemoryReporter.UNITS_BYTES;
+const UNITS_COUNT            = Ci.nsIMemoryReporter.UNITS_COUNT;
 const UNITS_COUNT_CUMULATIVE = Ci.nsIMemoryReporter.UNITS_COUNT_CUMULATIVE;
-const UNITS_PERCENTAGE = Ci.nsIMemoryReporter.UNITS_PERCENTAGE;
+const UNITS_PERCENTAGE       = Ci.nsIMemoryReporter.UNITS_PERCENTAGE;
 
 const kUnknown = -1;    
 
@@ -62,23 +60,9 @@ const kUnknown = -1;
 
 
 
-
-
-function escapeAll(aStr)
-{
-  return aStr.replace(/\&/g, '&amp;').replace(/'/g, '&#39;').
-              replace(/\</g, '&lt;').replace(/>/g, '&gt;').
-              replace(/\"/g, '&quot;');
-}
-
-function flipBackslashes(aStr)
-{
-  return aStr.replace(/\\/g, '/');
-}
-
 function makeSafe(aUnsafeStr)
 {
-  return escapeAll(flipBackslashes(aUnsafeStr));
+  return aUnsafeStr.replace(/\\/g, '/');
 }
 
 const kTreeUnsafeDescriptions = {
@@ -137,7 +121,8 @@ const kTreeNames = {
   'other':    'Other Measurements'
 };
 
-const kMapTreePaths = ['map/resident', 'map/pss', 'map/vsize', 'map/swap'];
+const kMapTreePaths =
+  ['smaps/resident', 'smaps/pss', 'smaps/vsize', 'smaps/swap'];
 
 function onLoad()
 {
@@ -166,11 +151,6 @@ function onUnload()
 function ChildMemoryListener(aSubject, aTopic, aData)
 {
   update();
-}
-
-function $(n)
-{
-  return document.getElementById(n);
 }
 
 function doGlobalGC()
@@ -304,6 +284,11 @@ function getReportersByProcess(aMgr)
   var e = aMgr.enumerateMultiReporters();
   while (e.hasMoreElements()) {
     var mrOrig = e.getNext().QueryInterface(Ci.nsIMemoryMultiReporter);
+    
+    if (!gVerbose && mrOrig.name === "smaps") {
+      continue;
+    }
+
     try {
       mrOrig.collectReports(addReporter, null);
     }
@@ -315,6 +300,28 @@ function getReportersByProcess(aMgr)
   return reportersByProcess;
 }
 
+function appendTextNode(aP, aText)
+{
+  var e = document.createTextNode(aText);
+  aP.appendChild(e);
+  return e;
+}
+
+function appendElement(aP, aTagName, aClassName)
+{
+  var e = document.createElement(aTagName);
+  e.className = aClassName;
+  aP.appendChild(e);
+  return e;
+}
+
+function appendElementWithText(aP, aTagName, aClassName, aText)
+{
+  var e = appendElement(aP, aTagName, aClassName);
+  appendTextNode(e, aText);
+  return e;
+}
+
 
 
 
@@ -322,32 +329,28 @@ function update()
 {
   
   
-  var content = $("content");
-  content.parentNode.replaceChild(content.cloneNode(false), content);
-  content = $("content");
-
-  if (gVerbose)
-    content.parentNode.classList.add('verbose');
-  else
-    content.parentNode.classList.add('non-verbose');
+  var oldContent = document.getElementById("content");
+  var content = oldContent.cloneNode(false);
+  oldContent.parentNode.replaceChild(content, oldContent);
+  content.classList.add(gVerbose ? 'verbose' : 'non-verbose');
 
   var mgr = Cc["@mozilla.org/memory-reporter-manager;1"].
       getService(Ci.nsIMemoryReporterManager);
-
-  var text = "";
 
   
   
   var reportersByProcess = getReportersByProcess(mgr);
   var hasMozMallocUsableSize = mgr.hasMozMallocUsableSize;
-  text += genProcessText("Main", reportersByProcess["Main"],
-                         hasMozMallocUsableSize);
+  appendProcessElements(content, "Main", reportersByProcess["Main"],
+                        hasMozMallocUsableSize);
   for (var process in reportersByProcess) {
     if (process !== "Main") {
-      text += genProcessText(process, reportersByProcess[process],
-                             hasMozMallocUsableSize);
+      appendProcessElements(content, process, reportersByProcess[process],
+                            hasMozMallocUsableSize);
     }
   }
+
+  appendElement(content, "hr");
 
   
   const UpDesc = "Re-measure.";
@@ -359,36 +362,43 @@ function update()
                  "process to reduce memory usage in other ways, e.g. by " +
                  "flushing various caches.";
 
-  
-  text += "<div>" +
-    "<button title='" + UpDesc + "' onclick='update()' id='updateButton'>Update</button>" +
-    "<button title='" + GCDesc + "' onclick='doGlobalGC()'>GC</button>" +
-    "<button title='" + CCDesc + "' onclick='doCC()'>CC</button>" +
-    "<button title='" + MPDesc + "' onclick='sendHeapMinNotifications()'>" + "Minimize memory usage</button>" +
-    "</div>";
+  function appendButton(aTitle, aOnClick, aText, aId)
+  {
+    var b = appendElementWithText(content, "button", "", aText);
+    b.title = aTitle;
+    b.onclick = aOnClick
+    if (aId) {
+      b.id = aId;
+    }
+  }
 
   
-  text += "<div>";
-  text += gVerbose
-        ? "<span class='option'><a href='about:memory'>Less verbose</a></span>"
-        : "<span class='option'><a href='about:memory?verbose'>More verbose</a></span>";
-  text += "</div>";
+  appendButton(UpDesc, update,                   "Update", "updateButton");
+  appendButton(GCDesc, doGlobalGC,               "GC");
+  appendButton(CCDesc, doCC,                     "CC");
+  appendButton(MPDesc, sendHeapMinNotifications, "Minimize memory usage");
 
-  text += "<div>" +
-          "<span class='option'><a href='about:support'>Troubleshooting information</a></span>" +
-          "</div>";
+  var div1 = appendElement(content, "div", "");
+  var a;
+  if (gVerbose) {
+    var a = appendElementWithText(div1, "a", "option", "Less verbose");
+    a.href = "about:memory";
+  } else {
+    var a = appendElementWithText(div1, "a", "option", "More verbose");
+    a.href = "about:memory?verbose";
+  }
 
-  text += "<div>" +
-          "<span class='legend'>Click on a non-leaf node in a tree to expand ('++') " +
-          "or collapse ('--') its children.</span>" +
-          "</div>";
-  text += "<div>" +
-          "<span class='legend'>Hover the pointer over the name of a memory " +
-          "reporter to see a description of what it measures.</span>";
+  var div2 = appendElement(content, "div", "");
+  a = appendElementWithText(div2, "a", "option", "Troubleshooting information");
+  a.href = "about:support";
 
-  var div = document.createElement("div");
-  div.innerHTML = text;
-  content.appendChild(div);
+  var legendText1 = "Click on a non-leaf node in a tree to expand ('++') " +
+                    "or collapse ('--') its children.";
+  var legendText2 = "Hover the pointer over the name of a memory reporter " +
+                    "to see a description of what it measures.";
+
+  appendElementWithText(content, "div", "legend", legendText1);
+  appendElementWithText(content, "div", "legend", legendText2);
 }
 
 
@@ -554,13 +564,11 @@ function buildTree(aReporters, aTreeName)
 
 
 
-
-
-function ignoreTree(aReporters, aTreeName)
+function ignoreSmapsTrees(aReporters)
 {
   for (var unsafePath in aReporters) {
     var r = aReporters[unsafePath];
-    if (r.treeNameMatches(aTreeName)) {
+    if (r.treeNameMatches("smaps")) {
       var dummy = getBytes(aReporters, unsafePath);
     }
   }
@@ -578,7 +586,6 @@ function ignoreTree(aReporters, aTreeName)
 function fixUpExplicitTree(aT, aReporters)
 {
   
-  var s = "";
   function getKnownHeapUsedBytes(aT)
   {
     var n = 0;
@@ -701,59 +708,57 @@ function sortTreeAndInsertAggregateNodes(aTotalBytes, aT)
 
 var gUnsafePathsWithInvalidValuesForThisProcess = [];
 
-function genWarningText(aHasKnownHeapAllocated, aHasMozMallocUsableSize)
+function appendWarningElements(aP, aHasKnownHeapAllocated,
+                               aHasMozMallocUsableSize)
 {
-  var warningText = "";
-
   if (!aHasKnownHeapAllocated && !aHasMozMallocUsableSize) {
-    warningText =
-      "<p class='accuracyWarning'>WARNING: the 'heap-allocated' memory " +
-      "reporter and the moz_malloc_usable_size() function do not work for " +
-      "this platform and/or configuration.  This means that " +
-      "'heap-unclassified' is zero and the 'explicit' tree shows " +
-      "much less memory than it should.</p>\n\n";
+    appendElementWithText(aP, "p", "", 
+      "WARNING: the 'heap-allocated' memory reporter and the " +
+      "moz_malloc_usable_size() function do not work for this platform " +
+      "and/or configuration.  This means that 'heap-unclassified' is zero " +
+      "and the 'explicit' tree shows much less memory than it should.");
+    appendTextNode(aP, "\n\n");
 
   } else if (!aHasKnownHeapAllocated) {
-    warningText =
-      "<p class='accuracyWarning'>WARNING: the 'heap-allocated' memory " +
-      "reporter does not work for this platform and/or configuration. " +
-      "This means that 'heap-unclassified' is zero and the 'explicit' tree " +
-      "shows less memory than it should.</p>\n\n";
+    appendElementWithText(aP, "p", "", 
+      "WARNING: the 'heap-allocated' memory reporter does not work for this " +
+      "platform and/or configuration. This means that 'heap-unclassified' " +
+      "is zero and the 'explicit' tree shows less memory than it should.");
+    appendTextNode(aP, "\n\n");
 
   } else if (!aHasMozMallocUsableSize) {
-    warningText =
-      "<p class='accuracyWarning'>WARNING: the moz_malloc_usable_size() " +
-      "function does not work for this platform and/or configuration. " +
-      "This means that much of the heap-allocated memory is not measured " +
-      "by individual memory reporters and so will fall under " +
-      "'heap-unclassified'.</p>\n\n";
+    appendElementWithText(aP, "p", "", 
+      "WARNING: the moz_malloc_usable_size() function does not work for " +
+      "this platform and/or configuration.  This means that much of the " +
+      "heap-allocated memory is not measured by individual memory reporters " +
+      "and so will fall under 'heap-unclassified'.");
+    appendTextNode(aP, "\n\n");
   }
 
   if (gUnsafePathsWithInvalidValuesForThisProcess.length > 0) {
-    warningText +=
-      "<div class='accuracyWarning'>" +
-      "<p>WARNING: the following values are negative or unreasonably " +
-      "large.</p>\n" +
-      "<ul>";
+    var div = appendElement(aP, "div", "");
+    appendElementWithText(div, "p", "", 
+      "WARNING: the following values are negative or unreasonably large.");
+    appendTextNode(div, "\n");  
+
+    var ul = appendElement(div, "ul", "");
     for (var i = 0;
          i < gUnsafePathsWithInvalidValuesForThisProcess.length;
          i++)
     {
-      warningText +=
-        " <li>" +
-        makeSafe(gUnsafePathsWithInvalidValuesForThisProcess[i]) +
-        "</li>\n";
+      appendTextNode(ul, " ");
+      appendElementWithText(ul, "li", "", 
+        makeSafe(gUnsafePathsWithInvalidValuesForThisProcess[i]));
+      appendTextNode(ul, "\n");
     }
-    warningText +=
-      "</ul>" +
-      "<p>This indicates a defect in one or more memory reporters.  The " +
+
+    appendElementWithText(div, "p", "",
+      "This indicates a defect in one or more memory reporters.  The " +
       "invalid values are highlighted, but you may need to expand one " +
-      "or more sub-trees to see them.</p>\n\n" +
-      "</div>";
+      "or more sub-trees to see them.");
+    appendTextNode(div, "\n\n");  
     gUnsafePathsWithInvalidValuesForThisProcess = [];  
   }
-
-  return warningText;
 }
 
 
@@ -767,17 +772,25 @@ function genWarningText(aHasKnownHeapAllocated, aHasMozMallocUsableSize)
 
 
 
-function genProcessText(aProcess, aReporters, aHasMozMallocUsableSize)
+
+
+function appendProcessElements(aP, aProcess, aReporters,
+                               aHasMozMallocUsableSize)
 {
+  appendElementWithText(aP, "h1", "", aProcess + " Process");
+  appendTextNode(aP, "\n\n");   
+
+  
+  var warningsDiv = appendElement(aP, "div", "accuracyWarning");
+
   var explicitTree = buildTree(aReporters, 'explicit');
   var hasKnownHeapAllocated = fixUpExplicitTree(explicitTree, aReporters);
   sortTreeAndInsertAggregateNodes(explicitTree._amount, explicitTree);
-  var explicitText = genTreeText(explicitTree, aProcess);
+  appendTreeElements(aP, explicitTree, aProcess);
 
   
-  var mapTreeText = "";
-  kMapTreePaths.forEach(function(t) {
-    if (gVerbose) {
+  if (gVerbose) {
+    kMapTreePaths.forEach(function(t) {
       var tree = buildTree(aReporters, t);
 
       
@@ -785,28 +798,26 @@ function genProcessText(aProcess, aReporters, aHasMozMallocUsableSize)
       if (tree) {
         sortTreeAndInsertAggregateNodes(tree._amount, tree);
         tree._hideKids = true;   
-        mapTreeText += genTreeText(tree, aProcess);
+        appendTreeElements(aP, tree, aProcess);
       }
-    } else {
-      ignoreTree(aReporters, t);
-    }
-  });
+    });
+  } else {
+    
+    
+    
+    ignoreSmapsTrees(aReporters);
+  }
 
   
   
-  var otherText = genOtherText(aReporters, aProcess);
+  var otherText = appendOtherElements(aP, aReporters, aProcess);
 
   
   
   
-  var warningText = "";
-  var warningText =
-        genWarningText(hasKnownHeapAllocated, aHasMozMallocUsableSize);
-
-  
-  return "<h1>" + aProcess + " Process</h1>\n\n" +
-         warningText + explicitText + mapTreeText + otherText +
-         "<hr></hr>";
+  var warningElements =
+        appendWarningElements(warningsDiv, hasKnownHeapAllocated,
+                              aHasMozMallocUsableSize);
 }
 
 
@@ -960,13 +971,13 @@ function getUnsafeDescription(aReporters, aUnsafePath)
 const kHorizontal       = "\u2500",
       kVertical         = "\u2502",
       kUpAndRight       = "\u2514",
-      kVerticalAndRight = "\u251c";
+      kVerticalAndRight = "\u251c",
+      kDoubleHorizontalSep = " \u2500\u2500 ";
 
-function genMrValueText(aValue, aIsInvalid)
+function appendMrValueSpan(aP, aValue, aIsInvalid)
 {
-  return aIsInvalid ?
-         "<span class='mrValue invalid'>" + aValue + "</span>" :
-         "<span class='mrValue'>"         + aValue + "</span>";
+  appendElementWithText(aP, "span", "mrValue" + (aIsInvalid ? " invalid" : ""),
+                        aValue);
 }
 
 function kindToString(aKind)
@@ -980,42 +991,44 @@ function kindToString(aKind)
   }
 }
 
-function genMrNameText(aKind, aShowSubtrees, aHasKids, aUnsafeDesc,
-                       aUnsafeName, aIsUnknown, aIsInvalid, aNMerged)
+function appendMrNameSpan(aP, aKind, aShowSubtrees, aHasKids, aUnsafeDesc,
+                          aUnsafeName, aIsUnknown, aIsInvalid, aNMerged)
 {
   var text = "";
   if (aHasKids) {
     if (aShowSubtrees) {
-      text += "<span class='mrSep hidden'> ++ </span>";
-      text += "<span class='mrSep'> -- </span>";
+      appendElementWithText(aP, "span", "mrSep hidden", " ++ ");
+      appendElementWithText(aP, "span", "mrSep",        " -- ");
     } else {
-      text += "<span class='mrSep'> ++ </span>";
-      text += "<span class='mrSep hidden'> -- </span>";
+      appendElementWithText(aP, "span", "mrSep",        " ++ ");
+      appendElementWithText(aP, "span", "mrSep hidden", " -- ");
     }
   } else {
-    text += "<span class='mrSep'> " + kHorizontal + kHorizontal + " </span>";
+    appendElementWithText(aP, "span", "mrSep", kDoubleHorizontalSep);
   }
-  text += "<span class='mrName' title='" +
-          kindToString(aKind) + makeSafe(aUnsafeDesc) + "'>" +
-          makeSafe(aUnsafeName) + "</span>";
+
+  var nameSpan = appendElementWithText(aP, "span", "mrName",
+                                       makeSafe(aUnsafeName));
+  nameSpan.title = kindToString(aKind) + makeSafe(aUnsafeDesc);
+
   if (aIsUnknown) {
-    const problemDesc =
+    var noteSpan = appendElementWithText(aP, "span", "mrNote", " [*]");
+    noteSpan.title =
       "Warning: this memory reporter was unable to compute a useful value. ";
-    text += "<span class='mrNote' title=\"" + problemDesc + "\"> [*]</span>";
   }
   if (aIsInvalid) {
-    const invalidDesc =
+    var noteSpan = appendElementWithText(aP, "span", "mrNote", " [?!]");
+    noteSpan.title =
       "Warning: this value is invalid and indicates a bug in one or more " +
       "memory reporters. ";
-    text += "<span class='mrNote' title=\"" + invalidDesc + "\"> [?!]</span>";
   }
   if (aNMerged) {
-    const dupDesc = "This value is the sum of " + aNMerged +
-                    " memory reporters that all have the same path.";
-    text += "<span class='mrNote' title=\"" + dupDesc + "\"> [" +
-            aNMerged + "]</span>";
+    var noteSpan = appendElementWithText(aP, "span", "mrNote",
+                                         " [" + aNMerged + "]");
+    noteSpan.title =
+      "This value is the sum of " + aNMerged +
+      " memory reporters that all have the same path.";
   }
-  return text + '\n';
 }
 
 
@@ -1075,7 +1088,9 @@ function toggle(aEvent)
 
 
 
-function genTreeText(aT, aProcess)
+
+
+function appendTreeElements(aPOuter, aT, aProcess)
 {
   var treeBytes = aT._amount;
   var rootStringLength = aT.toString().length;
@@ -1097,7 +1112,10 @@ function genTreeText(aT, aProcess)
 
 
 
-  function genTreeText2(aUnsafePrePath, aT, aIndentGuide, aParentStringLength)
+
+
+  function appendTreeElements2(aP, aUnsafePrePath, aT, aIndentGuide,
+                               aParentStringLength)
   {
     function repeatStr(aC, aN)
     {
@@ -1111,14 +1129,14 @@ function genTreeText(aT, aProcess)
     
     
     var unsafePath = aUnsafePrePath + aT._unsafeName;
-    var safeTreeId = escapeAll(aProcess + ":" + unsafePath);
+    var safeTreeId = makeSafe(aProcess + ":" + unsafePath);
     var showSubtrees = !aT._hideKids;
     if (gTogglesBySafeTreeId[safeTreeId]) {
       showSubtrees = !showSubtrees;
     }
 
     
-    var indent = "<span class='treeLine'>";
+    var indent = "";
     if (aIndentGuide.length > 0) {
       for (var i = 0; i < aIndentGuide.length - 1; i++) {
         indent += aIndentGuide[i]._isLastKid ? " " : kVertical;
@@ -1137,7 +1155,6 @@ function genTreeText(aT, aProcess)
       }
       aIndentGuide[aIndentGuide.length - 1]._depth += extraIndentLength;
     }
-    indent += "</span>";
 
     
     
@@ -1154,13 +1171,7 @@ function genTreeText(aT, aProcess)
       percText = (100 * aT._amount / treeBytes).toFixed(2);
       percText = pad(percText, 5, '0');
     }
-    percText = tIsInvalid ?
-               "<span class='mrPerc invalid'> (" + percText + "%)</span>" :
-               "<span class='mrPerc'> ("         + percText + "%)</span>";
-
-    
-    
-    var kind = isExplicitTree ? aT._kind : undefined;
+    percText = " (" + percText + "%)";
 
     
     
@@ -1168,35 +1179,49 @@ function genTreeText(aT, aProcess)
     if (!hasKids) {
       assert(!aT._hideKids, "leaf node with _hideKids set")
     }
-    var text = indent;
+
+    appendElementWithText(aP, "span", "treeLine", indent);
+
+    var d;
     if (hasKids) {
-      text += "<span onclick='toggle(event)' class='hasKids' id='" +
-              safeTreeId + "'>";
+      d = appendElement(aP, "span", "hasKids");
+      d.id = safeTreeId;
+      d.onclick = toggle;
+    } else {
+      d = aP;
     }
-    text += genMrValueText(tString, tIsInvalid) + percText;
-    text += genMrNameText(kind, showSubtrees, hasKids, aT._unsafeDescription,
-                          aT._unsafeName, aT._isUnknown, tIsInvalid,
-                          aT._nMerged);
+
+    appendMrValueSpan(d, tString, tIsInvalid);
+    appendElementWithText(d, "span", "mrPerc", percText);
+
+    
+    
+    var kind = isExplicitTree ? aT._kind : undefined;
+    appendMrNameSpan(d, kind, showSubtrees, hasKids, aT._unsafeDescription,
+                     aT._unsafeName, aT._isUnknown, tIsInvalid, aT._nMerged);
+    appendTextNode(d, "\n");
+
     if (hasKids) {
-      var hiddenText = showSubtrees ? "" : " hidden";
       
-      text += "</span><span class='kids" + hiddenText + "'>";
+      d = appendElement(aP, "span", showSubtrees ? "kids" : "kids hidden");
+    } else {
+      d = aP;
     }
 
     for (var i = 0; i < aT._kids.length; i++) {
       
       aIndentGuide.push({ _isLastKid: (i === aT._kids.length - 1), _depth: 3 });
-      text += genTreeText2(unsafePath + "/", aT._kids[i], aIndentGuide,
-                           tString.length);
+      appendTreeElements2(d, unsafePath + "/", aT._kids[i], aIndentGuide,
+                          tString.length);
       aIndentGuide.pop();
     }
-    text += hasKids ? "</span>" : "";
-    return text;
   }
 
-  var text = genTreeText2("", aT, [], rootStringLength);
-
-  return genSectionMarkup(aT._unsafeName, text);
+  appendSectionHeader(aPOuter, kTreeNames[aT._unsafeName]);
+ 
+  var pre = appendElement(aPOuter, "pre", "tree");
+  appendTreeElements2(pre, "", aT, [], rootStringLength);
+  appendTextNode(aPOuter, "\n");  
 }
 
 function OtherReporter(aUnsafePath, aUnits, aAmount, aUnsafeDesc, aNMerged)
@@ -1255,8 +1280,14 @@ OtherReporter.compare = function(a, b) {
 
 
 
-function genOtherText(aReportersByProcess, aProcess)
+
+
+function appendOtherElements(aP, aReportersByProcess, aProcess)
 {
+  appendSectionHeader(aP, kTreeNames['other']);
+
+  var pre = appendElement(aP, "pre", "tree");
+
   
   
   
@@ -1286,19 +1317,20 @@ function genOtherText(aReportersByProcess, aProcess)
     if (oIsInvalid) {
       gUnsafePathsWithInvalidValuesForThisProcess.push(o._unsafePath);
     }
-    text += genMrValueText(pad(o._asString, maxStringLength, ' '), oIsInvalid);
-    text += genMrNameText(KIND_OTHER, true,
-                          false, o._unsafeDescription,
-                          o._unsafePath, o._isUnknown, oIsInvalid);
+    appendMrValueSpan(pre, pad(o._asString, maxStringLength, ' '), oIsInvalid);
+    appendMrNameSpan(pre, KIND_OTHER, true,
+                     false, o._unsafeDescription,
+                     o._unsafePath, o._isUnknown, oIsInvalid);
+    appendTextNode(pre, "\n");
   }
 
-  return genSectionMarkup('other', text);
+  appendTextNode(aP, "\n");  
 }
 
-function genSectionMarkup(aName, aText)
+function appendSectionHeader(aP, aText)
 {
-  return "<h2 class='sectionHeader'>" + kTreeNames[aName] + "</h2>\n" +
-         "<pre class='tree'>" + aText + "</pre>\n";
+  appendElementWithText(aP, "h2", "sectionHeader", aText);
+  appendTextNode(aP, "\n");
 }
 
 function assert(aCond, aMsg)
@@ -1310,8 +1342,6 @@ function assert(aCond, aMsg)
 
 function debug(x)
 {
-  var content = $("content");
-  var div = document.createElement("div");
-  div.innerHTML = JSON.stringify(x);
-  content.appendChild(div);
+  var content = document.getElementById("content");
+  appendElementWithText(content, "div", "legend", JSON.stringify(x));
 }

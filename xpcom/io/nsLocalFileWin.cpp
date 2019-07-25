@@ -64,7 +64,7 @@
 
 #include <direct.h>
 #include <windows.h>
-
+#include <shlwapi.h>
 #include <aclapi.h>
 
 #include "shellapi.h"
@@ -104,6 +104,10 @@ unsigned char *_mbsstr( const unsigned char *str,
 
 #ifndef FILE_ATTRIBUTE_NOT_CONTENT_INDEXED
 #define FILE_ATTRIBUTE_NOT_CONTENT_INDEXED  0x00002000
+#endif
+
+#ifndef DRIVE_REMOTE
+#define DRIVE_REMOTE 4
 #endif
 
 ILCreateFromPathWPtr nsLocalFile::sILCreateFromPathW = NULL;
@@ -1361,6 +1365,40 @@ nsLocalFile::GetVersionInfoField(const char* aField, nsAString& _retval)
     return rv;
 }
 
+
+
+
+
+
+
+
+
+
+static bool
+IsRemoteFilePath(LPCWSTR path, bool &remote)
+{
+  
+  
+  WCHAR dirPath[MAX_PATH + 1] = { 0 };
+  wcsncpy(dirPath, path, MAX_PATH);
+  if (!PathRemoveFileSpecW(dirPath)) {
+    return false;
+  }
+  size_t len = wcslen(dirPath);
+  
+  
+  
+  if (len >= MAX_PATH) {
+    return false;
+  }
+
+  dirPath[len] = L'\\';
+  dirPath[len + 1] = L'\0';
+  UINT driveType = GetDriveTypeW(dirPath);
+  remote = driveType == DRIVE_REMOTE;
+  return true;
+}
+
 nsresult
 nsLocalFile::CopySingleFile(nsIFile *sourceFile, nsIFile *destParent,
                             const nsAString &newName, 
@@ -1410,13 +1448,21 @@ nsLocalFile::CopySingleFile(nsIFile *sourceFile, nsIFile *destParent,
     
     
     
+    
+    
+    
     int copyOK;
     DWORD dwVersion = GetVersion();
     DWORD dwMajorVersion = (DWORD)(LOBYTE(LOWORD(dwVersion)));
     DWORD dwCopyFlags = 0;
-    
-    if (dwMajorVersion > 5)
-       dwCopyFlags = COPY_FILE_NO_BUFFERING;
+    if (dwMajorVersion > 5) {
+        bool path1Remote, path2Remote;
+        if (!IsRemoteFilePath(filePath.get(), path1Remote) || 
+            !IsRemoteFilePath(destPath.get(), path2Remote) ||
+            path1Remote || path2Remote) {
+            dwCopyFlags = COPY_FILE_NO_BUFFERING;
+        }
+    }
     
     if (!move)
         copyOK = ::CopyFileExW(filePath.get(), destPath.get(), NULL, NULL, NULL, dwCopyFlags);
@@ -1434,8 +1480,7 @@ nsLocalFile::CopySingleFile(nsIFile *sourceFile, nsIFile *destParent,
         else
         {
             copyOK = ::MoveFileExW(filePath.get(), destPath.get(),
-                                   MOVEFILE_REPLACE_EXISTING |
-                                   MOVEFILE_WRITE_THROUGH);
+                                   MOVEFILE_REPLACE_EXISTING);
             
             
             

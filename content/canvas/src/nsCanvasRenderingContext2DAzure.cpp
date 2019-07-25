@@ -3026,6 +3026,11 @@ struct NS_STACK_CLASS nsCanvasBidiProcessorAzure : public nsBidiPresUtils::BidiP
       RefPtr<ScaledFont> scaledFont =
         gfxPlatform::GetPlatform()->GetScaledFontForFont(font);
 
+      if (!scaledFont) {
+        
+        return;
+      }
+
       GlyphBuffer buffer;
 
       std::vector<Glyph> glyphBuf;

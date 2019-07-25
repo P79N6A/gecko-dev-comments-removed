@@ -608,7 +608,29 @@ nsIMM32Handler::OnIMEEndComposition(nsWindow* aWindow)
   
   
   
+  MSG compositionMsg;
+  if (::PeekMessageW(&compositionMsg, aWindow->GetWindowHandle(),
+                     WM_IME_STARTCOMPOSITION, WM_IME_COMPOSITION,
+                     PM_NOREMOVE) &&
+      compositionMsg.message == WM_IME_COMPOSITION &&
+      IS_COMMITTING_LPARAM(compositionMsg.lParam)) {
+    PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
+      ("IMM32: OnIMEEndComposition, WM_IME_ENDCOMPOSITION is followed by "
+       "WM_IME_COMPOSITION, ignoring the message..."));
+    return ShouldDrawCompositionStringOurselves();
+  }
+
   
+  
+  
+  
+  
+  
+  PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
+    ("IMM32: OnIMEEndComposition, mCompositionString=\"%s\"%s",
+     NS_ConvertUTF16toUTF8(mCompositionString).get(),
+     mCompositionString.IsEmpty() ? "" : ", but canceling it..."));
+
   mCompositionString.Truncate();
 
   nsIMEContext IMEContext(aWindow->GetWindowHandle());

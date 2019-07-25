@@ -190,7 +190,7 @@ nsXULSliderAccessible::SetCurrentValue(double aValue)
 }
 
 bool
-nsXULSliderAccessible::GetAllowsAnonChildAccessibles()
+nsXULSliderAccessible::CanHaveAnonChildren()
 {
   
   return false;
