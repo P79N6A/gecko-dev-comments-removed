@@ -2613,14 +2613,16 @@ js_Date(JSContext *cx, unsigned argc, Value *vp)
     
     double d;
     if (args.length() == 0) {
+        
         d = NowAsMillis();
     } else if (args.length() == 1) {
-        if (!args[0].isString()) {
-            
-            if (!ToNumber(cx, args[0], &d))
-                return false;
-            d = TimeClip(d);
-        } else {
+        
+
+        
+        if (!ToPrimitive(cx, &args[0]))
+            return false;
+
+        if (args[0].isString()) {
             
             JSString *str = ToString(cx, args[0]);
             if (!str)
@@ -2634,6 +2636,11 @@ js_Date(JSContext *cx, unsigned argc, Value *vp)
                 d = js_NaN;
             else
                 d = TimeClip(d);
+        } else {
+            
+            if (!ToNumber(cx, args[0], &d))
+                return false;
+            d = TimeClip(d);
         }
     } else {
         double msec_time;
