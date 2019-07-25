@@ -946,6 +946,9 @@ protected:
 private:
   
   NSString* mIMECompositionString;
+  
+  
+  nsString mLastDispatchedCompositionString;
 
   NSRange mMarkedRange;
 
