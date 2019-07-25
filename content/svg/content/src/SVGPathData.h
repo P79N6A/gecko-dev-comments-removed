@@ -259,18 +259,9 @@ public:
 
 
 
-  nsresult CopyFrom(const SVGPathData& rhs) {
-    return SVGPathData::CopyFrom(rhs);
-  }
-  const float& operator[](PRUint32 aIndex) const {
-    return SVGPathData::operator[](aIndex);
-  }
-  float& operator[](PRUint32 aIndex) {
-    return SVGPathData::operator[](aIndex);
-  }
-  PRBool SetLength(PRUint32 aNumberOfItems) {
-    return SVGPathData::SetLength(aNumberOfItems);
-  }
+  using SVGPathData::CopyFrom;
+  using SVGPathData::operator[];
+  using SVGPathData::SetLength;
 
 private:
   
