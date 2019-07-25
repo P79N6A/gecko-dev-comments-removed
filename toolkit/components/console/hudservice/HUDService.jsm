@@ -536,6 +536,44 @@ HUD_SERVICE.prototype =
 
 
 
+
+
+
+
+
+  adjustVisibilityForNewlyInsertedNode:
+  function HS_adjustVisibilityForNewlyInsertedNode(aHUDId, aNewNode) {
+    
+    let searchString = this.getFilterStringByHUDId(aHUDId);
+    let xpath = ".[" + this.buildXPathFunctionForString(searchString) + "]";
+    let doc = aNewNode.ownerDocument;
+    let result = doc.evaluate(xpath, aNewNode, null,
+      Ci.nsIDOMXPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
+    if (result.snapshotLength === 0) {
+      
+      aNewNode.classList.add("hud-filtered-by-string");
+    }
+
+    
+    let classes = aNewNode.classList;
+    let msgType = null;
+    for (let i = 0; i < classes.length; i++) {
+      let klass = classes.item(i);
+      if (klass !== "hud-msg-node" && klass.indexOf("hud-") === 0) {
+        msgType = klass.substring(4);   
+        break;
+      }
+    }
+    if (msgType !== null && !this.getFilterState(aHUDId, msgType)) {
+      
+      aNewNode.classList.add("hud-filtered-by-type");
+    }
+  },
+
+  
+
+
+
   hudWeakReferences: {},
 
   
@@ -758,7 +796,7 @@ HUD_SERVICE.prototype =
   getFilterStringByHUDId: function HS_getFilterStringbyHUDId(aHUDId) {
     var hud = this.getHeadsUpDisplay(aHUDId);
     var filterStr = hud.querySelectorAll(".hud-filter-box")[0].value;
-    return filterStr || null;
+    return filterStr;
   },
 
   
@@ -1794,7 +1832,7 @@ HeadsUpDisplay.prototype = {
     var context = Cu.getWeakReference(aWindow);
 
     if (appName() == "FIREFOX") {
-      let outputCSSClassOverride = "hud-msg-node hud-console";
+      let outputCSSClassOverride = "hud-msg-node";
       let mixin = new JSTermFirefoxMixin(context, aParentNode, aExistingConsole, outputCSSClassOverride);
       this.jsterm = new JSTerm(context, aParentNode, mixin);
     }
@@ -1891,6 +1929,16 @@ HeadsUpDisplay.prototype = {
     this.outputNode.setAttribute("flex", "1");
     this.outputNode.setAttribute("orient", "vertical");
     this.outputNode.setAttribute("context", this.hudId + "-output-contextmenu");
+
+    this.outputNode.addEventListener("DOMNodeInserted", function(ev) {
+      
+      
+      
+      
+      if (ev.target.classList.contains("hud-msg-node")) {
+        HUDService.adjustVisibilityForNewlyInsertedNode(self.hudId, ev.target);
+      }
+    }, false);
 
     this.filterSpacer = this.makeXULNode("spacer");
     this.filterSpacer.setAttribute("flex", "1");
