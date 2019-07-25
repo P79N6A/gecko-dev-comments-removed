@@ -617,7 +617,14 @@ public:
   
   
   
-  static bool IsSitePermAllow(nsIURI* aURI, const char* aType);
+  
+  static bool IsSitePermAllow(nsIPrincipal* aPrincipal, const char* aType);
+
+  
+  
+  
+  
+  static bool IsSitePermDeny(nsIPrincipal* aPrincipal, const char* aType);
 
   static nsILineBreaker* LineBreaker()
   {
