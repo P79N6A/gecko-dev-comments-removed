@@ -115,6 +115,7 @@ function inspectorUIOpen2()
   InspectorUI.toggleInspection();
   ok(!InspectorUI.inspecting, "Inspector is not highlighting");
 
+
   
   executeSoon(function() {
     Services.obs.addObserver(inspectorFocusTab1,
@@ -188,10 +189,11 @@ function inspectorFocusTab2()
   is(InspectorUI.store.length, 2, "Inspector.store.length is 2");
   isnot(InspectorUI.selection, div, "selection does not match the div element");
 
-  
-  synthesizeKeyFromKeyTag("key_inspect");
 
   executeSoon(function() {
+    
+    synthesizeKeyFromKeyTag("key_inspect");
+
     ok(InspectorUI.inspecting, "Inspector is highlighting");
     InspectorUI.toggleInspection();
 
