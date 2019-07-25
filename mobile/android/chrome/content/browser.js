@@ -3575,11 +3575,9 @@ var FindHelper = {
   },
 
   findClosed: function() {
-    if (!this._findInProgress) {
-      
-      Cu.reportError("Warning: findClosed() called while _findInProgress is false!");
-      
-    }
+    
+    if (!this._findInProgress)
+      return;
 
     this._find.collapseSelection();
     this._find = null;
