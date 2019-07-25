@@ -321,7 +321,6 @@ pref("places.frecency.unvisitedTypedBonus", 200);
 
 pref("gfx.color_management.mode", 0);
 
-#ifdef ANDROID
 
 pref("gfx.displayport.strategy", 1);
 
@@ -340,7 +339,6 @@ pref("gfx.displayport.strategy_vb.danger_x_incr", -1);
 pref("gfx.displayport.strategy_vb.danger_y_incr", -1); 
 
 pref("gfx.displayport.strategy_pb.threshold", -1); 
-#endif
 
 
 pref("dom.disable_window_move_resize", true);
@@ -410,13 +408,8 @@ pref("browser.ui.touch.bottom", 16);
 pref("browser.ui.touch.weight.visited", 120); 
 
 
-#ifdef ANDROID
 pref("plugin.disable", false);
 pref("dom.ipc.plugins.enabled", false);
-#else
-pref("plugin.disable", true);
-pref("dom.ipc.plugins.enabled", true);
-#endif
 
 pref("plugins.click_to_play", true);
 
@@ -545,12 +538,7 @@ pref("services.sync.prefs.sync.signon.rememberSignons", true);
 pref("ui.dragThresholdX", 25);
 pref("ui.dragThresholdY", 25);
 
-#ifdef ANDROID
 pref("layers.acceleration.disabled", false);
-#else
-pref("layers.acceleration.disabled", true);
-#endif
-
 pref("layers.offmainthreadcomposition.enabled", true);
 
 pref("notification.feature.enabled", true);
