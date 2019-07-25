@@ -47,6 +47,7 @@
 
 
 
+
 let EXPORTED_SYMBOLS = ["Point", "Rect", "Range", "Subscribable", "Utils"];
 
 
@@ -175,11 +176,17 @@ Rect.prototype = {
   
   
   
-  contains: function Rect_contains(rect) {
-    return (rect.left >= this.left &&
-            rect.right <= this.right &&
-            rect.top >= this.top &&
-            rect.bottom <= this.bottom);
+  contains: function Rect_contains(a) {
+    if (Utils.isPoint(a))
+      return (a.x > this.left &&
+              a.x < this.right &&
+              a.y > this.top &&
+              a.y < this.bottom);
+
+    return (a.left >= this.left &&
+            a.right <= this.right &&
+            a.top >= this.top &&
+            a.bottom <= this.bottom);
   },
 
   

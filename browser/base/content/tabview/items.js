@@ -57,6 +57,7 @@
 
 
 
+
 function Item() {
   
   
@@ -169,8 +170,10 @@ Item.prototype = {
     this.dragOptions = {
       cancelClass: 'close stackExpander',
       start: function(e, ui) {
-        if (this.isAGroupItem)
+        if (this.isAGroupItem) {
           GroupItems.setActiveGroupItem(this);
+          this._unfreezeItemSize();
+        }
         
         else if (this.parent != null)
           this.parent._dropSpaceActive = true;
@@ -599,6 +602,35 @@ Item.prototype = {
       var dropTarget;
 
       
+      let determineBestDropTarget = function (e, box) {
+        
+        var best = {
+          dropTarget: null,
+          score: 0
+        };
+
+        droppables.forEach(function(droppable) {
+          var intersection = box.intersection(droppable.bounds);
+          if (intersection && intersection.area() > best.score) {
+            var possibleDropTarget = droppable.item;
+            var accept = true;
+            if (possibleDropTarget != dropTarget) {
+              var dropOptions = possibleDropTarget.dropOptions;
+              if (dropOptions && typeof dropOptions.accept == "function")
+                accept = dropOptions.accept.apply(possibleDropTarget, [self]);
+            }
+
+            if (accept) {
+              best.dropTarget = possibleDropTarget;
+              best.score = intersection.area();
+            }
+          }
+        });
+
+        return best.dropTarget;
+      }
+
+      
       var handleMouseMove = function(e) {
         
         drag.lastMoveTime = Date.now();
@@ -624,31 +656,9 @@ Item.prototype = {
           if (typeof self.dragOptions.drag == "function")
             self.dragOptions.drag.apply(self, [e]);
 
-          
-          var best = {
-            dropTarget: null,
-            score: 0
-          };
+          let bestDropTarget = determineBestDropTarget(e, box);
 
-          droppables.forEach(function(droppable) {
-            var intersection = box.intersection(droppable.bounds);
-            if (intersection && intersection.area() > best.score) {
-              var possibleDropTarget = droppable.item;
-              var accept = true;
-              if (possibleDropTarget != dropTarget) {
-                var dropOptions = possibleDropTarget.dropOptions;
-                if (dropOptions && typeof dropOptions.accept == "function")
-                  accept = dropOptions.accept.apply(possibleDropTarget, [self]);
-              }
-
-              if (accept) {
-                best.dropTarget = possibleDropTarget;
-                best.score = intersection.area();
-              }
-            }
-          });
-
-          if (best.dropTarget != dropTarget) {
+          if (bestDropTarget != dropTarget) {
             var dropOptions;
             if (dropTarget) {
               dropOptions = dropTarget.dropOptions;
@@ -656,7 +666,7 @@ Item.prototype = {
                 dropOptions.out.apply(dropTarget, [e]);
             }
 
-            dropTarget = best.dropTarget;
+            dropTarget = bestDropTarget;
 
             if (dropTarget) {
               dropOptions = dropTarget.dropOptions;
@@ -710,10 +720,10 @@ Item.prototype = {
         }
 
         startMouse = new Point(e.pageX, e.pageY);
-        startPos = self.getBounds().position();
+        let bounds = self.getBounds();
+        startPos = bounds.position();
         startEvent = e;
         startSent = false;
-        dropTarget = null;
 
         droppables = [];
         iQ('.iq-droppable').each(function(elem) {
@@ -725,6 +735,8 @@ Item.prototype = {
             });
           }
         });
+
+        dropTarget = determineBestDropTarget(e, bounds);
 
         iQ(gWindow)
           .mousemove(handleMouseMove)
