@@ -17,6 +17,17 @@ bool IsLoopIndex(const TIntermSymbol* symbol, const TLoopStack& stack) {
     return false;
 }
 
+void MarkLoopForUnroll(const TIntermSymbol* symbol, TLoopStack& stack) {
+    for (TLoopStack::iterator i = stack.begin(); i != stack.end(); ++i) {
+        if (i->index.id == symbol->getId()) {
+            ASSERT(i->loop != NULL);
+            i->loop->setUnrollFlag(true);
+            return;
+        }
+    }
+    UNREACHABLE();
+}
+
 
 
 
@@ -54,6 +65,48 @@ private:
     bool mValid;
     const TLoopStack& mLoopStack;
 };
+
+
+
+
+class ValidateLoopIndexExpr : public TIntermTraverser {
+public:
+    ValidateLoopIndexExpr(TLoopStack& stack)
+        : mUsesFloatLoopIndex(false),
+          mUsesIntLoopIndex(false),
+          mLoopStack(stack) {}
+
+    bool usesFloatLoopIndex() const { return mUsesFloatLoopIndex; }
+    bool usesIntLoopIndex() const { return mUsesIntLoopIndex; }
+
+    virtual void visitSymbol(TIntermSymbol* symbol) {
+        if (IsLoopIndex(symbol, mLoopStack)) {
+            switch (symbol->getBasicType()) {
+              case EbtFloat:
+                mUsesFloatLoopIndex = true;
+                break;
+              case EbtInt:
+                mUsesIntLoopIndex = true;
+                MarkLoopForUnroll(symbol, mLoopStack);
+                break;
+              default:
+                UNREACHABLE();
+            }
+        }
+    }
+    virtual void visitConstantUnion(TIntermConstantUnion*) {}
+    virtual bool visitBinary(Visit, TIntermBinary*) { return true; }
+    virtual bool visitUnary(Visit, TIntermUnary*) { return true; }
+    virtual bool visitSelection(Visit, TIntermSelection*) { return true; }
+    virtual bool visitAggregate(Visit, TIntermAggregate*) { return true; }
+    virtual bool visitLoop(Visit, TIntermLoop*) { return true; }
+    virtual bool visitBranch(Visit, TIntermBranch*) { return true; }
+
+private:
+    bool mUsesFloatLoopIndex;
+    bool mUsesIntLoopIndex;
+    TLoopStack& mLoopStack;
+};
 }  
 
 ValidateLimitations::ValidateLimitations(ShShaderType shaderType,
@@ -80,7 +133,28 @@ bool ValidateLimitations::visitBinary(Visit, TIntermBinary* node)
     
     switch (node->getOp()) {
       case EOpIndexDirect:
+        validateIndexing(node);
+        break;
       case EOpIndexIndirect:
+#if defined(__APPLE__)
+        
+        
+        
+        
+        if ((node->getLeft() != NULL) && (node->getRight() != NULL) &&
+            (node->getLeft()->getAsSymbolNode())) {
+            TIntermSymbol* symbol = node->getLeft()->getAsSymbolNode();
+            if (IsSampler(symbol->getBasicType()) && symbol->isArray()) {
+                ValidateLoopIndexExpr validate(mLoopStack);
+                node->getRight()->traverse(&validate);
+                if (validate.usesFloatLoopIndex()) {
+                    error(node->getLine(),
+                          "sampler array index is float loop index",
+                          "for");
+                }
+            }
+        }
+#endif
         validateIndexing(node);
         break;
       default: break;
@@ -120,6 +194,7 @@ bool ValidateLimitations::visitLoop(Visit, TIntermLoop* node)
 
     TLoopInfo info;
     memset(&info, 0, sizeof(TLoopInfo));
+    info.loop = node;
     if (!validateForLoopHeader(node, &info))
         return false;
 

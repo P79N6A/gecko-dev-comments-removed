@@ -195,7 +195,10 @@ const ConstantUnion* TOutputGLSL::writeConstantUnion(const TType& type,
 void TOutputGLSL::visitSymbol(TIntermSymbol* node)
 {
     TInfoSinkBase& out = objSink();
-    out << node->getSymbol();
+    if (mLoopUnroll.NeedsToReplaceSymbolWithValue(node))
+        out << mLoopUnroll.GetLoopIndexValue(node);
+    else
+        out << node->getSymbol();
 
     if (mDeclaringVariables && node->getType().isArray())
         out << arrayBrackets(node->getType());
@@ -615,18 +618,20 @@ bool TOutputGLSL::visitLoop(Visit visit, TIntermLoop* node)
     TLoopType loopType = node->getType();
     if (loopType == ELoopFor)  
     {
-        out << "for (";
-        if (node->getInit())
-            node->getInit()->traverse(this);
-        out << "; ";
+        if (!node->getUnrollFlag()) {
+            out << "for (";
+            if (node->getInit())
+                node->getInit()->traverse(this);
+            out << "; ";
 
-        if (node->getCondition())
-            node->getCondition()->traverse(this);
-        out << "; ";
+            if (node->getCondition())
+                node->getCondition()->traverse(this);
+            out << "; ";
 
-        if (node->getExpression())
-            node->getExpression()->traverse(this);
-        out << ")\n";
+            if (node->getExpression())
+                node->getExpression()->traverse(this);
+            out << ")\n";
+        }
     }
     else if (loopType == ELoopWhile)  
     {
@@ -642,7 +647,22 @@ bool TOutputGLSL::visitLoop(Visit visit, TIntermLoop* node)
     }
 
     
-    visitCodeBlock(node->getBody());
+    if (node->getUnrollFlag())
+    {
+        TLoopIndexInfo indexInfo;
+        mLoopUnroll.FillLoopIndexInfo(node, indexInfo);
+        mLoopUnroll.Push(indexInfo);
+        while (mLoopUnroll.SatisfiesLoopCondition())
+        {
+            visitCodeBlock(node->getBody());
+            mLoopUnroll.Step();
+        }
+        mLoopUnroll.Pop();
+    }
+    else
+    {
+        visitCodeBlock(node->getBody());
+    }
 
     
     if (loopType == ELoopDoWhile)  

@@ -33,8 +33,11 @@ OutputHLSL::OutputHLSL(TParseContext &context) : TIntermTraverser(true, true, tr
     mUsesTexture2D_bias = false;
     mUsesTexture2DProj = false;
     mUsesTexture2DProj_bias = false;
+    mUsesTexture2DProjLod = false;
+    mUsesTexture2DLod = false;
     mUsesTextureCube = false;
     mUsesTextureCube_bias = false;
+    mUsesTextureCubeLod = false;
     mUsesDepthRange = false;
     mUsesFragCoord = false;
     mUsesPointCoord = false;
@@ -345,6 +348,84 @@ void OutputHLSL::header()
                "\n";
         out <<  uniforms;
         out << "\n";
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        if (mUsesTexture2D)
+        {
+            out << "float4 gl_texture2D(sampler2D s, float2 t)\n"
+                   "{\n"
+                   "    return tex2Dlod(s, float4(t.x, 1 - t.y, 0, 0));\n"
+                   "}\n"
+                   "\n";
+        }
+
+        if (mUsesTexture2DLod)
+        {
+            out << "float4 gl_texture2DLod(sampler2D s, float2 t, float lod)\n"
+                   "{\n"
+                   "    return tex2Dlod(s, float4(t.x, 1 - t.y, 0, lod));\n"
+                   "}\n"
+                   "\n";
+        }
+
+        if (mUsesTexture2DProj)
+        {
+            out << "float4 gl_texture2DProj(sampler2D s, float3 t)\n"
+                   "{\n"
+                   "    return tex2Dlod(s, float4(t.x / t.z, 1 - t.y / t.z, 0, 0));\n"
+                   "}\n"
+                   "\n"
+                   "float4 gl_texture2DProj(sampler2D s, float4 t)\n"
+                   "{\n"
+                   "    return tex2Dlod(s, float4(t.x / t.w, 1 - t.y / t.w, 0, 0));\n"
+                   "}\n"
+                   "\n";
+        }
+
+        if (mUsesTexture2DProjLod)
+        {
+            out << "float4 gl_texture2DProjLod(sampler2D s, float3 t, float lod)\n"
+                   "{\n"
+                   "    return tex2Dlod(s, float4(t.x / t.z, 1 - t.y / t.z, 0, lod));\n"
+                   "}\n"
+                   "\n"
+                   "float4 gl_texture2DProjLod(sampler2D s, float4 t, float lod)\n"
+                   "{\n"
+                   "    return tex2Dlod(s, float4(t.x / t.w, 1 - t.y / t.w, 0, lod));\n"
+                   "}\n"
+                   "\n";
+        }
+
+        if (mUsesTextureCube)
+        {
+            out << "float4 gl_textureCube(samplerCUBE s, float3 t)\n"
+                   "{\n"
+                   "    return texCUBElod(s, float4(t.x, -t.y, t.z, 0));\n"
+                   "}\n"
+                   "\n";
+        }
+
+        if (mUsesTextureCubeLod)
+        {
+            out << "float4 gl_textureCubeLod(samplerCUBE s, float3 t, float lod)\n"
+                   "{\n"
+                   "    return texCUBElod(s, float4(t.x, -t.y, t.z, lod));\n"
+                   "}\n"
+                   "\n";
+        }
     }
 
     if (mUsesFragCoord)
@@ -1247,15 +1328,33 @@ bool OutputHLSL::visitAggregate(Visit visit, TIntermAggregate *node)
                     }
                     else if (name == "texture2DLod")
                     {
-                        UNIMPLEMENTED();   
+                        if (node->getSequence().size() == 3)
+                        {
+                            mUsesTexture2DLod = true;
+                        }
+                        else UNREACHABLE();
+
+                        out << "gl_texture2DLod(";
                     }
                     else if (name == "texture2DProjLod")
                     {
-                        UNIMPLEMENTED();   
+                        if (node->getSequence().size() == 3)
+                        {
+                            mUsesTexture2DProjLod = true;
+                        }
+                        else UNREACHABLE();
+
+                        out << "gl_texture2DProjLod(";
                     }
                     else if (name == "textureCubeLod")
                     {
-                        UNIMPLEMENTED();   
+                        if (node->getSequence().size() == 3)
+                        {
+                            mUsesTextureCubeLod = true;
+                        }
+                        else UNREACHABLE();
+
+                        out << "gl_textureCubeLod(";
                     }
                     else UNREACHABLE();
                 }
@@ -1534,9 +1633,9 @@ bool OutputHLSL::visitBranch(Visit visit, TIntermBranch *node)
 
     switch (node->getFlowOp())
     {
-      case EOpKill:     outputTriplet(visit, "discard", "", "");  break;
-      case EOpBreak:    outputTriplet(visit, "break", "", "");    break;
-      case EOpContinue: outputTriplet(visit, "continue", "", ""); break;
+      case EOpKill:     outputTriplet(visit, "discard;\n", "", "");  break;
+      case EOpBreak:    outputTriplet(visit, "break;\n", "", "");    break;
+      case EOpContinue: outputTriplet(visit, "continue;\n", "", ""); break;
       case EOpReturn:
         if (visit == PreVisit)
         {
@@ -1706,7 +1805,7 @@ bool OutputHLSL::handleExcessiveLoop(TIntermLoop *node)
 
         if (comparator == EOpLessThan)
         {
-            int iterations = (limit - initial + 1) / increment;
+            int iterations = (limit - initial) / increment;
 
             if (iterations <= 255)
             {
@@ -1715,8 +1814,8 @@ bool OutputHLSL::handleExcessiveLoop(TIntermLoop *node)
 
             while (iterations > 0)
             {
-                int remainder = (limit - initial + 1) % increment;
-                int clampedLimit = initial + increment * std::min(255, iterations) - 1 - remainder;
+                int remainder = (limit - initial) % increment;
+                int clampedLimit = initial + increment * std::min(255, iterations);
 
                 
 

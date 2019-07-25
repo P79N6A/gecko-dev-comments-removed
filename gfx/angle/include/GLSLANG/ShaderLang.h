@@ -17,7 +17,7 @@ extern "C" {
 
 
 
-#define SH_VERSION 103
+#define SH_VERSION 104
 
 
 
@@ -62,18 +62,20 @@ typedef enum {
   SH_ACTIVE_UNIFORMS             =  0x8B86,
   SH_ACTIVE_UNIFORM_MAX_LENGTH   =  0x8B87,
   SH_ACTIVE_ATTRIBUTES           =  0x8B89,
-  SH_ACTIVE_ATTRIBUTE_MAX_LENGTH =  0x8B8A
+  SH_ACTIVE_ATTRIBUTE_MAX_LENGTH =  0x8B8A,
+  SH_MAPPED_NAME_MAX_LENGTH      =  0x8B8B
 } ShShaderInfo;
 
 
 typedef enum {
-  SH_VALIDATE               = 0,
-  SH_VALIDATE_LOOP_INDEXING = 0x0001,
-  SH_INTERMEDIATE_TREE      = 0x0002,
-  SH_OBJECT_CODE            = 0x0004,
-  SH_ATTRIBUTES_UNIFORMS    = 0x0008,
-  SH_LINE_DIRECTIVES        = 0x0010,
-  SH_SOURCE_PATH            = 0x0200
+  SH_VALIDATE                = 0,
+  SH_VALIDATE_LOOP_INDEXING  = 0x0001,
+  SH_INTERMEDIATE_TREE       = 0x0002,
+  SH_OBJECT_CODE             = 0x0004,
+  SH_ATTRIBUTES_UNIFORMS     = 0x0008,
+  SH_LINE_DIRECTIVES         = 0x0010,
+  SH_SOURCE_PATH             = 0x0020,
+  SH_MAP_LONG_VARIABLE_NAMES = 0x0040
 } ShCompileOptions;
 
 
@@ -187,6 +189,8 @@ int ShCompile(
 
 
 
+
+
 void ShGetInfo(const ShHandle handle, ShShaderInfo pname, int* params);
 
 
@@ -223,12 +227,23 @@ void ShGetObjectCode(const ShHandle handle, char* objCode);
 
 
 
+
+
+
+
+
 void ShGetActiveAttrib(const ShHandle handle,
                        int index,
                        int* length,
                        int* size,
                        ShDataType* type,
-                       char* name);
+                       char* name,
+                       char* mappedName);
+
+
+
+
+
 
 
 
@@ -249,7 +264,8 @@ void ShGetActiveUniform(const ShHandle handle,
                         int* length,
                         int* size,
                         ShDataType* type,
-                        char* name);
+                        char* name,
+                        char* mappedName);
 
 #ifdef __cplusplus
 }

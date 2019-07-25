@@ -90,12 +90,8 @@ CanvasLayerD3D10::Initialize(const Data& aData)
   HANDLE shareHandle = mGLContext ? mGLContext->GetD3DShareHandle() : nsnull;
   if (shareHandle) {
     HRESULT hr = device()->OpenSharedResource(shareHandle, __uuidof(ID3D10Texture2D), getter_AddRefs(mTexture));
-    if (SUCCEEDED(hr)) {
+    if (SUCCEEDED(hr))
       mUsingSharedTexture = PR_TRUE;
-      
-      
-      mNeedsYFlip = PR_FALSE;
-    }
   }
 
   if (!mUsingSharedTexture) {
