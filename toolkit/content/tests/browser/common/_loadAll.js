@@ -47,8 +47,7 @@ const Cm = Components.manager;
 
 
 void(function (scriptScope) {
-  var rootDir = getRootDirectory(gTestPath);
-  const kBaseUrl = rootDir + "common/";
+  const kBaseUrl = "chrome://mochitests/content/browser/toolkit/content/tests/browser/common/";
 
   
   var scriptNames = [

@@ -49,10 +49,9 @@ function test() {
 
   
   
-  var rootDir = getRootDirectory(gTestPath);
   Components.classes["@mozilla.org/moz/jssubscript-loader;1"].
    getService(Components.interfaces.mozIJSSubScriptLoader).loadSubScript(
-   rootDir + "common/_loadAll.js",
+   "chrome://mochitests/content/browser/toolkit/content/tests/browser/common/_loadAll.js",
    this);
 
   
