@@ -176,8 +176,6 @@ exports.RemoteExperimentLoader.prototype = {
   _init: function(logRepo, fileGetterFunction) {
     this._logger = logRepo.getLogger("TestPilot.Loader");
     this._expLogger = logRepo.getLogger("TestPilot.RemoteCode");
-    this._studyResults = [];
-    this._legacyStudies = [];
     let prefs = require("preferences-service");
     this._baseUrl = prefs.get(BASE_URL_PREF, "");
     if (fileGetterFunction != undefined) {
@@ -187,7 +185,6 @@ exports.RemoteExperimentLoader.prototype = {
     }
     this._logger.trace("About to instantiate jar store.");
     this._jarStore = new JarStore();
-    this._experimentFileNames = [];
     let self = this;
     this._logger.trace("About to instantiate cuddlefish loader.");
     this._refreshLoader();
@@ -217,6 +214,11 @@ exports.RemoteExperimentLoader.prototype = {
          [self._jarStore, Cuddlefish.parentLoader.fs]),
        console: this._expLogger
       });
+
+    
+    this._studyResults = [];
+    this._legacyStudies = [];
+    this._experimentFileNames = [];
   },
 
   getLocalizedStudyInfo: function(studiesIndex) {
@@ -260,12 +262,34 @@ exports.RemoteExperimentLoader.prototype = {
     this._studyResults = data.results;
     this._legacyStudies = data.legacy;
 
+
     
+
+
+
+    if (data.maintain_experiments) {
+      this._logger.trace(data.maintain_experiments.length + " files to maintain.\n");
+      for each (let studyFile in data.maintain_experiments) {
+        this._experimentFileNames.push(studyFile);
+      }
+    }
+
+    
+
+
 
 
     let jarFiles = this.getLocalizedStudyInfo(data.new_experiments);
     let numFilesToDload = jarFiles.length;
+    this._logger.trace(numFilesToDload + " files to download.\n");
     let self = this;
+
+    if (numFilesToDload == 0) {
+      this._logger.trace("Num files to download is 0, bailing\n");
+      
+      callback(false);
+      return;
+    }
 
     for each (let j in jarFiles) {
       let filename = j.jarfile;
@@ -309,6 +333,13 @@ exports.RemoteExperimentLoader.prototype = {
     
     this._studyResults = data.results;
     this._legacyStudies = data.legacy;
+
+    
+    if (data.maintain_experiments) {
+      for each (let studyFile in data.maintain_experiments) {
+        this._experimentFileNames.push(studyFile);
+      }
+    }
 
     
     let jarFiles = this.getLocalizedStudyInfo(data.new_experiments);
@@ -447,9 +478,11 @@ exports.RemoteExperimentLoader.prototype = {
     let url = resolveUrl(self._baseUrl, indexFileName);
     self._fileGetter(url, function onDone(data) {
       if (data) {
+        self._logger.trace("Index file updated on server.\n");
         self._executeFreshIndexFile(data, callback);
         
         self._cacheIndexFile(data);
+        
       } else {
         self._logger.info("Could not download index.json, using cached version.");
         let data = self._loadCachedIndexFile();
@@ -492,7 +525,6 @@ exports.RemoteExperimentLoader.prototype = {
     return this._legacyStudies;
   }
 };
-
 
 
 
