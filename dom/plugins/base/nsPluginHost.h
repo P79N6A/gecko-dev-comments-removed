@@ -275,9 +275,9 @@ private:
                            bool aCreatePluginList,
                            bool *aPluginsChanged);
 
-  nsresult EnsurePluginLoaded(nsPluginTag* plugin);
+  nsresult EnsurePluginLoaded(nsPluginTag* aPluginTag);
 
-  bool IsRunningPlugin(nsPluginTag * plugin);
+  bool IsRunningPlugin(nsPluginTag * aPluginTag);
 
   
   nsresult WritePluginInfo();
