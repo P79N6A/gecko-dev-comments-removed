@@ -83,6 +83,7 @@
 #include "nsNetCID.h"
 #include "mozilla/storage.h"
 #include "mozilla/FunctionTimer.h"
+#include "mozilla/Util.h" 
 
 using namespace mozilla::net;
 
@@ -1945,7 +1946,7 @@ nsCookieService::CancelAsyncRead(PRBool aPurgeReadSet)
   
   
   mDefaultDBState->readListener->Cancel();
-  nsresult rv = mDefaultDBState->pendingRead->Cancel();
+  mozilla::DebugOnly<nsresult> rv = mDefaultDBState->pendingRead->Cancel();
   NS_ASSERT_SUCCESS(rv);
 
   mDefaultDBState->stmtReadDomain = nsnull;
