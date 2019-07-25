@@ -170,6 +170,13 @@ public:
 
     size_t available() const { return (m_pools.length() > 1) ? 0 : m_end - m_freePtr; }
 
+    
+    bool m_destroy;
+
+    
+    
+    size_t m_gcNumber;
+
 private:
     
     static Allocation systemAlloc(size_t n);
@@ -393,7 +400,7 @@ private:
 
 
 
-inline ExecutablePool::ExecutablePool(size_t n) : m_refCount(1)
+inline ExecutablePool::ExecutablePool(size_t n) : m_refCount(1), m_destroy(false), m_gcNumber(0)
 {
     size_t allocSize = roundUpAllocationSize(n, JIT_ALLOCATOR_PAGE_SIZE);
     if (allocSize == OVERSIZE_ALLOCATION) {

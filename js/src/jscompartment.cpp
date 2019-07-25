@@ -54,7 +54,7 @@ using namespace js;
 using namespace js::gc;
 
 JSCompartment::JSCompartment(JSRuntime *rt)
-  : rt(rt), principals(NULL), data(NULL), marked(false), debugMode(rt->debugMode),
+  : rt(rt), principals(NULL), data(NULL), marked(false), active(false), debugMode(rt->debugMode),
     anynameObject(NULL), functionNamespaceObject(NULL)
 {
     JS_INIT_CLIST(&scripts);
@@ -331,8 +331,33 @@ JSCompartment::wrapException(JSContext *cx)
     return true;
 }
 
+
+
+
+
+static inline bool
+ScriptPoolDestroyed(JSContext *cx, mjit::JITScript *jit,
+                    uint32 releaseInterval, uint32 &counter)
+{
+    JSC::ExecutablePool *pool = jit->code.m_executablePool;
+    if (pool->m_gcNumber != cx->runtime->gcNumber) {
+        
+
+
+
+
+        pool->m_destroy = false;
+        pool->m_gcNumber = cx->runtime->gcNumber;
+        if (--counter == 0) {
+            pool->m_destroy = true;
+            counter = releaseInterval;
+        }
+    }
+    return pool->m_destroy;
+}
+
 void
-JSCompartment::sweep(JSContext *cx)
+JSCompartment::sweep(JSContext *cx, uint32 releaseInterval)
 {
     chunk = NULL;
     
@@ -347,12 +372,38 @@ JSCompartment::sweep(JSContext *cx)
     }
 
 #if defined JS_METHODJIT && defined JS_MONOIC
+
+    
+
+
+
+
+
+
+    uint32 counter = 1;
+    bool discardScripts = !active && releaseInterval != 0;
+
     for (JSCList *cursor = scripts.next; cursor != &scripts; cursor = cursor->next) {
         JSScript *script = reinterpret_cast<JSScript *>(cursor);
-        if (script->hasJITCode())
-            mjit::ic::SweepCallICs(script);
+        if (script->hasJITCode()) {
+            mjit::ic::SweepCallICs(script, discardScripts);
+            if (discardScripts) {
+                if (script->jitNormal &&
+                    ScriptPoolDestroyed(cx, script->jitNormal, releaseInterval, counter)) {
+                    mjit::ReleaseScriptCode(cx, script);
+                    continue;
+                }
+                if (script->jitCtor &&
+                    ScriptPoolDestroyed(cx, script->jitCtor, releaseInterval, counter)) {
+                    mjit::ReleaseScriptCode(cx, script);
+                }
+            }
+        }
     }
-#endif
+
+#endif 
+
+    active = false;
 }
 
 void

@@ -492,6 +492,13 @@ js_GCThingIsMarked(void *thing, uint32 color = BLACK)
     return reinterpret_cast<Cell *>(thing)->isMarked(color);
 }
 
+
+
+
+
+
+static const int64 JIT_SCRIPT_EIGHTH_LIFETIME = 120 * 1000 * 1000;
+
 JSBool
 js_InitGC(JSRuntime *rt, uint32 maxbytes)
 {
@@ -538,6 +545,8 @@ js_InitGC(JSRuntime *rt, uint32 maxbytes)
 
 
     rt->setGCLastBytes(8192);
+
+    rt->gcJitReleaseTime = PRMJ_Now() + JIT_SCRIPT_EIGHTH_LIFETIME;
 
     METER(PodZero(&rt->gcStats));
     return true;
@@ -1435,8 +1444,10 @@ js_TraceStackFrame(JSTracer *trc, JSStackFrame *fp)
         MarkObject(trc, fp->callObj(), "call");
     if (fp->hasArgsObj())
         MarkObject(trc, fp->argsObj(), "arguments");
-    if (fp->isScriptFrame())
+    if (fp->isScriptFrame()) {
         js_TraceScript(trc, fp->script());
+        fp->script()->compartment->active = true;
+    }
 
     MarkValue(trc, fp->returnValue(), "rval");
 }
@@ -2029,13 +2040,29 @@ SweepCompartments(JSContext *cx, JSGCInvocationKind gckind)
     
     rt->defaultCompartment->marked = true;
 
+    
+
+
+
+
+    uint32 releaseInterval = 0;
+    int64 now = PRMJ_Now();
+    if (now >= rt->gcJitReleaseTime) {
+        releaseInterval = 8;
+        while (now >= rt->gcJitReleaseTime) {
+            if (--releaseInterval == 1)
+                rt->gcJitReleaseTime = now;
+            rt->gcJitReleaseTime += JIT_SCRIPT_EIGHTH_LIFETIME;
+        }
+    }
+
     while (read < end) {
         JSCompartment *compartment = (*read++);
         if (compartment->marked) {
             compartment->marked = false;
             *write++ = compartment;
             
-            compartment->sweep(cx);
+            compartment->sweep(cx, releaseInterval);
         } else {
             JS_ASSERT(compartment->freeLists.isEmpty());
             if (compartment->arenaListsAreEmpty() || gckind == GC_LAST_CONTEXT) {
@@ -2047,7 +2074,7 @@ SweepCompartments(JSContext *cx, JSGCInvocationKind gckind)
             } else {
                 compartment->marked = false;
                 *write++ = compartment;
-                compartment->sweep(cx);
+                compartment->sweep(cx, releaseInterval);
             }
         }
     }
