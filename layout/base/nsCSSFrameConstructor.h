@@ -303,15 +303,7 @@ public:
 
 private:
 
-  
-  
-  
-  
-  
   friend class mozilla::css::RestyleTracker;
-  void ProcessOneRestyle(Element* aElement,
-                         nsRestyleHint aRestyleHint,
-                         nsChangeHint aChangeHint);
 
   void RestyleForEmptyChange(Element* aContainer);
 
@@ -461,8 +453,6 @@ private:
   void RestyleElement(Element* aElement,
                       nsIFrame*       aPrimaryFrame,
                       nsChangeHint    aMinHint);
-
-  void RestyleLaterSiblings(Element* aElement);
 
   nsresult InitAndRestoreFrame (const nsFrameConstructorState& aState,
                                 nsIContent*                    aContent,

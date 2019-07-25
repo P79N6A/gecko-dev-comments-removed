@@ -102,6 +102,11 @@ public:
   };
 
 private:
+  
+  inline void ProcessOneRestyle(Element* aElement,
+                                nsRestyleHint aRestyleHint,
+                                nsChangeHint aChangeHint);
+  
   typedef nsDataHashtable<nsISupportsHashKey, RestyleData> PendingRestyleTable;
   
   
