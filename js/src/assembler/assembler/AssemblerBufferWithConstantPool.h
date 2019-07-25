@@ -221,7 +221,7 @@ public:
     void flushWithoutBarrier(bool isForced = false)
     {
         
-        if (isForced || 5 * m_numConsts > 3 * maxPoolSize / sizeof(uint32_t))
+        if (isForced || (5 * m_numConsts * sizeof(uint32_t)) > (3 * maxPoolSize))
             flushConstantPool(false);
     }
 

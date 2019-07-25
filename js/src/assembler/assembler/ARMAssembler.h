@@ -253,9 +253,9 @@ namespace JSC {
         };
 
         enum {
-            padForAlign8  = 0x00,
-            padForAlign16 = 0x0000,
-            padForAlign32 = 0xe12fff7f  
+            padForAlign8  = (int)0x00,
+            padForAlign16 = (int)0x0000,
+            padForAlign32 = (int)0xe12fff7f  
         };
 
         typedef enum {
@@ -307,7 +307,7 @@ namespace JSC {
             }
 
             int m_offset : 31;
-            int m_used : 1;
+            bool m_used : 1;
         };
 
         
@@ -1284,7 +1284,7 @@ namespace JSC {
                     
                     if ((type == LSL) && (imm == 0)) {
                         
-                        sprintf(out, rm);
+                        sprintf(out, "%s", rm);
                         return;
                     }
 
