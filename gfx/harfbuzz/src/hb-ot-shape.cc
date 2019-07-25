@@ -193,7 +193,7 @@ hb_mirror_chars (hb_ot_shape_context_t *c)
 {
   hb_unicode_get_mirroring_func_t get_mirroring = c->buffer->unicode->v.get_mirroring;
 
-  if (HB_DIRECTION_IS_FORWARD (c->buffer->props.direction))
+  if (HB_DIRECTION_IS_FORWARD (c->original_direction))
     return;
 
   hb_mask_t rtlm_mask = c->plan->map.get_1_mask (HB_TAG ('r','t','l','m'));
@@ -300,6 +300,8 @@ hb_ot_shape_execute_internal (hb_ot_shape_context_t *c)
 
   hb_set_unicode_props (c); 
 
+  hb_ensure_native_direction (c);
+
   hb_form_clusters (c);
 
   hb_ot_shape_setup_masks (c); 
@@ -308,8 +310,6 @@ hb_ot_shape_execute_internal (hb_ot_shape_context_t *c)
   {
     
     hb_mirror_chars (c);
-
-    hb_ensure_native_direction (c);
 
     hb_substitute_default (c);
 
