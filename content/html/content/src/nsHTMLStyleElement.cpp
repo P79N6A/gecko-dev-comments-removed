@@ -340,9 +340,7 @@ nsHTMLStyleElement::GetStyleSheetInfo(nsAString& aTitle,
   aTitle.Assign(title);
 
   GetAttr(kNameSpaceID_None, nsGkAtoms::media, aMedia);
-  
-  
-  nsContentUtils::ASCIIToLower(aMedia);
+  ToLowerCase(aMedia); 
 
   GetAttr(kNameSpaceID_None, nsGkAtoms::type, aType);
 

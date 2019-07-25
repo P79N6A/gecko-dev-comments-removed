@@ -618,8 +618,7 @@ nsContentSink::ProcessLinkHeader(nsIContent* aElement,
               media = value;
 
               
-              
-              nsContentUtils::ASCIIToLower(media);
+              ToLowerCase(media);
             }
           } else if (attr.LowerCaseEqualsLiteral("anchor")) {
             if (anchor.IsEmpty()) {
@@ -758,7 +757,7 @@ nsContentSink::ProcessMETATag(nsIContent* aContent)
     nsAutoString result;
     aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::content, result);
     if (!result.IsEmpty()) {
-      nsContentUtils::ASCIIToLower(header);
+      ToLowerCase(header);
       nsCOMPtr<nsIAtom> fieldAtom(do_GetAtom(header));
       rv = ProcessHeaderData(fieldAtom, result, aContent); 
     }
@@ -770,7 +769,7 @@ nsContentSink::ProcessMETATag(nsIContent* aContent)
     nsAutoString result;
     aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::content, result);
     if (!result.IsEmpty()) {
-      nsContentUtils::ASCIIToLower(result);
+      ToLowerCase(result);
       mDocument->SetHeaderData(nsGkAtoms::handheldFriendly, result);
     }
   }
