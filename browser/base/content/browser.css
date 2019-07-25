@@ -51,7 +51,7 @@ tabbrowser {
   -moz-transition: opacity .25s;
 }
 
-.tabbrowser-tab[pinned] {
+.tabbrowser-tabs:not([pinnedonly]) > .tabbrowser-tab[pinned] {
   position: fixed;
   display: block; 
 }
