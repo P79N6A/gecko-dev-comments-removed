@@ -48,46 +48,14 @@ namespace js {
 namespace ion {
 
 
-class LMove : public LInstructionHelper<0, 0, 0>
+class LMove : public LInstructionHelper<1, 1, 0>
 {
-    RegisterSet freeRegs;
-
-  public:
-    struct Entry {
-        LAllocation *from;
-        LAllocation *to;
-
-        Entry () { }
-        Entry(LAllocation *from, LAllocation *to)
-          : from(from),
-            to(to)
-        { }
-    };
-
-  private:
-    Vector<Entry, 1, IonAllocPolicy> entries_;
-
   public:
     LIR_HEADER(Move);
 
-    bool add(LAllocation *from, LAllocation *to) {
-        return entries_.append(Entry(from, to));
-    }
-    bool add(const Entry &ent) {
-        return entries_.append(ent);
-    }
-    size_t numEntries() {
-        return entries_.length();
-    }
-    Entry *getEntry(size_t i) {
-        return &entries_[i];
-    }
-    void setEntry(size_t i, Entry ent) {
-        entries_[i] = ent;
-    }
-    void printOperands(FILE *fp);
-    void setFreeRegisters(const RegisterSet &freeRegs) {
-        this->freeRegs = freeRegs;
+    LMove(const LAllocation &from, const LAllocation &to) {
+        setOperand(0, from);
+        setDef(0, LDefinition(LDefinition::POINTER, to));
     }
 };
 

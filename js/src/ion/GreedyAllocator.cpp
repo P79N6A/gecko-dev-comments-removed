@@ -597,12 +597,17 @@ GreedyAllocator::allocateRegistersInBlock(LBlock *block)
             return false;
 
         
-        if (restores)
-            block->insertAfter(ins, restores);
-        if (spills)
-            block->insertAfter(ins, spills);
+        if (restores) {
+            if (!restores->toInstructionsAfter(block, ins, tempSlot))
+                return false;
+        }
+        if (spills) {
+            if (!spills->toInstructionsAfter(block, ins, tempSlot))
+                return false;
+        }
         if (aligns) {
-            block->insertBefore(ins, aligns);
+            if (!aligns->toInstructionsBefore(block, ins, tempSlot))
+                return false;
             ri++;
         }
     }
@@ -688,9 +693,7 @@ GreedyAllocator::prepareBackedge(LBlock *block)
         
         
         
-        LDefinition *def = phi->getDef(0);
-        *def = LDefinition(def->virtualRegister(), def->type(), LDefinition::PRESET);
-        def->setOutput(result);
+        phi->getDef(0)->setOutput(result);
     }
 
     
@@ -724,7 +727,9 @@ GreedyAllocator::mergeBackedgeState(LBlock *header, LBlock *backedge)
 
     if (info->phis.moves) {
         info->phis.moves->setFreeRegisters(info->freeOnExit);
-        backedge->insertBefore(*backedge->instructions().rbegin(), info->phis.moves);
+        LInstruction *ins = *backedge->instructions().rbegin();
+        if (!info->phis.moves->toInstructionsBefore(backedge, ins, tempSlot))
+            return false;
     }
 
     return true;
@@ -802,11 +807,15 @@ GreedyAllocator::mergePhiState(LBlock *block)
     
     JS_ASSERT(!aligns);
     JS_ASSERT(!spills);
-    if (restores)
-        block->insertBefore(*block->instructions().rbegin(), restores);
+    LInstruction *before = *block->instructions().rbegin();
+    if (restores) {
+        if (!restores->toInstructionsBefore(block, before, tempSlot))
+            return false;
+    }
     if (info->phis.moves) {
         info->phis.moves->setFreeRegisters(state.free);
-        block->insertBefore(*block->instructions().rbegin(), info->phis.moves);
+        if (!info->phis.moves->toInstructionsBefore(block, before, tempSlot))
+            return false;
     }
 
     return true;
@@ -843,8 +852,11 @@ GreedyAllocator::mergeAllocationState(LBlock *block)
 
         
         BlockInfo *info = blockInfo(rightblock);
-        if (info->restores.moves)
-            rightblock->insertBefore(*rightblock->begin(), info->restores.moves);
+        if (info->restores.moves) {
+            LInstruction *before = *rightblock->begin();
+            if (!info->restores.moves->toInstructionsBefore(rightblock, before, tempSlot))
+                return false;
+        }
     }
 
     if (mblock->isLoopBackedge()) {
@@ -909,6 +921,8 @@ GreedyAllocator::allocate()
     for (size_t i = 0; i < graph.numBlocks(); i++)
         new (&blocks[i]) BlockInfo();
 
+    if (!stackSlots.allocateDoubleSlot(&tempSlot))
+        return false;
     findDefinitions();
     if (!allocateRegisters())
         return false;

@@ -67,9 +67,9 @@ class StackAssignmentX86
             *index = doubleSlots.popCopy();
             return false;
         }
-        if (ComputeByteAlignment(height_, DOUBLE_ALIGNMENT)) {
+        if (ComputeByteAlignment(height_, DOUBLE_STACK_ALIGNMENT)) {
             normalSlots.append(height_++);
-            JS_ASSERT(!ComputeByteAlignment(height_, DOUBLE_ALIGNMENT));
+            JS_ASSERT(!ComputeByteAlignment(height_, DOUBLE_STACK_ALIGNMENT));
         }
         *index = height_;
         height_ += 2;

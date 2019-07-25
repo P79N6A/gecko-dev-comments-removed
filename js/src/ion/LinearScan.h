@@ -48,6 +48,7 @@
 #include "IonLIR.h"
 #include "IonLowering.h"
 #include "BitSet.h"
+#include "MoveGroup.h"
 
 #include "jsvector.h"
 
@@ -351,17 +352,24 @@ class LinearScanAllocator
     LIRGraph &graph;
 
     
+    BitSet **liveIn;
+    VirtualRegister *vregs;
+    MoveGroup **inputMovesFor;
+    MoveGroup **outputMovesFor;
+    uint32 tempSlot;
+
+    
     StackAssignment stackAssignment;
 
+    
     RegisterSet allowedRegs;
-    VirtualRegister *vregs;
     UnhandledQueue unhandled;
     InlineList<LiveInterval> active;
     InlineList<LiveInterval> inactive;
 #ifdef DEBUG
     InlineList<LiveInterval> handled;
 #endif
-    BitSet **liveIn;
+    RegisterSet freeRegs;
     CodePosition *freeUntilPos;
     CodePosition *nextUsePos;
     LiveInterval *current;
