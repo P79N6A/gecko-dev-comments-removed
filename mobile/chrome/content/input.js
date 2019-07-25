@@ -188,7 +188,7 @@ MouseModule.prototype = {
     
     
     let [targetScrollbox, targetScrollInterface, dragger]
-      = this.getScrollboxFromElement(aEvent.target);
+      = ScrollUtils.getScrollboxFromElement(aEvent.target);
 
     
     if (this._kinetic.isActive() && this._dragger != dragger)
@@ -446,49 +446,17 @@ MouseModule.prototype = {
     this._downUpEvents.splice(0);
   },
 
-  
+  toString: function toString() {
+    return '[MouseModule] {'
+      + '\n\tdragData=' + this._dragData + ', '
+      + 'dragger=' + this._dragger + ', '
+      + '\n\tdownUpEvents=' + this._downUpEvents + ', '
+      + 'length=' + this._downUpEvents.length + ', '
+      + '\n\ttargetScroller=' + this._targetScrollInterface + '}';
+  }
+};
 
-
-
-
-  _defaultDragger: {
-    isDraggable: function isDraggable(target, scroller) {
-      let sX = {}, sY = {};
-      scroller.getScrolledSize(sX, sY);
-      let rect = target.getBoundingClientRect();
-      return { x: sX.value > rect.width, y: sY.value > rect.height };
-    },
-
-    dragStart: function dragStart(cx, cy, target, scroller) {},
-
-    dragStop : function dragStop(dx, dy, scroller) {
-      return this.dragMove(dx, dy, scroller);
-    },
-
-    dragMove : function dragMove(dx, dy, scroller) {
-      if (scroller.getPosition) {
-        try {
-
-          let oldX = {}, oldY = {};
-          scroller.getPosition(oldX, oldY);
-
-          scroller.scrollBy(dx, dy);
-
-          let newX = {}, newY = {};
-          scroller.getPosition(newX, newY);
-
-          return (newX.value != oldX.value) || (newY.value != oldY.value);
-
-        } catch (e) {  }
-      }
-
-      return false;
-    }
-  },
-
-  
-  
-
+var ScrollUtils = {
   
 
 
@@ -530,14 +498,45 @@ MouseModule.prototype = {
     return [scrollbox, qinterface, (scrollbox ? (scrollbox.customDragger || this._defaultDragger) : null)];
   },
 
-  toString: function toString() {
-    return '[MouseModule] {'
-      + '\n\tdragData=' + this._dragData + ', '
-      + 'dragger=' + this._dragger + ', '
-      + '\n\tdownUpEvents=' + this._downUpEvents + ', '
-      + 'length=' + this._downUpEvents.length + ', '
-      + '\n\ttargetScroller=' + this._targetScrollInterface + '}';
-  }
+  
+
+
+
+
+  _defaultDragger: {
+    isDraggable: function isDraggable(target, scroller) {
+      let sX = {}, sY = {};
+      scroller.getScrolledSize(sX, sY);
+      let rect = target.getBoundingClientRect();
+      return { x: sX.value > rect.width, y: sY.value > rect.height };
+    },
+
+    dragStart: function dragStart(cx, cy, target, scroller) {},
+
+    dragStop : function dragStop(dx, dy, scroller) {
+      return this.dragMove(dx, dy, scroller);
+    },
+
+    dragMove : function dragMove(dx, dy, scroller) {
+      if (scroller.getPosition) {
+        try {
+
+          let oldX = {}, oldY = {};
+          scroller.getPosition(oldX, oldY);
+
+          scroller.scrollBy(dx, dy);
+
+          let newX = {}, newY = {};
+          scroller.getPosition(newX, newY);
+
+          return (newX.value != oldX.value) || (newY.value != oldY.value);
+
+        } catch (e) {  }
+      }
+
+      return false;
+    }
+  },
 };
 
 

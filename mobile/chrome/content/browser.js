@@ -280,9 +280,16 @@ var Browser = {
       getBrowser().style.display = "none";
       getBrowser().style.display = "block";
 
-      let curEl = document.activeElement;
-      if (curEl && curEl.id != "inputhandler-overlay" && curEl.scrollIntoView)
-        curEl.scrollIntoView(false);
+      
+      let currentElement = document.activeElement;
+      let [scrollbox, scrollInterface] = ScrollUtils.getScrollboxFromElement(currentElement);
+      if (currentElement && scrollbox && currentElement != scrollbox) {
+        
+        while (currentElement.parentNode != scrollbox)
+          currentElement = currentElement.parentNode;
+
+        setTimeout(function() { scrollInterface.ensureElementIsVisible(currentElement) }, 0);
+      }
     }
     window.addEventListener("resize", resizeHandler, false);
 
@@ -1690,6 +1697,8 @@ IdentityHandler.prototype = {
   },
 
   show: function ih_show() {
+    Elements.contentShowing.setAttribute("disabled", "true");
+
     
     BrowserUI.activePanel = null;
     while (BrowserUI.activeDialog)
@@ -1709,6 +1718,8 @@ IdentityHandler.prototype = {
   },
 
   hide: function ih_hide() {
+    Elements.contentShowing.setAttribute("disabled", "false");
+
     this._identityPopup.hidden = true;
     this._identityBox.removeAttribute("open");
 
