@@ -307,6 +307,8 @@ SourceEditor.prototype = {
         {styleClass: rulerClass}, {styleClass: "rulerLines odd"},
         {styleClass: "rulerLines even"});
 
+      this._linesRuler.onClick = this._linesRulerClick.bind(this);
+      this._linesRuler.onDblClick = this._linesRulerDblClick.bind(this);
       this._view.addRuler(this._linesRuler);
     }
 
@@ -617,6 +619,59 @@ SourceEditor.prototype = {
 
     annotationModel.replaceAnnotations(oldAnnotation ? [oldAnnotation] : null,
                                        [this._currentLineAnnotation]);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  _linesRulerClick: function SE__linesRulerClick(aLineIndex, aEvent)
+  {
+    if (aLineIndex === undefined) {
+      return;
+    }
+
+    if (aEvent.shiftKey) {
+      let model = this._model;
+      let selection = this.getSelection();
+      let selectionLineStart = model.getLineAtOffset(selection.start);
+      let selectionLineEnd = model.getLineAtOffset(selection.end);
+      let newStart = aLineIndex <= selectionLineStart ?
+                     model.getLineStart(aLineIndex) : selection.start;
+      let newEnd = aLineIndex <= selectionLineStart ?
+                   selection.end : model.getLineEnd(aLineIndex);
+      this.setSelection(newStart, newEnd);
+    } else {
+      this.setCaretPosition(aLineIndex);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _linesRulerDblClick: function SE__linesRulerDblClick(aLineIndex)
+  {
+    if (aLineIndex === undefined) {
+      return;
+    }
+
+    let newStart = this._model.getLineStart(aLineIndex);
+    let newEnd = this._model.getLineEnd(aLineIndex);
+    this.setSelection(newStart, newEnd);
   },
 
   
