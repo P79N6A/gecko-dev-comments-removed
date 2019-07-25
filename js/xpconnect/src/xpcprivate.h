@@ -307,15 +307,15 @@ typedef nsDataHashtable<xpc::PtrAndPrincipalHashKey, JSCompartment *> XPCCompart
 
 
 
-#define XPC_STRING_GETTER_BODY(dest, src) \
-    NS_ENSURE_ARG_POINTER(dest); \
-    char* result; \
-    if(src) \
-        result = (char*) nsMemory::Clone(src, \
-                                sizeof(char)*(strlen(src)+1)); \
-    else \
-        result = nsnull; \
-    *dest = result; \
+#define XPC_STRING_GETTER_BODY(dest, src)                                     \
+    NS_ENSURE_ARG_POINTER(dest);                                              \
+    char* result;                                                             \
+    if(src)                                                                   \
+        result = (char*) nsMemory::Clone(src,                                 \
+                                sizeof(char)*(strlen(src)+1));                \
+    else                                                                      \
+        result = nsnull;                                                      \
+    *dest = result;                                                           \
     return (result || !src) ? NS_OK : NS_ERROR_OUT_OF_MEMORY
 
 
@@ -2860,8 +2860,8 @@ public:
 
 
 
-#define NS_IXPCONNECT_WRAPPED_JS_CLASS_IID  \
-{ 0x2453eba0, 0xa9b8, 0x11d2,               \
+#define NS_IXPCONNECT_WRAPPED_JS_CLASS_IID                                    \
+{ 0x2453eba0, 0xa9b8, 0x11d2,                                                 \
   { 0xba, 0x64, 0x0, 0x80, 0x5f, 0x8a, 0x5d, 0xd7 } }
 
 class nsIXPCWrappedJSClass : public nsISupports
@@ -3630,8 +3630,8 @@ private:
 
 
 
-#define NS_XPC_JSCONTEXT_STACK_ITERATOR_CID \
-{ 0x05bae29d, 0x8aef, 0x486d, \
+#define NS_XPC_JSCONTEXT_STACK_ITERATOR_CID                                   \
+{ 0x05bae29d, 0x8aef, 0x486d,                                                 \
   { 0x84, 0xaa, 0x53, 0xf4, 0x8f, 0x14, 0x68, 0x11 } }
 
 class nsXPCJSContextStackIterator : public nsIJSContextStackIterator
@@ -4122,37 +4122,37 @@ protected:
 
 
 
-#define DEFINE_AUTO_MARKING_PTR_TYPE(class_, type_)                          \
-class class_ : public AutoMarkingPtr                                         \
-{                                                                            \
-public:                                                                      \
-    class_ ()                                                                \
-        : AutoMarkingPtr(), mPtr(nsnull) {}                                  \
-    class_ (XPCCallContext& ccx, type_ * ptr = nsnull)                       \
-        : AutoMarkingPtr(ccx), mPtr(ptr) {}                                  \
-    virtual ~ class_ () {}                                                   \
-                                                                             \
-    virtual void TraceJS(JSTracer* trc)                                      \
-        {if(mPtr) {                                                          \
-           mPtr->TraceJS(trc);                                               \
-           mPtr->AutoTrace(trc);                                             \
-         }                                                                   \
-         if(mNext) mNext->TraceJS(trc);}                                     \
-                                                                             \
-    virtual void MarkAfterJSFinalize()                                       \
-        {if(mPtr) mPtr->Mark();                                              \
-         if(mNext) mNext->MarkAfterJSFinalize();}                            \
-                                                                             \
-    type_ * get()        const  {return mPtr;}                               \
-    operator type_ *()   const  {return mPtr;}                               \
-    type_ * operator->() const  {return mPtr;}                               \
-                                                                             \
-    class_ & operator =(type_ * p)                                           \
-        {NS_ASSERTION(mTLS, "Hasn't been init'ed!");                         \
-         mPtr = p; return *this;}                                            \
-                                                                             \
-protected:                                                                   \
-    type_ * mPtr;                                                            \
+#define DEFINE_AUTO_MARKING_PTR_TYPE(class_, type_)                           \
+class class_ : public AutoMarkingPtr                                          \
+{                                                                             \
+public:                                                                       \
+    class_ ()                                                                 \
+        : AutoMarkingPtr(), mPtr(nsnull) {}                                   \
+    class_ (XPCCallContext& ccx, type_ * ptr = nsnull)                        \
+        : AutoMarkingPtr(ccx), mPtr(ptr) {}                                   \
+    virtual ~ class_ () {}                                                    \
+                                                                              \
+    virtual void TraceJS(JSTracer* trc)                                       \
+        {if(mPtr) {                                                           \
+           mPtr->TraceJS(trc);                                                \
+           mPtr->AutoTrace(trc);                                              \
+         }                                                                    \
+         if(mNext) mNext->TraceJS(trc);}                                      \
+                                                                              \
+    virtual void MarkAfterJSFinalize()                                        \
+        {if(mPtr) mPtr->Mark();                                               \
+         if(mNext) mNext->MarkAfterJSFinalize();}                             \
+                                                                              \
+    type_ * get()        const  {return mPtr;}                                \
+    operator type_ *()   const  {return mPtr;}                                \
+    type_ * operator->() const  {return mPtr;}                                \
+                                                                              \
+    class_ & operator =(type_ * p)                                            \
+        {NS_ASSERTION(mTLS, "Hasn't been init'ed!");                          \
+         mPtr = p; return *this;}                                             \
+                                                                              \
+protected:                                                                    \
+    type_ * mPtr;                                                             \
 };
 
 
@@ -4164,56 +4164,56 @@ DEFINE_AUTO_MARKING_PTR_TYPE(AutoMarkingWrappedNativeTearOffPtr, XPCWrappedNativ
 DEFINE_AUTO_MARKING_PTR_TYPE(AutoMarkingWrappedNativeProtoPtr, XPCWrappedNativeProto)
 DEFINE_AUTO_MARKING_PTR_TYPE(AutoMarkingJSVal, XPCMarkableJSVal)
 
-#define DEFINE_AUTO_MARKING_ARRAY_PTR_TYPE(class_, type_)                    \
-class class_ : public AutoMarkingPtr                                         \
-{                                                                            \
-public:                                                                      \
-    class_ (XPCCallContext& ccx)                                             \
-        : AutoMarkingPtr(ccx), mPtr(nsnull), mCount(0) {}                    \
-    class_ (XPCCallContext& ccx, type_** aPtr, PRUint32 aCount,              \
-            bool aClear = false)                                        \
-        : AutoMarkingPtr(ccx), mPtr(aPtr), mCount(aCount)                    \
-    {                                                                        \
-        if(!mPtr) mCount = 0;                                                \
-        else if(aClear) memset(mPtr, 0, mCount*sizeof(type_*));              \
-    }                                                                        \
-    virtual ~ class_ () {}                                                   \
-                                                                             \
-    virtual void TraceJS(JSTracer* trc)                                      \
-    {                                                                        \
-        for(PRUint32 i = 0; i < mCount; ++i)                                 \
-        {                                                                    \
-            type_* cur = mPtr[i];                                            \
-            if(cur)                                                          \
-            {                                                                \
-                cur->TraceJS(trc);                                           \
-                cur->AutoTrace(trc);                                         \
-            }                                                                \
-        }                                                                    \
-        if(mNext) mNext->TraceJS(trc);                                       \
-    }                                                                        \
-                                                                             \
-    virtual void MarkAfterJSFinalize()                                       \
-    {                                                                        \
-        for(PRUint32 i = 0; i < mCount; ++i)                                 \
-        {                                                                    \
-            type_* cur = mPtr[i];                                            \
-            if(cur)                                                          \
-                cur->Mark();                                                 \
-        }                                                                    \
-        if(mNext) mNext->MarkAfterJSFinalize();                              \
-    }                                                                        \
-                                                                             \
-    type_ ** get()       const  {return mPtr;}                               \
-    operator type_ **()  const  {return mPtr;}                               \
-    type_ ** operator->() const  {return mPtr;}                              \
-                                                                             \
-    class_ & operator =(const class_ & inst)                                 \
-        {mPtr = inst.mPtr; mCount = inst.mCount; return *this;}              \
-                                                                             \
-protected:                                                                   \
-    type_ ** mPtr;                                                           \
-    PRUint32 mCount;                                                         \
+#define DEFINE_AUTO_MARKING_ARRAY_PTR_TYPE(class_, type_)                     \
+class class_ : public AutoMarkingPtr                                          \
+{                                                                             \
+public:                                                                       \
+    class_ (XPCCallContext& ccx)                                              \
+        : AutoMarkingPtr(ccx), mPtr(nsnull), mCount(0) {}                     \
+    class_ (XPCCallContext& ccx, type_** aPtr, PRUint32 aCount,               \
+            bool aClear = false)                                              \
+        : AutoMarkingPtr(ccx), mPtr(aPtr), mCount(aCount)                     \
+    {                                                                         \
+        if(!mPtr) mCount = 0;                                                 \
+        else if(aClear) memset(mPtr, 0, mCount*sizeof(type_*));               \
+    }                                                                         \
+    virtual ~ class_ () {}                                                    \
+                                                                              \
+    virtual void TraceJS(JSTracer* trc)                                       \
+    {                                                                         \
+        for(PRUint32 i = 0; i < mCount; ++i)                                  \
+        {                                                                     \
+            type_* cur = mPtr[i];                                             \
+            if(cur)                                                           \
+            {                                                                 \
+                cur->TraceJS(trc);                                            \
+                cur->AutoTrace(trc);                                          \
+            }                                                                 \
+        }                                                                     \
+        if(mNext) mNext->TraceJS(trc);                                        \
+    }                                                                         \
+                                                                              \
+    virtual void MarkAfterJSFinalize()                                        \
+    {                                                                         \
+        for(PRUint32 i = 0; i < mCount; ++i)                                  \
+        {                                                                     \
+            type_* cur = mPtr[i];                                             \
+            if(cur)                                                           \
+                cur->Mark();                                                  \
+        }                                                                     \
+        if(mNext) mNext->MarkAfterJSFinalize();                               \
+    }                                                                         \
+                                                                              \
+    type_ ** get()       const  {return mPtr;}                                \
+    operator type_ **()  const  {return mPtr;}                                \
+    type_ ** operator->() const  {return mPtr;}                               \
+                                                                              \
+    class_ & operator =(const class_ & inst)                                  \
+        {mPtr = inst.mPtr; mCount = inst.mCount; return *this;}               \
+                                                                              \
+protected:                                                                    \
+    type_ ** mPtr;                                                            \
+    PRUint32 mCount;                                                          \
 };
 
 DEFINE_AUTO_MARKING_ARRAY_PTR_TYPE(AutoMarkingNativeInterfacePtrArrayPtr,
@@ -4228,9 +4228,9 @@ DEFINE_AUTO_MARKING_ARRAY_PTR_TYPE(AutoMarkingNativeInterfacePtrArrayPtr,
 #define AUTO_MARK_JSVAL_HELPER2(tok, line) tok##line
 #define AUTO_MARK_JSVAL_HELPER(tok, line) AUTO_MARK_JSVAL_HELPER2(tok, line)
 
-#define AUTO_MARK_JSVAL(ccx, val)                                            \
-    XPCMarkableJSVal AUTO_MARK_JSVAL_HELPER(_val_,__LINE__)(val);            \
-    AutoMarkingJSVal AUTO_MARK_JSVAL_HELPER(_automarker_,__LINE__)           \
+#define AUTO_MARK_JSVAL(ccx, val)                                             \
+    XPCMarkableJSVal AUTO_MARK_JSVAL_HELPER(_val_,__LINE__)(val);             \
+    AutoMarkingJSVal AUTO_MARK_JSVAL_HELPER(_automarker_,__LINE__)            \
     (ccx, &AUTO_MARK_JSVAL_HELPER(_val_,__LINE__))
 
 
@@ -4246,8 +4246,8 @@ extern char * xpc_CheckAccessList(const PRUnichar* wideName, const char* list[])
 
 
 
-#define XPCVARIANT_IID \
-    {0x1809fd50, 0x91e8, 0x11d5, \
+#define XPCVARIANT_IID                                                        \
+    {0x1809fd50, 0x91e8, 0x11d5,                                              \
       { 0x90, 0xf9, 0x0, 0x10, 0xa4, 0xe7, 0x3d, 0x9a } }
 
 

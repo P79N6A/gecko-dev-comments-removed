@@ -51,8 +51,8 @@ namespace XPCNativeWrapper {
 
 
 
-#define NATIVE_HAS_FLAG(_wn, _flag)                \
-  ((_wn)->GetScriptableInfo() &&                   \
+#define NATIVE_HAS_FLAG(_wn, _flag)                                           \
+  ((_wn)->GetScriptableInfo() &&                                              \
    (_wn)->GetScriptableInfo()->GetFlags()._flag())
 
 bool
