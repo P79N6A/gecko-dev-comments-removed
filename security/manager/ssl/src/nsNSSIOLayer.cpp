@@ -612,6 +612,8 @@ nsSSLIOLayerHelpers::getSiteKey(nsNSSSocketInfo *socketInfo, nsCSubstring &key)
 
 
 
+
+
 bool
 nsSSLIOLayerHelpers::rememberPossibleTLSProblemSite(nsNSSSocketInfo *socketInfo)
 {
@@ -630,6 +632,9 @@ nsSSLIOLayerHelpers::rememberPossibleTLSProblemSite(nsNSSSocketInfo *socketInfo)
   if (socketInfo->IsSSL3Enabled()) {
     
     addIntolerantSite(key);
+  }
+  else {
+    return false; 
   }
   
   return socketInfo->IsTLSEnabled();
