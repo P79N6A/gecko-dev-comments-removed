@@ -139,7 +139,7 @@ nsDataDocumentContentPolicy::ShouldLoad(PRUint32 aContentType,
   }
 
   
-  if (!doc->GetDisplayDocument()) {
+  if (!doc->IsResourceDoc()) {
     return NS_OK;
   }
 
