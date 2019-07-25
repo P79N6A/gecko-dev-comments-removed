@@ -146,6 +146,9 @@ private:
   
   void EnsureItemAt(PRUint32 aIndex);
 
+  void MaybeInsertNullInAnimValListAt(PRUint32 aIndex);
+  void MaybeRemoveItemFromAnimValListAt(PRUint32 aIndex);
+
   
   
   nsTArray<DOMSVGLength*> mItems;
