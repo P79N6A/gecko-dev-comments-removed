@@ -241,6 +241,9 @@ ConvertFrames(JSContext *cx, IonActivation *activation, FrameRecovery &in)
     IonBailoutIterator iter(in, start, end);
 
     
+    in.ionScript()->forbidOsr();
+
+    
     
     
     

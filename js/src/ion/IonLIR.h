@@ -537,6 +537,8 @@ class LDefinition
             
             
             return LDefinition::POINTER;
+          case MIRType_StackFrame:
+            return LDefinition::POINTER;
           default:
             JS_NOT_REACHED("unexpected type");
             return LDefinition::BOX;
@@ -891,6 +893,9 @@ class LIRGraph
     
     LSnapshot *entrySnapshot_;
 
+    
+    LBlock *osrBlock_;
+
     MIRGraph &mir_;
 
   public:
@@ -941,10 +946,19 @@ class LIRGraph
         return constantPool_[index];
     }
     void setEntrySnapshot(LSnapshot *snapshot) {
+        JS_ASSERT(!entrySnapshot_);
         entrySnapshot_ = snapshot;
     }
     LSnapshot *entrySnapshot() const {
+        JS_ASSERT(entrySnapshot_);
         return entrySnapshot_;
+    }
+    void setOsrBlock(LBlock *block) {
+        JS_ASSERT(!osrBlock_);
+        osrBlock_ = block;
+    }
+    LBlock *osrBlock() const {
+        return osrBlock_;
     }
 };
 

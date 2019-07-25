@@ -62,7 +62,8 @@ enum MIRType
     MIRType_Value,
     MIRType_Any,        
     MIRType_None,       
-    MIRType_Slots       
+    MIRType_Slots,      
+    MIRType_StackFrame  
 };
 
 class TypeOracle
@@ -222,6 +223,8 @@ StringFromMIRType(MIRType type)
       return "None";
     case MIRType_Slots:
       return "Slots";
+    case MIRType_StackFrame:
+      return "StackFrame";
     default:
       JS_NOT_REACHED("Unknown MIRType.");
       return "";

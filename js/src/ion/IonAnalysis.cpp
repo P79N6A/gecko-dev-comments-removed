@@ -488,6 +488,10 @@ TypeAnalyzer::adjustOutput(MDefinition *def)
         
         
         block->insertAfter(block->start(), unbox);
+    } else if (def->isOsrValue()) {
+        
+        JS_ASSERT(graph.osrStart()->block() == block);
+        block->insertAfter(graph.osrStart(), unbox);
     } else {
         
         block->insertAfter(def->toInstruction(), unbox);
@@ -635,6 +639,8 @@ ion::ReorderBlocks(MIRGraph &graph)
     
     unsigned int nextSuccessor = current->numSuccessors() - 1;
 
+    DebugOnly<size_t> numBlocks = graph.numBlocks();
+
     graph.clearBlockList();
 
     
@@ -670,14 +676,28 @@ ion::ReorderBlocks(MIRGraph &graph)
     JS_ASSERT(successors.empty());
 
     
+    current = done.popFront();
+    current->unmark();
+    graph.addBlock(current);
+
+    
+    
+    
+    if (graph.osrBlock())
+        graph.addBlock(graph.osrBlock());
+
+    
     while (!done.empty()) {
         current = done.popFront();
         current->unmark();
         graph.addBlock(current);
     }
 
+    JS_ASSERT(graph.numBlocks() == numBlocks);
+
     return true;
 }
+
 
 
 static MBasicBlock *
@@ -686,15 +706,31 @@ IntersectDominators(MBasicBlock *block1, MBasicBlock *block2)
     MBasicBlock *finger1 = block1;
     MBasicBlock *finger2 = block2;
 
-    while (finger1->id() != finger2->id()) {
-        
-        
-        
-        while (finger1->id() > finger2->id())
-            finger1 = finger1->immediateDominator();
+    JS_ASSERT(finger1);
+    JS_ASSERT(finger2);
 
-        while (finger2->id() > finger1->id())
+    
+    
+
+    
+    
+    
+    
+
+    while (finger1->id() != finger2->id()) {
+        while (finger1->id() > finger2->id()) {
+            MBasicBlock *idom = finger1->immediateDominator();
+            if (idom == finger1)
+                return NULL; 
+            finger1 = idom;
+        }
+
+        while (finger2->id() > finger1->id()) {
+            MBasicBlock *idom = finger2->immediateDominator();
+            if (idom == finger2)
+                return NULL; 
             finger2 = finger2->immediateDominator();
+        }
     }
     return finger1;
 }
@@ -702,34 +738,58 @@ IntersectDominators(MBasicBlock *block1, MBasicBlock *block2)
 static void
 ComputeImmediateDominators(MIRGraph &graph)
 {
+    
     MBasicBlock *startBlock = *graph.begin();
     startBlock->setImmediateDominator(startBlock);
+
+    
+    MBasicBlock *osrBlock = graph.osrBlock();
+    if (osrBlock)
+        osrBlock->setImmediateDominator(osrBlock);
 
     bool changed = true;
 
     while (changed) {
         changed = false;
+
+        ReversePostorderIterator block = graph.rpoBegin();
+
         
-        MBasicBlockIterator block(graph.begin());
-        block++;
-        for (; block != graph.end(); block++) {
-            if (block->numPredecessors() == 0)
+        for (; block != graph.rpoEnd(); block++) {
+            
+            
+            if (block->immediateDominator() == *block)
                 continue;
 
             MBasicBlock *newIdom = block->getPredecessor(0);
 
+            
             for (size_t i = 1; i < block->numPredecessors(); i++) {
                 MBasicBlock *pred = block->getPredecessor(i);
                 if (pred->immediateDominator() != NULL)
                     newIdom = IntersectDominators(pred, newIdom);
+
+                
+                if (newIdom == NULL) {
+                    block->setImmediateDominator(*block);
+                    changed = true;
+                    break;
+                }
             }
 
-            if (block->immediateDominator() != newIdom) {
+            if (newIdom && block->immediateDominator() != newIdom) {
                 block->setImmediateDominator(newIdom);
                 changed = true;
             }
         }
     }
+
+#ifdef DEBUG
+    
+    for (MBasicBlockIterator block(graph.begin()); block != graph.end(); block++) {
+        JS_ASSERT(block->immediateDominator() != NULL);
+    }
+#endif
 }
 
 bool
@@ -742,9 +802,13 @@ ion::BuildDominatorTree(MIRGraph &graph)
     
     
     
-    for (PostorderIterator i(graph.poBegin()); *i != *graph.begin(); i++) {
+    for (PostorderIterator i(graph.poBegin()); i != graph.poEnd(); i++) {
         MBasicBlock *child = *i;
         MBasicBlock *parent = child->immediateDominator();
+
+        
+        if (child == parent)
+            continue;
 
         if (!parent->addImmediatelyDominatedBlock(child))
             return false;
@@ -752,7 +816,14 @@ ion::BuildDominatorTree(MIRGraph &graph)
         
         parent->addNumDominated(child->numDominated() + 1);
     }
-    JS_ASSERT(graph.begin()->numDominated() == graph.numBlocks() - 1);
+
+#ifdef DEBUG
+    
+    
+    if (!graph.osrBlock())
+        JS_ASSERT(graph.begin()->numDominated() == graph.numBlocks() - 1);
+#endif
+
     return true;
 }
 
@@ -872,5 +943,40 @@ ion::FindNaturalLoops(MIRGraph &graph)
     }
 
     return true;
+}
+
+void
+ion::AssertGraphCoherency(MIRGraph &graph)
+{
+#ifdef DEBUG
+    
+    for (MBasicBlockIterator block(graph.begin()); block != graph.end(); block++) {
+        
+        for (size_t i = 0; i < block->numSuccessors(); i++) {
+            MBasicBlock *succ = block->getSuccessor(i);
+            int found = 0;
+
+            for (size_t j = 0; j < succ->numPredecessors(); j++) {
+                if (succ->getPredecessor(j) == *block)
+                    found++;
+            }
+
+            JS_ASSERT(found == 1);
+        }
+
+        
+        for (size_t i = 0; i < block->numPredecessors(); i++) {
+            MBasicBlock *pred = block->getPredecessor(i);
+            int found = 0;
+
+            for (size_t j = 0; j < pred->numSuccessors(); j++) {
+                if (pred->getSuccessor(j) == *block)
+                    found++;
+            }
+
+            JS_ASSERT(found == 1);
+        }
+    }
+#endif
 }
 

@@ -68,13 +68,16 @@ bool
 ReorderBlocks(MIRGraph &graph);
 
 bool
-BuildPhiReverseMapping(MIRGraph &graph);
-
-bool
 BuildDominatorTree(MIRGraph &graph);
 
 bool
+BuildPhiReverseMapping(MIRGraph &graph);
+
+bool
 FindNaturalLoops(MIRGraph &graph);
+
+void
+AssertGraphCoherency(MIRGraph &graph);
 
 } 
 } 

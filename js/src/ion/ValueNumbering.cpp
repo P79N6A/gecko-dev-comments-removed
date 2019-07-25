@@ -40,8 +40,9 @@
 
 
 #include "Ion.h"
-#include "ValueNumbering.h"
 #include "IonSpewer.h"
+#include "CompileInfo.h"
+#include "ValueNumbering.h"
 
 using namespace js;
 using namespace js::ion;
@@ -179,7 +180,10 @@ ValueNumberer::computeValueNumbers()
                 iter->setValueNumber(iter->id());
         }
     } else {
+        
         markBlock(*(graph_.begin()));
+        if (graph_.osrBlock())
+            markBlock(graph_.osrBlock());
     }
 
     while (count_ > 0) {
@@ -315,8 +319,6 @@ ValueNumberer::eliminateRedundancies()
     
     
     
-    
-    
 
     InstructionMap defs;
 
@@ -325,38 +327,51 @@ ValueNumberer::eliminateRedundancies()
 
     IonSpew(IonSpew_GVN, "Eliminating redundant instructions");
 
+    
+    Vector<MBasicBlock *, 1, IonAllocPolicy> worklist;
+
+    
     size_t index = 0;
 
-    Vector<MBasicBlock *, 1, IonAllocPolicy> nodes;
+    
+    
+    for (MBasicBlockIterator i(graph_.begin()); i != graph_.end(); i++) {
+        MBasicBlock *block = *i;
+        if (block->immediateDominator() == block) {
+            if (!worklist.append(block))
+                return false;
+        }
+    }
 
-    MBasicBlock *start = *graph_.begin();
-    if (!nodes.append(start))
-        return false;
-
-    while (!nodes.empty()) {
-        MBasicBlock *block = nodes.popCopy();
+    
+    while (!worklist.empty()) {
+        MBasicBlock *block = worklist.popCopy();
 
         IonSpew(IonSpew_GVN, "Looking at block %d", block->id());
 
+        
         for (size_t i = 0; i < block->numImmediatelyDominatedBlocks(); i++) {
-            if (!nodes.append(block->getImmediatelyDominatedBlock(i)))
+            if (!worklist.append(block->getImmediatelyDominatedBlock(i)))
                 return false;
         }
+
+        
         for (MDefinitionIterator iter(block); iter; ) {
             MDefinition *ins = simplify(*iter, true);
 
+            
             if (ins != *iter) {
                 iter = block->discardDefAt(iter);
                 continue;
             }
 
+            
             if (!ins->isIdempotent()) {
                 iter++;
                 continue;
             }
 
             MDefinition *dom = findDominatingDef(defs, ins, index);
-
             if (!dom)
                 return false; 
 
@@ -372,6 +387,8 @@ ValueNumberer::eliminateRedundancies()
 
             JS_ASSERT(!ins->hasUses());
             JS_ASSERT(ins->block() == block);
+            JS_ASSERT(ins->isIdempotent());
+
             iter = ins->block()->discardDefAt(iter);
         }
         index++;
@@ -387,3 +404,4 @@ ValueNumberer::analyze()
 {
     return computeValueNumbers() && eliminateRedundancies();
 }
+

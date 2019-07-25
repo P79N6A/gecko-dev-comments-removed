@@ -74,6 +74,28 @@ GenerateReturn(MacroAssembler &masm, int returnCode)
 
 
 
+IonCode *
+IonCompartment::generateOsrPrologue(JSContext *cx)
+{
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    JS_ASSERT(enterJIT_);
+    return enterJIT_;
+}
+
+
+
+
+
 
 
 
@@ -99,6 +121,15 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     masm.finishDataTransfer();
     
     aasm->as_dtr(IsLoad, 32, Offset, r10, DTRAddr(sp, DtrOffImm(40)));
+
+    
+    
+    
+    
+    masm.as_dtr(IsLoad, 32, Offset, OsrFrameReg, DTRAddr(sp, DtrOffImm(44)));
+    
+    JS_STATIC_ASSERT(OsrFrameReg == r7);
+
     aasm->as_mov(r9, lsl(r1, 3)); 
     
     

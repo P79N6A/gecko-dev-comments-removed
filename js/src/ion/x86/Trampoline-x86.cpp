@@ -53,11 +53,33 @@ using namespace js::ion;
 
 
 
+IonCode *
+IonCompartment::generateOsrPrologue(JSContext *cx)
+{
+    MacroAssembler masm(cx);
+
+    
+    masm.movl(Operand(esp, 6 * sizeof(void *)), OsrFrameReg);
+
+    
+    
+    JS_ASSERT(enterJIT_);
+    masm.jmp(enterJIT_);
+
+    Linker linker(masm);
+    return linker.newCode(cx);
+}
+
+
+
+
+
 
 IonCode *
 IonCompartment::generateEnterJIT(JSContext *cx)
 {
     MacroAssembler masm(cx);
+    
 
     
     masm.push(ebp);

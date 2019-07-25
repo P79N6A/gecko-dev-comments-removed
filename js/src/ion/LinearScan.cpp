@@ -559,6 +559,9 @@ LinearScanAllocator::buildLivenessInfo()
             MBasicBlock *loopBlock = mblock->backedge();
             while (true) {
                 
+                JS_ASSERT(loopBlock->id() >= mblock->id());
+
+                
                 for (BitSet::Iterator i(live->begin()); i != live->end(); i++) {
                     vregs[*i].getInterval(0)->addRange(inputOf(loopBlock->lir()->firstId()),
                                                        outputOf(loopBlock->lir()->lastId()));
@@ -586,7 +589,11 @@ LinearScanAllocator::buildLivenessInfo()
                 
                 if (loopWorkList.empty())
                     break;
-                loopBlock = loopWorkList.popCopy();
+
+                
+                do {
+                    loopBlock = loopWorkList.popCopy();
+                } while (loopBlock->lir() == graph.osrBlock());
             }
 
             

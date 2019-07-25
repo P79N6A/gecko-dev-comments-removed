@@ -68,10 +68,18 @@ class Loop
 
   public:
     
+    enum LoopReturn {
+        LoopReturn_Success,
+        LoopReturn_Error, 
+        LoopReturn_Skip   
+    };
+
+  public:
+    
     Loop(MBasicBlock *header, MBasicBlock *footer, MIRGraph &graph);
 
     
-    bool init();
+    LoopReturn init();
 
     
     bool optimize();
@@ -89,7 +97,7 @@ class Loop
     
     
     
-    bool iterateLoopBlocks(MBasicBlock *current);
+    LoopReturn iterateLoopBlocks(MBasicBlock *current);
 
     bool hoistInstructions(InstructionQueue &toHoist);
 
@@ -115,4 +123,4 @@ class Loop
 } 
 } 
 
-#endif 
+#endif

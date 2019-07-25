@@ -72,7 +72,6 @@ class IonCode : public gc::Cell
     uint32 dataSize_;               
     uint32 jumpRelocTableBytes_;    
     uint32 dataRelocTableBytes_;    
-    uint32 padding0_;
 
     IonCode()
       : code_(NULL),
@@ -149,6 +148,16 @@ struct IonScript
     HeapPtr<IonCode> deoptTable_;
 
     
+    jsbytecode *osrPc_;
+
+    
+    uint32 osrEntryOffset_;
+
+    
+    
+    bool forbidOsr_;
+
+    
     uint32 snapshots_;
     uint32 snapshotsSize_;
 
@@ -188,6 +197,25 @@ struct IonScript
     }
     void setDeoptTable(IonCode *code) {
         deoptTable_ = code;
+    }
+    void setOsrPc(jsbytecode *osrPc) {
+        osrPc_ = osrPc;
+    }
+    jsbytecode *osrPc() const {
+        return osrPc_;
+    }
+    void setOsrEntryOffset(uint32 offset) {
+        JS_ASSERT(!osrEntryOffset_);
+        osrEntryOffset_ = offset;
+    }
+    uint32 osrEntryOffset() const {
+        return osrEntryOffset_;
+    }
+    void forbidOsr() {
+        forbidOsr_ = true;
+    }
+    bool isOsrForbidden() const {
+        return forbidOsr_;
     }
     const uint8 *snapshots() const {
         return reinterpret_cast<const uint8 *>(this) + snapshots_;

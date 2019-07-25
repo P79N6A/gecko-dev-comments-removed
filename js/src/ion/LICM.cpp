@@ -41,11 +41,11 @@
 
 #include <stdio.h>
 
+#include "Ion.h"
+#include "IonSpewer.h"
+#include "LICM.h"
 #include "MIR.h"
 #include "MIRGraph.h"
-#include "Ion.h"
-#include "LICM.h"
-#include "IonSpewer.h"
 
 using namespace js;
 using namespace js::ion;
@@ -58,23 +58,27 @@ LICM::LICM(MIRGraph &graph)
 bool
 LICM::analyze()
 {
-    IonSpew(IonSpew_LICM, "Beginning LICM pass ...");
+    IonSpew(IonSpew_LICM, "Beginning LICM pass.");
+
     
     for (ReversePostorderIterator i(graph.rpoBegin()); i != graph.rpoEnd(); i++) {
         MBasicBlock *header = *i;
-        
-        
-        if (header->isLoopHeader() && header->numPredecessors() > 1) {
-            
-            MBasicBlock *footer = header->getPredecessor(header->numPredecessors() - 1);
 
-            
-            Loop loop(footer, header, graph);
-            if (!loop.init())
-                return false;
-            if (!loop.optimize())
-                return false;
-        }
+        
+        if (!header->isLoopHeader() || header->numPredecessors() < 2)
+            continue;
+
+        
+        Loop loop(header->backedge(), header, graph);
+
+        Loop::LoopReturn lr = loop.init();
+        if (lr == Loop::LoopReturn_Error)
+            return false;
+        if (lr == Loop::LoopReturn_Skip)
+            continue;
+
+        if (!loop.optimize())
+            return false;
     }
 
     return true;
@@ -88,29 +92,25 @@ Loop::Loop(MBasicBlock *footer, MBasicBlock *header, MIRGraph &graph)
     preLoop_ = header_->getPredecessor(0);
 }
 
-bool
+Loop::LoopReturn
 Loop::init()
 {
     IonSpew(IonSpew_LICM, "Loop identified, headed by block %d", header_->id());
-    
-    
-    JS_ASSERT(header_->id() > header_->getPredecessor(0)->id());
-#ifdef DEBUG
-    for (size_t i = 1; i < header_->numPredecessors(); i ++) {
-        JS_ASSERT(header_->id() <= header_->getPredecessor(i)->id());
-    }
-#endif
-
     IonSpew(IonSpew_LICM, "footer is block %d", footer_->id());
 
-    if (!iterateLoopBlocks(footer_))
-        return false;
+    
+    JS_ASSERT(header_->id() > header_->getPredecessor(0)->id());
+
+    LoopReturn lr = iterateLoopBlocks(footer_);
+    if (lr != LoopReturn_Success)
+        return lr;
 
     graph.unmarkBlocks();
-    return true;
+
+    return LoopReturn_Success;
 }
 
-bool
+Loop::LoopReturn
 Loop::iterateLoopBlocks(MBasicBlock *current)
 {
     
@@ -118,25 +118,35 @@ Loop::iterateLoopBlocks(MBasicBlock *current)
 
     
     
+    
+    
+    
+    
+    if (current->immediateDominator() == current)
+        return LoopReturn_Skip;
+
+    
+    
     if (current != header_) {
         for (size_t i = 0; i < current->numPredecessors(); i++) {
             if (current->getPredecessor(i)->isMarked())
                 continue;
-            if (!iterateLoopBlocks(current->getPredecessor(i)))
-                return false;
+            LoopReturn lr = iterateLoopBlocks(current->getPredecessor(i));
+            if (lr != LoopReturn_Success)
+                return lr;
         }
     }
 
     
-    for (MInstructionIterator i = current->begin(); i != current->end(); i ++) {
+    for (MInstructionIterator i = current->begin(); i != current->end(); i++) {
         MInstruction *ins = *i;
 
         if (ins->isIdempotent()) {
             if (!insertInWorklist(ins))
-                return false;
+                return LoopReturn_Error;
         }
     }
-    return true;
+    return LoopReturn_Success;
 }
 
 bool
@@ -212,9 +222,9 @@ Loop::isInLoop(MDefinition *ins)
 bool
 Loop::isLoopInvariant(MInstruction *ins)
 {
+    
+    
     for (size_t i = 0; i < ins->numOperands(); i ++) {
-
-        
         if (isInLoop(ins->getOperand(i)) &&
             !ins->getOperand(i)->isLoopInvariant()) {
 

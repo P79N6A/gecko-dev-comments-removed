@@ -53,21 +53,48 @@ using namespace js::ion;
 
 
 
+IonCode *
+IonCompartment::generateOsrPrologue(JSContext *cx)
+{
+    MacroAssembler masm(cx);
+    
+#if defined(_WIN64)
+    const Operand fp = Operand(rbp, 16 + ShadowStackSpace);
+    masm.movq(fp, OsrFrameReg);
+#else
+    JS_ASSERT(OsrFrameReg == ArgReg5); 
+#endif
+
+    
+    
+    JS_ASSERT(enterJIT_);
+    masm.jmp(enterJIT_);
+
+    Linker linker(masm);
+    return linker.newCode(cx);
+}
+
+
+
+
+
 
 IonCode *
 IonCompartment::generateEnterJIT(JSContext *cx)
 {
+    MacroAssembler masm(cx);
+
     const Register reg_code = ArgReg0;
     const Register reg_argc = ArgReg1;
     const Register reg_argv = ArgReg2;
     const Register reg_vp   = ArgReg3;
 #if defined(_WIN64)
     const Operand token = Operand(rbp, 8 + ShadowStackSpace);
+    
 #else
     const Register token = ArgReg4;
+    
 #endif
-
-    MacroAssembler masm(cx);
 
     
     masm.push(rbp);

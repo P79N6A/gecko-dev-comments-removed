@@ -670,6 +670,49 @@ class LStart : public LInstructionHelper<0, 0, 0>
 
 
 
+class LOsrEntry : public LInstructionHelper<1, 0, 0>
+{
+  protected:
+    Label label_;
+    uint32 frameDepth_;
+
+  public:
+    LIR_HEADER(OsrEntry);
+
+    LOsrEntry()
+      : frameDepth_(0)
+    { }
+
+    void setFrameDepth(uint32 depth) {
+        frameDepth_ = depth;
+    }
+    uint32 getFrameDepth() {
+        return frameDepth_;
+    }
+    Label *label() {
+        return &label_;
+    }
+
+};
+
+
+class LOsrValue : public LInstructionHelper<BOX_PIECES, 1, 0>
+{
+  public:
+    LIR_HEADER(OsrValue);
+
+    LOsrValue(const LAllocation &entry)
+    {
+        setOperand(0, entry);
+    }
+
+    const MOsrValue *mir() {
+        return mir_->toOsrValue();
+    }
+};
+
+
+
 
 class LSlots : public LInstructionHelper<1, 1, 0>
 {

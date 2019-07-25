@@ -85,6 +85,19 @@ class CodeGeneratorShared : public LInstructionVisitor
   protected:
     
     
+    size_t osrEntryOffset_;
+
+    inline void setOsrEntryOffset(size_t offset) {
+        JS_ASSERT(osrEntryOffset_ == 0);
+        osrEntryOffset_ = offset;
+    }
+    inline size_t getOsrEntryOffset() const {
+        return osrEntryOffset_;
+    }
+
+  protected:
+    
+    
     
     int32 frameDepth_;
 

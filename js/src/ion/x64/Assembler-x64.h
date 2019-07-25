@@ -107,6 +107,13 @@ static const uint32 NumArgRegs = 6;
 static const Register ArgRegs[NumArgRegs] = { rdi, rsi, rdx, rcx, r8, r9 };
 #endif
 
+
+#if defined(_WIN64)
+static const Register OsrFrameReg = r10;
+#else
+static const Register OsrFrameReg = ArgReg5;
+#endif
+
 enum Scale {
     TimesOne,
     TimesTwo,
