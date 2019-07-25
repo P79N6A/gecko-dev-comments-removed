@@ -409,6 +409,16 @@ pref("power.screen.timeout", 60);
 
 pref("full-screen-api.enabled", true);
 
+#ifndef MOZ_WIDGET_GONK
+
+
+
+
+
+
+pref("full-screen-api.ignore-widgets", true);
+#endif
+
 pref("media.volume.steps", 10);
 
 

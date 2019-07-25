@@ -4486,9 +4486,15 @@ nsGlobalWindow::SetFullScreenInternal(bool aFullScreen, bool aRequireTrust)
   
   mFullScreen = aFullScreen;
 
-  nsCOMPtr<nsIWidget> widget = GetMainWidget();
-  if (widget)
-    widget->MakeFullScreen(aFullScreen);
+  
+  
+  
+  
+  if (!Preferences::GetBool("full-screen-api.ignore-widgets", false)) {
+    nsCOMPtr<nsIWidget> widget = GetMainWidget();
+    if (widget)
+      widget->MakeFullScreen(aFullScreen);
+  }
 
   if (!mFullScreen) {
     
