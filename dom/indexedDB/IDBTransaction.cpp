@@ -62,8 +62,6 @@ USING_INDEXEDDB_NAMESPACE
 
 namespace {
 
-IDBTransaction::ThreadObserver* gThreadObserver = nsnull;
-
 PLDHashOperator
 DoomCachedStatements(const nsACString& aQuery,
                      nsCOMPtr<mozIStorageStatement>& aStatement,
@@ -106,9 +104,21 @@ IDBTransaction::Create(IDBDatabase* aDatabase,
   }
 
   if (!aDispatchDelayed) {
-    if (!ThreadObserver::BeginObserving(transaction)) {
-      return nsnull;
-    }
+    nsCOMPtr<nsIThreadInternal2> thread =
+      do_QueryInterface(NS_GetCurrentThread());
+    NS_ENSURE_TRUE(thread, nsnull);
+
+    
+    PRUint32 depth;
+    nsresult rv = thread->GetRecursionDepth(&depth);
+    NS_ENSURE_SUCCESS(rv, nsnull);
+
+    NS_ASSERTION(depth, "This should never be 0!");
+    transaction->mCreatedRecursionDepth = depth - 1;
+
+    rv = thread->AddObserver(transaction);
+    NS_ENSURE_SUCCESS(rv, nsnull);
+
     transaction->mCreating = true;
   }
 
@@ -120,6 +130,7 @@ IDBTransaction::IDBTransaction()
   mMode(nsIIDBTransaction::READ_ONLY),
   mTimeout(0),
   mPendingRequests(0),
+  mCreatedRecursionDepth(0),
   mSavepointCount(0),
   mAborted(false),
   mCreating(false)
@@ -633,6 +644,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(IDBTransaction)
   NS_INTERFACE_MAP_ENTRY(nsIIDBTransaction)
+  NS_INTERFACE_MAP_ENTRY(nsIThreadObserver)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(IDBTransaction)
 NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetHelper)
 
@@ -819,229 +831,52 @@ IDBTransaction::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
   return NS_OK;
 }
 
-IDBTransaction::
-ThreadObserver::ThreadObserver()
-: mBaseRecursionDepth(0),
-  mDone(false)
-{
-  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-  NS_ASSERTION(!gThreadObserver, "Multiple observers?!");
-}
-
-IDBTransaction::
-ThreadObserver::~ThreadObserver()
-{
-  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-  NS_ASSERTION(gThreadObserver == this, "Multiple observers?!");
-
-#ifdef DEBUG
-  for (PRUint32 i = 0; i < mTransactions.Length(); i++) {
-    NS_ASSERTION(mTransactions[i].transactions.IsEmpty(),
-                 "Unprocessed transactions!");
-  }
-#endif
-
-  
-  gThreadObserver = nsnull;
-}
-
-void
-IDBTransaction::
-ThreadObserver::UpdateNewlyCreatedTransactions(PRUint32 aRecursionDepth)
-{
-  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-
-  for (PRUint32 i = 0; i < mTransactions.Length(); i++) {
-    TransactionInfo& info = mTransactions[i];
-
-    if (info.recursionDepth == aRecursionDepth) {
-      for (PRUint32 j = 0; j < info.transactions.Length(); j++) {
-        nsRefPtr<IDBTransaction>& transaction = info.transactions[j];
-
-        
-        transaction->mCreating = false;
-
-        
-        
-        if (transaction->mReadyState == nsIIDBTransaction::INITIAL) {
-          transaction->mReadyState = nsIIDBTransaction::DONE;
-        }
-      }
-
-      
-      info.transactions.Clear();
-
-      break;
-    }
-  }
-}
-
-
-bool
-IDBTransaction::
-ThreadObserver::BeginObserving(IDBTransaction* aTransaction)
-{
-  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-  NS_ASSERTION(aTransaction, "Null pointer!");
-
-  nsCOMPtr<nsIThreadInternal2> thread(do_QueryInterface(NS_GetCurrentThread()));
-  NS_ENSURE_TRUE(thread, false);
-
-  
-  PRUint32 depth;
-  nsresult rv = thread->GetRecursionDepth(&depth);
-  NS_ENSURE_SUCCESS(rv, false);
-
-  NS_ASSERTION(depth, "This should never be 0!");
-  depth--;
-
-  
-  
-  if (gThreadObserver) {
-    for (PRUint32 i = 0; i < gThreadObserver->mTransactions.Length(); i++) {
-      TransactionInfo& info = gThreadObserver->mTransactions[i];
-      if (info.recursionDepth == depth) {
-        if (!info.transactions.AppendElement(aTransaction)) {
-          NS_WARNING("Out of memory!");
-          return false;
-        }
-        return true;
-      }
-    }
-
-    
-    TransactionInfo* newInfo = gThreadObserver->mTransactions.AppendElement();
-    if (!newInfo || !newInfo->transactions.AppendElement(aTransaction)) {
-      NS_WARNING("Out of memory!");
-      return false;
-    }
-    newInfo->recursionDepth = depth;
-
-    return true;
-  }
-
-  
-  nsRefPtr<ThreadObserver> observer(new ThreadObserver());
-
-  TransactionInfo* info = observer->mTransactions.AppendElement();
-  NS_ASSERTION(info, "This should never fail!");
-
-  info->recursionDepth = observer->mBaseRecursionDepth = depth;
-
-  if (!info->transactions.AppendElement(aTransaction)) {
-    NS_WARNING("Out of memory!");
-    return false;
-  }
-
-  
-  
-  rv = thread->GetObserver(getter_AddRefs(observer->mPreviousObserver));
-  NS_ENSURE_SUCCESS(rv, false);
-
-  
-  rv = thread->SetObserver(observer);
-  NS_ENSURE_SUCCESS(rv, false);
-
-  
-  gThreadObserver = observer;
-  return true;
-}
-
-NS_IMPL_THREADSAFE_ISUPPORTS1(IDBTransaction::ThreadObserver, nsIThreadObserver)
 
 NS_IMETHODIMP
-IDBTransaction::
-ThreadObserver::OnDispatchedEvent(nsIThreadInternal* aThread)
+IDBTransaction::OnDispatchedEvent(nsIThreadInternal* aThread)
 {
-  
-
-  
-  if (mPreviousObserver) {
-    return mPreviousObserver->OnDispatchedEvent(aThread);
-  }
-
-  return NS_OK;
+  NS_NOTREACHED("Don't call me!");
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-IDBTransaction::
-ThreadObserver::OnProcessNextEvent(nsIThreadInternal* aThread,
+IDBTransaction::OnProcessNextEvent(nsIThreadInternal* aThread,
                                    PRBool aMayWait,
                                    PRUint32 aRecursionDepth)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-  NS_ASSERTION(aThread, "This should never be null!");
-  NS_ASSERTION(!mKungFuDeathGrip, "Shouldn't have a self-ref here!");
-
-  
-  
-  if (aRecursionDepth == mBaseRecursionDepth || mDone) {
-    
-    mDone = true;
-
-    nsCOMPtr<nsIThreadObserver> currentObserver;
-    if (NS_FAILED(aThread->GetObserver(getter_AddRefs(currentObserver)))) {
-      NS_WARNING("Can't get current observer?!");
-    }
-
-    
-    
-    
-    if (currentObserver == this) {
-      
-      
-      mKungFuDeathGrip = this;
-
-      
-      if (NS_FAILED(aThread->SetObserver(mPreviousObserver))) {
-        NS_ERROR("This should never fail!");
-      }
-    }
-  }
-
-  
-  UpdateNewlyCreatedTransactions(aRecursionDepth);
-
-  
-  if (mPreviousObserver) {
-    return mPreviousObserver->OnProcessNextEvent(aThread, aMayWait,
-                                                 aRecursionDepth);
-  }
-
+  NS_ASSERTION(aRecursionDepth > mCreatedRecursionDepth,
+               "Should be impossible!");
+  NS_ASSERTION(mCreating, "Should be true!");
   return NS_OK;
 }
 
 NS_IMETHODIMP
-IDBTransaction::
-ThreadObserver::AfterProcessNextEvent(nsIThreadInternal* aThread,
+IDBTransaction::AfterProcessNextEvent(nsIThreadInternal* aThread,
                                       PRUint32 aRecursionDepth)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
   NS_ASSERTION(aThread, "This should never be null!");
+  NS_ASSERTION(aRecursionDepth >= mCreatedRecursionDepth,
+               "Should be impossible!");
+  NS_ASSERTION(mCreating, "Should be true!");
 
-  nsRefPtr<ThreadObserver> kungFuDeathGrip;
-  nsCOMPtr<nsIThreadObserver> observer;
-
-  if (mKungFuDeathGrip) {
-    NS_ASSERTION(mDone, "Huh?!");
+  if (aRecursionDepth == mCreatedRecursionDepth) {
+    
+    mCreating = false;
 
     
-    kungFuDeathGrip.swap(mKungFuDeathGrip);
+    if (mReadyState == nsIIDBTransaction::INITIAL) {
+      mReadyState = nsIIDBTransaction::DONE;
+    }
 
     
-    observer.swap(mPreviousObserver);
-  }
-  else {
-    
-    observer = mPreviousObserver;
-  }
+    nsCOMPtr<nsIThreadInternal2> thread = do_QueryInterface(aThread);
+    NS_ASSERTION(thread, "This must never fail!");
 
-  
-  
-  UpdateNewlyCreatedTransactions(aRecursionDepth);
-
-  if (observer) {
-    return observer->AfterProcessNextEvent(aThread, aRecursionDepth);
+    if(NS_FAILED(thread->RemoveObserver(this))) {
+      NS_ERROR("Failed to remove observer!");
+    }
   }
 
   return NS_OK;
