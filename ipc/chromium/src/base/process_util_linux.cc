@@ -1,6 +1,6 @@
-
-
-
+// Copyright (c) 2008 The Chromium Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
 
 #include "base/process_util.h"
 
@@ -28,12 +28,24 @@ enum ParsingState {
 
 static mozilla::EnvironmentLog gProcessLog("MOZ_PROCESS_LOG");
 
-}  
+}  // namespace
 
 namespace base {
 
+#if defined(CHROMIUM_MOZILLA_BUILD)
 bool LaunchApp(const std::vector<std::string>& argv,
                const file_handle_mapping_vector& fds_to_remap,
+               bool wait, ProcessHandle* process_handle) {
+  return LaunchApp(argv, fds_to_remap, environment_map(),
+                   wait, process_handle);
+}
+#endif
+
+bool LaunchApp(const std::vector<std::string>& argv,
+               const file_handle_mapping_vector& fds_to_remap,
+#if defined(CHROMIUM_MOZILLA_BUILD)
+               const environment_map& env_vars_to_set,
+#endif
                bool wait, ProcessHandle* process_handle) {
   pid_t pid = fork();
   if (pid < 0)
@@ -51,13 +63,21 @@ bool LaunchApp(const std::vector<std::string>& argv,
 
     CloseSuperfluousFds(fd_shuffle);
 
+#if defined(CHROMIUM_MOZILLA_BUILD)
+    for (environment_map::const_iterator it = env_vars_to_set.begin();
+         it != env_vars_to_set.end(); ++it) {
+      if (setenv(it->first.c_str(), it->second.c_str(), 1/*overwrite*/))
+        exit(127);
+    }
+#endif
+
     scoped_array<char*> argv_cstr(new char*[argv.size() + 1]);
     for (size_t i = 0; i < argv.size(); i++)
       argv_cstr[i] = const_cast<char*>(argv[i].c_str());
     argv_cstr[argv.size()] = NULL;
     execvp(argv_cstr[0], argv_cstr.get());
 #if defined(CHROMIUM_MOZILLA_BUILD)
-    
+    // if we get here, we're in serious trouble and should complain loudly
     DLOG(ERROR) << "FAILED TO exec() CHILD PROCESS, path: " << argv_cstr[0];
 #endif
     exit(127);
@@ -107,23 +127,23 @@ const ProcessEntry* NamedProcessIterator::NextProcessEntry() {
 }
 
 bool NamedProcessIterator::CheckForNextProcess() {
-  
+  // TODO(port): skip processes owned by different UID
 
   dirent* slot = 0;
   const char* openparen;
   const char* closeparen;
 
-  
-  
+  // Arbitrarily guess that there will never be more than 200 non-process
+  // files in /proc.  Hardy has 53.
   int skipped = 0;
   const int kSkipLimit = 200;
   while (skipped < kSkipLimit) {
     slot = readdir(procfs_dir_);
-    
+    // all done looking through /proc?
     if (!slot)
       return false;
 
-    
+    // If not a process, keep looking for one.
     bool notprocess = false;
     int i;
     for (i = 0; i < NAME_MAX && slot->d_name[i]; ++i) {
@@ -137,7 +157,7 @@ bool NamedProcessIterator::CheckForNextProcess() {
       continue;
     }
 
-    
+    // Read the process's status.
     char buf[NAME_MAX + 12];
     sprintf(buf, "/proc/%s/stat", slot->d_name);
     FILE *fp = fopen(buf, "r");
@@ -148,25 +168,25 @@ bool NamedProcessIterator::CheckForNextProcess() {
     if (!result)
       return false;
 
-    
-    
-    
-    
-    
+    // Parse the status.  It is formatted like this:
+    // %d (%s) %c %d ...
+    // pid (name) runstate ppid
+    // To avoid being fooled by names containing a closing paren, scan
+    // backwards.
     openparen = strchr(buf, '(');
     closeparen = strrchr(buf, ')');
     if (!openparen || !closeparen)
       return false;
     char runstate = closeparen[2];
 
-    
-    
+    // Is the process in 'Zombie' state, i.e. dead but waiting to be reaped?
+    // Allowed values: D R S T Z
     if (runstate != 'Z')
       break;
 
-    
-    
-    
+    // Nope, it's a zombie; somebody isn't cleaning up after their children.
+    // (e.g. WaitForProcessesToExit doesn't clean up after dead children yet.)
+    // There could be a lot of zombies, can't really decrement i here.
   }
   if (skipped >= kSkipLimit) {
     NOTREACHED();
@@ -176,8 +196,8 @@ bool NamedProcessIterator::CheckForNextProcess() {
   entry_.pid = atoi(slot->d_name);
   entry_.ppid = atoi(closeparen + 3);
 
-  
-  
+  // TODO(port): read pid's commandline's $0, like killall does.  Using the
+  // short name between openparen and closeparen won't work for long names!
   int len = closeparen - openparen - 1;
   if (len > NAME_MAX)
     len = NAME_MAX;
@@ -188,7 +208,7 @@ bool NamedProcessIterator::CheckForNextProcess() {
 }
 
 bool NamedProcessIterator::IncludeEntry() {
-  
+  // TODO(port): make this also work for non-ASCII filenames
   if (WideToASCII(executable_name_) != entry_.szExeFile)
     return false;
   if (!filter_)
@@ -196,8 +216,8 @@ bool NamedProcessIterator::IncludeEntry() {
   return filter_->Includes(entry_.pid, entry_.ppid);
 }
 
-
-
+// To have /proc/self/io file you must enable CONFIG_TASK_IO_ACCOUNTING
+// in your kernel configuration.
 bool ProcessMetrics::GetIOCounters(IoCounters* io_counters) const {
   std::string proc_io_contents;
   if (!file_util::ReadFileToString(L"/proc/self/io", &proc_io_contents))
@@ -233,4 +253,4 @@ bool ProcessMetrics::GetIOCounters(IoCounters* io_counters) const {
   return true;
 }
 
-}  
+}  // namespace base

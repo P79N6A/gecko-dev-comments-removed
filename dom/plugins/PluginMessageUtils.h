@@ -1,40 +1,40 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: sw=4 ts=4 et :
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Plugin App.
+ *
+ * The Initial Developer of the Original Code is
+ *   Chris Jones <jones.chris.g@gmail.com>
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #ifndef DOM_PLUGINS_PLUGINMESSAGEUTILS_H
 #define DOM_PLUGINS_PLUGINMESSAGEUTILS_H
@@ -59,8 +59,8 @@
 
 namespace mozilla {
 
-
-
+// XXX might want to move these to nscore.h or something, they can be
+// generally useful
 struct void_t { };
 struct null_t { };
 
@@ -76,6 +76,11 @@ mozilla::ipc::RPCChannel::RacyRPCPolicy
 MediateRace(const mozilla::ipc::RPCChannel::Message& parent,
             const mozilla::ipc::RPCChannel::Message& child);
 
+std::string
+MungePluginDsoPath(const std::string& path);
+std::string
+UnmungePluginDsoPath(const std::string& munged);
+
 extern PRLogModuleInfo* gPluginLog;
 
 #if defined(_MSC_VER)
@@ -90,9 +95,9 @@ extern PRLogModuleInfo* gPluginLog;
 #define PLUGIN_LOG_DEBUG_FUNCTION PR_LOG(gPluginLog, PR_LOG_DEBUG, ("%s", FULLFUNCTION))
 #define PLUGIN_LOG_DEBUG_METHOD PR_LOG(gPluginLog, PR_LOG_DEBUG, ("%s [%p]", FULLFUNCTION, (void*) this))
 
-
-
-
+/**
+ * This is NPByteRange without the linked list.
+ */
 struct IPCByteRange
 {
   int32_t offset;
@@ -115,7 +120,7 @@ struct NPRemoteWindow
 #if defined(MOZ_X11) && defined(XP_UNIX) && !defined(XP_MACOSX)
   VisualID visualID;
   Colormap colormap;
-#endif 
+#endif /* XP_UNIX */
 #if defined(XP_WIN)
   base::SharedMemoryHandle surfaceHandle;
 #endif
@@ -126,7 +131,7 @@ typedef HWND NativeWindowHandle;
 #elif defined(MOZ_X11)
 typedef XID NativeWindowHandle;
 #elif defined(XP_MACOSX)
-typedef intptr_t NativeWindowHandle; 
+typedef intptr_t NativeWindowHandle; // never actually used, will always be 0
 #else
 #error Need NativeWindowHandle for this platform
 #endif
@@ -134,11 +139,11 @@ typedef intptr_t NativeWindowHandle;
 #ifdef MOZ_CRASHREPORTER
 typedef CrashReporter::ThreadId NativeThreadId;
 #else
-
+// unused in this case
 typedef int32 NativeThreadId;
 #endif
 
-
+// XXX maybe not the best place for these. better one?
 
 #define VARSTR(v_)  case v_: return #v_
 inline const char* const
@@ -210,8 +215,10 @@ NPNVariableToString(NPNVariable aVar)
 
 inline bool IsPluginThread()
 {
-  MessageLoop::Type type = MessageLoop::current()->type();
-  return type == MessageLoop::TYPE_UI;
+  MessageLoop* loop = MessageLoop::current();
+  if (!loop)
+      return false;
+  return (loop->type() == MessageLoop::TYPE_UI);
 }
 
 inline void AssertPluginThread()
@@ -238,8 +245,8 @@ inline void AssertPluginThread()
 void DeferNPObjectLastRelease(const NPNetscapeFuncs* f, NPObject* o);
 void DeferNPVariantLastRelease(const NPNetscapeFuncs* f, NPVariant* v);
 
-
-
+// in NPAPI, char* == NULL is sometimes meaningful.  the following is
+// helper code for dealing with nullable nsCString's
 inline nsCString
 NullableString(const char* aString)
 {
@@ -270,9 +277,9 @@ struct DeletingObjectEntry : public nsPtrHashKey<NPObject>
   bool mDeleted;
 };
 
-} 
+} /* namespace plugins */
 
-} 
+} /* namespace mozilla */
 
 namespace IPC {
 
@@ -461,8 +468,8 @@ struct ParamTraits<NPNSString*>
 {
   typedef NPNSString* paramType;
 
-  
-  
+  // Empty string writes a length of 0 and no buffer.
+  // We don't write a NULL terminating character in buffers.
   static void Write(Message* aMsg, const paramType& aParam)
   {
     CFStringRef cfString = (CFStringRef)aParam;
@@ -472,7 +479,7 @@ struct ParamTraits<NPNSString*>
       return;
     }
 
-    
+    // Attempt to get characters without any allocation/conversion.
     if (::CFStringGetCharactersPtr(cfString)) {
       aMsg->WriteBytes(::CFStringGetCharactersPtr(cfString), length * sizeof(UniChar));
     } else {
@@ -770,15 +777,15 @@ struct ParamTraits<NPCoordinateSpace>
   }
 };
 
-} 
+} /* namespace IPC */
 
 
-
-
-
-
-
-
+// Serializing NPEvents is completely platform-specific and can be rather
+// intricate depending on the platform.  So for readability we split it
+// into separate files and have the only macro crud live here.
+// 
+// NB: these guards are based on those where struct NPEvent is defined
+// in npapi.h.  They should be kept in sync.
 #if defined(XP_MACOSX)
 #  include "mozilla/plugins/NPEventOSX.h"
 #elif defined(XP_WIN)
@@ -791,4 +798,4 @@ struct ParamTraits<NPCoordinateSpace>
 #  error Unsupported platform
 #endif
 
-#endif 
+#endif /* DOM_PLUGINS_PLUGINMESSAGEUTILS_H */

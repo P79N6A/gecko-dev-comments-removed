@@ -81,6 +81,11 @@ DOMCI_CASTABLE_INTERFACE(nsINodeList, 3, _extra)                              \
 DOMCI_CASTABLE_INTERFACE(nsICSSDeclaration, 4, _extra)
 
 
+
+#define DOMCI_CASTABLE_INTERFACE(_interface, _u1, _u2) class _interface;
+DOMCI_CASTABLE_INTERFACES(unused)
+#undef DOMCI_CASTABLE_INTERFACE
+
 #ifdef _IMPL_NS_LAYOUT
 
 #define DOMCI_CLASS(_dom_class)                                               \
@@ -96,27 +101,41 @@ DOMCI_CASTABLE_INTERFACE(nsICSSDeclaration, 4, _extra)
 
 
 
+#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ > 2) || \
+    _MSC_FULL_VER >= 140050215
 
-#define DOMCI_CASTABLE_INTERFACE(_interface, _bit, _extra)                    \
-class _interface;                                                             \
-inline PRUint32 Implements_##_interface(_interface *foo)                      \
-  { return 1 << _bit; }                                                       \
-inline PRUint32 Implements_##_interface(void *foo)                            \
-  { return 0; }
 
-DOMCI_CASTABLE_INTERFACES()
 
-#undef DOMCI_CASTABLE_INTERFACE
+#define DOMCI_CASTABLE_TO(_interface, _class) __is_base_of(_interface, _class)
+
+#else
 
 
 
 
+
+
+
+
+
+template <typename Interface> struct DOMCI_CastableTo {
+  struct false_type { int x[1]; };
+  struct true_type { int x[2]; };
+  static false_type p(void*);
+  static true_type p(Interface*);
+};
+
+#define DOMCI_CASTABLE_TO(_interface, _class)                                 \
+  (sizeof(DOMCI_CastableTo<_interface>::p(static_cast<_class*>(0))) ==        \
+   sizeof(DOMCI_CastableTo<_interface>::true_type))
+
+#endif
 
 
 
 
 #define DOMCI_CASTABLE_INTERFACE(_interface, _bit, _class)                    \
-  Implements_##_interface((_class*)nsnull) +
+  (DOMCI_CASTABLE_TO(_interface, _class) ? 1 << _bit : 0) +
 
 #define DOMCI_DATA(_dom_class, _class)                                        \
 const PRUint32 kDOMClassInfo_##_dom_class##_interfaces =                      \
