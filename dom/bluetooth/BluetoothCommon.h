@@ -22,43 +22,8 @@ class nsCString;
 
 BEGIN_BLUETOOTH_NAMESPACE
 
-
-
-
-
-
-
-
-
-
-struct BluetoothVariant
-{
-  uint32_t mUint32;
-  nsCString mString;  
-};
-
-
-
-
-
-struct BluetoothNamedVariant
-{
-  nsCString mName;
-  BluetoothVariant mValue;
-};
-
-
-
-
-
-struct BluetoothEvent
-{
-  nsCString mEventName;
-  nsTArray<BluetoothNamedVariant> mValues;
-};
-
-typedef mozilla::Observer<BluetoothEvent> BluetoothEventObserver;
-typedef mozilla::ObserverList<BluetoothEvent> BluetoothEventObserverList;
+class BluetoothSignal;
+typedef mozilla::Observer<BluetoothSignal> BluetoothSignalObserver;
 
 END_BLUETOOTH_NAMESPACE
 
