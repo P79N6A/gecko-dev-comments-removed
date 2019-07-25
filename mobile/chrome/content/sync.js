@@ -52,15 +52,21 @@ let WeaveGlue = {
 
     this.setupData = { account: "", password: "" , synckey: "", serverURL: "" };
 
+    let enableSync = Services.prefs.getBoolPref("browser.sync.enabled");
+    if (enableSync)
+      this._elements.connect.collapsed = false;
+
     
     if (Weave.Status.checkSetup() != Weave.CLIENT_NOT_CONFIGURED) {
-      
-      this._elements.connect.firstChild.disabled = true;
-      this._elements.connect.setAttribute("title", this._bundle.GetStringFromName("connecting.label"));
+      if (enableSync) {
+        
+        this._elements.connect.firstChild.disabled = true;
+        this._elements.connect.setAttribute("title", this._bundle.GetStringFromName("connecting.label"));
 
-      try {
-        this._elements.device.value = Services.prefs.getCharPref("services.sync.client.name");
-      } catch(e) {}
+        try {
+          this._elements.device.value = Services.prefs.getCharPref("services.sync.client.name");
+        } catch(e) {}
+      }
     } else if (Weave.Status.login != Weave.LOGIN_FAILED_NO_USERNAME) {
       this.loadSetupData();
     }
@@ -251,33 +257,36 @@ let WeaveGlue = {
     this._elements.disconnect.collapsed = !show;
   },
 
-  tryConnect: function login() {
-    
-    if (Weave.Status.checkSetup() == Weave.CLIENT_NOT_CONFIGURED) {
-      this.open();
-      return;
+  toggleSyncEnabled: function toggleSyncEnabled() {
+    let enabled = this._elements.autosync.value;
+    if (enabled) {
+      
+      if (this.setupData) {
+        if (this.setupData.serverURL && this.setupData.serverURL.length)
+          Weave.Service.serverURL = this.setupData.serverURL;
+
+        
+        
+        this.observe(null, "", "");
+
+        
+        
+        Weave.Service.login(Weave.Service.username, this.setupData.password, this.setupData.synckey);
+      } else {
+        
+        this._elements.connected.collapsed = true;
+        this._elements.connect.collapsed = false;
+      }
+    } else {
+      this._elements.connect.collapsed = true;
+      this._elements.connected.collapsed = true;
+      Weave.Service.logout();
     }
 
     
-    if (Weave.Service.isLoggedIn) {
-      this.connect();
-      return;
-    }
-
-    
-    if (!this.setupData)
-      return;
-
-    if (this.setupData.serverURL && this.setupData.serverURL.length)
-      Weave.Service.serverURL = this.setupData.serverURL;
-
-    
-    
-    this.observe(null, "", "");
-
-    
-    
-    Weave.Service.login(Weave.Service.username, this.setupData.password, this.setupData.synckey);
+    let notification = this._msg.getNotificationWithValue("undo-disconnect");
+    if (notification)
+      notification.close();
   },
 
   connect: function connect(aSetupData) {
@@ -371,7 +380,7 @@ let WeaveGlue = {
       elements[id] = document.getElementById("syncsetup-" + id);
     });
 
-    let settingids = ["device", "connect", "connected", "disconnect", "sync", "details"];
+    let settingids = ["device", "connect", "connected", "disconnect", "sync", "autosync", "details"];
     settingids.forEach(function(id) {
       elements[id] = document.getElementById("sync-" + id);
     });
@@ -392,15 +401,28 @@ let WeaveGlue = {
     
     let connect = this._elements.connect;
     let connected = this._elements.connected;
+    let autosync = this._elements.autosync;
     let details = this._elements.details;
     let device = this._elements.device;
     let disconnect = this._elements.disconnect;
     let sync = this._elements.sync;
 
+    let syncEnabled = autosync.value;
     let loggedIn = Weave.Service.isLoggedIn;
 
-    connect.collapsed = loggedIn;
-    connected.collapsed = !loggedIn;
+    
+    
+    if (loggedIn && !syncEnabled)
+      syncEnabled = autosync.value = true;
+
+    
+    if (syncEnabled) {
+      connect.collapsed = loggedIn;
+      connected.collapsed = !loggedIn;
+    } else {
+      connect.collapsed = true;
+      connected.collapsed = true;
+    }
 
     if (!loggedIn) {
       connect.setAttribute("title", this._bundle.GetStringFromName("notconnected.label"));
@@ -443,10 +465,14 @@ let WeaveGlue = {
 
     
     if (aTopic == "weave:service:login:error") {
-      if (Weave.Status.login == "service.master_password_locked")
-        Weave.Service.logout();
-      else
+      if (Weave.Status.login == "service.master_password_locked") {
+        
+        
+        autosync.value = false;
+        this.toggleSyncEnabled();
+      } else {
         connect.setAttribute("desc", Weave.Utils.getErrorString(Weave.Status.login));
+      }
     } else {
       connect.removeAttribute("desc");
     }
