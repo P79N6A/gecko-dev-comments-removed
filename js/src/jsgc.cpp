@@ -145,12 +145,12 @@ JS_STATIC_ASSERT(JS_ARRAY_LENGTH(slotsToThingKind) == SLOTS_TO_THING_KIND_LIMIT)
 const uint8 GCThingSizeMap[] = {
     sizeof(JSObject),           
     sizeof(JSObject),           
-    sizeof(JSObject_Slots2),     
-    sizeof(JSObject_Slots2),     
-    sizeof(JSObject_Slots4),     
-    sizeof(JSObject_Slots4),     
-    sizeof(JSObject_Slots8),     
-    sizeof(JSObject_Slots8),     
+    sizeof(JSObject_Slots2),    
+    sizeof(JSObject_Slots2),    
+    sizeof(JSObject_Slots4),    
+    sizeof(JSObject_Slots4),    
+    sizeof(JSObject_Slots8),    
+    sizeof(JSObject_Slots8),    
     sizeof(JSObject_Slots12),   
     sizeof(JSObject_Slots12),   
     sizeof(JSObject_Slots16),   
@@ -196,7 +196,7 @@ Arena<T>::finalize(JSContext *cx)
 {
     JS_ASSERT(aheader.compartment);
     JS_ASSERT(!aheader.getMarkingDelay()->link);
-    
+
     FreeCell *nextFree = aheader.freeList;
     FreeCell *freeList = NULL;
     FreeCell **tailp = &freeList;
@@ -285,12 +285,6 @@ JSCompartment::finishArenaLists()
 {
     for (unsigned i = 0; i < FINALIZE_LIMIT; i++)
         arenas[i].releaseAll(i);
-}
-
-void
-Chunk::clearMarkBitmap()
-{
-    PodZero(&bitmaps[0], ArenasPerChunk);
 }
 
 bool
@@ -1788,7 +1782,7 @@ TriggerCompartmentGC(JSCompartment *comp)
         TriggerGC(rt);
         return;
     }
-    
+
     if (rt->gcIsNeeded) {
         
         if (rt->gcTriggerCompartment != comp)
@@ -2337,7 +2331,7 @@ MarkAndSweep(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind GCTIM
     cx->gcBackgroundFree->setContext(cx);
 #endif
     for (GCChunkSet::Range r(rt->gcChunkSet.all()); !r.empty(); r.popFront())
-         r.front()->clearMarkBitmap();
+         r.front()->bitmap.clear();
 
     if (comp) {
         for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c)
