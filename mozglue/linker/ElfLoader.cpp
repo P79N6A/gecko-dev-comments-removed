@@ -10,6 +10,7 @@
 #include <fcntl.h>
 #include "ElfLoader.h"
 #include "CustomElf.h"
+#include "Mappable.h"
 #include "Logging.h"
 
 using namespace mozilla;
@@ -191,11 +192,30 @@ ElfLoader::Load(const char *path, int flags, LibHandle *parent)
 
   
 
-  AutoCloseFD fd = open(path, O_RDONLY);
-  if (fd != -1) {
-    handle = CustomElf::Load(fd, path, flags);
-    fd.forget();
+
+
+  Mappable *mappable = NULL;
+  RefPtr<Zip> zip;
+  const char *subpath;
+  if ((subpath = strchr(path, '!'))) {
+    char *zip_path = strndup(path, subpath - path);
+    while (*(++subpath) == '/') { }
+    zip = zips.GetZip(zip_path);
+    Zip::Stream s;
+    if (zip && zip->GetStream(subpath, &s)) {
+      if (s.GetType() == Zip::Stream::DEFLATE)
+        mappable = MappableDeflate::Create(name, zip, &s);
+    }
   }
+  
+  if (!mappable && !zip)
+    mappable = MappableFile::Create(path);
+
+  
+  if (mappable)
+    handle = CustomElf::Load(mappable, path, flags);
+
+  
   if (!handle)
     handle = SystemElf::Load(path, flags);
 

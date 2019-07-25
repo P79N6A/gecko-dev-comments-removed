@@ -288,6 +288,9 @@ protected:
 private:
   
   std::vector<DestructorCaller> destructors;
+
+  
+  ZipCollection zips;
 };
 
 #endif 

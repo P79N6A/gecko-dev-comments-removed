@@ -202,6 +202,8 @@ struct Rela: public Elf_(Rela)
 
 } 
 
+class Mappable;
+
 
 
 
@@ -218,7 +220,7 @@ public:
 
 
 
-  static mozilla::TemporaryRef<LibHandle> Load(int fd,
+  static mozilla::TemporaryRef<LibHandle> Load(Mappable *mappable,
                                                const char *path, int flags);
 
   
@@ -251,8 +253,8 @@ private:
   
 
 
-  CustomElf(int fd, const char *path)
-  : LibHandle(path), fd(fd), init(0), fini(0), initialized(false)
+  CustomElf(Mappable *mappable, const char *path)
+  : LibHandle(path), mappable(mappable), init(0), fini(0), initialized(false)
   { }
 
   
@@ -334,7 +336,7 @@ private:
   }
 
   
-  AutoCloseFD fd;
+  Mappable *mappable;
 
   
   MappedPtr base;
