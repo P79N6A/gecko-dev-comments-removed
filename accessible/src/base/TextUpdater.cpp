@@ -122,13 +122,7 @@ TextUpdater::DoUpdate(const nsAString& aNewText, const nsAString& aOldText,
       mDocument->FireDelayedAccessibleEvent(textInsertEvent);
     }
 
-    
-    if (mHyperText->Role() == nsIAccessibleRole::ROLE_ENTRY) {
-      nsRefPtr<AccEvent> valueChangeEvent =
-        new AccEvent(nsIAccessibleEvent::EVENT_VALUE_CHANGE, mHyperText,
-                     eAutoDetect, AccEvent::eRemoveDupes);
-      mDocument->FireDelayedAccessibleEvent(valueChangeEvent);
-    }
+    mDocument->MaybeNotifyOfValueChange(mHyperText);
 
     
     mTextLeaf->SetText(aNewText);
@@ -173,12 +167,7 @@ TextUpdater::DoUpdate(const nsAString& aNewText, const nsAString& aOldText,
   for (PRInt32 idx = events.Length() - 1; idx >= 0; idx--)
     mDocument->FireDelayedAccessibleEvent(events[idx]);
 
-  if (mHyperText->Role() == nsIAccessibleRole::ROLE_ENTRY) {
-    nsRefPtr<AccEvent> valueChangeEvent =
-      new AccEvent(nsIAccessibleEvent::EVENT_VALUE_CHANGE, mHyperText,
-                   eAutoDetect, AccEvent::eRemoveDupes);
-    mDocument->FireDelayedAccessibleEvent(valueChangeEvent);
-  }
+  mDocument->MaybeNotifyOfValueChange(mHyperText);
 
   
   mTextLeaf->SetText(aNewText);

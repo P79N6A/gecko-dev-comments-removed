@@ -207,6 +207,21 @@ public:
   
 
 
+  inline void MaybeNotifyOfValueChange(nsAccessible* aAccessible)
+  {
+    PRUint32 role = aAccessible->Role();
+    if (role == nsIAccessibleRole::ROLE_ENTRY ||
+        role == nsIAccessibleRole::ROLE_COMBOBOX) {
+      nsRefPtr<AccEvent> valueChangeEvent =
+        new AccEvent(nsIAccessibleEvent::EVENT_VALUE_CHANGE, aAccessible,
+                     eAutoDetect, AccEvent::eRemoveDupes);
+      FireDelayedAccessibleEvent(valueChangeEvent);
+    }
+  }
+
+  
+
+
   inline nsAccessible* AnchorJump()
     { return GetAccessibleOrContainer(mAnchorJumpElm); }
 
