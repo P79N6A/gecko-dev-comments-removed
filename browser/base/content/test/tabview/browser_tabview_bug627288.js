@@ -19,10 +19,18 @@ function test() {
 
       whenTabAttrModified(tab, function () {
         tabItem = tab._tabViewTabItem;
-        cw.TabItems.resumeReconnecting();
-        ok(tabItem.isShowingCachedData(), 'tabItem shows cached data');
 
-        testChangeUrlAfterReconnect();
+        
+        
+        tabItem.addSubscriber(tabItem, "loadedCachedImageData", function(item) {
+          item.removeSubscriber(item, "loadedCachedImageData");
+
+          ok(tabItem.isShowingCachedData(), 'tabItem shows cached data');
+
+          testChangeUrlAfterReconnect();
+        });
+
+        cw.TabItems.resumeReconnecting();
       });
     });
   }

@@ -130,6 +130,11 @@ let UI = {
   
   
   
+  isDOMWindowClosing: false,
+
+  
+  
+  
   init: function UI_init() {
     try {
       let self = this;
@@ -241,6 +246,7 @@ let UI = {
       
       function domWinClosedObserver(subject, topic, data) {
         if (topic == "domwindowclosed" && subject == gWindow) {
+          self.isDOMWindowClosing = true;
           if (self.isTabViewVisible())
             GroupItems.removeHiddenGroups();
           TabItems.saveAll(true);

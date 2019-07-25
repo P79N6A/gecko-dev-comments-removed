@@ -328,46 +328,55 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     Utils.assertThrow(!this._reconnected, "shouldn't already be reconnected");
     Utils.assertThrow(this.tab, "should have a xul:tab");
 
-    let tabData = Storage.getTabData(this.tab);
-    if (tabData && TabItems.storageSanity(tabData)) {
-      if (this.parent)
-        this.parent.remove(this, {immediately: true});
+    let tabData = null;
+    let self = this;
+    let imageDataCb = function(imageData) {
+      Utils.assertThrow(tabData, "tabData");
+      
+      tabData.imageData = imageData;
 
-      this.setBounds(tabData.bounds, true);
+      let currentUrl = self.tab.linkedBrowser.currentURI.spec;
+      
+      
+      
+      if (tabData.imageData &&
+          (tabData.url == currentUrl || currentUrl == 'about:blank')) {
+        self.showCachedData(tabData);
+      }
+    };
+    
+    
+    tabData = Storage.getTabData(this.tab, imageDataCb);
+    if (tabData && TabItems.storageSanity(tabData)) {
+      if (self.parent)
+        self.parent.remove(self, {immediately: true});
+
+      self.setBounds(tabData.bounds, true);
 
       if (Utils.isPoint(tabData.userSize))
-        this.userSize = new Point(tabData.userSize);
+        self.userSize = new Point(tabData.userSize);
 
       if (tabData.groupID) {
         var groupItem = GroupItems.groupItem(tabData.groupID);
         if (groupItem) {
-          groupItem.add(this, {immediately: true});
+          groupItem.add(self, {immediately: true});
 
           
           
-          if (this.tab == gBrowser.selectedTab || 
-              (!GroupItems.getActiveGroupItem() && !this.tab.hidden))
-            GroupItems.setActiveGroupItem(this.parent);
+          if (self.tab == gBrowser.selectedTab ||
+              (!GroupItems.getActiveGroupItem() && !self.tab.hidden))
+            GroupItems.setActiveGroupItem(self.parent);
         }
       }
-
-      let currentUrl = this.tab.linkedBrowser.currentURI.spec;
-
-      
-      
-      
-      if (tabData.imageData && (tabData.url == currentUrl ||
-        currentUrl == 'about:blank'))
-        this.showCachedData(tabData);
     } else {
       
       if (!TabItems.creatingNewOrphanTab)
-        GroupItems.newTab(this, {immediately: true});
+        GroupItems.newTab(self, {immediately: true});
     }
 
-    this._reconnected = true;  
-    this.save();
-    this._sendToSubscribers("reconnected");
+    self._reconnected = true;
+    self.save();
+    self._sendToSubscribers("reconnected");
   },
   
   
