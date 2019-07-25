@@ -1037,7 +1037,11 @@ History::Shutdown()
       dont_AddRef(static_cast<Step*>(mPendingVisits.PopFront()));
   }
 
+  
   if (mReadOnlyDBConn) {
+    if (mIsVisitedStatement) {
+      (void)mIsVisitedStatement->Finalize();
+    }
     (void)mReadOnlyDBConn->AsyncClose(nsnull);
   }
 }
