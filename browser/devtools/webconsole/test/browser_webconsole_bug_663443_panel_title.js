@@ -2,7 +2,7 @@
 
 
 
-const TEST_URI = "data:text/html,<p>test for bug 663443. test1";
+const TEST_URI = "data:text/html;charset=utf-8,<p>test for bug 663443. test1";
 
 const POSITION_PREF = "devtools.webconsole.position";
 const POSITION_ABOVE = "above"; 
@@ -40,7 +40,7 @@ function tabLoad(aEvent) {
       executeSoon(finishTest);
     }, true);
 
-    content.location = "data:text/html,<p>test2 for bug 663443";
+    content.location = "data:text/html;charset=utf-8,<p>test2 for bug 663443";
   }, false);
 }
 

@@ -31,7 +31,7 @@ function onLoad(aEvent) {
 
     
     
-    addTab("data:text/html,<script type='text/javascript'>" +
+    addTab("data:text/html;charset=utf-8,<script type='text/javascript'>" +
            "console.timeEnd('bTimer');</script>");
     openConsole();
     browser.addEventListener("load", testTimerIndependenceInTabs, true);
@@ -52,7 +52,7 @@ function testTimerIndependenceInTabs(aEvent) {
     
     
     browser.addEventListener("load", testTimerIndependenceInSameTab, true);
-    content.location = "data:text/html,<script type='text/javascript'>" +
+    content.location = "data:text/html;charset=utf-8,<script type='text/javascript'>" +
            "console.time('bTimer');</script>";
   });
 }
@@ -71,7 +71,7 @@ function testTimerIndependenceInSameTab(aEvent) {
     
     
     browser.addEventListener("load", testTimerIndependenceInSameTabAgain, true);
-    content.location = "data:text/html,<script type='text/javascript'>" +
+    content.location = "data:text/html;charset=utf-8,<script type='text/javascript'>" +
            "console.timeEnd('bTimer');</script>";
   });
 }

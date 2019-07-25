@@ -60,6 +60,7 @@
 #include "mozilla/css/Loader.h"
 #include "mozilla/Util.h" 
 #include "sampler.h"
+#include "nsIScriptError.h"
 
 using namespace mozilla;
 
@@ -808,7 +809,8 @@ nsHtml5TreeOpExecutor::Start()
 
 void
 nsHtml5TreeOpExecutor::NeedsCharsetSwitchTo(const char* aEncoding,
-                                            PRInt32 aSource)
+                                            PRInt32 aSource,
+                                            PRUint32 aLineNumber)
 {
   EndDocUpdate();
 
@@ -831,12 +833,71 @@ nsHtml5TreeOpExecutor::NeedsCharsetSwitchTo(const char* aEncoding,
 
   if (!mParser) {
     
+    if (aSource == kCharsetFromMetaTag) {
+      MaybeComplainAboutCharset("EncLateMetaReload", false, aLineNumber);
+    }
     return;
+  }
+
+  if (aSource == kCharsetFromMetaTag) {
+    MaybeComplainAboutCharset("EncLateMetaTooLate", true, aLineNumber);
   }
 
   GetParser()->ContinueAfterFailedCharsetSwitch();
 
   BeginDocUpdate();
+}
+
+void
+nsHtml5TreeOpExecutor::MaybeComplainAboutCharset(const char* aMsgId,
+                                                 bool aError,
+                                                 PRUint32 aLineNumber)
+{
+  if (mAlreadyComplainedAboutCharset) {
+    return;
+  }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (!strcmp(aMsgId, "EncNoDeclaration") && mDocShell) {
+    nsCOMPtr<nsIDocShellTreeItem> treeItem = do_QueryInterface(mDocShell);
+    nsCOMPtr<nsIDocShellTreeItem> parent;
+    treeItem->GetSameTypeParent(getter_AddRefs(parent));
+    if (parent) {
+      return;
+    }
+  }
+  mAlreadyComplainedAboutCharset = true;
+  nsContentUtils::ReportToConsole(aError ? nsIScriptError::errorFlag
+                                         : nsIScriptError::warningFlag,
+                                  "HTML parser",
+                                  mDocument,
+                                  nsContentUtils::eHTMLPARSER_PROPERTIES,
+                                  aMsgId,
+                                  nsnull,
+                                  0,
+                                  nsnull,
+                                  EmptyString(),
+                                  aLineNumber);
+}
+
+void
+nsHtml5TreeOpExecutor::ComplainAboutBogusProtocolCharset(nsIDocument* aDoc)
+{
+  NS_ASSERTION(!mAlreadyComplainedAboutCharset,
+               "How come we already managed to complain?");
+  mAlreadyComplainedAboutCharset = true;
+  nsContentUtils::ReportToConsole(nsIScriptError::errorFlag,
+                                  "HTML parser",
+                                  aDoc,
+                                  nsContentUtils::eHTMLPARSER_PROPERTIES,
+                                  "EncProtocolUnsupported");
 }
 
 nsHtml5Parser*

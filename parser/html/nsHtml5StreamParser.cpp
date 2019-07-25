@@ -277,7 +277,9 @@ nsHtml5StreamParser::Notify(const char* aCharset, nsDetectionConfident aConf)
         
         
         nsCAutoString charset(aCharset);
-        mTreeBuilder->NeedsCharsetSwitchTo(charset, kCharsetFromAutoDetection);
+        mTreeBuilder->NeedsCharsetSwitchTo(charset,
+                                           kCharsetFromAutoDetection,
+                                           0);
         FlushTreeOpsAndDisarmTimer();
         Interrupt();
       }
@@ -433,6 +435,10 @@ nsHtml5StreamParser::SniffBOMlessUTF16BasicLatin(const PRUint8* aFromSegment,
   mCharsetSource = kCharsetFromIrreversibleAutoDetection;
   mTreeBuilder->SetDocumentCharset(mCharset, mCharsetSource);
   mFeedChardet = false;
+  mTreeBuilder->MaybeComplainAboutCharset("EncBomlessUtf16",
+                                          true,
+                                          0);
+
 }
 
 void
@@ -978,6 +984,11 @@ nsHtml5StreamParser::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
     }
   }
 
+  if (mCharsetSource == kCharsetFromParentFrame) {
+    
+    mInitialEncodingWasFromParentFrame = true;
+  }
+
   if (mCharsetSource >= kCharsetFromAutoDetection) {
     mFeedChardet = false;
   }
@@ -1177,6 +1188,9 @@ nsHtml5StreamParser::PreferredForInternalEncodingDecl(nsACString& aEncoding)
   if (newEncoding.LowerCaseEqualsLiteral("utf-16") ||
       newEncoding.LowerCaseEqualsLiteral("utf-16be") ||
       newEncoding.LowerCaseEqualsLiteral("utf-16le")) {
+    mTreeBuilder->MaybeComplainAboutCharset("EncMetaUtf16",
+                                            true,
+                                            mTokenizer->getLineNumber());
     newEncoding.Assign("UTF-8");
   }
 
@@ -1184,10 +1198,24 @@ nsHtml5StreamParser::PreferredForInternalEncodingDecl(nsACString& aEncoding)
   bool eq;
   rv = nsCharsetAlias::Equals(newEncoding, mCharset, &eq);
   if (NS_FAILED(rv)) {
-    NS_NOTREACHED("Charset name equality check failed.");
+    
+    mTreeBuilder->MaybeComplainAboutCharset("EncMetaUnsupported",
+                                            true,
+                                            mTokenizer->getLineNumber());
     return false;
   }
   if (eq) {
+    if (mCharsetSource < kCharsetFromMetaPrescan) {
+      if (mInitialEncodingWasFromParentFrame) {
+        mTreeBuilder->MaybeComplainAboutCharset("EncLateMetaFrame",
+                                                false,
+                                                mTokenizer->getLineNumber());
+      } else {
+        mTreeBuilder->MaybeComplainAboutCharset("EncLateMeta",
+                                                false,
+                                                mTokenizer->getLineNumber());
+      }
+    }
     mCharsetSource = kCharsetFromMetaTag; 
     mFeedChardet = false; 
     return false;
@@ -1199,7 +1227,7 @@ nsHtml5StreamParser::PreferredForInternalEncodingDecl(nsACString& aEncoding)
   
   rv = nsCharsetAlias::GetPreferred(newEncoding, preferred);
   if (NS_FAILED(rv)) {
-    
+    NS_NOTREACHED("Finding the preferred name failed.");
     return false;
   }
   
@@ -1212,6 +1240,9 @@ nsHtml5StreamParser::PreferredForInternalEncodingDecl(nsACString& aEncoding)
       preferred.LowerCaseEqualsLiteral("x-imap4-modified-utf7") ||
       preferred.LowerCaseEqualsLiteral("x-user-defined")) {
     
+    mTreeBuilder->MaybeComplainAboutCharset("EncMetaNonRoughSuperset",
+                                            true,
+                                            mTokenizer->getLineNumber());
     return false;
   }
   aEncoding.Assign(preferred);
@@ -1229,10 +1260,6 @@ nsHtml5StreamParser::internalEncodingDeclaration(nsString* aEncoding)
     return false;
   }
 
-  if (mReparseForbidden) {
-    return false; 
-  }
-
   nsCAutoString newEncoding;
   CopyUTF16toUTF8(*aEncoding, newEncoding);
 
@@ -1240,10 +1267,23 @@ nsHtml5StreamParser::internalEncodingDeclaration(nsString* aEncoding)
     return false;
   }
 
+  if (mReparseForbidden) {
+    
+    
+    
+    
+    mTreeBuilder->MaybeComplainAboutCharset("EncLateMetaTooLate",
+                                            true,
+                                            mTokenizer->getLineNumber());
+    return false; 
+  }
+
   
   
   mFeedChardet = false;
-  mTreeBuilder->NeedsCharsetSwitchTo(newEncoding, kCharsetFromMetaTag);
+  mTreeBuilder->NeedsCharsetSwitchTo(newEncoding,
+                                     kCharsetFromMetaTag,
+                                     mTokenizer->getLineNumber());
   FlushTreeOpsAndDisarmTimer();
   Interrupt();
   
@@ -1307,6 +1347,26 @@ nsHtml5StreamParser::ParseAvailableData()
               return;
             }
             mAtEOF = true;
+            if (mCharsetSource < kCharsetFromMetaTag) {
+              if (mInitialEncodingWasFromParentFrame) {
+                
+                
+                
+                
+                
+                mTreeBuilder->MaybeComplainAboutCharset("EncNoDeclarationFrame",
+                                                        false,
+                                                        0);
+              } else if (mMode == NORMAL) {
+                mTreeBuilder->MaybeComplainAboutCharset("EncNoDeclaration",
+                                                        true,
+                                                        0);
+              } else if (mMode == PLAIN_TEXT) {
+                mTreeBuilder->MaybeComplainAboutCharset("EncNoDeclarationPlain",
+                                                        true,
+                                                        0);
+              }
+            }
             mTokenizer->eof();
             mTreeBuilder->StreamEnded();
             if (mMode == VIEW_SOURCE_HTML || mMode == VIEW_SOURCE_XML) {

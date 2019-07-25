@@ -12,7 +12,7 @@
 
 
 
-const TEST_URI = "data:text/html,Web Console test for bug 595350";
+const TEST_URI = "data:text/html;charset=utf-8,Web Console test for bug 595350";
 
 let win1 = window, win2;
 let openTabs = [];

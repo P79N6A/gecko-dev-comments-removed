@@ -2,7 +2,7 @@
 
 
 
-const TEST_URI = "data:text/html,<p>test for bug 577721";
+const TEST_URI = "data:text/html;charset=utf-8,<p>test for bug 577721";
 
 const POSITION_PREF = "devtools.webconsole.position";
 

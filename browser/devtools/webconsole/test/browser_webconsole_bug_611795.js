@@ -2,7 +2,7 @@
 
 
 
-const TEST_URI = 'data:text/html,<div style="-moz-opacity:0;">test repeated' +
+const TEST_URI = 'data:text/html;charset=utf-8,<div style="-moz-opacity:0;">test repeated' +
                  ' css warnings</div><p style="-moz-opacity:0">hi</p>';
 
 function onContentLoaded()
