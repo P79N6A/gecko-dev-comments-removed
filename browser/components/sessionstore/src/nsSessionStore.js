@@ -1333,8 +1333,19 @@ SessionStoreService.prototype = {
   },
 
   deleteTabValue: function sss_deleteTabValue(aTab, aKey) {
-    if (aTab.__SS_extdata && aTab.__SS_extdata[aKey])
-      delete aTab.__SS_extdata[aKey];
+    
+    
+    
+    let deleteFrom;
+    if (aTab.__SS_extdata) {
+      deleteFrom = aTab.__SS_extdata;
+    }
+    else if (aTab.linkedBrowser.__SS_data && aTab.linkedBrowser.__SS_data.extData) {
+      deleteFrom = aTab.linkedBrowser.__SS_data.extData;
+    }
+
+    if (deleteFrom && deleteFrom[aKey])
+      delete deleteFrom[aKey];
     else
       throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
   },
