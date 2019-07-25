@@ -547,6 +547,13 @@ public:
 
   virtual PRBool IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder)
   { return PR_FALSE; }
+  
+
+
+
+
+  virtual PRBool IsFixedAndCoveringViewport(nsDisplayListBuilder* aBuilder)
+  { return PR_FALSE; }
 
   
 
@@ -1290,13 +1297,16 @@ public:
   {
     aOutFrames->AppendElement(mFrame);
   }
+  virtual PRBool ComputeVisibility(nsDisplayListBuilder* aBuilder,
+                                   nsRegion* aVisibleRegion,
+                                   nsRegion* aVisibleRegionBeforeMove);
   virtual PRBool IsOpaque(nsDisplayListBuilder* aBuilder);
   virtual PRBool IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder);
   virtual PRBool IsUniform(nsDisplayListBuilder* aBuilder, nscolor* aColor);
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder);
   virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx);
   NS_DISPLAY_DECL_NAME("Background", TYPE_BACKGROUND)
-private:
+protected:
   
   PRPackedBool mIsThemed;
   nsITheme::Transparency mThemeTransparency;

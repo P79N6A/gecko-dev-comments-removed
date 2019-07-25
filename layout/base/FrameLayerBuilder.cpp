@@ -877,6 +877,18 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
                                                 &offsetToActiveScrolledRoot);
       NS_ASSERTION(offsetToActiveScrolledRoot == f->GetOffsetTo(activeScrolledRoot),
                    "Wrong offset");
+      if (item->IsFixedAndCoveringViewport(mBuilder)) {
+        
+        
+        
+        
+        nsIFrame* viewportFrame =
+          nsLayoutUtils::GetClosestFrameOfType(f, nsGkAtoms::viewportFrame);
+        NS_ASSERTION(viewportFrame, "no viewport???");
+        activeScrolledRoot =
+          nsLayoutUtils::GetActiveScrolledRootFor(viewportFrame, mBuilder->ReferenceFrame(),
+                                                  &offsetToActiveScrolledRoot);
+      }
 
       nscolor uniformColor;
       PRBool isUniform = item->IsUniform(mBuilder, &uniformColor);
