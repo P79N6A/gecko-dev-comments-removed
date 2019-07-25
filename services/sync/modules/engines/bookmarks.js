@@ -755,13 +755,13 @@ BookmarksEngine.prototype = {
     
 
     let self = yield;
-    let ret = yield this._sharing.getNewShares(self.cb);
+    
     this.__proto__.__proto__._sync.async(this, self.cb );
     yield;
-    this._sharing.updateAllOutgoingShares(self.cb);
-    yield;
-    this._sharing.updateAllIncomingShares(self.cb);
-    yield;
+    
+    
+    
+    
     self.done();
   },
 
