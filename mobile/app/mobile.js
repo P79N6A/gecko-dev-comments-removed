@@ -37,8 +37,8 @@
 #filter substitution
 
 
-pref("toolkit.browser.cachePixelX", 800);
-pref("toolkit.browser.cachePixelY", 2000);
+pref("toolkit.browser.cachePixelX", 580);
+pref("toolkit.browser.cachePixelY", 1000);
 pref("toolkit.browser.recacheRatio", 60);
 
 pref("toolkit.defaultChromeURI", "chrome://browser/content/browser.xul");
