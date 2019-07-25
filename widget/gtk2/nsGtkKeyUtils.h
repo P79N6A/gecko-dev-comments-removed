@@ -40,6 +40,7 @@
 #define __nsGdkKeyUtils_h__
 
 #include "nsEvent.h"
+#include "nsTArray.h"
 
 #include <gdk/gdk.h>
 
@@ -63,6 +64,30 @@ namespace widget {
 
 class KeymapWrapper
 {
+public:
+    
+
+
+    enum Modifier {
+        NOT_MODIFIER       = 0x0000,
+        CAPS_LOCK          = 0x0001,
+        NUM_LOCK           = 0x0002,
+        SCROLL_LOCK        = 0x0004,
+        SHIFT              = 0x0008,
+        CTRL               = 0x0010,
+        ALT                = 0x0020,
+        SUPER              = 0x0040,
+        HYPER              = 0x0080,
+        META               = 0x0100,
+        ALTGR              = 0x0200
+    };
+
+    
+
+
+
+    typedef PRUint32 Modifiers;
+
 protected:
 
     
@@ -76,6 +101,63 @@ protected:
     ~KeymapWrapper();
 
     bool mInitialized;
+
+    
+
+
+    void Init();
+    void InitBySystemSettings();
+
+    
+
+
+    struct ModifierKey {
+        guint mHardwareKeycode;
+        guint mMask;
+
+        ModifierKey(guint aHardwareKeycode) :
+          mHardwareKeycode(aHardwareKeycode), mMask(0)
+        {
+        }
+    };
+    nsTArray<ModifierKey> mModifierKeys;
+
+    
+
+
+
+    ModifierKey* GetModifierKey(guint aHardwareKeycode);
+
+    
+
+
+
+    enum ModifierIndex {
+        INDEX_NUM_LOCK,
+        INDEX_SCROLL_LOCK,
+        INDEX_ALT,
+        INDEX_SUPER,
+        INDEX_HYPER,
+        INDEX_META,
+        INDEX_ALTGR,
+        COUNT_OF_MODIFIER_INDEX
+    };
+    guint mModifierMasks[COUNT_OF_MODIFIER_INDEX];
+
+    guint GetModifierMask(Modifier aModifier) const;
+
+    
+
+
+
+
+
+
+    static Modifier GetModifierForGDKKeyval(guint aGdkKeyval);
+
+#ifdef PR_LOGGING
+    static const char* GetModifierName(Modifier aModifier);
+#endif 
 
     
 
@@ -98,4 +180,4 @@ protected:
 } 
 } 
 
-#endif 
+#endif
