@@ -4201,10 +4201,8 @@ nsTreeBodyFrame::GetPseudoStyleContext(nsIAtom* aPseudoElement)
 
 
 PRBool
-nsTreeBodyFrame::PseudoMatches(nsIAtom* aTag, nsCSSSelector* aSelector)
+nsTreeBodyFrame::PseudoMatches(nsCSSSelector* aSelector)
 {
-  NS_ABORT_IF_FALSE(aSelector->mLowercaseTag == aTag,
-                   "should not have been called");
   
   
   
