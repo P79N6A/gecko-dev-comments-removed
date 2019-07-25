@@ -129,6 +129,8 @@ static PRLogModuleInfo* gJSDiagnostics;
 
 #define NS_GC_DELAY                 4000 // ms
 
+#define NS_SHRINK_GC_BUFFERS_DELAY  4000 // ms
+
 
 
 #define NS_FIRST_GC_DELAY           10000 // ms
@@ -142,6 +144,7 @@ static PRLogModuleInfo* gJSDiagnostics;
 
 
 static nsITimer *sGCTimer;
+static nsITimer *sShrinkGCBuffersTimer;
 static nsITimer *sCCTimer;
 
 static bool sGCHasRun;
@@ -1098,8 +1101,9 @@ nsJSContext::~nsJSContext()
 void
 nsJSContext::DestroyJSContext()
 {
-  if (!mContext)
+  if (!mContext) {
     return;
+  }
 
   
   ::JS_SetContextPrivate(mContext, nsnull);
@@ -1108,14 +1112,14 @@ nsJSContext::DestroyJSContext()
   Preferences::UnregisterCallback(JSOptionChangedCallback,
                                   js_options_dot_str, this);
 
-  bool do_gc = mGCOnDestruction && !sGCTimer;
-
+  if (mGCOnDestruction) {
+    PokeGC();
+  }
+        
   
   nsIXPConnect *xpc = nsContentUtils::XPConnect();
   if (xpc) {
-    xpc->ReleaseJSContext(mContext, !do_gc);
-  } else if (do_gc) {
-    ::JS_DestroyContext(mContext);
+    xpc->ReleaseJSContext(mContext, true);
   } else {
     ::JS_DestroyContextNoGC(mContext);
   }
@@ -3224,6 +3228,7 @@ nsJSContext::GarbageCollectNow(bool shrinkingGC)
   SAMPLE_LABEL("GC", "GarbageCollectNow");
 
   KillGCTimer();
+  KillShrinkGCBuffersTimer();
 
   
   
@@ -3237,6 +3242,18 @@ nsJSContext::GarbageCollectNow(bool shrinkingGC)
   if (nsContentUtils::XPConnect()) {
     nsContentUtils::XPConnect()->GarbageCollect(shrinkingGC);
   }
+}
+
+
+void
+nsJSContext::ShrinkGCBuffersNow()
+{
+  NS_TIME_FUNCTION_MIN(1.0);
+  SAMPLE_LABEL("GC", "ShrinkGCBuffersNow");
+
+  KillShrinkGCBuffersTimer();
+
+  JS_ShrinkGCBuffers(nsJSRuntime::sRuntime);
 }
 
 
@@ -3294,6 +3311,14 @@ GCTimerFired(nsITimer *aTimer, void *aClosure)
   NS_RELEASE(sGCTimer);
 
   nsJSContext::GarbageCollectNow();
+}
+
+void
+ShrinkGCBuffersTimerFired(nsITimer *aTimer, void *aClosure)
+{
+  NS_RELEASE(sShrinkGCBuffersTimer);
+
+  nsJSContext::ShrinkGCBuffersNow();
 }
 
 
@@ -3361,6 +3386,26 @@ nsJSContext::PokeGC()
 
 
 void
+nsJSContext::PokeShrinkGCBuffers()
+{
+  if (sShrinkGCBuffersTimer) {
+    return;
+  }
+
+  CallCreateInstance("@mozilla.org/timer;1", &sShrinkGCBuffersTimer);
+
+  if (!sShrinkGCBuffersTimer) {
+    
+    return;
+  }
+
+  sShrinkGCBuffersTimer->InitWithFuncCallback(ShrinkGCBuffersTimerFired, nsnull,
+                                              NS_SHRINK_GC_BUFFERS_DELAY,
+                                              nsITimer::TYPE_ONE_SHOT);
+}
+
+
+void
 nsJSContext::MaybePokeCC()
 {
   if (nsCycleCollector_suspectedCount() > 1000) {
@@ -3397,6 +3442,17 @@ nsJSContext::KillGCTimer()
     sGCTimer->Cancel();
 
     NS_RELEASE(sGCTimer);
+  }
+}
+
+
+void
+nsJSContext::KillShrinkGCBuffersTimer()
+{
+  if (sShrinkGCBuffersTimer) {
+    sShrinkGCBuffersTimer->Cancel();
+
+    NS_RELEASE(sShrinkGCBuffersTimer);
   }
 }
 
@@ -3467,8 +3523,9 @@ DOMGCFinishedCallback(JSRuntime *rt, JSCompartment *comp, const char *status)
 
   
   
-  if (!sGCTimer && JS_GetGCParameter(rt, JSGC_UNUSED_CHUNKS) > 0) {
-    nsJSContext::PokeGC();
+  nsJSContext::KillShrinkGCBuffersTimer();
+  if (!sGCTimer) {
+    nsJSContext::PokeShrinkGCBuffers();
   }
 }
 
@@ -3808,6 +3865,7 @@ void
 nsJSRuntime::Shutdown()
 {
   nsJSContext::KillGCTimer();
+  nsJSContext::KillShrinkGCBuffersTimer();
   nsJSContext::KillCCTimer();
 
   NS_IF_RELEASE(gNameSpaceManager);
