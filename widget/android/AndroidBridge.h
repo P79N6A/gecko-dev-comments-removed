@@ -55,6 +55,7 @@
 #include "nsIMutableArray.h"
 #include "nsIMIMEInfo.h"
 #include "nsColor.h"
+#include "BasicLayers.h"
 
 #include "nsIAndroidBridge.h"
 
@@ -71,6 +72,10 @@ extern "C" JNIEnv * GetJNIForThread();
 extern bool mozilla_AndroidBridge_SetMainThread(void *);
 extern jclass GetGeckoAppShellClass();
 
+namespace base {
+class Thread;
+} 
+
 namespace mozilla {
 
 namespace hal {
@@ -82,6 +87,10 @@ namespace dom {
 namespace sms {
 struct SmsFilterData;
 } 
+} 
+
+namespace layers {
+class CompositorParent;
 } 
 
 
@@ -391,6 +400,11 @@ public:
     void EnableNetworkNotifications();
     void DisableNetworkNotifications();
 
+    void SetCompositorParent(mozilla::layers::CompositorParent* aCompositorParent,
+                             base::Thread* aCompositorThread);
+    void ScheduleComposite();
+    void GetViewTransform(nsIntPoint& aScrollOffset, float& aScaleX, float& aScaleY);
+
 protected:
     static AndroidBridge *sBridge;
 
@@ -407,10 +421,15 @@ protected:
     AndroidGeckoLayerClient *mLayerClient;
     int mLayerClientType;
 
+    nsRefPtr<mozilla::layers::CompositorParent> mCompositorParent;
+    base::Thread *mCompositorThread;
+
     
     jclass mGeckoAppShellClass;
 
-    AndroidBridge() : mLayerClient(NULL), mLayerClientType(0) { }
+    AndroidBridge();
+    ~AndroidBridge();
+
     bool Init(JNIEnv *jEnv, jclass jGeckoApp);
 
     bool mOpenedGraphicsLibraries;
