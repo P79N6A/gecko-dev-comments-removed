@@ -84,17 +84,7 @@ class nsIntervalSet;
 
 
 
-#define NS_BLOCK_LIST_COUNT  (NS_CONTAINER_LIST_COUNT_INCL_OC + 4)
-
-
-
-
-
-
-
-
-
-
+#define NS_BLOCK_LIST_COUNT  (NS_CONTAINER_LIST_COUNT_INCL_OC + 5)
 
 
 
@@ -126,6 +116,7 @@ class nsIntervalSet;
 
 
 #define NS_BLOCK_NEEDS_BIDI_RESOLUTION      NS_FRAME_STATE_BIT(20)
+#define NS_BLOCK_HAS_FLOAT_CONTINUATIONS    NS_FRAME_STATE_BIT(21)
 #define NS_BLOCK_HAS_LINE_CURSOR            NS_FRAME_STATE_BIT(24)
 #define NS_BLOCK_HAS_OVERFLOW_LINES         NS_FRAME_STATE_BIT(25)
 #define NS_BLOCK_HAS_OVERFLOW_OUT_OF_FLOWS  NS_FRAME_STATE_BIT(26)
@@ -166,7 +157,10 @@ public:
 
   friend nsIFrame* NS_NewBlockFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, PRUint32 aFlags);
 
-  NS_DECLARE_FRAME_PROPERTY(FloatContinuationProperty, nsnull)
+  
+  
+  NS_DECLARE_FRAME_PROPERTY(FloatContinuationProperty,
+                            nsContainerFrame::DestroyFrameList)
 
   
   NS_DECL_QUERYFRAME
@@ -727,6 +721,14 @@ protected:
 
   nsFrameList* GetOverflowOutOfFlows() const;
   void SetOverflowOutOfFlows(const nsFrameList& aList, nsFrameList* aPropValue);
+
+  
+  nsFrameList* GetFloatContinuations() const;
+  
+  
+  nsFrameList* EnsureFloatContinuations();
+  
+  nsFrameList* RemoveFloatContinuations();
 
 #ifdef NS_DEBUG
   void VerifyLines(PRBool aFinalCheckOK);

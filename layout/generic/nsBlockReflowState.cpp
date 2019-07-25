@@ -71,6 +71,7 @@ nsBlockReflowState::nsBlockReflowState(const nsHTMLReflowState& aReflowState,
   : mBlock(aFrame),
     mPresContext(aPresContext),
     mReflowState(aReflowState),
+    mFloatContinuations(nsnull),
     mOverflowTracker(nsnull),
     mPrevBottomMargin(),
     mLineNumber(0),
@@ -149,19 +150,11 @@ nsBlockReflowState::nsBlockReflowState(const nsHTMLReflowState& aReflowState,
 
 nsBlockReflowState::~nsBlockReflowState()
 {
-  NS_ASSERTION(mFloatContinuations.IsEmpty(),
-               "Leaking float continuation frames");
-
   
   
   if (mFloatManager) {
     const nsMargin& borderPadding = BorderPadding();
     mFloatManager->Translate(-borderPadding.left, -borderPadding.top);
-  }
-
-  if (GetFlag(BRS_PROPTABLE_FLOATCLIST)) {
-    mPresContext->PropertyTable()->
-      Delete(mBlock, nsBlockFrame::FloatContinuationProperty());
   }
 }
 
@@ -434,10 +427,16 @@ nsBlockReflowState::ReconstructMarginAbove(nsLineList::iterator aLine)
 void
 nsBlockReflowState::SetupFloatContinuationList()
 {
+  NS_ABORT_IF_FALSE(!GetFlag(BRS_PROPTABLE_FLOATCLIST) == !mFloatContinuations,
+                    "flag mismatch");
   if (!GetFlag(BRS_PROPTABLE_FLOATCLIST)) {
-    mPresContext->PropertyTable()->
-      Set(mBlock, nsBlockFrame::FloatContinuationProperty(),
-          &mFloatContinuations);
+    
+    
+    
+    
+    
+    
+    mFloatContinuations = mBlock->EnsureFloatContinuations();
     SetFlag(BRS_PROPTABLE_FLOATCLIST, PR_TRUE);
   }
 }
