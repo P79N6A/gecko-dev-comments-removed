@@ -156,6 +156,12 @@ JS_STATIC_ASSERT(offsetof(JSFrameRegs, sp) == 0);
 # define SYMBOL_STRING_RELOC(name) SYMBOL_STRING(name)
 #endif
 
+#if defined(XP_WIN) && defined(JS_CPU_X86)
+# define SYMBOL_STRING_VMFRAME(name) "@" #name "@4"
+#else
+# define SYMBOL_STRING_VMFRAME(name) SYMBOL_STRING_RELOC(name)
+#endif
+
 #if defined(XP_MACOSX)
 # define HIDE_SYMBOL(name) ".private_extern _" #name
 #elif defined(__linux__)
@@ -228,16 +234,16 @@ SYMBOL_STRING(JaegerTrampoline) ":"       "\n"
     
     "pushq %rdx"                         "\n"
     "movq  %rsp, %rdi"                   "\n"
-    "call " SYMBOL_STRING_RELOC(SetVMFrameRegs) "\n"
+    "call " SYMBOL_STRING_VMFRAME(SetVMFrameRegs) "\n"
     "movq  %rsp, %rdi"                   "\n"
-    "call " SYMBOL_STRING_RELOC(PushActiveVMFrame) "\n"
+    "call " SYMBOL_STRING_VMFRAME(PushActiveVMFrame) "\n"
 
     
 
 
     "call *0(%rsp)"                      "\n"
     "movq %rsp, %rdi"                    "\n"
-    "call " SYMBOL_STRING_RELOC(PopActiveVMFrame) "\n"
+    "call " SYMBOL_STRING_VMFRAME(PopActiveVMFrame) "\n"
 
     "addq $0x58, %rsp"                   "\n"
     "popq %rbx"                          "\n"
@@ -261,7 +267,7 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
     "jmp  *%rax"                            "\n"
   "throwpoline_exit:"                       "\n"
     "movq %rsp, %rdi"                       "\n"
-    "call " SYMBOL_STRING_RELOC(PopActiveVMFrame) "\n"
+    "call " SYMBOL_STRING_VMFRAME(PopActiveVMFrame) "\n"
     "addq $0x58, %rsp"                      "\n"
     "popq %rbx"                             "\n"
     "popq %r15"                             "\n"
@@ -335,13 +341,13 @@ SYMBOL_STRING(JaegerTrampoline) ":"       "\n"
 
     
     "movl  %esp, %ecx"                   "\n"
-    "call " SYMBOL_STRING_RELOC(SetVMFrameRegs) "\n"
+    "call " SYMBOL_STRING_VMFRAME(SetVMFrameRegs) "\n"
     "movl  %esp, %ecx"                   "\n"
-    "call " SYMBOL_STRING_RELOC(PushActiveVMFrame) "\n"
+    "call " SYMBOL_STRING_VMFRAME(PushActiveVMFrame) "\n"
 
     "call  *16(%ebp)"                    "\n"
     "movl  %esp, %ecx"                   "\n"
-    "call " SYMBOL_STRING_RELOC(PopActiveVMFrame) "\n"
+    "call " SYMBOL_STRING_VMFRAME(PopActiveVMFrame) "\n"
 
     "addl $0x2C, %esp"                   "\n"
     "popl %ebx"                          "\n"
@@ -371,7 +377,7 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
     "jmp  *%eax"                         "\n"
   "throwpoline_exit:"                    "\n"
     "movl %esp, %ecx"                    "\n"
-    "call " SYMBOL_STRING_RELOC(PopActiveVMFrame) "\n"
+    "call " SYMBOL_STRING_VMFRAME(PopActiveVMFrame) "\n"
     "addl $0x2c, %esp"                   "\n"
     "popl %ebx"                          "\n"
     "popl %edi"                          "\n"
@@ -503,16 +509,16 @@ SYMBOL_STRING(JaegerTrampoline) ":"         "\n"
 "   mov     r11, r1"                            "\n"
 
 "   mov     r0, sp"                             "\n"
-"   bl  " SYMBOL_STRING_RELOC(SetVMFrameRegs)   "\n"
+"   bl  " SYMBOL_STRING_VMFRAME(SetVMFrameRegs)   "\n"
 "   mov     r0, sp"                             "\n"
-"   bl  " SYMBOL_STRING_RELOC(PushActiveVMFrame)"\n"
+"   bl  " SYMBOL_STRING_VMFRAME(PushActiveVMFrame)"\n"
 
     
 "   blx     r4"                                 "\n"
 
     
 "   mov     r0, sp"                             "\n"
-"   bl  " SYMBOL_STRING_RELOC(PopActiveVMFrame) "\n"
+"   bl  " SYMBOL_STRING_VMFRAME(PopActiveVMFrame) "\n"
 
     
 "   add     sp, sp, #(4*7 + 4*4)"               "\n"
@@ -540,7 +546,7 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
 
     
 "   mov     r0, sp"                             "\n"
-"   bl  " SYMBOL_STRING_RELOC(PopActiveVMFrame) "\n"
+"   bl  " SYMBOL_STRING_VMFRAME(PopActiveVMFrame) "\n"
 "   add     sp, sp, #(4*7 + 4*4)"               "\n"
 "   mov     r0, #0"                         "\n"
 "   pop     {r4-r11,pc}"                    "\n"
