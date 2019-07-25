@@ -38,7 +38,7 @@
 
 
 #include "nsIAtom.h"
-#include "txAtoms.h"
+#include "nsGkAtoms.h"
 #include "txExecutionState.h"
 #include "txExpr.h"
 #include "txIXPathContext.h"
@@ -218,22 +218,22 @@ static const char kEXSLTDatesAndTimesNS[] = "http://exslt.org/dates-and-times";
 
 static txEXSLTFunctionDescriptor descriptTable[] =
 {
-    { 1, 1, Expr::NODESET_RESULT, &txXSLTAtoms::nodeSet, 0, kEXSLTCommonNS }, 
-    { 1, 1, Expr::STRING_RESULT,  &txXSLTAtoms::objectType, 0, kEXSLTCommonNS }, 
-    { 2, 2, Expr::NODESET_RESULT, &txXSLTAtoms::difference, 0, kEXSLTSetsNS }, 
-    { 1, 1, Expr::NODESET_RESULT, &txXSLTAtoms::distinct, 0, kEXSLTSetsNS }, 
-    { 2, 2, Expr::BOOLEAN_RESULT, &txXSLTAtoms::hasSameNode, 0, kEXSLTSetsNS }, 
-    { 2, 2, Expr::NODESET_RESULT, &txXSLTAtoms::intersection, 0, kEXSLTSetsNS }, 
-    { 2, 2, Expr::NODESET_RESULT, &txXSLTAtoms::leading, 0, kEXSLTSetsNS }, 
-    { 2, 2, Expr::NODESET_RESULT, &txXSLTAtoms::trailing, 0, kEXSLTSetsNS }, 
-    { 1, 1, Expr::STRING_RESULT,  &txXSLTAtoms::concat, 0, kEXSLTStringsNS }, 
-    { 1, 2, Expr::STRING_RESULT,  &txXSLTAtoms::split, 0, kEXSLTStringsNS }, 
-    { 1, 2, Expr::STRING_RESULT,  &txXSLTAtoms::tokenize, 0, kEXSLTStringsNS }, 
-    { 1, 1, Expr::NUMBER_RESULT,  &txXSLTAtoms::max, 0, kEXSLTMathNS }, 
-    { 1, 1, Expr::NUMBER_RESULT,  &txXSLTAtoms::min, 0, kEXSLTMathNS }, 
-    { 1, 1, Expr::NODESET_RESULT, &txXSLTAtoms::highest, 0, kEXSLTMathNS }, 
-    { 1, 1, Expr::NODESET_RESULT, &txXSLTAtoms::lowest, 0, kEXSLTMathNS }, 
-    { 0, 0, Expr::STRING_RESULT,  &txXSLTAtoms::dateTime, 0, kEXSLTDatesAndTimesNS }, 
+    { 1, 1, Expr::NODESET_RESULT, &nsGkAtoms::nodeSet, 0, kEXSLTCommonNS }, 
+    { 1, 1, Expr::STRING_RESULT,  &nsGkAtoms::objectType, 0, kEXSLTCommonNS }, 
+    { 2, 2, Expr::NODESET_RESULT, &nsGkAtoms::difference, 0, kEXSLTSetsNS }, 
+    { 1, 1, Expr::NODESET_RESULT, &nsGkAtoms::distinct, 0, kEXSLTSetsNS }, 
+    { 2, 2, Expr::BOOLEAN_RESULT, &nsGkAtoms::hasSameNode, 0, kEXSLTSetsNS }, 
+    { 2, 2, Expr::NODESET_RESULT, &nsGkAtoms::intersection, 0, kEXSLTSetsNS }, 
+    { 2, 2, Expr::NODESET_RESULT, &nsGkAtoms::leading, 0, kEXSLTSetsNS }, 
+    { 2, 2, Expr::NODESET_RESULT, &nsGkAtoms::trailing, 0, kEXSLTSetsNS }, 
+    { 1, 1, Expr::STRING_RESULT,  &nsGkAtoms::concat, 0, kEXSLTStringsNS }, 
+    { 1, 2, Expr::STRING_RESULT,  &nsGkAtoms::split, 0, kEXSLTStringsNS }, 
+    { 1, 2, Expr::STRING_RESULT,  &nsGkAtoms::tokenize, 0, kEXSLTStringsNS }, 
+    { 1, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::max, 0, kEXSLTMathNS }, 
+    { 1, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::min, 0, kEXSLTMathNS }, 
+    { 1, 1, Expr::NODESET_RESULT, &nsGkAtoms::highest, 0, kEXSLTMathNS }, 
+    { 1, 1, Expr::NODESET_RESULT, &nsGkAtoms::lowest, 0, kEXSLTMathNS }, 
+    { 0, 0, Expr::STRING_RESULT,  &nsGkAtoms::dateTime, 0, kEXSLTDatesAndTimesNS }, 
 
 };
 
@@ -541,7 +541,7 @@ txEXSLTFunctionCall::evaluate(txIEvalContext *aContext,
                 nsString::const_char_iterator start = string.BeginReading();
                 nsString::const_char_iterator end = string.EndReading();
                 for (; start < end; ++start) {
-                    rv = createAndAddToResult(txXSLTAtoms::token,
+                    rv = createAndAddToResult(nsGkAtoms::token,
                                               Substring(start, start + 1),
                                               resultSet, docFrag);
                     NS_ENSURE_SUCCESS(rv, rv);
@@ -557,7 +557,7 @@ txEXSLTFunctionCall::evaluate(txIEvalContext *aContext,
 
                 while (FindInReadable(pattern, start, end)) {
                     if (start != strStart) {
-                        rv = createAndAddToResult(txXSLTAtoms::token,
+                        rv = createAndAddToResult(nsGkAtoms::token,
                                                   Substring(strStart, start),
                                                   resultSet, docFrag);
                         NS_ENSURE_SUCCESS(rv, rv);
@@ -573,7 +573,7 @@ txEXSLTFunctionCall::evaluate(txIEvalContext *aContext,
                 while ((found = string.FindCharInSet(pattern, start)) !=
                        kNotFound) {
                     if (found != start) {
-                        rv = createAndAddToResult(txXSLTAtoms::token,
+                        rv = createAndAddToResult(nsGkAtoms::token,
                                                   Substring(string, start,
                                                             found - start),
                                                   resultSet, docFrag);
@@ -587,7 +587,7 @@ txEXSLTFunctionCall::evaluate(txIEvalContext *aContext,
 
             
             if (tailIndex != (PRUint32)string.Length()) {
-                rv = createAndAddToResult(txXSLTAtoms::token,
+                rv = createAndAddToResult(nsGkAtoms::token,
                                           Substring(string, tailIndex),
                                           resultSet, docFrag);
                 NS_ENSURE_SUCCESS(rv, rv);

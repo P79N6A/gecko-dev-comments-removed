@@ -39,7 +39,7 @@
 #include "txExpr.h"
 #include "nsAutoPtr.h"
 #include "txNodeSet.h"
-#include "txAtoms.h"
+#include "nsGkAtoms.h"
 #include "txIXPathContext.h"
 #include "nsWhitespaceTokenizer.h"
 #include "txXPathTreeWalker.h"
@@ -59,36 +59,36 @@ struct txCoreFunctionDescriptor
 
 static const txCoreFunctionDescriptor descriptTable[] =
 {
-    { 1, 1, Expr::NUMBER_RESULT,  &txXPathAtoms::count }, 
-    { 1, 1, Expr::NODESET_RESULT, &txXPathAtoms::id }, 
-    { 0, 0, Expr::NUMBER_RESULT,  &txXPathAtoms::last }, 
-    { 0, 1, Expr::STRING_RESULT,  &txXPathAtoms::localName }, 
-    { 0, 1, Expr::STRING_RESULT,  &txXPathAtoms::namespaceUri }, 
-    { 0, 1, Expr::STRING_RESULT,  &txXPathAtoms::name }, 
-    { 0, 0, Expr::NUMBER_RESULT,  &txXPathAtoms::position }, 
+    { 1, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::count }, 
+    { 1, 1, Expr::NODESET_RESULT, &nsGkAtoms::id }, 
+    { 0, 0, Expr::NUMBER_RESULT,  &nsGkAtoms::last }, 
+    { 0, 1, Expr::STRING_RESULT,  &nsGkAtoms::localName }, 
+    { 0, 1, Expr::STRING_RESULT,  &nsGkAtoms::namespaceUri }, 
+    { 0, 1, Expr::STRING_RESULT,  &nsGkAtoms::name }, 
+    { 0, 0, Expr::NUMBER_RESULT,  &nsGkAtoms::position }, 
 
-    { 2, -1, Expr::STRING_RESULT, &txXPathAtoms::concat }, 
-    { 2, 2, Expr::BOOLEAN_RESULT, &txXPathAtoms::contains }, 
-    { 0, 1, Expr::STRING_RESULT,  &txXPathAtoms::normalizeSpace }, 
-    { 2, 2, Expr::BOOLEAN_RESULT, &txXPathAtoms::startsWith }, 
-    { 0, 1, Expr::STRING_RESULT,  &txXPathAtoms::string }, 
-    { 0, 1, Expr::NUMBER_RESULT,  &txXPathAtoms::stringLength }, 
-    { 2, 3, Expr::STRING_RESULT,  &txXPathAtoms::substring }, 
-    { 2, 2, Expr::STRING_RESULT,  &txXPathAtoms::substringAfter }, 
-    { 2, 2, Expr::STRING_RESULT,  &txXPathAtoms::substringBefore }, 
-    { 3, 3, Expr::STRING_RESULT,  &txXPathAtoms::translate }, 
+    { 2, -1, Expr::STRING_RESULT, &nsGkAtoms::concat }, 
+    { 2, 2, Expr::BOOLEAN_RESULT, &nsGkAtoms::contains }, 
+    { 0, 1, Expr::STRING_RESULT,  &nsGkAtoms::normalizeSpace }, 
+    { 2, 2, Expr::BOOLEAN_RESULT, &nsGkAtoms::startsWith }, 
+    { 0, 1, Expr::STRING_RESULT,  &nsGkAtoms::string }, 
+    { 0, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::stringLength }, 
+    { 2, 3, Expr::STRING_RESULT,  &nsGkAtoms::substring }, 
+    { 2, 2, Expr::STRING_RESULT,  &nsGkAtoms::substringAfter }, 
+    { 2, 2, Expr::STRING_RESULT,  &nsGkAtoms::substringBefore }, 
+    { 3, 3, Expr::STRING_RESULT,  &nsGkAtoms::translate }, 
 
-    { 0, 1, Expr::NUMBER_RESULT,  &txXPathAtoms::number }, 
-    { 1, 1, Expr::NUMBER_RESULT,  &txXPathAtoms::round }, 
-    { 1, 1, Expr::NUMBER_RESULT,  &txXPathAtoms::floor }, 
-    { 1, 1, Expr::NUMBER_RESULT,  &txXPathAtoms::ceiling }, 
-    { 1, 1, Expr::NUMBER_RESULT,  &txXPathAtoms::sum }, 
+    { 0, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::number }, 
+    { 1, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::round }, 
+    { 1, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::floor }, 
+    { 1, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::ceiling }, 
+    { 1, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::sum }, 
 
-    { 1, 1, Expr::BOOLEAN_RESULT, &txXPathAtoms::boolean }, 
-    { 0, 0, Expr::BOOLEAN_RESULT, &txXPathAtoms::_false }, 
-    { 1, 1, Expr::BOOLEAN_RESULT, &txXPathAtoms::lang }, 
-    { 1, 1, Expr::BOOLEAN_RESULT, &txXPathAtoms::_not }, 
-    { 0, 0, Expr::BOOLEAN_RESULT, &txXPathAtoms::_true } 
+    { 1, 1, Expr::BOOLEAN_RESULT, &nsGkAtoms::boolean }, 
+    { 0, 0, Expr::BOOLEAN_RESULT, &nsGkAtoms::_false }, 
+    { 1, 1, Expr::BOOLEAN_RESULT, &nsGkAtoms::lang }, 
+    { 1, 1, Expr::BOOLEAN_RESULT, &nsGkAtoms::_not }, 
+    { 0, 0, Expr::BOOLEAN_RESULT, &nsGkAtoms::_true } 
 };
 
 
@@ -636,7 +636,7 @@ txCoreFunctionCall::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
             nsAutoString lang;
             PRBool found;
             do {
-                found = walker.getAttr(txXMLAtoms::lang, kNameSpaceID_XML,
+                found = walker.getAttr(nsGkAtoms::lang, kNameSpaceID_XML,
                                        lang);
             } while (!found && walker.moveToParent());
 

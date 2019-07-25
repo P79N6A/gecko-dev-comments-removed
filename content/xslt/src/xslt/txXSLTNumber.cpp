@@ -37,7 +37,7 @@
 
 
 #include "txXSLTNumber.h"
-#include "txAtoms.h"
+#include "nsGkAtoms.h"
 #include "txCore.h"
 #include <math.h>
 #include "txExpr.h"
@@ -184,7 +184,7 @@ txXSLTNumber::getValueList(Expr* aValueExpr, txPattern* aCountPattern,
             {
                 
                 
-                nodeTest = new txNameTest(0, txXPathAtoms::_asterix, 0,
+                nodeTest = new txNameTest(0, nsGkAtoms::_asterix, 0,
                                           nodeType);
                 break;
             }
