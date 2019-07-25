@@ -296,8 +296,16 @@ IonCode *
 IonCompartment::generateInvalidator(JSContext *cx)
 {
     
-
+    AutoIonContextAlloc aica(cx);
     MacroAssembler masm(cx);
+    
+    
+    
+    
+    
+    
+    
+    masm.ma_and(Imm32(~7), sp, sp);
     masm.startDataTransferM(IsStore, sp, DB, WriteBack);
     
     
@@ -311,18 +319,23 @@ IonCompartment::generateInvalidator(JSContext *cx)
     masm.finishFloatTransfer();
 
     masm.ma_mov(sp, r0);
-    masm.reserveStack(sizeof(size_t));
+    masm.reserveStack(sizeof(size_t)*2);
     masm.mov(sp, r1);
-    masm.setupAlignedABICall(3);
+    masm.setupAlignedABICall(2);
     masm.setABIArg(0, r0);
     masm.setABIArg(1, r1);
+    
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, InvalidationBailout));
 
     const uint32 BailoutDataSize = sizeof(double) * FloatRegisters::Total +
                                    sizeof(void *) * Registers::Total;
 
-    masm.ma_add(sp, r0, sp);
-    masm.ma_add(sp, Imm32(BailoutDataSize), sp);
+    masm.ma_ldr(Address(sp, 0), r1);
+    
+    
+    
+    masm.ma_add(sp, Imm32(BailoutDataSize + 16 + 8), sp);
+    masm.ma_add(sp, r1, sp);
     generateBailoutTail(masm);
     Linker linker(masm);
     IonCode *code = linker.newCode(cx);
