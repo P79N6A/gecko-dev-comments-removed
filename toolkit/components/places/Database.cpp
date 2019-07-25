@@ -84,16 +84,6 @@
 
 
 
-#define DATABASE_CACHE_TO_DATABASE_PERC 10
-
-
-#define DATABASE_CACHE_MIN_BYTES (PRUint64)4194304 // 4MiB
-
-
-#define DATABASE_CACHE_MAX_BYTES (PRUint64)8388608 // 8MiB
-
-
-
 
 #define DATABASE_MAX_WAL_SIZE_IN_KIBIBYTES 512
 
@@ -565,39 +555,6 @@ Database::InitSchema(bool* aDatabaseMigrated)
   
   nsresult rv = mMainConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
       MOZ_STORAGE_UNIQUIFY_QUERY_STR "PRAGMA temp_store = MEMORY"));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  PRUint64 databaseSizeBytes = 0;
-  {
-    nsCOMPtr<mozIStorageStatement> statement;
-    nsresult rv = mMainConn->CreateStatement(NS_LITERAL_CSTRING(
-      "PRAGMA page_count"
-    ), getter_AddRefs(statement));
-    NS_ENSURE_SUCCESS(rv, rv);
-    bool hasResult = false;
-    rv = statement->ExecuteStep(&hasResult);
-    NS_ENSURE_TRUE(NS_SUCCEEDED(rv) && hasResult, NS_ERROR_FAILURE);
-    PRInt32 pageCount = 0;
-    rv = statement->GetInt32(0, &pageCount);
-    NS_ENSURE_SUCCESS(rv, rv);
-    databaseSizeBytes = pageCount * mDBPageSize;
-  }
-
-  
-  
-  PRInt64 cacheSize = clamped(databaseSizeBytes *  DATABASE_CACHE_TO_DATABASE_PERC / 100,
-                              DATABASE_CACHE_MIN_BYTES,
-                              DATABASE_CACHE_MAX_BYTES);
-
-  
-  
-  
-  nsCAutoString cacheSizePragma(MOZ_STORAGE_UNIQUIFY_QUERY_STR
-				"PRAGMA cache_size = ");
-  cacheSizePragma.AppendInt(cacheSize / mDBPageSize);
-  rv = mMainConn->ExecuteSimpleSQL(cacheSizePragma);
   NS_ENSURE_SUCCESS(rv, rv);
 
   

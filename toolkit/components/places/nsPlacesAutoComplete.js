@@ -320,6 +320,13 @@ function nsPlacesAutoComplete()
              clone(true);
 
     
+    
+    
+    let stmt = db.createAsyncStatement("PRAGMA cache_size = -6144"); 
+    stmt.executeAsync();
+    stmt.finalize();
+
+    
     initTempTable(db);
 
     
