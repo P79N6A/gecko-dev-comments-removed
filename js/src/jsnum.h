@@ -208,6 +208,9 @@ NumberValueToStringBuffer(JSContext *cx, const Value &v, StringBuffer &sb);
 extern JSFixedString *
 NumberToString(JSContext *cx, jsdouble d);
 
+extern JSFixedString *
+IndexToString(JSContext *cx, uint32 index);
+
 
 
 
