@@ -66,7 +66,6 @@
 #include "DiscardTracker.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Telemetry.h"
-#include "mozilla/LinkedList.h"
 #ifdef DEBUG
   #include "imgIContainerDebug.h"
 #endif
@@ -165,6 +164,7 @@ class ImageContainer;
 }
 namespace image {
 
+class imgDecodeWorker;
 class Decoder;
 
 class RasterImage : public Image
@@ -382,123 +382,6 @@ private:
 
 
 
-  struct DecodeRequest : public LinkedListElement<DecodeRequest>
-  {
-    DecodeRequest(RasterImage* aImage)
-      : mImage(aImage)
-      , mIsASAP(false)
-    {
-    }
-
-    RasterImage* const mImage;
-
-    
-
-    TimeDuration mDecodeTime;
-
-    
-    bool mIsASAP;
-  };
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  class DecodeWorker : public nsRunnable
-  {
-  public:
-    static DecodeWorker* Singleton();
-
-    
-
-
-    void RequestDecode(RasterImage* aImg);
-
-    
-
-
-
-
-
-
-
-    void MarkAsASAP(RasterImage* aImg);
-
-    
-
-
-
-
-
-
-    void StopDecoding(RasterImage* aImg);
-
-    
-
-
-
-
-
-
-
-    nsresult DecodeUntilSizeAvailable(RasterImage* aImg);
-
-    NS_IMETHOD Run();
-
-  private: 
-    static nsRefPtr<DecodeWorker> sSingleton;
-
-  private: 
-    DecodeWorker()
-      : mPendingInEventLoop(false)
-    {}
-
-    
-    void EnsurePendingInEventLoop();
-
-    
-
-    void AddDecodeRequest(DecodeRequest* aRequest);
-
-    enum DecodeType {
-      DECODE_TYPE_NORMAL,
-      DECODE_TYPE_UNTIL_SIZE
-    };
-
-    
-
-    nsresult DecodeSomeOfImage(RasterImage* aImg,
-                               DecodeType aDecodeType = DECODE_TYPE_NORMAL);
-
-  private: 
-
-    LinkedList<DecodeRequest> mASAPDecodeRequests;
-    LinkedList<DecodeRequest> mNormalDecodeRequests;
-
-    
-
-    bool mPendingInEventLoop;
-  };
-
-  
-
-
-
-
-
 
 
 
@@ -641,11 +524,12 @@ private:
   nsCString                  mSourceDataMimeType;
   nsCString                  mURIString;
 
+  friend class imgDecodeWorker;
   friend class DiscardTracker;
 
   
   nsRefPtr<Decoder>              mDecoder;
-  DecodeRequest                  mDecodeRequest;
+  nsRefPtr<imgDecodeWorker>      mWorker;
   PRUint32                       mBytesDecoded;
 
   
@@ -670,6 +554,8 @@ private:
   bool                       mDecoded:1;
   bool                       mHasBeenDecoded:1;
 
+  
+  bool                       mWorkerPending:1;
   bool                       mInDecoder:1;
 
   
@@ -703,6 +589,29 @@ private:
 
 protected:
   bool ShouldAnimate();
+};
+
+
+
+
+
+
+
+
+
+
+class imgDecodeWorker : public nsRunnable
+{
+  public:
+    imgDecodeWorker(imgIContainer* aContainer) {
+      mContainer = do_GetWeakReference(aContainer);
+    }
+    NS_IMETHOD Run();
+    NS_METHOD  Dispatch();
+
+  private:
+    nsWeakPtr mContainer;
+    TimeDuration mDecodeTime; 
 };
 
 
