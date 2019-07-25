@@ -194,6 +194,14 @@ public:
                    PRInt32         aModType);
 
   
+  nscoord
+  MirrorIfRTL(nscoord aParentWidth, nscoord aChildWidth, nscoord aChildLeading)
+  {
+    return (NS_MATHML_IS_RTL(mPresentationData.flags) ?
+            aParentWidth - aChildWidth - aChildLeading : aChildLeading);
+  }
+
+  
   
 
 protected:
