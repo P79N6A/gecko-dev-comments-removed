@@ -141,7 +141,6 @@ function loadSnippets()
                     Date.now() - lastUpdate > SNIPPETS_UPDATE_INTERVAL_MS)) {
     
     let xhr = new XMLHttpRequest();
-    xhr.mozBackgroundRequest = true;
     xhr.open('GET', updateURL, true);
     xhr.onerror = function (event) {
       showSnippets();
