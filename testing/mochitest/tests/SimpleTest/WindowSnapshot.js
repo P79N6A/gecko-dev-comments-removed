@@ -11,12 +11,13 @@ try {
 }
 
 function snapshotWindow(win, withCaret) {
+  
+  
+  netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
+
   var el = document.createElementNS("http://www.w3.org/1999/xhtml", "canvas");
   el.width = win.innerWidth;
   el.height = win.innerHeight;
-
-  
-  netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
 
   var ctx = el.getContext("2d");
   ctx.drawWindow(win, win.scrollX, win.scrollY,
