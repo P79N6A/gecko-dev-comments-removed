@@ -2960,6 +2960,7 @@ NS_INTERFACE_MAP_BEGIN(nsHttpChannel)
     NS_INTERFACE_MAP_ENTRY(nsIRequestObserver)
     NS_INTERFACE_MAP_ENTRY(nsIStreamListener)
     NS_INTERFACE_MAP_ENTRY(nsIHttpChannel)
+    NS_INTERFACE_MAP_ENTRY(nsICacheInfoChannel)
     NS_INTERFACE_MAP_ENTRY(nsICachingChannel)
     NS_INTERFACE_MAP_ENTRY(nsIUploadChannel)
     NS_INTERFACE_MAP_ENTRY(nsIUploadChannel2)
@@ -3634,6 +3635,62 @@ nsHttpChannel::OnTransportStatus(nsITransport *trans, nsresult status,
 
 
 NS_IMETHODIMP
+nsHttpChannel::IsFromCache(PRBool *value)
+{
+    if (!mIsPending)
+        return NS_ERROR_NOT_AVAILABLE;
+
+    
+    
+
+    *value = (mCachePump || (mLoadFlags & LOAD_ONLY_IF_MODIFIED)) &&
+              mCachedContentIsValid && !mCachedContentIsPartial;
+
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsHttpChannel::GetCacheTokenExpirationTime(PRUint32 *_retval)
+{
+    NS_ENSURE_ARG_POINTER(_retval);
+    if (!mCacheEntry)
+        return NS_ERROR_NOT_AVAILABLE;
+
+    return mCacheEntry->GetExpirationTime(_retval);
+}
+
+NS_IMETHODIMP
+nsHttpChannel::GetCacheTokenCachedCharset(nsACString &_retval)
+{
+    nsresult rv;
+
+    if (!mCacheEntry)
+        return NS_ERROR_NOT_AVAILABLE;
+
+    nsXPIDLCString cachedCharset;
+    rv = mCacheEntry->GetMetaDataElement("charset",
+                                         getter_Copies(cachedCharset));
+    if (NS_SUCCEEDED(rv))
+        _retval = cachedCharset;
+
+    return rv;
+}
+
+NS_IMETHODIMP
+nsHttpChannel::SetCacheTokenCachedCharset(const nsACString &aCharset)
+{
+    if (!mCacheEntry)
+        return NS_ERROR_NOT_AVAILABLE;
+
+    return mCacheEntry->SetMetaDataElement("charset",
+                                           PromiseFlatCString(aCharset).get());
+}
+
+
+
+
+
+NS_IMETHODIMP
 nsHttpChannel::GetCacheToken(nsISupports **token)
 {
     NS_ENSURE_ARG_POINTER(token);
@@ -3848,21 +3905,6 @@ nsHttpChannel::GetCacheFile(nsIFile **cacheFile)
     if (!mCacheEntry)
         return NS_ERROR_NOT_AVAILABLE;
     return mCacheEntry->GetFile(cacheFile);
-}
-
-NS_IMETHODIMP
-nsHttpChannel::IsFromCache(PRBool *value)
-{
-    if (!mIsPending)
-        return NS_ERROR_NOT_AVAILABLE;
-
-    
-    
-
-    *value = (mCachePump || (mLoadFlags & LOAD_ONLY_IF_MODIFIED)) &&
-              mCachedContentIsValid && !mCachedContentIsPartial;
-
-    return NS_OK;
 }
 
 

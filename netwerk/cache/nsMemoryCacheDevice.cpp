@@ -393,7 +393,7 @@ int
 nsMemoryCacheDevice::EvictionList(nsCacheEntry * entry, PRInt32  deltaSize)
 {
     
-    if (entry->ExpirationTime() == NO_EXPIRATION_TIME)
+    if (entry->ExpirationTime() == nsICache::NO_EXPIRATION_TIME)
         return 0;
 
     
