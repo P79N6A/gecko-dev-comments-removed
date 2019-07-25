@@ -54,10 +54,8 @@ class nsBuiltinDecoderStateMachine;
 class nsVideoInfo {
 public:
   nsVideoInfo()
-    : mPixelAspectRatio(1.0),
-      mAudioRate(0),
+    : mAudioRate(0),
       mAudioChannels(0),
-      mFrame(0,0),
       mDisplay(0,0),
       mStereoMode(mozilla::layers::STEREO_MODE_MONO),
       mHasAudio(PR_FALSE),
@@ -68,25 +66,15 @@ public:
   
   
   
-  
   static PRBool ValidateVideoRegion(const nsIntSize& aFrame,
                                     const nsIntRect& aPicture,
                                     const nsIntSize& aDisplay);
-
-  
-  float mPixelAspectRatio;
 
   
   PRUint32 mAudioRate;
 
   
   PRUint32 mAudioChannels;
-
-  
-  nsIntSize mFrame;
-
-  
-  nsIntRect mPicture;
 
   
   
@@ -216,7 +204,8 @@ public:
                            PRInt64 aEndTime,
                            const YCbCrBuffer &aBuffer,
                            PRBool aKeyframe,
-                           PRInt64 aTimecode);
+                           PRInt64 aTimecode,
+                           nsIntRect aPicture);
 
   
   
@@ -233,6 +222,11 @@ public:
   {
     MOZ_COUNT_DTOR(VideoData);
   }
+
+  
+  
+  
+  nsIntSize mDisplay;
 
   
   PRInt64 mOffset;
@@ -272,13 +266,15 @@ public:
             PRInt64 aTime,
             PRInt64 aEndTime,
             PRBool aKeyframe,
-            PRInt64 aTimecode)
+            PRInt64 aTimecode,
+            nsIntSize aDisplay)
     : mOffset(aOffset),
       mTime(aTime),
       mEndTime(aEndTime),
       mTimecode(aTimecode),
       mDuplicate(PR_FALSE),
-      mKeyframe(aKeyframe)
+      mKeyframe(aKeyframe),
+      mDisplay(aDisplay)
   {
     MOZ_COUNT_CTOR(VideoData);
     NS_ASSERTION(aEndTime >= aTime, "Frame must start before it ends.");

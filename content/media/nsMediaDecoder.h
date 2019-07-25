@@ -372,7 +372,6 @@ public:
   
   
   void SetVideoData(const gfxIntSize& aSize,
-                    float aPixelAspectRatio,
                     Image* aImage,
                     TimeStamp aTarget);
 
@@ -444,9 +443,6 @@ protected:
   
   
   Mutex mVideoUpdateLock;
-
-  
-  float mPixelAspectRatio;
 
   
   PRUint32 mFrameBufferLength;

@@ -232,6 +232,13 @@ private:
   nsRefPtr<nsWebMBufferedState> mBufferedState;
 
   
+  
+  nsIntSize mInitialFrame;
+
+  
+  nsIntRect mPicture;
+
+  
   PRPackedBool mHasVideo;
   PRPackedBool mHasAudio;
 };

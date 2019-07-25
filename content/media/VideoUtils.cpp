@@ -36,6 +36,7 @@
 
 
 #include "VideoUtils.h"
+#include "nsMathUtils.h"
 #include "prtypes.h"
 
 
@@ -195,4 +196,23 @@ PRBool UsecsToSamples(PRInt64 aUsecs, PRUint32 aRate, PRInt64& aOutSamples)
     return PR_FALSE;
   aOutSamples = x / USECS_PER_S;
   return PR_TRUE;
+}
+
+static PRInt32 ConditionDimension(float aValue)
+{
+  
+  if (aValue > 1.0 && aValue <= PR_INT32_MAX)
+    return PRInt32(NS_round(aValue));
+  return 0;
+}
+
+void ScaleDisplayByAspectRatio(nsIntSize& aDisplay, float aAspectRatio)
+{
+  if (aAspectRatio > 1.0) {
+    
+    aDisplay.width = ConditionDimension(aAspectRatio * aDisplay.width);
+  } else {
+    
+    aDisplay.height = ConditionDimension(aDisplay.height / aAspectRatio);
+  }
 }

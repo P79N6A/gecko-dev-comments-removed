@@ -286,6 +286,10 @@ private:
   
   
   PRInt64 mPageOffset;
+
+  
+  
+  nsIntRect mPicture;
 };
 
 #endif

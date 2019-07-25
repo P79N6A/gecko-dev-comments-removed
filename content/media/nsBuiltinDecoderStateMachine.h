@@ -319,8 +319,7 @@ protected:
   
   
   
-  void RenderVideoFrame(VideoData* aData, TimeStamp aTarget, 
-                        nsIntSize aDisplaySize, float aAspectRatio);
+  void RenderVideoFrame(VideoData* aData, TimeStamp aTarget);
  
   
   

@@ -41,6 +41,8 @@
 
 #include "mozilla/ReentrantMonitor.h"
 
+#include "nsRect.h"
+
 
 
 
@@ -142,5 +144,17 @@ PRBool UsecsToSamples(PRInt64 aUsecs, PRUint32 aRate, PRInt64& aOutSamples);
 
 
 #define USECS_PER_MS 1000
+
+
+
+
+
+#define MAX_VIDEO_WIDTH  4000
+#define MAX_VIDEO_HEIGHT 3000
+
+
+
+
+void ScaleDisplayByAspectRatio(nsIntSize& aDisplay, float aAspectRatio);
 
 #endif
