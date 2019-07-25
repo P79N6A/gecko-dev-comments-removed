@@ -463,10 +463,6 @@ struct JSScript : public js::gc::Cell
   private:
     js::HeapPtrFunction function_;
 
-    size_t          useCount;   
-
-
-
     
 
   public:
@@ -478,6 +474,11 @@ struct JSScript : public js::gc::Cell
 
 
     uint32_t        natoms;     
+
+  private:
+    uint32_t        useCount;   
+
+
 
 #ifdef DEBUG
     
@@ -701,9 +702,9 @@ struct JSScript : public js::gc::Cell
     inline void **nativeMap(bool constructing);
     inline void *nativeCodeForPC(bool constructing, jsbytecode *pc);
 
-    size_t getUseCount() const  { return useCount; }
-    size_t incUseCount() { return ++useCount; }
-    size_t *addressOfUseCount() { return &useCount; }
+    uint32_t getUseCount() const  { return useCount; }
+    uint32_t incUseCount() { return ++useCount; }
+    uint32_t *addressOfUseCount() { return &useCount; }
     void resetUseCount() { useCount = 0; }
 
     
