@@ -1522,12 +1522,11 @@ HttpBaseChannel::IsSafeMethod(nsHttpAtom method)
 nsresult
 HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI, 
                                          nsIChannel   *newChannel,
-                                         bool          preserveMethod,
-                                         bool          forProxy)
+                                         bool          preserveMethod)
 {
   LOG(("HttpBaseChannel::SetupReplacementChannel "
-     "[this=%p newChannel=%p preserveMethod=%d forProxy=%d]",
-     this, newChannel, preserveMethod, forProxy));
+     "[this=%p newChannel=%p preserveMethod=%d]",
+     this, newChannel, preserveMethod));
   PRUint32 newLoadFlags = mLoadFlags | LOAD_REPLACE;
   
   
@@ -1649,21 +1648,6 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
   nsCOMPtr<nsITimedChannel> timed(do_QueryInterface(newChannel));
   if (timed)
     timed->SetTimingEnabled(mTimingEnabled);
-
-  if (forProxy) {
-    
-    
-    
-    
-    PRUint32 count = mRequestHead.Headers().Count();
-    for (PRUint32 i = 0; i < count; ++i) {
-      nsHttpAtom header;
-      const char *value = mRequestHead.Headers().PeekHeaderAt(i, header);
-
-      httpChannel->SetRequestHeader(nsDependentCString(header),
-                                    nsDependentCString(value), false);
-    }
-  }
 
   return NS_OK;
 }
