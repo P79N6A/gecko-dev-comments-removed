@@ -811,7 +811,11 @@ namespace nanojit
                     return oprnd1;
                 case LIR_andi:
                 case LIR_muli:
+                case LIR_ltui: 
+                    
                     return oprnd2;
+                case LIR_gtui: 
+                    return insImmI(1);
                 case LIR_eqi:
                     if (oprnd1->isop(LIR_ori) &&
                         oprnd1->oprnd2()->isImmI() &&
@@ -822,7 +826,7 @@ namespace nanojit
                 default:
                     ;
                 }
-            } else if (c == -1 || (c == 1 && oprnd1->isCmp())) {
+            } else if (c == -1) {
                 switch (v) {
                 case LIR_ori:
                     
@@ -830,11 +834,32 @@ namespace nanojit
                 case LIR_andi:
                     
                     return oprnd1;
+                case LIR_gtui:
+                    
+                    return insImmI(0);
                 default:
                     ;
                 }
-            } else if (c == 1 && v == LIR_muli) {
-                return oprnd1;
+            } else if (c == 1) {
+                if (oprnd1->isCmp()) {
+                    switch (v) {
+                    case LIR_ori:
+                        
+                        
+                        return oprnd2;
+                    case LIR_andi:
+                        
+                        return oprnd1;
+                    case LIR_gtui:
+                        
+                        return insImmI(0);
+                    default:
+                        ;
+                    }
+                } else if (v == LIR_muli) {
+                    
+                    return oprnd1;
+                }
             }
         }
 
