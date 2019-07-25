@@ -639,6 +639,12 @@ MouseModule.prototype = {
     return this._dragger.dragMove(dX, dY, this._targetScrollInterface);
   },
 
+  
+
+
+
+
+
   _doClick: function _doClick(movedOutOfRadius) {
     let commitToClicker = this._clicker && !movedOutOfRadius;
 
@@ -654,13 +660,22 @@ MouseModule.prototype = {
     }                              
   },
 
+  
+
+
+
+
+
+
   _commitAnotherClick: function _commitAnotherClick() {
-    
+    const doubleClickInterval = 400;
+
     if (this._clickTimeout) {   
       window.clearTimeout(this._clickTimeout);
       this._doDoubleClick();
     } else {
-      this._clickTimeout = window.setTimeout(function _clickTimeout(self) { self._doSingleClick(); }, 400, this);
+      this._clickTimeout = window.setTimeout(function _clickTimeout(self) { self._doSingleClick(); },
+                                             doubleClickInterval, this);
     }
   },
 
@@ -668,11 +683,12 @@ MouseModule.prototype = {
 
 
   _doSingleClick: function _doSingleClick() {
-    dump('doing single click with ' + this._downUpEvents.length + '\n');
-    for (let i = 0; i < this._downUpEvents.length; ++i)
-      dump('      ' + this._downUpEvents[i].event.type
-           + " :: " + this._downUpEvents[i].event.button
-           + " :: " + this._downUpEvents[i].event.detail + '\n');
+    
+
+
+
+
+
 
     let ev = this._downUpEvents[1].event;
     this._cleanClickBuffer();
@@ -683,27 +699,42 @@ MouseModule.prototype = {
 
 
   _doDoubleClick: function _doDoubleClick() {
-    dump('doing double click with ' + this._downUpEvents.length + '\n');
-    for (let i = 0; i < this._downUpEvents.length; ++i)
-      dump('      ' + this._downUpEvents[i].event.type
-           + " :: " + this._downUpEvents[i].event.button
-           + " :: " + this._downUpEvents[i].event.detail + '\n');
+    
+
+
+
+
+
 
     let mouseUp1 = this._downUpEvents[1].event;
     let mouseUp2 = this._downUpEvents[3].event;
     this._cleanClickBuffer();
     this._clicker.doubleClick(mouseUp1.clientX, mouseUp1.clientY,
-			      mouseUp2.clientX, mouseUp2.clientY);
+                              mouseUp2.clientX, mouseUp2.clientY);
   },
+
+
+  
+
+
+
 
   _cleanClickBuffer: function _cleanClickBuffer() {
     delete this._clickTimeout;
     this._clearDownUpEvents();
   },
 
+  
+
+
+
+
   _defaultDragger: {
     dragStart: function dragStart(scroller) {},
-    dragStop : function dragStop(dx, dy, scroller) { return this.dragMove(dx, dy, scroller); },
+
+    dragStop : function dragStop(dx, dy, scroller)
+    { return this.dragMove(dx, dy, scroller); },
+
     dragMove : function dragMove(dx, dy, scroller) {
       if (scroller.getPosition) {
         let oldX = {}, oldY = {};
@@ -776,22 +807,8 @@ MouseModule.prototype = {
         break;
 
     return (elem) ? elem : null;
-  },
-
-  
-
-
-
-  cloneMouseEvent: function cloneMouseEvent(aEvent) {
-    let clickEvent = document.createEvent("MouseEvent");
-    clickEvent.initMouseEvent(aEvent.type, aEvent.bubbles, aEvent.cancelable,
-                              aEvent.view, aEvent.detail,
-                              aEvent.screenX, aEvent.screenY, aEvent.clientX, aEvent.clientY,
-                              aEvent.ctrlKey, aEvent.altKey, aEvent.shiftKeyArg, aEvent.metaKeyArg,
-                              aEvent.button, aEvent.relatedTarget);
-    return clickEvent;
   }
-
+  
 };
 
 
