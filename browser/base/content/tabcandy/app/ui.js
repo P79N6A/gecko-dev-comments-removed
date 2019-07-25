@@ -93,7 +93,18 @@ var UIManager = {
       Storage.init();
       TabsManager.init();
       TabMirror.init();
+      this._secondaryInit();
+    } catch(e) {
+      Utils.log(e);
+    }
+  },
 
+  
+  
+  
+  
+  _secondaryInit: function() {
+    try {
       var self = this;
 
       this._currentTab = gBrowser.selectedTab;
@@ -1073,6 +1084,13 @@ var UIManager = {
   },
 };
 
+
+Profile.checkpoint("script load");
+Profile.wrap(UIManager, "UIManager");
+Profile.wrap(Storage, "Storage");
+Profile.wrap(Items, "Items");
+Profile.wrap(TabItems, "TabItems");
+Profile.wrap(Groups, "Groups");
 
 window.UI = UIManager;
 window.UI.init();
