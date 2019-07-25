@@ -38,6 +38,8 @@
 
 package org.mozilla.gecko.gfx;
 
+import android.graphics.Point;
+
 public class VirtualLayer extends Layer {
     private IntSize mSize;
 
@@ -53,6 +55,26 @@ public class VirtualLayer extends Layer {
 
     public void setSize(IntSize size) {
         mSize = size;
+    }
+
+    void setOriginAndResolution(Point newOrigin, float newResolution) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        
+        
+        
+        
+
+        mOrigin = newOrigin;
+        mResolution = newResolution;
     }
 }
 

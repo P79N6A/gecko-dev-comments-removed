@@ -221,40 +221,34 @@ public class GeckoLayerClient implements GeckoEventListener,
     }
 
     private void updateViewport(boolean onlyUpdatePageSize) {
-        mRootLayer.beginTransaction(); 
-        try {
-            synchronized (mLayerController) {
-                
-                
-                
-                
-                FloatSize viewportSize = mLayerController.getViewportSize();
-                mGeckoViewport = mNewGeckoViewport;
-                mGeckoViewport.setSize(viewportSize);
+        synchronized (mLayerController) {
+            
+            
+            
+            
+            FloatSize viewportSize = mLayerController.getViewportSize();
+            mGeckoViewport = mNewGeckoViewport;
+            mGeckoViewport.setSize(viewportSize);
 
-                PointF origin = mGeckoViewport.getOrigin();
-                mRootLayer.setOrigin(PointUtils.round(origin));
-                mRootLayer.setResolution(mGeckoViewport.getZoomFactor());
+            PointF origin = mGeckoViewport.getOrigin();
+            mRootLayer.setOriginAndResolution(PointUtils.round(origin), mGeckoViewport.getZoomFactor());
 
+            
+            mRootLayer.performUpdates(null);
+
+            Log.e(LOGTAG, "### updateViewport onlyUpdatePageSize=" + onlyUpdatePageSize +
+                  " getTileViewport " + mGeckoViewport);
+
+            if (onlyUpdatePageSize) {
                 
-                mRootLayer.performUpdates(null);
-
-                Log.e(LOGTAG, "### updateViewport onlyUpdatePageSize=" + onlyUpdatePageSize +
-                      " getTileViewport " + mGeckoViewport);
-
-                if (onlyUpdatePageSize) {
-                    
-                    
-                    if (FloatUtils.fuzzyEquals(mLayerController.getZoomFactor(),
-                            mGeckoViewport.getZoomFactor()))
-                        mLayerController.setPageSize(mGeckoViewport.getPageSize());
-                } else {
-                    mLayerController.setViewportMetrics(mGeckoViewport);
-                    mLayerController.abortPanZoomAnimation();
-                }
+                
+                if (FloatUtils.fuzzyEquals(mLayerController.getZoomFactor(),
+                        mGeckoViewport.getZoomFactor()))
+                    mLayerController.setPageSize(mGeckoViewport.getPageSize());
+            } else {
+                mLayerController.setViewportMetrics(mGeckoViewport);
+                mLayerController.abortPanZoomAnimation();
             }
-        } finally {
-            mRootLayer.endTransaction();
         }
     }
 
