@@ -2630,8 +2630,14 @@ ProgressController.prototype = {
   _networkStart: function _networkStart() {
     this._tab.startLoading();
 
-    if (this._tab == Browser.selectedTab)
+    if (this._tab == Browser.selectedTab) {
       BrowserUI.update(TOOLBARSTATE_LOADING);
+
+      
+      
+      if (this._tab.browser.currentURI.spec == "about:blank")
+        BrowserUI.updateURI();
+    }
 
     
     let event = document.createEvent("Events");
