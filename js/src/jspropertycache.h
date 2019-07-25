@@ -240,6 +240,10 @@ class PropertyCache
 
 
 
+
+
+
+
     JS_ALWAYS_INLINE bool testForSet(JSContext *cx, jsbytecode *pc, JSObject *obj,
                                      PropertyCacheEntry **entryp, JSObject **obj2p,
                                      JSAtom **atomp);
