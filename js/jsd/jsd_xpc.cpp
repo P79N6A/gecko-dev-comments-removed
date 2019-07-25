@@ -2580,7 +2580,12 @@ jsdService::ActivateDebugger (JSRuntime *rt)
         return rv;
     
     xpc->InitClasses (cx, glob);
+
     
+
+
+    JSD_SetScriptHook (mCx, jsds_ScriptHookProc, NULL);
+
     
 
 
