@@ -42,6 +42,15 @@
 #include "nsISMILType.h"
 #include "nsSMILNullType.h"
 
+
+
+
+
+
+
+
+
+
 class nsSMILValue
 {
 public:

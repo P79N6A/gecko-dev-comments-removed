@@ -73,6 +73,9 @@ class nsSMILValue;
 
 
 
+
+
+
 class nsISMILType
 {
   

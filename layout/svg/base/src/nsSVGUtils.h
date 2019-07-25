@@ -215,10 +215,18 @@ public:
   
 
 
+
+
+
+
   static float GetFontSize(mozilla::dom::Element *aElement);
   static float GetFontSize(nsIFrame *aFrame);
   static float GetFontSize(nsStyleContext *aStyleContext);
   
+
+
+
+
 
 
   static float GetFontXHeight(mozilla::dom::Element *aElement);

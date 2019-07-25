@@ -43,11 +43,14 @@
 #include "nsSVGAElement.h"
 #include "nsSVGUtils.h"
 #include "gfxMatrix.h"
+#include "SVGLengthList.h"
 
 
 
 
 
+
+using namespace mozilla;
 
 typedef nsSVGTSpanFrame nsSVGAFrameBase;
 
@@ -91,7 +94,11 @@ public:
   
   
   virtual gfxMatrix GetCanvasTM();
+
   
+  virtual void GetXY(mozilla::SVGUserUnitList *aX, mozilla::SVGUserUnitList *aY);
+  virtual void GetDxDy(mozilla::SVGUserUnitList *aDx, mozilla::SVGUserUnitList *aDy);
+
 private:
   nsCOMPtr<nsIDOMSVGMatrix> mCanvasTM;
 };
@@ -182,4 +189,21 @@ nsSVGAFrame::GetCanvasTM()
   }
 
   return nsSVGUtils::ConvertSVGMatrixToThebes(mCanvasTM);
+}
+
+
+
+
+void
+nsSVGAFrame::GetXY(SVGUserUnitList *aX, SVGUserUnitList *aY)
+{
+  aX->Clear();
+  aY->Clear();
+}
+
+void
+nsSVGAFrame::GetDxDy(SVGUserUnitList *aDx, SVGUserUnitList *aDy)
+{
+  aDx->Clear();
+  aDy->Clear();
 }
