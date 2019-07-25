@@ -486,7 +486,7 @@ private:
   nsCOMPtr<nsIContent> mCurrentTargetContent;
   nsWeakFrame mLastMouseOverFrame;
   nsCOMPtr<nsIContent> mLastMouseOverElement;
-  nsWeakFrame mLastDragOverFrame;
+  static nsWeakFrame sLastDragOverFrame;
 
   
   nsIntPoint mGestureDownPoint; 
@@ -511,7 +511,7 @@ private:
 
   nsCOMPtr<nsIContent> mActiveContent;
   nsCOMPtr<nsIContent> mHoverContent;
-  nsCOMPtr<nsIContent> mDragOverContent;
+  static nsCOMPtr<nsIContent> sDragOverContent;
   nsCOMPtr<nsIContent> mURLTargetContent;
 
   

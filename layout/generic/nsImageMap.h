@@ -57,7 +57,7 @@ class nsImageMap : public nsStubMutationObserver,
 public:
   nsImageMap();
 
-  nsresult Init(nsIPresShell* aPresShell, nsIFrame* aImageFrame, nsIContent* aMap);
+  nsresult Init(nsIFrame* aImageFrame, nsIContent* aMap);
 
   
 
@@ -104,7 +104,6 @@ protected:
  
   void MaybeUpdateAreas(nsIContent *aContent);
 
-  nsIPresShell* mPresShell; 
   nsIFrame* mImageFrame;  
   nsCOMPtr<nsIContent> mMap;
   nsAutoTArray<Area*, 8> mAreas; 
