@@ -1208,33 +1208,6 @@ BrowserGlue.prototype = {
     this._dataSource = this._rdf.GetDataSource("rdf:local-store");
     this._dirty = false;
 
-    if (currentUIVersion < 1) {
-      
-      let currentsetResource = this._rdf.GetResource("currentset");
-      let toolbars = ["nav-bar", "toolbar-menubar", "PersonalToolbar"];
-      for (let i = 0; i < toolbars.length; i++) {
-        let toolbar = this._rdf.GetResource(BROWSER_DOCURL + toolbars[i]);
-        let currentset = this._getPersist(toolbar, currentsetResource);
-        if (!currentset) {
-          
-          if (i == 0)
-            
-            break;
-          continue;
-        }
-        if (/(?:^|,)unified-back-forward-button(?:$|,)/.test(currentset))
-          
-          break;
-        if (/(?:^|,)back-button(?:$|,)/.test(currentset)) {
-          let newset = currentset.replace(/(^|,)back-button($|,)/,
-                                          "$1unified-back-forward-button,back-button$2")
-          this._setPersist(toolbar, currentsetResource, newset);
-          
-          break;
-        }
-      }
-    }
-
     if (currentUIVersion < 2) {
       
       let currentsetResource = this._rdf.GetResource("currentset");
