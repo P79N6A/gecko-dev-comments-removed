@@ -87,7 +87,7 @@ public:
   
   virtual Layer* GetLayer();
 
-  virtual void RenderLayer();
+  virtual void RenderLayer(float aOpacity, const gfx3DMatrix &aTransform);
 };
 
 class THEBES_API ImageD3D9

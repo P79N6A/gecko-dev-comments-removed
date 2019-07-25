@@ -70,7 +70,7 @@ public:
 
   
   virtual Layer* GetLayer();
-  virtual void RenderLayer();
+  virtual void RenderLayer(float aOpacity, const gfx3DMatrix &aTransform);
   virtual void CleanResources();
   virtual void LayerManagerDestroyed();
 
