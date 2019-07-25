@@ -2210,12 +2210,6 @@ public:
                                                  float aFactor,
                                                  const nsRect* aBoundsOverride = nsnull,
                                                  nsIFrame** aOutAncestor = nsnull);
-  
-
-
-
-  static bool ShouldPrerenderTransformedContent(nsDisplayListBuilder* aBuilder,
-                                                nsIFrame* aFrame);
 
 private:
   nsDisplayWrapList mStoredList;

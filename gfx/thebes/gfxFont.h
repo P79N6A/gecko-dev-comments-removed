@@ -955,18 +955,6 @@ public:
         kAntialiasSubpixel
     } AntialiasOption;
 
-    
-    typedef enum {
-        
-        
-        GLYPH_FILL = 1,
-        
-        GLYPH_STROKE = 2,
-        
-        
-        GLYPH_PATH = 4
-    } DrawMode;
-
 protected:
     nsAutoRefCnt mRefCnt;
     cairo_scaled_font_t *mScaledFont;
@@ -1188,7 +1176,7 @@ public:
 
 
     virtual void Draw(gfxTextRun *aTextRun, PRUint32 aStart, PRUint32 aEnd,
-                      gfxContext *aContext, DrawMode aDrawMode, gfxPoint *aBaselineOrigin,
+                      gfxContext *aContext, bool aDrawToPath, gfxPoint *aBaselineOrigin,
                       Spacing *aSpacing);
     
 
@@ -1605,10 +1593,28 @@ public:
 
 
     void Draw(gfxContext *aContext, gfxPoint aPt,
-              gfxFont::DrawMode aDrawMode,
               PRUint32 aStart, PRUint32 aLength,
               PropertyProvider *aProvider,
               gfxFloat *aAdvanceWidth);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    void DrawToPath(gfxContext *aContext, gfxPoint aPt,
+                    PRUint32 aStart, PRUint32 aLength,
+                    PropertyProvider *aBreakProvider,
+                    gfxFloat *aAdvanceWidth);
 
     
 
@@ -2183,7 +2189,7 @@ private:
                                  Metrics *aMetrics);
 
     
-    void DrawGlyphs(gfxFont *aFont, gfxContext *aContext, gfxFont::DrawMode aDrawMode,
+    void DrawGlyphs(gfxFont *aFont, gfxContext *aContext, bool aDrawToPath,
                     gfxPoint *aPt, PRUint32 aStart, PRUint32 aEnd,
                     PropertyProvider *aProvider,
                     PRUint32 aSpacingStart, PRUint32 aSpacingEnd);

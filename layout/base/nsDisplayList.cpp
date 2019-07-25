@@ -2567,15 +2567,6 @@ nsDisplayTransform::GetResultingTransformMatrix(const nsIFrame* aFrame,
     (newOrigin + toMozOrigin, result);
 }
 
-bool
-nsDisplayTransform::ShouldPrerenderTransformedContent(nsDisplayListBuilder* aBuilder,
-                                                      nsIFrame* aFrame)
-{
-  return aFrame->AreLayersMarkedActive(nsChangeHint_UpdateTransformLayer) &&
-         aFrame->GetVisualOverflowRectRelativeToSelf().Size() <=
-          aBuilder->ReferenceFrame()->GetSize();
-}
-
 
 static bool IsFrameVisible(nsIFrame* aFrame, const gfx3DMatrix& aMatrix) 
 {
@@ -2653,8 +2644,7 @@ bool nsDisplayTransform::ComputeVisibility(nsDisplayListBuilder *aBuilder,
 
 
   nsRect untransformedVisibleRect;
-  if (ShouldPrerenderTransformedContent(aBuilder, mFrame) ||
-      !UntransformRect(mVisibleRect,
+  if (!UntransformRect(mVisibleRect, 
                        mFrame, 
                        aBuilder->ToReferenceFrame(mFrame), 
                        &untransformedVisibleRect)) 
