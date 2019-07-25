@@ -92,7 +92,45 @@ let Log4Moz = {
   get DumpAppender() { return DumpAppender; },
   get ConsoleAppender() { return ConsoleAppender; },
   get FileAppender() { return FileAppender; },
-  get RotatingFileAppender() { return RotatingFileAppender; }
+  get RotatingFileAppender() { return RotatingFileAppender; },
+
+  
+  
+  
+  enumerateInterfaces: function(aObject) {
+    let interfaces = [];
+
+    for (i in Ci) {
+      try {
+        aObject.QueryInterface(Ci[i]);
+        interfaces.push(i);
+      }
+      catch(ex) {}
+    }
+
+    return interfaces;
+  },
+
+  
+  
+  
+  enumerateProperties: function(aObject, aExcludeComplexTypes) {
+    let properties = [];
+
+    for (p in aObject) {
+      try {
+        if (aExcludeComplexTypes &&
+            (typeof aObject[p] == "object" || typeof aObject[p] == "function"))
+          continue;
+        properties.push(p + " = " + aObject[p]);
+      }
+      catch(ex) {
+        properties.push(p + " = " + ex);
+      }
+    }
+
+    return properties;
+  }
 };
 
 
