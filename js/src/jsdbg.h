@@ -103,9 +103,6 @@ class Debug {
                                      DebugObservesMethod observesEvent,
                                      DebugHandleMethod handleEvent);
 
-    inline bool observesScope(JSObject *obj) const;
-    inline bool observesFrame(StackFrame *fp) const;
-
     bool observesDebuggerStatement() const;
     JSTrapStatus handleDebuggerStatement(JSContext *cx, Value *vp);
 
@@ -148,6 +145,9 @@ class Debug {
     static inline JSTrapStatus onThrow(JSContext *cx, js::Value *vp);
 
     
+
+    inline bool observesScope(JSObject *obj) const;
+    inline bool observesFrame(StackFrame *fp) const;
 
     
     
