@@ -77,6 +77,7 @@ let DebuggerController = {
     DebuggerView.StackFrames.destroy();
     DebuggerView.Properties.destroy();
 
+    DebuggerController.Breakpoints.destroy();
     DebuggerController.SourceScripts.disconnect();
     DebuggerController.StackFrames.disconnect();
     DebuggerController.ThreadState.disconnect();
@@ -823,6 +824,12 @@ SourceScripts.prototype = {
     }
 
     this._addScript({ url: aPacket.url, startLine: aPacket.startLine }, true);
+    
+    for (let bp of DebuggerController.Breakpoints.store) {
+      if (bp.location.url == aPacket.url) {
+        DebuggerController.Breakpoints.displayBreakpoint(bp.location);
+      }
+    }
   },
 
   
@@ -1238,14 +1245,7 @@ Breakpoints.prototype = {
 
     let line = aBreakpoint.line + 1;
 
-    let callback = function(aClient, aError) {
-      if (aError) {
-        this._skipEditorBreakpointChange = true;
-        let result = this.editor.removeBreakpoint(aBreakpoint.line);
-        this._skipEditorBreakpointChange = false;
-      }
-    }.bind(this);
-    this.addBreakpoint({ url: url, line: line }, callback, true);
+    this.addBreakpoint({ url: url, line: line }, null, true);
   },
 
   
@@ -1316,21 +1316,33 @@ Breakpoints.prototype = {
     }
 
     this.activeThread.setBreakpoint(aLocation, function(aResponse, aBpClient) {
-      if (!aResponse.error) {
-        this.store[aBpClient.actor] = aBpClient;
-
-        if (!aNoEditorUpdate) {
-          let url = DebuggerView.Scripts.selected;
-          if (url == aLocation.url) {
-            this._skipEditorBreakpointChange = true;
-            this.editor.addBreakpoint(aLocation.line - 1);
-            this._skipEditorBreakpointChange = false;
-          }
-        }
-      }
-
+      this.store[aBpClient.actor] = aBpClient;
+      this.displayBreakpoint(aLocation, aNoEditorUpdate);
       aCallback && aCallback(aBpClient, aResponse.error);
     }.bind(this));
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  displayBreakpoint: function BP_displayBreakpoint(aLocation, aNoEditorUpdate) {
+    if (!aNoEditorUpdate) {
+      let url = DebuggerView.Scripts.selected;
+      if (url == aLocation.url) {
+        this._skipEditorBreakpointChange = true;
+        this.editor.addBreakpoint(aLocation.line - 1);
+        this._skipEditorBreakpointChange = false;
+      }
+    }
   },
 
   

@@ -18,6 +18,7 @@
 
 
 
+
 function ThreadActor(aHooks)
 {
   this._state = "detached";
@@ -41,14 +42,7 @@ ThreadActor.prototype = {
     return this._threadLifetimePool;
   },
 
-  _breakpointPool: null,
-  get breakpointActorPool() {
-    if (!this._breakpointPool) {
-      this._breakpointPool = new ActorPool(this.conn);
-      this.conn.addActorPool(this._breakpointPool);
-    }
-    return this._breakpointPool;
-  },
+  _breakpointStore: {},
 
   _scripts: {},
 
@@ -97,8 +91,6 @@ ThreadActor.prototype = {
     }
     this.conn.removeActorPool(this._threadLifetimePool || undefined);
     this._threadLifetimePool = null;
-    this.conn.removeActorPool(this._breakpointPool);
-    this._breakpointPool = null;
     
     
     
@@ -377,19 +369,43 @@ ThreadActor.prototype = {
     }
 
     let location = aRequest.location;
-    if (!this._scripts[location.url] || location.line < 0) {
+    let line = location.line;
+    if (!this._scripts[location.url] || line < 0) {
       return { error: "noScript" };
     }
+
     
-    let scripts = this._scripts[location.url];
+    
+    if (!this._breakpointStore[location.url]) {
+      this._breakpointStore[location.url] = [];
+    }
+    let scriptBreakpoints = this._breakpointStore[location.url];
+    scriptBreakpoints[line] = {
+      url: location.url,
+      line: line,
+      column: location.column
+    };
+
+    return this._setBreakpoint(location);
+  },
+
+  
+
+
+
+
+
+  _setBreakpoint: function TA__setBreakpoint(aLocation) {
+    
+    let scripts = this._scripts[aLocation.url];
     
     let script = null;
-    for (let i = location.line; i >= 0; i--) {
+    for (let i = aLocation.line; i >= 0; i--) {
       
       if (scripts[i]) {
         
         
-        if (i + scripts[i].lineCount < location.line) {
+        if (i + scripts[i].lineCount < aLocation.line) {
           continue;
         }
         script = scripts[i];
@@ -397,15 +413,27 @@ ThreadActor.prototype = {
       }
     }
 
-    if (!script) {
-      return { error: "noScript" };
+    let location = { url: aLocation.url, line: aLocation.line };
+    let bpActor;
+    if (this._breakpointStore[location.url] &&
+        this._breakpointStore[location.url][location.line] &&
+        this._breakpointStore[location.url][location.line].actor) {
+      bpActor = this._breakpointStore[location.url][location.line].actor;
+    }
+    if (!bpActor) {
+      bpActor = new BreakpointActor(this, location);
+      this._hooks.addToBreakpointPool(bpActor);
+      this._breakpointStore[location.url][location.line].actor = bpActor;
     }
 
-    script = this._getInnermostContainer(script, location.line);
-    let bpActor = new BreakpointActor(script, this);
-    this.breakpointActorPool.addActor(bpActor);
+    if (!script) {
+      return { error: "noScript", actor: bpActor.actorID };
+    }
 
-    let offsets = script.getLineOffsets(location.line);
+    script = this._getInnermostContainer(script, aLocation.line);
+    bpActor.addScript(script, this);
+
+    let offsets = script.getLineOffsets(aLocation.line);
     let codeFound = false;
     for (let i = 0; i < offsets.length; i++) {
       script.setBreakpoint(offsets[i], bpActor);
@@ -416,21 +444,21 @@ ThreadActor.prototype = {
     if (offsets.length == 0) {
       
       let lines = script.getAllOffsets();
-      for (let line = location.line; line < lines.length; ++line) {
+      for (let line = aLocation.line; line < lines.length; ++line) {
         if (lines[line]) {
           for (let i = 0; i < lines[line].length; i++) {
             script.setBreakpoint(lines[line][i], bpActor);
             codeFound = true;
           }
-          actualLocation = location;
+          actualLocation = aLocation;
           actualLocation.line = line;
+          bpActor.location = actualLocation;
           break;
         }
       }
     }
     if (!codeFound) {
-      bpActor.onDelete();
-      return  { error: "noCodeAtLineColumn" };
+      return  { error: "noCodeAtLineColumn", actor: bpActor.actorID };
     }
 
     return { actor: bpActor.actorID, actualLocation: actualLocation };
@@ -839,8 +867,13 @@ ThreadActor.prototype = {
   onNewScript: function TA_onNewScript(aScript, aGlobal) {
     this._addScript(aScript);
     
-    this.conn.send({ from: this.actorID, type: "newScript",
-                     url: aScript.url, startLine: aScript.startLine });
+    this.conn.send({
+      from: this.actorID,
+      type: "newScript",
+      url: aScript.url,
+      startLine: aScript.startLine,
+      lineCount: aScript.lineCount
+    });
   },
 
   
@@ -856,6 +889,16 @@ ThreadActor.prototype = {
       this._scripts[aScript.url] = [];
     }
     this._scripts[aScript.url][aScript.startLine] = aScript;
+
+    
+    let existing = this._breakpointStore[aScript.url];
+    if (existing) {
+      for (let bp of existing) {
+        if (bp) {
+          this._setBreakpoint(bp);
+        }
+      }
+    }
   }
 
 };
@@ -1270,14 +1313,29 @@ FrameActor.prototype.requestTypes = {
 
 
 
-function BreakpointActor(aScript, aThreadActor)
+function BreakpointActor(aThreadActor, aLocation)
 {
-  this.script = aScript;
+  this.scripts = [];
   this.threadActor = aThreadActor;
+  this.location = aLocation;
 }
 
 BreakpointActor.prototype = {
   actorPrefix: "breakpoint",
+
+  
+
+
+
+
+
+
+
+
+  addScript: function BA_addScript(aScript, aThreadActor) {
+    this.threadActor = aThreadActor;
+    this.scripts.push(aScript);
+  },
 
   
 
@@ -1298,9 +1356,15 @@ BreakpointActor.prototype = {
 
 
   onDelete: function BA_onDelete(aRequest) {
-    this.threadActor.breakpointActorPool.removeActor(this.actorID);
-    this.script.clearBreakpoint(this);
-    this.script = null;
+    
+    let scriptBreakpoints = this.threadActor._breakpointStore[this.location.url];
+    delete scriptBreakpoints[this.location.line];
+    
+    this.threadActor._hooks.removeFromBreakpointPool(this.actorID);
+    for (let script of this.scripts) {
+      script.clearBreakpoint(this);
+    }
+    this.scripts = null;
 
     return { from: this.actorID };
   }
