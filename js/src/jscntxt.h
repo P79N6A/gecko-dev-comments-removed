@@ -603,6 +603,35 @@ struct JSRuntime : js::RuntimeFriendFields
     
     js::ion::IonActivation  *ionActivation;
 
+  private:
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    js::Value            ionReturnOverride_;
+
+  public:
+    bool hasIonReturnOverride() const {
+        return !ionReturnOverride_.isMagic();
+    }
+    js::Value takeIonReturnOverride() {
+        js::Value v = ionReturnOverride_;
+        ionReturnOverride_ = js::MagicValue(JS_ARG_POISON);
+        return v;
+    }
+    void setIonReturnOverride(const js::Value &v) {
+        JS_ASSERT(!hasIonReturnOverride());
+        ionReturnOverride_ = v;
+    }
+
     JSRuntime();
     ~JSRuntime();
 

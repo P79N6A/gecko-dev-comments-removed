@@ -413,8 +413,9 @@ IonFrameIterator::frameSize() const
     return frameSize_;
 }
 
-static inline IonScript *
-GetTopIonFrame(JSContext *cx)
+
+static inline JSScript *
+GetTopIonJSScript(JSContext *cx)
 {
     IonFrameIterator iter(cx->runtime->ionTop);
     JS_ASSERT(iter.type() == IonFrame_Exit);
@@ -424,10 +425,10 @@ GetTopIonFrame(JSContext *cx)
     switch (GetCalleeTokenTag(frame->calleeToken())) {
       case CalleeToken_Function: {
         JSFunction *fun = CalleeTokenToFunction(frame->calleeToken());
-        return fun->script()->ion;
+        return fun->script();
       }
       case CalleeToken_Script:
-        return CalleeTokenToScript(frame->calleeToken())->ion;
+        return CalleeTokenToScript(frame->calleeToken());
       default:
         JS_NOT_REACHED("unexpected callee token kind");
         return NULL;

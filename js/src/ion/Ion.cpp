@@ -949,6 +949,7 @@ EnterIon(JSContext *cx, StackFrame *fp, CallTarget target, void *jitcode, bool o
     }
 
     JS_ASSERT(fp == cx->fp());
+    JS_ASSERT(!cx->runtime->hasIonReturnOverride());
 
     
     fp->setReturnValue(result);
