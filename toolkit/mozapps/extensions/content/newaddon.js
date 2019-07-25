@@ -62,14 +62,14 @@ function initialize() {
   if (pos >= 0)
     query = spec.substring(pos + 1);
 
-  let bundle = Services.strings.createBundle("chrome://mozapps/locale/extensions/newaddon.properties");
-
   
   let id = query.substring(3);
   if (!id) {
-    window.close();
+    window.location = "about:blank";
     return;
   }
+
+  let bundle = Services.strings.createBundle("chrome://mozapps/locale/extensions/newaddon.properties");
 
   AddonManager.getAddonByID(id, function(aAddon) {
     
