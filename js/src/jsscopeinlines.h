@@ -159,9 +159,7 @@ JSObject::trace(JSTracer *trc)
     }
 
     
-    do {
-        shape->trace(trc);
-    } while ((shape = shape->parent) != NULL && !shape->marked());
+    js::Shape::trace(trc, shape);
 }
 
 namespace js {

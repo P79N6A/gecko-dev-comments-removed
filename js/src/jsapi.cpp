@@ -4103,7 +4103,7 @@ prop_iter_trace(JSTracer *trc, JSObject *obj)
 
     if (obj->getSlot(JSSLOT_ITER_INDEX).toInt32() < 0) {
         
-        ((Shape *) pdata)->trace(trc);
+        Shape::trace(trc, (Shape *) pdata);
     } else {
         
         JSIdArray *ida = (JSIdArray *) pdata;
