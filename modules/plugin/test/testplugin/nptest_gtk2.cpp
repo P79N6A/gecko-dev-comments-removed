@@ -670,10 +670,13 @@ pluginCrashInNestedLoop(InstanceData* instanceData)
   sleep(1);
 
   
-  if (!g_main_context_iteration(NULL, TRUE)) {
+  bool found_event = false;
+  while (g_main_context_iteration(NULL, FALSE)) {
+    found_event = true;
+  }
+  if (!found_event) {
     g_warning("DetectNestedEventLoop did not fire");
     return true; 
-
   }
 
   
@@ -694,7 +697,11 @@ pluginCrashInNestedLoop(InstanceData* instanceData)
   
   
   
-  if (g_main_context_iteration(NULL, TRUE)) {
+  found_event = false;
+  while (g_main_context_iteration(NULL, FALSE)) {
+    found_event = true;
+  }
+  if (found_event) {
     g_warning("Should have crashed in ProcessBrowserEvents");
   } else {
     g_warning("ProcessBrowserEvents did not fire");
