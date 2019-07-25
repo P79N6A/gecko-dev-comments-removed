@@ -288,6 +288,7 @@ gfxCoreTextShaper::SetGlyphsFromRun(gfxShapedWord *aShapedWord,
 
     
     
+    
     glyphToChar = ::CTRunGetStringIndicesPtr(aCTRun);
     if (!glyphToChar) {
         glyphToCharArray = new (std::nothrow) CFIndex[numGlyphs];
@@ -298,7 +299,8 @@ gfxCoreTextShaper::SetGlyphsFromRun(gfxShapedWord *aShapedWord,
         glyphToChar = glyphToCharArray.get();
     }
 
-    double runWidth = ::CTRunGetTypographicBounds(aCTRun, ::CFRangeMake(0, 0), NULL, NULL, NULL);
+    double runWidth = ::CTRunGetTypographicBounds(aCTRun, ::CFRangeMake(0, 0),
+                                                  NULL, NULL, NULL);
 
     nsAutoTArray<gfxTextRun::DetailedGlyph,1> detailedGlyphs;
     gfxTextRun::CompressedGlyph g;
@@ -351,11 +353,14 @@ gfxCoreTextShaper::SetGlyphsFromRun(gfxShapedWord *aShapedWord,
         stringRange.length - 1 : 0; 
 
     while (glyphStart < numGlyphs) { 
-
         bool inOrder = true;
         PRInt32 charEnd = glyphToChar[glyphStart] - stringRange.location;
-        NS_ASSERTION(charEnd >= 0 && charEnd < stringRange.length,
-                     "glyph-to-char mapping points outside string range");
+        NS_WARN_IF_FALSE(charEnd >= 0 && charEnd < stringRange.length,
+                         "glyph-to-char mapping points outside string range");
+        
+        charEnd = NS_MAX(charEnd, 0);
+        charEnd = NS_MIN(charEnd, PRInt32(stringRange.length));
+
         PRInt32 glyphEnd = glyphStart;
         PRInt32 charLimit = isRightToLeft ? -1 : stringRange.length;
         do {
@@ -373,9 +378,19 @@ gfxCoreTextShaper::SetGlyphsFromRun(gfxShapedWord *aShapedWord,
             }
 
             
-            for (PRInt32 i = charStart; i != charEnd; i += direction) {
-                if (charToGlyph[i] != NO_GLYPH) {
-                    glyphEnd = NS_MAX(glyphEnd, charToGlyph[i] + 1); 
+            if (isRightToLeft) {
+                for (PRInt32 i = charStart; i > charEnd; --i) {
+                    if (charToGlyph[i] != NO_GLYPH) {
+                        
+                        glyphEnd = NS_MAX(glyphEnd, charToGlyph[i] + 1);
+                    }
+                }
+            } else {
+                for (PRInt32 i = charStart; i < charEnd; ++i) {
+                    if (charToGlyph[i] != NO_GLYPH) {
+                        
+                        glyphEnd = NS_MAX(glyphEnd, charToGlyph[i] + 1);
+                    }
                 }
             }
 
@@ -421,8 +436,21 @@ gfxCoreTextShaper::SetGlyphsFromRun(gfxShapedWord *aShapedWord,
             }
         } while (charEnd != charLimit);
 
-        NS_ASSERTION(glyphStart < glyphEnd, "character/glyph clump contains no glyphs!");
-        NS_ASSERTION(charStart != charEnd, "character/glyph contains no characters!");
+        NS_WARN_IF_FALSE(glyphStart < glyphEnd,
+                         "character/glyph clump contains no glyphs!");
+        if (glyphStart == glyphEnd) {
+            ++glyphStart; 
+            charStart = charEnd;
+            continue;
+        }
+
+        NS_WARN_IF_FALSE(charStart != charEnd,
+                         "character/glyph clump contains no characters!");
+        if (charStart == charEnd) {
+            glyphStart = glyphEnd; 
+                                   
+            continue;
+        }
 
         
         
