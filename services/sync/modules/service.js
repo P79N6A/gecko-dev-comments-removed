@@ -77,7 +77,7 @@ Cu.import("resource://weave/engines.js");
 Cu.import("resource://weave/oauth.js");
 Cu.import("resource://weave/identity.js");
 Cu.import("resource://weave/async.js");
-Cu.import("resource://weave/clientData.js");
+Cu.import("resource://weave/engines/clientData.js");
 
 Function.prototype.async = Async.sugar;
 
@@ -92,12 +92,12 @@ Cu.import("resource://weave/resource.js", Weave);
 Cu.import("resource://weave/base_records/keys.js", Weave);
 Cu.import("resource://weave/notifications.js", Weave);
 Cu.import("resource://weave/identity.js", Weave);
-Cu.import("resource://weave/clientData.js", Weave);
 Cu.import("resource://weave/stores.js", Weave);
 Cu.import("resource://weave/syncCores.js", Weave);
 Cu.import("resource://weave/engines.js", Weave);
 Cu.import("resource://weave/oauth.js", Weave);
 Cu.import("resource://weave/service.js", Weave); 
+Cu.import("resource://weave/engines/clientData.js", Weave);
 
 Utils.lazy(Weave, 'Service', WeaveSvc);
 
@@ -561,27 +561,38 @@ WeaveSvc.prototype = {
     }
 
     this._log.debug("Refreshing client list");
-    yield ClientData.refresh(self.cb);
+    yield Clients.sync(self.cb);
 
-    let engines = Engines.getAll();
-    for each (let engine in engines) {
-      if (this.cancelRequested)
-        continue;
+    try {
+      let engines = Engines.getAll();
+      for each (let engine in engines) {
+        if (!engine.enabled)
+          continue;
 
-      if (!engine.enabled)
-        continue;
+        this._log.debug("Syncing engine " + engine.name);
+        yield this._notify(engine.name + "-engine:sync", "",
+                           this._syncEngine, engine).async(this, self.cb);
 
-      this._log.debug("Syncing engine " + engine.name);
-      yield this._notify(engine.name + "-engine:sync", "",
-                         this._syncEngine, engine).async(this, self.cb);
-    }
+        if (this._cancelRequested) {
+          this._log.info("Cancel requested, aborting sync");
+          break;
+        }
+        if (this.abortSync) {
+          this._log.error("Aborting sync");
+          break;
+        }
+      }
 
-    if (this._syncError) {
+      if (this._syncError)
+        this._log.warn("Some engines did not sync correctly");
+      else
+        this._log.info("Sync completed successfully");
+
+    } finally {
+      this._cancelRequested = false;
+      this._abortSync = false;
       this._syncError = false;
-      throw "Some engines did not sync correctly";
     }
-
-    this._log.debug("Sync complete");
   },
   sync: function WeaveSvc_sync(onComplete) {
     this._notify("sync", "",
@@ -596,50 +607,65 @@ WeaveSvc.prototype = {
   _syncAsNeeded: function WeaveSvc__syncAsNeeded() {
     let self = yield;
 
-    let engines = Engines.getAll();
-    for each (let engine in engines) {
-      if (!engine.enabled)
-        continue;
+    try {
+      let engines = Engines.getAll();
+      for each (let engine in engines) {
+        if (!engine.enabled)
+          continue;
 
-      if (!(engine.name in this._syncThresholds))
-        this._syncThresholds[engine.name] = INITIAL_THRESHOLD;
+        if (!(engine.name in this._syncThresholds))
+          this._syncThresholds[engine.name] = INITIAL_THRESHOLD;
 
-      let score = engine.score;
-      if (score >= this._syncThresholds[engine.name]) {
-        this._log.debug(engine.name + " score " + score +
-                        " reaches threshold " +
-                        this._syncThresholds[engine.name] + "; syncing");
-        this._notify(engine.name + "-engine:sync", "",
-                     this._syncEngine, engine).async(this, self.cb);
-        yield;
+        let score = engine.score;
+        if (score >= this._syncThresholds[engine.name]) {
+          this._log.debug(engine.name + " score " + score +
+                          " reaches threshold " +
+                          this._syncThresholds[engine.name] + "; syncing");
+          yield this._notify(engine.name + "-engine:sync", "",
+                             this._syncEngine, engine).async(this, self.cb);
 
-        
-        
-        
-        
-        
-        
-        
-        this._syncThresholds[engine.name] = INITIAL_THRESHOLD;
+          
+          
+          
+          
+          
+          
+          
+          this._syncThresholds[engine.name] = INITIAL_THRESHOLD;
+        }
+        else {
+          this._log.debug(engine.name + " score " + score +
+                          " does not reach threshold " +
+                          this._syncThresholds[engine.name] + "; not syncing");
+
+          
+          
+          
+          
+          this._syncThresholds[engine.name] -= THRESHOLD_DECREMENT_STEP;
+          if (this._syncThresholds[engine.name] <= 0)
+            this._syncThresholds[engine.name] = 1;
+        }
+
+        if (this._cancelRequested) {
+          this._log.info("Cancel requested, aborting sync");
+          break;
+        }
+        if (this.abortSync) {
+          this._log.error("Aborting sync");
+          break;
+        }
       }
-      else {
-        this._log.debug(engine.name + " score " + score +
-                        " does not reach threshold " +
-                        this._syncThresholds[engine.name] + "; not syncing");
 
-        
-        
-        
-        
-        this._syncThresholds[engine.name] -= THRESHOLD_DECREMENT_STEP;
-        if (this._syncThresholds[engine.name] <= 0)
-          this._syncThresholds[engine.name] = 1;
-      }
-    }
+      if (this._syncError)
+        this._log.warn("Some engines did not sync correctly");
+      else
+        this._log.info("Sync completed successfully");
 
-    if (this._syncError) {
+    } finally {
+      this._cancelRequested = false;
+      this._abortSync = false;
       this._syncError = false;
-      throw "Some engines did not sync correctly";
     }
   },
 
@@ -647,43 +673,40 @@ WeaveSvc.prototype = {
     let self = yield;
     try { yield engine.sync(self.cb); }
     catch(e) {
-      
-      this._log.warn("Engine exception: " + e);
-      let ok = FaultTolerance.Service.onException(e);
-      if (!ok)
-        this._syncError = true;
+      this._syncError = true;
+      this._abortSync = !FaultTolerance.Service.onException(e);
     }
   },
 
-  _resetServer: function WeaveSvc__resetServer() {
+  _wipeServer: function WeaveSvc__wipeServer() {
     let self = yield;
 
     let engines = Engines.getAll();
     for (let i = 0; i < engines.length; i++) {
       if (!engines[i].enabled)
         continue;
-      engines[i].resetServer(self.cb);
+      engines[i].wipeServer(self.cb);
       yield;
     }
   },
-  resetServer: function WeaveSvc_resetServer(onComplete) {
-    this._notify("reset-server", "",
-                 this._localLock(this._resetServer)).async(this, onComplete);
+  wipeServer: function WeaveSvc_wipeServer(onComplete) {
+    this._notify("wipe-server", "",
+                 this._localLock(this._wipeServer)).async(this, onComplete);
   },
 
-  _resetClient: function WeaveSvc__resetClient() {
+  _wipeClient: function WeaveSvc__wipeClient() {
     let self = yield;
     let engines = Engines.getAll();
     for (let i = 0; i < engines.length; i++) {
       if (!engines[i].enabled)
         continue;
-      engines[i].resetClient(self.cb);
+      engines[i].wipeClient(self.cb);
       yield;
     }
   },
-  resetClient: function WeaveSvc_resetClient(onComplete) {
-    this._localLock(this._notify("reset-client", "",
-                                 this._resetClient)).async(this, onComplete);
+  wipeClient: function WeaveSvc_wipeClient(onComplete) {
+    this._localLock(this._notify("wipe-client", "",
+                                 this._wipeClient)).async(this, onComplete);
   } 
 
 

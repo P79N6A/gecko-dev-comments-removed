@@ -113,6 +113,13 @@ Store.prototype = {
     throw "override createRecord in a subclass";
   },
 
+  
+  
+  
+  createMetaRecords: function Store_createMetaRecords(guid, items) {
+    return {};
+  },
+
   changeItemID: function Store_changeItemID(oldID, newID) {
     throw "override changeItemID in a subclass";
   },

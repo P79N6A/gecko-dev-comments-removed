@@ -34,7 +34,7 @@
 
 
 
-const EXPORTED_SYMBOLS = ['Utils'];
+const EXPORTED_SYMBOLS = ['Utils', 'Svc'];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -144,6 +144,34 @@ let Utils = {
     let getter = function() {
       delete dest[prop];
       dest[prop] = new ctr();
+      return dest[prop];
+    };
+    dest.__defineGetter__(prop, getter);
+  },
+
+  
+  lazy2: function Weave_lazy2(dest, prop, fn) {
+    let getter = function() {
+      delete dest[prop];
+      dest[prop] = ctr();
+      return dest[prop];
+    };
+    dest.__defineGetter__(prop, getter);
+  },
+
+  lazySvc: function Weave_lazySvc(dest, prop, cid, iface) {
+    let getter = function() {
+      delete dest[prop];
+      dest[prop] = Cc[cid].getService(iface);
+      return dest[prop];
+    };
+    dest.__defineGetter__(prop, getter);
+  },
+
+  lazyInstance: function Weave_lazyInstance(dest, prop, cid, iface) {
+    let getter = function() {
+      delete dest[prop];
+      dest[prop] = Cc[cid].createInstance(iface);
       return dest[prop];
     };
     dest.__defineGetter__(prop, getter);
@@ -474,4 +502,11 @@ Utils.EventListener.prototype = {
     
     this._handler(timer);
   }
-}
+};
+
+
+
+
+
+let Svc = {};
+Utils.lazyInstance(Svc, 'Json', "@mozilla.org/dom/json;1", Ci.nsIJSON);
