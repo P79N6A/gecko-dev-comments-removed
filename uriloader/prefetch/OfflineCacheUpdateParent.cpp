@@ -40,8 +40,6 @@
 #include "nsOfflineCacheUpdate.h"
 #include "nsIApplicationCache.h"
 
-static nsOfflineCacheUpdateService *gOfflineCacheUpdateService = nsnull;
-
 #if defined(PR_LOGGING)
 
 
