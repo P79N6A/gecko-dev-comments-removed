@@ -343,6 +343,94 @@ do_check_eq(container.width, 32);
 do_check_eq(container.height, 32);
 
 
+testnum++;
+testdesc = "test encoding an unscaled ICO with format options " +
+           "(format=bmp;bpp=32)";
+
+
+istream = imgTools.encodeImage(container,
+                               "image/vnd.microsoft.icon",
+                               "format=bmp;bpp=32");
+encodedBytes = streamToArray(istream);
+
+
+refName = "image4gif32x32bmp32bpp.ico";
+refFile = do_get_file(refName);
+istream = getFileInputStream(refFile);
+do_check_eq(istream.available(), 4286);
+referenceBytes = streamToArray(istream);
+
+
+compareArrays(encodedBytes, referenceBytes);
+
+
+testnum++;
+testdesc = "test encoding a scaled ICO with format options " +
+           "(format=bmp;bpp=32)";
+
+
+istream = imgTools.encodeScaledImage(container,
+                                     "image/vnd.microsoft.icon",
+                                     16,
+                                     16,
+                                     "format=bmp;bpp=32");
+encodedBytes = streamToArray(istream);
+
+
+refName = "image4gif16x16bmp32bpp.ico";
+refFile = do_get_file(refName);
+istream = getFileInputStream(refFile);
+do_check_eq(istream.available(), 1150);
+referenceBytes = streamToArray(istream);
+
+
+compareArrays(encodedBytes, referenceBytes);
+
+
+testnum++;
+testdesc = "test encoding an unscaled ICO with format options " +
+           "(format=bmp;bpp=24)";
+
+
+istream = imgTools.encodeImage(container,
+                               "image/vnd.microsoft.icon",
+                               "format=bmp;bpp=24");
+encodedBytes = streamToArray(istream);
+
+
+refName = "image4gif32x32bmp24bpp.ico";
+refFile = do_get_file(refName);
+istream = getFileInputStream(refFile);
+do_check_eq(istream.available(), 3262);
+referenceBytes = streamToArray(istream);
+
+
+compareArrays(encodedBytes, referenceBytes);
+
+
+testnum++;
+testdesc = "test encoding a scaled ICO with format options " +
+           "(format=bmp;bpp=24)";
+
+
+istream = imgTools.encodeScaledImage(container,
+                                     "image/vnd.microsoft.icon",
+                                     16,
+                                     16,
+                                     "format=bmp;bpp=24");
+encodedBytes = streamToArray(istream);
+
+
+refName = "image4gif16x16bmp24bpp.ico";
+refFile = do_get_file(refName);
+istream = getFileInputStream(refFile);
+do_check_eq(istream.available(), 894);
+referenceBytes = streamToArray(istream);
+
+
+compareArrays(encodedBytes, referenceBytes);
+
+
 
 testnum = 363986;
 testdesc = "test PNG and JPEG encoders' Read/ReadSegments methods";
