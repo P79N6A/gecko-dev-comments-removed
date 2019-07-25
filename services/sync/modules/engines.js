@@ -386,6 +386,11 @@ SyncEngine.prototype = {
     this._log.debug("Downloading & applying server changes");
 
     
+    let fetchNum = 1500;
+    if (Svc.Prefs.get("client.type") == "mobile")
+      fetchNum /= 10;
+
+    
     
     
     this._store.cache.enabled = true;
@@ -396,7 +401,7 @@ SyncEngine.prototype = {
     newitems.newer = this.lastSync;
     newitems.full = true;
     newitems.sort = "index";
-    newitems.limit = 300;
+    newitems.limit = fetchNum;
 
     let count = {applied: 0, reconciled: 0};
     let handled = [];
@@ -429,6 +434,9 @@ SyncEngine.prototype = {
         resp.failureCode = ENGINE_DOWNLOAD_FAIL;
         throw resp;
       }
+
+      
+      fetchNum -= handled.length;
     }
 
     
@@ -449,15 +457,16 @@ SyncEngine.prototype = {
     }
 
     
-    if (this.toFetch.length > 0) {
+    while (this.toFetch.length > 0 && fetchNum > 0) {
       
       newitems.limit = 0;
       newitems.newer = 0;
 
       
-      
-      newitems.ids = this.toFetch.slice(0, 150);
-      this.toFetch = this.toFetch.slice(150);
+      let minFetch = Math.min(150, this.toFetch.length, fetchNum);
+      newitems.ids = this.toFetch.slice(0, minFetch);
+      this.toFetch = this.toFetch.slice(minFetch);
+      fetchNum -= minFetch;
 
       
       let resp = newitems.get();
@@ -465,7 +474,6 @@ SyncEngine.prototype = {
         resp.failureCode = ENGINE_DOWNLOAD_FAIL;
         throw resp;
       }
-        
     }
 
     if (this.lastSync < this.lastModified)
