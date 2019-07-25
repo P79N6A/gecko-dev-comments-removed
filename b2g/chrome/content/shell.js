@@ -38,6 +38,23 @@ XPCOMUtils.defineLazyServiceGetter(Services, 'fm', function(){
 });
 
 
+#ifndef MOZ_WIDGET_GONK
+
+
+
+
+function startupHttpd(baseDir, port) {
+  const httpdURL = 'chrome://browser/content/httpd.js';
+  let httpd = {};
+  Services.scriptloader.loadSubScript(httpdURL, httpd);
+  let server = new httpd.nsHttpServer();
+  server.registerDirectory('/', new LocalFile(baseDir));
+  server.registerContentType('appcache', 'text/cache-manifest');
+  server.start(port);
+}
+#endif
+
+
 
 
 
@@ -105,7 +122,21 @@ var shell = {
 
       let fileScheme = 'file://';
       if (homeURL.substring(0, fileScheme.length) == fileScheme) {
+#ifndef MOZ_WIDGET_GONK
+        homeURL = homeURL.replace(fileScheme, '');
+
+        let baseDir = homeURL.split('/');
+        baseDir.pop();
+        baseDir = baseDir.join('/');
+
+        const SERVER_PORT = 7777;
+        startupHttpd(baseDir, SERVER_PORT);
+
+        let baseHost = 'http://localhost';
+        homeURL = homeURL.replace(baseDir, baseHost + ':' + SERVER_PORT);
+#else
         homeURL = 'http://localhost:7777' + homeURL.replace(fileScheme, '');
+#endif
       }
       addPermissions([homeURL]);
     } catch (e) {
