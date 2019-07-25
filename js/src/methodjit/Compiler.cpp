@@ -3351,6 +3351,10 @@ mjit::Compiler::emitReturn(FrameEntry *fe)
 
 
 
+
+
+
+
     if (script->function()) {
         types::TypeScriptNesting *nesting = script->nesting();
         if (script->function()->isHeavyweight() || (nesting && nesting->children)) {
