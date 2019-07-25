@@ -226,8 +226,11 @@ protected:
 
 
 
+
+
     NS_HIDDEN_(nsresult) Resolve_Internal(nsIURI *uri,
                                           const nsProtocolInfo &info,
+                                          PRUint32 flags,
                                           PRBool *usePAC, 
                                           nsIProxyInfo **result);
 
@@ -306,17 +309,6 @@ public:
         PRUint32 host_len;
     };
 
-    
-    enum ProxyConfig {
-        eProxyConfig_Direct,
-        eProxyConfig_Manual,
-        eProxyConfig_PAC,
-        eProxyConfig_Direct4x,
-        eProxyConfig_WPAD,
-        eProxyConfig_System, 
-        eProxyConfig_Last
-    };
-
 protected:
 
     
@@ -357,7 +349,7 @@ protected:
     
     FilterLink                  *mFilters;
 
-    ProxyConfig                  mProxyConfig;
+    PRUint32                     mProxyConfig;
 
     nsCString                    mHTTPProxyHost;
     PRInt32                      mHTTPProxyPort;
