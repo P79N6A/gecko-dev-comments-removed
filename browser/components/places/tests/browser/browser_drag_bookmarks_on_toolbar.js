@@ -58,12 +58,11 @@ var dragDirections = { LEFT: 0, UP: 1, RIGHT: 2, DOWN: 3 };
 
 
 
-function synthesizeDragWithDirection(aElement, aExpectedDragData, aDirection) {
-  var trapped = false;
-
+function synthesizeDragWithDirection(aElement, aExpectedDragData, aDirection, aCallback) {
   
-  var trapDrag = function(event) {
-    trapped = true;
+  gBookmarksToolbar.addEventListener("dragstart", function(event)
+  {
+    info("A dragstart event has been trapped.");
     var dataTransfer = event.dataTransfer;
     is(dataTransfer.mozItemCount, aExpectedDragData.length,
        "Number of dragged items should be the same.");
@@ -88,7 +87,23 @@ function synthesizeDragWithDirection(aElement, aExpectedDragData, aDirection) {
 
     event.preventDefault();
     event.stopPropagation();
-  }
+
+    gBookmarksToolbar.removeEventListener("dragstart", arguments.callee, false);
+
+    
+    
+    aElement.addEventListener("click", prevent, false);
+    EventUtils.synthesizeMouse(aElement,
+                               startingPoint.x + xIncrement * 9,
+                               startingPoint.y + yIncrement * 9,
+                               { type: "mouseup" });
+    aElement.removeEventListener("click", prevent, false);
+
+    
+    if (aElement.localName == "menu" && aElement.open)
+      aElement.open = false;
+    aCallback()
+  }, false);
 
   var prevent = function(aEvent) {aEvent.preventDefault();}
 
@@ -122,26 +137,10 @@ function synthesizeDragWithDirection(aElement, aExpectedDragData, aDirection) {
                              startingPoint.x + xIncrement * 1,
                              startingPoint.y + yIncrement * 1,
                              { type: "mousemove" });
-  gBookmarksToolbar.addEventListener("dragstart", trapDrag, false);
   EventUtils.synthesizeMouse(aElement,
                              startingPoint.x + xIncrement * 9,
                              startingPoint.y + yIncrement * 9,
                              { type: "mousemove" });
-  ok(trapped, "A dragstart event has been trapped.");
-  gBookmarksToolbar.removeEventListener("dragstart", trapDrag, false);
-
-  
-  
-  aElement.addEventListener("click", prevent, false);
-  EventUtils.synthesizeMouse(aElement,
-                             startingPoint.x + xIncrement * 9,
-                             startingPoint.y + yIncrement * 9,
-                             { type: "mouseup" });
-  aElement.removeEventListener("click", prevent, false);
-
-  
-  if (aElement.localName == "menu" && aElement.open)
-    aElement.open = false;
 }
 
 function getToolbarNodeForItemId(aItemId) {
@@ -190,17 +189,28 @@ var gTests = [
       isnot(element._placesNode, null, "Toolbar node has an associated Places node.");
       var expectedData = getExpectedDataForPlacesNode(element._placesNode);
 
-      ok(true, "Dragging left");
-      synthesizeDragWithDirection(element, expectedData, dragDirections.LEFT);
-      ok(true, "Dragging right");
-      synthesizeDragWithDirection(element, expectedData, dragDirections.RIGHT);
-      ok(true, "Dragging up");
-      synthesizeDragWithDirection(element, expectedData, dragDirections.UP);
-      ok(true, "Dragging down");
-      synthesizeDragWithDirection(element, new Array(), dragDirections.DOWN);
-
-      
-      PlacesUtils.bookmarks.removeItem(folderId);
+      info("Dragging left");
+      synthesizeDragWithDirection(element, expectedData, dragDirections.LEFT,
+        function ()
+        {
+          info("Dragging right");
+          synthesizeDragWithDirection(element, expectedData, dragDirections.RIGHT,
+            function ()
+            {
+              info("Dragging up");
+              synthesizeDragWithDirection(element, expectedData, dragDirections.UP,
+                function ()
+                {
+                  info("Dragging down");
+                  synthesizeDragWithDirection(element, new Array(), dragDirections.DOWN,
+                    function () {
+                      
+                      PlacesUtils.bookmarks.removeItem(folderId);
+                      nextTest();
+                    });
+                });
+            });
+        });
     }
   },
 
@@ -221,17 +231,28 @@ var gTests = [
       isnot(element._placesNode, null, "Toolbar node has an associated Places node.");
       var expectedData = getExpectedDataForPlacesNode(element._placesNode);
 
-      ok(true, "Dragging left");
-      synthesizeDragWithDirection(element, expectedData, dragDirections.LEFT);
-      ok(true, "Dragging right");
-      synthesizeDragWithDirection(element, expectedData, dragDirections.RIGHT);
-      ok(true, "Dragging up");
-      synthesizeDragWithDirection(element, expectedData, dragDirections.UP);
-      ok(true, "Dragging down");
-      synthesizeDragWithDirection(element, expectedData, dragDirections.DOWN);
-
-      
-      PlacesUtils.bookmarks.removeItem(itemId);
+      info("Dragging left");
+      synthesizeDragWithDirection(element, expectedData, dragDirections.LEFT,
+        function ()
+        {
+          info("Dragging right");
+          synthesizeDragWithDirection(element, expectedData, dragDirections.RIGHT,
+            function ()
+            {
+              info("Dragging up");
+              synthesizeDragWithDirection(element, expectedData, dragDirections.UP,
+                function ()
+                {
+                  info("Dragging down");
+                  synthesizeDragWithDirection(element, expectedData, dragDirections.DOWN,
+                    function () {
+                      
+                      PlacesUtils.bookmarks.removeItem(folderId);
+                      nextTest();
+                    });
+                });
+            });
+        });
     }
   },
 ];
@@ -242,7 +263,7 @@ function nextTest() {
     info("Start of test: " + test.desc);
     test.run();
 
-    setTimeout(nextTest, 0);
+    waitForFocus(nextTest);
   }
   else {
     
@@ -256,11 +277,12 @@ let toolbar = document.getElementById("PersonalToolbar");
 let wasCollapsed = toolbar.collapsed;
 
 function test() {
+  waitForExplicitFinish();
+
   
   if (wasCollapsed)
     setToolbarVisibility(toolbar, true);
 
-  waitForExplicitFinish();
-  nextTest();
+  waitForFocus(nextTest);
 }
 
