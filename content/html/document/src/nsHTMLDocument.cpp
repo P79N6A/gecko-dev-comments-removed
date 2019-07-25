@@ -3309,8 +3309,7 @@ nsHTMLDocument::EditingStateChanged()
     
     
     if (designMode && oldState == eOff) {
-      rv = editor->BeginningOfDocument();
-      NS_ENSURE_SUCCESS(rv, rv);
+      editor->BeginningOfDocument();
     }
 
     nsCOMArray<nsIStyleSheet> agentSheets;
