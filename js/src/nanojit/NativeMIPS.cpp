@@ -1172,16 +1172,16 @@ namespace nanojit
                 SUBU(rr, ra, rb);
                 break;
             case LIR_lshi:
+                
                 SLLV(rr, ra, rb);
-                ANDI(rb, rb, 31);
                 break;
             case LIR_rshi:
+                
                 SRAV(rr, ra, rb);
-                ANDI(rb, rb, 31);
                 break;
             case LIR_rshui:
+                
                 SRLV(rr, ra, rb);
-                ANDI(rb, rb, 31);
                 break;
             case LIR_mulxovi:
             case LIR_muljovi:
