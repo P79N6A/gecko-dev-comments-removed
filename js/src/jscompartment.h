@@ -398,36 +398,6 @@ struct JS_FRIEND_API(JSCompartment) {
     js::mjit::JaegerCompartment  *jaegerCompartment;
 #endif
 
-    
-
-
-    js::PropertyTree             propertyTree;
-
-#ifdef DEBUG
-    
-    jsrefcount                   livePropTreeNodes;
-    jsrefcount                   totalPropTreeNodes;
-    jsrefcount                   propTreeKidsChunks;
-    jsrefcount                   liveDictModeNodes;
-#endif
-
-    
-
-
-
-    js::EmptyShape               *emptyArgumentsShape;
-    js::EmptyShape               *emptyBlockShape;
-    js::EmptyShape               *emptyCallShape;
-    js::EmptyShape               *emptyDeclEnvShape;
-    js::EmptyShape               *emptyEnumeratorShape;
-    js::EmptyShape               *emptyWithShape;
-
-    typedef js::HashSet<js::EmptyShape *,
-                        js::DefaultHasher<js::EmptyShape *>,
-                        js::SystemAllocPolicy> EmptyShapeSet;
-
-    EmptyShapeSet                emptyShapes;
-
     bool                         debugMode;  
     JSCList                      scripts;    
 
@@ -435,17 +405,12 @@ struct JS_FRIEND_API(JSCompartment) {
 
     js::NativeIterCache          nativeIterCache;
 
-    JSCompartment(JSRuntime *rt);
+    JSCompartment(JSRuntime *cx);
     ~JSCompartment();
 
     bool init();
 
-    
-    void markCrossCompartment(JSTracer *trc);
-
-    
     void mark(JSTracer *trc);
-
     bool wrap(JSContext *cx, js::Value *vp);
     bool wrap(JSContext *cx, JSString **strp);
     bool wrap(JSContext *cx, JSObject **objp);
@@ -476,15 +441,8 @@ struct JS_FRIEND_API(JSCompartment) {
     }
 };
 
-#define JS_TRACE_MONITOR(cx)    ((cx)->compartment->traceMonitor)
-#define JS_SCRIPTS_TO_GC(cx)    ((cx)->compartment->scriptsToGC)
-#define JS_PROPERTY_TREE(cx)    ((cx)->compartment->propertyTree)
-
-#ifdef DEBUG
-#define JS_COMPARTMENT_METER(x) x
-#else
-#define JS_COMPARTMENT_METER(x)
-#endif
+#define JS_TRACE_MONITOR(cx)    (cx->compartment->traceMonitor)
+#define JS_SCRIPTS_TO_GC(cx)    (cx->compartment->scriptsToGC)
 
 namespace js {
 static inline MathCache *
