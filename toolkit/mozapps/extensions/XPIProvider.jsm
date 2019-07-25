@@ -4199,6 +4199,14 @@ AddonInstall.prototype = {
         stagedJSON.remove(true);
       this.state = AddonManager.STATE_CANCELLED;
       XPIProvider.removeActiveInstall(this);
+
+      AddonManagerPrivate.callAddonListeners("onOperationCancelled", createWrapper(this.addon));
+
+      if (this.existingAddon) {
+        delete this.existingAddon.pendingUpgrade;
+        this.existingAddon.pendingUpgrade = null;
+      }
+
       AddonManagerPrivate.callInstallListeners("onInstallCancelled",
                                                this.listeners, this.wrapper);
       break;
@@ -5460,10 +5468,17 @@ function AddonWrapper(aAddon) {
 
   this.__defineGetter__("pendingOperations", function() {
     let pending = 0;
-    if (!(aAddon instanceof DBAddonInternal))
-      pending |= AddonManager.PENDING_INSTALL;
-    else if (aAddon.pendingUninstall)
+    if (!(aAddon instanceof DBAddonInternal)) {
+      
+      
+      
+      if (!aAddon._install || aAddon._install.state == AddonManager.STATE_INSTALLING ||
+          aAddon._install.state == AddonManager.STATE_INSTALLED)
+        pending |= AddonManager.PENDING_INSTALL;
+    }
+    else if (aAddon.pendingUninstall) {
       pending |= AddonManager.PENDING_UNINSTALL;
+    }
 
     if (aAddon.active && (aAddon.userDisabled || aAddon.appDisabled))
       pending |= AddonManager.PENDING_DISABLE;
