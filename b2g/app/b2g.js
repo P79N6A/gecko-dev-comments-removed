@@ -397,6 +397,9 @@ pref("device.camera.enabled", true);
 pref("media.realtime_decoder.enabled", true);
 
 
+pref("dom.mozTCPSocket.enabled", true);
+
+
 
 
 
