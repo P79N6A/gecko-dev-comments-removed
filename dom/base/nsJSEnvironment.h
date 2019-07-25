@@ -211,7 +211,12 @@ public:
   static PRBool IntervalCC();
 
   
-  static void CCIfUserInactive();
+  
+  
+  
+  
+  static void CCIfUserInactive(PRBool aOrMaybeCC = PR_TRUE,
+                               PRBool aOnlyIfNewSuspectedObjects = PR_FALSE);
 
   static void FireGCTimer(PRBool aLoadInProgress);
 
