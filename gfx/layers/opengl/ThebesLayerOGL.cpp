@@ -48,6 +48,8 @@
 #include "gfxUtils.h"
 #include "gfxTeeSurface.h"
 
+#include "base/message_loop.h"
+
 namespace mozilla {
 namespace layers {
 
@@ -982,6 +984,7 @@ ShadowBufferOGL::Upload(gfxASurface* aUpdate, const nsIntRegion& aUpdated,
 ShadowThebesLayerOGL::ShadowThebesLayerOGL(LayerManagerOGL *aManager)
   : ShadowThebesLayer(aManager, nsnull)
   , LayerOGL(aManager)
+  , mUploadTask(nsnull)
 {
   mImplData = static_cast<LayerOGL*>(this);
 }
@@ -1096,6 +1099,59 @@ ShadowThebesLayerOGL::EnsureTextureUpdated(nsIntRegion& aRegion)
   }
 }
 
+static bool
+ProgressiveUploadCallback(gl::TextureImage* aImage, int aTileNumber,
+                          void *aData)
+{
+  nsIntRegion* regionPendingUpload = (nsIntRegion*)aData;
+
+  
+  nsIntRect tileRect = aImage->GetTileRect();
+  if (!regionPendingUpload->Intersects(tileRect))
+    return true;
+
+  regionPendingUpload->Sub(*regionPendingUpload, tileRect);
+
+  
+  
+  
+  return false;
+}
+
+void
+ShadowThebesLayerOGL::ProgressiveUpload()
+{
+  if (mRegionPendingUpload.IsEmpty())
+    return;
+
+  
+  
+  mBuffer->EnsureTexture(mFrontBuffer.Buffer()->GetSize(),
+                         mFrontBuffer.Buffer()->GetContentType());
+  nsRefPtr<gl::TextureImage> tiledImage = mBuffer->GetTextureImage().get();
+  if (tiledImage->GetTileCount() > 1)
+    tiledImage->SetIterationCallback(ProgressiveUploadCallback, (void *)&mRegionPendingUpload);
+  else
+    mRegionPendingUpload.SetEmpty();
+
+  
+  mBuffer->DirectUpdate(mFrontBuffer.Buffer(), mRegionPendingUpload);
+
+  
+  tiledImage->SetIterationCallback(nsnull, nsnull);
+
+  
+  mUploadTask = nsnull;
+
+  if (!mRegionPendingUpload.IsEmpty()) {
+    
+    mUploadTask = NewRunnableMethod(this, &ShadowThebesLayerOGL::ProgressiveUpload);
+    
+    
+    MessageLoop::current()->PostDelayedTask(FROM_HERE, mUploadTask, 5);
+  }
+}
+
 void
 ShadowThebesLayerOGL::Swap(const ThebesBuffer& aNewFront,
                            const nsIntRegion& aUpdatedRegion,
@@ -1151,6 +1207,12 @@ ShadowThebesLayerOGL::Swap(const ThebesBuffer& aNewFront,
       }
       nsRefPtr<gfxASurface> surf = ShadowLayerForwarder::OpenDescriptor(mFrontBufferDescriptor);
       mBuffer->Upload(surf, aUpdatedRegion, aNewFront.rect(), aNewFront.rotation(), true, mRegionPendingUpload);
+
+      
+      if (!mUploadTask) {
+        mUploadTask = NewRunnableMethod(this, &ShadowThebesLayerOGL::ProgressiveUpload);
+        MessageLoop::current()->PostDelayedTask(FROM_HERE, mUploadTask, 5);
+      }
     }
 
     *aReadOnlyFront = aNewFront;

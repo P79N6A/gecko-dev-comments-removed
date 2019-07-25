@@ -45,6 +45,7 @@
 #include "LayerManagerOGL.h"
 #include "gfxImageSurface.h"
 #include "GLContext.h"
+#include "base/task.h"
 
 
 namespace mozilla {
@@ -155,6 +156,7 @@ public:
        OptionalThebesBuffer* aReadOnlyFront, nsIntRegion* aFrontUpdatedRegion);
   virtual void EnsureTextureUpdated();
   virtual void EnsureTextureUpdated(nsIntRegion& aRegion);
+  virtual void ProgressiveUpload();
   virtual void DestroyFrontBuffer();
 
   virtual void Disconnect();
@@ -179,6 +181,9 @@ private:
   
   
   nsIntRegion mRegionPendingUpload;
+
+  
+  CancelableTask* mUploadTask;
 
   
   ShadowThebesLayerBufferOGL mFrontBuffer;
