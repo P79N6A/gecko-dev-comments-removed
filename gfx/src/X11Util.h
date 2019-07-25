@@ -47,10 +47,9 @@ DefaultXDisplay()
 
 
 
-
-bool
-XVisualIDToInfo(Display* aDisplay, VisualID aVisualID,
-                Visual** aVisual, unsigned int* aDepth);
+void
+FindVisualAndDepth(Display* aDisplay, VisualID aVisualID,
+                   Visual** aVisual, int* aDepth);
 
 
 
