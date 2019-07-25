@@ -312,14 +312,10 @@ nsFileChannel::MakeFileInputStream(nsIFile *file,
   bool isDir;
   nsresult rv = file->IsDirectory(&isDir);
   if (NS_FAILED(rv)) {
-    if (NS_ERROR_FILE_NOT_FOUND == rv ||
-        NS_ERROR_FILE_TARGET_DOES_NOT_EXIST == rv) {
-      
-      
-      isDir = false;
-    } else {
-      return rv;
-    }
+    
+    if (rv == NS_ERROR_FILE_TARGET_DOES_NOT_EXIST)
+      rv = NS_ERROR_FILE_NOT_FOUND;
+    return rv;
   }
 
   if (isDir) {
@@ -327,8 +323,7 @@ nsFileChannel::MakeFileInputStream(nsIFile *file,
     if (NS_SUCCEEDED(rv) && !HasContentTypeHint())
       contentType.AssignLiteral(APPLICATION_HTTP_INDEX_FORMAT);
   } else {
-    rv = NS_NewLocalFileInputStream(getter_AddRefs(stream), file, -1, -1,
-                                    nsIFileInputStream::DEFER_OPEN);
+    rv = NS_NewLocalFileInputStream(getter_AddRefs(stream), file);
     if (NS_SUCCEEDED(rv) && !HasContentTypeHint()) {
       
       nsCOMPtr<nsIMIMEService> mime = do_GetService("@mozilla.org/mime;1", &rv);
@@ -412,14 +407,8 @@ nsFileChannel::OpenContentStream(bool async, nsIInputStream **result,
     if (ContentLength64() < 0) {
       PRInt64 size;
       rv = file->GetFileSize(&size);
-      if (NS_FAILED(rv)) {
-        if (NS_ERROR_FILE_NOT_FOUND == rv ||
-            NS_ERROR_FILE_TARGET_DOES_NOT_EXIST == rv) {
-          size = 0;
-        } else {
-          return rv;
-        }
-      }
+      if (NS_FAILED(rv))
+        return rv;
       SetContentLength64(size);
     }
     if (!contentType.IsEmpty())
