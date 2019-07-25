@@ -197,7 +197,7 @@ namespace js {
 
 
 
-bool
+JS_FRIEND_API(bool)
 StringIsArrayIndex(JSLinearString *str, jsuint *indexp)
 {
     const jschar *s = str->chars();

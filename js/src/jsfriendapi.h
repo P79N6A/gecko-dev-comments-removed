@@ -334,6 +334,9 @@ CastAsJSStrictPropertyOp(JSObject *object)
 JS_FRIEND_API(bool)
 GetPropertyNames(JSContext *cx, JSObject *obj, uintN flags, js::AutoIdVector *props);
 
+JS_FRIEND_API(bool)
+StringIsArrayIndex(JSLinearString *str, jsuint *indexp);
+
 
 
 

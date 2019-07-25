@@ -68,10 +68,6 @@ JSObject::isPackedDenseArray()
 namespace js {
 
 const uint32 MAX_ARRAY_INDEX = 4294967294u;
-    
-extern bool
-StringIsArrayIndex(JSLinearString *str, jsuint *indexp);
-    
 }
 
 inline JSBool
