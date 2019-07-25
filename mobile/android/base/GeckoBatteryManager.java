@@ -47,6 +47,7 @@ import android.content.Context;
 import android.content.Intent;
 
 import android.os.BatteryManager;
+import android.os.Build;
 import android.os.SystemClock;
 
 public class GeckoBatteryManager
@@ -77,7 +78,14 @@ public class GeckoBatteryManager
     boolean previousCharging = isCharging();
     double previousLevel = getLevel();
 
-    if (intent.getBooleanExtra(BatteryManager.EXTRA_PRESENT, false)) {
+    
+    
+    
+    
+    
+    
+    if (intent.getBooleanExtra(BatteryManager.EXTRA_PRESENT, false) ||
+        Build.MODEL.equals("Galaxy Nexus")) {
       int plugged = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1);
       if (plugged == -1) {
         sCharging = kDefaultCharging;
@@ -140,7 +148,7 @@ public class GeckoBatteryManager
     } else {
       sLevel = kDefaultLevel;
       sCharging = kDefaultCharging;
-      sRemainingTime = kDefaultRemainingTime;
+      sRemainingTime = 0;
     }
 
     
