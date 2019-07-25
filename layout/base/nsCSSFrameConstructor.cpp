@@ -1749,19 +1749,6 @@ nsCSSFrameConstructor::CreateGeneratedContentItem(nsFrameConstructorState& aStat
 
 
 
-static bool
-IsTableRelated(nsIAtom* aParentType)
-{
-  return
-    nsGkAtoms::tableOuterFrame    == aParentType ||
-    nsGkAtoms::tableRowGroupFrame == aParentType ||
-    nsGkAtoms::tableRowFrame      == aParentType ||
-    nsGkAtoms::tableCaptionFrame  == aParentType ||
-    nsGkAtoms::tableColGroupFrame == aParentType ||
-    nsGkAtoms::tableColFrame      == aParentType ||
-    IS_TABLE_CELL(aParentType);
-}
-
 
 
 
@@ -3006,9 +2993,7 @@ nsCSSFrameConstructor::ConstructButtonFrame(nsFrameConstructorState& aState,
     nsFrameItems                childItems;
 
     if (aStyleDisplay->IsPositioned()) {
-      
-      
-      aState.PushAbsoluteContainingBlock(blockFrame, absoluteSaveState);
+      aState.PushAbsoluteContainingBlock(buttonFrame, absoluteSaveState);
     }
 
 #ifdef DEBUG
@@ -3231,14 +3216,7 @@ nsCSSFrameConstructor::InitializeSelectFrame(nsFrameConstructorState& aState,
   }
 
   
-  nsFrameConstructorSaveState absoluteSaveState;
   nsFrameItems                childItems;
-
-  if (display->IsPositioned()) {
-    
-    
-    aState.PushAbsoluteContainingBlock(scrolledFrame, absoluteSaveState);
-  }
 
   ProcessChildren(aState, aContent, aStyleContext, scrolledFrame, PR_FALSE,
                   childItems, PR_FALSE, aPendingBinding);
@@ -3290,11 +3268,7 @@ nsCSSFrameConstructor::ConstructFieldSetFrame(nsFrameConstructorState& aState,
   nsFrameItems                childItems;
 
   if (aStyleDisplay->IsPositioned()) {
-    
-    
-    
-    
-    aState.PushAbsoluteContainingBlock(blockFrame, absoluteSaveState);
+    aState.PushAbsoluteContainingBlock(newFrame, absoluteSaveState);
   }
 
   ProcessChildren(aState, content, styleContext, blockFrame, PR_TRUE,
@@ -5523,62 +5497,50 @@ nsIFrame*
 nsCSSFrameConstructor::GetAbsoluteContainingBlock(nsIFrame* aFrame)
 {
   NS_PRECONDITION(nsnull != mRootElementFrame, "no root element frame");
+
   
   
-  
-  nsIFrame* containingBlock = nsnull;
-  for (nsIFrame* frame = aFrame; frame && !containingBlock;
-       frame = frame->GetParent()) {
+  for (nsIFrame* frame = aFrame; frame; frame = frame->GetParent()) {
     if (frame->IsFrameOfType(nsIFrame::eMathML)) {
       
       
       
       return nsnull;
     }
+
+    
     
     
     
     
     
     const nsStyleDisplay* disp = frame->GetStyleDisplay();
-
-    if (disp->IsPositioned()) {
-      
-      if (frame->GetType() == nsGkAtoms::tableFrame) {
-        containingBlock = frame->GetParent();
-        break;
-      } else if (IsTableRelated(frame->GetType())) {
-        continue;
-      }
-
-      
-      for (nsIFrame* wrappedFrame = aFrame; wrappedFrame != frame->GetParent();
-           wrappedFrame = wrappedFrame->GetParent()) {
-        nsIAtom* frameType = wrappedFrame->GetType();
-        if (nsGkAtoms::blockFrame == frameType ||
-#ifdef MOZ_XUL
-            nsGkAtoms::XULLabelFrame == frameType ||
-#endif
-            (nsGkAtoms::inlineFrame == frameType && wrappedFrame->IsAbsoluteContainer())) {
-          containingBlock = wrappedFrame;
-        } else if (nsGkAtoms::fieldSetFrame == frameType) {
-          
-          
-          containingBlock = GetFieldSetBlockFrame(wrappedFrame);
-        }
-      }
-
-      
-      
-      
+    if (!disp->IsPositioned()) {
+      continue;
     }
+    nsIFrame* absPosCBCandidate = nsnull;
+    if (frame->GetType() == nsGkAtoms::scrollFrame) {
+      nsIScrollableFrame* scrollFrame = do_QueryFrame(frame);
+      absPosCBCandidate = scrollFrame->GetScrolledFrame();
+    } else {
+      
+      absPosCBCandidate = frame->GetFirstContinuation();
+    }
+    
+    if (!absPosCBCandidate || !absPosCBCandidate->IsAbsoluteContainer()) {
+      continue;
+    }
+
+    
+    if (absPosCBCandidate->GetType() == nsGkAtoms::tableFrame) {
+      return absPosCBCandidate->GetParent();
+    }
+    
+    return absPosCBCandidate;
   }
 
   
   
-  if (containingBlock)
-    return AdjustAbsoluteContainingBlock(containingBlock);
-
   
   return mHasRootAbsPosContainingBlock ? mDocElementContainingBlock : nsnull;
 }
@@ -10668,7 +10630,7 @@ nsCSSFrameConstructor::ConstructBlock(nsFrameConstructorState& aState,
   nsFrameConstructorSaveState absoluteSaveState;
   if (aAbsPosContainer) {
     
-    aState.PushAbsoluteContainingBlock(blockFrame, absoluteSaveState);
+    aState.PushAbsoluteContainingBlock(*aNewFrame, absoluteSaveState);
   }
 
   
