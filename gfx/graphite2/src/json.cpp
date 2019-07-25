@@ -27,7 +27,7 @@
 
 
 
-#include <cstdio>
+#include <stdio.h>
 #include "inc/json.h"
 
 using namespace graphite2;
