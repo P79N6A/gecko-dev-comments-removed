@@ -81,11 +81,6 @@ class nsNativeTheme
   
 
   
-  PRBool IsDisabled(nsIFrame* aFrame) {
-    return CheckBooleanAttr(aFrame, nsWidgetAtoms::disabled);
-  }
-
-  
   PRBool IsFrameRTL(nsIFrame* aFrame);
 
   

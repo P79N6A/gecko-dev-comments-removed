@@ -105,6 +105,8 @@ _qimage_from_gfximage_format (gfxASurface::gfxImageFormat aFormat)
         return QImage::Format_ARGB32_Premultiplied;
     case gfxASurface::ImageFormatRGB24:
         return QImage::Format_RGB32;
+    case gfxASurface::ImageFormatRGB16_565:
+        return QImage::Format_RGB16;
     case gfxASurface::ImageFormatA8:
         return QImage::Format_Indexed8;
     case gfxASurface::ImageFormatA1:
@@ -310,8 +312,9 @@ nsNativeThemeQt::DrawWidgetBackground(QPainter *qPainter,
     case NS_THEME_TEXTFIELD_MULTILINE:
     case NS_THEME_LISTBOX: {
         QStyleOptionFrameV2 frameOpt;
-        
-        if (!IsDisabled(aFrame))
+        PRInt32 eventState = GetContentState(aFrame, aWidgetType);
+
+        if (!(eventState & NS_EVENT_STATE_DISABLED))
             frameOpt.state |= QStyle::State_Enabled;
 
         frameOpt.rect = r;
@@ -627,12 +630,6 @@ nsNativeThemeQt::ThemeNeedsComboboxDropmarker()
     return PR_TRUE;
 }
 
-nsTransparencyMode
-nsNativeThemeQt::GetWidgetTransparency(PRUint8 aWidgetType)
-{
-  return eTransparencyOpaque;
-}
-
 void
 nsNativeThemeQt::InitButtonStyle(PRUint8 aWidgetType,
                                  nsIFrame* aFrame,
@@ -644,15 +641,13 @@ nsNativeThemeQt::InitButtonStyle(PRUint8 aWidgetType,
     opt.rect = rect;
     opt.palette = mNoBackgroundPalette;
 
-    PRBool disabled = IsDisabled(aFrame);
-
-    if (!disabled)
+    if (!(eventState & NS_EVENT_STATE_DISABLED))
         opt.state |= QStyle::State_Enabled;
     if (eventState & NS_EVENT_STATE_HOVER)
         opt.state |= QStyle::State_MouseOver;
     if (eventState & NS_EVENT_STATE_FOCUS)
         opt.state |= QStyle::State_HasFocus;
-    if (!disabled && eventState & NS_EVENT_STATE_ACTIVE)
+    if (!(eventState & NS_EVENT_STATE_DISABLED) && (eventState & NS_EVENT_STATE_ACTIVE))
         
         opt.state |= QStyle::State_Sunken;
 
@@ -683,7 +678,7 @@ nsNativeThemeQt::InitPlainStyle(PRUint8 aWidgetType,
 
     opt.rect = rect;
 
-    if (!IsDisabled(aFrame))
+    if (!(eventState & NS_EVENT_STATE_DISABLED))
         opt.state |= QStyle::State_Enabled;
     if (eventState & NS_EVENT_STATE_HOVER)
         opt.state |= QStyle::State_MouseOver;
@@ -701,9 +696,7 @@ nsNativeThemeQt::InitComboStyle(PRUint8 aWidgetType,
 {
     PRInt32 eventState = GetContentState(aFrame, aWidgetType);
 
-    PRBool disabled = IsDisabled(aFrame);
-
-    if (!disabled)
+    if (!(eventState & NS_EVENT_STATE_DISABLED))
         opt.state |= QStyle::State_Enabled;
     if (eventState & NS_EVENT_STATE_HOVER)
         opt.state |= QStyle::State_MouseOver;
@@ -711,7 +704,7 @@ nsNativeThemeQt::InitComboStyle(PRUint8 aWidgetType,
         opt.state |= QStyle::State_HasFocus;
     if (!(eventState & NS_EVENT_STATE_ACTIVE))
         opt.state |= QStyle::State_Raised;
-    if (!disabled && eventState & NS_EVENT_STATE_ACTIVE)
+    if (!(eventState & NS_EVENT_STATE_DISABLED) && (eventState & NS_EVENT_STATE_ACTIVE))
         
         opt.state |= QStyle::State_Sunken;
 
