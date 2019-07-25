@@ -696,12 +696,6 @@ VectorImage::OnStopRequest(nsIRequest* aRequest, nsISupports* aCtxt,
   mIsFullyLoaded = PR_TRUE;
   mHaveAnimations = mSVGDocumentWrapper->IsAnimated();
 
-  if (mHaveAnimations && mAnimationMode == kDontAnimMode) {
-    
-    
-    mSVGDocumentWrapper->StopAnimation();
-  }
-
 #ifdef MOZ_ENABLE_LIBXUL
   
   mRenderingObserver = new SVGRootRenderingObserver(mSVGDocumentWrapper, this);
