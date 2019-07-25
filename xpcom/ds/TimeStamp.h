@@ -42,7 +42,6 @@
 #include "prinrval.h"
 #include "nsDebug.h"
 #include "prlong.h"
-#include "mozilla/Util.h"
 
 namespace mozilla {
 
@@ -67,7 +66,7 @@ public:
   
   struct _SomethingVeryRandomHere;
   TimeDuration(_SomethingVeryRandomHere* aZero) : mValue(0) {
-    MOZ_ASSERT(!aZero && "Who's playing funny games here?");
+    NS_ASSERTION(!aZero, "Who's playing funny games here?");
   }
   
 
@@ -210,8 +209,8 @@ public:
 
 
   TimeDuration operator-(const TimeStamp& aOther) const {
-    MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
-    MOZ_ASSERT(!aOther.IsNull() && "Cannot compute with aOther null value");
+    NS_ASSERTION(!IsNull(), "Cannot compute with a null value");
+    NS_ASSERTION(!aOther.IsNull(), "Cannot compute with aOther null value");
     PR_STATIC_ASSERT(-LL_MAXINT > LL_MININT);
     PRInt64 ticks = PRInt64(mValue - aOther.mValue);
     
@@ -228,54 +227,54 @@ public:
   }
 
   TimeStamp operator+(const TimeDuration& aOther) const {
-    MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
+    NS_ASSERTION(!IsNull(), "Cannot compute with a null value");
     return TimeStamp(mValue + aOther.mValue);
   }
   TimeStamp operator-(const TimeDuration& aOther) const {
-    MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
+    NS_ASSERTION(!IsNull(), "Cannot compute with a null value");
     return TimeStamp(mValue - aOther.mValue);
   }
   TimeStamp& operator+=(const TimeDuration& aOther) {
-    MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
+    NS_ASSERTION(!IsNull(), "Cannot compute with a null value");
     mValue += aOther.mValue;
     return *this;
   }
   TimeStamp& operator-=(const TimeDuration& aOther) {
-    MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
+    NS_ASSERTION(!IsNull(), "Cannot compute with a null value");
     mValue -= aOther.mValue;
     return *this;
   }
 
   PRBool operator<(const TimeStamp& aOther) const {
-    MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
-    MOZ_ASSERT(!aOther.IsNull() && "Cannot compute with aOther null value");
+    NS_ASSERTION(!IsNull(), "Cannot compute with a null value");
+    NS_ASSERTION(!aOther.IsNull(), "Cannot compute with aOther null value");
     return mValue < aOther.mValue;
   }
   PRBool operator<=(const TimeStamp& aOther) const {
-    MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
-    MOZ_ASSERT(!aOther.IsNull() && "Cannot compute with aOther null value");
+    NS_ASSERTION(!IsNull(), "Cannot compute with a null value");
+    NS_ASSERTION(!aOther.IsNull(), "Cannot compute with aOther null value");
     return mValue <= aOther.mValue;
   }
   PRBool operator>=(const TimeStamp& aOther) const {
-    MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
-    MOZ_ASSERT(!aOther.IsNull() && "Cannot compute with aOther null value");
+    NS_ASSERTION(!IsNull(), "Cannot compute with a null value");
+    NS_ASSERTION(!aOther.IsNull(), "Cannot compute with aOther null value");
     return mValue >= aOther.mValue;
   }
   PRBool operator>(const TimeStamp& aOther) const {
-    MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
-    MOZ_ASSERT(!aOther.IsNull() && "Cannot compute with aOther null value");
+    NS_ASSERTION(!IsNull(), "Cannot compute with a null value");
+    NS_ASSERTION(!aOther.IsNull(), "Cannot compute with aOther null value");
     return mValue > aOther.mValue;
   }
   PRBool operator==(const TimeStamp& aOther) const {
     
-    MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
-    MOZ_ASSERT(!aOther.IsNull() && "Cannot compute with aOther null value");
+    NS_ASSERTION(!IsNull(), "Cannot compute with a null value");
+    NS_ASSERTION(!aOther.IsNull(), "Cannot compute with aOther null value");
     return mValue == aOther.mValue;
   }
   PRBool operator!=(const TimeStamp& aOther) const {
     
-    MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
-    MOZ_ASSERT(!aOther.IsNull() && "Cannot compute with aOther null value");
+    NS_ASSERTION(!IsNull(), "Cannot compute with a null value");
+    NS_ASSERTION(!aOther.IsNull(), "Cannot compute with aOther null value");
     return mValue != aOther.mValue;
   }
 
