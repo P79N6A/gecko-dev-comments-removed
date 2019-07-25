@@ -60,6 +60,30 @@ namespace js {
 
 
 
+struct ScopeCoordinate
+{
+    uint16_t hops;
+    uint16_t binding;
+    inline ScopeCoordinate(jsbytecode *pc);
+};
+
+inline JSAtom *
+ScopeCoordinateAtom(JSScript *script, jsbytecode *pc);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -231,6 +255,7 @@ class StaticBlockObject : public BlockObject
     inline void setEnclosingBlock(StaticBlockObject *blockObj);
 
     void setStackDepth(uint32_t depth);
+    bool containsVarAtDepth(uint32_t depth);
 
     
 

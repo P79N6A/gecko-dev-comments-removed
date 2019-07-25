@@ -146,6 +146,17 @@ class Bindings
     unsigned count() const { return nargs + nvars; }
 
     
+
+
+
+    bool bindingIsArg(uint16_t i) const { return i < nargs; }
+    bool bindingIsLocal(uint16_t i) const { return i >= nargs; }
+    uint16_t argToBinding(uint16_t i) { JS_ASSERT(i < nargs); return i; }
+    uint16_t localToBinding(uint16_t i) { return i + nargs; }
+    uint16_t bindingToArg(uint16_t i) { JS_ASSERT(bindingIsArg(i)); return i; }
+    uint16_t bindingToLocal(uint16_t i) { JS_ASSERT(bindingIsLocal(i)); return i - nargs; }
+
+    
     inline bool ensureShape(JSContext *cx);
 
     
@@ -807,6 +818,8 @@ struct JSScript : public js::gc::Cell
 #ifdef DEBUG
     bool varIsAliased(unsigned varSlot);
     bool argIsAliased(unsigned argSlot);
+    bool argLivesInArgumentsObject(unsigned argSlot);
+    bool argLivesInCallObject(unsigned argSlot);
 #endif
   private:
     
