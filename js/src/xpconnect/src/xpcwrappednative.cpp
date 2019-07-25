@@ -2769,6 +2769,9 @@ CallMethodHelper::InitializeDispatchParams()
         if(wantsOptArgc)
             
             mJSContextIndex = mOptArgcIndex++;
+        else if(mMethodInfo->IsSetter() || mMethodInfo->IsGetter())
+            
+            mJSContextIndex = 0;
         else
             mJSContextIndex = paramCount - hasRetval;
     }

@@ -3552,9 +3552,6 @@ public:
 private:
     nsAutoTArray<XPCJSContextInfo, 16> mStack;
     JSContext*  mSafeJSContext;
-
-    
-    
     JSContext*  mOwnSafeJSContext;
 };
 
