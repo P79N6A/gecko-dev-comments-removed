@@ -46,10 +46,12 @@ ScopedXErrorHandler::ErrorEvent* ScopedXErrorHandler::sXErrorPtr;
 int
 ScopedXErrorHandler::ErrorHandler(Display *, XErrorEvent *ev)
 {
-    sXErrorPtr->mError = *ev;
+    
+    
+    if (!sXErrorPtr->mError.error_code)
+      sXErrorPtr->mError = *ev;
     return 0;
 }
-
 
 ScopedXErrorHandler::ScopedXErrorHandler()
 {
