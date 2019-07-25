@@ -65,14 +65,6 @@ public:
 
   
   NS_IMETHOD QueryInterface(const nsIID& uuid, void** result) = 0;
-
-protected:
-
-  
-
-
-  HRESULT GetARGBValueFromCSSProperty(const nsAString& aPropName,
-                                      IA2Color *aColorValue);
 };
 
 #endif
