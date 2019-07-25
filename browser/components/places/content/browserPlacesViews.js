@@ -1858,13 +1858,16 @@ PlacesMenu.prototype = {
   _onPopupHidden: function PM__onPopupHidden(aEvent) {
     
     let popup = aEvent.originalTarget;
-    if (!popup._placesNode || PlacesUIUtils.getViewForNode(popup) != this)
+    let placesNode = popup._placesNode;
+    if (!placesNode || PlacesUIUtils.getViewForNode(popup) != this)
       return;
 
     
     
-    if (!PlacesUtils.nodeIsFolder(popup._placesNode))
-      popup._placesNode.containerOpen = false;
+    
+    
+    if (!PlacesUtils.nodeIsFolder(placesNode) || placesNode._feedURI)
+      placesNode.containerOpen = false;
 
     
     
