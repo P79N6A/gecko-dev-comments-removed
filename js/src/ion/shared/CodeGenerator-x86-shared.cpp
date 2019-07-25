@@ -124,9 +124,6 @@ CodeGeneratorX86Shared::callVM(const VMFunction * f, LSnapshot *snapshot)
     if (!wrapper)
         return false;
 
-    if (!encode(snapshot))
-        return false;
-
     
     uint32 descriptor = MakeFrameDescriptor(masm.framePushed(), IonFrame_JS);
     masm.push(Imm32(descriptor));
@@ -135,11 +132,12 @@ CodeGeneratorX86Shared::callVM(const VMFunction * f, LSnapshot *snapshot)
     
     
     
-    
 
     
     
     masm.call(wrapper);
+    if (!assignFrameInfo(snapshot))
+        return false;
 
     
     
@@ -848,6 +846,8 @@ CodeGeneratorX86Shared::visitCallGeneric(LCallGeneric *call)
         masm.movePtr(Operand(objreg, offsetof(IonScript, method_)), objreg);
         masm.movePtr(Operand(objreg, IonCode::OffsetOfCode()), objreg);
         masm.call(objreg);
+        if (!assignFrameInfo(call->postSnapshot()))
+            return false;
         masm.jump(&rejoin);
 
         
@@ -855,7 +855,8 @@ CodeGeneratorX86Shared::visitCallGeneric(LCallGeneric *call)
         masm.mov(Imm32(call->nargs()), ArgumentsRectifierReg);
         masm.movePtr(ImmWord(argumentsRectifier->raw()), ecx); 
         masm.call(ecx);
-
+        if (!assignFrameInfo(call->postSnapshot()))
+            return false;
         masm.bind(&rejoin);
     }
 

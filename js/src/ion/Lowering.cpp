@@ -135,6 +135,8 @@ LIRGenerator::visitCall(MCall *call)
         return false;
     if (!assignSnapshot(ins))
         return false;
+    if (!assignPostSnapshot(call, ins))
+        return false;
 
     freeArguments(argc);
     return true;
@@ -705,7 +707,7 @@ LIRGenerator::visitInstruction(MInstruction *ins)
     if (!ins->accept(this))
         return false;
 
-    if (ins->resumePoint()) 
+    if (ins->resumePoint())
         updateResumeState(ins);
 
     if (gen->errored())
@@ -713,7 +715,18 @@ LIRGenerator::visitInstruction(MInstruction *ins)
 #ifdef DEBUG
     ins->setInWorklistUnchecked();
 #endif
-    return true;
+
+    
+    if (!postSnapshot_)
+        return true;
+
+    
+    
+    
+    LSnapshot *post = postSnapshot_;
+    postSnapshot_ = NULL;
+
+    return add(new LCaptureAllocations(post));
 }
 
 bool

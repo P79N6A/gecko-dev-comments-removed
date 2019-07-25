@@ -45,6 +45,7 @@
 #include "jstypes.h"
 #include "jsutil.h"
 #include "IonRegisters.h"
+#include "IonCode.h"
 
 struct JSFunction;
 struct JSScript;
@@ -62,6 +63,18 @@ namespace ion {
 
 
 
+
+
+
+
+
+struct IonFrameInfo
+{
+    
+    
+    ptrdiff_t displacement;
+    SnapshotOffset snapshotOffset;
+};
 
 
 
@@ -146,19 +159,37 @@ class IonFrameIterator
     uint8 *current_;
     FrameType type_;
 
+    
+    
+    
+    mutable uint8 *prevCache_;
+
   public:
     IonFrameIterator(uint8 *top)
       : current_(top),
-        type_(IonFrame_Exit)
+        type_(IonFrame_Exit),
+        prevCache_(top)
     { }
 
+    
     FrameType type() const {
         return type_;
     }
     uint8 *fp() const {
         return current_;
     }
+    uint8 *returnAddress() const;
 
+    
+    size_t prevFrameLocalSize() const;
+    FrameType prevType() const;
+    uint8 *prevFp() const;
+
+    
+    
+    bool more() const {
+        return prevType() != IonFrame_Entry;
+    }
     void prev();
 };
 
@@ -216,8 +247,12 @@ class FrameRecovery
                                        BailoutId bailoutId);
     static FrameRecovery FromSnapshot(uint8 *fp, uint8 *sp, const MachineState &machine,
                                       SnapshotOffset offset);
+    static FrameRecovery FromFrameIterator(const IonFrameIterator& it);
 
     MachineState &machine() {
+        return machine_;
+    }
+    const MachineState &machine() const {
         return machine_;
     }
     uintptr_t readSlot(uint32 offset) const {

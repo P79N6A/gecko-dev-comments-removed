@@ -662,8 +662,10 @@ GreedyAllocator::allocateInstruction(LBlock *block, LInstruction *ins)
         return false;
 
     
-    if (ins->snapshot() && !informSnapshot(ins->snapshot()))
-        return false;
+    if (ins->snapshot() && ins->op() != LInstruction::LOp_CaptureAllocations) {
+        if (!informSnapshot(ins->snapshot()))
+            return false;
+    }
 
     
     if (!allocateDefinitions(ins))
@@ -680,6 +682,10 @@ GreedyAllocator::allocateInstruction(LBlock *block, LInstruction *ins)
             continue;
         killStack(getVirtualRegister(def));
     }
+
+    
+    if (ins->postSnapshot() && !informSnapshot(ins->postSnapshot()))
+        return false;
 
     if (aligns)
         block->insertBefore(ins, aligns);

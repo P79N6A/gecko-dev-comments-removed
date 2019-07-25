@@ -49,6 +49,19 @@
 namespace js {
 namespace ion {
 
+
+
+class LCaptureAllocations : public LInstructionHelper<0, 0, 0>
+{
+  public:
+    LCaptureAllocations(LSnapshot *snapshot)
+    {
+        assignSnapshot(snapshot);
+    }
+
+    LIR_HEADER(CaptureAllocations);
+};
+
 class LMove
 {
     LAllocation *from_;

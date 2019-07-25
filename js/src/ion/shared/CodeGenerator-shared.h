@@ -71,6 +71,10 @@ class CodeGeneratorShared : public LInstructionVisitor
     
     js::Vector<SnapshotOffset, 0, SystemAllocPolicy> bailouts_;
 
+    
+    
+    js::Vector<IonFrameInfo, 0, SystemAllocPolicy> frameInfoTable_;
+
     static inline int32 ToInt32(const LAllocation *a) {
         if (a->isConstantValue()) {
             return a->toConstant()->toInt32();
@@ -149,6 +153,10 @@ class CodeGeneratorShared : public LInstructionVisitor
     
     bool assignBailoutId(LSnapshot *snapshot);
 
+    
+    
+    
+    bool assignFrameInfo(LSnapshot *snapshot);
 
     inline bool isNextBlock(LBlock *block) {
         return (current->mir()->id() + 1 == block->mir()->id());
