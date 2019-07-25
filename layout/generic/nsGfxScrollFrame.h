@@ -178,7 +178,12 @@ public:
     return pt;
   }
   nsRect GetScrollRange() const;
+  
+  nsRect GetScrollRange(nscoord aWidth, nscoord aHeight) const;
+protected:
+  nsRect GetScrollRangeForClamping() const;
 
+public:
   nsPoint RestrictToDevPixels(const nsPoint& aPt, nsIntPoint* aPtDevPx, bool aShouldClamp) const;
   nsPoint ClampScrollPosition(const nsPoint& aPt) const;
   static void AsyncScrollCallback(nsITimer *aTimer, void* anInstance);
