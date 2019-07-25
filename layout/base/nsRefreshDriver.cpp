@@ -58,6 +58,15 @@ using mozilla::TimeStamp;
 #define DEFAULT_FRAME_RATE 60
 #define DEFAULT_THROTTLED_FRAME_RATE 1
 
+static PRBool sPrecisePref;
+
+ void
+nsRefreshDriver::InitializeStatics()
+{
+  nsContentUtils::AddBoolPrefVarCache("layout.frame_rate.precise",
+                                      &sPrecisePref,
+                                      PR_FALSE);
+}
 
 
 PRInt32
@@ -85,16 +94,17 @@ nsRefreshDriver::GetRefreshTimerType() const
   if (mThrottled) {
     return nsITimer::TYPE_ONE_SHOT;
   }
-  PRBool precise =
-    nsContentUtils::GetBoolPref("layout.frame_rate.precise", PR_FALSE);
-  return precise ? (PRInt32)nsITimer::TYPE_REPEATING_PRECISE
-                 : (PRInt32)nsITimer::TYPE_REPEATING_SLACK;
+  if (HaveAnimationFrameListeners() || sPrecisePref) {
+    return nsITimer::TYPE_REPEATING_PRECISE;
+  }
+  return nsITimer::TYPE_REPEATING_SLACK;
 }
 
 nsRefreshDriver::nsRefreshDriver(nsPresContext *aPresContext)
   : mPresContext(aPresContext),
     mFrozen(false),
-    mThrottled(false)
+    mThrottled(false),
+    mTimerIsPrecise(false)
 {
 }
 
@@ -157,9 +167,12 @@ nsRefreshDriver::EnsureTimerStarted()
     return;
   }
 
+  PRInt32 timerType = GetRefreshTimerType();
+  mTimerIsPrecise = (timerType == nsITimer::TYPE_REPEATING_PRECISE);
+
   nsresult rv = mTimer->InitWithCallback(this,
                                          GetRefreshTimerInterval(),
-                                         GetRefreshTimerType());
+                                         timerType);
   if (NS_FAILED(rv)) {
     mTimer = nsnull;
   }
@@ -338,9 +351,16 @@ nsRefreshDriver::Notify(nsITimer * )
     }
   }
 
-  if (mThrottled) {
+  if (mThrottled ||
+      (mTimerIsPrecise !=
+       (GetRefreshTimerType() == nsITimer::TYPE_REPEATING_PRECISE))) {
     
     
+    
+    
+    
+    
+
     
     
     
@@ -421,6 +441,8 @@ nsRefreshDriver::ScheduleAnimationFrameListeners(nsIDocument* aDocument)
                mAnimationFrameListenerDocs.NoIndex,
                "Don't schedule the same document multiple times");
   mAnimationFrameListenerDocs.AppendElement(aDocument);
+  
+  
   EnsureTimerStarted();
 }
 
@@ -434,4 +456,6 @@ void
 nsRefreshDriver::RevokeAnimationFrameListeners(nsIDocument* aDocument)
 {
   mAnimationFrameListenerDocs.RemoveElement(aDocument);
+  
+  
 }

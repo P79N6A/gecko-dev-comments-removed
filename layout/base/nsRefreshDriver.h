@@ -79,6 +79,8 @@ public:
   nsRefreshDriver(nsPresContext *aPresContext);
   ~nsRefreshDriver();
 
+  static void InitializeStatics();
+
   
   NS_DECL_ISUPPORTS
 
@@ -221,6 +223,10 @@ private:
   PRInt32 GetRefreshTimerInterval() const;
   PRInt32 GetRefreshTimerType() const;
 
+  bool HaveAnimationFrameListeners() const {
+    return mAnimationFrameListenerDocs.Length() != 0;
+  }
+
   nsCOMPtr<nsITimer> mTimer;
   mozilla::TimeStamp mMostRecentRefresh; 
   PRInt64 mMostRecentRefreshEpochTime;   
@@ -231,6 +237,10 @@ private:
 
   bool mFrozen;
   bool mThrottled;
+  
+
+
+  bool mTimerIsPrecise;
 
   
   ObserverArray mObservers[3];
