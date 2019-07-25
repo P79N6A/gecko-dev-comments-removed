@@ -77,10 +77,18 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
+const RX_UNIVERSAL_SELECTOR = /\s*\*\s*/g;
+const RX_NOT = /:not\((.*?)\)/g;
+const RX_PSEUDO_CLASS_OR_ELT = /(:[\w-]+\().*?\)/g;
+const RX_CONNECTORS = /\s*[\s>+~]\s*/g;
+const RX_ID = /\s*#\w+\s*/g;
+const RX_CLASS_OR_ATTRIBUTE = /\s*(?:\.\w+|\[.+?\])\s*/g;
+const RX_PSEUDO = /\s*:?:([\w-]+)(\(?\)?)\s*/g;
+
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-var EXPORTED_SYMBOLS = ["CssLogic"];
+var EXPORTED_SYMBOLS = ["CssLogic", "CssSelector"];
 
 function CssLogic()
 {
@@ -1435,6 +1443,31 @@ CssSelector.prototype = {
 
 
 
+  get pseudoElements()
+  {
+    if (!CssSelector._pseudoElements) {
+      let pseudos = CssSelector._pseudoElements = new Set();
+      pseudos.add("after");
+      pseudos.add("before");
+      pseudos.add("first-letter");
+      pseudos.add("first-line");
+      pseudos.add("selection");
+      pseudos.add("-moz-focus-inner");
+      pseudos.add("-moz-focus-outer");
+      pseudos.add("-moz-list-bullet");
+      pseudos.add("-moz-list-number");
+      pseudos.add("-moz-math-anonymous");
+      pseudos.add("-moz-math-stretchy");
+      pseudos.add("-moz-progress-bar");
+      pseudos.add("-moz-selection");
+    }
+    return CssSelector._pseudoElements;
+  },
+
+  
+
+
+
 
 
 
@@ -1446,37 +1479,58 @@ CssSelector.prototype = {
       return this._specificity;
     }
 
-    let specificity = {};
+    let specificity = {
+      ids: 0,
+      classes: 0,
+      tags: 0
+    };
 
-    specificity.ids = 0;
-    specificity.classes = 0;
-    specificity.tags = 0;
+    let text = this.text;
 
-    
-    
     if (!this.elementStyle) {
-      this.text.split(/[ >+]/).forEach(function(aSimple) {
+      
+      
+      text = text.replace(RX_UNIVERSAL_SELECTOR, "");
+
+      
+      
+      text = text.replace(RX_NOT, " $1");
+
+      
+      text = text.replace(RX_PSEUDO_CLASS_OR_ELT, " $1)");
+
+      
+      text = text.replace(RX_CONNECTORS, " ");
+
+      text.split(/\s/).forEach(function(aSimple) {
         
-        if (!aSimple) {
-          return;
-        }
+        aSimple = aSimple.replace(RX_ID, function() {
+          specificity.ids++;
+          return "";
+        });
+
         
-        
-        specificity.ids += (aSimple.match(/#/g) || []).length;
-        
-        specificity.classes += (aSimple.match(/\./g) || []).length;
-        specificity.classes += (aSimple.match(/\[/g) || []).length;
-        
-        specificity.tags += (aSimple.match(/:/g) || []).length;
-        
-        
-        let tag = aSimple.split(/[#.[:]/)[0];
-        if (tag && tag != "*") {
+        aSimple = aSimple.replace(RX_CLASS_OR_ATTRIBUTE, function() {
+          specificity.classes++;
+          return "";
+        });
+
+        aSimple = aSimple.replace(RX_PSEUDO, function(aDummy, aPseudoName) {
+          if (this.pseudoElements.has(aPseudoName)) {
+            
+            specificity.tags++;
+          } else {
+            
+            specificity.classes++;
+          }
+          return "";
+        }.bind(this));
+
+        if (aSimple) {
           specificity.tags++;
         }
       }, this);
     }
-
     this._specificity = specificity;
 
     return this._specificity;
