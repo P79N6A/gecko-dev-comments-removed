@@ -2260,8 +2260,8 @@ js_TraceStackFrame(JSTracer *trc, JSStackFrame *fp)
     
     MarkValue(trc, fp->thisv, "this");
     MarkValue(trc, fp->rval, "rval");
-    if (fp->scopeChain)
-        JS_CALL_OBJECT_TRACER(trc, fp->scopeChain, "scope chain");
+    if (fp->hasScopeChain())
+        JS_CALL_OBJECT_TRACER(trc, fp->getScopeChain(), "scope chain");
 }
 
 void
