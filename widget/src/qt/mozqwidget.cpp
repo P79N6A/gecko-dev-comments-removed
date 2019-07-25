@@ -41,14 +41,14 @@ void MozQWidget::activate()
 {
     
     hideVKB();
-    mReceiver->DispatchActivateEvent();
+    mReceiver->DispatchActivateEventOnTopLevelWindow();
 }
 
 void MozQWidget::deactivate()
 {
     
     hideVKB();
-    mReceiver->DispatchDeactivateEvent();
+    mReceiver->DispatchDeactivateEventOnTopLevelWindow();
 }
 
 void MozQWidget::resizeEvent(QGraphicsSceneResizeEvent* aEvent)
