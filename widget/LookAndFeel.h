@@ -509,6 +509,12 @@ public:
 
 
 
+  static PRUint32 GetPasswordMaskDelay();
+
+  
+
+
+
   static void Refresh();
 };
 
