@@ -74,6 +74,8 @@ var gPlayTests = [
   { name:"bug504613.ogv", type:"video/ogg", duration:Number.NaN },
   
   { name:"bug516323.ogv", type:"video/ogg", duration:4.208 },
+  
+  { name:"bug556821.ogv", type:"video/ogg", duration:2.551 },
 
   
   { name:"beta-phrasebook.ogg", type:"audio/ogg", duration:4.01 },

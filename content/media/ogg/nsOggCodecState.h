@@ -214,6 +214,9 @@ public:
   virtual PRInt64 Time(PRInt64 granulepos) { return -1; }
   virtual PRBool Init() { return PR_TRUE; }
 
+  
+  
+  PRBool IsPresentable(PRInt64 aTime) { return aTime >= mPresentationTime; }
 
   
   
@@ -282,6 +285,9 @@ private:
 
   
   PRUint32 mVersion;
+
+  
+  PRInt64 mPresentationTime;
 
   
   PRInt64 mLength;
