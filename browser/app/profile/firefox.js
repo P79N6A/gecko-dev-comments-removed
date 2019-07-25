@@ -877,7 +877,7 @@ pref("browser.ssl_override_behavior", 2);
 
 
 
-pref("browser.identity.ssl_domain_display", 0);
+pref("browser.identity.ssl_domain_display", 1);
 
 
 
@@ -1058,9 +1058,14 @@ pref("devtools.layoutview.open", false);
 
 
 pref("devtools.debugger.enabled", false);
+pref("devtools.debugger.remote-enabled", false);
+pref("devtools.debugger.remote-host", "localhost");
+pref("devtools.debugger.remote-port", 6000);
 
 
 pref("devtools.debugger.ui.height", 250);
+pref("devtools.debugger.ui.remote-win.width", 900);
+pref("devtools.debugger.ui.remote-win.height", 400);
 
 
 pref("devtools.styleinspector.enabled", true);
@@ -1152,8 +1157,3 @@ pref("full-screen-api.enabled", true);
 
 
 pref("toolkit.startup.max_resumed_crashes", 2);
-
-
-
-
-pref("image.mem.max_decoded_image_kb", 256000);
