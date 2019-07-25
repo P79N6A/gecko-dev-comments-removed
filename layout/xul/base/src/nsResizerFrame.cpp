@@ -361,8 +361,14 @@ nsResizerFrame::GetContentToResize(nsIPresShell* aPresShell, nsIBaseWindow** aWi
                        type == nsIDocShellTreeItem::typeChrome);
     }
 
-    if (!isChromeShell)
-      return nsnull;
+    if (!isChromeShell) {
+      
+      
+      nsIContent* nonNativeAnon = mContent->FindFirstNonNativeAnonymous();
+      if (nonNativeAnon && !nonNativeAnon->GetParent()) {
+        return nsnull;
+      }
+    }
 
     
     nsPIDOMWindow *domWindow = aPresShell->GetDocument()->GetWindow();
