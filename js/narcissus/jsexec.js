@@ -52,6 +52,7 @@ Narcissus.interpreter = (function() {
 
     var parser = Narcissus.parser;
     var definitions = Narcissus.definitions;
+    var hostGlobal = Narcissus.hostGlobal;
 
     
     eval(definitions.consts);
@@ -67,7 +68,8 @@ Narcissus.interpreter = (function() {
         return re.test(e.toString());
     }
 
-    var global = {
+    
+    var narcissusGlobal = {
         
         NaN: NaN, Infinity: Infinity, undefined: undefined,
 
@@ -96,15 +98,9 @@ Narcissus.interpreter = (function() {
                 throw THROW;
             }
         },
-        parseInt: parseInt, parseFloat: parseFloat,
-        isNaN: isNaN, isFinite: isFinite,
-        decodeURI: decodeURI, encodeURI: encodeURI,
-        decodeURIComponent: decodeURIComponent,
-        encodeURIComponent: encodeURIComponent,
 
         
         
-        Object: Object,
         Function: function Function(dummy) {
             var p = "", b = "", n = arguments.length;
             if (n) {
@@ -143,26 +139,63 @@ Narcissus.interpreter = (function() {
             }
             return s;
         },
-        Boolean: Boolean, Number: Number, Date: Date, RegExp: RegExp,
-        Error: Error, EvalError: EvalError, RangeError: RangeError,
-        ReferenceError: ReferenceError, SyntaxError: SyntaxError,
-        TypeError: TypeError, URIError: URIError,
 
         
-        Math: Math,
+        RegExp: RegExp,
 
         
-        snarf: snarf, evaluate: evaluate,
         load: function load(s) {
             if (typeof s !== "string")
                 return s;
 
             evaluate(snarf(s), s, 1)
         },
-        print: print,
         version: function() { return Narcissus.options.version; },
         quit: function() { throw END; }
     };
+
+    
+    var globalHandler = definitions.makePassthruHandler(narcissusGlobal);
+    globalHandler.has = function(name) {
+        if (name in narcissusGlobal) { return true; }
+        
+        else if (name === "Narcissus") { return false; }
+        else { return (name in hostGlobal); }
+    };
+    globalHandler.get = function(receiver, name) {
+        if (narcissusGlobal.hasOwnProperty(name)) {
+            return narcissusGlobal[name];
+        }
+        var globalFun = hostGlobal[name];
+        if (definitions.isNativeCode(globalFun)) {
+            
+            return Proxy.createFunction(
+                    definitions.makePassthruHandler(globalFun),
+                    function() { return globalFun.apply(hostGlobal, arguments); },
+                    function() {
+                        var a = arguments;
+                        switch (a.length) {
+                          case 0:
+                            return new globalFun();
+                          case 1:
+                            return new globalFun(a[0]);
+                          case 2:
+                            return new globalFun(a[0], a[1]);
+                          case 3:
+                            return new globalFun(a[0], a[1], a[2]);
+                          default:
+                            var argStr = "";
+                            for (var i=0; i<a.length; i++) {
+                                argStr += 'a[' + i + '],';
+                            }
+                            return eval('new ' + name + '(' + argStr.slice(0,-1) + ');');
+                        }
+                    });
+        }
+        else { return globalFun; };
+    };
+
+    var global = Proxy.create(globalHandler);
 
     
     function hasDirectProperty(o, p) {
@@ -829,71 +862,10 @@ Narcissus.interpreter = (function() {
         definitions.defineProperty(proto, "constructor", this, false, false, true);
     }
 
-    function getPropertyDescriptor(obj, name) {
-        while (obj) {
-            if (({}).hasOwnProperty.call(obj, name))
-                return Object.getOwnPropertyDescriptor(obj, name);
-            obj = Object.getPrototypeOf(obj);
-        }
-    }
-
-    function getOwnProperties(obj) {
-        var map = {};
-        for (var name in Object.getOwnPropertyNames(obj))
-            map[name] = Object.getOwnPropertyDescriptor(obj, name);
-        return map;
-    }
-
     
     function newFunction(n, x) {
         var fobj = new FunctionObject(n, x.scope);
-
-        
-        
-        var handler = {
-            getOwnPropertyDescriptor: function(name) {
-                var desc = Object.getOwnPropertyDescriptor(fobj, name);
-
-                
-                desc.configurable = true;
-                return desc;
-            },
-            getPropertyDescriptor: function(name) {
-                var desc = getPropertyDescriptor(fobj, name);
-
-                
-                desc.configurable = true;
-                return desc;
-            },
-            getOwnPropertyNames: function() {
-                return Object.getOwnPropertyNames(fobj);
-            },
-            defineProperty: function(name, desc) {
-                Object.defineProperty(fobj, name, desc);
-            },
-            delete: function(name) { return delete fobj[name]; },
-            fix: function() {
-                if (Object.isFrozen(fobj)) {
-                    return getOwnProperties(fobj);
-                }
-
-                
-                return undefined; 
-            },
-
-            has: function(name) { return name in fobj; },
-            hasOwn: function(name) { return ({}).hasOwnProperty.call(fobj, name); },
-            get: function(receiver, name) { return fobj[name]; },
-
-            
-            set: function(receiver, name, val) { fobj[name] = val; return true; },
-            enumerate: function() {
-                var result = [];
-                for (name in fobj) { result.push(name); };
-                return result;
-            },
-            keys: function() { return Object.keys(fobj); }
-        };
+        var handler = definitions.makePassthruHandler(fobj);
         var p = Proxy.createFunction(handler,
                                      function() { return fobj.__call__(this, arguments, x); },
                                      function() { return fobj.__construct__(arguments, x); });
@@ -1118,6 +1090,7 @@ Narcissus.interpreter = (function() {
     }
 
     return {
+        global: global,
         evaluate: evaluate,
         repl: repl
     };

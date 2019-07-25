@@ -45,7 +45,8 @@
 
 
 Narcissus = {
-    options: { version: 185 }
+    options: { version: 185 },
+    hostGlobal: this
 };
 
 Narcissus.definitions = (function() {
@@ -189,6 +190,76 @@ Narcissus.definitions = (function() {
         Object.defineProperty(obj, prop, { value: val, writable: !readOnly, configurable: !dontDelete, enumerable: !dontEnum });
     }
 
+    
+    function isNativeCode(fn) {
+        
+        return ((typeof fn) === "function") && fn.toString().match(/\[native code\]/);
+    }
+
+    function getPropertyDescriptor(obj, name) {
+        while (obj) {
+            if (({}).hasOwnProperty.call(obj, name))
+                return Object.getOwnPropertyDescriptor(obj, name);
+            obj = Object.getPrototypeOf(obj);
+        }
+    }
+
+    function getOwnProperties(obj) {
+        var map = {};
+        for (var name in Object.getOwnPropertyNames(obj))
+            map[name] = Object.getOwnPropertyDescriptor(obj, name);
+        return map;
+    }
+
+    function makePassthruHandler(obj) {
+        
+        
+        return {
+            getOwnPropertyDescriptor: function(name) {
+                var desc = Object.getOwnPropertyDescriptor(obj, name);
+
+                
+                desc.configurable = true;
+                return desc;
+            },
+            getPropertyDescriptor: function(name) {
+                var desc = getPropertyDescriptor(obj, name);
+
+                
+                desc.configurable = true;
+                return desc;
+            },
+            getOwnPropertyNames: function() {
+                return Object.getOwnPropertyNames(obj);
+            },
+            defineProperty: function(name, desc) {
+                Object.defineProperty(obj, name, desc);
+            },
+            delete: function(name) { return delete obj[name]; },
+            fix: function() {
+                if (Object.isFrozen(obj)) {
+                    return getOwnProperties(obj);
+                }
+
+                
+                return undefined; 
+            },
+
+            has: function(name) { return name in obj; },
+            hasOwn: function(name) { return ({}).hasOwnProperty.call(obj, name); },
+            get: function(receiver, name) { return obj[name]; },
+
+            
+            set: function(receiver, name, val) { obj[name] = val; return true; },
+            enumerate: function() {
+                var result = [];
+                for (name in obj) { result.push(name); };
+                return result;
+            },
+            keys: function() { return Object.keys(obj); }
+        };
+    }
+
     return {
         tokens: tokens,
         opTypeNames: opTypeNames,
@@ -197,7 +268,9 @@ Narcissus.definitions = (function() {
         consts: consts,
         assignOps: assignOps,
         defineGetter: defineGetter,
-        defineProperty: defineProperty
+        defineProperty: defineProperty,
+        isNativeCode: isNativeCode,
+        makePassthruHandler: makePassthruHandler
     };
 }());
 
