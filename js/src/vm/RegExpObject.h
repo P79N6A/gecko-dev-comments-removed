@@ -82,13 +82,14 @@ class RegExpObject : public ::JSObject
 
     static inline RegExpObject *
     create(JSContext *cx, RegExpStatics *res, const jschar *chars, size_t length, RegExpFlag flags,
-           TokenStream *ts);
+           TokenStream *tokenStream);
 
     static inline RegExpObject *
     createNoStatics(JSContext *cx, const jschar *chars, size_t length, RegExpFlag flags,
-                    TokenStream *ts);
+                    TokenStream *tokenStream);
 
-    static RegExpObject *clone(JSContext *cx, RegExpObject *obj, RegExpObject *proto);
+    static inline RegExpObject *
+    createNoStatics(JSContext *cx, JSAtom *atom, RegExpFlag flags, TokenStream *tokenStream);
 
     
     JSFlatString *toString(JSContext *cx) const;
@@ -148,27 +149,35 @@ class RegExpObject : public ::JSObject
     bool multiline() const  { return getSlot(MULTILINE_FLAG_SLOT).toBoolean(); }
     bool sticky() const     { return getSlot(STICKY_FLAG_SLOT).toBoolean(); }
 
-    
-
-
-
-
-    inline bool reset(JSContext *cx, RegExpObject *other);
-    inline bool reset(JSContext *cx, AlreadyIncRefed<RegExpPrivate> rep);
-    inline bool reset(JSContext *cx, JSLinearString *source, RegExpFlag flags);
-
-    inline RegExpPrivate *getOrCreatePrivate(JSContext *cx);
     inline void finalize(JSContext *cx);
 
+    
+    inline void purge(JSContext *x);
+
+    RegExpPrivate *getOrCreatePrivate(JSContext *cx) {
+        if (RegExpPrivate *rep = getPrivate())
+            return rep;
+
+        return makePrivate(cx);
+    }
+
   private:
-    
-    inline RegExpPrivate *getPrivate() const;
+    friend class RegExpObjectBuilder;
+
+    inline bool init(JSContext *cx, JSLinearString *source, RegExpFlag flags);
 
     
+    RegExpPrivate *getPrivate() const {
+        return static_cast<RegExpPrivate *>(JSObject::getPrivate());
+    }
+
+    inline void setPrivate(RegExpPrivate *rep);
+
+    
 
 
 
-    bool makePrivate(JSContext *cx);
+    RegExpPrivate *makePrivate(JSContext *cx);
 
     friend bool ResetRegExpObject(JSContext *, RegExpObject *, JSLinearString *, RegExpFlag);
     friend bool ResetRegExpObject(JSContext *, RegExpObject *, AlreadyIncRefed<RegExpPrivate>);
@@ -183,6 +192,32 @@ class RegExpObject : public ::JSObject
     RegExpObject();
     RegExpObject &operator=(const RegExpObject &reo);
 }; 
+
+
+class RegExpObjectBuilder
+{
+    JSContext       *cx;
+    RegExpObject    *reobj_;
+
+    bool getOrCreate();
+    bool getOrCreateClone(RegExpObject *proto);
+
+  public:
+    RegExpObjectBuilder(JSContext *cx, RegExpObject *reobj = NULL)
+      : cx(cx), reobj_(reobj)
+    { }
+
+    RegExpObject *reobj() { return reobj_; }
+
+    
+    RegExpObject *build(AlreadyIncRefed<RegExpPrivate> rep);
+
+    RegExpObject *build(JSLinearString *str, RegExpFlag flags);
+    RegExpObject *build(RegExpObject *other);
+
+    
+    RegExpObject *clone(RegExpObject *other, RegExpObject *proto);
+};
 
 
 class RegExpPrivateCode
@@ -243,12 +278,6 @@ class RegExpPrivateCode
     static void reportPCREError(JSContext *cx, int error);
 #endif
 
-    inline bool compile(JSContext *cx, JSLinearString &pattern, TokenStream *ts, uintN *parenCount,
-                        RegExpFlag flags);
-
-    inline RegExpRunStatus execute(JSContext *cx, const jschar *chars, size_t length, size_t start,
-                                   int *output, size_t outputCount);
-
     static size_t getOutputSize(size_t pairCount) {
 #if ENABLE_YARR_JIT
         return pairCount * 2;
@@ -256,6 +285,13 @@ class RegExpPrivateCode
         return pairCount * 3; 
 #endif
     }
+
+    inline bool compile(JSContext *cx, JSLinearString &pattern, TokenStream *ts, uintN *parenCount,
+                        RegExpFlag flags);
+
+
+    inline RegExpRunStatus execute(JSContext *cx, const jschar *chars, size_t length, size_t start,
+                                   int *output, size_t outputCount);
 };
 
 
@@ -280,18 +316,19 @@ class RegExpPrivate
     uintN               parenCount;
     RegExpFlag          flags;
 
-  public:
-    DebugOnly<JSCompartment *> compartment;
-
   private:
-    RegExpPrivate(JSLinearString *source, RegExpFlag flags, JSCompartment *compartment)
-      : source(source), refCount(1), parenCount(0), flags(flags), compartment(compartment)
+    RegExpPrivate(JSLinearString *source, RegExpFlag flags)
+      : source(source), refCount(1), parenCount(0), flags(flags)
     { }
 
     JS_DECLARE_ALLOCATION_FRIENDS_FOR_PRIVATE_CONSTRUCTOR;
 
     bool compile(JSContext *cx, TokenStream *ts);
     static inline void checkMatchPairs(JSString *input, int *buf, size_t matchItemCount);
+
+    static RegExpPrivate *
+    createUncached(JSContext *cx, JSLinearString *source, RegExpFlag flags,
+                   TokenStream *tokenStream);
 
   public:
     static AlreadyIncRefed<RegExpPrivate>

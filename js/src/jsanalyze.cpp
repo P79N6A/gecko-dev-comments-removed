@@ -569,18 +569,6 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
             unsigned newStackDepth = stackDepth;
 
             switch (op) {
-              case JSOP_OR:
-              case JSOP_AND:
-              case JSOP_ORX:
-              case JSOP_ANDX:
-                
-
-
-
-
-                stackDepth--;
-                break;
-
               case JSOP_CASE:
               case JSOP_CASEX:
                 

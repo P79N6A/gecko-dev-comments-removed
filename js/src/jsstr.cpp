@@ -1264,8 +1264,14 @@ class FlatMatch
     int32 match() const { return match_; }
 };
 
+
+
+
+
+
 class RegExpPair
 {
+    JSContext                   *cx;
     AutoRefCount<RegExpPrivate> rep_;
     RegExpObject                *reobj_;
 
@@ -1273,9 +1279,10 @@ class RegExpPair
     void operator=(const RegExpPair &);
 
   public:
-    explicit RegExpPair(JSContext *cx) : rep_(cx) {}
+    explicit RegExpPair(JSContext *cx) : cx(cx), rep_(cx) {}
 
     bool resetWithObject(JSContext *cx, RegExpObject *reobj) {
+        JS_ASSERT(cx == this->cx);
         reobj_ = reobj;
         RegExpPrivate *rep = reobj_->asRegExp()->getOrCreatePrivate(cx);
         if (!rep)
@@ -1298,7 +1305,6 @@ class RegExpPair
         return rep_.get();
     }
 };
-
 
 
 
@@ -1365,6 +1371,7 @@ class RegExpGuard
     }
 
     
+
 
 
 
@@ -1784,8 +1791,7 @@ FindReplaceLength(JSContext *cx, RegExpStatics *res, ReplaceData &rdata, size_t 
         if (!args.pushed() && !cx->stack.pushInvokeArgs(cx, argc, &args))
             return false;
 
-        args.calleeHasBeenReset();
-        args.calleev() = ObjectValue(*lambda);
+        args.setCallee(ObjectValue(*lambda));
         args.thisv() = UndefinedValue();
 
         

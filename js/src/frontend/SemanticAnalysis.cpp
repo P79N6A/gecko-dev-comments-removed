@@ -193,7 +193,7 @@ FindFunArgs(FunctionBox *funbox, int level, FunctionBoxQueue *queue)
         uintN skipmin = UpvarCookie::FREE_LEVEL;
         ParseNode *pn = fn->pn_body;
 
-        if (pn->isKind(TOK_UPVARS)) {
+        if (pn->isKind(PNK_UPVARS)) {
             AtomDefnMapPtr &upvars = pn->pn_names;
             JS_ASSERT(upvars->count() != 0);
 
@@ -270,7 +270,7 @@ MarkFunArgs(JSContext *cx, FunctionBox *funbox, uint32 functionCount)
         JS_ASSERT(fn->isFunArg());
 
         ParseNode *pn = fn->pn_body;
-        if (pn->isKind(TOK_UPVARS)) {
+        if (pn->isKind(PNK_UPVARS)) {
             AtomDefnMapPtr upvars = pn->pn_names;
             JS_ASSERT(!upvars->empty());
 
@@ -540,7 +540,7 @@ SetFunctionKinds(FunctionBox *funbox, uint32 *tcflags, bool isDirectEval)
             bool hasUpvars = false;
             bool canFlatten = true;
 
-            if (pn->isKind(TOK_UPVARS)) {
+            if (pn->isKind(PNK_UPVARS)) {
                 AtomDefnMapPtr upvars = pn->pn_names;
                 JS_ASSERT(!upvars->empty());
 
@@ -591,7 +591,7 @@ SetFunctionKinds(FunctionBox *funbox, uint32 *tcflags, bool isDirectEval)
             }
         }
 
-        if (fun->kind() == JSFUN_INTERPRETED && pn->isKind(TOK_UPVARS)) {
+        if (fun->kind() == JSFUN_INTERPRETED && pn->isKind(PNK_UPVARS)) {
             
 
 
