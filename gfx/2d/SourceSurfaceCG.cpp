@@ -36,6 +36,7 @@
 
 
 #include "SourceSurfaceCG.h"
+#include "DrawTargetCG.h"
 
 namespace mozilla {
 namespace gfx {
@@ -309,11 +310,93 @@ DataSourceSurfaceCG::GetData()
   
   
   
-
   return (unsigned char*)mData;
 }
 
+SourceSurfaceCGBitmapContext::SourceSurfaceCGBitmapContext(DrawTargetCG *aDrawTarget)
+{
+  mDrawTarget = aDrawTarget;
+  mCg = (CGContextRef)aDrawTarget->GetNativeSurface(NATIVE_SURFACE_CGCONTEXT);
+  CGContextRetain(mCg);
 
+  mSize.width = CGBitmapContextGetWidth(mCg);
+  mSize.height = CGBitmapContextGetHeight(mCg);
+  mStride = CGBitmapContextGetBytesPerRow(mCg);
+  mData = CGBitmapContextGetData(mCg);
+
+  mImage = NULL;
+}
+
+void SourceSurfaceCGBitmapContext::EnsureImage() const
+{
+  if (!mImage) {
+    if (mCg) {
+      mImage = CGBitmapContextCreateImage(mCg);
+    } else {
+      
+      CGColorSpaceRef colorSpace = NULL;
+      CGBitmapInfo bitinfo = 0;
+      CGDataProviderRef dataProvider = NULL;
+      int bitsPerComponent = 8;
+      int bitsPerPixel = 32;
+
+      colorSpace = CGColorSpaceCreateDeviceRGB();
+      bitinfo = kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Host;
+
+      dataProvider = CGDataProviderCreateWithData (mData,
+                                                   mData,
+                                                   mSize.height * mStride,
+                                                   releaseCallback);
+
+      mImage = CGImageCreate (mSize.width, mSize.height,
+                              bitsPerComponent,
+                              bitsPerPixel,
+                              mStride,
+                              colorSpace,
+                              bitinfo,
+                              dataProvider,
+                              NULL,
+                              true,
+                              kCGRenderingIntentDefault);
+
+      CGDataProviderRelease(dataProvider);
+      CGColorSpaceRelease (colorSpace);
+    }
+  }
+}
+
+IntSize
+SourceSurfaceCGBitmapContext::GetSize() const
+{
+  return mSize;
+}
+
+void
+SourceSurfaceCGBitmapContext::DrawTargetWillChange()
+{
+  if (mDrawTarget) {
+    size_t stride = CGBitmapContextGetBytesPerRow(mCg);
+    size_t height = CGBitmapContextGetHeight(mCg);
+    
+    mData = malloc(stride * height);
+    memcpy(mData, CGBitmapContextGetData(mCg), stride*height);
+    CGContextRelease(mCg);
+    mCg = NULL;
+    mDrawTarget = NULL;
+  }
+}
+
+SourceSurfaceCGBitmapContext::~SourceSurfaceCGBitmapContext()
+{
+  if (!mImage && !mCg) {
+    
+    free(mData);
+  }
+  if (mCg)
+    CGContextRelease(mCg);
+  if (mImage)
+    CGImageRelease(mImage);
+}
 
 }
 }
