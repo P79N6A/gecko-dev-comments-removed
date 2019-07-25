@@ -112,6 +112,13 @@ nsSMILAnimationController::Init(nsIDocument* aDoc)
 
   
   mDocument = aDoc;
+  nsRefreshDriver* refreshDriver = GetRefreshDriverForDoc(mDocument);
+  if (refreshDriver) {
+    mStartTime = refreshDriver->MostRecentRefresh();
+  } else {
+    mStartTime = mozilla::TimeStamp::Now();
+  }
+  mCurrentSampleTime = mStartTime;
 
   Begin();
 
@@ -151,8 +158,7 @@ nsSMILAnimationController::Resume(PRUint32 aType)
 nsSMILTime
 nsSMILAnimationController::GetParentTime() const
 {
-  
-  return PR_Now() / PR_USEC_PER_MSEC;
+  return (nsSMILTime)(mCurrentSampleTime - mStartTime).ToMilliseconds();
 }
 
 
@@ -167,6 +173,10 @@ nsSMILAnimationController::WillRefresh(mozilla::TimeStamp aTime)
   
   
   
+  
+  
+  
+  mCurrentSampleTime = NS_MAX(mCurrentSampleTime, aTime);
   Sample();
 }
 
