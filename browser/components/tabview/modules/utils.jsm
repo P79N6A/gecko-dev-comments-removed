@@ -342,7 +342,7 @@ Range.prototype = {
   
   
   
-  overlaps: function Rect_overlaps(value) {
+  overlaps: function Range_overlaps(value) {
     if (Utils.isNumber(value))
       return this.contains(value);
     if (Utils.isRange(value))
@@ -783,7 +783,7 @@ let Utils = {
   
   
   
-  attempt: function () {
+  attempt: function Utils_attempt() {
     let args = arguments;
 
     for (let i = 0; i < args.length; i++) {
