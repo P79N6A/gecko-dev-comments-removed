@@ -6,14 +6,14 @@
 
 "use strict";
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
+let Cc = Components.classes;
+let Ci = Components.interfaces;
+let Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
-var EXPORTED_SYMBOLS = ["WebConsoleUtils", "JSPropertyProvider"];
+var EXPORTED_SYMBOLS = ["WebConsoleUtils"];
 
 const STRINGS_URI = "chrome://browser/locale/devtools/webconsole.properties";
 
@@ -403,7 +403,7 @@ var WebConsoleUtils = {
         let m = /^\[object (\S+)\]/.exec(presentable);
 
         try {
-          if (typeof aObject == "object" && typeof aObject.next == "function" &&
+          if (type == "object" && typeof aObject.next == "function" &&
               m && m[1] == "Generator") {
             return {
               type: TYPES.GENERATOR,
@@ -419,8 +419,7 @@ var WebConsoleUtils = {
           };
         }
 
-        if (typeof aObject == "object" &&
-            typeof aObject.__iterator__ == "function") {
+        if (type == "object" && typeof aObject.__iterator__ == "function") {
           return {
             type: TYPES.ITERATOR,
             display: "Iterator"
@@ -515,11 +514,10 @@ var WebConsoleUtils = {
     let value, presentable;
 
     let isDOMDocument = aObject instanceof Ci.nsIDOMDocument;
-    let deprecated = ["width", "height", "inputEncoding"];
 
     for (let propName in aObject) {
       
-      if (isDOMDocument && deprecated.indexOf(propName) > -1) {
+      if (isDOMDocument && (propName == "width" || propName == "height")) {
         continue;
       }
 
@@ -529,13 +527,8 @@ var WebConsoleUtils = {
         presentable = {type: TYPES.GETTER, display: "Getter"};
       }
       else {
-        try {
-          value = aObject[propName];
-          presentable = this.presentableValueFor(value);
-        }
-	      catch (ex) {
-          continue;
-        }
+        value = aObject[propName];
+        presentable = this.presentableValueFor(value);
       }
 
       let pair = {};
@@ -711,228 +704,3 @@ WebConsoleUtils.l10n = {
 XPCOMUtils.defineLazyGetter(WebConsoleUtils.l10n, "stringBundle", function() {
   return Services.strings.createBundle(STRINGS_URI);
 });
-
-
-
-
-
-
-var JSPropertyProvider = (function _JSPP(WCU) {
-const STATE_NORMAL = 0;
-const STATE_QUOTE = 2;
-const STATE_DQUOTE = 3;
-
-const OPEN_BODY = "{[(".split("");
-const CLOSE_BODY = "}])".split("");
-const OPEN_CLOSE_BODY = {
-  "{": "}",
-  "[": "]",
-  "(": ")",
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function findCompletionBeginning(aStr)
-{
-  let bodyStack = [];
-
-  let state = STATE_NORMAL;
-  let start = 0;
-  let c;
-  for (let i = 0; i < aStr.length; i++) {
-    c = aStr[i];
-
-    switch (state) {
-      
-      case STATE_NORMAL:
-        if (c == '"') {
-          state = STATE_DQUOTE;
-        }
-        else if (c == "'") {
-          state = STATE_QUOTE;
-        }
-        else if (c == ";") {
-          start = i + 1;
-        }
-        else if (c == " ") {
-          start = i + 1;
-        }
-        else if (OPEN_BODY.indexOf(c) != -1) {
-          bodyStack.push({
-            token: c,
-            start: start
-          });
-          start = i + 1;
-        }
-        else if (CLOSE_BODY.indexOf(c) != -1) {
-          var last = bodyStack.pop();
-          if (!last || OPEN_CLOSE_BODY[last.token] != c) {
-            return {
-              err: "syntax error"
-            };
-          }
-          if (c == "}") {
-            start = i + 1;
-          }
-          else {
-            start = last.start;
-          }
-        }
-        break;
-
-      
-      case STATE_DQUOTE:
-        if (c == "\\") {
-          i++;
-        }
-        else if (c == "\n") {
-          return {
-            err: "unterminated string literal"
-          };
-        }
-        else if (c == '"') {
-          state = STATE_NORMAL;
-        }
-        break;
-
-      
-      case STATE_QUOTE:
-        if (c == "\\") {
-          i++;
-        }
-        else if (c == "\n") {
-          return {
-            err: "unterminated string literal"
-          };
-        }
-        else if (c == "'") {
-          state = STATE_NORMAL;
-        }
-        break;
-    }
-  }
-
-  return {
-    state: state,
-    startPos: start
-  };
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function JSPropertyProvider(aScope, aInputValue)
-{
-  let obj = WCU.unwrap(aScope);
-
-  
-  
-  let beginning = findCompletionBeginning(aInputValue);
-
-  
-  if (beginning.err) {
-    return null;
-  }
-
-  
-  
-  if (beginning.state != STATE_NORMAL) {
-    return null;
-  }
-
-  let completionPart = aInputValue.substring(beginning.startPos);
-
-  
-  if (completionPart.trim() == "") {
-    return null;
-  }
-
-  let properties = completionPart.split(".");
-  let matchProp;
-  if (properties.length > 1) {
-    matchProp = properties.pop().trimLeft();
-    for (let i = 0; i < properties.length; i++) {
-      let prop = properties[i].trim();
-
-      
-      
-      if (typeof obj === "undefined" || obj === null) {
-        return null;
-      }
-
-      
-      
-      if (WCU.isNonNativeGetter(obj, prop)) {
-        return null;
-      }
-      try {
-        obj = obj[prop];
-      }
-      catch (ex) {
-        return null;
-      }
-    }
-  }
-  else {
-    matchProp = properties[0].trimLeft();
-  }
-
-  
-  
-  if (typeof obj === "undefined" || obj === null) {
-    return null;
-  }
-
-  
-  if (WCU.isIteratorOrGenerator(obj)) {
-    return null;
-  }
-
-  let matches = [];
-  for (let prop in obj) {
-    if (prop.indexOf(matchProp) == 0) {
-      matches.push(prop);
-    }
-  }
-
-  return {
-    matchProp: matchProp,
-    matches: matches.sort(),
-  };
-}
-
-return JSPropertyProvider;
-})(WebConsoleUtils);

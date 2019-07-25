@@ -4,8 +4,6 @@
 
 
 
-"use strict";
-
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
@@ -13,13 +11,237 @@ const Cu = Components.utils;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
-XPCOMUtils.defineLazyGetter(this, "WebConsoleUtils", function () {
-  let obj = {};
-  Cu.import("resource:///modules/WebConsoleUtils.jsm", obj);
-  return obj.WebConsoleUtils;
-});
+var EXPORTED_SYMBOLS = ["PropertyPanel", "PropertyTreeView",
+                        "namesAndValuesOf", "isNonNativeGetter"];
 
-var EXPORTED_SYMBOLS = ["PropertyPanel", "PropertyTreeView"];
+
+
+
+const TYPE_OBJECT = 0, TYPE_FUNCTION = 1, TYPE_ARRAY = 2, TYPE_OTHER = 3;
+
+
+
+
+
+
+
+
+
+
+
+
+
+function presentableValueFor(aObject)
+{
+  if (aObject === null || aObject === undefined) {
+    return {
+      type: TYPE_OTHER,
+      display: aObject === undefined ? "undefined" : "null"
+    };
+  }
+
+  let presentable;
+  switch (aObject.constructor && aObject.constructor.name) {
+    case "Array":
+      return {
+        type: TYPE_ARRAY,
+        display: "Array"
+      };
+
+    case "String":
+      return {
+        type: TYPE_OTHER,
+        display: "\"" + aObject + "\""
+      };
+
+    case "Date":
+    case "RegExp":
+    case "Number":
+    case "Boolean":
+      return {
+        type: TYPE_OTHER,
+        display: aObject
+      };
+
+    case "Iterator":
+      return {
+        type: TYPE_OTHER,
+        display: "Iterator"
+      };
+
+    case "Function":
+      presentable = aObject.toString();
+      return {
+        type: TYPE_FUNCTION,
+        display: presentable.substring(0, presentable.indexOf(')') + 1)
+      };
+
+    default:
+      presentable = aObject.toString();
+      let m = /^\[object (\S+)\]/.exec(presentable);
+
+      try {
+        if (typeof aObject == "object" && typeof aObject.next == "function" &&
+            m && m[1] == "Generator") {
+          return {
+            type: TYPE_OTHER,
+            display: m[1]
+          };
+        }
+      }
+      catch (ex) {
+        
+        return {
+          type: TYPE_OBJECT,
+          display: m ? m[1] : "Object"
+        };
+      }
+
+      if (typeof aObject == "object" && typeof aObject.__iterator__ == "function") {
+        return {
+          type: TYPE_OTHER,
+          display: "Iterator"
+        };
+      }
+
+      return {
+        type: TYPE_OBJECT,
+        display: m ? m[1] : "Object"
+      };
+  }
+}
+
+
+
+
+
+
+
+
+
+
+function isNativeFunction(aFunction)
+{
+  return typeof aFunction == "function" && !("prototype" in aFunction);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function isNonNativeGetter(aObject, aProp) {
+  if (typeof aObject != "object") {
+    return false;
+  }
+  let desc;
+  while (aObject) {
+    try {
+      if (desc = Object.getOwnPropertyDescriptor(aObject, aProp)) {
+        break;
+      }
+    }
+    catch (ex) {
+      
+      if (ex.name == "NS_ERROR_XPC_BAD_CONVERT_JS" ||
+          ex.name == "NS_ERROR_XPC_BAD_OP_ON_WN_PROTO") {
+        return false;
+      }
+      throw ex;
+    }
+    aObject = Object.getPrototypeOf(aObject);
+  }
+  if (desc && desc.get && !isNativeFunction(desc.get)) {
+    return true;
+  }
+  return false;
+}
+
+
+
+
+
+
+
+
+
+function namesAndValuesOf(aObject)
+{
+  let pairs = [];
+  let value, presentable;
+
+  let isDOMDocument = aObject instanceof Ci.nsIDOMDocument;
+
+  for (var propName in aObject) {
+    
+    if (isDOMDocument && (propName == "width" || propName == "height")) {
+      continue;
+    }
+
+    
+    if (isNonNativeGetter(aObject, propName)) {
+      value = ""; 
+      presentable = {type: TYPE_OTHER, display: "Getter"};
+    }
+    else {
+      try {
+        value = aObject[propName];
+        presentable = presentableValueFor(value);
+      }
+      catch (ex) {
+        continue;
+      }
+    }
+
+    let pair = {};
+    pair.name = propName;
+    pair.display = propName + ": " + presentable.display;
+    pair.type = presentable.type;
+    pair.value = value;
+
+    
+    pair.nameNumber = parseFloat(pair.name)
+    if (isNaN(pair.nameNumber)) {
+      pair.nameNumber = false;
+    }
+
+    pairs.push(pair);
+  }
+
+  pairs.sort(function(a, b)
+  {
+    
+    if (a.nameNumber !== false && b.nameNumber === false) {
+      return -1;
+    }
+    else if (a.nameNumber === false && b.nameNumber !== false) {
+      return 1;
+    }
+    else if (a.nameNumber !== false && b.nameNumber !== false) {
+      return a.nameNumber - b.nameNumber;
+    }
+    
+    else if (a.name < b.name) {
+      return -1;
+    }
+    else if (a.name > b.name) {
+      return 1;
+    }
+    else {
+      return 0;
+    }
+  });
+
+  return pairs;
+}
 
 
 
@@ -32,18 +254,16 @@ var EXPORTED_SYMBOLS = ["PropertyPanel", "PropertyTreeView"];
 
 var PropertyTreeView = function() {
   this._rows = [];
-  this._objectCache = {};
 };
 
 PropertyTreeView.prototype = {
-  
 
+  
 
 
   _rows: null,
 
   
-
 
 
   _treeBox: null,
@@ -52,67 +272,12 @@ PropertyTreeView.prototype = {
 
 
 
-  _objectCache: null,
-
-  
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  set data(aData) {
+  set data(aObject) {
     let oldLen = this._rows.length;
-
-    this._cleanup();
-
-    if (!aData) {
-      return;
-    }
-
-    if (aData.remoteObject) {
-      this._rootCacheId = aData.rootCacheId;
-      this._panelCacheId = aData.panelCacheId;
-      this._remoteObjectProvider = aData.remoteObjectProvider;
-      this._rows = [].concat(aData.remoteObject);
-      this._updateRemoteObject(this._rows, 0);
-    }
-    else if (aData.object) {
-      this._rows = this._inspectObject(aData.object);
-    }
-    else {
-      throw new Error("First argument must have a .remoteObject or " +
-                      "an .object property!");
-    }
-
+    this._rows = this.getChildItems(aObject, true);
     if (this._treeBox) {
       this._treeBox.beginUpdateBatch();
       if (oldLen) {
@@ -133,57 +298,44 @@ PropertyTreeView.prototype = {
 
 
 
-  _updateRemoteObject: function PTV__updateRemoteObject(aObject, aLevel)
+
+
+  getChildItems: function(aItem, aRootElement)
   {
-    aObject.forEach(function(aElement) {
-      aElement.level = aLevel;
-      aElement.isOpened = false;
-      aElement.children = null;
-    });
-  },
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!aRootElement && aItem && aItem.children instanceof Array) {
+      return aItem.children;
+    }
 
-  
+    let pairs;
+    let newPairLevel;
 
+    if (!aRootElement) {
+      newPairLevel = aItem.level + 1;
+      aItem = aItem.value;
+    }
+    else {
+      newPairLevel = 0;
+    }
 
+    pairs = namesAndValuesOf(aItem);
 
+    for each (var pair in pairs) {
+      pair.level = newPairLevel;
+      pair.isOpened = false;
+      pair.children = pair.type == TYPE_OBJECT || pair.type == TYPE_FUNCTION ||
+                      pair.type == TYPE_ARRAY;
+    }
 
-
-
-  _inspectObject: function PTV__inspectObject(aObject)
-  {
-    this._objectCache = {};
-    this._remoteObjectProvider = this._localObjectProvider.bind(this);
-    let children = WebConsoleUtils.namesAndValuesOf(aObject, this._objectCache);
-    this._updateRemoteObject(children, 0);
-    return children;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _localObjectProvider:
-  function PTV__localObjectProvider(aFromCacheId, aObjectId, aDestCacheId,
-                                    aCallback)
-  {
-    let object = WebConsoleUtils.namesAndValuesOf(this._objectCache[aObjectId],
-                                                  this._objectCache);
-    aCallback({cacheId: aFromCacheId,
-               objectId: aObjectId,
-               object: object,
-               childrenCacheId: aDestCacheId || aFromCacheId,
-    });
+    return pairs;
   },
 
   
@@ -192,19 +344,10 @@ PropertyTreeView.prototype = {
 
   get rowCount()                     { return this._rows.length; },
   setTree: function(treeBox)         { this._treeBox = treeBox;  },
-  getCellText: function(idx, column) {
-    let row = this._rows[idx];
-    return row.name + ": " + row.value;
-  },
-  getLevel: function(idx) {
-    return this._rows[idx].level;
-  },
-  isContainer: function(idx) {
-    return !!this._rows[idx].inspectable;
-  },
-  isContainerOpen: function(idx) {
-    return this._rows[idx].isOpened;
-  },
+  getCellText: function(idx, column) { return this._rows[idx].display; },
+  getLevel: function(idx)            { return this._rows[idx].level; },
+  isContainer: function(idx)         { return !!this._rows[idx].children; },
+  isContainerOpen: function(idx)     { return this._rows[idx].isOpened; },
   isContainerEmpty: function(idx)    { return false; },
   isSeparator: function(idx)         { return false; },
   isSorted: function()               { return false; },
@@ -216,7 +359,7 @@ PropertyTreeView.prototype = {
     if (this.getLevel(idx) == 0) {
       return -1;
     }
-    for (var t = idx - 1; t >= 0; t--) {
+    for (var t = idx - 1; t >= 0 ; t--) {
       if (this.isContainer(t)) {
         return t;
       }
@@ -232,13 +375,13 @@ PropertyTreeView.prototype = {
 
   toggleOpenState: function(idx)
   {
-    let item = this._rows[idx];
-    if (!item.inspectable) {
+    var item = this._rows[idx];
+    if (!item.children) {
       return;
     }
 
+    this._treeBox.beginUpdateBatch();
     if (item.isOpened) {
-      this._treeBox.beginUpdateBatch();
       item.isOpened = false;
 
       var thisLevel = item.level;
@@ -251,38 +394,18 @@ PropertyTreeView.prototype = {
         this._rows.splice(idx + 1, deleteCount);
         this._treeBox.rowCountChanged(idx + 1, -deleteCount);
       }
-      this._treeBox.invalidateRow(idx);
-      this._treeBox.endUpdateBatch();
     }
     else {
-      let levelUpdate = true;
-      let callback = function _onRemoteResponse(aResponse) {
-        this._treeBox.beginUpdateBatch();
-        item.isOpened = true;
+      item.isOpened = true;
 
-        if (levelUpdate) {
-          this._updateRemoteObject(aResponse.object, item.level + 1);
-          item.children = aResponse.object;
-        }
+      var toInsert = this.getChildItems(item);
+      item.children = toInsert;
+      this._rows.splice.apply(this._rows, [idx + 1, 0].concat(toInsert));
 
-        this._rows.splice.apply(this._rows, [idx + 1, 0].concat(item.children));
-
-        this._treeBox.rowCountChanged(idx + 1, item.children.length);
-        this._treeBox.invalidateRow(idx);
-        this._treeBox.endUpdateBatch();
-      }.bind(this);
-
-      if (!item.children) {
-        let fromCacheId = item.level > 0 ? this._panelCacheId :
-                                           this._rootCacheId;
-        this._remoteObjectProvider(fromCacheId, item.objectId,
-                                   this._panelCacheId, callback);
-      }
-      else {
-        levelUpdate = false;
-        callback({object: item.children});
-      }
+      this._treeBox.rowCountChanged(idx + 1, toInsert.length);
     }
+    this._treeBox.invalidateRow(idx);
+    this._treeBox.endUpdateBatch();
   },
 
   getImageSrc: function(idx, column) { },
@@ -301,21 +424,7 @@ PropertyTreeView.prototype = {
   setCellValue: function(row, col, value)               { },
   setCellText: function(row, col, value)                { },
   drop: function(index, orientation, dataTransfer)      { },
-  canDrop: function(index, orientation, dataTransfer)   { return false; },
-
-  _cleanup: function PTV__cleanup()
-  {
-    if (this._rows.length) {
-      
-      this._updateRemoteObject(this._rows, 0);
-      this._rows = [];
-    }
-
-    delete this._objectCache;
-    delete this._rootCacheId;
-    delete this._panelCacheId;
-    delete this._remoteObjectProvider;
-  },
+  canDrop: function(index, orientation, dataTransfer)   { return false; }
 };
 
 
@@ -379,12 +488,10 @@ function appendChild(aDocument, aParent, aTag, aAttributes)
 
 
 
-function PropertyPanel(aParent, aTitle, aObject, aButtons)
+function PropertyPanel(aParent, aDocument, aTitle, aObject, aButtons)
 {
-  let document = aParent.ownerDocument;
-
   
-  this.panel = createElement(document, "panel", {
+  this.panel = createElement(aDocument, "panel", {
     label: aTitle,
     titlebar: "normal",
     noautofocus: "true",
@@ -393,13 +500,13 @@ function PropertyPanel(aParent, aTitle, aObject, aButtons)
   });
 
   
-  let tree = this.tree = createElement(document, "tree", {
+  let tree = this.tree = createElement(aDocument, "tree", {
     flex: 1,
     hidecolumnpicker: "true"
   });
 
-  let treecols = document.createElement("treecols");
-  appendChild(document, treecols, "treecol", {
+  let treecols = aDocument.createElement("treecols");
+  appendChild(aDocument, treecols, "treecol", {
     primary: "true",
     flex: 1,
     hideheader: "true",
@@ -407,18 +514,18 @@ function PropertyPanel(aParent, aTitle, aObject, aButtons)
   });
   tree.appendChild(treecols);
 
-  tree.appendChild(document.createElement("treechildren"));
+  tree.appendChild(aDocument.createElement("treechildren"));
   this.panel.appendChild(tree);
 
   
-  let footer = createElement(document, "hbox", { align: "end" });
-  appendChild(document, footer, "spacer", { flex: 1 });
+  let footer = createElement(aDocument, "hbox", { align: "end" });
+  appendChild(aDocument, footer, "spacer", { flex: 1 });
 
   
   let self = this;
   if (aButtons) {
     aButtons.forEach(function(button) {
-      let buttonNode = appendChild(document, footer, "button", {
+      let buttonNode = appendChild(aDocument, footer, "button", {
         label: button.label,
         accesskey: button.accesskey || "",
         class: button.class || "",
@@ -427,7 +534,7 @@ function PropertyPanel(aParent, aTitle, aObject, aButtons)
     });
   }
 
-  appendChild(document, footer, "resizer", { dir: "bottomend" });
+  appendChild(aDocument, footer, "resizer", { dir: "bottomend" });
   this.panel.appendChild(footer);
 
   aParent.appendChild(this.panel);
@@ -455,12 +562,17 @@ function PropertyPanel(aParent, aTitle, aObject, aButtons)
 
 
 
+
+
 PropertyPanel.prototype.destroy = function PP_destroy()
 {
-  this.treeView.data = null;
   this.panel.parentNode.removeChild(this.panel);
   this.treeView = null;
   this.panel = null;
   this.tree = null;
-}
 
+  if (this.linkNode) {
+    this.linkNode._panelOpen = false;
+    this.linkNode = null;
+  }
+}

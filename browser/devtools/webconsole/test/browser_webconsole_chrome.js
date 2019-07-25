@@ -6,10 +6,11 @@
 
 
 function test() {
-  addTab("about:addons");
-  browser.addEventListener("load", function onLoad() {
-    browser.removeEventListener("load", onLoad, true);
-    openConsole(null, testChrome);
+  addTab(getBrowserURL());
+  browser.addEventListener("DOMContentLoaded", function onLoad() {
+    browser.removeEventListener("DOMContentLoaded", onLoad, true);
+    openConsole();
+    testChrome(HUDService.getHudByWindow(content));
   }, true);
 }
 
@@ -27,9 +28,10 @@ function testChrome(hud) {
   
   input.value = "docu";
   input.setSelectionRange(4, 4);
-  jsterm.complete(jsterm.COMPLETE_HINT_ONLY, function() {
-    is(jsterm.completeNode.value, "    ment", "'docu' completion");
-    executeSoon(finishTest);
-  });
+  jsterm.complete(jsterm.COMPLETE_HINT_ONLY);
+  is(jsterm.completeNode.value, "    ment", "'docu' completion");
+
+  gBrowser.removeCurrentTab();
+  executeSoon(finishTest);
 }
 

@@ -16,6 +16,10 @@ Cu.import("resource:///modules/NetworkHelper.jsm");
 
 var EXPORTED_SYMBOLS = ["HUDService", "ConsoleUtils"];
 
+XPCOMUtils.defineLazyServiceGetter(this, "scriptError",
+                                   "@mozilla.org/scripterror;1",
+                                   "nsIScriptError");
+
 XPCOMUtils.defineLazyServiceGetter(this, "activityDistributor",
                                    "@mozilla.org/network/http-activity-distributor;1",
                                    "nsIHttpActivityDistributor");
@@ -53,14 +57,24 @@ XPCOMUtils.defineLazyGetter(this, "template", function () {
 });
 
 XPCOMUtils.defineLazyGetter(this, "PropertyPanel", function () {
-  let obj = {};
-  Cu.import("resource:///modules/PropertyPanel.jsm", obj);
+  var obj = {};
+  try {
+    Cu.import("resource:///modules/PropertyPanel.jsm", obj);
+  } catch (err) {
+    Cu.reportError(err);
+  }
   return obj.PropertyPanel;
 });
 
-XPCOMUtils.defineLazyGetter(this, "PropertyTreeView", function () {
+XPCOMUtils.defineLazyGetter(this, "PropertyPanelAsync", function () {
   let obj = {};
-  Cu.import("resource:///modules/PropertyPanel.jsm", obj);
+  Cu.import("resource:///modules/PropertyPanelAsync.jsm", obj);
+  return obj.PropertyPanel;
+});
+
+XPCOMUtils.defineLazyGetter(this, "PropertyTreeViewAsync", function () {
+  let obj = {};
+  Cu.import("resource:///modules/PropertyPanelAsync.jsm", obj);
   return obj.PropertyTreeView;
 });
 
@@ -84,6 +98,12 @@ XPCOMUtils.defineLazyGetter(this, "ScratchpadManager", function () {
     Cu.reportError(err);
   }
   return obj.ScratchpadManager;
+});
+
+XPCOMUtils.defineLazyGetter(this, "namesAndValuesOf", function () {
+  var obj = {};
+  Cu.import("resource:///modules/PropertyPanel.jsm", obj);
+  return obj.namesAndValuesOf;
 });
 
 XPCOMUtils.defineLazyGetter(this, "WebConsoleUtils", function () {
@@ -150,7 +170,6 @@ const LEVELS = {
   info: SEVERITY_INFO,
   log: SEVERITY_LOG,
   trace: SEVERITY_LOG,
-  debug: SEVERITY_LOG,
   dir: SEVERITY_LOG,
   group: SEVERITY_LOG,
   groupCollapsed: SEVERITY_LOG,
@@ -1723,6 +1742,9 @@ HUD_SERVICE.prototype =
     
     
     
+    if (hud.jsterm) {
+      hud.jsterm.clearOutput();
+    }
     if (hud.gcliterm) {
       hud.gcliterm.clearOutput();
     }
@@ -1746,6 +1768,10 @@ HUD_SERVICE.prototype =
 
     if (hud.splitter.parentNode) {
       hud.splitter.parentNode.removeChild(hud.splitter);
+    }
+
+    if (hud.jsterm) {
+      hud.jsterm.autocompletePopup.destroy();
     }
 
     delete this.hudReferences[aHUDId];
@@ -1790,7 +1816,7 @@ HUD_SERVICE.prototype =
     
     this.startHTTPObservation();
 
-    WebConsoleObserver.init();
+    HUDWindowObserver.init();
   },
 
   
@@ -1814,7 +1840,7 @@ HUD_SERVICE.prototype =
 
     delete this.lastFinishedRequestCallback;
 
-    WebConsoleObserver.uninit();
+    HUDWindowObserver.uninit();
   },
 
   
@@ -2387,6 +2413,29 @@ HUD_SERVICE.prototype =
 
 
 
+
+
+
+
+  initializeJSTerm: function HS_initializeJSTerm(aContext, aParentNode, aConsole)
+  {
+    
+    var context = Cu.getWeakReference(aContext);
+
+    
+    var firefoxMixin = new JSTermFirefoxMixin(context, aParentNode);
+    var jsTerm = new JSTerm(context, aParentNode, firefoxMixin, aConsole);
+
+    
+    
+  },
+
+  
+
+
+
+
+
   createSequencer: function HS_createSequencer(aInt)
   {
     function sequencer(aInt)
@@ -2397,6 +2446,31 @@ HUD_SERVICE.prototype =
       }
     }
     return sequencer(aInt);
+  },
+
+  
+  
+  scriptErrorFlags: {
+    0: "error", 
+    1: "warn", 
+    2: "exception", 
+    4: "error", 
+    5: "warn", 
+    8: "error", 
+    13: "warn", 
+  },
+
+  
+
+
+  scriptMsgLogLevel: {
+    0: "typeError", 
+    1: "typeWarning", 
+    2: "typeException", 
+    4: "typeError", 
+    5: "typeStrict", 
+    8: "typeError", 
+    13: "typeWarning", 
   },
 
   
@@ -2817,15 +2891,20 @@ function HeadsUpDisplay(aConfig)
 
   
   this.createHUD();
-  this.HUDBox.lastTimestamp = 0;
 
+  this.HUDBox.lastTimestamp = 0;
   
-  this.createConsoleInput(this.contentWindow, this.consoleWrap, this.outputNode);
-  if (this.jsterm) {
-    this.jsterm.inputNode.focus();
+  try {
+    this.createConsoleInput(this.contentWindow, this.consoleWrap, this.outputNode);
+    if (this.jsterm) {
+      this.jsterm.inputNode.focus();
+    }
+    if (this.gcliterm) {
+      this.gcliterm.inputNode.focus();
+    }
   }
-  else if (this.gcliterm) {
-    this.gcliterm.inputNode.focus();
+  catch (ex) {
+    Cu.reportError(ex);
   }
 
   
@@ -2843,9 +2922,7 @@ HeadsUpDisplay.prototype = {
 
 
   _messageListeners: ["JSTerm:EvalObject", "WebConsole:ConsoleAPI",
-    "WebConsole:CachedMessages", "WebConsole:PageError", "JSTerm:EvalResult",
-    "JSTerm:AutocompleteProperties", "JSTerm:ClearOutput",
-    "JSTerm:InspectObject"],
+                      "WebConsole:CachedMessages", "WebConsole:PageError"],
 
   consolePanel: null,
 
@@ -3169,8 +3246,10 @@ HeadsUpDisplay.prototype = {
 
     if (appName() == "FIREFOX") {
       if (!usegcli) {
-        let mixin = new JSTermFirefoxMixin(aParentNode, aExistingConsole);
-        this.jsterm = new JSTerm(this, mixin);
+        let context = Cu.getWeakReference(aWindow);
+        let mixin = new JSTermFirefoxMixin(context, aParentNode,
+                                           aExistingConsole);
+        this.jsterm = new JSTerm(context, aParentNode, mixin, this.console);
       }
       else {
         this.gcliterm = new GcliTerm(aWindow, this.hudId, this.chromeDocument,
@@ -3242,10 +3321,15 @@ HeadsUpDisplay.prototype = {
       this.consolePanel.label = this.getPanelTitle();
     }
 
-    if (this.gcliterm) {
+    if (this.jsterm) {
+      this.jsterm.context = Cu.getWeakReference(this.contentWindow);
+      this.jsterm.console = this.console;
+      this.jsterm.createSandbox();
+    }
+    else if (this.gcliterm) {
       this.gcliterm.reattachConsole(this.contentWindow, this.console);
     }
-    else if (!this.jsterm) {
+    else {
       this.createConsoleInput(this.contentWindow, this.consoleWrap, this.outputNode);
     }
   },
@@ -3849,7 +3933,7 @@ HeadsUpDisplay.prototype = {
           data: { object: node._stacktrace },
         };
 
-        let propPanel = this.jsterm.openPropertyPanel(options);
+        let propPanel = this.jsterm.openPropertyPanelAsync(options);
         propPanel.panel.setAttribute("hudId", this.hudId);
       }.bind(this));
     }
@@ -3972,16 +4056,8 @@ HeadsUpDisplay.prototype = {
     }
 
     switch (aMessage.name) {
-      case "JSTerm:EvalResult":
       case "JSTerm:EvalObject":
-      case "JSTerm:AutocompleteProperties":
         this._receiveMessageWithCallback(aMessage.json);
-        break;
-      case "JSTerm:ClearOutput":
-        this.jsterm.clearOutput();
-        break;
-      case "JSTerm:InspectObject":
-        this.jsterm.handleInspectObject(aMessage.json);
         break;
       case "WebConsole:ConsoleAPI":
         this.logConsoleAPIMessage(aMessage.json);
@@ -4113,7 +4189,7 @@ HeadsUpDisplay.prototype = {
 
   destroy: function HUD_destroy()
   {
-    this.sendMessageToContent("WebConsole:Destroy", {});
+    this.sendMessageToContent("WebConsole:Destroy", {hudId: this.hudId});
 
     this._messageListeners.forEach(function(aName) {
       this.messageManager.removeMessageListener(aName, this);
@@ -4174,6 +4250,17 @@ function NodeFactory(aFactoryType, ignored, aDocument)
 
 
 
+const STATE_NORMAL = 0;
+const STATE_QUOTE = 2;
+const STATE_DQUOTE = 3;
+
+const OPEN_BODY = '{[('.split('');
+const CLOSE_BODY = '}])'.split('');
+const OPEN_CLOSE_BODY = {
+  '{': '}',
+  '[': ']',
+  '(': ')'
+};
 
 
 
@@ -4182,22 +4269,509 @@ function NodeFactory(aFactoryType, ignored, aDocument)
 
 
 
-function JSTerm(aHud, aMixin)
+
+
+
+
+
+
+
+
+
+
+
+
+function findCompletionBeginning(aStr)
+{
+  let bodyStack = [];
+
+  let state = STATE_NORMAL;
+  let start = 0;
+  let c;
+  for (let i = 0; i < aStr.length; i++) {
+    c = aStr[i];
+
+    switch (state) {
+      
+      case STATE_NORMAL:
+        if (c == '"') {
+          state = STATE_DQUOTE;
+        }
+        else if (c == '\'') {
+          state = STATE_QUOTE;
+        }
+        else if (c == ';') {
+          start = i + 1;
+        }
+        else if (c == ' ') {
+          start = i + 1;
+        }
+        else if (OPEN_BODY.indexOf(c) != -1) {
+          bodyStack.push({
+            token: c,
+            start: start
+          });
+          start = i + 1;
+        }
+        else if (CLOSE_BODY.indexOf(c) != -1) {
+          var last = bodyStack.pop();
+          if (!last || OPEN_CLOSE_BODY[last.token] != c) {
+            return {
+              err: "syntax error"
+            };
+          }
+          if (c == '}') {
+            start = i + 1;
+          }
+          else {
+            start = last.start;
+          }
+        }
+        break;
+
+      
+      case STATE_DQUOTE:
+        if (c == '\\') {
+          i ++;
+        }
+        else if (c == '\n') {
+          return {
+            err: "unterminated string literal"
+          };
+        }
+        else if (c == '"') {
+          state = STATE_NORMAL;
+        }
+        break;
+
+      
+      case STATE_QUOTE:
+        if (c == '\\') {
+          i ++;
+        }
+        else if (c == '\n') {
+          return {
+            err: "unterminated string literal"
+          };
+          return;
+        }
+        else if (c == '\'') {
+          state = STATE_NORMAL;
+        }
+        break;
+    }
+  }
+
+  return {
+    state: state,
+    startPos: start
+  };
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function JSPropertyProvider(aScope, aInputValue)
+{
+  let obj = WebConsoleUtils.unwrap(aScope);
+
+  
+  
+  let beginning = findCompletionBeginning(aInputValue);
+
+  
+  if (beginning.err) {
+    return null;
+  }
+
+  
+  
+  if (beginning.state != STATE_NORMAL) {
+    return null;
+  }
+
+  let completionPart = aInputValue.substring(beginning.startPos);
+
+  
+  if (completionPart.trim() == "") {
+    return null;
+  }
+
+  let properties = completionPart.split('.');
+  let matchProp;
+  if (properties.length > 1) {
+    matchProp = properties.pop().trimLeft();
+    for (let i = 0; i < properties.length; i++) {
+      let prop = properties[i].trim();
+
+      
+      
+      if (typeof obj === "undefined" || obj === null) {
+        return null;
+      }
+
+      
+      
+      if (WebConsoleUtils.isNonNativeGetter(obj, prop)) {
+        return null;
+      }
+      try {
+        obj = obj[prop];
+      }
+      catch (ex) {
+        return null;
+      }
+    }
+  }
+  else {
+    matchProp = properties[0].trimLeft();
+  }
+
+  
+  
+  if (typeof obj === "undefined" || obj === null) {
+    return null;
+  }
+
+  
+  if (WebConsoleUtils.isIteratorOrGenerator(obj)) {
+    return null;
+  }
+
+  let matches = [];
+  for (let prop in obj) {
+    if (prop.indexOf(matchProp) == 0) {
+      matches.push(prop);
+    }
+  }
+
+  return {
+    matchProp: matchProp,
+    matches: matches.sort(),
+  };
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+function JSTermHelper(aJSTerm)
+{
+  
+
+
+
+
+
+
+  aJSTerm.sandbox.$ = function JSTH_$(aId)
+  {
+    try {
+      return aJSTerm._window.document.getElementById(aId);
+    }
+    catch (ex) {
+      aJSTerm.console.error(ex.message);
+    }
+  };
+
+  
+
+
+
+
+
+
+  aJSTerm.sandbox.$$ = function JSTH_$$(aSelector)
+  {
+    try {
+      return aJSTerm._window.document.querySelectorAll(aSelector);
+    }
+    catch (ex) {
+      aJSTerm.console.error(ex.message);
+    }
+  };
+
+  
+
+
+
+
+
+
+
+
+  aJSTerm.sandbox.$x = function JSTH_$x(aXPath, aContext)
+  {
+    let nodes = [];
+    let doc = aJSTerm._window.document;
+    let aContext = aContext || doc;
+
+    try {
+      let results = doc.evaluate(aXPath, aContext, null,
+                                  Ci.nsIDOMXPathResult.ANY_TYPE, null);
+
+      let node;
+      while (node = results.iterateNext()) {
+        nodes.push(node);
+      }
+    }
+    catch (ex) {
+      aJSTerm.console.error(ex.message);
+    }
+
+    return nodes;
+  };
+
+  
+
+
+
+
+  Object.defineProperty(aJSTerm.sandbox, "$0", {
+    get: function() {
+      let mw = HUDService.currentContext();
+      try {
+        return mw.InspectorUI.selection;
+      }
+      catch (ex) {
+        aJSTerm.console.error(ex.message);
+      }
+    },
+    enumerable: true,
+    configurable: false
+  });
+
+  
+
+
+  aJSTerm.sandbox.clear = function JSTH_clear()
+  {
+    aJSTerm.helperEvaluated = true;
+    aJSTerm.clearOutput(true);
+  };
+
+  
+
+
+
+
+
+
+  aJSTerm.sandbox.keys = function JSTH_keys(aObject)
+  {
+    try {
+      return Object.keys(WebConsoleUtils.unwrap(aObject));
+    }
+    catch (ex) {
+      aJSTerm.console.error(ex.message);
+    }
+  };
+
+  
+
+
+
+
+
+
+  aJSTerm.sandbox.values = function JSTH_values(aObject)
+  {
+    let arrValues = [];
+    let obj = WebConsoleUtils.unwrap(aObject);
+
+    try {
+      for (let prop in obj) {
+        arrValues.push(obj[prop]);
+      }
+    }
+    catch (ex) {
+      aJSTerm.console.error(ex.message);
+    }
+    return arrValues;
+  };
+
+  
+
+
+  aJSTerm.sandbox.help = function JSTH_help()
+  {
+    aJSTerm.helperEvaluated = true;
+    aJSTerm._window.open(
+        "https://developer.mozilla.org/AppLinks/WebConsoleHelp?locale=" +
+        aJSTerm._window.navigator.language, "help", "");
+  };
+
+  
+
+
+
+
+
+
+  aJSTerm.sandbox.inspect = function JSTH_inspect(aObject)
+  {
+    aJSTerm.helperEvaluated = true;
+    let propPanel = aJSTerm.openPropertyPanel(null,
+                                              WebConsoleUtils.unwrap(aObject));
+    propPanel.panel.setAttribute("hudId", aJSTerm.hudId);
+  };
+
+  aJSTerm.sandbox.inspectrules = function JSTH_inspectrules(aNode)
+  {
+    aJSTerm.helperEvaluated = true;
+    let doc = aJSTerm.inputNode.ownerDocument;
+    let win = doc.defaultView;
+    let panel = createElement(doc, "panel", {
+      label: "CSS Rules",
+      titlebar: "normal",
+      noautofocus: "true",
+      noautohide: "true",
+      close: "true",
+      width: 350,
+      height: (win.screen.height / 2)
+    });
+
+    let iframe = createAndAppendElement(panel, "iframe", {
+      src: "chrome://browser/content/devtools/cssruleview.xul",
+      flex: "1",
+    });
+
+    panel.addEventListener("load", function onLoad() {
+      panel.removeEventListener("load", onLoad, true);
+      let doc = iframe.contentDocument;
+      let view = new CssRuleView(doc);
+      doc.documentElement.appendChild(view.element);
+      view.highlight(aNode);
+    }, true);
+
+    let parent = doc.getElementById("mainPopupSet");
+    parent.appendChild(panel);
+
+    panel.addEventListener("popuphidden", function onHide() {
+      panel.removeEventListener("popuphidden", onHide);
+      parent.removeChild(panel);
+    });
+
+    let footer = createElement(doc, "hbox", { align: "end" });
+    createAndAppendElement(footer, "spacer", { flex: 1});
+    createAndAppendElement(footer, "resizer", { dir: "bottomend" });
+    panel.appendChild(footer);
+
+    let anchor = win.gBrowser.selectedBrowser;
+    panel.openPopup(anchor, "end_before", 0, 0, false, false);
+
+  }
+
+  
+
+
+
+
+
+
+  aJSTerm.sandbox.pprint = function JSTH_pprint(aObject)
+  {
+    aJSTerm.helperEvaluated = true;
+    if (aObject === null || aObject === undefined || aObject === true || aObject === false) {
+      aJSTerm.console.error(l10n.getStr("helperFuncUnsupportedTypeError"));
+      return;
+    }
+    else if (typeof aObject === TYPEOF_FUNCTION) {
+      aJSTerm.writeOutput(aObject + "\n", CATEGORY_OUTPUT, SEVERITY_LOG);
+      return;
+    }
+
+    let output = [];
+    let pairs = namesAndValuesOf(WebConsoleUtils.unwrap(aObject));
+
+    pairs.forEach(function(pair) {
+      output.push("  " + pair.display);
+    });
+
+    aJSTerm.writeOutput(output.join("\n"), CATEGORY_OUTPUT, SEVERITY_LOG);
+  };
+
+  
+
+
+
+
+
+
+  aJSTerm.sandbox.print = function JSTH_print(aString)
+  {
+    aJSTerm.helperEvaluated = true;
+    aJSTerm.writeOutput("" + aString, CATEGORY_OUTPUT, SEVERITY_LOG);
+  };
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function JSTerm(aContext, aParentNode, aMixin, aConsole)
 {
   
 
   this.application = appName();
-  this.hud = aHud;
+  this.context = aContext;
+  this.parentNode = aParentNode;
   this.mixins = aMixin;
-  this.document = this.hud.chromeDocument;
+  this.console = aConsole;
+  this.document = aParentNode.ownerDocument
 
-  this.hudId = this.hud.hudId;
+  this.setTimeout = aParentNode.ownerDocument.defaultView.setTimeout;
 
-  this.lastCompletion = {};
+  let node = aParentNode;
+  while (!node.hasAttribute("id")) {
+    node = node.parentNode;
+  }
+  this.hudId = node.getAttribute("id");
+
   this.history = [];
   this.historyIndex = 0;
   this.historyPlaceHolder = 0;  
-  this.autocompletePopup = new AutocompletePopup(this.document);
+  this.log = LogFactory("*** JSTerm:");
+  this.autocompletePopup = new AutocompletePopup(aParentNode.ownerDocument);
   this.autocompletePopup.onSelect = this.onAutocompleteSelect.bind(this);
   this.autocompletePopup.onClick = this.acceptProposedCompletion.bind(this);
   this.init();
@@ -4205,12 +4779,16 @@ function JSTerm(aHud, aMixin)
 
 JSTerm.prototype = {
   lastInputValue: "",
+  propertyProvider: JSPropertyProvider,
+
   COMPLETE_FORWARD: 0,
   COMPLETE_BACKWARD: 1,
   COMPLETE_HINT_ONLY: 2,
 
   init: function JST_init()
   {
+    this.createSandbox();
+
     this.inputNode = this.mixins.inputNode;
     this.outputNode = this.mixins.outputNode;
     this.completeNode = this.mixins.completeNode;
@@ -4241,26 +4819,18 @@ JSTerm.prototype = {
     this.mixins.attachUI();
   },
 
-
-  
-
-
-
-
-
-
-
-
-  evalInContentSandbox: function JST_evalInContentSandbox(aString, aCallback)
+  createSandbox: function JST_setupSandbox()
   {
-    let message = {
-      str: aString,
-      resultCacheId: "HUDEval-" + HUDService.sequenceId(),
-    };
+    
+    this.sandbox = new Cu.Sandbox(this._window,
+      { sandboxPrototype: this._window, wantXrays: false });
+    this.sandbox.console = this.console;
+    JSTermHelper(this);
+  },
 
-    this.hud.sendMessageToContent("JSTerm:EvalRequest", message, aCallback);
-
-    return message;
+  get _window()
+  {
+    return this.context.get().QueryInterface(Ci.nsIDOMWindow);
   },
 
   
@@ -4271,50 +4841,38 @@ JSTerm.prototype = {
 
 
 
-
-
-
-
-
-
-  _executeResultCallback:
-  function JST__executeResultCallback(aResponse, aRequest)
+  evalInSandbox: function JST_evalInSandbox(aString)
   {
-    let errorMessage = aResponse.errorMessage;
-    let resultString = aResponse.resultString;
+    
+    if (aString.trim() === "help" || aString.trim() === "?") {
+      aString = "help()";
+    }
+
+    let window = WebConsoleUtils.unwrap(this.sandbox.window);
+    let $ = null, $$ = null;
 
     
-    if (!errorMessage &&
-        resultString == "undefined" &&
-        aResponse.helperResult &&
-        !aResponse.inspectable &&
-        !aResponse.helperRawOutput) {
-      return;
+    
+    if (typeof window.$ == "function") {
+      $ = this.sandbox.$;
+      delete this.sandbox.$;
+    }
+    if (typeof window.$$ == "function") {
+      $$ = this.sandbox.$$;
+      delete this.sandbox.$$;
     }
 
-    let afterNode = aRequest.outputNode;
+    let result = Cu.evalInSandbox(aString, this.sandbox, "1.8", "Web Console", 1);
 
-    if (aResponse.errorMessage) {
-      this.writeOutput(aResponse.errorMessage, CATEGORY_OUTPUT, SEVERITY_ERROR,
-                       afterNode, aResponse.timestamp);
+    if ($) {
+      this.sandbox.$ = $;
     }
-    else if (aResponse.inspectable) {
-      let node = this.writeOutputJS(aResponse.resultString,
-                                    this._evalOutputClick.bind(this, aResponse),
-                                    afterNode, aResponse.timestamp);
-      node._evalCacheId = aResponse.childrenCacheId;
+    if ($$) {
+      this.sandbox.$$ = $$;
     }
-    else {
-      this.writeOutput(aResponse.resultString, CATEGORY_OUTPUT, SEVERITY_LOG,
-                       afterNode, aResponse.timestamp);
-    }
+
+    return result;
   },
-
-  
-
-
-
-
 
 
   execute: function JST_execute(aExecuteString)
@@ -4326,12 +4884,29 @@ JSTerm.prototype = {
       return;
     }
 
-    let node = this.writeOutput(aExecuteString, CATEGORY_INPUT, SEVERITY_LOG);
+    this.writeOutput(aExecuteString, CATEGORY_INPUT, SEVERITY_LOG);
 
-    let messageToContent =
-      this.evalInContentSandbox(aExecuteString,
-                                this._executeResultCallback.bind(this));
-    messageToContent.outputNode = node;
+    try {
+      this.helperEvaluated = false;
+      let result = this.evalInSandbox(aExecuteString);
+
+      
+      let shouldShow = !(result === undefined && this.helperEvaluated);
+      if (shouldShow) {
+        let inspectable = WebConsoleUtils.isObjectInspectable(result);
+        let resultString = WebConsoleUtils.formatResult(result);
+
+        if (inspectable) {
+          this.writeOutputJS(aExecuteString, result, resultString);
+        }
+        else {
+          this.writeOutput(resultString, CATEGORY_OUTPUT, SEVERITY_LOG);
+        }
+      }
+    }
+    catch (ex) {
+      this.writeOutput("" + ex, CATEGORY_OUTPUT, SEVERITY_ERROR);
+    }
 
     this.history.push(aExecuteString);
     this.historyIndex++;
@@ -4354,6 +4929,57 @@ JSTerm.prototype = {
 
 
 
+  openPropertyPanel: function JST_openPropertyPanel(aEvalString, aOutputObject,
+                                                    aAnchor)
+  {
+    let self = this;
+    let propPanel;
+    
+    
+    
+    let buttons = [];
+
+    
+    
+    
+    if (aEvalString !== null) {
+      buttons.push({
+        label: l10n.getStr("update.button"),
+        accesskey: l10n.getStr("update.accesskey"),
+        oncommand: function () {
+          try {
+            var result = self.evalInSandbox(aEvalString);
+
+            if (result !== undefined) {
+              
+              
+              
+              propPanel.treeView.data = result;
+            }
+          }
+          catch (ex) {
+            self.console.error(ex);
+          }
+        }
+      });
+    }
+
+    let doc = self.document;
+    let parent = doc.getElementById("mainPopupSet");
+    let title = (aEvalString
+        ? l10n.getFormatStr("jsPropertyInspectTitle", [aEvalString])
+        : l10n.getStr("jsPropertyTitle"));
+
+    propPanel = new PropertyPanel(parent, doc, title, aOutputObject, buttons);
+    propPanel.linkNode = aAnchor;
+
+    let panel = propPanel.panel;
+    panel.openPopup(aAnchor, "after_pointer", 0, 0, false, false);
+    panel.sizeTo(350, 450);
+    return propPanel;
+  },
+
+  
 
 
 
@@ -4362,7 +4988,24 @@ JSTerm.prototype = {
 
 
 
-  openPropertyPanel: function JST_openPropertyPanel(aOptions)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  openPropertyPanelAsync: function JST_openPropertyPanelAsync(aOptions)
   {
     
     
@@ -4382,7 +5025,7 @@ JSTerm.prototype = {
                 l10n.getFormatStr("jsPropertyInspectTitle", [aOptions.title]) :
                 l10n.getStr("jsPropertyTitle");
 
-    let propPanel = new PropertyPanel(parent, title, aOptions.data, buttons);
+    let propPanel = new PropertyPanelAsync(parent, title, aOptions.data, buttons);
 
     propPanel.panel.openPopup(aOptions.anchor, "after_pointer", 0, 0, false, false);
     propPanel.panel.sizeTo(350, 450);
@@ -4410,21 +5053,41 @@ JSTerm.prototype = {
 
 
 
-
-
-
-
-
-
-  writeOutputJS:
-  function JST_writeOutputJS(aOutputMessage, aCallback, aNodeAfter, aTimestamp)
+  writeOutputJS: function JST_writeOutputJS(aEvalString, aOutputObject, aOutputString)
   {
-    let node = this.writeOutput(aOutputMessage, CATEGORY_OUTPUT, SEVERITY_LOG,
-                                aNodeAfter, aTimestamp);
-    if (aCallback) {
-      this.hud.makeOutputMessageLink(node, aCallback);
-    }
-    return node;
+    let node = ConsoleUtils.createMessageNode(this.document,
+                                              CATEGORY_OUTPUT,
+                                              SEVERITY_LOG,
+                                              aOutputString,
+                                              this.hudId);
+
+    let linkNode = node.querySelector(".webconsole-msg-body");
+
+    linkNode.classList.add("hud-clickable");
+    linkNode.setAttribute("aria-haspopup", "true");
+
+    
+    node.addEventListener("mousedown", function(aEvent) {
+      this._startX = aEvent.clientX;
+      this._startY = aEvent.clientY;
+    }, false);
+
+    let self = this;
+    node.addEventListener("click", function(aEvent) {
+      if (aEvent.detail != 1 || aEvent.button != 0 ||
+          (this._startX != aEvent.clientX &&
+           this._startY != aEvent.clientY)) {
+        return;
+      }
+
+      if (!this._panelOpen) {
+        let propPanel = self.openPropertyPanel(aEvalString, aOutputObject, this);
+        propPanel.panel.setAttribute("hudId", self.hudId);
+        this._panelOpen = true;
+      }
+    }, false);
+
+    ConsoleUtils.outputMessageNode(node, this.hudId);
   },
 
   
@@ -4439,26 +5102,13 @@ JSTerm.prototype = {
 
 
 
-
-
-
-
-
-
-
-
-
-  writeOutput:
-  function JST_writeOutput(aOutputMessage, aCategory, aSeverity, aNodeAfter,
-                           aTimestamp)
+  writeOutput: function JST_writeOutput(aOutputMessage, aCategory, aSeverity)
   {
-    let node = ConsoleUtils.createMessageNode(this.document, aCategory,
-                                              aSeverity, aOutputMessage,
-                                              this.hudId, null, null, null,
-                                              null, aTimestamp);
+    let node = ConsoleUtils.createMessageNode(this.document,
+                                              aCategory, aSeverity,
+                                              aOutputMessage, this.hudId);
 
-    ConsoleUtils.outputMessageNode(node, this.hudId, aNodeAfter);
-    return node;
+    ConsoleUtils.outputMessageNode(node, this.hudId);
   },
 
   
@@ -4771,9 +5421,7 @@ JSTerm.prototype = {
 
 
 
-
-
-  complete: function JSTF_complete(aType, aCallback)
+  complete: function JSTF_complete(type)
   {
     let inputNode = this.inputNode;
     let inputValue = inputNode.value;
@@ -4790,128 +5438,55 @@ JSTerm.prototype = {
       return false;
     }
 
-    
-    if (this.lastCompletion.value != inputValue) {
-      this._updateCompletionResult(aType, aCallback);
-      return false;
+    let popup = this.autocompletePopup;
+
+    if (!this.lastCompletion || this.lastCompletion.value != inputValue) {
+      let properties = this.propertyProvider(this.sandbox.window, inputValue);
+      if (!properties || !properties.matches.length) {
+        this.clearCompletion();
+        return false;
+      }
+
+      let items = properties.matches.map(function(aMatch) {
+        return {label: aMatch};
+      });
+      popup.setItems(items);
+      this.lastCompletion = {value: inputValue,
+                             matchProp: properties.matchProp};
+
+      if (items.length > 1 && !popup.isOpen) {
+        popup.openPopup(this.inputNode);
+      }
+      else if (items.length < 2 && popup.isOpen) {
+        popup.hidePopup();
+      }
+
+      if (items.length == 1) {
+          popup.selectedIndex = 0;
+      }
+      this.onAutocompleteSelect();
     }
 
-    let popup = this.autocompletePopup;
     let accepted = false;
 
-    if (aType != this.COMPLETE_HINT_ONLY && popup.itemCount == 1) {
+    if (type != this.COMPLETE_HINT_ONLY && popup.itemCount == 1) {
       this.acceptProposedCompletion();
       accepted = true;
     }
-    else if (aType == this.COMPLETE_BACKWARD) {
-      popup.selectPreviousItem();
+    else if (type == this.COMPLETE_BACKWARD) {
+      this.autocompletePopup.selectPreviousItem();
     }
-    else if (aType == this.COMPLETE_FORWARD) {
-      popup.selectNextItem();
+    else if (type == this.COMPLETE_FORWARD) {
+      this.autocompletePopup.selectNextItem();
     }
 
-    aCallback && aCallback(this);
     return accepted || popup.itemCount > 0;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  _updateCompletionResult:
-  function JST__updateCompletionResult(aType, aCallback)
-  {
-    if (this.lastCompletion.value == this.inputNode.value) {
-      return;
-    }
-
-    let message = {
-      id: "HUDComplete-" + HUDService.sequenceId(),
-      input: this.inputNode.value,
-    };
-
-    this.lastCompletion = {requestId: message.id, completionType: aType};
-    let callback = this._receiveAutocompleteProperties.bind(this, aCallback);
-    this.hud.sendMessageToContent("JSTerm:Autocomplete", message, callback);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  _receiveAutocompleteProperties:
-  function JST__receiveAutocompleteProperties(aCallback, aMessage)
-  {
-    let inputNode = this.inputNode;
-    let inputValue = inputNode.value;
-    if (aMessage.input != inputValue ||
-        this.lastCompletion.value == inputValue ||
-        aMessage.id != this.lastCompletion.requestId) {
-      return;
-    }
-
-    let matches = aMessage.matches;
-    if (!matches.length) {
-      this.clearCompletion();
-      return;
-    }
-
-    let items = matches.map(function(aMatch) {
-      return { label: aMatch };
-    });
-
-    let popup = this.autocompletePopup;
-    popup.setItems(items);
-
-    let completionType = this.lastCompletion.completionType;
-    this.lastCompletion = {
-      value: inputValue,
-      matchProp: aMessage.matchProp,
-    };
-
-    if (items.length > 1 && !popup.isOpen) {
-      popup.openPopup(inputNode);
-    }
-    else if (items.length < 2 && popup.isOpen) {
-      popup.hidePopup();
-    }
-
-    if (items.length == 1) {
-      popup.selectedIndex = 0;
-    }
-
-    this.onAutocompleteSelect();
-
-    if (completionType != this.COMPLETE_HINT_ONLY && popup.itemCount == 1) {
-      this.acceptProposedCompletion();
-    }
-    else if (completionType == this.COMPLETE_BACKWARD) {
-      popup.selectPreviousItem();
-    }
-    else if (completionType == this.COMPLETE_FORWARD) {
-      popup.selectNextItem();
-    }
-
-    aCallback && aCallback(this);
   },
 
   onAutocompleteSelect: function JSTF_onAutocompleteSelect()
   {
     let currentItem = this.autocompletePopup.selectedItem;
-    if (currentItem && this.lastCompletion.value) {
+    if (currentItem && this.lastCompletion) {
       let suffix = currentItem.label.substring(this.lastCompletion.
                                                matchProp.length);
       this.updateCompleteNode(suffix);
@@ -4928,7 +5503,7 @@ JSTerm.prototype = {
   clearCompletion: function JSTF_clearCompletion()
   {
     this.autocompletePopup.clearItems();
-    this.lastCompletion = {};
+    this.lastCompletion = null;
     this.updateCompleteNode("");
     if (this.autocompletePopup.isOpen) {
       this.autocompletePopup.hidePopup();
@@ -4947,7 +5522,7 @@ JSTerm.prototype = {
     let updated = false;
 
     let currentItem = this.autocompletePopup.selectedItem;
-    if (currentItem && this.lastCompletion.value) {
+    if (currentItem && this.lastCompletion) {
       let suffix = currentItem.label.substring(this.lastCompletion.
                                                matchProp.length);
       this.setInputValue(this.inputNode.value + suffix);
@@ -4981,7 +5556,8 @@ JSTerm.prototype = {
 
   clearObjectCache: function JST_clearObjectCache(aCacheId)
   {
-    this.hud.sendMessageToContent("JSTerm:ClearObjectCache", {cacheId: aCacheId});
+    let hud = HUDService.getHudReferenceById(this.hudId);
+    hud.sendMessageToContent("JSTerm:ClearObjectCache", {cacheId: aCacheId});
   },
 
   
@@ -5008,147 +5584,8 @@ JSTerm.prototype = {
       resultCacheId: aResultCacheId,
     };
 
-    this.hud.sendMessageToContent("JSTerm:GetEvalObject", message, aCallback);
-  },
-
-  
-
-
-
-
-
-
-
-
-  handleInspectObject: function JST_handleInspectObject(aRequest)
-  {
-    let options = {
-      title: aRequest.input,
-
-      data: {
-        rootCacheId: aRequest.objectCacheId,
-        panelCacheId: aRequest.objectCacheId,
-        remoteObject: aRequest.resultObject,
-        remoteObjectProvider: this.remoteObjectProvider.bind(this),
-      },
-    };
-
-    let propPanel = this.openPropertyPanel(options);
-    propPanel.panel.setAttribute("hudId", this.hudId);
-
-    let onPopupHide = function JST__onPopupHide() {
-      propPanel.panel.removeEventListener("popuphiding", onPopupHide, false);
-
-      this.clearObjectCache(options.data.panelCacheId);
-    }.bind(this);
-
-    propPanel.panel.addEventListener("popuphiding", onPopupHide, false);
-  },
-
-  
-
-
-
-
-
-
-
-
-  _evalOutputClick: function JST__evalOutputClick(aResponse, aLinkNode)
-  {
-    if (aLinkNode._panelOpen) {
-      return;
-    }
-
-    let options = {
-      title: aResponse.input,
-      anchor: aLinkNode,
-
-      
-      data: {
-        
-        rootCacheId: aResponse.childrenCacheId,
-        remoteObject: aResponse.resultObject,
-        
-        panelCacheId: "HUDPanel-" + HUDService.sequenceId(),
-        remoteObjectProvider: this.remoteObjectProvider.bind(this),
-      },
-    };
-
-    options.updateButtonCallback = function JST__evalUpdateButton() {
-      this.evalInContentSandbox(aResponse.input,
-        this._evalOutputUpdatePanelCallback.bind(this, options, propPanel,
-                                                 aResponse));
-    }.bind(this);
-
-    let propPanel = this.openPropertyPanel(options);
-    propPanel.panel.setAttribute("hudId", this.hudId);
-
-    let onPopupHide = function JST__evalInspectPopupHide() {
-      propPanel.panel.removeEventListener("popuphiding", onPopupHide, false);
-
-      this.clearObjectCache(options.data.panelCacheId);
-
-      if (!aLinkNode.parentNode && aLinkNode._evalCacheId) {
-        this.clearObjectCache(aLinkNode._evalCacheId);
-      }
-    }.bind(this);
-
-    propPanel.panel.addEventListener("popuphiding", onPopupHide, false);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _evalOutputUpdatePanelCallback:
-  function JST__updatePanelCallback(aOptions, aPropPanel, aOldResponse,
-                                    aNewResponse)
-  {
-    if (aNewResponse.errorMessage) {
-      this.writeOutput(aNewResponse.errorMessage, CATEGORY_OUTPUT,
-                       SEVERITY_ERROR);
-      return;
-    }
-
-    if (!aNewResponse.inspectable) {
-      this.writeOutput(l10n.getStr("JSTerm.updateNotInspectable"), CATEGORY_OUTPUT, SEVERITY_ERROR);
-      return;
-    }
-
-    this.clearObjectCache(aOptions.data.panelCacheId);
-    this.clearObjectCache(aOptions.data.rootCacheId);
-
-    if (aOptions.anchor && aOptions.anchor._evalCacheId) {
-      aOptions.anchor._evalCacheId = aNewResponse.childrenCacheId;
-    }
-
-    
-    
-    aOldResponse.id = aNewResponse.id;
-    aOldResponse.childrenCacheId = aNewResponse.childrenCacheId;
-    aOldResponse.resultObject = aNewResponse.resultObject;
-    aOldResponse.resultString = aNewResponse.resultString;
-
-    aOptions.data.rootCacheId = aNewResponse.childrenCacheId;
-    aOptions.data.remoteObject = aNewResponse.resultObject;
-
-    
-    
-    
-    aPropPanel.treeView.data = aOptions.data;
+    let hud = HUDService.getHudReferenceById(this.hudId);
+    hud.sendMessageToContent("JSTerm:GetEvalObject", message, aCallback);
   },
 
   
@@ -5156,20 +5593,9 @@ JSTerm.prototype = {
 
   destroy: function JST_destroy()
   {
-    this.clearCompletion();
-    this.clearOutput();
-
-    this.autocompletePopup.destroy();
-
     this.inputNode.removeEventListener("keypress", this._keyPress, false);
     this.inputNode.removeEventListener("input", this._inputEventHandler, false);
     this.inputNode.removeEventListener("keyup", this._inputEventHandler, false);
-
-    delete this.history;
-    delete this.hud;
-    delete this.autocompletePopup;
-    delete this.document;
-    delete this.mixins;
   },
 };
 
@@ -5183,13 +5609,20 @@ JSTerm.prototype = {
 
 
 
-function JSTermFirefoxMixin(aParentNode, aExistingConsole)
+
+
+function
+JSTermFirefoxMixin(aContext,
+                   aParentNode,
+                   aExistingConsole)
 {
   
   
   
+  this.context = aContext;
   this.parentNode = aParentNode;
   this.existingConsoleNode = aExistingConsole;
+  this.setTimeout = aParentNode.ownerDocument.defaultView.setTimeout;
 
   if (aParentNode.ownerDocument) {
     this.xulElementFactory =
@@ -5462,7 +5895,7 @@ ConsoleUtils = {
       node.appendChild(bodyContainer);
       node.classList.add("webconsole-msg-inspector");
       
-      let treeView = node.propertyTreeView = new PropertyTreeView();
+      let treeView = node.propertyTreeView = new PropertyTreeViewAsync();
 
       treeView.data = {
         rootCacheId: body.cacheId,
@@ -5700,10 +6133,7 @@ ConsoleUtils = {
 
 
 
-
-
-  outputMessageNode:
-  function ConsoleUtils_outputMessageNode(aNode, aHUDId, aNodeAfter) {
+  outputMessageNode: function ConsoleUtils_outputMessageNode(aNode, aHUDId) {
     ConsoleUtils.filterMessageNode(aNode, aHUDId);
     let outputNode = HUDService.hudReferences[aHUDId].outputNode;
 
@@ -5722,7 +6152,7 @@ ConsoleUtils = {
     }
 
     if (!isRepeated) {
-      outputNode.insertBefore(aNode, aNodeAfter ? aNodeAfter.nextSibling : null);
+      outputNode.appendChild(aNode);
     }
 
     HUDService.regroupOutput(outputNode);
@@ -5924,22 +6354,61 @@ HeadsUpDisplayUICommands = {
       }
     }
   },
+
 };
 
 
 
 
 
-let WebConsoleObserver = {
+
+
+
+
+function ConsoleEntry(aConfig, id)
+{
+  if (!aConfig.logLevel && aConfig.message) {
+    throw new Error("Missing Arguments when creating a console entry");
+  }
+
+  this.config = aConfig;
+  this.id = id;
+  for (var prop in aConfig) {
+    if (!(typeof aConfig[prop] == "function")){
+      this[prop] = aConfig[prop];
+    }
+  }
+
+  if (aConfig.logLevel == "network") {
+    this.transactions = { };
+    if (aConfig.activity) {
+      this.transactions[aConfig.activity.stage] = aConfig.activity;
+    }
+  }
+
+}
+
+ConsoleEntry.prototype = {
+
+  updateTransaction: function CE_updateTransaction(aActivity) {
+    this.transactions[aActivity.stage] = aActivity;
+  }
+};
+
+
+
+
+
+HUDWindowObserver = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver]),
 
-  init: function WCO_init()
+  init: function HWO_init()
   {
     Services.obs.addObserver(this, "content-document-global-created", false);
     Services.obs.addObserver(this, "quit-application-granted", false);
   },
 
-  observe: function WCO_observe(aSubject, aTopic)
+  observe: function HWO_observe(aSubject, aTopic, aData)
   {
     if (aTopic == "content-document-global-created") {
       HUDService.windowInitializer(aSubject);
@@ -5949,11 +6418,12 @@ let WebConsoleObserver = {
     }
   },
 
-  uninit: function WCO_uninit()
+  uninit: function HWO_uninit()
   {
     Services.obs.removeObserver(this, "content-document-global-created");
     Services.obs.removeObserver(this, "quit-application-granted");
   },
+
 };
 
 
