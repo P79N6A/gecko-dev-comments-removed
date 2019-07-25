@@ -64,7 +64,7 @@
 #include "nsSMILAnimationController.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIDocumentEncoder.h"
-#include "nsIAnimationFrameListener.h"
+#include "nsIFrameRequestCallback.h"
 #include "nsEventStates.h"
 #include "nsIStructuredCloneContainer.h"
 #include "nsIBFCacheEntry.h"
@@ -1518,18 +1518,18 @@ public:
 
   virtual Element* LookupImageElement(const nsAString& aElementId) = 0;
 
-  void ScheduleBeforePaintEvent(nsIAnimationFrameListener* aListener);
+  void ScheduleBeforePaintEvent(nsIFrameRequestCallback* aCallback);
   void BeforePaintEventFiring()
   {
     mHavePendingPaint = false;
   }
 
-  typedef nsTArray< nsCOMPtr<nsIAnimationFrameListener> > AnimationListenerList;
+  typedef nsTArray< nsCOMPtr<nsIFrameRequestCallback> > FrameRequestCallbackList;
   
 
 
 
-  void TakeAnimationFrameListeners(AnimationListenerList& aListeners);
+  void TakeFrameRequestCallbacks(FrameRequestCallbackList& aCallbacks);
 
   
   bool InUnlinkOrDeletion() { return mInUnlinkOrDeletion; }
@@ -1812,7 +1812,7 @@ protected:
 
   nsCOMPtr<nsIDocumentEncoder> mCachedEncoder;
 
-  AnimationListenerList mAnimationFrameListeners;
+  FrameRequestCallbackList mFrameRequestCallbacks;
 
   
   

@@ -184,7 +184,7 @@ public:
   
 
 
-  void ScheduleAnimationFrameListeners(nsIDocument* aDocument);
+  void ScheduleFrameRequestCallbacks(nsIDocument* aDocument);
 
   
 
@@ -194,7 +194,7 @@ public:
   
 
 
-  void RevokeAnimationFrameListeners(nsIDocument* aDocument);
+  void RevokeFrameRequestCallbacks(nsIDocument* aDocument);
 
   
 
@@ -256,8 +256,8 @@ private:
   PRInt32 GetRefreshTimerInterval() const;
   PRInt32 GetRefreshTimerType() const;
 
-  bool HaveAnimationFrameListeners() const {
-    return mAnimationFrameListenerDocs.Length() != 0;
+  bool HaveFrameRequestCallbacks() const {
+    return mFrameRequestCallbackDocs.Length() != 0;
   }
 
   nsCOMPtr<nsITimer> mTimer;
@@ -285,7 +285,7 @@ private:
   
   nsTArray< nsCOMPtr<nsIDocument> > mBeforePaintTargets;
   
-  nsTArray<nsIDocument*> mAnimationFrameListenerDocs;
+  nsTArray<nsIDocument*> mFrameRequestCallbackDocs;
 
   
   
