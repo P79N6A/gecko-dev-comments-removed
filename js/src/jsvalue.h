@@ -988,7 +988,7 @@ static const JSFinalizeOp     FinalizeStub       = JS_FinalizeStub;
     Native              construct;                                            \
     JSXDRObjectOp       xdrObject;                                            \
     HasInstanceOp       hasInstance;                                          \
-    JSTraceOp           trace;
+    JSTraceOp           trace
 
 
 
