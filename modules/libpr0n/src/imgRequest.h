@@ -129,6 +129,12 @@ public:
     return mWindowId;
   }
 
+  
+  
+  
+  
+  static void SetCacheValidation(imgCacheEntry* aEntry, nsIRequest* aRequest);
+
 private:
   friend class imgCacheEntry;
   friend class imgRequestProxy;

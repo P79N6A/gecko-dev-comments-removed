@@ -507,6 +507,65 @@ void imgRequest::UpdateCacheEntrySize()
   }
 }
 
+void imgRequest::SetCacheValidation(imgCacheEntry* aCacheEntry, nsIRequest* aRequest)
+{
+  
+  if (aCacheEntry) {
+    nsCOMPtr<nsICachingChannel> cacheChannel(do_QueryInterface(aRequest));
+    if (cacheChannel) {
+      nsCOMPtr<nsISupports> cacheToken;
+      cacheChannel->GetCacheToken(getter_AddRefs(cacheToken));
+      if (cacheToken) {
+        nsCOMPtr<nsICacheEntryInfo> entryDesc(do_QueryInterface(cacheToken));
+        if (entryDesc) {
+          PRUint32 expiration;
+          
+          entryDesc->GetExpirationTime(&expiration);
+
+          
+          
+          if (aCacheEntry->GetExpiryTime() == 0)
+            aCacheEntry->SetExpiryTime(expiration);
+        }
+      }
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(aRequest));
+    if (httpChannel) {
+      PRBool bMustRevalidate = PR_FALSE;
+
+      httpChannel->IsNoStoreResponse(&bMustRevalidate);
+
+      if (!bMustRevalidate) {
+        httpChannel->IsNoCacheResponse(&bMustRevalidate);
+      }
+
+      if (!bMustRevalidate) {
+        nsCAutoString cacheHeader;
+
+        httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("Cache-Control"),
+                                            cacheHeader);
+        if (PL_strcasestr(cacheHeader.get(), "must-revalidate")) {
+          bMustRevalidate = PR_TRUE;
+        }
+      }
+
+      
+      
+      
+      if (bMustRevalidate)
+        aCacheEntry->SetMustValidateIfExpired(bMustRevalidate);
+    }
+  }
+}
+
 nsresult
 imgRequest::LockImage()
 {
@@ -750,8 +809,6 @@ NS_IMETHODIMP imgRequest::OnDiscard(imgIRequest *aRequest)
 
 NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt)
 {
-  nsresult rv;
-
   LOG_SCOPE(gImgLog, "imgRequest::OnStartRequest");
 
   
@@ -823,55 +880,7 @@ NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt
     }
   }
 
-  
-  if (mCacheEntry) {
-    nsCOMPtr<nsICachingChannel> cacheChannel(do_QueryInterface(aRequest));
-    if (cacheChannel) {
-      nsCOMPtr<nsISupports> cacheToken;
-      cacheChannel->GetCacheToken(getter_AddRefs(cacheToken));
-      if (cacheToken) {
-        nsCOMPtr<nsICacheEntryInfo> entryDesc(do_QueryInterface(cacheToken));
-        if (entryDesc) {
-          PRUint32 expiration;
-          
-          entryDesc->GetExpirationTime(&expiration);
-
-          
-          mCacheEntry->SetExpiryTime(expiration);
-        }
-      }
-    }
-    
-    
-    
-    
-    
-    
-    
-    nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(aRequest));
-    if (httpChannel) {
-      PRBool bMustRevalidate = PR_FALSE;
-
-      rv = httpChannel->IsNoStoreResponse(&bMustRevalidate);
-
-      if (!bMustRevalidate) {
-        rv = httpChannel->IsNoCacheResponse(&bMustRevalidate);
-      }
-
-      if (!bMustRevalidate) {
-        nsCAutoString cacheHeader;
-
-        rv = httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("Cache-Control"),
-                                            cacheHeader);
-        if (PL_strcasestr(cacheHeader.get(), "must-revalidate")) {
-          bMustRevalidate = PR_TRUE;
-        }
-      }
-
-      mCacheEntry->SetMustValidateIfExpired(bMustRevalidate);
-    }
-  }
-
+  SetCacheValidation(mCacheEntry, aRequest);
 
   
   if (mObservers.IsEmpty()) {
@@ -1238,6 +1247,8 @@ imgRequest::AsyncOnChannelRedirect(nsIChannel *oldChannel,
   NS_ASSERTION(mRequest && mChannel, "Got a channel redirect after we nulled out mRequest!");
   NS_ASSERTION(mChannel == oldChannel, "Got a channel redirect for an unknown channel!");
   NS_ASSERTION(newChannel, "Got a redirect to a NULL channel!");
+
+  SetCacheValidation(mCacheEntry, oldChannel);
 
   
   mRedirectCallback = callback;
