@@ -750,9 +750,9 @@ var BrowserApp = {
     let uri;
     if (aParams.engine) {
       let engine;
-      if (aParams.engine == "__default__")
-        engine = Services.search.currentEngine || Services.search.defaultEngine;
-      else
+      
+      
+      if (aParams.engine != "__default__")
         engine = Services.search.getEngineByName(aParams.engine);
 
       if (engine)
@@ -872,6 +872,7 @@ var BrowserApp = {
         selected: true,
         parentId: ("parentId" in data) ? data.parentId : -1,
         flags: Ci.nsIWebNavigation.LOAD_FLAGS_DISALLOW_INHERIT_OWNER
+             | Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP
       };
 
       let url = this.getSearchOrFixupURI(data);
