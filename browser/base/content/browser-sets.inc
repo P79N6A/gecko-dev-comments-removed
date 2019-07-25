@@ -159,7 +159,7 @@
                  oncommand="toggleSidebar('viewBookmarksSidebar');"/>
 
     <!-- for both places and non-places, the sidebar lives at
-         chrome://browser/content/history/history-panel.xul so there are no
+         chrome:
          problems when switching between versions -->
     <broadcaster id="viewHistorySidebar" autoCheck="false" sidebartitle="&historyButton.label;"
                  type="checkbox" group="sidebar"
@@ -191,6 +191,7 @@
     <broadcaster id="isFrameImage"/>
     <broadcaster id="singleFeedMenuitemState" disabled="true"/>
     <broadcaster id="multipleFeedsMenuState" hidden="true"/>
+    <broadcaster id="tabviewGroupsNumber" groups="0"/>
   </broadcasterset>
 
   <keyset id="mainKeyset">
