@@ -45,7 +45,6 @@
 
 
 #include "jstypes.h"
-#include "jslong.h"
 
 typedef JSIntn intN;
 typedef JSUintn uintN;
