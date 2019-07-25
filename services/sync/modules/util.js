@@ -181,6 +181,20 @@ let Utils = {
     }
   },
 
+  ensureOneOpen: let (windows = {}) function ensureOneOpen(window) {
+    
+    let url = window.location.href;
+    let other = windows[url];
+    if (other != null)
+      other.close();
+
+    
+    windows[url] = window;
+
+    
+    window.addEventListener("unload", function() windows[url] = null, false);
+  },
+
   
   
   
