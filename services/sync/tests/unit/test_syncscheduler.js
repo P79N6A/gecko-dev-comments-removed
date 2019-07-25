@@ -25,31 +25,6 @@ add_test(function test_prefAttributes() {
   const TIMESTAMP1 = 1275493471649;
 
   try {
-    _("The 'nextSync' attribute stores a millisecond timestamp to the nearest second.");
-    do_check_eq(SyncScheduler.nextSync, 0);
-    SyncScheduler.nextSync = TIMESTAMP1;
-    do_check_eq(SyncScheduler.nextSync, Math.floor(TIMESTAMP1/1000)*1000);
-
-    _("'syncInterval' has a non-zero default value.");
-    do_check_eq(Svc.Prefs.get('syncInterval'), undefined);
-    do_check_true(SyncScheduler.syncInterval > 0);
-
-    _("'syncInterval' corresponds to a preference setting.");
-    SyncScheduler.syncInterval = INTERVAL;
-    do_check_eq(SyncScheduler.syncInterval, INTERVAL);
-    do_check_eq(Svc.Prefs.get('syncInterval'), INTERVAL);
-
-    _("'syncInterval' ignored preference setting after partial sync..");
-    Status.partial = true;
-    do_check_eq(SyncScheduler.syncInterval, PARTIAL_DATA_SYNC);
-
-    _("'syncThreshold' corresponds to preference, has non-zero default.");
-    do_check_eq(Svc.Prefs.get('syncThreshold'), undefined);
-    do_check_true(SyncScheduler.syncThreshold > 0);
-    SyncScheduler.syncThreshold = THRESHOLD;
-    do_check_eq(SyncScheduler.syncThreshold, THRESHOLD);
-    do_check_eq(Svc.Prefs.get('syncThreshold'), THRESHOLD);
-
     _("'globalScore' corresponds to preference, defaults to zero.");
     do_check_eq(Svc.Prefs.get('globalScore'), undefined);
     do_check_eq(SyncScheduler.globalScore, 0);
@@ -62,26 +37,32 @@ add_test(function test_prefAttributes() {
   }
 });
 
-
-
-
 add_test(function test_updateClientMode() {
-  _("Test updateClientMode switches sync threshold based on # of clients appropriately");
+  _("Test updateClientMode adjusts scheduling attributes based on # of clients appropriately");
   do_check_eq(SyncScheduler.syncThreshold, SINGLE_USER_THRESHOLD);
+  do_check_eq(SyncScheduler.syncInterval, SINGLE_USER_SYNC);
+  do_check_false(SyncScheduler.numClients > 1);
+  do_check_true(SyncScheduler.idle);
 
   
   Clients._store._remoteClients.foo = "bar";
   SyncScheduler.updateClientMode();
 
   do_check_eq(SyncScheduler.syncThreshold, MULTI_DEVICE_THRESHOLD);
+  do_check_eq(SyncScheduler.syncInterval, MULTI_DEVICE_IDLE_SYNC);
+  do_check_true(SyncScheduler.numClients > 1);
+  do_check_true(SyncScheduler.idle);
 
   
   Clients._store.wipe();
   SyncScheduler.updateClientMode();
 
   
-  do_check_eq(Service.numClients, 1);
+  do_check_eq(SyncScheduler.numClients, 1);
   do_check_eq(SyncScheduler.syncThreshold, SINGLE_USER_THRESHOLD);
+  do_check_eq(SyncScheduler.syncInterval, SINGLE_USER_SYNC);
+  do_check_false(SyncScheduler.numClients > 1);
+  do_check_true(SyncScheduler.idle);
   run_next_test();
 });
 
@@ -167,8 +148,6 @@ add_test(function test_scheduleNextSync() {
   initial_nextSync = SyncScheduler.nextSync = Date.now() + expectedInterval;
   SyncScheduler.scheduleNextSync();
 
-  
-  do_check_neq(SyncScheduler.nextSync, initial_nextSync);
   syncInterval = SyncScheduler.nextSync - Date.now();
   _("Sync Interval: " + syncInterval);
 
