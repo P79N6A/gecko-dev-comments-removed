@@ -3110,15 +3110,16 @@ Tab.prototype = {
     if (md && md.defaultZoom)
       return this.clampZoomLevel(md.defaultZoom);
 
-    let pageZoom = this.getPageZoomLevel();
+    let browserWidth = this._browser.getBoundingClientRect().width;
+    let defaultZoom = browserWidth / this._browser.contentWindowWidth;
 
     
     let granularity = Services.prefs.getIntPref("browser.ui.zoom.pageFitGranularity");
     let threshold = 1 - 1 / granularity;
-    if (threshold < pageZoom && pageZoom < 1)
-      pageZoom = 1;
+    if (threshold < defaultZoom && defaultZoom < 1)
+      defaultZoom = 1;
 
-    return this.clampZoomLevel(pageZoom);
+    return this.clampZoomLevel(defaultZoom);
   },
 
   
