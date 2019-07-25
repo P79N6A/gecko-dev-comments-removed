@@ -384,7 +384,6 @@ struct PICInfo : public BasePolyIC {
     {
         GET,        
         SET,        
-        SETMETHOD,  
         NAME,       
         BIND,       
         XNAME       
@@ -461,7 +460,7 @@ struct PICInfo : public BasePolyIC {
     types::TypeSet *rhsTypes;
     
     inline bool isSet() const {
-        return kind == SET || kind == SETMETHOD;
+        return kind == SET;
     }
     inline bool isGet() const {
         return kind == GET;
@@ -554,5 +553,5 @@ template <JSBool strict> void JS_FASTCALL SetElement(VMFrame &f, ic::SetElementI
 } 
 } 
 
-#endif 
+#endif
 

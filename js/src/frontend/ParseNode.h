@@ -1554,8 +1554,6 @@ struct FunctionBox : public ObjectBox
 
     JSFunction *function() const { return (JSFunction *) object; }
 
-    bool joinable() const;
-
     
 
 

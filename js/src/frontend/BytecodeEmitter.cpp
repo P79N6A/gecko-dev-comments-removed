@@ -4566,43 +4566,6 @@ EmitWith(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 }
 
 static bool
-SetMethodFunction(JSContext *cx, FunctionBox *funbox, JSAtom *atom)
-{
-    RootedVarObject parent(cx);
-    parent = funbox->function()->getParent();
-
-    
-
-
-
-
-
-    JSFunction *fun = js_NewFunction(cx, NULL, NULL,
-                                     funbox->function()->nargs,
-                                     funbox->function()->flags,
-                                     parent,
-                                     funbox->function()->atom,
-                                     JSFunction::ExtendedFinalizeKind);
-    if (!fun)
-        return false;
-
-    JSScript *script = funbox->function()->script();
-    if (script) {
-        fun->setScript(script);
-        if (!script->typeSetFunction(cx, fun))
-            return false;
-    }
-
-    JS_ASSERT(funbox->function()->joinable());
-    fun->setJoinable();
-
-    fun->setMethodAtom(atom);
-
-    funbox->object = fun;
-    return true;
-}
-
-static bool
 EmitForIn(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top)
 {
     StmtInfo stmtInfo;
@@ -5371,23 +5334,6 @@ EmitStatement(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         }
 #endif
         if (op != JSOP_NOP) {
-            
-
-
-
-
-
-
-            if (!wantval &&
-                pn2->isKind(PNK_ASSIGN) &&
-                pn2->pn_left->isOp(JSOP_SETPROP) &&
-                pn2->pn_right->isOp(JSOP_LAMBDA) &&
-                pn2->pn_right->pn_funbox->joinable())
-            {
-                if (!SetMethodFunction(cx, pn2->pn_right->pn_funbox, pn2->pn_left->pn_atom))
-                    return false;
-                pn2->pn_left->setOp(JSOP_SETMETHOD);
-            }
             if (!EmitTree(cx, bce, pn2))
                 return false;
             if (Emit1(cx, bce, op) < 0)
@@ -5895,27 +5841,12 @@ EmitObject(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
                 return false;
 
             
-            ParseNode *init = pn2->pn_right;
-            bool lambda = init->isOp(JSOP_LAMBDA);
-            if (lambda)
-                ++methodInits;
-            if (op == JSOP_INITPROP && lambda && init->pn_funbox->joinable()) {
+
+
+
+            if (pn3->pn_atom == cx->runtime->atomState.protoAtom)
                 obj = NULL;
-                op = JSOP_INITMETHOD;
-                if (!SetMethodFunction(cx, init->pn_funbox, pn3->pn_atom))
-                    return JS_FALSE;
-                pn2->setOp(op);
-            } else {
-                
-
-
-
-                if (pn3->pn_atom == cx->runtime->atomState.protoAtom)
-                    obj = NULL;
-                op = JSOP_INITPROP;
-                if (lambda)
-                    ++slowMethodInits;
-            }
+            op = JSOP_INITPROP;
 
             if (obj) {
                 JS_ASSERT(!obj->inDictionaryMode());

@@ -649,43 +649,15 @@ struct Shape : public js::gc::Cell
     
     enum {
         HAS_SHORTID     = 0x40,
-        METHOD          = 0x80,
-        PUBLIC_FLAGS    = HAS_SHORTID | METHOD
+        PUBLIC_FLAGS    = HAS_SHORTID
     };
 
     bool inDictionary() const   { return (flags & IN_DICTIONARY) != 0; }
     unsigned getFlags() const  { return flags & PUBLIC_FLAGS; }
     bool hasShortID() const { return (flags & HAS_SHORTID) != 0; }
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    bool isMethod() const {
-        JS_ASSERT_IF(flags & METHOD, !base()->rawGetter);
-        return (flags & METHOD) != 0;
-    }
-
     PropertyOp getter() const { return base()->rawGetter; }
-    bool hasDefaultGetterOrIsMethod() const { return !base()->rawGetter; }
-    bool hasDefaultGetter() const  { return !base()->rawGetter && !isMethod(); }
+    bool hasDefaultGetter() const  { return !base()->rawGetter; }
     PropertyOp getterOp() const { JS_ASSERT(!hasGetterValue()); return base()->rawGetter; }
     JSObject *getterObject() const { JS_ASSERT(hasGetterValue()); return base()->getterObj; }
 

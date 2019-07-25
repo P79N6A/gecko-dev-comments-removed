@@ -170,6 +170,12 @@ JSObject::setSpecialAttributes(JSContext *cx, js::SpecialId sid, unsigned *attrs
     return setGenericAttributes(cx, SPECIALID_TO_JSID(sid), attrsp);
 }
 
+inline bool
+JSObject::changePropertyAttributes(JSContext *cx, js::Shape *shape, unsigned attrs)
+{
+    return !!changeProperty(cx, shape, attrs, 0, shape->getter(), shape->setter());
+}
+
 inline JSBool
 JSObject::getGeneric(JSContext *cx, JSObject *receiver, jsid id, js::Value *vp)
 {
@@ -263,50 +269,6 @@ inline JSObject *
 JSObject::enclosingScope()
 {
     return isScope() ? &asScope().enclosingScope() : getParent();
-}
-
-
-
-
-
-inline js::Shape *
-JSObject::methodReadBarrier(JSContext *cx, const js::Shape &shape, js::Value *vp)
-{
-    JS_ASSERT(nativeContains(cx, shape));
-    JS_ASSERT(shape.isMethod());
-    JS_ASSERT(shape.hasSlot());
-    JS_ASSERT(shape.hasDefaultSetter());
-    JS_ASSERT(!isGlobal());  
-
-    JSFunction *fun = vp->toObject().toFunction();
-    JS_ASSERT(!fun->isClonedMethod());
-    JS_ASSERT(fun->isNullClosure());
-
-    fun = js::CloneFunctionObject(cx, fun);
-    if (!fun)
-        return NULL;
-    fun->setMethodObj(*this);
-
-    
-
-
-
-
-    uint32_t slot = shape.slot();
-    js::Shape *newshape = methodShapeChange(cx, shape);
-    if (!newshape)
-        return NULL;
-    JS_ASSERT(!newshape->isMethod());
-    JS_ASSERT(newshape->slot() == slot);
-    vp->setObject(*fun);
-    nativeSetSlot(slot, *vp);
-    return newshape;
-}
-
-inline bool
-JSObject::canHaveMethodBarrier() const
-{
-    return isObject() || isFunction() || isPrimitive() || isDate();
 }
 
 inline bool
@@ -962,22 +924,6 @@ JSObject::principals(JSContext *cx)
     if (JSObjectPrincipalsFinder find = cx->runtime->securityCallbacks->findObjectPrincipals)
         return find(this);
     return cx->compartment ? cx->compartment->principals : NULL;
-}
-
-inline JSFunction *
-JSObject::nativeGetMethod(const js::Shape *shape) const
-{
-    
-
-
-
-    JS_ASSERT(shape->isMethod());
-#ifdef DEBUG
-    JSObject *obj = &nativeGetSlot(shape->slot()).toObject();
-    JS_ASSERT(obj->isFunction() && !obj->toFunction()->isClonedMethod());
-#endif
-
-    return static_cast<JSFunction *>(&nativeGetSlot(shape->slot()).toObject());
 }
 
 inline void
