@@ -2222,7 +2222,7 @@ class CallMethodHelper
     
     
     
-    js::LazilyConstructed<nsAutoString> mAutoString;
+    js::Maybe<nsAutoString> mAutoString;
 
     jsval* const mArgv;
     const PRUint32 mArgc;

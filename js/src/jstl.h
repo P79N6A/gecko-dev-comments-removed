@@ -280,19 +280,19 @@ struct AlignedStorage2
 
 
 template <class T>
-class LazilyConstructed
+class Maybe
 {
     AlignedStorage2<T> storage;
     bool constructed;
 
     T &asT() { return *storage.addr(); }
 
-    explicit LazilyConstructed(const LazilyConstructed &other);
-    const LazilyConstructed &operator=(const LazilyConstructed &other);
+    explicit Maybe(const Maybe &other);
+    const Maybe &operator=(const Maybe &other);
 
   public:
-    LazilyConstructed() { constructed = false; }
-    ~LazilyConstructed() { if (constructed) asT().~T(); }
+    Maybe() { constructed = false; }
+    ~Maybe() { if (constructed) asT().~T(); }
 
     bool empty() const { return !constructed; }
 

@@ -123,9 +123,11 @@ static PRLogModuleInfo* gJSDiagnostics;
 #endif
 
 
+#ifndef WINCE
 #ifdef CompareString
 #undef CompareString
 #endif
+#endif 
 
 
 
@@ -1884,8 +1886,8 @@ nsJSContext::CallEventHandler(nsISupports* aTarget, void *aScope, void *aHandler
       return NS_ERROR_FAILURE;
     }
 
-    js::LazilyConstructed<nsAutoPoolRelease> poolRelease;
-    js::LazilyConstructed<js::AutoArrayRooter> tvr;
+    js::Maybe<nsAutoPoolRelease> poolRelease;
+    js::Maybe<js::AutoArrayRooter> tvr;
 
     
     
@@ -2373,8 +2375,8 @@ nsJSContext::SetProperty(void *aTarget, const char *aPropName, nsISupports *aArg
 
   JSAutoRequest ar(mContext);
 
-  js::LazilyConstructed<nsAutoPoolRelease> poolRelease;
-  js::LazilyConstructed<js::AutoArrayRooter> tvr;
+  js::Maybe<nsAutoPoolRelease> poolRelease;
+  js::Maybe<js::AutoArrayRooter> tvr;
 
   nsresult rv;
   rv = ConvertSupportsTojsvals(aArgs, GetNativeGlobal(), &argc,
@@ -2414,8 +2416,8 @@ nsJSContext::ConvertSupportsTojsvals(nsISupports *aArgs,
                                      void *aScope,
                                      PRUint32 *aArgc,
                                      jsval **aArgv,
-                                     js::LazilyConstructed<nsAutoPoolRelease> &aPoolRelease,
-                                     js::LazilyConstructed<js::AutoArrayRooter> &aRooter)
+                                     js::Maybe<nsAutoPoolRelease> &aPoolRelease,
+                                     js::Maybe<js::AutoArrayRooter> &aRooter)
 {
   nsresult rv = NS_OK;
 
@@ -3993,8 +3995,7 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(nsJSArgArray)
     for (end = argv + tmp->mArgc; argv < end; ++argv) {
       if (JSVAL_IS_GCTHING(*argv))
         NS_IMPL_CYCLE_COLLECTION_TRACE_CALLBACK(JAVASCRIPT,
-                                                JSVAL_TO_GCTHING(*argv),
-                                                "mArgv[i]")
+                                                JSVAL_TO_GCTHING(*argv))
     }
   }
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
