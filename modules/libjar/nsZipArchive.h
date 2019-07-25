@@ -43,6 +43,8 @@
 #ifndef nsZipArchive_h_
 #define nsZipArchive_h_
 
+#include "mozilla/Attributes.h"
+
 #define ZIP_TABSIZE   256
 #define ZIP_BUFLEN    (4*1024)      /* Used as output buffer when deflating items to a file */
 
@@ -250,14 +252,15 @@ private:
   
   mozilla::AutoFDClose mLog;
 
-  
-  
-  nsZipArchive& operator=(const nsZipArchive& rhs); 
-  nsZipArchive(const nsZipArchive& rhs);            
 
+private:
+  
   nsZipItem*        CreateZipItem();
   nsresult          BuildFileList();
   nsresult          BuildSynthetics();
+
+  nsZipArchive& operator=(const nsZipArchive& rhs) MOZ_DELETE;
+  nsZipArchive(const nsZipArchive& rhs) MOZ_DELETE;
 };
 
 
@@ -280,9 +283,8 @@ private:
   PRUint16      mSlot;
   bool          mRegExp;
 
-  
-  nsZipFind& operator=(const nsZipFind& rhs);
-  nsZipFind(const nsZipFind& rhs);
+  nsZipFind& operator=(const nsZipFind& rhs) MOZ_DELETE;
+  nsZipFind(const nsZipFind& rhs) MOZ_DELETE;
 };
 
 

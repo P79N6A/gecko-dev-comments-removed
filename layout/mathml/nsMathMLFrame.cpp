@@ -36,6 +36,7 @@
 
 
 
+
 #include "nsINameSpaceManager.h"
 #include "nsMathMLFrame.h"
 #include "nsMathMLChar.h"
@@ -88,14 +89,45 @@ nsMathMLFrame::FindAttrDisplaystyle(nsIContent*         aContent,
   
 }
 
+
+ void
+nsMathMLFrame::FindAttrDirectionality(nsIContent*         aContent,
+                                      nsPresentationData& aPresentationData)
+{
+  NS_ASSERTION(aContent->Tag() == nsGkAtoms::math ||
+               aContent->Tag() == nsGkAtoms::mrow_ ||
+               aContent->Tag() == nsGkAtoms::mstyle_ ||
+               aContent->Tag() == nsGkAtoms::mi_ ||
+               aContent->Tag() == nsGkAtoms::mn_ ||
+               aContent->Tag() == nsGkAtoms::mo_ ||
+               aContent->Tag() == nsGkAtoms::mtext_ ||
+               aContent->Tag() == nsGkAtoms::ms_, "bad caller");
+
+  static nsIContent::AttrValuesArray strings[] =
+    {&nsGkAtoms::ltr, &nsGkAtoms::rtl, nsnull};
+
+  
+  switch (aContent->FindAttrValueIn(kNameSpaceID_None,
+                                    nsGkAtoms::dir, strings, eCaseMatters))
+    {
+    case 0:
+      aPresentationData.flags &= ~NS_MATHML_RTL;
+      break;
+    case 1:
+      aPresentationData.flags |= NS_MATHML_RTL;
+      break;
+    }
+  
+}
+
 NS_IMETHODIMP
 nsMathMLFrame::InheritAutomaticData(nsIFrame* aParent) 
 {
   mEmbellishData.flags = 0;
   mEmbellishData.coreFrame = nsnull;
   mEmbellishData.direction = NS_STRETCH_DIRECTION_UNSUPPORTED;
-  mEmbellishData.leftSpace = 0;
-  mEmbellishData.rightSpace = 0;
+  mEmbellishData.leadingSpace = 0;
+  mEmbellishData.trailingSpace = 0;
 
   mPresentationData.flags = 0;
   mPresentationData.baseFrame = nsnull;
@@ -107,6 +139,9 @@ nsMathMLFrame::InheritAutomaticData(nsIFrame* aParent)
   mPresentationData.mstyle = parentData.mstyle;
   if (NS_MATHML_IS_DISPLAYSTYLE(parentData.flags)) {
     mPresentationData.flags |= NS_MATHML_DISPLAYSTYLE;
+  }
+  if (NS_MATHML_IS_RTL(parentData.flags)) {
+    mPresentationData.flags |= NS_MATHML_RTL;
   }
 
 #if defined(NS_DEBUG) && defined(SHOW_BOUNDING_BOX)
@@ -120,6 +155,10 @@ NS_IMETHODIMP
 nsMathMLFrame::UpdatePresentationData(PRUint32        aFlagsValues,
                                       PRUint32        aWhichFlags)
 {
+  NS_ASSERTION(NS_MATHML_IS_DISPLAYSTYLE(aWhichFlags) ||
+               NS_MATHML_IS_COMPRESSED(aWhichFlags),
+               "aWhichFlags should only be displaystyle or compression flag"); 
+
   
   if (NS_MATHML_IS_DISPLAYSTYLE(aWhichFlags)) {
     
@@ -172,8 +211,8 @@ nsMathMLFrame::GetEmbellishDataFrom(nsIFrame*        aFrame,
   aEmbellishData.flags = 0;
   aEmbellishData.coreFrame = nsnull;
   aEmbellishData.direction = NS_STRETCH_DIRECTION_UNSUPPORTED;
-  aEmbellishData.leftSpace = 0;
-  aEmbellishData.rightSpace = 0;
+  aEmbellishData.leadingSpace = 0;
+  aEmbellishData.trailingSpace = 0;
 
   if (aFrame && aFrame->IsFrameOfType(nsIFrame::eMathML)) {
     nsIMathMLFrame* mathMLFrame = do_QueryFrame(aFrame);
@@ -221,6 +260,7 @@ nsMathMLFrame::GetPresentationDataFrom(nsIFrame*           aFrame,
         aPresentationData.flags |= NS_MATHML_DISPLAYSTYLE;
       }
       FindAttrDisplaystyle(content, aPresentationData);
+      FindAttrDirectionality(content, aPresentationData);
       aPresentationData.mstyle = frame->GetFirstContinuation();
       break;
     }

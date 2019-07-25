@@ -36,6 +36,11 @@
 
 
 
+#if BOOTSTRAP
+var EXPORTED_SYMBOLS = ["OnRefTestLoad"];
+#endif
+
+
 const CC = Components.classes;
 const CI = Components.interfaces;
 const CR = Components.results;
@@ -219,7 +224,7 @@ function IDForEventTarget(event)
     }
 }
 
-function OnRefTestLoad()
+function OnRefTestLoad(win)
 {
     gCrashDumpDir = CC[NS_DIRECTORY_SERVICE_CONTRACTID]
                     .getService(CI.nsIProperties)
@@ -238,8 +243,11 @@ function OnRefTestLoad()
         gBrowserIsRemote = false;
     }
     
-    if (gContainingWindow == null && window != null) {
-      gContainingWindow = window;
+    if (win === undefined || win == null) {
+      win = window;
+    }
+    if (gContainingWindow == null && win != null) {
+      gContainingWindow = win;
     }
 
     gBrowser = gContainingWindow.document.createElementNS(XUL_NS, "xul:browser");
@@ -250,7 +258,15 @@ function OnRefTestLoad()
     
     gBrowser.setAttribute("style", "min-width: 800px; min-height: 1000px; max-width: 800px; max-height: 1000px");
 
+#if BOOTSTRAP
+    var doc = gContainingWindow.document.getElementById('main-window');
+    while (doc.hasChildNodes()) {
+      doc.removeChild(doc.firstChild);
+    }
+    doc.appendChild(gBrowser);
+#else
     document.getElementById("reftest-window").appendChild(gBrowser);
+#endif
 
     gBrowserMessageManager = gBrowser.QueryInterface(CI.nsIFrameLoaderOwner)
                              .frameLoader.messageManager;
@@ -285,7 +301,11 @@ function InitAndStartRefTests()
                 var mfl = FileUtils.openFileOutputStream(f, FileUtils.MODE_WRONLY | FileUtils.MODE_CREATE);  
                 
                 gDumpLog = function (msg) {
+#if BOOTSTRAP
+                    
+#else
                     dump(msg); 
+#endif
                     mfl.write(msg, msg.length);
                 };
             }
@@ -373,6 +393,38 @@ function StartHTTPServer()
 
 function StartTests()
 {
+#if BOOTSTRAP
+    
+    try {
+        var prefs = Components.classes["@mozilla.org/preferences-service;1"].
+                    getService(Components.interfaces.nsIPrefBranch2);
+    } catch(e) {
+        gDumpLog("REFTEST TEST-UNEXPECTED-FAIL | | EXCEPTION: " + e + "\n");
+    }
+    
+    try {
+        gNoCanvasCache = prefs.getIntPref("reftest.nocache");
+    } catch(e) { 
+        gNoCanvasCache = false;
+    }
+
+    try {
+        gRunSlowTests = prefs.getIntPref("reftest.skipslowtests");
+    } catch(e) { 
+        gRunSlowTests = false;
+    }
+
+    try {
+        uri = prefs.getCharPref("reftest.uri");
+    } catch(e) { 
+        uri = "";
+    }
+
+    if (uri == "") {
+        gDumpLog("REFTEST TEST-UNEXPECTED-FAIL | | Unable to find reftest.uri pref.  Please ensure your profile is setup properly\n");
+        DoneTests();
+    }
+#else
     try {
         
         var args = window.arguments[0].wrappedJSObject;
@@ -383,16 +435,25 @@ function StartTests()
         if ("skipslowtests" in args && args.skipslowtests)
             gRunSlowTests = false;
 
-        ReadTopManifest(args.uri);
+        uri = args.uri;
+    } catch (e) {
+        ++gTestResults.Exception;
+        gDumpLog("REFTEST TEST-UNEXPECTED-FAIL | | EXCEPTION: " + ex + "\n");
+        DoneTests();
+    }
+#endif
+
+    try {
+        ReadTopManifest(uri);
         BuildUseCounts();
 
         if (gTotalChunks > 0 && gThisChunk > 0) {
-          var testsPerChunk = gURLs.length / gTotalChunks;
-          var start = Math.round((gThisChunk-1) * testsPerChunk);
-          var end = Math.round(gThisChunk * testsPerChunk);
-          gURLs = gURLs.slice(start, end);
-          gDumpLog("REFTEST INFO | Running chunk " + gThisChunk + " out of " + gTotalChunks + " chunks.  ")
-          gDumpLog("tests " + (start+1) + "-" + end + "/" + gURLs.length + "\n");
+            var testsPerChunk = gURLs.length / gTotalChunks;
+            var start = Math.round((gThisChunk-1) * testsPerChunk);
+            var end = Math.round(gThisChunk * testsPerChunk);
+            gURLs = gURLs.slice(start, end);
+            gDumpLog("REFTEST INFO | Running chunk " + gThisChunk + " out of " + gTotalChunks + " chunks.  ")
+            gDumpLog("tests " + (start+1) + "-" + end + "/" + gURLs.length + "\n");
         }
         gTotalTests = gURLs.length;
 
@@ -417,17 +478,17 @@ function OnRefTestUnload()
 
 function getStreamContent(inputStream)
 {
-  var streamBuf = "";
-  var sis = CC["@mozilla.org/scriptableinputstream;1"].
-                createInstance(CI.nsIScriptableInputStream);
-  sis.init(inputStream);
+    var streamBuf = "";
+    var sis = CC["@mozilla.org/scriptableinputstream;1"].
+                  createInstance(CI.nsIScriptableInputStream);
+    sis.init(inputStream);
 
-  var available;
-  while ((available = sis.available()) != 0) {
-    streamBuf += sis.read(available);
-  }
-  
-  return streamBuf;
+    var available;
+    while ((available = sis.available()) != 0) {
+        streamBuf += sis.read(available);
+    }
+
+    return streamBuf;
 }
 
 
@@ -440,16 +501,16 @@ function BuildConditionSandbox(aURL) {
     
     
     try {
-      sandbox.xulRuntime.XPCOMABI = xr.XPCOMABI;
+        sandbox.xulRuntime.XPCOMABI = xr.XPCOMABI;
     } catch(e) {
-      sandbox.xulRuntime.XPCOMABI = "";
+        sandbox.xulRuntime.XPCOMABI = "";
     }
   
     try {
-      
-      sandbox.d2d = (NS_GFXINFO_CONTRACTID in CC) && CC[NS_GFXINFO_CONTRACTID].getService(CI.nsIGfxInfo).D2DEnabled;
+        
+        sandbox.d2d = (NS_GFXINFO_CONTRACTID in CC) && CC[NS_GFXINFO_CONTRACTID].getService(CI.nsIGfxInfo).D2DEnabled;
     } catch(e) {
-      sandbox.d2d = false;
+        sandbox.d2d = false;
     }
 
     sandbox.layersGPUAccelerated =
@@ -515,7 +576,7 @@ function BuildConditionSandbox(aURL) {
 
     sandbox.testPluginIsOOP = function () {
         try {
-          netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+            netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
         } catch (ex) {}
 
         var prefservice = Components.classes["@mozilla.org/preferences-service;1"]
@@ -566,7 +627,7 @@ function ReadTopManifest(aFileURL)
     gURLs = new Array();
     var url = gIOService.newURI(aFileURL, null, null);
     if (!url)
-      throw "Expected a file or http URL for the manifest.";
+        throw "Expected a file or http URL for the manifest.";
     ReadManifest(url, EXPECTED_PASS);
 }
 

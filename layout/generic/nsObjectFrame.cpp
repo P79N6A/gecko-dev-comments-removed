@@ -1420,6 +1420,8 @@ nsObjectFrame::PrintPlugin(nsRenderingContext& aRenderingContext,
   
 
 
+  (void)window;
+  (void)npprint;
 
 #elif defined(XP_OS2)
   void *hps = GetPSFromRC(aRenderingContext);

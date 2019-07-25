@@ -255,15 +255,15 @@ struct nsEmbellishData {
   
   
   
-  nscoord leftSpace;
-  nscoord rightSpace;
+  nscoord leadingSpace;
+  nscoord trailingSpace;
 
   nsEmbellishData() {
     flags = 0;
     coreFrame = nsnull;
     direction = NS_STRETCH_DIRECTION_UNSUPPORTED;
-    leftSpace = 0;
-    rightSpace = 0;
+    leadingSpace = 0;
+    trailingSpace = 0;
   }
 };
 
@@ -331,6 +331,9 @@ struct nsPresentationData {
 #define NS_MATHML_SPACE_LIKE                          0x00000040U
 
 
+#define NS_MATHML_RTL                                 0x00000080U
+
+
 
 
 #define NS_MATHML_ERROR                               0x80000000U
@@ -363,6 +366,9 @@ struct nsPresentationData {
 
 #define NS_MATHML_IS_SPACE_LIKE(_flags) \
   (NS_MATHML_SPACE_LIKE == ((_flags) & NS_MATHML_SPACE_LIKE))
+
+#define NS_MATHML_IS_RTL(_flags) \
+  (NS_MATHML_RTL == ((_flags) & NS_MATHML_RTL))
 
 #define NS_MATHML_HAS_ERROR(_flags) \
   (NS_MATHML_ERROR == ((_flags) & NS_MATHML_ERROR))

@@ -41,6 +41,8 @@
 
 
 
+#include "mozilla/Attributes.h"
+
 #ifdef MOZ_LOGGING
 #define FORCE_PR_LOG
 #endif
@@ -319,8 +321,8 @@ private:
     char*      mBuf;
 
     
-    JSCLContextHelper(const JSCLContextHelper &); 
-    const JSCLContextHelper& operator=(const JSCLContextHelper &); 
+    JSCLContextHelper(const JSCLContextHelper &) MOZ_DELETE;
+    const JSCLContextHelper& operator=(const JSCLContextHelper &) MOZ_DELETE;
 };
 
 
@@ -334,9 +336,9 @@ public:
 private:
     JSContext* mContext;
     JSErrorReporter mOldReporter;
-    
-    JSCLAutoErrorReporterSetter(const JSCLAutoErrorReporterSetter &); 
-    const JSCLAutoErrorReporterSetter& operator=(const JSCLAutoErrorReporterSetter &); 
+
+    JSCLAutoErrorReporterSetter(const JSCLAutoErrorReporterSetter &) MOZ_DELETE;
+    const JSCLAutoErrorReporterSetter& operator=(const JSCLAutoErrorReporterSetter &) MOZ_DELETE;
 };
 
 static nsresult

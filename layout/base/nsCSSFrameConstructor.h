@@ -43,6 +43,8 @@
 #ifndef nsCSSFrameConstructor_h___
 #define nsCSSFrameConstructor_h___
 
+#include "mozilla/Attributes.h"
+
 #include "nsCOMPtr.h"
 #include "nsILayoutHistoryState.h"
 #include "nsIXBLService.h"
@@ -102,10 +104,9 @@ public:
                                   nsIAtom*       aTag,  
                                   nsXPIDLString& aAltText);
 
-private: 
-  
-  nsCSSFrameConstructor(const nsCSSFrameConstructor& aCopy); 
-  nsCSSFrameConstructor& operator=(const nsCSSFrameConstructor& aCopy); 
+private:
+  nsCSSFrameConstructor(const nsCSSFrameConstructor& aCopy) MOZ_DELETE;
+  nsCSSFrameConstructor& operator=(const nsCSSFrameConstructor& aCopy) MOZ_DELETE;
 
 public:
   
@@ -1201,6 +1202,8 @@ private:
     FindInputData(Element* aElement, nsStyleContext* aStyleContext);
   static const FrameConstructionData*
     FindObjectData(Element* aElement, nsStyleContext* aStyleContext);
+  static const FrameConstructionData*
+    FindCanvasData(Element* aElement, nsStyleContext* aStyleContext);
 
   
 

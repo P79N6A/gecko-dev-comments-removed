@@ -40,94 +40,9 @@
 #ifndef mozilla_Util_h_
 #define mozilla_Util_h_
 
+#include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Types.h"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-MOZ_BEGIN_EXTERN_C
-
-extern MFBT_API(void)
-JS_Assert(const char *s, const char *file, int ln);
-
-MOZ_END_EXTERN_C
-
-
-
-
-
-
-#ifdef DEBUG
-#  define MOZ_ASSERT(expr_)                                      \
-     ((expr_) ? (void)0 : JS_Assert(#expr_, __FILE__, __LINE__))
-#else
-#  define MOZ_ASSERT(expr_) ((void)0)
-#endif  
-
-
-
-
-
-
-
-#ifndef MOZ_INLINE
-#  if defined __cplusplus
-#    define MOZ_INLINE          inline
-#  elif defined _MSC_VER
-#    define MOZ_INLINE          __inline
-#  elif defined __GNUC__
-#    define MOZ_INLINE          __inline__
-#  else
-#    define MOZ_INLINE          inline
-#  endif
-#endif
-
-
-
-
-
-
-
-
-#ifndef MOZ_ALWAYS_INLINE
-#  if defined DEBUG
-#    define MOZ_ALWAYS_INLINE   MOZ_INLINE
-#  elif defined _MSC_VER
-#    define MOZ_ALWAYS_INLINE   __forceinline
-#  elif defined __GNUC__
-#    define MOZ_ALWAYS_INLINE   __attribute__((always_inline)) MOZ_INLINE
-#  else
-#    define MOZ_ALWAYS_INLINE   MOZ_INLINE
-#  endif
-#endif
-
-
-
-
-
-
-
-#ifndef MOZ_NEVER_INLINE
-#  if defined _MSC_VER
-#    define MOZ_NEVER_INLINE __declspec(noinline)
-#  elif defined __GNUC__
-#    define MOZ_NEVER_INLINE __attribute__((noinline))
-#  else
-#    define MOZ_NEVER_INLINE
-#  endif
-#endif
 
 #ifdef __cplusplus
 

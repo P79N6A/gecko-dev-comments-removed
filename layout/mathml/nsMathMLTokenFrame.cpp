@@ -37,6 +37,7 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsFrame.h"
 #include "nsPresContext.h"
@@ -63,6 +64,11 @@ nsMathMLTokenFrame::InheritAutomaticData(nsIFrame* aParent)
 {
   
   nsMathMLContainerFrame::InheritAutomaticData(aParent);
+
+  if (mContent->Tag() != nsGkAtoms::mspace_) {
+    
+    nsMathMLFrame::FindAttrDirectionality(mContent, mPresentationData);
+  }
 
   ProcessTextData();
 

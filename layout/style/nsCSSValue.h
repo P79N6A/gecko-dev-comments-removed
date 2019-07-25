@@ -1,44 +1,46 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is mozilla.org code.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
 
-/* representation of simple property values within CSS declarations */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifndef nsCSSValue_h___
 #define nsCSSValue_h___
+
+#include "mozilla/Attributes.h"
 
 #include "nsCOMPtr.h"
 #include "nsCRTGlue.h"
@@ -57,7 +59,7 @@ class nsIPrincipal;
 class nsPresContext;
 class nsIURI;
 
-// Deletes a linked list iteratively to avoid blowing up the stack (bug 456196).
+
 #define NS_CSS_DELETE_LIST_MEMBER(type_, ptr_, member_)                        \
   {                                                                            \
     type_ *cur = (ptr_)->member_;                                              \
@@ -70,9 +72,9 @@ class nsIURI;
     }                                                                          \
   }
 
-// Clones a linked list iteratively to avoid blowing up the stack.
-// If it fails to clone the entire list then 'to_' is deleted and
-// we return null.
+
+
+
 #define NS_CSS_CLONE_LIST_MEMBER(type_, from_, member_, to_, args_)            \
   {                                                                            \
     type_ *dest = (to_);                                                       \
@@ -89,106 +91,106 @@ class nsIURI;
   }
 
 enum nsCSSUnit {
-  eCSSUnit_Null         = 0,      // (n/a) null unit, value is not specified
-  eCSSUnit_Auto         = 1,      // (n/a) value is algorithmic
-  eCSSUnit_Inherit      = 2,      // (n/a) value is inherited
-  eCSSUnit_Initial      = 3,      // (n/a) value is default UA value
-  eCSSUnit_None         = 4,      // (n/a) value is none
-  eCSSUnit_Normal       = 5,      // (n/a) value is normal (algorithmic, different than auto)
-  eCSSUnit_System_Font  = 6,      // (n/a) value is -moz-use-system-font
-  eCSSUnit_All          = 7,      // (n/a) value is all
-  eCSSUnit_Dummy        = 8,      // (n/a) a fake but specified value, used
-                                  //       only in temporary values
-  eCSSUnit_DummyInherit = 9,      // (n/a) a fake but specified value, used
-                                  //       only in temporary values
+  eCSSUnit_Null         = 0,      
+  eCSSUnit_Auto         = 1,      
+  eCSSUnit_Inherit      = 2,      
+  eCSSUnit_Initial      = 3,      
+  eCSSUnit_None         = 4,      
+  eCSSUnit_Normal       = 5,      
+  eCSSUnit_System_Font  = 6,      
+  eCSSUnit_All          = 7,      
+  eCSSUnit_Dummy        = 8,      
+                                  
+  eCSSUnit_DummyInherit = 9,      
+                                  
 
-  eCSSUnit_String       = 11,     // (PRUnichar*) a string value
-  eCSSUnit_Ident        = 12,     // (PRUnichar*) a string value
-  eCSSUnit_Families     = 13,     // (PRUnichar*) a string value
-  eCSSUnit_Attr         = 14,     // (PRUnichar*) a attr(string) value
-  eCSSUnit_Local_Font   = 15,     // (PRUnichar*) a local font name
-  eCSSUnit_Font_Format  = 16,     // (PRUnichar*) a font format name
-  eCSSUnit_Element      = 17,     // (PRUnichar*) an element id
+  eCSSUnit_String       = 11,     
+  eCSSUnit_Ident        = 12,     
+  eCSSUnit_Families     = 13,     
+  eCSSUnit_Attr         = 14,     
+  eCSSUnit_Local_Font   = 15,     
+  eCSSUnit_Font_Format  = 16,     
+  eCSSUnit_Element      = 17,     
 
-  eCSSUnit_Array        = 20,     // (nsCSSValue::Array*) a list of values
-  eCSSUnit_Counter      = 21,     // (nsCSSValue::Array*) a counter(string,[string]) value
-  eCSSUnit_Counters     = 22,     // (nsCSSValue::Array*) a counters(string,string[,string]) value
-  eCSSUnit_Cubic_Bezier = 23,     // (nsCSSValue::Array*) a list of float values
-  eCSSUnit_Steps        = 24,     // (nsCSSValue::Array*) a list of (integer, enumerated)
-  eCSSUnit_Function     = 25,     // (nsCSSValue::Array*) a function with
-                                  //  parameters.  First elem of array is name,
-                                  //  the rest of the values are arguments.
+  eCSSUnit_Array        = 20,     
+  eCSSUnit_Counter      = 21,     
+  eCSSUnit_Counters     = 22,     
+  eCSSUnit_Cubic_Bezier = 23,     
+  eCSSUnit_Steps        = 24,     
+  eCSSUnit_Function     = 25,     
+                                  
+                                  
 
-  // The top level of a calc() expression is eCSSUnit_Calc.  All
-  // remaining eCSSUnit_Calc_* units only occur inside these toplevel
-  // calc values.
+  
+  
+  
 
-  // eCSSUnit_Calc has an array with exactly 1 element.  eCSSUnit_Calc
-  // exists so we can distinguish calc(2em) from 2em as specified values
-  // (but we drop this distinction for nsStyleCoord when we store
-  // computed values).
-  eCSSUnit_Calc         = 30,     // (nsCSSValue::Array*) calc() value
-  // Plus, Minus, Times_* and Divided have arrays with exactly 2
-  // elements.  a + b + c + d is grouped as ((a + b) + c) + d
-  eCSSUnit_Calc_Plus    = 31,     // (nsCSSValue::Array*) + node within calc()
-  eCSSUnit_Calc_Minus   = 32,     // (nsCSSValue::Array*) - within calc
-  eCSSUnit_Calc_Times_L = 33,     // (nsCSSValue::Array*) num * val within calc
-  eCSSUnit_Calc_Times_R = 34,     // (nsCSSValue::Array*) val * num within calc
-  eCSSUnit_Calc_Divided = 35,     // (nsCSSValue::Array*) / within calc
+  
+  
+  
+  
+  eCSSUnit_Calc         = 30,     
+  
+  
+  eCSSUnit_Calc_Plus    = 31,     
+  eCSSUnit_Calc_Minus   = 32,     
+  eCSSUnit_Calc_Times_L = 33,     
+  eCSSUnit_Calc_Times_R = 34,     
+  eCSSUnit_Calc_Divided = 35,     
 
-  eCSSUnit_URL          = 40,     // (nsCSSValue::URL*) value
-  eCSSUnit_Image        = 41,     // (nsCSSValue::Image*) value
-  eCSSUnit_Gradient     = 42,     // (nsCSSValueGradient*) value
+  eCSSUnit_URL          = 40,     
+  eCSSUnit_Image        = 41,     
+  eCSSUnit_Gradient     = 42,     
 
-  eCSSUnit_Pair         = 50,     // (nsCSSValuePair*) pair of values
-  eCSSUnit_Triplet      = 51,     // (nsCSSValueTriplet*) triplet of values
-  eCSSUnit_Rect         = 52,     // (nsCSSRect*) rectangle (four values)
-  eCSSUnit_List         = 53,     // (nsCSSValueList*) list of values
-  eCSSUnit_ListDep      = 54,     // (nsCSSValueList*) same as List
-                                  //   but does not own the list
-  eCSSUnit_PairList     = 55,     // (nsCSSValuePairList*) list of value pairs
-  eCSSUnit_PairListDep  = 56,     // (nsCSSValuePairList*) same as PairList
-                                  //   but does not own the list
+  eCSSUnit_Pair         = 50,     
+  eCSSUnit_Triplet      = 51,     
+  eCSSUnit_Rect         = 52,     
+  eCSSUnit_List         = 53,     
+  eCSSUnit_ListDep      = 54,     
+                                  
+  eCSSUnit_PairList     = 55,     
+  eCSSUnit_PairListDep  = 56,     
+                                  
 
-  eCSSUnit_Integer      = 70,     // (int) simple value
-  eCSSUnit_Enumerated   = 71,     // (int) value has enumerated meaning
+  eCSSUnit_Integer      = 70,     
+  eCSSUnit_Enumerated   = 71,     
 
-  eCSSUnit_EnumColor    = 80,     // (int) enumerated color (kColorKTable)
-  eCSSUnit_Color        = 81,     // (nscolor) an RGBA value
+  eCSSUnit_EnumColor    = 80,     
+  eCSSUnit_Color        = 81,     
 
-  eCSSUnit_Percent      = 90,     // (float) 1.0 == 100%) value is percentage of something
-  eCSSUnit_Number       = 91,     // (float) value is numeric (usually multiplier, different behavior that percent)
+  eCSSUnit_Percent      = 90,     
+  eCSSUnit_Number       = 91,     
 
-  // Physical length units
-  eCSSUnit_PhysicalMillimeter = 200,   // (float) 1/25.4 inch
+  
+  eCSSUnit_PhysicalMillimeter = 200,   
 
-  // Length units - relative
-  // Font relative measure
-  eCSSUnit_EM           = 800,    // (float) == current font size
-  eCSSUnit_XHeight      = 801,    // (float) distance from top of lower case x to baseline
-  eCSSUnit_Char         = 802,    // (float) number of characters, used for width with monospace font
-  eCSSUnit_RootEM       = 803,    // (float) == root element font size
+  
+  
+  eCSSUnit_EM           = 800,    
+  eCSSUnit_XHeight      = 801,    
+  eCSSUnit_Char         = 802,    
+  eCSSUnit_RootEM       = 803,    
 
-  // Screen relative measure
-  eCSSUnit_Point        = 900,    // (float) 4/3 of a CSS pixel
-  eCSSUnit_Inch         = 901,    // (float) 96 CSS pixels
-  eCSSUnit_Millimeter   = 902,    // (float) 96/25.4 CSS pixels
-  eCSSUnit_Centimeter   = 903,    // (float) 96/2.54 CSS pixels
-  eCSSUnit_Pica         = 904,    // (float) 12 points == 16 CSS pixls
-  eCSSUnit_Pixel        = 905,    // (float) CSS pixel unit
+  
+  eCSSUnit_Point        = 900,    
+  eCSSUnit_Inch         = 901,    
+  eCSSUnit_Millimeter   = 902,    
+  eCSSUnit_Centimeter   = 903,    
+  eCSSUnit_Pica         = 904,    
+  eCSSUnit_Pixel        = 905,    
 
-  // Angular units
-  eCSSUnit_Degree       = 1000,    // (float) 360 per circle
-  eCSSUnit_Grad         = 1001,    // (float) 400 per circle
-  eCSSUnit_Radian       = 1002,    // (float) 2*pi per circle
+  
+  eCSSUnit_Degree       = 1000,    
+  eCSSUnit_Grad         = 1001,    
+  eCSSUnit_Radian       = 1002,    
 
-  // Frequency units
-  eCSSUnit_Hertz        = 2000,    // (float) 1/seconds
-  eCSSUnit_Kilohertz    = 2001,    // (float) 1000 Hertz
+  
+  eCSSUnit_Hertz        = 2000,    
+  eCSSUnit_Kilohertz    = 2001,    
 
-  // Time units
-  eCSSUnit_Seconds      = 3000,    // (float) Standard time
-  eCSSUnit_Milliseconds = 3001     // (float) 1/1000 second
+  
+  eCSSUnit_Seconds      = 3000,    
+  eCSSUnit_Milliseconds = 3001     
 };
 
 struct nsCSSValueGradient;
@@ -214,7 +216,7 @@ public:
   struct Image;
   friend struct Image;
 
-  // for valueless units only (null, auto, inherit, none, all, normal)
+  
   explicit nsCSSValue(nsCSSUnit aUnit = eCSSUnit_Null)
     : mUnit(aUnit)
   {
@@ -239,36 +241,36 @@ public:
     return !(*this == aOther);
   }
 
-  /**
-   * Serialize |this| as a specified value for |aProperty| and append
-   * it to |aResult|.
-   */
+  
+
+
+
   void AppendToString(nsCSSProperty aProperty, nsAString& aResult) const;
 
   nsCSSUnit GetUnit() const { return mUnit; }
   bool      IsLengthUnit() const
     { return eCSSUnit_PhysicalMillimeter <= mUnit && mUnit <= eCSSUnit_Pixel; }
-  /**
-   * A "fixed" length unit is one that means a specific physical length
-   * which we try to match based on the physical characteristics of an
-   * output device.
-   */
+  
+
+
+
+
   bool      IsFixedLengthUnit() const  
     { return mUnit == eCSSUnit_PhysicalMillimeter; }
-  /**
-   * What the spec calls relative length units is, for us, split
-   * between relative length units and pixel length units.
-   * 
-   * A "relative" length unit is a multiple of some derived metric,
-   * such as a font em-size, which itself was controlled by an input CSS
-   * length. Relative length units should not be scaled by zooming, since
-   * the underlying CSS length would already have been scaled.
-   */
+  
+
+
+
+
+
+
+
+
   bool      IsRelativeLengthUnit() const  
     { return eCSSUnit_EM <= mUnit && mUnit <= eCSSUnit_RootEM; }
-  /**
-   * A "pixel" length unit is a some multiple of CSS pixels.
-   */
+  
+
+
   bool      IsPixelLengthUnit() const
     { return eCSSUnit_Point <= mUnit && mUnit <= eCSSUnit_Pixel; }
   bool      IsAngularUnit() const  
@@ -313,7 +315,7 @@ public:
     return mValue.mFloat;
   }
 
-  // Converts any angle to radians.
+  
   double GetAngleValueInRadians() const;
 
   nsAString& GetStringValue(nsAString& aBuffer) const
@@ -359,7 +361,7 @@ public:
     return mValue.mGradient;
   }
 
-  // bodies of these are below
+  
   inline nsCSSValuePair& GetPairValue();
   inline const nsCSSValuePair& GetPairValue() const;
 
@@ -377,8 +379,8 @@ public:
 
   URL* GetURLStructValue() const
   {
-    // Not allowing this for Image values, because if the caller takes
-    // a ref to them they won't be able to delete them properly.
+    
+    
     NS_ABORT_IF_FALSE(mUnit == eCSSUnit_URL, "not a URL value");
     return mValue.mURL;
   }
@@ -392,15 +394,15 @@ public:
                             mValue.mImage->mString);
   }
 
-  // Not making this inline because that would force us to include
-  // imgIRequest.h, which leads to REQUIRES hell, since this header is included
-  // all over.
+  
+  
+  
   imgIRequest* GetImageValue() const;
 
   nscoord GetFixedLength(nsPresContext* aPresContext) const;
   nscoord GetPixelLength() const;
 
-  void Reset()  // sets to null
+  void Reset()  
   {
     if (mUnit != eCSSUnit_Null)
       DoReset();
@@ -434,36 +436,36 @@ public:
   void SetDummyValue();
   void SetDummyInheritValue();
 
-  // These are a little different - they allocate storage for you and
-  // return a handle.
+  
+  
   nsCSSRect& SetRectValue();
   nsCSSValueList* SetListValue();
   nsCSSValuePairList* SetPairListValue();
 
-  void StartImageLoad(nsIDocument* aDocument) const;  // Only pretend const
+  void StartImageLoad(nsIDocument* aDocument) const;  
 
-  // Initializes as a function value with the specified function id.
+  
   Array* InitFunction(nsCSSKeyword aFunctionId, PRUint32 aNumArgs);
-  // Checks if this is a function value with the specified function id.
+  
   bool EqualsFunction(nsCSSKeyword aFunctionId) const;
 
-  // Returns an already addrefed buffer.  Can return null on allocation
-  // failure.
+  
+  
   static already_AddRefed<nsStringBuffer>
     BufferFromString(const nsString& aValue);
 
   struct URL {
-    // Methods are not inline because using an nsIPrincipal means requiring
-    // caps, which leads to REQUIRES hell, since this header is included all
-    // over.
+    
+    
+    
 
-    // For both constructors aString must not be null.
-    // For both constructors aOriginPrincipal must not be null.
-    // Construct with a base URI; this will create the actual URI lazily from
-    // aString and aBaseURI.
+    
+    
+    
+    
     URL(nsStringBuffer* aString, nsIURI* aBaseURI, nsIURI* aReferrer,
         nsIPrincipal* aOriginPrincipal);
-    // Construct with the actual URI.
+    
     URL(nsIURI* aURI, nsStringBuffer* aString, nsIURI* aReferrer,
         nsIPrincipal* aOriginPrincipal);
 
@@ -471,22 +473,22 @@ public:
 
     bool operator==(const URL& aOther) const;
 
-    // URIEquals only compares URIs and principals (unlike operator==, which
-    // also compares the original strings).  URIEquals also assumes that the
-    // mURI member of both URL objects is non-null.  Do NOT call this method
-    // unless you're sure this is the case.
+    
+    
+    
+    
     bool URIEquals(const URL& aOther) const;
 
     nsIURI* GetURI() const;
 
   private:
-    // If mURIResolved is false, mURI stores the base URI.
-    // If mURIResolved is true, mURI stores the URI we resolve to; this may be
-    // null if the URI is invalid.
+    
+    
+    
     mutable nsCOMPtr<nsIURI> mURI;
   public:
-    nsStringBuffer* mString; // Could use nsRefPtr, but it'd add useless
-                             // null-checks; this is never null.
+    nsStringBuffer* mString; 
+                             
     nsCOMPtr<nsIURI> mReferrer;
     nsCOMPtr<nsIPrincipal> mOriginPrincipal;
 
@@ -495,26 +497,25 @@ public:
   private:
     mutable bool mURIResolved;
 
-    // not to be implemented
-    URL(const URL& aOther);
-    URL& operator=(const URL& aOther);
+    URL(const URL& aOther) MOZ_DELETE;
+    URL& operator=(const URL& aOther) MOZ_DELETE;
   };
 
   struct Image : public URL {
-    // Not making the constructor and destructor inline because that would
-    // force us to include imgIRequest.h, which leads to REQUIRES hell, since
-    // this header is included all over.
-    // aString must not be null.
+    
+    
+    
+    
     Image(nsIURI* aURI, nsStringBuffer* aString, nsIURI* aReferrer,
           nsIPrincipal* aOriginPrincipal, nsIDocument* aDocument);
     ~Image();
 
-    // Inherit operator== from nsCSSValue::URL
+    
 
-    nsCOMPtr<imgIRequest> mRequest; // null == image load blocked or somehow failed
+    nsCOMPtr<imgIRequest> mRequest; 
 
-    // Override AddRef and Release to not only log ourselves correctly, but
-    // also so that we delete correctly without a virtual destructor
+    
+    
     NS_INLINE_DECL_REFCOUNTING(nsCSSValue::Image)
   };
 
@@ -528,8 +529,8 @@ protected:
   union {
     PRInt32    mInt;
     float      mFloat;
-    // Note: the capacity of the buffer may exceed the length of the string.
-    // If we're of a string type, mString is not null.
+    
+    
     nsStringBuffer* mString;
     nscolor    mColor;
     Array*     mArray;
@@ -548,7 +549,7 @@ protected:
 
 struct nsCSSValue::Array {
 
-  // return |Array| with reference count of zero
+  
   static Array* Create(size_t aItemCount) {
     return new (aItemCount) Array(aItemCount);
   }
@@ -578,10 +579,10 @@ struct nsCSSValue::Array {
     return true;
   }
 
-  // XXXdholbert This uses a size_t ref count. Should we use a variant
-  // of NS_INLINE_DECL_REFCOUNTING that takes a type as an argument?
+  
+  
   void AddRef() {
-    if (mRefCnt == size_t(-1)) { // really want SIZE_MAX
+    if (mRefCnt == size_t(-1)) { 
       NS_WARNING("refcount overflow, leaking nsCSSValue::Array");
       return;
     }
@@ -589,7 +590,7 @@ struct nsCSSValue::Array {
     NS_LOG_ADDREF(this, mRefCnt, "nsCSSValue::Array", sizeof(*this));
   }
   void Release() {
-    if (mRefCnt == size_t(-1)) { // really want SIZE_MAX
+    if (mRefCnt == size_t(-1)) { 
       NS_WARNING("refcount overflow, leaking nsCSSValue::Array");
       return;
     }
@@ -603,9 +604,9 @@ private:
 
   size_t mRefCnt;
   const size_t mCount;
-  // This must be the last sub-object, since we extend this array to
-  // be of size mCount; it needs to be a sub-object so it gets proper
-  // alignment.
+  
+  
+  
   nsCSSValue mArray[1];
 
   void* operator new(size_t aSelfSize, size_t aItemCount) CPP_THROW_NEW {
@@ -644,18 +645,17 @@ private:
 #undef CSSVALUE_LIST_FOR_EXTRA_VALUES
 
 private:
-  // not to be implemented
-  Array(const Array& aOther);
-  Array& operator=(const Array& aOther);
+  Array(const Array& aOther) MOZ_DELETE;
+  Array& operator=(const Array& aOther) MOZ_DELETE;
 };
 
-// Prefer nsCSSValue::Array for lists of fixed size.
+
 struct nsCSSValueList {
   nsCSSValueList() : mNext(nsnull) { MOZ_COUNT_CTOR(nsCSSValueList); }
   ~nsCSSValueList();
 
-  nsCSSValueList* Clone() const;  // makes a deep copy
-  void CloneInto(nsCSSValueList* aList) const; // makes a deep copy into aList
+  nsCSSValueList* Clone() const;  
+  void CloneInto(nsCSSValueList* aList) const; 
   void AppendToString(nsCSSProperty aProperty, nsAString& aResult) const;
 
   bool operator==(nsCSSValueList const& aOther) const;
@@ -666,22 +666,22 @@ struct nsCSSValueList {
   nsCSSValueList* mNext;
 
 private:
-  nsCSSValueList(const nsCSSValueList& aCopy) // makes a shallow copy
+  nsCSSValueList(const nsCSSValueList& aCopy) 
     : mValue(aCopy.mValue), mNext(nsnull)
   {
     MOZ_COUNT_CTOR(nsCSSValueList);
   }
 };
 
-// nsCSSValueList_heap differs from nsCSSValueList only in being
-// refcounted.  It should not be necessary to use this class directly;
-// it's an implementation detail of nsCSSValue.
+
+
+
 struct nsCSSValueList_heap : public nsCSSValueList {
   NS_INLINE_DECL_REFCOUNTING(nsCSSValueList_heap)
 };
 
-// This has to be here so that the relationship between nsCSSValueList
-// and nsCSSValueList_heap is visible.
+
+
 inline nsCSSValueList*
 nsCSSValue::GetListValue()
 {
@@ -751,15 +751,15 @@ struct nsCSSRect {
   static const side_type sides[4];
 };
 
-// nsCSSRect_heap differs from nsCSSRect only in being
-// refcounted.  It should not be necessary to use this class directly;
-// it's an implementation detail of nsCSSValue.
+
+
+
 struct nsCSSRect_heap : public nsCSSRect {
   NS_INLINE_DECL_REFCOUNTING(nsCSSRect_heap)
 };
 
-// This has to be here so that the relationship between nsCSSRect
-// and nsCSSRect_heap is visible.
+
+
 inline nsCSSRect&
 nsCSSValue::GetRectValue()
 {
@@ -830,11 +830,11 @@ struct nsCSSValuePair {
   nsCSSValue mYValue;
 };
 
-// nsCSSValuePair_heap differs from nsCSSValuePair only in being
-// refcounted.  It should not be necessary to use this class directly;
-// it's an implementation detail of nsCSSValue.
+
+
+
 struct nsCSSValuePair_heap : public nsCSSValuePair {
-    // forward constructor
+    
     nsCSSValuePair_heap(const nsCSSValue& aXValue, const nsCSSValue& aYValue)
         : nsCSSValuePair(aXValue, aYValue)
     {}
@@ -906,11 +906,11 @@ struct nsCSSValueTriplet {
     nsCSSValue mZValue;
 };
 
-// nsCSSValueTriplet_heap differs from nsCSSValueTriplet only in being
-// refcounted.  It should not be necessary to use this class directly;
-// it's an implementation detail of nsCSSValue.
+
+
+
 struct nsCSSValueTriplet_heap : public nsCSSValueTriplet {
-  // forward constructor
+  
   nsCSSValueTriplet_heap(const nsCSSValue& aXValue, const nsCSSValue& aYValue, const nsCSSValue& aZValue)
     : nsCSSValueTriplet(aXValue, aYValue, aZValue)
   {}
@@ -918,8 +918,8 @@ struct nsCSSValueTriplet_heap : public nsCSSValueTriplet {
   NS_INLINE_DECL_REFCOUNTING(nsCSSValueTriplet_heap)
 };
 
-// This has to be here so that the relationship between nsCSSValuePair
-// and nsCSSValuePair_heap is visible.
+
+
 inline nsCSSValuePair&
 nsCSSValue::GetPairValue()
 {
@@ -948,12 +948,12 @@ nsCSSValue::GetTripletValue() const
     return *mValue.mTriplet;
 }
 
-// Maybe should be replaced with nsCSSValueList and nsCSSValue::Array?
+
 struct nsCSSValuePairList {
   nsCSSValuePairList() : mNext(nsnull) { MOZ_COUNT_CTOR(nsCSSValuePairList); }
   ~nsCSSValuePairList();
 
-  nsCSSValuePairList* Clone() const; // makes a deep copy
+  nsCSSValuePairList* Clone() const; 
   void AppendToString(nsCSSProperty aProperty, nsAString& aResult) const;
 
   bool operator==(const nsCSSValuePairList& aOther) const;
@@ -965,22 +965,22 @@ struct nsCSSValuePairList {
   nsCSSValuePairList* mNext;
 
 private:
-  nsCSSValuePairList(const nsCSSValuePairList& aCopy) // makes a shallow copy
+  nsCSSValuePairList(const nsCSSValuePairList& aCopy) 
     : mXValue(aCopy.mXValue), mYValue(aCopy.mYValue), mNext(nsnull)
   {
     MOZ_COUNT_CTOR(nsCSSValuePairList);
   }
 };
 
-// nsCSSValuePairList_heap differs from nsCSSValuePairList only in being
-// refcounted.  It should not be necessary to use this class directly;
-// it's an implementation detail of nsCSSValue.
+
+
+
 struct nsCSSValuePairList_heap : public nsCSSValuePairList {
   NS_INLINE_DECL_REFCOUNTING(nsCSSValuePairList_heap)
 };
 
-// This has to be here so that the relationship between nsCSSValuePairList
-// and nsCSSValuePairList_heap is visible.
+
+
 inline nsCSSValuePairList*
 nsCSSValue::GetPairListValue()
 {
@@ -1006,8 +1006,8 @@ nsCSSValue::GetPairListValue() const
 struct nsCSSValueGradientStop {
 public:
   nsCSSValueGradientStop();
-  // needed to keep bloat logs happy when we use the TArray
-  // in nsCSSValueGradient
+  
+  
   nsCSSValueGradientStop(const nsCSSValueGradientStop& aOther);
   ~nsCSSValueGradientStop();
 
@@ -1029,15 +1029,15 @@ public:
 struct nsCSSValueGradient {
   nsCSSValueGradient(bool aIsRadial, bool aIsRepeating);
 
-  // true if gradient is radial, false if it is linear
+  
   bool mIsRadial;
   bool mIsRepeating;
   bool mIsToCorner;
-  // line position and angle
+  
   nsCSSValuePair mBgPos;
   nsCSSValue mAngle;
 
-  // Only meaningful if mIsRadial is true
+  
   nsCSSValue mRadialShape;
   nsCSSValue mRadialSize;
 
@@ -1073,9 +1073,8 @@ struct nsCSSValueGradient {
   NS_INLINE_DECL_REFCOUNTING(nsCSSValueGradient)
 
 private:
-  // not to be implemented
-  nsCSSValueGradient(const nsCSSValueGradient& aOther);
-  nsCSSValueGradient& operator=(const nsCSSValueGradient& aOther);
+  nsCSSValueGradient(const nsCSSValueGradient& aOther) MOZ_DELETE;
+  nsCSSValueGradient& operator=(const nsCSSValueGradient& aOther) MOZ_DELETE;
 };
 
 struct nsCSSCornerSizes {
@@ -1083,7 +1082,7 @@ struct nsCSSCornerSizes {
   nsCSSCornerSizes(const nsCSSCornerSizes& aCopy);
   ~nsCSSCornerSizes();
 
-  // argument is a "full corner" constant from nsStyleConsts.h
+  
   nsCSSValue const & GetCorner(PRUint32 aCorner) const {
     return this->*corners[aCorner];
   }
@@ -1127,5 +1126,5 @@ protected:
   static const corner_type corners[4];
 };
 
-#endif /* nsCSSValue_h___ */
+#endif 
 

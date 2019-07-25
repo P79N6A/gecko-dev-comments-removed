@@ -120,7 +120,7 @@ public:
   nsString mScriptText;              
   PRUint32 mJSVersion;
   nsCOMPtr<nsIURI> mURI;
-  nsCOMPtr<nsIURI> mFinalURI;
+  nsCOMPtr<nsIPrincipal> mOriginPrincipal;
   PRInt32 mLineNo;
 };
 
@@ -882,8 +882,6 @@ nsScriptLoader::EvaluateScript(nsScriptLoadRequest* aRequest,
     return NS_ERROR_FAILURE;
   }
 
-  nsIURI* uri = aRequest->mFinalURI ? aRequest->mFinalURI : aRequest->mURI;
-
   bool oldProcessingScriptTag = context->GetProcessingScriptTag();
   context->SetProcessingScriptTag(true);
 
@@ -891,14 +889,17 @@ nsScriptLoader::EvaluateScript(nsScriptLoadRequest* aRequest,
   nsCOMPtr<nsIScriptElement> oldCurrent = mCurrentScript;
   mCurrentScript = aRequest->mElement;
 
+  
+  
   nsCAutoString url;
-  nsContentUtils::GetWrapperSafeScriptFilename(mDocument, uri, url);
+  nsContentUtils::GetWrapperSafeScriptFilename(mDocument, aRequest->mURI, url);
 
   bool isUndefined;
   rv = context->EvaluateString(aScript, globalObject->GetGlobalJSObject(),
-                          mDocument->NodePrincipal(), url.get(),
-                          aRequest->mLineNo, aRequest->mJSVersion, nsnull,
-                          &isUndefined);
+                               mDocument->NodePrincipal(),
+                               aRequest->mOriginPrincipal,
+                               url.get(), aRequest->mLineNo,
+                               aRequest->mJSVersion, nsnull, &isUndefined);
 
   
   mCurrentScript = oldCurrent;
@@ -1213,7 +1214,10 @@ nsScriptLoader::PrepareLoadedRequest(nsScriptLoadRequest* aRequest,
   }
 
   nsCOMPtr<nsIChannel> channel = do_QueryInterface(req);
-  NS_GetFinalChannelURI(channel, getter_AddRefs(aRequest->mFinalURI));
+  rv = nsContentUtils::GetSecurityManager()->
+    GetChannelPrincipal(channel, getter_AddRefs(aRequest->mOriginPrincipal));
+  NS_ENSURE_SUCCESS(rv, rv);
+
   if (aStringLen) {
     
     nsAutoString hintCharset;

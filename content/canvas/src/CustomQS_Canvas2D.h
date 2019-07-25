@@ -1,42 +1,42 @@
-/* -*- Mode: C++; tab-width: 40; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Gecko code.
- *
- * The Initial Developer of the Original Code is
- * the Mozilla Foundation.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Vladimir Vukicevic <vladimir@pobox.com> (original author)
- *   Ms2ger <ms2ger@gmail.com>
- *   Yury <async.processingjs@yahoo.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsDOMError.h"
 #include "nsIDOMCanvasRenderingContext2D.h"
@@ -77,10 +77,7 @@ Canvas2D_SetStyleHelper(JSContext *cx, JSObject *obj, jsid id, jsval *vp,
             return JS_FALSE;
         }
 
-        nsString voidStr;
-        voidStr.SetIsVoid(true);
-
-        rv = (self->*setfunc)(voidStr, arg0);
+        rv = (self->*setfunc)(NullString(), arg0);
     }
 
     if (NS_FAILED(rv))
@@ -178,7 +175,7 @@ CreateImageData(JSContext* cx,
         return xpc_qsThrow(cx, NS_ERROR_DOM_INDEX_SIZE_ERR);
     }
 
-    // Create the fast typed array; it's initialized to 0 by default.
+    
     JSObject* darray =
       js_CreateTypedArray(cx, js::TypedArray::TYPE_UINT8_CLAMPED, len.value());
     js::AutoObjectRooter rd(cx, darray);
@@ -189,7 +186,7 @@ CreateImageData(JSContext* cx,
     if (self) {
         JSObject *tdest = js::TypedArray::getTypedArray(darray);
 
-        // make the call
+        
         nsresult rv =
             self->GetImageData_explicit(x, y, w, h,
                                         static_cast<PRUint8*>(JS_GetTypedArrayData(tdest)),
@@ -199,8 +196,8 @@ CreateImageData(JSContext* cx,
         }
     }
 
-    // Do JS_NewObject after CreateTypedArray, so that gc will get
-    // triggered here if necessary
+    
+    
     JSObject* result = JS_NewObject(cx, NULL, NULL, NULL);
     js::AutoObjectRooter rr(cx, result);
     if (!result) {
@@ -226,10 +223,10 @@ GetImageDataDimensions(JSContext *cx, JSObject *dataObject, uint32_t *width, uin
     jsval temp;
     int32_t wi, hi;
     
-    // Need to check that dataObject is ImageData object. That's hard for the moment 
-    // because they're just vanilla objects in our implementation.
-    // Let's guess, if the object has valid width and height then it's suitable
-    // for this operation.
+    
+    
+    
+    
     if (!JS_GetProperty(cx, dataObject, "width", &temp) ||
         !JS_ValueToECMAInt32(cx, temp, &wi))
         return false;
@@ -251,7 +248,7 @@ nsIDOMCanvasRenderingContext2D_CreateImageData(JSContext *cx, uintN argc, jsval 
 {
     XPC_QS_ASSERT_CONTEXT_OK(cx);
 
-    /* Note: this doesn't need JS_THIS_OBJECT */
+    
 
     if (argc < 1)
         return xpc_qsThrow(cx, NS_ERROR_XPC_NOT_ENOUGH_ARGS);
@@ -259,8 +256,8 @@ nsIDOMCanvasRenderingContext2D_CreateImageData(JSContext *cx, uintN argc, jsval 
     jsval *argv = JS_ARGV(cx, vp);
 
     if (argc == 1) {
-        // The specification asks to throw NOT_SUPPORTED if first argument is NULL,
-        // An object is expected, so throw an exception for all primitives.
+        
+        
         if (JSVAL_IS_PRIMITIVE(argv[0]))
             return xpc_qsThrow(cx, NS_ERROR_DOM_NOT_SUPPORTED_ERR);
 
@@ -331,8 +328,8 @@ nsIDOMCanvasRenderingContext2D_GetImageData(JSContext *cx, uintN argc, jsval *vp
     int32 wi = JS_DoubleToInt32(width);
     int32 hi = JS_DoubleToInt32(height);
 
-    // Handle negative width and height by flipping the rectangle over in the
-    // relevant direction.
+    
+    
     uint32 w, h;
     if (width < 0) {
         w = -wi;
@@ -389,14 +386,14 @@ nsIDOMCanvasRenderingContext2D_PutImageData(JSContext *cx, uintN argc, jsval *vp
     int32 x = JS_DoubleToInt32(xd);
     int32 y = JS_DoubleToInt32(yd);
 
-    // Grab width, height, and the dense array from the dataObject.
+    
     js::AutoValueRooter tv(cx);
 
     uint32_t w, h;
     if (!GetImageDataDimensions(cx, dataObject, &w, &h))
         return JS_FALSE;
 
-    // the optional dirty rect
+    
     bool hasDirtyRect = false;
     int32 dirtyX = 0,
           dirtyY = 0,
@@ -441,7 +438,7 @@ nsIDOMCanvasRenderingContext2D_PutImageData(JSContext *cx, uintN argc, jsval *vp
     {
         tsrc = js::TypedArray::getTypedArray(darray);
     } else if (JS_IsArrayObject(cx, darray) || js_IsTypedArray(darray)) {
-        // ugh, this isn't a uint8 typed array, someone made their own object; convert it to a typed array
+        
         JSObject *nobj = js_CreateTypedArrayWithArray(cx, js::TypedArray::TYPE_UINT8, darray);
         if (!nobj)
             return JS_FALSE;
@@ -449,11 +446,11 @@ nsIDOMCanvasRenderingContext2D_PutImageData(JSContext *cx, uintN argc, jsval *vp
         *tsrc_tvr.jsval_addr() = OBJECT_TO_JSVAL(nobj);
         tsrc = js::TypedArray::getTypedArray(nobj);
     } else {
-        // yeah, no.
+        
         return xpc_qsThrow(cx, NS_ERROR_DOM_TYPE_MISMATCH_ERR);
     }
 
-    // make the call
+    
     rv = self->PutImageData_explicit(x, y, w, h, static_cast<PRUint8*>(JS_GetTypedArrayData(tsrc)), JS_GetTypedArrayByteLength(tsrc), hasDirtyRect, dirtyX, dirtyY, dirtyWidth, dirtyHeight);
     if (NS_FAILED(rv))
         return xpc_qsThrowMethodFailed(cx, rv, vp);

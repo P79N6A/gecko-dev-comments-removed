@@ -81,12 +81,13 @@ enum {
   NS_MATHML_OPERATOR_MOVABLELIMITS      = 1<<9,
   NS_MATHML_OPERATOR_SYMMETRIC          = 1<<10,
   NS_MATHML_OPERATOR_INTEGRAL           = 1<<11,
+  NS_MATHML_OPERATOR_MIRRORABLE         = 1<<12,
 
   
-  NS_MATHML_OPERATOR_MINSIZE_ABSOLUTE   = 1<<12,
-  NS_MATHML_OPERATOR_MAXSIZE_ABSOLUTE   = 1<<13,
-  NS_MATHML_OPERATOR_LEFTSPACE_ATTR     = 1<<14,
-  NS_MATHML_OPERATOR_RIGHTSPACE_ATTR    = 1<<15
+  NS_MATHML_OPERATOR_MINSIZE_ABSOLUTE   = 1<<13,
+  NS_MATHML_OPERATOR_MAXSIZE_ABSOLUTE   = 1<<14,
+  NS_MATHML_OPERATOR_LSPACE_ATTR     = 1<<15,
+  NS_MATHML_OPERATOR_RSPACE_ATTR    = 1<<16
 };
 
 #define NS_MATHML_OPERATOR_SIZE_INFINITY NS_IEEEPositiveInfinity()
@@ -129,9 +130,10 @@ public:
   LookupOperator(const nsString&       aOperator,
                  const nsOperatorFlags aForm,
                  nsOperatorFlags*      aFlags,
-                 float*                aLeftSpace,
-                 float*                aRightSpace);
+                 float*                aLeadingSpace,
+                 float*                aTrailingSpace);
 
+   
    
    
    
@@ -141,13 +143,17 @@ public:
    static void
    LookupOperators(const nsString&       aOperator,
                    nsOperatorFlags*      aFlags,
-                   float*                aLeftSpace,
-                   float*                aRightSpace);
+                   float*                aLeadingSpace,
+                   float*                aTrailingSpace);
 
   
   
   static bool
   IsMutableOperator(const nsString& aOperator);
+
+  
+  static bool
+  IsMirrorableOperator(const nsString& aOperator);
 
   
   static nsStretchDirection GetStretchyDirection(const nsString& aOperator);
@@ -229,16 +235,19 @@ public:
 #define NS_MATHML_OPERATOR_IS_INTEGRAL(_flags) \
   (NS_MATHML_OPERATOR_INTEGRAL == ((_flags) & NS_MATHML_OPERATOR_INTEGRAL))
 
+#define NS_MATHML_OPERATOR_IS_MIRRORABLE(_flags) \
+  (NS_MATHML_OPERATOR_MIRRORABLE == ((_flags) & NS_MATHML_OPERATOR_MIRRORABLE))
+
 #define NS_MATHML_OPERATOR_MINSIZE_IS_ABSOLUTE(_flags) \
   (NS_MATHML_OPERATOR_MINSIZE_ABSOLUTE == ((_flags) & NS_MATHML_OPERATOR_MINSIZE_ABSOLUTE))
 
 #define NS_MATHML_OPERATOR_MAXSIZE_IS_ABSOLUTE(_flags) \
   (NS_MATHML_OPERATOR_MAXSIZE_ABSOLUTE == ((_flags) & NS_MATHML_OPERATOR_MAXSIZE_ABSOLUTE))
 
-#define NS_MATHML_OPERATOR_HAS_LEFTSPACE_ATTR(_flags) \
-  (NS_MATHML_OPERATOR_LEFTSPACE_ATTR == ((_flags) & NS_MATHML_OPERATOR_LEFTSPACE_ATTR))
+#define NS_MATHML_OPERATOR_HAS_LSPACE_ATTR(_flags) \
+  (NS_MATHML_OPERATOR_LSPACE_ATTR == ((_flags) & NS_MATHML_OPERATOR_LSPACE_ATTR))
 
-#define NS_MATHML_OPERATOR_HAS_RIGHTSPACE_ATTR(_flags) \
-  (NS_MATHML_OPERATOR_RIGHTSPACE_ATTR == ((_flags) & NS_MATHML_OPERATOR_RIGHTSPACE_ATTR))
+#define NS_MATHML_OPERATOR_HAS_RSPACE_ATTR(_flags) \
+  (NS_MATHML_OPERATOR_RSPACE_ATTR == ((_flags) & NS_MATHML_OPERATOR_RSPACE_ATTR))
 
 #endif 

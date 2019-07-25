@@ -133,10 +133,11 @@ nsMathMLmpaddedFrame::ProcessAttributes()
   }
 
   
-  mLeftSpaceSign = NS_MATHML_SIGN_INVALID;
+  mLeadingSpaceSign = NS_MATHML_SIGN_INVALID;
   GetAttribute(mContent, nsnull, nsGkAtoms::lspace_, value);
   if (!value.IsEmpty()) {
-    ParseAttribute(value, mLeftSpaceSign, mLeftSpace, mLeftSpacePseudoUnit);
+    ParseAttribute(value, mLeadingSpaceSign, mLeadingSpace,
+                   mLeadingSpacePseudoUnit);
   }
 
   
@@ -395,6 +396,11 @@ nsMathMLmpaddedFrame::Place(nsRenderingContext& aRenderingContext,
   
   
   
+  
+  
+  
+  
+  
   nscoord lspace = 0;
   
   
@@ -404,6 +410,7 @@ nsMathMLmpaddedFrame::Place(nsRenderingContext& aRenderingContext,
   nscoord voffset = 0;
 
   PRInt32 pseudoUnit;
+  nscoord initialWidth = width;
 
   
   pseudoUnit = (mWidthPseudoUnit == NS_MATHML_PSEUDO_UNIT_ITSELF)
@@ -427,9 +434,9 @@ nsMathMLmpaddedFrame::Place(nsRenderingContext& aRenderingContext,
   depth = NS_MAX(0, depth);
 
   
-  if (mLeftSpacePseudoUnit != NS_MATHML_PSEUDO_UNIT_ITSELF) {
-    pseudoUnit = mLeftSpacePseudoUnit;
-    UpdateValue(mLeftSpaceSign, pseudoUnit, mLeftSpace,
+  if (mLeadingSpacePseudoUnit != NS_MATHML_PSEUDO_UNIT_ITSELF) {
+    pseudoUnit = mLeadingSpacePseudoUnit;
+    UpdateValue(mLeadingSpaceSign, pseudoUnit, mLeadingSpace,
                 mBoundingMetrics, lspace);
   }
 
@@ -445,20 +452,25 @@ nsMathMLmpaddedFrame::Place(nsRenderingContext& aRenderingContext,
   
   
 
-  if (mLeftSpaceSign != NS_MATHML_SIGN_INVALID) { 
+  if ((NS_MATHML_IS_RTL(mPresentationData.flags) ?
+       mWidthSign : mLeadingSpaceSign) != NS_MATHML_SIGN_INVALID) {
+    
     
     mBoundingMetrics.leftBearing = 0;
   }
 
-  if (mWidthSign != NS_MATHML_SIGN_INVALID) { 
+  if ((NS_MATHML_IS_RTL(mPresentationData.flags) ?
+       mLeadingSpaceSign : mWidthSign) != NS_MATHML_SIGN_INVALID) {
+    
     
     mBoundingMetrics.width = width;
     mBoundingMetrics.rightBearing = mBoundingMetrics.width;
   }
 
   nscoord dy = height - mBoundingMetrics.ascent;
-  nscoord dx = lspace;
-
+  nscoord dx = NS_MATHML_IS_RTL(mPresentationData.flags) ?
+    width - initialWidth - lspace : lspace;
+    
   aDesiredSize.ascent += dy;
   aDesiredSize.width = mBoundingMetrics.width;
   aDesiredSize.height += dy + depth - mBoundingMetrics.descent;

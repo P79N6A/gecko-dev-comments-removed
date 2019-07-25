@@ -459,10 +459,9 @@ nsHttpConnection::CanReuse()
     
     
     
-    
 
     PRUint32 dataSize;
-    if (canReuse && mSocketIn && !mConnInfo->UsingSSL() && !mUsingSpdy &&
+    if (canReuse && mSocketIn && !mUsingSpdy &&
         NS_SUCCEEDED(mSocketIn->Available(&dataSize)) && dataSize) {
         LOG(("nsHttpConnection::CanReuse %p %s"
              "Socket not reusable because read data pending (%d) on it.\n",

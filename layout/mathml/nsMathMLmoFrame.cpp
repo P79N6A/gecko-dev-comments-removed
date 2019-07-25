@@ -266,8 +266,8 @@ nsMathMLmoFrame::ProcessOperatorData()
     
     mEmbellishData.flags = 0;
     mEmbellishData.coreFrame = nsnull;
-    mEmbellishData.leftSpace = 0;
-    mEmbellishData.rightSpace = 0;
+    mEmbellishData.leadingSpace = 0;
+    mEmbellishData.trailingSpace = 0;
     if (mMathMLChar.Length() != 1)
       mEmbellishData.direction = NS_STRETCH_DIRECTION_UNSUPPORTED;  
     
@@ -390,8 +390,8 @@ nsMathMLmoFrame::ProcessOperatorData()
       nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm));
       GetEmHeight(fm, em);
 
-      mEmbellishData.leftSpace = NSToCoordRound(lspace * em);
-      mEmbellishData.rightSpace = NSToCoordRound(rspace * em);
+      mEmbellishData.leadingSpace = NSToCoordRound(lspace * em);
+      mEmbellishData.trailingSpace = NSToCoordRound(rspace * em);
 
       
       
@@ -399,12 +399,12 @@ nsMathMLmoFrame::ProcessOperatorData()
       if (GetStyleFont()->mScriptLevel > 0) {
         if (NS_MATHML_OPERATOR_EMBELLISH_IS_ISOLATED(mFlags)) {
           
-          mEmbellishData.leftSpace = 0;
-          mEmbellishData.rightSpace  = 0;
+          mEmbellishData.leadingSpace = 0;
+          mEmbellishData.trailingSpace  = 0;
         }
         else if (!NS_MATHML_OPERATOR_HAS_EMBELLISH_ANCESTOR(mFlags)) {
-          mEmbellishData.leftSpace /= 2;
-          mEmbellishData.rightSpace  /= 2;
+          mEmbellishData.leadingSpace /= 2;
+          mEmbellishData.trailingSpace  /= 2;
         }
       }
     }
@@ -414,7 +414,7 @@ nsMathMLmoFrame::ProcessOperatorData()
   
 
   
-  nscoord leftSpace = mEmbellishData.leftSpace;
+  nscoord leadingSpace = mEmbellishData.leadingSpace;
   GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::lspace_,
                value);
   if (!value.IsEmpty()) {
@@ -423,15 +423,15 @@ nsMathMLmoFrame::ProcessOperatorData()
         ParseNamedSpaceValue(mPresentationData.mstyle, value, cssValue))
     {
       if ((eCSSUnit_Number == cssValue.GetUnit()) && !cssValue.GetFloatValue())
-        leftSpace = 0;
+        leadingSpace = 0;
       else if (cssValue.IsLengthUnit())
-        leftSpace = CalcLength(presContext, mStyleContext, cssValue);
-      mFlags |= NS_MATHML_OPERATOR_LEFTSPACE_ATTR;
+        leadingSpace = CalcLength(presContext, mStyleContext, cssValue);
+      mFlags |= NS_MATHML_OPERATOR_LSPACE_ATTR;
     }
   }
 
   
-  nscoord rightSpace = mEmbellishData.rightSpace;
+  nscoord trailingSpace = mEmbellishData.trailingSpace;
   GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::rspace_,
                value);
   if (!value.IsEmpty()) {
@@ -440,26 +440,26 @@ nsMathMLmoFrame::ProcessOperatorData()
         ParseNamedSpaceValue(mPresentationData.mstyle, value, cssValue))
     {
       if ((eCSSUnit_Number == cssValue.GetUnit()) && !cssValue.GetFloatValue())
-        rightSpace = 0;
+        trailingSpace = 0;
       else if (cssValue.IsLengthUnit())
-        rightSpace = CalcLength(presContext, mStyleContext, cssValue);
-      mFlags |= NS_MATHML_OPERATOR_RIGHTSPACE_ATTR;
+        trailingSpace = CalcLength(presContext, mStyleContext, cssValue);
+      mFlags |= NS_MATHML_OPERATOR_RSPACE_ATTR;
     }
   }
 
   
   
-  if (leftSpace || rightSpace) {
+  if (leadingSpace || trailingSpace) {
     nscoord onePixel = nsPresContext::CSSPixelsToAppUnits(1);
-    if (leftSpace && leftSpace < onePixel)
-      leftSpace = onePixel;
-    if (rightSpace && rightSpace < onePixel)
-      rightSpace = onePixel;
+    if (leadingSpace && leadingSpace < onePixel)
+      leadingSpace = onePixel;
+    if (trailingSpace && trailingSpace < onePixel)
+      trailingSpace = onePixel;
   }
 
   
-  mEmbellishData.leftSpace = leftSpace;
-  mEmbellishData.rightSpace = rightSpace;
+  mEmbellishData.leadingSpace = leadingSpace;
+  mEmbellishData.trailingSpace = trailingSpace;
 
   
   
@@ -760,7 +760,10 @@ nsMathMLmoFrame::Stretch(nsRenderingContext& aRenderingContext,
 
     
     nsresult res = mMathMLChar.Stretch(PresContext(), aRenderingContext,
-                                       aStretchDirection, container, charSize, stretchHint);
+                                       aStretchDirection, container, charSize,
+                                       stretchHint,
+                                       NS_MATHML_IS_RTL(mPresentationData.
+                                                        flags));
     if (NS_FAILED(res)) {
       
       
@@ -871,36 +874,39 @@ nsMathMLmoFrame::Stretch(nsRenderingContext& aRenderingContext,
   if (!NS_MATHML_OPERATOR_HAS_EMBELLISH_ANCESTOR(mFlags)) {
 
     
-    nscoord leftSpace = mEmbellishData.leftSpace;
-    if (isAccent && !NS_MATHML_OPERATOR_HAS_LEFTSPACE_ATTR(mFlags)) {
-      leftSpace = 0;
+    nscoord leadingSpace = mEmbellishData.leadingSpace;
+    if (isAccent && !NS_MATHML_OPERATOR_HAS_LSPACE_ATTR(mFlags)) {
+      leadingSpace = 0;
     }
-    nscoord rightSpace = mEmbellishData.rightSpace;
-    if (isAccent && !NS_MATHML_OPERATOR_HAS_RIGHTSPACE_ATTR(mFlags)) {
-      rightSpace = 0;
+    nscoord trailingSpace = mEmbellishData.trailingSpace;
+    if (isAccent && !NS_MATHML_OPERATOR_HAS_RSPACE_ATTR(mFlags)) {
+      trailingSpace = 0;
     }
 
-    mBoundingMetrics.width += leftSpace + rightSpace;
+    mBoundingMetrics.width += leadingSpace + trailingSpace;
     aDesiredStretchSize.width = mBoundingMetrics.width;
     aDesiredStretchSize.mBoundingMetrics.width = mBoundingMetrics.width;
 
-    if (leftSpace) {
+    nscoord dx = (NS_MATHML_IS_RTL(mPresentationData.flags) ?
+                  trailingSpace : leadingSpace);
+    if (dx) {
       
-      mBoundingMetrics.leftBearing += leftSpace;
-      mBoundingMetrics.rightBearing += leftSpace;
-      aDesiredStretchSize.mBoundingMetrics.leftBearing += leftSpace;
-      aDesiredStretchSize.mBoundingMetrics.rightBearing += leftSpace;
+      mBoundingMetrics.leftBearing += dx;
+      mBoundingMetrics.rightBearing += dx;
+      aDesiredStretchSize.mBoundingMetrics.leftBearing += dx;
+      aDesiredStretchSize.mBoundingMetrics.rightBearing += dx;
 
       if (useMathMLChar) {
         nsRect rect;
         mMathMLChar.GetRect(rect);
-        mMathMLChar.SetRect(nsRect(rect.x + leftSpace, rect.y, rect.width, rect.height));
+        mMathMLChar.SetRect(nsRect(rect.x + dx, rect.y,
+                                   rect.width, rect.height));
       }
       else {
         nsIFrame* childFrame = firstChild;
         while (childFrame) {
-          childFrame->SetPosition(childFrame->GetPosition()
-				  + nsPoint(leftSpace, 0));
+          childFrame->SetPosition(childFrame->GetPosition() +
+                                  nsPoint(dx, 0));
           childFrame = childFrame->GetNextSibling();
         }
       }
@@ -1014,7 +1020,7 @@ nsMathMLmoFrame::GetIntrinsicWidth(nsRenderingContext *aRenderingContext)
   
   
   
-  width += mEmbellishData.leftSpace + mEmbellishData.rightSpace;
+  width += mEmbellishData.leadingSpace + mEmbellishData.trailingSpace;
 
   return width;
 }
