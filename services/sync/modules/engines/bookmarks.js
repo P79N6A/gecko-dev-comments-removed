@@ -706,6 +706,7 @@ BookmarksStore.prototype = {
   
   createRecord: function createRecord(guid) {
     let placeId = idForGUID(guid);
+    let record;
     if (placeId <= 0) { 
       record = new PlacesItem();
       record.deleted = true;
