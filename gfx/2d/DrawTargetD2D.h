@@ -30,6 +30,8 @@ class SourceSurfaceD2D;
 class GradientStopsD2D;
 class ScaledFontDWrite;
 
+const int32_t kLayerCacheSize = 5;
+
 struct PrivateD3D10DataD2D
 {
   RefPtr<ID3D10Effect> mEffect;
@@ -122,6 +124,8 @@ public:
   bool Init(ID3D10Texture2D *aTexture, SurfaceFormat aFormat);
   bool InitD3D10Data();
   uint32_t GetByteSize() const;
+  TemporaryRef<ID2D1Layer> GetCachedLayer();
+  void PopCachedLayer(ID2D1RenderTarget *aRT);
 
   static ID2D1Factory *factory();
   static TemporaryRef<ID2D1StrokeStyle> CreateStrokeStyleForOptions(const StrokeOptions &aStrokeOptions);
@@ -219,6 +223,13 @@ private:
     RefPtr<PathD2D> mPath;
   };
   std::vector<PushedClip> mPushedClips;
+
+  
+  
+  
+  
+  RefPtr<ID2D1Layer> mCachedLayers[kLayerCacheSize];
+  uint32_t mCurrentCachedLayer;
   
   
   
