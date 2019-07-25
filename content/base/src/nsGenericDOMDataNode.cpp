@@ -752,6 +752,9 @@ nsGenericDOMDataNode::SplitData(PRUint32 aOffset, nsIContent** aReturn,
     return rv;
   }
 
+  nsIDocument* document = GetCurrentDoc();
+  mozAutoDocUpdate updateBatch(document, UPDATE_CONTENT_MODEL, true);
+
   
   
   nsCOMPtr<nsIContent> newContent = CloneDataNode(mNodeInfo, false);
