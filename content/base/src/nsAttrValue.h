@@ -233,9 +233,7 @@ public:
 
 
 
-
-  PRBool ParseSpecialIntValue(const nsAString& aString,
-                              PRBool aCanBePercent);
+  PRBool ParseSpecialIntValue(const nsAString& aString);
 
 
   
