@@ -58,6 +58,7 @@ Cu.import("resource://weave/engines.js");
 Cu.import("resource://weave/syncCores.js");
 Cu.import("resource://weave/stores.js");
 Cu.import("resource://weave/trackers.js");
+Cu.import("resource://weave/identity.js");
 
 
 
@@ -121,17 +122,15 @@ BookmarksEngine.prototype = {
     let realm = Utils.prefs.getCharPref( "xmpp.server.realm" );
 
     
-    
-    
-    
-    
-    
-    let clientName = Utils.prefs.getCharPref( "xmpp.client.name" );
-    let clientPassword = Utils.prefs.getCharPref( "xmpp.client.password" );
+
+    let clientName = ID.get('WeaveID').username;
+    let clientPassword = ID.get('WeaveID').password;
+
     let transport = new HTTPPollingTransport( serverUrl, false, 15000 );
     let auth = new PlainAuthenticator();
     
-    
+
+
     this._xmppClient = new XmppClient( clientName,
                                        realm,
                                        clientPassword,
