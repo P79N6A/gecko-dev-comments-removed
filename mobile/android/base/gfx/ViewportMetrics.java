@@ -62,9 +62,7 @@ public class ViewportMetrics {
 
     private FloatSize mPageSize;
     private RectF mViewportRect;
-    private PointF mViewportOffset;
     private float mZoomFactor;
-    private boolean mAllowZoom;
 
     
     
@@ -77,20 +75,15 @@ public class ViewportMetrics {
 
         mPageSize = new FloatSize(metrics.widthPixels, metrics.heightPixels);
         mViewportRect = new RectF(0, 0, metrics.widthPixels, metrics.heightPixels);
-        mViewportOffset = new PointF(0, 0);
         mZoomFactor = 1.0f;
         mViewportBias = new PointF(0.0f, 0.0f);
-        mAllowZoom = true;
     }
 
     public ViewportMetrics(ViewportMetrics viewport) {
         mPageSize = new FloatSize(viewport.getPageSize());
         mViewportRect = new RectF(viewport.getViewport());
-        PointF offset = viewport.getViewportOffset();
-        mViewportOffset = new PointF(offset.x, offset.y);
         mZoomFactor = viewport.getZoomFactor();
         mViewportBias = viewport.mViewportBias;
-        mAllowZoom = viewport.mAllowZoom;
     }
 
     public ViewportMetrics(JSONObject json) throws JSONException {
@@ -100,24 +93,15 @@ public class ViewportMetrics {
         float height = (float)json.getDouble("height");
         float pageWidth = (float)json.getDouble("pageWidth");
         float pageHeight = (float)json.getDouble("pageHeight");
-        float offsetX = (float)json.getDouble("offsetX");
-        float offsetY = (float)json.getDouble("offsetY");
         float zoom = (float)json.getDouble("zoom");
-
-        mAllowZoom = json.getBoolean("allowZoom");
 
         mPageSize = new FloatSize(pageWidth, pageHeight);
         mViewportRect = new RectF(x, y, x + width, y + height);
-        mViewportOffset = new PointF(offsetX, offsetY);
         mZoomFactor = zoom;
         mViewportBias = new PointF(0.0f, 0.0f);
     }
 
     public PointF getOptimumViewportOffset(IntSize displayportSize) {
-        
-
-
-
         RectF viewport = getClampedViewport();
 
         FloatSize bufferSpace = new FloatSize(displayportSize.width - viewport.width(),
@@ -147,8 +131,8 @@ public class ViewportMetrics {
     }
 
     public PointF getDisplayportOrigin() {
-        return new PointF(mViewportRect.left - mViewportOffset.x,
-                          mViewportRect.top - mViewportOffset.y);
+        return new PointF(mViewportRect.left,
+                          mViewportRect.top);
     }
 
     public FloatSize getSize() {
@@ -179,20 +163,12 @@ public class ViewportMetrics {
         return clampedViewport;
     }
 
-    public PointF getViewportOffset() {
-        return mViewportOffset;
-    }
-
     public FloatSize getPageSize() {
         return mPageSize;
     }
 
     public float getZoomFactor() {
         return mZoomFactor;
-    }
-
-    public boolean getAllowZoom() {
-        return mAllowZoom;
     }
 
     public void setPageSize(FloatSize pageSize) {
@@ -229,10 +205,6 @@ public class ViewportMetrics {
     public void setSize(FloatSize size) {
         mViewportRect.right = mViewportRect.left + size.width;
         mViewportRect.bottom = mViewportRect.top + size.height;
-    }
-
-    public void setViewportOffset(PointF offset) {
-        mViewportOffset = offset;
     }
 
     public void setZoomFactor(float zoomFactor) {
@@ -276,14 +248,12 @@ public class ViewportMetrics {
         result.mPageSize = mPageSize.interpolate(to.mPageSize, t);
         result.mZoomFactor = FloatUtils.interpolate(mZoomFactor, to.mZoomFactor, t);
         result.mViewportRect = RectUtils.interpolate(mViewportRect, to.mViewportRect, t);
-        result.mViewportOffset = PointUtils.interpolate(mViewportOffset, to.mViewportOffset, t);
         return result;
     }
 
     public boolean fuzzyEquals(ViewportMetrics other) {
         return mPageSize.fuzzyEquals(other.mPageSize)
             && RectUtils.fuzzyEquals(mViewportRect, other.mViewportRect)
-            && FloatUtils.fuzzyEquals(mViewportOffset, other.mViewportOffset)
             && FloatUtils.fuzzyEquals(mZoomFactor, other.mZoomFactor);
     }
 
@@ -300,8 +270,6 @@ public class ViewportMetrics {
           .append(", \"height\" : ").append(height)
           .append(", \"pageWidth\" : ").append(mPageSize.width)
           .append(", \"pageHeight\" : ").append(mPageSize.height)
-          .append(", \"offsetX\" : ").append(mViewportOffset.x)
-          .append(", \"offsetY\" : ").append(mViewportOffset.y)
           .append(", \"zoom\" : ").append(mZoomFactor)
           .append(" }");
         return sb.toString();
@@ -312,9 +280,7 @@ public class ViewportMetrics {
         StringBuffer buff = new StringBuffer(128);
         buff.append("v=").append(mViewportRect.toString())
             .append(" p=").append(mPageSize.toString())
-            .append(" z=").append(mZoomFactor)
-            .append(" o=").append(mViewportOffset.x)
-            .append(',').append(mViewportOffset.y);
+            .append(" z=").append(mZoomFactor);
         return buff.toString();
     }
 }
