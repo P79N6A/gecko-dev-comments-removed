@@ -4835,6 +4835,11 @@ CSSParserImpl::ParseGradient(nsCSSValue& aValue, PRBool aIsRadial,
     break;
 
   case eCSSToken_Function:
+    if (id.LowerCaseEqualsLiteral("-moz-calc")) {
+      haveGradientLine = PR_TRUE;
+      break;
+    }
+    
   case eCSSToken_ID:
   case eCSSToken_Ref:
     
@@ -6352,7 +6357,9 @@ CSSParserImpl::ParseBackgroundItem(CSSParserImpl::BackgroundParseState& aState)
       }
     } else if (tt == eCSSToken_Dimension ||
                tt == eCSSToken_Number ||
-               tt == eCSSToken_Percentage) {
+               tt == eCSSToken_Percentage ||
+               (tt == eCSSToken_Function &&
+                mToken.mIdent.LowerCaseEqualsLiteral("-moz-calc"))) {
       if (havePosition)
         return PR_FALSE;
       havePosition = PR_TRUE;
@@ -6462,7 +6469,8 @@ PRBool CSSParserImpl::ParseBoxPositionValues(nsCSSValuePair &aOut,
   
   nsCSSValue &xValue = aOut.mXValue,
              &yValue = aOut.mYValue;
-  PRInt32 variantMask = aAcceptsInherit ? VARIANT_HLP : VARIANT_LP;
+  PRInt32 variantMask =
+    (aAcceptsInherit ? VARIANT_INHERIT : 0) | VARIANT_LP | VARIANT_CALC;
   if (ParseVariant(xValue, variantMask, nsnull)) {
     if (eCSSUnit_Inherit == xValue.GetUnit() ||
         eCSSUnit_Initial == xValue.GetUnit()) {  
@@ -6471,7 +6479,7 @@ PRBool CSSParserImpl::ParseBoxPositionValues(nsCSSValuePair &aOut,
     }
     
     
-    if (ParseVariant(yValue, VARIANT_LP, nsnull)) {
+    if (ParseVariant(yValue, VARIANT_LP | VARIANT_CALC, nsnull)) {
       
       return PR_TRUE;
     }
@@ -6512,7 +6520,7 @@ PRBool CSSParserImpl::ParseBoxPositionValues(nsCSSValuePair &aOut,
     }
     else {
       
-      if (ParseVariant(yValue, VARIANT_LP, nsnull)) {
+      if (ParseVariant(yValue, VARIANT_LP | VARIANT_CALC, nsnull)) {
         if (!(mask & BG_CLR)) {
           
           return PR_FALSE;
@@ -6584,15 +6592,16 @@ CSSParserImpl::ParseBackgroundSize()
 
 
 
+#define BG_SIZE_VARIANT (VARIANT_LP | VARIANT_AUTO | VARIANT_CALC)
 PRBool CSSParserImpl::ParseBackgroundSizeValues(nsCSSValuePair &aOut)
 {
   
   nsCSSValue &xValue = aOut.mXValue,
              &yValue = aOut.mYValue;
-  if (ParseNonNegativeVariant(xValue, VARIANT_LP | VARIANT_AUTO, nsnull)) {
+  if (ParseNonNegativeVariant(xValue, BG_SIZE_VARIANT, nsnull)) {
     
     
-    if (ParseNonNegativeVariant(yValue, VARIANT_LP | VARIANT_AUTO, nsnull)) {
+    if (ParseNonNegativeVariant(yValue, BG_SIZE_VARIANT, nsnull)) {
       
       return PR_TRUE;
     }
@@ -6609,6 +6618,7 @@ PRBool CSSParserImpl::ParseBackgroundSizeValues(nsCSSValuePair &aOut)
   yValue.Reset();
   return PR_TRUE;
 }
+#undef BG_SIZE_VARIANT
 
 PRBool
 CSSParserImpl::ParseBorderColor()
