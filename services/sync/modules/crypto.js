@@ -277,6 +277,7 @@ function openssl(op, algorithm, input, password) {
   if (outputFile.exists())
     outputFile.remove(false);
 
+  
   let passFile = getTmp("pass");
   let [passFOS] = open(passFile, ">", PERMS_PASSFILE);
   passFOS.write(password, password.length);

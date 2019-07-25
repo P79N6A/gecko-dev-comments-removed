@@ -182,7 +182,7 @@ EventListener.prototype = {
 
   
   handleEvent: function EL_handleEvent(event) {
-    this._log.debug("Handling event " + this._eventName);
+    this._log.trace("Handling event " + this._eventName);
     this._handler(event);
   },
 
