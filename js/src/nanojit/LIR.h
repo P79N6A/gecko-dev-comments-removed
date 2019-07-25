@@ -246,55 +246,21 @@ namespace nanojit
     
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
 
     
     
-    typedef uint8_t AccSet;
+    
+    typedef uint32_t AccSet;
+    static const int NUM_ACCS = sizeof(AccSet) * 8;
 
     
     
     
     
-    
-    static const AccSet ACC_READONLY = 1 << 0;      
-    static const AccSet ACC_STACK    = 1 << 1;      
-    static const AccSet ACC_RSTACK   = 1 << 2;      
-    static const AccSet ACC_OTHER    = 1 << 3;      
+    static const AccSet ACCSET_NONE      = 0x0;
+    static const AccSet ACCSET_ALL       = 0xffffffff;
+    static const AccSet ACCSET_LOAD_ANY  = ACCSET_ALL;      
+    static const AccSet ACCSET_STORE_ANY = ACCSET_ALL;      
 
     
     
@@ -305,12 +271,72 @@ namespace nanojit
     
     
     
-    static const AccSet ACC_NONE         = 0x0;
-    static const AccSet ACC_ALL_STORABLE = ACC_STACK | ACC_RSTACK | ACC_OTHER;
-    static const AccSet ACC_ALL          = ACC_READONLY | ACC_ALL_STORABLE;
-    static const AccSet ACC_LOAD_ANY     = ACC_ALL;            
-    static const AccSet ACC_STORE_ANY    = ACC_ALL_STORABLE;   
+    
+    
+    
+    
+    
+    
+    struct MiniAccSet { uint8_t val; };
+    static const MiniAccSet MINI_ACCSET_MULTIPLE = { 255 };
 
+    static MiniAccSet compressAccSet(AccSet accSet) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        for (int i = 0; i < NUM_ACCS; i++) {
+            if (accSet == (1U << i)) {
+                MiniAccSet ret = { i };
+                return ret;
+            }
+        }
+        
+        return MINI_ACCSET_MULTIPLE;
+    }
+
+    static AccSet decompressMiniAccSet(MiniAccSet miniAccSet) {
+        return (miniAccSet.val == MINI_ACCSET_MULTIPLE.val) ? ACCSET_ALL : (1 << miniAccSet.val);
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    enum LoadQual {
+        LOAD_CONST,
+        LOAD_NORMAL,
+        LOAD_VOLATILE
+    };
 
     struct CallInfo
     {
@@ -687,7 +713,7 @@ namespace nanojit
         inline void initLInsOp1(LOpcode opcode, LIns* oprnd1);
         inline void initLInsOp2(LOpcode opcode, LIns* oprnd1, LIns* oprnd2);
         inline void initLInsOp3(LOpcode opcode, LIns* oprnd1, LIns* oprnd2, LIns* oprnd3);
-        inline void initLInsLd(LOpcode opcode, LIns* val, int32_t d, AccSet accSet);
+        inline void initLInsLd(LOpcode opcode, LIns* val, int32_t d, AccSet accSet, LoadQual loadQual);
         inline void initLInsSt(LOpcode opcode, LIns* val, LIns* base, int32_t d, AccSet accSet);
         inline void initLInsSk(LIns* prevLIns);
         
@@ -791,7 +817,11 @@ namespace nanojit
         inline GuardRecord* record() const;
 
         
+        inline LoadQual loadQual() const;
+
+        
         inline int32_t  disp() const;
+        inline MiniAccSet miniAccSet() const;
         inline AccSet   accSet() const;
 
         
@@ -1085,7 +1115,8 @@ namespace nanojit
         
         
         int16_t     disp;
-        AccSet      accSet;
+        MiniAccSet  miniAccSet;
+        LoadQual    loadQual:2;
 
         LIns*       oprnd_1;
 
@@ -1102,7 +1133,7 @@ namespace nanojit
         friend class LIns;
 
         int16_t     disp;
-        AccSet      accSet;
+        MiniAccSet  miniAccSet;
 
         LIns*       oprnd_2;
 
@@ -1251,12 +1282,13 @@ namespace nanojit
         toLInsOp3()->oprnd_3 = oprnd3;
         NanoAssert(isLInsOp3());
     }
-    void LIns::initLInsLd(LOpcode opcode, LIns* val, int32_t d, AccSet accSet) {
+    void LIns::initLInsLd(LOpcode opcode, LIns* val, int32_t d, AccSet accSet, LoadQual loadQual) {
         initSharedFields(opcode);
         toLInsLd()->oprnd_1 = val;
         NanoAssert(d == int16_t(d));
         toLInsLd()->disp = int16_t(d);
-        toLInsLd()->accSet = accSet;
+        toLInsLd()->miniAccSet = compressAccSet(accSet);
+        toLInsLd()->loadQual = loadQual;
         NanoAssert(isLInsLd());
     }
     void LIns::initLInsSt(LOpcode opcode, LIns* val, LIns* base, int32_t d, AccSet accSet) {
@@ -1265,7 +1297,7 @@ namespace nanojit
         toLInsSt()->oprnd_2 = base;
         NanoAssert(d == int16_t(d));
         toLInsSt()->disp = int16_t(d);
-        toLInsSt()->accSet = accSet;
+        toLInsSt()->miniAccSet = compressAccSet(accSet);
         NanoAssert(isLInsSt());
     }
     void LIns::initLInsSk(LIns* prevLIns) {
@@ -1369,6 +1401,11 @@ namespace nanojit
         }
     }
 
+    LoadQual LIns::loadQual() const {
+        NanoAssert(isLInsLd());
+        return toLInsLd()->loadQual;
+    }
+
     int32_t LIns::disp() const {
         if (isLInsSt()) {
             return toLInsSt()->disp;
@@ -1378,13 +1415,17 @@ namespace nanojit
         }
     }
 
-    AccSet LIns::accSet() const {
+    MiniAccSet LIns::miniAccSet() const {
         if (isLInsSt()) {
-            return toLInsSt()->accSet;
+            return toLInsSt()->miniAccSet;
         } else {
             NanoAssert(isLInsLd());
-            return toLInsLd()->accSet;
+            return toLInsLd()->miniAccSet;
         }
+    }
+
+    AccSet LIns::accSet() const {
+        return decompressMiniAccSet(miniAccSet());
     }
 
     LIns* LIns::prevLIns() const {
@@ -1510,8 +1551,8 @@ namespace nanojit
         virtual LIns* insImmD(double d) {
             return out->insImmD(d);
         }
-        virtual LIns* insLoad(LOpcode op, LIns* base, int32_t d, AccSet accSet) {
-            return out->insLoad(op, base, d, accSet);
+        virtual LIns* insLoad(LOpcode op, LIns* base, int32_t d, AccSet accSet, LoadQual loadQual) {
+            return out->insLoad(op, base, d, accSet, loadQual);
         }
         virtual LIns* insStore(LOpcode op, LIns* value, LIns* base, int32_t d, AccSet accSet) {
             return out->insStore(op, value, base, d, accSet);
@@ -1582,6 +1623,11 @@ namespace nanojit
     #else
             return uintIns;
     #endif
+        }
+
+        
+        LIns* insLoad(LOpcode op, LIns* base, int32_t d, AccSet accSet) {
+            return insLoad(op, base, d, accSet, LOAD_NORMAL);
         }
 
         
@@ -1680,16 +1726,19 @@ namespace nanojit
     {
     private:
         Allocator& alloc;
+        const int EMB_NUM_USED_ACCS;
 
         char *formatImmI(RefBuf* buf, int32_t c);
         char *formatImmQ(RefBuf* buf, uint64_t c);
         char *formatImmD(RefBuf* buf, double c);
-        void formatGuard(InsBuf* buf, LIns* ins);
-        void formatGuardXov(InsBuf* buf, LIns* ins);
+        void formatGuard(InsBuf* buf, LIns* ins);       
+        void formatGuardXov(InsBuf* buf, LIns* ins);    
+        static const char* accNames[];                  
 
     public:
-        LInsPrinter(Allocator& alloc)
-            : alloc(alloc)
+
+        LInsPrinter(Allocator& alloc, int embNumUsedAccs)
+            : alloc(alloc), EMB_NUM_USED_ACCS(embNumUsedAccs)
         {
             addrNameMap = new (alloc) AddrNameMap(alloc);
             lirNameMap = new (alloc) LirNameMap(alloc);
@@ -1790,8 +1839,8 @@ namespace nanojit
         LIns* insParam(int32_t i, int32_t kind) {
             return add(out->insParam(i, kind));
         }
-        LIns* insLoad(LOpcode v, LIns* base, int32_t disp, AccSet accSet) {
-            return add(out->insLoad(v, base, disp, accSet));
+        LIns* insLoad(LOpcode v, LIns* base, int32_t disp, AccSet accSet, LoadQual loadQual) {
+            return add(out->insLoad(v, base, disp, accSet, loadQual));
         }
         LIns* insStore(LOpcode op, LIns* v, LIns* b, int32_t d, AccSet accSet) {
             return add(out->insStore(op, v, b, d, accSet));
@@ -1825,14 +1874,15 @@ namespace nanojit
         LIns* insGuardXov(LOpcode, LIns* a, LIns* b, GuardRecord *);
         LIns* insBranch(LOpcode, LIns* cond, LIns* target);
         LIns* insBranchJov(LOpcode, LIns* a, LIns* b, LIns* target);
-        LIns* insLoad(LOpcode op, LIns* base, int32_t off, AccSet accSet);
+        LIns* insLoad(LOpcode op, LIns* base, int32_t off, AccSet accSet, LoadQual loadQual);
     private:
         LIns* simplifyOverflowArith(LOpcode op, LIns** opnd1, LIns** opnd2);
     };
 
     class CseFilter: public LirWriter
     {
-        enum LInsHashKind {
+        enum NLKind {
+            
             
             
             LInsImmI = 0,
@@ -1843,26 +1893,12 @@ namespace nanojit
             LIns3    = 5,
             LInsCall = 6,
 
-            
-            
-            
-            
-            
-            
-            
-            
-            LInsLoadReadOnly = 7,
-            LInsLoadStack    = 8,
-            LInsLoadRStack   = 9,
-            LInsLoadOther    = 10,
-            LInsLoadMultiple = 11,
-
             LInsFirst = 0,
-            LInsLast = 11,
+            LInsLast = 6,
             
-            LInsInvalid = 12
+            LInsInvalid = 7
         };
-        #define nextKind(kind)  LInsHashKind(kind+1)
+        #define nextNLKind(kind)  NLKind(kind+1)
 
         
         
@@ -1873,15 +1909,52 @@ namespace nanojit
         
         
         
-        LIns**      m_list[LInsLast + 1];
-        uint32_t    m_cap[LInsLast + 1];
-        uint32_t    m_used[LInsLast + 1];
+        LIns**      m_listNL[LInsLast + 1];
+        uint32_t    m_capNL[ LInsLast + 1];
+        uint32_t    m_usedNL[LInsLast + 1];
         typedef uint32_t (CseFilter::*find_t)(LIns*);
-        find_t      m_find[LInsLast + 1];
+        find_t      m_findNL[LInsLast + 1];
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        typedef uint8_t CseAcc;     
+
+        static const uint8_t CSE_NUM_ACCS = NUM_ACCS + 2;
+
+        
+        
+        
+        const uint8_t EMB_NUM_USED_ACCS;      
+        const uint8_t CSE_NUM_USED_ACCS;      
+        const CseAcc CSE_ACC_CONST;           
+        const CseAcc CSE_ACC_MULTIPLE;        
+
+        
+        
+        
+        LIns**      m_listL[CSE_NUM_ACCS];
+        uint32_t    m_capL[ CSE_NUM_ACCS];
+        uint32_t    m_usedL[CSE_NUM_ACCS];
 
         AccSet      storesSinceLastLoad;    
 
         Allocator& alloc;
+
+        CseAcc miniAccSetToCseAcc(MiniAccSet miniAccSet, LoadQual loadQual) {
+            NanoAssert(miniAccSet.val < NUM_ACCS || miniAccSet.val == MINI_ACCSET_MULTIPLE.val);
+            return (loadQual == LOAD_CONST) ? CSE_ACC_CONST :
+                   (miniAccSet.val == MINI_ACCSET_MULTIPLE.val) ? CSE_ACC_MULTIPLE :
+                   miniAccSet.val;
+        }
 
         static uint32_t hash8(uint32_t hash, const uint8_t data);
         static uint32_t hash32(uint32_t hash, const uint32_t data);
@@ -1893,7 +1966,7 @@ namespace nanojit
         static uint32_t hash1(LOpcode op, LIns*);
         static uint32_t hash2(LOpcode op, LIns*, LIns*);
         static uint32_t hash3(LOpcode op, LIns*, LIns*, LIns*);
-        static uint32_t hashLoad(LOpcode op, LIns*, int32_t, AccSet);
+        static uint32_t hashLoad(LOpcode op, LIns*, int32_t);
         static uint32_t hashCall(const CallInfo *call, uint32_t argc, LIns* args[]);
 
         
@@ -1905,7 +1978,7 @@ namespace nanojit
         LIns* find1(LOpcode v, LIns* a, uint32_t &k);
         LIns* find2(LOpcode v, LIns* a, LIns* b, uint32_t &k);
         LIns* find3(LOpcode v, LIns* a, LIns* b, LIns* c, uint32_t &k);
-        LIns* findLoad(LOpcode v, LIns* a, int32_t b, AccSet accSet, LInsHashKind kind,
+        LIns* findLoad(LOpcode v, LIns* a, int32_t b, MiniAccSet miniAccSet, LoadQual loadQual,
                        uint32_t &k);
         LIns* findCall(const CallInfo *call, uint32_t argc, LIns* args[], uint32_t &k);
 
@@ -1921,22 +1994,21 @@ namespace nanojit
         uint32_t find2(LIns* ins);
         uint32_t find3(LIns* ins);
         uint32_t findCall(LIns* ins);
-        uint32_t findLoadReadOnly(LIns* ins);
-        uint32_t findLoadStack(LIns* ins);
-        uint32_t findLoadRStack(LIns* ins);
-        uint32_t findLoadOther(LIns* ins);
-        uint32_t findLoadMultiple(LIns* ins);
+        uint32_t findLoad(LIns* ins);
 
-        void grow(LInsHashKind kind);
+        void growNL(NLKind kind);
+        void growL(CseAcc cseAcc);
 
         
-        void add(LInsHashKind kind, LIns* ins, uint32_t k);
+        void addNL(NLKind kind, LIns* ins, uint32_t k);
+        void addL(LIns* ins, uint32_t k);
 
-        void clear();               
-        void clear(LInsHashKind);   
+        void clearAll();            
+        void clearNL(NLKind);       
+        void clearL(CseAcc);        
 
     public:
-        CseFilter(LirWriter *out, Allocator&);
+        CseFilter(LirWriter *out, uint8_t embNumUsedAccs, Allocator&);
 
         LIns* insImmI(int32_t imm);
 #ifdef NANOJIT_64BIT
@@ -1947,7 +2019,7 @@ namespace nanojit
         LIns* ins1(LOpcode v, LIns*);
         LIns* ins2(LOpcode v, LIns*, LIns*);
         LIns* ins3(LOpcode v, LIns*, LIns*, LIns*);
-        LIns* insLoad(LOpcode op, LIns* base, int32_t d, AccSet accSet);
+        LIns* insLoad(LOpcode op, LIns* base, int32_t d, AccSet accSet, LoadQual loadQual);
         LIns* insStore(LOpcode op, LIns* value, LIns* base, int32_t d, AccSet accSet);
         LIns* insCall(const CallInfo *call, LIns* args[]);
         LIns* insGuard(LOpcode op, LIns* cond, GuardRecord *gr);
@@ -2006,7 +2078,7 @@ namespace nanojit
             }
 
             
-            LIns*   insLoad(LOpcode op, LIns* base, int32_t disp, AccSet accSet);
+            LIns*   insLoad(LOpcode op, LIns* base, int32_t disp, AccSet accSet, LoadQual loadQual);
             LIns*   insStore(LOpcode op, LIns* o1, LIns* o2, int32_t disp, AccSet accSet);
             LIns*   ins0(LOpcode op);
             LIns*   ins1(LOpcode op, LIns* o1);
@@ -2142,19 +2214,21 @@ namespace nanojit
         void errorStructureShouldBe(LOpcode op, const char* argDesc, int argN, LIns* arg,
                                     const char* shouldBeDesc);
         void errorAccSet(const char* what, AccSet accSet, const char* shouldDesc);
+        void errorLoadQual(const char* what, LoadQual loadQual);
         void checkLInsHasOpcode(LOpcode op, int argN, LIns* ins, LOpcode op2);
         void checkLInsIsACondOrConst(LOpcode op, int argN, LIns* ins);
         void checkLInsIsNull(LOpcode op, int argN, LIns* ins);
-        void checkAccSet(LOpcode op, LIns* base, AccSet accSet, AccSet maxAccSet);
+        void checkAccSet(LOpcode op, LIns* base, AccSet accSet);   
 
-        LIns *sp, *rp;
+        
+        LIns *checkAccSetIns1, *checkAccSetIns2;
 
     public:
         ValidateWriter(LirWriter* out, LInsPrinter* printer, const char* where);
-        void setSp(LIns* ins) { sp = ins; }
-        void setRp(LIns* ins) { rp = ins; }
+        void setCheckAccSetIns1(LIns* ins) { checkAccSetIns1 = ins; }
+        void setCheckAccSetIns2(LIns* ins) { checkAccSetIns2 = ins; }
 
-        LIns* insLoad(LOpcode op, LIns* base, int32_t d, AccSet accSet);
+        LIns* insLoad(LOpcode op, LIns* base, int32_t d, AccSet accSet, LoadQual loadQual);
         LIns* insStore(LOpcode op, LIns* value, LIns* base, int32_t d, AccSet accSet);
         LIns* ins0(LOpcode v);
         LIns* ins1(LOpcode v, LIns* a);
