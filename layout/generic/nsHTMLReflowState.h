@@ -250,7 +250,6 @@ struct nsHTMLReflowState : public nsCSSOffsetState {
   
   
   
-  
   nscoord              availableWidth;
 
   
