@@ -45,8 +45,9 @@
 #include "mozilla/jetpack/PHandleChild.h"
 
 #include "jsapi.h"
-#include "jsobj.h"
+#include "jsclass.h"
 #include "jscntxt.h"
+#include "jsfriendapi.h"
 
 #include "mozilla/unused.h"
 
@@ -121,8 +122,6 @@ public:
 
   JSObject* ToJSObject(JSContext* cx) {
     if (!mObj && !mCx) {
-      JSAutoRequest request(cx);
-
       JSClass* clasp = const_cast<JSClass*>(&sHandle_JSClass);
       JSObject* obj = JS_NewObject(cx, clasp, NULL, NULL);
       if (!obj)
@@ -159,19 +158,23 @@ private:
       JSAutoRequest ar(mCx);
 
       if (mObj) {
-        mObj->setPrivate(NULL);
+        JS_SetPrivate(mCx, mObj, NULL);
 
         js::AutoObjectRooter obj(mCx, mObj);
         mObj = NULL;
 
-        JSBool hasOnInvalidate;
-        if (JS_HasProperty(mCx, obj.object(), "onInvalidate",
-                           &hasOnInvalidate) && hasOnInvalidate) {
-          js::AutoValueRooter r(mCx);
-          JSBool ok = JS_CallFunctionName(mCx, obj.object(), "onInvalidate", 0,
-                                          NULL, r.jsval_addr());
-          if (!ok)
-            JS_ReportPendingException(mCx);
+        
+        JSAutoEnterCompartment ac;
+        if (ac.enter(mCx, obj.object())) {
+          JSBool hasOnInvalidate;
+          if (JS_HasProperty(mCx, obj.object(), "onInvalidate",
+                             &hasOnInvalidate) && hasOnInvalidate) {
+            js::AutoValueRooter r(mCx);
+            JSBool ok = JS_CallFunctionName(mCx, obj.object(), "onInvalidate", 0,
+                                            NULL, r.jsval_addr());
+            if (!ok)
+              JS_ReportPendingException(mCx);
+          }
         }
 
         
@@ -199,8 +202,8 @@ private:
 
   static Handle*
   Unwrap(JSContext* cx, JSObject* obj) {
-    while (obj && obj->getJSClass() != &sHandle_JSClass)
-      obj = obj->getProto();
+    while (obj && Jsvalify(js::GetObjectClass(obj)) != &sHandle_JSClass)
+      obj = js::GetObjectProto(obj);
 
     if (!obj)
       return NULL;
@@ -247,7 +250,7 @@ private:
   }
 
   static JSBool
-  SetIsRooted(JSContext* cx, JSObject* obj, jsid, jsval* vp) {
+  SetIsRooted(JSContext* cx, JSObject* obj, jsid, JSBool strict, jsval* vp) {
     Handle* self = Unwrap(cx, obj);
     JSBool v;
     if (!JS_ValueToBoolean(cx, *vp, &v))
@@ -279,7 +282,7 @@ private:
 
     Handle* self = Unwrap(cx, JS_THIS_OBJECT(cx, vp));
     if (self)
-      unused << Send__delete__(self);
+      unused << BaseType::Send__delete__(self);
 
     JS_SET_RVAL(cx, vp, JSVAL_VOID);
 
@@ -318,7 +321,7 @@ private:
       NS_ASSERTION(!self->mRooted, "Finalizing a rooted object?");
       self->mCx = NULL;
       self->mObj = NULL;
-      unused << Send__delete__(self);
+      unused << BaseType::Send__delete__(self);
     }
   }
 };
@@ -328,7 +331,7 @@ const JSClass
 Handle<BaseType>::sHandle_JSClass = {
   "IPDL Handle", JSCLASS_HAS_PRIVATE,
   JS_PropertyStub, JS_PropertyStub,
-  JS_PropertyStub, JS_PropertyStub,
+  JS_PropertyStub, JS_StrictPropertyStub,
   JS_EnumerateStub, JS_ResolveStub,
   JS_ConvertStub, Handle::Finalize,
   JSCLASS_NO_OPTIONAL_MEMBERS

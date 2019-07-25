@@ -399,13 +399,6 @@ typedef JSObject *
 extern JSBool js_CStringsAreUTF8;
 #endif
 
-
-
-
-
-extern JS_FRIEND_API(JSObject *)
-js_ObjectToOuterObject(JSContext *cx, JSObject *obj);
-
 JS_END_EXTERN_C
 
 #endif 

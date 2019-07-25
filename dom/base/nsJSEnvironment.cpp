@@ -695,7 +695,7 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
   
   JSObject* global = ::JS_GetGlobalForScopeChain(cx);
   bool isTrackingChromeCodeTime =
-    global && xpc::AccessCheck::isChrome(global->getCompartment());
+    global && xpc::AccessCheck::isChrome(js::GetObjectCompartment(global));
   if (duration < (isTrackingChromeCodeTime ?
                   sMaxChromeScriptRunTime : sMaxScriptRunTime)) {
     return JS_TRUE;
@@ -2166,8 +2166,7 @@ nsJSContext::GetGlobalObject()
 
 #ifdef DEBUG
   {
-    JSObject *inner = global;
-    OBJ_TO_INNER_OBJECT(mContext, inner);
+    JSObject *inner = JS_ObjectToInnerObject(mContext, global);
 
     
     
@@ -2182,7 +2181,7 @@ nsJSContext::GetGlobalObject()
     return nsnull;
   }
 
-  nsISupports *priv = (nsISupports *)global->getPrivate();
+  nsISupports *priv = (nsISupports *)js::GetObjectPrivate(global);
 
   nsCOMPtr<nsIXPConnectWrappedNative> wrapped_native =
     do_QueryInterface(priv);
@@ -2333,8 +2332,7 @@ nsJSContext::SetOuterObject(void *aOuterObject)
 nsresult
 nsJSContext::InitOuterWindow()
 {
-  JSObject *global = JS_GetGlobalObject(mContext);
-  OBJ_TO_INNER_OBJECT(mContext, global);
+  JSObject *global = JS_ObjectToInnerObject(mContext, JS_GetGlobalObject(mContext));
 
   nsresult rv = InitClasses(global); 
   NS_ENSURE_SUCCESS(rv, rv);
@@ -3023,7 +3021,7 @@ nsJSContext::ClearScope(void *aGlobalObj, bool aClearFromProtoChain)
       }
     }
 
-    if (!obj->getParent()) {
+    if (!js::GetObjectParent(obj)) {
       JS_ClearRegExpStatics(mContext, obj);
     }
 

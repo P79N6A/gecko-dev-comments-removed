@@ -753,7 +753,7 @@ class SwitchToCompartment : public PreserveCompartment {
         : PreserveCompartment(cx)
     {
         JS_GUARD_OBJECT_NOTIFIER_INIT;
-        cx->setCompartment(target->getCompartment());
+        cx->setCompartment(target->compartment());
     }
 
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
@@ -775,6 +775,47 @@ class AssertCompartmentUnchanged {
     }
 };
 
-}
+class AutoCompartment
+{
+  public:
+    JSContext * const context;
+    JSCompartment * const origin;
+    JSObject * const target;
+    JSCompartment * const destination;
+  private:
+    Maybe<DummyFrameGuard> frame;
+    bool entered;
+
+  public:
+    AutoCompartment(JSContext *cx, JSObject *target);
+    ~AutoCompartment();
+
+    bool enter();
+    void leave();
+
+  private:
+    
+    AutoCompartment(const AutoCompartment &);
+    AutoCompartment & operator=(const AutoCompartment &);
+};
+
+
+
+
+
+
+class ErrorCopier
+{
+    AutoCompartment &ac;
+    JSObject *scope;
+
+  public:
+    ErrorCopier(AutoCompartment &ac, JSObject *scope) : ac(ac), scope(scope) {
+        JS_ASSERT(scope->compartment() == ac.origin);
+    }
+    ~ErrorCopier();
+};
+
+} 
 
 #endif

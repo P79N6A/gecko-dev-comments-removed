@@ -53,7 +53,7 @@ class WrapperFactory {
     
     static bool HasWrapperFlag(JSObject *wrapper, uintN flag) {
         uintN flags = 0;
-        wrapper->unwrap(&flags);
+        js::UnwrapObject(wrapper, &flags);
         return !!(flags & flag);
     }
 

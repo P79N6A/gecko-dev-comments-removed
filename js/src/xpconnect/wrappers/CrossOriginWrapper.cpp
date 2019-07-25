@@ -115,7 +115,7 @@ NoWaiverWrapper::enter(JSContext *cx, JSObject *wrapper, jsid id, Action act, bo
     
     
     JSStackFrame *fp = NULL;
-    nsIPrincipal *principal = GetCompartmentPrincipal(wrappedObject(wrapper)->compartment());
+    nsIPrincipal *principal = GetCompartmentPrincipal(js::GetObjectCompartment(wrappedObject(wrapper)));
     nsresult rv = ssm->PushContextPrincipal(cx, JS_FrameIterator(cx, &fp), principal);
     if (NS_FAILED(rv)) {
         NS_WARNING("Not allowing call because we're out of memory");

@@ -63,7 +63,6 @@
 #include "nsHTMLMediaElement.h"
 #endif 
 #include "nsImageLoadingContent.h"
-#include "jsobj.h"
 #include "jsgc.h"
 #include "xpcpublic.h"
 

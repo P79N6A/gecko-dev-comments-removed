@@ -39,6 +39,7 @@
 
 
 #include "jscntxt.h"
+#include "jsstr.h"
 #include "Library.h"
 #include "CTypes.h"
 #include "prlink.h"

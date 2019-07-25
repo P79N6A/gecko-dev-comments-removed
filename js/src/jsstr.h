@@ -42,10 +42,10 @@
 
 #include <ctype.h>
 #include "jsapi.h"
+#include "jsatom.h"
 #include "jsprvtd.h"
 #include "jshashtable.h"
 #include "jslock.h"
-#include "jsobj.h"
 #include "jscell.h"
 
 #include "vm/Unicode.h"
@@ -184,19 +184,6 @@ namespace js {
 
 
 
-inline uint32
-HashChars(const jschar *chars, size_t length)
-{
-    uint32 h = 0;
-    for (; length; chars++, length--)
-        h = JS_ROTATE_LEFT32(h, 4) ^ *chars;
-    return h;
-}
-
-
-
-
-
 extern bool
 EqualStrings(JSContext *cx, JSString *str1, JSString *str2, JSBool *result);
 
@@ -231,29 +218,6 @@ js_strchr_limit(const jschar *s, jschar c, const jschar *limit);
 #define js_strncpy(t, s, n)     memcpy((t), (s), (n) * sizeof(jschar))
 
 namespace js {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-enum FlationCoding
-{
-    NormalEncoding,
-    CESU8Encoding
-};
 
 
 
