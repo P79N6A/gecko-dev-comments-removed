@@ -351,17 +351,7 @@ struct nsStyleBackground {
   struct Position;
   friend struct Position;
   struct Position {
-    struct PositionCoord {
-      
-      
-      nscoord mLength;
-      float   mPercent;
-
-      bool operator==(const PositionCoord& aOther) const
-        { return mLength == aOther.mLength && mPercent == aOther.mPercent; }
-      bool operator!=(const PositionCoord& aOther) const
-        { return !(*this == aOther); }
-    };
+    typedef nsStyleCoord::Calc PositionCoord;
     PositionCoord mXPosition, mYPosition;
 
     
