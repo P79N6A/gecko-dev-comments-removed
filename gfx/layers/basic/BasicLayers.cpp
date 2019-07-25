@@ -880,7 +880,6 @@ public:
 
   static void PaintContext(gfxPattern* aPattern,
                            const nsIntRegion& aVisible,
-                           const nsIntRect* aTileSourceRect,
                            float aOpacity,
                            gfxContext* aContext);
 
@@ -942,12 +941,9 @@ BasicImageLayer::GetAndPaintCurrentImage(gfxContext* aContext,
 
   
   
-  
-  const nsIntRect* tileSrcRect = GetTileSourceRect();
   AutoSetOperator setOperator(aContext, GetOperator());
   PaintContext(pat,
-               tileSrcRect ? GetVisibleRegion() : nsIntRegion(nsIntRect(0, 0, size.width, size.height)),
-               tileSrcRect,
+               nsIntRegion(nsIntRect(0, 0, size.width, size.height)),
                aOpacity, aContext);
 
   GetContainer()->NotifyPaintedImage(image);
@@ -958,7 +954,6 @@ BasicImageLayer::GetAndPaintCurrentImage(gfxContext* aContext,
  void
 BasicImageLayer::PaintContext(gfxPattern* aPattern,
                               const nsIntRegion& aVisible,
-                              const nsIntRect* aTileSourceRect,
                               float aOpacity,
                               gfxContext* aContext)
 {
@@ -978,31 +973,13 @@ BasicImageLayer::PaintContext(gfxPattern* aPattern,
     }
   }
 
-  if (!aTileSourceRect) {
-    aContext->NewPath();
-    
-    
-    gfxUtils::PathFromRegion(aContext, aVisible);
-    aPattern->SetExtend(extend);
-    aContext->SetPattern(aPattern);
-    aContext->FillWithOpacity(aOpacity);
-  } else {
-    nsRefPtr<gfxASurface> source = aPattern->GetSurface();
-    NS_ABORT_IF_FALSE(source, "Expecting a surface pattern");
-    gfxIntSize sourceSize = source->GetSize();
-    nsIntRect sourceRect(0, 0, sourceSize.width, sourceSize.height);
-    NS_ABORT_IF_FALSE(sourceRect == *aTileSourceRect,
-                      "Cowardly refusing to create a temporary surface for tiling");
-
-    gfxContextAutoSaveRestore saveRestore(aContext);
-
-    aContext->NewPath();
-    gfxUtils::PathFromRegion(aContext, aVisible);
-
-    aPattern->SetExtend(gfxPattern::EXTEND_REPEAT);
-    aContext->SetPattern(aPattern);
-    aContext->FillWithOpacity(aOpacity);
-  }
+  aContext->NewPath();
+  
+  
+  gfxUtils::PathFromRegion(aContext, aVisible);
+  aPattern->SetExtend(extend);
+  aContext->SetPattern(aPattern);
+  aContext->FillWithOpacity(aOpacity);
 
   
   aPattern->SetExtend(extend);
@@ -2629,7 +2606,7 @@ BasicShadowableImageLayer::Paint(gfxContext* aContext)
   tmpCtx->SetOperator(gfxContext::OPERATOR_SOURCE);
   PaintContext(pat,
                nsIntRegion(nsIntRect(0, 0, mSize.width, mSize.height)),
-               nsnull, 1.0, tmpCtx);
+               1.0, tmpCtx);
 
   BasicManager()->PaintedImage(BasicManager()->Hold(this),
                                mBackBuffer);
@@ -3077,12 +3054,9 @@ BasicShadowImageLayer::Paint(gfxContext* aContext)
 
   
   
-  
-  const nsIntRect* tileSrcRect = GetTileSourceRect();
   AutoSetOperator setOperator(aContext, GetOperator());
   BasicImageLayer::PaintContext(pat,
-                                tileSrcRect ? GetEffectiveVisibleRegion() : nsIntRegion(nsIntRect(0, 0, mSize.width, mSize.height)),
-                                tileSrcRect,
+                                nsIntRegion(nsIntRect(0, 0, mSize.width, mSize.height)),
                                 GetEffectiveOpacity(), aContext);
 }
 
