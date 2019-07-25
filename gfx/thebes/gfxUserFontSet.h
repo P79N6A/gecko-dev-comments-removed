@@ -172,11 +172,13 @@ public:
     
     
     
-    void AddFontFace(const nsAString& aFamilyName, 
-                     const nsTArray<gfxFontFaceSrc>& aFontFaceSrcList, 
-                     PRUint32 aWeight = 0, 
-                     PRUint32 aStretch = 0, 
-                     PRUint32 aItalicStyle = 0, 
+    void AddFontFace(const nsAString& aFamilyName,
+                     const nsTArray<gfxFontFaceSrc>& aFontFaceSrcList,
+                     PRUint32 aWeight,
+                     PRUint32 aStretch,
+                     PRUint32 aItalicStyle,
+                     const nsString& aFeatureSettings,
+                     const nsString& aLanguageOverride,
                      gfxSparseBitSet *aUnicodeRanges = nsnull);
 
     
@@ -234,11 +236,13 @@ class gfxProxyFontEntry : public gfxFontEntry {
     friend class gfxUserFontSet;
 
 public:
-    gfxProxyFontEntry(const nsTArray<gfxFontFaceSrc>& aFontFaceSrcList, 
+    gfxProxyFontEntry(const nsTArray<gfxFontFaceSrc>& aFontFaceSrcList,
                       gfxMixedFontFamily *aFamily,
-                      PRUint32 aWeight, 
-                      PRUint32 aStretch, 
-                      PRUint32 aItalicStyle, 
+                      PRUint32 aWeight,
+                      PRUint32 aStretch,
+                      PRUint32 aItalicStyle,
+                      const nsTArray<gfxFontFeature> *aFeatureSettings,
+                      PRUint32 aLanguageOverride,
                       gfxSparseBitSet *aUnicodeRanges);
 
     virtual ~gfxProxyFontEntry();

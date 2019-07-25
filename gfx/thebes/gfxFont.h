@@ -85,14 +85,42 @@ typedef struct _hb_blob_t hb_blob_t;
 
 #define FONT_MAX_SIZE                  2000.0
 
+#define NO_FONT_LANGUAGE_OVERRIDE      0
+
+
+struct THEBES_API gfxFontFeature {
+    PRUint32 mTag; 
+    PRUint32 mValue; 
+                     
+};
+
+inline PRBool
+operator<(const gfxFontFeature& a, const gfxFontFeature& b)
+{
+    return (a.mTag < b.mTag) || ((a.mTag == b.mTag) && (a.mValue < b.mValue));
+}
+
+inline PRBool
+operator==(const gfxFontFeature& a, const gfxFontFeature& b)
+{
+    return (a.mTag == b.mTag) && (a.mValue == b.mValue);
+}
+
+
 struct THEBES_API gfxFontStyle {
     gfxFontStyle();
     gfxFontStyle(PRUint8 aStyle, PRUint16 aWeight, PRInt16 aStretch,
                  gfxFloat aSize, nsIAtom *aLanguage,
                  float aSizeAdjust, PRPackedBool aSystemFont,
                  PRPackedBool aFamilyNameQuirks,
-                 PRPackedBool aPrinterFont);
+                 PRPackedBool aPrinterFont,
+                 const nsString& aFeatureSettings,
+                 const nsString& aLanguageOverride);
     gfxFontStyle(const gfxFontStyle& aStyle);
+
+    ~gfxFontStyle() {
+        delete featureSettings;
+    }
 
     
     PRUint8 style : 7;
@@ -124,13 +152,30 @@ struct THEBES_API gfxFontStyle {
     gfxFloat size;
 
     
+    
+    
+    
+    float sizeAdjust;
+
+    
+    
+    
     nsIAtom *language;
 
     
     
     
     
-    float sizeAdjust;
+    
+    
+    
+    
+    
+    
+    PRUint32 languageOverride;
+
+    
+    nsTArray<gfxFontFeature> *featureSettings;
 
     
     
@@ -158,8 +203,17 @@ struct THEBES_API gfxFontStyle {
             (weight == other.weight) &&
             (stretch == other.stretch) &&
             (language == other.language) &&
-            (sizeAdjust == other.sizeAdjust);
+            (sizeAdjust == other.sizeAdjust) &&
+            ((!featureSettings && !other.featureSettings) ||
+             (featureSettings && other.featureSettings &&
+              (*featureSettings == *other.featureSettings))) &&
+            (languageOverride == other.languageOverride);
     }
+
+    static void ParseFontFeatureSettings(const nsString& aFeatureString,
+                                         nsTArray<gfxFontFeature>& aFeatures);
+
+    static PRUint32 ParseFontLanguageOverride(const nsString& aLangTag);
 };
 
 class gfxFontEntry {
@@ -178,6 +232,8 @@ public:
         mCmapInitialized(PR_FALSE),
         mUVSOffset(0), mUVSData(nsnull),
         mUserFontData(nsnull),
+        mFeatureSettings(nsnull),
+        mLanguageOverride(NO_FONT_LANGUAGE_OVERRIDE),
         mFamily(aFamily)
     { }
 
@@ -265,6 +321,9 @@ public:
     nsAutoArrayPtr<PRUint8> mUVSData;
     gfxUserFontData* mUserFontData;
 
+    nsTArray<gfxFontFeature> *mFeatureSettings;
+    PRUint32         mLanguageOverride;
+
 protected:
     friend class gfxPlatformFontList;
     friend class gfxMacPlatformFontList;
@@ -285,6 +344,8 @@ protected:
         mCmapInitialized(PR_FALSE),
         mUVSOffset(0), mUVSData(nsnull),
         mUserFontData(nsnull),
+        mFeatureSettings(nsnull),
+        mLanguageOverride(NO_FONT_LANGUAGE_OVERRIDE),
         mFamily(nsnull)
     { }
 
@@ -545,7 +606,7 @@ public:
 
     
     
-    already_AddRefed<gfxFont> Lookup(const nsAString &aName,
+    already_AddRefed<gfxFont> Lookup(const gfxFontEntry *aFontEntry,
                                      const gfxFontStyle *aFontGroup);
     
     
@@ -576,10 +637,10 @@ protected:
     static gfxFontCache *gGlobalCache;
 
     struct Key {
-        const nsAString&    mString;
+        const gfxFontEntry* mFontEntry;
         const gfxFontStyle* mStyle;
-        Key(const nsAString& aString, const gfxFontStyle* aStyle)
-            : mString(aString), mStyle(aStyle) {}
+        Key(const gfxFontEntry* aFontEntry, const gfxFontStyle* aStyle)
+            : mFontEntry(aFontEntry), mStyle(aStyle) {}
     };
 
     class HashEntry : public PLDHashEntryHdr {
@@ -596,7 +657,7 @@ protected:
         PRBool KeyEquals(const KeyTypePointer aKey) const;
         static KeyTypePointer KeyToPointer(KeyType aKey) { return &aKey; }
         static PLDHashNumber HashKey(const KeyTypePointer aKey) {
-            return HashString(aKey->mString) ^ aKey->mStyle->Hash();
+            return NS_PTR_TO_INT32(aKey->mFontEntry) ^ aKey->mStyle->Hash();
         }
         enum { ALLOW_MEMMOVE = PR_TRUE };
 
