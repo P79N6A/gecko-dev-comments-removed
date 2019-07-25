@@ -2314,7 +2314,7 @@ SetJumpOffsetAt(BytecodeEmitter *bce, ptrdiff_t off)
 
 
 
-moz_NEVER_INLINE static JSBool
+MOZ_NEVER_INLINE static JSBool
 EmitSwitch(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 {
     JSOp switchOp;
