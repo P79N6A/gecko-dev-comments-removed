@@ -245,6 +245,7 @@ public:
     
     gfxMatrix residual;
     gfx3DMatrix idealTransform = GetLocalTransform()*aTransformToSurface;
+    idealTransform.ProjectTo2D();
 
     if (!idealTransform.CanDraw2D()) {
       mEffectiveTransform = idealTransform;
@@ -763,7 +764,9 @@ BasicThebesLayer::PaintThebes(gfxContext* aContext,
   if (BasicManager()->IsTransactionIncomplete())
     return;
 
-  if (!IsHidden()) {
+  gfxRect clipExtents;
+  clipExtents = aContext->GetClipExtents();
+  if (!IsHidden() && !clipExtents.IsEmpty()) {
     AutoSetOperator setOperator(aContext, GetOperator());
     mBuffer.DrawTo(this, aContext, opacity);
   }
@@ -1946,16 +1949,22 @@ BasicLayerManager::PaintLayer(gfxContext* aTarget,
       NS_ABORT_IF_FALSE(untransformedSurface, 
                         "We should always allocate an untransformed surface with 3d transforms!");
 
-      gfxPoint offset;
-      bool dontBlit = needsClipToVisibleRegion || mTransactionIncomplete || 
-                        aLayer->GetEffectiveOpacity() != 1.0f;
-      nsRefPtr<gfxASurface> result = 
-        Transform3D(untransformedSurface, aTarget, bounds,
-                    effectiveTransform, offset, dontBlit);
+      
+      
+      gfxRect clipExtents;
+      clipExtents = aTarget->GetClipExtents();
+      if (!clipExtents.IsEmpty()) {
+        gfxPoint offset;
+        bool dontBlit = needsClipToVisibleRegion || mTransactionIncomplete ||
+                          aLayer->GetEffectiveOpacity() != 1.0f;
+        nsRefPtr<gfxASurface> result =
+          Transform3D(untransformedSurface, aTarget, bounds,
+                      effectiveTransform, offset, dontBlit);
 
-      blitComplete = !result;
-      if (result) {
-        aTarget->SetSource(result, offset);
+        blitComplete = !result;
+        if (result) {
+          aTarget->SetSource(result, offset);
+        }
       }
     }
     
@@ -2932,6 +2941,7 @@ public:
     
     gfxMatrix residual;
     gfx3DMatrix idealTransform = GetLocalTransform()*aTransformToSurface;
+    idealTransform.ProjectTo2D();
 
     if (!idealTransform.CanDraw2D()) {
       mEffectiveTransform = idealTransform;

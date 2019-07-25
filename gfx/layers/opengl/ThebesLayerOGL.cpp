@@ -593,16 +593,32 @@ BasicBufferOGL::BeginPaint(ContentType aContentType,
         dstRect.MoveBy(- destBufferRect.TopLeft());
         
         if (mBufferRotation != nsIntPoint(0, 0)) {
-        
-        
-        
-        
           
-        
-        
+          
+          
+          
+
+          
+          
+
           nsIntPoint rotationPoint(mBufferRect.x + mBufferRect.width - mBufferRotation.x, 
                                    mBufferRect.y + mBufferRect.height - mBufferRotation.y);
 
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
           
           nsIntRect bottom(mBufferRect.x, rotationPoint.y, mBufferRect.width, mBufferRotation.y);
           nsIntRect topright(rotationPoint.x, mBufferRect.y, mBufferRotation.x, rotationPoint.y - mBufferRect.y);

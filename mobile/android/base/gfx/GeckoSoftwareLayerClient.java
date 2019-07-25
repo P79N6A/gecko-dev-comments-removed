@@ -194,21 +194,18 @@ public class GeckoSoftwareLayerClient extends GeckoLayerClient {
             mBufferSize = new IntSize(width, height);
 
             
-            if (!(mTileLayer instanceof MultiTileLayer)) {
-                return true;
-            }
+            if (mTileLayer instanceof MultiTileLayer) {
+                int bpp = CairoUtils.bitsPerPixelForCairoFormat(mFormat) / 8;
+                int size = mBufferSize.getArea() * bpp;
+                if (mBuffer == null || mBuffer.capacity() != size) {
+                    
+                    if (mBuffer != null) {
+                        GeckoAppShell.freeDirectBuffer(mBuffer);
+                        mBuffer = null;
+                    }
 
-            
-            int bpp = CairoUtils.bitsPerPixelForCairoFormat(mFormat) / 8;
-            int size = mBufferSize.getArea() * bpp;
-            if (mBuffer == null || mBuffer.capacity() != size) {
-                
-                if (mBuffer != null) {
-                    GeckoAppShell.freeDirectBuffer(mBuffer);
-                    mBuffer = null;
+                    mBuffer = GeckoAppShell.allocateDirectBuffer(size);
                 }
-
-                mBuffer = GeckoAppShell.allocateDirectBuffer(size);
             }
         }
 
@@ -324,7 +321,6 @@ public class GeckoSoftwareLayerClient extends GeckoLayerClient {
             throw new RuntimeException("Screen size of " + mScreenSize +
                                        " larger than maximum texture size of " + maxSize);
         }
-
         
         
         return new IntSize(Math.min(maxSize, IntSize.nextPowerOfTwo(mScreenSize.width +
@@ -338,5 +334,6 @@ public class GeckoSoftwareLayerClient extends GeckoLayerClient {
         
         return !mHasDirectTexture ? TILE_SIZE : new IntSize(0, 0);
     }
+
 }
 
