@@ -1924,18 +1924,19 @@ namespace nanojit
             
             
             
-            LInsImmI = 0,
-            LInsImmQ = 1,   
-            LInsImmD = 2,
-            LIns1    = 3,
-            LIns2    = 4,
-            LIns3    = 5,
-            LInsCall = 6,
+            NLImmISmall = 0,
+            NLImmILarge = 1,
+            NLImmQ      = 2,   
+            NLImmD      = 3,
+            NL1         = 4,
+            NL2         = 5,
+            NL3         = 6,
+            NLCall      = 7,
 
-            LInsFirst = 0,
-            LInsLast = 6,
+            NLFirst = 0,
+            NLLast = 7,
             
-            LInsInvalid = 7
+            NLInvalid = 8
         };
         #define nextNLKind(kind)  NLKind(kind+1)
 
@@ -1948,11 +1949,11 @@ namespace nanojit
         
         
         
-        LIns**      m_listNL[LInsLast + 1];
-        uint32_t    m_capNL[ LInsLast + 1];
-        uint32_t    m_usedNL[LInsLast + 1];
+        LIns**      m_listNL[NLLast + 1];
+        uint32_t    m_capNL[ NLLast + 1];
+        uint32_t    m_usedNL[NLLast + 1];
         typedef uint32_t (CseFilter::*find_t)(LIns*);
-        find_t      m_findNL[LInsLast + 1];
+        find_t      m_findNL[NLLast + 1];
 
         
         
@@ -2021,7 +2022,8 @@ namespace nanojit
         static uint32_t hashCall(const CallInfo *call, uint32_t argc, LIns* args[]);
 
         
-        LIns* findImmI(int32_t a, uint32_t &k);
+        LIns* findImmISmall(int32_t a, uint32_t &k);
+        LIns* findImmILarge(int32_t a, uint32_t &k);
 #ifdef NANOJIT_64BIT
         LIns* findImmQ(uint64_t a, uint32_t &k);
 #endif
@@ -2036,7 +2038,8 @@ namespace nanojit
         
         
         
-        uint32_t findImmI(LIns* ins);
+        uint32_t findImmISmall(LIns* ins);
+        uint32_t findImmILarge(LIns* ins);
 #ifdef NANOJIT_64BIT
         uint32_t findImmQ(LIns* ins);
 #endif
@@ -2050,6 +2053,7 @@ namespace nanojit
         void growNL(NLKind kind);
         void growL(CseAcc cseAcc);
 
+        void addNLImmISmall(LIns* ins, uint32_t k);
         
         void addNL(NLKind kind, LIns* ins, uint32_t k);
         void addL(LIns* ins, uint32_t k);
@@ -2096,7 +2100,6 @@ namespace nanojit
             verbose_only(LInsPrinter* printer;)
 
             int32_t insCount();
-            size_t  byteCount();
 
             
             struct
@@ -2123,7 +2126,6 @@ namespace nanojit
             Allocator&  _allocator;
             uintptr_t   _unused;   
             uintptr_t   _limit;    
-            size_t      _bytesAllocated;
     };
 
     class LirBufWriter : public LirWriter
