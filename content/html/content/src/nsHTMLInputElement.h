@@ -53,6 +53,8 @@
 #include "nsIFile.h"
 
 class nsDOMFileList;
+class nsIFilePicker;
+class nsIMIMEInfo;
 class nsIRadioGroupContainer;
 class nsIRadioGroupVisitor;
 class nsIRadioVisitor;
@@ -272,6 +274,23 @@ public:
 
 
   void     UpdateValueMissingValidityStateForRadio(bool aIgnoreSelf);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  void SetFilePickerFiltersFromAccept(nsIFilePicker* filePicker);
 
   
 
@@ -604,6 +623,34 @@ protected:
   bool                     mInhibitRestoration  : 1;
   bool                     mCanShowValidUI      : 1;
   bool                     mCanShowInvalidUI    : 1;
+
+private:
+  struct nsFilePickerFilter {
+    nsFilePickerFilter() {}
+
+    nsFilePickerFilter(const nsString& aTitle,
+                       const nsString& aFilter,
+                       const bool aIsTrusted)
+      : mTitle(aTitle), mFilter(aFilter), mIsTrusted(aIsTrusted) {}
+
+    nsFilePickerFilter(const nsFilePickerFilter& other) {
+      mTitle = other.mTitle;
+      mFilter = other.mFilter;
+      mIsTrusted = other.mIsTrusted;
+    }
+
+    bool operator== (const nsFilePickerFilter& other) const {
+      return mFilter == other.mFilter;
+    }
+
+    nsString mTitle;
+    nsString mFilter;
+    
+    
+    
+    
+    bool mIsTrusted; 
+  };
 };
 
 #endif
