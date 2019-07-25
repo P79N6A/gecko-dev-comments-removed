@@ -77,13 +77,13 @@ var gEngineManagerDialog = {
         break;
       case "engine-changed":
         gEngineView._engineStore.reloadIcons();
+        gEngineView.invalidate();
         break;
       case "engine-removed":
       case "engine-current":
         
-        return;
+        break;
       }
-      gEngineView.invalidate();
     }
   },
 
