@@ -1237,49 +1237,47 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, PRBool aIsMove)
 
   
   
-  if (aIsMove && mPopupType == ePopupTypePanel && !mInContentShell) {
-    hFlip = vFlip = FlipStyle_None;
-  }
+  if (mInContentShell || !aIsMove || mPopupType != ePopupTypePanel) {
+    nsRect screenRect = GetConstraintRect(anchorRect, rootScreenRect);
 
-  nsRect screenRect = GetConstraintRect(anchorRect, rootScreenRect);
-
-  
-  if (!anchorRect.IntersectRect(anchorRect, screenRect)) {
-    anchorRect.width = anchorRect.height = 0;
     
-    if (anchorRect.x < screenRect.x)
-      anchorRect.x = screenRect.x;
-    if (anchorRect.XMost() > screenRect.XMost())
-      anchorRect.x = screenRect.XMost();
-    if (anchorRect.y < screenRect.y)
-      anchorRect.y = screenRect.y;
-    if (anchorRect.YMost() > screenRect.YMost())
-      anchorRect.y = screenRect.YMost();
+    if (!anchorRect.IntersectRect(anchorRect, screenRect)) {
+      anchorRect.width = anchorRect.height = 0;
+      
+      if (anchorRect.x < screenRect.x)
+        anchorRect.x = screenRect.x;
+      if (anchorRect.XMost() > screenRect.XMost())
+        anchorRect.x = screenRect.XMost();
+      if (anchorRect.y < screenRect.y)
+        anchorRect.y = screenRect.y;
+      if (anchorRect.YMost() > screenRect.YMost())
+        anchorRect.y = screenRect.YMost();
+    }
+
+    
+    if (mRect.width > screenRect.width)
+      mRect.width = screenRect.width;
+    if (mRect.height > screenRect.height)
+      mRect.height = screenRect.height;
+
+    
+    
+    
+    
+    
+    mRect.width = FlipOrResize(screenPoint.x, mRect.width, screenRect.x,
+                               screenRect.XMost(), anchorRect.x, anchorRect.XMost(),
+                               margin.left, margin.right, offsetForContextMenu, hFlip, &mHFlip);
+
+    mRect.height = FlipOrResize(screenPoint.y, mRect.height, screenRect.y,
+                                screenRect.YMost(), anchorRect.y, anchorRect.YMost(),
+                                margin.top, margin.bottom, offsetForContextMenu, vFlip, &mVFlip);
+
+    NS_ASSERTION(screenPoint.x >= screenRect.x && screenPoint.y >= screenRect.y &&
+                 screenPoint.x + mRect.width <= screenRect.XMost() &&
+                 screenPoint.y + mRect.height <= screenRect.YMost(),
+                 "Popup is offscreen");
   }
-
-  
-  if (mRect.width > screenRect.width)
-    mRect.width = screenRect.width;
-  if (mRect.height > screenRect.height)
-    mRect.height = screenRect.height;
-
-  
-  
-  
-  
-  
-  mRect.width = FlipOrResize(screenPoint.x, mRect.width, screenRect.x,
-                             screenRect.XMost(), anchorRect.x, anchorRect.XMost(),
-                             margin.left, margin.right, offsetForContextMenu, hFlip, &mHFlip);
-
-  mRect.height = FlipOrResize(screenPoint.y, mRect.height, screenRect.y,
-                              screenRect.YMost(), anchorRect.y, anchorRect.YMost(),
-                              margin.top, margin.bottom, offsetForContextMenu, vFlip, &mVFlip);
-
-  NS_ASSERTION(screenPoint.x >= screenRect.x && screenPoint.y >= screenRect.y &&
-               screenPoint.x + mRect.width <= screenRect.XMost() &&
-               screenPoint.y + mRect.height <= screenRect.YMost(),
-               "Popup is offscreen");
 
   
   
