@@ -242,7 +242,7 @@ var AddonManagerInternal = {
       Services.prefs.setCharPref(PREF_EM_LAST_APP_VERSION,
                                  Services.appinfo.version);
       Services.prefs.setIntPref(PREF_BLOCKLIST_PINGCOUNT,
-                                (appChanged === undefined ? 0 : 1));
+                                (appChanged === undefined ? 0 : -1));
     }
 
     
@@ -859,7 +859,7 @@ var AddonManagerInternal = {
         pos++;
     }
   },
-  
+
   get autoUpdateDefault() {
     try {
       return Services.prefs.getBoolPref(PREF_EM_AUTOUPDATE_DEFAULT);
@@ -1026,7 +1026,7 @@ var AddonManager = {
   SCOPE_SYSTEM: 8,
   
   SCOPE_ALL: 15,
-  
+
   
   
   AUTOUPDATE_DISABLE: 0,
@@ -1104,7 +1104,7 @@ var AddonManager = {
   removeAddonListener: function AM_removeAddonListener(aListener) {
     AddonManagerInternal.removeAddonListener(aListener);
   },
-  
+
   get autoUpdateDefault() {
     return AddonManagerInternal.autoUpdateDefault;
   }
