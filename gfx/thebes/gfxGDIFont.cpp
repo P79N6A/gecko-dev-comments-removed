@@ -271,6 +271,32 @@ gfxGDIFont::SetupCairoFont(gfxContext *aContext)
     return PR_TRUE;
 }
 
+gfxFont::RunMetrics
+gfxGDIFont::Measure(gfxTextRun *aTextRun,
+                    PRUint32 aStart, PRUint32 aEnd,
+                    BoundingBoxType aBoundingBoxType,
+                    gfxContext *aRefContext,
+                    Spacing *aSpacing)
+{
+    gfxFont::RunMetrics metrics =
+        gfxFont::Measure(aTextRun, aStart, aEnd,
+                         aBoundingBoxType, aRefContext, aSpacing);
+
+    
+    
+    
+    
+    
+    if (aBoundingBoxType == LOOSE_INK_EXTENTS &&
+        mAntialiasOption != kAntialiasNone &&
+        metrics.mBoundingBox.width > 0) {
+        metrics.mBoundingBox.x -= aTextRun->GetAppUnitsPerDevUnit();
+        metrics.mBoundingBox.width += aTextRun->GetAppUnitsPerDevUnit() * 3;
+    }
+
+    return metrics;
+}
+
 void
 gfxGDIFont::Initialize()
 {

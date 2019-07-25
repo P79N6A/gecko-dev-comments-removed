@@ -74,6 +74,13 @@ public:
     virtual PRBool SetupCairoFont(gfxContext *aContext);
 
     
+    virtual RunMetrics Measure(gfxTextRun *aTextRun,
+                               PRUint32 aStart, PRUint32 aEnd,
+                               BoundingBoxType aBoundingBoxType,
+                               gfxContext *aContextForTightBoundingBox,
+                               Spacing *aSpacing);
+
+    
     virtual gfxFont* CopyWithAntialiasOption(AntialiasOption anAAOption);
 
     virtual PRBool ProvidesGlyphWidths() { return PR_TRUE; }
