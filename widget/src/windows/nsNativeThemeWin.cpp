@@ -397,6 +397,13 @@ nsNativeThemeWin::IsMenuActive(nsIFrame *aFrame, PRUint8 aWidgetType)
   return CheckBooleanAttr(aFrame, nsWidgetAtoms::mozmenuactive);
 }
 
+
+
+
+
+
+
+
 nsresult 
 nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame, PRUint8 aWidgetType, 
                                        PRInt32& aPart, PRInt32& aState)
@@ -1776,10 +1783,28 @@ nsNativeThemeWin::ThemeNeedsComboboxDropmarker()
   return PR_TRUE;
 }
 
-nsTransparencyMode
-nsNativeThemeWin::GetWidgetTransparency(PRUint8 aWidgetType)
+nsITheme::Transparency
+nsNativeThemeWin::GetWidgetTransparency(nsIFrame* aFrame, PRUint8 aWidgetType)
 {
-  return eTransparencyOpaque;
+  HANDLE theme = GetTheme(aWidgetType);
+  
+  if (!theme)
+    return eUnknownTransparency;
+
+  PRInt32 part, state;
+  nsresult rv = GetThemePartAndState(aFrame, aWidgetType, part, state);
+  
+  NS_ENSURE_SUCCESS(rv, eUnknownTransparency);
+
+  if (part <= 0) {
+    
+    
+    return eUnknownTransparency;
+  }
+
+  if (nsUXThemeData::isThemeBackgroundPartiallyTransparent(theme, part, state))
+    return eTransparent;
+  return eOpaque;
 }
 
 
