@@ -44,6 +44,7 @@
 
 
 
+
 let Keys = { meta: false };
 
 
@@ -79,6 +80,10 @@ let UI = {
   
   
   restoredClosedTab: false,
+
+  
+  
+  _isChangingVisibility: false,
 
   
   
@@ -231,6 +236,15 @@ let UI = {
       });
 
       
+      let mm = gWindow.messageManager;
+      let callback = this._onDOMWillOpenModalDialog.bind(this);
+      mm.addMessageListener("Panorama:DOMWillOpenModalDialog", callback);
+
+      this._cleanupFunctions.push(function () {
+        mm.removeMessageListener("Panorama:DOMWillOpenModalDialog", callback);
+      });
+
+      
       this._setTabViewFrameKeyHandlers();
 
       
@@ -271,6 +285,10 @@ let UI = {
         TabItems.saveAll(true);
         self._save();
       }, false);
+
+      
+      let frameScript = "chrome://browser/content/tabview-content.js";
+      gWindow.messageManager.loadFrameScript(frameScript, true);
 
       
       this._frameInitialized = true;
@@ -476,8 +494,10 @@ let UI = {
   
   
   showTabView: function UI_showTabView(zoomOut) {
-    if (this.isTabViewVisible())
+    if (this.isTabViewVisible() || this._isChangingVisibility)
       return;
+
+    this._isChangingVisibility = true;
 
     
     this._initPageDirection();
@@ -521,6 +541,7 @@ let UI = {
         self.setActive(item);
 
         self._resize(true);
+        self._isChangingVisibility = false;
         dispatchEvent(event);
 
         
@@ -530,6 +551,7 @@ let UI = {
       });
     } else {
       self.clearActiveTab();
+      self._isChangingVisibility = false;
       dispatchEvent(event);
 
       
@@ -546,8 +568,10 @@ let UI = {
   
   
   hideTabView: function UI_hideTabView() {
-    if (!this.isTabViewVisible())
+    if (!this.isTabViewVisible() || this._isChangingVisibility)
       return;
+
+    this._isChangingVisibility = true;
 
     
     
@@ -574,6 +598,8 @@ let UI = {
     this.setTitlebarColors(false);
 #endif
     Storage.saveVisibilityData(gWindow, "false");
+
+    this._isChangingVisibility = false;
 
     let event = document.createEvent("Events");
     event.initEvent("tabviewhidden", true, false);
@@ -751,18 +777,11 @@ let UI = {
           
           
           
-          let closingUnnamedGroup = (groupItem == null &&
-              gBrowser.visibleTabs.length <= 1); 
-
-          
-          
-          
           let tabItem = tab && tab._tabViewTabItem;
           let closingBlankTabAfterRestore =
             (tabItem && tabItem.isRemovedAfterRestore);
 
-          if ((closingLastOfGroup || closingUnnamedGroup) &&
-              !closingBlankTabAfterRestore) {
+          if (closingLastOfGroup && !closingBlankTabAfterRestore) {
             
             self._closedLastVisibleTab = true;
             self.showTabView();
@@ -882,8 +901,14 @@ let UI = {
 
     
     
-    if (this.isTabViewVisible())
+    if (this.isTabViewVisible()) {
+      
+      if (tab && tab._tabViewTabItem && tab._tabViewTabItem.parent &&
+          tab._tabViewTabItem.parent.hidden)
+        tab._tabViewTabItem.parent._unhide({immediately: true});
+
       this.hideTabView();
+    }
 
     
     
@@ -915,6 +940,27 @@ let UI = {
       if (GroupItems.getActiveGroupItem())
         GroupItems._updateTabBar();
     }
+  },
+
+  
+  
+  
+  _onDOMWillOpenModalDialog: function UI__onDOMWillOpenModalDialog(cx) {
+    if (!this.isTabViewVisible())
+      return;
+
+    let index = gBrowser.browsers.indexOf(cx.target);
+    if (index == -1)
+      return;
+
+    let tab = gBrowser.tabs[index];
+
+    
+    
+    
+    
+    if (gBrowser.selectedTab == tab && this._currentTab == tab)
+      this.onTabSelect(tab);
   },
 
   
