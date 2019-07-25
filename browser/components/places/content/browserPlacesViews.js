@@ -567,6 +567,7 @@ PlacesViewBase.prototype = {
   nodeLastModifiedChanged: function() { },
   nodeKeywordChanged: function() { },
   sortingChanged: function() { },
+  batching: function() { },
   
   containerOpened: function() { },
   containerClosed: function() { },

@@ -4529,6 +4529,12 @@ nsNavHistoryResult::AddObserver(nsINavHistoryResultObserver* aObserver,
   rv = aObserver->SetResult(this);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  
+  if (mBatchInProgress) {
+    NOTIFY_RESULT_OBSERVERS(this, Batching(PR_TRUE));
+  }
+
   return NS_OK;
 }
 
@@ -4621,6 +4627,9 @@ nsNavHistoryResult::OnBeginUpdateBatch()
   mBatchInProgress = PR_TRUE;
   ENUMERATE_HISTORY_OBSERVERS(OnBeginUpdateBatch());
   ENUMERATE_ALL_BOOKMARKS_OBSERVERS(OnBeginUpdateBatch());
+
+  NOTIFY_RESULT_OBSERVERS(this, Batching(PR_TRUE));
+
   return NS_OK;
 }
 
@@ -4637,6 +4646,7 @@ nsNavHistoryResult::OnEndUpdateBatch()
     
     mBatchInProgress = PR_FALSE;
     NOTIFY_REFRESH_PARTICIPANTS();
+    NOTIFY_RESULT_OBSERVERS(this, Batching(PR_FALSE));
   }
   else {
     NS_WARNING("EndUpdateBatch without a begin");
