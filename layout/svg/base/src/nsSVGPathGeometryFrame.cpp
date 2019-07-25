@@ -170,23 +170,24 @@ nsSVGPathGeometryFrame::GetFrameForPoint(const nsPoint &aPoint)
 
   PRBool isHit = PR_FALSE;
 
-  gfxContext context(gfxPlatform::GetPlatform()->ScreenReferenceSurface());
+  nsRefPtr<gfxContext> context =
+    new gfxContext(gfxPlatform::GetPlatform()->ScreenReferenceSurface());
 
-  GeneratePath(&context);
+  GeneratePath(context);
   gfxPoint userSpacePoint =
-    context.DeviceToUser(gfxPoint(PresContext()->AppUnitsToGfxUnits(aPoint.x),
-                                  PresContext()->AppUnitsToGfxUnits(aPoint.y)));
+    context->DeviceToUser(gfxPoint(PresContext()->AppUnitsToGfxUnits(aPoint.x),
+                                   PresContext()->AppUnitsToGfxUnits(aPoint.y)));
 
   if (fillRule == NS_STYLE_FILL_RULE_EVENODD)
-    context.SetFillRule(gfxContext::FILL_RULE_EVEN_ODD);
+    context->SetFillRule(gfxContext::FILL_RULE_EVEN_ODD);
   else
-    context.SetFillRule(gfxContext::FILL_RULE_WINDING);
+    context->SetFillRule(gfxContext::FILL_RULE_WINDING);
 
   if (mask & HITTEST_MASK_FILL)
-    isHit = context.PointInFill(userSpacePoint);
+    isHit = context->PointInFill(userSpacePoint);
   if (!isHit && (mask & HITTEST_MASK_STROKE)) {
-    SetupCairoStrokeHitGeometry(&context);
-    isHit = context.PointInStroke(userSpacePoint);
+    SetupCairoStrokeHitGeometry(context);
+    isHit = context->PointInStroke(userSpacePoint);
   }
 
   if (isHit && nsSVGUtils::HitTestClip(this, aPoint))
@@ -250,12 +251,13 @@ nsSVGPathGeometryFrame::UpdateCoveredRegion()
 {
   mRect.Empty();
 
-  gfxContext context(gfxPlatform::GetPlatform()->ScreenReferenceSurface());
+  nsRefPtr<gfxContext> context =
+    new gfxContext(gfxPlatform::GetPlatform()->ScreenReferenceSurface());
 
-  GeneratePath(&context);
-  context.IdentityMatrix();
+  GeneratePath(context);
+  context->IdentityMatrix();
 
-  gfxRect extent = context.GetUserPathExtent();
+  gfxRect extent = context->GetUserPathExtent();
 
   
   
@@ -270,12 +272,12 @@ nsSVGPathGeometryFrame::UpdateCoveredRegion()
   
 
   if (HasStroke()) {
-    SetupCairoStrokeGeometry(&context);
+    SetupCairoStrokeGeometry(context);
     if (extent.Width() <= 0 && extent.Height() <= 0) {
       
       
       
-      extent = context.GetUserStrokeExtent();
+      extent = context->GetUserStrokeExtent();
       extent.pos.x += extent.size.width / 2;
       extent.pos.y += extent.size.height / 2;
       extent.size.width = 0;
@@ -362,10 +364,11 @@ nsSVGPathGeometryFrame::GetBBoxContribution(const gfxMatrix &aToBBoxUserspace)
     
     return gfxRect(0.0, 0.0, 0.0, 0.0);
   }
-  gfxContext context(gfxPlatform::GetPlatform()->ScreenReferenceSurface());
-  GeneratePath(&context, &aToBBoxUserspace);
-  context.IdentityMatrix();
-  return context.GetUserPathExtent();
+  nsRefPtr<gfxContext> context =
+    new gfxContext(gfxPlatform::GetPlatform()->ScreenReferenceSurface());
+  GeneratePath(context, &aToBBoxUserspace);
+  context->IdentityMatrix();
+  return context->GetUserPathExtent();
 }
 
 
