@@ -1109,13 +1109,9 @@ RuleProcessorData::ContentState()
 {
   if (!mGotContentState) {
     mGotContentState = PR_TRUE;
-    mContentState = 0;
-    if (mPresContext) {
-      mPresContext->EventStateManager()->GetContentState(mElement,
-                                                         mContentState);
-    } else {
-      mContentState = mElement->IntrinsicState();
-    }
+    mContentState = mPresContext ?
+      mPresContext->EventStateManager()->GetContentState(mElement) :
+      mElement->IntrinsicState();
 
     
     
