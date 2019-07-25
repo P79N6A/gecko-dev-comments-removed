@@ -422,8 +422,6 @@ pref("privacy.sanitize.migrateFx3Prefs",    false);
 
 pref("network.proxy.share_proxy_settings",  false); 
 
-pref("network.cookie.cookieBehavior", 0); 
-
 
 pref("intl.accept_languages", "chrome://global/locale/intl.properties");
 pref("intl.charsetmenu.browser.static", "chrome://global/locale/intl.properties");
