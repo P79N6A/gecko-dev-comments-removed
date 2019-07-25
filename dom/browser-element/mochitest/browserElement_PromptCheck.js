@@ -8,8 +8,8 @@
 
 SimpleTest.waitForExplicitFinish();
 
-browserElementTestHelpers.setEnabledPref(true);
-browserElementTestHelpers.addToWhitelist();
+browserFrameHelpers.setEnabledPref(true);
+browserFrameHelpers.addToWhitelist();
 
 
 

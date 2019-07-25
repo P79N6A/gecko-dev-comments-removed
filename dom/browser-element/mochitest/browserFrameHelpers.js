@@ -2,7 +2,7 @@
 
 
 
-const browserElementTestHelpers = {
+const browserFrameHelpers = {
   _getBoolPref: function(pref) {
     try {
       return SpecialPowers.getBoolPref(pref);
@@ -111,14 +111,14 @@ const browserElementTestHelpers = {
                 '/file_focus.html',
 };
 
-browserElementTestHelpers.origEnabledPref = browserElementTestHelpers.getEnabledPref();
-browserElementTestHelpers.origWhitelistPref = browserElementTestHelpers.getWhitelistPref();
-browserElementTestHelpers.origOOPDisabledPref = browserElementTestHelpers.getOOPDisabledPref();
-browserElementTestHelpers.origOOPByDefaultPref = browserElementTestHelpers.getOOPByDefaultPref();
-browserElementTestHelpers.origPageThumbsEnabledPref = browserElementTestHelpers.getPageThumbsEnabledPref();
+browserFrameHelpers.origEnabledPref = browserFrameHelpers.getEnabledPref();
+browserFrameHelpers.origWhitelistPref = browserFrameHelpers.getWhitelistPref();
+browserFrameHelpers.origOOPDisabledPref = browserFrameHelpers.getOOPDisabledPref();
+browserFrameHelpers.origOOPByDefaultPref = browserFrameHelpers.getOOPByDefaultPref();
+browserFrameHelpers.origPageThumbsEnabledPref = browserFrameHelpers.getPageThumbsEnabledPref();
 
 
-browserElementTestHelpers.setPageThumbsEnabledPref(false);
+browserFrameHelpers.setPageThumbsEnabledPref(false);
 
 
 var oop;
@@ -130,9 +130,9 @@ else {
   oop = true;
 }
 
-browserElementTestHelpers.setOOPByDefaultPref(oop);
-browserElementTestHelpers.setOOPDisabledPref(false);
+browserFrameHelpers.setOOPByDefaultPref(oop);
+browserFrameHelpers.setOOPDisabledPref(false);
 
 addEventListener('unload', function() {
-  browserElementTestHelpers.restoreOriginalPrefs();
+  browserFrameHelpers.restoreOriginalPrefs();
 });
