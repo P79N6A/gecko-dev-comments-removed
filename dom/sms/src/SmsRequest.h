@@ -51,6 +51,8 @@ class SmsRequest : public nsIDOMMozSmsRequest
                  , public nsDOMEventTargetWrapperCache
 {
 public:
+  friend class SmsRequestManager;
+
   enum ErrorType {
     eNoError = 0,
     eInternalError,
