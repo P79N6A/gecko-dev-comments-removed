@@ -512,11 +512,15 @@ inline bool TreeContext::needStrictChecks() {
     return parser->context->hasStrictOption() || inStrictMode();
 }
 
+namespace frontend {
+
 bool
 SetStaticLevel(TreeContext *tc, uintN staticLevel);
 
 bool
 GenerateBlockId(TreeContext *tc, uint32& blockid);
+
+} 
 
 struct JumpTarget;
 
@@ -770,46 +774,46 @@ TreeContext::asCodeGenerator()
     return static_cast<CodeGenerator *>(this);
 }
 
-} 
+namespace frontend {
 
 
 
 
 ptrdiff_t
-js_Emit1(JSContext *cx, js::CodeGenerator *cg, JSOp op);
+Emit1(JSContext *cx, CodeGenerator *cg, JSOp op);
 
 
 
 
 ptrdiff_t
-js_Emit2(JSContext *cx, js::CodeGenerator *cg, JSOp op, jsbytecode op1);
+Emit2(JSContext *cx, CodeGenerator *cg, JSOp op, jsbytecode op1);
 
 
 
 
 ptrdiff_t
-js_Emit3(JSContext *cx, js::CodeGenerator *cg, JSOp op, jsbytecode op1,
+Emit3(JSContext *cx, CodeGenerator *cg, JSOp op, jsbytecode op1,
          jsbytecode op2);
 
 
 
 
 ptrdiff_t
-js_Emit5(JSContext *cx, js::CodeGenerator *cg, JSOp op, uint16 op1,
+Emit5(JSContext *cx, CodeGenerator *cg, JSOp op, uint16 op1,
          uint16 op2);
 
 
 
 
 ptrdiff_t
-js_EmitN(JSContext *cx, js::CodeGenerator *cg, JSOp op, size_t extra);
+EmitN(JSContext *cx, CodeGenerator *cg, JSOp op, size_t extra);
 
 
 
 
 #define CHECK_AND_SET_JUMP_OFFSET_CUSTOM(cx,cg,pc,off,BAD_EXIT)               \
     JS_BEGIN_MACRO                                                            \
-        if (!js_SetJumpOffset(cx, cg, pc, off)) {                             \
+        if (!SetJumpOffset(cx, cg, pc, off)) {                             \
             BAD_EXIT;                                                         \
         }                                                                     \
     JS_END_MACRO
@@ -825,28 +829,28 @@ js_EmitN(JSContext *cx, js::CodeGenerator *cg, JSOp op, size_t extra);
     CHECK_AND_SET_JUMP_OFFSET_AT_CUSTOM(cx, cg, off, return JS_FALSE)
 
 JSBool
-js_SetJumpOffset(JSContext *cx, js::CodeGenerator *cg, jsbytecode *pc, ptrdiff_t off);
+SetJumpOffset(JSContext *cx, CodeGenerator *cg, jsbytecode *pc, ptrdiff_t off);
 
 
 
 
 void
-js_PushStatement(js::TreeContext *tc, js::StmtInfo *stmt, js::StmtType type, ptrdiff_t top);
+PushStatement(TreeContext *tc, StmtInfo *stmt, StmtType type, ptrdiff_t top);
 
-
-
-
-
-
-void
-js_PushBlockScope(js::TreeContext *tc, js::StmtInfo *stmt, js::ObjectBox *blockBox, ptrdiff_t top);
 
 
 
 
 
 void
-js_PopStatement(js::TreeContext *tc);
+PushBlockScope(TreeContext *tc, StmtInfo *stmt, ObjectBox *blockBox, ptrdiff_t top);
+
+
+
+
+
+void
+PopStatementTC(TreeContext *tc);
 
 
 
@@ -854,7 +858,7 @@ js_PopStatement(js::TreeContext *tc);
 
 
 JSBool
-js_PopStatementCG(JSContext *cx, js::CodeGenerator *cg);
+PopStatementCG(JSContext *cx, CodeGenerator *cg);
 
 
 
@@ -869,8 +873,7 @@ js_PopStatementCG(JSContext *cx, js::CodeGenerator *cg);
 
 
 JSBool
-js_DefineCompileTimeConstant(JSContext *cx, js::CodeGenerator *cg, JSAtom *atom,
-                             js::ParseNode *pn);
+DefineCompileTimeConstant(JSContext *cx, CodeGenerator *cg, JSAtom *atom, ParseNode *pn);
 
 
 
@@ -886,22 +889,22 @@ js_DefineCompileTimeConstant(JSContext *cx, js::CodeGenerator *cg, JSAtom *atom,
 
 
 
-js::StmtInfo *
-js_LexicalLookup(js::TreeContext *tc, JSAtom *atom, jsint *slotp, js::StmtInfo *stmt = NULL);
-
-
-
-
-JSBool
-js_EmitTree(JSContext *cx, js::CodeGenerator *cg, js::ParseNode *pn);
+StmtInfo *
+LexicalLookup(TreeContext *tc, JSAtom *atom, jsint *slotp, StmtInfo *stmt = NULL);
 
 
 
 
 JSBool
-js_EmitFunctionScript(JSContext *cx, js::CodeGenerator *cg, js::ParseNode *body);
+EmitTree(JSContext *cx, CodeGenerator *cg, ParseNode *pn);
 
-namespace js {
+
+
+
+JSBool
+EmitFunctionScript(JSContext *cx, CodeGenerator *cg, ParseNode *body);
+
+} 
 
 
 
@@ -984,8 +987,6 @@ enum SrcNoteType {
     SRC_XDELTA      = 24        
 };
 
-} 
-
 
 
 
@@ -1040,17 +1041,6 @@ enum SrcNoteType {
 #define SN_3BYTE_OFFSET_FLAG    0x80
 #define SN_3BYTE_OFFSET_MASK    0x7f
 
-typedef struct JSSrcNoteSpec {
-    const char      *name;      
-    int8            arity;      
-    uint8           offsetBias; 
-    int8            isSpanDep;  
-
-} JSSrcNoteSpec;
-
-extern JS_FRIEND_DATA(JSSrcNoteSpec) js_SrcNoteSpec[];
-extern JS_FRIEND_API(uintN)          js_SrcNoteLength(jssrcnote *sn);
-
 #define SN_LENGTH(sn)           ((js_SrcNoteSpec[SN_TYPE(sn)].arity == 0) ? 1 \
                                  : js_SrcNoteLength(sn))
 #define SN_NEXT(sn)             ((sn) + SN_LENGTH(sn))
@@ -1059,37 +1049,32 @@ extern JS_FRIEND_API(uintN)          js_SrcNoteLength(jssrcnote *sn);
 #define SN_MAKE_TERMINATOR(sn)  (*(sn) = SRC_NULL)
 #define SN_IS_TERMINATOR(sn)    (*(sn) == SRC_NULL)
 
+namespace frontend {
 
 
 
 
 
 
-intN
-js_NewSrcNote(JSContext *cx, js::CodeGenerator *cg, js::SrcNoteType type);
-
-intN
-js_NewSrcNote2(JSContext *cx, js::CodeGenerator *cg, js::SrcNoteType type, ptrdiff_t offset);
 
 intN
-js_NewSrcNote3(JSContext *cx, js::CodeGenerator *cg, js::SrcNoteType type, ptrdiff_t offset1,
+NewSrcNote(JSContext *cx, CodeGenerator *cg, SrcNoteType type);
+
+intN
+NewSrcNote2(JSContext *cx, CodeGenerator *cg, SrcNoteType type, ptrdiff_t offset);
+
+intN
+NewSrcNote3(JSContext *cx, CodeGenerator *cg, SrcNoteType type, ptrdiff_t offset1,
                ptrdiff_t offset2);
 
 
 
 
 jssrcnote *
-js_AddToSrcNoteDelta(JSContext *cx, js::CodeGenerator *cg, jssrcnote *sn, ptrdiff_t delta);
-
-
-
-
-extern JS_FRIEND_API(ptrdiff_t)
-js_GetSrcNoteOffset(jssrcnote *sn, uintN which);
+AddToSrcNoteDelta(JSContext *cx, CodeGenerator *cg, jssrcnote *sn, ptrdiff_t delta);
 
 JSBool
-js_SetSrcNoteOffset(JSContext *cx, js::CodeGenerator *cg, uintN index, uintN which,
-                    ptrdiff_t offset);
+SetSrcNoteOffset(JSContext *cx, CodeGenerator *cg, uintN index, uintN which, ptrdiff_t offset);
 
 
 
@@ -1123,9 +1108,29 @@ js_SetSrcNoteOffset(JSContext *cx, js::CodeGenerator *cg, uintN index, uintN whi
     JS_END_MACRO
 
 JSBool
-js_FinishTakingSrcNotes(JSContext *cx, js::CodeGenerator *cg, jssrcnote *notes);
+FinishTakingSrcNotes(JSContext *cx, CodeGenerator *cg, jssrcnote *notes);
 
 void
-js_FinishTakingTryNotes(js::CodeGenerator *cg, JSTryNoteArray *array);
+FinishTakingTryNotes(CodeGenerator *cg, JSTryNoteArray *array);
+
+} 
+} 
+
+struct JSSrcNoteSpec {
+    const char      *name;      
+    int8            arity;      
+    uint8           offsetBias; 
+    int8            isSpanDep;  
+
+};
+
+extern JS_FRIEND_DATA(JSSrcNoteSpec)  js_SrcNoteSpec[];
+extern JS_FRIEND_API(uintN)         js_SrcNoteLength(jssrcnote *sn);
+
+
+
+
+extern JS_FRIEND_API(ptrdiff_t)
+js_GetSrcNoteOffset(jssrcnote *sn, uintN which);
 
 #endif 
