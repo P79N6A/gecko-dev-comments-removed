@@ -535,6 +535,8 @@ ExecuteRegExp(JSContext *cx, Native native, uintN argc, Value *vp)
 
     
     JSLinearString *linearInput = input->ensureLinear(cx);
+    if (!linearInput)
+        return false;
     const jschar *chars = linearInput->chars();
     size_t length = input->length();
 
