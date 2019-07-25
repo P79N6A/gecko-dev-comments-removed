@@ -48,19 +48,24 @@ import org.json.JSONObject;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.SystemClock;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.View;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public abstract class GeckoLayerClient implements GeckoEventListener {
+public abstract class GeckoLayerClient implements GeckoEventListener,
+                                                  FlexibleGLSurfaceView.Listener,
+                                                  VirtualLayer.Listener {
     private static final String LOGTAG = "GeckoLayerClient";
 
     protected LayerController mLayerController;
+    protected LayerRenderer mLayerRenderer;
 
     protected IntSize mScreenSize;
     protected IntSize mBufferSize;
@@ -92,14 +97,6 @@ public abstract class GeckoLayerClient implements GeckoEventListener {
     
     private DrawListener mDrawListener;
 
-    protected abstract boolean handleDirectTextureChange(boolean hasDirectTexture);
-    protected abstract boolean shouldDrawProceed(int tileWidth, int tileHeight);
-    protected abstract void updateLayerAfterDraw(Rect updatedRect);
-    protected abstract IntSize getBufferSize();
-    protected abstract IntSize getTileSize();
-    protected abstract void tileLayerUpdated();
-    public abstract Bitmap getBitmap();
-
     public GeckoLayerClient(Context context) {
         mScreenSize = new IntSize(0, 0);
         mBufferSize = new IntSize(0, 0);
@@ -118,6 +115,11 @@ public abstract class GeckoLayerClient implements GeckoEventListener {
         GeckoAppShell.registerGeckoEventListener("Viewport:UpdateLater", this);
 
         sendResizeEventIfNecessary();
+
+        LayerView view = layerController.getView();
+        view.setListener(this);
+
+        mLayerRenderer = new LayerRenderer(view);
     }
 
     
@@ -194,6 +196,14 @@ public abstract class GeckoLayerClient implements GeckoEventListener {
         }
 
         mTileLayer.beginTransaction(mLayerController.getView());
+
+        
+        
+        
+        if (mBufferSize.width != width || mBufferSize.height != height) {
+            mBufferSize = new IntSize(width, height);
+        }
+
         return bufferRect;
     }
 
@@ -255,27 +265,17 @@ public abstract class GeckoLayerClient implements GeckoEventListener {
     protected void sendResizeEventIfNecessary(boolean force) {
         Log.e(LOGTAG, "### sendResizeEventIfNecessary " + force);
 
-        DisplayMetrics metrics = new DisplayMetrics();
-        GeckoApp.mAppContext.getWindowManager().getDefaultDisplay().getMetrics(metrics);
-
-        
-        
-        
-        boolean screenSizeChanged = (metrics.widthPixels != mScreenSize.width ||
-                                     metrics.heightPixels != mScreenSize.height);
-        boolean viewportSizeValid = (mLayerController != null &&
-                                     mLayerController.getViewportSize().isPositive());
-        if (!(force || (screenSizeChanged && viewportSizeValid))) {
+        IntSize newSize = getBufferSize();
+        if (!force && mScreenSize != null && mScreenSize.equals(newSize)) {
             return;
         }
 
-        mScreenSize = new IntSize(metrics.widthPixels, metrics.heightPixels);
-        IntSize bufferSize = getBufferSize(), tileSize = getTileSize();
+        mScreenSize = newSize;
 
         Log.e(LOGTAG, "### Screen-size changed to " + mScreenSize);
-        GeckoEvent event = GeckoEvent.createSizeChangedEvent(bufferSize.width, bufferSize.height,
-                                                             metrics.widthPixels, metrics.heightPixels,
-                                                             tileSize.width, tileSize.height);
+        GeckoEvent event = GeckoEvent.createSizeChangedEvent(mScreenSize.width, mScreenSize.height,
+                                                             mScreenSize.width, mScreenSize.height,
+                                                             mScreenSize.width, mScreenSize.height);
         GeckoAppShell.sendEventToGecko(event);
     }
 
@@ -295,6 +295,62 @@ public abstract class GeckoLayerClient implements GeckoEventListener {
         int g = Integer.parseInt(matcher.group(2));
         int b = Integer.parseInt(matcher.group(3));
         return Color.rgb(r, g, b);
+    }
+
+    protected boolean handleDirectTextureChange(boolean hasDirectTexture) {
+        Log.e(LOGTAG, "### handleDirectTextureChange");
+        if (mTileLayer != null) {
+            return false;
+        }
+
+        Log.e(LOGTAG, "### Creating virtual layer");
+        VirtualLayer virtualLayer = new VirtualLayer();
+        virtualLayer.setListener(this);
+        virtualLayer.setSize(getBufferSize());
+        mLayerController.setRoot(virtualLayer);
+        mTileLayer = virtualLayer;
+
+        sendResizeEventIfNecessary(true);
+        return true;
+    }
+
+    protected boolean shouldDrawProceed(int tileWidth, int tileHeight) {
+        Log.e(LOGTAG, "### shouldDrawProceed");
+        
+        return true;
+    }
+
+    protected void updateLayerAfterDraw(Rect updatedRect) {
+        Log.e(LOGTAG, "### updateLayerAfterDraw");
+        
+    }
+
+    protected IntSize getBufferSize() {
+        View view = mLayerController.getView();
+        IntSize size = new IntSize(view.getWidth(), view.getHeight());
+        Log.e(LOGTAG, "### getBufferSize " + size);
+        return size;
+    }
+
+    protected IntSize getTileSize() {
+        Log.e(LOGTAG, "### getTileSize " + getBufferSize());
+        return getBufferSize();
+    }
+
+    protected void tileLayerUpdated() {
+        
+        mTileLayer.performUpdates(null);
+    }
+
+    public Bitmap getBitmap() {
+        Log.e(LOGTAG, "### getBitmap");
+        IntSize size = getBufferSize();
+        try {
+            return Bitmap.createBitmap(size.width, size.height, Bitmap.Config.RGB_565);
+        } catch (OutOfMemoryError oom) {
+            Log.e(LOGTAG, "Unable to create bitmap", oom);
+            return null;
+        }
     }
 
     public void render() {
@@ -382,6 +438,37 @@ public abstract class GeckoLayerClient implements GeckoEventListener {
 
     private void sendResizeEventIfNecessary() {
         sendResizeEventIfNecessary(false);
+    }
+
+    
+    public void renderRequested() {
+        Log.e(LOGTAG, "### Render requested, scheduling composite");
+        GeckoAppShell.scheduleComposite();
+    }
+
+    
+    public void compositionPauseRequested() {
+        Log.e(LOGTAG, "### Scheduling PauseComposition");
+        GeckoAppShell.schedulePauseComposition();
+    }
+
+    
+    public void compositionResumeRequested() {
+        Log.e(LOGTAG, "### Scheduling ResumeComposition");
+        GeckoAppShell.scheduleResumeComposition();
+    }
+
+    
+    public void surfaceChanged(int width, int height) {
+        compositionPauseRequested();
+        mLayerController.setViewportSize(new FloatSize(width, height));
+        compositionResumeRequested();
+        renderRequested();
+    }
+
+    
+    public void dimensionsChanged(Point newOrigin, float newResolution) {
+        Log.e(LOGTAG, "### dimensionsChanged " + newOrigin + " " + newResolution);
     }
 
     
