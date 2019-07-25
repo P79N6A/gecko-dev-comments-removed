@@ -69,16 +69,6 @@ class nsIURI;
 class nsPIDOMWindow;
 class nsITimer;
 
-namespace mozilla {
-namespace xpconnect {
-namespace memory {
-
-struct IterateData;
-
-} 
-} 
-} 
-
 BEGIN_WORKERS_NAMESPACE
 
 class WorkerPrivate;
