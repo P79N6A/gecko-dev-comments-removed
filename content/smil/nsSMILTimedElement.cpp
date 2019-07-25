@@ -511,7 +511,7 @@ nsSMILTimedElement::DoSampleAt(nsSMILTime aContainerTime, PRBool aEndOnly)
     case STATE_STARTUP:
       {
         nsSMILInterval firstInterval;
-        mElementState = GetNextInterval(nsnull, nsnull, firstInterval)
+        mElementState = GetNextInterval(nsnull, nsnull, nsnull, firstInterval)
          ? STATE_WAITING
          : STATE_POSTACTIVE;
         stateChanged = PR_TRUE;
@@ -558,7 +558,8 @@ nsSMILTimedElement::DoSampleAt(nsSMILTime aContainerTime, PRBool aEndOnly)
 
         if (mCurrentInterval->End()->Time() <= sampleTime) {
           nsSMILInterval newInterval;
-          mElementState = GetNextInterval(mCurrentInterval, nsnull, newInterval)
+          mElementState =
+            GetNextInterval(mCurrentInterval, nsnull, nsnull, newInterval)
             ? STATE_WAITING
             : STATE_POSTACTIVE;
           if (mClient) {
@@ -1497,6 +1498,7 @@ nsSMILTimedElement::FilterInstanceTimes(InstanceTimeList& aList)
 
 PRBool
 nsSMILTimedElement::GetNextInterval(const nsSMILInterval* aPrevInterval,
+                                    const nsSMILInterval* aReplacedInterval,
                                     const nsSMILInstanceTime* aFixedBeginTime,
                                     nsSMILInterval& aResult) const
 {
@@ -1539,19 +1541,35 @@ nsSMILTimedElement::GetNextInterval(const nsSMILInterval* aPrevInterval,
       tempBegin = new nsSMILInstanceTime(nsSMILTimeValue(0));
     } else {
       PRInt32 beginPos = 0;
-      tempBegin = GetNextGreaterOrEqual(mBeginInstances, beginAfter, beginPos);
-      if (!tempBegin || !tempBegin->Time().IsResolved()) {
-        return PR_FALSE;
-      }
+      
+      
+      
+      
+      
+      do {
+        tempBegin =
+          GetNextGreaterOrEqual(mBeginInstances, beginAfter, beginPos);
+        if (!tempBegin || !tempBegin->Time().IsResolved()) {
+          return PR_FALSE;
+        }
+      } while (aReplacedInterval &&
+               tempBegin->GetBaseTime() == aReplacedInterval->Begin());
     }
-    NS_ABORT_IF_FALSE(tempBegin && tempBegin->Time().IsResolved() && 
+    NS_ABORT_IF_FALSE(tempBegin && tempBegin->Time().IsResolved() &&
         tempBegin->Time() >= beginAfter,
         "Got a bad begin time while fetching next interval");
 
     
     {
       PRInt32 endPos = 0;
-      tempEnd = GetNextGreaterOrEqual(mEndInstances, tempBegin->Time(), endPos);
+      
+      
+      
+      do {
+        tempEnd =
+          GetNextGreaterOrEqual(mEndInstances, tempBegin->Time(), endPos);
+      } while (tempEnd && aReplacedInterval &&
+               tempEnd->GetBaseTime() == aReplacedInterval->End());
 
       
       
@@ -1817,7 +1835,8 @@ nsSMILTimedElement::UpdateCurrentInterval(PRBool aForceChangeNotice)
                                       ? mCurrentInterval->Begin()
                                       : nsnull;
   nsSMILInterval updatedInterval;
-  if (GetNextInterval(GetPreviousInterval(), beginTime, updatedInterval)) {
+  if (GetNextInterval(GetPreviousInterval(), mCurrentInterval,
+                      beginTime, updatedInterval)) {
 
     if (mElementState == STATE_POSTACTIVE) {
 
