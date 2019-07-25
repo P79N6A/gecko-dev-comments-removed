@@ -61,6 +61,7 @@ class nsIView;
 class nsIInProcessContentFrameMessageManager;
 class AutoResetInShow;
 
+#ifdef MOZ_IPC
 namespace mozilla {
 namespace dom {
 class PBrowserParent;
@@ -77,6 +78,7 @@ typedef struct _GtkWidget GtkWidget;
 #endif
 #ifdef MOZ_WIDGET_QT
 class QX11EmbedContainer;
+#endif
 #endif
 
 
@@ -165,9 +167,11 @@ class nsFrameLoader : public nsIFrameLoader,
                       public nsIContentViewManager
 {
   friend class AutoResetInShow;
+#ifdef MOZ_IPC
   typedef mozilla::dom::PBrowserParent PBrowserParent;
   typedef mozilla::dom::TabParent TabParent;
   typedef mozilla::layout::RenderFrameParent RenderFrameParent;
+#endif
 
 protected:
   nsFrameLoader(nsIContent *aOwner, PRBool aNetworkCreated);
@@ -242,6 +246,7 @@ public:
   nsIDocument* GetOwnerDoc() const
   { return mOwnerContent ? mOwnerContent->GetOwnerDoc() : nsnull; }
 
+#ifdef MOZ_IPC
   PBrowserParent* GetRemoteBrowser();
 
   
@@ -272,6 +277,7 @@ public:
   {
     mCurrentRemoteFrame = aFrame;
   }
+#endif
   nsFrameMessageManager* GetFrameMessageManager() { return mMessageManager; }
 
   nsIContent* GetOwnerContent() { return mOwnerContent; }
@@ -279,7 +285,9 @@ public:
 
 private:
 
+#ifdef MOZ_IPC
   bool ShouldUseRemoteProcess();
+#endif
 
   
 
@@ -299,11 +307,13 @@ private:
   void FireErrorEvent();
   nsresult ReallyStartLoadingInternal();
 
+#ifdef MOZ_IPC
   
   bool TryRemoteBrowser();
 
   
   bool ShowRemoteFrame(const nsIntSize& size);
+#endif
 
   nsCOMPtr<nsIDocShell> mDocShell;
   nsCOMPtr<nsIURI> mURIToLoad;
@@ -325,6 +335,7 @@ private:
   
   PRPackedBool mNetworkCreated : 1;
 
+#ifdef MOZ_IPC
   PRPackedBool mDelayRemoteDialogs : 1;
   PRPackedBool mRemoteBrowserShown : 1;
   bool mRemoteFrame;
@@ -332,6 +343,7 @@ private:
   nsCOMPtr<nsIObserver> mChildHost;
   RenderFrameParent* mCurrentRemoteFrame;
   TabParent* mRemoteBrowser;
+#endif
 
   
   

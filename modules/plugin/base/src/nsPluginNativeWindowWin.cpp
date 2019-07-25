@@ -721,6 +721,7 @@ nsresult nsPluginNativeWindowWin::SubclassAndAssociateWindow()
   }
 
   LONG_PTR style = GetWindowLongPtr(hWnd, GWL_STYLE);
+#ifdef MOZ_IPC
   
   
   
@@ -728,6 +729,9 @@ nsresult nsPluginNativeWindowWin::SubclassAndAssociateWindow()
     style &= ~WS_CLIPCHILDREN;
   else
     style |= WS_CLIPCHILDREN;
+#else
+  style |= WS_CLIPCHILDREN;
+#endif
   SetWindowLongPtr(hWnd, GWL_STYLE, style);
 
   mPluginWinProc = (WNDPROC)SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)PluginWndProc);

@@ -42,6 +42,7 @@
 #define FORCE_PR_LOG
 #endif
 
+#ifdef MOZ_IPC
 
 
 
@@ -57,6 +58,7 @@
 #endif
 #include "mozilla/net/NeckoChild.h"
 #undef LOG
+#endif 
 
 #include "plstr.h"
 #include "prlog.h"

@@ -36,6 +36,7 @@
 
 #include "nsDesktopNotification.h"
 
+#ifdef MOZ_IPC
 #include "nsContentPermissionHelper.h"
 #include "nsXULAppAPI.h"
 
@@ -43,6 +44,7 @@
 #include "TabChild.h"
 
 using namespace mozilla::dom;
+#endif
 
 
 
@@ -127,6 +129,7 @@ nsDOMDesktopNotification::nsDOMDesktopNotification(const nsAString & title,
   nsRefPtr<nsDesktopNotificationRequest> request = new nsDesktopNotificationRequest(this);
 
   
+#ifdef MOZ_IPC
   if (XRE_GetProcessType() == GeckoProcessType_Content) {
 
     
@@ -149,6 +152,7 @@ nsDOMDesktopNotification::nsDOMDesktopNotification(const nsAString & title,
     request->Sendprompt();
     return;
   }
+#endif
 
   
   NS_DispatchToMainThread(request);

@@ -71,6 +71,7 @@ public:
   
   
   
+  
   static nsAudioStream* AllocateStream();
 
   

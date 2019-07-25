@@ -474,8 +474,10 @@ private:
 protected:
 #endif 
 
+#ifdef MOZ_IPC
   static bool             IsAsyncResponseEvent(UINT aMsg, LRESULT& aResult);
   void                    IPCWindowProcHandler(UINT& msg, WPARAM& wParam, LPARAM& lParam);
+#endif 
 
   
 
@@ -549,7 +551,9 @@ protected:
   static TriStateBool   sHasBogusPopupsDropShadowOnMultiMonitor;
   static bool           HasBogusPopupsDropShadowOnMultiMonitor();
 
+#ifdef MOZ_IPC
   static PRUint32       sOOPPPluginFocusEvent;
+#endif
 
   
   

@@ -251,6 +251,7 @@ private:
   
   nsTArray<nsCString>          mTypeArray;
 
+#ifdef MOZ_IPC
   
   
   
@@ -261,6 +262,7 @@ public:
   {
     mUpdateChildProcess = PR_TRUE;
   }
+#endif
 };
 
 

@@ -38,8 +38,10 @@
 #ifndef GFX_CANVASLAYEROGL_H
 #define GFX_CANVASLAYEROGL_H
 
+#ifdef MOZ_IPC
 # include "mozilla/layers/PLayers.h"
 # include "mozilla/layers/ShadowLayers.h"
+#endif  
 
 #include "LayerManagerOGL.h"
 #include "gfxASurface.h"
@@ -87,6 +89,7 @@ protected:
   PRPackedBool mNeedsYFlip;
 };
 
+#ifdef MOZ_IPC
 
 
 
@@ -127,6 +130,7 @@ private:
 
 
 };
+#endif  
 
 } 
 } 

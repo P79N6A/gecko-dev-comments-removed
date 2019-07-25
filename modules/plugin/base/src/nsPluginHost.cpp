@@ -1741,7 +1741,11 @@ static nsresult CreateNPAPIPlugin(nsPluginTag *aPluginTag,
                                   nsNPAPIPlugin **aOutNPAPIPlugin)
 {
   
+#ifdef MOZ_IPC
   if (!nsNPAPIPlugin::RunPluginOOP(aPluginTag)) {
+#else
+  if (!aPluginTag->mLibrary) {
+#endif
     if (aPluginTag->mFullPath.IsEmpty())
       return NS_ERROR_FAILURE;
     nsCOMPtr<nsILocalFile> file = do_CreateInstance("@mozilla.org/file/local;1");
@@ -4083,6 +4087,7 @@ NS_IMETHODIMP nsPluginHost::Notify(nsITimer* timer)
   return NS_ERROR_FAILURE;
 }
 
+#ifdef MOZ_IPC
 #ifdef XP_WIN
 
 
@@ -4192,6 +4197,7 @@ nsPluginHost::PluginCrashed(nsNPAPIPlugin* aPlugin,
   CheckForDisabledWindows();
 #endif
 }
+#endif
 
 nsNPAPIPluginInstance*
 nsPluginHost::FindInstance(const char *mimetype)

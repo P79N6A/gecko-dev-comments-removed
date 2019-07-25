@@ -36,10 +36,12 @@
 
 
 
+#ifdef MOZ_IPC
 #include "base/basictypes.h"
 #include "mozilla/net/NeckoCommon.h"
 #include "mozilla/net/NeckoChild.h"
 #include "nsURLHelper.h"
+#endif
 
 #include "nsHTMLDNSPrefetch.h"
 #include "nsCOMPtr.h"
@@ -106,8 +108,10 @@ nsHTMLDNSPrefetch::Initialize()
   rv = CallGetService(kDNSServiceCID, &sDNSService);
   if (NS_FAILED(rv)) return rv;
   
+#ifdef MOZ_IPC
   if (IsNeckoChild())
     NeckoChild::InitNeckoChild();
+#endif
 
   sInitialized = PR_TRUE;
   return NS_OK;
@@ -138,6 +142,7 @@ nsHTMLDNSPrefetch::IsAllowed (nsIDocument *aDocument)
 nsresult
 nsHTMLDNSPrefetch::Prefetch(Link *aElement, PRUint16 flags)
 {
+#ifdef MOZ_IPC
   if (IsNeckoChild()) {
     
     
@@ -148,6 +153,7 @@ nsHTMLDNSPrefetch::Prefetch(Link *aElement, PRUint16 flags)
 
     return Prefetch(hostname, flags);
   }
+#endif
 
   if (!(sInitialized && sPrefetches && sDNSService && sDNSListener))
     return NS_ERROR_NOT_AVAILABLE;
@@ -176,6 +182,7 @@ nsHTMLDNSPrefetch::PrefetchHigh(Link *aElement)
 nsresult
 nsHTMLDNSPrefetch::Prefetch(nsAString &hostname, PRUint16 flags)
 {
+#ifdef MOZ_IPC
   if (IsNeckoChild()) {
     
     
@@ -185,6 +192,7 @@ nsHTMLDNSPrefetch::Prefetch(nsAString &hostname, PRUint16 flags)
     }
     return NS_OK;
   }
+#endif
 
   if (!(sInitialized && sDNSService && sPrefetches && sDNSListener))
     return NS_ERROR_NOT_AVAILABLE;

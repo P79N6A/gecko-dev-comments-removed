@@ -42,7 +42,9 @@
 #include "nsServiceManagerUtils.h"
 #include "mozilla/Services.h"
 
+#ifdef MOZ_IPC
 #include "base/message_loop.h"
+#endif
 
 
 
@@ -186,7 +188,12 @@ nsBaseAppShell::Run(void)
 
   nsIThread *thread = NS_GetCurrentThread();
 
+#ifdef MOZ_IPC
   MessageLoop::current()->Run();
+#else
+  while (!mExiting)
+    NS_ProcessNextEvent(thread);
+#endif
 
   NS_ProcessPendingEvents(thread);
 
@@ -197,9 +204,11 @@ nsBaseAppShell::Run(void)
 NS_IMETHODIMP
 nsBaseAppShell::Exit(void)
 {
+#ifdef MOZ_IPC
   if (mRunning && !mExiting) {
     MessageLoop::current()->Quit();
   }
+#endif
   mExiting = PR_TRUE;
   return NS_OK;
 }

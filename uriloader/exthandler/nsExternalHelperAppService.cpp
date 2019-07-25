@@ -46,9 +46,11 @@
 #define FORCE_PR_LOG
 #endif
 
+#ifdef MOZ_IPC
 #include "base/basictypes.h"
 #include "mozilla/dom/ContentChild.h"
 #include "nsXULAppAPI.h"
+#endif
 
 #include "nsExternalHelperAppService.h"
 #include "nsCExternalHandlerService.h"
@@ -137,12 +139,14 @@
 
 #include "nsIPrivateBrowsingService.h"
 
+#ifdef MOZ_IPC
 #include "ContentChild.h"
 #include "nsXULAppAPI.h"
 #include "nsPIDOMWindow.h"
 #include "nsIDocShellTreeOwner.h"
 #include "nsIDocShellTreeItem.h"
 #include "ExternalHelperAppChild.h"
+#endif
 
 #ifdef ANDROID
 #include "AndroidBridge.h"
@@ -702,6 +706,7 @@ NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeConte
   if (channel)
     channel->GetURI(getter_AddRefs(uri));
 
+#ifdef MOZ_IPC
   PRInt64 contentLength = GetContentLengthAsInt64(aRequest);
   if (XRE_GetProcessType() == GeckoProcessType_Content) {
     
@@ -746,6 +751,7 @@ NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeConte
 
     return NS_OK;
   }
+#endif 
 
   if (channel) {
     
@@ -985,10 +991,12 @@ nsExternalHelperAppService::LoadURI(nsIURI *aURI,
 {
   NS_ENSURE_ARG_POINTER(aURI);
 
+#ifdef MOZ_IPC
   if (XRE_GetProcessType() == GeckoProcessType_Content) {
     mozilla::dom::ContentChild::GetSingleton()->SendLoadURIExternal(aURI);
     return NS_OK;
   }
+#endif
 
   nsCAutoString spec;
   aURI->GetSpec(spec);
@@ -1651,10 +1659,12 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
     encChannel->SetApplyConversion( applyConversion );
   }
 
+#ifdef MOZ_IPC
   
   
   if (XRE_GetProcessType() == GeckoProcessType_Content)
      return NS_OK;
+#endif
 
   rv = SetUpTempFile(aChannel);
   if (NS_FAILED(rv)) {
@@ -1897,7 +1907,10 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
                 mWebProgressListener->OnStatusChange(nsnull, (type == kReadError) ? aRequest : nsnull, rv, msgText);
               }
               else
-              if (XRE_GetProcessType() == GeckoProcessType_Default) {
+#ifdef MOZ_IPC
+              if (XRE_GetProcessType() == GeckoProcessType_Default)
+#endif
+              {
                 
                 nsCOMPtr<nsIPrompt> prompter(do_GetInterface(mWindowContext));
                 nsXPIDLString title;
