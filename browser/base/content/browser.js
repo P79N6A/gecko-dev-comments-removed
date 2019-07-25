@@ -4431,21 +4431,15 @@ var XULBrowserWindow = {
         else
           elt.removeAttribute("disabled");
       });
+
+      if (gFindBarInitialized) {
+        gFindBar.close();
+
+        
+        gFindBar.getElement("highlight").checked = false;
+      }
     }
     UpdateBackForwardCommands(gBrowser.webNavigation);
-
-    if (gFindBarInitialized) {
-      if (gFindBar.findMode != gFindBar.FIND_NORMAL) {
-        
-        gFindBar.close();
-      }
-
-      
-      
-
-      
-      gFindBar.getElement("highlight").checked = false;      
-    }
 
     
     
