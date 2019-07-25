@@ -40,20 +40,16 @@
 
 using namespace mozilla::widget;
 
-PRUint32 GfxDriverInfo::allAdapterVendors = 0;
 PRInt32 GfxDriverInfo::allFeatures = 0;
 PRUint64 GfxDriverInfo::allDriverVersions = ~(PRUint64(0));
+GfxDeviceFamily* const GfxDriverInfo::allDevices = nsnull;
 
-PRUint32 GfxDriverInfo::vendorIntel = 0x8086;
-PRUint32 GfxDriverInfo::vendorNVIDIA = 0x10de;
-PRUint32 GfxDriverInfo::vendorAMD = 0x1022;
-PRUint32 GfxDriverInfo::vendorATI = 0x1002;
-
-GfxDeviceFamily GfxDriverInfo::allDevices = nsnull;
+GfxDeviceFamily* GfxDriverInfo::mDeviceFamilies[DeviceFamilyMax];
+nsAString* GfxDriverInfo::mDeviceVendors[DeviceVendorMax];
 
 GfxDriverInfo::GfxDriverInfo()
   : mOperatingSystem(DRIVER_OS_UNKNOWN),
-    mAdapterVendor(allAdapterVendors),
+    mAdapterVendor(GfxDriverInfo::GetDeviceVendor(VendorAll)),
     mDevices(allDevices),
     mDeleteDevices(false),
     mFeature(allFeatures),
@@ -64,8 +60,8 @@ GfxDriverInfo::GfxDriverInfo()
     mSuggestedVersion(nsnull)
 {}
 
-GfxDriverInfo::GfxDriverInfo(OperatingSystem os, PRUint32 vendor,
-                             GfxDeviceFamily devices,
+GfxDriverInfo::GfxDriverInfo(OperatingSystem os, nsAString& vendor,
+                             GfxDeviceFamily* devices,
                              PRInt32 feature, PRInt32 featureStatus,
                              VersionComparisonOp op,
                              PRUint64 driverVersion,
@@ -95,16 +91,9 @@ GfxDriverInfo::GfxDriverInfo(const GfxDriverInfo& aOrig)
 {
   
   
-  if (aOrig.mDeleteDevices) {
-    PRUint32 count = 0;
-    const PRUint32 *device = aOrig.mDevices;
-    while (*device) {
-      count++;
-      device++;
-    }
-
-    mDevices = new PRUint32[count + 1];
-    memcpy(mDevices, aOrig.mDevices, sizeof(PRUint32) * (count + 1));
+  if (aOrig.mDeleteDevices && aOrig.mDevices) {
+    mDevices = new GfxDeviceFamily;
+    *mDevices = *aOrig.mDevices;
   } else {
     mDevices = aOrig.mDevices;
   }
@@ -115,133 +104,150 @@ GfxDriverInfo::GfxDriverInfo(const GfxDriverInfo& aOrig)
 GfxDriverInfo::~GfxDriverInfo()
 {
   if (mDeleteDevices)
-    delete[] mDevices;
+    delete mDevices;
 }
 
-const GfxDeviceFamily GfxDriverInfo::GetDeviceFamily(DeviceFamily id)
+
+#define APPEND_DEVICE(device) APPEND_DEVICE2(#device)
+#define APPEND_DEVICE2(device) deviceFamily->AppendElement(NS_LITERAL_STRING(device))
+
+const GfxDeviceFamily* GfxDriverInfo::GetDeviceFamily(DeviceFamily id)
 {
+  
+  
+  NS_ASSERTION(id >= 0 && id < DeviceFamilyMax, "DeviceFamily id is out of range");
+
+  
+  if (mDeviceFamilies[id])
+    return mDeviceFamilies[id];
+
+  mDeviceFamilies[id] = new GfxDeviceFamily;
+  GfxDeviceFamily* deviceFamily = mDeviceFamilies[id];
+
   switch (id) {
-    case IntelGMA500: {
-      static const PRUint32 intelGMA500[] = {
-        0x8108, 
-        0x8109, 
-        0
-      };
-      return (const GfxDeviceFamily) &intelGMA500[0];
-    }
-    case IntelGMA900: {
-      static const PRUint32 intelGMA900[] = {
-        0x2582, 
-        0x2782, 
-        0x2592, 
-        0x2792, 
-        0
-      };
-      return (const GfxDeviceFamily) &intelGMA900[0];
-    }
-    case IntelGMA950: {
-      static const PRUint32 intelGMA950[] = {
-        0x2772, 
-        0x2776, 
-        0x27A2, 
-        0x27A6, 
-        0x27AE, 
-        0
-      };
-      return (const GfxDeviceFamily) &intelGMA950[0];
-    }
-    case IntelGMA3150: {
-      static const PRUint32 intelGMA3150[] = {
-        0xA001, 
-        0xA002, 
-        0xA011, 
-        0xA012, 
-        0
-      };
-      return (const GfxDeviceFamily) &intelGMA3150[0];
-    }
-    case IntelGMAX3000: {
-      static const PRUint32 intelGMAX3000[] = {
-        0x2972, 
-        0x2973, 
-        0x2982, 
-        0x2983, 
-        0x2992, 
-        0x2993, 
-        0x29A2, 
-        0x29A3, 
-        0x29B2, 
-        0x29B3, 
-        0x29C2, 
-        0x29C3, 
-        0x29D2, 
-        0x29D3, 
-        0x2A02, 
-        0x2A03, 
-        0x2A12, 
-        0x2A13, 
-        0
-      };
-      return (const GfxDeviceFamily) &intelGMAX3000[0];
-    }
-    case IntelGMAX4500HD: {
-      static const PRUint32 intelGMAX4500HD[] = {
-        0x2A42, 
-        0x2A43, 
-        0x2E42, 
-        0x2E43, 
-        0x2E92, 
-        0x2E93, 
-        0x2E32, 
-        0x2E33, 
-        0x2E22, 
-        0x2E23, 
-        0x2E12, 
-        0x2E13, 
-        0x0042, 
-        0x0046, 
-        0x0102, 
-        0x0106, 
-        0x0112, 
-        0x0116, 
-        0x0122, 
-        0x0126, 
-        0x010A, 
-        0x0080, 
-        0
-      };
-      return (const GfxDeviceFamily) &intelGMAX4500HD[0];
-    }
-    case NvidiaBlockD3D9Layers: {
+    case IntelGMA500:
+      APPEND_DEVICE(0x8108); 
+      APPEND_DEVICE(0x8109); 
+      break;
+    case IntelGMA900:
+      APPEND_DEVICE(0x2582); 
+      APPEND_DEVICE(0x2782); 
+      APPEND_DEVICE(0x2592); 
+      APPEND_DEVICE(0x2792); 
+      break;
+    case IntelGMA950:
+      APPEND_DEVICE(0x2772); 
+      APPEND_DEVICE(0x2776); 
+      APPEND_DEVICE(0x27a2); 
+      APPEND_DEVICE(0x27a6); 
+      APPEND_DEVICE(0x27ae); 
+      break;
+    case IntelGMA3150:
+      APPEND_DEVICE(0xa001); 
+      APPEND_DEVICE(0xa002); 
+      APPEND_DEVICE(0xa011); 
+      APPEND_DEVICE(0xa012); 
+      break;
+    case IntelGMAX3000:
+      APPEND_DEVICE(0x2972); 
+      APPEND_DEVICE(0x2973); 
+      APPEND_DEVICE(0x2982); 
+      APPEND_DEVICE(0x2983); 
+      APPEND_DEVICE(0x2992); 
+      APPEND_DEVICE(0x2993); 
+      APPEND_DEVICE(0x29a2); 
+      APPEND_DEVICE(0x29a3); 
+      APPEND_DEVICE(0x29b2); 
+      APPEND_DEVICE(0x29b3); 
+      APPEND_DEVICE(0x29c2); 
+      APPEND_DEVICE(0x29c3); 
+      APPEND_DEVICE(0x29d2); 
+      APPEND_DEVICE(0x29d3); 
+      APPEND_DEVICE(0x2a02); 
+      APPEND_DEVICE(0x2a03); 
+      APPEND_DEVICE(0x2a12); 
+      APPEND_DEVICE(0x2a13); 
+      break;
+    case IntelGMAX4500HD:
+      APPEND_DEVICE(0x2a42); 
+      APPEND_DEVICE(0x2a43); 
+      APPEND_DEVICE(0x2e42); 
+      APPEND_DEVICE(0x2e43); 
+      APPEND_DEVICE(0x2e92); 
+      APPEND_DEVICE(0x2e93); 
+      APPEND_DEVICE(0x2e32); 
+      APPEND_DEVICE(0x2e33); 
+      APPEND_DEVICE(0x2e22); 
+      APPEND_DEVICE(0x2e23); 
+      APPEND_DEVICE(0x2e12); 
+      APPEND_DEVICE(0x2e13); 
+      APPEND_DEVICE(0x0042); 
+      APPEND_DEVICE(0x0046); 
+      APPEND_DEVICE(0x0102); 
+      APPEND_DEVICE(0x0106); 
+      APPEND_DEVICE(0x0112); 
+      APPEND_DEVICE(0x0116); 
+      APPEND_DEVICE(0x0122); 
+      APPEND_DEVICE(0x0126); 
+      APPEND_DEVICE(0x010a); 
+      APPEND_DEVICE(0x0080); 
+      break;
+    case NvidiaBlockD3D9Layers:
       
-      static const PRUint32 nvidiaBlockD3D9Layers[] = {
-        0x00f3, 
-        0x0146, 
-        0x014f, 
-        0x0161, 
-        0x0162, 
-        0x0163, 
-        0x0164, 
-        0x0167, 
-        0x0168, 
-        0x0169, 
-        0x0222, 
-        0x0240, 
-        0x0241, 
-        0x0244, 
-        0x0245, 
-        0x0247, 
-        0x03d0, 
-        0x03d1, 
-        0x03d2, 
-        0x03d5, 
-        0
-      };
-      return (const GfxDeviceFamily) &nvidiaBlockD3D9Layers[0];
-    }
-    default:
-      NS_WARNING("Invalid device family");
+      APPEND_DEVICE(0x00f3); 
+      APPEND_DEVICE(0x0146); 
+      APPEND_DEVICE(0x014f); 
+      APPEND_DEVICE(0x0161); 
+      APPEND_DEVICE(0x0162); 
+      APPEND_DEVICE(0x0163); 
+      APPEND_DEVICE(0x0164); 
+      APPEND_DEVICE(0x0167); 
+      APPEND_DEVICE(0x0168); 
+      APPEND_DEVICE(0x0169); 
+      APPEND_DEVICE(0x0222); 
+      APPEND_DEVICE(0x0240); 
+      APPEND_DEVICE(0x0241); 
+      APPEND_DEVICE(0x0244); 
+      APPEND_DEVICE(0x0245); 
+      APPEND_DEVICE(0x0247); 
+      APPEND_DEVICE(0x03d0); 
+      APPEND_DEVICE(0x03d1); 
+      APPEND_DEVICE(0x03d2); 
+      APPEND_DEVICE(0x03d5); 
+      break;
+    
+    case DeviceFamilyMax:
+      NS_WARNING("Invalid DeviceFamily id");
+      break;
   }
 
-  return nsnull;
+  return deviceFamily;
+}
+
+
+#define DECLARE_VENDOR_ID(name, deviceId) \
+  case name: \
+    mDeviceVendors[id]->AssignLiteral(deviceId); \
+    break;
+
+const nsAString& GfxDriverInfo::GetDeviceVendor(DeviceVendor id)
+{
+  NS_ASSERTION(id >= 0 && id < DeviceVendorMax, "DeviceVendor id is out of range");
+
+  if (mDeviceVendors[id])
+    return *mDeviceVendors[id];
+
+  mDeviceVendors[id] = new nsString();
+
+  switch (id) {
+    DECLARE_VENDOR_ID(VendorAll, "");
+    DECLARE_VENDOR_ID(VendorIntel, "0x8086");
+    DECLARE_VENDOR_ID(VendorNVIDIA, "0x10de");
+    DECLARE_VENDOR_ID(VendorAMD, "0x1022");
+    DECLARE_VENDOR_ID(VendorATI, "0x1002");
+    
+    DECLARE_VENDOR_ID(DeviceVendorMax, "");
+  }
+
+  return *mDeviceVendors[id];
 }
