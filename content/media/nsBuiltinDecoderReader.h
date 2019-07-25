@@ -55,9 +55,7 @@ class nsBuiltinDecoderStateMachine;
 class nsVideoInfo {
 public:
   nsVideoInfo()
-    : mFramerate(0.0),
-      mPixelAspectRatio(1.0),
-      mCallbackPeriod(1),
+    : mPixelAspectRatio(1.0),
       mAudioRate(0),
       mAudioChannels(0),
       mFrame(0,0),
@@ -66,14 +64,7 @@ public:
   {}
 
   
-  float mFramerate;
-
-  
   float mPixelAspectRatio;
-
-  
-  
-  PRUint32 mCallbackPeriod;
 
   
   PRUint32 mAudioRate;
@@ -183,6 +174,7 @@ public:
                            ImageContainer* aContainer,
                            PRInt64 aOffset,
                            PRInt64 aTime,
+                           PRInt64 aEndTime,
                            const YCbCrBuffer &aBuffer,
                            PRBool aKeyframe,
                            PRInt64 aTimecode);
@@ -192,9 +184,10 @@ public:
   
   static VideoData* CreateDuplicate(PRInt64 aOffset,
                                     PRInt64 aTime,
+                                    PRInt64 aEndTime,
                                     PRInt64 aTimecode)
   {
-    return new VideoData(aOffset, aTime, aTimecode);
+    return new VideoData(aOffset, aTime, aEndTime, aTimecode);
   }
 
   ~VideoData()
@@ -209,6 +202,9 @@ public:
   PRInt64 mTime;
 
   
+  PRInt64 mEndTime;
+
+  
   
   PRInt64 mTimecode;
 
@@ -221,27 +217,32 @@ public:
   PRPackedBool mKeyframe;
 
 public:
-  VideoData(PRInt64 aOffset, PRInt64 aTime, PRInt64 aTimecode)
+  VideoData(PRInt64 aOffset, PRInt64 aTime, PRInt64 aEndTime, PRInt64 aTimecode)
     : mOffset(aOffset),
       mTime(aTime),
+      mEndTime(aEndTime),
       mTimecode(aTimecode),
       mDuplicate(PR_TRUE),
       mKeyframe(PR_FALSE)
   {
     MOZ_COUNT_CTOR(VideoData);
+    NS_ASSERTION(aEndTime > aTime, "Frame must start before it ends.");
   }
 
   VideoData(PRInt64 aOffset,
             PRInt64 aTime,
+            PRInt64 aEndTime,
             PRBool aKeyframe,
             PRInt64 aTimecode)
     : mOffset(aOffset),
       mTime(aTime),
+      mEndTime(aEndTime),
       mTimecode(aTimecode),
       mDuplicate(PR_FALSE),
       mKeyframe(aKeyframe)
   {
     MOZ_COUNT_CTOR(VideoData);
+    NS_ASSERTION(aEndTime > aTime, "Frame must start before it ends.");
   }
 
 };

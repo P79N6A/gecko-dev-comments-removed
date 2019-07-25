@@ -398,7 +398,7 @@ protected:
 
   
   
-  PRInt64 mVideoFrameTime;
+  PRInt64 mVideoFrameEndTime;
   
   
   

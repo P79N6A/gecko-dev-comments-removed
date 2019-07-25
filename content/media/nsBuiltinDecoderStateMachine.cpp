@@ -92,6 +92,9 @@ const unsigned AMPLE_AUDIO_MS = 2000;
 
 static const PRUint32 LOW_VIDEO_FRAMES = 1;
 
+
+static const int AUDIO_DURATION_MS = 40;
+
 nsBuiltinDecoderStateMachine::nsBuiltinDecoderStateMachine(nsBuiltinDecoder* aDecoder,
                                                            nsBuiltinDecoderReader* aReader) :
   mDecoder(aDecoder),
@@ -107,7 +110,7 @@ nsBuiltinDecoderStateMachine::nsBuiltinDecoderStateMachine(nsBuiltinDecoder* aDe
   mCurrentFrameTime(0),
   mAudioStartTime(-1),
   mAudioEndTime(-1),
-  mVideoFrameTime(-1),
+  mVideoFrameEndTime(-1),
   mVolume(1.0),
   mSeekable(PR_TRUE),
   mPositionChangeQueued(PR_FALSE),
@@ -636,7 +639,7 @@ void nsBuiltinDecoderStateMachine::ResetPlayback()
 {
   NS_ASSERTION(IsCurrentThread(mDecoder->mStateMachineThread),
                "Should be on state machine thread.");
-  mVideoFrameTime = -1;
+  mVideoFrameEndTime = -1;
   mAudioStartTime = -1;
   mAudioEndTime = -1;
   mAudioCompleted = PR_FALSE;
@@ -894,7 +897,7 @@ nsresult nsBuiltinDecoderStateMachine::Run()
                 RenderVideoFrame(video);
                 if (!audio) {
                   NS_ASSERTION(video->mTime <= seekTime &&
-                               seekTime <= video->mTime + mReader->GetInfo().mCallbackPeriod,
+                               seekTime <= video->mEndTime,
                                "Seek target should lie inside the first frame after seek");
                   mPlayDuration = TimeDuration::FromMilliseconds(seekTime);
                 }
@@ -1003,7 +1006,7 @@ nsresult nsBuiltinDecoderStateMachine::Run()
         StopDecodeThreads();
 
         if (mDecoder->GetState() == nsBuiltinDecoder::PLAY_STATE_PLAYING) {
-          PRInt64 videoTime = HasVideo() ? (mVideoFrameTime + mReader->GetInfo().mCallbackPeriod) : 0;
+          PRInt64 videoTime = HasVideo() ? mVideoFrameEndTime : 0;
           PRInt64 clockTime = NS_MAX(mEndTime, NS_MAX(videoTime, GetAudioClock()));
           UpdatePlaybackPosition(clockTime);
           {
@@ -1067,7 +1070,8 @@ void nsBuiltinDecoderStateMachine::AdvanceFrame()
       
       
       
-      Wait(mReader->GetInfo().mCallbackPeriod);
+      
+      Wait(AUDIO_DURATION_MS);
       return;
     }
 
@@ -1095,7 +1099,7 @@ void nsBuiltinDecoderStateMachine::AdvanceFrame()
     if (mReader->mVideoQueue.GetSize() > 0) {
       VideoData* data = mReader->mVideoQueue.PeekFront();
       while (clock_time >= data->mTime) {
-        mVideoFrameTime = data->mTime;
+        mVideoFrameEndTime = data->mEndTime;
         videoData = data;
         mReader->mVideoQueue.PopFront();
         mDecoder->UpdatePlaybackOffset(data->mOffset);
@@ -1105,6 +1109,7 @@ void nsBuiltinDecoderStateMachine::AdvanceFrame()
       }
     }
 
+    PRInt64 frameDuration = AUDIO_DURATION_MS;
     if (videoData) {
       
       NS_ASSERTION(videoData->mTime >= mStartTime, "Should have positive frame time");
@@ -1115,15 +1120,16 @@ void nsBuiltinDecoderStateMachine::AdvanceFrame()
         RenderVideoFrame(videoData);
       }
       mDecoder->GetMonitor().NotifyAll();
+      frameDuration = videoData->mEndTime - videoData->mTime;
       videoData = nsnull;
     }
 
     
     
     
-    if (mVideoFrameTime != -1 || mAudioEndTime != -1) {
+    if (mVideoFrameEndTime != -1 || mAudioEndTime != -1) {
       
-      clock_time = NS_MIN(clock_time, NS_MAX(mVideoFrameTime, mAudioEndTime));
+      clock_time = NS_MIN(clock_time, NS_MAX(mVideoFrameEndTime, mAudioEndTime));
       if (clock_time - mStartTime > mCurrentFrameTime) {
         
         
@@ -1139,7 +1145,7 @@ void nsBuiltinDecoderStateMachine::AdvanceFrame()
     
     UpdateReadyState();
 
-    Wait(mReader->GetInfo().mCallbackPeriod);
+    Wait(frameDuration);
   } else {
     if (IsPlaying()) {
       StopPlayback(AUDIO_PAUSE);
@@ -1265,6 +1271,4 @@ void nsBuiltinDecoderStateMachine::LoadMetadata()
     NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
     return;
   }
-
-  LOG(PR_LOG_DEBUG, ("%p Callback Period: %u", mDecoder, info.mCallbackPeriod));
 }

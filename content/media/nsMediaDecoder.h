@@ -279,10 +279,6 @@ protected:
   PRLock* mVideoUpdateLock;
 
   
-  
-  float mFramerate;
-
-  
   float mPixelAspectRatio;
 
   
