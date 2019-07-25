@@ -44,6 +44,15 @@
 
 #define UNICODE_BYTE_ORDER_MARK    0xFEFF
 
+static PRUnichar* EmitSurrogatePair(PRUint32 ucs4, PRUnichar* aDest)
+{
+  NS_ASSERTION(ucs4 > 0xFFFF, "Should be a supplementary character");
+  ucs4 -= 0x00010000;
+  *aDest++ = 0xD800 | (0x000003FF & (ucs4 >> 10));
+  *aDest++ = 0xDC00 | (0x000003FF & ucs4);
+  return aDest;
+}
+
 
 
 
@@ -277,6 +286,22 @@ NS_IMETHODIMP nsUTF8ToUnicode::Convert(const char * aSrc,
 
   nsresult res = NS_OK; 
 
+  out = aDest;
+  if (mState == 0xFF) {
+    
+    
+    if (aDestLen < 2) {
+      NS_ERROR("Output buffer insufficient to hold supplementary character");
+      mState = 0;
+      return NS_ERROR_ILLEGAL_INPUT;
+    }
+    out = EmitSurrogatePair(mUcs4, out);
+    mUcs4 = 0;
+    mState = 0;
+    mBytes = 1;
+    mFirst = PR_FALSE;
+  }
+
   
   PRInt32 mUcs4 = this->mUcs4;
   PRUint8 mState = this->mState;
@@ -288,7 +313,7 @@ NS_IMETHODIMP nsUTF8ToUnicode::Convert(const char * aSrc,
   if (mFirst && aSrcLen && (0 == (0x80 & (*aSrc))))
     mFirst = PR_FALSE;
 
-  for (in = aSrc, out = aDest; ((in < inend) && (out < outend)); ++in) {
+  for (in = aSrc; ((in < inend) && (out < outend)); ++in) {
     if (0 == mState) {
       
       
@@ -375,9 +400,15 @@ NS_IMETHODIMP nsUTF8ToUnicode::Convert(const char * aSrc,
           }
           if (mUcs4 > 0xFFFF) {
             
-            mUcs4 -= 0x00010000;
-            *out++ = 0xD800 | (0x000003FF & (mUcs4 >> 10));
-            *out++ = 0xDC00 | (0x000003FF & mUcs4);
+            if (out + 2 > outend) {
+              
+              
+              mState = 0xFF;
+              ++in;
+              res = NS_OK_UDEC_MOREOUTPUT;
+              break;
+            }
+            out = EmitSurrogatePair(mUcs4, out);
           } else if (UNICODE_BYTE_ORDER_MARK != mUcs4 || !mFirst) {
             
             *out++ = mUcs4;
