@@ -61,8 +61,8 @@ FormAutoComplete.prototype = {
     },
 
     _prefBranch         : null,
-    _debug              : false, 
-    _enabled            : true,  
+    _debug              : true, 
+    _enabled            : true, 
     _agedWeight         : 2,
     _bucketSize         : 1,
     _maxTimeGroupings   : 25,
@@ -133,6 +133,7 @@ FormAutoComplete.prototype = {
                 }
             } else if (topic == "xpcom-shutdown") {
                 self._dbStmts = null;
+                self.__formHistory = null;
             }
         }
     },
