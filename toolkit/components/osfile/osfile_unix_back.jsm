@@ -343,7 +343,7 @@
 
        UnixFile.mkstemp =
          declareFFI("mkstemp", ctypes.default_abi,
-                     Types.out_path,
+                     Types.fd,
                     Types.out_path);
 
        UnixFile.open =
