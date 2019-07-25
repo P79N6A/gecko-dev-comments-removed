@@ -84,11 +84,6 @@ struct NS_GFX nsRect :
   
   
   
-  nsRect& ExtendForScaling(float aXMult, float aYMult);
-
-  
-  
-  
   
   inline nsRect ConvertAppUnitsRoundOut(PRInt32 aFromAPP, PRInt32 aToAPP) const;
   inline nsRect ConvertAppUnitsRoundIn(PRInt32 aFromAPP, PRInt32 aToAPP) const;
