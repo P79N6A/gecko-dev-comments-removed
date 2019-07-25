@@ -83,3 +83,14 @@ LIRGeneratorX86Shared::visitRecompileCheck(MRecompileCheck *ins)
     return assignSnapshot(lir, Bailout_RecompileCheck) && add(lir);
 }
 
+bool
+LIRGeneratorX86Shared::lowerMulI(MMul *mul, MDefinition *lhs, MDefinition *rhs)
+{
+    
+    
+    LMulI *lir = new LMulI(useRegisterAtStart(lhs), useOrConstant(rhs), useRegister(lhs));
+    if (mul->fallible() && !assignSnapshot(lir))
+        return false;
+    return defineReuseInput(lir, mul, 0);
+}
+
