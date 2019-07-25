@@ -415,6 +415,7 @@ protected:
   
   
   
+  
   TimeDuration mPlayDuration;
 
   

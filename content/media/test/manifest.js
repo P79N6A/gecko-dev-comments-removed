@@ -63,6 +63,8 @@ var gPlayTests = [
   
   { name:"bug482461.ogv", type:"video/ogg", duration:4.34 },
   
+  { name:"bug482461-theora.ogv", type:"video/ogg", duration:4.138 },
+  
   { name:"bug500311.ogv", type:"video/ogg", duration:1.96 },
   
   { name:"small-shot.ogg", type:"video/ogg", duration:0.276 },
