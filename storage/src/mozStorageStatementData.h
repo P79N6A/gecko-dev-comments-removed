@@ -44,6 +44,8 @@
 
 #include "nsAutoPtr.h"
 #include "nsTArray.h"
+#include "nsIEventTarget.h"
+#include "nsProxyRelease.h"
 
 #include "mozStorageBindingParamsArray.h"
 #include "mozIStorageBaseStatement.h"
@@ -65,12 +67,14 @@ public:
   , mParamsArray(aParamsArray)
   , mStatementOwner(aStatementOwner)
   {
+    NS_PRECONDITION(mStatementOwner, "Must have a statement owner!");
   }
   StatementData(const StatementData &aSource)
   : mStatement(aSource.mStatement)
   , mParamsArray(aSource.mParamsArray)
   , mStatementOwner(aSource.mStatementOwner)
   {
+    NS_PRECONDITION(mStatementOwner, "Must have a statement owner!");
   }
   StatementData()
   {
@@ -109,9 +113,23 @@ public:
 
 
 
-
-  inline void finalize()
+  inline void finalize(nsIEventTarget *aReleaseThread)
   {
+    NS_PRECONDITION(aReleaseThread, "Must have a non-NULL release thread!");
+    NS_PRECONDITION(mStatementOwner, "Must have a statement owner!");
+#ifdef DEBUG
+    {
+      nsCOMPtr<nsIEventTarget> asyncThread =
+        mStatementOwner->getOwner()->getAsyncExecutionTarget();
+      
+      
+      if (asyncThread) {
+        PRBool onAsyncThread;
+        NS_ASSERTION(NS_SUCCEEDED(asyncThread->IsOnCurrentThread(&onAsyncThread)) && onAsyncThread,
+                     "This should only be running on the async thread!");
+      }
+    }
+#endif
     
     
     
@@ -119,6 +137,10 @@ public:
       (void)::sqlite3_reset(mStatement);
       (void)::sqlite3_clear_bindings(mStatement);
       mStatement = NULL;
+    }
+    (void)NS_ProxyRelease(aReleaseThread, mStatementOwner, PR_TRUE);
+    if (mParamsArray) {
+      (void)NS_ProxyRelease(aReleaseThread, mParamsArray, PR_TRUE);
     }
   }
 
