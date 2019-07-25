@@ -1162,6 +1162,9 @@ ScopeIter::settle()
 
 
 
+
+
+
     if (fp_->isNonEvalFunctionFrame() && !fp_->fun()->isHeavyweight()) {
         if (block_) {
             type_ = Block;
@@ -1178,6 +1181,9 @@ ScopeIter::settle()
         } else {
             fp_ = NULL;
         }
+    } else if (fp_->isNonEvalFunctionFrame() && !fp_->hasCallObj()) {
+        JS_ASSERT(cur_ == fp_->fun()->environment());
+        fp_ = NULL;
     } else if (cur_->isWith()) {
         JS_ASSERT_IF(fp_->isFunctionFrame(), fp_->fun()->isHeavyweight());
         JS_ASSERT_IF(block_, block_->needsClone());
