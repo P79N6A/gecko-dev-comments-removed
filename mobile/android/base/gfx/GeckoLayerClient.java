@@ -265,8 +265,10 @@ public abstract class GeckoLayerClient extends LayerClient implements GeckoEvent
     }
 
     private void adjustViewportWithThrottling() {
-        if (!getLayerController().getRedrawHint())
-            return;
+        
+        
+        
+
 
         if (mPendingViewportAdjust)
             return;
