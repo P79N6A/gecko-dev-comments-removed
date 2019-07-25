@@ -2378,14 +2378,12 @@ let GroupItems = {
 
     let targetGroupItem;
     
+    
     gBrowser.visibleTabs.some(function(tab) {
       if (!tab.pinned && tab != tabItem.tab) {
-        if (tab._tabViewTabItem) {
-          if (!tab._tabViewTabItem.parent && !tab._tabViewTabItem.parent.hidden) {
-            
-            
-            targetGroupItem = tab._tabViewTabItem.parent;
-          }
+        if (tab._tabViewTabItem && tab._tabViewTabItem.parent &&
+            !tab._tabViewTabItem.parent.hidden) {
+          targetGroupItem = tab._tabViewTabItem.parent;
         }
         return true;
       }
