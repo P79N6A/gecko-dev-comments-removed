@@ -57,13 +57,6 @@ class LIRGeneratorARM : public LIRGeneratorShared
   protected:
     
     
-    LUse useType(MDefinition *mir, LUse::Policy policy);
-    LUse useTypeOrConstant(MDefinition *mir);
-    LUse usePayload(MDefinition *mir, LUse::Policy policy);
-    LUse usePayloadInRegister(MDefinition *mir);
-
-    
-    
     bool useBox(LInstruction *lir, size_t n, MDefinition *mir,
                 LUse::Policy policy = LUse::REGISTER);
 
@@ -71,11 +64,6 @@ class LIRGeneratorARM : public LIRGeneratorShared
     
     
     bool fillBoxUses(LInstruction *lir, size_t n, MDefinition *mir);
-
-    LSnapshot *buildSnapshot(LInstruction *ins, MResumePoint *rp, BailoutKind kind);
-    bool assignSnapshot(LInstruction *ins, BailoutKind kind = Bailout_Normal);
-    bool assignPostSnapshot(MInstruction *mir, LInstruction *ins);
-    bool assignSafepoint(LInstruction *ins, MInstruction *mir);
 
     void lowerUntypedPhiInput(MPhi *phi, uint32 inputPosition, LBlock *block, size_t lirIndex);
     bool defineUntypedPhi(MPhi *phi, size_t lirIndex);
