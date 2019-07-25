@@ -1474,6 +1474,69 @@ let RIL = {
 
 
 
+
+
+  _processReceivedSms: function _processReceivedSms(length) {
+    if (!length) {
+      if (DEBUG) debug("Received empty SMS!");
+      return null;
+    }
+
+    
+    
+    let messageStringLength = Buf.readUint32();
+    if (DEBUG) debug("Got new SMS, length " + messageStringLength);
+    let message = GsmPDUHelper.readMessage();
+    if (DEBUG) debug(message);
+
+    
+    let delimiter = Buf.readUint16();
+    if (!(messageStringLength & 1)) {
+      delimiter |= Buf.readUint16();
+    }
+    if (DEBUG) {
+      if (delimiter != 0) {
+        debug("Something's wrong, found string delimiter: " + delimiter);
+      }
+    }
+
+    return message;
+  },
+
+  
+
+
+
+
+
+
+
+  _processSmsDeliver: function _processSmsDeliver(length) {
+    let message = this._processReceivedSms(length);
+    if (!message) {
+      return PDU_FCS_UNSPECIFIED;
+    }
+
+    if (message.header && (message.header.segmentMaxSeq > 1)) {
+      message = this._processReceivedSmsSegment(message);
+    } else {
+      message.fullBody = message.body;
+    }
+
+    if (message) {
+      message.type = "sms-received";
+      this.sendDOMMessage(message);
+    }
+
+    return PDU_FCS_OK;
+  },
+
+  
+
+
+
+
+
   _processReceivedSmsSegment: function _processReceivedSmsSegment(original) {
     let hash = original.sender + ":" + original.header.segmentRef;
     let seq = original.header.segmentSeq;
@@ -2082,44 +2145,8 @@ RIL[UNSOLICITED_RESPONSE_VOICE_NETWORK_STATE_CHANGED] = function UNSOLICITED_RES
   this.requestNetworkInfo();
 };
 RIL[UNSOLICITED_RESPONSE_NEW_SMS] = function UNSOLICITED_RESPONSE_NEW_SMS(length) {
-  if (!length) {
-    if (DEBUG) debug("Received empty SMS!");
-    
-    
-    return;
-  }
-  
-  
-  let messageStringLength = Buf.readUint32();
-  if (DEBUG) debug("Got new SMS, length " + messageStringLength);
-  let message = GsmPDUHelper.readMessage();
-  if (DEBUG) debug(message);
-
-  
-  let delimiter = Buf.readUint16();
-  if (!(messageStringLength & 1)) {
-    delimiter |= Buf.readUint16();
-  }
-  if (DEBUG) {
-    if (delimiter != 0) {
-      debug("Something's wrong, found string delimiter: " + delimiter);
-    }
-  }
-
-  if (message.header && (message.header.segmentMaxSeq > 1)) {
-    message = this._processReceivedSmsSegment(message);
-  } else {
-    message.fullBody = message.body;
-  }
-
-  if (message) {
-    message.type = "sms-received";
-    this.sendDOMMessage(message);
-  }
-
-  
-  
-  this.acknowledgeSMS(true, SMS_HANDLED);
+  let result = this._processSmsDeliver(length);
+  this.acknowledgeSMS(result == PDU_FCS_OK, result);
 };
 RIL[UNSOLICITED_RESPONSE_NEW_SMS_STATUS_REPORT] = function UNSOLICITED_RESPONSE_NEW_SMS_STATUS_REPORT(length) {
   let info = Buf.readStringList();
@@ -2694,6 +2721,61 @@ let GsmPDUHelper = {
 
 
 
+  readAddress: function readAddress(len) {
+    
+    if (!len || (len < 0)) {
+      if (DEBUG) debug("PDU error: invalid sender address length: " + len);
+      return null;
+    }
+    if (len % 2 == 1) {
+      len += 1;
+    }
+    if (DEBUG) debug("PDU: Going to read address: " + len);
+
+    
+    let toa = this.readHexOctet();
+
+    
+    let addr = this.readSwappedNibbleBCD(len / 2).toString();
+    if (addr.length <= 0) {
+      if (DEBUG) debug("PDU error: no number provided");
+      return null;
+    }
+    if ((toa >> 4) == (PDU_TOA_INTERNATIONAL >> 4)) {
+      addr = '+' + addr;
+    }
+
+    return addr;
+  },
+
+  
+
+
+
+
+  readTimestamp: function readTimestamp() {
+    let year   = this.readSwappedNibbleBCD(1) + PDU_TIMESTAMP_YEAR_OFFSET;
+    let month  = this.readSwappedNibbleBCD(1) - 1;
+    let day    = this.readSwappedNibbleBCD(1);
+    let hour   = this.readSwappedNibbleBCD(1);
+    let minute = this.readSwappedNibbleBCD(1);
+    let second = this.readSwappedNibbleBCD(1);
+    let timestamp = Date.UTC(year, month, day, hour, minute, second);
+
+    
+    
+    let tzOctet = this.readHexOctet();
+    let tzOffset = this.octetToBCD(tzOctet & ~0x08) * 15 * 60 * 1000;
+    if (tzOctet & 0x08) {
+      timestamp -= tzOffset;
+    } else {
+      timestamp += tzOffset;
+    }
+
+    return timestamp;
+  },
+
+  
 
 
 
@@ -2702,17 +2784,18 @@ let GsmPDUHelper = {
 
 
 
-  readUserData: function readUserData(msg, length, codingScheme, hasHeader) {
+  readUserData: function readUserData(msg, length) {
+    let dcs = msg.dcs;
     if (DEBUG) {
       debug("Reading " + length + " bytes of user data.");
-      debug("Coding scheme: " + codingScheme);
+      debug("Coding scheme: " + dcs);
     }
     
     let encoding = PDU_DCS_MSG_CODING_7BITS_ALPHABET;
-    switch (codingScheme & 0xC0) {
+    switch (dcs & 0xC0) {
       case 0x0:
         
-        switch (codingScheme & 0x0C) {
+        switch (dcs & 0x0C) {
           case 0x4:
             encoding = PDU_DCS_MSG_CODING_8BITS_ALPHABET;
             break;
@@ -2723,12 +2806,12 @@ let GsmPDUHelper = {
         break;
       case 0xC0:
         
-        switch (codingScheme & 0x30) {
+        switch (dcs & 0x30) {
           case 0x20:
             encoding = PDU_DCS_MSG_CODING_16BITS_ALPHABET;
             break;
           case 0x30:
-            if (!codingScheme & 0x04) {
+            if (!dcs & 0x04) {
               encoding = PDU_DCS_MSG_CODING_8BITS_ALPHABET;
             }
             break;
@@ -2742,7 +2825,7 @@ let GsmPDUHelper = {
     if (DEBUG) debug("PDU: message encoding is " + encoding + " bit.");
 
     let paddingBits = 0;
-    if (hasHeader) {
+    if (msg.udhi) {
       msg.header = this.readUserDataHeader();
 
       if (encoding == PDU_DCS_MSG_CODING_7BITS_ALPHABET) {
@@ -2766,8 +2849,8 @@ let GsmPDUHelper = {
           break;
         }
 
-        let langIndex = hasHeader ? msg.header.langIndex : PDU_NL_IDENTIFIER_DEFAULT;
-        let langShiftIndex = hasHeader ? msg.header.langShiftIndex : PDU_NL_IDENTIFIER_DEFAULT;
+        let langIndex = msg.udhi ? msg.header.langIndex : PDU_NL_IDENTIFIER_DEFAULT;
+        let langShiftIndex = msg.udhi ? msg.header.langShiftIndex : PDU_NL_IDENTIFIER_DEFAULT;
         msg.body = this.readSeptetsToString(length, paddingBits, langIndex,
                                             langShiftIndex);
         break;
@@ -2790,7 +2873,11 @@ let GsmPDUHelper = {
     
     let msg = {
       SMSC:      null,
+      mti:       null,
+      udhi:      null,
       sender:    null,
+      pid:       null,
+      dcs:       null,
       body:      null,
       timestamp: null
     };
@@ -2808,64 +2895,45 @@ let GsmPDUHelper = {
 
     
     let firstOctet = this.readHexOctet();
-
     
-    let hasUserDataHeader = firstOctet & PDU_UDHI;
-
+    msg.mti = firstOctet & 0x03;
     
+    msg.udhi = firstOctet & PDU_UDHI;
+
+    switch (msg.mti) {
+      case PDU_MTI_SMS_RESERVED:
+        
+        
+        
+      case PDU_MTI_SMS_DELIVER:
+        return this.readDeliverMessage(msg);
+      default:
+        return null;
+    }
+  },
+
+  
+
+
+
+
+
+  readDeliverMessage: function readDeliverMessage(msg) {
     
     let senderAddressLength = this.readHexOctet();
-    if (senderAddressLength <= 0) {
-      if (DEBUG) debug("PDU error: invalid sender address length: " + senderAddressLength);
-      return null;
-    }
+    msg.sender = this.readAddress(senderAddressLength);
     
-    let senderTypeOfAddress = this.readHexOctet();
-    if (senderAddressLength % 2 == 1) {
-      senderAddressLength += 1;
-    }
-    if (DEBUG) debug("PDU: Going to read sender address: " + senderAddressLength);
-    msg.sender = this.readSwappedNibbleBCD(senderAddressLength / 2).toString();
-    if (msg.sender.length <= 0) {
-      if (DEBUG) debug("PDU error: no sender number provided");
-      return null;
-    }
-    if ((senderTypeOfAddress >> 4) == (PDU_TOA_INTERNATIONAL >> 4)) {
-      msg.sender = '+' + msg.sender;
-    }
-
+    msg.pid = this.readHexOctet();
     
-    let protocolIdentifier = this.readHexOctet();
-
+    msg.dcs = this.readHexOctet();
     
-    let dataCodingScheme = this.readHexOctet();
-
-    
-    let year   = this.readSwappedNibbleBCD(1) + PDU_TIMESTAMP_YEAR_OFFSET;
-    let month  = this.readSwappedNibbleBCD(1) - 1;
-    let day    = this.readSwappedNibbleBCD(1);
-    let hour   = this.readSwappedNibbleBCD(1);
-    let minute = this.readSwappedNibbleBCD(1);
-    let second = this.readSwappedNibbleBCD(1);
-    msg.timestamp = Date.UTC(year, month, day, hour, minute, second);
-
-    
-    
-    let tzOctet = this.readHexOctet();
-    let tzOffset = this.octetToBCD(tzOctet & ~0x08) * 15 * 60 * 1000;
-    if (tzOctet & 0x08) {
-      msg.timestamp -= tzOffset;
-    } else {
-      msg.timestamp += tzOffset;
-    }
-
+    msg.timestamp = this.readTimestamp();
     
     let userDataLength = this.readHexOctet();
 
     
     if (userDataLength > 0) {
-      this.readUserData(msg, userDataLength, dataCodingScheme,
-                        hasUserDataHeader);
+      this.readUserData(msg, userDataLength);
     }
 
     return msg;
