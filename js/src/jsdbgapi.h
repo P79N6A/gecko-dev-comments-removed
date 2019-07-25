@@ -124,6 +124,13 @@ JS_GetDebugMode(JSContext *cx);
 
 
 
+JS_FRIEND_API(JSBool)
+JS_SetDebugModeForAllCompartments(JSContext *cx, JSBool debug);
+
+
+
+
+
 
 JS_FRIEND_API(JSBool)
 JS_SetDebugModeForCompartment(JSContext *cx, JSCompartment *comp, JSBool debug);
