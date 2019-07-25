@@ -601,78 +601,7 @@ private:
     JSDHashTable *mTable;
 };
 
-class WrappedNative2WrapperMap
-{
-    static struct JSDHashTableOps sOps;
 
-    static void ClearLink(JSDHashTable* table, JSDHashEntryHdr* entry);
-    static void MoveLink(JSDHashTable* table, const JSDHashEntryHdr* from,
-                         JSDHashEntryHdr* to);
-
-public:
-    struct Link : public PRCList
-    {
-        JSObject *obj;
-    };
-
-    struct Entry : public JSDHashEntryHdr
-    {
-        
-        JSObject*         key;
-        Link              value;
-    };
-
-    static WrappedNative2WrapperMap* newMap(int size);
-
-    inline JSObject* Find(JSObject* wrapper)
-    {
-        NS_PRECONDITION(wrapper, "bad param");
-        Entry* entry = (Entry*)
-            JS_DHashTableOperate(mTable, wrapper, JS_DHASH_LOOKUP);
-        if (JS_DHASH_ENTRY_IS_FREE(entry))
-            return nsnull;
-        return entry->value.obj;
-    }
-
-    
-    
-    JSObject* Add(WrappedNative2WrapperMap* head,
-                  JSObject* wrappedObject,
-                  JSObject* wrapper);
-
-    
-    Link* FindLink(JSObject* wrappedObject)
-    {
-        Entry* entry = (Entry*)
-            JS_DHashTableOperate(mTable, wrappedObject, JS_DHASH_LOOKUP);
-        if (JS_DHASH_ENTRY_IS_BUSY(entry))
-            return &entry->value;
-        return nsnull;
-    }
-
-    
-    
-    bool AddLink(JSObject* wrappedObject, Link* oldLink);
-
-    inline void Remove(JSObject* wrapper)
-    {
-        NS_PRECONDITION(wrapper,"bad param");
-        JS_DHashTableOperate(mTable, wrapper, JS_DHASH_REMOVE);
-    }
-
-    inline uint32_t Count() {return mTable->entryCount;}
-    inline uint32_t Enumerate(JSDHashEnumerator f, void *arg)
-        {return JS_DHashTableEnumerate(mTable, f, arg);}
-
-    ~WrappedNative2WrapperMap();
-
-private:
-    WrappedNative2WrapperMap();    
-    WrappedNative2WrapperMap(int size);
-
-private:
-    JSDHashTable *mTable;
-};
 
 class JSObject2JSObjectMap
 {
