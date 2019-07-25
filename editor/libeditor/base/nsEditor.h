@@ -145,8 +145,8 @@ public:
                                            nsIEditor)
 
   
-  NS_IMETHOD GetPresShell(nsIPresShell **aPS);
-  void NotifyEditorObservers(void);
+  already_AddRefed<nsIPresShell> GetPresShell();
+  void NotifyEditorObservers();
 
   
   NS_DECL_NSIEDITOR

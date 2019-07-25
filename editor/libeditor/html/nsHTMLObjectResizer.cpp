@@ -432,8 +432,7 @@ nsHTMLEditor::HideResizers(void)
   NS_ENSURE_TRUE(mResizedObject, NS_OK);
 
   
-  nsCOMPtr<nsIPresShell> ps;
-  GetPresShell(getter_AddRefs(ps));
+  nsCOMPtr<nsIPresShell> ps = GetPresShell();
   
   
   
