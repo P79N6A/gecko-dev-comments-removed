@@ -74,10 +74,17 @@ public class PanZoomController
 
     private LayerController mController;
 
-    private static final float FRICTION = 0.85f;
-    private static final float FRICTION_FACTOR = 6.0f;
+    
+    private static final float FRICTION_SLOW = 0.85f;
+    
+    private static final float FRICTION_FAST = 0.97f;
+    
+    
+    private static final float VELOCITY_THRESHOLD = 10.0f;
     
     private static final float STOPPED_THRESHOLD = 4.0f;
+    
+    private static final float FLING_STOPPED_THRESHOLD = 0.1f;
     
     private static final float SNAP_LIMIT = 0.75f;
     
@@ -643,8 +650,14 @@ public class PanZoomController
             }
 
             
+
+
+
+
+            float excess = PointUtils.distance(new PointF(mX.getExcess(), mY.getExcess()));
             PointF velocityVector = new PointF(mX.getRealVelocity(), mY.getRealVelocity());
-            if (PointUtils.distance(velocityVector) >= STOPPED_THRESHOLD)
+            float threshold = (excess >= 1.0f) ? STOPPED_THRESHOLD : FLING_STOPPED_THRESHOLD;
+            if (PointUtils.distance(velocityVector) >= threshold)
                 return;
 
             
@@ -733,7 +746,7 @@ public class PanZoomController
 
         
         
-        private float getExcess() {
+        public float getExcess() {
             switch (getOverscroll()) {
             case MINUS:     return -getOrigin();
             case PLUS:      return getViewportEnd() - getPageLength();
@@ -781,13 +794,14 @@ public class PanZoomController
             
             float excess = getExcess();
             if (disableSnap || FloatUtils.fuzzyEquals(excess, 0.0f)) {
-                float absvelocity = Math.abs(velocity);
-                absvelocity = (float)Math.pow(Math.pow(absvelocity, FRICTION_FACTOR) * FRICTION,
-                             1 / FRICTION_FACTOR);
-                
-                velocity = (velocity < 0 ? -absvelocity : absvelocity);
+                if (Math.abs(velocity) >= VELOCITY_THRESHOLD) {
+                    velocity *= FRICTION_FAST;
+                } else {
+                    float t = velocity / VELOCITY_THRESHOLD;
+                    velocity *= FloatUtils.interpolate(FRICTION_SLOW, FRICTION_FAST, t);
+                }
 
-                if (Math.abs(velocity) < 0.1f) {
+                if (Math.abs(velocity) < FLING_STOPPED_THRESHOLD) {
                     velocity = 0.0f;
                     setFlingState(FlingStates.STOPPED);
                 }
