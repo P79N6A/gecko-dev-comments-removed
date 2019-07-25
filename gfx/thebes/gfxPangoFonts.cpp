@@ -63,6 +63,7 @@
 #include "gfxFT2Utils.h"
 #include "harfbuzz/hb-unicode.h"
 #include "harfbuzz/hb-ot-tag.h"
+#include "gfxHarfBuzzShaper.h"
 #include "gfxUnicodeProperties.h"
 #include "gfxFontconfigUtils.h"
 #include "gfxUserFontSet.h"
@@ -109,7 +110,6 @@ static PangoLanguage *GuessPangoLanguage(nsIAtom *aLanguage);
 
 static cairo_scaled_font_t *
 CreateScaledFont(FcPattern *aPattern, cairo_font_face_t *aFace);
-static PRBool CanTakeFastPath(PRUint32 aFlags);
 static void SetMissingGlyphs(gfxTextRun *aTextRun, const gchar *aUTF8,
                              PRUint32 aUTF8Length, PRUint32 *aUTF16Offset);
 
@@ -179,6 +179,9 @@ public:
         return mPatterns;
     }
 
+    PRBool ShouldUseHarfBuzz(PRInt32 aRunScript);
+    void SkipHarfBuzz() { mSkipHarfBuzz = PR_TRUE; }
+
     static gfxFcFontEntry *LookupFontEntry(cairo_font_face_t *aFace)
     {
         return static_cast<gfxFcFontEntry*>
@@ -187,16 +190,80 @@ public:
 
 protected:
     gfxFcFontEntry(const nsAString& aName)
-        : gfxFontEntry(aName) { }
+        : gfxFontEntry(aName),
+          mSkipHarfBuzz(PR_FALSE), mSkipGraphiteCheck(PR_FALSE)
+    {
+    }
 
     
     
     nsAutoTArray<nsCountedRef<FcPattern>,1> mPatterns;
+    PRPackedBool mSkipHarfBuzz;
+    PRPackedBool mSkipGraphiteCheck;
 
     static cairo_user_data_key_t sFontEntryKey;
 };
 
 cairo_user_data_key_t gfxFcFontEntry::sFontEntryKey;
+
+PRBool
+gfxFcFontEntry::ShouldUseHarfBuzz(PRInt32 aRunScript) {
+    if (mSkipHarfBuzz ||
+        gfxPlatform::GetPlatform()->UseHarfBuzzLevel() <
+        gfxUnicodeProperties::ScriptShapingLevel(aRunScript))
+    {
+        return PR_FALSE;
+    }
+
+    if (mSkipGraphiteCheck) {
+        return PR_TRUE;
+    }
+
+    
+    
+    FcChar8 *capability;
+    
+    if (mPatterns.IsEmpty() ||
+        FcPatternGetString(mPatterns[0],
+                           FC_CAPABILITY, 0, &capability) == FcResultNoMatch ||
+        !FcStrStr(capability, gfxFontconfigUtils::ToFcChar8("ttable:Silf")))
+    {
+        mSkipGraphiteCheck = PR_TRUE;
+        return PR_TRUE;
+    }
+
+    
+    hb_script_t script =
+        aRunScript <= HB_SCRIPT_INHERITED ? HB_SCRIPT_LATIN
+        : static_cast<hb_script_t>(aRunScript);
+
+    
+    
+    const FcChar8 otCapTemplate[] = "otlayout:XXXX";
+    FcChar8 otCap[NS_ARRAY_LENGTH(otCapTemplate)];
+    memcpy(otCap, otCapTemplate, NS_ARRAY_LENGTH(otCapTemplate));
+    
+    const PRUint32 scriptOffset = NS_ARRAY_LENGTH(otCapTemplate) - 5;
+
+    for (const hb_tag_t *scriptTags = hb_ot_tags_from_script(script);
+         hb_tag_t scriptTag = *scriptTags;
+         scriptTags++) {
+        if (scriptTag == HB_TAG('D','F','L','T')) { 
+            continue;
+        }
+
+        
+        otCap[scriptOffset + 0] = scriptTag >> 24;
+        otCap[scriptOffset + 1] = scriptTag >> 16;
+        otCap[scriptOffset + 2] = scriptTag >> 8;
+        otCap[scriptOffset + 3] = scriptTag;
+        if (FcStrStr(capability, otCap)) {
+            return PR_TRUE;
+        }
+    }
+
+    return PR_FALSE; 
+}
 
 
 
@@ -637,10 +704,6 @@ public:
                                PRInt32 aRunScript,
                                PRBool aPreferPlatformShaping);
 
-#if defined(ENABLE_FAST_PATH_8BIT)
-    nsresult InitGlyphRunFast(gfxTextRun *aTextRun, const PRUnichar *aString,
-                              PRUint32 aStart, PRUint32 aLength);
-#endif
     PRBool InitGlyphRunWithPango(gfxTextRun *aTextRun,
                                  const PRUnichar *aString,
                                  PRUint32 aRunStart, PRUint32 aRunLength,
@@ -2017,22 +2080,25 @@ gfxFcFont::InitTextRun(gfxContext *aContext,
                        PRInt32 aRunScript,
                        PRBool aPreferPlatformShaping)
 {
-    PRBool useFastPath = PR_FALSE;
-#if defined(ENABLE_FAST_PATH_8BIT)
-    if (CanTakeFastPath(aTextRun->GetFlags())) {
-        PRUint32 allBits = 0;
-        for (PRUint32 i = aRunStart; i < aRunStart + aRunLength; ++i) {
-            allBits |= aString[i];
-        }
-        useFastPath = (allBits & 0xFF00) == 0;
-    }
+    gfxFcFontEntry *fontEntry = static_cast<gfxFcFontEntry*>(GetFontEntry());
 
-    if (useFastPath &&
-        NS_SUCCEEDED(InitGlyphRunFast(aTextRun, aString,
-                                      aRunStart, aRunLength))) {
-        return PR_TRUE;
+    if (fontEntry->ShouldUseHarfBuzz(aRunScript)) {
+        if (!mHarfBuzzShaper) {
+            gfxFT2LockedFace face(this);
+            mHarfBuzzShaper = new gfxHarfBuzzShaper(this);
+            
+            mFUnitsConvFactor = face.XScale();
+        }
+        if (mHarfBuzzShaper->
+            InitTextRun(aContext, aTextRun, aString,
+                        aRunStart, aRunLength, aRunScript)) {
+            return PR_TRUE;
+        }
+
+        
+        fontEntry->SkipHarfBuzz();
+        mHarfBuzzShaper = nsnull;
     }
-#endif
 
     const PangoScript script = static_cast<PangoScript>(aRunScript);
     PRBool ok = InitGlyphRunWithPango(aTextRun,
@@ -2348,19 +2414,6 @@ gfxPangoFontGroup::GetBaseFontSet()
 
 
 
-
-#if defined(ENABLE_FAST_PATH_8BIT)
-static PRBool
-CanTakeFastPath(PRUint32 aFlags)
-{
-    
-    
-    
-    PRBool speed = aFlags & gfxTextRunFactory::TEXT_OPTIMIZE_SPEED;
-    PRBool isRTL = aFlags & gfxTextRunFactory::TEXT_IS_RTL;
-    return speed && !isRTL;
-}
-#endif
 
 
 static cairo_scaled_font_t *
@@ -3013,58 +3066,6 @@ gfxFcFont::InitGlyphRunWithPango(gfxTextRun *aTextRun,
                                   &utf16Offset, &analysis.pango, spaceWidth);
     return PR_TRUE;
 }
-
-#if defined(ENABLE_FAST_PATH_8BIT)
-nsresult
-gfxFcFont::InitGlyphRunFast(gfxTextRun *aTextRun, const PRUnichar *aString,
-                            PRUint32 aStart, PRUint32 aLength)
-{
-    gfxTextRun::CompressedGlyph g;
-    const PRUint32 appUnitsPerDevUnit = aTextRun->GetAppUnitsPerDevUnit();
-
-    PRUint32 end = aStart + aLength;
-    for (PRUint32 utf16Offset = aStart; utf16Offset < end; ++utf16Offset) {
-
-        PRUint32 ch = aString[utf16Offset];
-        NS_ASSERTION(!gfxFontGroup::IsInvalidChar(ch), "Invalid char detected");
-
-        if (ch == 0) {
-            
-            
-            aTextRun->SetMissingGlyph(utf16Offset, 0);
-        } else {
-            
-            NS_ASSERTION(!IS_SURROGATE(ch), "Need to add surrogate support");
-
-            FT_UInt glyph = GetGlyph(ch);
-            if (!glyph)                  
-                return NS_ERROR_FAILURE; 
-
-            cairo_text_extents_t extents;
-            GetGlyphExtents(glyph, &extents);
-
-            PRInt32 advance = NS_lround(extents.x_advance * appUnitsPerDevUnit);
-            if (advance >= 0 &&
-                gfxTextRun::CompressedGlyph::IsSimpleAdvance(advance) &&
-                gfxTextRun::CompressedGlyph::IsSimpleGlyphID(glyph)) {
-                aTextRun->SetSimpleGlyph(utf16Offset,
-                                         g.SetSimpleGlyph(advance, glyph));
-            } else {
-                gfxTextRun::DetailedGlyph details;
-                details.mGlyphID = glyph;
-                NS_ASSERTION(details.mGlyphID == glyph,
-                             "Seriously weird glyph ID detected!");
-                details.mAdvance = advance;
-                details.mXOffset = 0;
-                details.mYOffset = 0;
-                g.SetComplex(aTextRun->IsClusterStart(utf16Offset), PR_TRUE, 1);
-                aTextRun->SetGlyphs(utf16Offset, g, &details);
-            }
-        }
-    }
-    return NS_OK;
-}
-#endif
 
 
 PangoLanguage *

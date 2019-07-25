@@ -46,6 +46,14 @@
 #include "cairo-ft.h"
 #include "gfxFT2FontBase.h"
 
+
+
+
+#define FLOAT_FROM_26_6(x) ((x) / 64.0)
+#define FLOAT_FROM_16_16(x) ((x) / 65536.0)
+#define ROUND_26_6_TO_INT(x) ((x) >= 0 ?  ((32 + (x)) >> 6) \
+                                       : -((32 - (x)) >> 6))
+
 typedef struct FT_FaceRec_* FT_Face;
 
 class gfxFT2LockedFace {
@@ -78,6 +86,32 @@ public:
 
     PRBool GetFontTable(PRUint32 aTag, nsTArray<PRUint8>& aBuffer);
 
+    
+    
+    gfxFloat XScale()
+    {
+        if (NS_UNLIKELY(!mFace))
+            return 0.0;
+
+        const FT_Size_Metrics& ftMetrics = mFace->size->metrics;
+
+        if (FT_IS_SCALABLE(mFace)) {
+            
+            
+            
+            
+            
+            
+            
+            return FLOAT_FROM_26_6(FLOAT_FROM_16_16(ftMetrics.x_scale));
+        }
+
+        
+        
+        
+        return gfxFloat(ftMetrics.x_ppem) / gfxFloat(mFace->units_per_EM);
+    }
+
 protected:
     
 
@@ -89,13 +123,5 @@ protected:
     nsRefPtr<gfxFT2FontBase> mGfxFont;
     FT_Face mFace;
 };
-
-
-
-
-#define FLOAT_FROM_26_6(x) ((x) / 64.0)
-#define FLOAT_FROM_16_16(x) ((x) / 65536.0)
-#define ROUND_26_6_TO_INT(x) ((x) >= 0 ?  ((32 + (x)) >> 6) \
-                                       : -((32 - (x)) >> 6))
 
 #endif 
