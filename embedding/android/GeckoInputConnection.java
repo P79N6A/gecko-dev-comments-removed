@@ -341,6 +341,14 @@ public class GeckoInputConnection
         mComposingText = text != null ? text.toString() : "";
 
         if (!mComposing) {
+            if (mComposingText.length() == 0) {
+                
+                
+                
+                
+                return true;
+            }
+
             
             GeckoAppShell.sendEventToGecko(
                 new GeckoEvent(GeckoEvent.IME_GET_SELECTION, 0, 0));
