@@ -1239,7 +1239,10 @@ LinearScanAllocator::allocateSlotFor(const LiveInterval *interval)
             
             
             freed->popBack();
-            return maybeDead->reg()->canonicalSpill()->toStackSlot()->slot();
+            VirtualRegister *dead = maybeDead->reg();
+            if (IsNunbox(dead))
+                return BaseOfNunboxSlot(dead->type(), dead->canonicalSpillSlot());
+            return dead->canonicalSpillSlot();
         }
     }
 
