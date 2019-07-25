@@ -320,11 +320,49 @@ nsBidiPresUtils::Resolve(nsBlockFrame* aBlockFrame)
   
   nsPresContext *presContext = aBlockFrame->PresContext();
 
-  
-  
   const nsStyleVisibility* vis = aBlockFrame->GetStyleVisibility();
-  const nsStyleTextReset* text = aBlockFrame->GetStyleTextReset();
 
+  mParaLevel = (NS_STYLE_DIRECTION_RTL == vis->mDirection) ?
+                NSBIDI_RTL : NSBIDI_LTR;
+
+  mLineIter = new nsBlockInFlowLineIterator(aBlockFrame,
+                                            aBlockFrame->begin_lines(),
+                                            PR_FALSE);
+  if (mLineIter->GetLine() == aBlockFrame->end_lines()) {
+    
+    mLineIter->Next();
+  }
+
+  mIsVisual = presContext->IsVisualMode();
+  if (mIsVisual) {
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    for (nsIContent* content = aBlockFrame->GetContent() ; content; 
+         content = content->GetParent()) {
+      if (content->IsNodeOfType(nsINode::eHTML_FORM_CONTROL) ||
+          content->IsXUL()) {
+        mIsVisual = PR_FALSE;
+        break;
+      }
+    }
+  }
+  mPrevFrame = nsnull;
+
+  
+  
+  const nsStyleTextReset* text = aBlockFrame->GetStyleTextReset();
   PRUnichar ch = 0;
   if (text->mUnicodeBidi == NS_STYLE_UNICODE_BIDI_OVERRIDE) {
     if (NS_STYLE_DIRECTION_RTL == vis->mDirection) {
@@ -352,28 +390,31 @@ nsBidiPresUtils::Resolve(nsBlockFrame* aBlockFrame)
 
   
   mBuffer.ReplaceChar("\t\r\n", kSpace);
+  ResolveParagraph(aBlockFrame);
+  return mSuccess;
+}
 
+void
+nsBidiPresUtils::ResolveParagraph(nsBlockFrame* aBlockFrame)
+{
+  nsPresContext *presContext = aBlockFrame->PresContext();
   PRInt32 bufferLength = mBuffer.Length();
 
   if (bufferLength < 1) {
     mSuccess = NS_OK;
-    return mSuccess;
+    return;
   }
   PRInt32 runCount;
-  PRUint8 embeddingLevel;
+  PRUint8 embeddingLevel = mParaLevel;
 
-  nsBidiLevel paraLevel = embeddingLevel =
-    (NS_STYLE_DIRECTION_RTL == vis->mDirection)
-    ? NSBIDI_RTL : NSBIDI_LTR;
-
-  mSuccess = mBidiEngine->SetPara(mBuffer.get(), bufferLength, paraLevel, nsnull);
+  mSuccess = mBidiEngine->SetPara(mBuffer.get(), bufferLength, mParaLevel, nsnull);
   if (NS_FAILED(mSuccess) ) {
-      return mSuccess;
+      return;
   }
 
   mSuccess = mBidiEngine->CountRuns(&runCount);
   if (NS_FAILED(mSuccess) ) {
-    return mSuccess;
+    return;
   }
   PRInt32     runLength      = 0;   
   PRInt32     lineOffset     = 0;   
@@ -389,38 +430,7 @@ nsBidiPresUtils::Resolve(nsBlockFrame* aBlockFrame)
   PRInt32     contentTextLength;
 
   FramePropertyTable *propTable = presContext->PropertyTable();
-
-  nsBlockInFlowLineIterator lineIter(aBlockFrame, aBlockFrame->begin_lines(), PR_FALSE);
-  if (lineIter.GetLine() == aBlockFrame->end_lines()) {
-    
-    lineIter.Next();
-  }
-  nsIFrame* prevFrame = nsnull;
   PRBool lineNeedsUpdate = PR_FALSE;
-
-  PRBool isVisual = presContext->IsVisualMode();
-  if (isVisual) {
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-    for (content = aBlockFrame->GetContent() ; content; content = content->GetParent()) {
-      if (content->IsNodeOfType(nsINode::eHTML_FORM_CONTROL) || content->IsXUL()) {
-        isVisual = PR_FALSE;
-        break;
-      }
-    }
-  }
   
 #ifdef DEBUG
 #ifdef NOISY_BIDI
@@ -464,7 +474,7 @@ nsBidiPresUtils::Resolve(nsBlockFrame* aBlockFrame)
           propTable->Set(frame, nsIFrame::EmbeddingLevelProperty(),
                          NS_INT32_TO_PTR(embeddingLevel));
           propTable->Set(frame, nsIFrame::BaseLevelProperty(),
-                         NS_INT32_TO_PTR(paraLevel));
+                         NS_INT32_TO_PTR(mParaLevel));
           continue;
         }
         PRInt32 start, end;
@@ -488,8 +498,8 @@ nsBidiPresUtils::Resolve(nsBlockFrame* aBlockFrame)
         break;
       }
       runLength = logicalLimit - lineOffset;
-      if (isVisual) {
-        embeddingLevel = paraLevel;
+      if (mIsVisual) {
+        embeddingLevel = mParaLevel;
       }
     } 
 
@@ -501,7 +511,7 @@ nsBidiPresUtils::Resolve(nsBlockFrame* aBlockFrame)
       propTable->Set(frame, nsIFrame::EmbeddingLevelProperty(),
                      NS_INT32_TO_PTR(embeddingLevel));
       propTable->Set(frame, nsIFrame::BaseLevelProperty(),
-                     NS_INT32_TO_PTR(paraLevel));
+                     NS_INT32_TO_PTR(mParaLevel));
       if (isTextFrame) {
         if ( (runLength > 0) && (runLength < fragmentLength) ) {
           
@@ -509,10 +519,10 @@ nsBidiPresUtils::Resolve(nsBlockFrame* aBlockFrame)
 
 
           if (lineNeedsUpdate) {
-            AdvanceLineIteratorToFrame(frame, &lineIter, prevFrame);
+            AdvanceLineIteratorToFrame(frame, mLineIter, mPrevFrame);
             lineNeedsUpdate = PR_FALSE;
           }
-          lineIter.GetLine()->MarkDirty();
+          mLineIter->GetLine()->MarkDirty();
           nsIFrame* nextBidi;
           PRInt32 runEnd = contentOffset + runLength;
           EnsureBidiContinuation(frame, &nextBidi, frameIndex,
@@ -563,10 +573,10 @@ nsBidiPresUtils::Resolve(nsBlockFrame* aBlockFrame)
           }
           frame->AdjustOffsetsForBidi(contentOffset, contentOffset + fragmentLength);
           if (lineNeedsUpdate) {
-            AdvanceLineIteratorToFrame(frame, &lineIter, prevFrame);
+            AdvanceLineIteratorToFrame(frame, mLineIter, mPrevFrame);
             lineNeedsUpdate = PR_FALSE;
           }
-          lineIter.GetLine()->MarkDirty();
+          mLineIter->GetLine()->MarkDirty();
         }
       } 
       else {
@@ -623,8 +633,6 @@ nsBidiPresUtils::Resolve(nsBlockFrame* aBlockFrame)
   printf("===\n");
 #endif
 #endif
-
-  return mSuccess;
 }
 
 
