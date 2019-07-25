@@ -6097,10 +6097,7 @@ JSObject::getCompartment(JSContext *cx)
         }
 
         
-
-
-
-        if (clasp == &js_FunctionClass || clasp == &js_BlockClass || clasp == &js_RegExpClass || clasp == &js_ScriptClass) {
+        if (clasp == &js_FunctionClass || clasp == &js_BlockClass || clasp == &js_RegExpClass) {
             
             return cx->runtime->defaultCompartment;
         }

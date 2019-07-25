@@ -184,22 +184,7 @@ struct JSScript {
     uint16          staticLevel;
     JSPrincipals    *principals;
     union {
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        JSObject    *object;
+        JSObject    *object;    
         JSScript    *nextToGC;  
     } u;
 #ifdef CHECK_SCRIPT_OWNER
@@ -389,9 +374,6 @@ js_DestroyScript(JSContext *cx, JSScript *script);
 
 extern void
 js_TraceScript(JSTracer *trc, JSScript *script);
-
-extern JSBool
-js_NewScriptObject(JSContext *cx, JSScript *script);
 
 
 
