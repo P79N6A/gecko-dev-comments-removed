@@ -1,42 +1,42 @@
-#!/usr/bin/env python
-# xpidl.py - A parser for cross-platform IDL (XPIDL) files.
-#
-# ***** BEGIN LICENSE BLOCK *****
-# Version: MPL 1.1/GPL 2.0/LGPL 2.1
-#
-# The contents of this file are subject to the Mozilla Public License Version
-# 1.1 (the "License"); you may not use this file except in compliance with
-# the License. You may obtain a copy of the License at
-# http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS IS" basis,
-# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
-# for the specific language governing rights and limitations under the
-# License.
-#
-# The Original Code is mozilla.org code.
-#
-# The Initial Developer of the Original Code is
-#   Mozilla Foundation.
-# Portions created by the Initial Developer are Copyright (C) 2008
-# the Initial Developer. All Rights Reserved.
-#
-# Contributor(s):
-#   Benjamin Smedberg <benjamin@smedbergs.us>
-#
-# Alternatively, the contents of this file may be used under the terms of
-# either of the GNU General Public License Version 2 or later (the "GPL"),
-# or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
-# in which case the provisions of the GPL or the LGPL are applicable instead
-# of those above. If you wish to allow use of your version of this file only
-# under the terms of either the GPL or the LGPL, and not to allow others to
-# use your version of this file under the terms of the MPL, indicate your
-# decision by deleting the provisions above and replace them with the notice
-# and other provisions required by the GPL or the LGPL. If you do not delete
-# the provisions above, a recipient may use your version of this file under
-# the terms of any one of the MPL, the GPL or the LGPL.
-#
-# ***** END LICENSE BLOCK *****
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 """A parser for cross-platform IDL (XPIDL) files."""
 
@@ -79,8 +79,8 @@ def paramAttlistToIDL(attlist):
     if len(attlist) == 0:
         return ''
 
-    # Hack alert: g_hash_table_foreach is pretty much unimitatable... hardcode
-    # quirk
+    
+    
     attlist = list(attlist)
     sorted = []
     if len(attlist) in _paramsHardcode:
@@ -383,8 +383,8 @@ class Forward(object):
         return other.kind == 'forward' and other.name == self.name
 
     def resolve(self, parent):
-        # Hack alert: if an identifier is already present, move the doccomments
-        # forward.
+        
+        
         if parent.hasName(self.name):
             for i in xrange(0, len(parent.productions)):
                 if parent.productions[i] is self: break
@@ -505,11 +505,13 @@ class Interface(object):
         self.ops = {
             'index':
                 {
-                    'getter': None
+                    'getter': None,
+                    'setter': None
                 },
             'name':
                 {
-                    'getter': None
+                    'getter': None,
+                    'setter': None
                 },
             'stringifier': None
             }
@@ -520,8 +522,8 @@ class Interface(object):
     def resolve(self, parent):
         self.idl = parent
 
-        # Hack alert: if an identifier is already present, libIDL assigns
-        # doc comments incorrectly. This is quirks-mode extraordinaire!
+        
+        
         if parent.hasName(self.name):
             for member in self.members:
                 if hasattr(member, 'doccomments'):
@@ -553,18 +555,18 @@ class Interface(object):
         for member in forwardedMembers:
             raise IDLError("member '%s' on interface '%s' forwards to '%s' which is not on the interface itself" % (member.name, self.name, member.forward), self.location)
 
-        # The number 250 is NOT arbitrary; this number is the maximum number of
-        # stub entries defined in xpcom/reflect/xptcall/public/genstubs.pl
-        # Do not increase this value without increasing the number in that
-        # location, or you WILL cause otherwise unknown problems!
+        
+        
+        
+        
         if self.countEntries() > 250 and not self.attributes.builtinclass:
             raise IDLError("interface '%s' has too many entries" % self.name,
                 self.location)
 
     def isScriptable(self):
-        # NOTE: this is not whether *this* interface is scriptable... it's
-        # whether, when used as a type, it's scriptable, which is true of all
-        # interfaces.
+        
+        
+        
         return True
 
     def nativeType(self, calltype, const=False):
@@ -585,7 +587,7 @@ class Interface(object):
         return "".join(l)
 
     def getConst(self, name, location):
-        # The constant may be in a base class
+        
         iface = self
         while name not in iface.namemap and iface is not None:
             iface = self.idl.getName(self.base, self.location)
@@ -816,6 +818,7 @@ class Method(object):
     optional_argc = False
     deprecated = False
     getter = False
+    setter = False
     stringifier = False
     forward = None
 
@@ -863,6 +866,10 @@ class Method(object):
                 if (len(self.params) != 1):
                     raise IDLError("Methods marked as getter must take 1 argument", aloc)
                 self.getter = True
+            elif name == 'setter':
+                if (len(self.params) != 2):
+                    raise IDLError("Methods marked as setter must take 2 arguments", aloc)
+                self.setter = True
             elif name == 'stringifier':
                 if (len(self.params) != 0):
                     raise IDLError("Methods marked as stringifier must take 0 arguments", aloc)
@@ -889,6 +896,17 @@ class Method(object):
             if self.iface.ops[ops]['getter']:
                 raise IDLError("a %s getter was already defined on interface '%s'" % (ops, self.iface.name), self.location)
             self.iface.ops[ops]['getter'] = self
+        if self.setter:
+            if getBuiltinOrNativeTypeName(self.params[0].realtype) == 'unsigned long':
+                ops = 'index'
+            else:
+                if getBuiltinOrNativeTypeName(self.params[0].realtype) != '[domstring]':
+                    print getBuiltinOrNativeTypeName(self.params[0].realtype)
+                    raise IDLError("a setter must take a unsigned long or DOMString argument" % self.iface.name, self.location)
+                ops = 'name'
+            if self.iface.ops[ops]['setter']:
+                raise IDLError("a %s setter was already defined on interface '%s'" % (ops, self.iface.name), self.location)
+            self.iface.ops[ops]['setter'] = self
         if self.stringifier:
             if self.iface.ops['stringifier']:
                 raise IDLError("a stringifier was already defined on interface '%s'" % self.iface.name, self.location)
@@ -951,7 +969,7 @@ class Param(object):
         self.realtype = realtype
 
         for name, value, aloc in attlist:
-            # Put the value-taking attributes first!
+            
             if name == 'size_is':
                 if value is None:
                     raise IDLError("'size_is' must specify a parameter", aloc)
@@ -1180,8 +1198,8 @@ class IDLParser(object):
 
     def p_afternativeid(self, p):
         """afternativeid : """
-        # this is a place marker: we switch the lexer into literal identifier
-        # mode here, to slurp up everything until the closeparen
+        
+        
         self.lexer.begin('nativeid')
 
     def p_anyident(self, p):
@@ -1231,7 +1249,7 @@ class IDLParser(object):
         l = lambda: self.getLocation(p, 2)
 
         if body is None:
-            # forward-declared interface... must not have attributes!
+            
             if len(attlist) != 0:
                 raise IDLError("Forward-declared interface must not have attributes",
                                list[0][3])
@@ -1279,7 +1297,7 @@ class IDLParser(object):
                            value=p[5], location=self.getLocation(p, 1),
                            doccomments=p.slice[1].doccomments)
 
-# All "number" products return a function(interface)
+
 
     def p_number_decimal(self, p):
         """number : NUMBER"""
