@@ -132,13 +132,15 @@ public class PanZoomController
 
 
     private boolean onTouchStart(MotionEvent event) {
+        
+        
+        if (mFlingTimer != null) {
+            mFlingTimer.cancel();
+            mFlingTimer = null;
+        }
+
         switch (mState) {
         case FLING:
-            if (mFlingTimer != null) {
-                mFlingTimer.cancel();
-                mFlingTimer = null;
-            }
-            
         case NOTHING:
             mState = PanZoomState.TOUCHING;
             mX.firstTouchPos = mX.touchPos = event.getX(0);
@@ -198,6 +200,9 @@ public class PanZoomController
         case TOUCHING:
             mState = PanZoomState.NOTHING;
             
+            
+            
+            fling();
             return false;
         case PANNING:
         case PANNING_LOCKED:
@@ -228,6 +233,8 @@ public class PanZoomController
 
     private boolean onTouchCancel(MotionEvent event) {
         mState = PanZoomState.NOTHING;
+        
+        fling();
         return false;
     }
 
