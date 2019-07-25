@@ -418,6 +418,17 @@ class nsTSubstring_CharT
           AppendPrintf( fmt, aInteger );
         }
 
+      
+
+
+      void AppendFloat( float aFloat )
+                      { DoAppendFloat(aFloat, 6); }
+      void AppendFloat( double aFloat )
+                      { DoAppendFloat(aFloat, 15); }
+  private:
+      NS_COM void NS_FASTCALL DoAppendFloat( double aFloat, int digits );
+  public:
+
     
     
     
