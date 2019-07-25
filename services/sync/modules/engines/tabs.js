@@ -349,6 +349,13 @@ TabStore.prototype = {
 	let tabID = currentEntry.url;
         this._log.debug("_wrapRealTabs: tab " + tabID);
 
+        
+        
+        
+        
+        for each (let entry in tab.entries)
+          delete entry.ID;
+
 	items[tabID] = {
           
           
