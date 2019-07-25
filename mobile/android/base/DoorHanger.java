@@ -90,7 +90,7 @@ public class DoorHanger extends LinearLayout implements Button.OnClickListener {
 
         
         
-        GeckoApp.mDoorHangerPopup.updatePopup();
+        ((GeckoApp)mContext).updatePopups(mTab);
     }
 
     public void show() {
