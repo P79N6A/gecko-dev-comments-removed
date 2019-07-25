@@ -61,7 +61,7 @@ function checkValueAndTrigger(request, data, ctx) {
         index++;
         
         
-        do_timeout(1, "triggerNextTest();");
+        do_timeout(1, triggerNextTest);
     } else {
         httpserver.stop(do_test_finished);
     }
