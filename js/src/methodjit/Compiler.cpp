@@ -4216,6 +4216,28 @@ mjit::Compiler::jsop_getprop(JSAtom *atom, JSValueType knownType,
 
 
 
+        if (!types->hasObjectFlags(cx, types::OBJECT_FLAG_NON_TYPED_ARRAY)) {
+            bool isObject = top->isTypeKnown();
+            if (!isObject) {
+                Jump notObject = frame.testObject(Assembler::NotEqual, top);
+                stubcc.linkExit(notObject, Uses(1));
+                stubcc.leave();
+                OOL_STUBCALL(stubs::GetProp, rejoin);
+            }
+            RegisterID reg = frame.copyDataIntoReg(top);
+            masm.loadPtr(Address(reg, offsetof(JSObject, privateData)), reg);
+            frame.pop();
+            frame.push(Address(reg, TypedArray::lengthOffset()), JSVAL_TYPE_INT32);
+            frame.freeReg(reg);
+            if (!isObject)
+                stubcc.rejoin(Changes(1));
+            return true;
+        }
+
+        
+
+
+
 
         if (types->isLazyArguments(cx)) {
             frame.pop();

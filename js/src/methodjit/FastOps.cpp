@@ -45,6 +45,7 @@
 #include "jsscope.h"
 #include "jsobjinlines.h"
 #include "jsscriptinlines.h"
+#include "jstypedarrayinlines.h"
 
 #include "methodjit/MethodJIT.h"
 #include "methodjit/Compiler.h"
@@ -1193,6 +1194,215 @@ mjit::Compiler::jsop_setelem_dense()
     stubcc.rejoin(Changes(2));
 }
 
+void
+mjit::Compiler::convertForTypedArray(int atype, ValueRemat *vr, bool *allocated)
+{
+    FrameEntry *value = frame.peek(-1);
+    bool floatArray = (atype == TypedArray::TYPE_FLOAT32 ||
+                       atype == TypedArray::TYPE_FLOAT64);
+    *allocated = false;
+
+    if (value->isConstant()) {
+        Value v = value->getValue();
+        if (floatArray) {
+            double d = v.isDouble() ? v.toDouble() : v.toInt32();
+            *vr = ValueRemat::FromConstant(DoubleValue(d));
+        } else {
+            int i32;
+            if (v.isInt32()) {
+                i32 = v.toInt32();
+                if (atype == TypedArray::TYPE_UINT8_CLAMPED)
+                    i32 = ClampIntForUint8Array(i32);
+            } else {
+                i32 = (atype == TypedArray::TYPE_UINT8_CLAMPED)
+                    ? js_TypedArray_uint8_clamp_double(v.toDouble())
+                    : js_DoubleToECMAInt32(v.toDouble());
+            }
+            *vr = ValueRemat::FromConstant(Int32Value(i32));
+        }
+    } else {
+        if (floatArray) {
+            FPRegisterID fpReg;
+            MaybeJump notNumber = loadDouble(value, &fpReg, allocated);
+            if (notNumber.isSet())
+                stubcc.linkExit(notNumber.get(), Uses(3));
+
+            if (atype == TypedArray::TYPE_FLOAT32) {
+                if (!*allocated) {
+                    frame.pinReg(fpReg);
+                    FPRegisterID newFpReg = frame.allocFPReg();
+                    masm.convertDoubleToFloat(fpReg, newFpReg);
+                    frame.unpinReg(fpReg);
+                    fpReg = newFpReg;
+                    *allocated = true;
+                } else {
+                    masm.convertDoubleToFloat(fpReg, fpReg);
+                }
+            }
+            *vr = ValueRemat::FromFPRegister(fpReg);
+        } else {
+            
+
+
+
+
+
+
+            MaybeRegisterID reg;
+            bool needsByteReg = (atype == TypedArray::TYPE_INT8 ||
+                                 atype == TypedArray::TYPE_UINT8 ||
+                                 atype == TypedArray::TYPE_UINT8_CLAMPED);
+            if (!value->isType(JSVAL_TYPE_INT32) || atype == TypedArray::TYPE_UINT8_CLAMPED) {
+                
+                
+                
+                if (needsByteReg)
+                    reg = frame.allocReg(Registers::SingleByteRegs).reg();
+                else
+                    reg = frame.allocReg();
+                *allocated = true;
+            } else {
+                if (needsByteReg)
+                    reg = frame.tempRegInMaskForData(value, Registers::SingleByteRegs).reg();
+                else
+                    reg = frame.tempRegForData(value);
+            }
+
+            MaybeJump intDone;
+            if (value->mightBeType(JSVAL_TYPE_INT32)) {
+                
+                MaybeJump notInt;
+                if (!value->isTypeKnown()) {
+                    JS_ASSERT(*allocated);
+                    notInt = frame.testInt32(Assembler::NotEqual, value);
+                }
+
+                if (*allocated)
+                    masm.move(frame.tempRegForData(value), reg.reg());
+
+                if (atype == TypedArray::TYPE_UINT8_CLAMPED)
+                    masm.clampInt32ToUint8(reg.reg());
+
+                if (notInt.isSet()) {
+                    intDone = masm.jump();
+                    notInt.get().linkTo(masm.label(), &masm);
+                }
+            }
+            if (value->mightBeType(JSVAL_TYPE_DOUBLE)) {
+                
+                if (!value->isTypeKnown()) {
+                    Jump notNumber = frame.testDouble(Assembler::NotEqual, value);
+                    stubcc.linkExit(notNumber, Uses(3));
+                }
+
+                
+                FPRegisterID fpReg;
+                if (value->isTypeKnown()) {
+                    fpReg = frame.tempFPRegForData(value);
+                } else {
+                    fpReg = frame.allocFPReg();
+                    frame.loadDouble(value, fpReg, masm);
+                }
+
+                
+                if (atype == TypedArray::TYPE_UINT8_CLAMPED) {
+                    if (value->isTypeKnown())
+                        frame.pinReg(fpReg);
+                    FPRegisterID fpTemp = frame.allocFPReg();
+                    if (value->isTypeKnown())
+                        frame.unpinReg(fpReg);
+                    masm.clampDoubleToUint8(fpReg, fpTemp, reg.reg());
+                    frame.freeReg(fpTemp);
+                } else {
+                    Jump j = masm.branchTruncateDoubleToInt32(fpReg, reg.reg());
+                    stubcc.linkExit(j, Uses(3));
+                }
+                if (!value->isTypeKnown())
+                    frame.freeReg(fpReg);
+            }
+            if (intDone.isSet())
+                intDone.get().linkTo(masm.label(), &masm);
+            *vr = ValueRemat::FromKnownType(JSVAL_TYPE_INT32, reg.reg());
+        }
+    }
+}
+void
+mjit::Compiler::jsop_setelem_typed(int atype)
+{
+    FrameEntry *obj = frame.peek(-3);
+    FrameEntry *id = frame.peek(-2);
+    FrameEntry *value = frame.peek(-1);
+
+    
+    
+    if (!obj->isTypeKnown()) {
+        Jump guard = frame.testObject(Assembler::NotEqual, obj);
+        stubcc.linkExit(guard, Uses(3));
+    }
+
+    
+    if (!id->isTypeKnown()) {
+        Jump guard = frame.testInt32(Assembler::NotEqual, id);
+        stubcc.linkExit(guard, Uses(3));
+    }
+
+    
+    
+    
+    MaybeRegisterID dataReg;
+    if (value->mightBeType(JSVAL_TYPE_INT32) && !value->isConstant()) {
+        dataReg = frame.tempRegForData(value);
+        frame.pinReg(dataReg.reg());
+    }
+
+    
+    Int32Key key = id->isConstant()
+                 ? Int32Key::FromConstant(id->getValue().toInt32())
+                 : Int32Key::FromRegister(frame.tempRegForData(id));
+
+    JS_ASSERT_IF(frame.haveSameBacking(id, value), dataReg.isSet());
+    bool pinKey = !key.isConstant() && !frame.haveSameBacking(id, value);
+    if (pinKey)
+        frame.pinReg(key.reg());
+    RegisterID objReg = frame.copyDataIntoReg(obj);
+
+    
+    masm.loadPtr(Address(objReg, offsetof(JSObject, privateData)), objReg);
+
+    
+    Jump lengthGuard = masm.guardArrayExtent(TypedArray::lengthOffset(),
+                                             objReg, key, Assembler::BelowOrEqual);
+    stubcc.linkExit(lengthGuard, Uses(3));
+
+    
+    masm.loadPtr(Address(objReg, js::TypedArray::dataOffset()), objReg);
+
+    
+    bool allocated;
+    ValueRemat vr;
+    convertForTypedArray(atype, &vr, &allocated);
+    if (dataReg.isSet())
+        frame.unpinReg(dataReg.reg());
+
+    
+    masm.storeToTypedArray(atype, objReg, key, vr);
+    if (allocated) {
+        if (vr.isFPRegister())
+            frame.freeReg(vr.fpReg());
+        else
+            frame.freeReg(vr.dataReg());
+    }
+    if (pinKey)
+        frame.unpinReg(key.reg());
+    frame.freeReg(objReg);
+
+    stubcc.leave();
+    OOL_STUBCALL(STRICT_VARIANT(stubs::SetElem), REJOIN_FALLTHROUGH);
+
+    frame.shimmy(2);
+    stubcc.rejoin(Changes(2));
+}
+
 bool
 mjit::Compiler::jsop_setelem(bool popGuaranteed)
 {
@@ -1207,15 +1417,26 @@ mjit::Compiler::jsop_setelem(bool popGuaranteed)
 
     frame.forgetMismatchedObject(obj);
 
-    if (cx->typeInferenceEnabled()) {
+    
+    
+    if (cx->typeInferenceEnabled() && id->mightBeType(JSVAL_TYPE_INT32)) {
         types::TypeSet *types = analysis->poppedTypes(PC, 2);
-        if (id->mightBeType(JSVAL_TYPE_INT32) &&
-            !types->hasObjectFlags(cx, types::OBJECT_FLAG_NON_DENSE_ARRAY) &&
+
+        if (!types->hasObjectFlags(cx, types::OBJECT_FLAG_NON_DENSE_ARRAY) &&
             !arrayPrototypeHasIndexedProperty()) {
-            
             
             jsop_setelem_dense();
             return true;
+        }
+        if (!types->hasObjectFlags(cx, types::OBJECT_FLAG_NON_TYPED_ARRAY) &&
+            (value->mightBeType(JSVAL_TYPE_INT32) || value->mightBeType(JSVAL_TYPE_DOUBLE))) {
+            
+            if (types::TypeObject *objType = types->getSingleObject()) {
+                int atype = objType->proto->getClass() - TypedArray::slowClasses;
+                JS_ASSERT(atype >= 0 && atype < TypedArray::TYPE_MAX);
+                jsop_setelem_typed(atype);
+                return true;
+            }
         }
     }
 
@@ -1593,6 +1814,103 @@ mjit::Compiler::jsop_getelem_args()
     finishBarrier(barrier, REJOIN_FALLTHROUGH, 0);
 }
 
+void
+mjit::Compiler::jsop_getelem_typed(int atype)
+{
+    FrameEntry *obj = frame.peek(-2);
+    FrameEntry *id = frame.peek(-1);
+
+    
+    
+    if (!obj->isTypeKnown()) {
+        Jump guard = frame.testObject(Assembler::NotEqual, obj);
+        stubcc.linkExit(guard, Uses(2));
+    }
+
+    
+    if (!id->isTypeKnown()) {
+        Jump guard = frame.testInt32(Assembler::NotEqual, id);
+        stubcc.linkExit(guard, Uses(2));
+    }
+
+    
+    Int32Key key = id->isConstant()
+                 ? Int32Key::FromConstant(id->getValue().toInt32())
+                 : Int32Key::FromRegister(frame.tempRegForData(id));
+    if (!key.isConstant())
+        frame.pinReg(key.reg());
+    RegisterID objReg = frame.copyDataIntoReg(obj);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    AnyRegisterID dataReg;
+    MaybeRegisterID typeReg, tempReg;
+    JSValueType type = knownPushedType(0);
+    bool maybeReadFloat = (atype == TypedArray::TYPE_FLOAT32 ||
+                           atype == TypedArray::TYPE_FLOAT64 ||
+                           atype == TypedArray::TYPE_UINT32);
+    if (maybeReadFloat && type == JSVAL_TYPE_DOUBLE && !hasTypeBarriers(PC)) {
+        dataReg = frame.allocFPReg();
+        
+        if (atype == TypedArray::TYPE_UINT32)
+            tempReg = frame.allocReg();
+    } else {
+        dataReg = frame.allocReg();
+        
+        
+        
+        
+        if (maybeReadFloat || type != JSVAL_TYPE_INT32 || hasTypeBarriers(PC))
+            typeReg = frame.allocReg();
+    }
+
+    
+    masm.loadPtr(Address(objReg, offsetof(JSObject, privateData)), objReg);
+
+    
+    Jump lengthGuard = masm.guardArrayExtent(TypedArray::lengthOffset(),
+                                             objReg, key, Assembler::BelowOrEqual);
+    stubcc.linkExit(lengthGuard, Uses(2));
+
+    
+    masm.loadPtr(Address(objReg, js::TypedArray::dataOffset()), objReg);
+
+    
+    masm.loadFromTypedArray(atype, objReg, key, typeReg, dataReg, tempReg);
+
+    frame.freeReg(objReg);
+    if (!key.isConstant())
+        frame.unpinReg(key.reg());
+    if (tempReg.isSet())
+        frame.freeReg(tempReg.reg());
+
+    stubcc.leave();
+    OOL_STUBCALL(stubs::GetElem, REJOIN_FALLTHROUGH);
+
+    frame.popn(2);
+
+    BarrierState barrier;
+    if (dataReg.isFPReg()) {
+        frame.pushDouble(dataReg.fpreg());
+    } else if (typeReg.isSet()) {
+        frame.pushRegs(typeReg.reg(), dataReg.reg(), knownPushedType(0));
+        if (hasTypeBarriers(PC))
+            barrier = testBarrier(typeReg.reg(), dataReg.reg(), false);
+    } else {
+        JS_ASSERT(type == JSVAL_TYPE_INT32);
+        frame.pushTypedPayload(JSVAL_TYPE_INT32, dataReg.reg());
+    }
+    stubcc.rejoin(Changes(2));
+
+    finishBarrier(barrier, REJOIN_FALLTHROUGH, 0);
+}
+
 bool
 mjit::Compiler::jsop_getelem(bool isCall)
 {
@@ -1607,9 +1925,12 @@ mjit::Compiler::jsop_getelem(bool isCall)
         return true;
     }
 
+    
+    
     if (cx->typeInferenceEnabled() && id->mightBeType(JSVAL_TYPE_INT32) && !isCall) {
         types::TypeSet *types = analysis->poppedTypes(PC, 1);
         if (types->isLazyArguments(cx) && !outerScript->analysis(cx)->modifiesArguments()) {
+            
             jsop_getelem_args();
             return true;
         }
@@ -1617,10 +1938,19 @@ mjit::Compiler::jsop_getelem(bool isCall)
             !types->hasObjectFlags(cx, types::OBJECT_FLAG_NON_DENSE_ARRAY) &&
             !arrayPrototypeHasIndexedProperty()) {
             
-            
             bool packed = !types->hasObjectFlags(cx, types::OBJECT_FLAG_NON_PACKED_ARRAY);
             jsop_getelem_dense(packed);
             return true;
+        }
+        if (obj->mightBeType(JSVAL_TYPE_OBJECT) &&
+            !types->hasObjectFlags(cx, types::OBJECT_FLAG_NON_TYPED_ARRAY)) {
+            
+            if (types::TypeObject *objType = types->getSingleObject()) {
+                int atype = objType->proto->getClass() - TypedArray::slowClasses;
+                JS_ASSERT(atype >= 0 && atype < TypedArray::TYPE_MAX);
+                jsop_getelem_typed(atype);
+                return true;
+            }
         }
     }
 
