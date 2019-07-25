@@ -46,6 +46,10 @@
 
 
 
+#ifdef MOZ_IPC
+#include "mozilla/plugins/PluginMessageUtils.h"
+#endif
+
 #ifdef MOZ_WIDGET_QT
 #include <QWidget>
 #include <QKeyEvent>
@@ -207,9 +211,6 @@ using mozilla::DefaultXDisplay;
 #ifdef XP_WIN
 #include <wtypes.h>
 #include <winuser.h>
-#ifdef MOZ_IPC
-#define NS_OOPP_DOUBLEPASS_MSGID TEXT("MozDoublePassMsg")
-#endif
 #endif
 
 #ifdef XP_OS2
@@ -623,10 +624,6 @@ nsObjectFrame::Init(nsIContent*      aContent,
          ("Initializing nsObjectFrame %p for content %p\n", this, aContent));
 
   nsresult rv = nsObjectFrameSuper::Init(aContent, aParent, aPrevInFlow);
-
-#ifdef XP_WIN
-  mDoublePassEvent = 0;
-#endif
 
   return rv;
 }
@@ -1726,15 +1723,12 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
         
         
         
-        if (!mDoublePassEvent)
-          mDoublePassEvent = ::RegisterWindowMessage(NS_OOPP_DOUBLEPASS_MSGID);
-        if (mDoublePassEvent) {
-          NPEvent pluginEvent;
-          pluginEvent.event = mDoublePassEvent;
-          pluginEvent.wParam = 0;
-          pluginEvent.lParam = 0;
+        NPEvent pluginEvent;
+        pluginEvent.event = mozilla::plugins::DoublePassRenderingEvent();
+        pluginEvent.wParam = 0;
+        pluginEvent.lParam = 0;
+        if (pluginEvent.event)
           inst->HandleEvent(&pluginEvent, nsnull);
-        }
       }
 #endif
       do {

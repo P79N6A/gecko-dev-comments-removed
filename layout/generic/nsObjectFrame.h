@@ -252,9 +252,6 @@ private:
   nsIView*                        mInnerView;
   nsCOMPtr<nsIWidget>             mWidget;
   nsIntRect                       mWindowlessRect;
-#ifdef XP_WIN
-  PRUint32                        mDoublePassEvent;
-#endif
 
   
   

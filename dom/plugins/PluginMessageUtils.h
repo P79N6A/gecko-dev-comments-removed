@@ -271,6 +271,11 @@ struct DeletingObjectEntry : public nsPtrHashKey<NPObject>
   bool mDeleted;
 };
 
+#ifdef XP_WIN
+
+UINT DoublePassRenderingEvent();
+#endif
+
 } 
 
 } 

@@ -86,8 +86,6 @@ using mozilla::gfx::SharedDIB;
 
 const int kFlashWMUSERMessageThrottleDelayMs = 5;
 
-#define NS_OOPP_DOUBLEPASS_MSGID TEXT("MozDoublePassMsg")
-
 #elif defined(XP_MACOSX)
 #include <ApplicationServices/ApplicationServices.h>
 #endif 
@@ -125,7 +123,6 @@ PluginInstanceChild::PluginInstanceChild(const NPPluginFuncs* aPluginIface,
 #endif 
 #if defined(OS_WIN)
     memset(&mAlphaExtract, 0, sizeof(mAlphaExtract));
-    mAlphaExtract.doublePassEvent = ::RegisterWindowMessage(NS_OOPP_DOUBLEPASS_MSGID);
 #endif 
     InitQuirksModes(aMimeType);
 #if defined(OS_WIN)
@@ -565,7 +562,7 @@ PluginInstanceChild::AnswerNPP_HandleEvent(const NPRemoteEvent& event,
           *handled = SharedSurfacePaint(evcopy);
           return true;
        }
-       else if (evcopy.event == mAlphaExtract.doublePassEvent) {
+       else if (DoublePassRenderingEvent() == evcopy.event) {
             
             
             
