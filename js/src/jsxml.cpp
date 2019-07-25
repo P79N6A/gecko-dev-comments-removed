@@ -1677,6 +1677,32 @@ GetXMLSettingFlags(JSContext *cx, uintN *flagsp)
     return true;
 }
 
+static JSObject *
+GetXMLScopeChain(JSContext *cx)
+{
+    if (JSStackFrame *fp = js_GetTopStackFrame(cx))
+        return GetScopeChain(cx, fp);
+
+    
+
+
+
+
+
+
+
+
+
+    JSObject *obj = cx->globalObject;
+    if (!obj) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_INACTIVE);
+        return NULL;
+    }
+
+    OBJ_TO_INNER_OBJECT(cx, obj);
+    return obj;
+}
+
 static JSXML *
 ParseXMLSource(JSContext *cx, JSString *src)
 {
@@ -1756,7 +1782,7 @@ ParseXMLSource(JSContext *cx, JSString *src)
     {
         Parser parser(cx);
         if (parser.init(chars, length, filename, lineno, cx->findVersion())) {
-            JSObject *scopeChain = GetScopeChain(cx);
+            JSObject *scopeChain = GetXMLScopeChain(cx);
             if (!scopeChain) {
                 cx->free(chars);
                 return NULL;
@@ -7231,7 +7257,7 @@ js_GetDefaultXMLNamespace(JSContext *cx, jsval *vp)
     JSObject *ns, *obj, *tmp;
     jsval v;
 
-    JSObject *scopeChain = GetScopeChain(cx);
+    JSObject *scopeChain = GetXMLScopeChain(cx);
 
     obj = NULL;
     for (tmp = scopeChain; tmp; tmp = tmp->getParent()) {

@@ -803,9 +803,6 @@ GetBlockChain(JSContext *cx, JSStackFrame *fp);
 extern JSObject *
 GetBlockChainFast(JSContext *cx, JSStackFrame *fp, JSOp op, size_t oplen);
 
-extern JSObject *
-GetScopeChain(JSContext *cx);
-
 
 
 

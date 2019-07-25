@@ -158,33 +158,6 @@ JSStackFrame::pc(JSContext *cx, JSStackFrame *next)
 #endif
 }
 
-JSObject *
-js::GetScopeChain(JSContext *cx)
-{
-    JSStackFrame *fp = js_GetTopStackFrame(cx);
-    if (!fp) {
-        
-
-
-
-
-
-
-
-
-
-        JSObject *obj = cx->globalObject;
-        if (!obj) {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_INACTIVE);
-            return NULL;
-        }
-
-        OBJ_TO_INNER_OBJECT(cx, obj);
-        return obj;
-    }
-    return GetScopeChain(cx, fp);
-}
-
 
 
 
