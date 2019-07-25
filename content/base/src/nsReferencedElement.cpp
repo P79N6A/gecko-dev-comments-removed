@@ -140,10 +140,10 @@ nsReferencedElement::Reset(nsIContent* aFromContent, nsIURI* aURI,
   }
 
   nsCOMPtr<nsIURL> documentURL = do_QueryInterface(doc->GetDocumentURI());
-  if (!documentURL)
-    return;
-
-  if (!EqualExceptRef(url, documentURL)) {
+  
+  
+  
+  if (!documentURL || !EqualExceptRef(url, documentURL)) {
     nsRefPtr<nsIDocument::ExternalResourceLoad> load;
     doc = doc->RequestExternalResource(url, aFromContent, getter_AddRefs(load));
     if (!doc) {
