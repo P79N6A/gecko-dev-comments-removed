@@ -1,4 +1,4 @@
-                     
+
 
 
 
@@ -244,7 +244,7 @@ NS_IMETHODIMP
 nsDOMTouchEvent::InitTouchEvent(const nsAString& aType,
                                 PRBool aCanBubble,
                                 PRBool aCancelable,
-                                nsIDOMAbstractView* aView,
+                                nsIDOMWindow* aView,
                                 PRInt32 aDetail,
                                 PRBool aCtrlKey,
                                 PRBool aAltKey,

@@ -42,7 +42,6 @@
 #include "nsCOMPtr.h"
 #include "nsString.h"
 #include "nsTArray.h"
-#include "nsIDOMViewCSS.h"
 #include "nsIDOMNode.h"
 #include "nsIDOMElement.h"
 #include "nsIHTMLEditor.h"
@@ -54,6 +53,7 @@
 #define COMPUTED_STYLE_TYPE     2
 
 class nsHTMLEditor;
+class nsIDOMWindow;
 
 typedef void (*nsProcessValueFunc)(const nsAString * aInputString, nsAString & aOutputString,
                                    const char * aDefaultValueString,
@@ -317,7 +317,8 @@ public:
 
 
 
-  nsresult        GetDefaultViewCSS(nsIDOMNode * aNode, nsIDOMViewCSS ** aViewCSS);
+
+  nsresult        GetDefaultViewCSS(nsIDOMNode* aNode, nsIDOMWindow** aWindow);
 
 
 private:
@@ -393,7 +394,7 @@ private:
 
   nsresult    GetCSSInlinePropertyBase(nsIDOMNode * aNode, nsIAtom * aProperty,
                                        nsAString & aValue,
-                                       nsIDOMViewCSS * aViewCSS,
+                                       nsIDOMWindow* aWindow,
                                        PRUint8 aStyleType);
 
 

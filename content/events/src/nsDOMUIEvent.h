@@ -36,12 +36,11 @@
 
 
 
-#ifndef nsDOMUIEvent_h__
-#define nsDOMUIEvent_h__
+#ifndef nsDOMUIEvent_h
+#define nsDOMUIEvent_h
 
 #include "nsIDOMUIEvent.h"
 #include "nsIDOMNSUIEvent.h"
-#include "nsIDOMAbstractView.h"
 #include "nsDOMEvent.h"
 
 class nsDOMUIEvent : public nsDOMEvent,
@@ -78,7 +77,7 @@ protected:
   nsIntPoint GetPagePoint();
   
 protected:
-  nsCOMPtr<nsIDOMAbstractView> mView;
+  nsCOMPtr<nsIDOMWindow> mView;
   PRInt32 mDetail;
   nsIntPoint mClientPoint;
   
