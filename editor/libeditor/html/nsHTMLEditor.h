@@ -318,7 +318,7 @@ public:
                               nsresult aStatus);
 
   
-  NS_IMETHOD TypedText(const nsAString& aString, PRInt32 aAction);
+  NS_IMETHOD TypedText(const nsAString& aString, ETypingAction aAction);
   nsresult InsertNodeAtPoint( nsIDOMNode *aNode, 
                               nsCOMPtr<nsIDOMNode> *ioParent, 
                               PRInt32 *ioOffset, 

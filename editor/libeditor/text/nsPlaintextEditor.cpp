@@ -393,23 +393,20 @@ nsPlaintextEditor::HandleKeyPressEvent(nsIDOMKeyEvent* aKeyEvent)
 
 
 
-NS_IMETHODIMP nsPlaintextEditor::TypedText(const nsAString& aString,
-                                      PRInt32 aAction)
+NS_IMETHODIMP
+nsPlaintextEditor::TypedText(const nsAString& aString, ETypingAction aAction)
 {
   nsAutoPlaceHolderBatch batch(this, nsGkAtoms::TypingTxnName);
 
-  switch (aAction)
-  {
+  switch (aAction) {
     case eTypedText:
-      {
-        return InsertText(aString);
-      }
+      return InsertText(aString);
     case eTypedBreak:
-      {
-        return InsertLineBreak();
-      } 
-  } 
-  return NS_ERROR_FAILURE; 
+      return InsertLineBreak();
+    default:
+      
+      return NS_ERROR_FAILURE;
+  }
 }
 
 nsresult
