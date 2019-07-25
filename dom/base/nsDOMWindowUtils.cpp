@@ -318,28 +318,24 @@ nsDOMWindowUtils::SetDisplayPortForElement(float aXPx, float aYPx,
       
       
       presShell->SetIgnoreViewportScrolling(PR_TRUE);
+
+      
+      
+      
+      
+      nsPresContext* presContext = GetPresContext();
+      if (presContext && presContext->IsRoot()) {
+        nsIFrame* rootFrame = presShell->GetRootFrame();
+        nsIView* view = rootFrame->GetView();
+        if (view) {
+          view->SetInvalidationDimensions(&displayport);
+        }
+      }
     }
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  nsPresContext* rootPresContext = GetPresContext()->GetRootPresContext();
-  if (rootPresContext) {
-    nsIPresShell* rootPresShell = rootPresContext->GetPresShell();
-    nsIFrame* rootFrame = rootPresShell->FrameManager()->GetRootFrame();
+  if (presShell) {
+    nsIFrame* rootFrame = presShell->FrameManager()->GetRootFrame();
     if (rootFrame) {
       rootFrame->InvalidateWithFlags(rootFrame->GetVisualOverflowRectRelativeToSelf(),
                                      nsIFrame::INVALIDATE_NO_THEBES_LAYERS);

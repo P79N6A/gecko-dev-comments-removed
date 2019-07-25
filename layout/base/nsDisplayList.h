@@ -1791,11 +1791,8 @@ public:
 
 
 
-
-
   nsDisplayScrollLayer(nsDisplayListBuilder* aBuilder, nsDisplayList* aList,
-                       nsIFrame* aForFrame, nsIFrame* aViewportFrame,
-                       const nsRect& aDisplayPort);
+                       nsIFrame* aForFrame, nsIFrame* aViewportFrame);
   NS_DISPLAY_DECL_NAME("ScrollLayer", TYPE_SCROLL_LAYER)
 
 #ifdef NS_BUILD_REFCNT_LOGGING
@@ -1819,7 +1816,6 @@ public:
   }
 private:
   nsIFrame* mViewportFrame;
-  nsRect mDisplayPort;
 };
 #endif
 

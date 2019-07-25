@@ -181,7 +181,11 @@ ComputeShadowTreeTransform(nsIFrame* aContainerFrame,
     aConfig.mScrollOffset.ToNearestPixels(auPerDevPixel);
   nsIntPoint metricsScrollOffset = aMetrics->mViewportScrollOffset;
 
-  if (aRootFrameLoader->AsyncScrollEnabled()) {
+  if (aRootFrameLoader->AsyncScrollEnabled() && !aMetrics->mDisplayPort.IsEmpty()) {
+    
+    
+    
+    
     nsIntPoint scrollCompensation(
       scrollOffset.x * aInverseScaleX - metricsScrollOffset.x * aConfig.mXScale,
       scrollOffset.y * aInverseScaleY - metricsScrollOffset.y * aConfig.mYScale);
