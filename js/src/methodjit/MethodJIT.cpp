@@ -98,7 +98,6 @@ using namespace js::mjit;
 
 
 
-
 #ifdef JS_METHODJIT_PROFILE_STUBS
 static const size_t STUB_CALLS_FOR_OP_COUNT = 255;
 static uint32 StubCallsForOp[STUB_CALLS_FOR_OP_COUNT];
@@ -216,7 +215,6 @@ SYMBOL_STRING(JaegerTrampoline) ":"       "\n"
     "call " SYMBOL_STRING_RELOC(PushActiveVMFrame) "\n"
 
     
-
 
 
     "call *0(%rsp)"                      "\n"
@@ -413,9 +411,7 @@ JS_STATIC_ASSERT(offsetof(VMFrame, cx) ==               (4*8));
 JS_STATIC_ASSERT(offsetof(VMFrame, fp) ==               (4*7));
 JS_STATIC_ASSERT(offsetof(VMFrame, oldRegs) ==          (4*4));
 JS_STATIC_ASSERT(offsetof(VMFrame, previous) ==         (4*3));
-JS_STATIC_ASSERT(offsetof(VMFrame, scriptedReturn) ==   (4*0));
 JS_STATIC_ASSERT(offsetof(JSStackFrame, ncode) == 60);
-JS_STATIC_ASSERT(offsetof(JSStackFrame, rval) == 40);
 
 asm volatile (
 ".text\n"
@@ -433,9 +429,17 @@ asm volatile (
 ".text\n"
 ".globl " SYMBOL_STRING(SafePointTrampoline)  "\n"
 SYMBOL_STRING(SafePointTrampoline) ":"
-    "str lr, [r11, #60]"                    "\n"
     
-    ""                                 "\n"
+
+
+
+
+    "ldr    ip, [sp, #80]"                  "\n"
+    
+    "str    lr, [r11, #60]"                 "\n"
+    
+
+    "bx     ip"                             "\n"
 );
 
 asm volatile (
@@ -471,10 +475,9 @@ SYMBOL_STRING(JaegerTrampoline) ":"         "\n"
 
 
 
+
     
     
-
-
 "   push    {r4-r11,lr}"                        "\n"
     
 "   push    {r1}"                               "\n"    
@@ -484,8 +487,12 @@ SYMBOL_STRING(JaegerTrampoline) ":"         "\n"
     
 "   sub     sp, sp, #(4*7)"                     "\n"
 
+    
+"   mov     r4, r2"                             "\n"
+    
+"   mov     r11, r1"                            "\n"
+
 "   mov     r0, sp"                             "\n"
-"   mov     r4, r2"                             "\n"    
 "   bl  " SYMBOL_STRING_RELOC(SetVMFrameRegs)   "\n"
 "   mov     r0, sp"                             "\n"
 "   bl  " SYMBOL_STRING_RELOC(PushActiveVMFrame)"\n"
@@ -523,8 +530,10 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
 "   bxne    r0"                             "\n"
 
     
-"   add     sp, sp, #(4*7 + 4*4)"           "\n"
-
+"   mov     r0, sp"                             "\n"
+"   bl  " SYMBOL_STRING_RELOC(PopActiveVMFrame) "\n"
+"   add     sp, sp, #(4*7 + 4*4)"               "\n"
+"   mov     r0, #0"                         "\n"
 "   pop     {r4-r11,pc}"                    "\n"
 );
 
