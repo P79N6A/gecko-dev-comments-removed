@@ -479,51 +479,44 @@ extern "C" {
 bool
 CodeGeneratorARM::visitDivI(LDivI *ins)
 {
-    masm.setupAlignedABICall(2);
-    masm.setABIArg(0, ToRegister(ins->lhs()));
-    masm.setABIArg(1, ToRegister(ins->rhs()));
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, __aeabi_idiv));
-#if 0
-    Register remainder = ToRegister(ins->remainder());
+    
     Register lhs = ToRegister(ins->lhs());
     Register rhs = ToRegister(ins->rhs());
-
-    JS_ASSERT(remainder == edx);
-    JS_ASSERT(lhs == eax);
-
     
-    masm.testl(rhs, rhs);
-    if (!bailoutIf(Assembler::Zero, ins->snapshot()))
-        return false;
-
     
-    Label notmin;
-    masm.cmpl(lhs, Imm32(INT_MIN));
-    masm.ma_b(&notmin, Assembler::NotEqual);
-    masm.cmpl(rhs, Imm32(-1));
+    masm.ma_cmp(lhs, Imm32(INT_MIN)); 
+    masm.ma_cmp(rhs, Imm32(-1), Assembler::Equal); 
     if (!bailoutIf(Assembler::Equal, ins->snapshot()))
         return false;
-    masm.bind(&notmin);
+    
+    
+    
+    
 
     
-    Label nonzero;
-    masm.testl(lhs, lhs);
-    masm.ma_b(&nonzero, Assembler::NonZero);
-    masm.cmpl(rhs, Imm32(0));
-    if (!bailoutIf(Assembler::LessThan, ins->snapshot()))
+    
+    
+    
+    
+    
+    
+    
+    masm.ma_cmp(rhs, Imm32(0));
+    masm.ma_cmp(lhs, Imm32(0), Assembler::LessThan);
+    if (!bailoutIf(Assembler::Equal, ins->snapshot()))
         return false;
-    masm.bind(&nonzero);
-
+    masm.setupAlignedABICall(2);
+    masm.setABIArg(0, lhs);
+    masm.setABIArg(1, rhs);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, __aeabi_idiv));
     
-    masm.cdq();
-    masm.idiv(rhs);
-
     
-    masm.testl(remainder, remainder);
+    
+    
+    
+    masm.ma_cmp(r3, Imm32(0));
     if (!bailoutIf(Assembler::NonZero, ins->snapshot()))
         return false;
-
-#endif
     return true;
 }
 
