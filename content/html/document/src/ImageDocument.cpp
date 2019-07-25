@@ -92,7 +92,9 @@ public:
 
   
   NS_IMETHOD OnStartContainer(imgIRequest* aRequest, imgIContainer* aImage);
+  NS_IMETHOD OnStopContainer(imgIRequest* aRequest, imgIContainer* aImage);
   NS_IMETHOD OnStopDecode(imgIRequest *aRequest, nsresult aStatus, const PRUnichar *aStatusArg);
+  NS_IMETHOD OnDiscard(imgIRequest *aRequest);
 
   
   NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);
@@ -520,17 +522,25 @@ ImageDocument::OnStartContainer(imgIRequest* aRequest, imgIContainer* aImage)
 }
 
 NS_IMETHODIMP
+ImageDocument::OnStopContainer(imgIRequest* aRequest, imgIContainer* aImage)
+{
+  if (mImageContent) {
+    
+    
+    
+    mImageContent->SetAttr(kNameSpaceID_None, nsGkAtoms::_class,
+                           NS_LITERAL_STRING("decoded"), true);
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 ImageDocument::OnStopDecode(imgIRequest *aRequest,
                             nsresult aStatus,
                             const PRUnichar *aStatusArg)
 {
   UpdateTitleAndCharset();
-
-  nsCOMPtr<nsIImageLoadingContent> imageLoader = do_QueryInterface(mImageContent);
-  if (imageLoader) {
-    mObservingImageLoader = false;
-    imageLoader->RemoveObserver(this);
-  }
 
   
   if (NS_FAILED(aStatus) && mStringBundle && mImageContent) {
@@ -546,6 +556,18 @@ ImageDocument::OnStopDecode(imgIRequest *aRequest,
     mImageContent->SetAttr(kNameSpaceID_None, nsGkAtoms::alt, errorMsg, false);
   }
 
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+ImageDocument::OnDiscard(imgIRequest *aRequest)
+{
+  
+  if (mImageContent) {
+    
+    mImageContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::_class,
+                             true);
+  }
   return NS_OK;
 }
 
