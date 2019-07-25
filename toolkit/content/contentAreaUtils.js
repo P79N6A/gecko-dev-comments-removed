@@ -846,6 +846,23 @@ function getDefaultFileName(aDefaultFileName, aURI, aDocument,
       return fileName;
   }
 
+  let docTitle;
+  if (aDocument) {
+    
+    docTitle = validateFileName(aDocument.title).trim();
+    if (docTitle) {
+      let contentType = aDocument.contentType;
+      if (contentType == "application/xhtml+xml" ||
+          contentType == "application/xml" ||
+          contentType == "image/svg+xml" ||
+          contentType == "text/html" ||
+          contentType == "text/xml") {
+        
+        return docTitle;
+      }
+    }
+  }
+
   try {
     var url = aURI.QueryInterface(Components.interfaces.nsIURL);
     if (url.fileName != "") {
@@ -858,13 +875,9 @@ function getDefaultFileName(aDefaultFileName, aURI, aDocument,
     
   }
 
-  if (aDocument) {
-    var docTitle = validateFileName(aDocument.title).replace(/^\s+|\s+$/g, "");
-    if (docTitle) {
-      
-      return docTitle;
-    }
-  }
+  if (docTitle)
+    
+    return docTitle;
 
   if (aDefaultFileName)
     
