@@ -183,10 +183,6 @@ already_AddRefed<gfxASurface>
 gfxXlibSurface::CreateSimilarSurface(gfxContentType aContent,
                                      const gfxIntSize& aSize)
 {
-    if (!mSurface || !mSurfaceValid) {
-      return nsnull;
-    }
-
     if (aContent == CONTENT_COLOR) {
         
         
