@@ -338,7 +338,9 @@ class InlineMap
         InlineElem      *end;
         bool            isInline;
 
-        explicit Range(WordMapRange r) : isInline(false) {
+        explicit Range(WordMapRange r)
+          : cur(NULL), end(NULL), 
+            isInline(false) {
             mapRange = r;
             JS_ASSERT(!isInlineRange());
         }
