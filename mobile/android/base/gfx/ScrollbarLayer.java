@@ -71,6 +71,25 @@ public class ScrollbarLayer extends TileLayer {
     private float mOpacity;
     private boolean mFinalized = false;
 
+    private LayerRenderer mRenderer;
+    private int mProgram;
+    private int mPositionHandle;
+    private int mTextureHandle;
+    private int mSampleHandle;
+    private int mTMatrixHandle;
+    private int mOpacityHandle;
+
+    
+    private static final String FRAGMENT_SHADER =
+        "precision mediump float;\n" +
+        "varying vec2 vTexCoord;\n" +
+        "uniform sampler2D sTexture;\n" +
+        "uniform float uOpacity;\n" +
+        "void main() {\n" +
+        "    gl_FragColor = texture2D(sTexture, vec2(vTexCoord.x, 1.0 - vTexCoord.y));\n" +
+        "    gl_FragColor.a *= uOpacity;\n" +
+        "}\n";
+
     
     private static final float TEX_HEIGHT = 8.0f;
     private static final float TEX_WIDTH = 8.0f;
@@ -121,14 +140,26 @@ public class ScrollbarLayer extends TileLayer {
         BAR_SIZE/TEX_WIDTH  , 1.0f
     };
 
-    private ScrollbarLayer(CairoImage image, boolean vertical, ByteBuffer buffer) {
+    private ScrollbarLayer(LayerRenderer renderer, CairoImage image, boolean vertical, ByteBuffer buffer) {
         super(false, image);
         mVertical = vertical;
         mBuffer = buffer;
+        mRenderer = renderer;
 
         IntSize size = image.getSize();
         mBitmap = Bitmap.createBitmap(size.width, size.height, Bitmap.Config.ARGB_8888);
         mCanvas = new Canvas(mBitmap);
+
+        
+        Paint foregroundPaint = new Paint();
+        foregroundPaint.setAntiAlias(true);
+        foregroundPaint.setStyle(Paint.Style.FILL);
+        foregroundPaint.setColor(Color.argb(127, 0, 0, 0));
+
+        mCanvas.drawColor(Color.argb(0, 0, 0, 0), PorterDuff.Mode.CLEAR);
+        mCanvas.drawCircle(CAP_RADIUS, CAP_RADIUS, CAP_RADIUS, foregroundPaint);
+
+        mBitmap.copyPixelsToBuffer(mBuffer.asIntBuffer());
     }
 
     protected void finalize() throws Throwable {
@@ -141,14 +172,55 @@ public class ScrollbarLayer extends TileLayer {
         }
     }
 
-    public static ScrollbarLayer create(boolean vertical) {
+    public static ScrollbarLayer create(LayerRenderer renderer, boolean vertical) {
         
         
         int imageSize = IntSize.nextPowerOfTwo(BAR_SIZE);
         ByteBuffer buffer = GeckoAppShell.allocateDirectBuffer(imageSize * imageSize * 4);
         CairoImage image = new BufferedCairoImage(buffer, imageSize, imageSize,
                                                   CairoImage.FORMAT_ARGB32);
-        return new ScrollbarLayer(image, vertical, buffer);
+        return new ScrollbarLayer(renderer, image, vertical, buffer);
+    }
+
+    private void createProgram() {
+        int vertexShader = LayerRenderer.loadShader(GLES20.GL_VERTEX_SHADER,
+                                                    LayerRenderer.DEFAULT_VERTEX_SHADER);
+        int fragmentShader = LayerRenderer.loadShader(GLES20.GL_FRAGMENT_SHADER,
+                                                      FRAGMENT_SHADER);
+
+        mProgram = GLES20.glCreateProgram();
+        GLES20.glAttachShader(mProgram, vertexShader);   
+        GLES20.glAttachShader(mProgram, fragmentShader); 
+        GLES20.glLinkProgram(mProgram);                  
+
+        
+        mPositionHandle = GLES20.glGetAttribLocation(mProgram, "vPosition");
+        mTextureHandle = GLES20.glGetAttribLocation(mProgram, "aTexCoord");
+        mSampleHandle = GLES20.glGetUniformLocation(mProgram, "sTexture");
+        mTMatrixHandle = GLES20.glGetUniformLocation(mProgram, "uTMatrix");
+        mOpacityHandle = GLES20.glGetUniformLocation(mProgram, "uOpacity");
+    }
+
+    private void activateProgram() {
+        
+        GLES20.glUseProgram(mProgram);
+
+        
+        GLES20.glUniformMatrix4fv(mTMatrixHandle, 1, false,
+                                  LayerRenderer.DEFAULT_TEXTURE_MATRIX, 0);
+
+        
+        GLES20.glEnableVertexAttribArray(mPositionHandle);
+        GLES20.glEnableVertexAttribArray(mTextureHandle);
+
+        GLES20.glUniform1i(mSampleHandle, 0);
+        GLES20.glUniform1f(mOpacityHandle, mOpacity);
+    }
+
+    private void deactivateProgram() {
+        GLES20.glDisableVertexAttribArray(mTextureHandle);
+        GLES20.glDisableVertexAttribArray(mPositionHandle);
+        GLES20.glUseProgram(0);
     }
 
     
@@ -162,7 +234,7 @@ public class ScrollbarLayer extends TileLayer {
         }
         beginTransaction(); 
         try {
-            setOpacity(Math.max(mOpacity - FADE_AMOUNT, 0.0f));
+            mOpacity = Math.max(mOpacity - FADE_AMOUNT, 0.0f);
             invalidate();
         } finally {
             endTransaction();
@@ -181,7 +253,7 @@ public class ScrollbarLayer extends TileLayer {
         }
         beginTransaction(); 
         try {
-            setOpacity(1.0f);
+            mOpacity = 1.0f;
             invalidate();
         } finally {
             endTransaction();
@@ -189,25 +261,20 @@ public class ScrollbarLayer extends TileLayer {
         return true;
     }
 
-    private void setOpacity(float opacity) {
-        mOpacity = opacity;
-
-        Paint foregroundPaint = new Paint();
-        foregroundPaint.setAntiAlias(true);
-        foregroundPaint.setStyle(Paint.Style.FILL);
-        
-        foregroundPaint.setColor(Color.argb(Math.round(mOpacity * 127), 0, 0, 0));
-
-        mCanvas.drawColor(Color.argb(0, 0, 0, 0), PorterDuff.Mode.CLEAR);
-        mCanvas.drawCircle(CAP_RADIUS, CAP_RADIUS, CAP_RADIUS, foregroundPaint);
-
-        mBitmap.copyPixelsToBuffer(mBuffer.asIntBuffer());
-    }
-
     @Override
     public void draw(RenderContext context) {
         if (!initialized())
             return;
+
+        
+        
+        if (mProgram == 0) {
+            createProgram();
+        }
+
+        
+        mRenderer.deactivateDefaultProgram();
+        activateProgram();
 
         GLES20.glEnable(GLES20.GL_BLEND);
         GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
@@ -241,8 +308,8 @@ public class ScrollbarLayer extends TileLayer {
 
         
         FloatBuffer coordBuffer = context.coordBuffer;
-        int positionHandle = context.positionHandle;
-        int textureHandle = context.textureHandle;
+        int positionHandle = mPositionHandle;
+        int textureHandle = mTextureHandle;
 
         
         
@@ -398,6 +465,10 @@ public class ScrollbarLayer extends TileLayer {
 
             GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
         }
+
+        
+        deactivateProgram();
+        mRenderer.activateDefaultProgram();
     }
 
     private RectF getVerticalRect(RenderContext context) {
