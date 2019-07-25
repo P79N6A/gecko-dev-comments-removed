@@ -57,12 +57,15 @@ BEGIN_INDEXEDDB_NAMESPACE
 
 
 
-class LazyIdleThread : public nsITimerCallback,
+class LazyIdleThread : public nsIThread,
+                       public nsITimerCallback,
                        public nsIThreadObserver,
                        public nsIObserver
 {
 public:
   NS_DECL_ISUPPORTS
+  NS_DECL_NSIEVENTTARGET
+  NS_DECL_NSITHREAD
   NS_DECL_NSITIMERCALLBACK
   NS_DECL_NSITHREADOBSERVER
   NS_DECL_NSIOBSERVER
@@ -76,14 +79,7 @@ public:
   
 
 
-  nsresult Dispatch(nsIRunnable* aEvent);
-
-  
-
-
-
-
-  void Shutdown();
+  void EnableIdleTimeout(PRBool aEnable);
 
 private:
   
@@ -105,6 +101,11 @@ private:
 
 
   void ShutdownThread();
+
+  
+
+
+  void CancelTimer(nsITimer* aTimer);
 
   
 
@@ -145,6 +146,11 @@ private:
 
 
   PRBool mThreadHasTimedOut;
+
+  
+
+
+  PRUint32 mTimeoutDisabledCount;
 };
 
 END_INDEXEDDB_NAMESPACE

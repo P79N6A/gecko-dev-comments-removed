@@ -1,0 +1,139 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef mozilla_dom_indexeddb_asyncconnectionhelper_h__
+#define mozilla_dom_indexeddb_asyncconnectionhelper_h__
+
+
+#include "IndexedDatabase.h"
+
+#include "mozIStorageConnection.h"
+#include "nsIDOMEventTarget.h"
+#include "nsIRunnable.h"
+#include "nsIThread.h"
+#include "nsIVariant.h"
+
+BEGIN_INDEXEDDB_NAMESPACE
+
+
+
+
+
+
+
+
+
+
+class AsyncConnectionHelper : public nsIRunnable
+{
+public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIRUNNABLE
+
+  
+
+
+
+
+
+  static const PRUint16 OK = PR_UINT16_MAX;
+
+  
+
+
+
+
+
+  static const PRUint16 NOREPLY = OK - 1;
+
+  nsresult Dispatch(nsIThread* aDatabaseThread);
+
+protected:
+  AsyncConnectionHelper(nsCOMPtr<mozIStorageConnection>& aConnection,
+                        nsIDOMEventTarget* aTarget);
+
+  virtual ~AsyncConnectionHelper();
+
+  
+
+
+
+  virtual PRUint16 DoDatabaseWork() = 0;
+
+  
+
+
+
+
+
+  virtual void OnSuccess(nsIDOMEventTarget* aTarget);
+
+  
+
+
+
+
+  virtual void OnError(nsIDOMEventTarget* aTarget,
+                       PRUint16 aErrorCode);
+
+  
+
+
+
+
+
+  virtual void GetSuccessResult(nsIWritableVariant* aVariant);
+
+protected:
+  nsCOMPtr<mozIStorageConnection>& mConnection;
+
+private:
+  nsCOMPtr<nsIDOMEventTarget> mTarget;
+
+#ifdef DEBUG
+  nsCOMPtr<nsIThread> mDatabaseThread;
+#endif
+
+  PRUint16 mErrorCode;
+  PRPackedBool mError;
+};
+
+END_INDEXEDDB_NAMESPACE
+
+#endif 
