@@ -257,6 +257,8 @@ ProcessOrDeferMessage(HWND hwnd,
     case WM_GETTEXT:
     case WM_NCHITTEST:
     case WM_SETICON:
+    case WM_STYLECHANGING:
+    case WM_STYLECHANGED:
     case WM_SYNCPAINT: 
     case WM_WINDOWPOSCHANGING: {
       return DefWindowProc(hwnd, uMsg, wParam, lParam);
