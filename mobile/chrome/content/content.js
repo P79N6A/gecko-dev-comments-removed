@@ -23,6 +23,8 @@ const kViewportMaxWidth  = 10000;
 const kViewportMinHeight = 223;
 const kViewportMaxHeight = 10000;
 
+const kReferenceDpi = 240; 
+
 
 const ElementTouchHelper = {
   get radius() {
@@ -43,6 +45,8 @@ const ElementTouchHelper = {
 
   
   getClosest: function getClosest(aWindowUtils, aX, aY) {
+    let dpiRatio = aWindowUtils.displayDPI / kReferenceDpi;
+
     let target = aWindowUtils.elementFromPoint(aX, aY,
                                                true,   
                                                false); 
@@ -51,10 +55,10 @@ const ElementTouchHelper = {
     if (this._isElementClickable(target))
       return target;
 
-    let nodes = aWindowUtils.nodesFromRect(aX, aY, this.radius.top,
-                                                   this.radius.right,
-                                                   this.radius.bottom,
-                                                   this.radius.left, true, false);
+    let nodes = aWindowUtils.nodesFromRect(aX, aY, this.radius.top * dpiRatio,
+                                                   this.radius.right * dpiRatio,
+                                                   this.radius.bottom * dpiRatio,
+                                                   this.radius.left * dpiRatio, true, false);
 
     let threshold = Number.POSITIVE_INFINITY;
     for (let i = 0; i < nodes.length; i++) {

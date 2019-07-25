@@ -46,13 +46,13 @@
 const kDoubleClickInterval = 400;
 
 
-const kDoubleClickRadius = 100;
+const kDoubleClickRadius = 0.4;
 
 
 const kLongTapWait = 500;
 
 
-const kAxisLockRevertThreshold = 200;
+const kAxisLockRevertThreshold = 0.8;
 
 
 const kStateActive = 0x00000001;
@@ -101,6 +101,8 @@ function MouseModule() {
 
   this._singleClickTimeout = new Util.Timeout(this._doSingleClick.bind(this));
   this._longClickTimeout = new Util.Timeout(this._doLongClick.bind(this));
+
+  this._doubleClickRadius = Util.getWindowUtils(window).displayDPI * kDoubleClickRadius;
 
   window.addEventListener("mousedown", this, true);
   window.addEventListener("mouseup", this, true);
@@ -431,7 +433,8 @@ MouseModule.prototype = {
     let dx = mouseUp1.clientX - mouseUp2.clientX;
     let dy = mouseUp1.clientY - mouseUp2.clientY;
 
-    if (dx*dx + dy*dy < kDoubleClickRadius*kDoubleClickRadius) {
+    let radius = this._doubleClickRadius;
+    if (dx*dx + dy*dy < radius*radius) {
       this._dispatchTap("TapDouble", mouseUp1);
     } else {
       this._dispatchTap("TapSingle", mouseUp1);
@@ -503,8 +506,10 @@ MouseModule.prototype = {
 var ScrollUtils = {
   
   get tapRadius() {
+    let dpi = Util.getWindowUtils(window).displayDPI;
+
     delete this.tapRadius;
-    return this.tapRadius = Services.prefs.getIntPref("ui.dragThresholdX");
+    return this.tapRadius = Services.prefs.getIntPref("ui.dragThreshold") / 240 * dpi;
   },
 
   
@@ -545,14 +550,9 @@ var ScrollUtils = {
   },
 
   
-
-
-
-
   isPan: function isPan(aPoint, aPoint2) {
-    if (Math.abs(aPoint.x - aPoint2.x) > this.tapRadius ||
-        Math.abs(aPoint.y - aPoint2.y) > this.tapRadius)
-    return true;
+    return (Math.abs(aPoint.x - aPoint2.x) > this.tapRadius ||
+            Math.abs(aPoint.y - aPoint2.y) > this.tapRadius);
   },
 
   
@@ -602,6 +602,7 @@ var ScrollUtils = {
 
 function DragData() {
   this._domUtils = Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils);
+  this._lockRevertThreshold = Util.getWindowUtils(window).displayDPI * kAxisLockRevertThreshold;
   this.reset();
 };
 
@@ -648,7 +649,7 @@ DragData.prototype = {
       let absX = Math.abs(this._originX - sX);
       let absY = Math.abs(this._originY - sY);
 
-      if (absX > kAxisLockRevertThreshold || absY > kAxisLockRevertThreshold)
+      if (absX > this._lockRevertThreshold || absY > this._lockRevertThreshold)
         this.stayLocked = true;
 
       

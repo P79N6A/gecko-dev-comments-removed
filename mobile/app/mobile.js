@@ -372,6 +372,7 @@ pref("browser.ui.pinch.maxShrink", 200);
 pref("browser.ui.pinch.scalingFactor", 500); 
 
 
+
 pref("browser.ui.touch.left", 8);
 pref("browser.ui.touch.right", 8);
 pref("browser.ui.touch.top", 12);
@@ -487,8 +488,7 @@ pref("services.sync.registerEngines", "Tab,Bookmarks,Form,History,Password");
 pref("services.sync.autoconnectDelay", 5);
 
 
-pref("ui.dragThresholdX", 25);
-pref("ui.dragThresholdY", 25);
+pref("ui.dragThreshold", 24);
 
 
 pref("layers.accelerate-all", false);
