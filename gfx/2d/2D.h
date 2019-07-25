@@ -734,21 +734,6 @@ public:
 
 
 
-
-  virtual TemporaryRef<DrawTarget>
-    CreateShadowDrawTarget(const IntSize &aSize, SurfaceFormat aFormat,
-                           float aSigma) const
-  {
-    return CreateSimilarDrawTarget(aSize, aFormat);
-  }
-
-  
-
-
-
-
-
-
   virtual TemporaryRef<PathBuilder> CreatePathBuilder(FillRule aFillRule = FILL_WINDING) const = 0;
 
   
