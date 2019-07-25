@@ -85,16 +85,16 @@ struct BaseIC : public MacroAssemblerTypedefs {
     CodeLocationCall slowPathCall;
 
     
+    
+    
+    int32 secondShapeGuard;
+
+    
     bool hit : 1;
     bool slowCallPatched : 1;
 
     
     uint32 stubsGenerated : 5;
-
-    
-    
-    
-    int32 secondShapeGuard : 11;
 
     
     JSOp op : 9;
