@@ -126,6 +126,8 @@ class Compiler
     
     void restoreFrameRegs();
     void emitStubCmpOp(BoolStub stub, jsbytecode *target, JSOp fused);
+    void iterNext();
+    void iterMore();
 
     
     void jsop_bindname(uint32 index);
