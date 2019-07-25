@@ -3365,6 +3365,25 @@ gfxFontGroup::FindFontForChar(PRUint32 aCh, PRUint32 aPrevCh,
             *aMatchType = gfxTextRange::kFontGroup;
             return font.forget();
         }
+        
+        
+        
+        
+        gfxFontFamily *family = font->GetFontEntry()->Family();
+        if (family) {
+            FontSearch matchData(aCh, font);
+            family->FindFontForChar(&matchData);
+            gfxFontEntry *fe = matchData.mBestMatch;
+            if (fe) {
+                bool needsBold =
+                    font->GetStyle()->weight >= 600 && !fe->IsBold();
+                selectedFont =
+                    fe->FindOrMakeFont(font->GetStyle(), needsBold);
+                if (selectedFont) {
+                    return selectedFont.forget();
+                }
+            }
+        }
     }
 
     
