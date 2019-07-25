@@ -935,6 +935,7 @@ AddonsStore.prototype = {
           return;
         }
 
+        let expectedInstallCount = 0;
         let finishedCount = 0;
         let installCallback = function installCallback(error, result) {
           finishedCount++;
@@ -947,7 +948,7 @@ AddonsStore.prototype = {
             ourResult.addons.push(result.addon);
           }
 
-          if (finishedCount >= addonsLength) {
+          if (finishedCount >= expectedInstallCount) {
             if (ourResult.errors.length > 0) {
               cb(new Error("1 or more add-ons failed to install"), ourResult);
             } else {
@@ -956,12 +957,24 @@ AddonsStore.prototype = {
           }
         }.bind(this);
 
+        let toInstall = [];
+
         
         
         
         
         
         for each (let addon in addons) {
+          
+          
+          if (!addon.sourceURI) {
+            this._log.info("Skipping install of add-on because missing " +
+                           "sourceURI: " + addon.id);
+            continue;
+          }
+
+          toInstall.push(addon);
+
           
           
           
@@ -986,10 +999,17 @@ AddonsStore.prototype = {
           addon.sourceURI.query = params.join("&");
         }
 
+        expectedInstallCount = toInstall.length;
+
+        if (!expectedInstallCount) {
+          cb(null, ourResult);
+          return;
+        }
+
         
         
-        for (let i = 0; i < addonsLength; i++) {
-          this.installAddonFromSearchResult(addons[i], installCallback);
+        for each (let addon in toInstall) {
+          this.installAddonFromSearchResult(addon, installCallback);
         }
 
       }.bind(this),
