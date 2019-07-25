@@ -84,6 +84,8 @@ public class GeckoLayerClient implements GeckoEventListener,
     private long mLastViewportChangeTime;
     private boolean mPendingViewportAdjust;
     private boolean mViewportSizeChanged;
+    private boolean mIgnorePaintsPendingViewportSizeChange;
+    private boolean mFirstPaint = true;
 
     
     
@@ -129,6 +131,14 @@ public class GeckoLayerClient implements GeckoEventListener,
                              String metadata, boolean hasDirectTexture) {
         Log.e(LOGTAG, "### beginDrawing " + width + " " + height + " " + tileWidth + " " +
               tileHeight + " " + hasDirectTexture);
+
+        
+        
+        
+        if (!mFirstPaint && mIgnorePaintsPendingViewportSizeChange && !mUpdateViewportOnEndDraw) {
+            return null;
+        }
+        mFirstPaint = false;
 
         
         if (handleDirectTextureChange(hasDirectTexture)) {
@@ -361,6 +371,7 @@ public class GeckoLayerClient implements GeckoEventListener,
 
     void viewportSizeChanged() {
         mViewportSizeChanged = true;
+        mIgnorePaintsPendingViewportSizeChange = true;
     }
 
     private void adjustViewport() {
@@ -383,6 +394,7 @@ public class GeckoLayerClient implements GeckoEventListener,
         if ("Viewport:UpdateAndDraw".equals(event)) {
             Log.e(LOGTAG, "### Java side Viewport:UpdateAndDraw()!");
             mUpdateViewportOnEndDraw = true;
+            mIgnorePaintsPendingViewportSizeChange = false;
 
             
             Rect rect = new Rect(0, 0, mBufferSize.width, mBufferSize.height);
@@ -390,6 +402,7 @@ public class GeckoLayerClient implements GeckoEventListener,
         } else if ("Viewport:UpdateLater".equals(event)) {
             Log.e(LOGTAG, "### Java side Viewport:UpdateLater()!");
             mUpdateViewportOnEndDraw = true;
+            mIgnorePaintsPendingViewportSizeChange = false;
         }
     }
 
