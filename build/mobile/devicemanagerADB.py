@@ -96,14 +96,18 @@ class DeviceManagerADB(DeviceManager):
   
   
   
-  def shell(self, cmd, outputfile, env=None, cwd=None, timeout=None):
+  def shell(self, cmd, outputfile, env=None, cwd=None, timeout=None, root=False):
     
     
 
     
     
     
-    cmdline = "%s; echo $?" % self._escapedCommandLine(cmd)
+    if root:
+      cmdline = "su -c \"%s\"" % self._escapedCommandLine(cmd)
+    else:
+      cmdline = self._escapedCommandLine(cmd)
+    cmdline += "; echo $?"
 
     
     if cwd:
