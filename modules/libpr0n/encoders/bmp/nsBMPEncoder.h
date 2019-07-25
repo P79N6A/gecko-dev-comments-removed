@@ -63,8 +63,6 @@ public:
   NS_DECL_NSIASYNCINPUTSTREAM
 
   nsBMPEncoder();
-
-private:
   ~nsBMPEncoder();
 
 protected:

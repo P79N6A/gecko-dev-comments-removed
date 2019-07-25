@@ -174,6 +174,22 @@ NS_IMETHODIMP nsBMPEncoder::StartImageEncode(PRUint32 aWidth,
   return NS_OK;
 }
 
+
+NS_IMETHODIMP nsBMPEncoder::GetImageBufferSize(PRUint32 *aOutputSize)
+{
+  NS_ENSURE_ARG_POINTER(aOutputSize);
+  *aOutputSize = mImageBufferSize;
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP nsBMPEncoder::GetImageBuffer(char **aOutputBuffer)
+{
+  NS_ENSURE_ARG_POINTER(aOutputBuffer);
+  *aOutputBuffer = reinterpret_cast<char*>(mImageBufferStart);
+  return NS_OK;
+}
+
 NS_IMETHODIMP nsBMPEncoder::AddImageFrame(const PRUint8* aData,
                                           PRUint32 aLength, 
                                                             
