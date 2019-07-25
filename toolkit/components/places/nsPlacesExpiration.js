@@ -719,15 +719,12 @@ nsPlacesExpiration.prototype = {
     if (this._urisLimit < 0) {
       
       
-      
-      
-      const MEMSIZE_MAX_BYTES = 137438953472; 
       const MEMSIZE_FALLBACK_BYTES = 268435456; 
 
       
       
       let memsize = this._sys.getProperty("memsize"); 
-      if (memsize <= 0 || memsize > MEMSIZE_MAX_BYTES)
+      if (memsize <= 0)
         memsize = MEMSIZE_FALLBACK_BYTES;
 
       let cpucount = this._sys.getProperty("cpucount"); 

@@ -137,9 +137,6 @@ using namespace mozilla::places;
 
 
 
-
-
-#define MEMSIZE_MAX_BYTES 137438953472LL // 128 G
 #define MEMSIZE_FALLBACK_BYTES 268435456 // 256 M
 
 
@@ -733,14 +730,14 @@ nsNavHistory::InitDB()
   if (cachePercentage < 0)
     cachePercentage = 0;
 
-  static PRInt64 physMem = PR_GetPhysicalMemorySize();
-  if (physMem <= 0 || physMem > MEMSIZE_MAX_BYTES)
+  static PRUint64 physMem = PR_GetPhysicalMemorySize();
+  if (physMem == 0)
     physMem = MEMSIZE_FALLBACK_BYTES;
 
-  PRInt64 cacheSize = physMem * cachePercentage / 100;
+  PRUint64 cacheSize = physMem * cachePercentage / 100;
 
   
-  PRInt64 cachePages = cacheSize / mDBPageSize;
+  PRUint64 cachePages = cacheSize / mDBPageSize;
   nsCAutoString cacheSizePragma("PRAGMA cache_size = ");
   cacheSizePragma.AppendInt(cachePages);
   rv = mDBConn->ExecuteSimpleSQL(cacheSizePragma);
