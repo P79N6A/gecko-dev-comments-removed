@@ -2945,10 +2945,6 @@ SetElementIC::attachHoleStub(VMFrame &f, JSObject *obj, int32 keyval)
     
     
     
-    
-    
-    JS_ASSERT((jsuint)keyval >= obj->getDenseArrayInitializedLength() ||
-              obj->getDenseArrayElement(keyval).isMagic(JS_ARRAY_HOLE));
 
     if (js_PrototypeHasIndexedProperties(cx, obj))
         return disable(cx, "prototype has indexed properties");
