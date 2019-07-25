@@ -258,17 +258,17 @@ public:
                                      mjit::JSActiveFrame *outerFrame,
                                      mjit::JSActiveFrame **inlineFrames);
 
-    virtual void registerMJITCode(JSContext *cx, js::mjit::JITScript *jscr,
+    virtual void registerMJITCode(JSContext *cx, js::mjit::JITChunk *chunk,
                                   mjit::JSActiveFrame *outerFrame,
                                   mjit::JSActiveFrame **inlineFrames,
                                   void *mainCodeAddress, size_t mainCodeSize,
                                   void *stubCodeAddress, size_t stubCodeSize) = 0;
 
-    virtual void discardMJITCode(FreeOp *fop, mjit::JITScript *jscr, JSScript *script,
+    virtual void discardMJITCode(FreeOp *fop, mjit::JITScript *jscr, mjit::JITChunk *chunk,
                                  void* address) = 0;
 
     virtual void registerICCode(JSContext *cx,
-                                js::mjit::JITScript *jscr, JSScript *script, jsbytecode* pc,
+                                js::mjit::JITChunk *chunk, JSScript *script, jsbytecode* pc,
                                 void *start, size_t size) = 0;
 #endif
 
@@ -306,7 +306,7 @@ JITGranularityRequested();
 
 
 void
-registerMJITCode(JSContext *cx, js::mjit::JITScript *jscr,
+registerMJITCode(JSContext *cx, js::mjit::JITChunk *chunk,
                  mjit::JSActiveFrame *outerFrame,
                  mjit::JSActiveFrame **inlineFrames,
                  void *mainCodeAddress, size_t mainCodeSize,
@@ -316,14 +316,14 @@ registerMJITCode(JSContext *cx, js::mjit::JITScript *jscr,
 
 
 void
-discardMJITCode(FreeOp *fop, mjit::JITScript *jscr, JSScript *script, void* address);
+discardMJITCode(FreeOp *fop, mjit::JITScript *jscr, mjit::JITChunk *chunk, void* address);
 
 
 
 
 void
 registerICCode(JSContext *cx,
-               mjit::JITScript *jscr, JSScript *script, jsbytecode* pc,
+               mjit::JITChunk *chunk, JSScript *script, jsbytecode* pc,
                void *start, size_t size);
 #endif 
 
