@@ -197,14 +197,6 @@ pref("gfx.downloadable_fonts.fallback_delay", 3000);
 pref("gfx.downloadable_fonts.sanitize", true);
 
 
-
-
-
-#ifdef XP_MACOSX
-pref("gfx.downloadable_fonts.enabled.lion", false);
-#endif
-
-
 #ifdef XP_MACOSX
 
 pref("gfx.font_rendering.harfbuzz.scripts", 7);
