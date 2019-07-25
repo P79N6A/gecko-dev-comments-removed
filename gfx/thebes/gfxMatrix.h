@@ -204,6 +204,13 @@ public:
     
 
 
+    PRBool HasOnlyIntegerTranslation() const {
+        return !HasNonIntegerTranslation();
+    }
+
+    
+
+
 
     PRBool HasNonTranslationOrFlip() const {
         return !FuzzyEqual(xx, 1.0) ||
