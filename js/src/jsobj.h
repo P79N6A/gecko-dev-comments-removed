@@ -708,22 +708,24 @@ struct JSObject : js::gc::Cell {
 
 
   private:
+    enum ImmutabilityType { SEAL, FREEZE };
+
     
 
 
 
 
 
-    bool sealOrFreeze(JSContext *cx, bool freeze = false);
+    bool sealOrFreeze(JSContext *cx, ImmutabilityType it);
 
   public:
     bool isExtensible() const { return !(flags & NOT_EXTENSIBLE); }
     bool preventExtensions(JSContext *cx, js::AutoIdVector *props);
+
     
+    inline bool seal(JSContext *cx) { return sealOrFreeze(cx, SEAL); }
     
-    inline bool seal(JSContext *cx) { return sealOrFreeze(cx); }
-    
-    bool freeze(JSContext *cx) { return sealOrFreeze(cx, true); }
+    bool freeze(JSContext *cx) { return sealOrFreeze(cx, FREEZE); }
         
     
 
