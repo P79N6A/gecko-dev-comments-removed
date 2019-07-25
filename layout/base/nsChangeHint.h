@@ -9,6 +9,7 @@
 #define nsChangeHint_h___
 
 #include "prtypes.h"
+#include "nsDebug.h"
 
 
 
@@ -164,6 +165,20 @@ inline bool NS_IsHintSubset(nsChangeHint aSubset, nsChangeHint aSuperSet) {
 
 
 
+
+
+#define nsChangeHint_Hints_NotHandledForDescendants nsChangeHint( \
+          nsChangeHint_UpdateTransformLayer | \
+          nsChangeHint_UpdateEffects | \
+          nsChangeHint_UpdateOpacityLayer | \
+          nsChangeHint_UpdateOverflow | \
+          nsChangeHint_ChildrenOnlyTransform | \
+          nsChangeHint_RecomputePosition | \
+          nsChangeHint_AddOrRemoveTransform | \
+          nsChangeHint_BorderStyleNoneChange | \
+          nsChangeHint_NeedReflow | \
+          nsChangeHint_ClearAncestorIntrinsics)
+
 inline nsChangeHint NS_HintsNotHandledForDescendantsIn(nsChangeHint aChangeHint) {
   nsChangeHint result = nsChangeHint(aChangeHint & (
     nsChangeHint_UpdateTransformLayer |
@@ -188,6 +203,10 @@ inline nsChangeHint NS_HintsNotHandledForDescendantsIn(nsChangeHint aChangeHint)
     
     NS_UpdateHint(result, nsChangeHint_ClearAncestorIntrinsics);
   }
+
+  NS_ABORT_IF_FALSE(NS_IsHintSubset(result,
+                                    nsChangeHint_Hints_NotHandledForDescendants),
+                    "something is inconsistent");
 
   return result;
 }

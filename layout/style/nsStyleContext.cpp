@@ -365,8 +365,13 @@ nsStyleContext::ApplyStyleFixups(nsPresContext* aPresContext)
 }
 
 nsChangeHint
-nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
+nsStyleContext::CalcStyleDifference(nsStyleContext* aOther,
+                                    nsChangeHint aParentHintsNotHandledForDescendants)
 {
+  NS_ABORT_IF_FALSE(NS_IsHintSubset(aParentHintsNotHandledForDescendants,
+                                    nsChangeHint_Hints_NotHandledForDescendants),
+                    "caller is passing inherited hints, but shouldn't be");
+
   nsChangeHint hint = NS_STYLE_HINT_NONE;
   NS_ENSURE_TRUE(aOther, hint);
   
@@ -384,6 +389,13 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
   
   
   
+  
+  
+  
+  
+  
+  
+  
   bool compare = mRuleNode != aOther->mRuleNode;
 
 #define DO_STRUCT_DIFFERENCE(struct_)                                         \
@@ -391,15 +403,18 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
     const nsStyle##struct_* this##struct_ = PeekStyle##struct_();             \
     if (this##struct_) {                                                      \
       const nsStyle##struct_* other##struct_ = aOther->GetStyle##struct_();   \
-      if ((compare || nsStyle##struct_::ForceCompare()) &&                    \
-          !NS_IsHintSubset(nsStyle##struct_::MaxDifference(), hint) &&        \
+      nsChangeHint maxDifference = nsStyle##struct_::MaxDifference();         \
+      if ((compare ||                                                         \
+           (maxDifference & aParentHintsNotHandledForDescendants)) &&         \
+          !NS_IsHintSubset(maxDifference, hint) &&                            \
           this##struct_ != other##struct_) {                                  \
         NS_ASSERTION(NS_IsHintSubset(                                         \
              this##struct_->CalcDifference(*other##struct_),                  \
              nsStyle##struct_::MaxDifference()),                              \
              "CalcDifference() returned bigger hint than MaxDifference()");   \
         NS_ASSERTION(nsStyle##struct_::ForceCompare() ||                      \
-             NS_HintsNotHandledForDescendantsIn(nsStyle##struct_::MaxDifference()) == 0,  \
+             NS_HintsNotHandledForDescendantsIn(                              \
+               nsStyle##struct_::MaxDifference()) == 0,                       \
              "Structs that can return non-inherited hints must return true "  \
              "from ForceCompare");                                            \
         NS_UpdateHint(hint, this##struct_->CalcDifference(*other##struct_));  \

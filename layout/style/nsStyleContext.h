@@ -244,7 +244,24 @@ public:
 
   void* GetUniqueStyleData(const nsStyleStructID& aSID);
 
-  nsChangeHint CalcStyleDifference(nsStyleContext* aOther);
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  nsChangeHint CalcStyleDifference(nsStyleContext* aOther,
+                                   nsChangeHint aParentHintsNotHandledForDescendants);
 
   
 

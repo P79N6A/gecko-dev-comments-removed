@@ -881,7 +881,8 @@ nsFrameManager::ReparentStyleContext(nsIFrame* aFrame)
 
         
         
-        nsChangeHint styleChange = oldContext->CalcStyleDifference(newContext);
+        nsChangeHint styleChange =
+          oldContext->CalcStyleDifference(newContext, nsChangeHint(0));
         
         
         
@@ -945,7 +946,8 @@ nsFrameManager::ReparentStyleContext(nsIFrame* aFrame)
                 
                 
                 styleChange =
-                  oldExtraContext->CalcStyleDifference(newExtraContext);
+                  oldExtraContext->CalcStyleDifference(newExtraContext,
+                                                       nsChangeHint(0));
                 
                 
                 
@@ -971,13 +973,17 @@ nsFrameManager::ReparentStyleContext(nsIFrame* aFrame)
   return NS_OK;
 }
 
-static nsChangeHint
+static void
 CaptureChange(nsStyleContext* aOldContext, nsStyleContext* aNewContext,
               nsIFrame* aFrame, nsIContent* aContent,
-              nsStyleChangeList* aChangeList, nsChangeHint aMinChange,
+              nsStyleChangeList* aChangeList,
+              nsChangeHint &aMinChange,
+              nsChangeHint aParentHintsNotHandledForDescendants,
+              nsChangeHint &aHintsNotHandledForDescendants,
               nsChangeHint aChangeToAssume)
 {
-  nsChangeHint ourChange = aOldContext->CalcStyleDifference(aNewContext);
+  nsChangeHint ourChange = aOldContext->CalcStyleDifference(aNewContext,
+                             aParentHintsNotHandledForDescendants);
   NS_ASSERTION(!(ourChange & nsChangeHint_ReflowFrame) ||
                (ourChange & nsChangeHint_NeedReflow),
                "Reflow hint bits set without actually asking for a reflow");
@@ -988,8 +994,11 @@ CaptureChange(nsStyleContext* aOldContext, nsStyleContext* aNewContext,
       aChangeList->AppendChange(aFrame, aContent, ourChange);
     }
   }
-  return aMinChange;
+  aHintsNotHandledForDescendants = NS_HintsNotHandledForDescendantsIn(ourChange);
 }
+
+
+
 
 
 
@@ -1005,6 +1014,7 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
                                       nsIContent        *aParentContent,
                                       nsStyleChangeList *aChangeList, 
                                       nsChangeHint       aMinChange,
+                                      nsChangeHint       aParentFrameHintsNotHandledForDescendants,
                                       nsRestyleHint      aRestyleHint,
                                       RestyleTracker&    aRestyleTracker,
                                       DesiredA11yNotifications aDesiredA11yNotifications,
@@ -1105,7 +1115,9 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
 
       assumeDifferenceHint = ReResolveStyleContext(aPresContext, providerFrame,
                                                    aParentContent, aChangeList,
-                                                   aMinChange, aRestyleHint,
+                                                   aMinChange,
+                                                   nsChangeHint_Hints_NotHandledForDescendants,
+                                                   aRestyleHint,
                                                    aRestyleTracker,
                                                    aDesiredA11yNotifications,
                                                    aVisibleKidsOfHiddenElement,
@@ -1117,6 +1129,13 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
       
       
       resolvedChild = providerFrame;
+    }
+
+    if (providerFrame != aFrame->GetParent()) {
+      
+      
+      aParentFrameHintsNotHandledForDescendants =
+        nsChangeHint_Hints_NotHandledForDescendants;
     }
 
 #ifdef DEBUG
@@ -1167,6 +1186,7 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
 
     
     nsRefPtr<nsStyleContext> newContext;
+    nsChangeHint nonInheritedHints = nsChangeHint(0);
     nsIFrame *prevContinuation =
       GetPrevContinuationWithPossiblySameStyle(aFrame);
     nsStyleContext *prevContinuationContext;
@@ -1181,6 +1201,9 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
       
       
       newContext = prevContinuationContext;
+      
+      
+      nonInheritedHints = nsChangeHint_Hints_NotHandledForDescendants;
     }
     else if (pseudoTag == nsCSSAnonBoxes::mozNonElement) {
       NS_ASSERTION(localContent,
@@ -1266,9 +1289,9 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
                                 oldContext, &newContext);
         }
 
-        aMinChange = CaptureChange(oldContext, newContext, aFrame,
-                                   content, aChangeList, aMinChange,
-                                   assumeDifferenceHint);
+        CaptureChange(oldContext, newContext, aFrame, content, aChangeList,
+                      aMinChange, aParentFrameHintsNotHandledForDescendants,
+                      nonInheritedHints, assumeDifferenceHint);
         if (!(aMinChange & nsChangeHint_ReconstructFrame)) {
           
           aFrame->SetStyleContext(newContext);
@@ -1312,9 +1335,13 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
         }
         if (newExtraContext) {
           if (oldExtraContext != newExtraContext) {
-            aMinChange = CaptureChange(oldExtraContext, newExtraContext,
-                                       aFrame, content, aChangeList,
-                                       aMinChange, assumeDifferenceHint);
+            nsChangeHint extraHintsNotHandledForDescendants = nsChangeHint(0);
+            CaptureChange(oldExtraContext, newExtraContext, aFrame, content,
+                          aChangeList, aMinChange,
+                          aParentFrameHintsNotHandledForDescendants,
+                          extraHintsNotHandledForDescendants,
+                          assumeDifferenceHint);
+            NS_UpdateHint(nonInheritedHints, extraHintsNotHandledForDescendants);
             if (!(aMinChange & nsChangeHint_ReconstructFrame)) {
               aFrame->SetAdditionalStyleContext(contextIndex, newExtraContext);
             }
@@ -1538,6 +1565,7 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
                                       content, aChangeList,
                                       NS_SubtractHint(aMinChange,
                                                       nsChangeHint_ReflowFrame),
+                                      nonInheritedHints,
                                       childRestyleHint,
                                       aRestyleTracker,
                                       kidsDesiredA11yNotification,
@@ -1549,6 +1577,7 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
               
               ReResolveStyleContext(aPresContext, child, content,
                                     aChangeList, aMinChange,
+                                    nonInheritedHints,
                                     childRestyleHint,
                                     aRestyleTracker,
                                     kidsDesiredA11yNotification,
@@ -1559,6 +1588,7 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
               if (child != resolvedChild) {
                 ReResolveStyleContext(aPresContext, child, content,
                                       aChangeList, aMinChange,
+                                      nonInheritedHints,
                                       childRestyleHint,
                                       aRestyleTracker,
                                       kidsDesiredA11yNotification,
@@ -1648,7 +1678,7 @@ nsFrameManager::ComputeStyleChangeFor(nsIFrame          *aFrame,
       
       nsChangeHint frameChange =
         ReResolveStyleContext(GetPresContext(), frame, nullptr,
-                              aChangeList, topLevelChange,
+                              aChangeList, topLevelChange, nsChangeHint(0),
                               aRestyleDescendants ?
                                 eRestyle_Subtree : eRestyle_Self,
                               aRestyleTracker,
