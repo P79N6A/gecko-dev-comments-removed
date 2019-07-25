@@ -54,6 +54,8 @@
 #include "jsinterpinlines.h"
 #include "jsautooplen.h"
 
+#include "vm/CallObject-inl.h"
+
 #if defined JS_POLYIC
 
 using namespace js;
@@ -423,7 +425,7 @@ class SetPropCompiler : public PICStubCompiler
             
             
             
-            JSFunction *fun = obj->getCallObjCalleeFunction();
+            JSFunction *fun = obj->asCall().getCalleeFunction();
             uint16 slot = uint16(shape->shortid);
 
             
@@ -443,7 +445,7 @@ class SetPropCompiler : public PICStubCompiler
                 if (shape->setterOp() == SetCallVar)
                     slot += fun->nargs;
 
-                slot += JSObject::CALL_RESERVED_SLOTS;
+                slot += CallObject::RESERVED_SLOTS;
                 Address address = masm.objPropAddress(obj, pic.objReg, slot);
 
                 masm.storeValue(pic.u.vr, address);
@@ -693,7 +695,7 @@ class SetPropCompiler : public PICStubCompiler
 
 
                 RecompilationMonitor monitor(cx);
-                JSFunction *fun = obj->getCallObjCalleeFunction();
+                JSFunction *fun = obj->asCall().getCalleeFunction();
                 JSScript *script = fun->script();
                 uint16 slot = uint16(shape->shortid);
                 if (!script->ensureHasTypes(cx, fun))
@@ -1621,7 +1623,7 @@ class ScopeNameCompiler : public PICStubCompiler
         
         masm.loadObjPrivate(pic.objReg, pic.shapeReg);
 
-        JSFunction *fun = getprop.holder->getCallObjCalleeFunction();
+        JSFunction *fun = getprop.holder->asCall().getCalleeFunction();
         uint16 slot = uint16(shape->shortid);
 
         Jump skipOver;
@@ -1642,7 +1644,7 @@ class ScopeNameCompiler : public PICStubCompiler
             if (kind == VAR)
                 slot += fun->nargs;
 
-            slot += JSObject::CALL_RESERVED_SLOTS;
+            slot += CallObject::RESERVED_SLOTS;
             Address address = masm.objPropAddress(obj, pic.objReg, slot);
 
             
