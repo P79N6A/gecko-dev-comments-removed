@@ -63,8 +63,10 @@ const ots::LookupSubtableParser::TypeParser kGsubTypeParsers[] = {
     ParseReverseChainingContextSingleSubstitution}
 };
 
+
 const ots::LookupSubtableParser kGsubLookupSubtableParser = {
-  GSUB_TYPE_RESERVED, GSUB_TYPE_EXTENSION_SUBSTITUTION, kGsubTypeParsers
+  sizeof(kGsubTypeParsers) / sizeof(kGsubTypeParsers[0]),
+  GSUB_TYPE_EXTENSION_SUBSTITUTION, kGsubTypeParsers
 };
 
 

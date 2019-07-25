@@ -69,8 +69,10 @@ const ots::LookupSubtableParser::TypeParser kGposTypeParsers[] = {
   {GPOS_TYPE_EXTENSION_POSITIONING, ParseExtensionPositioning}
 };
 
+
 const ots::LookupSubtableParser kGposLookupSubtableParser = {
-  GPOS_TYPE_RESERVED, GPOS_TYPE_EXTENSION_POSITIONING, kGposTypeParsers
+  sizeof(kGposTypeParsers) / sizeof(kGposTypeParsers[0]),
+  GPOS_TYPE_EXTENSION_POSITIONING, kGposTypeParsers
 };
 
 
