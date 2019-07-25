@@ -132,6 +132,10 @@ JS_FRIEND_API(JSBool)
 JS_SetDebugMode(JSContext *cx, JSBool debug);
 
 
+extern JS_FRIEND_API(JSBool)
+js_SetSingleStepMode(JSContext *cx, JSScript *script, JSBool singleStep);
+
+
 extern JS_PUBLIC_API(JSBool)
 JS_SetSingleStepMode(JSContext *cx, JSScript *script, JSBool singleStep);
 
