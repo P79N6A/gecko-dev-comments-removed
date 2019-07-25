@@ -372,18 +372,6 @@ JSCompartment::markCrossCompartmentWrappers(JSTracer *trc)
                 MarkValueRoot(trc, &call, "cross-compartment wrapper");
                 JS_ASSERT(call == GetProxyCall(wrapper));
             }
-        } else {
-            
-
-
-
-
-
-
-            JS_ASSERT(v.isString());
-            Value v = e.front().key;
-            MarkValueRoot(trc, &v, "cross-compartment wrapper");
-            JS_ASSERT(v == e.front().key);
         }
     }
 }
@@ -463,17 +451,7 @@ JSCompartment::discardJitCode(FreeOp *fop)
 void
 JSCompartment::sweep(FreeOp *fop, bool releaseTypes)
 {
-    
-    for (WrapperMap::Enum e(crossCompartmentWrappers); !e.empty(); e.popFront()) {
-        Value key = e.front().key;
-        bool keyMarked = IsValueMarked(&key);
-        bool valMarked = IsValueMarked(e.front().value.unsafeGet());
-        JS_ASSERT_IF(!keyMarked && valMarked, key.isString());
-        if (!keyMarked || !valMarked)
-            e.removeFront();
-        else if (key != e.front().key)
-            e.rekeyFront(key);
-    }
+    sweepCrossCompartmentWrappers();
 
     
 
@@ -549,6 +527,27 @@ JSCompartment::sweep(FreeOp *fop, bool releaseTypes)
     }
 
     active = false;
+}
+
+
+
+
+
+
+void
+JSCompartment::sweepCrossCompartmentWrappers()
+{
+    
+    for (WrapperMap::Enum e(crossCompartmentWrappers); !e.empty(); e.popFront()) {
+        Value key = e.front().key;
+        bool keyMarked = IsValueMarked(&key);
+        bool valMarked = IsValueMarked(e.front().value.unsafeGet());
+        JS_ASSERT_IF(!keyMarked && valMarked, key.isString());
+        if (!keyMarked || !valMarked)
+            e.removeFront();
+        else if (key != e.front().key)
+            e.rekeyFront(key);
+    }
 }
 
 void
