@@ -694,6 +694,11 @@ WidgetStack.prototype = {
   },
 
   
+  dragBy: function dragBy(dx, dy) {
+    return this.dragMove(this._dragState.outerCurX + dx, this._dragState.outerCurY + dy);
+  },
+
+  
   
   updateSize: function updateSize(width, height) {
     if (width == undefined || height == undefined) {
