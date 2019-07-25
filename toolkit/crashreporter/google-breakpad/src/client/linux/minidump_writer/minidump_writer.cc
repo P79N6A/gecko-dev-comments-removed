@@ -1308,6 +1308,15 @@ popline:
     if (!memory.Allocate(total))
       return false;
     for (MDRVA pos = memory.position(); buffers; buffers = buffers->next) {
+      
+      
+      
+      
+      if (buffers->len == 0) {
+        
+        assert(buffers->next == NULL);
+        continue;
+      }
       memory.Copy(pos, &buffers->data, buffers->len);
       pos += buffers->len;
     }
