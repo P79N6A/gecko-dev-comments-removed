@@ -73,6 +73,11 @@ static NS_DEFINE_CID(kFrameSelectionCID, NS_FRAMESELECTION_CID);
 static nsINativeKeyBindings *sNativeInputBindings = nsnull;
 static nsINativeKeyBindings *sNativeTextAreaBindings = nsnull;
 
+struct SelectionState {
+  PRInt32 mStart;
+  PRInt32 mEnd;
+};
+
 
 PRBool
 nsITextControlElement::GetWrapPropertyEnum(nsIContent* aContent,
@@ -1321,6 +1326,12 @@ nsTextEditorState::PrepareEditor(const nsAString *aValue)
   if (mTextListener)
     newEditor->AddEditorObserver(mTextListener);
 
+  
+  if (mSelState) {
+    mBoundFrame->SetSelectionRange(mSelState->mStart, mSelState->mEnd);
+    mSelState = nsnull;
+  }
+
   return rv;
 }
 
@@ -1350,6 +1361,20 @@ nsTextEditorState::UnbindFromFrame(nsTextControlFrame* aFrame)
   
   nsAutoString value;
   GetValue(value, PR_TRUE);
+
+  
+  
+  
+  
+  
+  
+  if (mEditorInitialized) {
+    mSelState = new SelectionState();
+    nsresult rv = mBoundFrame->GetSelectionRange(&mSelState->mStart, &mSelState->mEnd);
+    if (NS_FAILED(rv)) {
+      mSelState = nsnull;
+    }
+  }
 
   
   DestroyEditor();
