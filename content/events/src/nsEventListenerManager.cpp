@@ -442,7 +442,6 @@ nsEventListenerManager::AddScriptEventListener(nsIAtom *aName,
 {
   NS_PRECONDITION(aLanguage != nsIProgrammingLanguage::UNKNOWN,
                   "Must know the language for the script event listener");
-  nsIScriptContext *context = nsnull;
 
   
   
@@ -532,10 +531,10 @@ nsEventListenerManager::AddScriptEventListener(nsIAtom *aName,
     
   }
 
-  context = global->GetScriptContext(aLanguage);
+  nsIScriptContext* context = global->GetScriptContext(aLanguage);
   NS_ENSURE_TRUE(context, NS_ERROR_FAILURE);
 
-  void *scope = global->GetScriptGlobal(aLanguage);
+  JSObject* scope = global->GetGlobalJSObject();
 
   nsListenerStruct *ls;
   rv = SetJSEventListener(context, scope, aName, nsnull,
