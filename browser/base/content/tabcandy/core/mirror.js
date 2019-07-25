@@ -1,5 +1,6 @@
 (function(){
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
@@ -54,6 +55,7 @@ TabCanvas.prototype = {
   
     var fromWin = this.tab.contentWindow;
     if( fromWin == null || fromWin.location.protocol == "chrome:") return;
+
     var scaler = w/fromWin.innerWidth;
   
     
@@ -105,6 +107,7 @@ TabCanvas.prototype = {
 var TabMirror = function( ){ this.init() }
 TabMirror.prototype = {
   init: function(){
+
     var self = this;
     
     
@@ -183,6 +186,8 @@ TabMirror.prototype = {
   },
   
   link: function(tab){
+
+
     
     var dup = this._getEl(tab)
     if( dup ) return false;
