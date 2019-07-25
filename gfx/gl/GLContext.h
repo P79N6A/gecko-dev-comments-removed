@@ -881,6 +881,28 @@ private:
     GLuint mPrevReadFBOBinding;
     bool mOffscreenFBOsDirty;
 
+    void GetShaderPrecisionFormatNonES2(GLenum shadertype, GLenum precisiontype, GLint* range, GLint* precision) {
+        switch (precisiontype) {
+            case LOCAL_GL_LOW_FLOAT:
+            case LOCAL_GL_MEDIUM_FLOAT:
+            case LOCAL_GL_HIGH_FLOAT:
+                
+                range[0] = 127;
+                range[1] = 127;
+                *precision = 0;
+                break;
+            case LOCAL_GL_LOW_INT:
+            case LOCAL_GL_MEDIUM_INT:
+            case LOCAL_GL_HIGH_INT:
+                
+                
+                range[0] = 24;
+                range[1] = 24;
+                *precision = 0;
+                break;
+        }
+    }
+
     void BeforeGLDrawCall() {
         
         mPrevDrawFBOBinding = GetBoundDrawFBO();
@@ -2328,6 +2350,17 @@ public:
     void fGetShaderInfoLog(GLuint shader, GLsizei bufSize, GLsizei* length, GLchar* infoLog) {
         BEFORE_GL_CALL;
         mSymbols.fGetShaderInfoLog(shader, bufSize, length, infoLog);
+        AFTER_GL_CALL;
+    }
+
+    void fGetShaderPrecisionFormat(GLenum shadertype, GLenum precisiontype, GLint* range, GLint* precision) {
+        BEFORE_GL_CALL;
+        if (mIsGLES2) {
+            mSymbols.fGetShaderPrecisionFormat(shadertype, precisiontype, range, precision);
+        } else {
+            
+            GetShaderPrecisionFormatNonES2(shadertype, precisiontype, range, precision);
+        }
         AFTER_GL_CALL;
     }
 
