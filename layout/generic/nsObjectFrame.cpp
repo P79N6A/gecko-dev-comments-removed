@@ -759,6 +759,12 @@ nsObjectFrame::CreateWidget(nscoord aWidth,
   }
 
   if (!aViewOnly && !mWidget) {
+    
+    nsIWidget* parentWidget =
+      rpc->PresShell()->FrameManager()->GetRootFrame()->GetNearestWidget();
+    if (!parentWidget)
+      return NS_ERROR_FAILURE;
+
     mInnerView = viewMan->CreateView(GetContentRect() - GetPosition(), view);
     if (!mInnerView) {
       NS_ERROR("Could not create inner view");
@@ -770,10 +776,6 @@ nsObjectFrame::CreateWidget(nscoord aWidth,
     mWidget = do_CreateInstance(kWidgetCID, &rv);
     if (NS_FAILED(rv))
       return rv;
-
-    
-    nsIWidget* parentWidget =
-      rpc->PresShell()->FrameManager()->GetRootFrame()->GetNearestWidget();
 
     nsWidgetInitData initData;
     initData.mWindowType = eWindowType_plugin;
