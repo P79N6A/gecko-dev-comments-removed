@@ -165,6 +165,31 @@ ScriptsView.prototype = {
 
 
 
+  containsIgnoringQuery: function DVS_containsIgnoringQuery(aUrl) {
+    let sourceScripts = DebuggerController.SourceScripts;
+    aUrl = sourceScripts.trimUrlQuery(aUrl);
+
+    if (this._tmpScripts.some(function(element) {
+      return sourceScripts.trimUrlQuery(element.script.url) == aUrl;
+    })) {
+      return true;
+    }
+    if (this.scriptLocations.some(function(url) {
+      return sourceScripts.trimUrlQuery(url) == aUrl;
+    })) {
+      return true;
+    }
+    return false;
+  },
+
+  
+
+
+
+
+
+
+
   contains: function DVS_contains(aUrl) {
     if (this._tmpScripts.some(function(element) {
       return element.script.url == aUrl;
@@ -346,7 +371,7 @@ ScriptsView.prototype = {
     aLabel, aScript, aIndex, aSelectIfEmptyFlag)
   {
     
-    if (aLabel == "null" || this.containsLabel(aLabel)) {
+    if (aLabel == "null" || this.containsLabel(aLabel) || this.contains(aScript.url)) {
       return;
     }
 

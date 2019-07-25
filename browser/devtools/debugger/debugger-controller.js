@@ -926,7 +926,7 @@ SourceScripts.prototype = {
     }
 
     
-    if (/\.jsm?$/.test(this._trimUrlQuery(aUrl))) {
+    if (/\.jsm?$/.test(this.trimUrlQuery(aUrl))) {
       DebuggerView.editor.setMode(SourceEditor.MODES.JAVASCRIPT);
     } else {
       DebuggerView.editor.setMode(SourceEditor.MODES.HTML);
@@ -940,31 +940,17 @@ SourceScripts.prototype = {
 
 
 
-  _trimUrlQuery: function SS__trimUrlQuery(aUrl) {
-    let q = aUrl.indexOf('#');
-    if (q === -1) q = aUrl.indexOf('?');
-    if (q === -1) q = aUrl.indexOf('&');
 
-    if (q > -1) {
-      return aUrl.slice(0, q);
-    }
-    return aUrl;
-  },
+  trimUrlQuery: function SS_trimUrlQuery(aUrl) {
+    let length = aUrl.length;
+    let q1 = aUrl.indexOf('?');
+    let q2 = aUrl.indexOf('&');
+    let q3 = aUrl.indexOf('#');
+    let q = Math.min(q1 !== -1 ? q1 : length,
+                     q2 !== -1 ? q2 : length,
+                     q3 !== -1 ? q3 : length);
 
-  
-
-
-
-
-
-
-
-  _getScriptPrePath: function SS__getScriptDomain(aUrl) {
-    try {
-      return Services.io.newURI(aUrl, null, null).prePath + "/";
-    } catch (e) {
-    }
-    return null;
+    return aUrl.slice(0, q);
   },
 
   
@@ -977,6 +963,91 @@ SourceScripts.prototype = {
 
 
 
+
+
+
+  _trimURL: function SS__trimURL(aUrl, aLabel, aSeq) {
+    if (!(aUrl instanceof Ci.nsIURL)) {
+      try {
+        
+        aUrl = Services.io.newURI(aUrl, null, null).QueryInterface(Ci.nsIURL);
+      } catch (e) {
+        
+        return aUrl;
+      }
+    }
+    if (!aSeq) {
+      let name = aUrl.fileName;
+      if (name) {
+        
+        
+
+        
+        
+        aLabel = aUrl.fileName.replace(/\&.*/, "");
+      } else {
+        
+        
+        aLabel = "";
+      }
+      aSeq = 1;
+    }
+
+    
+    if (aLabel && aLabel.indexOf("?") !== 0) {
+
+      if (DebuggerView.Scripts.containsIgnoringQuery(aUrl.spec)) {
+        
+        
+        return aLabel;
+      }
+      if (!DebuggerView.Scripts.containsLabel(aLabel)) {
+        
+        return aLabel;
+      }
+    }
+
+    
+    if (aSeq === 1) {
+      let query = aUrl.query;
+      if (query) {
+        return this._trimURL(aUrl, aLabel + "?" + query, aSeq + 1);
+      }
+      aSeq++;
+    }
+    
+    if (aSeq === 2) {
+      let ref = aUrl.ref;
+      if (ref) {
+        return this._trimURL(aUrl, aLabel + "#" + aUrl.ref, aSeq + 1);
+      }
+      aSeq++;
+    }
+    
+    if (aSeq === 3) {
+      let dir = aUrl.directory;
+      if (dir) {
+        return this._trimURL(aUrl, dir.replace(/^\//, "") + aLabel, aSeq + 1);
+      }
+      aSeq++;
+    }
+    
+    if (aSeq === 4) {
+      let host = aUrl.hostPort;
+      if (host) {
+        return this._trimURL(aUrl, host + "/" + aLabel, aSeq + 1);
+      }
+      aSeq++;
+    }
+    
+    if (aSeq === 5) {
+      return this._trimURL(aUrl, aUrl.specIgnoringRef, aSeq + 1);
+    }
+    
+    return aUrl.spec;
+  },
+
+  
 
 
 
@@ -988,30 +1059,7 @@ SourceScripts.prototype = {
 
 
   _getScriptLabel: function SS__getScriptLabel(aUrl, aHref) {
-    let url = this._trimUrlQuery(aUrl);
-
-    if (this._labelsCache[url]) {
-      return this._labelsCache[url];
-    }
-
-    let content = window.parent.content;
-    let domain = content ? content.location.href : this._getScriptPrePath(aUrl);
-
-    let href = aHref || domain;
-    let pathElements = url.split("/");
-    let label = pathElements.pop() || (pathElements.pop() + "/");
-
-    
-    if (DebuggerView.Scripts.containsLabel(label)) {
-      label = url.replace(href.substring(0, href.lastIndexOf("/") + 1), "");
-
-      
-      if (DebuggerView.Scripts.containsLabel(label)) {
-        label = url;
-      }
-    }
-
-    return this._labelsCache[url] = label;
+    return this._labelsCache[aUrl] || (this._labelsCache[aUrl] = this._trimURL(aUrl));
   },
 
   
