@@ -121,9 +121,8 @@ nsHTMLAudioElement::Initialize(nsISupports* aOwner, JSContext* aContext,
 {
   
   
-  
-  nsresult rv = SetAttr(kNameSpaceID_None, nsGkAtoms::preload,
-                        NS_LITERAL_STRING("auto"), PR_TRUE);
+  nsresult rv = SetAttr(kNameSpaceID_None, nsGkAtoms::autobuffer,
+                        NS_LITERAL_STRING("autobuffer"), PR_TRUE);
   if (NS_FAILED(rv))
     return rv;
 

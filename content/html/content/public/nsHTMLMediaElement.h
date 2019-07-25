@@ -430,51 +430,6 @@ protected:
 
 
   void DoRemoveSelfReference();
-  
-  
-
-
-  enum PreloadAttrValue {
-    PRELOAD_ATTR_EMPTY,    
-    PRELOAD_ATTR_NONE,     
-    PRELOAD_ATTR_METADATA, 
-    PRELOAD_ATTR_AUTO      
-  };
-
-  
-
-
-
-  enum PreloadAction {
-    PRELOAD_UNDEFINED = 0, 
-    PRELOAD_NONE = 1,      
-    PRELOAD_METADATA = 2,  
-    PRELOAD_ENOUGH = 3     
-                           
-  };
-
-  
-
-
-
-
-  void SuspendLoad(nsIURI* aURI);
-
-  
-
-
-
-
-  void ResumeLoad(PreloadAction aAction);
-
-  
-
-
-
-
-
-
-  void UpdatePreloadAction();
 
   nsRefPtr<nsMediaDecoder> mDecoder;
 
@@ -529,20 +484,7 @@ protected:
 
   
   
-  
-  
-  nsCOMPtr<nsIURI> mPreloadURI;
-  
-  
-  
-  
-  PreloadAction mPreloadAction;
-
-  
-  
   nsIntSize mMediaSize;
-
-  nsRefPtr<gfxASurface> mPrintSurface;
 
   
   
@@ -610,10 +552,8 @@ protected:
 
   
   
-  
   PRPackedBool mSuspendedAfterFirstFrame;
 
-  
   
   
   PRPackedBool mAllowSuspendAfterFirstFrame;
@@ -631,11 +571,7 @@ protected:
   
   PRPackedBool mShuttingDown;
 
-  
-  
-  
-  
-  PRPackedBool mLoadIsSuspended;
+  nsRefPtr<gfxASurface> mPrintSurface;
 };
 
 #endif
