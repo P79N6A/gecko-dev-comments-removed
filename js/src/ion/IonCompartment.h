@@ -53,11 +53,12 @@ namespace ion {
 
 class FrameSizeClass;
 
-typedef JSBool (*EnterIonCode)(void *code, int argc, Value *argv, Value *vp,
-                               CalleeToken calleeToken);
+typedef void (*EnterIonCode)(void *code, int argc, Value *argv, Value *vp,
+                             CalleeToken calleeToken);
 
 class IonActivation;
 struct VMFunction;
+class IonCFrame;
 
 class IonCompartment
 {
@@ -78,9 +79,6 @@ class IonCompartment
 
     
     IonCode *bailoutHandler_;
-
-    
-    IonCode *returnError_;
 
     
     
@@ -143,16 +141,7 @@ class IonCompartment
             if (!enterJIT_)
                 return NULL;
         }
-        if (!returnError_) {
-            returnError_ = generateReturnError(cx);
-            if (!returnError_)
-                return NULL;
-        }
         return enterJIT_->as<EnterIonCode>();
-    }
-    IonCode *returnError() const {
-        JS_ASSERT(returnError_);
-        return returnError_;
     }
 
     IonActivation *activation() const {

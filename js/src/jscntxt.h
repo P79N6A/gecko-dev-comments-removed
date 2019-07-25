@@ -217,6 +217,10 @@ struct ThreadData {
 
     ConservativeGCThreadData conservativeGC;
 
+    
+    
+    uint8               *ionTop;
+
 #ifdef DEBUG
     size_t              noGCOrAllocationCheck;
 #endif

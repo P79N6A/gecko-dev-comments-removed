@@ -783,9 +783,8 @@ CodeGeneratorX86Shared::visitCallGeneric(LCallGeneric *call)
         return false;
 
     
-    JS_STATIC_ASSERT(IonFramePrefix::JSFrame == 0x0);
     uint32 stack_size = masm.framePushed() - unused_stack;
-    uint32 size_descriptor = stack_size << IonFramePrefix::FrameTypeBits;
+    uint32 size_descriptor = (stack_size << FRAMETYPE_BITS) | IonFrame_JS;
 
     
     if (unused_stack)

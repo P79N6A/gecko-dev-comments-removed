@@ -44,16 +44,7 @@
 
 #include "jstypes.h"
 #include "vm/Stack.h"
-
-#if defined(JS_CPU_X86)
-# include "ion/x86/Bailouts-x86.h"
-#elif defined(JS_CPU_X64)
-# include "ion/x64/Bailouts-x64.h"
-#elif defined(JS_CPU_ARM)
-# include "ion/arm/Bailouts-arm.h"
-#else
-# error "CPU!"
-#endif
+#include "IonFrames.h"
 
 namespace js {
 namespace ion {
@@ -175,17 +166,27 @@ class BailoutClosure
     }
 };
 
-
-uint32 Bailout(void **esp);
-
-
-
-JSBool ThunkToInterpreter(IonFramePrefix *top, Value *vp);
+class IonCompartment;
 
 
 
+class BailoutStack;
 
-uint32 HandleException(IonFramePrefix *top);
+
+FrameRecovery
+FrameRecoveryFromBailout(IonCompartment *ion, BailoutStack *sp);
+
+
+uint32 Bailout(BailoutStack *sp);
+
+
+
+JSBool ThunkToInterpreter(Value *vp);
+
+
+
+
+uint32 HandleException(JSContext *cx);
 
 }
 }
