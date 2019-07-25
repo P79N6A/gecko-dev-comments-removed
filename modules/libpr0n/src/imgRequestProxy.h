@@ -107,6 +107,17 @@ public:
   
   void SyncNotifyListener();
 
+  
+  
+  PRBool NotificationsDeferred() const
+  {
+    return mDeferNotifications;
+  }
+  void SetNotificationsDeferred(PRBool aDeferNotifications)
+  {
+    mDeferNotifications = aDeferNotifications;
+  }
+
 protected:
   friend class imgStatusTracker;
   friend class imgStatusNotifyRunnable;
@@ -135,17 +146,6 @@ protected:
   
   
   
-
-  
-  
-  PRBool NotificationsDeferred() const
-  {
-    return mDeferNotifications;
-  }
-  void SetNotificationsDeferred(PRBool aDeferNotifications)
-  {
-    mDeferNotifications = aDeferNotifications;
-  }
 
   
   void OnStartDecode   ();

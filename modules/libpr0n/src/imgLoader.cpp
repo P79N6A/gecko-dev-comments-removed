@@ -1171,8 +1171,18 @@ PRBool imgLoader::ValidateRequestWithNewChannel(imgRequest *request,
                                   aLoadFlags, aExistingRequest, 
                                   reinterpret_cast<imgIRequest **>(aProxyRequest));
 
-    if (*aProxyRequest)
-      request->mValidator->AddProxy(static_cast<imgRequestProxy*>(*aProxyRequest));
+    if (*aProxyRequest) {
+      imgRequestProxy* proxy = static_cast<imgRequestProxy*>(*aProxyRequest);
+
+      
+      
+      
+      
+      proxy->SetNotificationsDeferred(PR_TRUE);
+
+      
+      request->mValidator->AddProxy(proxy);
+    }
 
     return NS_SUCCEEDED(rv);
 
@@ -1222,8 +1232,17 @@ PRBool imgLoader::ValidateRequestWithNewChannel(imgRequest *request,
     NS_ADDREF(hvc);
     request->mValidator = hvc;
 
-    hvc->AddProxy(static_cast<imgRequestProxy*>
-                             (static_cast<imgIRequest*>(req.get())));
+    imgRequestProxy* proxy = static_cast<imgRequestProxy*>
+                               (static_cast<imgIRequest*>(req.get()));
+
+    
+    
+    
+    
+    proxy->SetNotificationsDeferred(PR_TRUE);
+
+    
+    hvc->AddProxy(proxy);
 
     rv = newChannel->AsyncOpen(static_cast<nsIStreamListener *>(hvc), nsnull);
     if (NS_SUCCEEDED(rv))
@@ -2043,6 +2062,13 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
 
         
         
+        NS_ABORT_IF_FALSE(proxy->NotificationsDeferred(),
+                          "Proxies waiting on cache validation should be "
+                          "deferring notifications!");
+        proxy->SetNotificationsDeferred(PR_FALSE);
+
+        
+        
         proxy->SyncNotifyListener();
       }
 
@@ -2103,6 +2129,13 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
   for (PRInt32 i = count-1; i>=0; i--) {
     imgRequestProxy *proxy = static_cast<imgRequestProxy *>(mProxies[i]);
     proxy->ChangeOwner(request);
+
+    
+    
+    NS_ABORT_IF_FALSE(proxy->NotificationsDeferred(),
+                      "Proxies waiting on cache validation should be "
+                      "deferring notifications!");
+    proxy->SetNotificationsDeferred(PR_FALSE);
 
     
     
