@@ -340,6 +340,11 @@ class FrameState
     
 
 
+    inline void dup();
+
+    
+
+
     uint32 stackDepth() const { return sp - spBase; }
     uint32 frameDepth() const { return stackDepth() + script->nfixed; }
     inline FrameEntry *tosFe() const;
@@ -363,6 +368,8 @@ class FrameState
     inline FrameEntry *getLocal(uint32 slot);
     inline void forgetRegs(FrameEntry *fe);
     inline void swapInTracker(FrameEntry *lhs, FrameEntry *rhs);
+    inline uint32 localIndex(uint32 n);
+    void pushCopyOf(uint32 index);
 
     
 
@@ -371,10 +378,6 @@ class FrameState
 
 
     void uncopy(FrameEntry *original);
-
-    uint32 localIndex(uint32 n) {
-        return nargs + n;
-    }
 
     FrameEntry *entryFor(uint32 index) const {
         JS_ASSERT(base[index]);
