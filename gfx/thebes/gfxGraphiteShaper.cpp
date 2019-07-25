@@ -90,7 +90,6 @@ ReleaseTableFunc(const PRUint32& ,
                  gfxGraphiteShaper::TableRec& aData,
                  void* )
 {
-    hb_blob_unlock(aData.mBlob);
     hb_blob_destroy(aData.mBlob);
     return PL_DHASH_REMOVE;
 }
@@ -124,11 +123,8 @@ gfxGraphiteShaper::GetTable(PRUint32 aTag, size_t *aLength)
         if (blob) {
             
             
-            
-            
             tableRec.mBlob = blob;
-            tableRec.mData = hb_blob_lock(blob);
-            tableRec.mLength = hb_blob_get_length(blob);
+            tableRec.mData = hb_blob_get_data(blob, &tableRec.mLength);
             mTables.Put(aTag, tableRec);
         } else {
             return nsnull;

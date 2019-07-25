@@ -1,0 +1,129 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef HB_OT_NAME_TABLE_HH
+#define HB_OT_NAME_TABLE_HH
+
+#include "hb-open-type-private.hh"
+
+
+
+
+
+
+
+#define HB_OT_TAG_name HB_TAG('n','a','m','e')
+
+
+struct NameRecord
+{
+  static int cmp (const NameRecord *a, const NameRecord *b)
+  {
+    int ret;
+    ret = b->platformID.cmp (a->platformID);
+    if (ret) return ret;
+    ret = b->encodingID.cmp (a->encodingID);
+    if (ret) return ret;
+    ret = b->languageID.cmp (a->languageID);
+    if (ret) return ret;
+    ret = b->nameID.cmp (a->nameID);
+    if (ret) return ret;
+    return 0;
+  }
+
+  inline bool sanitize (hb_sanitize_context_t *c, void *base) {
+    TRACE_SANITIZE ();
+    
+    return c->check_struct (this) &&
+	   c->check_range ((char *) base, (unsigned int) length + offset);
+  }
+
+  USHORT	platformID;	
+  USHORT	encodingID;	
+  USHORT	languageID;	
+  USHORT	nameID;		
+  USHORT	length;		
+  USHORT	offset;		
+  public:
+  DEFINE_SIZE_STATIC (12);
+};
+
+struct name
+{
+  static const hb_tag_t Tag	= HB_OT_TAG_name;
+
+  inline unsigned int get_name (unsigned int platform_id,
+				unsigned int encoding_id,
+				unsigned int language_id,
+				unsigned int name_id,
+				void *buffer,
+				unsigned int buffer_length) const
+  {
+    NameRecord key;
+    key.platformID.set (platform_id);
+    key.encodingID.set (encoding_id);
+    key.languageID.set (language_id);
+    key.nameID.set (name_id);
+    NameRecord *match = (NameRecord *) bsearch (&key, nameRecord, count, sizeof (nameRecord[0]), (hb_compare_func_t) NameRecord::cmp);
+
+    if (!match)
+      return 0;
+
+    unsigned int length = MIN (buffer_length, (unsigned int) match->length);
+    memcpy (buffer, (char *) this + stringOffset + match->offset, length);
+    return length;
+  }
+
+  inline bool sanitize_records (hb_sanitize_context_t *c) {
+    TRACE_SANITIZE ();
+    char *string_pool = (char *) this + stringOffset;
+    unsigned int _count = count;
+    for (unsigned int i = 0; i < _count; i++)
+      if (!nameRecord[i].sanitize (c, string_pool)) return false;
+    return true;
+  }
+
+  inline bool sanitize (hb_sanitize_context_t *c) {
+    TRACE_SANITIZE ();
+    return c->check_struct (this) &&
+	   likely (format == 0 || format == 1) &&
+	   c->check_array (nameRecord, nameRecord[0].static_size, count) &&
+	   sanitize_records (c);
+  }
+
+  
+  private:
+  USHORT	format;			
+  USHORT	count;			
+  Offset	stringOffset;		
+  NameRecord	nameRecord[VAR];	
+  public:
+  DEFINE_SIZE_ARRAY (6, nameRecord);
+};
+
+
+
+#endif 

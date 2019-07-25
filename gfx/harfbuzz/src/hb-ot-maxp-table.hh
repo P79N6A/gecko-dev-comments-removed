@@ -1,0 +1,66 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef HB_OT_MAXP_TABLE_HH
+#define HB_OT_MAXP_TABLE_HH
+
+#include "hb-open-type-private.hh"
+
+
+
+
+
+
+
+#define HB_OT_TAG_maxp HB_TAG('m','a','x','p')
+
+struct maxp
+{
+  static const hb_tag_t Tag	= HB_OT_TAG_maxp;
+
+  inline unsigned int get_num_glyphs (void) const {
+    return numGlyphs;
+  }
+
+  inline bool sanitize (hb_sanitize_context_t *c) {
+    TRACE_SANITIZE ();
+    return c->check_struct (this) &&
+	   likely (version.major == 1 ||
+		   (version.major == 0 && version.minor == 0x5000));
+  }
+
+  
+  private:
+  FixedVersion	version;		
+
+  USHORT	numGlyphs;		
+  public:
+  DEFINE_SIZE_STATIC (6);
+};
+
+
+
+#endif 
