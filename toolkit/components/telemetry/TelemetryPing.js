@@ -208,9 +208,8 @@ TelemetryPing.prototype = {
     let memReporters = {};
     while (e.hasMoreElements()) {
       let mr = e.getNext().QueryInterface(Ci.nsIMemoryReporter);
-      
       let id = MEM_HISTOGRAMS[mr.path];
-      if (!id) {
+      if (!id || mr.amount == -1) {
         continue;
       }
 
@@ -224,15 +223,15 @@ TelemetryPing.prototype = {
 
         
         let curVal = mr.amount;
-        let prevVal = this._prevValues[mr.path];
-        if (!prevVal) {
+        if (!(mr.path in this._prevValues)) {
           
           
           
           this._prevValues[mr.path] = curVal;
           continue;
         }
-        val = curVal - prevVal;
+
+        val = curVal - this._prevValues[mr.path];
         this._prevValues[mr.path] = curVal;
       }
       else {
@@ -245,9 +244,7 @@ TelemetryPing.prototype = {
         h = Telemetry.getHistogramById(id);
         this._histograms[mr.path] = h;
       }
-      
-      if (val)
-        h.add(val);
+      h.add(val);
     }
     return memReporters;
   },
