@@ -838,17 +838,6 @@ nsWebSocketHandler::ProcessInput(PRUint8 *buffer, PRUint32 count)
             LOG(("WebSocketHandler:: text frame received\n"));
             if (mListener) {
                 nsCString utf8Data((const char *)payload, payloadLength);
-
-                
-                
-                
-                
-                if (!IsUTF8(utf8Data)) {
-                    LOG(("WebSocketHandler:: text frame invalid utf-8\n"));
-                    AbortSession(NS_ERROR_ILLEGAL_VALUE);
-                    return NS_ERROR_ILLEGAL_VALUE;
-                }
-
                 nsCOMPtr<nsIRunnable> event =
                     new CallOnMessageAvailable(mListener, mContext,
                                                utf8Data, -1);
@@ -876,17 +865,6 @@ nsWebSocketHandler::ProcessInput(PRUint8 *buffer, PRUint32 count)
                     PRUint16 msglen = payloadLength - 2;
                     if (msglen > 0) {
                         nsCString utf8Data((const char *)payload + 2, msglen);
-
-                        
-                        
-                        
-                        
-                        if (!IsUTF8(utf8Data)) {
-                            LOG(("WebSocketHandler:: close frame invalid utf-8\n"));
-                            AbortSession(NS_ERROR_ILLEGAL_VALUE);
-                            return NS_ERROR_ILLEGAL_VALUE;
-                        }
-
                         LOG(("WebSocketHandler:: close msg  %s\n",
                              utf8Data.get()));
                     }
@@ -934,10 +912,10 @@ nsWebSocketHandler::ProcessInput(PRUint8 *buffer, PRUint32 count)
         else if (opcode == kBinary) {
             LOG(("WebSocketHandler:: binary frame received\n"));
             if (mListener) {
-                nsCString binaryData((const char *)payload, payloadLength);
+                nsCString utf8Data((const char *)payload, payloadLength);
                 nsCOMPtr<nsIRunnable> event =
                     new CallOnMessageAvailable(mListener, mContext,
-                                               binaryData, payloadLength);
+                                               utf8Data, payloadLength);
                 NS_DispatchToMainThread(event);
             }
         }
