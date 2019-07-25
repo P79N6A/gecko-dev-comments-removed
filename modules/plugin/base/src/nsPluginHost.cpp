@@ -2891,24 +2891,12 @@ nsresult nsPluginHost::NewPluginURLStream(const nsString& aURL,
   if (NS_FAILED(rv))
     return rv;
 
-  nsCOMPtr<nsIInterfaceRequestor> callbacks;
-  if (doc) {
-    
-    
-    nsIScriptGlobalObject* global = doc->GetScriptGlobalObject();
-    if (global) {
-      nsCOMPtr<nsIWebNavigation> webNav = do_GetInterface(global);
-      callbacks = do_QueryInterface(webNav);
-    }
-  }
-
   nsCOMPtr<nsIChannel> channel;
-
   rv = NS_NewChannel(getter_AddRefs(channel), url, nsnull,
     nsnull, 
 
 
-    callbacks);
+    listenerPeer);
   if (NS_FAILED(rv))
     return rv;
 
