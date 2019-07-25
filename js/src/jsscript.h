@@ -437,9 +437,8 @@ struct JSScript : public js::gc::Cell
     
     js::types::TypeScript *types;
 
-    js::ScriptSource *source; 
-
   private:
+    js::ScriptSource *scriptSource_; 
 #ifdef JS_METHODJIT
     JITScriptSet *mJITInfo;
 #endif
@@ -620,6 +619,14 @@ struct JSScript : public js::gc::Cell
     JSFixedString *sourceData(JSContext *cx);
 
     bool loadSource(JSContext *cx, bool *worked);
+
+    js::ScriptSource *scriptSource() {
+        return scriptSource_;
+    }
+
+    void setScriptSource(JSContext *cx, js::ScriptSource *ss);
+
+  public:
 
     
     bool isForEval() { return isCachedEval || isActiveEval; }
