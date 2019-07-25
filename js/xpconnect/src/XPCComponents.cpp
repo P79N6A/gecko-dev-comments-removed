@@ -4129,6 +4129,35 @@ nsXPCComponents_Utils::CreateObjectIn(const jsval &vobj, JSContext *cx, jsval *r
     return NS_OK;
 }
 
+
+NS_IMETHODIMP
+nsXPCComponents_Utils::CreateArrayIn(const jsval &vobj, JSContext *cx, jsval *rval)
+{
+    if (!cx)
+        return NS_ERROR_FAILURE;
+
+    
+    if (JSVAL_IS_PRIMITIVE(vobj))
+        return NS_ERROR_XPC_BAD_CONVERT_JS;
+
+    JSObject *scope = js::UnwrapObject(JSVAL_TO_OBJECT(vobj));
+    JSObject *obj;
+    {
+        JSAutoEnterCompartment ac;
+        if (!ac.enter(cx, scope))
+            return NS_ERROR_FAILURE;
+
+        obj =  JS_NewArrayObject(cx, 0, NULL);
+        if (!obj)
+            return NS_ERROR_FAILURE;
+    }
+
+    if (!JS_WrapObject(cx, &obj))
+        return NS_ERROR_FAILURE;
+    *rval = OBJECT_TO_JSVAL(obj);
+    return NS_OK;
+}
+
 JSBool
 FunctionWrapper(JSContext *cx, unsigned argc, jsval *vp)
 {
