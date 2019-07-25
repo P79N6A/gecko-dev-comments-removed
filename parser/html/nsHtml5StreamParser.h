@@ -79,6 +79,11 @@ enum eParserMode {
   
 
 
+  VIEW_SOURCE_PLAIN,
+
+  
+
+
   PLAIN_TEXT,
 
   

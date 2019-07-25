@@ -352,16 +352,6 @@ class nsHtml5Highlighter
     
 
 
-    bool mWrapLongLines;
-
-    
-
-
-    PRInt32 mTabSize;
-
-    
-
-
     nsTArray<nsHtml5TreeOperation> mOpQueue;
 
     
