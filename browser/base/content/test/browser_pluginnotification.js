@@ -213,21 +213,6 @@ function test8() {
   prepareTest(test9a, gTestRoot + "plugin_test2.html");
 }
 
-function waitForCondition(condition, nextTest, errorMsg) {
-  var tries = 0;
-  var interval = setInterval(function() {
-    if (tries >= 500) {
-      ok(false, errorMsg);
-      moveOn();
-    }
-    if (condition()) {
-      moveOn();
-    }
-    tries++;
-  }, 10);
-  var moveOn = function() { clearInterval(interval); nextTest(); };
-}
-
 
 function test9a() {
   var notificationBox = gBrowser.getNotificationBox(gTestBrowser);
