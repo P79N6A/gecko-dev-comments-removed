@@ -191,9 +191,15 @@ public class WatcherService extends Service
 
     private void handleCommand(Intent intent)
         {
-        String sCmd = intent.getStringExtra("command");
+        
+        
+        
 
-
+        String sCmd = "start";
+        if (intent != null)
+            {
+            sCmd = intent.getStringExtra("command");
+            }
 
         if (sCmd != null)
             {
