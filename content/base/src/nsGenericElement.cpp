@@ -2736,6 +2736,9 @@ nsGenericElement::RemoveAttribute(const nsAString& aName)
   const nsAttrName* name = InternalGetExistingAttrNameFromQName(aName);
 
   if (!name) {
+    
+    
+    
     return NS_OK;
   }
 
@@ -2890,7 +2893,8 @@ nsGenericElement::RemoveAttributeNS(const nsAString& aNamespaceURI,
 
   if (nsid == kNameSpaceID_Unknown) {
     
-
+    
+    
     return NS_OK;
   }
 
