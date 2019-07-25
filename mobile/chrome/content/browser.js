@@ -2487,6 +2487,10 @@ Tab.prototype = {
       } else if (!validW && !validH) {
         viewportW = this.useFallbackWidth ? kFallbackBrowserWidth : kDefaultBrowserWidth;
         viewportH = kDefaultBrowserWidth * (screenH / screenW);
+
+        
+        
+        viewportH = Math.max(viewportH, screenH * (browser.contentDocumentWidth / screenW));
       }
     }
 
