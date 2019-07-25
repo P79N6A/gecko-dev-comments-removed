@@ -890,8 +890,10 @@ mjit::EnterMethodJIT(JSContext *cx, StackFrame *fp, void *code, Value *stackLimi
     cx->stack.repointRegs(&oldRegs);
     JS_ASSERT(fp == cx->fp());
 
-    
-    fp->markReturnValue();
+    if (ok) {
+        
+        fp->markReturnValue();
+    }
 
     
     fp->markActivationObjectsAsPut();
