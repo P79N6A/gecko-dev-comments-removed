@@ -1965,8 +1965,14 @@ Tab.prototype = {
     if (contentWin != contentWin.top)
         return;
 
+    
     if (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK) {
-      
+      if ((aStateFlags & Ci.nsIWebProgressListener.STATE_STOP) && aWebProgress.isLoadingDocument) {
+        
+        
+        return;
+      }
+
       let browser = BrowserApp.getBrowserForWindow(aWebProgress.DOMWindow);
       let uri = "";
       if (browser)
