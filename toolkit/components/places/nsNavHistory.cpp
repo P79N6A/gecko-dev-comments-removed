@@ -4081,35 +4081,6 @@ nsNavHistory::AddPageWithDetails(nsIURI *aURI, const PRUnichar *aTitle,
 
 
 
-NS_IMETHODIMP
-nsNavHistory::GetLastPageVisited(nsACString & aLastPageVisited)
-{
-  NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
-
-  nsCOMPtr<mozIStorageStatement> statement;
-  nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT url FROM moz_places "
-      "WHERE hidden = 0 "
-        "AND last_visit_date NOTNULL "
-      "ORDER BY last_visit_date DESC "),
-    getter_AddRefs(statement));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  bool hasMatch = false;
-  if (NS_SUCCEEDED(statement->ExecuteStep(&hasMatch)) && hasMatch)
-    return statement->GetUTF8String(0, aLastPageVisited);
-
-  aLastPageVisited.Truncate(0);
-  return NS_OK;
-}
-
-
-
-
-
-
-
-
 
 NS_IMETHODIMP
 nsNavHistory::GetCount(PRUint32 *aCount)
