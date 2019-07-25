@@ -298,6 +298,7 @@ namespace js {
 
 
 
+
 enum ParseNodeArity {
     PN_NULLARY,                         
     PN_UNARY,                           

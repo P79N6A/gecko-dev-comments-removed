@@ -75,7 +75,6 @@ enum TokenKind {
     TOK_BITOR,                     
     TOK_BITXOR,                    
     TOK_BITAND,                    
-    TOK_SHOP,                      
     TOK_PLUS,                      
     TOK_MINUS,                     
     TOK_STAR, TOK_DIVOP,           
@@ -176,6 +175,13 @@ enum TokenKind {
     TOK_GE,
     TOK_RELOP_LAST = TOK_GE,
 
+    
+    TOK_LSH,
+    TOK_SHIFTOP_START = TOK_LSH,
+    TOK_RSH,
+    TOK_URSH,
+    TOK_SHIFTOP_LAST = TOK_URSH,
+
     TOK_LIMIT                      
 };
 
@@ -201,6 +207,12 @@ inline bool
 TokenKindIsRelational(TokenKind tt)
 {
     return TOK_RELOP_START <= tt && tt <= TOK_RELOP_LAST;
+}
+
+inline bool
+TokenKindIsShift(TokenKind tt)
+{
+    return TOK_SHIFTOP_START <= tt && tt <= TOK_SHIFTOP_LAST;
 }
 
 inline bool
@@ -509,6 +521,10 @@ class TokenStream
 
     bool isCurrentTokenRelational() const {
         return TokenKindIsRelational(currentToken().type);
+    }
+
+    bool isCurrentTokenShift() const {
+        return TokenKindIsShift(currentToken().type);
     }
 
     
