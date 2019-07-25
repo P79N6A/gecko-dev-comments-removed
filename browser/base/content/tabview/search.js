@@ -210,7 +210,7 @@ TabMatcher.prototype = {
   _filterForUnmatches: function TabMatcher__filterForUnmatches(tabs) {
     var self = this;
     return tabs.filter(function(tab) {
-      var name = tab.$tabTitle[0].innerHTML;
+      let name = tab.$tabTitle[0].textContent;
       let url = TabUtils.URLOf(tab);
       return !name.match(self.term, "i") && !url.match(self.term, "i");
     });
@@ -230,17 +230,8 @@ TabMatcher.prototype = {
     while (enumerator.hasMoreElements()) {
       var win = enumerator.getNext();
       
-      if (win != gWindow) {
-        
-        
-        let tvWindow = win.TabView.getContentWindow();
-        if (tvWindow)
-          allTabs = allTabs.concat(tvWindow.TabItems.getItems());
-        else
-          
-          for (let i = 0; i < win.gBrowser.tabs.length; i++)
-            allTabs.push(win.gBrowser.tabs[i]);
-      }
+      if (win != gWindow)
+        allTabs.push.apply(allTabs, win.gBrowser.tabs);
     }
     return allTabs;
   },
