@@ -998,22 +998,6 @@ iQ.extend({
 
   
   
-  grep: function( elems, callback, inv ) {
-    var ret = [];
-
-    
-    
-    for ( var i = 0, length = elems.length; i < length; i++ ) {
-      if ( !inv !== !callback( elems[ i ], i ) ) {
-        ret.push( elems[ i ] );
-      }
-    }
-
-    return ret;
-  },
-
-  
-  
   
   timeout: function(func, delay) {
     setTimeout(function() { 
