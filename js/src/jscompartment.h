@@ -392,8 +392,6 @@ struct JS_FRIEND_API(JSCompartment) {
     
     js::types::TypeCompartment   types;
 
-    bool condenseTypes(JSContext *cx);
-
     
     struct TypeInferenceMemoryStats
     {

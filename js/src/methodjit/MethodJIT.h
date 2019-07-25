@@ -668,7 +668,12 @@ ReleaseScriptCode(JSContext *cx, JSScript *script, bool normal);
 
 
 void
-ExpandInlineFrames(JSContext *cx, bool all);
+ExpandInlineFrames(JSCompartment *compartment, bool all);
+
+
+
+void
+ClearAllFrames(JSCompartment *compartment);
 
 
 struct InlineFrame

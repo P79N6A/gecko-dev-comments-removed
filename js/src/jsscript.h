@@ -494,7 +494,6 @@ struct JSScript {
     bool            isUncachedEval:1; 
     bool            calledWithNew:1;  
     bool            usedLazyArgs:1;   
-    bool            ranInference:1;   
 #ifdef JS_METHODJIT
     bool            debugMode:1;      
     bool            singleStepMode:1; 
@@ -552,7 +551,7 @@ struct JSScript {
 
 
 
-    bool typeSetFunction(JSContext *cx, JSFunction *fun);
+    bool typeSetFunction(JSContext *cx, JSFunction *fun, bool singleton = false);
 
     
     js::GlobalObject *global_;
@@ -582,6 +581,7 @@ struct JSScript {
   public:
 
     bool hasAnalysis() { return analysis_ != NULL; }
+    void clearAnalysis() { analysis_ = NULL; }
 
     js::analyze::ScriptAnalysis *analysis(JSContext *cx) {
         if (!analysis_)
@@ -596,7 +596,6 @@ struct JSScript {
     js::types::TypeScript types;
 
     inline bool isAboutToBeFinalized(JSContext *cx);
-    void sweepAnalysis(JSContext *cx);
 
 #ifdef JS_METHODJIT
     

@@ -1183,6 +1183,14 @@ NewProxyObject(JSContext *cx, JSProxyHandler *handler, const Value &priv, JSObje
     else
         clasp = handler->isOuterWindow() ? &OuterWindowProxyClass : &ObjectProxyClass;
 
+    
+
+
+
+
+    if (proto)
+        proto->getNewType(cx, NULL,  true);
+
     JSObject *obj = NewNonFunction<WithProto::Given>(cx, clasp, proto, parent);
     if (!obj || !obj->ensureInstanceReservedSlots(cx, 0))
         return NULL;
@@ -1196,7 +1204,7 @@ NewProxyObject(JSContext *cx, JSProxyHandler *handler, const Value &priv, JSObje
     }
 
     
-    MarkTypeObjectUnknownProperties(cx, obj->getType());
+    MarkTypeObjectUnknownProperties(cx, obj->type());
 
     return obj;
 }
@@ -1478,14 +1486,7 @@ JS_FRIEND_API(JSObject *)
 js_InitProxyClass(JSContext *cx, JSObject *obj)
 {
     JSObject *module = NewNonFunction<WithProto::Class>(cx, &js_ProxyClass, NULL, obj);
-    if (!module)
-        return NULL;
-
-    types::TypeObject *type = cx->compartment->types.newTypeObject(cx, NULL,
-                                                                   js_ProxyClass.name, "",
-                                                                   JSProto_Object,
-                                                                   module->getProto());
-    if (!type || !module->setTypeAndUniqueShape(cx, type))
+    if (!module || !module->setSingletonType(cx))
         return NULL;
 
     if (!JS_DefineProperty(cx, obj, "Proxy", OBJECT_TO_JSVAL(module),

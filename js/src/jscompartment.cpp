@@ -572,29 +572,34 @@ JSCompartment::sweep(JSContext *cx, uint32 releaseInterval)
 
 #endif
 
-    if (!activeAnalysis && types.inferenceEnabled) {
-        bool ok = true;
-
-        for (JSCList *cursor = scripts.next; ok && cursor != &scripts; cursor = cursor->next) {
-            JSScript *script = reinterpret_cast<JSScript *>(cursor);
-            ok = script->types.condenseTypes(cx);
-        }
-
-        if (ok)
-            ok = condenseTypes(cx);
-
+    if (!activeAnalysis) {
         
 
 
 
-        JS_ASSERT(ok == types.inferenceEnabled);
+
+        if (types.inferenceEnabled) {
+#ifdef JS_METHODJIT
+            mjit::ClearAllFrames(this);
+#endif
+
+            for (JSCList *cursor = scripts.next; cursor != &scripts; cursor = cursor->next) {
+                JSScript *script = reinterpret_cast<JSScript *>(cursor);
+                script->types.sweep(cx);
+            }
+        }
+
+        types.sweep(cx);
     }
 
-    types.sweep(cx);
+    
 
+
+
+    types.finalizeObjects();
     for (JSCList *cursor = scripts.next; cursor != &scripts; cursor = cursor->next) {
         JSScript *script = reinterpret_cast<JSScript *>(cursor);
-        script->sweepAnalysis(cx);
+        script->types.finalizeObjects();
     }
 
     if (!activeAnalysis) {

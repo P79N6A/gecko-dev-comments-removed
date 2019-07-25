@@ -1489,7 +1489,13 @@ AssertJit(JSContext *cx, uintN argc, jsval *vp)
 {
 #ifdef JS_METHODJIT
     if (JS_GetOptions(cx) & JSOPTION_METHODJIT) {
-        if (!cx->fp()->script()->getJIT(cx->fp()->isConstructing())) {
+        
+
+
+
+
+        if (!cx->typeInferenceEnabled() &&
+            !cx->fp()->script()->getJIT(cx->fp()->isConstructing())) {
             JS_ReportErrorNumber(cx, my_GetErrorMessage, NULL, JSSMSG_ASSERT_JIT_FAILED);
             return JS_FALSE;
         }
@@ -3316,7 +3322,7 @@ split_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags, JSObject **obj
 
 
 
-    types::AddTypePropertyId(cx, obj->getType(), id, types::TYPE_UNKNOWN);
+    types::AddTypePropertyId(cx, obj, id, types::Type::UnknownType());
 
     ComplexObject *cpx;
 

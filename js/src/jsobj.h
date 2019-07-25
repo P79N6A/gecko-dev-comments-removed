@@ -377,8 +377,10 @@ struct JSObject : js::gc::Cell {
         HAS_EQUALITY              =  0x200,
         VAROBJ                    =  0x400,
         PACKED_ARRAY              =  0x800,
-        METHOD_THRASH_COUNT_MASK  = 0x3000,
-        METHOD_THRASH_COUNT_SHIFT =     12,
+        SINGLETON_TYPE            = 0x1000,
+        LAZY_TYPE                 = 0x2000,
+        METHOD_THRASH_COUNT_MASK  = 0x30000,
+        METHOD_THRASH_COUNT_SHIFT =      16,
         METHOD_THRASH_COUNT_MAX   = METHOD_THRASH_COUNT_MASK >> METHOD_THRASH_COUNT_SHIFT,
 
         
@@ -406,7 +408,6 @@ struct JSObject : js::gc::Cell {
         jsuword initializedLength;
     };
 
-    js::types::TypeObject *type;            
     JSObject    *parent;                    
     void        *privateData;               
     jsuword     capacity;                   
@@ -415,6 +416,16 @@ struct JSObject : js::gc::Cell {
     js::Value   *slots;                     
 
 
+
+    
+
+
+
+
+    js::types::TypeObject *type_;
+
+    
+    void makeLazyType(JSContext *cx);
 
   public:
 
@@ -758,19 +769,58 @@ struct JSObject : js::gc::Cell {
     
     inline void extend(JSContext *cx, const js::Shape *shape, bool isDefinitelyAtom = false);
 
-    js::types::TypeObject* getType() const { return type; }
+    
+
+
+
+    bool hasSingletonType() const { return flags & SINGLETON_TYPE; }
+
+    
+
+
+
+    bool hasLazyType() const { return flags & LAZY_TYPE; }
+
+    
+
+
+
+    inline bool setSingletonType(JSContext *cx);
+
+    inline js::types::TypeObject *getType(JSContext *cx);
+
+    js::types::TypeObject *type() const {
+        JS_ASSERT(!hasLazyType());
+        return type_;
+    }
+
+    js::types::TypeObject *gctype() const {
+        
+        return type_;
+    }
+
+    static inline size_t offsetOfType() { return offsetof(JSObject, type_); }
 
     inline bool clearType(JSContext *cx);
     inline void setType(js::types::TypeObject *newType);
-    inline bool setTypeAndUniqueShape(JSContext *cx, js::types::TypeObject *newType);
     inline bool setTypeAndEmptyShape(JSContext *cx, js::types::TypeObject *newType);
     inline void setTypeAndShape(js::types::TypeObject *newType, const js::Shape *newShape);
 
-    inline js::types::TypeObject *getNewType(JSContext *cx, JSScript *script = NULL);
-    void makeNewType(JSContext *cx, JSScript *script);
+    inline js::types::TypeObject *getNewType(JSContext *cx, JSScript *script = NULL,
+                                             bool markUnknown = false);
+    void makeNewType(JSContext *cx, JSScript *script, bool markUnknown);
+
+    
+    bool splicePrototype(JSContext *cx, JSObject *proto);
+
+    
+
+
+
+    bool shouldSplicePrototype(JSContext *cx);
 
     JSObject * getProto() const {
-        return type->proto;
+        return type_->proto;
     }
 
     JSObject *getParent() const {
@@ -1130,6 +1180,15 @@ struct JSObject : js::gc::Cell {
 
 
     inline bool isCallable();
+
+    
+    void earlyInit(jsuword capacity) {
+        this->capacity = capacity;
+
+        
+        type_ = NULL;
+        lastProp = NULL;
+    }
 
     
     void init(JSContext *cx, js::Class *aclasp, js::types::TypeObject *type,

@@ -1153,7 +1153,7 @@ Compiler::defineGlobals(JSContext *cx, GlobalScope &globalScope, JSScript *scrip
 
 
             rval.setObject(*fun);
-            types::AddTypePropertyId(cx, globalObj->getType(), id, rval);
+            types::AddTypePropertyId(cx, globalObj, id, rval);
         } else {
             rval.setUndefined();
         }

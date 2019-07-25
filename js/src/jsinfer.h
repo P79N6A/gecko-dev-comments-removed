@@ -60,62 +60,108 @@ class TypeSet;
 struct TypeCallsite;
 struct TypeObject;
 struct TypeCompartment;
-struct ClonedTypeSet;
+
+
+struct TypeObjectKey {
+    static intptr_t keyBits(TypeObjectKey *obj) { return (intptr_t) obj; }
+    static TypeObjectKey *getKey(TypeObjectKey *obj) { return obj; }
+};
 
 
 
 
 
 
-typedef jsuword jstype;
-
-
-const jstype TYPE_UNDEFINED = 1;
-const jstype TYPE_NULL      = 2;
-const jstype TYPE_BOOLEAN   = 3;
-const jstype TYPE_INT32     = 4;
-const jstype TYPE_DOUBLE    = 5;
-const jstype TYPE_STRING    = 6;
-const jstype TYPE_LAZYARGS  = 7;
-
-
-
-
-
-const jstype TYPE_UNKNOWN = 8;
-
-
-
-
-
-
-static inline bool
-TypeIsPrimitive(jstype type)
+class Type
 {
-    JS_ASSERT(type);
-    return type < TYPE_UNKNOWN;
-}
+    jsuword data;
+    Type(jsuword data) : data(data) {}
 
-static inline bool
-TypeIsObject(jstype type)
-{
-    JS_ASSERT(type);
-    return type > TYPE_UNKNOWN;
-}
+  public:
+
+    jsuword raw() const { return data; }
+
+    bool isPrimitive() const {
+        return data < JSVAL_TYPE_OBJECT;
+    }
+
+    bool isPrimitive(JSValueType type) const {
+        JS_ASSERT(type < JSVAL_TYPE_OBJECT);
+        return type == (JSValueType) data;
+    }
+
+    JSValueType primitive() const {
+        JS_ASSERT(isPrimitive());
+        return (JSValueType) data;
+    }
+
+    bool isAnyObject() const {
+        return data == JSVAL_TYPE_OBJECT;
+    }
+
+    bool isUnknown() const {
+        return data == JSVAL_TYPE_UNKNOWN;
+    }
+
+    
+
+    bool isObject() const {
+        JS_ASSERT(!isAnyObject() && !isUnknown());
+        return data > JSVAL_TYPE_UNKNOWN;
+    }
+
+    TypeObjectKey *objectKey() const {
+        JS_ASSERT(isObject());
+        return (TypeObjectKey *) data;
+    }
+
+    
+
+    bool isSingleObject() const {
+        return isObject() && !!(data & 1);
+    }
+
+    JSObject *singleObject() const {
+        JS_ASSERT(isSingleObject());
+        return (JSObject *) (data ^ 1);
+    }
+
+    
+
+    bool isTypeObject() const {
+        return isObject() && !(data & 1);
+    }
+
+    TypeObject *typeObject() const {
+        JS_ASSERT(isTypeObject());
+        return (TypeObject *) data;
+    }
+
+    bool operator == (Type o) const { return data == o.data; }
+    bool operator != (Type o) const { return data != o.data; }
+
+    static inline Type UndefinedType() { return Type(JSVAL_TYPE_UNDEFINED); }
+    static inline Type NullType()      { return Type(JSVAL_TYPE_NULL); }
+    static inline Type BooleanType()   { return Type(JSVAL_TYPE_BOOLEAN); }
+    static inline Type Int32Type()     { return Type(JSVAL_TYPE_INT32); }
+    static inline Type DoubleType()    { return Type(JSVAL_TYPE_DOUBLE); }
+    static inline Type StringType()    { return Type(JSVAL_TYPE_STRING); }
+    static inline Type LazyArgsType()  { return Type(JSVAL_TYPE_MAGIC); }
+    static inline Type AnyObjectType() { return Type(JSVAL_TYPE_OBJECT); }
+    static inline Type UnknownType()   { return Type(JSVAL_TYPE_UNKNOWN); }
+
+    static inline Type PrimitiveType(JSValueType type) {
+        JS_ASSERT(type < JSVAL_TYPE_UNKNOWN);
+        return Type(type);
+    }
+
+    static inline Type ObjectType(JSObject *obj);
+    static inline Type ObjectType(TypeObject *obj);
+    static inline Type ObjectType(TypeObjectKey *obj);
+};
 
 
-inline jstype GetValueType(JSContext *cx, const Value &val);
-
-
-
-
-
-
-
-
-
-
-
+inline Type GetValueType(JSContext *cx, const Value &val);
 
 
 
@@ -162,24 +208,16 @@ public:
     
     TypeConstraint *next;
 
-    
-
-
-
-
-    JSScript *script;
-
-    TypeConstraint(const char *kind, JSScript *script)
-        : next(NULL), script(script)
+    TypeConstraint(const char *kind)
+        : next(NULL)
     {
-        JS_ASSERT(script);
 #ifdef DEBUG
         this->kind_ = kind;
 #endif
     }
 
     
-    virtual void newType(JSContext *cx, TypeSet *source, jstype type) = 0;
+    virtual void newType(JSContext *cx, TypeSet *source, Type type) = 0;
 
     
 
@@ -199,15 +237,6 @@ public:
 
 
 
-
-    virtual bool condensed() { return false; }
-
-    
-
-
-
-
-
     virtual TypeObject * persistentObject() { return NULL; }
 
     virtual size_t allocatedSize() { return 0; }
@@ -215,15 +244,16 @@ public:
 
 
 enum {
-    TYPE_FLAG_UNDEFINED = 1 << TYPE_UNDEFINED,
-    TYPE_FLAG_NULL      = 1 << TYPE_NULL,
-    TYPE_FLAG_BOOLEAN   = 1 << TYPE_BOOLEAN,
-    TYPE_FLAG_INT32     = 1 << TYPE_INT32,
-    TYPE_FLAG_DOUBLE    = 1 << TYPE_DOUBLE,
-    TYPE_FLAG_STRING    = 1 << TYPE_STRING,
-    TYPE_FLAG_LAZYARGS  = 1 << TYPE_LAZYARGS,
+    TYPE_FLAG_UNDEFINED =  0x1,
+    TYPE_FLAG_NULL      =  0x2,
+    TYPE_FLAG_BOOLEAN   =  0x4,
+    TYPE_FLAG_INT32     =  0x8,
+    TYPE_FLAG_DOUBLE    = 0x10,
+    TYPE_FLAG_STRING    = 0x20,
+    TYPE_FLAG_LAZYARGS  = 0x40,
+    TYPE_FLAG_ANYOBJECT = 0x80,
 
-    TYPE_FLAG_UNKNOWN   = 1 << TYPE_UNKNOWN,
+    TYPE_FLAG_UNKNOWN   = 0x100,
 
     
     TYPE_FLAG_INTERMEDIATE_SET    = 0x0200,
@@ -239,6 +269,9 @@ enum {
 
 
     TYPE_FLAG_CONFIGURED_PROPERTY = 0x0800,
+
+    
+    TYPE_FLAG_HAS_PERSISTENT_CONSTRAINTS = 0x1000,
 
     
 
@@ -262,15 +295,6 @@ enum {
 
 
 
-
-
-
-    OBJECT_FLAG_UNKNOWN_MASK = uint32(-1),
-
-    
-
-
-
     OBJECT_FLAG_NON_DENSE_ARRAY = 1 << 0,
 
     
@@ -289,7 +313,21 @@ enum {
     OBJECT_FLAG_SPECIAL_EQUALITY = 1 << 5,
 
     
-    OBJECT_FLAG_ITERATED = 1 << 6
+    OBJECT_FLAG_ITERATED = 1 << 6,
+
+    
+
+
+
+
+    OBJECT_FLAG_DETERMINED_MASK =
+        OBJECT_FLAG_NON_DENSE_ARRAY |
+        OBJECT_FLAG_NON_PACKED_ARRAY |
+        OBJECT_FLAG_NON_TYPED_ARRAY |
+        OBJECT_FLAG_SPECIAL_EQUALITY,
+
+    
+    OBJECT_FLAG_UNKNOWN_MASK = uint32(-1)
 };
 typedef uint32 TypeObjectFlags;
 
@@ -300,7 +338,7 @@ class TypeSet
     TypeFlags typeFlags;
 
     
-    TypeObject **objectSet;
+    TypeObjectKey **objectSet;
     unsigned objectCount;
 
   public:
@@ -314,15 +352,17 @@ class TypeSet
 
     void print(JSContext *cx);
 
-    inline void destroy(JSContext *cx);
+    inline bool sweep(JSContext *cx);
+    inline void destroy();
     size_t dynamicSize();
 
     
-    inline bool hasType(jstype type);
+    inline bool hasType(Type type);
 
     TypeFlags baseFlags() { return typeFlags & ~TYPE_FLAG_BASE_MASK; }
-    bool hasAnyFlag(TypeFlags flags) { return typeFlags & flags; }
-    bool unknown() { return typeFlags & TYPE_FLAG_UNKNOWN; }
+    bool hasAnyFlag(TypeFlags flags) { return !!(typeFlags & flags); }
+    bool unknown() { return !!(typeFlags & TYPE_FLAG_UNKNOWN); }
+    bool unknownObject() { return !!(typeFlags & (TYPE_FLAG_UNKNOWN | TYPE_FLAG_ANYOBJECT)); }
 
     bool isDefiniteProperty() { return typeFlags & TYPE_FLAG_DEFINITE_PROPERTY; }
     unsigned definiteSlot() {
@@ -334,10 +374,7 @@ class TypeSet
 
 
 
-    inline void addType(JSContext *cx, jstype type);
-
-    
-    void addTypeSet(JSContext *cx, ClonedTypeSet *types);
+    inline void addType(JSContext *cx, Type type);
 
     
     inline void setOwnProperty(JSContext *cx, bool configured);
@@ -348,10 +385,9 @@ class TypeSet
 
 
     inline unsigned getObjectCount();
-    inline TypeObject *getObject(unsigned i);
-
-    
-    inline TypeObject *getSingleObject();
+    inline TypeObjectKey *getObject(unsigned i);
+    inline JSObject *getSingleObject(unsigned i);
+    inline TypeObject *getTypeObject(unsigned i);
 
     bool intermediate() { return typeFlags & TYPE_FLAG_INTERMEDIATE_SET; }
     void setIntermediate() { JS_ASSERT(!typeFlags); typeFlags = TYPE_FLAG_INTERMEDIATE_SET; }
@@ -367,25 +403,22 @@ class TypeSet
 
     
     inline void add(JSContext *cx, TypeConstraint *constraint, bool callExisting = true);
-    void addSubset(JSContext *cx, JSScript *script, TypeSet *target);
+    void addSubset(JSContext *cx, TypeSet *target);
     void addGetProperty(JSContext *cx, JSScript *script, jsbytecode *pc,
                         TypeSet *target, jsid id);
     void addSetProperty(JSContext *cx, JSScript *script, jsbytecode *pc,
                         TypeSet *target, jsid id);
     void addCallProperty(JSContext *cx, JSScript *script, jsbytecode *pc, jsid id);
-    void addNewObject(JSContext *cx, JSScript *script, TypeObject *fun, TypeSet *target);
+    void addNewObject(JSContext *cx, TypeObject *fun, TypeSet *target);
     void addCall(JSContext *cx, TypeCallsite *site);
-    void addArith(JSContext *cx, JSScript *script,
-                  TypeSet *target, TypeSet *other = NULL);
+    void addArith(JSContext *cx, TypeSet *target, TypeSet *other = NULL);
     void addTransformThis(JSContext *cx, JSScript *script, TypeSet *target);
-    void addPropagateThis(JSContext *cx, JSScript *script, jsbytecode *pc, jstype type);
-    void addFilterPrimitives(JSContext *cx, JSScript *script,
-                             TypeSet *target, bool onlyNullVoid);
+    void addPropagateThis(JSContext *cx, JSScript *script, jsbytecode *pc, Type type);
+    void addFilterPrimitives(JSContext *cx, TypeSet *target, bool onlyNullVoid);
     void addSubsetBarrier(JSContext *cx, JSScript *script, jsbytecode *pc, TypeSet *target);
-    void addLazyArguments(JSContext *cx, JSScript *script, TypeSet *target);
+    void addLazyArguments(JSContext *cx, TypeSet *target);
 
     void addBaseSubset(JSContext *cx, TypeObject *object, TypeSet *target);
-    bool addCondensed(JSContext *cx, JSScript *script);
 
     
 
@@ -425,13 +458,7 @@ class TypeSet
     bool isOwnProperty(JSContext *cx, bool configurable);
 
     
-    bool hasUnknownProperties(JSContext *cx);
-
-    
     bool knownNonEmpty(JSContext *cx);
-
-    
-    JSObject *getSingleton(JSContext *cx);
 
     
 
@@ -440,33 +467,13 @@ class TypeSet
     int getTypedArrayType(JSContext *cx);
 
     
-    void pushAllTypes(JSContext *cx, JSScript *script, jsbytecode *pc);
-
-    
-
-
-
-    static void Clone(JSContext *cx, TypeSet *source, ClonedTypeSet *target);
-
-    
-    typedef HashSet<JSScript *,
-                    DefaultHasher<JSScript *>,
-                    SystemAllocPolicy> ScriptSet;
+    JSObject *getSingleton(JSContext *cx, bool freeze = true);
 
     static bool
-    CondenseSweepTypeSet(JSContext *cx, JSCompartment *compartment,
-                         ScriptSet &condensed, TypeSet *types);
+    SweepTypeSet(JSContext *cx, JSCompartment *compartment, TypeSet *types);
 
   private:
-    inline void markUnknown(JSContext *cx);
-};
-
-
-struct ClonedTypeSet
-{
-    TypeFlags typeFlags;
-    TypeObject **objectSet;
-    unsigned objectCount;
+    void clearObjects();
 };
 
 
@@ -495,7 +502,7 @@ class TypeIntermediate
     virtual bool sweep(JSContext *cx, JSCompartment *compartment) = 0;
 
     
-    virtual bool hasDynamicResult(uint32 offset, jstype type) { return false; }
+    virtual bool hasDynamicResult(uint32 offset, Type type) { return false; }
 
     virtual size_t allocatedSize() = 0;
 };
@@ -563,7 +570,11 @@ struct TypeBarrier
 
 
 
-    jstype type;
+    Type type;
+
+    TypeBarrier(TypeSet *target, Type type)
+        : next(NULL), target(target), type(type)
+    {}
 };
 
 
@@ -621,6 +632,27 @@ struct TypeNewScript
 };
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 struct TypeObject
 {
 #ifdef DEBUG
@@ -632,6 +664,13 @@ struct TypeObject
     JSObject *proto;
 
     
+
+
+
+
+    JSObject *singleton;
+
+    
     js::EmptyShape **emptyShapes;
 
     
@@ -641,13 +680,16 @@ struct TypeObject
     bool isFunction;
 
     
-    bool isFunctionNative;
-
-    
     bool marked;
 
     
     bool newScriptCleared;
+
+    
+
+
+
+    bool setsMarkedUnknown;
 
     
 
@@ -715,9 +757,6 @@ struct TypeObject
     TypeObject *next;
 
     
-    JSObject *singleton;
-
-    
     JSScript *functionScript;
 
     TypeObject() {}
@@ -748,10 +787,9 @@ struct TypeObject
 
     inline TypeSet *getProperty(JSContext *cx, jsid id, bool assign);
 
-    inline const char * name();
+    inline bool hasProperty(JSContext *cx, jsid id);
 
-    
-    void splicePrototype(JSContext *cx, JSObject *proto);
+    inline const char * name();
 
     inline unsigned getPropertyCount();
     inline Property *getProperty(unsigned i);
@@ -764,11 +802,10 @@ struct TypeObject
     bool addProperty(JSContext *cx, jsid id, Property **pprop);
     bool addDefiniteProperties(JSContext *cx, JSObject *obj);
     void addPrototype(JSContext *cx, TypeObject *proto);
-    void addPropertyType(JSContext *cx, jsid id, jstype type);
+    void addPropertyType(JSContext *cx, jsid id, Type type);
     void addPropertyType(JSContext *cx, jsid id, const Value &value);
-    void addPropertyType(JSContext *cx, const char *name, jstype type);
+    void addPropertyType(JSContext *cx, const char *name, Type type);
     void addPropertyType(JSContext *cx, const char *name, const Value &value);
-    void addPropertyTypeSet(JSContext *cx, jsid id, ClonedTypeSet *set);
     void markPropertyConfigured(JSContext *cx, jsid id);
     void aliasProperties(JSContext *cx, jsid first, jsid second);
     void markSlotReallocation(JSContext *cx);
@@ -889,21 +926,19 @@ struct TypeScript
                               JSObject *obj, jsid id, const js::Value &val);
 
     
-    inline void setThis(JSContext *cx, jstype type);
+    inline void setThis(JSContext *cx, Type type);
     inline void setThis(JSContext *cx, const js::Value &value);
-    inline void setThis(JSContext *cx, ClonedTypeSet *types);
     inline void setNewCalled(JSContext *cx);
-    inline void setLocal(JSContext *cx, unsigned local, jstype type);
+    inline void setLocal(JSContext *cx, unsigned local, Type type);
     inline void setLocal(JSContext *cx, unsigned local, const js::Value &value);
-    inline void setLocal(JSContext *cx, unsigned local, ClonedTypeSet *types);
-    inline void setArgument(JSContext *cx, unsigned arg, jstype type);
+    inline void setArgument(JSContext *cx, unsigned arg, Type type);
     inline void setArgument(JSContext *cx, unsigned arg, const js::Value &value);
-    inline void setArgument(JSContext *cx, unsigned arg, ClonedTypeSet *types);
     inline void setUpvar(JSContext *cx, unsigned upvar, const js::Value &value);
 
-    bool condenseTypes(JSContext *cx);
     void trace(JSTracer *trc);
-    void destroy(JSContext *cx);
+    void sweep(JSContext *cx);
+    void finalizeObjects();
+    void destroy();
 };
 
 struct ArrayTableKey;
@@ -983,7 +1018,7 @@ struct TypeCompartment
     {
         TypeConstraint *constraint;
         TypeSet *source;
-        jstype type;
+        Type type;
     };
     PendingWork *pendingArray;
     unsigned pendingCount;
@@ -1003,7 +1038,7 @@ struct TypeCompartment
     ~TypeCompartment();
 
     
-    inline void addPending(JSContext *cx, TypeConstraint *constraint, TypeSet *source, jstype type);
+    inline void addPending(JSContext *cx, TypeConstraint *constraint, TypeSet *source, Type type);
     void growPendingArray(JSContext *cx);
 
     
@@ -1039,7 +1074,11 @@ struct TypeCompartment
     void monitorBytecode(JSContext *cx, JSScript *script, uint32 offset,
                          bool returnOnly = false);
 
+    
+    void markSetsUnknown(JSContext *cx, TypeObject *obj);
+
     void sweep(JSContext *cx);
+    void finalizeObjects();
 };
 
 enum SpewChannel {
@@ -1055,14 +1094,7 @@ const char * InferSpewColor(TypeConstraint *constraint);
 const char * InferSpewColor(TypeSet *types);
 
 void InferSpew(SpewChannel which, const char *fmt, ...);
-const char * TypeString(jstype type);
-
-
-
-
-
-
-bool TypeMatches(JSContext *cx, TypeSet *types, jstype type);
+const char * TypeString(Type type);
 
 
 bool TypeHasProperty(JSContext *cx, TypeObject *obj, jsid id, const Value &value);
@@ -1073,7 +1105,7 @@ inline const char * InferSpewColorReset() { return NULL; }
 inline const char * InferSpewColor(TypeConstraint *constraint) { return NULL; }
 inline const char * InferSpewColor(TypeSet *types) { return NULL; }
 inline void InferSpew(SpewChannel which, const char *fmt, ...) {}
-inline const char * TypeString(jstype type) { return NULL; }
+inline const char * TypeString(Type type) { return NULL; }
 
 #endif
 

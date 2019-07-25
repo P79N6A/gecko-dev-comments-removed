@@ -768,7 +768,7 @@ JSBool
 js_watch_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp)
 {
     
-    types::AddTypePropertyId(cx, obj->getType(), id, types::TYPE_UNKNOWN);
+    types::AddTypePropertyId(cx, obj, id, types::Type::UnknownType());
 
     assertSameCompartment(cx, obj);
     JSRuntime *rt = cx->runtime;
@@ -1092,7 +1092,7 @@ JS_SetWatchPoint(JSContext *cx, JSObject *obj, jsid id,
         return false;
     }
 
-    types::MarkTypePropertyConfigured(cx, obj->getType(), propid);
+    types::MarkTypePropertyConfigured(cx, obj, propid);
 
     JSObject *pobj;
     JSProperty *prop;

@@ -118,7 +118,7 @@ Recompiler::patchCall(JITScript *jit, StackFrame *fp, void **location)
 }
 
 void
-Recompiler::patchNative(JSContext *cx, JITScript *jit, StackFrame *fp,
+Recompiler::patchNative(JSCompartment *compartment, JITScript *jit, StackFrame *fp,
                         jsbytecode *pc, CallSite *inlined, RejoinState rejoin)
 {
     
@@ -131,7 +131,7 @@ Recompiler::patchNative(JSContext *cx, JITScript *jit, StackFrame *fp,
     fp->setRejoin(StubRejoin(rejoin));
 
     
-    cx->compartment->jaegerCompartment()->orphanedNativeFrames.append(fp);
+    compartment->jaegerCompartment()->orphanedNativeFrames.append(fp);
 
     unsigned i;
     ic::CallICInfo *callICs = jit->callICs();
@@ -180,18 +180,54 @@ Recompiler::patchNative(JSContext *cx, JITScript *jit, StackFrame *fp,
     }
 
     
-    cx->compartment->jaegerCompartment()->orphanedNativePools.append(pool);
+    compartment->jaegerCompartment()->orphanedNativePools.append(pool);
 
     
     pool = NULL;
 }
 
+void
+Recompiler::patchFrame(JSCompartment *compartment, VMFrame *f, JSScript *script)
+{
+    
+
+
+
+
+
+    StackFrame *fp = f->fp();
+    void **addr = f->returnAddressLocation();
+    RejoinState rejoin = (RejoinState) f->stubRejoin;
+    if (rejoin == REJOIN_NATIVE ||
+        rejoin == REJOIN_NATIVE_LOWERED) {
+        
+        if (fp->script() == script) {
+            patchNative(compartment, fp->jit(), fp,
+                        f->regs.pc, NULL, rejoin);
+            f->stubRejoin = REJOIN_NATIVE_PATCHED;
+        }
+    } else if (rejoin == REJOIN_NATIVE_PATCHED) {
+        
+    } else if (rejoin) {
+        
+        if (fp->script() == script) {
+            fp->setRejoin(StubRejoin(rejoin));
+            *addr = JS_FUNC_TO_DATA_PTR(void *, JaegerInterpoline);
+            f->stubRejoin = 0;
+        }
+    } else if (script->jitCtor && script->jitCtor->isValidCode(*addr)) {
+        patchCall(script->jitCtor, fp, addr);
+    } else if (script->jitNormal && script->jitNormal->isValidCode(*addr)) {
+        patchCall(script->jitNormal, fp, addr);
+    }
+}
+
 StackFrame *
-Recompiler::expandInlineFrameChain(JSContext *cx, StackFrame *outer, InlineFrame *inner)
+Recompiler::expandInlineFrameChain(StackFrame *outer, InlineFrame *inner)
 {
     StackFrame *parent;
     if (inner->parent)
-        parent = expandInlineFrameChain(cx, outer, inner->parent);
+        parent = expandInlineFrameChain(outer, inner->parent);
     else
         parent = outer;
 
@@ -229,7 +265,8 @@ JITCodeReturnAddress(void *data)
 
 
 void
-Recompiler::expandInlineFrames(JSContext *cx, StackFrame *fp, mjit::CallSite *inlined,
+Recompiler::expandInlineFrames(JSCompartment *compartment,
+                               StackFrame *fp, mjit::CallSite *inlined,
                                StackFrame *next, VMFrame *f)
 {
     JS_ASSERT_IF(next, next->prev() == fp && next->prevInline() == inlined);
@@ -238,7 +275,7 @@ Recompiler::expandInlineFrames(JSContext *cx, StackFrame *fp, mjit::CallSite *in
 
 
 
-    cx->compartment->types.frameExpansions++;
+    compartment->types.frameExpansions++;
 
     
 
@@ -251,7 +288,7 @@ Recompiler::expandInlineFrames(JSContext *cx, StackFrame *fp, mjit::CallSite *in
     InlineFrame *inner = &fp->jit()->inlineFrames()[inlined->inlineIndex];
     jsbytecode *innerpc = inner->fun->script()->code + inlined->pcOffset;
 
-    StackFrame *innerfp = expandInlineFrameChain(cx, fp, inner);
+    StackFrame *innerfp = expandInlineFrameChain(fp, inner);
 
     
     if (f->stubRejoin && f->fp() == fp) {
@@ -292,41 +329,36 @@ Recompiler::expandInlineFrames(JSContext *cx, StackFrame *fp, mjit::CallSite *in
 }
 
 void
-ExpandInlineFrames(JSContext *cx, bool all)
+ExpandInlineFrames(JSCompartment *compartment, bool all)
 {
-    if (!cx->compartment || !cx->compartment->hasJaegerCompartment())
+    if (!compartment || !compartment->hasJaegerCompartment())
         return;
 
     if (!all) {
-        VMFrame *f = cx->compartment->jaegerCompartment()->activeFrame();
-        if (f && f->regs.inlined() && cx->fp() == f->fp())
-            mjit::Recompiler::expandInlineFrames(cx, f->fp(), f->regs.inlined(), NULL, f);
+        VMFrame *f = compartment->jaegerCompartment()->activeFrame();
+        if (f && f->regs.inlined())
+            mjit::Recompiler::expandInlineFrames(compartment, f->fp(), f->regs.inlined(), NULL, f);
         return;
     }
 
-    for (VMFrame *f = cx->compartment->jaegerCompartment()->activeFrame();
+    for (VMFrame *f = compartment->jaegerCompartment()->activeFrame();
          f != NULL;
          f = f->previous) {
 
-        if (f->regs.inlined()) {
-            StackSegment &seg = cx->stack.space().containingSegment(f->fp());
-            FrameRegs &regs = seg.regs();
-            if (regs.fp() == f->fp()) {
-                JS_ASSERT(&regs == &f->regs);
-                mjit::Recompiler::expandInlineFrames(cx, f->fp(), f->regs.inlined(), NULL, f);
-            } else {
-                StackFrame *nnext = seg.computeNextFrame(f->fp());
-                mjit::Recompiler::expandInlineFrames(cx, f->fp(), f->regs.inlined(), nnext, f);
-            }
-        }
+        if (f->regs.inlined())
+            mjit::Recompiler::expandInlineFrames(compartment, f->fp(), f->regs.inlined(), NULL, f);
 
         StackFrame *end = f->entryfp->prev();
         StackFrame *next = NULL;
         for (StackFrame *fp = f->fp(); fp != end; fp = fp->prev()) {
+            if (!next) {
+                next = fp;
+                continue;
+            }
             mjit::CallSite *inlined;
-            fp->pcQuadratic(cx->stack, next, &inlined);
-            if (next && inlined) {
-                mjit::Recompiler::expandInlineFrames(cx, fp, inlined, next, f);
+            next->prevpc(&inlined);
+            if (inlined) {
+                mjit::Recompiler::expandInlineFrames(compartment, fp, inlined, next, f);
                 fp = next;
                 next = NULL;
             } else {
@@ -336,6 +368,27 @@ ExpandInlineFrames(JSContext *cx, bool all)
             }
             fp->setDownFramesExpanded();
         }
+    }
+}
+
+void
+ClearAllFrames(JSCompartment *compartment)
+{
+    if (!compartment || !compartment->hasJaegerCompartment())
+        return;
+
+    ExpandInlineFrames(compartment, true);
+
+    for (VMFrame *f = compartment->jaegerCompartment()->activeFrame();
+         f != NULL;
+         f = f->previous) {
+
+        
+        
+        
+        
+
+        Recompiler::patchFrame(compartment, f, f->fp()->script());
     }
 }
 
@@ -385,7 +438,6 @@ Recompiler::recompile(bool resetUses)
 
     
     
-    VMFrame *nextf = NULL;
     for (VMFrame *f = script->compartment->jaegerCompartment()->activeFrame();
          f != NULL;
          f = f->previous) {
@@ -414,38 +466,7 @@ Recompiler::recompile(bool resetUses)
             next = fp;
         }
 
-        
-
-
-
-
-
-        StackFrame *fp = f->fp();
-        void **addr = f->returnAddressLocation();
-        RejoinState rejoin = (RejoinState) f->stubRejoin;
-        if (rejoin == REJOIN_NATIVE ||
-            rejoin == REJOIN_NATIVE_LOWERED) {
-            
-            if (fp->script() == script) {
-                patchNative(cx, fp->jit(), fp, fp->pcQuadratic(cx->stack, NULL), NULL, rejoin);
-                f->stubRejoin = REJOIN_NATIVE_PATCHED;
-            }
-        } else if (rejoin == REJOIN_NATIVE_PATCHED) {
-            
-        } else if (rejoin) {
-            
-            if (fp->script() == script) {
-                fp->setRejoin(StubRejoin(rejoin));
-                *addr = JS_FUNC_TO_DATA_PTR(void *, JaegerInterpoline);
-                f->stubRejoin = 0;
-            }
-        } else if (script->jitCtor && script->jitCtor->isValidCode(*addr)) {
-            patchCall(script->jitCtor, fp, addr);
-        } else if (script->jitNormal && script->jitNormal->isValidCode(*addr)) {
-            patchCall(script->jitNormal, fp, addr);
-        }
-
-        nextf = f;
+        patchFrame(cx->compartment, f, script);
     }
 
     if (script->jitNormal) {

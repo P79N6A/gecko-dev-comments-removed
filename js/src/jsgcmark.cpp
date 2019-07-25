@@ -627,8 +627,9 @@ ScanObject(GCMarker *gcmarker, JSObject *obj)
 
 
 
-    if (obj->type && !obj->type->marked)
-        obj->type->trace(gcmarker);
+    types::TypeObject *type = obj->gctype();
+    if (type && !type->marked)
+        type->trace(gcmarker);
 
     if (obj->isNewborn())
         return;
@@ -706,8 +707,9 @@ void
 MarkChildren(JSTracer *trc, JSObject *obj)
 {
     
-    if (obj->type && !obj->type->marked)
-        obj->type->trace(trc);
+    types::TypeObject *type = obj->gctype();
+    if (type && !type->marked)
+        type->trace(trc);
 
     
     if (obj->isNewborn())

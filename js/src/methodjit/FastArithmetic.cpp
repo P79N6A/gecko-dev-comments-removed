@@ -197,7 +197,7 @@ mjit::Compiler::jsop_binary(JSOp op, VoidStub stub, JSValueType type, types::Typ
 
     Value v;
     if (tryBinaryConstantFold(cx, frame, op, lhs, rhs, &v)) {
-        if (!v.isInt32() && typeSet && !typeSet->hasType(types::TYPE_DOUBLE)) {
+        if (!v.isInt32() && typeSet && !typeSet->hasType(types::Type::DoubleType())) {
             
 
 
@@ -393,7 +393,7 @@ mjit::Compiler::jsop_binary_double(FrameEntry *lhs, FrameEntry *rhs, JSOp op,
 
 
     types::TypeSet *resultTypes = pushedTypeSet(0);
-    if (resultTypes && !resultTypes->hasType(types::TYPE_DOUBLE)) {
+    if (resultTypes && !resultTypes->hasType(types::Type::DoubleType())) {
         
 
 
@@ -946,7 +946,7 @@ mjit::Compiler::jsop_mod()
     Value v;
     if (tryBinaryConstantFold(cx, frame, JSOP_MOD, lhs, rhs, &v)) {
         types::TypeSet *pushed = pushedTypeSet(0);
-        if (!v.isInt32() && pushed && !pushed->hasType(types::TYPE_DOUBLE)) {
+        if (!v.isInt32() && pushed && !pushed->hasType(types::Type::DoubleType())) {
             script->types.monitorOverflow(cx, PC);
             return false;
         }
