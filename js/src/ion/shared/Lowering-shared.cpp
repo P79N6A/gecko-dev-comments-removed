@@ -112,6 +112,9 @@ LIRGeneratorShared::buildSnapshot(LInstruction *ins, MResumePoint *rp, BailoutKi
             LAllocation *type = snapshot->typeOfSlot(i);
             LAllocation *payload = snapshot->payloadOfSlot(i);
 
+            if (ins->isPassArg())
+                ins = ins->toPassArg()->getArgument();
+
             
             
             
@@ -151,6 +154,10 @@ LIRGeneratorShared::buildSnapshot(LInstruction *ins, MResumePoint *rp, BailoutKi
         MResumePoint *mir = *it;
         for (size_t j = 0; j < mir->numOperands(); ++i, ++j) {
             MDefinition *def = mir->getOperand(j);
+
+            if (def->isPassArg())
+                def = def->toPassArg()->getArgument();
+
             LAllocation *a = snapshot->getEntry(i);
 
             if (def->isUnused()) {
