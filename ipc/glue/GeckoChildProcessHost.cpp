@@ -155,19 +155,19 @@ void GetPathToBinary(FilePath& exePath)
         nsCString path;
         greDir->GetNativePath(path);
         exePath = FilePath(path.get());
+#ifdef OS_MACOSX
+        
+        
+        exePath = exePath.AppendASCII(MOZ_CHILD_PROCESS_BUNDLE);
+#endif
       }
     }
   }
+
   if (exePath.empty()) {
     exePath = FilePath(CommandLine::ForCurrentProcess()->argv()[0]);
     exePath = exePath.DirName();
   }
-
-#ifdef OS_MACOSX
-  
-  
-  exePath = exePath.AppendASCII(MOZ_CHILD_PROCESS_BUNDLE);
-#endif
 
   exePath = exePath.AppendASCII(MOZ_CHILD_PROCESS_NAME);
 #endif
