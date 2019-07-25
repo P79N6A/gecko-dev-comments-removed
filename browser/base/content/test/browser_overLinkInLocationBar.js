@@ -60,29 +60,25 @@ let gTests = [
   },
 
   function hostPathLabels() {
-    setOverLink("http://example.com/");
+    updateOverLink("http://example.com/");
     hostLabelIs("http://example.com/");
     pathLabelIs("");
 
-    setOverLink("http://example.com/foo");
+    updateOverLink("http://example.com/foo");
     hostLabelIs("http://example.com/");
     pathLabelIs("foo");
 
-    setOverLink("javascript:popup('http://example.com/')");
+    updateOverLink("javascript:popup('http://example.com/')");
     hostLabelIs("");
     pathLabelIs("javascript:popup('http://example.com/')");
 
-    setOverLink("javascript:popup('http://example.com/foo')");
+    updateOverLink("javascript:popup('http://example.com/foo')");
     hostLabelIs("");
     pathLabelIs("javascript:popup('http://example.com/foo')");
 
-    setOverLink("about:home");
+    updateOverLink("about:home");
     hostLabelIs("");
     pathLabelIs("about:home");
-
-    
-    if (ensureOverLinkHidden())
-      yield;
   }
 
 ];
@@ -183,6 +179,18 @@ function setOverLinkWait(str) {
 
 function setOverLink(str) {
   gURLBar.setOverLink(str);
+}
+
+
+
+
+
+
+
+
+
+function updateOverLink(str) {
+  gURLBar._updateOverLink(str);
 }
 
 
