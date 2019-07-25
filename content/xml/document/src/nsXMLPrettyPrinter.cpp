@@ -198,7 +198,7 @@ nsXMLPrettyPrinter::MaybeUnhook(nsIContent* aContent)
 {
     
     
-    if (!aContent || !aContent->GetBindingParent() && !mUnhookPending) {
+    if ((!aContent || !aContent->GetBindingParent()) && !mUnhookPending) {
         
         
         
