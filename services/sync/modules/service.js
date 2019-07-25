@@ -113,6 +113,9 @@ WeaveSvc.prototype = {
     if (value) {
       
       value = value.toLowerCase();
+      
+      
+      value = value.replace("\t", "", "g");
       Svc.Prefs.set("username", value);
     }
     else
