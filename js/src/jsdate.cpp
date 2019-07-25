@@ -2109,124 +2109,252 @@ date_setUTCHours(JSContext *cx, unsigned argc, Value *vp)
     return SetUTCTime(cx, thisObj, v, &args.rval());
 }
 
-static JSBool
-date_makeDate(JSContext *cx, Native native, unsigned maxargs, JSBool local, unsigned argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-
-    RootedObject thisObj(cx);
-    if (!NonGenericMethodGuard(cx, args, native, &DateClass, thisObj.address()))
-        return false;
-    if (!thisObj)
-        return true;
-
-    double result = thisObj->getDateUTCTime().toNumber();
-
-    
-    if (args.length() == 0) {
-        SetDateToNaN(cx, thisObj, &args.rval());
-        return true;
-    }
-
-    unsigned numNums = Min(args.length(), maxargs);
-    JS_ASSERT(1 <= numNums && numNums <= 3);
-    double nums[3];
-    bool argIsNotFinite = false;
-    for (unsigned i = 0; i < numNums; i++) {
-        if (!ToNumber(cx, args[i], &nums[i]))
-            return JS_FALSE;
-        if (!MOZ_DOUBLE_IS_FINITE(nums[i])) {
-            argIsNotFinite = true;
-        } else {
-            nums[i] = ToInteger(nums[i]);
-        }
-    }
-
-    
-    if (argIsNotFinite) {
-        SetDateToNaN(cx, thisObj, &args.rval());
-        return true;
-    }
-
-    
-
-
-
-    double lorutime; 
-    if (!MOZ_DOUBLE_IS_FINITE(result)) {
-        if (maxargs < 3) {
-            args.rval().setDouble(result);
-            return true;
-        }
-        lorutime = +0.;
-    } else {
-        lorutime = local ? LocalTime(result, cx) : result;
-    }
-
-    double *argp = nums;
-    double *stop = argp + numNums;
-    double year;
-    if (maxargs >= 3 && argp < stop)
-        year = *argp++;
-    else
-        year = YearFromTime(lorutime);
-
-    double month;
-    if (maxargs >= 2 && argp < stop)
-        month = *argp++;
-    else
-        month = MonthFromTime(lorutime);
-
-    double day;
-    if (maxargs >= 1 && argp < stop)
-        day = *argp++;
-    else
-        day = DateFromTime(lorutime);
-
-    day = MakeDay(year, month, day); 
-    result = MakeDate(day, TimeWithinDay(lorutime));
-
-    if (local)
-        result = UTC(result, cx);
-
-    return SetUTCTime(cx, thisObj, TimeClip(result), &args.rval());
-}
 
 static JSBool
 date_setDate(JSContext *cx, unsigned argc, Value *vp)
 {
-    return date_makeDate(cx, date_setDate, 1, JS_TRUE, argc, vp);
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    Rooted<JSObject*> thisObj(cx);
+    if (!NonGenericMethodGuard(cx, args, date_setDate, &DateClass, thisObj.address()))
+        return false;
+    if (!thisObj)
+        return true;
+
+    
+    double t = LocalTime(thisObj->getDateUTCTime().toNumber(), cx);
+
+    
+    double dt;
+    if (!ToNumber(cx, args.length() > 0 ? args[0] : UndefinedValue(), &dt))
+        return false;
+
+    
+    double newDate = MakeDate(MakeDay(YearFromTime(t), MonthFromTime(t), dt), TimeWithinDay(t));
+
+    
+    double u = TimeClip(UTC(newDate, cx));
+
+    
+    return SetUTCTime(cx, thisObj, u, &args.rval());
 }
+
 
 static JSBool
 date_setUTCDate(JSContext *cx, unsigned argc, Value *vp)
 {
-    return date_makeDate(cx, date_setUTCDate, 1, JS_FALSE, argc, vp);
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    Rooted<JSObject*> thisObj(cx);
+    if (!NonGenericMethodGuard(cx, args, date_setUTCDate, &DateClass, thisObj.address()))
+        return false;
+    if (!thisObj)
+        return true;
+
+    
+    double t = thisObj->getDateUTCTime().toNumber();
+
+    
+    double dt;
+    if (!ToNumber(cx, args.length() > 0 ? args[0] : UndefinedValue(), &dt))
+        return false;
+
+    
+    double newDate = MakeDate(MakeDay(YearFromTime(t), MonthFromTime(t), dt), TimeWithinDay(t));
+
+    
+    double v = TimeClip(newDate);
+
+    
+    return SetUTCTime(cx, thisObj, v, &args.rval());
 }
+
+static bool
+GetDateOrDefault(JSContext *cx, const CallArgs &args, unsigned i, double t, double *date)
+{
+    if (args.length() <= i) {
+        *date = DateFromTime(t);
+        return true;
+    }
+    return ToNumber(cx, args[i], date);
+}
+
+static bool
+GetMonthOrDefault(JSContext *cx, const CallArgs &args, unsigned i, double t, double *month)
+{
+    if (args.length() <= i) {
+        *month = MonthFromTime(t);
+        return true;
+    }
+    return ToNumber(cx, args[i], month);
+}
+
 
 static JSBool
 date_setMonth(JSContext *cx, unsigned argc, Value *vp)
 {
-    return date_makeDate(cx, date_setMonth, 2, JS_TRUE, argc, vp);
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    Rooted<JSObject*> thisObj(cx);
+    if (!NonGenericMethodGuard(cx, args, date_setMonth, &DateClass, thisObj.address()))
+        return false;
+    if (!thisObj)
+        return true;
+
+    
+    double t = LocalTime(thisObj->getDateUTCTime().toNumber(), cx);
+
+    
+    double m;
+    if (!ToNumber(cx, args.length() > 0 ? args[0] : UndefinedValue(), &m))
+        return false;
+
+    
+    double dt;
+    if (!GetDateOrDefault(cx, args, 1, t, &dt))
+        return false;
+
+    
+    double newDate = MakeDate(MakeDay(YearFromTime(t), m, dt), TimeWithinDay(t));
+
+    
+    double u = TimeClip(UTC(newDate, cx));
+
+    
+    return SetUTCTime(cx, thisObj, u, &args.rval());
 }
+
 
 static JSBool
 date_setUTCMonth(JSContext *cx, unsigned argc, Value *vp)
 {
-    return date_makeDate(cx, date_setUTCMonth, 2, JS_FALSE, argc, vp);
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    Rooted<JSObject*> thisObj(cx);
+    if (!NonGenericMethodGuard(cx, args, date_setUTCMonth, &DateClass, thisObj.address()))
+        return false;
+    if (!thisObj)
+        return true;
+
+    
+    double t = thisObj->getDateUTCTime().toNumber();
+
+    
+    double m;
+    if (!ToNumber(cx, args.length() > 0 ? args[0] : UndefinedValue(), &m))
+        return false;
+
+    
+    double dt;
+    if (!GetDateOrDefault(cx, args, 1, t, &dt))
+        return false;
+
+    
+    double newDate = MakeDate(MakeDay(YearFromTime(t), m, dt), TimeWithinDay(t));
+
+    
+    double v = TimeClip(newDate);
+
+    
+    return SetUTCTime(cx, thisObj, v, &args.rval());
 }
+
+static double
+ThisLocalTimeOrZero(Handle<JSObject*> date, JSContext *cx)
+{
+    double t = date->getDateUTCTime().toNumber();
+    if (MOZ_DOUBLE_IS_NaN(t))
+        return +0;
+    return LocalTime(t, cx);
+}
+
+static double
+ThisUTCTimeOrZero(Handle<JSObject*> date)
+{
+    double t = date->getDateUTCTime().toNumber();
+    return MOZ_DOUBLE_IS_NaN(t) ? +0 : t;
+}
+
 
 static JSBool
 date_setFullYear(JSContext *cx, unsigned argc, Value *vp)
 {
-    return date_makeDate(cx, date_setFullYear, 3, JS_TRUE, argc, vp);
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    Rooted<JSObject*> thisObj(cx);
+    if (!NonGenericMethodGuard(cx, args, date_setFullYear, &DateClass, thisObj.address()))
+        return false;
+    if (!thisObj)
+        return true;
+
+    
+    double t = ThisLocalTimeOrZero(thisObj, cx);
+
+    
+    double y;
+    if (!ToNumber(cx, args.length() > 0 ? args[0] : UndefinedValue(), &y))
+        return false;
+
+    
+    double m;
+    if (!GetMonthOrDefault(cx, args, 1, t, &m))
+        return false;
+
+    
+    double dt;
+    if (!GetDateOrDefault(cx, args, 2, t, &dt))
+        return false;
+
+    
+    double newDate = MakeDate(MakeDay(y, m, dt), TimeWithinDay(t));
+
+    
+    double u = TimeClip(UTC(newDate, cx));
+
+    
+    return SetUTCTime(cx, thisObj, u, &args.rval());
 }
+
 
 static JSBool
 date_setUTCFullYear(JSContext *cx, unsigned argc, Value *vp)
 {
-    return date_makeDate(cx, date_setUTCFullYear, 3, JS_FALSE, argc, vp);
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    Rooted<JSObject*> thisObj(cx);
+    if (!NonGenericMethodGuard(cx, args, date_setFullYear, &DateClass, thisObj.address()))
+        return false;
+    if (!thisObj)
+        return true;
+
+    
+    double t = ThisUTCTimeOrZero(thisObj);
+
+    
+    double y;
+    if (!ToNumber(cx, args.length() > 0 ? args[0] : UndefinedValue(), &y))
+        return false;
+
+    
+    double m;
+    if (!GetMonthOrDefault(cx, args, 1, t, &m))
+        return false;
+
+    
+    double dt;
+    if (!GetDateOrDefault(cx, args, 2, t, &dt))
+        return false;
+
+    
+    double newDate = MakeDate(MakeDay(y, m, dt), TimeWithinDay(t));
+
+    
+    double v = TimeClip(newDate);
+
+    
+    return SetUTCTime(cx, thisObj, v, &args.rval());
 }
+
 
 static JSBool
 date_setYear(JSContext *cx, unsigned argc, Value *vp)
@@ -2239,31 +2367,33 @@ date_setYear(JSContext *cx, unsigned argc, Value *vp)
     if (!thisObj)
         return true;
 
-    if (args.length() == 0) {
-        
-        SetDateToNaN(cx, thisObj, &args.rval());
-        return true;
-    }
+    
+    double t = ThisLocalTimeOrZero(thisObj, cx);
 
-    double result = thisObj->getDateUTCTime().toNumber();
-
-    double year;
-    if (!ToNumber(cx, args[0], &year))
+    
+    double y;
+    if (!ToNumber(cx, args.length() > 0 ? args[0] : UndefinedValue(), &y))
         return false;
-    if (!MOZ_DOUBLE_IS_FINITE(year)) {
+
+    
+    if (MOZ_DOUBLE_IS_NaN(y)) {
         SetDateToNaN(cx, thisObj, &args.rval());
         return true;
     }
-    year = ToInteger(year);
-    if (year >= 0 && year <= 99)
-        year += 1900;
 
-    double t = MOZ_DOUBLE_IS_FINITE(result) ? LocalTime(result, cx) : +0.0;
-    double day = MakeDay(year, MonthFromTime(t), DateFromTime(t));
-    result = MakeDate(day, TimeWithinDay(t));
-    result = UTC(result, cx);
+    
+    double yint = ToInteger(y);
+    if (0 <= yint && yint <= 99)
+        yint += 1900;
 
-    return SetUTCTime(cx, thisObj, TimeClip(result), &args.rval());
+    
+    double day = MakeDay(yint, MonthFromTime(t), DateFromTime(t));
+
+    
+    double u = UTC(MakeDate(day, TimeWithinDay(t)), cx);
+
+    
+    return SetUTCTime(cx, thisObj, TimeClip(u), &args.rval());
 }
 
 
