@@ -45,6 +45,7 @@
 
 #include <string.h>
 
+#include "jsfriendapi.h"
 #include "jsprvtd.h"
 #include "jsatom.h"
 #include "jsclist.h"
@@ -603,6 +604,9 @@ struct JSRuntime {
 
     
     const JSStructuredCloneCallbacks *structuredCloneCallbacks;
+
+    
+    JSAccumulateTelemetryDataCallback telemetryCallback;
 
     
 
