@@ -60,6 +60,7 @@
 #include <malloc.h>
 #include "nsWindow.h"
 #include "nsIComboboxControlFrame.h"
+#include "prinrval.h"
 
 #include "gfxPlatform.h"
 #include "gfxContext.h"
@@ -348,9 +349,15 @@ static CaptionButtonPadding buttonData[3] = {
 
 
 
+
+
 static const PRInt32 kProgressDeterminedXPOverflow = 11;
 
 static const PRInt32 kProgressDeterminedVistaOverflow = 4;
+
+static const PRInt32 kProgressVistaOverlayWidth = 120;
+
+static const double kProgressDeterminedVistaSpeed = 0.3;
 
 
 static void AddPaddingRect(nsIntSize* aSize, CaptionButton button) {
@@ -1536,6 +1543,30 @@ RENDER_AGAIN:
 
     ctx->Restore();
     ctx->SetOperator(currentOp);
+  } else if (aWidgetType == NS_THEME_PROGRESSBAR_CHUNK &&
+             nsUXThemeData::sIsVistaOrLater) {
+    if (!QueueAnimatedContentForRefresh(aFrame->GetContent(), 60)) {
+      NS_WARNING("unable to animate progress widget!");
+    }
+
+    
+    const PRInt32 frameWidth = widgetRect.right - widgetRect.left;
+    static const PRInt32 overlayWidth = kProgressVistaOverlayWidth;
+    static const double pixelsPerMillisecond = kProgressDeterminedVistaSpeed;
+
+    PRInt32 animationWidth = frameWidth + overlayWidth;
+    double interval = animationWidth / pixelsPerMillisecond;
+    
+    double tempValue;
+    double ratio = modf(PR_IntervalToMilliseconds(PR_IntervalNow())/interval,
+                        &tempValue);
+    PRInt32 dx = static_cast<PRInt32>(animationWidth * ratio) - overlayWidth;
+
+    RECT overlayRect = widgetRect;
+    overlayRect.left += dx;
+    overlayRect.right = overlayRect.left + overlayWidth;
+    nsUXThemeData::drawThemeBG(theme, hdc, PP_MOVEOVERLAY, state, &overlayRect,
+                               &clipRect);
   }
 
 
