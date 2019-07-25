@@ -291,7 +291,7 @@ protected:
   
 
 
-  const nsPoint GetVelocityVector();
+  const gfx::Point GetVelocityVector();
 
   
 
@@ -325,6 +325,17 @@ protected:
 
 
   const nsIntRect CalculatePendingDisplayPort();
+
+  
+
+
+
+
+
+
+
+  bool EnlargeDisplayPortAlongAxis(float aViewport, float aVelocity,
+                                   float* aDisplayPortOffset, float* aDisplayPortLength);
 
   
 
