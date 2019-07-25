@@ -1708,12 +1708,8 @@ private:
 
   
   
-  nsresult CaptureStateForFramesOf(nsIContent* aContent,
-                                   nsILayoutHistoryState* aHistoryState);
-
-  
-  nsresult CaptureStateFor(nsIFrame*              aFrame,
-                           nsILayoutHistoryState* aHistoryState);
+  void CaptureStateForFramesOf(nsIContent* aContent,
+                               nsILayoutHistoryState* aHistoryState);
 
   
 

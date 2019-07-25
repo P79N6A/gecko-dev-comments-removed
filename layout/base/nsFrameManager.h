@@ -165,6 +165,9 @@ public:
 
 
 
+
+
+
   NS_HIDDEN_(void) CaptureFrameState(nsIFrame*              aFrame,
                                      nsILayoutHistoryState* aState);
 
