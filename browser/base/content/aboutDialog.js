@@ -67,7 +67,7 @@ function init(aEvent)
 
   
   let version = Services.appinfo.version;
-  if (version.indexOf("pre") != -1) {
+  if (/a\d+$/.test(version)) {
     let buildID = Services.appinfo.appBuildID;
     let buildDate = buildID.slice(0,4) + "-" + buildID.slice(4,6) + "-" + buildID.slice(6,8);
     document.getElementById("version").value += " (" + buildDate + ")";
