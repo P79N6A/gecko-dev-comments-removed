@@ -49,7 +49,7 @@ function process_tree(func_decl) {
   if (!func_filter(func_decl)) return;
 
   
-  if (is_constructor(func_decl)) return;
+  if (DECL_CONSTRUCTOR_P(func_decl)) return;
   let psem = OutparamCheck.prototype.func_param_semantics(func_decl);
   if (!psem.some(function(x) x.check)) return;
   let decl = rectify_function_decl(func_decl);
@@ -110,11 +110,6 @@ function process_tree(func_decl) {
   }
   
   if (TRACE_PERF) timer_stop(fstring);
-}
-
-function is_constructor(function_decl)
-{
-  return function_decl.decl_common.lang_specific.decl_flags.constructor_attr;
 }
 
 
@@ -253,14 +248,14 @@ OutparamCheck.prototype.updateEdgeState = function(e) {
 
 OutparamCheck.prototype.flowState = function(isn, state) {
   switch (TREE_CODE(isn)) {
-  case GIMPLE_MODIFY_STMT:
+  case GIMPLE_ASSIGN:
     this.processAssign(isn, state);
     break;
-  case CALL_EXPR:
-    this.processCall(undefined, isn, isn, state);
+  case GIMPLE_CALL:
+    this.processCall(isn, isn, state);
     break;
-  case SWITCH_EXPR:
-  case COND_EXPR:
+  case GIMPLE_SWITCH:
+  case GIMPLE_COND:
     
     break;
   default:
@@ -275,8 +270,8 @@ OutparamCheck.prototype.flowStateCond = function(isn, truth, state) {
 
 
 OutparamCheck.prototype.processAssign = function(isn, state) {
-  let lhs = isn.operands()[0];
-  let rhs = isn.operands()[1];
+  let lhs = gimple_op(isn, 0);
+  let rhs = gimple_op(isn, 1);
 
   if (DECL_P(lhs)) {
     
@@ -316,17 +311,8 @@ OutparamCheck.prototype.processAssign = function(isn, state) {
     }
       break;
     case CALL_EXPR:
-      let fname = call_function_name(rhs);
-      if (fname == 'NS_FAILED') {
-        this.processTest(lhs, rhs, av.NONZERO, isn, state);
-      } else if (fname == 'NS_SUCCEEDED') {
-        this.processTest(lhs, rhs, av.ZERO, isn, state);
-      } else if (fname == '__builtin_expect') {
-        
-        state.assign(lhs, call_args(rhs)[0], isn);
-      } else {
-        this.processCall(lhs, rhs, isn, state);
-      }
+      
+      this.processCall(rhs, isn, state, lhs);
       return;
 
     case INDIRECT_REF:
@@ -386,7 +372,7 @@ OutparamCheck.prototype.processAssign = function(isn, state) {
 
 
 OutparamCheck.prototype.processTest = function(lhs, call, val, blame, state) {
-  let arg = call_arg(call, 0);
+  let arg = gimple_call_arg(call, 0);
   if (DECL_P(arg)) {
     this.zeroNonzero.predicate(state, lhs, val, arg, blame);
   } else {
@@ -395,10 +381,26 @@ OutparamCheck.prototype.processTest = function(lhs, call, val, blame, state) {
 };
 
 
-OutparamCheck.prototype.processCall = function(dest, expr, blame, state) {
-  let args = call_args(expr);
-  let callable = callable_arg_function_decl(CALL_EXPR_FN(expr));
+OutparamCheck.prototype.processCall = function(call, blame, state, dest) {
+  if (!dest)
+    dest = gimple_call_lhs(call);
+
+  let args = gimple_call_args(call);
+  let callable = callable_arg_function_decl(gimple_call_fn(call));
   let psem = this.func_param_semantics(callable);
+
+  let name = function_decl_name(callable);
+  if (name == 'NS_FAILED') {
+    this.processTest(dest, call, av.NONZERO, call, state);
+    return;
+  } else if (name == 'NS_SUCCEEDED') {
+    this.processTest(dest, call, av.ZERO, call, state);
+    return;
+  } else if (name == '__builtin_expect') {
+    
+    state.assign(dest, args[0], call);
+    return;
+  }
 
   if (TRACE_CALL_SEM) {
     print("param semantics:" + psem);
@@ -408,7 +410,6 @@ OutparamCheck.prototype.processCall = function(dest, expr, blame, state) {
     let ct = TREE_TYPE(callable);
     if (TREE_CODE(ct) == POINTER_TYPE) ct = TREE_TYPE(ct);
     if (args.length < psem.length || !stdarg_p(ct)) {
-      let name = function_decl_name(callable);
       
       if (name != 'operator new' && name != 'operator delete' &&
           name != 'operator new []' && name != 'operator delete []' &&
@@ -568,7 +569,7 @@ OutparamCheck.prototype.findReturnStmt = function(ss) {
   
   for (let bb in cfg_bb_iterator(this.cfg)) {
     for (let isn in bb_isn_iterator(bb)) {
-      if (TREE_CODE(isn) == RETURN_EXPR) {
+      if (isn.tree_code() == GIMPLE_RETURN) {
         return this.cfg._cached_return = isn;
       }
     }
@@ -593,9 +594,8 @@ OutparamCheck.prototype.checkSubstateSuccess = function(ss) {
       let callMsg;
       let callName = "";
       try {
-        let callExpr = blameStmt.tree_check(GIMPLE_MODIFY_STMT).
-          operands()[1].tree_check(CALL_EXPR);
-        let callDecl = callable_arg_function_decl(CALL_EXPR_FN(callExpr));
+        let call = TREE_CHECK(blameStmt, GIMPLE_CALL, GIMPLE_MODIFY_STMT);
+        let callDecl = callable_arg_function_decl(gimple_call_fn(call));
         
         callMsg = [callDecl, "declared here"];
         callName = " '" + decl_name(callDecl) + "'";
@@ -798,6 +798,7 @@ function pointer_type_is_outparam(pt) {
   case ENUMERAL_TYPE:
   case REAL_TYPE:
   case UNION_TYPE:
+  case BOOLEAN_TYPE:
     return true;
   case RECORD_TYPE:
     
