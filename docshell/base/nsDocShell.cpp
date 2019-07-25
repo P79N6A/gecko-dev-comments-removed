@@ -5890,7 +5890,7 @@ nsDocShell::OnRedirectStateChange(nsIChannel* aOldChannel,
     }
 
     
-    if (!ChannelIsSafeHTTPMethod(aNewChannel)) {
+    if (!ChannelIsSafeMethod(aNewChannel)) {
         
         
         
@@ -6484,7 +6484,9 @@ nsDocShell::CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal,
       
       if (viewer) {
         viewer->SetContainer(static_cast<nsIContentViewerContainer *>(this));
+        nsCOMPtr<nsIDOMDocument> domdoc(do_QueryInterface(blankDoc));
         Embed(viewer, "", 0);
+        viewer->SetDOMDocument(domdoc);
 
         SetCurrentURI(blankDoc->GetDocumentURI(), nsnull, PR_TRUE);
         rv = mIsBeingDestroyed ? NS_ERROR_NOT_AVAILABLE : NS_OK;
@@ -8789,7 +8791,7 @@ nsDocShell::DoURILoad(nsIURI * aURI,
 
     
     
-    if (aHttpMethod && ownerPrincipal && !ChannelIsSafeHTTPMethod(channel)) {
+    if (aHttpMethod && ownerPrincipal && !ChannelIsSafeMethod(channel)) {
         if (NS_FAILED(ownerPrincipal->CheckMayLoad(aURI, PR_FALSE))) {
             return NS_OK;
         }
@@ -10436,11 +10438,11 @@ nsDocShell::ChannelIsPost(nsIChannel* aChannel)
 
 
 bool
-nsDocShell::ChannelIsSafeHTTPMethod(nsIChannel* aChannel)
+nsDocShell::ChannelIsSafeMethod(nsIChannel* aChannel)
 {
     nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(aChannel));
     if (!httpChannel) {
-        return true;
+        return false;
     }
 
     nsCAutoString method;
