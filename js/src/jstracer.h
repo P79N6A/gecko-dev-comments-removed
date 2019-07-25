@@ -639,6 +639,7 @@ public:
         OP_RECURSIVE, 
         OP_ARRAY_READ, 
         OP_TYPED_ARRAY, 
+        OP_SCRIPTED_GETTER, 
         OP_LIMIT
     };
 

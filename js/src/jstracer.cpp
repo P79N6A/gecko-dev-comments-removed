@@ -17179,6 +17179,37 @@ LoopProfile::profileOperation(JSContext* cx, JSOp op)
             increment(OP_ARRAY_READ);
     }
 
+    if (op == JSOP_GETPROP || op == JSOP_CALLPROP ||
+        op == JSOP_GETARGPROP || op == JSOP_GETLOCALPROP)
+    {
+        
+        Value v;
+        if (op == JSOP_GETPROP || op == JSOP_CALLPROP) {
+            v = cx->regs->sp[-1];
+        } if (op == JSOP_GETARGPROP) {
+            uint32 slot = GET_ARGNO(pc);
+            JS_ASSERT(slot < fp->numFormalArgs());
+            v = fp->formalArg(slot);
+        } else if (op == JSOP_GETLOCALPROP) {
+            uint32 slot = GET_SLOTNO(pc);
+            JS_ASSERT(slot < script->nslots);
+            v = fp->slots()[slot];
+        }
+
+        if (v.isObject()) {
+            JSObject *aobj = js_GetProtoIfDenseArray(&v.toObject());
+            PropertyCacheEntry *entry;
+            JSObject *obj2;
+            JSAtom *atom;
+            JS_PROPERTY_CACHE(cx).test(cx, pc, aobj, obj2, entry, atom);
+            if (!atom && entry->vword.isShape()) {
+                const Shape *shape = entry->vword.toShape();
+                if (shape->hasGetterValue())
+                    increment(OP_SCRIPTED_GETTER);
+            }
+        }
+    }
+
     if (op == JSOP_CALL) {
         increment(OP_CALL);
 
@@ -17373,6 +17404,7 @@ LoopProfile::decide(JSContext *cx)
     debug_only_printf(LC_TMProfiler, "FEATURE call %d\n", allOps[OP_CALL]);
     debug_only_printf(LC_TMProfiler, "FEATURE arrayread %d\n", allOps[OP_ARRAY_READ]);
     debug_only_printf(LC_TMProfiler, "FEATURE typedarray %d\n", allOps[OP_TYPED_ARRAY]);
+    debug_only_printf(LC_TMProfiler, "FEATURE scriptedgetter %d\n", allOps[OP_SCRIPTED_GETTER]);
     debug_only_printf(LC_TMProfiler, "FEATURE fwdjump %d\n", allOps[OP_FWDJUMP]);
     debug_only_printf(LC_TMProfiler, "FEATURE recursive %d\n", allOps[OP_RECURSIVE]);
     debug_only_printf(LC_TMProfiler, "FEATURE shortLoop %d\n", shortLoop);
@@ -17410,6 +17442,9 @@ LoopProfile::decide(JSContext *cx)
 
         
         goodOps += count(OP_TYPED_ARRAY)*10;
+
+        
+        goodOps += count(OP_SCRIPTED_GETTER)*40;
 
         
         goodOps += count(OP_ARRAY_READ)*15;
