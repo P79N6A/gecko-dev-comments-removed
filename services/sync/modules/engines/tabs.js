@@ -79,6 +79,11 @@ TabEngine.prototype = {
     this._store.wipe();
   },
 
+  _syncFinish: function _syncFinish() {
+    SyncEngine.prototype._syncFinish.call(this);
+    this._tracker.resetChanged();
+  },
+
   
 
 
@@ -349,6 +354,7 @@ TabTracker.prototype = {
 
   _TabTracker_init: function TabTracker__init() {
     this._init();
+    this.resetChanged();
 
     
     this.onTabOpened = Utils.bind2(this, this.onTabOpened);
@@ -421,34 +427,33 @@ TabTracker.prototype = {
     }
   },
 
+  _upScore: function _upScore(amount) {
+    this.score += amount;
+    this._changedIDs[Clients.clientID] = true;
+  },
+
   onTabOpened: function TabTracker_onTabOpened(event) {
     
     this._log.trace("Tab opened.");
     event.target.setAttribute(TAB_TIME_ATTR, event.timeStamp);
-    
-    this.score += 1;
+    this._upScore(1);
   },
 
   onTabClosed: function TabTracker_onTabSelected(event) {
-    
-    this.score += 1;
+    this._log.trace("Tab closed.");
+    this._upScore(1);
   },
 
   onTabSelected: function TabTracker_onTabSelected(event) {
     
     this._log.trace("Tab selected.");
-    
     event.target.setAttribute(TAB_TIME_ATTR, event.timeStamp);
-    
-    this.score += 1;
+    this._upScore(1);
   },
   
 
-  get changedIDs() {
-    
-    let obj = {};
-    if (this.score > 0)
-      obj[Clients.clientID] = true;
-    return obj;
-  }
+  get changedIDs() this._changedIDs,
+
+  
+  resetChanged: function resetChanged() this._changedIDs = {}
 }
