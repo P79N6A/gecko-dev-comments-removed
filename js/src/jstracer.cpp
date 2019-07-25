@@ -5356,9 +5356,10 @@ TraceRecorder::emitIf(jsbytecode* pc, bool cond, LIns* x)
 
 
 
-    ensureCond(&x, &cond);
-    if (!x->isImmI())
+    if (!x->isImmI()) {
+        ensureCond(&x, &cond);
         guard(cond, x, exitType);
+    }
 }
 
 
