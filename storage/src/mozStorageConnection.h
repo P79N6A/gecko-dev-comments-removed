@@ -175,6 +175,10 @@ public:
 
   int stepStatement(sqlite3_stmt* aStatement);
 
+  bool ConnectionReady() {
+    return mDBConn != nsnull;
+  }
+
   
 
 
