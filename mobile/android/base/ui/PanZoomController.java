@@ -11,7 +11,6 @@ import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.GeckoEventListener;
 import org.mozilla.gecko.ZoomConstraints;
 import org.mozilla.gecko.gfx.ImmutableViewportMetrics;
-import org.mozilla.gecko.gfx.LayerController;
 import org.mozilla.gecko.gfx.PointUtils;
 import org.mozilla.gecko.gfx.ViewportMetrics;
 import org.mozilla.gecko.util.FloatUtils;
@@ -107,7 +106,7 @@ public class PanZoomController
 
     }
 
-    private final LayerController mController;
+    private final PanZoomTarget mTarget;
     private final SubdocumentScrollHelper mSubscroller;
     private final Axis mX;
     private final Axis mY;
@@ -125,8 +124,8 @@ public class PanZoomController
     
     private PanZoomState mState;
 
-    public PanZoomController(LayerController controller) {
-        mController = controller;
+    public PanZoomController(PanZoomTarget target) {
+        mTarget = target;
         mSubscroller = new SubdocumentScrollHelper(this);
         mX = new AxisX(mSubscroller);
         mY = new AxisY(mSubscroller);
@@ -158,7 +157,7 @@ public class PanZoomController
     }
 
     private ImmutableViewportMetrics getMetrics() {
-        return mController.getViewportMetrics();
+        return mTarget.getViewportMetrics();
     }
 
     
@@ -177,7 +176,7 @@ public class PanZoomController
                 final RectF zoomRect = new RectF(x, y,
                                      x + (float)message.getDouble("w"),
                                      y + (float)message.getDouble("h"));
-                mController.post(new Runnable() {
+                mTarget.post(new Runnable() {
                     public void run() {
                         animatedZoomTo(zoomRect);
                     }
@@ -195,7 +194,7 @@ public class PanZoomController
                                     y + dh/2,
                                     cssPageRect.width(),
                                     y + dh/2 + newHeight);
-                mController.post(new Runnable() {
+                mTarget.post(new Runnable() {
                     public void run() {
                         animatedZoomTo(r);
                     }
@@ -280,9 +279,9 @@ public class PanZoomController
         case NOTHING:
             
             
-            synchronized (mController) {
-                mController.setViewportMetrics(getValidViewportMetrics());
-                mController.notifyLayerClientOfGeometryChange();
+            synchronized (mTarget.getLock()) {
+                mTarget.setViewportMetrics(getValidViewportMetrics());
+                mTarget.notifyLayerClientOfGeometryChange();
             }
             break;
         }
@@ -314,13 +313,13 @@ public class PanZoomController
     
     public void pageRectUpdated() {
         if (mState == PanZoomState.NOTHING) {
-            synchronized (mController) {
+            synchronized (mTarget.getLock()) {
                 ViewportMetrics validated = getValidViewportMetrics();
                 if (! (new ViewportMetrics(getMetrics())).fuzzyEquals(validated)) {
                     
                     
-                    mController.setViewportMetrics(validated);
-                    mController.notifyLayerClientOfGeometryChange();
+                    mTarget.setViewportMetrics(validated);
+                    mTarget.notifyLayerClientOfGeometryChange();
                 }
             }
         }
@@ -340,8 +339,8 @@ public class PanZoomController
             
             
             
-            mController.setForceRedraw();
-            mController.notifyLayerClientOfGeometryChange();
+            mTarget.setForceRedraw();
+            mTarget.notifyLayerClientOfGeometryChange();
             
         case FLING:
         case BOUNCE:
@@ -566,7 +565,7 @@ public class PanZoomController
         
         
         
-        mController.setAnimationTarget(metrics);
+        mTarget.setAnimationTarget(metrics);
         startAnimationTimer(new BounceRunnable(bounceStartMetrics, metrics));
     }
 
@@ -587,7 +586,7 @@ public class PanZoomController
         mAnimationRunnable = runnable;
         mAnimationTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
-            public void run() { mController.post(runnable); }
+            public void run() { mTarget.post(runnable); }
         }, 0, 1000L/60L);
     }
 
@@ -629,8 +628,8 @@ public class PanZoomController
             return;
         }
         if (! mSubscroller.scrollBy(displacement)) {
-            synchronized (mController) {
-                mController.scrollBy(displacement);
+            synchronized (mTarget.getLock()) {
+                mTarget.scrollBy(displacement);
             }
         }
     }
@@ -701,20 +700,20 @@ public class PanZoomController
 
         
         private void advanceBounce() {
-            synchronized (mController) {
+            synchronized (mTarget.getLock()) {
                 float t = ZOOM_ANIMATION_FRAMES[mBounceFrame];
                 ViewportMetrics newMetrics = mBounceStartMetrics.interpolate(mBounceEndMetrics, t);
-                mController.setViewportMetrics(newMetrics);
-                mController.notifyLayerClientOfGeometryChange();
+                mTarget.setViewportMetrics(newMetrics);
+                mTarget.notifyLayerClientOfGeometryChange();
                 mBounceFrame++;
             }
         }
 
         
         private void finishBounce() {
-            synchronized (mController) {
-                mController.setViewportMetrics(mBounceEndMetrics);
-                mController.notifyLayerClientOfGeometryChange();
+            synchronized (mTarget.getLock()) {
+                mTarget.setViewportMetrics(mBounceEndMetrics);
+                mTarget.notifyLayerClientOfGeometryChange();
                 mBounceFrame = -1;
             }
         }
@@ -775,8 +774,8 @@ public class PanZoomController
         stopAnimationTimer();
 
         
-        mController.setForceRedraw();
-        mController.notifyLayerClientOfGeometryChange();
+        mTarget.setForceRedraw();
+        mTarget.notifyLayerClientOfGeometryChange();
     }
 
     
@@ -796,7 +795,7 @@ public class PanZoomController
         float minZoomFactor = 0.0f;
         float maxZoomFactor = MAX_ZOOM;
 
-        ZoomConstraints constraints = mController.getZoomConstraints();
+        ZoomConstraints constraints = mTarget.getZoomConstraints();
 
         if (constraints.getMinZoom() > 0)
             minZoomFactor = constraints.getMinZoom();
@@ -875,7 +874,7 @@ public class PanZoomController
         if (mState == PanZoomState.ANIMATED_ZOOM)
             return false;
 
-        if (!mController.getZoomConstraints().getAllowZoom())
+        if (!mTarget.getZoomConstraints().getAllowZoom())
             return false;
 
         setState(PanZoomState.PINCHING);
@@ -911,12 +910,12 @@ public class PanZoomController
         else
             spanRatio = 1.0f - (1.0f - spanRatio) * resistance;
 
-        synchronized (mController) {
+        synchronized (mTarget.getLock()) {
             float newZoomFactor = getMetrics().zoomFactor * spanRatio;
             float minZoomFactor = 0.0f;
             float maxZoomFactor = MAX_ZOOM;
 
-            ZoomConstraints constraints = mController.getZoomConstraints();
+            ZoomConstraints constraints = mTarget.getZoomConstraints();
 
             if (constraints.getMinZoom() > 0)
                 minZoomFactor = constraints.getMinZoom();
@@ -942,10 +941,10 @@ public class PanZoomController
                 newZoomFactor = maxZoomFactor + excessZoom;
             }
 
-            mController.scrollBy(new PointF(mLastZoomFocus.x - detector.getFocusX(),
-                                            mLastZoomFocus.y - detector.getFocusY()));
+            mTarget.scrollBy(new PointF(mLastZoomFocus.x - detector.getFocusX(),
+                    mLastZoomFocus.y - detector.getFocusY()));
             PointF focus = new PointF(detector.getFocusX(), detector.getFocusY());
-            mController.scaleWithFocus(newZoomFactor, focus);
+            mTarget.scaleWithFocus(newZoomFactor, focus);
         }
 
         mLastZoomFocus.set(detector.getFocusX(), detector.getFocusY());
@@ -962,8 +961,8 @@ public class PanZoomController
         startTouch(detector.getFocusX(), detector.getFocusY(), detector.getEventTime());
 
         
-        mController.setForceRedraw();
-        mController.notifyLayerClientOfGeometryChange();
+        mTarget.setForceRedraw();
+        mTarget.notifyLayerClientOfGeometryChange();
     }
 
     public boolean getRedrawHint() {
@@ -985,7 +984,7 @@ public class PanZoomController
         String json;
         try {
             PointF point = new PointF(motionEvent.getX(), motionEvent.getY());
-            point = mController.convertViewPointToLayerPoint(point);
+            point = mTarget.convertViewPointToLayerPoint(point);
             if (point == null) {
                 return;
             }
@@ -1006,7 +1005,7 @@ public class PanZoomController
     @Override
     public boolean onSingleTapUp(MotionEvent motionEvent) {
         
-        if (!mController.getZoomConstraints().getAllowZoom()) {
+        if (!mTarget.getZoomConstraints().getAllowZoom()) {
             sendPointToGecko("Gesture:SingleTap", motionEvent);
         }
         
@@ -1016,7 +1015,7 @@ public class PanZoomController
     @Override
     public boolean onSingleTapConfirmed(MotionEvent motionEvent) {
         
-        if (mController.getZoomConstraints().getAllowZoom()) {
+        if (mTarget.getZoomConstraints().getAllowZoom()) {
             sendPointToGecko("Gesture:SingleTap", motionEvent);
         }
         return true;
@@ -1024,7 +1023,7 @@ public class PanZoomController
 
     @Override
     public boolean onDoubleTap(MotionEvent motionEvent) {
-        if (mController.getZoomConstraints().getAllowZoom()) {
+        if (mTarget.getZoomConstraints().getAllowZoom()) {
             sendPointToGecko("Gesture:DoubleTap", motionEvent);
         }
         return true;
