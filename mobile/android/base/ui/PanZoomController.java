@@ -813,37 +813,19 @@ public class PanZoomController
 
         float focusX = viewport.width() / 2.0f;
         float focusY = viewport.height() / 2.0f;
-
         float minZoomFactor = 0.0f;
-        float maxZoomFactor = MAX_ZOOM;
-
-        if (mController.getMinZoom() > 0)
-            minZoomFactor = mController.getMinZoom();
-        if (mController.getMaxZoom() > 0)
-            maxZoomFactor = mController.getMaxZoom();
-
-        if (!mController.getAllowZoom()) {
-            
-            maxZoomFactor = minZoomFactor = mController.getDefaultZoom();
-        }
-
-        
-        if (pageSize.width > 0) {
+        if (viewport.width() > pageSize.width && pageSize.width > 0) {
             float scaleFactor = viewport.width() / pageSize.width;
             minZoomFactor = Math.max(minZoomFactor, zoomFactor * scaleFactor);
-            if (viewport.width() > pageSize.width)
-                focusX = 0.0f;
+            focusX = 0.0f;
         }
-        if (pageSize.height > 0) {
+        if (viewport.height() > pageSize.height && pageSize.height > 0) {
             float scaleFactor = viewport.height() / pageSize.height;
             minZoomFactor = Math.max(minZoomFactor, zoomFactor * scaleFactor);
-            if (viewport.height() > pageSize.height)
-                focusY = 0.0f;
+            focusY = 0.0f;
         }
 
-        maxZoomFactor = Math.max(maxZoomFactor, minZoomFactor);
-
-        if (zoomFactor < minZoomFactor) {
+        if (!FloatUtils.fuzzyEquals(minZoomFactor, 0.0f)) {
             
             
             
@@ -851,9 +833,9 @@ public class PanZoomController
             
             PointF center = new PointF(focusX, focusY);
             viewportMetrics.scaleTo(minZoomFactor, center);
-        } else if (zoomFactor > maxZoomFactor) {
+        } else if (zoomFactor > MAX_ZOOM) {
             PointF center = new PointF(viewport.width() / 2.0f, viewport.height() / 2.0f);
-            viewportMetrics.scaleTo(maxZoomFactor, center);
+            viewportMetrics.scaleTo(MAX_ZOOM, center);
         }
 
         
@@ -893,9 +875,6 @@ public class PanZoomController
         if (mState == PanZoomState.ANIMATED_ZOOM)
             return false;
 
-        if (!mController.getAllowZoom())
-            return false;
-
         mState = PanZoomState.PINCHING;
         mLastZoomFocus = new PointF(detector.getFocusX(), detector.getFocusY());
         cancelTouch();
@@ -933,31 +912,13 @@ public class PanZoomController
 
         synchronized (mController) {
             float newZoomFactor = mController.getZoomFactor() * spanRatio;
-            float minZoomFactor = 0.0f;
-            float maxZoomFactor = MAX_ZOOM;
-
-            if (mController.getMinZoom() > 0)
-                minZoomFactor = mController.getMinZoom();
-            if (mController.getMaxZoom() > 0)
-                maxZoomFactor = mController.getMaxZoom();
-
-            if (newZoomFactor < minZoomFactor) {
+            if (newZoomFactor >= MAX_ZOOM) {
                 
                 
                 
-                final float rate = 0.5f; 
-                float excessZoom = minZoomFactor - newZoomFactor;
-                excessZoom = 1.0f - (float)Math.exp(-excessZoom * rate);
-                newZoomFactor = minZoomFactor * (1.0f - excessZoom / 2.0f);
-            }
-
-            if (newZoomFactor > maxZoomFactor) {
-                
-                
-                
-                float excessZoom = newZoomFactor - maxZoomFactor;
+                float excessZoom = newZoomFactor - MAX_ZOOM;
                 excessZoom = 1.0f - (float)Math.exp(-excessZoom);
-                newZoomFactor = maxZoomFactor + excessZoom;
+                newZoomFactor = MAX_ZOOM + excessZoom;
             }
 
             mController.scrollBy(new PointF(mLastZoomFocus.x - detector.getFocusX(),
@@ -1024,27 +985,13 @@ public class PanZoomController
     }
 
     @Override
-    public boolean onSingleTapUp(MotionEvent motionEvent) {
-        
-        if (mController.getAllowZoom())
-            return false;
-        sendPointToGecko("Gesture:SingleTap", motionEvent);
-        return true;
-    }
-
-    @Override
     public boolean onSingleTapConfirmed(MotionEvent motionEvent) {
-        
-        if (!mController.getAllowZoom())
-            return false;
         sendPointToGecko("Gesture:SingleTap", motionEvent);
         return true;
     }
 
     @Override
     public boolean onDoubleTap(MotionEvent motionEvent) {
-        if (!mController.getAllowZoom())
-            return false;
         sendPointToGecko("Gesture:DoubleTap", motionEvent);
         return true;
     }

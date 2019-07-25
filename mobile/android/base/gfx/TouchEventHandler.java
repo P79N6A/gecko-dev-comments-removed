@@ -60,7 +60,6 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
     private final GestureDetector mGestureDetector;
     private final SimpleScaleGestureDetector mScaleGestureDetector;
     private final PanZoomController mPanZoomController;
-    private final GestureDetector.OnDoubleTapListener mDoubleTapListener;
 
     
     
@@ -135,9 +134,7 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
         mListenerTimeoutProcessor = new ListenerTimeoutProcessor();
         mDispatchEvents = true;
 
-        mDoubleTapListener = controller.getDoubleTapListener();
-        setDoubleTapEnabled(true);
-
+        mGestureDetector.setOnDoubleTapListener(controller.getDoubleTapListener());
         Tabs.registerOnTabsChangedListener(this);
     }
 
@@ -217,11 +214,6 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
     }
 
     
-    public void setDoubleTapEnabled(boolean aValue) {
-        mGestureDetector.setOnDoubleTapListener(aValue ? mDoubleTapListener : null);
-    }
-
-    
     public void setWaitForTouchListeners(boolean aValue) {
         mWaitForTouchListeners = aValue;
     }
@@ -246,16 +238,7 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
 
     private void dispatchEvent(MotionEvent event) {
         if (mGestureDetector.onTouchEvent(event)) {
-            
-            
-            switch (event.getAction() & MotionEvent.ACTION_MASK) {
-                case MotionEvent.ACTION_POINTER_UP:
-                case MotionEvent.ACTION_UP:
-                case MotionEvent.ACTION_CANCEL:
-                    break;
-                default:
-                    return;
-            }
+            return;
         }
         mScaleGestureDetector.onTouchEvent(event);
         if (mScaleGestureDetector.isInProgress()) {
