@@ -431,6 +431,7 @@ protected:
   PRPackedBool          mDrawing;
   PRPackedBool          mPluginDrawing;
   PRPackedBool          mPluginIsCG; 
+  PRPackedBool          mIsDispatchPaint; 
 
   NP_CGContext          mPluginCGContext;
 #ifndef NP_NO_QUICKDRAW
