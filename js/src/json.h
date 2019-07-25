@@ -55,8 +55,6 @@ extern JSBool
 js_Stringify(JSContext *cx, js::Value *vp, JSObject *replacer, js::Value space,
              js::StringBuffer &sb);
 
-extern JSBool js_TryJSON(JSContext *cx, js::Value *vp);
-
 
 #ifdef STRICT
 #undef STRICT

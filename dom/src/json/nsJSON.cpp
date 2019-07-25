@@ -75,34 +75,6 @@ nsJSON::~nsJSON()
 {
 }
 
-
-
-
-NS_IMETHODIMP
-nsJSON::Encode(nsAString &aJSON)
-{
-  
-  nsresult rv;
-
-  nsJSONWriter writer;
-  rv = EncodeInternal(&writer);
-
-  
-  if (NS_SUCCEEDED(rv) || rv == NS_ERROR_INVALID_ARG) {
-    rv = NS_OK;
-    
-    if (!writer.DidWrite()) {
-      aJSON.Truncate();
-      aJSON.SetIsVoid(PR_TRUE);
-    } else {
-      writer.FlushBuffer();
-      aJSON.Append(writer.mOutputString);
-    }
-  }
-
-  return rv;
-}
-
 static const char UTF8BOM[] = "\xEF\xBB\xBF";
 static const char UTF16LEBOM[] = "\xFF\xFE";
 static const char UTF16BEBOM[] = "\xFE\xFF";
@@ -249,33 +221,20 @@ nsJSON::EncodeInternal(nsJSONWriter *writer)
 
   
   
-  
-  PRUint32 firstArg = writer->mStream ? 3 : 0;
+  NS_ABORT_IF_FALSE(writer->mStream != NULL, "should have a stream");
+  PRUint32 firstArg = 3;
 
   
-  JSObject *inputObj = nsnull;
   jsval *argv = nsnull;
   rv = cc->GetArgvPtr(&argv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (argc <= firstArg ||
-      !(JSVAL_IS_OBJECT(argv[firstArg]) &&
-        (inputObj = JSVAL_TO_OBJECT(argv[firstArg])))) {
-    
-    return NS_ERROR_INVALID_ARG;
-  }
+  
+  if (argc <= firstArg)
+    return NS_OK;
 
   jsval *vp = &argv[firstArg];
-  JSBool ok = JS_TryJSON(cx, vp);
-  JSType type;
-  if (!(ok && !JSVAL_IS_PRIMITIVE(*vp) &&
-        (type = JS_TypeOfValue(cx, *vp)) != JSTYPE_FUNCTION &&
-        type != JSTYPE_XML)) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  ok = JS_Stringify(cx, vp, NULL, JSVAL_NULL, WriteCallback, writer);
-  if (!ok)
+  if (!JS_Stringify(cx, vp, NULL, JSVAL_NULL, WriteCallback, writer))
     return NS_ERROR_FAILURE;
     
   return NS_OK;
@@ -390,20 +349,6 @@ nsJSONWriter::WriteToStream(nsIOutputStream *aStream,
   mDidWrite = PR_TRUE;
 
   return rv;
-}
-
-NS_IMETHODIMP
-nsJSON::Decode(const nsAString& json)
-{
-  const PRUnichar *data;
-  PRUint32 len = NS_StringGetData(json, &data);
-  nsCOMPtr<nsIInputStream> stream;
-  nsresult rv = NS_NewByteInputStream(getter_AddRefs(stream),
-                                      (const char*) data,
-                                      len * sizeof(PRUnichar),
-                                      NS_ASSIGNMENT_DEPEND);
-  NS_ENSURE_SUCCESS(rv, rv);
-  return DecodeInternal(stream, len, PR_FALSE);
 }
 
 NS_IMETHODIMP

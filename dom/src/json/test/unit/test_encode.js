@@ -17,22 +17,6 @@ if (!outputDir.exists()) {
   do_throw(outputName + " is not a directory?")
 }
 
-function testStringEncode()
-{
-  do_check_eq(nativeJSON.encode(), null);
-
-  
-  do_check_eq(nativeJSON.encode(null), null);
-  do_check_eq(nativeJSON.encode(""), null);
-  do_check_eq(nativeJSON.encode(undefined), null);
-  do_check_eq(nativeJSON.encode(5), null);
-  do_check_eq(nativeJSON.encode(function(){}), null);
-  do_check_eq(nativeJSON.encode(dump), null);
-
-  
-  
-}
-
 function testOutputStreams() {
   function writeToFile(obj, charset, writeBOM) {
     var jsonFile = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
@@ -87,25 +71,8 @@ function testOutputStreams() {
   outputDir.remove(true);
 }
 
-function throwingToJSON() {
-  var a = {
-    "b": 1,
-    "c": 2,
-    toJSON: function() { throw("uh oh"); }
-  }
-  try {
-    var y = nativeJSON.encode(a);
-    throw "didn't throw";
-  } catch (ex) {
-    do_check_eq(ex, "uh oh");
-  }
-}
-
 function run_test()
 {
-  testStringEncode();
-  throwingToJSON();
-  
   testOutputStreams();
   
 }

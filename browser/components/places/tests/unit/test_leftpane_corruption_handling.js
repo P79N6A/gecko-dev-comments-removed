@@ -191,9 +191,8 @@ function folderToJSON(aItemId) {
 
 
 function compareJSON(aNodeJSON_1, aNodeJSON_2) {
-  let JSON = Cc["@mozilla.org/dom/json;1"].createInstance(Ci.nsIJSON);
-  node1 = JSON.decode(aNodeJSON_1);
-  node2 = JSON.decode(aNodeJSON_2);
+  let node1 = JSON.parse(aNodeJSON_1);
+  let node2 = JSON.parse(aNodeJSON_2);
 
   
   const SKIP_PROPS = ["dateAdded", "lastModified", "id"];

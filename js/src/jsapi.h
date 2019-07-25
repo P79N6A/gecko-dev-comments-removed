@@ -3310,12 +3310,6 @@ JS_Stringify(JSContext *cx, jsval *vp, JSObject *replacer, jsval space,
 
 
 JS_PUBLIC_API(JSBool)
-JS_TryJSON(JSContext *cx, jsval *vp);
-
-
-
-
-JS_PUBLIC_API(JSBool)
 JS_ParseJSON(JSContext *cx, const jschar *chars, uint32 len, jsval *vp);
 
 JS_PUBLIC_API(JSBool)
