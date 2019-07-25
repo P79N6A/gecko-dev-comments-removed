@@ -164,11 +164,6 @@ let UI = {
       this._pageBounds = data.pageBounds;
 
       
-      gWindow.addEventListener("tabviewshow", function() {
-        self.showTabView(true);
-      }, false);
-
-      
       this._currentTab = gBrowser.selectedTab;
 
       
@@ -225,10 +220,6 @@ let UI = {
       iQ(window).bind("unload", function() {
         self.uninit();
       });
-
-      gWindow.addEventListener("tabviewhide", function() {
-        self.exit();
-      }, false);
 
       
       this._setTabViewFrameKeyHandlers();
