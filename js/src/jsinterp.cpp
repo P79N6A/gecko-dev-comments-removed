@@ -623,6 +623,8 @@ js::RunScript(JSContext *cx, JSScript *script, StackFrame *fp)
 bool
 js::InvokeKernel(JSContext *cx, const CallArgs &argsRef, MaybeConstruct construct)
 {
+    
+
     CallArgs args = argsRef;
     JS_ASSERT(args.argc() <= StackSpace::ARGS_LENGTH_MAX);
 
@@ -684,9 +686,111 @@ js::InvokeKernel(JSContext *cx, const CallArgs &argsRef, MaybeConstruct construc
 }
 
 bool
+InvokeSessionGuard::start(JSContext *cx, const Value &calleev, const Value &thisv, uintN argc)
+{
+#ifdef JS_TRACER
+    if (TRACE_RECORDER(cx))
+        AbortRecording(cx, "attempt to reenter VM while recording");
+    LeaveTrace(cx);
+#endif
+
+    
+    ContextStack &stack = cx->stack;
+    if (!stack.pushInvokeArgs(cx, argc, &args_))
+        return false;
+
+    
+    savedCallee_ = args_.calleev() = calleev;
+    savedThis_ = args_.thisv() = thisv;
+
+    
+    MakeRangeGCSafe(args_.argv(), args_.argc());
+
+    do {
+        
+        if (!calleev.isObject())
+            break;
+        JSObject &callee = calleev.toObject();
+        if (callee.getClass() != &FunctionClass)
+            break;
+        JSFunction *fun = callee.getFunctionPrivate();
+        if (fun->isNative())
+            break;
+        script_ = fun->script();
+        if (!script_->ensureRanAnalysis(cx, fun, callee.getParent()))
+            return false;
+        if (FunctionNeedsPrologue(cx, fun) || script_->isEmpty())
+            break;
+
+        
+
+
+
+        if (callee.getGlobal() != GetGlobalForScopeChain(cx))
+            break;
+
+        
+        if (!stack.pushInvokeFrame(cx, args_, INITIAL_NONE, &ifg_))
+            return false;
+
+        
+
+
+
+
+        TypeScript::SetThis(cx, script_, thisv);
+        for (unsigned i = argc; i < fun->nargs; i++)
+            TypeScript::SetArgument(cx, script_, i, types::Type::UndefinedType());
+
+        StackFrame *fp = ifg_.fp();
+#ifdef JS_METHODJIT
+        
+        mjit::CompileStatus status = mjit::CanMethodJIT(cx, script_, false,
+                                                        mjit::CompileRequest_JIT);
+        if (status == mjit::Compile_Error)
+            return false;
+        if (status != mjit::Compile_Okay)
+            break;
+        
+
+        
+        JS_CHECK_RECURSION(cx, return false);
+        stackLimit_ = stack.space().getStackLimit(cx, REPORT_ERROR);
+        if (!stackLimit_)
+            return false;
+
+        stop_ = script_->code + script_->length - 1;
+        JS_ASSERT(*stop_ == JSOP_STOP);
+#endif
+
+        
+        nformals_ = fp->numFormalArgs();
+        formals_ = fp->formalArgs();
+        actuals_ = args_.argv();
+        JS_ASSERT(actuals_ == fp->actualArgs());
+        return true;
+    } while (0);
+
+    
+
+
+
+
+
+
+    if (ifg_.pushed())
+        ifg_.pop();
+    formals_ = actuals_ = args_.argv();
+    nformals_ = (unsigned)-1;
+    return true;
+}
+
+bool
 js::Invoke(JSContext *cx, const Value &thisv, const Value &fval, uintN argc, Value *argv,
            Value *rval)
 {
+    LeaveTrace(cx);
+
     InvokeArgsGuard args;
     if (!cx->stack.pushInvokeArgs(cx, argc, &args))
         return false;
@@ -717,6 +821,8 @@ js::Invoke(JSContext *cx, const Value &thisv, const Value &fval, uintN argc, Val
 bool
 js::InvokeConstructor(JSContext *cx, const Value &fval, uintN argc, Value *argv, Value *rval)
 {
+    LeaveTrace(cx);
+
     InvokeArgsGuard args;
     if (!cx->stack.pushInvokeArgs(cx, argc, &args))
         return false;
@@ -1138,6 +1244,8 @@ bool
 js::InvokeConstructorWithGivenThis(JSContext *cx, JSObject *thisobj, const Value &fval,
                                    uintN argc, Value *argv, Value *rval)
 {
+    LeaveTrace(cx);
+
     InvokeArgsGuard args;
     if (!cx->stack.pushInvokeArgs(cx, argc, &args))
         return JS_FALSE;
@@ -3066,11 +3174,29 @@ BEGIN_CASE(JSOP_DIV)
     if (!ToNumber(cx, lval, &d1) || !ToNumber(cx, rval, &d2))
         goto error;
     regs.sp--;
-
-    regs.sp[-1].setNumber(NumberDiv(d1, d2));
-
-    if (d2 == 0 || (regs.sp[-1].isDouble() && !(lval.isDouble() || rval.isDouble())))
+    if (d2 == 0) {
+        const Value *vp;
+#ifdef XP_WIN
+        
+        if (JSDOUBLE_IS_NaN(d2))
+            vp = &rt->NaNValue;
+        else
+#endif
+        if (d1 == 0 || JSDOUBLE_IS_NaN(d1))
+            vp = &rt->NaNValue;
+        else if (JSDOUBLE_IS_NEG(d1) != JSDOUBLE_IS_NEG(d2))
+            vp = &rt->negativeInfinityValue;
+        else
+            vp = &rt->positiveInfinityValue;
+        regs.sp[-1] = *vp;
         TypeScript::MonitorOverflow(cx, script, regs.pc);
+    } else {
+        d1 /= d2;
+        if (!regs.sp[-1].setNumber(d1) &&
+            !(lval.isDouble() || rval.isDouble())) {
+            TypeScript::MonitorOverflow(cx, script, regs.pc);
+        }
+    }
 }
 END_CASE(JSOP_DIV)
 
@@ -3737,9 +3863,9 @@ BEGIN_CASE(JSOP_SETMETHOD)
                 {
 #ifdef DEBUG
                     if (entry->directHit()) {
-                        JS_ASSERT(obj->nativeContains(cx, *shape));
+                        JS_ASSERT(obj->nativeContains(*shape));
                     } else {
-                        JS_ASSERT(obj2->nativeContains(cx, *shape));
+                        JS_ASSERT(obj2->nativeContains(*shape));
                         JS_ASSERT(entry->vcapTag() == 1);
                         JS_ASSERT(entry->kshape != entry->vshape());
                         JS_ASSERT(!shape->hasSlot());
@@ -3882,7 +4008,7 @@ BEGIN_CASE(JSOP_GETELEM)
             if (arg < argsobj->initialLength()) {
                 copyFrom = &argsobj->element(arg);
                 if (!copyFrom->isMagic(JS_ARGS_HOLE)) {
-                    if (StackFrame *afp = argsobj->maybeStackFrame())
+                    if (StackFrame *afp = reinterpret_cast<StackFrame *>(argsobj->getPrivate()))
                         copyFrom = &afp->canonicalActualArg(arg);
                     goto end_getelem;
                 }
@@ -3954,7 +4080,6 @@ BEGIN_CASE(JSOP_CALLELEM)
 END_CASE(JSOP_CALLELEM)
 
 BEGIN_CASE(JSOP_SETELEM)
-BEGIN_CASE(JSOP_SETHOLE)
 {
     JSObject *obj;
     FETCH_OBJECT(cx, -3, obj);
@@ -3972,12 +4097,13 @@ BEGIN_CASE(JSOP_SETHOLE)
                         break;
                     if ((jsuint)i >= obj->getArrayLength())
                         obj->setArrayLength(cx, i + 1);
-                    *regs.pc = JSOP_SETHOLE;
                 }
                 obj->setDenseArrayElementWithType(cx, i, regs.sp[-1]);
                 goto end_setelem;
             } else {
-                *regs.pc = JSOP_SETHOLE;
+                if (!script->ensureRanBytecode(cx))
+                    goto error;
+                script->analysis()->getCode(regs.pc).arrayWriteHole = true;
             }
         }
     } while (0);
@@ -6155,7 +6281,7 @@ END_CASE(JSOP_ARRAYPUSH)
 
 
 
-    interpReturnOK &= (JSBool)UnwindScope(cx, 0, interpReturnOK || cx->isExceptionPending());
+    interpReturnOK &= UnwindScope(cx, 0, interpReturnOK || cx->isExceptionPending());
     JS_ASSERT(regs.sp == regs.fp()->base());
 
     if (entryFrame != regs.fp())

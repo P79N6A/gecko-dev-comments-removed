@@ -141,6 +141,13 @@ class Bytecode
     bool monitoredTypesReturn : 1;
 
     
+
+
+
+    bool arrayWriteHole: 1;  
+    bool accessGetter: 1;    
+
+    
     uint32 stackDepth;
 
   private:
@@ -964,7 +971,6 @@ class ScriptAnalysis
     
 
     Bytecode& getCode(uint32 offset) {
-        JS_ASSERT(script->compartment()->activeAnalysis);
         JS_ASSERT(offset < script->length);
         JS_ASSERT(codeArray[offset]);
         return *codeArray[offset];
@@ -972,7 +978,6 @@ class ScriptAnalysis
     Bytecode& getCode(const jsbytecode *pc) { return getCode(pc - script->code); }
 
     Bytecode* maybeCode(uint32 offset) {
-        JS_ASSERT(script->compartment()->activeAnalysis);
         JS_ASSERT(offset < script->length);
         return codeArray[offset];
     }
@@ -1031,13 +1036,13 @@ class ScriptAnalysis
 
     bool hasPushedTypes(const jsbytecode *pc) { return getCode(pc).pushedTypes != NULL; }
 
-    types::TypeBarrier *typeBarriers(JSContext *cx, uint32 offset) {
+    types::TypeBarrier *typeBarriers(uint32 offset) {
         if (getCode(offset).typeBarriers)
-            pruneTypeBarriers(cx, offset);
+            pruneTypeBarriers(offset);
         return getCode(offset).typeBarriers;
     }
-    types::TypeBarrier *typeBarriers(JSContext *cx, const jsbytecode *pc) {
-        return typeBarriers(cx, pc - script->code);
+    types::TypeBarrier *typeBarriers(const jsbytecode *pc) {
+        return typeBarriers(pc - script->code);
     }
     void addTypeBarrier(JSContext *cx, const jsbytecode *pc,
                         types::TypeSet *target, types::Type type);
@@ -1045,7 +1050,7 @@ class ScriptAnalysis
                                  types::TypeSet *target, JSObject *singleton, jsid singletonId);
 
     
-    void pruneTypeBarriers(JSContext *cx, uint32 offset);
+    void pruneTypeBarriers(uint32 offset);
 
     
 

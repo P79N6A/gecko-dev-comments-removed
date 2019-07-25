@@ -260,8 +260,10 @@ enum RejoinState {
 
 
 
+
     REJOIN_NATIVE,
     REJOIN_NATIVE_LOWERED,
+    REJOIN_NATIVE_GETTER,
 
     
 
@@ -553,6 +555,30 @@ struct PCLengthEntry {
     double          picsLength; 
 };
 
+
+
+
+
+
+struct NativeCallStub {
+    
+    jsbytecode *pc;
+
+    
+    JSC::ExecutablePool *pool;
+
+    
+
+
+
+
+#ifdef JS_CPU_X64
+    JSC::CodeLocationDataLabelPtr jump;
+#else
+    JSC::CodeLocationJump jump;
+#endif
+};
+
 struct JITScript {
     typedef JSC::MacroAssemblerCodeRef CodeRef;
     CodeRef         code;       
@@ -611,6 +637,9 @@ struct JITScript {
     ExecPoolVector execPools;
 #endif
 
+    
+    Vector<NativeCallStub, 0, SystemAllocPolicy> nativeCallStubs;
+
     NativeMapEntry *nmap() const;
     js::mjit::InlineFrame *inlineFrames() const;
     js::mjit::CallSite *callSites() const;
@@ -643,8 +672,7 @@ struct JITScript {
 
     void trace(JSTracer *trc);
 
-    
-    size_t scriptDataSize(JSUsableSizeFun usf);
+    size_t scriptDataSize(size_t(*mus)(void *));
 
     jsbytecode *nativeToPC(void *returnAddress, CallSite **pinline) const;
 

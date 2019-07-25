@@ -94,6 +94,9 @@ struct BaseIC : public MacroAssemblerTypedefs {
     bool slowCallPatched : 1;
 
     
+    bool canCallHook : 1;
+
+    
     uint32 stubsGenerated : 5;
 
     
