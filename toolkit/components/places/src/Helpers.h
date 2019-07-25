@@ -210,6 +210,15 @@ nsresult GenerateGUID(nsCString& _guid);
 
 
 
+
+
+
+
+bool IsValidGUID(const nsCString& aGUID);
+
+
+
+
 template<typename StatementType>
 class FinalizeStatementCacheProxy : public nsRunnable
 {

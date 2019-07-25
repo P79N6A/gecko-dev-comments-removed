@@ -159,6 +159,9 @@ static const PRInt64 USECS_PER_DAY = LL_INIT(20, 500654080);
 #define CHARSET_ANNO NS_LITERAL_CSTRING("URIProperties/characterSet")
 
 
+#define SYNCGUID_ANNO NS_LITERAL_CSTRING("sync/guid")
+
+
 
 #define HISTORY_ADDITIONAL_DATE_CONT_NUM 3
 
@@ -1014,8 +1017,74 @@ nsNavHistory::InitAdditionalDBItems()
 nsresult
 nsNavHistory::CheckAndUpdateGUIDs()
 {
-  nsCOMPtr<mozIStorageStatement> stmt;
+  
+  nsCOMPtr<mozIStorageStatement> updateStmt;
   nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+    "UPDATE moz_bookmarks "
+    "SET guid = :guid "
+    "WHERE id = :item_id "
+  ), getter_AddRefs(updateStmt));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<mozIStorageStatement> stmt;
+  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+    "SELECT item_id, content "
+    "FROM moz_items_annos "
+    "JOIN moz_anno_attributes "
+    "WHERE name = :anno_name "
+  ), getter_AddRefs(stmt));
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->BindUTF8StringByName(NS_LITERAL_CSTRING("anno_name"),
+                                  SYNCGUID_ANNO);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRBool hasResult;
+  while (NS_SUCCEEDED(stmt->ExecuteStep(&hasResult)) && hasResult) {
+    PRInt64 itemId;
+    rv = stmt->GetInt64(0, &itemId);
+    NS_ENSURE_SUCCESS(rv, rv);
+    nsCAutoString guid;
+    rv = stmt->GetUTF8String(1, guid);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    if (!IsValidGUID(guid)) {
+      continue;
+    }
+
+    mozStorageStatementScoper scoper(updateStmt);
+    rv = updateStmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), itemId);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = updateStmt->BindUTF8StringByName(NS_LITERAL_CSTRING("guid"), guid);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = updateStmt->Execute();
+    if (rv == NS_ERROR_STORAGE_CONSTRAINT) {
+      
+      
+      continue;
+    }
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  
+  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+    "DELETE FROM moz_items_annos "
+    "WHERE anno_attribute_id = ( "
+      "SELECT id "
+      "FROM moz_anno_attributes "
+      "WHERE name = :anno_name "
+    ") "
+  ), getter_AddRefs(stmt));
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->BindUTF8StringByName(NS_LITERAL_CSTRING("anno_name"),
+                                  SYNCGUID_ANNO);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = stmt->Execute();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
     "UPDATE moz_bookmarks "
     "SET guid = GENERATE_GUID() "
     "WHERE guid IS NULL "
