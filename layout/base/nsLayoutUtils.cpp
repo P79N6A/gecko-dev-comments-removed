@@ -2147,12 +2147,8 @@ nsLayoutUtils::ComputeWidthDependentValue(
                    "very large sizes, not attempts at intrinsic width "
                    "calculation");
 
-  if (eStyleUnit_Coord == aCoord.GetUnit()) {
-    return aCoord.GetCoordValue();
-  }
-  if (eStyleUnit_Percent == aCoord.GetUnit()) {
-    return NSToCoordFloorClamped(aContainingBlockWidth *
-                                 aCoord.GetPercentValue());
+  if (aCoord.IsCoordPercentCalcUnit()) {
+    return nsRuleNode::ComputeCoordPercentCalc(aCoord, aContainingBlockWidth);
   }
   NS_ASSERTION(aCoord.GetUnit() == eStyleUnit_None ||
                aCoord.GetUnit() == eStyleUnit_Auto,
@@ -2225,25 +2221,22 @@ nsLayoutUtils::ComputeHeightDependentValue(
                  nscoord              aContainingBlockHeight,
                  const nsStyleCoord&  aCoord)
 {
-  if (eStyleUnit_Coord == aCoord.GetUnit()) {
-    return aCoord.GetCoordValue();
-  }
-  if (eStyleUnit_Percent == aCoord.GetUnit()) {
-    
-    
-    
-    
-    
-    
-    
-    NS_PRECONDITION(NS_AUTOHEIGHT != aContainingBlockHeight,
-                    "unexpected 'containing block height'");
+  
+  
+  
+  
+  
+  
+  
+  NS_PRECONDITION(NS_AUTOHEIGHT != aContainingBlockHeight ||
+                  (aCoord.GetUnit() != eStyleUnit_Percent &&
+                   !(aCoord.IsCalcUnit() && aCoord.CalcHasPercent())),
+                  "unexpected containing block height");
 
-    if (NS_AUTOHEIGHT != aContainingBlockHeight) {
-      return NSToCoordFloorClamped(aContainingBlockHeight *
-                                   aCoord.GetPercentValue());
-    }
+  if (aCoord.IsCoordPercentCalcUnit()) {
+    return nsRuleNode::ComputeCoordPercentCalc(aCoord, aContainingBlockHeight);
   }
+
   NS_ASSERTION(aCoord.GetUnit() == eStyleUnit_None ||
                aCoord.GetUnit() == eStyleUnit_Auto,
                "unexpected height value");
