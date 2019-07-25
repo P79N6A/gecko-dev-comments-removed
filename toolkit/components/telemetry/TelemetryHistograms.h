@@ -342,11 +342,4 @@ DOMSTORAGE_KEY_VAL_SIZE(SESSION, "session")
 #undef DOMSTORAGE_HISTOGRAM
 
 
-
-
-HISTOGRAM(RANGE_CHECKSUM_ERRORS, 1, 3000, 10, EXPONENTIAL, "Number of histograms with range checksum errors")
-HISTOGRAM(BUCKET_ORDER_ERRORS, 1, 3000, 10, EXPONENTIAL, "Number of histograms with bucket order errors")
-HISTOGRAM(TOTAL_COUNT_HIGH_ERRORS, 1, 3000, 10, EXPONENTIAL, "Number of histograms with total count high errors")
-HISTOGRAM(TOTAL_COUNT_LOW_ERRORS, 1, 3000, 10, EXPONENTIAL, "Number of histograms with total count low errors")
-
 #undef HISTOGRAM_BOOLEAN
