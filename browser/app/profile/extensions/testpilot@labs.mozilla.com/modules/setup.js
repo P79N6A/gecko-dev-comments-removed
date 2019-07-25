@@ -254,18 +254,15 @@ let TestPilotSetup = {
       Ci.nsITimer.TYPE_REPEATING_SLACK);
 
       this.getVersion(function() {
-      
-        let currVersion = self._prefs.getValue(VERSION_PREF, "firstrun");
+        
 
-        if (currVersion != self.version) {
-          if(!self._isBetaChannel()) {
-            
+        if ((self._prefs.getValue(VERSION_PREF, "") == "") &&
+           (!self._interfaceBuilder.channelUsesFeedback())) {
             self._prefs.setValue(VERSION_PREF, self.version);
             let browser = self._getFrontBrowserWindow().getBrowser();
             let url = self._prefs.getValue(FIRST_RUN_PREF, "");
             let tab = browser.addTab(url);
             browser.selectedTab = tab;
-          }
         }
 
         
