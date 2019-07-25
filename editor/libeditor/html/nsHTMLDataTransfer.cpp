@@ -668,11 +668,10 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
       
       nsWSRunObject wsRunObj(this, selNode, selOffset);
       PRInt32 outVisOffset=0;
-      PRInt16 visType=0;
+      WSType visType;
       wsRunObj.PriorVisibleNode(selNode, selOffset, address_of(visNode),
                                 &outVisOffset, &visType);
-      if (visType == nsWSRunObject::eBreak)
-      {
+      if (visType == WSType::br) {
         
         
         
@@ -686,14 +685,10 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
           nsWSRunObject wsRunObj(this, selNode, selOffset);
           wsRunObj.PriorVisibleNode(selNode, selOffset, address_of(visNode),
                                     &outVisOffset, &visType);
-          if (visType == nsWSRunObject::eText ||
-              visType == nsWSRunObject::eNormalWS)
-          {
+          if (visType == WSType::text || visType == WSType::normalWS) {
             selNode = visNode;
             selOffset = outVisOffset;  
-          }
-          else if (visType == nsWSRunObject::eSpecial)
-          {
+          } else if (visType == WSType::special) {
             
             
             selNode = GetNodeLocation(wsRunObj.mStartReasonNode, &selOffset);
