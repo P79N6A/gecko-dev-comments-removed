@@ -45,22 +45,14 @@ struct JSCompartment;
 namespace js {
 namespace gc {
 
-template <typename T> struct Arena;
 struct ArenaHeader;
-struct MarkingDelay;
 struct Chunk;
-struct FreeCell;
 
 
 
 
 
 static const uint32 BLACK = 0;
-
-
-
-
-
 
 
 
@@ -80,27 +72,10 @@ struct Cell {
 
     inline JSCompartment *compartment() const;
 
-    JS_ALWAYS_INLINE js::gc::FreeCell *asFreeCell() {
-        return reinterpret_cast<FreeCell *>(this);
-    }
-
-    JS_ALWAYS_INLINE const js::gc::FreeCell *asFreeCell() const {
-        return reinterpret_cast<const FreeCell *>(this);
-    }
-
 #ifdef DEBUG
     inline bool isAligned() const;
 #endif
 };
-
-struct FreeCell : Cell {
-    union {
-        FreeCell *link;
-        double data;
-    };
-};
-
-JS_STATIC_ASSERT(sizeof(FreeCell) == Cell::CellSize);
 
 } 
 } 
