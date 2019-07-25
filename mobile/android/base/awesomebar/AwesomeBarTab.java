@@ -92,7 +92,7 @@ abstract public class AwesomeBarTab {
     protected String getReaderForUrl(String url) {
         
         
-        return "about:reader?url=" + Uri.encode(url);
+        return "about:reader?url=" + Uri.encode(url) + "&readingList=1";
     }
 
     protected void updateFavicon(ImageView faviconView, Cursor cursor) {
