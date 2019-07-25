@@ -1580,18 +1580,6 @@ nsFrameLoader::CheckForRecursiveLoad(nsIURI* aURI)
   }
   
   
-  
-  nsCOMPtr<nsIURI> cloneURI;
-  rv = aURI->Clone(getter_AddRefs(cloneURI));
-  NS_ENSURE_SUCCESS(rv, rv);
-  
-  
-  nsCOMPtr<nsIURL> cloneURL(do_QueryInterface(cloneURI)); 
-  if (cloneURL) {
-    rv = cloneURL->SetRef(EmptyCString());
-    NS_ENSURE_SUCCESS(rv,rv);
-  }
-
   PRInt32 matchCount = 0;
   treeItem->GetSameTypeParent(getter_AddRefs(parentAsItem));
   while (parentAsItem) {
@@ -1602,17 +1590,9 @@ nsFrameLoader::CheckForRecursiveLoad(nsIURI* aURI)
       nsCOMPtr<nsIURI> parentURI;
       parentAsNav->GetCurrentURI(getter_AddRefs(parentURI));
       if (parentURI) {
-        nsCOMPtr<nsIURI> parentClone;
-        rv = parentURI->Clone(getter_AddRefs(parentClone));
-        NS_ENSURE_SUCCESS(rv, rv);
-        nsCOMPtr<nsIURL> parentURL(do_QueryInterface(parentClone));
-        if (parentURL) {
-          rv = parentURL->SetRef(EmptyCString());
-          NS_ENSURE_SUCCESS(rv,rv);
-        }
-
+        
         PRBool equal;
-        rv = cloneURI->Equals(parentClone, &equal);
+        rv = aURI->EqualsExceptRef(parentURI, &equal);
         NS_ENSURE_SUCCESS(rv, rv);
         
         if (equal) {

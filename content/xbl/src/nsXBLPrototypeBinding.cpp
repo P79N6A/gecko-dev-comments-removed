@@ -307,14 +307,11 @@ nsXBLPrototypeBinding::Init(const nsACString& aID,
 
   
   
-  nsCOMPtr<nsIURL> bindingURL = do_QueryInterface(mBindingURI);
-  if (bindingURL) {
-    if (aFirstBinding) {
-      rv = mBindingURI->Clone(getter_AddRefs(mAlternateBindingURI));
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-    bindingURL->SetRef(aID);
+  if (aFirstBinding) {
+    rv = mBindingURI->Clone(getter_AddRefs(mAlternateBindingURI));
+    NS_ENSURE_SUCCESS(rv, rv);
   }
+  mBindingURI->SetRef(aID);
 
   mXBLDocInfoWeak = aInfo;
 

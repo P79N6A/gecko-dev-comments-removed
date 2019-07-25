@@ -3384,17 +3384,14 @@ nsHttpChannel::ContinueProcessRedirectionAfterFallback(nsresult rv)
 
     
     
-    nsCOMPtr<nsIURL> newURL = do_QueryInterface(mRedirectURI);
-    if (newURL) {
-        nsCAutoString ref;
-        rv = newURL->GetRef(ref);
-        if (NS_SUCCEEDED(rv) && ref.IsEmpty()) {
-            nsCOMPtr<nsIURL> baseURL(do_QueryInterface(mURI));
-            if (baseURL) {
-                baseURL->GetRef(ref);
-                if (!ref.IsEmpty())
-                    newURL->SetRef(ref);
-            }
+    nsCAutoString ref;
+    rv = mRedirectURI->GetRef(ref);
+    if (NS_SUCCEEDED(rv) && ref.IsEmpty()) {
+        mURI->GetRef(ref);
+        if (!ref.IsEmpty()) {
+            
+            
+            mRedirectURI->SetRef(ref);
         }
     }
 

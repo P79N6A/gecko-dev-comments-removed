@@ -865,16 +865,13 @@ HttpBaseChannel::SetReferrer(nsIURI *referrer)
   
   
   
-  rv = referrer->Clone(getter_AddRefs(clone));
+  
+  rv = referrer->CloneIgnoringRef(getter_AddRefs(clone));
   if (NS_FAILED(rv)) return rv;
 
   
-  clone->SetUserPass(EmptyCString());
-
-  
-  nsCOMPtr<nsIURL> url = do_QueryInterface(clone);
-  if (url)
-    url->SetRef(EmptyCString());
+  rv = clone->SetUserPass(EmptyCString());
+  if (NS_FAILED(rv)) return rv;
 
   nsCAutoString spec;
   rv = clone->GetAsciiSpec(spec);
