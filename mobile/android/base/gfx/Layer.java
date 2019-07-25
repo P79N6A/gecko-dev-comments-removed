@@ -41,6 +41,7 @@ package org.mozilla.gecko.gfx;
 import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.RectF;
+import android.graphics.Region;
 import android.util.Log;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.microedition.khronos.opengles.GL10;
@@ -49,11 +50,12 @@ import org.mozilla.gecko.FloatUtils;
 public abstract class Layer {
     private final ReentrantLock mTransactionLock;
     private boolean mInTransaction;
-    private Point mOrigin;
     private Point mNewOrigin;
-    private float mResolution;
     private float mNewResolution;
     private LayerView mView;
+
+    protected Point mOrigin;
+    protected float mResolution;
 
     public Layer() {
         mTransactionLock = new ReentrantLock();
@@ -65,29 +67,21 @@ public abstract class Layer {
 
 
 
-
-
     public final boolean update(GL10 gl, RenderContext context) {
-        boolean startTransaction = true;
         if (mTransactionLock.isHeldByCurrentThread()) {
-            startTransaction = false;
+            throw new RuntimeException("draw() called while transaction lock held by this " +
+                                       "thread?!");
         }
 
-        
-        
-        if (startTransaction && !mTransactionLock.tryLock()) {
-            return false;
-        }
-
-        mInTransaction = true;
-        try {
-            return performUpdates(gl, context);
-        } finally {
-            if (startTransaction) {
-                mInTransaction = false;
+        if (mTransactionLock.tryLock()) {
+            try {
+                return performUpdates(gl, context);
+            } finally {
                 mTransactionLock.unlock();
             }
         }
+
+        return false;
     }
 
     
@@ -109,6 +103,15 @@ public abstract class Layer {
 
 
 
+    public Region getValidRegion(RenderContext context) {
+        return new Region(RectUtils.round(getBounds(context, new FloatSize(getSize()))));
+    }
+
+    
+
+
+
+
 
 
     public void beginTransaction(LayerView aView) {
@@ -117,6 +120,7 @@ public abstract class Layer {
         mTransactionLock.lock();
         mView = aView;
         mInTransaction = true;
+        mNewResolution = mResolution;
     }
 
     public void beginTransaction() {

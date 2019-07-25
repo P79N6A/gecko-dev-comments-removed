@@ -287,6 +287,9 @@ pref("accessibility.typeaheadfind.prefillwithselection", true);
 pref("gfx.use_text_smoothing_setting", false);
 
 
+pref("gfx.show_checkerboard_pattern", true);
+
+
 pref("browser.frames.enabled", true);
 
 
@@ -318,6 +321,9 @@ pref("nglayout.events.dispatchLeftClickOnly", true);
 
 
 pref("nglayout.enable_drag_images", true);
+
+
+pref("nglayout.debug.paint_flashing", false);
 
 
 
@@ -801,7 +807,7 @@ pref("network.http.connection-retry-timeout", 250);
 pref("network.http.fast-fallback-to-IPv4", true);
 
 
-pref("network.http.spdy.enabled", false);
+pref("network.http.spdy.enabled", true);
 pref("network.http.spdy.chunk-size", 4096);
 pref("network.http.spdy.timeout", 180);
 pref("network.http.spdy.coalesce-hostnames", true);

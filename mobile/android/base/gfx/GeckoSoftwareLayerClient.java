@@ -69,9 +69,6 @@ public class GeckoSoftwareLayerClient extends GeckoLayerClient {
     private IntSize mViewportSize;
     private ByteBuffer mBuffer;
 
-    
-    private Point mRenderOffset;
-
     private CairoImage mCairoImage;
 
     private static final IntSize TILE_SIZE = new IntSize(256, 256);
@@ -83,7 +80,6 @@ public class GeckoSoftwareLayerClient extends GeckoLayerClient {
         super(context);
 
         mFormat = CairoImage.FORMAT_RGB16_565;
-        mRenderOffset = new Point(0, 0);
 
         mCairoImage = new CairoImage() {
             @Override
@@ -105,6 +101,21 @@ public class GeckoSoftwareLayerClient extends GeckoLayerClient {
         }
     }
 
+    public void setLayerController(LayerController layerController) {
+        super.setLayerController(layerController);
+
+        layerController.setRoot(mTileLayer);
+        if (mGeckoViewport != null) {
+            layerController.setViewportMetrics(mGeckoViewport);
+        }
+
+        GeckoAppShell.registerGeckoEventListener("Viewport:UpdateAndDraw", this);
+        GeckoAppShell.registerGeckoEventListener("Viewport:UpdateLater", this);
+        GeckoAppShell.registerGeckoEventListener("Checkerboard:Toggle", this);
+
+        sendResizeEventIfNecessary();
+    }
+
     @Override
     protected boolean handleDirectTextureChange(boolean hasDirectTexture) {
         if (mTileLayer != null && hasDirectTexture == mHasDirectTexture)
@@ -115,7 +126,6 @@ public class GeckoSoftwareLayerClient extends GeckoLayerClient {
         if (mHasDirectTexture) {
             Log.i(LOGTAG, "Creating WidgetTileLayer");
             mTileLayer = new WidgetTileLayer(mCairoImage);
-            mRenderOffset.set(0, 0);
         } else {
             Log.i(LOGTAG, "Creating MultiTileLayer");
             mTileLayer = new MultiTileLayer(mCairoImage, TILE_SIZE);
@@ -189,13 +199,13 @@ public class GeckoSoftwareLayerClient extends GeckoLayerClient {
             mBufferSize = new IntSize(width, height);
 
             
-            
-            IntSize realBufferSize = new IntSize(width + TILE_SIZE.width,
-                                                 height + TILE_SIZE.height);
+            if (!(mTileLayer instanceof MultiTileLayer)) {
+                return true;
+            }
 
             
             int bpp = CairoUtils.bitsPerPixelForCairoFormat(mFormat) / 8;
-            int size = realBufferSize.getArea() * bpp;
+            int size = mBufferSize.getArea() * bpp;
             if (mBuffer == null || mBuffer.capacity() != size) {
                 
                 if (mBuffer != null) {
@@ -226,19 +236,23 @@ public class GeckoSoftwareLayerClient extends GeckoLayerClient {
         ByteBuffer tileBuffer = mBuffer.slice();
         int bpp = CairoUtils.bitsPerPixelForCairoFormat(mFormat) / 8;
 
-        for (int y = 0; y <= mBufferSize.height; y += TILE_SIZE.height) {
-            for (int x = 0; x <= mBufferSize.width; x += TILE_SIZE.width) {
+        for (int y = 0; y < mBufferSize.height; y += TILE_SIZE.height) {
+            for (int x = 0; x < mBufferSize.width; x += TILE_SIZE.width) {
                 
-                Bitmap tile = Bitmap.createBitmap(TILE_SIZE.width, TILE_SIZE.height,
+                IntSize tileSize = new IntSize(Math.min(mBufferSize.width - x, TILE_SIZE.width),
+                                               Math.min(mBufferSize.height - y, TILE_SIZE.height));
+
+                
+                Bitmap tile = Bitmap.createBitmap(tileSize.width, tileSize.height,
                                                   CairoUtils.cairoFormatTobitmapConfig(mFormat));
                 tile.copyPixelsFromBuffer(tileBuffer.asIntBuffer());
 
                 
-                c.drawBitmap(tile, x - mRenderOffset.x, y - mRenderOffset.y, null);
+                c.drawBitmap(tile, x, y, null);
                 tile.recycle();
 
                 
-                tileBuffer.position(TILE_SIZE.getArea() * bpp);
+                tileBuffer.position(tileSize.getArea() * bpp);
                 tileBuffer = tileBuffer.slice();
             }
         }
@@ -284,10 +298,6 @@ public class GeckoSoftwareLayerClient extends GeckoLayerClient {
     
     public ByteBuffer lockBuffer() {
         return mBuffer;
-    }
-
-    public Point getRenderOffset() {
-        return mRenderOffset;
     }
 
     
