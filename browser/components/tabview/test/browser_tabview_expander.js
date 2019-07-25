@@ -26,13 +26,14 @@ function onTabViewWindowLoaded(win) {
   
   contentWindow.UI.setActive(group);
   for (var i=0; i<7; i++) {
-    win.gBrowser.loadOneTab('http://example.com#' + i, {inBackground: true});
+    win.gBrowser.loadOneTab('about:blank#' + i, {inBackground: true});
   }
   let children = group.getChildren();
   
   
   
   afterAllTabItemsUpdated(function() {
+    
     ok(!group.shouldStack(group._children.length), "The group should not stack.");
     is(expander[0].style.display, "none", "The expander is hidden.");
     
