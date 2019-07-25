@@ -2734,13 +2734,18 @@ Tab.prototype = {
     if ("delayLoad" in aParams && aParams.delayLoad)
       return;
 
-    try {
-      let flags = aParams.flags || Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
-      let postData = aParams.postData ? aParams.postData.value : null;
-      browser.loadURIWithFlags(aURI, flags, aParams.referrerURI, aParams.charset, postData);
-    } catch(e) {
-      dump("Error: " + e + "\n");
-    }
+    
+    
+    
+    setTimeout(function() {
+      try {
+        let flags = aParams.flags || Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
+        let postData = aParams.postData ? aParams.postData.value : null;
+        browser.loadURIWithFlags(aURI, flags, aParams.referrerURI, aParams.charset, postData);
+      } catch(e) {
+        dump("Error: " + e + "\n");
+      }
+    }, 0);
   },
 
   destroy: function destroy() {
