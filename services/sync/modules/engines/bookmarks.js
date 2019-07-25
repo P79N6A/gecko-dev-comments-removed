@@ -262,9 +262,126 @@ BookmarksEngine.prototype = {
     }, null);
 
     
-    if (batchEx!= null) {
+    if (batchEx != null) {
       throw batchEx;
     }
+  },
+
+  _guidMapFailed: false,
+  _buildGUIDMap: function _buildGUIDMap() {
+    let guidMap = {};
+    for (let guid in this._store.getAllIDs()) {
+      
+      let key;
+      let id = this._store.idForGUID(guid);
+      switch (PlacesUtils.bookmarks.getItemType(id)) {
+        case PlacesUtils.bookmarks.TYPE_BOOKMARK:
+
+          
+          let queryId;
+          try {
+            queryId = PlacesUtils.annotations.getItemAnnotation(
+              id, SMART_BOOKMARKS_ANNO);
+          } catch(ex) {}
+          
+          if (queryId)
+            key = "q" + queryId;
+          else
+            key = "b" + PlacesUtils.bookmarks.getBookmarkURI(id).spec + ":" +
+                  PlacesUtils.bookmarks.getItemTitle(id);
+          break;
+        case PlacesUtils.bookmarks.TYPE_FOLDER:
+          key = "f" + PlacesUtils.bookmarks.getItemTitle(id);
+          break;
+        case PlacesUtils.bookmarks.TYPE_SEPARATOR:
+          key = "s" + PlacesUtils.bookmarks.getItemIndex(id);
+          break;
+        default:
+          continue;
+      }
+
+      
+      let parent = PlacesUtils.bookmarks.getFolderIdForItem(id);
+      if (parent <= 0)
+        continue;
+
+      let parentName = PlacesUtils.bookmarks.getItemTitle(parent);
+      if (guidMap[parentName] == null)
+        guidMap[parentName] = {};
+
+      
+      let entry = new String(guid);
+      entry.hasDupe = guidMap[parentName][key] != null;
+
+      
+      guidMap[parentName][key] = entry;
+      this._log.trace("Mapped: " + [parentName, key, entry, entry.hasDupe]);
+    }
+
+    return guidMap;
+  },
+
+  
+  _mapDupe: function _mapDupe(item) {
+    
+    let key;
+    let altKey;
+    switch (item.type) {
+      case "query":
+        
+        
+        
+        if (item.queryId) {
+          key = "q" + item.queryId;
+          altKey = "b" + item.bmkUri + ":" + item.title;
+          break;
+        }
+        
+      case "bookmark":
+      case "microsummary":
+        key = "b" + item.bmkUri + ":" + item.title;
+        break;
+      case "folder":
+      case "livemark":
+        key = "f" + item.title;
+        break;
+      case "separator":
+        key = "s" + item.pos;
+        break;
+      default:
+        return;
+    }
+
+    
+    
+    let guidMap = this._guidMap;
+
+    
+    this._log.trace("Finding mapping: " + item.parentName + ", " + key);
+    let parent = guidMap[item.parentName];
+    
+    if (!parent) {
+      this._log.trace("No parent => no dupe.");
+      return undefined;
+    }
+      
+    let dupe = parent[key];
+    
+    if (dupe) {
+      this._log.trace("Mapped dupe: " + dupe);
+      return dupe;
+    }
+    
+    if (altKey) {
+      dupe = parent[altKey];
+      if (dupe) {
+        this._log.trace("Mapped dupe using altKey " + altKey + ": " + dupe);
+        return dupe;
+      }
+    }
+    
+    this._log.trace("No dupe found for key " + key + "/" + altKey + ".");
+    return undefined;
   },
 
   _syncStartup: function _syncStart() {
@@ -274,117 +391,19 @@ BookmarksEngine.prototype = {
     if (this.lastSync == 0)
       archiveBookmarks();
 
-    
-    this.__defineGetter__("_lazyMap", function() {
-      delete this._lazyMap;
-
-      let lazyMap = {};
-      for (let guid in this._store.getAllIDs()) {
-        
-        let key;
-        let id = this._store.idForGUID(guid);
-        switch (PlacesUtils.bookmarks.getItemType(id)) {
-          case PlacesUtils.bookmarks.TYPE_BOOKMARK:
-
-            
-            let queryId;
-            try {
-              queryId = PlacesUtils.annotations.getItemAnnotation(
-                id, SMART_BOOKMARKS_ANNO);
-            } catch(ex) {}
-            
-            if (queryId)
-              key = "q" + queryId;
-            else
-              key = "b" + PlacesUtils.bookmarks.getBookmarkURI(id).spec + ":" +
-                    PlacesUtils.bookmarks.getItemTitle(id);
-            break;
-          case PlacesUtils.bookmarks.TYPE_FOLDER:
-            key = "f" + PlacesUtils.bookmarks.getItemTitle(id);
-            break;
-          case PlacesUtils.bookmarks.TYPE_SEPARATOR:
-            key = "s" + PlacesUtils.bookmarks.getItemIndex(id);
-            break;
-          default:
-            continue;
-        }
-
-        
-        let parent = PlacesUtils.bookmarks.getFolderIdForItem(id);
-        if (parent <= 0)
-          continue;
-
-        let parentName = PlacesUtils.bookmarks.getItemTitle(parent);
-        if (lazyMap[parentName] == null)
-          lazyMap[parentName] = {};
-
-        
-        let entry = new String(guid);
-        entry.hasDupe = lazyMap[parentName][key] != null;
-
-        
-        lazyMap[parentName][key] = entry;
-        this._log.trace("Mapped: " + [parentName, key, entry, entry.hasDupe]);
-      }
-
+    this.__defineGetter__("_guidMap", function() {
       
-      return this._lazyMap = function(item) {
-        
-        let key;
-        let altKey;
-        switch (item.type) {
-          case "query":
-            
-            
-            
-            if (item.queryId) {
-              key = "q" + item.queryId;
-              altKey = "b" + item.bmkUri + ":" + item.title;
-              break;
-            }
-            
-          case "bookmark":
-          case "microsummary":
-            key = "b" + item.bmkUri + ":" + item.title;
-            break;
-          case "folder":
-          case "livemark":
-            key = "f" + item.title;
-            break;
-          case "separator":
-            key = "s" + item.pos;
-            break;
-          default:
-            return;
-        }
-
-        
-        this._log.trace("Finding mapping: " + item.parentName + ", " + key);
-        let parent = lazyMap[item.parentName];
-        
-        if (!parent) {
-          this._log.trace("No parent => no dupe.");
-          return undefined;
-        }
-          
-        let dupe = parent[key];
-        
-        if (dupe) {
-          this._log.trace("Mapped dupe: " + dupe);
-          return dupe;
-        }
-        
-        if (altKey) {
-          dupe = parent[altKey];
-          if (dupe) {
-            this._log.trace("Mapped dupe using altKey " + altKey + ": " + dupe);
-            return dupe;
-          }
-        }
-        
-        this._log.trace("No dupe found for key " + key + "/" + altKey + ".");
-        return undefined;
-      };
+      
+      
+      try {
+        return this._guidMap = this._buildGUIDMap();
+      } catch (ex) {
+        this._log.warn("Got exception \"" + Utils.exceptionStr(ex) +
+                       "\" building GUID map." +
+                       " Skipping all other incoming items.");
+        throw {code: Engine.prototype.eEngineAbortApplyIncoming,
+               cause: ex};
+      }
     });
 
     this._store._childrenToOrder = {};
@@ -404,14 +423,18 @@ BookmarksEngine.prototype = {
 
   _syncFinish: function _syncFinish() {
     SyncEngine.prototype._syncFinish.call(this);
-    delete this._lazyMap;
     this._tracker._ensureMobileQuery();
+  },
+
+  _syncCleanup: function _syncCleanup() {
+    SyncEngine.prototype._syncCleanup.call(this);
+    delete this._guidMap;
   },
 
   _createRecord: function _createRecord(id) {
     
     let record = SyncEngine.prototype._createRecord.call(this, id);
-    let entry = this._lazyMap(record);
+    let entry = this._mapDupe(record);
     if (entry != null && entry.hasDupe)
       record.hasDupe = true;
     return record;
@@ -421,7 +444,7 @@ BookmarksEngine.prototype = {
     
     if (item.hasDupe)
       return;
-    return this._lazyMap(item);
+    return this._mapDupe(item);
   },
 
   _handleDupe: function _handleDupe(item, dupeId) {
