@@ -1540,7 +1540,7 @@ class ScopeNameCompiler : public PICStubCompiler
         const Shape *shape = getprop.shape;
 
         
-        types::TypeSet *types;
+        types::TypeSet *types = NULL;
 
         if (getprop.obj->getClass() == &js_CallClass) {
             JS_ASSERT(shape->getterOp() == GetCallArg || shape->getterOp() == GetCallVar);
