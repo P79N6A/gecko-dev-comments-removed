@@ -59,6 +59,7 @@ public:
       mNeedsYFlip(PR_FALSE)
   {
       mImplData = static_cast<LayerD3D9*>(this);
+      aManager->deviceManager()->mLayersWithResources.AppendElement(this);
   }
 
   ~CanvasLayerD3D9();
@@ -70,6 +71,7 @@ public:
   
   virtual Layer* GetLayer();
   virtual void RenderLayer();
+  virtual void CleanResources();
 
 protected:
   typedef mozilla::gl::GLContext GLContext;
