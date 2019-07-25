@@ -659,7 +659,7 @@ GreedyAllocator::mergeRegisterState(const AnyRegister &reg, LBlock *left, LBlock
     
     
     
-    if (!vright->hasRegister() && allocatableRegs().empty(vright->isDouble())) {
+    if (!vright->hasRegister() && !allocatableRegs().empty(vright->isDouble())) {
         AnyRegister reg;
         if (!allocate(vright->type(), DISALLOW, &reg))
             return false;
@@ -728,7 +728,7 @@ GreedyAllocator::mergeBackedgeState(LBlock *header, LBlock *backedge)
         if (vr->hasStackSlot() && !info->phis.move(*a, vr->backingStack()))
             return false;
 
-        if (vr->hasRegister() && vr->reg() != a->toRegister()) {
+        if (vr->hasRegister() && (!a->isRegister() || vr->reg() != a->toRegister())) {
             if (!info->phis.move(*a, vr->reg()))
                 return false;
         }
@@ -883,6 +883,13 @@ GreedyAllocator::allocateRegisters()
             return false;
 
         
+        
+        if (block->mir()->isLoopHeader()) {
+            if (!mergeBackedgeState(block, block->mir()->backedge()->lir()))
+                return false;
+        }
+
+        
         for (size_t i = 0; i < block->numPhis(); i++) {
             LPhi *phi = block->getPhi(i);
             JS_ASSERT(phi->numDefs() == 1);
@@ -904,13 +911,6 @@ GreedyAllocator::allocateRegisters()
                 JS_ASSERT(vr->reg() == reg);
                 vr->unsetRegister();
             }
-        }
-
-        
-        
-        if (block->mir()->isLoopHeader()) {
-            if (!mergeBackedgeState(block, block->mir()->backedge()->lir()))
-                return false;
         }
     }
     return true;
