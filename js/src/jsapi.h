@@ -421,6 +421,7 @@ extern JS_PUBLIC_DATA(jsid) JSID_VOID;
 #endif
 
 #if defined(DEBUG) && defined(__cplusplus)
+extern "C++" {
 
 
 
@@ -435,6 +436,7 @@ static JS_ALWAYS_INLINE bool
 operator!=(jsid lhs, jsid rhs)
 {
     return JSID_BITS(lhs) != JSID_BITS(rhs);
+}
 }
 #endif
 
