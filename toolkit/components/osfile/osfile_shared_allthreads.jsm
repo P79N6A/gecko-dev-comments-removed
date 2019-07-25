@@ -9,7 +9,7 @@
     
     
 
-    throw new Error("osfile_shared.jsm cannot be used from the main thread yet");
+    throw new Error("osfile_shared_allthreads.jsm cannot be used from the main thread yet");
   }
 
   (function(exports) {
