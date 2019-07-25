@@ -813,6 +813,21 @@ namespace nanojit
         asm_output("test ah, %d", i);
     }
 
+    
+    
+    
+    
+    
+    
+    
+    void Assembler::fpu_push() {
+        debug_only( ++_fpuStkDepth; NanoAssert(_fpuStkDepth <= 0); )
+    }
+
+    void Assembler::fpu_pop() {
+        debug_only( --_fpuStkDepth; NanoAssert(_fpuStkDepth >= -7); )
+    }
+
     inline void Assembler::FNSTSW_AX() { count_fpu(); FPUc(0xdfe0);    asm_output("fnstsw_ax"); }
     inline void Assembler::FCHS()      { count_fpu(); FPUc(0xd9e0);    asm_output("fchs"); }
     inline void Assembler::FLD1()      { count_fpu(); FPUc(0xd9e8);    asm_output("fld1"); fpu_push(); }
@@ -2860,6 +2875,9 @@ namespace nanojit
 
     void Assembler::asm_ret(LIns* ins)
     {
+        
+        debug_only( _fpuStkDepth = 0; )
+
         genEpilogue();
 
         

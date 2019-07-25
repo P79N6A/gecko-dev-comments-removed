@@ -529,24 +529,6 @@ namespace nanojit
             DECLARE_PLATFORM_ASSEMBLER()
 
         private:
-#ifdef NANOJIT_IA32
-            debug_only( int32_t _fpuStkDepth; )
-            debug_only( int32_t _sv_fpuStkDepth; )
-
-            
-            
-            
-            
-            
-            
-            
-            inline void fpu_push() {
-                debug_only( ++_fpuStkDepth; NanoAssert(_fpuStkDepth <= 0); )
-            }
-            inline void fpu_pop() {
-                debug_only( --_fpuStkDepth; NanoAssert(_fpuStkDepth >= -7); )
-            }
-#endif
             const Config& _config;
     };
 
