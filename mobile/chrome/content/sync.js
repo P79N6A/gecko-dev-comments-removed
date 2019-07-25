@@ -52,21 +52,15 @@ let WeaveGlue = {
 
     this.setupData = { account: "", password: "" , synckey: "", serverURL: "" };
 
-    let enableSync = Services.prefs.getBoolPref("browser.sync.enabled");
-    if (enableSync)
-      this._elements.connect.collapsed = false;
-
     
     if (Weave.Status.checkSetup() != Weave.CLIENT_NOT_CONFIGURED) {
-      if (enableSync) {
-        
-        this._elements.connect.firstChild.disabled = true;
-        this._elements.connect.setAttribute("title", this._bundle.GetStringFromName("connecting.label"));
+      
+      this._elements.connect.firstChild.disabled = true;
+      this._elements.connect.setAttribute("title", this._bundle.GetStringFromName("connecting.label"));
 
-        try {
-          this._elements.device.value = Services.prefs.getCharPref("services.sync.client.name");
-        } catch(e) {}
-      }
+      try {
+        this._elements.device.value = Services.prefs.getCharPref("services.sync.client.name");
+      } catch(e) {}
     } else if (Weave.Status.login != Weave.LOGIN_FAILED_NO_USERNAME) {
       this.loadSetupData();
     }
@@ -125,6 +119,8 @@ let WeaveGlue = {
         document.getElementById("syncsetup-code2").value = aPin.slice(4, 8);
         document.getElementById("syncsetup-code3").value = aPin.slice(8);
       },
+
+      onPairingStart: function onPairingStart() {},
 
       onComplete: function onComplete(aCredentials) {
         self.jpake = null;
@@ -257,36 +253,33 @@ let WeaveGlue = {
     this._elements.disconnect.collapsed = !show;
   },
 
-  toggleSyncEnabled: function toggleSyncEnabled() {
-    let enabled = this._elements.autosync.value;
-    if (enabled) {
-      
-      if (this.setupData) {
-        if (this.setupData.serverURL && this.setupData.serverURL.length)
-          Weave.Service.serverURL = this.setupData.serverURL;
-
-        
-        
-        this.observe(null, "", "");
-
-        
-        
-        Weave.Service.login(Weave.Service.username, this.setupData.password, this.setupData.synckey);
-      } else {
-        
-        this._elements.connected.collapsed = true;
-        this._elements.connect.collapsed = false;
-      }
-    } else {
-      this._elements.connect.collapsed = true;
-      this._elements.connected.collapsed = true;
-      Weave.Service.logout();
+  tryConnect: function login() {
+    
+    if (Weave.Status.checkSetup() == Weave.CLIENT_NOT_CONFIGURED) {
+      this.open();
+      return;
     }
 
     
-    let notification = this._msg.getNotificationWithValue("undo-disconnect");
-    if (notification)
-      notification.close();
+    if (Weave.Service.isLoggedIn) {
+      this.connect();
+      return;
+    }
+
+    
+    if (!this.setupData)
+      return;
+
+    if (this.setupData.serverURL && this.setupData.serverURL.length)
+      Weave.Service.serverURL = this.setupData.serverURL;
+
+    
+    
+    this.observe(null, "", "");
+
+    
+    
+    Weave.Service.login(Weave.Service.username, this.setupData.password, this.setupData.synckey);
   },
 
   connect: function connect(aSetupData) {
@@ -380,7 +373,7 @@ let WeaveGlue = {
       elements[id] = document.getElementById("syncsetup-" + id);
     });
 
-    let settingids = ["device", "connect", "connected", "disconnect", "sync", "autosync", "details"];
+    let settingids = ["device", "connect", "connected", "disconnect", "sync", "details"];
     settingids.forEach(function(id) {
       elements[id] = document.getElementById("sync-" + id);
     });
@@ -401,28 +394,15 @@ let WeaveGlue = {
     
     let connect = this._elements.connect;
     let connected = this._elements.connected;
-    let autosync = this._elements.autosync;
     let details = this._elements.details;
     let device = this._elements.device;
     let disconnect = this._elements.disconnect;
     let sync = this._elements.sync;
 
-    let syncEnabled = autosync.value;
     let loggedIn = Weave.Service.isLoggedIn;
 
-    
-    
-    if (loggedIn && !syncEnabled)
-      syncEnabled = autosync.value = true;
-
-    
-    if (syncEnabled) {
-      connect.collapsed = loggedIn;
-      connected.collapsed = !loggedIn;
-    } else {
-      connect.collapsed = true;
-      connected.collapsed = true;
-    }
+    connect.collapsed = loggedIn;
+    connected.collapsed = !loggedIn;
 
     if (!loggedIn) {
       connect.setAttribute("title", this._bundle.GetStringFromName("notconnected.label"));
@@ -465,14 +445,10 @@ let WeaveGlue = {
 
     
     if (aTopic == "weave:service:login:error") {
-      if (Weave.Status.login == "service.master_password_locked") {
-        
-        
-        autosync.value = false;
-        this.toggleSyncEnabled();
-      } else {
+      if (Weave.Status.login == "service.master_password_locked")
+        Weave.Service.logout();
+      else
         connect.setAttribute("desc", Weave.Utils.getErrorString(Weave.Status.login));
-      }
     } else {
       connect.removeAttribute("desc");
     }
