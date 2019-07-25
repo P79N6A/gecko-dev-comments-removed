@@ -54,17 +54,7 @@ bool LaunchApp(const std::vector<std::string>& argv,
   fd_shuffle1.reserve(fds_to_remap.size());
   fd_shuffle2.reserve(fds_to_remap.size());
 
-#ifdef MOZ_MEMORY_ANDROID
-  
-
-
-
-  ::_malloc_prefork();
-#endif
   pid_t pid = fork();
-#ifdef MOZ_MEMORY_ANDROID
-  ::_malloc_postfork();
-#endif
   if (pid < 0)
     return false;
 
