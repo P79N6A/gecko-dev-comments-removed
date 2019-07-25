@@ -165,7 +165,6 @@ DocumentRendererNativeIDChild::RenderDocument(nsIDOMWindow* window, const PRInt3
         return false;
 
     surf = new gfxXlibSurface(dpy, nativeID, vinfo.visual);
-    XSync(dpy, False);
 #else
     NS_ERROR("NativeID handler not implemented for your platform");
 #endif
@@ -174,5 +173,13 @@ DocumentRendererNativeIDChild::RenderDocument(nsIDOMWindow* window, const PRInt3
     ctx->SetMatrix(aMatrix);
 
     presShell->RenderDocument(r, flags, bgColor, ctx);
+#ifdef MOZ_X11
+    
+    
+    
+    
+    
+    XSync(dpy, False);
+#endif
     return true;
 }
