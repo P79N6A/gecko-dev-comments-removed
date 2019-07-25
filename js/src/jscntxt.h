@@ -2021,9 +2021,14 @@ struct JSContext
     friend class js::StackSpace;
     friend bool js::Interpret(JSContext *, JSStackFrame *, uintN, uintN);
 
+    void resetCompartment();
+
     
     void setCurrentRegs(JSFrameRegs *regs) {
+        JS_ASSERT_IF(regs, regs->fp);
         this->regs = regs;
+        if (!regs)
+            resetCompartment();
     }
 
     
