@@ -3340,7 +3340,7 @@ WebGLContext::ReadPixels(PRInt32)
 
 nsresult
 WebGLContext::ReadPixels_base(WebGLint x, WebGLint y, WebGLsizei width, WebGLsizei height,
-                              WebGLenum format, WebGLenum type, void *data, PRUint32 byteLength)
+                              WebGLenum format, WebGLenum type, JSObject* pixels)
 {
     if (HTMLCanvasElement()->IsWriteOnly() && !nsContentUtils::IsCallerTrustedForRead()) {
         LogMessageIfVerbose("ReadPixels: Not allowed");
@@ -3350,52 +3350,89 @@ WebGLContext::ReadPixels_base(WebGLint x, WebGLint y, WebGLsizei width, WebGLsiz
     if (width < 0 || height < 0)
         return ErrorInvalidValue("ReadPixels: negative size passed");
 
-    
-    if (width == 0 || height == 0)
-        return NS_OK;
+    if (!pixels)
+        return ErrorInvalidValue("ReadPixels: null array passed");
 
     WebGLsizei boundWidth = mBoundFramebuffer ? mBoundFramebuffer->width() : mWidth;
     WebGLsizei boundHeight = mBoundFramebuffer ? mBoundFramebuffer->height() : mHeight;
 
-    PRUint32 size = 0;
-    bool badFormat = false, badType = false;
+    void* data = JS_GetTypedArrayData(pixels);
+    PRUint32 dataByteLen = JS_GetTypedArrayByteLength(pixels);
+    int dataType = JS_GetTypedArrayType(pixels);
+
+    PRUint32 channels = 0;
+
+    
     switch (format) {
-    case LOCAL_GL_RGBA:
-        size = 4;
-        break;
-    default:
-        badFormat = true;
-        break;
+        case LOCAL_GL_ALPHA:
+            channels = 1;
+            break;
+        case LOCAL_GL_RGB:
+            channels = 3;
+            break;
+        case LOCAL_GL_RGBA:
+            channels = 4;
+            break;
+        default:
+            return ErrorInvalidEnum("readPixels: Bad format");
     }
 
+    PRUint32 bytesPerPixel = 0;
+    int requiredDataType = 0;
+
+    
     switch (type) {
-    case LOCAL_GL_UNSIGNED_BYTE:
-        break;
-    default:
-        badType = true;
-        break;
+        case LOCAL_GL_UNSIGNED_BYTE:
+            bytesPerPixel = 1 * channels;
+            requiredDataType = js::TypedArray::TYPE_UINT8;
+            break;
+        case LOCAL_GL_UNSIGNED_SHORT_4_4_4_4:
+        case LOCAL_GL_UNSIGNED_SHORT_5_5_5_1:
+        case LOCAL_GL_UNSIGNED_SHORT_5_6_5:
+            bytesPerPixel = 2;
+            requiredDataType = js::TypedArray::TYPE_UINT16;
+            break;
+        default:
+            return ErrorInvalidEnum("readPixels: Bad type");
     }
 
-    if (badFormat && badType)
-        return ErrorInvalidOperation("readPixels: bad format and type");
-    if (badFormat)
-        return ErrorInvalidEnumInfo("readPixels: format", format);
-    if (badType)
-        return ErrorInvalidEnumInfo("ReadPixels: type", type);
+    
+    if (dataType != requiredDataType)
+        return ErrorInvalidOperation("readPixels: Mismatched type/pixels types");
 
+    
     CheckedUint32 checked_neededByteLength =
-        GetImageSize(height, width, size, mPixelStorePackAlignment);
+        GetImageSize(height, width, bytesPerPixel, mPixelStorePackAlignment);
 
-    CheckedUint32 checked_plainRowSize = CheckedUint32(width) * size;
+    CheckedUint32 checked_plainRowSize = CheckedUint32(width) * bytesPerPixel;
 
-    CheckedUint32 checked_alignedRowSize = 
+    CheckedUint32 checked_alignedRowSize =
         RoundedToNextMultipleOf(checked_plainRowSize, mPixelStorePackAlignment);
 
     if (!checked_neededByteLength.valid())
         return ErrorInvalidOperation("ReadPixels: integer overflow computing the needed buffer size");
 
-    if (checked_neededByteLength.value() > byteLength)
+    if (checked_neededByteLength.value() > dataByteLen)
         return ErrorInvalidOperation("ReadPixels: buffer too small");
+
+    
+    switch (format) {
+        case LOCAL_GL_RGBA: {
+            switch (type) {
+                case LOCAL_GL_UNSIGNED_BYTE:
+                    break;
+                default:
+                    return ErrorInvalidOperation("readPixels: Invalid format/type pair");
+            }
+            break;
+        }
+        default:
+            return ErrorInvalidOperation("readPixels: Invalid format/type pair");
+    }
+
+    
+    if (width == 0 || height == 0)
+        return NS_OK;
 
     MakeContextCurrent();
 
@@ -3406,7 +3443,6 @@ WebGLContext::ReadPixels_base(WebGLint x, WebGLint y, WebGLsizei width, WebGLsiz
     } else {
         EnsureBackbufferClearedAsNeeded();
     }
-
 
     if (CanvasUtils::CheckSaneSubrectSize(x, y, width, height, boundWidth, boundHeight)) {
         
@@ -3421,7 +3457,7 @@ WebGLContext::ReadPixels_base(WebGLint x, WebGLint y, WebGLsizei width, WebGLsiz
 
         
         
-        memset(data, 0, byteLength);
+        memset(data, 0, dataByteLen);
 
         if (   x >= boundWidth
             || x+width <= 0
@@ -3449,7 +3485,7 @@ WebGLContext::ReadPixels_base(WebGLint x, WebGLint y, WebGLsizei width, WebGLsiz
 
         
         
-        PRUint32 subrect_plainRowSize = subrect_width * size;
+        PRUint32 subrect_plainRowSize = subrect_width * bytesPerPixel;
 	
         PRUint32 subrect_alignedRowSize = 
             RoundedToNextMultipleOf(subrect_plainRowSize, mPixelStorePackAlignment).value();
@@ -3465,7 +3501,7 @@ WebGLContext::ReadPixels_base(WebGLint x, WebGLint y, WebGLsizei width, WebGLsiz
             GLint subrect_y_in_dest_buffer = subrect_y - y;
             memcpy(static_cast<GLubyte*>(data)
                      + checked_alignedRowSize.value() * (subrect_y_in_dest_buffer + y_inside_subrect)
-                     + size * subrect_x_in_dest_buffer, 
+                     + bytesPerPixel * subrect_x_in_dest_buffer, 
                    subrect_data + subrect_alignedRowSize * y_inside_subrect, 
                    subrect_plainRowSize); 
         }
@@ -3527,9 +3563,7 @@ WebGLContext::ReadPixels_array(WebGLint x, WebGLint y, WebGLsizei width, WebGLsi
     if (mContextLost)
         return NS_OK;
 
-    return ReadPixels_base(x, y, width, height, format, type,
-                           pixels ? JS_GetTypedArrayData(pixels) : 0,
-                           pixels ? JS_GetTypedArrayByteLength(pixels) : 0);
+    return ReadPixels_base(x, y, width, height, format, type, pixels);
 }
 
 NS_IMETHODIMP
