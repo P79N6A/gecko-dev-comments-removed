@@ -166,7 +166,7 @@ var PageActions = {
   },
 
   
-  _permissions: ["popup", "offline-app", "geo"],
+  _permissions: ["popup", "offline-app", "geolocation", "desktop-notification"],
 
   _forEachPermissions: function _forEachPermissions(aHost, aCallback) {
     let pm = Services.perms;
@@ -230,6 +230,10 @@ var PageActions = {
     let host = Browser.selectedBrowser.currentURI;
     this._forEachPermissions(host, function(aType) {
       pm.remove(host.asciiHost, aType);
+
+      
+      if (["geolocation", "desktop-notification"].indexOf(aType) != -1)
+        Services.contentPrefs.setPref(host.asciiHost, aType + ".request.remember", 0);
     });
 
     let lm = this._loginManager;
