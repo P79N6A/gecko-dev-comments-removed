@@ -686,6 +686,7 @@ public:
         OP_FWDJUMP, 
         OP_NEW, 
         OP_RECURSIVE, 
+        OP_TYPED_ARRAY, 
         OP_LIMIT
     };
 
