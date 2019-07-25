@@ -54,7 +54,7 @@
 
 class nsIContent;
 class nsIURI;
-class nsSubDocumentFrame;
+class nsIFrameFrame;
 class nsIView;
 class nsIInProcessContentFrameMessageManager;
 class AutoResetInShow;
@@ -96,12 +96,9 @@ protected:
     mNetworkCreated(aNetworkCreated)
 #ifdef MOZ_IPC
     , mDelayRemoteDialogs(PR_FALSE)
-    , mRemoteWidgetCreated(PR_FALSE)
+    , mRemoteBrowserShown(PR_FALSE)
     , mRemoteFrame(false)
     , mRemoteBrowser(nsnull)
-#if defined(MOZ_WIDGET_GTK2) || defined(MOZ_WIDGET_QT)
-    , mRemoteSocket(nsnull)
-#endif
 #endif
   {}
 
@@ -132,7 +129,7 @@ public:
 
   PRBool Show(PRInt32 marginWidth, PRInt32 marginHeight,
               PRInt32 scrollbarPrefX, PRInt32 scrollbarPrefY,
-              nsSubDocumentFrame* frame);
+              nsIFrameFrame* frame);
 
   
 
@@ -200,11 +197,10 @@ private:
 
 #ifdef MOZ_IPC
   
-  bool TryNewProcess();
+  bool TryRemoteBrowser();
 
   
-  
-  bool ShowRemoteFrame(nsSubDocumentFrame* frame, nsIView* view);
+  bool ShowRemoteFrame(const nsIntSize& size);
 #endif
 
   nsCOMPtr<nsIDocShell> mDocShell;
@@ -229,17 +225,11 @@ private:
 
 #ifdef MOZ_IPC
   PRPackedBool mDelayRemoteDialogs : 1;
-  PRPackedBool mRemoteWidgetCreated : 1;
+  PRPackedBool mRemoteBrowserShown : 1;
   bool mRemoteFrame;
   
   nsCOMPtr<nsIObserver> mChildHost;
   TabParent* mRemoteBrowser;
-
-#ifdef MOZ_WIDGET_GTK2
-  GtkWidget* mRemoteSocket;
-#elif defined(MOZ_WIDGET_QT)
-  QX11EmbedContainer* mRemoteSocket;
-#endif
 #endif
 
 };

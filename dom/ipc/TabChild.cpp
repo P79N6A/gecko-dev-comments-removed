@@ -54,6 +54,7 @@
 #include "mozilla/ipc/DocumentRendererChild.h"
 #include "mozilla/ipc/DocumentRendererShmemChild.h"
 #include "mozilla/ipc/DocumentRendererNativeIDChild.h"
+#include "mozilla/dom/ExternalHelperAppChild.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsPIDOMWindow.h"
 #include "nsIDOMWindowUtils.h"
@@ -85,18 +86,6 @@
 #include "nsSerializationHelper.h"
 #include "nsIFrame.h"
 #include "nsIView.h"
-#include "nsIEventListenerManager.h"
-#include "PCOMContentPermissionRequestChild.h"
-
-#ifdef MOZ_WIDGET_QT
-#include <QGraphicsView>
-#include <QGraphicsWidget>
-#endif
-
-#ifdef MOZ_WIDGET_GTK2
-#include <gdk/gdkx.h>
-#include <gtk/gtk.h>
-#endif
 
 using namespace mozilla::dom;
 
@@ -130,10 +119,6 @@ TabChild::TabChild(PRUint32 aChromeFlags)
 nsresult
 TabChild::Init()
 {
-#ifdef MOZ_WIDGET_GTK2
-  gtk_init(NULL, NULL);
-#endif
-
   nsCOMPtr<nsIWebBrowser> webBrowser = do_CreateInstance(NS_WEBBROWSER_CONTRACTID);
   if (!webBrowser) {
     NS_ERROR("Couldn't create a nsWebBrowser?");
@@ -418,64 +403,13 @@ TabChild::ArraysToParams(const nsTArray<int>& aIntParams,
   }
 }
 
-bool
-TabChild::RecvCreateWidget(const MagicWindowHandle& parentWidget)
-{
-    nsCOMPtr<nsIBaseWindow> baseWindow = do_QueryInterface(mWebNav);
-    if (!baseWindow) {
-        NS_ERROR("mWebNav doesn't QI to nsIBaseWindow");
-        return true;
-    }
 
-#ifdef MOZ_WIDGET_GTK2
-    GtkWidget* win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-#elif defined(MOZ_WIDGET_QT)
-    QGraphicsView *view = new QGraphicsView(new QGraphicsScene());
-    NS_ENSURE_TRUE(view, false);
-    QGraphicsWidget *win = new QGraphicsWidget();
-    NS_ENSURE_TRUE(win, false);
-    view->scene()->addItem(win);
-#elif defined(XP_WIN)
-    HWND win = parentWidget;
-#elif defined(ANDROID)
-    
-    
-    
-    void *win = (void *)0x1234;
-#elif defined(XP_MACOSX)
-#  warning IMPLEMENT ME
-#else
-#error You lose!
-#endif
-
-#if !defined(XP_MACOSX)
-    baseWindow->InitWindow(win, 0, 0, 0, 0, 0);
-    baseWindow->Create();
-    baseWindow->SetVisibility(PR_TRUE);
-#endif
-
-    
-    
-    nsCOMPtr<nsIWebBrowserSetup> webBrowserSetup = do_QueryInterface(baseWindow);
-    if (webBrowserSetup) {
-      webBrowserSetup->SetProperty(nsIWebBrowserSetup::SETUP_ALLOW_DNS_PREFETCH,
-                                   PR_TRUE);
-    } else {
-        NS_WARNING("baseWindow doesn't QI to nsIWebBrowserSetup, skipping "
-                   "DNS prefetching enable step.");
-    }
-
-    return InitTabChildGlobal();
-}
-
-bool
-TabChild::DestroyWidget()
+void
+TabChild::DestroyWindow()
 {
     nsCOMPtr<nsIBaseWindow> baseWindow = do_QueryInterface(mWebNav);
     if (baseWindow)
         baseWindow->Destroy();
-
-    return true;
 }
 
 void
@@ -500,11 +434,6 @@ TabChild::~TabChild()
     }
     if (mCx) {
       DestroyCx();
-    }
-    
-    nsIEventListenerManager* elm = mTabChildGlobal->GetListenerManager(PR_FALSE);
-    if (elm) {
-      elm->Disconnect();
     }
     mTabChildGlobal->mTabChild = nsnull;
 }
@@ -656,20 +585,47 @@ TabChild::RecvLoadURL(const nsCString& uri)
         NS_WARNING("mWebNav->LoadURI failed. Eating exception, what else can I do?");
     }
 
-    return true;
+    return NS_SUCCEEDED(rv);
 }
 
 bool
-TabChild::RecvMove(const PRUint32& x,
-                   const PRUint32& y,
-                   const PRUint32& width,
-                   const PRUint32& height)
+TabChild::RecvShow(const nsIntSize& size)
 {
-    printf("[TabChild] MOVE to (x,y)=(%ud, %ud), (w,h)= (%ud, %ud)\n",
-           x, y, width, height);
+    printf("[TabChild] SHOW (w,h)= (%d, %d)\n", size.width, size.height);
+
+    nsCOMPtr<nsIBaseWindow> baseWindow = do_QueryInterface(mWebNav);
+    if (!baseWindow) {
+        NS_ERROR("mWebNav doesn't QI to nsIBaseWindow");
+        return false;
+    }
+
+    
+    baseWindow->InitWindow(0, 0, 0, 0, 0, 0);
+    baseWindow->Create();
+    baseWindow->SetVisibility(PR_TRUE);
+
+    
+    
+    nsCOMPtr<nsIWebBrowserSetup> webBrowserSetup = do_QueryInterface(baseWindow);
+    if (webBrowserSetup) {
+      webBrowserSetup->SetProperty(nsIWebBrowserSetup::SETUP_ALLOW_DNS_PREFETCH,
+                                   PR_TRUE);
+    } else {
+        NS_WARNING("baseWindow doesn't QI to nsIWebBrowserSetup, skipping "
+                   "DNS prefetching enable step.");
+    }
+
+    return InitTabChildGlobal();
+}
+
+bool
+TabChild::RecvMove(const nsIntSize& size)
+{
+    printf("[TabChild] RESIZE to (w,h)= (%ud, %ud)\n", size.width, size.height);
 
     nsCOMPtr<nsIBaseWindow> baseWin = do_QueryInterface(mWebNav);
-    baseWin->SetPositionAndSize(x, y, width, height, PR_TRUE);
+    baseWin->SetPositionAndSize(0, 0, size.width, size.height,
+                                PR_TRUE);
     return true;
 }
 
@@ -967,18 +923,20 @@ TabChild::DeallocPContentDialog(PContentDialogChild* aDialog)
   return true;
 }
 
-PContentPermissionRequestChild*
-TabChild::AllocPContentPermissionRequest(const nsCString& aType, const IPC::URI&)
+
+
+
+PGeolocationRequestChild*
+TabChild::AllocPGeolocationRequest(const IPC::URI&)
 {
   NS_RUNTIMEABORT("unused");
   return nsnull;
 }
 
 bool
-TabChild::DeallocPContentPermissionRequest(PContentPermissionRequestChild* actor)
+TabChild::DeallocPGeolocationRequest(PGeolocationRequestChild* actor)
 {
-    static_cast<PCOMContentPermissionRequestChild*>(actor)->IPDLRelease();
-    return true;
+  return true;
 }
 
 bool
@@ -998,9 +956,6 @@ TabChild::RecvActivateFrameEvent(const nsString& aType, const bool& capture)
 bool
 TabChild::RecvLoadRemoteScript(const nsString& aURL)
 {
-  if (!mCx && !InitTabChildGlobal())
-    return false;
-
   LoadFrameScriptInternal(aURL);
   return true;
 }
@@ -1053,7 +1008,7 @@ TabChild::RecvDestroy()
   );
 
   
-  DestroyWidget();
+  DestroyWindow();
 
   return Send__delete__(this);
 }
@@ -1061,9 +1016,6 @@ TabChild::RecvDestroy()
 bool
 TabChild::InitTabChildGlobal()
 {
-  if (mCx && mTabChildGlobal)
-    return true;
-
   nsCOMPtr<nsPIDOMWindow> window = do_GetInterface(mWebNav);
   NS_ENSURE_TRUE(window, false);
   nsCOMPtr<nsIDOMEventTarget> chromeHandler =
@@ -1189,7 +1141,6 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(TabChildGlobal)
   NS_INTERFACE_MAP_ENTRY(nsIFrameMessageManager)
-  NS_INTERFACE_MAP_ENTRY(nsISyncMessageSender)
   NS_INTERFACE_MAP_ENTRY(nsIContentFrameMessageManager)
   NS_INTERFACE_MAP_ENTRY(nsIScriptContextPrincipal)
   NS_INTERFACE_MAP_ENTRY(nsIScriptObjectPrincipal)
@@ -1236,4 +1187,24 @@ TabChildGlobal::GetPrincipal()
     return nsnull;
   return mTabChild->GetPrincipal();
 }
+
+PExternalHelperAppChild*
+TabChild::AllocPExternalHelperApp(const IPC::URI& uri,
+                                  const nsCString& aMimeContentType,
+                                  const bool& aForceSave,
+                                  const PRInt64& aContentLength)
+{
+  ExternalHelperAppChild *child = new ExternalHelperAppChild();
+  child->AddRef();
+  return child;
+}
+
+bool
+TabChild::DeallocPExternalHelperApp(PExternalHelperAppChild* aService)
+{
+  ExternalHelperAppChild *child = static_cast<ExternalHelperAppChild*>(aService);
+  child->Release();
+  return true;
+}
+
 

@@ -42,6 +42,7 @@
 #include "mozilla/dom/PBrowserParent.h"
 #include "mozilla/dom/PContentDialogParent.h"
 #include "mozilla/ipc/GeckoChildProcessHost.h"
+#include "mozilla/dom/PExternalHelperApp.h"
 
 #include "jsapi.h"
 #include "nsCOMPtr.h"
@@ -146,8 +147,19 @@ public:
       return true;
     }
 
+    virtual PExternalHelperAppParent* AllocPExternalHelperApp(
+            const IPC::URI& uri,
+            const nsCString& aMimeContentType,
+            const bool& aForceSave,
+            const PRInt64& aContentLength);
+    virtual bool DeallocPExternalHelperApp(PExternalHelperAppParent* aService);
+
     void LoadURL(nsIURI* aURI);
-    void Move(PRUint32 x, PRUint32 y, PRUint32 width, PRUint32 height);
+    
+    
+    
+    void Show(const nsIntSize& size);
+    void Move(const nsIntSize& size);
     void Activate();
     void SendMouseEvent(const nsAString& aType, float aX, float aY,
                         PRInt32 aButton, PRInt32 aClickCount,
@@ -191,8 +203,8 @@ public:
     virtual bool DeallocPDocumentRendererNativeID(PDocumentRendererNativeIDParent* actor);
 
 
-    virtual PContentPermissionRequestParent* AllocPContentPermissionRequest(const nsCString& aType, const IPC::URI& uri);
-    virtual bool DeallocPContentPermissionRequest(PContentPermissionRequestParent* actor);
+    virtual PGeolocationRequestParent* AllocPGeolocationRequest(const IPC::URI& uri);
+    virtual bool DeallocPGeolocationRequest(PGeolocationRequestParent* actor);
 
     JSBool GetGlobalJSObject(JSContext* cx, JSObject** globalp);
 

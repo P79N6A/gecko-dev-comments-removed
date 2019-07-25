@@ -36,6 +36,7 @@
 
 
 
+#include "mozilla/dom/ExternalHelperAppParent.h"
 #include "TabParent.h"
 
 #include "mozilla/ipc/DocumentRendererParent.h"
@@ -62,7 +63,7 @@
 #include "nsNetUtil.h"
 #include "jsarray.h"
 #include "nsContentUtils.h"
-#include "nsContentPermissionHelper.h"
+#include "nsGeolocationOOP.h"
 #include "nsIDOMNSHTMLFrameElement.h"
 #include "nsIDialogCreator.h"
 #include "nsThreadUtils.h"
@@ -436,9 +437,16 @@ TabParent::LoadURL(nsIURI* aURI)
 }
 
 void
-TabParent::Move(PRUint32 x, PRUint32 y, PRUint32 width, PRUint32 height)
+TabParent::Show(const nsIntSize& size)
 {
-    unused << SendMove(x, y, width, height);
+    
+    unused << SendShow(size);
+}
+
+void
+TabParent::Move(const nsIntSize& size)
+{
+    unused << SendMove(size);
 }
 
 void
@@ -523,14 +531,14 @@ TabParent::DeallocPDocumentRendererNativeID(PDocumentRendererNativeIDParent* act
     return true;
 }
 
-PContentPermissionRequestParent*
-TabParent::AllocPContentPermissionRequest(const nsCString& type, const IPC::URI& uri)
+PGeolocationRequestParent*
+TabParent::AllocPGeolocationRequest(const IPC::URI& uri)
 {
-  return new ContentPermissionRequestParent(type, mFrameElement, uri);
+  return new GeolocationRequestParent(mFrameElement, uri);
 }
   
 bool
-TabParent::DeallocPContentPermissionRequest(PContentPermissionRequestParent* actor)
+TabParent::DeallocPGeolocationRequest(PGeolocationRequestParent* actor)
 {
   delete actor;
   return true;
@@ -805,6 +813,26 @@ TabParent::GetFrameLoader() const
 {
   nsCOMPtr<nsIFrameLoaderOwner> frameLoaderOwner = do_QueryInterface(mFrameElement);
   return frameLoaderOwner ? frameLoaderOwner->GetFrameLoader() : nsnull;
+}
+
+PExternalHelperAppParent*
+TabParent::AllocPExternalHelperApp(const IPC::URI& uri,
+                                   const nsCString& aMimeContentType,
+                                   const bool& aForceSave,
+                                   const PRInt64& aContentLength)
+{
+  ExternalHelperAppParent *parent = new ExternalHelperAppParent(uri, aContentLength);
+  parent->AddRef();
+  parent->Init(this, aMimeContentType, aForceSave);
+  return parent;
+}
+
+bool
+TabParent::DeallocPExternalHelperApp(PExternalHelperAppParent* aService)
+{
+  ExternalHelperAppParent *parent = static_cast<ExternalHelperAppParent *>(aService);
+  parent->Release();
+  return true;
 }
 
 } 

@@ -158,7 +158,6 @@ class TabChild : public PBrowserChild,
 public:
     TabChild(PRUint32 aChromeFlags);
     virtual ~TabChild();
-    bool DestroyWidget();
     nsresult Init();
 
     NS_DECL_ISUPPORTS
@@ -173,12 +172,9 @@ public:
     NS_DECL_NSIWINDOWPROVIDER
     NS_DECL_NSIDIALOGCREATOR
 
-    virtual bool RecvCreateWidget(const MagicWindowHandle& parentWidget);
     virtual bool RecvLoadURL(const nsCString& uri);
-    virtual bool RecvMove(const PRUint32& x,
-                          const PRUint32& y,
-                          const PRUint32& width,
-                          const PRUint32& height);
+    virtual bool RecvShow(const nsIntSize& size);
+    virtual bool RecvMove(const nsIntSize& size);
     virtual bool RecvActivate();
     virtual bool RecvMouseEvent(const nsString& aType,
                                 const float&    aX,
@@ -224,6 +220,12 @@ public:
                                                      const nsTArray<int>&,
                                                      const nsTArray<nsString>&);
     virtual bool DeallocPContentDialog(PContentDialogChild* aDialog);
+    virtual PExternalHelperAppChild *AllocPExternalHelperApp(
+            const IPC::URI& uri,
+            const nsCString& aMimeContentType,
+            const bool& aForceSave,
+            const PRInt64& aContentLength);
+    virtual bool DeallocPExternalHelperApp(PExternalHelperAppChild *aService);
     static void ParamsToArrays(nsIDialogParamBlock* aParams,
                                nsTArray<int>& aIntParams,
                                nsTArray<nsString>& aStringParams);
@@ -277,8 +279,8 @@ public:
             const gfxMatrix& aMatrix,
             const PRUint32& aNativeID);
 
-    virtual PContentPermissionRequestChild* AllocPContentPermissionRequest(const nsCString& aType, const IPC::URI& uri);
-    virtual bool DeallocPContentPermissionRequest(PContentPermissionRequestChild* actor);
+    virtual PGeolocationRequestChild* AllocPGeolocationRequest(const IPC::URI& uri);
+    virtual bool DeallocPGeolocationRequest(PGeolocationRequestChild* actor);
 
     nsIWebNavigation* WebNavigation() { return mWebNav; }
 
@@ -296,9 +298,10 @@ private:
     void ActorDestroy(ActorDestroyReason why);
 
     bool InitTabChildGlobal();
+    void DestroyWindow();
 
     nsCOMPtr<nsIWebNavigation> mWebNav;
-    nsRefPtr<TabChildGlobal> mTabChildGlobal;
+    TabChildGlobal* mTabChildGlobal;
     PRUint32 mChromeFlags;
 
     DISALLOW_EVIL_CONSTRUCTORS(TabChild);
