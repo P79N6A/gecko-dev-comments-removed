@@ -2697,8 +2697,19 @@ HUD_SERVICE.prototype =
     }
 
     
+    
+    
     let consoleObject = unwrap(aContentWindow).console;
-    if (!("__mozillaConsole__" in consoleObject))
+    let consoleGlobal = Cu.getGlobalForObject(consoleObject);
+
+    let nativeConsoleObj = Cc["@mozilla.org/console-api;1"].
+                           createInstance(Ci.nsIDOMGlobalPropertyInitializer).
+                           init(aContentWindow);
+    let nativeConsoleGlobal = Cu.getGlobalForObject(nativeConsoleObj);
+
+    
+    
+    if (consoleGlobal !== nativeConsoleGlobal)
       this.logWarningAboutReplacedAPI(hudId);
 
     

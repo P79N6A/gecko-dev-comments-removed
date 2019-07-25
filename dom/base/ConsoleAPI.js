@@ -62,7 +62,7 @@ ConsoleAPI.prototype = {
     }
 
     let self = this;
-    let chromeObject = {
+    return {
       
       log: function CA_log() {
         self.notifyObservers(id, "log", arguments);
@@ -76,33 +76,10 @@ ConsoleAPI.prototype = {
       error: function CA_error() {
         self.notifyObservers(id, "error", arguments);
       },
-      __exposedProps__: {
-        log: "r",
-        info: "r",
-        warn: "r",
-        error: "r"
-      }
+      
+      
+      __noSuchMethod__: function CA_nsm() {}
     };
-
-    
-    
-    let sandbox = Cu.Sandbox(aWindow);
-    let contentObject = Cu.evalInSandbox(
-        "(function(x) {\
-          var bind = Function.bind;\
-          var obj = {\
-            log: bind.call(x.log, x),\
-            info: bind.call(x.info, x),\
-            warn: bind.call(x.warn, x),\
-            error: bind.call(x.error, x),\
-            __mozillaConsole__: true,\
-            __noSuchMethod__: function() {}\
-          };\
-          Object.defineProperty(obj, '__mozillaConsole__', { value: true });\
-          return obj;\
-        })", sandbox)(chromeObject);
-
-      return contentObject;
   },
 
   
