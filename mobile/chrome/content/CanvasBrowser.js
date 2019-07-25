@@ -78,9 +78,11 @@ CanvasBrowser.prototype = {
       
       currentBrowser.removeEventListener("MozAfterPaint", this._paintHandler, false);
       currentBrowser.setAttribute("type", "content");
+      currentBrowser.docShell.isOffScreenBrowser = false;
     }
 
     browser.setAttribute("type", "content-primary");
+    browser.docShell.isOffScreenBrowser = true;
 
     
     var self = this;
