@@ -44,6 +44,11 @@ WEAVE_VERSION:                         "@weave_version@",
 WEAVE_ID:                              "@weave_id@",
 
 
+SYNC_API_VERSION:                      "1.1",
+USER_API_VERSION:                      "1.0",
+MISC_API_VERSION:                      "1.0",
+
+
 
 
 STORAGE_VERSION:                       5,

@@ -38,16 +38,16 @@ function run_test() {
  
   do_test_pending();
   let server = httpd_setup({
-    "/1.0/johndoe/info/collections": login_handler,
-    "/1.0/janedoe/info/collections": login_handler,
+    "/1.1/johndoe/info/collections": login_handler,
+    "/1.1/janedoe/info/collections": login_handler,
       
     
     
     
-    "/1.0/johndoe/storage/crypto/keys": new ServerWBO().handler(),
-    "/1.0/johndoe/storage/meta/global": new ServerWBO().handler(),
-    "/1.0/janedoe/storage/crypto/keys": new ServerWBO().handler(),
-    "/1.0/janedoe/storage/meta/global": new ServerWBO().handler()
+    "/1.1/johndoe/storage/crypto/keys": new ServerWBO().handler(),
+    "/1.1/johndoe/storage/meta/global": new ServerWBO().handler(),
+    "/1.1/janedoe/storage/crypto/keys": new ServerWBO().handler(),
+    "/1.1/janedoe/storage/meta/global": new ServerWBO().handler()
   });
 
   try {
