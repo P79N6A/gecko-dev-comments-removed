@@ -4195,6 +4195,7 @@ static int ReportException(EXCEPTION_POINTERS *aExceptionInfo)
 
 
 
+
 LRESULT CALLBACK nsWindow::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
   __try {
