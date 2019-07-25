@@ -535,7 +535,7 @@ class InvokeFrameGuard
 };
 
 
-class ExecuteFrameGuard
+class FrameGuard
 {
     friend class StackSpace;
     JSContext        *cx;  
@@ -544,12 +544,13 @@ class ExecuteFrameGuard
     JSStackFrame     *fp;
     JSStackFrame     *down;
   public:
-    ExecuteFrameGuard() : cx(NULL), vp(NULL), fp(NULL) {}
-    JS_REQUIRES_STACK ~ExecuteFrameGuard();
+    FrameGuard() : cx(NULL), vp(NULL), fp(NULL) {}
+    JS_REQUIRES_STACK ~FrameGuard();
     bool pushed() const { return cx != NULL; }
     Value *getvp() const { return vp; }
     JSStackFrame *getFrame() const { return fp; }
 };
+
 
 
 
@@ -650,8 +651,8 @@ class StackSpace
     JS_REQUIRES_STACK inline void popInvokeArgs(const InvokeArgsGuard &args);
     friend class InvokeFrameGuard;
     JS_REQUIRES_STACK void popInvokeFrame(const InvokeFrameGuard &ag);
-    friend class ExecuteFrameGuard;
-    JS_REQUIRES_STACK void popExecuteFrame(JSContext *cx);
+    friend class FrameGuard;
+    JS_REQUIRES_STACK void popFrame(JSContext *cx);
 
     
     JS_REQUIRES_STACK
@@ -749,9 +750,9 @@ class StackSpace
     JS_REQUIRES_STACK
     bool getExecuteFrame(JSContext *cx, JSStackFrame *down,
                          uintN vplen, uintN nfixed,
-                         ExecuteFrameGuard &fg) const;
+                         FrameGuard &fg) const;
     JS_REQUIRES_STACK
-    void pushExecuteFrame(JSContext *cx, ExecuteFrameGuard &fg,
+    void pushExecuteFrame(JSContext *cx, FrameGuard &fg,
                           JSFrameRegs &regs, JSObject *initialVarObj);
 
     
@@ -781,6 +782,12 @@ class StackSpace
 
     JS_REQUIRES_STACK
     void popSynthesizedSlowNativeFrame(JSContext *cx);
+
+    
+
+
+    JS_REQUIRES_STACK
+    bool pushDummyFrame(JSContext *cx, FrameGuard &fg, JSFrameRegs &regs, JSObject *scopeChain);
 };
 
 JS_STATIC_ASSERT(StackSpace::CAPACITY_VALS % StackSpace::COMMIT_VALS == 0);
