@@ -182,7 +182,11 @@ private:
 
 
 
-  static void fixupURISpec(const nsCString &aURISpec, nsCString &_fixedSpec);
+
+
+
+  static void fixupURISpec(const nsCString &aURISpec, PRInt32 aMatchBehavior,
+                           nsCString &_fixedSpec);
 };
 
 
