@@ -790,6 +790,7 @@ var isDeeply = SimpleTest.isDeeply;
 var gOldOnError = window.onerror;
 window.onerror = function simpletestOnerror(errorMsg, url, lineNumber) {
     var funcIdentifier = "[SimpleTest/SimpleTest.js, window.onerror]";
+    var isPlainMochitest = window.location.protocol != "chrome:";
 
     
     
@@ -797,14 +798,14 @@ window.onerror = function simpletestOnerror(errorMsg, url, lineNumber) {
     
     
     
-    function logInfo(message) {
-        if (parentRunner) {
-            SimpleTest._logInfo(funcIdentifier, message);
+    function logError(message) {
+        if (isPlainMochitest) {
+            SimpleTest.ok(false, funcIdentifier, message);
         } else {
             dump(funcIdentifier + " " + message);
         }
     }
-    logInfo("An error occurred: " + errorMsg + " at " + url + ":" + lineNumber);
+    logError("An error occurred: " + errorMsg + " at " + url + ":" + lineNumber);
     
 
     
@@ -814,10 +815,10 @@ window.onerror = function simpletestOnerror(errorMsg, url, lineNumber) {
             gOldOnError(errorMsg, url, lineNumber);
         } catch (e) {
             
-            logInfo("Exception thrown by gOldOnError(): " + e);
+            logError("Exception thrown by gOldOnError(): " + e);
             
             if (e.stack) {
-                logInfo("JavaScript error stack:\n" + e.stack);
+                logError("JavaScript error stack:\n" + e.stack);
             }
         }
     }
