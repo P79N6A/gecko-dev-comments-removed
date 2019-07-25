@@ -7,11 +7,6 @@ Components.utils.import("resource://gre/modules/AddonManager.jsm");
 
 
 
-
-var gShutdown = [];
-
-
-
 function Console() {
   this._console = Components.classes["@mozilla.org/consoleservice;1"]
     .getService(Ci.nsIConsoleService);
@@ -644,15 +639,7 @@ extApplication.prototype = {
         aSubject.data = true;
     }
     else if (aTopic == "xpcom-shutdown") {
-
       this.events.dispatch("unload", "application");
-
-      
-      for (let i = 0; i < gShutdown.length; i++) {
-        gShutdown[i]();
-      }
-      gShutdown.splice(0, gShutdown.length);
-
       gExtensionObserver = null;
       gPreferenceObserver = null;
     }
