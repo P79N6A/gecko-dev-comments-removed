@@ -633,6 +633,50 @@ function run_test_14() {
 
     b1.uninstall();
 
-    do_test_finished();
+    run_test_15();
+  });
+}
+
+
+function run_test_15() {
+  installAllFiles([do_get_addon("test_bootstrap1_1")], function() {
+    AddonManager.getAddonByID("bootstrap1@tests.mozilla.org", function(b1) {
+      
+      do_check_eq(getInstalledVersion(), 1);
+      do_check_eq(getActiveVersion(), 1);
+      do_check_true(b1.isActive);
+      do_check_eq(b1.iconURL, "chrome://foo/skin/icon.png");
+      do_check_eq(b1.aboutURL, "chrome://foo/content/about.xul");
+      do_check_eq(b1.optionsURL, "chrome://foo/content/options.xul");
+
+      shutdownManager();
+
+      
+      do_check_eq(getInstalledVersion(), 1);
+      do_check_eq(getActiveVersion(), 0);
+
+      gAppInfo.inSafeMode = true;
+      startupManager(false);
+
+      AddonManager.getAddonByID("bootstrap1@tests.mozilla.org", function(b1) {
+        
+        do_check_eq(getInstalledVersion(), 1);
+        do_check_eq(getActiveVersion(), 0);
+        do_check_false(b1.isActive);
+        do_check_eq(b1.iconURL, null);
+        do_check_eq(b1.aboutURL, null);
+        do_check_eq(b1.optionsURL, null);
+
+        shutdownManager();
+        gAppInfo.inSafeMode = false;
+        startupManager(false);
+
+        
+        do_check_eq(getInstalledVersion(), 1);
+        do_check_eq(getActiveVersion(), 1);
+
+        do_test_finished();
+      });
+    });
   });
 }

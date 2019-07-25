@@ -1282,6 +1282,11 @@ var XPIProvider = {
         !(Services.appinfo instanceof Ci.nsICrashReporter))
       return;
 
+    
+    
+    if (Services.appinfo.inSafeMode)
+      return;
+
     let data = this.enabledAddons;
     for (let id in this.bootstrappedAddons)
       data += (data ? "," : "") + id + ":" + this.bootstrappedAddons[id].version;
@@ -2301,6 +2306,11 @@ var XPIProvider = {
       return false;
 
     
+    
+    if (Services.appinfo.inSafeMode)
+      return false;
+
+    
     if (aAddon.active)
       return false;
 
@@ -2330,6 +2340,11 @@ var XPIProvider = {
     
     
     if (!this.extensionsActive)
+      return false;
+
+    
+    
+    if (Services.appinfo.inSafeMode)
       return false;
 
     
@@ -2375,6 +2390,11 @@ var XPIProvider = {
 
     
     
+    if (Services.appinfo.inSafeMode)
+      return false;
+
+    
+    
     
     
     if (aAddon instanceof DBAddonInternal)
@@ -2413,6 +2433,11 @@ var XPIProvider = {
     
     
     if (!this.extensionsActive)
+      return false;
+
+    
+    
+    if (Services.appinfo.inSafeMode)
       return false;
 
     
@@ -2507,6 +2532,10 @@ var XPIProvider = {
 
   callBootstrapMethod: function XPI_callBootstrapMethod(aId, aVersion, aFile,
                                                         aMethod, aReason) {
+    
+    if (Services.appinfo.inSafeMode)
+      return;
+
     
     if (!(aId in this.bootstrapScopes))
       this.loadBootstrapScope(aId, aFile, aVersion);
@@ -5563,7 +5592,7 @@ function AddonWrapper(aAddon) {
 
   ["optionsURL", "aboutURL"].forEach(function(aProp) {
     this.__defineGetter__(aProp, function() {
-      return aAddon.active ? aAddon[aProp] : null;
+      return this.isActive ? aAddon[aProp] : null;
     });
   }, this);
 
@@ -5584,7 +5613,7 @@ function AddonWrapper(aAddon) {
   
   ["icon", "icon64"].forEach(function(aProp) {
     this.__defineGetter__(aProp + "URL", function() {
-      if (aAddon.active && aAddon[aProp + "URL"])
+      if (this.isActive && aAddon[aProp + "URL"])
         return aAddon[aProp + "URL"];
 
       if (this.hasResource(aProp + ".png"))
@@ -5774,7 +5803,12 @@ function AddonWrapper(aAddon) {
     return permissions;
   });
 
-  this.__defineGetter__("isActive", function() aAddon.active);
+  this.__defineGetter__("isActive", function() {
+    if (Services.appinfo.inSafeMode)
+      return false;
+    return aAddon.active;
+  });
+
   this.__defineSetter__("userDisabled", function(val) {
     if (val == aAddon.userDisabled)
       return val;
