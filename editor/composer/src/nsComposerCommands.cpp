@@ -261,10 +261,21 @@ nsStyleUpdatingCommand::ToggleState(nsIEditor *aEditor, const char* aTagName)
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  if (doTagRemoval)
+  if (doTagRemoval) {
+    
+    if (tagName.EqualsLiteral("b")) {
+      rv = RemoveTextProperty(aEditor, NS_LITERAL_STRING("strong").get(), nsnull);
+      NS_ENSURE_SUCCESS(rv, rv);
+    } else if (tagName.EqualsLiteral("i")) {
+      rv = RemoveTextProperty(aEditor, NS_LITERAL_STRING("em").get(), nsnull);
+      NS_ENSURE_SUCCESS(rv, rv);
+    } else if (tagName.EqualsLiteral("strike")) {
+      rv = RemoveTextProperty(aEditor, NS_LITERAL_STRING("s").get(), nsnull);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+
     rv = RemoveTextProperty(aEditor, tagName.get(), nsnull);
-  else
-  {
+  } else {
     
     nsAutoString removeName; 
     aEditor->BeginTransaction();
