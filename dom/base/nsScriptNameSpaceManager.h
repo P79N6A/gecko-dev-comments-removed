@@ -75,6 +75,7 @@ struct nsGlobalNameStruct
     eTypeNotInitialized,
     eTypeInterface,
     eTypeProperty,
+    eTypeNavigatorProperty,
     eTypeExternalConstructor,
     eTypeStaticNameSet,
     eTypeDynamicNameSet,
@@ -128,6 +129,12 @@ public:
   nsresult LookupName(const nsAString& aName,
                       const nsGlobalNameStruct **aNameStruct,
                       const PRUnichar **aClassName = nsnull);
+  
+  
+  
+  
+  nsresult LookupNavigatorName(const nsAString& aName,
+                               const nsGlobalNameStruct **aNameStruct);
 
   nsresult RegisterClassName(const char *aClassName,
                              PRInt32 aDOMClassInfoID,
@@ -161,7 +168,7 @@ protected:
   
   
   
-  nsGlobalNameStruct *AddToHash(const char *aKey,
+  nsGlobalNameStruct *AddToHash(PLDHashTable *aTable, const char *aKey,
                                 const PRUnichar **aClassName = nsnull);
 
   nsresult FillHash(nsICategoryManager *aCategoryManager,
@@ -184,9 +191,8 @@ protected:
                                   const char* aCategory,
                                   nsISupports* aEntry);
 
-  
-  
   PLDHashTable mGlobalNames;
+  PLDHashTable mNavigatorNames;
 
   PRPackedBool mIsInitialized;
 };
