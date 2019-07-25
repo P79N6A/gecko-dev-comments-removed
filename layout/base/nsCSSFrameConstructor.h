@@ -345,22 +345,23 @@ public:
   void RebuildAllStyleData(nsChangeHint aExtraHint);
 
   
-  void PostRestyleEvent(nsIContent* aContent, nsRestyleHint aRestyleHint,
+  void PostRestyleEvent(mozilla::dom::Element* aElement,
+                        nsRestyleHint aRestyleHint,
                         nsChangeHint aMinChangeHint)
   {
     nsPresContext *presContext = mPresShell->GetPresContext();
     if (presContext) {
-      PostRestyleEventCommon(aContent, aRestyleHint, aMinChangeHint,
+      PostRestyleEventCommon(aElement, aRestyleHint, aMinChangeHint,
                              presContext->IsProcessingAnimationStyleChange());
     }
   }
 
   
-  void PostAnimationRestyleEvent(nsIContent* aContent,
+  void PostAnimationRestyleEvent(mozilla::dom::Element* aElement,
                                  nsRestyleHint aRestyleHint,
                                  nsChangeHint aMinChangeHint)
   {
-    PostRestyleEventCommon(aContent, aRestyleHint, aMinChangeHint, PR_TRUE);
+    PostRestyleEventCommon(aElement, aRestyleHint, aMinChangeHint, PR_TRUE);
   }
 
   
@@ -381,7 +382,8 @@ private:
 
 
 
-  void PostRestyleEventCommon(nsIContent* aContent, nsRestyleHint aRestyleHint,
+  void PostRestyleEventCommon(mozilla::dom::Element* aElement,
+                              nsRestyleHint aRestyleHint,
                               nsChangeHint aMinChangeHint,
                               PRBool aForAnimation);
   void PostRestyleEventInternal(PRBool aForLazyConstruction);

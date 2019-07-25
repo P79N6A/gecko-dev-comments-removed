@@ -9078,6 +9078,8 @@ nsresult
 nsCSSFrameConstructor::RecreateFramesForContent(nsIContent* aContent,
                                                 PRBool aAsyncInsert)
 {
+  NS_PRECONDITION(!aAsyncInsert || aContent->IsElement(),
+                  "Can only insert elements async");
   
   
   
@@ -9144,7 +9146,8 @@ nsCSSFrameConstructor::RecreateFramesForContent(nsIContent* aContent,
       
       
       if (aAsyncInsert) {
-        PostRestyleEvent(aContent, nsRestyleHint(0), nsChangeHint_ReconstructFrame);
+        PostRestyleEvent(aContent->AsElement(), nsRestyleHint(0),
+                         nsChangeHint_ReconstructFrame);
       } else {
         rv = ContentInserted(container, aContent, indexInContainer,
                              mTempFrameTreeState, PR_FALSE);
@@ -11750,7 +11753,7 @@ nsCSSFrameConstructor::ProcessPendingRestyles()
 }
 
 void
-nsCSSFrameConstructor::PostRestyleEventCommon(nsIContent* aContent,
+nsCSSFrameConstructor::PostRestyleEventCommon(Element* aElement,
                                               nsRestyleHint aRestyleHint,
                                               nsChangeHint aMinChangeHint,
                                               PRBool aForAnimation)
@@ -11764,10 +11767,6 @@ nsCSSFrameConstructor::PostRestyleEventCommon(nsIContent* aContent,
     return;
   }
 
-  
-  NS_ASSERTION(aContent->IsElement(),
-               "Shouldn't be trying to restyle non-elements directly");
-
   RestyleData existingData;
   existingData.mRestyleHint = nsRestyleHint(0);
   existingData.mChangeHint = NS_STYLE_HINT_NONE;
@@ -11775,12 +11774,12 @@ nsCSSFrameConstructor::PostRestyleEventCommon(nsIContent* aContent,
   nsDataHashtable<nsISupportsHashKey, RestyleData> &restyles =
     aForAnimation ? mPendingAnimationRestyles : mPendingRestyles;
 
-  restyles.Get(aContent, &existingData);
+  restyles.Get(aElement, &existingData);
   existingData.mRestyleHint =
     nsRestyleHint(existingData.mRestyleHint | aRestyleHint);
   NS_UpdateHint(existingData.mChangeHint, aMinChangeHint);
 
-  restyles.Put(aContent, existingData);
+  restyles.Put(aElement, existingData);
 
   PostRestyleEventInternal(PR_FALSE);
 }

@@ -276,7 +276,7 @@ nsMathMLTokenFrame::ProcessTextData()
 
   
   PresContext()->PresShell()->FrameConstructor()->
-    PostRestyleEvent(mContent, eRestyle_Self, NS_STYLE_HINT_NONE);
+    PostRestyleEvent(mContent->AsElement(), eRestyle_Self, NS_STYLE_HINT_NONE);
 }
 
 
