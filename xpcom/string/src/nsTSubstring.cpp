@@ -863,3 +863,56 @@ nsTSubstring_CharT::DoAppendFloat( double aFloat, int digits )
   AppendASCII(buf);
 }
 
+size_t
+nsTSubstring_CharT::SizeOfExcludingThisMustBeUnshared(
+    nsMallocSizeOfFun mallocSizeOf) const
+{
+  if (mFlags & F_SHARED) {
+    return nsStringBuffer::FromData(mData)->
+             SizeOfIncludingThisMustBeUnshared(mallocSizeOf);
+  } 
+  if (mFlags & F_OWNED) {
+    return mallocSizeOf(mData);
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  return 0;
+}
+
+size_t
+nsTSubstring_CharT::SizeOfExcludingThisIfUnshared(
+    nsMallocSizeOfFun mallocSizeOf) const
+{
+  
+  
+  if (mFlags & F_SHARED) {
+    return nsStringBuffer::FromData(mData)->
+             SizeOfIncludingThisIfUnshared(mallocSizeOf);
+  }
+  if (mFlags & F_OWNED) {
+    return mallocSizeOf(mData);
+  }
+  return 0;
+}
+
+size_t
+nsTSubstring_CharT::SizeOfIncludingThisMustBeUnshared(
+    nsMallocSizeOfFun mallocSizeOf) const
+{
+  return mallocSizeOf(this) + SizeOfExcludingThisMustBeUnshared(mallocSizeOf);
+}
+
+size_t
+nsTSubstring_CharT::SizeOfIncludingThisIfUnshared(
+    nsMallocSizeOfFun mallocSizeOf) const
+{
+  return mallocSizeOf(this) + SizeOfExcludingThisIfUnshared(mallocSizeOf);
+}
+
