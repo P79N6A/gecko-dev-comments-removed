@@ -215,6 +215,20 @@ var BrowserUI = {
     let sideBarHeight = windowH - this._toolbarH;
     document.getElementById("browser-controls").height = sideBarHeight;
     document.getElementById("tabs-container").height = sideBarHeight;
+
+    
+    let bmkeditor = document.getElementById("bookmark-container");
+    bmkeditor.width = windowW;
+
+    
+    let bookmarks = document.getElementById("bookmarklist-container");
+    bookmarks.height = windowH;
+    bookmarks.width = windowW;
+
+    
+    let panel = document.getElementById("panel-container");
+    panel.height = windowH;
+    panel.width = windowW;
   },
 
   init : function() {
