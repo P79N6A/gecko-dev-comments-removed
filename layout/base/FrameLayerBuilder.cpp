@@ -472,6 +472,8 @@ FrameLayerBuilder::UpdateDisplayItemDataForFrame(nsPtrHashKey<nsIFrame>* aEntry,
   if (newDisplayItems->HasContainerLayer()) {
     
     
+    
+    
     nsRegion* invalidRegion = static_cast<nsRegion*>
       (props.Get(ThebesLayerInvalidRegionProperty()));
     if (invalidRegion) {
@@ -505,11 +507,12 @@ FrameLayerBuilder::StoreNewDisplayItemData(DisplayItemDataEntry* aEntry,
 {
   LayerManagerData* data = static_cast<LayerManagerData*>(aUserArg);
   nsIFrame* f = aEntry->GetKey();
+  FrameProperties props = f->Properties();
   
   NS_ASSERTION(!data->mFramesWithLayers.GetEntry(f),
                "We shouldn't get here if we're already in mFramesWithLayers");
   data->mFramesWithLayers.PutEntry(f);
-  NS_ASSERTION(!f->Properties().Get(DisplayItemDataProperty()),
+  NS_ASSERTION(!props.Get(DisplayItemDataProperty()),
                "mFramesWithLayers out of sync");
 
   void* propValue;
@@ -518,8 +521,11 @@ FrameLayerBuilder::StoreNewDisplayItemData(DisplayItemDataEntry* aEntry,
   
   array->SwapElements(aEntry->mData);
   
-  f->Properties().Set(DisplayItemDataProperty(), propValue);
+  props.Set(DisplayItemDataProperty(), propValue);
 
+  if (f->GetStateBits() & NS_FRAME_HAS_CONTAINER_LAYER) {
+    props.Set(ThebesLayerInvalidRegionProperty(), new nsRegion());
+  }
   return PL_DHASH_REMOVE;
 }
 
