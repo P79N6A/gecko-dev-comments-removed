@@ -103,7 +103,7 @@ NS_IMPL_ELEMENT_CLONE(nsHTMLCanvasElement)
 nsIntSize
 nsHTMLCanvasElement::GetWidthHeight()
 {
-  nsIntSize size(0,0);
+  nsIntSize size(DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT);
   const nsAttrValue* value;
 
   if ((value = GetParsedAttr(nsGkAtoms::width)) &&
@@ -117,11 +117,6 @@ nsHTMLCanvasElement::GetWidthHeight()
   {
       size.height = value->GetIntegerValue();
   }
-
-  if (size.width <= 0)
-    size.width = DEFAULT_CANVAS_WIDTH;
-  if (size.height <= 0)
-    size.height = DEFAULT_CANVAS_HEIGHT;
 
   return size;
 }
@@ -646,18 +641,20 @@ nsHTMLCanvasElement::InvalidateCanvasContent(const gfxRect* damageRect)
   nsRect contentArea = frame->GetContentRect();
   if (damageRect) {
     nsIntSize size = GetWidthHeight();
+    if (size.width != 0 && size.height != 0) {
 
-    
-    
-    
-    gfxRect realRect(*damageRect);
-    realRect.Scale(contentArea.width / gfxFloat(size.width),
-                   contentArea.height / gfxFloat(size.height));
-    realRect.RoundOut();
+      
+      
+      
+      gfxRect realRect(*damageRect);
+      realRect.Scale(contentArea.width / gfxFloat(size.width),
+                     contentArea.height / gfxFloat(size.height));
+      realRect.RoundOut();
 
-    
-    invalRect = nsRect(realRect.X(), realRect.Y(),
-                       realRect.Width(), realRect.Height());
+      
+      invalRect = nsRect(realRect.X(), realRect.Y(),
+                         realRect.Width(), realRect.Height());
+    }
   } else {
     invalRect = nsRect(nsPoint(0, 0), contentArea.Size());
   }

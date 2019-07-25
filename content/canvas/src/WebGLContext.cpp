@@ -360,6 +360,12 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
         return NS_OK;
 
     
+    if (width == 0 || height == 0) {
+        width = 1;
+        height = 1;
+    }
+
+    
     
     if (gl &&
         gl->ResizeOffscreen(gfxIntSize(width, height)))
