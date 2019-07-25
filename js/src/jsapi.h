@@ -2319,6 +2319,14 @@ extern JS_PUBLIC_API(JSFunction *)
 JS_NewFunction(JSContext *cx, JSNative call, uintN nargs, uintN flags,
                JSObject *parent, const char *name);
 
+
+
+
+
+extern JS_PUBLIC_API(JSFunction *)
+JS_NewFunctionById(JSContext *cx, JSNative call, uintN nargs, uintN flags,
+                   JSObject *parent, jsid id);
+
 extern JS_PUBLIC_API(JSObject *)
 JS_GetFunctionObject(JSFunction *fun);
 
@@ -2374,6 +2382,10 @@ extern JS_PUBLIC_API(JSFunction *)
 JS_DefineUCFunction(JSContext *cx, JSObject *obj,
                     const jschar *name, size_t namelen, JSNative call,
                     uintN nargs, uintN attrs);
+
+extern JS_PUBLIC_API(JSFunction *)
+JS_DefineFunctionById(JSContext *cx, JSObject *obj, jsid id, JSNative call,
+                      uintN nargs, uintN attrs);
 
 extern JS_PUBLIC_API(JSObject *)
 JS_CloneFunctionObject(JSContext *cx, JSObject *funobj, JSObject *parent);
@@ -2753,6 +2765,9 @@ JS_InternUCString(JSContext *cx, const jschar *s);
 extern JS_PUBLIC_API(char *)
 JS_GetStringBytes(JSString *str);
 
+
+
+
 extern JS_PUBLIC_API(jschar *)
 JS_GetStringChars(JSString *str);
 
@@ -2762,11 +2777,27 @@ JS_GetStringLength(JSString *str);
 extern JS_PUBLIC_API(const char *)
 JS_GetStringBytesZ(JSContext *cx, JSString *str);
 
+
+
+
+
+extern JS_PUBLIC_API(const jschar *)
+JS_GetStringCharsAndLength(JSString *str, size_t *lengthp);
+
 extern JS_PUBLIC_API(const jschar *)
 JS_GetStringCharsZ(JSContext *cx, JSString *str);
 
 extern JS_PUBLIC_API(intN)
 JS_CompareStrings(JSString *str1, JSString *str2);
+
+extern JS_PUBLIC_API(JSBool)
+JS_MatchStringAndAscii(JSString *str, const char *asciiBytes);
+
+extern JS_PUBLIC_API(size_t)
+JS_PutEscapedString(char *buffer, size_t size, JSString *str, char quote);
+
+extern JS_PUBLIC_API(JSBool)
+JS_FileEscapedString(FILE *fp, JSString *str, char quote);
 
 
 

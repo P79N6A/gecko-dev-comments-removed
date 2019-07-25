@@ -290,7 +290,8 @@ XPCConvert::NativeData2JS(XPCLazyCallContext& lccx, jsval* d, const void* s,
 
     case nsXPTType::T_JSVAL :
         {
-            *d = *((jsval*)s);
+            JS_STATIC_ASSERT(sizeof(jsval) <= sizeof(uint64));
+            *d = **((jsval**)s);
 
             JSAutoEnterCompartment ac;
             XPCCallContext &ccx = lccx.GetXPCCallContext();
@@ -608,22 +609,15 @@ XPCConvert::JSData2Native(XPCCallContext& ccx, void* d, jsval s,
         break;
     case nsXPTType::T_CHAR   :
         {
-            char* bytes=nsnull;
-            JSString* str;
+            JSString* str = JS_ValueToString(cx, s);
 
-            if(!(str = JS_ValueToString(cx, s))||
-               !(bytes = JS_GetStringBytes(str)))
+            if(str)
             {
                 return JS_FALSE;
             }
-#ifdef DEBUG
-            const jschar* chars=nsnull;
-            if(nsnull!=(chars = JS_GetStringCharsZ(cx, str)))
-            {
-                NS_ASSERTION((! ILLEGAL_RANGE(chars[0])),"U+0080/U+0100 - U+FFFF data lost");
-            }
-#endif 
-            *((char*)d) = bytes[0];
+            jschar ch = JS_GetStringLength(str) ? JS_GetStringChars(str)[0] : 0;
+            NS_ASSERTION(!ILLEGAL_RANGE(ch), "U+0080/U+0100 - U+FFFF data lost");
+            *((char*)d) = char(ch);
             break;
         }
     case nsXPTType::T_WCHAR  :

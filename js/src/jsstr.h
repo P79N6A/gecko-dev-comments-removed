@@ -1032,6 +1032,15 @@ js_EqualStrings(JSString *str1, JSString *str2);
 extern int32 JS_FASTCALL
 js_CompareStrings(JSString *str1, JSString *str2);
 
+namespace js {
+
+
+
+extern JSBool
+MatchStringAndAscii(JSString *str, const char *asciiBytes);
+
+} 
+
 
 
 
@@ -1178,6 +1187,10 @@ js_str_charCodeAt(JSContext *cx, uintN argc, js::Value *vp);
 extern int
 js_OneUcs4ToUtf8Char(uint8 *utf8Buffer, uint32 ucs4Char);
 
+namespace js {
+
+extern size_t
+PutEscapedStringImpl(char *buffer, size_t size, FILE *fp, JSString *str, uint32 quote);
 
 
 
@@ -1187,22 +1200,29 @@ js_OneUcs4ToUtf8Char(uint8 *utf8Buffer, uint32 ucs4Char);
 
 
 
-#define js_PutEscapedString(buffer, bufferSize, str, quote)                   \
-    js_PutEscapedStringImpl(buffer, bufferSize, NULL, str, quote)
+
+inline size_t
+PutEscapedString(char *buffer, size_t size, JSString *str, uint32 quote)
+{
+    size_t n = PutEscapedStringImpl(buffer, size, NULL, str, quote);
+
+    
+    JS_ASSERT(n != size_t(-1));
+    return n;
+}
 
 
 
 
 
 
+inline bool
+FileEscapedString(FILE *fp, JSString *str, uint32 quote)
+{
+    return PutEscapedStringImpl(NULL, 0, fp, str, quote) != size_t(-1);
+}
 
-
-#define js_FileEscapedString(file, str, quote)                                \
-    (JS_ASSERT(file), js_PutEscapedStringImpl(NULL, 0, file, str, quote))
-
-extern JS_FRIEND_API(size_t)
-js_PutEscapedStringImpl(char *buffer, size_t bufferSize, FILE *fp,
-                        JSString *str, uint32 quote);
+} 
 
 extern JSBool
 js_String(JSContext *cx, uintN argc, js::Value *vp);
