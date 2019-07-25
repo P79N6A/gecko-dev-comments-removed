@@ -231,7 +231,7 @@ var gPluginHandler = {
   managePlugins: function (aEvent) {
     BrowserOpenAddonsMgr("addons://list/plugin");
   },
- 
+
   
   
   openPluginUpdatePage: function (aEvent) {
@@ -280,8 +280,7 @@ var gPluginHandler = {
     if (overlay) {
       overlay.addEventListener("click", function(aEvent) {
         
-        
-        if (aEvent.target instanceof XULElement && 
+        if (!(aEvent.originalTarget instanceof HTMLAnchorElement) &&
             aEvent.button == 0 && aEvent.isTrusted)
           gPluginHandler.activateSinglePlugin(aEvent.target.ownerDocument.defaultView.top, aPlugin);
       }, true);
