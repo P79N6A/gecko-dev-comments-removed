@@ -106,7 +106,6 @@
 #include "jsatominlines.h"
 #include "jsobjinlines.h"
 #include "jscntxtinlines.h"
-#include "jsstrinlines.h"
 
 using namespace js;
 
@@ -1255,88 +1254,37 @@ array_toSource(JSContext *cx, uintN argc, Value *vp)
 }
 #endif
 
-typedef HashSet<JSObject *> ObjSet;
-
-class AutoArrayCycleDetector
-{
-  public:
-    AutoArrayCycleDetector(JSContext *cx, JSObject *obj JS_GUARD_OBJECT_NOTIFIER_PARAM)
-      : context(cx), object(obj), genBefore(0),
-        hashPointer(context->busyArrays.lookupForAdd(object)), cycle(!!hashPointer)
-    {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    ~AutoArrayCycleDetector() {
-        JS_ASSERT(context);
-        if (!cycle && hashPointer) {
-            if (genBefore == context->busyArrays.generation())
-                context->busyArrays.remove(hashPointer);
-            else
-                context->busyArrays.remove(object);
-        }
-    }
-
-    bool foundCycle() {
-        return cycle;
-    }
-
-    bool update() {
-        JS_ASSERT(!hashPointer);
-        if (!context->busyArrays.add(hashPointer, object))
-            return false;
-        genBefore = context->busyArrays.generation();
-        return true;
-    }
-
-  protected:
-    JSContext *context;
-    JSObject *object;
-    uint32 genBefore;
-    ObjSet::AddPtr hashPointer;
-    JSBool cycle;
-    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
-
-static inline JSBool
-GetElementCharacters(JSContext *cx, JSObject *obj, JSBool locale, JSCharBuffer *cb, Value *rval)
-{
-    if (locale) {
-         
-         JSObject *robj;
-         
-         if (!js_ValueToObjectOrNull(cx, *rval, &robj))
-             return false;
-         rval->setObjectOrNull(robj);
-         JSAtom *atom = cx->runtime->atomState.toLocaleStringAtom;
-         if (!js_TryMethod(cx, robj, atom, 0, NULL, rval))
-             return false;
-    }
-
-    
-    if (rval->isString())
-        return js_StringValueToCharBuffer(cx, *rval, *cb);
-
-    return js_ValueToCharBuffer(cx, *rval, *cb);
-}
-
 static JSBool
 array_toString_sub(JSContext *cx, JSObject *obj, JSBool locale,
                    JSString *sepstr, Value *rval)
 {
     JS_CHECK_RECURSION(cx, return false);
 
-    AutoArrayCycleDetector detector(cx, obj);
+    
 
-    if (detector.foundCycle()) {
+
+
+    typedef js::HashSet<JSObject *> ObjSet;
+    ObjSet::AddPtr hashp = cx->busyArrays.lookupForAdd(obj);
+    uint32 genBefore;
+    if (!hashp) {
+        
+        if (!cx->busyArrays.add(hashp, obj)) {
+            JS_ReportOutOfMemory(cx);
+            return false;
+        }
+        genBefore = cx->busyArrays.generation();
+    } else {
+        
         rval->setString(ATOM_TO_STRING(cx->runtime->atomState.emptyAtom));
         return true;
     }
 
-    if (!detector.update())
-        return false;
-
     AutoObjectRooter tvr(cx, obj);
+
+    
+    MUST_FLOW_THROUGH("out");
+    bool ok = false;
 
     
     static const jschar comma = ',';
@@ -1357,41 +1305,53 @@ array_toString_sub(JSContext *cx, JSObject *obj, JSBool locale,
 
     jsuint length;
     if (!js_GetLengthProperty(cx, obj, &length))
-        return false;
+        goto out;
 
-    
-    if (seplen == 0 && obj->isDenseArray()) {
-        jsuint len = JS_MIN(length, obj->getDenseArrayCapacity());
-        for (Value *vp = obj->getDenseArrayElements(), *end = vp + len; vp != end; ++vp) {
-            if (!JS_CHECK_OPERATION_LIMIT(cx))
-                return false;
-            *rval = *vp;
-            if (!rval->isMagic(JS_ARRAY_HOLE) && !rval->isNullOrUndefined()) {
-                if (!GetElementCharacters(cx, obj, locale, &cb, rval))
-                    return false;
-            }
-        }
-    } else {
+    for (jsuint index = 0; index < length; index++) {
+        
         JSBool hole;
-        for (jsuint index = 0; index < length; index++) {
-            if (!JS_CHECK_OPERATION_LIMIT(cx) || !GetArrayElement(cx, obj, index, &hole, rval))
-                return false;
+        if (!JS_CHECK_OPERATION_LIMIT(cx) ||
+            !GetArrayElement(cx, obj, index, &hole, rval)) {
+            goto out;
+        }
 
-            if (!hole && !rval->isNullOrUndefined()) {
-                if (!GetElementCharacters(cx, obj, locale, &cb, rval))
-                    return false;
+        
+        if (!(hole || rval->isNullOrUndefined())) {
+            if (locale) {
+                
+                JSObject *robj;
+
+                if (!js_ValueToObjectOrNull(cx, *rval, &robj))
+                    goto out;
+                rval->setObjectOrNull(robj);
+                JSAtom *atom = cx->runtime->atomState.toLocaleStringAtom;
+                if (!js_TryMethod(cx, robj, atom, 0, NULL, rval))
+                    goto out;
             }
 
-            
-            if (index + 1 != length) {
-                if (!cb.append(sep, seplen))
-                    return false;
-            }
+            if (!js_ValueToCharBuffer(cx, *rval, cb))
+                goto out;
+        }
+
+        
+        if (index + 1 != length) {
+            if (!cb.append(sep, seplen))
+                goto out;
         }
     }
 
     
-    return BufferToString(cx, cb, rval);
+    if (!BufferToString(cx, cb, rval))
+        goto out;
+
+    ok = true;
+
+  out:
+    if (genBefore == cx->busyArrays.generation())
+        cx->busyArrays.remove(hashp);
+    else
+        cx->busyArrays.remove(obj);
+    return ok;
 }
 
 
@@ -2672,7 +2632,7 @@ array_indexOfHelper(JSContext *cx, JSBool isLast, uintN argc, Value *vp)
             return JS_FALSE;
         }
         if (!hole && StrictlyEqual(cx, *vp, tosearch)) {
-            vp->setNumber(i);
+			vp->setNumber(i);
             return JS_TRUE;
         }
         if (i == stop)
