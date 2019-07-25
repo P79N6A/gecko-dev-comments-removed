@@ -303,6 +303,16 @@ namespace js {
 
 
 
+
+
+
+
+
+
+
+
+
+
 enum ParseNodeArity {
     PN_NULLARY,                         
     PN_UNARY,                           
@@ -357,6 +367,7 @@ struct ParseNode {
     bool isEquality() const                { return TokenKindIsEquality(getKind()); }
     bool isUnaryOp() const                 { return TokenKindIsUnaryOp(getKind()); }
     bool isXMLNameOp() const               { return TokenKindIsXML(getKind()); }
+    bool isAssignment() const              { return TokenKindIsAssignment(getKind()); }
 
     
     bool isInParens() const                { return pn_parens; }
@@ -936,7 +947,7 @@ struct Definition : public ParseNode
     Definition *resolve() {
         ParseNode *pn = this;
         while (!pn->isDefn()) {
-            if (pn->getKind() == TOK_ASSIGN) {
+            if (pn->isAssignment()) {
                 pn = pn->pn_left;
                 continue;
             }

@@ -1858,10 +1858,11 @@ Parser::condition()
     MUST_MATCH_TOKEN(TOK_RP, JSMSG_PAREN_AFTER_COND);
 
     
+    JS_ASSERT_IF(pn->isKind(TOK_ASSIGN), pn->isOp(JSOP_NOP));
     if (pn->isKind(TOK_ASSIGN) &&
-        pn->isOp(JSOP_NOP) &&
         !pn->isInParens() &&
-        !reportErrorNumber(NULL, JSREPORT_WARNING | JSREPORT_STRICT, JSMSG_EQUAL_AS_ASSIGN, "")) {
+        !reportErrorNumber(NULL, JSREPORT_WARNING | JSREPORT_STRICT, JSMSG_EQUAL_AS_ASSIGN, ""))
+    {
         return NULL;
     }
     return pn;
@@ -3793,11 +3794,12 @@ Parser::expressionStatement()
 
 
 
+        JS_ASSERT(pn2->isOp(JSOP_NOP));
         if (tc->funbox &&
-            pn2->isOp(JSOP_NOP) &&
             pn2->pn_left->isOp(JSOP_SETPROP) &&
             pn2->pn_left->pn_expr->isOp(JSOP_THIS) &&
-            pn2->pn_right->isOp(JSOP_LAMBDA)) {
+            pn2->pn_right->isOp(JSOP_LAMBDA))
+        {
             JS_ASSERT(!pn2->isDefn());
             JS_ASSERT(!pn2->isUsed());
             pn2->pn_right->pn_link = tc->funbox->methods;
@@ -4109,11 +4111,13 @@ Parser::statement()
             tokenStream.currentToken().name() != context->runtime->atomState.xmlAtom ||
             !tokenStream.matchToken(TOK_NAME) ||
             tokenStream.currentToken().name() != context->runtime->atomState.namespaceAtom ||
-            !tokenStream.matchToken(TOK_ASSIGN) ||
-            tokenStream.currentToken().t_op != JSOP_NOP) {
+            !tokenStream.matchToken(TOK_ASSIGN))
+        {
             reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_BAD_DEFAULT_XML_NAMESPACE);
             return NULL;
         }
+
+        JS_ASSERT(tokenStream.currentToken().t_op == JSOP_NOP);
 
         
         tc->flags |= TCF_FUN_HEAVYWEIGHT;
@@ -4210,8 +4214,7 @@ Parser::variables(bool inLetHead)
             }
 
             MUST_MATCH_TOKEN(TOK_ASSIGN, JSMSG_BAD_DESTRUCT_DECL);
-            if (tokenStream.currentToken().t_op != JSOP_NOP)
-                goto bad_var_init;
+            JS_ASSERT(tokenStream.currentToken().t_op == JSOP_NOP);
 
 #if JS_HAS_BLOCK_SCOPE
             if (popScope) {
@@ -4257,8 +4260,7 @@ Parser::variables(bool inLetHead)
         pn->append(pn2);
 
         if (tokenStream.matchToken(TOK_ASSIGN)) {
-            if (tokenStream.currentToken().t_op != JSOP_NOP)
-                goto bad_var_init;
+            JS_ASSERT(tokenStream.currentToken().t_op == JSOP_NOP);
 
 #if JS_HAS_BLOCK_SCOPE
             if (popScope) {
@@ -4309,10 +4311,6 @@ Parser::variables(bool inLetHead)
 
     pn->pn_pos.end = pn->last()->pn_pos.end;
     return pn;
-
-bad_var_init:
-    reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_BAD_VAR_INIT);
-    return NULL;
 }
 
 ParseNode *
@@ -4592,11 +4590,12 @@ Parser::assignExpr()
     if (!pn)
         return NULL;
 
-    if (!tokenStream.isCurrentTokenType(TOK_ASSIGN)) {
+    if (!tokenStream.isCurrentTokenAssignment()) {
         tokenStream.ungetToken();
         return pn;
     }
 
+    TokenKind tt = tokenStream.currentToken().type;
     JSOp op = tokenStream.currentToken().t_op;
     if (!setAssignmentLhsOps(pn, op))
         return NULL;
@@ -4620,7 +4619,7 @@ Parser::assignExpr()
         }
     }
 
-    return ParseNode::newBinaryOrAppend(TOK_ASSIGN, op, pn, rhs, tc);
+    return ParseNode::newBinaryOrAppend(tt, op, pn, rhs, tc);
 }
 
 static ParseNode *

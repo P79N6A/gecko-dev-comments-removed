@@ -670,19 +670,28 @@ js::FoldConstants(JSContext *cx, ParseNode *pn, TreeContext *tc, bool inCond)
         }
         break;
 
-      case TOK_ASSIGN:
+      case TOK_SUBASSIGN:
+      case TOK_BITORASSIGN:
+      case TOK_BITXORASSIGN:
+      case TOK_BITANDASSIGN:
+      case TOK_LSHASSIGN:
+      case TOK_RSHASSIGN:
+      case TOK_URSHASSIGN:
+      case TOK_MULASSIGN:
+      case TOK_DIVASSIGN:
+      case TOK_MODASSIGN:
         
 
 
 
 
 
-        if (pn->isOp(JSOP_NOP))
-            break;
-        if (!pn->isOp(JSOP_ADD))
-            goto do_binary_op;
-        
 
+        goto do_binary_op;
+
+      case TOK_ADDASSIGN:
+        JS_ASSERT(pn->isOp(JSOP_ADD));
+        
       case TOK_PLUS:
         if (pn->isArity(PN_UNARY))
             goto unary_plusminus;
