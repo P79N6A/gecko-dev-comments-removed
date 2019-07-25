@@ -124,7 +124,8 @@ public:
 
 
 
-  PaintState BeginPaint(ThebesLayer* aLayer, ContentType aContentType);
+  PaintState BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
+                        float aXResolution, float aYResolution);
 
   
 
@@ -147,8 +148,10 @@ protected:
     TOP, BOTTOM
   };
   nsIntRect GetQuadrantRectangle(XSide aXSide, YSide aYSide);
-  void DrawBufferQuadrant(gfxContext* aTarget, XSide aXSide, YSide aYSide, float aOpacity);
-  void DrawBufferWithRotation(gfxContext* aTarget, float aOpacity);
+  void DrawBufferQuadrant(gfxContext* aTarget, XSide aXSide, YSide aYSide,
+                          float aOpacity, float aXRes, float aYRes);
+  void DrawBufferWithRotation(gfxContext* aTarget, float aOpacity,
+                              float aXRes, float aYRes);
 
   const nsIntRect& BufferRect() const { return mBufferRect; }
   const nsIntPoint& BufferRotation() const { return mBufferRotation; }

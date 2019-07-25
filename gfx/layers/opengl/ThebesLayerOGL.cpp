@@ -143,10 +143,9 @@ ThebesLayerBufferOGL::RenderTo(const nsIntPoint& aOffset,
   
   
   ColorTextureLayerProgram *program =
-    aManager->GetBasicLayerProgram(mLayer->CanUseOpaqueSurface(),
-                                   mTexImage->IsRGB());
-
-  gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
+    mLayer->CanUseOpaqueSurface()
+    ? aManager->GetBGRXLayerProgram()
+    : aManager->GetBGRALayerProgram();
 
   if (!mTexImage->InUpdate() || !mTexImage->EndUpdate()) {
     gl()->fBindTexture(LOCAL_GL_TEXTURE_2D, mTexImage->Texture());
@@ -189,7 +188,7 @@ public:
   virtual PaintState BeginPaint(ContentType aContentType)
   {
     
-    return ThebesLayerBuffer::BeginPaint(mLayer, aContentType);
+    return ThebesLayerBuffer::BeginPaint(mLayer, aContentType, 1.0, 1.0);
   }
 
   

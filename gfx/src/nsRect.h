@@ -180,7 +180,8 @@ struct NS_GFX nsRect {
 
   
   
-  nsRect& ScaleRoundOut(float aScale);
+  nsRect& ScaleRoundOut(float aScale) { return ScaleRoundOut(aScale, aScale); }
+  nsRect& ScaleRoundOut(float aXScale, float aYScale);
 
   
   
@@ -335,13 +336,6 @@ struct NS_GFX nsIntRect {
   PRInt32 YMost() const {return y + height;}
 
   inline nsRect ToAppUnits(nscoord aAppUnitsPerPixel) const;
-
-  
-  
-  static const nsIntRect& GetMaxSizedIntRect() { return kMaxSizedIntRect; }
-
-protected:
-  static const nsIntRect kMaxSizedIntRect;
 };
 
 

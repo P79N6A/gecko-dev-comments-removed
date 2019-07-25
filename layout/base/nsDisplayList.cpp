@@ -434,6 +434,16 @@ void nsDisplayList::PaintForFrame(nsDisplayListBuilder* aBuilder,
 
   root->SetFrameMetrics(metrics);
 
+  
+  if (LayerManager::LAYERS_BASIC == layerManager->GetBackendType()) {
+    BasicLayerManager* basicManager =
+      static_cast<BasicLayerManager*>(layerManager.get());
+    
+    
+    basicManager->SetResolution(presShell->GetXResolution(),
+                                presShell->GetYResolution());
+  }
+
   layerManager->SetRoot(root);
   aBuilder->LayerBuilder()->WillEndTransaction(layerManager);
   layerManager->EndTransaction(FrameLayerBuilder::DrawThebesLayer,
