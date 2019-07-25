@@ -463,11 +463,6 @@ function reflectBoolean(aParameters)
 function reflectInt(aParameters)
 {
   
-  function testExponential(value) {
-    return !!/^[ \t\n\f\r]*[\+\-]?[0-9]+e[0-9]+/.exec(value);
-  }
-
-  
   function expectedGetAttributeResult(value) {
     return (value !== null) ? String(value) : "";
   }
@@ -556,33 +551,9 @@ function reflectInt(aParameters)
       
       todo_is(element[attr], intValue, "Bug 586761: " + element.localName +
         ".setAttribute(value, " + v + "), " + element.localName + "[" + attr + "] ");
-    } else if (testExponential(v)) {
-      
-      todo_is(element[attr], intValue, "Bug 673820: " + element.localName +
-        ".setAttribute(" + attr + ", " + v + "), " + element.localName + "[" + attr + "] ");
-    } else if (v == "why 567 what") {
-      
-      todo_is(element[attr], intValue, "Bug 679672: " + element.localName +
-        ".setAttribute(" + attr + ", " + v + "), " + element.localName + "[" + attr + "] ");
-    } else if (v === "-0" && nonNegative) {
+    } else if ((v === "-0" || v == "-0xABCDEF") && nonNegative) {
       
       todo_is(element[attr], intValue, "Bug 688093: " + element.localName +
-        ".setAttribute(" + attr + ", " + v + "), " + element.localName + "[" + attr + "] ");
-    } else if (v == "+42foo") {
-      
-      todo_is(element[attr], intValue, "Bug: " + element.localName +
-        ".setAttribute(" + attr + ", " + v + "), " + element.localName + "[" + attr + "] ");
-    } else if (v == "0x10FFFF" && defaultValue != 0) {
-      
-      todo_is(element[attr], intValue, "Bug: " + element.localName +
-        ".setAttribute(" + attr + ", " + v + "), " + element.localName + "[" + attr + "] ");
-    } else if (v == "-0xABCDEF" && !nonNegative && defaultValue != 0) {
-      
-      todo_is(element[attr], intValue, "Bug: " + element.localName +
-        ".setAttribute(" + attr + ", " + v + "), " + element.localName + "[" + attr + "] ");
-    } else if ((v == "++2" || v == "+-2" || v == "--2" || v == "-+2") && element[attr] != defaultValue)  {
-      
-      todo_is(element[attr], intValue, "Bug: " + element.localName +
         ".setAttribute(" + attr + ", " + v + "), " + element.localName + "[" + attr + "] ");
     } else {
       is(element[attr], intValue, element.localName +
