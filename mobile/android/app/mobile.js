@@ -519,26 +519,6 @@ pref("app.update.url.details", "http://www.mozilla.com/%LOCALE%/mobile/");
 
 pref("editor.singleLine.pasteNewlines", 2);
 
-#ifdef MOZ_SERVICES_SYNC
-
-pref("services.sync.client.type", "mobile");
-pref("services.sync.registerEngines", "Tab,Bookmarks,Form,History,Password,Prefs");
-pref("services.sync.autoconnectDelay", 5);
-
-
-pref("services.sync.prefs.sync.browser.startup.homepage.title", true);
-pref("services.sync.prefs.sync.browser.startup.homepage", true);
-pref("services.sync.prefs.sync.browser.tabs.warnOnClose", true);
-pref("services.sync.prefs.sync.devtools.errorconsole.enabled", true);
-pref("services.sync.prefs.sync.javascript.enabled", true);
-pref("services.sync.prefs.sync.lightweightThemes.isThemeSelected", true);
-pref("services.sync.prefs.sync.lightweightThemes.usedThemes", true);
-pref("services.sync.prefs.sync.network.cookie.cookieBehavior", true);
-pref("services.sync.prefs.sync.permissions.default.image", true);
-pref("services.sync.prefs.sync.privacy.donottrackheader.enabled", true);
-pref("services.sync.prefs.sync.signon.rememberSignons", true);
-#endif
-
 
 
 pref("ui.dragThresholdX", 25);
