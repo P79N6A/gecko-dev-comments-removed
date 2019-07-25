@@ -35,6 +35,7 @@
 
 
 
+
 "use strict";
 
 const EXPORTED_SYMBOLS = ["SplitView"];
@@ -236,9 +237,6 @@ SplitView.prototype = {
 
 
 
-
-
-
   appendItem: function ASV_appendItem(aSummary, aDetails, aOptions)
   {
     let binding = aOptions || {};
@@ -247,10 +245,6 @@ SplitView.prototype = {
     binding._details = aDetails;
     aSummary.setUserData(BINDING_USERDATA, binding, null);
 
-    if (!binding.disableAnimations) {
-      aSummary.classList.add("splitview-slide");
-      aSummary.classList.add("splitview-flash");
-    }
     this._nav.appendChild(aSummary);
 
     aSummary.addEventListener("click", function onSummaryClick(aEvent) {
@@ -265,11 +259,6 @@ SplitView.prototype = {
       this._root.ownerDocument.defaultView.setTimeout(function () {
         binding.onCreate(aSummary, aDetails, binding.data);
       }, 0);
-    }
-
-    if (!binding.disableAnimations) {
-      scheduleAnimation(aSummary, "splitview-slide", "splitview-flash");
-      aSummary.scrollIntoView();
     }
   },
 
@@ -462,28 +451,3 @@ SplitView.prototype = {
     }
   }
 };
-
-
-
-
-
-
-
-
-
-
-
-function scheduleAnimation(aElement)
-{
-  let classes = Array.prototype.slice.call(arguments, 1);
-  for each (let klass in classes) {
-    aElement.classList.add(klass);
-  }
-
-  let window = aElement.ownerDocument.defaultView;
-  window.mozRequestAnimationFrame(function triggerAnimation() {
-    for each (let klass in classes) {
-      aElement.classList.remove(klass);
-    }
-  });
-}
