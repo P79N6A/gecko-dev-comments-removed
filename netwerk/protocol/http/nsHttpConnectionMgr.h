@@ -49,7 +49,6 @@
 #include "nsAutoPtr.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "nsISocketTransportService.h"
-#include "nsHashSets.h"
 
 #include "nsIObserver.h"
 #include "nsITimer.h"
@@ -425,10 +424,9 @@ private:
     nsClassHashtable<nsCStringHashKey, nsConnectionEntry> mCT;
 
     
-    nsCStringHashSet mAlternateProtocolHash; 
-    static PLDHashOperator TrimAlternateProtocolHash(PLDHashTable *table,
-                                                     PLDHashEntryHdr *hdr,
-                                                     PRUint32 number,
+    
+    nsTHashtable<nsCStringHashKey> mAlternateProtocolHash;
+    static PLDHashOperator TrimAlternateProtocolHash(nsCStringHashKey *entry,
                                                      void *closure);
     
     void ActivateTimeoutTick();
