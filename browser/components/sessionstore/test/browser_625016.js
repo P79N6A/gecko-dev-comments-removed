@@ -28,7 +28,7 @@ function test() {
 
   
   waitForSaveState(onSaveState);
-  newWin = openDialog(location, "_blank", "chrome,all,dialog=no", "about:robots");
+  newWin = openDialog(location, "_blank", "chrome,all,dialog=no", "about:rights");
 }
 
 function onSaveState() {
