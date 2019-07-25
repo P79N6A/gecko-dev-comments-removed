@@ -1299,7 +1299,8 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
     
     
     nscoord floatHeight =
-      aState.ClearFloats(bottomEdgeOfChildren, NS_STYLE_CLEAR_LEFT_AND_RIGHT);
+      aState.ClearFloats(bottomEdgeOfChildren, NS_STYLE_CLEAR_LEFT_AND_RIGHT,
+                         nsnull, nsFloatManager::DONT_CLEAR_PUSHED_FLOATS);
     bottomEdgeOfChildren = NS_MAX(bottomEdgeOfChildren, floatHeight);
   }
 

@@ -274,7 +274,12 @@ public:
 
 
 
-  nscoord ClearFloats(nscoord aY, PRUint8 aBreakType) const;
+  enum {
+    
+    
+    DONT_CLEAR_PUSHED_FLOATS = (1<<0)
+  };
+  nscoord ClearFloats(nscoord aY, PRUint8 aBreakType, PRUint32 aFlags = 0) const;
 
   
 
