@@ -5026,11 +5026,12 @@ FunctionType::Call(JSContext* cx,
 
   
   
-  {
-    JSAutoSuspendRequest suspend(cx);
-    ffi_call(&fninfo->mCIF, FFI_FN(fn), returnValue.mData,
-             reinterpret_cast<void**>(values.begin()));
-  }
+  jsrefcount rc = JS_SuspendRequest(cx);
+
+  ffi_call(&fninfo->mCIF, FFI_FN(fn), returnValue.mData,
+    reinterpret_cast<void**>(values.begin()));
+
+  JS_ResumeRequest(cx, rc);
 
   
   

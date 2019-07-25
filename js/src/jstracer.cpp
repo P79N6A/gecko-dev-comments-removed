@@ -9424,7 +9424,7 @@ TraceRecorder::test_property_cache(JSObject* obj, LIns* obj_ins, JSObject*& obj2
     
     
     
-    JS_ASSERT(cx->thread->requestDepth);
+    JS_ASSERT(cx->requestDepth);
 #endif
 
     return InjectStatus(guardPropertyCacheHit(obj_ins, aobj, obj2, entry, pcval));
