@@ -96,6 +96,8 @@ public:
         virtual void OnChannelConnected(int32 peer_pid) {};
     };
 
+    enum Side { Parent, Child, Unknown };
+
 public:
     
     
@@ -108,7 +110,7 @@ public:
     
     
     
-    bool Open(Transport* aTransport, MessageLoop* aIOLoop=0);
+    bool Open(Transport* aTransport, MessageLoop* aIOLoop=0, Side aSide=Unknown);
     
     
     void Close();

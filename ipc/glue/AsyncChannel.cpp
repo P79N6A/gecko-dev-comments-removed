@@ -123,7 +123,7 @@ AsyncChannel::~AsyncChannel()
 }
 
 bool
-AsyncChannel::Open(Transport* aTransport, MessageLoop* aIOLoop)
+AsyncChannel::Open(Transport* aTransport, MessageLoop* aIOLoop, Side aSide)
 {
     NS_PRECONDITION(!mTransport, "Open() called > once");
     NS_PRECONDITION(aTransport, "need transport layer");
@@ -136,16 +136,22 @@ AsyncChannel::Open(Transport* aTransport, MessageLoop* aIOLoop)
     
     
     bool needOpen = true;
-    if(!aIOLoop) {
+    if(aIOLoop) {
         
+        
+        needOpen = true;
+        mChild = (aSide == Unknown) || (aSide == Child);
+    } else {
+        NS_PRECONDITION(aSide == Unknown, "expected default side arg");
+
+        
+        mChild = false;
         needOpen = false;
         aIOLoop = XRE_GetIOMessageLoop();
         
         
         mChannelState = ChannelConnected;
     }
-
-    mChild = needOpen;
 
     mIOLoop = aIOLoop;
     mWorkerLoop = MessageLoop::current();
