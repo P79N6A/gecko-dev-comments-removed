@@ -718,8 +718,14 @@ var FormHelperUI = {
       case "AnimatedZoomBegin":
         
         
-        if (this._hasSuggestions)
+        if (this._hasSuggestions) {
+          
+          
+          
+          
+          this._suggestionsContainer.left = 0;
           this._suggestionsContainer.style.visibility = "hidden";
+        }
         break;
 
       case "PanFinished":
@@ -862,8 +868,10 @@ var FormHelperUI = {
     }
     
     
-    this._suggestionsContainer.style.visibility = "hidden";
-    this._suggestionsContainer.hidden = false;
+    let suggestionsContainer = this._suggestionsContainer;
+    suggestionsContainer.style.visibility = "hidden";
+    suggestionsContainer.hidden = false;
+    suggestionsContainer.left = 0;
 
     
     
@@ -876,7 +884,7 @@ var FormHelperUI = {
       return;
     }
 
-    let container = this._suggestionsContainer.firstChild;
+    let container = suggestionsContainer.firstChild;
     while (container.hasChildNodes())
       container.removeChild(container.lastChild);
 
@@ -931,7 +939,14 @@ var FormHelperUI = {
 
   _ensureSuggestionsVisible: function _formHelperEnsureSuggestionsVisible() {
     let container = this._suggestionsContainer;
-    container.firstChild.style.maxWidth = (window.innerWidth * 0.75) + "px";
+
+    
+    
+    let [leftVis, rightVis, leftW, rightW] = Browser.computeSidebarVisibility();
+    let leftOffset = leftVis * leftW;
+    let rightOffset = rightVis * rightW;
+    let visibleAreaWidth = window.innerWidth - leftOffset - rightOffset;
+    container.firstChild.style.maxWidth = (visibleAreaWidth * 0.75) + "px";
 
     let browser = getBrowser();
     let rect = this._currentElementRect.clone().scale(browser.scale, browser.scale);
@@ -939,9 +954,6 @@ var FormHelperUI = {
 
     
     
-    let [leftVis, rightVis, leftW, rightW] = Browser.computeSidebarVisibility();
-    let leftOffset = leftVis * leftW;
-    let rightOffset = rightVis * rightW;
     let topOffset = (BrowserUI.toolbarH - Browser.getScrollboxPosition(Browser.pageScrollboxScroller).y);
     let virtualContentRect = {
       width: rect.width,
@@ -954,8 +966,8 @@ var FormHelperUI = {
 
     
     
-    if (virtualContentRect.left + virtualContentRect.width > window.innerWidth) {
-      let offsetX = window.innerWidth - (virtualContentRect.left + virtualContentRect.width);
+    if (virtualContentRect.left + virtualContentRect.width > visibleAreaWidth) {
+      let offsetX = visibleAreaWidth - (virtualContentRect.left + virtualContentRect.width);
       virtualContentRect.width += offsetX;
       virtualContentRect.right -= offsetX;
     }
@@ -965,8 +977,9 @@ var FormHelperUI = {
     if (BrowserUI.isToolbarLocked()) {
       
       
-      browserRect = new Rect(browserRect.left + leftOffset - rightOffset, browserRect.top + BrowserUI.toolbarH,
-                             browserRect.width + leftOffset - rightOffset, browserRect.height - BrowserUI.toolbarH);
+      let toolbarH = BrowserUI.toolbarH;
+      browserRect = new Rect(leftOffset - rightOffset, Math.max(0, browserRect.top - toolbarH) + toolbarH,
+                             browserRect.width + leftOffset - rightOffset, browserRect.height - toolbarH);
     }
 
     if (browserRect.intersect(Rect.fromRect(virtualContentRect)).isEmpty()) {
