@@ -124,13 +124,17 @@ class GeckoSurfaceView
 
             if (mSoftwareBuffer != null)
                 GeckoAppShell.scheduleRedraw();
-            if (!doSyncDraw)
+
+            if (!doSyncDraw) {
+                Canvas c = holder.lockCanvas();
+                c.drawARGB(255, 255, 255, 255);
+                holder.unlockCanvasAndPost(c);
                 return;
+            }
         } finally {
             mSurfaceLock.unlock();
         }
 
-        mSoftwareBitmap = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.RGB_565);
         ByteBuffer bb = null;
         try {
             bb = mSyncBuf.take();
@@ -138,6 +142,7 @@ class GeckoSurfaceView
             Log.e("GeckoAppJava", "Threw exception while getting sync buf: " + ie);
         }
         if (bb != null && bb.capacity() == (width * height * 2)) {
+            mSoftwareBitmap = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.RGB_565);
             mSoftwareBitmap.copyPixelsFromBuffer(bb);
             Canvas c = holder.lockCanvas();
             c.drawBitmap(mSoftwareBitmap, 0, 0, null);
@@ -216,29 +221,56 @@ class GeckoSurfaceView
         }
     }
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
     public void draw2D(ByteBuffer buffer, int stride) {
         if (GeckoApp.mAppContext.mProgressDialog != null) {
             GeckoApp.mAppContext.mProgressDialog.dismiss();
             GeckoApp.mAppContext.mProgressDialog = null;
         }
-        if (mSyncDraw) {
-            if (stride != (mWidth * 2))
+
+        
+        
+        mSurfaceLock.lock();
+        try {
+            if (mSyncDraw) {
+                if (buffer != mSoftwareBuffer || stride != (mWidth * 2))
+                    return;
+                mSyncDraw = false;
+                try {
+                    mSyncBuf.put(buffer);
+                } catch (InterruptedException ie) {
+                    Log.e("GeckoAppJava", "Threw exception while getting sync buf: " + ie);
+                }
                 return;
-            mSyncDraw = false;
-            try {
-                mSyncBuf.put(buffer);
-            } catch (InterruptedException ie) {
-                Log.e("GeckoAppJava", "Threw exception while getting sync buf: " + ie);
             }
-            return;
+        } finally {
+            mSurfaceLock.unlock();
         }
 
-        if (buffer != mSoftwareBuffer)
+        if (buffer != mSoftwareBuffer || stride != (mWidth * 2))
             return;
         Canvas c = getHolder().lockCanvas();
         if (c == null)
             return;
         if (buffer != mSoftwareBuffer || stride != (mWidth * 2)) {
+            
+
+
+
+
+            c.drawARGB(255, 255, 255, 255);
             getHolder().unlockCanvasAndPost(c);
             return;
         }
