@@ -244,15 +244,10 @@ nsOuterDocAccessible::CacheChildren()
 {
   
   
-  nsIDocument *outerDoc = mContent->GetCurrentDoc();
-  if (!outerDoc)
-    return;
-
-  nsIDocument *innerDoc = outerDoc->GetSubDocumentFor(mContent);
-  if (!innerDoc)
-    return;
-
-  nsDocAccessible *docAcc = GetAccService()->GetDocAccessible(innerDoc);
-  NS_ASSERTION(docAcc && docAcc->GetParent() == this,
-               "Document accessible isn't a child of outerdoc accessible!");
+  nsIDocument* outerDoc = mContent->GetCurrentDoc();
+  if (outerDoc) {
+    nsIDocument* innerDoc = outerDoc->GetSubDocumentFor(mContent);
+    if (innerDoc)
+      GetAccService()->GetDocAccessible(innerDoc);
+  }
 }
