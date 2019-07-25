@@ -218,17 +218,19 @@ WifiGeoPositionProvider.prototype = {
 
     if (accessPoints) {
         providerUrl = providerUrl + accessPoints.sort(sort).map(encode).join("");
-        
-        let x = providerUrl.length - 2000;
-        if (x >= 0) {
-            
-            let doomed = providerUrl.lastIndexOf("&", 2000);
-            LOG("Doomed:"+doomed);
-            providerUrl = providerUrl.substring(0, doomed);
-        }
     }
 
     providerUrl = encodeURI(providerUrl);
+
+    
+    let x = providerUrl.length - 2000;
+    if (x >= 0) {
+	
+	let doomed = providerUrl.lastIndexOf("&", 2000);
+	LOG("Doomed:"+doomed);
+	providerUrl = providerUrl.substring(0, doomed);
+    }
+    
     LOG("************************************* Sending request:\n" + providerUrl + "\n");
 
     
