@@ -102,7 +102,7 @@ let (backup_date = new Date().toLocaleFormat("%Y-%m-%d")) {
 }
 
 
-const SMART_BOOKMARKS_VERSION = 2;
+const SMART_BOOKMARKS_VERSION = 3;
 const SMART_BOOKMARKS_ON_TOOLBAR = 1;
 const SMART_BOOKMARKS_ON_MENU = 3; 
 

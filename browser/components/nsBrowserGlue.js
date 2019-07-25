@@ -1300,7 +1300,7 @@ BrowserGlue.prototype = {
     
     
     
-    const SMART_BOOKMARKS_VERSION = 2;
+    const SMART_BOOKMARKS_VERSION = 3;
     const SMART_BOOKMARKS_ANNO = "Places/SmartBookmark";
     const SMART_BOOKMARKS_PREF = "browser.places.smartBookmarksVersion";
 
@@ -1346,7 +1346,6 @@ BrowserGlue.prototype = {
                                 Ci.nsINavHistoryQueryOptions.QUERY_TYPE_BOOKMARKS +
                                 "&sort=" +
                                 Ci.nsINavHistoryQueryOptions.SORT_BY_DATEADDED_DESCENDING +
-                                "&excludeItemIfParentHasAnnotation=livemark%2FfeedURI" +
                                 "&maxResults=" + MAX_RESULTS +
                                 "&excludeQueries=1"),
             parent: PlacesUtils.bookmarksMenuFolderId,

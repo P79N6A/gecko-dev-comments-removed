@@ -460,21 +460,6 @@ const queryOptionSwitches = [
   },
   
   {
-    property: "excludeItemIfParentHasAnnotation",
-    desc:     "nsINavHistoryQueryOptions.excludeItemIfParentHasAnnotation",
-    matches:  simplePropertyMatches,
-    runs:     [
-      function (aQuery, aQueryOptions) {
-        aQueryOptions.excludeItemIfParentHasAnnotation =
-          "bookmarks/toolbarFolder";
-      },
-      function (aQuery, aQueryOptions) {
-        aQueryOptions.excludeItemIfParentHasAnnotation = "";
-      }
-    ]
-  },
-  
-  {
     property: "expandQueries",
     desc:     "nsINavHistoryQueryOptions.expandQueries",
     matches:  simplePropertyMatches,

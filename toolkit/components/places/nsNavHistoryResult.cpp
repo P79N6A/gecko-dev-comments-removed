@@ -3709,15 +3709,10 @@ nsNavHistoryFolderResultNode::StartIncrementalUpdate()
 {
   
   
-  nsCAutoString parentAnnotationToExclude;
-  nsresult rv = mOptions->GetExcludeItemIfParentHasAnnotation(parentAnnotationToExclude);
-  NS_ENSURE_SUCCESS(rv, false);
 
-  if (!mOptions->ExcludeItems() && 
-      !mOptions->ExcludeQueries() && 
-      !mOptions->ExcludeReadOnlyFolders() && 
-      parentAnnotationToExclude.IsEmpty()) {
-
+  if (!mOptions->ExcludeItems() &&
+      !mOptions->ExcludeQueries() &&
+      !mOptions->ExcludeReadOnlyFolders()) {
     
     if (mExpanded || AreChildrenVisible())
       return true;

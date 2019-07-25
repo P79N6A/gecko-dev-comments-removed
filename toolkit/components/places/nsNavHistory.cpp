@@ -1704,32 +1704,8 @@ static
 bool NeedToFilterResultSet(const nsCOMArray<nsNavHistoryQuery>& aQueries, 
                              nsNavHistoryQueryOptions *aOptions)
 {
-  
   PRUint16 resultType = aOptions->ResultType();
-  if (resultType == nsINavHistoryQueryOptions::RESULTS_AS_DATE_QUERY ||
-      resultType == nsINavHistoryQueryOptions::RESULTS_AS_DATE_SITE_QUERY ||
-      resultType == nsINavHistoryQueryOptions::RESULTS_AS_TAG_QUERY ||
-      resultType == nsINavHistoryQueryOptions::RESULTS_AS_SITE_QUERY)
-    return false;
-
-  
-  
-  if (aOptions->QueryType() == nsINavHistoryQueryOptions::QUERY_TYPE_BOOKMARKS)
-    return true;
-
-  nsCString parentAnnotationToExclude;
-  nsresult rv = aOptions->GetExcludeItemIfParentHasAnnotation(parentAnnotationToExclude);
-  NS_ENSURE_SUCCESS(rv, true);
-  if (!parentAnnotationToExclude.IsEmpty())
-    return true;
-
-  
-  for (PRInt32 i = 0; i < aQueries.Count(); ++i) {
-    if (aQueries[i]->Folders().Length() != 0) {
-      return true;
-    }
-  }
-  return false;
+  return resultType == nsINavHistoryQueryOptions::RESULTS_AS_TAG_CONTENTS;
 }
 
 
@@ -4026,6 +4002,7 @@ nsNavHistory::QueryToSelectClause(nsNavHistoryQuery* aQuery,
                                   nsCString* aClause)
 {
   bool hasIt;
+  bool excludeQueries = aOptions->ExcludeQueries();
 
   ConditionBuilder clause(aQueryIndex);
 
@@ -4051,6 +4028,8 @@ nsNavHistory::QueryToSelectClause(nsNavHistoryQuery* aQuery,
           .Str(", h.url, page_title, tags, ")
           .Str(nsPrintfCString(17, "0, 0, 0, 0, %d, 0)",
                                mozIPlacesAutoComplete::MATCH_ANYWHERE_UNMODIFIED).get());
+    
+    excludeQueries = true;
   }
 
   
@@ -4143,10 +4122,34 @@ nsNavHistory::QueryToSelectClause(nsNavHistoryQuery* aQuery,
   }
 
   
-  
-  if (aOptions->ResultType() == nsINavHistoryQueryOptions::RESULTS_AS_TAG_CONTENTS &&
-      aQuery->Folders().Length() == 1) {
-    clause.Condition("b.parent =").Param(":parent");
+  const nsTArray<PRInt64>& folders = aQuery->Folders();
+  if (folders.Length() > 0) {
+    nsTArray<PRInt64> includeFolders;
+    includeFolders.AppendElements(folders);
+
+    nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
+    NS_ENSURE_STATE(bookmarks);
+
+    for (nsTArray<PRInt64>::size_type i = 0; i < folders.Length(); ++i) {
+      nsTArray<PRInt64> subFolders;
+      if (NS_FAILED(bookmarks->GetDescendantFolders(folders[i], subFolders)))
+        continue;
+      includeFolders.AppendElements(subFolders);
+    }
+
+    clause.Condition("b.parent IN(");
+    for (nsTArray<PRInt64>::size_type i = 0; i < includeFolders.Length(); ++i) {
+      clause.Str(nsPrintfCString("%d", includeFolders[i]).get());
+      if (i < includeFolders.Length() - 1) {
+        clause.Str(",");
+      }
+    }
+    clause.Str(")");
+  }
+
+  if (excludeQueries) {
+    
+    clause.Condition("NOT h.url BETWEEN 'place:' AND 'place;'");
   }
 
   clause.GetClauseString(*aClause);
@@ -4304,15 +4307,6 @@ nsNavHistory::BindQueryClauseParameters(mozIStorageBaseStatement* statement,
     }
   }
 
-  
-  if (aOptions->ResultType() == nsINavHistoryQueryOptions::RESULTS_AS_TAG_CONTENTS &&
-      aQuery->Folders().Length() == 1) {
-    rv = statement->BindInt64ByName(
-      NS_LITERAL_CSTRING("parent") + qIndex, aQuery->Folders()[0]
-    );
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
   return NS_OK;
 }
 
@@ -4395,10 +4389,6 @@ nsNavHistory::GetTagsFolder()
 
 
 
-
-
-
-
 nsresult
 nsNavHistory::FilterResultSet(nsNavHistoryQueryResultNode* aQueryNode,
                               const nsCOMArray<nsNavHistoryResultNode>& aSet,
@@ -4406,8 +4396,6 @@ nsNavHistory::FilterResultSet(nsNavHistoryQueryResultNode* aQueryNode,
                               const nsCOMArray<nsNavHistoryQuery>& aQueries,
                               nsNavHistoryQueryOptions *aOptions)
 {
-  nsresult rv;
-
   
   nsNavBookmarks *bookmarks = nsNavBookmarks::GetBookmarksService();
   NS_ENSURE_TRUE(bookmarks, NS_ERROR_OUT_OF_MEMORY);
@@ -4415,59 +4403,6 @@ nsNavHistory::FilterResultSet(nsNavHistoryQueryResultNode* aQueryNode,
   
   nsTArray<nsTArray<nsString>*> terms;
   ParseSearchTermsFromQueries(aQueries, &terms);
-
-  
-  
-  nsTArray< nsTArray<PRInt64>* > includeFolders;
-  nsTArray< nsTArray<PRInt64>* > excludeFolders;
-  for (PRInt32 queryIndex = 0;
-       queryIndex < aQueries.Count(); queryIndex++) {
-    includeFolders.AppendElement(new nsTArray<PRInt64>(aQueries[queryIndex]->Folders()));
-    excludeFolders.AppendElement(new nsTArray<PRInt64>());
-  }
-
-  
-  
-  
-  bool excludeQueries = false;
-  if (aQueryNode) {
-    rv = aQueryNode->mOptions->GetExcludeQueries(&excludeQueries);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  nsCString parentAnnotationToExclude;
-  nsTArray<PRInt64> parentFoldersToExclude;
-  if (aQueryNode) {
-    rv = aQueryNode->mOptions->GetExcludeItemIfParentHasAnnotation(parentAnnotationToExclude);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  if (!parentAnnotationToExclude.IsEmpty()) {
-    
-    
-    
-    nsCOMPtr<mozIStorageStatement> stmt = mDB->GetStatement(
-      "SELECT a.item_id, a.content "
-      "FROM moz_anno_attributes n "
-      "JOIN moz_items_annos a ON n.id = a.anno_attribute_id "
-      "WHERE n.name = :anno_name "
-    );
-    NS_ENSURE_STATE(stmt);
-    mozStorageStatementScoper scoper(stmt);
-
-    rv = stmt->BindUTF8StringByName(
-      NS_LITERAL_CSTRING("anno_name"), parentAnnotationToExclude
-    );
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    bool hasMore = false;
-    while (NS_SUCCEEDED(stmt->ExecuteStep(&hasMore)) && hasMore) {
-      PRInt64 folderId = 0;
-      rv = stmt->GetInt64(0, &folderId);
-      NS_ENSURE_SUCCESS(rv, rv);
-      parentFoldersToExclude.AppendElement(folderId);
-    }
-  }
 
   PRUint16 resultType = aOptions->ResultType();
   for (PRInt32 nodeIndex = 0; nodeIndex < aSet.Count(); nodeIndex++) {
@@ -4489,12 +4424,6 @@ nsNavHistory::FilterResultSet(nsNavHistoryQueryResultNode* aQueryNode,
         continue;
       parentId = aSet[nodeIndex]->mFolderId;
     }
-
-    
-    
-    if (!parentAnnotationToExclude.IsEmpty() &&
-        parentFoldersToExclude.Contains(parentId))
-      continue;
 
     
     bool appendNode = false;
@@ -4529,54 +4458,12 @@ nsNavHistory::FilterResultSet(nsNavHistoryQueryResultNode* aQueryNode,
       }
 
       
-      
-      
-      if (includeFolders[queryIndex]->Length() != 0 &&
-          resultType != nsINavHistoryQueryOptions::RESULTS_AS_TAG_CONTENTS) {
-        
-        
-        if (excludeFolders[queryIndex]->Contains(parentId) || parentId == -1) {
-          continue;
-        }
-
-        if (!includeFolders[queryIndex]->Contains(parentId)) {
-          
-          
-          PRInt64 ancestor = parentId;
-          bool belongs = false;
-          nsTArray<PRInt64> ancestorFolders;
-
-          while (!belongs) {
-            
-            ancestorFolders.AppendElement(ancestor);
-
-            
-            if (NS_FAILED(bookmarks->GetFolderIdForItem(ancestor, &ancestor))) {
-              break;
-            } else if (excludeFolders[queryIndex]->Contains(ancestor)) {
-              break;
-            } else if (includeFolders[queryIndex]->Contains(ancestor)) {
-              belongs = true;
-            }
-          }
-          
-          
-          if (belongs) {
-            includeFolders[queryIndex]->AppendElements(ancestorFolders);
-          } else {
-            excludeFolders[queryIndex]->AppendElements(ancestorFolders);
-            continue;
-          }
-        }
-      }
-
-      
       appendNode = true;
     }
 
     if (appendNode)
       aFiltered->AppendObject(aSet[nodeIndex]);
-      
+
     
     if (aOptions->MaxResults() > 0 &&
         (PRUint32)aFiltered->Count() >= aOptions->MaxResults())
@@ -4586,8 +4473,6 @@ nsNavHistory::FilterResultSet(nsNavHistoryQueryResultNode* aQueryNode,
   
   for (PRInt32 i = 0; i < aQueries.Count(); i++) {
     delete terms[i];
-    delete includeFolders[i];
-    delete excludeFolders[i];
   }
 
   return NS_OK;
