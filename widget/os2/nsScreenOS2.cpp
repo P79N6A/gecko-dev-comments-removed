@@ -51,10 +51,6 @@ nsScreenOS2 :: ~nsScreenOS2()
 }
 
 
-
-NS_IMPL_ISUPPORTS1(nsScreenOS2, nsIScreen)
-
-
 NS_IMETHODIMP
 nsScreenOS2 :: GetRect(PRInt32 *outLeft, PRInt32 *outTop, PRInt32 *outWidth, PRInt32 *outHeight)
 {
