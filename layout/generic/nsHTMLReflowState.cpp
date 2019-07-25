@@ -1313,32 +1313,50 @@ nsHTMLReflowState::InitAbsoluteConstraints(nsPresContext* aPresContext,
     PRBool marginRightIsAuto =
       eStyleUnit_Auto == mStyleMargin->mMargin.GetRightUnit();
 
-    if (availMarginSpace < 0 ||
-        (!marginLeftIsAuto && !marginRightIsAuto)) {
-      
-      
-      
-      if (cbrs &&
-          NS_STYLE_DIRECTION_RTL == cbrs->mStyleVisibility->mDirection) {
-        
-        mComputedOffsets.left += availMarginSpace;
-      } else {
-        
-        mComputedOffsets.right += availMarginSpace;
-      }
-    } else if (marginLeftIsAuto) {
+    if (marginLeftIsAuto) {
       if (marginRightIsAuto) {
-        
-        
-        mComputedMargin.left = availMarginSpace / 2;
-        mComputedMargin.right = availMarginSpace - mComputedMargin.left;
+        if (availMarginSpace < 0) {
+          
+          
+          if (cbrs &&
+              NS_STYLE_DIRECTION_RTL == cbrs->mStyleVisibility->mDirection) {
+            
+            mComputedMargin.left = availMarginSpace;
+          } else {
+            
+            mComputedMargin.right = availMarginSpace;
+          }
+        } else {
+          
+          
+          mComputedMargin.left = availMarginSpace / 2;
+          mComputedMargin.right = availMarginSpace - mComputedMargin.left;
+        }
       } else {
         
         mComputedMargin.left = availMarginSpace;
       }
     } else {
-      
-      mComputedMargin.right = availMarginSpace;
+      if (marginRightIsAuto) {
+        
+        mComputedMargin.right = availMarginSpace;
+      } else {
+        
+        
+        
+        
+        
+        
+        
+        if (cbrs &&
+            NS_STYLE_DIRECTION_RTL == cbrs->mStyleVisibility->mDirection) {
+          
+          mComputedOffsets.left += availMarginSpace;
+        } else {
+          
+          mComputedOffsets.right += availMarginSpace;
+        }
+      }
     }
   }
 
@@ -1392,24 +1410,31 @@ nsHTMLReflowState::InitAbsoluteConstraints(nsPresContext* aPresContext,
     PRBool marginBottomIsAuto =
       eStyleUnit_Auto == mStyleMargin->mMargin.GetBottomUnit();
 
-    if (availMarginSpace < 0 || (!marginTopIsAuto && !marginBottomIsAuto)) {
-      
-      
-      
-      mComputedOffsets.bottom += availMarginSpace;
-    } else if (marginTopIsAuto) {
+    if (marginTopIsAuto) {
       if (marginBottomIsAuto) {
-        
-        
-        mComputedMargin.top = availMarginSpace / 2;
-        mComputedMargin.bottom = availMarginSpace - mComputedMargin.top;
+        if (availMarginSpace < 0) {
+          
+          mComputedMargin.bottom = availMarginSpace;
+        } else {
+          
+          
+          mComputedMargin.top = availMarginSpace / 2;
+          mComputedMargin.bottom = availMarginSpace - mComputedMargin.top;
+        }
       } else {
         
         mComputedMargin.top = availMarginSpace;
       }
     } else {
-      
-      mComputedMargin.bottom = availMarginSpace;
+      if (marginBottomIsAuto) {
+        
+        mComputedMargin.bottom = availMarginSpace;
+      } else {
+        
+        
+        
+        mComputedOffsets.bottom += availMarginSpace;
+      }
     }
   }
 }
