@@ -1862,10 +1862,25 @@ struct NS_STACK_CLASS ExceptionArgParser
 
 
 
+
+
+
+
+
+
+
+
+
+
+
         if (argc > 0 && !parseMessage(argv[0]))
             return false;
-        if (argc > 1 && !parseResult(argv[1]))
-            return false;
+        if (argc > 1) {
+            if (argv[1].isObject())
+                return parseOptionsObject(argv[1].toObject());
+            if (!parseResult(argv[1]))
+                return false;
+        }
         if (argc > 2 && !parseStack(argv[2]))
             return false;
         if (argc > 3 && !parseData(argv[3]))
@@ -1913,6 +1928,40 @@ struct NS_STACK_CLASS ExceptionArgParser
         return NS_SUCCEEDED(xpc->WrapJS(cx, &v.toObject(),
                                         NS_GET_IID(nsISupports),
                                         getter_AddRefs(eData)));
+    }
+
+    bool parseOptionsObject(JSObject &obj) {
+        JS::Value v;
+
+        if (!getOption(obj, "result", &v) ||
+            (!v.isUndefined() && !parseResult(v)))
+            return false;
+
+        if (!getOption(obj, "stack", &v) ||
+            (!v.isUndefined() && !parseStack(v)))
+            return false;
+
+        if (!getOption(obj, "data", &v) ||
+            (!v.isUndefined() && !parseData(v)))
+            return false;
+
+        return true;
+    }
+
+    bool getOption(JSObject &obj, const char *name, JS::Value *rv) {
+        
+        JSBool found;
+        if (!JS_HasProperty(cx, &obj, name, &found))
+            return false;
+
+        
+        if (!found) {
+            *rv = JSVAL_VOID;
+            return true;
+        }
+
+        
+        return JS_GetProperty(cx, &obj, name, rv);
     }
 
     
