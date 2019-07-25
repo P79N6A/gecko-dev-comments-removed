@@ -1998,13 +1998,24 @@ public:
 
 
 
-  void MarkLayersActive();
 
+
+
+
+  void MarkLayersActive(nsChangeHint aHint);
   
 
 
   PRBool AreLayersMarkedActive();
   
+
+
+
+
+
+
+  PRBool AreLayersMarkedActive(nsChangeHint aChangeHint);
+
   
 
 

@@ -133,7 +133,7 @@ nsHTMLCanvasFrame::Init(nsIContent* aContent,
   
   
   
-  MarkLayersActive();
+  MarkLayersActive(nsChangeHint(0));
 
   return rv;
 }

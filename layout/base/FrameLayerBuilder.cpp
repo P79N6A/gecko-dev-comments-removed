@@ -1672,8 +1672,10 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
     
     
     
-    
-    if (aContainerFrame->AreLayersMarkedActive()) {
+    gfxMatrix frameTransform;
+    if (aContainerFrame->AreLayersMarkedActive(nsChangeHint_UpdateTransformLayer) &&
+        aTransform &&
+        (!aTransform->Is2D(&frameTransform) || frameTransform.HasNonTranslationOrFlip())) {
       scale.width = gfxUtils::ClampToScaleFactor(scale.width);
       scale.height = gfxUtils::ClampToScaleFactor(scale.height);
     } else {
