@@ -76,6 +76,32 @@ ion::SplitCriticalEdges(MIRGenerator *gen, MIRGraph &graph)
 
 
 
+bool
+ion::EliminateDeadCode(MIRGraph &graph)
+{
+    
+    
+    for (PostorderIterator block = graph.poBegin(); block != graph.poEnd(); block++) {
+        
+        for (MInstructionReverseIterator inst = block->rbegin(); inst != block->rend(); ) {
+            if (inst->isIdempotent() && !inst->hasUses())
+                inst = block->removeAt(inst);
+            else
+                inst++;
+        }
+
+        
+        
+        
+        
+    }
+
+    return true;
+}
+
+
+
+
 
 
 
