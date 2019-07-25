@@ -356,7 +356,7 @@ private:
         Block *block;
     };
     struct Block {
-        enum { BlockSize = 64 * 1024 };
+        enum { BlockSize = 16 * 1024 };
 
         PtrInfoOrBlock mPointers[BlockSize];
         Block() {
@@ -565,7 +565,7 @@ public:
 class NodePool
 {
 private:
-    enum { BlockSize = 32 * 1024 }; 
+    enum { BlockSize = 8 * 1024 }; 
 
     struct Block {
         
