@@ -46,6 +46,10 @@
 #elif defined(XP_MACOSX) || defined(DARWIN) || defined(XP_UNIX)
 # include <pthread.h>
 
+# if defined(__FreeBSD__)
+#  include <pthread_np.h>
+# endif
+
 #else
 # error "Unsupported platform"
 
@@ -114,7 +118,7 @@ GetNativeStackBase()
 void *
 GetNativeStackBaseImpl()
 {
-# if defined(_M_IX86) && defined(_MSC_VER)
+# if defined(_WIN32) && defined(_MSC_VER)
     
 
 
@@ -126,7 +130,7 @@ GetNativeStackBaseImpl()
     }
     return static_cast<void*>(pTib->StackBase);
 
-# elif defined(_M_X64) && defined(_MSC_VER)
+# elif defined(_WIN64) && defined(_MSC_VER)
     PNT_TIB64 pTib = reinterpret_cast<PNT_TIB64>(NtCurrentTeb());
     return reinterpret_cast<void*>(pTib->StackBase);
 
@@ -150,7 +154,7 @@ GetNativeStackBaseImpl()
 # else
     pthread_attr_t sattr;
     pthread_attr_init(&sattr);
-#  if defined(PTHREAD_NP_H) || defined(NETBSD)
+#  if defined(PTHREAD_NP_H) || defined(_PTHREAD_NP_H_) || defined(NETBSD)
     
     pthread_attr_get_np(thread, &sattr);
 #  else
