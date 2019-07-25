@@ -1922,6 +1922,62 @@ TypeCompartment::dynamicCall(JSContext *cx, JSObject *callee,
 bool
 TypeCompartment::dynamicPush(JSContext *cx, JSScript *script, uint32 offset, jstype type)
 {
+    
+
+
+
+
+
+
+
+    jsbytecode *pc = script->code + offset;
+    JSOp op = JSOp(*pc);
+    const JSCodeSpec *cs = &js_CodeSpec[op];
+    if (cs->format & (JOF_INC | JOF_DEC)) {
+        AutoEnterTypeInference enter(cx);
+
+        switch (op) {
+          case JSOP_INCGNAME:
+          case JSOP_DECGNAME:
+          case JSOP_GNAMEINC:
+          case JSOP_GNAMEDEC: {
+            jsid id = GetAtomId(cx, script, pc, 0);
+            TypeObject *global = script->getGlobalType();
+            if (!global->unknownProperties()) {
+                TypeSet *types = global->getProperty(cx, id, true);
+                if (!types)
+                    break;
+                types->addType(cx, type);
+            }
+            break;
+          }
+
+          case JSOP_INCLOCAL:
+          case JSOP_DECLOCAL:
+          case JSOP_LOCALINC:
+          case JSOP_LOCALDEC:
+            if (GET_SLOTNO(pc) < script->nfixed) {
+                TypeSet *types = script->localTypes(GET_SLOTNO(pc));
+                types->addType(cx, type);
+            }
+            break;
+
+          case JSOP_INCARG:
+          case JSOP_DECARG:
+          case JSOP_ARGINC:
+          case JSOP_ARGDEC: {
+            TypeSet *types = script->argTypes(GET_SLOTNO(pc));
+            types->addType(cx, type);
+            break;
+          }
+
+          default:;
+        }
+
+        if (!checkPendingRecompiles(cx))
+            return false;
+    }
+
     if (script->types) {
         
 
@@ -1983,58 +2039,6 @@ TypeCompartment::dynamicPush(JSContext *cx, JSScript *script, uint32 offset, jst
 
     if (script->fun && !script->fun->getType()->unknownProperties())
         ObjectStateChange(cx, script->fun->getType(), false);
-
-    
-
-
-
-
-
-
-
-    jsbytecode *pc = script->code + offset;
-    JSOp op = JSOp(*pc);
-    const JSCodeSpec *cs = &js_CodeSpec[op];
-    if (cs->format & (JOF_INC | JOF_DEC)) {
-
-        switch (op) {
-          case JSOP_INCGNAME:
-          case JSOP_DECGNAME:
-          case JSOP_GNAMEINC:
-          case JSOP_GNAMEDEC: {
-            jsid id = GetAtomId(cx, script, pc, 0);
-            TypeObject *global = script->getGlobalType();
-            if (!global->unknownProperties()) {
-                TypeSet *types = global->getProperty(cx, id, true);
-                if (!types)
-                    break;
-                types->addType(cx, type);
-            }
-            break;
-          }
-
-          case JSOP_INCLOCAL:
-          case JSOP_DECLOCAL:
-          case JSOP_LOCALINC:
-          case JSOP_LOCALDEC:
-            if (GET_SLOTNO(pc) < script->nfixed) {
-                TypeSet *types = script->localTypes(GET_SLOTNO(pc));
-                types->addType(cx, type);
-            }
-            break;
-
-          case JSOP_INCARG:
-          case JSOP_DECARG:
-          case JSOP_ARGINC:
-          case JSOP_ARGDEC: {
-            TypeSet *types = script->argTypes(GET_SLOTNO(pc));
-            types->addType(cx, type);
-            break;
-          }
-
-          default:;
-        }
-    }
 
     return checkPendingRecompiles(cx);
 }

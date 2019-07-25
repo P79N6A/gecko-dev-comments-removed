@@ -428,6 +428,7 @@ class Compiler : public BaseCompiler
     bool isConstructing;
 
     JSObject *globalObj;
+    Value *globalSlots;
 
     
     const Vector<PatchableFrame> *patchFrames;
