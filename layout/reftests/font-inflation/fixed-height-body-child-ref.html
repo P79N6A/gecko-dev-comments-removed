@@ -8,6 +8,11 @@
     <style>
       body {
         height: 100%;
+        /*
+         * We need overflow:hidden because we can't show a scrollbar due
+         * to https://bugzilla.mozilla.org/show_bug.cgi?id=743805 .
+         */
+        overflow: hidden;
       }
 
       div {
