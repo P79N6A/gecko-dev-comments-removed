@@ -1792,15 +1792,17 @@ FamilyCallback (const nsAString& fontName, const nsACString& genericName,
         
         
         
+        
+        
         const gfxUserFontSet *userFontSet = data->mUserFontSet;
         if (genericName.Length() == 0 &&
             userFontSet && userFontSet->HasFamily(fontName)) {
             nsAutoString userFontName =
                 NS_LITERAL_STRING(FONT_FACE_FAMILY_PREFIX) + fontName;
             list->AppendElement(userFontName);
+        } else {
+            list->AppendElement(fontName);
         }
-
-        list->AppendElement(fontName);
     }
 
     return PR_TRUE;
