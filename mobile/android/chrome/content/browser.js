@@ -2639,20 +2639,6 @@ Tab.prototype = {
 
         
         
-        Reader.checkTabReadability(this.id, function(isReadable) {
-          if (!isReadable)
-            return;
-
-          sendMessageToJava({
-            gecko: {
-              type: "Content:ReaderEnabled",
-              tabID: this.id
-            }
-          });
-        }.bind(this));
-
-        
-        
         
         
         if (/^about:/.test(target.documentURI)) {
@@ -2849,6 +2835,20 @@ Tab.prototype = {
             tabID: this.id
           }
         });
+
+        
+        
+        Reader.checkTabReadability(this.id, function(isReadable) {
+          if (!isReadable)
+            return;
+
+          sendMessageToJava({
+            gecko: {
+              type: "Content:ReaderEnabled",
+              tabID: this.id
+            }
+          });
+        }.bind(this));
       }
     }
   },
