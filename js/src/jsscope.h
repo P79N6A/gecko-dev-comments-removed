@@ -763,9 +763,7 @@ struct Shape : public js::gc::Cell
 
 
 
-    jsid getUserId() const {
-        return hasShortID() ? INT_TO_JSID(shortid()) : propid();
-    }
+    inline bool getUserId(JSContext *cx, jsid *idp) const;
 
     uint8_t attributes() const { return attrs; }
     bool configurable() const { return (attrs & JSPROP_PERMANENT) == 0; }

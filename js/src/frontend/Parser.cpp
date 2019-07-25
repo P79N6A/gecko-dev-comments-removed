@@ -2008,7 +2008,7 @@ BindLet(JSContext *cx, BindData *data, JSAtom *atom, TreeContext *tc)
 
 
     bool redeclared;
-    jsid id = ATOM_TO_JSID(atom);
+    jsid id = AtomToId(atom);
     const Shape *shape = blockObj->addVar(cx, id, blockCount, &redeclared);
     if (!shape) {
         if (redeclared)
