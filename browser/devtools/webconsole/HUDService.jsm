@@ -12,17 +12,8 @@ const CONSOLEAPI_CLASS_ID = "{b49c18f8-3379-4fc0-8c90-d7772c1a9ff3}";
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource:///modules/NetworkHelper.jsm");
 
 var EXPORTED_SYMBOLS = ["HUDService", "ConsoleUtils"];
-
-XPCOMUtils.defineLazyServiceGetter(this, "activityDistributor",
-                                   "@mozilla.org/network/http-activity-distributor;1",
-                                   "nsIHttpActivityDistributor");
-
-XPCOMUtils.defineLazyServiceGetter(this, "mimeService",
-                                   "@mozilla.org/mime;1",
-                                   "nsIMIMEService");
 
 XPCOMUtils.defineLazyServiceGetter(this, "clipboardHelper",
                                    "@mozilla.org/widget/clipboardhelper;1",
@@ -34,46 +25,20 @@ XPCOMUtils.defineLazyGetter(this, "gcli", function () {
   return obj.gcli;
 });
 
-XPCOMUtils.defineLazyGetter(this, "CssRuleView", function() {
-  let tmp = {};
-  Cu.import("resource:///modules/devtools/CssRuleView.jsm", tmp);
-  return tmp.CssRuleView;
-});
-
-XPCOMUtils.defineLazyGetter(this, "NetUtil", function () {
-  var obj = {};
-  Cu.import("resource://gre/modules/NetUtil.jsm", obj);
-  return obj.NetUtil;
-});
-
 XPCOMUtils.defineLazyGetter(this, "template", function () {
   var obj = {};
   Cu.import("resource:///modules/devtools/Templater.jsm", obj);
   return obj.template;
 });
 
-XPCOMUtils.defineLazyGetter(this, "PropertyPanel", function () {
-  let obj = {};
-  Cu.import("resource:///modules/PropertyPanel.jsm", obj);
-  return obj.PropertyPanel;
-});
+XPCOMUtils.defineLazyModuleGetter(this, "PropertyPanel",
+                                  "resource:///modules/PropertyPanel.jsm");
 
-XPCOMUtils.defineLazyGetter(this, "PropertyTreeView", function () {
-  let obj = {};
-  Cu.import("resource:///modules/PropertyPanel.jsm", obj);
-  return obj.PropertyTreeView;
-});
+XPCOMUtils.defineLazyModuleGetter(this, "PropertyTreeView",
+                                  "resource:///modules/PropertyPanel.jsm");
 
-XPCOMUtils.defineLazyGetter(this, "AutocompletePopup", function () {
-  var obj = {};
-  try {
-    Cu.import("resource:///modules/AutocompletePopup.jsm", obj);
-  }
-  catch (err) {
-    Cu.reportError(err);
-  }
-  return obj.AutocompletePopup;
-});
+XPCOMUtils.defineLazyModuleGetter(this, "AutocompletePopup",
+                                  "resource:///modules/AutocompletePopup.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "ScratchpadManager", function () {
   var obj = {};
@@ -86,11 +51,11 @@ XPCOMUtils.defineLazyGetter(this, "ScratchpadManager", function () {
   return obj.ScratchpadManager;
 });
 
-XPCOMUtils.defineLazyGetter(this, "WebConsoleUtils", function () {
-  let obj = {};
-  Cu.import("resource:///modules/WebConsoleUtils.jsm", obj);
-  return obj.WebConsoleUtils;
-});
+XPCOMUtils.defineLazyModuleGetter(this, "NetworkPanel",
+                                  "resource:///modules/NetworkPanel.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "WebConsoleUtils",
+                                  "resource:///modules/WebConsoleUtils.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "l10n", function() {
   return WebConsoleUtils.l10n;
@@ -162,13 +127,7 @@ const LEVELS = {
 
 const MIN_HTTP_ERROR_CODE = 400;
 
-const MAX_HTTP_ERROR_CODE = 600;
-
-
-const HTTP_MOVED_PERMANENTLY = 301;
-const HTTP_FOUND = 302;
-const HTTP_SEE_OTHER = 303;
-const HTTP_TEMPORARY_REDIRECT = 307;
+const MAX_HTTP_ERROR_CODE = 599;
 
 
 const HTML_NS = "http://www.w3.org/1999/xhtml";
@@ -218,12 +177,6 @@ const HISTORY_BACK = -1;
 const HISTORY_FORWARD = 1;
 
 
-const RESPONSE_BODY_LIMIT = 1024*1024; 
-
-
-const PR_UINT32_MAX = 4294967295;
-
-
 const MINIMUM_CONSOLE_HEIGHT = 150;
 
 
@@ -232,9 +185,6 @@ const MINIMUM_PAGE_HEIGHT = 50;
 
 
 const DEFAULT_CONSOLE_HEIGHT = 0.33;
-
-
-const TYPEOF_FUNCTION = "function";
 
 
 const CONTENT_SCRIPT_URL = "chrome://browser/content/devtools/HUDService-content.js";
@@ -267,278 +217,6 @@ const PREFS_PREFIX = "devtools.webconsole.filter.";
 
 
 
-function ResponseListener(aHttpActivity) {
-  this.receivedData = "";
-  this.httpActivity = aHttpActivity;
-}
-
-ResponseListener.prototype =
-{
-  
-
-
-
-  sink: null,
-
-  
-
-
-  httpActivity: null,
-
-  
-
-
-  receivedData: null,
-
-  
-
-
-  request: null,
-
-  
-
-
-
-
-  setResponseHeader: function RL_setResponseHeader(aRequest)
-  {
-    let httpActivity = this.httpActivity;
-    
-    if (!httpActivity.response.header) {
-      if (aRequest instanceof Ci.nsIHttpChannel) {
-      httpActivity.response.header = {};
-        try {
-        aRequest.visitResponseHeaders({
-          visitHeader: function(aName, aValue) {
-            httpActivity.response.header[aName] = aValue;
-          }
-        });
-      }
-        
-        
-        
-        
-        catch (ex) {
-          delete httpActivity.response.header;
-        }
-      }
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  setAsyncListener: function RL_setAsyncListener(aStream, aListener)
-  {
-    
-    aStream.asyncWait(aListener, 0, 0, Services.tm.mainThread);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  onDataAvailable: function RL_onDataAvailable(aRequest, aContext, aInputStream,
-                                               aOffset, aCount)
-  {
-    this.setResponseHeader(aRequest);
-
-    let data = NetUtil.readInputStreamToString(aInputStream, aCount);
-
-    if (!this.httpActivity.response.bodyDiscarded &&
-        this.receivedData.length < RESPONSE_BODY_LIMIT) {
-      this.receivedData += NetworkHelper.
-                           convertToUnicode(data, aRequest.contentCharset);
-    }
-  },
-
-  
-
-
-
-
-
-
-  onStartRequest: function RL_onStartRequest(aRequest, aContext)
-  {
-    this.request = aRequest;
-
-    
-    
-    this.httpActivity.response.bodyDiscarded =
-      !HUDService.saveRequestAndResponseBodies;
-
-    
-    if (!this.httpActivity.response.bodyDiscarded &&
-        this.httpActivity.channel instanceof Ci.nsIHttpChannel) {
-      switch (this.httpActivity.channel.responseStatus) {
-        case HTTP_MOVED_PERMANENTLY:
-        case HTTP_FOUND:
-        case HTTP_SEE_OTHER:
-        case HTTP_TEMPORARY_REDIRECT:
-          this.httpActivity.response.bodyDiscarded = true;
-          break;
-      }
-    }
-
-    
-    this.setAsyncListener(this.sink.inputStream, this);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  onStopRequest: function RL_onStopRequest(aRequest, aContext, aStatusCode)
-  {
-    
-    let response = null;
-    for each (let item in HUDService.openResponseHeaders) {
-      if (item.channel === this.httpActivity.channel) {
-        response = item;
-        break;
-      }
-    }
-
-    if (response) {
-      this.httpActivity.response.header = response.headers;
-      delete HUDService.openResponseHeaders[response.id];
-    }
-    else {
-      this.setResponseHeader(aRequest);
-    }
-
-    this.sink.outputStream.close();
-  },
-
-  
-
-
-
-
-
-
-  onStreamClose: function RL_onStreamClose()
-  {
-    if (!this.httpActivity) {
-      return;
-    }
-
-    
-    this.setAsyncListener(this.sink.inputStream, null);
-
-    if (!this.httpActivity.response.bodyDiscarded &&
-        HUDService.saveRequestAndResponseBodies) {
-      this.httpActivity.response.body = this.receivedData;
-    }
-
-    if (HUDService.lastFinishedRequestCallback) {
-      HUDService.lastFinishedRequestCallback(this.httpActivity);
-    }
-
-    
-    this.httpActivity.panels.forEach(function(weakRef) {
-      let panel = weakRef.get();
-      if (panel) {
-        panel.update();
-      }
-    });
-    this.httpActivity.response.isDone = true;
-    this.httpActivity = null;
-    this.receivedData = "";
-    this.request = null;
-    this.sink = null;
-    this.inputStream = null;
-  },
-
-  
-
-
-
-
-
-
-
-
-  onInputStreamReady: function RL_onInputStreamReady(aStream)
-  {
-    if (!(aStream instanceof Ci.nsIAsyncInputStream) || !this.httpActivity) {
-      return;
-    }
-
-    let available = -1;
-    try {
-      
-      available = aStream.available();
-    }
-    catch (ex) { }
-
-    if (available != -1) {
-      if (available != 0) {
-        
-        
-        
-        this.onDataAvailable(this.request, null, aStream, 0, available);
-      }
-      this.setAsyncListener(aStream, this);
-    }
-    else {
-      this.onStreamClose();
-    }
-  },
-
-  QueryInterface: XPCOMUtils.generateQI([
-    Ci.nsIStreamListener,
-    Ci.nsIInputStreamCallback,
-    Ci.nsIRequestObserver,
-    Ci.nsISupports,
-  ])
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 function createElement(aDocument, aTag, aAttributes)
 {
@@ -549,637 +227,6 @@ function createElement(aDocument, aTag, aAttributes)
     }
   }
   return node;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-function createAndAppendElement(aParent, aTag, aAttributes)
-{
-  let node = createElement(aParent.ownerDocument, aTag, aAttributes);
-  aParent.appendChild(node);
-  return node;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-function NetworkPanel(aParent, aHttpActivity)
-{
-  let doc = aParent.ownerDocument;
-  this.httpActivity = aHttpActivity;
-
-  
-  this.panel = createElement(doc, "panel", {
-    label: l10n.getStr("NetworkPanel.label"),
-    titlebar: "normal",
-    noautofocus: "true",
-    noautohide: "true",
-    close: "true"
-  });
-
-  
-  this.iframe = createAndAppendElement(this.panel, "iframe", {
-    src: "chrome://browser/content/NetworkPanel.xhtml",
-    type: "content",
-    flex: "1"
-  });
-
-  let self = this;
-
-  
-  this.panel.addEventListener("popuphidden", function onPopupHide() {
-    self.panel.removeEventListener("popuphidden", onPopupHide, false);
-    self.panel.parentNode.removeChild(self.panel);
-    self.panel = null;
-    self.iframe = null;
-    self.document = null;
-    self.httpActivity = null;
-
-    if (self.linkNode) {
-      self.linkNode._panelOpen = false;
-      self.linkNode = null;
-    }
-  }, false);
-
-  
-  this.panel.addEventListener("load", function onLoad() {
-    self.panel.removeEventListener("load", onLoad, true);
-    self.document = self.iframe.contentWindow.document;
-    self.update();
-  }, true);
-
-  
-  let footer = createElement(doc, "hbox", { align: "end" });
-  createAndAppendElement(footer, "spacer", { flex: 1 });
-
-  createAndAppendElement(footer, "resizer", { dir: "bottomend" });
-  this.panel.appendChild(footer);
-
-  aParent.appendChild(this.panel);
-}
-
-NetworkPanel.prototype =
-{
-  
-
-
-
-  isDoneCallback: null,
-
-  
-
-
-  _state: 0,
-
-  
-
-
-  _INIT: 0,
-  _DISPLAYED_REQUEST_HEADER: 1,
-  _DISPLAYED_REQUEST_BODY: 2,
-  _DISPLAYED_RESPONSE_HEADER: 3,
-  _TRANSITION_CLOSED: 4,
-
-  _fromDataRegExp: /Content-Type\:\s*application\/x-www-form-urlencoded/,
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  _format: function NP_format(aName, aArray)
-  {
-    return l10n.getFormatStr("NetworkPanel." + aName, aArray);
-  },
-
-  
-
-
-
-
-
-
-
-  get _contentType()
-  {
-    let response = this.httpActivity.response;
-    let contentTypeValue = null;
-
-    if (response.header && response.header["Content-Type"]) {
-      let types = response.header["Content-Type"].split(/,|;/);
-      for (let i = 0; i < types.length; i++) {
-        let type = NetworkHelper.mimeCategoryMap[types[i]];
-        if (type) {
-          return types[i];
-        }
-      }
-    }
-
-    
-    let uri = NetUtil.newURI(this.httpActivity.url);
-    let mimeType = null;
-    if ((uri instanceof Ci.nsIURL) && uri.fileExtension) {
-      try {
-        mimeType = mimeService.getTypeFromExtension(uri.fileExtension);
-      } catch(e) {
-        
-        Cu.reportError(e);
-        
-        return "";
-      }
-    }
-    return mimeType;
-  },
-
-  
-
-
-
-
-  get _responseIsImage()
-  {
-    return NetworkHelper.mimeCategoryMap[this._contentType] == "image";
-  },
-
-  
-
-
-
-
-  get _isResponseBodyTextData()
-  {
-    let contentType = this._contentType;
-
-    if (!contentType)
-      return false;
-
-    if (contentType.indexOf("text/") == 0) {
-      return true;
-    }
-
-    switch (NetworkHelper.mimeCategoryMap[contentType]) {
-      case "txt":
-      case "js":
-      case "json":
-      case "css":
-      case "html":
-      case "svg":
-      case "xml":
-        return true;
-
-      default:
-        return false;
-    }
-  },
-
-  
-
-
-
-
-
-  get _isResponseCached()
-  {
-    return this.httpActivity.response.status.indexOf("304") != -1;
-  },
-
-  
-
-
-
-
-  get _isRequestBodyFormData()
-  {
-    let requestBody = this.httpActivity.request.body;
-    return this._fromDataRegExp.test(requestBody);
-  },
-
-  
-
-
-
-
-
-
-  _appendTextNode: function NP_appendTextNode(aId, aValue)
-  {
-    let textNode = this.document.createTextNode(aValue);
-    this.document.getElementById(aId).appendChild(textNode);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  _appendList: function NP_appendList(aParentId, aList, aIgnoreCookie)
-  {
-    let parent = this.document.getElementById(aParentId);
-    let doc = this.document;
-
-    let sortedList = {};
-    Object.keys(aList).sort().forEach(function(aKey) {
-      sortedList[aKey] = aList[aKey];
-    });
-
-    for (let key in sortedList) {
-      if (aIgnoreCookie && key == "Cookie") {
-        continue;
-      }
-
-      
-
-
-
-
-
-
-
-      let row = doc.createElement("tr");
-      let textNode = doc.createTextNode(key + ":");
-      let th = doc.createElement("th");
-      th.setAttribute("scope", "row");
-      th.setAttribute("class", "property-name");
-      th.appendChild(textNode);
-      row.appendChild(th);
-
-      textNode = doc.createTextNode(sortedList[key]);
-      let td = doc.createElement("td");
-      td.setAttribute("class", "property-value");
-      td.appendChild(textNode);
-      row.appendChild(td);
-
-      parent.appendChild(row);
-    }
-  },
-
-  
-
-
-
-
-
-  _displayNode: function NP_displayNode(aId)
-  {
-    this.document.getElementById(aId).style.display = "block";
-  },
-
-  
-
-
-
-
-
-
-
-
-  _displayRequestHeader: function NP_displayRequestHeader()
-  {
-    let timing = this.httpActivity.timing;
-    let request = this.httpActivity.request;
-
-    this._appendTextNode("headUrl", this.httpActivity.url);
-    this._appendTextNode("headMethod", this.httpActivity.method);
-
-    this._appendTextNode("requestHeadersInfo",
-      l10n.timestampString(timing.REQUEST_HEADER/1000));
-
-    this._appendList("requestHeadersContent", request.header, true);
-
-    if ("Cookie" in request.header) {
-      this._displayNode("requestCookie");
-
-      let cookies = request.header.Cookie.split(";");
-      let cookieList = {};
-      let cookieListSorted = {};
-      cookies.forEach(function(cookie) {
-        let name, value;
-        [name, value] = cookie.trim().split("=");
-        cookieList[name] = value;
-      });
-      this._appendList("requestCookieContent", cookieList);
-    }
-  },
-
-  
-
-
-
-
-
-  _displayRequestBody: function NP_displayRequestBody() {
-    this._displayNode("requestBody");
-    this._appendTextNode("requestBodyContent", this.httpActivity.request.body);
-  },
-
-  
-
-
-
-
-
-  _displayRequestForm: function NP_processRequestForm() {
-    let requestBodyLines = this.httpActivity.request.body.split("\n");
-    let formData = requestBodyLines[requestBodyLines.length - 1].
-                      replace(/\+/g, " ").split("&");
-
-    function unescapeText(aText)
-    {
-      try {
-        return decodeURIComponent(aText);
-      }
-      catch (ex) {
-        return decodeURIComponent(unescape(aText));
-      }
-    }
-
-    let formDataObj = {};
-    for (let i = 0; i < formData.length; i++) {
-      let data = formData[i];
-      let idx = data.indexOf("=");
-      let key = data.substring(0, idx);
-      let value = data.substring(idx + 1);
-      formDataObj[unescapeText(key)] = unescapeText(value);
-    }
-
-    this._appendList("requestFormDataContent", formDataObj);
-    this._displayNode("requestFormData");
-  },
-
-  
-
-
-
-
-
-
-  _displayResponseHeader: function NP_displayResponseHeader()
-  {
-    let timing = this.httpActivity.timing;
-    let response = this.httpActivity.response;
-
-    this._appendTextNode("headStatus", response.status);
-
-    let deltaDuration =
-      Math.round((timing.RESPONSE_HEADER - timing.REQUEST_HEADER) / 1000);
-    this._appendTextNode("responseHeadersInfo",
-      this._format("durationMS", [deltaDuration]));
-
-    this._displayNode("responseContainer");
-    this._appendList("responseHeadersContent", response.header);
-  },
-
-  
-
-
-
-
-
-
-
-  _displayResponseImage: function NP_displayResponseImage()
-  {
-    let self = this;
-    let timing = this.httpActivity.timing;
-    let response = this.httpActivity.response;
-    let cached = "";
-
-    if (this._isResponseCached) {
-      cached = "Cached";
-    }
-
-    let imageNode = this.document.getElementById("responseImage" + cached +"Node");
-    imageNode.setAttribute("src", this.httpActivity.url);
-
-    
-    function setImageInfo() {
-      let deltaDuration =
-        Math.round((timing.RESPONSE_COMPLETE - timing.RESPONSE_HEADER) / 1000);
-      self._appendTextNode("responseImage" + cached + "Info",
-        self._format("imageSizeDeltaDurationMS", [
-          imageNode.width, imageNode.height, deltaDuration
-        ]
-      ));
-    }
-
-    
-    if (imageNode.width != 0) {
-      setImageInfo();
-    }
-    else {
-      
-      imageNode.addEventListener("load", function imageNodeLoad() {
-        imageNode.removeEventListener("load", imageNodeLoad, false);
-        setImageInfo();
-      }, false);
-    }
-
-    this._displayNode("responseImage" + cached);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  _displayResponseBody: function NP_displayResponseBody(aCachedContent)
-  {
-    let timing = this.httpActivity.timing;
-    let response = this.httpActivity.response;
-    let cached =  "";
-    if (aCachedContent) {
-      cached = "Cached";
-    }
-
-    let deltaDuration =
-      Math.round((timing.RESPONSE_COMPLETE - timing.RESPONSE_HEADER) / 1000);
-    this._appendTextNode("responseBody" + cached + "Info",
-      this._format("durationMS", [deltaDuration]));
-
-    this._displayNode("responseBody" + cached);
-    this._appendTextNode("responseBody" + cached + "Content",
-                            aCachedContent || response.body);
-  },
-
-  
-
-
-
-
-
-  _displayResponseBodyUnknownType: function NP_displayResponseBodyUnknownType()
-  {
-    let timing = this.httpActivity.timing;
-
-    this._displayNode("responseBodyUnknownType");
-    let deltaDuration =
-      Math.round((timing.RESPONSE_COMPLETE - timing.RESPONSE_HEADER) / 1000);
-    this._appendTextNode("responseBodyUnknownTypeInfo",
-      this._format("durationMS", [deltaDuration]));
-
-    this._appendTextNode("responseBodyUnknownTypeContent",
-      this._format("responseBodyUnableToDisplay.content", [this._contentType]));
-  },
-
-  
-
-
-
-
-
-  _displayNoResponseBody: function NP_displayNoResponseBody()
-  {
-    let timing = this.httpActivity.timing;
-
-    this._displayNode("responseNoBody");
-    let deltaDuration =
-      Math.round((timing.RESPONSE_COMPLETE - timing.RESPONSE_HEADER) / 1000);
-    this._appendTextNode("responseNoBodyInfo",
-      this._format("durationMS", [deltaDuration]));
-  },
-
-  
-
-
-  _callIsDone: function() {
-    if (this.isDoneCallback) {
-      this.isDoneCallback();
-    }
-  },
-
-  
-
-
-
-
-  update: function NP_update()
-  {
-    
-
-
-
-
-    if (!this.document) {
-      return;
-    }
-
-    let timing = this.httpActivity.timing;
-    let request = this.httpActivity.request;
-    let response = this.httpActivity.response;
-
-    switch (this._state) {
-      case this._INIT:
-        this._displayRequestHeader();
-        this._state = this._DISPLAYED_REQUEST_HEADER;
-        
-
-      case this._DISPLAYED_REQUEST_HEADER:
-        
-        if (!request.bodyDiscarded && request.body) {
-          
-          if (this._isRequestBodyFormData) {
-            this._displayRequestForm();
-          }
-          else {
-            this._displayRequestBody();
-          }
-          this._state = this._DISPLAYED_REQUEST_BODY;
-        }
-        
-
-      case this._DISPLAYED_REQUEST_BODY:
-        
-        
-        
-        if (!response.header) {
-          break
-        }
-        this._displayResponseHeader();
-        this._state = this._DISPLAYED_RESPONSE_HEADER;
-        
-
-      case this._DISPLAYED_RESPONSE_HEADER:
-        
-        if (timing.TRANSACTION_CLOSE && response.isDone) {
-          if (response.bodyDiscarded) {
-            this._callIsDone();
-          }
-          else if (this._responseIsImage) {
-            this._displayResponseImage();
-            this._callIsDone();
-          }
-          else if (!this._isResponseBodyTextData) {
-            this._displayResponseBodyUnknownType();
-            this._callIsDone();
-          }
-          else if (response.body) {
-            this._displayResponseBody();
-            this._callIsDone();
-          }
-          else if (this._isResponseCached) {
-            let self = this;
-            NetworkHelper.loadFromCache(this.httpActivity.url,
-                                        this.httpActivity.charset,
-                                        function(aContent) {
-              
-              
-              if (aContent) {
-                self._displayResponseBody(aContent);
-                self._callIsDone();
-              }
-              
-              else {
-                self._displayNoResponseBody();
-                self._callIsDone();
-              }
-            });
-          }
-          else {
-            this._displayNoResponseBody();
-            this._callIsDone();
-          }
-          this._state = this._TRANSITION_CLOSED;
-        }
-        break;
-    }
-  }
 }
 
 
@@ -1272,11 +319,6 @@ function HUD_SERVICE()
   this.lastConsoleHeight = Services.prefs.getIntPref("devtools.hud.height");
 
   
-  
-  this.responsePipeSegmentSize =
-    Services.prefs.getIntPref("network.buffer.cache.size");
-
-  
 
 
 
@@ -1296,16 +338,6 @@ function HUD_SERVICE()
 
 
   this.hudReferences = {};
-
-  
-
-
-  this.openRequests = {};
-
-  
-
-
-  this.openResponseHeaders = {};
 };
 
 HUD_SERVICE.prototype =
@@ -1324,12 +356,6 @@ HUD_SERVICE.prototype =
 
 
   sequencer: null,
-
-  
-
-
-
-  saveRequestAndResponseBodies: false,
 
   
 
@@ -1449,10 +475,6 @@ HUD_SERVICE.prototype =
       if (!aAnimated) {
         this.storeHeight(hudId);
       }
-
-      let hud = this.hudReferences[hudId];
-      browser.webProgress.removeProgressListener(hud.progressListener);
-      delete hud.progressListener;
 
       this.unregisterDisplay(hudId);
 
@@ -1727,6 +749,8 @@ HUD_SERVICE.prototype =
       hud.gcliterm.clearOutput();
     }
 
+    let document = hud.chromeDocument;
+
     hud.destroy();
 
     
@@ -1758,14 +782,14 @@ HUD_SERVICE.prototype =
 
     this.unregisterActiveContext(aHUDId);
 
-    let popupset = hud.chromeDocument.getElementById("mainPopupSet");
+    let popupset = document.getElementById("mainPopupSet");
     let panels = popupset.querySelectorAll("panel[hudId=" + aHUDId + "]");
     for (let i = 0; i < panels.length; i++) {
       panels[i].hidePopup();
     }
 
     if (Object.keys(this.hudReferences).length == 0) {
-      let autocompletePopup = hud.chromeDocument.
+      let autocompletePopup = document.
                               getElementById("webConsole_autocompletePopup");
       if (autocompletePopup) {
         autocompletePopup.parentNode.removeChild(autocompletePopup);
@@ -1787,9 +811,6 @@ HUD_SERVICE.prototype =
       return;
     }
 
-    
-    this.startHTTPObservation();
-
     WebConsoleObserver.init();
   },
 
@@ -1801,17 +822,7 @@ HUD_SERVICE.prototype =
 
   suspend: function HS_suspend()
   {
-    activityDistributor.removeObserver(this.httpObserver);
-    delete this.httpObserver;
-
-    Services.obs.removeObserver(this.httpResponseExaminer,
-                                "http-on-examine-response");
-
-    this.openRequests = {};
-    this.openResponseHeaders = {};
-
     delete this.defaultFilterPrefs;
-
     delete this.lastFinishedRequestCallback;
 
     WebConsoleObserver.uninit();
@@ -1948,9 +959,13 @@ HUD_SERVICE.prototype =
 
 
 
+
+
+
   lastFinishedRequestCallback: null,
 
   
+
 
 
 
@@ -1966,419 +981,23 @@ HUD_SERVICE.prototype =
     let parent = doc.getElementById("mainPopupSet");
     let netPanel = new NetworkPanel(parent, aHttpActivity);
     netPanel.linkNode = aNode;
+    aNode._netPanel = netPanel;
 
     let panel = netPanel.panel;
     panel.openPopup(aNode, "after_pointer", 0, 0, false, false);
     panel.sizeTo(450, 500);
     panel.setAttribute("hudId", aHttpActivity.hudId);
-    aHttpActivity.panels.push(Cu.getWeakReference(netPanel));
+
+    panel.addEventListener("popuphiding", function HS_netPanel_onHide() {
+      panel.removeEventListener("popuphiding", HS_netPanel_onHide);
+
+      aNode._panelOpen = false;
+      aNode._netPanel = null;
+    });
+
+    aNode._panelOpen = true;
+
     return netPanel;
-  },
-
-  
-
-
-
-
-  startHTTPObservation: function HS_httpObserverFactory()
-  {
-    
-    var self = this;
-    var httpObserver = {
-      observeActivity :
-      function HS_SHO_observeActivity(aChannel,
-                                      aActivityType,
-                                      aActivitySubtype,
-                                      aTimestamp,
-                                      aExtraSizeData,
-                                      aExtraStringData)
-      {
-        if (aActivityType ==
-              activityDistributor.ACTIVITY_TYPE_HTTP_TRANSACTION ||
-            aActivityType ==
-              activityDistributor.ACTIVITY_TYPE_SOCKET_TRANSPORT) {
-
-          aChannel = aChannel.QueryInterface(Ci.nsIHttpChannel);
-
-          let transCodes = this.httpTransactionCodes;
-          let hudId;
-
-          if (aActivitySubtype ==
-              activityDistributor.ACTIVITY_SUBTYPE_REQUEST_HEADER ) {
-            
-            let win = NetworkHelper.getWindowForRequest(aChannel);
-            if (!win) {
-              return;
-            }
-
-            
-            hudId = self.getHudIdByWindow(win.top);
-            if (!hudId) {
-              return;
-            }
-
-            
-            
-
-            let httpActivity = {
-              id: self.sequenceId(),
-              hudId: hudId,
-              url: aChannel.URI.spec,
-              method: aChannel.requestMethod,
-              channel: aChannel,
-              charset: win.document.characterSet,
-
-              panels: [],
-              request: {
-                header: { }
-              },
-              response: {
-                header: null
-              },
-              timing: {
-                "REQUEST_HEADER": aTimestamp
-              }
-            };
-
-            
-            let loggedNode = self.logNetActivity(httpActivity);
-
-            
-            
-            if (!loggedNode) {
-              return;
-            }
-
-            aChannel.QueryInterface(Ci.nsITraceableChannel);
-
-            
-            
-            
-            
-            let sink = Cc["@mozilla.org/pipe;1"].createInstance(Ci.nsIPipe);
-
-            
-            
-            sink.init(false, false, HUDService.responsePipeSegmentSize,
-                      PR_UINT32_MAX, null);
-
-            
-            let newListener = new ResponseListener(httpActivity);
-
-            
-            newListener.inputStream = sink.inputStream;
-            newListener.sink = sink;
-
-            let tee = Cc["@mozilla.org/network/stream-listener-tee;1"].
-                      createInstance(Ci.nsIStreamListenerTee);
-
-            let originalListener = aChannel.setNewListener(tee);
-
-            tee.init(originalListener, sink.outputStream, newListener);
-
-            
-            aChannel.visitRequestHeaders({
-              visitHeader: function(aName, aValue) {
-                httpActivity.request.header[aName] = aValue;
-              }
-            });
-
-            
-            let linkNode = loggedNode.querySelector(".webconsole-msg-link");
-
-            httpActivity.messageObject = {
-              messageNode: loggedNode,
-              linkNode:    linkNode
-            };
-            self.openRequests[httpActivity.id] = httpActivity;
-
-            
-            linkNode.setAttribute("aria-haspopup", "true");
-            linkNode.addEventListener("mousedown", function(aEvent) {
-              this._startX = aEvent.clientX;
-              this._startY = aEvent.clientY;
-            }, false);
-
-            linkNode.addEventListener("click", function(aEvent) {
-              if (aEvent.detail != 1 || aEvent.button != 0 ||
-                  (this._startX != aEvent.clientX &&
-                   this._startY != aEvent.clientY)) {
-                return;
-              }
-
-              if (!this._panelOpen) {
-                self.openNetworkPanel(this, httpActivity);
-                this._panelOpen = true;
-              }
-            }, false);
-          }
-          else {
-            
-            
-            let httpActivity = null;
-            for each (let item in self.openRequests) {
-              if (item.channel !== aChannel) {
-                continue;
-              }
-              httpActivity = item;
-              break;
-            }
-
-            if (!httpActivity) {
-              return;
-            }
-
-            hudId = httpActivity.hudId;
-            let msgObject = httpActivity.messageObject;
-
-            let updatePanel = false;
-            let data;
-            
-            httpActivity.timing[transCodes[aActivitySubtype]] = aTimestamp;
-
-            switch (aActivitySubtype) {
-              case activityDistributor.ACTIVITY_SUBTYPE_REQUEST_BODY_SENT: {
-                if (!self.saveRequestAndResponseBodies) {
-                  httpActivity.request.bodyDiscarded = true;
-                  break;
-                }
-
-                let gBrowser = msgObject.messageNode.ownerDocument.
-                               defaultView.gBrowser;
-                let HUD = HUDService.hudReferences[hudId];
-                let browser = gBrowser.
-                              getBrowserForDocument(HUD.contentDocument);
-
-                let sentBody = NetworkHelper.
-                               readPostTextFromRequest(aChannel, browser);
-                if (!sentBody) {
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  if (httpActivity.url == browser.contentWindow.location.href) {
-                    sentBody = NetworkHelper.readPostTextFromPage(browser);
-                  }
-                  if (!sentBody) {
-                    sentBody = "";
-                  }
-                }
-                httpActivity.request.body = sentBody;
-                break;
-              }
-
-              case activityDistributor.ACTIVITY_SUBTYPE_RESPONSE_HEADER: {
-                
-                
-                
-                
-                
-                
-                
-                
-                httpActivity.response.status =
-                  aExtraStringData.split(/\r\n|\n|\r/)[0];
-
-                
-                let linkNode = msgObject.linkNode;
-                let statusNode = linkNode.
-                  querySelector(".webconsole-msg-status");
-                let statusText = "[" + httpActivity.response.status + "]";
-                statusNode.setAttribute("value", statusText);
-
-                let clipboardTextPieces =
-                  [ httpActivity.method, httpActivity.url, statusText ];
-                msgObject.messageNode.clipboardText =
-                  clipboardTextPieces.join(" ");
-
-                let status = parseInt(httpActivity.response.status.
-                  replace(/^HTTP\/\d\.\d (\d+).+$/, "$1"));
-
-                if (status >= MIN_HTTP_ERROR_CODE &&
-                    status < MAX_HTTP_ERROR_CODE) {
-                  ConsoleUtils.setMessageType(msgObject.messageNode,
-                                              CATEGORY_NETWORK,
-                                              SEVERITY_ERROR);
-                }
-
-                break;
-              }
-
-              case activityDistributor.ACTIVITY_SUBTYPE_TRANSACTION_CLOSE: {
-                let timing = httpActivity.timing;
-                let requestDuration =
-                  Math.round((timing.RESPONSE_COMPLETE -
-                                timing.REQUEST_HEADER) / 1000);
-
-                
-                let linkNode = msgObject.linkNode;
-                let statusNode = linkNode.
-                  querySelector(".webconsole-msg-status");
-
-                let statusText = httpActivity.response.status;
-                let timeText = l10n.getFormatStr("NetworkPanel.durationMS",
-                                                 [ requestDuration ]);
-                let fullStatusText = "[" + statusText + " " + timeText + "]";
-                statusNode.setAttribute("value", fullStatusText);
-
-                let clipboardTextPieces =
-                  [ httpActivity.method, httpActivity.url, fullStatusText ];
-                msgObject.messageNode.clipboardText =
-                  clipboardTextPieces.join(" ");
-
-                delete httpActivity.messageObject;
-                delete self.openRequests[httpActivity.id];
-                updatePanel = true;
-                break;
-              }
-            }
-
-            if (updatePanel) {
-              httpActivity.panels.forEach(function(weakRef) {
-                let panel = weakRef.get();
-                if (panel) {
-                  panel.update();
-                }
-              });
-            }
-          }
-        }
-      },
-
-      httpTransactionCodes: {
-        0x5001: "REQUEST_HEADER",
-        0x5002: "REQUEST_BODY_SENT",
-        0x5003: "RESPONSE_START",
-        0x5004: "RESPONSE_HEADER",
-        0x5005: "RESPONSE_COMPLETE",
-        0x5006: "TRANSACTION_CLOSE",
-
-        0x804b0003: "STATUS_RESOLVING",
-        0x804b000b: "STATUS_RESOLVED",
-        0x804b0007: "STATUS_CONNECTING_TO",
-        0x804b0004: "STATUS_CONNECTED_TO",
-        0x804b0005: "STATUS_SENDING_TO",
-        0x804b000a: "STATUS_WAITING_FOR",
-        0x804b0006: "STATUS_RECEIVING_FROM"
-      }
-    };
-
-    this.httpObserver = httpObserver;
-
-    activityDistributor.addObserver(httpObserver);
-
-    
-    Services.obs.addObserver(this.httpResponseExaminer,
-                             "http-on-examine-response", false);
-  },
-
-  
-
-
-
-
-
-
-
-  httpResponseExaminer: function HS_httpResponseExaminer(aSubject, aTopic)
-  {
-    if (aTopic != "http-on-examine-response" ||
-        !(aSubject instanceof Ci.nsIHttpChannel)) {
-      return;
-    }
-
-    let channel = aSubject.QueryInterface(Ci.nsIHttpChannel);
-    let win = NetworkHelper.getWindowForRequest(channel);
-    if (!win) {
-      return;
-    }
-    let hudId = HUDService.getHudIdByWindow(win);
-    if (!hudId) {
-      return;
-    }
-
-    let response = {
-      id: HUDService.sequenceId(),
-      hudId: hudId,
-      channel: channel,
-      headers: {},
-    };
-
-    try {
-      channel.visitResponseHeaders({
-        visitHeader: function(aName, aValue) {
-          response.headers[aName] = aValue;
-        }
-      });
-    }
-    catch (ex) {
-      delete response.headers;
-    }
-
-    if (response.headers) {
-      HUDService.openResponseHeaders[response.id] = response;
-    }
-  },
-
-  
-
-
-
-
-
-
-  logNetActivity: function HS_logNetActivity(aActivityObject)
-  {
-    let hudId = aActivityObject.hudId;
-    let outputNode = this.hudReferences[hudId].outputNode;
-
-    let chromeDocument = outputNode.ownerDocument;
-    let msgNode = chromeDocument.createElementNS(XUL_NS, "hbox");
-
-    let methodNode = chromeDocument.createElementNS(XUL_NS, "label");
-    methodNode.setAttribute("value", aActivityObject.method);
-    methodNode.classList.add("webconsole-msg-body-piece");
-    msgNode.appendChild(methodNode);
-
-    let linkNode = chromeDocument.createElementNS(XUL_NS, "hbox");
-    linkNode.setAttribute("flex", "1");
-    linkNode.classList.add("webconsole-msg-body-piece");
-    linkNode.classList.add("webconsole-msg-link");
-    msgNode.appendChild(linkNode);
-
-    let urlNode = chromeDocument.createElementNS(XUL_NS, "label");
-    urlNode.setAttribute("crop", "center");
-    urlNode.setAttribute("flex", "1");
-    urlNode.setAttribute("title", aActivityObject.url);
-    urlNode.setAttribute("value", aActivityObject.url);
-    urlNode.classList.add("hud-clickable");
-    urlNode.classList.add("webconsole-msg-body-piece");
-    urlNode.classList.add("webconsole-msg-url");
-    linkNode.appendChild(urlNode);
-
-    let statusNode = chromeDocument.createElementNS(XUL_NS, "label");
-    statusNode.setAttribute("value", "");
-    statusNode.classList.add("hud-clickable");
-    statusNode.classList.add("webconsole-msg-body-piece");
-    statusNode.classList.add("webconsole-msg-status");
-    linkNode.appendChild(statusNode);
-
-    let clipboardText = aActivityObject.method + " " + aActivityObject.url;
-
-    let messageNode = ConsoleUtils.createMessageNode(chromeDocument,
-                                                     CATEGORY_NETWORK,
-                                                     SEVERITY_LOG,
-                                                     msgNode,
-                                                     hudId,
-                                                     null,
-                                                     null,
-                                                     clipboardText);
-
-    ConsoleUtils.outputMessageNode(messageNode, aActivityObject.hudId);
-    return messageNode;
   },
 
   
@@ -2521,11 +1140,6 @@ HUD_SERVICE.prototype =
       HUDService.registerHUDReference(hud);
       let windowId = WebConsoleUtils.getOuterWindowId(aContentWindow.top);
       this.windowIds[windowId] = hudId;
-
-      hud.progressListener = new ConsoleProgressListener(hudId);
-
-      _browser.webProgress.addProgressListener(hud.progressListener,
-        Ci.nsIWebProgress.NOTIFY_STATE_ALL);
     }
     else {
       hud = this.hudReferences[hudId];
@@ -2845,7 +1459,8 @@ HeadsUpDisplay.prototype = {
   _messageListeners: ["JSTerm:EvalObject", "WebConsole:ConsoleAPI",
     "WebConsole:CachedMessages", "WebConsole:PageError", "JSTerm:EvalResult",
     "JSTerm:AutocompleteProperties", "JSTerm:ClearOutput",
-    "JSTerm:InspectObject"],
+    "JSTerm:InspectObject", "WebConsole:NetworkActivity",
+    "WebConsole:FileActivity"],
 
   consolePanel: null,
 
@@ -2853,6 +1468,34 @@ HeadsUpDisplay.prototype = {
 
 
   groupDepth: 0,
+
+  _saveRequestAndResponseBodies: false,
+
+  
+
+
+
+
+  get saveRequestAndResponseBodies() this._saveRequestAndResponseBodies,
+
+  
+
+
+
+
+
+  set saveRequestAndResponseBodies(aValue) {
+    this._saveRequestAndResponseBodies = aValue;
+
+    let message = {
+      preferences: {
+        "NetworkMonitor.saveRequestAndResponseBodies":
+          this._saveRequestAndResponseBodies,
+      },
+    };
+
+    this.sendMessageToContent("WebConsole:SetPreferences", message);
+  },
 
   get mainPopupSet()
   {
@@ -3524,9 +2167,8 @@ HeadsUpDisplay.prototype = {
     let id = this.hudId + "-output-contextmenu";
     menuPopup.setAttribute("id", id);
     menuPopup.addEventListener("popupshowing", function() {
-      saveBodiesItem.setAttribute("checked",
-        HUDService.saveRequestAndResponseBodies);
-    }, true);
+      saveBodiesItem.setAttribute("checked", this.saveRequestAndResponseBodies);
+    }.bind(this), true);
 
     let saveBodiesItem = this.makeXULNode("menuitem");
     saveBodiesItem.setAttribute("label", l10n.getStr("saveBodies.label"));
@@ -3535,6 +2177,7 @@ HeadsUpDisplay.prototype = {
     saveBodiesItem.setAttribute("type", "checkbox");
     saveBodiesItem.setAttribute("buttonType", "saveBodies");
     saveBodiesItem.setAttribute("oncommand", "HUDConsoleUI.command(this);");
+    saveBodiesItem.setAttribute("hudId", this.hudId);
     menuPopup.appendChild(saveBodiesItem);
 
     menuPopup.appendChild(this.makeXULNode("menuseparator"));
@@ -3927,6 +2570,106 @@ HeadsUpDisplay.prototype = {
     ConsoleUtils.outputMessageNode(node, this.hudId);
   },
 
+  
+
+
+
+
+
+  logNetActivity: function HUD_logNetActivity(aHttpActivity)
+  {
+    let entry = aHttpActivity.log.entries[0];
+    let request = entry.request;
+
+    let msgNode = this.chromeDocument.createElementNS(XUL_NS, "hbox");
+
+    let methodNode = this.chromeDocument.createElementNS(XUL_NS, "label");
+    methodNode.setAttribute("value", request.method);
+    methodNode.classList.add("webconsole-msg-body-piece");
+    msgNode.appendChild(methodNode);
+
+    let linkNode = this.chromeDocument.createElementNS(XUL_NS, "hbox");
+    linkNode.setAttribute("flex", "1");
+    linkNode.classList.add("webconsole-msg-body-piece");
+    linkNode.classList.add("webconsole-msg-link");
+    msgNode.appendChild(linkNode);
+
+    let urlNode = this.chromeDocument.createElementNS(XUL_NS, "label");
+    urlNode.setAttribute("crop", "center");
+    urlNode.setAttribute("flex", "1");
+    urlNode.setAttribute("title", request.url);
+    urlNode.setAttribute("value", request.url);
+    urlNode.classList.add("hud-clickable");
+    urlNode.classList.add("webconsole-msg-body-piece");
+    urlNode.classList.add("webconsole-msg-url");
+    linkNode.appendChild(urlNode);
+
+    let statusNode = this.chromeDocument.createElementNS(XUL_NS, "label");
+    statusNode.setAttribute("value", "");
+    statusNode.classList.add("hud-clickable");
+    statusNode.classList.add("webconsole-msg-body-piece");
+    statusNode.classList.add("webconsole-msg-status");
+    linkNode.appendChild(statusNode);
+
+    let clipboardText = request.method + " " + request.url;
+
+    let messageNode = ConsoleUtils.createMessageNode(this.chromeDocument,
+                                                     CATEGORY_NETWORK,
+                                                     SEVERITY_LOG,
+                                                     msgNode,
+                                                     this.hudId,
+                                                     null,
+                                                     null,
+                                                     clipboardText);
+
+    messageNode.setAttribute("connectionId", entry.connection);
+
+    messageNode._httpActivity = aHttpActivity;
+
+    this.makeOutputMessageLink(messageNode, function HUD_net_message_link() {
+      if (!messageNode._panelOpen) {
+        HUDService.openNetworkPanel(messageNode, messageNode._httpActivity);
+      }
+    }.bind(this));
+
+    ConsoleUtils.outputMessageNode(messageNode, this.hudId);
+  },
+
+  
+
+
+
+
+
+  logFileActivity: function HUD_logFileActivity(aFileURI)
+  {
+    let chromeDocument = this.chromeDocument;
+
+    let urlNode = chromeDocument.createElementNS(XUL_NS, "label");
+    urlNode.setAttribute("crop", "center");
+    urlNode.setAttribute("flex", "1");
+    urlNode.setAttribute("title", aFileURI);
+    urlNode.setAttribute("value", aFileURI);
+    urlNode.classList.add("hud-clickable");
+    urlNode.classList.add("webconsole-msg-url");
+
+    let outputNode = ConsoleUtils.createMessageNode(chromeDocument,
+                                                    CATEGORY_NETWORK,
+                                                    SEVERITY_LOG,
+                                                    urlNode,
+                                                    this.hudId,
+                                                    null,
+                                                    null,
+                                                    aFileURI);
+
+    this.makeOutputMessageLink(outputNode, function HUD__onFileClick() {
+      let viewSourceUtils = chromeDocument.defaultView.gViewSourceUtils;
+      viewSourceUtils.viewSource(aFileURI, null, chromeDocument);
+    });
+
+    ConsoleUtils.outputMessageNode(outputNode, this.hudId);
+  },
+
   ERRORS: {
     HUD_BOX_DOES_NOT_EXIST: "Heads Up Display does not exist",
     TAB_ID_REQUIRED: "Tab DOM ID is required",
@@ -3949,9 +2692,13 @@ HeadsUpDisplay.prototype = {
     }, this);
 
     let message = {
-      hudId: this.hudId,
-      features: ["ConsoleAPI", "JSTerm", "PageError"],
+      features: ["ConsoleAPI", "JSTerm", "PageError", "NetworkMonitor"],
       cachedMessages: ["ConsoleAPI", "PageError"],
+      NetworkMonitor: { monitorFileActivity: true },
+      preferences: {
+        "NetworkMonitor.saveRequestAndResponseBodies":
+          this.saveRequestAndResponseBodies,
+      },
     };
     this.sendMessageToContent("WebConsole:Init", message);
   },
@@ -3992,6 +2739,12 @@ HeadsUpDisplay.prototype = {
       case "WebConsole:CachedMessages":
         this._displayCachedConsoleMessages(aMessage.json.messages);
         this._onInitComplete();
+        break;
+      case "WebConsole:NetworkActivity":
+        this.handleNetworkActivity(aMessage.json);
+        break;
+      case "WebConsole:FileActivity":
+        this.logFileActivity(aMessage.json.uri);
         break;
     }
   },
@@ -4078,11 +2831,80 @@ HeadsUpDisplay.prototype = {
 
 
 
+
+
+
+
+
+  handleNetworkActivity: function HUD_handleNetworkActivity(aMessage)
+  {
+    let stage = aMessage.meta.stages[aMessage.meta.stages.length - 1];
+
+    if (stage == "REQUEST_HEADER") {
+      this.logNetActivity(aMessage);
+      return;
+    }
+
+    let entry = aMessage.log.entries[0];
+    let request = entry.request;
+    let response = entry.response;
+
+    let messageNode = this.outputNode.
+      querySelector("richlistitem[connectionId=" + entry.connection + "]");
+    if (!messageNode) {
+      return;
+    }
+    messageNode._httpActivity = aMessage;
+
+    if (stage == "TRANSACTION_CLOSE" || stage == "RESPONSE_HEADER") {
+      let status = [response.httpVersion, response.status, response.statusText];
+      if (stage == "TRANSACTION_CLOSE") {
+        status.push(l10n.getFormatStr("NetworkPanel.durationMS", [entry.time]));
+      }
+      let statusText = "[" + status.join(" ") + "]";
+
+      let linkNode = messageNode.querySelector(".webconsole-msg-link");
+      let statusNode = linkNode.querySelector(".webconsole-msg-status");
+      statusNode.setAttribute("value", statusText);
+
+      messageNode.clipboardText = [request.method, request.url, statusText]
+                                  .join(" ");
+
+      if (stage == "RESPONSE_HEADER" &&
+          response.status >= MIN_HTTP_ERROR_CODE &&
+          response.status <= MAX_HTTP_ERROR_CODE) {
+        ConsoleUtils.setMessageType(messageNode, CATEGORY_NETWORK,
+                                    SEVERITY_ERROR);
+      }
+    }
+
+    if (messageNode._netPanel) {
+      messageNode._netPanel.update();
+    }
+
+    
+    
+    if (HUDService.lastFinishedRequestCallback &&
+        aMessage.meta.stages.indexOf("REQUEST_STOP") > -1 &&
+        aMessage.meta.stages.indexOf("TRANSACTION_CLOSE") > -1) {
+      HUDService.lastFinishedRequestCallback(aMessage);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
   makeOutputMessageLink: function HUD_makeOutputMessageLink(aNode, aCallback)
   {
     let linkNode;
     if (aNode.category === CATEGORY_NETWORK) {
-      linkNode = aNode.querySelector(".webconsole-msg-link");
+      linkNode = aNode.querySelector(".webconsole-msg-link, .webconsole-msg-url");
     }
     else {
       linkNode = aNode.querySelector(".webconsole-msg-body");
@@ -4129,6 +2951,7 @@ HeadsUpDisplay.prototype = {
     delete this.asyncRequests;
     delete this.messageManager;
     delete this.browser;
+    delete this.chromeDocument;
 
     this.positionMenuitems.above.removeEventListener("command",
       this._positionConsoleAbove, false);
@@ -5919,7 +4742,7 @@ HeadsUpDisplayUICommands = {
       }
       case "saveBodies": {
         let checked = aButton.getAttribute("checked") === "true";
-        HUDService.saveRequestAndResponseBodies = checked;
+        HUDService.hudReferences[hudId].saveRequestAndResponseBodies = checked;
         break;
       }
     }
@@ -6044,88 +4867,6 @@ CommandController.prototype = {
         break;
     }
   }
-};
-
-
-
-
-
-
-
-
-
-function ConsoleProgressListener(aHudId)
-{
-  this.hudId = aHudId;
-}
-
-ConsoleProgressListener.prototype = {
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
-                                         Ci.nsISupportsWeakReference]),
-
-  onStateChange: function CPL_onStateChange(aProgress, aRequest, aState,
-                                            aStatus)
-  {
-    if (!(aState & Ci.nsIWebProgressListener.STATE_START)) {
-      return;
-    }
-
-    let uri = null;
-    if (aRequest instanceof Ci.imgIRequest) {
-      let imgIRequest = aRequest.QueryInterface(Ci.imgIRequest);
-      uri = imgIRequest.URI;
-    }
-    else if (aRequest instanceof Ci.nsIChannel) {
-      let nsIChannel = aRequest.QueryInterface(Ci.nsIChannel);
-      uri = nsIChannel.URI;
-    }
-
-    if (!uri || !uri.schemeIs("file") && !uri.schemeIs("ftp")) {
-      return;
-    }
-
-    let outputNode = HUDService.hudReferences[this.hudId].outputNode;
-
-    let chromeDocument = outputNode.ownerDocument;
-    let msgNode = chromeDocument.createElementNS(HTML_NS, "html:span");
-
-    
-    let linkNode = chromeDocument.createElementNS(HTML_NS, "html:span");
-    linkNode.appendChild(chromeDocument.createTextNode(uri.spec));
-    linkNode.classList.add("hud-clickable");
-    linkNode.classList.add("webconsole-msg-url");
-
-    linkNode.addEventListener("mousedown", function(aEvent) {
-      this._startX = aEvent.clientX;
-      this._startY = aEvent.clientY;
-    }, false);
-
-    linkNode.addEventListener("click", function(aEvent) {
-      if (aEvent.detail == 1 && aEvent.button == 0 &&
-          this._startX == aEvent.clientX && this._startY == aEvent.clientY) {
-        let viewSourceUtils = chromeDocument.defaultView.gViewSourceUtils;
-        viewSourceUtils.viewSource(uri.spec, null, chromeDocument);
-      }
-    }, false);
-
-    msgNode.appendChild(linkNode);
-
-    let messageNode = ConsoleUtils.createMessageNode(chromeDocument,
-                                                     CATEGORY_NETWORK,
-                                                     SEVERITY_LOG,
-                                                     msgNode,
-                                                     this.hudId,
-                                                     null,
-                                                     null,
-                                                     uri.spec);
-
-    ConsoleUtils.outputMessageNode(messageNode, this.hudId);
-  },
-
-  onLocationChange: function() {},
-  onStatusChange: function() {},
-  onProgressChange: function() {},
-  onSecurityChange: function() {},
 };
 
 

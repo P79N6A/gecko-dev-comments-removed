@@ -51,6 +51,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
@@ -133,7 +134,8 @@ var NetworkHelper =
 
 
 
-  readPostTextFromRequest: function NH_readPostTextFromRequest(aRequest, aBrowser)
+
+  readPostTextFromRequest: function NH_readPostTextFromRequest(aRequest, aCharset)
   {
     if (aRequest instanceof Ci.nsIUploadChannel) {
       let iStream = aRequest.uploadStream;
@@ -150,8 +152,7 @@ var NetworkHelper =
       }
 
       
-      let charset = aBrowser.contentWindow.document.characterSet;
-      let text = this.readAndConvertFromStream(iStream, charset);
+      let text = this.readAndConvertFromStream(iStream, aCharset);
 
       
       
@@ -172,9 +173,10 @@ var NetworkHelper =
 
 
 
-  readPostTextFromPage: function NH_readPostTextFromPage(aBrowser)
+
+  readPostTextFromPage: function NH_readPostTextFromPage(aDocShell, aCharset)
   {
-    let webNav = aBrowser.webNavigation;
+    let webNav = aDocShell.QueryInterface(Ci.nsIWebNavigation);
     if (webNav instanceof Ci.nsIWebPageDescriptor) {
       let descriptor = webNav.currentDescriptor;
 
@@ -182,8 +184,7 @@ var NetworkHelper =
           descriptor instanceof Ci.nsISeekableStream) {
         descriptor.seek(NS_SEEK_SET, 0);
 
-        let charset = browser.contentWindow.document.characterSet;
-        return this.readAndConvertFromStream(descriptor, charset);
+        return this.readAndConvertFromStream(descriptor, aCharset);
       }
     }
     return null;
@@ -267,6 +268,81 @@ var NetworkHelper =
   },
 
   
+
+
+
+
+
+
+
+
+  parseCookieHeader: function NH_parseCookieHeader(aHeader)
+  {
+    let cookies = aHeader.split(";");
+    let result = [];
+
+    cookies.forEach(function(aCookie) {
+      let [name, value] = aCookie.split("=");
+      result.push({name: unescape(name.trim()),
+                   value: unescape(value.trim())});
+    });
+
+    return result;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  parseSetCookieHeader: function NH_parseSetCookieHeader(aHeader)
+  {
+    let rawCookies = aHeader.split(/\r\n|\n|\r/);
+    let cookies = [];
+
+    rawCookies.forEach(function(aCookie) {
+      let name = unescape(aCookie.substr(0, aCookie.indexOf("=")).trim());
+      let parts = aCookie.substr(aCookie.indexOf("=") + 1).split(";");
+      let value = unescape(parts.shift().trim());
+
+      let cookie = {name: name, value: value};
+
+      parts.forEach(function(aPart) {
+        let part = aPart.trim();
+        if (part.toLowerCase() == "secure") {
+          cookie.secure = true;
+        }
+        else if (part.toLowerCase() == "httponly") {
+          cookie.httpOnly = true;
+        }
+        else if (part.indexOf("=") > -1) {
+          let pair = part.split("=");
+          pair[0] = pair[0].toLowerCase();
+          if (pair[0] == "path" || pair[0] == "domain") {
+            cookie[pair[0]] = pair[1];
+          }
+          else if (pair[0] == "expires") {
+            try {
+              pair[1] = pair[1].replace(/-/g, ' ');
+              cookie.expires = new Date(pair[1]).toISOString();
+            }
+            catch (ex) { }
+          }
+        }
+      });
+
+      cookies.push(cookie);
+    });
+
+    return cookies;
+  },
+
+  
   
   mimeCategoryMap: {
     "text/plain": "txt",
@@ -333,6 +409,7 @@ var NetworkHelper =
     "audio/x-wav": "media",
     "text/json": "json",
     "application/x-json": "json",
-    "application/json-rpc": "json"
+    "application/json-rpc": "json",
+    "application/x-web-app-manifest+json": "json",
   }
 }

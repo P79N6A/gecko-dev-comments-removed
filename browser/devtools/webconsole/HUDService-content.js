@@ -17,6 +17,8 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm", tempScope);
 Cu.import("resource://gre/modules/Services.jsm", tempScope);
 Cu.import("resource://gre/modules/ConsoleAPIStorage.jsm", tempScope);
 Cu.import("resource:///modules/WebConsoleUtils.jsm", tempScope);
+Cu.import("resource:///modules/NetworkHelper.jsm", tempScope);
+Cu.import("resource://gre/modules/NetUtil.jsm", tempScope);
 
 let XPCOMUtils = tempScope.XPCOMUtils;
 let Services = tempScope.Services;
@@ -24,7 +26,11 @@ let gConsoleStorage = tempScope.ConsoleAPIStorage;
 let WebConsoleUtils = tempScope.WebConsoleUtils;
 let l10n = WebConsoleUtils.l10n;
 let JSPropertyProvider = tempScope.JSPropertyProvider;
+let NetworkHelper = tempScope.NetworkHelper;
+let NetUtil = tempScope.NetUtil;
 tempScope = null;
+
+let activityDistributor = Cc["@mozilla.org/network/http-activity-distributor;1"].getService(Ci.nsIHttpActivityDistributor);
 
 let _alive = true; 
 
@@ -37,9 +43,11 @@ let Manager = {
   hudId: null,
   _sequence: 0,
   _messageListeners: ["WebConsole:Init", "WebConsole:EnableFeature",
-                      "WebConsole:DisableFeature", "WebConsole:Destroy"],
+                      "WebConsole:DisableFeature", "WebConsole:SetPreferences",
+                      "WebConsole:GetPreferences", "WebConsole:Destroy"],
   _messageHandlers: null,
   _enabledFeatures: null,
+  _prefs: { },
 
   
 
@@ -102,6 +110,12 @@ let Manager = {
       case "WebConsole:DisableFeature":
         this.disableFeature(aMessage.json.feature);
         break;
+      case "WebConsole:GetPreferences":
+        this.handleGetPreferences(aMessage.json);
+        break;
+      case "WebConsole:SetPreferences":
+        this.handleSetPreferences(aMessage.json);
+        break;
       case "WebConsole:Destroy":
         this.destroy();
         break;
@@ -154,9 +168,17 @@ let Manager = {
 
 
 
+
+
+
   _onInit: function Manager_onInit(aMessage)
   {
     this.hudId = aMessage.hudId;
+
+    if (aMessage.preferences) {
+      this.handleSetPreferences({ preferences: aMessage.preferences });
+    }
+
     if (aMessage.features) {
       aMessage.features.forEach(function(aFeature) {
         this.enableFeature(aFeature, aMessage[aFeature]);
@@ -244,6 +266,8 @@ let Manager = {
 
 
 
+
+
   enableFeature: function Manager_enableFeature(aFeature, aMessage)
   {
     if (this._enabledFeatures.indexOf(aFeature) != -1) {
@@ -259,6 +283,9 @@ let Manager = {
         break;
       case "PageError":
         ConsoleListener.init(aMessage);
+        break;
+      case "NetworkMonitor":
+        NetworkMonitor.init(aMessage);
         break;
       default:
         Cu.reportError("Web Console content: unknown feature " + aFeature);
@@ -294,10 +321,79 @@ let Manager = {
       case "PageError":
         ConsoleListener.destroy();
         break;
+      case "NetworkMonitor":
+        NetworkMonitor.destroy();
+        break;
       default:
         Cu.reportError("Web Console content: unknown feature " + aFeature);
         break;
     }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  handleGetPreferences: function Manager_handleGetPreferences(aMessage)
+  {
+    let prefs = {};
+    aMessage.preferences.forEach(function(aName) {
+      prefs[aName] = this.getPreference(aName);
+    }, this);
+
+    this.sendMessage("WebConsole:Preferences", {preferences: prefs});
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  handleSetPreferences: function Manager_handleSetPreferences(aMessage)
+  {
+    for (let key in aMessage.preferences) {
+      this.setPreference(key, aMessage.preferences[key]);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+  getPreference: function Manager_getPreference(aName)
+  {
+    return aName in this._prefs ? this._prefs[aName] : null;
+  },
+
+  
+
+
+
+
+
+
+
+  setPreference: function Manager_setPreference(aName, aValue)
+  {
+    this._prefs[aName] = aValue;
   },
 
   
@@ -388,11 +484,19 @@ let Manager = {
 
     this.hudId = null;
     this._messageHandlers = null;
-    Manager = ConsoleAPIObserver = JSTerm = ConsoleListener = null;
+
+    Manager = ConsoleAPIObserver = JSTerm = ConsoleListener = NetworkMonitor =
+      NetworkResponseListener = ConsoleProgressListener = null;
+
     Cc = Ci = Cu = XPCOMUtils = Services = gConsoleStorage =
-      WebConsoleUtils = l10n = null;
+      WebConsoleUtils = l10n = JSPropertyProvider = NetworkHelper =
+      NetUtil = activityDistributor = null;
   },
 };
+
+
+
+
 
 
 
@@ -926,6 +1030,10 @@ let JSTerm = {
 
 
 
+
+
+
+
 let ConsoleAPIObserver = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver]),
 
@@ -1115,6 +1223,10 @@ let ConsoleAPIObserver = {
 
 
 
+
+
+
+
 let ConsoleListener = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIConsoleListener]),
 
@@ -1200,6 +1312,987 @@ let ConsoleListener = {
   {
     Services.console.unregisterListener(this);
   },
+};
+
+
+
+
+
+
+const PR_UINT32_MAX = 4294967295;
+
+
+const HTTP_MOVED_PERMANENTLY = 301;
+const HTTP_FOUND = 302;
+const HTTP_SEE_OTHER = 303;
+const HTTP_TEMPORARY_REDIRECT = 307;
+
+
+const RESPONSE_BODY_LIMIT = 1048576; 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function NetworkResponseListener(aHttpActivity) {
+  this.receivedData = "";
+  this.httpActivity = aHttpActivity;
+  this.bodySize = 0;
+}
+
+NetworkResponseListener.prototype = {
+  QueryInterface:
+    XPCOMUtils.generateQI([Ci.nsIStreamListener, Ci.nsIInputStreamCallback,
+                           Ci.nsIRequestObserver, Ci.nsISupports]),
+
+  
+
+
+
+
+  _foundOpenResponse: false,
+
+  
+
+
+
+  sink: null,
+
+  
+
+
+  httpActivity: null,
+
+  
+
+
+  receivedData: null,
+
+  
+
+
+  bodySize: null,
+
+  
+
+
+  request: null,
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  setAsyncListener: function NRL_setAsyncListener(aStream, aListener)
+  {
+    
+    aStream.asyncWait(aListener, 0, 0, Services.tm.mainThread);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  onDataAvailable:
+  function NRL_onDataAvailable(aRequest, aContext, aInputStream, aOffset, aCount)
+  {
+    this._findOpenResponse();
+    let data = NetUtil.readInputStreamToString(aInputStream, aCount);
+
+    this.bodySize += aCount;
+
+    if (!this.httpActivity.meta.discardResponseBody &&
+        this.receivedData.length < RESPONSE_BODY_LIMIT) {
+      this.receivedData += NetworkHelper.
+                           convertToUnicode(data, aRequest.contentCharset);
+    }
+  },
+
+  
+
+
+
+
+
+
+  onStartRequest: function NRL_onStartRequest(aRequest)
+  {
+    this.request = aRequest;
+    this._findOpenResponse();
+    
+    this.setAsyncListener(this.sink.inputStream, this);
+  },
+
+  
+
+
+
+
+
+  onStopRequest: function NRL_onStopRequest()
+  {
+    this._findOpenResponse();
+    this.sink.outputStream.close();
+  },
+
+  
+
+
+
+
+
+
+
+
+  _findOpenResponse: function NRL__findOpenResponse()
+  {
+    if (this._foundOpenResponse) {
+      return;
+    }
+
+    let openResponse = null;
+
+    for each (let item in NetworkMonitor.openResponses) {
+      if (item.channel === this.httpActivity.channel) {
+        openResponse = item;
+        break;
+      }
+    }
+
+    if (!openResponse) {
+      return;
+    }
+    this._foundOpenResponse = true;
+
+    let logResponse = this.httpActivity.log.entries[0].response;
+    logResponse.headers = openResponse.headers;
+    logResponse.httpVersion = openResponse.httpVersion;
+    logResponse.status = openResponse.status;
+    logResponse.statusText = openResponse.statusText;
+    if (openResponse.cookies) {
+      logResponse.cookies = openResponse.cookies;
+    }
+
+    delete NetworkMonitor.openResponses[openResponse.id];
+
+    this.httpActivity.meta.stages.push("http-on-examine-response");
+    NetworkMonitor.sendActivity(this.httpActivity);
+  },
+
+  
+
+
+
+
+
+  onStreamClose: function NRL_onStreamClose()
+  {
+    if (!this.httpActivity) {
+      return;
+    }
+    
+    this.setAsyncListener(this.sink.inputStream, null);
+
+    this._findOpenResponse();
+
+    let meta = this.httpActivity.meta;
+    let entry = this.httpActivity.log.entries[0];
+    let request = entry.request;
+    let response = entry.response;
+
+    meta.stages.push("REQUEST_STOP");
+
+    if (!meta.discardResponseBody && this.receivedData.length) {
+      this._onComplete(this.receivedData);
+    }
+    else if (!meta.discardResponseBody && response.status == 304) {
+      
+      let charset = this.request.contentCharset || this.httpActivity.charset;
+      NetworkHelper.loadFromCache(request.url, charset,
+                                  this._onComplete.bind(this));
+    }
+    else {
+      this._onComplete();
+    }
+  },
+
+  
+
+
+
+
+
+
+
+  _onComplete: function NRL__onComplete(aData)
+  {
+    let response = this.httpActivity.log.entries[0].response;
+
+    try {
+      response.bodySize = response.status != 304 ? this.request.contentLength : 0;
+    }
+    catch (ex) {
+      response.bodySize = -1;
+    }
+
+    try {
+      response.content = { mimeType: this.request.contentType };
+    }
+    catch (ex) {
+      response.content = { mimeType: "" };
+    }
+
+    if (response.content.mimeType && this.request.contentCharset) {
+      response.content.mimeType += "; charset=" + this.request.contentCharset;
+    }
+
+    response.content.size = this.bodySize || (aData || "").length;
+
+    if (aData) {
+      response.content.text = aData;
+    }
+
+    this.receivedData = "";
+
+    NetworkMonitor.sendActivity(this.httpActivity);
+
+    this.httpActivity.channel = null;
+    this.httpActivity = null;
+    this.sink = null;
+    this.inputStream = null;
+    this.request = null;
+  },
+
+  
+
+
+
+
+
+
+
+  onInputStreamReady: function NRL_onInputStreamReady(aStream)
+  {
+    if (!(aStream instanceof Ci.nsIAsyncInputStream) || !this.httpActivity) {
+      return;
+    }
+
+    let available = -1;
+    try {
+      
+      available = aStream.available();
+    }
+    catch (ex) { }
+
+    if (available != -1) {
+      if (available != 0) {
+        
+        
+        
+        this.onDataAvailable(this.request, null, aStream, 0, available);
+      }
+      this.setAsyncListener(aStream, this);
+    }
+    else {
+      this.onStreamClose();
+    }
+  },
+};
+
+
+
+
+
+
+
+let NetworkMonitor = {
+  httpTransactionCodes: {
+    0x5001: "REQUEST_HEADER",
+    0x5002: "REQUEST_BODY_SENT",
+    0x5003: "RESPONSE_START",
+    0x5004: "RESPONSE_HEADER",
+    0x5005: "RESPONSE_COMPLETE",
+    0x5006: "TRANSACTION_CLOSE",
+
+    0x804b0003: "STATUS_RESOLVING",
+    0x804b000b: "STATUS_RESOLVED",
+    0x804b0007: "STATUS_CONNECTING_TO",
+    0x804b0004: "STATUS_CONNECTED_TO",
+    0x804b0005: "STATUS_SENDING_TO",
+    0x804b000a: "STATUS_WAITING_FOR",
+    0x804b0006: "STATUS_RECEIVING_FROM"
+  },
+
+  harCreator: {
+    name: Services.appinfo.name + " - Web Console",
+    version: Services.appinfo.version,
+  },
+
+  
+  
+  responsePipeSegmentSize: null,
+
+  
+
+
+
+  get saveRequestAndResponseBodies() {
+    return Manager.getPreference("NetworkMonitor.saveRequestAndResponseBodies");
+  },
+
+  openRequests: null,
+  openResponses: null,
+  progressListener: null,
+
+  
+
+
+
+
+
+
+
+
+  init: function NM_init(aMessage)
+  {
+    this.responsePipeSegmentSize = Services.prefs
+                                   .getIntPref("network.buffer.cache.size");
+
+    this.openRequests = {};
+    this.openResponses = {};
+
+    activityDistributor.addObserver(this);
+
+    Services.obs.addObserver(this.httpResponseExaminer,
+                             "http-on-examine-response", false);
+
+    
+    if (aMessage && aMessage.monitorFileActivity) {
+      let webProgress = docShell.QueryInterface(Ci.nsIWebProgress);
+      this.progressListener = new ConsoleProgressListener();
+      webProgress.addProgressListener(this.progressListener,
+        Ci.nsIWebProgress.NOTIFY_STATE_ALL);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+  httpResponseExaminer: function NM_httpResponseExaminer(aSubject, aTopic)
+  {
+    
+    
+    
+    
+
+    if (aTopic != "http-on-examine-response" ||
+        !(aSubject instanceof Ci.nsIHttpChannel)) {
+      return;
+    }
+
+    let channel = aSubject.QueryInterface(Ci.nsIHttpChannel);
+    
+    let win = NetworkHelper.getWindowForRequest(channel);
+    if (!win || win.top !== Manager.window) {
+      return;
+    }
+
+    let response = {
+      id: Manager.sequenceId,
+      channel: channel,
+      headers: [],
+      cookies: [],
+    };
+
+    let setCookieHeader = null;
+
+    channel.visitResponseHeaders({
+      visitHeader: function NM__visitHeader(aName, aValue) {
+        let lowerName = aName.toLowerCase();
+        if (lowerName == "set-cookie") {
+          setCookieHeader = aValue;
+        }
+        response.headers.push({ name: aName, value: aValue });
+      }
+    });
+
+    if (!response.headers.length) {
+      return; 
+    }
+
+    if (setCookieHeader) {
+      response.cookies = NetworkHelper.parseSetCookieHeader(setCookieHeader);
+    }
+
+    
+    let httpVersionMaj = {};
+    let httpVersionMin = {};
+
+    channel.QueryInterface(Ci.nsIHttpChannelInternal);
+    channel.getResponseVersion(httpVersionMaj, httpVersionMin);
+
+    response.status = channel.responseStatus;
+    response.statusText = channel.responseStatusText;
+    response.httpVersion = "HTTP/" + httpVersionMaj.value + "." +
+                                     httpVersionMin.value;
+
+    NetworkMonitor.openResponses[response.id] = response;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  observeActivity:
+  function NM_observeActivity(aChannel, aActivityType, aActivitySubtype,
+                              aTimestamp, aExtraSizeData, aExtraStringData)
+  {
+    if (!_alive ||
+        aActivityType != activityDistributor.ACTIVITY_TYPE_HTTP_TRANSACTION &&
+        aActivityType != activityDistributor.ACTIVITY_TYPE_SOCKET_TRANSPORT) {
+      return;
+    }
+
+    if (!(aChannel instanceof Ci.nsIHttpChannel)) {
+      return;
+    }
+
+    aChannel = aChannel.QueryInterface(Ci.nsIHttpChannel);
+
+    if (aActivitySubtype ==
+        activityDistributor.ACTIVITY_SUBTYPE_REQUEST_HEADER) {
+      this._onRequestHeader(aChannel, aTimestamp, aExtraStringData);
+      return;
+    }
+
+    
+    
+    let httpActivity = null;
+    for each (let item in this.openRequests) {
+      if (item.channel === aChannel) {
+        httpActivity = item;
+        break;
+      }
+    }
+
+    if (!httpActivity) {
+      return;
+    }
+
+    let transCodes = this.httpTransactionCodes;
+
+    
+    if (aActivitySubtype in transCodes) {
+      let stage = transCodes[aActivitySubtype];
+      if (stage in httpActivity.timings) {
+        httpActivity.timings[stage].last = aTimestamp;
+      }
+      else {
+        httpActivity.meta.stages.push(stage);
+        httpActivity.timings[stage] = {
+          first: aTimestamp,
+          last: aTimestamp,
+        };
+      }
+    }
+
+    switch (aActivitySubtype) {
+      case activityDistributor.ACTIVITY_SUBTYPE_REQUEST_BODY_SENT:
+        this._onRequestBodySent(httpActivity);
+        break;
+      case activityDistributor.ACTIVITY_SUBTYPE_RESPONSE_HEADER:
+        this._onResponseHeader(httpActivity, aExtraStringData);
+        break;
+      case activityDistributor.ACTIVITY_SUBTYPE_TRANSACTION_CLOSE:
+        this._onTransactionClose(httpActivity);
+        break;
+      default:
+        break;
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _onRequestHeader:
+  function NM__onRequestHeader(aChannel, aTimestamp, aExtraStringData)
+  {
+    
+    let win = NetworkHelper.getWindowForRequest(aChannel);
+    if (!win || win.top !== Manager.window) {
+      return;
+    }
+
+    let httpActivity = this.createActivityObject(aChannel);
+    httpActivity.charset = win.document.characterSet; 
+    httpActivity.meta.stages.push("REQUEST_HEADER"); 
+
+    httpActivity.timings.REQUEST_HEADER = {
+      first: aTimestamp,
+      last: aTimestamp
+    };
+
+    let entry = httpActivity.log.entries[0];
+    entry.startedDateTime = new Date(Math.round(aTimestamp / 1000)).toISOString();
+
+    let request = httpActivity.log.entries[0].request;
+
+    let cookieHeader = null;
+
+    
+    aChannel.visitRequestHeaders({
+      visitHeader: function NM__visitHeader(aName, aValue)
+      {
+        if (aName == "Cookie") {
+          cookieHeader = aValue;
+        }
+        request.headers.push({ name: aName, value: aValue });
+      }
+    });
+
+    if (cookieHeader) {
+      request.cookies = NetworkHelper.parseCookieHeader(cookieHeader);
+    }
+
+    
+    let httpVersionMaj = {};
+    let httpVersionMin = {};
+
+    aChannel.QueryInterface(Ci.nsIHttpChannelInternal);
+    aChannel.getRequestVersion(httpVersionMaj, httpVersionMin);
+
+    request.httpVersion = "HTTP/" + httpVersionMaj.value + "." +
+                                    httpVersionMin.value;
+
+    request.headersSize = aExtraStringData.length;
+
+    this._setupResponseListener(httpActivity);
+
+    this.openRequests[httpActivity.id] = httpActivity;
+
+    this.sendActivity(httpActivity);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  createActivityObject: function NM_createActivityObject(aChannel)
+  {
+    return {
+      hudId: Manager.hudId,
+      id: Manager.sequenceId,
+      channel: aChannel,
+      charset: null, 
+      meta: { 
+        stages: [], 
+        discardRequestBody: !this.saveRequestAndResponseBodies,
+        discardResponseBody: !this.saveRequestAndResponseBodies,
+      },
+      timings: {}, 
+      log: { 
+        version: "1.2",
+        creator: this.harCreator,
+        
+        entries: [{  
+          connection: Manager.sequenceId, 
+          startedDateTime: 0, 
+          time: 0, 
+          
+          request: {
+            method: aChannel.requestMethod,
+            url: aChannel.URI.spec,
+            httpVersion: "", 
+            headers: [], 
+            cookies: [], 
+            queryString: [], 
+            headersSize: -1, 
+            bodySize: -1, 
+            postData: null, 
+          },
+          response: {
+            status: 0, 
+            statusText: "", 
+            httpVersion: "", 
+            headers: [], 
+            cookies: [], 
+            content: null, 
+            redirectURL: "", 
+            headersSize: -1, 
+            bodySize: -1, 
+          },
+          timings: {}, 
+        }],
+      },
+    };
+  },
+
+  
+
+
+
+
+
+
+
+  _setupResponseListener: function NM__setupResponseListener(aHttpActivity)
+  {
+    let channel = aHttpActivity.channel;
+    channel.QueryInterface(Ci.nsITraceableChannel);
+
+    
+    
+    
+    
+    let sink = Cc["@mozilla.org/pipe;1"].createInstance(Ci.nsIPipe);
+
+    
+    
+    sink.init(false, false, this.responsePipeSegmentSize, PR_UINT32_MAX, null);
+
+    
+    let newListener = new NetworkResponseListener(aHttpActivity);
+
+    
+    newListener.inputStream = sink.inputStream;
+    newListener.sink = sink;
+
+    let tee = Cc["@mozilla.org/network/stream-listener-tee;1"].
+              createInstance(Ci.nsIStreamListenerTee);
+
+    let originalListener = channel.setNewListener(tee);
+
+    tee.init(originalListener, sink.outputStream, newListener);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  sendActivity: function NM_sendActivity(aHttpActivity)
+  {
+    Manager.sendMessage("WebConsole:NetworkActivity", {
+      meta: aHttpActivity.meta,
+      log: aHttpActivity.log,
+    });
+  },
+
+  
+
+
+
+
+
+
+
+  _onRequestBodySent: function NM__onRequestBodySent(aHttpActivity)
+  {
+    if (aHttpActivity.meta.discardRequestBody) {
+      return;
+    }
+
+    let request = aHttpActivity.log.entries[0].request;
+
+    let sentBody = NetworkHelper.
+                   readPostTextFromRequest(aHttpActivity.channel,
+                                           aHttpActivity.charset);
+
+    if (!sentBody && request.url == Manager.window.location.href) {
+      
+      
+      
+      
+      
+      
+      
+      sentBody = NetworkHelper.readPostTextFromPage(docShell,
+                                                    aHttpActivity.charset);
+    }
+    if (!sentBody) {
+      return;
+    }
+
+    request.postData = {
+      mimeType: "", 
+      params: [],  
+      text: sentBody,
+    };
+
+    request.bodySize = sentBody.length;
+
+    this.sendActivity(aHttpActivity);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _onResponseHeader:
+  function NM__onResponseHeader(aHttpActivity, aExtraStringData)
+  {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    let response = aHttpActivity.log.entries[0].response;
+
+    let headers = aExtraStringData.split(/\r\n|\n|\r/);
+    let statusLine = headers.shift();
+
+    let statusLineArray = statusLine.split(" ");
+    response.httpVersion = statusLineArray.shift();
+    response.status = statusLineArray.shift();
+    response.statusText = statusLineArray.join(" ");
+    response.headersSize = aExtraStringData.length;
+
+    
+    switch (parseInt(response.status)) {
+      case HTTP_MOVED_PERMANENTLY:
+      case HTTP_FOUND:
+      case HTTP_SEE_OTHER:
+      case HTTP_TEMPORARY_REDIRECT:
+        aHttpActivity.meta.discardResponseBody = true;
+        break;
+    }
+
+    this.sendActivity(aHttpActivity);
+  },
+
+  
+
+
+
+
+
+
+
+
+  _onTransactionClose: function NM__onTransactionClose(aHttpActivity)
+  {
+    this._setupHarTimings(aHttpActivity);
+    this.sendActivity(aHttpActivity);
+    delete this.openRequests[aHttpActivity.id];
+  },
+
+  
+
+
+
+
+
+
+
+
+  _setupHarTimings: function NM__setupHarTimings(aHttpActivity)
+  {
+    let timings = aHttpActivity.timings;
+    let entry = aHttpActivity.log.entries[0];
+    let harTimings = entry.timings;
+
+    
+    harTimings.blocked = -1;
+
+    
+    
+    harTimings.dns = timings.STATUS_RESOLVING ?
+                     timings.STATUS_RESOLVED.last -
+                     timings.STATUS_RESOLVING.first : -1;
+
+    if (timings.STATUS_CONNECTING_TO && timings.STATUS_CONNECTED_TO) {
+      harTimings.connect = timings.STATUS_CONNECTED_TO.last -
+                           timings.STATUS_CONNECTING_TO.first;
+    }
+    else if (timings.STATUS_SENDING_TO) {
+      harTimings.connect = timings.STATUS_SENDING_TO.first -
+                           timings.REQUEST_HEADER.first;
+    }
+    else {
+      harTimings.connect = -1;
+    }
+
+    if ((timings.STATUS_WAITING_FOR || timings.STATUS_RECEIVING_FROM) &&
+        (timings.STATUS_CONNECTED_TO || timings.STATUS_SENDING_TO)) {
+      harTimings.send = (timings.STATUS_WAITING_FOR ||
+                         timings.STATUS_RECEIVING_FROM).first -
+                        (timings.STATUS_CONNECTED_TO ||
+                         timings.STATUS_SENDING_TO).last;
+    }
+    else {
+      harTimings.send = -1;
+    }
+
+    if (timings.RESPONSE_START) {
+      harTimings.wait = timings.RESPONSE_START.first -
+                        (timings.REQUEST_BODY_SENT ||
+                         timings.STATUS_SENDING_TO).last;
+    }
+    else {
+      harTimings.wait = -1;
+    }
+
+    if (timings.RESPONSE_START && timings.RESPONSE_COMPLETE) {
+      harTimings.receive = timings.RESPONSE_COMPLETE.last -
+                           timings.RESPONSE_START.first;
+    }
+    else {
+      harTimings.receive = -1;
+    }
+
+    entry.time = 0;
+    for (let timing in harTimings) {
+      let time = Math.max(Math.round(harTimings[timing] / 1000), -1);
+      harTimings[timing] = time;
+      if (time > -1) {
+        entry.time += time;
+      }
+    }
+  },
+
+  
+
+
+
+  destroy: function NM_destroy()
+  {
+    Services.obs.removeObserver(this.httpResponseExaminer,
+                                "http-on-examine-response");
+
+    activityDistributor.removeObserver(this);
+
+    if (this.progressListener) {
+      let webProgress = docShell.QueryInterface(Ci.nsIWebProgress);
+      webProgress.removeProgressListener(this.progressListener);
+      delete this.progressListener;
+    }
+
+    delete this.openRequests;
+    delete this.openResponses;
+  },
+};
+
+
+
+
+
+
+
+
+
+function ConsoleProgressListener() { }
+
+ConsoleProgressListener.prototype = {
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
+                                         Ci.nsISupportsWeakReference]),
+
+  onStateChange: function CPL_onStateChange(aProgress, aRequest, aState,
+                                            aStatus)
+  {
+    if (!_alive || !(aState & Ci.nsIWebProgressListener.STATE_START)) {
+      return;
+    }
+
+    let uri = null;
+    if (aRequest instanceof Ci.imgIRequest) {
+      let imgIRequest = aRequest.QueryInterface(Ci.imgIRequest);
+      uri = imgIRequest.URI;
+    }
+    else if (aRequest instanceof Ci.nsIChannel) {
+      let nsIChannel = aRequest.QueryInterface(Ci.nsIChannel);
+      uri = nsIChannel.URI;
+    }
+
+    if (!uri || !uri.schemeIs("file") && !uri.schemeIs("ftp")) {
+      return;
+    }
+
+    Manager.sendMessage("WebConsole:FileActivity", {uri: uri.spec});
+  },
+
+  onLocationChange: function() {},
+  onStatusChange: function() {},
+  onProgressChange: function() {},
+  onSecurityChange: function() {},
 };
 
 Manager.init();
