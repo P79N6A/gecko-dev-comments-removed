@@ -160,12 +160,8 @@ nsHyperTextAccessible::NativeRole()
 
   
   nsIFrame *frame = GetFrame();
-  if (frame && frame->GetType() == nsGkAtoms::blockFrame &&
-      frame->GetContent()->Tag() != nsGkAtoms::input) {
-    
-    
+  if (frame && frame->GetType() == nsGkAtoms::blockFrame)
     return nsIAccessibleRole::ROLE_PARAGRAPH;
-  }
 
   return nsIAccessibleRole::ROLE_TEXT_CONTAINER; 
 }

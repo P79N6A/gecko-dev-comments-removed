@@ -109,6 +109,7 @@ public:
   
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual PRUint32 NativeRole();
+  virtual PRUint64 State();
   virtual PRUint64 NativeState();
 
   
@@ -171,6 +172,7 @@ public:
   virtual void ApplyARIAState(PRUint64* aState);
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual PRUint32 NativeRole();
+  virtual PRUint64 State();
   virtual PRUint64 NativeState();
 
   
@@ -181,6 +183,19 @@ public:
   virtual nsAccessible* ContainerWidget() const;
 };
 
+
+
+
+
+class nsHTMLFileInputAccessible : public nsHyperTextAccessibleWrap
+{
+public:
+  nsHTMLFileInputAccessible(nsIContent* aContent, nsIWeakReference* aShell);
+
+  
+  virtual PRUint32 NativeRole();
+  virtual nsresult HandleAccEvent(AccEvent* aAccEvent);
+};
 
 
 

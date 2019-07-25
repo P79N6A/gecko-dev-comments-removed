@@ -273,6 +273,25 @@ nsHTMLButtonAccessible::DoAction(PRUint8 aIndex)
 }
 
 PRUint64
+nsHTMLButtonAccessible::State()
+{
+  PRUint64 state = nsHyperTextAccessibleWrap::State();
+  if (state == states::DEFUNCT)
+    return state;
+
+  
+  
+  
+  if (mParent && mParent->IsHTMLFileInput()) {
+    PRUint64 parentState = mParent->State();
+    state |= parentState & (states::BUSY | states::REQUIRED |
+                            states::HASPOPUP | states::INVALID);
+  }
+
+  return state;
+}
+
+PRUint64
 nsHTMLButtonAccessible::NativeState()
 {
   PRUint64 state = nsHyperTextAccessibleWrap::NativeState();
@@ -477,7 +496,25 @@ nsHTMLTextFieldAccessible::ApplyARIAState(PRUint64* aState)
   nsHyperTextAccessibleWrap::ApplyARIAState(aState);
 
   nsStateMapEntry::MapToStates(mContent, aState, eARIAAutoComplete);
+}
 
+PRUint64
+nsHTMLTextFieldAccessible::State()
+{
+  PRUint64 state = nsHyperTextAccessibleWrap::State();
+  if (state & states::DEFUNCT)
+    return state;
+
+  
+  
+  
+  if (mParent && mParent->IsHTMLFileInput()) {
+    PRUint64 parentState = mParent->State();
+    state |= parentState & (states::BUSY | states::REQUIRED |
+      states::HASPOPUP | states::INVALID);
+  }
+
+  return state;
 }
 
 PRUint64
@@ -611,6 +648,61 @@ nsHTMLTextFieldAccessible::ContainerWidget() const
     mParent : nsnull;
 }
 
+
+
+
+
+
+nsHTMLFileInputAccessible::
+nsHTMLFileInputAccessible(nsIContent* aContent, nsIWeakReference* aShell) :
+  nsHyperTextAccessibleWrap(aContent, aShell)
+{
+  mFlags |= eHTMLFileInputAccessible;
+}
+
+PRUint32
+nsHTMLFileInputAccessible::NativeRole()
+{
+  
+  
+  return nsIAccessibleRole::ROLE_TEXT_CONTAINER;
+}
+
+nsresult
+nsHTMLFileInputAccessible::HandleAccEvent(AccEvent* aEvent)
+{
+  nsresult rv = nsHyperTextAccessibleWrap::HandleAccEvent(aEvent);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  
+  AccStateChangeEvent* event = downcast_accEvent(aEvent);
+  if (event &&
+      (event->GetState() == states::BUSY ||
+       event->GetState() == states::REQUIRED ||
+       event->GetState() == states::HASPOPUP ||
+       event->GetState() == states::INVALID)) {
+    nsAccessible* input = GetChildAt(0);
+    if (input && input->Role() == nsIAccessibleRole::ROLE_ENTRY) {
+      nsRefPtr<AccStateChangeEvent> childEvent =
+        new AccStateChangeEvent(input, event->GetState(),
+                                event->IsStateEnabled(),
+                                (event->IsFromUserInput() ? eFromUserInput : eNoUserInput));
+      nsEventShell::FireEvent(childEvent);
+    }
+
+    nsAccessible* button = GetChildAt(1);
+    if (button && button->Role() == nsIAccessibleRole::ROLE_PUSHBUTTON) {
+      nsRefPtr<AccStateChangeEvent> childEvent =
+        new AccStateChangeEvent(button, event->GetState(),
+                                event->IsStateEnabled(),
+                                (event->IsFromUserInput() ? eFromUserInput : eNoUserInput));
+      nsEventShell::FireEvent(childEvent);
+    }
+  }
+  return NS_OK;
+}
 
 
 
