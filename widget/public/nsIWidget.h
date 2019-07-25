@@ -110,9 +110,10 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #define NS_NATIVE_TSF_DISPLAY_ATTR_MGR 102
 #endif
 
+
 #define NS_IWIDGET_IID \
-{ 0x271ac413, 0xa202, 0x46dc, \
-{ 0xbc, 0xd5, 0x67, 0xa1, 0xfb, 0x58, 0x89, 0x7f } }
+{ 0xb7ec5f61, 0x57df, 0x4355, \
+  { 0x81, 0xf3, 0x41, 0xce, 0xd5, 0x2e, 0x80, 0x26 } }
 
 
 
@@ -964,6 +965,11 @@ class nsIWidget : public nsISupports {
 
 
     NS_IMETHOD BeginResizeDrag(nsGUIEvent* aEvent, PRInt32 aHorizontal, PRInt32 aVertical) = 0;
+
+    
+
+
+    NS_IMETHOD BeginMoveDrag(nsMouseEvent* aEvent) = 0;
 
     enum Modifiers {
         CAPS_LOCK = 0x01, 

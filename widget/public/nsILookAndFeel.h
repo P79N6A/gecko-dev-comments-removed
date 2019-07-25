@@ -322,7 +322,11 @@ public:
     
 
 
-    eMetric_ImagesInButtons
+    eMetric_ImagesInButtons,
+    
+
+
+    eMetric_MenuBarDrag
   } nsMetricID;
 
   enum {

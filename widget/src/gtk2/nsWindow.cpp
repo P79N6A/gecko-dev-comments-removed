@@ -6737,21 +6737,83 @@ nsWindow::GetThebesSurface()
     return mThebesSurface;
 }
 
+
+PRBool
+nsWindow::GetDragInfo(nsMouseEvent* aMouseEvent,
+                      GdkWindow** aWindow, gint* aButton,
+                      gint* aRootX, gint* aRootY)
+{
+    if (aMouseEvent->button != nsMouseEvent::eLeftButton) {
+        
+        return PR_FALSE;
+    }
+    *aButton = 1;
+
+    
+    GdkWindow* gdk_window = mGdkWindow;
+    if (!gdk_window) {
+        return PR_FALSE;
+    }
+    NS_ABORT_IF_FALSE(GDK_IS_WINDOW(gdk_window), "must really be window");
+
+    
+    gdk_window = gdk_window_get_toplevel(gdk_window);
+    NS_ABORT_IF_FALSE(gdk_window,
+                      "gdk_window_get_toplevel should not return null");
+    *aWindow = gdk_window;
+
+    if (!aMouseEvent->widget) {
+        return PR_FALSE;
+    }
+
+    
+    
+    
+    
+    
+    nsIntPoint offset = aMouseEvent->widget->WidgetToScreenOffset();
+    *aRootX = aMouseEvent->refPoint.x + offset.x;
+    *aRootY = aMouseEvent->refPoint.y + offset.y;
+
+    return PR_TRUE;
+}
+
+NS_IMETHODIMP
+nsWindow::BeginMoveDrag(nsMouseEvent* aEvent)
+{
+    NS_ABORT_IF_FALSE(aEvent, "must have event");
+    NS_ABORT_IF_FALSE(aEvent->eventStructType == NS_MOUSE_EVENT,
+                      "event must have correct struct type");
+
+    GdkWindow *gdk_window;
+    gint button, screenX, screenY;
+    if (!GetDragInfo(aEvent, &gdk_window, &button, &screenX, &screenY)) {
+        return NS_ERROR_FAILURE;
+    }
+
+    
+    gdk_window_begin_move_drag(gdk_window, button, screenX, screenY,
+                               aEvent->time);
+
+    return NS_OK;
+}
+
 NS_IMETHODIMP
 nsWindow::BeginResizeDrag(nsGUIEvent* aEvent, PRInt32 aHorizontal, PRInt32 aVertical)
 {
     NS_ENSURE_ARG_POINTER(aEvent);
 
     if (aEvent->eventStructType != NS_MOUSE_EVENT) {
-      
-      return NS_ERROR_INVALID_ARG;
+        
+        return NS_ERROR_INVALID_ARG;
     }
 
     nsMouseEvent* mouse_event = static_cast<nsMouseEvent*>(aEvent);
 
-    if (mouse_event->button != nsMouseEvent::eLeftButton) {
-      
-      return NS_ERROR_INVALID_ARG;
+    GdkWindow *gdk_window;
+    gint button, screenX, screenY;
+    if (!GetDragInfo(mouse_event, &gdk_window, &button, &screenX, &screenY)) {
+        return NS_ERROR_FAILURE;
     }
 
     
@@ -6783,38 +6845,8 @@ nsWindow::BeginResizeDrag(nsGUIEvent* aEvent, PRInt32 aHorizontal, PRInt32 aVert
     }
 
     
-    GdkWindow* gdk_window = mGdkWindow;
-    if (!GDK_IS_WINDOW(gdk_window)) {
-      return NS_ERROR_FAILURE;
-    }
-
-    
-    gdk_window = gdk_window_get_toplevel(gdk_window);
-    if (!GDK_IS_WINDOW(gdk_window)) {
-      return NS_ERROR_FAILURE;
-    }
-
-
-    
-    GdkDisplay* display = gdk_display_get_default();
-    if (!GDK_IS_DISPLAY(display)) {
-      return NS_ERROR_FAILURE;
-    }
-
-    
-    GdkScreen* screen = NULL;
-    gint screenX, screenY;
-    GdkModifierType mask;
-    gdk_display_get_pointer(display, &screen, &screenX, &screenY, &mask);
-
-    
-    if (!(mask & GDK_BUTTON1_MASK)) {
-        return NS_ERROR_FAILURE;
-    }
-
-    
-    gdk_window_begin_resize_drag(gdk_window, window_edge, 1,
-            screenX, screenY, aEvent->time);
+    gdk_window_begin_resize_drag(gdk_window, window_edge, button,
+                                 screenX, screenY, aEvent->time);
 
     return NS_OK;
 }
