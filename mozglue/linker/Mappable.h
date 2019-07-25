@@ -49,6 +49,16 @@ public:
 
 
   virtual void finalize() = 0;
+
+  
+
+
+
+
+
+
+
+  virtual void stats(const char *when, const char *name) const { }
 };
 
 
@@ -180,6 +190,7 @@ public:
   virtual void munmap(void *addr, size_t length);
   virtual void finalize();
   virtual bool ensure(const void *addr);
+  virtual void stats(const char *when, const char *name) const;
 
 private:
   MappableSeekableZStream(Zip *zip);
@@ -232,6 +243,9 @@ private:
   
 
   AutoDeleteArray<unsigned char> chunkAvail;
+
+  
+  size_t chunkAvailNum;
 
   
   pthread_mutex_t mutex;

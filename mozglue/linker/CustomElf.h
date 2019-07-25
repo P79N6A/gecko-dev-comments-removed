@@ -232,6 +232,13 @@ public:
   virtual void *GetSymbolPtr(const char *symbol) const;
   virtual bool Contains(void *addr) const;
 
+  
+
+
+
+
+  void stats(const char *when) const;
+
 private:
   
 

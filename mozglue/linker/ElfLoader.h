@@ -285,6 +285,13 @@ private:
 protected:
   friend class CustomElf;
   
+
+
+
+
+  static void stats(const char *when);
+
+  
   typedef void (*Destructor)(void *object);
 
   
