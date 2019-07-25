@@ -582,7 +582,6 @@ GetContextFromObject(JSObject *obj)
     return nsnull;
 }
 
-#ifndef XPCONNECT_STANDALONE
 class SameOriginCheckedComponent : public nsISecurityCheckedComponent
 {
 public:
@@ -640,8 +639,6 @@ SameOriginCheckedComponent::CanSetProperty(const nsIID * iid,
     *_retval = NS_strdup("sameOrigin");
     return *_retval ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
 }
-
-#endif
 
 NS_IMETHODIMP
 nsXPCWrappedJSClass::DelegatedQueryInterface(nsXPCWrappedJS* self,
@@ -744,7 +741,6 @@ nsXPCWrappedJSClass::DelegatedQueryInterface(nsXPCWrappedJS* self,
 
     
 
-#ifndef XPCONNECT_STANDALONE
     
     
     
@@ -795,7 +791,6 @@ nsXPCWrappedJSClass::DelegatedQueryInterface(nsXPCWrappedJS* self,
             return NS_OK;
         }
     }
-#endif
 
     
     JSObject* jsobj = CallQueryInterfaceOnJSObject(ccx, self->GetJSObject(),

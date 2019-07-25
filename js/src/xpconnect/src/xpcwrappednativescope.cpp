@@ -143,10 +143,8 @@ XPCWrappedNativeScope::XPCWrappedNativeScope(XPCCallContext& ccx,
         mGlobalJSObject(nsnull),
         mPrototypeJSObject(nsnull),
         mPrototypeJSFunction(nsnull),
-        mPrototypeNoHelper(nsnull)
-#ifndef XPCONNECT_STANDALONE
-        , mScriptObjectPrincipal(nsnull)
-#endif
+        mPrototypeNoHelper(nsnull),
+        mScriptObjectPrincipal(nsnull)
 {
     
     {   
@@ -236,7 +234,6 @@ XPCWrappedNativeScope::SetGlobal(XPCCallContext& ccx, JSObject* aGlobal)
     
 
     mGlobalJSObject = aGlobal;
-#ifndef XPCONNECT_STANDALONE
     mScriptObjectPrincipal = nsnull;
     
 
@@ -260,7 +257,6 @@ XPCWrappedNativeScope::SetGlobal(XPCCallContext& ccx, JSObject* aGlobal)
         }
         mScriptObjectPrincipal = sop;
     }
-#endif
 
     
     {
@@ -452,9 +448,7 @@ XPCWrappedNativeScope::FinishedMarkPhaseOfGC(JSContext* cx, XPCJSRuntime* rt)
            JS_IsAboutToBeFinalized(cx, cur->mGlobalJSObject))
         {
             cur->mGlobalJSObject = nsnull;
-#ifndef XPCONNECT_STANDALONE
             cur->mScriptObjectPrincipal = nsnull;
-#endif
             
             if(prev)
                 prev->mNext = next;
