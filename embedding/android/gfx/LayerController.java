@@ -233,6 +233,22 @@ public class LayerController implements ScaleGestureDetector.OnScaleGestureListe
 
 
 
+
+
+    public IntPoint convertViewPointToLayerPoint(IntPoint viewPoint) {
+        if (mRootLayer == null)
+            return null;
+
+        
+        IntPoint scaledPoint = viewPoint.scale(1.0f / getZoomFactor());
+        return mVisibleRect.getOrigin().add(scaledPoint).subtract(mRootLayer.origin);
+    }
+
+    
+
+
+
+
     public boolean onTouchEvent(MotionEvent event) {
         boolean result = mPanZoomController.onTouchEvent(event);
         if (mOnTouchListener != null)
