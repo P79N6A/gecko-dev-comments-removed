@@ -623,7 +623,7 @@ js_InternalThrow(VMFrame &f)
     StackFrame *fp = cx->fp();
     JSScript *script = fp->script();
 
-    if (cx->typeInferenceEnabled()) {
+    if (cx->typeInferenceEnabled() || !fp->jit()) {
         
 
 
