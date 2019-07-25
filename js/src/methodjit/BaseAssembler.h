@@ -560,6 +560,16 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
     
     
     Call callWithABI(void *fun, bool canThrow) {
+#ifdef JS_CPU_ARM
+        
+        
+        
+        
+        
+        
+        ensureSpace(20);
+        int initFlushCount = flushCount();
+#endif
         
         
         
@@ -574,7 +584,9 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
 
         Call cl = call();
         callPatches.append(CallPatch(cl, fun));
-
+#ifdef JS_CPU_ARM
+        JS_ASSERT(initFlushCount == flushCount());
+#endif
         if (stackAdjust)
             addPtr(Imm32(stackAdjust), stackPointerRegister);
 
