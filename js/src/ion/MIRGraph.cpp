@@ -162,22 +162,22 @@ MBasicBlock::inherit(MBasicBlock *pred)
     return true;
 }
 
-MInstruction *
+MDefinition *
 MBasicBlock::getSlot(uint32 index)
 {
     JS_ASSERT(index < stackPosition_);
-    return slots_[index].ins;
+    return slots_[index].def;
 }
 
 void
-MBasicBlock::initSlot(uint32 slot, MInstruction *ins)
+MBasicBlock::initSlot(uint32 slot, MDefinition *ins)
 {
     slots_[slot].set(ins);
     entrySnapshot()->initOperand(slot, ins);
 }
 
 void
-MBasicBlock::setSlot(uint32 slot, MInstruction *ins)
+MBasicBlock::setSlot(uint32 slot, MDefinition *ins)
 {
     StackSlot &var = slots_[slot];
 
@@ -241,18 +241,19 @@ MBasicBlock::setVariable(uint32 index)
     JS_ASSERT(stackPosition_ > gen()->firstStackSlot());
     StackSlot &top = slots_[stackPosition_ - 1];
 
-    MInstruction *ins = top.ins;
+    MDefinition *def = top.def;
     if (top.isCopy()) {
         
         
         
         
         
-        ins = MCopy::New(ins);
+        MInstruction *ins = MCopy::New(def);
         add(ins);
+        def = ins;
     }
 
-    setSlot(index, ins);
+    setSlot(index, def);
 
     if (!top.isCopy()) {
         
@@ -288,7 +289,7 @@ MBasicBlock::setLocal(uint32 local)
 }
 
 void
-MBasicBlock::push(MInstruction *ins)
+MBasicBlock::push(MDefinition *ins)
 {
     JS_ASSERT(stackPosition_ < gen()->nslots());
     slots_[stackPosition_].set(ins);
@@ -305,7 +306,7 @@ MBasicBlock::pushVariable(uint32 slot)
     StackSlot &to = slots_[stackPosition_];
     StackSlot &from = slots_[slot];
 
-    to.ins = from.ins;
+    to.def = from.def;
     to.copyOf = slot;
     to.nextCopy = from.firstCopy;
     from.firstCopy = stackPosition_;
@@ -327,7 +328,7 @@ MBasicBlock::pushLocal(uint32 local)
     pushVariable(gen()->localSlot(local));
 }
 
-MInstruction *
+MDefinition *
 MBasicBlock::pop()
 {
     JS_ASSERT(stackPosition_ > gen()->firstStackSlot());
@@ -346,10 +347,10 @@ MBasicBlock::pop()
     
     JS_ASSERT(!slot.isCopied());
 
-    return slot.ins;
+    return slot.def;
 }
 
-MInstruction *
+MDefinition *
 MBasicBlock::peek(int32 depth)
 {
     JS_ASSERT(depth < 0);
@@ -374,7 +375,7 @@ void
 MBasicBlock::insertBefore(MInstruction *at, MInstruction *ins)
 {
     ins->setBlock(this);
-    gen()->graph().allocInstructionId(ins);
+    gen()->graph().allocDefinitionId(ins);
     instructions_.insertBefore(at, ins);
 }
 
@@ -382,7 +383,7 @@ void
 MBasicBlock::insertAfter(MInstruction *at, MInstruction *ins)
 {
     ins->setBlock(this);
-    gen()->graph().allocInstructionId(ins);
+    gen()->graph().allocDefinitionId(ins);
     instructions_.insertAfter(at, ins);
 }
 
@@ -391,7 +392,7 @@ MBasicBlock::add(MInstruction *ins)
 {
     JS_ASSERT(!lastIns_);
     ins->setBlock(this);
-    gen()->graph().allocInstructionId(ins);
+    gen()->graph().allocDefinitionId(ins);
     instructions_.insert(ins);
 }
 
@@ -408,7 +409,7 @@ MBasicBlock::addPhi(MPhi *phi)
     if (!phis_.append(phi))
         return false;
     phi->setBlock(this);
-    gen()->graph().allocInstructionId(phi);
+    gen()->graph().allocDefinitionId(phi);
     return true;
 }
 
@@ -423,8 +424,8 @@ MBasicBlock::addPredecessor(MBasicBlock *pred)
     JS_ASSERT(pred->stackPosition_ == stackPosition_);
 
     for (uint32 i = 0; i < stackPosition_; i++) {
-        MInstruction *mine = getSlot(i);
-        MInstruction *other = pred->getSlot(i);
+        MDefinition *mine = getSlot(i);
+        MDefinition *other = pred->getSlot(i);
 
         if (mine != other) {
             MPhi *phi;
@@ -493,8 +494,8 @@ MBasicBlock::setBackedge(MBasicBlock *pred, MBasicBlock *successor)
     
     
     for (uint32 i = 0; i < stackPosition_; i++) {
-        MInstruction *entryDef = entrySnapshot()->getOperand(i);
-        MInstruction *exitDef = pred->slots_[i].ins;
+        MDefinition *entryDef = entrySnapshot()->getOperand(i);
+        MDefinition *exitDef = pred->slots_[i].def;
 
         
         
@@ -537,7 +538,7 @@ MBasicBlock::setBackedge(MBasicBlock *pred, MBasicBlock *successor)
         
         
         for (uint32 j = i + 1; j < stackPosition_; j++)
-            JS_ASSERT(slots_[j].ins != entryDef);
+            JS_ASSERT(slots_[j].def != entryDef);
 #endif
 
         if (!phi->addInput(entryDef) || !phi->addInput(exitDef))

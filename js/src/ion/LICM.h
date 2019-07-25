@@ -94,7 +94,7 @@ class Loop
     bool hoistInstructions(InstructionQueue &toHoist);
 
     
-    bool isInLoop(MInstruction *ins);
+    bool isInLoop(MDefinition *ins);
     bool isLoopInvariant(MInstruction *ins);
 
     

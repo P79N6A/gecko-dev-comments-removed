@@ -107,27 +107,27 @@ ion::SplitCriticalEdges(MIRGenerator *gen, MIRGraph &graph)
 class TypeAnalyzer
 {
     MIRGraph &graph;
-    js::Vector<MInstruction *, 0, IonAllocPolicy> worklist;
+    js::Vector<MDefinition *, 0, IonAllocPolicy> worklist;
 
   private:
-    bool addToWorklist(MInstruction *ins);
-    MInstruction *popFromWorklist();
-    bool canSpecializeAtDef(MInstruction *ins);
-    bool reflow(MInstruction *ins);
+    bool addToWorklist(MDefinition *ins);
+    MDefinition *popFromWorklist();
+    bool canSpecializeAtDef(MDefinition *ins);
+    bool reflow(MDefinition *ins);
 
     bool populate();
     bool propagate();
     bool insertConversions();
 
     
-    bool inspectUses(MInstruction *ins);
-    bool inspectOperands(MInstruction *ins);
-    bool propagateUsedTypes(MInstruction *ins);
+    bool inspectUses(MDefinition *ins);
+    bool inspectOperands(MDefinition *ins);
+    bool propagateUsedTypes(MDefinition *ins);
 
     
     bool specializePhi(MPhi *phi);
-    bool fixup(MInstruction *ins);
-    void rewriteUses(MInstruction *old, MInstruction *ins);
+    bool fixup(MDefinition *ins);
+    void rewriteUses(MDefinition *old, MInstruction *ins);
 
   public:
     TypeAnalyzer(MIRGraph &graph);
@@ -141,7 +141,7 @@ TypeAnalyzer::TypeAnalyzer(MIRGraph &graph)
 }
 
 bool
-TypeAnalyzer::addToWorklist(MInstruction *ins)
+TypeAnalyzer::addToWorklist(MDefinition *ins)
 {
     if (!ins->inWorklist()){
         ins->setInWorklist();
@@ -150,10 +150,10 @@ TypeAnalyzer::addToWorklist(MInstruction *ins)
     return true;
 }
 
-MInstruction *
+MDefinition *
 TypeAnalyzer::popFromWorklist()
 {
-    MInstruction *ins = worklist.popCopy();
+    MDefinition *ins = worklist.popCopy();
     ins->setNotInWorklist();
     return ins;
 }
@@ -190,7 +190,7 @@ TypeAnalyzer::populate()
 
 
 bool
-TypeAnalyzer::inspectOperands(MInstruction *ins)
+TypeAnalyzer::inspectOperands(MDefinition *ins)
 {
     for (size_t i = 0; i < ins->numOperands(); i++) {
         MIRType required = ins->requiredInputType(i);
@@ -205,7 +205,7 @@ TypeAnalyzer::inspectOperands(MInstruction *ins)
 
 
 bool
-TypeAnalyzer::inspectUses(MInstruction *ins)
+TypeAnalyzer::inspectUses(MDefinition *ins)
 {
     if (!ins->uses() || ins->type() == MIRType_None)
         return true;
@@ -230,12 +230,12 @@ TypeAnalyzer::inspectUses(MInstruction *ins)
 }
 
 bool
-TypeAnalyzer::propagateUsedTypes(MInstruction *ins)
+TypeAnalyzer::propagateUsedTypes(MDefinition *ins)
 {
     
     MPhi *phi = ins->toPhi();
     for (size_t i = 0; i < phi->numOperands(); i++) {
-        MInstruction *input = phi->getOperand(i);
+        MDefinition *input = phi->getOperand(i);
         bool changed = input->addUsedTypes(phi->usedTypes());
         if (changed && (input->isPhi() || ins->isCopy())) {
             
@@ -254,7 +254,7 @@ TypeAnalyzer::propagate()
 {
     
     while (!worklist.empty()) {
-        MInstruction *ins = popFromWorklist();
+        MDefinition *ins = popFromWorklist();
 
         
         JS_ASSERT(!ins->isCopy());
@@ -279,13 +279,13 @@ TypeAnalyzer::propagate()
 
 
 void
-TypeAnalyzer::rewriteUses(MInstruction *old, MInstruction *ins)
+TypeAnalyzer::rewriteUses(MDefinition *old, MInstruction *ins)
 {
     JS_ASSERT(old->type() == MIRType_Value && ins->type() < MIRType_Value);
 
     MUseIterator iter(old);
     while (iter.more()) {
-        MInstruction *use = iter->ins();
+        MDefinition *use = iter->ins();
 
         
         
@@ -315,7 +315,7 @@ TypeAnalyzer::specializePhi(MPhi *phi)
 
     
     for (size_t i = 0; i < phi->numOperands(); i++) {
-        MInstruction *ins = phi->getOperand(i);
+        MDefinition *ins = phi->getOperand(i);
         if (ins->type() == usedAs)
             continue;
 
@@ -329,7 +329,7 @@ TypeAnalyzer::specializePhi(MPhi *phi)
 }
 
 bool
-TypeAnalyzer::fixup(MInstruction *ins)
+TypeAnalyzer::fixup(MDefinition *ins)
 {
     if (!ins->uses())
         return true;
@@ -344,14 +344,14 @@ TypeAnalyzer::fixup(MInstruction *ins)
         } else if (block->start() && ins->id() < block->start()->id()) {
             block->insertAfter(block->start(), unbox);
         } else {
-            block->insertAfter(ins, unbox);
+            block->insertAfter((MInstruction *)ins, unbox);
         }
         rewriteUses(ins, unbox);
     }
 
     MUseIterator uses(ins);
     while (uses.more()) {
-        MInstruction *use = uses->ins();
+        MDefinition *use = uses->ins();
         MIRType required = use->requiredInputType(uses->index());
         MIRType actual = ins->type();
 
@@ -368,13 +368,13 @@ TypeAnalyzer::fixup(MInstruction *ins)
                 MBasicBlock *pred = use->block()->getPredecessor(uses->index());
                 pred->insertBefore(pred->lastIns(), box);
             } else {
-                use->block()->insertBefore(use, box);
+                use->block()->insertBefore((MInstruction *)use, box);
             }
             use->replaceOperand(uses, box);
         } else if (actual == MIRType_Value) {
             
             MUnbox *unbox = MUnbox::New(ins, required);
-            use->block()->insertBefore(use, unbox);
+            use->block()->insertBefore((MInstruction *)use, unbox);
             use->replaceOperand(uses, unbox);
         } else {
             
@@ -392,7 +392,7 @@ TypeAnalyzer::insertConversions()
         MBasicBlock *block = graph.getBlock(i);
         MDefinitionIterator iter(block);
         while (iter.more()) {
-            MInstruction *ins = *iter;
+            MDefinition *ins = *iter;
             if (ins->isPhi() && !specializePhi(ins->toPhi())) {
                 iter.next();
                 continue;

@@ -55,6 +55,7 @@ namespace ion {
 class MBasicBlock;
 class MIRGenerator;
 class MIRGraph;
+class MDefinition;
 class MInstruction;
 
 class LIRGenerator : public MInstructionVisitor
@@ -95,43 +96,43 @@ class LIRGenerator : public MInstructionVisitor
 
     
     
-    inline bool ensureDefined(MInstruction *mir);
+    inline bool ensureDefined(MDefinition *mir);
 
     
     
-    LUse use(MInstruction *mir, LUse policy);
-    inline LUse use(MInstruction *mir);
-    inline LUse useRegister(MInstruction *mir);
-    inline LUse useFixed(MInstruction *mir, Register reg);
-    inline LUse useFixed(MInstruction *mir, FloatRegister reg);
-    inline LAllocation useOrConstant(MInstruction *mir);
-    inline LAllocation useKeepaliveOrConstant(MInstruction *mir);
-    inline LAllocation useRegisterOrConstant(MInstruction *mir);
+    LUse use(MDefinition *mir, LUse policy);
+    inline LUse use(MDefinition *mir);
+    inline LUse useRegister(MDefinition *mir);
+    inline LUse useFixed(MDefinition *mir, Register reg);
+    inline LUse useFixed(MDefinition *mir, FloatRegister reg);
+    inline LAllocation useOrConstant(MDefinition *mir);
+    inline LAllocation useKeepaliveOrConstant(MDefinition *mir);
+    inline LAllocation useRegisterOrConstant(MDefinition *mir);
 
     
     
-    virtual bool fillBoxUses(LInstruction *lir, size_t n, MInstruction *mir) = 0;
+    virtual bool fillBoxUses(LInstruction *lir, size_t n, MDefinition *mir) = 0;
 
     
     inline LDefinition temp(LDefinition::Type type);
 
     template <size_t Ops, size_t Temps>
-    inline bool define(LInstructionHelper<1, Ops, Temps> *lir, MInstruction *mir,
+    inline bool define(LInstructionHelper<1, Ops, Temps> *lir, MDefinition *mir,
                         const LDefinition &def);
 
     template <size_t Ops, size_t Temps>
-    inline bool define(LInstructionHelper<1, Ops, Temps> *lir, MInstruction *mir,
+    inline bool define(LInstructionHelper<1, Ops, Temps> *lir, MDefinition *mir,
                        LDefinition::Policy policy = LDefinition::DEFAULT);
 
     template <size_t Ops, size_t Temps>
-    inline bool defineReuseInput(LInstructionHelper<1, Ops, Temps> *lir, MInstruction *mir);
+    inline bool defineReuseInput(LInstructionHelper<1, Ops, Temps> *lir, MDefinition *mir);
 
     template <size_t Ops, size_t Temps>
-    inline bool defineBox(LInstructionHelper<BOX_PIECES, Ops, Temps> *lir, MInstruction *mir,
+    inline bool defineBox(LInstructionHelper<BOX_PIECES, Ops, Temps> *lir, MDefinition *mir,
                           LDefinition::Policy policy = LDefinition::DEFAULT);
 
     typedef LInstructionHelper<1, 2, 0> LMathI;
-    virtual bool lowerForALU(LMathI *ins, MInstruction *mir, MInstruction *lhs, MInstruction *rhs) = 0;
+    virtual bool lowerForALU(LMathI *ins, MDefinition *mir, MDefinition *lhs, MDefinition *rhs) = 0;
 
     uint32 getVirtualRegister() {
         return lirGraph_.getVirtualRegister();
@@ -147,7 +148,7 @@ class LIRGenerator : public MInstructionVisitor
     
     
     
-    void rewriteDefsInSnapshots(MInstruction *ins, MInstruction *old);
+    void rewriteDefsInSnapshots(MInstruction *ins, MDefinition *old);
 
     
     bool assignSnapshot(LInstruction *ins);
@@ -157,8 +158,8 @@ class LIRGenerator : public MInstructionVisitor
     virtual bool preparePhi(MPhi *phi) = 0;
 
   public:
+    virtual bool lowerPhi(MPhi *phi);
     bool doBitOp(JSOp op, MInstruction *ins);
-    bool lowerPhi(MPhi *phi);
 
   public:
     bool visitInstruction(MInstruction *ins);
