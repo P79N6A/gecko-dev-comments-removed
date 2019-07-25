@@ -339,8 +339,8 @@ static void
 anyname_finalize(JSContext* cx, JSObject* obj)
 {
     
-    if (cx->compartment->anynameObject == obj)
-        cx->compartment->anynameObject = NULL;
+    if (obj->compartment()->anynameObject == obj)
+        obj->compartment()->anynameObject = NULL;
 }
 
 static JSBool
