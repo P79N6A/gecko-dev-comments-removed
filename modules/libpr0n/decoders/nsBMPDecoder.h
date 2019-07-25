@@ -178,7 +178,6 @@ private:
 
     ERLEState mState;   
     PRUint32 mStateData;
-    PRBool mError;      
 
     
 

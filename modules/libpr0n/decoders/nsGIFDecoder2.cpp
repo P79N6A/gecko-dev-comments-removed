@@ -117,7 +117,6 @@ nsGIFDecoder2::nsGIFDecoder2()
   , mLastFlushedPass(0)
   , mGIFOpen(PR_FALSE)
   , mSawTransparency(PR_FALSE)
-  , mError(PR_FALSE)
   , mEnded(PR_FALSE)
 {
   
@@ -147,7 +146,7 @@ nsresult
 nsGIFDecoder2::FinishInternal()
 {
   
-  if (!IsSizeDecode() && !mError) {
+  if (!IsSizeDecode() && !IsError()) {
     if (mCurrentFrame == mGIFStruct.images_decoded)
       EndImageFrame();
     EndGIF( PR_TRUE);
@@ -194,7 +193,7 @@ nsresult
 nsGIFDecoder2::WriteInternal(const char *aBuffer, PRUint32 aCount)
 {
   
-  if (mError)
+  if (IsError())
     return NS_ERROR_FAILURE;
 
   
@@ -225,10 +224,10 @@ nsGIFDecoder2::WriteInternal(const char *aBuffer, PRUint32 aCount)
 
     
     else
-      mError = PR_TRUE;
+      PostDataError();
   }
 
-  return mError ? NS_ERROR_FAILURE : NS_OK;
+  return IsError() ? NS_ERROR_FAILURE : NS_OK;
 }
 
 
