@@ -90,7 +90,7 @@ struct nsDiskCacheEntry;
 #define kMinRecordCount    512
 
 #define kSeparateFile      0
-#define kMaxDataFileSize   0x4000000   // 64 MiB
+#define kMaxDataFileSize   0x3FFFC00   // 65535 KiB (see bug #443067)
 #define kBuckets           (1 << 5)    // must be a power of 2!
 
 class nsDiskCacheRecord {
