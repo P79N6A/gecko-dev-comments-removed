@@ -38,25 +38,26 @@ window.Group = function(listOfEls, options) {
 
   var boundingBox = this._getBoundingBox(listOfEls);
   var padding = 30;
-  var container = options.container;
-  this._rectToBe = new Rect(
+  var rectToBe = new Rect(
     boundingBox.left-padding,
     boundingBox.top-padding,
     boundingBox.width+padding*2,
     boundingBox.height+padding*2
-  )
-  container
-    .css({zIndex: -100})
-    .animate(this._rectToBe, function(){
-      self._rectToBe = null;
-     })
-    .data("group", this)
-    .data('item', this)
+  );
 
+  var $container = options.container; 
+  if(!$container) {
+    $container = $('<div class="group" />')
+      .css({position: 'absolute'})
+      .css(rectToBe);
+  }
+  
+  $container
+    .css({zIndex: -100})
     .appendTo("body")
     .dequeue();    
     
-  this._init(container.get(0));
+  this._init($container.get(0));
 
   if(this.$debug) 
     this.$debug.css({zIndex: -1000});
@@ -66,52 +67,57 @@ window.Group = function(listOfEls, options) {
 
 
   
+  
   var resizer = $("<div class='resizer'/>")
     .css({
       position: "absolute",
       width: 16, height: 16,
       bottom: 0, right: 0,
-    }).appendTo(container);
+    }).appendTo($container);
+
+    var titlebar = $("<div class='titlebar'><input class='name' value=''/><div class='close'>x</div></div>")
+    .appendTo($container)
+  
+  
+  titlebar.css({
+      width: $container.width(),
+      position: "relative",
+      top: -(titlebar.height()+2),
+      left: -1,
+    });
+    
+  $('.close', titlebar).click(function() {
+    self.close();
+  });
 
   
+  var shouldShow = false;
+  $container.mouseover(function(){
+    shouldShow = true;
+    setTimeout(function(){
+      if( shouldShow == false ) return;
+      $container.find("input").focus();
+      titlebar
+        .css({width: $container.width()})
+        .animate({ opacity: 1}).dequeue();        
+    }, 500);
+  }).mouseout(function(e){
+    shouldShow = false;
+    if( isEventOverElement(e, $container.get(0) )) return;
+    titlebar.animate({opacity:0}).dequeue();
+  })
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  
   $.each(listOfEls, function(index, el) {  
     self.add(el, null, options);
   });
 
-  this._addHandlers(container);
+  
+  this._addHandlers($container);
   
   Groups.register(this);
+  
+  this.setBounds(rectToBe);
   
   
   if(!options.dontPush)
@@ -337,9 +343,7 @@ window.Group.prototype = $.extend(new Item(), new Subscribable(), {
     if(typeof(options) == 'undefined')
       options = {};
     
-    
-    if( this._rectToBe ) var bb = this._rectToBe;
-    else var bb = this.getContentBounds();
+    var bb = this.getContentBounds();
 
     var count = this._children.length;
     var bbAspect = bb.width/bb.height;
@@ -503,14 +507,8 @@ window.Groups = {
       if( group == null ){
         phantom.removeClass("phantom");
         var group = new Group([$target, drag.info.$el], {container:phantom});
-        $(group._container).css({
-          left:   phantom.css("left"),
-          top:    phantom.css("top"),
-          width:  phantom.width(),
-          height: phantom.height()
-        });
-        }
-      else group.add( drag.info.$el );      
+      } else 
+        group.add( drag.info.$el );      
     },
     over: function(e){
       var $target = $(e.target);
