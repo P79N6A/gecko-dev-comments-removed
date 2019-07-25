@@ -62,6 +62,8 @@ struct nsRuleDataFont;
 class nsCSSValue;
 struct nsCSSRect;
 
+class nsStyleCoord;
+
 struct nsInheritedStyleData
 {
 
@@ -761,6 +763,11 @@ public:
   
   static nscoord ComputeComputedCalc(const nsStyleCoord& aCoord,
                                      nscoord aPercentageBasis);
+
+  
+  
+  static nscoord ComputeCoordPercentCalc(const nsStyleCoord& aCoord,
+                                         nscoord aPercentageBasis);
 
   
   
