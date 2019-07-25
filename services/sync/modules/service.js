@@ -673,6 +673,7 @@ WeaveSvc.prototype = {
 
 
 
+    dump( "This fails with an Exception: cannot aquire internal lock.\n" );
     this._lock(this._notify(messageName,
                             this._shareData,
                             dataType,

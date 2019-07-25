@@ -143,7 +143,7 @@ BookmarksEngine.prototype = {
 
  	let words = messageText.split(" ");
 	let commandWord = words[0];
-	let directoryName = words[1];
+	let directoryName = words.slice(1).join(" ");
         if ( commandWord == "share" ) {
 	  bmkEngine._incomingShareOffer( directoryName, from );
 	} else if ( commandWord == "stop" ) {
@@ -162,7 +162,6 @@ BookmarksEngine.prototype = {
     yield;
     self.done();
   },
-
 
   _incomingShareOffer: function BmkEngine__incomingShareOffer( dir, user ) {
     
@@ -220,15 +219,17 @@ BookmarksEngine.prototype = {
 
     
 
+    dump( "I'm in _share.\n" );
     let folderItemId = selectedFolder.node.itemId;
     let folderName = selectedFolder.getAttribute( "label" );
     ans.setItemAnnotation(folderItemId, OUTGOING_SHARED_ANNO, username, 0,
                             ans.EXPIRE_NEVER);
     
-
+    dump( "I set the annotation...\n" );
     
     if ( this._xmppClient ) {
       if ( this._xmppClient._connectionStatus == this._xmppClient.CONNECTED ) {
+	dump( "Gonna send notification...\n" );
 	let msgText = "share " + folderName;
 	this._xmppClient.sendMessage( username, msgText );
       } else {

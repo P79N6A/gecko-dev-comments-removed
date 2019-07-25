@@ -134,17 +134,19 @@ XmppClient.prototype = {
     }
 
     
-
     var rootElem = responseDOM.documentElement;
-
     var errors = rootElem.getElementsByTagName( "stream:error" );
+    if ( errors.length > 0 ) {
+      this.setError( errors[0].firstChild.nodeName );
+      return;
+    }
+    errors = rootElem.getElementsByTagName( "error" );
     if ( errors.length > 0 ) {
       this.setError( errors[0].firstChild.nodeName );
       return;
     }
 
     
-
     
     if ( this._connectionStatus == this.CALLED_SERVER ) {
       
