@@ -48,20 +48,11 @@ namespace plugins {
 
 class PluginInstanceChild;
 class PluginScriptableObjectChild;
-class PPluginIdentifierChild;
 
 struct ChildNPObject : NPObject
 {
   ChildNPObject()
-    : NPObject(), parent(NULL), invalidated(false)
-  {
-    MOZ_COUNT_CTOR(ChildNPObject);
-  }
-
-  ~ChildNPObject()
-  {
-    MOZ_COUNT_DTOR(ChildNPObject);
-  }
+    : NPObject(), parent(NULL), invalidated(false) { }
 
   
   
@@ -88,11 +79,11 @@ public:
   AnswerInvalidate();
 
   virtual bool
-  AnswerHasMethod(PPluginIdentifierChild* aId,
+  AnswerHasMethod(const NPRemoteIdentifier& aId,
                   bool* aHasMethod);
 
   virtual bool
-  AnswerInvoke(PPluginIdentifierChild* aId,
+  AnswerInvoke(const NPRemoteIdentifier& aId,
                const nsTArray<Variant>& aArgs,
                Variant* aResult,
                bool* aSuccess);
@@ -103,27 +94,25 @@ public:
                       bool* aSuccess);
 
   virtual bool
-  AnswerHasProperty(PPluginIdentifierChild* aId,
+  AnswerHasProperty(const NPRemoteIdentifier& aId,
                     bool* aHasProperty);
 
   virtual bool
-  AnswerGetChildProperty(PPluginIdentifierChild* aId,
-                         bool* aHasProperty,
-                         bool* aHasMethod,
-                         Variant* aResult,
-                         bool* aSuccess);
+  AnswerGetProperty(const NPRemoteIdentifier& aId,
+                    Variant* aResult,
+                    bool* aSuccess);
 
   virtual bool
-  AnswerSetProperty(PPluginIdentifierChild* aId,
+  AnswerSetProperty(const NPRemoteIdentifier& aId,
                     const Variant& aValue,
                     bool* aSuccess);
 
   virtual bool
-  AnswerRemoveProperty(PPluginIdentifierChild* aId,
+  AnswerRemoveProperty(const NPRemoteIdentifier& aId,
                        bool* aSuccess);
 
   virtual bool
-  AnswerEnumerate(nsTArray<PPluginIdentifierChild*>* aProperties,
+  AnswerEnumerate(nsTArray<NPRemoteIdentifier>* aProperties,
                   bool* aSuccess);
 
   virtual bool
@@ -132,10 +121,10 @@ public:
                   bool* aSuccess);
 
   virtual bool
-  RecvProtect();
+  AnswerProtect();
 
   virtual bool
-  RecvUnprotect();
+  AnswerUnprotect();
 
   NPObject*
   GetObject(bool aCanResurrect);
@@ -170,13 +159,6 @@ public:
   
   
   void DropNPObject();
-
-  
-
-
-
-
-  void NPObjectDestroyed();
 
   bool
   Evaluate(NPString* aScript,

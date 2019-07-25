@@ -218,11 +218,10 @@ public:
       if (!(remoteVariant && 
             ConvertToRemoteVariant(aArgs[index], *remoteVariant, aInstance,
                                    true))) {
-        mOk = false;
-        return;
+        break;
       }
     }
-    mOk = true;
+    mOk = mArray.Length() == aCount;
   }
 
   ProtectedVariantArray(const NPVariant* aArgs,
@@ -234,13 +233,11 @@ public:
       if (!(remoteVariant && 
             ConvertToRemoteVariant(aArgs[index], *remoteVariant, aInstance,
                                    true))) {
-        mOk = false;
-        return;
+        break;
       }
     }
-    mOk = true;
+    mOk = mArray.Length() == aCount;
   }
-
   ~ProtectedVariantArray()
   {
     PRUint32 count = mArray.Length();
@@ -316,7 +313,5 @@ struct ProtectedActorTraits<PluginScriptableObjectChild>
 
 } 
 } 
-
-#include "PluginScriptableObjectUtils-inl.h"
 
 #endif 
