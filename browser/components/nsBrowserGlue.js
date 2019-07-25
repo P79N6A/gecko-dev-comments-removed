@@ -376,8 +376,13 @@ BrowserGlue.prototype = {
   
   _onBrowserStartup: function BG__onBrowserStartup() {
     
-    if (this._shouldShowRights())
+    if (this._shouldShowRights()) {
       this._showRightsNotification();
+    } else {
+      
+      this._showTelemetryNotification();
+    }
+
 
     
     if (Services.prefs.prefHasUserValue("app.update.postupdate"))
@@ -388,9 +393,6 @@ BrowserGlue.prototype = {
     if (this._isPlacesDatabaseLocked) {
       this._showPlacesLockedNotificationBox();
     }
-
-    
-    this._showTelemetryNotification();
 
     
     
