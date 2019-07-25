@@ -131,6 +131,19 @@ function initTempTable(aDatabase)
 
 function fixupSearchText(aURIString)
 {
+  let uri = stripPrefix(aURIString);
+  return gTextURIService.unEscapeURIForUI("UTF-8", uri);
+}
+
+
+
+
+
+
+
+
+function stripPrefix(aURIString)
+{
   let uri = aURIString;
 
   if (uri.indexOf("http://") == 0) {
@@ -146,8 +159,7 @@ function fixupSearchText(aURIString)
   if (uri.indexOf("www.") == 0) {
     uri = uri.slice(4);
   }
-
-  return gTextURIService.unEscapeURIForUI("UTF-8", uri);
+  return uri;
 }
 
 
@@ -1487,7 +1499,7 @@ urlInlineComplete.prototype = {
     let value = row.getResultByIndex(0);
     let url = fixupSearchText(value);
 
-    let prefix = value.slice(0, value.length - url.length);
+    let prefix = value.slice(0, value.length - stripPrefix(value).length);
 
     
     let separatorIndex = url.slice(this._currentSearchString.length)
