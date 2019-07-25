@@ -51,12 +51,14 @@ nsCacheMetaData::GetElement(const char * key)
     while (data < limit) {
         
         const char * value = data + strlen(data) + 1;
+        NS_ABORT_IF_FALSE(value < limit, "Cache Metadata corrupted");
         if (strcmp(data, key) == 0)
             return value;
 
         
         data = value + strlen(value) + 1;
     }
+    NS_ABORT_IF_FALSE(data == limit, "Metadata corrupted");
     return nsnull;
 }
 
@@ -131,6 +133,23 @@ nsresult
 nsCacheMetaData::UnflattenMetaData(const char * data, PRUint32 size)
 {
     if (data && size) {
+        
+        if (data[size-1] != '\0') {
+            NS_ERROR("Cache MetaData is not null terminated");
+            return NS_ERROR_ILLEGAL_VALUE;
+        }
+        
+        
+        PRBool odd = PR_FALSE;
+        for (int i = 0; i < size; i++) {
+            if (data[i] == '\0') 
+                odd = !odd;
+        }
+        if (odd) {
+            NS_ERROR("Cache MetaData is malformed");
+            return NS_ERROR_ILLEGAL_VALUE;
+        }
+
         nsresult rv = EnsureBuffer(size);
         NS_ENSURE_SUCCESS(rv, rv);
 
@@ -150,6 +169,7 @@ nsCacheMetaData::VisitElements(nsICacheMetaDataVisitor * visitor)
         const char * key = data;
         
         data += strlen(data) + 1;
+        NS_ABORT_IF_FALSE(data < limit, "Metadata corrupted");
         PRBool keepGoing;
         nsresult rv = visitor->VisitMetaDataElement(key, data, &keepGoing);
         if (NS_FAILED(rv) || !keepGoing)
@@ -158,6 +178,7 @@ nsCacheMetaData::VisitElements(nsICacheMetaDataVisitor * visitor)
         
         data += strlen(data) + 1;
     }
+    NS_ABORT_IF_FALSE(data == limit, "Metadata corrupted");
     return NS_OK;
 }
 
