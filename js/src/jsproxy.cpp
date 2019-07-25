@@ -1460,7 +1460,7 @@ JS_FRIEND_DATA(Class) js::FunctionProxyClass = {
         proxy_DeleteSpecial,
         NULL,                
         proxy_TypeOf,
-        NULL,                
+        proxy_Fix,           
         NULL,                
         NULL,                
     }
