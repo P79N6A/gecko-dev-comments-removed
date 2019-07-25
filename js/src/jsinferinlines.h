@@ -516,9 +516,6 @@ TypeScript::StandardType(JSContext *cx, JSScript *script, JSProtoKey key)
 struct AllocationSiteKey {
     JSScript *script;
 
-    
-    JSFunction *fun;
-
     uint32 offset : 24;
     JSProtoKey kind : 8;
 
@@ -548,7 +545,6 @@ TypeScript::InitObject(JSContext *cx, JSScript *script, const jsbytecode *pc, JS
 
     AllocationSiteKey key;
     key.script = script;
-    key.fun = script->hasFunction ? script->function() : NULL;
     key.offset = offset;
     key.kind = kind;
 

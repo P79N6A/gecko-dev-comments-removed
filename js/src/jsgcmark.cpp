@@ -708,7 +708,7 @@ ScanObject(GCMarker *gcmarker, JSObject *obj)
 
     Class *clasp = obj->getClass();
     if (clasp->trace) {
-        if (clasp == &js_ArrayClass) {
+        if (clasp == &ArrayClass) {
             if (obj->getDenseArrayInitializedLength() > LARGE_OBJECT_CHUNK_SIZE) {
                 if (!gcmarker->largeStack.push(LargeMarkItem(obj)))
                     clasp->trace(gcmarker, obj);
@@ -1012,13 +1012,10 @@ GCMarker::drainMarkStack()
 } 
 
 JS_PUBLIC_API(void)
-JS_TraceChildren(JSTracer *trc, void *thing, uint32 kindIndex)
+JS_TraceChildren(JSTracer *trc, void *thing, JSGCTraceKind kind)
 {
-    JS_ASSERT(kindIndex <= JSTRACE_LAST);
-    JSGCTraceKind kind = JSGCTraceKind(kindIndex);
     switch (kind) {
-      default:
-        JS_ASSERT(kind == JSTRACE_OBJECT);
+      case JSTRACE_OBJECT:
 	MarkChildren(trc, static_cast<JSObject *>(thing));
         break;
 
