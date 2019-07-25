@@ -128,51 +128,16 @@ struct BackbufferClearingStatus {
     enum { NotClearedSinceLastPresented, ClearedToDefaultValues, HasBeenDrawnTo };
 };
 
-namespace WebGLTexelConversions {
-
-
-
-
-
-
-
-
-
-enum WebGLTexelFormat
-{
-    
-    
-    BadFormat,
-    
-    
-    
-    Auto,
-    
-    R8,
-    A8,
-    R32F, 
-    A32F, 
-    
-    RA8,
-    RA32F,
-    
-    RGB8,
-    BGRX8, 
-    RGB565,
-    RGB32F, 
-    
-    RGBA8,
-    BGRA8, 
-    RGBA5551,
-    RGBA4444,
-    RGBA32F 
+struct WebGLTexelFormat {
+    enum { Generic, Auto, RGBA8, RGB8, RGBX8, BGRA8, BGR8, BGRX8, RGBA5551, RGBA4444, RGB565, R8, RA8, A8,
+           RGBA32F, RGB32F, A32F, R32F, RA32F };
 };
 
-} 
+struct WebGLTexelPremultiplicationOp {
+    enum { Generic, None, Premultiply, Unmultiply };
+};
 
-using WebGLTexelConversions::WebGLTexelFormat;
-
-WebGLTexelFormat GetWebGLTexelFormat(GLenum format, GLenum type);
+int GetWebGLTexelFormat(GLenum format, GLenum type);
 
 
 inline bool is_pot_assuming_nonnegative(WebGLsizei x)
@@ -1240,26 +1205,26 @@ protected:
                          WebGLenum format, WebGLenum type,
                          void *data, PRUint32 byteLength,
                          int jsArrayType,
-                         WebGLTexelFormat srcFormat, bool srcPremultiplied);
+                         int srcFormat, bool srcPremultiplied);
     void TexSubImage2D_base(WebGLenum target, WebGLint level,
                             WebGLint xoffset, WebGLint yoffset,
                             WebGLsizei width, WebGLsizei height, WebGLsizei srcStrideOrZero,
                             WebGLenum format, WebGLenum type,
                             void *pixels, PRUint32 byteLength,
                             int jsArrayType,
-                            WebGLTexelFormat srcFormat, bool srcPremultiplied);
+                            int srcFormat, bool srcPremultiplied);
     void TexParameter_base(WebGLenum target, WebGLenum pname,
                            WebGLint *intParamPtr, WebGLfloat *floatParamPtr);
 
     void ConvertImage(size_t width, size_t height, size_t srcStride, size_t dstStride,
                       const PRUint8*src, PRUint8 *dst,
-                      WebGLTexelFormat srcFormat, bool srcPremultiplied,
-                      WebGLTexelFormat dstFormat, bool dstPremultiplied,
+                      int srcFormat, bool srcPremultiplied,
+                      int dstFormat, bool dstPremultiplied,
                       size_t dstTexelSize);
 
     nsresult DOMElementToImageSurface(dom::Element* imageOrCanvas,
                                       gfxImageSurface **imageOut,
-                                      WebGLTexelFormat *format);
+                                      int *format);
 
     void CopyTexSubImage2D_base(WebGLenum target,
                                 WebGLint level,
