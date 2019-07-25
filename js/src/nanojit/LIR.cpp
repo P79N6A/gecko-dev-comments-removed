@@ -1918,7 +1918,7 @@ namespace nanojit
                 const char* qualStr;
                 switch (i->loadQual()) {
                 case LOAD_CONST:        qualStr = "/c"; break;
-                case LOAD_NORMAL:       qualStr = "";   break; 
+                case LOAD_NORMAL:       qualStr = "";   break;
                 case LOAD_VOLATILE:     qualStr = "/v"; break;
                 default: NanoAssert(0); qualStr = "/?"; break;
                 }
@@ -2687,7 +2687,7 @@ namespace nanojit
                     
                     
                     return Interval(0, x.hi >> y);
-                } 
+                }
             }
             goto worst_non_overflow;
         }
@@ -3061,7 +3061,7 @@ namespace nanojit
     }
 
     ValidateWriter::ValidateWriter(LirWriter *out, LInsPrinter* printer, const char* where)
-        : LirWriter(out), printer(printer), whereInPipeline(where), 
+        : LirWriter(out), printer(printer), whereInPipeline(where),
           checkAccSetExtras(0)
     {}
 

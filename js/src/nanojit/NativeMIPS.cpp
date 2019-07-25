@@ -1148,7 +1148,7 @@ namespace nanojit
                 
                 
                 
-                
+
                 if (ra == rb) {
                     
                     MOVE(AT, ZERO);
