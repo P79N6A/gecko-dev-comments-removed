@@ -86,6 +86,7 @@
 #include "nsCCUncollectableMarker.h"
 #include "nsDOMThreadService.h"
 #include "nsAutoJSValHolder.h"
+#include "nsDOMMediaQueryList.h"
 
 
 #include "nsIFrame.h"
@@ -3920,6 +3921,32 @@ nsGlobalWindow::GetMozAnimationStartTime(PRInt64 *aTime)
 
   
   *aTime = JS_Now() / PR_USEC_PER_MSEC;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsGlobalWindow::MatchMedia(const nsAString& aMediaQueryList,
+                           nsIDOMMediaQueryList** aResult)
+{
+  
+  
+  
+  
+  FORWARD_TO_OUTER(MatchMedia, (aMediaQueryList, aResult),
+                   NS_ERROR_NOT_INITIALIZED);
+
+  *aResult = nsnull;
+
+  if (!mDocShell)
+    return NS_OK;
+
+  nsRefPtr<nsPresContext> presContext;
+  mDocShell->GetPresContext(getter_AddRefs(presContext));
+
+  if (!presContext)
+    return NS_OK;
+
+  presContext->MatchMedia(aMediaQueryList, aResult);
   return NS_OK;
 }
 
