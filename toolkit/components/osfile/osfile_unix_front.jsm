@@ -633,6 +633,26 @@
        }
      };
 
+     
+
+
+
+
+
+
+     File.DirectoryIterator.Entry.toMsg = function toMsg(value) {
+       if (!value instanceof File.DirectoryIterator.Entry) {
+         throw new TypeError("parameter of " +
+           "File.DirectoryIterator.Entry.toMsg must be a " +
+           "File.DirectoryIterator.Entry");
+       }
+       let serialized = {};
+       for (let key in File.DirectoryIterator.Entry.prototype) {
+         serialized[key] = value[key];
+       }
+       return serialized;
+     };
+
      let gStatData = new OS.Shared.Type.stat.implementation();
      let gStatDataPtr = gStatData.address();
      let MODE_MASK = 4095 ;
