@@ -153,27 +153,29 @@ function finishTestComparisons()
                              .QueryInterface(Ci.nsIMarkupDocumentViewer);
   contentViewer.fullZoom = 2;
 
-  executeSoon(function() {
-    
-    let zoom = InspectorUI.highlighter.zoom;
-    is(zoom, 2, "zoom is 2?");
+  
+  let zoom =
+      InspectorUI.win.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+      .getInterface(Components.interfaces.nsIDOMWindowUtils)
+      .screenPixelsPerCSSPixel;
 
-    
-    let divDims = div.getBoundingClientRect();
-    let divWidth = divDims.width * zoom;
-    let divHeight = divDims.height * zoom;
+  is(zoom, 2, "zoom is 2?");
 
-    
-    let veilBoxDims = InspectorUI.highlighter.veilTransparentBox.getBoundingClientRect();
-    let veilBoxWidth = veilBoxDims.width;
-    let veilBoxHeight = veilBoxDims.height;
+  
+  let divDims = div.getBoundingClientRect();
+  let divWidth = divDims.width * zoom;
+  let divHeight = divDims.height * zoom;
 
-    is(veilBoxWidth, divWidth, "transparent veil box width matches width of element (2x zoom)");
-    is(veilBoxHeight, divHeight, "transparent veil box height matches width of element (2x zoom)");
+  
+  let veilBoxDims = InspectorUI.highlighter.veilTransparentBox.getBoundingClientRect();
+  let veilBoxWidth = veilBoxDims.width;
+  let veilBoxHeight = veilBoxDims.height;
 
-    doc = h1 = div = null;
-    executeSoon(finishUp);
-  });
+  is(veilBoxWidth, divWidth, "transparent veil box width matches width of element (2x zoom)");
+  is(veilBoxHeight, divHeight, "transparent veil box height matches width of element (2x zoom)");
+
+  doc = h1 = div = null;
+  executeSoon(finishUp);
 }
 
 function finishUp() {
