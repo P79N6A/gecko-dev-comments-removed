@@ -1049,12 +1049,9 @@ WebSocketChannel::ProcessInput(PRUint8 *buffer, PRUint32 count)
         nsCString utf8Data((const char *)payload, payloadLength);
 
         
-        
-        
-        
         if (!IsUTF8(utf8Data, false)) {
           LOG(("WebSocketChannel:: text frame invalid utf-8\n"));
-          AbortSession(NS_ERROR_ILLEGAL_VALUE);
+          AbortSession(NS_ERROR_CANNOT_CONVERT_DATA);
           return NS_ERROR_ILLEGAL_VALUE;
         }
 
@@ -1276,6 +1273,8 @@ WebSocketChannel::ResultToCloseCode(nsresult resultCode)
       resultCode == NS_ERROR_CONNECTION_REFUSED) {
     return CLOSE_ABNORMAL;
   }
+  if (resultCode == NS_ERROR_CANNOT_CONVERT_DATA)
+    return CLOSE_INVALID_PAYLOAD;
 
   return CLOSE_PROTOCOL_ERROR;
 }
