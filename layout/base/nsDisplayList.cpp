@@ -1750,7 +1750,6 @@ nsDisplayScrollLayer::ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                         const nsRect& aAllowVisibleRegionExpansion,
                                         PRBool& aContainsRootContentDocBG)
 {
-  nsPresContext* presContext = mFrame->PresContext();
   nsRect displayport;
   if (nsLayoutUtils::GetDisplayPort(mFrame->GetContent(), &displayport)) {
     
