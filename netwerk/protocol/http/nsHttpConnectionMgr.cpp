@@ -366,13 +366,21 @@ nsHttpConnectionMgr::ProcessOneTransactionCB(nsHashKey *key, void *data, void *c
     return kHashEnumerateNext;
 }
 
+
+
+
 PRIntn
-nsHttpConnectionMgr::PurgeOneIdleConnectionCB(nsHashKey *key, void *data, void *closure)
+nsHttpConnectionMgr::PurgeExcessIdleConnectionsCB(nsHashKey *key,
+                                                  void *data, void *closure)
 {
     nsHttpConnectionMgr *self = (nsHttpConnectionMgr *) closure;
     nsConnectionEntry *ent = (nsConnectionEntry *) data;
 
-    if (ent->mIdleConns.Length() > 0) {
+    while (self->mNumIdleConns + self->mNumActiveConns + 1 >= self->mMaxConns) {
+        if (!ent->mIdleConns.Length()) {
+            
+            return kHashEnumerateNext;
+        }
         nsHttpConnection *conn = ent->mIdleConns[0];
         ent->mIdleConns.RemoveElementAt(0);
         conn->Close(NS_ERROR_ABORT);
@@ -380,10 +388,8 @@ nsHttpConnectionMgr::PurgeOneIdleConnectionCB(nsHashKey *key, void *data, void *
         self->mNumIdleConns--;
         if (0 == self->mNumIdleConns)
             self->StopPruneDeadConnectionsTimer();
-        return kHashEnumerateStop;
     }
-
-    return kHashEnumerateNext;
+    return kHashEnumerateStop;
 }
 
 PRIntn
@@ -603,11 +609,18 @@ nsHttpConnectionMgr::GetConnection(nsConnectionEntry *ent, PRUint8 caps,
     LOG(("nsHttpConnectionMgr::GetConnection [ci=%s caps=%x]\n",
         ent->mConnInfo->HashKey().get(), PRUint32(caps)));
 
+    
+    
+    
+    
+
     *result = nsnull;
 
     nsHttpConnection *conn = nsnull;
 
     if (caps & NS_HTTP_ALLOW_KEEPALIVE) {
+        
+        
         
         while (!conn && (ent->mIdleConns.Length() > 0)) {
             conn = ent->mIdleConns[0];
@@ -638,7 +651,7 @@ nsHttpConnectionMgr::GetConnection(nsConnectionEntry *ent, PRUint8 caps,
         
         
         if (mNumIdleConns && mNumIdleConns + mNumActiveConns + 1 >= mMaxConns)
-            mCT.Enumerate(PurgeOneIdleConnectionCB, this);
+            mCT.Enumerate(PurgeExcessIdleConnectionsCB, this);
 
         
         
@@ -649,10 +662,7 @@ nsHttpConnectionMgr::GetConnection(nsConnectionEntry *ent, PRUint8 caps,
         }
 
         conn = new nsHttpConnection();
-        if (!conn)
-            return;
         NS_ADDREF(conn);
-
         nsresult rv = conn->Init(ent->mConnInfo, mMaxRequestDelay);
         if (NS_FAILED(rv)) {
             NS_RELEASE(conn);
@@ -964,13 +974,22 @@ nsHttpConnectionMgr::OnMsgReclaimConnection(PRInt32, void *param)
 
     NS_ASSERTION(ent, "no connection entry");
     if (ent) {
-        ent->mActiveConns.RemoveElement(conn);
-        mNumActiveConns--;
+        
+        
+        
+        
+        if (ent->mActiveConns.RemoveElement(conn)) {
+            nsHttpConnection *temp = conn;
+            NS_RELEASE(temp);
+            mNumActiveConns--;
+        }
+
         if (conn->CanReuse()) {
             LOG(("  adding connection to idle list\n"));
             
             
             
+            NS_ADDREF(conn);
             ent->mIdleConns.AppendElement(conn);
             mNumIdleConns++;
             
@@ -984,8 +1003,6 @@ nsHttpConnectionMgr::OnMsgReclaimConnection(PRInt32, void *param)
             LOG(("  connection cannot be reused; closing connection\n"));
             
             conn->Close(NS_ERROR_ABORT);
-            nsHttpConnection *temp = conn;
-            NS_RELEASE(temp);
         }
     }
  
