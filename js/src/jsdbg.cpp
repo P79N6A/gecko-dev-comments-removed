@@ -530,12 +530,13 @@ Debug::mark(GCMarker *trc, JSCompartment *comp, JSGCInvocationKind gckind)
 
     
     
+    
+    
+    
     JSRuntime *rt = trc->context->runtime;
     for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); c++) {
         JSCompartment *dc = *c;
 
-        
-        
         
         
         if (comp ? dc != comp : !dc->isAboutToBeCollected(gckind)) {
@@ -546,6 +547,7 @@ Debug::mark(GCMarker *trc, JSCompartment *comp, JSGCInvocationKind gckind)
                 
                 
                 const GlobalObject::DebugVector *debuggers = global->getDebuggers();
+                JS_ASSERT(debuggers);
                 for (Debug **p = debuggers->begin(); p != debuggers->end(); p++) {
                     Debug *dbg = *p;
                     JSObject *obj = dbg->toJSObject();
@@ -583,8 +585,8 @@ Debug::trace(JSTracer *trc)
 
     
     
-    for (FrameMap::Enum e(frames); !e.empty(); e.popFront()) {
-        JSObject *frameobj = e.front().value;
+    for (FrameMap::Range r = frames.all(); !r.empty(); r.popFront()) {
+        JSObject *frameobj = r.front().value;
         JS_ASSERT(frameobj->getPrivate());
         MarkObject(trc, *frameobj, "live Debug.Frame");
     }

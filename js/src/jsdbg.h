@@ -86,12 +86,20 @@ class Debug {
         
         
         
-        bool keyMarked(JSObject *k) { return k->unwrap()->isMarked(); }
+        
+        bool keyMarked(JSObject *k) { 
+            JS_ASSERT(k->isCrossCompartmentWrapper());
+            return k->unwrap()->isMarked(); 
+        }
         void markKey(JSObject *k, const char *description) {
             js::gc::MarkObject(tracer, *k->unwrap(), description);
         }
     };
 
+    
+    
+    
+    
     
     
     
