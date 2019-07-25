@@ -2553,6 +2553,7 @@ var XPIProvider = {
       LOG("New add-on " + aId + " installed in " + aInstallLocation.name);
 
       let newAddon = null;
+      let sameVersion = false;
       
       
       if (aInstallLocation.name in aManifests)
@@ -2621,10 +2622,11 @@ var XPIProvider = {
         
         
         
-        if (aMigrateData.version == newAddon.version &&
-            "targetApplications" in aMigrateData) {
+        if (aMigrateData.version == newAddon.version) {
           LOG("Migrating compatibility info");
-          newAddon.applyCompatibilityUpdate(aMigrateData, true);
+          sameVersion = true;
+          if ("targetApplications" in aMigrateData)
+            newAddon.applyCompatibilityUpdate(aMigrateData, true);
         }
 
         
@@ -2699,6 +2701,11 @@ var XPIProvider = {
         if (newAddon.id in oldBootstrappedAddons) {
           let oldBootstrap = oldBootstrappedAddons[newAddon.id];
           XPIProvider.bootstrappedAddons[newAddon.id] = oldBootstrap;
+
+          
+          
+          if (sameVersion)
+            return false;
 
           installReason = Services.vc.compare(oldBootstrap.version, newAddon.version) < 0 ?
                           BOOTSTRAP_REASONS.ADDON_UPGRADE :
