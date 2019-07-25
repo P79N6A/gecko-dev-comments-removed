@@ -58,7 +58,9 @@
 
 static int gDummyCounter;
 
-static void
+
+
+MOZ_NEVER_INLINE static void
 TouchBadMemory()
 {
     
