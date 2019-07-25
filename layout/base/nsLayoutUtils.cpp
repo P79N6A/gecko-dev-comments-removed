@@ -1009,10 +1009,8 @@ nsRect
 nsLayoutUtils::RoundGfxRectToAppRect(const gfxRect &aRect, float aFactor)
 {
   
-  gfxRect scaledRect = aRect * aFactor;
-
-  
-  scaledRect.RoundOut();
+  gfxRect scaledRect = aRect;
+  scaledRect.ScaleRoundOut(aFactor);
 
   
   ConstrainToCoordValues(scaledRect.x);
