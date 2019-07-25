@@ -78,7 +78,7 @@ nsScreenAndroid::GetPixelDepth(PRInt32 *aPixelDepth)
 {
     
     
-    *aPixelDepth = 16;
+    *aPixelDepth = 24;
     return NS_OK;
 }
 
