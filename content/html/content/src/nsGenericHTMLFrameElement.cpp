@@ -11,6 +11,7 @@
 #include "nsIDOMCustomEvent.h"
 #include "nsIVariant.h"
 #include "nsIInterfaceRequestorUtils.h"
+#include "nsWeakPtr.h"
 #include "nsVariant.h"
 #include "nsContentUtils.h"
 #include "nsDOMMemoryReporter.h"
@@ -37,10 +38,13 @@ NS_INTERFACE_TABLE_HEAD(nsGenericHTMLFrameElement)
 NS_INTERFACE_MAP_END_INHERITING(nsGenericHTMLElement)
 
 NS_IMPL_INT_ATTR(nsGenericHTMLFrameElement, TabIndex, tabindex)
-NS_IMPL_BOOL_ATTR(nsGenericHTMLFrameElement, Mozbrowser, mozbrowser)
 
 nsGenericHTMLFrameElement::~nsGenericHTMLFrameElement()
 {
+  if (mTitleChangedListener) {
+    mTitleChangedListener->Unregister();
+  }
+
   if (mFrameLoader) {
     mFrameLoader->Destroy();
   }
@@ -112,17 +116,7 @@ nsGenericHTMLFrameElement::EnsureFrameLoader()
     return NS_OK;
   }
 
-  
-  
-  nsCOMPtr<nsIDocShell> docShell;
-  mFrameLoader->GetDocShell(getter_AddRefs(docShell));
-  nsCOMPtr<nsIWebProgress> webProgress = do_QueryInterface(docShell);
-  NS_ENSURE_TRUE(webProgress, NS_OK);
-
-  
-  webProgress->AddProgressListener(this,
-    nsIWebProgress::NOTIFY_LOCATION |
-    nsIWebProgress::NOTIFY_STATE_WINDOW);
+  MaybeEnsureBrowserFrameListenersRegistered();
 
   return NS_OK;
 }
@@ -283,6 +277,84 @@ nsGenericHTMLFrameElement::SizeOf() const
   
   size += mFrameLoader ? sizeof(*mFrameLoader.get()) : 0;
   return size;
+}
+
+NS_IMETHODIMP
+nsGenericHTMLFrameElement::GetMozbrowser(bool *aValue)
+{
+  return GetBoolAttr(nsGkAtoms::mozbrowser, aValue);
+}
+
+NS_IMETHODIMP
+nsGenericHTMLFrameElement::SetMozbrowser(bool aValue)
+{
+  nsresult rv = SetBoolAttr(nsGkAtoms::mozbrowser, aValue);
+  if (NS_SUCCEEDED(rv)) {
+    MaybeEnsureBrowserFrameListenersRegistered();
+  }
+  return rv;
+}
+
+
+
+
+
+
+void
+nsGenericHTMLFrameElement::MaybeEnsureBrowserFrameListenersRegistered()
+{
+  if (mBrowserFrameListenersRegistered) {
+    return;
+  }
+
+  
+  
+  if (!BrowserFrameSecurityCheck()) {
+    return;
+  }
+
+  
+  
+  if (!mFrameLoader) {
+    return;
+  }
+
+  mBrowserFrameListenersRegistered = true;
+
+  
+  
+  nsCOMPtr<nsIDocShell> docShell;
+  mFrameLoader->GetDocShell(getter_AddRefs(docShell));
+  nsCOMPtr<nsIWebProgress> webProgress = do_QueryInterface(docShell);
+
+  
+  if (webProgress) {
+    webProgress->AddProgressListener(this,
+      nsIWebProgress::NOTIFY_LOCATION |
+      nsIWebProgress::NOTIFY_STATE_WINDOW);
+  }
+
+  
+  
+  
+
+  nsCOMPtr<nsPIDOMWindow> window = do_GetInterface(docShell);
+  if (!window) {
+    return;
+  }
+  MOZ_ASSERT(window->IsOuterWindow());
+
+  nsIDOMEventTarget *chromeHandler = window->GetChromeEventHandler();
+  if (!chromeHandler) {
+    return;
+  }
+
+  MOZ_ASSERT(!mTitleChangedListener);
+  mTitleChangedListener = new TitleChangedListener(this, chromeHandler);
+  chromeHandler->AddSystemEventListener(NS_LITERAL_STRING("DOMTitleChanged"),
+                                        mTitleChangedListener,
+                                         false,
+                                         false);
 }
 
 
@@ -448,4 +520,78 @@ nsGenericHTMLFrameElement::OnSecurityChange(nsIWebProgress *aWebProgress,
                                             PRUint32 state)
 {
   return NS_OK;
+}
+
+NS_IMPL_ISUPPORTS1(nsGenericHTMLFrameElement::TitleChangedListener,
+                   nsIDOMEventListener)
+
+nsGenericHTMLFrameElement::TitleChangedListener::TitleChangedListener(
+  nsGenericHTMLFrameElement *aElement,
+  nsIDOMEventTarget *aChromeHandler)
+{
+  mElement =
+    do_GetWeakReference(NS_ISUPPORTS_CAST(nsIDOMMozBrowserFrame*, aElement));
+  mChromeHandler = do_GetWeakReference(aChromeHandler);
+}
+
+NS_IMETHODIMP
+nsGenericHTMLFrameElement::TitleChangedListener::HandleEvent(nsIDOMEvent *aEvent)
+{
+#ifdef DEBUG
+  {
+    nsString eventType;
+    aEvent->GetType(eventType);
+    MOZ_ASSERT(eventType.EqualsLiteral("DOMTitleChanged"));
+  }
+#endif
+
+  nsCOMPtr<nsIDOMMozBrowserFrame> element = do_QueryReferent(mElement);
+  if (!element) {
+    
+    Unregister();
+    return NS_OK;
+  }
+
+  nsGenericHTMLFrameElement* frameElement =
+    static_cast<nsGenericHTMLFrameElement*>(element.get());
+
+  nsCOMPtr<nsIDOMDocument> frameDocument;
+  frameElement->GetContentDocument(getter_AddRefs(frameDocument));
+  NS_ENSURE_STATE(frameDocument);
+
+  nsCOMPtr<nsIDOMEventTarget> target;
+  aEvent->GetTarget(getter_AddRefs(target));
+  nsCOMPtr<nsIDOMDocument> targetDocument = do_QueryInterface(target);
+  NS_ENSURE_STATE(targetDocument);
+
+  if (frameDocument != targetDocument) {
+    
+    return NS_OK;
+  }
+
+  nsString newTitle;
+  nsresult rv = targetDocument->GetTitle(newTitle);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  frameElement->MaybeFireBrowserEvent(
+    NS_LITERAL_STRING("titlechange"),
+    NS_LITERAL_STRING("customevent"),
+    newTitle);
+
+  return NS_OK;
+}
+
+void
+nsGenericHTMLFrameElement::TitleChangedListener::Unregister()
+{
+  nsCOMPtr<nsIDOMEventTarget> chromeHandler = do_QueryReferent(mChromeHandler);
+  if (!chromeHandler) {
+    return;
+  }
+
+  chromeHandler->RemoveSystemEventListener(NS_LITERAL_STRING("DOMTitleChanged"),
+                                           this,  false);
+
+  
+  
 }
