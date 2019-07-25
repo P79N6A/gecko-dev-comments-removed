@@ -884,7 +884,7 @@ NS_IMETHODIMP nsXMLHttpRequest::GetResponseText(nsAString& aResponseText)
   
   
   
-  if (IsWaitingForHTMLCharset() || !mResponseXML ||
+  if (!mResponseXML ||
       mResponseBodyDecodedPos == mResponseBody.Length()) {
     aResponseText = mResponseText;
     return NS_OK;
@@ -1473,16 +1473,6 @@ nsXMLHttpRequest::IsSystemXHR()
   return !!nsContentUtils::IsSystemPrincipal(mPrincipal);
 }
 
-bool
-nsXMLHttpRequest::IsWaitingForHTMLCharset()
-{
-  if (!mIsHtml || !mResponseXML) {
-    return false;
-  }
-  nsCOMPtr<nsIDocument> doc = do_QueryInterface(mResponseXML);
-  return doc->GetDocumentCharacterSetSource() < kCharsetFromDocTypeDefault;
-}
-
 nsresult
 nsXMLHttpRequest::CheckChannelForCrossSiteRequest(nsIChannel* aChannel)
 {
@@ -1928,7 +1918,13 @@ nsXMLHttpRequest::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
     nsCAutoString type;
     channel->GetContentType(type);
 
-    if (type.EqualsLiteral("text/html")) {
+    if ((mResponseType == XML_HTTP_RESPONSE_TYPE_DOCUMENT) &&
+        type.EqualsLiteral("text/html")) {
+      
+      
+      
+      
+      
       if (!(mState & XML_HTTP_REQUEST_ASYNC)) {
         
         
@@ -3138,13 +3134,11 @@ nsXMLHttpRequest::MaybeDispatchProgressEvents(bool aFinalProgress)
       mLoadTotal = mLoadTransferred;
       mLoadLengthComputable = true;
     }
-    if (aFinalProgress || !IsWaitingForHTMLCharset()) {
-      mInLoadProgressEvent = true;
-      DispatchProgressEvent(this, NS_LITERAL_STRING(PROGRESS_STR),
-                            true, mLoadLengthComputable, mLoadTransferred,
-                            mLoadTotal, mLoadTransferred, mLoadTotal);
-      mInLoadProgressEvent = false;
-    }
+    mInLoadProgressEvent = true;
+    DispatchProgressEvent(this, NS_LITERAL_STRING(PROGRESS_STR),
+                          true, mLoadLengthComputable, mLoadTransferred,
+                          mLoadTotal, mLoadTransferred, mLoadTotal);
+    mInLoadProgressEvent = false;
     if (mResponseType == XML_HTTP_RESPONSE_TYPE_CHUNKED_TEXT ||
         mResponseType == XML_HTTP_RESPONSE_TYPE_CHUNKED_ARRAYBUFFER) {
       mResponseBody.Truncate();
