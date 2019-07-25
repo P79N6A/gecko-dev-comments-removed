@@ -38,6 +38,8 @@ protected:
     
     
     bool CheckFrameOptions(nsIRequest* request);
+    bool CheckOneFrameOptionsPolicy(nsIRequest* request,
+                                    const nsAString& policy);
 
 protected:
     nsDocShell*                      mDocShell;
