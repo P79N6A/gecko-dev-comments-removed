@@ -77,8 +77,6 @@ public:
   virtual void SetDimensions(const nsRect &aRect, PRBool aPaint = PR_TRUE,
                              PRBool aResizeWidget = PR_TRUE);
   void SetInvalidationDimensions(const nsRect* aRect);
-  void GetDimensions(nsRect &aRect) const { aRect = mDimBounds; aRect.x -= mPosX; aRect.y -= mPosY; }
-  void GetDimensions(nsSize &aSize) const { aSize.width = mDimBounds.width; aSize.height = mDimBounds.height; }
 
   
 
@@ -149,8 +147,6 @@ public:
   PRInt32 GetZIndex() const { return mZIndex; }
   PRBool GetZIndexIsAuto() const { return (mVFlags & NS_VIEW_FLAG_AUTO_ZINDEX) != 0; }
   
-  nsRect GetDimensions() const { nsRect r = mDimBounds; r.MoveBy(-mPosX, -mPosY); return r; }
-  
   nsRect GetBoundsInParentUnits() const;
 
   nsRect GetInvalidationDimensions() const {
@@ -185,7 +181,6 @@ public:
   void SetTopMost(PRBool aTopMost) { aTopMost ? mVFlags |= NS_VIEW_FLAG_TOPMOST : mVFlags &= ~NS_VIEW_FLAG_TOPMOST; }
   PRBool IsTopMost() { return((mVFlags & NS_VIEW_FLAG_TOPMOST) != 0); }
 
-  nsPoint ConvertFromParentCoords(nsPoint aPt) const;
   void ResetWidgetBounds(PRBool aRecurse, PRBool aMoveOnly, PRBool aInvalidateChangedSize);
   void SetPositionIgnoringChildWidgets(nscoord aX, nscoord aY);
   void AssertNoWindow();

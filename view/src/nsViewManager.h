@@ -82,15 +82,7 @@
 
 
 
-class nsViewManagerEvent : public nsRunnable {
-public:
-  nsViewManagerEvent(class nsViewManager *vm) : mViewManager(vm) {
-    NS_ASSERTION(mViewManager, "null parameter");
-  }
-  void Revoke() { mViewManager = nsnull; }
-protected:
-  class nsViewManager *mViewManager;
-};
+class nsInvalidateEvent;
 
 class nsViewManager : public nsIViewManager {
 public:
@@ -141,8 +133,8 @@ public:
 
   NS_IMETHOD  SetViewZIndex(nsIView *aView, PRBool aAuto, PRInt32 aZIndex, PRBool aTopMost=PR_FALSE);
 
-  NS_IMETHOD  SetViewObserver(nsIViewObserver *aObserver);
-  NS_IMETHOD  GetViewObserver(nsIViewObserver *&aObserver);
+  virtual void SetViewObserver(nsIViewObserver *aObserver) { mObserver = aObserver; }
+  virtual nsIViewObserver* GetViewObserver() { return mObserver; }
 
   NS_IMETHOD  GetDeviceContext(nsDeviceContext *&aContext);
 
@@ -156,9 +148,6 @@ public:
   NS_IMETHOD GetLastUserEventTime(PRUint32& aTime);
   void ProcessInvalidateEvent();
   static PRUint32 gLastUserEventTime;
-
-  NS_IMETHOD SynthesizeMouseMove(PRBool aFromScroll);
-  void ProcessSynthMouseMoveEvent(PRBool aFromScroll);
 
   
   void InvalidateHierarchy();
@@ -263,8 +252,6 @@ public:
 
   PRBool IsRefreshEnabled() { return RootViewManager()->mUpdateBatchCnt == 0; }
 
-  nsIViewObserver* GetViewObserver() { return mObserver; }
-
   
   
   void PostPendingUpdate() { RootViewManager()->mHasPendingUpdates = PR_TRUE; }
@@ -277,8 +264,6 @@ public:
 private:
   nsRefPtr<nsDeviceContext> mContext;
   nsIViewObserver   *mObserver;
-  
-  nsPoint           mMouseLocation;
 
   
   
@@ -290,8 +275,7 @@ private:
   
   nsViewManager     *mRootViewManager;
 
-  nsRevocableEventPtr<nsViewManagerEvent> mSynthMouseMoveEvent;
-  nsRevocableEventPtr<nsViewManagerEvent> mInvalidateEvent;
+  nsRevocableEventPtr<nsInvalidateEvent> mInvalidateEvent;
 
   
   
@@ -319,5 +303,21 @@ private:
 
 
 #define NS_VMREFRESH_DOUBLE_BUFFER      0x0001
+
+class nsInvalidateEvent : public nsRunnable {
+public:
+  nsInvalidateEvent(class nsViewManager *vm) : mViewManager(vm) {
+    NS_ASSERTION(mViewManager, "null parameter");
+  }
+  void Revoke() { mViewManager = nsnull; }
+
+  NS_IMETHOD Run() {
+    if (mViewManager)
+      mViewManager->ProcessInvalidateEvent();
+    return NS_OK;
+  }
+protected:
+  class nsViewManager *mViewManager;
+};
 
 #endif 

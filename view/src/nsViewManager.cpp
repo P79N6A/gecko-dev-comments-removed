@@ -82,24 +82,7 @@ PRTime gFirstPaintTimestamp = 0;
 
 
 
-
-
 #define NSCOORD_NONE      PR_INT32_MIN
-
-
-
-class nsInvalidateEvent : public nsViewManagerEvent {
-public:
-  nsInvalidateEvent(nsViewManager *vm) : nsViewManagerEvent(vm) {}
-
-  NS_IMETHOD Run() {
-    if (mViewManager)
-      mViewManager->ProcessInvalidateEvent();
-    return NS_OK;
-  }
-};
-
-
 
 void
 nsViewManager::PostInvalidateEvent()
@@ -107,7 +90,7 @@ nsViewManager::PostInvalidateEvent()
   NS_ASSERTION(IsRootVM(), "Caller screwed up");
 
   if (!mInvalidateEvent.IsPending()) {
-    nsRefPtr<nsViewManagerEvent> ev = new nsInvalidateEvent(this);
+    nsRefPtr<nsInvalidateEvent> ev = new nsInvalidateEvent(this);
     if (NS_FAILED(NS_DispatchToCurrentThread(ev))) {
       NS_WARNING("failed to dispatch nsInvalidateEvent");
     } else {
@@ -125,8 +108,7 @@ nsVoidArray* nsViewManager::gViewManagers = nsnull;
 PRUint32 nsViewManager::gLastUserEventTime = 0;
 
 nsViewManager::nsViewManager()
-  : mMouseLocation(NSCOORD_NONE, NSCOORD_NONE)
-  , mDelayedResize(NSCOORD_NONE, NSCOORD_NONE)
+  : mDelayedResize(NSCOORD_NONE, NSCOORD_NONE)
   , mRootViewManager(this)
 {
   if (gViewManagers == nsnull) {
@@ -157,7 +139,6 @@ nsViewManager::~nsViewManager()
   
   
   mInvalidateEvent.Revoke();
-  mSynthMouseMoveEvent.Revoke();
   
   if (!IsRootVM()) {
     
@@ -279,8 +260,7 @@ NS_IMETHODIMP nsViewManager::GetWindowDimensions(nscoord *aWidth, nscoord *aHeig
 {
   if (nsnull != mRootView) {
     if (mDelayedResize == nsSize(NSCOORD_NONE, NSCOORD_NONE)) {
-      nsRect dim;
-      mRootView->GetDimensions(dim);
+      nsRect dim = mRootView->GetDimensions();
       *aWidth = dim.width;
       *aHeight = dim.height;
     } else {
@@ -298,9 +278,8 @@ NS_IMETHODIMP nsViewManager::GetWindowDimensions(nscoord *aWidth, nscoord *aHeig
 
 void nsViewManager::DoSetWindowDimensions(nscoord aWidth, nscoord aHeight)
 {
-  nsRect oldDim;
+  nsRect oldDim = mRootView->GetDimensions();
   nsRect newDim(0, 0, aWidth, aHeight);
-  mRootView->GetDimensions(oldDim);
   
   if (!oldDim.IsEqualEdges(newDim)) {
     
@@ -401,8 +380,7 @@ void nsViewManager::Refresh(nsView *aView, nsIWidget *aWidget,
 
   if (damageRegion.IsEmpty()) {
 #ifdef DEBUG_roc
-    nsRect viewRect;
-    aView->GetDimensions(viewRect);
+    nsRect viewRect = aView->GetDimensions();
     nsRect damageRect = damageRegion.GetBounds();
     printf("XXX Damage rectangle (%d,%d,%d,%d) does not intersect the widget's view (%d,%d,%d,%d)!\n",
            damageRect.x, damageRect.y, damageRect.width, damageRect.height,
@@ -512,10 +490,7 @@ NS_IMETHODIMP nsViewManager::Composite()
 NS_IMETHODIMP nsViewManager::UpdateView(nsIView *aView, PRUint32 aUpdateFlags)
 {
   
-  nsView* view = static_cast<nsView*>(aView);
-
-  nsRect dims = view->GetDimensions();
-  return UpdateView(view, dims, aUpdateFlags);
+  return UpdateView(aView, aView->GetDimensions(), aUpdateFlags);
 }
 
 
@@ -1040,50 +1015,6 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
         }
 
         if (nsnull != view) {
-          PRInt32 APD = AppUnitsPerDevPixel();
-
-          if ((aEvent->message == NS_MOUSE_MOVE &&
-               static_cast<nsMouseEvent*>(aEvent)->reason ==
-                 nsMouseEvent::eReal) ||
-              aEvent->message == NS_MOUSE_ENTER ||
-              aEvent->message == NS_MOUSE_BUTTON_DOWN ||
-              aEvent->message == NS_MOUSE_BUTTON_UP) {
-            
-            
-            nsPoint pt = -baseView->ViewToWidgetOffset();
-            pt += baseView->GetOffsetTo(RootViewManager()->mRootView);
-            pt.x += NSIntPixelsToAppUnits(aEvent->refPoint.x, APD);
-            pt.y += NSIntPixelsToAppUnits(aEvent->refPoint.y, APD);
-            PRInt32 rootAPD = RootViewManager()->AppUnitsPerDevPixel();
-            pt = pt.ConvertAppUnits(APD, rootAPD);
-            RootViewManager()->mMouseLocation = pt;
-#ifdef DEBUG_MOUSE_LOCATION
-            if (aEvent->message == NS_MOUSE_ENTER)
-              printf("[vm=%p]got mouse enter for %p\n",
-                     this, aEvent->widget);
-            printf("[vm=%p]setting mouse location to (%d,%d)\n",
-                   this, mMouseLocation.x, mMouseLocation.y);
-#endif
-            if (aEvent->message == NS_MOUSE_ENTER)
-              SynthesizeMouseMove(PR_FALSE);
-          } else if (aEvent->message == NS_MOUSE_EXIT) {
-            
-            
-            
-            
-            
-            
-            
-            RootViewManager()->mMouseLocation =
-              nsPoint(NSCOORD_NONE, NSCOORD_NONE);
-#ifdef DEBUG_MOUSE_LOCATION
-            printf("[vm=%p]got mouse exit for %p\n",
-                   this, aEvent->widget);
-            printf("[vm=%p]clearing mouse location\n",
-                   this);
-#endif
-          }
-
           *aStatus = HandleEvent(view, aEvent);
         }
     
@@ -1348,9 +1279,8 @@ NS_IMETHODIMP nsViewManager::ResizeView(nsIView *aView, const nsRect &aRect, PRB
 {
   nsView* view = static_cast<nsView*>(aView);
   NS_ASSERTION(view->GetViewManager() == this, "wrong view manager");
-  nsRect oldDimensions;
 
-  view->GetDimensions(oldDimensions);
+  nsRect oldDimensions = view->GetDimensions();
   if (!oldDimensions.IsEqualEdges(aRect)) {
     
     
@@ -1502,22 +1432,6 @@ NS_IMETHODIMP nsViewManager::SetViewZIndex(nsIView *aView, PRBool aAutoZIndex, P
   }
 
   return rv;
-}
-
-NS_IMETHODIMP nsViewManager::SetViewObserver(nsIViewObserver *aObserver)
-{
-  mObserver = aObserver;
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsViewManager::GetViewObserver(nsIViewObserver *&aObserver)
-{
-  if (nsnull != mObserver) {
-    aObserver = mObserver;
-    NS_ADDREF(mObserver);
-    return NS_OK;
-  } else
-    return NS_ERROR_NO_INTERFACE;
 }
 
 NS_IMETHODIMP nsViewManager::GetDeviceContext(nsDeviceContext *&aContext)
@@ -1726,171 +1640,6 @@ nsViewManager::GetLastUserEventTime(PRUint32& aTime)
 {
   aTime = gLastUserEventTime;
   return NS_OK;
-}
-
-class nsSynthMouseMoveEvent : public nsViewManagerEvent {
-public:
-  nsSynthMouseMoveEvent(nsViewManager *aViewManager,
-                        PRBool aFromScroll)
-    : nsViewManagerEvent(aViewManager),
-      mFromScroll(aFromScroll) {
-  }
-
-  NS_IMETHOD Run() {
-    if (mViewManager)
-      mViewManager->ProcessSynthMouseMoveEvent(mFromScroll);
-    return NS_OK;
-  }
-
-private:
-  PRBool mFromScroll;
-};
-
-NS_IMETHODIMP
-nsViewManager::SynthesizeMouseMove(PRBool aFromScroll)
-{
-  if (!IsRootVM())
-    return RootViewManager()->SynthesizeMouseMove(aFromScroll);
-
-  if (mMouseLocation == nsPoint(NSCOORD_NONE, NSCOORD_NONE))
-    return NS_OK;
-
-  if (!mSynthMouseMoveEvent.IsPending()) {
-    nsRefPtr<nsViewManagerEvent> ev =
-        new nsSynthMouseMoveEvent(this, aFromScroll);
-
-    if (NS_FAILED(NS_DispatchToCurrentThread(ev))) {
-      NS_WARNING("failed to dispatch nsSynthMouseMoveEvent");
-      return NS_ERROR_UNEXPECTED;
-    }
-
-    mSynthMouseMoveEvent = ev;
-  }
-
-  return NS_OK;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-static nsView* FindFloatingViewContaining(nsView* aView, nsPoint aPt)
-{
-  if (aView->GetVisibility() == nsViewVisibility_kHide)
-    
-    return nsnull;
-
-  for (nsView* v = aView->GetFirstChild(); v; v = v->GetNextSibling()) {
-    nsView* r = FindFloatingViewContaining(v, v->ConvertFromParentCoords(aPt));
-    if (r)
-      return r;
-  }
-
-  if (aView->GetFloating() && aView->HasWidget() &&
-      aView->GetDimensions().Contains(aPt))
-    return aView;
-    
-  return nsnull;
-}
-
-
-
-
-
-
-
-
-
-
-static nsView* FindViewContaining(nsView* aView, nsPoint aPt)
-{
-  if (!aView->GetDimensions().Contains(aPt) ||
-      aView->GetVisibility() == nsViewVisibility_kHide) {
-    return nsnull;
-  }
-
-  for (nsView* v = aView->GetFirstChild(); v; v = v->GetNextSibling()) {
-    nsView* r = FindViewContaining(v, v->ConvertFromParentCoords(aPt));
-    if (r)
-      return r;
-  }
-
-  return aView;
-}
-
-void
-nsViewManager::ProcessSynthMouseMoveEvent(PRBool aFromScroll)
-{
-  
-  
-  if (aFromScroll)
-    mSynthMouseMoveEvent.Forget();
-
-  NS_ASSERTION(IsRootVM(), "Only the root view manager should be here");
-
-  if (mMouseLocation == nsPoint(NSCOORD_NONE, NSCOORD_NONE) || !mRootView ||
-      !mRootView->HasWidget()) {
-    mSynthMouseMoveEvent.Forget();
-    return;
-  }
-
-  
-  
-  nsCOMPtr<nsIViewManager> kungFuDeathGrip(this);
-  
-#ifdef DEBUG_MOUSE_LOCATION
-  printf("[vm=%p]synthesizing mouse move to (%d,%d)\n",
-         this, mMouseLocation.x, mMouseLocation.y);
-#endif
-
-  PRInt32 APD = AppUnitsPerDevPixel();
-
-  
-  
-  nsPoint refpoint(0, 0);
-  PRInt32 viewAPD;
-  
-  nsViewManager *pointVM;
-
-  
-  
-  nsView* view = FindFloatingViewContaining(mRootView, mMouseLocation);
-  if (!view) {
-    view = mRootView;
-    nsView *pointView = FindViewContaining(mRootView, mMouseLocation);
-    
-    pointVM = (pointView ? pointView : view)->GetViewManager();
-    refpoint = mMouseLocation + mRootView->ViewToWidgetOffset();
-    viewAPD = APD;
-  } else {
-    pointVM = view->GetViewManager();
-    viewAPD = pointVM->AppUnitsPerDevPixel();
-    refpoint = mMouseLocation.ConvertAppUnits(APD, viewAPD);
-    refpoint -= view->GetOffsetTo(mRootView);
-    refpoint += view->ViewToWidgetOffset();
-  }
-  NS_ASSERTION(view->GetWidget(), "view should have a widget here");
-  nsMouseEvent event(PR_TRUE, NS_MOUSE_MOVE, view->GetWidget(),
-                     nsMouseEvent::eSynthesized);
-  event.refPoint = refpoint.ToNearestPixels(viewAPD);
-  event.time = PR_IntervalNow();
-  
-
-  nsCOMPtr<nsIViewObserver> observer = pointVM->GetViewObserver();
-  if (observer) {
-    observer->DispatchSynthMouseMove(&event, !aFromScroll);
-  }
-
-  if (!aFromScroll)
-    mSynthMouseMoveEvent.Forget();
 }
 
 void

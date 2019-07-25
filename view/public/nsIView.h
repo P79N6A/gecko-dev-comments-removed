@@ -62,8 +62,8 @@ enum nsViewVisibility {
 };
 
 #define NS_IVIEW_IID    \
-  { 0x63052d96, 0x2a4b, 0x434f, \
-    { 0xb4, 0xd3, 0x61, 0x41, 0x83, 0x24, 0x00, 0x76 } }
+  { 0xe0a3b0ee, 0x8d0f, 0x4dcb, \
+    { 0x89, 0x04, 0x81, 0x2d, 0xfd, 0x90, 0x00, 0x73 } }
 
 
 #define NS_VIEW_FLAGS_PUBLIC              0x00FF
@@ -177,6 +177,14 @@ public:
 
 
 
+  nsRect GetDimensions() const {
+    nsRect r = mDimBounds; r.MoveBy(-mPosX, -mPosY); return r;
+  }
+
+  
+
+
+
 
 
 
@@ -212,6 +220,13 @@ public:
 
 
   nsPoint GetOffsetToWidget(nsIWidget* aWidget) const;
+
+  
+
+
+
+
+  nsPoint ConvertFromParentCoords(nsPoint aPt) const;
 
   
 
