@@ -149,9 +149,14 @@ Recompiler::patchNative(JSContext *cx, JITScript *jit, StackFrame *fp, jsbytecod
 
     
     {
+        void *interpoline = JS_FUNC_TO_DATA_PTR(void *, JaegerInterpoline);
         uint8 *start = (uint8 *)ic.nativeJump.executableAddress();
         JSC::RepatchBuffer repatch(JSC::JITCode(start - 32, 64));
-        repatch.relink(ic.nativeJump, JSC::CodeLocationLabel(JS_FUNC_TO_DATA_PTR(void *, JaegerInterpoline)));
+#ifdef JS_CPU_X64
+        repatch.repatch(ic.nativeJump, interpoline);
+#else
+        repatch.relink(ic.nativeJump, JSC::CodeLocationLabel(interpoline));
+#endif
     }
 
     

@@ -237,9 +237,15 @@ struct CallICInfo {
     JSC::CodeLocationJump funJump;
 
     
-    JSC::CodeLocationLabel nativeStart;
-    JSC::CodeLocationJump nativeFunGuard;
+
+
+
+
+#ifdef JS_CPU_X64
+    JSC::CodeLocationDataLabelPtr nativeJump;
+#else
     JSC::CodeLocationJump nativeJump;
+#endif
 
     
     uint32 hotJumpOffset   : 16;
