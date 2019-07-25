@@ -100,7 +100,6 @@ public:
                          PRInt32 *aEndHTOffset = nsnull);
 
 protected:
-
   
 
 
@@ -323,6 +322,30 @@ protected:
   
   virtual bool GetValueFor(nsIContent* aContent, nscolor* aValue);
   virtual void Format(const nscolor& aValue, nsAString& aFormattedValue);
+};
+
+
+
+
+
+
+class FontFamilyTextAttr : public nsTextAttr<nsAutoString>
+{
+public:
+  FontFamilyTextAttr(nsIFrame* aRootFrame, nsIFrame* aFrame);
+
+  
+  virtual nsIAtom* GetName() const { return nsGkAtoms::font_family; }
+
+protected:
+
+  
+  virtual bool GetValueFor(nsIContent* aContent, nsAutoString* aValue);
+  virtual void Format(const nsAutoString& aValue, nsAString& aFormattedValue);
+
+private:
+
+  bool GetFontFamily(nsIFrame* aFrame, nsAutoString& aFamily);
 };
 
 
