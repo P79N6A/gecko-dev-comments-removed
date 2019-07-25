@@ -7928,10 +7928,10 @@ nsDocShell::CheckLoadingPermissions()
         }
 
         
-        bool equal;
-        sameOrigin = subjPrincipal->Equals(p, &equal);
+        bool subsumes;
+        sameOrigin = subjPrincipal->Subsumes(p, &subsumes);
         if (NS_SUCCEEDED(sameOrigin)) {
-            if (equal) {
+            if (subsumes) {
                 
 
                 return sameOrigin;
