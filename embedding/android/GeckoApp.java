@@ -277,7 +277,7 @@ abstract public class GeckoApp
             totalMem = st.nextToken();
 
             Log.i("GeckoMemory", "MemTotal: " + Integer.parseInt(totalMem));
-            return Integer.parseInt(totalMem) <= 262144L;
+            return Integer.parseInt(totalMem) <= 524288L;
         } catch (Exception ex) {
             
             
