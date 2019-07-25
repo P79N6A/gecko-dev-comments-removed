@@ -15,7 +15,79 @@ class nsStyleContext;
 class nsPresContext;
 class nsCSSPropertySet;
 struct nsTransition;
-struct ElementTransitions;
+
+
+
+
+
+struct ElementPropertyTransition
+{
+  nsCSSProperty mProperty;
+  nsStyleAnimation::Value mStartValue, mEndValue;
+  mozilla::TimeStamp mStartTime; 
+
+  
+  mozilla::TimeDuration mDuration;
+  mozilla::css::ComputedTimingFunction mTimingFunction;
+  
+  
+  
+  
+  
+  
+  nsStyleAnimation::Value mStartForReversingTest;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  double mReversePortion;
+  
+  
+  
+  
+  double ValuePortionFor(mozilla::TimeStamp aRefreshTime) const;
+  
+  bool IsRemovedSentinel() const
+  {
+    return mStartTime.IsNull();
+  }
+  
+  void SetRemovedSentinel()
+  {
+    
+    mStartTime = mozilla::TimeStamp();
+  }
+};
+  
+struct ElementTransitions : public mozilla::css::CommonElementAnimationData
+{
+  ElementTransitions(mozilla::dom::Element *aElement, nsIAtom *aElementProperty,
+                     nsTransitionManager *aTransitionManager);
+
+  void EnsureStyleRuleFor(mozilla::TimeStamp aRefreshTime);
+
+  
+  
+  
+  nsTArray<ElementPropertyTransition> mPropertyTransitions;
+  
+  
+  
+  
+  
+  
+  
+  nsRefPtr<mozilla::css::AnimValuesStyleRule> mStyleRule;
+  
+  mozilla::TimeStamp mStyleRuleRefreshTime;
+};
+
+
 
 class nsTransitionManager : public mozilla::css::CommonAnimationManager
 {
