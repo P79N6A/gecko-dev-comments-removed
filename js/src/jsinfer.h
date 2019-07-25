@@ -313,6 +313,9 @@ struct TypeSet
 
     
     bool knownNonEmpty(JSContext *cx, JSScript *script);
+
+  private:
+    inline void markUnknown(JSContext *cx);
 };
 
 
@@ -362,6 +365,20 @@ struct TypeObject
     bool initializerObject;
     bool initializerArray;
     uint32 initializerOffset;
+
+    
+
+
+
+
+
+
+
+
+
+
+    uint32 contribution;
+    static const uint32 CONTRIBUTION_LIMIT = 20000;
 
     
 
