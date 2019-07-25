@@ -2268,14 +2268,12 @@ pref("font.name-list.cursive.x-baltic", "Apple Chancery");
 pref("font.name-list.fantasy.x-baltic", "Papyrus");
 
 
-
-
-pref("font.name.serif.x-beng", "সোলাইমান লিপি");
-pref("font.name.sans-serif.x-beng", "রূপালী");
-pref("font.name.monospace.x-beng", "রূপালী");
-pref("font.name-list.serif.x-beng", "সোলাইমান লিপি");
-pref("font.name-list.sans-serif.x-beng", "রূপালী");
-pref("font.name-list.monospace.x-beng", "রূপালী");
+pref("font.name.serif.x-beng", "Bangla MN");
+pref("font.name.sans-serif.x-beng", "Bangla Sangam MN");
+pref("font.name.monospace.x-beng", "Bangla Sangam MN");
+pref("font.name-list.serif.x-beng", "Bangla MN");
+pref("font.name-list.sans-serif.x-beng", "Bangla Sangam MN");
+pref("font.name-list.monospace.x-beng", "Bangla Sangam MN");
 
 pref("font.name.serif.x-cans", "Euphemia UCAS");
 pref("font.name.sans-serif.x-cans", "Euphemia UCAS");
@@ -2307,21 +2305,19 @@ pref("font.name-list.cursive.x-cyrillic", "Geneva");
 pref("font.name-list.fantasy.x-cyrillic", "Charcoal CY");
 
 pref("font.name.serif.x-devanagari", "Devanagari MT");
-pref("font.name.sans-serif.x-devanagari", "Devanagari MT");
-pref("font.name.monospace.x-devanagari", "Devanagari MT");
+pref("font.name.sans-serif.x-devanagari", "Devanagari Sangam MN");
+pref("font.name.monospace.x-devanagari", "Devanagari Sangam MN");
 pref("font.name-list.serif.x-devanagari", "Devanagari MT");
-pref("font.name-list.sans-serif.x-devanagari", "Devanagari MT");
-pref("font.name-list.monospace.x-devanagari", "Devanagari MT");
+pref("font.name-list.sans-serif.x-devanagari", "Devanagari Sangam MN,Devanagari MT");
+pref("font.name-list.monospace.x-devanagari", "Devanagari Sangam MN,Devanagari MT");
 
 
-
-
-pref("font.name.serif.x-ethi", "Abyssinica SIL");
-pref("font.name.sans-serif.x-ethi", "Abyssinica SIL");
-pref("font.name.monospace.x-ethi", "Abyssinica SIL");
-pref("font.name-list.serif.x-ethi", "Abyssinica SIL");
-pref("font.name-list.sans-serif.x-ethi", "Abyssinica SIL");
-pref("font.name-list.monospace.x-ethi", "Abyssinica SIL");
+pref("font.name.serif.x-ethi", "Kefa");
+pref("font.name.sans-serif.x-ethi", "Kefa");
+pref("font.name.monospace.x-ethi", "Kefa");
+pref("font.name-list.serif.x-ethi", "Kefa,Abyssinica SIL");
+pref("font.name-list.sans-serif.x-ethi", "Kefa,Abyssinica SIL");
+pref("font.name-list.monospace.x-ethi", "Kefa,Abyssinica SIL");
 
 
 
@@ -2335,11 +2331,11 @@ pref("font.name-list.sans-serif.x-geor", "Zuzumbo");
 pref("font.name-list.monospace.x-geor", "Zuzumbo");
 
 pref("font.name.serif.x-gujr", "Gujarati MT");
-pref("font.name.sans-serif.x-gujr", "Gujarati MT");
-pref("font.name.monospace.x-gujr", "Gujarati MT");
+pref("font.name.sans-serif.x-gujr", "Gujarati Sangam MN");
+pref("font.name.monospace.x-gujr", "Gujarati Sangam MN");
 pref("font.name-list.serif.x-gujr", "Gujarati MT"); 
-pref("font.name-list.sans-serif.x-gujr", "Gujarati MT");
-pref("font.name-list.monospace.x-gujr", "Gujarati MT");
+pref("font.name-list.sans-serif.x-gujr", "Gujarati Sangam MN,Gujarati MT");
+pref("font.name-list.monospace.x-gujr", "Gujarati Sangam MN,Gujarati MT");
 
 pref("font.name.serif.x-guru", "Gurmukhi MT");
 pref("font.name.sans-serif.x-guru", "Gurmukhi MT");
@@ -2348,37 +2344,49 @@ pref("font.name-list.serif.x-guru", "Gurmukhi MT");
 pref("font.name-list.sans-serif.x-guru", "Gurmukhi MT");
 pref("font.name-list.monospace.x-guru", "Gurmukhi MT");
 
+pref("font.name.serif.x-khmr", "Khmer MN");
+pref("font.name.sans-serif.x-khmr", "Khmer Sangam MN");
+pref("font.name.monospace.x-khmr", "Khmer Sangam MN");
+pref("font.name-list.serif.x-khmr", "Khmer MN"); 
+pref("font.name-list.sans-serif.x-khmr", "Khmer Sangam MN");
+pref("font.name-list.monospace.x-khmr", "Khmer Sangam MN");
+
+pref("font.name.serif.x-mlym", "Malayalam MN");
+pref("font.name.sans-serif.x-mlym", "Malayalam Sangam MN");
+pref("font.name.monospace.x-mlym", "Malayalam Sangam MN");
+pref("font.name-list.serif.x-mlym", "Malayalam MN"); 
+pref("font.name-list.sans-serif.x-mlym", "Malayalam Sangam MN");
+pref("font.name-list.monospace.x-mlym", "Malayalam Sangam MN");
+
+pref("font.name.serif.x-orya", "Oriya MN");
+pref("font.name.sans-serif.x-orya", "Oriya Sangam MN");
+pref("font.name.monospace.x-orya", "Oriya Sangam MN");
+pref("font.name-list.serif.x-orya", "Oriya MN"); 
+pref("font.name-list.sans-serif.x-orya", "Oriya Sangam MN");
+pref("font.name-list.monospace.x-orya", "Oriya Sangam MN");
 
 
+pref("font.name.serif.x-telu", "Telugu MN");
+pref("font.name.sans-serif.x-telu", "Telugu Sangam MN");
+pref("font.name.monospace.x-telu", "Telugu Sangam MN");
+pref("font.name-list.serif.x-telu", "Telugu MN,Pothana");
+pref("font.name-list.sans-serif.x-telu", "Telugu Sangam MN,Pothana");
+pref("font.name-list.monospace.x-telu", "Telugu Sangam MN,Pothana");
 
 
+pref("font.name.serif.x-knda", "Kannada MN");
+pref("font.name.sans-serif.x-knda", "Kannada Sangam MN");
+pref("font.name.monospace.x-knda", "Kannada Sangam MN");
+pref("font.name-list.serif.x-knda", "Kannada MN,Kedage");
+pref("font.name-list.sans-serif.x-knda", "Kannada Sangam MN,Kedage");
+pref("font.name-list.monospace.x-knda", "Kannada Sangam MN,Kedage");
 
-
-
-
-
-
-
-
-pref("font.name.serif.x-telu", "Pothana");
-pref("font.name.sans-serif.x-telu", "Pothana");
-pref("font.name.monospace.x-telu", "Pothana");
-pref("font.name-list.serif.x-telu", "Pothana");
-pref("font.name-list.sans-serif.x-telu", "Pothana");
-pref("font.name-list.monospace.x-telu", "Pothana");
-
-
-
-
-pref("font.name.serif.x-knda", "Kedage");
-pref("font.name.sans-serif.x-knda", "Kedage");
-pref("font.name.monospace.x-knda", "Kedage");
-pref("font.name-list.serif.x-knda", "Kedage");
-pref("font.name-list.sans-serif.x-knda", "Kedage");
-pref("font.name-list.monospace.x-knda", "Kedage");
-
-
-
+pref("font.name.serif.x-sinh", "Sinhala MN");
+pref("font.name.sans-serif.x-sinh", "Sinhala Sangam MN");
+pref("font.name.monospace.x-sinh", "Sinhala Sangam MN");
+pref("font.name-list.serif.x-sinh", "Sinhala MN");
+pref("font.name-list.sans-serif.x-sinh", "Sinhala Sangam MN");
+pref("font.name-list.monospace.x-sinh", "Sinhala Sangam MN");
 
 pref("font.name.serif.x-tamil", "InaiMathi");
 pref("font.name.sans-serif.x-tamil", "InaiMathi");
