@@ -9611,6 +9611,8 @@ nsHTMLPluginObjElementSH::SetupProtoChain(nsIXPConnectWrappedNative *wrapper,
     return NS_OK;
   }
 
+  JSAutoRequest ar(cx);
+
   JSAutoEnterCompartment ac;
   if (!ac.enter(cx, obj)) {
     return NS_ERROR_UNEXPECTED;
@@ -9656,8 +9658,6 @@ nsHTMLPluginObjElementSH::SetupProtoChain(nsIXPConnectWrappedNative *wrapper,
   
   rv = wrapper->GetJSObjectPrototype(&my_proto);
   NS_ENSURE_SUCCESS(rv, rv);
-
-  JSAutoRequest ar(cx);
 
   
   if (!::JS_SetPrototype(cx, obj, pi_obj)) {
