@@ -35,7 +35,7 @@
 
 
 #ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: pkibase.c,v $ $Revision: 1.33 $ $Date: 2010/04/03 18:27:32 $";
+static const char CVS_ID[] = "@(#) $RCSfile: pkibase.c,v $ $Revision: 1.33.6.1 $ $Date: 2012/05/17 21:40:54 $";
 #endif 
 
 #ifndef DEV_H
@@ -365,7 +365,7 @@ nssPKIObject_GetNicknameForToken (
 	    (object->instances[i]->token == tokenOpt)) 
 	{
             
-	    nickname = object->instances[i]->label; 
+	    nickname = nssUTF8_Duplicate(object->instances[i]->label, NULL);
 	    break;
 	}
     }

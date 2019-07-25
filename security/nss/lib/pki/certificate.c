@@ -35,7 +35,7 @@
 
 
 #ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: certificate.c,v $ $Revision: 1.68 $ $Date: 2011/07/12 21:29:17 $";
+static const char CVS_ID[] = "@(#) $RCSfile: certificate.c,v $ $Revision: 1.68.2.1 $ $Date: 2012/05/17 21:40:54 $";
 #endif 
 
 #ifndef NSSPKI_H
@@ -229,6 +229,7 @@ nssCertificate_GetSubject (
 	return (NSSDER *)NULL;
     }
 }
+
 
 NSS_IMPLEMENT NSSUTF8 *
 nssCertificate_GetNickname (

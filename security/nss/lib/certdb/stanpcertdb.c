@@ -313,11 +313,13 @@ __CERT_AddTempCertToPerm(CERTCertificate *cert, char *nickname,
     if (stanNick && nickname && strcmp(nickname, stanNick) != 0) {
 	
 	cert->nickname = NULL;
+        nss_ZFreeIf(stanNick);
 	stanNick = NULL;
     }
     if (!stanNick && nickname) {
-	stanNick = nssUTF8_Duplicate((NSSUTF8 *)nickname, c->object.arena);
-    }
+        
+	stanNick = nssUTF8_Duplicate((NSSUTF8 *)nickname, NULL);
+    } 
     
     nssCertificateStore_Lock(context->certStore, &lockTrace);
     nssCertificateStore_RemoveCertLOCKED(context->certStore, c);
@@ -336,6 +338,8 @@ __CERT_AddTempCertToPerm(CERTCertificate *cert, char *nickname,
                                               &c->serial,
 					      cert->emailAddr,
                                               PR_TRUE);
+    nss_ZFreeIf(stanNick);
+    stanNick = NULL;
     PK11_FreeSlot(slot);
     if (!permInstance) {
 	if (NSS_GetError() == NSS_ERROR_INVALID_CERTIFICATE) {
