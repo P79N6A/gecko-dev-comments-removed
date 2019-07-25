@@ -265,17 +265,24 @@ struct Token {
                 JSAtom       *atom;     
             } n;
         } s;
-        uintN           reflags;        
-
         class {                         
             friend struct Token;
             JSAtom       *data;         
             PropertyName *target;       
         } xmlpi;
         jsdouble        dval;           
+      private:
+        friend struct Token;
+        RegExpFlag      reflags;        
+
     } u;
 
     
+
+    
+
+
+
 
     void setName(JSOp op, PropertyName *name) {
         JS_ASSERT(op == JSOP_NAME);
@@ -292,6 +299,11 @@ struct Token {
     void setProcessingInstruction(PropertyName *target, JSAtom *data) {
         u.xmlpi.target = target;
         u.xmlpi.data = data;
+    }
+
+    void setRegExpFlags(js::RegExpFlag flags) {
+        JS_ASSERT((flags & AllFlags) == flags);
+        u.reflags = flags;
     }
 
     
@@ -320,10 +332,15 @@ struct Token {
         JS_ASSERT(type == TOK_XMLPI);
         return u.xmlpi.data;
     }
+
+    js::RegExpFlag regExpFlags() const {
+        JS_ASSERT(type == TOK_REGEXP);
+        JS_ASSERT((u.reflags & AllFlags) == u.reflags);
+        return u.reflags;
+    }
 };
 
 #define t_op            u.s.op
-#define t_reflags       u.reflags
 #define t_dval          u.dval
 
 enum TokenStreamFlags
