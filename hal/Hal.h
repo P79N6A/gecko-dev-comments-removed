@@ -50,13 +50,6 @@
 
 class nsIDOMWindow;
 
-namespace mozilla {
-namespace dom {
-class TabChild;
-class PBrowserChild;
-}
-}
-
 
 
 namespace mozilla {
