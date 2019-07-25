@@ -44,6 +44,7 @@
 #include "BasicLayers.h"
 #include "nsSubDocumentFrame.h"
 #include "nsCSSRendering.h"
+#include "nsCSSFrameConstructor.h"
 
 #ifdef DEBUG
 #include <stdio.h>
@@ -359,6 +360,17 @@ PRUint8 gColorLayerUserData;
 PRUint8 gLayerManagerUserData;
 
 } 
+
+FrameLayerBuilder::FrameLayerBuilder() :
+  mRetainingManager(nsnull),
+  mDetectedDOMModification(PR_FALSE),
+  mInvalidateAllThebesContent(PR_FALSE),
+  mInvalidateAllLayers(PR_FALSE)
+{
+  mNewDisplayItemData.Init();
+  mThebesLayerItems.Init();
+  mInitialDOMGeneration = nsCSSFrameConstructor::GetDOMGeneration();
+}
 
 PRBool
 FrameLayerBuilder::DisplayItemDataEntry::HasContainerLayer()
@@ -1540,6 +1552,10 @@ FrameLayerBuilder::DrawThebesLayer(ThebesLayer* aLayer,
 {
   nsDisplayListBuilder* builder = static_cast<nsDisplayListBuilder*>
     (aCallbackData);
+
+  if (builder->LayerBuilder()->CheckDOMModified())
+    return;
+
   nsTArray<ClippedDisplayItem> items;
   nsIFrame* containerLayerFrame;
   {
@@ -1669,11 +1685,31 @@ FrameLayerBuilder::DrawThebesLayer(ThebesLayer* aLayer,
     } else {
       cdi->mItem->Paint(builder, rc);
     }
+
+    if (builder->LayerBuilder()->CheckDOMModified())
+      break;
   }
 
   if (setClipRect) {
     aContext->Restore();
   }
+}
+
+PRBool
+FrameLayerBuilder::CheckDOMModified()
+{
+  if (mInitialDOMGeneration == nsCSSFrameConstructor::GetDOMGeneration())
+    return PR_FALSE;
+  if (mDetectedDOMModification) {
+    
+    return PR_TRUE;
+  }
+  mDetectedDOMModification = PR_TRUE;
+  
+  
+  
+  NS_WARNING("Detected DOM modification during paint, bailing out!");
+  return PR_TRUE;
 }
 
 #ifdef DEBUG

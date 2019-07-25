@@ -94,14 +94,7 @@ public:
   typedef layers::ThebesLayer ThebesLayer;
   typedef layers::LayerManager LayerManager;
 
-  FrameLayerBuilder() :
-    mRetainingManager(nsnull),
-    mInvalidateAllThebesContent(PR_FALSE),
-    mInvalidateAllLayers(PR_FALSE)
-  {
-    mNewDisplayItemData.Init();
-    mThebesLayerItems.Init();
-  }
+  FrameLayerBuilder();
 
   
 
@@ -413,6 +406,13 @@ protected:
 
 
 
+
+  PRBool CheckDOMModified();
+
+  
+
+
+
   LayerManager*                       mRetainingManager;
   
 
@@ -424,6 +424,15 @@ protected:
 
 
   nsTHashtable<ThebesLayerItemsEntry> mThebesLayerItems;
+  
+
+
+  PRUint32                            mInitialDOMGeneration;
+  
+
+
+
+  PRPackedBool                        mDetectedDOMModification;
   
 
 

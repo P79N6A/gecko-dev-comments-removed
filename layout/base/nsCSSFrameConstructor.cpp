@@ -235,6 +235,7 @@ NS_NewSVGLeafFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
 
 nsIXBLService * nsCSSFrameConstructor::gXBLService = nsnull;
+PRUint32 nsCSSFrameConstructor::gDOMGeneration = 0;
 
 #ifdef DEBUG
 
@@ -8188,6 +8189,7 @@ nsCSSFrameConstructor::BeginUpdate() {
   NS_ASSERTION(!nsContentUtils::IsSafeToRunScript(),
                "Someone forgot a script blocker");
 
+  ++gDOMGeneration;
   ++mUpdateCount;
 }
 
