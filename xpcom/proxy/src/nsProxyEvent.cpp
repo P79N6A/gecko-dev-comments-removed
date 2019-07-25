@@ -427,7 +427,9 @@ nsresult
 nsProxyObject::LockedFind(REFNSIID aIID, void **aResult)
 {
     
-    
+#ifdef DEBUG
+    nsProxyObjectManager::GetInstance()->GetLock().AssertCurrentThreadOwns();
+#endif
 
     nsProxyEventObject *peo;
 
@@ -442,8 +444,8 @@ nsProxyObject::LockedFind(REFNSIID aIID, void **aResult)
     nsProxyEventObject *newpeo;
 
     
+    nsProxyObjectManager* pom = nsProxyObjectManager::GetInstance();
     {
-        nsProxyObjectManager* pom = nsProxyObjectManager::GetInstance();
         MutexAutoUnlock unlock(pom->GetLock());
 
         nsProxyEventClass *pec;
@@ -473,7 +475,13 @@ nsProxyObject::LockedFind(REFNSIID aIID, void **aResult)
     
     for (peo = mFirst; peo; peo = peo->mNext) {
         if (peo->GetClass()->GetProxiedIID().Equals(aIID)) {
-            delete newpeo;
+            {
+                
+                
+                
+                MutexAutoUnlock unlock(pom->GetLock());
+                delete newpeo;
+            }
             *aResult = static_cast<nsISupports*>(peo->mXPTCStub);
             peo->LockedAddRef();
             return NS_OK;
