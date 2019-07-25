@@ -2,40 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.repositories.android;
 
 import java.util.Collections;
@@ -162,49 +128,45 @@ public class RepoUtils {
       this.tag     = tag;
     }
 
-    public Cursor query(String[] projection, String selection, String[] selectionArgs, String sortOrder) {
-      return this.query(null, projection, selection, selectionArgs, sortOrder);
-    }
-
     
-    public Cursor query(String label, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
-      String logLabel = (label == null) ? this.tag : this.tag + label;
+    public Cursor safeQuery(String label, String[] projection,
+                            String selection, String[] selectionArgs, String sortOrder) throws NullCursorException {
       long queryStart = android.os.SystemClock.uptimeMillis();
       Cursor c = context.getContentResolver().query(uri, projection, selection, selectionArgs, sortOrder);
-      long queryEnd   = android.os.SystemClock.uptimeMillis();
-      RepoUtils.queryTimeLogger(logLabel, queryStart, queryEnd);
-      return c;
+      return checkAndLogCursor(label, queryStart, c);
+    }
+
+    public Cursor safeQuery(String[] projection, String selection, String[] selectionArgs, String sortOrder) throws NullCursorException {
+      return this.safeQuery(null, projection, selection, selectionArgs, sortOrder);
     }
 
     
-    public Cursor query(SQLiteDatabase db, String label, String table, String[] columns,
-        String selection, String[] selectionArgs, String groupBy, String having, String orderBy, String limit) {
-      String logLabel = (label == null) ? this.tag : this.tag + label;
+    public Cursor safeQuery(SQLiteDatabase db, String label, String table, String[] columns,
+                            String selection, String[] selectionArgs,
+                            String groupBy, String having, String orderBy, String limit) throws NullCursorException {
       long queryStart = android.os.SystemClock.uptimeMillis();
       Cursor c = db.query(table, columns, selection, selectionArgs, groupBy, having, orderBy, limit);
-      long queryEnd   = android.os.SystemClock.uptimeMillis();
-      RepoUtils.queryTimeLogger(logLabel, queryStart, queryEnd);
-      return c;
-    }
-
-    public Cursor safeQuery(String label, String[] projection, String selection, String[] selectionArgs, String sortOrder) throws NullCursorException {
-      Cursor c = this.query(label, projection, selection, selectionArgs, sortOrder);
-      if (c == null) {
-        Logger.error(tag, "Got null cursor exception in " + tag + ((label == null) ? "" : label));
-        throw new NullCursorException(null);
-      }
-      return c;
+      return checkAndLogCursor(label, queryStart, c);
     }
 
     public Cursor safeQuery(SQLiteDatabase db, String label, String table, String[] columns,
-        String selection, String[] selectionArgs, String groupBy, String having, String orderBy, String limit) throws NullCursorException  {
-      Cursor c = this.query(db, label, table, columns, selection, selectionArgs,
-          groupBy, having, orderBy, limit);
-      if (c == null) {
-        Logger.error(tag, "Got null cursor exception in " + tag + ((label == null) ? "" : label));
+                            String selection, String[] selectionArgs) throws NullCursorException {
+      return safeQuery(db, label, table, columns, selection, selectionArgs, null, null, null, null);
+    }
+
+    private Cursor checkAndLogCursor(String label, long queryStart, Cursor c) throws NullCursorException {
+      long queryEnd = android.os.SystemClock.uptimeMillis();
+      String logLabel = (label == null) ? tag : (tag + label);
+      RepoUtils.queryTimeLogger(logLabel, queryStart, queryEnd);
+      return checkNullCursor(logLabel, c);
+    }
+
+    public Cursor checkNullCursor(String logLabel, Cursor cursor) throws NullCursorException {
+      if (cursor == null) {
+        Logger.error(tag, "Got null cursor exception in " + logLabel);
         throw new NullCursorException(null);
       }
-      return c;
+      return cursor;
     }
   }
 
