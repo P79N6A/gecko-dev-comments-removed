@@ -285,8 +285,10 @@ class DeviceManagerADB(DeviceManager):
   
   
   def getFile(self, remoteFile, localFile = 'tmpfile_dm_adb'):
+    
+    
     try:
-      self.checkCmd(["pull",  remoteFile, localFile])
+      self.runCmd(["pull",  remoteFile, localFile]).stdout.read()
       f = open(localFile)
       ret = f.read()
       f.close()
