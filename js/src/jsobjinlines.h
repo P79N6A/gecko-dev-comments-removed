@@ -1995,12 +1995,6 @@ js_InitClass(JSContext *cx, js::HandleObject obj, JSObject *parent_proto,
              JSObject **ctorp = NULL,
              js::gc::AllocKind ctorKind = JSFunction::FinalizeKind);
 
-inline JSObject *
-js_GetProtoIfDenseArray(JSObject *obj)
-{
-    return obj->isDenseArray() ? obj->getProto() : obj;
-}
-
 
 
 
