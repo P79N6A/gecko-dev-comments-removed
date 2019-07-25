@@ -3519,11 +3519,16 @@ nsCanvasRenderingContext2D::DrawImage(nsIDOMElement *imgElt, float a1,
         mThebes->SetPattern(pattern);
         DirtyAllStyles();
 
-        mThebes->Clip(clip);
-
+        
+        if (CurrentState().globalAlpha = 1. && mThebes->CurrentOperator() == gfxContext::OPERATOR_OVER) {
+            mThebes->Rectangle(clip);
+            mThebes->Fill();
+        } else {
+            
+            mThebes->Clip(clip);
+            mThebes->Paint(CurrentState().globalAlpha);
+        }
         dirty = mThebes->UserToDevice(clip);
-
-        mThebes->Paint(CurrentState().globalAlpha);
     }
 
 #if 1
