@@ -2320,65 +2320,48 @@ nsHTMLEditor::MergeCells(nsCOMPtr<nsIDOMElement> aTargetCell,
                          nsCOMPtr<nsIDOMElement> aCellToMerge,
                          bool aDeleteCellToMerge)
 {
-  NS_ENSURE_TRUE(aTargetCell && aCellToMerge, NS_ERROR_NULL_POINTER);
-
-  nsresult res = NS_OK;
+  nsCOMPtr<dom::Element> targetCell = do_QueryInterface(aTargetCell);
+  nsCOMPtr<dom::Element> cellToMerge = do_QueryInterface(aCellToMerge);
+  NS_ENSURE_TRUE(targetCell && cellToMerge, NS_ERROR_NULL_POINTER);
 
   
   nsAutoRules beginRulesSniffing(this, kOpDeleteNode, nsIEditor::eNext);
 
   
-  if (!IsEmptyCell(aCellToMerge))
-  {
+  if (!IsEmptyCell(cellToMerge)) {
     
-    nsCOMPtr<nsIDOMNodeList> childNodes;
-    nsCOMPtr<nsIDOMNode> cellChild;
-    res = aTargetCell->GetChildNodes(getter_AddRefs(childNodes));
     
     
     PRInt32 insertIndex = 0;
 
-    if ((NS_SUCCEEDED(res)) && (childNodes))
-    {
+    
+    PRUint32 len = targetCell->GetChildCount();
+    if (len == 1 && IsEmptyCell(targetCell)) {
       
-      PRUint32 len;
-      res = childNodes->GetLength(&len);
+      nsIContent* cellChild = targetCell->GetFirstChild();
+      nsresult res = DeleteNode(cellChild->AsDOMNode());
       NS_ENSURE_SUCCESS(res, res);
-      if (len == 1 && IsEmptyCell(aTargetCell))
-      {
-          
-          nsCOMPtr<nsIDOMNode> tempNode;
-          res = childNodes->Item(0, getter_AddRefs(cellChild));
-          NS_ENSURE_SUCCESS(res, res);
-          res = DeleteNode(cellChild);
-          NS_ENSURE_SUCCESS(res, res);
-          insertIndex = 0;
-      }
-      else
-        insertIndex = (PRInt32)len;
+      insertIndex = 0;
+    } else {
+      insertIndex = (PRInt32)len;
     }
 
     
-    bool hasChild;
-    aCellToMerge->HasChildNodes(&hasChild);
-    while (hasChild)
-    {
-      aCellToMerge->GetLastChild(getter_AddRefs(cellChild));
-      res = DeleteNode(cellChild);
+    while (cellToMerge->HasChildren()) {
+      nsCOMPtr<nsIDOMNode> cellChild = cellToMerge->GetLastChild()->AsDOMNode();
+      nsresult res = DeleteNode(cellChild);
       NS_ENSURE_SUCCESS(res, res);
 
       res = InsertNode(cellChild, aTargetCell, insertIndex);
       NS_ENSURE_SUCCESS(res, res);
-
-      aCellToMerge->HasChildNodes(&hasChild);
     }
   }
 
   
   if (aDeleteCellToMerge)
-    res = DeleteNode(aCellToMerge);
+    return DeleteNode(aCellToMerge);
 
-  return res;
+  return NS_OK;
 }
 
 
@@ -3408,12 +3391,12 @@ nsHTMLEditor::AllCellsInColumnSelected(nsIDOMElement *aTable, PRInt32 aColIndex,
 }
 
 bool 
-nsHTMLEditor::IsEmptyCell(nsIDOMElement *aCell)
+nsHTMLEditor::IsEmptyCell(dom::Element* aCell)
 {
-  nsCOMPtr<dom::Element> cell = do_QueryInterface(aCell);
+  MOZ_ASSERT(aCell);
 
   
-  nsCOMPtr<nsINode> cellChild = cell->GetFirstChild();
+  nsCOMPtr<nsINode> cellChild = aCell->GetFirstChild();
   if (!cellChild) {
     return false;
   }
