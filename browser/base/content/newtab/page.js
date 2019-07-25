@@ -87,10 +87,11 @@ let gPage = {
       
       gDropTargetShim.init();
 
+#ifdef XP_MACOSX
       
-      let doc = document.documentElement;
-      doc.addEventListener("dragover", this.onDragOver, false);
-      doc.addEventListener("drop", this.onDrop, false);
+      document.addEventListener("dragover", this.onDragOver, false);
+      document.addEventListener("drop", this.onDrop, false);
+#endif
     }.bind(this));
   },
 
@@ -155,7 +156,7 @@ let gPage = {
 
 
   onDragOver: function Page_onDragOver(aEvent) {
-    if (gDrag.isValid(aEvent))
+    if (gDrag.isValid(aEvent) && gDrag.draggedSite)
       aEvent.preventDefault();
   },
 
@@ -165,7 +166,7 @@ let gPage = {
 
 
   onDrop: function Page_onDrop(aEvent) {
-    if (gDrag.isValid(aEvent)) {
+    if (gDrag.isValid(aEvent) && gDrag.draggedSite) {
       aEvent.preventDefault();
       aEvent.stopPropagation();
     }
