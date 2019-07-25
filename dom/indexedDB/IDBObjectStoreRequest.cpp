@@ -588,16 +588,17 @@ IDBObjectStoreRequest::GetAddInfo(
   ObjectStoreInfo* objectStoreInfo = GetObjectStoreInfo();
   NS_ENSURE_TRUE(objectStoreInfo, NS_ERROR_FAILURE);
 
+  JSObject* cloneObj = nsnull;
+
   PRUint32 indexesCount = objectStoreInfo->indexes.Length();
-  if (indexesCount && !JSVAL_IS_PRIMITIVE(clone.value())) {
-    
-    NS_NOTYETIMPLEMENTED("Implement me!");
-    return NS_ERROR_NOT_IMPLEMENTED;
+  if (indexesCount) {
+    if (!JSVAL_IS_PRIMITIVE(clone.value())) {
+      
+      NS_NOTYETIMPLEMENTED("Implement me!");
+      return NS_ERROR_NOT_IMPLEMENTED;
+    }
+    cloneObj = JSVAL_TO_OBJECT(clone.value());
   }
-
-  NS_ASSERTION(!JSVAL_IS_PRIMITIVE(clone.value()), "Must have an object here!");
-
-  JSObject* cloneObj = JSVAL_TO_OBJECT(clone.value());
 
   nsCOMPtr<nsIJSON> json(new nsJSON());
 
