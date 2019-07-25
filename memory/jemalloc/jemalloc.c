@@ -7157,31 +7157,4 @@ BOOL APIENTRY DllMain(HINSTANCE hModule,
 
   return TRUE;
 }
-
-
-
-
-
-
-void
-je_dumb_free_thunk(void *ptr)
-{
-  return; 
-}
-
-#include <wchar.h>
-
-
-
-
-
-wchar_t *je_wcsdup(const wchar_t *src)
-{
-  size_t len = wcslen(src);
-  wchar_t* dst = (wchar_t*)je_malloc((len + 1) * sizeof(wchar_t));
-  if(dst)
-    wcsncpy(dst, src, len + 1);
-  return dst;
-}
-
 #endif
