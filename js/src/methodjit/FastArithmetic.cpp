@@ -1010,7 +1010,7 @@ mjit::Compiler::jsop_relational_int(JSOp op, BoolStub stub, jsbytecode *target, 
 
 
 
-        frame.syncAndForgetEverything();
+        frame.forgetEverything();
 
         
         if (fused == JSOP_IFEQ) {
@@ -1213,7 +1213,7 @@ mjit::Compiler::jsop_relational_double(JSOp op, BoolStub stub, jsbytecode *targe
         stubcc.call(stub);
 
         frame.popn(2);
-        frame.syncAndForgetEverything();
+        frame.forgetEverything();
 
         Jump j = masm.branchDouble(dblCond, fpLeft, fpRight);
 
@@ -1380,11 +1380,6 @@ mjit::Compiler::jsop_relational_full(JSOp op, BoolStub stub, jsbytecode *target,
             frame.pinReg(reg.reg());
         
         frame.popn(2);
-
-        frame.syncAndKillEverything();
-        frame.unpinKilledReg(cmpReg);
-        if (reg.isSet())
-            frame.unpinKilledReg(reg.reg());
         frame.forgetEverything();
         
         

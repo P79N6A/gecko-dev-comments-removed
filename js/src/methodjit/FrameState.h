@@ -175,100 +175,22 @@ class FrameState
         uint32 nentries;
     };
 
-    
-
-
-
-
-
-
-
     struct RegisterState {
-        RegisterState() : fe_(NULL), save_(NULL)
+        RegisterState()
         { }
 
         RegisterState(FrameEntry *fe, RematInfo::RematType type)
-          : fe_(fe), save_(NULL), type_(type)
-        {
-            JS_ASSERT(!save_);
-        }
-
-        bool isPinned() const {
-            assertConsistency();
-            return !!save_;
-        }
-
-        void assertConsistency() const {
-            JS_ASSERT_IF(fe_, !save_);
-            JS_ASSERT_IF(save_, !fe_);
-        }
-
-        FrameEntry *fe() const {
-            assertConsistency();
-            return fe_;
-        }
-
-        RematInfo::RematType type() const {
-            assertConsistency();
-            return type_;
-        }
-
-        FrameEntry *usedBy() const {
-            if (fe_)
-                return fe_;
-            return save_;
-        }
-
-        void associate(FrameEntry *fe, RematInfo::RematType type) {
-            JS_ASSERT(!fe_);
-            JS_ASSERT(!save_);
-
-            fe_ = fe;
-            type_ = type;
-            JS_ASSERT(!save_);
-        }
+          : fe(fe), type(type)
+        { }
 
         
-        void reassociate(FrameEntry *fe) {
-            assertConsistency();
-            JS_ASSERT(fe);
-
-            fe_ = fe;
-        }
+        FrameEntry *fe;
 
         
-        void forget() {
-            JS_ASSERT(fe_);
-            fe_ = NULL;
-            JS_ASSERT(!save_);
-        }
-
-        void pin() {
-            assertConsistency();
-            save_ = fe_;
-            fe_ = NULL;
-        }
-
-        void unpin() {
-            assertConsistency();
-            fe_ = save_;
-            save_ = NULL;
-        }
-
-        void unpinUnsafe() {
-            assertConsistency();
-            save_ = NULL;
-        }
-
-      private:
-        
-        FrameEntry *fe_;
-
-        
-        FrameEntry *save_;
+        FrameEntry *save;
         
         
-        RematInfo::RematType type_;
+        RematInfo::RematType type;
     };
 
   public:
@@ -500,9 +422,6 @@ class FrameState
                         bool resultNeeded = true);
 
     
-    void ensureFullRegs(FrameEntry *fe);
-
-    
 
 
 
@@ -592,22 +511,16 @@ class FrameState
     void syncAndKill(Registers kill, Uses uses); 
 
     
-    void syncAndKillEverything() {
-        syncAndKill(Registers(Registers::AvailRegs), Uses(frameDepth()));
-    }
+
+
+    void resetRegState();
 
     
 
 
 
 
-    inline void syncAndForgetEverything(uint32 newStackDepth);
-
-    
-
-
-
-    void syncAndForgetEverything();
+    inline void forgetEverything(uint32 newStackDepth);
 
     
 
@@ -618,7 +531,7 @@ class FrameState
     
 
 
-    void discardFrame();
+    void throwaway();
 
     
 
@@ -677,18 +590,12 @@ class FrameState
 
 
 
-
     inline void pinReg(RegisterID reg);
 
     
 
 
     inline void unpinReg(RegisterID reg);
-
-    
-
-
-    inline void unpinKilledReg(RegisterID reg);
 
     
 
@@ -775,7 +682,6 @@ class FrameState
     void syncFancy(Assembler &masm, Registers avail, uint32 resumeAt,
                    FrameEntry *bottom) const;
     inline bool tryFastDoubleLoad(FrameEntry *fe, FPRegisterID fpReg, Assembler &masm) const;
-    void resetInternalState();
 
     
 
@@ -790,6 +696,10 @@ class FrameState
     FrameEntry *entryFor(uint32 index) const {
         JS_ASSERT(entries[index].isTracked());
         return &entries[index];
+    }
+
+    void moveOwnership(RegisterID reg, FrameEntry *newFe) {
+        regstate[reg].fe = newFe;
     }
 
     RegisterID evictSomeReg() {
