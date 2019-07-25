@@ -52,19 +52,23 @@ nsOSHelperAppService::GetMIMEInfoFromOS(const nsACString& aMIMEType,
                                         const nsACString& aFileExt,
                                         PRBool* aFound)
 {
-    
-    if (!mozilla::AndroidBridge::Bridge())
-        return nsnull;
-
+    nsRefPtr<nsMIMEInfoAndroid> mimeInfo;
     *aFound = PR_FALSE;
-    already_AddRefed<nsIMIMEInfo> mimeInfo = 
-            nsMIMEInfoAndroid::GetMimeInfoForMimeType(aMIMEType);
-    if (!mimeInfo.get())
-            mimeInfo = nsMIMEInfoAndroid::GetMimeInfoForFileExt(aFileExt);
+    if (!aMIMEType.IsEmpty())
+        *aFound = 
+            nsMIMEInfoAndroid::GetMimeInfoForMimeType(aMIMEType, 
+                                                      getter_AddRefs(mimeInfo));
+    if (!*aFound)
+        *aFound =
+            nsMIMEInfoAndroid::GetMimeInfoForFileExt(aFileExt, 
+                                                     getter_AddRefs(mimeInfo));
 
-    *aFound = !!mimeInfo.get();
     
-    return mimeInfo;
+    
+    if (!*aFound)
+        mimeInfo = new nsMIMEInfoAndroid(aMIMEType);
+
+    return mimeInfo.forget();
 }
 
 nsresult
