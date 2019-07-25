@@ -788,16 +788,18 @@ findbar .findbar-closebutton {
 
 
 
-richpref {
+setting {
   background-color: white;
   color: black;
 }
 
-
-.prefsection {
-  font-weight: bold;
-  color: #000;
+settings {
   background-color: lightgray;
+  color: #000;
+}
+
+settings .settings-title {
+  font-weight: bold;
   padding: 0.5mm;
 }
 
@@ -807,6 +809,14 @@ richpref {
   border-bottom: 0.1mm solid rgb(207,207,207);
   min-height: 14.4mm; 
   -moz-box-align: center;
+}
+
+.options-box {
+  margin-left: 28px;  
+}
+
+.options-box setting:last-child .prefbox {
+  border-bottom: 0;
 }
 
 

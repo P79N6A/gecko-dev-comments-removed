@@ -506,16 +506,18 @@ findbar {
 
 
 
-richpref {
+setting {
   background-color: white;
   color: black;
 }
 
-
-.prefsection {
-  font-weight: bold;
-  color: #000;
+settings {
   background-color: lightgray;
+  color: #000;
+}
+
+settings .settings-title {
+  font-weight: bold;
   padding: 0.25mm;
 }
 
@@ -524,6 +526,10 @@ richpref {
   padding: 0.25mm 1.1mm;
   border-bottom: 0.05mm solid rgb(207,207,207);
   min-height: 7.2mm; 
+}
+
+.options-box setting:last-child .prefbox {
+  border-bottom: 0;
 }
 
 
