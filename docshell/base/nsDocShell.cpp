@@ -170,6 +170,7 @@
 #include "nsEventStateManager.h"
 
 #include "nsIFrame.h"
+#include "nsSubDocumentFrame.h"
 
 
 #include "nsIWebBrowserChromeFocus.h"
@@ -7162,7 +7163,7 @@ nsDocShell::RestoreFromHistory()
     
     
     mLoadingURI = nullptr;
-    
+
     
     FirePageHideNotification(!mSavingOldViewer);
 
@@ -7241,6 +7242,17 @@ nsDocShell::RestoreFromHistory()
                 mContentViewer->GetBounds(newBounds);
             }
         }
+    }
+
+    nsCOMPtr<nsIContent> container;
+    nsCOMPtr<nsIDocument> sibling;
+    if (rootViewParent && rootViewParent->GetParent()) {
+        nsIFrame* frame = rootViewParent->GetParent()->GetFrame();
+        container = frame ? frame->GetContent() : nullptr;
+    }
+    if (rootViewSibling) {
+        nsIFrame *frame = rootViewSibling->GetFrame();
+        sibling = frame ? frame->PresContext()->PresShell()->GetDocument() : nullptr;
     }
 
     
@@ -7331,7 +7343,7 @@ nsDocShell::RestoreFromHistory()
 
     
     SetHistoryEntry(&mOSHE, mLSHE);
-    
+
     
 
     
@@ -7445,10 +7457,20 @@ nsDocShell::RestoreFromHistory()
     nsIView *newRootView = newVM ? newVM->GetRootView() : nullptr;
 
     
-    if (rootViewParent) {
+    if (container) {
+        nsSubDocumentFrame* subDocFrame = do_QueryFrame(container->GetPrimaryFrame());
+        rootViewParent = subDocFrame ? subDocFrame->EnsureInnerView() : nullptr;
+    }
+    if (sibling &&
+        sibling->GetShell() &&
+        sibling->GetShell()->GetViewManager()) {
+        rootViewSibling = sibling->GetShell()->GetViewManager()->GetRootView();
+    } else {
+        rootViewSibling = nullptr;
+    }
+    if (rootViewParent && newRootView && newRootView->GetParent() != rootViewParent) {
         nsIViewManager *parentVM = rootViewParent->GetViewManager();
-
-        if (parentVM && newRootView) {
+        if (parentVM) {
             
             
             
