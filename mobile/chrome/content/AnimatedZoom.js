@@ -74,7 +74,8 @@ const AnimatedZoom = {
   },
 
   start: function start() {
-    this.browser = getBrowser();
+    this.tab = Browser.selectedTab;
+    this.browser = this.tab.browser;
     this.zoomFrom = this.zoomRect || this.getStartRect();
     this.startScale = this.browser.scale;
     this.beginTime = mozAnimationStartTime;
@@ -103,7 +104,14 @@ const AnimatedZoom = {
   
   finish: function() {
     this.updateTo(this.zoomTo || this.zoomRect);
-    this.browser.finishFuzzyZoom();
+
+    
+    let browser = this.browser;
+    let finalScale = this.tab.clampZoomLevel(browser.scale);
+    if (browser.scale != finalScale)
+      browser.scale = finalScale; 
+    else
+      browser.finishFuzzyZoom();
 
     Browser.hideSidebars();
     Browser.hideTitlebar();
