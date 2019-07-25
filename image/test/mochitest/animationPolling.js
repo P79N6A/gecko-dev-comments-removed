@@ -1,5 +1,4 @@
 var currentTest;
-var gIsImageLoaded = false;
 var gIsRefImageLoaded = false;
 
 function pollForSuccess ()
@@ -14,11 +13,6 @@ function pollForSuccess ()
   }
 };
 
-function imageLoadCallback()
-{
-  gIsImageLoaded = true;
-}
-
 function referencePoller()
 {
   currentTest.takeReferenceSnapshot();
@@ -30,7 +24,8 @@ function reuseImageCallback()
 }
 
 function failTest ()
-{
+{    imageLoadCallback();
+
   if (currentTest.isTestFinished || currentTest.closeFunc) {
     return;
   }
@@ -110,15 +105,18 @@ function AnimationTest(pollFreq, timeout, referenceElementId, imageElementId,
   this.cleanId = cleanId ? cleanId : '';
   this.xulTest = xulTest ? xulTest : '';
   this.closeFunc = closeFunc ? closeFunc : '';
+};
 
+AnimationTest.prototype.preloadImage = function()
+{
   if (this.srcAttr) {
     this.myImage = new Image();
-    this.myImage.onload = imageLoadCallback;
+    this.myImage.onload = function() { currentTest.continueTest(); };
     this.myImage.src = this.srcAttr;
   } else {
-    gIsImageLoaded = true;
+    this.continueTest();
   }
-}
+};
 
 AnimationTest.prototype.outputDebugInfo = function(message, id, dataUri)
 {
@@ -178,14 +176,23 @@ AnimationTest.prototype.takeBlankSnapshot = function()
 
 
 
-AnimationTest.prototype.beginTest = function ()
+
+
+AnimationTest.prototype.beginTest = function()
 {
   SimpleTest.waitForExplicitFinish();
 
   currentTest = this;
+  this.preloadImage();
+};
 
-  this.takeReferenceSnapshot();
 
+
+
+
+
+AnimationTest.prototype.continueTest = function()
+{
   
   
   setTimeout(failTest, this.timeout);
@@ -194,6 +201,7 @@ AnimationTest.prototype.beginTest = function ()
     this.disableDisplay(document.getElementById(this.imageElementId));
   }
 
+  this.takeReferenceSnapshot();
   this.setupPolledImage();
   setTimeout(pollForSuccess, 10);
 };
@@ -273,6 +281,7 @@ AnimationTest.prototype.takeReferenceSnapshot = function ()
     this.enableDisplay(referenceDiv);
 
     this.referenceSnapshot = snapshotWindow(window, false);
+
     var snapResult = compareSnapshots(this.cleanSnapshot, this.referenceSnapshot,
                                       false);
     if (!snapResult[0]) {
