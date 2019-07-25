@@ -159,10 +159,6 @@ FrameWorker.prototype = {
       workerWindow.removeEventListener("load", loadListener);
       
       
-      function getProtoSource(ob) {
-        let raw = ob.prototype.toSource();
-        return ob.name + ".prototype=" + raw + ";"
-      }
       try {
         Services.scriptloader.loadSubScript("resource://gre/modules/MessagePortBase.jsm", sandbox);
         Services.scriptloader.loadSubScript("resource://gre/modules/MessagePortWorker.js", sandbox);
