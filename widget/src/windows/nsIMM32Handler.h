@@ -57,8 +57,6 @@ class nsIWidget;
 class nsWindow;
 struct nsIntRect;
 
-#define ENABLE_IME_MOUSE_HANDLING 1
-
 #define NS_WM_IMEFIRST WM_IME_SETCONTEXT
 #define NS_WM_IMELAST  WM_IME_KEYUP
 
@@ -172,9 +170,7 @@ protected:
 
   
   
-#ifdef ENABLE_IME_MOUSE_HANDLING
   PRBool OnMouseEvent(nsWindow* aWindow, LPARAM lParam, int aAction);
-#endif 
   static PRBool OnKeyDownEvent(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
                                PRBool &aEatMessage);
 
