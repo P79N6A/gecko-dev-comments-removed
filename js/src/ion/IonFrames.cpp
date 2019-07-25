@@ -308,6 +308,8 @@ MarkIonJSFrame(JSTracer *trc, const IonFrameIterator &frame)
     if (frame.checkInvalidation(&ionScript)) {
         
         
+        
+        IonScript::Trace(trc, ionScript);
     } else if (CalleeTokenIsFunction(layout->calleeToken())) {
         JSFunction *fun = CalleeTokenToFunction(layout->calleeToken());
 
