@@ -7675,12 +7675,6 @@ var gIdentityHandler = {
 
       
       
-      var lookupHost = this._lastLocation.host;
-      if (lookupHost.indexOf(':') < 0)
-        lookupHost += ":443";
-
-      
-      
       var tooltip = gNavigatorBundle.getFormattedString("identity.identified.verifier",
                                                         [iData.caOrg]);
 
@@ -7688,7 +7682,12 @@ var gIdentityHandler = {
       
       
       
-      if (this._overrideService.hasMatchingOverride(this._lastLocation.hostname,
+      
+      
+      
+      
+      if (this._lastLocation.hostname &&
+          this._overrideService.hasMatchingOverride(this._lastLocation.hostname,
                                                     (this._lastLocation.port || 443),
                                                     iData.cert, {}, {}))
         tooltip = gNavigatorBundle.getString("identity.identified.verified_by_you");
