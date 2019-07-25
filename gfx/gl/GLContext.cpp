@@ -928,11 +928,15 @@ TiledTextureImage::DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, 
         result &= mImages[mCurrentImage]->
           DirectUpdate(aSurf, tileRegion, aFrom + nsIntPoint(xPos, yPos));
 
-        
-        
-        
-        if (mCurrentImage == mImages.Length() - 1)
+        if (mCurrentImage == mImages.Length() - 1) {
+            
+            
+            NextTile();
             break;
+        }
+        
+        
+        
     } while (NextTile() || (mTextureState != Valid));
     mCurrentImage = oldCurrentImage;
 
