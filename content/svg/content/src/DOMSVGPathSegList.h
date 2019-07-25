@@ -190,6 +190,12 @@ private:
   
   void EnsureItemAt(PRUint32 aIndex);
 
+  void MaybeInsertNullInAnimValListAt(PRUint32 aIndex,
+                                      PRUint32 aInternalIndex,
+                                      PRUint32 aArgCountForItem);
+  void MaybeRemoveItemFromAnimValListAt(PRUint32 aIndex,
+                                        PRUint32 aArgCountForItem);
+
   
   
   
