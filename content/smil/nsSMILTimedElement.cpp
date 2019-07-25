@@ -2199,7 +2199,7 @@ nsSMILTimedElement::NotifyNewInterval()
     container->SyncPauseTime();
   }
 
-  NotifyTimeDependentsParams params = { mCurrentInterval, container };
+  NotifyTimeDependentsParams params = { this, container };
   mTimeDependents.EnumerateEntries(NotifyNewIntervalCallback, &params);
 }
 
@@ -2309,9 +2309,14 @@ nsSMILTimedElement::NotifyNewIntervalCallback(TimeValueSpecPtrKey* aKey,
   NotifyTimeDependentsParams* params =
     static_cast<NotifyTimeDependentsParams*>(aData);
   NS_ABORT_IF_FALSE(params, "null data ptr while enumerating hashtable");
-  NS_ABORT_IF_FALSE(params->mCurrentInterval, "null current-interval ptr");
+  nsSMILInterval* interval = params->mTimedElement->mCurrentInterval;
+  
+  
+  
+  if (!interval)
+    return PL_DHASH_STOP;
 
   nsSMILTimeValueSpec* spec = aKey->GetKey();
-  spec->HandleNewInterval(*params->mCurrentInterval, params->mTimeContainer);
+  spec->HandleNewInterval(*interval, params->mTimeContainer);
   return PL_DHASH_NEXT;
 }
