@@ -90,21 +90,14 @@ class Bindings
 
     inline Shape *initialShape(JSContext *cx) const;
   public:
-    inline Bindings(JSContext *cx);
+    inline Bindings();
 
     
 
 
 
 
-    inline void transfer(JSContext *cx, Bindings *bindings);
-
-    
-
-
-
-
-    inline void clone(JSContext *cx, Bindings *bindings);
+    inline void transfer(Bindings *bindings);
 
     uint16_t numArgs() const { return nargs; }
     uint16_t numVars() const { return nvars; }
@@ -211,18 +204,10 @@ class Bindings
 
 
 
-    void makeImmutable();
-
-    
 
 
 
 
-
-
-
-
-    const js::Shape *lastArgument() const;
     const js::Shape *lastVariable() const;
 
     void trace(JSTracer *trc);

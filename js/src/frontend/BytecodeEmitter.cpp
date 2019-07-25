@@ -4723,7 +4723,7 @@ EmitFunc(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         sc.cxFlags = funbox->cxFlags;
         if (bce->sc->funMightAliasLocals())
             sc.setFunMightAliasLocals();  
-        sc.bindings.transfer(cx, &funbox->bindings);
+        sc.bindings.transfer(&funbox->bindings);
 
         
         GlobalObject *globalObject = fun->getParent() ? &fun->getParent()->global() : NULL;
