@@ -164,6 +164,7 @@ HTTPPollingTransport.prototype = {
     this._callbackObject = null;
     this._useKeys = useKeys;
     this._interval = interval;
+    this._outgoingRetryBuffer = "";
   },
 
  __request: null,
@@ -263,17 +264,28 @@ HTTPPollingTransport.prototype = {
       
       if ( request.readyState == 4 ) {
 	if ( request.status == 200) {
+	  
+	  
 	  dump( "Server says: " + request.responseText + "\n" );
 	  
 	  var latestCookie = request.getResponseHeader( "Set-Cookie" );
 	  if ( latestCookie.length > 0 ) {
 	    self._setIdFromCookie( self, latestCookie );
 	  }
+	  
 	  if ( callbackObj != null && request.responseText.length > 0 ) {
 	    callbackObj.onIncomingData( request.responseText );
 	  }
 	} else {
 	  dump ( "Error!  Got HTTP status code " + request.status + "\n" );
+	  if ( request.status == 0 ) {
+	    
+
+
+
+
+	    self._outgoingRetryBuffer = requestXml;
+	  }
 	}
       }
     };
@@ -303,7 +315,11 @@ HTTPPollingTransport.prototype = {
     
 
 
-    this._doPost( "" );
+
+
+    var outgoingMsg = this._outgoingRetryBuffer
+    this._outgoingRetryBuffer = "";
+    this._doPost( outgoingMsg );
   },
  
  connect: function() {

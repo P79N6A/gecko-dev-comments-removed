@@ -48,7 +48,7 @@ function run_test() {
       do_throw( "Timed out waiting for message." );
     }
   };
-  timer.initWithCallback( timerResponder, 10000, timer.TYPE_ONE_SHOT );
+  timer.initWithCallback( timerResponder, 20000, timer.TYPE_ONE_SHOT );
 
 
   
@@ -71,16 +71,13 @@ function run_test() {
   alice.waitForConnection();
   do_check_neq( alice._connectionStatus, alice.FAILED );
 
-  dump( "Is test over? " + testIsOver + "\n" );
   
   bob.sendMessage( "alice@" + jabberDomain, sometext );
-  dump( "Is test over? " + testIsOver + "\n" );
   
   var currentThread = threadManager.currentThread;
   while( !testIsOver ) {
     currentThread.processNextEvent( true );
   }
-  dump( "I'm past the while loop!\n " );
 
   alice.disconnect();
   bob.disconnect();
