@@ -1054,6 +1054,7 @@ CreateNewGlobal(JSContext *cx, JSClass *clasp, nsIPrincipal *principal,
     
     
     
+    MOZ_ASSERT(priv);
     nsAutoPtr<xpc::CompartmentPrivate> priv_holder(priv);
     JSObject *tempGlobal =
         JS_NewGlobalObject(cx, clasp, nsJSPrincipals::get(principal));
