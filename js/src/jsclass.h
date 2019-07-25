@@ -22,6 +22,7 @@ namespace js {
 
 class PropertyName;
 class SpecialId;
+class PropertyId;
 
 static JS_ALWAYS_INLINE jsid
 SPECIALID_TO_JSID(const SpecialId &sid);
@@ -37,12 +38,13 @@ SPECIALID_TO_JSID(const SpecialId &sid);
 
 
 
-
-class SpecialId {
+class SpecialId
+{
     uintptr_t bits;
 
     
     friend JS_ALWAYS_INLINE jsid SPECIALID_TO_JSID(const SpecialId &sid);
+    friend class PropertyId;
 
     static const uintptr_t TYPE_VOID = JSID_TYPE_VOID;
     static const uintptr_t TYPE_OBJECT = JSID_TYPE_OBJECT;
