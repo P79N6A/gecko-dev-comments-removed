@@ -1822,7 +1822,9 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
       
       
       nsCOMPtr<nsIXPConnectJSObjectHolder> &holder = mInnerWindowHolder;
-      rv = mContext->CreateNativeGlobalForInner(sgo, isChrome,
+      rv = mContext->CreateNativeGlobalForInner(sgo,
+                                                aDocument->GetDocumentURI(),
+                                                isChrome,
                                                 aDocument->NodePrincipal(),
                                                 &newInnerWindow->mJSObject,
                                                 getter_AddRefs(holder));

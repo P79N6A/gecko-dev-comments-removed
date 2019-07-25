@@ -2069,6 +2069,7 @@ nsJSContext::GetNativeGlobal()
 nsresult
 nsJSContext::CreateNativeGlobalForInner(
                                 nsIScriptGlobalObject *aNewInner,
+                                nsIURI *aURI,
                                 bool aIsChrome,
                                 nsIPrincipal *aPrincipal,
                                 JSObject** aNativeGlobal, nsISupports **aHolder)
@@ -2092,6 +2093,12 @@ nsJSContext::CreateNativeGlobalForInner(
   }
   jsholder->GetJSObject(aNativeGlobal);
   jsholder.forget(aHolder);
+
+  
+  
+  MOZ_ASSERT(aNativeGlobal && *aNativeGlobal);
+  xpc::SetLocationForGlobal(*aNativeGlobal, aURI);
+
   return NS_OK;
 }
 

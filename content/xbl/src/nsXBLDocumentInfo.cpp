@@ -44,7 +44,7 @@ class nsXBLDocGlobalObject : public nsIScriptGlobalObject,
                              public nsIScriptObjectPrincipal
 {
 public:
-  nsXBLDocGlobalObject(nsIScriptGlobalObjectOwner *aGlobalObjectOwner);
+  nsXBLDocGlobalObject(nsXBLDocumentInfo *aGlobalObjectOwner);
 
   
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -82,7 +82,7 @@ protected:
   nsCOMPtr<nsIScriptContext> mScriptContext;
   JSObject *mJSObject;
 
-  nsIScriptGlobalObjectOwner* mGlobalObjectOwner; 
+  nsXBLDocumentInfo* mGlobalObjectOwner; 
   static JSClass gSharedGlobalClass;
 };
 
@@ -181,7 +181,7 @@ JSClass nsXBLDocGlobalObject::gSharedGlobalClass = {
 
 
 
-nsXBLDocGlobalObject::nsXBLDocGlobalObject(nsIScriptGlobalObjectOwner *aGlobalObjectOwner)
+nsXBLDocGlobalObject::nsXBLDocGlobalObject(nsXBLDocumentInfo *aGlobalObjectOwner)
     : mJSObject(nsnull),
       mGlobalObjectOwner(aGlobalObjectOwner) 
 {
@@ -280,6 +280,11 @@ nsXBLDocGlobalObject::EnsureScriptEnvironment()
   rv = xpc_CreateGlobalObject(cx, &gSharedGlobalClass, principal, nsnull,
                               false, &mJSObject, &compartment);
   NS_ENSURE_SUCCESS(rv, NS_OK);
+
+  
+  
+  nsIURI *ownerURI = mGlobalObjectOwner->DocumentURI();
+  xpc::SetLocationForGlobal(mJSObject, ownerURI);
 
   ::JS_SetGlobalObject(cx, mJSObject);
 
