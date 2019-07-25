@@ -85,6 +85,11 @@ private:
   PRPackedBool mShuttingDown;   
   PRPackedBool mAttemptingQuit; 
   PRPackedBool mRestart;        
+
+  PRTime mRestoredTimestamp;
+
+  nsresult RecordStartupDuration();
+  nsresult RecordAddonEvent(const PRUnichar *event, nsISupports *details);
 };
 
 #endif 
