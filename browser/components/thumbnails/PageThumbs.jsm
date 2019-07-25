@@ -137,7 +137,12 @@ let PageThumbs = {
     telemetry.getHistogramById("FX_THUMBNAILS_CAPTURE_TIME_MS")
       .add(new Date() - telemetryCaptureTime);
 
-    canvas.mozFetchAsStream(aCallback, this.contentType);
+    
+    
+    
+    Services.tm.currentThread.dispatch(function () {
+      canvas.mozFetchAsStream(aCallback, this.contentType);
+    }.bind(this), Ci.nsIThread.DISPATCH_NORMAL);
   },
 
   
