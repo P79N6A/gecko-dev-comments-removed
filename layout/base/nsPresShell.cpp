@@ -6804,14 +6804,26 @@ PresShell::AdjustContextMenuKeyEvent(nsMouseEvent* aEvent)
   
   
   nsRootPresContext* rootPC = mPresContext->GetRootPresContext();
+  aEvent->refPoint.x = 0;
+  aEvent->refPoint.y = 0;
   if (rootPC) {
     rootPC->PresShell()->GetViewManager()->
       GetRootWidget(getter_AddRefs(aEvent->widget));
+
+    if (aEvent->widget) {
+      
+      nsPoint offset(0, 0);
+      nsIFrame* rootFrame = FrameManager()->GetRootFrame();
+      if (rootFrame) {
+        nsIView* view = rootFrame->GetClosestView(&offset);
+        offset += view->GetOffsetToWidget(aEvent->widget);
+        aEvent->refPoint =
+          offset.ToNearestPixels(mPresContext->AppUnitsPerDevPixel());
+      }
+    }
   } else {
     aEvent->widget = nsnull;
   }
-  aEvent->refPoint.x = 0;
-  aEvent->refPoint.y = 0;
 
   
   nsIntPoint caretPoint;
