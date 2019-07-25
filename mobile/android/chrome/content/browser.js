@@ -1985,6 +1985,9 @@ Tab.prototype = {
         }
 
         
+        plugin.clientTop;
+
+        
         let overlay = plugin.ownerDocument.getAnonymousElementByAttribute(plugin, "class", "mainBox");
         if (!overlay || PluginHelper.isTooSmall(plugin, overlay)) {
           if (!this.clickToPlayPluginDoorhangerShown)
