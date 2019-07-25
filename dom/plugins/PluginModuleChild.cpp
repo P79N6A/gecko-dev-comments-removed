@@ -39,7 +39,7 @@
 
 #include "mozilla/plugins/PluginModuleChild.h"
 
-#ifdef OS_LINUX
+#ifdef MOZ_WIDGET_GTK2
 #include <gtk/gtk.h>
 #endif
 
@@ -177,7 +177,7 @@ PluginModuleChild::Init(const std::string& aPluginFilename,
     return true;
 }
 
-#if defined(OS_LINUX)
+#if defined(MOZ_WIDGET_GTK2)
 typedef void (*GObjectDisposeFn)(GObject*);
 typedef void (*GtkPlugEmbeddedFn)(GtkPlug*);
 
@@ -234,7 +234,7 @@ bool
 PluginModuleChild::InitGraphics()
 {
     
-#if defined(OS_LINUX)
+#if defined(MOZ_WIDGET_GTK2)
     gtk_init(0, 0);
 
     
@@ -253,6 +253,7 @@ PluginModuleChild::InitGraphics()
     GtkPlugEmbeddedFn* embedded = &GTK_PLUG_CLASS(gtk_plug_class)->embedded;
     real_gtk_plug_embedded = *embedded;
     *embedded = wrap_gtk_plug_embedded;
+#elif defined(MOZ_WIDGET_QT)
 #else
     
 #endif

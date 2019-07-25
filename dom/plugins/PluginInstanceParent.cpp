@@ -75,6 +75,11 @@ PluginInstanceParent::~PluginInstanceParent()
 {
     if (mNPP)
         mNPP->pdata = NULL;
+
+#if defined(OS_WIN)
+    NS_ASSERTION(!(mPluginHWND || mPluginWndProc),
+        "Subclass was not reset correctly before the dtor was reached!");
+#endif
 }
 
 bool
@@ -96,6 +101,19 @@ ActorCollect(const void* aKey,
 }
 
 } 
+
+void
+PluginInstanceParent::ActorDestroy(ActorDestroyReason why)
+{
+#if defined(OS_WIN)
+    if (why == AbnormalShutdown) {
+        
+        
+        SharedSurfaceRelease();
+        UnsubclassPluginWindow();
+    }
+#endif
+}
 
 NPError
 PluginInstanceParent::Destroy()

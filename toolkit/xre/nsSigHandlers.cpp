@@ -53,6 +53,9 @@
 #include "plstr.h"
 #include "prenv.h"
 #include "nsDebug.h"
+#ifdef MOZ_IPC
+#  include "nsXULAppAPI.h"
+#endif
 
 #if defined(LINUX)
 #include <sys/time.h>
@@ -82,6 +85,12 @@
 
 static char _progname[1024] = "huh?";
 static unsigned int _gdb_sleep_duration = 300;
+
+#ifdef MOZ_IPC
+
+
+static const int kClientChannelFd = 3;
+#endif
 
 #if defined(LINUX) && defined(DEBUG) && \
       (defined(__i386) || defined(__x86_64) || defined(PPC))
@@ -158,6 +167,17 @@ ah_crap_handler(int signum)
 
   _exit(signum);
 }
+
+#ifdef MOZ_IPC
+void
+child_ah_crap_handler(int signum)
+{
+  if (!getenv("MOZ_DONT_UNBLOCK_PARENT_ON_CHILD_CRASH"))
+    close(kClientChannelFd);
+  ah_crap_handler(signum);
+}
+#endif
+
 #endif 
 
 #ifdef XP_BEOS
@@ -313,9 +333,15 @@ void InstallSignalHandlers(const char *ProgramName)
 
 #elif defined(CRAWL_STACK_ON_SIGSEGV)
   if (!getenv("XRE_NO_WINDOWS_CRASH_DIALOG")) {
-    signal(SIGSEGV, ah_crap_handler);
-    signal(SIGILL, ah_crap_handler);
-    signal(SIGABRT, ah_crap_handler);
+    void (*crap_handler)(int) =
+#ifdef MOZ_IPC
+      GeckoProcessType_Default != XRE_GetProcessType() ?
+          child_ah_crap_handler :
+#endif
+          ah_crap_handler;
+    signal(SIGSEGV, crap_handler);
+    signal(SIGILL, crap_handler);
+    signal(SIGABRT, crap_handler);
   }
 #endif 
 
@@ -462,6 +488,9 @@ void InstallSignalHandlers(const char *ProgramName)
 }
 
 #endif
+
+#elif defined(XP_OS2)
+
 
 #else
 #error No signal handling implementation for this platform.
