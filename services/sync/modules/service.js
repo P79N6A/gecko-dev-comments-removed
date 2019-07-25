@@ -1026,12 +1026,8 @@ WeaveSvc.prototype = {
 
 
 
-
-
-  wipeClient: function WeaveSvc_wipeClient(onComplete, engines) {
-    let fn = function WeaveSvc__wipeClient() {
-      let self = yield;
-
+  wipeClient: function WeaveSvc_wipeClient(engines)
+    this._catch(this._notify("wipe-client", "", function() {
       
       if (!engines) {
         
@@ -1046,9 +1042,7 @@ WeaveSvc.prototype = {
       
       for each (let engine in engines)
         engine.wipeClient();
-    };
-    this._catchAll(this._notifyAsync("wipe-client", "", fn)).async(this, onComplete);
-  },
+    }))(),
 
   
 
@@ -1187,7 +1181,7 @@ WeaveSvc.prototype = {
             engines = null;
             
           case "wipeEngine":
-            yield this.wipeClient(self.cb, engines);
+            this.wipeClient(engines);
             break;
 
           default:
