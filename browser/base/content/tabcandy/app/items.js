@@ -15,6 +15,8 @@
 
 
 
+
+
 window.Item = function() {
   
   
@@ -36,6 +38,7 @@ window.Item = function() {
   
   
   this.container = null;
+  
   
   
   
@@ -397,6 +400,9 @@ window.Items = {
     var height = Math.max(100, window.innerHeight - (top + bottom));
     return new Rect(0, top, width, height);
   },
+  
+  
+  
   
   
   

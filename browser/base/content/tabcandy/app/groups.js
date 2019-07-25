@@ -1332,9 +1332,19 @@ window.Groups = {
   
   setActiveGroup: function(group) {
     this._activeGroup = group;
-    if(group)
-      UI.tabBar.showOnlyTheseTabs( group._children );
-    else if( group == null)
+    this.updateTabBarForActiveGroup();
+  },
+  
+  
+  
+  
+  updateTabBarForActiveGroup: function() {
+    if(!window.UI)
+      return; 
+      
+    if(this._activeGroup)
+      UI.tabBar.showOnlyTheseTabs( this._activeGroup._children );
+    else if( this._activeGroup == null)
       UI.tabBar.showOnlyTheseTabs( this.getOrphanedTabs() );
   },
   

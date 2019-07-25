@@ -1,6 +1,8 @@
 
 
 
+
+
 window.TabItem = function(container, tab) {
   this.defaultSize = new Point(TabItems.tabWidth, TabItems.tabHeight);
   this.locked = {};
@@ -223,6 +225,8 @@ window.TabItem.prototype = $.extend(new Item(), {
     TabItems.zoomTo(this.container);
   }
 });
+
+
 
 
 window.TabItems = {
@@ -471,7 +475,12 @@ window.TabItems = {
           if(tab.groupID) {
             var group = Groups.group(tab.groupID);
             group.add(item);
-          }
+            
+            if(item.tab == Utils.activeTab) 
+              Groups.setActiveGroup(item.parent);
+          }  
+          
+          Groups.updateTabBarForActiveGroup();
           
           self.storageData.tabs.splice(index, 1);
           item.reconnected = true;
