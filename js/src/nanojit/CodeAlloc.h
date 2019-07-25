@@ -103,6 +103,17 @@ namespace nanojit
 
 
 
+
+
+
+
+
+
+
+
+
+
+
     class CodeAlloc
     {
         static const size_t sizeofMinBlock = offsetof(CodeList, code);
