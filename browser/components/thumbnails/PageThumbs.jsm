@@ -110,6 +110,9 @@ let PageThumbs = {
 
   captureAndStore: function PageThumbs_captureAndStore(aBrowser, aCallback) {
     let url = aBrowser.currentURI.spec;
+    let channel = aBrowser.docShell.currentDocumentChannel;
+    let originalURL = channel.originalURI.spec;
+
     this.capture(aBrowser.contentWindow, function (aInputStream) {
       let telemetryStoreTime = new Date();
 
@@ -117,6 +120,20 @@ let PageThumbs = {
         if (aSuccessful) {
           Services.telemetry.getHistogramById("FX_THUMBNAILS_STORE_TIME_MS")
             .add(new Date() - telemetryStoreTime);
+
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          if (url != originalURL)
+            PageThumbsCache._copy(url, originalURL);
         }
 
         if (aCallback)
@@ -204,6 +221,54 @@ let PageThumbsCache = {
   getWriteEntry: function Cache_getWriteEntry(aKey, aCallback) {
     
     this._openCacheEntry(aKey, Ci.nsICache.ACCESS_WRITE, aCallback);
+  },
+
+  
+
+
+
+
+  _copy: function Cache_copy(aSourceKey, aTargetKey) {
+    let sourceEntry, targetEntry, waitingCount = 2;
+
+    function finish() {
+      if (sourceEntry)
+        sourceEntry.close();
+
+      if (targetEntry)
+        targetEntry.close();
+    }
+
+    function copyDataWhenReady() {
+      if (--waitingCount > 0)
+        return;
+
+      if (!sourceEntry || !targetEntry) {
+        finish();
+        return;
+      }
+
+      let inputStream = sourceEntry.openInputStream(0);
+      let outputStream = targetEntry.openOutputStream(0);
+
+      
+      NetUtil.asyncCopy(inputStream, outputStream, function (aResult) {
+        if (Components.isSuccessCode(aResult))
+          targetEntry.markValid();
+
+        finish();
+      });
+    }
+
+    this.getReadEntry(aSourceKey, function (aSourceEntry) {
+      sourceEntry = aSourceEntry;
+      copyDataWhenReady();
+    });
+
+    this.getWriteEntry(aTargetKey, function (aTargetEntry) {
+      targetEntry = aTargetEntry;
+      copyDataWhenReady();
+    });
   },
 
   
