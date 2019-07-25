@@ -409,7 +409,7 @@ ProcessSoftwareUpdateCommand(DWORD argc, LPWSTR *argv)
 
       
       
-      StartServiceUpdate(argc, argv);
+      StartServiceUpdate(installDir);
     } else {
       result = FALSE;
       LOG(("Error running update process. Updating update.status"
