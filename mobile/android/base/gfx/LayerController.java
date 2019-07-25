@@ -212,7 +212,13 @@ public class LayerController {
     public void setViewportMetrics(ViewportMetrics viewport) {
         mViewportMetrics = new ViewportMetrics(viewport);
         Log.d(LOGTAG, "setViewportMetrics: " + mViewportMetrics);
-        GeckoApp.mAppContext.repositionPluginViews(false);
+        
+        
+        GeckoApp.mAppContext.runOnUiThread(new Runnable() {
+            public void run() {
+                GeckoApp.mAppContext.repositionPluginViews(false);
+            }
+        });
         mView.requestRender();
     }
 
