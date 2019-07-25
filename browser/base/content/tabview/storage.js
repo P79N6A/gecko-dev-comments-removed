@@ -188,6 +188,14 @@ let Storage = {
   
   
   
+  saveVisibilityData: function Storage_saveVisibilityData(win, data) {
+    this._sessionStore.setWindowValue(
+      win, win.TabView.VISIBILITY_IDENTIFIER, data);
+  },
+
+  
+  
+  
   saveData: function Storage_saveData(win, id, data) {
     try {
       this._sessionStore.setWindowValue(win, id, JSON.stringify(data));
