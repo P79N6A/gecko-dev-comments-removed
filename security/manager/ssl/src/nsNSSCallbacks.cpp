@@ -996,7 +996,7 @@ PSM_SSL_PKIX_AuthCertificate(PRFileDesc *fd, CERTCertificate *peerCert, PRBool c
                                 cvout, pinarg);
     }
 
-    if ( rv == SECSuccess && isServer ) {
+    if ( rv == SECSuccess && !isServer ) {
         
 
 
