@@ -96,7 +96,7 @@ class RemoteAutomation(Automation):
 
         return env
 
-    def waitForFinish(self, proc, utilityPath, timeout, maxTime, startTime, debuggerInfo, symbolsDir):
+    def waitForFinish(self, proc, utilityPath, timeout, maxTime, startTime, debuggerInfo, symbolsDir, logger):
         
         status = proc.wait(timeout = maxTime)
 
