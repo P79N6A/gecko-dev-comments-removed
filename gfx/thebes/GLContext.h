@@ -324,7 +324,7 @@ public:
     enum TextureState
     {
       Created, 
-      Initialized,  
+      Allocated,  
       Valid  
     };
     
