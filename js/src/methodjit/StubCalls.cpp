@@ -2351,9 +2351,15 @@ stubs::FunctionFrameEpilogue(VMFrame &f)
 void JS_FASTCALL
 stubs::AnyFrameEpilogue(VMFrame &f)
 {
+    
+
+
+
+
+    if (!ScriptEpilogue(f.cx, f.fp(), true))
+        THROW();
     if (f.fp()->isNonEvalFunctionFrame())
         f.fp()->functionEpilogue();
-    stubs::ScriptDebugEpilogue(f);
 }
 
 template <bool Clamped>
