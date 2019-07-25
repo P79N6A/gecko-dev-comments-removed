@@ -720,7 +720,7 @@ var PlacesUIUtils = {
 
 
 
-  markPageAsFollowedLink: function PUIU_markPageAsUserClicked(aURL) {
+  markPageAsFollowedLink: function PUIU_markPageAsFollowedLink(aURL) {
     PlacesUtils.history.QueryInterface(Ci.nsIBrowserHistory)
                .markPageAsFollowedLink(this.createFixedURI(aURL));
   },

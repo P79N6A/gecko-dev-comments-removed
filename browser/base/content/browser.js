@@ -5124,6 +5124,15 @@ function contentAreaClick(event, isPanelClick)
   }
 
   handleLinkClick(event, href, linkNode);
+
+  
+  
+  
+  
+  try {
+    PlacesUIUtils.markPageAsFollowedLink(href);
+  } catch (ex) {  }
+
   return true;
 }
 
