@@ -1829,7 +1829,18 @@ gboolean
 nsDragService::RunScheduledTask()
 {
     if (mTargetWindow && mTargetWindow != mPendingWindow) {
-        mTargetWindow->OnDragLeave();
+        PR_LOG(sDragLm, PR_LOG_DEBUG,
+               ("nsDragService: dispatch drag leave (%p)\n",
+                mTargetWindow.get()));
+        mTargetWindow->
+            DispatchDragEvent(NS_DRAGDROP_EXIT, mTargetWindowPoint, 0);
+
+        if (!mSourceNode) {
+            
+            
+            
+            EndDragSession(false);
+        }
     }
 
     
@@ -1889,8 +1900,7 @@ nsDragService::RunScheduledTask()
     
     if (task == eDragTaskMotion || positionHasChanged) {
         nsWindow::UpdateDragStatus(mTargetDragContext, this);
-        mTargetWindow->
-            DispatchDragMotionEvents(this, mTargetWindowPoint, mTargetTime);
+        DispatchMotionEvents();
 
         if (task == eDragTaskMotion) {
             
@@ -1900,8 +1910,7 @@ nsDragService::RunScheduledTask()
     }
 
     if (task == eDragTaskDrop) {
-        gboolean success = mTargetWindow->
-            DispatchDragDropEvent(this, mTargetWindowPoint, mTargetTime);
+        gboolean success = DispatchDropEvent();
 
         
         
@@ -1931,4 +1940,32 @@ nsDragService::RunScheduledTask()
     
     mTaskSource = 0;
     return FALSE;
+}
+
+void
+nsDragService::DispatchMotionEvents()
+{
+    mCanDrop = false;
+
+    FireDragEventAtSource(NS_DRAGDROP_DRAG);
+
+    mTargetWindow->
+        DispatchDragEvent(NS_DRAGDROP_OVER, mTargetWindowPoint, mTargetTime);
+}
+
+
+gboolean
+nsDragService::DispatchDropEvent()
+{
+    
+    
+    
+    if (mTargetWindow->IsDestroyed())
+        return FALSE;
+
+    PRUint32 msg = mCanDrop ? NS_DRAGDROP_DROP : NS_DRAGDROP_EXIT;
+
+    mTargetWindow->DispatchDragEvent(msg, mTargetWindowPoint, mTargetTime);
+
+    return mCanDrop;
 }

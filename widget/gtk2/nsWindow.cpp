@@ -3304,37 +3304,6 @@ nsWindow::ThemeChanged()
 }
 
 void
-nsWindow::DispatchDragMotionEvents(nsDragService *aDragService,
-                                   const nsIntPoint& aWindowPoint, guint aTime)
-{
-    aDragService->SetCanDrop(false);
-
-    aDragService->FireDragEventAtSource(NS_DRAGDROP_DRAG);
-
-    DispatchDragEvent(NS_DRAGDROP_OVER, aWindowPoint, aTime);
-}
-
-
-gboolean
-nsWindow::DispatchDragDropEvent(nsDragService *aDragService,
-                                const nsIntPoint& aWindowPoint, guint aTime)
-{
-    
-    
-    
-    if (mIsDestroyed)
-        return FALSE;
-
-    bool canDrop;
-    aDragService->GetCanDrop(&canDrop);
-    PRUint32 msg = canDrop ? NS_DRAGDROP_DROP : NS_DRAGDROP_EXIT;
-
-    DispatchDragEvent(msg, aWindowPoint, aTime);
-
-    return canDrop;
-}
-
-void
 nsWindow::DispatchDragEvent(PRUint32 aMsg, const nsIntPoint& aRefPoint,
                             guint aTime)
 {
@@ -3369,34 +3338,6 @@ nsWindow::OnDragDataReceivedEvent(GtkWidget *aWidget,
 
     dragSessionGTK->TargetDataReceived(aWidget, aDragContext, aX, aY,
                                        aSelectionData, aInfo, aTime);
-}
-
-void
-nsWindow::OnDragLeave(void)
-{
-    LOGDRAG(("nsWindow::OnDragLeave(%p)\n", (void*)this));
-
-    DispatchDragEvent(NS_DRAGDROP_EXIT, nsIntPoint(0, 0), 0);
-
-    nsCOMPtr<nsIDragService> dragService = do_GetService(kCDragServiceCID);
-
-    if (dragService) {
-        nsCOMPtr<nsIDragSession> currentDragSession;
-        dragService->GetCurrentSession(getter_AddRefs(currentDragSession));
-
-        if (currentDragSession) {
-            nsCOMPtr<nsIDOMNode> sourceNode;
-            currentDragSession->GetSourceNode(getter_AddRefs(sourceNode));
-
-            if (!sourceNode) {
-                
-                
-                
-                
-                dragService->EndDragSession(false);
-            }
-        }
-    }
 }
 
 static void

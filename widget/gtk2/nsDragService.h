@@ -244,6 +244,8 @@ private:
     
     static gboolean TaskDispatchCallback(gpointer data);
     gboolean RunScheduledTask();
+    void DispatchMotionEvents();
+    gboolean DispatchDropEvent();
 };
 
 #endif
