@@ -85,6 +85,28 @@ let Util = {
         aFunc();
       }
     }, Ci.nsIThread.DISPATCH_NORMAL);
+  },
+
+  getHrefForElement: function getHrefForElement(target) {
+    
+    
+    
+
+    let link = null;
+    while (target) {
+      if (target instanceof HTMLAnchorElement || 
+          target instanceof HTMLAreaElement ||
+          target instanceof HTMLLinkElement) {
+          if (target.hasAttribute("href"))
+            link = target;
+      }
+      target = target.parentNode;
+    }
+
+    if (link && link.hasAttribute("href"))
+      return link.href;
+    else
+      return null;
   }
 
 };
