@@ -180,7 +180,8 @@
 #include "nsITimer.h"
 #ifdef ACCESSIBILITY
 #include "nsIAccessibilityService.h"
-#include "nsAccessible.h"
+#include "nsIAccessible.h"
+#include "nsIAccessibleEvent.h"
 #endif
 
 
@@ -6331,10 +6332,8 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsIView *aView,
 #ifdef ACCESSIBILITY
   if (aEvent->eventStructType == NS_ACCESSIBLE_EVENT)
   {
-    nsAccessibleEvent *accEvent = static_cast<nsAccessibleEvent*>(aEvent);
-    accEvent->mAccessible = nsnull;
-
-    nsCOMPtr<nsIAccessibilityService> accService =
+    static_cast<nsAccessibleEvent*>(aEvent)->accessible = nsnull;
+    nsCOMPtr<nsIAccessibilityService> accService = 
       do_GetService("@mozilla.org/accessibilityService;1");
     if (accService) {
       nsCOMPtr<nsISupports> container = mPresContext->GetContainer();
@@ -6343,12 +6342,14 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsIView *aView,
         
         return NS_OK;
       }
-
+      nsIAccessible* acc;
       nsCOMPtr<nsIDOMNode> domNode(do_QueryInterface(mDocument));
       NS_ASSERTION(domNode, "No dom node for doc");
-
-      accEvent->mAccessible = accService->GetAccessibleInShell(domNode, this);
-
+      accService->GetAccessibleInShell(domNode, this, &acc);
+      
+      
+      
+      static_cast<nsAccessibleEvent*>(aEvent)->accessible = acc;
       
       
       gIsAccessibilityActive = PR_TRUE;

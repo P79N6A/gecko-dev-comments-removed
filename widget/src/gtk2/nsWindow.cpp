@@ -95,6 +95,8 @@
 
 #ifdef ACCESSIBILITY
 #include "nsIAccessibilityService.h"
+#include "nsIAccessibleRole.h"
+#include "nsIAccessibleEvent.h"
 #include "prenv.h"
 #include "stdlib.h"
 static PRBool sAccessibilityChecked = PR_FALSE;
@@ -6514,11 +6516,36 @@ void
 nsWindow::CreateRootAccessible()
 {
     if (mIsTopLevel && !mRootAccessible) {
-        nsAccessible *acc = DispatchAccessibleEvent();
+        nsCOMPtr<nsIAccessible> acc;
+        DispatchAccessibleEvent(getter_AddRefs(acc));
 
         if (acc) {
             mRootAccessible = acc;
         }
+    }
+}
+
+void
+nsWindow::GetRootAccessible(nsIAccessible** aAccessible)
+{
+    nsCOMPtr<nsIAccessible> accessible, parentAccessible;
+    DispatchAccessibleEvent(getter_AddRefs(accessible));
+    PRUint32 role;
+
+    if (!accessible) {
+        return;
+    }
+    while (PR_TRUE) {
+        accessible->GetParent(getter_AddRefs(parentAccessible));
+        if (!parentAccessible) {
+            break;
+        }
+        parentAccessible->GetRole(&role);
+        if (role == nsIAccessibleRole::ROLE_APP_ROOT) {
+            NS_ADDREF(*aAccessible = accessible);
+            break;
+        }
+        accessible = parentAccessible;
     }
 }
 
@@ -6530,32 +6557,39 @@ nsWindow::CreateRootAccessible()
 
 
 
-nsAccessible*
-nsWindow::DispatchAccessibleEvent()
+PRBool
+nsWindow::DispatchAccessibleEvent(nsIAccessible** aAccessible)
 {
+    PRBool result = PR_FALSE;
     nsAccessibleEvent event(PR_TRUE, NS_GETACCESSIBLE, this);
+
+    *aAccessible = nsnull;
 
     nsEventStatus status;
     DispatchEvent(&event, status);
-    (nsEventStatus_eConsumeNoDefault == status) ? PR_TRUE : PR_FALSE;
+    result = (nsEventStatus_eConsumeNoDefault == status) ? PR_TRUE : PR_FALSE;
 
-    return event.mAccessible;
+    
+    if (event.accessible)
+        *aAccessible = event.accessible;
+
+    return result;
 }
 
 void
 nsWindow::DispatchActivateEventAccessible(void)
 {
     if (sAccessibilityEnabled) {
+        nsCOMPtr<nsIAccessible> rootAcc;
+        GetRootAccessible(getter_AddRefs(rootAcc));
 
         nsCOMPtr<nsIAccessibilityService> accService =
             do_GetService("@mozilla.org/accessibilityService;1");
 
         if (accService) {
-            nsCOMPtr<nsIAccessible> appRootAcc;
-            accService->GetApplicationAccessible(getter_AddRefs(appRootAcc));
             accService->FireAccessibleEvent(
                             nsIAccessibleEvent::EVENT_WINDOW_ACTIVATE,
-                            appRootAcc);
+                            rootAcc);
         }
     }
 }
@@ -6564,15 +6598,16 @@ void
 nsWindow::DispatchDeactivateEventAccessible(void)
 {
     if (sAccessibilityEnabled) {
+        nsCOMPtr<nsIAccessible> rootAcc;
+        GetRootAccessible(getter_AddRefs(rootAcc));
+
         nsCOMPtr<nsIAccessibilityService> accService =
             do_GetService("@mozilla.org/accessibilityService;1");
 
         if (accService) {
-          nsCOMPtr<nsIAccessible> appRootAcc;
-          accService->GetApplicationAccessible(getter_AddRefs(appRootAcc));
           accService->FireAccessibleEvent(
                           nsIAccessibleEvent::EVENT_WINDOW_DEACTIVATE,
-                          appRootAcc);
+                          rootAcc);
         }
     }
 }

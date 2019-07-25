@@ -41,35 +41,22 @@
 #ifndef _nsIAccessibilityService_h_
 #define _nsIAccessibilityService_h_
 
+#include "nsISupports.h"
 #include "nsIAccessibleRetrieval.h"
-#include "nsIAccessibleEvent.h"
 
-class nsAccessible;
-class nsIContent;
 class nsIDocument;
 class nsIFrame;
-class nsIPresShell;
 class nsObjectFrame;
-
+class nsIContent;
 
 #define NS_IACCESSIBILITYSERVICE_IID \
-{0x9f43b315, 0x53c6, 0x4d46,         \
-  {0x98, 0x18, 0x9c, 0x85, 0x93, 0xe9, 0x19, 0x84} }
+{0x33fa2a8d, 0x72e5, 0x4b8b,         \
+  {0xbb, 0x17, 0x6b, 0x22, 0x79, 0x05, 0x5c, 0x6c} }
 
 class nsIAccessibilityService : public nsIAccessibleRetrieval
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_IACCESSIBILITYSERVICE_IID)
-
-  
-
-
-
-
-
-
-  virtual nsAccessible* GetAccessibleInShell(nsIDOMNode *aNode,
-                                             nsIPresShell *aPresShell) = 0;
 
   
 
