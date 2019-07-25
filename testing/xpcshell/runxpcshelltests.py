@@ -106,6 +106,7 @@ class XPCShellTests(object):
     failCount = 0
 
     testharnessdir = os.path.dirname(os.path.abspath(__file__))
+    headJSPath = testharnessdir.replace("\\", "/") + "/head.js"
     xpcshell = os.path.abspath(xpcshell)
     
     httpdJSPath = os.path.join(os.path.dirname(xpcshell), "components", "httpd.js").replace("\\", "/");
@@ -151,9 +152,12 @@ class XPCShellTests(object):
         pStderr = STDOUT
 
     
+    
+    
     xpcsCmd = [xpcshell, '-g', xrePath, '-j', '-s'] + \
               ['-e', 'const _HTTPD_JS_PATH = "%s";' % httpdJSPath,
-              '-f', os.path.join(testharnessdir, 'head.js')]
+               '-e', 'const _HEAD_JS_PATH = "%s";' % headJSPath, 
+               '-f', os.path.join(testharnessdir, 'head.js')]
 
     if debuggerInfo:
       xpcsCmd = [debuggerInfo["path"]] + debuggerInfo["args"] + xpcsCmd

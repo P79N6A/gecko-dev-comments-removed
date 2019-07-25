@@ -119,28 +119,7 @@ function _do_quit() {
   _quit = true;
 }
 
-function _dump_exception_stack(stack) {
-  stack.split("\n").forEach(function(frame) {
-    if (!frame)
-      return;
-    
-    let frame_regexp = new RegExp("(.*)\\(.*\\)@(.*):(\\d*)", "g");
-    let parts = frame_regexp.exec(frame);
-    dump("JS frame :: " + parts[2] + " :: " + (parts[1] ? parts[1] : "anonymous") + " :: line " + parts[3] + "\n");
-  });
-}
-
 function _execute_test() {
-  
-  let (ios = Components.classes["@mozilla.org/network/io-service;1"]
-             .getService(Components.interfaces.nsIIOService)) {
-    let protocolHandler =
-      ios.getProtocolHandler("resource")
-         .QueryInterface(Components.interfaces.nsIResProtocolHandler);
-    let curDirURI = ios.newFileURI(do_get_cwd());
-    protocolHandler.setSubstitution("test", curDirURI);
-  }
-
   
   _load_files(_HEAD_FILES);
   
@@ -155,19 +134,8 @@ function _execute_test() {
     _passed = false;
     
     
-    
-    
-    
-    if (!_quit || e != Components.results.NS_ERROR_ABORT) {
-      dump("TEST-UNEXPECTED-FAIL | (xpcshell/head.js) | " + e);
-      if (e.stack) {
-        dump(" - See following stack:\n");
-        _dump_exception_stack(e.stack);
-      }
-      else {
-        dump("\n");
-      }
-    }
+    if (!_quit || e != Components.results.NS_ERROR_ABORT)
+      dump("TEST-UNEXPECTED-FAIL | (xpcshell/head.js) | " + e + "\n");
   }
 
   
@@ -214,35 +182,12 @@ function do_timeout(delay, func) {
 }
 
 function do_execute_soon(callback) {
-  do_test_pending();
   var tm = Components.classes["@mozilla.org/thread-manager;1"]
                      .getService(Components.interfaces.nsIThreadManager);
 
   tm.mainThread.dispatch({
     run: function() {
-      try {
-        callback();
-      } catch (e) {
-        
-        
-        
-        
-        
-        if (!_quit || e != Components.results.NS_ERROR_ABORT) {
-          dump("TEST-UNEXPECTED-FAIL | (xpcshell/head.js) | " + e);
-          if (e.stack) {
-            dump(" - See following stack:\n");
-            _dump_exception_stack(e.stack);
-          }
-          else {
-            dump("\n");
-          }
-          _do_quit();
-        }
-      }
-      finally {
-        do_test_finished();
-      }
+      callback();
     }
   }, Components.interfaces.nsIThread.DISPATCH_NORMAL);
 }
@@ -433,16 +378,6 @@ function do_register_cleanup(aFunction)
 
 
 function do_get_profile() {
-  
-  
-  do_register_cleanup(function() {
-    let obsSvc = Components.classes["@mozilla.org/observer-service;1"].
-                 getService(Components.interfaces.nsIObserverService);
-    obsSvc.notifyObservers(null, "profile-change-net-teardown", null);
-    obsSvc.notifyObservers(null, "profile-change-teardown", null);
-    obsSvc.notifyObservers(null, "profile-before-change", null);
-  });
-
   let env = Components.classes["@mozilla.org/process/environment;1"]
                       .getService(Components.interfaces.nsIEnvironment);
   
@@ -462,7 +397,7 @@ function do_get_profile() {
       throw Components.results.NS_ERROR_FAILURE;
     },
     QueryInterface: function(iid) {
-      if (iid.equals(Components.interfaces.nsIDirectoryServiceProvider) ||
+      if (iid.equals(Components.interfaces.nsIDirectoryProvider) ||
           iid.equals(Components.interfaces.nsISupports)) {
         return this;
       }
@@ -473,3 +408,67 @@ function do_get_profile() {
         .registerProvider(provider);
   return file.clone();
 }
+
+
+
+
+
+
+
+
+
+function do_load_child_test_harness()
+{
+  
+  var runtime = Components.classes["@mozilla.org/xre/app-info;1"]
+                  .getService(Components.interfaces.nsIXULRuntime);
+  if (runtime.processType != 
+            Components.interfaces.nsIXULRuntime.PROCESS_TYPE_DEFAULT) 
+  {
+    do_throw("run_test_in_child cannot be called from child!");
+  }
+
+  
+  if (typeof do_load_child_test_harness.alreadyRun != "undefined")
+    return;
+  do_load_child_test_harness.alreadyRun = 1;
+  
+  function addQuotes (str)  { 
+    return '"' + str + '"'; 
+  }
+  var quoted_head_files = _HEAD_FILES.map(addQuotes);
+  var quoted_tail_files = _TAIL_FILES.map(addQuotes);
+
+  sendCommand(
+        "const _HEAD_JS_PATH='" + _HEAD_JS_PATH + "'; "
+      + "const _HTTPD_JS_PATH='" + _HTTPD_JS_PATH + "'; "
+      + "const _HEAD_FILES=[" + quoted_head_files.join() + "];"
+      + "const _TAIL_FILES=[" + quoted_tail_files.join() + "];"
+      + "load(_HEAD_JS_PATH);");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+function run_test_in_child(testFile, optionalCallback) 
+{
+  var callback = (typeof optionalCallback == 'undefined') ? 
+                    do_test_finished : optionalCallback;
+
+  do_load_child_test_harness();
+
+  var testPath = do_get_file(testFile).path.replace(/\\/g, "/");
+  do_test_pending();
+  sendCommand("const _TEST_FILE=['" + testPath + "']; _execute_test();", 
+              callback);
+}
+
