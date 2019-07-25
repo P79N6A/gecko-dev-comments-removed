@@ -146,7 +146,8 @@ CookieStore.prototype = {
     
 
 
-    this._log.info("CookieStore got createCommand: " + command );
+    this._log.debug("CookieStore got create command for: " + command.GUID);
+
     
     if ( !command.data.isSession ) {
       
@@ -167,7 +168,12 @@ CookieStore.prototype = {
 
 
 
-    this._log.info("CookieStore got removeCommand: " + command );
+    if (!(command.GUID in this._lookup)) {
+      this._log.warn("Warning! Remove command for unknown item: " + command.GUID);
+      return;
+    }
+
+    this._log.debug("CookieStore got remove command for: " + command.GUID);
 
     
 
@@ -176,13 +182,19 @@ CookieStore.prototype = {
     this._cookieManager.remove(this._lookup[command.GUID].host,
                                this._lookup[command.GUID].name,
                                this._lookup[command.GUID].path,
-                               false );
+                               false);
   },
 
   _editCommand: function CookieStore__editCommand(command) {
     
 
-    this._log.info("CookieStore got editCommand: " + command );
+
+    if (!(command.GUID in this._lookup)) {
+      this._log.warn("Warning! Edit command for unknown item: " + command.GUID);
+      return;
+    }
+
+    this._log.debug("CookieStore got edit command for: " + command.GUID);
 
     
     var iter = this._cookieManager.enumerator;
