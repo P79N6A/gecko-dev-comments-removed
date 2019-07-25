@@ -36,7 +36,7 @@
 
 
 
-Cu.import("resource://gre/modules/HUDService.jsm");
+Cu.import("resource:///modules/HUDService.jsm");
 
 function log(aMsg)
 {
