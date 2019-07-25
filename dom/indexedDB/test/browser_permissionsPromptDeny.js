@@ -10,8 +10,7 @@ const notificationID = "indexedDB-permissions-prompt";
 function test()
 {
   waitForExplicitFinish();
-  
-  setPermission(testPageURL, "indexedDB", "allow");
+  removePermission(testPageURL, "indexedDB");
   executeSoon(test1);
 }
 
