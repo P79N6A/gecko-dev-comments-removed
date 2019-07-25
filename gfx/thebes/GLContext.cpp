@@ -1291,9 +1291,7 @@ GLContext::UploadSurfaceToTexture(gfxASurface *aSurface,
   }
 
   nsRefPtr<gfxImageSurface> imageSurface = aSurface->GetAsImageSurface();
-  
-  
-  unsigned char* data = aPixelBuffer ? NULL : imageSurface->Data();
+  unsigned char* data = NULL;
 
   if (!imageSurface || 
       (imageSurface->Format() != gfxASurface::ImageFormatARGB32 &&
@@ -1309,7 +1307,14 @@ GLContext::UploadSurfaceToTexture(gfxASurface *aSurface,
     context->Translate(-gfxPoint(aSrcRect.x, aSrcRect.y));
     context->SetSource(aSurface);
     context->Paint();
+    data = imageSurface->Data();
+    NS_ASSERTION(!aPixelBuffer, "Must be using an image compatible surface with pixel buffers!");
   } else {
+    
+    
+    if (!aPixelBuffer) {
+      data = imageSurface->Data();
+    }
     data += aSrcRect.y * imageSurface->Stride();
     data += aSrcRect.x * 4;
   }
