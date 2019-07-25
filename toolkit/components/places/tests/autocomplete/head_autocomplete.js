@@ -352,7 +352,10 @@ function run_test() {
   if (func)
     func();
 
-  ensure_results(search, expected);
+  
+  
+  
+  waitForAsyncUpdates(ensure_results, this, [search, expected]);
 }
 
 
