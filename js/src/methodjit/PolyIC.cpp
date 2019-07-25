@@ -520,6 +520,17 @@ class SetPropCompiler : public PICStubCompiler
             if (js_IdIsIndex(id, &index))
                 return disable("index");
 
+            
+
+
+
+            JSObject *proto = obj;
+            while (proto) {
+                if (proto->hasUncacheableProto() || proto->isNative())
+                    return disable("non-cacheable proto");
+                proto = proto->getProto();
+            }
+
             const Shape *initialShape = obj->lastProperty();
             uint32 slots = obj->numDynamicSlots();
 
