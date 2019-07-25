@@ -883,6 +883,20 @@ nsSVGSVGElement::GetTimedDocumentRoot()
 NS_IMETHODIMP_(bool)
 nsSVGSVGElement::IsAttributeMapped(const nsIAtom* name) const
 {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  if (!IsInner() && (name == nsGkAtoms::width || name == nsGkAtoms::height)) {
+    return true;
+  }
+
   static const MappedAttributeEntry* const map[] = {
     sColorMap,
     sFEFloodMap,
