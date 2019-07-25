@@ -1850,8 +1850,8 @@ return_tearoff:
 
         
         JSObject *unsafeObj = cx
-                              ? XPCWrapper::Unwrap(cx, cur)
-                              : XPCWrapper::UnsafeUnwrapSecurityWrapper(cur);
+                              ? XPCWrapper::Unwrap(cx, cur,  false)
+                              : js::UnwrapObject(cur,  false);
         if (unsafeObj) {
             obj = unsafeObj;
             goto restart;
