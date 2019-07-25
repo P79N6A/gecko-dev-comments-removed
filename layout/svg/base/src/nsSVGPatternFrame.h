@@ -39,7 +39,6 @@
 #ifndef __NS_SVGPATTERNFRAME_H__
 #define __NS_SVGPATTERNFRAME_H__
 
-#include "nsIDOMSVGMatrix.h"
 #include "nsSVGPaintServerFrame.h"
 #include "gfxMatrix.h"
 #include "nsIDOMSVGAnimTransformList.h"
@@ -52,6 +51,7 @@ class gfxASurface;
 
 namespace mozilla {
 class SVGAnimatedPreserveAspectRatio;
+class SVGAnimatedTransformList;
 } 
 
 typedef nsSVGPaintServerFrame  nsSVGPatternFrameBase;
@@ -121,7 +121,8 @@ protected:
   {
     return GetEnumValue(aIndex, mContent);
   }
-  nsIDOMSVGAnimatedTransformList* GetPatternTransformList(nsIContent* aDefault);
+  mozilla::SVGAnimatedTransformList* GetPatternTransformList(
+      nsIContent* aDefault);
   gfxMatrix GetPatternTransform();
   const nsSVGViewBox &GetViewBox(nsIContent *aDefault);
   const nsSVGViewBox &GetViewBox() { return GetViewBox(mContent); }
@@ -162,7 +163,7 @@ private:
   
   
   nsSVGGeometryFrame               *mSource;
-  nsCOMPtr<nsIDOMSVGMatrix>         mCTM;
+  nsAutoPtr<gfxMatrix>              mCTM;
 
 protected:
   

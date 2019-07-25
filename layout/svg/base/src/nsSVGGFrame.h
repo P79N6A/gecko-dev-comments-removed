@@ -86,7 +86,7 @@ public:
   
   virtual gfxMatrix GetCanvasTM();
 
-  nsCOMPtr<nsIDOMSVGMatrix> mCanvasTM;
+  nsAutoPtr<gfxMatrix> mCanvasTM;
 };
 
 #endif

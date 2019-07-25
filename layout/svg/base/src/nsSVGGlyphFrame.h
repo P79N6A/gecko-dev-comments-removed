@@ -46,7 +46,6 @@
 #include "gfxFont.h"
 #include "gfxRect.h"
 #include "gfxMatrix.h"
-#include "nsSVGMatrix.h"
 #include "nsTextFragment.h"
 
 class nsSVGTextFrame;
@@ -247,7 +246,7 @@ protected:
 
   
   
-  nsCOMPtr<nsIDOMSVGMatrix> mOverrideCanvasTM;
+  nsAutoPtr<gfxMatrix> mOverrideCanvasTM;
 
   
   gfxTextRun *mTextRun;

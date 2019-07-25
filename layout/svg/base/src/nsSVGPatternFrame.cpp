@@ -40,18 +40,16 @@
 
 #include "nsGkAtoms.h"
 #include "nsIDOMSVGAnimatedRect.h"
-#include "nsSVGTransformList.h"
+#include "SVGAnimatedTransformList.h"
 #include "nsStyleContext.h"
 #include "nsINameSpaceManager.h"
 #include "nsISVGChildFrame.h"
-#include "nsSVGMatrix.h"
 #include "nsSVGRect.h"
 #include "nsSVGUtils.h"
 #include "nsSVGEffects.h"
 #include "nsSVGOuterSVGFrame.h"
 #include "nsSVGPatternElement.h"
 #include "nsSVGGeometryFrame.h"
-#include "nsSVGAnimatedTransformList.h"
 #include "gfxContext.h"
 #include "gfxPlatform.h"
 #include "gfxPattern.h"
@@ -164,7 +162,7 @@ gfxMatrix
 nsSVGPatternFrame::GetCanvasTM()
 {
   if (mCTM) {
-    return nsSVGUtils::ConvertSVGMatrixToThebes(mCTM);
+    return *mCTM;
   }
 
   
@@ -241,7 +239,11 @@ nsSVGPatternFrame::PaintPattern(gfxASurface** surface,
   
   nsSVGPatternFrame *patternFrame =
     static_cast<nsSVGPatternFrame*>(firstKid->GetParent());
-  patternFrame->mCTM = NS_NewSVGMatrix(ctm);
+  if (patternFrame->mCTM) {
+    *patternFrame->mCTM = ctm;
+  } else {
+    patternFrame->mCTM = new gfxMatrix(ctm);
+  }
 
   
   
@@ -270,13 +272,11 @@ nsSVGPatternFrame::PaintPattern(gfxASurface** surface,
       patternWidth != surfaceSize.width ||
       patternHeight != surfaceSize.height) {
     
-    nsCOMPtr<nsIDOMSVGMatrix> tempTM, aCTM;
-    NS_NewSVGMatrix(getter_AddRefs(tempTM),
-                    surfaceSize.width / patternWidth, 0.0f,
-                    0.0f, surfaceSize.height / patternHeight,
-                    0.0f, 0.0f);
-    patternFrame->mCTM->Multiply(tempTM, getter_AddRefs(aCTM));
-    aCTM.swap(patternFrame->mCTM);
+    gfxMatrix tempTM =
+      gfxMatrix(surfaceSize.width / patternWidth, 0.0f,
+                0.0f, surfaceSize.height / patternHeight,
+                0.0f, 0.0f);
+    patternFrame->mCTM->PreMultiply(tempTM);
 
     
     patternMatrix->Scale(patternWidth / surfaceSize.width,
@@ -380,17 +380,13 @@ nsSVGPatternFrame::GetEnumValue(PRUint32 aIndex, nsIContent *aDefault)
       mEnumAttributes[aIndex].GetAnimValue();
 }
 
-nsIDOMSVGAnimatedTransformList*
+SVGAnimatedTransformList*
 nsSVGPatternFrame::GetPatternTransformList(nsIContent* aDefault)
 {
-  nsIDOMSVGAnimatedTransformList *thisTransformList =
-    static_cast<nsSVGPatternElement *>(mContent)->mPatternTransform.get();
+  SVGAnimatedTransformList *thisTransformList =
+    static_cast<nsSVGPatternElement *>(mContent)->GetAnimatedTransformList();
 
-  
-  
-  const nsSVGAnimatedTransformList *thisListAsConcreteType =
-    static_cast<const nsSVGAnimatedTransformList *>(thisTransformList);
-  if (thisListAsConcreteType && thisListAsConcreteType->IsExplicitlySet())
+  if (thisTransformList->IsExplicitlySet())
     return thisTransformList;
 
   AutoPatternReferencer patternRef(this);
@@ -403,21 +399,12 @@ nsSVGPatternFrame::GetPatternTransformList(nsIContent* aDefault)
 gfxMatrix
 nsSVGPatternFrame::GetPatternTransform()
 {
-  nsIDOMSVGAnimatedTransformList* transformList = 
+  SVGAnimatedTransformList* animTransformList =
     GetPatternTransformList(mContent);
+  if (!animTransformList)
+    return gfxMatrix();
 
-  static const gfxMatrix identityMatrix;
-  if (!transformList) {
-    return identityMatrix;
-  }
-  nsCOMPtr<nsIDOMSVGTransformList> lTrans;
-  transformList->GetAnimVal(getter_AddRefs(lTrans));
-  nsCOMPtr<nsIDOMSVGMatrix> patternTransform =
-    nsSVGTransformList::GetConsolidationMatrix(lTrans);
-  if (!patternTransform) {
-    return identityMatrix;
-  }
-  return nsSVGUtils::ConvertSVGMatrixToThebes(patternTransform);
+  return animTransformList->GetAnimValue().GetConsolidationMatrix();
 }
 
 const nsSVGViewBox &
