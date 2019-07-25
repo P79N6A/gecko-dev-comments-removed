@@ -126,9 +126,12 @@ public:
   
   
   
-  nsresult LookupName(const nsAString& aName,
-                      const nsGlobalNameStruct **aNameStruct,
-                      const PRUnichar **aClassName = nsnull);
+  const nsGlobalNameStruct* LookupName(const nsAString& aName,
+                                       const PRUnichar **aClassName = nsnull)
+  {
+    return LookupNameInternal(aName, aClassName);
+  }
+
   
   
   
@@ -190,6 +193,9 @@ protected:
   nsresult AddCategoryEntryToHash(nsICategoryManager* aCategoryManager,
                                   const char* aCategory,
                                   nsISupports* aEntry);
+
+  nsGlobalNameStruct* LookupNameInternal(const nsAString& aName,
+                                         const PRUnichar **aClassName = nsnull);
 
   PLDHashTable mGlobalNames;
   PLDHashTable mNavigatorNames;
