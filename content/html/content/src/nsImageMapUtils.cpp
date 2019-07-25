@@ -39,10 +39,12 @@
 #include "nsReadableUtils.h"
 #include "nsCOMPtr.h"
 #include "nsIDocument.h"
-#include "nsIContent.h"
+#include "mozilla/dom/Element.h"
 #include "nsIHTMLDocument.h"
 #include "nsIDOMHTMLMapElement.h"
 #include "nsImageMapUtils.h"
+
+using namespace mozilla::dom;
 
 
 already_AddRefed<nsIDOMHTMLMapElement>
@@ -79,9 +81,9 @@ nsImageMapUtils::FindImageMap(nsIDocument *aDocument,
 
   nsCOMPtr<nsIHTMLDocument> htmlDoc(do_QueryInterface(aDocument));
   if (htmlDoc) {
-    nsIDOMHTMLMapElement* map = htmlDoc->GetImageMap(usemap);
-    NS_IF_ADDREF(map);
-    return map;
+    nsCOMPtr<nsIDOMHTMLMapElement> map =
+      do_QueryInterface(htmlDoc->GetImageMap(usemap));
+    return map.forget();
   } else {
     
     
@@ -89,7 +91,7 @@ nsImageMapUtils::FindImageMap(nsIDocument *aDocument,
     
     
     
-    nsIContent *element = aDocument->GetElementById(usemap);
+    Element* element = aDocument->GetElementById(usemap);
 
     if (element) {
       nsIDOMHTMLMapElement* map;
