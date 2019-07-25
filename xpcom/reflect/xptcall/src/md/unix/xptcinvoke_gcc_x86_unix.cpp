@@ -37,6 +37,7 @@
 
 
 
+
 #include "xptcprivate.h"
 #include "xptc_gcc_x86_unix.h"
 
@@ -103,25 +104,23 @@ __asm__ (
 
 
 	".align 2\n\t"
-#if defined(XP_WIN32) || defined(XP_OS2)
-	".globl " SYMBOL_UNDERSCORE "_NS_InvokeByIndex_P\n\t"
-	SYMBOL_UNDERSCORE "_NS_InvokeByIndex_P:\n\t"
-#else
 	".globl " SYMBOL_UNDERSCORE "NS_InvokeByIndex_P\n\t"
+#if !defined(XP_WIN32) && !defined(XP_OS2) && !defined(XP_MACOSX)
 	".type  " SYMBOL_UNDERSCORE "NS_InvokeByIndex_P,@function\n"
-	SYMBOL_UNDERSCORE "NS_InvokeByIndex_P:\n\t"
 #endif
+	SYMBOL_UNDERSCORE "NS_InvokeByIndex_P:\n\t"
 	"pushl %ebp\n\t"
 	"movl  %esp, %ebp\n\t"
 	"movl  0x10(%ebp), %eax\n\t"
 	"leal  0(,%eax,8),%edx\n\t"
-	"movl  %esp, %ecx\n\t"
-	"subl  %edx, %ecx\n\t"
+
+        
+	"subl  %edx, %esp\n\t"       
 
 
 
 
-	"andl  $0xfffffff0, %ecx\n\t"   
+	"andl  $0xfffffff0, %esp\n\t"   
 
 
 
@@ -129,12 +128,14 @@ __asm__ (
 
 
 
-	"subl  $0xc, %ecx\n\t"          
-	"movl  %ecx, %esp\n\t"          
+	"subl  $0xc, %esp\n\t"          
+	"movl  %esp, %ecx\n\t"          
+	"movl  8(%ebp), %edx\n\t"       
+	"pushl %edx\n\t"                
+
 	"movl  0x14(%ebp), %edx\n\t"
 	"call  " SYMBOL_UNDERSCORE "invoke_copy_to_stack\n\t"
 	"movl  0x08(%ebp), %ecx\n\t"	
-	"pushl %ecx\n\t"
 	"movl  (%ecx), %edx\n\t"
 	"movl  0x0c(%ebp), %eax\n\t"    
 	"leal  (%edx,%eax,4), %edx\n\t"
@@ -142,7 +143,7 @@ __asm__ (
 	"movl  %ebp, %esp\n\t"
 	"popl  %ebp\n\t"
 	"ret\n"
-#if !defined(XP_WIN32) && !defined(XP_OS2)
+#if !defined(XP_WIN32) && !defined(XP_OS2) && !defined(XP_MACOSX)
 	".size " SYMBOL_UNDERSCORE "NS_InvokeByIndex_P, . -" SYMBOL_UNDERSCORE "NS_InvokeByIndex_P\n\t"
 #endif
 );
