@@ -191,6 +191,7 @@ private:
   void        ProcessPending();
   nsresult    SetInputFrameDataStream(PRUint32);
   bool        VerifyStream(SpdyStream *, PRUint32);
+  void        SetNeedsCleanup();
 
   
   
