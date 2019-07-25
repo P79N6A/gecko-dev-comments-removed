@@ -66,6 +66,136 @@ Highlighter.prototype = {
   
 
 
+  destroy: function Highlighter_destroy()
+  {
+    this.IUI.win.clearTimeout(this.transitionDisabler);
+    this.browser.removeEventListener("scroll", this, true);
+    this.browser.removeEventListener("resize", this, true);
+    this.boundCloseEventHandler = null;
+    this._contentRect = null;
+    this._highlightRect = null;
+    this._highlighting = false;
+    this.veilTopBox = null;
+    this.veilLeftBox = null;
+    this.veilMiddleBox = null;
+    this.veilTransparentBox = null;
+    this.veilContainer = null;
+    this.node = null;
+    this.nodeInfo = null;
+    this.highlighterContainer.parentNode.removeChild(this.highlighterContainer);
+    this.highlighterContainer = null;
+    this.win = null
+    this.browser = null;
+    this.chromeDoc = null;
+    this.IUI = null;
+  },
+
+  
+
+
+
+
+
+  highlight: function Highlighter_highlight(aScroll)
+  {
+    let rect = null;
+
+    if (this.node && this.isNodeHighlightable(this.node)) {
+
+      if (aScroll) {
+        this.node.scrollIntoView();
+      }
+
+      let clientRect = this.node.getBoundingClientRect();
+
+      
+      
+      rect = {top: clientRect.top,
+              left: clientRect.left,
+              width: clientRect.width,
+              height: clientRect.height};
+
+      let frameWin = this.node.ownerDocument.defaultView;
+
+      
+      while (true) {
+
+        
+        let diffx = frameWin.innerWidth - (rect.left + rect.width);
+        if (diffx < 0) {
+          rect.width += diffx;
+        }
+
+        
+        let diffy = frameWin.innerHeight - (rect.top + rect.height);
+        if (diffy < 0) {
+          rect.height += diffy;
+        }
+
+        
+        if (rect.left < 0) {
+          rect.width += rect.left;
+          rect.left = 0;
+        }
+
+        
+        if (rect.top < 0) {
+          rect.height += rect.top;
+          rect.top = 0;
+        }
+
+        
+
+        
+        if (frameWin.parent === frameWin || !frameWin.frameElement) {
+          break;
+        }
+
+        
+        
+        
+        let frameRect = frameWin.frameElement.getBoundingClientRect();
+
+        let [offsetTop, offsetLeft] =
+          this.IUI.getIframeContentOffset(frameWin.frameElement);
+
+        rect.top += frameRect.top + offsetTop;
+        rect.left += frameRect.left + offsetLeft;
+
+        frameWin = frameWin.parent;
+      }
+    }
+
+    this.highlightRectangle(rect);
+
+    this.moveInfobar();
+
+    if (this._highlighting) {
+      Services.obs.notifyObservers(null,
+        INSPECTOR_NOTIFICATIONS.HIGHLIGHTING, null);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+  isNodeHighlightable: function Highlighter_isNodeHighlightable(aNode)
+  {
+    if (aNode.nodeType != aNode.ELEMENT_NODE) {
+      return false;
+    }
+    let nodeName = aNode.nodeName.toLowerCase();
+    return !INSPECTOR_INVISIBLE_ELEMENTS[nodeName];
+  },
+  
+
+
+
 
 
 
@@ -186,122 +316,9 @@ Highlighter.prototype = {
   
 
 
-  destroy: function Highlighter_destroy()
-  {
-    this.IUI.win.clearTimeout(this.transitionDisabler);
-    this.browser.removeEventListener("scroll", this, true);
-    this.browser.removeEventListener("resize", this, true);
-    this.boundCloseEventHandler = null;
-    this._contentRect = null;
-    this._highlightRect = null;
-    this._highlighting = false;
-    this.veilTopBox = null;
-    this.veilLeftBox = null;
-    this.veilMiddleBox = null;
-    this.veilTransparentBox = null;
-    this.veilContainer = null;
-    this.node = null;
-    this.nodeInfo = null;
-    this.highlighterContainer.parentNode.removeChild(this.highlighterContainer);
-    this.highlighterContainer = null;
-    this.win = null
-    this.browser = null;
-    this.chromeDoc = null;
-    this.IUI = null;
-  },
-
-  
-
-
 
   get isHighlighting() {
     return this._highlighting;
-  },
-
-  
-
-
-
-
-
-  highlight: function Highlighter_highlight(aScroll)
-  {
-    let rect = null;
-
-    if (this.node && this.isNodeHighlightable(this.node)) {
-
-      if (aScroll) {
-        this.node.scrollIntoView();
-      }
-
-      let clientRect = this.node.getBoundingClientRect();
-
-      
-      
-      rect = {top: clientRect.top,
-              left: clientRect.left,
-              width: clientRect.width,
-              height: clientRect.height};
-
-      let frameWin = this.node.ownerDocument.defaultView;
-
-      
-      while (true) {
-
-        
-        let diffx = frameWin.innerWidth - (rect.left + rect.width);
-        if (diffx < 0) {
-          rect.width += diffx;
-        }
-
-        
-        let diffy = frameWin.innerHeight - (rect.top + rect.height);
-        if (diffy < 0) {
-          rect.height += diffy;
-        }
-
-        
-        if (rect.left < 0) {
-          rect.width += rect.left;
-          rect.left = 0;
-        }
-
-        
-        if (rect.top < 0) {
-          rect.height += rect.top;
-          rect.top = 0;
-        }
-
-        
-
-        
-        if (frameWin.parent === frameWin || !frameWin.frameElement) {
-          break;
-        }
-
-        
-        
-        
-        let frameRect = frameWin.frameElement.getBoundingClientRect();
-
-        let [offsetTop, offsetLeft] =
-          this.IUI.getIframeContentOffset(frameWin.frameElement);
-
-        rect.top += frameRect.top + offsetTop;
-        rect.left += frameRect.left + offsetLeft;
-
-        frameWin = frameWin.parent;
-      }
-    }
-
-    this.highlightRectangle(rect);
-
-    this.moveInfobar();
-
-    if (this._highlighting) {
-      Services.obs.notifyObservers(null,
-        INSPECTOR_NOTIFICATIONS.HIGHLIGHTING, null);
-    }
   },
 
   
@@ -528,23 +545,6 @@ Highlighter.prototype = {
 
     return this.IUI.elementFromPoint(this.win.document, midpoint.x,
       midpoint.y);
-  },
-
-  
-
-
-
-
-
-
-
-  isNodeHighlightable: function Highlighter_isNodeHighlightable(aNode)
-  {
-    if (aNode.nodeType != aNode.ELEMENT_NODE) {
-      return false;
-    }
-    let nodeName = aNode.nodeName.toLowerCase();
-    return !INSPECTOR_INVISIBLE_ELEMENTS[nodeName];
   },
 
   
