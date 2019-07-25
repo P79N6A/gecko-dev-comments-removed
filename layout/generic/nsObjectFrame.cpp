@@ -2547,12 +2547,12 @@ nsPluginInstanceOwner::~nsPluginInstanceOwner()
   }
 
   if (mCachedAttrParamNames) {
-    PR_Free(mCachedAttrParamNames);
+    NS_Free(mCachedAttrParamNames);
     mCachedAttrParamNames = nsnull;
   }
 
   if (mCachedAttrParamValues) {
-    PR_Free(mCachedAttrParamValues);
+    NS_Free(mCachedAttrParamValues);
     mCachedAttrParamValues = nsnull;
   }
 
@@ -2628,8 +2628,8 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetMode(PRInt32 *aMode)
 }
 
 NS_IMETHODIMP nsPluginInstanceOwner::GetAttributes(PRUint16& n,
-                                                     const char*const*& names,
-                                                     const char*const*& values)
+                                                   const char*const*& names,
+                                                   const char*const*& values)
 {
   nsresult rv = EnsureCachedAttrParamArrays();
   NS_ENSURE_SUCCESS(rv, rv);
@@ -3275,29 +3275,24 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetUniqueID(PRUint32 *result)
 
 
 
-
 nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
 {
   if (mCachedAttrParamValues)
     return NS_OK;
 
   NS_PRECONDITION(((mNumCachedAttrs + mNumCachedParams) == 0) &&
-                  !mCachedAttrParamNames,
+                    !mCachedAttrParamNames,
                   "re-cache of attrs/params not implemented! use the DOM "
-                  "node directy instead");
+                    "node directy instead");
   NS_ENSURE_TRUE(mObjectFrame, NS_ERROR_NULL_POINTER);
 
   
   
-  mNumCachedAttrs = 0;
-
   PRUint32 cattrs = mContent->GetAttrCount();
-
-  if (cattrs < 0x0000FFFF) {
-    
+  if (cattrs < 0x0000FFFD) {
     mNumCachedAttrs = static_cast<PRUint16>(cattrs);
   } else {
-    mNumCachedAttrs = 0xFFFE;  
+    mNumCachedAttrs = 0xFFFD;
   }
 
   
@@ -3308,49 +3303,36 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
   
   
   
-
-  mNumCachedParams = 0;
   nsCOMArray<nsIDOMElement> ourParams;
 
-  
   
   nsCOMPtr<nsIDOMElement> mydomElement = do_QueryInterface(mContent);
   NS_ENSURE_TRUE(mydomElement, NS_ERROR_NO_INTERFACE);
 
-  nsCOMPtr<nsIDOMNodeList> allParams;
-
-  
   
   nsCOMPtr<nsIPluginInstanceOwner> kungFuDeathGrip(this);
- 
-  NS_NAMED_LITERAL_STRING(xhtml_ns, "http://www.w3.org/1999/xhtml");
 
+  nsCOMPtr<nsIDOMNodeList> allParams;
+  NS_NAMED_LITERAL_STRING(xhtml_ns, "http://www.w3.org/1999/xhtml");
   mydomElement->GetElementsByTagNameNS(xhtml_ns, NS_LITERAL_STRING("param"),
                                        getter_AddRefs(allParams));
-
   if (allParams) {
     PRUint32 numAllParams; 
     allParams->GetLength(&numAllParams);
-    
-    
-
     for (PRUint32 i = 0; i < numAllParams; i++) {
       nsCOMPtr<nsIDOMNode> pnode;
       allParams->Item(i, getter_AddRefs(pnode));
-
       nsCOMPtr<nsIDOMElement> domelement = do_QueryInterface(pnode);
       if (domelement) {
         
         nsAutoString name;
         domelement->GetAttribute(NS_LITERAL_STRING("name"), name);
         if (!name.IsEmpty()) {
+          
           nsCOMPtr<nsIDOMNode> parent;
           nsCOMPtr<nsIDOMHTMLObjectElement> domobject;
           nsCOMPtr<nsIDOMHTMLAppletElement> domapplet;
           pnode->GetParentNode(getter_AddRefs(parent));
-          
-          
-
           while (!(domobject || domapplet) && parent) {
             domobject = do_QueryInterface(parent);
             domapplet = do_QueryInterface(parent);
@@ -3358,16 +3340,13 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
             parent->GetParentNode(getter_AddRefs(temp));
             parent = temp;
           }
-
           if (domapplet || domobject) {
-            if (domapplet)
+            if (domapplet) {
               parent = domapplet;
-            else
+            }
+            else {
               parent = domobject;
-
-            
-            
-
+            }
             nsCOMPtr<nsIDOMNode> mydomNode = do_QueryInterface(mydomElement);
             if (parent == mydomNode) {
               ourParams.AppendObject(domelement);
@@ -3381,46 +3360,47 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
   
   NS_ENSURE_TRUE(mObjectFrame, NS_ERROR_OUT_OF_MEMORY);
 
-  PRUint32 cparams = ourParams.Count(); 
-  if (cparams < 0x0000FFFF)
+  
+  PRUint32 cparams = ourParams.Count();
+  if (cparams < 0x0000FFFF) {
     mNumCachedParams = static_cast<PRUint16>(cparams);
-  else 
+  } else {
     mNumCachedParams = 0xFFFF;
+  }
+
+  PRUint16 numRealAttrs = mNumCachedAttrs;
 
   
   
   
   
   
-  PRInt16 numRealAttrs = mNumCachedAttrs;
   nsAutoString data;
-  if (mContent->Tag() == nsGkAtoms::object
-    && !mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::src)
-    && mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::data, data)) {
-      mNumCachedAttrs++;
+  if (mContent->Tag() == nsGkAtoms::object &&
+      !mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::src) &&
+      mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::data, data)) {
+    mNumCachedAttrs++;
   }
 
   
   
   nsAdoptingCString wmodeType = nsContentUtils::GetCharPref("plugins.force.wmode");
-  if (!wmodeType.IsEmpty())
+  if (!wmodeType.IsEmpty()) {
     mNumCachedAttrs++;
-  
-  mCachedAttrParamNames  = (char **)PR_Calloc(sizeof(char *) * (mNumCachedAttrs + 1 + mNumCachedParams), 1);
+  }
+
+  mCachedAttrParamNames  = (char**)NS_Alloc(sizeof(char*) * (mNumCachedAttrs + 1 + mNumCachedParams));
   NS_ENSURE_TRUE(mCachedAttrParamNames,  NS_ERROR_OUT_OF_MEMORY);
-  mCachedAttrParamValues = (char **)PR_Calloc(sizeof(char *) * (mNumCachedAttrs + 1 + mNumCachedParams), 1);
+  mCachedAttrParamValues = (char**)NS_Alloc(sizeof(char*) * (mNumCachedAttrs + 1 + mNumCachedParams));
   NS_ENSURE_TRUE(mCachedAttrParamValues, NS_ERROR_OUT_OF_MEMORY);
 
   
-  PRInt16 c = 0;
-
   
   
   
   
   
-  
-  PRInt16 start, end, increment;
+  PRInt32 start, end, increment;
   if (mContent->IsHTML() &&
       mContent->IsInHTMLDocument()) {
     
@@ -3433,12 +3413,19 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
     end = numRealAttrs;
     increment = 1;
   }
+
+  
+  PRUint32 nextAttrParamIndex = 0;
+
+  
   if (!wmodeType.IsEmpty()) {
-    mCachedAttrParamNames [c] = ToNewUTF8String(NS_LITERAL_STRING("wmode"));
-    mCachedAttrParamValues[c] = ToNewUTF8String(NS_ConvertUTF8toUTF16(wmodeType));
-    c++;
+    mCachedAttrParamNames [nextAttrParamIndex] = ToNewUTF8String(NS_LITERAL_STRING("wmode"));
+    mCachedAttrParamValues[nextAttrParamIndex] = ToNewUTF8String(NS_ConvertUTF8toUTF16(wmodeType));
+    nextAttrParamIndex++;
   }
-  for (PRInt16 index = start; index != end; index += increment) {
+
+  
+  for (PRInt32 index = start; index != end; index += increment) {
     const nsAttrName* attrName = mContent->GetAttrNameAt(index);
     nsIAtom* atom = attrName->LocalName();
     nsAutoString value;
@@ -3448,49 +3435,52 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
 
     FixUpURLS(name, value);
 
-    mCachedAttrParamNames [c] = ToNewUTF8String(name);
-    mCachedAttrParamValues[c] = ToNewUTF8String(value);
-    c++;
+    mCachedAttrParamNames [nextAttrParamIndex] = ToNewUTF8String(name);
+    mCachedAttrParamValues[nextAttrParamIndex] = ToNewUTF8String(value);
+    nextAttrParamIndex++;
   }
 
   
-  if (data.Length()) {
-    mCachedAttrParamNames [mNumCachedAttrs-1] = ToNewUTF8String(NS_LITERAL_STRING("SRC"));
-    mCachedAttrParamValues[mNumCachedAttrs-1] = ToNewUTF8String(data);
+  if (!data.IsEmpty()) {
+    mCachedAttrParamNames [nextAttrParamIndex] = ToNewUTF8String(NS_LITERAL_STRING("SRC"));
+    mCachedAttrParamValues[nextAttrParamIndex] = ToNewUTF8String(data);
+    nextAttrParamIndex++;
   }
 
   
-  mCachedAttrParamNames [mNumCachedAttrs] = ToNewUTF8String(NS_LITERAL_STRING("PARAM"));
-  mCachedAttrParamValues[mNumCachedAttrs] = nsnull;
+  mCachedAttrParamNames [nextAttrParamIndex] = ToNewUTF8String(NS_LITERAL_STRING("PARAM"));
+  mCachedAttrParamValues[nextAttrParamIndex] = nsnull;
+  nextAttrParamIndex++;
 
   
-  c = 0;
-  for (PRInt16 idx = 0; idx < mNumCachedParams; idx++) {
-    nsIDOMElement* param = ourParams.ObjectAt(idx);
-    if (param) {
-     nsAutoString name;
-     nsAutoString value;
-     param->GetAttribute(NS_LITERAL_STRING("name"), name); 
-     param->GetAttribute(NS_LITERAL_STRING("value"), value);
-
-     FixUpURLS(name, value);
-
-     
-
-
-
-
-
-
-
-
-            
-     name.Trim(" \n\r\t\b", PR_TRUE, PR_TRUE, PR_FALSE);
-     value.Trim(" \n\r\t\b", PR_TRUE, PR_TRUE, PR_FALSE);
-     mCachedAttrParamNames [mNumCachedAttrs + 1 + c] = ToNewUTF8String(name);
-     mCachedAttrParamValues[mNumCachedAttrs + 1 + c] = ToNewUTF8String(value);
-     c++;                                                      
+  for (PRUint16 i = 0; i < mNumCachedParams; i++) {
+    nsIDOMElement* param = ourParams.ObjectAt(i);
+    if (!param) {
+      continue;
     }
+
+    nsAutoString name;
+    nsAutoString value;
+    param->GetAttribute(NS_LITERAL_STRING("name"), name); 
+    param->GetAttribute(NS_LITERAL_STRING("value"), value);
+    
+    FixUpURLS(name, value);
+
+    
+
+
+
+
+
+
+
+
+
+    name.Trim(" \n\r\t\b", PR_TRUE, PR_TRUE, PR_FALSE);
+    value.Trim(" \n\r\t\b", PR_TRUE, PR_TRUE, PR_FALSE);
+    mCachedAttrParamNames [nextAttrParamIndex] = ToNewUTF8String(name);
+    mCachedAttrParamValues[nextAttrParamIndex] = ToNewUTF8String(value);
+    nextAttrParamIndex++;
   }
 
   return NS_OK;
