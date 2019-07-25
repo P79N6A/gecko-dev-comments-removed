@@ -138,9 +138,14 @@ typedef int (*PR_CALLBACK PrefChangedFunc)(const char *, void *);
 namespace mozilla {
   class IHistory;
 
+namespace layers {
+  class LayerManager;
+} 
+
 namespace dom {
 class Element;
 } 
+
 } 
 
 extern const char kLoadAsData[];
@@ -1602,6 +1607,19 @@ public:
   static nsresult GetElementsByClassName(nsINode* aRootNode,
                                          const nsAString& aClasses,
                                          nsIDOMNodeList** aReturn);
+
+  
+
+
+
+
+
+
+
+
+
+  static already_AddRefed<mozilla::layers::LayerManager>
+  LayerManagerForDocument(nsIDocument *aDoc);
 
 private:
 

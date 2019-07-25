@@ -40,7 +40,7 @@
 
 #include "prtypes.h"
 
-class nsICanvasElement;
+class nsHTMLCanvasElement;
 class nsIPrincipal;
 
 namespace mozilla {
@@ -65,7 +65,7 @@ public:
     
     
 
-    static void DoDrawImageSecurityCheck(nsICanvasElement *aCanvasElement,
+    static void DoDrawImageSecurityCheck(nsHTMLCanvasElement *aCanvasElement,
                                          nsIPrincipal *aPrincipal,
                                          PRBool forceWriteOnly);
 

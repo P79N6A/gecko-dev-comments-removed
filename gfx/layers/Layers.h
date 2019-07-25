@@ -39,6 +39,7 @@
 #define GFX_LAYERS_H
 
 #include "gfxTypes.h"
+#include "gfxASurface.h"
 #include "nsRegion.h"
 #include "nsPoint.h"
 #include "nsRect.h"
@@ -51,6 +52,10 @@ class gfxContext;
 class nsPaintEvent;
 
 namespace mozilla {
+namespace gl {
+class GLContext;
+}
+
 namespace layers {
 
 class Layer;
@@ -59,6 +64,7 @@ class ContainerLayer;
 class ImageLayer;
 class ColorLayer;
 class ImageContainer;
+class CanvasLayer;
 
 
 
@@ -171,6 +177,11 @@ public:
 
 
   virtual already_AddRefed<ColorLayer> CreateColorLayer() = 0;
+  
+
+
+
+  virtual already_AddRefed<CanvasLayer> CreateCanvasLayer() = 0;
 
   
 
@@ -433,6 +444,61 @@ protected:
   {}
 
   gfxRGBA mColor;
+};
+
+
+
+
+
+
+
+
+
+
+
+class THEBES_API CanvasLayer : public Layer {
+public:
+  struct Data {
+    Data()
+      : mSurface(nsnull), mGLContext(nsnull),
+        mGLBufferIsPremultiplied(PR_FALSE)
+    { }
+
+    
+    gfxASurface* mSurface;  
+    mozilla::gl::GLContext* mGLContext; 
+
+    
+    nsIntSize mSize;
+
+    
+
+
+    PRPackedBool mGLBufferIsPremultiplied;
+  };
+
+  
+
+
+
+
+
+
+
+  virtual void Initialize(const Data& aData) = 0;
+
+  
+
+
+
+
+
+
+  virtual void Updated(const nsIntRect& aRect) = 0;
+
+protected:
+  CanvasLayer(LayerManager* aManager, void* aImplData)
+    : Layer(aManager, aImplData) {}
 };
 
 }

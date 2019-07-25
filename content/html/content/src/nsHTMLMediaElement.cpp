@@ -1780,56 +1780,6 @@ void nsHTMLMediaElement::NotifyAutoplayDataReady()
   }
 }
 
-
-
-
-
-
-
-static already_AddRefed<LayerManager> GetLayerManagerForDoc(nsIDocument* aDoc)
-{
-  nsIDocument* doc = aDoc;
-  nsIDocument* displayDoc = doc->GetDisplayDocument();
-  if (displayDoc) {
-    doc = displayDoc;
-  }
-
-  nsIPresShell* shell = doc->GetPrimaryShell();
-  nsCOMPtr<nsISupports> container = doc->GetContainer();
-  nsCOMPtr<nsIDocShellTreeItem> docShellTreeItem = do_QueryInterface(container);
-  while (!shell && docShellTreeItem) {
-    
-    
-    
-    
-    nsCOMPtr<nsIDocShell> docShell = do_QueryInterface(docShellTreeItem);
-    nsCOMPtr<nsIPresShell> presShell;
-    docShell->GetPresShell(getter_AddRefs(presShell));
-    if (presShell) {
-      shell = presShell;
-    } else {
-      nsCOMPtr<nsIDocShellTreeItem> parent;
-      docShellTreeItem->GetParent(getter_AddRefs(parent));
-      docShellTreeItem = parent;
-    }
-  }
-
-  if (shell) {
-    nsIFrame* rootFrame = shell->FrameManager()->GetRootFrame();
-    if (rootFrame) {
-      nsIWidget* widget =
-        nsLayoutUtils::GetDisplayRootFrame(rootFrame)->GetWindow();
-      if (widget) {
-        nsRefPtr<LayerManager> manager = widget->GetLayerManager();
-        return manager.forget();
-      }
-    }
-  }
-
-  nsRefPtr<LayerManager> manager = new BasicLayerManager(nsnull);
-  return manager.forget();
-}
-
 ImageContainer* nsHTMLMediaElement::GetImageContainer()
 {
   if (mImageContainer)
@@ -1846,7 +1796,7 @@ ImageContainer* nsHTMLMediaElement::GetImageContainer()
   if (!video)
     return nsnull;
 
-  nsRefPtr<LayerManager> manager = GetLayerManagerForDoc(GetOwnerDoc());
+  nsRefPtr<LayerManager> manager = nsContentUtils::LayerManagerForDocument(GetOwnerDoc());
   if (!manager)
     return nsnull;
 
