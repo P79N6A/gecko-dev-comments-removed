@@ -13,12 +13,7 @@
 #include "nsHTMLVideoElement.h"
 #include "nsHTMLDocument.h"
 #include "nsICSSDeclaration.h"
-#include "nsIDOMWebGLRenderingContext.h"
 #include "nsSVGStylableElement.h"
-#include "WebGLContext.h"
-
-
-#include "qsWinUndefs.h"
 
 #define DEFINE_UNWRAP_CAST(_interface, _base, _bit)                           \
 template <>                                                                   \
