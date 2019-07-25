@@ -393,9 +393,9 @@ MouseModule.prototype = {
 
 
 
-  _dragBy: function _dragBy(dX, dY) {
+  _dragBy: function _dragBy(dX, dY, aIsKinetic) {
     let dragData = this._dragData;
-    let dragged = this._dragger.dragMove(dX, dY, this._targetScrollInterface);
+    let dragged = this._dragger.dragMove(dX, dY, this._targetScrollInterface, aIsKinetic);
     if (dragged && !this._waitingForPaint) {
       this._waitingForPaint = true;
       mozRequestAnimationFrame(this);
@@ -901,7 +901,7 @@ KineticController.prototype = {
         }
 
         let panned = false;
-        try { panned = self._panBy(Math.round(-dx), Math.round(-dy)); } catch (e) {}
+        try { panned = self._panBy(Math.round(-dx), Math.round(-dy), true); } catch (e) {}
         if (!panned)
           self.end();
         else
