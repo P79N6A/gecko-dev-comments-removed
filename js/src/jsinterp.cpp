@@ -1785,13 +1785,30 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
 #endif
 
     
+    JSBool interpReturnOK;
+    JSAtom *atomNotDefined;
+
+    
     if (interpMode == JSINTERP_NORMAL) {
         StackFrame *fp = regs.fp();
         JS_ASSERT_IF(!fp->isGeneratorFrame(), regs.pc == script->code);
         if (!ScriptPrologueOrGeneratorResume(cx, fp, UseNewTypeAtEntry(cx, fp)))
             goto error;
-        if (cx->compartment->debugMode())
-            ScriptDebugPrologue(cx, fp);
+        if (cx->compartment->debugMode()) {
+            JSTrapStatus status = ScriptDebugPrologue(cx, fp);
+            switch (status) {
+              case JSTRAP_CONTINUE:
+                break;
+              case JSTRAP_RETURN:
+                interpReturnOK = JS_TRUE;
+                goto forced_return;
+              case JSTRAP_THROW:
+              case JSTRAP_ERROR:
+                goto error;
+              default:
+                JS_NOT_REACHED("bad ScriptDebugPrologue status");
+            }
+        }
     }
 
     
@@ -1803,10 +1820,6 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
     CHECK_INTERRUPT_HANDLER();
 
     RESET_USE_METHODJIT();
-
-    
-    JSBool interpReturnOK;
-    JSAtom *atomNotDefined;
 
     
 
@@ -3513,8 +3526,20 @@ BEGIN_CASE(JSOP_FUNAPPLY)
     if (!ScriptPrologue(cx, regs.fp(), newType))
         goto error;
 
-    if (cx->compartment->debugMode())
-        ScriptDebugPrologue(cx, regs.fp());
+    if (cx->compartment->debugMode()) {
+        switch (ScriptDebugPrologue(cx, regs.fp())) {
+          case JSTRAP_CONTINUE:
+            break;
+          case JSTRAP_RETURN:
+            interpReturnOK = JS_TRUE;
+            goto forced_return;
+          case JSTRAP_THROW:
+          case JSTRAP_ERROR:
+            goto error;
+          default:
+            JS_NOT_REACHED("bad ScriptDebugPrologue status");
+        }
+    }
 
     CHECK_INTERRUPT_HANDLER();
 

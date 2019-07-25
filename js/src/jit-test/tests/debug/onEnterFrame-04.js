@@ -1,16 +1,48 @@
 
 
+
+
+
+
+
+
+
+load(libdir + 'asserts.js');
+
 var g = newGlobal('new-compartment');
-g.n = 0;
 g.eval("function f(frame) { n++; return 42; }");
-print('ok');
+g.n = 0;
+
 var dbg = Debugger(g);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 dbg.onEnterFrame = g.f;
 
 
-var x = g.f();
-assertEq(x, 42);
-assertEq(g.n > 20, true);
+var debuggeeF = dbg.addDebuggee(g.f);
+
+
+assertEq(debuggeeF.call(), null);
+
+
+assertEq(g.n, 0);
 
 
 
