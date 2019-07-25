@@ -95,25 +95,20 @@ nsResURL::EnsureFile()
 
     nsCAutoString spec;
     rv = gResHandler->ResolveURI(this, spec);
-    if (NS_FAILED(rv)) return rv;
-
-#if defined(MOZ_CHROME_FILE_FORMAT_JAR) || defined(MOZ_OMNIJAR)
-    nsCAutoString host;
-    rv = GetHost(host);
     if (NS_FAILED(rv))
         return rv;
+
+    nsCAutoString scheme;
+    rv = net_ExtractURLScheme(spec, nsnull, nsnull, &scheme);
+    if (NS_FAILED(rv))
+        return rv;
+
     
-    if (host.Equals(kGRE_RESOURCES))
+    
+    
+    
+    if (!scheme.Equals(NS_LITERAL_CSTRING("file")))
         return NS_ERROR_NO_INTERFACE;
-#endif
-#ifdef MOZ_OMNIJAR
-    if (mozilla::OmnijarPath()) {
-        if (host.Equals(kGRE))
-            return NS_ERROR_NO_INTERFACE;
-        if (host.IsEmpty())
-            return NS_ERROR_NO_INTERFACE;
-    }
-#endif
 
     rv = net_GetFileFromURLSpec(spec, getter_AddRefs(mFile));
 #ifdef DEBUG_bsmedberg
