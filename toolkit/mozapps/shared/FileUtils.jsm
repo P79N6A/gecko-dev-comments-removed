@@ -91,8 +91,6 @@ var FileUtils = {
 
 
 
-
-
   getDir: function FileUtils_getDir(key, pathArray, shouldCreate, followLinks) {
     var dir = gDirService.get(key, Ci.nsILocalFile);
     for (var i = 0; i < pathArray.length; ++i) {
