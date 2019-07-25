@@ -5,6 +5,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "jsoptparse.h"
 #include <ctype.h>
 #include <stdarg.h>
@@ -51,12 +84,6 @@ OPTION_CONVERT_IMPL(String)
 OPTION_CONVERT_IMPL(Int)
 OPTION_CONVERT_IMPL(MultiString)
 
-void
-OptionParser::setArgTerminatesOptions(const char *name, bool enabled)
-{
-    findArgument(name)->setTerminatesOptions(enabled);
-}
-
 OptionParser::Result
 OptionParser::error(const char *fmt, ...)
 {
@@ -71,9 +98,9 @@ OptionParser::error(const char *fmt, ...)
 
 
 static void
-PrintParagraph(const char *text, unsigned startColno, const unsigned limitColno, bool padFirstLine)
+PrintParagraph(const char *text, uintN startColno, const uintN limitColno, bool padFirstLine)
 {
-    unsigned colno = startColno;
+    uintN colno = startColno;
     const char *it = text;
 
     if (padFirstLine)
@@ -130,27 +157,6 @@ PrintParagraph(const char *text, unsigned startColno, const unsigned limitColno,
     }
 }
 
-static const char *
-OptionFlagsToFormatInfo(char shortflag, bool isValued, size_t *length)
-{
-    static const char *fmt[4] = { "  -%c --%s ",
-                                  "  --%s ",
-                                  "  -%c --%s=%s ",
-                                  "  --%s=%s " };
-
-    
-    size_t lengths[4] = { strlen(fmt[0]) - 3,
-                          strlen(fmt[1]) - 3,
-                          strlen(fmt[2]) - 5,
-                          strlen(fmt[3]) - 5 };
-    int index = isValued ? 2 : 0;
-    if (!shortflag)
-        index++;
-
-    *length = lengths[index];
-    return fmt[index];
-}
-
 OptionParser::Result
 OptionParser::printHelp(const char *progname)
 {
@@ -178,7 +184,7 @@ OptionParser::printHelp(const char *progname)
         size_t fmtChars = sizeof(fmt) - 2;
         size_t lhsLen = 0;
         for (Option **it = arguments.begin(), **end = arguments.end(); it != end; ++it)
-            lhsLen = Max(lhsLen, strlen((*it)->longflag) + fmtChars);
+            lhsLen = JS_MAX(lhsLen, strlen((*it)->longflag) + fmtChars);
 
         for (Option **it = arguments.begin(), **end = arguments.end(); it != end; ++it) {
             Option *arg = *it;
@@ -194,38 +200,29 @@ OptionParser::printHelp(const char *progname)
     if (!options.empty()) {
         printf("Options:\n");
 
+        static const char fmt[] = "  -%c --%s ";
+        size_t fmtChars = sizeof(fmt) - 3; 
+        static const char fmtValued[] = "  -%c --%s=%s ";
+        size_t fmtValuedChars = sizeof(fmtValued) - 5;
+
         
         size_t lhsLen = 0;
         for (Option **it = options.begin(), **end = options.end(); it != end; ++it) {
             Option *opt = *it;
             size_t longflagLen = strlen(opt->longflag);
-
-            size_t fmtLen;
-            OptionFlagsToFormatInfo(opt->shortflag, opt->isValued(), &fmtLen);
-
-            size_t len = fmtLen + longflagLen;
-            if (opt->isValued())
-                len += strlen(opt->asValued()->metavar);
-            lhsLen = Max(lhsLen, len);
+            size_t len = opt->isValued()
+                         ? fmtValuedChars + longflagLen + strlen(opt->asValued()->metavar)
+                         : fmtChars + longflagLen;
+            lhsLen = JS_MAX(lhsLen, len);
         }
 
         
         for (Option **it = options.begin(), **end = options.end(); it != end; ++it) {
             Option *opt = *it;
-            size_t fmtLen;
-            const char *fmt = OptionFlagsToFormatInfo(opt->shortflag, opt->isValued(), &fmtLen);
-            size_t chars;
-            if (opt->isValued()) {
-                if (opt->shortflag)
-                    chars = printf(fmt, opt->shortflag, opt->longflag, opt->asValued()->metavar);
-                else
-                    chars = printf(fmt, opt->longflag, opt->asValued()->metavar);
-            } else {
-                if (opt->shortflag)
-                    chars = printf(fmt, opt->shortflag, opt->longflag);
-                else
-                    chars = printf(fmt, opt->longflag);
-            }
+            size_t chars = opt->isValued()
+                           ? printf(fmtValued, opt->shortflag, opt->longflag,
+                                    opt->asValued()->metavar)
+                           : printf(fmt, opt->shortflag, opt->longflag);
             for (; chars < lhsLen; ++chars)
                 putchar(' ');
             PrintParagraph(opt->help, lhsLen, helpWidth, false);
@@ -257,11 +254,8 @@ OptionParser::extractValue(size_t argc, char **argv, size_t *i, char **value)
 }
 
 OptionParser::Result
-OptionParser::handleOption(Option *opt, size_t argc, char **argv, size_t *i, bool *optionsAllowed)
+OptionParser::handleOption(Option *opt, size_t argc, char **argv, size_t *i)
 {
-    if (opt->getTerminatesOptions())
-        *optionsAllowed = false;
-
     switch (opt->kind) {
       case OptionKindBool:
       {
@@ -276,7 +270,7 @@ OptionParser::handleOption(Option *opt, size_t argc, char **argv, size_t *i, boo
 
       case OptionKindString:
       {
-        char *value = NULL;
+        char *value;
         if (Result r = extractValue(argc, argv, i, &value))
             return r;
         opt->asStringOption()->value = value;
@@ -284,7 +278,7 @@ OptionParser::handleOption(Option *opt, size_t argc, char **argv, size_t *i, boo
       }
       case OptionKindInt:
       {
-        char *value = NULL;
+        char *value;
         if (Result r = extractValue(argc, argv, i, &value))
             return r;
         opt->asIntOption()->value = atoi(value);
@@ -292,7 +286,7 @@ OptionParser::handleOption(Option *opt, size_t argc, char **argv, size_t *i, boo
       }
       case OptionKindMultiString:
       {
-        char *value = NULL;
+        char *value;
         if (Result r = extractValue(argc, argv, i, &value))
             return r;
         StringArg arg(value, *i);
@@ -305,16 +299,12 @@ OptionParser::handleOption(Option *opt, size_t argc, char **argv, size_t *i, boo
 }
 
 OptionParser::Result
-OptionParser::handleArg(size_t argc, char **argv, size_t *i, bool *optionsAllowed)
+OptionParser::handleArg(size_t argc, char **argv, size_t *i)
 {
     if (nextArgument >= arguments.length())
         return error("Too many arguments provided");
 
     Option *arg = arguments[nextArgument];
-
-    if (arg->getTerminatesOptions())
-        *optionsAllowed = false;
-
     switch (arg->kind) {
       case OptionKindString:
         arg->asStringOption()->value = argv[*i];
@@ -337,15 +327,16 @@ OptionParser::parseArgs(int inputArgc, char **argv)
 {
     JS_ASSERT(inputArgc >= 0);
     size_t argc = inputArgc;
-    
-    bool optionsAllowed = true;
 
     for (size_t i = 1; i < argc; ++i) {
         char *arg = argv[i];
         Result r;
-        
-        if (arg[0] == '-' && arg[1] != '\0' && optionsAllowed) {
+        if (arg[0] == '-') {
             
+            size_t arglen = strlen(arg);
+            if (arglen < 2) 
+                return error("Invalid dash option");
+
             Option *opt;
             if (arg[1] == '-') {
                 
@@ -361,12 +352,11 @@ OptionParser::parseArgs(int inputArgc, char **argv)
                     return error("Invalid short option: %s", arg);
             }
 
-            r = handleOption(opt, argc, argv, &i, &optionsAllowed);
+            r = handleOption(opt, argc, argv, &i);
         } else {
             
-            r = handleArg(argc, argv, &i, &optionsAllowed);
+            r = handleArg(argc, argv, &i);
         }
-
         switch (r) {
           case Okay:
             break;
@@ -414,37 +404,10 @@ OptionParser::getMultiStringOption(char shortflag) const
     return MultiStringRange(mso->strings.begin(), mso->strings.end());
 }
 
-bool
-OptionParser::getBoolOption(const char *longflag) const
-{
-    return findOption(longflag)->asBoolOption()->value;
-}
-
-int
-OptionParser::getIntOption(const char *longflag) const
-{
-    return findOption(longflag)->asIntOption()->value;
-}
-
-const char *
-OptionParser::getStringOption(const char *longflag) const
-{
-    return findOption(longflag)->asStringOption()->value;
-}
-
-MultiStringRange
-OptionParser::getMultiStringOption(const char *longflag) const
-{
-    const MultiStringOption *mso = findOption(longflag)->asMultiStringOption();
-    return MultiStringRange(mso->strings.begin(), mso->strings.end());
-}
-
 OptionParser::~OptionParser()
 {
     for (Option **it = options.begin(), **end = options.end(); it != end; ++it)
-        js_delete<Option>(*it);
-    for (Option **it = arguments.begin(), **end = arguments.end(); it != end; ++it)
-        js_delete<Option>(*it);
+        Foreground::delete_<Option>(*it);
 }
 
 Option *
@@ -488,12 +451,6 @@ OptionParser::findOption(const char *longflag)
     return strcmp(helpOption.longflag, longflag) ? NULL : &helpOption;
 }
 
-const Option *
-OptionParser::findOption(const char *longflag) const
-{
-    return const_cast<OptionParser *>(this)->findOption(longflag);
-}
-
 
 
 Option *
@@ -534,7 +491,8 @@ OptionParser::addIntOption(char shortflag, const char *longflag, const char *met
 {
     if (!options.reserve(options.length() + 1))
         return false;
-    IntOption *io = js_new<IntOption>(shortflag, longflag, help, metavar, defaultValue);
+    IntOption *io = OffTheBooks::new_<IntOption>(shortflag, longflag, help, metavar,
+                                                 defaultValue);
     if (!io)
         return false;
     options.infallibleAppend(io);
@@ -546,7 +504,7 @@ OptionParser::addBoolOption(char shortflag, const char *longflag, const char *he
 {
     if (!options.reserve(options.length() + 1))
         return false;
-    BoolOption *bo = js_new<BoolOption>(shortflag, longflag, help);
+    BoolOption *bo = OffTheBooks::new_<BoolOption>(shortflag, longflag, help);
     if (!bo)
         return false;
     options.infallibleAppend(bo);
@@ -559,7 +517,7 @@ OptionParser::addStringOption(char shortflag, const char *longflag, const char *
 {
     if (!options.reserve(options.length() + 1))
         return false;
-    StringOption *so = js_new<StringOption>(shortflag, longflag, help, metavar);
+    StringOption *so = OffTheBooks::new_<StringOption>(shortflag, longflag, help, metavar);
     if (!so)
         return false;
     options.infallibleAppend(so);
@@ -572,7 +530,8 @@ OptionParser::addMultiStringOption(char shortflag, const char *longflag, const c
 {
     if (!options.reserve(options.length() + 1))
         return false;
-    MultiStringOption *mso = js_new<MultiStringOption>(shortflag, longflag, help, metavar);
+    MultiStringOption *mso = OffTheBooks::new_<MultiStringOption>(shortflag, longflag, help,
+                                                                  metavar);
     if (!mso)
         return false;
     options.infallibleAppend(mso);
@@ -586,7 +545,7 @@ OptionParser::addOptionalStringArg(const char *name, const char *help)
 {
     if (!arguments.reserve(arguments.length() + 1))
         return false;
-    StringOption *so = js_new<StringOption>(1, name, help, (const char *) NULL);
+    StringOption *so = OffTheBooks::new_<StringOption>(1, name, help, (const char *) NULL);
     if (!so)
         return false;
     arguments.infallibleAppend(so);
@@ -599,7 +558,8 @@ OptionParser::addOptionalMultiStringArg(const char *name, const char *help)
     JS_ASSERT_IF(!arguments.empty(), !arguments.back()->isVariadic());
     if (!arguments.reserve(arguments.length() + 1))
         return false;
-    MultiStringOption *mso = js_new<MultiStringOption>(1, name, help, (const char *) NULL);
+    MultiStringOption *mso = OffTheBooks::new_<MultiStringOption>(1, name, help,
+                                                                  (const char *) NULL);
     if (!mso)
         return false;
     arguments.infallibleAppend(mso);
