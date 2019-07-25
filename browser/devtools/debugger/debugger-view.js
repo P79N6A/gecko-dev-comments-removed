@@ -33,7 +33,10 @@ let DebuggerView = {
   
 
 
-  initializeEditor: function DV_initializeEditor() {
+
+
+
+  initializeEditor: function DV_initializeEditor(aCallback) {
     let placeholder = document.getElementById("editor");
 
     let config = {
@@ -45,7 +48,10 @@ let DebuggerView = {
     };
 
     this.editor = new SourceEditor();
-    this.editor.init(placeholder, config, this._onEditorLoad.bind(this));
+    this.editor.init(placeholder, config, function() {
+      this._onEditorLoad();
+      aCallback();
+    }.bind(this));
   },
 
   
