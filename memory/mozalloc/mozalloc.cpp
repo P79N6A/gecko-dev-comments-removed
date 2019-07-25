@@ -42,6 +42,8 @@
 #include <new>                  
 #include <string.h>
 
+#include <sys/types.h>
+
 #if defined(MALLOC_H)
 #  include MALLOC_H             
 #endif 
