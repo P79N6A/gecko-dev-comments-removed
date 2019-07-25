@@ -121,10 +121,11 @@ NewDenseCopiedArrayWithType(JSContext *cx, uint32_t length, HandleObject source)
     uint32_t srclen;
     uint32_t copyUpTo;
 
-    
-    
-    
     if (source->isDenseArray() && !js_PrototypeHasIndexedProperties(cx, source)) {
+        
+        
+        
+        
         const Value *srcvp = source->getDenseArrayElements();
 
         srclen = source->getDenseArrayInitializedLength();
@@ -136,7 +137,17 @@ NewDenseCopiedArrayWithType(JSContext *cx, uint32_t length, HandleObject source)
             elem = srcvp[i].isMagic(JS_ARRAY_HOLE) ? UndefinedValue() : srcvp[i];
             buffer->initDenseArrayElementWithType(cx, i, elem);
         }
+
+        
+        for (uint32_t i = copyUpTo; i < length; i++)
+            buffer->initDenseArrayElementWithType(cx, i, UndefinedValue());
     } else {
+        
+        
+        
+        for (uint32_t i = 0; i < length; i++)
+            buffer->initDenseArrayElementWithType(cx, i, UndefinedValue());
+
         IndexInfo siv(cx);
         RootedParallelArrayObject sourcePA(cx);
 
@@ -149,13 +160,9 @@ NewDenseCopiedArrayWithType(JSContext *cx, uint32_t length, HandleObject source)
         for (uint32_t i = 0; i < copyUpTo; i++) {
             if (!GetElementFromArrayLikeObject(cx, source, sourcePA, siv, i, &elem))
                 return NULL;
-            buffer->initDenseArrayElementWithType(cx, i, elem);
+            buffer->setDenseArrayElementWithType(cx, i, elem);
         }
     }
-
-    
-    for (uint32_t i = copyUpTo; i < length; i++)
-        buffer->initDenseArrayElementWithType(cx, i, UndefinedValue());
 
     if (!SetArrayNewType(cx, buffer))
         return NULL;
