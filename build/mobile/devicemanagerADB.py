@@ -2,6 +2,7 @@ import subprocess
 from devicemanager import DeviceManager, DMError
 import re
 import os
+import sys
 
 class DeviceManagerADB(DeviceManager):
 
@@ -11,6 +12,7 @@ class DeviceManagerADB(DeviceManager):
     self.retrylimit = retrylimit
     self.retries = 0
     self._sock = None
+    self.useRunAs = False
     if packageName == None:
       if os.getenv('USER'):
         packageName = 'org.mozilla.fennec_' + os.getenv('USER')
@@ -22,14 +24,11 @@ class DeviceManagerADB(DeviceManager):
     
     
     try:
-      root = self.getDeviceRoot()
-      self.verifyPackage(packageName)
-      self.tmpDir = root + "/tmp"
-      if (not self.dirExists(self.tmpDir)):
-        self.mkDir(self.tmpDir)
+      self.verifyADB()
+      self.verifyRunAs(packageName)
     except:
+      self.useRunAs = False
       self.packageName = None
-      self.tmpDir = None
     try:
       
       files = self.listFiles("/data/data")
@@ -51,7 +50,7 @@ class DeviceManagerADB(DeviceManager):
     try:
       if (os.name == "nt"):
         destname = destname.replace('\\', '/')
-      if (self.packageName):
+      if (self.useRunAs):
         remoteTmpFile = self.tmpDir + "/" + os.path.basename(localname)
         self.checkCmd(["push", os.path.realpath(localname), remoteTmpFile])
         self.checkCmdAs(["shell", "cp", remoteTmpFile, destname])
@@ -498,7 +497,7 @@ class DeviceManagerADB(DeviceManager):
     return subprocess.check_call(args)
 
   def checkCmdAs(self, args):
-    if (self.packageName):
+    if (self.useRunAs):
       args.insert(1, "run-as")
       args.insert(2, self.packageName)
     return self.checkCmd(args)
@@ -518,13 +517,44 @@ class DeviceManagerADB(DeviceManager):
       self.checkCmdAs(["shell", "chmod", "777", remoteDir.strip()])
       print "chmod " + remoteDir.strip()
 
-  def verifyPackage(self, packageName):
+  def verifyADB(self):
+    
+    try:
+      self.runCmd(["version"])
+    except Exception as (ex):
+      print "unable to execute ADB: ensure Android SDK is installed and adb is in your $PATH"
+    
+  def isCpAvailable(self):
+    
+    
+    data = self.runCmd(["shell", "cp"]).stdout.read()
+    if (re.search('Usage', data)):
+      return True
+    else:
+      print "unable to execute 'cp' on device; consider installing busybox from Android Market"
+      return False
+
+  def verifyRunAs(self, packageName):
     
     
     
-    self.packageName = None
-    if (packageName):
-      data = self.runCmd(["shell", "run-as", packageName, "pwd"]).stdout.read()
-      if (not re.search('is unknown', data)):
+    
+    
+    
+    
+    self.useRunAs = False
+    devroot = self.getDeviceRoot()
+    if (packageName and self.isCpAvailable() and devroot):
+      self.tmpDir = devroot + "/tmp"
+      if (not self.dirExists(self.tmpDir)):
+        self.mkDir(self.tmpDir)
+      self.checkCmd(["shell", "run-as", packageName, "mkdir", devroot + "/sanity"])
+      self.checkCmd(["push", os.path.abspath(sys.argv[0]), self.tmpDir + "/tmpfile"])
+      self.checkCmd(["shell", "run-as", packageName, "cp", self.tmpDir + "/tmpfile", devroot + "/sanity"])
+      if (self.fileExists(devroot + "/sanity/tmpfile")):
+        print "will execute commands via run-as " + packageName
         self.packageName = packageName
-        print "package set: " + self.packageName
+        self.useRunAs = True
+      self.checkCmd(["shell", "rm", devroot + "/tmp/tmpfile"])
+      self.checkCmd(["shell", "run-as", packageName, "rm", "-r", devroot + "/sanity"])
+      
