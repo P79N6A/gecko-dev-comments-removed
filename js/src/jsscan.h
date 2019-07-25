@@ -144,6 +144,7 @@ enum TokenKind {
 
 
     TOK_RESERVED,                       
+    TOK_STRICT_RESERVED,                
     TOK_LIMIT                           
 };
 
