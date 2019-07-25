@@ -316,12 +316,14 @@ WebGLContext::SetContextOptions(nsIPropertyBag *aOptions)
     
     newOpts.depth |= newOpts.stencil;
 
+#if 0
     LogMessage("aaHint: %d stencil: %d depth: %d alpha: %d premult: %d\n",
                newOpts.antialiasHint ? 1 : 0,
                newOpts.stencil ? 1 : 0,
                newOpts.depth ? 1 : 0,
                newOpts.alpha ? 1 : 0,
                newOpts.premultipliedAlpha ? 1 : 0);
+#endif
 
     if (mOptionsFrozen && newOpts != mOptions) {
         
@@ -398,8 +400,14 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
     
     PRBool forceOSMesa = PR_FALSE;
     PRBool preferEGL = PR_FALSE;
+    PRBool preferOpenGL = PR_FALSE;
     prefService->GetBoolPref("webgl.force_osmesa", &forceOSMesa);
     prefService->GetBoolPref("webgl.prefer_egl", &preferEGL);
+    prefService->GetBoolPref("webgl.prefer_gl", &preferOpenGL);
+
+    if (PR_GetEnv("MOZ_WEBGL_PREFER_EGL")) {
+        preferEGL = PR_TRUE;
+    }
 
     
     PRBool useOpenGL = PR_TRUE;
@@ -425,6 +433,13 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
     }
 
     
+    if (PR_GetEnv("MOZ_WEBGL_FORCE_OPENGL")) {
+        preferEGL = PR_FALSE;
+        useANGLE = PR_FALSE;
+        useOpenGL = PR_TRUE;
+    }
+
+    
     if (forceOSMesa) {
         gl = gl::GLContextProviderOSMesa::CreateOffscreen(gfxIntSize(width, height), format);
         if (!gl || !InitAndValidateGL()) {
@@ -436,23 +451,7 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
 
 #ifdef XP_WIN
     
-    
-    
-    
-    
-    if (PR_GetEnv("MOZ_WEBGL_PREFER_EGL")) {
-        preferEGL = PR_TRUE;
-    }
-
-    
-    if (PR_GetEnv("MOZ_WEBGL_FORCE_OPENGL")) {
-        preferEGL = PR_FALSE;
-        useANGLE = PR_FALSE;
-        useOpenGL = PR_TRUE;
-    }
-
-    
-    if (!gl && (preferEGL || useANGLE)) {
+    if (!gl && (preferEGL || useANGLE) && !preferOpenGL) {
         gl = gl::GLContextProviderEGL::CreateOffscreen(gfxIntSize(width, height), format);
         if (gl && !InitAndValidateGL()) {
             gl = nsnull;
