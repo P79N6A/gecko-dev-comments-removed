@@ -1104,6 +1104,17 @@ WebGLContext::EnsureBackbufferClearedAsNeeded()
     Invalidate();
 }
 
+nsresult
+WebGLContext::DummyFramebufferOperation(const char *info)
+{
+    WebGLenum status;
+    CheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER, &status);
+    if (status == LOCAL_GL_FRAMEBUFFER_COMPLETE)
+        return NS_OK;
+    else
+        return ErrorInvalidFramebufferOperation("%s: incomplete framebuffer", info);
+}
+
 
 
 
