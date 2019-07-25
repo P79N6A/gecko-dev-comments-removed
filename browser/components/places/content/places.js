@@ -248,9 +248,6 @@ var PlacesOrganizer = {
     var folderButton = document.getElementById("scopeBarFolder");
     var folderTitle = node.title || folderButton.getAttribute("emptytitle");
     folderButton.setAttribute("label", folderTitle);
-    var cmd = document.getElementById("OrganizerCommand_find:current");
-    var label = PlacesUIUtils.getFormattedString("findInPrefix", [folderTitle]);
-    cmd.setAttribute("label", label);
     if (PlacesSearchBox.filterCollection == "collection")
       PlacesSearchBox.updateCollectionTitle(folderTitle);
 
@@ -928,15 +925,17 @@ var PlacesSearchBox = {
 
 
   findAll: function PSB_findAll() {
-    PlacesQueryBuilder.setScope("bookmarks");
-    this.focus();
-  },
-
-  
-
-
-  findCurrent: function PSB_findCurrent() {
-    PlacesQueryBuilder.setScope("collection");
+    switch (this.filterCollection) {
+      case "history":
+        PlacesQueryBuilder.setScope("history");
+        break;
+      case "downloads":
+        PlacesQueryBuilder.setScope("downloads");
+        break;
+      default:
+        PlacesQueryBuilder.setScope("bookmarks");
+        break;
+    }
     this.focus();
   },
 
@@ -947,12 +946,15 @@ var PlacesSearchBox = {
 
   updateCollectionTitle: function PSB_updateCollectionTitle(aTitle) {
     let title = "";
+    
+    
+    
     if (aTitle) {
       title = PlacesUIUtils.getFormattedString("searchCurrentDefault",
                                                [aTitle]);
     }
     else {
-      switch(this.filterCollection) {
+      switch (this.filterCollection) {
         case "history":
           title = PlacesUIUtils.getString("searchHistory");
           break;
