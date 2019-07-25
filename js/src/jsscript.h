@@ -110,6 +110,13 @@ struct Shape;
 
 enum BindingKind { NONE, ARGUMENT, VARIABLE, CONSTANT };
 
+struct BindingName {
+    JSAtom *maybeAtom;
+    BindingKind kind;
+};
+
+typedef Vector<BindingName, 32> BindingNames;
+
 
 
 
@@ -238,7 +245,7 @@ class Bindings
 
 
 
-    bool getLocalNameArray(JSContext *cx, Vector<JSAtom *> *namesp);
+    bool getLocalNameArray(JSContext *cx, BindingNames *namesp);
 
     
 

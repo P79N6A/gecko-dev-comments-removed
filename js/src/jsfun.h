@@ -121,9 +121,6 @@ struct JSFunction : public JSObject
     
     enum { MAX_ARGS_AND_VARS = 2 * ((1U << 16) - 1) };
 
-#define JS_LOCAL_NAME_TO_ATOM(nameWord)  ((JSAtom *) ((nameWord) & ~uintptr_t(1)))
-#define JS_LOCAL_NAME_IS_CONST(nameWord) ((((nameWord) & uintptr_t(1))) != 0)
-
     
 
 
