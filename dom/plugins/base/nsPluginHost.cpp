@@ -2004,7 +2004,7 @@ namespace {
 
 int64_t GetPluginLastModifiedTime(const nsCOMPtr<nsIFile>& localfile)
 {
-  int64_t fileModTime = LL_ZERO;
+  PRTime fileModTime = LL_ZERO;
 
 #if defined(XP_MACOSX)
   

@@ -426,7 +426,7 @@ PR_BEGIN_MACRO                                                          \
 }
 #endif 
 
-nsresult nsProfileLock::GetReplacedLockTime(int64_t *aResult) {
+nsresult nsProfileLock::GetReplacedLockTime(PRTime *aResult) {
     *aResult = mReplacedLockTime;
     return NS_OK;
 }
