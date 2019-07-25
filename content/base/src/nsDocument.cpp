@@ -3801,6 +3801,30 @@ nsDocument::ScriptLoader()
   return mScriptLoader;
 }
 
+PRBool
+nsDocument::InternalAllowXULXBL()
+{
+  if (nsContentUtils::IsSystemPrincipal(NodePrincipal())) {
+    mAllowXULXBL = eTriTrue;
+    return PR_TRUE;
+  }
+  
+  nsCOMPtr<nsIURI> princURI;
+  NodePrincipal()->GetURI(getter_AddRefs(princURI));
+  if (!princURI) {
+    mAllowXULXBL = eTriFalse;
+    return PR_FALSE;
+  }
+
+  if (nsContentUtils::IsSitePermAllow(princURI, "allowXULXBL")) {
+    mAllowXULXBL = eTriTrue;
+    return PR_TRUE;
+  }
+
+  mAllowXULXBL = eTriFalse;
+  return PR_FALSE;
+}
+
 
 
 void
