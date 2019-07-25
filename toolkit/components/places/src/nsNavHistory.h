@@ -62,6 +62,8 @@
 #include "nsNetCID.h"
 #include "nsToolkitCompsCID.h"
 #include "nsThreadUtils.h"
+#include "nsURIHashKey.h"
+#include "nsTHashtable.h"
 
 #include "nsINavBookmarksService.h"
 #include "nsIPrivateBrowsingService.h"
@@ -443,6 +445,30 @@ public:
 
   PRUint32 GetRecentFlags(nsIURI *aURI);
 
+  
+
+
+
+
+
+
+
+  void registerEmbedVisit(nsIURI* aURI, PRInt64 aTime);
+
+  
+
+
+
+
+
+
+  bool hasEmbedVisit(nsIURI* aURI);
+
+  
+
+
+  void clearEmbedVisits();
+
   mozIStorageStatement* GetStatementById(
     enum mozilla::places::HistoryStatementId aStatementId
   )
@@ -792,6 +818,24 @@ protected:
   RecentEventHash mRecentTyped;
   RecentEventHash mRecentLink;
   RecentEventHash mRecentBookmark;
+
+  
+  class VisitHashKey : public nsURIHashKey
+  {
+  public:
+    VisitHashKey(const nsIURI* aURI)
+    : nsURIHashKey(aURI)
+    {
+    }
+    VisitHashKey(const VisitHashKey& aOther)
+    : nsURIHashKey(aOther)
+    {
+      NS_NOTREACHED("Do not call me!");
+    }
+    PRTime visitTime;
+  };
+
+  nsTHashtable<VisitHashKey> mEmbedVisits;
 
   PRBool CheckIsRecentEvent(RecentEventHash* hashTable,
                             const nsACString& url);

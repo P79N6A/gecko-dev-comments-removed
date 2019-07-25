@@ -53,6 +53,10 @@
 #include "nsDocShellCID.h"
 #include "nsIEventStateManager.h"
 #include "mozilla/Services.h"
+#include "nsThreadUtils.h"
+
+
+#define VISIT_OBSERVERS_INITIAL_CACHE_SIZE 128
 
 using namespace mozilla::dom;
 
@@ -92,6 +96,19 @@ public:
   }
 #endif
 
+    nsNavHistory* navHistory = nsNavHistory::GetHistoryService();
+    NS_ENSURE_STATE(navHistory);
+    if (navHistory->hasEmbedVisit(aURI)) {
+      nsRefPtr<VisitedQuery> callback = new VisitedQuery(aURI, true);
+      NS_ENSURE_TRUE(callback, NS_ERROR_OUT_OF_MEMORY);
+      
+      nsCOMPtr<nsIRunnable> event =
+        NS_NewRunnableMethod(callback, &VisitedQuery::NotifyVisitedStatus);
+      NS_DispatchToMainThread(event);
+
+      return NS_OK;
+    }
+
     mozIStorageAsyncStatement* stmt =
       History::GetService()->GetIsVisitedStatement();
     NS_ENSURE_STATE(stmt);
@@ -128,12 +145,17 @@ public:
       return NS_OK;
     }
 
+    nsresult rv = NotifyVisitedStatus();
+    NS_ENSURE_SUCCESS(rv, rv);
+    return NS_OK;
+  }
+
+  nsresult NotifyVisitedStatus()
+  {
     if (mIsVisited) {
       History::GetService()->NotifyVisited(mURI);
     }
 
-    
-    
     nsCOMPtr<nsIObserverService> observerService =
       mozilla::services::GetObserverService();
     if (observerService) {
@@ -151,10 +173,11 @@ public:
 
     return NS_OK;
   }
+
 private:
-  VisitedQuery(nsIURI* aURI)
+  VisitedQuery(nsIURI* aURI, bool aIsVisited=false)
   : mURI(aURI)
-  , mIsVisited(false)
+  , mIsVisited(aIsVisited)
   {
   }
 
@@ -214,14 +237,15 @@ public:
   : mPlace(aPlace)
   , mReferrer(aReferrer)
   {
-    NS_PRECONDITION(!NS_IsMainThread(),
-                    "This should not be called on the main thread");
   }
 
   NS_IMETHOD Run()
   {
-    nsNavHistory* history = nsNavHistory::GetHistoryService();
-    if (!history) {
+    NS_PRECONDITION(NS_IsMainThread(),
+                    "This should be called on the main thread");
+
+    nsNavHistory* navHistory = nsNavHistory::GetHistoryService();
+    if (!navHistory) {
       NS_WARNING("Trying to notify about a visit but cannot get the history service!");
       return NS_OK;
     }
@@ -231,9 +255,9 @@ public:
     if (!mPlace.hidden &&
         mPlace.transitionType != nsINavHistoryService::TRANSITION_EMBED &&
         mPlace.transitionType != nsINavHistoryService::TRANSITION_FRAMED_LINK) {
-      history->NotifyOnVisit(mPlace.uri, mPlace.visitId, mPlace.visitTime,
-                             mPlace.sessionId, mReferrer.visitId,
-                             mPlace.transitionType);
+      navHistory->NotifyOnVisit(mPlace.uri, mPlace.visitId, mPlace.visitTime,
+                                mPlace.sessionId, mReferrer.visitId,
+                                mPlace.transitionType);
     }
 
     nsCOMPtr<nsIObserverService> obsService =
@@ -289,9 +313,9 @@ public:
     
     
     
-    nsNavHistory* navhistory = nsNavHistory::GetHistoryService();
-    NS_ENSURE_TRUE(navhistory, NS_ERROR_UNEXPECTED);
-    event->mPlace.sessionId = navhistory->GetNewSessionID();
+    nsNavHistory* navHistory = nsNavHistory::GetHistoryService();
+    NS_ENSURE_TRUE(navHistory, NS_ERROR_UNEXPECTED);
+    event->mPlace.sessionId = navHistory->GetNewSessionID();
 
     
     nsCOMPtr<nsIEventTarget> target = do_GetInterface(aConnection);
@@ -675,9 +699,9 @@ public:
       return NS_OK;
     }
 
-    nsNavHistory* navhistory = nsNavHistory::GetHistoryService();
-    NS_ENSURE_TRUE(navhistory, NS_ERROR_OUT_OF_MEMORY);
-    navhistory->NotifyTitleChange(mURI, mTitle);
+    nsNavHistory* navHistory = nsNavHistory::GetHistoryService();
+    NS_ENSURE_TRUE(navHistory, NS_ERROR_OUT_OF_MEMORY);
+    navHistory->NotifyTitleChange(mURI, mTitle);
 
     
     
@@ -987,10 +1011,10 @@ History::GetDBConn()
     return mDBConn;
   }
 
-  nsNavHistory* history = nsNavHistory::GetHistoryService();
-  NS_ENSURE_TRUE(history, nsnull);
+  nsNavHistory* navHistory = nsNavHistory::GetHistoryService();
+  NS_ENSURE_TRUE(navHistory, nsnull);
 
-  nsresult rv = history->GetDBConnection(getter_AddRefs(mDBConn));
+  nsresult rv = navHistory->GetDBConnection(getter_AddRefs(mDBConn));
   NS_ENSURE_SUCCESS(rv, nsnull);
 
   return mDBConn;
@@ -1035,12 +1059,12 @@ History::VisitURI(nsIURI* aURI,
   } 
 #endif 
 
-  nsNavHistory* history = nsNavHistory::GetHistoryService();
-  NS_ENSURE_TRUE(history, NS_ERROR_OUT_OF_MEMORY);
+  nsNavHistory* navHistory = nsNavHistory::GetHistoryService();
+  NS_ENSURE_TRUE(navHistory, NS_ERROR_OUT_OF_MEMORY);
 
   
   PRBool canAdd;
-  nsresult rv = history->CanAddURI(aURI, &canAdd);
+  nsresult rv = navHistory->CanAddURI(aURI, &canAdd);
   NS_ENSURE_SUCCESS(rv, rv);
   if (!canAdd) {
     return NS_OK;
@@ -1062,9 +1086,21 @@ History::VisitURI(nsIURI* aURI,
 
   
   
-  PRUint32 recentFlags = history->GetRecentFlags(aURI);
+  PRUint32 recentFlags = navHistory->GetRecentFlags(aURI);
   bool redirected = false;
-  if (aFlags & IHistory::REDIRECT_TEMPORARY) {
+  bool isFollowedLink = recentFlags & nsNavHistory::RECENT_ACTIVATED;
+
+  
+  
+  
+  
+  
+
+  if (!(aFlags & IHistory::TOP_LEVEL) && !isFollowedLink) {
+    
+    place.transitionType = nsINavHistoryService::TRANSITION_EMBED;
+  }
+  else if (aFlags & IHistory::REDIRECT_TEMPORARY) {
     place.transitionType = nsINavHistoryService::TRANSITION_REDIRECT_TEMPORARY;
     redirected = true;
   }
@@ -1078,17 +1114,13 @@ History::VisitURI(nsIURI* aURI,
   else if (recentFlags & nsNavHistory::RECENT_BOOKMARKED) {
     place.transitionType = nsINavHistoryService::TRANSITION_BOOKMARK;
   }
-  else if (aFlags & IHistory::TOP_LEVEL) {
-    
-    place.transitionType = nsINavHistoryService::TRANSITION_LINK;
-  }
-  else if (recentFlags & nsNavHistory::RECENT_ACTIVATED) {
+  else if (!(aFlags & IHistory::TOP_LEVEL) && isFollowedLink) {
     
     place.transitionType = nsINavHistoryService::TRANSITION_FRAMED_LINK;
   }
   else {
     
-    place.transitionType = nsINavHistoryService::TRANSITION_EMBED;
+    place.transitionType = nsINavHistoryService::TRANSITION_LINK;
   }
 
   place.typed = place.transitionType == nsINavHistoryService::TRANSITION_TYPED;
@@ -1099,11 +1131,23 @@ History::VisitURI(nsIURI* aURI,
   place.visitTime = PR_Now();
   place.uri = aURI;
 
-  mozIStorageConnection* dbConn = GetDBConn();
-  NS_ENSURE_STATE(dbConn);
+  
+  
+  if (place.transitionType == nsINavHistoryService::TRANSITION_EMBED) {
+    navHistory->registerEmbedVisit(place.uri, place.visitTime);
+    
+    VisitData noReferrer;
+    nsCOMPtr<nsIRunnable> event = new NotifyVisitObservers(place, noReferrer);
+    rv = NS_DispatchToMainThread(event);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  else {
+    mozIStorageConnection* dbConn = GetDBConn();
+    NS_ENSURE_STATE(dbConn);
 
-  rv = InsertVisitedURI::Start(dbConn, place, aLastVisitedURI);
-  NS_ENSURE_SUCCESS(rv, rv);
+    rv = InsertVisitedURI::Start(dbConn, place, aLastVisitedURI);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   
   nsCOMPtr<nsIObserverService> obsService =
@@ -1130,7 +1174,8 @@ History::RegisterVisitedCallback(nsIURI* aURI,
 
   
   if (!mObservers.IsInitialized()) {
-    NS_ENSURE_TRUE(mObservers.Init(), NS_ERROR_OUT_OF_MEMORY);
+    NS_ENSURE_TRUE(mObservers.Init(VISIT_OBSERVERS_INITIAL_CACHE_SIZE),
+                   NS_ERROR_OUT_OF_MEMORY);
   }
 
   
@@ -1231,7 +1276,7 @@ History::SetURITitle(nsIURI* aURI, const nsAString& aTitle)
   } 
 #endif 
 
-  nsNavHistory* history = nsNavHistory::GetHistoryService();
+  nsNavHistory* navHistory = nsNavHistory::GetHistoryService();
 
   
   
@@ -1242,12 +1287,17 @@ History::SetURITitle(nsIURI* aURI, const nsAString& aTitle)
   
   
   
-  NS_ENSURE_TRUE(history, NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(navHistory, NS_ERROR_FAILURE);
 
   PRBool canAdd;
-  nsresult rv = history->CanAddURI(aURI, &canAdd);
+  nsresult rv = navHistory->CanAddURI(aURI, &canAdd);
   NS_ENSURE_SUCCESS(rv, rv);
   if (!canAdd) {
+    return NS_OK;
+  }
+
+  
+  if (navHistory->hasEmbedVisit(aURI)) {
     return NS_OK;
   }
 

@@ -70,6 +70,7 @@ function check_results_callback(aSequence) {
       case Ci.nsINavHistoryService.TRANSITION_DOWNLOAD:
         return redirectsMode != Ci.nsINavHistoryQueryOptions.REDIRECTS_MODE_TARGET;
       case Ci.nsINavHistoryService.TRANSITION_EMBED:
+        return false;
       case Ci.nsINavHistoryService.TRANSITION_FRAMED_LINK:
         return includeHidden && redirectsMode != Ci.nsINavHistoryQueryOptions.REDIRECTS_MODE_TARGET;
       case Ci.nsINavHistoryService.TRANSITION_REDIRECT_TEMPORARY:
@@ -211,8 +212,6 @@ function cartProd(aSequences, aCallback)
 
 
 function add_visits_to_database() {
-  
-  PlacesUtils.bhistory.removeAllPages();
   remove_all_bookmarks();
 
   
@@ -224,7 +223,9 @@ function add_visits_to_database() {
     Ci.nsINavHistoryService.TRANSITION_LINK,
     Ci.nsINavHistoryService.TRANSITION_TYPED,
     Ci.nsINavHistoryService.TRANSITION_BOOKMARK,
-    Ci.nsINavHistoryService.TRANSITION_EMBED,
+    
+    
+    
     Ci.nsINavHistoryService.TRANSITION_FRAMED_LINK,
     
     

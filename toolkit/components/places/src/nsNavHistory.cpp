@@ -162,6 +162,12 @@ static const PRInt64 USECS_PER_DAY = LL_INIT(20, 500654080);
 #define HISTORY_DATE_CONT_MAX 10
 
 
+#define EMBED_VISITS_INITIAL_CACHE_SIZE 128
+
+
+#define RECENT_EVENTS_INITIAL_CACHE_SIZE 128
+
+
 #ifdef MOZ_XUL
 #define TOPIC_AUTOCOMPLETE_FEEDBACK_INCOMING "autocomplete-will-enter-text"
 #endif
@@ -488,10 +494,18 @@ nsNavHistory::Init()
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  NS_ENSURE_TRUE(mRecentTyped.Init(128), NS_ERROR_OUT_OF_MEMORY);
-  NS_ENSURE_TRUE(mRecentLink.Init(128), NS_ERROR_OUT_OF_MEMORY);
-  NS_ENSURE_TRUE(mRecentBookmark.Init(128), NS_ERROR_OUT_OF_MEMORY);
-  NS_ENSURE_TRUE(mRecentRedirects.Init(128), NS_ERROR_OUT_OF_MEMORY);
+  NS_ENSURE_TRUE(mRecentTyped.Init(RECENT_EVENTS_INITIAL_CACHE_SIZE),
+                 NS_ERROR_OUT_OF_MEMORY);
+  NS_ENSURE_TRUE(mRecentLink.Init(RECENT_EVENTS_INITIAL_CACHE_SIZE),
+                 NS_ERROR_OUT_OF_MEMORY);
+  NS_ENSURE_TRUE(mRecentBookmark.Init(RECENT_EVENTS_INITIAL_CACHE_SIZE),
+                 NS_ERROR_OUT_OF_MEMORY);
+  NS_ENSURE_TRUE(mRecentRedirects.Init(RECENT_EVENTS_INITIAL_CACHE_SIZE),
+                 NS_ERROR_OUT_OF_MEMORY);
+  
+  
+  NS_ENSURE_TRUE(mEmbedVisits.Init(EMBED_VISITS_INITIAL_CACHE_SIZE),
+                 NS_ERROR_OUT_OF_MEMORY);
 
   
 
@@ -2728,6 +2742,14 @@ nsNavHistory::AddVisit(nsIURI* aURI, PRTime aTime, nsIURI* aReferringURI,
 
   
   
+  if (aTransitionType == TRANSITION_EMBED) {
+    registerEmbedVisit(aURI, GetNow());
+    *aVisitID = 0;
+    return NS_OK;
+  }
+
+  
+  
   mozStorageTransaction transaction(mDBConn, PR_FALSE);
 
   
@@ -4326,6 +4348,9 @@ nsNavHistory::RemovePages(nsIURI **aURIs, PRUint32 aLength, PRBool aDoBatchNotif
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  clearEmbedVisits();
+
+  
   if (aDoBatchNotify)
     UpdateBatchScoper batch(*this); 
 
@@ -4438,11 +4463,14 @@ nsNavHistory::RemovePagesFromHost(const nsACString& aHost, PRBool aEntireDomain)
     hostPlaceIds.AppendInt(placeId);
   }
 
-  
-  UpdateBatchScoper batch(*this); 
-
   rv = RemovePagesInternal(hostPlaceIds);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  clearEmbedVisits();
+
+  
+  UpdateBatchScoper batch(*this); 
 
   return NS_OK;
 }
@@ -4494,6 +4522,9 @@ nsNavHistory::RemovePagesByTimeframe(PRTime aBeginTime, PRTime aEndTime)
 
   rv = RemovePagesInternal(deletePlaceIdsQueryString);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  clearEmbedVisits();
 
   
   UpdateBatchScoper batch(*this); 
@@ -4588,6 +4619,9 @@ nsNavHistory::RemoveVisitsByTimeframe(PRTime aBeginTime, PRTime aEndTime)
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  clearEmbedVisits();
+
+  
   mHasHistoryEntries = -1;
 
   return NS_OK;
@@ -4629,6 +4663,9 @@ nsNavHistory::RemoveAllPages()
 
   rv = transaction.Commit();
   NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  clearEmbedVisits();
 
   
   mHasHistoryEntries = -1;
@@ -5069,7 +5106,7 @@ nsNavHistory::IsVisited(nsIURI *aURI, PRBool *_retval)
   nsresult rv = aURI->GetSpec(utf8URISpec);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  *_retval = IsURIStringVisited(utf8URISpec);
+  *_retval = hasEmbedVisit(aURI) ? PR_TRUE : IsURIStringVisited(utf8URISpec);
   return NS_OK;
 }
 
@@ -6253,6 +6290,33 @@ nsNavHistory::FilterResultSet(nsNavHistoryQueryResultNode* aQueryNode,
   return NS_OK;
 }
 
+void
+nsNavHistory::registerEmbedVisit(nsIURI* aURI,
+                                 PRInt64 aTime)
+{
+  NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
+
+  VisitHashKey* visit = mEmbedVisits.PutEntry(aURI);
+  if (!visit) {
+    NS_WARNING("Unable to register a EMBED visit.");
+    return;
+  }
+  visit->visitTime = aTime;
+}
+
+bool
+nsNavHistory::hasEmbedVisit(nsIURI* aURI) {
+  NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
+
+  return !!mEmbedVisits.GetEntry(aURI);
+}
+
+void
+nsNavHistory::clearEmbedVisits() {
+  NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
+
+  mEmbedVisits.Clear();
+}
 
 
 
@@ -6734,8 +6798,12 @@ nsNavHistory::SetPageTitleInternal(nsIURI* aURI, const nsAString& aTitle)
     PRBool hasURL = PR_FALSE;
     rv = stmt->ExecuteStep(&hasURL);
     NS_ENSURE_SUCCESS(rv, rv);
-    if (! hasURL) {
+    if (!hasURL) {
       
+      
+      if (hasEmbedVisit(aURI)) {
+        return NS_OK;
+      }
       return NS_ERROR_NOT_AVAILABLE;
     }
 
