@@ -180,6 +180,17 @@ namespace nanojit
         
         void markCodeChunkWrite(void* addr, size_t nbytes);
 
+        
+
+
+
+
+
+
+
+
+        bool checkChunkMark(void* addr, size_t nbytes, bool isExec);
+
     public:
         CodeAlloc();
         ~CodeAlloc();
