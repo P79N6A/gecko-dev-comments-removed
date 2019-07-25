@@ -16,6 +16,11 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
   "resource://gre/modules/PlacesUtils.jsm");
 
+XPCOMUtils.defineLazyGetter(this, "gPrincipal", function () {
+  let uri = Services.io.newURI("about:newtab", null, null);
+  return Services.scriptSecurityManager.getCodebasePrincipal(uri);
+});
+
 
 const PREF_NEWTAB_ENABLED = "browser.newtabpage.enabled";
 
@@ -33,11 +38,8 @@ let Storage = {
 
 
   get domStorage() {
-    let uri = Services.io.newURI("about:newtab", null, null);
-    let principal = Services.scriptSecurityManager.getCodebasePrincipal(uri);
-
     let sm = Services.domStorageManager;
-    let storage = sm.getLocalStorageForPrincipal(principal, "");
+    let storage = sm.getLocalStorageForPrincipal(gPrincipal, "");
 
     
     let descriptor = {value: storage, enumerable: true};
@@ -363,8 +365,10 @@ let PlacesProvider = {
 
         while (row = aResultSet.getNextRow()) {
           let url = row.getResultByIndex(1);
-          let title = row.getResultByIndex(2);
-          links.push({url: url, title: title});
+          if (LinkChecker.checkLoadURI(url)) {
+            let title = row.getResultByIndex(2);
+            links.push({url: url, title: title});
+          }
         }
       },
 
@@ -552,6 +556,37 @@ Telemetry.init();
 
 
 
+
+
+let LinkChecker = {
+  _cache: {},
+
+  get flags() {
+    return Ci.nsIScriptSecurityManager.DISALLOW_INHERIT_PRINCIPAL;
+  },
+
+  checkLoadURI: function LinkChecker_checkLoadURI(aURI) {
+    if (!(aURI in this._cache))
+      this._cache[aURI] = this._doCheckLoadURI(aURI);
+
+    return this._cache[aURI];
+  },
+
+  _doCheckLoadURI: function Links_doCheckLoadURI(aURI) {
+    try {
+      Services.scriptSecurityManager.
+        checkLoadURIStrWithPrincipal(gPrincipal, aURI, this.flags);
+      return true;
+    } catch (e) {
+      
+      return false;
+    }
+  }
+};
+
+
+
+
 let NewTabUtils = {
   
 
@@ -567,8 +602,9 @@ let NewTabUtils = {
     }, true);
   },
 
-  allPages: AllPages,
   links: Links,
+  allPages: AllPages,
+  linkChecker: LinkChecker,
   pinnedLinks: PinnedLinks,
   blockedLinks: BlockedLinks
 };

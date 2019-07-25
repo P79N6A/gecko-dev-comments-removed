@@ -90,14 +90,14 @@ let gDrop = {
       if (aCell != draggedSite.cell)
         draggedSite.pin(index);
     } else {
-      
-      let dt = aEvent.dataTransfer;
-      let [url, title] = dt.getData("text/x-moz-url").split(/[\r\n]+/);
-      let link = {url: url, title: title};
-      gPinnedLinks.pin(link, index);
+      let link = gDragDataHelper.getLinkFromDragEvent(aEvent);
+      if (link) {
+        
+        gPinnedLinks.pin(link, index);
 
-      
-      gBlockedLinks.unblock(link);
+        
+        gBlockedLinks.unblock(link);
+      }
     }
   },
 

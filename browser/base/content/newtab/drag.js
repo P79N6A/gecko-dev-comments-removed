@@ -107,12 +107,17 @@ let gDrag = {
 
 
   isValid: function Drag_isValid(aEvent) {
-    let dt = aEvent.dataTransfer;
-    let mimeType = "text/x-moz-url";
+    let link = gDragDataHelper.getLinkFromDragEvent(aEvent);
 
     
     
-    return dt && dt.types.contains(mimeType) && dt.getData(mimeType);
+    if (!link || !link.url) {
+      return false;
+    }
+
+    
+    
+    return gLinkChecker.checkLoadURI(link.url);
   },
 
   
