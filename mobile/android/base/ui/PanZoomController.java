@@ -248,6 +248,7 @@ public class PanZoomController
         }
     }
 
+    
     public void abortAnimation() {
         
         
@@ -1064,7 +1065,7 @@ public class PanZoomController
         return true;
     }
 
-    public boolean animatedZoomTo(RectF zoomToRect) {
+    private boolean animatedZoomTo(RectF zoomToRect) {
         GeckoApp.mAppContext.hidePluginViews();
 
         mState = PanZoomState.ANIMATED_ZOOM;
