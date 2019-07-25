@@ -64,13 +64,57 @@ public:
     virtual ~nsFileStream();
 
     nsresult Close();
-    nsresult InitWithFileDescriptor(PRFileDesc* fd, nsISupports* parent);
 
 protected:
-    PRFileDesc*           mFD;
-    nsCOMPtr<nsISupports> mParent; 
-                                   
-    PRBool                mCloseFD;
+    PRFileDesc* mFD;
+
+    
+
+
+    PRInt32 mBehaviorFlags;
+
+    
+
+
+    bool mDeferredOpen;
+
+    struct OpenParams {
+        nsCOMPtr<nsILocalFile> localFile;
+        PRInt32 ioFlags;
+        PRInt32 perm;
+    };
+
+    
+
+
+    OpenParams mOpenParams;
+
+    
+
+
+
+
+    nsresult MaybeOpen(nsILocalFile* aFile, PRInt32 aIoFlags, PRInt32 aPerm,
+                       bool aDeferred);
+
+    
+
+
+    void CleanUpOpen();
+
+    
+
+
+
+
+
+    virtual nsresult DoOpen();
+
+    
+
+
+
+    inline nsresult DoPendingOpen();
 };
 
 
@@ -93,7 +137,6 @@ public:
     nsFileInputStream() : nsFileStream() 
     {
         mLineBuffer = nsnull;
-        mBehaviorFlags = 0;
     }
     virtual ~nsFileInputStream() 
     {
@@ -118,10 +161,6 @@ protected:
 
 
     PRInt32 mPerm;
-    
-
-
-    PRInt32 mBehaviorFlags;
 
 protected:
     
@@ -193,6 +232,8 @@ public:
         mWriteResult(NS_OK) {}
 
     virtual ~nsSafeFileOutputStream() { nsSafeFileOutputStream::Close(); }
+
+    virtual nsresult DoOpen();
 
     NS_IMETHODIMP Close();
     NS_IMETHODIMP Write(const char *buf, PRUint32 count, PRUint32 *result);
