@@ -3262,6 +3262,14 @@ nsHTMLInputElement::IntrinsicState() const
     state |= NS_EVENT_STATE_MOZ_SUBMITINVALID;
   }
 
+  
+  if (mHasRange) {
+    state |= (GetValidityState(VALIDITY_STATE_RANGE_OVERFLOW) ||
+              GetValidityState(VALIDITY_STATE_RANGE_UNDERFLOW))
+               ? NS_EVENT_STATE_OUTOFRANGE
+               : NS_EVENT_STATE_INRANGE;
+  }
+
   return state;
 }
 
