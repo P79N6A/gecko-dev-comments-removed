@@ -303,10 +303,6 @@ public:
   
   
   virtual void StartBuffering() = 0;
-
-  
-  
-  virtual void SetFrameBufferLength(PRUint32 aLength) = 0;
 };
 
 class nsBuiltinDecoder : public nsMediaDecoder
@@ -450,10 +446,6 @@ class nsBuiltinDecoder : public nsMediaDecoder
     return mDecoderStateMachine->NotifyDataArrived(aBuffer, aLength, aOffset);
   }
 
-  
-  
-  virtual nsresult RequestFrameBufferLength(PRUint32 aLength);
-
  public:
   
   
@@ -499,7 +491,8 @@ class nsBuiltinDecoder : public nsMediaDecoder
   
   
   void MetadataLoaded(PRUint32 aChannels,
-                      PRUint32 aRate);
+                      PRUint32 aRate,
+                      PRUint32 aFrameBufferLength);
 
   
   
