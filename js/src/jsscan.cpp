@@ -263,6 +263,54 @@ js_fgets(char *buf, int size, FILE *file)
     return i;
 }
 
+
+
+
+
+int
+TokenStream::getLineFromFile(char *buf, int size, FILE *file)
+{
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    int n = size - 1;   
+    JS_ASSERT(n > 0);
+    int i;
+    for (i = 0; i < n; i++) {
+        int c = fast_getc(file);
+        if (c == EOF)
+            break;
+        buf[i] = c;
+        if (c == '\n') {
+            i++;
+            break;
+        }
+        if (c == '\r') { 
+            i++;
+            
+            c = fast_getc(file);
+            if (c == EOF)
+                break;
+            buf[i] = c;
+            if (c == '\n') {
+                i++;
+                break;
+            }
+            ungetc(c, file);    
+            break;
+        }
+    }
+    return i;
+}
+
 int32
 TokenStream::getChar()
 {
@@ -285,7 +333,7 @@ TokenStream::getChar()
 
                 
                 crflag = (flags & TSF_CRFLAG) != 0;
-                len = js_fgets(cbuf, LINE_LIMIT - crflag, file);
+                len = getLineFromFile(cbuf, LINE_LIMIT - crflag, file);
                 if (len <= 0) {
                     flags |= TSF_EOF;
                     return EOF;
