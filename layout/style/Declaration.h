@@ -188,11 +188,6 @@ public:
 #endif
 
   
-  static PRBool AppendCSSValueToString(nsCSSProperty aProperty,
-                                       const nsCSSValue& aValue,
-                                       nsAString& aResult);
-
-  
   static PRBool AppendStorageToString(nsCSSProperty aProperty,
                                       const void* aStorage,
                                       nsAString& aResult);
