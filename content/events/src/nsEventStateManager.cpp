@@ -4001,6 +4001,37 @@ nsEventStateManager::NotifyMouseOver(nsGUIEvent* aEvent, nsIContent* aContent)
   mFirstMouseOverEventElement = nsnull;
 }
 
+
+
+
+static nsIntPoint
+GetWindowInnerRectCenter(nsPIDOMWindow* aWindow,
+                         nsIWidget* aWidget,
+                         nsPresContext* aContext)
+{
+  NS_ENSURE_TRUE(aWindow && aWidget && aContext, nsIntPoint(0,0));
+
+  float cssInnerX = 0.0;
+  aWindow->GetMozInnerScreenX(&cssInnerX);
+  PRInt32 innerX = PRInt32(NS_round(aContext->CSSPixelsToDevPixels(cssInnerX)));
+
+  float cssInnerY = 0.0;
+  aWindow->GetMozInnerScreenY(&cssInnerY);
+  PRInt32 innerY = PRInt32(NS_round(aContext->CSSPixelsToDevPixels(cssInnerY)));
+ 
+  PRInt32 innerWidth = 0;
+  aWindow->GetInnerWidth(&innerWidth);
+
+  PRInt32 innerHeight = 0;
+  aWindow->GetInnerHeight(&innerHeight);
+ 
+  nsIntRect screen;
+  aWidget->GetScreenBounds(screen);
+
+  return nsIntPoint(innerX - screen.x + innerWidth / 2,
+                    innerY - screen.y + innerHeight / 2);
+}
+
 void
 nsEventStateManager::GenerateMouseEnterExit(nsGUIEvent* aEvent)
 {
@@ -4016,23 +4047,23 @@ nsEventStateManager::GenerateMouseEnterExit(nsGUIEvent* aEvent)
     {
       if (sIsPointerLocked && aEvent->widget) {
         
-        nsIntRect bounds;
-        aEvent->widget->GetScreenBounds(bounds);
-        aEvent->lastRefPoint = GetMouseCoords(bounds);
-
         
-        if (aEvent->refPoint.x == aEvent->lastRefPoint.x &&
-            aEvent->refPoint.y == aEvent->lastRefPoint.y) {
-          aEvent->refPoint = sLastRefPoint;
-        } else {
-          aEvent->widget->SynthesizeNativeMouseMove(aEvent->lastRefPoint);
+        nsIntPoint center = GetWindowInnerRectCenter(mDocument->GetWindow(),
+                                                     aEvent->widget,
+                                                     mPresContext);
+        aEvent->lastRefPoint = center;
+        if (aEvent->refPoint != center) {
+          
+          
+          
+          aEvent->widget->SynthesizeNativeMouseMove(center);
         }
       } else {
-        aEvent->lastRefPoint = nsIntPoint(sLastRefPoint.x, sLastRefPoint.y);
+        aEvent->lastRefPoint = sLastRefPoint;
       }
 
       
-      sLastRefPoint = nsIntPoint(aEvent->refPoint.x, aEvent->refPoint.y);
+      sLastRefPoint = aEvent->refPoint;
 
       
       nsCOMPtr<nsIContent> targetElement = GetEventTargetContent(aEvent);
@@ -4089,11 +4120,14 @@ nsEventStateManager::SetPointerLock(nsIWidget* aWidget,
 
   if (sIsPointerLocked) {
     
-    mPreLockPoint = sLastRefPoint + sLastScreenOffset;
+    mPreLockPoint = sLastRefPoint;
 
-    nsIntRect bounds;
-    aWidget->GetScreenBounds(bounds);
-    sLastRefPoint = GetMouseCoords(bounds);
+    
+    
+    
+    sLastRefPoint = GetWindowInnerRectCenter(aElement->OwnerDoc()->GetWindow(),
+                                             aWidget,
+                                             mPresContext);
     aWidget->SynthesizeNativeMouseMove(sLastRefPoint);
 
     
@@ -4105,7 +4139,11 @@ nsEventStateManager::SetPointerLock(nsIWidget* aWidget,
     }
   } else {
     
-    aWidget->SynthesizeNativeMouseMove(sLastScreenPoint);
+    
+    
+    
+    sLastRefPoint = mPreLockPoint;
+    aWidget->SynthesizeNativeMouseMove(mPreLockPoint);
 
     
     nsIPresShell::SetCapturingContent(nsnull, CAPTURE_POINTERLOCK);
@@ -4115,31 +4153,6 @@ nsEventStateManager::SetPointerLock(nsIWidget* aWidget,
       dragService->Unsuppress();
     }
   }
-}
-
-nsIntPoint
-nsEventStateManager::GetMouseCoords(nsIntRect aBounds)
-{
-  NS_ASSERTION(sIsPointerLocked, "GetMouseCoords when not pointer locked!");
-
-  nsCOMPtr<nsIDocument> pointerLockedDoc =
-    do_QueryReferent(nsEventStateManager::sPointerLockedDoc);
-  if (!pointerLockedDoc) {
-    NS_WARNING("GetMouseCoords(): No Document");
-    return nsIntPoint(0, 0);
-  }
-
-  nsCOMPtr<nsPIDOMWindow> domWin = pointerLockedDoc->GetInnerWindow();
-  if (!domWin) {
-    NS_WARNING("GetMouseCoords(): No Window");
-    return nsIntPoint(0, 0);
-  }
-
-  int innerHeight;
-  domWin->GetInnerHeight(&innerHeight);
-
-  return nsIntPoint((aBounds.width / 2) + aBounds.x,
-                    (innerHeight / 2) + (aBounds.y + (aBounds.height - innerHeight)));
 }
 
 void
