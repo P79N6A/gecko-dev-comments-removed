@@ -64,6 +64,10 @@ class WrapperFactory {
         return HasWrapperFlag(wrapper, PARTIALLY_TRANSPARENT);
     }
 
+    static bool HasWaiveXrayFlag(JSObject *wrapper) {
+        return HasWrapperFlag(wrapper, WAIVE_XRAY_WRAPPER_FLAG);
+    }
+
     
     static JSObject *PrepareForWrapping(JSContext *cx,
                                         JSObject *scope,
@@ -83,5 +87,7 @@ class WrapperFactory {
     
     static JSObject *WrapLocationObject(JSContext *cx, JSObject *obj);
 };
+
+extern JSWrapper WaiveXrayWrapperWrapper;
 
 }

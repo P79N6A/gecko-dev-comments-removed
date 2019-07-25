@@ -341,8 +341,6 @@ holder_enumerate(JSContext *cx, JSObject *holder)
     return true;
 }
 
-extern CrossOriginWrapper XrayWrapperWaivedWrapper;
-
 static JSBool
 wrappedJSObject_getter(JSContext *cx, JSObject *holder, jsid id, jsval *vp)
 {
@@ -359,11 +357,17 @@ wrappedJSObject_getter(JSContext *cx, JSObject *holder, jsid id, jsval *vp)
     OBJ_TO_OUTER_OBJECT(cx, wn);
     if (!wn)
         return false;
-    JSObject *obj = JSWrapper::New(cx, wn, NULL, holder->getParent(), &XrayWrapperWaivedWrapper);
-    if (!obj)
-        return false;
+
+    JSObject *obj;
+    {
+        SwitchToCompartment sc(cx, wn->compartment());
+        obj = JSWrapper::New(cx, wn, NULL, holder->getParent(), &WaiveXrayWrapperWrapper);
+        if (!obj)
+            return false;
+    }
     *vp = OBJECT_TO_JSVAL(obj);
-    return true;
+
+    return JS_WrapValue(cx, vp);
 }
 
 static JSBool
@@ -432,6 +436,9 @@ class AutoLeaveHelper
 static bool
 Transparent(JSContext *cx, JSObject *wrapper)
 {
+    if (WrapperFactory::HasWaiveXrayFlag(wrapper))
+        return true;
+
     if (!WrapperFactory::IsPartiallyTransparent(wrapper))
         return false;
 
