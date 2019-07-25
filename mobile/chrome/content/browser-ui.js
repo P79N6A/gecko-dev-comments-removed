@@ -253,14 +253,14 @@ var BrowserUI = {
 
   popDialog : function popDialog() {
     
-    if (this._dialogs.length)
+    if (this._dialogs.length) {
       this._dialogs.pop();
+      this.unlockToolbar();
+    }
 
     
     if (!this._dialogs.length)
       document.getElementById("toolbar-main").removeAttribute("dialog");
-
-    this.unlockToolbar();
   },
 
   pushPopup: function pushPopup(aPanel, aElements) {
