@@ -900,11 +900,25 @@ WordSplitState::ClassifyCharacter(PRInt32 aIndex, PRBool aRecurse) const
   }
 
   
+  
+  
+  if (aIndex > 0 &&
+      mDOMWordText[aIndex] == '.' &&
+      mDOMWordText[aIndex - 1] != '.' &&
+      ClassifyCharacter(aIndex - 1, false) != CHAR_CLASS_WORD) {
+    return CHAR_CLASS_WORD;
+  }
+
+  
   if (charCategory == nsIUGenCategory::kSeparator ||
       charCategory == nsIUGenCategory::kOther ||
       charCategory == nsIUGenCategory::kPunctuation ||
-      charCategory == nsIUGenCategory::kSymbol)
-    return CHAR_CLASS_SEPARATOR;
+      charCategory == nsIUGenCategory::kSymbol) {
+    
+    if (mDOMWordText[aIndex] != '-') {
+      return CHAR_CLASS_SEPARATOR;
+    }
+  }
 
   
   return CHAR_CLASS_WORD;
