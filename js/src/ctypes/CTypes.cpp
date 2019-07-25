@@ -3157,19 +3157,28 @@ JSBool
 CType::ToString(JSContext* cx, uintN argc, jsval* vp)
 {
   JSObject* obj = JS_THIS_OBJECT(cx, vp);
-  if (!obj || !CType::IsCType(cx, obj)) {
+  if (!obj ||
+      !(CType::IsCType(cx, obj) || CType::IsCTypeProto(cx, obj)))
+  {
     JS_ReportError(cx, "not a CType");
     return JS_FALSE;
   }
 
-  AutoString type;
-  AppendString(type, "type ");
-  AppendString(type, GetName(cx, obj));
-
-  JSString* result = NewUCString(cx, type);
+  
+  
+  JSString* result;
+  if (CType::IsCType(cx, obj)) {
+    AutoString type;
+    AppendString(type, "type ");
+    AppendString(type, GetName(cx, obj));
+    result = NewUCString(cx, type);
+  }
+  else {
+    result = JS_NewStringCopyZ(cx, "[CType proto object]");
+  }
   if (!result)
     return JS_FALSE;
-  
+
   JS_SET_RVAL(cx, vp, STRING_TO_JSVAL(result));
   return JS_TRUE;
 }
@@ -3178,17 +3187,26 @@ JSBool
 CType::ToSource(JSContext* cx, uintN argc, jsval* vp)
 {
   JSObject* obj = JS_THIS_OBJECT(cx, vp);
-  if (!obj || !CType::IsCType(cx, obj)) {
+  if (!obj ||
+      !(CType::IsCType(cx, obj) || CType::IsCTypeProto(cx, obj)))
+  {
     JS_ReportError(cx, "not a CType");
     return JS_FALSE;
   }
 
-  AutoString source;
-  BuildTypeSource(cx, obj, false, source);
-  JSString* result = NewUCString(cx, source);
+  
+  
+  JSString* result;
+  if (CType::IsCType(cx, obj)) {
+    AutoString source;
+    BuildTypeSource(cx, obj, false, source);
+    result = NewUCString(cx, source);
+  } else {
+    result = JS_NewStringCopyZ(cx, "[CType proto object]");
+  }
   if (!result)
     return JS_FALSE;
-  
+
   JS_SET_RVAL(cx, vp, STRING_TO_JSVAL(result));
   return JS_TRUE;
 }
@@ -5945,29 +5963,35 @@ CData::ToSource(JSContext* cx, uintN argc, jsval* vp)
   }
 
   JSObject* obj = JS_THIS_OBJECT(cx, vp);
-  if (!obj || !CData::IsCData(cx, obj)) {
+  if (!obj ||
+      !(CData::IsCData(cx, obj) || CData::IsCDataProto(cx, obj))) {
     JS_ReportError(cx, "not a CData");
     return JS_FALSE;
   }
 
-  JSObject* typeObj = CData::GetCType(cx, obj);
-  void* data = CData::GetData(cx, obj);
+  JSString* result;
+  if (CData::IsCData(cx, obj)) {
+    JSObject* typeObj = CData::GetCType(cx, obj);
+    void* data = CData::GetData(cx, obj);
 
-  
-  
-  
-  
-  
-  
-  AutoString source;
-  BuildTypeSource(cx, typeObj, true, source);
-  AppendString(source, "(");
-  if (!BuildDataSource(cx, typeObj, data, false, source))
-    return JS_FALSE;
+    
+    
+    
+    
+    
+    
+    AutoString source;
+    BuildTypeSource(cx, typeObj, true, source);
+    AppendString(source, "(");
+    if (!BuildDataSource(cx, typeObj, data, false, source))
+      return JS_FALSE;
 
-  AppendString(source, ")");
+    AppendString(source, ")");
 
-  JSString* result = NewUCString(cx, source);
+    result = NewUCString(cx, source);
+  }
+  else
+    result = JS_NewStringCopyZ(cx, "[CData proto object]");
   if (!result)
     return JS_FALSE;
 
