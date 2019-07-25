@@ -64,6 +64,8 @@
 #include "nsIConstraintValidation.h"
 #include "mozAutoDocUpdate.h"
 
+using namespace mozilla::dom;
+
 #define NS_IN_SUBMIT_CLICK      (1 << 0)
 #define NS_OUTER_ACTIVATE_EVENT (1 << 1)
 
@@ -84,7 +86,8 @@ class nsHTMLButtonElement : public nsGenericHTMLFormElement,
 public:
   using nsIConstraintValidation::GetValidationMessage;
 
-  nsHTMLButtonElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  nsHTMLButtonElement(already_AddRefed<nsINodeInfo> aNodeInfo,
+                      FromParser aFromParser = NOT_FROM_PARSER);
   virtual ~nsHTMLButtonElement();
 
   
@@ -139,6 +142,7 @@ protected:
   PRUint8 mType;
   PRPackedBool mDisabledChanged;
   PRPackedBool mInInternalActivate;
+  PRPackedBool mInhibitStateRestoration;
 
 private:
   
@@ -150,14 +154,16 @@ private:
 
 
 
-NS_IMPL_NS_NEW_HTML_ELEMENT(Button)
+NS_IMPL_NS_NEW_HTML_ELEMENT_CHECK_PARSER(Button)
 
 
-nsHTMLButtonElement::nsHTMLButtonElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+nsHTMLButtonElement::nsHTMLButtonElement(already_AddRefed<nsINodeInfo> aNodeInfo,
+                                         FromParser aFromParser)
   : nsGenericHTMLFormElement(aNodeInfo),
     mType(kButtonDefaultType->value),
     mDisabledChanged(PR_FALSE),
-    mInInternalActivate(PR_FALSE)
+    mInInternalActivate(PR_FALSE),
+    mInhibitStateRestoration(!!(aFromParser & FROM_PARSER_FRAGMENT))
 {
   
   SetBarredFromConstraintValidation(PR_TRUE);
@@ -545,8 +551,10 @@ nsHTMLButtonElement::SubmitNamesValues(nsFormSubmission* aFormSubmission)
 void
 nsHTMLButtonElement::DoneCreatingElement()
 {
-  
-  RestoreFormControlState(this, this);
+  if (!mInhibitStateRestoration) {
+    
+    RestoreFormControlState(this, this);
+  }
 }
 
 nsresult
