@@ -38,6 +38,10 @@
 
 #include "imgIEncoder.h"
 
+#include "mozilla/Monitor.h"
+
+#include "nsCOMPtr.h"
+
 
 #include <stdio.h>
 
@@ -58,10 +62,12 @@ extern "C" {
 
 class nsJPEGEncoder : public imgIEncoder
 {
+  typedef mozilla::Monitor Monitor;
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_IMGIENCODER
   NS_DECL_NSIINPUTSTREAM
+  NS_DECL_NSIASYNCINPUTSTREAM
 
   nsJPEGEncoder();
 
@@ -80,10 +86,26 @@ protected:
 
   static void errorExit(jpeg_common_struct* cinfo);
 
+  void NotifyListener();
+
+  PRPackedBool mFinished;
+
   
   PRUint8* mImageBuffer;
   PRUint32 mImageBufferSize;
   PRUint32 mImageBufferUsed;
 
   PRUint32 mImageBufferReadPoint;
+
+  nsCOMPtr<nsIInputStreamCallback> mCallback;
+  nsCOMPtr<nsIEventTarget> mCallbackTarget;
+  PRUint32 mNotifyThreshold;
+
+  
+
+
+
+
+
+  Monitor mMonitor;
 };

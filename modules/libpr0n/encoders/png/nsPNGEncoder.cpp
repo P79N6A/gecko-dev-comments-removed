@@ -46,15 +46,15 @@
 #include "nsString.h"
 #include "nsStreamUtils.h"
 
-
-
-
-NS_IMPL_THREADSAFE_ISUPPORTS2(nsPNGEncoder, imgIEncoder, nsIInputStream)
+NS_IMPL_THREADSAFE_ISUPPORTS3(nsPNGEncoder, imgIEncoder, nsIInputStream, nsIAsyncInputStream)
 
 nsPNGEncoder::nsPNGEncoder() : mPNG(nsnull), mPNGinfo(nsnull),
                                mIsAnimation(PR_FALSE),
                                mImageBuffer(nsnull), mImageBufferSize(0),
-                               mImageBufferUsed(0), mImageBufferReadPoint(0)
+                               mImageBufferUsed(0), mImageBufferReadPoint(0),
+                               mFinished(PR_FALSE), mCallback(nsnull),
+                               mCallbackTarget(nsnull), mNotifyThreshold(0),
+                               mMonitor("PNG Encoder Monitor")
 {
 }
 
@@ -334,6 +334,9 @@ NS_IMETHODIMP nsPNGEncoder::EndImageEncode()
   png_write_end(mPNG, mPNGinfo);
   png_destroy_write_struct(&mPNG, &mPNGinfo);
 
+  mFinished = PR_TRUE;
+  NotifyListener();
+
   
   if (!mImageBuffer)
     return NS_ERROR_OUT_OF_MEMORY;
@@ -526,10 +529,13 @@ NS_IMETHODIMP nsPNGEncoder::ReadSegments(nsWriteSegmentFun aWriter,
                                          void *aClosure, PRUint32 aCount,
                                          PRUint32 *_retval)
 {
+  
+  mozilla::MonitorAutoEnter autoEnter(mMonitor);
+
   PRUint32 maxCount = mImageBufferUsed - mImageBufferReadPoint;
   if (maxCount == 0) {
     *_retval = 0;
-    return NS_OK;
+    return mFinished ? NS_OK : NS_BASE_STREAM_WOULD_BLOCK;
   }
 
   if (aCount > maxCount)
@@ -550,10 +556,42 @@ NS_IMETHODIMP nsPNGEncoder::ReadSegments(nsWriteSegmentFun aWriter,
 
 NS_IMETHODIMP nsPNGEncoder::IsNonBlocking(PRBool *_retval)
 {
-  *_retval = PR_FALSE;  
+  *_retval = PR_TRUE;
   return NS_OK;
 }
 
+NS_IMETHODIMP nsPNGEncoder::AsyncWait(nsIInputStreamCallback *aCallback,
+                                      PRUint32 aFlags,
+                                      PRUint32 aRequestedCount,
+                                      nsIEventTarget *aTarget)
+{
+  if (aFlags != 0)
+    return NS_ERROR_NOT_IMPLEMENTED;
+
+  if (mCallback || mCallbackTarget)
+    return NS_ERROR_UNEXPECTED;
+
+  mCallbackTarget = aTarget;
+  
+  mNotifyThreshold = aRequestedCount;
+  if (!aRequestedCount)
+    mNotifyThreshold = 1024; 
+
+  
+  
+  
+  
+  mCallback = aCallback;
+
+  
+  NotifyListener();
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsPNGEncoder::CloseWithStatus(nsresult aStatus)
+{
+  return Close();
+}
 
 
 
@@ -630,6 +668,10 @@ nsPNGEncoder::WriteCallback(png_structp png, png_bytep data,
 
   if (that->mImageBufferUsed + size > that->mImageBufferSize) {
     
+    
+    mozilla::MonitorAutoEnter autoEnter(that->mMonitor);
+
+    
     that->mImageBufferSize *= 2;
     PRUint8* newBuf = (PRUint8*)PR_Realloc(that->mImageBuffer,
                                            that->mImageBufferSize);
@@ -644,4 +686,37 @@ nsPNGEncoder::WriteCallback(png_structp png, png_bytep data,
   }
   memcpy(&that->mImageBuffer[that->mImageBufferUsed], data, size);
   that->mImageBufferUsed += size;
+  that->NotifyListener();
+}
+
+void
+nsPNGEncoder::NotifyListener()
+{
+  
+  
+  
+  
+  mozilla::MonitorAutoEnter autoEnter(mMonitor);
+
+  if (mCallback &&
+      (mImageBufferUsed - mImageBufferReadPoint >= mNotifyThreshold ||
+       mFinished)) {
+    nsCOMPtr<nsIInputStreamCallback> callback;
+    if (mCallbackTarget) {
+      NS_NewInputStreamReadyEvent(getter_AddRefs(callback),
+                                  mCallback,
+                                  mCallbackTarget);
+    } else {
+      callback = mCallback;
+    }
+
+    NS_ASSERTION(callback, "Shouldn't fail to make the callback");
+    
+    
+    mCallback = nsnull;
+    mCallbackTarget = nsnull;
+    mNotifyThreshold = 0;
+
+    callback->OnInputStreamReady(this);
+  }
 }

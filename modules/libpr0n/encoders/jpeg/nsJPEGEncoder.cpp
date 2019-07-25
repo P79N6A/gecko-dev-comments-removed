@@ -45,10 +45,7 @@
 #include <setjmp.h>
 #include "jerror.h"
 
-
-
-
-NS_IMPL_THREADSAFE_ISUPPORTS2(nsJPEGEncoder, imgIEncoder, nsIInputStream)
+NS_IMPL_THREADSAFE_ISUPPORTS3(nsJPEGEncoder, imgIEncoder, nsIInputStream, nsIAsyncInputStream)
 
 
 struct encoder_error_mgr {
@@ -57,7 +54,10 @@ struct encoder_error_mgr {
 };
 
 nsJPEGEncoder::nsJPEGEncoder() : mImageBuffer(nsnull), mImageBufferSize(0),
-                                 mImageBufferUsed(0), mImageBufferReadPoint(0)
+                                 mImageBufferUsed(0), mImageBufferReadPoint(0),
+                                 mFinished(PR_FALSE), mCallback(nsnull),
+                                 mCallbackTarget(nsnull), mNotifyThreshold(0),
+                                 mMonitor("JPEG Encoder Monitor")
 {
 }
 
@@ -197,6 +197,9 @@ NS_IMETHODIMP nsJPEGEncoder::InitFromData(const PRUint8* aData,
   jpeg_finish_compress(&cinfo);
   jpeg_destroy_compress(&cinfo);
 
+  mFinished = PR_TRUE;
+  NotifyListener();
+
   
   if (!mImageBuffer)
     return NS_ERROR_OUT_OF_MEMORY;
@@ -263,10 +266,13 @@ NS_IMETHODIMP nsJPEGEncoder::Read(char * aBuf, PRUint32 aCount,
 
 NS_IMETHODIMP nsJPEGEncoder::ReadSegments(nsWriteSegmentFun aWriter, void *aClosure, PRUint32 aCount, PRUint32 *_retval)
 {
+  
+  mozilla::MonitorAutoEnter autoEnter(mMonitor);
+
   PRUint32 maxCount = mImageBufferUsed - mImageBufferReadPoint;
   if (maxCount == 0) {
     *_retval = 0;
-    return NS_OK;
+    return mFinished ? NS_OK : NS_BASE_STREAM_WOULD_BLOCK;
   }
 
   if (aCount > maxCount)
@@ -286,10 +292,42 @@ NS_IMETHODIMP nsJPEGEncoder::ReadSegments(nsWriteSegmentFun aWriter, void *aClos
 
 NS_IMETHODIMP nsJPEGEncoder::IsNonBlocking(PRBool *_retval)
 {
-  *_retval = PR_FALSE;  
+  *_retval = PR_TRUE;
   return NS_OK;
 }
 
+NS_IMETHODIMP nsJPEGEncoder::AsyncWait(nsIInputStreamCallback *aCallback,
+                                       PRUint32 aFlags,
+                                       PRUint32 aRequestedCount,
+                                       nsIEventTarget *aTarget)
+{
+  if (aFlags != 0)
+    return NS_ERROR_NOT_IMPLEMENTED;
+
+  if (mCallback || mCallbackTarget)
+    return NS_ERROR_UNEXPECTED;
+
+  mCallbackTarget = aTarget;
+  
+  mNotifyThreshold = aRequestedCount;
+  if (!aRequestedCount)
+    mNotifyThreshold = 1024; 
+
+  
+  
+  
+  
+  mCallback = aCallback;
+
+  
+  NotifyListener();
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsJPEGEncoder::CloseWithStatus(nsresult aStatus)
+{
+  return Close();
+}
 
 
 
@@ -374,6 +412,10 @@ nsJPEGEncoder::emptyOutputBuffer(jpeg_compress_struct* cinfo)
   nsJPEGEncoder* that = static_cast<nsJPEGEncoder*>(cinfo->client_data);
   NS_ASSERTION(that->mImageBuffer, "No buffer to empty!");
 
+  
+  
+  mozilla::MonitorAutoEnter autoEnter(that->mMonitor);
+
   that->mImageBufferUsed = that->mImageBufferSize;
 
   
@@ -416,6 +458,7 @@ nsJPEGEncoder::termDestination(jpeg_compress_struct* cinfo)
   that->mImageBufferUsed = cinfo->dest->next_output_byte - that->mImageBuffer;
   NS_ASSERTION(that->mImageBufferUsed < that->mImageBufferSize,
                "JPEG library busted, got a bad image buffer size");
+  that->NotifyListener();
 }
 
 
@@ -441,4 +484,36 @@ nsJPEGEncoder::errorExit(jpeg_common_struct* cinfo)
 
   
   longjmp(err->setjmp_buffer, error_code);
+}
+
+void
+nsJPEGEncoder::NotifyListener()
+{
+  
+  
+  
+  
+  mozilla::MonitorAutoEnter autoEnter(mMonitor);
+
+  if (mCallback &&
+      (mImageBufferUsed - mImageBufferReadPoint >= mNotifyThreshold ||
+       mFinished)) {
+    nsCOMPtr<nsIInputStreamCallback> callback;
+    if (mCallbackTarget) {
+      NS_NewInputStreamReadyEvent(getter_AddRefs(callback),
+                                  mCallback,
+                                  mCallbackTarget);
+    } else {
+      callback = mCallback;
+    }
+
+    NS_ASSERTION(callback, "Shouldn't fail to make the callback");
+    
+    
+    mCallback = nsnull;
+    mCallbackTarget = nsnull;
+    mNotifyThreshold = 0;
+
+    callback->OnInputStreamReady(this);
+  }
 }
