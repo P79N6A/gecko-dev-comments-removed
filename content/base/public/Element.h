@@ -13,6 +13,7 @@
 class nsEventStateManager;
 class nsGlobalWindow;
 class nsFocusManager;
+class nsICSSDeclaration;
 
 
 enum {
@@ -181,9 +182,7 @@ public:
 
 
 
-
-
-  virtual nsIDOMCSSStyleDeclaration* GetSMILOverrideStyle() = 0;
+  virtual nsICSSDeclaration* GetSMILOverrideStyle() = 0;
 
   
 
