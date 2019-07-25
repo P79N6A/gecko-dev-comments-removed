@@ -1268,8 +1268,7 @@ nsINode::Traverse(nsINode *tmp, nsCycleCollectionTraversalCallback &cb)
     nsNodeUtils::TraverseUserData(tmp, cb);
   }
 
-  if (tmp->NodeType() != nsIDOMNode::DOCUMENT_NODE &&
-      tmp->HasFlag(NODE_HAS_LISTENERMANAGER)) {
+  if (tmp->HasFlag(NODE_HAS_LISTENERMANAGER)) {
     nsContentUtils::TraverseListenerManager(tmp, cb);
   }
 
@@ -1287,8 +1286,7 @@ nsINode::Unlink(nsINode *tmp)
     slots->Unlink();
   }
 
-  if (tmp->NodeType() != nsIDOMNode::DOCUMENT_NODE &&
-      tmp->HasFlag(NODE_HAS_LISTENERMANAGER)) {
+  if (tmp->HasFlag(NODE_HAS_LISTENERMANAGER)) {
     nsContentUtils::RemoveListenerManager(tmp);
     tmp->UnsetFlags(NODE_HAS_LISTENERMANAGER);
   }
@@ -2901,6 +2899,14 @@ nsGenericElement::GetAttributeNodeNS(const nsAString& aNamespaceURI,
 
   OwnerDoc()->WarnOnceAbout(nsIDocument::eGetAttributeNodeNS);
 
+  return GetAttributeNodeNSInternal(aNamespaceURI, aLocalName, aReturn);
+}
+
+nsresult
+nsGenericElement::GetAttributeNodeNSInternal(const nsAString& aNamespaceURI,
+                                             const nsAString& aLocalName,
+                                             nsIDOMAttr** aReturn)
+{
   nsCOMPtr<nsIDOMNamedNodeMap> map;
   nsresult rv = GetAttributes(getter_AddRefs(map));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -3377,7 +3383,7 @@ nsIContent::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 {
   
   aVisitor.mCanHandle = true;
-  aVisitor.mMayHaveListenerManager = HasListenerManager();
+  aVisitor.mMayHaveListenerManager = HasFlag(NODE_HAS_LISTENERMANAGER);
 
   
   
@@ -4630,7 +4636,7 @@ ShouldClearPurple(nsIContent* aContent)
     return true;
   }
 
-  if (aContent->HasListenerManager()) {
+  if (aContent->GetListenerManager(false)) {
     return true;
   }
 
@@ -5208,8 +5214,8 @@ nsGenericElement::SetAttrAndNotify(PRInt32 aNamespaceID,
     nsCOMPtr<nsIDOMAttr> attrNode;
     nsAutoString ns;
     nsContentUtils::NameSpaceManager()->GetNameSpaceURI(aNamespaceID, ns);
-    GetAttributeNodeNS(ns, nsDependentAtomString(aName),
-                       getter_AddRefs(attrNode));
+    GetAttributeNodeNSInternal(ns, nsDependentAtomString(aName),
+                               getter_AddRefs(attrNode));
     mutation.mRelatedNode = attrNode;
 
     mutation.mAttrName = aName;
@@ -5388,8 +5394,8 @@ nsGenericElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
   if (hasMutationListeners) {
     nsAutoString ns;
     nsContentUtils::NameSpaceManager()->GetNameSpaceURI(aNameSpaceID, ns);
-    GetAttributeNodeNS(ns, nsDependentAtomString(aName),
-                       getter_AddRefs(attrNode));
+    GetAttributeNodeNSInternal(ns, nsDependentAtomString(aName),
+                               getter_AddRefs(attrNode));
   }
 
   
