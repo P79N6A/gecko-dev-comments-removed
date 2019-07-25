@@ -581,12 +581,6 @@ private:
 
 class THEBES_API ImageLayer : public Layer {
 public:
-  enum ScaleMode {
-    SCALE_NONE,
-    SCALE_STRETCH 
-  
-  };
-
   
 
 
@@ -601,17 +595,6 @@ public:
 
 
   void SetFilter(gfxPattern::GraphicsFilter aFilter) { mFilter = aFilter; }
-
-  
-
-
-
-  void SetScaleToSize(const gfxIntSize &aSize, ScaleMode aMode)
-  {
-    mScaleToSize = aSize;
-    mScaleMode = aMode;
-  }
-
 
   ImageContainer* GetContainer() { return mContainer; }
   gfxPattern::GraphicsFilter GetFilter() { return mFilter; }
@@ -637,16 +620,12 @@ public:
 
 protected:
   ImageLayer(LayerManager* aManager, void* aImplData)
-    : Layer(aManager, aImplData), mFilter(gfxPattern::FILTER_GOOD)
-    , mScaleMode(SCALE_NONE) {}
+    : Layer(aManager, aImplData), mFilter(gfxPattern::FILTER_GOOD) {}
 
   virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
 
-
   nsRefPtr<ImageContainer> mContainer;
   gfxPattern::GraphicsFilter mFilter;
-  gfxIntSize mScaleToSize;
-  ScaleMode mScaleMode;
 };
 
 
