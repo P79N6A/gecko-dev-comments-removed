@@ -95,7 +95,7 @@ public:
   virtual ~ShadowThebesLayerOGL();
 
   
-  virtual void SetFrontBuffer(const ThebesBuffer& aNewFront,
+  virtual void SetFrontBuffer(const OptionalThebesBuffer& aNewFront,
                               const nsIntRegion& aValidRegion,
                               float aXResolution, float aYResolution);
   virtual void
@@ -114,12 +114,6 @@ public:
 
 private:
   nsRefPtr<ShadowBufferOGL> mBuffer;
-
-
-  
-  SurfaceDescriptor mDeadweight;
-
-
 };
 #endif  
 
