@@ -190,9 +190,10 @@ private:
   void     NotifyObservers(nsIPermission *aPermission, const PRUnichar *aData);
 
   
-  void     CloseDB();
+  
+  void     CloseDB(bool aRebuildOnSuccess = false);
 
-  nsresult RemoveAllInternal();
+  nsresult RemoveAllInternal(bool aNotifyObservers);
   nsresult RemoveAllFromMemory();
   nsresult NormalizeToACE(nsCString &aHost);
   nsresult GetHost(nsIURI *aURI, nsACString &aResult);
@@ -219,6 +220,13 @@ private:
 
   
   nsTArray<nsCString>          mTypeArray;
+
+  
+  
+  bool mIsShuttingDown;
+
+  friend class DeleteFromMozHostListener;
+  friend class CloseDatabaseListener;
 };
 
 
