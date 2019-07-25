@@ -551,9 +551,9 @@ iQClass.prototype = {
       
       
       let rupper = /([A-Z])/g;
-      this.each(function(elem){
+      this.each(function(elem) {
         let cStyle = window.getComputedStyle(elem, null);
-        for (let prop in css){
+        for (let prop in css) {
           prop = prop.replace(rupper, "-$1").toLowerCase();
           iQ(elem).css(prop, cStyle.getPropertyValue(prop));
         }
@@ -589,9 +589,9 @@ iQClass.prototype = {
   
   
   fadeOut: function(callback) {
-    Utils.assert('does not yet support duration', typeof callback == "function" 
+    Utils.assert('does not yet support duration', typeof callback == "function"
         || typeof callback === "undefined");
-      
+
     this.animate({
       opacity: 0
     }, {
