@@ -1138,6 +1138,11 @@ private:
 
 
 
+
+
+
+
+
     JSParseNode *functionStmt();
     JSParseNode *functionExpr();
     JSParseNode *statements();
@@ -1153,17 +1158,17 @@ private:
     JSParseNode *variables(bool inLetHead);
     JSParseNode *expr();
     JSParseNode *assignExpr();
-    JSParseNode *condExpr();
-    JSParseNode *orExpr();
-    JSParseNode *andExpr();
-    JSParseNode *bitOrExpr();
-    JSParseNode *bitXorExpr();
-    JSParseNode *bitAndExpr();
-    JSParseNode *eqExpr();
-    JSParseNode *relExpr();
-    JSParseNode *shiftExpr();
-    JSParseNode *addExpr();
-    JSParseNode *mulExpr();
+    JSParseNode *condExpr1();
+    JSParseNode *orExpr1();
+    JSParseNode *andExpr1();
+    JSParseNode *bitOrExpr1();
+    JSParseNode *bitXorExpr1();
+    JSParseNode *bitAndExpr1();
+    JSParseNode *eqExpr1();
+    JSParseNode *relExpr1();
+    JSParseNode *shiftExpr1();
+    JSParseNode *addExpr1();
+    JSParseNode *mulExpr1();
     JSParseNode *unaryExpr();
     JSParseNode *memberExpr(JSBool allowCallSyntax);
     JSParseNode *primaryExpr(js::TokenKind tt, JSBool afterDot);
