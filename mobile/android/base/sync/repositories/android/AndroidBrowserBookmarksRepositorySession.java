@@ -709,23 +709,31 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
         try {
           final long folderID = getIDForGUID(guid);
           JSONArray inDB = getChildrenArray(folderID, false);
-          int added = 0;
-          for (Object o : inDB) {
-            if (!onServer.contains(o)) {
-              onServer.add(o);
-              added++;
-            }
-          }
-          Logger.debug(LOG_TAG, "Added " + added + " items locally.");
-          dataAccessor.updatePositions(new ArrayList<String>(onServer));
-          dataAccessor.bumpModified(folderID, now());
+
           
-          Logger.debug(LOG_TAG, "Untracking " + guid);
-          final Record record = retrieveByGUIDDuringStore(guid);
-          if (record == null) {
-            return;
+          
+          
+          if (!Utils.sameArrays(onServer, inDB)) {
+            int added = 0;
+            for (Object o : inDB) {
+              if (!onServer.contains(o)) {
+                onServer.add(o);
+                added++;
+              }
+            }
+            Logger.debug(LOG_TAG, "Added " + added + " items locally.");
+            dataAccessor.bumpModified(folderID, now());
+            
+            Logger.debug(LOG_TAG, "Untracking " + guid);
+            final Record record = retrieveByGUIDDuringStore(guid);
+            if (record == null) {
+              return;
+            }
+            untrackRecord(record);
           }
-          untrackRecord(record);
+          
+          
+          dataAccessor.updatePositions(new ArrayList<String>(onServer));
         } catch (Exception e) {
           Logger.warn(LOG_TAG, "Error repositioning children for " + guid, e);
         }

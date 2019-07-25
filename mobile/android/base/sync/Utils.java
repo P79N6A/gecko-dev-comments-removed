@@ -48,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Locale;
 import java.util.TreeMap;
 
+import org.json.simple.JSONArray;
 import org.mozilla.apache.commons.codec.binary.Base32;
 import org.mozilla.apache.commons.codec.binary.Base64;
 
@@ -242,5 +243,49 @@ public class Utils {
     }
     bucket.add(value);
     map.put(index, bucket);
+  }
+
+  
+
+
+
+
+
+
+  private static boolean same(Object a, Object b) {
+    if (a == b) {
+      return true;
+    }
+    if (a == null || b == null) {
+      return false;      
+    }
+    return a.equals(b);
+  }
+
+  
+
+
+
+
+
+
+
+  public static boolean sameArrays(JSONArray a, JSONArray b) {
+    if (a == b) {
+      return true;
+    }
+    if (a == null || b == null) {
+      return false;
+    }
+    final int size = a.size();
+    if (size != b.size()) {
+      return false;
+    }
+    for (int i = 0; i < size; ++i) {
+      if (!same(a.get(i), b.get(i))) {
+        return false;
+      }
+    }
+    return true;
   }
 }
