@@ -3885,6 +3885,10 @@ MJitChunkLimit(JSContext *cx, uintN argc, jsval *vp)
     mjit::SetChunkLimit((uint32_t) t);
 #endif
 
+    
+    
+    JS_GC(cx);
+
     vp->setUndefined();
     return true;
 }
