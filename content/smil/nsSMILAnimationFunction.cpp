@@ -395,6 +395,10 @@ nsSMILAnimationFunction::InterpolateResult(const nsSMILValueArray& aValues,
     return NS_ERROR_FAILURE;
   }
 
+  if (IsToAnimation() && aBaseValue.IsNull()) {
+    return NS_ERROR_FAILURE;
+  }
+
   
   
   
@@ -428,19 +432,15 @@ nsSMILAnimationFunction::InterpolateResult(const nsSMILValueArray& aValues,
     
     double intervalProgress = -1.f;
     if (IsToAnimation()) {
-      if (aBaseValue.IsNull()) {
-        rv = NS_ERROR_FAILURE;
+      from = &aBaseValue;
+      to = &aValues[0];
+      if (calcMode == CALC_PACED) {
+        
+        intervalProgress = simpleProgress;
       } else {
-        from = &aBaseValue;
-        to = &aValues[0];
-        if (calcMode == CALC_PACED) {
-          
-          intervalProgress = simpleProgress;
-        } else {
-          double scaledSimpleProgress =
-            ScaleSimpleProgress(simpleProgress, calcMode);
-          intervalProgress = ScaleIntervalProgress(scaledSimpleProgress, 0);
-        }
+        double scaledSimpleProgress =
+          ScaleSimpleProgress(simpleProgress, calcMode);
+        intervalProgress = ScaleIntervalProgress(scaledSimpleProgress, 0);
       }
     } else if (calcMode == CALC_PACED) {
       rv = ComputePacedPosition(aValues, simpleProgress,
@@ -474,13 +474,16 @@ nsSMILAnimationFunction::InterpolateResult(const nsSMILValueArray& aValues,
   
   
   if (calcMode == CALC_DISCRETE || NS_FAILED(rv)) {
+    double scaledSimpleProgress =
+      ScaleSimpleProgress(simpleProgress, CALC_DISCRETE);
     if (IsToAnimation()) {
       
       
-      aResult = aValues[0];
+      
+      
+      PRUint32 index = (PRUint32)floor(scaledSimpleProgress * 2);
+      aResult = index == 0 ? aBaseValue : aValues[0];
     } else {
-      double scaledSimpleProgress =
-        ScaleSimpleProgress(simpleProgress, CALC_DISCRETE);
       PRUint32 index = (PRUint32)floor(scaledSimpleProgress * aValues.Length());
       aResult = aValues[index];
     }
@@ -866,10 +869,8 @@ nsSMILAnimationFunction::CheckKeyTimes(PRUint32 aNumValues)
 
   
   
-  
-  PRBool matchingNumOfValues = IsToAnimation() ?
-      calcMode == CALC_DISCRETE ? numKeyTimes <= 2 : numKeyTimes == 2 :
-      numKeyTimes == aNumValues;
+  PRBool matchingNumOfValues =
+    numKeyTimes == (IsToAnimation() ? 2 : aNumValues);
   if (!matchingNumOfValues) {
     SetKeyTimesErrorFlag(PR_TRUE);
     return;
