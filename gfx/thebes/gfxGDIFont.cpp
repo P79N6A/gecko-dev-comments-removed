@@ -158,7 +158,11 @@ gfxGDIFont::ShapeWord(gfxContext *aContext,
 
     
     
-    SetupCairoFont(aContext);
+    
+    
+    if (!SetupCairoFont(aContext)) {
+        return false;
+    }
 
 #ifdef MOZ_GRAPHITE
     if (mGraphiteShaper && gfxPlatform::GetPlatform()->UseGraphiteShaping()) {
