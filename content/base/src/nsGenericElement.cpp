@@ -1219,29 +1219,31 @@ bool UnoptimizableCCNode(nsINode* aNode)
 bool
 nsINode::Traverse(nsINode *tmp, nsCycleCollectionTraversalCallback &cb)
 {
-  nsIDocument *currentDoc = tmp->GetCurrentDoc();
-  if (currentDoc &&
-      nsCCUncollectableMarker::InGeneration(cb, currentDoc->GetMarkedCCGeneration())) {
-    return false;
-  }
-
-  if (nsCCUncollectableMarker::sGeneration) {
-    
-    if (tmp->IsBlack() || tmp->InCCBlackTree()) {
+  if (!cb.WantAllTraces()) {
+    nsIDocument *currentDoc = tmp->GetCurrentDoc();
+    if (currentDoc &&
+        nsCCUncollectableMarker::InGeneration(currentDoc->GetMarkedCCGeneration())) {
       return false;
     }
 
-    if (!UnoptimizableCCNode(tmp)) {
+    if (nsCCUncollectableMarker::sGeneration) {
       
-      if ((currentDoc && currentDoc->IsBlack())) {
+      if (tmp->IsBlack() || tmp->InCCBlackTree()) {
         return false;
       }
-      
-      
-      nsIContent* parent = tmp->GetParent();
-      if (parent && !UnoptimizableCCNode(parent) && parent->IsBlack()) {
-        NS_ABORT_IF_FALSE(parent->IndexOf(tmp) >= 0, "Parent doesn't own us?");
-        return false;
+
+      if (!UnoptimizableCCNode(tmp)) {
+        
+        if ((currentDoc && currentDoc->IsBlack())) {
+          return false;
+        }
+        
+        
+        nsIContent* parent = tmp->GetParent();
+        if (parent && !UnoptimizableCCNode(parent) && parent->IsBlack()) {
+          NS_ABORT_IF_FALSE(parent->IndexOf(tmp) >= 0, "Parent doesn't own us?");
+          return false;
+        }
       }
     }
   }
