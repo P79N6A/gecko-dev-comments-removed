@@ -68,7 +68,7 @@
   padding-top: 0;
 }
 
-#browser-bottombox:not([lwthemefooter="true"]) {
+#browser-bottombox {
   
   background-color: -moz-Dialog;
 }
