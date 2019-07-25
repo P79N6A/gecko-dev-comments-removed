@@ -200,7 +200,7 @@ typedef PRUint64 nsFrameState;
 #define NS_FRAME_OUT_OF_FLOW                        NS_FRAME_STATE_BIT(8)
 
 
-#define NS_FRAME_SELECTED_CONTENT                   NS_FRAME_STATE_BIT(9)
+
 
 
 
@@ -261,6 +261,7 @@ typedef PRUint64 nsFrameState;
 
 
 #define NS_FRAME_IMPL_RESERVED                      nsFrameState(0xF0000000FFF00000)
+#define NS_FRAME_RESERVED                           ~NS_FRAME_IMPL_RESERVED
 
 
 
@@ -296,9 +297,6 @@ typedef PRUint64 nsFrameState;
 
 
 #define NS_FRAME_FORCE_DISPLAY_LIST_DESCEND_INTO    NS_FRAME_STATE_BIT(40)
-
-
-#define NS_FRAME_RESERVED                           ~NS_FRAME_IMPL_RESERVED
 
 
 #define NS_STATE_IS_HORIZONTAL                      NS_FRAME_STATE_BIT(22)
@@ -579,6 +577,12 @@ public:
   void Destroy() { DestroyFrom(this); }
 
 protected:
+  
+
+
+
+  virtual bool IsFrameSelected() const;
+
   
 
 
@@ -2307,23 +2311,11 @@ public:
 
   
 
-  
 
-
-
-
-
-
-
-
-
-
-
-
-  virtual void SetSelected(bool          aSelected,
-                           SelectionType aType);
-
-  NS_IMETHOD  GetSelected(bool *aSelected) const = 0;
+  bool IsSelected() const {
+    return (GetContent() && GetContent()->IsSelectionDescendant()) ?
+      IsFrameSelected() : false;
+  }
 
   
 
@@ -2352,10 +2344,7 @@ public:
 
 
 
-  const nsFrameSelection* GetConstFrameSelection();
-
-  
-
+  const nsFrameSelection* GetConstFrameSelection() const;
 
   
 

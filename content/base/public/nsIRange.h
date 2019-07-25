@@ -40,8 +40,10 @@
 
 #include "nsISupports.h"
 #include "nsCOMPtr.h"
+#include "nsHashKeys.h"
 #include "nsINode.h"
 #include "nsIDOMRange.h"
+#include "nsTHashtable.h"
 
 
 #define NS_IRANGE_IID \
@@ -60,7 +62,8 @@ public:
       mEndOffset(0),
       mIsPositioned(false),
       mIsDetached(false),
-      mMaySpanAnonymousSubtrees(false)
+      mMaySpanAnonymousSubtrees(false),
+      mInSelection(false)
   {
   }
 
@@ -110,6 +113,33 @@ public:
     mMaySpanAnonymousSubtrees = aMaySpanAnonymousSubtrees;
   }
 
+  
+
+
+
+  bool IsInSelection() const
+  {
+    return mInSelection;
+  }
+
+  
+
+
+  void SetInSelection(bool aInSelection)
+  {
+    if (mInSelection == aInSelection || mIsDetached) {
+      return;
+    }
+    mInSelection = aInSelection;
+    nsINode* commonAncestor = GetCommonAncestor();
+    NS_ASSERTION(commonAncestor, "unexpected disconnected nodes");
+    if (mInSelection) {
+      RegisterCommonAncestor(commonAncestor);
+    } else {
+      UnregisterCommonAncestor(commonAncestor);
+    }
+  }
+
   virtual nsINode* GetCommonAncestor() const = 0;
 
   virtual void Reset() = 0;
@@ -128,7 +158,12 @@ public:
   
   NS_IMETHOD GetUsedFontFaces(nsIDOMFontFaceList** aResult) = 0;
 
+  typedef nsTHashtable<nsPtrHashKey<nsIRange> > RangeHashTable;
 protected:
+  void RegisterCommonAncestor(nsINode* aNode);
+  void UnregisterCommonAncestor(nsINode* aNode);
+  nsINode* IsValidBoundary(nsINode* aNode);
+
   nsCOMPtr<nsINode> mRoot;
   nsCOMPtr<nsINode> mStartParent;
   nsCOMPtr<nsINode> mEndParent;
@@ -138,6 +173,7 @@ protected:
   bool mIsPositioned;
   bool mIsDetached;
   bool mMaySpanAnonymousSubtrees;
+  bool mInSelection;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIRange, NS_IRANGE_IID)

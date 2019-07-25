@@ -921,6 +921,18 @@ public:
 
 
 
+
+  bool IsSelectionDescendant() const
+  {
+    return IsDescendantOfCommonAncestorForRangeInSelection() ||
+           IsCommonAncestorForRangeInSelection();
+  }
+
+  
+
+
+
+
   nsIContent* GetTextEditorRootContent(nsIEditor** aEditor = nsnull);
 
   
@@ -1202,6 +1214,11 @@ private:
     
     ElementMayHaveContentEditableAttr,
     
+    
+    NodeIsCommonAncestorForRangeInSelection,
+    
+    NodeIsDescendantOfCommonAncestorForRangeInSelection,
+    
     BooleanFlagCount
   };
 
@@ -1235,6 +1252,18 @@ public:
   bool HasName() const { return GetBoolFlag(ElementHasName); }
   bool MayHaveContentEditableAttr() const
     { return GetBoolFlag(ElementMayHaveContentEditableAttr); }
+  bool IsCommonAncestorForRangeInSelection() const
+    { return GetBoolFlag(NodeIsCommonAncestorForRangeInSelection); }
+  void SetCommonAncestorForRangeInSelection()
+    { SetBoolFlag(NodeIsCommonAncestorForRangeInSelection); }
+  void ClearCommonAncestorForRangeInSelection()
+    { ClearBoolFlag(NodeIsCommonAncestorForRangeInSelection); }
+  bool IsDescendantOfCommonAncestorForRangeInSelection() const
+    { return GetBoolFlag(NodeIsDescendantOfCommonAncestorForRangeInSelection); }
+  void SetDescendantOfCommonAncestorForRangeInSelection()
+    { SetBoolFlag(NodeIsDescendantOfCommonAncestorForRangeInSelection); }
+  void ClearDescendantOfCommonAncestorForRangeInSelection()
+    { ClearBoolFlag(NodeIsDescendantOfCommonAncestorForRangeInSelection); }
 
 protected:
   void SetParentIsContent(bool aValue) { SetBoolFlag(ParentIsContent, aValue); }

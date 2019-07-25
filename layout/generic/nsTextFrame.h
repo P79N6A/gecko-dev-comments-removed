@@ -165,11 +165,7 @@ public:
 
 
 
-  virtual void SetSelected(bool          aSelected,
-                           SelectionType aType);
-  void SetSelectedRange(PRUint32 aStart,
-                        PRUint32 aEnd,
-                        bool aSelected,
+  void SetSelectedRange(PRUint32 aStart, PRUint32 aEnd, bool aSelected,
                         SelectionType aType);
 
   virtual bool PeekOffsetNoAmount(bool aForward, PRInt32* aOffset);
@@ -475,6 +471,12 @@ protected:
   PRInt32     mContentLengthHint;
   nscoord     mAscent;
   gfxTextRun* mTextRun;
+
+  
+
+
+
+  virtual bool IsFrameSelected() const;
 
   
   

@@ -77,9 +77,7 @@ class nsRange : public nsIRange,
                 public nsStubMutationObserver
 {
 public:
-  nsRange()
-  {
-  }
+  nsRange(){}
   virtual ~nsRange();
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -116,14 +114,13 @@ public:
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
   NS_DECL_NSIMUTATIONOBSERVER_PARENTCHAINCHANGED
+  NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
 
 private:
   
   nsRange(const nsRange&);
   nsRange& operator=(const nsRange&);
 
-  nsINode* IsValidBoundary(nsINode* aNode);
- 
   
 
 
@@ -157,16 +154,17 @@ public:
                                      bool *outNodeBefore,
                                      bool *outNodeAfter);
 
+  static bool IsNodeSelected(nsINode* aNode, PRUint32 aStartOffset,
+                             PRUint32 aEndOffset);
+
 protected:
+  
+  
+  
+  
   void DoSetRange(nsINode* aStartN, PRInt32 aStartOffset,
                   nsINode* aEndN, PRInt32 aEndOffset,
-                  nsINode* aRoot
-#ifdef DEBUG
-                  
-                  
-                  , bool aNotInsertedYet = false
-#endif
-                  );
+                  nsINode* aRoot, bool aNotInsertedYet = false);
 };
 
 
