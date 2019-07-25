@@ -21,7 +21,7 @@
   }
   </style>
 </head>
-<body onload="scheduleTest();">
+<body>
 
 
 
@@ -59,7 +59,7 @@ const isMacOs = navigator.appVersion.indexOf("Macintosh") != -1;
 
 var windowedPlugin = null;
 
-function scheduleTest() {
+function begin() {
   // Delay test startup long enough for the windowed plugin in the subframe to
   // start up and create its window.
   opener.SimpleTest.executeSoon(function() {
