@@ -43,7 +43,7 @@
 
 
 
-using namespace mozilla;
+namespace mozilla {
 
 
 
@@ -62,7 +62,9 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 NS_IMPL_CYCLE_COLLECTING_ADDREF(DOMSVGNumberList)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(DOMSVGNumberList)
 
-DOMCI_DATA(SVGNumberList, DOMSVGNumberList)
+} 
+DOMCI_DATA(SVGNumberList, mozilla::DOMSVGNumberList)
+namespace mozilla {
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DOMSVGNumberList)
   NS_INTERFACE_MAP_ENTRY(nsIDOMSVGNumberList)
@@ -345,3 +347,5 @@ DOMSVGNumberList::EnsureItemAt(PRUint32 aIndex)
     mItems[aIndex] = new DOMSVGNumber(this, AttrEnum(), aIndex, IsAnimValList());
   }
 }
+
+} 
