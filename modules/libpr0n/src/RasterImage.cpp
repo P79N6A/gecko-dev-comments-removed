@@ -2172,12 +2172,12 @@ RasterImage::ShutdownDecoder(eShutdownIntent aIntent)
   bool wasSizeDecode = mDecoder->IsSizeDecode();
 
   
-  mInDecoder = PR_TRUE;
-  PRUint32 closeFlags = (aIntent == eShutdownIntent_Error)
-                          ? (PRUint32) imgIDecoder::CLOSE_FLAG_DONTNOTIFY
-                          : 0;
-  nsresult rv = mDecoder->Close(closeFlags);
-  mInDecoder = PR_FALSE;
+  nsresult rv = NS_OK;
+  if (aIntent != eShutdownIntent_Error) {
+    mInDecoder = PR_TRUE;
+    rv = mDecoder->Finish();
+    mInDecoder = PR_FALSE;
+  }
 
   
   

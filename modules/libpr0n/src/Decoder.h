@@ -95,15 +95,6 @@ public:
   nsresult Finish();
 
   
-
-
-
-
-
-
-  nsresult Shutdown(PRUint32 aFlags);
-
-  
   
   
 
@@ -134,7 +125,6 @@ protected:
   virtual nsresult InitInternal();
   virtual nsresult WriteInternal(const char* aBuffer, PRUint32 aCount);
   virtual nsresult FinishInternal();
-  virtual nsresult ShutdownInternal(PRUint32 aFlags);
 
   
 

@@ -123,6 +123,10 @@ nsJPEGDecoder::nsJPEGDecoder()
 
 nsJPEGDecoder::~nsJPEGDecoder()
 {
+  
+  mInfo.src = nsnull;
+  jpeg_destroy_decompress(&mInfo);
+
   PR_FREEIF(mBackBuffer);
   if (mTransform)
     qcms_transform_release(mTransform);
@@ -176,11 +180,8 @@ nsJPEGDecoder::InitInternal()
 }
 
 nsresult
-nsJPEGDecoder::ShutdownInternal(PRUint32 aFlags)
+nsJPEGDecoder::FinishInternal()
 {
-  PR_LOG(gJPEGlog, PR_LOG_DEBUG,
-         ("[this=%p] nsJPEGDecoder::Close\n", this));
-
   
 
 
@@ -189,14 +190,8 @@ nsJPEGDecoder::ShutdownInternal(PRUint32 aFlags)
 
   if ((mState != JPEG_DONE && mState != JPEG_SINK_NON_JPEG_TRAILER) &&
       (mState != JPEG_ERROR) &&
-      !IsSizeDecode() &&
-      !(aFlags & CLOSE_FLAG_DONTNOTIFY))
+      !IsSizeDecode())
     this->Write(nsnull, 0);
-
-  
-  mInfo.src = nsnull;
-
-  jpeg_destroy_decompress(&mInfo);
 
   
 
@@ -205,9 +200,7 @@ nsJPEGDecoder::ShutdownInternal(PRUint32 aFlags)
 
   
 
-  if (!(aFlags & CLOSE_FLAG_DONTNOTIFY) &&
-      !IsSizeDecode() &&
-      !mNotifiedDone)
+  if (!IsSizeDecode() && !mNotifiedDone)
     NotifyDone( PR_FALSE);
 
   
