@@ -250,9 +250,6 @@ let UI = {
       let event = document.createEvent("Events");
       event.initEvent("tabviewframeinitialized", true, false);
       dispatchEvent(event);
-
-      
-      event = null;
     } catch(e) {
       Utils.log(e);
     } finally {
