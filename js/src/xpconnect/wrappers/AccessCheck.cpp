@@ -425,8 +425,20 @@ AccessCheck::deny(JSContext *cx, jsid id)
 
 enum Access { READ = (1<<0), WRITE = (1<<1), NO_ACCESS = 0 };
 
+static bool
+Deny(JSContext *cx, jsid id, JSWrapper::Action act)
+{
+    
+    if (act == JSWrapper::GET)
+        return true;
+    
+    AccessCheck::deny(cx, id);
+    return false;
+}
+
 bool
-PermitIfUniversalXPConnect(ExposedPropertiesOnly::Permission &perm)
+PermitIfUniversalXPConnect(JSContext *cx, jsid id, JSWrapper::Action act,
+                           ExposedPropertiesOnly::Permission &perm)
 {
     
     
@@ -442,7 +454,7 @@ PermitIfUniversalXPConnect(ExposedPropertiesOnly::Permission &perm)
     }
 
     
-    return true;
+    return Deny(cx, id, act);
 }
 
 bool
@@ -481,7 +493,7 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, JSWrappe
             perm = PermitPropertyAccess;
             return true;
         }
-        return PermitIfUniversalXPConnect(perm); 
+        return PermitIfUniversalXPConnect(cx, id, act, perm); 
     }
 
     if (id == JSID_VOID) {
@@ -495,7 +507,7 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, JSWrappe
         return false;
 
     if (JSVAL_IS_VOID(exposedProps) || JSVAL_IS_NULL(exposedProps)) {
-        return PermitIfUniversalXPConnect(perm); 
+        return PermitIfUniversalXPConnect(cx, id, act, perm); 
     }
 
     if (!JSVAL_IS_OBJECT(exposedProps)) {
@@ -512,7 +524,7 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, JSWrappe
         return false; 
     }
     if (desc.obj == NULL || !(desc.attrs & JSPROP_ENUMERATE)) {
-        return PermitIfUniversalXPConnect(perm); 
+        return PermitIfUniversalXPConnect(cx, id, act, perm); 
     }
 
     if (!JSVAL_IS_STRING(desc.value)) {
@@ -557,7 +569,7 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, JSWrappe
 
     if ((act == JSWrapper::SET && !(access & WRITE)) ||
         (act != JSWrapper::SET && !(access & READ))) {
-        return PermitIfUniversalXPConnect(perm); 
+        return PermitIfUniversalXPConnect(cx, id, act, perm); 
     }
 
     perm = PermitPropertyAccess;
