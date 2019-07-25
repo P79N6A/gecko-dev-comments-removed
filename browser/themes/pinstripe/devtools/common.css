@@ -144,3 +144,14 @@
   margin-bottom: -3px;
   position: relative;
 }
+
+.devtools-side-splitter {
+  -moz-appearance: none;
+  background-image: none;
+  border: 0;
+  -moz-border-start: 1px solid black;
+  min-width: 0;
+  width: 3px;
+  -moz-margin-end: -3px;
+  position: relative;
+}
