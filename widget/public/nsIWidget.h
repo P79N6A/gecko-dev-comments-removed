@@ -118,8 +118,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-  { 0x32966f95, 0x89e0, 0x447a, \
-    { 0x91, 0x8d, 0x58, 0x53, 0xd6, 0x99, 0x4a, 0x72 } }
+  { 0xEAAF1019, 0x0CD8, 0x4DD8, \
+    { 0xBE, 0xB9, 0x8D, 0x8D, 0xEB, 0x52, 0xFC, 0xF6 } }
 
 
 
@@ -355,6 +355,14 @@ class nsIWidget : public nsISupports {
                 nsDeviceContext  *aContext,
                 nsWidgetInitData *aInitData = nsnull,
                 bool             aForceUseIWidgetParent = false) = 0;
+
+    
+
+
+
+
+    NS_IMETHOD SetEventCallback(EVENT_CALLBACK aEventFunction,
+                                nsDeviceContext *aContext) = 0;
 
     
 
