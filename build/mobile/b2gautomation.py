@@ -18,8 +18,8 @@ from devicemanager import DeviceManager, NetworkTools
 from mozprocess import ProcessHandlerMixin
 
 
-class LogcatProc(ProcessHandlerMixin):
-    """Process handler for logcat which puts all output in a Queue.
+class StdOutProc(ProcessHandlerMixin):
+    """Process handler for b2g which puts all output in a Queue.
     """
 
     def __init__(self, cmd, queue, **kwargs):
@@ -75,6 +75,20 @@ class B2GRemoteAutomation(Automation):
         
         env['MOZ_HIDE_RESULTS_TABLE'] = '1'
         return env
+
+    def waitForNet(self): 
+        active = False
+        time_out = 0
+        while not active and time_out < 40:
+            data = self._devicemanager.runCmd(['shell', '/system/bin/netcfg']).stdout.readlines()
+            data.pop(0)
+            for line in data:
+                if (re.search(r'UP\s+(?:[0-9]{1,3}\.){3}[0-9]{1,3}', line)):
+                    active = True
+                    break
+            time_out += 1
+            time.sleep(1)
+        return active
 
     def checkForCrashes(self, directory, symbolsPath):
         
@@ -160,7 +174,11 @@ class B2GRemoteAutomation(Automation):
         serial, status = self.getDeviceStatus()
 
         
-        self._devicemanager.checkCmd(['reboot'])
+        self._devicemanager.runCmd(['shell', '/system/bin/reboot'])
+
+        
+        
+        time.sleep(10)
 
         
         print 'waiting for device to come back online after reboot'
@@ -183,21 +201,26 @@ class B2GRemoteAutomation(Automation):
         
         
 
+        
+        
+        
+        
+        if not self._is_emulator:
+            self.rebootDevice()
+            time.sleep(5)
+            
+            if not self.waitForNet():
+                raise Exception("network did not come up, please configure the network" + 
+                                " prior to running before running the automation framework")
+
+        
+        self._devicemanager.runCmd(['shell', 'stop', 'b2g'])
+        time.sleep(5)
+
+        
         instance = self.B2GInstance(self._devicemanager)
 
-        
-        
-        
-        
-        if self._is_emulator:
-            self.restartB2G()
-        else:
-            self.rebootDevice()
-
-        
-        
-        
-        time.sleep(40)
+        time.sleep(5)
 
         
         
@@ -205,6 +228,8 @@ class B2GRemoteAutomation(Automation):
             self._devicemanager.checkCmd(['forward',
                                           'tcp:%s' % self.marionette.port,
                                           'tcp:%s' % self.marionette.port])
+
+        time.sleep(5)
 
         
         session = self.marionette.start_session()
@@ -228,7 +253,7 @@ class B2GRemoteAutomation(Automation):
 
         def __init__(self, dm):
             self.dm = dm
-            self.logcat_proc = None
+            self.stdout_proc = None
             self.queue = Queue.Queue()
 
             
@@ -238,16 +263,19 @@ class B2GRemoteAutomation(Automation):
             cmd = [self.dm.adbPath]
             if self.dm.deviceSerial:
                 cmd.extend(['-s', self.dm.deviceSerial])
-            cmd.append('logcat')
-            proc = threading.Thread(target=self._save_logcat_proc, args=(cmd, self.queue))
+            cmd.append('shell')
+            cmd.append('/system/bin/b2g.sh')
+            proc = threading.Thread(target=self._save_stdout_proc, args=(cmd, self.queue))
             proc.daemon = True
             proc.start()
 
-        def _save_logcat_proc(self, cmd, queue):
-            self.logcat_proc = LogcatProc(cmd, queue)
-            self.logcat_proc.run()
-            self.logcat_proc.waitForFinish()
-            self.logcat_proc = None
+        def _save_stdout_proc(self, cmd, queue):
+            self.stdout_proc = StdOutProc(cmd, queue)
+            self.stdout_proc.run()
+            if hasattr(self.stdout_proc, 'processOutput'):
+                self.stdout_proc.processOutput()
+            self.stdout_proc.waitForFinish(timeout=10)
+            self.stdout_proc = None
 
         @property
         def pid(self):
