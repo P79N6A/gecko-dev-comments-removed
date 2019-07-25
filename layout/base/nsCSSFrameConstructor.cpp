@@ -5560,10 +5560,9 @@ nsCSSFrameConstructor::GetAbsoluteContainingBlock(nsIFrame* aFrame)
         }
       }
 
-#ifdef DEBUG
-      if (!containingBlock)
-        NS_WARNING("Positioned frame that does not handle positioned kids; looking further up the parent chain");
-#endif
+      
+      
+      
     }
   }
 
