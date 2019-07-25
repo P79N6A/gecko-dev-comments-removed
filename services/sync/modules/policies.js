@@ -250,15 +250,7 @@ let SyncScheduler = {
   checkSyncStatus: function checkSyncStatus() {
     
     
-    let ignore = [kSyncBackoffNotMet];
-
-    
-    
-    if (Utils.mpLocked()) {
-      ignore.push(kSyncNotLoggedIn);
-      ignore.push(kSyncMasterPasswordLocked);
-    }
-
+    let ignore = [kSyncBackoffNotMet, kSyncMasterPasswordLocked];
     let skip = Weave.Service._checkSync(ignore);
     this._log.trace("_checkSync returned \"" + skip + "\".");
     if (skip) {
