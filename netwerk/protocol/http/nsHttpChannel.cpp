@@ -374,6 +374,8 @@ nsHttpChannel::SpeculativeConnect()
         return;
 
     
+    
+    
     if (mLoadFlags & (LOAD_ONLY_FROM_CACHE | LOAD_FROM_CACHE |
                       LOAD_NO_NETWORK_IO | LOAD_CHECK_OFFLINE_CACHE))
         return;
