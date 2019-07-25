@@ -46,6 +46,7 @@
 
 #include "nsITaskbarWindowPreview.h"
 #include "nsITaskbarProgress.h"
+#include "nsITaskbarOverlayIconController.h"
 #include "TaskbarPreview.h"
 #include <nsWeakReference.h>
 
@@ -56,6 +57,7 @@ class TaskbarPreviewButton;
 class TaskbarWindowPreview : public TaskbarPreview,
                              public nsITaskbarWindowPreview,
                              public nsITaskbarProgress,
+                             public nsITaskbarOverlayIconController,
                              public nsSupportsWeakReference
 {
 public:
@@ -65,6 +67,7 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSITASKBARWINDOWPREVIEW
   NS_DECL_NSITASKBARPROGRESS
+  NS_DECL_NSITASKBAROVERLAYICONCONTROLLER
   NS_FORWARD_NSITASKBARPREVIEW(TaskbarPreview::)
 
   virtual LRESULT WndProc(UINT nMsg, WPARAM wParam, LPARAM lParam);
@@ -90,6 +93,7 @@ private:
 
   
   nsresult UpdateTaskbarProgress();
+  nsresult UpdateOverlayIcon();
 
   
   TBPFLAG                 mState;
@@ -97,10 +101,14 @@ private:
   ULONGLONG               mMaxValue;
 
   
-  static PRBool TaskbarProgressWindowHook(void *aContext,
-                                          HWND hWnd, UINT nMsg,
-                                          WPARAM wParam, LPARAM lParam,
-                                          LRESULT *aResult);
+  HICON                   mOverlayIcon;
+  nsString                mIconDescription;
+
+  
+  static PRBool TaskbarWindowHook(void *aContext,
+                                  HWND hWnd, UINT nMsg,
+                                  WPARAM wParam, LPARAM lParam,
+                                  LRESULT *aResult);
 
   friend class TaskbarPreviewButton;
 };
