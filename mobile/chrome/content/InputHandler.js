@@ -343,6 +343,8 @@ function MouseModule(owner, browserViewContainer) {
   this._kinetic = new KineticController(this._dragBy.bind(this),
                                         this._kineticStop.bind(this));
 
+  this._singleClickTimeout = new Util.Timeout(this._doSingleClick.bind(this));
+
   messageManager.addMessageListener("Browser:ContextMenu", this);
 }
 
@@ -393,9 +395,6 @@ MouseModule.prototype = {
 
     this._dragData.reset();
     this._targetScrollInterface = null;
-
-    if (this._clickTimeout)
-      window.clearTimeout(this._clickTimeout);
 
     this._cleanClickBuffer();
   },
@@ -449,11 +448,8 @@ MouseModule.prototype = {
       this._recordEvent(aEvent);
     }
     else {
-      if (this._clickTimeout) {
-        
-        window.clearTimeout(this._clickTimeout);
-        this._cleanClickBuffer();
-      }
+      
+      this._cleanClickBuffer();
 
       if (this._dragger) {
         
@@ -625,12 +621,11 @@ MouseModule.prototype = {
 
 
   _commitAnotherClick: function _commitAnotherClick() {
-    if (this._clickTimeout) {   
-      window.clearTimeout(this._clickTimeout);
+    if (this._singleClickTimeout.isPending()) {   
+      this._singleClickTimeout.clear();
       this._doDoubleClick();
     } else {
-      this._clickTimeout = window.setTimeout(function _clickTimeout(self) { self._doSingleClick(); },
-                                             kDoubleClickInterval, this);
+      this._singleClickTimeout.once(kDoubleClickInterval);
     }
   },
 
@@ -639,7 +634,7 @@ MouseModule.prototype = {
 
   _doSingleClick: function _doSingleClick() {
     let ev = this._downUpEvents[1];
-    this._cleanClickBuffer(2);
+    this._cleanClickBuffer();
 
     
     let modifiers =
@@ -657,7 +652,7 @@ MouseModule.prototype = {
     let mouseUp1 = this._downUpEvents[1];
     
     let mouseUp2 = this._downUpEvents[Math.min(3, this._downUpEvents.length - 1)];
-    this._cleanClickBuffer(4);
+    this._cleanClickBuffer();
     this._clicker.doubleClick(mouseUp1.clientX, mouseUp1.clientY,
                               mouseUp2.clientX, mouseUp2.clientY);
   },
@@ -675,16 +670,9 @@ MouseModule.prototype = {
 
 
 
-
-
-
-  _cleanClickBuffer: function _cleanClickBuffer(howMany) {
-    delete this._clickTimeout;
-
-    if (howMany == undefined)
-      howMany = this._downUpEvents.length;
-
-    this._downUpEvents.splice(0, howMany);
+  _cleanClickBuffer: function _cleanClickBuffer() {
+    this._singleClickTimeout.clear();
+    this._downUpEvents.splice(0);
   },
 
   
