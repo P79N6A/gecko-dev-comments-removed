@@ -1668,13 +1668,12 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
     
     container.mousedown(function(e) {
-      if (!Utils.isLeftClick(e))
+      if (!Utils.isLeftClick(e) || self.$titlebar[0] == e.target || 
+          self.$titlebar.contains(e.target)) {
+        self._lastClick = 0;
+        self._lastClickPositions = null;
         return;
-
-      
-      if (self.$titlebar[0] == e.target || self.$titlebar.contains(e.target))
-        return;
-
+      }
       if (Date.now() - self._lastClick <= UI.DBLCLICK_INTERVAL &&
           (self._lastClickPositions.x - UI.DBLCLICK_OFFSET) <= e.clientX &&
           (self._lastClickPositions.x + UI.DBLCLICK_OFFSET) >= e.clientX &&
