@@ -529,19 +529,17 @@ XPCConvert::JSData2Native(XPCCallContext& ccx, void* d, jsval s,
             return false;
         case nsXPTType::T_IID:
         {
-            JSObject* obj;
-            const nsID* pid=nsnull;
+            const nsID* pid = nsnull;
 
             
-            if (JSVAL_IS_VOID(s) || JSVAL_IS_NULL(s)) {
+            if (s.isNullOrUndefined()) {
                 if (pErr)
-                  *pErr = NS_ERROR_XPC_BAD_CONVERT_JS;
+                    *pErr = NS_ERROR_XPC_BAD_CONVERT_JS;
                 return false;
             }
 
-            if (!JSVAL_IS_OBJECT(s) ||
-                (!(obj = JSVAL_TO_OBJECT(s))) ||
-                (!(pid = xpc_JSObjectToID(cx, obj))) ||
+            if (!s.isObject() ||
+                (!(pid = xpc_JSObjectToID(cx, &s.toObject()))) ||
                 (!(pid = (const nsID*) nsMemory::Clone(pid, sizeof(nsID))))) {
                 return false;
             }
@@ -796,7 +794,6 @@ XPCConvert::JSData2Native(XPCCallContext& ccx, void* d, jsval s,
         case nsXPTType::T_INTERFACE:
         case nsXPTType::T_INTERFACE_IS:
         {
-            JSObject* obj;
             NS_ASSERTION(iid,"can't do interface conversions without iid");
 
             if (iid->Equals(NS_GET_IID(nsIVariant))) {
@@ -825,19 +822,19 @@ XPCConvert::JSData2Native(XPCCallContext& ccx, void* d, jsval s,
             }
             
 
-            if (JSVAL_IS_VOID(s) || JSVAL_IS_NULL(s)) {
+            if (s.isNullOrUndefined()) {
                 *((nsISupports**)d) = nsnull;
                 return true;
             }
 
             
-            if (!JSVAL_IS_OBJECT(s) || !(obj = JSVAL_TO_OBJECT(s))) {
-                if (pErr && JSVAL_IS_INT(s) && 0 == JSVAL_TO_INT(s))
+            if (!s.isObject()) {
+                if (pErr && s.isInt32() && 0 == s.toInt32())
                     *pErr = NS_ERROR_XPC_BAD_CONVERT_JS_ZERO_ISNOT_NULL;
                 return false;
             }
 
-            return JSObject2NativeInterface(ccx, (void**)d, obj, iid,
+            return JSObject2NativeInterface(ccx, (void**)d, &s.toObject(), iid,
                                             nsnull, pErr);
         }
         default:
@@ -1743,7 +1740,7 @@ XPCConvert::JSTypedArray2Native(XPCCallContext& ccx,
 
 
 JSBool
-XPCConvert::JSArray2Native(XPCCallContext& ccx, void** d, jsval s,
+XPCConvert::JSArray2Native(XPCCallContext& ccx, void** d, JS::Value s,
                            uint32_t count, const nsXPTType& type,
                            const nsID* iid, nsresult* pErr)
 {
@@ -1752,20 +1749,10 @@ XPCConvert::JSArray2Native(XPCCallContext& ccx, void** d, jsval s,
     JSContext* cx = ccx.GetJSContext();
 
     
-    enum CleanupMode {na, fr, re};
-
-    CleanupMode cleanupMode;
-
-    JSObject* jsarray = nsnull;
-    void* array = nsnull;
-    uint32_t initedCount;
-    jsval current;
 
     
 
-    
-
-    if (JSVAL_IS_VOID(s) || JSVAL_IS_NULL(s)) {
+    if (s.isNullOrUndefined()) {
         if (0 != count) {
             if (pErr)
                 *pErr = NS_ERROR_XPC_NOT_ENOUGH_ELEMENTS_IN_ARRAY;
@@ -1776,13 +1763,13 @@ XPCConvert::JSArray2Native(XPCCallContext& ccx, void** d, jsval s,
         return true;
     }
 
-    if (!JSVAL_IS_OBJECT(s)) {
+    if (!s.isObject()) {
         if (pErr)
             *pErr = NS_ERROR_XPC_CANT_CONVERT_PRIMITIVE_TO_ARRAY;
         return false;
     }
 
-    jsarray = JSVAL_TO_OBJECT(s);
+    JSObject* jsarray = &s.toObject();
 
     
     if (JS_IsTypedArrayObject(jsarray, cx)) {
@@ -1823,9 +1810,16 @@ XPCConvert::JSArray2Native(XPCCallContext& ccx, void** d, jsval s,
         }                                                                     \
     PR_END_MACRO
 
+    
+    enum CleanupMode {na, fr, re};
+
+    CleanupMode cleanupMode;
+
+    void *array = nsnull;
+    uint32_t initedCount;
+    jsval current;
 
     
-
     
 
     switch (type.TagPart()) {

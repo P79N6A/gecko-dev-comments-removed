@@ -164,19 +164,20 @@ nsSecurityNameSet::InitializeNameSet(nsIScriptContext* aScriptContext)
         obj = proto;
     JSClass *objectClass = JS_GetClass(obj);
 
-    jsval v;
+    JS::Value v;
     if (!JS_GetProperty(cx, global, "netscape", &v))
         return NS_ERROR_FAILURE;
+
     JSObject *securityObj;
-    if (JSVAL_IS_OBJECT(v)) {
+    if (v.isObject()) {
         
 
 
 
-        obj = JSVAL_TO_OBJECT(v);
-        if (!JS_GetProperty(cx, obj, "security", &v) || !JSVAL_IS_OBJECT(v))
+        obj = &v.toObject();
+        if (!JS_GetProperty(cx, obj, "security", &v) || !v.isObject())
             return NS_ERROR_FAILURE;
-        securityObj = JSVAL_TO_OBJECT(v);
+        securityObj = &v.toObject();
     } else {
         
         obj = JS_DefineObject(cx, global, "netscape", objectClass, nsnull, 0);

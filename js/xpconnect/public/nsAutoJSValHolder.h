@@ -135,8 +135,8 @@ public:
 
 
   JSObject* ToJSObject() const {
-    return JSVAL_IS_OBJECT(mVal)
-         ? JSVAL_TO_OBJECT(mVal)
+    return mVal.isObject()
+         ? &mVal.toObject()
          : nsnull;
   }
 

@@ -404,18 +404,18 @@ nsDOMBlobBuilder::GetFile(const nsAString& aName,
 
 
 NS_IMETHODIMP
-nsDOMBlobBuilder::Append(const jsval& aData,
+nsDOMBlobBuilder::Append(const JS::Value& aData,
                          const nsAString& aEndings, JSContext* aCx)
 {
   
 
   
-  if (JSVAL_IS_OBJECT(aData)) {
-    JSObject* obj = JSVAL_TO_OBJECT(aData);
-    if (!obj) {
-      
-      return NS_OK;
-    }
+  if (aData.isNull())
+    return NS_OK;
+
+  
+  if (aData.isObject()) {
+    JSObject* obj = &aData.toObject();
 
     
     nsCOMPtr<nsIDOMBlob> blob = do_QueryInterface(
