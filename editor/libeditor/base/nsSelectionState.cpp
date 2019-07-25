@@ -342,11 +342,11 @@ nsRangeUpdater::SelAdjSplitNode(nsIDOMNode *aOldRightNode, PRInt32 aOffset, nsID
   nsCOMPtr<nsIDOMNode> parent;
   PRInt32 offset;
   nsresult result = nsEditor::GetNodeLocation(aOldRightNode, address_of(parent), &offset);
-  if (NS_FAILED(result)) return result;
+  NS_ENSURE_SUCCESS(result, result);
   
   
   result = SelAdjInsertNode(parent,offset-1);
-  if (NS_FAILED(result)) return result;
+  NS_ENSURE_SUCCESS(result, result);
 
   
   nsRangeStore *item;

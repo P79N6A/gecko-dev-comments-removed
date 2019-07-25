@@ -98,7 +98,7 @@ NS_IMETHODIMP SplitElementTxn::DoTransaction(void)
   
   nsresult result = mExistingRightNode->CloneNode(PR_FALSE, getter_AddRefs(mNewLeftNode));
   NS_ASSERTION(((NS_SUCCEEDED(result)) && (mNewLeftNode)), "could not create element.");
-  if (NS_FAILED(result)) return result;
+  NS_ENSURE_SUCCESS(result, result);
   if (!mNewLeftNode) return NS_ERROR_NULL_POINTER;
   mEditor->MarkNodeDirty(mExistingRightNode);
 
@@ -112,7 +112,7 @@ NS_IMETHODIMP SplitElementTxn::DoTransaction(void)
 
   
   result = mExistingRightNode->GetParentNode(getter_AddRefs(mParent));
-  if (NS_FAILED(result)) return result;
+  NS_ENSURE_SUCCESS(result, result);
   if (!mParent) return NS_ERROR_NULL_POINTER;
 
   
@@ -121,7 +121,7 @@ NS_IMETHODIMP SplitElementTxn::DoTransaction(void)
   {
     nsCOMPtr<nsISelection>selection;
     mEditor->GetSelection(getter_AddRefs(selection));
-    if (NS_FAILED(result)) return result;
+    NS_ENSURE_SUCCESS(result, result);
     if (!selection) return NS_ERROR_NULL_POINTER;
     result = selection->Collapse(mNewLeftNode, mOffset);
   }

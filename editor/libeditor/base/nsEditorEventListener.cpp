@@ -572,7 +572,7 @@ nsEditorEventListener::DragOver(nsIDOMDragEvent* aDragEvent)
     {
       PRInt32 offset = 0;
       nsresult rv = nsuiEvent->GetRangeOffset(&offset);
-      if (NS_FAILED(rv)) return rv;
+      NS_ENSURE_SUCCESS(rv, rv);
 
       
       if (mCaretDrawn)
@@ -721,11 +721,11 @@ nsEditorEventListener::CanDrop(nsIDOMDragEvent* aEvent)
 
   nsCOMPtr<nsIDOMDocument> domdoc;
   nsresult rv = mEditor->GetDocument(getter_AddRefs(domdoc));
-  if (NS_FAILED(rv)) return PR_FALSE;
+  NS_ENSURE_SUCCESS(rv, PR_FALSE);
 
   nsCOMPtr<nsIDOMDocument> sourceDoc;
   rv = sourceNode->GetOwnerDocument(getter_AddRefs(sourceDoc));
-  if (NS_FAILED(rv)) return PR_FALSE;
+  NS_ENSURE_SUCCESS(rv, PR_FALSE);
   if (domdoc == sourceDoc)      
   {
     nsCOMPtr<nsISelection> selection;
@@ -735,7 +735,7 @@ nsEditorEventListener::CanDrop(nsIDOMDragEvent* aEvent)
     
     PRBool isCollapsed;
     rv = selection->GetIsCollapsed(&isCollapsed);
-    if (NS_FAILED(rv)) return PR_FALSE;
+    NS_ENSURE_SUCCESS(rv, PR_FALSE);
   
     
     if (!isCollapsed)
@@ -749,11 +749,11 @@ nsEditorEventListener::CanDrop(nsIDOMDragEvent* aEvent)
 
       PRInt32 offset = 0;
       rv = nsuiEvent->GetRangeOffset(&offset);
-      if (NS_FAILED(rv)) return PR_FALSE;
+      NS_ENSURE_SUCCESS(rv, PR_FALSE);
 
       PRInt32 rangeCount;
       rv = selection->GetRangeCount(&rangeCount);
-      if (NS_FAILED(rv)) return PR_FALSE;
+      NS_ENSURE_SUCCESS(rv, PR_FALSE);
 
       for (PRInt32 i = 0; i < rangeCount; i++)
       {
