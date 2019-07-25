@@ -138,8 +138,7 @@ PlacesController.prototype = {
   },
 
   terminate: function PC_terminate() {
-    if (this._cutNodes.length > 0)
-      this._clearClipboard();
+    this._releaseClipboardOwnership();
   },
 
   supportsCommand: function PC_supportsCommand(aCommand) {
@@ -1128,14 +1127,20 @@ PlacesController.prototype = {
     return action;
   },
 
+  _releaseClipboardOwnership: function PC__releaseClipboardOwnership() {
+    if (this.cutNodes.length > 0) {
+      
+      this.clipboard.emptyClipboard(Ci.nsIClipboard.kGlobalClipboard);
+    }
+  },
+
   _clearClipboard: function PC__clearClipboard() {
-    this.clipboard.emptyClipboard(Ci.nsIClipboard.kGlobalClipboard);
-    
-    
     let xferable = Cc["@mozilla.org/widget/transferable;1"].
                    createInstance(Ci.nsITransferable);
     
-    xferable.addDataFlavor("text/x-moz-place-empty");
+    const TYPE = "text/x-moz-place-empty";
+    xferable.addDataFlavor(TYPE);
+    xferable.setTransferData(TYPE, PlacesUtils.toISupportsString(""), 0);
     this.clipboard.setData(xferable, null, Ci.nsIClipboard.kGlobalClipboard);
   },
 
@@ -1195,11 +1200,15 @@ PlacesController.prototype = {
     
     addData(PlacesUtils.TYPE_X_MOZ_PLACE_ACTION, aAction + "," + this.profileName);
 
-    if (hasData)
-      this.clipboard.setData(xferable, this, Ci.nsIClipboard.kGlobalClipboard);
+    if (hasData) {
+      this.clipboard.setData(xferable,
+                             this.cutNodes.length > 0 ? this : null,
+                             Ci.nsIClipboard.kGlobalClipboard);
+    }
   },
 
   _cutNodes: [],
+  get cutNodes() this._cutNodes,
   set cutNodes(aNodes) {
     let self = this;
     function updateCutNodes(aValue) {
