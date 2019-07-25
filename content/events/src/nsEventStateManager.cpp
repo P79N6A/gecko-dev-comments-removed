@@ -3175,10 +3175,10 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
         if (!mCurrentTarget) {
           GetEventTarget();
         }
-        if (mCurrentTarget) {
-          ret = CheckForAndDispatchClick(presContext, (nsMouseEvent*)aEvent,
-                                         aStatus);
-        }
+        
+        
+        ret = CheckForAndDispatchClick(presContext, (nsMouseEvent*)aEvent,
+                                       aStatus);
       }
 
       nsIPresShell *shell = presContext->GetPresShell();
