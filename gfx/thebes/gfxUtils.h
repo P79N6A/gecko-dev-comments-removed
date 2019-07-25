@@ -42,6 +42,8 @@
 #include "gfxPattern.h"
 #include "gfxImageSurface.h"
 
+class gfxDrawable;
+
 class THEBES_API gfxUtils {
 public:
     
@@ -73,7 +75,7 @@ public:
 
 
     static void DrawPixelSnapped(gfxContext*      aContext,
-                                 gfxASurface*     aSurface,
+                                 gfxDrawable*     aDrawable,
                                  const gfxMatrix& aUserSpaceToImageSpace,
                                  const gfxRect&   aSubimage,
                                  const gfxRect&   aSourceRect,
