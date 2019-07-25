@@ -2086,41 +2086,9 @@ struct JSContext
     friend class js::StackSpace;
     friend bool js::Interpret(JSContext *, JSStackFrame *, uintN, uintN);
 
-    void resetCompartment() {
-        JSObject *scopeobj;
-        if (hasfp()) {
-            scopeobj = &fp()->scopeChain();
-        } else {
-            scopeobj = globalObject;
-            if (!scopeobj) {
-                compartment = runtime->defaultCompartment;
-                return;
-            }
-
-            
-
-
-
-            OBJ_TO_INNER_OBJECT(this, scopeobj);
-            if (!scopeobj) {
-                
-
-
-
-                JS_ASSERT(0);
-                compartment = NULL;
-                return;
-            }
-        }
-        compartment = scopeobj->getCompartment(this);
-    }
-
     
     void setCurrentRegs(JSFrameRegs *regs) {
-        JS_ASSERT_IF(regs, regs->fp);
         this->regs = regs;
-        if (!regs)
-            resetCompartment();
     }
 
     
