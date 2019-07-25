@@ -193,6 +193,10 @@ PopupNotifications.prototype = {
 
 
 
+
+
+
+
   show: function PopupNotifications_show(browser, id, message, anchorID,
                                          mainAction, secondaryActions, options) {
     function isInvalidAction(a) {
@@ -465,6 +469,8 @@ PopupNotifications.prototype = {
     Array.forEach(this.panel.childNodes, function (nEl) {
       let notificationObj = nEl.notification;
       notificationObj.dismissed = true;
+      if (notificationObj.options.dismissalCallback)
+        notificationObj.options.dismissalCallback.call();
     }, this);
 
     this._update();
