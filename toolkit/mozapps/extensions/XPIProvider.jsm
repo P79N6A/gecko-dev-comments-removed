@@ -2183,6 +2183,7 @@ var XPIProvider = {
 
 
 
+
   processFileChanges: function XPI_processFileChanges(aState, aManifests,
                                                       aUpdateCompatibility,
                                                       aOldAppVersion,
@@ -2270,6 +2271,37 @@ var XPIProvider = {
         }
 
         
+        return true;
+      }
+
+      return false;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    function updateDescriptor(aInstallLocation, aOldAddon, aAddonState) {
+      LOG("Add-on " + aOldAddon.id + " moved to " + aAddonState.descriptor);
+
+      aOldAddon._descriptor = aAddonState.descriptor;
+      aOldAddon.visible = !(aOldAddon.id in visibleAddons);
+
+      
+      XPIDatabase.setAddonDescriptor(aOldAddon, aAddonState.descriptor);
+      if (aOldAddon.visible) {
+        visibleAddons[aOldAddon.id] = aOldAddon;
+
         return true;
       }
 
@@ -2609,12 +2641,14 @@ var XPIProvider = {
             
             
             
-            
             if (aOldAddon.id in aManifests[installLocation.name] ||
                 aOldAddon.updateDate != addonState.mtime ||
-                aOldAddon._descriptor != addonState.descriptor ||
                 (aUpdateCompatibility && installLocation.name == KEY_APP_GLOBAL)) {
               changed = updateMetadata(installLocation, aOldAddon, addonState) ||
+                        changed;
+            }
+            else if (aOldAddon._descriptor != addonState.descriptor) {
+              changed = updateDescriptor(installLocation, aOldAddon, addonState) ||
                         changed;
             }
             else {
@@ -3882,6 +3916,8 @@ var XPIDatabase = {
                         "pendingUninstall=:pendingUninstall, " +
                         "applyBackgroundUpdates=:applyBackgroundUpdates WHERE " +
                         "internal_id=:internal_id",
+    setAddonDescriptor: "UPDATE addon SET descriptor=:descriptor WHERE " +
+                        "internal_id=:internal_id",
     updateTargetApplications: "UPDATE targetApplication SET " +
                               "minVersion=:minVersion, maxVersion=:maxVersion " +
                               "WHERE addon_internal_id=:internal_id AND id=:id",
@@ -5124,6 +5160,22 @@ var XPIDatabase = {
     else {
       stmt.params.applyBackgroundUpdates = aAddon.applyBackgroundUpdates;
     }
+
+    executeStatement(stmt);
+  },
+
+  
+
+
+
+
+
+
+
+  setAddonDescriptor: function XPIDB_setAddonDescriptor(aAddon, aDescriptor) {
+    let stmt = this.getStatement("setAddonDescriptor");
+    stmt.params.internal_id = aAddon._internal_id;
+    stmt.params.descriptor = aDescriptor;
 
     executeStatement(stmt);
   },
