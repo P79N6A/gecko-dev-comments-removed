@@ -124,8 +124,6 @@ public:
 
   
 
-  nsIDocument *GetDOMDocument() const { return mDocument; }
-
   
 
 

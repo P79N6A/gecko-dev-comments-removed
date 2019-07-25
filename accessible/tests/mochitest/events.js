@@ -28,6 +28,11 @@ var gA11yEventDumpID = "";
 
 
 
+var gA11yEventDumpToConsole = false;
+
+
+
+
 
 
 
@@ -261,6 +266,9 @@ function eventQueue(aEventType)
     invoker = this.getNextInvoker();
 
     this.setEventHandler(invoker);
+
+    if (gA11yEventDumpToConsole)
+      dump("\nEvent queue: \n  invoke: " + invoker.getID() + "\n");
 
     if (invoker.invoke() == INVOKER_ACTION_FAILED) {
       

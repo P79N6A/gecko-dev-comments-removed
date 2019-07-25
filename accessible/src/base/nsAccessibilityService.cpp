@@ -780,6 +780,25 @@ nsAccessibilityService::CreateHTMLCaptionAccessible(nsIFrame *aFrame,
   return NS_OK;
 }
 
+void
+nsAccessibilityService::PresShellDestroyed(nsIPresShell *aPresShell)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  nsIDocument* doc = aPresShell->GetDocument();
+  if (!doc)
+    return;
+
+  NS_LOG_ACCDOCDESTROY("presshell destroyed", doc)
+  ShutdownDocAccessible(doc);
+}
+
 
 nsAccessible *
 nsAccessibilityService::GetCachedAccessible(nsINode *aNode,

@@ -99,6 +99,7 @@ nsAccDocManager::ShutdownDocAccessiblesInTree(nsIDocument *aDocument)
 
 
 
+
 PRBool
 nsAccDocManager::Init()
 {
@@ -126,6 +127,22 @@ nsAccDocManager::Shutdown()
     progress->RemoveProgressListener(static_cast<nsIWebProgressListener*>(this));
 
   ClearDocCache();
+}
+
+void
+nsAccDocManager::ShutdownDocAccessible(nsIDocument *aDocument)
+{
+  nsDocAccessible* docAccessible =
+    mDocAccessibleCache.GetWeak(static_cast<void*>(aDocument));
+  if (!docAccessible)
+    return;
+
+  
+  
+  
+
+  docAccessible->Shutdown();
+  mDocAccessibleCache.Remove(static_cast<void*>(aDocument));
 }
 
 
@@ -413,30 +430,6 @@ nsAccDocManager::AddListeners(nsIDocument *aDocument,
   }
 }
 
-void
-nsAccDocManager::RemoveListeners(nsIDocument *aDocument)
-{
-  
-  
-  nsPIDOMWindow *window = aDocument->GetWindow();
-  if (!window)
-    return;
-
-  nsPIDOMEventTarget *target = window->GetChromeEventHandler();
-  nsIEventListenerManager* elm = target->GetListenerManager(PR_TRUE);
-  elm->RemoveEventListenerByType(this, NS_LITERAL_STRING("pagehide"),
-                                 NS_EVENT_FLAG_CAPTURE, nsnull);
-
-  NS_LOG_ACCDOCDESTROY("removed 'pagehide' listener", aDocument)
-
-  if (nsCoreUtils::IsRootDocument(aDocument)) {
-    elm->RemoveEventListenerByType(this, NS_LITERAL_STRING("DOMContentLoaded"),
-                                     NS_EVENT_FLAG_CAPTURE, nsnull);
-
-    NS_LOG_ACCDOCDESTROY("removed 'DOMContentLoaded' listener", aDocument)
-  }
-}
-
 nsDocAccessible*
 nsAccDocManager::CreateDocOrRootAccessible(nsIDocument *aDocument)
 {
@@ -502,7 +495,6 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument *aDocument)
   if (outerDocAcc) {
     
     
-    NS_LOG_ACCDOCCREATE("append document to outerdoc", aDocument)
     outerDocAcc->AppendChild(docAcc);
   }
 
@@ -512,7 +504,7 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument *aDocument)
     return nsnull;
   }
 
-  NS_LOG_ACCDOCCREATE("document created", aDocument)
+  NS_LOG_ACCDOCCREATE("document creation finished", aDocument)
 
   AddListeners(aDocument, isRootDoc);
   return docAcc;
@@ -547,19 +539,6 @@ nsAccDocManager::ShutdownDocAccessiblesInTree(nsIDocShellTreeItem *aTreeItem,
   ShutdownDocAccessible(aDocument);
 }
 
-void
-nsAccDocManager::ShutdownDocAccessible(nsIDocument *aDocument)
-{
-  RemoveListeners(aDocument);
-
-  nsDocAccessible *docAccessible =
-    mDocAccessibleCache.GetWeak(static_cast<void*>(aDocument));
-  if (docAccessible)
-    docAccessible->Shutdown();
-
-  mDocAccessibleCache.Remove(static_cast<void*>(aDocument));
-}
-
 
 
 
@@ -573,14 +552,8 @@ nsAccDocManager::ClearDocCacheEntry(const void* aKey,
   NS_ASSERTION(aDocAccessible,
                "Calling ClearDocCacheEntry with a NULL pointer!");
 
-  if (aDocAccessible) {
-    nsCOMPtr<nsIDocument> document = aDocAccessible->GetDOMDocument();
-    NS_ASSERTION(document, "Document accessible was shutdown already!");
-    if (document)
-      accDocMgr->RemoveListeners(document);
-
+  if (aDocAccessible)
     aDocAccessible->Shutdown();
-  }
 
   return PL_DHASH_REMOVE;
 }
