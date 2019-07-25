@@ -37,10 +37,14 @@
 
 
 
+#ifndef nsChromeRegistry_h
+#define nsChromeRegistry_h
+
 #include "nsIChromeRegistry.h"
 #include "nsIToolkitChromeRegistry.h"
 #include "nsIObserver.h"
 #include "nsWeakReference.h"
+#include "nsIPrefBranch.h"
 
 #ifdef MOZ_XUL
 #include "nsIXULOverlayProvider.h"
@@ -52,23 +56,18 @@
 #include "nsString.h"
 #include "nsTHashtable.h"
 #include "nsURIHashKey.h"
-#include "nsVoidArray.h"
-#include "nsTArray.h"
 #include "nsInterfaceHashtable.h"
 #include "nsXULAppAPI.h"
 #include "nsIResProtocolHandler.h"
 #include "nsIXPConnect.h"
 
-struct PRFileDesc;
-class nsIAtom;
 class nsIDOMWindowInternal;
-class nsILocalFile;
-class nsIPrefBranch;
-class nsIRDFDataSource;
-class nsIRDFResource;
-class nsIRDFService;
-class nsISimpleEnumerator;
 class nsIURL;
+
+
+
+
+
 
 
 
@@ -86,48 +85,53 @@ public:
   NS_DECL_ISUPPORTS
 
   
-  NS_DECL_NSICHROMEREGISTRY
-  NS_DECL_NSIXULCHROMEREGISTRY
-  NS_DECL_NSITOOLKITCHROMEREGISTRY
-
-#ifdef MOZ_XUL
-  NS_DECL_NSIXULOVERLAYPROVIDER
-#endif
-
-  NS_DECL_NSIOBSERVER
+  NS_IMETHOD ReloadChrome();
+  NS_IMETHOD RefreshSkins();
+  NS_IMETHOD AllowScriptsForPackage(nsIURI* url,
+                                    PRBool* _retval NS_OUTPARAM);
+  NS_IMETHOD AllowContentToAccess(nsIURI* url,
+                                  PRBool* _retval NS_OUTPARAM);
 
   
-  nsChromeRegistry() : mInitialized(PR_FALSE), mProfileLoaded(PR_FALSE) {
-    mPackagesHash.ops = nsnull;
-  }
-  ~nsChromeRegistry();
+  NS_IMETHOD_(PRBool) WrappersEnabled(nsIURI *aURI);
+  NS_IMETHOD ConvertChromeURL(nsIURI* aChromeURI, nsIURI* *aResult);
 
-  nsresult Init();
+  
+  nsChromeRegistry() : mInitialized(PR_FALSE) { }
+  virtual ~nsChromeRegistry();
+
+  virtual nsresult Init();
+
+  static already_AddRefed<nsIChromeRegistry> GetService();
 
   static nsChromeRegistry* gChromeRegistry;
 
   static nsresult Canonify(nsIURL* aChromeURL);
 
 protected:
-  nsresult GetDynamicInfo(nsIURI *aChromeURL, PRBool aIsOverlay, nsISimpleEnumerator **aResult);
-
-  nsresult LoadInstallDataSource();
-  nsresult LoadProfileDataSource();
-
   void FlushSkinCaches();
   void FlushAllCaches();
 
-private:
+  static void LogMessage(const char* aMsg, ...);
+  static void LogMessageWithContext(nsIURI* aURL, PRUint32 aLineNumber, PRUint32 flags,
+                                    const char* aMsg, ...);
+
+  virtual nsresult GetBaseURIFromPackage(const nsCString& aPackage,
+                                         const nsCString& aProvider,
+                                         const nsCString& aPath,
+                                         nsIURI* *aResult) = 0;
+  virtual nsresult GetFlagsFromPackage(const nsCString& aPackage,
+                                       PRUint32* aFlags) = 0;
+
   nsresult SelectLocaleFromPref(nsIPrefBranch* prefs);
-#ifdef MOZ_OMNIJAR
-  nsresult CheckOmnijarChrome();
-#endif
 
   static nsresult RefreshWindow(nsIDOMWindowInternal* aWindow);
   static nsresult GetProviderAndPath(nsIURL* aChromeURL,
                                      nsACString& aProvider, nsACString& aPath);
 
 public:
+  static already_AddRefed<nsChromeRegistry> GetSingleton();
+
   struct ManifestProcessingContext
   {
     ManifestProcessingContext(NSLocationType aType, nsILocalFile* aFile)
@@ -148,139 +152,47 @@ public:
     nsCOMPtr<nsIXPConnect> mXPConnect;
   };
 
-  void ManifestContent(ManifestProcessingContext& cx, int lineno,
-                       char *const * argv, bool platform, bool contentaccessible);
-  void ManifestLocale(ManifestProcessingContext& cx, int lineno,
-                      char *const * argv, bool platform, bool contentaccessible);
-  void ManifestSkin(ManifestProcessingContext& cx, int lineno,
-                    char *const * argv, bool platform, bool contentaccessible);
-  void ManifestOverlay(ManifestProcessingContext& cx, int lineno,
-                       char *const * argv, bool platform, bool contentaccessible);
-  void ManifestStyle(ManifestProcessingContext& cx, int lineno,
-                     char *const * argv, bool platform, bool contentaccessible);
-  void ManifestOverride(ManifestProcessingContext& cx, int lineno,
-                        char *const * argv, bool platform, bool contentaccessible);
-  void ManifestResource(ManifestProcessingContext& cx, int lineno,
-                        char *const * argv, bool platform, bool contentaccessible);
+  virtual void ManifestContent(ManifestProcessingContext& cx, int lineno,
+                               char *const * argv, bool platform,
+                               bool contentaccessible) = 0;
+  virtual void ManifestLocale(ManifestProcessingContext& cx, int lineno,
+                              char *const * argv, bool platform,
+                              bool contentaccessible) = 0;
+  virtual void ManifestSkin(ManifestProcessingContext& cx, int lineno,
+                            char *const * argv, bool platform,
+                            bool contentaccessible) = 0;
+  virtual void ManifestOverlay(ManifestProcessingContext& cx, int lineno,
+                               char *const * argv, bool platform,
+                               bool contentaccessible) = 0;
+  virtual void ManifestStyle(ManifestProcessingContext& cx, int lineno,
+                             char *const * argv, bool platform,
+                             bool contentaccessible) = 0;
+  virtual void ManifestOverride(ManifestProcessingContext& cx, int lineno,
+                                char *const * argv, bool platform,
+                                bool contentaccessible) = 0;
+  virtual void ManifestResource(ManifestProcessingContext& cx, int lineno,
+                                char *const * argv, bool platform,
+                                bool contentaccessible) = 0;
 
-public:
-  struct ProviderEntry
-  {
-    ProviderEntry(const nsACString& aProvider, nsIURI* aBase) :
-      provider(aProvider),
-      baseURI(aBase) { }
-
-    nsCString        provider;
-    nsCOMPtr<nsIURI> baseURI;
-  };
-
-  class nsProviderArray
-  {
-  public:
-    nsProviderArray() :
-      mArray(1) { }
-    ~nsProviderArray()
-      { Clear(); }
+  
+  enum {
+    
+    
+    PLATFORM_PACKAGE = 1 << 0,
 
     
     
-    enum MatchType {
-      EXACT = 0,
-      LOCALE = 1, 
-      ANY = 2
-    };
-
-    nsIURI* GetBase(const nsACString& aPreferred, MatchType aType);
-    const nsACString& GetSelected(const nsACString& aPreferred, MatchType aType);
-    void    SetBase(const nsACString& aProvider, nsIURI* base);
-    void    EnumerateToArray(nsTArray<nsCString> *a);
-    void    Clear();
-
-  private:
-    ProviderEntry* GetProvider(const nsACString& aPreferred, MatchType aType);
-
-    nsVoidArray mArray;
-  };
-
-  struct PackageEntry : public PLDHashEntryHdr
-  {
-    PackageEntry(const nsACString& package);
-    ~PackageEntry() { }
+    
+    XPCNATIVEWRAPPERS = 1 << 1,
 
     
-    enum {
-      
-      
-      PLATFORM_PACKAGE = 1 << 0,
-
-      
-      CONTENT_ACCESSIBLE = 1 << 1
-    };
-
-    nsCString        package;
-    nsCOMPtr<nsIURI> baseURI;
-    PRUint32         flags;
-    nsProviderArray  locales;
-    nsProviderArray  skins;
+    CONTENT_ACCESSIBLE = 1 << 2
   };
 
-private:
-  static PLDHashNumber HashKey(PLDHashTable *table, const void *key);
-  static PRBool        MatchKey(PLDHashTable *table, const PLDHashEntryHdr *entry,
-                                const void *key);
-  static void          ClearEntry(PLDHashTable *table, PLDHashEntryHdr *entry);
-  static PRBool        InitEntry(PLDHashTable *table, PLDHashEntryHdr *entry,
-                                 const void *key);
-
-  static const PLDHashTableOps kTableOps;
-
-public:
-  class OverlayListEntry : public nsURIHashKey
-  {
-  public:
-    typedef nsURIHashKey::KeyType        KeyType;
-    typedef nsURIHashKey::KeyTypePointer KeyTypePointer;
-
-    OverlayListEntry(KeyTypePointer aKey) : nsURIHashKey(aKey) { }
-    OverlayListEntry(OverlayListEntry& toCopy) : nsURIHashKey(toCopy),
-                                                 mArray(toCopy.mArray) { }
-    ~OverlayListEntry() { }
-
-    void AddURI(nsIURI* aURI);
-
-    nsCOMArray<nsIURI> mArray;
-  };
-
-  class OverlayListHash
-  {
-  public:
-    OverlayListHash() { }
-    ~OverlayListHash() { }
-
-    PRBool Init() { return mTable.Init(); }
-    void Add(nsIURI* aBase, nsIURI* aOverlay);
-    void Clear() { mTable.Clear(); }
-    const nsCOMArray<nsIURI>* GetArray(nsIURI* aBase);
-
-  private:
-    nsTHashtable<OverlayListEntry> mTable;
-  };
-
-private:
   PRBool mInitialized;
-  PRBool mProfileLoaded;
-
-  
-  PLDHashTable mPackagesHash;
-
-  
-  
-  OverlayListHash mOverlayHash;
-  OverlayListHash mStyleHash;
 
   
   nsInterfaceHashtable<nsURIHashKey, nsIURI> mOverrideTable;
-
-  nsCString mSelectedLocale;
-  nsCString mSelectedSkin;
 };
+
+#endif 
