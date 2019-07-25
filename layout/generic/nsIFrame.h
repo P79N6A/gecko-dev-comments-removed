@@ -1972,8 +1972,16 @@ public:
 
 
 
-  void InvalidateOverflowRect();
+  void InvalidateFrameSubtree();
+
   
+
+
+
+
+
+  void InvalidateOverflowRect();
+
   
 
 

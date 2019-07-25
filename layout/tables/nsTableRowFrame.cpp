@@ -921,7 +921,7 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
       }
       else {
         if (x != kidRect.x) {
-          kidFrame->InvalidateOverflowRect();
+          kidFrame->InvalidateFrameSubtree();
         }
         
         desiredSize.width = cellDesiredSize.width;
@@ -978,12 +978,12 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
     else {
       if (kidRect.x != x) {
         
-        kidFrame->InvalidateOverflowRect();
+        kidFrame->InvalidateFrameSubtree();
         
         kidFrame->SetPosition(nsPoint(x, kidRect.y));
         nsTableFrame::RePositionViews(kidFrame);
         
-        kidFrame->InvalidateOverflowRect();
+        kidFrame->InvalidateFrameSubtree();
       }
       
       x += kidRect.width;
@@ -1152,7 +1152,7 @@ nsTableRowFrame::CollapseRowIfNecessary(nscoord aRowOffset,
 
   if (aRowOffset != 0) {
     
-    InvalidateOverflowRect();
+    InvalidateFrameSubtree();
   }
   
   nsRect rowRect = GetRect();
@@ -1273,7 +1273,7 @@ nsTableRowFrame::CollapseRowIfNecessary(nscoord aRowOffset,
 
         if (aRowOffset == 0 && cRect.TopLeft() != oldCellRect.TopLeft()) {
           
-          cellFrame->InvalidateOverflowRect();
+          cellFrame->InvalidateFrameSubtree();
         }
         
         cellFrame->SetRect(cRect);
