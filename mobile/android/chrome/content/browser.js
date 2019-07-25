@@ -2728,6 +2728,17 @@ var BrowserEventHandler = {
       rect.w = bRect.width;
       rect.h = Math.min(bRect.width * viewport.cssHeight / viewport.cssWidth, bRect.height);
 
+      
+      
+      
+      
+      
+      
+      let cssTapY = viewport.cssY + data.y;
+      if ((bRect.height > rect.h) && (cssTapY > rect.y + (rect.h * 1.2))) {
+        rect.y = cssTapY - (rect.h / 2);
+      }
+
       sendMessageToJava({ gecko: rect });
     }
   },
