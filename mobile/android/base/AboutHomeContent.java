@@ -241,42 +241,46 @@ public class AboutHomeContent extends ScrollView {
             return NUMBER_OF_COLS_PORTRAIT;
     }
 
+    private void loadTopSites(Activity activity) {
+        if (mCursor != null)
+            activity.stopManagingCursor(mCursor);
+
+        
+        
+        
+        final GeckoApp.StartupMode startupMode = GeckoApp.mAppContext.getStartupMode();
+
+        
+        
+        final boolean syncIsSetup = isSyncSetup();
+
+        ContentResolver resolver = GeckoApp.mAppContext.getContentResolver();
+        mCursor = BrowserDB.getTopSites(resolver, NUMBER_OF_TOP_SITES_PORTRAIT);
+        activity.startManagingCursor(mCursor);
+
+        mTopSitesAdapter = new TopSitesCursorAdapter(activity,
+                                                     R.layout.abouthome_topsite_item,
+                                                     mCursor,
+                                                     new String[] { URLColumns.TITLE,
+                                                                    URLColumns.THUMBNAIL },
+                                                     new int[] { R.id.title, R.id.thumbnail });
+
+        GeckoApp.mAppContext.mMainHandler.post(new Runnable() {
+            public void run() {
+                mTopSitesGrid.setNumColumns(getNumberOfColumns());
+
+                mTopSitesGrid.setAdapter(mTopSitesAdapter);
+                mTopSitesAdapter.setViewBinder(new TopSitesViewBinder());
+
+                updateLayout(startupMode, syncIsSetup);
+            }
+        });
+    }
+
     void init(final Activity activity) {
         GeckoAppShell.getHandler().post(new Runnable() {
             public void run() {
-                if (mCursor != null)
-                    activity.stopManagingCursor(mCursor);
-
-                
-                
-                
-                final GeckoApp.StartupMode startupMode = GeckoApp.mAppContext.getStartupMode();
-
-                
-                
-                final boolean syncIsSetup = isSyncSetup();
-
-                ContentResolver resolver = GeckoApp.mAppContext.getContentResolver();
-                mCursor = BrowserDB.getTopSites(resolver, NUMBER_OF_TOP_SITES_PORTRAIT);
-                activity.startManagingCursor(mCursor);
-
-                mTopSitesAdapter = new TopSitesCursorAdapter(activity,
-                                                             R.layout.abouthome_topsite_item,
-                                                             mCursor,
-                                                             new String[] { URLColumns.TITLE,
-                                                                            URLColumns.THUMBNAIL },
-                                                             new int[] { R.id.title, R.id.thumbnail });
-
-                GeckoApp.mAppContext.mMainHandler.post(new Runnable() {
-                    public void run() {
-                        mTopSitesGrid.setNumColumns(getNumberOfColumns());
-
-                        mTopSitesGrid.setAdapter(mTopSitesAdapter);
-                        mTopSitesAdapter.setViewBinder(new TopSitesViewBinder());
-
-                        updateLayout(startupMode, syncIsSetup);
-                    }
-                });
+                loadTopSites(activity);
 
                 GeckoAppShell.getHandler().post(new Runnable() {
                     public void run() {
