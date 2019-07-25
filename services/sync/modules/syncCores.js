@@ -388,8 +388,7 @@ BookmarksSyncCore.prototype = {
         return true;
       return false;
     case "folder":
-      if (this._comp(a, b, 'index') &&
-          this._comp(a, b, 'title'))
+      if (this._comp(a, b, 'title'))
         return true;
       return false;
     case "livemark":
