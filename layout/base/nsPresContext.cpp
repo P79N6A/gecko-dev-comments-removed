@@ -1210,6 +1210,33 @@ nsPresContext::GetRootPresContext()
   return pc->IsRoot() ? static_cast<nsRootPresContext*>(pc) : nsnull;
 }
 
+nsRootPresContext*
+nsPresContext::GetDisplayRootPresContext()
+{
+  nsPresContext* pc = this;
+  for (;;) {
+    nsPresContext* parent = pc->GetParentPresContext();
+    if (!parent) {
+      
+      
+      nsIDocument *doc = pc->Document();
+      if (doc) {
+        doc = doc->GetParentDocument();
+        if (doc) {
+          nsIPresShell* shell = doc->GetShell();
+          if (shell) {
+            parent = shell->GetPresContext();
+          }
+        }
+      }
+    }
+    if (!parent || parent == pc)
+      break;
+    pc = parent;
+  }
+  return pc->IsRoot() ? static_cast<nsRootPresContext*>(pc) : nsnull;
+}
+
 void
 nsPresContext::CompatibilityModeChanged()
 {
