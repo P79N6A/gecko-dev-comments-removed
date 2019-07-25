@@ -3220,6 +3220,7 @@ JSFunction::addLocal(JSContext *cx, JSAtom *atom, JSLocalKind kind)
 
 
 
+    bool findArgInsertionPoint = false;
     if (!atom) {
         JS_ASSERT(kind == JSLOCAL_ARG);
         if (u.i.nvars != 0) {
@@ -3229,15 +3230,21 @@ JSFunction::addLocal(JSContext *cx, JSAtom *atom, JSLocalKind kind)
 
             if (!parent->inDictionary() && !(parent = Shape::newDictionaryList(cx, listp)))
                 return false;
-            while (parent->parent && parent->getter() != js_GetCallArg) {
-                ++parent->slot;
-                listp = &parent->parent;
-                parent = *listp;
-            }
+            findArgInsertionPoint = true;
         }
         id = INT_TO_JSID(nargs);
     } else {
+        if (kind == JSLOCAL_ARG && parent->inDictionary())
+            findArgInsertionPoint = true;
         id = ATOM_TO_JSID(atom);
+    }
+
+    if (findArgInsertionPoint) {
+        while (parent->parent && parent->getter() != js_GetCallArg) {
+            ++parent->slot;
+            listp = &parent->parent;
+            parent = *listp;
+        }
     }
 
     Shape child(id, getter, setter, slot, attrs, Shape::HAS_SHORTID, *indexp);
