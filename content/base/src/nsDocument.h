@@ -69,7 +69,6 @@
 #include "nsIParser.h"
 #include "nsBindingManager.h"
 #include "nsINodeInfo.h"
-#include "nsIDOM3DocumentEvent.h"
 #include "nsHashtable.h"
 #include "nsInterfaceHashtable.h"
 #include "nsIBoxObject.h"
@@ -492,7 +491,6 @@ protected:
 class nsDocument : public nsIDocument,
                    public nsIDOMXMLDocument, 
                    public nsIDOMNSDocument,
-                   public nsIDOM3DocumentEvent,
                    public nsIDOMNSDocumentStyle,
                    public nsIDOMDocumentXBL,
                    public nsSupportsWeakReference,
@@ -795,9 +793,6 @@ public:
 
   
   NS_DECL_NSIDOMNSDOCUMENT
-
-  
-  NS_DECL_NSIDOM3DOCUMENTEVENT
 
   
   NS_DECL_NSIDOMDOCUMENTSTYLE
