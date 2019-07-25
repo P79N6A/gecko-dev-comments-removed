@@ -172,7 +172,6 @@ pref("app.update.url", "https://aus3.mozilla.org/update/3/%PRODUCT%/%VERSION%/%B
 
 
 
-pref("app.update.promptWaitTime", 43200);
 
 pref("app.update.idletime", 60);
 
@@ -359,11 +358,6 @@ pref("browser.sessionhistory.max_entries", 50);
 
 
 pref("browser.link.open_newwindow", 3);
-
-
-
-
-pref("browser.link.open_newwindow.override.external", -1);
 
 
 

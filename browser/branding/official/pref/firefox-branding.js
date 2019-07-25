@@ -8,6 +8,8 @@ pref("app.update.interval", 86400);
 
 pref("app.update.download.backgroundInterval", 600);
 
+pref("app.update.promptWaitTime", 86400);
+
 
 pref("app.update.url.manual", "http://www.firefox.com");
 
