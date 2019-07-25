@@ -194,7 +194,6 @@ var gAdvancedPane = {
 
 
 
-
   
 
 
@@ -243,8 +242,10 @@ var gAdvancedPane = {
 
   readSmartSizeEnabled: function ()
   {
-    var enabled = document.getElementById("browser.cache.disk.smart_size.enabled").value;
-    this.updateCacheSizeUI(enabled);
+    
+    
+    var disabled = document.getElementById("browser.cache.disk.smart_size.enabled").value;
+    this.updateCacheSizeUI(!disabled);
   },
   
   
