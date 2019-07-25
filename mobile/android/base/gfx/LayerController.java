@@ -40,7 +40,6 @@ package org.mozilla.gecko.gfx;
 
 import org.mozilla.gecko.gfx.IntSize;
 import org.mozilla.gecko.gfx.Layer;
-import org.mozilla.gecko.gfx.LayerClient;
 import org.mozilla.gecko.ui.PanZoomController;
 import org.mozilla.gecko.ui.SimpleScaleGestureDetector;
 import org.mozilla.gecko.GeckoApp;
@@ -87,7 +86,7 @@ public class LayerController {
 
 
     private OnTouchListener mOnTouchListener;       
-    private LayerClient mLayerClient;               
+    private GeckoLayerClient mLayerClient;          
 
     
     private int mCheckerboardColor;
@@ -126,7 +125,7 @@ public class LayerController {
 
     public void setRoot(Layer layer) { mRootLayer = layer; }
 
-    public void setLayerClient(LayerClient layerClient) {
+    public void setLayerClient(GeckoLayerClient layerClient) {
         mLayerClient = layerClient;
         layerClient.setLayerController(this);
     }
