@@ -8287,10 +8287,11 @@ nsDocShell::InternalLoad(nsIURI * aURI,
         
         
         
-        
         nsCAutoString curBeforeHash, curHash, newBeforeHash, newHash;
         nsresult splitRv1, splitRv2;
-        splitRv1 = nsContentUtils::SplitURIAtHash(mCurrentURI, curBeforeHash, curHash);
+        splitRv1 = mCurrentURI ?
+            nsContentUtils::SplitURIAtHash(mCurrentURI,
+                                           curBeforeHash, curHash) : NS_OK;
         splitRv2 = nsContentUtils::SplitURIAtHash(aURI, newBeforeHash, newHash);
 
         PRBool sameExceptHashes = NS_SUCCEEDED(splitRv1) &&
@@ -10676,9 +10677,7 @@ nsDocShell::ConfirmRepost(PRBool * aRepost)
   if (NS_FAILED(rv)) return rv;
 
   PRInt32 buttonPressed;
-  
-  
-  PRBool checkState = PR_FALSE;
+  PRBool checkState;
   rv = prompter->
          ConfirmEx(nsnull, msgString.get(),
                    (nsIPrompt::BUTTON_POS_0 * nsIPrompt::BUTTON_TITLE_IS_STRING) +
