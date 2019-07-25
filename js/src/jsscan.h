@@ -292,7 +292,9 @@ enum TokenStreamFlags
 #define t_atom2         u.p.atom2
 #define t_dval          u.dval
 
-const size_t LINE_LIMIT = 1024; 
+static const size_t LINE_LIMIT = 1024; 
+
+static const size_t UNGET_LIMIT = 6;   
 
 
 class TokenStream
@@ -449,7 +451,21 @@ class TokenStream
     TokenKind getTokenInternal();     
     int fillUserbuf();
     int32 getCharFillLinebuf();
-    int32 getChar();
+
+    
+    JS_ALWAYS_INLINE int32 getChar() {
+        int32 c;
+        if (currbuf->ptr < currbuf->limit - 1) {
+            
+            c = *currbuf->ptr++;
+            JS_ASSERT(c != '\n');
+        } else {
+            c = getCharSlowCase();
+        }
+        return c;
+    }
+
+    int32 getCharSlowCase();
     void ungetChar(int32 c);
     Token *newToken(ptrdiff_t adjust);
     int32 getUnicodeEscape();
@@ -480,19 +496,21 @@ class TokenStream
     uintN               cursor;         
     uintN               lookahead;      
     uintN               lineno;         
-    uintN               ungetpos;       
-    jschar              ungetbuf[6];    
     uintN               flags;          
     uint32              linepos;        
     uint32              lineposNext;    
     TokenBuf            linebuf;        
     TokenBuf            userbuf;        
+    TokenBuf            ungetbuf;       
+    TokenBuf            *currbuf;       
     const char          *filename;      
     FILE                *file;          
     JSSourceHandler     listener;       
     void                *listenerData;  
     void                *listenerTSData;
     JSCharBuffer        tokenbuf;       
+    bool                maybeEOL[256];  
+    bool                maybeStrSpecial[256];
 };
 
 } 
