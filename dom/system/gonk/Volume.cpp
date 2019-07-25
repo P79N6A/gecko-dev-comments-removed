@@ -6,6 +6,7 @@
 #include "VolumeCommand.h"
 #include "VolumeManager.h"
 #include "VolumeManagerLog.h"
+#include "nsIVolume.h"
 #include "nsXULAppAPI.h"
 
 #include <vold/ResponseCode.h>
@@ -13,11 +14,13 @@
 namespace mozilla {
 namespace system {
 
+Volume::EventObserverList Volume::mEventObserverList;
+
 
 
 Volume::Volume(const nsCSubstring &aName)
   : mMediaPresent(true),
-    mState(STATE_INIT),
+    mState(nsIVolume::STATE_INIT),
     mName(aName)
 {
   DBG("Volume %s: created", NameStr());
@@ -67,7 +70,7 @@ Volume::SetState(Volume::STATE aNewState)
       NameStr(), StateStr(mState),
       StateStr(aNewState), mEventObserverList.Length());
 
-  if (aNewState == STATE_NOMEDIA) {
+  if (aNewState == nsIVolume::STATE_NOMEDIA) {
     
     mMediaPresent = false;
   }
@@ -115,6 +118,7 @@ Volume::StartCommand(VolumeCommand *aCommand)
   VolumeManager::PostCommand(aCommand);
 }
 
+
 void
 Volume::RegisterObserver(Volume::EventObserver *aObserver)
 {
@@ -122,8 +126,13 @@ Volume::RegisterObserver(Volume::EventObserver *aObserver)
 
   mEventObserverList.AddObserver(aObserver);
   
-  aObserver->Notify(this);
+  size_t numVolumes = VolumeManager::NumVolumes();
+  for (size_t volIndex = 0; volIndex < numVolumes; volIndex++) {
+    RefPtr<Volume> vol = VolumeManager::GetVolume(volIndex);
+    aObserver->Notify(vol);
+  }
 }
+
 
 void
 Volume::UnregisterObserver(Volume::EventObserver *aObserver)
