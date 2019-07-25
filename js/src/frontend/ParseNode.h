@@ -41,6 +41,8 @@
 #ifndef ParseNode_h__
 #define ParseNode_h__
 
+#include "mozilla/Attributes.h"
+
 #include "jsscript.h"
 
 #include "frontend/ParseMaps.h"
@@ -61,7 +63,7 @@ namespace js {
 enum ParseNodeKind {
     PNK_SEMI,
     PNK_COMMA,
-    PNK_HOOK,
+    PNK_CONDITIONAL,
     PNK_COLON,
     PNK_OR,
     PNK_AND,
@@ -469,6 +471,7 @@ enum ParseNodeKind {
 
 
 
+
 enum ParseNodeArity {
     PN_NULLARY,                         
     PN_UNARY,                           
@@ -485,6 +488,10 @@ struct Definition;
 class LoopControlStatement;
 class BreakStatement;
 class ContinueStatement;
+class XMLProcessingInstruction;
+class ConditionalExpression;
+class DefSharpExpression;
+class UseSharpExpression;
 
 struct ParseNode {
   private:
@@ -494,6 +501,8 @@ struct ParseNode {
                         pn_parens : 1,  
                         pn_used   : 1,  
                         pn_defn   : 1;  
+
+    void operator=(const ParseNode &other) MOZ_DELETE;
 
   public:
     ParseNode(ParseNodeKind kind, JSOp op, ParseNodeArity arity)
@@ -617,15 +626,20 @@ struct ParseNode {
             AtomDefnMapPtr   defnMap;
             ParseNode        *tree;     
         } nameset;
-        struct {                        
-            PropertyName     *target;   
-            JSAtom           *data;     
-        } xmlpi;
         jsdouble        dval;           
         class {
             friend class LoopControlStatement;
             PropertyName     *label;    
         } loopControl;
+        class {                         
+            friend class XMLProcessingInstruction;
+            PropertyName     *target;   
+            JSAtom           *data;     
+        } xmlpi;
+        class {
+            friend class UseSharpExpression;
+            jsint            number;    
+        } usesharp;
     } pn_u;
 
 #define pn_funbox       pn_u.name.funbox
@@ -646,7 +660,6 @@ struct ParseNode {
 #define pn_pval         pn_u.binary.pval
 #define pn_iflags       pn_u.binary.iflags
 #define pn_kid          pn_u.unary.kid
-#define pn_num          pn_u.unary.num
 #define pn_hidden       pn_u.unary.hidden
 #define pn_prologue     pn_u.unary.hidden
 #define pn_atom         pn_u.name.atom
@@ -656,8 +669,6 @@ struct ParseNode {
 #define pn_names        pn_u.nameset.defnMap
 #define pn_tree         pn_u.nameset.tree
 #define pn_dval         pn_u.dval
-#define pn_pitarget     pn_u.xmlpi.target
-#define pn_pidata       pn_u.xmlpi.data
 
   protected:
     void init(TokenKind type, JSOp op, ParseNodeArity arity) {
@@ -924,6 +935,12 @@ struct ParseNode {
     
     inline BreakStatement &asBreakStatement();
     inline ContinueStatement &asContinueStatement();
+#if JS_HAS_XML_SUPPORT
+    inline XMLProcessingInstruction &asXMLProcessingInstruction();
+#endif
+    inline ConditionalExpression &asConditionalExpression();
+    inline DefSharpExpression &asDefSharpExpression();
+    inline UseSharpExpression &asUseSharpExpression();
 };
 
 struct NullaryNode : public ParseNode {
@@ -1058,6 +1075,145 @@ ParseNode::asContinueStatement()
     JS_ASSERT(pn_arity == PN_NULLARY);
     return *static_cast<ContinueStatement *>(this);
 }
+
+class DebuggerStatement : public ParseNode {
+  public:
+    DebuggerStatement(const TokenPos &pos)
+      : ParseNode(PNK_DEBUGGER, JSOP_NOP, PN_NULLARY, pos)
+    { }
+};
+
+#if JS_HAS_XML_SUPPORT
+class XMLProcessingInstruction : public ParseNode {
+  public:
+    XMLProcessingInstruction(PropertyName *target, JSAtom *data, const TokenPos &pos)
+      : ParseNode(PNK_XMLPI, JSOP_NOP, PN_NULLARY, pos)
+    {
+        pn_u.xmlpi.target = target;
+        pn_u.xmlpi.data = data;
+    }
+
+    PropertyName *target() const {
+        return pn_u.xmlpi.target;
+    }
+
+    JSAtom *data() const {
+        return pn_u.xmlpi.data;
+    }
+};
+
+inline XMLProcessingInstruction &
+ParseNode::asXMLProcessingInstruction()
+{
+    JS_ASSERT(isKind(PNK_XMLPI));
+    JS_ASSERT(isOp(JSOP_NOP));
+    JS_ASSERT(pn_arity == PN_NULLARY);
+    return *static_cast<XMLProcessingInstruction *>(this);
+}
+#endif
+
+class ConditionalExpression : public ParseNode {
+  public:
+    ConditionalExpression(ParseNode *condition, ParseNode *thenExpr, ParseNode *elseExpr)
+      : ParseNode(PNK_CONDITIONAL, JSOP_NOP, PN_TERNARY,
+                  TokenPos::make(condition->pn_pos.begin, elseExpr->pn_pos.end))
+    {
+        JS_ASSERT(condition);
+        JS_ASSERT(thenExpr);
+        JS_ASSERT(elseExpr);
+        pn_u.ternary.kid1 = condition;
+        pn_u.ternary.kid2 = thenExpr;
+        pn_u.ternary.kid3 = elseExpr;
+    }
+
+    ParseNode &condition() const {
+        return *pn_u.ternary.kid1;
+    }
+
+    ParseNode &thenExpression() const {
+        return *pn_u.ternary.kid2;
+    }
+
+    ParseNode &elseExpression() const {
+        return *pn_u.ternary.kid3;
+    }
+};
+
+inline ConditionalExpression &
+ParseNode::asConditionalExpression()
+{
+    JS_ASSERT(isKind(PNK_CONDITIONAL));
+    JS_ASSERT(isOp(JSOP_NOP));
+    JS_ASSERT(pn_arity == PN_TERNARY);
+    return *static_cast<ConditionalExpression *>(this);
+}
+
+class DefSharpExpression : public ParseNode {
+  public:
+    DefSharpExpression(uint16_t number, ParseNode *expr,
+                       const TokenPtr &begin, const TokenPtr &end)
+      : ParseNode(PNK_DEFSHARP, JSOP_NOP, PN_UNARY, TokenPos::make(begin, end))
+    {
+        pn_u.unary.num = number;
+        pn_u.unary.kid = expr;
+    }
+
+    jsint number() const {
+        return pn_u.unary.num;
+    }
+
+    ParseNode &expression() const {
+        return *pn_u.unary.kid;
+    }
+};
+
+inline DefSharpExpression &
+ParseNode::asDefSharpExpression()
+{
+    JS_ASSERT(isKind(PNK_DEFSHARP));
+    JS_ASSERT(isOp(JSOP_NOP));
+    JS_ASSERT(pn_arity == PN_UNARY);
+    return *static_cast<DefSharpExpression *>(this);
+}
+
+class UseSharpExpression : public ParseNode {
+  public:
+    UseSharpExpression(uint16_t number, const TokenPos &pos)
+      : ParseNode(PNK_USESHARP, JSOP_NOP, PN_NULLARY, pos)
+    {
+        pn_u.usesharp.number = number;
+    }
+
+    jsint number() const {
+        return pn_u.usesharp.number;
+    }
+};
+
+inline UseSharpExpression &
+ParseNode::asUseSharpExpression()
+{
+    JS_ASSERT(isKind(PNK_USESHARP));
+    JS_ASSERT(isOp(JSOP_NOP));
+    JS_ASSERT(pn_arity == PN_NULLARY);
+    return *static_cast<UseSharpExpression *>(this);
+}
+
+class ThisLiteral : public ParseNode {
+  public:
+    ThisLiteral(const TokenPos &pos) : ParseNode(PNK_THIS, JSOP_THIS, PN_NULLARY, pos) { }
+};
+
+class NullLiteral : public ParseNode {
+  public:
+    NullLiteral(const TokenPos &pos) : ParseNode(PNK_NULL, JSOP_NULL, PN_NULLARY, pos) { }
+};
+
+class BooleanLiteral : public ParseNode {
+  public:
+    BooleanLiteral(bool b, const TokenPos &pos)
+      : ParseNode(b ? PNK_TRUE : PNK_FALSE, b ? JSOP_TRUE : JSOP_FALSE, PN_NULLARY, pos)
+    { }
+};
 
 ParseNode *
 CloneLeftHandSide(ParseNode *opn, TreeContext *tc);

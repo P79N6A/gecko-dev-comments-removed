@@ -48,6 +48,7 @@
 #include "jsdbgapi.h"
 #include "jsclist.h"
 #include "jsinfer.h"
+#include "jsscope.h"
 
 #include "gc/Barrier.h"
 
@@ -212,7 +213,7 @@ class Bindings {
     inline bool ensureShape(JSContext *cx);
 
     
-    inline js::Shape *lastShape() const;
+    inline Shape *lastShape() const;
 
     
     inline bool extensibleParents();
@@ -317,6 +318,14 @@ class Bindings {
     const js::Shape *lastUpvar() const;
 
     void trace(JSTracer *trc);
+
+    
+    struct StackRoot {
+        RootShape root;
+        StackRoot(JSContext *cx, Bindings *bindings)
+            : root(cx, (Shape **) &bindings->lastBinding)
+        {}
+    };
 };
 
 } 
@@ -841,6 +850,8 @@ struct JSScript : public js::gc::Cell {
 
     static inline void writeBarrierPre(JSScript *script);
     static inline void writeBarrierPost(JSScript *script, void *addr);
+
+    static inline js::ThingRootKind rootKind() { return js::THING_ROOT_SCRIPT; }
 };
 
 
@@ -955,4 +966,4 @@ js_CloneScript(JSContext *cx, JSScript *script);
 extern JSBool
 js_XDRScript(JSXDRState *xdr, JSScript **scriptp);
 
-#endif 
+#endif

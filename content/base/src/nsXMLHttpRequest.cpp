@@ -2752,7 +2752,7 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
   
 
   bool privileged;
-  rv = IsCapabilityEnabled("UniversalBrowserWrite", &privileged);
+  rv = IsCapabilityEnabled("UniversalXPConnect", &privileged);
   if (NS_FAILED(rv))
     return NS_ERROR_FAILURE;
 

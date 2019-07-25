@@ -273,11 +273,13 @@ FoldXMLConstants(JSContext *cx, ParseNode *pn, TreeContext *tc)
                 return JS_FALSE;
             break;
 
-          case PNK_XMLPI:
-            str = js_MakeXMLPIString(cx, pn2->pn_pitarget, pn2->pn_pidata);
+          case PNK_XMLPI: {
+            XMLProcessingInstruction &pi = pn2->asXMLProcessingInstruction();
+            str = js_MakeXMLPIString(cx, pi.target(), pi.data());
             if (!str)
                 return JS_FALSE;
             break;
+          }
 
           cantfold:
           default:
@@ -314,7 +316,6 @@ FoldXMLConstants(JSContext *cx, ParseNode *pn, TreeContext *tc)
 
         if (accum) {
             {
-                AutoStringRooter tvr(cx, accum);
                 str = ((kind == PNK_XMLSTAGO || kind == PNK_XMLPTAGC) && i != 0)
                       ? js_AddAttributePart(cx, i & 1, accum, str)
                       : js_ConcatStrings(cx, accum, str);
@@ -556,7 +557,7 @@ js::FoldConstants(JSContext *cx, ParseNode *pn, TreeContext *tc, bool inCond)
             break;
         
 
-      case PNK_HOOK:
+      case PNK_CONDITIONAL:
         
         switch (pn1->getKind()) {
           case PNK_NUMBER:

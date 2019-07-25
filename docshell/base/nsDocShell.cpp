@@ -1629,7 +1629,7 @@ nsDocShell::ValidateOrigin(nsIDocShellTreeItem* aOriginTreeItem,
         
         
         bool ubwEnabled = false;
-        rv = securityManager->IsCapabilityEnabled("UniversalBrowserWrite",
+        rv = securityManager->IsCapabilityEnabled("UniversalXPConnect",
                                                   &ubwEnabled);
         NS_ENSURE_SUCCESS(rv, false);
 
@@ -7784,7 +7784,7 @@ nsDocShell::CheckLoadingPermissions()
     NS_ENSURE_SUCCESS(rv, rv);
 
     bool ubwEnabled = false;
-    rv = securityManager->IsCapabilityEnabled("UniversalBrowserWrite",
+    rv = securityManager->IsCapabilityEnabled("UniversalXPConnect",
                                               &ubwEnabled);
     if (NS_FAILED(rv) || ubwEnabled) {
         return rv;

@@ -2130,6 +2130,55 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
 #endif
     nscoord goodMinY = spanFramePFD->mBorderPadding.top - psd->mTopLeading;
     nscoord goodMaxY = goodMinY + psd->mLogicalHeight;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (maxTopBoxHeight > maxY - minY) {
+      
+      
+      
+      nscoord distribute = maxTopBoxHeight - (maxY - minY);
+      nscoord ascentSpace = NS_MAX(minY - goodMinY, 0);
+      if (distribute > ascentSpace) {
+        distribute -= ascentSpace;
+        minY -= ascentSpace;
+        nscoord descentSpace = NS_MAX(goodMaxY - maxY, 0);
+        if (distribute > descentSpace) {
+          maxY += descentSpace;
+        } else {
+          maxY += distribute;
+        }
+      } else {
+        minY -= distribute;
+      }
+    }
+    if (maxBottomBoxHeight > maxY - minY) {
+      
+      nscoord distribute = maxBottomBoxHeight - (maxY - minY);
+      nscoord descentSpace = NS_MAX(goodMaxY - maxY, 0);
+      if (distribute > descentSpace) {
+        distribute -= descentSpace;
+        maxY += descentSpace;
+        nscoord ascentSpace = NS_MAX(minY - goodMinY, 0);
+        if (distribute > ascentSpace) {
+          minY -= ascentSpace;
+        } else {
+          minY -= distribute;
+        }
+      } else {
+        maxY += distribute;
+      }
+    }
+
     if (minY > goodMinY) {
       nscoord adjust = minY - goodMinY; 
 

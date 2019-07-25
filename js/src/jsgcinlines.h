@@ -1,41 +1,41 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is SpiderMonkey code.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #ifndef jsgcinlines_h___
 #define jsgcinlines_h___
@@ -63,10 +63,10 @@ GetGCThingTraceKind(const void *thing)
     return MapAllocToTraceKind(cell->getAllocKind());
 }
 
-
+/* Capacity for slotsToThingKind */
 const size_t SLOTS_TO_THING_KIND_LIMIT = 17;
 
-
+/* Get the best kind to use when making an object with the given slot count. */
 static inline AllocKind
 GetGCObjectKind(size_t numSlots)
 {
@@ -88,18 +88,18 @@ GetGCObjectKind(Class *clasp)
     return GetGCObjectKind(nslots);
 }
 
-
+/* As for GetGCObjectKind, but for dense array allocation. */
 static inline AllocKind
 GetGCArrayKind(size_t numSlots)
 {
     extern AllocKind slotsToThingKind[];
 
-    
-
-
-
-
-
+    /*
+     * Dense arrays can use their fixed slots to hold their elements array
+     * (less two Values worth of ObjectElements header), but if more than the
+     * maximum number of fixed slots is needed then the fixed slots will be
+     * unused.
+     */
     JS_STATIC_ASSERT(ObjectElements::VALUES_PER_HEADER == 2);
     if (numSlots > JSObject::NELEMENTS_LIMIT || numSlots + 2 >= SLOTS_TO_THING_KIND_LIMIT)
         return FINALIZE_OBJECT2;
@@ -129,10 +129,10 @@ GetBackgroundAllocKind(AllocKind kind)
     return (AllocKind) (kind + 1);
 }
 
-
-
-
-
+/*
+ * Try to get the next larger size for an object, keeping BACKGROUND
+ * consistent.
+ */
 static inline bool
 TryIncrementAllocKind(AllocKind *kindp)
 {
@@ -143,11 +143,11 @@ TryIncrementAllocKind(AllocKind *kindp)
     return true;
 }
 
-
+/* Get the number of fixed slots and initial capacity associated with a kind. */
 static inline size_t
 GetGCKindSlots(AllocKind thingKind)
 {
-    
+    /* Using a switch in hopes that thingKind will usually be a compile-time constant. */
     switch (thingKind) {
       case FINALIZE_OBJECT0:
       case FINALIZE_OBJECT0_BACKGROUND:
@@ -178,16 +178,16 @@ GetGCKindSlots(AllocKind thingKind, Class *clasp)
 {
     size_t nslots = GetGCKindSlots(thingKind);
 
-    
+    /* An object's private data uses the space taken by its last fixed slot. */
     if (clasp->flags & JSCLASS_HAS_PRIVATE) {
         JS_ASSERT(nslots > 0);
         nslots--;
     }
 
-    
-
-
-
+    /*
+     * Functions have a larger finalize kind than FINALIZE_OBJECT to reserve
+     * space for the extra fields in JSFunction, but have no fixed slots.
+     */
     if (clasp == &FunctionClass)
         nslots = 0;
 
@@ -197,11 +197,11 @@ GetGCKindSlots(AllocKind thingKind, Class *clasp)
 static inline void
 GCPoke(JSContext *cx, Value oldval)
 {
-    
-
-
-
-
+    /*
+     * Since we're forcing a GC from JS_GC anyway, don't bother wasting cycles
+     * loading oldval.  XXX remove implied force, fix jsinterp.c's "second arg
+     * ignored", etc.
+     */
 #if 1
     cx->runtime->gcPoke = JS_TRUE;
 #else
@@ -209,16 +209,16 @@ GCPoke(JSContext *cx, Value oldval)
 #endif
 
 #ifdef JS_GC_ZEAL
-    
+    /* Schedule a GC to happen "soon" after a GC poke. */
     if (cx->runtime->gcZeal() >= js::gc::ZealPokeThreshold)
         cx->runtime->gcNextScheduled = 1;
 #endif
 }
 
-
-
-
-
+/*
+ * Invoke ArenaOp and CellOp on every arena and cell in a compartment which
+ * have the specified thing kind.
+ */
 template <class ArenaOp, class CellOp>
 void
 ForEachArenaAndCell(JSCompartment *compartment, AllocKind thingKind,
@@ -320,11 +320,11 @@ class CellIterUnderGC : public CellIterImpl {
     }
 };
 
-
-
-
-
-
+/*
+ * When using the iterator outside the GC the caller must ensure that no GC or
+ * allocations of GC things are possible and that the background finalization
+ * for the given thing kind is not enabled or is done.
+ */
 class CellIter: public CellIterImpl
 {
     ArenaLists *lists;
@@ -362,17 +362,17 @@ class CellIter: public CellIterImpl
     }
 };
 
-
+/* Signatures for ArenaOp and CellOp above. */
 
 inline void EmptyArenaOp(Arena *arena) {}
 inline void EmptyCellOp(Cell *t) {}
 
-
-
-
-
-
-
+/*
+ * Allocates a new GC thing. After a successful allocation the caller must
+ * fully initialize the thing before calling any function that can potentially
+ * trigger GC. This will ensure that GC tracing never sees junk values stored
+ * in the partially initialized thing.
+ */
 
 template <typename T>
 inline T *
@@ -391,6 +391,8 @@ NewGCThing(JSContext *cx, js::gc::AllocKind kind, size_t thingSize)
         js::gc::RunDebugGC(cx);
 #endif
 
+    js::gc::MaybeCheckStackRoots(cx);
+
     JSCompartment *comp = cx->compartment;
     void *t = comp->arenas.allocateFromFreeList(kind, thingSize);
     if (!t)
@@ -398,7 +400,7 @@ NewGCThing(JSContext *cx, js::gc::AllocKind kind, size_t thingSize)
     return static_cast<T *>(t);
 }
 
-
+/* Alternate form which allocates a GC thing if doing so cannot trigger a GC. */
 template <typename T>
 inline T *
 TryNewGCThing(JSContext *cx, js::gc::AllocKind kind, size_t thingSize)
@@ -420,8 +422,8 @@ TryNewGCThing(JSContext *cx, js::gc::AllocKind kind, size_t thingSize)
     return static_cast<T *>(t);
 }
 
-} 
-} 
+} /* namespace gc */
+} /* namespace js */
 
 inline JSObject *
 js_NewGCObject(JSContext *cx, js::gc::AllocKind kind)
@@ -479,4 +481,4 @@ extern JSXML *
 js_NewGCXML(JSContext *cx);
 #endif
 
-#endif 
+#endif /* jsgcinlines_h___ */

@@ -108,7 +108,7 @@ using namespace mozilla;
 
 #define PRINTING_FC_PROPERTY "gfx.printing"
 
-class gfxPangoFcFont;
+struct gfxPangoFcFont;
 
 
 int moz_pango_units_from_double(double d) {

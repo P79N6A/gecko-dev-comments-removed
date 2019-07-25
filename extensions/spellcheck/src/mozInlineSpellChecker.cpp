@@ -872,6 +872,24 @@ mozInlineSpellChecker::AddWordToDictionary(const nsAString &word)
 
 
 NS_IMETHODIMP
+mozInlineSpellChecker::RemoveWordFromDictionary(const nsAString &word)
+{
+  NS_ENSURE_TRUE(mSpellCheck, NS_ERROR_NOT_INITIALIZED);
+
+  nsAutoString wordstr(word);
+  nsresult rv = mSpellCheck->RemoveWordFromDictionary(wordstr.get());
+  NS_ENSURE_SUCCESS(rv, rv); 
+  
+  mozInlineSpellStatus status(this);
+  nsCOMPtr<nsIRange> range = do_QueryInterface(NULL); 
+  rv = status.InitForRange(range);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return ScheduleSpellCheck(status);
+}
+
+
+
+NS_IMETHODIMP
 mozInlineSpellChecker::IgnoreWord(const nsAString &word)
 {
   NS_ENSURE_TRUE(mSpellCheck, NS_ERROR_NOT_INITIALIZED);

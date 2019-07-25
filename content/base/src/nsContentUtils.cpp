@@ -1148,16 +1148,9 @@ nsContentUtils::Shutdown()
 
 
 bool
-nsContentUtils::IsCallerTrustedForCapability(const char* aCapability)
+nsContentUtils::CallerHasUniversalXPConnect()
 {
-  
-  
   bool hasCap;
-  if (NS_FAILED(sSecurityManager->IsCapabilityEnabled(aCapability, &hasCap)))
-    return false;
-  if (hasCap)
-    return true;
-    
   if (NS_FAILED(sSecurityManager->IsCapabilityEnabled("UniversalXPConnect",
                                                       &hasCap)))
     return false;
@@ -1229,14 +1222,7 @@ nsContentUtils::CanCallerAccess(nsIPrincipal* aSubjectPrincipal,
 
   
   
-  
-  bool isSystem;
-  rv = sSecurityManager->IsSystemPrincipal(aPrincipal, &isSystem);
-  isSystem = NS_FAILED(rv) || isSystem;
-  const char* capability =
-    NS_FAILED(rv) || isSystem ? "UniversalXPConnect" : "UniversalBrowserRead";
-
-  return IsCallerTrustedForCapability(capability);
+  return CallerHasUniversalXPConnect();
 }
 
 
@@ -1469,13 +1455,13 @@ nsContentUtils::IsCallerChrome()
 bool
 nsContentUtils::IsCallerTrustedForRead()
 {
-  return IsCallerTrustedForCapability("UniversalBrowserRead");
+  return CallerHasUniversalXPConnect();
 }
 
 bool
 nsContentUtils::IsCallerTrustedForWrite()
 {
-  return IsCallerTrustedForCapability("UniversalBrowserWrite");
+  return CallerHasUniversalXPConnect();
 }
 
 bool

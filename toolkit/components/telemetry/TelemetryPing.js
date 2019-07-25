@@ -57,6 +57,7 @@ const MEM_HISTOGRAMS = {
   "js-gc-heap": "MEMORY_JS_GC_HEAP",
   "js-compartments-system": "MEMORY_JS_COMPARTMENTS_SYSTEM",
   "js-compartments-user": "MEMORY_JS_COMPARTMENTS_USER",
+  "explicit": "MEMORY_EXPLICIT",
   "resident": "MEMORY_RESIDENT",
   "explicit/storage/sqlite": "MEMORY_STORAGE_SQLITE",
   "explicit/images/content/used/uncompressed":
@@ -263,44 +264,42 @@ TelemetryPing.prototype = {
     while (e.hasMoreElements()) {
       let mr = e.getNext().QueryInterface(Ci.nsIMemoryReporter);
       let id = MEM_HISTOGRAMS[mr.path];
-      if (!id || mr.amount == -1) {
+      if (!id) {
+        continue;
+      }
+      
+      let amount = mr.amount;
+      if (amount == -1) {
         continue;
       }
 
       let val;
       if (mr.units == Ci.nsIMemoryReporter.UNITS_BYTES) {
-        val = Math.floor(mr.amount / 1024);
+        val = Math.floor(amount / 1024);
       }
       else if (mr.units == Ci.nsIMemoryReporter.UNITS_COUNT) {
-        val = mr.amount;
+        val = amount;
       }
       else if (mr.units == Ci.nsIMemoryReporter.UNITS_COUNT_CUMULATIVE) {
         
         
 
-        
-        let curVal = mr.amount;
         if (!(mr.path in this._prevValues)) {
           
           
           
-          this._prevValues[mr.path] = curVal;
+          this._prevValues[mr.path] = amount;
           continue;
         }
 
-        val = curVal - this._prevValues[mr.path];
-        this._prevValues[mr.path] = curVal;
+        val = amount - this._prevValues[mr.path];
+        this._prevValues[mr.path] = amount;
       }
       else {
         NS_ASSERT(false, "Can't handle memory reporter with units " + mr.units);
         continue;
       }
       this.addValue(mr.path, id, val);
-    }
-    
-    let explicit = mgr.explicit;    
-    if (explicit != -1) {
-      this.addValue("explicit", "MEMORY_EXPLICIT", Math.floor(explicit / 1024));
     }
   },
   

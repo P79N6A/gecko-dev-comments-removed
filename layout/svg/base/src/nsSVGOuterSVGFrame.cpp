@@ -41,6 +41,7 @@
 #include "nsSVGSVGElement.h"
 #include "nsSVGTextFrame.h"
 #include "nsSVGForeignObjectFrame.h"
+#include "DOMSVGTests.h"
 #include "nsDisplayList.h"
 #include "nsStubMutationObserver.h"
 #include "gfxContext.h"
@@ -165,7 +166,8 @@ nsSVGOuterSVGFrame::Init(nsIContent* aContent,
   
   
   
-  if (!nsSVGFeatures::PassesConditionalProcessingTests(aContent)) {
+  nsSVGSVGElement *svg = static_cast<nsSVGSVGElement*>(aContent);
+  if (!svg->PassesConditionalProcessingTests()) {
     AddStateBits(NS_STATE_SVG_NONDISPLAY_CHILD);
   }
 

@@ -416,13 +416,13 @@ pref("capability.policy.default.DOMException.result", "allAccess");
 pref("capability.policy.default.DOMException.toString.get", "allAccess");
 
 pref("capability.policy.default.History.back.get", "allAccess");
-pref("capability.policy.default.History.current", "UniversalBrowserRead");
+pref("capability.policy.default.History.current", "UniversalXPConnect");
 pref("capability.policy.default.History.forward.get", "allAccess");
 pref("capability.policy.default.History.go.get", "allAccess");
-pref("capability.policy.default.History.item", "UniversalBrowserRead");
-pref("capability.policy.default.History.next", "UniversalBrowserRead");
-pref("capability.policy.default.History.previous", "UniversalBrowserRead");
-pref("capability.policy.default.History.toString", "UniversalBrowserRead");
+pref("capability.policy.default.History.item", "UniversalXPConnect");
+pref("capability.policy.default.History.next", "UniversalXPConnect");
+pref("capability.policy.default.History.previous", "UniversalXPConnect");
+pref("capability.policy.default.History.toString", "UniversalXPConnect");
 
 pref("capability.policy.default.Location.hash.set", "allAccess");
 pref("capability.policy.default.Location.href.set", "allAccess");
@@ -2654,10 +2654,6 @@ pref("browser.display.substitute_vector_fonts", true);
 
 pref("print.print_extra_margin", 90); 
 
-pref("applications.telnet", "telnetpm.exe");
-pref("applications.telnet.host", "%host%");
-pref("applications.telnet.port", "-p %port%");
-
 pref("mail.compose.max_recycled_windows", 0);
 
 
@@ -2707,10 +2703,6 @@ pref("helpers.global_mime_types_file", "/etc/mime.types");
 pref("helpers.global_mailcap_file", "/etc/mailcap");
 pref("helpers.private_mime_types_file", "~/.mime.types");
 pref("helpers.private_mailcap_file", "~/.mailcap");
-pref("applications.telnet", "xterm -e telnet %h %p");
-pref("applications.tn3270", "xterm -e tn3270 %h");
-pref("applications.rlogin", "xterm -e rlogin %h");
-pref("applications.rlogin_with_user", "xterm -e rlogin %h -l %u");
 pref("print.print_command", "lpr ${MOZ_PRINTER_NAME:+-P\"$MOZ_PRINTER_NAME\"}");
 pref("print.printer_list", ""); 
 pref("print.print_reversed", false);
@@ -2972,10 +2964,6 @@ pref("helpers.global_mime_types_file", "/etc/mime.types");
 pref("helpers.global_mailcap_file", "/etc/mailcap");
 pref("helpers.private_mime_types_file", "~/.mime.types");
 pref("helpers.private_mailcap_file", "~/.mailcap");
-pref("applications.telnet", "xterm -e telnet %h %p");
-pref("applications.tn3270", "xterm -e tn3270 %h");
-pref("applications.rlogin", "xterm -e rlogin %h");
-pref("applications.rlogin_with_user", "xterm -e rlogin %h -l %u");
 pref("print.print_command", "lpr ${MOZ_PRINTER_NAME:+-P\"$MOZ_PRINTER_NAME\"}");
 pref("print.printer_list", ""); 
 pref("print.print_reversed", false);

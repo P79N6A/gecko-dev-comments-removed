@@ -240,6 +240,10 @@ private:
   
   bool mHasVideo;
   bool mHasAudio;
+
+  
+  
+  PRInt32 mForceStereoMode;
 };
 
 #endif

@@ -1091,19 +1091,6 @@ nsScriptSecurityManager::CheckSameOriginDOMProp(nsIPrincipal* aSubject,
     
 
 
-
-
-    bool capabilityEnabled = false;
-    const char* cap = aAction == nsIXPCSecurityManager::ACCESS_SET_PROPERTY ?
-                      "UniversalBrowserWrite" : "UniversalBrowserRead";
-    rv = IsCapabilityEnabled(cap, &capabilityEnabled);
-    NS_ENSURE_SUCCESS(rv, rv);
-    if (capabilityEnabled)
-        return NS_OK;
-
-    
-
-
     return NS_ERROR_DOM_PROP_ACCESS_DENIED;
 }
 
@@ -1330,7 +1317,7 @@ nsScriptSecurityManager::CheckLoadURIFromScript(JSContext *cx, nsIURI *aURI)
     if (isFile || isRes)
     {
         bool enabled;
-        if (NS_FAILED(IsCapabilityEnabled("UniversalFileRead", &enabled)))
+        if (NS_FAILED(IsCapabilityEnabled("UniversalXPConnect", &enabled)))
             return NS_ERROR_FAILURE;
         if (enabled)
             return NS_OK;

@@ -1,40 +1,40 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is mozila.org code.
- *
- * The Initial Developer of the Original Code is
- * Mozilla Foundation
- * Portions created by the Initial Developer are Copyright (C) 2007
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Dave Camp <dcamp@mozilla.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsDOMFile.h"
 
@@ -71,11 +71,11 @@
 
 using namespace mozilla;
 
-// XXXkhuey the input stream that we pass out of a DOMFile
-// can outlive the actual DOMFile object.  Thus, we must
-// ensure that the buffer underlying the stream we get
-// from NS_NewByteInputStream is held alive as long as the
-// stream is.  We do that by passing back this class instead.
+
+
+
+
+
 class DataOwnerAdapter : public nsIInputStream,
                          public nsISeekableStream
 {
@@ -132,8 +132,8 @@ nsresult DataOwnerAdapter::Create(DataOwner* aDataOwner,
   return NS_OK;
 }
 
-////////////////////////////////////////////////////////////////////////////
-// nsDOMFileBase implementation
+
+
 
 DOMCI_DATA(File, nsDOMFileBase)
 DOMCI_DATA(Blob, nsDOMFileBase)
@@ -148,7 +148,7 @@ NS_INTERFACE_MAP_BEGIN(nsDOMFileBase)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO_CONDITIONAL(Blob, !mIsFile)
 NS_INTERFACE_MAP_END
 
-// Threadsafe when GetMutable() == false
+
 NS_IMPL_THREADSAFE_ADDREF(nsDOMFileBase)
 NS_IMPL_THREADSAFE_RELEASE(nsDOMFileBase)
 
@@ -165,12 +165,12 @@ nsDOMFileBase::GetMozFullPath(nsAString &aFileName)
 {
   NS_ASSERTION(mIsFile, "Should only be called on files");
 
-  // It is unsafe to call IsCallerTrustedForCapability on a non-main thread. If
-  // you hit the following assertion you need to figure out some other way to
-  // determine privileges and call GetMozFullPathInternal.
+  
+  
+  
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
-  if (nsContentUtils::IsCallerTrustedForCapability("UniversalFileRead")) {
+  if (nsContentUtils::CallerHasUniversalXPConnect()) {
     return GetMozFullPathInternal(aFileName);
   }
   aFileName.Truncate();
@@ -199,8 +199,8 @@ nsDOMFileBase::GetType(nsAString &aType)
   return NS_OK;
 }
 
-// Makes sure that aStart and aEnd is less then or equal to aSize and greater
-// than 0
+
+
 static void
 ParseSize(PRInt64 aSize, PRInt64& aStart, PRInt64& aEnd)
 {
@@ -243,7 +243,7 @@ nsDOMFileBase::MozSlice(PRInt64 aStart, PRInt64 aEnd,
 {
   *aBlob = nsnull;
 
-  // Truncate aStart and aEnd so that we stay within this file.
+  
   PRUint64 thisLength;
   nsresult rv = GetSize(&thisLength);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -254,7 +254,7 @@ nsDOMFileBase::MozSlice(PRInt64 aStart, PRInt64 aEnd,
 
   ParseSize((PRInt64)thisLength, aStart, aEnd);
   
-  // Create the new file
+  
   *aBlob = CreateSlice((PRUint64)aStart, (PRUint64)(aEnd - aStart),
                        aContentType).get();
 
@@ -264,7 +264,7 @@ nsDOMFileBase::MozSlice(PRInt64 aStart, PRInt64 aEnd,
 NS_IMETHODIMP
 nsDOMFileBase::GetInternalStream(nsIInputStream **aStream)
 {
-  // Must be overridden
+  
   NS_NOTREACHED("Must override GetInternalStream");
   
   return NS_ERROR_NOT_IMPLEMENTED;
@@ -351,9 +351,9 @@ nsDOMFileBase::GetFileInfo(indexedDB::FileManager* aFileManager)
     return nsnull;
   }
 
-  // A slice created from a stored file must keep the file info alive.
-  // However, we don't support sharing of slices yet, so the slice must be
-  // copied again. That's why we have to ignore the first file info.
+  
+  
+  
   PRUint32 startIndex = IsStoredFile() && !IsWholeFile() ? 1 : 0;
 
   MutexAutoLock lock(indexedDB::IndexedDatabaseManager::FileMutex());
@@ -406,7 +406,7 @@ nsDOMFileBase::SetMutable(bool aMutable)
   NS_ENSURE_ARG(!mImmutable || !aMutable);
 
   if (!mImmutable && !aMutable) {
-    // Force the content type and size to be cached
+    
     nsString dummyString;
     rv = this->GetType(dummyString);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -420,8 +420,8 @@ nsDOMFileBase::SetMutable(bool aMutable)
   return rv;
 }
 
-////////////////////////////////////////////////////////////////////////////
-// nsDOMFileFile implementation
+
+
 
 NS_IMPL_ISUPPORTS_INHERITED1(nsDOMFileFile, nsDOMFileBase,
                              nsIJSNativeInitializer)
@@ -434,7 +434,7 @@ nsDOMFileFile::CreateSlice(PRUint64 aStart, PRUint64 aLength,
   return t.forget();
 }
 
-/* static */ nsresult
+ nsresult
 nsDOMFileFile::NewFile(nsISupports* *aNewObject)
 {
   nsCOMPtr<nsISupports> file = do_QueryObject(new nsDOMFileFile());
@@ -524,31 +524,31 @@ nsDOMFileFile::Initialize(nsISupports* aOwner,
   NS_ENSURE_TRUE(!mImmutable, NS_ERROR_UNEXPECTED);
 
   if (!nsContentUtils::IsCallerChrome()) {
-    return NS_ERROR_DOM_SECURITY_ERR; // Real short trip
+    return NS_ERROR_DOM_SECURITY_ERR; 
   }
 
   NS_ENSURE_TRUE(aArgc > 0, NS_ERROR_UNEXPECTED);
 
-  // We expect to get a path to represent as a File object,
-  // or an nsIFile
+  
+  
   nsCOMPtr<nsIFile> file;
   if (!JSVAL_IS_STRING(aArgv[0])) {
-    // Lets see if it's an nsIFile
+    
     if (!JSVAL_IS_OBJECT(aArgv[0])) {
-      return NS_ERROR_UNEXPECTED; // We're not interested
+      return NS_ERROR_UNEXPECTED; 
     }
 
     JSObject* obj = JSVAL_TO_OBJECT(aArgv[0]);
     NS_ASSERTION(obj, "This is a bit odd");
 
-    // Is it an nsIFile
+    
     file = do_QueryInterface(
       nsContentUtils::XPConnect()->
         GetNativeOfWrapper(aCx, obj));
     if (!file)
       return NS_ERROR_UNEXPECTED;
   } else {
-    // It's a string
+    
     JSString* str = JS_ValueToString(aCx, aArgv[0]);
     NS_ENSURE_TRUE(str, NS_ERROR_XPC_BAD_CONVERT_JS);
 
@@ -581,8 +581,8 @@ nsDOMFileFile::Initialize(nsISupports* aOwner,
   return NS_OK;
 }
 
-////////////////////////////////////////////////////////////////////////////
-// nsDOMMemoryFile implementation
+
+
 
 already_AddRefed<nsIDOMBlob>
 nsDOMMemoryFile::CreateSlice(PRUint64 aStart, PRUint64 aLength,
@@ -602,8 +602,8 @@ nsDOMMemoryFile::GetInternalStream(nsIInputStream **aStream)
   return DataOwnerAdapter::Create(mDataOwner, mStart, mLength, aStream);
 }
 
-////////////////////////////////////////////////////////////////////////////
-// nsDOMFileList implementation
+
+
 
 DOMCI_DATA(FileList, nsDOMFileList)
 
@@ -632,8 +632,8 @@ nsDOMFileList::Item(PRUint32 aIndex, nsIDOMFile **aFile)
   return NS_OK;
 }
 
-////////////////////////////////////////////////////////////////////////////
-// nsDOMFileError implementation
+
+
 
 DOMCI_DATA(FileError, nsDOMFileError)
 
@@ -653,8 +653,8 @@ nsDOMFileError::GetCode(PRUint16* aCode)
   return NS_OK;
 }
 
-////////////////////////////////////////////////////////////////////////////
-// nsDOMFileInternalUrlHolder implementation
+
+
 
 nsDOMFileInternalUrlHolder::nsDOMFileInternalUrlHolder(nsIDOMBlob* aFile,
                                                        nsIPrincipal* aPrincipal
