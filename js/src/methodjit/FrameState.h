@@ -369,6 +369,12 @@ class FrameState
 
 
 
+    inline Jump testNonFunObj(Assembler::Condition cond, FrameEntry *fe);
+
+    
+
+
+
 
     inline void pinReg(RegisterID reg);
 
@@ -399,6 +405,20 @@ class FrameState
 #endif
 
     Address addressOf(const FrameEntry *fe) const;
+
+    
+
+
+
+
+
+    inline void eviscerate(FrameEntry *fe);
+
+    
+
+
+
+    void shimmy(uint32 n);
 
   private:
     inline RegisterID allocReg(FrameEntry *fe, RematInfo::RematType type, bool weak);
