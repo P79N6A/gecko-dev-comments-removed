@@ -126,6 +126,11 @@ public:
     return mCurrentScript;
   }
 
+  nsIScriptElement* GetCurrentParserInsertedScript()
+  {
+    return mCurrentParserInsertedScript;
+  }
+
   
 
 
@@ -322,6 +327,7 @@ private:
   nsTArray<PreloadInfo> mPreloads;
 
   nsCOMPtr<nsIScriptElement> mCurrentScript;
+  nsCOMPtr<nsIScriptElement> mCurrentParserInsertedScript;
   
   nsTArray< nsRefPtr<nsScriptLoader> > mPendingChildLoaders;
   PRUint32 mBlockerCount;
