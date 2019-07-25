@@ -37,6 +37,8 @@
 #ifndef nsIconChannel_h_
 #define nsIconChannel_h_
 
+#include "mozilla/Attributes.h"
+
 #include "nsIChannel.h"
 #include "nsIStreamListener.h"
 #include "nsIURI.h"
@@ -48,7 +50,7 @@
 
 
 
-class nsIconChannel : public nsIChannel {
+class nsIconChannel MOZ_FINAL : public nsIChannel {
   public:
     NS_DECL_ISUPPORTS
     NS_FORWARD_NSIREQUEST(mRealChannel->)

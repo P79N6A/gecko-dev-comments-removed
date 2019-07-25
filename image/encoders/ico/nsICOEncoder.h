@@ -35,9 +35,10 @@
 
 
 
-#include "imgIEncoder.h"
-
+#include "mozilla/Attributes.h"
 #include "mozilla/ReentrantMonitor.h"
+
+#include "imgIEncoder.h"
 
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
@@ -57,7 +58,7 @@ class nsPNGEncoder;
 
 
 
-class nsICOEncoder : public imgIEncoder
+class nsICOEncoder MOZ_FINAL : public imgIEncoder
 {
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
 public:

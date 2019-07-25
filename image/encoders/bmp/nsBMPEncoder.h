@@ -35,10 +35,11 @@
 
 
 
+#include "mozilla/Attributes.h"
+#include "mozilla/ReentrantMonitor.h"
+
 #include "imgIEncoder.h"
 #include "BMPFileHeaders.h"
-
-#include "mozilla/ReentrantMonitor.h"
 
 #include "nsCOMPtr.h"
 
@@ -53,7 +54,7 @@
 
 
 
-class nsBMPEncoder : public imgIEncoder
+class nsBMPEncoder MOZ_FINAL : public imgIEncoder
 {
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
 public:
