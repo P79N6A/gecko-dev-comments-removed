@@ -1586,18 +1586,6 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   
   
   
-  setTimeout(function() {
-    try {
-      Cc["@mozilla.org/microsummary/service;1"].getService(Ci.nsIMicrosummaryService);
-    } catch (ex) {
-      Components.utils.reportError("Failed to init microsummary service:\n" + ex);
-    }
-  }, 4000);
-
-  
-  
-  
-  
   
   setTimeout(function() PlacesUtils.livemarks.start(), 5000);
 

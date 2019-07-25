@@ -347,10 +347,6 @@ pref("browser.search.update.log", false);
 pref("browser.search.update.interval", 21600);
 
 
-pref("browser.microsummary.enabled", true);
-pref("browser.microsummary.updateGenerators", true);
-
-
 pref("browser.search.suggest.enabled", true);
 
 pref("browser.sessionhistory.max_entries", 50);
