@@ -49,6 +49,7 @@
 #include "nsIObserver.h"
 #include "nsIIdleService.h"
 #include "nsCategoryCache.h"
+#include "nsWeakReference.h"
 
 
 
@@ -71,7 +72,8 @@ class nsIdleService;
 
 
 
-class nsIdleServiceDaily : public nsIObserver
+class nsIdleServiceDaily : public nsIObserver,
+                           public nsSupportsWeakReference
 {
 public:
   NS_DECL_ISUPPORTS
@@ -116,6 +118,11 @@ private:
 
 
   nsCategoryCache<nsIObserver> mCategoryObservers;
+
+  
+
+
+  bool mShutdownInProgress;
 };
 
 class nsIdleService : public nsIIdleService
