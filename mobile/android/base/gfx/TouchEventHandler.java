@@ -167,7 +167,7 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
                 
                 
                 if (mEventQueue.isEmpty()) {
-                    mPanZoomController.waitingForTouchListeners(event);
+                    mPanZoomController.startingNewEventBlock(event, true);
                 }
             } else {
                 
@@ -175,6 +175,7 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
                 
                 
                 mEventQueue.add(null);
+                mPanZoomController.startingNewEventBlock(event, false);
             }
 
             
@@ -311,7 +312,7 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
                 
                 
                 if (event != null) {
-                    mPanZoomController.waitingForTouchListeners(event);
+                    mPanZoomController.startingNewEventBlock(event, true);
                 }
                 break;
             }

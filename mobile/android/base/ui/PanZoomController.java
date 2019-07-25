@@ -269,11 +269,11 @@ public class PanZoomController
     }
 
     
-    public void waitingForTouchListeners(MotionEvent event) {
+    public void startingNewEventBlock(MotionEvent event, boolean waitingForTouchListeners) {
         checkMainThread();
-        if ((event.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_DOWN) {
+        mSubscroller.cancel();
+        if (waitingForTouchListeners && (event.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_DOWN) {
             
-            mSubscroller.cancel();
             
             
             mState = PanZoomState.WAITING_LISTENERS;
@@ -315,7 +315,6 @@ public class PanZoomController
         
         
         stopAnimationTimer();
-        mSubscroller.cancel();
 
         switch (mState) {
         case ANIMATED_ZOOM:
