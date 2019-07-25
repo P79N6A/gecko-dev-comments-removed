@@ -35,6 +35,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
@@ -69,14 +70,50 @@ function addTab(aURL)
   browser = gBrowser.getBrowserForTab(tab);
 }
 
-function testLogEntry(aOutputNode, aMatchString, aSuccessErrObj)
+
+
+
+
+
+
+
+
+
+
+
+
+function testLogEntry(aOutputNode, aMatchString, aSuccessErrObj, aOnlyVisible,
+                      aFailIfFound)
 {
-  var message = aOutputNode.textContent.indexOf(aMatchString);
+  let found = true;
+  let notfound = false;
+  let foundMsg = aSuccessErrObj.success;
+  let notfoundMsg = aSuccessErrObj.err;
+
+  if (aFailIfFound) {
+    found = false;
+    notfound = true;
+    foundMsg = aSuccessErrObj.err;
+    notfoundMsg = aSuccessErrObj.success;
+  }
+
+  let selector = ".hud-group > *";
+
+  
+  if (aOnlyVisible) {
+    selector += ":not(.hud-filtered-by-type)";
+  }
+
+  let msgs = aOutputNode.querySelectorAll(selector);
+  for (let i = 0, n = msgs.length; i < n; i++) {
+    let message = msgs[i].textContent.indexOf(aMatchString);
   if (message > -1) {
-    ok(true, aSuccessErrObj.success);
+      ok(found, foundMsg);
     return;
   }
-  ok(false, aSuccessErrObj.err);
+  }
+
+  ok(notfound, notfoundMsg);
 }
 
 function openConsole()
