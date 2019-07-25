@@ -3578,27 +3578,7 @@ StartVerifyBarriers(JSContext *cx)
     for (GCChunkSet::Range r(rt->gcChunkSet.all()); !r.empty(); r.popFront())
         r.front()->bitmap.clear();
 
-    
-
-
-
-#ifdef JS_METHODJIT
-    for (CompartmentsIter c(rt); !c.done(); c.next()) {
-        mjit::ClearAllFrames(c);
-
-        for (CellIterUnderGC i(c, FINALIZE_SCRIPT); !i.done(); i.next()) {
-            JSScript *script = i.get<JSScript>();
-            mjit::ReleaseScriptCode(cx, script);
-
-            
-
-
-
-
-            script->resetUseCount();
-        }
-    }
-#endif
+    ReleaseAllJITCode(cx, true);
 
     VerifyTracer *trc = new (js_malloc(sizeof(VerifyTracer))) VerifyTracer(cx);
 
@@ -3774,17 +3754,44 @@ VerifyBarriers(JSContext *cx, bool always)
 
 } 
 
-static void ReleaseAllJITCode(JSContext *cx)
+void
+ReleaseAllJITCode(JSContext *cx, JSCompartment *c, bool resetUseCounts)
 {
 #ifdef JS_METHODJIT
-    for (GCCompartmentsIter c(cx->runtime); !c.done(); c.next()) {
-        mjit::ClearAllFrames(c);
-        for (CellIter i(cx, c, FINALIZE_SCRIPT); !i.done(); i.next()) {
-            JSScript *script = i.get<JSScript>();
-            mjit::ReleaseScriptCode(cx, script);
-        }
+    mjit::ClearAllFrames(c);
+
+# ifdef JS_ION
+    ion::InvalidateAll(cx, c);
+# endif
+
+    for (CellIter i(cx, c, FINALIZE_SCRIPT); !i.done(); i.next()) {
+        JSScript *script = i.get<JSScript>();
+        mjit::ReleaseScriptCode(cx, script);
+
+        
+
+
+
+
+        if (resetUseCounts)
+            script->resetUseCount();
+
+# ifdef JS_ION
+        ion::FinishInvalidation(cx, script);
+# endif
     }
 #endif
+}
+
+void
+ReleaseAllJITCode(JSContext *cx, bool resetUseCounts)
+{
+    
+
+
+
+    for (GCCompartmentsIter c(cx->runtime); !c.done(); c.next())
+        ReleaseAllJITCode(cx, c, resetUseCounts);
 }
 
 
@@ -3838,7 +3845,7 @@ StartPCCountProfiling(JSContext *cx)
     if (rt->scriptPCCounters)
         ReleaseScriptPCCounters(cx);
 
-    ReleaseAllJITCode(cx);
+    ReleaseAllJITCode(cx, false);
 
     rt->profilingScripts = true;
 }
@@ -3853,7 +3860,7 @@ StopPCCountProfiling(JSContext *cx)
         return;
     JS_ASSERT(!rt->scriptPCCounters);
 
-    ReleaseAllJITCode(cx);
+    ReleaseAllJITCode(cx, false);
 
     ScriptOpcodeCountsVector *vec = cx->new_<ScriptOpcodeCountsVector>(SystemAllocPolicy());
     if (!vec)

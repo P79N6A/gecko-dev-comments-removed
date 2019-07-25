@@ -520,25 +520,7 @@ JSCompartment::sweep(JSContext *cx, bool releaseTypes)
             ionCompartment_->sweep(cx);
 #endif
 
-        
-
-
-
-#ifdef JS_METHODJIT
-        mjit::ClearAllFrames(this);
-
-        for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
-            JSScript *script = i.get<JSScript>();
-            mjit::ReleaseScriptCode(cx, script);
-
-            
-
-
-
-
-            script->resetUseCount();
-        }
-#endif
+        ReleaseAllJITCode(cx, this, true);
     }
 
     if (!activeAnalysis) {
