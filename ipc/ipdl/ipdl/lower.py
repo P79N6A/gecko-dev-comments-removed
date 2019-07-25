@@ -2725,6 +2725,31 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
                 Whitespace.NL ])
 
             
+            aChannel = ExprVar('aChannel')
+            aMessageLoop = ExprVar('aMessageLoop')
+            sidevar = ExprVar('aSide')
+            openmeth = MethodDefn(
+                MethodDecl(
+                    'Open',
+                    params=[ Decl(Type('AsyncChannel', ptr=True),
+                                      aChannel.name),
+                             Param(Type('MessageLoop', ptr=True),
+                                   aMessageLoop.name),
+                             Param(Type('AsyncChannel::Side'),
+                                   sidevar.name,
+                                   default=ExprVar('Channel::Unknown')) ],
+                    ret=Type.BOOL))
+
+            openmeth.addstmts([
+                StmtExpr(ExprAssn(p.otherProcessVar(), ExprLiteral.ZERO)),
+                StmtReturn(ExprCall(ExprSelect(p.channelVar(), '.', 'Open'),
+                                    [ aChannel, aMessageLoop, sidevar ]))
+            ])
+            self.cls.addstmts([
+                openmeth,
+                Whitespace.NL ])
+
+            
             closemeth = MethodDefn(MethodDecl('Close'))
             closemeth.addstmt(StmtExpr(
                 ExprCall(ExprSelect(p.channelVar(), '.', 'Close'))))

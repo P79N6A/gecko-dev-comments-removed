@@ -190,6 +190,9 @@ AsyncChannel::ProcessLink::Open(mozilla::ipc::Transport* aTransport,
 void
 AsyncChannel::ProcessLink::EchoMessage(Message *msg)
 {
+    mChan->AssertWorkerThread();
+    mChan->mMonitor->AssertCurrentThreadOwns();
+
     
     
     
@@ -203,6 +206,8 @@ void
 AsyncChannel::ProcessLink::SendMessage(Message *msg)
 {
     mChan->AssertWorkerThread();
+    mChan->mMonitor->AssertCurrentThreadOwns();
+
     mIOLoop->PostTask(
         FROM_HERE,
         NewRunnableMethod(mTransport, &Transport::Send, msg));
@@ -216,6 +221,54 @@ AsyncChannel::ProcessLink::SendClose()
 
     mIOLoop->PostTask(
         FROM_HERE, NewRunnableMethod(this, &ProcessLink::OnCloseChannel));
+}
+
+AsyncChannel::ThreadLink::ThreadLink(AsyncChannel *aChan,
+                                     AsyncChannel *aTargetChan)
+    : Link(aChan),
+      mTargetChan(aTargetChan)
+{
+}
+
+AsyncChannel::ThreadLink::~ThreadLink()
+{
+    mTargetChan = 0;
+}
+
+void
+AsyncChannel::ThreadLink::EchoMessage(Message *msg)
+{
+    mChan->AssertWorkerThread();
+    mChan->mMonitor->AssertCurrentThreadOwns();
+
+    mChan->OnMessageReceivedFromLink(*msg);
+    delete msg;
+}
+
+void
+AsyncChannel::ThreadLink::SendMessage(Message *msg)
+{
+    mChan->AssertWorkerThread();
+    mChan->mMonitor->AssertCurrentThreadOwns();
+
+    mTargetChan->OnMessageReceivedFromLink(*msg);
+    delete msg;
+}
+
+void
+AsyncChannel::ThreadLink::SendClose()
+{
+    mChan->AssertWorkerThread();
+    mChan->mMonitor->AssertCurrentThreadOwns();
+
+    mChan->mChannelState = ChannelClosed;
+
+    
+    
+    
+    
+    
+    mTargetChan->OnChannelErrorFromLink();
 }
 
 AsyncChannel::AsyncChannel(AsyncListener* aListener)
@@ -247,6 +300,82 @@ AsyncChannel::Open(Transport* aTransport,
     mLink = link = new ProcessLink(this);
     link->Open(aTransport, aIOLoop, aSide); 
     return true;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool
+AsyncChannel::Open(AsyncChannel *aTargetChan, 
+                   MessageLoop *aTargetLoop,
+                   AsyncChannel::Side aSide)
+{
+    NS_PRECONDITION(aTargetChan, "Need a target channel");
+    NS_PRECONDITION(ChannelClosed == mChannelState, "Not currently closed");
+
+    CommonThreadOpenInit(aTargetChan, aSide);
+
+    Side oppSide = Unknown;
+    switch(aSide) {
+      case Child: oppSide = Parent; break;
+      case Parent: oppSide = Child; break;
+      case Unknown: break;
+    }
+
+    mMonitor = new RefCountedMonitor();
+
+    aTargetLoop->PostTask(
+        FROM_HERE,
+        NewRunnableMethod(aTargetChan, &AsyncChannel::OnOpenAsSlave,
+                          this, oppSide));
+
+    MonitorAutoLock lock(*mMonitor);
+    mChannelState = ChannelOpening;
+    while (ChannelOpening == mChannelState)
+        mMonitor->Wait();
+    NS_ASSERTION(ChannelConnected == mChannelState, "not connected when awoken");
+    return (ChannelConnected == mChannelState);
+}
+
+void 
+AsyncChannel::CommonThreadOpenInit(AsyncChannel *aTargetChan, Side aSide)
+{
+    mWorkerLoop = MessageLoop::current();
+    mLink = new ThreadLink(this, aTargetChan);
+    mChild = (aSide == Child); 
+}
+
+
+void
+AsyncChannel::OnOpenAsSlave(AsyncChannel *aTargetChan, Side aSide)
+{
+    NS_PRECONDITION(ChannelClosed == mChannelState, 
+                    "Not currently closed");
+    NS_PRECONDITION(ChannelOpening == aTargetChan->mChannelState,
+                    "Target channel not in the process of opening");
+    
+    CommonThreadOpenInit(aTargetChan, aSide);
+    mMonitor = aTargetChan->mMonitor;
+
+    MonitorAutoLock lock(*mMonitor);
+    NS_ASSERTION(ChannelOpening == aTargetChan->mChannelState,
+                 "Target channel not in the process of opening");
+    mChannelState = ChannelConnected;
+    aTargetChan->mChannelState = ChannelConnected;
+    aTargetChan->mMonitor->Notify();
 }
 
 void
