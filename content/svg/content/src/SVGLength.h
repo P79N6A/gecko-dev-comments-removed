@@ -218,22 +218,10 @@ private:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static float GetUserUnitsPerInch(const nsIContent *aContent);
+  static float GetUserUnitsPerInch()
+  {
+    return 96.0;
+  }
 
   
 
