@@ -46,6 +46,7 @@ import org.mozilla.gecko.db.BrowserContract.History;
 import org.mozilla.gecko.db.BrowserContract.ImageColumns;
 import org.mozilla.gecko.db.BrowserContract.Images;
 import org.mozilla.gecko.db.BrowserContract.URLColumns;
+import org.mozilla.gecko.db.DBUtils;
 
 import android.content.ContentResolver;
 import android.content.ContentUris;
@@ -119,18 +120,32 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
         return uri.buildUpon().appendQueryParameter(BrowserContract.PARAM_PROFILE, mProfile).build();
     }
 
-    private Cursor filterAllSites(ContentResolver cr, String[] projection, CharSequence constraint, int limit, CharSequence urlFilter) {
+    private Cursor filterAllSites(ContentResolver cr, String[] projection, CharSequence constraint,
+            int limit, CharSequence urlFilter) {
+        
+        
+        String selection = "(" + History.URL + " LIKE ? OR " +
+                                 History.TITLE + " LIKE ?)";
+
+        final String historySelectionArg = "%" + constraint.toString() + "%";
+        String[] selectionArgs = new String[] { historySelectionArg, historySelectionArg };
+
+        if (urlFilter != null) {
+            selection = DBUtils.concatenateWhere(selection, "(" + History.URL + " NOT LIKE ?)");
+            selectionArgs = DBUtils.appendSelectionArgs(selectionArgs, new String[] { urlFilter.toString() });
+        }
+
+        
+        
+        
+        final String sortOrder = History.VISITS + " * MAX(1, (" +
+                History.DATE_LAST_VISITED + " - " + System.currentTimeMillis() + ") / 86400000 + 120) DESC";
+
         Cursor c = cr.query(historyUriWithLimit(limit),
                             projection,
-                            (urlFilter != null ? "(" + History.URL + " NOT LIKE ? ) AND " : "" ) + 
-                            "(" + History.URL + " LIKE ? OR " + History.TITLE + " LIKE ?)",
-                            urlFilter == null ? new String[] {"%" + constraint.toString() + "%", "%" + constraint.toString() + "%"} :
-                            new String[] {urlFilter.toString(), "%" + constraint.toString() + "%", "%" + constraint.toString() + "%"},
-                            
-                            
-                            
-                            History.VISITS + " * MAX(1, (" +
-                            History.DATE_LAST_VISITED + " - " + System.currentTimeMillis() + ") / 86400000 + 120) DESC");
+                            selection,
+                            selectionArgs,
+                            sortOrder);
 
         return new LocalDBCursor(c);
     }
