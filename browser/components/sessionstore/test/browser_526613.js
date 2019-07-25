@@ -64,7 +64,7 @@ function test() {
   let testState = {
     windows: [
       { tabs: [{ entries: [{ url: "http://example.com/" }] }], selected: 1 },
-      { tabs: [{ entries: [{ url: "about:robots"        }] }], selected: 1 },
+      { tabs: [{ entries: [{ url: "about:mozilla"       }] }], selected: 1 },
     ],
     
     
