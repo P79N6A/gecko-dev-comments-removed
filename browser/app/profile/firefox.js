@@ -245,7 +245,6 @@ pref("general.autoScroll", true);
 #endif
 
 
-
 pref("browser.shell.checkDefaultBrowser", true);
 
 

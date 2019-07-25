@@ -1068,7 +1068,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual void DrawOver(LayerManager* aManager, nsIntRect aRect) = 0;
+    virtual void DrawWindowOverlay(LayerManager* aManager, nsIntRect aRect) = 0;
 
     
 
