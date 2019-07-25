@@ -82,7 +82,7 @@ function ShortcutEditor()
         return command in keys && keys[command];
     }
 
-    function findCommandForKey(keySpec)
+    function findKeyForSpec(keySpec)
     {
         
         
@@ -98,6 +98,8 @@ function ShortcutEditor()
                 keys[i].getAttribute("keycode") == keySpec.keycode)
                 return keys[i];
         }
+
+        return null;
     }
 
     function addKey(command, keySpec)
@@ -114,7 +116,7 @@ function ShortcutEditor()
         var key = findKeyForCommand(command);
         if (keySpec.exists)
         {
-            if (findCommandForKey(keySpec))
+            if (findKeyForSpec(keySpec))
                 return null;
 
             if (key)
@@ -306,7 +308,7 @@ function ShortcutEditor()
     
 
     
-    var platformBundle = document.getElementById("bundle-platformKeys");
+    var platformBundle = document.getElementById("bundle_platformKeys");
     function doGetString(n) { try { return platformBundle.getString(n); } catch (ex) { dump(">>"+ex+"\n"); return undefined; } };
     var platformKeys = {
         shift: doGetString("VK_SHIFT") || "Shift",
@@ -344,7 +346,7 @@ function ShortcutEditor()
             return "";
 
         var accel = [];
-        var keybundle = document.getElementById("bundle-keys");
+        var keybundle = document.getElementById("bundle_keys");
 
         
         var modifiers = [], i = 1;
@@ -410,11 +412,6 @@ function ShortcutEditor()
     this.edit = function()
     {
         tree = document.getElementById("shortcuts");
-
-        var nodes = document.getElementById("browser-container").childNodes;
-        Array.forEach(nodes, function(n) { if (n.getAttribute("id") != "browser-container") n.hidden = true; });
-        document.getElementById("shortcuts-container").hidden = false;
-        fillShortcutList();
 
         var textbox = document.getAnonymousElementByAttribute(tree, "anonid", "input");
         textbox.addEventListener("keypress", keyListener, true);
@@ -556,6 +553,7 @@ function ShortcutEditor()
          [["meta shift alt control", undefined, "VK_A"],  {exists: true,  modifiers: 15, key: false, keycode: "VK_A"},     "Ctrl+Alt+Meta+Shift+A"],
          [[],                                             {exists: false, modifiers: 0,  key: false, keycode: false},      ""],
          [["control"],                                    {exists: false, modifiers: 2,  key: false, keycode: false},      ""],
+         [["foobar", "a"],                                {exists: true,  modifiers: 2,  key: "a",   keycode: false},      "A"],
          [["alt", "α"],                                   {exists: true,  modifiers: 1,  key: "α",   keycode: false},      "Alt+Α"],
          [["alt", "א"],                                   {exists: true,  modifiers: 1,  key: "א",   keycode: false},      "Alt+א"]
         ].forEach(function doTests(t)
