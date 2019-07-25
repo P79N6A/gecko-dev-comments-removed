@@ -1037,31 +1037,16 @@ public:
             
             
 
-            
-            
-            
-
-            PRBool areAllLevel0ImagesDefined = PR_TRUE;
             for (size_t face = 0; face < mFacesCount; ++face) {
-                    areAllLevel0ImagesDefined &= ImageInfoAt(0, face).mIsDefined;
-            }
-
-            if (!areAllLevel0ImagesDefined) {
-                if (mTarget == LOCAL_GL_TEXTURE_2D) {
-                    mContext->LogMessageIfVerbose(
-                        "We are currently drawing stuff, but some 2D texture has not yet been "
-                        "uploaded any image at level 0. Until it's uploaded, this texture will look black.");
-                } else {
-                    mContext->LogMessageIfVerbose(
-                        "We are currently drawing stuff, but some cube map texture has not yet been "
-                        "uploaded any image at level 0, for at least one of its six faces. "
-                        "Until it's uploaded, this texture will look black.");
+                if (!ImageInfoAt(0, face).mIsDefined) {
+                    
+                    
+                    
+                    
+                    mFakeBlackStatus = DoNeedFakeBlack;
+                    return PR_TRUE;
                 }
-                mFakeBlackStatus = DoNeedFakeBlack;
-                return PR_TRUE;
             }
-
-            
 
             const char *msg_rendering_as_black
                 = "A texture is going to be rendered as if it were black, as per the OpenGL ES 2.0.24 spec section 3.8.2, "
