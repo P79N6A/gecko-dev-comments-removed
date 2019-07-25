@@ -503,6 +503,10 @@ TagAutoCompleteResult.prototype = {
     return this._results[index];
   },
 
+  getLabelAt: function PTACR_getLabelAt(index) {
+    return this.getValueAt(index);
+  },
+
   
 
 

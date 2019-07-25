@@ -55,174 +55,7 @@ const HTTP_BAD_GATEWAY           = 502;
 const HTTP_SERVICE_UNAVAILABLE   = 503;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-
-
-
-
-
-
-
-function SuggestAutoCompleteResult(searchString,
-                                   searchResult,
-                                   defaultIndex,
-                                   errorDescription,
-                                   results,
-                                   comments,
-                                   formHistoryResult) {
-  this._searchString = searchString;
-  this._searchResult = searchResult;
-  this._defaultIndex = defaultIndex;
-  this._errorDescription = errorDescription;
-  this._results = results;
-  this._comments = comments;
-  this._formHistResult = formHistoryResult;
-}
-SuggestAutoCompleteResult.prototype = {
-  
-
-
-
-  _searchString: "",
-
-  
-
-
-
-
-  _searchResult: 0,
-
-  
-
-
-
-  _defaultIndex: 0,
-
-  
-
-
-
-  _errorDescription: "",
-
-  
-
-
-
-  _results: [],
-
-  
-
-
-
-
-  _comments: [],
-
-  
-
-
-
-  _formHistResult: null,
-
-  
-
-
-  get searchString() {
-    return this._searchString;
-  },
-
-  
-
-
-
-
-
-
-  get searchResult() {
-    return this._searchResult;
-  },
-
-  
-
-
-  get defaultIndex() {
-    return this._defaultIndex;
-  },
-
-  
-
-
-  get errorDescription() {
-    return this._errorDescription;
-  },
-
-  
-
-
-  get matchCount() {
-    return this._results.length;
-  },
-
-  
-
-
-
-
-  getValueAt: function(index) {
-    return this._results[index];
-  },
-
-  
-
-
-
-
-  getCommentAt: function(index) {
-    return this._comments[index];
-  },
-
-  
-
-
-
-
-  getStyleAt: function(index) {
-    if (!this._comments[index])
-      return null;  
-
-    if (index == 0)
-      return "suggestfirst";  
-
-    return "suggesthint";   
-  },
-
-  
-
-
-
-
-  getImageAt: function(index) {
-    return "";
-  },
-
-  
-
-
-
-  removeValueAt: function(index, removeFromDatabase) {
-    
-    
-    
-    if (removeFromDatabase && this._formHistResult &&
-        index < this._formHistResult.matchCount) {
-      
-      this._formHistResult.removeValueAt(index, true);
-    }
-    this._results.splice(index, 1);
-    this._comments.splice(index, 1);
-  },
-
-  
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIAutoCompleteResult])
-};
+Cu.import("resource://gre/modules/nsFormAutoCompleteResult.jsm");
 
 
 
@@ -577,11 +410,12 @@ SuggestAutoComplete.prototype = {
   onResultsReady: function(searchString, results, comments,
                            formHistoryResult) {
     if (this._listener) {
-      var result = new SuggestAutoCompleteResult(
+      var result = new FormAutoCompleteResult(
           searchString,
           Ci.nsIAutoCompleteResult.RESULT_SUCCESS,
           0,
           "",
+          results,
           results,
           comments,
           formHistoryResult);
