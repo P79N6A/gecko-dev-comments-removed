@@ -46,6 +46,9 @@ function newWorker(custom_ns) {
   worker_ns.self = worker_ns;
 
   
+  Cu.import("resource://gre/modules/ctypes.jsm", worker_ns);
+
+  
   for (let key in custom_ns) {
     worker_ns[key] = custom_ns[key];
   }
