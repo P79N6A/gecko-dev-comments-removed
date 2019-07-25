@@ -81,6 +81,14 @@ function do_crash(setup, callback, canReturnZero)
 
   let extrafile = minidump.clone();
   extrafile.leafName = extrafile.leafName.slice(0, -4) + ".extra";
+
+  
+  do_register_cleanup(function() {
+          if (minidump.exists())
+              minidump.remove(false);
+          if (extrafile.exists())
+              extrafile.remove(false);
+      });
   do_check_true(extrafile.exists());
   let extra = parseKeyValuePairsFromFile(extrafile);
 
@@ -129,3 +137,6 @@ function parseKeyValuePairsFromFile(file) {
   fstream.close();
   return parseKeyValuePairs(contents);
 }
+
+
+Components.utils.import("resource://test/CrashTestUtils.jsm");

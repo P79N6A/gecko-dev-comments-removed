@@ -13,7 +13,7 @@ function run_test()
 
   
   do_crash(function() {
-             crashType = Components.interfaces.nsITestCrasher.CRASH_PURE_VIRTUAL_CALL;
+             crashType = CrashTestUtils.CRASH_PURE_VIRTUAL_CALL;
              crashReporter.annotateCrashReport("TestKey", "TestValue");
            },
            function(mdump, extra) {
