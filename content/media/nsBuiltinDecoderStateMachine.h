@@ -106,9 +106,6 @@
 
 
 
-
-
-
 #if !defined(nsBuiltinDecoderStateMachine_h__)
 #define nsBuiltinDecoderStateMachine_h__
 
@@ -120,11 +117,6 @@
 #include "nsHTMLMediaElement.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "nsITimer.h"
-
-
-
-
-
 
 
 
@@ -306,6 +298,7 @@ protected:
   
   
   
+  
   void Wait(PRInt64 aUsecs);
 
   
@@ -330,7 +323,6 @@ protected:
   
   void UpdatePlaybackPositionInternal(PRInt64 aTime);
 
-  
   
   
   void RenderVideoFrame(VideoData* aData, TimeStamp aTarget);
