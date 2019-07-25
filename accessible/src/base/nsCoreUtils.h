@@ -129,8 +129,8 @@ public:
   
 
 
-  static already_AddRefed<nsIDOMNode> GetDOMNodeFromDOMPoint(nsIDOMNode *aNode,
-                                                             PRUint32 aOffset);
+  static nsINode *GetDOMNodeFromDOMPoint(nsINode *aNode, PRUint32 aOffset);
+
   
 
 

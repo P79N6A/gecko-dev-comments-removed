@@ -1640,8 +1640,8 @@ nsHyperTextAccessible::GetCaretOffset(PRInt32 *aCaretOffset)
                               nsnull, getter_AddRefs(domSel));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIDOMNode> focusNode;
-  rv = domSel->GetFocusNode(getter_AddRefs(focusNode));
+  nsCOMPtr<nsIDOMNode> focusDOMNode;
+  rv = domSel->GetFocusNode(getter_AddRefs(focusDOMNode));
   NS_ENSURE_SUCCESS(rv, rv);
 
   PRInt32 focusOffset;
@@ -1651,16 +1651,16 @@ nsHyperTextAccessible::GetCaretOffset(PRInt32 *aCaretOffset)
   
   
   if (isInsideOfFocusedNode) {
-    nsCOMPtr<nsIDOMNode> resultDOMNode =
+    nsCOMPtr<nsINode> focusNode(do_QueryInterface(focusDOMNode));
+    nsINode *resultNode =
       nsCoreUtils::GetDOMNodeFromDOMPoint(focusNode, focusOffset);
 
-    nsCOMPtr<nsINode> resultNode(do_QueryInterface(resultDOMNode));
     if (resultNode != thisNode &&
         !nsCoreUtils::IsAncestorOf(thisNode, resultNode))
       return NS_OK;
   }
 
-  DOMPointToHypertextOffset(focusNode, focusOffset, aCaretOffset);
+  DOMPointToHypertextOffset(focusDOMNode, focusOffset, aCaretOffset);
   return NS_OK;
 }
 

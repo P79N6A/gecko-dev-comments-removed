@@ -552,46 +552,46 @@ nsAccUtils::GetTextAccessibleFromSelection(nsISelection *aSelection,
   
   
 
-  nsCOMPtr<nsIDOMNode> focusNode;
-  aSelection->GetFocusNode(getter_AddRefs(focusNode));
-  if (!focusNode)
+  nsCOMPtr<nsIDOMNode> focusDOMNode;
+  aSelection->GetFocusNode(getter_AddRefs(focusDOMNode));
+  if (!focusDOMNode)
     return nsnull;
 
   PRInt32 focusOffset = 0;
   aSelection->GetFocusOffset(&focusOffset);
 
-  nsCOMPtr<nsIDOMNode> resultNode =
+  nsCOMPtr<nsINode> focusNode(do_QueryInterface(focusDOMNode));
+  nsCOMPtr<nsINode> resultNode =
     nsCoreUtils::GetDOMNodeFromDOMPoint(focusNode, focusOffset);
 
   
   while (resultNode) {
     
     
-    nsCOMPtr<nsIDOMNode> relevantNode;
-    GetAccService()->GetRelevantContentNodeFor(resultNode, 
-                                               getter_AddRefs(relevantNode));
-    if (relevantNode)
-      resultNode.swap(relevantNode);
+    nsCOMPtr<nsIDOMNode> resultDOMNode(do_QueryInterface(resultNode));
+    nsCOMPtr<nsIDOMNode> relevantDOMNode;
+    GetAccService()->GetRelevantContentNodeFor(resultDOMNode,
+                                               getter_AddRefs(relevantDOMNode));
+    if (relevantDOMNode) {
+      resultNode = do_QueryInterface(relevantDOMNode);
+      resultDOMNode.swap(relevantDOMNode);
+    }
 
-    nsCOMPtr<nsIContent> content = do_QueryInterface(resultNode);
-    if (!content || !content->IsNodeOfType(nsINode::eTEXT)) {
-      nsCOMPtr<nsIAccessible> accessible;
-      GetAccService()->GetAccessibleFor(resultNode, getter_AddRefs(accessible));
+    if (!resultNode || !resultNode->IsNodeOfType(nsINode::eTEXT)) {
+      nsAccessible *accessible = GetAccService()->GetAccessible(resultDOMNode);
       if (accessible) {
         nsIAccessibleText *textAcc = nsnull;
         CallQueryInterface(accessible, &textAcc);
         if (textAcc) {
           if (aNode)
-            NS_ADDREF(*aNode = resultNode);
+            resultDOMNode.forget(aNode);
 
           return textAcc;
         }
       }
     }
 
-    nsCOMPtr<nsIDOMNode> parentNode;
-    resultNode->GetParentNode(getter_AddRefs(parentNode));
-    resultNode.swap(parentNode);
+    resultNode = resultNode->GetParent();
   }
 
   NS_NOTREACHED("No nsIAccessibleText for selection change event!");
