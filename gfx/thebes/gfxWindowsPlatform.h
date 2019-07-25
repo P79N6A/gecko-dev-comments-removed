@@ -151,15 +151,6 @@ public:
         RENDER_IMAGE_STRETCH24,
 
         
-        RENDER_DDRAW,
-
-        
-        RENDER_IMAGE_DDRAW16,
-
-        
-        RENDER_DDRAW_GL,
-
-        
         RENDER_DIRECT2D,
 
         

@@ -271,13 +271,7 @@ gfxWindowsPlatform::UpdateRenderMode()
 
 
 
-#if defined(WINCE_WINDOWS_MOBILE)
-    mRenderMode = RENDER_IMAGE_DDRAW16;
-#elif defined(WINCE)
-    mRenderMode = RENDER_DDRAW_GL;
-#else
     mRenderMode = RENDER_GDI;
-#endif
 
     OSVERSIONINFOA versionInfo;
     versionInfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFOA);
