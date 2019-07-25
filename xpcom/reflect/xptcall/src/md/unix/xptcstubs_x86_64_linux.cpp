@@ -114,7 +114,7 @@ PrepareAndDispatch(nsXPTCStubBase * self, PRUint32 methodIndex,
                 
                 
                 
-                dp->val.d = *(double*) ap++;
+                dp->val.d = fpregs[nr_fpr++];
             else
                 dp->val.f = *(float*) ap++;
             continue;
