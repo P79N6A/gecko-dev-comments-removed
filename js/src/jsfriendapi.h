@@ -187,8 +187,6 @@ JS_END_EXTERN_C
 
 #ifdef __cplusplus
 
-struct PRLock;
-
 namespace js {
 
 struct ContextFriendFields {
@@ -573,9 +571,6 @@ GetOwnerThread(const JSContext *cx);
 JS_FRIEND_API(unsigned)
 GetContextOutstandingRequests(const JSContext *cx);
 
-JS_FRIEND_API(PRLock *)
-GetRuntimeGCLock(const JSRuntime *rt);
-
 class JS_FRIEND_API(AutoSkipConservativeScan)
 {
   public:
@@ -602,40 +597,8 @@ typedef void
 
 
 
-
 JS_FRIEND_API(void)
 SetActivityCallback(JSRuntime *rt, ActivityCallback cb, void *arg);
-
-class JS_FRIEND_API(AutoLockGC)
-{
-  public:
-    explicit AutoLockGC(JSRuntime *rt = NULL
-                        MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : runtime(rt)
-    {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-        if (rt)
-            LockGC(rt);
-    }
-
-    ~AutoLockGC()
-    {
-        if (runtime)
-            UnlockGC(runtime);
-    }
-
-    bool locked() const {
-        return !!runtime;
-    }
-    void lock(JSRuntime *rt);
-
-  private:
-    static void LockGC(JSRuntime *rt);
-    static void UnlockGC(JSRuntime *rt);
-
-    JSRuntime *runtime;
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
 
 extern JS_FRIEND_API(const JSStructuredCloneCallbacks *)
 GetContextStructuredCloneCallbacks(JSContext *cx);
@@ -651,10 +614,6 @@ CallContextDebugHandler(JSContext *cx, JSScript *script, jsbytecode *bc, Value *
 
 extern JS_FRIEND_API(bool)
 IsContextRunningJS(JSContext *cx);
-
-
-extern JS_FRIEND_API(void)
-TriggerOperationCallback(JSRuntime *rt);
 
 class SystemAllocPolicy;
 typedef Vector<JSCompartment*, 0, SystemAllocPolicy> CompartmentVector;

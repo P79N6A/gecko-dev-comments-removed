@@ -4515,10 +4515,6 @@ JS_BEGIN_EXTERN_C
 
 
 
-
-
-
-
 extern JS_PUBLIC_API(JSOperationCallback)
 JS_SetOperationCallback(JSContext *cx, JSOperationCallback callback);
 
@@ -4526,10 +4522,7 @@ extern JS_PUBLIC_API(JSOperationCallback)
 JS_GetOperationCallback(JSContext *cx);
 
 extern JS_PUBLIC_API(void)
-JS_TriggerOperationCallback(JSContext *cx);
-
-extern JS_PUBLIC_API(void)
-JS_TriggerRuntimeOperationCallback(JSRuntime *rt);
+JS_TriggerOperationCallback(JSRuntime *rt);
 
 extern JS_PUBLIC_API(JSBool)
 JS_IsRunning(JSContext *cx);
