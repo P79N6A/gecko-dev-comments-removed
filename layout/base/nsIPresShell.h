@@ -980,10 +980,7 @@ public:
     return mObservesMutationsForPrint;
   }
 
-  void SetIsActive(PRBool aIsActive)
-  {
-    mIsActive = aIsActive;
-  }
+  virtual nsresult SetIsActive(PRBool aIsActive) = 0;
 
   PRBool IsActive()
   {
@@ -1128,6 +1125,7 @@ protected:
   PRPackedBool              mPaintingSuppressed;  
   PRPackedBool              mIsThemeSupportDisabled;  
   PRPackedBool              mIsActive;
+  PRPackedBool              mFrozen;
 
 #ifdef ACCESSIBILITY
   

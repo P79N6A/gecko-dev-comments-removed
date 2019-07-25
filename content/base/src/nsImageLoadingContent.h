@@ -283,6 +283,12 @@ protected:
   static bool HaveSize(imgIRequest *aImage);
 
   
+
+
+  nsresult TrackImage(imgIRequest* aImage);
+  nsresult UntrackImage(imgIRequest* aImage);
+
+  
   nsCOMPtr<imgIRequest> mCurrentRequest;
   nsCOMPtr<imgIRequest> mPendingRequest;
 

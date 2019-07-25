@@ -1577,6 +1577,11 @@ nsDocument::~nsDocument()
   for (PRUint32 i = 0; i < mFileDataUris.Length(); ++i) {
     nsFileDataProtocolHandler::RemoveFileDataEntry(mFileDataUris[i]);
   }
+
+  
+  
+  SetImageLockingState(PR_FALSE);
+  mImageTracker.Clear();
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsDocument)
@@ -1862,6 +1867,10 @@ nsDocument::Init()
 
   mScriptLoader = new nsScriptLoader(this);
   NS_ENSURE_TRUE(mScriptLoader, NS_ERROR_OUT_OF_MEMORY);
+
+  if (!mImageTracker.Init()) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
 
   return NS_OK;
 }
@@ -7960,4 +7969,95 @@ nsIDocument::ScheduleBeforePaintEvent()
       mPresShell->GetPresContext()->RefreshDriver()->
         ScheduleBeforePaintEvent(this);
   }
+}
+
+nsresult
+nsDocument::AddImage(imgIRequest* aImage)
+{
+  NS_ENSURE_ARG_POINTER(aImage);
+
+  
+  PRUint32 oldCount = 0;
+  mImageTracker.Get(aImage, &oldCount);
+
+  
+  PRBool success = mImageTracker.Put(aImage, oldCount + 1);
+  if (!success)
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  
+  
+  if ((oldCount == 0) && mLockingImages) {
+    nsresult rv = aImage->LockImage();
+    NS_ENSURE_SUCCESS(rv, rv);
+    return aImage->RequestDecode();
+  }
+
+  return NS_OK;
+}
+
+nsresult
+nsDocument::RemoveImage(imgIRequest* aImage)
+{
+  NS_ENSURE_ARG_POINTER(aImage);
+
+  
+  PRUint32 count;
+  PRBool found = mImageTracker.Get(aImage, &count);
+  NS_ABORT_IF_FALSE(found, "Removing image that wasn't in the tracker!");
+  NS_ABORT_IF_FALSE(count > 0, "Entry in the cache tracker with count 0!");
+
+  
+  count--;
+
+  
+  
+  if (count == 0) {
+    mImageTracker.Remove(aImage);
+  } else {
+    mImageTracker.Put(aImage, count);
+  }
+
+  
+  
+  if ((count == 0) && mLockingImages)
+    return aImage->UnlockImage();
+
+  return NS_OK;
+}
+
+PLDHashOperator LockEnumerator(imgIRequest* aKey,
+                               PRUint32 aData,
+                               void*    userArg)
+{
+  aKey->LockImage();
+  aKey->RequestDecode();
+  return PL_DHASH_NEXT;
+}
+
+PLDHashOperator UnlockEnumerator(imgIRequest* aKey,
+                                 PRUint32 aData,
+                                 void*    userArg)
+{
+  aKey->UnlockImage();
+  return PL_DHASH_NEXT;
+}
+
+
+nsresult
+nsDocument::SetImageLockingState(PRBool aLocked)
+{
+  
+  if (mLockingImages == aLocked)
+    return NS_OK;
+
+  
+  mImageTracker.EnumerateRead(aLocked ? LockEnumerator
+                                      : UnlockEnumerator,
+                              nsnull);
+
+  
+  mLockingImages = aLocked;
+
+  return NS_OK;
 }

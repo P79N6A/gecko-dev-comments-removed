@@ -976,6 +976,10 @@ public:
 
   virtual Element *LookupImageElement(const nsAString& aElementId);
 
+  virtual NS_HIDDEN_(nsresult) AddImage(imgIRequest* aImage);
+  virtual NS_HIDDEN_(nsresult) RemoveImage(imgIRequest* aImage);
+  virtual NS_HIDDEN_(nsresult) SetImageLockingState(PRBool aLocked);
+
 protected:
   friend class nsNodeUtils;
 
@@ -1136,6 +1140,9 @@ protected:
   
   PRPackedBool mLoadedAsInteractiveData:1;
 
+  
+  PRPackedBool mLockingImages:1;
+
   PRUint8 mXMLDeclarationBits;
 
   PRUint8 mDefaultElementType;
@@ -1234,6 +1241,9 @@ private:
   nsCString mScrollToRef;
   PRUint8 mScrolledToRefAlready : 1;
   PRUint8 mChangeScrollPosWhenScrollingToRef : 1;
+
+  
+  nsDataHashtable< nsPtrHashKey<imgIRequest>, PRUint32> mImageTracker;
 
 #ifdef DEBUG
 protected:
