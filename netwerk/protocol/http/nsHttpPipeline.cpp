@@ -502,9 +502,6 @@ nsHttpPipeline::Close(nsresult reason)
     mStatus = reason;
     mClosed = PR_TRUE;
 
-    
-    NS_IF_RELEASE(mConnection);
-
     PRUint32 i, count;
     nsAHttpTransaction *trans;
 
@@ -536,6 +533,9 @@ nsHttpPipeline::Close(nsresult reason)
         }
         mResponseQ.Clear();
     }
+
+    
+    NS_IF_RELEASE(mConnection);
 }
 
 nsresult
