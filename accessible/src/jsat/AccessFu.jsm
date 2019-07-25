@@ -72,8 +72,6 @@ var AccessFu = {
     this.chromeWin.addEventListener('resize', this, true);
     this.chromeWin.addEventListener('scroll', this, true);
     this.chromeWin.addEventListener('TabOpen', this, true);
-    this.chromeWin.addEventListener('TabSelect', this, true);
-    this.chromeWin.addEventListener('TabClosed', this, true);
   },
 
   
@@ -82,7 +80,7 @@ var AccessFu = {
   disable: function disable() {
     dump('AccessFu disable');
 
-    this.presenters.forEach(function(p) {p.detach();});
+    this.presenters.forEach(function(p) { p.detach(); });
     this.presenters = [];
 
     VirtualCursorController.detach();
@@ -92,8 +90,6 @@ var AccessFu = {
     this.chromeWin.removeEventListener('resize', this);
     this.chromeWin.removeEventListener('scroll', this);
     this.chromeWin.removeEventListener('TabOpen', this);
-    this.chromeWin.removeEventListener('TabSelect', this);
-    this.chromeWin.removeEventListener('TabClose', this);
   },
 
   amINeeded: function(aPref) {
@@ -125,14 +121,17 @@ var AccessFu = {
 
   handleEvent: function handleEvent(aEvent) {
     switch (aEvent.type) {
-      case 'TabSelect':
-        {
-          this.getDocAccessible(
-              function(docAcc) {
-                this.presenters.forEach(function(p) {p.tabSelected(docAcc);});
-              });
-          break;
-        }
+      case 'TabOpen':
+      {
+        let browser = aEvent.target.linkedBrowser || aEvent.target;
+        
+        
+        
+        
+        this._pendingDocuments[browser] = true;
+        this.presenters.forEach(function(p) { p.tabStateChanged(null, 'newtab'); });
+        break;
+      }
       case 'DOMActivate':
       {
         let activatedAcc = getAccessible(aEvent.originalTarget);
@@ -153,22 +152,9 @@ var AccessFu = {
       case 'scroll':
       case 'resize':
       {
-        this.presenters.forEach(function(p) {p.viewportChanged();});
+        this.presenters.forEach(function(p) { p.viewportChanged(); });
         break;
       }
-    }
-  },
-
-  getDocAccessible: function getDocAccessible(aCallback) {
-    let browserApp = (Services.appinfo.OS == 'Android') ?
-      this.chromeWin.BrowserApp : this.chromeWin.gBrowser;
-
-    let docAcc = getAccessible(browserApp.selectedBrowser.contentDocument);
-    if (!docAcc) {
-      
-      this._pendingDocuments[browserApp.selectedBrowser] = aCallback;
-    } else {
-      aCallback.apply(this, [docAcc]);
     }
   },
 
@@ -223,16 +209,86 @@ var AccessFu = {
               }
             );
           }
+          else if (event.state == Ci.nsIAccessibleStates.STATE_BUSY &&
+                   !(event.isExtraState()) && event.isEnabled()) {
+            let role = event.accessible.role;
+            if ((role == Ci.nsIAccessibleRole.ROLE_DOCUMENT ||
+                 role == Ci.nsIAccessibleRole.ROLE_APPLICATION)) {
+              
+              
+              this.presenters.forEach(
+                function(p) {
+                  p.tabStateChanged(event.accessible, 'loading');
+                }
+              );
+            }
+          }
           break;
         }
       case Ci.nsIAccessibleEvent.EVENT_REORDER:
         {
-          let node = aEvent.accessible.DOMNode;
-          let callback = this._pendingDocuments[node];
-          if (callback && aEvent.accessible.childCount) {
+          let acc = aEvent.accessible;
+          if (acc.childCount) {
+            let docAcc = acc.getChildAt(0);
+            if (this._pendingDocuments[aEvent.DOMNode]) {
+              
+              
+              
+              
+              
+              
+              let state = {};
+              docAcc.getState(state, {});
+              if (state.value & Ci.nsIAccessibleStates.STATE_BUSY &&
+                  this.isNotChromeDoc(docAcc))
+                this.presenters.forEach(
+                  function(p) { p.tabStateChanged(docAcc, 'loading'); }
+                );
+              delete this._pendingDocuments[aEvent.DOMNode];
+            }
+            if (this.isBrowserDoc(docAcc))
+              
+              this.presenters.forEach(
+                function(p) { p.tabStateChanged(docAcc, 'newdoc'); }
+              );
+          }
+          break;
+        }
+      case Ci.nsIAccessibleEvent.EVENT_DOCUMENT_LOAD_COMPLETE:
+        {
+          if (this.isNotChromeDoc(aEvent.accessible)) {
+            this.presenters.forEach(
+              function(p) {
+                p.tabStateChanged(aEvent.accessible, 'loaded');
+              }
+            );
+          }
+          break;
+        }
+      case Ci.nsIAccessibleEvent.EVENT_DOCUMENT_LOAD_STOPPED:
+        {
+          this.presenters.forEach(
+            function(p) {
+              p.tabStateChanged(aEvent.accessible, 'loadstopped');
+            }
+          );
+          break;
+        }
+      case Ci.nsIAccessibleEvent.EVENT_DOCUMENT_RELOAD:
+        {
+          this.presenters.forEach(
+            function(p) {
+              p.tabStateChanged(aEvent.accessible, 'reload');
+            }
+          );
+          break;
+        }
+      case Ci.nsIAccessibleEvent.EVENT_FOCUS:
+        {
+          if (this.isBrowserDoc(aEvent.accessible)) {
             
-            callback.apply(this, [aEvent.accessible.getChildAt(0)]);
-            delete this._pendingDocuments[node];
+            this.presenters.forEach(
+              function(p) { p.tabSelected(aEvent.accessible); });
           }
           break;
         }
@@ -267,6 +323,38 @@ var AccessFu = {
       default:
         break;
     }
+  },
+
+  
+
+
+
+
+
+  isBrowserDoc: function isBrowserDoc(aDocAcc) {
+    let parent = aDocAcc.parent;
+    if (!parent)
+      return false;
+
+    let domNode = parent.DOMNode;
+    if (!domNode)
+      return false;
+
+    const ns = 'http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul';
+    return (domNode.localName == 'browser' && domNode.namespaceURI == ns);
+  },
+
+  
+
+
+
+
+  isNotChromeDoc: function isNotChromeDoc(aDocument) {
+    let location = aDocument.DOMNode.location;
+    if (!location)
+      return false;
+
+    return location.protocol != "about:";
   },
 
   getNewContext: function getNewContext(aOldObject, aNewObject) {

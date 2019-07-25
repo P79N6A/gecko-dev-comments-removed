@@ -68,13 +68,19 @@ Presenter.prototype = {
   
 
 
-  pageStateChanged: function pageStateChanged() {},
+
+
+
+
+  tabStateChanged: function tabStateChanged(aDocObj, aPageState) {},
 
   
 
 
 
-  tabSelected: function tabSelected(aObject) {},
+
+
+  tabSelected: function tabSelected(aDocObj) {},
 
   
 
@@ -147,9 +153,17 @@ VisualPresenter.prototype.pivotChanged = function(aObject, aNewContext) {
   }
 };
 
-VisualPresenter.prototype.tabSelected = function(aObject) {
-  let vcDoc = aObject.QueryInterface(Ci.nsIAccessibleCursorable);
-  this.pivotChanged(vcDoc.virtualCursor.position);
+VisualPresenter.prototype.tabSelected = function(aDocObj) {
+  let vcPos = aDocObj ?
+    aDocObj.QueryInterface(Ci.nsIAccessibleCursorable).virtualCursor.position :
+    null;
+
+  this.pivotChanged(vcPos);
+};
+
+VisualPresenter.prototype.tabStateChanged = function(aDocObj, aPageState) {
+  if (aPageState == "newdoc")
+    this.pivotChanged(null);
 };
 
 
@@ -242,16 +256,40 @@ AndroidPresenter.prototype.actionInvoked = function(aObject, aActionName) {
   });
 };
 
-AndroidPresenter.prototype.tabSelected = function(aObject) {
-  let vcDoc = aObject.QueryInterface(Ci.nsIAccessibleCursorable);
+AndroidPresenter.prototype.tabSelected = function(aDocObj) {
+  
+  let vcDoc = aDocObj.QueryInterface(Ci.nsIAccessibleCursorable);
   let context = [];
 
-  let parent = vcDoc.virtualCursor.position || aObject;
-  while ((parent = parent.parent))
+  let parent = vcDoc.virtualCursor.position || aDocObj;
+  while ((parent = parent.parent)) {
     context.push(parent);
+    if (parent == aDocObj)
+      break;
+  }
+
   context.reverse();
 
-  this.pivotChanged(vcDoc.virtualCursor.position || aObject, context);
+  this.pivotChanged(vcDoc.virtualCursor.position || aDocObj, context);
+};
+
+AndroidPresenter.prototype.tabStateChanged = function(aDocObj, aPageState) {
+  let stateUtterance = UtteranceGenerator.
+    genForTabStateChange(aDocObj, aPageState);
+
+  if (!stateUtterance.length)
+    return;
+
+  this.sendMessageToJava({
+    gecko: {
+      type: 'Accessibility:Event',
+      eventType: ANDROID_TYPE_VIEW_TEXT_CHANGED,
+      text: stateUtterance,
+      addedCount: stateUtterance.join(' ').length,
+      removedCount: 0,
+      fromIndex: 0
+    }
+  });
 };
 
 AndroidPresenter.prototype.textChanged = function(aIsInserted, aStart, aLength, aText, aModifiedText) {
