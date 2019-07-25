@@ -50,6 +50,17 @@ const PREF_EM_LAST_APP_VERSION        = "extensions.lastAppVersion";
 const PREF_EM_LAST_PLATFORM_VERSION   = "extensions.lastPlatformVersion";
 const PREF_EM_AUTOUPDATE_DEFAULT      = "extensions.update.autoUpdateDefault";
 const PREF_EM_STRICT_COMPATIBILITY    = "extensions.strictCompatibility";
+const PREF_EM_UPDATE_URL              = "extensions.update.url";
+const PREF_APP_UPDATE_ENABLED         = "app.update.enabled";
+const PREF_APP_UPDATE_AUTO            = "app.update.auto";
+const PREF_EM_HOTFIX_ID               = "extensions.hotfix.id";
+const PREF_EM_HOTFIX_LASTVERSION      = "extensions.hotfix.lastVersion";
+const PREF_EM_HOTFIX_URL              = "extensions.hotfix.url";
+const PREF_MATCH_OS_LOCALE            = "intl.locale.matchOS";
+const PREF_SELECTED_LOCALE            = "general.useragent.locale";
+
+const UPDATE_REQUEST_VERSION          = 2;
+const CATEGORY_UPDATE_PARAMS          = "extension-update-params";
 
 
 const STRICT_COMPATIBILITY_DEFAULT    = true;
@@ -124,6 +135,33 @@ function callProvider(aProvider, aMethod, aDefault) {
     ERROR("Exception calling provider " + aMethod, e);
     return aDefault;
   }
+}
+
+
+
+
+
+function getLocale() {
+  try {
+    if (Services.prefs.getBoolPref(PREF_MATCH_OS_LOCALE))
+      return Services.locale.getLocaleComponentForUserAgent();
+  }
+  catch (e) { }
+
+  try {
+    let locale = Services.prefs.getComplexValue(PREF_SELECTED_LOCALE,
+                                                Ci.nsIPrefLocalizedString);
+    if (locale)
+      return locale;
+  }
+  catch (e) { }
+
+  try {
+    return Services.prefs.getCharPref(PREF_SELECTED_LOCALE);
+  }
+  catch (e) { }
+
+  return "en-US";
 }
 
 
@@ -612,12 +650,92 @@ var AddonManagerInternal = {
 
 
 
+
+
+
+
+
+
+
+
+  escapeAddonURI: function AMI_escapeAddonURI(aAddon, aUri, aAppVersion)
+  {
+    var addonStatus = aAddon.userDisabled || aAddon.softDisabled ? "userDisabled"
+                                                                 : "userEnabled";
+
+    if (!aAddon.isCompatible)
+      addonStatus += ",incompatible";
+    if (aAddon.blocklistState == Ci.nsIBlocklistService.STATE_BLOCKED)
+      addonStatus += ",blocklisted";
+    if (aAddon.blocklistState == Ci.nsIBlocklistService.STATE_SOFTBLOCKED)
+      addonStatus += ",softblocked";
+
+    try {
+      var xpcomABI = Services.appinfo.XPCOMABI;
+    } catch (ex) {
+      xpcomABI = UNKNOWN_XPCOM_ABI;
+    }
+
+    let uri = aUri.replace(/%ITEM_ID%/g, aAddon.id);
+    uri = uri.replace(/%ITEM_VERSION%/g, aAddon.version);
+    uri = uri.replace(/%ITEM_STATUS%/g, addonStatus);
+    uri = uri.replace(/%APP_ID%/g, Services.appinfo.ID);
+    uri = uri.replace(/%APP_VERSION%/g, aAppVersion ? aAppVersion :
+                                                      Services.appinfo.version);
+    uri = uri.replace(/%REQ_VERSION%/g, UPDATE_REQUEST_VERSION);
+    uri = uri.replace(/%APP_OS%/g, Services.appinfo.OS);
+    uri = uri.replace(/%APP_ABI%/g, xpcomABI);
+    uri = uri.replace(/%APP_LOCALE%/g, getLocale());
+    uri = uri.replace(/%CURRENT_APP_VERSION%/g, Services.appinfo.version);
+
+    
+    
+    var catMan = null;
+    uri = uri.replace(/%(\w{3,})%/g, function(aMatch, aParam) {
+      if (!catMan) {
+        catMan = Cc["@mozilla.org/categorymanager;1"].
+                 getService(Ci.nsICategoryManager);
+      }
+
+      try {
+        var contractID = catMan.getCategoryEntry(CATEGORY_UPDATE_PARAMS, aParam);
+        var paramHandler = Cc[contractID].getService(Ci.nsIPropertyBag2);
+        return paramHandler.getPropertyAsAString(aParam);
+      }
+      catch(e) {
+        return aMatch;
+      }
+    });
+
+    
+    return uri.replace(/\+/g, "%2B");
+  },
+
+  
+
+
+
   backgroundUpdateCheck: function AMI_backgroundUpdateCheck() {
-    if (!Services.prefs.getBoolPref(PREF_EM_UPDATE_ENABLED))
+    let hotfixID = null;
+    if (Services.prefs.getPrefType(PREF_EM_HOTFIX_ID) == Ci.nsIPrefBranch.PREF_STRING)
+      hotfixID = Services.prefs.getCharPref(PREF_EM_HOTFIX_ID);
+
+    let checkHotfix = hotfixID &&
+                      Services.prefs.getBoolPref(PREF_APP_UPDATE_ENABLED) &&
+                      Services.prefs.getBoolPref(PREF_APP_UPDATE_AUTO);
+
+    let checkAddons = Services.prefs.getBoolPref(PREF_EM_UPDATE_ENABLED);
+
+    if (!checkAddons && !checkHotfix)
       return;
 
     Services.obs.notifyObservers(null, "addons-background-update-start", null);
-    let pendingUpdates = 0;
+
+    
+    
+    
+    
+    let pendingUpdates = 1;
 
     function notifyComplete() {
       if (--pendingUpdates == 0) {
@@ -627,42 +745,118 @@ var AddonManagerInternal = {
       }
     }
 
-    let scope = {};
-    Components.utils.import("resource://gre/modules/AddonRepository.jsm", scope);
-    Components.utils.import("resource://gre/modules/LightweightThemeManager.jsm", scope);
-    scope.LightweightThemeManager.updateCurrentTheme();
+    if (checkAddons) {
+      let scope = {};
+      Components.utils.import("resource://gre/modules/AddonRepository.jsm", scope);
+      Components.utils.import("resource://gre/modules/LightweightThemeManager.jsm", scope);
+      scope.LightweightThemeManager.updateCurrentTheme();
 
-    pendingUpdates++;
-    this.getAllAddons(function getAddonsCallback(aAddons) {
-      
-      
-      var ids = [a.id for each (a in aAddons)];
-      scope.AddonRepository.repopulateCache(ids, function BUC_repopulateCacheCallback() {
-        AddonManagerInternal.updateAddonRepositoryData(function BUC_updateAddonCallback() {
+      pendingUpdates++;
+      this.getAllAddons(function getAddonsCallback(aAddons) {
+        
+        var ids = [a.id for each (a in aAddons) if (a.id != hotfixID)];
 
-          pendingUpdates += aAddons.length;
+        
+        
+        scope.AddonRepository.repopulateCache(ids, function BUC_repopulateCacheCallback() {
+          AddonManagerInternal.updateAddonRepositoryData(function BUC_updateAddonCallback() {
 
-          aAddons.forEach(function BUC_forEachCallback(aAddon) {
-            
-            
-            aAddon.findUpdates({
-              onUpdateAvailable: function BUC_onUpdateAvailable(aAddon, aInstall) {
-                
-                
-                if (aAddon.permissions & AddonManager.PERM_CAN_UPGRADE &&
-                    AddonManager.shouldAutoUpdate(aAddon)) {
-                  aInstall.install();
-                }
-              },
-    
-              onUpdateFinished: notifyComplete
-            }, AddonManager.UPDATE_WHEN_PERIODIC_UPDATE);
+            pendingUpdates += aAddons.length;
+            aAddons.forEach(function BUC_forEachCallback(aAddon) {
+              if (aAddon.id == hotfixID) {
+                notifyComplete();
+                return;
+              }
+
+              
+              
+              aAddon.findUpdates({
+                onUpdateAvailable: function BUC_onUpdateAvailable(aAddon, aInstall) {
+                  
+                  
+                  if (aAddon.permissions & AddonManager.PERM_CAN_UPGRADE &&
+                      AddonManager.shouldAutoUpdate(aAddon)) {
+                    aInstall.install();
+                  }
+                },
+
+                onUpdateFinished: notifyComplete
+              }, AddonManager.UPDATE_WHEN_PERIODIC_UPDATE);
+            });
+
+            notifyComplete();
           });
-    
-          notifyComplete();
         });
       });
-    });
+    }
+
+    if (checkHotfix) {
+      var hotfixVersion = "";
+      try {
+        hotfixVersion = Services.prefs.getCharPref(PREF_EM_HOTFIX_LASTVERSION);
+      }
+      catch (e) { }
+
+      let url = null;
+      if (Services.prefs.getPrefType(PREF_EM_HOTFIX_URL) == Ci.nsIPrefBranch.PREF_STRING)
+        url = Services.prefs.getCharPref(PREF_EM_HOTFIX_URL);
+      else
+        url = Services.prefs.getCharPref(PREF_EM_UPDATE_URL);
+
+      
+      url = AddonManager.escapeAddonURI({
+        id: hotfixID,
+        version: hotfixVersion,
+        userDisabled: false,
+        appDisabled: false
+      }, url);
+
+      pendingUpdates++;
+      Components.utils.import("resource://gre/modules/AddonUpdateChecker.jsm");
+      AddonUpdateChecker.checkForUpdates(hotfixID, "extension", null, url, {
+        onUpdateCheckComplete: function(aUpdates) {
+          let update = AddonUpdateChecker.getNewestCompatibleUpdate(aUpdates);
+          if (!update) {
+            notifyComplete();
+            return;
+          }
+
+          
+          
+          if (Services.vc.compare(hotfixVersion, update.version) >= 0) {
+            notifyComplete();
+            return;
+          }
+
+          LOG("Downloading hotfix version " + update.version);
+          AddonManager.getInstallForURL(update.updateURL, function(aInstall) {
+            aInstall.addListener({
+              onInstallEnded: function(aInstall) {
+                
+                Services.prefs.setCharPref(PREF_EM_HOTFIX_LASTVERSION,
+                                           aInstall.version);
+              },
+
+              onInstallCancelled: function(aInstall) {
+                
+                
+                Services.prefs.setCharPref(PREF_EM_HOTFIX_LASTVERSION,
+                                           hotfixVersion);
+              }
+            });
+
+            aInstall.install();
+
+            notifyComplete();
+          }, "application/x-xpinstall", update.updateHash, null,
+             null, update.version);
+        },
+
+        onUpdateCheckError: notifyComplete
+      });
+    }
+
+    notifyComplete();
   },
 
   
@@ -1597,6 +1791,10 @@ var AddonManager = {
 
   get strictCompatibility() {
     return AddonManagerInternal.strictCompatibility;
+  },
+
+  escapeAddonURI: function AM_escapeAddonURI(aAddon, aUri, aAppVersion) {
+    return AddonManagerInternal.escapeAddonURI(aAddon, aUri, aAppVersion);
   }
 };
 

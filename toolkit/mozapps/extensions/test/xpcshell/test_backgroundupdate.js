@@ -76,6 +76,10 @@ function run_test_2() {
 
   restartManager();
 
+  
+  Services.prefs.setCharPref("extensions.hotfix.id", "hotfix@tests.mozilla.org");
+  Services.prefs.setCharPref("extensions.hotfix.url", "http://localhost:4444/missing.rdf");
+
   let installCount = 0;
   let completeCount = 0;
   let sawCompleteNotification = false;

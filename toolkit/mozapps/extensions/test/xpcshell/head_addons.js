@@ -1136,6 +1136,9 @@ Services.prefs.setBoolPref("extensions.installDistroAddons", false);
 Services.prefs.setBoolPref("extensions.strictCompatibility", true);
 
 
+Services.prefs.setCharPref("extensions.hotfix.id", "");
+
+
 Services.prefs.setCharPref(PREF_EM_MIN_COMPAT_APP_VERSION, "0");
 Services.prefs.setCharPref(PREF_EM_MIN_COMPAT_PLATFORM_VERSION, "0");
 
