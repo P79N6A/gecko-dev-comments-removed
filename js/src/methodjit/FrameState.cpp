@@ -2066,7 +2066,13 @@ FrameState::storeTop(FrameEntry *target, JSValueType type, bool popGuaranteed)
 
 
 
+
+
+        if (backing->type.inRegister())
+            pinReg(backing->type.reg());
         RegisterID reg = tempRegForData(backing);
+        if (backing->type.inRegister())
+            unpinReg(backing->type.reg());
         target->data.setRegister(reg);
         regstate(reg).reassociate(target);
 
