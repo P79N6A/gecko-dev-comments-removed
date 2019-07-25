@@ -263,13 +263,16 @@ struct TraceMonitor {
     
     nanojit::Seq<nanojit::Fragment*>* branches;
     uint32                  lastFragID;
-    
-
-
-
     VMAllocator*            profAlloc;
     FragStatsMap*           profTab;
+
+    void logFragProfile();
 #endif
+
+    TraceMonitor();
+    ~TraceMonitor();
+
+    bool init(JSRuntime* rt);
 
     bool ontrace() const {
         return !!tracecx;
