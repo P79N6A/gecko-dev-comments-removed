@@ -83,7 +83,7 @@ function run_test() {
     }],
   }, dest);
 
-  startupManager(1);
+  startupManager();
 
   Application.getExtensions(function(extensions) {
     

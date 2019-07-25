@@ -241,23 +241,6 @@ class MochiRemote(Mochitest):
         options.profilePath = self.remoteProfile
         return manifest
     
-    def runExtensionRegistration(self, options, browserEnv):
-        """ run once with -silent to let the extension manager do its thing
-            and then exit the app
-            We do this on every run because we need to work around bug 570027
-        """
-        self._automation.log.info("INFO | runtestsremote.py | Performing extension manager registration: start.\n")
-        
-        
-        
-        status = self._automation.runApp(None, browserEnv, options.app,
-                                options.profilePath, ["-silent"],
-                                utilityPath = options.utilityPath,
-                                xrePath = options.xrePath,
-                                symbolsPath=options.symbolsPath,
-                                maxTime = 20)
-        
-        self._automation.log.info("\nINFO | runtestsremote.py | Performing extension manager registration: end.")
     def buildURLOptions(self, options):
         self.localLog = options.logFile
         options.logFile = self.remoteLog

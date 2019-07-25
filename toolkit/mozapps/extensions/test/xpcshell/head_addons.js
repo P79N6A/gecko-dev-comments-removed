@@ -125,20 +125,16 @@ function do_get_addon(aName) {
 
 
 
-
-
-
-
-
-function startupManager(aExpectedRestarts, aAppChanged) {
+function startupManager(aAppChanged) {
   if (gInternalManager)
     do_throw("Test attempt to startup manager that was already started.");
 
-  if (aAppChanged === undefined)
-    aAppChanged = true;
-
-  
-  loadAddonsList(aAppChanged);
+  if (aAppChanged || aAppChanged === undefined) {
+    var file = gProfD.clone();
+    file.append("extensions.ini");
+    if (file.exists())
+      file.remove(true);
+  }
 
   gInternalManager = AM_Cc["@mozilla.org/addons/integration;1"].
                      getService(AM_Ci.nsIObserver).
@@ -146,23 +142,8 @@ function startupManager(aExpectedRestarts, aAppChanged) {
 
   gInternalManager.observe(null, "addons-startup", null);
 
-  let appStartup = AM_Cc["@mozilla.org/toolkit/app-startup;1"].
-                   getService(AM_Ci.nsIAppStartup2);
-  var restart = aAppChanged || appStartup.needsRestart;
-  appStartup.needsRestart = false;
-
-  if (restart) {
-    if (aExpectedRestarts !== undefined)
-      restartManager(aExpectedRestarts - 1);
-    else
-      restartManager();
-  }
-  else if (aExpectedRestarts !== undefined) {
-    if (aExpectedRestarts > 0)
-      do_throw("Expected to need to restart " + aExpectedRestarts + " more times");
-    else if (aExpectedRestarts < 0)
-      do_throw("Restarted " + (-aExpectedRestarts) + " more times than expected");
-  }
+  
+  loadAddonsList();
 }
 
 
@@ -173,19 +154,14 @@ function startupManager(aExpectedRestarts, aAppChanged) {
 
 
 
-
-
-
-
-
-function restartManager(aExpectedRestarts, aNewVersion) {
+function restartManager(aNewVersion) {
   shutdownManager();
   if (aNewVersion) {
     gAppInfo.version = aNewVersion;
-    startupManager(aExpectedRestarts, true);
+    startupManager(true);
   }
   else {
-    startupManager(aExpectedRestarts, false);
+    startupManager(false);
   }
 }
 
@@ -200,7 +176,7 @@ function shutdownManager() {
   gInternalManager = null;
 
   
-  loadAddonsList(false);
+  loadAddonsList();
 
   
   gAppInfo.annotations = {};
@@ -245,7 +221,7 @@ function shutdownManager() {
   }
 }
 
-function loadAddonsList(aAppChanged) {
+function loadAddonsList() {
   function readDirectories(aSection) {
     var dirs = [];
     var keys = parser.getKeys(aSection);
@@ -274,10 +250,6 @@ function loadAddonsList(aAppChanged) {
   file.append("extensions.ini");
   if (!file.exists())
     return;
-  if (aAppChanged) {
-    file.remove(true);
-    return;
-  }
 
   var factory = AM_Cc["@mozilla.org/xpcom/ini-parser-factory;1"].
                 getService(AM_Ci.nsIINIParserFactory);
