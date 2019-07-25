@@ -324,15 +324,20 @@ nsComputedDOMStyle::GetStyleContextForElement(Element* aElement,
                                               nsIPresShell* aPresShell)
 {
   
-  if (!aPresShell) {
-    aPresShell = GetPresShellForContent(aElement);
-    if (!aPresShell)
+  
+  
+  
+  
+  nsIPresShell *presShell = GetPresShellForContent(aElement);
+  if (!presShell) {
+    presShell = aPresShell;
+    if (!presShell)
       return nsnull;
   }
 
-  aPresShell->FlushPendingNotifications(Flush_Style);
+  presShell->FlushPendingNotifications(Flush_Style);
 
-  return GetStyleContextForElementNoFlush(aElement, aPseudo, aPresShell);
+  return GetStyleContextForElementNoFlush(aElement, aPseudo, presShell);
 }
 
 
@@ -342,11 +347,15 @@ nsComputedDOMStyle::GetStyleContextForElementNoFlush(Element* aElement,
                                                      nsIPresShell* aPresShell)
 {
   NS_ABORT_IF_FALSE(aElement, "NULL element");
-
   
-  if (!aPresShell) {
-    aPresShell = GetPresShellForContent(aElement);
-    if (!aPresShell)
+  
+  
+  
+  
+  nsIPresShell *presShell = GetPresShellForContent(aElement);
+  if (!presShell) {
+    presShell = aPresShell;
+    if (!presShell)
       return nsnull;
   }
 
@@ -373,13 +382,13 @@ nsComputedDOMStyle::GetStyleContextForElementNoFlush(Element* aElement,
   
   if (parent && parent->IsElement())
     parentContext = GetStyleContextForElementNoFlush(parent->AsElement(),
-                                                     nsnull, aPresShell);
+                                                     nsnull, presShell);
 
-  nsPresContext *presContext = aPresShell->GetPresContext();
+  nsPresContext *presContext = presShell->GetPresContext();
   if (!presContext)
     return nsnull;
 
-  nsStyleSet *styleSet = aPresShell->StyleSet();
+  nsStyleSet *styleSet = presShell->StyleSet();
 
   if (aPseudo) {
     nsCSSPseudoElements::Type type = nsCSSPseudoElements::GetPseudoType(aPseudo);
