@@ -1132,6 +1132,12 @@ JSScript::NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg)
 #ifdef JS_TYPE_INFERENCE
     
     script->makeAnalysis(cx);
+
+    
+    if (script->compileAndGo) {
+        GlobalScope *globalScope = cg->compiler()->globalScope;
+        script->analysis->global = globalScope->globalObj;
+    }
 #endif
 
     if (cg->globalUses.length()) {

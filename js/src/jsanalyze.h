@@ -212,10 +212,7 @@ class Script
 
     ~Script() { destroy(); }
 
-    
     bool OOM() { return outOfMemory; }
-
-    
     bool failed() { return hadFailure; }
 
     
@@ -224,10 +221,7 @@ class Script
     
     bool usesScopeChain() const { return usesScope; }
 
-    
     bool hasAnalyzed() const { return !!codeArray; }
-
-    
     JSScript *getScript() const { return script; }
 
     
@@ -323,6 +317,9 @@ class Script
     JSFunction *fun;
 
     
+    JSObject *global;
+
+    
     types::TypeObject *objects;
 
     
@@ -347,14 +344,14 @@ class Script
 
     void setFunction(JSContext *cx, JSFunction *fun);
 
-    
     bool isEval() { return parent && !fun; }
-
-    
     bool isGlobal() { return !parent || (!fun && !parent->analysis->parent); }
 
     unsigned argCount() { return fun ? fun->nargs : 0; }
     types::TypeFunction *function() { return fun->getType()->asFunction(); }
+
+    inline JSObject *getGlobal();
+    inline types::TypeObject *getGlobalType();
 
     
 
@@ -467,23 +464,20 @@ class Script
     void analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state);
 
     
-    inline jsid getLocalId(unsigned index, Bytecode *code);
+    inline js::types::TypeObject *getTypeNewObject(JSContext *cx, JSProtoKey key);
 
-    
+    inline jsid getLocalId(unsigned index, Bytecode *code);
     inline jsid getArgumentId(unsigned index);
 
-    
     inline types::TypeSet *getVariable(JSContext *cx, jsid id);
 
     
     inline types::TypeSet *getStackTypes(unsigned index, Bytecode *code);
 
-    
     inline JSValueType knownArgumentTypeTag(JSContext *cx, JSScript *script, unsigned arg);
     inline JSValueType knownLocalTypeTag(JSContext *cx, JSScript *script, unsigned local);
 
-    
-
+  private:
     void addVariable(JSContext *cx, jsid id, types::Variable *&var);
 
 #endif 

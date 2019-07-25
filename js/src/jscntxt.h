@@ -2414,15 +2414,10 @@ public:
     js::types::TypeObject *newTypeObject(const char *base, const char *postfix, JSObject *proto);
 
     
+
+
+
     inline js::types::TypeObject *getTypeNewObject(JSProtoKey key);
-
-    
-
-
-
-
-
-    inline js::types::TypeObject *globalTypeObject();
 
     
     inline js::types::TypeObject *emptyTypeObject();
@@ -2456,6 +2451,7 @@ public:
     inline void addTypeProperty(js::types::TypeObject *obj, const char *name, const js::Value &value);
     inline void addTypePropertyId(js::types::TypeObject *obj, jsid id, js::types::jstype type);
     inline void addTypePropertyId(js::types::TypeObject *obj, jsid id, const js::Value &value);
+    inline void markTypePropertyUnknown(js::types::TypeObject *obj, jsid id);
 
     
     inline js::types::TypeObject *getTypeGetSet();

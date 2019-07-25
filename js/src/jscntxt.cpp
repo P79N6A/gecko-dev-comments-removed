@@ -2309,12 +2309,15 @@ IsJITBrokenHere()
 void
 JSContext::updateJITEnabled()
 {
+    
+#ifndef JS_TYPE_INFERENCE
 #ifdef JS_TRACER
     traceJitEnabled = ((options & JSOPTION_JIT) &&
                        !IsJITBrokenHere() &&
                        (debugHooks == &js_NullDebugHooks ||
                         (debugHooks == &runtime->globalDebugHooks &&
                          !runtime->debuggerInhibitsJIT())));
+#endif
 #endif
 #ifdef JS_METHODJIT
     methodJitEnabled = (options & JSOPTION_METHODJIT) &&
