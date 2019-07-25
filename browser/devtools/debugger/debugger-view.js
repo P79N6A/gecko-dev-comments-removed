@@ -136,6 +136,7 @@ RemoteDebuggerPrompt.prototype = {
 function ScriptsView() {
   this._onScriptsChange = this._onScriptsChange.bind(this);
   this._onScriptsSearch = this._onScriptsSearch.bind(this);
+  this._onScriptsKeyUp = this._onScriptsKeyUp.bind(this);
 }
 
 ScriptsView.prototype = {
@@ -390,18 +391,10 @@ ScriptsView.prototype = {
   
 
 
-  _onScriptsChange: function DVS__onScriptsChange() {
-    let script = this._scripts.selectedItem.getUserData("sourceScript");
-    this._preferredScript = script;
-    DebuggerController.SourceScripts.showScript(script);
-  },
-
-  
 
 
-  _onScriptsSearch: function DVS__onScriptsSearch(e) {
-    let editor = DebuggerView.editor;
-    let scripts = this._scripts;
+
+  _getSearchboxInfo: function DVS__getSearchboxInfo() {
     let rawValue = this._searchbox.value.toLowerCase();
 
     let rawLength = rawValue.length;
@@ -415,6 +408,26 @@ ScriptsView.prototype = {
     let line = window.parseInt(rawValue.slice(fileEnd + 1, lineEnd)) || -1;
     let token = rawValue.slice(lineEnd + 1);
 
+    return [file, line, token];
+  },
+
+  
+
+
+  _onScriptsChange: function DVS__onScriptsChange() {
+    let script = this._scripts.selectedItem.getUserData("sourceScript");
+    this._preferredScript = script;
+    DebuggerController.SourceScripts.showScript(script);
+  },
+
+  
+
+
+  _onScriptsSearch: function DVS__onScriptsSearch(e) {
+    let editor = DebuggerView.editor;
+    let scripts = this._scripts;
+    let [file, line, token] = this._getSearchboxInfo();
+
     
     scripts.selectedItem = this._preferredScript;
 
@@ -426,7 +439,7 @@ ScriptsView.prototype = {
     } else {
       for (let i = 0, l = scripts.itemCount, found = false; i < l; i++) {
         let item = scripts.getItemAtIndex(i);
-        let target = item.value.toLowerCase();
+        let target = item.label.toLowerCase();
 
         
         if (target.match(file)) {
@@ -449,8 +462,7 @@ ScriptsView.prototype = {
     if (token) {
       let offset = editor.find(token, { ignoreCase: true });
       if (offset > -1) {
-        editor.setCaretPosition(0);
-        editor.setCaretOffset(offset);
+        editor.setSelection(offset, offset + token.length)
       }
     }
   },
@@ -465,11 +477,11 @@ ScriptsView.prototype = {
     }
 
     if (e.keyCode === e.DOM_VK_RETURN || e.keyCode === e.DOM_VK_ENTER) {
+      let token = this._getSearchboxInfo()[2];
       let editor = DebuggerView.editor;
       let offset = editor.findNext(true);
       if (offset > -1) {
-        editor.setCaretPosition(0);
-        editor.setCaretOffset(offset);
+        editor.setSelection(offset, offset + token.length)
       }
     }
   },
