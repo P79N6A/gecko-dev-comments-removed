@@ -792,7 +792,7 @@ static nsIntPoint
 GetTranslationForThebesLayer(ThebesLayer* aLayer)
 {
   gfxMatrix transform;
-  if (!aLayer->GetTransform().Is2D(&transform) &&
+  if (!aLayer->GetTransform().Is2D(&transform) ||
       transform.HasNonIntegerTranslation()) {
     NS_ERROR("ThebesLayers should have integer translations only");
     return nsIntPoint(0, 0);
@@ -1220,16 +1220,24 @@ ContainerState::ThebesLayerData::Accumulate(ContainerState* aState,
       }
     }
   }
-  nsRect componentAlpha = aItem->GetComponentAlphaBounds(aState->mBuilder);
-  componentAlpha.IntersectRect(componentAlpha, aItem->GetVisibleRect());
-  if (!componentAlpha.IsEmpty()) {
-    nscoord appUnitsPerDevPixel = AppUnitsPerDevPixel(aItem);
-    if (!mOpaqueRegion.Contains(componentAlpha.ScaleToOutsidePixels(
-        aState->mParameters.mXScale, aState->mParameters.mYScale, appUnitsPerDevPixel))) {
-      if (SuppressComponentAlpha(aState->mBuilder, aItem, componentAlpha)) {
-        aItem->DisableComponentAlpha();
-      } else {
-        mNeedComponentAlpha = true;
+  if (aState->mParameters.mDisableSubpixelAntialiasingInDescendants) {
+    
+    
+    
+    
+    aItem->DisableComponentAlpha();
+  } else {
+    nsRect componentAlpha = aItem->GetComponentAlphaBounds(aState->mBuilder);
+    componentAlpha.IntersectRect(componentAlpha, aItem->GetVisibleRect());
+    if (!componentAlpha.IsEmpty()) {
+      nscoord appUnitsPerDevPixel = AppUnitsPerDevPixel(aItem);
+      if (!mOpaqueRegion.Contains(componentAlpha.ScaleToOutsidePixels(
+          aState->mParameters.mXScale, aState->mParameters.mYScale, appUnitsPerDevPixel))) {
+        if (SuppressComponentAlpha(aState->mBuilder, aItem, componentAlpha)) {
+          aItem->DisableComponentAlpha();
+        } else {
+          mNeedComponentAlpha = true;
+        }
       }
     }
   }
@@ -1684,11 +1692,13 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
   }
 
   gfxMatrix transform2d;
+  bool is2D = transform.Is2D(&transform2d);
   gfxSize scale;
+  bool isRetained = aLayerBuilder->GetRetainingLayerManager() == aLayer->Manager();
   
   
-  if (aLayerBuilder->GetRetainingLayerManager() == aLayer->Manager() &&
-      transform.Is2D(&transform2d)) {
+  
+  if (is2D && isRetained) {
     
     scale = transform2d.ScaleFactors(true);
     
@@ -1737,6 +1747,9 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
     if (aContainerFrame->AreLayersMarkedActive(nsChangeHint_UpdateTransformLayer)) {
       result.mInActiveTransformedSubtree = true;
     }
+  }
+  if (isRetained && (!is2D || transform2d.HasNonIntegerTranslation())) {
+    result.mDisableSubpixelAntialiasingInDescendants = true;
   }
   return result;
 }
