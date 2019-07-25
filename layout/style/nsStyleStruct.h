@@ -1060,6 +1060,34 @@ struct nsStylePosition {
   nsStyleCoord  mMaxHeight;             
   PRUint8       mBoxSizing;             
   nsStyleCoord  mZIndex;                
+
+  PRBool WidthDependsOnContainer() const
+    { return WidthCoordDependsOnContainer(mWidth); }
+  PRBool MinWidthDependsOnContainer() const
+    { return WidthCoordDependsOnContainer(mMinWidth); }
+  PRBool MaxWidthDependsOnContainer() const
+    { return WidthCoordDependsOnContainer(mMaxWidth); }
+  PRBool HeightDependsOnContainer() const
+    { return HeightCoordDependsOnContainer(mHeight); }
+  PRBool MinHeightDependsOnContainer() const
+    { return HeightCoordDependsOnContainer(mMinHeight); }
+  PRBool MaxHeightDependsOnContainer() const
+    { return HeightCoordDependsOnContainer(mMaxHeight); }
+
+private:
+  static PRBool WidthCoordDependsOnContainer(const nsStyleCoord &aCoord)
+  {
+    return aCoord.GetUnit() == eStyleUnit_Auto ||
+           aCoord.GetUnit() == eStyleUnit_Percent ||
+           (aCoord.GetUnit() == eStyleUnit_Enumerated &&
+            (aCoord.GetIntValue() == NS_STYLE_WIDTH_FIT_CONTENT ||
+             aCoord.GetIntValue() == NS_STYLE_WIDTH_AVAILABLE));
+  }
+  static PRBool HeightCoordDependsOnContainer(const nsStyleCoord &aCoord)
+  {
+    return aCoord.GetUnit() == eStyleUnit_Auto || 
+           aCoord.GetUnit() == eStyleUnit_Percent;
+  }
 };
 
 struct nsStyleTextReset {
