@@ -42,6 +42,9 @@
 #include "nsCSSPseudoElements.h"
 #include "nsStyleContext.h"
 #include "nsTHashtable.h"
+#include "nsGUIEvent.h"
+#include "mozilla/TimeStamp.h"
+#include "nsThreadUtils.h"
 
 class nsCSSKeyframesRule;
 struct AnimationSegment;
@@ -63,6 +66,28 @@ public:
   {
     mKeyframesRules.Init(16); 
   }
+
+  struct AnimationEventInfo {
+    nsRefPtr<mozilla::dom::Element> mElement;
+    nsAnimationEvent mEvent;
+
+    AnimationEventInfo(mozilla::dom::Element *aElement,
+                       const nsString& aAnimationName,
+                       PRUint32 aMessage, mozilla::TimeDuration aElapsedTime)
+      : mElement(aElement),
+        mEvent(PR_TRUE, aMessage, aAnimationName, aElapsedTime.ToSeconds())
+    {
+    }
+
+    
+    
+    AnimationEventInfo(const AnimationEventInfo &aOther)
+      : mElement(aOther.mElement),
+        mEvent(PR_TRUE, aOther.mEvent.message,
+               aOther.mEvent.animationName, aOther.mEvent.elapsedTime)
+    {
+    }
+  };
 
   
   virtual void RulesMatching(ElementRuleProcessorData* aData);
@@ -93,6 +118,17 @@ public:
     mKeyframesListIsDirty = PR_TRUE;
   }
 
+  typedef InfallibleTArray<AnimationEventInfo> EventArray;
+
+  
+
+
+
+
+
+
+  void DispatchEvents();
+
 private:
   ElementAnimations* GetElementAnimations(mozilla::dom::Element *aElement,
                                           nsCSSPseudoElements::Type aPseudoType,
@@ -112,6 +148,8 @@ private:
 
   bool mKeyframesListIsDirty;
   nsDataHashtable<nsStringHashKey, nsCSSKeyframesRule*> mKeyframesRules;
+
+  EventArray mPendingEvents;
 };
 
 #endif 

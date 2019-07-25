@@ -4792,11 +4792,18 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
 
     
     
+    if (!mIsDestroying) {
+      mPresContext->AnimationManager()->DispatchEvents();
+    }
+
+    
+    
     
     if (!mIsDestroying) {
       mDocument->BindingManager()->ProcessAttachedQueue();
     }
 
+    
     
     
     
