@@ -90,6 +90,7 @@ MOBILE_BATCH_SIZE:                     50,
 
 
 DEFAULT_STORE_BATCH_SIZE:              1,
+HISTORY_STORE_BATCH_SIZE:              50, 
 
 
 SINGLE_USER_THRESHOLD:                 1000,
