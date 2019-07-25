@@ -262,18 +262,6 @@ var BrowserApp = {
     }
 
     
-    window.addEventListener("resize", function() {
-      if (gScreenWidth != window.outerWidth || gScreenHeight != window.outerHeight) {
-        gScreenWidth = window.outerWidth;
-        gScreenHeight = window.outerHeight;
-        BrowserApp.selectedTab.refreshDisplayPort();
-
-        
-        sendMessageToJava({ gecko: { type: "Viewport:UpdateAndDraw" } });
-      }
-    }, false);
-
-    
     Services.io.offline = false;
 
     
@@ -2013,6 +2001,15 @@ Tab.prototype = {
 
   
   updateViewportSize: function updateViewportSize() {
+    
+    
+    
+    
+    
+
+    gScreenWidth = window.outerWidth;
+    gScreenHeight = window.outerHeight;
+
     let browser = this.browser;
     if (!browser)
       return;
