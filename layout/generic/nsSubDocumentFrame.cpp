@@ -42,6 +42,11 @@
 
 
 
+#ifdef MOZ_IPC
+#include "mozilla/layout/RenderFrameParent.h"
+using mozilla::layout::RenderFrameParent;
+#endif
+
 #include "nsSubDocumentFrame.h"
 #include "nsCOMPtr.h"
 #include "nsGenericHTMLElement.h"
@@ -256,42 +261,45 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   nsresult rv = DisplayBorderBackgroundOutline(aBuilder, aLists);
   NS_ENSURE_SUCCESS(rv, rv);
-  
+
+#ifdef MOZ_IPC
+  nsFrameLoader* frameLoader = FrameLoader();
+  if (frameLoader) {
+    RenderFrameParent* rfp = frameLoader->GetCurrentRemoteFrame();
+    if (rfp) {
+      
+      
+      return aLists.Content()
+        ->AppendNewToTop(new (aBuilder) nsDisplayRemote(aBuilder, this, rfp));
+    }
+  }
+#endif
+
   if (!mInnerView)
     return NS_OK;
   nsIView* subdocView = mInnerView->GetFirstChild();
   if (!subdocView)
     return NS_OK;
 
-  nsCOMPtr<nsIPresShell> presShell = nsnull;
+  nsCOMPtr<nsIPresShell> presShell;
 
   nsIFrame* subdocRootFrame =
     static_cast<nsIFrame*>(subdocView->GetClientData());
 
   if (subdocRootFrame) {
     presShell = subdocRootFrame->PresContext()->PresShell();
-  }
-  
-  
-  if (!presShell || (presShell->IsPaintingSuppressed() &&
-                     !aBuilder->IsIgnoringPaintSuppression())) {
+  } else {
     
     
     
     nsIView* nextView = subdocView->GetNextSibling();
-    nsIFrame* frame = nsnull;
     if (nextView) {
-      frame = static_cast<nsIFrame*>(nextView->GetClientData());
+      subdocRootFrame = static_cast<nsIFrame*>(nextView->GetClientData());
     }
-    if (frame) {
-      nsIPresShell* ps = frame->PresContext()->PresShell();
-      if (!presShell || (ps && !ps->IsPaintingSuppressed())) {
-        subdocView = nextView;
-        subdocRootFrame = frame;
-        presShell = ps;
-      }
-    }
-    if (!presShell) {
+    if (subdocRootFrame) {
+      subdocView = nextView;
+      presShell = subdocRootFrame->PresContext()->PresShell();
+    } else {
       
       if (!mFrameLoader)
         return NS_OK;
@@ -375,7 +383,7 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
         new (aBuilder) nsDisplayZoom(aBuilder, subdocRootFrame, &childItems,
                                      subdocAPD, parentAPD);
       childItems.AppendToTop(zoomItem);
-    } else if (presContext->IsRootContentDocument()) {
+    } else if (!nsContentUtils::IsChildOfSameType(presShell->GetDocument())) {
       
       
       
@@ -386,7 +394,7 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
     
     rv = aLists.Content()->AppendNewToTop(
-        new (aBuilder) nsDisplayClip(aBuilder, this, &childItems,
+        new (aBuilder) nsDisplayClip(aBuilder, this, this, &childItems,
                                      subdocBoundsInParentUnits));
   }
   
