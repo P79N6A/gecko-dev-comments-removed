@@ -389,13 +389,35 @@ RegExp::createObjectNoStatics(JSContext *cx, const jschar *chars, size_t length,
     return obj;
 }
 
+#ifdef ANDROID
+static bool
+YarrJITIsBroken(JSContext *cx)
+{
+#if defined(JS_TRACER) && defined(JS_METHODJIT)
+    
+
+
+
+
+    return !cx->traceJitEnabled && !cx->methodJitEnabled;
+#else
+    return false;
+#endif
+}
+#endif  
+
 inline bool
 RegExp::compileHelper(JSContext *cx, UString &pattern)
 {
 #if ENABLE_YARR_JIT
     bool fellBack = false;
     int error = 0;
-    jitCompileRegex(*cx->runtime->regExpAllocator, compiled, pattern, parenCount, error, fellBack, ignoreCase(), multiline());
+    jitCompileRegex(*cx->runtime->regExpAllocator, compiled, pattern, parenCount, error, fellBack, ignoreCase(), multiline()
+#ifdef ANDROID
+                    
+                    , YarrJITIsBroken(cx)
+#endif
+);
     if (!error)
         return true;
     if (fellBack)
