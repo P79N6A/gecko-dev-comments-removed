@@ -66,6 +66,7 @@ pref("image.cache.size", 1048576);
 
 
 pref("browser.offline-apps.notify", false);
+pref("browser.cache.offline.enable", false);
 
 
 pref("network.protocol-handler.warn-external.tel", false);
