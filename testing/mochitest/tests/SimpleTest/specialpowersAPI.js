@@ -81,7 +81,13 @@ function unwrapIfWrapped(x) {
 };
 
 function isXrayWrapper(x) {
-  return /XrayWrapper/.exec(x.toString());
+  try {
+    return /XrayWrapper/.exec(x.toString());
+  } catch(e) {
+    
+    
+    return false;
+  }
 }
 
 
@@ -1122,9 +1128,5 @@ SpecialPowersAPI.prototype = {
     };
 
     this._sendSyncMessage('SPPermissionManager', msg);
-  },
-
-  getMozFullPath: function(file) {
-    return file.mozFullPath;
   }
 };
