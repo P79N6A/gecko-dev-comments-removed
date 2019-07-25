@@ -73,23 +73,26 @@ var DownloadsView = {
   },
 
   _createItem: function dv__createItem(aAttrs) {
-    let item = document.createElement("richlistitem");
-
     
-    for (let attr in aAttrs)
-      item.setAttribute(attr, aAttrs[attr]);
+    let item = this.getElementForDownload(aAttrs.id);
+    if (!item) {
+      item = document.createElement("richlistitem");
 
-    
-    item.setAttribute("typeName", "download");
-    item.setAttribute("id", "dl-" + aAttrs.id);
-    item.setAttribute("downloadID", aAttrs.id);
-    item.setAttribute("iconURL", "moz-icon://" + aAttrs.file + "?size=32");
-    item.setAttribute("lastSeconds", Infinity);
-
-    
-    this._updateTime(item);
-    this._updateStatus(item);
-
+      
+      for (let attr in aAttrs)
+        item.setAttribute(attr, aAttrs[attr]);
+  
+      
+      item.setAttribute("typeName", "download");
+      item.setAttribute("id", "dl-" + aAttrs.id);
+      item.setAttribute("downloadID", aAttrs.id);
+      item.setAttribute("iconURL", "moz-icon://" + aAttrs.file + "?size=32");
+      item.setAttribute("lastSeconds", Infinity);
+  
+      
+      this._updateTime(item);
+      this._updateStatus(item);
+    }
     return item;
   },
 
