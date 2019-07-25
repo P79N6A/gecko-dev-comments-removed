@@ -546,6 +546,13 @@ public:
 
   virtual nsresult SetArguments(nsIArray *aArguments, nsIPrincipal *aOrigin) = 0;
 
+  
+
+
+
+
+  virtual PRUint32 GetSerial() = 0;
+
 protected:
   
   

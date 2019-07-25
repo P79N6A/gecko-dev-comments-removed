@@ -47,19 +47,24 @@
 
 BEGIN_INDEXEDDB_NAMESPACE
 
+class IDBDatabase;
+
 class IDBFactory : public nsIIDBFactory
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIIDBFACTORY
 
-  static
-  already_AddRefed<nsIIDBFactory>
-  Create();
+  static already_AddRefed<nsIIDBFactory> Create();
 
-  static
-  already_AddRefed<mozIStorageConnection>
+  static already_AddRefed<mozIStorageConnection>
   GetConnection(const nsAString& aDatabaseFilePath);
+
+  static bool
+  SetCurrentDatabase(IDBDatabase* aDatabase);
+
+  static PRUint32
+  GetIndexedDBQuota();
 
 private:
   IDBFactory() { }

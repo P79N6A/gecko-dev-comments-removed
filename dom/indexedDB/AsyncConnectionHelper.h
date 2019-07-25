@@ -96,6 +96,12 @@ public:
   
   nsresult DispatchToTransactionPool();
 
+  void SetError(PRUint16 aErrorCode)
+  {
+    mError = true;
+    mErrorCode = aErrorCode;
+  }
+
 protected:
   AsyncConnectionHelper(IDBDatabase* aDatabase,
                         IDBRequest* aRequest);

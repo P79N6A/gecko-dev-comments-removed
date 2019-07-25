@@ -1,52 +1,54 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Indexed Database.
- *
- * The Initial Developer of the Original Code is
- * The Mozilla Foundation.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Ben Turner <bent.mozilla@gmail.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "IDBDatabase.h"
 
 #include "nsIIDBDatabaseException.h"
 
+#include "mozilla/Mutex.h"
 #include "mozilla/storage.h"
 #include "nsDOMClassInfo.h"
 #include "nsProxyRelease.h"
 #include "nsThreadUtils.h"
 
 #include "AsyncConnectionHelper.h"
+#include "CheckQuotaHelper.h"
 #include "DatabaseInfo.h"
 #include "IDBEvents.h"
 #include "IDBObjectStore.h"
@@ -59,6 +61,12 @@ USING_INDEXEDDB_NAMESPACE
 namespace {
 
 const PRUint32 kDefaultDatabaseTimeoutSeconds = 30;
+
+PRUint32 gDatabaseInstanceCount = 0;
+mozilla::Mutex* gPromptHelpersMutex = nsnull;
+
+
+nsTArray<nsRefPtr<CheckQuotaHelper> >* gPromptHelpers = nsnull;
 
 class SetVersionHelper : public AsyncConnectionHelper
 {
@@ -73,7 +81,7 @@ public:
   PRUint16 GetSuccessResult(nsIWritableVariant* aResult);
 
 private:
-  // In-params
+  
   nsString mVersion;
 };
 
@@ -94,12 +102,12 @@ public:
   PRUint16 GetSuccessResult(nsIWritableVariant* aResult);
 
 protected:
-  // In-params.
+  
   nsString mName;
   nsString mKeyPath;
   bool mAutoIncrement;
 
-  // Out-params.
+  
   PRInt64 mId;
 };
 
@@ -116,7 +124,7 @@ public:
   PRUint16 GetSuccessResult(nsIWritableVariant* aResult);
 
 private:
-  // In-params.
+  
   nsString mName;
 };
 
@@ -150,7 +158,7 @@ ConvertVariantToStringArray(nsIVariant* aVariant,
 
   AutoFree af(rawArray);
 
-  // Just delete anything that we don't expect and return.
+  
   if (valueType != nsIDataType::VTYPE_WCHAR_STR) {
     switch (valueType) {
       case nsIDataType::VTYPE_ID:
@@ -172,7 +180,7 @@ ConvertVariantToStringArray(nsIVariant* aVariant,
       } break;
 
       default: {
-        // The other types are primitives that do not need to be freed.
+        
       }
     }
 
@@ -207,9 +215,9 @@ GenerateRequest(IDBDatabase* aDatabase)
                             aDatabase->ScriptContext(), aDatabase->Owner());
 }
 
-} // anonymous namespace
+} 
 
-// static
+
 already_AddRefed<IDBDatabase>
 IDBDatabase::Create(nsIScriptContext* aScriptContext,
                     nsPIDOMWindow* aOwner,
@@ -246,7 +254,10 @@ IDBDatabase::Create(nsIScriptContext* aScriptContext,
 IDBDatabase::IDBDatabase()
 : mDatabaseId(0)
 {
-
+  if (!gDatabaseInstanceCount++) {
+    NS_ASSERTION(!gPromptHelpersMutex, "Should be null!");
+    gPromptHelpersMutex = new mozilla::Mutex("IDBDatabase gPromptHelpersMutex");
+  }
 }
 
 IDBDatabase::~IDBDatabase()
@@ -271,6 +282,16 @@ IDBDatabase::~IDBDatabase()
 
   if (mListenerManager) {
     mListenerManager->Disconnect();
+  }
+
+  if (!--gDatabaseInstanceCount) {
+    NS_ASSERTION(gPromptHelpersMutex, "Should not be null!");
+
+    delete gPromptHelpers;
+    gPromptHelpers = nsnull;
+
+    delete gPromptHelpersMutex;
+    gPromptHelpersMutex = nsnull;
   }
 }
 
@@ -302,6 +323,50 @@ IDBDatabase::CloseConnection()
       mConnection.forget(&leak);
     }
   }
+}
+
+bool
+IDBDatabase::IsQuotaDisabled()
+{
+  NS_ASSERTION(!NS_IsMainThread(), "Wrong thread!");
+  NS_ASSERTION(gPromptHelpersMutex, "This should never be null!");
+
+  MutexAutoLock lock(*gPromptHelpersMutex);
+
+  if (!gPromptHelpers) {
+    gPromptHelpers = new nsAutoTArray<nsRefPtr<CheckQuotaHelper>, 10>();
+  }
+
+  CheckQuotaHelper* foundHelper = nsnull;
+
+  PRUint32 count = gPromptHelpers->Length();
+  for (PRUint32 index = 0; index < count; index++) {
+    nsRefPtr<CheckQuotaHelper>& helper = gPromptHelpers->ElementAt(index);
+    if (helper->WindowSerial() == Owner()->GetSerial()) {
+      foundHelper = helper;
+      break;
+    }
+  }
+
+  if (!foundHelper) {
+    nsRefPtr<CheckQuotaHelper>* newHelper = gPromptHelpers->AppendElement();
+    if (!newHelper) {
+      NS_WARNING("Out of memory!");
+      return false;
+    }
+    *newHelper = new CheckQuotaHelper(this, *gPromptHelpersMutex);
+    foundHelper = *newHelper;
+
+    {
+      
+      MutexAutoUnlock unlock(*gPromptHelpersMutex);
+
+      nsresult rv = NS_DispatchToMainThread(foundHelper, NS_DISPATCH_NORMAL);
+      NS_ENSURE_SUCCESS(rv, false);
+    }
+  }
+
+  return foundHelper->PromptAndReturnQuotaIsDisabled();
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(IDBDatabase)
@@ -397,7 +462,7 @@ IDBDatabase::CreateObjectStore(const nsAString& aName,
     return NS_ERROR_INVALID_ARG;
   }
 
-  // XPConnect makes "null" into a void string, we need an empty string.
+  
   nsString keyPath(aKeyPath);
   if (keyPath.IsVoid()) {
     keyPath.Truncate();
@@ -494,7 +559,7 @@ IDBDatabase::SetVersion(const nsAString& aVersion,
     return NS_ERROR_UNEXPECTED;
   }
 
-  // Lock the whole database
+  
   nsTArray<nsString> storesToOpen;
   nsRefPtr<IDBTransaction> transaction =
     IDBTransaction::Create(this, storesToOpen, IDBTransaction::FULL_LOCK,
@@ -558,7 +623,7 @@ IDBDatabase::Transaction(nsIVariant* aStoreNames,
     case nsIDataType::VTYPE_VOID:
     case nsIDataType::VTYPE_EMPTY:
     case nsIDataType::VTYPE_EMPTY_ARRAY: {
-      // Empty, request all object stores
+      
       if (!info->GetObjectStoreNames(storesToOpen)) {
         NS_ERROR("Out of memory?");
         return NS_ERROR_OUT_OF_MEMORY;
@@ -566,7 +631,7 @@ IDBDatabase::Transaction(nsIVariant* aStoreNames,
     } break;
 
     case nsIDataType::VTYPE_WSTRING_SIZE_IS: {
-      // Single name
+      
       nsString name;
       rv = aStoreNames->GetAsAString(name);
       NS_ENSURE_SUCCESS(rv, rv);
@@ -613,7 +678,7 @@ IDBDatabase::Transaction(nsIVariant* aStoreNames,
 
       nsCOMPtr<nsIDOMDOMStringList> stringList(do_QueryInterface(supports));
       if (!stringList) {
-        // We don't support anything other than nsIDOMDOMStringList.
+        
         return NS_ERROR_ILLEGAL_VALUE;
       }
 
@@ -737,7 +802,7 @@ SetVersionHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
 }
 
 PRUint16
-SetVersionHelper::GetSuccessResult(nsIWritableVariant* /* aResult */)
+SetVersionHelper::GetSuccessResult(nsIWritableVariant* )
 {
   DatabaseInfo* info;
   if (!DatabaseInfo::Get(mDatabase->Id(), &info)) {
@@ -752,7 +817,7 @@ SetVersionHelper::GetSuccessResult(nsIWritableVariant* /* aResult */)
 PRUint16
 CreateObjectStoreHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
 {
-  // Insert the data into the database.
+  
   nsCOMPtr<mozIStorageStatement> stmt;
   nsresult rv = aConnection->CreateStatement(NS_LITERAL_CSTRING(
     "INSERT INTO object_store (name, key_path, auto_increment) "
@@ -774,7 +839,7 @@ CreateObjectStoreHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
     return nsIIDBDatabaseException::CONSTRAINT_ERR;
   }
 
-  // Get the id of this object store, and store it for future use.
+  
   (void)aConnection->GetLastInsertRowID(&mId);
 
   return OK;
@@ -827,7 +892,7 @@ RemoveObjectStoreHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
 }
 
 PRUint16
-RemoveObjectStoreHelper::GetSuccessResult(nsIWritableVariant* /* aResult */)
+RemoveObjectStoreHelper::GetSuccessResult(nsIWritableVariant* )
 {
   ObjectStoreInfo::Remove(mDatabase->Id(), mName);
   return OK;

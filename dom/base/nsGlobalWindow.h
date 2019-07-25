@@ -486,6 +486,10 @@ public:
                                     const nsAString &aPopupWindowName,
                                     const nsAString &aPopupWindowFeatures);
 
+  virtual PRUint32 GetSerial() {
+    return mSerial;
+  }
+
 protected:
   
   virtual ~nsGlobalWindow();
@@ -837,9 +841,10 @@ protected:
   
   PRUint32 mFocusMethod;
 
+  PRUint32 mSerial;
+
 #ifdef DEBUG
   PRBool mSetOpenerWindowCalled;
-  PRUint32 mSerial;
   nsCOMPtr<nsIURI> mLastOpenedURI;
 #endif
 
