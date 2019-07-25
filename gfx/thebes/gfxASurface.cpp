@@ -530,7 +530,6 @@ gfxASurface::FastMovePixels(const nsIntRect& aSourceRect,
                             const nsIntPoint& aDestTopLeft)
 {
     
-    gfxIntSize size = GetSize();
     nsIntRect dest(aDestTopLeft, aSourceRect.Size());
     
     nsRefPtr<gfxContext> ctx = new gfxContext(this);
