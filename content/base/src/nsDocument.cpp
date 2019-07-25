@@ -8801,6 +8801,43 @@ nsDocument::FullScreenStackTop()
   return element;
 }
 
+static bool
+IsInFocusedTab(nsIDocument* aDoc)
+{
+  nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+  if (!fm) {
+    return false;
+  }
+
+  
+  nsCOMPtr<nsIDOMWindow> focusedWindow;
+  fm->GetFocusedWindow(getter_AddRefs(focusedWindow));
+  if (!focusedWindow) {
+    return false;
+  }
+
+  
+  nsCOMPtr<nsIDOMDocument> domDocument;
+  focusedWindow->GetDocument(getter_AddRefs(domDocument));
+  nsCOMPtr<nsIDocument> focusedDoc = do_QueryInterface(domDocument);
+
+  
+  
+  if (nsContentUtils::IsChromeDoc(focusedDoc)) {
+    return aDoc == focusedDoc;
+  }      
+
+  
+  nsIDocument* commonAncestor = GetCommonAncestor(focusedDoc, aDoc);
+  if (commonAncestor == focusedDoc || commonAncestor == aDoc) {
+    
+    
+    return true;
+  }
+
+  return false;
+}
+
 void
 nsDocument::RequestFullScreen(Element* aElement, bool aWasCallerChrome)
 {
@@ -8832,6 +8869,25 @@ nsDocument::RequestFullScreen(Element* aElement, bool aWasCallerChrome)
     LogFullScreenDenied(true, "FullScreenDeniedNotDescendant", this);
     return;
   }
+  if (!IsInFocusedTab(this)) {
+    LogFullScreenDenied(true, "FullScreenDeniedNotFocusedTab", this);
+    return;
+  }
+  
+  nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+  if (!fm) {
+    NS_WARNING("Failed to retrieve focus manager in full-screen request.");
+    return;
+  }
+  nsCOMPtr<nsIDOMElement> focusedElement;
+  fm->GetFocusedElement(getter_AddRefs(focusedElement));
+  if (focusedElement) {
+    nsCOMPtr<nsIContent> content = do_QueryInterface(focusedElement);
+    if (nsContentUtils::HasPluginWithUncontrolledEventDispatch(content)) {
+      LogFullScreenDenied(true, "FullScreenDeniedFocusedPlugin", this);
+      return;
+    }
+  }
 
   
   
@@ -8839,16 +8895,6 @@ nsDocument::RequestFullScreen(Element* aElement, bool aWasCallerChrome)
   
   
   nsAutoTArray<nsIDocument*, 8> changed;
-
-  
-  nsCOMPtr<nsIDocument> fullScreenDoc(do_QueryReferent(sFullScreenDoc));
-  nsIDocument* commonAncestor = GetCommonAncestor(fullScreenDoc, this);
-  if (fullScreenDoc && !commonAncestor) {
-    
-    
-    
-    nsIDocument::ExitFullScreen(false);
-  }
 
   
   
@@ -8874,8 +8920,6 @@ nsDocument::RequestFullScreen(Element* aElement, bool aWasCallerChrome)
       changed.AppendElement(parent);
       child = parent;
     } else {
-      NS_ASSERTION(!commonAncestor || child == commonAncestor,
-                   "Should finish loop at common ancestor (or null)");
       
       
       
@@ -8986,10 +9030,6 @@ nsDocument::IsFullScreenEnabled(bool aCallerIsChrome, bool aLogFailure)
 
   if (!nsContentUtils::IsFullScreenApiEnabled()) {
     LogFullScreenDenied(aLogFailure, "FullScreenDeniedDisabled", this);
-    return false;
-  }
-  if (nsContentUtils::HasPluginWithUncontrolledEventDispatch(this)) {
-    LogFullScreenDenied(aLogFailure, "FullScreenDeniedPlugins", this);
     return false;
   }
   if (!IsVisible()) {
