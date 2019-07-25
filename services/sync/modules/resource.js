@@ -235,23 +235,15 @@ Resource.prototype = {
       status = channel.responseStatus;
       success = channel.requestSucceeded;
 
-      if (success) {
-        this._log.debug(action + " success: " + status);
-        if (this._log.level <= Log4Moz.Level.Trace)
-          this._log.trace(action + " Body: " + this._data);
-      }
-      else {
-        let log = "debug";
-        let mesg = action + " fail: " + status;
-
-        
-        if (this._log.level <= Log4Moz.Level.Trace) {
-          log = "trace";
-          mesg += " " + this._data;
-        }
-
-        this._log[log](mesg);
-      }
+      
+      let mesg = [action, success ? "success" : "fail", status,
+        channel.URI.spec].join(" ");
+      if (mesg.length > 200)
+        mesg = mesg.substr(0, 200) + "â€¦";
+      this._log.debug(mesg);
+      
+      if (this._log.level <= Log4Moz.Level.Trace)
+        this._log.trace(action + " body: " + this._data);
 
       
       if (headers["X-Weave-Backoff"])
@@ -314,19 +306,8 @@ function ChannelListener(onComplete, onProgress, logger) {
 }
 ChannelListener.prototype = {
   onStartRequest: function Channel_onStartRequest(channel) {
-    
     channel.QueryInterface(Ci.nsIHttpChannel);
-
-    let log = "trace";
-    let mesg = channel.requestMethod + " request for " + channel.URI.spec;
-    
-    if (this._log.level > Log4Moz.Level.Trace) {
-      log = "debug";
-      if (mesg.length > 200)
-        mesg = mesg.substr(0, 200) + "...";
-    }
-    this._log[log](mesg);
-
+    this._log.trace(channel.requestMethod + " " + channel.URI.spec);
     this._data = '';
   },
 

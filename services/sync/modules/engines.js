@@ -262,7 +262,7 @@ Engine.prototype = {
         return "Total (ms): " + sums.sort(order).join(", ");
       };
 
-      this._log.info(stats);
+      this._log.debug(stats);
     }
   },
 
@@ -347,7 +347,7 @@ SyncEngine.prototype = {
   
   
   _syncStartup: function SyncEngine__syncStartup() {
-    this._log.debug("Ensuring server crypto records are there");
+    this._log.trace("Ensuring server crypto records are there");
 
     
     let meta = CryptoMetas.get(this.cryptoMetaURL);
@@ -391,7 +391,7 @@ SyncEngine.prototype = {
     
     
     if (!this.lastSync) {
-      this._log.info("First sync, uploading all items");
+      this._log.debug("First sync, uploading all items");
       this._tracker.clearChangedIDs();
       [i for (i in this._store.getAllIDs())]
         .forEach(function(id) this._tracker.changedIDs[id] = true, this);
@@ -406,7 +406,7 @@ SyncEngine.prototype = {
 
   
   _processIncoming: function SyncEngine__processIncoming() {
-    this._log.debug("Downloading & applying server changes");
+    this._log.trace("Downloading & applying server changes");
 
     
     let fetchNum = 1500;
@@ -614,7 +614,7 @@ SyncEngine.prototype = {
   _uploadOutgoing: function SyncEngine__uploadOutgoing() {
     let outnum = [i for (i in this._tracker.changedIDs)].length;
     if (outnum) {
-      this._log.debug("Preparing " + outnum + " outgoing records");
+      this._log.trace("Preparing " + outnum + " outgoing records");
 
       
       let up = new Collection(this.engineURL);
