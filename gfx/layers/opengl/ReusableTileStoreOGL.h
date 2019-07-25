@@ -64,8 +64,8 @@ public:
   
   
   
-  void HarvestTiles(TiledLayerBufferOGL* aVideoMemoryTiledBuffer,
-                    const nsIntSize& aContentSize,
+  void HarvestTiles(TiledThebesLayerOGL* aLayer,
+                    TiledLayerBufferOGL* aVideoMemoryTiledBuffer,
                     const nsIntRegion& aOldValidRegion,
                     const nsIntRegion& aNewValidRegion,
                     const gfxSize& aOldResolution,
@@ -75,12 +75,19 @@ public:
   
   
   void DrawTiles(TiledThebesLayerOGL* aLayer,
-                 const nsIntSize& aContentSize,
                  const nsIntRegion& aValidRegion,
                  const gfxSize& aResolution,
                  const gfx3DMatrix& aTransform,
                  const nsIntPoint& aRenderOffset,
                  Layer* aMaskLayer);
+
+protected:
+  
+  
+  
+  void InvalidateTiles(TiledThebesLayerOGL* aLayer,
+                       const nsIntRegion& aValidRegion,
+                       const gfxSize& aResolution);
 
 private:
   

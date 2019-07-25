@@ -19,47 +19,70 @@ ReusableTileStoreOGL::~ReusableTileStoreOGL()
 }
 
 void
-ReusableTileStoreOGL::HarvestTiles(TiledLayerBufferOGL* aVideoMemoryTiledBuffer,
-                                   const nsIntSize& aContentSize,
-                                   const nsIntRegion& aOldValidRegion,
-                                   const nsIntRegion& aNewValidRegion,
-                                   const gfxSize& aOldResolution,
-                                   const gfxSize& aNewResolution)
+ReusableTileStoreOGL::InvalidateTiles(TiledThebesLayerOGL* aLayer,
+                                      const nsIntRegion& aValidRegion,
+                                      const gfxSize& aResolution)
 {
-  gfxSize scaleFactor = gfxSize(aNewResolution.width / aOldResolution.width,
-                                aNewResolution.height / aOldResolution.height);
-
 #ifdef GFX_TILEDLAYER_PREF_WARNINGS
-  printf_stderr("Seeing if there are any tiles we can reuse\n");
+  printf_stderr("Invalidating reused tiles\n");
 #endif
 
+  
+  
+  gfxRect renderBounds;
+  for (ContainerLayer* parent = aLayer->GetParent(); parent; parent = parent->GetParent()) {
+      const FrameMetrics& metrics = parent->GetFrameMetrics();
+      if (!metrics.mDisplayPort.IsEmpty()) {
+          
+          
+          
+          
+          renderBounds = parent->GetEffectiveTransform().TransformBounds(gfxRect(metrics.mDisplayPort));
+          break;
+      }
+  }
+
+  
+  if (renderBounds.IsEmpty()) {
+      LayerManagerOGL* manager = static_cast<LayerManagerOGL*>(aLayer->Manager());
+      const nsIntSize& widgetSize = manager->GetWidgetSize();
+      renderBounds.width = widgetSize.width;
+      renderBounds.height = widgetSize.height;
+  }
+
+  
+  
   
   
   mContext->MakeCurrent();
   for (PRUint32 i = 0; i < mTiles.Length();) {
     ReusableTiledTextureOGL* tile = mTiles[i];
 
+    
     nsIntRect tileRect;
     bool release = false;
-    if (tile->mResolution == aNewResolution) {
-      if (aNewValidRegion.Contains(tile->mTileRegion)) {
+    if (tile->mResolution == aResolution) {
+      if (aValidRegion.Contains(tile->mTileRegion)) {
         release = true;
       } else {
         tileRect = tile->mTileRegion.GetBounds();
       }
     } else {
       nsIntRegion transformedTileRegion(tile->mTileRegion);
-      transformedTileRegion.ScaleRoundOut(tile->mResolution.width / aNewResolution.width,
-                                          tile->mResolution.height / aNewResolution.height);
-      if (aNewValidRegion.Contains(transformedTileRegion))
+      transformedTileRegion.ScaleRoundOut(tile->mResolution.width / aResolution.width,
+                                          tile->mResolution.height / aResolution.height);
+      if (aValidRegion.Contains(transformedTileRegion))
         release = true;
       else
         tileRect = transformedTileRegion.GetBounds();
     }
 
+    
+    
     if (!release) {
-      if (tileRect.width > aContentSize.width ||
-          tileRect.height > aContentSize.height)
+      
+      gfxRect tileBounds = aLayer->GetEffectiveTransform().TransformBounds(gfxRect(tileRect));
+      if (renderBounds.Contains(tileBounds))
         release = true;
     }
 
@@ -76,6 +99,22 @@ ReusableTileStoreOGL::HarvestTiles(TiledLayerBufferOGL* aVideoMemoryTiledBuffer,
 
     i++;
   }
+}
+
+void
+ReusableTileStoreOGL::HarvestTiles(TiledThebesLayerOGL* aLayer,
+                                   TiledLayerBufferOGL* aVideoMemoryTiledBuffer,
+                                   const nsIntRegion& aOldValidRegion,
+                                   const nsIntRegion& aNewValidRegion,
+                                   const gfxSize& aOldResolution,
+                                   const gfxSize& aNewResolution)
+{
+  gfxSize scaleFactor = gfxSize(aNewResolution.width / aOldResolution.width,
+                                aNewResolution.height / aOldResolution.height);
+
+#ifdef GFX_TILEDLAYER_PREF_WARNINGS
+  printf_stderr("Seeing if there are any tiles we can reuse\n");
+#endif
 
   
   
@@ -139,6 +178,9 @@ ReusableTileStoreOGL::HarvestTiles(TiledLayerBufferOGL* aVideoMemoryTiledBuffer,
   }
 
   
+  InvalidateTiles(aLayer, aNewValidRegion, aNewResolution);
+
+  
   while (mTiles.Length() > aVideoMemoryTiledBuffer->GetTileCount() * mSizeLimit) {
 #ifdef GFX_TILEDLAYER_PREF_WARNINGS
     nsIntRect tileBounds = mTiles[0]->mTileRegion.GetBounds();
@@ -156,13 +198,36 @@ ReusableTileStoreOGL::HarvestTiles(TiledLayerBufferOGL* aVideoMemoryTiledBuffer,
 
 void
 ReusableTileStoreOGL::DrawTiles(TiledThebesLayerOGL* aLayer,
-                                const nsIntSize& aContentSize,
                                 const nsIntRegion& aValidRegion,
                                 const gfxSize& aResolution,
                                 const gfx3DMatrix& aTransform,
                                 const nsIntPoint& aRenderOffset,
                                 Layer* aMaskLayer)
 {
+  
+  
+  
+  
+  
+  gfxRect contentBounds, displayPort;
+  ContainerLayer* scrollableLayer = nsnull;
+  for (ContainerLayer* parent = aLayer->GetParent(); parent; parent = parent->GetParent()) {
+      const FrameMetrics& parentMetrics = parent->GetFrameMetrics();
+      if (parentMetrics.IsScrollable())
+        scrollableLayer = parent;
+      if (!parentMetrics.mDisplayPort.IsEmpty() && scrollableLayer) {
+          displayPort = parent->GetEffectiveTransform().
+            TransformBounds(gfxRect(parentMetrics.mDisplayPort));
+          const FrameMetrics& metrics = scrollableLayer->GetFrameMetrics();
+          const nsIntSize& contentSize = metrics.mContentSize;
+          const nsIntPoint& contentOrigin = metrics.mViewportScrollOffset;
+          gfxRect contentRect = gfxRect(-contentOrigin.x, -contentOrigin.y,
+                                        contentSize.width, contentSize.height);
+          contentBounds = scrollableLayer->GetEffectiveTransform().TransformBounds(contentRect);
+          break;
+      }
+  }
+
   
   for (PRUint32 i = 0; i < mTiles.Length(); i++) {
     ReusableTiledTextureOGL* tile = mTiles[i];
@@ -172,36 +237,47 @@ ReusableTileStoreOGL::DrawTiles(TiledThebesLayerOGL* aLayer,
                                   aResolution.height / tile->mResolution.height);
 
     
-    nsIntRegion transformedTileRegion(tile->mTileRegion);
-    if (aResolution != tile->mResolution)
-      transformedTileRegion.ScaleRoundOut(scaleFactor.width, scaleFactor.height);
-
-    
-    if (aValidRegion.Contains(transformedTileRegion))
-      continue;
-
-    
-    
-    nsIntRect transformedTileRect = transformedTileRegion.GetBounds();
-    if (transformedTileRect.XMost() > aContentSize.width ||
-        transformedTileRect.YMost() > aContentSize.height)
-      continue;
-
-    
     gfx3DMatrix transform = aTransform;
     if (aResolution != tile->mResolution)
       transform.Scale(scaleFactor.width, scaleFactor.height, 1);
 
     
+    nsIntRegion transformedValidRegion(aValidRegion);
+    if (aResolution != tile->mResolution)
+      transformedValidRegion.ScaleRoundOut(1.0f/scaleFactor.width,
+                                           1.0f/scaleFactor.height);
+    nsIntRegion tileRegion;
+    tileRegion.Sub(tile->mTileRegion, transformedValidRegion);
+
     
+    if (!displayPort.IsEmpty()) {
+      gfxRect transformedRenderBounds = transform.Inverse().TransformBounds(displayPort);
+      tileRegion.Sub(tileRegion, nsIntRect(transformedRenderBounds.x,
+                                           transformedRenderBounds.y,
+                                           transformedRenderBounds.width,
+                                           transformedRenderBounds.height));
+    }
+
     
+    if (!contentBounds.IsEmpty()) {
+      gfxRect transformedRenderBounds = transform.Inverse().TransformBounds(contentBounds);
+      tileRegion.And(tileRegion, nsIntRect(transformedRenderBounds.x,
+                                           transformedRenderBounds.y,
+                                           transformedRenderBounds.width,
+                                           transformedRenderBounds.height));
+    }
+
+    
+    if (tileRegion.IsEmpty())
+      continue;
+
     
     
     uint16_t tileStartX = tile->mTileOrigin.x % tile->mTileSize;
     uint16_t tileStartY = tile->mTileOrigin.y % tile->mTileSize;
     nsIntPoint tileOffset(tile->mTileOrigin.x - tileStartX, tile->mTileOrigin.y - tileStartY);
     nsIntSize textureSize(tile->mTileSize, tile->mTileSize);
-    aLayer->RenderTile(tile->mTexture, transform, aRenderOffset, tile->mTileRegion, tileOffset, textureSize, aMaskLayer);
+    aLayer->RenderTile(tile->mTexture, transform, aRenderOffset, tileRegion, tileOffset, textureSize, aMaskLayer);
   }
 }
 
