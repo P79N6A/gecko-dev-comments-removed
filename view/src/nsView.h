@@ -162,12 +162,28 @@ public:
   nsPoint GetOffsetTo(const nsView* aOther, const PRInt32 aAPD) const;
   nsIWidget* GetNearestWidget(nsPoint* aOffset, const PRInt32 aAPD) const;
 
+  void SetPendingRefresh(bool aPending) { mPendingRefresh = aPending; }
+  bool PendingRefresh() { return mPendingRefresh; }
+
+  void SkippedPaint() { mSkippedPaints++; }
+  void ClearSkippedPaints() { mSkippedPaints = 0; }
+  PRUint32 SkippedPaints() { return mSkippedPaints; }
+
 protected:
   
   
   void DoResetWidgetBounds(bool aMoveOnly, bool aInvalidateChangedSize);
 
   nsRegion*    mDirtyRegion;
+
+  
+  
+  bool mPendingRefresh;
+
+  
+  
+  
+  PRUint32 mSkippedPaints;
 
 private:
   void InitializeWindow(bool aEnableDragDrop, bool aResetVisibility);

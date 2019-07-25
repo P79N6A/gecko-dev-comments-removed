@@ -297,7 +297,10 @@ public:
 
 
 
-  virtual void ProcessPendingUpdates()=0;
+
+
+
+  virtual bool ProcessPendingUpdates()=0;
 
   
 
