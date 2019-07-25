@@ -6638,16 +6638,22 @@ var FeedHandler = {
     }
   },
 
+  get _feedMenuitem() {
+    delete this._feedMenuitem;
+    return this._feedMenuitem = document.getElementById("singleFeedMenuitemState");
+  },
+
+  get _feedMenupopup() {
+    delete this._feedMenupopup;
+    return this._feedMenupopup = document.getElementById("multipleFeedsMenuState");
+  },
+
   
 
 
 
   updateFeeds: function() {
     var feedButton = document.getElementById("feed-button");
-    if (!this._feedMenuitem)
-      this._feedMenuitem = document.getElementById("subscribeToPageMenuitem");
-    if (!this._feedMenupopup)
-      this._feedMenupopup = document.getElementById("subscribeToPageMenupopup");
 
     var feeds = gBrowser.selectedBrowser.feeds;
     if (!feeds || feeds.length == 0) {
