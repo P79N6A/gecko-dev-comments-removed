@@ -55,7 +55,7 @@ FormHistory.prototype = {
     QueryInterface   : XPCOMUtils.generateQI([Ci.nsIFormHistory2,
                                               Ci.nsIObserver,
                                               Ci.nsIFrameMessageListener,
-                                              ]),
+                                              Ci.nsISupportsWeakReference]),
 
     debug          : true,
     enabled        : true,
@@ -127,7 +127,9 @@ FormHistory.prototype = {
     init : function() {
         let self = this;
 
-        Services.prefs.addObserver("browser.formfill.", this, false);
+        let prefBranch = Services.prefs.getBranch("browser.formfill.");
+        prefBranch = prefBranch.QueryInterface(Ci.nsIPrefBranch2);
+        prefBranch.addObserver("", this, true);
 
         this.updatePrefs();
 
@@ -509,7 +511,8 @@ FormHistory.prototype = {
         
         let expireDays = 180;
         try {
-            expireDays = Services.prefs.getIntPref("browser.formfill.expire_days");
+            let prefBranch = Services.prefs.getBranch("browser.formfill.");
+            expireDays = prefBranch.getIntPref("expire_days");
         } catch (e) {  }
 
         let expireTime = Date.now() - expireDays * DAY_IN_MS;
@@ -548,9 +551,10 @@ FormHistory.prototype = {
 
 
     updatePrefs : function () {
-        this.debug          = Services.prefs.getBoolPref("browser.formfill.debug");
-        this.enabled        = Services.prefs.getBoolPref("browser.formfill.enable");
-        this.saveHttpsForms = Services.prefs.getBoolPref("browser.formfill.saveHttpsForms");
+        let prefBranch = Services.prefs.getBranch("browser.formfill.");
+        this.debug          = prefBranch.getBoolPref("debug");
+        this.enabled        = prefBranch.getBoolPref("enable");
+        this.saveHttpsForms = prefBranch.getBoolPref("saveHttpsForms");
     },
 
 
