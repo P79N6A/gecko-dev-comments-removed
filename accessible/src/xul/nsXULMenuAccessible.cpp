@@ -54,16 +54,13 @@
 #include "nsIPresShell.h"
 #include "nsIContent.h"
 #include "nsGUIEvent.h"
-#include "nsILookAndFeel.h"
-#include "nsWidgetsCID.h"
 
 #include "mozilla/Preferences.h"
+#include "mozilla/LookAndFeel.h"
 #include "mozilla/dom/Element.h"
 
 using namespace mozilla;
 using namespace mozilla::a11y;
-
-static NS_DEFINE_CID(kLookAndFeelCID, NS_LOOKANDFEEL_CID);
 
 
 
@@ -360,10 +357,8 @@ nsXULMenuitemAccessible::NativeState()
   
   if (state & states::UNAVAILABLE) {
     
-    nsCOMPtr<nsILookAndFeel> lookNFeel(do_GetService(kLookAndFeelCID));
-    PRInt32 skipDisabledMenuItems = 0;
-    lookNFeel->GetMetric(nsILookAndFeel::eMetric_SkipNavigatingDisabledMenuItem,
-                         skipDisabledMenuItems);
+    PRInt32 skipDisabledMenuItems =
+      LookAndFeel::GetInt(LookAndFeel::eIntID_SkipNavigatingDisabledMenuItem);
     
     
     if (skipDisabledMenuItems || isComboboxOption) {
