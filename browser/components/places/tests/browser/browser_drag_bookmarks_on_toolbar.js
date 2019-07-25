@@ -247,7 +247,7 @@ function nextTest() {
   else {
     
     if (wasCollapsed)
-      toolbar.collapsed = true;
+      setToolbarVisibility(toolbar, false);
     finish();
   }
 }
@@ -258,7 +258,7 @@ let wasCollapsed = toolbar.collapsed;
 function test() {
   
   if (wasCollapsed)
-    toolbar.collapsed = false;
+    setToolbarVisibility(toolbar, true);
 
   waitForExplicitFinish();
   nextTest();
