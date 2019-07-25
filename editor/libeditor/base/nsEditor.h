@@ -757,6 +757,20 @@ public:
   
   void OnFocus(nsIDOMEventTarget* aFocusEventTarget);
 
+  
+  
+  
+  virtual nsresult InsertFromDataTransfer(nsIDOMDataTransfer *aDataTransfer,
+                                          PRInt32 aIndex,
+                                          nsIDOMDocument *aSourceDoc,
+                                          nsIDOMNode *aDestinationNode,
+                                          PRInt32 aDestOffset,
+                                          bool aDoDeleteSelection) = 0;
+
+  virtual nsresult InsertFromDrop(nsIDOMEvent* aDropEvent) = 0;
+
+  virtual already_AddRefed<nsIDOMNode> FindUserSelectAllNode(nsIDOMNode* aNode) { return nsnull; }
+
 protected:
 
   PRUint32        mModCount;     

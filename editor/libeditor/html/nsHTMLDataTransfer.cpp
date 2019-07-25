@@ -1417,8 +1417,6 @@ GetStringFromDataTransfer(nsIDOMDataTransfer *aDataTransfer, const nsAString& aT
 nsresult nsHTMLEditor::InsertFromDataTransfer(nsIDOMDataTransfer *aDataTransfer,
                                               PRInt32 aIndex,
                                               nsIDOMDocument *aSourceDoc,
-                                              const nsAString & aContextStr,
-                                              const nsAString & aInfoStr,
                                               nsIDOMNode *aDestinationNode,
                                               PRInt32 aDestOffset,
                                               bool aDoDeleteSelection)
@@ -1478,13 +1476,15 @@ nsresult nsHTMLEditor::InsertFromDataTransfer(nsIDOMDataTransfer *aDataTransfer,
         }
       }
       else if (type.EqualsLiteral(kHTMLMime)) {
-        nsAutoString text;
+        nsAutoString text, contextString, infoString;
         GetStringFromDataTransfer(aDataTransfer, type, aIndex, text);
+        GetStringFromDataTransfer(aDataTransfer, NS_LITERAL_STRING(kHTMLContext), aIndex, contextString);
+        GetStringFromDataTransfer(aDataTransfer, NS_LITERAL_STRING(kHTMLInfo), aIndex, infoString);
 
         nsAutoEditBatch beginBatching(this);
         if (type.EqualsLiteral(kHTMLMime)) {
           rv = DoInsertHTMLWithContext(text,
-                                       aContextStr, aInfoStr, type,
+                                       contextString, infoString, type,
                                        aSourceDoc,
                                        aDestinationNode, aDestOffset,
                                        aDoDeleteSelection,
@@ -1506,164 +1506,6 @@ nsresult nsHTMLEditor::InsertFromDataTransfer(nsIDOMDataTransfer *aDataTransfer,
         return NS_OK;
     }
   }
-
-  return rv;
-}
-
-NS_IMETHODIMP nsHTMLEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
-{
-  ForceCompositionEnd();
-
-  nsCOMPtr<nsIDOMDragEvent> dragEvent(do_QueryInterface(aDropEvent));
-  NS_ENSURE_TRUE(dragEvent, NS_OK);
-
-  nsCOMPtr<nsIDOMDataTransfer> dataTransfer;
-  nsresult rv = dragEvent->GetDataTransfer(getter_AddRefs(dataTransfer));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  PRUint32 numItems = 0;
-  dataTransfer->GetMozItemCount(&numItems);
-
-  
-  nsAutoEditBatch beginBatching(this);
-
-  
-  bool deleteSelection = false;
-  nsCOMPtr<nsIDOMNode> newSelectionParent;
-  PRInt32 newSelectionOffset = 0;
-
-  nsCOMPtr<nsIDOMNode> sourceNode;
-  dataTransfer->GetMozSourceNode(getter_AddRefs(sourceNode));
-
-  nsCOMPtr<nsIDOMDocument> srcdomdoc;
-  if (sourceNode) {
-    sourceNode->GetOwnerDocument(getter_AddRefs(srcdomdoc));
-    NS_ENSURE_TRUE(sourceNode, NS_ERROR_FAILURE);
-  }
-
-  PRUint32 i; 
-  bool doPlaceCaret = true;
-  for (i = 0; i < numItems; ++i)
-  {
-    nsAutoString contextString, infoString;
-    GetStringFromDataTransfer(dataTransfer, NS_LITERAL_STRING(kHTMLContext), i, contextString);
-    GetStringFromDataTransfer(dataTransfer, NS_LITERAL_STRING(kHTMLInfo), i, infoString);
-
-    if (doPlaceCaret)
-    {
-      nsCOMPtr<nsISelection> selection;
-      rv = GetSelection(getter_AddRefs(selection));
-      NS_ENSURE_SUCCESS(rv, rv);
-      NS_ENSURE_TRUE(selection, NS_ERROR_FAILURE);
-
-      bool isCollapsed;
-      rv = selection->GetIsCollapsed(&isCollapsed);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      nsCOMPtr<nsIDOMUIEvent> uiEvent = do_QueryInterface(aDropEvent);
-      NS_ENSURE_TRUE(uiEvent, NS_ERROR_FAILURE);
-
-      
-      rv = uiEvent->GetRangeParent(getter_AddRefs(newSelectionParent));
-      NS_ENSURE_SUCCESS(rv, rv);
-      NS_ENSURE_TRUE(newSelectionParent, NS_ERROR_FAILURE);
-
-      rv = uiEvent->GetRangeOffset(&newSelectionOffset);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      
-      
-      
-      
-
-      nsCOMPtr<nsIDOMNode> userSelectNode = FindUserSelectAllNode(newSelectionParent);
-
-      if (userSelectNode)
-      {
-        
-        
-        
-        
-        
-        
-        
-        
-
-        rv = GetNodeLocation(userSelectNode, address_of(newSelectionParent),
-                             &newSelectionOffset);
-
-        NS_ENSURE_SUCCESS(rv, rv);
-        NS_ENSURE_TRUE(newSelectionParent, NS_ERROR_FAILURE);
-      }
-
-      
-      bool cursorIsInSelection = false;
-
-      
-      if (!isCollapsed)
-      {
-        PRInt32 rangeCount;
-        rv = selection->GetRangeCount(&rangeCount);
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        for (PRInt32 j = 0; j < rangeCount; j++)
-        {
-          nsCOMPtr<nsIDOMRange> range;
-
-          rv = selection->GetRangeAt(j, getter_AddRefs(range));
-          if (NS_FAILED(rv) || !range) 
-            continue;
-
-          rv = range->IsPointInRange(newSelectionParent, newSelectionOffset, &cursorIsInSelection);
-          if(cursorIsInSelection)
-            break;
-        }
-
-        nsCOMPtr<nsIDOMDocument> destdomdoc;
-        GetDocument(getter_AddRefs(destdomdoc));
-        NS_ENSURE_TRUE(destdomdoc, NS_ERROR_FAILURE);
-
-        if (cursorIsInSelection)
-        {
-          
-          
-          if (srcdomdoc == destdomdoc)
-            return NS_OK;
-          
-          
-          
-          
-          
-        }
-        else 
-        {
-          
-          if (srcdomdoc == destdomdoc)
-          {
-            
-            PRUint32 dropEffect;
-            dataTransfer->GetDropEffectInt(&dropEffect);
-            deleteSelection = !(dropEffect & nsIDragService::DRAGDROP_ACTION_COPY);
-          }
-          else
-          {
-            
-            deleteSelection = false;
-          }
-        }
-      }
-
-      
-      doPlaceCaret = false;
-    }
-    
-    rv = InsertFromDataTransfer(dataTransfer, i, srcdomdoc,
-                                contextString, infoString, newSelectionParent,
-                                newSelectionOffset, deleteSelection);
-  }
-
-  if (NS_SUCCEEDED(rv))
-    ScrollSelectionIntoView(false);
 
   return rv;
 }
