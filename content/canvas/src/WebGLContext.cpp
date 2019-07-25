@@ -310,11 +310,13 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
     prefService->GetBoolPref("webgl.verbose", &verbose);
     mVerbose = verbose;
 
+    
     PRBool forceOSMesa = PR_FALSE;
+    PRBool preferEGL = PR_FALSE;
     prefService->GetBoolPref("webgl.force_osmesa", &forceOSMesa);
+    prefService->GetBoolPref("webgl.prefer_egl", &preferEGL);
 
-    if (!forceOSMesa) {
-
+    
     PRBool useOpenGL = PR_TRUE;
     PRBool useANGLE = PR_TRUE;
 
@@ -337,73 +339,68 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
         }
     }
 
-    #ifdef XP_WIN
-        
-        
-        
-        
-        bool preferEGL = PR_GetEnv("MOZ_WEBGL_PREFER_EGL") != nsnull;
+    
+    if (forceOSMesa) {
+        gl = gl::GLContextProviderOSMesa::CreateOffscreen(gfxIntSize(width, height), format);
+        if (!gl || !InitAndValidateGL()) {
+            LogMessage("WebGL: OSMesa forced, but creating context failed -- aborting!");
+            return NS_ERROR_FAILURE;
+        }
+        LogMessage("WebGL: Using software rendering via OSMesa (THIS WILL BE SLOW)");
+    }
 
-        
-        if (!gl && preferEGL && useANGLE) {
-            gl = gl::GLContextProviderEGL::CreateOffscreen(gfxIntSize(width, height), format);
-            if (gl && !InitAndValidateGL()) {
-                gl = nsnull;
-            }
-        }
-
-        
-        if (!gl && useOpenGL) {
-            gl = gl::GLContextProvider::CreateOffscreen(gfxIntSize(width, height), format);
-            if (gl && !InitAndValidateGL()) {
-                gl = nsnull;
-            }
-        }
-
-        
-        if (!gl && !preferEGL && useANGLE) {
-            gl = gl::GLContextProviderEGL::CreateOffscreen(gfxIntSize(width, height), format);
-            if (gl && !InitAndValidateGL()) {
-                gl = nsnull;
-            }
-        }
-    #else
-        
-        if (!gl && useOpenGL) {
-            gl = gl::GLContextProvider::CreateOffscreen(gfxIntSize(width, height), format);
-            if (gl && !InitAndValidateGL()) {
-                gl = nsnull;
-            }
-        }
-    #endif
+#ifdef XP_WIN
+    
+    
+    
+    
+    
+    if (PR_GetEnv("MOZ_WEBGL_PREFER_EGL")) {
+        preferEGL = PR_TRUE;
     }
 
     
-    if (!gl) {
-        gl = gl::GLContextProviderOSMesa::CreateOffscreen(gfxIntSize(width, height), format);
-        if (gl) {
-            if (!InitAndValidateGL()) {
-                gl = nsnull;
-            } else {
-                
-                
-                LogMessage("WebGL: Using software rendering via OSMesa");
-            }
+    if (PR_GetEnv("MOZ_WEBGL_FORCE_OPENGL")) {
+        preferEGL = PR_FALSE;
+        useANGLE = PR_FALSE;
+        useOpenGL = PR_TRUE;
+    }
+
+    
+    if (!gl && (preferEGL || useANGLE)) {
+        gl = gl::GLContextProviderEGL::CreateOffscreen(gfxIntSize(width, height), format);
+        if (gl && !InitAndValidateGL()) {
+            gl = nsnull;
         }
     }
 
-    if (!gl) {
-        if (forceOSMesa) {
-            LogMessage("WebGL: You set the webgl.force_osmesa preference to true, but OSMesa can't be found. "
-                       "Either install OSMesa and let webgl.osmesalib point to it, "
-                       "or set webgl.force_osmesa back to false.");
-        } else {
-            #ifdef XP_WIN
-                LogMessage("WebGL: Can't get a usable OpenGL context (also tried Direct3D via ANGLE)");
-            #else
-                LogMessage("WebGL: Can't get a usable OpenGL context");
-            #endif
+    
+    if (!gl && useOpenGL) {
+        gl = gl::GLContextProvider::CreateOffscreen(gfxIntSize(width, height), format);
+        if (gl && !InitAndValidateGL()) {
+            gl = nsnull;
         }
+    }
+
+    
+    if (!gl && !(preferEGL || useANGLE)) {
+        gl = gl::GLContextProviderEGL::CreateOffscreen(gfxIntSize(width, height), format);
+        if (gl && !InitAndValidateGL()) {
+            gl = nsnull;
+        }
+    }
+#else
+    
+    if (!gl && useOpenGL) {
+        gl = gl::GLContextProvider::CreateOffscreen(gfxIntSize(width, height), format);
+        if (gl && !InitAndValidateGL()) {
+            gl = nsnull;
+        }
+    }
+#endif
+
+    if (!gl) {
+        LogMessage("WebGL: Can't get a usable WebGL context");
         return NS_ERROR_FAILURE;
     }
 
