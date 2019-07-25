@@ -1348,12 +1348,7 @@ PRUint32
 nsIContent::GetDesiredIMEState()
 {
   if (!IsEditableInternal()) {
-    
-    
-    if (!IsElement() ||
-        !AsElement()->State().HasState(NS_EVENT_STATE_MOZ_READWRITE)) {
-      return IME_STATUS_DISABLE;
-    }
+    return IME_STATUS_DISABLE;
   }
   
   
