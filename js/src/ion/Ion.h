@@ -43,15 +43,19 @@
 #define jsion_ion_h__
 
 #include "jscntxt.h"
+#include "IonCode.h"
 
 namespace js {
 namespace ion {
 
 class TempAllocator;
 
+
+
+
 class IonContext
 {
-public:
+  public:
     IonContext(JSContext *cx, TempAllocator *temp);
     ~IonContext();
 
@@ -59,7 +63,9 @@ public:
     TempAllocator *temp;
 };
 
+
 bool InitializeIon();
+
 
 IonContext *GetIonContext();
 bool SetIonContext(IonContext *ctx);
