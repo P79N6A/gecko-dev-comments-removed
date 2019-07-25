@@ -147,9 +147,11 @@ wmain(int argc, WCHAR **argv)
 
 
 DWORD
-WINAPI StartMonitoringThreadProc(LPVOID param) 
+WINAPI StartMaintenanceServiceThread(LPVOID param) 
 {
-  StartDirectoryChangeMonitor();
+  ThreadData *threadData = reinterpret_cast<ThreadData*>(param);
+  ExecuteServiceCommand(threadData->argc, threadData->argv);
+  delete threadData;
   return 0;
 }
 
@@ -273,7 +275,7 @@ SvcMain(DWORD dwArgc, LPWSTR *lpszArgv)
 
 
 void
-SvcInit(DWORD dwArgc, LPWSTR *lpszArgv)
+SvcInit(DWORD argc, LPWSTR *argv)
 {
   
   
@@ -283,9 +285,13 @@ SvcInit(DWORD dwArgc, LPWSTR *lpszArgv)
     return;
   }
 
+  ThreadData *threadData = new ThreadData();
+  threadData->argc = argc;
+  threadData->argv = argv;
+
   DWORD threadID;
-  HANDLE thread = CreateThread(NULL, 0, StartMonitoringThreadProc, 0, 
-                               0, &threadID);
+  HANDLE thread = CreateThread(NULL, 0, StartMaintenanceServiceThread, 
+                               threadData, 0, &threadID);
 
   
   ReportSvcStatus(SERVICE_RUNNING, NO_ERROR, 0);
@@ -294,31 +300,6 @@ SvcInit(DWORD dwArgc, LPWSTR *lpszArgv)
   for(;;) {
     
     WaitForSingleObject(ghSvcStopEvent, INFINITE);
-
-    WCHAR stopFilePath[MAX_PATH +1];
-    if (!GetUpdateDirectoryPath(stopFilePath)) {
-      LOG(("Could not obtain update directory path, terminating thread "
-           "forcefully.\n"));
-      TerminateThread(thread, 1);
-    }
-
-    
-    
-    
-    gServiceStopping = TRUE;
-    if (!PathAppendSafe(stopFilePath, L"stop")) {
-      TerminateThread(thread, 2);
-    }
-    HANDLE stopFile = CreateFile(stopFilePath, GENERIC_READ, 0, 
-                                 NULL, CREATE_ALWAYS, 0, NULL);
-    if (stopFile == INVALID_HANDLE_VALUE) {
-      LOG(("Could not create stop file, terminating thread forcefully.\n"));
-      TerminateThread(thread, 3);
-    } else {
-      CloseHandle(stopFile);
-      DeleteFile(stopFilePath);
-    }
-
     ReportSvcStatus(SERVICE_STOPPED, NO_ERROR, 0);
     return;
   }

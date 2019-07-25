@@ -53,34 +53,6 @@ BOOL PathAppendSafe(LPWSTR base, LPCWSTR extra);
 
 
 
-BOOL
-GetUpdateDirectoryPath(LPWSTR path) 
-{
-  HRESULT hr = SHGetFolderPathW(NULL, CSIDL_COMMON_APPDATA, NULL, 
-                                SHGFP_TYPE_CURRENT, path);
-  if (FAILED(hr)) {
-    return FALSE;
-  }
-  if (!PathAppendSafe(path, L"Mozilla")) {
-    return FALSE;
-  }
-  
-  
-  CreateDirectoryW(path, NULL);
-
-  if (!PathAppendSafe(path, L"updates")) {
-    return FALSE;
-  }
-  CreateDirectoryW(path, NULL);
-  return TRUE;
-}
-
-
-
-
-
-
-
 
 
 BOOL
@@ -301,8 +273,10 @@ StartServiceUpdate(int argc, LPWSTR *argv)
 
 
 
+
+
 BOOL 
-EnsureWindowsServiceRunning() 
+StartServiceCommand(int argc, LPCWSTR* argv) 
 {
   
   SC_HANDLE serviceManager = OpenSCManager(NULL, NULL, 
@@ -331,46 +305,14 @@ EnsureWindowsServiceRunning()
     return FALSE;
   }
 
-  if (ssp.dwCurrentState == SERVICE_STOPPED) {
-    if (!StartService(service, 0, NULL)) {
-      CloseServiceHandle(service);
-      CloseServiceHandle(serviceManager);
-      return FALSE;
-    }
-
-    
-    
-    
-    DWORD totalWaitTime = 0;
-    static const int maxWaitTime = 1000 * 5; 
-    while (QueryServiceStatusEx(service, SC_STATUS_PROCESS_INFO, (LPBYTE)&ssp,
-                                sizeof(SERVICE_STATUS_PROCESS), &bytesNeeded)) {
-      if (ssp.dwCurrentState == SERVICE_RUNNING) {
-        break;
-      }
-      
-      if (ssp.dwCurrentState == SERVICE_START_PENDING &&
-          totalWaitTime > maxWaitTime) {
-        
-        break;
-      }
-      
-      if (ssp.dwCurrentState != SERVICE_START_PENDING) {
-        CloseServiceHandle(service);
-        CloseServiceHandle(serviceManager);
-        return FALSE;
-      }
-
-      Sleep(ssp.dwWaitHint);
-      
-      
-      totalWaitTime += (ssp.dwWaitHint + 10);
-    }
+  
+  if (ssp.dwCurrentState != SERVICE_STOPPED) {
+    CloseServiceHandle(service);
+    CloseServiceHandle(serviceManager);
+    return FALSE;
   }
 
-  CloseServiceHandle(service);
-  CloseServiceHandle(serviceManager);
-  return ssp.dwCurrentState == SERVICE_RUNNING;
+  return StartServiceW(service, argc, argv);
 }
 
 
@@ -382,101 +324,26 @@ EnsureWindowsServiceRunning()
 
 
 
+
 BOOL
-WinLaunchServiceCommand(LPCWSTR exePath, int argc, LPWSTR* argv)
+LaunchServiceSoftwareUpdateCommand(DWORD argc, LPCWSTR* argv)
 {
   
   
-  if (!EnsureWindowsServiceRunning()) {
-    return FALSE;
-  }
-
-  WCHAR updateData[MAX_PATH + 1];
-  if (!GetUpdateDirectoryPath(updateData)) {
-    return FALSE;
-  }
-
   
-  WCHAR tempFilePath[MAX_PATH + 1];
-  const int USE_SYSTEM_TIME = 0;
-  if (!GetTempFileNameW(updateData, L"moz", USE_SYSTEM_TIME, tempFilePath)) {
-    return FALSE;
-  }
-  
-  const int FILE_SHARE_NONE = 0;
-  HANDLE updateMetaFile = CreateFileW(tempFilePath, GENERIC_WRITE, 
-                                      FILE_SHARE_NONE, NULL, CREATE_ALWAYS, 
-                                      0, NULL);
-  if (updateMetaFile == INVALID_HANDLE_VALUE) {
-    return FALSE;
+  LPCWSTR *updaterServiceArgv = new LPCWSTR[argc + 2];
+  updaterServiceArgv[0] = L"maintenanceservice.exe";
+  updaterServiceArgv[1] = L"software-update";
+
+  for (int i = 0; i < argc; ++i) {
+    updaterServiceArgv[i + 2] = argv[i];
   }
 
   
   
-  
-  DWORD commandID = 1, commandIDWrote;
-  BOOL result = WriteFile(updateMetaFile, &commandID, 
-                          sizeof(DWORD), 
-                          &commandIDWrote, NULL);
-
-  
-  
-  
-  
-  
-  
-  LPWSTR commandLineBuffer = MakeCommandLine(argc, argv);
-  if (!commandLineBuffer) {
-    return FALSE;
-  }
-
-  WCHAR appBuffer[MAX_PATH + 1];
-  ZeroMemory(appBuffer, sizeof(appBuffer));
-  wcscpy(appBuffer, exePath);
-  DWORD appBufferWrote;
-  result |= WriteFile(updateMetaFile, appBuffer, 
-                      MAX_PATH * sizeof(WCHAR), 
-                      &appBufferWrote, NULL);
-
-  WCHAR workingDirectory[MAX_PATH + 1];
-  ZeroMemory(workingDirectory, sizeof(appBuffer));
-  GetCurrentDirectoryW(sizeof(workingDirectory) / sizeof(workingDirectory[0]), 
-                       workingDirectory);
-  DWORD workingDirectoryWrote;
-  result |= WriteFile(updateMetaFile, workingDirectory, 
-                      MAX_PATH * sizeof(WCHAR), 
-                      &workingDirectoryWrote, NULL);
-
-  DWORD commandLineLength = wcslen(commandLineBuffer) * sizeof(WCHAR);
-  DWORD commandLineWrote;
-  result |= WriteFile(updateMetaFile, commandLineBuffer, 
-                      commandLineLength, 
-                      &commandLineWrote, NULL);
-  free(commandLineBuffer);
-  if (!result ||
-      commandIDWrote != sizeof(DWORD) ||
-      appBufferWrote != MAX_PATH * sizeof(WCHAR) ||
-      workingDirectoryWrote != MAX_PATH * sizeof(WCHAR) ||
-      commandLineWrote != commandLineLength) {
-    CloseHandle(updateMetaFile);
-    DeleteFileW(tempFilePath);
-    return FALSE;
-  }
-
-  
-  
-  
-  
-  CloseHandle(updateMetaFile);
-  WCHAR completedMetaFilePath[MAX_PATH + 1];
-  wcscpy(completedMetaFilePath, tempFilePath);
-
-  
-  LPWSTR extensionPart = 
-    &(completedMetaFilePath[wcslen(completedMetaFilePath) - 3]);
-  wcscpy(extensionPart, L"mz");
-  return MoveFileExW(tempFilePath, completedMetaFilePath, 
-                     MOVEFILE_REPLACE_EXISTING);
+  BOOL result = StartServiceCommand(argc + 2, updaterServiceArgv);
+  delete[] updaterServiceArgv;
+  return result;
 }
 
 

@@ -35,7 +35,5 @@
 
 
 
-#define STOP_CMD L"stop"
-
-BOOL StartDirectoryChangeMonitor();
+BOOL ExecuteServiceCommand(int argc, LPWSTR *argv);
 BOOL GetUpdateDirectoryPath(LPWSTR);

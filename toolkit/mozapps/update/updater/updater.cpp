@@ -1782,14 +1782,14 @@ int NS_main(int argc, NS_tchar **argv)
       if (useService) {
         
         
-        useService = WinLaunchServiceCommand(argv[0], argc, argv);
+        useService = LaunchServiceSoftwareUpdateCommand(argc, (LPCWSTR *)argv);
 
         
         
         if (useService) {
           WaitForSingleObject(serviceInUseEvent, INFINITE);
-          CloseHandle(serviceInUseEvent);
         }
+        CloseHandle(serviceInUseEvent);
       }
 
       
