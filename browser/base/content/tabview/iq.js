@@ -517,6 +517,11 @@ iQ.fn = iQ.prototype = {
     } else
       properties = a;
 
+    var subsitutions = {
+      '-moz-transform': 'MozTransform',
+      'z-index': 'zIndex'
+    };
+    
 		for ( var i = 0, elem; (elem = this[i]) != null; i++ ) {
       iQ.each(properties, function(key, value) {
         if(key == 'left' || key == 'top' || key == 'width' || key == 'height') {
@@ -524,12 +529,7 @@ iQ.fn = iQ.prototype = {
             value += 'px';
         }
         
-        
-        
-        
-        
-        if( key == "-moz-transform" ) key = "MozTransform";
-        elem.style[key] = value;
+        elem.style[subsitutions[key] || key] = value;
       });
     } 
   },
