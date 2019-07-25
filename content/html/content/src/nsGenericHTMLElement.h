@@ -502,9 +502,24 @@ protected:
 
 
 
+  void RegAccessKey()
+  {
+    if (HasFlag(NODE_HAS_ACCESSKEY)) {
+      RegUnRegAccessKey(PR_TRUE);
+    }
+  }
 
+  void UnregAccessKey()
+  {
+    if (HasFlag(NODE_HAS_ACCESSKEY)) {
+      RegUnRegAccessKey(PR_FALSE);
+    }
+  }
+
+private:
   void RegUnRegAccessKey(PRBool aDoReg);
 
+protected:
   
 
 

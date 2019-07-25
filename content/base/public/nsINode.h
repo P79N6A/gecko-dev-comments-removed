@@ -170,9 +170,12 @@ enum {
 
   
   NODE_IS_ELEMENT              = 0x00200000U,
+  
+  
+  NODE_HAS_ACCESSKEY           = 0x00400000U,
 
   
-  NODE_SCRIPT_TYPE_OFFSET =               22,
+  NODE_SCRIPT_TYPE_OFFSET =               23,
 
   NODE_SCRIPT_TYPE_SIZE =                  4,
 
