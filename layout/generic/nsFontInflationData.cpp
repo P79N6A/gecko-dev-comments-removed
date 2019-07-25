@@ -199,7 +199,8 @@ nsFontInflationData::UpdateWidth(const nsHTMLReflowState &aReflowState)
 
   
   
-  PRUint32 lineThreshold = nsLayoutUtils::FontSizeInflationLineThreshold();
+  nsIPresShell* presShell = bfc->PresContext()->PresShell();
+  PRUint32 lineThreshold = presShell->FontSizeInflationLineThreshold();
   nscoord newTextThreshold = (newNCAWidth * lineThreshold) / 100;
 
   if (mTextThreshold <= mTextAmount && mTextAmount < newTextThreshold) {
