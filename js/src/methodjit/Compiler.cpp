@@ -1212,7 +1212,7 @@ mjit::Compiler::generateMethod()
             FrameEntry *top = frame.peek(-1);
             if (top->isConstant() && top->getValue().isPrimitive()) {
                 double d;
-                JS_ALWAYS_TRUE(ValueToNumber(cx, top->getValue(), &d));
+                JS_ALWAYS_TRUE(ToNumber(cx, top->getValue(), &d));
                 d = -d;
                 frame.pop();
                 frame.push(NumberValue(d));
@@ -2876,8 +2876,8 @@ mjit::Compiler::compareTwoValues(JSContext *cx, JSOp op, const Value &lhs, const
         double ld, rd;
         
         
-        JS_ALWAYS_TRUE(ValueToNumber(cx, lhs, &ld));
-        JS_ALWAYS_TRUE(ValueToNumber(cx, rhs, &rd));
+        JS_ALWAYS_TRUE(ToNumber(cx, lhs, &ld));
+        JS_ALWAYS_TRUE(ToNumber(cx, rhs, &rd));
         switch(op) {
           case JSOP_LT:
             return ld < rd;
