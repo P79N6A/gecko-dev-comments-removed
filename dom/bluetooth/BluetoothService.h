@@ -196,6 +196,10 @@ public:
   AddReservedServicesInternal(const nsAString& aAdapterPath,
                               const nsTArray<PRUint32>& aServices) = 0;
 
+  virtual bool
+  RemoveReservedServicesInternal(const nsAString& aAdapterPath,
+                                 const nsTArray<PRUint32>& aServiceHandles) = 0;
+
   
 
 
