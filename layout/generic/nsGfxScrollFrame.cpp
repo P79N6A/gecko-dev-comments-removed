@@ -1972,33 +1972,29 @@ void nsGfxScrollFrameInner::ScrollVisual(nsPoint aOldScrolledFramePos)
 
 
 
-
-
-
 static nscoord
-RestrictToLayerPixels(nscoord aDesired, nscoord aLower,
-                      nscoord aUpper, nscoord aAppUnitsPerPixel,
-                      double aRes, double aCurrentLayerOffset)
+AlignWithLayerPixels(nscoord aDesired, nscoord aLower,
+                     nscoord aUpper, nscoord aAppUnitsPerPixel,
+                     double aRes, nscoord aCurrent)
 {
-  
-  double layerVal = aRes * double(aDesired) / aAppUnitsPerPixel;
+  double currentLayerVal = (aRes*aCurrent)/aAppUnitsPerPixel;
+  double desiredLayerVal = (aRes*aDesired)/aAppUnitsPerPixel;
+  double delta = desiredLayerVal - currentLayerVal;
+  double nearestVal = NS_round(delta) + currentLayerVal;
 
   
-  layerVal -= aCurrentLayerOffset;
-
   
-  double nearestVal = NS_round(layerVal);
   nscoord nearestAppUnitVal =
-    NSToCoordRoundWithClamp(nearestVal * aAppUnitsPerPixel / aRes);
+    NSToCoordRoundWithClamp(nearestVal*aAppUnitsPerPixel/aRes);
 
   
   if (nearestAppUnitVal >= aLower && nearestAppUnitVal <= aUpper) {
     return nearestAppUnitVal;
-  } else if (nearestVal != layerVal) {
+  } else if (nearestVal != desiredLayerVal) {
     
-    double oppositeVal = nearestVal + ((nearestVal < layerVal) ? 1 : -1);
+    double oppositeVal = nearestVal + ((nearestVal < desiredLayerVal) ? 1 : -1);
     nscoord oppositeAppUnitVal =
-      NSToCoordRoundWithClamp(oppositeVal * aAppUnitsPerPixel / aRes);
+      NSToCoordRoundWithClamp(oppositeVal*aAppUnitsPerPixel/aRes);
     if (oppositeAppUnitVal >= aLower && oppositeAppUnitVal <= aUpper) {
       return oppositeAppUnitVal;
     }
@@ -2012,12 +2008,12 @@ RestrictToLayerPixels(nscoord aDesired, nscoord aLower,
 
 
 static nsPoint
-ClampAndRestrictToLayerPixels(const nsPoint& aPt,
-                              const nsRect& aBounds,
-                              nscoord aAppUnitsPerPixel,
-                              const nsRect& aRange,
-                              double aXRes, double aYRes,
-                              const gfxPoint& aCurrScroll)
+ClampAndAlignWithLayerPixels(const nsPoint& aPt,
+                             const nsRect& aBounds,
+                             const nsRect& aRange,
+                             const nsPoint& aCurrent,
+                             nscoord aAppUnitsPerPixel,
+                             const gfxSize& aScale)
 {
   nsPoint pt = aBounds.ClampPoint(aPt);
   
@@ -2025,10 +2021,10 @@ ClampAndRestrictToLayerPixels(const nsPoint& aPt,
   nsPoint rangeTopLeft = aBounds.ClampPoint(aRange.TopLeft());
   nsPoint rangeBottomRight = aBounds.ClampPoint(aRange.BottomRight());
 
-  return nsPoint(RestrictToLayerPixels(pt.x, rangeTopLeft.x, rangeBottomRight.x,
-                                       aAppUnitsPerPixel, aXRes, aCurrScroll.x),
-                 RestrictToLayerPixels(pt.y, rangeTopLeft.y, rangeBottomRight.y,
-                                       aAppUnitsPerPixel, aYRes, aCurrScroll.y));
+  return nsPoint(AlignWithLayerPixels(pt.x, rangeTopLeft.x, rangeBottomRight.x,
+                                      aAppUnitsPerPixel, aScale.width, aCurrent.x),
+                 AlignWithLayerPixels(pt.y, rangeTopLeft.y, rangeBottomRight.y,
+                                      aAppUnitsPerPixel, aScale.height, aCurrent.y));
 }
 
  void
@@ -2061,19 +2057,28 @@ nsGfxScrollFrameInner::ScrollToImpl(nsPoint aPt, const nsRect& aRange)
 {
   nsPresContext* presContext = mOuter->PresContext();
   nscoord appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
-
-  double xres = 1.0, yres = 1.0;
-  gfxPoint activeScrolledRootPosition;
-  FrameLayerBuilder::GetThebesLayerResolutionForFrame(mScrolledFrame, &xres, &yres,
-                                                      &activeScrolledRootPosition);
-  nsPoint pt =
-    ClampAndRestrictToLayerPixels(aPt,
-                                  GetScrollRangeForClamping(),
-                                  appUnitsPerDevPixel,
-                                  aRange, xres, yres,
-                                  activeScrolledRootPosition);
-
+  
+  
+  gfxSize scale = FrameLayerBuilder::GetThebesLayerScaleForFrame(mScrolledFrame);
   nsPoint curPos = GetScrollPosition();
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsPoint pt =
+    ClampAndAlignWithLayerPixels(aPt,
+                                 GetScrollRangeForClamping(),
+                                 aRange,
+                                 curPos,
+                                 appUnitsPerDevPixel,
+                                 scale);
+
   if (pt == curPos) {
     return;
   }

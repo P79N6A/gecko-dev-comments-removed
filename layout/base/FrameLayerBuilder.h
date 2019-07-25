@@ -375,9 +375,7 @@ public:
 
 
 
-  static bool GetThebesLayerResolutionForFrame(nsIFrame* aFrame,
-                                               double* aXRes, double* aYRes,
-                                               gfxPoint* aPoint);
+  static gfxSize GetThebesLayerScaleForFrame(nsIFrame* aFrame);
 
   
 
