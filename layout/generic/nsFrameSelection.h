@@ -210,9 +210,8 @@ class nsIScrollableFrame;
 
 
 
-class nsFrameSelection : public nsISupports {
+class NS_FINAL_CLASS nsFrameSelection : public nsISupports {
 public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_FRAME_SELECTION_IID)
   enum HINT { HINTLEFT = 0, HINTRIGHT = 1};  
   
   
@@ -741,6 +740,4 @@ private:
   PRInt8 mCaretMovementStyle;
 };
 
-NS_DEFINE_STATIC_IID_ACCESSOR(nsFrameSelection, NS_FRAME_SELECTION_IID)
-
-#endif 
+#endif
