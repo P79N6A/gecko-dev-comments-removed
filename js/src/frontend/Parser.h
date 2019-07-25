@@ -174,8 +174,6 @@ struct ParseContext
 
     ParseContext     *parent;       
 
-    ParseNode       *innermostWith; 
-
     FuncStmtSet     *funcStmts;     
 
 
@@ -188,6 +186,9 @@ struct ParseContext
     
     
     bool            parsingForInit:1;   
+
+    bool            parsingWith:1;  
+
 
 
     
