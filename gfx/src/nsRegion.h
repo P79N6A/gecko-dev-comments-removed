@@ -185,6 +185,8 @@ public:
   nsRegion ConvertAppUnitsRoundOut (PRInt32 aFromAPP, PRInt32 aToAPP) const;
   nsRegion ConvertAppUnitsRoundIn (PRInt32 aFromAPP, PRInt32 aToAPP) const;
   nsIntRegion ToOutsidePixels (nscoord aAppUnitsPerPixel) const;
+  nsRegion& ExtendForScaling (float aXMult, float aYMult);
+
   
 
 
@@ -435,6 +437,12 @@ public:
   nsIntRect GetLargestRectangle (const nsIntRect& aContainingRect = nsIntRect()) const
   {
     return FromRect (mImpl.GetLargestRectangle( ToRect(aContainingRect) ));
+  }
+
+  nsIntRegion& ExtendForScaling (float aXMult, float aYMult)
+  {
+    mImpl.ExtendForScaling(aXMult, aYMult);
+    return *this;
   }
 
   

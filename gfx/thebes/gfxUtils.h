@@ -117,6 +117,11 @@ public:
 
 
     static PRBool GfxRectToIntRect(const gfxRect& aIn, nsIntRect* aOut);
+
+    
+
+
+    static gfxFloat ClampToScaleFactor(gfxFloat aVal);
 };
 
 #endif

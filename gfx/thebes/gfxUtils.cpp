@@ -467,6 +467,35 @@ gfxUtils::ClipToRegionSnapped(gfxContext* aContext, const nsIntRegion& aRegion)
   ClipToRegionInternal(aContext, aRegion, PR_TRUE);
 }
 
+ gfxFloat
+gfxUtils::ClampToScaleFactor(gfxFloat aVal)
+{
+  
+  
+  
+  static const gfxFloat kScaleResolution = 2;
+
+  
+  
+  if (aVal < 0.0) {
+    aVal = -aVal;
+  }
+
+  gfxFloat power = log(aVal)/log(kScaleResolution);
+
+  
+  
+  
+  if (fabs(power - NS_round(power)) < 1e-6) {
+    power = NS_round(power);
+  } else {
+    power = NS_ceil(power);
+  }
+
+  return pow(kScaleResolution, power);
+}
+
+
  void
 gfxUtils::PathFromRegion(gfxContext* aContext, const nsIntRegion& aRegion)
 {
