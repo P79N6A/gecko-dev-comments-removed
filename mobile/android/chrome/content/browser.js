@@ -2832,20 +2832,31 @@ var ErrorPageEventHandler = {
 };
 
 var FormAssistant = {
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIFormSubmitObserver]),
+
   
   
   _currentInputElement: null,
 
+  
+  _invalidSubmit: false,
+
   init: function() {
     Services.obs.addObserver(this, "FormAssist:AutoComplete", false);
     Services.obs.addObserver(this, "FormAssist:Hidden", false);
+    Services.obs.addObserver(this, "invalidformsubmit", false);
 
     BrowserApp.deck.addEventListener("input", this, false);
+    BrowserApp.deck.addEventListener("pageshow", this, false);
   },
 
   uninit: function() {
     Services.obs.removeObserver(this, "FormAssist:AutoComplete");
     Services.obs.removeObserver(this, "FormAssist:Hidden");
+    Services.obs.removeObserver(this, "invalidformsubmit");
+
+    BrowserApp.deck.removeEventListener("input", this);
+    BrowserApp.deck.removeEventListener("pageshow", this);
   },
 
   observe: function(aSubject, aTopic, aData) {
@@ -2865,15 +2876,43 @@ var FormAssistant = {
     }
   },
 
+  notifyInvalidSubmit: function notifyInvalidSubmit(aFormElement, aInvalidElements) {
+    if (!aInvalidElements.length)
+      return;
+
+    
+    if (BrowserApp.selectedBrowser.contentDocument !=
+        aFormElement.ownerDocument.defaultView.top.document)
+      return;
+
+    this._invalidSubmit = true;
+
+    let currentElement = aInvalidElements.queryElementAt(0, Ci.nsISupports);
+    if (this._showValidationMessage(currentElement))
+      currentElement.focus();
+  },
+
   handleEvent: function(aEvent) {
     switch (aEvent.type) {
       case "input":
         let currentElement = aEvent.target;
+
+        
+        
         if (this._showAutoCompleteSuggestions(currentElement))
+          break;
+        if (this._showValidationMessage(currentElement))
           break;
 
         
         this._hideFormAssistPopup();
+        break;
+
+      
+      case "pageshow":
+        let target = aEvent.originalTarget;
+        if (target == content.document || target.ownerDocument == content.document)
+          this._invalidSubmit = false;
     }
   },
 
@@ -2949,6 +2988,39 @@ var FormAssistant = {
     
     
     this._currentInputElement = aElement;
+
+    return true;
+  },
+
+  
+  
+  _isValidateable: function _isValidateable(aElement) {
+    if (!this._invalidSubmit ||
+        !aElement.validationMessage ||
+        !(aElement instanceof HTMLInputElement ||
+          aElement instanceof HTMLTextAreaElement ||
+          aElement instanceof HTMLSelectElement ||
+          aElement instanceof HTMLButtonElement))
+      return false;
+
+    return true;
+  },
+
+  
+  
+  _showValidationMessage: function _sendValidationMessage(aElement) {
+    if (!this._isValidateable(aElement))
+      return false;
+
+    let positionData = this._getElementPositionData(aElement);
+    sendMessageToJava({
+      gecko: {
+        type: "FormAssist:ValidationMessage",
+        validationMessage: aElement.validationMessage,
+        rect: positionData.rect,
+        zoom: positionData.zoom
+      }
+    });
 
     return true;
   },
