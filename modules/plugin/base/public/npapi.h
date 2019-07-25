@@ -366,7 +366,9 @@ typedef enum {
   
   NPPVpluginCancelSrcStream = 20,
 
-  NPPVSupportsAdvancedKeyHandling = 21
+  NPPVSupportsAdvancedKeyHandling = 21,
+
+  NPPVpluginUsesDOMForCursorBool = 22
 
 #if defined(XP_MACOSX)
   
