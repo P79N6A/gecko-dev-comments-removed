@@ -710,7 +710,7 @@ struct JSRuntime {
 
 
 
-    bool                 inOOMReport;
+    int32               inOOMReport;
 
 #if defined(MOZ_GCTIMER) || defined(JSGC_TESTPILOT)
     struct GCData {

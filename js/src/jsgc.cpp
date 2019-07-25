@@ -2623,9 +2623,6 @@ AutoGCSession::~AutoGCSession()
 static JS_NEVER_INLINE void
 GCCycle(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind  GCTIMER_PARAM)
 {
-    if (JS_ON_TRACE(cx))
-        return;
-
     JSRuntime *rt = cx->runtime;
 
     
@@ -2644,6 +2641,17 @@ GCCycle(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind  GCTIMER_P
     }
 
     AutoGCSession gcsession(cx);
+
+    
+
+
+
+
+
+    if (rt->inOOMReport) {
+        JS_ASSERT(gckind != GC_LAST_CONTEXT);
+        return;
+    }
 
     
 
@@ -2698,10 +2706,6 @@ js_GC(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind)
     JSRuntime *rt = cx->runtime;
 
     
-    if (rt->inOOMReport)
-        return;
-
-    
 
 
 
@@ -2709,6 +2713,11 @@ js_GC(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind)
 
     if (rt->state != JSRTS_UP && gckind != GC_LAST_CONTEXT)
         return;
+
+    if (JS_ON_TRACE(cx)) {
+        JS_ASSERT(gckind != GC_LAST_CONTEXT);
+        return;
+    }
 
     RecordNativeStackTopForGC(cx);
 
