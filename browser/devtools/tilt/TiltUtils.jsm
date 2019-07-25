@@ -535,18 +535,6 @@ TiltUtils.destroyObject = function TU_destroyObject(aScope)
 
 
 
-TiltUtils.getBrowserWindow = function TU_getBrowserWindow()
-{
-  return Cc["@mozilla.org/appshell/window-mediator;1"]
-    .getService(Ci.nsIWindowMediator)
-    .getMostRecentWindow("navigator:browser");
-};
-
-
-
-
-
-
 
 
 
@@ -566,9 +554,11 @@ TiltUtils.getWindowId = function TU_getWindowId(aWindow)
 
 
 
-TiltUtils.getDocumentZoom = function TU_getDocumentZoom() {
-  return TiltUtils.getBrowserWindow()
-                  .gBrowser.selectedBrowser.markupDocumentViewer.fullZoom;
+
+
+
+TiltUtils.getDocumentZoom = function TU_getDocumentZoom(aChromeWindow) {
+  return aChromeWindow.gBrowser.selectedBrowser.markupDocumentViewer.fullZoom;
 };
 
 
@@ -576,20 +566,24 @@ TiltUtils.getDocumentZoom = function TU_getDocumentZoom() {
 
 
 
-TiltUtils.setDocumentZoom = function TU_getDocumentZoom(aZoom) {
-  TiltUtils.getBrowserWindow()
-           .gBrowser.selectedBrowser.markupDocumentViewer.fullZoom = aZoom;
+
+
+
+TiltUtils.setDocumentZoom = function TU_setDocumentZoom(aChromeWindow, aZoom) {
+  aChromeWindow.gBrowser.selectedBrowser.markupDocumentViewer.fullZoom = aZoom;
 };
 
 
 
 
-TiltUtils.gc = function TU_gc()
+
+
+
+TiltUtils.gc = function TU_gc(aChromeWindow)
 {
-  TiltUtils.getBrowserWindow()
-           .QueryInterface(Ci.nsIInterfaceRequestor)
-           .getInterface(Ci.nsIDOMWindowUtils)
-           .garbageCollect();
+  aChromeWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+               .getInterface(Ci.nsIDOMWindowUtils)
+               .garbageCollect();
 };
 
 
