@@ -36,6 +36,8 @@
 
 
 
+#include "base/basictypes.h"
+
 #include "mozilla/ModuleUtils.h"
 
 #include "nsCOMPtr.h"
