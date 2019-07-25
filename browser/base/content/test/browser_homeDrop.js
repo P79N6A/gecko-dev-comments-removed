@@ -26,6 +26,7 @@ function test() {
 
     
     executeSoon(function () {
+      info("Dialog closed? " + domwindow.closed + "\n");
       let consoleListener = {
         observe: function (m) {
           info("m: " + m + "\n");
@@ -44,6 +45,14 @@ function test() {
       
       
       expectUncaughtException();
+      let originalHandler = homeButtonObserver.onDrop;
+      homeButtonObserver.onDrop = function () {
+        info("homeButtonObserver.onDrop called");
+        originalHandler();
+      };
+      registerCleanupFunction(function () {
+        homeButtonObserver.onDrop = originalHandler;
+      });
       chromeUtils.synthesizeDrop(homeButton, homeButton, [[{type: "text/plain", data: "javascript:8888"}]], "copy", window, EventUtils);
     })
   });
