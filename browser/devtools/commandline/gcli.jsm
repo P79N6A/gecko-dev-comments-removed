@@ -106,10 +106,8 @@ define('gcli/index', ['require', 'exports', 'module' , 'gcli/types/basic', 'gcli
   require('gcli/commands/help').startup();
   require('gcli/commands/pref').startup();
 
-
   var Cc = Components.classes;
   var Ci = Components.interfaces;
-  var Cu = Components.utils;
   var prefSvc = "@mozilla.org/preferences-service;1";
   var prefService = Cc[prefSvc].getService(Ci.nsIPrefService);
   var prefBranch = prefService.getBranch(null).QueryInterface(Ci.nsIPrefBranch2);
@@ -142,6 +140,7 @@ define('gcli/index', ['require', 'exports', 'module' , 'gcli/types/basic', 'gcli
   exports.hiddenByChromePref = function() {
     return !prefBranch.prefHasUserValue("devtools.chrome.enabled");
   };
+
 });
 
 
@@ -4022,7 +4021,7 @@ exports.JavascriptType = JavascriptType;
 
 
 
-define('gcli/types/node', ['require', 'exports', 'module' , 'gcli/host', 'gcli/l10n', 'gcli/types'], function(require, exports, module) {
+define('gcli/types/node', ['require', 'exports', 'module' , 'gcli/host', 'gcli/l10n', 'gcli/types', 'gcli/argument'], function(require, exports, module) {
 
 
 var host = require('gcli/host');
@@ -4031,6 +4030,7 @@ var types = require('gcli/types');
 var Type = require('gcli/types').Type;
 var Status = require('gcli/types').Status;
 var Conversion = require('gcli/types').Conversion;
+var BlankArgument = require('gcli/argument').BlankArgument;
 
 
 
@@ -4038,10 +4038,12 @@ var Conversion = require('gcli/types').Conversion;
 
 exports.startup = function() {
   types.registerType(NodeType);
+  types.registerType(NodeListType);
 };
 
 exports.shutdown = function() {
   types.unregisterType(NodeType);
+  types.unregisterType(NodeListType);
 };
 
 
@@ -4056,8 +4058,17 @@ if (typeof document !== 'undefined') {
 
 
 
+
+
+
+exports._empty = [];
+
+
+
+
 exports.setDocument = function(document) {
   doc = document;
+  exports._empty = doc.querySelectorAll('x>:root');
 };
 
 
@@ -4126,6 +4137,66 @@ NodeType.prototype.parse = function(arg) {
 };
 
 NodeType.prototype.name = 'node';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function NodeListType(typeSpec) {
+  if ('allowEmpty' in typeSpec && typeof typeSpec.allowEmpty !== 'boolean') {
+    throw new Error('Legal values for allowEmpty are [true|false]');
+  }
+
+  this.allowEmpty = typeSpec.allowEmpty;
+}
+
+NodeListType.prototype = Object.create(Type.prototype);
+
+NodeListType.prototype.getBlank = function() {
+  return new Conversion(exports._empty, new BlankArgument(), Status.VALID);
+};
+
+NodeListType.prototype.stringify = function(value) {
+  if (value == null) {
+    return '';
+  }
+  return value.__gcliQuery || 'Error';
+};
+
+NodeListType.prototype.parse = function(arg) {
+  if (arg.text === '') {
+    return new Conversion(undefined, arg, Status.INCOMPLETE);
+  }
+
+  var nodes;
+  try {
+    nodes = doc.querySelectorAll(arg.text);
+  }
+  catch (ex) {
+    return new Conversion(undefined, arg, Status.ERROR,
+            l10n.lookup('nodeParseSyntax'));
+  }
+
+  if (nodes.length === 0 && !this.allowEmpty) {
+    return new Conversion(undefined, arg, Status.INCOMPLETE,
+        l10n.lookup('nodeParseNone'));
+  }
+
+  host.flashNodes(nodes, false);
+  return new Conversion(nodes, arg, Status.VALID, '');
+};
+
+NodeListType.prototype.name = 'nodelist';
 
 
 });
@@ -5786,42 +5857,10 @@ Requisition.prototype.complete = function(cursor, predictionChoice) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 Requisition.prototype._addSpace = function(assignment) {
-  var nextAssignment = this._getFirstBlankPositionalAssignment();
-  if (nextAssignment) {
-    
-    var nextArg = nextAssignment.conversion.arg;
-    if (nextArg.prefix.charAt(0) !== ' ') {
-      nextArg = new Argument(nextArg.text, ' ' + nextArg.prefix, nextArg.suffix);
-      this.setAssignment(nextAssignment, nextArg);
-    }
-  }
-  else {
-    
-    
-    var newArg = assignment.conversion.arg.beget({ suffixSpace: true });
-    if (newArg !== assignment.conversion.arg) {
-      
-      
-      
-      
-      
-      
-      this.setAssignment(assignment, newArg);
-    }
+  var arg = assignment.conversion.arg.beget({ suffixSpace: true });
+  if (arg !== assignment.conversion.arg) {
+    this.setAssignment(assignment, arg);
   }
 };
 
@@ -6165,7 +6204,7 @@ Requisition.prototype.exec = function(input) {
     var context = exports.createExecutionContext(this);
     var reply = command.exec(args, context);
 
-    if (reply != null && reply.isPromise) {
+    if (reply != null && typeof reply.then === 'function') {
       reply.then(
           function(data) { output.complete(data); },
           function(error) { output.error = true; output.complete(error); });
@@ -6992,6 +7031,11 @@ FocusManager.prototype.addMonitoredElement = function(element, where) {
 
   element.addEventListener('focus', monitor.onFocus, true);
   element.addEventListener('blur', monitor.onBlur, true);
+
+  if (this._document.activeElement === element) {
+    this._reportFocus(where);
+  }
+
   this._monitoredElements.push(monitor);
 };
 
@@ -7111,7 +7155,7 @@ FocusManager.prototype._eagerHelperChanged = function() {
 
 
 
-FocusManager.prototype.onInputChange = function(ev) {
+FocusManager.prototype.onInputChange = function() {
   this._recentOutput = false;
   this._checkShow();
 };
@@ -7205,15 +7249,15 @@ FocusManager.prototype._checkShow = function() {
 
 FocusManager.prototype._shouldShowTooltip = function() {
   if (!this._hasFocus) {
-    return { visible: false, reason: '!hasFocus' };
+    return { visible: false, reason: 'notHasFocus' };
   }
 
   if (eagerHelper.value === Eagerness.NEVER) {
-    return { visible: false, reason: 'eagerHelper !== NEVER' };
+    return { visible: false, reason: 'eagerHelperNever' };
   }
 
   if (eagerHelper.value === Eagerness.ALWAYS) {
-    return { visible: true, reason: 'eagerHelper !== ALWAYS' };
+    return { visible: true, reason: 'eagerHelperAlways' };
   }
 
   if (this._isError) {
@@ -7237,7 +7281,7 @@ FocusManager.prototype._shouldShowTooltip = function() {
 
 FocusManager.prototype._shouldShowOutput = function() {
   if (!this._hasFocus) {
-    return { visible: false, reason: '!hasFocus' };
+    return { visible: false, reason: 'notHasFocus' };
   }
 
   if (this._recentOutput) {
@@ -8218,16 +8262,20 @@ Menu.prototype.setChoiceIndex = function(choice) {
 
 
 
+
 Menu.prototype.selectChoice = function() {
   var selected = this.element.querySelector('.gcli-menu-highlight .gcli-menu-name');
-  if (selected) {
-    var name = selected.innerHTML;
-    var arg = new Argument(name);
-    arg.suffix = ' ';
-
-    var conversion = this.type.parse(arg);
-    this.onItemClick({ conversion: conversion });
+  if (!selected) {
+    return false;
   }
+
+  var name = selected.innerHTML;
+  var arg = new Argument(name);
+  arg.suffix = ' ';
+
+  var conversion = this.type.parse(arg);
+  this.onItemClick({ conversion: conversion });
+  return true;
 };
 
 
@@ -8458,8 +8506,9 @@ SelectionTooltipField.prototype.setChoiceIndex = function(choice) {
 
 
 
+
 SelectionTooltipField.prototype.selectChoice = function() {
-  this.menu.selectChoice();
+  return this.menu.selectChoice();
 };
 
 Object.defineProperty(SelectionTooltipField.prototype, 'isImportant', {
@@ -9492,7 +9541,7 @@ Inputter.prototype.onKeyDown = function(ev) {
   }
 
   if (this.focusManager) {
-    this.focusManager.onInputChange(ev);
+    this.focusManager.onInputChange();
   }
 
   if (ev.keyCode === KeyEvent.DOM_VK_TAB) {
@@ -9543,7 +9592,7 @@ Inputter.prototype.onKeyUp = function(ev) {
         this.requisition.increment(assignment);
         
         if (this.focusManager) {
-          this.focusManager.onInputChange(ev);
+          this.focusManager.onInputChange();
         }
       }
       else {
@@ -9567,7 +9616,7 @@ Inputter.prototype.onKeyUp = function(ev) {
         this.requisition.decrement(assignment);
         
         if (this.focusManager) {
-          this.focusManager.onInputChange(ev);
+          this.focusManager.onInputChange();
         }
       }
       else {
@@ -9589,10 +9638,9 @@ Inputter.prototype.onKeyUp = function(ev) {
     else {
       
       
-      this.tooltip.selectChoice();
-
-      
-      
+      if (!this.tooltip.selectChoice()) {
+        this.focusManager.setError(true);
+      }
     }
 
     this._choice = null;
@@ -10238,10 +10286,12 @@ Tooltip.prototype.choiceChanged = function(ev) {
 
 
 
+
 Tooltip.prototype.selectChoice = function(ev) {
   if (this.field && this.field.selectChoice) {
-    this.field.selectChoice();
+    return this.field.selectChoice();
   }
+  return false;
 };
 
 
