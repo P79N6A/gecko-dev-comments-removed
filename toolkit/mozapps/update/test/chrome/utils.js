@@ -619,15 +619,23 @@ function checkPrefHasUserValue(aPrefHasValue) {
 
 
 
-function checkCertErrorPage(aShouldBeHidden) {
+
+function checkErrorExtraPage(aShouldBeHidden) {
   let shouldBeHidden = aShouldBeHidden === undefined ? gTest.shouldBeHidden
                                                      : aShouldBeHidden;
-  is(gWin.document.getElementById("errorCertAttrLinkLabel").hidden, shouldBeHidden,
-     "Checking errorCertAttrLinkLabel hidden attribute equals " +
+  is(gWin.document.getElementById("errorExtraLinkLabel").hidden, shouldBeHidden,
+     "Checking errorExtraLinkLabel hidden attribute equals " +
      (shouldBeHidden ? "true" : "false"));
+
+  is(gWin.document.getElementById(gTest.displayedTextElem).hidden, false,
+     "Checking " + gTest.displayedTextElem + " should not be hidden");
 
   ok(!Services.prefs.prefHasUserValue(PREF_APP_UPDATE_CERT_ERRORS),
      "Preference " + PREF_APP_UPDATE_CERT_ERRORS + " should not have a " +
+     "user value");
+
+  ok(!Services.prefs.prefHasUserValue(PREF_APP_UPDATE_BACKGROUNDERRORS),
+     "Preference " + PREF_APP_UPDATE_BACKGROUNDERRORS + " should not have a " +
      "user value");
 }
 
@@ -786,8 +794,20 @@ function resetPrefs() {
     Services.prefs.clearUserPref(PREF_APP_UPDATE_LOG);
   }
 
+  if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_CERT_ERRORS)) {
+    Services.prefs.clearUserPref(PREF_APP_UPDATE_CERT_ERRORS);
+  }
+
   if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_CERT_MAXERRORS)) {
     Services.prefs.clearUserPref(PREF_APP_UPDATE_CERT_MAXERRORS);
+  }
+
+  if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_BACKGROUNDERRORS)) {
+    Services.prefs.clearUserPref(PREF_APP_UPDATE_BACKGROUNDERRORS);
+  }
+
+  if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_BACKGROUNDMAXERRORS)) {
+    Services.prefs.clearUserPref(PREF_APP_UPDATE_BACKGROUNDMAXERRORS);
   }
 
   if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_CERT_INVALID_ATTR_NAME)) {
@@ -1107,7 +1127,10 @@ function getUpdateWindow() {
 
 
 
-var certErrorsPrefObserver = {
+var errorsPrefObserver = {
+  observedPref: null,
+  maxErrorPref: null,
+
   
 
 
@@ -1115,25 +1138,32 @@ var certErrorsPrefObserver = {
 
 
 
-  init: function(aMaxErrors) {
-    let maxErrors = aMaxErrors ? aMaxErrors : 5;
-    Services.prefs.setIntPref(PREF_APP_UPDATE_CERT_MAXERRORS, maxErrors);
-    Services.prefs.addObserver(PREF_APP_UPDATE_CERT_ERRORS, this, false);
+
+
+
+
+  init: function(aObservePref, aMaxErrorPref, aMaxErrorCount) {
+    this.observedPref = aObservePref;
+    this.maxErrorPref = aMaxErrorPref;
+
+    let maxErrors = aMaxErrorCount ? aMaxErrorCount : 5;
+    Services.prefs.setIntPref(aMaxErrorPref, maxErrors);
+    Services.prefs.addObserver(aObservePref, this, false);
   },
 
   
 
 
   observe: function XPI_observe(aSubject, aTopic, aData) {
-    if (aData == PREF_APP_UPDATE_CERT_ERRORS) {
-      let errCount = Services.prefs.getIntPref(PREF_APP_UPDATE_CERT_ERRORS);
-      let errMax = Services.prefs.getIntPref(PREF_APP_UPDATE_CERT_MAXERRORS);
+    if (aData == this.observedPref) {
+      let errCount = Services.prefs.getIntPref(this.observedPref);
+      let errMax = Services.prefs.getIntPref(this.maxErrorPref);
       if (errCount >= errMax) {
-        debugDump("prefObserver - removing pref observer");
-        Services.prefs.removeObserver(PREF_APP_UPDATE_CERT_ERRORS, this);
+        debugDump("errorsPrefObserver - removing pref observer");
+        Services.prefs.removeObserver(this.observedPref, this);
       }
       else {
-        debugDump("prefObserver - notifying AUS");
+        debugDump("errorsPrefObserver - notifying AUS");
         SimpleTest.executeSoon(function() {
           gAUS.notify(null);
         });

@@ -94,6 +94,11 @@ pref("app.update.log", false);
 
 
 
+pref("app.update.backgroundMaxErrors", 10);
+
+
+
+
 
 pref("app.update.cert.requireBuiltIn", true);
 
