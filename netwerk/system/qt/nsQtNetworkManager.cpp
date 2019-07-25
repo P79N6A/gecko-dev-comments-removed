@@ -35,103 +35,140 @@
 
 
 
-
-#include <QNetworkConfigurationManager>
-#include <QNetworkConfiguration>
-#include <QNetworkSession>
-
 #include "nsQtNetworkManager.h"
 
 #include "nsCOMPtr.h"
 #include "nsThreadUtils.h"
-
 #include "nsINetworkLinkService.h"
-
 #include "nsIOService.h"
 #include "nsIObserverService.h"
 #include "nsIOService.h"
 
-#include "nsINetworkLinkService.h"
+#include <QHostInfo>
+#include <QHostAddress>
+#include <QTime>
 
-static QNetworkConfigurationManager* sNetworkConfig = 0;
+nsQtNetworkManager::nsQtNetworkManager(QObject* parent)
+  : QObject(parent), networkSession(0)
+{
+    mOnline = networkConfigurationManager.isOnline();
+    NS_ASSERTION(NS_IsMainThread(), "nsQtNetworkManager can only initiated in Main Thread");
+}
+
+nsQtNetworkManager::~nsQtNetworkManager()
+{
+    closeSession();
+    networkSession->deleteLater();
+}
 
 PRBool
-nsQtNetworkManager::OpenConnectionSync()
+nsQtNetworkManager::isOnline()
 {
-    if (!sNetworkConfig)
-        return PR_FALSE;
+    static PRBool sForceOnlineUSB = getenv("MOZ_MEEGO_NET_ONLINE") != 0;
+    return sForceOnlineUSB || mOnline;
+}
 
+void
+nsQtNetworkManager::onlineStateChanged(bool online)
+{
+    mOnline = online;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PRBool
+nsQtNetworkManager::openConnection(const QString& host)
+{
     
-    if (sNetworkConfig->isOnline())
-        return PR_FALSE;
+    if (isOnline()) {
+        return true;
+    }
 
-    if (!(sNetworkConfig->capabilities() & QNetworkConfigurationManager::CanStartAndStopInterfaces))
-        return PR_FALSE;
-
-    
-    QNetworkConfiguration default_cfg = sNetworkConfig->defaultConfiguration();
-
-    if (!default_cfg.isValid())
-    {
-        NS_WARNING("default configuration is not valid. Looking for any other:");
-        foreach (QNetworkConfiguration cfg, sNetworkConfig->allConfigurations())
-        {
-            if (cfg.isValid())
-                default_cfg = cfg;
-        }
-
-        if (!default_cfg.isValid())
-        {
-            NS_WARNING("No valid configuration found. Giving up.");
-            return PR_FALSE;
-        }
+    if (NS_IsMainThread()) {
+        openSession();
+    } else {
+        
+        emit openConnectionSignal();
     }
 
     
     
-    QNetworkSession* session = new QNetworkSession(default_cfg);
-    QObject::connect(session, SIGNAL(opened()),
-                     session, SLOT(deleteLater()));
-    QObject::connect(session, SIGNAL(error(QNetworkSession::SessionError)),
-                     session, SLOT(deleteLater()));
-    session->open();
-    return session->waitForOpened(-1);
-}
-
-void
-nsQtNetworkManager::CloseConnection()
-{
-    NS_WARNING("nsQtNetworkManager::CloseConnection() Not implemented by QtNetwork.");
-}
-
-PRBool
-nsQtNetworkManager::IsConnected()
-{
-    NS_ASSERTION(sNetworkConfig, "Network not initialized");
-    return sNetworkConfig->isOnline();
-}
-
-PRBool
-nsQtNetworkManager::GetLinkStatusKnown()
-{
-    return IsConnected();
-}
-
-PRBool
-nsQtNetworkManager::Startup()
-{
     
-    if (sNetworkConfig)
-        return PR_FALSE;
+    if (isOnline()) {
+        QHostInfo::fromName(host);
+    }
 
-    sNetworkConfig = new QNetworkConfigurationManager();
-
-    return PR_TRUE;
+    return isOnline();
 }
 
 void
-nsQtNetworkManager::Shutdown()
+nsQtNetworkManager::openSession()
 {
-    delete sNetworkConfig;
-    sNetworkConfig = nsnull;
+    if (mBlockTimer.isActive()) {
+        
+        
+        
+
+        
+        
+        
+        
+
+        
+        
+
+        mBlockTimer.stop();
+        mBlockTimer.setSingleShot(true);
+        mBlockTimer.start(200);
+        return;
+    }
+
+    if (isOnline()) {
+        return;
+    }
+
+    
+    
+    
+    if (!networkSession) {
+        networkSession->close();
+        networkSession->deleteLater();
+    }
+
+    
+    networkConfigurationManager.updateConfigurations();
+    
+    networkConfiguration = networkConfigurationManager.defaultConfiguration();
+    networkSession = new QNetworkSession(networkConfiguration);
+
+    networkSession->open();
+    QTime current;
+    current.start();
+    networkSession->waitForOpened(-1);
+
+    if (current.elapsed() < 1000) {
+        NS_WARNING("Connection Creation was to fast, something is not right.");
+    }
+
+    mBlockTimer.setSingleShot(true);
+    mBlockTimer.start(200);
+}
+
+void
+nsQtNetworkManager::closeSession()
+{
+    if (!networkSession) {
+        networkSession->close();
+    }
 }
