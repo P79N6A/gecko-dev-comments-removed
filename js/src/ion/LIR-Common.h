@@ -2065,6 +2065,26 @@ class LTypeBarrier : public LInstructionHelper<BOX_PIECES, BOX_PIECES, 1>
 };
 
 
+class LMonitorTypes : public LInstructionHelper<0, BOX_PIECES, 1>
+{
+  public:
+    LIR_HEADER(MonitorTypes);
+
+    LMonitorTypes(const LDefinition &temp) {
+        setTemp(0, temp);
+    }
+
+    static const size_t Input = 0;
+
+    const MMonitorTypes *mir() const {
+        return mir_->toMonitorTypes();
+    }
+    const LDefinition *temp() {
+        return getTemp(0);
+    }
+};
+
+
 class LGuardClass : public LInstructionHelper<0, 1, 1>
 {
   public:

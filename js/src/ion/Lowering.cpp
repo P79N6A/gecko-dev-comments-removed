@@ -972,6 +972,17 @@ LIRGenerator::visitTypeBarrier(MTypeBarrier *ins)
 }
 
 bool
+LIRGenerator::visitMonitorTypes(MMonitorTypes *ins)
+{
+    
+    
+    LMonitorTypes *lir = new LMonitorTypes(temp(LDefinition::GENERAL));
+    if (!useBox(lir, LMonitorTypes::Input, ins->input()))
+        return false;
+    return assignSnapshot(lir, Bailout_Monitor) && add(lir, ins);
+}
+
+bool
 LIRGenerator::visitArrayLength(MArrayLength *ins)
 {
     JS_ASSERT(ins->elements()->type() == MIRType_Elements);

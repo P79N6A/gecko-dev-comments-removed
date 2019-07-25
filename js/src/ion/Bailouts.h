@@ -141,10 +141,13 @@ enum BailoutKind
     Bailout_TypeBarrier,
 
     
+    Bailout_Monitor,
+
+    
     Bailout_RecompileCheck
 };
 
-static const uint32 BAILOUT_KIND_BITS = 2;
+static const uint32 BAILOUT_KIND_BITS = 3;
 static const uint32 BAILOUT_RESUME_BITS = 1;
 
 
@@ -156,7 +159,8 @@ static const uint32 BAILOUT_RETURN_OK = 0;
 static const uint32 BAILOUT_RETURN_FATAL_ERROR = 1;
 static const uint32 BAILOUT_RETURN_ARGUMENT_CHECK = 2;
 static const uint32 BAILOUT_RETURN_TYPE_BARRIER = 3;
-static const uint32 BAILOUT_RETURN_RECOMPILE_CHECK = 4;
+static const uint32 BAILOUT_RETURN_MONITOR = 4;
+static const uint32 BAILOUT_RETURN_RECOMPILE_CHECK = 5;
 
 
 

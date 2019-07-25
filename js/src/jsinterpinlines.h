@@ -733,12 +733,16 @@ GetObjectElementOperation(JSContext *cx, JSObject *obj, const Value &rref, Value
                 return false;
         } while(0);
     } else {
-        JSScript *script;
-        jsbytecode *pc;
-        types::TypeScript::GetPcScript(cx, &script, &pc);
+        if (!cx->fp()->runningInIon()) {
+            
+            
+            JSScript *script;
+            jsbytecode *pc;
+            types::TypeScript::GetPcScript(cx, &script, &pc);
 
-        if (script->hasAnalysis())
-            script->analysis()->getCode(pc).getStringElement = true;
+            if (script->hasAnalysis())
+                script->analysis()->getCode(pc).getStringElement = true;
+        }
 
         SpecialId special;
         *res = rref;

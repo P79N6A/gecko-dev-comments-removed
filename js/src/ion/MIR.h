@@ -3691,6 +3691,39 @@ class MTypeBarrier : public MUnaryInstruction
 
 
 
+class MMonitorTypes : public MUnaryInstruction
+{
+    types::TypeSet *typeSet_;
+
+    MMonitorTypes(MDefinition *def, types::TypeSet *types)
+      : MUnaryInstruction(def),
+        typeSet_(types)
+    {
+        setResultType(MIRType_Value);
+        setGuard();
+        JS_ASSERT(!types->unknown());
+    }
+
+  public:
+    INSTRUCTION_HEADER(MonitorTypes);
+
+    static MMonitorTypes *New(MDefinition *def, types::TypeSet *types) {
+        return new MMonitorTypes(def, types);
+    }
+    MDefinition *input() const {
+        return getOperand(0);
+    }
+    types::TypeSet *typeSet() const {
+        return typeSet_;
+    }
+    AliasSet getAliasSet() const {
+        return AliasSet::None();
+    }
+};
+
+
+
+
 class MResumePoint : public MNode
 {
   public:
