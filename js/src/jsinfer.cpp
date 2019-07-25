@@ -5663,6 +5663,9 @@ JSObject::splicePrototype(JSContext *cx, JSObject *proto)
     JS_ASSERT_IF(cx->typeInferenceEnabled(), hasSingletonType());
 
     
+    JS_ASSERT_IF(proto, !proto->getClass()->ext.outerObject);
+
+    
 
 
 
