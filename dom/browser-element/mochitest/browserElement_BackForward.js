@@ -18,18 +18,6 @@ function addOneShotIframeEventListener(event, fn) {
 }
 
 function runTest() {
-  
-  
-  
-  
-  
-  
-  
-  if (!browserElementTestHelpers.getOOPByDefaultPref()) {
-    ok(false, "This test only works OOP.");
-    return;
-  }
-
   browserElementTestHelpers.setEnabledPref(true);
   browserElementTestHelpers.addToWhitelist();
 
