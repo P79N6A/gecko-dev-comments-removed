@@ -82,7 +82,7 @@ def normalizedFilename(f):
 
 
 for f in files:
-    log(1, os.path.basename(f))
+    log(2, os.path.basename(f))
     filename = normalizedFilename(f)
     if f == '-':
         fd = sys.stdin
