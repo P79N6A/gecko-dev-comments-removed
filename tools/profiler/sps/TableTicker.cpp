@@ -53,6 +53,11 @@ using std::string;
 pthread_key_t pkey_stack;
 pthread_key_t pkey_ticker;
 
+
+
+
+bool stack_key_initialized;
+
 TimeStamp sLastTracerEvent;
 
 class Profile;
@@ -378,6 +383,7 @@ void mozilla_sampler_init()
     LOG("Failed to init.");
     return;
   }
+  stack_key_initialized = true;
 
   Stack *stack = new Stack();
   pthread_setspecific(pkey_stack, stack);

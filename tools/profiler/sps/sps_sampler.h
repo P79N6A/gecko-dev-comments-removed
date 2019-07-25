@@ -47,6 +47,7 @@ using mozilla::TimeDuration;
 
 
 extern pthread_key_t pkey_stack;
+extern bool stack_key_initialized;
 
 #define SAMPLER_INIT() mozilla_sampler_init();
 #define SAMPLER_DEINIT() mozilla_sampler_deinit();
@@ -194,7 +195,16 @@ public:
 
 inline void* mozilla_sampler_call_enter(const char *aInfo)
 {
+  
+  
+  if (!stack_key_initialized)
+    return NULL;
+
   Stack *stack = (Stack*)pthread_getspecific(pkey_stack);
+  
+  
+  
+  
   if (!stack) {
     return stack;
   }
