@@ -202,7 +202,7 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, uintN protoI
 
 
         if (!(cs->format & (JOF_SET | JOF_FOR)) &&
-            (!(cs->format & JOF_INCDEC) || shape->hasDefaultSetter()) &&
+            (!(cs->format & JOF_INCDEC) || (shape->hasDefaultSetter() && shape->writable())) &&
             shape->hasDefaultGetter() &&
             pobj->containsSlot(shape->slot)) {
             
