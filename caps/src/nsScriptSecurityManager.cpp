@@ -2485,9 +2485,8 @@ nsScriptSecurityManager::doGetObjectPrincipal(JSObject *aObj
 
         
         
-        NS_ASSERTION(strcmp(jsClass->name, "Location") == 0 ?
-                     NS_SUCCEEDED(CheckSameOriginPrincipal(result, principal)) :
-                     result == principal,
+        
+        NS_ASSERTION(NS_SUCCEEDED(CheckSameOriginPrincipal(result, principal)),
                      "Principal mismatch.  Not good");
     }
 #endif
