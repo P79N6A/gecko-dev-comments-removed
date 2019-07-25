@@ -326,15 +326,16 @@ public class LayerController {
 
 
     public boolean getRedrawHint() {
-        
-        
-
         if (mForceRedraw) {
             mForceRedraw = false;
             return true;
         }
 
-        return mPanZoomController.getRedrawHint();
+        if (!mPanZoomController.getRedrawHint()) {
+            return false;
+        }
+
+        return aboutToCheckerboard();
     }
 
     
@@ -349,8 +350,8 @@ public class LayerController {
         if (adjustedViewport.right > pageSize.width) adjustedViewport.right = pageSize.width;
         if (adjustedViewport.bottom > pageSize.height) adjustedViewport.bottom = pageSize.height;
 
-        RectF tileRect = (mRootLayer == null ? new RectF() : new RectF(mRootLayer.getPosition()));
-        return !tileRect.contains(adjustedViewport);
+        RectF displayPort = (mLayerClient == null ? new RectF() : mLayerClient.getDisplayPort());
+        return !displayPort.contains(adjustedViewport);
     }
 
     
