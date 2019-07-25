@@ -296,7 +296,7 @@ nsThread::ThreadFunc(void *arg)
   while (true) {
     {
       MutexAutoLock lock(self->mLock);
-      if (!self->mEvents->HasPendingEvent()) {
+      if (!self->mEvents.HasPendingEvent()) {
         
         
         
@@ -325,7 +325,6 @@ nsThread::ThreadFunc(void *arg)
 
 nsThread::nsThread(MainThreadFlag aMainThread, PRUint32 aStackSize)
   : mLock("nsThread.mLock")
-  , mEvents(&mEventsRoot)
   , mPriority(PRIORITY_NORMAL)
   , mThread(nsnull)
   , mRunningEvent(0)
@@ -366,7 +365,7 @@ nsThread::Init()
   
   {
     MutexAutoLock lock(mLock);
-    mEvents->PutEvent(startup);
+    mEvents.PutEvent(startup);
   }
 
   
@@ -393,7 +392,7 @@ nsThread::PutEvent(nsIRunnable *event)
       NS_WARNING("An event was posted to a thread that will never run it (rejected)");
       return NS_ERROR_UNEXPECTED;
     }
-    if (!mEvents->PutEvent(event))
+    if (!mEvents.PutEvent(event))
       return NS_ERROR_OUT_OF_MEMORY;
   }
 
@@ -523,7 +522,7 @@ nsThread::HasPendingEvents(bool *result)
 {
   NS_ENSURE_STATE(PR_GetCurrentThread() == mThread);
 
-  *result = mEvents->GetEvent(false, nsnull);
+  *result = mEvents.GetEvent(false, nsnull);
   return NS_OK;
 }
 
@@ -635,7 +634,7 @@ nsThread::ProcessNextEvent(bool mayWait, bool *result)
 
     
     nsCOMPtr<nsIRunnable> event;
-    mEvents->GetEvent(mayWait && !ShuttingDown(), getter_AddRefs(event));
+    mEvents.GetEvent(mayWait && !ShuttingDown(), getter_AddRefs(event));
 
 #ifdef NS_FUNCTION_TIMER
     char message[1024] = {'\0'};
@@ -736,49 +735,6 @@ nsThread::SetObserver(nsIThreadObserver *obs)
   MutexAutoLock lock(mLock);
   mObserver = obs;
   return NS_OK;
-}
-
-NS_IMETHODIMP
-nsThread::PushEventQueue(nsIThreadEventFilter *filter)
-{
-  nsChainedEventQueue *queue = new nsChainedEventQueue(filter);
-
-  MutexAutoLock lock(mLock);
-  queue->mNext = mEvents;
-  mEvents = queue;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsThread::PopEventQueue()
-{
-  MutexAutoLock lock(mLock);
-
-  
-  NS_ENSURE_STATE(mEvents != &mEventsRoot);
-
-  nsChainedEventQueue *queue = mEvents;
-  mEvents = mEvents->mNext;
-
-  nsCOMPtr<nsIRunnable> event;
-  while (queue->GetEvent(false, getter_AddRefs(event)))
-    mEvents->PutEvent(event);
-
-  delete queue;
-  
-  return NS_OK;
-}
-
-bool
-nsThread::nsChainedEventQueue::PutEvent(nsIRunnable *event)
-{
-  bool val;
-  if (!mFilter || mFilter->AcceptEvent(event)) {
-    val = mQueue.PutEvent(event);
-  } else {
-    val = mNext->PutEvent(event);
-  }
-  return val;
 }
 
 NS_IMETHODIMP
