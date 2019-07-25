@@ -770,13 +770,13 @@ nsGenericHTMLElement::SetInnerHTML(const nsAString& aInnerHTML)
 
   if (doc->IsHTML()) {
     PRInt32 oldChildCount = GetChildCount();
-    nsContentUtils::ParseFragmentHTML(aInnerHTML,
-                                      this,
-                                      Tag(),
-                                      GetNameSpaceID(),
-                                      doc->GetCompatibilityMode() ==
-                                          eCompatibility_NavQuirks,
-                                      PR_TRUE);
+    rv = nsContentUtils::ParseFragmentHTML(aInnerHTML,
+                                           this,
+                                           Tag(),
+                                           GetNameSpaceID(),
+                                           doc->GetCompatibilityMode() ==
+                                             eCompatibility_NavQuirks,
+                                           PR_TRUE);
     
     FireMutationEventsForDirectParsing(doc, this, oldChildCount);
   } else {
@@ -841,6 +841,7 @@ nsGenericHTMLElement::InsertAdjacentHTML(const nsAString& aPosition,
   
   mozAutoSubtreeModified subtree(doc, nsnull);
 
+  nsresult rv;
   
   if (doc->IsHTML() &&
       (position == eBeforeEnd ||
@@ -855,24 +856,24 @@ nsGenericHTMLElement::InsertAdjacentHTML(const nsAString& aPosition,
       
       contextLocal = nsGkAtoms::body;
     }
-    nsContentUtils::ParseFragmentHTML(aText,
-                                      destination,
-                                      contextLocal,
-                                      contextNs,
-                                      doc->GetCompatibilityMode() ==
-                                          eCompatibility_NavQuirks,
-                                      PR_TRUE);
+    rv = nsContentUtils::ParseFragmentHTML(aText,
+                                           destination,
+                                           contextLocal,
+                                           contextNs,
+                                           doc->GetCompatibilityMode() ==
+                                             eCompatibility_NavQuirks,
+                                           PR_TRUE);
     
     FireMutationEventsForDirectParsing(doc, destination, oldChildCount);
-    return NS_OK;
+    return rv;
   }
 
   
   nsCOMPtr<nsIDOMDocumentFragment> df;
-  nsresult rv = nsContentUtils::CreateContextualFragment(destination,
-                                                         aText,
-                                                         PR_TRUE,
-                                                         getter_AddRefs(df));
+  rv = nsContentUtils::CreateContextualFragment(destination,
+                                                aText,
+                                                PR_TRUE,
+                                                getter_AddRefs(df));
   nsCOMPtr<nsINode> fragment = do_QueryInterface(df);
   NS_ENSURE_SUCCESS(rv, rv);
 
