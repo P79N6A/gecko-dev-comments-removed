@@ -659,8 +659,25 @@ class nsTSubstring_CharT
 
 
 
-      PRBool NS_FASTCALL ReplacePrep( index_type cutStart, size_type cutLength, size_type newLength );
+      PRBool ReplacePrep(index_type cutStart, size_type cutLength,
+                         size_type newLength)
+      {
+        cutLength = NS_MIN(cutLength, mLength - cutStart);
+        PRUint32 newTotalLen = mLength - cutLength + newLength;
+        if (cutStart == mLength && Capacity() > newTotalLen) {
+          mFlags &= ~F_VOIDED;
+          mData[newTotalLen] = char_type(0);
+          mLength = newTotalLen;
+          return PR_TRUE;
+        }
+        return ReplacePrepInternal(cutStart, cutLength, newLength, newTotalLen);
+      }
 
+      PRBool NS_FASTCALL ReplacePrepInternal(index_type cutStart,
+                                             size_type cutLength,
+                                             size_type newFragLength,
+                                             size_type newTotalLength);
+      
         
 
 
