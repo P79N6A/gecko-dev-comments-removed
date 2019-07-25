@@ -185,7 +185,7 @@ SessionStoreService.prototype = {
 
   
   
-  xulAttributes: ["image"],
+  xulAttributes: {"image": true},
 
   
   _loadState: STATE_STOPPED,
@@ -1427,10 +1427,10 @@ SessionStoreService.prototype = {
   },
 
   persistTabAttribute: function sss_persistTabAttribute(aName) {
-    if (this.xulAttributes.indexOf(aName) != -1)
+    if (aName in this.xulAttributes)
       return; 
     
-    this.xulAttributes.push(aName);
+    this.xulAttributes[aName] = true;
     this.saveStateDelayed();
   },
 
@@ -1737,12 +1737,10 @@ SessionStoreService.prototype = {
     else if (tabData.disallow)
       delete tabData.disallow;
     
-    if (this.xulAttributes.length > 0) {
-      tabData.attributes = {};
-      Array.forEach(aTab.attributes, function(aAttr) {
-        if (this.xulAttributes.indexOf(aAttr.name) > -1)
-          tabData.attributes[aAttr.name] = aAttr.value;
-      }, this);
+    tabData.attributes = {};
+    for (let name in this.xulAttributes) {
+      if (aTab.hasAttribute(name))
+        tabData.attributes[name] = aTab.getAttribute(name);
     }
     
     if (aTab.__SS_extdata)
@@ -2749,6 +2747,9 @@ SessionStoreService.prototype = {
       else
         tabbrowser.showTab(tab);
 
+      for (let name in tabData.attributes)
+        this.xulAttributes[name] = true;
+
       tabData._tabStillLoading = true;
 
       
@@ -2864,9 +2865,8 @@ SessionStoreService.prototype = {
     CAPABILITIES.forEach(function(aCapability) {
       browser.docShell["allow" + aCapability] = disallow.indexOf(aCapability) == -1;
     });
-    Array.filter(tab.attributes, function(aAttr) {
-      return (_this.xulAttributes.indexOf(aAttr.name) > -1);
-    }).forEach(tab.removeAttribute, tab);
+    for (let name in this.xulAttributes)
+      tab.removeAttribute(name);
     for (let name in tabData.attributes)
       tab.setAttribute(name, tabData.attributes[name]);
     
