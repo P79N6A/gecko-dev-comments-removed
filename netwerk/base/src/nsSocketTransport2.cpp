@@ -1125,6 +1125,13 @@ nsSocketTransport::InitiateSocket()
     
     
     
+    opt.option = PR_SockOpt_NoDelay;
+    opt.value.no_delay = PR_TRUE;
+    PR_SetSocketOption(fd, &opt);
+
+    
+    
+    
     PRInt32 sndBufferSize;
     gSocketTransportService->GetSendBufferSize(&sndBufferSize);
     if (sndBufferSize > 0) {
