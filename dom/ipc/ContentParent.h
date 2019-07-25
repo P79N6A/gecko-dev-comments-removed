@@ -58,6 +58,14 @@ private:
     typedef mozilla::dom::ClonedMessageData ClonedMessageData;
 
 public:
+    
+
+
+
+    static void StartUp();
+    
+    static void ShutDown();
+
     static ContentParent* GetNewOrUsed();
 
     
@@ -112,6 +120,11 @@ private:
     static nsTArray<ContentParent*>* gNonAppContentParents;
     static nsTArray<ContentParent*>* gPrivateContent;
 
+    static void PreallocateAppProcess();
+    static void DelayedPreallocateAppProcess();
+    static void ScheduleDelayedPreallocateAppProcess();
+    static already_AddRefed<ContentParent> MaybeTakePreallocatedAppProcess();
+
     
     
     using PContentParent::SendPBrowserConstructor;
@@ -121,6 +134,10 @@ private:
     virtual ~ContentParent();
 
     void Init();
+
+    
+    
+    void SetManifestFromPreallocated(const nsAString& aAppManifestURL);
 
     
 
@@ -134,7 +151,7 @@ private:
 
 
 
-    void ShutDown();
+    void ShutDownProcess();
 
     PCompositorParent* AllocPCompositor(mozilla::ipc::Transport* aTransport,
                                         base::ProcessId aOtherProcess) MOZ_OVERRIDE;

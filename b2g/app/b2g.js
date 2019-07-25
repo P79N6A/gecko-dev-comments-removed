@@ -502,3 +502,9 @@ pref("hal.processPriorityManager.gonk.backgroundOomAdjust", 2);
 pref("hal.processPriorityManager.gonk.masterNice", -1);
 pref("hal.processPriorityManager.gonk.foregroundNice", 0);
 pref("hal.processPriorityManager.gonk.backgroundNice", 10);
+
+
+
+pref("dom.ipc.processPrelauch.enabled", true);
+
+pref("dom.ipc.processPrelauch.delayMs", 1000);
