@@ -50,7 +50,7 @@ bool gShutdown;
 
 
 
-volatile PRIntervalTime gTimestamp;
+volatile PRIntervalTime gTimestamp = PR_INTERVAL_NO_WAIT;
 
 #ifdef REPORT_CHROME_HANGS
 
@@ -307,15 +307,70 @@ Shutdown()
   gMonitor = NULL;
 }
 
-void
-NotifyActivity()
+static bool
+IsUIMessageWaiting()
 {
-  NS_ASSERTION(NS_IsMainThread(), "HangMonitor::Notify called from off the main thread.");
+#ifndef XP_WIN
+  return false;
+#else
+  #define NS_WM_IMEFIRST WM_IME_SETCONTEXT
+  #define NS_WM_IMELAST  WM_IME_KEYUP
+  BOOL haveUIMessageWaiting = FALSE;
+  MSG msg;
+  haveUIMessageWaiting |= ::PeekMessageW(&msg, NULL, WM_KEYFIRST, 
+                                         WM_IME_KEYLAST, PM_NOREMOVE);
+  haveUIMessageWaiting |= ::PeekMessageW(&msg, NULL, NS_WM_IMEFIRST,
+                                         NS_WM_IMELAST, PM_NOREMOVE);
+  haveUIMessageWaiting |= ::PeekMessageW(&msg, NULL, WM_MOUSEFIRST,
+                                         WM_MOUSELAST, PM_NOREMOVE);
+  return haveUIMessageWaiting;
+#endif
+}
+
+void
+NotifyActivity(ActivityType activityType)
+{
+  NS_ASSERTION(NS_IsMainThread(),
+    "HangMonitor::Notify called from off the main thread.");
+
+  
+  if (activityType == kGeneralActivity) {
+    activityType = IsUIMessageWaiting() ? kActivityUIAVail : 
+                                          kActivityNoUIAVail;
+  }
+
+  
+  static PRUint32 cumulativeUILagMS = 0;
+  switch(activityType) {
+  case kActivityNoUIAVail:
+    cumulativeUILagMS = 0;
+    break;
+  case kActivityUIAVail:
+  case kUIActivity:
+    if (gTimestamp != PR_INTERVAL_NO_WAIT) {
+      cumulativeUILagMS += PR_IntervalToMilliseconds(PR_IntervalNow() -
+                                                     gTimestamp);
+    }
+    break;
+  }
 
   
   
   
   gTimestamp = PR_IntervalNow();
+
+  
+  
+  if (activityType == kUIActivity) {
+    
+    
+    static const PRUint32 kUIResponsivenessThresholdMS = 50;
+    if (cumulativeUILagMS > kUIResponsivenessThresholdMS) {
+      mozilla::Telemetry::Accumulate(mozilla::Telemetry::EVENTLOOP_UI_LAG,
+                                     cumulativeUILagMS);
+    }
+    cumulativeUILagMS = 0;
+  }
 }
 
 void
