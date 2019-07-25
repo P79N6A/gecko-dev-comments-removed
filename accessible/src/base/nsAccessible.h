@@ -235,7 +235,7 @@ public:
   
 
 
-  virtual nsAccessible* GetParent();
+  nsAccessible* GetParent();
 
   
 
@@ -265,12 +265,11 @@ public:
   
 
 
-  nsAccessible* GetCachedParent();
+  nsAccessible* GetCachedParent() const { return mParent; }
+  nsAccessible* GetCachedFirstChild() const
+    { return mChildren.SafeElementAt(0, nsnull); }
 
-  
-
-
-  nsAccessible* GetCachedFirstChild();
+  PRBool AreChildrenCached() const { return mAreChildrenInitialized; }
 
 #ifdef DEBUG
   

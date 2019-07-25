@@ -1681,7 +1681,7 @@ nsAccessibleWrap::FirePlatformEvent(nsAccEvent *aEvent)
   if (eventType == nsIAccessibleEvent::EVENT_HIDE) {
     
     
-    newAccessible = accessible->GetParent();
+    newAccessible = accessible->GetCachedParent();
   } else {
     newAccessible = accessible;
   }

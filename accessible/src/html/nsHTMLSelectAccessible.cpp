@@ -371,6 +371,7 @@ nsHTMLSelectListAccessible::CacheChildren()
 void
 nsHTMLSelectListAccessible::CacheOptSiblings(nsIContent *aParentContent)
 {
+  nsCOMPtr<nsIPresShell> presShell(do_QueryReferent(mWeakShell));
   PRUint32 numChildren = aParentContent->GetChildCount();
   for (PRUint32 count = 0; count < numChildren; count ++) {
     nsIContent *childContent = aParentContent->GetChildAt(count);
@@ -383,8 +384,9 @@ nsHTMLSelectListAccessible::CacheOptSiblings(nsIContent *aParentContent)
         tag == nsAccessibilityAtoms::optgroup) {
 
       
-      nsAccessible *accessible =
-        GetAccService()->GetAccessibleInWeakShell(childContent, mWeakShell);
+      nsRefPtr<nsAccessible> accessible =
+        GetAccService()->GetOrCreateAccessible(childContent, presShell,
+                                               mWeakShell);
       if (accessible) {
         mChildren.AppendElement(accessible);
         accessible->SetParent(this);
@@ -932,11 +934,19 @@ nsHTMLComboboxAccessible::CacheChildren()
     if (!mListAccessible)
       return;
 
-    mListAccessible->Init();
+    
+    if (!mListAccessible->Init()) {
+      mListAccessible->Shutdown();
+      return;
+    }
   }
 
   mChildren.AppendElement(mListAccessible);
   mListAccessible->SetParent(this);
+
+  
+  
+  mListAccessible->EnsureChildren();
 }
 
 void
@@ -1170,11 +1180,4 @@ void nsHTMLComboboxListAccessible::GetBoundsRect(nsRect& aBounds, nsIFrame** aBo
 
   *aBoundingFrame = frame->GetParent();
   aBounds = (*aBoundingFrame)->GetRect();
-}
-
-
-nsAccessible*
-nsHTMLComboboxListAccessible::GetParent()
-{
-  return mParent;
 }

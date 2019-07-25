@@ -176,6 +176,11 @@ public:
 
   already_AddRefed<nsIPresShell> GetPresShell();
 
+  
+
+
+  nsIWeakReference* GetWeakShell() const { return mWeakShell; }
+
 protected:
     nsPresContext* GetPresContext();
 

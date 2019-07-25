@@ -413,12 +413,6 @@ public:
   
 
 
-
-  static PRBool IsNodeRelevant(nsINode *aNode);
-
-  
-
-
   enum {
     
     eRowHeaderCells,

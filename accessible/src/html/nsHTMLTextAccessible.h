@@ -129,8 +129,6 @@ public:
   virtual nsresult AppendTextTo(nsAString& aText, PRUint32 aStartOffset,
                                 PRUint32 aLength);
 
-  virtual nsAccessible* GetParent();
-
 protected:
   
   

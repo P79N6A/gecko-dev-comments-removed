@@ -813,16 +813,13 @@ nsAccessible::GetChildAtPoint(PRInt32 aX, PRInt32 aY, PRBool aDeepestChild,
     return NS_OK;
   }
 
-  nsINode *relevantNode = GetAccService()->GetRelevantContentNodeFor(content);
-  nsAccessible *accessible = GetAccService()->GetAccessible(relevantNode);
+  
+  
+  nsAccessible* accessible =
+   GetAccService()->GetAccessibleOrContainer(content, mWeakShell);
   if (!accessible) {
-    
-    
-    accessible = GetAccService()->GetContainerAccessible(relevantNode, PR_TRUE);
-    if (!accessible) {
-      NS_IF_ADDREF(*aChild = fallbackAnswer);
-      return NS_OK;
-    }
+    NS_IF_ADDREF(*aChild = fallbackAnswer);
+    return NS_OK;
   }
 
   if (accessible == this) {
@@ -1242,8 +1239,6 @@ nsresult
 nsAccessible::HandleAccEvent(nsAccEvent *aEvent)
 {
   NS_ENSURE_ARG_POINTER(aEvent);
-  NS_ENSURE_TRUE(nsAccUtils::IsNodeRelevant(aEvent->GetNode()),
-                 NS_ERROR_FAILURE);
 
   nsCOMPtr<nsIObserverService> obsService =
     mozilla::services::GetObserverService();
@@ -2675,22 +2670,7 @@ nsAccessible::Init()
   void *uniqueID = nsnull;
   GetUniqueID(&uniqueID);
 
-  if (!docAcc->CacheAccessible(uniqueID, this))
-    return PR_FALSE;
-
-  
-  
-  
-  
-  
-  if (mContent && mContent->IsInAnonymousSubtree()) {
-    nsAccessible *parent = GetAccService()->GetContainerAccessible(mContent,
-                                                                   PR_TRUE);
-    if (parent)
-      parent->EnsureChildren();
-  }
-
-  return PR_TRUE;
+  return docAcc->CacheAccessible(uniqueID, this);
 }
 
 void
@@ -2779,31 +2759,33 @@ nsAccessible::InvalidateChildren()
 nsAccessible*
 nsAccessible::GetParent()
 {
+  if (mParent)
+    return mParent;
+
   if (IsDefunct())
     return nsnull;
 
-  if (mParent)
-    return mParent;
+  
+  
+  
+  
+  
+  NS_WARNING("Bad accessible tree!");
 
 #ifdef DEBUG
   nsDocAccessible *docAccessible = GetDocAccessible();
   NS_ASSERTION(docAccessible, "No document accessible for valid accessible!");
 #endif
 
-  nsAccessible *parent = GetAccService()->GetContainerAccessible(mContent,
-                                                                 PR_TRUE);
+  nsAccessible* parent = GetAccService()->GetContainerAccessible(mContent,
+                                                                 mWeakShell);
   NS_ASSERTION(parent, "No accessible parent for valid accessible!");
   if (!parent)
     return nsnull;
 
-#ifdef DEBUG
-  NS_ASSERTION(!parent->IsDefunct(), "Defunct parent!");
-
+  
   parent->EnsureChildren();
-  if (parent != mParent)
-    NS_WARNING("Bad accessible tree!");
-#endif
-
+  NS_ASSERTION(parent == mParent, "Wrong children repair!");
   return parent;
 }
 
@@ -2844,25 +2826,6 @@ nsAccessible::GetIndexInParent()
   nsAccessible *parent = GetParent();
   return parent ? parent->GetIndexOf(this) : -1;
 }
-
-nsAccessible*
-nsAccessible::GetCachedParent()
-{
-  if (IsDefunct())
-    return nsnull;
-
-  return mParent;
-}
-
-nsAccessible*
-nsAccessible::GetCachedFirstChild()
-{
-  if (IsDefunct())
-    return nsnull;
-
-  return mChildren.SafeElementAt(0, nsnull);
-}
-
 
 #ifdef DEBUG
 PRBool

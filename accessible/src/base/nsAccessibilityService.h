@@ -135,23 +135,16 @@ public:
 
 
 
+
   already_AddRefed<nsAccessible>
-    GetAccessible(nsINode *aNode, nsIPresShell *aPresShell,
-                  nsIWeakReference *aWeakShell, PRBool *aIsHidden = nsnull);
+    GetOrCreateAccessible(nsINode* aNode, nsIPresShell* aPresShell,
+                          nsIWeakReference* aWeakShell,
+                          PRBool* aIsHidden = nsnull);
 
   
 
 
-  nsAccessible *GetAccessible(nsINode *aNode);
-
-  
-
-
-
-
-
-  nsAccessible *GetAccessibleInWeakShell(nsINode *aNode,
-                                         nsIWeakReference *aPresShell);
+  nsAccessible* GetAccessible(nsINode* aNode);
 
   
 
@@ -159,34 +152,37 @@ public:
 
 
 
+  inline nsAccessible* GetAccessibleInWeakShell(nsINode* aNode,
+                                                nsIWeakReference* aWeakShell)
+  {
+    return GetAccessibleByRule(aNode, aWeakShell, eGetAccForNode);
+  }
 
-  nsAccessible *GetContainerAccessible(nsINode *aNode, PRBool aCanCreate);
+  
+
+
+
+  inline nsAccessible* GetAccessibleOrContainer(nsINode* aNode,
+                                                nsIWeakReference* aWeakShell)
+  {
+    return GetAccessibleByRule(aNode, aWeakShell, eGetAccForNodeOrContainer);
+  }
+
+  
+
+
+  inline nsAccessible* GetContainerAccessible(nsINode* aNode,
+                                              nsIWeakReference* aWeakShell)
+  {
+    return GetAccessibleByRule(aNode, aWeakShell, eGetAccForContainer);
+  }
 
   
 
 
 
 
-
-
-
-
-
-  nsAccessible *GetAttachedAccessibleFor(nsINode *aNode);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  nsINode *GetRelevantContentNodeFor(nsINode *aNode);
+  nsAccessible* GetCachedContainerAccessible(nsINode *aNode);
 
   
 
@@ -231,11 +227,30 @@ private:
 
   void Shutdown();
 
+  enum EWhatAccToGet {
+    eGetAccForNode = 0x1,
+    eGetAccForContainer = 0x2,
+    eGetAccForNodeOrContainer = eGetAccForNode | eGetAccForContainer
+  };
+
   
 
 
+  nsAccessible* GetAccessibleByRule(nsINode* aNode,
+                                    nsIWeakReference* aWeakShell,
+                                    EWhatAccToGet aWhatToGet);
+
+  
+
+
+
+
+
+
+
   nsAccessible* GetAreaAccessible(nsIFrame* aImageFrame, nsINode* aAreaNode,
-                                  nsIWeakReference* aWeakShell);
+                                  nsIWeakReference* aWeakShell,
+                                  nsAccessible** aImageAccessible = nsnull);
 
   
 

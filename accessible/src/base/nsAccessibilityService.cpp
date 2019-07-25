@@ -148,30 +148,18 @@ nsAccessibilityService::NotifyOfAnchorJumpTo(nsIContent *aTarget)
   if (!document)
     return;
 
-  nsINode *targetNode = aTarget;
-  nsAccessible *targetAcc = GetAccessible(targetNode);
-
   
   
-  nsDocAccessible *docAccessible = GetDocAccessible(document);
-  if (!docAccessible)
+  nsCOMPtr<nsIWeakReference> weakShell(nsCoreUtils::GetWeakShellFor(aTarget));
+  nsAccessible* targetAcc = GetAccessibleOrContainer(aTarget, weakShell);
+  if (!targetAcc)
     return;
 
-  
-  
-  if (!targetAcc) {
-    targetAcc = GetContainerAccessible(targetNode, PR_TRUE);
-    targetNode = targetAcc->GetNode();
-  }
-
-  NS_ASSERTION(targetNode,
-      "No accessible in parent chain!? Expect at least a document accessible.");
-  if (!targetNode)
-    return;
+  nsINode* targetNode = targetAcc->GetNode();
 
   
   
-  docAccessible->
+  GetDocAccessible(document)->
     FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_SCROLLING_START,
                                targetNode);
 }
@@ -514,31 +502,6 @@ nsAccessibilityService::GetAccessibleFor(nsIDOMNode *aNode,
 }
 
 NS_IMETHODIMP
-nsAccessibilityService::GetAttachedAccessibleFor(nsIDOMNode *aDOMNode,
-                                                 nsIAccessible **aAccessible)
-{
-  NS_ENSURE_ARG(aDOMNode);
-  NS_ENSURE_ARG_POINTER(aAccessible);
-
-  nsCOMPtr<nsINode> node(do_QueryInterface(aDOMNode));
-  NS_IF_ADDREF(*aAccessible = GetAttachedAccessibleFor(node));
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsAccessibilityService::GetRelevantContentNodeFor(nsIDOMNode *aNode,
-                                                  nsIDOMNode **aRelevantNode)
-{
-  NS_ENSURE_ARG(aNode);
-  NS_ENSURE_ARG_POINTER(aRelevantNode);
-
-  nsCOMPtr<nsINode> node(do_QueryInterface(aNode));
-  nsINode *relevantNode = GetRelevantContentNodeFor(node);
-  CallQueryInterface(relevantNode, aRelevantNode);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsAccessibilityService::GetStringRole(PRUint32 aRole, nsAString& aString)
 {
   if ( aRole >= NS_ARRAY_LENGTH(kRoleNames)) {
@@ -730,46 +693,25 @@ nsAccessibilityService::GetAccessibleInShell(nsINode* aNode,
     return nsnull;
 
   nsCOMPtr<nsIWeakReference> weakShell(do_GetWeakReference(aPresShell));
-  nsRefPtr<nsAccessible> accessible =
-    GetAccessible(aNode, aPresShell, weakShell);
-  return accessible;
+  return GetAccessibleByRule(aNode, weakShell, eGetAccForNode);
 }
 
 
 
 
-nsAccessible *
-nsAccessibilityService::GetAccessible(nsINode *aNode)
+nsAccessible*
+nsAccessibilityService::GetAccessible(nsINode* aNode)
 {
-  if (!aNode)
-    return nsnull;
-
-  nsIPresShell *presShell = nsCoreUtils::GetPresShellFor(aNode);
-  if (!presShell)
-    return nsnull;
-
-  nsCOMPtr<nsIWeakReference> weakShell(do_GetWeakReference(presShell));
-  nsRefPtr<nsAccessible> accessible = GetAccessible(aNode, presShell,
-                                                    weakShell);
-  return accessible;
+  if (aNode) {
+    nsCOMPtr<nsIWeakReference> weakShell(nsCoreUtils::GetWeakShellFor(aNode));
+    if (weakShell)
+      return GetAccessibleByRule(aNode, weakShell, eGetAccForNode);
+  }
+  return nsnull;
 }
 
-nsAccessible *
-nsAccessibilityService::GetAccessibleInWeakShell(nsINode *aNode,
-                                                 nsIWeakReference *aWeakShell) 
-{
-  if (!aNode || !aWeakShell)
-    return nsnull;
-
-  nsCOMPtr<nsIPresShell> presShell(do_QueryReferent(aWeakShell));
-  nsRefPtr<nsAccessible> accessible = GetAccessible(aNode, presShell,
-                                                    aWeakShell);
-  return accessible;
-}
-
-nsAccessible *
-nsAccessibilityService::GetContainerAccessible(nsINode *aNode,
-                                               PRBool aCanCreate)
+nsAccessible*
+nsAccessibilityService::GetCachedContainerAccessible(nsINode* aNode)
 {
   if (!aNode)
     return nsnull;
@@ -786,30 +728,10 @@ nsAccessibilityService::GetContainerAccessible(nsINode *aNode,
   nsCOMPtr<nsIWeakReference> weakShell(do_GetWeakReference(presShell));
 
   nsAccessible *accessible = nsnull;
-  while (!accessible && (currNode = currNode->GetNodeParent())) {
-    currNode = GetAccService()->GetRelevantContentNodeFor(currNode);
-
-    if (aCanCreate) {
-      accessible = GetAccService()->GetAccessibleInWeakShell(currNode,
-                                                             weakShell);
-
-    } else {
-      
-      accessible = GetCachedAccessible(currNode, weakShell);
-    }
-  }
+  while ((currNode = currNode->GetNodeParent()) &&
+         !(accessible = GetCachedAccessible(currNode, weakShell)));
 
   return accessible;
-}
-
-nsAccessible *
-nsAccessibilityService::GetAttachedAccessibleFor(nsINode *aNode)
-{
-  nsINode *relevantNode = GetRelevantContentNodeFor(aNode);
-  if (relevantNode != aNode)
-    return nsnull;
-
-  return GetAccessible(relevantNode);
 }
 
 PRBool
@@ -863,10 +785,10 @@ static PRBool HasRelatedContent(nsIContent *aContent)
 }
 
 already_AddRefed<nsAccessible>
-nsAccessibilityService::GetAccessible(nsINode *aNode,
-                                      nsIPresShell *aPresShell,
-                                      nsIWeakReference *aWeakShell,
-                                      PRBool *aIsHidden)
+nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
+                                              nsIPresShell* aPresShell,
+                                              nsIWeakReference* aWeakShell,
+                                              PRBool* aIsHidden)
 {
   if (!aPresShell || !aWeakShell || !aNode || gIsShutdown)
     return nsnull;
@@ -1244,71 +1166,73 @@ nsAccessibilityService::HasUniversalAriaProperty(nsIContent *aContent)
          nsAccUtils::HasDefinedARIAToken(aContent, nsAccessibilityAtoms::aria_relevant);
 }
 
-nsINode *
-nsAccessibilityService::GetRelevantContentNodeFor(nsINode *aNode)
+nsAccessible*
+nsAccessibilityService::GetAccessibleByRule(nsINode* aNode,
+                                            nsIWeakReference* aWeakShell,
+                                            EWhatAccToGet aWhatToGet)
 {
-  
-  
-  
-  
-  
-  
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  if (!aNode)
+  if (!aNode || !aWeakShell)
     return nsnull;
 
-  nsCOMPtr<nsIContent> content(do_QueryInterface(aNode));
-  if (content) {
+  nsAccessible* cachedAcc = GetCachedAccessible(aNode, aWeakShell);
+  if (cachedAcc) {
+    if (aWhatToGet & eGetAccForNode)
+      return cachedAcc;
+
     
-    nsIContent *bindingParent;
-    nsCOMArray<nsIContent> bindingsStack;
+    
+    return GetAccessibleByRule(aNode->GetNodeParent(), aWeakShell,
+                               eGetAccForNodeOrContainer);
+  }
 
-    for (bindingParent = content->GetBindingParent(); bindingParent != nsnull &&
-         bindingParent != bindingParent->GetBindingParent();
-         bindingParent = bindingParent->GetBindingParent()) {
-      bindingsStack.AppendObject(bindingParent);
-    }
+  
+  nsTArray<nsINode*> nodes;
+  nsINode* node = aNode;
+  while ((node = node->GetNodeParent()) &&
+         !(cachedAcc = GetCachedAccessible(node, aWeakShell)))
+    nodes.AppendElement(node);
 
-    PRInt32 bindingsCount = bindingsStack.Count();
-    for (PRInt32 index = bindingsCount - 1; index >= 0 ; index--) {
-      bindingParent = bindingsStack[index];
+  
+  if (!cachedAcc)
+    return nsnull;
 
-      
-      
-      nsCOMPtr<nsIWeakReference> weakShell =
-        nsCoreUtils::GetWeakShellFor(bindingParent);
-
-      
-      
-      nsRefPtr<nsAccessible> accessible =
-        CreateAccessibleByType(bindingParent, weakShell);
-
-      if (accessible) {
-        if (!accessible->GetAllowsAnonChildAccessibles())
-          return bindingParent;
+  
+  
+  nsAccessible* containerAcc = cachedAcc;
+  if (!cachedAcc->AreChildrenCached()) {
+    cachedAcc->EnsureChildren();
+    for (PRInt32 idx = nodes.Length() - 1; idx >= 0; idx--) {
+      cachedAcc = GetCachedAccessible(nodes[idx], aWeakShell);
+      if (cachedAcc) {
+        cachedAcc->EnsureChildren();
+        containerAcc = cachedAcc;
       }
     }
   }
 
-  return aNode;
+  
+  
+  
+  cachedAcc = GetCachedAccessible(aNode, aWeakShell);
+  if (!cachedAcc && aNode->IsElement()) {
+    nsIFrame* frame = aNode->AsElement()->GetPrimaryFrame();
+    if (frame && frame->GetContent() != aNode)
+      cachedAcc = GetAreaAccessible(frame, aNode, aWeakShell, &containerAcc);
+  }
+
+  if ((aWhatToGet & eGetAccForNode) && cachedAcc)
+    return cachedAcc;
+  else if (aWhatToGet & eGetAccForContainer)
+    return containerAcc;
+
+  return nsnull;
 }
 
 nsAccessible*
-nsAccessibilityService::GetAreaAccessible(nsIFrame *aImageFrame,
-                                          nsINode *aAreaNode,
-                                          nsIWeakReference *aWeakShell)
+nsAccessibilityService::GetAreaAccessible(nsIFrame* aImageFrame,
+                                          nsINode* aAreaNode,
+                                          nsIWeakReference* aWeakShell,
+                                          nsAccessible** aImageAccessible)
 {
   
   nsIImageFrame *imageFrame = do_QueryFrame(aImageFrame);
@@ -1330,6 +1254,9 @@ nsAccessibilityService::GetAreaAccessible(nsIFrame *aImageFrame,
     if (!InitAccessible(imageAcc, nsnull))
       return nsnull;
   }
+
+  if (aImageAccessible)
+    *aImageAccessible = imageAcc;
 
   
   

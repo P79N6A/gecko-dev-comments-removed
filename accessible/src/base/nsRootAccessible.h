@@ -87,7 +87,6 @@ public:
   
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
-  virtual nsAccessible* GetParent();
 
   
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ROOTACCESSIBLE_IMPL_CID)
@@ -124,13 +123,6 @@ protected:
 
     nsresult AddEventListeners();
     nsresult RemoveEventListeners();
-
-  
-
-
-  nsresult HandleEventWithTarget(nsIDOMEvent* aEvent, nsINode* aTargetNode);
-
-    static void GetTargetNode(nsIDOMEvent *aEvent, nsIDOMNode **aTargetNode);
 
   
 

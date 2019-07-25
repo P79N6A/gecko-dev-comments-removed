@@ -1040,12 +1040,6 @@ nsXULTreeItemAccessibleBase::GetStateInternal(PRUint32 *aState,
   return NS_OK;
 }
 
-nsAccessible*
-nsXULTreeItemAccessibleBase::GetParent()
-{
-  return IsDefunct() ? nsnull : mParent.get();
-}
-
 
 
 

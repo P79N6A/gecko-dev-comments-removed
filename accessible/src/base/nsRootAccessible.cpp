@@ -458,37 +458,24 @@ nsRootAccessible::FireCurrentFocusEvent()
   if (IsDefunct())
     return;
 
+  
+  
   nsCOMPtr<nsINode> focusedNode = GetCurrentFocus();
   if (!focusedNode) {
     return; 
   }
 
-  
   nsCOMPtr<nsIDOMDocumentEvent> docEvent = do_QueryInterface(mDocument);
   if (docEvent) {
     nsCOMPtr<nsIDOMEvent> event;
     if (NS_SUCCEEDED(docEvent->CreateEvent(NS_LITERAL_STRING("Events"),
                                            getter_AddRefs(event))) &&
         NS_SUCCEEDED(event->InitEvent(NS_LITERAL_STRING("focus"), PR_TRUE, PR_TRUE))) {
-      
 
-      nsINode *targetNode =
-        GetAccService()->GetRelevantContentNodeFor(focusedNode);
-      if (targetNode) {
-        
-        
-        nsINode *document = targetNode->GetOwnerDoc();
-        if (targetNode == nsCoreUtils::GetRoleContent(document)) {
-          HandleEventWithTarget(event, document);
-          return;
-        }
-
-        
-        nsCOMPtr<nsIPrivateDOMEvent> privateEvent(do_QueryInterface(event));
-        nsCOMPtr<nsIDOMEventTarget> target(do_QueryInterface(focusedNode));
-        privateEvent->SetTarget(target);
-        HandleEventWithTarget(event, targetNode);
-      }
+      nsCOMPtr<nsIPrivateDOMEvent> privateEvent(do_QueryInterface(event));
+      nsCOMPtr<nsIDOMEventTarget> target(do_QueryInterface(focusedNode));
+      privateEvent->SetTarget(target);
+      HandleEvent(event);
     }
   }
 }
@@ -496,61 +483,42 @@ nsRootAccessible::FireCurrentFocusEvent()
 
 
 
-NS_IMETHODIMP nsRootAccessible::HandleEvent(nsIDOMEvent* aEvent)
+NS_IMETHODIMP
+nsRootAccessible::HandleEvent(nsIDOMEvent* aEvent)
 {
-  
-  
-  nsCOMPtr<nsIDOMNode> targetNode;
-  GetTargetNode(aEvent, getter_AddRefs(targetNode));
-  if (!targetNode)
-    return NS_ERROR_FAILURE;
+  nsCOMPtr<nsIDOMNSEvent> nsevent(do_QueryInterface(aEvent));
+  NS_ENSURE_STATE(nsevent);
 
-  nsCOMPtr<nsINode> node(do_QueryInterface(targetNode));
-  return HandleEventWithTarget(aEvent, node);
-}
+  nsCOMPtr<nsIDOMEventTarget> domEventTarget;
+  nsevent->GetOriginalTarget(getter_AddRefs(domEventTarget));
+  nsCOMPtr<nsINode> origTarget(do_QueryInterface(domEventTarget));
+  NS_ENSURE_STATE(origTarget);
 
-
-
-nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
-                                                 nsINode* aTargetNode)
-{
   nsAutoString eventType;
   aEvent->GetType(eventType);
-  nsAutoString localName;
-  nsCOMPtr<nsIContent> targetContent(do_QueryInterface(aTargetNode));
-  if (targetContent)
-    targetContent->NodeInfo()->GetName(localName);
-#ifdef MOZ_XUL
-  PRBool isTree = localName.EqualsLiteral("tree");
-#endif
-#ifdef DEBUG_A11Y
-  
-  if (eventType.EqualsLiteral("AlertActive")) {
-    printf("\ndebugging %s events for %s", NS_ConvertUTF16toUTF8(eventType).get(), NS_ConvertUTF16toUTF8(localName).get());
-  }
-  if (localName.LowerCaseEqualsLiteral("textbox")) {
-    printf("\ndebugging %s events for %s", NS_ConvertUTF16toUTF8(eventType).get(), NS_ConvertUTF16toUTF8(localName).get());
-  }
-#endif
-
-  nsAccessibilityService *accService = GetAccService();
-  NS_ENSURE_TRUE(accService, NS_ERROR_FAILURE);
 
   nsCOMPtr<nsIWeakReference> weakShell =
-    nsCoreUtils::GetWeakShellFor(aTargetNode);
+    nsCoreUtils::GetWeakShellFor(origTarget);
   if (!weakShell)
     return NS_OK;
 
-  nsAccessible *accessible =
-    accService->GetAccessibleInWeakShell(aTargetNode, weakShell);
+  nsAccessible* accessible =
+    GetAccService()->GetAccessibleOrContainer(origTarget, weakShell);
 
   if (eventType.EqualsLiteral("popuphiding"))
-    return HandlePopupHidingEvent(aTargetNode, accessible);
+    return HandlePopupHidingEvent(origTarget, accessible);
 
   if (!accessible)
     return NS_OK;
 
+  nsINode* targetNode = accessible->GetNode();
+  nsIContent* targetContent = targetNode->IsElement() ?
+    targetNode->AsElement() : nsnull;
 #ifdef MOZ_XUL
+  PRBool isTree = targetContent ?
+    targetContent->NodeInfo()->Equals(nsAccessibilityAtoms::tree,
+                                      kNameSpaceID_XUL) : PR_FALSE;
+
   if (isTree) {
     nsRefPtr<nsXULTreeAccessible> treeAcc = do_QueryObject(accessible);
     NS_ASSERTION(treeAcc,
@@ -587,7 +555,7 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
     nsEventShell::FireEvent(accEvent);
 
     if (isEnabled)
-      FireAccessibleFocusEvent(accessible, aTargetNode, aEvent);
+      FireAccessibleFocusEvent(accessible, targetNode, aEvent);
 
     return NS_OK;
   }
@@ -611,7 +579,7 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
   
   if (isTree) {
     nsCOMPtr<nsIDOMXULMultiSelectControlElement> multiSelect =
-      do_QueryInterface(aTargetNode);
+      do_QueryInterface(targetNode);
     if (multiSelect) {
       PRInt32 treeIndex = -1;
       multiSelect->GetCurrentIndex(&treeIndex);
@@ -641,9 +609,9 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
 
   if (treeItemAccessible && eventType.EqualsLiteral("select")) {
     
-    if (gLastFocusedNode == aTargetNode) {
+    if (gLastFocusedNode == targetNode) {
       nsCOMPtr<nsIDOMXULMultiSelectControlElement> multiSel =
-        do_QueryInterface(aTargetNode);
+        do_QueryInterface(targetNode);
       nsAutoString selType;
       multiSel->GetSelType(selType);
       if (selType.IsEmpty() || !selType.EqualsLiteral("single")) {
@@ -664,7 +632,7 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
   else
 #endif
   if (eventType.EqualsLiteral("focus")) {
-    if (aTargetNode == mDocument && mDocument != gLastFocusedNode) {
+    if (targetNode == mDocument && mDocument != gLastFocusedNode) {
       
       
       
@@ -674,14 +642,13 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
     
     
     
-    nsCOMPtr<nsINode> focusedItem(aTargetNode);
-
+    nsCOMPtr<nsINode> focusedItem = targetNode;
     if (!treeItemAccessible) {
       nsCOMPtr<nsIDOMXULSelectControlElement> selectControl =
-        do_QueryInterface(aTargetNode);
+        do_QueryInterface(targetNode);
       if (selectControl) {
         nsCOMPtr<nsIDOMXULMenuListElement> menuList =
-          do_QueryInterface(aTargetNode);
+          do_QueryInterface(targetNode);
         if (!menuList) {
           
           
@@ -693,8 +660,8 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
           if (!focusedItem)
             return NS_OK;
 
-          accessible = accService->GetAccessibleInWeakShell(focusedItem,
-                                                            weakShell);
+          accessible = GetAccService()->GetAccessibleInWeakShell(focusedItem,
+                                                                 weakShell);
           if (!accessible)
             return NS_OK;
         }
@@ -756,9 +723,8 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
     }
     if (!fireFocus) {
       nsCOMPtr<nsINode> realFocusedNode = GetCurrentFocus();
-      nsCOMPtr<nsIContent> realFocusedContent = do_QueryInterface(realFocusedNode);
-      nsCOMPtr<nsIContent> targetContent = do_QueryInterface(aTargetNode);
-      nsIContent *containerContent = targetContent;
+      nsIContent* realFocusedContent = realFocusedNode->AsElement();
+      nsIContent* containerContent = targetContent;
       while (containerContent) {
         nsCOMPtr<nsIDOMXULPopupElement> popup = do_QueryInterface(containerContent);
         if (popup || containerContent == realFocusedContent) { 
@@ -772,7 +738,7 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
     }
     if (fireFocus) {
       
-      FireAccessibleFocusEvent(accessible, aTargetNode, aEvent, PR_TRUE,
+      FireAccessibleFocusEvent(accessible, targetNode, aEvent, PR_TRUE,
                                PR_TRUE, eFromUserInput);
     }
   }
@@ -787,7 +753,7 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
   }
   else if (eventType.EqualsLiteral("ValueChange")) {
     FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_VALUE_CHANGE,
-                               aTargetNode, nsAccEvent::eRemoveDupes);
+                               targetNode, nsAccEvent::eRemoveDupes);
   }
 #ifdef DEBUG
   else if (eventType.EqualsLiteral("mouseover")) {
@@ -798,31 +764,6 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
   return NS_OK;
 }
 
-void nsRootAccessible::GetTargetNode(nsIDOMEvent *aEvent, nsIDOMNode **aTargetNode)
-{
-  *aTargetNode = nsnull;
-
-  nsCOMPtr<nsIDOMNSEvent> nsevent(do_QueryInterface(aEvent));
-
-  if (!nsevent)
-    return;
-
-  nsCOMPtr<nsIDOMEventTarget> domEventTarget;
-  nsevent->GetOriginalTarget(getter_AddRefs(domEventTarget));
-  nsCOMPtr<nsIDOMNode> eventTarget(do_QueryInterface(domEventTarget));
-  if (!eventTarget)
-    return;
-
-  nsIAccessibilityService* accService = GetAccService();
-  if (accService) {
-    nsresult rv = accService->GetRelevantContentNodeFor(eventTarget,
-                                                        aTargetNode);
-    if (NS_SUCCEEDED(rv) && *aTargetNode)
-      return;
-  }
-
-  NS_ADDREF(*aTargetNode = eventTarget);
-}
 
 
 
@@ -930,17 +871,6 @@ nsRootAccessible::GetRelationByType(PRUint32 aRelationType,
   }
 
   return NS_OK;
-}
-
-
-
-
-nsAccessible*
-nsRootAccessible::GetParent()
-{
-  
-  
-  return mParent;
 }
 
 
