@@ -61,6 +61,7 @@ const kBrowserViewZoomLevelPrecision = 10000;
 
 
 const kTouchTimeout = 300;
+const kSetInactiveStateTimeout = 100;
 
 const kDefaultMetadata = { autoSize: false, allowZoom: true, autoScale: true };
 
@@ -2701,7 +2702,7 @@ var ActivityObserver = {
       
       
       
-      setTimeout(function() { Browser.selectedTab.active = activeTabState; }, 0);
+      setTimeout(function() { Browser.selectedTab.active = activeTabState; }, activeTabState ? 0 : kSetInactiveStateTimeout);
     }
   }
 };
