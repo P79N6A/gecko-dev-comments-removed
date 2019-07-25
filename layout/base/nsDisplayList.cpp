@@ -1994,6 +1994,12 @@ nsRect nsDisplayTransform::GetBounds(nsDisplayListBuilder *aBuilder)
 
 
 
+
+
+
+
+
+
 PRBool nsDisplayTransform::IsOpaque(nsDisplayListBuilder *aBuilder,
                                     PRBool* aForceTransparentSurface)
 {
@@ -2001,8 +2007,11 @@ PRBool nsDisplayTransform::IsOpaque(nsDisplayListBuilder *aBuilder,
     *aForceTransparentSurface = PR_FALSE;
   }
   const nsStyleDisplay* disp = mFrame->GetStyleDisplay();
+  nsRect untransformedVisible =
+    UntransformRect(mVisibleRect, mFrame, ToReferenceFrame());
   return disp->mTransform.GetMainMatrixEntry(1) == 0.0f &&
     disp->mTransform.GetMainMatrixEntry(2) == 0.0f &&
+    mStoredList.GetVisibleRect().Contains(untransformedVisible) &&
     mStoredList.IsOpaque(aBuilder);
 }
 
@@ -2013,8 +2022,11 @@ PRBool nsDisplayTransform::IsOpaque(nsDisplayListBuilder *aBuilder,
 PRBool nsDisplayTransform::IsUniform(nsDisplayListBuilder *aBuilder, nscolor* aColor)
 {
   const nsStyleDisplay* disp = mFrame->GetStyleDisplay();
+  nsRect untransformedVisible =
+    UntransformRect(mVisibleRect, mFrame, ToReferenceFrame());
   return disp->mTransform.GetMainMatrixEntry(1) == 0.0f &&
     disp->mTransform.GetMainMatrixEntry(2) == 0.0f &&
+    mStoredList.GetVisibleRect().Contains(untransformedVisible) &&
     mStoredList.IsUniform(aBuilder, aColor);
 }
 
