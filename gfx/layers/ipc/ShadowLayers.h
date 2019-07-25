@@ -61,6 +61,7 @@ class ShadowThebesLayer;
 class ShadowImageLayer;
 class ShadowCanvasLayer;
 class SurfaceDescriptor;
+class ThebesBuffer;
 class Transaction;
 
 
@@ -207,8 +208,9 @@ public:
 
 
   void PaintedThebesBuffer(ShadowableLayer* aThebes,
-                           nsIntRect aBufferRect,
-                           nsIntPoint aBufferRotation,
+                           const nsIntRegion& aUpdatedRegion,
+                           const nsIntRect& aBufferRect,
+                           const nsIntPoint& aBufferRotation,
                            const SurfaceDescriptor& aNewFrontBuffer);
   
 
@@ -399,7 +401,7 @@ public:
   
 
 
-  void SetValidRegion(const nsIntRegion& aRegion)
+  virtual void SetValidRegion(const nsIntRegion& aRegion)
   {
     mValidRegion = aRegion;
     Mutated();
@@ -408,7 +410,7 @@ public:
   
 
 
-  void SetResolution(float aXResolution, float aYResolution)
+  virtual void SetResolution(float aXResolution, float aYResolution)
   {
     mXResolution = aXResolution;
     mYResolution = aYResolution;
@@ -422,24 +424,10 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  virtual SurfaceDescriptor
-  Swap(const SurfaceDescriptor& aNewFront,
-       const nsIntRect& aBufferRect,
-       const nsIntPoint& aRotation) = 0;
+  virtual void
+  Swap(const ThebesBuffer& aNewFront, const nsIntRegion& aUpdatedRegion,
+       ThebesBuffer* aNewBack, nsIntRegion* aNewBackValidRegion,
+       float* aNewXResolution, float* aNewYResolution) = 0;
 
   
 
