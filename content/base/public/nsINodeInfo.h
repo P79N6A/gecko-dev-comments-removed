@@ -71,10 +71,9 @@ class nsIURI;
 class nsIPrincipal;
 
 
-
 #define NS_INODEINFO_IID      \
-{ 0x4aa7526e, 0x37d3, 0x49e3, \
- { 0xa5, 0x66, 0xf2, 0x51, 0xb2, 0xef, 0x2a, 0x21 } }
+{ 0xdfb15226, 0x79ad, 0x4c7c, \
+ { 0x9d, 0x73, 0x3d, 0xbc, 0x13, 0x17, 0x02, 0x74 } }
 
 class nsINodeInfo : public nsISupports
 {
@@ -129,17 +128,6 @@ public:
   const nsString& QualifiedNameCorrectedCase() const {
     return mQualifiedNameCorrectedCase;
   }
-
-  
-
-
-
-
-
-
-
-
-  virtual void GetLocalName(nsAString& aLocalName) const = 0;
 
 #ifdef MOZILLA_INTERNAL_API
   
