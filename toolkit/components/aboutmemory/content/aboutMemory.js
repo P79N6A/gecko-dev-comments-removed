@@ -1211,7 +1211,7 @@ function appendTreeElements(aPOuter, aT, aProcess)
 
 
 
-  function appendTreeElements2(aP, aUnsafePrePath, aT, aIndentGuide,
+  function appendTreeElements2(aP, aUnsafeNames, aT, aIndentGuide,
                                aBaseIndentText, aParentStringLength)
   {
     function repeatStr(aA, aC, aN)
@@ -1220,8 +1220,6 @@ function appendTreeElements(aPOuter, aT, aProcess)
         aA.push(aC);
       }
     }
-
-    let unsafePath = aUnsafePrePath + aT._unsafeName;
 
     
     
@@ -1248,6 +1246,7 @@ function appendTreeElements(aPOuter, aT, aProcess)
     } else {
       if (!(0 <= aT._amount && aT._amount <= treeBytes)) {
         tIsInvalid = true;
+        let unsafePath = aUnsafeNames.join("/");
         gUnsafePathsWithInvalidValuesForThisProcess.push(unsafePath);
         reportAssertionFailure("Invalid value for " +
                                flipBackslashes(unsafePath));
@@ -1265,7 +1264,8 @@ function appendTreeElements(aPOuter, aT, aProcess)
     if (aT._kids) {
       
       
-      let safeTreeId = flipBackslashes(aProcess + ":" + unsafePath);
+      let unsafePath = aUnsafeNames.join("/");
+      let safeTreeId = aProcess + ":" + flipBackslashes(unsafePath);
       showSubtrees = !aT._hideKids;
       if (gShowSubtreesBySafeTreeId[safeTreeId] !== undefined) {
         showSubtrees = gShowSubtreesBySafeTreeId[safeTreeId];
@@ -1318,8 +1318,10 @@ function appendTreeElements(aPOuter, aT, aProcess)
         }
 
         let baseIndentText = baseIndentArray.join("");
-        appendTreeElements2(d, unsafePath + "/", aT._kids[i], aIndentGuide,
+        aUnsafeNames.push(aT._kids[i]._unsafeName);
+        appendTreeElements2(d, aUnsafeNames, aT._kids[i], aIndentGuide,
                             baseIndentText, tString.length);
+        aUnsafeNames.pop();
         aIndentGuide.pop();
       }
     }
@@ -1328,7 +1330,7 @@ function appendTreeElements(aPOuter, aT, aProcess)
   appendSectionHeader(aPOuter, kSectionNames[aT._unsafeName]);
  
   let pre = appendElement(aPOuter, "pre", "entries");
-  appendTreeElements2(pre, "", aT, [], "", rootStringLength);
+  appendTreeElements2(pre, [aT._unsafeName], aT, [], "", rootStringLength);
   appendTextNode(aPOuter, "\n");  
 }
 
