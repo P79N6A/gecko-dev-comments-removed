@@ -82,9 +82,12 @@ public:
 
   
   
-  nsresult WaitForOpenAllowed(const nsAString& aName,
-                              const nsACString& aOrigin,
+  nsresult WaitForOpenAllowed(const nsACString& aOrigin,
+                              nsIAtom* aId,
                               nsIRunnable* aRunnable);
+
+  void AllowNextSynchronizedOp(const nsACString& aOrigin,
+                               nsIAtom* aId);
 
   nsIThread* IOThread()
   {
@@ -95,12 +98,28 @@ public:
   
   static bool IsShuttingDown();
 
+  typedef void (*WaitingOnDatabasesCallback)(nsTArray<nsRefPtr<IDBDatabase> >&, void*);
+
   
-  nsresult SetDatabaseVersion(IDBDatabase* aDatabase,
-                              IDBOpenDBRequest* aRequest,
-                              PRInt64 aOldVersion,
-                              PRInt64 aNewVersion,
-                              AsyncConnectionHelper* aHelper);
+  
+  
+  nsresult AcquireExclusiveAccess(IDBDatabase* aDatabase,
+                                  AsyncConnectionHelper* aHelper,
+                                  WaitingOnDatabasesCallback aCallback,
+                                  void* aClosure)
+  {
+    NS_ASSERTION(aDatabase, "Need a DB here!");
+    return AcquireExclusiveAccess(aDatabase->Origin(), aDatabase, aHelper,
+                                  aCallback, aClosure);
+  }
+  nsresult AcquireExclusiveAccess(const nsACString& aOrigin, 
+                                  AsyncConnectionHelper* aHelper,
+                                  WaitingOnDatabasesCallback aCallback,
+                                  void* aClosure)
+  {
+    return AcquireExclusiveAccess(aOrigin, nsnull, aHelper, aCallback,
+                                  aClosure);
+  }
 
   
   
@@ -122,6 +141,12 @@ private:
   IndexedDatabaseManager();
   ~IndexedDatabaseManager();
 
+  nsresult AcquireExclusiveAccess(const nsACString& aOrigin, 
+                                  IDBDatabase* aDatabase,
+                                  AsyncConnectionHelper* aHelper,
+                                  WaitingOnDatabasesCallback aCallback,
+                                  void* aClosure);
+
   
   bool RegisterDatabase(IDBDatabase* aDatabase);
 
@@ -131,13 +156,6 @@ private:
   
   void OnDatabaseClosed(IDBDatabase* aDatabase);
 
-  
-  void RunSetVersionTransaction(IDBDatabase* aDatabase)
-  {
-    OnDatabaseClosed(aDatabase);
-  }
-
-  
   
   
   
@@ -161,12 +179,10 @@ private:
 
     nsCString mOrigin;
     nsCOMPtr<nsIThread> mThread;
-    nsTArray<nsCOMPtr<nsIRunnable> > mDelayedRunnables;
     bool mFirstCallback;
   };
 
-  
-  inline void OnOriginClearComplete(OriginClearRunnable* aRunnable);
+  bool IsClearOriginPending(const nsACString& origin);
 
   
   
@@ -204,63 +220,59 @@ private:
   
   inline void OnUsageCheckComplete(AsyncUsageRunnable* aRunnable);
 
-  void UnblockSetVersionRunnable(IDBDatabase* aDatabase);
-
   
   
   
-  
-  class SetVersionRunnable : public nsIRunnable
+  struct SynchronizedOp
   {
-  public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIRUNNABLE
+    SynchronizedOp(const nsACString& aOrigin, nsIAtom* aId);
+    ~SynchronizedOp();
 
-    SetVersionRunnable(IDBDatabase* aDatabase,
-                       nsTArray<nsRefPtr<IDBDatabase> >& aDatabases);
-    ~SetVersionRunnable();
+    
+    bool MustWaitFor(const SynchronizedOp& aRhs) const;
 
-    nsRefPtr<IDBDatabase> mRequestingDatabase;
-    nsTArray<nsRefPtr<IDBDatabase> > mDatabases;
+    void DelayRunnable(nsIRunnable* aRunnable);
+    void DispatchDelayedRunnables();
+
+    const nsCString mOrigin;
+    nsCOMPtr<nsIAtom> mId;
     nsRefPtr<AsyncConnectionHelper> mHelper;
     nsTArray<nsCOMPtr<nsIRunnable> > mDelayedRunnables;
+    nsTArray<nsRefPtr<IDBDatabase> > mDatabases;
   };
-
-  
-  inline void OnSetVersionRunnableComplete(SetVersionRunnable* aRunnable);
-
 
   
   
   class WaitForTransactionsToFinishRunnable : public nsIRunnable
   {
   public:
-    WaitForTransactionsToFinishRunnable(SetVersionRunnable* aRunnable)
-    : mRunnable(aRunnable)
+    WaitForTransactionsToFinishRunnable(SynchronizedOp* aOp)
+    : mOp(aOp)
     {
-      NS_ASSERTION(mRunnable, "Why don't we have a runnable?");
-      NS_ASSERTION(mRunnable->mDatabases.IsEmpty(), "We're here too early!");
+      NS_ASSERTION(mOp, "Why don't we have a runnable?");
+      NS_ASSERTION(mOp->mDatabases.IsEmpty(), "We're here too early!");
+      NS_ASSERTION(mOp->mHelper, "What are we supposed to do when we're done?");
     }
 
     NS_DECL_ISUPPORTS
     NS_DECL_NSIRUNNABLE
 
   private:
-    nsRefPtr<SetVersionRunnable> mRunnable;
+    
+    SynchronizedOp* mOp;
   };
+
+  static nsresult DispatchHelper(AsyncConnectionHelper* aHelper);
 
   
   nsClassHashtable<nsCStringHashKey, nsTArray<IDBDatabase*> > mLiveDatabases;
-
-  
-  nsAutoTArray<nsRefPtr<OriginClearRunnable>, 1> mOriginClearRunnables;
 
   
   
   nsAutoTArray<nsRefPtr<AsyncUsageRunnable>, 1> mUsageRunnables;
 
   
-  nsAutoTArray<nsRefPtr<SetVersionRunnable>, 1> mSetVersionRunnables;
+  nsAutoTArray<nsAutoPtr<SynchronizedOp>, 5> mSynchronizedOps;
 
   
   nsCOMPtr<nsIThread> mIOThread;
