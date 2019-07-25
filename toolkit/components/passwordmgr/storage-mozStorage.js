@@ -691,13 +691,10 @@ LoginManagerStorage_mozStorage.prototype = {
         this._removeOldSignonsFiles();
 
         
+        
+        
         query = "DELETE FROM moz_logins";
         try {
-            let logins = this.getAllLogins();
-            for each (let login in logins) {
-                let [id, storedLogin] = this._getIdForLogin(login);
-                this.storeDeletedLogin(storedLogin);
-            }
             stmt = this._dbCreateStatement(query);
             stmt.execute();
             transaction.commit();

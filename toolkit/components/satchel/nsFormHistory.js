@@ -300,11 +300,8 @@ FormHistory.prototype = {
             existingTransactionInProgress = this.dbConnection.transactionInProgress;
             if (!existingTransactionInProgress)
                 this.dbConnection.beginTransaction();
-            this.moveToDeletedTable(
-              "SELECT guid, :timeDeleted FROM moz_formhistory", {
-              timeDeleted: Date.now()
-            });
-
+            
+            
             stmt = this.dbCreateStatement(query);
             stmt.execute();
             this.sendNotification("removeAllEntries", null);
