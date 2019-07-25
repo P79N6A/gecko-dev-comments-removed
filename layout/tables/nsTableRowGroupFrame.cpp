@@ -955,6 +955,7 @@ nsTableRowGroupFrame::SplitSpanningCells(nsPresContext&           aPresContext,
     static_cast<nsTableFrame*>(aTable.GetFirstInFlow())->IsBorderCollapse();
   PRInt32 lastRowIndex = aLastRow.GetRowIndex();
   bool wasLast = false;
+  bool haveRowSpan = false;
   
   for (nsTableRowFrame* row = &aFirstRow; !wasLast; row = row->GetNextRow()) {
     wasLast = (row == &aLastRow);
@@ -966,6 +967,7 @@ nsTableRowGroupFrame::SplitSpanningCells(nsPresContext&           aPresContext,
       
       
       if ((rowSpan > 1) && (rowIndex + rowSpan > lastRowIndex)) {
+        haveRowSpan = true;
         nsReflowStatus status;
         
         
@@ -1020,6 +1022,9 @@ nsTableRowGroupFrame::SplitSpanningCells(nsPresContext&           aPresContext,
         }
       }
     }
+  }
+  if (!haveRowSpan) {
+    aDesiredHeight = aLastRow.GetRect().YMost();
   }
 }
 
