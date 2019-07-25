@@ -3201,13 +3201,10 @@ pref("image.mem.max_bytes_for_sync_decode", 150000);
 
 
 
-#ifdef _AMD64_
-#ifdef MOZ_X11
 
+
+#ifdef MOZ_WIDGET_GTK2
 pref("webgl.enabled_for_all_sites", false);
-#else
-pref("webgl.enabled_for_all_sites", true);
-#endif
 #else
 pref("webgl.enabled_for_all_sites", true);
 #endif
