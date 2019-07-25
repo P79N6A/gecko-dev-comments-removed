@@ -1294,7 +1294,8 @@ DAVCollection.prototype = {
       
       
     }
-
+     this._authProvider._authFailed = false;
+ 
     let request = this._makeRequest("GET", "", internalHandlers, headers);
     request.send(null);
   },
@@ -1304,9 +1305,9 @@ DAVCollection.prototype = {
   },
 
   _onLogin: function DC__onLogin(event) {
-    
-    
 
+
+ 
     if (this._authProvider._authFailed || event.target.status >= 400) {
       this._onLoginError(event);
       return;
