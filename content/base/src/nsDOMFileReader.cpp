@@ -88,6 +88,7 @@
 #define LOADEND_STR "loadend"
 
 #define NS_PROGRESS_EVENT_INTERVAL 50
+const PRUint64 kUnknownSize = PRUint64(-1);
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsDOMFileReader)
 
@@ -143,7 +144,7 @@ nsDOMFileReader::SetOnloadend(nsIDOMEventListener* aOnloadend)
 NS_IMETHODIMP
 nsDOMFileReader::Notify(const char *aCharset, nsDetectionConfident aConf)
 {
-  CopyASCIItoUTF16(aCharset, mCharset);
+  mCharset = aCharset;
   return NS_OK;
 }
 
@@ -463,6 +464,8 @@ nsDOMFileReader::OnStopRequest(nsIRequest *aRequest,
       rv = GetAsDataURL(mFile, mFileData, mDataLen, mResult);
       break;
   }
+  
+  mResult.SetIsVoid(PR_FALSE);
 
   FreeFileData();
 
@@ -499,7 +502,7 @@ nsDOMFileReader::ReadFileContent(nsIDOMBlob* aFile,
 
   mFile = aFile;
   mDataFormat = aDataFormat;
-  mCharset = aCharset;
+  CopyUTF16toUTF8(aCharset, mCharset);
 
   
   {
@@ -517,7 +520,7 @@ nsDOMFileReader::ReadFileContent(nsIDOMBlob* aFile,
   }
 
   
-  mReadTotal = -1;
+  mReadTotal = kUnknownSize;
   mFile->GetSize(&mReadTotal);
 
   rv = mChannel->AsyncOpen(this, nsnull);
@@ -573,14 +576,23 @@ nsDOMFileReader::DispatchProgressEvent(const nsAString& aType)
   if (!progress)
     return;
 
-  progress->InitProgressEvent(aType, PR_FALSE, PR_FALSE, mReadTotal >= 0,
-                              mReadTransferred, PR_MAX(mReadTotal, 0));
+  PRBool known;
+  PRUint64 size;
+  if (mReadTotal != kUnknownSize) {
+    known = PR_TRUE;
+    size = mReadTotal;
+  } else {
+    known = PR_FALSE;
+    size = 0;
+  }
+  progress->InitProgressEvent(aType, PR_FALSE, PR_FALSE, known,
+                              mReadTransferred, size);
 
   this->DispatchDOMEvent(nsnull, event, nsnull, nsnull);
 }
 
 nsresult
-nsDOMFileReader::GetAsText(const nsAString &aCharset,
+nsDOMFileReader::GetAsText(const nsACString &aCharset,
                            const char *aFileData,
                            PRUint32 aDataLen,
                            nsAString& aResult)
@@ -588,7 +600,7 @@ nsDOMFileReader::GetAsText(const nsAString &aCharset,
   nsresult rv;
   nsCAutoString charsetGuess;
   if (!aCharset.IsEmpty()) {
-    CopyUTF16toUTF8(aCharset, charsetGuess);
+    charsetGuess = aCharset;
   } else {
     rv = GuessCharset(aFileData, aDataLen, charsetGuess);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -625,7 +637,7 @@ nsDOMFileReader::GetAsDataURL(nsIDOMBlob *aFile,
   aResult.AppendLiteral(";base64,");
 
   PRUint32 totalRead = 0;
-  do {
+  while (aDataLen > totalRead) {
     PRUint32 numEncode = 4096;
     PRUint32 amtRemaining = aDataLen - totalRead;
     if (numEncode > amtRemaining)
@@ -643,8 +655,7 @@ nsDOMFileReader::GetAsDataURL(nsIDOMBlob *aFile,
     PR_Free(base64);
 
     totalRead += numEncode;
-
-  } while (aDataLen > totalRead);
+  }
 
   return NS_OK;
 }
@@ -700,7 +711,9 @@ nsDOMFileReader::GuessCharset(const char *aFileData,
   }
 
   nsresult rv;
-  if (detector) {
+  
+  
+  if (detector && aDataLen != 0) {
     mCharset.Truncate();
     detector->Init(this);
 
@@ -712,7 +725,7 @@ nsDOMFileReader::GuessCharset(const char *aFileData,
     rv = detector->Done();
     NS_ENSURE_SUCCESS(rv, rv);
 
-    CopyUTF16toUTF8(mCharset, aCharset);
+    aCharset = mCharset;
   } else {
     
     unsigned char sniffBuf[4];
