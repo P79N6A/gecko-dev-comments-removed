@@ -69,8 +69,7 @@ import org.json.JSONObject;
 
 
 
-public class LayerView extends FlexibleGLSurfaceView implements AbstractLayerView,
-                                                                GeckoEventListener {
+public class LayerView extends FlexibleGLSurfaceView implements GeckoEventListener {
     private Context mContext;
     private LayerController mController;
     private InputConnectionHandler mInputConnectionHandler;
@@ -244,10 +243,6 @@ public class LayerView extends FlexibleGLSurfaceView implements AbstractLayerVie
 
     public int getMaxTextureSize() {
         return mRenderer.getMaxTextureSize();
-    }
-
-    public View getAndroidView() {
-        return this;
     }
 
     
