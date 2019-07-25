@@ -2314,6 +2314,13 @@ IonBuilder::jsop_call_inline(uint32 argc, IonBuilder &inlineBuilder)
     if (!discardCallArgs(argc, argv, top))
         return false;
 
+    
+    
+    MConstant *constFun = MConstant::New(ObjectValue(*data->callee));
+    MDefinition *loadFun = current->pop();
+    current->push(constFun);
+    loadFun->replaceAllUsesWith(constFun);
+
     MDefinition *thisDefn = argv[0];
 
     
