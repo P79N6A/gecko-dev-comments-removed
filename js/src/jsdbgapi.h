@@ -71,11 +71,7 @@ extern JS_PUBLIC_API(JSBool)
 JS_GetDebugMode(JSContext *cx);
 
 
-extern JS_FRIEND_API(JSBool)
-js_SetDebugMode(JSContext *cx, JSBool debug);
-
-
-extern JS_PUBLIC_API(JSBool)
+JS_FRIEND_API(JSBool)
 JS_SetDebugMode(JSContext *cx, JSBool debug);
 
 
