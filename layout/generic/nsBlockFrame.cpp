@@ -574,15 +574,13 @@ nsBlockFrame::GetCaretBaseline() const
 
 
 
-nsFrameList
+const nsFrameList&
 nsBlockFrame::GetChildList(ChildListID aListID) const
 {
   switch (aListID) {
     case kPrincipalList:
       return mFrames;
     case kOverflowList: {
-      
-      
       FrameLines* overflowLines = GetOverflowLines();
       return overflowLines ? overflowLines->mFrames : nsFrameList::EmptyList();
     }
