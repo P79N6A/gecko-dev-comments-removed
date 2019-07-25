@@ -930,12 +930,20 @@ let TabItems = {
       let tabItem = tab._tabViewTabItem;
 
       
-      let iconUrl = tab.image;
-      if (!iconUrl)
-        iconUrl = Utils.defaultFaviconURL;
+      if (this.shouldLoadFavIcon(tab.linkedBrowser)) {
+        let iconUrl = tab.image;
+        if (!iconUrl)
+          iconUrl = Utils.defaultFaviconURL;
 
-      if (iconUrl != tabItem.favImgEl.src)
-        tabItem.favImgEl.src = iconUrl;
+        if (iconUrl != tabItem.favImgEl.src)
+          tabItem.favImgEl.src = iconUrl;
+
+        iQ(tabItem.favEl).show();
+      } else {
+        if (tabItem.favImgEl.hasAttribute("src"))
+          tabItem.favImgEl.removeAttribute("src");
+        iQ(tabItem.favEl).hide();
+      }
 
       
       let tabUrl = tab.linkedBrowser.currentURI.spec;
@@ -973,6 +981,14 @@ let TabItems = {
     } catch(e) {
       Utils.log(e);
     }
+  },
+
+  
+  
+  
+  shouldLoadFavIcon: function TabItems_shouldLoadFavIcon(browser) {
+    return !(browser.contentDocument instanceof window.ImageDocument) &&
+           gBrowser.shouldLoadFavIcon(browser.contentDocument.documentURIObject);
   },
 
   
