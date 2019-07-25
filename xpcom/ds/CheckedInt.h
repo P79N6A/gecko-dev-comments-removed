@@ -288,6 +288,22 @@ template<typename T> inline T is_div_valid(T x, T y)
                         y != 0;
 }
 
+
+template<typename T, bool is_signed = integer_traits<T>::is_signed>
+struct opposite_if_signed_impl
+{
+    static T run(T x) { return -x; }
+};
+template<typename T>
+struct opposite_if_signed_impl<T, false>
+{
+    static T run(T x) { return x; }
+};
+template<typename T>
+inline T opposite_if_signed(T x) { return opposite_if_signed_impl<T>::run(x); }
+
+
+
 } 
 
 
@@ -353,7 +369,7 @@ protected:
                 
 
     template<typename U>
-    CheckedInt(U value, PRBool isValid) : mValue(value), mIsValid(isValid)
+    CheckedInt(U value, T isValid) : mValue(value), mIsValid(isValid)
     {
         CheckedInt_internal::integer_type_manually_recorded_info<T>
             ::TYPE_NOT_SUPPORTED_BY_CheckedInt();
@@ -370,7 +386,7 @@ public:
 
     template<typename U>
     CheckedInt(U value)
-        : mValue(value),
+        : mValue(T(value)),
           mIsValid(CheckedInt_internal::is_in_range<T>(value))
     {
         CheckedInt_internal::integer_type_manually_recorded_info<T>
@@ -392,7 +408,7 @@ public:
 
     PRBool valid() const
     {
-        return mIsValid;
+        return PRBool(mIsValid);
     }
 
     
@@ -415,7 +431,9 @@ public:
     
     CheckedInt operator -() const
     {
-        T result = -value();
+        
+        
+        T result = CheckedInt_internal::opposite_if_signed(value());
         
         return CheckedInt(result,
                           mIsValid & CheckedInt_internal::is_sub_valid(T(0), value(), result));
