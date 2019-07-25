@@ -950,6 +950,7 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
 
   
   if (mParser) {
+    rv = NS_OK;
     nsCOMPtr<nsIStreamListener> listener = mParser->GetStreamListener();
     listener.forget(aDocListener);
 
