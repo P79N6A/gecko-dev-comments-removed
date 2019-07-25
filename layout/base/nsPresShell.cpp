@@ -3051,8 +3051,12 @@ ComputeWhereToScroll(PRInt16 aWhereToScroll,
                      nscoord aRectMin,
                      nscoord aRectMax,
                      nscoord aViewMin,
-                     nscoord aViewMax) {
+                     nscoord aViewMax,
+                     nscoord* aRangeMin,
+                     nscoord* aRangeMax) {
   nscoord resultCoord = aOriginalCoord;
+  
+  
   if (nsIPresShell::SCROLL_MINIMUM == aWhereToScroll) {
     if (aRectMin < aViewMin) {
       
@@ -3071,6 +3075,10 @@ ComputeWhereToScroll(PRInt16 aWhereToScroll,
     resultCoord =  NSToCoordRound(frameAlignCoord - (aViewMax - aViewMin) * (
                                   aWhereToScroll / 100.0f));
   }
+  nscoord scrollPortLength = aViewMax - aViewMin;
+  
+  *aRangeMin = NS_MIN(resultCoord, aRectMax - scrollPortLength);
+  *aRangeMax = NS_MAX(resultCoord, aRectMin);
   return resultCoord;
 }
 
@@ -3090,8 +3098,18 @@ static void ScrollToShowRect(nsIScrollableFrame*      aScrollFrame,
 {
   nsPoint scrollPt = aScrollFrame->GetScrollPosition();
   nsRect visibleRect(scrollPt, aScrollFrame->GetScrollPortRect().Size());
-  nsSize lineSize = aScrollFrame->GetLineScrollAmount();
+  nsSize lineSize;
+  
+  
+  
+  
+  
+  if (aVertical.mWhenToScroll == nsIPresShell::SCROLL_IF_NOT_VISIBLE ||
+      aHorizontal.mWhenToScroll == nsIPresShell::SCROLL_IF_NOT_VISIBLE) {
+    lineSize = aScrollFrame->GetLineScrollAmount();
+  }
   nsPresContext::ScrollbarStyles ss = aScrollFrame->GetScrollbarStyles();
+  nsRect allowedRange(scrollPt, nsSize(0, 0));
 
   if ((aFlags & nsIPresShell::SCROLL_OVERFLOW_HIDDEN) ||
       ss.mVertical != NS_STYLE_OVERFLOW_HIDDEN) {
@@ -3102,12 +3120,15 @@ static void ScrollToShowRect(nsIScrollableFrame*      aScrollFrame,
                             aRect.YMost(),
                             visibleRect.y,
                             visibleRect.YMost())) {
+      nscoord maxHeight;
       scrollPt.y = ComputeWhereToScroll(aVertical.mWhereToScroll,
                                         scrollPt.y,
                                         aRect.y,
                                         aRect.YMost(),
                                         visibleRect.y,
-                                        visibleRect.YMost());
+                                        visibleRect.YMost(),
+                                        &allowedRange.y, &maxHeight);
+      allowedRange.height = maxHeight - allowedRange.y;
     }
   }
 
@@ -3120,16 +3141,19 @@ static void ScrollToShowRect(nsIScrollableFrame*      aScrollFrame,
                             aRect.XMost(),
                             visibleRect.x,
                             visibleRect.XMost())) {
+      nscoord maxWidth;
       scrollPt.x = ComputeWhereToScroll(aHorizontal.mWhereToScroll,
                                         scrollPt.x,
                                         aRect.x,
                                         aRect.XMost(),
                                         visibleRect.x,
-                                        visibleRect.XMost());
+                                        visibleRect.XMost(),
+                                        &allowedRange.x, &maxWidth);
+      allowedRange.width = maxWidth - allowedRange.x;
     }
   }
 
-  aScrollFrame->ScrollTo(scrollPt, nsIScrollableFrame::INSTANT);
+  aScrollFrame->ScrollTo(scrollPt, nsIScrollableFrame::INSTANT, &allowedRange);
 }
 
 nsresult
