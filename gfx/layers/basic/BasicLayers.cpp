@@ -1184,69 +1184,6 @@ ToInsideIntRect(const gfxRect& aRect)
   return nsIntRect(r.X(), r.Y(), r.Width(), r.Height());
 }
 
-
-
-
-
-
-
-static PRBool
-MayHaveOverlappingOrTransparentLayers(Layer* aLayer,
-                                      const nsIntRect& aBounds,
-                                      nsIntRegion* aDirtyVisibleRegionInContainer)
-{
-  if (static_cast<BasicImplData*>(aLayer->ImplData())->IsHidden()) {
-    
-    return PR_FALSE;
-  }
-
-  if (!(aLayer->GetContentFlags() & Layer::CONTENT_OPAQUE)) {
-    return PR_TRUE;
-  }
-
-  gfxMatrix matrix;
-  if (!aLayer->GetTransform().Is2D(&matrix) ||
-      matrix.HasNonIntegerTranslation()) {
-    return PR_TRUE;
-  }
-
-  nsIntPoint translation = nsIntPoint(PRInt32(matrix.x0), PRInt32(matrix.y0));
-  nsIntRect bounds = aBounds - translation;
-
-  nsIntRect clippedDirtyRect = bounds;
-  const nsIntRect* clipRect = aLayer->GetClipRect();
-  if (clipRect) {
-    clippedDirtyRect.IntersectRect(clippedDirtyRect, *clipRect - translation);
-  }
-  aDirtyVisibleRegionInContainer->And(aLayer->GetVisibleRegion(), clippedDirtyRect);
-  aDirtyVisibleRegionInContainer->MoveBy(translation);
-
-  
-  if (aDirtyVisibleRegionInContainer->IsEmpty()) {
-    return PR_FALSE;
-  }
-
-  nsIntRegion region;
-
-  for (Layer* child = aLayer->GetFirstChild(); child;
-       child = child->GetNextSibling()) {
-    nsIntRegion childRegion;
-    if (MayHaveOverlappingOrTransparentLayers(child, bounds, &childRegion)) {
-      return PR_TRUE;
-    }
-
-    nsIntRegion tmp;
-    tmp.And(region, childRegion);
-    if (!tmp.IsEmpty()) {
-      return PR_TRUE;
-    }
-
-    region.Or(region, childRegion);
-  }
-
-  return PR_FALSE;
-}
-
 BasicLayerManager::BasicLayerManager(nsIWidget* aWidget) :
 #ifdef DEBUG
   mPhase(PHASE_NONE),
@@ -1560,8 +1497,6 @@ BasicLayerManager::EndTransactionInternal(DrawThebesLayerCallback aCallback,
       !(mTarget->GetFlags() & gfxContext::FLAG_DISABLE_SNAPPING);
     mRoot->ComputeEffectiveTransforms(gfx3DMatrix::From2D(mTarget->CurrentMatrix()));
 
-    
-    
     if (IsRetained()) {
       nsIntRegion region;
       MarkLayersHidden(mRoot, clipRect, clipRect, region, ALLOW_OPAQUE);
