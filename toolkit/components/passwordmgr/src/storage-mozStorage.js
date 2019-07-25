@@ -38,6 +38,8 @@
 
 
 
+
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -50,6 +52,37 @@ const ENCTYPE_SDR = 1;
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
+
+
+
+
+
+
+
+function Transaction(aDatabase) {
+    this._db = aDatabase;
+
+    this._hasTransaction = false;
+    try {
+        this._db.beginTransaction();
+        this._hasTransaction = true;
+    }
+    catch(e) {  }
+}
+
+Transaction.prototype = {
+    commit : function() {
+        if (this._hasTransaction)
+            this._db.commitTransaction();
+    },
+
+    rollback : function() {
+        if (this._hasTransaction)
+            this._db.rollbackTransaction();
+    },
+};
+
+
 function LoginManagerStorage_mozStorage() { };
 
 LoginManagerStorage_mozStorage.prototype = {
@@ -58,11 +91,11 @@ LoginManagerStorage_mozStorage.prototype = {
     QueryInterface : XPCOMUtils.generateQI([Ci.nsILoginManagerStorage,
                                             Ci.nsIInterfaceRequestor]),
     getInterface : function(aIID) {
-      if (aIID.equals(Ci.mozIStorageConnection)) {
-        return this._dbConnection;
-      }
+        if (aIID.equals(Ci.mozIStorageConnection)) {
+            return this._dbConnection;
+        }
 
-      throw Cr.NS_ERROR_NO_INTERFACE;
+        throw Cr.NS_ERROR_NO_INTERFACE;
     },
 
     __crypto : null,  
@@ -1026,7 +1059,7 @@ LoginManagerStorage_mozStorage.prototype = {
             let logins = legacy.getAllEncryptedLogins();
 
             
-            this._dbConnection.beginTransaction();
+            let transaction = new Transaction(this._dbConnection);
             for each (let login in logins) {
                 try {
                     this._addLogin(login, true);
@@ -1037,7 +1070,7 @@ LoginManagerStorage_mozStorage.prototype = {
             let disabledHosts = legacy.getAllDisabledHosts();
             for each (let hostname in disabledHosts)
                 this.setLoginSavingEnabled(hostname, false);
-            this._dbConnection.commitTransaction();
+            transaction.commit();
         } catch (e) {
             this.log("_importLegacySignons failed: " + e.name + " : " + e.message);
             throw "Import failed";
@@ -1141,7 +1174,7 @@ LoginManagerStorage_mozStorage.prototype = {
         
 
         this.log("Reencrypting Base64 logins");
-        this._dbConnection.beginTransaction();
+        let transaction;
         try {
             let [logins, ids] = this._searchLogins({ encType: ENCTYPE_BASE64 });
 
@@ -1154,6 +1187,8 @@ LoginManagerStorage_mozStorage.prototype = {
                 
                 return;
             }
+
+            transaction = new Transaction(this._dbConnection);
 
             let encUsername, encPassword, stmt;
             for each (let login in logins) {
@@ -1184,7 +1219,9 @@ LoginManagerStorage_mozStorage.prototype = {
         } catch (e) {
             this.log("_reencryptBase64Logins failed: " + e);
         } finally {
-            this._dbConnection.commitTransaction();
+            if (transaction) {
+                transaction.commit();
+            }
         }
     },
 
@@ -1301,7 +1338,7 @@ LoginManagerStorage_mozStorage.prototype = {
 
         
 
-        this._dbConnection.beginTransaction();
+        let transaction = new Transaction(this._dbConnection);
 
         try {
             for (let v = oldVersion + 1; v <= DB_VERSION; v++) {
@@ -1311,12 +1348,12 @@ LoginManagerStorage_mozStorage.prototype = {
             }
         } catch (e) {
             this.log("Migration failed: "  + e);
-            this._dbConnection.rollbackTransaction();
+            transaction.rollback();
             throw e;
         }
 
         this._dbConnection.schemaVersion = DB_VERSION;
-        this._dbConnection.commitTransaction();
+        transaction.commit();
         this.log("DB migration completed.");
     },
 
