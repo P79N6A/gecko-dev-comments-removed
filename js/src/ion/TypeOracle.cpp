@@ -386,6 +386,7 @@ TypeInferenceOracle::getCallArg(JSScript *script, uint32 argc, uint32 arg, jsbyt
 {
     JS_ASSERT(argc >= arg);
     
+    
     return script->analysis()->poppedTypes(pc, argc - arg);
 }
 

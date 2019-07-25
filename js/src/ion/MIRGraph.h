@@ -126,6 +126,9 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     void initSlot(uint32 index, MDefinition *ins);
 
     
+    void shimmySlots(int discardDepth);
+
+    
     
     void linkOsrValues(MStart *start);
 
@@ -138,6 +141,9 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     
     
     void rewriteSlot(uint32 slot, MDefinition *ins);
+
+    
+    void rewriteAtDepth(int32 depth, MDefinition *ins);
 
     
     void push(MDefinition *ins);
