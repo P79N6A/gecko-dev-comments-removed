@@ -85,7 +85,6 @@ nsresult nsAndroidHandlerApp::Equals(nsIHandlerApp *aHandlerApp, PRBool *aRetval
 
 nsresult nsAndroidHandlerApp::LaunchWithURI(nsIURI *aURI, nsIInterfaceRequestor *aWindowContext)
 {
-  nsCAutoString uristr;
-  aURI->GetAsciiSpec(uristr);
-  return NS_OK;
+  
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
