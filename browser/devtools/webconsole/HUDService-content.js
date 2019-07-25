@@ -23,6 +23,7 @@ let Services = tempScope.Services;
 let gConsoleStorage = tempScope.ConsoleAPIStorage;
 let WebConsoleUtils = tempScope.WebConsoleUtils;
 let l10n = WebConsoleUtils.l10n;
+let JSPropertyProvider = tempScope.JSPropertyProvider;
 tempScope = null;
 
 let _alive = true; 
@@ -32,7 +33,6 @@ let _alive = true;
 
 let Manager = {
   get window() content,
-  get console() this.window.console,
   sandbox: null,
   hudId: null,
   _sequence: 0,
@@ -60,11 +60,7 @@ let Manager = {
 
     
     
-    let xulWindow = this.window.QueryInterface(Ci.nsIInterfaceRequestor)
-                    .getInterface(Ci.nsIWebNavigation)
-                    .QueryInterface(Ci.nsIDocShell)
-                    .chromeEventHandler.ownerDocument.defaultView;
-
+    let xulWindow = this._xulWindow();
     xulWindow.addEventListener("unload", this._onXULWindowClose, false);
 
     let tabContainer = xulWindow.gBrowser.tabContainer;
@@ -360,17 +356,26 @@ let Manager = {
   
 
 
+
+
+
+  _xulWindow: function Manager__xulWindow()
+  {
+    return this.window.QueryInterface(Ci.nsIInterfaceRequestor)
+           .getInterface(Ci.nsIWebNavigation).QueryInterface(Ci.nsIDocShell)
+           .chromeEventHandler.ownerDocument.defaultView;
+  },
+
+  
+
+
   destroy: function Manager_destroy()
   {
     Services.obs.removeObserver(this, "private-browsing-change-granted");
     Services.obs.removeObserver(this, "quit-application-granted");
 
     _alive = false;
-    let xulWindow = this.window.QueryInterface(Ci.nsIInterfaceRequestor)
-                    .getInterface(Ci.nsIWebNavigation)
-                    .QueryInterface(Ci.nsIDocShell)
-                    .chromeEventHandler.ownerDocument.defaultView;
-
+    let xulWindow = this._xulWindow();
     xulWindow.removeEventListener("unload", this._onXULWindowClose, false);
     let tabContainer = xulWindow.gBrowser.tabContainer;
     tabContainer.removeEventListener("TabClose", this._onTabClose, false);
@@ -393,7 +398,234 @@ let Manager = {
 
 
 
+
+
+
+
+
+function JSTermHelper(aJSTerm)
+{
+  
+
+
+
+
+
+
+
+  aJSTerm.sandbox.$ = function JSTH_$(aId)
+  {
+    return aJSTerm.window.document.getElementById(aId);
+  };
+
+  
+
+
+
+
+
+
+
+  aJSTerm.sandbox.$$ = function JSTH_$$(aSelector)
+  {
+    return aJSTerm.window.document.querySelectorAll(aSelector);
+  };
+
+  
+
+
+
+
+
+
+
+
+  aJSTerm.sandbox.$x = function JSTH_$x(aXPath, aContext)
+  {
+    let nodes = [];
+    let doc = aJSTerm.window.document;
+    let aContext = aContext || doc;
+
+    try {
+      let results = doc.evaluate(aXPath, aContext, null,
+                                 Ci.nsIDOMXPathResult.ANY_TYPE, null);
+      let node;
+      while (node = results.iterateNext()) {
+        nodes.push(node);
+      }
+    }
+    catch (ex) {
+      aJSTerm.console.error(ex.message);
+    }
+
+    return nodes;
+  };
+
+  
+
+
+
+
+
+
+
+
+
+  Object.defineProperty(aJSTerm.sandbox, "$0", {
+    get: function() {
+      try {
+        return Manager._xulWindow().InspectorUI.selection;
+      }
+      catch (ex) {
+        aJSTerm.console.error(ex.message);
+      }
+    },
+    enumerable: true,
+    configurable: false
+  });
+
+  
+
+
+  aJSTerm.sandbox.clear = function JSTH_clear()
+  {
+    aJSTerm.helperEvaluated = true;
+    Manager.sendMessage("JSTerm:ClearOutput", {});
+  };
+
+  
+
+
+
+
+
+
+  aJSTerm.sandbox.keys = function JSTH_keys(aObject)
+  {
+    return Object.keys(WebConsoleUtils.unwrap(aObject));
+  };
+
+  
+
+
+
+
+
+
+  aJSTerm.sandbox.values = function JSTH_values(aObject)
+  {
+    let arrValues = [];
+    let obj = WebConsoleUtils.unwrap(aObject);
+
+    try {
+      for (let prop in obj) {
+        arrValues.push(obj[prop]);
+      }
+    }
+    catch (ex) {
+      aJSTerm.console.error(ex.message);
+    }
+    return arrValues;
+  };
+
+  
+
+
+  aJSTerm.sandbox.help = function JSTH_help()
+  {
+    aJSTerm.helperEvaluated = true;
+    aJSTerm.window.open(
+        "https://developer.mozilla.org/AppLinks/WebConsoleHelp?locale=" +
+        aJSTerm.window.navigator.language, "help", "");
+  };
+
+  
+
+
+
+
+
+  aJSTerm.sandbox.inspect = function JSTH_inspect(aObject)
+  {
+    if (!WebConsoleUtils.isObjectInspectable(aObject)) {
+      return aObject;
+    }
+
+    aJSTerm.helperEvaluated = true;
+
+    let message = {
+      input: aJSTerm._evalInput,
+      objectCacheId: Manager.sequenceId,
+    };
+
+    message.resultObject =
+      aJSTerm.prepareObjectForRemote(WebConsoleUtils.unwrap(aObject),
+                                     message.objectCacheId);
+
+    Manager.sendMessage("JSTerm:InspectObject", message);
+  };
+
+  
+
+
+
+
+
+
+  aJSTerm.sandbox.pprint = function JSTH_pprint(aObject)
+  {
+    aJSTerm.helperEvaluated = true;
+    if (aObject === null || aObject === undefined || aObject === true ||
+        aObject === false) {
+      aJSTerm.console.error(l10n.getStr("helperFuncUnsupportedTypeError"));
+      return;
+    }
+    else if (typeof aObject == "function") {
+      aJSTerm.helperRawOutput = true;
+      return aObject + "\n";
+    }
+
+    aJSTerm.helperRawOutput = true;
+
+    let output = [];
+    let pairs = WebConsoleUtils.namesAndValuesOf(WebConsoleUtils.unwrap(aObject));
+    pairs.forEach(function(aPair) {
+      output.push(aPair.name + ": " + aPair.value);
+    });
+
+    return "  " + output.join("\n  ");
+  };
+
+  
+
+
+
+
+
+
+  aJSTerm.sandbox.print = function JSTH_print(aString)
+  {
+    aJSTerm.helperEvaluated = true;
+    aJSTerm.helperRawOutput = true;
+    return String(aString);
+  };
+}
+
+
+
+
+
 let JSTerm = {
+  get window() Manager.window,
+  get console() this.window.console,
+
+  
+
+
+  sandbox: null,
+
+  _messageHandlers: {},
+
   
 
 
@@ -406,14 +638,110 @@ let JSTerm = {
   init: function JST_init()
   {
     this._objectCache = {};
+    this._messageHandlers = {
+      "JSTerm:EvalRequest": this.handleEvalRequest,
+      "JSTerm:GetEvalObject": this.handleGetEvalObject,
+      "JSTerm:Autocomplete": this.handleAutocomplete,
+      "JSTerm:ClearObjectCache": this.handleClearObjectCache,
+    };
 
-    Manager.addMessageHandler("JSTerm:GetEvalObject",
-                              this.handleGetEvalObject.bind(this));
-    Manager.addMessageHandler("JSTerm:ClearObjectCache",
-                              this.handleClearObjectCache.bind(this));
+    for (let name in this._messageHandlers) {
+      let handler = this._messageHandlers[name].bind(this);
+      Manager.addMessageHandler(name, handler);
+    }
+
+    this._createSandbox();
   },
 
   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  handleEvalRequest: function JST_handleEvalRequest(aRequest)
+  {
+    let id = aRequest.id;
+    let input = aRequest.str;
+    let result, error = null;
+    let timestamp;
+
+    this.helperEvaluated = false;
+    this.helperRawOutput = false;
+    this._evalInput = input;
+    try {
+      timestamp = Date.now();
+      result = this.evalInSandbox(input);
+    }
+    catch (ex) {
+      error = ex;
+    }
+    delete this._evalInput;
+
+    let inspectable = !error && WebConsoleUtils.isObjectInspectable(result);
+    let resultString = undefined;
+    if (!error) {
+      resultString = this.helperRawOutput ? result :
+                     WebConsoleUtils.formatResult(result);
+    }
+
+    let message = {
+      id: id,
+      input: input,
+      resultString: resultString,
+      timestamp: timestamp,
+      error: error,
+      errorMessage: error ? String(error) : null,
+      inspectable: inspectable,
+      helperResult: this.helperEvaluated,
+      helperRawOutput: this.helperRawOutput,
+    };
+
+    if (inspectable) {
+      message.childrenCacheId = aRequest.resultCacheId;
+      message.resultObject =
+        this.prepareObjectForRemote(result, message.childrenCacheId);
+    }
+
+    Manager.sendMessage("JSTerm:EvalResult", message);
+  },
+
+  
+
+
+
+
+
+
+
+
 
 
 
@@ -481,8 +809,7 @@ let JSTerm = {
 
 
 
-  prepareObjectForRemote:
-  function JST_prepareObjectForRemote(aObject, aCacheId)
+  prepareObjectForRemote: function JST_prepareObjectForRemote(aObject, aCacheId)
   {
     
     let propCache = this._objectCache[aCacheId] || {};
@@ -497,11 +824,100 @@ let JSTerm = {
   
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+  handleAutocomplete: function JST_handleAutocomplete(aRequest)
+  {
+    let result = JSPropertyProvider(this.window, aRequest.input) || {};
+    let message = {
+      id: aRequest.id,
+      input: aRequest.input,
+      matches: result.matches || [],
+      matchProp: result.matchProp,
+    };
+    Manager.sendMessage("JSTerm:AutocompleteProperties", message);
+  },
+
+  
+
+
+
+  _createSandbox: function JST__createSandbox()
+  {
+    this.sandbox = new Cu.Sandbox(this.window, {
+      sandboxPrototype: this.window,
+      wantXrays: false,
+    });
+
+    this.sandbox.console = this.console;
+
+    JSTermHelper(this);
+  },
+
+  
+
+
+
+
+
+
+
+  evalInSandbox: function JST_evalInSandbox(aString)
+  {
+    
+    if (aString.trim() == "help" || aString.trim() == "?") {
+      aString = "help()";
+    }
+
+    let window = WebConsoleUtils.unwrap(this.sandbox.window);
+    let $ = null, $$ = null;
+
+    
+    
+    if (typeof window.$ == "function") {
+      $ = this.sandbox.$;
+      delete this.sandbox.$;
+    }
+    if (typeof window.$$ == "function") {
+      $$ = this.sandbox.$$;
+      delete this.sandbox.$$;
+    }
+
+    let result = Cu.evalInSandbox(aString, this.sandbox, "1.8",
+                                  "Web Console", 1);
+
+    if ($) {
+      this.sandbox.$ = $;
+    }
+    if ($$) {
+      this.sandbox.$$ = $$;
+    }
+
+    return result;
+  },
+
+  
+
+
   destroy: function JST_destroy()
   {
-    Manager.removeMessageHandler("JSTerm:GetEvalObject");
-    Manager.removeMessageHandler("JSTerm:ClearObjectCache");
+    for (let name in this._messageHandlers) {
+      Manager.removeMessageHandler(name);
+    }
 
+    delete this.sandbox;
+    delete this._messageHandlers;
     delete this._objectCache;
   },
 };
