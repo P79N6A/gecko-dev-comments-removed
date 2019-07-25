@@ -601,16 +601,16 @@ nsHTMLImageElement::Initialize(nsISupports* aOwner, JSContext* aContext,
   }
 
   
-  int32 width;
-  JSBool ret = JS_ValueToInt32(aContext, argv[0], &width);
+  uint32 width;
+  JSBool ret = JS_ValueToECMAUint32(aContext, argv[0], &width);
   NS_ENSURE_TRUE(ret, NS_ERROR_INVALID_ARG);
 
   nsresult rv = SetIntAttr(nsGkAtoms::width, static_cast<PRInt32>(width));
 
   if (NS_SUCCEEDED(rv) && (argc > 1)) {
     
-    int32 height;
-    ret = JS_ValueToInt32(aContext, argv[1], &height);
+    uint32 height;
+    ret = JS_ValueToECMAUint32(aContext, argv[1], &height);
     NS_ENSURE_TRUE(ret, NS_ERROR_INVALID_ARG);
 
     rv = SetIntAttr(nsGkAtoms::height, static_cast<PRInt32>(height));
