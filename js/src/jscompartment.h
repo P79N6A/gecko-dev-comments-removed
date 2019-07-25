@@ -298,11 +298,10 @@ class JaegerCompartment;
 
 extern JSClass js_dummy_class;
 
+
 #ifndef JS_EVAL_CACHE_SHIFT
 # define JS_EVAL_CACHE_SHIFT        6
 #endif
-
-
 #define JS_EVAL_CACHE_SIZE          JS_BIT(JS_EVAL_CACHE_SHIFT)
 
 namespace js {
@@ -415,7 +414,7 @@ struct JS_FRIEND_API(JSCompartment) {
 
   public:
     
-    JSScript                     *evalCache[JS_EVAL_CACHE_SIZE];
+    JSScript                     *scriptsToGC[JS_EVAL_CACHE_SIZE];
 
     void                         *data;
     bool                         active;  
@@ -528,7 +527,6 @@ struct JS_FRIEND_API(JSCompartment) {
     void finalizeObjectArenaLists(JSContext *cx);
     void finalizeStringArenaLists(JSContext *cx);
     void finalizeShapeArenaLists(JSContext *cx);
-    void finalizeScriptArenaLists(JSContext *cx);
     bool arenaListsAreEmpty();
 
     void setGCLastBytes(size_t lastBytes, JSGCInvocationKind gckind);
@@ -622,6 +620,7 @@ struct JS_FRIEND_API(JSCompartment) {
     js::WatchpointMap *watchpointMap;
 };
 
+#define JS_SCRIPTS_TO_GC(cx)    ((cx)->compartment->scriptsToGC)
 #define JS_PROPERTY_TREE(cx)    ((cx)->compartment->propertyTree)
 
 
