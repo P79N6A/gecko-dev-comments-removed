@@ -232,13 +232,19 @@ nsAttrAndChildArray::TakeChildAt(PRUint32 aPos)
   PRUint32 childCount = ChildCount();
   void** pos = mImpl->mBuffer + AttrSlotsSize() + aPos;
   nsIContent* child = static_cast<nsIContent*>(*pos);
+
+  MOZ_ASSERT(!child->IsOrphan(), "Child should not be an orphan here");
+
   if (child->mPreviousSibling) {
     child->mPreviousSibling->mNextSibling = child->mNextSibling;
   }
   if (child->mNextSibling) {
     child->mNextSibling->mPreviousSibling = child->mPreviousSibling;
   }
-  child->mPreviousSibling = child->mNextSibling = nsnull;
+
+  
+  
+  child->MarkAsOrphan();
 
   memmove(pos, pos + 1, (childCount - aPos - 1) * sizeof(nsIContent*));
   SetChildCount(childCount - 1);
@@ -659,6 +665,10 @@ nsAttrAndChildArray::Clear()
     child->UnbindFromTree(false); 
     
     
+    
+    
+
+    child->MarkAsOrphan();
 
     
     
@@ -668,7 +678,6 @@ nsAttrAndChildArray::Clear()
     
     
     
-    child->mPreviousSibling = child->mNextSibling = nsnull;
     NS_RELEASE(child);
   }
 
@@ -822,8 +831,16 @@ inline void
 nsAttrAndChildArray::SetChildAtPos(void** aPos, nsIContent* aChild,
                                    PRUint32 aIndex, PRUint32 aChildCount)
 {
-  NS_PRECONDITION(!aChild->GetNextSibling(), "aChild with next sibling?");
-  NS_PRECONDITION(!aChild->GetPreviousSibling(), "aChild with prev sibling?");
+  MOZ_ASSERT(aChild->IsOrphan(), "aChild should be an orphan here");
+
+  NS_PRECONDITION(aChild->IsOrphan() || !aChild->GetNextSibling(),
+                  "aChild should be orphan and have no next sibling!");
+  NS_PRECONDITION(aChild->IsOrphan() || !aChild->GetPreviousSibling(),
+                  "aChild should be orphan and have no prev sibling!");
+
+  
+  
+  aChild->MarkAsNonOrphan();
 
   *aPos = aChild;
   NS_ADDREF(aChild);
