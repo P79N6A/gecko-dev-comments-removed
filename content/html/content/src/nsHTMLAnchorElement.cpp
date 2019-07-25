@@ -439,10 +439,18 @@ nsHTMLAnchorElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
 
   bool reset = false;
   if (aName == nsGkAtoms::href && kNameSpaceID_None == aNameSpaceID) {
-    nsAutoString val;
-    GetHref(val);
-    if (!val.Equals(aValue)) {
+    
+    
+    if (!Link::HasCachedURI()) {
       reset = true;
+    }
+    
+    else {
+      nsAutoString val;
+      GetHref(val);
+      if (!val.Equals(aValue)) {
+        reset = true;
+      }
     }
   }
 
