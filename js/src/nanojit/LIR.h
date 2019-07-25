@@ -293,7 +293,7 @@ namespace nanojit
         
         for (int i = 0; i < NUM_ACCS; i++) {
             if (accSet == (1U << i)) {
-                MiniAccSet ret = { i };
+                MiniAccSet ret = { uint8_t(i); };
                 return ret;
             }
         }
