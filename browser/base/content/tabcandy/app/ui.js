@@ -68,19 +68,13 @@ var Tabbar = {
   
   
   
-  
-  getVisibleTabs: function(){
-    var visibleTabs = [];
-    var length = this.el.children.length; 
-    
-    
-    for( var i=0; i<length; i++ ){
-      var tab = this.el.children[i];
-      if( tab.collapsed == false )
-        visibleTabs.push("");
-    }
-    
-    return visibleTabs;
+  getVisibleTabCount: function(){
+    let visibleTabCount = 0;
+    this.getAllTabs().forEach(function(tab){
+      if ( !tab.collapsed )
+        visibleTabCount++
+    });
+    return visibleTabCount;
   },
   
   
@@ -113,7 +107,6 @@ var Tabbar = {
           
       var tabbrowser = Utils.getCurrentWindow().gBrowser;
       var visibleTabs = [];
-      
       var tabBarTabs = this.getAllTabs();
             
       tabs.forEach(function(tab) {
@@ -154,10 +147,9 @@ var Tabbar = {
   
   
   showAllTabs: function(){
-    for( var i=0; i<this.el.children.length; i++ ){
-      var tab = this.el.children[i];
+    this.getAllTabs().forEach(function(tab) {
       tab.collapsed = false;
-    }
+    });
   }
 }
 
@@ -311,7 +303,7 @@ window.Page = {
         
         var group = Groups.getActiveGroup();
         if ((group && group._children.length == 1) ||
-            (group == null && Tabbar.getVisibleTabs().length == 1)) {
+            (group == null && Tabbar.getVisibleTabCount() == 1)) {
           self.closedLastVisibleTab = true;
           
           if(this && this.mirror) {
@@ -355,7 +347,7 @@ window.Page = {
     this.closedLastVisibleTab = false;
 
     iQ.timeout(function() { 
-      let visibleTabCount = Tabbar.getVisibleTabs().length;
+      let visibleTabCount = Tabbar.getVisibleTabCount();
  
       if(focusTab != UI.currentTab) {
         
