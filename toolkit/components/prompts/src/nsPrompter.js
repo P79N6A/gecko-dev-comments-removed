@@ -44,7 +44,7 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
 function Prompter() {
-    this.init();
+    
 }
 
 Prompter.prototype = {
@@ -56,20 +56,6 @@ Prompter.prototype = {
 
     
 
-
-    debug : true,
-
-    log : function (message) {
-        if (!this.debug)
-            return;
-        dump("Prompter: " + message + "\n");
-        Services.console.logStringMessage("Prompter: " + message);
-    },
-
-    init : function () {
-        this.log("initialized!");
-    },
-
     pickPrompter : function (domWin) {
         return new ModalPrompter(domWin);
     },
@@ -79,16 +65,16 @@ Prompter.prototype = {
 
 
     getPrompt : function (domWin, iid) {
-        this.log("getPrompt() for iid=" + iid);
         
         
         if (iid.equals(Ci.nsIAuthPrompt2) || iid.equals(Ci.nsIAuthPrompt)) {
             try {
-                this.log("Delegating getPrompt() to login manager.");
                 let pwmgr = Cc["@mozilla.org/passwordmanager/authpromptfactory;1"].
                             getService(Ci.nsIPromptFactory);
                 return pwmgr.getPrompt(domWin, iid);
-            } catch (e) { this.log("Delegation failed: " + e); }
+            } catch (e) {
+                Cu.reportError("nsPrompter: Delegation to password manager failed: " + e);
+            }
         }
 
         let p = new ModalPrompter(domWin);
@@ -762,7 +748,6 @@ AuthPromptAdapter.prototype = {
 
 
 function EmbedPrompter() {
-    this.init();
 }
 EmbedPrompter.prototype = new Prompter();
 EmbedPrompter.prototype.classDescription = "EmbedPrompter";
