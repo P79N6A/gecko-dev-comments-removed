@@ -26,6 +26,7 @@ enum FormControlsTypes {
   NS_FORM_SELECT,
   NS_FORM_TEXTAREA,
   NS_FORM_OBJECT,
+  NS_FORM_METER,
   eFormControlsWithoutSubTypesMax,
   
   
@@ -244,12 +245,11 @@ nsIFormControl::IsLabelableControl() const
 {
   
   
-  
   PRUint32 type = GetType();
   return type & NS_FORM_INPUT_ELEMENT ||
          type & NS_FORM_BUTTON_ELEMENT ||
          
-         
+         type == NS_FORM_METER ||
          type == NS_FORM_OUTPUT ||
          type == NS_FORM_SELECT ||
          type == NS_FORM_TEXTAREA;

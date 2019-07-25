@@ -841,6 +841,15 @@ const nsHTMLElement gHTMLElements[] = {
                 &gInHead,0,
   },
   {
+                                 eHTMLTag_meter,
+              eHTMLTag_unknown,eHTMLTag_unknown,
+              &gRootTags,&gRootTags,
+     0,0,0,0,
+              kFormControl, kFlowEntity, kNone,
+           0,kDefaultPropRange,
+                0,0,
+  },
+  {
                                  eHTMLTag_multicol,
               eHTMLTag_unknown,eHTMLTag_unknown,
               &gRootTags,&gRootTags,
