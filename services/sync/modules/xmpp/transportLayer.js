@@ -223,7 +223,6 @@ HTTPPollingTransport.prototype = {
 
   _setIdFromCookie: function( self, cookie ) {
     
-    
     var cookieSegments = cookie.split( ";" );
     cookieSegments = cookieSegments[0].split( "=" );
     var newConnectionId = cookieSegments[1];
@@ -242,13 +241,13 @@ HTTPPollingTransport.prototype = {
       break;
     default :
       self._connectionId = cookieSegments[1];
-      
+      this._log.debug("Connection ID set to " + self._connectionId);
       break;
     }
   },
 
   _onError: function( errorText ) {
-    dump( "Transport error: " + errorText + "\n" );
+    this._log.error( errorText );
     if ( this._callbackObject != null ) {
       this._callbackObject.onTransportError( errorText );
     }
