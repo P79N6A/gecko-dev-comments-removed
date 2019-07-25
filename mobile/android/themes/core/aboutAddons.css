@@ -98,15 +98,12 @@ body {
 }
 
 .details {
-  display: -moz-box;
-  -moz-box-orient: horizontal;
   width: 100%;
-  margin-top: 8px;
+  padding-top: 8px;
 }
 
 .details > div {
-  display: -moz-box;
-  -moz-box-align: end;
+  display: inline;
 }
 
 .title {
@@ -117,19 +114,15 @@ body {
 .version {
   
   margin-left: 12px;
-
-  
-  -moz-box-flex: 1;
-
-  
-  padding-bottom: 1px;
 }
 
 .tag {
-  text-align: end;
+  float: right;
+  margin-left: 12px;
 
   
-  padding-bottom: 1px;
+  position: relative;
+  bottom: -3px;
 }
 
 .description {
