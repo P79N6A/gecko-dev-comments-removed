@@ -9,7 +9,7 @@ pref("app.update.interval", 28800);
 pref("app.update.download.backgroundInterval", 60);
 
 
-pref("app.update.url.manual", "http://nightly.mozilla.org/");
+pref("app.update.url.manual", "http://www.mozilla.com/firefox/channel/");
 
 
 pref("app.update.url.details", "http://www.mozilla.org/projects/%APP%/");
