@@ -8,6 +8,10 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 
 import org.json.simple.parser.ParseException;
+import org.mozilla.gecko.sync.MetaGlobalException.MetaGlobalMalformedSyncIDException;
+import org.mozilla.gecko.sync.MetaGlobalException.MetaGlobalMalformedVersionException;
+import org.mozilla.gecko.sync.MetaGlobalException.MetaGlobalStaleClientSyncIDException;
+import org.mozilla.gecko.sync.MetaGlobalException.MetaGlobalStaleClientVersionException;
 import org.mozilla.gecko.sync.delegates.MetaGlobalDelegate;
 import org.mozilla.gecko.sync.net.SyncStorageRecordRequest;
 import org.mozilla.gecko.sync.net.SyncStorageRequestDelegate;
@@ -103,6 +107,55 @@ public class MetaGlobal implements SyncStorageRequestDelegate {
 
   public void setEngines(ExtendedJSONObject engines) {
     this.engines = engines;
+  }
+
+  
+
+
+
+  public static void verifyEngineSettings(ExtendedJSONObject engineEntry,
+                                          EngineSettings engineSettings)
+  throws MetaGlobalMalformedVersionException, MetaGlobalMalformedSyncIDException, MetaGlobalStaleClientVersionException, MetaGlobalStaleClientSyncIDException {
+
+    if (engineEntry == null) {
+      throw new IllegalArgumentException("engineEntry cannot be null.");
+    }
+    if (engineSettings == null) {
+      throw new IllegalArgumentException("engineSettings cannot be null.");
+    }
+    try {
+      Integer version = engineEntry.getIntegerSafely("version");
+      if (version == null ||
+          version.intValue() == 0) {
+        
+        throw new MetaGlobalException.MetaGlobalMalformedVersionException();
+      }
+      if (version > engineSettings.version) {
+        
+        throw new MetaGlobalException.MetaGlobalStaleClientVersionException(version);
+      }
+      try {
+        String syncID = engineEntry.getString("syncID");
+        if (syncID == null) {
+          
+          throw new MetaGlobalException.MetaGlobalMalformedSyncIDException();
+        }
+        if (!syncID.equals(engineSettings.syncID)) {
+          
+          throw new MetaGlobalException.MetaGlobalStaleClientSyncIDException(syncID);
+        }
+        
+        return;
+
+      } catch (ClassCastException e) {
+        
+        throw new MetaGlobalException.MetaGlobalMalformedSyncIDException();
+      }
+    } catch (NumberFormatException e) {
+      
+      throw new MetaGlobalException.MetaGlobalMalformedVersionException();
+    }
+
   }
 
   public String getSyncID() {

@@ -786,13 +786,13 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
     @Override
     public void run() {
       try {
+        
+        deletionManager.clear();
         super.run();
       } catch (Exception ex) {
         delegate.onWipeFailed(ex);
         return;
       }
-      
-      deletionManager.clear();
     }
   }
 

@@ -2,43 +2,11 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.stage;
 
 import java.net.URISyntaxException;
 
+import org.mozilla.gecko.sync.GlobalSession;
 import org.mozilla.gecko.sync.Logger;
 import org.mozilla.gecko.sync.MetaGlobalException;
 import org.mozilla.gecko.sync.repositories.ConstrainedServer11Repository;
@@ -55,6 +23,10 @@ public class AndroidBrowserBookmarksServerSyncStage extends ServerSyncStage {
   
   private static final String BOOKMARKS_SORT          = "index";
   private static final long   BOOKMARKS_REQUEST_LIMIT = 5000;         
+
+  public AndroidBrowserBookmarksServerSyncStage(GlobalSession session) {
+    super(session);
+  }
 
   @Override
   protected String getCollection() {
@@ -87,7 +59,7 @@ public class AndroidBrowserBookmarksServerSyncStage extends ServerSyncStage {
 
   @Override
   protected boolean isEnabled() throws MetaGlobalException {
-    if (session == null || session.getContext() == null) {
+    if (session.getContext() == null) {
       return false;
     }
     boolean migrated = FennecControlHelper.areBookmarksMigrated(session.getContext());

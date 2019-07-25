@@ -136,6 +136,30 @@ public class ExtendedJSONObject {
 
 
 
+
+
+  public Integer getIntegerSafely(String key) throws NumberFormatException {
+    Object val = this.object.get(key);
+    if (val == null) {
+      return null;
+    }
+    if (val instanceof Integer) {
+      return (Integer) val;
+    }
+    if (val instanceof Long) {
+      return new Integer(((Long) val).intValue());
+    }
+    if (val instanceof String) {
+      return Integer.parseInt((String) val, 10);
+    }
+    throw new NumberFormatException("Expecting Integer, got " + val.getClass());
+  }
+
+  
+
+
+
+
   public Long getTimestamp(String key) {
     Object val = this.object.get(key);
 
