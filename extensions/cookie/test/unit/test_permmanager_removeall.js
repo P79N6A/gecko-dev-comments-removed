@@ -1,7 +1,6 @@
 
 
 
-
 function run_test() {
   
   var dir = do_get_profile();

@@ -1,7 +1,6 @@
 
 
 
-
 function run_test() {
   do_load_manifest("cookieprompt.manifest");
 

@@ -1,7 +1,6 @@
 
 
 
-
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 const Ci = Components.interfaces;
