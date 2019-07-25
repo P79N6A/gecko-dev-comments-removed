@@ -622,8 +622,27 @@ ShadowBufferOGL::Upload(gfxASurface* aUpdate, const nsIntRegion& aUpdated,
   
   nsIntPoint visTopLeft = mLayer->GetVisibleRegion().GetBounds().TopLeft();
   destRegion.MoveBy(-visTopLeft);
+
   
-  nsRefPtr<gfxContext> dest = mTexImage->BeginUpdate(destRegion);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsIntRect destBounds = destRegion.GetBounds();
+  gfxRect destRect(destBounds.x, destBounds.y, destBounds.width, destBounds.height);
+  destRect.Scale(mLayer->GetXResolution(), mLayer->GetYResolution());
+  destRect.RoundOut();
+
+  
+  nsIntRegion scaledDestRegion(nsIntRect(destRect.pos.x, destRect.pos.y,
+                                         destRect.size.width, destRect.size.height));
+  nsRefPtr<gfxContext> dest = mTexImage->BeginUpdate(scaledDestRegion);
 
   dest->SetOperator(gfxContext::OPERATOR_SOURCE);
   dest->DrawSurface(aUpdate, aUpdate->GetSize());
