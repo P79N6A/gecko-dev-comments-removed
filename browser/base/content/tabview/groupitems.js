@@ -1794,5 +1794,17 @@ window.GroupItems = {
       tab.tabItem.setZoomPrep(false);
       UI.showTabView();
     }
+  },
+  
+  
+  
+  
+  killNewTabGroup: function() {
+    this.groupItems.forEach(function(groupItem) {
+      if (groupItem.getTitle() == 'New Tabs') {
+        groupItem.removeAll();
+        groupItem.close();
+      }
+    });
   }
 };
