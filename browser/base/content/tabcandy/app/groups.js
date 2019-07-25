@@ -1276,7 +1276,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
     
     
     iQ.timeout(function(){
-      Page.hideChrome()
+      UI.showTabCandy()
     }, 1);
 
     var self = this;
@@ -1310,7 +1310,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
               complete: function(){
                 iQ(tab.container).css({opacity: 1});
                 gBrowser.selectedTab = newTab;
-                Page.showChrome()
+                UI.hideTabCandy()
                 gWindow.gURLBar.focus();
                 $anim.remove();
                 
