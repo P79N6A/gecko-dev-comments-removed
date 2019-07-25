@@ -2370,6 +2370,19 @@ BEGIN_CASE(JSOP_APPLY)
 #endif
 
             
+
+
+
+            mjit::CompileStatus status = mjit::CanMethodJIT(cx, newscript, fun, newfp->scopeChain);
+            if (status == mjit::Compile_Error)
+                goto error;
+            if (status == mjit::Compile_Okay) {
+                if (!mjit::JaegerShot(cx))
+                    goto error;
+                goto inline_return;
+            }
+
+            
             op = (JSOp) *regs.pc;
             DO_OP();
         }
