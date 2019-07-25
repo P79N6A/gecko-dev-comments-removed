@@ -336,15 +336,23 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
   
   
 
-  nsHtml5OwningUTF16Buffer* prevSearchBuf = nsnull;
-  nsHtml5OwningUTF16Buffer* firstLevelMarker = nsnull;
+  
+  
+  
+  
+  
+  
+  
+  
+  nsRefPtr<nsHtml5OwningUTF16Buffer> prevSearchBuf;
+  nsRefPtr<nsHtml5OwningUTF16Buffer> firstLevelMarker;
 
   if (aKey) {
     if (mFirstBuffer == mLastBuffer) {
       nsHtml5OwningUTF16Buffer* keyHolder = new nsHtml5OwningUTF16Buffer(aKey);
       keyHolder->next = mLastBuffer;
       mFirstBuffer = keyHolder;
-    } else {
+    } else if (mFirstBuffer->key != aKey) {
       prevSearchBuf = mFirstBuffer;
       for (;;) {
         if (prevSearchBuf->next == mLastBuffer) {
@@ -362,7 +370,8 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
         }
         prevSearchBuf = prevSearchBuf->next;
       }
-    }
+    } 
+
     
     
   } else {
