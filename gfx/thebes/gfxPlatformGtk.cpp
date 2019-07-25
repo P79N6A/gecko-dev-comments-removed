@@ -161,9 +161,10 @@ gfxPlatformGtk::~gfxPlatformGtk()
 
 already_AddRefed<gfxASurface>
 gfxPlatformGtk::CreateOffscreenSurface(const gfxIntSize& size,
-                                       gfxASurface::gfxImageFormat imageFormat)
+                                       gfxASurface::gfxContentType contentType)
 {
     nsRefPtr<gfxASurface> newSurface = nsnull;
+    gfxASurface::gfxImageFormat imageFormat = gfxASurface::FormatFromContent(contentType);
 #ifdef MOZ_X11
     
     
@@ -172,7 +173,7 @@ gfxPlatformGtk::CreateOffscreenSurface(const gfxIntSize& size,
     if (gdkScreen) {
 
         
-        if (gfxASurface::ImageFormatRGB24 == imageFormat
+        if (gfxASurface::CONTENT_COLOR == contentType
             && 16 == gdk_visual_get_system()->depth)
             imageFormat = gfxASurface::ImageFormatRGB16_565;
 
