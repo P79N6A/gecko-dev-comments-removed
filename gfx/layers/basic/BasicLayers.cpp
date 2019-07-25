@@ -515,7 +515,10 @@ BasicThebesLayerBuffer::DrawTo(ThebesLayer* aLayer,
       IsClippingCheap(aTarget, aLayer->GetVisibleRegion())) {
     
     
-    gfxUtils::ClipToRegion(aTarget, aLayer->GetVisibleRegion());
+    
+    
+    
+    gfxUtils::ClipToRegionSnapped(aTarget, aLayer->GetVisibleRegion());
   }
   if (aIsOpaqueContent) {
     aTarget->SetOperator(gfxContext::OPERATOR_SOURCE);
