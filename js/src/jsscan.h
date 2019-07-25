@@ -263,6 +263,7 @@ enum TokenStreamFlags
     TSF_XMLTAGMODE = 0x200,     
     TSF_XMLTEXTMODE = 0x400,    
     TSF_XMLONLYMODE = 0x800,    
+    TSF_OCTAL_CHAR = 0x1000,    
 
     
 
@@ -333,12 +334,15 @@ class TokenStream
     void setXMLTagMode(bool enabled = true) { setFlag(enabled, TSF_XMLTAGMODE); }
     void setXMLOnlyMode(bool enabled = true) { setFlag(enabled, TSF_XMLONLYMODE); }
     void setUnexpectedEOF(bool enabled = true) { setFlag(enabled, TSF_UNEXPECTED_EOF); }
+    void setOctalCharacterEscape(bool enabled = true) { setFlag(enabled, TSF_OCTAL_CHAR); }
+
     bool isStrictMode() { return !!(flags & TSF_STRICT_MODE_CODE); }
     bool isXMLTagMode() { return !!(flags & TSF_XMLTAGMODE); }
     bool isXMLOnlyMode() { return !!(flags & TSF_XMLONLYMODE); }
     bool isUnexpectedEOF() { return !!(flags & TSF_UNEXPECTED_EOF); }
     bool isEOF() const { return !!(flags & TSF_EOF); }
     bool isError() const { return !!(flags & TSF_ERROR); }
+    bool hasOctalCharacterEscape() const { return flags & TSF_OCTAL_CHAR; }
 
     
     bool reportCompileErrorNumberVA(JSParseNode *pn, uintN flags, uintN errorNumber, va_list ap);
