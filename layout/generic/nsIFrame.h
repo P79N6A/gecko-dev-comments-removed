@@ -748,10 +748,6 @@ public:
                                          nsStyleContext* aStyleContext) = 0;
 
   
-  
-  nsCSSShadowArray* GetEffectiveBoxShadows();
-
-  
 
                  
   PRBool HasBorder() const;
