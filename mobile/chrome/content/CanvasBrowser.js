@@ -186,7 +186,6 @@ CanvasBrowser.prototype = {
     this._clippedPageDrawing = false;
     this.zoomToPage();
     this.ensureFullCanvasIsDrawn();
-    this.flushDrawQ();
 
     if (this._drawInterval) {
       clearInterval(this._drawInterval);
@@ -196,36 +195,42 @@ CanvasBrowser.prototype = {
 
   
   ensureFullCanvasIsDrawn: function ensureFullCanvasIsDrawn() {
-    if (!this._partiallyDrawn) return;
-    let v = this._visibleBounds
-    let r_above = new wsRect(this._pageBounds.x, this._pageBounds.y,
-              this._pageBounds.width, v.y - this._pageBounds.y)
-    let r_left = new wsRect(this._pageBounds.x, v.y,
-                            v.x - this._pageBounds.x,
-                            v.height)
-    let r_right = new wsRect(v.x + v.width, v.y,
-                             this._pageBounds.width - v.x - v.width,
-                             v.height)
-    let r_below = new wsRect(this._pageBounds.x, v.y+v.height,
-                             this._pageBounds.width,
-                             this._pageBounds.height - v.y - v.height)
-    this._redrawRect(r_above);
-    this._redrawRect(r_left);
-    this._redrawRect(r_right);
-    this._redrawRect(r_below)
-    this._partiallyDrawn = false;
+    if (this._partiallyDrawn) {
+      let v = this._visibleBounds
+      let r_above = new wsRect(this._pageBounds.x, this._pageBounds.y,
+                               this._pageBounds.width, v.y - this._pageBounds.y)
+      let r_left = new wsRect(this._pageBounds.x, v.y,
+                              v.x - this._pageBounds.x,
+                              v.height)
+      let r_right = new wsRect(v.x + v.width, v.y,
+                               this._pageBounds.width - v.x - v.width,
+                               v.height)
+      let r_below = new wsRect(this._pageBounds.x, v.y+v.height,
+                               this._pageBounds.width,
+                               this._pageBounds.height - v.y - v.height)
+      this._redrawRect(r_above);
+      this._redrawRect(r_left);
+      this._redrawRect(r_right);
+      this._redrawRect(r_below);
+      this._partiallyDrawn = false;
+    }
+    
+    this.flushDrawQ()
   },
 
+
+  
   
   prepareForPanning: function prepareForPanning() {
+    if (!this._clippedPageDrawing) 
+      return;
+
     
     this._maybeZoomToPage = true;
-    if (!this._clippedPageDrawing) return;
+
     
     this._clippedPageDrawing = false;
     this.ensureFullCanvasIsDrawn();
-    
-    this.flushDrawQ();
   },
 
   viewportHandler: function(bounds, boundsSizeChanged) {
