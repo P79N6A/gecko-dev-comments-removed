@@ -58,6 +58,7 @@ enum FormControlsTypes {
   NS_FORM_SELECT,
   NS_FORM_TEXTAREA,
   NS_FORM_OBJECT,
+  NS_FORM_PROGRESS,
   eFormControlsWithoutSubTypesMax,
   
   
@@ -283,7 +284,7 @@ nsIFormControl::IsLabelableControl() const
          
          
          type == NS_FORM_OUTPUT ||
-         
+         type == NS_FORM_PROGRESS ||
          type == NS_FORM_SELECT ||
          type == NS_FORM_TEXTAREA;
 }
