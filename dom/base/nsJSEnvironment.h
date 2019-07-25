@@ -184,7 +184,9 @@ public:
   static void LoadStart();
   static void LoadEnd();
 
-  static void GarbageCollectNow(js::gcreason::Reason reason, PRUint32 gckind = nsGCNormal);
+  static void GarbageCollectNow(js::gcreason::Reason reason,
+                                PRUint32 aGckind,
+                                bool aGlobal);
   static void ShrinkGCBuffersNow();
   
   
@@ -199,6 +201,7 @@ public:
 
   static void MaybePokeCC();
   static void KillCCTimer();
+  static void KillFullGCTimer();
 
   virtual void GC(js::gcreason::Reason aReason);
 
