@@ -229,19 +229,6 @@ MarkTypeObjectUnbarriered(JSTracer *trc, types::TypeObject *type, const char *na
     JS_ASSERT(type);
     JS_SET_TRACING_NAME(trc, name);
     Mark(trc, type);
-
-    
-
-
-
-
-
-    if (IS_GC_MARKING_TRACER(trc)) {
-        if (type->singleton && !type->lazy())
-            MarkObject(trc, type->singleton, "type_singleton");
-        if (type->interpretedFunction)
-            MarkObject(trc, type->interpretedFunction, "type_function");
-    }
 }
 
 void
@@ -993,13 +980,11 @@ ScanTypeObject(GCMarker *gcmarker, types::TypeObject *type)
     if (type->interpretedFunction)
         PushMarkStack(gcmarker, type->interpretedFunction);
 
-    
+    if (type->singleton && !type->lazy())
+        PushMarkStack(gcmarker, type->singleton);
 
-
-
-
-
-
+    if (type->interpretedFunction)
+        PushMarkStack(gcmarker, type->interpretedFunction);
 }
 
 void
