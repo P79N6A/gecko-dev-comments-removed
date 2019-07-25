@@ -118,6 +118,7 @@
 #include "nsHTMLFieldSetElement.h"
 #include "nsHTMLMenuElement.h"
 #include "nsPLDOMEvent.h"
+#include "nsIScriptError.h"
 
 #include "mozilla/Preferences.h"
 #include "mozilla/dom/FromParser.h"
@@ -3468,6 +3469,12 @@ nsresult nsGenericHTMLElement::MozRequestFullScreen()
   
   
   if (!nsContentUtils::IsRequestFullScreenAllowed()) {
+    nsContentUtils::ReportToConsole(nsContentUtils::eDOM_PROPERTIES,
+                                    "FullScreenDeniedNotInputDriven",
+                                    nsnull, 0, nsnull,
+                                    EmptyString(), 0, 0,
+                                    nsIScriptError::warningFlag,
+                                    "DOM", OwnerDoc());
     nsRefPtr<nsPLDOMEvent> e =
       new nsPLDOMEvent(OwnerDoc(),
                        NS_LITERAL_STRING("mozfullscreenerror"),

@@ -978,7 +978,9 @@ protected:
   
   
   
-  bool IsFullScreenEnabled(bool aIsCallerChrome);
+  
+  
+  bool IsFullScreenEnabled(bool aIsCallerChrome, bool aLogFailure);
 
   
 
