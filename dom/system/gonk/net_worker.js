@@ -166,6 +166,26 @@ function runDHCPAndSetDefaultRouteAndDNS(options) {
   setDefaultRouteAndDNS(dhcp);
 }
 
+
+
+
+function addHostRoute(options) {
+  libnetutils.ifc_add_route(options.ifname, options.dns1, 32, options.gateway);
+  libnetutils.ifc_add_route(options.ifname, options.dns2, 32, options.gateway);
+  libnetutils.ifc_add_route(options.ifname, options.httpproxy, 32, options.gateway);
+  libnetutils.ifc_add_route(options.ifname, options.mmsproxy, 32, options.gateway);
+}
+
+
+
+
+function removeHostRoute(options) {
+  libnetutils.ifc_remove_route(options.ifname, options.dns1, 32, options.gateway);
+  libnetutils.ifc_remove_route(options.ifname, options.dns2, 32, options.gateway);
+  libnetutils.ifc_remove_route(options.ifname, options.httpproxy, 32, options.gateway);
+  libnetutils.ifc_remove_route(options.ifname, options.mmsproxy, 32, options.gateway);
+}
+
 let gCommandQueue = [];
 let gCurrentCommand = null;
 let gCurrentCallback = null;

@@ -145,6 +145,10 @@ let libnetutils = (function () {
                                               ctypes.default_abi,
                                               ctypes.int,
                                               ctypes.char.ptr),
+    ifc_reset_connections: library.declare("ifc_reset_connections",
+                                           ctypes.default_abi,
+                                           ctypes.int,
+                                           ctypes.char.ptr),
     ifc_configure: library.declare("ifc_configure", ctypes.default_abi,
                                    ctypes.int,
                                    ctypes.char.ptr,
@@ -153,6 +157,18 @@ let libnetutils = (function () {
                                    ctypes.int,
                                    ctypes.int,
                                    ctypes.int),
+    ifc_add_route: library.declare("ifc_add_route", ctypes.default_abi,
+                                   ctypes.int, 
+                                   ctypes.char.ptr, 
+                                   ctypes.char.ptr, 
+                                   ctypes.int, 
+                                   ctypes.char.ptr), 
+    ifc_remove_route: library.declare("ifc_remove_route", ctypes.default_abi,
+                                      ctypes.int, 
+                                      ctypes.char.ptr, 
+                                      ctypes.char.ptr, 
+                                      ctypes.int, 
+                                      ctypes.char.ptr), 
     dhcp_stop: library.declare("dhcp_stop", ctypes.default_abi,
                                ctypes.int,
                                ctypes.char.ptr),
@@ -161,15 +177,7 @@ let libnetutils = (function () {
                                         ctypes.char.ptr),
     dhcp_get_errmsg: library.declare("dhcp_get_errmsg", ctypes.default_abi,
                                      ctypes.char.ptr),
-
-    
-    
-    RESET_IPV4_ADDRESSES: 0x01,
-    RESET_IPV6_ADDRESSES: 0x02,
   };
-
-  iface.RESET_ALL_ADDRESSES = iface.RESET_IPV4_ADDRESSES |
-                              iface.RESET_IPV6_ADDRESSES
 
   
   
@@ -232,17 +240,6 @@ let libnetutils = (function () {
     };
     
     iface.dhcp_do_request_renew = iface.dhcp_do_request;
-
-    
-    let c_ifc_reset_connections =
-      library.declare("ifc_reset_connections",
-                      ctypes.default_abi,
-                      ctypes.int,
-                      ctypes.char.ptr,
-                      ctypes.int);
-    iface.ifc_reset_connections = function(ifname, reset_mask) {
-      return c_ifc_reset_connections(ifname, reset_mask) | 0;
-    }
   } else {
     let ints = ctypes.int.array(8)();
     let c_dhcp_do_request =
@@ -294,14 +291,6 @@ let libnetutils = (function () {
     };
     iface.dhcp_do_request = wrapCFunc(c_dhcp_do_request);
     iface.dhcp_do_request_renew = wrapCFunc(c_dhcp_do_request_renew);
-    let c_ifc_reset_connections =
-      library.declare("ifc_reset_connections",
-                      ctypes.default_abi,
-                      ctypes.int,
-                      ctypes.char.ptr);
-    iface.ifc_reset_connections = function(ifname, reset_mask) {
-      return c_ifc_reset_connections(ifname) | 0;
-    }
   }
 
   return iface;
