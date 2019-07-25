@@ -662,6 +662,8 @@ public:
     const nsAttrValue* mValue;
   };
 
+  
+  
   const nsAttrValue* GetParsedAttr(nsIAtom* aAttr) const
   {
     return mAttrsAndChildren.GetAttr(aAttr);
