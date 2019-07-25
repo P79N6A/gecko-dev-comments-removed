@@ -45,7 +45,6 @@
 #include "nsAutoPtr.h"
 #include "nsIDOMStorageObsolete.h"
 #include "nsIDOMStorage.h"
-#include "nsIDOMStorageList.h"
 #include "nsIDOMStorageItem.h"
 #include "nsIPermissionManager.h"
 #include "nsInterfaceHashtable.h"
@@ -465,59 +464,6 @@ private:
   nsRefPtr<nsDOMStorage> mStorage;
 };
 
-class nsDOMStorageList : public nsIDOMStorageList
-{
-public:
-  nsDOMStorageList()
-  {
-    mStorages.Init();
-  }
-
-  virtual ~nsDOMStorageList() {}
-
-  
-  NS_DECL_ISUPPORTS
-
-  
-  NS_DECL_NSIDOMSTORAGELIST
-
-  nsIDOMStorageObsolete* GetNamedItem(const nsAString& aDomain, nsresult* aResult);
-
-  
-
-
-  static bool
-  CanAccessDomain(const nsACString& aRequestedDomain,
-                  const nsACString& aCurrentDomain);
-
-protected:
-
-  
-
-
-
-
-
-
-
-
-
-  nsIDOMStorageObsolete*
-  GetStorageForDomain(const nsACString& aRequestedDomain,
-                      const nsACString& aCurrentDomain,
-                      bool aNoCurrentDomainCheck,
-                      nsresult* aResult);
-
-  
-
-
-  static bool
-  ConvertDomainToArray(const nsACString& aDomain,
-                       nsTArray<nsCString>* aArray);
-
-  nsInterfaceHashtable<nsCStringHashKey, nsIDOMStorageObsolete> mStorages;
-};
-
 class nsDOMStorageItem : public nsIDOMStorageItem,
                          public nsIDOMToString
 {
@@ -636,9 +582,6 @@ NS_NewDOMStorage(nsISupports* aOuter, REFNSIID aIID, void** aResult);
 
 nsresult
 NS_NewDOMStorage2(nsISupports* aOuter, REFNSIID aIID, void** aResult);
-
-nsresult
-NS_NewDOMStorageList(nsIDOMStorageList** aResult);
 
 PRUint32
 GetOfflinePermission(const nsACString &aDomain);

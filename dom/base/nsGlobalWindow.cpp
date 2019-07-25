@@ -8453,15 +8453,6 @@ nsGlobalWindow::Observe(nsISupports* aSubject, const char* aTopic,
       if (NS_FAILED(rv)) {
         return NS_OK;
       }
-
-      if (!nsDOMStorageList::CanAccessDomain(NS_ConvertUTF16toUTF8(aData),
-                                             currentDomain)) {
-        
-        
-        
-
-        return NS_OK;
-      }
     }
 
     nsAutoString domain(aData);

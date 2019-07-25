@@ -1427,36 +1427,6 @@ public:
   }
 };
 
-class nsStorageListSH : public nsNamedArraySH
-{
-protected:
-  nsStorageListSH(nsDOMClassInfoData* aData) : nsNamedArraySH(aData)
-  {
-  }
-
-  virtual ~nsStorageListSH()
-  {
-  }
-
-  virtual nsISupports* GetItemAt(nsISupports *aNative, PRUint32 aIndex,
-                                 nsWrapperCache **aCache, nsresult *aResult)
-  {
-    return nsnull;
-  }
-  
-  virtual nsISupports* GetNamedItem(nsISupports *aNative,
-                                    const nsAString& aName,
-                                    nsWrapperCache **cache,
-                                    nsresult *aResult);
-
-public:
-  static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
-  {
-    return new nsStorageListSH(aData);
-  }
-};
-
-
 
 
 
