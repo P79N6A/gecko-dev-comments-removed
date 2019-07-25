@@ -344,7 +344,7 @@ var Browser = {
     let bv = this._browserView = new BrowserView(container, Browser.getVisibleRect);
 
     
-    container.customClicker = this._createContentCustomClicker(bv);
+    container.customClicker = new ContentCustomClicker(bv);
 
     
     let contentScrollbox = this.contentScrollbox = document.getElementById("tile-container-container");
@@ -849,40 +849,6 @@ var Browser = {
         Browser.selectedBrowser.loadURI(url, null, null, false);
       }
     }
-  },
-
-  _createContentCustomClicker: function _createContentCustomClicker(browserView) {
-    
-    
-
-    function dispatchContentClick(browser, x, y) {
-      let cwu = BrowserView.Util.getBrowserDOMWindowUtils(browser);
-      let scrollX = { value: 0 };
-      let scrollY = { value: 0 };
-      cwu.getScrollXY(false, scrollX, scrollY);
-      cwu.sendMouseEvent("mousedown", x - scrollX.value, y - scrollY.value, 0, 1, 0, true);
-      cwu.getScrollXY(false, scrollX, scrollY);
-      cwu.sendMouseEvent("mouseup",   x - scrollX.value, y - scrollY.value, 0, 1, 0, true);
-    }
-
-    return {
-      singleClick: function singleClick(cX, cY) {
-        let browser = browserView.getBrowser();
-        if (browser) {
-          let [x, y] = Browser.transformClientToBrowser(cX, cY);
-          dispatchContentClick(browser, x, y);
-        }
-      },
-
-      doubleClick: function doubleClick(cX1, cY1, cX2, cY2) {
-	if (!Browser.zoomToPoint(cX2, cY2))
-	  Browser.zoomFromPoint(cX2, cY2);
-      },
-
-      toString: function toString() {
-        return "[ContentCustomClicker] { }";
-      }
-    };
   },
 
   
@@ -1569,6 +1535,48 @@ const BrowserSearch = {
     }
   }
 }
+
+
+function ContentCustomClicker(browserView) {
+  this._browserView = browserView;
+}
+
+ContentCustomClicker.prototype = {
+    
+    _dispatchMouseEvent: function _dispatchMouseEvent(name, cX, cY) {
+      let browser = this._browserView.getBrowser();
+      let [x, y] = Browser.transformClientToBrowser(cX, cY);
+      let cwu = BrowserView.Util.getBrowserDOMWindowUtils(browser);
+      let scrollX = {}, scrollY = {};
+      if (browser) {
+        cwu.getScrollXY(false, scrollX, scrollY);
+        cwu.sendMouseEvent(name, x - scrollX.value, y - scrollY.value, 0, 1, 0, true);
+      }
+    },
+
+    mouseDown: function mouseDown(cX, cY) {
+      this._dispatchMouseEvent("mousedown", cX, cY);
+      
+      Util.executeSoon(this._browserView.renderNow);
+    },
+
+    mouseUp: function mouseUp(cX, cY) {
+    },
+
+    singleClick: function singleClick(cX, cY) {
+      
+      this._dispatchMouseEvent("mouseup", cX, cY);
+    },
+
+    doubleClick: function doubleClick(cX1, cY1, cX2, cY2) {
+      if (!Browser.zoomToPoint(cX2, cY2))
+        Browser.zoomFromPoint(cX2, cY2);
+    },
+
+    toString: function toString() {
+      return "[ContentCustomClicker] { }";
+    }
+};
 
 
 
