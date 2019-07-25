@@ -15,13 +15,27 @@ function check(obj, name, value, readonly) {
         
         
         Object.defineProperty(obj, name, {writable: true});
+        assertEq(0, 1);
+    } catch (e) {
+        assertEq('' + e, "TypeError: can't redefine non-configurable property '" + name + "'");
+    }
 
-        if (!readonly) {
+    if (!readonly) {
+        try {
             
             
             
             Object.defineProperty(obj, name, {value: value});
+            assertEq(0, 1);
+        } catch (e) {
+            assertEq('' + e, "TypeError: can't redefine non-configurable property '" + name + "'");
         }
+    }
+
+    try {
+        
+        Object.defineProperty(obj, name, {value: "bogus", writable: false});
+        assertEq(0, 1);
     } catch (e) {
         assertEq('' + e, "TypeError: can't redefine non-configurable property '" + name + "'");
     }

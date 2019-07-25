@@ -2142,8 +2142,30 @@ DefinePropertyOnObject(JSContext *cx, JSObject *obj, const PropDesc &desc,
                 if (desc.hasValue) {
                     if (!SameValue(cx, desc.value, v, &same))
                         return JS_FALSE;
-                    if (!same)
+                    if (!same) {
+                        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                        if (!shape->configurable() &&
+                            (!shape->hasDefaultGetter() || !shape->hasDefaultSetter()))
+                        {
+                            return Reject(cx, JSMSG_CANT_REDEFINE_PROP, throwError, desc.id, rval);
+                        }
                         break;
+                    }
                 }
                 if (desc.hasWritable && desc.writable() != shape->writable())
                     break;
