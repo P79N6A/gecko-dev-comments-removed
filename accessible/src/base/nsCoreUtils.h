@@ -338,6 +338,12 @@ public:
   
 
 
+  static void ScrollTo(nsIPresShell* aPresShell, nsIContent* aContent,
+                       PRUint32 aScrollType);
+
+  
+
+
   static bool IsHTMLTableHeader(nsIContent *aContent)
   {
     return aContent->NodeInfo()->Equals(nsGkAtoms::th) ||
