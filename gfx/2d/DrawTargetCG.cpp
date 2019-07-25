@@ -692,14 +692,13 @@ DrawTargetCG::FillGlyphs(ScaledFont *aFont, const GlyphBuffer &aBuffer, const Pa
   glyphs.resize(aBuffer.mNumGlyphs);
   positions.resize(aBuffer.mNumGlyphs);
 
-  CGFloat xprev = aBuffer.mGlyphs[0].mPosition.x;
-  CGFloat yprev = aBuffer.mGlyphs[0].mPosition.y;
-  CGContextSetTextPosition(cg, xprev, yprev);
-
   
   CGAffineTransform matrix = CGAffineTransformMakeScale(1, -1);
+  CGContextConcatCTM(cg, matrix);
   
-  CGContextSetTextMatrix(cg, matrix);
+  
+  
+  
 
   for (unsigned int i = 0; i < aBuffer.mNumGlyphs; i++) {
     glyphs[i] = aBuffer.mGlyphs[i].mIndex;
