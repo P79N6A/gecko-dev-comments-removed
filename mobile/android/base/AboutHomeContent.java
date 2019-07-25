@@ -62,6 +62,7 @@ import android.text.SpannableString;
 import android.text.style.UnderlineSpan;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AdapterView;
@@ -300,16 +301,41 @@ public class AboutHomeContent extends ScrollView {
     }
 
     public static class TopSitesGridView extends GridView {
+        
+
+
+
+
+
+
+
+
+
+        private static final int kTopSiteItemHeight = 109;
+        float mDisplayDensity ;
+
         public TopSitesGridView(Context context, AttributeSet attrs) {
             super(context, attrs);
+            DisplayMetrics dm = new DisplayMetrics();
+            GeckoApp.mAppContext.getWindowManager().getDefaultDisplay().getMetrics(dm);
+            mDisplayDensity = dm.density;
         }
 
         @Override
         protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-            
-            
-            int expandedHeightSpec = MeasureSpec.makeMeasureSpec(Integer.MAX_VALUE >> 2,
-                                                                 MeasureSpec.AT_MOST);
+            int numCols;
+            int numRows;
+            Configuration config = getContext().getResources().getConfiguration();
+            if (config.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                numCols = NUMBER_OF_COLS_LANDSCAPE;
+                numRows = NUMBER_OF_TOP_SITES_LANDSCAPE / NUMBER_OF_COLS_LANDSCAPE;
+            } else {
+                numCols = NUMBER_OF_COLS_PORTRAIT;
+                numRows = NUMBER_OF_TOP_SITES_PORTRAIT / NUMBER_OF_COLS_PORTRAIT;
+            }
+            int expandedHeightSpec = 
+                MeasureSpec.makeMeasureSpec((int)(mDisplayDensity * numRows * kTopSiteItemHeight),
+                                            MeasureSpec.EXACTLY);
             super.onMeasure(widthMeasureSpec, expandedHeightSpec);
         }
     }
