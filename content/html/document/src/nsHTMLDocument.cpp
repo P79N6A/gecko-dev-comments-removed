@@ -1939,6 +1939,15 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
       }
     }
 
+    
+    
+    
+    
+    
+    
+    
+    mMayStartLayout = PR_FALSE;
+
     nsCOMPtr<nsIWebNavigation> webnav(do_QueryInterface(shell));
     webnav->Stop(nsIWebNavigation::STOP_NETWORK);
 
@@ -1947,6 +1956,10 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
     
     
     EnsureOnloadBlocker();
+  } else {
+    
+    
+    mMayStartLayout = PR_FALSE;
   }
 
   
