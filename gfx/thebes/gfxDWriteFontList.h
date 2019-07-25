@@ -173,6 +173,8 @@ protected:
         IDWriteFontFace **aFontFace,
         DWRITE_FONT_SIMULATIONS aSimulations = DWRITE_FONT_SIMULATIONS_NONE);
 
+    static PRBool InitLogFont(IDWriteFont *aFont, LOGFONTW *aLogFont);
+
     
 
 
@@ -210,6 +212,9 @@ public:
     PRBool GetStandardFamilyName(const nsAString& aFontName,
                                  nsAString& aFamilyName);
 
+    IDWriteGdiInterop *GetGDIInterop() { return mGDIInterop; }
+    PRBool UseGDIFontTableAccess() { return mGDIFontTableAccess; }
+
 private:
     friend class gfxDWriteFontFamily;
 
@@ -228,6 +233,10 @@ private:
 
 
     FontTable mFontSubstitutes;
+
+    
+    PRBool mGDIFontTableAccess;
+    nsRefPtr<IDWriteGdiInterop> mGDIInterop;
 };
 
 

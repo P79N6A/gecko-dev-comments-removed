@@ -69,11 +69,16 @@ public:
 
     virtual PRBool SetupCairoFont(gfxContext *aContext);
 
-    virtual PRBool IsValid() { return mFontFace != NULL; }
+    virtual PRBool IsValid();
 
-    gfxFloat GetAdjustedSize() const { return mAdjustedSize; }
+    gfxFloat GetAdjustedSize() {
+        if (!mInitialized) {
+            Initialize();
+        }
+        return mAdjustedSize;
+    }
 
-    IDWriteFontFace *GetFontFace() { return mFontFace.get(); }
+    IDWriteFontFace *GetFontFace();
 
     
     
@@ -91,6 +96,8 @@ protected:
 
     virtual void CreatePlatformShaper();
 
+    void Initialize(); 
+
     void ComputeMetrics();
 
     PRBool HasBitmapStrikeForSize(PRUint32 aSize);
@@ -105,7 +112,8 @@ protected:
     cairo_font_face_t *mCairoFontFace;
     cairo_scaled_font_t *mCairoScaledFont;
 
-    gfxFont::Metrics mMetrics;
+    PRBool                     mInitialized;
+    gfxFont::Metrics          *mMetrics;
 
     
     nsDataHashtable<nsUint32HashKey,PRInt32>    mGlyphWidths;
