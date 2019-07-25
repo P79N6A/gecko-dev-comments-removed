@@ -11,6 +11,8 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 
 const HTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
+const PREF_STORAGE_VERSION = "browser.pagethumbnails.storage_version";
+const LATEST_STORAGE_VERSION = 1;
 
 
 
@@ -79,6 +81,9 @@ let PageThumbs = {
     if (!this._initialized) {
       this._initialized = true;
       PlacesUtils.history.addObserver(PageThumbsHistoryObserver, false);
+
+      
+      PageThumbsStorageMigrator.migrate();
     }
   },
 
@@ -248,7 +253,7 @@ let PageThumbsStorage = {
   getFileForURL: function Storage_getFileForURL(aURL, aOptions) {
     let hash = this._calculateMD5Hash(aURL);
     let parts = [THUMBNAIL_DIRECTORY, hash[0], hash[1]];
-    let file = FileUtils.getDir("ProfD", parts, aOptions && aOptions.createPath);
+    let file = FileUtils.getDir("ProfLD", parts, aOptions && aOptions.createPath);
     file.append(hash.slice(2) + ".png");
     return file;
   },
@@ -284,7 +289,7 @@ let PageThumbsStorage = {
 
   wipe: function Storage_wipe() {
     try {
-      FileUtils.getDir("ProfD", [THUMBNAIL_DIRECTORY]).remove(true);
+      FileUtils.getDir("ProfLD", [THUMBNAIL_DIRECTORY]).remove(true);
     } catch (e) {
       
     }
@@ -306,6 +311,44 @@ let PageThumbsStorage = {
     return hex;
   },
 
+};
+
+let PageThumbsStorageMigrator = {
+  get currentVersion() {
+    try {
+      return Services.prefs.getIntPref(PREF_STORAGE_VERSION);
+    } catch (e) {
+      
+      return 0;
+    }
+  },
+
+  set currentVersion(aVersion) {
+    Services.prefs.setIntPref(PREF_STORAGE_VERSION, aVersion);
+  },
+
+  migrate: function Migrator_migrate() {
+    let version = this.currentVersion;
+
+    if (version < 1)
+      this.removeThumbnailsFromRoamingProfile();
+
+    this.currentVersion = LATEST_STORAGE_VERSION;
+  },
+
+  removeThumbnailsFromRoamingProfile:
+  function Migrator_removeThumbnailsFromRoamingProfile() {
+    let local = FileUtils.getDir("ProfLD", [THUMBNAIL_DIRECTORY]);
+    let roaming = FileUtils.getDir("ProfD", [THUMBNAIL_DIRECTORY]);
+
+    if (!roaming.equals(local) && roaming.exists()) {
+      try {
+        roaming.remove(true);
+      } catch (e) {
+        
+      }
+    }
+  }
 };
 
 let PageThumbsHistoryObserver = {
