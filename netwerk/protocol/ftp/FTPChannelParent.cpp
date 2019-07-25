@@ -19,7 +19,10 @@ namespace mozilla {
 namespace net {
 
 FTPChannelParent::FTPChannelParent()
-: mIPCClosed(false)
+  : mIPCClosed(false)
+  , mHaveLoadContext(false)
+  , mIsContent(false)
+  , mUsePrivateBrowsing(false)
 {
   nsIProtocolHandler* handler;
   CallGetService(NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX "ftp", &handler);
@@ -43,10 +46,11 @@ FTPChannelParent::ActorDestroy(ActorDestroyReason why)
 
 
 
-NS_IMPL_ISUPPORTS4(FTPChannelParent,
+NS_IMPL_ISUPPORTS5(FTPChannelParent,
                    nsIStreamListener,
                    nsIParentChannel,
                    nsIInterfaceRequestor,
+                   nsILoadContext,
                    nsIRequestObserver);
 
 
@@ -58,7 +62,9 @@ FTPChannelParent::RecvAsyncOpen(const IPC::URI& aURI,
                                 const PRUint64& aStartPos,
                                 const nsCString& aEntityID,
                                 const IPC::InputStream& aUploadStream,
-                                const bool& aUsePrivateBrowsing)
+                                const bool& haveLoadContext,
+                                const bool& isContent,
+                                const bool& usePrivateBrowsing)
 {
   nsCOMPtr<nsIURI> uri(aURI);
 
@@ -93,7 +99,11 @@ FTPChannelParent::RecvAsyncOpen(const IPC::URI& aURI,
   if (NS_FAILED(rv))
     return SendFailedAsyncOpen(rv);
 
-  mChannel->OverridePrivateBrowsing(aUsePrivateBrowsing);
+  
+  mHaveLoadContext = haveLoadContext;
+  mIsContent = isContent;
+  mUsePrivateBrowsing = usePrivateBrowsing;
+  mChannel->SetNotificationCallbacks(this);
 
   rv = mChannel->AsyncOpen(this, nsnull);
   if (NS_FAILED(rv))
@@ -229,8 +239,64 @@ FTPChannelParent::Delete()
 NS_IMETHODIMP
 FTPChannelParent::GetInterface(const nsIID& uuid, void** result)
 {
+  
+  if (uuid.Equals(NS_GET_IID(nsILoadContext)) && !mHaveLoadContext) {
+    return NS_NOINTERFACE;
+  }
+
   return QueryInterface(uuid, result);
 }
+
+
+
+
+
+NS_IMETHODIMP
+FTPChannelParent::GetAssociatedWindow(nsIDOMWindow**)
+{
+  
+  return NS_ERROR_UNEXPECTED;
+}
+
+NS_IMETHODIMP
+FTPChannelParent::GetTopWindow(nsIDOMWindow**)
+{
+  
+  return NS_ERROR_UNEXPECTED;
+}
+
+NS_IMETHODIMP
+FTPChannelParent::IsAppOfType(PRUint32, bool*)
+{
+  
+  return NS_ERROR_UNEXPECTED;
+}
+
+NS_IMETHODIMP
+FTPChannelParent::GetIsContent(bool *aIsContent)
+{
+  NS_ENSURE_ARG_POINTER(aIsContent);
+
+  *aIsContent = mIsContent;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+FTPChannelParent::GetUsePrivateBrowsing(bool* aUsePrivateBrowsing)
+{
+  NS_ENSURE_ARG_POINTER(aUsePrivateBrowsing);
+
+  *aUsePrivateBrowsing = mUsePrivateBrowsing;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+FTPChannelParent::SetUsePrivateBrowsing(bool aUsePrivateBrowsing)
+{
+  
+  return NS_ERROR_UNEXPECTED;
+}
+
 
 } 
 } 

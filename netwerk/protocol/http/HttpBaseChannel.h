@@ -27,8 +27,8 @@
 #include "nsIApplicationCache.h"
 #include "nsIResumableChannel.h"
 #include "nsITraceableChannel.h"
+#include "nsILoadContext.h"
 #include "mozilla/net/NeckoCommon.h"
-#include "PrivateBrowsingConsumer.h"
 #include "nsThreadUtils.h"
 
 namespace mozilla {
@@ -50,7 +50,6 @@ class HttpBaseChannel : public nsHashPropertyBag
                       , public nsISupportsPriority
                       , public nsIResumableChannel
                       , public nsITraceableChannel
-                      , public PrivateBrowsingConsumer
 {
 public:
   NS_DECL_ISUPPORTS_INHERITED
@@ -186,7 +185,7 @@ public:
 
   bool ShouldRewriteRedirectToGET(PRUint32 httpStatus, nsHttpAtom method);
   bool IsSafeMethod(nsHttpAtom method);
-  
+
 protected:
 
   
@@ -265,6 +264,7 @@ protected:
   
   PRUint32                          mTimingEnabled              : 1;
   PRUint32                          mAllowSpdy                  : 1;
+  PRUint32                          mPrivateBrowsing            : 1;
 
   
   PRUint32                          mSuspendCount;

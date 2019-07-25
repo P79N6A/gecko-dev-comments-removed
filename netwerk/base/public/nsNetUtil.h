@@ -74,6 +74,7 @@
 #include "nsISocketProvider.h"
 #include "nsIRedirectChannelRegistrar.h"
 #include "nsIMIMEHeaderParam.h"
+#include "nsILoadContext.h"
 #include "mozilla/Services.h"
 
 #ifdef MOZILLA_INTERNAL_API
@@ -1294,6 +1295,21 @@ NS_QueryNotificationCallbacks(nsIInterfaceRequestor  *callbacks,
                 cbs->GetInterface(iid, result);
         }
     }
+}
+
+
+
+
+
+
+
+
+inline bool
+NS_UsePrivateBrowsing(nsIChannel *channel)
+{
+  nsCOMPtr<nsILoadContext> loadContext;
+  NS_QueryNotificationCallbacks(channel, loadContext);
+  return loadContext && loadContext->UsePrivateBrowsing();
 }
 
 

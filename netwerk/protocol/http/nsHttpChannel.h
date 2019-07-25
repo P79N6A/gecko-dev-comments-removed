@@ -145,16 +145,6 @@ public:
 
     OfflineCacheEntryAsForeignMarker* GetOfflineCacheEntryAsForeignMarker();
 
-    
-
-
-
-    bool UsingPrivateBrowsing() {
-        bool usingPB;
-        GetUsingPrivateBrowsing(&usingPB);
-        return usingPB;
-    }
-
 private:
     typedef nsresult (nsHttpChannel::*nsContinueRedirectionFunc)(nsresult result);
 
@@ -235,7 +225,7 @@ private:
     nsresult InstallCacheListener(PRUint32 offset = 0);
     nsresult InstallOfflineCacheListener();
     void     MaybeInvalidateCacheEntryForSubsequentGet();
-    nsCacheStoragePolicy DetermineStoragePolicy(bool isPrivate);
+    nsCacheStoragePolicy DetermineStoragePolicy();
     nsresult DetermineCacheAccess(nsCacheAccessMode *_retval);
     void     AsyncOnExamineCachedResponse();
 
