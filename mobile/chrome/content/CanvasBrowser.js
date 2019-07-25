@@ -54,7 +54,6 @@ CanvasBrowser.prototype = {
   _visibleBounds:new wsRect(0,0,0,0),
   
   _maybeZoomToPage: false,
-  
   _pageLoading: true,
   
   _rgnPage: Cc["@mozilla.org/gfx/region;1"].createInstance(Ci.nsIScriptableRegion),
@@ -123,6 +122,7 @@ CanvasBrowser.prototype = {
     function resizeAndPaint(self) {
       if (self._maybeZoomToPage) {
         self.zoomToPage();
+        this._maybeZoomToPage = false;
       }
       
       if (!self._isPanning)
@@ -398,9 +398,6 @@ CanvasBrowser.prototype = {
 
     if (contentW > canvasW)
       this.zoomLevel = canvasW / contentW;
-
-    if (this._clippedPageDrawing)
-      this._maybeZoomToPage = false;
   },
 
   zoomToElement: function(aElement) {
