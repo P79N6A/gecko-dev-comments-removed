@@ -37,6 +37,7 @@
 
 
 
+
 const EXPORTED_SYMBOLS = ["SyncScheduler",
                           "ErrorHandler",
                           "SendCredentialsController"];
@@ -585,6 +586,18 @@ let ErrorHandler = {
         break;
       case "weave:service:sync:finish":
         this._log.trace("Status.service is " + Status.service);
+
+        
+        
+        
+        
+        if (Status.sync    == SYNC_SUCCEEDED &&
+            Status.service == STATUS_OK) {
+          
+          this._log.trace("Clearing lastSyncReassigned.");
+          Svc.Prefs.reset("lastSyncReassigned");
+        }
+
         if (Status.service == SYNC_FAILED_PARTIAL) {
           this._log.debug("Some engines did not sync correctly.");
           this.resetFileLog(Svc.Prefs.get("log.appender.file.logOnError"),
@@ -746,6 +759,15 @@ let ErrorHandler = {
       this._log.trace("shouldReportError: true (prolonged sync failure).");
       return true;
     }
+ 
+    
+    
+    
+    if (!Weave.Service.clusterURL) {
+      this._log.trace("shouldReportError: false (no cluster URL; " +
+                      "possible node reassignment).");
+      return false;
+    }
 
     return ([Status.login, Status.sync].indexOf(SERVER_MAINTENANCE) == -1 &&
             [Status.login, Status.sync].indexOf(LOGIN_FAILED_NETWORK_ERROR) == -1);
@@ -765,7 +787,24 @@ let ErrorHandler = {
 
       case 401:
         Weave.Service.logout();
-        Status.login = LOGIN_FAILED_LOGIN_REJECTED;
+        this._log.info("Got 401 response; resetting clusterURL.");
+        Svc.Prefs.reset("clusterURL");
+
+        let delay = 0;
+        if (Svc.Prefs.get("lastSyncReassigned")) {
+          
+          
+          
+          
+          
+          this._log.warn("Last sync also failed for 401. Delaying next sync.");
+          delay = MINIMUM_BACKOFF_INTERVAL;
+        } else {
+          this._log.debug("New mid-sync 401 failure. Making a note.");
+          Svc.Prefs.set("lastSyncReassigned", true);
+        }
+        this._log.info("Attempting to schedule another sync.");
+        SyncScheduler.scheduleNextSync(delay);
         break;
 
       case 500:
