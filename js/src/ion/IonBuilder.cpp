@@ -1942,27 +1942,68 @@ TestSingletonProperty(JSContext *cx, JSObject *obj, jsid id, bool *isKnownConsta
     return true;
 }
 
+
+
+
+
+
+
+
+
+
+
+
 bool
-IonBuilder::pushTypeBarrier(MInstruction *ins, types::TypeSet *observed)
+IonBuilder::pushTypeBarrier(MInstruction *ins, types::TypeSet *actual, types::TypeSet *observed)
 {
     
     
     
     
     
-    current->push(ins);
-    if (!ins->isIdempotent() && !resumeAfter(ins))
-        return false;
 
-    if (!observed || observed->unknown())
+    if (!actual) {
+        JS_ASSERT(!observed);
         return true;
-    observed->addFreeze(cx);
+    }
 
-    
+    if (!observed) {
+        JSValueType type = actual->getKnownTypeTag(cx);
+        MInstruction *replace = NULL;
+        switch (type) {
+          case JSVAL_TYPE_UNDEFINED:
+            replace = MConstant::New(UndefinedValue());
+            break;
+          case JSVAL_TYPE_NULL:
+            replace = MConstant::New(NullValue());
+            break;
+          case JSVAL_TYPE_UNKNOWN:
+            break;
+          default:
+            replace = MUnbox::New(ins, MIRTypeFromValueType(type), MUnbox::Infallible);
+            break;
+        }
+        if (replace) {
+            current->pop();
+            current->add(replace);
+            current->push(replace);
+        }
+        return true;
+    }
+
+    if (observed->unknown())
+        return true;
+
     current->pop();
+    observed->addFreeze(cx);
 
     MInstruction *barrier;
     JSValueType type = observed->getKnownTypeTag(cx);
+
+    
+    if (type == JSVAL_TYPE_OBJECT && !observed->hasType(types::Type::AnyObjectType()))
+        type = JSVAL_TYPE_UNKNOWN;
+
     if (type == JSVAL_TYPE_UNKNOWN) {
         barrier = MTypeBarrier::New(ins, observed);
         current->add(barrier);
@@ -1974,7 +2015,6 @@ IonBuilder::pushTypeBarrier(MInstruction *ins, types::TypeSet *observed)
     } else {
         MUnbox::Mode mode = ins->isIdempotent() ? MUnbox::Fallible : MUnbox::TypeBarrier;
         barrier = MUnbox::New(ins, MIRTypeFromValueType(type), mode);
-        barrier->setTypeSet(observed);
         current->add(barrier);
     }
     current->push(barrier);
