@@ -531,7 +531,7 @@ CheckStrictParameters(JSContext *cx, Parser *parser)
                 return false;
         }
 
-        if (sc->needStrictChecks() && FindKeyword(name->charsZ(), name->length())) {
+        if (FindKeyword(name->charsZ(), name->length())) {
             
 
 
