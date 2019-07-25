@@ -5546,7 +5546,9 @@ nsDocument::GetAnimationController()
   }
 
   
-  if (!mIsShowing) {
+  
+  
+  if (!mIsShowing && !mIsBeingUsedAsImage) {
     mAnimationController->OnPageHide();
   }
 
