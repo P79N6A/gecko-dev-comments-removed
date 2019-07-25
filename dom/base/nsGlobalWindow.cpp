@@ -91,9 +91,9 @@
 #include "nsLayoutStatics.h"
 #include "nsCycleCollector.h"
 #include "nsCCUncollectableMarker.h"
+#include "nsDOMThreadService.h"
 #include "nsAutoJSValHolder.h"
 #include "nsDOMMediaQueryList.h"
-#include "mozilla/dom/workers/Workers.h"
 
 
 #include "nsIFrame.h"
@@ -179,7 +179,6 @@
 #include "nsCSSProps.h"
 #include "nsFileDataProtocolHandler.h"
 #include "nsIDOMFile.h"
-#include "nsIDOMFileList.h"
 #include "nsIURIFixup.h"
 #include "mozilla/FunctionTimer.h"
 #include "nsCDefaultURIFixup.h"
@@ -191,7 +190,6 @@
 #include "nsIXULWindow.h"
 #include "nsEventStateManager.h"
 #include "nsITimedChannel.h"
-#include "nsICookiePermission.h"
 #ifdef MOZ_XUL
 #include "nsXULPopupManager.h"
 #include "nsIDOMXULControlElement.h"
@@ -236,18 +234,14 @@
 #define FORCE_PR_LOG 1
 #endif
 #include "prlog.h"
-#include "prenv.h"
 
 #include "mozilla/dom/indexedDB/IDBFactory.h"
 #include "mozilla/dom/indexedDB/IndexedDatabaseManager.h"
-
-#include "mozilla/dom/StructuredCloneTags.h"
 
 #include "nsRefreshDriver.h"
 #include "mozAutoDocUpdate.h"
 
 #include "mozilla/Telemetry.h"
-#include "nsLocation.h"
 
 #ifdef PR_LOGGING
 static PRLogModuleInfo* gDOMLeakPRLog;
@@ -262,7 +256,6 @@ using mozilla::TimeDuration;
 
 nsIDOMStorageList *nsGlobalWindow::sGlobalStorageList  = nsnull;
 nsGlobalWindow::WindowByIdTable *nsGlobalWindow::sWindowsById = nsnull;
-bool nsGlobalWindow::sWarnedAboutWindowInternal = false;
 
 static nsIEntropyCollector *gEntropyCollector          = nsnull;
 static PRInt32              gRefCnt                    = 0;
@@ -937,11 +930,9 @@ nsGlobalWindow::nsGlobalWindow(nsGlobalWindow *aOuterWindow)
   mSerial = ++gSerialCounter;
 
 #ifdef DEBUG
-  if (!PR_GetEnv("MOZ_QUIET")) {
-    printf("++DOMWINDOW == %d (%p) [serial = %d] [outer = %p]\n", gRefCnt,
-           static_cast<void*>(static_cast<nsIScriptGlobalObject*>(this)),
-           gSerialCounter, static_cast<void*>(aOuterWindow));
-  }
+  printf("++DOMWINDOW == %d (%p) [serial = %d] [outer = %p]\n", gRefCnt,
+         static_cast<void*>(static_cast<nsIScriptGlobalObject*>(this)),
+         gSerialCounter, static_cast<void*>(aOuterWindow));
 #endif
 
 #ifdef PR_LOGGING
@@ -983,16 +974,14 @@ nsGlobalWindow::~nsGlobalWindow()
     NS_IF_RELEASE(gEntropyCollector);
   }
 #ifdef DEBUG
-  if (!PR_GetEnv("MOZ_QUIET")) {
-    nsCAutoString url;
-    if (mLastOpenedURI) {
-      mLastOpenedURI->GetSpec(url);
-    }
-
-    printf("--DOMWINDOW == %d (%p) [serial = %d] [outer = %p] [url = %s]\n",
-           gRefCnt, static_cast<void*>(static_cast<nsIScriptGlobalObject*>(this)),
-           mSerial, static_cast<void*>(mOuterWindow.get()), url.get());
+  nsCAutoString url;
+  if (mLastOpenedURI) {
+    mLastOpenedURI->GetSpec(url);
   }
+
+  printf("--DOMWINDOW == %d (%p) [serial = %d] [outer = %p] [url = %s]\n",
+         gRefCnt, static_cast<void*>(static_cast<nsIScriptGlobalObject*>(this)),
+         mSerial, static_cast<void*>(mOuterWindow.get()), url.get());
 #endif
 
 #ifdef PR_LOGGING
@@ -1037,6 +1026,8 @@ nsGlobalWindow::~nsGlobalWindow()
 
   CleanUp(PR_TRUE);
 
+  NS_ASSERTION(!mHasDeviceMotion, "Window still registered with device motion.");
+
 #ifdef DEBUG
   nsCycleCollector_DEBUG_wasFreed(static_cast<nsIScriptGlobalObject*>(this));
 #endif
@@ -1044,9 +1035,6 @@ nsGlobalWindow::~nsGlobalWindow()
   if (mURLProperty) {
     mURLProperty->ClearWindowReference();
   }
-
-  DisableDeviceMotionUpdates();
-  mHasDeviceMotion = PR_FALSE;
 
   nsLayoutStatics::Release();
 }
@@ -1166,6 +1154,9 @@ nsGlobalWindow::CleanUp(PRBool aIgnoreModalDialog)
     inner->CleanUp(aIgnoreModalDialog);
   }
 
+  DisableDeviceMotionUpdates();
+  mHasDeviceMotion = PR_FALSE;
+
   if (mCleanMessageManager) {
     NS_ABORT_IF_FALSE(mIsChrome, "only chrome should have msg manager cleaned");
     nsGlobalChromeWindow *asChrome = static_cast<nsGlobalChromeWindow*>(this);
@@ -1253,11 +1244,18 @@ nsGlobalWindow::FreeInnerObjects(PRBool aClearScope)
   NS_ASSERTION(IsInnerWindow(), "Don't free inner objects on an outer window");
 
   
-  nsIScriptContext *scx = GetContextInternal();
-  JSContext *cx = scx ?
-                  static_cast<JSContext*>(scx->GetNativeContext()) :
-                  nsnull;
-  mozilla::dom::workers::CancelWorkersForWindow(cx, this);
+  nsDOMThreadService* dts = nsDOMThreadService::get();
+  if (dts) {
+    nsIScriptContext *scx = GetContextInternal();
+
+    JSContext *cx = scx ? (JSContext *)scx->GetNativeContext() : nsnull;
+
+    
+    
+    JSAutoSuspendRequest asr(cx);
+
+    dts->CancelWorkersForGlobal(static_cast<nsIScriptGlobalObject*>(this));
+  }
 
   
   indexedDB::IndexedDatabaseManager* idbManager =
@@ -1347,17 +1345,6 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsGlobalWindow)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIScriptGlobalObject)
   NS_INTERFACE_MAP_ENTRY(nsIDOMWindow)
   NS_INTERFACE_MAP_ENTRY(nsIDOMJSWindow)
-  if (aIID.Equals(NS_GET_IID(nsIDOMWindowInternal))) {
-    foundInterface = static_cast<nsIDOMWindowInternal*>(this);
-    if (!sWarnedAboutWindowInternal) {
-      sWarnedAboutWindowInternal = true;
-      nsContentUtils::ReportToConsole(nsContentUtils::eDOM_PROPERTIES,
-                                      "nsIDOMWindowInternalWarning",
-                                      nsnull, 0, nsnull, EmptyString(), 0, 0,
-                                      nsIScriptError::warningFlag,
-                                      "Extensions", mWindowID);
-    }
-  } else
   NS_INTERFACE_MAP_ENTRY(nsIScriptGlobalObject)
   NS_INTERFACE_MAP_ENTRY(nsIScriptObjectPrincipal)
   NS_INTERFACE_MAP_ENTRY(nsIDOMEventTarget)
@@ -1366,8 +1353,6 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsGlobalWindow)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
   NS_INTERFACE_MAP_ENTRY(nsIInterfaceRequestor)
   NS_INTERFACE_MAP_ENTRY(nsIDOMWindowPerformance)
-  NS_INTERFACE_MAP_ENTRY(nsITouchEventReceiver)
-  NS_INTERFACE_MAP_ENTRY(nsIInlineEventHandlers)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(Window)
   OUTER_WINDOW_ONLY
     NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
@@ -4938,7 +4923,8 @@ nsGlobalWindow::Focus()
     return NS_OK;
   }
 
-  nsIDOMWindow *caller = nsContentUtils::GetWindowFromCaller();
+  nsIDOMWindow *caller =
+    static_cast<nsIDOMWindow*>(nsContentUtils::GetWindowFromCaller());
   nsCOMPtr<nsIDOMWindow> opener;
   GetOpener(getter_AddRefs(opener));
 
@@ -5929,6 +5915,7 @@ nsGlobalWindow::CallerInnerWindow()
 
 
 
+
 class PostMessageEvent : public nsRunnable
 {
   public:
@@ -5962,115 +5949,15 @@ class PostMessageEvent : public nsRunnable
       aBuffer.steal(&mMessage, &mMessageLen);
     }
 
-    bool StoreISupports(nsISupports* aSupports)
-    {
-      mSupportsArray.AppendElement(aSupports);
-      return true;
-    }
-
   private:
     nsRefPtr<nsGlobalWindow> mSource;
     nsString mCallerOrigin;
-    JSUint64* mMessage;
+    uint64* mMessage;
     size_t mMessageLen;
     nsRefPtr<nsGlobalWindow> mTargetWindow;
     nsCOMPtr<nsIURI> mProvidedOrigin;
     PRBool mTrustedCaller;
-    nsTArray<nsCOMPtr<nsISupports> > mSupportsArray;
 };
-
-namespace {
-
-struct StructuredCloneInfo {
-  PostMessageEvent* event;
-  PRBool subsumes;
-};
-
-static JSObject*
-PostMessageReadStructuredClone(JSContext* cx,
-                               JSStructuredCloneReader* reader,
-                               uint32 tag,
-                               uint32 data,
-                               void* closure)
-{
-  StructuredCloneInfo* scInfo = static_cast<StructuredCloneInfo*>(closure);
-  NS_ASSERTION(scInfo, "Must have scInfo!");
-
-  if (tag == SCTAG_DOM_BLOB || tag == SCTAG_DOM_FILELIST) {
-    NS_ASSERTION(!data, "Data should be empty");
-
-    nsISupports* supports;
-    if (JS_ReadBytes(reader, &supports, sizeof(supports))) {
-      JSObject* global = JS_GetGlobalForObject(cx, JS_GetScopeChain(cx));
-      if (global) {
-        jsval val;
-        nsCOMPtr<nsIXPConnectJSObjectHolder> wrapper;
-        if (NS_SUCCEEDED(nsContentUtils::WrapNative(cx, global, supports,
-                                                    &val,
-                                                    getter_AddRefs(wrapper)))) {
-          return JSVAL_TO_OBJECT(val);
-        }
-      }
-    }
-  }
-
-  const JSStructuredCloneCallbacks* runtimeCallbacks =
-    cx->runtime->structuredCloneCallbacks;
-
-  if (runtimeCallbacks) {
-    return runtimeCallbacks->read(cx, reader, tag, data, nsnull);
-  }
-
-  return JS_FALSE;
-}
-
-static JSBool
-PostMessageWriteStructuredClone(JSContext* cx,
-                                JSStructuredCloneWriter* writer,
-                                JSObject* obj,
-                                void *closure)
-{
-  StructuredCloneInfo* scInfo = static_cast<StructuredCloneInfo*>(closure);
-  NS_ASSERTION(scInfo, "Must have scInfo!");
-
-  nsCOMPtr<nsIXPConnectWrappedNative> wrappedNative;
-  nsContentUtils::XPConnect()->
-    GetWrappedNativeOfJSObject(cx, obj, getter_AddRefs(wrappedNative));
-  if (wrappedNative) {
-    PRUint32 scTag = 0;
-    nsISupports* supports = wrappedNative->Native();
-
-    nsCOMPtr<nsIDOMBlob> blob = do_QueryInterface(supports);
-    if (blob && scInfo->subsumes)
-      scTag = SCTAG_DOM_BLOB;
-
-    nsCOMPtr<nsIDOMFileList> list = do_QueryInterface(supports);
-    if (list && scInfo->subsumes)
-      scTag = SCTAG_DOM_FILELIST;
-
-    if (scTag)
-      return JS_WriteUint32Pair(writer, scTag, 0) &&
-             JS_WriteBytes(writer, &supports, sizeof(supports)) &&
-             scInfo->event->StoreISupports(supports);
-  }
-
-  const JSStructuredCloneCallbacks* runtimeCallbacks =
-    cx->runtime->structuredCloneCallbacks;
-
-  if (runtimeCallbacks) {
-    return runtimeCallbacks->write(cx, writer, obj, nsnull);
-  }
-
-  return JS_FALSE;
-}
-
-JSStructuredCloneCallbacks kPostMessageCallbacks = {
-  PostMessageReadStructuredClone,
-  PostMessageWriteStructuredClone,
-  nsnull
-};
-
-} 
 
 NS_IMETHODIMP
 PostMessageEvent::Run()
@@ -6106,7 +5993,7 @@ PostMessageEvent::Run()
 
   
   JSAutoStructuredCloneBuffer buffer;
-  buffer.adopt(mMessage, mMessageLen);
+  buffer.adopt(cx, mMessage, mMessageLen);
   mMessage = nsnull;
   mMessageLen = 0;
 
@@ -6159,10 +6046,8 @@ PostMessageEvent::Run()
   jsval messageData;
   {
     JSAutoRequest ar(cx);
-    StructuredCloneInfo scInfo;
-    scInfo.event = this;
 
-    if (!buffer.read(cx, &messageData, &kPostMessageCallbacks, &scInfo))
+    if (!buffer.read(&messageData, cx, nsnull))
       return NS_ERROR_DOM_DATA_CLONE_ERR;
   }
 
@@ -6288,14 +6173,8 @@ nsGlobalWindow::PostMessageMoz(const jsval& aMessage,
   
   
   JSAutoStructuredCloneBuffer buffer;
-  StructuredCloneInfo scInfo;
-  scInfo.event = event;
 
-  nsIPrincipal* principal = GetPrincipal();
-  if (NS_FAILED(callerPrin->Subsumes(principal, &scInfo.subsumes)))
-    return NS_ERROR_DOM_DATA_CLONE_ERR;
-
-  if (!buffer.write(aCx, aMessage, &kPostMessageCallbacks, &scInfo))
+  if (!buffer.write(aCx, aMessage, nsnull, nsnull))
     return NS_ERROR_DOM_DATA_CLONE_ERR;
 
   event->SetJSData(buffer);
@@ -7297,18 +7176,58 @@ nsGlobalWindow::Find(const nsAString& aStr, PRBool aCaseSensitive,
   return rv;
 }
 
+static PRBool
+Is8bit(const nsAString& aString)
+{
+  static const PRUnichar EIGHT_BIT = PRUnichar(~0x00FF);
+
+  nsAString::const_iterator done_reading;
+  aString.EndReading(done_reading);
+
+  
+  PRUint32 fragmentLength = 0;
+  nsAString::const_iterator iter;
+  for (aString.BeginReading(iter); iter != done_reading;
+       iter.advance(PRInt32(fragmentLength))) {
+    fragmentLength = PRUint32(iter.size_forward());
+    const PRUnichar* c = iter.get();
+    const PRUnichar* fragmentEnd = c + fragmentLength;
+
+    
+    while (c < fragmentEnd)
+      if (*c++ & EIGHT_BIT)
+        return PR_FALSE;
+  }
+
+  return PR_TRUE;
+}
+
 NS_IMETHODIMP
 nsGlobalWindow::Atob(const nsAString& aAsciiBase64String,
                      nsAString& aBinaryData)
 {
-  return nsContentUtils::Atob(aAsciiBase64String, aBinaryData);
+  if (!Is8bit(aAsciiBase64String)) {
+    aBinaryData.Truncate();
+    return NS_ERROR_DOM_INVALID_CHARACTER_ERR;
+  }
+
+  nsresult rv = nsXPConnect::Base64Decode(aAsciiBase64String, aBinaryData);
+  if (NS_FAILED(rv) && rv == NS_ERROR_INVALID_ARG) {
+    return NS_ERROR_DOM_INVALID_CHARACTER_ERR;
+  }
+  return rv;
 }
 
 NS_IMETHODIMP
 nsGlobalWindow::Btoa(const nsAString& aBinaryData,
                      nsAString& aAsciiBase64String)
 {
-  return nsContentUtils::Btoa(aBinaryData, aAsciiBase64String);
+  if (!Is8bit(aBinaryData)) {
+    aAsciiBase64String.Truncate();
+    return NS_ERROR_DOM_INVALID_CHARACTER_ERR;
+  }
+
+  return nsXPConnect::Base64Encode(aBinaryData, aAsciiBase64String);
 }
 
 
@@ -7376,8 +7295,32 @@ nsGlobalWindow::AddEventListener(const nsAString& aType,
 
   nsEventListenerManager* manager = GetListenerManager(PR_TRUE);
   NS_ENSURE_STATE(manager);
-  manager->AddEventListener(aType, aListener, aUseCapture, aWantsUntrusted);
-  return NS_OK;
+  return manager->AddEventListener(aType, aListener, aUseCapture,
+                                   aWantsUntrusted);
+}
+
+nsresult
+nsGlobalWindow::AddEventListenerByIID(nsIDOMEventListener* aListener,
+                                      const nsIID& aIID)
+{
+  nsEventListenerManager* manager = GetListenerManager(PR_TRUE);
+  NS_ENSURE_STATE(manager);
+  return manager->AddEventListenerByIID(aListener, aIID, NS_EVENT_FLAG_BUBBLE);
+}
+
+nsresult
+nsGlobalWindow::RemoveEventListenerByIID(nsIDOMEventListener* aListener,
+                                         const nsIID& aIID)
+{
+  FORWARD_TO_INNER(RemoveEventListenerByIID, (aListener, aIID),
+                   NS_ERROR_NOT_INITIALIZED);
+
+  if (mListenerManager) {
+    mListenerManager->RemoveEventListenerByIID(aListener, aIID,
+                                               NS_EVENT_FLAG_BUBBLE);
+    return NS_OK;
+  }
+  return NS_ERROR_FAILURE;
 }
 
 nsEventListenerManager*
@@ -7981,7 +7924,7 @@ static nsCanvasFrame* FindCanvasFrame(nsIFrame* aFrame)
         return canvasFrame;
     }
 
-    nsIFrame* kid = aFrame->GetFirstPrincipalChild();
+    nsIFrame* kid = aFrame->GetFirstChild(nsnull);
     while (kid) {
         canvasFrame = FindCanvasFrame(kid);
         if (canvasFrame) {
@@ -8154,6 +8097,7 @@ nsGlobalWindow::GetGlobalStorage(nsIDOMStorageList ** aGlobalStorage)
 {
   NS_ENSURE_ARG_POINTER(aGlobalStorage);
 
+#ifdef MOZ_STORAGE
   if (!Preferences::GetBool(kStorageEnabled)) {
     *aGlobalStorage = nsnull;
     return NS_OK;
@@ -8168,6 +8112,9 @@ nsGlobalWindow::GetGlobalStorage(nsIDOMStorageList ** aGlobalStorage)
   NS_IF_ADDREF(*aGlobalStorage);
 
   return NS_OK;
+#else
+  return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
+#endif
 }
 
 NS_IMETHODIMP
@@ -8222,21 +8169,19 @@ NS_IMETHODIMP
 nsGlobalWindow::GetMozIndexedDB(nsIIDBFactory** _retval)
 {
   if (!mIndexedDB) {
-    if (!IsChromeWindow()) {
-      nsCOMPtr<mozIThirdPartyUtil> thirdPartyUtil =
-        do_GetService(THIRDPARTYUTIL_CONTRACTID);
-      NS_ENSURE_TRUE(thirdPartyUtil, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
+    nsCOMPtr<mozIThirdPartyUtil> thirdPartyUtil =
+      do_GetService(THIRDPARTYUTIL_CONTRACTID);
+    NS_ENSURE_TRUE(thirdPartyUtil, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
 
-      PRBool isThirdParty;
-      nsresult rv = thirdPartyUtil->IsThirdPartyWindow(this, nsnull,
-                                                       &isThirdParty);
-      NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
+    PRBool isThirdParty;
+    nsresult rv = thirdPartyUtil->IsThirdPartyWindow(this, nsnull,
+                                                     &isThirdParty);
+    NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
 
-      if (isThirdParty) {
-        NS_WARNING("IndexedDB is not permitted in a third-party window.");
-        *_retval = nsnull;
-        return NS_OK;
-      }
+    if (isThirdParty) {
+      NS_WARNING("IndexedDB is not permitted in a third-party window.");
+      *_retval = nsnull;
+      return NS_OK;
     }
 
     mIndexedDB = indexedDB::IDBFactory::Create(this);
@@ -9983,13 +9928,11 @@ nsGlobalWindow::SuspendTimeouts(PRUint32 aIncrease,
   if (!suspended) {
     DisableDeviceMotionUpdates();
 
-    
-    nsIScriptContext *scx = GetContextInternal();
-    JSContext *cx = scx ?
-                    static_cast<JSContext*>(scx->GetNativeContext()) :
-                    nsnull;
-    mozilla::dom::workers::SuspendWorkersForWindow(cx, this);
-
+    nsDOMThreadService* dts = nsDOMThreadService::get();
+    if (dts) {
+      dts->SuspendWorkersForGlobal(static_cast<nsIScriptGlobalObject*>(this));
+    }
+  
     TimeStamp now = TimeStamp::Now();
     for (nsTimeout *t = FirstTimeout(); IsTimeout(t); t = t->Next()) {
       
@@ -10061,12 +10004,10 @@ nsGlobalWindow::ResumeTimeouts(PRBool aThawChildren)
   if (shouldResume) {
     EnableDeviceMotionUpdates();
 
-    
-    nsIScriptContext *scx = GetContextInternal();
-    JSContext *cx = scx ?
-                    static_cast<JSContext*>(scx->GetNativeContext()) :
-                    nsnull;
-    mozilla::dom::workers::ResumeWorkersForWindow(cx, this);
+    nsDOMThreadService* dts = nsDOMThreadService::get();
+    if (dts) {
+      dts->ResumeWorkersForGlobal(static_cast<nsIScriptGlobalObject*>(this));
+    }
 
     
     
@@ -10198,26 +10139,6 @@ nsGlobalWindow::HasPerformanceSupport()
   return Preferences::GetBool("dom.enable_performance", PR_FALSE);
 }
 
-PRInt64
-nsGlobalWindow::SizeOf() const
-{
-  PRInt64 size = sizeof(*this);
-
-  if (IsInnerWindow()) {
-    nsEventListenerManager* elm =
-      const_cast<nsGlobalWindow*>(this)->GetListenerManager(PR_FALSE);
-    if (elm) {
-      size += elm->SizeOf();
-    }
-    if (mDoc) {
-      size += mDoc->SizeOf();
-    }
-  }
-
-  size += mNavigator ? mNavigator->SizeOf() : 0;
-
-  return size;
-}
 
 
 
@@ -11035,36 +10956,6 @@ nsNavigator::GetCookieEnabled(PRBool *aCookieEnabled)
     (Preferences::GetInt("network.cookie.cookieBehavior",
                          COOKIE_BEHAVIOR_REJECT) != COOKIE_BEHAVIOR_REJECT);
 
-  
-  
-  
-  nsCOMPtr<nsIDocument> doc = do_GetInterface(mDocShell);
-  if (!doc) {
-    return NS_OK;
-  }
-
-  nsCOMPtr<nsIURI> codebaseURI;
-  doc->NodePrincipal()->GetURI(getter_AddRefs(codebaseURI));
-
-  if (!codebaseURI) {
-    
-    
-    return NS_OK;
-  }
-  
-  nsCOMPtr<nsICookiePermission> permMgr =
-    do_GetService(NS_COOKIEPERMISSION_CONTRACTID);
-  NS_ENSURE_TRUE(permMgr, NS_OK);
-
-  
-  nsCookieAccess access;
-  nsresult rv = permMgr->CanAccess(codebaseURI, nsnull, &access);
-  NS_ENSURE_SUCCESS(rv, NS_OK);
-
-  if (access != nsICookiePermission::ACCESS_DEFAULT) {
-    *aCookieEnabled = access != nsICookiePermission::ACCESS_DENY;
-  }
-
   return NS_OK;
 }
 
@@ -11135,6 +11026,13 @@ nsNavigator::JavaEnabled(PRBool *aReturn)
     }
   }
 
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsNavigator::TaintEnabled(PRBool *aReturn)
+{
+  *aReturn = PR_FALSE;
   return NS_OK;
 }
 
@@ -11363,52 +11261,3 @@ NS_IMETHODIMP nsNavigator::GetMozNotification(nsIDOMDesktopNotificationCenter **
   NS_ADDREF(*aRetVal = mNotification);    
   return NS_OK; 
 }
-
-#define EVENT(name_, id_, type_, struct_)                                    \
-  NS_IMETHODIMP nsGlobalWindow::GetOn##name_(JSContext *cx,                  \
-                                             jsval *vp) {                    \
-    nsEventListenerManager *elm = GetListenerManager(PR_FALSE);              \
-    if (elm) {                                                               \
-      elm->GetJSEventListener(nsGkAtoms::on##name_, vp);                     \
-    } else {                                                                 \
-      *vp = JSVAL_NULL;                                                      \
-    }                                                                        \
-    return NS_OK;                                                            \
-  }                                                                          \
-  NS_IMETHODIMP nsGlobalWindow::SetOn##name_(JSContext *cx,                  \
-                                             const jsval &v) {               \
-    nsEventListenerManager *elm = GetListenerManager(PR_TRUE);               \
-    if (!elm) {                                                              \
-      return NS_ERROR_OUT_OF_MEMORY;                                         \
-    }                                                                        \
-                                                                             \
-    JSObject *obj = mJSObject;                                               \
-    if (!obj) {                                                              \
-      return NS_ERROR_UNEXPECTED;                                            \
-    }                                                                        \
-    return elm->SetJSEventListenerToJsval(nsGkAtoms::on##name_, cx, obj, v); \
-  }
-#define WINDOW_ONLY_EVENT EVENT
-#define TOUCH_EVENT EVENT
-#include "nsEventNameList.h"
-#undef TOUCH_EVENT
-#undef WINDOW_ONLY_EVENT
-#undef EVENT
-
-PRInt64
-nsNavigator::SizeOf() const
-{
-  PRInt64 size = sizeof(*this);
-
-  
-  size += mMimeTypes ? sizeof(*mMimeTypes.get()) : 0;
-  
-  size += mPlugins ? sizeof(*mPlugins.get()) : 0;
-  
-  size += mGeolocation ? sizeof(*mGeolocation.get()) : 0;
-  
-  size += mNotification ? sizeof(*mNotification.get()) : 0;
-
-  return size;
-}
-

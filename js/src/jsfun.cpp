@@ -187,7 +187,7 @@ js_GetArgsProperty(JSContext *cx, StackFrame *fp, jsid id, Value *vp)
 js::ArgumentsObject *
 ArgumentsObject::create(JSContext *cx, uint32 argc, JSObject &callee)
 {
-    JS_ASSERT(argc <= JS_ARGS_LENGTH_MAX);
+    JS_ASSERT(argc <= StackSpace::ARGS_LENGTH_MAX);
 
     JSObject *proto;
     if (!js_GetClassPrototype(cx, callee.getGlobal(), JSProto_Object, &proto))
@@ -250,7 +250,9 @@ js_GetArgsObject(JSContext *cx, StackFrame *fp)
 
 
 
-    JS_ASSERT_IF(fp->fun()->isHeavyweight(), fp->hasCallObj());
+    JS_ASSERT(fp->isFunctionFrame());
+    while (fp->isEvalInFunction())
+        fp = fp->prev();
 
     
 
@@ -259,10 +261,8 @@ js_GetArgsObject(JSContext *cx, StackFrame *fp)
     MarkTypeObjectFlags(cx, fp->fun(),
                         OBJECT_FLAG_CREATED_ARGUMENTS | OBJECT_FLAG_UNINLINEABLE);
 
-    while (fp->isEvalInFunction())
-        fp = fp->prev();
-
     
+    JS_ASSERT_IF(fp->fun()->isHeavyweight(), fp->hasCallObj());
     if (fp->hasArgsObj())
         return &fp->argsObj();
 
@@ -373,163 +373,6 @@ args_delProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
     return true;
 }
 
-static JS_REQUIRES_STACK JSObject *
-WrapEscapingClosure(JSContext *cx, StackFrame *fp, JSFunction *fun)
-{
-    JS_ASSERT(fun->optimizedClosure());
-    JS_ASSERT(!fun->u.i.wrapper);
-
-    
-
-
-
-
-
-
-    JSObject *scopeChain = GetScopeChain(cx, fp);
-    if (!scopeChain)
-        return NULL;
-
-    JSObject *wfunobj = NewFunction(cx, scopeChain);
-    if (!wfunobj)
-        return NULL;
-    AutoObjectRooter tvr(cx, wfunobj);
-
-    JSFunction *wfun = (JSFunction *) wfunobj;
-    wfunobj->setPrivate(wfun);
-    wfun->nargs = fun->nargs;
-    wfun->flags = fun->flags | JSFUN_HEAVYWEIGHT;
-    wfun->u.i.skipmin = fun->u.i.skipmin;
-    wfun->u.i.wrapper = true;
-    wfun->u.i.script = NULL;
-    wfun->atom = fun->atom;
-
-    JSScript *script = fun->script();
-    jssrcnote *snbase = script->notes();
-    jssrcnote *sn = snbase;
-    while (!SN_IS_TERMINATOR(sn))
-        sn = SN_NEXT(sn);
-    uintN nsrcnotes = (sn - snbase) + 1;
-
-    
-    JSScript *wscript = JSScript::NewScript(cx, script->length, nsrcnotes,
-                                            script->atomMap.length,
-                                            JSScript::isValidOffset(script->objectsOffset)
-                                            ? script->objects()->length
-                                            : 0,
-                                            script->bindings.countUpvars(),
-                                            JSScript::isValidOffset(script->regexpsOffset)
-                                            ? script->regexps()->length
-                                            : 0,
-                                            JSScript::isValidOffset(script->trynotesOffset)
-                                            ? script->trynotes()->length
-                                            : 0,
-                                            JSScript::isValidOffset(script->constOffset)
-                                            ? script->consts()->length
-                                            : 0,
-                                            JSScript::isValidOffset(script->globalsOffset)
-                                            ? script->globals()->length
-                                            : 0,
-                                            script->nClosedArgs,
-                                            script->nClosedVars,
-                                            script->nTypeSets,
-                                            script->getVersion());
-    if (!wscript)
-        return NULL;
-
-    memcpy(wscript->code, script->code, script->length);
-    wscript->main = wscript->code + (script->main - script->code);
-
-    memcpy(wscript->notes(), snbase, nsrcnotes * sizeof(jssrcnote));
-    memcpy(wscript->atomMap.vector, script->atomMap.vector,
-           wscript->atomMap.length * sizeof(JSAtom *));
-    if (JSScript::isValidOffset(script->objectsOffset)) {
-        memcpy(wscript->objects()->vector, script->objects()->vector,
-               wscript->objects()->length * sizeof(JSObject *));
-    }
-    if (JSScript::isValidOffset(script->regexpsOffset)) {
-        memcpy(wscript->regexps()->vector, script->regexps()->vector,
-               wscript->regexps()->length * sizeof(JSObject *));
-    }
-    if (JSScript::isValidOffset(script->trynotesOffset)) {
-        memcpy(wscript->trynotes()->vector, script->trynotes()->vector,
-               wscript->trynotes()->length * sizeof(JSTryNote));
-    }
-    if (JSScript::isValidOffset(script->globalsOffset)) {
-        memcpy(wscript->globals()->vector, script->globals()->vector,
-               wscript->globals()->length * sizeof(GlobalSlotArray::Entry));
-    }
-    if (script->nClosedArgs + script->nClosedVars != 0)
-        script->copyClosedSlotsTo(wscript);
-
-    if (script->bindings.hasUpvars()) {
-        JS_ASSERT(script->bindings.countUpvars() == wscript->upvars()->length);
-        memcpy(wscript->upvars()->vector, script->upvars()->vector,
-               script->bindings.countUpvars() * sizeof(uint32));
-    }
-
-    jsbytecode *pc = wscript->code;
-    while (*pc != JSOP_STOP) {
-        
-        JSOp op = js_GetOpcode(cx, wscript, pc);
-        const JSCodeSpec *cs = &js_CodeSpec[op];
-        ptrdiff_t oplen = cs->length;
-        if (oplen < 0)
-            oplen = js_GetVariableBytecodeLength(pc);
-
-        
-
-
-
-
-
-        switch (op) {
-          case JSOP_GETFCSLOT:      *pc = JSOP_GETUPVAR_DBG; break;
-          case JSOP_CALLFCSLOT:     *pc = JSOP_CALLUPVAR_DBG; break;
-          case JSOP_DEFFUN_FC:      *pc = JSOP_DEFFUN_DBGFC; break;
-          case JSOP_DEFLOCALFUN_FC: *pc = JSOP_DEFLOCALFUN_DBGFC; break;
-          case JSOP_LAMBDA_FC:      *pc = JSOP_LAMBDA_DBGFC; break;
-          default:;
-        }
-        pc += oplen;
-    }
-
-    
-
-
-
-    JS_ASSERT(wscript->getVersion() == script->getVersion());
-    wscript->nfixed = script->nfixed;
-    wscript->filename = script->filename;
-    wscript->lineno = script->lineno;
-    wscript->nslots = script->nslots;
-    wscript->staticLevel = script->staticLevel;
-    wscript->principals = script->principals;
-    wscript->noScriptRval = script->noScriptRval;
-    wscript->savedCallerFun = script->savedCallerFun;
-    wscript->hasSharps = script->hasSharps;
-    wscript->strictModeCode = script->strictModeCode;
-    wscript->compileAndGo = script->compileAndGo;
-    wscript->usesEval = script->usesEval;
-    wscript->usesArguments = script->usesArguments;
-    wscript->warnedAboutTwoArgumentEval = script->warnedAboutTwoArgumentEval;
-    if (wscript->principals)
-        JSPRINCIPALS_HOLD(cx, wscript->principals);
-#ifdef CHECK_SCRIPT_OWNER
-    wscript->owner = script->owner;
-#endif
-
-    wscript->bindings.clone(cx, &script->bindings);
-
-    
-    FUN_SET_KIND(wfun, JSFUN_INTERPRETED);
-    wfun->u.i.script = wscript;
-    if (!wscript->typeSetFunction(cx, wfun))
-        return NULL;
-    js_CallNewScriptHook(cx, wscript, wfun);
-    return wfunobj;
-}
-
 static JSBool
 ArgGetter(JSContext *cx, JSObject *obj, jsid id, Value *vp)
 {
@@ -558,22 +401,8 @@ ArgGetter(JSContext *cx, JSObject *obj, jsid id, Value *vp)
     } else {
         JS_ASSERT(JSID_IS_ATOM(id, cx->runtime->atomState.calleeAtom));
         const Value &v = argsobj->callee();
-        if (!v.isMagic(JS_ARGS_HOLE)) {
-            
-
-
-
-
-
-
-
-            if (GET_FUNCTION_PRIVATE(cx, &v.toObject())->needsWrapper()) {
-                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                                     JSMSG_OPTIMIZED_CLOSURE_LEAK);
-                return false;
-            }
+        if (!v.isMagic(JS_ARGS_HOLE))
             *vp = v;
-        }
     }
     return true;
 }
@@ -933,49 +762,6 @@ Class js_DeclEnvClass = {
     ConvertStub
 };
 
-static JSBool
-CheckForEscapingClosure(JSContext *cx, JSObject *obj, Value *vp)
-{
-    JS_ASSERT(obj->isCall() || obj->getClass() == &js_DeclEnvClass);
-
-    const Value &v = *vp;
-
-    JSObject *funobj;
-    if (IsFunctionObject(v, &funobj)) {
-        JSFunction *fun = GET_FUNCTION_PRIVATE(cx, funobj);
-
-        
-
-
-
-
-
-        if (fun->needsWrapper()) {
-            LeaveTrace(cx);
-
-            StackFrame *fp = (StackFrame *) obj->getPrivate();
-            if (fp) {
-                JSObject *wrapper = WrapEscapingClosure(cx, fp, fun);
-                if (!wrapper)
-                    return false;
-                vp->setObject(*wrapper);
-                return true;
-            }
-
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                                 JSMSG_OPTIMIZED_CLOSURE_LEAK);
-            return false;
-        }
-    }
-    return true;
-}
-
-static JSBool
-CalleeGetter(JSContext *cx, JSObject *obj, jsid id, Value *vp)
-{
-    return CheckForEscapingClosure(cx, obj, vp);
-}
-
 
 
 
@@ -1054,7 +840,7 @@ CreateFunCallObject(JSContext *cx, StackFrame *fp)
             return NULL;
 
         if (!DefineNativeProperty(cx, scopeChain, ATOM_TO_JSID(lambdaName),
-                                  ObjectValue(fp->callee()), CalleeGetter, NULL,
+                                  ObjectValue(fp->callee()), NULL, NULL,
                                   JSPROP_PERMANENT | JSPROP_READONLY, 0, 0)) {
             return NULL;
         }
@@ -1289,17 +1075,7 @@ GetCallVar(JSContext *cx, JSObject *obj, jsid id, Value *vp)
         *vp = fp->varSlot(i);
     else
         *vp = obj->callObjVar(i);
-
     return true;
-}
-
-JSBool
-GetCallVarChecked(JSContext *cx, JSObject *obj, jsid id, Value *vp)
-{
-    if (!GetCallVar(cx, obj, id, vp))
-        return false;
-
-    return CheckForEscapingClosure(cx, obj, vp);
 }
 
 JSBool
@@ -1455,21 +1231,6 @@ StackFrame::getValidCalleeObject(JSContext *cx, Value *vp)
     }
 
     JSFunction *fun = this->fun();
-
-    
-
-
-
-
-
-    if (fun->needsWrapper()) {
-        JSObject *wrapper = WrapEscapingClosure(cx, this, fun);
-        if (!wrapper)
-            return false;
-        vp->setObject(*wrapper);
-        return true;
-    }
-
     JSObject &funobj = callee();
     vp->setObject(funobj);
 
@@ -1742,10 +1503,15 @@ ResolveInterpretedFunctionPrototype(JSContext *cx, JSObject *obj)
 
 
 
+    if (!obj->defineProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.classPrototypeAtom),
+                             ObjectValue(*proto), PropertyStub, StrictPropertyStub,
+                             JSPROP_PERMANENT) ||
+        !proto->defineProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.constructorAtom),
+                               ObjectValue(*obj), PropertyStub, StrictPropertyStub, 0))
+    {
+       return NULL;
+    }
 
-
-    if (!js_SetClassPrototype(cx, obj, proto, JSPROP_PERMANENT))
-        return NULL;
     return proto;
 }
 
@@ -1760,7 +1526,6 @@ fun_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
 
     if (JSID_IS_ATOM(id, cx->runtime->atomState.classPrototypeAtom)) {
         
-
 
 
 
@@ -2176,7 +1941,7 @@ js_fun_apply(JSContext *cx, uintN argc, Value *vp)
     LeaveTrace(cx);
 
     
-    uintN n = uintN(JS_MIN(length, JS_ARGS_LENGTH_MAX));
+    uintN n = uintN(JS_MIN(length, StackSpace::ARGS_LENGTH_MAX));
 
     InvokeArgsGuard args;
     if (!cx->stack.pushInvokeArgs(cx, n, &args))
@@ -2286,7 +2051,7 @@ CallOrConstructBoundFunction(JSContext *cx, uintN argc, Value *vp)
     
     uintN argslen = obj->getBoundFunctionArgumentCount();
 
-    if (argc + argslen > JS_ARGS_LENGTH_MAX) {
+    if (argc + argslen > StackSpace::ARGS_LENGTH_MAX) {
         js_ReportAllocationOverflow(cx);
         return false;
     }
@@ -2879,16 +2644,6 @@ js_NewFlatClosure(JSContext *cx, JSFunction *fun, JSOp op, size_t oplen)
     }
 
     return closure;
-}
-
-JSObject *
-js_NewDebuggableFlatClosure(JSContext *cx, JSFunction *fun)
-{
-    JS_ASSERT(cx->fp()->fun()->flags & JSFUN_HEAVYWEIGHT);
-    JS_ASSERT(!cx->fp()->fun()->optimizedClosure());
-    JS_ASSERT(FUN_FLAT_CLOSURE(fun));
-
-    return WrapEscapingClosure(cx, cx->fp(), fun);
 }
 
 JSFunction *

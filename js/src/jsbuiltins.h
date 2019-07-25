@@ -42,12 +42,11 @@
 
 #ifdef JS_TRACER
 
-#include "nanojit/nanojit.h"
-#include "jsvalue.h"
 
-#ifdef THIS
-#undef THIS
-#endif
+#include "nanojit/nanojit.h"
+#include "jswin.h"
+
+#include "jsvalue.h"
 
 enum JSTNErrType { INFALLIBLE, FAIL_STATUS, FAIL_NULL, FAIL_NEG, FAIL_NEITHER };
 enum { 

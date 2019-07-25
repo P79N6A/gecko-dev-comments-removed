@@ -1185,6 +1185,16 @@ extern JS_PUBLIC_API(JSBool)
 JS_SetCTypesCallbacks(JSContext *cx, JSObject *ctypesObj, JSCTypesCallbacks *callbacks);
 #endif
 
+typedef JSBool
+(* JSEnumerateDiagnosticMemoryCallback)(void *ptr, size_t length);
+
+
+
+
+
+extern JS_PUBLIC_API(void)
+JS_EnumerateDiagnosticMemoryRegions(JSEnumerateDiagnosticMemoryCallback callback);
+
 
 
 
@@ -2595,6 +2605,21 @@ JS_SetContextSecurityCallbacks(JSContext *cx, JSSecurityCallbacks *callbacks);
 
 extern JS_PUBLIC_API(JSSecurityCallbacks *)
 JS_GetSecurityCallbacks(JSContext *cx);
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(void)
+JS_SetTrustedPrincipals(JSRuntime *rt, JSPrincipals *prin);
 
 
 

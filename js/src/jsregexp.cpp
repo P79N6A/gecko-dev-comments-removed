@@ -56,6 +56,7 @@
 #include "jsscan.h"
 #include "jsstr.h"
 #include "jsvector.h"
+#include "vm/GlobalObject.h"
 
 #include "jsinferinlines.h"
 #include "jsobjinlines.h"
@@ -817,57 +818,40 @@ static JSFunctionSpec regexp_methods[] = {
 };
 
 JSObject *
-js_InitRegExpClass(JSContext *cx, JSObject *global)
+js_InitRegExpClass(JSContext *cx, JSObject *obj)
 {
-    JS_ASSERT(global->isGlobal());
-    JS_ASSERT(global->isNative());
+    JS_ASSERT(obj->isNative());
 
-    
-    JSObject *objectProto;
-    if (!js_GetClassPrototype(cx, global, JSProto_Object, &objectProto))
-        return NULL;
-    JS_ASSERT(objectProto);
+    GlobalObject *global = obj->asGlobal();
 
-    JSObject *proto = NewObject<WithProto::Class>(cx, &js_RegExpClass, objectProto, global);
-    if (!proto || !proto->setSingletonType(cx))
+    JSObject *proto = global->createBlankPrototype(cx, &js_RegExpClass);
+    if (!proto)
         return NULL;
 
     AlreadyIncRefed<RegExp> re = RegExp::create(cx, cx->runtime->emptyString, 0, NULL);
     if (!re)
         return NULL;
+
+    
+
+
+
+
 #ifdef DEBUG
     assertSameCompartment(cx, proto, re->compartment);
 #endif
-
-    
-
-
-
-
     if (!proto->initRegExp(cx, re.get()))
         return NULL;
 
-    
-
-
-
-    if (!JS_DefineFunctions(cx, proto, regexp_methods))
+    if (!DefinePropertiesAndBrand(cx, proto, NULL, regexp_methods))
         return NULL;
-    if (!cx->typeInferenceEnabled())
-        proto->brand(cx);
 
-    
-    JSAtom *regExpAtom = CLASS_ATOM(cx, RegExp);
-    JSFunction *ctor =
-        js_NewFunction(cx, NULL, regexp_construct, 2, JSFUN_CONSTRUCTOR, global, regExpAtom);
+    JSFunction *ctor = global->createConstructor(cx, regexp_construct, &js_RegExpClass,
+                                                 CLASS_ATOM(cx, RegExp), 2);
     if (!ctor)
         return NULL;
 
-    
-    FUN_CLASP(ctor) = &js_RegExpClass;
-
-    
-    if (!js_SetClassPrototype(cx, ctor, proto, JSPROP_PERMANENT | JSPROP_READONLY))
+    if (!LinkConstructorAndPrototype(cx, ctor, proto))
         return NULL;
 
     
@@ -881,25 +865,24 @@ js_InitRegExpClass(JSContext *cx, JSObject *global)
         return NULL;
     }
 
-    types::TypeObject *type = proto->getNewType(cx);
+    
+
+
+
+
+
+    TypeObject *type = proto->getNewType(cx);
     if (!type)
         return NULL;
+    AddTypeProperty(cx, type, "source", Type::StringType());
+    AddTypeProperty(cx, type, "global", Type::BooleanType());
+    AddTypeProperty(cx, type, "ignoreCase", Type::BooleanType());
+    AddTypeProperty(cx, type, "multiline", Type::BooleanType());
+    AddTypeProperty(cx, type, "sticky", Type::BooleanType());
+    AddTypeProperty(cx, type, "lastIndex", Type::Int32Type());
 
-    
-
-
-
-
-
-
-
-    if (!type->getEmptyShape(cx, &js_RegExpClass, FINALIZE_OBJECT0))
-        return NULL;
-
-    
     if (!DefineConstructorAndPrototype(cx, global, JSProto_RegExp, ctor, proto))
         return NULL;
 
     return proto;
 }
-

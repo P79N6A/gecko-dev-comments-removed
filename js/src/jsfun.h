@@ -146,7 +146,6 @@ struct JSFunction : public JSObject_Slots2
     JSAtom          *atom;        
 
     bool optimizedClosure()  const { return FUN_KIND(this) > JSFUN_INTERPRETED; }
-    bool needsWrapper()      const { return FUN_NULL_CLOSURE(this) && u.i.skipmin != 0; }
     bool isInterpreted()     const { return FUN_INTERPRETED(this); }
     bool isNative()          const { return !FUN_INTERPRETED(this); }
     bool isConstructor()     const { return flags & JSFUN_CONSTRUCTOR; }
@@ -496,9 +495,6 @@ js_AllocFlatClosure(JSContext *cx, JSFunction *fun, JSObject *scopeChain);
 extern JSObject *
 js_NewFlatClosure(JSContext *cx, JSFunction *fun, JSOp op, size_t oplen);
 
-extern JS_REQUIRES_STACK JSObject *
-js_NewDebuggableFlatClosure(JSContext *cx, JSFunction *fun);
-
 extern JSFunction *
 js_DefineFunction(JSContext *cx, JSObject *obj, jsid id, js::Native native,
                   uintN nargs, uintN flags);
@@ -545,13 +541,6 @@ GetCallArg(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
 extern JSBool
 GetCallVar(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
 
-
-
-
-
-extern JSBool
-GetCallVarChecked(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
-
 extern JSBool
 GetCallUpvar(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
 
@@ -590,25 +579,6 @@ js_PutArgsObject(js::StackFrame *fp);
 
 inline bool
 js_IsNamedLambda(JSFunction *fun) { return (fun->flags & JSFUN_LAMBDA) && fun->atom; }
-
-
-
-
-
-
-
-
-
-
-
-const uint32 JS_ARGS_LENGTH_MAX = JS_BIT(19) - 1024;
-
-
-
-
-
-JS_STATIC_ASSERT(JS_ARGS_LENGTH_MAX <= JS_BIT(30));
-JS_STATIC_ASSERT(((JS_ARGS_LENGTH_MAX << 1) | 1) <= JSVAL_INT_MAX);
 
 extern JSBool
 js_XDRFunctionObject(JSXDRState *xdr, JSObject **objp);

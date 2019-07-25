@@ -981,6 +981,7 @@ typedef enum JSSrcNoteType {
     SRC_CONT2LABEL  = 17,       
     SRC_SWITCH      = 18,       
 
+    SRC_SWITCHBREAK = 18,       
     SRC_FUNCDEF     = 19,       
     SRC_CATCH       = 20,       
     SRC_EXTENDED    = 21,       

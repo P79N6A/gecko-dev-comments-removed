@@ -376,7 +376,7 @@ struct JSRuntime {
     uint32              protoHazardShape;
 
     
-    js::GCChunkSet      gcChunkSet;
+    js::GCChunkSet      gcUserChunkSet;
     js::GCChunkSet      gcSystemChunkSet;
 
     js::RootedValueMap  gcRootsHash;
@@ -412,6 +412,12 @@ struct JSRuntime {
 
     
     JSCompartment       *gcCurrentCompartment;
+
+    
+
+
+
+    JSCompartment       *gcCheckCompartment;
 
     
 
@@ -600,6 +606,12 @@ struct JSRuntime {
 
 #define JS_THREAD_DATA(cx)      (&(cx)->runtime->threadData)
 #endif
+
+  private:
+    JSPrincipals        *trustedPrincipals_;
+  public:
+    void setTrustedPrincipals(JSPrincipals *p) { trustedPrincipals_ = p; }
+    JSPrincipals *trustedPrincipals() const { return trustedPrincipals_; }
 
     
 
@@ -2287,6 +2299,9 @@ js_GetScriptedCaller(JSContext *cx, js::StackFrame *fp);
 
 extern jsbytecode*
 js_GetCurrentBytecodePC(JSContext* cx);
+
+extern JSScript *
+js_GetCurrentScript(JSContext* cx);
 
 extern bool
 js_CurrentPCIsInImacro(JSContext *cx);

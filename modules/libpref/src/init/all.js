@@ -629,6 +629,7 @@ pref("javascript.options.mem.high_water_mark", 128);
 pref("javascript.options.mem.max", -1);
 pref("javascript.options.mem.gc_per_compartment", true);
 pref("javascript.options.mem.log", false);
+pref("javascript.options.gc_on_memory_pressure", true);
 
 
 pref("advanced.mailftp",                    false);
@@ -816,6 +817,10 @@ pref("network.websocket.extensions.stream-deflate", true);
 
 
 pref("network.websocket.max-connections", 200);
+
+
+
+pref("network.websocket.allowInsecureFromHTTPS", false);
 
 
 
@@ -1293,6 +1298,17 @@ pref("layout.word_select.stop_at_punctuation", true);
 
 
 pref("layout.selection.caret_style", 0);
+
+
+
+
+
+
+
+
+
+pref("layout.selection.drag.autoscroll.inner_frame.edge_width", 32);
+pref("layout.selection.drag.autoscroll.inner_frame.amount", 8);
 
 
 
@@ -3209,14 +3225,22 @@ pref("network.tcp.sendbuffer", 131072);
 #endif
 
 
+#ifdef MOZ_E10S_COMPAT
+pref("layers.acceleration.disabled", true);
+#else
 pref("layers.acceleration.disabled", false);
+#endif
 
 
 pref("layers.acceleration.force-enabled", false);
 
 #ifdef XP_WIN
 
+#ifdef MOZ_E10S_COMPAT
+pref("gfx.direct2d.disabled", true);
+#else
 pref("gfx.direct2d.disabled", false);
+#endif
 
 
 pref("gfx.direct2d.force-enabled", false);
