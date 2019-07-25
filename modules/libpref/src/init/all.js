@@ -272,8 +272,7 @@ pref("toolkit.scrollbox.clickToScroll.scrollDelay", 150);
 
 
 pref("toolkit.telemetry.enabled", false);
-
-pref("toolkit.telemetry.server", "http://telemetry.allizom.org");
+pref("toolkit.telemetry.server", "https://data.mozilla.com");
 
 
 pref("view_source.syntax_highlight", true);
