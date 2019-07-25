@@ -1085,10 +1085,44 @@ var TapHighlightHelper = {
     }
     ctx.restore();
     overlay.style.display = "block";
+
+    addEventListener("MozBeforePaint", this, false);
+    mozRequestAnimationFrame();
   },
 
-  hide: function hide() {
+  
+
+
+
+  hide: function hide(aGuaranteeShowMsecs) {
+    if (this._overlay.style.display == "none")
+      return;
+
+    this._guaranteeShow = Math.max(0, aGuaranteeShowMsecs);
+    if (this._guaranteeShow) {
+      
+      if (this._shownAt)
+        setTimeout(this._hide.bind(this),
+                   Math.max(0, this._guaranteeShow - (mozAnimationStartTime - this._shownAt)));
+    } else {
+      this._hide();
+    }
+  },
+
+  
+  _hide: function _hide() {
+    this._shownAt = 0;
+    this._guaranteeShow = 0;
     this._overlay.style.display = "none";
+  },
+
+  handleEvent: function handleEvent(ev) {
+    removeEventListener("MozBeforePaint", this, false);
+    this._shownAt = ev.timeStamp;
+    
+    
+    if (this._guaranteeShow)
+      this.hide(this._guaranteeShow);
   }
 };
 
